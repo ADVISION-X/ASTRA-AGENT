@@ -25,7 +25,7 @@ import type { InspectorContext } from "../../scripts/audit/shared/inspector-cont
 import { proofObservationPrefix } from "../../scripts/audit/shared/proof-observation.js";
 import type { QualityProofRequest } from "../../scripts/audit/shared/proof-observation.js";
 import { assertProofModeDenominator, observationMatchesRoute, proofClauseIndexesFor, relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
-import { finalizeStaticInspection, staticLawCoverage } from "../../scripts/audit/shared/static-inspector-result.js";
+import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../scripts/audit/shared/static-inspection-contract.js";
 import { inspectPerSiteHmac } from "../../scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.js";
 
 const fixtureLaw = (): Law => ({
@@ -395,59 +395,59 @@ test("a Dynamic producer cannot self-authenticate an invented native object", ()
   );
 });
 
-test("static finalization rejects a law with no explicit clause result", async () => {
+test("static validation rejects a law with no owner result", () => {
   const context = {
-    project: new Project({ useInMemoryFileSystem: true }),
+    project: new Project({ tsConfigFilePath: "tsconfig.json" }),
     selectedLawId: "LAW-FIXTURE-001-V1",
-    sealedRoot: "/sealed",
+    sealedRoot: process.cwd(),
     targetSet: { queryRef: "scope:fixture", count: 1 },
-    targetPaths: ["src/fixture.ts"],
+    targetPaths: ["package.json"],
     lawRequirements: ["LAW-FIXTURE-001-V1", "LAW-FIXTURE-002-V1"].map((lawId) => ({
       lawId,
       forbiddenCount: 1,
       clausesByMode: { "static.ast": ["summary"] },
-      targetPaths: ["src/fixture.ts"],
+      targetPaths: ["package.json"],
       targetSet: { queryRef: `scope:${lawId}`, count: 1 },
     })),
     planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
   } as unknown as InspectorContext;
-  await assert.rejects(
-    () => finalizeStaticInspection(context, function inspectFixture() { return {
-      capabilityDomain: "fixture",
-      coverage: [staticLawCoverage("LAW-FIXTURE-001-V1", 1, ["static.ast"], [])],
-      reportedLawIds: ["LAW-FIXTURE-001-V1", "LAW-FIXTURE-002-V1"],
-      findings: [],
-      inspectedFiles: ["src/fixture.ts"],
-    }; }),
+  assert.throws(
+    () => validateStaticInspection(context, {
+      capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1", "LAW-FIXTURE-002-V1"],
+      lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(),
+        evidenceMode: "static.ast", passed: true, refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast") }], findings: [] }],
+      inspectedFiles: ["package.json"],
+    }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
   );
 });
 
-test("static finalization rejects a new law clause without an explicit owner clause result", async () => {
+test("static validation rejects a new law clause omitted by its owner", () => {
   const context = {
-    sealedRoot: "/sealed",
+    project: new Project({ tsConfigFilePath: "tsconfig.json" }), sealedRoot: process.cwd(),
     planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
     lawRequirements: [{
       lawId: "LAW-FIXTURE-001-V1",
       forbiddenCount: 1,
       clausesByMode: { "static.ast": ["forbidden:0", "forbidden:1", "summary"] },
-      targetPaths: ["src/fixture.ts"],
+      targetPaths: ["package.json"],
       targetSet: { queryRef: "scope:fixture", count: 1 },
     }],
   } as unknown as InspectorContext;
-  await assert.rejects(
-    () => finalizeStaticInspection(context, function inspectFixture() { return {
+  assert.throws(
+    () => validateStaticInspection(context, {
       capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
-      coverage: [staticLawCoverage("LAW-FIXTURE-001-V1", 1, ["static.ast"], [0])],
-      findings: [], inspectedFiles: ["src/fixture.ts"],
-    }; }),
+      lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(0),
+        evidenceMode: "static.ast", passed: true, refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast") }], findings: [] }],
+      inspectedFiles: ["package.json"],
+    }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
   );
 });
 
-test("static finalization invokes the named owner executor and rejects an unreadable complete target set", async () => {
+test("static validation rejects an unreadable complete target set", () => {
   const context = {
-    sealedRoot: "/sealed",
+    project: new Project({ useInMemoryFileSystem: true }), sealedRoot: "/sealed",
     planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
     lawRequirements: [{
       lawId: "LAW-FIXTURE-001-V1",
@@ -457,22 +457,20 @@ test("static finalization invokes the named owner executor and rejects an unread
       targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 2 },
     }],
   } as unknown as InspectorContext;
-  let executed = false;
-  await assert.rejects(
-    () => finalizeStaticInspection(context, function inspectFixture() { executed = true; return {
-      capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
-      coverage: [staticLawCoverage("LAW-FIXTURE-001-V1", 1, ["static.ast"], [0])],
-      findings: [], inspectedFiles: ["src/fixture-a.ts"],
-    }; }),
+  assert.throws(
+    () => validateStaticInspection(context, {
+      capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"], lawResults: [],
+      inspectedFiles: ["src/fixture-a.ts"],
+    }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
   );
-  assert.equal(executed, true);
 });
 
-test("static PASS evidence names governed target objects instead of inspector declarations", async () => {
+test("static PASS evidence names governed target objects instead of inspector declarations", () => {
   const context = {
     sealedRoot: process.cwd(),
-    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/shared/static-inspector-result.ts" },
+    project: new Project({ tsConfigFilePath: "tsconfig.json" }),
+    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
     lawRequirements: [{
       lawId: "LAW-FIXTURE-001-V1", forbiddenCount: 1,
       clausesByMode: { "static.ast": ["forbidden:0", "summary"] },
@@ -480,20 +478,21 @@ test("static PASS evidence names governed target objects instead of inspector de
       targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 1 },
     }],
   } as unknown as InspectorContext;
-  const output = await finalizeStaticInspection(context, function inspectFixture() { return {
-      capabilityDomain: "fixture", coverage: [staticLawCoverage("LAW-FIXTURE-001-V1", 1, ["static.ast"], [0])],
-      reportedLawIds: ["LAW-FIXTURE-001-V1"], findings: [], inspectedFiles: ["package.json"],
-    }; });
-  const refs = output.lawResults[0]!.assertions[0]!.refs;
-  assert.equal(refs.some((ref) => ref.startsWith("ast:package.json#")), true);
-  assert.equal(refs.some((ref) => ref.includes("static-inspector-result.ts")), false);
+  const refs = staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast");
+  const output = validateStaticInspection(context, { capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
+    lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(0), evidenceMode: "static.ast",
+      passed: true, refs }], findings: [] }], inspectedFiles: ["package.json"] });
+  const validatedRefs = output.lawResults[0]!.assertions[0]!.refs;
+  assert.equal(validatedRefs.some((ref) => ref.startsWith("ast:package.json#")), true);
+  assert.equal(validatedRefs.some((ref) => ref.includes("inspector.ts")), false);
 });
 
-test("static evidence keeps the exact scope when a governed path is not an evidence locator", async () => {
+test("static evidence keeps the exact scope when a governed path is not an evidence locator", () => {
   const pathWithReservedCharacter = "docs/history/legacy-root/grasseye-local-workbench@0.1.0";
   const context = {
     sealedRoot: process.cwd(),
-    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/shared/static-inspector-result.ts" },
+    project: new Project({ tsConfigFilePath: "tsconfig.json" }),
+    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
     lawRequirements: [{
       lawId: "LAW-FIXTURE-001-V1", forbiddenCount: 1,
       clausesByMode: { "static.ast": ["forbidden:0", "summary"] },
@@ -501,14 +500,13 @@ test("static evidence keeps the exact scope when a governed path is not an evide
       targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 2 },
     }],
   } as unknown as InspectorContext;
-  const output = await finalizeStaticInspection(context, function inspectFixture() { return {
-    capabilityDomain: "fixture", coverage: [staticLawCoverage("LAW-FIXTURE-001-V1", 1, ["static.ast"], [0])],
-    reportedLawIds: ["LAW-FIXTURE-001-V1"], findings: [],
-    inspectedFiles: [pathWithReservedCharacter, "package.json"],
-  }; });
-  const refs = output.lawResults[0]!.assertions[0]!.refs;
-  assert.equal(refs.includes("scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes"), true);
-  assert.equal(refs.some((ref) => ref.includes(pathWithReservedCharacter)), false);
+  const refs = staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast");
+  const output = validateStaticInspection(context, { capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
+    lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(0), evidenceMode: "static.ast",
+      passed: true, refs }], findings: [] }], inspectedFiles: [pathWithReservedCharacter, "package.json"] });
+  const validatedRefs = output.lawResults[0]!.assertions[0]!.refs;
+  assert.equal(validatedRefs.includes("scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes"), true);
+  assert.equal(validatedRefs.some((ref) => ref.includes(pathWithReservedCharacter)), false);
 });
 
 test("a finding propagates from one law result to the only top-level verdict", () => {

@@ -433,20 +433,30 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   inspectCallerApprovedInputReferences(context, findings, approvedInputLawId);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
-    coverage: [
-      staticLawCoverage("LAW-AI-INPUT-GATEWAY-001-V1", 5, ["static.ast", "static.contract"], []),
-      staticLawCoverage("LAW-AI-INPUT-GATEWAY-002-V2", 7, ["static.ast"], []),
-      staticLawCoverage("LAW-AI-INPUT-GATEWAY-003-V1", 7, ["static.ast", "static.contract"], []),
-      staticLawCoverage("LAW-AI-INPUT-GATEWAY-004-V1", 4, ["static.ast", "static.contract"], []),
-      staticLawCoverage("LAW-AI-INPUT-GATEWAY-005-V4", 16, ["static.ast", "static.contract"], []),
-      staticLawCoverage("LAW-AI-INPUT-GATEWAY-006-V2", 1, ["static.ast", "static.contract"], []),
-      staticLawCoverage("LAW-AI-INPUT-GATEWAY-007-V2", 1, ["static.ast", "static.contract"], []),
-    ],
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths].sort(),
   };
 };
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, inspectDomainEvaluation);
+  const evaluation = await inspectDomainEvaluation(context);
+  const lawResult = (lawId: string, modes: readonly string[]) => {
+    const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
+    const passed = findings.length === 0;
+    return { lawId, assertions: modes.map((evidenceMode) => ({
+      clauses: staticClauses(), evidenceMode, passed, refs: staticEvidenceRefs(context, lawId, evidenceMode),
+    })), findings };
+  };
+  return validateStaticInspection(context, {
+    capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
+    lawResults: [
+      lawResult("LAW-AI-INPUT-GATEWAY-001-V1", ["static.ast", "static.contract"]),
+      lawResult("LAW-AI-INPUT-GATEWAY-002-V2", ["static.ast"]),
+      lawResult("LAW-AI-INPUT-GATEWAY-003-V1", ["static.ast", "static.contract"]),
+      lawResult("LAW-AI-INPUT-GATEWAY-004-V1", ["static.ast", "static.contract"]),
+      lawResult("LAW-AI-INPUT-GATEWAY-005-V4", ["static.ast", "static.contract"]),
+      lawResult("LAW-AI-INPUT-GATEWAY-006-V2", ["static.ast", "static.contract"]),
+      lawResult("LAW-AI-INPUT-GATEWAY-007-V2", ["static.ast", "static.contract"]),
+    ], inspectedFiles: evaluation.inspectedFiles,
+  });
 };

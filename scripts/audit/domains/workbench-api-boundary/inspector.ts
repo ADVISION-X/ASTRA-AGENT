@@ -344,7 +344,6 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
   return {
     capabilityDomain: domain,
-    coverage: [staticLawCoverage("LAW-WORKBENCH-API-BOUNDARY-001-V4", 7, ["static.ast", "static.contract"], [])],
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths],
@@ -352,5 +351,15 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, inspectDomainEvaluation);
+  const evaluation = await inspectDomainEvaluation(context);
+  const lawId = "LAW-WORKBENCH-API-BOUNDARY-001-V4";
+  const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
+  const passed = findings.length === 0;
+  return validateStaticInspection(context, {
+    capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
+    lawResults: [{ lawId, assertions: [
+      { clauses: staticClauses(), evidenceMode: "static.ast", passed, refs: staticEvidenceRefs(context, lawId, "static.ast") },
+      { clauses: staticClauses(), evidenceMode: "static.contract", passed, refs: staticEvidenceRefs(context, lawId, "static.contract") },
+    ], findings }], inspectedFiles: evaluation.inspectedFiles,
+  });
 };

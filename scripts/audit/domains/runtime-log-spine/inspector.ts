@@ -29,11 +29,6 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   ];
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
-    coverage: [
-      staticLawCoverage("LAW-RUNTIME-LOG-SPINE-001-V3", 6, ["static.ast", "static.contract"], []),
-      staticLawCoverage("LAW-RUNTIME-LOG-SPINE-002-V3", 1, ["static.ast", "static.contract"], []),
-      staticLawCoverage("LAW-RUNTIME-LOG-SPINE-003-V3", 1, ["static.ast", "static.contract"], []),
-    ],
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths],
@@ -41,5 +36,17 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, inspectDomainEvaluation);
+  const evaluation = await inspectDomainEvaluation(context);
+  const lawResult = (lawId: string) => {
+    const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
+    const passed = findings.length === 0;
+    return { lawId, assertions: ["static.ast", "static.contract"].map((evidenceMode) => ({
+      clauses: staticClauses(), evidenceMode, passed, refs: staticEvidenceRefs(context, lawId, evidenceMode),
+    })), findings };
+  };
+  return validateStaticInspection(context, {
+    capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
+    lawResults: [lawResult("LAW-RUNTIME-LOG-SPINE-001-V3"), lawResult("LAW-RUNTIME-LOG-SPINE-002-V3"),
+      lawResult("LAW-RUNTIME-LOG-SPINE-003-V3")], inspectedFiles: evaluation.inspectedFiles,
+  });
 };

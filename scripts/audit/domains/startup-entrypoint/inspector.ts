@@ -185,10 +185,6 @@ const inspectDomainEvaluation = (context: InspectorContext) => {
   inspectLocalStartupAuthorityBoundary(context, findings, boundaryLawId);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
-    coverage: [
-      staticLawCoverage("LAW-STARTUP-ENTRYPOINT-001-V4", 12, ["static.ast", "static.contract"], [11]),
-      staticLawCoverage("LAW-STARTUP-ENTRYPOINT-002-V1", 5, ["static.ast", "static.contract"], [0]),
-    ],
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths],
@@ -196,5 +192,18 @@ const inspectDomainEvaluation = (context: InspectorContext) => {
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, inspectDomainEvaluation);
+  const evaluation = inspectDomainEvaluation(context);
+  const lawResult = (lawId: string, astClauses: string[]) => {
+    const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
+    const passed = findings.length === 0;
+    return { lawId, assertions: [
+      { clauses: astClauses, evidenceMode: "static.ast", passed, refs: staticEvidenceRefs(context, lawId, "static.ast") },
+      { clauses: staticClauses(), evidenceMode: "static.contract", passed, refs: staticEvidenceRefs(context, lawId, "static.contract") },
+    ], findings };
+  };
+  return validateStaticInspection(context, {
+    capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
+    lawResults: [lawResult("LAW-STARTUP-ENTRYPOINT-001-V4", staticClauses(11)),
+      lawResult("LAW-STARTUP-ENTRYPOINT-002-V1", staticClauses(0))], inspectedFiles: evaluation.inspectedFiles,
+  });
 };

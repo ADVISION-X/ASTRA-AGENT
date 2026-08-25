@@ -375,7 +375,6 @@ const inspectDomainEvaluation = async (
   inspectDomainPolicy(context, findings, laws, sources, values, collectXuanxueSourceValues(terminalMetaphysicsProfileSources));
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
-    coverage: [staticLawCoverage("LAW-XUANXUE-AI-PRODUCTION-001-V10", 16, ["static.ast", "static.contract"], [])],
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths],
@@ -385,5 +384,15 @@ const inspectDomainEvaluation = async (
 export const inspectDomain = async (
   context: InspectorContext,
 ): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, inspectDomainEvaluation);
+  const evaluation = await inspectDomainEvaluation(context);
+  const lawId = "LAW-XUANXUE-AI-PRODUCTION-001-V10";
+  const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
+  const passed = findings.length === 0;
+  return validateStaticInspection(context, {
+    capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
+    lawResults: [{ lawId, assertions: [
+      { clauses: staticClauses(), evidenceMode: "static.ast", passed, refs: staticEvidenceRefs(context, lawId, "static.ast") },
+      { clauses: staticClauses(), evidenceMode: "static.contract", passed, refs: staticEvidenceRefs(context, lawId, "static.contract") },
+    ], findings }], inspectedFiles: evaluation.inspectedFiles,
+  });
 };

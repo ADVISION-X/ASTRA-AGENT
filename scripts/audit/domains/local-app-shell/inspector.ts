@@ -227,11 +227,6 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => {
   inspectSeparatedStatus(context.project, findings, LAW_STATUS, context.targetPaths);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
-    coverage: [
-      staticLawCoverage(LAW_SHELL, 9, ["static.ast", "static.contract"], [4, 7, 8]),
-      staticLawCoverage(LAW_BOUNDARY, 4, ["static.ast"], []),
-      staticLawCoverage(LAW_STATUS, 3, ["static.ast"], [0, 1]),
-    ],
     reportedLawIds: context.planEntry.lawIds,
     findings: findings.sort((left, right) => left.lawId.localeCompare(right.lawId) || (left.filePath ?? "").localeCompare(right.filePath ?? "") || left.message.localeCompare(right.message)),
     inspectedFiles: [...context.targetPaths],
@@ -239,5 +234,20 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => {
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, evaluate);
+  const evaluation = evaluate(context);
+  const lawResult = (lawId: string, clausesByMode: Readonly<Record<string, string[]>>) => {
+    const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
+    const passed = findings.length === 0;
+    return { lawId, assertions: Object.entries(clausesByMode).map(([evidenceMode, clauses]) => ({
+      clauses, evidenceMode, passed, refs: staticEvidenceRefs(context, lawId, evidenceMode),
+    })), findings };
+  };
+  return validateStaticInspection(context, {
+    capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
+    lawResults: [
+      lawResult(LAW_SHELL, { "static.ast": staticClauses(4, 7, 8), "static.contract": staticClauses() }),
+      lawResult(LAW_BOUNDARY, { "static.ast": staticClauses() }),
+      lawResult(LAW_STATUS, { "static.ast": staticClauses(0, 1) }),
+    ], inspectedFiles: evaluation.inspectedFiles,
+  });
 };

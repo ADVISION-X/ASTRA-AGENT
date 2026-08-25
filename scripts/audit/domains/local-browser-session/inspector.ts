@@ -469,14 +469,6 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   inspectOpaqueAuthorityBoundary(context, findings, opaqueLawId);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
-    coverage: [
-      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-001-V4", 10, ["static.ast", "static.contract"], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
-      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-002-V4", 11, ["static.ast", "static.contract"], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
-      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-003-V6", 12, ["static.ast", "static.contract"], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]),
-      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-004-V7", 16, ["static.ast"], [10, 11, 12, 13, 14, 15]),
-      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-005-V4", 5, ["static.ast", "static.contract"], [0, 1, 2, 3, 4]),
-      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-006-V3", 1, ["static.ast", "static.contract"], [0]),
-    ],
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths].sort(),
@@ -484,5 +476,25 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, inspectDomainEvaluation);
+  const evaluation = await inspectDomainEvaluation(context);
+  const lawResult = (lawId: string, astClauses: string[], hasContract = true) => {
+    const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
+    const passed = findings.length === 0;
+    const assertions = [{ clauses: astClauses, evidenceMode: "static.ast", passed,
+      refs: staticEvidenceRefs(context, lawId, "static.ast") }];
+    if (hasContract) assertions.push({ clauses: staticClauses(), evidenceMode: "static.contract", passed,
+      refs: staticEvidenceRefs(context, lawId, "static.contract") });
+    return { lawId, assertions, findings };
+  };
+  return validateStaticInspection(context, {
+    capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
+    lawResults: [
+      lawResult("LAW-LOCAL-BROWSER-SESSION-001-V4", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-002-V4", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-003-V6", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-004-V7", staticClauses(10, 11, 12, 13, 14, 15), false),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-005-V4", staticClauses(0, 1, 2, 3, 4)),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-006-V3", staticClauses(0)),
+    ], inspectedFiles: evaluation.inspectedFiles,
+  });
 };
