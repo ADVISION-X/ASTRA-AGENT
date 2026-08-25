@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { authenticatedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { authenticatedStaticChecks, finalizeStaticInspection, recordSemanticCheck } from "../../shared/static-inspector-result.js";
 
 import {
   Node,
@@ -328,21 +328,29 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   };
   const findings: InspectorFinding[] = [];
   const summary = initialSummary();
-  const requiredFiles = inspectRequiredFiles(context.project, findings, lawIds.ingress);
+  const executedSemanticChecks: Array<{ lawId: string; name: string }> = [];
+  const requiredFiles = recordSemanticCheck(executedSemanticChecks, lawIds.ingress, "inspectRequiredFiles",
+    inspectRequiredFiles(context.project, findings, lawIds.ingress));
   const inspectedFiles = new Set<string>(requiredFiles.map((file) => toRepoPath(file.getFilePath())));
   const boundaryFile = source(context.project, boundaryPath);
   if (boundaryFile) {
-    inspectRouteRules(boundaryFile, findings, summary, lawIds);
-    inspectForbiddenKeys(boundaryFile, findings, summary, lawIds.shape);
-    inspectExternalIngressIdentity({ boundaryPath, file: boundaryFile, findings, lawId: lawIds.ingress, summary });
+    recordSemanticCheck(executedSemanticChecks, lawIds.route, "inspectRouteRules",
+      inspectRouteRules(boundaryFile, findings, summary, lawIds));
+    recordSemanticCheck(executedSemanticChecks, lawIds.shape, "inspectForbiddenKeys",
+      inspectForbiddenKeys(boundaryFile, findings, summary, lawIds.shape));
+    recordSemanticCheck(executedSemanticChecks, lawIds.ingress, "inspectExternalIngressIdentity",
+      inspectExternalIngressIdentity({ boundaryPath, file: boundaryFile, findings, lawId: lawIds.ingress, summary }));
   }
-  inspectSecondServers(context.project, findings, summary, lawIds.ingress);
-  inspectCallbackEscapes(context.project, findings, summary, lawIds.callback);
+  recordSemanticCheck(executedSemanticChecks, lawIds.ingress, "inspectSecondServers",
+    inspectSecondServers(context.project, findings, summary, lawIds.ingress));
+  recordSemanticCheck(executedSemanticChecks, lawIds.callback, "inspectCallbackEscapes",
+    inspectCallbackEscapes(context.project, findings, summary, lawIds.callback));
 
   return {
     capabilityDomain: domain,
     reportedLawIds: context.planEntry.lawIds,
     executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
+    executedSemanticChecks,
     findings,
     inspectedFiles: [...context.targetPaths],
   };

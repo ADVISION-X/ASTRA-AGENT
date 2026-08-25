@@ -27,10 +27,8 @@ import type { QualityProofRequest } from "../../scripts/audit/shared/proof-obser
 import { observationMatchesRoute, proofClauseIndexesFor, relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
 import {
   finalizeStaticInspection,
-  semanticFindingBindingsForSource,
-  semanticLawBindingsForSource,
-  semanticLawCallBindingsForSource,
-  semanticLawOwnershipIsExact,
+  recordSemanticCheck,
+  semanticExecutionIsExact,
 } from "../../scripts/audit/shared/static-inspector-result.js";
 import { staticClauseRoutesForDomain } from "../../scripts/audit/shared/static-clause-routes.js";
 
@@ -123,70 +121,29 @@ test("every active Static route has fixed clause coverage bound to domain semant
   }
 });
 
-test("static semantic authentication rejects a checker whose finding sink is diverted", () => {
-  const control = readFileSync(resolve("scripts/audit/domains/app-shell-ui/inspector.ts"), "utf8");
-  const original = "    findings,\n    inspectedFiles,";
-  const diverted = control.replace(original, "    [],\n    inspectedFiles,");
-  assert.notEqual(control, diverted);
-  assert.equal(
-    semanticFindingBindingsForSource(control, "inspectDomainEvaluation")
-      .includes("inspectLegacyAppUserDemandPhysicalAbsence"),
-    true,
-  );
-  assert.equal(
-    semanticFindingBindingsForSource(diverted, "inspectDomainEvaluation")
-      .includes("inspectLegacyAppUserDemandPhysicalAbsence"),
-    false,
-  );
+test("static semantic receipts are emitted only after a checker returns", () => {
+  const receipts: Array<{ lawId: string; name: string }> = [];
+  assert.throws(() => recordSemanticCheck(receipts, "LAW-A", "inspectA", (() => {
+    throw new Error("checker failed");
+  })()));
+  assert.deepEqual(receipts, []);
+  assert.equal(recordSemanticCheck(receipts, "LAW-A", "inspectA", "complete"), "complete");
+  assert.deepEqual(receipts, [{ lawId: "LAW-A", name: "inspectA" }]);
 });
 
-test("static semantic authentication preserves per-law call ownership", () => {
-  const source = `
-    const inspectA = (_findings: string[], _lawId: string) => undefined;
-    const inspectB = (_findings: string[], _lawId: string) => undefined;
-    const evaluate = () => {
-      const lawA = selectLawId([], "LAW-A");
-      const lawB = selectLawId([], "LAW-B");
-      const findings: string[] = [];
-      inspectA(findings, lawA);
-      inspectB(findings, lawB);
-      return { findings };
-    };
-  `;
-  assert.deepEqual(semanticLawBindingsForSource(source, "evaluate", ["LAW-A", "LAW-B"]), {
-    inspectA: ["LAW-A"],
-    inspectB: ["LAW-B"],
-  });
-});
-
-test("static semantic authentication rejects shared and permuted law bindings", () => {
-  const shared = `
-    const inspectShared = (_findings: string[], _lawA: string, _lawB: string) => undefined;
-    const evaluate = () => {
-      const findings: string[] = [];
-      inspectShared(findings, "LAW-A", "LAW-B");
-      return { findings };
-    };
-  `;
-  assert.equal(semanticLawOwnershipIsExact(
-    semanticLawCallBindingsForSource(shared, "evaluate", ["LAW-A", "LAW-B"]),
-    { inspectShared: ["LAW-A", "LAW-B"] },
-  ), false);
-
-  const permuted = `
-    const inspectA = (_findings: string[], _lawId: string) => undefined;
-    const inspectB = (_findings: string[], _lawId: string) => undefined;
-    const evaluate = () => {
-      const findings: string[] = [];
-      inspectA(findings, "LAW-B");
-      inspectB(findings, "LAW-A");
-      return { findings };
-    };
-  `;
-  assert.equal(semanticLawOwnershipIsExact(
-    semanticLawCallBindingsForSource(permuted, "evaluate", ["LAW-A", "LAW-B"]),
-    { inspectA: ["LAW-A"], inspectB: ["LAW-B"] },
-  ), false);
+test("static semantic receipts reject missing, extra, duplicate, and permuted law bindings", () => {
+  const checks = [
+    { lawId: "LAW-A", evidenceMode: "static.ast", clauses: ["summary"], checkId: "a/static-ast", semanticChecks: ["inspectA"] },
+    { lawId: "LAW-B", evidenceMode: "static.ast", clauses: ["summary"], checkId: "b/static-ast", semanticChecks: ["inspectB"] },
+  ];
+  const exact = [{ lawId: "LAW-A", name: "inspectA" }, { lawId: "LAW-B", name: "inspectB" }];
+  assert.equal(semanticExecutionIsExact(checks, exact), true);
+  assert.equal(semanticExecutionIsExact(checks, exact.slice(0, 1)), false);
+  assert.equal(semanticExecutionIsExact(checks, [...exact, { lawId: "LAW-C", name: "inspectC" }]), false);
+  assert.equal(semanticExecutionIsExact(checks, [...exact, exact[0]!]), false);
+  assert.equal(semanticExecutionIsExact(checks, [
+    { lawId: "LAW-B", name: "inspectA" }, { lawId: "LAW-A", name: "inspectB" },
+  ]), false);
 });
 
 test("quality report rejects missing evidence modes and unsupported PASS claims", () => {
@@ -714,6 +671,10 @@ test("blueprint edge schema and local spec payloads reject arbitrary fields", ()
   ), false);
   assert.throws(
     () => validateLocalSpecContract({ owner: law.capabilityDomain, specKind: "config", contract: { arbitrary: "value" } }, "mutation.json"),
+    (error: unknown) => error instanceof GovernanceError && error.code === "SOURCE_PARSE_FAILED",
+  );
+  assert.throws(
+    () => validateLocalSpecContract({ owner: law.capabilityDomain, specKind: "config", contract: { keys: { "<key>": "<value>" } } }, "placeholder.json"),
     (error: unknown) => error instanceof GovernanceError && error.code === "SOURCE_PARSE_FAILED",
   );
   assert.doesNotThrow(() => validateLocalSpecContract({

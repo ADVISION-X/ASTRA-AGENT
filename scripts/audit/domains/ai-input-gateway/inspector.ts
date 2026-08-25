@@ -6,7 +6,7 @@ import { selectLawId } from "../../shared/finding-utils.js";
 import { astExpressionPath } from "../../shared/ast-node-identity.js";
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
-import { authenticatedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { authenticatedStaticChecks, finalizeStaticInspection, recordSemanticCheck } from "../../shared/static-inspector-result.js";
 import { inspectAiInputGatewayRecovery } from "./recovery-inspector.js";
 import { inspectSubmissionPriorityPatrol } from "./scheduler-inspector.js";
 import {
@@ -404,37 +404,60 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   const boundedJudgeLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-006-V1");
   const approvedInputLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-007-V1");
   const findings: Finding[] = [];
+  const executedSemanticChecks: Array<{ lawId: string; name: string }> = [];
   for (const repoPath of P.governedPaths.filter((path) => context.targetPaths.includes(path))) {
     const absolutePath = resolveFromRepo(repoPath);
     if (!context.project.getSourceFile(absolutePath)) {
       requireSourceFile(context, findings, publicLawId, repoPath);
     }
   }
-  inspectPublicBoundary(context, findings, publicLawId);
-  inspectAttachmentRoutingChild(context, findings, routingLawId);
-  inspectAttachmentProofChild(context, findings, proofLawId);
-  inspectRemovedRegion(context, findings, routingLawId);
-  inspectBoundedParallelExecution(context, findings, parallelLawId);
-  inspectSerialProviderBrowserActions(context, findings, parallelLawId);
-  inspectFreshConversationIdentity(context, findings, parallelLawId);
-  inspectNoChatGptPageRefresh(context, findings, parallelLawId);
-  inspectCanonicalConversationIdentity(context, findings, parallelLawId);
-  findings.push(...inspectAiInputGatewayRecovery(context, parallelLawId));
-  inspectSubmissionPriorityPatrol(context, findings, parallelLawId);
-  inspectSharedRateLimitWatcher(context, findings, parallelLawId);
-  inspectLiveGenerationProof(context, findings, parallelLawId);
-  inspectTransientPatrolRetry(context, findings, parallelLawId);
-  inspectTransientSubmissionIsNotRoutable(context, findings, parallelLawId);
-  inspectTransientOverlayHygiene(context, findings, parallelLawId);
-  inspectGeneratedImageCapture(context, findings, parallelLawId);
-  inspectAtomicIfAndThenActions(context, findings, atomicLawId);
-  inspectConversationTopology(context, findings, parallelLawId);
-  inspectBoundedChoiceJudge(context, findings, boundedJudgeLawId);
-  inspectCallerApprovedInputReferences(context, findings, approvedInputLawId);
+  recordSemanticCheck(executedSemanticChecks, publicLawId, "inspectPublicBoundary",
+    inspectPublicBoundary(context, findings, publicLawId));
+  recordSemanticCheck(executedSemanticChecks, routingLawId, "inspectAttachmentRoutingChild",
+    inspectAttachmentRoutingChild(context, findings, routingLawId));
+  recordSemanticCheck(executedSemanticChecks, proofLawId, "inspectAttachmentProofChild",
+    inspectAttachmentProofChild(context, findings, proofLawId));
+  recordSemanticCheck(executedSemanticChecks, routingLawId, "inspectRemovedRegion",
+    inspectRemovedRegion(context, findings, routingLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectBoundedParallelExecution",
+    inspectBoundedParallelExecution(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectSerialProviderBrowserActions",
+    inspectSerialProviderBrowserActions(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectFreshConversationIdentity",
+    inspectFreshConversationIdentity(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectNoChatGptPageRefresh",
+    inspectNoChatGptPageRefresh(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectCanonicalConversationIdentity",
+    inspectCanonicalConversationIdentity(context, findings, parallelLawId));
+  findings.push(...recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectAiInputGatewayRecovery",
+    inspectAiInputGatewayRecovery(context, parallelLawId)));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectSubmissionPriorityPatrol",
+    inspectSubmissionPriorityPatrol(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectSharedRateLimitWatcher",
+    inspectSharedRateLimitWatcher(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectLiveGenerationProof",
+    inspectLiveGenerationProof(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectTransientPatrolRetry",
+    inspectTransientPatrolRetry(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectTransientSubmissionIsNotRoutable",
+    inspectTransientSubmissionIsNotRoutable(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectTransientOverlayHygiene",
+    inspectTransientOverlayHygiene(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectGeneratedImageCapture",
+    inspectGeneratedImageCapture(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, atomicLawId, "inspectAtomicIfAndThenActions",
+    inspectAtomicIfAndThenActions(context, findings, atomicLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectConversationTopology",
+    inspectConversationTopology(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, boundedJudgeLawId, "inspectBoundedChoiceJudge",
+    inspectBoundedChoiceJudge(context, findings, boundedJudgeLawId));
+  recordSemanticCheck(executedSemanticChecks, approvedInputLawId, "inspectCallerApprovedInputReferences",
+    inspectCallerApprovedInputReferences(context, findings, approvedInputLawId));
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
+    executedSemanticChecks,
     findings,
     inspectedFiles: [...context.targetPaths].sort(),
   };

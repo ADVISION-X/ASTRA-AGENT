@@ -1,40 +1,19 @@
 import { existsSync, readFileSync } from "node:fs";
-
 import { Node, SyntaxKind, type ClassDeclaration, type Node as MorphNode, type SourceFile } from "ts-morph";
 
 import { astExpressionPath, astIdentifierName } from "../../shared/ast-node-identity.js";
 import { selectLawId } from "../../shared/finding-utils.js";
-import {
-  type InspectorContext,
-  type InspectorFinding,
-  type InspectorEvaluation,
-  type SessionInspectorOutput,
-} from "../../shared/inspector-contracts.js";
-import { authenticatedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { type InspectorContext, type InspectorEvaluation, type InspectorFinding, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import { authenticatedStaticChecks, finalizeStaticInspection, recordSemanticCheck } from "../../shared/static-inspector-result.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { collectTransportPayloadCeilingFindings } from "./transport-payload-ceiling-inspector.js";
-import {
-  createLocalFinding,
-  identifiers,
-  requireIdentifiers,
-  requireSource,
-  retiredPaths,
-  sourcePaths,
-  stringLiterals,
-  targetAuthorityPath,
-} from "./inspector-support.js";
+import { createLocalFinding, identifiers, requireIdentifiers, requireSource, retiredPaths, sourcePaths, stringLiterals, targetAuthorityPath } from "./inspector-support.js";
 import { inspectSingleTransport } from "./transport-inspector.js";
 
-type RegistryMutationSources = Readonly<{
-  actor: SourceFile;
-  broker: SourceFile;
-  commandActor: SourceFile;
-  domRuntime: SourceFile;
-  journal: SourceFile;
-  manager: SourceFile;
-  registry: SourceFile;
-  targetAuthority: SourceFile;
-}>;
+type RegistryMutationSources = Readonly<Record<
+  "actor" | "broker" | "commandActor" | "domRuntime" | "journal" | "manager" | "registry" | "targetAuthority",
+  SourceFile
+>>;
 
 const requireRegistryMutationSources = (
   context: InspectorContext,
@@ -464,7 +443,13 @@ const inspectOpaqueAuthorityBoundary = (
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const lawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-001-V4");
+  const mutationLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V6");
+  const channelLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-002-V4");
+  const claimLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-003-V6");
+  const releaseLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-005-V4");
+  const opaqueLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-006-V2");
   const findings: InspectorFinding[] = [];
+  const executedSemanticChecks: Array<{ lawId: string; name: string }> = [];
   for (const path of [...sourcePaths, targetAuthorityPath].filter((candidate) => context.targetPaths.includes(candidate))) {
     if (context.project.getSourceFile(resolveFromRepo(path))) continue;
     findings.push(createLocalFinding({
@@ -474,19 +459,29 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
       message: `${path} must exist in the ts-morph project.`,
     }));
   }
-  inspectSingleTransport(context, findings, lawId);
-  inspectRegistryAndMutationBoundary(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V6"));
-  inspectAtomicIfAndThenBoundary(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V6"));
-  inspectJournalRecoveryBoundary(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V6"));
-  inspectAuthenticatedChannelGuards(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-002-V4"));
-  inspectTargetClaimGuards(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-003-V6"));
-  findings.push(...collectTransportPayloadCeilingFindings(context, lawId));
-  inspectReleaseAndRetiredPaths(findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-005-V4"));
-  inspectOpaqueAuthorityBoundary(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-006-V2"));
+  recordSemanticCheck(executedSemanticChecks, lawId, "inspectSingleTransport",
+    inspectSingleTransport(context, findings, lawId));
+  recordSemanticCheck(executedSemanticChecks, mutationLawId, "inspectRegistryAndMutationBoundary",
+    inspectRegistryAndMutationBoundary(context, findings, mutationLawId));
+  recordSemanticCheck(executedSemanticChecks, mutationLawId, "inspectAtomicIfAndThenBoundary",
+    inspectAtomicIfAndThenBoundary(context, findings, mutationLawId));
+  recordSemanticCheck(executedSemanticChecks, mutationLawId, "inspectJournalRecoveryBoundary",
+    inspectJournalRecoveryBoundary(context, findings, mutationLawId));
+  recordSemanticCheck(executedSemanticChecks, channelLawId, "inspectAuthenticatedChannelGuards",
+    inspectAuthenticatedChannelGuards(context, findings, channelLawId));
+  recordSemanticCheck(executedSemanticChecks, claimLawId, "inspectTargetClaimGuards",
+    inspectTargetClaimGuards(context, findings, claimLawId));
+  findings.push(...recordSemanticCheck(executedSemanticChecks, lawId, "collectTransportPayloadCeilingFindings",
+    collectTransportPayloadCeilingFindings(context, lawId)));
+  recordSemanticCheck(executedSemanticChecks, releaseLawId, "inspectReleaseAndRetiredPaths",
+    inspectReleaseAndRetiredPaths(findings, releaseLawId));
+  recordSemanticCheck(executedSemanticChecks, opaqueLawId, "inspectOpaqueAuthorityBoundary",
+    inspectOpaqueAuthorityBoundary(context, findings, opaqueLawId));
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
+    executedSemanticChecks,
     findings,
     inspectedFiles: [...context.targetPaths].sort(),
   };

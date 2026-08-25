@@ -121,12 +121,18 @@ test('quality CHANGE rejects malformed touched law, Manifest, blueprint, and spe
       const value = JSON.parse(source) as Record<string, unknown>;
       return `${JSON.stringify({ ...value, unexpected: true }, null, 2)}\n`;
     } },
+    { path: 'scripts/audit/domains/code-purity/manifest.json', mutate: (source) =>
+      source.replace('    ".gitignore",', '    "<domain>/**",') },
     { path: 'docs/blueprints/local-browser-session/LOCAL-BROWSER-SESSION-V6-OWNER-JOURNAL-BLUEPRINT.md',
       mutate: (source) => source.replace('  "schemaVersion": 1,', '  "schemaVersion": 1,\n  "unexpected": true,') },
+    { path: 'docs/blueprints/local-browser-session/LOCAL-BROWSER-SESSION-V6-OWNER-JOURNAL-BLUEPRINT.md',
+      mutate: (source) => source.replace('"blueprintId": "local-browser-session-v6-owner-journal"', '"blueprintId": "<stable-id>"') },
     { path: 'docs/specs/xuanxue-ai-production/product-execution-contract.dependency.spec.json', mutate: (source) => {
       const value = JSON.parse(source) as Record<string, unknown>;
       return `${JSON.stringify({ ...value, unexpected: true }, null, 2)}\n`;
     } },
+    { path: 'docs/specs/xuanxue-ai-production/product-execution-contract.dependency.spec.json',
+      mutate: (source) => source.replace('"contractId": "ai-acceptance.product-execution-contract"', '"contractId": "<contract-id>"') },
   ];
   for (const mutation of mutations) {
     const temporary = mkdtempSync(resolve(tmpdir(), 'governance-change-authority-'));
@@ -147,6 +153,31 @@ test('quality CHANGE rejects malformed touched law, Manifest, blueprint, and spe
     } finally {
       rmSync(temporary, { force: true, recursive: true });
     }
+  }
+});
+
+test('quality CHANGE ignores malformed untouched authority while validating the actual diff', () => {
+  const temporary = mkdtempSync(resolve(tmpdir(), 'governance-change-focused-'));
+  const repository = resolve(temporary, 'repo');
+  try {
+    execFileSync('git', ['clone', '-q', '--local', '--no-hardlinks', process.cwd(), repository]);
+    writeFileSync(resolve(repository, '.git/info/exclude'), 'node_modules\n');
+    symlinkSync(resolve(process.cwd(), 'node_modules'), resolve(repository, 'node_modules'), 'dir');
+    const manifestPath = resolve(repository, 'scripts/audit/domains/code-purity/manifest.json');
+    writeFileSync(manifestPath, readFileSync(manifestPath, 'utf8').replace('    ".gitignore",', '    "<domain>/**",'));
+    execFileSync('git', ['config', 'user.email', 'governance@example.invalid'], { cwd: repository });
+    execFileSync('git', ['config', 'user.name', 'Governance Fixture'], { cwd: repository });
+    execFileSync('git', ['add', 'scripts/audit/domains/code-purity/manifest.json'], { cwd: repository });
+    execFileSync('git', ['commit', '-q', '-m', 'fixture malformed untouched authority'], { cwd: repository });
+    const changedPath = resolve(repository, 'tests/governance/quality-contract.test.ts');
+    writeFileSync(changedPath, `${readFileSync(changedPath, 'utf8')}\n// focused CHANGE fixture\n`);
+    const execution = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/audit/governance.ts', 'quality', 'CHANGE'], {
+      cwd: repository, encoding: 'utf8', env: process.env,
+    });
+    assert.equal(execution.status, 0, `${execution.stdout}${execution.stderr}`);
+    assert.match(execution.stdout, /CHANGE_PASS/u);
+  } finally {
+    rmSync(temporary, { force: true, recursive: true });
   }
 });
 

@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { canonicalBytes, cleanString, exactKeys, isStringArray, parseJson, pathPatternContains, pathPatternValid, rejectDuplicateJsonKeys, sortedUnique } from './governance-json.js';
+import { canonicalBytes, cleanString, concreteString, exactKeys, isStringArray, parseJson, pathPatternContains, pathPatternValid, rejectDuplicateJsonKeys, sortedUnique } from './governance-json.js';
 import { validateLocalSpecContract } from './governance-local-spec-contract.js';
 import { ROOT, fail, norm, repositoryPaths, text, validGitObjectId, walk } from './governance-runtime.js';
 import { BASE, FUNCTIONAL, pathRole, REGISTRY, REPORT, SPEC } from './shared/governance-paths.js';
@@ -233,15 +233,15 @@ function loadManifests(laws: Law[]): Manifest[] {
 type GovernanceSpec = { schemaVersion: number; specId: string; status: string; version: number; owner: string; lawIds: string[]; specKind: string; contract: unknown };
 const specEnvelopeValid = (raw: GovernanceSpec, domains: ReadonlySet<string>): boolean =>
   exactKeys(raw, SPEC_KEYS) && raw.schemaVersion === 1 && raw.status === 'active'
-  && cleanString(raw.specId) && Number.isInteger(raw.version) && raw.version >= 1
+  && concreteString(raw.specId) && Number.isInteger(raw.version) && raw.version >= 1
   && domains.has(raw.owner) && isStringArray(raw.lawIds) && raw.lawIds.length > 0
-  && sortedUnique(raw.lawIds) && SPEC_KINDS.includes(raw.specKind)
+  && sortedUnique(raw.lawIds) && raw.lawIds.every((lawId) => LAW_ID_PATTERN.test(lawId)) && SPEC_KINDS.includes(raw.specKind)
   && Boolean(raw.contract) && typeof raw.contract === 'object' && !Array.isArray(raw.contract);
 
 const validateDependencyContract = (raw: GovernanceSpec, file: string): void => {
   const contract = raw.contract as Record<string, unknown>;
   if (!exactKeys(contract, ['contractId', 'providerRepo', 'version'])
-    || !cleanString(contract.contractId) || !Number.isInteger(contract.version)
+    || !concreteString(contract.contractId) || !Number.isInteger(contract.version)
     || contract.version !== raw.version || typeof contract.providerRepo !== 'string'
     || !REPO_PATTERN.test(contract.providerRepo)) fail('SOURCE_PARSE_FAILED', `${file}:cross-repo-dependency`);
 };
@@ -249,14 +249,14 @@ const validateDependencyContract = (raw: GovernanceSpec, file: string): void => 
 const validateProviderContract = (raw: GovernanceSpec, file: string): void => {
   const contract = raw.contract as Record<string, unknown>;
   if (!exactKeys(contract, ['authorityArtifact', 'contractId', 'providerDomain', 'providerRepo', 'version'])
-    || !cleanString(contract.contractId) || !Number.isInteger(contract.version)
+    || !concreteString(contract.contractId) || !Number.isInteger(contract.version)
     || contract.version !== raw.version || contract.providerDomain !== raw.owner
     || typeof contract.providerRepo !== 'string' || !REPO_PATTERN.test(contract.providerRepo)) {
     fail('SOURCE_PARSE_FAILED', `${file}:cross-repo-contract`);
   }
   const artifact = contract.authorityArtifact as Record<string, unknown>;
   if (!artifact || !exactKeys(artifact, ['path', 'selector']) || typeof artifact.path !== 'string'
-    || !pathPatternValid(artifact.path) || !cleanString(artifact.selector)) {
+    || !pathPatternValid(artifact.path) || !concreteString(artifact.selector)) {
     fail('SOURCE_PARSE_FAILED', `${file}:authorityArtifact`);
   }
 };
@@ -353,7 +353,7 @@ export const blueprintValid = (
   const lawIds = raw.lawIds;
   const refs = raw.contractRefs;
   return exactKeys(raw, BLUEPRINT_KEYS) && raw.schemaVersion === 1 && raw.status === 'active'
-    && cleanString(raw.blueprintId) && typeof raw.owner === 'string' && domains.has(raw.owner)
+    && concreteString(raw.blueprintId) && typeof raw.owner === 'string' && domains.has(raw.owner)
     && isStringArray(lawIds) && lawIds.length > 0 && sortedUnique(lawIds)
     && lawIds.every((lawId) => active.has(lawId) && lawDomains.get(lawId) === raw.owner)
     && isStringArray(refs) && sortedUnique(refs) && refs.every((path) => specPaths.has(path))
@@ -377,6 +377,14 @@ function loadBlueprints(laws: Law[], manifests: Manifest[], contractRefs: Map<st
     if (!blueprintValid(raw, active, domains, specPaths, dependencyRepos, lawDomains)) fail('SOURCE_PARSE_FAILED', `${file}:schema`);
     for (const lawId of raw.lawIds as string[]) contractRefs.set(lawId, [...(contractRefs.get(lawId) ?? []), file]);
   }
+}
+
+export function readRegistryProjection(): Registry {
+  const registry = parseJson<Registry>(REGISTRY);
+  if (registry.schemaVersion !== 5 || !Array.isArray(registry.laws) || !Array.isArray(registry.domains)) {
+    fail('SOURCE_PARSE_FAILED', REGISTRY);
+  }
+  return registry;
 }
 
 export function providerDomainForDependencySpec(specPath: string): string {
@@ -413,32 +421,6 @@ export function buildRegistry(): Registry {
 const ownersForPath = (path: string, registry: Registry): string[] => registry.domains
   .filter((domain) => domain.ownedPaths.some((pattern) => matchesPath(pattern, path)))
   .map((domain) => domain.capabilityDomain);
-
-const baselineOwnersForPath = (path: string): string[] => {
-  const manifestPaths = execFileSync('git', ['ls-tree', '-r', '--name-only', 'HEAD', '--', 'scripts/audit/domains'], { cwd: ROOT, encoding: 'utf8' })
-    .split('\n').filter((current) => current.endsWith('/manifest.json'));
-  return manifestPaths.flatMap((manifestPath) => {
-    const raw = JSON.parse(execFileSync('git', ['show', `HEAD:${manifestPath}`], { cwd: ROOT, encoding: 'utf8' })) as Omit<Manifest, 'manifestPath'>;
-    return raw.ownedPaths.some((pattern) => matchesPath(pattern, path)) ? [raw.capabilityDomain] : [];
-  });
-};
-
-export function verifyChangeOwnership(changes: Array<{ status: string; path: string }>, registry = buildRegistry()): void {
-  for (const change of changes) {
-    if (change.status === 'D' && pathRole(change.path) === 'PRODUCTION') {
-      const owners = baselineOwnersForPath(change.path);
-      if (owners.length !== 1) fail(owners.length ? 'MULTIPLE_PRIMARY_OWNERS' : 'UNOWNED_PRODUCTION_FILE', change.path);
-      if (process.env.GRASSEYE_PRODUCTION_DELETE_AUTHORIZED !== '1') fail('UNAUTHORIZED_PRODUCTION_DELETE', `${change.path}:${owners[0]}`);
-      continue;
-    }
-    if (change.status !== 'D' && pathRole(change.path) === 'PRODUCTION') {
-      const owners = ownersForPath(change.path, registry);
-      if (!owners.length) fail('UNOWNED_PRODUCTION_FILE', change.path);
-      if (owners.length > 1) fail('MULTIPLE_PRIMARY_OWNERS', `${change.path}:${owners.join(',')}`);
-    }
-  }
-  verifyPathRoleEscalation();
-}
 
 export function verifyProductionOwnership(registry = buildRegistry()): void {
   for (const path of repositoryPaths()) {

@@ -19,7 +19,9 @@ export type InspectorEvaluation = {
   findings: InspectorFinding[];
   inspectedFiles: string[];
   executedChecks: InspectorExecutedCheck[];
+  executedSemanticChecks: InspectorSemanticCheckReceipt[];
 };
+export type InspectorSemanticCheckReceipt = { lawId: string; name: string };
 export type InspectorExecutedCheck = {
   lawId: string;
   evidenceMode: string;

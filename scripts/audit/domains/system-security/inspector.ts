@@ -2,7 +2,7 @@ import { Node, SyntaxKind, type CallExpression, type Project, type SourceFile } 
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
-import { authenticatedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { authenticatedStaticChecks, finalizeStaticInspection, recordSemanticCheck } from "../../shared/static-inspector-result.js";
 
 const LAW_ID = "LAW-SYSTEM-SECURITY-001-V1";
 const CLAUSE_ID = `${LAW_ID.toLowerCase()}-requirement`;
@@ -129,13 +129,18 @@ export const inspectSystemSecurityProject = (project: Project): InspectorFinding
   return findings.sort((left, right) => (left.filePath ?? "").localeCompare(right.filePath ?? "") || (left.line ?? 0) - (right.line ?? 0) || left.checkId.localeCompare(right.checkId));
 };
 
-const evaluate = (context: InspectorContext): InspectorEvaluation => ({
-  capabilityDomain: context.planEntry.capabilityDomain,
-  reportedLawIds: context.planEntry.lawIds,
-  executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
-  findings: inspectSystemSecurityProject(context.project),
-  inspectedFiles: [...context.targetPaths],
-});
+const evaluate = (context: InspectorContext): InspectorEvaluation => {
+  const executedSemanticChecks: Array<{ lawId: string; name: string }> = [];
+  return {
+    capabilityDomain: context.planEntry.capabilityDomain,
+    reportedLawIds: context.planEntry.lawIds,
+    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
+    executedSemanticChecks,
+    findings: recordSemanticCheck(executedSemanticChecks, LAW_ID, "inspectSystemSecurityProject",
+      inspectSystemSecurityProject(context.project)),
+    inspectedFiles: [...context.targetPaths],
+  };
+};
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   return finalizeStaticInspection(context, [{

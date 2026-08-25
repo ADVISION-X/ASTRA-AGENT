@@ -6,42 +6,47 @@ import { inspectActivePluginMediators } from "./components/scan-active-plugin-me
 import { inspectProjectSources } from "./components/scan-project-sources.js";
 import { inspectRootAllowlist } from "./components/scan-root-allowlist.js";
 import { inspectTypesContractRoot } from "./components/scan-types-contract-root.js";
-import { authenticatedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { authenticatedStaticChecks, finalizeStaticInspection, recordSemanticCheck } from "../../shared/static-inspector-result.js";
 
 
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const lawIds = resolveArchitectureLawIds(context.planEntry);
+  const lawId = context.planEntry.lawIds[0]!;
   const findings: ReturnType<typeof createFinding>[] = [];
   const inspectedFiles = new Set<string>();
+  const executedSemanticChecks: Array<{ lawId: string; name: string }> = [];
 
-  inspectRootAllowlist(findings, lawIds.rootLawId);
-  inspectProjectSources(context.project, findings, inspectedFiles, lawIds);
-  const activePluginGate = inspectActivePluginGate({
+  recordSemanticCheck(executedSemanticChecks, lawId, "inspectRootAllowlist",
+    inspectRootAllowlist(findings, lawIds.rootLawId));
+  recordSemanticCheck(executedSemanticChecks, lawId, "inspectProjectSources",
+    inspectProjectSources(context.project, findings, inspectedFiles, lawIds));
+  const activePluginGate = recordSemanticCheck(executedSemanticChecks, lawId, "inspectActivePluginGate", inspectActivePluginGate({
     lawId: lawIds.pluginStageLawId,
     project: context.project,
     inspectedFiles,
     targetPaths: context.targetPaths,
-  });
+  }));
   findings.push(...activePluginGate.findings);
-  inspectActivePluginMediators({
+  recordSemanticCheck(executedSemanticChecks, lawId, "inspectActivePluginMediators", inspectActivePluginMediators({
     entries: activePluginGate.activeContracts,
     findings,
     inspectedFiles,
     lawId: lawIds.intakeLawId,
     project: context.project,
-  });
-  inspectTypesContractRoot({
+  }));
+  recordSemanticCheck(executedSemanticChecks, lawId, "inspectTypesContractRoot", inspectTypesContractRoot({
     findings,
     inspectedFiles,
     lawId: lawIds.lawFirstChangeLawId,
     project: context.project,
-  });
+  }));
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
+    executedSemanticChecks,
     findings,
     inspectedFiles: [...context.targetPaths],
   };

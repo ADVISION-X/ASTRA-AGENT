@@ -4,7 +4,8 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { GovernanceError, ROOT, fail } from './governance-runtime.js';
-import { buildRegistry, checkProjection, diffPaths, gitCommit, verifyChangeOwnership, verifyEntry, verifyProductionOwnership, writeRegistry, type Level, type Registry } from './governance-authority.js';
+import { checkProjection, diffPaths, gitCommit, readRegistryProjection, verifyEntry, verifyProductionOwnership, writeRegistry, type Level, type Registry } from './governance-authority.js';
+import { validateChangedGovernanceSources } from './governance-change-authority.js';
 import { runFullQuality } from './shared/quality-runner.js';
 import { relevantExamScripts } from './shared/quality-routes.js';
 
@@ -93,9 +94,8 @@ async function quality(level: Level): Promise<void> {
   assertHighImpactAuthorization(changes);
   if (level === 'CHANGE') {
     if (!changes.length) fail('ENTRY_CONTRACT_MISMATCH', 'CHANGE requires an actual diff');
-    const registry = buildRegistry();
-    verifyChangeOwnership(changes, registry);
-    relevantChangeChecks(changes, registry);
+    validateChangedGovernanceSources(changes);
+    relevantChangeChecks(changes, readRegistryProjection());
     if (initial !== changeDenominator()) fail('CANDIDATE_DRIFT', 'CHANGE candidate changed');
     process.stdout.write('CHANGE_PASS\n');
     return;

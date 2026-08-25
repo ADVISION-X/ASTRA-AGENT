@@ -8,7 +8,7 @@ import {
   type SessionInspectorOutput,
 } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
-import { authenticatedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { authenticatedStaticChecks, finalizeStaticInspection, recordSemanticCheck } from "../../shared/static-inspector-result.js";
 import {
   cloudContractPath,
   cloudCredentialPath,
@@ -368,15 +368,18 @@ const inspectDomainEvaluation = async (
 ): Promise<InspectorEvaluation> => {
   const laws = resolveLaws(context);
   const findings: InspectorFinding[] = [];
+  const executedSemanticChecks: Array<{ lawId: string; name: string }> = [];
   const { sources, values } = collectDomainSources(context, findings, laws.boundary);
   const terminalMetaphysicsProfileSources = [schemaPath, schemaRefinementsPath, "src/plugins/xuanxue-ai-production/xuanxue-ai-production-terminal-profile.ts", "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts", "src/plugins/xuanxue-ai-production/xuanxue-ai-production-provider-evidence.ts"]
     .map((filePath) => context.project.getSourceFile(resolveFromRepo(filePath)))
     .filter((file): file is SourceFile => file !== undefined);
-  inspectDomainPolicy(context, findings, laws, sources, values, collectXuanxueSourceValues(terminalMetaphysicsProfileSources));
+  recordSemanticCheck(executedSemanticChecks, "LAW-XUANXUE-AI-PRODUCTION-001-V9", "inspectDomainPolicy",
+    inspectDomainPolicy(context, findings, laws, sources, values, collectXuanxueSourceValues(terminalMetaphysicsProfileSources)));
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
+    executedSemanticChecks,
     findings,
     inspectedFiles: [...context.targetPaths],
   };

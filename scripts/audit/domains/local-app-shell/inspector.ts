@@ -8,7 +8,7 @@ import {
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
-import { authenticatedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { authenticatedStaticChecks, finalizeStaticInspection, recordSemanticCheck } from "../../shared/static-inspector-result.js";
 
 const LAW_SHELL = "LAW-LOCAL-APP-SHELL-001-V5";
 const LAW_BOUNDARY = "LAW-LOCAL-APP-SHELL-002-V3";
@@ -65,51 +65,63 @@ const stringArgument = (call: CallExpression, index: number): string | null => {
 const localRuntimeSources = (project: Project): SourceFile[] => project.getSourceFiles()
   .filter((source) => sourcePath(source).startsWith("src/lib/local-runtime/") && !source.isDeclarationFile());
 
+const inspectRequiredShellSources = (
+  project: Project, findings: InspectorFinding[], lawId: string, targetPaths: readonly string[],
+): void => {
+  for (const path of requiredPaths.filter((candidate) => !candidate.includes("workbench-status"))) {
+    if (targetPaths.includes(path) && !sourceAt(project, path)) {
+      findings.push(finding(lawId, path, "required local shell authority source is missing."));
+    }
+  }
+};
+
+const appShellCalls = (project: Project, predicate: (call: CallExpression) => boolean): CallExpression[] =>
+  project.getSourceFiles().filter((source) => sourcePath(source).startsWith("src/app/") && !source.isDeclarationFile())
+    .flatMap((source) => source.getDescendantsOfKind(SyntaxKind.CallExpression).filter(predicate));
+
+const inspectServerCounts = (project: Project, findings: InspectorFinding[], lawId: string): void => {
+  const counts = [
+    ["HTTP server", appShellCalls(project, (call) => identifierName(call.getExpression()) === "createServer").length],
+    ["HTTP listener", appShellCalls(project, (call) => propertyCallName(call) === "listen").length],
+    ["WebSocket upgrade registration", appShellCalls(project, (call) => propertyCallName(call) === "on" && stringArgument(call, 0) === "upgrade").length],
+  ] as const;
+  for (const [name, count] of counts) if (count !== 1) {
+    findings.push(finding(lawId, "src/app", `${name} count must be exactly one; observed ${count}.`));
+  }
+};
+
+const inspectStartupOrder = (project: Project, findings: InspectorFinding[], lawId: string): void => {
+  const start = sourceAt(project, "src/app/server.ts")?.getFunction("startLocalRuntime");
+  if (!start) { findings.push(finding(lawId, "src/app/server.ts", "startLocalRuntime is missing.")); return; }
+  const calls = start.getDescendantsOfKind(SyntaxKind.CallExpression);
+  const startServer = calls.find((call) => identifierName(call.getExpression()) === "startServer");
+  const initialize = calls.find((call) => propertyCallName(call) === "init");
+  const guarded = initialize?.getAncestors().some((ancestor) =>
+    Node.isCallExpression(ancestor) && propertyCallName(ancestor) === "catch") ?? false;
+  if (!startServer || !initialize || startServer.getStart() >= initialize.getStart() || !guarded) {
+    findings.push(finding(lawId, "src/app/server.ts", "the diagnostic HTTP shell must start before execution initialization and initialization failure must be caught."));
+  }
+};
+
+const inspectRuntimeListenerAbsence = (project: Project, findings: InspectorFinding[], lawId: string): void => {
+  for (const source of localRuntimeSources(project)) for (const call of source.getDescendantsOfKind(SyntaxKind.CallExpression)) {
+    const name = identifierName(call.getExpression()) ?? propertyCallName(call);
+    if (["createServer", "listen", "setInterval"].includes(name ?? "")) findings.push(finding(
+      lawId, sourcePath(source), `local-runtime cannot create ${name}; the App Server is the sole listener owner.`, call.getStartLineNumber(),
+    ));
+  }
+};
+
 const inspectShellOwnership = (
   project: Project,
   findings: InspectorFinding[],
   lawId: string,
   targetPaths: readonly string[] = requiredPaths,
 ): void => {
-  for (const path of requiredPaths.filter((candidate) => !candidate.includes("workbench-status"))) if (targetPaths.includes(path) && !sourceAt(project, path)) {
-    findings.push(finding(lawId, path, "required local shell authority source is missing."));
-  }
-  const appSources = project.getSourceFiles().filter((source) => sourcePath(source).startsWith("src/app/") && !source.isDeclarationFile());
-  const serverCalls = appSources.flatMap((source) => source.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .filter((call) => identifierName(call.getExpression()) === "createServer")
-    .map((call) => ({ call, path: sourcePath(source) })));
-  const listeners = appSources.flatMap((source) => source.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .filter((call) => propertyCallName(call) === "listen")
-    .map((call) => ({ call, path: sourcePath(source) })));
-  const upgrades = appSources.flatMap((source) => source.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .filter((call) => propertyCallName(call) === "on" && stringArgument(call, 0) === "upgrade")
-    .map((call) => ({ call, path: sourcePath(source) })));
-  for (const [name, entries] of [["HTTP server", serverCalls], ["HTTP listener", listeners], ["WebSocket upgrade registration", upgrades]] as const) {
-    if (entries.length !== 1) findings.push(finding(lawId, "src/app", `${name} count must be exactly one; observed ${entries.length}.`));
-  }
-
-  const server = sourceAt(project, "src/app/server.ts");
-  const start = server?.getFunction("startLocalRuntime");
-  if (!start) {
-    findings.push(finding(lawId, "src/app/server.ts", "startLocalRuntime is missing."));
-    return;
-  }
-  const calls = start.getDescendantsOfKind(SyntaxKind.CallExpression);
-  const startServer = calls.find((call) => identifierName(call.getExpression()) === "startServer");
-  const initialize = calls.find((call) => propertyCallName(call) === "init");
-  const guarded = initialize?.getAncestors().some((ancestor) => Node.isCallExpression(ancestor) && propertyCallName(ancestor) === "catch") ?? false;
-  if (!startServer || !initialize || startServer.getStart() >= initialize.getStart() || !guarded) {
-    findings.push(finding(lawId, "src/app/server.ts", "the diagnostic HTTP shell must start before execution initialization and initialization failure must be caught."));
-  }
-  for (const source of localRuntimeSources(project)) {
-    const path = sourcePath(source);
-    for (const call of source.getDescendantsOfKind(SyntaxKind.CallExpression)) {
-      const name = identifierName(call.getExpression()) ?? propertyCallName(call);
-      if (name === "createServer" || name === "listen" || name === "setInterval") {
-        findings.push(finding(lawId, path, `local-runtime cannot create ${name}; the App Server is the sole listener owner.`, call.getStartLineNumber()));
-      }
-    }
-  }
+  inspectRequiredShellSources(project, findings, lawId, targetPaths);
+  inspectServerCounts(project, findings, lawId);
+  inspectStartupOrder(project, findings, lawId);
+  inspectRuntimeListenerAbsence(project, findings, lawId);
 };
 
 const inspectBrowserAuthorityBoundary = (
@@ -210,13 +222,18 @@ export const inspectLocalAppShellProject = (
 
 const evaluate = (context: InspectorContext): InspectorEvaluation => {
   const findings: InspectorFinding[] = [];
-  inspectShellOwnership(context.project, findings, LAW_SHELL, context.targetPaths);
-  inspectBrowserAuthorityBoundary(context.project, findings, LAW_BOUNDARY);
-  inspectSeparatedStatus(context.project, findings, LAW_STATUS, context.targetPaths);
+  const executedSemanticChecks: Array<{ lawId: string; name: string }> = [];
+  recordSemanticCheck(executedSemanticChecks, LAW_SHELL, "inspectShellOwnership",
+    inspectShellOwnership(context.project, findings, LAW_SHELL, context.targetPaths));
+  recordSemanticCheck(executedSemanticChecks, LAW_BOUNDARY, "inspectBrowserAuthorityBoundary",
+    inspectBrowserAuthorityBoundary(context.project, findings, LAW_BOUNDARY));
+  recordSemanticCheck(executedSemanticChecks, LAW_STATUS, "inspectSeparatedStatus",
+    inspectSeparatedStatus(context.project, findings, LAW_STATUS, context.targetPaths));
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
+    executedSemanticChecks,
     findings: findings.sort((left, right) => left.lawId.localeCompare(right.lawId) || (left.filePath ?? "").localeCompare(right.filePath ?? "") || left.message.localeCompare(right.message)),
     inspectedFiles: [...context.targetPaths],
   };
