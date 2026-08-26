@@ -32,13 +32,13 @@ export const collectTransportPayloadCeilingFindings = (
   for (const path of sourcePaths) {
     const source = context.project.getSourceFile(resolveFromRepo(path));
     if (!source) {
-      findings.push(createFinding({ checkId, lawId, clauseId, filePath: path, message: "Browser transport ceiling inspection source is missing." }));
+      findings.push(createFinding({ evidenceMode: "static.ast", checkId, lawId, clauseId, filePath: path, message: "Browser transport ceiling inspection source is missing." }));
       continue;
     }
     const present = identifiers(source);
     const forbidden = forbiddenCeilingSymbols.filter((name) => present.has(name));
     if (forbidden.length > 0) {
-      findings.push(createFinding({
+      findings.push(createFinding({ evidenceMode: "static.ast",
         checkId,
         lawId,
         clauseId,
@@ -52,7 +52,7 @@ export const collectTransportPayloadCeilingFindings = (
     transport?: Readonly<Record<string, unknown>>;
   };
   if (protocol.transport && Object.hasOwn(protocol.transport, "controlFrameMaxBytes")) {
-    findings.push(createFinding({
+    findings.push(createFinding({ evidenceMode: "static.ast",
       checkId,
       lawId,
       clauseId,

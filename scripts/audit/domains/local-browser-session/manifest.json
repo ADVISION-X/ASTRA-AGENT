@@ -5,7 +5,7 @@
   "lawIds": [
     "LAW-LOCAL-BROWSER-SESSION-001-V4",
     "LAW-LOCAL-BROWSER-SESSION-002-V5",
-    "LAW-LOCAL-BROWSER-SESSION-003-V7",
+    "LAW-LOCAL-BROWSER-SESSION-003-V8",
     "LAW-LOCAL-BROWSER-SESSION-004-V8",
     "LAW-LOCAL-BROWSER-SESSION-005-V5",
     "LAW-LOCAL-BROWSER-SESSION-006-V3"
@@ -30,7 +30,7 @@
     "src/lib/browser/**"
   ],
   "observedPaths": [
-    "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-RELOAD-V1-BLUEPRINT.md",
+    "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md",
     "docs/blueprints/local-browser-session/LOCAL-BROWSER-SESSION-V6-OWNER-JOURNAL-BLUEPRINT.md"
   ]
 }

@@ -47,4 +47,4 @@ assert.throws(() => assertXuanxueLocalizationContract({
 process.stdout.write(
   "[ACCEPTANCE] localization immutable Cloud order PASS: role, contract identity and local Stage are structurally validated without a provider projection copy.\n",
 );
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V5", evidenceMode: "exam.golden", locator: "acceptance:xuanxue-localization:cloud-order", observedValue: "authenticated localization order identity and local stage validated without provider projection copy" });
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V5", evidenceMode: "exam.golden", clauses: ["forbidden:0","summary"], locator: "acceptance:xuanxue-localization:cloud-order", observedValue: "authenticated localization order identity and local stage validated without provider projection copy" });

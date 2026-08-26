@@ -26,14 +26,14 @@ import type { XuanxueAiExecutionDeadlineBudget } from "./xuanxue-ai-production.r
 import { XuanxueAiProductionWorkerSessionV6, type XuanxueAiProductionRuntimeStateV6 } from "./xuanxue-ai-production-worker-session.js";
 import type { CloudExecutionGrantV6 } from "./xuanxue-ai-production-runtime-protocol.js";
 import {
-  cloudWorkerPollIntervalMs, isRecoverableCloudWorkerFailure, isWorkerContractFailure,
-  reportCloudWorkerError, safeWorkerReason, waitForCloudWorker, workerErrorCode,
+  cloudWorkerPollIntervalMs, isRecoverableCloudWorkerFailure,
+  reportCloudWorkerError, safeWorkerReason, waitForCloudWorker,
 } from "./xuanxue-ai-production-cloud-worker-support.js";
+import { markWorkerError, markWorkerReady, publishHealth } from "./xuanxue-ai-production-cloud-worker-health.js";
 import type {
   CloudWorkerInput,
   WorkerState,
   XuanxueAiProductionExecutionPort,
-  XuanxueAiProductionWorkerHealth,
 } from "./xuanxue-ai-production-cloud-worker-contract.js";
 
 export const xuanxueAiProductionLocalRecoveryVersion = (record: XuanxueAiOrderRecord): string => [
@@ -78,44 +78,6 @@ export const assertXuanxueAiProductionV6DeadlineBudget = (
     expiresAtMonotonic: performance.now() + leaseRemaining - 10_000,
     commandTtlMs: Math.min(20_000, leaseRemaining - 10_000),
   };
-};
-
-const browserReady = (state: WorkerState): boolean =>
-  state.lastRuntimeState.browserAuthorityState === "present"
-  && state.lastRuntimeState.browserTargetState === "claimed"
-  && state.lastRuntimeState.browserLaneState !== "blocked";
-
-const executionHealth = (state: WorkerState): XuanxueAiProductionWorkerHealth["executionState"] => {
-  if (state.draining) return "draining";
-  return state.healthStatus === "ready" && state.ledgerReconciled && browserReady(state) ? "ready" : "blocked";
-};
-
-const claimAdmissionHealth = (state: WorkerState): XuanxueAiProductionWorkerHealth["claimAdmissionState"] => {
-  if (state.draining) return "draining";
-  return state.healthStatus === "ready" && state.ledgerReconciled && browserReady(state) ? "eligible" : "blocked";
-};
-
-const currentHealth = (state: WorkerState): XuanxueAiProductionWorkerHealth => ({
-  shellState: state.healthStatus === "stopped" ? "stopped" : "ready",
-  cloudState: state.healthStatus,
-  browserState: browserReady(state) ? "ready" : "blocked",
-  executionState: executionHealth(state),
-  claimAdmissionState: claimAdmissionHealth(state),
-  browserAuthorityState: state.lastRuntimeState.browserAuthorityState,
-  browserTargetState: state.lastRuntimeState.browserTargetState,
-  browserLaneState: state.lastRuntimeState.browserLaneState,
-  contractManifestHash: state.credential.control_manifest_hash,
-  activeCount: state.active.size, lastSuccessfulHeartbeatAt: state.lastSuccessfulHeartbeatAt,
-  lastErrorCode: state.lastErrorCode, lastErrorReason: state.lastErrorReason,
-  checkedAt: new Date().toISOString(),
-});
-const publishHealth = (state: WorkerState): void => state.onStatus?.(currentHealth(state));
-const markWorkerReady = (state: WorkerState): void => {
-  state.healthStatus = "ready"; state.lastErrorCode = null; state.lastErrorReason = null; publishHealth(state);
-};
-const markWorkerError = (state: WorkerState, error: unknown): void => {
-  state.healthStatus = isWorkerContractFailure(error) ? "contract_blocked" : "transient_degraded";
-  state.lastErrorCode = workerErrorCode(error); state.lastErrorReason = safeWorkerReason(error); publishHealth(state);
 };
 
 const executeReplayOrder = async (
@@ -294,10 +256,24 @@ const reportCloudJobFailure = async (
         ? "DEADLINE_BUDGET_EXHAUSTED" : "CAPABILITY_CHANGED_BEFORE_ACCEPT",
     );
   } else {
+    const reason = safeWorkerReason(error);
+    if (context.localOrderId) {
+      state.execution.markAcceptedFailure(
+        context.localOrderId,
+        recoverable ? "recovery_pending" : "failed",
+        reason,
+      );
+    }
+    reportCloudWorkerError(
+      recoverable
+        ? "XUANXUE_AI_PRODUCTION_EXECUTION_RECOVERY_PENDING"
+        : "XUANXUE_AI_PRODUCTION_EXECUTION_FAILED",
+      error,
+    );
     await failXuanxueAiProductionJob(state.session, state.outbox, job, {
       status: recoverable ? "recovery_pending" : "failed",
       code: recoverable ? "XUANXUE_AI_PRODUCTION_CLOUD_TRANSIENT" : "XUANXUE_AI_PRODUCTION_CLOUD_FAILED",
-      reason: safeWorkerReason(error), recoverable,
+      reason, recoverable,
       ...(context.localOrderId ? { localOrderId: context.localOrderId } : {}),
     });
   }

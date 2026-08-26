@@ -31,4 +31,4 @@ assert.ok(inspect("src/plugins/xuanxue-ai-production/cloud-client.ts", "export c
   .some((finding) => finding.checkId === "system-security/unsafe-catch-fallback"));
 
 console.log("system-security-acceptance-ok");
-emitQualityProofObservation({ lawId: "LAW-SYSTEM-SECURITY-001-V1", evidenceMode: "exam.golden", locator: "acceptance:system-security:attack-mutants", observedValue: "cloud browser-control extension-owner-bypass and unsafe-fallback mutants rejected" });
+emitQualityProofObservation({ lawId: "LAW-SYSTEM-SECURITY-001-V1", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","summary"], locator: "acceptance:system-security:attack-mutants", observedValue: "cloud browser-control extension-owner-bypass and unsafe-fallback mutants rejected" });

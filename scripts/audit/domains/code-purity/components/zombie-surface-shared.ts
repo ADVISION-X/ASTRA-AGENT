@@ -1,10 +1,5 @@
 import type { InventoryFindingCollector } from "./code-purity-finding-collector.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
-import {
-  isLawfulAuditInspectionFile,
-  isLawfulManifestEntryExport,
-  type ZombieExemptionManifest,
-} from "./zombie-exemption-manifest.js";
 
 export const isOwnerInspectorPath = (repoPath: string): boolean => {
   const segments = repoPath.split("/").filter((segment) => segment.length > 0);
@@ -32,6 +27,7 @@ export const pushZombieFinding = (
   collector.push(
     {
       checkId: input.checkId,
+      evidenceMode: "static.dependency",
       declarationKind: input.declarationKind,
       filePath: input.governedFile.repoPath,
       lawId: input.lawId,
@@ -46,12 +42,9 @@ export const pushZombieFinding = (
     input.message,
   );
 };
-export const isLawfulZombieExport = (
+export const isGeneratedOwnerInspectorExport = (
   governedFile: GovernedFile,
   exportName: string,
-  manifest: ZombieExemptionManifest,
 ): boolean =>
   (isOwnerInspectorPath(governedFile.repoPath)
-    && exportName === "inspectDomain")
-  || isLawfulAuditInspectionFile(manifest, governedFile.repoPath)
-  || isLawfulManifestEntryExport(manifest, governedFile.repoPath, exportName);
+    && exportName === "inspectDomain");

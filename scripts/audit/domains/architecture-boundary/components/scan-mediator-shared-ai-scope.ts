@@ -25,7 +25,7 @@ const pushBoundaryFinding = (
   },
 ): void => {
   findings.push(
-    createFinding({
+    createFinding({ evidenceMode: "static.ast",
       checkId: input.checkId,
       lawId: input.lawId,
       filePath: input.repoPath,
@@ -101,7 +101,7 @@ export const inspectPlannerScope = (
     return;
   }
   findings.push(
-    createFinding({
+    createFinding({ evidenceMode: "static.ast",
       checkId: "architecture/ai-planner-ban",
       lawId: plannerLawId,
       filePath: repoPath,

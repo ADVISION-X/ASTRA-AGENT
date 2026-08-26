@@ -6,12 +6,7 @@ import {
   type ZombieDeclarationResolutionFailure,
   type ZombieTopLevelDeclaration,
 } from "./zombie-call-graph.js";
-import {
-  isLawfulAuditInspectionFile,
-  type ZombieExemptionManifest,
-} from "./zombie-exemption-manifest.js";
 import type { ZombieReachability } from "./zombie-module-graph.js";
-import { isLawfulZombieExport } from "./zombie-surface-shared.js";
 import type { ZombieSymbolGraph } from "./zombie-symbol-graph.js";
 import {
   classifyZombieDeclaration,
@@ -21,7 +16,6 @@ import {
 type ZombieDeclarationLiveGraphInput = {
   governedFiles: readonly GovernedFile[];
   liveExportSymbolIds: ReadonlySet<string>;
-  manifest: ZombieExemptionManifest;
   reachability: ZombieReachability;
   symbolGraph: ZombieSymbolGraph;
 };
@@ -119,47 +113,6 @@ const collectTopLevelDeclarations = (input: ZombieDeclarationLiveGraphInput): Zo
     );
 };
 
-const collectManifestRootDeclarationIds = (
-  declarations: readonly ZombieTopLevelDeclaration[],
-  manifest: ZombieExemptionManifest,
-): Set<string> => {
-  const rootIds = new Set<string>();
-  const manifestRoots = new Set(
-    manifest.externalEntryExports.map((entry) => `${entry.filePath}:${entry.exportName}`),
-  );
-  for (const declaration of declarations) {
-    if (manifestRoots.has(`${declaration.governedFile.repoPath}:${declaration.name}`)) {
-      rootIds.add(declaration.id);
-    }
-  }
-  return rootIds;
-};
-
-const collectLawfulExportRootDeclarationIds = (
-  declarations: readonly ZombieTopLevelDeclaration[],
-  manifest: ZombieExemptionManifest,
-): Set<string> => {
-  const rootIds = new Set<string>();
-  for (const declaration of declarations) {
-    if (!declaration.isExported) {
-      continue;
-    }
-    if (isLawfulZombieExport(declaration.governedFile, declaration.name, manifest)) {
-      rootIds.add(declaration.id);
-    }
-  }
-  return rootIds;
-};
-
-const collectAuditInspectionRootDeclarationIds = (
-  declarations: readonly ZombieTopLevelDeclaration[],
-  manifest: ZombieExemptionManifest,
-): Set<string> => new Set(
-  declarations
-    .filter((declaration) => isLawfulAuditInspectionFile(manifest, declaration.governedFile.repoPath))
-    .map((declaration) => declaration.id),
-);
-
 const collectLiveExportRootDeclarationIds = (
   declarationsByNodeKey: ReadonlyMap<string, ZombieTopLevelDeclaration>,
   input: ZombieDeclarationLiveGraphInput,
@@ -195,9 +148,6 @@ export const buildZombieDeclarationLiveGraph = (
   const liveDeclarationIds = new Set<string>([
     ...callGraph.rootDeclarationIdsFromTopLevelExecution,
     ...collectLiveExportRootDeclarationIds(declarationsByNodeKey, input),
-    ...collectManifestRootDeclarationIds(declarations, input.manifest),
-    ...collectLawfulExportRootDeclarationIds(declarations, input.manifest),
-    ...collectAuditInspectionRootDeclarationIds(declarations, input.manifest),
   ]);
 
   const pendingDeclarationIds = [...liveDeclarationIds];

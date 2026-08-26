@@ -18,6 +18,7 @@ const pushTypeEscapeFinding = (input: TypeEscapeFindingInput): void => {
   input.collector.push(
     {
       checkId: input.checkId,
+      evidenceMode: "static.types",
       filePath: input.governedFile.repoPath,
       lawId: input.lawId,
       owner: input.governedFile.owner,

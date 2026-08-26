@@ -3,11 +3,6 @@ import {
   type SourceModuleBinding,
 } from "../../../shared/source-module-targets.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
-import {
-  isLawfulDynamicImport,
-  isLawfulSideEffectImport,
-  type ZombieExemptionManifest,
-} from "./zombie-exemption-manifest.js";
 
 export type ZombieModuleGraph = {
   dynamicImportEdges: SourceModuleBinding[];
@@ -20,8 +15,6 @@ export type ZombieModuleGraph = {
 };
 
 export type ZombieReachability = {
-  blockedDynamicImports: SourceModuleBinding[];
-  blockedSideEffectImports: SourceModuleBinding[];
   reachableFiles: Set<string>;
 };
 
@@ -68,12 +61,9 @@ export const buildZombieModuleGraph = (governedFiles: readonly GovernedFile[]): 
 
 export const collectZombieReachableFiles = (input: {
   entryFiles: ReadonlySet<string>;
-  manifest: ZombieExemptionManifest;
   moduleGraph: ZombieModuleGraph;
 }): ZombieReachability => {
   const reachableFiles = new Set<string>();
-  const blockedDynamicImports: SourceModuleBinding[] = [];
-  const blockedSideEffectImports: SourceModuleBinding[] = [];
   const pendingFiles = [...input.entryFiles];
 
   while (pendingFiles.length > 0) {
@@ -83,14 +73,9 @@ export const collectZombieReachableFiles = (input: {
     }
     reachableFiles.add(currentFile);
     for (const edge of input.moduleGraph.outboundEdgesByFile.get(currentFile) ?? []) {
-      if (edge.edgeKind === "dynamic-import" && !isLawfulDynamicImport(input.manifest, edge.sourcePath, edge.targetPath)) {
-        blockedDynamicImports.push(edge);
-        continue;
-      }
-      if (edge.edgeKind === "side-effect-import" && !isLawfulSideEffectImport(input.manifest, edge.sourcePath, edge.targetPath)) {
-        blockedSideEffectImports.push(edge);
-        continue;
-      }
+      // Resolved literal dynamic and side-effect imports are native module-graph
+      // facts. Non-literal or unresolved edges never enter this graph and are
+      // rejected by the anti-evasion scanners.
       if (!reachableFiles.has(edge.targetPath)) {
         pendingFiles.push(edge.targetPath);
       }
@@ -98,8 +83,6 @@ export const collectZombieReachableFiles = (input: {
   }
 
   return {
-    blockedDynamicImports,
-    blockedSideEffectImports,
     reachableFiles,
   };
 };

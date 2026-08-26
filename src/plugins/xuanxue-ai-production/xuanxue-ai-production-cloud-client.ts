@@ -146,7 +146,16 @@ export async function downloadXuanxueAiProductionInput(
     `${rootUrl(session)}/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/materials/${encodeURIComponent(stageId)}/inputs/${encodeURIComponent(inputId)}`,
     { headers: await session.authorizationHeaders(fenceHeaders(job)), signal: AbortSignal.timeout(120_000) },
   );
-  if (!response.ok) throw new Error(`XUANXUE_AI_PRODUCTION_INPUT_DOWNLOAD_FAILED:${response.status}`);
+  if (!response.ok) {
+    let reason = String(response.status);
+    try {
+      const envelope = parseXuanxueAiProductionJsonEnvelope(await response.json() as unknown);
+      reason = envelope.error?.code ?? reason;
+    } catch {
+      // Preserve the HTTP status when the endpoint did not return its governed JSON envelope.
+    }
+    throw new Error(`XUANXUE_AI_PRODUCTION_INPUT_DOWNLOAD_FAILED:${response.status}:${reason}`);
+  }
   return new Uint8Array(await response.arrayBuffer());
 }
 
@@ -177,6 +186,21 @@ const acknowledgeOutboxWrite = async (
   if (bodyFile) await rm(bodyFile, { force: true });
 };
 
+const isPermanentlyRejectedStaleFence = (error: unknown): boolean =>
+  error instanceof Error
+  && /XUANXUE_AI_PRODUCTION_CLOUD_API_FAILED:AI_LEASE_FENCE_STALE:/u.test(error.message);
+
+const recordPermanentlyRejectedStaleFence = (
+  outbox: XuanxueAiProductionCloudOutbox,
+  write: XuanxueAiProductionCloudOutboxWrite,
+): void => {
+  outbox.recordPermanentRejection({
+    requestId: write.requestId,
+    reasonCode: "AI_LEASE_FENCE_STALE",
+    payloadHash: write.payloadHash,
+  });
+};
+
 const replayArtifactWrite = async (
   session: XuanxueAiProductionWorkerSessionV6,
   outbox: XuanxueAiProductionCloudOutbox,
@@ -192,6 +216,10 @@ const replayArtifactWrite = async (
   });
   const envelope = parseXuanxueAiProductionJsonEnvelope(await response.json() as unknown);
   if (!response.ok || envelope.ok !== true || envelope.data === undefined) {
+    if (envelope.error?.code === "AI_LEASE_FENCE_STALE") {
+      recordPermanentlyRejectedStaleFence(outbox, write);
+      return;
+    }
     throw new Error(`XUANXUE_AI_PRODUCTION_OUTBOX_REPLAY_FAILED:${response.status}`);
   }
   await acknowledgeOutboxWrite(outbox, write.requestId);
@@ -223,9 +251,15 @@ export async function flushXuanxueAiProductionCloudOutbox(
       continue;
     }
     if (await reconcileTerminalWrite(session, outbox, write)) continue;
-    await session.request(write.pathname, {
-      method: write.method, headers: write.headers, body: JSON.stringify(write.body),
-    });
+    try {
+      await session.request(write.pathname, {
+        method: write.method, headers: write.headers, body: JSON.stringify(write.body),
+      });
+    } catch (error) {
+      if (!isPermanentlyRejectedStaleFence(error)) throw error;
+      recordPermanentlyRejectedStaleFence(outbox, write);
+      continue;
+    }
     await acknowledgeOutboxWrite(outbox, write.requestId);
   }
 }

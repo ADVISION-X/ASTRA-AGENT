@@ -33,11 +33,11 @@ assert.match(worker, /DOM\.setFileInputFiles/u, "The registered exact-target fil
 assert.match(worker, /#upload-files/u, "The file-input executor must remain pinned to the observed ChatGPT document input.");
 assert.equal("externally_connectable" in manifest, false, "The MV3 manifest cannot retain page relay connectivity.");
 assert.equal("storage" in manifest, false, "Automatic pairing and reload must remain memory-only.");
-assert.deepEqual(manifest.permissions, ["debugger", "activeTab", "alarms"], "The fixed extension may add only the alarm wake permission.");
+assert.deepEqual(manifest.permissions, ["debugger", "alarms"], "The fixed extension must not retain active-tab authority.");
 assert.deepEqual(manifest.host_permissions, ["http://127.0.0.1/*"], "The MV3 manifest may reach only the fixed loopback authority endpoint.");
 assert.match(pairingPage, /lang="zh-CN"/u, "The fixed operator pairing page must default to Chinese.");
 assert.match(popup, /GRASSEYE_BROWSER_STATUS/u, "Reopening the popup must recover current in-memory authentication status.");
-assert.match(worker, /TargetClaimAwaiter/u, "A target claim must wait for the Workbench encrypted acknowledgement before the popup reports success.");
+assert.match(worker, /TargetClaimAwaiter/u, "An automatic target claim must wait for the Workbench encrypted acknowledgement before success.");
 assert.match(worker, /failedFrameKind/u, "The production extension must report the failed authenticated frame kind to the Workbench.");
 assert.match(worker, /failedFrameSequence/u, "The production extension must report the failed authenticated frame sequence to the Workbench.");
 assert.match(worker, /getPlatformInfo/u, "The bundled MV3 worker must retain its immediate and 20-second Chrome API liveness pulse.");
@@ -45,9 +45,15 @@ assert.match(worker, /close\(4e3,/u, "The bundled worker must retain explicit pr
 assert.doesNotMatch(worker, /BROWSER_PAIRING_ALREADY_AUTHENTICATED/u, "Repeating pair after authentication must not create a Chrome extension error.");
 assert.match(worker, /failedFrameKind/u, "The bundled worker must retain authenticated frame diagnostics after production rebuild.");
 assert.doesNotMatch(pairingPage, /type="password"|pairing-secret/u, "The popup must not ask the operator to copy or paste a secret.");
+assert.doesNotMatch(pairingPage, /id="claim"|认领当前 HTTPS/u, "The popup must not retain the manual target-claim path.");
+assert.doesNotMatch(popup, /GRASSEYE_CLAIM_ACTIVE_TARGET/u, "The popup must not retain a manual target-claim message.");
 assert.match(popupSource, /readWorkbenchPairingState/u, "The popup reconnect action must use the governed automatic bootstrap.");
 assert.match(worker, /GRASSEYE_AUTO_PAIRING_ALARM/u, "The service worker must retain the governed automatic pairing wake path.");
 assert.match(worker, /runtime\.reload/u, "A stale unpacked extension must reload itself after exact build-identity comparison.");
 assert.match(worker, /releaseBuildId/u, "Automatic reload must compare the AGENT and loaded extension build identities.");
+assert.match(worker, /claimPreauthorizedChatGptTarget/u, "READY must trigger the fixed extension's exact ChatGPT claim.");
+assert.match(worker, /debugger\.getTargets/u, "The fixed extension must resolve targets without activeTab or tabs permission.");
+assert.match(worker, /https:\/\/chatgpt\.com\//u, "Zero matching targets must use the one fixed ChatGPT start URL.");
+assert.doesNotMatch(worker, /tabs\.query|GRASSEYE_CLAIM_ACTIVE_TARGET/u, "The retired active-tab claim path must be physically absent.");
 
 console.log("BROWSER_EXTENSION_BUILD_ACCEPTANCE_PASS");

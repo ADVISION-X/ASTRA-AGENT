@@ -52,6 +52,18 @@ const assertProviderFailuresRemainRecoverable = (): void => {
     "pre-mutation fresh-root hydration must never become a permanent failed execution",
   );
   assert.equal(
+    classifyWebChatFailure(new Error("BROWSER_OUTCOME_UNKNOWN: browser.dom.click.v1"), false),
+    "review_required",
+    "an unresolved browser mutation must never be replayed or downgraded to a normal failure",
+  );
+  assert.equal(
+    classifyWebChatFailure(
+      new Error("review_required: GPT_WEB_EXECUTION_PROFILE_TOPOLOGY_AMBIGUOUS"),
+      false,
+    ),
+    "review_required",
+  );
+  assert.equal(
     classifyWebChatFailure(
       new Error(
         "review_required: web-chat execution is terminal: failed; root=invalid immutable input identity",

@@ -49,7 +49,7 @@ const requireToken = (input: {
   token: string;
 }): void => {
   if (input.sourceFile && astText(input.sourceFile).includes(input.token)) return;
-  input.findings.push(createFinding({
+  input.findings.push(createFinding({ evidenceMode: "static.ast",
     checkId: input.checkId,
     lawId: input.lawId,
     filePath: input.repoPath,
@@ -65,7 +65,7 @@ const requireTokenInAny = (input: {
   token: string;
 }): void => {
   if (input.sourceFiles.some((sourceFile) => astText(sourceFile).includes(input.token))) return;
-  input.findings.push(createFinding({
+  input.findings.push(createFinding({ evidenceMode: "static.ast",
     checkId: input.checkId,
     lawId: input.lawId,
     filePath: paths.styles,
@@ -85,7 +85,7 @@ const requireNamedImport = (input: {
     declaration.getModuleSpecifierValue().endsWith(input.moduleSuffix)
     && declaration.getNamedImports().some((namedImport) => namedImport.getName() === input.symbolName));
   if (found) return;
-  input.findings.push(createFinding({
+  input.findings.push(createFinding({ evidenceMode: "static.ast",
     checkId: `app-shell-ui/import-${input.symbolName}`,
     lawId: input.lawId,
     filePath: input.repoPath,

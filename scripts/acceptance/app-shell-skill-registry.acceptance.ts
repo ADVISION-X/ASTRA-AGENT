@@ -33,4 +33,4 @@ assert(!registry.includes("amazon-invoice-upload"), "Retired Amazon Invoice Uplo
 assert(!registry.includes("media-optimizer"), "Retired Media Optimizer must not remain in Skill Registry.");
 
 process.stdout.write("[ACCEPTANCE][app-shell-skill-registry] PASS\n");
-emitQualityProofObservation({ lawId: "LAW-APP-SHELL-UI-003-V3", evidenceMode: "exam.golden", locator: "acceptance:app-shell-ui:active-skill-registry", observedValue: "sidebar renders sole active skill registry and retired skills are absent" });
+emitQualityProofObservation({ lawId: "LAW-APP-SHELL-UI-003-V3", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","summary"], locator: "acceptance:app-shell-ui:active-skill-registry", observedValue: "sidebar renders sole active skill registry and retired skills are absent" });

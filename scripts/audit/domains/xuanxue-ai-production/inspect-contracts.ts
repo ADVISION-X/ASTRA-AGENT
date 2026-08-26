@@ -20,7 +20,7 @@ const requireValues = (
 ): void => {
   for (const required of input.required) {
     if (input.values.has(required)) continue;
-    findings.push(createFinding({
+    findings.push(createFinding({ evidenceMode: "static.ast",
       lawId: input.lawId,
       clauseId: "apex-xuanxue-001-v6-session-bound-cloud-pull",
       checkId: input.checkId,
@@ -43,7 +43,7 @@ const forbidValues = (
 ): void => {
   for (const forbidden of input.forbidden) {
     if (!input.values.has(forbidden)) continue;
-    findings.push(createFinding({
+    findings.push(createFinding({ evidenceMode: "static.ast",
       lawId: input.lawId,
       clauseId: "apex-xuanxue-001-v6-session-bound-cloud-pull",
       checkId: input.checkId,

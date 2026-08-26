@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 import { BrowserCommandActor } from "../exact-target/browser-command-actor.js";
 import { BrowserProofJournal } from "../exact-target/browser-proof-journal.js";
+import { requireGptWebChatPolicyForUrl } from "../exact-target/browser-site-policy-registry.js";
 import { BrowserTargetLeaseManager, type BrowserExactTargetAcquisition } from "../exact-target/browser-target-lease-manager.js";
 import { BrowserCommandAdmissionBudget } from "../transport/browser-command-admission-budget.js";
 import {
@@ -139,6 +140,7 @@ export class BrowserInfrastructureSupervisor {
   }
 
   private onTargetClaim(input: BrowserAuthorityTargetClaim): void {
+    requireGptWebChatPolicyForUrl(input.url);
     this.establishClaimBoundWorkspace();
     this.broker.registerOperatorTargetClaim({ authorityEpoch: currentAuthorityEpoch(this.issuer), ...input });
     this.journal().recordLifecycle({
@@ -151,7 +153,7 @@ export class BrowserInfrastructureSupervisor {
     this.emitBrowserRuntimeState(
       RuntimeLogEventType.BROWSER_TARGET_CLAIMED,
       "success",
-      "当前 HTTPS 标签页已认领。",
+      "预授权 ChatGPT Target 已由固定扩展认领。",
       undefined,
       { targetRef: input.targetRef, documentRef: input.documentRef },
     );

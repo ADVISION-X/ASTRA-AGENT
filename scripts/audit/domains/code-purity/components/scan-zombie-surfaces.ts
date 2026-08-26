@@ -11,7 +11,6 @@ import { scanZombieReferenceSurfaces } from "./scan-zombie-reference-surfaces.js
 import { scanZombieAntiEvasion } from "./zombie-anti-evasion.js";
 import { collectZombieCommentedCodeHits } from "./zombie-commented-code.js";
 import { buildZombieDeclarationLiveGraph } from "./zombie-declaration-live-graph.js";
-import { createZombieExemptionManifest, type ZombieExemptionManifest } from "./zombie-exemption-manifest.js";
 import { collectZombieLiveEntrypoints, type ZombieLiveEntryPoint } from "./zombie-live-entrypoints.js";
 import { buildZombieModuleGraph, collectZombieReachableFiles } from "./zombie-module-graph.js";
 import { scanZombieNamespaceUsage } from "./zombie-namespace-usage.js";
@@ -38,7 +37,6 @@ type ZombieScanResult = {
 };
 
 type ZombieScanOverrides = {
-  manifest?: ZombieExemptionManifest;
   packageScripts?: Readonly<Record<string, string>>;
 };
 
@@ -46,11 +44,9 @@ type ZombieGraphState = {
   antiEvasionLawId: string;
   dynamicImportLawId: string;
   liveEntryState: ReturnType<typeof collectZombieLiveEntrypoints>;
-  manifest: ZombieExemptionManifest;
   moduleGraph: ReturnType<typeof buildZombieModuleGraph>;
   namespaceUsage: ReturnType<typeof scanZombieNamespaceUsage>;
   reachability: ReturnType<typeof collectZombieReachableFiles>;
-  sideEffectImportLawId: string;
   symbolGraph: ReturnType<typeof buildZombieSymbolGraph>;
   zombieLawId: string;
 };
@@ -61,34 +57,30 @@ const buildZombieGraphState = (
   overrides: ZombieScanOverrides,
   lawIds: readonly string[],
 ): ZombieGraphState => {
-  const manifest = overrides.manifest ?? createZombieExemptionManifest();
   const liveEntryState = collectZombieLiveEntrypoints({
     generatedPlan: context.generatedPlan,
     governedFiles,
-    manifest,
     packageScripts: overrides.packageScripts ?? (context.targetPaths.includes("package.json") ? undefined : {}),
+    sealedRoot: context.sealedRoot,
+    targetPaths: context.targetPaths,
   });
   const moduleGraph = buildZombieModuleGraph(governedFiles);
   const reachability = collectZombieReachableFiles({
     entryFiles: liveEntryState.entryFiles,
-    manifest,
     moduleGraph,
   });
   return {
-    antiEvasionLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V3"),
-    dynamicImportLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V3"),
+    antiEvasionLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V4"),
+    dynamicImportLawId: selectLawId(lawIds, "LAW-CODE-PURITY-002-V1"),
     liveEntryState,
-    manifest,
     moduleGraph,
     namespaceUsage: scanZombieNamespaceUsage({
-      manifest,
       moduleGraph,
       reachableFiles: reachability.reachableFiles,
     }),
     reachability,
-    sideEffectImportLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V3"),
     symbolGraph: buildZombieSymbolGraph(governedFiles),
-    zombieLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V3"),
+    zombieLawId: selectLawId(lawIds, "LAW-CODE-PURITY-003-V1"),
   };
 };
 
@@ -136,7 +128,6 @@ const scanAntiEvasionFindings = (
     moduleGraph: state.moduleGraph,
     namespaceUsage: state.namespaceUsage,
     reachability: state.reachability,
-    sideEffectImportLawId: state.sideEffectImportLawId,
   });
   return antiEvasionFindingCount;
 };
@@ -152,7 +143,6 @@ export const scanZombieSurfaces = (
 
   const referenceSummary = scanZombieReferenceSurfaces(collector, {
     antiEvasionLawId: state.antiEvasionLawId,
-    manifest: state.manifest,
     moduleGraph: state.moduleGraph,
     namespaceUsage: state.namespaceUsage,
     reachability: state.reachability,
@@ -162,15 +152,12 @@ export const scanZombieSurfaces = (
   const declarationGraph = buildZombieDeclarationLiveGraph({
     governedFiles,
     liveExportSymbolIds: referenceSummary.liveExportSymbolIds,
-    manifest: state.manifest,
     reachability: state.reachability,
     symbolGraph: state.symbolGraph,
   });
   scanZombieObjectBags({
-    antiEvasionLawId: state.antiEvasionLawId,
     collector,
     liveExportSymbolIds: referenceSummary.liveExportSymbolIds,
-    manifest: state.manifest,
     moduleGraph: state.moduleGraph,
     symbolGraph: state.symbolGraph,
     zombieLawId: state.zombieLawId,

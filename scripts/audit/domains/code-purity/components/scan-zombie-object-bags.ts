@@ -5,7 +5,6 @@ import {
 } from "./zombie-object-bag-liveness.js";
 import { collectZombieObjectBagUsage } from "./zombie-registry-bag-usage.js";
 import { pushZombieFinding } from "./zombie-surface-shared.js";
-import type { ZombieExemptionManifest } from "./zombie-exemption-manifest.js";
 import type { ZombieModuleGraph } from "./zombie-module-graph.js";
 import type { ZombieSymbolGraph } from "./zombie-symbol-graph.js";
 
@@ -16,10 +15,8 @@ const resolveDynamicUsageCheckId = (bag: ZombieObjectBag): string =>
   bag.exportName.toLowerCase().includes("registry") ? "code-purity/registry-bag-laundering" : "code-purity/object-bag-dynamic-usage";
 
 export const scanZombieObjectBags = (input: {
-  antiEvasionLawId: string;
   collector: InventoryFindingCollector;
   liveExportSymbolIds: ReadonlySet<string>;
-  manifest: ZombieExemptionManifest;
   moduleGraph: ZombieModuleGraph;
   symbolGraph: ZombieSymbolGraph;
   zombieLawId: string;
@@ -29,18 +26,15 @@ export const scanZombieObjectBags = (input: {
     moduleGraph: input.moduleGraph,
     symbolGraph: input.symbolGraph,
   })) {
-    const usage = collectZombieObjectBagUsage({
-      bag,
-      manifest: input.manifest,
-    });
+    const usage = collectZombieObjectBagUsage({ bag });
 
     for (const dynamicUsage of usage.dynamicUsages) {
       pushZombieFinding(input.collector, {
         checkId: resolveDynamicUsageCheckId(bag),
         governedFile: bag.governedFile,
-        lawId: input.antiEvasionLawId,
+        lawId: input.zombieLawId,
         reason: `Object bag ${bag.exportName} uses dynamic access ${dynamicUsage.sourceText} and cannot prove property-level liveness.`,
-        remediation: "Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.",
+        remediation: "Replace dynamic bag access with explicit property reads backed by a real registry lookup consumer.",
         message: `${bag.governedFile.repoPath} exposes object bag ${bag.exportName} to dynamic access ${dynamicUsage.sourceText}.`,
       });
     }

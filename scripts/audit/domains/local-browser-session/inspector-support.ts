@@ -5,8 +5,12 @@ import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 
-export const createLocalFinding = (input: Parameters<typeof createFinding>[0]): InspectorFinding =>
-  createFinding({ ...input, clauseId: input.clauseId ?? `${input.lawId.toLowerCase()}-requirement` });
+export const createLocalFinding = (
+  input: Omit<Parameters<typeof createFinding>[0], "evidenceMode">,
+): InspectorFinding => createFinding({
+  ...input, evidenceMode: "static.ast",
+  clauseId: input.clauseId ?? `${input.lawId.toLowerCase()}-requirement`,
+});
 
 export const targetAuthorityPath = "src/lib/browser/chrome-extension/extension-target-authority.ts";
 export const brokerPath = "src/lib/browser/infrastructure/browser-authority-broker.ts";

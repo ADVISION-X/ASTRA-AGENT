@@ -38,10 +38,10 @@ try {
     extensionId: evidence.extensionId, workerSessionId: receipt.worker_session_id,
     runtimeAttestationReceiptHash: receipt.runtime_attestation_receipt_hash,
   })}\n`);
-  emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "dynamic.browser",
+  emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "dynamic.browser", clauses: ["forbidden:1","forbidden:13","forbidden:5","summary"],
     locator: evidencePath, receipt: receipt.runtime_attestation_receipt_hash.replace(/^sha256:/u, ""),
     observedValue: `workerSession=${receipt.worker_session_id};attestation=${receipt.runtime_attestation_receipt_hash}` });
-  emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-002-V2", evidenceMode: "dynamic.browser",
+  emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-002-V2", evidenceMode: "dynamic.browser", clauses: ["forbidden:2","forbidden:3","forbidden:4","forbidden:6","summary"],
     locator: evidencePath, receipt: receipt.runtime_attestation_receipt_hash.replace(/^sha256:/u, ""),
     observedValue: `exactBrowserSession=${receipt.worker_session_id};extension=${evidence.extensionId}` });
 } catch (error) {

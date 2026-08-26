@@ -18,7 +18,7 @@ const requiredIdentityFields = Object.freeze([
   "protocolHash",
   "sitePolicyHash",
 ]);
-const requiredPermissions = Object.freeze(["activeTab", "alarms", "debugger"]);
+const requiredPermissions = Object.freeze(["alarms", "debugger"]);
 const requiredHostPermissions = Object.freeze(["http://127.0.0.1/*"]);
 
 const sha256 = (value) => `sha256:${createHash("sha256").update(value).digest("hex")}`;

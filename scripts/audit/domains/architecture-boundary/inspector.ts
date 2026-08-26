@@ -6,7 +6,7 @@ import { inspectActivePluginMediators } from "./components/scan-active-plugin-me
 import { inspectProjectSources } from "./components/scan-project-sources.js";
 import { inspectRootAllowlist } from "./components/scan-root-allowlist.js";
 import { inspectTypesContractRoot } from "./components/scan-types-contract-root.js";
-import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
 
 
@@ -51,15 +51,14 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const evaluation = await inspectDomainEvaluation(context);
   const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V1";
   const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
-  const passed = findings.length === 0;
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain,
     reportedLawIds: evaluation.reportedLawIds,
     lawResults: [{ lawId, assertions: [
-      { clauses: staticClauses(0, 1, 2, 3, 4, 5, 6), evidenceMode: "static.ast", passed, refs: staticEvidenceRefs(context, lawId, "static.ast") },
-      { clauses: staticClauses(), evidenceMode: "static.dependency", passed, refs: staticEvidenceRefs(context, lawId, "static.dependency") },
-      { clauses: staticClauses(), evidenceMode: "static.filesystem", passed, refs: staticEvidenceRefs(context, lawId, "static.filesystem") },
-      { clauses: staticClauses(), evidenceMode: "static.types", passed, refs: staticEvidenceRefs(context, lawId, "static.types") },
+      { clauses: staticClauses(0, 1, 2, 3, 4, 5, 6), evidenceMode: "static.ast", passed: producerModePassed(findings, "static.ast"), refs: staticEvidenceRefs(context, lawId, "static.ast") },
+      { clauses: staticClauses(0), evidenceMode: "static.dependency", passed: producerModePassed(findings, "static.dependency"), refs: staticEvidenceRefs(context, lawId, "static.dependency") },
+      { clauses: staticClauses(0), evidenceMode: "static.filesystem", passed: producerModePassed(findings, "static.filesystem"), refs: staticEvidenceRefs(context, lawId, "static.filesystem") },
+      { clauses: staticClauses(0), evidenceMode: "static.types", passed: producerModePassed(findings, "static.types"), refs: staticEvidenceRefs(context, lawId, "static.types") },
     ], findings }],
     inspectedFiles: evaluation.inspectedFiles,
   });

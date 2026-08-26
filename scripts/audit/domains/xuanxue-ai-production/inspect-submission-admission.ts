@@ -166,7 +166,7 @@ export const inspectSubmissionAdmissionBinding = (
 ): void => {
   const source = context.project.getSourceFile(resolveFromRepo(stagePath));
   if (source && submissionAdmissionBindingIsExact(source)) return;
-  findings.push(createFinding({
+  findings.push(createFinding({ evidenceMode: "static.ast",
     lawId,
     clauseId: "apex-xuanxue-001-v6-session-bound-cloud-pull",
     checkId: "xuanxue-ai-production/current-grant-submission-admission",

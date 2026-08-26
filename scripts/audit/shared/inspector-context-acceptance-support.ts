@@ -1,6 +1,5 @@
 import type { Project } from "ts-morph";
 
-import { buildRegistry } from "../governance-authority.js";
 import type { InspectorContext } from "./inspector-contracts.js";
 
 export const createInspectorContextFixture = (
@@ -8,7 +7,6 @@ export const createInspectorContextFixture = (
   capabilityDomain: string,
   lawIds: string[],
 ): InspectorContext => {
-  const laws = new Map(buildRegistry().laws.map((law) => [law.lawId, law]));
   const planEntry: InspectorContext["planEntry"] = {
     capabilityDomain,
     manifestPath: `scripts/audit/domains/${capabilityDomain}/manifest.json`,
@@ -24,8 +22,8 @@ export const createInspectorContextFixture = (
     targetPaths: [],
     lawRequirements: lawIds.map((lawId) => ({
       lawId,
-      forbiddenCount: laws.get(lawId)!.forbidden.length,
-      clausesByMode: { "static.ast": ["summary"] },
+      forbiddenCount: 32,
+      requiredStaticModes: ["static.ast"],
       targetPaths: [],
       targetSet: { queryRef: `scope:${lawId}#fixture`, count: 0 },
     })),

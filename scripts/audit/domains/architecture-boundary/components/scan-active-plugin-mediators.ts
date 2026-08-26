@@ -150,7 +150,7 @@ const pushFinding = (
   message: string,
   evidence?: string,
 ): void => {
-  input.findings.push(createFinding({
+  input.findings.push(createFinding({ evidenceMode: "static.ast",
     checkId,
     lawId: input.lawId,
     filePath,

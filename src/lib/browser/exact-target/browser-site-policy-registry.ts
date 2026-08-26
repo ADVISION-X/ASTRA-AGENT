@@ -3,6 +3,8 @@ export type BrowserSitePolicy = Readonly<{
   allowedOrigins: readonly string[];
 }>;
 
+export const GPT_WEB_CHAT_START_URL = "https://chatgpt.com/";
+
 const policies: readonly BrowserSitePolicy[] = Object.freeze([
   {
     siteId: "gpt-web-chat",
@@ -30,5 +32,11 @@ export const requireBrowserSitePolicyForUrl = (value: string): BrowserSitePolicy
   }
   const policy = policies.find((candidate) => candidate.allowedOrigins.includes(origin));
   if (!policy) throw new Error("BROWSER_ORIGIN_REJECTED");
+  return policy;
+};
+
+export const requireGptWebChatPolicyForUrl = (value: string): BrowserSitePolicy => {
+  const policy = requireBrowserSitePolicyForUrl(value);
+  if (policy.siteId !== "gpt-web-chat") throw new Error("BROWSER_ORIGIN_REJECTED");
   return policy;
 };

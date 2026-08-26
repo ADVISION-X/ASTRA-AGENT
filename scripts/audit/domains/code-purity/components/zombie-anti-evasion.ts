@@ -55,58 +55,8 @@ const pushNamespaceDynamicUsageFindings = (input: {
       governedFile,
       lawId: input.antiEvasionLawId,
       reason: `Namespace import reads ${dynamicUsage.sourceText} without property-level proof of which export is live.`,
-      remediation: "Replace the namespace dynamic usage with explicit property reads or add a lawful dynamic namespace manifest exemption.",
-      message: `${governedFile.repoPath} uses namespace dynamic access ${dynamicUsage.sourceText} without lawful exemption.`,
-    });
-    findingCount += 1;
-  }
-  return findingCount;
-};
-
-const pushBlockedDynamicImportFindings = (input: {
-  collector: InventoryFindingCollector;
-  dynamicImportLawId: string;
-  moduleGraph: ZombieModuleGraph;
-  reachability: ZombieReachability;
-}): number => {
-  let findingCount = 0;
-  for (const blockedDynamicImport of input.reachability.blockedDynamicImports) {
-    const governedFile = input.moduleGraph.filesByPath.get(blockedDynamicImport.sourcePath);
-    if (!governedFile) {
-      continue;
-    }
-    pushZombieFinding(input.collector, {
-      checkId: "code-purity/dynamic-import-without-manifest",
-      governedFile,
-      lawId: input.dynamicImportLawId,
-      reason: `Dynamic import to ${blockedDynamicImport.targetPath} is not declared in the lawful live entry manifest.`,
-      remediation: "Make the import static or declare the dynamic entry in the lawful zombie exemption manifest.",
-      message: `${governedFile.repoPath} dynamically imports ${blockedDynamicImport.targetPath} without lawful manifest proof.`,
-    });
-    findingCount += 1;
-  }
-  return findingCount;
-};
-
-const pushBlockedSideEffectImportFindings = (input: {
-  collector: InventoryFindingCollector;
-  moduleGraph: ZombieModuleGraph;
-  reachability: ZombieReachability;
-  sideEffectImportLawId: string;
-}): number => {
-  let findingCount = 0;
-  for (const blockedSideEffectImport of input.reachability.blockedSideEffectImports) {
-    const governedFile = input.moduleGraph.filesByPath.get(blockedSideEffectImport.sourcePath);
-    if (!governedFile) {
-      continue;
-    }
-    pushZombieFinding(input.collector, {
-      checkId: "code-purity/side-effect-import-without-manifest",
-      governedFile,
-      lawId: input.sideEffectImportLawId,
-      reason: `Side-effect import to ${blockedSideEffectImport.targetPath} is not declared in the lawful live entry manifest.`,
-      remediation: "Delete the side-effect import, convert it to a lawful static import, or declare the side-effect edge explicitly in the manifest.",
-      message: `${governedFile.repoPath} side-effect imports ${blockedSideEffectImport.targetPath} without lawful manifest proof.`,
+      remediation: "Replace the namespace dynamic usage with explicit property reads backed by final symbol consumers.",
+      message: `${governedFile.repoPath} uses namespace dynamic access ${dynamicUsage.sourceText} without property-level proof.`,
     });
     findingCount += 1;
   }
@@ -149,12 +99,9 @@ export const scanZombieAntiEvasion = (input: {
   moduleGraph: ZombieModuleGraph;
   namespaceUsage: ZombieNamespaceUsageReport;
   reachability: ZombieReachability;
-  sideEffectImportLawId: string;
 }): number => {
   let findingCount = 0;
   findingCount += pushNamespaceDynamicUsageFindings(input);
-  findingCount += pushBlockedDynamicImportFindings(input);
-  findingCount += pushBlockedSideEffectImportFindings(input);
   findingCount += pushDynamicImportProblemFindings({
     collector: input.collector,
     dynamicImportLawId: input.dynamicImportLawId,

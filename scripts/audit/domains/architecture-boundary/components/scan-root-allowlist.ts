@@ -32,7 +32,7 @@ const pushUnexpectedRoots = (
 ): void => {
   for (const unexpectedRoot of collectUnexpectedRoots(input.rootPath, input.allowedRoots)) {
     findings.push(
-      createFinding({
+      createFinding({ evidenceMode: "static.ast",
         checkId: input.checkId,
         lawId: input.lawId,
         filePath: unexpectedRoot,
@@ -53,7 +53,7 @@ const pushUnexpectedRootFiles = (
 ): void => {
   for (const unexpectedRootFile of collectUnexpectedRootFiles(input.rootPath)) {
     findings.push(
-      createFinding({
+      createFinding({ evidenceMode: "static.ast",
         checkId: input.checkId,
         lawId: input.lawId,
         filePath: unexpectedRootFile,

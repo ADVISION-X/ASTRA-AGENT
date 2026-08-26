@@ -184,6 +184,12 @@ export class BrowserAuthorityBroker {
     if (slot.kind === "ABSENT" || claim.authorityEpoch !== slot.authority.authorityEpoch) {
       throw new Error("BROWSER_TARGET_INVALID");
     }
+    const current = this.operatorTargetClaim;
+    if (current?.authorityEpoch === claim.authorityEpoch
+      && (current.targetRef !== claim.targetRef
+        || claim.navigationEpoch !== current.navigationEpoch + 1)) {
+      throw new Error("BROWSER_TARGET_INVALID");
+    }
     this.operatorTargetClaim = claim;
   }
 

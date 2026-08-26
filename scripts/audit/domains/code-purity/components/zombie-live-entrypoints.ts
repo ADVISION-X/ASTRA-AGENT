@@ -1,16 +1,11 @@
 import { readFileSync } from "node:fs";
-import { extname } from "node:path";
+import { basename, extname, resolve } from "node:path";
 
 import { resolveFromRepo, toRepoPath } from "../../../shared/paths.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
-import {
-  isLawfulAuditInspectionFile,
-  isLawfulManifestEntryFile,
-  type ZombieExemptionManifest,
-} from "./zombie-exemption-manifest.js";
 
 export type ZombieLiveEntryPoint = {
-  entryKind: "active-law" | "audit-inspection" | "owner-inspector" | "package-script";
+  entryKind: "native-config" | "owner-inspector" | "package-script";
   filePath: string;
   reason: string;
   scriptName: string | null;
@@ -96,8 +91,9 @@ const readPackageJsonScripts = (): Record<string, string> => {
 export const collectZombieLiveEntrypoints = (input: {
   generatedPlan: readonly GeneratedPlanLike[];
   governedFiles: readonly GovernedFile[];
-  manifest: ZombieExemptionManifest;
   packageScripts?: Readonly<Record<string, string>> | undefined;
+  sealedRoot: string;
+  targetPaths: readonly string[];
 }): {
   entryFiles: Set<string>;
   liveEntryPoints: ZombieLiveEntryPoint[];
@@ -135,25 +131,18 @@ export const collectZombieLiveEntrypoints = (input: {
     });
   }
 
+  const nativeConfigSources = input.targetPaths.filter((path) => [".json", ".html"].includes(extname(path)))
+    .map((path) => ({ path, source: readFileSync(resolve(input.sealedRoot, path), "utf8") }));
   for (const governedFile of input.governedFiles) {
-    if (isLawfulAuditInspectionFile(input.manifest, governedFile.repoPath) && !entryFiles.has(governedFile.repoPath)) {
-      entryFiles.add(governedFile.repoPath);
-      liveEntryPoints.push({
-        entryKind: "audit-inspection",
-        filePath: governedFile.repoPath,
-        reason: "active law requires owner-inspector source evidence",
-        scriptName: null,
-      });
-      continue;
-    }
-    if (!isLawfulManifestEntryFile(input.manifest, governedFile.repoPath) || entryFiles.has(governedFile.repoPath)) {
-      continue;
-    }
+    if (entryFiles.has(governedFile.repoPath)) continue;
+    const runtimeName = `${basename(governedFile.repoPath, extname(governedFile.repoPath))}.js`;
+    const nativeOwner = nativeConfigSources.find((config) => config.source.includes(runtimeName));
+    if (!nativeOwner) continue;
     entryFiles.add(governedFile.repoPath);
     liveEntryPoints.push({
-      entryKind: "active-law",
+      entryKind: "native-config",
       filePath: governedFile.repoPath,
-      reason: "generated active-law liveness authority",
+      reason: `${nativeOwner.path} references ${runtimeName}`,
       scriptName: null,
     });
   }

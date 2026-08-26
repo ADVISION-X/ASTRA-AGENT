@@ -2,7 +2,7 @@ import { type InspectorContext, type InspectorEvaluation, type SessionInspectorO
 import { selectLawId } from "../../shared/finding-utils.js";
 import { toInspectorFinding } from "./finding-adapter.js";
 import { collectRuntimeLogPhaseRuns, type CollectedPhaseRuns } from "./phase-runs.js";
-import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
 const findingsForLaw = (collected: CollectedPhaseRuns, lawId: string) => collected.phaseRuns
   .flatMap((phase) => phase.findings)
@@ -39,9 +39,8 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const evaluation = await inspectDomainEvaluation(context);
   const lawResult = (lawId: string) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
-    const passed = findings.length === 0;
-    return { lawId, assertions: ["static.ast", "static.contract"].map((evidenceMode) => ({
-      clauses: staticClauses(), evidenceMode, passed, refs: staticEvidenceRefs(context, lawId, evidenceMode),
+      return { lawId, assertions: ["static.ast", "static.contract"].map((evidenceMode) => ({
+      clauses: staticClauses(0), evidenceMode, passed: producerModePassed(findings, evidenceMode), refs: staticEvidenceRefs(context, lawId, evidenceMode),
     })), findings };
   };
   return validateStaticInspection(context, {

@@ -4,7 +4,6 @@ import { relative, resolve } from "node:path";
 import { exactKeys } from "../governance-json.js";
 import { ROOT, fail, validGitObjectId } from "../governance-runtime.js";
 import type { Law, Level } from "../governance-authority.js";
-import { proofClauseIndexesFor } from "./quality-routes.js";
 
 export type QualityAssertion = {
   clauses: string[];
@@ -41,7 +40,7 @@ const exactOrdered = (values: readonly string[]): boolean => JSON.stringify(valu
 const resultKeys = ["assertions", "findings", "lawId"];
 const assertionKeys = ["clauses", "evidenceMode", "passed", "refs"];
 const findingKeys = ["code", "evidenceRefs"];
-const evidenceKinds = new Set(["file", "text", "ast", "json", "yaml", "sql", "dependency", "config", "test", "exam", "dynamic", "scope"]);
+const evidenceKinds = new Set(["file", "text", "ast", "types", "json", "yaml", "sql", "dependency", "config", "test", "exam", "dynamic", "scope"]);
 
 const validateParticipants = (
   level: "READY" | "RELEASE",
@@ -70,7 +69,7 @@ const evidenceKindByMode: Readonly<Record<string, string>> = {
   "static.filesystem": "file",
   "static.text": "text",
   "static.ast": "ast",
-  "static.types": "ast",
+  "static.types": "types",
   "static.contract": "config",
   "static.dependency": "dependency",
   "static.config": "config",
@@ -91,39 +90,10 @@ const evidenceKindByMode: Readonly<Record<string, string>> = {
   "dynamic.performance": "dynamic",
 };
 
-export const clausesForLaw = (law: Law): string[] => [
+const clauseDenominator = (law: Law): string[] => [
   ...law.forbidden.map((_, index) => `forbidden:${index}`),
   "summary",
 ].sort(byteCompare);
-
-export const clausesForEvidenceMode = (law: Law, required: readonly string[], mode: string): string[] => {
-  if (mode.startsWith("dynamic.")) {
-    const configured = proofClauseIndexesFor(law.lawId, mode, law.forbidden.length)
-      ?? fail("LAW_CHECK_ROUTE_MISSING", `${law.lawId}:${mode}:clause-route`);
-    return ordered([...configured.map((index) => `forbidden:${index}`), "summary"]);
-  }
-  // READY owns the fixed clause denominator. RELEASE may add observations, but
-  // must never steal or rewrite an already adjudicated Static/Exam assignment.
-  const proofModes = required.filter((candidate) => candidate.startsWith("exam."));
-  const assignments = new Map(proofModes.map((proofMode) => {
-    const configured = proofClauseIndexesFor(law.lawId, proofMode, law.forbidden.length);
-    if (configured) return [proofMode, configured] as const;
-    if (proofModes.length === 1) return [proofMode, law.forbidden.map((_, index) => index)] as const;
-    return fail("LAW_CHECK_ROUTE_MISSING", `${law.lawId}:${proofMode}:clause-route`);
-  }));
-  const assignedToProof = new Set([...assignments.values()].flat());
-  if (assignments.has(mode)) return ordered([
-    ...assignments.get(mode)!.map((index) => `forbidden:${index}`), "summary",
-  ]);
-  const primaryStatic = required.includes("static.ast")
-    ? "static.ast"
-    : required.find((candidate) => candidate.startsWith("static."));
-  if (mode !== primaryStatic) return ["summary"];
-  return ordered([
-    ...law.forbidden.flatMap((_, index) => assignedToProof.has(index) ? [] : [`forbidden:${index}`]),
-    "summary",
-  ]);
-};
 
 export const requiredModes = (law: Law, level: "READY" | "RELEASE"): string[] =>
   ordered(law.evidenceModes.filter((mode) => level === "RELEASE" || !mode.startsWith("dynamic.")));
@@ -161,7 +131,7 @@ const repositoryObjectExists = (locator: string): boolean => {
 };
 const validEvidenceObject = (reference: ParsedEvidenceRef): boolean => {
   if (reference.kind === "dynamic") return Boolean(reference.receipt)
-    && /^(?:https?:\/\/|tcp:\/\/|process:|\/)/u.test(reference.locator);
+    && /^\//u.test(reference.locator);
   if (reference.receipt !== undefined) return false;
   if (reference.kind !== "scope") return repositoryObjectExists(reference.locator);
   return /^LAW-[A-Z0-9-]+$/u.test(reference.locator) && reference.selector === "appliesTo-minus-excludes";
@@ -188,7 +158,7 @@ const validateAssertion = (assertion: QualityAssertion, law: Law, required: read
   if (!required.includes(assertion.evidenceMode) || !expectedKind) fail("UNDECLARED_EVIDENCE_MODE", `${law.lawId}:${assertion.evidenceMode}`);
   if (!assertion.refs.length) fail("EMPTY_EVIDENCE_REFS", `${law.lawId}:${assertion.evidenceMode}`);
   if (!assertion.clauses.length || !exactOrdered(assertion.clauses)
-    || assertion.clauses.some((clause) => !clausesForLaw(law).includes(clause))
+    || assertion.clauses.some((clause) => !clauseDenominator(law).includes(clause))
     || !exactOrdered(assertion.refs)
     || assertion.refs.some((ref) => !validEvidenceRef(ref))
     || !assertion.refs.some((ref) => evidenceKind(ref) === expectedKind)
@@ -213,7 +183,7 @@ const validateLawExecution = (result: LawExecutionResult, law: Law, level: "READ
     if (signatures.length !== new Set(signatures).size) fail("LAW_EVIDENCE_DUPLICATE", `${law.lawId}:${mode}`);
   }
   const covered = ordered(result.assertions.flatMap((assertion) => assertion.clauses));
-  if (JSON.stringify(covered) !== JSON.stringify(clausesForLaw(law))) fail("LAW_CLAUSE_DENOMINATOR_MISMATCH", law.lawId);
+  if (JSON.stringify(covered) !== JSON.stringify(clauseDenominator(law))) fail("LAW_CLAUSE_DENOMINATOR_MISMATCH", law.lawId);
   if (result.assertions.some((assertion) => !assertion.passed) && !result.findings.length) fail("LAW_FAILED", law.lawId);
 };
 

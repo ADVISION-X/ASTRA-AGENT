@@ -44,7 +44,7 @@ export const inspectForbiddenAppShellActions = (
       const normalizedText = text.trim();
       const forbiddenTerm = forbiddenUiTerms.find((term) => normalizedText === term);
       if (forbiddenTerm) {
-        findings.push(createFinding({
+        findings.push(createFinding({ evidenceMode: "static.ast",
           checkId: "app-shell-ui/forbidden-visible-action",
           lawId,
           filePath: repoPath,
@@ -57,7 +57,7 @@ export const inspectForbiddenAppShellActions = (
       .find((expression) => Node.isIdentifier(expression.getExpression())
         && astIdentifierName(expression.getExpression()) === "localStorage");
     if (localStorageAccess) {
-      findings.push(createFinding({
+      findings.push(createFinding({ evidenceMode: "static.ast",
         checkId: "app-shell-ui/local-storage-truth-source",
         lawId,
         filePath: repoPath,
@@ -71,7 +71,7 @@ export const inspectForbiddenAppShellActions = (
         return text === "computeVerdict" || text === "calculateVerdict" || text === "deriveVerdict";
       });
     if (computedVerdictIdentifier && Node.isIdentifier(computedVerdictIdentifier)) {
-      findings.push(createFinding({
+      findings.push(createFinding({ evidenceMode: "static.ast",
         checkId: "app-shell-ui/frontend-verdict-computation",
         lawId,
         filePath: repoPath,

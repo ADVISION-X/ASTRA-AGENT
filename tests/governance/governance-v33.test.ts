@@ -9,8 +9,31 @@ import { buildRegistry, checkProjection, loadLaws, pathRole, verifyEntry, verify
 import { assertLawMajorVersionChanges } from '../../scripts/audit/governance-change-authority.js';
 import { GovernanceError } from '../../scripts/audit/governance-runtime.js';
 import { assertRoleConsumptionEdges } from '../../scripts/audit/shared/governance-role-consumption.js';
+import { detectHighImpactChanges, type HighImpactFinding } from '../../scripts/audit/shared/high-impact-detector.js';
 
 const retiredDomains = ['audit-system', 'audit-truth', 'domain-registry', 'exam-system', 'law-system', 'project-governance'];
+
+test('typed high-impact detector covers all twelve machine-owned categories', () => {
+  const cases: Array<{ category: HighImpactFinding['category']; path: string; source: string }> = [
+    { category: 'api', path: 'src/app/server.ts', source: 'router.post("/api/jobs", handler);' },
+    { category: 'cli', path: 'package.json', source: '"scripts": { "serve": "node server.js" }' },
+    { category: 'event', path: 'src/app/events.ts', source: 'target.addEventListener("change", handler);' },
+    { category: 'queue', path: 'src/jobs/producer.ts', source: 'enqueue(payload);' },
+    { category: 'table', path: 'scripts/migrations/001.sql', source: 'CREATE TABLE jobs (id TEXT);' },
+    { category: 'column', path: 'scripts/migrations/002.sql', source: 'ALTER TABLE jobs ADD COLUMN state TEXT;' },
+    { category: 'environment-variable', path: 'src/config.ts', source: 'process.env.NEW_RUNTIME_HOST' },
+    { category: 'dependency', path: 'package.json', source: '"new-package": "^1.0.0"' },
+    { category: 'listener', path: 'src/server.ts', source: 'server.listen(8080);' },
+    { category: 'external-host', path: 'src/client.ts', source: 'fetch("https://api.example.com/v1");' },
+    { category: 'browser-permission', path: 'src/lib/browser/chrome-extension/manifest.json', source: '"host_permissions": ["https://example.com/*"]' },
+    { category: 'cross-repo-contract', path: 'docs/specs/provider.json', source: '"specKind": "cross-repo-contract"' },
+  ];
+  for (const fixture of cases) {
+    const findings = detectHighImpactChanges([{ status: 'M', path: fixture.path }], () => fixture.source);
+    assert.equal(findings.some((finding) => finding.category === fixture.category), true, fixture.category);
+    assert.equal(findings.every((finding) => finding.path === fixture.path && finding.selector.length > 0), true);
+  }
+});
 
 test('normative law edits require a successor major', () => {
   const prior = loadLaws().find((law) => law.lawId === 'LAW-AI-INPUT-GATEWAY-001-V1');
@@ -176,6 +199,18 @@ test('quality CHANGE ignores malformed untouched authority while validating the 
     execFileSync('git', ['clone', '-q', '--local', '--no-hardlinks', process.cwd(), repository]);
     writeFileSync(resolve(repository, '.git/info/exclude'), 'node_modules\n');
     symlinkSync(resolve(process.cwd(), 'node_modules'), resolve(repository, 'node_modules'), 'dir');
+    copyFileSync(resolve(process.cwd(), 'src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts'),
+      resolve(repository, 'src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts'));
+    copyFileSync(resolve(process.cwd(), 'scripts/audit/shared/inspector-context-acceptance-support.ts'),
+      resolve(repository, 'scripts/audit/shared/inspector-context-acceptance-support.ts'));
+    const fixtureSupportPath = resolve(repository, 'scripts/audit/shared/inspector-context-acceptance-support.ts');
+    const clonedInspectorContract = readFileSync(
+      resolve(repository, 'scripts/audit/shared/inspector-contracts.ts'), 'utf8',
+    );
+    if (!clonedInspectorContract.includes('requiredStaticModes: string[]')) {
+      writeFileSync(fixtureSupportPath, readFileSync(fixtureSupportPath, 'utf8')
+        .replace('requiredStaticModes: ["static.ast"],', 'clausesByMode: { "static.ast": ["summary"] },'));
+    }
     const manifestPath = resolve(repository, 'scripts/audit/domains/code-purity/manifest.json');
     writeFileSync(manifestPath, readFileSync(manifestPath, 'utf8').replace('    ".gitignore",', '    "<domain>/**",'));
     execFileSync('git', ['config', 'user.email', 'governance@example.invalid'], { cwd: repository });
@@ -202,12 +237,19 @@ test('quality CHANGE executes a changed governance test and rejects its failing 
     writeFileSync(resolve(repository, '.git/info/exclude'), 'node_modules\n');
     symlinkSync(resolve(process.cwd(), 'node_modules'), resolve(repository, 'node_modules'), 'dir');
     copyFileSync(resolve(process.cwd(), 'scripts/audit/governance.ts'), resolve(repository, 'scripts/audit/governance.ts'));
+    copyFileSync(resolve(process.cwd(), 'scripts/audit/shared/high-impact-detector.ts'),
+      resolve(repository, 'scripts/audit/shared/high-impact-detector.ts'));
+    copyFileSync(resolve(process.cwd(), 'src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts'),
+      resolve(repository, 'src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts'));
     const changedPath = resolve(repository, 'tests/governance/quality-contract.test.ts');
     writeFileSync(changedPath, `${readFileSync(changedPath, 'utf8')}\ntest("focused failing mutant", () => assert.fail("mutant executed"));\n`);
     const execution = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/audit/governance.ts', 'quality', 'CHANGE'], {
       cwd: repository,
       encoding: 'utf8',
-      env: Object.fromEntries(Object.entries(process.env).filter(([key]) => key !== 'NODE_TEST_CONTEXT')),
+      env: {
+        ...Object.fromEntries(Object.entries(process.env).filter(([key]) => key !== 'NODE_TEST_CONTEXT')),
+        GRASSEYE_HIGH_IMPACT_AUTHORIZED: '1',
+      },
     });
     assert.notEqual(execution.status, 0, `${execution.stdout}${execution.stderr}`);
     assert.match(`${execution.stdout}${execution.stderr}`, /CHECK_EXECUTION_FAILED/u);

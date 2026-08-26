@@ -15,7 +15,7 @@ export const pushAiInputGatewayFinding = (
   checkId: string,
   message: string,
 ): void => {
-  findings.push(createFinding({ lawId, filePath, checkId, message }));
+  findings.push(createFinding({ evidenceMode: "static.ast", lawId, filePath, checkId, message }));
 };
 
 export const requireAiInputGatewaySource = (

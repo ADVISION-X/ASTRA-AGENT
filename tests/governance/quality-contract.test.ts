@@ -12,8 +12,6 @@ import { validateLocalSpecContract } from "../../scripts/audit/governance-local-
 import { GovernanceError, sha, validateGitIndexEntries, validateRepositoryEntryAt } from "../../scripts/audit/governance-runtime.js";
 import {
   buildQualityReport,
-  clausesForEvidenceMode,
-  clausesForLaw,
   deferredModes,
   requiredModes,
   validEvidenceRef,
@@ -24,8 +22,8 @@ import { validateProviderContractSpec } from "../../scripts/audit/shared/provide
 import type { InspectorContext } from "../../scripts/audit/shared/inspector-contracts.js";
 import { proofObservationPrefix } from "../../scripts/audit/shared/proof-observation.js";
 import type { QualityProofRequest } from "../../scripts/audit/shared/proof-observation.js";
-import { assertProofModeDenominator, observationMatchesRoute, proofClauseIndexesFor, relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
-import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../scripts/audit/shared/static-inspection-contract.js";
+import { relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
+import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../scripts/audit/shared/static-inspection-contract.js";
 import { inspectPerSiteHmac } from "../../scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.js";
 
 const fixtureLaw = (): Law => ({
@@ -55,10 +53,11 @@ const externalFixtureRef = (kind: "exam" | "dynamic", selector: string): string 
     : `dynamic:${encodeURIComponent(fixtureEvidencePath)}#${encodeURIComponent(selector)}@${fixtureEvidenceDigest}`;
 const resultFor = (law: Law): LawExecutionResult => {
   const required = requiredModes(law, "READY");
+  const denominator = [...law.forbidden.map((_, index) => `forbidden:${index}`), "summary"].sort();
   return {
     lawId: law.lawId,
     assertions: required.map((mode) => ({
-      clauses: clausesForEvidenceMode(law, required, mode),
+      clauses: mode.startsWith("exam.") ? denominator : ["summary"],
       evidenceMode: mode,
       passed: true,
       refs: [mode.startsWith("exam.") ? externalFixtureRef("exam", "script=fixture;exit=0") : "ast:scripts/audit/shared/quality-contract.ts#fixture"],
@@ -75,63 +74,17 @@ test("READY requires static and exam evidence while deferring only dynamic evide
   assert.deepEqual(deferredModes(law, "RELEASE"), []);
 });
 
-test("evidence modes cover the exact clause denominator without blanket duplication", () => {
+test("producer-owned evidence covers the exact clause denominator without blanket duplication", () => {
   const law = fixtureLaw();
-  const required = requiredModes(law, "READY");
-  const coverage = [...new Set(required.flatMap((mode) => clausesForEvidenceMode(law, required, mode)))].sort();
-  assert.deepEqual(coverage, clausesForLaw(law));
-  assert.notDeepEqual(
-    clausesForEvidenceMode(law, required, required[0]!),
-    clausesForEvidenceMode(law, required, required[1]!),
-  );
-  assert.deepEqual(clausesForEvidenceMode(law, required, "static.ast"), ["summary"]);
-  assert.deepEqual(clausesForEvidenceMode(law, required, "exam.golden"), clausesForLaw(law));
-});
-
-test("every active Exam and Dynamic route has an explicit object-semantic clause assignment", () => {
-  const registry = buildRegistry();
-  assertProofModeDenominator(registry.laws);
-  for (const law of registry.laws) for (const mode of law.evidenceModes) {
-    if (!mode.startsWith("exam.") && !mode.startsWith("dynamic.")) continue;
-    assert.ok(proofClauseIndexesFor(law.lawId, mode, law.forbidden.length), `${law.lawId}:${mode}`);
-  }
-});
-
-test("configured proof routes reject an underdeclared evidence mode", () => {
-  const registry = buildRegistry();
-  const laws = registry.laws.map((law) => law.lawId === "LAW-LOCAL-BROWSER-SESSION-004-V8"
-    ? { ...law, evidenceModes: law.evidenceModes.filter((mode) => mode !== "dynamic.storage") }
-    : law);
+  const result = resultFor(law);
+  const report = buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [result] });
+  assert.equal(report.outcome, "PASS");
+  assert.notDeepEqual(result.assertions[0]!.clauses, result.assertions[1]!.clauses);
+  result.assertions.find((assertion) => assertion.evidenceMode === "exam.golden")!.clauses = ["summary"];
   assert.throws(
-    () => assertProofModeDenominator(laws),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MODE_UNDERDECLARED",
+    () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [result] }),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CLAUSE_DENOMINATOR_MISMATCH",
   );
-});
-
-test("Static clause coverage comes directly from the active law contract", () => {
-  const registry = buildRegistry();
-  for (const law of registry.laws) {
-    const ready = requiredModes(law, "READY");
-    const staticModes = ready.filter((mode) => mode.startsWith("static."));
-    const covered = [...new Set(staticModes.flatMap((mode) => clausesForEvidenceMode(law, ready, mode)))];
-    assert.equal(staticModes.every((mode) => clausesForEvidenceMode(law, ready, mode).length > 0), true, law.lawId);
-    assert.equal(covered.every((clause) => clausesForLaw(law).includes(clause)), true, law.lawId);
-  }
-});
-
-test("RELEASE additions cannot rewrite READY Static or Exam clause ownership", () => {
-  const registry = buildRegistry();
-  for (const law of registry.laws) {
-    const ready = requiredModes(law, "READY");
-    const release = requiredModes(law, "RELEASE");
-    for (const mode of ready) {
-      assert.deepEqual(
-        clausesForEvidenceMode(law, release, mode),
-        clausesForEvidenceMode(law, ready, mode),
-        `${law.lawId}:${mode}`,
-      );
-    }
-  }
 });
 
 test("Workbench static inspection changes verdict for global-key and incomplete HMAC mutants", () => {
@@ -308,6 +261,7 @@ test("a fixed or unauthenticated stdout marker cannot mint evidence for unexecut
   const oneNativeObservation = `${proofObservationPrefix}${JSON.stringify({
     lawId: first.lawId,
     evidenceMode: "exam.golden",
+    clauses: ["forbidden:0", "summary"],
     locator: "acceptance:provider-boundary:injected-browser",
     observedValue: "first route actually asserted",
     ...requests[0],
@@ -315,6 +269,7 @@ test("a fixed or unauthenticated stdout marker cannot mint evidence for unexecut
   assert.equal(bindNativeProofObservations(oneNativeObservation, routes, requests, script, "exam").size, 1);
   const invented = `${proofObservationPrefix}${JSON.stringify({
     lawId: first.lawId, evidenceMode: "exam.golden", locator: "acceptance:provider-boundary:injected-browser",
+    clauses: ["forbidden:0", "summary"],
     observedValue: "forged execution result", proofRunId: "f".repeat(64), candidate: "b".repeat(40),
     proofKind: "exam",
   })}\n`;
@@ -331,6 +286,7 @@ test("native proof observations reject one locator reused across law routes", ()
   const line = `${proofObservationPrefix}${JSON.stringify({
     lawId: law.lawId,
     evidenceMode: "exam.golden",
+    clauses: ["forbidden:0", "summary"],
     locator: "acceptance:exact-target:caller-owned-lease",
     observedValue: "exact target route executed",
     ...requests[0],
@@ -351,36 +307,34 @@ test("a Dynamic producer cannot self-authenticate an invented native object", ()
   const requests = proofRequests(routes, "dynamic");
   const marker = `${proofObservationPrefix}${JSON.stringify({
     lawId: law.lawId, evidenceMode: "dynamic.service", locator: "invented://no-real-object",
+    clauses: ["forbidden:0", "summary"],
     observedValue: "value=forged", receipt: "a".repeat(64), ...requests[0],
   })}`;
   assert.throws(
     () => bindNativeProofObservations(marker, routes, requests, "proof:local-shell-current-runtime", "dynamic"),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
   );
-  assert.equal(observationMatchesRoute({ kind: "dynamic", script: "acceptance:xuanxue-ai-production:real-chrome",
-    domain: "xuanxue-ai-production", lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", mode: "dynamic.browser",
-    locator: "dynamic:xuanxue:bound-real-chrome", observedValue: "real chrome claimed" }), false);
-  assert.equal(observationMatchesRoute({ kind: "dynamic", script: "proof:local-browser-journal-recovery",
-    domain: "local-browser-session", lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", mode: "dynamic.recovery",
-    locator: `/tmp/recovery-receipts/${"a".repeat(64)}.json`, observedValue: "atomic recovery verified" }), true);
-  assert.equal(observationMatchesRoute({ kind: "dynamic", script: "acceptance:local-browser-real-chrome",
-    domain: "local-browser-session", lawId: "LAW-LOCAL-BROWSER-SESSION-003-V7", mode: "dynamic.browser",
-    locator: "/repo/.grasseye-local/browser/proof-events.ndjson#sequence=3", observedValue: "claim and command verified" }), true);
-  assert.equal(observationMatchesRoute({ kind: "dynamic", script: "acceptance:xuanxue-ai-production:real-proof-verify",
-    domain: "xuanxue-ai-production", lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", mode: "dynamic.provider",
-    locator: "/repo/.grasseye-local/runtime-data/ai-input-gateway/web-chat-executions",
-    observedValue: "provider records verified" }), true);
-  assert.equal(observationMatchesRoute({ kind: "dynamic", script: "proof:xuanxue-ai-production:recovery",
-    domain: "xuanxue-ai-production", lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", mode: "dynamic.recovery",
-    locator: "/repo/.grasseye-local/runtime-data/xuanxue-ai-production/recovery-proof.json",
-    observedValue: "original order recovery verified" }), true);
-  assert.equal(observationMatchesRoute({ kind: "dynamic", script: "proof:xuanxue-ai-production:72h-soak",
-    domain: "xuanxue-ai-production", lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", mode: "dynamic.performance",
-    locator: "/repo/.grasseye-local/runtime-data/xuanxue-ai-production/72h-soak-proof.json",
-    observedValue: "72 hour soak and lease P95 verified" }), true);
-
+  const selfAuthenticatedUrl = `${proofObservationPrefix}${JSON.stringify({
+    lawId: law.lawId, evidenceMode: "dynamic.service", locator: "https://127.0.0.1/health",
+    clauses: ["forbidden:0", "summary"],
+    observedValue: `run=${requests[0]!.proofRunId};candidate=${requests[0]!.candidate};health=healthy`,
+    receipt: "a".repeat(64), ...requests[0],
+  })}`;
+  assert.throws(
+    () => bindNativeProofObservations(selfAuthenticatedUrl, routes, requests, "proof:local-shell-current-runtime", "dynamic"),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
+  );
+  const nativeFileMarker = `${proofObservationPrefix}${JSON.stringify({
+    lawId: law.lawId, evidenceMode: "dynamic.service", locator: fixtureEvidencePath,
+    clauses: ["forbidden:0", "summary"], observedValue: "native health receipt observed",
+    receipt: fixtureEvidenceDigest, ...requests[0],
+  })}`;
+  assert.equal(bindNativeProofObservations(
+    nativeFileMarker, routes, requests, "proof:local-shell-current-runtime", "dynamic",
+  ).size, 1);
   const missingNativeMarker = `${proofObservationPrefix}${JSON.stringify({
     lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", evidenceMode: "dynamic.recovery",
+    clauses: ["forbidden:12", "summary"],
     locator: `/tmp/recovery-receipts/${"c".repeat(64)}.json`, observedValue: "atomic recovery verified",
     receipt: "c".repeat(64), ...proofRequests([{ law: {
       ...law, lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", capabilityDomain: "local-browser-session",
@@ -405,7 +359,7 @@ test("static validation rejects a law with no owner result", () => {
     lawRequirements: ["LAW-FIXTURE-001-V1", "LAW-FIXTURE-002-V1"].map((lawId) => ({
       lawId,
       forbiddenCount: 1,
-      clausesByMode: { "static.ast": ["summary"] },
+      requiredStaticModes: ["static.ast"],
       targetPaths: ["package.json"],
       targetSet: { queryRef: `scope:${lawId}`, count: 1 },
     })),
@@ -414,7 +368,7 @@ test("static validation rejects a law with no owner result", () => {
   assert.throws(
     () => validateStaticInspection(context, {
       capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1", "LAW-FIXTURE-002-V1"],
-      lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(),
+      lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(0),
         evidenceMode: "static.ast", passed: true, refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast") }], findings: [] }],
       inspectedFiles: ["package.json"],
     }),
@@ -422,14 +376,14 @@ test("static validation rejects a law with no owner result", () => {
   );
 });
 
-test("static validation rejects a new law clause omitted by its owner", () => {
+test("static validation rejects a producer clause outside the active law denominator", () => {
   const context = {
     project: new Project({ tsConfigFilePath: "tsconfig.json" }), sealedRoot: process.cwd(),
     planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
     lawRequirements: [{
       lawId: "LAW-FIXTURE-001-V1",
       forbiddenCount: 1,
-      clausesByMode: { "static.ast": ["forbidden:0", "forbidden:1", "summary"] },
+      requiredStaticModes: ["static.ast"],
       targetPaths: ["package.json"],
       targetSet: { queryRef: "scope:fixture", count: 1 },
     }],
@@ -437,7 +391,7 @@ test("static validation rejects a new law clause omitted by its owner", () => {
   assert.throws(
     () => validateStaticInspection(context, {
       capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
-      lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(0),
+      lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(1),
         evidenceMode: "static.ast", passed: true, refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast") }], findings: [] }],
       inspectedFiles: ["package.json"],
     }),
@@ -452,7 +406,7 @@ test("static validation rejects an unreadable complete target set", () => {
     lawRequirements: [{
       lawId: "LAW-FIXTURE-001-V1",
       forbiddenCount: 1,
-      clausesByMode: { "static.ast": ["forbidden:0", "summary"] },
+      requiredStaticModes: ["static.ast"],
       targetPaths: ["src/fixture-a.ts", "src/fixture-b.ts"],
       targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 2 },
     }],
@@ -467,46 +421,83 @@ test("static validation rejects an unreadable complete target set", () => {
 });
 
 test("static PASS evidence names governed target objects instead of inspector declarations", () => {
+  const targetPath = "scripts/audit/shared/quality-contract.ts";
   const context = {
     sealedRoot: process.cwd(),
     project: new Project({ tsConfigFilePath: "tsconfig.json" }),
     planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
     lawRequirements: [{
       lawId: "LAW-FIXTURE-001-V1", forbiddenCount: 1,
-      clausesByMode: { "static.ast": ["forbidden:0", "summary"] },
-      targetPaths: ["package.json"],
+      requiredStaticModes: ["static.ast"],
+      targetPaths: [targetPath],
       targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 1 },
     }],
   } as unknown as InspectorContext;
   const refs = staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast");
   const output = validateStaticInspection(context, { capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
     lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(0), evidenceMode: "static.ast",
-      passed: true, refs }], findings: [] }], inspectedFiles: ["package.json"] });
+      passed: true, refs }], findings: [] }], inspectedFiles: [targetPath] });
   const validatedRefs = output.lawResults[0]!.assertions[0]!.refs;
-  assert.equal(validatedRefs.some((ref) => ref.startsWith("ast:package.json#")), true);
-  assert.equal(validatedRefs.some((ref) => ref.includes("inspector.ts")), false);
+  assert.equal(validatedRefs.some((ref) => ref.startsWith(`ast:${targetPath}#`)), true);
+  assert.equal(validatedRefs.some((ref) => ref.includes("node%3DSourceFile")), true);
 });
 
 test("static evidence keeps the exact scope when a governed path is not an evidence locator", () => {
   const pathWithReservedCharacter = "docs/history/legacy-root/grasseye-local-workbench@0.1.0";
+  const targetPath = "scripts/audit/shared/quality-contract.ts";
   const context = {
     sealedRoot: process.cwd(),
     project: new Project({ tsConfigFilePath: "tsconfig.json" }),
     planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
     lawRequirements: [{
       lawId: "LAW-FIXTURE-001-V1", forbiddenCount: 1,
-      clausesByMode: { "static.ast": ["forbidden:0", "summary"] },
-      targetPaths: [pathWithReservedCharacter, "package.json"],
+      requiredStaticModes: ["static.ast"],
+      targetPaths: [pathWithReservedCharacter, targetPath],
       targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 2 },
     }],
   } as unknown as InspectorContext;
   const refs = staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast");
   const output = validateStaticInspection(context, { capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
     lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(0), evidenceMode: "static.ast",
-      passed: true, refs }], findings: [] }], inspectedFiles: [pathWithReservedCharacter, "package.json"] });
+      passed: true, refs }], findings: [] }], inspectedFiles: [pathWithReservedCharacter, targetPath] });
   const validatedRefs = output.lawResults[0]!.assertions[0]!.refs;
   assert.equal(validatedRefs.includes("scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes"), true);
   assert.equal(validatedRefs.some((ref) => ref.includes(pathWithReservedCharacter)), false);
+});
+
+test("a producer finding invalidates only its explicit static mode without name-based classification", () => {
+  const finding = {
+    checkId: "innocent-looking-check", lawId: "LAW-FIXTURE-001-V1", clauseId: "fixture",
+    evidenceMode: "static.types", message: "native observation found a violation", severity: "fatal" as const,
+  };
+  assert.equal(producerModePassed([finding], "static.types"), false);
+  for (const mode of ["static.ast", "static.dependency", "static.config"]) assert.equal(producerModePassed([finding], mode), true);
+});
+
+test("each static mode records a mode-native object selector", () => {
+  const lawId = "LAW-FIXTURE-001-V1";
+  const targetPaths = [
+    "scripts/audit/shared/quality-contract.ts",
+    "scripts/audit/shared/quality-runner.ts",
+    "package.json",
+    ".github/workflows/quality-ready.yml",
+  ];
+  const context = {
+    sealedRoot: process.cwd(), project: new Project({ tsConfigFilePath: "tsconfig.json" }),
+    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
+    lawRequirements: [{ lawId, forbiddenCount: 1,
+      requiredStaticModes: ["static.ast", "static.types", "static.contract", "static.dependency", "static.config", "static.json", "static.yaml"],
+      targetPaths, targetSet: { queryRef: `scope:${lawId}#appliesTo-minus-excludes`, count: targetPaths.length } }],
+  } as unknown as InspectorContext;
+  const modeSelector = (mode: string): string[] => staticEvidenceRefs(context, lawId, mode)
+    .filter((ref) => !ref.startsWith("scope:"));
+  assert.equal(modeSelector("static.ast").some((ref) => ref.includes("node%3DSourceFile")), true);
+  assert.equal(modeSelector("static.types").some((ref) => ref.includes("symbol%3D")), true);
+  assert.equal(modeSelector("static.contract").some((ref) => ref.includes("contract%3D")), true);
+  assert.equal(modeSelector("static.dependency").some((ref) => ref.includes("from%3D") && ref.includes("to%3D")), true);
+  assert.equal(modeSelector("static.config").some((ref) => ref.includes("parser%3Dtypescript") || ref.includes("pointer%3D%2F")), true);
+  assert.equal(modeSelector("static.json").some((ref) => ref.startsWith("json:package.json#")), true);
+  assert.equal(modeSelector("static.yaml").some((ref) => ref.startsWith("yaml:.github/workflows/quality-ready.yml#")), true);
 });
 
 test("a finding propagates from one law result to the only top-level verdict", () => {
@@ -798,4 +789,11 @@ test("CHANGE routes an ordinary Exam to every affected domain without running un
   ]);
   assert.equal(relevantExamScripts(["src/lib/storage/fixture.ts"], registry)
     .includes("acceptance:xuanxue-ai-production"), false);
+  for (const governedPath of [
+    "src/lib/browser/chrome-extension/extension-target-authority.ts",
+    "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md",
+  ]) {
+    assert.equal(relevantExamScripts([governedPath], registry).includes("acceptance:local-browser-terminal"), true,
+      `${governedPath} must retain the automatic-claim regression route`);
+  }
 });

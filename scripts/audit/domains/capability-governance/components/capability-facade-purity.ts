@@ -10,7 +10,7 @@ import { getRepoSourcePath } from "../../../shared/source-files.js";
 
 import { resolveCapabilityFacadePolicy } from "./capability-source-of-truth.js";
 
-type CapabilityGroupFindingInput = Parameters<typeof createFinding>[0];
+type CapabilityGroupFindingInput = Omit<Parameters<typeof createFinding>[0], "evidenceMode">;
 type CapabilityFacadePolicy = ReturnType<typeof resolveCapabilityFacadePolicy>;
 type PushFinding = (input: CapabilityGroupFindingInput) => void;
 

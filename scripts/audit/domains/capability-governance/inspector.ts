@@ -9,7 +9,7 @@ import {
   isCapabilityNonFacade,
   isCapabilityPrivateImplementationSection,
 } from "../../shared/repo-path-classifier.js";
-import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../shared/source-files.js";
 import {
   resolveCapabilityFacadePolicy,
@@ -17,7 +17,7 @@ import {
 import { pushCapabilitySourceOfTruthFindings } from "./components/capability-governance-report.js";
 import { pushFacadePurityFindings } from "./components/capability-facade-purity.js";
 
-type CapabilityGroupFindingInput = Parameters<typeof createFinding>[0];
+type CapabilityGroupFindingInput = Omit<Parameters<typeof createFinding>[0], "evidenceMode">;
 
 const createDedupedFindingPusher = (findings: ReturnType<typeof createFinding>[]) => {
   const findingKeys = new Set<string>();
@@ -27,7 +27,7 @@ const createDedupedFindingPusher = (findings: ReturnType<typeof createFinding>[]
       return;
     }
     findingKeys.add(key);
-    findings.push(createFinding(input));
+    findings.push(createFinding({ evidenceMode: "static.ast", ...input }));
   };
 };
 
@@ -467,14 +467,13 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const evaluation = await inspectDomainEvaluation(context);
   const lawId = "LAW-CAPABILITY-GOVERNANCE-001-V2";
   const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
-  const passed = findings.length === 0;
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [{ lawId, assertions: [
-      { clauses: staticClauses(), evidenceMode: "static.ast", passed, refs: staticEvidenceRefs(context, lawId, "static.ast") },
-      { clauses: staticClauses(), evidenceMode: "static.dependency", passed, refs: staticEvidenceRefs(context, lawId, "static.dependency") },
-      { clauses: staticClauses(), evidenceMode: "static.filesystem", passed, refs: staticEvidenceRefs(context, lawId, "static.filesystem") },
-      { clauses: staticClauses(), evidenceMode: "static.types", passed, refs: staticEvidenceRefs(context, lawId, "static.types") },
+      { clauses: staticClauses(0), evidenceMode: "static.ast", passed: producerModePassed(findings, "static.ast"), refs: staticEvidenceRefs(context, lawId, "static.ast") },
+      { clauses: staticClauses(0), evidenceMode: "static.dependency", passed: producerModePassed(findings, "static.dependency"), refs: staticEvidenceRefs(context, lawId, "static.dependency") },
+      { clauses: staticClauses(0), evidenceMode: "static.filesystem", passed: producerModePassed(findings, "static.filesystem"), refs: staticEvidenceRefs(context, lawId, "static.filesystem") },
+      { clauses: staticClauses(0), evidenceMode: "static.types", passed: producerModePassed(findings, "static.types"), refs: staticEvidenceRefs(context, lawId, "static.types") },
     ], findings }], inspectedFiles: evaluation.inspectedFiles,
   });
 };

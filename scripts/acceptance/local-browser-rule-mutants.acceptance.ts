@@ -4,10 +4,57 @@ import { existsSync, readFileSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { Project } from "ts-morph";
 import { BROWSER_ERROR_CODES } from "../../src/lib/browser/protocol/generated/browser-protocol.generated.js";
 import { BrowserOwnerLock } from "../../src/lib/browser/infrastructure/browser-owner-lock.js";
 import { readBrowserProofJournal } from "../../src/lib/browser/exact-target/browser-proof-journal.js";
 import { recoverBrowserProofJournal } from "../../src/lib/browser/exact-target/browser-proof-journal-recovery.js";
+import { inspectTargetClaimGuards } from "../audit/domains/local-browser-session/target-claim-inspection.js";
+import { createInspectorContextFixture } from "../audit/shared/inspector-context-acceptance-support.js";
+import type { InspectorFinding } from "../audit/shared/inspector-contracts.js";
+
+const automaticClaimInspectionPaths = [
+  "src/lib/browser/transport/browser-authority-websocket.ts",
+  "src/lib/browser/chrome-extension/websocket-actor.ts",
+  "src/lib/browser/chrome-extension/websocket-target-claim-awaiter.ts",
+  "src/lib/browser/chrome-extension/extension-target-authority.ts",
+  "src/lib/browser/exact-target/browser-site-policy-registry.ts",
+  "src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts",
+  "src/lib/browser/infrastructure/browser-authority-broker.ts",
+  "scripts/acceptance/local-browser-auto-pairing.acceptance.ts",
+] as const;
+
+const automaticClaimFindings = (mutate?: (project: Project) => void): InspectorFinding[] => {
+  const project = new Project({ tsConfigFilePath: "tsconfig.json" });
+  mutate?.(project);
+  const fixture = createInspectorContextFixture(project, "local-browser-session", ["LAW-LOCAL-BROWSER-SESSION-003-V8"]);
+  const findings: InspectorFinding[] = [];
+  inspectTargetClaimGuards(
+    { ...fixture, targetPaths: [...automaticClaimInspectionPaths] },
+    findings,
+    "LAW-LOCAL-BROWSER-SESSION-003-V8",
+  );
+  return findings;
+};
+
+const automaticClaimMutants = [
+  ["src/lib/browser/chrome-extension/websocket-actor.ts", "await this.targetAuthority.claimPreauthorizedChatGptTarget();", "await Promise.resolve();"],
+  ["src/lib/browser/chrome-extension/websocket-actor.ts", "return false;", "if (request?.kind === \"GRASSEYE_CLAIM_ACTIVE_TARGET\") return false;\n      return false;"],
+  ["src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts", "requireGptWebChatPolicyForUrl(input.url);", "void input.url;"],
+  ["src/lib/browser/infrastructure/browser-authority-broker.ts", "current.targetRef !== claim.targetRef", "current.targetRef === claim.targetRef"],
+  ["src/lib/browser/exact-target/browser-site-policy-registry.ts", "allowedOrigins: [\"https://chatgpt.com\"],", "allowedOrigins: [\"https://chatgpt.com\", \"https://evil.chatgpt.com\"],"],
+] as const;
+
+assert.deepEqual(automaticClaimFindings(), [], "the current automatic-claim chain must pass its inspector baseline");
+for (const [path, from, to] of automaticClaimMutants) {
+  const findings = automaticClaimFindings((project) => {
+    const source = project.getSourceFileOrThrow(path);
+    const current = source.getFullText();
+    assert.ok(current.includes(from), `${path}: automatic-claim mutant anchor`);
+    source.replaceWithText(current.replace(from, to));
+  });
+  assert.ok(findings.length > 0, `${path}: automatic-claim mutant must produce a governance finding`);
+}
 
 const expected = [
   "BROWSER_INSTALL_INVALID", "BROWSER_HOST_UNAVAILABLE", "BROWSER_ORIGIN_REJECTED", "BROWSER_EXTENSION_UNVERIFIED",

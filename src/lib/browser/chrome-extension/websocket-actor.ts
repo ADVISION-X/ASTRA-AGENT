@@ -34,6 +34,8 @@ import {
   extensionCommandDiagnostic,
   type ExtensionCommandStage,
 } from "./websocket-command-diagnostic.js";
+import { extensionFrameDiagnostic, extensionRuntimeDiagnostic } from "./websocket-actor-diagnostics.js";
+import { acceptTargetClaimAcknowledgement, TargetClaimAwaiter } from "./websocket-target-claim-awaiter.js";
 
 declare const __GRASSEYE_RELEASE_BUILD_ID__: string;
 
@@ -54,51 +56,6 @@ type AuthenticatedSession = Readonly<{
   transcript: string;
   nextClientSequence: number;
 }>;
-type TargetClaimCompletion = Readonly<{
-  targetRef: string;
-  documentRef: string;
-  resolve(): void;
-  reject(error: Error): void;
-  timeout: ReturnType<typeof globalThis.setTimeout>;
-}>;
-
-class TargetClaimAwaiter {
-  private completion: TargetClaimCompletion | null = null;
-
-  public begin(input: {
-    targetRef: string;
-    documentRef: string;
-    send(): Promise<void>;
-  }): Promise<void> {
-    if (this.completion) throw new Error("BROWSER_PAIRING_IN_PROGRESS");
-    return new Promise<void>((resolve, reject) => {
-      const timeout = globalThis.setTimeout(() => {
-        this.fail("BROWSER_AUTHENTICATION_INCOMPLETE");
-      }, BROWSER_COMMAND_DEFAULT_DEADLINE_MS);
-      this.completion = { ...input, resolve, reject, timeout };
-      void input.send().catch((error: unknown) => this.fail(errorCode(error)));
-    });
-  }
-
-  public accept(body: Record<string, unknown>): void {
-    const completion = this.completion;
-    if (!completion || body.targetRef !== completion.targetRef || body.documentRef !== completion.documentRef) {
-      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-    }
-    this.completion = null;
-    globalThis.clearTimeout(completion.timeout);
-    completion.resolve();
-  }
-
-  public fail(reasonCode: string): void {
-    const completion = this.completion;
-    if (!completion) return;
-    this.completion = null;
-    globalThis.clearTimeout(completion.timeout);
-    completion.reject(new Error(reasonCode));
-  }
-}
-
 const commandFrom = (value: unknown): BrowserGovernedCommand => {
   const command = asRecord(value);
   if (!command || typeof command.kind !== "string") throw new Error("BROWSER_CAPABILITY_REJECTED");
@@ -108,31 +65,7 @@ const commandFrom = (value: unknown): BrowserGovernedCommand => {
   return command as BrowserGovernedCommand;
 };
 
-const extensionFrameDiagnostic = (error: unknown, frame: BrowserAuthorityFrame | null, data: unknown): Record<string, unknown> => ({
-  reasonCode: pairingErrorCode(error),
-  failedFrameKind: frame?.kind ?? "UNDECODED",
-  failedFrameSequence: frame?.sequence ?? 0,
-  diagnosticSource: "extension-frame",
-  runtimeEventType: "message-handler",
-  errorName: error instanceof Error ? error.name : "UnknownError",
-  encodedByteLength: typeof data === "string" ? encodeText(data).byteLength : 0,
-});
-
-const extensionRuntimeDiagnostic = (
-  error: unknown,
-  runtimeEventType: "unhandledrejection" | "worker-error" | "liveness-pulse",
-  failedFrameSequence: number,
-): Record<string, unknown> => ({
-  reasonCode: errorCode(error),
-  failedFrameKind: "EXTENSION_RUNTIME",
-  failedFrameSequence,
-  diagnosticSource: "extension-runtime",
-  runtimeEventType,
-  errorName: error instanceof Error && /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/u.test(error.name) ? error.name : "UnknownError",
-  encodedByteLength: 0,
-});
-
-/** The extension actor is the sole socket owner; every authentication discontinuity requires a new operator pairing. */
+/** The extension actor is the sole socket owner; every authentication discontinuity requires a fresh automatic pairing. */
 export class ExtensionWebSocketActor {
   private socket: WebSocket | null = null;
   private state: SocketState = "IDLE";
@@ -189,17 +122,6 @@ export class ExtensionWebSocketActor {
           automaticPairingErrorCode: this.autoBootstrap.currentFailureCode(),
         });
         return false;
-      }
-      if (request?.kind === "GRASSEYE_CLAIM_ACTIVE_TARGET") {
-        if (!this.commandReady || this.state !== "CONNECTED") {
-          sendResponse({ ok: false, errorCode: "BROWSER_LIVENESS_EXPIRED" });
-          return false;
-        }
-        void this.targetAuthority.claimActiveTarget().then(
-          () => sendResponse({ ok: true }),
-          (error: unknown) => sendResponse({ ok: false, errorCode: errorCode(error) }),
-        );
-        return true;
       }
       return false;
     });
@@ -291,9 +213,10 @@ export class ExtensionWebSocketActor {
       if (frame.kind === "READY") { await this.acceptReady(socket, frame); return; }
       if (frame.kind === "TARGET_CLAIM") {
         await acceptTargetClaimAcknowledgement({
-          session: this.session,
+          serverToClientKey: this.session?.serverToClientKey ?? null,
           claims: this.targetClaims,
           frame,
+          expectedEpoch: AUTH_EPOCH,
         });
         return;
       }
@@ -369,6 +292,11 @@ export class ExtensionWebSocketActor {
     });
     this.commandReady = true;
     this.pairingCompletion.complete();
+    try {
+      await this.targetAuthority.claimPreauthorizedChatGptTarget();
+    } catch (error) {
+      this.reportRuntimeFailure(error, "automatic-target-claim");
+    }
   }
 
   private async executeCommand(socket: WebSocket, frame: BrowserAuthorityFrame): Promise<void> {
@@ -407,6 +335,9 @@ export class ExtensionWebSocketActor {
   }
 
   private async sendTargetFrame(kind: "TARGET_CLAIM" | "TARGET_REVOKE", body: Record<string, unknown>): Promise<void> {
+    if (!this.socket || !this.session || this.state !== "CONNECTED" || !this.commandReady) {
+      throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
+    }
     if (kind === "TARGET_REVOKE") return this.sendEncrypted(this.socket, kind, body);
     const targetRef = typeof body.targetRef === "string" ? body.targetRef : null;
     const documentRef = typeof body.documentRef === "string" ? body.documentRef : null;
@@ -456,10 +387,11 @@ export class ExtensionWebSocketActor {
     this.targetClaims.fail("BROWSER_AUTHENTICATION_INCOMPLETE");
     clearExtensionPermitAuthority();
     this.heartbeat.stop();
+    void this.targetAuthority.releaseActiveTarget(false);
     socket?.close(4000, reasonCode);
   }
 
-  private reportRuntimeFailure(error: unknown, runtimeEventType: "unhandledrejection" | "worker-error" | "liveness-pulse"): void {
+  private reportRuntimeFailure(error: unknown, runtimeEventType: "unhandledrejection" | "worker-error" | "liveness-pulse" | "automatic-target-claim"): void {
     const body = extensionRuntimeDiagnostic(error, runtimeEventType, this.session?.nextClientSequence ?? 0);
     void (async () => {
       if (this.state !== "CONNECTED" || !this.session) return;
@@ -485,18 +417,6 @@ export class ExtensionWebSocketActor {
   }
 
 }
-
-const acceptTargetClaimAcknowledgement = async (input: {
-  session: AuthenticatedSession | null;
-  claims: TargetClaimAwaiter;
-  frame: BrowserAuthorityFrame;
-}): Promise<void> => {
-  if (!input.session || input.frame.epoch !== AUTH_EPOCH) {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
-  const body = await decrypt(input.session.serverToClientKey, "server-to-client", input.frame);
-  input.claims.accept(body);
-};
 
 const chrome = readExtensionChromeApi();
 if (chrome) {

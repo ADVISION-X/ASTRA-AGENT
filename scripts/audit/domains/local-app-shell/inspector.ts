@@ -8,7 +8,7 @@ import {
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
-import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
 const LAW_SHELL = "LAW-LOCAL-APP-SHELL-001-V5";
 const LAW_BOUNDARY = "LAW-LOCAL-APP-SHELL-002-V3";
@@ -39,7 +39,7 @@ const sourcePath = (source: SourceFile): string => {
 const sourceAt = (project: Project, path: string): SourceFile | undefined =>
   project.getSourceFiles().find((source) => sourcePath(source) === path);
 const finding = (lawId: string, filePath: string, message: string, line?: number): InspectorFinding =>
-  createFinding({
+  createFinding({ evidenceMode: "static.ast",
     checkId,
     lawId,
     clauseId: `${lawId.toLowerCase()}-requirement`,
@@ -237,16 +237,15 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const evaluation = evaluate(context);
   const lawResult = (lawId: string, clausesByMode: Readonly<Record<string, string[]>>) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
-    const passed = findings.length === 0;
-    return { lawId, assertions: Object.entries(clausesByMode).map(([evidenceMode, clauses]) => ({
-      clauses, evidenceMode, passed, refs: staticEvidenceRefs(context, lawId, evidenceMode),
+      return { lawId, assertions: Object.entries(clausesByMode).map(([evidenceMode, clauses]) => ({
+      clauses, evidenceMode, passed: producerModePassed(findings, evidenceMode), refs: staticEvidenceRefs(context, lawId, evidenceMode),
     })), findings };
   };
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [
-      lawResult(LAW_SHELL, { "static.ast": staticClauses(4, 7, 8), "static.contract": staticClauses() }),
-      lawResult(LAW_BOUNDARY, { "static.ast": staticClauses() }),
+      lawResult(LAW_SHELL, { "static.ast": staticClauses(4, 7, 8), "static.contract": staticClauses(0) }),
+      lawResult(LAW_BOUNDARY, { "static.ast": staticClauses(0) }),
       lawResult(LAW_STATUS, { "static.ast": staticClauses(0, 1) }),
     ], inspectedFiles: evaluation.inspectedFiles,
   });

@@ -36,13 +36,13 @@ const protocolContextKeys = new Set([
 
 const createDedupedFindingPusher = (findings: Finding[]) => {
   const findingKeys = new Set<string>();
-  return (finding: Parameters<typeof createFinding>[0]): void => {
+  return (finding: Omit<Parameters<typeof createFinding>[0], "evidenceMode">): void => {
     const key = `${finding.checkId}:${finding.filePath ?? ""}:${finding.message}`;
     if (findingKeys.has(key)) {
       return;
     }
     findingKeys.add(key);
-    findings.push(createFinding(finding));
+    findings.push(createFinding({ evidenceMode: "static.ast", ...finding }));
   };
 };
 

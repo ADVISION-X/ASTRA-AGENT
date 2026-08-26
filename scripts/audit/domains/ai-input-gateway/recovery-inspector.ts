@@ -19,7 +19,6 @@ const paths = {
   sessionController: "src/capabilities/ai-input-gateway/providers/web-chat-session-controller.ts",
   conversationTitle: "src/capabilities/ai-input-gateway/providers/gpt-web-conversation-title.ts",
   submit: "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
-  submissionCheckpoint: "src/capabilities/ai-input-gateway/providers/web-chat-submission-checkpoint.ts",
   routing: "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
   singleTabBrowser: "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
   canonicalBinding: "src/capabilities/ai-input-gateway/runtime/web-chat-canonical-binding.ts",
@@ -56,7 +55,7 @@ const collectSources = (
 ): RecoverySources | null => {
   const entries = Object.entries(paths).map(([key, repoPath]) => {
     const file = context.project.getSourceFile(resolveFromRepo(repoPath));
-    if (!file) findings.push(createFinding({
+    if (!file) findings.push(createFinding({ evidenceMode: "static.ast",
       checkId: "ai-input-gateway/response-checkpoint-recovery",
       lawId,
       filePath: repoPath,
@@ -79,7 +78,7 @@ const pushMissing = (input: {
 }): void => {
   const missing = input.required.filter((value) => !input.values.has(value));
   if (missing.length === 0) return;
-  input.findings.push(createFinding({
+  input.findings.push(createFinding({ evidenceMode: "static.ast",
     checkId: input.checkId,
     lawId: input.lawId,
     filePath: input.filePath,
@@ -139,9 +138,9 @@ const subtractionMatches = (
 });
 
 const submissionOrderIsValid = (sources: RecoverySources): boolean => {
-  const observedCalls = callNames(sources.submissionCheckpoint, "observeSubmittedWebChatTurn");
-  const capture = observedCalls.indexOf("captureProof");
-  const persisted = observedCalls.indexOf("persistObservedSubmission");
+  const observedCalls = callNames(sources.submit, "waitForSubmittedTurn");
+  const capture = observedCalls.indexOf("captureWebChatSubmissionProof");
+  const persisted = observedCalls.indexOf("persistSubmission");
   const responseCalls = callNames(sources.shared, "executeWebChatConversation");
   const checkpointed = responseCalls.findIndex((name) => name.endsWith("onResponseCaptured"));
   const published = responseCalls.indexOf("buildCompletedWebChatResponse");
@@ -177,7 +176,7 @@ const inspectCheckpointAndFailureLedger = (
     message: "Durable checkpoint/title recovery is missing",
   });
   if (!hasCheckpointPatrolShutdownFinally(sources.feedProviderOnce)) {
-    findings.push(createFinding({
+    findings.push(createFinding({ evidenceMode: "static.ast",
       checkId: "ai-input-gateway/checkpoint-patrol-lifecycle",
       lawId,
       filePath: paths.feedProviderOnce,
@@ -188,7 +187,7 @@ const inspectCheckpointAndFailureLedger = (
     .getDescendantsOfKind(SyntaxKind.VoidExpression)
     .some((expression) => astIdentifierName(expression.getExpression()) === "providerResponse");
   if (detachedProviderResponse) {
-    findings.push(createFinding({
+    findings.push(createFinding({ evidenceMode: "static.ast",
       checkId: "ai-input-gateway/no-detached-post-processing-chain",
       lawId,
       filePath: paths.feedProviderOnce,
@@ -251,7 +250,7 @@ const inspectCanonicalRecovery = (
     && subtractionMatches(routingScript, "right.actionable", "left.actionable")
     && subtractionMatches(routingScript, "left.rect.top", "right.rect.top");
   if (!stableRouteOrdering) {
-    findings.push(createFinding({
+    findings.push(createFinding({ evidenceMode: "static.ast",
       checkId: "ai-input-gateway/canonical-conversation-recovery",
       lawId,
       filePath: paths.routing,
@@ -267,7 +266,7 @@ const inspectCanonicalRecovery = (
         && right.getLiteralValue() === 1;
     }) === true;
   if (rejectsDuplicateRenderings) {
-    findings.push(createFinding({
+    findings.push(createFinding({ evidenceMode: "static.ast",
       checkId: "ai-input-gateway/canonical-dom-rendering-collapse",
       lawId,
       filePath: paths.routing,
@@ -282,7 +281,7 @@ const inspectSubmissionCheckpoint = (
   lawId: string,
 ): void => {
   if (submissionOrderIsValid(sources)) return;
-  findings.push(createFinding({
+  findings.push(createFinding({ evidenceMode: "static.ast",
     checkId: "ai-input-gateway/transient-submission-checkpoint",
     lawId,
     filePath: paths.shared,
@@ -323,7 +322,7 @@ const inspectIntegratedTitleFinalization = (
     sources.routing, sources.canonicalBinding, sources.sessionController,
   ]);
   const retained = forbidden.filter((value) => liveValues.has(value));
-  if (retained.length > 0) findings.push(createFinding({
+  if (retained.length > 0) findings.push(createFinding({ evidenceMode: "static.ast",
     checkId: "ai-input-gateway/no-second-title-chain",
     lawId,
     filePath: paths.sessionController,
@@ -333,7 +332,7 @@ const inspectIntegratedTitleFinalization = (
     .getDescendantsOfKind(SyntaxKind.Identifier)
     .map((identifier) => identifier.compilerNode.escapedText.toString()));
   if (routingIdentifiers.has("expectedTitle") || routingIdentifiers.has("systemChatTitle")) {
-    findings.push(createFinding({
+    findings.push(createFinding({ evidenceMode: "static.ast",
       checkId: "ai-input-gateway/title-not-routing-identity",
       lawId,
       filePath: paths.routing,

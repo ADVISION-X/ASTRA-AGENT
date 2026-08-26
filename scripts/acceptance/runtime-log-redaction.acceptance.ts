@@ -21,4 +21,4 @@ assert.equal((redacted.nested as Record<string, unknown>).image, "[REDACTED]");
 assert.equal(redactUrlForLog("https://example.com/path?token=x#frag"), "https://example.com/path");
 
 process.stdout.write("[ACCEPTANCE] runtime-log-redaction PASS\n");
-emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-001-V3", evidenceMode: "exam.golden", locator: "acceptance:runtime-log:redaction", observedValue: "cookie authorization API key image and URL secrets redacted" });
+emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-001-V3", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","summary"], locator: "acceptance:runtime-log:redaction", observedValue: "cookie authorization API key image and URL secrets redacted" });

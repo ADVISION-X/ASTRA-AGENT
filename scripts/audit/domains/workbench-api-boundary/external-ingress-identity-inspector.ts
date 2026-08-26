@@ -49,7 +49,7 @@ export const inspectExternalIngressIdentity = (input: {
       continue;
     }
     input.summary.ingressIdentityViolations += 1;
-    input.findings.push(createFinding({
+    input.findings.push(createFinding({ evidenceMode: "static.ast",
       checkId: "workbench-api-boundary/external-ingress-identity-required",
       lawId: input.lawId,
       filePath: input.boundaryPath,
@@ -84,7 +84,7 @@ export const inspectPerSiteHmac = (input: {
   ];
   for (const message of violations) {
     input.summary.perSiteHmacViolations += 1;
-    input.findings.push(createFinding({
+    input.findings.push(createFinding({ evidenceMode: "static.ast",
       checkId: "workbench-api-boundary/per-site-hmac-required",
       lawId: input.lawId,
       filePath: input.boundaryPath,

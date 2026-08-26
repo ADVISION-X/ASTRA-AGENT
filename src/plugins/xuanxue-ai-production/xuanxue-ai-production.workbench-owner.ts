@@ -40,6 +40,15 @@ const startOwnerCloudWorker = (input: {
     executeOrder: (orderId, observer, deadlineBudget) =>
       input.coordinator.execute(orderId, observer, deadlineBudget),
     listCloudRecoveryOrders: () => input.store.listCloudRecoveryOrders(),
+    markAcceptedFailure: (orderId, status, reason) => input.store.updateOrder({
+      orderId,
+      status,
+      failureReason: reason.slice(0, 1_000),
+      updatedAt: new Date().toISOString(),
+      eventType: status === "recovery_pending"
+        ? "cloud_execution_deferred_before_factory"
+        : "cloud_execution_failed_before_factory",
+    }),
     availableCapacity: () => input.coordinator.availableCapacity(),
     applyControlIntent: (orderId, intent, controlEpoch, reasonCode) => {
       const current = input.store.readIntervention(orderId);

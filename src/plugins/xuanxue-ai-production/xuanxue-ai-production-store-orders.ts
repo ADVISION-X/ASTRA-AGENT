@@ -58,6 +58,27 @@ const isExactSameJobRecovery = (
     && incomingCloud.executionFenceHash !== existingCloud.executionFenceHash;
 };
 
+const isUnacceptedQueuedOrder = (
+  database: Database.Database,
+  existing: XuanxueAiOrderRecord,
+): boolean => {
+  if (existing.status !== "queued" || existing.result !== null || existing.failureReason !== null
+    || existing.stages.some((stage) => stage.status !== "queued")) return false;
+  const history = database.prepare(`
+    select count(*) as total,
+           sum(case when event_type not in ('order_queued','cloud_unaccepted_lease_rebound') then 1 else 0 end) as disallowed
+      from production_events where order_id=?
+  `).get(existing.order.orderId) as { total: number; disallowed: number };
+  const pendingWrites = database.prepare(`
+    select count(*) as total from production_cloud_outbox where job_id=? and state='pending'
+  `).get(existing.order.orderId) as { total: number };
+  const checkpointState = database.prepare(`
+    select count(*) as total from production_cloud_job_state where job_id=?
+  `).get(existing.order.orderId) as { total: number };
+  return history.total >= 1 && history.disallowed === 0
+    && pendingWrites.total === 0 && checkpointState.total === 0;
+};
+
 export const readXuanxueAiProductionOrder = (
   database: Database.Database,
   orderId: string,
@@ -101,15 +122,19 @@ const resolveIdentityCollision = (input: {
   }
   const sameJobRecovery = isExactSameJobRecovery(input.existing, input.incoming)
     && existingCloud && incomingCloud;
-  if (sameJobRecovery && input.existing.status === "recovery_pending") {
+  const unacceptedQueuedRebind = sameJobRecovery
+    && isUnacceptedQueuedOrder(input.database, input.existing);
+  if (sameJobRecovery && (input.existing.status === "recovery_pending" || unacceptedQueuedRebind)) {
+    const reboundStatus = unacceptedQueuedRebind ? "queued" : "recovery_pending";
     input.database.transaction(() => {
       input.database.prepare(`
         update production_orders
-        set order_json=?,status='recovery_pending',result_json=null,
+        set order_json=?,status=?,result_json=null,
             failure_reason=null,updated_at=?
         where order_id=? and status=?
       `).run(
         JSON.stringify(input.incoming),
+        reboundStatus,
         incomingCloud.serverNow,
         input.existing.order.orderId,
         input.existing.status,
@@ -117,16 +142,20 @@ const resolveIdentityCollision = (input: {
       appendXuanxueAiProductionEvent(input.database, {
         orderId: input.existing.order.orderId,
         stageId: null,
-        eventType: "cloud_execution_identity_rebound",
+        eventType: unacceptedQueuedRebind
+          ? "cloud_unaccepted_lease_rebound"
+          : "cloud_execution_identity_rebound",
         fromStatus: input.existing.status,
-        toStatus: "recovery_pending",
+        toStatus: reboundStatus,
         detail: {
           previousAttemptId: existingCloud.attemptId,
           attemptId: incomingCloud.attemptId,
           previousLeaseVersion: existingCloud.leaseVersion,
           leaseVersion: incomingCloud.leaseVersion,
           executionFenceHash: incomingCloud.executionFenceHash,
-          evidencePolicy: "preserve_same_order_stages_events_and_results",
+          evidencePolicy: unacceptedQueuedRebind
+            ? "replace_only_unaccepted_queued_attempt"
+            : "preserve_same_order_stages_events_and_results",
         },
         createdAt: incomingCloud.serverNow,
       });

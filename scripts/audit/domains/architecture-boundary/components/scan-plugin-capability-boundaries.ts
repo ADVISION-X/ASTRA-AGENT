@@ -27,7 +27,7 @@ const pushBoundaryFinding = (
   },
 ): void => {
   findings.push(
-    createFinding({
+    createFinding({ evidenceMode: "static.ast",
       checkId: input.checkId,
       lawId: input.lawId,
       filePath: input.repoPath,

@@ -125,7 +125,7 @@ const pushFinding = (
   message: string,
   evidence?: string,
 ): void => {
-  findings.push(createFinding({ checkId, lawId, filePath, evidence, message }));
+  findings.push(createFinding({ evidenceMode: "static.ast", checkId, lawId, filePath, evidence, message }));
 };
 
 const inspectActiveContracts = (input: {

@@ -31,7 +31,7 @@ export const inspectTransientLifecycleBehavior = (
   ] as const;
   for (const [file, passed, message] of required) {
     if (file && passed) continue;
-    findings.push(createFinding({
+    findings.push(createFinding({ evidenceMode: "static.ast",
       lawId,
       clauseId: "apex-xuanxue-001-v6-session-bound-cloud-pull",
       checkId: "xuanxue-ai-production/transient-material-lifecycle-behavior",

@@ -5,7 +5,7 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
-import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
 const packagePath = "package.json";
 const launchPath = "scripts/startup/launch-grasseye.mjs";
@@ -22,7 +22,7 @@ const sourceFile = (context: InspectorContext, filePath: string): SourceFile | u
   context.project.getSourceFile(resolveFromRepo(filePath));
 
 const addFinding = (findings: Finding[], lawId: string, filePath: string, message: string): void => {
-  findings.push(createFinding({ checkId, lawId, clauseId, filePath, message }));
+  findings.push(createFinding({ evidenceMode: "static.ast", checkId, lawId, clauseId, filePath, message }));
 };
 
 const hasNamedImport = (source: SourceFile, modulePart: string, name: string): boolean =>
@@ -138,19 +138,11 @@ const inspectStartupBoundary = (context: InspectorContext, findings: Finding[], 
   inspectUnpackedReadback(preflight, findings, lawId);
 };
 
-const inspectLocalStartupAuthorityBoundary = (
-  context: InspectorContext,
+const inspectLocalLaunchAuthority = (
+  launch: SourceFile,
   findings: Finding[],
   lawId: string,
 ): void => {
-  const launch = sourceFile(context, launchPath);
-  const preflight = sourceFile(context, preflightPath);
-  const artifactSync = sourceFile(context, artifactSyncPath);
-  const processControl = sourceFile(context, processControlPath);
-  if (!launch || !preflight || !artifactSync || !processControl) {
-    addFinding(findings, lawId, inspectorPath, "The local startup authority boundary must remain inspectable.");
-    return;
-  }
   const packageJson = JSON.parse(readFileSync(resolveFromRepo(packagePath), "utf8")) as { scripts?: Record<string, string> };
   const startupCommand = packageJson.scripts?.["grasseye:start"] ?? "";
   if (startupCommand !== "node --env-file-if-exists=.env.local scripts/startup/launch-grasseye.mjs") {
@@ -170,9 +162,20 @@ const inspectLocalStartupAuthorityBoundary = (
   const forbiddenStartupCalls = new Set([
     "enrollXuanxueAiProductionCloudDevice", "registerOperatorTargetClaim", "acquireOperatorClaimedTargetLease",
     "createSyntheticJob", "claimJob", "runFullQuality", "buildBrowserExtension", "reloadExtension",
+    "getTargets", "claimPreauthorizedChatGptTarget",
   ]);
   const leaked = [...launchIdentifiers].find((name) => forbiddenStartupCalls.has(name));
   if (leaked) addFinding(findings, lawId, launchPath, `Ordinary startup must not execute ${leaked}.`);
+  for (const forbidden of ["TARGET_CLAIM", "https://chatgpt.com/"]) {
+    if (launchLiterals.has(forbidden)) addFinding(findings, lawId, launchPath, `Ordinary startup must not contain ${forbidden}.`);
+  }
+};
+
+const inspectArtifactSyncAuthority = (
+  artifactSync: SourceFile,
+  findings: Finding[],
+  lawId: string,
+): void => {
   const artifactIdentifiers = new Set(artifactSync.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()));
   const artifactLiterals = stringLiterals(artifactSync);
   for (const required of ["runBrowserRuntimePreflight", "runBuild", "releaseState"]) {
@@ -181,9 +184,16 @@ const inspectLocalStartupAuthorityBoundary = (
   for (const required of ["UNPACKED_WEBSOCKET_AUTHORITY", "src/lib/browser/chrome-extension/build.mjs"]) {
     if (!artifactLiterals.has(required)) addFinding(findings, lawId, artifactSyncPath, `Browser artifact sync must bind ${required}.`);
   }
-  for (const forbidden of ["audit", "typecheck", "acceptance", "real-chrome", "GRASSEYE_AUTOMATIC_PAIRING_SECRET", "GRASSEYE_CLAIM_ACTIVE_TARGET"]) {
+  for (const forbidden of ["audit", "typecheck", "acceptance", "real-chrome", "GRASSEYE_AUTOMATIC_PAIRING_SECRET", "GRASSEYE_CLAIM_ACTIVE_TARGET", "TARGET_CLAIM", "claimPreauthorizedChatGptTarget", "https://chatgpt.com/"]) {
     if (artifactSync.getFullText().includes(forbidden)) addFinding(findings, lawId, artifactSyncPath, `Ordinary artifact sync must not execute ${forbidden}.`);
   }
+};
+
+const inspectListenerCleanupAuthority = (
+  processControl: SourceFile,
+  findings: Finding[],
+  lawId: string,
+): void => {
   const processLiterals = stringLiterals(processControl);
   for (const required of ["PORT_LISTENER_FOREIGN", "PORT_LISTENER_IDENTITY_CHANGED", "src/app/server.ts"]) {
     if (required === "src/app/server.ts") continue;
@@ -191,9 +201,27 @@ const inspectLocalStartupAuthorityBoundary = (
   }
 };
 
+const inspectLocalStartupAuthorityBoundary = (
+  context: InspectorContext,
+  findings: Finding[],
+  lawId: string,
+): void => {
+  const launch = sourceFile(context, launchPath);
+  const preflight = sourceFile(context, preflightPath);
+  const artifactSync = sourceFile(context, artifactSyncPath);
+  const processControl = sourceFile(context, processControlPath);
+  if (!launch || !preflight || !artifactSync || !processControl) {
+    addFinding(findings, lawId, inspectorPath, "The local startup authority boundary must remain inspectable.");
+    return;
+  }
+  inspectLocalLaunchAuthority(launch, findings, lawId);
+  inspectArtifactSyncAuthority(artifactSync, findings, lawId);
+  inspectListenerCleanupAuthority(processControl, findings, lawId);
+};
+
 const inspectDomainEvaluation = (context: InspectorContext) => {
   const lawId = selectLawId(context.planEntry.lawIds, "LAW-STARTUP-ENTRYPOINT-001-V4");
-  const boundaryLawId = selectLawId(context.planEntry.lawIds, "LAW-STARTUP-ENTRYPOINT-002-V3");
+  const boundaryLawId = selectLawId(context.planEntry.lawIds, "LAW-STARTUP-ENTRYPOINT-002-V4");
   const findings: Finding[] = [];
   inspectStartupBoundary(context, findings, lawId);
   inspectLocalStartupAuthorityBoundary(context, findings, boundaryLawId);
@@ -209,15 +237,14 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const evaluation = inspectDomainEvaluation(context);
   const lawResult = (lawId: string, astClauses: string[]) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
-    const passed = findings.length === 0;
-    return { lawId, assertions: [
-      { clauses: astClauses, evidenceMode: "static.ast", passed, refs: staticEvidenceRefs(context, lawId, "static.ast") },
-      { clauses: staticClauses(), evidenceMode: "static.contract", passed, refs: staticEvidenceRefs(context, lawId, "static.contract") },
+      return { lawId, assertions: [
+      { clauses: astClauses, evidenceMode: "static.ast", passed: producerModePassed(findings, "static.ast"), refs: staticEvidenceRefs(context, lawId, "static.ast") },
+      { clauses: staticClauses(0), evidenceMode: "static.contract", passed: producerModePassed(findings, "static.contract"), refs: staticEvidenceRefs(context, lawId, "static.contract") },
     ], findings };
   };
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [lawResult("LAW-STARTUP-ENTRYPOINT-001-V4", staticClauses(11)),
-      lawResult("LAW-STARTUP-ENTRYPOINT-002-V3", staticClauses(0, 1, 2))], inspectedFiles: evaluation.inspectedFiles,
+      lawResult("LAW-STARTUP-ENTRYPOINT-002-V4", staticClauses(0, 1, 2))], inspectedFiles: evaluation.inspectedFiles,
   });
 };

@@ -30,6 +30,7 @@ const pushSourceAtomicityFinding = (
   input: {
     checkId: string;
     governedFile: GovernedFile;
+    evidenceMode: "static.ast" | "static.dependency" | "static.filesystem";
     lawId: string;
     reason: string;
     remediation: string;
@@ -39,6 +40,7 @@ const pushSourceAtomicityFinding = (
   collector.push(
     {
       checkId: input.checkId,
+      evidenceMode: input.evidenceMode,
       filePath: input.governedFile.repoPath,
       lawId: input.lawId,
       owner: input.governedFile.owner,
@@ -60,6 +62,7 @@ const scanPathBudget = (
   if (pathHasBannedToken(governedFile.repoPath)) {
     pushSourceAtomicityFinding(collector, {
       checkId: "code-purity/banned-active-path",
+      evidenceMode: "static.filesystem",
       governedFile,
       lawId: bridgeLawId,
       reason: "Path contains a banned bridge/legacy token.",
@@ -71,6 +74,7 @@ const scanPathBudget = (
   if (governedFile.lineCount > governedFile.budget.maxLines) {
     pushSourceAtomicityFinding(collector, {
       checkId: "code-purity/file-budget-red-line",
+      evidenceMode: "static.filesystem",
       governedFile,
       lawId: sourceAtomicityLawId,
       reason: `${governedFile.budget.label} has ${governedFile.lineCount} lines and exceeds red line ${governedFile.budget.maxLines}.`,
@@ -97,6 +101,7 @@ const scanImportBudgets = (
   for (const check of collectImportBudgetChecks(governedFile)) {
     pushSourceAtomicityFinding(collector, {
       checkId: check.checkId,
+      evidenceMode: "static.dependency",
       governedFile,
       lawId: sourceAtomicityLawId,
       reason: check.reason,
@@ -154,6 +159,7 @@ const scanNamedExportBudget = (
   if (namedExports > 24) {
     pushSourceAtomicityFinding(collector, {
       checkId: "code-purity/named-export-budget",
+      evidenceMode: "static.dependency",
       governedFile,
       lawId: sourceAtomicityLawId,
       reason: `Named export count ${namedExports} exceeds red line 24.`,
@@ -182,6 +188,7 @@ const scanExportStar = (
   if (exportStar) {
     pushSourceAtomicityFinding(collector, {
       checkId: "code-purity/export-star",
+      evidenceMode: "static.dependency",
       governedFile,
       lawId: sourceAtomicityLawId,
       reason: "export * hides the real ownership boundary.",
@@ -199,6 +206,7 @@ const scanDefaultExport = (
   if (governedFile.sourceFile.getDefaultExportSymbol()) {
     pushSourceAtomicityFinding(collector, {
       checkId: "code-purity/default-export",
+      evidenceMode: "static.dependency",
       governedFile,
       lawId: sourceAtomicityLawId,
       reason: "default export is forbidden in active source unless a framework requires it.",
@@ -228,6 +236,7 @@ const scanRequireCall = (
   if (requireReference) {
     pushSourceAtomicityFinding(collector, {
       checkId: "code-purity/require-call",
+      evidenceMode: "static.dependency",
       governedFile,
       lawId: sourceAtomicityLawId,
       reason: "CommonJS require remains in active source.",
@@ -242,9 +251,9 @@ export const scanStructuralSourceShape = (
   lawIds: readonly string[],
   collector: InventoryFindingCollector,
 ): void => {
-  const sourceAtomicityLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V3");
-  const typeEscapeLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V3");
-  const bridgeLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V3");
+  const sourceAtomicityLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V4");
+  const typeEscapeLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V4");
+  const bridgeLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V4");
   scanPathBudget(collector, governedFile, sourceAtomicityLawId, bridgeLawId);
   scanImportExportBudgets(collector, governedFile, sourceAtomicityLawId);
   scanStructuralTypeEscapes(collector, governedFile, typeEscapeLawId);

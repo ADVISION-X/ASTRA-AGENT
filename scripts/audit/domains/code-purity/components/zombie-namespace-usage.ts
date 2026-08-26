@@ -2,10 +2,6 @@ import { Node } from "ts-morph";
 
 import { astIdentifierName } from "../../../shared/ast-node-identity.js";
 import type { ZombieModuleGraph } from "./zombie-module-graph.js";
-import {
-  isLawfulDynamicNamespaceConsumer,
-  type ZombieExemptionManifest,
-} from "./zombie-exemption-manifest.js";
 
 export type ZombieNamespacePropertyUsage = {
   consumerFilePath: string;
@@ -52,7 +48,6 @@ const findNamespaceImportNode = (
 };
 
 const collectNamespaceReferenceUsage = (
-  manifest: ZombieExemptionManifest,
   edge: ZombieModuleGraph["importEdges"][number],
   namespaceImportNode: NonNullable<ReturnType<typeof findNamespaceImportNode>>,
 ): ZombieNamespaceUsageReport => {
@@ -85,9 +80,6 @@ const collectNamespaceReferenceUsage = (
         continue;
       }
     }
-    if (isLawfulDynamicNamespaceConsumer(manifest, edge.sourcePath, edge.targetPath)) {
-      continue;
-    }
     dynamicUsages.push({
       consumerFilePath: edge.sourcePath,
       line: referenceNode.getStartLineNumber(),
@@ -103,7 +95,6 @@ const collectNamespaceReferenceUsage = (
 };
 
 export const scanZombieNamespaceUsage = (input: {
-  manifest: ZombieExemptionManifest;
   moduleGraph: ZombieModuleGraph;
   reachableFiles: ReadonlySet<string>;
 }): ZombieNamespaceUsageReport => {
@@ -123,7 +114,7 @@ export const scanZombieNamespaceUsage = (input: {
     if (!namespaceImportNode) {
       continue;
     }
-    const referenceUsage = collectNamespaceReferenceUsage(input.manifest, edge, namespaceImportNode);
+    const referenceUsage = collectNamespaceReferenceUsage(edge, namespaceImportNode);
     propertyUsages.push(...referenceUsage.propertyUsages);
     dynamicUsages.push(...referenceUsage.dynamicUsages);
   }

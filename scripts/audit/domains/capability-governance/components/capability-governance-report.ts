@@ -5,7 +5,7 @@ import {
   loadCapabilitySourceOfTruth,
 } from "./capability-source-of-truth.js";
 
-type CapabilityGroupFindingInput = Parameters<typeof createFinding>[0];
+type CapabilityGroupFindingInput = Omit<Parameters<typeof createFinding>[0], "evidenceMode">;
 type CapabilityGroupFindingPusher = (input: CapabilityGroupFindingInput) => void;
 
 const inspectBlueprintCapabilityDeclarations = (input: {

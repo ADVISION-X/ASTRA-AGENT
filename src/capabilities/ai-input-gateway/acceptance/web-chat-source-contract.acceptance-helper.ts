@@ -93,12 +93,14 @@ const assertFixedDevtoolsRuntime = (sources: Record<keyof typeof activeSources, 
 const assertNativeTargetBinding = (sources: Record<keyof typeof activeSources, string>): void => {
   assert.ok(
     sources.extensionSocket.includes('const SOCKET_URL = "ws://127.0.0.1:4173/browser-authority/v1"')
-      && sources.extensionSocket.includes("claimActiveTarget")
-      && sources.extensionTarget.includes("tabs.query({ active: true, currentWindow: true })")
+      && sources.extensionSocket.includes("claimPreauthorizedChatGptTarget")
+      && sources.extensionTarget.includes("debugger.getTargets")
+      && sources.extensionTarget.includes("GPT_WEB_CHAT_START_URL")
       && sources.extensionTarget.includes("claimOperatorTarget")
-      && !sources.extensionTarget.includes("tabs.create")
+      && sources.extensionTarget.includes("tabs.create")
+      && !sources.extensionTarget.includes("tabs.query")
       && sources.transportAuthenticator.includes("sourceChannelToken"),
-    "the single authenticated extension socket must bind only the operator-claimed active HTTPS target",
+    "the single authenticated extension socket must bind only the fixed preauthorized exact ChatGPT target",
   );
 };
 

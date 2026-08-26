@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
 import {
   Node,
@@ -79,7 +79,7 @@ const addFinding = (
     message: string;
   },
 ): void => {
-  findings.push(createFinding({
+  findings.push(createFinding({ evidenceMode: "static.ast",
     checkId: input.checkId,
     lawId: input.lawId,
     filePath: input.filePath,
@@ -397,12 +397,11 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const evaluation = await inspectDomainEvaluation(context);
   const lawId = "LAW-WORKBENCH-API-BOUNDARY-001-V5";
   const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
-  const passed = findings.length === 0;
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [{ lawId, assertions: [
-      { clauses: staticClauses(), evidenceMode: "static.ast", passed, refs: staticEvidenceRefs(context, lawId, "static.ast") },
-      { clauses: staticClauses(), evidenceMode: "static.contract", passed, refs: staticEvidenceRefs(context, lawId, "static.contract") },
+      { clauses: staticClauses(0), evidenceMode: "static.ast", passed: producerModePassed(findings, "static.ast"), refs: staticEvidenceRefs(context, lawId, "static.ast") },
+      { clauses: staticClauses(0), evidenceMode: "static.contract", passed: producerModePassed(findings, "static.contract"), refs: staticEvidenceRefs(context, lawId, "static.contract") },
     ], findings }], inspectedFiles: evaluation.inspectedFiles,
   });
 };

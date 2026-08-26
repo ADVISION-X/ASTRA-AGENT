@@ -21,6 +21,7 @@ const pushFunctionBudgetFinding = (
   collector.push(
     {
       checkId: "code-purity/function-budget",
+      evidenceMode: "static.ast",
       filePath: governedFile.repoPath,
       lawId,
       owner: governedFile.owner,
@@ -87,6 +88,7 @@ const scanClassAndObjectBudgets = (
     collector.push(
       {
         checkId: "code-purity/class-budget",
+        evidenceMode: "static.ast",
         filePath: governedFile.repoPath,
         lawId: inventoryLawId,
         owner: governedFile.owner,
@@ -107,6 +109,7 @@ const scanClassAndObjectBudgets = (
     collector.push(
       {
         checkId: "code-purity/object-budget",
+        evidenceMode: "static.ast",
         filePath: governedFile.repoPath,
         lawId: inventoryLawId,
         owner: governedFile.owner,
@@ -125,7 +128,7 @@ export const scanStructuralFunctionBudgets = (
   lawIds: readonly string[],
   collector: InventoryFindingCollector,
 ): void => {
-  const inventoryLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V3");
+  const inventoryLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V4");
   scanFunctionBudgets(collector, governedFile, inventoryLawId);
   scanClassAndObjectBudgets(collector, governedFile, inventoryLawId);
 };

@@ -14,24 +14,12 @@ import {
 import type { GovernedFile } from "../audit/domains/code-purity/components/code-purity-governed-files.js";
 import { scanOwnerBoundaries } from "../audit/domains/code-purity/components/scan-owner-boundaries.js";
 import { scanZombieSurfaces } from "../audit/domains/code-purity/components/scan-zombie-surfaces.js";
-import type { ZombieExemptionManifest } from "../audit/domains/code-purity/components/zombie-exemption-manifest.js";
 import { createInspectorContextFixture } from "../audit/shared/inspector-context-acceptance-support.js";
 
-type PathPair = { consumerFilePath: string; targetFilePath: string };
-type RegistryConsumer = PathPair & { registryExportName: string; registryFilePath: string };
-type FixtureManifest = {
-  auditInspectionFiles?: string[];
-  externalEntryExports?: Array<{ exportName: string; filePath: string }>;
-  externalEntryFiles?: string[];
-  lawfulDynamicImports?: PathPair[];
-  lawfulDynamicRegistryConsumers?: RegistryConsumer[];
-  lawfulDynamicNamespaceConsumers?: PathPair[];
-  lawfulSideEffectImports?: PathPair[];
-};
-type FixtureConfig = { entryScripts: string[]; manifest?: FixtureManifest };
+type FixtureConfig = { entryScripts: string[] };
 type ExpectedFinding = { checkId: string; fileIncludes?: string; symbolName?: string };
 
-const LAW_IDS = ["LAW-CODE-PURITY-001-V3"];
+const LAW_IDS = ["LAW-CODE-PURITY-001-V4", "LAW-CODE-PURITY-002-V1", "LAW-CODE-PURITY-003-V1"];
 const FIXTURE_ROOT = resolveFromRepo("scripts/acceptance/fixtures/code-purity-zombie-deep");
 const RUNTIME_ROOT = resolveFromRepo("tmp/code-purity-zombie-deep-runtime");
 
@@ -67,27 +55,6 @@ const buildGovernedFiles = (project: Project, runtimeRepoPath: string): Governed
     .sort((left, right) => left.repoPath.localeCompare(right.repoPath));
 
 const prefix = (root: string, value: string): string => `${root}/${value}`;
-const pairs = (root: string, entries: PathPair[] = [], reason: string) => entries.map((entry) => ({
-  consumerFilePath: prefix(root, entry.consumerFilePath),
-  targetFilePath: prefix(root, entry.targetFilePath),
-  reason,
-}));
-
-const buildManifest = (root: string, input: FixtureManifest = {}): ZombieExemptionManifest => ({
-  auditInspectionFiles: (input.auditInspectionFiles ?? []).map((filePath) => ({ filePath: prefix(root, filePath), reason: "fixture audit entry" })),
-  externalEntryExports: (input.externalEntryExports ?? []).map((entry) => ({ ...entry, filePath: prefix(root, entry.filePath), reason: "fixture export entry" })),
-  externalEntryFiles: (input.externalEntryFiles ?? []).map((filePath) => ({ filePath: prefix(root, filePath), reason: "fixture file entry" })),
-  lawfulDynamicImports: pairs(root, input.lawfulDynamicImports, "fixture dynamic import"),
-  lawfulDynamicRegistryConsumers: (input.lawfulDynamicRegistryConsumers ?? []).map((entry) => ({
-    ...entry,
-    consumerFilePath: prefix(root, entry.consumerFilePath),
-    registryFilePath: prefix(root, entry.registryFilePath),
-    reason: "fixture registry consumer",
-  })),
-  lawfulDynamicNamespaceConsumers: pairs(root, input.lawfulDynamicNamespaceConsumers, "fixture namespace consumer"),
-  lawfulSideEffectImports: pairs(root, input.lawfulSideEffectImports, "fixture side-effect import"),
-});
-
 const parseEvidence = (evidence: string | undefined): Record<string, unknown> => {
   if (!evidence) return {};
   try { return JSON.parse(evidence) as Record<string, unknown>; } catch { return {}; }
@@ -108,9 +75,7 @@ const runCase = (caseName: string) => {
   const packageScripts = Object.fromEntries(config.entryScripts.map((entry, index) => [
     `fixture:${index + 1}`, `node --import tsx ${prefix(runtimeRepoPath, entry)}`,
   ]));
-  const zombie = scanZombieSurfaces(context, governedFiles, LAW_IDS, {
-    manifest: buildManifest(runtimeRepoPath, config.manifest), packageScripts,
-  });
+  const zombie = scanZombieSurfaces(context, governedFiles, LAW_IDS, { packageScripts });
   return [...zombie.findings, ...scanOwnerBoundaries(governedFiles, LAW_IDS).findings];
 };
 
@@ -136,11 +101,12 @@ const required: Array<[string, ExpectedFinding]> = [
   ["object-bag-unused-property", { checkId: "code-purity/object-bag-unused-property", symbolName: "oldFlow" }],
   ["object-bag-dynamic-usage", { checkId: "code-purity/object-bag-dynamic-usage" }],
   ["registry-bag-laundering", { checkId: "code-purity/registry-bag-laundering" }],
+  ["lawful-dynamic-registry-consumer", { checkId: "code-purity/registry-bag-laundering" }],
+  ["lawful-dynamic-registry-consumer", { checkId: "code-purity/object-bag-unused-property" }],
   ["identifier-count-false-proof", { checkId: "code-purity/zombie-top-level-declaration", symbolName: "dead" }],
   ["const-folded-dead-branch", { checkId: "code-purity/zombie-dead-branch" }],
   ["literal-mode-dead-branch", { checkId: "code-purity/zombie-dead-branch" }],
   ["commented-out-code", { checkId: "code-purity/commented-out-executable-code" }],
-  ["side-effect-import-laundering", { checkId: "code-purity/side-effect-import-without-manifest" }],
   ["dynamic-import-nonliteral", { checkId: "code-purity/dynamic-import-nonliteral" }],
   ["dynamic-import-owner-boundary-violation", { checkId: "code-purity/plugin-non-facade-capability-import" }],
   ["side-effect-import-owner-boundary-violation", { checkId: "code-purity/plugin-non-facade-capability-import" }],
@@ -148,14 +114,9 @@ const required: Array<[string, ExpectedFinding]> = [
 const forbidden: Array<[string, ExpectedFinding]> = [
   ["default-import-alias", { checkId: "code-purity/zombie-export", symbolName: "default" }],
   ["named-import-alias", { checkId: "code-purity/zombie-export", symbolName: "foo" }],
-  ["lawful-dynamic-registry-consumer", { checkId: "code-purity/registry-bag-laundering" }],
-  ["lawful-dynamic-registry-consumer", { checkId: "code-purity/object-bag-unused-property" }],
   ["lawful-manifest-entry", { checkId: "code-purity/zombie-file" }],
   ["lawful-manifest-entry", { checkId: "code-purity/zombie-export" }],
-  ["lawful-side-effect-import", { checkId: "code-purity/side-effect-import-without-manifest" }],
   ["lawful-side-effect-import", { checkId: "code-purity/zombie-file", fileIncludes: "/lawful-side-effect-import/src/side-effect.ts" }],
-  ["dynamic-import-owner-boundary-violation", { checkId: "code-purity/dynamic-import-without-manifest" }],
-  ["side-effect-import-owner-boundary-violation", { checkId: "code-purity/side-effect-import-without-manifest" }],
 ];
 
 for (const [caseName, expected] of required) assert.equal(hasFinding(caseName, expected), true, `${caseName} must emit ${expected.checkId}`);
@@ -163,4 +124,4 @@ for (const [caseName, expected] of forbidden) assert.equal(hasFinding(caseName, 
 assert.ok(runCase("zombie-to-zombie-chain").filter((finding) => finding.checkId === "code-purity/zombie-file").length >= 3);
 rmSync(RUNTIME_ROOT, { force: true, recursive: true });
 console.log("code-purity-zombie-deep-acceptance-ok");
-emitQualityProofObservation({ lawId: "LAW-CODE-PURITY-001-V3", evidenceMode: "exam.golden", locator: "acceptance:code-purity:zombie-mutant-matrix", observedValue: "required zombie mutants rejected and allowed ownership cases retained" });
+emitQualityProofObservation({ lawId: "LAW-CODE-PURITY-003-V1", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","summary"], locator: "acceptance:code-purity:zombie-mutant-matrix", observedValue: "required zombie mutants rejected and allowed ownership cases retained" });

@@ -42,11 +42,13 @@ class ProfileBrowserFixture {
   private expanded = false;
   private advanced = false;
   private submenu: "模型" | "推理强度" | null = null;
+  private advancedMarkerReadsRemaining = 0;
 
   public constructor(
     public model: string,
     public reasoning: string,
     private readonly duplicateModel = false,
+    private readonly advancedMarkerDelayReads = 0,
   ) {}
 
   public readonly wait = async (): Promise<void> => {};
@@ -122,6 +124,11 @@ class ProfileBrowserFixture {
   }
 
   private valuesForSelector(selector: string): string[] {
+    if ((selector === advancedClosed || selector === advancedOpen)
+      && this.advancedMarkerReadsRemaining > 0) {
+      this.advancedMarkerReadsRemaining -= 1;
+      return [];
+    }
     const lookups: Record<string, () => string[]> = {
       [trigger]: () => [this.reasoning],
       [advancedClosed]: () => this.expanded && !this.advanced ? ["高级"] : [],
@@ -151,6 +158,7 @@ class ProfileBrowserFixture {
       this.expanded = !this.expanded;
       this.advanced = false;
       this.submenu = null;
+      this.advancedMarkerReadsRemaining = this.advancedMarkerDelayReads;
       this.actions.push("模型选择下拉");
       return;
     }
@@ -295,6 +303,17 @@ const acceptNoOpAndExclusion = async (): Promise<void> => {
   );
 };
 
+const acceptDelayedAdvancedMenuMount = async (): Promise<void> => {
+  const browser = new ProfileBrowserFixture("GPT-5.6 Sol", "极高", false, 2);
+  const proof = await enforceGptWebExecutionProfile({
+    browser: browser.asLease(),
+    context: context({ actions: [], profile: null }),
+    request: request("extra_high"),
+  });
+  assert.equal(proof?.noOp, true);
+  assert.equal(browser.actions.filter((action) => action === "模型选择下拉").length, 1);
+};
+
 const acceptOneTimeProofEmptyProfileStateCorrection = async (): Promise<void> => {
   const dataDir = await mkdtemp(path.join(tmpdir(), "gpt-profile-state-correction-"));
   const profileRequest = request("high");
@@ -350,5 +369,6 @@ const acceptOneTimeProofEmptyProfileStateCorrection = async (): Promise<void> =>
 
 await acceptExactMutationAndReadback();
 await acceptNoOpAndExclusion();
+await acceptDelayedAdvancedMenuMount();
 await acceptOneTimeProofEmptyProfileStateCorrection();
-process.stdout.write("[gpt-web-execution-profile] PASS exact advanced model/reasoning selection, readback, no-op, ambiguity exclusion and one-time proof-empty state correction\n");
+process.stdout.write("[gpt-web-execution-profile] PASS exact advanced model/reasoning selection, delayed menu mount, readback, no-op, ambiguity exclusion and one-time proof-empty state correction\n");

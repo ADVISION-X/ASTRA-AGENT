@@ -17,7 +17,7 @@ interface FreshIdentitySources {
   freshConversationControl: SourceFile;
   failureClassification: SourceFile;
   executionState: SourceFile;
-  checkpoint: SourceFile;
+  turnIdentity: SourceFile;
   acceptance: SourceFile;
   shared: SourceFile;
 }
@@ -36,8 +36,8 @@ const loadFreshIdentitySources = (
   const freshConversationControl = requireAiInputGatewaySource(
     context, findings, lawId, P.runtime.freshConversationControlPath,
   );
-  const checkpoint = requireAiInputGatewaySource(
-    context, findings, lawId, P.runtime.submissionCheckpointPath,
+  const turnIdentity = requireAiInputGatewaySource(
+    context, findings, lawId, P.runtime.turnIdentityPath,
   );
   const failureClassification = requireAiInputGatewaySource(
     context, findings, lawId, P.runtime.failureClassificationPath,
@@ -52,14 +52,14 @@ const loadFreshIdentitySources = (
     context, findings, lawId, P.attachment.sharedPath,
   );
   if (!canonicalBinding || !managedExecution || !freshConversationControl || !failureClassification || !executionState
-    || !checkpoint || !acceptance || !shared) return null;
+    || !turnIdentity || !acceptance || !shared) return null;
   return {
     canonicalBinding,
     managedExecution,
     freshConversationControl,
     failureClassification,
     executionState,
-    checkpoint,
+    turnIdentity,
     acceptance,
     shared,
   };
@@ -121,7 +121,7 @@ const legacyTargetRecoveryIsValid = (
     .has("assertLegacyPreMutationTargetInvalidResumesSameExecution");
 
 const freshIdentityCoreIsValid = (sources: FreshIdentitySources): boolean => {
-  const checkpointIds = identifiers(sources.checkpoint);
+  const turnIdentityIds = identifiers(sources.turnIdentity);
   return identifiers(sources.canonicalBinding).has("assertWebChatCanonicalConversationBinding")
     && identifiers(sources.canonicalBinding).has("resolveSubmittedDraftOwnerByTurnMarker")
     && identifiers(sources.managedExecution).has("assertBinding")
@@ -132,8 +132,8 @@ const freshIdentityCoreIsValid = (sources: FreshIdentitySources): boolean => {
     && freshConversationControlIsValid(sources)
     && legacyTargetRecoveryIsValid(sources)
     && sharedPreparationCallOrderIsValid(sources.shared)
-    && checkpointIds.has("observeSubmittedWebChatTurn")
-    && checkpointIds.has("finalizeObservedWebChatSubmission");
+    && turnIdentityIds.has("captureWebChatSubmissionProof")
+    && turnIdentityIds.has("captureStableSubmissionProof");
 };
 
 export const inspectFreshConversationIdentity = (
@@ -195,9 +195,6 @@ const loadSessionControlSources = (
     ),
     proof: requireAiInputGatewaySource(
       context, findings, lawId, P.runtime.providerProofPath,
-    ),
-    sessionAcceptance: requireAiInputGatewaySource(
-      context, findings, lawId, P.acceptance.sessionControllerAcceptancePath,
     ),
   };
   return Object.values(result).every(Boolean)
@@ -262,9 +259,6 @@ const sessionControllerContractIsValid = (s: SessionControlSources): boolean => 
     checkpointIds.has("providerExecutionProfileProof"),
     literalContains(s.proof, "AI_INPUT_GATEWAY_CONVERSATION_TITLE_PROOF_MISSING"),
     literalContains(s.proof, "AI_INPUT_GATEWAY_PROVIDER_EXECUTION_PROFILE_PROOF_MISMATCH"),
-    identifiers(s.sessionAcceptance).has("assertGptWebSessionControllerContracts"),
-    identifiers(s.sessionAcceptance).has("assertPrivacySafeTitle"),
-    identifiers(s.sessionAcceptance).has("assertContinuationDoesNotFakeLegacyTitleProof"),
   ].every(Boolean);
 };
 

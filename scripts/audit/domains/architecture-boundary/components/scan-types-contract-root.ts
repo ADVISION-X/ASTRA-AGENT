@@ -106,7 +106,7 @@ export const inspectTypesContractRoot = (input: {
     input.inspectedFiles.add(repoPath);
     const forbidden = forbiddenRuntimeNode(sourceFile);
     if (!forbidden) continue;
-    input.findings.push(createFinding({
+    input.findings.push(createFinding({ evidenceMode: "static.ast",
       checkId: "architecture/types-contract-runtime-logic",
       lawId: input.lawId,
       filePath: repoPath,

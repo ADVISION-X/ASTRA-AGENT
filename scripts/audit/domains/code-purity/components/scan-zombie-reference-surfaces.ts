@@ -1,9 +1,8 @@
 import type { InventoryFindingCollector } from "./code-purity-finding-collector.js";
 import {
-  isLawfulZombieExport,
+  isGeneratedOwnerInspectorExport,
   pushZombieFinding,
 } from "./zombie-surface-shared.js";
-import type { ZombieExemptionManifest } from "./zombie-exemption-manifest.js";
 import type { ZombieModuleGraph, ZombieReachability } from "./zombie-module-graph.js";
 import type { ZombieNamespaceUsageReport } from "./zombie-namespace-usage.js";
 import type { ZombieExportSymbol, ZombieSymbolGraph } from "./zombie-symbol-graph.js";
@@ -133,7 +132,6 @@ const buildZombieExportFailure = (
 const scanZombieExportSymbol = (
   collector: InventoryFindingCollector,
   input: {
-    manifest: ZombieExemptionManifest;
     governedFile: ZombieModuleGraph["filesByPath"] extends Map<string, infer T> ? T : never;
     namespaceUsage: ZombieNamespaceUsageReport;
     reachability: ZombieReachability;
@@ -143,7 +141,7 @@ const scanZombieExportSymbol = (
   },
   exportSymbol: ZombieExportSymbol,
 ): "live" | "skip" | "zombie" => {
-  if (isLawfulZombieExport(input.governedFile, exportSymbol.exportName, input.manifest)) {
+  if (isGeneratedOwnerInspectorExport(input.governedFile, exportSymbol.exportName)) {
     return "skip";
   }
   if (exportSymbol.exportName === "inspectDomain"
@@ -182,7 +180,6 @@ const scanZombieExportSymbol = (
 const scanZombieExports = (
   collector: InventoryFindingCollector,
   input: {
-    manifest: ZombieExemptionManifest;
     moduleGraph: ZombieModuleGraph;
     namespaceUsage: ZombieNamespaceUsageReport;
     reachability: ZombieReachability;
@@ -209,14 +206,13 @@ const scanZombieExports = (
       continue;
     }
     for (const exportSymbol of exportSymbols) {
-      if (isLawfulZombieExport(governedFile, exportSymbol.exportName, input.manifest)) {
+      if (isGeneratedOwnerInspectorExport(governedFile, exportSymbol.exportName)) {
         continue;
       }
       const status = scanZombieExportSymbol(
         collector,
         {
           governedFile,
-          manifest: input.manifest,
           namespaceUsage: input.namespaceUsage,
           reachability: input.reachability,
           symbolGraph: input.symbolGraph,
@@ -241,7 +237,6 @@ export const scanZombieReferenceSurfaces = (
   collector: InventoryFindingCollector,
   input: {
     antiEvasionLawId: string;
-    manifest: ZombieExemptionManifest;
     moduleGraph: ZombieModuleGraph;
     namespaceUsage: ZombieNamespaceUsageReport;
     reachability: ZombieReachability;

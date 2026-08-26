@@ -76,7 +76,9 @@
     {
       "capabilityDomain": "code-purity",
       "lawIds": [
-        "LAW-CODE-PURITY-001-V3"
+        "LAW-CODE-PURITY-001-V4",
+        "LAW-CODE-PURITY-002-V1",
+        "LAW-CODE-PURITY-003-V1"
       ],
       "manifestPath": "scripts/audit/domains/code-purity/manifest.json",
       "observedPaths": [
@@ -85,9 +87,12 @@
         "src/**"
       ],
       "ownedPaths": [
+        ".github/CODEOWNERS",
+        ".github/workflows/quality-ready.yml",
         ".gitignore",
         ".nvmrc",
         ".vscode/tasks.json",
+        "docs/blueprints/code-purity/QUALITY-EVIDENCE-OWNERSHIP-V1-BLUEPRINT.md",
         "package-lock.json",
         "package.json",
         "pnpm-workspace.yaml",
@@ -146,14 +151,14 @@
       "lawIds": [
         "LAW-LOCAL-BROWSER-SESSION-001-V4",
         "LAW-LOCAL-BROWSER-SESSION-002-V5",
-        "LAW-LOCAL-BROWSER-SESSION-003-V7",
+        "LAW-LOCAL-BROWSER-SESSION-003-V8",
         "LAW-LOCAL-BROWSER-SESSION-004-V8",
         "LAW-LOCAL-BROWSER-SESSION-005-V5",
         "LAW-LOCAL-BROWSER-SESSION-006-V3"
       ],
       "manifestPath": "scripts/audit/domains/local-browser-session/manifest.json",
       "observedPaths": [
-        "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-RELOAD-V1-BLUEPRINT.md",
+        "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md",
         "docs/blueprints/local-browser-session/LOCAL-BROWSER-SESSION-V6-OWNER-JOURNAL-BLUEPRINT.md"
       ],
       "ownedPaths": [
@@ -199,7 +204,7 @@
       "capabilityDomain": "startup-entrypoint",
       "lawIds": [
         "LAW-STARTUP-ENTRYPOINT-001-V4",
-        "LAW-STARTUP-ENTRYPOINT-002-V3"
+        "LAW-STARTUP-ENTRYPOINT-002-V4"
       ],
       "manifestPath": "scripts/audit/domains/startup-entrypoint/manifest.json",
       "observedPaths": [
@@ -366,7 +371,7 @@
         "不得发生：automatic login, CAPTCHA bypass, account rotation, security-barrier bypass, or unbounded retry",
         "不得发生：patrol, submission or another task reacquiring the provider target while any plugin takeover owner remains active",
         "不得发生：parallel or detached BrowserTargetLease commands within one provider page operation",
-        "不得发生：a later page-action proof resolving earlier unrelated mutations, a second mutation before the prior one is resolved, substring identity for exact semantic choices, or fixed sleep used as a production transition",
+        "不得发生：把顺序动作解释为一次聚合 AND、用一个 task-wide deadline 等齐接单、开页、选模型、附件与提交，或在前一步专属 proof 未成立时启动后一步；每个已解析前态只能触发一个 THEN 动作，该动作后置 proof 只能成为下一步 IF，精确语义、candidate_count=1 与相邻错误态排除只用于证明当前 IF；也不得由后一张 page-action proof 解析先前无关 mutation、在前一 mutation 未解析时执行第二 mutation、用 substring 识别精确语义或把 fixed sleep 当作生产转换。",
         "不得发生：downgrading or erasing a completely captured provider response because later title, artifact or cleanup work failed",
         "不得发生：using application activation, whichever Chrome window is foreground, accessibility window ordering, or a second physical provider tab as page identity"
       ],
@@ -378,7 +383,7 @@
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须保持以下不变量：Web-chat provider work must use an operator-authorized authenticated Browser authority lease and exact target/document lease, fail closed on provider security barriers, and preserve exact raw response truth.",
+      "summary": "必须使 Web-chat provider 在操作者授权的 authenticated Browser authority 与 exact target/document 上按 接单 proof -> 打开 provider proof -> 页面就绪 proof -> 选择模型 proof -> 后续单动作 proof 的 IF-THEN 链逐步推进；AND 只承接当前已证事实到一个 THEN，不得聚合后续步骤或建立 task-wide timeout 模式；安全屏障失败关闭并保留 exact raw response truth。",
       "supersedesLawId": "LAW-AI-INPUT-GATEWAY-002-V1",
       "tier": "P0"
     },
@@ -740,11 +745,97 @@
       "capabilityDomain": "code-purity",
       "contractRefs": [],
       "dependsOnLawIds": [],
-      "enforcementMode": "composite",
+      "enforcementMode": "static",
       "evidenceModes": [
         "static.filesystem",
         "static.ast",
         "static.types",
+        "static.dependency"
+      ],
+      "excludes": [
+        "scripts/acceptance/fixtures/**",
+        "scripts/audit/generated/**",
+        "src/plugins/xuanxue-ai-production/generated/**"
+      ],
+      "forbidden": [
+        "不得发生：活动源码文件超过 500 个物理行，或函数超过 75 行、7 个参数、8 个返回分支、5 层嵌套、16 圈复杂度或10个 await。",
+        "不得发生：any、ts-ignore、ts-nocheck、catch-and-swallow、伪成功或 mock/demo/placeholder/no-op/fallback 生产路径。",
+        "不得发生：export star、无合法工具要求的 default export、require、超过 28 个 import declaration、24 个 import source 或24个命名导出。",
+        "不得发生：generated artifact 被手工维护为源真相，或注释掉的可执行代码代替物理删除。",
+        "不得发生：修复只做改名、转发、搬家和重新包装而未物理删除、内联、合并或简化真实结构。"
+      ],
+      "lawId": "LAW-CODE-PURITY-001-V4",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 50,
+        "lineStart": 13,
+        "path": ".github/instructions/agent-rules/基础法案.md"
+      },
+      "status": "active",
+      "summary": "必须使每个活动源码文件与函数满足结构、类型、导入导出和 generated-source 红线，不得用伪成功、类型逃逸或重新包装规避。",
+      "supersedesLawId": "LAW-CODE-PURITY-001-V3",
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        ".github/workflows/**",
+        "package.json",
+        "scripts/**",
+        "src/**"
+      ],
+      "capabilityDomain": "code-purity",
+      "contractRefs": [
+        "docs/blueprints/code-purity/QUALITY-EVIDENCE-OWNERSHIP-V1-BLUEPRINT.md"
+      ],
+      "dependsOnLawIds": [],
+      "enforcementMode": "static",
+      "evidenceModes": [
+        "static.filesystem",
+        "static.ast",
+        "static.dependency",
+        "static.config",
+        "static.json",
+        "static.yaml"
+      ],
+      "excludes": [
+        "scripts/acceptance/fixtures/**",
+        "scripts/audit/generated/**",
+        "src/plugins/xuanxue-ai-production/generated/**"
+      ],
+      "forbidden": [
+        "不得发生：God file、God function、混合 Owner、混合运行角色、无 Owner 文件或以 utils/helpers/common/shared/service/manager/facade/bridge/adapter 隐藏职责。",
+        "不得发生：import、re-export、dynamic import 或 side-effect import 以不同语法绕过同一 Owner 边界。",
+        "不得发生：能力域导入 plugin、plugin 导入能力私有 runtime、mediator 执行浏览器动作或 child ability 隐藏多步业务流。",
+        "不得发生：以 bridge、compatibility、legacy、shadow、fallback、planner、workflow 或同义路径名称隐藏第二 Owner、第二执行真相或通用编排器。",
+        "不得发生：一个 plugin 或 job flow 承担多个业务需求、演变为通用 workflow engine，或共享能力吸收业务流程。"
+      ],
+      "lawId": "LAW-CODE-PURITY-002-V1",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 92,
+        "lineStart": 52,
+        "path": ".github/instructions/agent-rules/基础法案.md"
+      },
+      "status": "active",
+      "summary": "必须使每个生产路径只有一个 primary Owner，并以模块图与调用方向阻断跨 Owner、通用编排和第二执行真相。",
+      "supersedesLawId": null,
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "package.json",
+        "scripts/**",
+        "src/**"
+      ],
+      "capabilityDomain": "code-purity",
+      "contractRefs": [
+        "docs/blueprints/code-purity/QUALITY-EVIDENCE-OWNERSHIP-V1-BLUEPRINT.md"
+      ],
+      "dependsOnLawIds": [],
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.filesystem",
+        "static.ast",
         "static.dependency",
         "static.config",
         "static.json",
@@ -756,30 +847,21 @@
         "src/plugins/xuanxue-ai-production/generated/**"
       ],
       "forbidden": [
-        "不得发生：活动源码文件超过 500 个物理行，或函数超过 75 行、7 个参数、8 个返回分支、5 层嵌套、16 圈复杂度或10个 await。",
-        "不得发生：God file、God function、混合 Owner、混合运行角色、无 Owner 文件或以 utils/helpers/common/shared/service/manager/facade/bridge/adapter 隐藏职责。",
         "不得发生：zombie 文件、zombie 导出、孤立顶层声明、死导出 helper 链、死内部声明岛、字面量或常量折叠后的死分支。",
         "不得发生：未证明最终消费者的 re-export、namespace、registry、object bag、handler map 或 zombie-to-zombie 链被当作活性证据。",
         "不得发生：动态 import 非字面量、未解析、未由 Owner 明示，或副作用 import 充当隐藏 keepalive。",
-        "不得发生：import、re-export、dynamic import 或 side-effect import 以不同语法绕过同一 Owner 边界。",
-        "不得发生：能力域导入 plugin、plugin 导入能力私有 runtime、mediator 执行浏览器动作或 child ability 隐藏多步业务流。",
-        "不得发生：any、ts-ignore、ts-nocheck、catch-and-swallow、伪成功或 mock/demo/placeholder/no-op/fallback 生产路径。",
-        "不得发生：export star、无合法工具要求的 default export、require、超过 28 个 import declaration、24 个 import source 或24个命名导出。",
-        "不得发生：以 bridge、compatibility、legacy、shadow、fallback、planner、workflow 或同义路径名称隐藏第二 Owner、第二执行真相或通用编排器。",
-        "不得发生：generated artifact 被手工维护为源真相，或注释掉的可执行代码代替物理删除。",
-        "不得发生：一个 plugin 或 job flow 承担多个业务需求、演变为通用 workflow engine，或共享能力吸收业务流程。",
-        "不得发生：public export、registry entry、handler、report/schema field、wrapper 或抽象层不能证明活动消费者，或修复只做改名、转发、搬家和重新包装而未物理删除、内联、合并或简化真实结构。"
+        "不得发生：public export、registry entry、handler、report/schema field、wrapper 或抽象层不能证明活动消费者。"
       ],
-      "lawId": "LAW-CODE-PURITY-001-V3",
+      "lawId": "LAW-CODE-PURITY-003-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 61,
-        "lineStart": 13,
+        "lineEnd": 132,
+        "lineStart": 94,
         "path": ".github/instructions/agent-rules/基础法案.md"
       },
       "status": "active",
-      "summary": "必须使每个活动源码文件证明唯一 Owner、单一角色和真实活性，并以 AST、类型、symbol graph、模块图及反规避检查对结构红线、Owner 边界、类型逃逸、伪运行和全部 zombie surface 实行零容忍二元执法。",
-      "supersedesLawId": "LAW-CODE-PURITY-001-V2",
+      "summary": "必须仅以原生入口、模块图、symbol consumer 与真实 registry lookup 证明活性，不得让 zombie、伪 keepalive 或无消费者包装层进入生产候选。",
+      "supersedesLawId": null,
       "tier": "P0"
     },
     {
@@ -1022,7 +1104,7 @@
       ],
       "capabilityDomain": "local-browser-session",
       "contractRefs": [
-        "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-RELOAD-V1-BLUEPRINT.md"
+        "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md"
       ],
       "dependsOnLawIds": [],
       "enforcementMode": "composite",
@@ -1066,7 +1148,7 @@
       ],
       "capabilityDomain": "local-browser-session",
       "contractRefs": [
-        "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-RELOAD-V1-BLUEPRINT.md"
+        "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md"
       ],
       "dependsOnLawIds": [],
       "enforcementMode": "composite",
@@ -1079,7 +1161,7 @@
       "forbidden": [
         "不得发生：separate Workspace approval UI or API",
         "不得发生：per-job operator approval",
-        "不得发生：automatic target claim",
+        "不得发生：READY 之前、非固定扩展、非预授权 gpt-web-chat 精确 Origin，或依赖 active tab、标题、顺序、最近访问和业务输入猜选并自动认领 Target",
         "不得发生：reusable bootstrap credential",
         "不得发生：8h or any wall-clock Workspace/authority expiry",
         "不得发生：automatic Workspace renewal",
@@ -1090,9 +1172,9 @@
         "不得发生：raw CDP",
         "不得发生：URL/selector/coordinate caller control",
         "不得发生：physical resource caller control",
-        "不得发生：target guessing"
+        "不得发生：零个合格 Target 时创建多个固定 start URL、多个合格 Target 时替用户选择，或服务端确认前建立 Session Workspace、报告 claim、创建任务、认领任务和执行任务"
       ],
-      "lawId": "LAW-LOCAL-BROWSER-SESSION-003-V7",
+      "lawId": "LAW-LOCAL-BROWSER-SESSION-003-V8",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 739,
@@ -1100,8 +1182,8 @@
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须保持以下不变量：Fresh memory-only automatic pairing bootstrap plus manual target claim atomically establishes one connection-bound Session Workspace; automatic pairing never claims a tab or starts a job, and dynamic Authority/Target/Document leases plus one fixed registry remain the only browser command authority.",
-      "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-003-V6",
+      "summary": "必须保持以下不变量：固定扩展完成内存自动配对后，只按预授权 gpt-web-chat 精确 Origin 策略确定唯一 Target；零目标只创建一个固定 start URL，多目标失败关闭，服务端确认同一 claim 后才建立 connection-bound Session Workspace；启动器不接触 Target，认领链不创建、认领或执行任务，动态 Authority/Target/Document leases 与唯一固定 registry 仍是唯一浏览器命令权威。",
+      "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-003-V7",
       "tier": "P0"
     },
     {
@@ -1159,7 +1241,7 @@
       ],
       "capabilityDomain": "local-browser-session",
       "contractRefs": [
-        "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-RELOAD-V1-BLUEPRINT.md"
+        "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md"
       ],
       "dependsOnLawIds": [],
       "enforcementMode": "composite",
@@ -1382,7 +1464,7 @@
         "不得发生：建立 isolated-test、test-mode、阶段态、过程态或任何非 production 运行身份。",
         "不得发生：把 AGENT 安装到网站服务器、交给网站或 systemd 管理，或把当前同一台 Mac 误写成同一部署单元。"
       ],
-      "lawId": "LAW-STARTUP-ENTRYPOINT-002-V3",
+      "lawId": "LAW-STARTUP-ENTRYPOINT-002-V4",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 1019,
@@ -1390,8 +1472,8 @@
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须使 grasseye:start 仅加载本仓唯一 .env.local、从当前 governed sources 同步唯一固定 Browser artifact、建立本地 Mac 上的 4173 production Shell 并安全清理本仓 listener；扩展在 Shell 发布当前构建身份后自行更新并自动配对，但 Target claim 与任务执行仍由操作者和业务 Owner 控制；依赖失败保留 Shell 且阻断 execution/claim。",
-      "supersedesLawId": "LAW-STARTUP-ENTRYPOINT-002-V2",
+      "summary": "必须使 grasseye:start 仅加载本仓唯一 .env.local、从当前 governed sources 同步唯一固定 Browser artifact、建立本地 Mac 上的 4173 production Shell 并安全清理本仓 listener；启动器不接触 Browser Target、不配对且不认领任务，固定扩展在 Shell 发布当前构建身份后自行更新、自动配对，并按预授权精确 ChatGPT 策略认领 Target；依赖失败保留 Shell 且阻断 execution/claim。",
+      "supersedesLawId": "LAW-STARTUP-ENTRYPOINT-002-V3",
       "tier": "P0"
     },
     {

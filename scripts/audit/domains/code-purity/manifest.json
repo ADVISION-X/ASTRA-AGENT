@@ -3,7 +3,9 @@
   "capabilityDomain": "code-purity",
   "status": "active",
   "lawIds": [
-    "LAW-CODE-PURITY-001-V3"
+    "LAW-CODE-PURITY-001-V4",
+    "LAW-CODE-PURITY-002-V1",
+    "LAW-CODE-PURITY-003-V1"
   ],
   "ownedPaths": [
     ".github/CODEOWNERS",
@@ -11,6 +13,7 @@
     ".gitignore",
     ".nvmrc",
     ".vscode/tasks.json",
+    "docs/blueprints/code-purity/QUALITY-EVIDENCE-OWNERSHIP-V1-BLUEPRINT.md",
     "package-lock.json",
     "package.json",
     "pnpm-workspace.yaml",

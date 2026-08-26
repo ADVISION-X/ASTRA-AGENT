@@ -53,7 +53,7 @@ export const inspectXuanxueLocalIntervention = (input: {
     "before-order-result-commit", "/api/xuanxue-ai-production/pause", "/api/xuanxue-ai-production/cancel",
     "/api/xuanxue-ai-production/takeover", "/api/xuanxue-ai-production/resume",
   ]) {
-    if (!input.values.has(required)) input.findings.push(createFinding({
+    if (!input.values.has(required)) input.findings.push(createFinding({ evidenceMode: "static.ast",
       lawId: input.lawId,
       clauseId: "apex-xuanxue-001-v6-session-bound-cloud-pull",
       checkId: "xuanxue-ai-production/local-intervention-contract",
@@ -71,7 +71,7 @@ export const inspectXuanxueLocalIntervention = (input: {
   });
   const cloudValues = collectXuanxueSourceValues(cloudSources);
   for (const forbidden of ["INTERVENTION_REQUESTED", "pending_request", "expectedRevision", "takeoverOrder", "pauseOrder"]) {
-    if (cloudValues.has(forbidden)) input.findings.push(createFinding({
+    if (cloudValues.has(forbidden)) input.findings.push(createFinding({ evidenceMode: "static.ast",
       lawId: input.lawId,
       clauseId: "apex-xuanxue-001-v6-session-bound-cloud-pull",
       checkId: "xuanxue-ai-production/no-cloud-intervention-ingress",

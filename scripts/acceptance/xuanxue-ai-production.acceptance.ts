@@ -106,6 +106,38 @@ try {
     aiInputGateway: gateway,
     store,
   };
+  const unacceptedOrder = order(
+    "aiprod_unaccepted_lease_rebind",
+    "localization_static_review_candidate",
+    ["candidate_a"],
+    "candidate_a",
+  );
+  unacceptedOrder.cloudExecutionIdentity = {
+    jobId: unacceptedOrder.orderId,
+    attemptId: "attempt-unaccepted-1",
+    requiredDeviceId: "aipdev_fixture",
+    leaseVersion: 1,
+    executionFenceHash: `sha256:${"1".repeat(64)}`,
+    contractManifestHash: XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
+    serverNow: "2026-08-26T00:00:00.000Z",
+    leaseExpiresAt: "2026-08-26T00:01:30.000Z",
+  };
+  createXuanxueAiProductionOrder(runtime, unacceptedOrder);
+  const reboundOrder = {
+    ...unacceptedOrder,
+    cloudExecutionIdentity: {
+      ...unacceptedOrder.cloudExecutionIdentity,
+      attemptId: "attempt-unaccepted-2",
+      leaseVersion: 2,
+      executionFenceHash: `sha256:${"2".repeat(64)}` as const,
+      serverNow: "2026-08-26T00:02:00.000Z",
+      leaseExpiresAt: "2026-08-26T00:03:30.000Z",
+    },
+  };
+  const rebound = createXuanxueAiProductionOrder(runtime, reboundOrder);
+  assert.equal(rebound.status, "queued");
+  assert.equal(rebound.order.cloudExecutionIdentity?.attemptId, "attempt-unaccepted-2");
+  assert.equal(rebound.order.cloudExecutionIdentity?.leaseVersion, 2);
   const { hehun, qimenFollowupParent, qimenFollowupParentFinal } =
     await acceptXuanxueOrderGraphs({ runtime, gateway });
   await acceptXuanxueAiProductionSurface({ runtime, gateway });

@@ -160,4 +160,29 @@ export class XuanxueAiProductionCloudOutbox {
     if (result.changes !== 1) throw new Error("XUANXUE_AI_PRODUCTION_OUTBOX_ACK_MISSING");
     return prior.body_file;
   }
+
+  public recordPermanentRejection(input: {
+    requestId: string;
+    reasonCode: "AI_LEASE_FENCE_STALE";
+    payloadHash: `sha256:${string}`;
+  }): void {
+    const rejectedAt = new Date().toISOString();
+    const result = this.database.prepare(`update production_cloud_outbox
+      set state='acknowledged',response_json=?,acknowledged_at=?
+      where request_id=? and payload_hash=? and state='pending'`).run(
+      JSON.stringify({
+        disposition: "permanently_rejected",
+        reason_code: input.reasonCode,
+        request_id: input.requestId,
+        payload_hash: input.payloadHash,
+        rejected_at: rejectedAt,
+      }),
+      rejectedAt,
+      input.requestId,
+      input.payloadHash,
+    );
+    if (result.changes !== 1) {
+      throw new Error("XUANXUE_AI_PRODUCTION_OUTBOX_REJECTION_RECORD_MISSING");
+    }
+  }
 }

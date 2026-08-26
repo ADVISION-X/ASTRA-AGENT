@@ -2,6 +2,7 @@ import type { InspectorFinding } from "./inspector-contracts.js";
 
 type FindingInput = {
   checkId: string;
+  evidenceMode: string;
   lawId: string;
   message: string;
   clauseId?: string;
@@ -25,6 +26,7 @@ export const selectLawId = (lawIds: readonly string[], preferredLawId: string): 
 
 export const createFinding = (input: FindingInput): InspectorFinding => ({
   checkId: input.checkId,
+  evidenceMode: input.evidenceMode,
   lawId: input.lawId,
   clauseId: input.clauseId ?? clauseIdForLaw(input.lawId),
   message: input.message,

@@ -18,6 +18,7 @@ const CHECKED_PROFILE_CHOICE_SELECTOR = "[role='menuitemradio'][aria-checked='tr
 const MODEL_LABEL = "模型";
 const REASONING_LABEL = "推理强度";
 const PROFILE_OBSERVATION_YIELD_MS = 100;
+const PROFILE_ACTION_OBSERVATION_TIMEOUT_MS = 20_000;
 
 const reasoningUiLabels: Partial<Record<GptWebReasoningTier, string>> = {
   medium: "中",
@@ -35,6 +36,10 @@ type ExecutionProfileInput = Readonly<{
 type SelectionObservation = Readonly<{
   candidateCount: number;
   selected: boolean;
+}>;
+
+type AdvancedProfileState = Readonly<{
+  closed: boolean;
 }>;
 
 const record = (value: unknown): Record<string, unknown> => {
@@ -103,7 +108,10 @@ const waitForProfileEvidence = async <T>(
   observe: () => Promise<T | null>,
   failureCode: string,
 ): Promise<T> => {
-  const deadline = Date.now() + input.request.timeoutMs;
+  const deadline = Date.now() + Math.min(
+    input.request.timeoutMs,
+    PROFILE_ACTION_OBSERVATION_TIMEOUT_MS,
+  );
   while (Date.now() < deadline) {
     if (input.context.abortSignal?.aborted) throw new Error(`recovery_pending: ${failureCode}`);
     try {
@@ -193,30 +201,45 @@ const advancedProfileTopologyReady = async (browser: BrowserTargetLease): Promis
   && await findCount(browser, PROFILE_SUBMENU_SELECTOR, { contains: MODEL_LABEL }) === 1
   && await findCount(browser, PROFILE_SUBMENU_SELECTOR, { contains: REASONING_LABEL }) === 1;
 
+const readAdvancedProfileState = async (
+  browser: BrowserTargetLease,
+): Promise<AdvancedProfileState | null> => {
+  const closedCount = await findCount(browser, ADVANCED_CLOSED_SELECTOR);
+  const openCount = await findCount(browser, ADVANCED_OPEN_SELECTOR);
+  if (closedCount + openCount > 1) {
+    throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_ADVANCED_AMBIGUOUS");
+  }
+  return closedCount + openCount === 0 ? null : { closed: closedCount === 1 };
+};
+
 const openAdvancedProfileMenu = async (input: ExecutionProfileInput): Promise<void> => {
   const browser = input.browser;
   if (await findCount(browser, PROFILE_TRIGGER_SELECTOR) !== 1) {
     throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_TRIGGER_AMBIGUOUS");
   }
   const expanded = await readAttribute(browser, PROFILE_TRIGGER_SELECTOR, "aria-expanded");
+  let advancedState: AdvancedProfileState;
   if (expanded !== "true") {
-    await clickAndProve({
+    advancedState = await clickAndProve({
       execution: input,
       selector: PROFILE_TRIGGER_SELECTOR,
       semantics: ["profile-trigger", "expanded=true"],
       failureCode: "GPT_WEB_EXECUTION_PROFILE_TRIGGER_NOT_OPEN",
-      observePostcondition: async () =>
-        await readAttribute(browser, PROFILE_TRIGGER_SELECTOR, "aria-expanded") === "true"
-          ? true : null,
+      observePostcondition: async () => {
+        if (await readAttribute(browser, PROFILE_TRIGGER_SELECTOR, "aria-expanded") !== "true") {
+          return null;
+        }
+        return readAdvancedProfileState(browser);
+      },
     });
+  } else {
+    advancedState = await waitForProfileEvidence(
+      input,
+      () => readAdvancedProfileState(browser),
+      "GPT_WEB_EXECUTION_PROFILE_ADVANCED_NOT_READY",
+    );
   }
-
-  const closedCount = await findCount(browser, ADVANCED_CLOSED_SELECTOR);
-  const openCount = await findCount(browser, ADVANCED_OPEN_SELECTOR);
-  if (closedCount + openCount !== 1) {
-    throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_ADVANCED_AMBIGUOUS");
-  }
-  if (closedCount === 1) {
+  if (advancedState.closed) {
     await clickAndProve({
       execution: input,
       selector: ADVANCED_CLOSED_SELECTOR,
@@ -225,9 +248,11 @@ const openAdvancedProfileMenu = async (input: ExecutionProfileInput): Promise<vo
       observePostcondition: async () => await advancedProfileTopologyReady(browser) ? true : null,
     });
   }
-  if (!(await advancedProfileTopologyReady(browser))) {
-    throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_ADVANCED_READBACK_MISMATCH");
-  }
+  await waitForProfileEvidence(
+    input,
+    async () => await advancedProfileTopologyReady(browser) ? true : null,
+    "GPT_WEB_EXECUTION_PROFILE_ADVANCED_READBACK_MISMATCH",
+  );
 };
 
 const readOpenSubmenuSelection = async (

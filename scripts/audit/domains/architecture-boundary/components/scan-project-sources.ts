@@ -63,7 +63,7 @@ const inspectBoundedBrowserProductionStages = (
       .filter((statement) => statement.getCondition() === undefined),
   ].filter((loop) => !hasExplicitLoopExit(loop));
   for (const loop of unboundedLoops) {
-    findings.push(createFinding({
+    findings.push(createFinding({ evidenceMode: "static.ast",
       checkId: "architecture/unbounded-production-stage",
       lawId,
       filePath: repoPath,

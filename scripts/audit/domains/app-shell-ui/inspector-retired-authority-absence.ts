@@ -20,7 +20,7 @@ const enforcementMentionAllowed = (path: string): boolean => path === ".github/i
 const addFinding = (
   findings: InspectorFinding[], lawId: string, checkId: string, filePath: string, message: string,
 ): void => {
-  findings.push(createFinding({ checkId, lawId, filePath, message }));
+  findings.push(createFinding({ evidenceMode: "static.ast", checkId, lawId, filePath, message }));
 };
 
 export const inspectLegacyAppUserDemandPhysicalAbsence = (

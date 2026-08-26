@@ -68,8 +68,7 @@ assert.ok(findingIds({
 
 console.log("capability-governance-acceptance-ok");
 emitQualityProofObservation({
-  lawId: "LAW-CAPABILITY-GOVERNANCE-001-V2",
-  evidenceMode: "exam.golden",
+  lawId: "LAW-CAPABILITY-GOVERNANCE-001-V2", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","summary"],
   locator: "acceptance:capability-governance:mutant-matrix",
   observedValue: "seven capability-governance clause mutants rejected by the capability-governance inspector",
 });

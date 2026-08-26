@@ -1,6 +1,7 @@
 export type CodePurityInventoryItem = {
   checkId: string;
   declarationKind?: string | undefined;
+  evidenceMode: string;
   filePath: string;
   lawId: string;
   owner: string;
@@ -15,6 +16,7 @@ export type CodePurityInventoryItem = {
 export const buildInventoryEvidence = (item: CodePurityInventoryItem): string =>
   JSON.stringify({
     declarationKind: item.declarationKind,
+    evidenceMode: item.evidenceMode,
     owner: item.owner,
     remediation: item.remediation,
     role: item.role,

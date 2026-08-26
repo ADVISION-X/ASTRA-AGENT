@@ -70,7 +70,7 @@ const requiredSource = (
 ): SourceFile | null => {
   const source = context.project.getSourceFile(resolveFromRepo(repoPath));
   if (source) return source;
-  findings.push(createFinding({
+  findings.push(createFinding({ evidenceMode: "static.ast",
     lawId,
     filePath: repoPath,
     checkId: "ai-input-gateway/source-present",
@@ -86,7 +86,7 @@ const push = (
   checkId: string,
   message: string,
 ): void => {
-  findings.push(createFinding({ lawId, filePath, checkId, message }));
+  findings.push(createFinding({ evidenceMode: "static.ast", lawId, filePath, checkId, message }));
 };
 
 type SchedulerSources = {

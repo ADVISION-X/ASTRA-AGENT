@@ -21,7 +21,7 @@ type AttachmentProofSources = Readonly<{
   adapterContract: SourceFile;
   child: SourceFile;
   state: SourceFile;
-  submittedState: SourceFile;
+  submit: SourceFile;
 }>;
 
 const requireAttachmentRoutingSources = (
@@ -45,9 +45,9 @@ const requireAttachmentProofSources = (
   const child = requireSourceFile(context, findings, lawId, P.attachment.childPath);
   const adapterContract = requireSourceFile(context, findings, lawId, P.attachment.adapterContractPath);
   const state = requireSourceFile(context, findings, lawId, P.attachment.attachmentStatePath);
-  const submittedState = requireSourceFile(context, findings, lawId, P.attachment.submittedAttachmentStatePath);
-  return child && adapterContract && state && submittedState
-    ? { child, adapterContract, state, submittedState }
+  const submit = requireSourceFile(context, findings, lawId, P.runtime.submitPath);
+  return child && adapterContract && state && submit
+    ? { child, adapterContract, state, submit }
     : null;
 };
 
@@ -91,17 +91,19 @@ const inspectAttachmentTerminalProof = (
   findings: Finding[],
   proofLawId: string,
 ): void => {
-  for (const [sourceFile, variableName, filePath] of [
-    [sources.state, "evaluateKnownAttachmentPreflight", P.attachment.attachmentStatePath],
-    [sources.submittedState, "verifyLastUserMessageAttachments", P.attachment.submittedAttachmentStatePath],
-  ] as const) {
-    const initializer = sourceFile.getVariableDeclaration(variableName)?.getInitializer();
-    if (!initializer) {
-      pushFinding(findings, proofLawId, filePath, "ai-input-gateway/attachment-terminal-proof", `${variableName} must exist.`);
-      continue;
-    }
-    const literals = initializer.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralValue());
-    if (literals.some((value) => value.includes("NOT_PRODUCTION_VERIFIED"))) pushFinding(findings, proofLawId, filePath, "ai-input-gateway/attachment-terminal-proof", `${variableName} must implement exact positive and negative terminal evidence instead of an unconditional production rejection.`);
+  const preflight = sources.state.getVariableDeclaration("evaluateKnownAttachmentPreflight")?.getInitializer();
+  if (!preflight) {
+    pushFinding(findings, proofLawId, P.attachment.attachmentStatePath, "ai-input-gateway/attachment-terminal-proof", "evaluateKnownAttachmentPreflight must exist.");
+  } else if (preflight.getDescendantsOfKind(SyntaxKind.StringLiteral)
+    .some((node) => node.getLiteralValue().includes("NOT_PRODUCTION_VERIFIED"))) {
+    pushFinding(findings, proofLawId, P.attachment.attachmentStatePath, "ai-input-gateway/attachment-terminal-proof", "Attachment preflight must implement exact positive and negative terminal evidence.");
+  }
+  const submitIds = identifiers(sources.submit);
+  const submitStrings = stringLiterals(sources.submit);
+  if (!submitIds.has("submitPromptViaClipboard")
+    || !submitIds.has("inputRefs")
+    || ![...submitStrings].some((value) => value.includes("submitted ChatGPT attachment binding is not production verified"))) {
+    pushFinding(findings, proofLawId, P.runtime.submitPath, "ai-input-gateway/attachment-terminal-proof", "Submission must fail closed until exact submitted-turn attachment binding has a live production consumer.");
   }
 };
 

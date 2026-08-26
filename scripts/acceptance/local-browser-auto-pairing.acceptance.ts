@@ -9,11 +9,22 @@ import {
   readWorkbenchPairingState,
   type WorkbenchPairingState,
 } from "../../src/lib/browser/chrome-extension/pairing-auto-bootstrap.js";
+import { ExtensionTargetAuthority } from "../../src/lib/browser/chrome-extension/extension-target-authority.js";
 import type { ExtensionChromeApi } from "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
+import { GPT_WEB_CHAT_START_URL, requireGptWebChatPolicyForUrl } from "../../src/lib/browser/exact-target/browser-site-policy-registry.js";
+import { BrowserAuthorityBroker } from "../../src/lib/browser/infrastructure/browser-authority-broker.js";
+import { BrowserAuthorityIssuer } from "../../src/lib/browser/infrastructure/browser-authority-issuer.js";
 
 const secret = "a".repeat(64);
 const currentBuild = "build-00000000-0000-4000-8000-000000000001";
 const nextBuild = "build-00000000-0000-4000-8000-000000000002";
+
+assert.equal(GPT_WEB_CHAT_START_URL, "https://chatgpt.com/");
+assert.equal(requireGptWebChatPolicyForUrl("https://chatgpt.com/c/exact").siteId, "gpt-web-chat");
+for (const rejectedUrl of ["https://www.amazon.com/", "https://evil.chatgpt.com/", "http://chatgpt.com/"]) {
+  assert.throws(() => requireGptWebChatPolicyForUrl(rejectedUrl), /BROWSER_ORIGIN_REJECTED/u,
+    `automatic target policy must reject ${rejectedUrl}`);
+}
 
 let observedInput = "";
 let observedInit: RequestInit | undefined;
@@ -72,11 +83,13 @@ const chromeApi: ExtensionChromeApi = {
   debugger: {
     attach: async () => undefined,
     detach: async () => undefined,
+    getTargets: async () => [],
     sendCommand: async () => ({}),
     onDetach: { addListener: () => undefined },
+    onEvent: { addListener: () => undefined },
   },
   tabs: {
-    query: async () => [],
+    create: async () => ({ id: 1 }),
     onUpdated: { addListener: (listener) => { listeners.tabUpdated = listener; } },
   },
   alarms: {
@@ -159,4 +172,86 @@ const rejectedBootstrap = new PairingAutoBootstrap(
 await rejectedBootstrap.attempt();
 assert.equal(rejectedBootstrap.currentFailureCode(), "BROWSER_PAIRING_ORIGIN_REJECTED");
 
-process.stdout.write("LOCAL_BROWSER_AUTO_PAIRING_AND_RELOAD_ACCEPTANCE_PASS\n");
+type DebugTarget = Awaited<ReturnType<ExtensionChromeApi["debugger"]["getTargets"]>>[number];
+let debugTargets: DebugTarget[] = [{
+  attached: false, id: "debug-target-1", tabId: 1, title: "ChatGPT", type: "page", url: "https://chatgpt.com/",
+}];
+let createdTab: Readonly<{ active: false; url: string }> | null = null;
+let debuggerEvent: Parameters<ExtensionChromeApi["debugger"]["onEvent"]["addListener"]>[0] | null = null;
+const attachedTabs: number[] = [];
+const targetFrames: Array<Readonly<{ kind: "TARGET_CLAIM" | "TARGET_REVOKE"; body: Record<string, unknown> }>> = [];
+const targetChromeApi: ExtensionChromeApi = {
+  runtime: chromeApi.runtime,
+  debugger: {
+    attach: async ({ tabId }) => { attachedTabs.push(tabId); },
+    detach: async () => undefined,
+    getTargets: async () => debugTargets,
+    sendCommand: async ({ tabId }, method) => method === "Page.getFrameTree"
+      ? { frameTree: { frame: { loaderId: `loader-${tabId}`, url: "https://chatgpt.com/" } } }
+      : {},
+    onDetach: { addListener: () => undefined },
+    onEvent: { addListener: (listener) => { debuggerEvent = listener; } },
+  },
+  tabs: {
+    create: async (input) => {
+      createdTab = input;
+      debugTargets = [{ attached: false, id: "debug-target-3", tabId: 3, title: "ChatGPT", type: "page", url: input.url }];
+      return { id: 3 };
+    },
+    onUpdated: { addListener: () => undefined },
+  },
+  alarms: chromeApi.alarms,
+};
+const targetAuthority = new ExtensionTargetAuthority(
+  targetChromeApi,
+  async (kind, body) => { targetFrames.push({ kind, body }); },
+  () => undefined,
+);
+targetAuthority.start();
+await targetAuthority.claimPreauthorizedChatGptTarget();
+assert.deepEqual(attachedTabs, [1]);
+assert.equal(targetFrames[0]?.kind, "TARGET_CLAIM");
+assert.equal(targetFrames[0]?.body.url, "https://chatgpt.com/");
+await targetAuthority.releaseActiveTarget(false);
+
+debugTargets = [
+  { attached: false, id: "debug-target-1", tabId: 1, title: "ChatGPT", type: "page", url: "https://chatgpt.com/" },
+  { attached: false, id: "debug-target-2", tabId: 2, title: "ChatGPT", type: "page", url: "https://chatgpt.com/c/second" },
+];
+await assert.rejects(targetAuthority.claimPreauthorizedChatGptTarget(), /BROWSER_TARGET_INVALID/u,
+  "multiple exact ChatGPT targets must fail closed without guessing");
+
+debugTargets = [{ attached: true, id: "debug-target-1", tabId: 1, title: "ChatGPT", type: "page", url: "https://chatgpt.com/" }];
+await assert.rejects(targetAuthority.claimPreauthorizedChatGptTarget(), /BROWSER_DEVTOOLS_CONFLICT/u,
+  "an already attached exact target must not be stolen");
+
+debugTargets = [];
+await targetAuthority.claimPreauthorizedChatGptTarget();
+assert.deepEqual(createdTab, { active: false, url: "https://chatgpt.com/" },
+  "zero exact targets must create one inactive fixed ChatGPT start URL");
+assert.equal(attachedTabs.at(-1), 3);
+assert.ok(debuggerEvent, "the exact target owner must observe main-frame navigation");
+
+const issuer = new BrowserAuthorityIssuer();
+Reflect.set(issuer, "slot", { kind: "PRESENT", authority: { authorityEpoch: 7 } });
+const broker = new BrowserAuthorityBroker(
+  issuer,
+  () => undefined,
+  () => { throw new Error("target lease factory is outside this claim-only acceptance"); },
+  {
+    registerArtifact: async () => undefined,
+    resolveArtifact: async () => { throw new Error("artifact resolution is outside this claim-only acceptance"); },
+  },
+);
+const initialClaim = {
+  authorityEpoch: 7, targetRef: "target-1", documentRef: "document-1", navigationEpoch: 0,
+  url: "https://chatgpt.com/", title: "ChatGPT",
+};
+broker.registerOperatorTargetClaim(initialClaim);
+broker.registerOperatorTargetClaim({ ...initialClaim, documentRef: "document-2", navigationEpoch: 1 });
+assert.throws(() => broker.registerOperatorTargetClaim({ ...initialClaim, targetRef: "target-2" }), /BROWSER_TARGET_INVALID/u,
+  "an authenticated connection must not replace its claimed target without revoke");
+assert.throws(() => broker.registerOperatorTargetClaim({ ...initialClaim, documentRef: "document-4", navigationEpoch: 3 }), /BROWSER_TARGET_INVALID/u,
+  "Document claims must advance by exactly one navigation epoch");
+
+process.stdout.write("LOCAL_BROWSER_AUTO_PAIRING_AND_EXACT_CHATGPT_CLAIM_ACCEPTANCE_PASS\n");

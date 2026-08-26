@@ -7,7 +7,6 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
-
 import { BrowserAuthorityWebSocket, parseBrowserAuthorityTargetClaim } from "../../src/lib/browser/transport/browser-authority-websocket.js";
 import { canonicalizeBrowserAuthorityValue, type BrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
 import { decryptBrowserAuthorityFrame, encryptBrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-session-crypto.js";
@@ -19,7 +18,6 @@ import { BROWSER_PROTOCOL_REVISION } from "../../src/lib/browser/protocol/genera
 import { runtimeInitializationDisposition } from "../../src/lib/local-runtime/workbench-status.js";
 import { verifyBrowserSupervisorRestartContract } from "./local-browser-supervisor-restart.acceptance-support.js";
 import { verifyBrowserArtifactAndLockContracts } from "./local-browser-artifact-and-lock.acceptance-support.js";
-
 for (const path of ["src/lib/browser/chrome-extension/external-port-actor.ts", "src/lib/browser/transport/workbench-extension-channel.ts", "src/lib/browser/release/cws-extension-release-identity.ts", "src/lib/browser/release/browser-release-security-policy.schema.json"]) {
   assert.equal(existsSync(resolve(path)), false, `retired transport must be physically absent: ${path}`);
 }
@@ -48,7 +46,7 @@ assert.deepEqual(
   },
   "journal integrity failure must expose one safe Owner-specific recovery action without auto-repair",
 );
-const [workspace, permit, journal, commandActor, targetLeaseManager, extensionSocket, extensionHeartbeat, authoritySocket, supervisor, webSocketUpgrade, frameCodec, protocolSchema, generatedProtocol, commandDiagnostic] = await Promise.all([
+const [workspace, permit, journal, commandActor, targetLeaseManager, extensionSocket, extensionHeartbeat, authoritySocket, supervisor, webSocketUpgrade, frameCodec, protocolSchema, generatedProtocol, commandDiagnostic, actorDiagnostics] = await Promise.all([
   readFile("src/lib/browser/exact-target/browser-session-workspace.ts", "utf8"),
   readFile("src/lib/browser/transport/command-permit.ts", "utf8"),
   readFile("src/lib/browser/exact-target/browser-proof-journal.ts", "utf8"),
@@ -63,9 +61,16 @@ const [workspace, permit, journal, commandActor, targetLeaseManager, extensionSo
   readFile("src/lib/browser/protocol/browser-protocol.schema.json", "utf8"),
   readFile("src/lib/browser/protocol/generated/browser-protocol.generated.ts", "utf8"),
   readFile("src/lib/browser/chrome-extension/websocket-command-diagnostic.ts", "utf8"),
+  readFile("src/lib/browser/chrome-extension/websocket-actor-diagnostics.ts", "utf8"),
 ]);
-const extensionDiagnosticSources = `${extensionSocket}\n${commandDiagnostic}`;
-const targetAuthority = await readFile("src/lib/browser/chrome-extension/extension-target-authority.ts", "utf8");
+const extensionDiagnosticSources = `${extensionSocket}\n${commandDiagnostic}\n${actorDiagnostics}`;
+const [targetAuthority, authorityBroker, pairingPage, extensionManifestText] = await Promise.all([
+  readFile("src/lib/browser/chrome-extension/extension-target-authority.ts", "utf8"),
+  readFile("src/lib/browser/infrastructure/browser-authority-broker.ts", "utf8"),
+  readFile("src/lib/browser/chrome-extension/pairing.html", "utf8"),
+  readFile("src/lib/browser/chrome-extension/manifest.json", "utf8"),
+]);
+const extensionManifest = JSON.parse(extensionManifestText) as { permissions?: unknown };
 assert.match(workspace, /SessionWorkspaceBindingV6/u);
 assert.match(workspace, /connectionGeneration/u);
 assert.match(workspace, /belongsTo/u);
@@ -91,11 +96,11 @@ assert.match(
 );
 assert.match(extensionSocket, /return Promise\.resolve\(\);/u, "repeating pair after authentication must be an idempotent no-op");
 assert.match(extensionSocket, /releaseBuildId: __GRASSEYE_RELEASE_BUILD_ID__/u, "the service worker must bind its actually loaded build identity into pairing");
-assert.match(extensionSocket, /failedFrameKind: frame\?\.kind \?\? "UNDECODED"/u, "the extension must report the failed authenticated frame kind");
-assert.match(extensionSocket, /failedFrameSequence: frame\?\.sequence \?\? 0/u, "the extension must report the failed authenticated frame sequence");
+assert.match(extensionDiagnosticSources, /failedFrameKind: frame\?\.kind \?\? "UNDECODED"/u, "the extension must report the failed authenticated frame kind");
+assert.match(extensionDiagnosticSources, /failedFrameSequence: frame\?\.sequence \?\? 0/u, "the extension must report the failed authenticated frame sequence");
 assert.match(extensionSocket, /unhandledrejection/u, "the extension worker must capture unhandled promise failures for the Workbench terminal");
 assert.match(extensionSocket, /worker-error/u, "the extension worker must capture global runtime failures for the Workbench terminal");
-assert.match(extensionSocket, /diagnosticSource: "extension-runtime"/u, "global extension failures must use the authenticated diagnostic path");
+assert.match(extensionDiagnosticSources, /diagnosticSource: "extension-runtime"/u, "global extension failures must use the authenticated diagnostic path");
 assert.match(extensionSocket, /sendEncrypted\(this\.socket, "DIAGNOSTIC", body\)/u, "ordinary extension failures must be logged without revoking Browser Authority");
 assert.doesNotMatch(extensionSocket, /sendEncrypted\(this\.socket, "DIAGNOSTIC", body\)[\s\S]{0,500}this\.clearPairing\(\)/u, "ordinary extension diagnostics must not clear a successful pairing");
 assert.match(extensionHeartbeat, /void this\.sendLivenessPulse\(socket\)/u, "authentication must immediately reset the MV3 worker idle timer before the first interval");
@@ -124,7 +129,14 @@ assert.match(extensionSocket, /\{ requestSequence, permitSequence, replyChannelT
 assert.match(authoritySocket, /permitSequence !== reply\.permitSequence/u, "the Workbench must validate the permit sequence independently from transport request correlation");
 assert.match(commandActor, /reply\.permitSequence !== permit\.sequence/u, "the command actor must compare only the command permit sequence, never the WebSocket frame sequence");
 assert.doesNotMatch(commandActor, /reply\.transportSequence !== permit\.sequence/u, "transport frame ordering must never be compared with target-lease command ordering");
-assert.match(targetAuthority, /await this\.send\("TARGET_CLAIM", this\.targets\.describeOperatorClaim\(next,/u, "navigation must publish the new exact Document before returning its terminal reply");
+assert.match(targetAuthority, /await this\.publishMainFrameNavigation/u, "navigation must publish the new exact Document before returning its terminal reply");
+assert.match(targetAuthority, /navigationPublication/u, "a main-frame event and command navigation must share one acknowledged Document publication");
+assert.match(extensionSocket, /await this\.targetAuthority\.claimPreauthorizedChatGptTarget\(\)/u, "READY must trigger the fixed extension target owner");
+assert.doesNotMatch(extensionSocket, /GRASSEYE_CLAIM_ACTIVE_TARGET|claimActiveTarget/u, "the manual active-tab claim path must be physically absent");
+assert.deepEqual(extensionManifest.permissions, ["debugger", "alarms"], "the fixed extension must retain only its exact automatic-claim permissions");
+assert.doesNotMatch(pairingPage, /claim-active-target|认领当前标签页|activeTab/u, "the popup must not restore the retired manual target-claim control");
+assert.match(supervisor, /requireGptWebChatPolicyForUrl\(input\.url\)/u, "the server must revalidate the exact ChatGPT policy before Workspace establishment");
+assert.match(authorityBroker, /current\.targetRef !== claim\.targetRef/u, "an existing claim must reject silent target replacement");
 assert.match(targetLeaseManager, /const currentTarget = this\.resolveCurrentTarget\(\)/u, "every queued browser command must refresh the exact Document from the sole Broker before permit issuance");
 assert.match(targetLeaseManager, /state\.current = currentTarget/u, "a lawful advanced Document must replace the execution lease's stale cached Document");
 assert.match(supervisor, /onRevoked: \(reasonCode, refs\)/u, "the supervisor must forward extension diagnostic refs into the runtime log spine");
@@ -460,7 +472,6 @@ try {
   for (let index = 1; index < restarted.length; index += 1) {
     assert.equal(restarted[index]!.previousEntryHash, restarted[index - 1]!.entryHash);
   }
-
   await secondOwner.release();
   for (let restart = 0; restart < 100; restart += 1) {
     const owner = new BrowserOwnerLock(join(journalFixture, "browser", "owner.lock"));
@@ -483,7 +494,6 @@ try {
   await firstOwner.release().catch(() => undefined);
   await rm(journalFixture, { recursive: true, force: true });
 }
-
 await verifyBrowserSupervisorRestartContract();
 console.log("LOCAL_BROWSER_TERMINAL_CONTRACT_ACCEPTANCE_PASS");
-emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", evidenceMode: "exam.golden", locator: "acceptance:browser-terminal:atomic-journal", observedValue: "single mutation terminal contract and journal ownership verified" });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:2","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"], locator: "acceptance:browser-terminal:atomic-journal", observedValue: "single mutation terminal contract and journal ownership verified" });

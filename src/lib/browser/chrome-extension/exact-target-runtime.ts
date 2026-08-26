@@ -5,10 +5,7 @@ export type ExtensionExactTarget = Readonly<{
   navigationEpoch: number;
 }>;
 
-/**
- * This is emitted only after the operator presses the extension action on an
- * already-open HTTPS tab.  The controller never receives a Chrome tab id.
- */
+/** The fixed extension emits this only for its preauthorized exact target policy. */
 export type ExtensionOperatorTargetClaim = Readonly<{
   targetRef: string;
   documentRef: string;
@@ -21,7 +18,7 @@ export const assertExactTarget = (target: ExtensionExactTarget): void => {
   if (!target.targetRef || !target.documentRef || !Number.isInteger(target.tabId)) throw new Error("BROWSER_TARGET_INVALID");
 };
 
-/** The operator action is the sole source of a tab claim; no page-order fallback exists. */
+/** The fixed extension policy is the sole source of a tab claim; no page-order fallback exists. */
 export class ExtensionExactTargetRegistry {
   private readonly targets = new Map<string, ExtensionExactTarget>();
 

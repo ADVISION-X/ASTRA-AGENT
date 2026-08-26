@@ -7,7 +7,7 @@ import type { InspectorContext, SessionInspectorOutput } from "../../shared/insp
 import { createAuditProject } from "../../shared/project.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { astIdentifierName } from "../../shared/ast-node-identity.js";
-import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
 const criticalRuntimeFiles = [
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts",
@@ -118,7 +118,7 @@ const inspectDomainEvaluation = async (
     await inspectXuanxueLocalizationContract(context.project);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    findings.push(createFinding({
+    findings.push(createFinding({ evidenceMode: "static.ast",
       lawId,
       clauseId: "localization-contract-requirement",
       checkId: "xuanxue-localization-contract/contract-shape",
@@ -138,11 +138,10 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const evaluation = await inspectDomainEvaluation(context);
   const lawId = "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V5";
   const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
-  const passed = findings.length === 0;
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [{ lawId, assertions: [
-      { clauses: staticClauses(), evidenceMode: "static.ast", passed, refs: staticEvidenceRefs(context, lawId, "static.ast") },
+      { clauses: staticClauses(0), evidenceMode: "static.ast", passed: producerModePassed(findings, "static.ast"), refs: staticEvidenceRefs(context, lawId, "static.ast") },
     ], findings }], inspectedFiles: evaluation.inspectedFiles,
   });
 };

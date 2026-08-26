@@ -1,24 +1,20 @@
-name: quality-ready
+name: Quality READY
 
 on:
   pull_request:
   push:
     branches: [main]
-  workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: quality-ready-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  ready:
-    name: canonical-ready
+  quality-ready:
+    name: quality-ready
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: governance-quality
+    env:
+      GRASSEYE_QUALITY_OUTPUT_DIR: ${{ runner.temp }}/grasseye-quality
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -28,20 +24,5 @@ jobs:
         with:
           node-version: 22.23.2
           cache: npm
-      - run: npm ci --ignore-scripts
-      - name: Run the unique READY verdict
-        env:
-          CI: "true"
-          GOVERNANCE_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-          GOVERNANCE_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-          GOVERNANCE_LAW_AMENDMENT_AUTHORIZED: ${{ vars.GOVERNANCE_LAW_AMENDMENT_AUTHORIZED }}
-          GOVERNANCE_SOURCE_SPEC_AMENDMENT_AUTHORIZED: ${{ vars.GOVERNANCE_SOURCE_SPEC_AMENDMENT_AUTHORIZED }}
-          GRASSEYE_QUALITY_OUTPUT_DIR: ${{ runner.temp }}
-        run: npm run quality:check -- READY
-      - name: Upload the unique quality report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: law-quality-report
-          path: ${{ runner.temp }}/law-quality.report.json
-          if-no-files-found: ignore
+      - run: npm ci
+      - run: npm run quality:check -- READY

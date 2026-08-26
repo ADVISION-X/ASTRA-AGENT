@@ -8,7 +8,7 @@ import {
   type SessionInspectorOutput,
 } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
-import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import {
   cloudContractPath,
   cloudCredentialPath,
@@ -50,7 +50,7 @@ const finding = (
   checkId: string,
   filePath: string,
   message: string,
-): InspectorFinding => createFinding({
+): InspectorFinding => createFinding({ evidenceMode: "static.ast",
   lawId,
   clauseId: "apex-xuanxue-001-v6-session-bound-cloud-pull",
   checkId,
@@ -387,12 +387,11 @@ export const inspectDomain = async (
   const evaluation = await inspectDomainEvaluation(context);
   const lawId = "LAW-XUANXUE-AI-PRODUCTION-001-V11";
   const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
-  const passed = findings.length === 0;
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [{ lawId, assertions: [
-      { clauses: staticClauses(), evidenceMode: "static.ast", passed, refs: staticEvidenceRefs(context, lawId, "static.ast") },
-      { clauses: staticClauses(), evidenceMode: "static.contract", passed, refs: staticEvidenceRefs(context, lawId, "static.contract") },
+      { clauses: staticClauses(0), evidenceMode: "static.ast", passed: producerModePassed(findings, "static.ast"), refs: staticEvidenceRefs(context, lawId, "static.ast") },
+      { clauses: staticClauses(0), evidenceMode: "static.contract", passed: producerModePassed(findings, "static.contract"), refs: staticEvidenceRefs(context, lawId, "static.contract") },
     ], findings }], inspectedFiles: evaluation.inspectedFiles,
   });
 };

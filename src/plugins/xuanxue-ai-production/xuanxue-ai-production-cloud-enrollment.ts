@@ -11,7 +11,8 @@ import {
   xuanxueAiProductionCloudCredentialPath,
 } from "./xuanxue-ai-production-cloud-credential.js";
 
-const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u);
+const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u)
+  .transform((value): `sha256:${string}` => value as `sha256:${string}`);
 const EnrollmentEnvelopeSchema = z.object({
   ok: z.boolean(),
   data: z.object({

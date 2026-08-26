@@ -2,6 +2,7 @@ import type { Project } from "ts-morph";
 
 export type InspectorFinding = {
   checkId: string;
+  evidenceMode: string;
   lawId: string;
   clauseId: string;
   message: string;
@@ -22,7 +23,7 @@ export type InspectorEvaluation = {
 export type InspectorLawRequirement = {
   lawId: string;
   forbiddenCount: number;
-  clausesByMode: Record<string, string[]>;
+  requiredStaticModes: string[];
   targetPaths: string[];
   targetSet: { queryRef: string; count: number };
 };

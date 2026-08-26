@@ -1,4 +1,12 @@
 export type ExtensionDebuggee = Readonly<{ tabId: number }>;
+export type ExtensionDebugTarget = Readonly<{
+  attached: boolean;
+  id: string;
+  tabId?: number;
+  title: string;
+  type: "page" | "background_page" | "worker" | "other";
+  url: string;
+}>;
 
 export type ExtensionChromeApi = Readonly<{
   runtime: Readonly<{
@@ -18,11 +26,15 @@ export type ExtensionChromeApi = Readonly<{
   debugger: Readonly<{
     attach(target: ExtensionDebuggee, version: string): Promise<void>;
     detach(target: ExtensionDebuggee): Promise<void>;
+    getTargets(): Promise<readonly ExtensionDebugTarget[]>;
     sendCommand(target: ExtensionDebuggee, method: string, parameters?: Readonly<Record<string, unknown>>): Promise<unknown>;
     onDetach: Readonly<{ addListener(listener: (target: ExtensionDebuggee, reason: string) => void): void }>;
+    onEvent: Readonly<{
+      addListener(listener: (target: ExtensionDebuggee, method: string, parameters?: Readonly<Record<string, unknown>>) => void): void;
+    }>;
   }>;
   tabs: Readonly<{
-    query(queryInfo: Readonly<{ active: boolean; currentWindow: boolean }>): Promise<readonly Readonly<{ id?: number; url?: string; title?: string }>[]>;
+    create(createProperties: Readonly<{ active: false; url: string }>): Promise<Readonly<{ id?: number }>>;
     onUpdated: Readonly<{
       addListener(listener: (
         tabId: number,
@@ -68,11 +80,13 @@ const isDebuggerApi = (value: unknown): boolean =>
   isRecord(value)
   && typeof value.attach === "function"
   && typeof value.detach === "function"
+  && typeof value.getTargets === "function"
   && typeof value.sendCommand === "function"
-  && hasListener(value.onDetach);
+  && hasListener(value.onDetach)
+  && hasListener(value.onEvent);
 
 const isTabsApi = (value: unknown): boolean =>
-  isRecord(value) && typeof value.query === "function" && hasListener(value.onUpdated);
+  isRecord(value) && typeof value.create === "function" && hasListener(value.onUpdated);
 
 const isAlarmsApi = (value: unknown): boolean =>
   isRecord(value) && typeof value.create === "function" && hasListener(value.onAlarm);

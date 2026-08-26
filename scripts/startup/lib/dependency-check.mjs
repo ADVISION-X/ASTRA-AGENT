@@ -147,14 +147,6 @@ async function collectNativeDependencyFailures({ rootDir, paths, missingPackageN
   return failures;
 }
 
-export function getNativeDependenciesNeedingRebuild(nativeDependencyFailures = []) {
-  return [...new Set(
-    nativeDependencyFailures
-      .filter((failure) => failure.kind === "native_runtime_unloadable")
-      .map((failure) => failure.packageName),
-  )];
-}
-
 async function collectDependencyReasons(packageMetadata, paths) {
   const { reasons: metadataReasons, nodeModulesExists } = await collectMetadataReasons(paths);
   const missingPackages = await findMissingPackages(packageMetadata, paths.nodeModulesPath, nodeModulesExists);
@@ -287,8 +279,4 @@ export async function assessDependencyState({
 export async function installDependencies({ rootDir, npmCommand = getDefaultNpmCommand(), updateRequested = false }) {
   const args = updateRequested ? ["update"] : ["install"];
   await runNpmCommand("install", { rootDir, npmCommand, args });
-}
-
-export async function rebuildNativeDependency({ rootDir, npmCommand = getDefaultNpmCommand(), packageName }) {
-  await runNpmCommand("rebuild", { rootDir, npmCommand, args: ["rebuild", packageName] });
 }

@@ -86,5 +86,5 @@ assert.equal(response.webChatUrl, "https://chatgpt.com/c/provider-boundary");
 runAiInputGatewayAtomicInspectorAttacks();
 
 process.stdout.write("[ACCEPTANCE] AI Input Gateway provider boundary PASS\n");
-emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-001-V1", evidenceMode: "exam.golden", locator: "acceptance:provider-boundary:injected-browser", observedValue: "provider uses injected governed BrowserTargetLease" });
-emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-006-V2", evidenceMode: "exam.golden", locator: "acceptance:provider-boundary:bounded-judge", observedValue: "caller owns browser authority and provider returns exact response" });
+emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-001-V1", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","summary"], locator: "acceptance:provider-boundary:injected-browser", observedValue: "provider uses injected governed BrowserTargetLease" });
+emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-006-V2", evidenceMode: "exam.golden", clauses: ["forbidden:0","summary"], locator: "acceptance:provider-boundary:bounded-judge", observedValue: "caller owns browser authority and provider returns exact response" });

@@ -6,11 +6,11 @@ import { dirname, resolve } from "node:path";
 import { buildRegistry, diffPaths, gitCommit, providerDomainForDependencySpec, REPORT, type Law, type Level, type Registry } from "../governance-authority.js";
 import { canonicalBytes, exactKeys, rejectDuplicateJsonKeys } from "../governance-json.js";
 import { ROOT, fail, repositoryPaths, sha } from "../governance-runtime.js";
-import { buildQualityReport, clausesForEvidenceMode, requiredModes, type LawExecutionResult, type QualityAssertion, type QualityFinding, type QualityParticipant } from "./quality-contract.js";
+import { buildQualityReport, type LawExecutionResult, type QualityAssertion, type QualityFinding, type QualityParticipant } from "./quality-contract.js";
 import { runInspectionWorker } from "./quality-inspector-worker.js";
 import type { InspectorFinding, InspectorLawResult, SessionInspectorOutput } from "./inspector-contracts.js";
 import { parseQualityProofObservations, type QualityProofObservation, type QualityProofRequest } from "./proof-observation.js";
-import { assertProofModeDenominator, dynamicScriptFor, examScriptFor, observationMatchesRoute } from "./quality-routes.js";
+import { dynamicScriptFor, examScriptFor } from "./quality-routes.js";
 import { validateProviderContractSpec, type ProviderContract } from "./provider-contract-authority.js";
 
 export { dynamicScriptFor } from "./quality-routes.js";
@@ -58,14 +58,29 @@ const consumerDependencies = (): Dependency[] => repositoryPaths()
   });
 
 const participantPath = (repo: string): string => {
-  const configured = process.env.GOVERNANCE_PROVIDER_REPOSITORIES?.trim();
-  if (!configured) return fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:repository-map`);
+  const configured = process.env.GRASSEYE_PROVIDER_REPOSITORIES?.trim();
+  if (!configured) return fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", repo);
   let paths: Record<string, unknown>;
-  try { paths = JSON.parse(configured) as Record<string, unknown>; }
-  catch { return fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:repository-map-json`); }
-  const target = paths[repo];
-  if (typeof target !== "string" || !target.trim()) return fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:repository-map-entry`);
-  return resolve(target);
+  try {
+    rejectDuplicateJsonKeys(configured, "GRASSEYE_PROVIDER_REPOSITORIES");
+    const parsed = JSON.parse(configured) as unknown;
+    if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") throw new Error("mapping required");
+    paths = parsed as Record<string, unknown>;
+  } catch {
+    return fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:invalid-provider-map`);
+  }
+  const configuredPath = paths[repo];
+  if (typeof configuredPath !== "string" || !configuredPath.trim()) {
+    return fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", repo);
+  }
+  const providerPath = resolve(configuredPath);
+  try {
+    if (!existsSync(providerPath) || !lstatSync(providerPath).isDirectory()) throw new Error("directory required");
+    execFileSync("git", ["rev-parse", "--is-inside-work-tree"], { cwd: providerPath, stdio: "ignore" });
+  } catch {
+    return fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:invalid-git-repository`);
+  }
+  return providerPath;
 };
 
 const gitAt = (path: string, args: string[]): string => execFileSync("git", args, {
@@ -179,7 +194,6 @@ const runStaticDomain = (
   laws: Law[],
   targetPathsByLaw: ReadonlyMap<string, string[]>,
   runDirectory: string,
-  level: "READY" | "RELEASE",
 ): LawExecutionResult[] => {
   const paths = ordered(laws.flatMap((law) => targetPathsByLaw.get(law.lawId) ?? []));
   const sealedRoot = copyTargets(paths, runDirectory, domain);
@@ -191,8 +205,7 @@ const runStaticDomain = (
       return {
         lawId: law.lawId,
         forbiddenCount: law.forbidden.length,
-        clausesByMode: Object.fromEntries(law.evidenceModes.filter((mode) => mode.startsWith("static."))
-          .map((mode) => [mode, clausesForEvidenceMode(law, requiredModes(law, level), mode)])),
+        requiredStaticModes: law.evidenceModes.filter((mode) => mode.startsWith("static.")),
         targetPaths: lawPaths,
         targetSet: targetSet(law.lawId, lawPaths),
       };
@@ -264,7 +277,7 @@ const proofResults = (input: ProofResultInput): Map<string, ProofResult> => {
         ?? fail("LAW_EVIDENCE_MISSING", `${law.lawId}:${mode}:native-receipt`)}`;
     const current = results.get(law.lawId) ?? { assertions: [], findings: [] };
     current.assertions.push({
-      clauses: clausesForEvidenceMode(law, requiredModes(law, input.kind === "exam" ? "READY" : "RELEASE"), mode),
+      clauses: [...observation.clauses],
       evidenceMode: mode, passed: input.executionPassed, refs: [ref],
     });
     results.set(law.lawId, current);
@@ -318,9 +331,7 @@ const observationAuthenticatesRequest = (
   const receipt = observation.receipt;
   if (!receipt) return false;
   const filePath = locatorFilePath(observation.locator);
-  if (filePath) return objectContainsReceipt(filePath, receipt);
-  return observation.observedValue.includes(`run=${request.proofRunId}`)
-    && observation.observedValue.includes(`candidate=${request.candidate}`);
+  return filePath !== null && objectContainsReceipt(filePath, receipt);
 };
 
 export const bindNativeProofObservations = (
@@ -343,11 +354,9 @@ export const bindNativeProofObservations = (
     if (!observationAuthenticatesRequest(observation, request, kind)) {
       fail("LAW_EVIDENCE_MISSING", `native-receipt-binding:${key.replace("\0", ":")}`);
     }
-    const route = routes.find(({ law, mode }) => `${law.lawId}\0${mode}` === key)!;
-    if (!observationMatchesRoute({
-      kind, script, domain: route.law.capabilityDomain, lawId: observation.lawId,
-      mode: observation.evidenceMode, locator: observation.locator, observedValue: observation.observedValue,
-    })) fail("LAW_EVIDENCE_MISSING", `native-object:${key.replace("\0", ":")}`);
+    if (observation.observedValue.trim().length < 8 || /^(?:fixed|pass|true)$/iu.test(observation.observedValue.trim())) {
+      fail("LAW_EVIDENCE_MISSING", `native-object:${key.replace("\0", ":")}`);
+    }
     if (kind === "dynamic" && !observation.receipt) fail("LAW_EVIDENCE_MISSING", `native-receipt:${key.replace("\0", ":")}`);
     bound.set(key, observation);
   }
@@ -365,6 +374,9 @@ const executeProofCommand = (
   }));
   assertCleanCandidate(candidate, `${script}:before`);
   const timeoutMs = kind === "exam" ? 300_000 : 900_000;
+  const token = sha(`${kind}:${script}`).slice(0, 12);
+  const nativeReceiptDirectory = resolve(runDirectory, `${kind}-${token}-native-receipts`);
+  mkdirSync(nativeReceiptDirectory, { recursive: false, mode: 0o700 });
   const execution = spawnSync("npm", ["run", script], {
     cwd: ROOT,
     encoding: "utf8",
@@ -375,10 +387,10 @@ const executeProofCommand = (
       GOVERNANCE_PROOF_KIND: kind,
       GOVERNANCE_PROOF_RUN_ID: proofRunId,
       GOVERNANCE_PROOF_CANDIDATE: candidate,
+      GOVERNANCE_PROOF_RECEIPT_DIR: nativeReceiptDirectory,
     },
   });
   assertCleanCandidate(candidate, `${script}:after`);
-  const token = sha(`${kind}:${script}`).slice(0, 12);
   const stdoutPath = resolve(runDirectory, `${kind}-${token}.stdout.txt`);
   const stderrPath = resolve(runDirectory, `${kind}-${token}.stderr.txt`);
   writeFileSync(stdoutPath, execution.stdout ?? "", { mode: 0o600 });
@@ -418,7 +430,7 @@ const staticResults = (context: QualityRunContext): Map<string, LawExecutionResu
   const resultsByLaw = new Map<string, LawExecutionResult>();
   for (const domain of context.registry.domains) {
     const domainLaws = context.laws.filter((law) => law.capabilityDomain === domain.capabilityDomain);
-    for (const result of runStaticDomain(domain.capabilityDomain, domainLaws, targets, context.runDirectory, context.reportLevel)) {
+    for (const result of runStaticDomain(domain.capabilityDomain, domainLaws, targets, context.runDirectory)) {
       if (resultsByLaw.has(result.lawId)) fail("LAW_EVIDENCE_DUPLICATE", result.lawId);
       resultsByLaw.set(result.lawId, result);
     }
@@ -450,7 +462,6 @@ const runDynamicProofs = (context: QualityRunContext, resultsByLaw: Map<string, 
 export const runFullQuality = async (level: Level): Promise<{ reportPath: string; outcome: "PASS" | "FAIL" }> => {
   if (level === "CHANGE") fail("ENTRY_CONTRACT_MISMATCH", "full quality requires READY or RELEASE");
   const registry = buildRegistry();
-  assertProofModeDenominator(registry.laws);
   const laws = registry.laws;
   const commit = gitCommit();
   if (diffPaths().length) fail(level === "READY" ? "READY_GIT_COMMIT_REQUIRED" : "RELEASE_GIT_COMMIT_REQUIRED", "dirty worktree");

@@ -24,7 +24,7 @@ export const createInventoryFindingCollector = (): InventoryFindingCollector => 
       keys.add(key);
       inventoryItems.push(item);
       findings.push(
-        createFinding({
+        createFinding({ evidenceMode: item.evidenceMode,
           checkId: item.checkId,
           lawId: item.lawId,
           filePath: item.filePath,

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -15,9 +15,12 @@ import { buildStartupSourceFingerprint } from "../startup/lib/source-fingerprint
 const root = process.cwd();
 const proofRunId = process.env.GOVERNANCE_PROOF_RUN_ID?.trim() ?? "";
 const proofCandidate = process.env.GOVERNANCE_PROOF_CANDIDATE?.trim() ?? "";
+const proofReceiptDir = path.resolve(process.env.GOVERNANCE_PROOF_RECEIPT_DIR?.trim() ?? "");
 assert.equal(process.env.GOVERNANCE_PROOF_KIND, "dynamic");
 assert.match(proofRunId, /^[a-f0-9]{64}$/u);
 assert.match(proofCandidate, /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u);
+assert.ok(proofReceiptDir.startsWith(`${path.resolve(tmpdir())}/`));
+mkdirSync(proofReceiptDir, { recursive: true, mode: 0o700 });
 
 const delay = (milliseconds: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, milliseconds));
 const freePort = async (): Promise<number> => {
@@ -77,6 +80,11 @@ let stdout = "";
 let stderr = "";
 let browser: Browser | undefined;
 let observation: Readonly<{ health: Health; listenerPid: number; browserVersion: string; screenshotSha256: string }> | undefined;
+const browserReceiptPath = path.join(proofReceiptDir, "app-shell.png");
+const shellHealthReceiptPath = path.join(proofReceiptDir, "shell-health.json");
+const degradedHealthReceiptPath = path.join(proofReceiptDir, "degraded-health.json");
+const startupProcessReceiptPath = path.join(proofReceiptDir, "startup-process.json");
+const startupListenerReceiptPath = path.join(proofReceiptDir, "startup-listener.json");
 const launch = spawn(process.execPath, ["--env-file-if-exists=.env.local", "scripts/startup/launch-grasseye.mjs", "--no-open"], {
   cwd: root,
   env: { ...process.env, GRASSEYE_DATA_DIR: dataDir, GRASSEYE_HOST: "127.0.0.1", GRASSEYE_PORT: String(port), GRASSEYE_SKIP_OPEN: "1" },
@@ -106,6 +114,7 @@ try {
   }, { shell: 1, sidebar: 1, workspace: 1, inspector: 1, console: 1, retired: 0 });
   const screenshot = path.join(dataDir, "current-app-shell.png");
   await page.screenshot({ path: screenshot, fullPage: true, type: "png" });
+  copyFileSync(screenshot, browserReceiptPath);
   observation = Object.freeze({ health, listenerPid, browserVersion: browser.version(),
     screenshotSha256: createHash("sha256").update(readFileSync(screenshot)).digest("hex") });
 } finally {
@@ -116,20 +125,29 @@ try {
 }
 
 assert(observation);
+writeFileSync(shellHealthReceiptPath, `${JSON.stringify(observation.health)}\n`, { mode: 0o600 });
+writeFileSync(degradedHealthReceiptPath, `${JSON.stringify({
+  health: observation.health, componentCount: observation.health.components?.length ?? 0,
+})}\n`, { mode: 0o600 });
+writeFileSync(startupProcessReceiptPath, `${JSON.stringify({
+  pid: observation.listenerPid, root, startup: "grasseye:start", listenerAbsentAfterCleanup: listenerPids(port).length === 0,
+})}\n`, { mode: 0o600 });
+writeFileSync(startupListenerReceiptPath, `${JSON.stringify({
+  host: "127.0.0.1", port, root, listenerAbsentAfterCleanup: listenerPids(port).length === 0,
+})}\n`, { mode: 0o600 });
 const runtimeValue = `run=${proofRunId};candidate=${proofCandidate};pid=${observation.listenerPid};health=${observation.health.status}`;
 const browserValue = `${runtimeValue};browser=${observation.browserVersion};screenshotSha256=${observation.screenshotSha256}`;
-const runtimeReceipt = createHash("sha256").update(JSON.stringify(observation.health)).digest("hex");
-const listenerReceipt = createHash("sha256").update(JSON.stringify({ port, pid: observation.listenerPid, root })).digest("hex");
-emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-001-V5", evidenceMode: "dynamic.browser",
-  locator: `${baseUrl}/`, receipt: observation.screenshotSha256, observedValue: browserValue });
-emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-001-V5", evidenceMode: "dynamic.service",
-  locator: `${baseUrl}/api/health`, receipt: runtimeReceipt, observedValue: runtimeValue });
-emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-003-V2", evidenceMode: "dynamic.service",
-  locator: `${baseUrl}/api/health#components`, receipt: runtimeReceipt,
+const nativeReceipt = (receiptPath: string): string => createHash("sha256").update(readFileSync(receiptPath)).digest("hex");
+emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-001-V5", evidenceMode: "dynamic.browser", clauses: ["forbidden:7","summary"],
+  locator: browserReceiptPath, receipt: nativeReceipt(browserReceiptPath), observedValue: browserValue });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-001-V5", evidenceMode: "dynamic.service", clauses: ["forbidden:4","forbidden:8","summary"],
+  locator: shellHealthReceiptPath, receipt: nativeReceipt(shellHealthReceiptPath), observedValue: runtimeValue });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-003-V2", evidenceMode: "dynamic.service", clauses: ["forbidden:0","forbidden:1","summary"],
+  locator: degradedHealthReceiptPath, receipt: nativeReceipt(degradedHealthReceiptPath),
   observedValue: `${runtimeValue};components=${observation.health.components?.length ?? 0}` });
-emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMode: "dynamic.service",
-  locator: `process:${observation.listenerPid}`, receipt: listenerReceipt,
+emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMode: "dynamic.service", clauses: ["forbidden:11","summary"],
+  locator: startupProcessReceiptPath, receipt: nativeReceipt(startupProcessReceiptPath),
   observedValue: `${runtimeValue};startup=grasseye:start;cleanup=verified` });
-emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V3", evidenceMode: "dynamic.service",
-  locator: `tcp://127.0.0.1:${port}`, receipt: listenerReceipt,
+emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V4", evidenceMode: "dynamic.service", clauses: ["forbidden:0","summary"],
+  locator: startupListenerReceiptPath, receipt: nativeReceipt(startupListenerReceiptPath),
   observedValue: `${runtimeValue};listenerOwner=${root};cleanup=verified` });

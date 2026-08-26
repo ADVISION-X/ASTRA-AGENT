@@ -73,6 +73,7 @@ const pushBoundaryFinding = (
   collector.push(
     {
       checkId: input.checkId,
+      evidenceMode: "static.dependency",
       filePath: input.governedFile.repoPath,
       lawId: input.lawId,
       owner: input.governedFile.owner,
@@ -233,11 +234,11 @@ const scanSharedBoundary = (
 };
 
 export const scanOwnerBoundaries = (governedFiles: readonly GovernedFile[], lawIds: readonly string[]): OwnerBoundaryScanResult => {
-  const jobFlowLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V3");
-  const mediatorLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V3");
-  const abilityLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V3");
-  const childAbilityLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V3");
-  const sharedScopeLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V3");
+  const jobFlowLawId = selectLawId(lawIds, "LAW-CODE-PURITY-002-V1");
+  const mediatorLawId = selectLawId(lawIds, "LAW-CODE-PURITY-002-V1");
+  const abilityLawId = selectLawId(lawIds, "LAW-CODE-PURITY-002-V1");
+  const childAbilityLawId = selectLawId(lawIds, "LAW-CODE-PURITY-002-V1");
+  const sharedScopeLawId = selectLawId(lawIds, "LAW-CODE-PURITY-002-V1");
   const collector = createInventoryFindingCollector();
 
   for (const governedFile of governedFiles) {

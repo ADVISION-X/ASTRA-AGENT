@@ -5,7 +5,7 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { repoRoot, resolveFromRepo } from "../../shared/paths.js";
-import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
 type Finding = ReturnType<typeof createFinding>;
 
@@ -58,7 +58,7 @@ const pushFinding = (
   checkId: string,
   message: string,
 ): void => {
-  findings.push(createFinding({ lawId, clauseId, filePath, checkId, message }));
+  findings.push(createFinding({ evidenceMode: "static.ast", lawId, clauseId, filePath, checkId, message }));
 };
 
 const inspectRequiredFiles = (
@@ -205,9 +205,8 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const evaluation = await inspectDomainEvaluation(context);
   const lawResult = (lawId: string) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
-    const passed = findings.length === 0;
-    return { lawId, assertions: ["static.ast", "static.contract"].map((evidenceMode) => ({
-      clauses: staticClauses(), evidenceMode, passed, refs: staticEvidenceRefs(context, lawId, evidenceMode),
+      return { lawId, assertions: ["static.ast", "static.contract"].map((evidenceMode) => ({
+      clauses: staticClauses(0), evidenceMode, passed: producerModePassed(findings, evidenceMode), refs: staticEvidenceRefs(context, lawId, evidenceMode),
     })), findings };
   };
   return validateStaticInspection(context, {

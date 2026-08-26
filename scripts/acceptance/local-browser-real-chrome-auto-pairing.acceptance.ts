@@ -109,13 +109,14 @@ try {
   assert.match(secret ?? "", /^[a-f0-9]{64}$/u);
   const page = chromeContext.pages()[0] ?? await chromeContext.newPage();
   await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
-  await waitFor("automatic Browser Authority", () =>
-    workbench!.handle.readBrowserAuthorityPairingState().authority === "present");
+  await waitFor("automatic Browser Authority and target", () =>
+    workbench!.handle.readBrowserAuthorityPairingState().authority === "present"
+    && readBrowserProofJournal(journalPath).some(({ event }) => event.phase === "TARGET_CLAIMED"));
 
   const events = readBrowserProofJournal(journalPath);
   assert.equal(events.filter(({ event }) => event.phase === "AUTHENTICATED").length, 1);
-  assert.equal(events.some(({ event }) => event.phase === "TARGET_CLAIMED"), false,
-    "automatic pairing must never claim an operator target");
+  assert.equal(events.filter(({ event }) => event.phase === "TARGET_CLAIMED").length, 1,
+    "the fixed extension must automatically claim exactly one preauthorized ChatGPT target");
 
   const chromeVersion = chromeContext.browser()?.version() ?? "unknown";
   process.stdout.write(`${JSON.stringify({
@@ -124,7 +125,8 @@ try {
     extensionId: GRASSEYE_UNPACKED_EXTENSION_ID,
     manualSecretEntry: false,
     authenticated: true,
-    targetClaimed: false,
+    targetClaimed: true,
+    sessionWorkspaceEstablished: true,
   })}\n`);
 } finally {
   await chromeContext?.close().catch(() => undefined);

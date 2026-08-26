@@ -30,7 +30,6 @@ const runtimeCoordination = {
 
 const runtimeConversation = {
   freshConversationControlPath: "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation.ts",
-  submissionCheckpointPath: "src/capabilities/ai-input-gateway/providers/web-chat-submission-checkpoint.ts",
   responseCapturePath: "src/capabilities/ai-input-gateway/providers/web-chat-response-capture.ts",
   answerSupportPath: "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
   resumePath: "src/capabilities/ai-input-gateway/providers/web-chat-resume.ts",
@@ -74,7 +73,6 @@ export const acceptance = {
   recoveryAcceptancePath: "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
   transientPatrolAcceptancePath: "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
   sourceContractAcceptancePath: "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
-  sessionControllerAcceptancePath: "src/capabilities/ai-input-gateway/acceptance/web-chat-session-controller.acceptance-helper.ts",
 } as const;
 
 export const serialBrowserActionPaths = [

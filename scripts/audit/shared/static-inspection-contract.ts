@@ -1,20 +1,19 @@
 import { fail } from "../governance-runtime.js";
 import type {
-  InspectorContext, InspectorLawRequirement, InspectorOutput,
+  InspectorContext, InspectorFinding, InspectorLawRequirement, InspectorOutput,
 } from "./inspector-contracts.js";
-import { inspectTargetObjects } from "./static-target-object-inspector.js";
-
-const evidenceKind: Readonly<Record<string, string>> = {
-  "static.filesystem": "file", "static.text": "text", "static.ast": "ast", "static.types": "ast",
-  "static.contract": "config", "static.dependency": "dependency", "static.config": "config",
-  "static.json": "json", "static.yaml": "yaml", "static.sql": "sql", "static.migration": "file",
-};
+import { collectStaticModeEvidenceRefs, inspectTargetObjects } from "./static-target-object-inspector.js";
 const ordered = (values: readonly string[]): string[] => [...new Set(values)].sort((left, right) =>
   Buffer.compare(Buffer.from(left), Buffer.from(right)));
 
 export const staticClauses = (...forbiddenIndexes: number[]): string[] => ordered([
   ...forbiddenIndexes.map((index) => `forbidden:${index}`), "summary",
 ]);
+
+// The observation producer owns this attribution.  The quality core compares
+// the explicit field and never guesses from check names, paths or messages.
+export const producerModePassed = (findings: readonly InspectorFinding[], evidenceMode: string): boolean =>
+  findings.every((finding) => finding.evidenceMode !== evidenceMode);
 
 const requirementFor = (context: InspectorContext, lawId: string): InspectorLawRequirement =>
   context.lawRequirements.find((requirement) => requirement.lawId === lawId)
@@ -23,8 +22,7 @@ const requirementFor = (context: InspectorContext, lawId: string): InspectorLawR
 export const staticEvidenceRefs = (context: InspectorContext, lawId: string, evidenceMode: string): string[] => {
   const requirement = requirementFor(context, lawId);
   return ordered([
-    ...requirement.targetPaths.filter((path) => !/[#@]/u.test(path)).map((path) =>
-      `${evidenceKind[evidenceMode] ?? "file"}:${path}#entire-governed-object`),
+    ...collectStaticModeEvidenceRefs(context, requirement, evidenceMode),
     requirement.targetSet.queryRef,
   ]);
 };
@@ -34,7 +32,7 @@ const validateLawResult = (context: InspectorContext, output: InspectorOutput, l
   const result = output.lawResults.find((entry) => entry.lawId === lawId)
     ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:result`);
   const assertionsByMode = new Map(result.assertions.map((assertion) => [assertion.evidenceMode, assertion]));
-  const requiredModes = ordered(Object.keys(requirement.clausesByMode));
+  const requiredModes = ordered(requirement.requiredStaticModes);
   if (assertionsByMode.size !== result.assertions.length
     || JSON.stringify(ordered([...assertionsByMode.keys()])) !== JSON.stringify(requiredModes)) {
     fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:evidence-mode`);
@@ -42,15 +40,22 @@ const validateLawResult = (context: InspectorContext, output: InspectorOutput, l
   for (const mode of requiredModes) {
     const assertion = assertionsByMode.get(mode)
       ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}`);
-    if (JSON.stringify(assertion.clauses) !== JSON.stringify(requirement.clausesByMode[mode])
+    if (!assertion.clauses.length || assertion.clauses.every((clause) => clause === "summary")
+      || assertion.clauses.some((clause) => clause !== "summary"
+      && !/^forbidden:(?:0|[1-9][0-9]*)$/u.test(clause))
+      || assertion.clauses.some((clause) => clause.startsWith("forbidden:")
+        && Number(clause.slice("forbidden:".length)) >= requirement.forbiddenCount)
       || !assertion.refs.length || assertion.refs.length !== new Set(assertion.refs).size
       || JSON.stringify(assertion.refs) !== JSON.stringify(ordered(assertion.refs))) {
       fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}:assertion`);
     }
+    if (assertion.passed !== producerModePassed(result.findings, mode)) {
+      fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}:finding-verdict`);
+    }
   }
-  const expectedPassed = result.findings.length === 0;
-  if (result.assertions.some((assertion) => assertion.passed !== expectedPassed)) {
-    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:verdict-source`);
+  if (result.findings.some((finding) => finding.lawId !== lawId
+    || !requiredModes.includes(finding.evidenceMode))) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:finding-evidence-mode`);
   }
 };
 

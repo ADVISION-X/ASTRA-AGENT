@@ -178,9 +178,14 @@ proof journal 任一 schema、sequence、previous hash、entry hash 或尾行完
 覆盖或分叉续写原 journal，不得建立第二活动 journal/epoch；任何恢复都必须由 `local-browser-session`
 Owner 保留原文件 hash 和明确 recovery receipt，且不能把旧候选历史冒充当前 Browser proof。
 
-Mutation 只有 `PREPARED -> SEND -> CONFIRMED|FAILED|UNKNOWN`。UNKNOWN 永不自动 replay；
-`IF + AND -> THEN` 的每个动作只由自身后置 proof 解析。日志不是 evidence，Browser receipt 不是
-业务结果。
+Mutation 只有 `PREPARED -> SEND -> CONFIRMED|FAILED|UNKNOWN`。UNKNOWN 永不自动 replay。
+`IF + AND -> THEN` 固定为逐动作状态链：`IF` 只读取当前已经成立并持久解析的事实，`AND` 表示
+“那么”并把这个事实承接给一个 `THEN`，`THEN` 只执行一个动作。接单 proof 成立才打开 provider；
+provider 页面就绪 proof 成立才选择模型；模型精确 readback proof 成立才进入附件或提交。每个动作的
+后置 proof 只能成为下一动作的 `IF`，精确语义、`candidate_count=1` 与相邻/错误/加载态排除只证明
+当前 `IF`，不得把接单、开页、选模型、附件、提交聚合成一次 AND 或由一个 task-wide deadline 等齐
+整条链。相对 deadline 只能界定当前未解析动作并安全停在原 checkpoint，不得充当状态证据、跨步骤
+倒计时或触发下一动作。日志不是 evidence，Browser receipt 不是业务结果。
 
 ## Outbox、控制和接管
 

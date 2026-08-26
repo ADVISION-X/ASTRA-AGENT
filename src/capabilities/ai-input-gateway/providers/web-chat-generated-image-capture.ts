@@ -8,18 +8,6 @@ import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 
-export interface GeneratedImageTurnEvidence {
-  role: "user" | "assistant";
-  promptMatched: boolean;
-  substantive: boolean;
-}
-
-export interface GeneratedImageTurnDecision {
-  status: "success" | "pending" | "review_required";
-  message: string;
-  assistantIndex?: number;
-}
-
 type GeneratedImageArtifact = NonNullable<
   import("../contracts/ai-provider-adapter.contract.js").AiProviderRawResponse["outputArtifacts"]
 >[number];
@@ -271,25 +259,6 @@ const persistDownloadedImage = async (input: {
     height: metadata.height,
   };
 };
-
-export function decideGeneratedImageAssistantTurn(
-  turns: readonly GeneratedImageTurnEvidence[],
-): GeneratedImageTurnDecision {
-  const promptIndexes = turns.flatMap((turn, index) =>
-    turn.role === "user" && turn.promptMatched ? [index] : []);
-  if (promptIndexes.length !== 1) {
-    return { status: "review_required", message: "exact generated-image user prompt must occur once" };
-  }
-  const assistantIndexes = turns.flatMap((turn, index) =>
-    index > promptIndexes[0]! && turn.role === "assistant" && turn.substantive ? [index] : []);
-  if (assistantIndexes.length === 0) {
-    return { status: "pending", message: "substantive assistant turn following exact prompt not found" };
-  }
-  if (assistantIndexes.length !== 1) {
-    return { status: "review_required", message: "conversation advanced beyond generated-image assistant turn" };
-  }
-  return { status: "success", message: "exact generated-image assistant turn located", assistantIndex: assistantIndexes[0]! };
-}
 
 const downloadGeneratedImage = async (input: {
   browser: BrowserTargetLease;

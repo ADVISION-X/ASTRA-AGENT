@@ -8,6 +8,7 @@ import { checkProjection, diffPaths, gitCommit, readRegistryProjection, verifyEn
 import { validateChangedGovernanceSources } from './governance-change-authority.js';
 import { runFullQuality } from './shared/quality-runner.js';
 import { relevantExamScripts } from './shared/quality-routes.js';
+import { detectHighImpactChanges } from './shared/high-impact-detector.js';
 
 function assertAuthorization(changes: Array<{ status: string; path: string }>): void {
   if (changes.some((change) => change.path === 'docs/governance/法案系统建设说明书-冻结定稿版.md') && process.env.GRASSEYE_SOURCE_SPEC_AMENDMENT_AUTHORIZED !== '1') fail('SOURCE_SPEC_AMENDMENT_REQUIRED', 'mother spec');
@@ -41,12 +42,10 @@ export function addedSourceAt(root: string, change: { status: string; path: stri
 }
 
 function assertHighImpactAuthorization(changes: Array<{ status: string; path: string }>): void {
-  const productChanges = changes.filter((change) => change.path.startsWith('src/') || change.path === 'package.json'
-    || (change.status === 'A' && change.path.startsWith('docs/specs/')));
-  if (!productChanges.length) return;
-  const highImpact = productChanges.flatMap((change) => addedSourceAt(ROOT, change).split('\n')).some((line) =>
-    /(?:process\.env|\.listen\(|"dependencies"|"devDependencies"|specKind.*cross-repo|CREATE\s+(?:TABLE|TYPE)|router\.|addEventListener\()/u.test(line));
-  if (highImpact && process.env.GRASSEYE_HIGH_IMPACT_AUTHORIZED !== '1') fail('USER_REQUEST_CONFLICTS_WITH_ACTIVE_LAW', 'high-impact change requires explicit authorization');
+  const findings = detectHighImpactChanges(changes, (change) => addedSourceAt(ROOT, change));
+  if (findings.length && process.env.GRASSEYE_HIGH_IMPACT_AUTHORIZED !== '1') {
+    fail('USER_REQUEST_CONFLICTS_WITH_ACTIVE_LAW', `high-impact change requires explicit authorization:${JSON.stringify(findings)}`);
+  }
 }
 
 const changeDenominator = (): string => JSON.stringify(diffPaths().map((change) => [

@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "startup-entrypoint",
   "lawIds": [
-    "LAW-STARTUP-ENTRYPOINT-002-V3"
+    "LAW-STARTUP-ENTRYPOINT-002-V4"
   ],
   "contractRefs": [],
   "dependencyEdges": [
@@ -22,4 +22,3 @@ governed extension sources、manifest、pairing page、protocol、site policy �
 `src/lib/browser/chrome-extension/build.mjs` 重建 `.grasseye-local/browser-build/extension`，随后必须再次
 通过 preflight。启动器不运行 CI、audit、typecheck、acceptance、真实 Chrome，不配对、不认领 Target，
 也不直接调用 Extension reload。
-

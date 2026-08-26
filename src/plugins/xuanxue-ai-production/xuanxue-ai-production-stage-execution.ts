@@ -262,38 +262,49 @@ const isPublicKnowledgePreSubmitAttachmentBlock = (
     && !result.providerProof.forkedFromCheckpointProof;
 };
 
+const reviewRequiredStage = (result: AiFeedResult): Pick<XuanxueAiStageRecord, "status" | "failureReason"> | null => {
+  const reason = result.reviewRequiredReason ?? result.failureReason ?? "";
+  if (!/^review_required:/iu.test(reason) && !/\bBROWSER_OUTCOME_UNKNOWN\b/iu.test(reason)) return null;
+  return { status: "review_required", failureReason: reason };
+};
+
+const explicitFailureStage = (result: AiFeedResult): Pick<XuanxueAiStageRecord, "status" | "failureReason"> | null => {
+  if (result.status === "recovery_pending") return {
+    status: "recovery_pending", failureReason: result.failureReason ?? "provider recovery pending",
+  };
+  if (result.status === "review_required") return {
+    status: "review_required", failureReason: result.reviewRequiredReason ?? "provider review required",
+  };
+  if (result.status === "failed") return {
+    status: "failed", failureReason: result.failureReason ?? "provider execution failed",
+  };
+  return null;
+};
+
+const outputIntegrityStage = (result: AiFeedResult): Pick<XuanxueAiStageRecord, "status" | "failureReason"> | null => {
+  if (!result.rawResponseText || !result.rawOutputHash) return {
+    status: "failed", failureReason: "XUANXUE_AI_PRODUCTION_RAW_RESPONSE_MISSING",
+  };
+  const integrityFailure = xuanxueAiOutputIntegrityFailure(result.rawResponseText);
+  if (integrityFailure) return { status: "failed", failureReason: integrityFailure };
+  if (result.parseStatus === "json_invalid" && result.schemaValidationStatus !== "not_applicable") return {
+    status: "failed", failureReason: "XUANXUE_AI_PRODUCTION_OUTPUT_JSON_INVALID",
+  };
+  return null;
+};
+
 const immediateTerminalStage = (
   result: AiFeedResult,
   stage: XuanxueAiStageRecord,
   productId: XuanxueAiOrderRecord["order"]["productId"],
 ): Pick<XuanxueAiStageRecord, "status" | "failureReason"> | null => {
+  const reviewStage = reviewRequiredStage(result);
+  if (reviewStage) return reviewStage;
   if (isPublicKnowledgePreSubmitAttachmentBlock(result, stage, productId)) return {
     status: "failed",
     failureReason: `${XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION}:${terminalAttachmentReason(result)}`,
   };
-  if (result.status === "recovery_pending") return {
-    status: "recovery_pending",
-    failureReason: result.failureReason ?? "provider recovery pending",
-  };
-  if (result.status === "review_required") return {
-    status: "review_required",
-    failureReason: result.reviewRequiredReason ?? "provider review required",
-  };
-  if (result.status === "failed") return {
-    status: "failed",
-    failureReason: result.failureReason ?? "provider execution failed",
-  };
-  if (!result.rawResponseText || !result.rawOutputHash) return {
-    status: "failed",
-    failureReason: "XUANXUE_AI_PRODUCTION_RAW_RESPONSE_MISSING",
-  };
-  const integrityFailure = xuanxueAiOutputIntegrityFailure(result.rawResponseText);
-  if (integrityFailure) return { status: "failed", failureReason: integrityFailure };
-  if (result.parseStatus === "json_invalid" && result.schemaValidationStatus !== "not_applicable") return {
-    status: "failed",
-    failureReason: "XUANXUE_AI_PRODUCTION_OUTPUT_JSON_INVALID",
-  };
-  return null;
+  return explicitFailureStage(result) ?? outputIntegrityStage(result);
 };
 
 const terminalStageFromResult = (

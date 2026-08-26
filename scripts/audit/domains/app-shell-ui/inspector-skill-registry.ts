@@ -35,14 +35,14 @@ export const inspectSkillRegistry = (
   if (registryFile) inspectedFiles.add(getRepoSourcePath(registryFile));
   if (sidebarFile) inspectedFiles.add(getRepoSourcePath(sidebarFile));
   if (!registryFile) {
-    findings.push(createFinding({ checkId: "app-shell-ui/skill-registry-file", lawId, filePath: registryPath, message: "Skill Registry source file is missing." }));
+    findings.push(createFinding({ evidenceMode: "static.ast", checkId: "app-shell-ui/skill-registry-file", lawId, filePath: registryPath, message: "Skill Registry source file is missing." }));
     return;
   }
   const objects = registryObjects(registryFile);
   const ids = new Set(objects.map((objectLiteral) => getStringProperty(objectLiteral, "id")).filter((id): id is string => Boolean(id)));
   for (const requiredId of ["xuanxue-ai-production"]) {
     if (ids.has(requiredId)) continue;
-    findings.push(createFinding({
+    findings.push(createFinding({ evidenceMode: "static.ast",
       checkId: "app-shell-ui/skill-registry-required-id",
       lawId,
       filePath: registryPath,
@@ -53,7 +53,7 @@ export const inspectSkillRegistry = (
     const id = getStringProperty(objectLiteral, "id") ?? "unknown";
     for (const propertyName of ["label", "category", "description", "route", "status", "primarySurface", "historySurface", "detailSurface"]) {
       if (getStringProperty(objectLiteral, propertyName)) continue;
-      findings.push(createFinding({
+      findings.push(createFinding({ evidenceMode: "static.ast",
         checkId: "app-shell-ui/skill-registry-required-field",
         lawId,
         filePath: registryPath,
@@ -63,7 +63,7 @@ export const inspectSkillRegistry = (
     for (const propertyName of ["allowedActions", "forbiddenActions"]) {
       const property = objectLiteral.getProperty(propertyName);
       if (Node.isPropertyAssignment(property) && property.getInitializerIfKind(SyntaxKind.ArrayLiteralExpression)) continue;
-      findings.push(createFinding({
+      findings.push(createFinding({ evidenceMode: "static.ast",
         checkId: "app-shell-ui/skill-registry-action-field",
         lawId,
         filePath: registryPath,
@@ -76,7 +76,7 @@ export const inspectSkillRegistry = (
     && declaration.getNamedImports().some((namedImport) => namedImport.getName() === "skillRegistry"),
   );
   if (!sidebarImportsRegistry) {
-    findings.push(createFinding({
+    findings.push(createFinding({ evidenceMode: "static.ast",
       checkId: "app-shell-ui/sidebar-from-registry",
       lawId,
       filePath: sidebarPath,

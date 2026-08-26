@@ -36,7 +36,7 @@ const requireToken = (input: {
   token: string;
 }): void => {
   if (hasLiteral(input.sourceFile, input.token)) return;
-  input.findings.push(createFinding({
+  input.findings.push(createFinding({ evidenceMode: "static.ast",
     checkId: input.checkId,
     lawId: input.lawId,
     filePath: input.repoPath,
@@ -78,7 +78,7 @@ export const inspectAppShellLocalization = (
     requireToken({ findings, lawId, repoPath, sourceFile, token, checkId });
   }
   if (hasLiteral(localization, "localStorage") || hasLiteral(localizationRuntime, "localStorage")) {
-    findings.push(createFinding({
+    findings.push(createFinding({ evidenceMode: "static.ast",
       checkId: "app-shell-ui/localization-no-localstorage",
       lawId,
       filePath: localizationPath,

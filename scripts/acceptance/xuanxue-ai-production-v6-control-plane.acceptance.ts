@@ -19,6 +19,11 @@ import { cloudWorkerPollIntervalMs } from "../../src/plugins/xuanxue-ai-producti
 const temporary = mkdtempSync(path.join(os.tmpdir(), "xuanxue-ai-v6-control-"));
 const database = openXuanxueAiProductionDatabase(temporary);
 const hash = `sha256:${"a".repeat(64)}` as const;
+const stageExecutionSource = readFileSync(
+  path.resolve("src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts"),
+  "utf8",
+);
+assert.match(stageExecutionSource, /BROWSER_OUTCOME_UNKNOWN[\s\S]*status: "review_required"/u);
 
 try {
   process.env.XUANXUE_AI_PRODUCTION_POLL_INTERVAL_MS = "30000";
@@ -63,6 +68,14 @@ try {
     pathname: "/changed", headers: {}, body: {}, bodyFile: null,
     payloadHash: `sha256:${"b".repeat(64)}`,
   }), /OUTBOX_IDEMPOTENCY_CONFLICT/u);
+  outbox.recordPermanentRejection({
+    requestId: "write-2", reasonCode: "AI_LEASE_FENCE_STALE", payloadHash: hash,
+  });
+  assert.equal(outbox.pending().some((write) => write.requestId === "write-2"), false);
+  const rejectedTerminal = database.prepare(`select state,response_json from production_cloud_outbox
+    where request_id='write-2'`).get() as { state: string; response_json: string };
+  assert.equal(rejectedTerminal.state, "acknowledged");
+  assert.equal(JSON.parse(rejectedTerminal.response_json).reason_code, "AI_LEASE_FENCE_STALE");
 
   outbox.beginClaimRequest({ requestId: "claim-1", payload: { worker_session_id: "old-session" }, payloadHash: hash });
   assert.equal(outbox.pendingClaimRequest()?.requestId, "claim-1");
@@ -107,6 +120,7 @@ try {
 
   const databaseSource = readFileSync("src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-database.ts", "utf8");
   const clientSource = readFileSync("src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts", "utf8");
+  const workerSessionSource = readFileSync("src/plugins/xuanxue-ai-production/xuanxue-ai-production-worker-session.ts", "utf8");
   const workerSource = readFileSync("src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts", "utf8");
   const workerContractSource = readFileSync("src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker-contract.ts", "utf8");
   const workbenchStatusSource = readFileSync("src/lib/local-runtime/workbench-status.ts", "utf8");
@@ -118,6 +132,7 @@ try {
   assert.match(clientSource, /enqueueCheckpoint/u);
   assert.match(clientSource, /result\.response\.checkpoint_hash/u);
   assert.match(clientSource, /XUANXUE_AI_PRODUCTION_CHECKPOINT_RECEIPT_INVALID/u);
+  assert.match(workerSessionSource, /public async authorizationHeaders[\s\S]*"x-ai-agent-origin": this\.device\.origin/u);
   const localIdentityIndex = workerSource.indexOf("state.execution.createOrder(preparedOrder)");
   const acceptanceIndex = workerSource.indexOf('status: "inputs_downloading", localOrderId');
   assert.ok(localIdentityIndex >= 0 && acceptanceIndex > localIdentityIndex,

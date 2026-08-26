@@ -18,6 +18,11 @@ export interface XuanxueAiProductionExecutionPort {
     deadlineBudget?: XuanxueAiExecutionDeadlineBudget,
   ): Promise<XuanxueAiOrderRecord>;
   listCloudRecoveryOrders(): XuanxueAiOrderRecord[];
+  markAcceptedFailure(
+    orderId: string,
+    status: "recovery_pending" | "failed",
+    reason: string,
+  ): XuanxueAiOrderRecord;
   availableCapacity(): number;
   applyControlIntent(
     orderId: string,

@@ -24,10 +24,29 @@ const inspectExactChoiceTransaction = (
     .filter((call) => astExpressionPath(call.getExpression()) === "input.browser.wait");
   const waitOwner = waitCalls[0]?.getFirstAncestor((node) =>
     Node.isVariableDeclaration(node) && node.getName() === "waitForProfileEvidence");
-  if (exactChoiceIsAtomic && waitCalls.length === 1 && waitOwner) return;
+  const actionBoundObservation = waitOwner
+    ? waitOwner.getDescendantsOfKind(SyntaxKind.Identifier)
+      .some((identifier) => identifier.getText() === "PROFILE_ACTION_OBSERVATION_TIMEOUT_MS")
+      && !waitOwner.getText().includes("Date.now() + input.request.timeoutMs")
+    : false;
+  const openProfile = profile.getVariableDeclaration("openAdvancedProfileMenu")?.getInitializer();
+  const triggerActionResolvesItsMenuState = Boolean(openProfile
+    && openProfile.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
+      if (astExpressionPath(call.getExpression()) !== "clickAndProve") return false;
+      const intent = call.getArguments()[0];
+      if (!Node.isObjectLiteralExpression(intent)) return false;
+      const selector = intent.getProperty("selector");
+      return Node.isPropertyAssignment(selector)
+        && astExpressionPath(selector.getInitializer()) === "PROFILE_TRIGGER_SELECTOR"
+        && intent.getDescendantsOfKind(SyntaxKind.CallExpression).some(
+          (nested) => astExpressionPath(nested.getExpression()) === "readAdvancedProfileState",
+        );
+    }));
+  if (exactChoiceIsAtomic && waitCalls.length === 1 && waitOwner
+    && actionBoundObservation && triggerActionResolvesItsMenuState) return;
   pushFinding(findings, lawId, P.sessionControl.gptExecutionProfilePath,
     "ai-input-gateway/atomic-if-and-then",
-    "GPT execution-profile choice must use exact semantic equality plus a same-command postcondition; timeout may only stop a state-driven observation loop.");
+    "GPT execution-profile must advance one proven state at a time: opening the trigger resolves its own mounted-menu proof before model selection, exact choice keeps same-command readback, and only an action-bound deadline may stop the current observation; a task-wide timeout cannot span the chain.");
 };
 
 const stringPropertyEquals = (

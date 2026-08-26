@@ -2,7 +2,7 @@ import { Node, SyntaxKind, type CallExpression, type Project, type SourceFile } 
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
-import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
 const LAW_ID = "LAW-SYSTEM-SECURITY-001-V1";
 const CLAUSE_ID = `${LAW_ID.toLowerCase()}-requirement`;
@@ -20,7 +20,7 @@ const sourcePath = (source: SourceFile): string => {
   }
   return normalized.replace(/^\//u, "");
 };
-const finding = (checkId: string, path: string, message: string, line?: number): InspectorFinding => createFinding({
+const finding = (checkId: string, path: string, message: string, line?: number): InspectorFinding => createFinding({ evidenceMode: "static.ast",
   checkId,
   lawId: LAW_ID,
   clauseId: CLAUSE_ID,
@@ -141,15 +141,14 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => {
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = evaluate(context);
   const findings = evaluation.findings.filter((finding) => finding.lawId === LAW_ID);
-  const passed = findings.length === 0;
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [{ lawId: LAW_ID, assertions: [
-      { clauses: staticClauses(), evidenceMode: "static.ast", passed, refs: staticEvidenceRefs(context, LAW_ID, "static.ast") },
-      { clauses: staticClauses(), evidenceMode: "static.config", passed, refs: staticEvidenceRefs(context, LAW_ID, "static.config") },
-      { clauses: staticClauses(), evidenceMode: "static.contract", passed, refs: staticEvidenceRefs(context, LAW_ID, "static.contract") },
-      { clauses: staticClauses(), evidenceMode: "static.dependency", passed, refs: staticEvidenceRefs(context, LAW_ID, "static.dependency") },
-      { clauses: staticClauses(), evidenceMode: "static.types", passed, refs: staticEvidenceRefs(context, LAW_ID, "static.types") },
+      { clauses: staticClauses(0), evidenceMode: "static.ast", passed: producerModePassed(findings, "static.ast"), refs: staticEvidenceRefs(context, LAW_ID, "static.ast") },
+      { clauses: staticClauses(0), evidenceMode: "static.config", passed: producerModePassed(findings, "static.config"), refs: staticEvidenceRefs(context, LAW_ID, "static.config") },
+      { clauses: staticClauses(0), evidenceMode: "static.contract", passed: producerModePassed(findings, "static.contract"), refs: staticEvidenceRefs(context, LAW_ID, "static.contract") },
+      { clauses: staticClauses(0), evidenceMode: "static.dependency", passed: producerModePassed(findings, "static.dependency"), refs: staticEvidenceRefs(context, LAW_ID, "static.dependency") },
+      { clauses: staticClauses(0), evidenceMode: "static.types", passed: producerModePassed(findings, "static.types"), refs: staticEvidenceRefs(context, LAW_ID, "static.types") },
     ], findings }], inspectedFiles: evaluation.inspectedFiles,
   });
 };

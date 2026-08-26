@@ -2,10 +2,6 @@ import { Node } from "ts-morph";
 
 import { astIdentifierName } from "../../../shared/ast-node-identity.js";
 import { toRepoPath } from "../../../shared/paths.js";
-import {
-  isLawfulDynamicRegistryConsumer,
-  type ZombieExemptionManifest,
-} from "./zombie-exemption-manifest.js";
 import type { ZombieObjectBag } from "./zombie-object-bag-liveness.js";
 import { classifyZombieReferenceUsage } from "./zombie-symbol-usage.js";
 
@@ -18,6 +14,25 @@ export type ZombieObjectBagDynamicUsage = {
 export type ZombieObjectBagUsage = {
   dynamicUsages: ZombieObjectBagDynamicUsage[];
   usedPropertyNames: Set<string>;
+};
+
+const terminalObjectProperty = (
+  referenceNode: Parameters<typeof classifyZombieReferenceUsage>[0],
+): boolean => {
+  let valueNode = referenceNode;
+  const binary = valueNode.getParent();
+  if (binary && Node.isBinaryExpression(binary)
+    && binary.getOperatorToken().getKindName() === "QuestionQuestionToken") {
+    valueNode = binary;
+  }
+  const property = valueNode.getParent();
+  if (!property || !Node.isPropertyAssignment(property) || property.getInitializer() !== valueNode) {
+    return false;
+  }
+  const objectLiteral = property.getParent();
+  const call = objectLiteral?.getParent();
+  return Boolean(objectLiteral && Node.isObjectLiteralExpression(objectLiteral)
+    && call && Node.isCallExpression(call) && call.getArguments().includes(objectLiteral));
 };
 
 const isDynamicObjectUtilityCall = (referenceNode: Parameters<typeof classifyZombieReferenceUsage>[0]): boolean => {
@@ -71,26 +86,6 @@ const markStaticPropertyUsage = (
   return false;
 };
 
-const markLawfulRegistryUsage = (input: {
-  bag: ZombieObjectBag;
-  manifest: ZombieExemptionManifest;
-  consumerFilePath: string;
-  usedPropertyNames: Set<string>;
-}): boolean => {
-  if (!isLawfulDynamicRegistryConsumer(
-    input.manifest,
-    input.consumerFilePath,
-    input.bag.governedFile.repoPath,
-    input.bag.exportName,
-  )) {
-    return false;
-  }
-  for (const entry of input.bag.entries) {
-    input.usedPropertyNames.add(entry.propertyName);
-  }
-  return true;
-};
-
 const buildDynamicUsage = (
   referenceNode: Parameters<typeof classifyZombieReferenceUsage>[0],
   consumerFilePath: string,
@@ -107,7 +102,6 @@ const buildDynamicUsage = (
 
 export const collectZombieObjectBagUsage = (input: {
   bag: ZombieObjectBag;
-  manifest: ZombieExemptionManifest;
 }): ZombieObjectBagUsage => {
   const usedPropertyNames = new Set<string>();
   const dynamicUsages: ZombieObjectBagDynamicUsage[] = [];
@@ -120,18 +114,14 @@ export const collectZombieObjectBagUsage = (input: {
     if (usageKind === "import-binding" || usageKind === "re-export") {
       continue;
     }
+    if (terminalObjectProperty(referenceNode)) {
+      for (const entry of input.bag.entries) usedPropertyNames.add(entry.propertyName);
+      continue;
+    }
     if (markStaticPropertyUsage(referenceNode, usedPropertyNames)) {
       continue;
     }
     const consumerFilePath = toRepoPath(referenceNode.getSourceFile().getFilePath());
-    if (markLawfulRegistryUsage({
-      bag: input.bag,
-      manifest: input.manifest,
-      consumerFilePath,
-      usedPropertyNames,
-    })) {
-      continue;
-    }
     const dynamicUsage = buildDynamicUsage(referenceNode, consumerFilePath);
     if (dynamicUsage) {
       dynamicUsages.push(dynamicUsage);

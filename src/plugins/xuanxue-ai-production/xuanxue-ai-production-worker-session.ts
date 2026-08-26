@@ -193,6 +193,7 @@ export class XuanxueAiProductionWorkerSessionV6 {
     await this.open();
     return {
       origin: this.device.origin,
+      "x-ai-agent-origin": this.device.origin,
       authorization: `Bearer ${this.sessionCredential!.token}`,
       ...extra,
     };
