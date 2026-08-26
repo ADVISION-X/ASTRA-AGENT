@@ -40,6 +40,7 @@ type SurfaceNode = Readonly<{
 
 class ProfileBrowserFixture {
   public readonly actions: string[] = [];
+  public readonly choiceClickTexts: string[] = [];
   public readonly triggerFindCounts: number[] = [];
   public snapshotReadCount = 0;
   public resolvedMutations = 0;
@@ -67,6 +68,7 @@ class ProfileBrowserFixture {
     private readonly outcomeUnknownAfterChoice: string | null = null,
     private triggerDelayReads = 0,
     private readonly ignoredChoiceAfterClick: string | null = null,
+    private readonly modelChoiceDomText = "GPT-5.6 Sol",
   ) {}
 
   public readonly wait = async (): Promise<void> => {};
@@ -201,7 +203,7 @@ class ProfileBrowserFixture {
         ariaLabel: "",
         ariaExpanded: "",
         ariaChecked: value === selected ? "true" : "false",
-        text: value,
+        text: value === "GPT-5.6 Sol" ? this.modelChoiceDomText : value,
       });
     }
     return nodes;
@@ -226,12 +228,16 @@ class ProfileBrowserFixture {
       this.actions.push(expectedText);
       return;
     }
-    if (selector === choices && expectedText && this.candidates().includes(expectedText)) {
-      if (expectedText !== this.ignoredChoiceAfterClick) {
-        if (this.submenu === "模型") this.model = expectedText;
-        if (this.submenu === "推理强度") this.reasoning = expectedText;
+    const semanticChoice = expectedText === this.modelChoiceDomText
+      ? "GPT-5.6 Sol"
+      : expectedText;
+    if (selector === choices && semanticChoice && this.candidates().includes(semanticChoice)) {
+      this.choiceClickTexts.push(expectedText!);
+      if (semanticChoice !== this.ignoredChoiceAfterClick) {
+        if (this.submenu === "模型") this.model = semanticChoice;
+        if (this.submenu === "推理强度") this.reasoning = semanticChoice;
       }
-      this.actions.push(`选择:${expectedText}`);
+      this.actions.push(`选择:${semanticChoice}`);
       this.expanded = false;
       this.advanced = false;
       this.submenu = null;
@@ -365,6 +371,28 @@ const acceptExactMutationAndReadback = async (): Promise<void> => {
     browser.snapshotReadCount <= 30,
     `one complete profile change must stay bounded, observed ${browser.snapshotReadCount} surface snapshots`,
   );
+};
+
+const acceptObservedExactDomTextForStructuredModelLabel = async (): Promise<void> => {
+  const browser = new ProfileBrowserFixture(
+    "GPT-5.5",
+    "高",
+    false,
+    0,
+    null,
+    0,
+    null,
+    "GPT-5.6\n Sol",
+  );
+  const proof = await enforceGptWebExecutionProfile({
+    browser: browser.asLease(),
+    context: context({ actions: [], profile: null }, browser),
+    request: request("high"),
+  });
+  assert.equal(proof?.modelDisplayName, "GPT-5.6 Sol");
+  assert.equal(browser.model, "GPT-5.6 Sol");
+  assert.ok(browser.choiceClickTexts.includes("GPT-5.6\n Sol"));
+  assert.equal(browser.choiceClickTexts.includes("GPT-5.6 Sol"), false);
 };
 
 const acceptNoOpAndExclusion = async (): Promise<void> => {
@@ -597,6 +625,7 @@ const acceptOneTimeProofEmptyProfileStateCorrection = async (): Promise<void> =>
 };
 
 await acceptExactMutationAndReadback();
+await acceptObservedExactDomTextForStructuredModelLabel();
 await acceptNoOpAndExclusion();
 await acceptDelayedAdvancedMenuMount();
 await acceptDelayedUniqueProfileTriggerMount();
@@ -607,4 +636,4 @@ await acceptCurrentDocumentProfileCheckpointWithoutMenuReplay();
 await acceptZeroTurnCountWithoutSyntheticMatches();
 await acceptExactHighDoesNotMatchExtraHigh();
 await acceptOneTimeProofEmptyProfileStateCorrection();
-process.stdout.write("[gpt-web-execution-profile] PASS current-surface snapshots, one-action transitions, bounded waiting, committed UNKNOWN adjudication without replay, exact terminal model/reasoning readback, no-op, ambiguity exclusion and one-time proof-empty state correction\n");
+process.stdout.write("[gpt-web-execution-profile] PASS current-surface snapshots, observed exact DOM choice text, one-action transitions, bounded waiting, committed UNKNOWN adjudication without replay, exact terminal model/reasoning readback, no-op, ambiguity exclusion and one-time proof-empty state correction\n");

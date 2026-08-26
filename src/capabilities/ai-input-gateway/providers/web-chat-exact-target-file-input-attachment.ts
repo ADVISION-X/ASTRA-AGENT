@@ -32,7 +32,7 @@ export const attachByExactTargetFileInputBatch = async (
   if (input.files.length === 0) {
     return {
       transportKind: "exact_target_file_input_batch",
-      uploadedFiles: [],
+      mutationSent: false,
       detectedFileCount: 0,
     };
   }
@@ -53,15 +53,7 @@ export const attachByExactTargetFileInputBatch = async (
   await input.browser.attachFile({ selector: "#upload-files", grants });
   return {
     transportKind: "exact_target_file_input_batch",
-    uploadedFiles: input.files.map((file) => ({
-      inputRefId: file.inputRefId,
-      step: file.order,
-      fileName: file.displayFileName,
-      sha256: file.sha256,
-      byteCount: file.byteCount,
-      expectedAttachmentCount: input.files.length,
-      detectedAttachmentCount: 0,
-    })),
+    mutationSent: true,
     detectedFileCount: 0,
   };
 };

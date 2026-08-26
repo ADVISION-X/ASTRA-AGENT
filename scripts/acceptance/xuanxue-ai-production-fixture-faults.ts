@@ -49,6 +49,7 @@ const terminalAttachmentFailure = (
         transportKind: "exact_target_file_input_batch",
         expectedFileCount: 1,
         detectedFileCount: 0,
+        mutationSent: false,
         stagingManifestHash: hash("fixture-terminal-attachment-manifest"),
         files: [{
           inputRefId: "terminal-attachment-fixture",

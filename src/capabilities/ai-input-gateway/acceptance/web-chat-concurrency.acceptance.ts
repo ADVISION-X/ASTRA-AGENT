@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import {
   access,
+  mkdir,
   mkdtemp,
   readFile,
   readdir,
@@ -23,6 +24,7 @@ import {
   acquireWebChatBrowserMutationLease,
   acquireWebChatBrowserPatrolLease,
   pendingWebChatSubmissionCount,
+  readWebChatBrowserMutationLaneState,
   registerPendingWebChatSubmission,
   resolveWebChatMaxInFlight,
 } from "../runtime/web-chat-concurrency-lease.js";
@@ -382,6 +384,32 @@ if (workerArgs[0] === "--ticket-worker") {
     const secondMutation = await secondMutationPromise;
     await secondMutation.release();
 
+    const staleMutationLock = path.join(
+      dataDir,
+      "runtime-data",
+      "ai-input-gateway",
+      "web-chat-browser-mutation.lock",
+    );
+    await mkdir(staleMutationLock, { recursive: true });
+    await writeFile(path.join(staleMutationLock, "lease.json"), `${JSON.stringify({
+      leaseId: "web-chat-browser_mutation:dead-owner",
+      pid: 2_147_483_647,
+      acquiredAt: "2026-01-01T00:00:00.000Z",
+      kind: "browser_mutation",
+      slot: null,
+    })}\n`, "utf8");
+    const staleMutationLaneState = await readWebChatBrowserMutationLaneState(dataDir);
+    assert.equal(
+      staleMutationLaneState,
+      "idle",
+      "a dead process mutation lock must be physically removed before claim admission reads the lane",
+    );
+    assert.equal(
+      await exists(staleMutationLock),
+      false,
+      "dead process mutation lock directory must not survive lane reconciliation",
+    );
+
     const firstSubmission = registerPendingWebChatSubmission(
       dataDir,
       "first-submission",
@@ -466,5 +494,5 @@ if (workerArgs[0] === "--ticket-worker") {
   process.stdout.write(
     "[ACCEPTANCE][ai-input-gateway-web-chat-concurrency] PASS\n",
   );
-  emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-AI-INPUT-GATEWAY-005-V4", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:10","forbidden:11","forbidden:12","forbidden:13","forbidden:14","forbidden:15","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"], locator: "acceptance:web-chat:bounded-session-controller", observedValue: "bounded concurrency, single mutation lane and exact conversation topology verified" });
+  emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-AI-INPUT-GATEWAY-005-V5", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:10","forbidden:11","forbidden:12","forbidden:13","forbidden:14","forbidden:15","forbidden:16","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"], locator: "acceptance:web-chat:bounded-session-controller", observedValue: "bounded concurrency, dead-owner mutation-lock deletion, single mutation lane and exact conversation topology verified" });
 }

@@ -5,7 +5,7 @@
   "version": 1,
   "owner": "xuanxue-ai-production",
   "lawIds": [
-    "LAW-XUANXUE-AI-PRODUCTION-001-V12"
+    "LAW-XUANXUE-AI-PRODUCTION-001-V14"
   ],
   "specKind": "cross-repo-dependency",
   "contract": {

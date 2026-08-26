@@ -38,6 +38,24 @@ export const isRecoverableCloudWorkerFailure = (error: unknown): boolean => {
     || lowerReason.includes("fetch failed");
 };
 
+export type XuanxueAiProductionExecutionFailureStatus =
+  | "recovery_pending"
+  | "review_required"
+  | "failed";
+
+export const classifyXuanxueAiProductionExecutionFailure = (
+  error: unknown,
+): XuanxueAiProductionExecutionFailureStatus => {
+  const reason = safeWorkerReason(error);
+  if (/^review_required:/iu.test(reason) || /\bBROWSER_OUTCOME_UNKNOWN\b/iu.test(reason)) {
+    return "review_required";
+  }
+  if (/^recovery_pending:/iu.test(reason) || isRecoverableCloudWorkerFailure(error)) {
+    return "recovery_pending";
+  }
+  return "failed";
+};
+
 export const cloudWorkerPollIntervalMs = (): number => {
   const value = Number(process.env.XUANXUE_AI_PRODUCTION_POLL_INTERVAL_MS);
   return Number.isFinite(value) && value >= 1_000 && value <= 30_000 ? value : 5_000;

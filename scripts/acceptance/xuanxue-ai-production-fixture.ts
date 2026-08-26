@@ -91,6 +91,7 @@ const fixtureAttachmentProof = (
     transportKind: "exact_target_file_input_batch" as const,
     expectedFileCount: files.length,
     detectedFileCount: files.length,
+    mutationSent: true,
     stagingManifestHash: hash(JSON.stringify(files.map((file) => file.id))),
     files: files.map((file, index) => ({
       inputRefId: file.id,

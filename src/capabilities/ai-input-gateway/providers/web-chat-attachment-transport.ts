@@ -1,6 +1,5 @@
 import type {
   AiProviderAdapterContext,
-  AiProviderUploadedFileProof,
   WebChatAttachmentTransportKind,
 } from "../contracts/ai-provider-adapter.contract.js";
 import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
@@ -30,6 +29,6 @@ export type WebChatAttachmentTransportInput = {
 
 export type WebChatAttachmentTransportResult = {
   transportKind: Exclude<WebChatAttachmentTransportKind, "skipped">;
-  uploadedFiles: AiProviderUploadedFileProof[];
+  mutationSent: boolean;
   detectedFileCount: number;
 };

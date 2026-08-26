@@ -122,11 +122,13 @@ const capacityRoot = (dataDir: string): string =>
 export const readWebChatBrowserMutationLaneState = async (
   dataDir: string,
 ): Promise<"idle" | "busy" | "blocked"> => {
-  const leaseFile = path.join(dataDir, "runtime-data", "ai-input-gateway", "web-chat-browser-mutation.lock", "lease.json");
+  const leaseDir = path.join(dataDir, "runtime-data", "ai-input-gateway", "web-chat-browser-mutation.lock");
+  const leaseFile = path.join(leaseDir, "lease.json");
   try {
     const record = JSON.parse(await readFile(leaseFile, "utf8")) as Partial<LeaseRecord>;
     if (record.kind !== "browser_mutation" || typeof record.pid !== "number") return "blocked";
-    return processAlive(record.pid) ? "busy" : "blocked";
+    if (processAlive(record.pid)) return "busy";
+    return await removeStaleLease(leaseDir) ? "idle" : "blocked";
   } catch (error) {
     return (error as NodeJS.ErrnoException).code === "ENOENT" ? "idle" : "blocked";
   }

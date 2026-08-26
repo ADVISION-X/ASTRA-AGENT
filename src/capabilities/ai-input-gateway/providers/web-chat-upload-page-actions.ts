@@ -4,9 +4,11 @@ import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 
 const CHATGPT_COMPOSER_FORM_SELECTOR = "form:has(#prompt-textarea)";
 const CHATGPT_COMPOSER_SELECTOR = `${CHATGPT_COMPOSER_FORM_SELECTOR} #prompt-textarea`;
+const CHATGPT_ATTACHMENT_REGION_SELECTOR = `${CHATGPT_COMPOSER_FORM_SELECTOR} [class*='grid-area:header']`;
 const CHATGPT_ATTACHMENT_SURFACE_SELECTOR = [
   CHATGPT_COMPOSER_FORM_SELECTOR,
   CHATGPT_COMPOSER_SELECTOR,
+  CHATGPT_ATTACHMENT_REGION_SELECTOR,
 ].join(",");
 
 export type AttachmentBrowser = Pick<BrowserTargetLease, "executeDomIntent">;
@@ -44,7 +46,8 @@ type AttachmentSurfaceNode = Readonly<{
 type AttachmentSurface = Readonly<{
   pageUrl: string;
   composer: AttachmentSurfaceNode;
-  formText: string;
+  attachmentRegionCount: number;
+  attachmentRegionText: string;
 }>;
 
 const stringField = (value: unknown): string => {
@@ -95,10 +98,15 @@ const readAttachmentSurface = async (browser: AttachmentBrowser): Promise<Attach
   const nodes = result.matches.map(surfaceNode);
   const form = exactlyOne(nodes, (node) => node.tagName === "FORM", "composer_form");
   const composer = exactlyOne(nodes, (node) => node.id === "prompt-textarea", "composer");
+  const attachmentRegions = nodes.filter((node) => node !== form && node !== composer);
+  if (attachmentRegions.length > 1) {
+    throw attachmentSurfaceContractMismatch(`attachment_region_count_${attachmentRegions.length}`);
+  }
   return {
     pageUrl,
     composer,
-    formText: form.text.trim(),
+    attachmentRegionCount: attachmentRegions.length,
+    attachmentRegionText: attachmentRegions[0]?.text.trim() ?? "",
   };
 };
 
@@ -124,7 +132,8 @@ const evaluateObservedAttachmentSet = (input: Readonly<{
   composerTextLength: number;
   expectedCount: number;
   matchedNames: readonly string[];
-  formText: string;
+  attachmentRegionCount: number;
+  unexplainedAttachmentText: string;
   duplicateNameCount: number;
 }>): WebChatEvaluation => {
   const common = {
@@ -133,6 +142,12 @@ const evaluateObservedAttachmentSet = (input: Readonly<{
     attachmentNames: [...input.matchedNames],
   };
   if (input.duplicateNameCount > 0) {
+    return { status: "review_required", message: "CHATGPT_ATTACHMENT_SET_AMBIGUOUS", ...common };
+  }
+  if (input.attachmentRegionCount === 0) {
+    return { status: "pending", message: "CHATGPT_ATTACHMENT_SURFACE_EMPTY", ...common };
+  }
+  if (input.attachmentRegionCount !== 1 || input.unexplainedAttachmentText.length > 0) {
     return { status: "review_required", message: "CHATGPT_ATTACHMENT_SET_AMBIGUOUS", ...common };
   }
   if (input.matchedNames.length === input.expectedCount) {
@@ -148,14 +163,18 @@ const evaluateObservedAttachmentSet = (input: Readonly<{
       composerTextLength: input.composerTextLength,
     };
   }
-  if (input.formText.length === 0) {
-    return { status: "pending", message: "CHATGPT_ATTACHMENT_SURFACE_EMPTY", ...common };
-  }
   return { status: "review_required", message: "CHATGPT_ATTACHMENT_SET_AMBIGUOUS", ...common };
 };
 
 const occurrences = (value: string, needle: string): number =>
   needle.length === 0 ? 0 : value.split(needle).length - 1;
+
+const unexplainedAttachmentText = (
+  attachmentRegionText: string,
+  expectedFileNames: readonly string[],
+): string => expectedFileNames
+  .reduce((remaining, fileName) => remaining.split(fileName).join(""), attachmentRegionText)
+  .replace(/\s+/gu, "");
 
 const evaluateObservedAttachmentSetFromSurface = (
   observed: AttachmentSurface,
@@ -166,14 +185,15 @@ const evaluateObservedAttachmentSetFromSurface = (
 ): Promise<WebChatEvaluation> => {
   const nameOccurrences = expectedFileNames.map((fileName) => ({
     fileName,
-    count: occurrences(observed.formText, fileName),
+    count: occurrences(observed.attachmentRegionText, fileName),
   }));
   return Promise.resolve(evaluateObservedAttachmentSet({
     pageUrl,
     composerTextLength,
     expectedCount,
     matchedNames: nameOccurrences.filter(({ count }) => count === 1).map(({ fileName }) => fileName),
-    formText: observed.formText,
+    attachmentRegionCount: observed.attachmentRegionCount,
+    unexplainedAttachmentText: unexplainedAttachmentText(observed.attachmentRegionText, expectedFileNames),
     duplicateNameCount: nameOccurrences.filter(({ count }) => count > 1).length,
   }));
 };
@@ -196,7 +216,7 @@ const evaluateKnownAttachmentPreflight = async (
     return { status: "review_required", message: "WEB_CHAT_COMPOSER_NOT_EMPTY", pageUrl: observed.pageUrl, composerText };
   }
   if (expectedCount === 0) {
-    if (observed.formText.length !== 0) {
+    if (observed.attachmentRegionCount !== 0) {
       return { status: "review_required", message: "CHATGPT_ATTACHMENT_SET_AMBIGUOUS", pageUrl: observed.pageUrl };
     }
     return emptyAttachmentState(observed.pageUrl, composerText.length);

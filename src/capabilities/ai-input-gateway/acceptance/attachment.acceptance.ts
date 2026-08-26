@@ -6,6 +6,8 @@ import path from "node:path";
 
 import { attachApprovedWebChatFilesOnce, WebChatAttachmentCapabilityFailure } from "../children/attach-approved-web-chat-files-once.js";
 import { AiFeedInputSchema } from "../schema.js";
+import { buildAiFeedInputPackage } from "../runtime/ai-feed-input-package.js";
+import { buildAiFeedFailure } from "../runtime/ai-feed-proof.js";
 import type { AttachmentMutationBrowser } from "../providers/web-chat-attachment-transport.js";
 import type { BrowserFileArtifactGrantV1 } from "../../../lib/browser/browser-authority-api.js";
 import { emitQualityProofObservation } from "../../../../scripts/audit/shared/proof-observation.js";
@@ -68,8 +70,11 @@ class AttachmentLeaseFixture implements AttachmentMutationBrowser {
         disabled: false,
       };
       const matches = [
-        { ...base, id: "", tagName: "FORM", text: this.registeredNames.join("\n") },
+        { ...base, id: "", tagName: "FORM", text: "添加文件等\n极高\n开始听写\n启动语音功能" },
         { ...base, id: "prompt-textarea", tagName: "DIV", text: "" },
+        ...(this.registeredNames.length > 0
+          ? [{ ...base, id: "", tagName: "DIV", text: this.registeredNames.join("\n") }]
+          : []),
       ];
       return { count: matches.length, matches };
     }
@@ -108,6 +113,7 @@ try {
     context: { dataDir },
   });
   assert.equal(zero.attachmentUploadProof.status, "skipped");
+  assert.equal(zero.attachmentUploadProof.mutationSent, false);
 
   const browser = new AttachmentLeaseFixture();
   let terminalProof: unknown = null;
@@ -130,6 +136,7 @@ try {
     { selector: "#upload-files", grantCount: 2 },
   ], "one exact document-input batch is the only attachment mutation");
   assert.equal((terminalProof as { status?: string } | null)?.status, "attachments_stable");
+  assert.equal(completed.attachmentUploadProof.mutationSent, true);
   assert.equal(completed.uploadedFiles.length, 2);
   assert.deepEqual(
     completed.attachmentUploadProof.files.map((file) => file.displayFileName),
@@ -145,7 +152,7 @@ try {
       && !selector.includes("button")
       && !selector.includes("aria-label")),
     true,
-    "visible attachment permission must not duplicate the Browser Authority hidden target or pre-read send readiness",
+    "visible attachment permission must use only the real composer attachment region and not duplicate hidden targets or controls",
   );
   assert.equal(
     browser.attachmentBatches.length,
@@ -166,12 +173,26 @@ try {
     },
   });
   assert.equal(recovered.attachmentUploadProof.status, "attachments_stable");
+  assert.equal(recovered.attachmentUploadProof.mutationSent, false);
   assert.equal(recovered.uploadedFiles.length, 2);
   assert.equal(recoveredRegistrationCount, 0);
   assert.equal(recoveredBrowser.attachmentBatches.length, 0,
     "an exact deterministic attachment set after restart is recovered with zero mutation");
   assert.equal(recoveredBrowser.surfaceReads, 1,
     "restart recovery uses one current-surface decision and no polling ceremony");
+
+  const pollutedBrowser = new AttachmentLeaseFixture();
+  pollutedBrowser.registeredNames.push("unexpected-file.json");
+  await assert.rejects(
+    attachApprovedWebChatFilesOnce({
+      browser: pollutedBrowser,
+      request: await buildRequest(dataDir, 1),
+      context: { dataDir },
+    }),
+    /CHATGPT_ATTACHMENT_SET_AMBIGUOUS/u,
+    "an unrelated visible attachment region must fail before any upload mutation",
+  );
+  assert.equal(pollutedBrowser.attachmentBatches.length, 0);
 
   const unknownBrowser = new OutcomeUnknownAttachmentLeaseFixture();
   await assert.rejects(
@@ -188,9 +209,50 @@ try {
     }),
     (error: unknown) => error instanceof WebChatAttachmentCapabilityFailure
       && error.attachmentUploadProof.status === "review_required"
+      && error.attachmentUploadProof.mutationSent === true
       && error.uploadedFiles.length === 0,
     "an outcome-unknown attachment mutation must fail closed and never gain replay authority",
   );
+
+  const postconditionRequest = await buildRequest(dataDir, 1);
+  const postconditionBrowser = new AttachmentLeaseFixture();
+  let postconditionFailure: WebChatAttachmentCapabilityFailure | null = null;
+  try {
+    await attachApprovedWebChatFilesOnce({
+      browser: postconditionBrowser,
+      request: postconditionRequest,
+      context: {
+        dataDir,
+        registerBrowserFileArtifact: async () => undefined,
+        issueBrowserFileArtifactGrant: async (input) => grantFor(input.artifactRef, input.expectedSha256, input.maxBytes),
+      },
+    });
+  } catch (error) {
+    if (error instanceof WebChatAttachmentCapabilityFailure) postconditionFailure = error;
+    else throw error;
+  }
+  assert.ok(postconditionFailure, "an unverified postcondition must return the typed attachment failure");
+  assert.equal(postconditionBrowser.attachmentBatches.length, 1,
+    "the failing path must prove one physical attachment mutation was sent");
+  assert.equal(postconditionFailure.attachmentUploadProof.mutationSent, true);
+  assert.equal(postconditionFailure.uploadedFiles.length, 0,
+    "a sent mutation without visible stabilization must not fabricate uploadedFiles");
+  const schemaValidFailure = buildAiFeedFailure({
+    request: postconditionRequest,
+    childCapabilityId: "feed-gpt-web-chat-once",
+    inputPackage: await buildAiFeedInputPackage(postconditionRequest),
+    startedAt: new Date().toISOString(),
+    transport: "web-chat",
+    status: "failed",
+    reason: postconditionFailure.message,
+    response: {
+      attachmentUploadProof: postconditionFailure.attachmentUploadProof,
+      uploadedFiles: postconditionFailure.uploadedFiles,
+    },
+  });
+  assert.equal(schemaValidFailure.providerProof.attachmentUploadProof?.mutationSent, true);
+  assert.deepEqual(schemaValidFailure.providerProof.uploadedFiles, [],
+    "the exact production failure receipt must remain schema-valid without zero-count provisional files");
 
   await assert.rejects(
     attachApprovedWebChatFilesOnce({
@@ -205,5 +267,5 @@ try {
 }
 
 process.stdout.write("[ACCEPTANCE] AI Input Gateway attachment child uses deterministic names, zero-mutation restart recovery and at most one exact-target batch\n");
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-AI-INPUT-GATEWAY-004-V1", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","summary"], locator: "acceptance:attachment:opaque-grant-proof", observedValue: "staged artifacts and opaque grants retain exact proof" });
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-AI-INPUT-GATEWAY-004-V3", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","summary"], locator: "acceptance:attachment:opaque-grant-proof", observedValue: "normal composer controls stay outside the exact attachment region; staged artifacts and opaque grants retain exact proof" });
 emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-AI-INPUT-GATEWAY-007-V2", evidenceMode: "exam.golden", clauses: ["forbidden:0","summary"], locator: "acceptance:attachment:approved-input-refs", observedValue: "caller inputRefs bind staged file hashes and one exact-target batch" });

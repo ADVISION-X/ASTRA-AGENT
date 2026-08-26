@@ -83,11 +83,54 @@ const isUnacceptedQueuedOrder = (
 const isInterruptedRecoverableOrder = (
   existing: XuanxueAiOrderRecord,
 ): boolean => existing.status === "running"
-  && existing.stages.some((stage) => stage.status === "recovery_pending")
+  && existing.stages.some((stage) =>
+    stage.status === "running"
+    || stage.status === "waiting_provider"
+    || stage.status === "response_checkpointed"
+    || stage.status === "recovery_pending")
   && existing.stages.every((stage) =>
     stage.status === "queued"
     || stage.status === "completed"
+    || stage.status === "running"
+    || stage.status === "waiting_provider"
+    || stage.status === "response_checkpointed"
     || stage.status === "recovery_pending");
+
+type PersistedTerminalOutcome = Readonly<{
+  status: "failed" | "review_required";
+  reason: string;
+}>;
+
+const persistedTerminalOutcome = (
+  stage: XuanxueAiStageRecord,
+): PersistedTerminalOutcome | null => {
+  const result = stage.aiFeedResult;
+  if (result?.status === "review_required") return {
+    status: "review_required",
+    reason: result.reviewRequiredReason ?? stage.failureReason ?? "provider review required",
+  };
+  if (result?.status === "failed") return {
+    status: "failed",
+    reason: result.failureReason ?? stage.failureReason ?? "provider execution failed",
+  };
+  const proof = stage.attachmentUploadProof;
+  const proofReason = proof?.reviewRequiredReason
+    ?? proof?.failureReason
+    ?? stage.failureReason;
+  if (proof?.status === "review_required") return {
+    status: "review_required",
+    reason: proofReason ?? "provider attachment review required",
+  };
+  if (proof?.status === "failed") return {
+    status: "failed",
+    reason: proofReason ?? "provider attachment failed",
+  };
+  if (/\bBROWSER_OUTCOME_UNKNOWN\b/iu.test(proofReason ?? "")) return {
+    status: "review_required",
+    reason: "BROWSER_OUTCOME_UNKNOWN",
+  };
+  return null;
+};
 
 export const readXuanxueAiProductionOrder = (
   database: Database.Database,
@@ -138,26 +181,93 @@ const resolveIdentityCollision = (input: {
     && isInterruptedRecoverableOrder(input.existing);
   if (sameJobRecovery && (input.existing.status === "recovery_pending"
     || interruptedRecovery || unacceptedQueuedRebind)) {
-    const reboundStatus = unacceptedQueuedRebind ? "queued" : "recovery_pending";
+    const recoverableStages = input.existing.stages.filter((stage) =>
+      stage.status === "running"
+      || stage.status === "waiting_provider"
+      || stage.status === "response_checkpointed"
+      || stage.status === "recovery_pending");
+    const terminalChild = recoverableStages
+      .map((stage) => ({ stage, outcome: persistedTerminalOutcome(stage) }))
+      .find((candidate) => candidate.outcome !== null)?.outcome ?? null;
+    const activeStages = interruptedRecovery || terminalChild
+      ? recoverableStages
+      : [];
+    const reboundStatus: XuanxueAiOrderStatus = unacceptedQueuedRebind
+      ? "queued"
+      : terminalChild
+        ? terminalChild.status
+        : "recovery_pending";
+    const terminalReason = terminalChild?.reason ?? null;
     input.database.transaction(() => {
       input.database.prepare(`
         update production_orders
         set order_json=?,status=?,result_json=null,
-            failure_reason=null,updated_at=?
+            failure_reason=?,updated_at=?
         where order_id=? and status=?
       `).run(
         JSON.stringify(input.incoming),
         reboundStatus,
+        terminalReason,
         incomingCloud.serverNow,
         input.existing.order.orderId,
         input.existing.status,
       );
+      const updateStage = input.database.prepare(`
+        update production_stages
+        set status=?,stage_json=?,updated_at=?
+        where order_id=? and stage_id=? and status=?
+      `);
+      for (const stage of activeStages) {
+        const stageOutcome = persistedTerminalOutcome(stage);
+        const nextStatus: XuanxueAiStageStatus = stageOutcome?.status ?? "recovery_pending";
+        const recoveredStage: XuanxueAiStageRecord = {
+          ...stage,
+          status: nextStatus,
+          progressPhase: stageOutcome ? "terminal" : "recovery_pending",
+          failureReason: stageOutcome?.reason ?? stage.failureReason,
+          updatedAt: incomingCloud.serverNow,
+        };
+        const changed = updateStage.run(
+          nextStatus,
+          JSON.stringify(recoveredStage),
+          incomingCloud.serverNow,
+          input.existing.order.orderId,
+          stage.stageId,
+          stage.status,
+        );
+        if (changed.changes !== 1) {
+          throw new Error("XUANXUE_AI_PRODUCTION_INTERRUPTED_STAGE_CONFLICT");
+        }
+        appendXuanxueAiProductionEvent(input.database, {
+          orderId: input.existing.order.orderId,
+          stageId: stage.stageId,
+          eventType: stageOutcome
+            ? /\bBROWSER_OUTCOME_UNKNOWN\b/iu.test(stageOutcome.reason)
+              ? "stage_outcome_unknown_terminalized"
+              : "stage_child_terminal_promoted"
+            : "stage_process_interruption_recovered",
+          fromStatus: stage.status,
+          toStatus: nextStatus,
+          detail: {
+            reason: stageOutcome?.reason ?? null,
+            browserMutationCount: 0,
+            policy: stageOutcome
+              ? "promote_persisted_child_terminal"
+              : "resume_original_stage_checkpoint",
+          },
+          createdAt: incomingCloud.serverNow,
+        });
+      }
       appendXuanxueAiProductionEvent(input.database, {
         orderId: input.existing.order.orderId,
         stageId: null,
         eventType: unacceptedQueuedRebind
           ? "cloud_unaccepted_lease_rebound"
-          : "cloud_execution_identity_rebound",
+          : terminalChild
+            ? /\bBROWSER_OUTCOME_UNKNOWN\b/iu.test(terminalChild.reason)
+              ? "cloud_outcome_unknown_terminalized"
+              : "cloud_child_terminal_promoted"
+            : "cloud_execution_identity_rebound",
         fromStatus: input.existing.status,
         toStatus: reboundStatus,
         detail: {
@@ -168,7 +278,9 @@ const resolveIdentityCollision = (input: {
           executionFenceHash: incomingCloud.executionFenceHash,
           evidencePolicy: unacceptedQueuedRebind
             ? "replace_only_unaccepted_queued_attempt"
-            : "preserve_same_order_stages_events_and_results",
+            : terminalChild
+              ? "rebind_identity_then_promote_child_terminal_without_browser_mutation"
+              : "rebind_identity_then_resume_original_stage_checkpoint",
         },
         createdAt: incomingCloud.serverNow,
       });

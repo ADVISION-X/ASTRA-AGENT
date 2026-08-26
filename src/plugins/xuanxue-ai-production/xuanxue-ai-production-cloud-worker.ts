@@ -26,7 +26,8 @@ import type { XuanxueAiExecutionDeadlineBudget } from "./xuanxue-ai-production.r
 import { XuanxueAiProductionWorkerSessionV6, type XuanxueAiProductionRuntimeStateV6 } from "./xuanxue-ai-production-worker-session.js";
 import type { CloudExecutionGrantV6 } from "./xuanxue-ai-production-runtime-protocol.js";
 import {
-  cloudWorkerPollIntervalMs, isRecoverableCloudWorkerFailure,
+  classifyXuanxueAiProductionExecutionFailure, cloudWorkerPollIntervalMs,
+  isRecoverableCloudWorkerFailure,
   reportCloudWorkerError, safeWorkerReason, waitForCloudWorker,
 } from "./xuanxue-ai-production-cloud-worker-support.js";
 import { markWorkerError, markWorkerReady, publishHealth } from "./xuanxue-ai-production-cloud-worker-health.js";
@@ -261,7 +262,8 @@ const reportCloudJobFailure = async (
   context: CloudJobExecutionContext,
   error: unknown,
 ): Promise<void> => {
-  const recoverable = isRecoverableCloudWorkerFailure(error);
+  const status = classifyXuanxueAiProductionExecutionFailure(error);
+  const recoverable = status === "recovery_pending";
   if (!context.accepted) {
     reportCloudWorkerError("XUANXUE_AI_PRODUCTION_ACCEPT_REJECTED", error);
     await releaseXuanxueAiProductionLease(
@@ -274,19 +276,25 @@ const reportCloudJobFailure = async (
     if (context.localOrderId) {
       state.execution.markAcceptedFailure(
         context.localOrderId,
-        recoverable ? "recovery_pending" : "failed",
+        status,
         reason,
       );
     }
     reportCloudWorkerError(
-      recoverable
+      status === "recovery_pending"
         ? "XUANXUE_AI_PRODUCTION_EXECUTION_RECOVERY_PENDING"
-        : "XUANXUE_AI_PRODUCTION_EXECUTION_FAILED",
+        : status === "review_required"
+          ? "XUANXUE_AI_PRODUCTION_EXECUTION_REVIEW_REQUIRED"
+          : "XUANXUE_AI_PRODUCTION_EXECUTION_FAILED",
       error,
     );
     await failXuanxueAiProductionJob(state.session, state.outbox, job, {
-      status: recoverable ? "recovery_pending" : "failed",
-      code: recoverable ? "XUANXUE_AI_PRODUCTION_CLOUD_TRANSIENT" : "XUANXUE_AI_PRODUCTION_CLOUD_FAILED",
+      status,
+      code: status === "recovery_pending"
+        ? "XUANXUE_AI_PRODUCTION_CLOUD_TRANSIENT"
+        : status === "review_required"
+          ? "XUANXUE_AI_PRODUCTION_CLOUD_REVIEW_REQUIRED"
+          : "XUANXUE_AI_PRODUCTION_CLOUD_FAILED",
       reason, recoverable,
       ...(context.localOrderId ? { localOrderId: context.localOrderId } : {}),
     });

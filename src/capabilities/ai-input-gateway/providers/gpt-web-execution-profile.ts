@@ -42,6 +42,10 @@ type SelectionObservation = Readonly<{
   selected: boolean;
 }>;
 
+type OpenSubmenuSelection = SelectionObservation & Readonly<{
+  exactChoiceText: string;
+}>;
+
 type ProfileSurfaceNode = Readonly<{
   tagName: string;
   role: string;
@@ -266,7 +270,7 @@ const readOpenSubmenuSelection = (
   surface: ProfileSurface,
   parentCode: "MODEL" | "REASONING",
   expectedValue: string,
-): SelectionObservation | null => {
+): OpenSubmenuSelection | null => {
   const choices = surface.nodes.filter((node) => node.role === "menuitemradio");
   if (choices.length < 1) return null;
   const expected = choices.filter((node) => text(node.text) === text(expectedValue));
@@ -278,7 +282,11 @@ const readOpenSubmenuSelection = (
     throw new Error(`review_required: GPT_WEB_EXECUTION_PROFILE_${parentCode}_AMBIGUOUS`);
   }
   if (selected.length === 0) return null;
-  return { candidateCount: choices.length, selected: selected[0] === expected[0] };
+  return {
+    candidateCount: choices.length,
+    selected: selected[0] === expected[0],
+    exactChoiceText: expected[0]!.text,
+  };
 };
 
 const readProfileSummary = (
@@ -316,7 +324,7 @@ const openExactProfileSubmenu = async (
   parentCode: "MODEL" | "REASONING",
   parentLabel: string,
   expectedValue: string,
-): Promise<SelectionObservation> => runAtomicProfileMutation({
+): Promise<OpenSubmenuSelection> => runAtomicProfileMutation({
   execution: input,
   selector: PROFILE_SUBMENU_SELECTOR,
   expectedText: { contains: parentLabel },
@@ -345,7 +353,7 @@ const selectExactProfileValue = async (
   await runAtomicProfileMutation({
     execution: input,
     selector: PROFILE_CHOICE_SELECTOR,
-    expectedText: { equals: expectedValue },
+    expectedText: { equals: menuState.exactChoiceText },
     semantics: ["profile-choice", parentCode, expectedValue, "menu-closed=true"],
     failureCode: `GPT_WEB_EXECUTION_PROFILE_${parentCode}_SELECTION_NOT_COMMITTED`,
     observePostcondition: async () => {

@@ -279,6 +279,17 @@ const inspectCloud = (
       "BROWSER_LIVENESS_EXPIRED",
       "BROWSER_SESSION_WORKSPACE_REQUIRED",
       "BROWSER_SESSION_WORKSPACE_REVOKED",
+      "classifyXuanxueAiProductionExecutionFailure",
+      "order_execution_review_required",
+      "stage_execution_exception_terminal",
+      "terminalUnknownMutation",
+      "isInterruptedRecoverableOrder",
+      "persistedTerminalOutcome",
+      "stage_process_interruption_recovered",
+      "stage_child_terminal_promoted",
+      "cloud_child_terminal_promoted",
+      "stage_outcome_unknown_terminalized",
+      "cloud_outcome_unknown_terminalized",
     ],
   });
   requireValues(findings, {
@@ -292,11 +303,11 @@ const inspectCloud = (
 };
 
 const resolveLaws = (context: InspectorContext): Laws => ({
-  boundary: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V12"),
-  durability: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V12"),
-  cloud: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V12"),
-  controlIntent: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V12"),
-  transient: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V12"),
+  boundary: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V14"),
+  durability: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V14"),
+  cloud: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V14"),
+  controlIntent: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V14"),
+  transient: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V14"),
 });
 
 const collectDomainSources = (
@@ -374,7 +385,7 @@ const inspectDomainEvaluation = async (
     .map((filePath) => context.project.getSourceFile(resolveFromRepo(filePath)))
     .filter((file): file is SourceFile => file !== undefined);
   inspectDomainPolicy(context, findings, laws, sources, values, collectXuanxueSourceValues(terminalMetaphysicsProfileSources));
-  const lawId = "LAW-XUANXUE-AI-PRODUCTION-001-V12";
+  const lawId = "LAW-XUANXUE-AI-PRODUCTION-001-V14";
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
@@ -389,7 +400,7 @@ export const inspectDomain = async (
   context: InspectorContext,
 ): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
-  const lawId = "LAW-XUANXUE-AI-PRODUCTION-001-V12";
+  const lawId = "LAW-XUANXUE-AI-PRODUCTION-001-V14";
   const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,

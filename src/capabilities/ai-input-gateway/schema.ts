@@ -293,6 +293,7 @@ const AiFeedProviderProofIdentitySchema = z.object({
     transportKind: z.enum(["skipped", "exact_target_file_input_batch"]),
     expectedFileCount: z.number().int().nonnegative(),
     detectedFileCount: z.number().int().nonnegative(),
+    mutationSent: z.boolean(),
     stagingManifestHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u).nullable(),
     files: z.array(z.object({
       inputRefId: z.string().min(1),

@@ -12,6 +12,7 @@ import {
   type XuanxueAiProductionRuntime,
 } from "../../src/plugins/xuanxue-ai-production/index.js";
 import { assertXuanxueAiProductionV6DeadlineBudget } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.js";
+import { classifyXuanxueAiProductionExecutionFailure } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker-support.js";
 import { CloudExecutionGrantV6Schema } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-runtime-protocol.js";
 import { runXuanxueAdmissionInspectorAttacks } from "./xuanxue-ai-production-admission-inspector.attacks.js";
 import { FixtureGateway, order } from "./xuanxue-ai-production-fixture.js";
@@ -59,6 +60,18 @@ const grant = CloudExecutionGrantV6Schema.parse({
 });
 assert.doesNotThrow(() => assertXuanxueAiProductionV6DeadlineBudget(grant, 1_000));
 assert.throws(() => assertXuanxueAiProductionV6DeadlineBudget(grant, 25_001), /V6_DEADLINE_BUDGET_EXHAUSTED/u);
+assert.equal(
+  classifyXuanxueAiProductionExecutionFailure(new Error("BROWSER_OUTCOME_UNKNOWN")),
+  "review_required",
+);
+assert.equal(
+  classifyXuanxueAiProductionExecutionFailure(new Error("BROWSER_TARGET_INVALID")),
+  "recovery_pending",
+);
+assert.equal(
+  classifyXuanxueAiProductionExecutionFailure(new Error("XUANXUE_AI_PRODUCTION_INTERNAL_DEFECT")),
+  "failed",
+);
 
 const source = await readFile(path.resolve("src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts"), "utf8");
 assert.doesNotMatch(source, /xuanxue-ai-production-v5|compat|fallback|dual.write|shadow/iu);
@@ -76,6 +89,10 @@ assert.match(
 );
 assert.match(source, /browserActionInFlight/u);
 const flowSource = await readFile(path.resolve("src/plugins/xuanxue-ai-production/xuanxue-ai-production.flow.ts"), "utf8");
+const schedulerSource = await readFile(path.resolve("src/plugins/xuanxue-ai-production/xuanxue-ai-production.scheduler.ts"), "utf8");
+assert.match(schedulerSource, /classifyXuanxueAiProductionExecutionFailure/u);
+assert.match(schedulerSource, /order_execution_review_required/u);
+assert.doesNotMatch(schedulerSource, /status:\s*"recovery_pending",\s*failureReason:\s*reason\.slice/iu);
 assert.match(flowSource, /proof\.status === "review_required"/u);
 assert.match(flowSource, /const uploadedFiles = stage\.aiFeedResult\?\.providerProof\.uploadedFiles \?\? \[\]/u);
 assert.match(flowSource, /BROWSER_OUTCOME_UNKNOWN/u);
@@ -164,9 +181,9 @@ try {
   assert.equal(rebound.order.cloudExecutionIdentity?.leaseVersion, 2);
   const interruptedStage = runtime.store.updateStage({
     ...rebound.stages[0]!,
-    status: "recovery_pending",
-    progressPhase: "recovery_pending",
-    failureReason: "fixture pre-mutation interruption",
+    status: "running",
+    progressPhase: "submitting",
+    failureReason: null,
     updatedAt: "2026-08-26T00:03:31.000Z",
   }, "fixture_pre_mutation_interrupted");
   runtime.store.updateOrder({
@@ -190,6 +207,103 @@ try {
   assert.equal(recoveredRunningOrder.status, "recovery_pending");
   assert.equal(recoveredRunningOrder.order.cloudExecutionIdentity?.attemptId, "attempt-unaccepted-3");
   assert.equal(recoveredRunningOrder.stages[0]?.status, "recovery_pending");
+
+  const childTerminalOrder = order(
+    "aiprod_child_terminal_crash",
+    "localization_static_review_candidate",
+    ["candidate_a"],
+    "candidate_a",
+  );
+  childTerminalOrder.cloudExecutionIdentity = {
+    jobId: childTerminalOrder.orderId,
+    attemptId: "attempt-child-terminal-1",
+    requiredDeviceId: "aipdev_fixture",
+    leaseVersion: 1,
+    executionFenceHash: `sha256:${"5".repeat(64)}`,
+    contractManifestHash: XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
+    serverNow: "2026-08-26T00:08:00.000Z",
+    leaseExpiresAt: "2026-08-26T00:09:30.000Z",
+  };
+  const childTerminalCreated = createXuanxueAiProductionOrder(runtime, childTerminalOrder);
+  const childTerminalStage = runtime.store.updateStage({
+    ...childTerminalCreated.stages[0]!,
+    status: "running",
+    progressPhase: "submitting",
+    attachmentUploadProof: {
+      childCapabilityId: "attach-approved-web-chat-files-once",
+      uploadAttemptId: "attachment-child-terminal-crash",
+      transportKind: "exact_target_file_input_batch",
+      expectedFileCount: 1,
+      detectedFileCount: 0,
+      mutationSent: true,
+      stagingManifestHash: `sha256:${"6".repeat(64)}`,
+      files: [{
+        inputRefId: "fixture-input",
+        order: 1,
+        sourceFileName: "fixture.json",
+        displayFileName: "001_fixture.json",
+        sha256: `sha256:${"7".repeat(64)}`,
+        byteCount: 10,
+      }],
+      startedAt: "2026-08-26T00:08:01.000Z",
+      endedAt: "2026-08-26T00:08:02.000Z",
+      status: "review_required",
+      failureReason: null,
+      reviewRequiredReason: "CHATGPT_ATTACHMENT_SET_AMBIGUOUS",
+    },
+    updatedAt: "2026-08-26T00:08:02.000Z",
+  }, "fixture_child_terminal_before_process_crash");
+  runtime.store.updateOrder({
+    orderId: childTerminalCreated.order.orderId,
+    status: "running",
+    failureReason: null,
+    updatedAt: childTerminalStage.updatedAt,
+    eventType: "fixture_process_crashed_after_child_terminal",
+  });
+  const childTerminalRecovered = createXuanxueAiProductionOrder(runtime, {
+    ...childTerminalOrder,
+    cloudExecutionIdentity: {
+      ...childTerminalOrder.cloudExecutionIdentity,
+      attemptId: "attempt-child-terminal-2",
+      leaseVersion: 2,
+      executionFenceHash: `sha256:${"8".repeat(64)}`,
+      serverNow: "2026-08-26T00:10:00.000Z",
+      leaseExpiresAt: "2026-08-26T00:11:30.000Z",
+    },
+  });
+  assert.equal(childTerminalRecovered.status, "review_required");
+  assert.equal(childTerminalRecovered.stages[0]?.status, "review_required");
+  assert.equal(childTerminalRecovered.stages[0]?.failureReason, "CHATGPT_ATTACHMENT_SET_AMBIGUOUS");
+  assert.equal(childTerminalRecovered.order.cloudExecutionIdentity?.attemptId, "attempt-child-terminal-2");
+  const outcomeUnknownStage = runtime.store.updateStage({
+    ...recoveredRunningOrder.stages[0]!,
+    status: "recovery_pending",
+    progressPhase: "recovery_pending",
+    failureReason: "BROWSER_OUTCOME_UNKNOWN",
+    updatedAt: "2026-08-26T00:05:31.000Z",
+  }, "fixture_outcome_unknown_pollution");
+  runtime.store.updateOrder({
+    orderId: recoveredRunningOrder.order.orderId,
+    status: "recovery_pending",
+    failureReason: "BROWSER_OUTCOME_UNKNOWN",
+    updatedAt: outcomeUnknownStage.updatedAt,
+    eventType: "fixture_outcome_unknown_pollution",
+  });
+  const terminalizedUnknown = createXuanxueAiProductionOrder(runtime, {
+    ...recoveredRunningOrder.order,
+    cloudExecutionIdentity: {
+      ...recoveredRunningOrder.order.cloudExecutionIdentity!,
+      attemptId: "attempt-unaccepted-4",
+      leaseVersion: 4,
+      executionFenceHash: `sha256:${"4".repeat(64)}`,
+      serverNow: "2026-08-26T00:06:00.000Z",
+      leaseExpiresAt: "2026-08-26T00:07:30.000Z",
+    },
+  });
+  assert.equal(terminalizedUnknown.status, "review_required");
+  assert.equal(terminalizedUnknown.failureReason, "BROWSER_OUTCOME_UNKNOWN");
+  assert.equal(terminalizedUnknown.stages[0]?.status, "review_required");
+  assert.equal(terminalizedUnknown.stages[0]?.failureReason, "BROWSER_OUTCOME_UNKNOWN");
   const { hehun, qimenFollowupParent, qimenFollowupParentFinal } =
     await acceptXuanxueOrderGraphs({ runtime, gateway });
   await acceptXuanxueAiProductionSurface({ runtime, gateway });

@@ -169,6 +169,7 @@ const completeSkippedAttempt = async (
     transportKind: "skipped",
     expectedFileCount: 0,
     detectedFileCount: 0,
+    mutationSent: false,
     stagingManifestHash: null,
     files: [],
     startedAt: state.startedAt,
@@ -204,18 +205,10 @@ const performAttachmentTransport = async (
   );
   if (prepared.status === "success" && prepared.pageUrl) {
     state.expectedPageUrl = prepared.pageUrl;
-    state.transportResult = {
-      transportKind: "exact_target_file_input_batch",
-      uploadedFiles: staged.files.map((file) => ({
-        inputRefId: file.inputRefId,
-        step: file.order,
-        fileName: file.displayFileName,
-        sha256: file.sha256,
-        byteCount: file.byteCount,
-        expectedAttachmentCount: staged.files.length,
-        detectedAttachmentCount: staged.files.length,
-      })),
-      detectedFileCount: staged.files.length,
+      state.transportResult = {
+        transportKind: "exact_target_file_input_batch",
+        mutationSent: false,
+        detectedFileCount: staged.files.length,
     };
     return staged.files.length;
   }
@@ -255,6 +248,7 @@ const completeSuccessfulAttempt = async (
     transportKind: state.transportResult.transportKind,
     expectedFileCount: state.files.length,
     detectedFileCount,
+    mutationSent: state.transportResult.mutationSent,
     stagingManifestHash: state.stagingManifestHash,
     files: toProofFiles(state.files),
     startedAt: state.startedAt,
@@ -265,8 +259,13 @@ const completeSuccessfulAttempt = async (
   };
   await input.context.onAttachmentUploadCompleted?.(attachmentUploadProof);
   return {
-    uploadedFiles: state.transportResult.uploadedFiles.map((file) => ({
-      ...file,
+    uploadedFiles: state.files.map((file) => ({
+      inputRefId: file.inputRefId,
+      step: file.order,
+      fileName: file.displayFileName,
+      sha256: file.sha256,
+      byteCount: file.byteCount,
+      expectedAttachmentCount: state.files.length,
       detectedAttachmentCount: detectedFileCount,
     })),
     attachmentUploadProof,
@@ -286,6 +285,8 @@ const failAttachmentAttempt = async (
     transportKind: state.transportKind,
     expectedFileCount: state.expectedFileCount,
     detectedFileCount: state.transportResult?.detectedFileCount ?? 0,
+    mutationSent: state.transportResult?.mutationSent === true
+      || /\bBROWSER_OUTCOME_UNKNOWN\b/iu.test(message),
     stagingManifestHash: state.stagingManifestHash,
     files: toProofFiles(state.files),
     startedAt: state.startedAt,
@@ -298,7 +299,6 @@ const failAttachmentAttempt = async (
   throw new WebChatAttachmentCapabilityFailure(
     message,
     attachmentUploadProof,
-    state.transportResult?.uploadedFiles ?? [],
   );
 };
 

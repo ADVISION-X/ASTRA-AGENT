@@ -3,7 +3,7 @@
   "capabilityDomain": "xuanxue-ai-production",
   "status": "active",
   "lawIds": [
-    "LAW-XUANXUE-AI-PRODUCTION-001-V12"
+    "LAW-XUANXUE-AI-PRODUCTION-001-V14"
   ],
   "ownedPaths": [
     "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",

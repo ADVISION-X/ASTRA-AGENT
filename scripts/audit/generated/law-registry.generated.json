@@ -6,8 +6,8 @@
         "LAW-AI-INPUT-GATEWAY-001-V1",
         "LAW-AI-INPUT-GATEWAY-002-V3",
         "LAW-AI-INPUT-GATEWAY-003-V1",
-        "LAW-AI-INPUT-GATEWAY-004-V1",
-        "LAW-AI-INPUT-GATEWAY-005-V4",
+        "LAW-AI-INPUT-GATEWAY-004-V3",
+        "LAW-AI-INPUT-GATEWAY-005-V5",
         "LAW-AI-INPUT-GATEWAY-006-V2",
         "LAW-AI-INPUT-GATEWAY-007-V2"
       ],
@@ -249,7 +249,7 @@
     {
       "capabilityDomain": "xuanxue-ai-production",
       "lawIds": [
-        "LAW-XUANXUE-AI-PRODUCTION-001-V12"
+        "LAW-XUANXUE-AI-PRODUCTION-001-V14"
       ],
       "manifestPath": "scripts/audit/domains/xuanxue-ai-production/manifest.json",
       "observedPaths": [
@@ -436,9 +436,9 @@
         "不得发生：count-only success without exact names and composer scope，或把相同附件集合重复观察固定轮数伪装成新的完成证据",
         "不得发生：per-file progress that falsely represents a native batch selection as independently completed uploads",
         "不得发生：prompt submission before attachments_stable",
-        "不得发生：让 AI Input Gateway 的可见附件 precondition 重复检验 Browser Authority 私有的隐藏 `#upload-files` mutation target，或把 document-global form、上传前可能不存在的 send button、删除按钮文案或删除按钮数量纳入上传许可；也不得把确定性表面合同不匹配压缩成通用 BROWSER_TARGET_INVALID 并当作瞬时故障重跑整个 Stage。附件展示名必须由不可变输入确定；同一空 composer 表面只允许一次 exact-target batch mutation，mutation 后只允许一份直接精确文件名快照结算，不得固定轮询。进程中断后若同一可见表面已含全部确定性精确文件名，只能零 mutation 补齐附件 proof；部分、额外或不明集合必须失败关闭。只有明确的 Target/Document/channel 失效才可 recovery_pending；尚未执行 attachment mutation 且页面仍为空的真实可恢复 failure 必须让原 job 重进同一 Stage，已发送 mutation、存在 uploadedFiles 或 BROWSER_OUTCOME_UNKNOWN 不得重放"
+        "不得发生：让 AI Input Gateway 的可见附件 precondition 重复检验 Browser Authority 私有的隐藏 `#upload-files` mutation target，或把 document-global form、composer form 的整段控件文字/长度、上传前可能不存在的 send button、删除按钮文案或删除按钮数量纳入上传许可；正常的添加文件、模型档位、听写和语音控件不得被冒充为未知附件。也不得把确定性表面合同不匹配压缩成通用 BROWSER_TARGET_INVALID 并当作瞬时故障重跑整个 Stage。附件展示名必须由不可变输入确定；同一空 composer 表面只允许一次 exact-target batch mutation，mutation 后只允许一份真实可见 attachment region 的直接精确文件名快照结算，不得固定轮询。进程中断后若同一可见 attachment region 已含全部且仅有确定性精确文件名，只能零 mutation 补齐附件 proof；部分、额外或不明集合必须失败关闭。只有明确的 Target/Document/channel 失效才可 recovery_pending；尚未执行 attachment mutation 且页面仍为空的真实可恢复 failure 必须让原 job 重进同一 Stage，已发送 mutation、存在 uploadedFiles 或 BROWSER_OUTCOME_UNKNOWN 不得重放。uploadedFiles 只允许保存 attachments_stable 后由同一可见后置条件确认且 detectedAttachmentCount 为正数的文件；mutation 是否已发送只由同一 attachmentUploadProof.mutationSent 表示。失败回执不得携带 detectedAttachmentCount=0 的伪 uploadedFiles，也不得因失败回执自身 schema 无效而打崩诊断 Shell"
       ],
-      "lawId": "LAW-AI-INPUT-GATEWAY-004-V1",
+      "lawId": "LAW-AI-INPUT-GATEWAY-004-V3",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 146,
@@ -446,8 +446,8 @@
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须保持以下不变量：Every attachment attempt uses one isolated verified staging set with immutable-input-derived display names, one visible empty-composer/attachment-surface decision, at most one Browser Authority-owned exact-target batch mutation and one direct visible exact-name postcondition before prompt submission. A restart may only recognize the same complete deterministic visible file set and persist proof with zero mutation; partial, extra or unknown sets fail closed. The hidden `#upload-files` target is resolved only inside that atomic Browser mutation, never as upper-layer action permission; delete-button denominators, duplicate preflights, global form/send denominators, catch-all Stage replay and polling ceremonies are forbidden. Only explicit Target/Document/channel loss is recoverable; a sent or outcome-unknown mutation is never replayed.",
-      "supersedesLawId": null,
+      "summary": "必须保持以下不变量：Every attachment attempt uses one isolated verified staging set with immutable-input-derived display names, one visible empty-composer/real-attachment-region decision, at most one Browser Authority-owned exact-target batch mutation and one direct visible exact-name postcondition before prompt submission. uploadedFiles is terminal positive evidence only; attachmentUploadProof.mutationSent is the sole sent-mutation fact, including failure paths, so no provisional zero-detection file can enter a provider result. A restart may only recognize the same complete deterministic visible file set and persist proof with zero mutation; partial, extra or unknown sets fail closed. The hidden `#upload-files` target is resolved only inside that atomic Browser mutation, never as upper-layer action permission；composer form 的正常控件文字不是附件证据；delete-button denominators, duplicate preflights, global form/send denominators, catch-all Stage replay and polling ceremonies are forbidden. Only explicit Target/Document/channel loss is recoverable; a sent or outcome-unknown mutation is never replayed.",
+      "supersedesLawId": "LAW-AI-INPUT-GATEWAY-004-V2",
       "tier": "P0"
     },
     {
@@ -473,6 +473,7 @@
         "不得发生：binding or routing a transient /c/WEB: URL as a canonical conversation",
         "不得发生：same-origin tab fallback, active/front/first tab selection, foreground-window dependence or offscreen blind click",
         "不得发生：in-memory-only submission priority, unordered submission or patrol races, preserving a dead-process waiter without a current eligible Cloud grant, or releasing a live current-grant submission ticket before checkpoint or terminal proof",
+        "不得发生：把已死亡进程遗留的唯一 browser mutation lock 持续报告为 blocked，或要求先领取 Cloud job、人工删锁、重建运行身份或启动第二恢复链后才清理；读取 mutation lane 时必须先复核现有锁 Owner，死亡 Owner 的锁目录必须由唯一 lease Owner 就地物理删除并立即恢复 idle，存活 Owner 仍只报告 busy",
         "不得发生：fixed reasoning-slider indexes, coordinate-to-reasoning arithmetic, model fallback, reasoning downgrade, caller split model/reasoning controls after production admission, or profile proof that does not match the hashed semantic profile",
         "不得发生：caller-supplied chat title, title text derived from prompt/user/report content, machine title used as primary identity, title search used as final route proof, rename debt worker, periodic title housekeeping or a second title owner",
         "不得发生：publishing a title-managed production GPT checkpoint before exact profile/title proof exists",
@@ -482,16 +483,16 @@
         "不得发生：a failed execution state without durable phase/classification/recoverability/reason evidence",
         "不得发生：reopening any legacy technical failure that has any submission, upload, page-action, UNKNOWN mutation, checkpoint or output proof"
       ],
-      "lawId": "LAW-AI-INPUT-GATEWAY-005-V4",
+      "lawId": "LAW-AI-INPUT-GATEWAY-005-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 189,
+        "lineEnd": 190,
         "lineStart": 148,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须保持以下不变量：GPT Web uses one Session Controller to bind task identity, semantic execution profile, exact conversation topology, bounded page actions and compulsory privacy-safe title finalization without making titles a routing identity.",
-      "supersedesLawId": "LAW-AI-INPUT-GATEWAY-005-V3",
+      "summary": "必须保持以下不变量：GPT Web uses one Session Controller to bind task identity, semantic execution profile, exact conversation topology, bounded page actions and compulsory privacy-safe title finalization without making titles a routing identity；唯一 browser mutation lock 的存活 Owner 才能形成 busy，死亡 Owner 的残留锁在 lane 状态读取时就地物理删除并恢复 idle，不得形成重启后的人工解锁死循环。",
+      "supersedesLawId": "LAW-AI-INPUT-GATEWAY-005-V4",
       "tier": "P0"
     },
     {
@@ -514,8 +515,8 @@
       "lawId": "LAW-AI-INPUT-GATEWAY-006-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 217,
-        "lineStart": 191,
+        "lineEnd": 218,
+        "lineStart": 192,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -543,8 +544,8 @@
       "lawId": "LAW-AI-INPUT-GATEWAY-007-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 245,
-        "lineStart": 219,
+        "lineEnd": 246,
+        "lineStart": 220,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -580,8 +581,8 @@
       "lawId": "LAW-APP-SHELL-UI-001-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 283,
-        "lineStart": 249,
+        "lineEnd": 284,
+        "lineStart": 250,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -612,8 +613,8 @@
       "lawId": "LAW-APP-SHELL-UI-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 314,
-        "lineStart": 285,
+        "lineEnd": 315,
+        "lineStart": 286,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -646,8 +647,8 @@
       "lawId": "LAW-APP-SHELL-UI-003-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 347,
-        "lineStart": 316,
+        "lineEnd": 348,
+        "lineStart": 317,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -683,8 +684,8 @@
       "lawId": "LAW-ARCHITECTURE-BOUNDARY-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 385,
-        "lineStart": 351,
+        "lineEnd": 386,
+        "lineStart": 352,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -723,8 +724,8 @@
       "lawId": "LAW-CAPABILITY-GOVERNANCE-001-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 426,
-        "lineStart": 389,
+        "lineEnd": 427,
+        "lineStart": 390,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -880,8 +881,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 456,
-        "lineStart": 430,
+        "lineEnd": 457,
+        "lineStart": 431,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -910,8 +911,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 485,
-        "lineStart": 458,
+        "lineEnd": 486,
+        "lineStart": 459,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -939,8 +940,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 513,
-        "lineStart": 487,
+        "lineEnd": 514,
+        "lineStart": 488,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -982,8 +983,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-001-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 557,
-        "lineStart": 517,
+        "lineEnd": 558,
+        "lineStart": 518,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1013,8 +1014,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-002-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 587,
-        "lineStart": 559,
+        "lineEnd": 588,
+        "lineStart": 560,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1047,8 +1048,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-003-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 620,
-        "lineStart": 589,
+        "lineEnd": 621,
+        "lineStart": 590,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1085,8 +1086,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 659,
-        "lineStart": 624,
+        "lineEnd": 660,
+        "lineStart": 625,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1129,8 +1130,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-002-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 700,
-        "lineStart": 661,
+        "lineEnd": 701,
+        "lineStart": 662,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1173,8 +1174,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-003-V8",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 741,
-        "lineStart": 702,
+        "lineEnd": 742,
+        "lineStart": 703,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1214,8 +1215,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-004-V9",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 781,
-        "lineStart": 743,
+        "lineEnd": 782,
+        "lineStart": 744,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1251,8 +1252,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-005-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 815,
-        "lineStart": 783,
+        "lineEnd": 816,
+        "lineStart": 784,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1280,8 +1281,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-006-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 843,
-        "lineStart": 817,
+        "lineEnd": 844,
+        "lineStart": 818,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1314,8 +1315,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 878,
-        "lineStart": 847,
+        "lineEnd": 879,
+        "lineStart": 848,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1343,8 +1344,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-002-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 906,
-        "lineStart": 880,
+        "lineEnd": 907,
+        "lineStart": 881,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1372,8 +1373,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-003-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 934,
-        "lineStart": 908,
+        "lineEnd": 935,
+        "lineStart": 909,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1414,8 +1415,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 977,
-        "lineStart": 938,
+        "lineEnd": 978,
+        "lineStart": 939,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1455,8 +1456,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-002-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1015,
-        "lineStart": 979,
+        "lineEnd": 1016,
+        "lineStart": 980,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1492,8 +1493,8 @@
       "lawId": "LAW-SYSTEM-SECURITY-001-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1053,
-        "lineStart": 1019,
+        "lineEnd": 1054,
+        "lineStart": 1020,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1533,8 +1534,8 @@
       "lawId": "LAW-WORKBENCH-API-BOUNDARY-001-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1093,
-        "lineStart": 1057,
+        "lineEnd": 1094,
+        "lineStart": 1058,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1596,7 +1597,7 @@
         "不得发生：service class recovery partition registration order or in-memory ordering bypassing globally oldest eligible work",
         "不得发生：automatic replay of UNKNOWN or replacement job prompt for a recoverable original",
         "不得发生：Cloud 已为原 job 续发 recovery lease，而 Local Order 只 rebound order identity、不让零 mutation 的 recovery_pending Stage 重进执行",
-        "不得发生：同一 job recovery 以 JSON 对象键顺序或 `JSON.stringify` 字节序判断业务身份，导致 PostgreSQL jsonb 合法重排被伪报为 capability drift；必须排除 cloud execution fence 后按结构语义等价鉴权。进程中断后 `Order=running + 非终态 Stage=recovery_pending` 是原 job 的合法精确恢复形态，必须先原子收敛为 Order recovery_pending 再绑定新 fence；不得借此恢复 completed、failed 或 review_required。durable accept 前拒绝还必须在本地保留真实因果码，标准 LeaseRelease 分类不得冒充根因。",
+        "不得发生：同一 job recovery 以 JSON 对象键顺序或 `JSON.stringify` 字节序判断业务身份，导致 PostgreSQL jsonb 合法重排被伪报为 capability drift；必须排除 cloud execution fence 后按结构语义等价鉴权。进程中断可留下 `Order=running + Stage=running|waiting_provider|response_checkpointed|recovery_pending`；网站为同一不可变业务 Order 续发更高 lease version 与新 fence 后，Local 接受事务必须鉴权并收回该唯一活跃 Stage。若 Stage 已持久化 `review_required|failed` 子能力终态回执，必须在零 Browser mutation 下向上结算同一终态；只有没有终态子回执的活跃 Stage 才收敛为 recovery_pending 并沿原 execution/checkpoint 恢复。不得清空终态子回执后重放，也不得借此恢复 completed、failed 或 review_required Order/Stage。durable accept 前拒绝还必须在本地保留真实因果码，标准 LeaseRelease 分类不得冒充根因。",
         "不得发生：alias default normalization compatibility fallback shadow bridge dual reader or dual writer",
         "不得发生：stale foreign or caller-minted Chrome Provider candidate receipt",
         "不得发生：provider commit/hash、provider contract bytes、产品 bundle 或 generated projection 固定在 consumer 仓库、长期 device credential、session 或 runtime attestation；AGENT-owned Product Execution canonical source、cross-job graph、business verdict、handwritten product map、successor Cloud Job 或 runtime Stage improvisation；或 Cloud grant、local order、checkpoint、terminal 与 result 的 product_contract_hash 身份不一致",
@@ -1605,18 +1606,19 @@
         "不得发生：把 AGENT 部署到网站服务器或纳入网站、PostgreSQL、systemd 的部署与进程所有权；当前同一台 Mac 只代表网络同机，不改变 AGENT 独立执行端身份",
         "不得发生：renew 瞬时网络失败立即 terminal，或已确认 lease/fence 丢失后孤儿 execution 继续 Browser/Provider/Cloud mutation；每 job 必须由同一结构化生命周期拥有 renew、abort、settle 与 active cleanup",
         "不得发生：production_cloud_claim_ledger 重复保存 grant truth，或 production_interventions/Workbench pause-cancel-takeover-resume 复制网站 ControlIntentV6 状态机",
-        "不得发生：以删减字段的本地 renew/control response schema、strip、adapter、fallback 或兼容 parser 替代网站完整 LeaseRenewV6 receipt 与 ControlIntentV6；顶层及内层 schema_version、同一 job_id 和全部现役字段必须严格同形消费"
+        "不得发生：以删减字段的本地 renew/control response schema、strip、adapter、fallback 或兼容 parser 替代网站完整 LeaseRenewV6 receipt 与 ControlIntentV6；顶层及内层 schema_version、同一 job_id 和全部现役字段必须严格同形消费",
+        "不得发生：AI Input Gateway 已将 BROWSER_OUTCOME_UNKNOWN 或其他不可重放结果裁决为 review_required 后，Stage 出口、Scheduler、Cloud Worker 或 Publication 再次抛出、压缩或降级为 recovery_pending；执行异常只能按唯一因果裁决为 recovery_pending、review_required 或 failed，未列入瞬时恢复白名单的内部异常必须失败关闭，永久缺陷不得排队重跑。历史遗留的 recovery_pending Order 或 Stage 一旦携带 BROWSER_OUTCOME_UNKNOWN，只能在下一份同 Job 合法 lease 下零 Browser mutation 收敛为 review_required 并回写 Cloud terminal，不得恢复执行"
       ],
-      "lawId": "LAW-XUANXUE-AI-PRODUCTION-001-V12",
+      "lawId": "LAW-XUANXUE-AI-PRODUCTION-001-V14",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1167,
-        "lineStart": 1097,
+        "lineEnd": 1169,
+        "lineStart": 1098,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须让本地 Mac 上唯一 production AGENT 只消费经过鉴权的 immutable Cloud order；每 job 由一个结构化生命周期持有 renew、execution、abort、settle、checkpoint 与 outbox，active job 发送期间后台 flush 不得竞争同一 outbox row；原 job 获 recovery lease 后，零 mutation 的 recoverable Stage 必须在新 fence 下重进，UNKNOWN 或已发送 mutation 不得重放。grant 与 Local Order 同事务持久化，renew 直接严格消费网站完整 LeaseRenewV6 receipt 与 ControlIntentV6，不设删减字段的平行 schema。网站与 PostgreSQL 同机、AGENT 独立，产品合同、跨 Job graph 与业务完成唯一归网站，阻断不得杀死诊断 Shell。",
-      "supersedesLawId": "LAW-XUANXUE-AI-PRODUCTION-001-V11",
+      "summary": "必须让本地 Mac 上唯一 production AGENT 只消费经过鉴权的 immutable Cloud order；每 job 由一个结构化生命周期持有 renew、execution、abort、settle、checkpoint 与 outbox，active job 发送期间后台 flush 不得竞争同一 outbox row；同一不可变 Order 的更高 lease/new fence 必须收回进程中断遗留的唯一活跃 Stage，持久化子能力终态向上结算且绝不重放，只有无终态子回执的零 mutation 白名单瞬时故障才沿原 execution/checkpoint 恢复。UNKNOWN 或已发送 mutation 必须沿唯一状态链落为 review_required 且不得被任何上层降级。grant 与 Local Order 同事务持久化，renew 直接严格消费网站完整 LeaseRenewV6 receipt 与 ControlIntentV6，不设删减字段的平行 schema。网站与 PostgreSQL 同机、AGENT 独立，产品合同、跨 Job graph 与业务完成唯一归网站，阻断不得杀死诊断 Shell。",
+      "supersedesLawId": "LAW-XUANXUE-AI-PRODUCTION-001-V13",
       "tier": "P0"
     },
     {
@@ -1643,8 +1645,8 @@
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1201,
-        "lineStart": 1171,
+        "lineEnd": 1203,
+        "lineStart": 1173,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",

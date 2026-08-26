@@ -20,7 +20,7 @@ export interface XuanxueAiProductionExecutionPort {
   listCloudRecoveryOrders(): XuanxueAiOrderRecord[];
   markAcceptedFailure(
     orderId: string,
-    status: "recovery_pending" | "failed",
+    status: "recovery_pending" | "review_required" | "failed",
     reason: string,
   ): XuanxueAiOrderRecord;
   availableCapacity(): number;

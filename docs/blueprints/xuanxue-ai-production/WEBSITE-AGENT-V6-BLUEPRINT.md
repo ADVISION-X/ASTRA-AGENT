@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "xuanxue-ai-production",
   "lawIds": [
-    "LAW-XUANXUE-AI-PRODUCTION-001-V12"
+    "LAW-XUANXUE-AI-PRODUCTION-001-V14"
   ],
   "contractRefs": [
     "docs/specs/xuanxue-ai-production/product-execution-contract.dependency.spec.json",
@@ -50,7 +50,7 @@
 ```
 
 状态：active V6 terminal
-法案：`LAW-XUANXUE-AI-PRODUCTION-001-V12`
+法案：`LAW-XUANXUE-AI-PRODUCTION-001-V14`、`LAW-AI-INPUT-GATEWAY-005-V5`
 唯一 Local Order Execution Runtime Owner：`xuanxue-ai-production`
 Browser 私有 owner：`local-browser-session`
 ## 接入
@@ -156,15 +156,24 @@ Plugin 固定十个业务席位，Browser mutation 固定一个。所有 `queued
 `created_at + job_id` 全局最早，AGENT 本地按 `created_at + job_id + stage ordinal` 串行进入
 唯一页面窗口。Browser busy 不等于业务 capacity zero。
 
+唯一 browser mutation lock 是进程级互斥，不是持久业务状态。每次读取 lane 状态时先复核锁内 Owner：
+存活 Owner 只报告 `busy`；死亡 Owner 遗留的整个锁目录由现有 lease Owner 就地物理删除，并在同一次读取
+返回 `idle`。不得把死亡 Owner 报成 `blocked` 后等待一份尚未允许领取的 Cloud job 来触发清理，也不得要求
+操作者手工删锁、重建 device/session、增加启动清理器、兼容锁或第二恢复链。格式非法且无法证明归属的锁仍
+失败关闭。
+
 Grant 固定 lease 90 秒、accept-by 30 秒、renew 20 秒指引。Plugin 用 monotonic clock 扣除 RTT；
 accept 剩余不足 5 秒或 lease 剩余不足 30 秒时，在无副作用条件调用 `LeaseReleaseV6`。本地
 grant 与 `localOrderIdentity` 在同一 SQLite transaction 持久化；不得另写 `production_cloud_claim_ledger`。
 原 job recovery 的新 attempt/lease/fence 只替换 `cloudExecutionIdentity`；其余业务 Order 必须按结构语义等价
 鉴权，JSON 对象键顺序不属于身份，禁止用 `JSON.stringify` 字节序比较。durable accept 前拒绝时，本地结构化
 日志保留真实因果码，网站 `LeaseReleaseV6` 的标准 reason 只表示释放分类，不得被解释成根因裁决。
-进程中断留下 `Order=running` 且至少一个非终态 Stage=`recovery_pending`、其余 Stage 仅为 queued/completed
-时，是原 job 的精确恢复形态；新 recovery lease 接受事务先把 Order 收敛为 `recovery_pending` 并替换 fence，
-再由原 Stage 检查点继续。completed/failed/review_required Order 或 Stage 不得从该路径重开。
+进程中断可留下 `Order=running` 且唯一活跃 Stage 为
+`running|waiting_provider|response_checkpointed|recovery_pending`、其余 Stage 为 queued/completed；网站为同一不可变
+业务 Order 续发更高 lease version 与新 fence 后，这是原 job 的精确恢复形态。新 recovery lease 接受事务先鉴权
+业务 Order 结构语义等价并替换 fence：活跃 Stage 若已持久化 `review_required|failed` 子能力终态回执，必须以零
+Browser mutation 原子向上结算同一终态；没有终态子回执时才把 Order/Stage 收敛为 `recovery_pending`，再沿原
+execution/checkpoint 继续。不得清空终态子回执后重放；completed/failed/review_required Order 或 Stage 不得从该路径重开。
 首个 durable checkpoint 即接受，不另建 ACK。每 job 由同一个结构化 lifetime 同时拥有执行与 renew：
 瞬时 renew 网络错误只在 lease safety budget 内重试；确认 lease/fence 丢失后立即禁止新 Browser、Provider
 和 Cloud mutation，abort 并等待原执行 settle，settle 前不得从 active 移除或启动同 job 第二执行。
@@ -194,6 +203,13 @@ PREPARED，发送边界写 SENT，后置只读 proof 原子解析 terminal。启
 当前 Dynamic Proof 直接绑定当前 Browser command receipt 与发布候选，不从历史生命周期账本推导。
 
 Mutation 只有 `PREPARED -> SEND -> CONFIRMED|FAILED|UNKNOWN`。UNKNOWN 永不自动 replay。
+AI Input Gateway 一旦以 `BROWSER_OUTCOME_UNKNOWN` 形成 `review_required`，该结果直接作为 Stage、Local Order
+与 Cloud job 的唯一终态向上提交；Stage 出口不得因未决 mutation 再次抛错，Scheduler、Cloud Worker 与
+Publication 不得将其改写为 `recovery_pending`。只有明确列入瞬时恢复白名单、尚无已发送 mutation 的异常可进入
+`recovery_pending`；确定性内部缺陷进入 `failed`，未分类异常失败关闭，不得以 catch-all 方式排队重跑。
+若历史版本已经留下 `recovery_pending + BROWSER_OUTCOME_UNKNOWN`，下一份同 Job 合法 lease 只替换新的
+attempt/lease/fence 身份，并在同一事务内把活动 Stage 与 Local Order 收敛为 `review_required`；随后走现有 Cloud
+terminal 回写，全程零 Browser mutation，不设清理脚本、人工按钮或迁移分支。
 Browser 执行不使用 IF/AND/THEN 文字 DSL，而使用一条受保护状态迁移：
 
 ```txt
@@ -229,16 +245,23 @@ composer/附件表面决策、至多一次 exact-target batch mutation 和一份
 删除按钮文案、删除按钮数量或隐藏 `#upload-files` 纳入许可。`#upload-files` 是 Browser Authority 在该次原子
 `attachFile` mutation 内部解析的唯一私有 target，上层不得重复鉴权。mutation 返回后只取得一份直接精确
 文件名快照；重复 upload preflight、固定 stable poll 或仅以等待时长证明上传成功都不构成证据。
+空附件表面只能由 composer 内真实可见 attachment region 缺席证明；composer form 自身的“添加文件等”、
+模型档位、听写、语音及其他正常控件文字不属于附件节点，严禁读取整段 form text/length 后把正常控件冒充为
+未知附件。attachment region 存在时必须在同一快照中只含全部确定性精确文件名；部分、额外、重复或残余文字
+一律 `AMBIGUOUS`，不得改用 delete button、隐藏 file input 或第二 DOM 读取补判。
 附件表面若明确为空，才许可一次 mutation；若进程中断后的新 lease 在同一可见表面已观察到全部确定性精确
 文件名，则必须以零 mutation 补齐附件 proof，不得再次上传；部分、额外或无法解释的附件集合立即失败关闭。
 精确表面合同不匹配为
 `ATTACHMENT_SURFACE_CONTRACT_MISMATCH` 并失败关闭，不得压缩成通用 `BROWSER_TARGET_INVALID` 后重跑整个
 Stage。只有明确的 Target/Document/channel 失效才进入 recovery。
-附件 precondition 在 mutation 之前失败且 `uploadedFiles=[]` 时，Cloud 为原 job 续发 recovery lease 后必须让
+`uploadedFiles` 只记录 `attachments_stable` 后由同一可见文件名后置条件确认的文件，每项
+`detectedAttachmentCount` 必须为正数；传输层不得提前建立零检测数的 provisional uploaded file。物理附件动作
+是否已发送只由同一 `attachmentUploadProof.mutationSent` 表示，失败回执必须保持 schema-valid，不能打崩 Shell。
+附件 precondition 在 mutation 之前失败且 `mutationSent=false`、`uploadedFiles=[]` 时，Cloud 为原 job 续发 recovery lease 后必须让
 同一 Local Stage 在新 fence 下重新进入；不得只 rebound Local Order 后把旧 `recovery_pending` 原样回传。
 重进时清空 Stage 当前物化层里的旧 `aiFeedResult/attachmentUploadProof/raw output`，由新 attempt 重新写入；
 旧 attempt 的事实留在唯一 web-chat execution ledger，不把旧失败 proof 当作新 attempt 的漂移基线。
-一旦 attachment mutation 已发送、存在 uploadedFiles 或返回 `BROWSER_OUTCOME_UNKNOWN`，则不得自动重放；
+一旦 `attachmentUploadProof.mutationSent=true`、存在 uploadedFiles 或返回 `BROWSER_OUTCOME_UNKNOWN`，则不得自动重放；
 只能由同一直接精确文件名后置条件结算，或保留旧 UNKNOWN 并在后续 lease 以零 mutation 识别同一确定性文件
 集合后补齐业务 proof；无法识别时失败关闭。
 
@@ -292,7 +315,8 @@ typed join count 与任何完成当前 Job 后自行选择下一网站 Job 的�
 任务内单项验证依次覆盖 dependency 最小声明、无 provider bytes/commit/hash、Cloud grant 与 local order
 身份一致、Stage 顺序/dependency、
 conversation/parent/join 正反例、零手写 topology，以及 strict V6 contract、session conflict/supersede/token rotation、attestation
-stale/replay、typed/idempotent claim、Browser absent no-claim、oldest eligible、十席位一 mutation、
+stale/replay、typed/idempotent claim、Browser Authority absent no-claim、空闲 Target absent 可 claim、
+死亡 mutation lock 就地物理删除并恢复 idle、oldest eligible、十席位一 mutation、
 accept/release/renew/checkpoint/CAS、outbox restart、UNKNOWN、handover、drain 和 V5-zero。
 
 Static、Contract Exam、Integration、Fault、Real Chrome、Real Provider 与风险相称的 bounded observation
@@ -301,7 +325,7 @@ V6 manifest、AGENT build 与 Extension release。未取得真实层时固定
 `NOT_PRODUCTION_VERIFIED`。
 
 正确性零容忍项固定包括：双 terminal、stale/foreign fence 写入、未 eligible session 获 lease、
-Browser absent 仍发 browser-required lease、production localhost/LNA、Extension Cloud access、
+Browser Authority absent 仍发 browser-required lease、死亡 mutation lock 阻断重启后 claim、production localhost/LNA、Extension Cloud access、
 unknown-field default、UNKNOWN replay、重启丢任务、双 eligible session、无 durable event 的状态变化、
 V5/V6 双写、控制协议改写 request hash、stale attestation 获 lease、Browser busy 把业务容量降零。
 时效固定为 heartbeat 30 秒、45 秒 stale 停新 claim、90 秒 offline、claim 1–30 秒、合格任务到 lease

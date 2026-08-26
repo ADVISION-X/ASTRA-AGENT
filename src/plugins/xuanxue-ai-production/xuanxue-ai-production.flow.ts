@@ -68,12 +68,13 @@ const firstBlockingStage = (
 export const hasTerminalAttachmentTransportProof = (
   stage: XuanxueAiStageRecord,
 ): boolean => {
-  const proof = stage.aiFeedResult?.providerProof.attachmentUploadProof;
+  const proof = stage.attachmentUploadProof
+    ?? stage.aiFeedResult?.providerProof.attachmentUploadProof;
   if (!proof) return false;
   if (proof.status === "review_required") return true;
   if (proof.status !== "failed") return false;
   const uploadedFiles = stage.aiFeedResult?.providerProof.uploadedFiles ?? [];
-  const mutationWasSent = uploadedFiles.length > 0;
+  const mutationWasSent = proof.mutationSent || uploadedFiles.length > 0;
   const mutationOutcomeUnknown = /BROWSER_OUTCOME_UNKNOWN/iu.test(proof.failureReason ?? "");
   return mutationWasSent || mutationOutcomeUnknown;
 };

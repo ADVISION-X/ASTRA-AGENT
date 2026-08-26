@@ -27,6 +27,7 @@ export type WebChatAttachmentUploadProof = {
   transportKind: WebChatAttachmentTransportKind;
   expectedFileCount: number;
   detectedFileCount: number;
+  mutationSent: boolean;
   stagingManifestHash: `sha256:${string}` | null;
   files: Array<{
     inputRefId: string;

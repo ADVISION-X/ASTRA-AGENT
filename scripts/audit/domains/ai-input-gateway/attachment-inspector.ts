@@ -22,6 +22,7 @@ type AttachmentProofSources = Readonly<{
   child: SourceFile;
   state: SourceFile;
   submit: SourceFile;
+  transport: SourceFile;
 }>;
 
 const requireAttachmentRoutingSources = (
@@ -46,8 +47,9 @@ const requireAttachmentProofSources = (
   const adapterContract = requireSourceFile(context, findings, lawId, P.attachment.adapterContractPath);
   const state = requireSourceFile(context, findings, lawId, P.attachment.attachmentStatePath);
   const submit = requireSourceFile(context, findings, lawId, P.runtime.submitPath);
-  return child && adapterContract && state && submit
-    ? { child, adapterContract, state, submit }
+  const transport = requireSourceFile(context, findings, lawId, P.attachment.exactTargetTransportPath);
+  return child && adapterContract && state && submit && transport
+    ? { child, adapterContract, state, submit, transport }
     : null;
 };
 
@@ -81,8 +83,16 @@ const inspectAttachmentProofContract = (
     if (!childIds.has(requiredIdentifier)) pushFinding(findings, lawId, P.attachment.childPath, "ai-input-gateway/attachment-child-structure", `${P.attachment.childPath} must contain ${requiredIdentifier}.`);
   }
   const proofProperties = typePropertyNames(sources.adapterContract, "WebChatAttachmentUploadProof");
-  for (const field of ["uploadAttemptId", "transportKind", "expectedFileCount", "detectedFileCount", "stagingManifestHash", "files", "startedAt", "endedAt", "status", "failureReason", "reviewRequiredReason"]) {
+  for (const field of ["uploadAttemptId", "transportKind", "expectedFileCount", "detectedFileCount", "mutationSent", "stagingManifestHash", "files", "startedAt", "endedAt", "status", "failureReason", "reviewRequiredReason"]) {
     if (!proofProperties.has(field)) pushFinding(findings, lawId, P.attachment.adapterContractPath, "ai-input-gateway/aggregate-proof-field", `Aggregate attachment proof must contain ${field}.`);
+  }
+  const transportIds = identifiers(sources.transport);
+  for (const forbiddenIdentifier of ["uploadedFiles", "detectedAttachmentCount"]) {
+    if (transportIds.has(forbiddenIdentifier)) {
+      pushFinding(findings, lawId, P.attachment.exactTargetTransportPath,
+        "ai-input-gateway/provisional-uploaded-file-proof",
+        `Exact attachment transport must not construct provisional ${forbiddenIdentifier} evidence.`);
+    }
   }
 };
 
@@ -99,12 +109,20 @@ const inspectAttachmentTerminalProof = (
     pushFinding(findings, proofLawId, P.attachment.attachmentStatePath, "ai-input-gateway/attachment-terminal-proof", "Attachment preflight must implement exact positive and negative terminal evidence.");
   }
   const stateStrings = stringLiterals(sources.state);
+  const stateIdentifiers = identifiers(sources.state);
   if (stateStrings.has("#upload-files")
     || stateStrings.has("#composer-submit-button[data-testid='send-button']")
     || [...stateStrings].some((value) => value.includes("button[aria-label"))) {
     pushFinding(findings, proofLawId, P.attachment.attachmentStatePath,
       "ai-input-gateway/attachment-visible-precondition-owner",
       "Attachment precondition must not duplicate the Browser Authority hidden file target, pre-read send readiness or depend on delete-button labels.");
+  }
+  if (stateIdentifiers.has("formText")
+    || !stateIdentifiers.has("attachmentRegionText")
+    || ![...stateStrings].some((value) => value.includes("grid-area:header"))) {
+    pushFinding(findings, proofLawId, P.attachment.attachmentStatePath,
+      "ai-input-gateway/exact-visible-attachment-region",
+      "Attachment admission must ignore composer form controls and read only the exact visible attachment region.");
   }
   const submitIds = identifiers(sources.submit);
   const submitStrings = stringLiterals(sources.submit);

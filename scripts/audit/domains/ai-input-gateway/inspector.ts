@@ -86,7 +86,7 @@ const requireParallelSources = (context: InspectorContext, findings: Finding[], 
 
 const inspectParallelIdentifiers = (sources: readonly SourceFile[], findings: Finding[], lawId: string): void => {
   const allIdentifiers = new Set(sources.flatMap((source) => [...identifiers(source)]));
-  for (const required of ["resolveWebChatMaxInFlight", "acquireWebChatCapacityLease", "acquireWebChatBrowserMutationLease", "startOrResumeWebChatExecution", "createSingleTabWebChatBrowser", "captureWebChatSubmissionProof", "focusChatGptConversationByCanonicalPath", "turnMarker", "executionId", "capacitySlot"]) {
+  for (const required of ["resolveWebChatMaxInFlight", "acquireWebChatCapacityLease", "acquireWebChatBrowserMutationLease", "readWebChatBrowserMutationLaneState", "removeStaleLease", "startOrResumeWebChatExecution", "createSingleTabWebChatBrowser", "captureWebChatSubmissionProof", "focusChatGptConversationByCanonicalPath", "turnMarker", "executionId", "capacitySlot"]) {
     if (!allIdentifiers.has(required)) {
       pushFinding(findings, lawId, P.runtime.concurrencyLeasePath, "ai-input-gateway/bounded-parallel-runtime", `Bounded parallel web-chat runtime must contain ${required}.`);
     }
@@ -108,6 +108,11 @@ const inspectParallelAcceptanceProof = (acceptance: SourceFile, findings: Findin
       present: acceptanceIdentifiers.has("secondMutationEntered"),
     },
     {
+      label: "dead process mutation lock deletion",
+      present: acceptanceIdentifiers.has("staleMutationLaneState")
+        && acceptanceStrings.has("a dead process mutation lock must be physically removed before claim admission reads the lane"),
+    },
+    {
       label: "configurable capacity",
       present: acceptanceIdentifiers.has("WEB_CHAT_MAX_IN_FLIGHT"),
     },
@@ -124,6 +129,26 @@ const inspectBoundedParallelExecution = (context: InspectorContext, findings: Fi
   if (!sources) return;
   inspectParallelIdentifiers(sources, findings, lawId);
   inspectParallelAcceptanceProof(sources[6]!, findings, lawId);
+};
+
+const inspectDeadProcessMutationLeaseRecovery = (
+  context: InspectorContext,
+  findings: Finding[],
+  lawId: string,
+): void => {
+  const source = requireSourceFile(context, findings, lawId, P.runtime.concurrencyLeasePath);
+  const laneReader = source?.getVariableDeclaration("readWebChatBrowserMutationLaneState")?.getInitializer();
+  const removesStaleLease = laneReader?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .some((call) => astExpressionPath(call.getExpression()) === "removeStaleLease") ?? false;
+  if (!laneReader || !removesStaleLease) {
+    pushFinding(
+      findings,
+      lawId,
+      P.runtime.concurrencyLeasePath,
+      "ai-input-gateway/dead-process-mutation-lock-recovery",
+      "Browser mutation lane reads must physically delete a dead process lease through the unique lease owner before reporting idle.",
+    );
+  }
 };
 
 const inspectSerialProviderBrowserActions = (
@@ -396,8 +421,8 @@ const inspectGeneratedImageCapture = (
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const publicLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-001-V1");
   const routingLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-003-V1");
-  const proofLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-004-V1");
-  const parallelLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-005-V4");
+  const proofLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-004-V3");
+  const parallelLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-005-V5");
   const atomicLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-002-V3");
   const boundedJudgeLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-006-V2");
   const approvedInputLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-007-V2");
@@ -417,6 +442,8 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   run("inspectAttachmentProofChild", [proofLawId], () => inspectAttachmentProofChild(context, findings, proofLawId));
   run("inspectRemovedRegion", [routingLawId], () => inspectRemovedRegion(context, findings, routingLawId));
   run("inspectBoundedParallelExecution", [parallelLawId], () => inspectBoundedParallelExecution(context, findings, parallelLawId));
+  run("inspectDeadProcessMutationLeaseRecovery", [parallelLawId], () =>
+    inspectDeadProcessMutationLeaseRecovery(context, findings, parallelLawId));
   run("inspectSerialProviderBrowserActions", [atomicLawId, parallelLawId], () =>
     inspectSerialProviderBrowserActions(context, findings, atomicLawId));
   inspectFreshConversationIdentity(context, findings, parallelLawId);
@@ -447,8 +474,8 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
       "LAW-AI-INPUT-GATEWAY-001-V1": ["inspectPublicBoundary"],
       "LAW-AI-INPUT-GATEWAY-002-V3": ["inspectSerialProviderBrowserActions"],
       "LAW-AI-INPUT-GATEWAY-003-V1": ["inspectAttachmentRoutingChild", "inspectRemovedRegion"],
-      "LAW-AI-INPUT-GATEWAY-004-V1": ["inspectAttachmentProofChild"],
-      "LAW-AI-INPUT-GATEWAY-005-V4": ["inspectBoundedParallelExecution", "inspectConversationTopology", "inspectGeneratedImageCapture"],
+      "LAW-AI-INPUT-GATEWAY-004-V3": ["inspectAttachmentProofChild"],
+      "LAW-AI-INPUT-GATEWAY-005-V5": ["inspectBoundedParallelExecution", "inspectDeadProcessMutationLeaseRecovery", "inspectConversationTopology", "inspectGeneratedImageCapture"],
       "LAW-AI-INPUT-GATEWAY-006-V2": ["inspectBoundedChoiceJudge"],
       "LAW-AI-INPUT-GATEWAY-007-V2": ["inspectCallerApprovedInputReferences"],
     } as Readonly<Record<string, string[]>>)[lawId] ?? [];
@@ -469,8 +496,8 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
       lawResult("LAW-AI-INPUT-GATEWAY-001-V1", ["static.ast", "static.contract"], staticClauses(0, 1, 2, 3, 4)),
       lawResult("LAW-AI-INPUT-GATEWAY-002-V3", ["static.ast"]),
       lawResult("LAW-AI-INPUT-GATEWAY-003-V1", ["static.ast", "static.contract"]),
-      lawResult("LAW-AI-INPUT-GATEWAY-004-V1", ["static.ast", "static.contract"]),
-      lawResult("LAW-AI-INPUT-GATEWAY-005-V4", ["static.ast", "static.contract"]),
+      lawResult("LAW-AI-INPUT-GATEWAY-004-V3", ["static.ast", "static.contract"]),
+      lawResult("LAW-AI-INPUT-GATEWAY-005-V5", ["static.ast", "static.contract"]),
       lawResult("LAW-AI-INPUT-GATEWAY-006-V2", ["static.ast", "static.contract"]),
       lawResult("LAW-AI-INPUT-GATEWAY-007-V2", ["static.ast", "static.contract"]),
     ], inspectedFiles: evaluation.inspectedFiles,

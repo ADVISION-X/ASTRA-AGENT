@@ -44,7 +44,9 @@ const startOwnerCloudWorker = (input: {
       updatedAt: new Date().toISOString(),
       eventType: status === "recovery_pending"
         ? "cloud_execution_deferred_before_factory"
-        : "cloud_execution_failed_before_factory",
+        : status === "review_required"
+          ? "cloud_execution_review_required_before_factory"
+          : "cloud_execution_failed_before_factory",
     }),
     availableCapacity: () => input.coordinator.availableCapacity(),
     applyControlIntent: (orderId, intent, controlEpoch, reasonCode) => {

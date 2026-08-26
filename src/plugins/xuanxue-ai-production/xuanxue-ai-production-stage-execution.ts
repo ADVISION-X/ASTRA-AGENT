@@ -323,7 +323,9 @@ const persistStageProgress = (
   const latest = runtime.store.readOrder(orderId);
   if (!latest) return;
   const persisted = requireXuanxueStage(latest, stageId);
-  if (persisted.status === "completed") return;
+  if (persisted.status === "completed"
+    || persisted.status === "failed"
+    || persisted.status === "review_required") return;
   runtime.store.updateStage({
     ...persisted,
     status: progressStatus(progress.phase),
@@ -348,8 +350,22 @@ const persistStageAttachmentUploadProof = (
     throw new Error("XUANXUE_AI_PRODUCTION_ATTACHMENT_PROOF_DRIFT");
   }
   if (persisted.attachmentUploadProof) return;
+  const terminal = proof.status === "review_required"
+    ? {
+        status: "review_required" as const,
+        progressPhase: "terminal" as const,
+        failureReason: proof.reviewRequiredReason ?? "provider attachment review required",
+      }
+    : proof.status === "failed"
+      ? {
+          status: "failed" as const,
+          progressPhase: "terminal" as const,
+          failureReason: proof.failureReason ?? "provider attachment failed",
+        }
+      : null;
   runtime.store.updateStage({
     ...persisted,
+    ...(terminal ?? {}),
     attachmentUploadProof: proof,
     updatedAt: proof.endedAt,
   }, "stage_attachment_upload_proof");
@@ -463,7 +479,11 @@ export const executeGatewayStage = async (input: {
       } : {}),
     },
   ));
-  browser?.assertNoPendingMutations();
+  const terminalUnknownMutation = reviewRequiredStage(result)?.status === "review_required"
+    && /\bBROWSER_OUTCOME_UNKNOWN\b/iu.test(
+      result.reviewRequiredReason ?? result.failureReason ?? "",
+    );
+  if (!terminalUnknownMutation) browser?.assertNoPendingMutations();
   return normalizeGeneratedImageResult(
     input.runtime,
     input.orderId,

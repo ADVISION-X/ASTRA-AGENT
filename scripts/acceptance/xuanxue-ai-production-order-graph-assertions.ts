@@ -18,7 +18,7 @@ export const rejectInvalidBaseParent = async (input: {
   const coordinator = new XuanxueAiProductionCoordinator(input.runtime);
   const result = await coordinator.execute(input.candidate.orderId);
   await coordinator.close();
-  assert.equal(result.status, "recovery_pending");
+  assert.equal(result.status, "failed");
   assert.match(result.failureReason ?? "", /PARENT_FROZEN_SUBJECT_MISMATCH/u);
   assert.equal(input.gateway.requests.length, requestsBeforeExecution,
     "cross-owner, cross-person, and cross-chart parents must fail before GPT");

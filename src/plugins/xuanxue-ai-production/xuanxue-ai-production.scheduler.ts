@@ -7,6 +7,7 @@ import {
   type XuanxueAiOrderRecord,
 } from "./xuanxue-ai-production.schema.js";
 import type { XuanxueAiExecutionDeadlineBudget } from "./xuanxue-ai-production.runtime.js";
+import { classifyXuanxueAiProductionExecutionFailure } from "./xuanxue-ai-production-cloud-worker-support.js";
 
 interface ScheduledOrder {
   readonly orderId: string;
@@ -23,10 +24,6 @@ const terminal = (record: XuanxueAiOrderRecord): boolean =>
   || record.status === "cancelled"
   || record.status === "review_required"
   || record.status === "failed";
-
-const permanentExecutionDefect = (reason: string): boolean =>
-  /(?:PROFILE_MISMATCH|IDENTITY_CONFLICT|SOURCE_TASK_CONFLICT|ORDER_NOT_FOUND|STAGE_MISSING|DEPENDENCY_HASH_MISMATCH|INPUT_.*INVALID|REQUEST_.*INVALID)/u
-    .test(reason);
 
 const precedes = (
   left: XuanxueAiOrderRecord,
@@ -273,15 +270,31 @@ export class XuanxueAiProductionCoordinator {
         scheduled.resolve(existing);
         return;
       }
-      const permanent = permanentExecutionDefect(reason);
+      const status = classifyXuanxueAiProductionExecutionFailure(error);
+      const activeStage = existing.stages.find((stage) =>
+        stage.status === "running"
+        || stage.status === "waiting_provider"
+        || stage.status === "response_checkpointed"
+        || stage.status === "recovery_pending");
+      if (activeStage) {
+        this.runtime.store.updateStage({
+          ...activeStage,
+          status,
+          progressPhase: status === "recovery_pending" ? "recovery_pending" : "terminal",
+          failureReason: reason.slice(0, 1_000),
+          updatedAt: new Date().toISOString(),
+        }, "stage_execution_exception_terminal");
+      }
       record = this.runtime.store.updateOrder({
         orderId: scheduled.orderId,
-        status: "recovery_pending",
+        status,
         failureReason: reason.slice(0, 1_000),
         updatedAt: new Date().toISOString(),
-        eventType: permanent
-          ? "order_internal_defect_deferred"
-          : "order_execution_deferred",
+        eventType: status === "recovery_pending"
+          ? "order_execution_deferred"
+          : status === "review_required"
+            ? "order_execution_review_required"
+            : "order_execution_failed",
       });
     }
     scheduled.resolve(record);

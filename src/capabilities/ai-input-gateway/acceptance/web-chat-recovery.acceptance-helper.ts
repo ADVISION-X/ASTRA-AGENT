@@ -29,6 +29,7 @@ const checkpointFixture = () => {
       transportKind: "skipped" as const,
       expectedFileCount: 0,
       detectedFileCount: 0,
+      mutationSent: false,
       stagingManifestHash: null,
       files: [],
       startedAt: now,
