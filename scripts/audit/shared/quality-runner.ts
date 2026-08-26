@@ -195,7 +195,8 @@ const runStaticDomain = (
   runDirectory: string,
 ): LawExecutionResult[] => {
   const paths = ordered(laws.flatMap((law) => targetPathsByLaw.get(law.lawId) ?? []));
-  const sealedRoot = copyTargets(paths, runDirectory, domain);
+  const ownerInspectorPath = inspectorPath(domain);
+  const sealedRoot = copyTargets(ordered([...paths, ownerInspectorPath]), runDirectory, domain);
   const requestPath = resolve(runDirectory, `${domain}.inspection-request.json`);
   const request = {
     capabilityDomain: domain,
@@ -209,7 +210,7 @@ const runStaticDomain = (
         targetSet: targetSet(law.lawId, lawPaths),
       };
     }),
-    ownerInspectorPath: inspectorPath(domain), sealedRoot, targetPaths: paths,
+    ownerInspectorPath, sealedRoot, targetPaths: paths,
   };
   writeFileSync(requestPath, canonicalBytes(request), { mode: 0o600 });
   const worker = resolve(ROOT, "scripts/audit/shared/quality-inspector-worker.ts");
