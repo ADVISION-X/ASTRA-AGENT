@@ -12,6 +12,7 @@ import {
 } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-credential.js";
 import { applyXuanxueAiControlIntent, readXuanxueAiControlIntent } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-control-intent.js";
 import { cloudWorkerPollIntervalMs } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker-support.js";
+import { parseLeaseRenewResponse } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-response.js";
 
 const temporary = mkdtempSync(path.join(os.tmpdir(), "xuanxue-ai-v6-control-"));
 const database = openXuanxueAiProductionDatabase(temporary);
@@ -23,6 +24,32 @@ const stageExecutionSource = readFileSync(
 assert.match(stageExecutionSource, /BROWSER_OUTCOME_UNKNOWN[\s\S]*status: "review_required"/u);
 
 try {
+  const renewReceipt = {
+    schema_version: "xuanxue-ai-lease-renew-receipt.v6",
+    job_id: "job-renew-1",
+    server_now: new Date().toISOString(),
+    lease_expires_at: new Date(Date.now() + 90_000).toISOString(),
+    renew_after_ms: 20_000,
+    control_intent: {
+      schema_version: "xuanxue-ai-control-intent.v6",
+      job_id: "job-renew-1",
+      intent: "none",
+      control_epoch: 0,
+      reason_code: null,
+    },
+  } as const;
+  assert.deepEqual(parseLeaseRenewResponse(renewReceipt), renewReceipt);
+  assert.throws(() => parseLeaseRenewResponse({
+    server_now: renewReceipt.server_now,
+    lease_expires_at: renewReceipt.lease_expires_at,
+    renew_after_ms: 20_000,
+    control_intent: { intent: "none", control_epoch: 0, reason_code: null },
+  }), /schema_version|job_id/u);
+  assert.throws(() => parseLeaseRenewResponse({
+    ...renewReceipt,
+    control_intent: { ...renewReceipt.control_intent, job_id: "job-renew-2" },
+  }), /same job_id/u);
+
   process.env.XUANXUE_AI_PRODUCTION_POLL_INTERVAL_MS = "30000";
   assert.equal(cloudWorkerPollIntervalMs(), 30_000);
   process.env.XUANXUE_AI_PRODUCTION_POLL_INTERVAL_MS = "30001";

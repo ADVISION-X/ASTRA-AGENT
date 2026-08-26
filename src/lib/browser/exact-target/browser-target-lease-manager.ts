@@ -149,6 +149,7 @@ export class BrowserTargetLeaseManager {
       wait: async ({ durationMs }) => { await command("browser.wait.v1", { kind: "wait", durationMs }); },
       close: async ({ reason }) => { await command("browser.close-target.v1", { kind: "close-target", reason }); state.closed = true; },
       resolvePendingMutation: (receipt) => this.resolvePendingMutation(state, receipt),
+      pendingMutationCount: () => state.pendingMutationCommandIds.length,
       assertNoPendingMutations: () => {
         if (state.pendingMutationCommandIds.length > 0) throw new Error("BROWSER_OUTCOME_UNKNOWN");
       },

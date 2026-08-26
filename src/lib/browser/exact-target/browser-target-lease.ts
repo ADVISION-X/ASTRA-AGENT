@@ -37,5 +37,6 @@ export type BrowserTargetLease = Readonly<{
   resolvePendingMutation(
     input: Omit<BrowserOutcomeResolutionReceipt, "commandId">,
   ): Promise<number>;
+  pendingMutationCount(): number;
   assertNoPendingMutations(): void;
 }>;

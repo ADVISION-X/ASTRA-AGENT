@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
-import { readExactAttachmentState } from "./web-chat-upload-page-actions.js";
 import type {
   StagedWebChatAttachment,
   WebChatAttachmentTransportInput,
@@ -30,14 +29,6 @@ export const attachByExactTargetFileInputBatch = async (
     throw new Error("review_required: BROWSER_FILE_GRANT_INVALID");
   }
   await Promise.all(input.files.map(assertStagedFileIntegrity));
-  const preflight = await readExactAttachmentState(
-    input.browser,
-    input.context,
-    0,
-    [],
-    { expectedPageUrl: input.expectedPageUrl, requireComposerTextEmpty: true },
-  );
-  if (preflight.status !== "success") throw new Error(`review_required: ${preflight.message}`);
   if (input.files.length === 0) {
     return {
       transportKind: "exact_target_file_input_batch",

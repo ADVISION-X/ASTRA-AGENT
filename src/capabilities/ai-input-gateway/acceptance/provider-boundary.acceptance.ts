@@ -1,6 +1,4 @@
 import assert from "node:assert/strict";
-import { runAiInputGatewayAtomicInspectorAttacks } from
-  "../../../../scripts/acceptance/atomic-if-and-then-inspector.attacks.js";
 import { emitQualityProofObservation } from
   "../../../../scripts/audit/shared/proof-observation.js";
 
@@ -36,6 +34,22 @@ for (const reason of [
     `security barrier must require operator review: ${reason}`,
   );
 }
+assert.equal(
+  classifyWebChatFailure(
+    new Error("recovery_pending: GPT_WEB_EXECUTION_PROFILE_REASONING_NOT_READY"),
+    false,
+  ),
+  "recovery_pending",
+  "typed recovery_pending profile outcomes must never become terminal failed",
+);
+assert.equal(
+  classifyWebChatFailure(
+    new Error("review_required: GPT_WEB_EXECUTION_PROFILE_MODEL_AMBIGUOUS"),
+    false,
+  ),
+  "review_required",
+  "typed profile ambiguity must remain review_required",
+);
 
 for (const reason of [
   "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE",
@@ -86,8 +100,6 @@ const response = buildWebChatRawResponse({
 assert.equal(response.rawText, exactRawResponse, "raw provider response bytes must remain exact");
 assert.equal(response.transport, "web-chat");
 assert.equal(response.webChatUrl, "https://chatgpt.com/c/provider-boundary");
-runAiInputGatewayAtomicInspectorAttacks();
-
 process.stdout.write("[ACCEPTANCE] AI Input Gateway provider boundary PASS\n");
 emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-AI-INPUT-GATEWAY-001-V1", evidenceMode: "exam.golden", clauses: ["forbidden:2","summary"], locator: "acceptance:provider-boundary:unbounded-prompt-contract", observedValue: "provider request accepts a 200000-character prompt without a local capacity ceiling" });
 emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-AI-INPUT-GATEWAY-006-V2", evidenceMode: "exam.golden", clauses: ["forbidden:0","summary"], locator: "acceptance:provider-boundary:bounded-judge", observedValue: "caller owns browser authority and provider returns exact response" });

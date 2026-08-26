@@ -60,8 +60,8 @@ const terminalMetaphysicsProviderEvidenceFailure = (
   result: AiFeedResult,
   order: XuanxueAiOrderRecord["order"],
 ): string | null => {
-  if (order.serviceClass === "localization" || order.providerExecutionProfile === null) return null;
-  const expected = order.providerExecutionProfile as Record<string, unknown> | null;
+  if (order.serviceClass === "localization") return null;
+  const expected = order.providerExecutionProfile as Record<string, unknown>;
   const profileProof = result.providerProof.providerExecutionProfileProof;
   const identity = result.providerProof.modelIdentityProof;
   if (!isXuanxueTerminalMetaphysicsProfile(expected)) {

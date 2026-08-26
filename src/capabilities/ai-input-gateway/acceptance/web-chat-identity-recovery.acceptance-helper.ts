@@ -25,10 +25,8 @@ const assertProviderFailuresRemainRecoverable = (): void => {
   );
   for (const reason of [
     "GPT_PROMPT_MISMATCH; controlled Chrome tab is not active",
-    "review_required: NATIVE_FILE_LIST_MISMATCH",
     "WEB_CHAT_BOUND_CONVERSATION_NOT_READY: canonical row is still hydrating",
     "TRANSPORT_DISCONNECTED:TARGET_EVALUATION_FAILED:SyntaxError: corrected browser script may resume",
-    "review_required: the exact provider target is not acquired.",
   ]) {
     assert.equal(
       classifyWebChatFailure(new Error(reason), true),
@@ -36,12 +34,23 @@ const assertProviderFailuresRemainRecoverable = (): void => {
       `transient provider failure must remain retryable: ${reason}`,
     );
   }
+  for (const reason of [
+    "review_required: NATIVE_FILE_LIST_MISMATCH",
+    "review_required: the exact provider target is not acquired.",
+  ]) {
+    assert.equal(
+      classifyWebChatFailure(new Error(reason), true),
+      "review_required",
+      `an explicit owner classification must not be silently rewritten: ${reason}`,
+    );
+  }
   assert.equal(
     classifyWebChatFailure(
       new Error("review_required: web-chat execution is terminal: failed"),
       false,
     ),
-    "recovery_pending",
+    "review_required",
+    "a rootless terminal wrapper must fail closed instead of inventing retry authority",
   );
   assert.equal(
     classifyWebChatFailure(

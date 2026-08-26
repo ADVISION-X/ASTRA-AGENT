@@ -23,16 +23,24 @@ const CloudTerminalStatusSchema = z.object({
   terminalized_at: z.string().datetime().nullable(),
   terminal_receipt: z.record(z.unknown()).nullable(),
 }).strict();
+const ControlIntentV6Schema = z.object({
+  schema_version: z.literal("xuanxue-ai-control-intent.v6"),
+  job_id: z.string().min(1),
+  intent: z.enum(["none", "pause_requested", "cancel_requested", "handover_requested"]),
+  control_epoch: z.number().int().nonnegative(),
+  reason_code: z.string().min(1).nullable(),
+}).strict();
 const LeaseRenewResponseSchema = z.object({
+  schema_version: z.literal("xuanxue-ai-lease-renew-receipt.v6"),
+  job_id: z.string().min(1),
   server_now: z.string().datetime(),
   lease_expires_at: z.string().datetime(),
   renew_after_ms: z.literal(20_000),
-  control_intent: z.object({
-    intent: z.enum(["none", "pause_requested", "cancel_requested", "handover_requested"]),
-    control_epoch: z.number().int().nonnegative(),
-    reason_code: z.string().min(1).nullable(),
-  }).strict(),
-}).strict();
+  control_intent: ControlIntentV6Schema,
+}).strict().refine((receipt) => receipt.job_id === receipt.control_intent.job_id, {
+  message: "Lease renew receipt and ControlIntentV6 must bind the same job_id.",
+  path: ["control_intent", "job_id"],
+});
 
 export type UploadedOutputArtifact = z.infer<typeof UploadedOutputArtifactSchema>;
 export type LeaseRenewResponse = z.infer<typeof LeaseRenewResponseSchema>;

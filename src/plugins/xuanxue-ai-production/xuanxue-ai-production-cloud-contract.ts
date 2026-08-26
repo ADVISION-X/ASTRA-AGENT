@@ -184,7 +184,7 @@ const cloudSemanticIdentityShape = {
   provider_execution_profile: z.union([
     XuanxueMetaphysicsProviderExecutionProfileSchema,
     XuanxueProviderExecutionProfileSchema,
-  ]).nullable(),
+  ]),
 } as const;
 
 const cloudReplayOrderShape = {
@@ -337,7 +337,7 @@ const inspectNonLocalizationClaim = (
     });
   }
   const profile = job.provider_execution_profile as Record<string, unknown> | null;
-  if (profile && !isXuanxueTerminalMetaphysicsProfile(profile)) {
+  if (!profile || !isXuanxueTerminalMetaphysicsProfile(profile)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         message: "XUANXUE_AI_PRODUCTION_GPT_5_6_SOL_PROFILE_MISMATCH",

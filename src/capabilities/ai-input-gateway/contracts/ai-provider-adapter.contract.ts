@@ -175,6 +175,8 @@ export type WebChatExecutionContext = {
   submittedPromptHash: string;
   providerExecutionProfileBinding: AiFeedProviderExecutionProfile | null;
   providerExecutionProfileProof: ProviderExecutionProfileProof | null;
+  /** True only while the persisted profile proof still binds this exact Target/Document. */
+  providerExecutionProfileCheckpointCurrent?: boolean;
   conversationTitle: WebChatConversationTitleState | null;
   resumeSubmission: WebChatSubmissionProof | null;
   resumeUploadedFiles: AiProviderUploadedFileProof[];

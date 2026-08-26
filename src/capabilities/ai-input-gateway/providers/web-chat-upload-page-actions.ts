@@ -2,80 +2,112 @@ import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 
-const MAX_ATTACHMENT_COUNT_WAIT_MS = 120_000;
-const CHATGPT_COMPOSER_SELECTOR = "#prompt-textarea";
-const CHATGPT_DOCUMENT_FILE_INPUT_SELECTOR = "#upload-files";
-const CHATGPT_COMPOSER_FORM_SELECTOR = "form";
-const CHATGPT_REMOVE_ATTACHMENT_SELECTOR = "form button[aria-label='Remove file'],form button[aria-label='移除文件'],form button[aria-label='删除文件']";
-const CHATGPT_SEND_SELECTOR = "#composer-submit-button[data-testid='send-button']";
+const CHATGPT_COMPOSER_FORM_SELECTOR = "form:has(#prompt-textarea)";
+const CHATGPT_COMPOSER_SELECTOR = `${CHATGPT_COMPOSER_FORM_SELECTOR} #prompt-textarea`;
+const CHATGPT_ATTACHMENT_SURFACE_SELECTOR = [
+  CHATGPT_COMPOSER_FORM_SELECTOR,
+  CHATGPT_COMPOSER_SELECTOR,
+].join(",");
 
-export type AttachmentBrowser = Pick<BrowserTargetLease, "executeDomIntent" | "wait">;
+export type AttachmentBrowser = Pick<BrowserTargetLease, "executeDomIntent">;
 
 type ExactAttachmentStateOptions = {
   expectedPageUrl?: string | null;
-  baselineAttachmentCount?: number;
-  requireReady?: boolean;
   requireComposerTextEmpty?: boolean;
 };
 
+const attachmentSurfaceContractMismatch = (detail: string): Error =>
+  new Error(`review_required: ATTACHMENT_SURFACE_CONTRACT_MISMATCH:${detail}`);
+
 const record = (value: unknown): Record<string, unknown> => {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error("BROWSER_TARGET_INVALID");
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw attachmentSurfaceContractMismatch("result_shape");
+  }
   return value as Record<string, unknown>;
 };
 
 const documentState = async (browser: AttachmentBrowser): Promise<{ url: string; title: string }> => {
   const value = record(await browser.executeDomIntent({ kind: "document" }));
   if (typeof value.url !== "string" || typeof value.title !== "string" || !value.url.startsWith("https://")) {
-    throw new Error("BROWSER_TARGET_INVALID");
+    throw attachmentSurfaceContractMismatch("document_shape");
   }
   return { url: value.url, title: value.title };
 };
 
-const inspect = async (browser: AttachmentBrowser, selector: string): Promise<Record<string, unknown>> =>
-  record(await browser.executeDomIntent({
-    kind: "inspect",
-    selector,
-    fields: ["tagName", "type", "text", "accept", "multiple", "connected", "disabled", "visible"],
+type AttachmentSurfaceNode = Readonly<{
+  id: string;
+  tagName: string;
+  text: string;
+  disabled: boolean;
+}>;
+
+type AttachmentSurface = Readonly<{
+  pageUrl: string;
+  composer: AttachmentSurfaceNode;
+  formText: string;
+}>;
+
+const stringField = (value: unknown): string => {
+  if (typeof value !== "string") throw attachmentSurfaceContractMismatch("string_field");
+  return value;
+};
+
+const booleanField = (value: unknown): boolean => {
+  if (typeof value !== "boolean") throw attachmentSurfaceContractMismatch("boolean_field");
+  return value;
+};
+
+const surfaceNode = (value: unknown): AttachmentSurfaceNode => {
+  const node = record(value);
+  return {
+    id: stringField(node.id),
+    tagName: stringField(node.tagName),
+    text: stringField(node.text),
+    disabled: booleanField(node.disabled),
+  };
+};
+
+const exactlyOne = (
+  nodes: readonly AttachmentSurfaceNode[],
+  predicate: (node: AttachmentSurfaceNode) => boolean,
+  label: string,
+): AttachmentSurfaceNode => {
+  const matches = nodes.filter(predicate);
+  if (matches.length !== 1) {
+    throw attachmentSurfaceContractMismatch(`${label}_count_${matches.length}`);
+  }
+  return matches[0]!;
+};
+
+const readAttachmentSurface = async (browser: AttachmentBrowser): Promise<AttachmentSurface> => {
+  const { url: pageUrl } = await documentState(browser);
+  const result = record(await browser.executeDomIntent({
+    kind: "find",
+    selector: CHATGPT_ATTACHMENT_SURFACE_SELECTOR,
+    maxMatches: 20,
+    fields: ["id", "tagName", "text", "disabled"],
   }));
-
-const inspectKnownChatGptComposer = async (browser: AttachmentBrowser): Promise<{ pageUrl: string; composer: Record<string, unknown>; fileInput: Record<string, unknown> }> => {
-  const { url } = await documentState(browser);
-  const composer = await inspect(browser, CHATGPT_COMPOSER_SELECTOR);
-  const fileInput = await inspect(browser, CHATGPT_DOCUMENT_FILE_INPUT_SELECTOR);
-  return { pageUrl: url, composer, fileInput };
+  if (!Number.isInteger(result.count)
+    || !Array.isArray(result.matches)
+    || result.matches.length !== result.count) {
+    throw attachmentSurfaceContractMismatch("snapshot_shape");
+  }
+  const nodes = result.matches.map(surfaceNode);
+  const form = exactlyOne(nodes, (node) => node.tagName === "FORM", "composer_form");
+  const composer = exactlyOne(nodes, (node) => node.id === "prompt-textarea", "composer");
+  return {
+    pageUrl,
+    composer,
+    formText: form.text.trim(),
+  };
 };
-
-const count = async (browser: AttachmentBrowser, selector: string): Promise<number> => {
-  const value = record(await browser.executeDomIntent({ kind: "find", selector, maxMatches: 20 }));
-  if (!Number.isInteger(value.count) || (value.count as number) < 0) throw new Error("BROWSER_TARGET_INVALID");
-  return value.count as number;
-};
-
-const readText = async (browser: AttachmentBrowser, selector: string): Promise<string> => {
-  const value = await browser.executeDomIntent({
-    kind: "readText",
-    selector,
-    expectedMatches: 1,
-    maxChars: 65_536,
-  });
-  if (typeof value !== "string") throw new Error("BROWSER_TARGET_INVALID");
-  return value.trim();
-};
-
-const hasExactDocumentInputTopology = (input: Record<string, unknown>): boolean =>
-  input.tagName === "INPUT"
-  && input.type === "file"
-  && input.accept === ""
-  && input.multiple === true
-  && input.connected === true
-  && input.disabled === false;
 
 const emptyAttachmentState = (
   pageUrl: string,
   composerTextLength: number,
 ): WebChatEvaluation => ({
   status: "success",
-  message: "exact ChatGPT composer and document-file input preflight verified",
+  message: "exact visible ChatGPT composer and zero-attachment surface verified",
   pageUrl,
   attachmentCount: 0,
   attachmentNames: [],
@@ -83,10 +115,7 @@ const emptyAttachmentState = (
   composerCandidateCount: 1,
   composerRootCount: 1,
   conversationTurnCountInScope: 0,
-  generalFileInputCount: 1,
-  imageFileInputCountInScope: 0,
   pendingAttachmentCount: 0,
-  sendReady: false,
   composerTextLength,
 });
 
@@ -95,59 +124,58 @@ const evaluateObservedAttachmentSet = (input: Readonly<{
   composerTextLength: number;
   expectedCount: number;
   matchedNames: readonly string[];
-  removeCount: number;
-  sendReady: boolean;
-  requireReady: boolean;
+  formText: string;
+  duplicateNameCount: number;
 }>): WebChatEvaluation => {
   const common = {
     pageUrl: input.pageUrl,
-    attachmentCount: input.removeCount,
+    attachmentCount: input.matchedNames.length,
     attachmentNames: [...input.matchedNames],
   };
-  if (input.removeCount > input.expectedCount || input.matchedNames.length > input.expectedCount) {
+  if (input.duplicateNameCount > 0) {
     return { status: "review_required", message: "CHATGPT_ATTACHMENT_SET_AMBIGUOUS", ...common };
   }
-  if (input.removeCount !== input.expectedCount
-    || input.matchedNames.length !== input.expectedCount
-    || (input.requireReady && !input.sendReady)) {
-    return { status: "pending", message: "waiting for the exact ChatGPT attachment set to stabilize", ...common, sendReady: input.sendReady };
+  if (input.matchedNames.length === input.expectedCount) {
+    return {
+      status: "success",
+      message: "exact visible ChatGPT attachment file names verified",
+      ...common,
+      attachmentScope: "composer",
+      composerCandidateCount: 1,
+      composerRootCount: 1,
+      conversationTurnCountInScope: 0,
+      pendingAttachmentCount: input.matchedNames.length,
+      composerTextLength: input.composerTextLength,
+    };
   }
-  return {
-    status: "success",
-    message: "exact ChatGPT attachment set, file names and enabled send control verified",
-    ...common,
-    attachmentScope: "composer",
-    composerCandidateCount: 1,
-    composerRootCount: 1,
-    conversationTurnCountInScope: 0,
-    generalFileInputCount: 1,
-    imageFileInputCountInScope: 0,
-    pendingAttachmentCount: input.removeCount,
-    sendReady: input.sendReady,
-    composerTextLength: input.composerTextLength,
-  };
+  if (input.formText.length === 0) {
+    return { status: "pending", message: "CHATGPT_ATTACHMENT_SURFACE_EMPTY", ...common };
+  }
+  return { status: "review_required", message: "CHATGPT_ATTACHMENT_SET_AMBIGUOUS", ...common };
 };
 
-const inspectObservedAttachmentSet = async (
-  browser: AttachmentBrowser,
+const occurrences = (value: string, needle: string): number =>
+  needle.length === 0 ? 0 : value.split(needle).length - 1;
+
+const evaluateObservedAttachmentSetFromSurface = (
+  observed: AttachmentSurface,
   pageUrl: string,
   composerTextLength: number,
   expectedCount: number,
   expectedFileNames: readonly string[],
-  requireReady: boolean,
 ): Promise<WebChatEvaluation> => {
-  const formText = await readText(browser, CHATGPT_COMPOSER_FORM_SELECTOR);
-  const removeCount = await count(browser, CHATGPT_REMOVE_ATTACHMENT_SELECTOR);
-  const send = await inspect(browser, CHATGPT_SEND_SELECTOR);
-  return evaluateObservedAttachmentSet({
+  const nameOccurrences = expectedFileNames.map((fileName) => ({
+    fileName,
+    count: occurrences(observed.formText, fileName),
+  }));
+  return Promise.resolve(evaluateObservedAttachmentSet({
     pageUrl,
     composerTextLength,
     expectedCount,
-    matchedNames: expectedFileNames.filter((fileName) => formText.includes(fileName)),
-    removeCount,
-    sendReady: send.tagName === "BUTTON" && send.visible === true && send.disabled === false,
-    requireReady,
-  });
+    matchedNames: nameOccurrences.filter(({ count }) => count === 1).map(({ fileName }) => fileName),
+    formText: observed.formText,
+    duplicateNameCount: nameOccurrences.filter(({ count }) => count > 1).length,
+  }));
 };
 
 const evaluateKnownAttachmentPreflight = async (
@@ -156,28 +184,29 @@ const evaluateKnownAttachmentPreflight = async (
   expectedFileNames: readonly string[],
   options: ExactAttachmentStateOptions,
 ): Promise<WebChatEvaluation> => {
-  const observed = await inspectKnownChatGptComposer(browser);
+  const observed = await readAttachmentSurface(browser);
   if (options.expectedPageUrl && observed.pageUrl !== options.expectedPageUrl) {
     return { status: "review_required", message: "WEB_CHAT_PROVIDER_IDENTITY_DRIFT", pageUrl: observed.pageUrl };
   }
-  if (observed.composer.tagName !== "DIV" || observed.composer.disabled === true) {
+  if (observed.composer.tagName !== "DIV" || observed.composer.disabled) {
     return { status: "review_required", message: "CHATGPT_COMPOSER_INVALID", pageUrl: observed.pageUrl };
-  }
-  if (!hasExactDocumentInputTopology(observed.fileInput)) {
-    return { status: "review_required", message: "CHATGPT_DOCUMENT_FILE_INPUT_AMBIGUOUS", pageUrl: observed.pageUrl };
   }
   const composerText = typeof observed.composer.text === "string" ? observed.composer.text.trim() : "";
   if (options.requireComposerTextEmpty && composerText.length > 0) {
     return { status: "review_required", message: "WEB_CHAT_COMPOSER_NOT_EMPTY", pageUrl: observed.pageUrl, composerText };
   }
-  if (expectedCount === 0) return emptyAttachmentState(observed.pageUrl, composerText.length);
-  return inspectObservedAttachmentSet(
-    browser,
+  if (expectedCount === 0) {
+    if (observed.formText.length !== 0) {
+      return { status: "review_required", message: "CHATGPT_ATTACHMENT_SET_AMBIGUOUS", pageUrl: observed.pageUrl };
+    }
+    return emptyAttachmentState(observed.pageUrl, composerText.length);
+  }
+  return evaluateObservedAttachmentSetFromSurface(
+    observed,
     observed.pageUrl,
     composerText.length,
     expectedCount,
     expectedFileNames,
-    options.requireReady === true,
   );
 };
 
@@ -204,20 +233,15 @@ const throwIfTerminalAttachmentEvaluation = (input: {
   throw new Error(`${input.evaluation.message}; step=${input.expectedCount}; expected_files=${input.expectedFileNames.join("|")}; page_url=${input.evaluation.pageUrl ?? "unknown"}`);
 };
 
-export const waitForExactAttachmentCount = async (
+export const observeExactAttachmentSet = async (
   browser: AttachmentBrowser,
   context: AiProviderAdapterContext,
   expectedCount: number,
   expectedFileNames: readonly string[],
-  timeoutMs: number,
   options: ExactAttachmentStateOptions = {},
 ): Promise<WebChatEvaluation> => {
-  const deadline = Date.now() + Math.min(timeoutMs, MAX_ATTACHMENT_COUNT_WAIT_MS);
-  while (Date.now() < deadline) {
-    const evaluation = await readExactAttachmentState(browser, context, expectedCount, expectedFileNames, options);
-    if (evaluation.status === "success") return evaluation;
-    throwIfTerminalAttachmentEvaluation({ evaluation, expectedCount, expectedFileNames });
-    await browser.wait({ durationMs: 250 });
-  }
+  const evaluation = await readExactAttachmentState(browser, context, expectedCount, expectedFileNames, options);
+  if (evaluation.status === "success") return evaluation;
+  throwIfTerminalAttachmentEvaluation({ evaluation, expectedCount, expectedFileNames });
   throw new Error(`GPT_ATTACHMENT_COUNT_MISMATCH; expected_count=${expectedCount}; expected_files=${expectedFileNames.join("|")}`);
 };

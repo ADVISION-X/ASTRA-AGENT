@@ -281,8 +281,13 @@ export async function heartbeatXuanxueAiProductionJob(
   job: XuanxueAiProductionCloudClaimedJob,
   checkpointHash: `sha256:${string}` | null = null,
 ): Promise<Readonly<{
+  schema_version: "xuanxue-ai-lease-renew-receipt.v6"; job_id: string;
   server_now: string; lease_expires_at: string; renew_after_ms: 20_000;
-  control_intent: Readonly<{ intent: "none" | "pause_requested" | "cancel_requested" | "handover_requested"; control_epoch: number; reason_code: string | null }>;
+  control_intent: Readonly<{
+    schema_version: "xuanxue-ai-control-intent.v6"; job_id: string;
+    intent: "none" | "pause_requested" | "cancel_requested" | "handover_requested";
+    control_epoch: number; reason_code: string | null;
+  }>;
 }>> {
   const requestId = `aiprenew_${randomUUID()}`;
   return parseLeaseRenewResponse(await session.request(`/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/renew`, {

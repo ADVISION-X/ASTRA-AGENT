@@ -26,7 +26,6 @@ import {
 import * as P from "./paths.js";
 import { inspectConversationTopology } from "./topology-inspector.js";
 import { inspectAttachmentProofChild, inspectAttachmentRoutingChild } from "./attachment-inspector.js";
-import { inspectAtomicIfAndThenActions } from "./atomic-if-and-then-inspector.js";
 import { inspectBoundedChoiceJudge, inspectCallerApprovedInputReferences } from "./authority-boundary-inspector.js";
 
 const literalContains = (source: SourceFile, value: string): boolean =>
@@ -418,7 +417,8 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   run("inspectAttachmentProofChild", [proofLawId], () => inspectAttachmentProofChild(context, findings, proofLawId));
   run("inspectRemovedRegion", [routingLawId], () => inspectRemovedRegion(context, findings, routingLawId));
   run("inspectBoundedParallelExecution", [parallelLawId], () => inspectBoundedParallelExecution(context, findings, parallelLawId));
-  inspectSerialProviderBrowserActions(context, findings, parallelLawId);
+  run("inspectSerialProviderBrowserActions", [atomicLawId, parallelLawId], () =>
+    inspectSerialProviderBrowserActions(context, findings, atomicLawId));
   inspectFreshConversationIdentity(context, findings, parallelLawId);
   inspectNoChatGptPageRefresh(context, findings, parallelLawId);
   inspectCanonicalConversationIdentity(context, findings, parallelLawId);
@@ -430,7 +430,6 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   inspectTransientSubmissionIsNotRoutable(context, findings, parallelLawId);
   inspectTransientOverlayHygiene(context, findings, parallelLawId);
   run("inspectGeneratedImageCapture", [parallelLawId], () => inspectGeneratedImageCapture(context, findings, parallelLawId));
-  run("inspectAtomicIfAndThenActions", [atomicLawId], () => inspectAtomicIfAndThenActions(context, findings, atomicLawId));
   run("inspectConversationTopology", [parallelLawId], () => inspectConversationTopology(context, findings, parallelLawId));
   run("inspectBoundedChoiceJudge", [boundedJudgeLawId], () => inspectBoundedChoiceJudge(context, findings, boundedJudgeLawId));
   run("inspectCallerApprovedInputReferences", [approvedInputLawId], () => inspectCallerApprovedInputReferences(context, findings, approvedInputLawId));
@@ -446,7 +445,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const evaluation = await inspectDomainEvaluation(context);
     const semanticChecks = (lawId: string): string[] => ({
       "LAW-AI-INPUT-GATEWAY-001-V1": ["inspectPublicBoundary"],
-      "LAW-AI-INPUT-GATEWAY-002-V3": ["inspectAtomicIfAndThenActions"],
+      "LAW-AI-INPUT-GATEWAY-002-V3": ["inspectSerialProviderBrowserActions"],
       "LAW-AI-INPUT-GATEWAY-003-V1": ["inspectAttachmentRoutingChild", "inspectRemovedRegion"],
       "LAW-AI-INPUT-GATEWAY-004-V1": ["inspectAttachmentProofChild"],
       "LAW-AI-INPUT-GATEWAY-005-V4": ["inspectBoundedParallelExecution", "inspectConversationTopology", "inspectGeneratedImageCapture"],

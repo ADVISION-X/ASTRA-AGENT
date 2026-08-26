@@ -263,6 +263,7 @@ const reportCloudJobFailure = async (
 ): Promise<void> => {
   const recoverable = isRecoverableCloudWorkerFailure(error);
   if (!context.accepted) {
+    reportCloudWorkerError("XUANXUE_AI_PRODUCTION_ACCEPT_REJECTED", error);
     await releaseXuanxueAiProductionLease(
       state.session, job,
       /DEADLINE_BUDGET/iu.test(safeWorkerReason(error))
@@ -332,7 +333,9 @@ const workerLoop = async (state: WorkerState): Promise<void> => {
   while (!state.abort.signal.aborted) {
     try {
       await reconcileLocalNonterminalLedger(state);
-      await flushXuanxueAiProductionCloudOutbox(state.session, state.outbox);
+      if (state.active.size === 0) {
+        await flushXuanxueAiProductionCloudOutbox(state.session, state.outbox);
+      }
       state.ledgerReconciled = true;
       state.session.markLedgerReconciled();
       const receipt = await state.session.ensureFreshAttestation();

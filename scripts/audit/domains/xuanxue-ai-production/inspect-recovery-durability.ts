@@ -69,7 +69,7 @@ const inspectTerminalAttachmentGuard = (
       "Factory flow must define hasTerminalAttachmentTransportProof."));
     return;
   }
-  for (const functionName of ["executeStage", "executeStageUntilSettled"]) {
+  for (const functionName of ["executeStage"]) {
     const guarded = flow.getVariableDeclaration(functionName)?.getInitializer()
       ?.getDescendantsOfKind(SyntaxKind.CallExpression)
       .some((call) => call.getExpression().asKind(SyntaxKind.Identifier)

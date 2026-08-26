@@ -16,6 +16,14 @@ export const prepareWebChatSessionForSubmission = async (input: {
   providerUrl: string;
 }): Promise<ProviderExecutionProfileProof | null> => {
   if (input.request.providerKind !== "gpt-web-chat") return null;
+  const checkpoint = input.context.webChatExecution?.providerExecutionProfileCheckpointCurrent === true
+    ? input.context.webChatExecution.providerExecutionProfileProof : null;
+  if (checkpoint) {
+    if (checkpoint.profileHash !== input.request.providerExecutionProfile?.profileHash) {
+      throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_PROOF_BINDING_MISMATCH");
+    }
+    return checkpoint;
+  }
   return enforceGptWebExecutionProfile(input);
 };
 

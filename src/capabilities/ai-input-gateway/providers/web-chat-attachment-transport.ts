@@ -17,7 +17,7 @@ export type StagedWebChatAttachment = {
   byteCount: number;
 };
 
-export type AttachmentMutationBrowser = Pick<BrowserTargetLease, "executeDomIntent" | "wait" | "attachFile">;
+export type AttachmentMutationBrowser = Pick<BrowserTargetLease, "executeDomIntent" | "attachFile">;
 
 export type WebChatAttachmentTransportInput = {
   browser: AttachmentMutationBrowser;

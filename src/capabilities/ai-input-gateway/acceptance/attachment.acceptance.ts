@@ -52,23 +52,26 @@ const buildRequest = async (directory: string, fileCount: number) => {
 class AttachmentLeaseFixture implements AttachmentMutationBrowser {
   readonly attachmentBatches: Array<Parameters<AttachmentMutationBrowser["attachFile"]>[0]> = [];
   readonly registeredNames: string[] = [];
+  readonly surfaceSelectors: string[] = [];
+  surfaceReads = 0;
 
   public async executeDomIntent(intent: Parameters<AttachmentMutationBrowser["executeDomIntent"]>[0]): Promise<unknown> {
     if (intent.kind === "document") return { url: "https://chatgpt.com/c/attachment-acceptance", title: "ChatGPT" };
-    if (intent.kind === "inspect" && intent.selector === "#prompt-textarea") {
-      return { tagName: "DIV", text: "", visible: true, disabled: false };
-    }
-    if (intent.kind === "inspect" && intent.selector === "#upload-files") {
-      return { tagName: "INPUT", type: "file", accept: "", multiple: true, connected: true, disabled: false, visible: false };
-    }
-    if (intent.kind === "inspect" && intent.selector === "#composer-submit-button[data-testid='send-button']") {
-      return { tagName: "BUTTON", visible: true, disabled: true };
-    }
-    if (intent.kind === "readText" && intent.selector === "form") {
-      return this.registeredNames.join("\n");
-    }
-    if (intent.kind === "find" && intent.selector?.includes("Remove file")) {
-      return { count: this.attachmentBatches.at(-1)?.grants.length ?? 0 };
+    if (intent.kind === "find"
+      && intent.selector?.includes("#prompt-textarea")
+      && intent.selector.includes("form:has(#prompt-textarea)")
+      && !intent.selector.includes("#upload-files")
+      && !intent.selector.includes("#composer-submit-button")) {
+      this.surfaceReads += 1;
+      this.surfaceSelectors.push(intent.selector);
+      const base = {
+        disabled: false,
+      };
+      const matches = [
+        { ...base, id: "", tagName: "FORM", text: this.registeredNames.join("\n") },
+        { ...base, id: "prompt-textarea", tagName: "DIV", text: "" },
+      ];
+      return { count: matches.length, matches };
     }
     throw new Error("BROWSER_TARGET_INVALID");
   }
@@ -77,6 +80,12 @@ class AttachmentLeaseFixture implements AttachmentMutationBrowser {
 
   public async attachFile(input: Parameters<AttachmentMutationBrowser["attachFile"]>[0]): Promise<void> {
     this.attachmentBatches.push(input);
+  }
+}
+
+class OutcomeUnknownAttachmentLeaseFixture extends AttachmentLeaseFixture {
+  public override async attachFile(): Promise<void> {
+    throw new Error("BROWSER_OUTCOME_UNKNOWN");
   }
 }
 
@@ -122,10 +131,65 @@ try {
   ], "one exact document-input batch is the only attachment mutation");
   assert.equal((terminalProof as { status?: string } | null)?.status, "attachments_stable");
   assert.equal(completed.uploadedFiles.length, 2);
+  assert.deepEqual(
+    completed.attachmentUploadProof.files.map((file) => file.displayFileName),
+    ["001_01-fixture.json", "002_02-fixture.json"],
+    "attachment display names are deterministic across process attempts",
+  );
+  assert.equal(browser.surfaceReads, 2, "attachment flow uses one precondition surface and one direct postcondition surface");
+  assert.equal(
+    browser.surfaceSelectors.every((selector) =>
+      selector.includes("form:has(#prompt-textarea)")
+      && !selector.includes("#upload-files")
+      && !selector.includes("#composer-submit-button")
+      && !selector.includes("button")
+      && !selector.includes("aria-label")),
+    true,
+    "visible attachment permission must not duplicate the Browser Authority hidden target or pre-read send readiness",
+  );
   assert.equal(
     browser.attachmentBatches.length,
     1,
     "exact attachments must stabilize before prompt entry even while the send button is correctly disabled",
+  );
+
+  const recoveredBrowser = new AttachmentLeaseFixture();
+  recoveredBrowser.registeredNames.push("001_01-fixture.json", "002_02-fixture.json");
+  let recoveredRegistrationCount = 0;
+  const recovered = await attachApprovedWebChatFilesOnce({
+    browser: recoveredBrowser,
+    request: await buildRequest(dataDir, 2),
+    context: {
+      dataDir,
+      registerBrowserFileArtifact: async () => { recoveredRegistrationCount += 1; },
+      issueBrowserFileArtifactGrant: async (input) => grantFor(input.artifactRef, input.expectedSha256, input.maxBytes),
+    },
+  });
+  assert.equal(recovered.attachmentUploadProof.status, "attachments_stable");
+  assert.equal(recovered.uploadedFiles.length, 2);
+  assert.equal(recoveredRegistrationCount, 0);
+  assert.equal(recoveredBrowser.attachmentBatches.length, 0,
+    "an exact deterministic attachment set after restart is recovered with zero mutation");
+  assert.equal(recoveredBrowser.surfaceReads, 1,
+    "restart recovery uses one current-surface decision and no polling ceremony");
+
+  const unknownBrowser = new OutcomeUnknownAttachmentLeaseFixture();
+  await assert.rejects(
+    attachApprovedWebChatFilesOnce({
+      browser: unknownBrowser,
+      request: await buildRequest(dataDir, 1),
+      context: {
+        dataDir,
+        registerBrowserFileArtifact: async (input) => {
+          unknownBrowser.registeredNames.push(path.basename(input.filePath));
+        },
+        issueBrowserFileArtifactGrant: async (input) => grantFor(input.artifactRef, input.expectedSha256, input.maxBytes),
+      },
+    }),
+    (error: unknown) => error instanceof WebChatAttachmentCapabilityFailure
+      && error.attachmentUploadProof.status === "review_required"
+      && error.uploadedFiles.length === 0,
+    "an outcome-unknown attachment mutation must fail closed and never gain replay authority",
   );
 
   await assert.rejects(
@@ -140,6 +204,6 @@ try {
   await rm(dataDir, { recursive: true, force: true });
 }
 
-process.stdout.write("[ACCEPTANCE] AI Input Gateway attachment child registers staged artifacts, issues opaque grants and submits one exact-target batch\n");
+process.stdout.write("[ACCEPTANCE] AI Input Gateway attachment child uses deterministic names, zero-mutation restart recovery and at most one exact-target batch\n");
 emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-AI-INPUT-GATEWAY-004-V1", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","summary"], locator: "acceptance:attachment:opaque-grant-proof", observedValue: "staged artifacts and opaque grants retain exact proof" });
 emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-AI-INPUT-GATEWAY-007-V2", evidenceMode: "exam.golden", clauses: ["forbidden:0","summary"], locator: "acceptance:attachment:approved-input-refs", observedValue: "caller inputRefs bind staged file hashes and one exact-target batch" });

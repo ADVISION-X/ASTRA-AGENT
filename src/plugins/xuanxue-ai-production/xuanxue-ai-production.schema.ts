@@ -151,7 +151,7 @@ export const XuanxueAiStoredProductionOrderSchema = z.object({
   contractManifestHash: hashSchema.nullable(),
   productContractHash: hashSchema,
   localizationRole: XuanxueLocalizationRoleSchema.nullable(),
-  providerExecutionProfile: XuanxueStoredProviderExecutionProfileSchema.nullable(),
+  providerExecutionProfile: XuanxueStoredProviderExecutionProfileSchema,
   frozenSubject: XuanxueAiFrozenSubjectSchema,
   conversationScopeRef: z.string().min(1),
   conversationParent: ConversationParentBindingSchema.nullable(),

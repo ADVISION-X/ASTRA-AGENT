@@ -153,6 +153,7 @@ const createBrowserFacade = (
   wait: ({ durationMs }) => delay(durationMs, input.signal),
   close: (value) => withMutation(() => input.base.close(value), { route: false }),
   resolvePendingMutation: (value) => input.base.resolvePendingMutation(value),
+  pendingMutationCount: () => input.base.pendingMutationCount(),
   assertNoPendingMutations: () => input.base.assertNoPendingMutations(),
 });
 

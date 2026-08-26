@@ -14,6 +14,8 @@ import type {
 } from "../contracts/ai-provider-adapter.contract.js";
 import { buildGptWebProviderExecutionProfile, type AiFeedInput } from "../schema.js";
 import { enforceGptWebExecutionProfile } from "../providers/gpt-web-execution-profile.js";
+import { readPreSubmitConversationState } from "../providers/web-chat-pre-submit-state.js";
+import { prepareWebChatSessionForSubmission } from "../providers/web-chat-session-controller.js";
 import {
   LEGACY_PROFILE_READBACK_STATE_CORRECTION,
   startOrResumeWebChatExecution,
@@ -25,11 +27,21 @@ const advancedClosed = "[role='menuitem'][aria-label='显示高级选项']";
 const advancedOpen = "[role='menuitem'][aria-label='显示精简选项']";
 const submenus = "[role='menuitem'][aria-haspopup='menu']";
 const choices = "[role='menuitemradio']";
-const checkedChoices = "[role='menuitemradio'][aria-checked='true']";
+const surfaceSelector = [trigger, advancedClosed, advancedOpen, submenus, choices].join(",");
+
+type SurfaceNode = Readonly<{
+  tagName: string;
+  role: string;
+  ariaLabel: string;
+  ariaExpanded: string;
+  ariaChecked: string;
+  text: string;
+}>;
 
 class ProfileBrowserFixture {
   public readonly actions: string[] = [];
   public readonly triggerFindCounts: number[] = [];
+  public snapshotReadCount = 0;
   public resolvedMutations = 0;
   public readonly target: BrowserTargetLease["target"] = {
     targetRef: "target-profile-acceptance",
@@ -61,14 +73,14 @@ class ProfileBrowserFixture {
 
   public readonly executeDomIntent = async (intent: BrowserDomIntent): Promise<unknown> => {
     if (intent.kind === "document") return { url: "https://chatgpt.com/", title: "ChatGPT" };
-    if (intent.kind === "readAttribute") {
-      if (intent.selector !== trigger || intent.name !== "aria-expanded") {
-        throw new Error("unexpected readAttribute");
-      }
-      return this.expanded ? "true" : "false";
-    }
     if (intent.kind === "find") {
-      return { count: this.find(intent.selector!, intent.textContains, intent.textEquals) };
+      if (intent.selector !== surfaceSelector || !intent.fields) {
+        throw new Error(`unexpected find ${intent.selector ?? ""}`);
+      }
+      const matches = this.surfaceNodes();
+      this.snapshotReadCount += 1;
+      this.triggerFindCounts.push(matches.some((node) => node.tagName === "BUTTON") ? 1 : 0);
+      return { count: matches.length, matches };
     }
     if (intent.kind !== "click") throw new Error(`unexpected intent ${intent.kind}`);
     if (this.pendingMutation) throw new Error("BROWSER_OUTCOME_UNKNOWN");
@@ -120,6 +132,7 @@ class ProfileBrowserFixture {
         this.resolvedMutations += 1;
         return 1;
       },
+      pendingMutationCount: () => this.pendingMutation ? 1 : 0,
       assertNoPendingMutations: () => {
         if (this.pendingMutation) throw new Error("BROWSER_OUTCOME_UNKNOWN");
       },
@@ -142,39 +155,56 @@ class ProfileBrowserFixture {
     return null;
   }
 
-  private valuesForSelector(selector: string): string[] {
-    if (selector === trigger && this.triggerDelayReads > 0) {
+  private surfaceNodes(): SurfaceNode[] {
+    const nodes: SurfaceNode[] = [];
+    if (this.triggerDelayReads > 0) {
       this.triggerDelayReads -= 1;
-      return [];
+      return nodes;
     }
-    if ((selector === advancedClosed || selector === advancedOpen)
-      && this.advancedMarkerReadsRemaining > 0) {
+    nodes.push({
+      tagName: "BUTTON",
+      role: "",
+      ariaLabel: "",
+      ariaExpanded: this.expanded ? "true" : "false",
+      ariaChecked: "",
+      text: `${this.model.replace(/^GPT-/u, "")} ${this.reasoning}`,
+    });
+    if (!this.expanded) return nodes;
+    if (this.advancedMarkerReadsRemaining > 0) {
       this.advancedMarkerReadsRemaining -= 1;
-      return [];
+      return nodes;
     }
-    const lookups: Record<string, () => string[]> = {
-      [trigger]: () => [`${this.model.replace(/^GPT-/u, "")} ${this.reasoning}`],
-      [advancedClosed]: () => this.expanded && !this.advanced ? ["高级"] : [],
-      [advancedOpen]: () => this.expanded && this.advanced ? ["高级"] : [],
-      [submenus]: () => this.expanded && this.advanced
-        ? [`模型${this.model}`, `推理强度${this.reasoning}`] : [],
-      [choices]: () => this.candidates(),
-      [checkedChoices]: () => this.selected() ? [this.selected()!] : [],
-    };
-    const lookup = lookups[selector];
-    if (!lookup) throw new Error(`unexpected selector ${selector}`);
-    return lookup();
-  }
-
-  private find(selector: string, textContains?: string, textEquals?: string): number {
-    const values = this.valuesForSelector(selector);
-    if (selector === trigger) this.triggerFindCounts.push(values.length);
-    if (textEquals !== undefined) {
-      return values.filter((value) => value.trim() === textEquals.trim()).length;
+    nodes.push({
+      tagName: "DIV",
+      role: "menuitem",
+      ariaLabel: this.advanced ? "显示精简选项" : "显示高级选项",
+      ariaExpanded: "",
+      ariaChecked: "",
+      text: "高级",
+    });
+    if (!this.advanced) return nodes;
+    for (const value of [`模型${this.model}`, `推理强度${this.reasoning}`]) {
+      nodes.push({
+        tagName: "DIV",
+        role: "menuitem",
+        ariaLabel: "",
+        ariaExpanded: "",
+        ariaChecked: "",
+        text: value,
+      });
     }
-    return textContains === undefined
-      ? values.length
-      : values.filter((value) => value.includes(textContains)).length;
+    const selected = this.selected();
+    for (const value of this.candidates()) {
+      nodes.push({
+        tagName: "DIV",
+        role: "menuitemradio",
+        ariaLabel: "",
+        ariaExpanded: "",
+        ariaChecked: value === selected ? "true" : "false",
+        text: value,
+      });
+    }
+    return nodes;
   }
 
   private click(selector: string, expectedText?: string): void {
@@ -259,6 +289,7 @@ const context = (receipts: {
     submittedPromptHash: "sha256:profile-acceptance-prompt",
     providerExecutionProfileBinding: null,
     providerExecutionProfileProof: null,
+    providerExecutionProfileCheckpointCurrent: true,
     conversationTitle: null,
     resumeSubmission: null,
     resumeUploadedFiles: [],
@@ -330,6 +361,10 @@ const acceptExactMutationAndReadback = async (): Promise<void> => {
     "模型选择下拉",
   ]);
   assert.equal(browser.resolvedMutations, browser.actions.length);
+  assert.ok(
+    browser.snapshotReadCount <= 30,
+    `one complete profile change must stay bounded, observed ${browser.snapshotReadCount} surface snapshots`,
+  );
 };
 
 const acceptNoOpAndExclusion = async (): Promise<void> => {
@@ -355,7 +390,7 @@ const acceptNoOpAndExclusion = async (): Promise<void> => {
       context: context({ actions: [], profile: null }, ambiguous),
       request: request("high"),
     }),
-    /GPT_WEB_EXECUTION_PROFILE_模型_AMBIGUOUS/u,
+    /GPT_WEB_EXECUTION_PROFILE_MODEL_AMBIGUOUS/u,
   );
 };
 
@@ -444,6 +479,57 @@ const acceptCommittedOutcomeUnknownWithoutReplay = async (): Promise<void> => {
   assert.equal(receipts.actions.at(-1)?.actionId, "verify_execution_profile");
 };
 
+const acceptCurrentDocumentProfileCheckpointWithoutMenuReplay = async (): Promise<void> => {
+  const browser = new ProfileBrowserFixture("GPT-5.6 Sol", "极高");
+  const receipts = {
+    actions: [] as WebChatPageActionProof[],
+    profile: null as ProviderExecutionProfileProof | null,
+  };
+  const requestInput = request("extra_high");
+  const executionContext = context(receipts, browser);
+  const proof = await enforceGptWebExecutionProfile({
+    browser: browser.asLease(),
+    context: executionContext,
+    request: requestInput,
+  });
+  assert.ok(proof);
+  executionContext.webChatExecution!.providerExecutionProfileProof = proof;
+  const actionCount = browser.actions.length;
+  const snapshotCount = browser.snapshotReadCount;
+  const resumed = await prepareWebChatSessionForSubmission({
+    browser: browser.asLease(),
+    context: executionContext,
+    request: requestInput,
+    providerUrl: "https://chatgpt.com/",
+  });
+  assert.equal(resumed?.profileHash, proof.profileHash);
+  assert.equal(browser.actions.length, actionCount);
+  assert.equal(browser.snapshotReadCount, snapshotCount);
+};
+
+const acceptZeroTurnCountWithoutSyntheticMatches = async (): Promise<void> => {
+  const browser = new ProfileBrowserFixture("GPT-5.6 Sol", "极高");
+  const lease: BrowserTargetLease = {
+    ...browser.asLease(),
+    executeDomIntent: async (intent) => {
+      if (intent.kind === "document") return { url: "https://chatgpt.com/", title: "ChatGPT" };
+      if (intent.kind === "find") return { count: 0 };
+      throw new Error(`unexpected intent ${intent.kind}`);
+    },
+  };
+  const state = await readPreSubmitConversationState({
+    browser: lease,
+    request: request("extra_high"),
+    context: context({ actions: [], profile: null }),
+    providerUrl: "https://chatgpt.com/",
+  });
+  assert.deepEqual(state, {
+    previousAssistantCount: 0,
+    previousUserMessageCount: 0,
+    previousAnswerText: null,
+  });
+};
+
 const acceptExactHighDoesNotMatchExtraHigh = async (): Promise<void> => {
   const browser = new ProfileBrowserFixture("GPT-5.6 Sol", "极高");
   const proof = await enforceGptWebExecutionProfile({
@@ -517,6 +603,8 @@ await acceptDelayedUniqueProfileTriggerMount();
 await rejectModelMenuClosureWithoutExactModelReadback();
 await acceptNoBacktrackingForReasoningOnlyChange();
 await acceptCommittedOutcomeUnknownWithoutReplay();
+await acceptCurrentDocumentProfileCheckpointWithoutMenuReplay();
+await acceptZeroTurnCountWithoutSyntheticMatches();
 await acceptExactHighDoesNotMatchExtraHigh();
 await acceptOneTimeProofEmptyProfileStateCorrection();
-process.stdout.write("[gpt-web-execution-profile] PASS atomic straight-line model/reasoning selection, delayed 0-to-1 trigger observation, committed UNKNOWN adjudication without replay, immediate model readback before reasoning, exact terminal parent-summary readback, no-op, ambiguity exclusion and one-time proof-empty state correction\n");
+process.stdout.write("[gpt-web-execution-profile] PASS current-surface snapshots, one-action transitions, bounded waiting, committed UNKNOWN adjudication without replay, exact terminal model/reasoning readback, no-op, ambiguity exclusion and one-time proof-empty state correction\n");

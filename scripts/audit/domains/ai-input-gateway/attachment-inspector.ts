@@ -77,7 +77,7 @@ const inspectAttachmentProofContract = (
   lawId: string,
 ): void => {
   const childIds = identifiers(sources.child);
-  for (const requiredIdentifier of ["attachApprovedWebChatFilesOnce", "attachByExactTargetFileInputBatch", "resolveWebChatAttachmentTransportKind", "stageApprovedFiles", "waitForStableAttachmentSet", "stagingManifestHash", "onAttachmentUploadCompleted"]) {
+  for (const requiredIdentifier of ["attachApprovedWebChatFilesOnce", "attachByExactTargetFileInputBatch", "resolveWebChatAttachmentTransportKind", "stageApprovedFiles", "observeExactAttachmentSet", "stagingManifestHash", "onAttachmentUploadCompleted"]) {
     if (!childIds.has(requiredIdentifier)) pushFinding(findings, lawId, P.attachment.childPath, "ai-input-gateway/attachment-child-structure", `${P.attachment.childPath} must contain ${requiredIdentifier}.`);
   }
   const proofProperties = typePropertyNames(sources.adapterContract, "WebChatAttachmentUploadProof");
@@ -97,6 +97,14 @@ const inspectAttachmentTerminalProof = (
   } else if (preflight.getDescendantsOfKind(SyntaxKind.StringLiteral)
     .some((node) => node.getLiteralValue().includes("NOT_PRODUCTION_VERIFIED"))) {
     pushFinding(findings, proofLawId, P.attachment.attachmentStatePath, "ai-input-gateway/attachment-terminal-proof", "Attachment preflight must implement exact positive and negative terminal evidence.");
+  }
+  const stateStrings = stringLiterals(sources.state);
+  if (stateStrings.has("#upload-files")
+    || stateStrings.has("#composer-submit-button[data-testid='send-button']")
+    || [...stateStrings].some((value) => value.includes("button[aria-label"))) {
+    pushFinding(findings, proofLawId, P.attachment.attachmentStatePath,
+      "ai-input-gateway/attachment-visible-precondition-owner",
+      "Attachment precondition must not duplicate the Browser Authority hidden file target, pre-read send readiness or depend on delete-button labels.");
   }
   const submitIds = identifiers(sources.submit);
   const submitStrings = stringLiterals(sources.submit);

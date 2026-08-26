@@ -21,7 +21,15 @@ const executeFindIntent = async (
       ? await nodesContainingText(debuggerRuntime, target.tabId, candidates, intent.textContains)
       : candidates;
   if (nodes.length > intent.maxMatches) throw new Error("BROWSER_TARGET_INVALID");
-  return { count: nodes.length };
+  const matches = intent.fields === undefined
+    ? undefined
+    : await Promise.all(nodes.map((nodeId) => inspectNode(
+      debuggerRuntime,
+      target.tabId,
+      nodeId,
+      intent.fields!,
+    )));
+  return { count: nodes.length, ...(matches === undefined ? {} : { matches }) };
 };
 
 const executeClickIntent = async (
@@ -228,10 +236,15 @@ const collectNodeText = (node: DevToolsRecord): string => {
 };
 
 const staticFieldReaders: Readonly<Record<string, (node: DevToolsRecord) => unknown>> = {
+  id: (node) => attribute(node, "id") ?? "",
+  testId: (node) => attribute(node, "data-testid") ?? "",
+  dataTurn: (node) => attribute(node, "data-turn") ?? "",
   tagName: (node) => stringValue(node.nodeName, "BROWSER_TARGET_INVALID"),
   type: (node) => attribute(node, "type") ?? "",
   role: (node) => attribute(node, "role") ?? "",
   ariaLabel: (node) => attribute(node, "aria-label") ?? "",
+  ariaExpanded: (node) => attribute(node, "aria-expanded") ?? "",
+  ariaChecked: (node) => attribute(node, "aria-checked") ?? "",
   value: (node) => attribute(node, "value") ?? "",
   accept: (node) => attribute(node, "accept") ?? "",
   multiple: (node) => attribute(node, "multiple") !== undefined,

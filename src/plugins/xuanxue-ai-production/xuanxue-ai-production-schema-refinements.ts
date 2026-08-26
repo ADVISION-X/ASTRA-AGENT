@@ -31,7 +31,6 @@ export const inspectXuanxueLocalizationPolicy = (
   if (order.serviceClass === "localization") {
     if (order.contractManifestHash === null
       || order.localizationRole === null
-      || order.providerExecutionProfile === null
       || order.materials.length !== 1
       || order.joinParents.length !== 0) {
       issue(context, "XUANXUE_AI_PRODUCTION_LOCALIZATION_ORDER_INVALID", ["localizationRole"]);

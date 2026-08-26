@@ -20,7 +20,6 @@ import {
   continuationConversationUnavailable,
   executeGatewayStage,
   persistStageResult,
-  waitForRecoveryRetry,
   type XuanxueAiProductionExecutionObserver,
 } from "./xuanxue-ai-production-stage-execution.js";
 import type { XuanxueAiExecutionDeadlineBudget } from "./xuanxue-ai-production.runtime.js";
@@ -69,8 +68,14 @@ const firstBlockingStage = (
 export const hasTerminalAttachmentTransportProof = (
   stage: XuanxueAiStageRecord,
 ): boolean => {
-  const status = stage.aiFeedResult?.providerProof.attachmentUploadProof?.status;
-  return status === "failed" || status === "review_required";
+  const proof = stage.aiFeedResult?.providerProof.attachmentUploadProof;
+  if (!proof) return false;
+  if (proof.status === "review_required") return true;
+  if (proof.status !== "failed") return false;
+  const uploadedFiles = stage.aiFeedResult?.providerProof.uploadedFiles ?? [];
+  const mutationWasSent = uploadedFiles.length > 0;
+  const mutationOutcomeUnknown = /BROWSER_OUTCOME_UNKNOWN/iu.test(proof.failureReason ?? "");
+  return mutationWasSent || mutationOutcomeUnknown;
 };
 
 const executeStage = async (
@@ -93,6 +98,11 @@ const executeStage = async (
     ...stage,
     status: "running",
     attemptCount: stage.attemptCount + 1,
+    aiFeedResult: null,
+    attachmentUploadProof: null,
+    rawResponseText: null,
+    rawOutputHash: null,
+    progressPhase: "queued",
     failureReason: null,
     updatedAt: nowIso(),
   }, "stage_started");
@@ -109,7 +119,7 @@ const executeStage = async (
   return persisted;
 };
 
-const executeStageUntilSettled = async (
+const executeStageOnce = async (
   runtime: XuanxueAiProductionRuntime,
   orderId: string,
   definition: XuanxueAiStageDefinition,
@@ -132,31 +142,28 @@ const executeStageUntilSettled = async (
       updatedAt: nowIso(),
     }, "stage_continuation_operator_recovery_required");
   };
-  while (true) {
-    let stage: XuanxueAiStageRecord;
-    try {
-      stage = await executeStage(
-        runtime,
-        orderId,
-        definition,
-        observer,
-        deadlineBudget,
-      );
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      if (definition.continuationFrom && continuationConversationUnavailable(reason)) {
-        return requireOperatorContinuationRecovery(reason);
-      }
-      throw error;
+  let stage: XuanxueAiStageRecord;
+  try {
+    stage = await executeStage(
+      runtime,
+      orderId,
+      definition,
+      observer,
+      deadlineBudget,
+    );
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    if (definition.continuationFrom && continuationConversationUnavailable(reason)) {
+      return requireOperatorContinuationRecovery(reason);
     }
-    if (definition.continuationFrom
-      && stage.status === "recovery_pending"
-      && continuationConversationUnavailable(stage.failureReason)) {
-      return requireOperatorContinuationRecovery(stage.failureReason!);
-    }
-    if (hasTerminalAttachmentTransportProof(stage)) return stage;
-    if (stage.status !== "recovery_pending" || !await waitForRecoveryRetry(stage, deadlineBudget?.abortSignal)) return stage;
+    throw error;
   }
+  if (definition.continuationFrom
+    && stage.status === "recovery_pending"
+    && continuationConversationUnavailable(stage.failureReason)) {
+    return requireOperatorContinuationRecovery(stage.failureReason!);
+  }
+  return stage;
 };
 
 export const executeXuanxueAiProductionOrder = async (
@@ -205,7 +212,7 @@ export const executeXuanxueAiProductionOrder = async (
     }
     await Promise.all(
       runnable.map((definition) =>
-        executeStageUntilSettled(
+        executeStageOnce(
           runtime,
           orderId,
           definition,

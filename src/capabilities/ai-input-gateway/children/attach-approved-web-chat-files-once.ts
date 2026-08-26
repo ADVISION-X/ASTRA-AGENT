@@ -11,9 +11,8 @@ import type {
 import type { AiFeedInput } from "../schema.js";
 import { buildAiFeedInputPackage } from "../runtime/ai-feed-input-package.js";
 import {
-  clearComposer,
+  observeExactAttachmentSet,
   readExactAttachmentState,
-  waitForExactAttachmentCount,
 } from "../providers/web-chat-upload-page-actions.js";
 import { attachByExactTargetFileInputBatch } from "../providers/web-chat-exact-target-file-input-attachment.js";
 import type {
@@ -22,10 +21,6 @@ import type {
   WebChatAttachmentTransportResult,
 } from "../providers/web-chat-attachment-transport.js";
 import { clearRecentChatGptBlockingDialog } from "../providers/web-chat-rate-limit-dialog.js";
-
-const ATTACHMENT_STABILITY_POLL_COUNT = 15;
-const ATTACHMENT_STABILITY_POLL_MS = 2_000;
-const ATTACHMENT_STABILITY_MAX_POLL_COUNT = 60;
 
 export type AttachApprovedWebChatFilesResult = {
   uploadedFiles: AiProviderUploadedFileProof[];
@@ -96,7 +91,6 @@ const stageApprovedFiles = async (input: {
   );
   await mkdir(stagingDirectoryPath, { recursive: true });
   const width = Math.max(3, String(inputPackage.uploadableFiles.length).length);
-  const suffix = input.uploadAttemptId.replaceAll("-", "").slice(0, 8);
   const files: StagedWebChatAttachment[] = [];
   for (const [index, ref] of inputPackage.uploadableFiles.entries()) {
     const sourceBytes = await readFile(ref.filePath);
@@ -105,7 +99,7 @@ const stageApprovedFiles = async (input: {
     }
     const order = index + 1;
     const extension = extname(ref.fileName).toLowerCase();
-    const displayFileName = `${String(order).padStart(width, "0")}_${safeStem(ref.fileName)}_${suffix}${extension}`;
+    const displayFileName = `${String(order).padStart(width, "0")}_${safeStem(ref.fileName)}${extension}`;
     const stagedFilePath = join(stagingDirectoryPath, displayFileName);
     await copyFile(ref.filePath, stagedFilePath, constants.COPYFILE_EXCL);
     const stagedBytes = await readFile(stagedFilePath);
@@ -140,47 +134,6 @@ const stageApprovedFiles = async (input: {
   return { stagingDirectoryPath, stagingManifestHash, files };
 };
 
-const waitForStableAttachmentSet = async (input: {
-  browser: AttachmentMutationBrowser;
-  context: AiProviderAdapterContext;
-  files: StagedWebChatAttachment[];
-  expectedPageUrl: string;
-}): Promise<number> => {
-  let detectedFileCount = 0;
-  let stablePollCount = 0;
-  for (let poll = 0; poll < ATTACHMENT_STABILITY_MAX_POLL_COUNT; poll += 1) {
-    await input.browser.wait({ durationMs: ATTACHMENT_STABILITY_POLL_MS });
-    const evaluation = await readExactAttachmentState(
-      input.browser,
-      input.context,
-      input.files.length,
-      input.files.map((file) => file.displayFileName),
-      {
-        expectedPageUrl: input.expectedPageUrl,
-        baselineAttachmentCount: 0,
-        requireReady: false,
-      },
-    );
-    if (evaluation.status === "review_required" || evaluation.status === "failed") {
-      throw new Error(
-        `${evaluation.message}; stable_poll=${poll + 1}; detected_count=${String(evaluation.attachmentCount ?? 0)}; detected_files=${evaluation.attachmentNames?.join("|") ?? ""}`,
-      );
-    }
-    if (evaluation.status !== "success") {
-      stablePollCount = 0;
-      continue;
-    }
-    detectedFileCount = evaluation.attachmentCount ?? input.files.length;
-    stablePollCount += 1;
-    if (stablePollCount === ATTACHMENT_STABILITY_POLL_COUNT) {
-      return detectedFileCount;
-    }
-  }
-  throw new Error(
-    `GPT_ATTACHMENT_STABILITY_TIMEOUT; required_polls=${ATTACHMENT_STABILITY_POLL_COUNT}; observed_continuous_polls=${stablePollCount}`,
-  );
-};
-
 const toProofFiles = (files: StagedWebChatAttachment[]): WebChatAttachmentUploadProof["files"] =>
   files.map((file) => ({
     inputRefId: file.inputRefId,
@@ -193,7 +146,7 @@ const toProofFiles = (files: StagedWebChatAttachment[]): WebChatAttachmentUpload
 
 const isReviewRequired = (error: unknown): boolean =>
   error instanceof Error
-  && /review_required|AMBIGUOUS|UNAVAILABLE|NOT_READY|NOT_FOCUSED|SELECTION_UNPROVEN/iu.test(error.message);
+  && /review_required|AMBIGUOUS|UNAVAILABLE|NOT_READY|NOT_FOCUSED|SELECTION_UNPROVEN|BROWSER_OUTCOME_UNKNOWN/iu.test(error.message);
 
 export const resolveWebChatAttachmentTransportKind = (input: {
   providerKind: AiFeedInput["providerKind"];
@@ -241,36 +194,53 @@ const performAttachmentTransport = async (
   state.stagingManifestHash = staged.stagingManifestHash;
   state.files = staged.files;
   clearRecentChatGptBlockingDialog();
-  const cleared = await clearComposer(input.browser, input.context);
-  if (cleared.status !== "success" || !cleared.pageUrl) {
-    throw new Error(`review_required: WEB_CHAT_COMPOSER_CLEAR_ACTION_UNPROVEN; ${cleared.message}`);
-  }
-  state.expectedPageUrl = cleared.pageUrl;
-  await waitForExactAttachmentCount(
+  const expectedNames = staged.files.map((file) => file.displayFileName);
+  const prepared = await readExactAttachmentState(
     input.browser,
     input.context,
-    0,
-    [],
-    10_000,
-    {
-      expectedPageUrl: state.expectedPageUrl,
-      baselineAttachmentCount: 0,
-      requireReady: false,
-      requireComposerTextEmpty: true,
-    },
+    staged.files.length,
+    expectedNames,
+    { requireComposerTextEmpty: true },
   );
+  if (prepared.status === "success" && prepared.pageUrl) {
+    state.expectedPageUrl = prepared.pageUrl;
+    state.transportResult = {
+      transportKind: "exact_target_file_input_batch",
+      uploadedFiles: staged.files.map((file) => ({
+        inputRefId: file.inputRefId,
+        step: file.order,
+        fileName: file.displayFileName,
+        sha256: file.sha256,
+        byteCount: file.byteCount,
+        expectedAttachmentCount: staged.files.length,
+        detectedAttachmentCount: staged.files.length,
+      })),
+      detectedFileCount: staged.files.length,
+    };
+    return staged.files.length;
+  }
+  if (prepared.status !== "pending"
+    || prepared.message !== "CHATGPT_ATTACHMENT_SURFACE_EMPTY"
+    || !prepared.pageUrl) {
+    throw new Error(`review_required: WEB_CHAT_ATTACHMENT_PRECONDITION_UNPROVEN; ${prepared.message}`);
+  }
+  state.expectedPageUrl = prepared.pageUrl;
   state.transportResult = await attachByExactTargetFileInputBatch({
     ...input,
     stagingDirectoryPath: staged.stagingDirectoryPath,
     files: staged.files,
     expectedPageUrl: state.expectedPageUrl,
   });
-  return waitForStableAttachmentSet({
-    browser: input.browser,
-    context: input.context,
-    files: staged.files,
-    expectedPageUrl: state.expectedPageUrl,
-  });
+  const postcondition = await observeExactAttachmentSet(
+    input.browser,
+    input.context,
+    staged.files.length,
+    expectedNames,
+    {
+      expectedPageUrl: state.expectedPageUrl,
+    },
+  );
+  return postcondition.attachmentCount ?? staged.files.length;
 };
 
 const completeSuccessfulAttempt = async (

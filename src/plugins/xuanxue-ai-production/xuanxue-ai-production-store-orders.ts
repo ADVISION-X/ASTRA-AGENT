@@ -1,4 +1,5 @@
 import type Database from "better-sqlite3";
+import { isDeepStrictEqual } from "node:util";
 
 import {
   XuanxueAiStoredProductionOrderSchema,
@@ -49,7 +50,7 @@ const isExactSameJobRecovery = (
   if (!existingCloud || !incomingCloud) return false;
   const existingBusinessOrder = { ...existing.order, cloudExecutionIdentity: undefined };
   const incomingBusinessOrder = { ...incoming, cloudExecutionIdentity: undefined };
-  return JSON.stringify(existingBusinessOrder) === JSON.stringify(incomingBusinessOrder)
+  return isDeepStrictEqual(existingBusinessOrder, incomingBusinessOrder)
     && incomingCloud.jobId === existingCloud.jobId
     && incomingCloud.requiredDeviceId === existingCloud.requiredDeviceId
     && incomingCloud.contractManifestHash === existingCloud.contractManifestHash
@@ -78,6 +79,15 @@ const isUnacceptedQueuedOrder = (
   return history.total >= 1 && history.disallowed === 0
     && pendingWrites.total === 0 && checkpointState.total === 0;
 };
+
+const isInterruptedRecoverableOrder = (
+  existing: XuanxueAiOrderRecord,
+): boolean => existing.status === "running"
+  && existing.stages.some((stage) => stage.status === "recovery_pending")
+  && existing.stages.every((stage) =>
+    stage.status === "queued"
+    || stage.status === "completed"
+    || stage.status === "recovery_pending");
 
 export const readXuanxueAiProductionOrder = (
   database: Database.Database,
@@ -124,7 +134,10 @@ const resolveIdentityCollision = (input: {
     && existingCloud && incomingCloud;
   const unacceptedQueuedRebind = sameJobRecovery
     && isUnacceptedQueuedOrder(input.database, input.existing);
-  if (sameJobRecovery && (input.existing.status === "recovery_pending" || unacceptedQueuedRebind)) {
+  const interruptedRecovery = sameJobRecovery
+    && isInterruptedRecoverableOrder(input.existing);
+  if (sameJobRecovery && (input.existing.status === "recovery_pending"
+    || interruptedRecovery || unacceptedQueuedRebind)) {
     const reboundStatus = unacceptedQueuedRebind ? "queued" : "recovery_pending";
     input.database.transaction(() => {
       input.database.prepare(`

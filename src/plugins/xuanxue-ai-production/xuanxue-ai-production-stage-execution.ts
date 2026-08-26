@@ -38,8 +38,6 @@ export interface XuanxueAiProductionExecutionObserver {
 }
 
 const nowIso = (): string => new Date().toISOString();
-const RECOVERY_RETRY_DELAY_MS = 1_000;
-const MAX_RECOVERY_RETRY_DELAY_MS = 10_000;
 
 const browserHash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -181,6 +179,9 @@ const resolveAttachmentMutations = async (
     || proof.expectedFileCount < 1
     || proof.detectedFileCount !== proof.expectedFileCount
     || proof.files.length !== proof.expectedFileCount) return;
+  const pendingMutationCount = browser.pendingMutationCount();
+  if (pendingMutationCount === 0) return;
+  if (pendingMutationCount !== 1) throw new Error("BROWSER_OUTCOME_UNKNOWN");
   const prefix = `xuanxue-stage:${orderId}:${stageId}:attachment:${proof.uploadAttemptId}`;
   await browser.resolvePendingMutation({
     schemaVersion: "grasseye.browser.outcome-resolution.v1",
@@ -200,27 +201,6 @@ export const continuationConversationUnavailable = (
   && /(?:WEB_CHAT_CONTINUATION_CONVERSATION_DRIFT|provider continuation conversation mismatch|XUANXUE_AI_PRODUCTION_CONTINUATION_PROOF_MISSING)/iu
     .test(reason)
 );
-
-export const waitForRecoveryRetry = async (
-  stage: XuanxueAiStageRecord,
-  signal?: AbortSignal,
-): Promise<boolean> => {
-  if (signal?.aborted) return false;
-  const deadline = new Date(stage.createdAt).getTime()
-    + stage.material.timeoutMs;
-  const remainingMs = deadline - Date.now();
-  if (remainingMs <= 0) return false;
-  const retryDelayMs = Math.min(
-    remainingMs,
-    MAX_RECOVERY_RETRY_DELAY_MS,
-    RECOVERY_RETRY_DELAY_MS * Math.max(1, stage.attemptCount),
-  );
-  await new Promise<void>((resolve) => {
-    const timer = setTimeout(resolve, retryDelayMs);
-    signal?.addEventListener("abort", () => { clearTimeout(timer); resolve(); }, { once: true });
-  });
-  return true;
-};
 
 const canonicalizeStageResult = (
   result: AiFeedResult,

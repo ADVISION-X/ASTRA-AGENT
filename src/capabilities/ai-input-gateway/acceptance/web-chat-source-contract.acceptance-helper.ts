@@ -139,10 +139,17 @@ const assertObservedChatGptActions = (sources: Record<keyof typeof activeSources
   );
   assert.ok(
     sources.attachmentPreflight.includes("#prompt-textarea")
-      && sources.attachmentPreflight.includes("#upload-files")
+      && sources.attachmentPreflight.includes("form:has(#prompt-textarea)")
       && sources.attachmentPreflight.includes("WEB_CHAT_COMPOSER_NOT_EMPTY")
+      && sources.attachmentPreflight.includes("ATTACHMENT_SURFACE_CONTRACT_MISMATCH")
+      && sources.attachmentPreflight.includes("CHATGPT_ATTACHMENT_SURFACE_EMPTY")
+      && sources.attachmentPreflight.includes("observeExactAttachmentSet")
+      && !sources.attachmentPreflight.includes("#upload-files")
+      && !sources.attachmentPreflight.includes("#composer-submit-button")
+      && !sources.attachmentPreflight.includes("button[aria-label")
+      && !sources.attachmentPreflight.includes("while (")
       && !sources.attachmentPreflight.includes(".evaluate("),
-    "attachment preflight must preserve an unknown draft and inspect only the observed composer/input topology",
+    "attachment flow must use one visible deterministic-name surface decision without delete-button or polling denominators",
   );
 };
 

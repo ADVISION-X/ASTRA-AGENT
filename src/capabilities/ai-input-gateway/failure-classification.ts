@@ -34,10 +34,11 @@ const directFailureClassification = (
   reason: string,
   hasDurableSubmission: boolean,
 ): WebChatFailureClassification | null => {
+  if (/^recovery_pending:/iu.test(reason)) return "recovery_pending";
+  if (/^review_required:/iu.test(reason)) return "review_required";
   if (isImmutableInputFailure(reason)) return "failed";
   if (/\bBROWSER_OUTCOME_UNKNOWN\b/iu.test(reason)) return "review_required";
   if (isTransientBrowserAuthorityFailure(reason)) return "recovery_pending";
-  if (/^review_required: web-chat execution is terminal:/iu.test(reason)) return "recovery_pending";
   if (hasDurableSubmission && isPhysicalProviderTabInterference(reason)) return "recovery_pending";
   if (requiresOperatorIntervention(reason)) return "review_required";
   if (hasDurableSubmission || isTransientProviderUnavailability(reason)) return "recovery_pending";

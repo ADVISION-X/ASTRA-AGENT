@@ -159,9 +159,22 @@ Plugin 固定十个业务席位，Browser mutation 固定一个。所有 `queued
 Grant 固定 lease 90 秒、accept-by 30 秒、renew 20 秒指引。Plugin 用 monotonic clock 扣除 RTT；
 accept 剩余不足 5 秒或 lease 剩余不足 30 秒时，在无副作用条件调用 `LeaseReleaseV6`。本地
 grant 与 `localOrderIdentity` 在同一 SQLite transaction 持久化；不得另写 `production_cloud_claim_ledger`。
+原 job recovery 的新 attempt/lease/fence 只替换 `cloudExecutionIdentity`；其余业务 Order 必须按结构语义等价
+鉴权，JSON 对象键顺序不属于身份，禁止用 `JSON.stringify` 字节序比较。durable accept 前拒绝时，本地结构化
+日志保留真实因果码，网站 `LeaseReleaseV6` 的标准 reason 只表示释放分类，不得被解释成根因裁决。
+进程中断留下 `Order=running` 且至少一个非终态 Stage=`recovery_pending`、其余 Stage 仅为 queued/completed
+时，是原 job 的精确恢复形态；新 recovery lease 接受事务先把 Order 收敛为 `recovery_pending` 并替换 fence，
+再由原 Stage 检查点继续。completed/failed/review_required Order 或 Stage 不得从该路径重开。
 首个 durable checkpoint 即接受，不另建 ACK。每 job 由同一个结构化 lifetime 同时拥有执行与 renew：
 瞬时 renew 网络错误只在 lease safety budget 内重试；确认 lease/fence 丢失后立即禁止新 Browser、Provider
 和 Cloud mutation，abort 并等待原执行 settle，settle 前不得从 active 移除或启动同 job 第二执行。
+
+每次 renew 只严格消费网站唯一完整 `LeaseRenewV6` receipt。顶层精确字段为
+`schema_version=xuanxue-ai-lease-renew-receipt.v6`、`job_id`、`server_now`、`lease_expires_at`、
+`renew_after_ms`、`control_intent`；内层 `ControlIntentV6` 精确字段为
+`schema_version=xuanxue-ai-control-intent.v6`、同一 `job_id`、`intent`、`control_epoch`、
+`reason_code`。AGENT 不得另建删减字段的本地 response schema，不得 strip 网站字段，也不得以 adapter、
+fallback 或兼容 parser 吞掉合同漂移。
 
 Cloud job 的唯一状态固定为 `queued -> leased -> inputs_downloading -> factory_running`，随后只可进入
 `completed|recovery_pending|review_required|failed`；安全取消进入 `cancelled`，恢复任务仍以原 job
@@ -170,7 +183,7 @@ Cloud job 的唯一状态固定为 `queued -> leased -> inputs_downloading -> fa
 ## Browser 与恢复
 
 Browser side effect 只通过现役 public facade 取得当前 Workspace/Authority/Target/Document/action。exact job
-durable 接受后，`IF job accepted -> THEN acquire target` 是唯一 Target 创建/认领入口；Authority READY 不得预取。
+durable 接受后才可取得 Target，这是唯一 Target 创建/认领入口；Authority READY 不得预取。
 Workspace 不设墙钟过期。断线、重启、Reload、identity drift 或 revoke 后停止新 claim；已接受任务
 保持同一 job/attempt/checkpoint 为 `recovery_pending`。重新配对/认领后先对账，再恢复最早任务。
 
@@ -181,39 +194,67 @@ PREPARED，发送边界写 SENT，后置只读 proof 原子解析 terminal。启
 当前 Dynamic Proof 直接绑定当前 Browser command receipt 与发布候选，不从历史生命周期账本推导。
 
 Mutation 只有 `PREPARED -> SEND -> CONFIRMED|FAILED|UNKNOWN`。UNKNOWN 永不自动 replay。
-`IF + AND -> THEN` 固定为逐动作状态链：`IF` 只读取当前已经成立并持久解析的事实，`AND` 表示
-“那么”并把这个事实承接给一个 `THEN`，`THEN` 只执行一个动作。接单 proof 成立才打开 provider；
-provider 页面就绪 proof 成立才选择模型；模型和推理的精确 readback proof 成立才进入附件或提交。每个动作的
-后置 proof 只能成为下一动作的 `IF`，精确语义、`candidate_count=1` 与相邻/错误/加载态排除只证明
-当前 `IF`。能力菜单入口读数为 0 只表示尚未就绪，继续只读观察且不得点击；读数为 1 才允许一个 THEN；
-fresh 页面就绪只读取 ChatGPT 根 URL 与唯一可见、可用、空 composer；`#upload-files`、附件卡、历史 turn、
-generation 和全局 form 分母只在各自后续步骤读取，不得提前并入 fresh proof，也不得因可选节点尚未挂载而
-把有效 Target 判成无效并从头重跑整组观察。
-读数大于 1 才是歧义并失败关闭。现役 GPT 页面必须按页面就绪、唯一能力菜单入口、菜单展开、高级选项展开、模型父摘要、
-模型子菜单、模型候选、模型选择、同一菜单重新展开后的模型摘要读回、推理父摘要、推理子菜单、
-推理候选、推理选择、同一菜单重新展开后的模型与推理双摘要终态读回逐项直线推进；不得跳过高级
-选项的展开事实后点击 DOM 中仍挂载但不可见的模型或推理节点，不得先预读后续状态再回头执行，
-不得为全量预观察或全量复查在步骤间往返，
-也不得把接单、开页、选模型、附件、提交聚合成一次 AND 或由一个 task-wide deadline 等齐整条链。
+Browser 执行不使用 IF/AND/THEN 文字 DSL，而使用一条受保护状态迁移：
 
-每个 Browser mutation 必须是一个不可拆分的原子交易：已证前态 -> 精确一次物理动作 ->
-同一动作的只读后置观察 -> 一份 page-action proof -> 解析当前 pending mutation。物理动作已发出后，
-无论 transport 返回正常 mutation summary 还是 `BROWSER_OUTCOME_UNKNOWN`，执行器都不得再点一次；只允许
-继续读取当前 Document 上与该动作直接对应的唯一后置事实。正态、相邻错误态排除和唯一 Target
-同时成立时，当前 Owner 必须以这份 proof 解析原 mutation 后再进入下一个 IF；任一不成立时，
-必须停在原 checkpoint 并保留 UNKNOWN，不得执行第二 mutation。现役唯一 profile trigger 的可见
-`Pro` 只表示能力菜单入口，不携带模型与推理终态，严禁从它拼接或推导 profile。模型或推理选择使
-菜单关闭时，“菜单已关闭”只解析该次点击已经结束，不能冒充选中成功；执行器不得重放选择，只能把
-“重新打开同一菜单”作为下一原子动作，再分别以唯一 `模型 + 精确模型名` 和 `推理强度 + 精确档位`
-父摘要确认终态。不得用 `高` 命中 `极高`、用部分模型名或用菜单消失本身冒充选择成功。
-相对 deadline 只能界定当前未解析动作并安全停在原 checkpoint，不得充当状态证据、跨步骤倒计时
-或触发下一动作。日志不是 evidence，Browser receipt 不是业务结果。
+```txt
+OBSERVE_CURRENT_SURFACE
+-> WAITING | READY_NOOP | READY_ACTION | AMBIGUOUS | DOCUMENT_CHANGED
+-> 最多一次物理动作
+-> VERIFY_DIRECT_POSTCONDITION
+-> PERSIST_CHECKPOINT
+```
+
+`OBSERVE_CURRENT_SURFACE` 在同一 Target/Document 上一次读取当前步骤决策不可分割的最小完整可见事实；
+不得用多个顺序 DOM find 拼接可能来自不同页面帧的状态，也不得用旧快照授权后续动作。0 个候选为
+`WAITING`，只能有界退避后取得新快照且不点击；1 个精确候选才可 `READY_ACTION`；大于 1 个为
+`AMBIGUOUS` 并失败关闭。Target/Document 失效必须是 `DOCUMENT_CHANGED` 或恢复错误，不能被吞成页面
+未挂载；禁止固定 100ms 高频轮询、catch-all 重试、selector fallback 和任务级倒计时推进状态。
+
+执行档位步骤只观察当前可见的能力菜单表面，按快照派生
+`NEED_OPEN_MENU|NEED_EXPAND_ADVANCED|NEED_OPEN_MODEL|NEED_SELECT_MODEL|NEED_OPEN_REASONING|
+NEED_SELECT_REASONING|PROFILE_READY`。每次只执行派生出的一个动作，然后重新读取当前表面；最终必须在
+同一份终态快照中同时精确证明模型与推理档位。现役 trigger 的可见 `Pro` 只表示菜单入口，不携带
+模型与推理终态；菜单关闭只证明点击结束，不证明选择正确；不得用 `高` 命中 `极高` 或部分模型名。
+所有 Browser-required 生产 Stage 都必须在 immutable Order 中携带完整 `provider_execution_profile`，
+AGENT 不得因产品不是本地化而跳过执行档位及其 proof。
+
+fresh 非 continuation 对话在进入附件步骤前，只用一份当前 turn 表面快照确认历史 user/assistant turn 均为 0；
+此否定性检查的 `count=0` 本身就是终态证据，不要求不存在节点的 `matches` 字段，非 0 才校验精确 turn
+身份并失败关闭；不得调用回答稳定器等待不存在的历史回答。已经在同一 Target/Document 持久化的执行档位
+终态 proof 是本次执行的 checkpoint，后续零 mutation 的提交前恢复必须从该 checkpoint 继续，不得重新打开或
+点击模型菜单；Target/Document 改变时该 checkpoint 失效并重新观察。附件步骤只保留一份当前可见
+composer/附件表面决策、至多一次 exact-target batch mutation 和一份包含可见精确文件名的直接后置条件。
+附件展示名由输入 ordinal、输入文件名与内容 hash 唯一确定，不得使用 attempt 随机后缀。可见前置条件只证明
+当前 Document、唯一空 composer 与空附件表面；不得把 document-global form、上传前可能不存在的 send button、
+删除按钮文案、删除按钮数量或隐藏 `#upload-files` 纳入许可。`#upload-files` 是 Browser Authority 在该次原子
+`attachFile` mutation 内部解析的唯一私有 target，上层不得重复鉴权。mutation 返回后只取得一份直接精确
+文件名快照；重复 upload preflight、固定 stable poll 或仅以等待时长证明上传成功都不构成证据。
+附件表面若明确为空，才许可一次 mutation；若进程中断后的新 lease 在同一可见表面已观察到全部确定性精确
+文件名，则必须以零 mutation 补齐附件 proof，不得再次上传；部分、额外或无法解释的附件集合立即失败关闭。
+精确表面合同不匹配为
+`ATTACHMENT_SURFACE_CONTRACT_MISMATCH` 并失败关闭，不得压缩成通用 `BROWSER_TARGET_INVALID` 后重跑整个
+Stage。只有明确的 Target/Document/channel 失效才进入 recovery。
+附件 precondition 在 mutation 之前失败且 `uploadedFiles=[]` 时，Cloud 为原 job 续发 recovery lease 后必须让
+同一 Local Stage 在新 fence 下重新进入；不得只 rebound Local Order 后把旧 `recovery_pending` 原样回传。
+重进时清空 Stage 当前物化层里的旧 `aiFeedResult/attachmentUploadProof/raw output`，由新 attempt 重新写入；
+旧 attempt 的事实留在唯一 web-chat execution ledger，不把旧失败 proof 当作新 attempt 的漂移基线。
+一旦 attachment mutation 已发送、存在 uploadedFiles 或返回 `BROWSER_OUTCOME_UNKNOWN`，则不得自动重放；
+只能由同一直接精确文件名后置条件结算，或保留旧 UNKNOWN 并在后续 lease 以零 mutation 识别同一确定性文件
+集合后补齐业务 proof；无法识别时失败关闭。
+
+每个 Browser mutation 是不可拆交易：当前快照许可 -> 精确一次物理动作 -> 同一动作的只读直接后置
+观察 -> 一份 page-action proof -> 解析 pending mutation。物理动作发出后，无论 transport 返回正常
+summary 还是 `BROWSER_OUTCOME_UNKNOWN` 都不得重放；未能精确结算时停在原 checkpoint 并保留 UNKNOWN，
+不得执行第二 mutation。相对 deadline 只可界定当前未解析 transition 并安全停止，不得充当状态证据。
+日志不是 evidence，Browser receipt 不是业务结果。
 
 ## Outbox、控制和接管
 
 Checkpoint、artifact、terminal、cancel、handover 全部写本地 durable outbox；未收到 Cloud receipt
 只重试同 request id/payload；同 payload 必须幂等读回同一 receipt。材料与结果只使用 canonical
 `object_ref + sha256 + byte_length + media_type`，并绑定 lease-scoped authority、前后重算 hash。
+同一 pending outbox row 任一时刻只有一个发送/确认 owner：active job 直接发送时后台 flush 不运行；active job
+结束后或启动恢复时才由后台 flush 接管遗留 row，禁止双消费者同时发送后互相删除确认行。
 Control intent 只在 Local Order 记录 `last_control_epoch` 并于安全 checkpoint 消费；不得建立
 `production_interventions` 或 Workbench pause/cancel/takeover/resume 状态机。Handover 由网站原子关闭旧
 fence 并建立新 attempt/session-bound fence。

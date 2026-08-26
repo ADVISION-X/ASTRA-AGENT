@@ -384,7 +384,11 @@ export const assertFailureLedger = async (
     "review_required: more than one physical provider tab is open.",
   );
   assert.equal(classifyWebChatFailure(duplicatePhysicalTab, false), "review_required");
-  assert.equal(classifyWebChatFailure(duplicatePhysicalTab, true), "recovery_pending");
+  assert.equal(
+    classifyWebChatFailure(duplicatePhysicalTab, true),
+    "review_required",
+    "an explicit operator-interference verdict remains review-required after durable submission",
+  );
   const executionId = "traceable-failure-execution";
   await assertTemporaryProviderFailure({ dataDir, request, executionId });
   await recoverTemporaryProviderFailure({ dataDir, request, executionId });

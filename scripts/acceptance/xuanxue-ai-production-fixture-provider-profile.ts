@@ -19,8 +19,7 @@ const isFixtureLocalizationProduct = (productId: string): boolean =>
   productId.startsWith("localization_");
 
 const isFixtureTerminalProduct = (productId: string): boolean =>
-  !isFixtureLocalizationProduct(productId)
-  && !["manual_accuracy_challenge", "payment_screenshot_observation", "public_knowledge_article_pipeline", "scheduled_quality_reflection"].includes(productId);
+  !isFixtureLocalizationProduct(productId);
 
 const fixtureLocalizationProfile = (role: string) => ({
   profile_ref: `fixture:localization:${role}`,
@@ -112,4 +111,4 @@ export const fixtureOrderProviderExecutionProfile = (
     executor_identity_ref: "fixture:operator",
     ai_acceptance_ref: "fixture:ai-acceptance",
     ai_acceptance_version: "fixture-v1",
-  } : null;
+  } : (() => { throw new Error(`fixture provider profile missing for ${productId}`); })();

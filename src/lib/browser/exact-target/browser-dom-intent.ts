@@ -1,4 +1,4 @@
-export type BrowserDomField = "tagName" | "type" | "role" | "ariaLabel" | "text" | "value" | "accept" | "multiple" | "connected" | "visible" | "disabled" | "bounds";
+export type BrowserDomField = "id" | "testId" | "dataTurn" | "tagName" | "type" | "role" | "ariaLabel" | "ariaExpanded" | "ariaChecked" | "text" | "value" | "accept" | "multiple" | "connected" | "visible" | "disabled" | "bounds";
 
 export type BrowserDomReadScope = Readonly<{
   selector: string;
@@ -22,6 +22,8 @@ export type BrowserDomIntent =
     textContains?: string;
     textEquals?: string;
     maxMatches: number;
+    /** Optional bounded fields returned for every visible match in the same DOM snapshot. */
+    fields?: readonly BrowserDomField[];
     scope?: BrowserDomReadScope;
   }>
   | Readonly<{ kind: "readText"; selector: string; maxChars: number; maxMatches?: number; expectedMatches?: number; matchIndex?: number; scope?: BrowserDomReadScope }>

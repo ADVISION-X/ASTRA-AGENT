@@ -115,6 +115,10 @@ const acceptRetryRecovery = async ({ runtime, gateway }: RecoveryInput): Promise
   createXuanxueAiProductionOrder(runtime, transientOrder);
   gateway.faults.transient.set(`${transientOrder.orderId}:analysis`, 1);
   const beforeTransient = gateway.requests.length;
+  const transientPending = await executeXuanxueAiProductionOrder(runtime, transientOrder.orderId);
+  assert.equal(transientPending.status, "recovery_pending");
+  assert.equal(gateway.requests.length - beforeTransient, 1,
+    "one recoverable failure must return to the Cloud recovery chain without an in-lease Stage replay");
   const transientResult = await executeXuanxueAiProductionOrder(runtime, transientOrder.orderId);
   assert.equal(transientResult.status, "completed");
   assert.equal(gateway.requests.length - beforeTransient, 2);
@@ -160,17 +164,21 @@ const acceptIdentityRecovery = async ({ runtime, gateway }: RecoveryInput): Prom
   createXuanxueAiProductionOrder(runtime, freshPendingOrder);
   gateway.faults.freshConversationPending.set(`${freshPendingOrder.orderId}:analysis`, 1);
   const beforeFresh = gateway.requests.length;
+  const freshPending = await executeXuanxueAiProductionOrder(runtime, freshPendingOrder.orderId);
+  assert.equal(freshPending.status, "recovery_pending");
+  assert.equal(gateway.requests.length - beforeFresh, 1,
+    "a bounded page-hydration failure must leave the current lease instead of replaying the whole Stage");
   const fresh = await executeXuanxueAiProductionOrder(runtime, freshPendingOrder.orderId);
   assert.equal(fresh.status, "completed");
   assert.equal(
     new Set(gateway.executionIds.slice(beforeFresh)).size,
     1,
-    "a still-hydrating fresh root is a recoverable wait on the same execution id",
+    "a still-hydrating fresh root resumes the same execution id on the next recovery entry",
   );
   assert.equal(
     gateway.requests.slice(beforeFresh).length,
     2,
-    "the recoverable hydration observation must resume the same job instead of replaying a terminal failed record",
+    "the recoverable hydration observation must resume the same job only after returning through recovery",
   );
   assert.equal(gateway.supersededExecutionIds.slice(beforeFresh).filter(Boolean).length, 0);
 

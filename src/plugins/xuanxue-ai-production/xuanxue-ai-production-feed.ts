@@ -282,9 +282,8 @@ const prepareStageFeedInputs = async (
 
 const xuanxueProviderExecutionProfile = (
   record: XuanxueAiOrderRecord,
-): NonNullable<AiFeedInput["providerExecutionProfile"]> | null => {
+): NonNullable<AiFeedInput["providerExecutionProfile"]> => {
   const source = record.order.providerExecutionProfile;
-  if (!source) return null;
   return buildGptWebProviderExecutionProfile({
     profileRef: `agent-canonical:${source.profile_ref}`,
     accountCapabilityRef: source.account_capability_ref,
@@ -329,7 +328,7 @@ export const buildXuanxueAiFeedInput = async (
       : stage.material.textPrompt,
     inputRefs: prepared.inputRefs,
     modelName: null,
-    ...(providerExecutionProfile ? { providerExecutionProfile } : {}),
+    providerExecutionProfile,
     timeoutMs: stage.material.timeoutMs,
     maxFileCount: stage.material.maxFileCount + prepared.trustedGeneratedFileCount,
     requestedBy: "ai-capability",

@@ -73,6 +73,26 @@ const reportProgress = (
   occurredAt: new Date().toISOString(),
 }) ?? Promise.resolve();
 
+const hashBrowserRef = (value: string): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(value).digest("hex")}`;
+
+const currentProviderExecutionProfileProof = (
+  input: BuildExecutionContextInput,
+): WebChatExecutionRecord["providerExecutionProfileProof"] => {
+  const record = input.getRecord();
+  const proof = record.providerExecutionProfileProof;
+  const browser = input.source.browser;
+  if (!proof || !browser) return null;
+  const checkpoint = [...record.pageActionLedger].reverse().find((entry) =>
+    entry.actionId === "verify_execution_profile"
+    && (entry.result === "committed" || entry.result === "no_op")
+    && entry.semantics.includes(proof.profileHash));
+  if (!checkpoint
+    || checkpoint.targetRefHash !== hashBrowserRef(browser.target.targetRef)
+    || checkpoint.documentRefHash !== hashBrowserRef(browser.document.documentRef)) return null;
+  return proof;
+};
+
 type ExecutionUpdater = (
   patch: Parameters<typeof updateWebChatExecution>[0]["patch"],
 ) => Promise<void>;
@@ -282,6 +302,9 @@ const buildExecutionContext = (
     },
     get providerExecutionProfileProof() {
       return input.getRecord().providerExecutionProfileProof;
+    },
+    get providerExecutionProfileCheckpointCurrent() {
+      return currentProviderExecutionProfileProof(input) !== null;
     },
     get conversationTitle() {
       return input.getRecord().conversationTitle;
