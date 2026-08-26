@@ -64,3 +64,8 @@ GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZED=1 npm run browser:journal:recover -
 
 命令只输出不含秘密的 recovery 结果；没有授权、Owner lock 被占用、源文件安全属性不合格、源文件
 本来有效、archive/receipt 冲突或提交后复核失败时均非零退出并保持 Browser blocked。
+
+正文闭环：终态对象由 `local-browser-session` Owner 独占；输入是锁内已验证的 canonical journal 和人工
+recovery 命令，输出是追加事件或唯一 recovery receipt。状态只持久化到活动 V2 journal、只读 archive 与
+receipt，调用方向固定为命令 -> Owner lock -> 原子写入。失败恢复不续写损坏历史，安全边界要求当前授权且
+UNKNOWN 不重放；验收必须证明正常追加、损坏失败关闭、幂等恢复和候选身份重新取证。

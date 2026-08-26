@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { concreteString, exactKeys, isStringArray, parseJson, pathPatternValid, rejectDuplicateJsonKeys, sortedUnique } from './governance-json.js';
 import { validateLocalSpecContract } from './governance-local-spec-contract.js';
 import { fail, text } from './governance-runtime.js';
-import { parseLawSource, type Law } from './governance-authority.js';
+import { blueprintMarkdownBodyValid, parseLawSource, type Law } from './governance-authority.js';
 import { BASE, FUNCTIONAL } from './shared/governance-paths.js';
 
 const LAW = /^LAW-[A-Z0-9]+(?:-[A-Z0-9]+)*-[0-9]{3}-V[1-9][0-9]*$/u;
@@ -160,6 +160,9 @@ const validateChangedSource = (change: { status: string; path: string }): void =
   if (/^scripts\/audit\/domains\/[^/]+\/manifest\.json$/u.test(change.path)) return validateManifest(change.path);
   if (change.path.startsWith('docs/specs/') && change.path.endsWith('.json')) return validateSpec(change.path);
   if (change.path.startsWith('docs/blueprints/') && (change.path.endsWith('.md') || change.path.endsWith('.json'))) {
+    if (change.path.endsWith('.md') && !blueprintMarkdownBodyValid(text(change.path))) {
+      fail('SOURCE_PARSE_FAILED', `${change.path}:body`);
+    }
     const raw = change.path.endsWith('.json') ? parseJson<Record<string, unknown>>(change.path) : machineBlock(change.path);
     if (!blueprintValid(raw)) fail('SOURCE_PARSE_FAILED', `${change.path}:schema`);
   }

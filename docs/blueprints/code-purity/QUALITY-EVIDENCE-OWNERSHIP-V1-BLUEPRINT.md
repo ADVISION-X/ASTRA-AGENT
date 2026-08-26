@@ -78,3 +78,8 @@ RELEASE participant 路径只能从现有通用 `GRASSEYE_PROVIDER_REPOSITORIES`
 - 不得保留或换名重建手工活性 allowlist、entrypoint authority 或 `isLawful*` 豁免链。
 - 不得新增第二 quality 命令、第二 report、第二 verdict、兼容桥、dual-read/write 或 shadow path。
 - 不得让 Static、Exam 或 Dynamic 互相代替；一个 mode 失败只能先击穿该 mode，再由唯一 quality core 汇总 law 与顶层 FAIL。
+
+正文闭环：终态 Owner 是 `code-purity`；输入为 active law、Manifest、适用 blueprint/spec 与当前候选，输出为
+逐 Owner evidence 和唯一 report verdict。状态只持久化到 generated registry 与唯一 quality report，调用方向
+固定为 authority -> registry -> inspector/proof -> quality core。失败恢复必须修复原 Owner 后全量重跑，安全
+边界禁止第二报告、虚构 PASS 与模式冒充；验收必须证明分母漂移、错误 ref、僵尸链和第二入口均精确 FAIL。

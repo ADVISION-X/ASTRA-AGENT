@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Project } from "ts-morph";
 
@@ -12,6 +13,7 @@ import {
   loadCapabilitySourceOfTruth,
 } from "../audit/domains/capability-governance/components/capability-source-of-truth.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
+import { blueprintMarkdownBodyValid } from "../audit/governance-authority.js";
 
 const projectWith = (files: Record<string, string>): Project => {
   const project = new Project({ useInMemoryFileSystem: true });
@@ -65,6 +67,14 @@ assert.ok(findingIds({
   "src/capabilities/demo/runtime/private.ts": "export const privateRuntime = true;",
   "src/plugins/demo/index.ts": "import { privateRuntime } from '../../capabilities/demo/runtime/private.ts'; void privateRuntime;",
 }).has("capability-group/missing-public-facade"));
+
+const blueprintSource = readFileSync(
+  "docs/blueprints/local-browser-session/LOCAL-BROWSER-SESSION-V6-OWNER-JOURNAL-BLUEPRINT.md",
+  "utf8",
+);
+assert.equal(blueprintMarkdownBodyValid(blueprintSource), true);
+assert.equal(blueprintMarkdownBodyValid(`${blueprintSource}\nTODO\n`), false);
+assert.equal(blueprintMarkdownBodyValid(blueprintSource.slice(0, blueprintSource.indexOf("## 正常写入"))), false);
 
 console.log("capability-governance-acceptance-ok");
 emitQualityProofObservation({

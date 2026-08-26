@@ -93,3 +93,8 @@ revoke、journal 和 Session Workspace；不存在 manual/auto 兼容桥、featu
 
 静态、单项 acceptance 与构建通过只证明 CHANGE。只有当前候选的唯一完整 CI、全新独立只读治理审计和
 真实 Chrome 均通过，才可报告本次生产候选实测成功；READY、RELEASE 与部署仍分别报告。
+
+正文闭环：终态 Owner 是 `local-browser-session`；输入是当前 release identity、精确 Extension Origin 与
+Chrome Target 元数据，输出是已确认的 connection-bound Workspace receipt。状态只持久进入唯一 proof
+journal，调用方向固定为 Extension -> Workbench -> Browser Owner。失败恢复保持 Target/Workspace blocked，
+安全边界拒绝调用方 selector、坐标和 tab 身份；验收必须同时证明单目标成功、歧义失败和 revoke 后失效。

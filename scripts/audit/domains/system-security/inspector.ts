@@ -4,10 +4,12 @@ import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
-const LAW_ID = "LAW-SYSTEM-SECURITY-001-V1";
+const LAW_ID = "LAW-SYSTEM-SECURITY-001-V2";
 const CLAUSE_ID = `${LAW_ID.toLowerCase()}-requirement`;
 const sensitiveTerms = Object.freeze(["authorization", "cookie", "credential", "password", "secret", "token", "userinput", "attachmentcontent", "browseridentity"]);
 const forbiddenCloudControlFields = new Set(["browserCommand", "coordinate", "documentId", "nextAction", "selector", "targetId"]);
+const irreversibleActionNames = new Set(["allow", "approve", "authorize", "delete", "grant", "publish", "refund", "release"]);
+const aiDecisionTerms = ["airesponse", "modeloutput", "providerresponse"] as const;
 
 const normalizePath = (value: string): string => value.split("\\").join("/");
 const sourcePath = (source: SourceFile): string => {
@@ -34,7 +36,7 @@ const propertyCallName = (call: CallExpression): string | null => {
 };
 const identifierName = (node: Node): string | null => {
   if (!Node.isIdentifier(node)) return null;
-  return node.getSymbol()?.getName() ?? null;
+  return node.getSymbol()?.getName() ?? node.getText();
 };
 const sensitiveIdentifier = (node: Node): string | null => [
   ...(Node.isIdentifier(node) ? [node] : []),
@@ -43,6 +45,13 @@ const sensitiveIdentifier = (node: Node): string | null => [
   .map(identifierName)
   .filter((name): name is string => name !== null)
   .find((name) => sensitiveTerms.some((term) => name.toLowerCase().includes(term))) ?? null;
+const aiDecisionIdentifier = (node: Node): string | null => [
+  ...(Node.isIdentifier(node) ? [node] : []),
+  ...node.getDescendantsOfKind(SyntaxKind.Identifier),
+]
+  .map(identifierName)
+  .filter((name): name is string => name !== null)
+  .find((name) => aiDecisionTerms.some((term) => name.toLowerCase().includes(term))) ?? null;
 
 const inspectSensitiveSinks = (source: SourceFile, path: string, findings: InspectorFinding[]): void => {
   for (const call of source.getDescendantsOfKind(SyntaxKind.CallExpression)) {
@@ -115,6 +124,24 @@ const inspectUnsafeFallbacks = (source: SourceFile, path: string, findings: Insp
   }
 };
 
+const inspectAiIrreversibleActions = (source: SourceFile, path: string, findings: InspectorFinding[]): void => {
+  if (!path.startsWith("src/")) return;
+  for (const call of source.getDescendantsOfKind(SyntaxKind.CallExpression)) {
+    const expression = call.getExpression();
+    const actionName = Node.isIdentifier(expression)
+      ? identifierName(expression)
+      : Node.isPropertyAccessExpression(expression) ? expression.getName() : null;
+    if (!actionName || !irreversibleActionNames.has(actionName.toLowerCase())) continue;
+    const aiDecision = call.getArguments().map(aiDecisionIdentifier).find((name): name is string => Boolean(name));
+    if (aiDecision) findings.push(finding(
+      "system-security/ai-irreversible-final-action",
+      path,
+      `AI-derived identifier ${aiDecision} reaches irreversible action ${actionName}.`,
+      call.getStartLineNumber(),
+    ));
+  }
+};
+
 export const inspectSystemSecurityProject = (project: Project): InspectorFinding[] => {
   const findings: InspectorFinding[] = [];
   for (const source of project.getSourceFiles().filter((file) => !file.isDeclarationFile())) {
@@ -125,6 +152,7 @@ export const inspectSystemSecurityProject = (project: Project): InspectorFinding
     inspectCloudControlContract(source, path, findings);
     inspectExtensionDependencies(source, path, findings);
     inspectUnsafeFallbacks(source, path, findings);
+    inspectAiIrreversibleActions(source, path, findings);
   }
   return findings.sort((left, right) => (left.filePath ?? "").localeCompare(right.filePath ?? "") || (left.line ?? 0) - (right.line ?? 0) || left.checkId.localeCompare(right.checkId));
 };
@@ -145,10 +173,6 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [{ lawId: LAW_ID, assertions: [
       { clauses: staticClauses(0), evidenceMode: "static.ast", passed: producerModePassed(findings, "static.ast"), refs: staticEvidenceRefs(context, LAW_ID, "static.ast") },
-      { clauses: staticClauses(0), evidenceMode: "static.config", passed: producerModePassed(findings, "static.config"), refs: staticEvidenceRefs(context, LAW_ID, "static.config") },
-      { clauses: staticClauses(0), evidenceMode: "static.contract", passed: producerModePassed(findings, "static.contract"), refs: staticEvidenceRefs(context, LAW_ID, "static.contract") },
-      { clauses: staticClauses(0), evidenceMode: "static.dependency", passed: producerModePassed(findings, "static.dependency"), refs: staticEvidenceRefs(context, LAW_ID, "static.dependency") },
-      { clauses: staticClauses(0), evidenceMode: "static.types", passed: producerModePassed(findings, "static.types"), refs: staticEvidenceRefs(context, LAW_ID, "static.types") },
     ], findings }], inspectedFiles: evaluation.inspectedFiles,
   });
 };

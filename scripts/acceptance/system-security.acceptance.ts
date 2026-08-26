@@ -29,6 +29,8 @@ assert.ok(inspect("src/lib/browser/chrome-extension/actor.ts", "import { credent
   .some((finding) => finding.checkId === "system-security/extension-owner-bypass"));
 assert.ok(inspect("src/plugins/xuanxue-ai-production/cloud-client.ts", "export const run = () => { try { throw new Error('blocked'); } catch { return true; } };")
   .some((finding) => finding.checkId === "system-security/unsafe-catch-fallback"));
+assert.ok(inspect("src/final-action.ts", "export const decide = (aiResponse: string) => publish(aiResponse);")
+  .some((finding) => finding.checkId === "system-security/ai-irreversible-final-action"));
 
 console.log("system-security-acceptance-ok");
-emitQualityProofObservation({ lawId: "LAW-SYSTEM-SECURITY-001-V1", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","summary"], locator: "acceptance:system-security:attack-mutants", observedValue: "cloud browser-control extension-owner-bypass and unsafe-fallback mutants rejected" });
+emitQualityProofObservation({ lawId: "LAW-SYSTEM-SECURITY-001-V2", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","summary"], locator: "acceptance:system-security:attack-mutants", observedValue: "sensitive-flow type-forgery cloud-control extension-owner-bypass AI-final-action and unsafe-fallback mutants rejected" });

@@ -220,7 +220,7 @@
     {
       "capabilityDomain": "system-security",
       "lawIds": [
-        "LAW-SYSTEM-SECURITY-001-V1"
+        "LAW-SYSTEM-SECURITY-001-V2"
       ],
       "manifestPath": "scripts/audit/domains/system-security/manifest.json",
       "observedPaths": [
@@ -1489,10 +1489,6 @@
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
-        "static.types",
-        "static.contract",
-        "static.dependency",
-        "static.config",
         "exam.golden"
       ],
       "excludes": [],
@@ -1504,16 +1500,16 @@
         "不得发生：AI 决定不可逆最终动作、安全裁决、授权裁决或伪造成功。",
         "不得发生：失败分支泄漏敏感数据、吞掉鉴权错误、降级到不安全 fallback 或重放 UNKNOWN 动作。"
       ],
-      "lawId": "LAW-SYSTEM-SECURITY-001-V1",
+      "lawId": "LAW-SYSTEM-SECURITY-001-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1061,
+        "lineEnd": 1057,
         "lineStart": 1023,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
       "summary": "必须使玄学生产中的凭证、浏览器身份、用户输入、AI 传输、Cloud Pull 和最终动作保持最小权限、结构验证、敏感信息脱敏与失败关闭。",
-      "supersedesLawId": null,
+      "supersedesLawId": "LAW-SYSTEM-SECURITY-001-V1",
       "tier": "P0"
     },
     {
@@ -1548,8 +1544,8 @@
       "lawId": "LAW-WORKBENCH-API-BOUNDARY-001-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1101,
-        "lineStart": 1065,
+        "lineEnd": 1097,
+        "lineStart": 1061,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1621,8 +1617,8 @@
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-001-V11",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1171,
-        "lineStart": 1105,
+        "lineEnd": 1167,
+        "lineStart": 1101,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1654,8 +1650,8 @@
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1205,
-        "lineStart": 1175,
+        "lineEnd": 1201,
+        "lineStart": 1171,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
