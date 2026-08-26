@@ -6,6 +6,8 @@
     "LAW-CODE-PURITY-001-V3"
   ],
   "ownedPaths": [
+    ".github/CODEOWNERS",
+    ".github/workflows/quality-ready.yml",
     ".gitignore",
     ".nvmrc",
     ".vscode/tasks.json",

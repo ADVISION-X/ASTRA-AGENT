@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 
@@ -58,13 +58,14 @@ const consumerDependencies = (): Dependency[] => repositoryPaths()
   });
 
 const participantPath = (repo: string): string => {
-  const configured = process.env.GRASSEYE_PROVIDER_REPOSITORIES?.trim();
-  if (configured) {
-    const paths = JSON.parse(configured) as Record<string, unknown>;
-    if (typeof paths[repo] === "string") return resolve(paths[repo]);
-  }
-  if (repo === "ADVISION-X/xuanxue-web") return resolve(process.env.XUANXUE_WEBSITE_REPOSITORY?.trim() || "/Users/nexgen/Documents/xuanxue-web");
-  return fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", repo);
+  const configured = process.env.GOVERNANCE_PROVIDER_REPOSITORIES?.trim();
+  if (!configured) return fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:repository-map`);
+  let paths: Record<string, unknown>;
+  try { paths = JSON.parse(configured) as Record<string, unknown>; }
+  catch { return fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:repository-map-json`); }
+  const target = paths[repo];
+  if (typeof target !== "string" || !target.trim()) return fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:repository-map-entry`);
+  return resolve(target);
 };
 
 const gitAt = (path: string, args: string[]): string => execFileSync("git", args, {
@@ -114,6 +115,7 @@ const bindReleaseParticipants = (): BoundParticipant[] => {
     const dependencySignatures = dependencies.map((dependency) => `${dependency.contractId}\0${dependency.version}`);
     if (dependencySignatures.length !== new Set(dependencySignatures).size) fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:duplicate`);
     const path = participantPath(repo);
+    if (gitAt(path, ["status", "--porcelain=v1", "--untracked-files=all"])) fail("RELEASE_PARTICIPANT_DRIFT", `${repo}:dirty`);
     const gitCommit = gitAt(path, ["rev-parse", "HEAD"]);
     const available = providerContracts(path, gitCommit, repo);
     for (const dependency of dependencies) assertExactProviderContract(repo, dependency, available);
@@ -468,7 +470,16 @@ export const runFullQuality = async (level: Level): Promise<{ reportPath: string
   });
   const reportPath = process.env.CI || process.env.GRASSEYE_QUALITY_OUTPUT_DIR ? resolve(runDirectory, "law-quality.report.json") : resolve(ROOT, REPORT);
   mkdirSync(dirname(reportPath), { recursive: true });
-  writeFileSync(reportPath, canonicalBytes(report));
+  const temporary = `${reportPath}.tmp-${process.pid}`;
+  try {
+    writeFileSync(temporary, canonicalBytes(report));
+    assertCleanCandidate(candidate, level);
+    assertParticipantCommits(boundParticipants);
+    renameSync(temporary, reportPath);
+  } catch (error) {
+    if (existsSync(temporary)) unlinkSync(temporary);
+    throw error;
+  }
   process.stdout.write(`QUALITY_REPORT ${reportPath}\n${level}_${report.outcome}\n`);
   return { reportPath, outcome: report.outcome };
 };
