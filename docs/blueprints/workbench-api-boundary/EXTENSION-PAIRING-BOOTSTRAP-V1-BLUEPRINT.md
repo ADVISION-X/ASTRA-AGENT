@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "workbench-api-boundary",
   "lawIds": [
-    "LAW-WORKBENCH-API-BOUNDARY-001-V5"
+    "LAW-WORKBENCH-API-BOUNDARY-001-V6"
   ],
   "contractRefs": [],
   "dependencyEdges": [
@@ -22,4 +22,3 @@
 扩展、`null`、`file://` 与无身份本机请求失败关闭。响应只给当前 `releaseBuildId`、Authority 状态和
 absent 时的内存一次性密钥，并固定 no-store/no-cache/no-referrer/nosniff。WebSocket upgrade 同时要求
 loopback remote address 与固定 Extension Origin。
-

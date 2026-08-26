@@ -235,7 +235,7 @@
     {
       "capabilityDomain": "workbench-api-boundary",
       "lawIds": [
-        "LAW-WORKBENCH-API-BOUNDARY-001-V5"
+        "LAW-WORKBENCH-API-BOUNDARY-001-V6"
       ],
       "manifestPath": "scripts/audit/domains/workbench-api-boundary/manifest.json",
       "observedPaths": [
@@ -1518,7 +1518,9 @@
     },
     {
       "appliesTo": [
-        "src/app/workbench-api-boundary.ts"
+        "src/app/create-workbench-server.ts",
+        "src/app/workbench-api-boundary.ts",
+        "src/app/workbench-browser-websocket-upgrade.ts"
       ],
       "capabilityDomain": "workbench-api-boundary",
       "contractRefs": [
@@ -1543,16 +1545,16 @@
         "不得发生：固定扩展通过 pairing route 之外的 Workbench API，或 pairing 响应被缓存、重定向、记录 secret",
         "不得发生：API gateway duplicate"
       ],
-      "lawId": "LAW-WORKBENCH-API-BOUNDARY-001-V5",
+      "lawId": "LAW-WORKBENCH-API-BOUNDARY-001-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1099,
+        "lineEnd": 1101,
         "lineStart": 1065,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
       "summary": "必须保持以下不变量：Every authorized external website ingress remains a known per-site-HMAC business route; the fixed local extension is a separate least-privilege origin category allowed only to GET the no-store pairing bootstrap, while xuanxue AI production remains outbound Cloud Pull with no external ingress policy.",
-      "supersedesLawId": "LAW-WORKBENCH-API-BOUNDARY-001-V4",
+      "supersedesLawId": "LAW-WORKBENCH-API-BOUNDARY-001-V5",
       "tier": "P0"
     },
     {
@@ -1619,8 +1621,8 @@
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-001-V11",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1169,
-        "lineStart": 1103,
+        "lineEnd": 1171,
+        "lineStart": 1105,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1652,8 +1654,8 @@
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1203,
-        "lineStart": 1173,
+        "lineEnd": 1205,
+        "lineStart": 1175,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",

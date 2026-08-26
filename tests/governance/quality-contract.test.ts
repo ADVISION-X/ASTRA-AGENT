@@ -102,7 +102,7 @@ test("Workbench static inspection changes verdict for global-key and incomplete 
       boundaryPath: "src/app/workbench-api-boundary.ts",
       file,
       findings,
-      lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V5",
+      lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V6",
       summary: { ingressIdentityViolations: 0, perSiteHmacViolations: 0 },
     });
     return findings.length;

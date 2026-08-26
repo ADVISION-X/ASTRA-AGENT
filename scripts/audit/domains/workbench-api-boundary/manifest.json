@@ -3,7 +3,7 @@
   "capabilityDomain": "workbench-api-boundary",
   "status": "active",
   "lawIds": [
-    "LAW-WORKBENCH-API-BOUNDARY-001-V5"
+    "LAW-WORKBENCH-API-BOUNDARY-001-V6"
   ],
   "ownedPaths": [
     "scripts/acceptance/workbench-api-boundary-fixture.ts",

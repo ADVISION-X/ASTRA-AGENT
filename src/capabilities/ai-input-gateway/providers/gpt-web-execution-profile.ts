@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type {
   AiProviderAdapterContext,
@@ -7,6 +5,7 @@ import type {
 } from "../contracts/ai-provider-adapter.contract.js";
 import { assertProviderExecutionProfileIntegrity } from "../provider-execution-profile.js";
 import type { AiFeedInput, GptWebReasoningTier } from "../schema.js";
+import { buildGptWebExecutionProfileProof } from "./gpt-web-execution-profile-proof.js";
 import { assertStableWebChatDocument, recordWebChatPageAction } from "./web-chat-page-action-contract.js";
 
 const PROFILE_TRIGGER_SELECTOR = "form button[aria-haspopup='menu'][data-tone='neutral']";
@@ -368,43 +367,6 @@ const closeProfileMenu = async (input: ExecutionProfileInput): Promise<void> => 
   });
 };
 
-const buildProof = (input: {
-  profile: NonNullable<AiFeedInput["providerExecutionProfile"]>;
-  reasoningUiLabel: string;
-  noOp: boolean;
-  modelCandidateCount: number;
-  reasoningCandidateCount: number;
-}): ProviderExecutionProfileProof => {
-  const observedAt = new Date().toISOString();
-  const payload = {
-    profileHash: input.profile.profileHash,
-    modelDisplayName: input.profile.modelDisplayName,
-    reasoningTier: input.profile.reasoningTier,
-    reasoningUiLabel: input.reasoningUiLabel,
-    modelCandidateCount: input.modelCandidateCount,
-    reasoningCandidateCount: input.reasoningCandidateCount,
-    noOp: input.noOp,
-    observedAt,
-  };
-  const evidenceHash = `sha256:${createHash("sha256").update(JSON.stringify(payload)).digest("hex")}` as const;
-  return {
-    proofStatus: "verified",
-    profileRef: input.profile.profileRef,
-    profileHash: input.profile.profileHash,
-    provider: input.profile.provider,
-    transport: input.profile.transport,
-    modelDisplayName: input.profile.modelDisplayName,
-    modelFamily: input.profile.modelFamily,
-    reasoningTier: input.profile.reasoningTier,
-    reasoningUiLabel: input.reasoningUiLabel,
-    observedAt,
-    sourceKind: "provider_ui_observation",
-    noOp: input.noOp,
-    evidenceRef: `provider-dom-action:gpt-web-execution-profile:${evidenceHash.slice(7)}`,
-    evidenceHash,
-  };
-};
-
 type AppliedProfile = Readonly<{
   noOp: boolean;
   model: SelectionObservation;
@@ -456,7 +418,7 @@ const persistExecutionProfileProof = async (input: {
     input.reasoningUiLabel,
     input.profile.profileHash,
   ];
-  const proof = buildProof({
+  const proof = buildGptWebExecutionProfileProof({
     profile: input.profile,
     reasoningUiLabel: input.reasoningUiLabel,
     noOp: input.selection.noOp,
