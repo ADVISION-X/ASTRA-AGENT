@@ -6,6 +6,7 @@ import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { observeStaticAst, observeStaticContract } from "../../shared/static-target-object-inspector.js";
 
 const packagePath = "package.json";
 const launchPath = "scripts/startup/launch-grasseye.mjs";
@@ -245,8 +246,12 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
     const checks = semanticChecks(lawId);
       return { lawId, assertions: [
-      { clauses: astClauses, evidenceMode: "static.ast", passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks), refs: staticEvidenceRefs(context, lawId, "static.ast", astClauses, evaluation.staticCheckReceipts, checks) },
-      { clauses: staticClauses(0), evidenceMode: "static.contract", passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks), refs: staticEvidenceRefs(context, lawId, "static.contract", staticClauses(0), evaluation.staticCheckReceipts, checks) },
+      { clauses: astClauses, evidenceMode: "static.ast", passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks), refs: staticEvidenceRefs(context, lawId, "static.ast", astClauses, evaluation.staticCheckReceipts, checks,
+        observeStaticAst({ context, lawId, evidenceMode: "static.ast", clauses: astClauses, checks,
+          executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks) })) },
+      { clauses: staticClauses(0), evidenceMode: "static.contract", passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks), refs: staticEvidenceRefs(context, lawId, "static.contract", staticClauses(0), evaluation.staticCheckReceipts, checks,
+        observeStaticContract({ context, lawId, evidenceMode: "static.contract", clauses: staticClauses(0), checks,
+          executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks) })) },
     ], findings };
   };
   return validateStaticInspection(context, {

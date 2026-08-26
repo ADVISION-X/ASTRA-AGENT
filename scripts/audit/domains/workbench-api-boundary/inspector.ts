@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { observeStaticAst, observeStaticContract } from "../../shared/static-target-object-inspector.js";
 
 import {
   Node,
@@ -405,7 +406,9 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const assertion = (mode: string, checks: string[]) => ({
     clauses: staticClauses(0), evidenceMode: mode,
     passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks),
-    refs: staticEvidenceRefs(context, lawId, mode, staticClauses(0), evaluation.staticCheckReceipts, checks),
+    refs: staticEvidenceRefs(context, lawId, mode, staticClauses(0), evaluation.staticCheckReceipts, checks,
+      (mode === "static.ast" ? observeStaticAst : observeStaticContract)({ context, lawId, evidenceMode: mode, clauses: staticClauses(0), checks,
+        executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks) })),
   });
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,

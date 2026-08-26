@@ -9,6 +9,7 @@ import {
 } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { observeStaticAst, observeStaticContract } from "../../shared/static-target-object-inspector.js";
 import {
   cloudContractPath,
   cloudCredentialPath,
@@ -393,8 +394,12 @@ export const inspectDomain = async (
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [{ lawId, assertions: [
-      { clauses: staticClauses(0), evidenceMode: "static.ast", passed: producerModePassed(evaluation.staticCheckReceipts, lawId, ["inspectDomainPolicy"]), refs: staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0), evaluation.staticCheckReceipts, ["inspectDomainPolicy"]) },
-      { clauses: staticClauses(0), evidenceMode: "static.contract", passed: producerModePassed(evaluation.staticCheckReceipts, lawId, ["inspectDomainPolicy"]), refs: staticEvidenceRefs(context, lawId, "static.contract", staticClauses(0), evaluation.staticCheckReceipts, ["inspectDomainPolicy"]) },
+      { clauses: staticClauses(0), evidenceMode: "static.ast", passed: producerModePassed(evaluation.staticCheckReceipts, lawId, ["inspectDomainPolicy"]), refs: staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0), evaluation.staticCheckReceipts, ["inspectDomainPolicy"],
+        observeStaticAst({ context, lawId, evidenceMode: "static.ast", clauses: staticClauses(0), checks: ["inspectDomainPolicy"],
+          executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, ["inspectDomainPolicy"]) })) },
+      { clauses: staticClauses(0), evidenceMode: "static.contract", passed: producerModePassed(evaluation.staticCheckReceipts, lawId, ["inspectDomainPolicy"]), refs: staticEvidenceRefs(context, lawId, "static.contract", staticClauses(0), evaluation.staticCheckReceipts, ["inspectDomainPolicy"],
+        observeStaticContract({ context, lawId, evidenceMode: "static.contract", clauses: staticClauses(0), checks: ["inspectDomainPolicy"],
+          executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, ["inspectDomainPolicy"]) })) },
     ], findings }], inspectedFiles: evaluation.inspectedFiles,
   });
 };

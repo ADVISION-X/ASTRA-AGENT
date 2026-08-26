@@ -6,6 +6,7 @@ import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { repoRoot, resolveFromRepo } from "../../shared/paths.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { observeStaticAst, observeStaticContract } from "../../shared/static-target-object-inspector.js";
 
 type Finding = ReturnType<typeof createFinding>;
 
@@ -217,7 +218,9 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
     const checks = semanticChecks(lawId);
       return { lawId, assertions: ["static.ast", "static.contract"].map((evidenceMode) => ({
-      clauses: staticClauses(0), evidenceMode, passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks), refs: staticEvidenceRefs(context, lawId, evidenceMode, staticClauses(0), evaluation.staticCheckReceipts, checks),
+      clauses: staticClauses(0), evidenceMode, passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks), refs: staticEvidenceRefs(context, lawId, evidenceMode, staticClauses(0), evaluation.staticCheckReceipts, checks,
+        (evidenceMode === "static.ast" ? observeStaticAst : observeStaticContract)({ context, lawId, evidenceMode, clauses: staticClauses(0), checks,
+          executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks) })),
     })), findings };
   };
   return validateStaticInspection(context, {

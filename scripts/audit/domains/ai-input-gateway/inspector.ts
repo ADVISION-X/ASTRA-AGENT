@@ -7,6 +7,7 @@ import { astExpressionPath } from "../../shared/ast-node-identity.js";
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { observeStaticAst, observeStaticContract } from "../../shared/static-target-object-inspector.js";
 import { inspectAiInputGatewayRecovery } from "./recovery-inspector.js";
 import { inspectSubmissionPriorityPatrol } from "./scheduler-inspector.js";
 import {
@@ -458,7 +459,9 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
         const clauses = evidenceMode === "static.ast" ? astClauses : staticClauses(0);
         const checks = semanticChecks(lawId);
         return { clauses, evidenceMode, passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks),
-          refs: staticEvidenceRefs(context, lawId, evidenceMode, clauses, evaluation.staticCheckReceipts, checks) };
+          refs: staticEvidenceRefs(context, lawId, evidenceMode, clauses, evaluation.staticCheckReceipts, checks,
+            (evidenceMode === "static.ast" ? observeStaticAst : observeStaticContract)({ context, lawId, evidenceMode, clauses, checks,
+              executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks) })) };
       }), findings };
   };
   return validateStaticInspection(context, {

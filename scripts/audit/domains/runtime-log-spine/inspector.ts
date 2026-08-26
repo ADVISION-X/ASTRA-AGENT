@@ -3,6 +3,7 @@ import { selectLawId } from "../../shared/finding-utils.js";
 import { toInspectorFinding } from "./finding-adapter.js";
 import { collectRuntimeLogPhaseRuns, type CollectedPhaseRuns } from "./phase-runs.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { observeStaticAst, observeStaticContract } from "../../shared/static-target-object-inspector.js";
 
 const findingsForLaw = (collected: CollectedPhaseRuns, lawId: string) => collected.phaseRuns
   .flatMap((phase) => phase.findings)
@@ -24,12 +25,18 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   const contractLawId = selectLawId(context.planEntry.lawIds, "LAW-RUNTIME-LOG-SPINE-003-V3");
   const findings: ReturnType<typeof toInspectorFinding>[] = [];
   const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
-  const run = (check: string, lawId: string, action: () => ReturnType<typeof toInspectorFinding>[]): void => recordStaticCheck({
-    check, findings, lawIds: [lawId], receipts: staticCheckReceipts, run: () => { findings.push(...action()); },
+  recordStaticCheck({
+    check: "collectRuntimeOperationalTraceFindings", findings, lawIds: [operationalLawId], receipts: staticCheckReceipts,
+    run: () => { findings.push(...collectRuntimeOperationalTraceFindings(context, operationalLawId)); },
   });
-  run("collectRuntimeOperationalTraceFindings", operationalLawId, () => collectRuntimeOperationalTraceFindings(context, operationalLawId));
-  run("collectRuntimeRedactionFindings", redactionLawId, () => collectRuntimeRedactionFindings(context, redactionLawId));
-  run("collectRuntimeContractFindings", contractLawId, () => collectRuntimeContractFindings(context, contractLawId));
+  recordStaticCheck({
+    check: "collectRuntimeRedactionFindings", findings, lawIds: [redactionLawId], receipts: staticCheckReceipts,
+    run: () => { findings.push(...collectRuntimeRedactionFindings(context, redactionLawId)); },
+  });
+  recordStaticCheck({
+    check: "collectRuntimeContractFindings", findings, lawIds: [contractLawId], receipts: staticCheckReceipts,
+    run: () => { findings.push(...collectRuntimeContractFindings(context, contractLawId)); },
+  });
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
@@ -48,7 +55,9 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
     const checks = semanticChecks(lawId);
       return { lawId, assertions: ["static.ast", "static.contract"].map((evidenceMode) => ({
-      clauses: staticClauses(0), evidenceMode, passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks), refs: staticEvidenceRefs(context, lawId, evidenceMode, staticClauses(0), evaluation.staticCheckReceipts, checks),
+      clauses: staticClauses(0), evidenceMode, passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks), refs: staticEvidenceRefs(context, lawId, evidenceMode, staticClauses(0), evaluation.staticCheckReceipts, checks,
+        (evidenceMode === "static.ast" ? observeStaticAst : observeStaticContract)({ context, lawId, evidenceMode, clauses: staticClauses(0), checks,
+          executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks) })),
     })), findings };
   };
   return validateStaticInspection(context, {

@@ -17,6 +17,11 @@ export const recordStaticCheck = <T>(input: {
   receipts: StaticCheckReceipt[];
   run: () => T;
 }): T => {
+  const callbackSource = input.run.toString();
+  if (!callbackSource.includes(`${input.check}(`)
+    || /\b(?:if|switch|while|for)\s*\(|\?[^:]+:/u.test(callbackSource)) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${input.check}:direct-execution`);
+  }
   const before = new Map(input.lawIds.map((lawId) => [lawId,
     input.findings.filter((finding) => finding.lawId === lawId).length]));
   const result = input.run();
@@ -30,38 +35,57 @@ export const recordStaticCheck = <T>(input: {
 
 export const producerModePassed = (
   receipts: readonly StaticCheckReceipt[], lawId: string, semanticChecks: readonly string[],
-): boolean => semanticChecks.every((check) => receipts.some((receipt) =>
-  receipt.lawId === lawId && receipt.check === check && receipt.passed));
+): boolean => semanticChecks.every((check) => {
+  const matching = receipts.filter((receipt) => receipt.lawId === lawId && receipt.check === check);
+  if (matching.length !== 1) return false;
+  return matching[0]!.passed;
+});
 
 const requirementFor = (context: InspectorContext, lawId: string): InspectorLawRequirement =>
   context.lawRequirements.find((requirement) => requirement.lawId === lawId)
     ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:requirement`);
 
+const staticEvidenceKind = (lawId: string, evidenceMode: string): string => ({
+  "static.ast": "ast", "static.config": "config", "static.contract": "config",
+  "static.dependency": "dependency", "static.filesystem": "file", "static.json": "json",
+  "static.migration": "file", "static.sql": "sql", "static.text": "text",
+  "static.types": "test", "static.yaml": "yaml",
+} as Readonly<Record<string, string>>)[evidenceMode]
+  ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:evidence-kind`);
+
 export const staticEvidenceRefs = (
   context: InspectorContext, lawId: string, evidenceMode: string, clauses: readonly string[],
   receipts: readonly StaticCheckReceipt[],
   semanticChecks: readonly string[],
+  nativeRefs: readonly string[],
 ): string[] => {
   const requirement = requirementFor(context, lawId);
   const checks = ordered(semanticChecks);
   if (!checks.length || checks.some((check) => !/^[A-Za-z_$][A-Za-z0-9_$]*$/u.test(check))) {
     fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:semantic-check`);
   }
-  const checkReceipts = checks.map((check) => receipts.find((receipt) =>
-    receipt.lawId === lawId && receipt.check === check)
-    ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:${check}:execution-receipt`));
-  const ownerPath = context.planEntry.ownerInspectorPath;
-  const evidenceKind = ({
-    "static.ast": "ast", "static.config": "config", "static.contract": "config",
-    "static.dependency": "dependency", "static.filesystem": "file", "static.json": "json",
-    "static.migration": "file", "static.sql": "sql", "static.text": "text",
-    "static.types": "test", "static.yaml": "yaml",
-  } as Readonly<Record<string, string>>)[evidenceMode]
-    ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:evidence-kind`);
+  for (const check of checks) {
+    const matching = receipts.filter((receipt) => receipt.lawId === lawId && receipt.check === check);
+    if (matching.length !== 1) fail("LAW_CHECK_EXECUTION_INCOMPLETE",
+      `${lawId}:${evidenceMode}:${check}:execution-receipt`);
+  }
+  const evidenceKind = staticEvidenceKind(lawId, evidenceMode);
+  const semanticBinding = encodeURIComponent(`semanticChecks=${checks.join(",")}`);
+  const lawModeBinding = encodeURIComponent(`lawId=${lawId};mode=${evidenceMode};`);
+  const clauseBinding = encodeURIComponent(`clauses=${clauses.join(",")}`);
+  const executionBinding = encodeURIComponent(`executionResult=${producerModePassed(receipts, lawId, checks) ? "passed" : "failed"}`);
+  if (!nativeRefs.length || nativeRefs.some((reference) => {
+    const fragment = reference.indexOf("#");
+    const objectPath = fragment > evidenceKind.length + 1
+      ? reference.slice(evidenceKind.length + 1, fragment) : "";
+    return !reference.startsWith(`${evidenceKind}:`) || !requirement.targetPaths.includes(objectPath)
+      || !reference.includes(lawModeBinding) || !reference.includes(semanticBinding)
+      || !reference.includes(executionBinding) || !reference.includes(clauseBinding);
+  })) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:native-object`);
+  }
   return ordered([
-    ...checkReceipts.map((receipt) => `${evidenceKind}:${ownerPath}#${encodeURIComponent(
-      `lawId=${lawId};mode=${evidenceMode};semanticCheck=${receipt.check};executionResult=${receipt.passed ? "observed" : "violated"};clauses=${clauses.join(",")}`,
-    )}`),
+    ...nativeRefs,
     requirement.targetSet.queryRef,
   ]);
 };
@@ -87,10 +111,19 @@ const validateAssertion = (input: {
   }
   const observationBinding = encodeURIComponent(`lawId=${lawId};mode=${mode};`);
   const clauseBinding = encodeURIComponent(`clauses=${assertion.clauses.join(",")}`);
+  const semanticBinding = encodeURIComponent("semanticChecks=");
+  const executionBinding = encodeURIComponent(`executionResult=${assertion.passed ? "passed" : "failed"}`);
+  const evidenceKind = staticEvidenceKind(lawId, mode);
+  const nativeRefs = assertion.refs.filter((reference) => reference !== requirement.targetSet.queryRef);
   if (!assertion.refs.includes(requirement.targetSet.queryRef)
-    || !assertion.refs.some((reference) => reference.includes(observationBinding)
-      && reference.includes(clauseBinding)
-      && reference.includes("executionResult%3D"))) {
+    || !nativeRefs.length || nativeRefs.some((reference) => {
+      const fragment = reference.indexOf("#");
+      const objectPath = fragment > evidenceKind.length + 1
+        ? reference.slice(evidenceKind.length + 1, fragment) : "";
+      return !reference.startsWith(`${evidenceKind}:`) || !requirement.targetPaths.includes(objectPath)
+        || !reference.includes(observationBinding) || !reference.includes(clauseBinding)
+        || !reference.includes(semanticBinding) || !reference.includes(executionBinding);
+    })) {
     fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}:native-observation`);
   }
 };
@@ -109,10 +142,6 @@ const validateLawResult = (context: InspectorContext, output: InspectorOutput, l
     const assertion = assertionsByMode.get(mode)
       ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}`);
     validateAssertion({ assertion, lawId, mode, requirement });
-    const executionResults = assertion.refs.filter((reference) => reference.includes("semanticCheck%3D"))
-      .map((reference) => reference.includes("executionResult%3Dobserved"));
-    if (!executionResults.length || assertion.passed !== executionResults.every(Boolean))
-      fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}:execution-verdict`);
   }
   if (result.findings.some((finding) => finding.lawId !== lawId
     || !requiredModes.includes(finding.evidenceMode))) {

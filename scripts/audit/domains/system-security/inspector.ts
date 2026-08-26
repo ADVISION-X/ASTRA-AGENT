@@ -3,6 +3,7 @@ import { Node, SyntaxKind, type CallExpression, type Project, type SourceFile } 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { observeStaticAst } from "../../shared/static-target-object-inspector.js";
 
 const LAW_ID = "LAW-SYSTEM-SECURITY-001-V2";
 const CLAUSE_ID = `${LAW_ID.toLowerCase()}-requirement`;
@@ -175,7 +176,9 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [{ lawId: LAW_ID, assertions: [
-      { clauses: staticClauses(0), evidenceMode: "static.ast", passed: producerModePassed(evaluation.staticCheckReceipts, LAW_ID, ["inspectSystemSecurityProject"]), refs: staticEvidenceRefs(context, LAW_ID, "static.ast", staticClauses(0), evaluation.staticCheckReceipts, ["inspectSystemSecurityProject"]) },
+      { clauses: staticClauses(0), evidenceMode: "static.ast", passed: producerModePassed(evaluation.staticCheckReceipts, LAW_ID, ["inspectSystemSecurityProject"]), refs: staticEvidenceRefs(context, LAW_ID, "static.ast", staticClauses(0), evaluation.staticCheckReceipts, ["inspectSystemSecurityProject"],
+        observeStaticAst({ context, lawId: LAW_ID, evidenceMode: "static.ast", clauses: staticClauses(0), checks: ["inspectSystemSecurityProject"],
+          executionPassed: producerModePassed(evaluation.staticCheckReceipts, LAW_ID, ["inspectSystemSecurityProject"]) })) },
     ], findings }], inspectedFiles: evaluation.inspectedFiles,
   });
 };

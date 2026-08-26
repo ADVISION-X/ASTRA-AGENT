@@ -8,6 +8,7 @@ import { createAuditProject } from "../../shared/project.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { observeStaticAst } from "../../shared/static-target-object-inspector.js";
 
 const criticalRuntimeFiles = [
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts",
@@ -143,7 +144,9 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [{ lawId, assertions: [
-      { clauses: staticClauses(0), evidenceMode: "static.ast", passed: producerModePassed(evaluation.staticCheckReceipts, lawId, ["inspectXuanxueLocalizationContract"]), refs: staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0), evaluation.staticCheckReceipts, ["inspectXuanxueLocalizationContract"]) },
+      { clauses: staticClauses(0), evidenceMode: "static.ast", passed: producerModePassed(evaluation.staticCheckReceipts, lawId, ["inspectXuanxueLocalizationContract"]), refs: staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0), evaluation.staticCheckReceipts, ["inspectXuanxueLocalizationContract"],
+        observeStaticAst({ context, lawId, evidenceMode: "static.ast", clauses: staticClauses(0), checks: ["inspectXuanxueLocalizationContract"],
+          executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, ["inspectXuanxueLocalizationContract"]) })) },
     ], findings }], inspectedFiles: evaluation.inspectedFiles,
   });
 };

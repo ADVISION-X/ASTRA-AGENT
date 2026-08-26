@@ -10,6 +10,7 @@ import {
   isCapabilityPrivateImplementationSection,
 } from "../../shared/repo-path-classifier.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { observeStaticAst, observeStaticDependency, observeStaticFilesystem, observeStaticTypes } from "../../shared/static-target-object-inspector.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../shared/source-files.js";
 import {
   resolveCapabilityFacadePolicy,
@@ -475,7 +476,10 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
         : ["collectCapabilityGovernanceScan", "pushMissingCapabilityConsumers"];
   const refs = (mode: string, clauses: string[]) => ({
     passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks(mode)),
-    refs: staticEvidenceRefs(context, lawId, mode, clauses, evaluation.staticCheckReceipts, checks(mode)),
+    refs: staticEvidenceRefs(context, lawId, mode, clauses, evaluation.staticCheckReceipts, checks(mode),
+      (mode === "static.ast" ? observeStaticAst : mode === "static.dependency" ? observeStaticDependency
+        : mode === "static.filesystem" ? observeStaticFilesystem : observeStaticTypes)({ context, lawId, evidenceMode: mode, clauses,
+        checks: checks(mode), executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks(mode)) })),
   });
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,

@@ -6,6 +6,7 @@ import { inspectAppShellLocalization } from "./inspector-localization.js";
 import { inspectLegacyAppUserDemandPhysicalAbsence } from "./inspector-retired-authority-absence.js";
 import { inspectSkillRegistry } from "./inspector-skill-registry.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { observeStaticAst } from "../../shared/static-target-object-inspector.js";
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const lawId = selectLawId(context.planEntry.lawIds, "LAW-APP-SHELL-UI-001-V2");
@@ -50,7 +51,9 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
       : staticClauses(0);
       const checks = semanticChecks(lawId);
       return { lawId, assertions: [{ clauses, evidenceMode: "static.ast", passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks),
-      refs: staticEvidenceRefs(context, lawId, "static.ast", clauses, evaluation.staticCheckReceipts, checks) }], findings };
+      refs: staticEvidenceRefs(context, lawId, "static.ast", clauses, evaluation.staticCheckReceipts, checks,
+        observeStaticAst({ context, lawId, evidenceMode: "static.ast", clauses, checks,
+          executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks) })) }], findings };
   };
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
