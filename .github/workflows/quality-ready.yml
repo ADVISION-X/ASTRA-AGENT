@@ -13,8 +13,6 @@ jobs:
     name: quality-ready
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      GRASSEYE_QUALITY_OUTPUT_DIR: ${{ runner.temp }}/grasseye-quality
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -26,3 +24,5 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run quality:check -- READY
+        env:
+          GRASSEYE_QUALITY_OUTPUT_DIR: ${{ runner.temp }}/grasseye-quality
