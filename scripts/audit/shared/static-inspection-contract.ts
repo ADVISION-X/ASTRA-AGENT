@@ -57,7 +57,7 @@ export const staticEvidenceRefs = (
   context: InspectorContext, lawId: string, evidenceMode: string, clauses: readonly string[],
   receipts: readonly StaticCheckReceipt[],
   semanticChecks: readonly string[],
-  nativeRefs: readonly string[],
+  nativeRefs: readonly string[] | "scope-only",
 ): string[] => {
   const requirement = requirementFor(context, lawId);
   const checks = ordered(semanticChecks);
@@ -70,6 +70,11 @@ export const staticEvidenceRefs = (
       `${lawId}:${evidenceMode}:${check}:execution-receipt`);
   }
   const evidenceKind = staticEvidenceKind(lawId, evidenceMode);
+  if (nativeRefs === "scope-only") {
+    if (requirement.targetSet.count !== 0 || requirement.targetPaths.length !== 0)
+      fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:scope-only`);
+    return [requirement.targetSet.queryRef];
+  }
   const semanticBinding = encodeURIComponent(`semanticChecks=${checks.join(",")}`);
   const lawModeBinding = encodeURIComponent(`lawId=${lawId};mode=${evidenceMode};`);
   const clauseBinding = encodeURIComponent(`clauses=${clauses.join(",")}`);
@@ -115,15 +120,17 @@ const validateAssertion = (input: {
   const executionBinding = encodeURIComponent(`executionResult=${assertion.passed ? "passed" : "failed"}`);
   const evidenceKind = staticEvidenceKind(lawId, mode);
   const nativeRefs = assertion.refs.filter((reference) => reference !== requirement.targetSet.queryRef);
+  const scopeOnly = requirement.targetSet.count === 0 && requirement.targetPaths.length === 0
+    && assertion.refs.length === 1 && assertion.refs[0] === requirement.targetSet.queryRef;
   if (!assertion.refs.includes(requirement.targetSet.queryRef)
-    || !nativeRefs.length || nativeRefs.some((reference) => {
+    || (!scopeOnly && (!nativeRefs.length || nativeRefs.some((reference) => {
       const fragment = reference.indexOf("#");
       const objectPath = fragment > evidenceKind.length + 1
         ? reference.slice(evidenceKind.length + 1, fragment) : "";
       return !reference.startsWith(`${evidenceKind}:`) || !requirement.targetPaths.includes(objectPath)
         || !reference.includes(observationBinding) || !reference.includes(clauseBinding)
         || !reference.includes(semanticBinding) || !reference.includes(executionBinding);
-    })) {
+    })))) {
     fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}:native-observation`);
   }
 };

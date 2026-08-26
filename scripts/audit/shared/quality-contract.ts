@@ -154,6 +154,8 @@ const validateFinding = (finding: QualityFinding, lawId: string): void => {
 
 const validateAssertion = (assertion: QualityAssertion, law: Law, required: readonly string[]): void => {
   const expectedKind = evidenceKindByMode[assertion.evidenceMode];
+  const scopeOnly = assertion.evidenceMode.startsWith("static.") && assertion.refs.length === 1
+    && assertion.refs[0] === `scope:${law.lawId}#appliesTo-minus-excludes`;
   if (!exactKeys(assertion, assertionKeys)) fail("LAW_EVIDENCE_MISSING", `${law.lawId}:shape`);
   if (!required.includes(assertion.evidenceMode) || !expectedKind) fail("UNDECLARED_EVIDENCE_MODE", `${law.lawId}:${assertion.evidenceMode}`);
   if (!assertion.refs.length) fail("EMPTY_EVIDENCE_REFS", `${law.lawId}:${assertion.evidenceMode}`);
@@ -161,7 +163,7 @@ const validateAssertion = (assertion: QualityAssertion, law: Law, required: read
     || assertion.clauses.some((clause) => !clauseDenominator(law).includes(clause))
     || !exactOrdered(assertion.refs)
     || assertion.refs.some((ref) => !validEvidenceRef(ref))
-    || !assertion.refs.some((ref) => evidenceKind(ref) === expectedKind)
+    || (!scopeOnly && !assertion.refs.some((ref) => evidenceKind(ref) === expectedKind))
     || assertion.refs.some((ref) => ![expectedKind, "scope"].includes(evidenceKind(ref)))) {
     fail("LAW_EVIDENCE_MISSING", law.lawId);
   }

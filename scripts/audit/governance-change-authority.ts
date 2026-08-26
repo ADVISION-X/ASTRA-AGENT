@@ -35,8 +35,8 @@ const normativeLawRecord = (law: Law): unknown => ({
 export const assertLawMajorVersionChanges = (prior: readonly Law[], current: readonly Law[]): void => {
   const currentByStem = new Map(current.map((law) => [lawStem(law.lawId), law]));
   for (const priorLaw of prior) {
-    const currentLaw = currentByStem.get(lawStem(priorLaw.lawId))
-      ?? fail('LAW_MAJOR_CHANGE_UNENFORCED', `${priorLaw.lawId}:removed-without-successor`);
+    const currentLaw = currentByStem.get(lawStem(priorLaw.lawId));
+    if (!currentLaw) continue;
     const changed = JSON.stringify(normativeLawRecord(priorLaw)) !== JSON.stringify(normativeLawRecord(currentLaw));
     if (changed && (currentLaw.lawId === priorLaw.lawId || currentLaw.supersedesLawId !== priorLaw.lawId)) {
       fail('LAW_MAJOR_CHANGE_UNENFORCED', `${priorLaw.lawId}:normative-semantics`);

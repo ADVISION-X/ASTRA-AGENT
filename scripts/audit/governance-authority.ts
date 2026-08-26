@@ -53,15 +53,18 @@ const LAW_ID_PATTERN = /^LAW-[A-Z0-9]+(?:-[A-Z0-9]+)*-[0-9]{3}-V[1-9][0-9]*$/u;
 const DOMAIN_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const REPO_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
 const byteCompare = (left: string, right: string) => Buffer.compare(Buffer.from(left), Buffer.from(right));
+const MOTHER_SPEC_IDENTITY_HEADER = '# 法案系统建设说明书\n\n> 文件版本：FINAL-V3.3｜轻结构强执法闭环版\n> 冻结目标版本：FROZEN-FINAL-V3.3\n';
 const matchesPath = (pattern: string, path: string): boolean => pattern === '**/*'
   || pattern === path
   || (pattern.endsWith('/**') && (path === pattern.slice(0, -3) || path.startsWith(`${pattern.slice(0, -3)}/`)))
   || (pattern.includes('/**/*.') && path.startsWith(`${pattern.slice(0, pattern.indexOf('/**/*.'))}/`) && path.endsWith(pattern.slice(pattern.indexOf('/**/*.') + 5)));
 const verifyRegistrySourceAuthority = (): void => {
   const spec = text(SPEC);
-  if (!spec.includes('文件版本：FINAL-V3.3') || !spec.includes('冻结目标版本：FROZEN-FINAL-V3.3')) fail('SOURCE_PARSE_FAILED', SPEC);
+  if (!motherSpecIdentityValid(spec)) fail('SOURCE_PARSE_FAILED', SPEC);
   if (text('AGENTS.md') !== AGENTS_EXACT) fail('ENTRY_CONTRACT_MISMATCH', 'AGENTS.md');
 };
+
+export const motherSpecIdentityValid = (source: string): boolean => source.startsWith(MOTHER_SPEC_IDENTITY_HEADER);
 
 export function verifyEntry(): void {
   verifyRegistrySourceAuthority();

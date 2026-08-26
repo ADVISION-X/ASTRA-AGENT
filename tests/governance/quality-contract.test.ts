@@ -491,6 +491,33 @@ test("static evidence keeps the exact scope when a governed path is not an evide
   assert.equal(validatedRefs.some((ref) => ref.includes(pathWithReservedCharacter)), false);
 });
 
+test("a zero-target pure absence check emits only its exact scope evidence", () => {
+  const lawId = "LAW-FIXTURE-001-V1";
+  const context = {
+    sealedRoot: process.cwd(), project: new Project({ tsConfigFilePath: "tsconfig.json" }),
+    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/shared/static-inspection-contract.ts" },
+    lawRequirements: [{ lawId, forbiddenCount: 1, requiredStaticModes: ["static.filesystem"], targetPaths: [],
+      targetSet: { queryRef: `scope:${lawId}#appliesTo-minus-excludes`, count: 0 } }],
+  } as unknown as InspectorContext;
+  const receipts = staticReceipt(lawId, "inspectRetiredSurfaceAbsence");
+  const refs = staticEvidenceRefs(context, lawId, "static.filesystem", staticClauses(0), receipts,
+    ["inspectRetiredSurfaceAbsence"], "scope-only");
+  assert.deepEqual(refs, [`scope:${lawId}#appliesTo-minus-excludes`]);
+  assert.doesNotThrow(() => validateStaticInspection(context, {
+    capabilityDomain: "fixture", reportedLawIds: [lawId], inspectedFiles: [],
+    lawResults: [{ lawId, assertions: [{ clauses: staticClauses(0), evidenceMode: "static.filesystem",
+      passed: true, refs }], findings: [] }],
+  }));
+  const law = { ...fixtureLaw(), evidenceModes: ["static.filesystem"], appliesTo: ["retired/**"] };
+  assert.equal(buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [{
+    lawId, findings: [], assertions: [{ clauses: staticClauses(0), evidenceMode: "static.filesystem",
+      passed: true, refs }],
+  }] }).outcome, "PASS");
+  assert.throws(() => staticEvidenceRefs(context, lawId, "static.filesystem", staticClauses(0), receipts,
+    ["inspectRetiredSurfaceAbsence"], []),
+  (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE");
+});
+
 test("a producer verdict is derived from its executed semantic-check receipt", () => {
   const lawId = "LAW-FIXTURE-001-V1";
   const receipts = [...staticReceipt(lawId, "inspectTypes", false), ...staticReceipt(lawId, "inspectAst")];

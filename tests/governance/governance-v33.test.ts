@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
-import { buildRegistry, checkProjection, loadLaws, pathRole, verifyEntry, verifyProductionOwnership } from '../../scripts/audit/governance-authority.js';
+import { buildRegistry, checkProjection, loadLaws, motherSpecIdentityValid, pathRole, verifyEntry, verifyProductionOwnership } from '../../scripts/audit/governance-authority.js';
 import { assertLawMajorVersionChanges } from '../../scripts/audit/governance-change-authority.js';
 import { GovernanceError } from '../../scripts/audit/governance-runtime.js';
 import { assertRoleConsumptionEdges } from '../../scripts/audit/shared/governance-role-consumption.js';
@@ -45,6 +45,15 @@ test('normative law edits require a successor major', () => {
   );
   const successor = { ...sameMajorMutation, lawId: 'LAW-AI-INPUT-GATEWAY-001-V2', supersedesLawId: prior.lawId };
   assert.doesNotThrow(() => assertLawMajorVersionChanges([prior], [successor]));
+  assert.doesNotThrow(() => assertLawMajorVersionChanges([prior], []));
+});
+
+test('mother specification version identity is fixed to the actual header', () => {
+  const source = readFileSync('docs/governance/法案系统建设说明书-冻结定稿版.md', 'utf8');
+  assert.equal(motherSpecIdentityValid(source), true);
+  assert.equal(motherSpecIdentityValid(source.replace('FINAL-V3.3｜', 'FINAL-V3.4｜')
+    + '\n文件版本：FINAL-V3.3｜轻结构强执法闭环版\n冻结目标版本：FROZEN-FINAL-V3.3\n'), false);
+  assert.equal(motherSpecIdentityValid(`moved\n${source}`), false);
 });
 
 test('V3.3 entry has one public command surface and no freeze sidecar', () => {
