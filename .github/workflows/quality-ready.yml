@@ -25,4 +25,4 @@ jobs:
       - run: npm ci
       - run: npm run quality:check -- READY
         env:
-          GRASSEYE_QUALITY_OUTPUT_DIR: ${{ runner.temp }}/grasseye-quality
+          GRASSEYE_QUALITY_OUTPUT_DIR: /tmp/grasseye-quality
