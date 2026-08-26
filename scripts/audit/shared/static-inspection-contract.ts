@@ -60,7 +60,7 @@ export const staticEvidenceRefs = (
     ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:evidence-kind`);
   return ordered([
     ...checkReceipts.map((receipt) => `${evidenceKind}:${ownerPath}#${encodeURIComponent(
-      `lawId=${lawId};mode=${evidenceMode};semanticCheck=${receipt.check};executionResult=${receipt.passed ? "PASS" : "FAIL"};clauses=${clauses.join(",")}`,
+      `lawId=${lawId};mode=${evidenceMode};semanticCheck=${receipt.check};executionResult=${receipt.passed ? "observed" : "violated"};clauses=${clauses.join(",")}`,
     )}`),
     requirement.targetSet.queryRef,
   ]);
@@ -110,7 +110,7 @@ const validateLawResult = (context: InspectorContext, output: InspectorOutput, l
       ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}`);
     validateAssertion({ assertion, lawId, mode, requirement });
     const executionResults = assertion.refs.filter((reference) => reference.includes("semanticCheck%3D"))
-      .map((reference) => reference.includes("executionResult%3DPASS"));
+      .map((reference) => reference.includes("executionResult%3Dobserved"));
     if (!executionResults.length || assertion.passed !== executionResults.every(Boolean))
       fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}:execution-verdict`);
   }
