@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { GovernanceError, ROOT, fail } from './governance-runtime.js';
-import { checkProjection, diffPaths, gitCommit, readRegistryProjection, verifyEntry, verifyProductionOwnership, writeRegistry, type Level, type Registry } from './governance-authority.js';
+import { checkProjection, diffPaths, gitCommit, pathRole, readRegistryProjection, REGISTRY, verifyEntry, verifyProductionOwnership, writeRegistry, type Level, type Registry } from './governance-authority.js';
 import { validateChangedGovernanceSources } from './governance-change-authority.js';
 import { runFullQuality } from './shared/quality-runner.js';
 import { relevantExamScripts } from './shared/quality-routes.js';
@@ -46,6 +46,34 @@ function assertHighImpactAuthorization(changes: Array<{ status: string; path: st
   if (findings.length && process.env.GRASSEYE_HIGH_IMPACT_AUTHORIZED !== '1') {
     fail('USER_REQUEST_CONFLICTS_WITH_ACTIVE_LAW', `high-impact change requires explicit authorization:${JSON.stringify(findings)}`);
   }
+}
+
+const ownedPatternMatches = (pattern: string, path: string): boolean => pattern === path
+  || (pattern.endsWith('/**') && (path === pattern.slice(0, -3) || path.startsWith(`${pattern.slice(0, -3)}/`)));
+
+export function assertProductionDeleteAuthorization(
+  changes: readonly { status: string; path: string }[],
+  baselineRegistry: Registry,
+  authorized: boolean,
+): void {
+  for (const change of changes) {
+    if (change.status !== 'D' || pathRole(change.path) !== 'PRODUCTION') continue;
+    const owners = baselineRegistry.domains.filter((domain) => domain.ownedPaths
+      .some((pattern) => ownedPatternMatches(pattern, change.path)));
+    if (owners.length !== 1 || !authorized) fail('UNAUTHORIZED_PRODUCTION_DELETE', change.path);
+  }
+}
+
+const baselineRegistryProjection = (): Registry => {
+  const result = spawnSync('git', ['show', `HEAD:${REGISTRY}`], { cwd: ROOT, encoding: 'utf8' });
+  if (result.status !== 0) return fail('SOURCE_PARSE_FAILED', `${REGISTRY}:baseline`);
+  try { return JSON.parse(result.stdout) as Registry; } catch { return fail('SOURCE_PARSE_FAILED', `${REGISTRY}:baseline`); }
+};
+
+function assertBaselineProductionDeleteAuthorization(changes: Array<{ status: string; path: string }>): void {
+  if (!changes.some((change) => change.status === 'D' && pathRole(change.path) === 'PRODUCTION')) return;
+  assertProductionDeleteAuthorization(changes, baselineRegistryProjection(),
+    process.env.GRASSEYE_PRODUCTION_DELETE_AUTHORIZED === '1');
 }
 
 const changeDenominator = (): string => JSON.stringify(diffPaths().map((change) => [
@@ -108,6 +136,7 @@ async function quality(level: Level): Promise<void> {
   const changes = diffPaths();
   assertAuthorization(changes);
   assertDomainAdmission(changes);
+  assertBaselineProductionDeleteAuthorization(changes);
   assertHighImpactAuthorization(changes);
   if (level === 'CHANGE') {
     if (!changes.length) fail('ENTRY_CONTRACT_MISMATCH', 'CHANGE requires an actual diff');

@@ -7,6 +7,7 @@ import test from 'node:test';
 
 import { buildRegistry, checkProjection, loadLaws, motherSpecIdentityValid, pathRole, verifyEntry, verifyProductionOwnership } from '../../scripts/audit/governance-authority.js';
 import { assertLawMajorVersionChanges } from '../../scripts/audit/governance-change-authority.js';
+import { assertProductionDeleteAuthorization } from '../../scripts/audit/governance.js';
 import { GovernanceError } from '../../scripts/audit/governance-runtime.js';
 import { assertRoleConsumptionEdges } from '../../scripts/audit/shared/governance-role-consumption.js';
 import { detectHighImpactChanges, type HighImpactFinding } from '../../scripts/audit/shared/high-impact-detector.js';
@@ -54,6 +55,17 @@ test('mother specification version identity is fixed to the actual header', () =
   assert.equal(motherSpecIdentityValid(source.replace('FINAL-V3.3｜', 'FINAL-V3.4｜')
     + '\n文件版本：FINAL-V3.3｜轻结构强执法闭环版\n冻结目标版本：FROZEN-FINAL-V3.3\n'), false);
   assert.equal(motherSpecIdentityValid(`moved\n${source}`), false);
+});
+
+test('production deletion requires one baseline Owner and current-task authorization', () => {
+  const registry = buildRegistry();
+  const deletion = [{ status: 'D', path: 'scripts/audit/governance.ts' }];
+  assert.throws(() => assertProductionDeleteAuthorization(deletion, registry, false),
+    (error: unknown) => error instanceof GovernanceError && error.code === 'UNAUTHORIZED_PRODUCTION_DELETE');
+  assert.doesNotThrow(() => assertProductionDeleteAuthorization(deletion, registry, true));
+  assert.throws(() => assertProductionDeleteAuthorization([{ status: 'D', path: 'unowned-production.ts' }], registry, true),
+    (error: unknown) => error instanceof GovernanceError && error.code === 'UNAUTHORIZED_PRODUCTION_DELETE');
+  assert.doesNotThrow(() => assertProductionDeleteAuthorization([{ status: 'D', path: 'tests/deleted.test.ts' }], registry, false));
 });
 
 test('V3.3 entry has one public command surface and no freeze sidecar', () => {
