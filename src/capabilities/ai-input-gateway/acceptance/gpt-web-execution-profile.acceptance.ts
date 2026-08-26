@@ -176,6 +176,8 @@ class ProfileBrowserFixture {
       if (this.submenu === "模型") this.model = expectedText;
       if (this.submenu === "推理强度") this.reasoning = expectedText;
       this.actions.push(`选择:${expectedText}`);
+      this.expanded = false;
+      this.advanced = false;
       this.submenu = null;
       return;
     }
@@ -275,6 +277,16 @@ const acceptExactMutationAndReadback = async (): Promise<void> => {
   ));
   assert.ok(browser.actions.indexOf("高级") < browser.actions.indexOf("模型"));
   assert.ok(browser.actions.indexOf("选择:GPT-5.6 Sol") < browser.actions.indexOf("选择:极高"));
+  assert.deepEqual(browser.actions, [
+    "模型选择下拉",
+    "高级",
+    "模型",
+    "选择:GPT-5.6 Sol",
+    "模型选择下拉",
+    "高级",
+    "推理强度",
+    "选择:极高",
+  ]);
 };
 
 const acceptNoOpAndExclusion = async (): Promise<void> => {
@@ -287,6 +299,7 @@ const acceptNoOpAndExclusion = async (): Promise<void> => {
   });
   assert.equal(proof?.noOp, true);
   assert.equal(browser.actions.some((action) => action.startsWith("选择:")), false);
+  assert.deepEqual(browser.actions, ["模型选择下拉", "高级", "模型选择下拉"]);
   assert.equal(receipts.actions.at(-1)?.actionId, "verify_execution_profile");
   assert.ok(receipts.actions.slice(0, -1).every(
     (entry) => entry.actionId === "apply_execution_profile" && entry.candidateCount === 1,
@@ -311,7 +324,25 @@ const acceptDelayedAdvancedMenuMount = async (): Promise<void> => {
     request: request("extra_high"),
   });
   assert.equal(proof?.noOp, true);
-  assert.equal(browser.actions.filter((action) => action === "模型选择下拉").length, 1);
+  assert.equal(browser.actions.filter((action) => action === "模型选择下拉").length, 2);
+  assert.equal(browser.actions.includes("模型"), false);
+  assert.equal(browser.actions.includes("推理强度"), false);
+};
+
+const acceptNoBacktrackingForReasoningOnlyChange = async (): Promise<void> => {
+  const browser = new ProfileBrowserFixture("GPT-5.6 Sol", "高");
+  const proof = await enforceGptWebExecutionProfile({
+    browser: browser.asLease(),
+    context: context({ actions: [], profile: null }),
+    request: request("extra_high"),
+  });
+  assert.equal(proof?.reasoningUiLabel, "极高");
+  assert.deepEqual(browser.actions, [
+    "模型选择下拉",
+    "高级",
+    "推理强度",
+    "选择:极高",
+  ]);
 };
 
 const acceptOneTimeProofEmptyProfileStateCorrection = async (): Promise<void> => {
@@ -370,5 +401,6 @@ const acceptOneTimeProofEmptyProfileStateCorrection = async (): Promise<void> =>
 await acceptExactMutationAndReadback();
 await acceptNoOpAndExclusion();
 await acceptDelayedAdvancedMenuMount();
+await acceptNoBacktrackingForReasoningOnlyChange();
 await acceptOneTimeProofEmptyProfileStateCorrection();
-process.stdout.write("[gpt-web-execution-profile] PASS exact advanced model/reasoning selection, delayed menu mount, readback, no-op, ambiguity exclusion and one-time proof-empty state correction\n");
+process.stdout.write("[gpt-web-execution-profile] PASS atomic straight-line model/reasoning selection, delayed menu mount, readback, no-op, ambiguity exclusion and one-time proof-empty state correction\n");

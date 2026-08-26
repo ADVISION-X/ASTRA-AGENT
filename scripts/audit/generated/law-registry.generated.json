@@ -88,7 +88,6 @@
       ],
       "ownedPaths": [
         ".github/CODEOWNERS",
-        ".github/workflows/quality-ready.yml",
         ".gitignore",
         ".nvmrc",
         ".vscode/tasks.json",
@@ -371,7 +370,7 @@
         "不得发生：automatic login, CAPTCHA bypass, account rotation, security-barrier bypass, or unbounded retry",
         "不得发生：patrol, submission or another task reacquiring the provider target while any plugin takeover owner remains active",
         "不得发生：parallel or detached BrowserTargetLease commands within one provider page operation",
-        "不得发生：把顺序动作解释为一次聚合 AND、用一个 task-wide deadline 等齐接单、开页、选模型、附件与提交，或在前一步专属 proof 未成立时启动后一步；每个已解析前态只能触发一个 THEN 动作，该动作后置 proof 只能成为下一步 IF，精确语义、candidate_count=1 与相邻错误态排除只用于证明当前 IF；也不得由后一张 page-action proof 解析先前无关 mutation、在前一 mutation 未解析时执行第二 mutation、用 substring 识别精确语义或把 fixed sleep 当作生产转换。",
+        "不得发生：把顺序动作解释为一次聚合 AND、先预读尚未轮到的后续状态再回头执行、在多个步骤之间往返探测、用一个 task-wide deadline 等齐接单、开页、选模型、附件与提交，或在前一步专属 proof 未成立时启动后一步；每个已解析前态只能触发一个 THEN 动作，该动作后置 proof 只能成为紧邻下一步 IF，精确语义、candidate_count=1 与相邻错误态排除只用于证明当前 IF；也不得由后一张 page-action proof 解析先前无关 mutation、在前一 mutation 未解析时执行第二 mutation、用 substring 识别精确语义或把 fixed sleep 当作生产转换。",
         "不得发生：downgrading or erasing a completely captured provider response because later title, artifact or cleanup work failed",
         "不得发生：using application activation, whichever Chrome window is foreground, accessibility window ordering, or a second physical provider tab as page identity"
       ],
@@ -383,7 +382,7 @@
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须使 Web-chat provider 在操作者授权的 authenticated Browser authority 与 exact target/document 上按 接单 proof -> 打开 provider proof -> 页面就绪 proof -> 选择模型 proof -> 后续单动作 proof 的 IF-THEN 链逐步推进；AND 只承接当前已证事实到一个 THEN，不得聚合后续步骤或建立 task-wide timeout 模式；安全屏障失败关闭并保留 exact raw response truth。",
+      "summary": "必须使 Web-chat provider 在操作者授权的 authenticated Browser authority 与 exact target/document 上按 接单 proof -> 打开 provider proof -> 页面就绪 proof -> 选择模型 proof -> 后续单动作 proof 的 IF-THEN 链逐步推进；AND 只承接当前已证事实到一个 THEN，执行器不得预读未来步骤或在步骤间往返，不得聚合后续步骤或建立 task-wide timeout 模式；安全屏障失败关闭并保留 exact raw response truth。",
       "supersedesLawId": "LAW-AI-INPUT-GATEWAY-002-V1",
       "tier": "P0"
     },
@@ -778,8 +777,8 @@
     },
     {
       "appliesTo": [
-        ".github/workflows/**",
         "package.json",
+        "pnpm-workspace.yaml",
         "scripts/**",
         "src/**"
       ],

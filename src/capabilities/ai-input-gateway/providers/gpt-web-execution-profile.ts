@@ -162,9 +162,10 @@ const clickAndProve = async <T>(input: {
 
 const clickExactChoiceAndProve = async (input: {
   execution: ExecutionProfileInput;
+  parentLabel: string;
   expectedValue: string;
   semantics: readonly string[];
-}): Promise<void> => {
+}): Promise<SelectionObservation> => {
   const beforeUrl = await readDocumentUrl(input.execution.browser);
   const startedAt = new Date().toISOString();
   const result = record(await input.execution.browser.executeDomIntent({
@@ -172,14 +173,30 @@ const clickExactChoiceAndProve = async (input: {
     selector: PROFILE_CHOICE_SELECTOR,
     expectedTextEquals: input.expectedValue,
     expectedMatches: 1,
-    postClickAttribute: { name: "aria-checked", equals: "true" },
   }));
   if (result.candidateCount !== 1
     || result.mutationCount !== 1
-    || result.identityRevalidated !== true
-    || result.postconditionVerified !== true) {
+    || result.identityRevalidated !== true) {
     throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH");
   }
+  const selected = await waitForProfileEvidence(
+    input.execution,
+    async () => {
+      if (await readAttribute(
+        input.execution.browser,
+        PROFILE_TRIGGER_SELECTOR,
+        "aria-expanded",
+      ) !== "false") return null;
+      if (input.parentLabel === REASONING_LABEL
+        && await findCount(
+          input.execution.browser,
+          PROFILE_TRIGGER_SELECTOR,
+          { equals: input.expectedValue },
+        ) !== 1) return null;
+      return { candidateCount: 1, selected: true };
+    },
+    `GPT_WEB_EXECUTION_PROFILE_${input.parentLabel}_SELECTION_NOT_COMMITTED`,
+  );
   const afterUrl = await readDocumentUrl(input.execution.browser);
   if (afterUrl !== beforeUrl) throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH");
   await recordWebChatPageAction({
@@ -193,6 +210,7 @@ const clickExactChoiceAndProve = async (input: {
     candidateCount: 1,
     semantics: input.semantics,
   });
+  return selected;
 };
 
 const advancedProfileTopologyReady = async (browser: BrowserTargetLease): Promise<boolean> =>
@@ -275,13 +293,43 @@ const readOpenSubmenuSelection = async (
   return { candidateCount, selected: expectedSelectedCount === 1 };
 };
 
-const observeSubmenuSelection = async (
+const readProfileSummary = async (
+  browser: BrowserTargetLease,
+  parentLabel: string,
+  expectedValue: string,
+): Promise<SelectionObservation | null> => {
+  const parentCount = await findCount(
+    browser,
+    PROFILE_SUBMENU_SELECTOR,
+    { contains: parentLabel },
+  );
+  if (parentCount === 0) return null;
+  const expectedCount = await findCount(
+    browser,
+    PROFILE_SUBMENU_SELECTOR,
+    { equals: `${parentLabel}${expectedValue}` },
+  );
+  if (parentCount !== 1 || expectedCount > 1) {
+    throw new Error(`review_required: GPT_WEB_EXECUTION_PROFILE_${parentLabel}_AMBIGUOUS`);
+  }
+  return { candidateCount: 1, selected: expectedCount === 1 };
+};
+
+const readCurrentProfileSummary = async (
   input: ExecutionProfileInput,
   parentLabel: string,
   expectedValue: string,
-): Promise<SelectionObservation> => {
-  await openAdvancedProfileMenu(input);
-  return clickAndProve({
+): Promise<SelectionObservation> => waitForProfileEvidence(
+  input,
+  () => readProfileSummary(input.browser, parentLabel, expectedValue),
+  `GPT_WEB_EXECUTION_PROFILE_${parentLabel}_SUMMARY_NOT_READY`,
+);
+
+const openExactProfileSubmenu = async (
+  input: ExecutionProfileInput,
+  parentLabel: string,
+  expectedValue: string,
+): Promise<SelectionObservation> => clickAndProve({
     execution: input,
     selector: PROFILE_SUBMENU_SELECTOR,
     expectedText: { contains: parentLabel },
@@ -289,25 +337,35 @@ const observeSubmenuSelection = async (
     failureCode: `GPT_WEB_EXECUTION_PROFILE_${parentLabel}_NOT_READY`,
     observePostcondition: () => readOpenSubmenuSelection(input.browser, parentLabel, expectedValue),
   });
-};
 
 const selectExactProfileValue = async (
   input: ExecutionProfileInput,
   parentLabel: string,
   expectedValue: string,
 ): Promise<SelectionObservation> => {
-  const before = await observeSubmenuSelection(input, parentLabel, expectedValue);
-  if (before.selected) return before;
-  await clickExactChoiceAndProve({
+  const menuState = await openExactProfileSubmenu(input, parentLabel, expectedValue);
+  if (menuState.selected) return { candidateCount: 1, selected: true };
+  return clickExactChoiceAndProve({
     execution: input,
+    parentLabel,
     expectedValue,
-    semantics: ["profile-choice", parentLabel, expectedValue, "aria-checked=true"],
+    semantics: ["profile-choice", parentLabel, expectedValue, "menu-closed=true"],
   });
-  const after = await observeSubmenuSelection(input, parentLabel, expectedValue);
-  if (!after.selected) {
-    throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH");
-  }
-  return after;
+};
+
+const closeProfileMenu = async (input: ExecutionProfileInput): Promise<void> => {
+  if (await readAttribute(input.browser, PROFILE_TRIGGER_SELECTOR, "aria-expanded") !== "true") return;
+  await clickAndProve({
+    execution: input,
+    selector: PROFILE_TRIGGER_SELECTOR,
+    semantics: ["profile-trigger", "expanded=false"],
+    failureCode: "GPT_WEB_EXECUTION_PROFILE_TRIGGER_NOT_CLOSED",
+    observePostcondition: async () => await readAttribute(
+      input.browser,
+      PROFILE_TRIGGER_SELECTOR,
+      "aria-expanded",
+    ) === "false" ? true : null,
+  });
 };
 
 const buildProof = (input: {
@@ -358,29 +416,28 @@ const applyExactExecutionProfile = async (
   modelDisplayName: string,
   reasoningUiLabel: string,
 ): Promise<AppliedProfile> => {
-  const modelBefore = await observeSubmenuSelection(
-    input, MODEL_LABEL, modelDisplayName,
-  );
-  const reasoningBefore = await observeSubmenuSelection(
-    input, REASONING_LABEL, reasoningUiLabel,
-  );
-  const noOp = modelBefore.selected && reasoningBefore.selected;
-  if (!modelBefore.selected) {
+  await openAdvancedProfileMenu(input);
+  let model = await readCurrentProfileSummary(input, MODEL_LABEL, modelDisplayName);
+  let changed = false;
+  if (!model.selected) {
     await selectExactProfileValue(input, MODEL_LABEL, modelDisplayName);
+    changed = true;
+    await openAdvancedProfileMenu(input);
+    model = await readCurrentProfileSummary(input, MODEL_LABEL, modelDisplayName);
+    if (!model.selected) {
+      throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH");
+    }
   }
-  if (!reasoningBefore.selected) {
-    await selectExactProfileValue(input, REASONING_LABEL, reasoningUiLabel);
+  let reasoning = await readCurrentProfileSummary(input, REASONING_LABEL, reasoningUiLabel);
+  if (!reasoning.selected) {
+    reasoning = await selectExactProfileValue(input, REASONING_LABEL, reasoningUiLabel);
+    changed = true;
   }
-  const model = await observeSubmenuSelection(
-    input, MODEL_LABEL, modelDisplayName,
-  );
-  const reasoning = await observeSubmenuSelection(
-    input, REASONING_LABEL, reasoningUiLabel,
-  );
   if (!model.selected || !reasoning.selected) {
     throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH");
   }
-  return { noOp, model, reasoning };
+  await closeProfileMenu(input);
+  return { noOp: !changed, model, reasoning };
 };
 
 const persistExecutionProfileProof = async (input: {

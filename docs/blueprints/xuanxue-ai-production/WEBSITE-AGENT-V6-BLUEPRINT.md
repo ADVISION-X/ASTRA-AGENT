@@ -183,9 +183,11 @@ Mutation 只有 `PREPARED -> SEND -> CONFIRMED|FAILED|UNKNOWN`。UNKNOWN 永不�
 “那么”并把这个事实承接给一个 `THEN`，`THEN` 只执行一个动作。接单 proof 成立才打开 provider；
 provider 页面就绪 proof 成立才选择模型；模型精确 readback proof 成立才进入附件或提交。每个动作的
 后置 proof 只能成为下一动作的 `IF`，精确语义、`candidate_count=1` 与相邻/错误/加载态排除只证明
-当前 `IF`，不得把接单、开页、选模型、附件、提交聚合成一次 AND 或由一个 task-wide deadline 等齐
-整条链。相对 deadline 只能界定当前未解析动作并安全停在原 checkpoint，不得充当状态证据、跨步骤
-倒计时或触发下一动作。日志不是 evidence，Browser receipt 不是业务结果。
+当前 `IF`。执行器必须按页面就绪、模型摘要、模型菜单、模型选择、模型读回、推理摘要、推理菜单、
+推理选择逐项直线推进；不得先预读后续状态再回头执行，不得为全量预观察或全量复查在步骤间往返，
+也不得把接单、开页、选模型、附件、提交聚合成一次 AND 或由一个 task-wide deadline 等齐整条链。
+相对 deadline 只能界定当前未解析动作并安全停在原 checkpoint，不得充当状态证据、跨步骤倒计时
+或触发下一动作。日志不是 evidence，Browser receipt 不是业务结果。
 
 ## Outbox、控制和接管
 
