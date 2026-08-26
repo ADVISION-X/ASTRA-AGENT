@@ -7,7 +7,7 @@ import test from "node:test";
 import { Project } from "ts-morph";
 
 import { BASE, assertProjectionEqual, blueprintValid, buildRegistry, parseLawSource, type Law } from "../../scripts/audit/governance-authority.js";
-import { addedSourceAt } from "../../scripts/audit/governance.js";
+import { addedSourceAt, assertProjectionStable } from "../../scripts/audit/governance.js";
 import { validateLocalSpecContract } from "../../scripts/audit/governance-local-spec-contract.js";
 import { GovernanceError, sha, validateGitIndexEntries, validateRepositoryEntryAt } from "../../scripts/audit/governance-runtime.js";
 import {
@@ -465,13 +465,13 @@ test("static evidence keeps the exact scope when a governed path is not an evide
   assert.equal(validatedRefs.some((ref) => ref.includes(pathWithReservedCharacter)), false);
 });
 
-test("a producer finding invalidates only its explicit static mode without name-based classification", () => {
+test("a producer finding invalidates every positive static assertion for its law", () => {
   const finding = {
     checkId: "innocent-looking-check", lawId: "LAW-FIXTURE-001-V1", clauseId: "fixture",
     evidenceMode: "static.types", message: "native observation found a violation", severity: "fatal" as const,
   };
   assert.equal(producerModePassed([finding], "static.types"), false);
-  for (const mode of ["static.ast", "static.dependency", "static.config"]) assert.equal(producerModePassed([finding], mode), true);
+  for (const mode of ["static.ast", "static.dependency", "static.config"]) assert.equal(producerModePassed([finding], mode), false);
 });
 
 test("each static mode records a mode-native object selector", () => {
@@ -492,12 +492,29 @@ test("each static mode records a mode-native object selector", () => {
   const modeSelector = (mode: string): string[] => staticEvidenceRefs(context, lawId, mode)
     .filter((ref) => !ref.startsWith("scope:"));
   assert.equal(modeSelector("static.ast").some((ref) => ref.includes("node%3DSourceFile")), true);
+  for (const mode of context.lawRequirements[0]!.requiredStaticModes) {
+    assert.equal(modeSelector(mode).some((ref) =>
+      ref.includes(encodeURIComponent(`lawId=${lawId};mode=${mode};`))), true);
+  }
   assert.equal(modeSelector("static.types").some((ref) => ref.includes("symbol%3D")), true);
+  assert.equal(modeSelector("static.types").every((ref) => ref.startsWith("ast:")), true);
   assert.equal(modeSelector("static.contract").some((ref) => ref.includes("contract%3D")), true);
   assert.equal(modeSelector("static.dependency").some((ref) => ref.includes("from%3D") && ref.includes("to%3D")), true);
   assert.equal(modeSelector("static.config").some((ref) => ref.includes("parser%3Dtypescript") || ref.includes("pointer%3D%2F")), true);
   assert.equal(modeSelector("static.json").some((ref) => ref.startsWith("json:package.json#")), true);
   assert.equal(modeSelector("static.yaml").some((ref) => ref.startsWith("yaml:pnpm-workspace.yaml#")), true);
+});
+
+test("unsupported evidence kinds and projection identity drift fail closed", () => {
+  assert.equal(validEvidenceRef("types:scripts/audit/shared/quality-contract.ts#symbol%3DFixture"), false);
+  assert.throws(
+    () => assertProjectionStable("a".repeat(40), "[]", "b".repeat(40), "[]"),
+    (error: unknown) => error instanceof GovernanceError && error.code === "CANDIDATE_DRIFT",
+  );
+  assert.throws(
+    () => assertProjectionStable("a".repeat(40), "[]", "a".repeat(40), "[[\"M\",\"x\"]]"),
+    (error: unknown) => error instanceof GovernanceError && error.code === "CANDIDATE_DRIFT",
+  );
 });
 
 test("a finding propagates from one law result to the only top-level verdict", () => {

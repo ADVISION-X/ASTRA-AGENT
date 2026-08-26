@@ -10,10 +10,11 @@ export const staticClauses = (...forbiddenIndexes: number[]): string[] => ordere
   ...forbiddenIndexes.map((index) => `forbidden:${index}`), "summary",
 ]);
 
-// The observation producer owns this attribution.  The quality core compares
-// the explicit field and never guesses from check names, paths or messages.
-export const producerModePassed = (findings: readonly InspectorFinding[], evidenceMode: string): boolean =>
-  findings.every((finding) => finding.evidenceMode !== evidenceMode);
+// A law finding invalidates every positive static assertion for that law. This
+// is deliberately fail-closed: a producer cannot hide a detected violation by
+// attaching it to a sibling static mode while another mode still reports PASS.
+export const producerModePassed = (findings: readonly InspectorFinding[], _evidenceMode: string): boolean =>
+  findings.length === 0;
 
 const requirementFor = (context: InspectorContext, lawId: string): InspectorLawRequirement =>
   context.lawRequirements.find((requirement) => requirement.lawId === lawId)
@@ -48,6 +49,11 @@ const validateLawResult = (context: InspectorContext, output: InspectorOutput, l
       || !assertion.refs.length || assertion.refs.length !== new Set(assertion.refs).size
       || JSON.stringify(assertion.refs) !== JSON.stringify(ordered(assertion.refs))) {
       fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}:assertion`);
+    }
+    const observationBinding = encodeURIComponent(`lawId=${lawId};mode=${mode};`);
+    if (!assertion.refs.includes(requirement.targetSet.queryRef)
+      || !assertion.refs.some((reference) => reference.includes(observationBinding))) {
+      fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}:native-observation`);
     }
     if (assertion.passed !== producerModePassed(result.findings, mode)) {
       fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}:finding-verdict`);

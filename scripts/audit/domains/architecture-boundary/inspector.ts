@@ -6,6 +6,7 @@ import { inspectActivePluginMediators } from "./components/scan-active-plugin-me
 import { inspectProjectSources } from "./components/scan-project-sources.js";
 import { inspectRootAllowlist } from "./components/scan-root-allowlist.js";
 import { inspectTypesContractRoot } from "./components/scan-types-contract-root.js";
+import { inspectConstitutionalBoundary } from "./constitutional-boundary-inspector.js";
 import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
 
@@ -38,6 +39,9 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
         lawId: lawIds.lawFirstChangeLawId,
         project: context.project,
       });
+
+  const constitutional = await inspectConstitutionalBoundary(context);
+  findings.push(...constitutional.findings);
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

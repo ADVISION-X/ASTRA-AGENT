@@ -40,7 +40,7 @@ const exactOrdered = (values: readonly string[]): boolean => JSON.stringify(valu
 const resultKeys = ["assertions", "findings", "lawId"];
 const assertionKeys = ["clauses", "evidenceMode", "passed", "refs"];
 const findingKeys = ["code", "evidenceRefs"];
-const evidenceKinds = new Set(["file", "text", "ast", "types", "json", "yaml", "sql", "dependency", "config", "test", "exam", "dynamic", "scope"]);
+const evidenceKinds = new Set(["file", "text", "ast", "json", "yaml", "sql", "dependency", "config", "test", "exam", "dynamic", "scope"]);
 
 const validateParticipants = (
   level: "READY" | "RELEASE",
@@ -69,7 +69,7 @@ const evidenceKindByMode: Readonly<Record<string, string>> = {
   "static.filesystem": "file",
   "static.text": "text",
   "static.ast": "ast",
-  "static.types": "types",
+  "static.types": "ast",
   "static.contract": "config",
   "static.dependency": "dependency",
   "static.config": "config",

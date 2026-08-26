@@ -64,9 +64,21 @@ function run(command: string, args: string[]): void {
 }
 
 function projectionCheck(): void {
+  const beforeCommit = gitCommit();
   const before = changeDenominator();
   checkProjection();
-  if (before !== changeDenominator()) fail('CANDIDATE_DRIFT', 'audit:projection:check');
+  assertProjectionStable(beforeCommit, before, gitCommit(), changeDenominator());
+}
+
+export function assertProjectionStable(
+  beforeCommit: string,
+  beforeDenominator: string,
+  afterCommit: string,
+  afterDenominator: string,
+): void {
+  if (beforeCommit !== afterCommit || beforeDenominator !== afterDenominator) {
+    fail('CANDIDATE_DRIFT', 'audit:projection:check');
+  }
 }
 
 function projectChecks(): void {
@@ -75,6 +87,7 @@ function projectChecks(): void {
   if (!tests.length) fail('LAW_EVIDENCE_MISSING', 'governance tests');
   run(process.execPath, ['--import', 'tsx', '--test', ...tests]);
   run('npm', ['run', 'acceptance:capability-governance']);
+  run('npm', ['run', 'acceptance:constitutional-boundary-anti-escape']);
   run('npm', ['run', 'acceptance:code-purity-zombie-deep']);
 }
 

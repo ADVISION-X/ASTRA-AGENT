@@ -12,7 +12,7 @@ const binaryExtensions = new Set([".jpg", ".pdf", ".png", ".zip"]);
 const sourceExtensions = new Set([".js", ".mjs", ".mts", ".ts"]);
 const structuredExtensions = new Set([".json", ".yaml", ".yml"]);
 const evidenceKindByMode: Readonly<Record<string, string>> = {
-  "static.filesystem": "file", "static.text": "text", "static.ast": "ast", "static.types": "types",
+  "static.filesystem": "file", "static.text": "text", "static.ast": "ast", "static.types": "ast",
   "static.contract": "config", "static.dependency": "dependency", "static.config": "config",
   "static.json": "json", "static.yaml": "yaml", "static.sql": "sql", "static.migration": "file",
 };
@@ -67,13 +67,21 @@ export const inspectTargetObjects = (context: InspectorContext, targetPaths: rea
 const sourceFor = (context: InspectorContext, path: string) =>
   context.project.getSourceFile(resolve(context.sealedRoot, path));
 
-const astRefs = (context: InspectorContext, paths: readonly string[]): string[] => paths.flatMap((path) => {
+const observation = (requirement: InspectorLawRequirement, evidenceMode: string, selector: string): string =>
+  `lawId=${requirement.lawId};mode=${evidenceMode};${selector}`;
+
+const astRefs = (
+  context: InspectorContext, requirement: InspectorLawRequirement, evidenceMode: string, paths: readonly string[],
+): string[] => paths.flatMap((path) => {
   if (!sourceExtensions.has(extname(path).toLocaleLowerCase("en-US"))) return [];
   const source = sourceFor(context, path);
-  return source ? [evidenceRef("ast", path, `node=SourceFile;statements=${source.getStatements().length}`)] : [];
+  return source ? [evidenceRef("ast", path, observation(requirement, evidenceMode,
+    `node=SourceFile;statements=${source.getStatements().length}`))] : [];
 });
 
-const typeRefs = (context: InspectorContext, paths: readonly string[]): string[] => {
+const typeRefs = (
+  context: InspectorContext, requirement: InspectorLawRequirement, evidenceMode: string, paths: readonly string[],
+): string[] => {
   const checker = context.project.getTypeChecker();
   return paths.flatMap((path) => {
     if (![".ts", ".mts"].includes(extname(path).toLocaleLowerCase("en-US"))) return [];
@@ -83,12 +91,14 @@ const typeRefs = (context: InspectorContext, paths: readonly string[]): string[]
     const node = declaration?.[1][0];
     if (!declaration || !node) return [];
     const observedType = checker.getTypeAtLocation(node).getText(node).slice(0, 256);
-    return [evidenceRef("types", path,
-      `symbol=${declaration[0]};declarations=${declaration[1].length};type=${observedType}`)];
+    return [evidenceRef("ast", path, observation(requirement, evidenceMode,
+      `symbol=${declaration[0]};declarations=${declaration[1].length};type=${observedType}`))];
   });
 };
 
-const dependencyRefs = (context: InspectorContext, paths: readonly string[]): string[] => paths.flatMap((path) => {
+const dependencyRefs = (
+  context: InspectorContext, requirement: InspectorLawRequirement, evidenceMode: string, paths: readonly string[],
+): string[] => paths.flatMap((path) => {
   const source = sourceFor(context, path);
   return source?.getImportDeclarations().flatMap((declaration) => {
     const bindings = [
@@ -96,8 +106,8 @@ const dependencyRefs = (context: InspectorContext, paths: readonly string[]): st
       ...(declaration.getDefaultImport() ? [declaration.getDefaultImport()!.getText()] : []),
       ...(declaration.getNamespaceImport() ? [declaration.getNamespaceImport()!.getText()] : []),
     ];
-    return [evidenceRef("dependency", path,
-      `from=${path};to=${declaration.getModuleSpecifierValue()};bindings=${bindings.sort().join(",") || "side-effect"}`)];
+    return [evidenceRef("dependency", path, observation(requirement, evidenceMode,
+      `from=${path};to=${declaration.getModuleSpecifierValue()};bindings=${bindings.sort().join(",") || "side-effect"}`))];
   }) ?? [];
 });
 
@@ -109,6 +119,7 @@ const parsedRoot = (path: string, source: string): unknown => {
 
 const structuredRefs = (
   context: InspectorContext,
+  requirement: InspectorLawRequirement,
   paths: readonly string[],
   mode: "static.config" | "static.contract" | "static.json" | "static.yaml",
 ): string[] => paths.flatMap((path) => {
@@ -121,11 +132,13 @@ const structuredRefs = (
   const keys = root && typeof root === "object" && !Array.isArray(root)
     ? Object.keys(root as Record<string, unknown>).sort().slice(0, 24)
     : [];
-  return [evidenceRef(evidenceKindByMode[mode]!, path,
-    `parser=${extension.slice(1)};pointer=/;keys=${keys.join(",") || "scalar"}`)];
+  return [evidenceRef(evidenceKindByMode[mode]!, path, observation(requirement, mode,
+    `parser=${extension.slice(1)};pointer=/;keys=${keys.join(",") || "scalar"}`))];
 });
 
-const typescriptContractRefs = (context: InspectorContext, paths: readonly string[]): string[] =>
+const typescriptContractRefs = (
+  context: InspectorContext, requirement: InspectorLawRequirement, evidenceMode: string, paths: readonly string[],
+): string[] =>
   paths.flatMap((path) => {
     const source = sourceFor(context, path);
     if (!source) return [];
@@ -135,10 +148,13 @@ const typescriptContractRefs = (context: InspectorContext, paths: readonly strin
       ...source.getClasses().map((node) => ({ kind: "class", name: node.getName() ?? "default", members: node.getMembers().length })),
     ];
     return declarations.slice(0, 24).map((declaration) => evidenceRef("config", path,
-      `parser=typescript;contract=${declaration.name};kind=${declaration.kind};members=${declaration.members}`));
+      observation(requirement, evidenceMode,
+        `parser=typescript;contract=${declaration.name};kind=${declaration.kind};members=${declaration.members}`)));
   });
 
-const typescriptConfigRefs = (context: InspectorContext, paths: readonly string[]): string[] =>
+const typescriptConfigRefs = (
+  context: InspectorContext, requirement: InspectorLawRequirement, evidenceMode: string, paths: readonly string[],
+): string[] =>
   paths.flatMap((path) => {
     const source = sourceFor(context, path);
     if (!source) return [];
@@ -147,20 +163,26 @@ const typescriptConfigRefs = (context: InspectorContext, paths: readonly string[
       .filter((node) => /(?:config|environment|options|settings)/iu.test(node.getName()))
       .map((node) => node.getName());
     if (!environmentReads.length && !declarations.length) return [];
-    return [evidenceRef("config", path,
-      `parser=typescript;environmentReads=${environmentReads.length};declarations=${declarations.slice(0, 24).sort().join(",") || "none"}`)];
+    return [evidenceRef("config", path, observation(requirement, evidenceMode,
+      `parser=typescript;environmentReads=${environmentReads.length};declarations=${declarations.slice(0, 24).sort().join(",") || "none"}`))];
   });
 
-const textRefs = (context: InspectorContext, paths: readonly string[]): string[] => paths.flatMap((path) => {
+const textRefs = (
+  context: InspectorContext, requirement: InspectorLawRequirement, evidenceMode: string, paths: readonly string[],
+): string[] => paths.flatMap((path) => {
   const extension = extname(path).toLocaleLowerCase("en-US");
   if (binaryExtensions.has(extension)) return [];
   const value = readFileSync(resolve(context.sealedRoot, path), "utf8");
-  return [evidenceRef("text", path, `encoding=utf8;lines=${value.split("\n").length}`)];
+  return [evidenceRef("text", path, observation(requirement, evidenceMode,
+    `encoding=utf8;lines=${value.split("\n").length}`))];
 });
 
-const filesystemRefs = (context: InspectorContext, paths: readonly string[]): string[] => paths.map((path) => {
+const filesystemRefs = (
+  context: InspectorContext, requirement: InspectorLawRequirement, evidenceMode: string, paths: readonly string[],
+): string[] => paths.map((path) => {
   const bytes = readFileSync(resolve(context.sealedRoot, path));
-  return evidenceRef("file", path, `state=regular;bytes=${bytes.byteLength}`);
+  return evidenceRef("file", path, observation(requirement, evidenceMode,
+    `state=regular;bytes=${bytes.byteLength}`));
 });
 
 export const collectStaticModeEvidenceRefs = (
@@ -171,19 +193,19 @@ export const collectStaticModeEvidenceRefs = (
   const paths = requirement.targetPaths.filter((path) => !/[#@]/u.test(path));
   let refs: string[];
   switch (evidenceMode) {
-    case "static.filesystem": refs = filesystemRefs(context, paths); break;
-    case "static.text": refs = textRefs(context, paths); break;
-    case "static.ast": refs = astRefs(context, paths); break;
-    case "static.types": refs = typeRefs(context, paths); break;
-    case "static.dependency": refs = dependencyRefs(context, paths); break;
-    case "static.contract": refs = [...structuredRefs(context, paths, "static.contract"), ...typescriptContractRefs(context, paths)]; break;
-    case "static.config": refs = [...structuredRefs(context, paths, "static.config"), ...typescriptConfigRefs(context, paths)]; break;
-    case "static.json": refs = structuredRefs(context, paths, "static.json"); break;
-    case "static.yaml": refs = structuredRefs(context, paths, "static.yaml"); break;
+    case "static.filesystem": refs = filesystemRefs(context, requirement, evidenceMode, paths); break;
+    case "static.text": refs = textRefs(context, requirement, evidenceMode, paths); break;
+    case "static.ast": refs = astRefs(context, requirement, evidenceMode, paths); break;
+    case "static.types": refs = typeRefs(context, requirement, evidenceMode, paths); break;
+    case "static.dependency": refs = dependencyRefs(context, requirement, evidenceMode, paths); break;
+    case "static.contract": refs = [...structuredRefs(context, requirement, paths, "static.contract"), ...typescriptContractRefs(context, requirement, evidenceMode, paths)]; break;
+    case "static.config": refs = [...structuredRefs(context, requirement, paths, "static.config"), ...typescriptConfigRefs(context, requirement, evidenceMode, paths)]; break;
+    case "static.json": refs = structuredRefs(context, requirement, paths, "static.json"); break;
+    case "static.yaml": refs = structuredRefs(context, requirement, paths, "static.yaml"); break;
     case "static.sql": refs = paths.filter((path) => extname(path) === ".sql")
-      .map((path) => evidenceRef("sql", path, "parser=sql;scope=complete-file")); break;
+      .map((path) => evidenceRef("sql", path, observation(requirement, evidenceMode, "parser=sql;scope=complete-file"))); break;
     case "static.migration": refs = paths.filter((path) => /migration/iu.test(path))
-      .map((path) => evidenceRef("file", path, "role=migration;state=regular")); break;
+      .map((path) => evidenceRef("file", path, observation(requirement, evidenceMode, "role=migration;state=regular"))); break;
     default: refs = [];
   }
   if (refs.length === 0) fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${requirement.lawId}:${evidenceMode}:native-observation`);
