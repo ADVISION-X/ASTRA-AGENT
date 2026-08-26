@@ -17,7 +17,7 @@ export const extensionFrameDiagnostic = (
 
 export const extensionRuntimeDiagnostic = (
   error: unknown,
-  runtimeEventType: "unhandledrejection" | "worker-error" | "liveness-pulse" | "automatic-target-claim",
+  runtimeEventType: "unhandledrejection" | "worker-error" | "liveness-pulse" | "job-bound-target-acquisition",
   failedFrameSequence: number,
 ): Record<string, unknown> => ({
   reasonCode: browserCommandErrorCode(error),

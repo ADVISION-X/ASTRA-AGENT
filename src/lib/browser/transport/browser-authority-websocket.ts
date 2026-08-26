@@ -204,6 +204,27 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     });
   }
 
+  public requestPreauthorizedTargetAcquisition(): void {
+    this.assertLive();
+    const active = this.active;
+    if (!active) throw new Error("BROWSER_LIVENESS_EXPIRED");
+    const sequence = active.nextServerSequence;
+    const frame = this.encryptedFrame(
+      active,
+      "TARGET_ACQUIRE",
+      sequence,
+      new Date(Date.now() + COMMAND_DEADLINE_MS).toISOString(),
+      {},
+    );
+    this.active = { ...active, nextServerSequence: sequence + 1 };
+    try {
+      active.socket.send(encodeBrowserAuthorityFrame(frame));
+    } catch {
+      this.revoke(active.socket, "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
+      throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
+    }
+  }
+
   private acceptHello(socket: BrowserAuthoritySocket, frame: BrowserAuthorityFrame): void {
     if (this.active || this.pending || this.pairingSecret === null || frame.epoch !== 0 || frame.sequence !== 0) {
       throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
@@ -357,7 +378,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
 
   private encryptedFrame(
     active: ActiveSocket,
-    kind: Extract<BrowserAuthorityFrame["kind"], "COMMAND" | "READY" | "TARGET_CLAIM" | "REVOKE">,
+    kind: Extract<BrowserAuthorityFrame["kind"], "COMMAND" | "READY" | "TARGET_ACQUIRE" | "TARGET_CLAIM" | "REVOKE">,
     sequence: number,
     deadline: string,
     body: Record<string, unknown>,

@@ -60,10 +60,6 @@ export const WORKBENCH_API_ROUTE_RULES: WorkbenchApiRouteRule[] = [
   { method: "GET", pathPattern: "exact", path: "/api/mode", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, purpose: "workbench_mode" },
   { method: "GET", pathPattern: "exact", path: "/api/browser-authority/pairing", localUiAllowed: false, localExtensionAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, purpose: "local_browser_authority_pairing" },
   { method: "GET", pathPattern: "exact", path: "/api/xuanxue-ai-production/status", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, jobOwner: "xuanxue-ai-production", purpose: "local_xuanxue_ai_production_status" },
-  { method: "POST", pathPattern: "exact", path: "/api/xuanxue-ai-production/pause", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, jobOwner: "xuanxue-ai-production", purpose: "local_xuanxue_ai_production_pause" },
-  { method: "POST", pathPattern: "exact", path: "/api/xuanxue-ai-production/cancel", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, jobOwner: "xuanxue-ai-production", purpose: "local_xuanxue_ai_production_cancel" },
-  { method: "POST", pathPattern: "exact", path: "/api/xuanxue-ai-production/takeover", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, jobOwner: "xuanxue-ai-production", purpose: "local_xuanxue_ai_production_takeover" },
-  { method: "POST", pathPattern: "exact", path: "/api/xuanxue-ai-production/resume", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, jobOwner: "xuanxue-ai-production", purpose: "local_xuanxue_ai_production_resume" },
 ];
 
 type BodyPreview = {

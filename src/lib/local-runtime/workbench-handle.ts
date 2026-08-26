@@ -8,7 +8,7 @@ import type {
 } from "./workbench-status-types.js";
 import type {
   XuanxueAiProductionQuarantinedOrder,
-  XuanxueAiInterventionRecord,
+  XuanxueAiControlIntentProjection,
   XuanxueAiOrderRecord,
 } from "../../plugins/xuanxue-ai-production/index.js";
 
@@ -46,20 +46,8 @@ export type GrassEyeWorkbenchHandle = {
   ) => XuanxueAiProductionQuarantinedOrder | null;
   readXuanxueAiProductionStatus: (orderId: string) => {
     order: XuanxueAiOrderRecord;
-    intervention: XuanxueAiInterventionRecord;
+    controlIntent: XuanxueAiControlIntentProjection;
   } | null;
-  pauseXuanxueAiProduction: (
-    input: unknown,
-  ) => XuanxueAiInterventionRecord;
-  cancelXuanxueAiProduction: (
-    input: unknown,
-  ) => XuanxueAiInterventionRecord;
-  takeoverXuanxueAiProduction: (
-    input: unknown,
-  ) => XuanxueAiInterventionRecord;
-  resumeXuanxueAiProduction: (
-    input: unknown,
-  ) => XuanxueAiInterventionRecord;
   getAppRunLimitSettings: () => Promise<AppRunLimitSettings>;
   saveAppRunLimitSettings: (
     input: Pick<AppRunLimitSettings, "defaultMaxRounds" | "defaultMaxMinutes">,

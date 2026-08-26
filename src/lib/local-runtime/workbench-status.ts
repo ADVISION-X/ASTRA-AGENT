@@ -29,17 +29,11 @@ type AiProductionHealthSnapshot = {
 } | null;
 
 export const runtimeInitializationDisposition = (
-  failureReason: string | null,
-): Readonly<{ actionableMessage: string; ownerResponsible: string }> =>
-  failureReason?.includes("BROWSER_PROOF_JOURNAL_INTEGRITY_INVALID")
-    ? {
-        actionableMessage: "Keep Browser execution and claim blocked. With current human runtime-data and major law/schema authorization, stop the Browser Owner and run the explicit browser:journal:recover command; otherwise preserve the original journal and remain blocked.",
-        ownerResponsible: "local-browser-session",
-      }
-    : {
-        actionableMessage: "Inspect the startup terminal failure and repair the named runtime owner before restarting.",
-        ownerResponsible: "local-runtime",
-      };
+  _failureReason: string | null,
+): Readonly<{ actionableMessage: string; ownerResponsible: string }> => ({
+  actionableMessage: "Inspect the startup terminal failure and repair the named runtime owner before restarting.",
+  ownerResponsible: "local-runtime",
+});
 
 const readRuntimeInitializationComponent = (
   state: WorkbenchInitializationState,

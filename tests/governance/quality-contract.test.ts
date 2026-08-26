@@ -298,12 +298,12 @@ test("a fixed or unauthenticated stdout marker cannot mint evidence for unexecut
 });
 
 test("native proof observations reject one locator reused across law routes", () => {
-  const law = { ...fixtureLaw(), lawId: "LAW-AI-INPUT-GATEWAY-002-V2", capabilityDomain: "ai-input-gateway" };
+  const law = { ...fixtureLaw(), lawId: "LAW-AI-INPUT-GATEWAY-002-V3", capabilityDomain: "ai-input-gateway" };
   const routes = [{ law, mode: "exam.golden" }];
   const requests = proofRequests(routes);
   const line = `${proofObservationPrefix}${JSON.stringify({
     ...directObservation(requests[0]!, ["forbidden:0", "summary"], [examRef(
-      "lawId=LAW-AI-INPUT-GATEWAY-002-V2;mode=exam.golden;case=exact-target",
+      "lawId=LAW-AI-INPUT-GATEWAY-002-V3;mode=exam.golden;case=exact-target",
     )]),
   })}`;
   assert.throws(
@@ -346,21 +346,6 @@ test("a Dynamic producer cannot self-authenticate an invented native object", ()
   assert.equal(bindNativeProofObservations(
     nativeFileMarker, routes, requests, "proof:local-shell-current-runtime", "dynamic",
   ).size, 1);
-  const recoveryRequest = proofRequests([{ law: {
-    ...law, lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", capabilityDomain: "local-browser-session",
-  }, mode: "dynamic.recovery" }], "dynamic")[0]!;
-  const missingNativeMarker = `${proofObservationPrefix}${JSON.stringify({
-    ...directObservation(recoveryRequest, ["forbidden:12", "summary"], [dynamicRef(
-      `/tmp/recovery-receipts/${"c".repeat(64)}.json`, "c".repeat(64), "atomic recovery verified",
-    )]),
-  })}`;
-  const recoveryLaw = { ...law, lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", capabilityDomain: "local-browser-session" };
-  const recoveryRoutes = [{ law: recoveryLaw, mode: "dynamic.recovery" }];
-  assert.throws(
-    () => bindNativeProofObservations(missingNativeMarker, recoveryRoutes, proofRequests(recoveryRoutes, "dynamic"),
-      "proof:local-browser-journal-recovery", "dynamic"),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
-  );
 });
 
 test("static validation rejects a law with no owner result", () => {
@@ -861,22 +846,11 @@ test("every declared dynamic evidence mode has one executable RELEASE proof rout
   }
 });
 
-test("recovery and performance Dynamic Proofs consume real governed receipts", () => {
-  const browserRecovery = readFileSync("scripts/acceptance/local-browser-journal-recovery.dynamic.ts", "utf8");
-  for (const forbidden of ["mkdtemp", "temporary-owned-fixture", "assertExclusiveOwner: () => undefined", "rm(root", "releaseBuildId", "candidateHash"]) {
-    assert.equal(browserRecovery.includes(forbidden), false, forbidden);
-  }
-  for (const required of ["BrowserOwnerLock", "GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZATION_REF"]) {
-    assert.ok(browserRecovery.includes(required), required);
-  }
+test("recovery Dynamic Proof consumes one real governed receipt", () => {
   const provider = readFileSync("scripts/acceptance/xuanxue-ai-production.real-provider.ts", "utf8");
   assert.equal(provider.includes("proofDurationMs"), false);
   assert.equal(provider.includes('evidenceMode: "dynamic.performance"'), false);
   assert.equal(provider.includes('evidenceMode: "dynamic.recovery"'), false);
-  const soak = readFileSync("scripts/acceptance/xuanxue-ai-production.72h-soak-proof.ts", "utf8");
-  for (const token of ["72 * 60 * 60", "LEASE_P95_LIMIT_MS = 15_000", ".length(75)", "eligible_at", "leased_at"]) {
-    assert.ok(soak.includes(token), token);
-  }
   const recovery = readFileSync("scripts/acceptance/xuanxue-ai-production.recovery-proof.ts", "utf8");
   for (const token of ["original_order_id", "resumed_order_id", "replacement_job_id", "checkpoint_before_hash", "checkpoint_after_hash"]) {
     assert.ok(recovery.includes(token), token);

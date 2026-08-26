@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { BrowserCommandActor } from "../exact-target/browser-command-actor.js";
-import { BrowserProofJournal } from "../exact-target/browser-proof-journal.js";
+import { BrowserMutationStore } from "../exact-target/browser-mutation-store.js";
 import { requireGptWebChatPolicyForUrl } from "../exact-target/browser-site-policy-registry.js";
 import { BrowserTargetLeaseManager, type BrowserExactTargetAcquisition } from "../exact-target/browser-target-lease-manager.js";
 import { BrowserCommandAdmissionBudget } from "../transport/browser-command-admission-budget.js";
@@ -67,17 +67,25 @@ export type BrowserInfrastructureSupervisorOptions = Readonly<{
   runtimeLogger: RuntimeLogger;
 }>;
 
+type PendingJobBoundTargetAcquisition = Readonly<{
+  authorityEpoch: number;
+  resolve(): void;
+  reject(error: Error): void;
+  timeout: ReturnType<typeof setTimeout>;
+}>;
+
 export class BrowserInfrastructureSupervisor {
   private readonly issuer = new BrowserAuthorityIssuer();
   private readonly transport = new BrowserTransportActor(this.issuer);
   private readonly ownerLock: BrowserOwnerLock;
   private readonly broker: BrowserAuthorityBroker;
   private readonly websocket: BrowserAuthorityWebSocket;
-  private proofJournal: BrowserProofJournal | null = null;
+  private mutationState: BrowserMutationStore | null = null;
   private started = false;
   private ownerLockHeld = false;
   private connectionGeneration = 0;
   private workspace: BrowserSessionWorkspace | undefined;
+  private pendingJobBoundTargetAcquisition: PendingJobBoundTargetAcquisition | null = null;
 
   public constructor(private readonly options: BrowserInfrastructureSupervisorOptions) {
     this.ownerLock = new BrowserOwnerLock(join(options.dataDir, "browser", "owner.lock"));
@@ -112,13 +120,7 @@ export class BrowserInfrastructureSupervisor {
       onAuthenticated: (input) => this.onAuthenticated(input),
       onTargetClaim: (input) => this.onTargetClaim(input),
       onTargetRevoke: (targetRef) => this.onTargetRevoke(targetRef),
-      onDiagnostic: (reasonCode, refs) => this.emitBrowserRuntimeState(
-        RuntimeLogEventType.BROWSER_EXTENSION_FAILURE,
-        "failed",
-        "插件运行时故障已由认证通道上报；现役 Browser Authority 保持有效。",
-        reasonCode,
-        refs,
-      ),
+      onDiagnostic: (reasonCode, refs) => this.onDiagnostic(reasonCode, refs),
       onRevoked: (reasonCode, refs) => this.onRevoked(reasonCode, refs),
     };
     return new BrowserAuthorityWebSocket(callbacks);
@@ -126,14 +128,6 @@ export class BrowserInfrastructureSupervisor {
 
   private onAuthenticated(input: Parameters<BrowserAuthorityWebSocketOptions["onAuthenticated"]>[0]): BrowserAuthorityReady {
     const ready = this.commitUnpackedWebSocketAuthentication(input);
-    const current = this.issuer.current();
-    this.journal().recordLifecycle({
-      eventType: "LIFECYCLE",
-      phase: "AUTHENTICATED",
-      ...(current.kind === "PRESENT" ? {
-        authorityRefHash: `sha256:${createHash("sha256").update(current.authority.authorityRef).digest("hex")}`,
-      } : {}),
-    });
     this.emitBrowserRuntimeState(RuntimeLogEventType.BROWSER_AUTH_PAIRING_COMPLETED, "success", "插件配对完成。");
     this.emitBrowserRuntimeState(RuntimeLogEventType.BROWSER_SOCKET_AUTHENTICATED, "success", "插件 WebSocket 已认证。");
     return ready;
@@ -141,15 +135,12 @@ export class BrowserInfrastructureSupervisor {
 
   private onTargetClaim(input: BrowserAuthorityTargetClaim): void {
     requireGptWebChatPolicyForUrl(input.url);
+    const initialClaim = this.broker.currentOperatorTargetStatus() === "absent";
+    if (initialClaim && !this.pendingJobBoundTargetAcquisition) {
+      throw new Error("BROWSER_TARGET_INVALID");
+    }
     this.establishClaimBoundWorkspace();
     this.broker.registerOperatorTargetClaim({ authorityEpoch: currentAuthorityEpoch(this.issuer), ...input });
-    this.journal().recordLifecycle({
-      eventType: "LIFECYCLE",
-      phase: "TARGET_CLAIMED",
-      ...currentAuthorityRefHash(this.issuer),
-      targetRef: input.targetRef,
-      documentRef: input.documentRef,
-    });
     this.emitBrowserRuntimeState(
       RuntimeLogEventType.BROWSER_TARGET_CLAIMED,
       "success",
@@ -157,16 +148,24 @@ export class BrowserInfrastructureSupervisor {
       undefined,
       { targetRef: input.targetRef, documentRef: input.documentRef },
     );
+    if (initialClaim) this.resolvePendingJobBoundTargetAcquisition();
+  }
+
+  private onDiagnostic(reasonCode: string, refs: Readonly<Record<string, string>>): void {
+    if (refs.runtimeEventType === "job-bound-target-acquisition") {
+      this.rejectPendingJobBoundTargetAcquisition(reasonCode);
+    }
+    this.emitBrowserRuntimeState(
+      RuntimeLogEventType.BROWSER_EXTENSION_FAILURE,
+      "failed",
+      "插件运行时故障已由认证通道上报；现役 Browser Authority 保持有效。",
+      reasonCode,
+      { ...refs },
+    );
   }
 
   private onTargetRevoke(targetRef: string): void {
     this.broker.revokeOperatorTargetClaim(targetRef);
-    this.journal().recordLifecycle({
-      eventType: "LIFECYCLE",
-      phase: "TARGET_REVOKED",
-      ...currentAuthorityRefHash(this.issuer),
-      targetRef,
-    });
     this.emitBrowserRuntimeState(
       RuntimeLogEventType.BROWSER_TARGET_LEASE_INVALIDATED,
       "success",
@@ -180,14 +179,8 @@ export class BrowserInfrastructureSupervisor {
     const authenticated = this.issuer.current().kind === "PRESENT";
     const extensionFailure = refs?.diagnosticSource === "extension-frame"
       || refs?.diagnosticSource === "extension-runtime";
-    const authorityRefHash = currentAuthorityRefHash(this.issuer);
+    this.rejectPendingJobBoundTargetAcquisition(reasonCode);
     this.disconnectTransport(normalizeBrowserDisconnectReason(reasonCode));
-    this.journal().recordLifecycle({
-      eventType: "LIFECYCLE",
-      phase: "AUTHORITY_REVOKED",
-      ...authorityRefHash,
-      reason: reasonCode,
-    });
     this.emitBrowserRuntimeState(
       extensionFailure
         ? RuntimeLogEventType.BROWSER_EXTENSION_FAILURE
@@ -206,18 +199,7 @@ export class BrowserInfrastructureSupervisor {
     await this.ownerLock.acquire();
     this.ownerLockHeld = true;
     try {
-      const candidateHash = /^sha256:[a-f0-9]{64}$/u.test(this.options.sourceFingerprint)
-        ? this.options.sourceFingerprint as `sha256:${string}`
-        : `sha256:${"0".repeat(64)}` as `sha256:${string}`;
-      this.proofJournal = new BrowserProofJournal(
-        join(this.options.dataDir, "browser", "proof-events.ndjson"),
-        {
-          candidateHash,
-          extensionId: this.options.profileConfig.extensionId,
-          releaseBuildId: this.options.releaseIdentity.releaseBuildId,
-        },
-        () => this.ownerLock.assertHeld(),
-      );
+      this.mutationState = new BrowserMutationStore(this.options.dataDir);
       this.transport.start();
       this.started = true;
       this.emitBrowserRuntimeState(
@@ -231,7 +213,8 @@ export class BrowserInfrastructureSupervisor {
         "等待固定扩展提交一次性配对证明。",
       );
     } catch (error) {
-      this.proofJournal = null;
+      this.mutationState?.close();
+      this.mutationState = null;
       await this.ownerLock.release();
       this.ownerLockHeld = false;
       throw error;
@@ -239,24 +222,16 @@ export class BrowserInfrastructureSupervisor {
   }
 
   public async stop(reasonCode = "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE"): Promise<void> {
-    const current = this.issuer.current();
-    const authorityRefHash = current.kind === "PRESENT"
-      ? `sha256:${createHash("sha256").update(current.authority.authorityRef).digest("hex")}` as const
-      : undefined;
     this.workspace?.revoke();
     this.workspace = undefined;
+    this.rejectPendingJobBoundTargetAcquisition(reasonCode);
     this.transport.disconnect(reasonCode);
-    this.journal().recordLifecycle({
-      eventType: "LIFECYCLE",
-      phase: "AUTHORITY_REVOKED",
-      ...(authorityRefHash ? { authorityRefHash } : {}),
-      reason: reasonCode,
-    });
     if (this.ownerLockHeld) {
       await this.ownerLock.release();
       this.ownerLockHeld = false;
     }
-    this.proofJournal = null;
+    this.mutationState?.close();
+    this.mutationState = null;
     this.started = false;
   }
 
@@ -303,8 +278,57 @@ export class BrowserInfrastructureSupervisor {
     this.workspace = new BrowserSessionWorkspace(binding);
   }
 
-  public async acquireOperatorClaimedTargetLease(binding: BrowserExecutionBinding, ownerId: string): Promise<BrowserTargetLease> {
+  public async acquireJobBoundTargetLease(binding: BrowserExecutionBinding, ownerId: string): Promise<BrowserTargetLease> {
+    if (this.broker.currentOperatorTargetStatus() === "absent") {
+      await this.acquireJobBoundTarget(binding.commandTtlMs);
+    }
     return this.broker.acquireOperatorClaimedTargetLease(binding, ownerId);
+  }
+
+  private async acquireJobBoundTarget(commandTtlMs: number): Promise<void> {
+    const current = this.issuer.current();
+    if (current.kind === "ABSENT") throw new Error(current.reasonCode);
+    if (!Number.isInteger(commandTtlMs) || commandTtlMs < 1 || commandTtlMs > 3_600_000) {
+      throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+    }
+    if (this.pendingJobBoundTargetAcquisition) throw new Error("BROWSER_BACKPRESSURE");
+    const deadlineMs = Math.min(commandTtlMs, BROWSER_COMMAND_DEFAULT_DEADLINE_MS);
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        if (this.pendingJobBoundTargetAcquisition?.authorityEpoch !== current.authority.authorityEpoch) return;
+        this.pendingJobBoundTargetAcquisition = null;
+        reject(new Error("BROWSER_OUTCOME_UNKNOWN"));
+      }, deadlineMs);
+      this.pendingJobBoundTargetAcquisition = {
+        authorityEpoch: current.authority.authorityEpoch,
+        resolve,
+        reject,
+        timeout,
+      };
+      try {
+        this.websocket.requestPreauthorizedTargetAcquisition();
+      } catch (error) {
+        this.rejectPendingJobBoundTargetAcquisition(
+          error instanceof Error ? error.message : "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE",
+        );
+      }
+    });
+  }
+
+  private resolvePendingJobBoundTargetAcquisition(): void {
+    const pending = this.pendingJobBoundTargetAcquisition;
+    if (!pending) return;
+    this.pendingJobBoundTargetAcquisition = null;
+    clearTimeout(pending.timeout);
+    pending.resolve();
+  }
+
+  private rejectPendingJobBoundTargetAcquisition(reasonCode: string): void {
+    const pending = this.pendingJobBoundTargetAcquisition;
+    if (!pending) return;
+    this.pendingJobBoundTargetAcquisition = null;
+    clearTimeout(pending.timeout);
+    pending.reject(new Error(reasonCode));
   }
 
   public health(): BrowserHealthSnapshot {
@@ -335,7 +359,7 @@ export class BrowserInfrastructureSupervisor {
       new BrowserCommandActor(
         new BrowserCommandAdmissionBudget(),
         this.websocket,
-        this.journal(),
+        this.mutationStore(),
         { assertCurrentAuthority: (permit) => {
           const slot = this.issuer.current();
           if (slot.kind === "ABSENT" || slot.authority.authorityRef !== current.authority.authorityRef || slot.authority.authorityEpoch !== current.authority.authorityEpoch) throw new Error("BROWSER_LIVENESS_EXPIRED");
@@ -350,9 +374,9 @@ export class BrowserInfrastructureSupervisor {
     );
   }
 
-  private journal(): BrowserProofJournal {
-    if (!this.proofJournal) throw new Error("BROWSER_PROOF_JOURNAL_UNAVAILABLE");
-    return this.proofJournal;
+  private mutationStore(): BrowserMutationStore {
+    if (!this.mutationState) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
+    return this.mutationState;
   }
 
   private emitBrowserRuntimeState(

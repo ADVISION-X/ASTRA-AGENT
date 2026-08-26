@@ -211,6 +211,7 @@ export class ExtensionWebSocketActor {
       if (frame.kind === "PAIR_CHALLENGE") { await this.answerChallenge(socket, frame); return; }
       if (frame.kind === "AUTHENTICATED") { await this.acceptAuthenticated(socket, frame); return; }
       if (frame.kind === "READY") { await this.acceptReady(socket, frame); return; }
+      if (frame.kind === "TARGET_ACQUIRE") { await this.acceptTargetAcquire(socket, frame); return; }
       if (frame.kind === "TARGET_CLAIM") {
         await acceptTargetClaimAcknowledgement({
           serverToClientKey: this.session?.serverToClientKey ?? null,
@@ -292,10 +293,19 @@ export class ExtensionWebSocketActor {
     });
     this.commandReady = true;
     this.pairingCompletion.complete();
+  }
+
+  private async acceptTargetAcquire(socket: WebSocket, frame: BrowserAuthorityFrame): Promise<void> {
+    const session = this.session;
+    if (!session || socket !== this.socket || !this.commandReady || frame.epoch !== AUTH_EPOCH) {
+      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    }
+    const request = await decrypt(session.serverToClientKey, "server-to-client", frame);
+    if (Object.keys(request).length !== 0) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     try {
-      await this.targetAuthority.claimPreauthorizedChatGptTarget();
+      await this.targetAuthority.acquireJobBoundChatGptTarget();
     } catch (error) {
-      this.reportRuntimeFailure(error, "automatic-target-claim");
+      this.reportRuntimeFailure(error, "job-bound-target-acquisition");
     }
   }
 
@@ -391,7 +401,7 @@ export class ExtensionWebSocketActor {
     socket?.close(4000, reasonCode);
   }
 
-  private reportRuntimeFailure(error: unknown, runtimeEventType: "unhandledrejection" | "worker-error" | "liveness-pulse" | "automatic-target-claim"): void {
+  private reportRuntimeFailure(error: unknown, runtimeEventType: "unhandledrejection" | "worker-error" | "liveness-pulse" | "job-bound-target-acquisition"): void {
     const body = extensionRuntimeDiagnostic(error, runtimeEventType, this.session?.nextClientSequence ?? 0);
     void (async () => {
       if (this.state !== "CONNECTED" || !this.session) return;

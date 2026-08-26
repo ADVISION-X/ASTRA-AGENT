@@ -10,10 +10,7 @@ import {
   writeXuanxueAiProductionCloudCredential,
   xuanxueAiProductionCloudCredentialPath,
 } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-credential.js";
-import {
-  readXuanxueAiIntervention,
-  requestXuanxueAiIntervention,
-} from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-intervention.js";
+import { applyXuanxueAiControlIntent, readXuanxueAiControlIntent } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-control-intent.js";
 import { cloudWorkerPollIntervalMs } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker-support.js";
 
 const temporary = mkdtempSync(path.join(os.tmpdir(), "xuanxue-ai-v6-control-"));
@@ -38,18 +35,13 @@ try {
     "local-order-1", "source-task-1", "bazi_analysis", hash, "running", "{}",
     new Date().toISOString(), new Date().toISOString(),
   );
-  const readOrder = () => ({ order: { orderId: "local-order-1" }, status: "running" }) as never;
-  const first = requestXuanxueAiIntervention(database, readOrder, "pause", {
-    orderId: "local-order-1", expectedRevision: 0, requestId: "cloud-control:2", reason: "pause",
-  }, 2);
-  assert.equal(first.state, "pause_requested");
-  assert.equal(first.lastControlEpoch, 2);
-  const stale = requestXuanxueAiIntervention(database, readOrder, "cancel", {
-    orderId: "local-order-1", expectedRevision: 1, requestId: "cloud-control:1", reason: "stale",
-  }, 1);
-  assert.equal(stale.state, "pause_requested");
-  assert.equal(stale.lastControlEpoch, 2);
-  assert.equal(readXuanxueAiIntervention(database, readOrder, "local-order-1").lastControlEpoch, 2);
+  const first = applyXuanxueAiControlIntent(database, "local-order-1", "pause_requested", 2, "pause");
+  assert.equal(first.intent, "pause_requested");
+  assert.equal(first.controlEpoch, 2);
+  const stale = applyXuanxueAiControlIntent(database, "local-order-1", "cancel_requested", 1, "stale");
+  assert.equal(stale.intent, "pause_requested");
+  assert.equal(stale.controlEpoch, 2);
+  assert.equal(readXuanxueAiControlIntent(database, "local-order-1").controlEpoch, 2);
 
   const outbox = new XuanxueAiProductionCloudOutbox(database);
   for (const [index, writeKind] of (["checkpoint", "artifact", "terminal", "cancel", "handover"] as const).entries()) {
@@ -79,25 +71,12 @@ try {
 
   outbox.beginClaimRequest({ requestId: "claim-1", payload: { worker_session_id: "old-session" }, payloadHash: hash });
   assert.equal(outbox.pendingClaimRequest()?.requestId, "claim-1");
-  outbox.commitClaimReceipt({
-    requestId: "claim-1",
-    claims: [{
-      jobId: "job-claim", attemptId: "attempt-claim", leaseVersion: 1,
-      createdAt: new Date().toISOString(), grant: { fence_hash: hash },
-    }],
-  });
+  outbox.commitClaimReceipt("claim-1");
   assert.equal(outbox.pendingClaimRequest(), null);
-  assert.equal((database.prepare(`select count(*) as count from production_cloud_claim_ledger
-    where job_id='job-claim' and attempt_id='attempt-claim' and lease_version=1`).get() as { count: number }).count, 1);
+  assert.equal((database.prepare("select count(*) as count from sqlite_master where type='table' and name='production_cloud_claim_ledger'").get() as { count: number }).count, 0);
   outbox.beginClaimRequest({ requestId: "claim-conflict", payload: { worker_session_id: "old-session" }, payloadHash: hash });
-  assert.throws(() => outbox.commitClaimReceipt({
-    requestId: "claim-conflict",
-    claims: [{
-      jobId: "job-claim", attemptId: "attempt-claim", leaseVersion: 1,
-      createdAt: new Date().toISOString(), grant: { fence_hash: `sha256:${"b".repeat(64)}` },
-    }],
-  }), /CLAIM_LEDGER_CONFLICT/u);
-  assert.equal(outbox.pendingClaimRequest()?.requestId, "claim-conflict");
+  outbox.commitClaimReceipt("claim-conflict");
+  assert.throws(() => outbox.commitClaimReceipt("claim-conflict"), /CLAIM_REQUEST_ACK_MISSING/u);
 
   const checkpointWrite = (requestId: string, attemptId: string, leaseVersion: number) =>
     outbox.enqueueCheckpoint({
@@ -157,7 +136,6 @@ try {
     device_id: "device-1", device_epoch: 1,
     credential: `aidc_v6_${"x".repeat(32)}`,
     control_manifest_hash: hash,
-    product_bundle_hash: hash,
     enrolled_at: new Date().toISOString(),
   } as const;
   await writeXuanxueAiProductionCloudCredential(temporary, credential);

@@ -69,12 +69,12 @@ assert.ok(findingIds({
 }).has("capability-group/missing-public-facade"));
 
 const blueprintSource = readFileSync(
-  "docs/blueprints/local-browser-session/LOCAL-BROWSER-SESSION-V6-OWNER-JOURNAL-BLUEPRINT.md",
+  "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md",
   "utf8",
 );
 assert.equal(blueprintMarkdownBodyValid(blueprintSource), true);
 assert.equal(blueprintMarkdownBodyValid(`${blueprintSource}\nTODO\n`), false);
-assert.equal(blueprintMarkdownBodyValid(blueprintSource.slice(0, blueprintSource.indexOf("## 正常写入"))), false);
+assert.equal(blueprintMarkdownBodyValid(blueprintSource.slice(0, blueprintSource.indexOf("## 5. 删除式迁移"))), false);
 
 console.log("capability-governance-acceptance-ok");
 emitQualityProofObservation({ passed: true, findings: [],

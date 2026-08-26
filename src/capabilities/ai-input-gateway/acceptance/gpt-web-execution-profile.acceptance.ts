@@ -20,15 +20,17 @@ import {
   updateWebChatExecution,
 } from "../runtime/web-chat-execution-state.js";
 
-const trigger = "form button[aria-haspopup='menu'][data-tone='neutral']";
+const trigger = "main button[aria-haspopup='menu']:not([aria-label])";
 const advancedClosed = "[role='menuitem'][aria-label='显示高级选项']";
 const advancedOpen = "[role='menuitem'][aria-label='显示精简选项']";
-const submenus = "[role='menuitem'][data-has-submenu]";
+const submenus = "[role='menuitem'][aria-haspopup='menu']";
 const choices = "[role='menuitemradio']";
 const checkedChoices = "[role='menuitemradio'][aria-checked='true']";
 
 class ProfileBrowserFixture {
   public readonly actions: string[] = [];
+  public readonly triggerFindCounts: number[] = [];
+  public resolvedMutations = 0;
   public readonly target: BrowserTargetLease["target"] = {
     targetRef: "target-profile-acceptance",
     authorityEpoch: 1,
@@ -43,12 +45,16 @@ class ProfileBrowserFixture {
   private advanced = false;
   private submenu: "模型" | "推理强度" | null = null;
   private advancedMarkerReadsRemaining = 0;
+  private pendingMutation = false;
 
   public constructor(
     public model: string,
     public reasoning: string,
     private readonly duplicateModel = false,
     private readonly advancedMarkerDelayReads = 0,
+    private readonly outcomeUnknownAfterChoice: string | null = null,
+    private triggerDelayReads = 0,
+    private readonly ignoredChoiceAfterClick: string | null = null,
   ) {}
 
   public readonly wait = async (): Promise<void> => {};
@@ -65,7 +71,13 @@ class ProfileBrowserFixture {
       return { count: this.find(intent.selector!, intent.textContains, intent.textEquals) };
     }
     if (intent.kind !== "click") throw new Error(`unexpected intent ${intent.kind}`);
-    this.click(intent.selector, intent.expectedTextEquals ?? intent.expectedText);
+    if (this.pendingMutation) throw new Error("BROWSER_OUTCOME_UNKNOWN");
+    const expectedText = intent.expectedTextEquals ?? intent.expectedText;
+    this.click(intent.selector, expectedText);
+    this.pendingMutation = true;
+    if (intent.selector === choices && expectedText === this.outcomeUnknownAfterChoice) {
+      throw new Error("BROWSER_OUTCOME_UNKNOWN");
+    }
     return {
       clicked: true,
       candidateCount: 1,
@@ -102,8 +114,15 @@ class ProfileBrowserFixture {
       },
       wait: this.wait,
       close: async () => {},
-      resolvePendingMutation: async () => 1,
-      assertNoPendingMutations: () => {},
+      resolvePendingMutation: async () => {
+        if (!this.pendingMutation) throw new Error("BROWSER_OUTCOME_UNKNOWN");
+        this.pendingMutation = false;
+        this.resolvedMutations += 1;
+        return 1;
+      },
+      assertNoPendingMutations: () => {
+        if (this.pendingMutation) throw new Error("BROWSER_OUTCOME_UNKNOWN");
+      },
     };
   }
 
@@ -124,13 +143,17 @@ class ProfileBrowserFixture {
   }
 
   private valuesForSelector(selector: string): string[] {
+    if (selector === trigger && this.triggerDelayReads > 0) {
+      this.triggerDelayReads -= 1;
+      return [];
+    }
     if ((selector === advancedClosed || selector === advancedOpen)
       && this.advancedMarkerReadsRemaining > 0) {
       this.advancedMarkerReadsRemaining -= 1;
       return [];
     }
     const lookups: Record<string, () => string[]> = {
-      [trigger]: () => [this.reasoning],
+      [trigger]: () => [`${this.model.replace(/^GPT-/u, "")} ${this.reasoning}`],
       [advancedClosed]: () => this.expanded && !this.advanced ? ["高级"] : [],
       [advancedOpen]: () => this.expanded && this.advanced ? ["高级"] : [],
       [submenus]: () => this.expanded && this.advanced
@@ -145,6 +168,7 @@ class ProfileBrowserFixture {
 
   private find(selector: string, textContains?: string, textEquals?: string): number {
     const values = this.valuesForSelector(selector);
+    if (selector === trigger) this.triggerFindCounts.push(values.length);
     if (textEquals !== undefined) {
       return values.filter((value) => value.trim() === textEquals.trim()).length;
     }
@@ -173,8 +197,10 @@ class ProfileBrowserFixture {
       return;
     }
     if (selector === choices && expectedText && this.candidates().includes(expectedText)) {
-      if (this.submenu === "模型") this.model = expectedText;
-      if (this.submenu === "推理强度") this.reasoning = expectedText;
+      if (expectedText !== this.ignoredChoiceAfterClick) {
+        if (this.submenu === "模型") this.model = expectedText;
+        if (this.submenu === "推理强度") this.reasoning = expectedText;
+      }
       this.actions.push(`选择:${expectedText}`);
       this.expanded = false;
       this.advanced = false;
@@ -222,7 +248,7 @@ const request = (reasoningTier: "high" | "extra_high" | "pro_standard"): AiFeedI
 const context = (receipts: {
   actions: WebChatPageActionProof[];
   profile: ProviderExecutionProfileProof | null;
-}): AiProviderAdapterContext => ({
+}, browser?: ProfileBrowserFixture): AiProviderAdapterContext => ({
   dataDir: "/tmp/gpt-web-execution-profile-acceptance",
   webChatExecution: {
     executionId: "profile-acceptance-execution",
@@ -243,7 +269,20 @@ const context = (receipts: {
     runExclusivePatrol: async () => {
       throw new Error("unused profile acceptance operation");
     },
-    onPageActionCommitted: async (proof: WebChatPageActionProof) => { receipts.actions.push(proof); },
+    onPageActionCommitted: async (proof: WebChatPageActionProof) => {
+      receipts.actions.push(proof);
+      if (browser && proof.actionId === "apply_execution_profile" && proof.result === "committed") {
+        await browser.asLease().resolvePendingMutation({
+          schemaVersion: "grasseye.browser.outcome-resolution.v1",
+          ownerPluginId: "xuanxue-ai-production",
+          outcome: "TERMINAL_SUCCESS",
+          positiveEvidenceRef: `${proof.evidenceRef}:target-state-confirmed`,
+          negativeEvidenceRef: `${proof.evidenceRef}:adjacent-states-excluded`,
+          uniqueTargetRef: browser.target.targetRef,
+          boundedAt: proof.endedAt,
+        });
+      }
+    },
     onProviderExecutionProfileVerified: async (proof: ProviderExecutionProfileProof) => { receipts.profile = proof; },
     onConversationTitleFinalizationStarted: async () => {},
     onConversationTitleVerified: async () => {},
@@ -263,7 +302,7 @@ const acceptExactMutationAndReadback = async (): Promise<void> => {
   const receipts = { actions: [] as WebChatPageActionProof[], profile: null as ProviderExecutionProfileProof | null };
   const proof = await enforceGptWebExecutionProfile({
     browser: browser.asLease(),
-    context: context(receipts),
+    context: context(receipts, browser),
     request: request("extra_high"),
   });
   assert.equal(browser.model, "GPT-5.6 Sol");
@@ -286,7 +325,11 @@ const acceptExactMutationAndReadback = async (): Promise<void> => {
     "高级",
     "推理强度",
     "选择:极高",
+    "模型选择下拉",
+    "高级",
+    "模型选择下拉",
   ]);
+  assert.equal(browser.resolvedMutations, browser.actions.length);
 };
 
 const acceptNoOpAndExclusion = async (): Promise<void> => {
@@ -294,7 +337,7 @@ const acceptNoOpAndExclusion = async (): Promise<void> => {
   const receipts = { actions: [] as WebChatPageActionProof[], profile: null as ProviderExecutionProfileProof | null };
   const proof = await enforceGptWebExecutionProfile({
     browser: browser.asLease(),
-    context: context(receipts),
+    context: context(receipts, browser),
     request: request("pro_standard"),
   });
   assert.equal(proof?.noOp, true);
@@ -309,7 +352,7 @@ const acceptNoOpAndExclusion = async (): Promise<void> => {
   await assert.rejects(
     enforceGptWebExecutionProfile({
       browser: ambiguous.asLease(),
-      context: context({ actions: [], profile: null }),
+      context: context({ actions: [], profile: null }, ambiguous),
       request: request("high"),
     }),
     /GPT_WEB_EXECUTION_PROFILE_模型_AMBIGUOUS/u,
@@ -320,7 +363,7 @@ const acceptDelayedAdvancedMenuMount = async (): Promise<void> => {
   const browser = new ProfileBrowserFixture("GPT-5.6 Sol", "极高", false, 2);
   const proof = await enforceGptWebExecutionProfile({
     browser: browser.asLease(),
-    context: context({ actions: [], profile: null }),
+    context: context({ actions: [], profile: null }, browser),
     request: request("extra_high"),
   });
   assert.equal(proof?.noOp, true);
@@ -329,11 +372,46 @@ const acceptDelayedAdvancedMenuMount = async (): Promise<void> => {
   assert.equal(browser.actions.includes("推理强度"), false);
 };
 
+const acceptDelayedUniqueProfileTriggerMount = async (): Promise<void> => {
+  const browser = new ProfileBrowserFixture("GPT-5.6 Sol", "极高", false, 0, null, 2);
+  const proof = await enforceGptWebExecutionProfile({
+    browser: browser.asLease(),
+    context: context({ actions: [], profile: null }, browser),
+    request: request("extra_high"),
+  });
+  assert.equal(proof?.noOp, true);
+  assert.deepEqual(browser.triggerFindCounts.slice(0, 3), [0, 0, 1]);
+  assert.equal(browser.actions.filter((action) => action === "模型选择下拉").length, 2);
+};
+
+const rejectModelMenuClosureWithoutExactModelReadback = async (): Promise<void> => {
+  const browser = new ProfileBrowserFixture(
+    "GPT-5.5",
+    "高",
+    false,
+    0,
+    null,
+    0,
+    "GPT-5.6 Sol",
+  );
+  await assert.rejects(
+    enforceGptWebExecutionProfile({
+      browser: browser.asLease(),
+      context: context({ actions: [], profile: null }, browser),
+      request: request("extra_high"),
+    }),
+    /GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH/u,
+  );
+  assert.equal(browser.model, "GPT-5.5");
+  assert.equal(browser.actions.includes("推理强度"), false);
+  assert.equal(browser.actions.includes("选择:极高"), false);
+};
+
 const acceptNoBacktrackingForReasoningOnlyChange = async (): Promise<void> => {
   const browser = new ProfileBrowserFixture("GPT-5.6 Sol", "高");
   const proof = await enforceGptWebExecutionProfile({
     browser: browser.asLease(),
-    context: context({ actions: [], profile: null }),
+    context: context({ actions: [], profile: null }, browser),
     request: request("extra_high"),
   });
   assert.equal(proof?.reasoningUiLabel, "极高");
@@ -342,7 +420,41 @@ const acceptNoBacktrackingForReasoningOnlyChange = async (): Promise<void> => {
     "高级",
     "推理强度",
     "选择:极高",
+    "模型选择下拉",
+    "高级",
+    "模型选择下拉",
   ]);
+};
+
+const acceptCommittedOutcomeUnknownWithoutReplay = async (): Promise<void> => {
+  const browser = new ProfileBrowserFixture("GPT-5.6 Sol", "高", false, 0, "极高");
+  const receipts = {
+    actions: [] as WebChatPageActionProof[],
+    profile: null as ProviderExecutionProfileProof | null,
+  };
+  const proof = await enforceGptWebExecutionProfile({
+    browser: browser.asLease(),
+    context: context(receipts, browser),
+    request: request("extra_high"),
+  });
+  assert.equal(proof?.reasoningUiLabel, "极高");
+  assert.equal(browser.reasoning, "极高");
+  assert.equal(browser.actions.filter((action) => action === "选择:极高").length, 1);
+  assert.equal(browser.resolvedMutations, browser.actions.length);
+  assert.equal(receipts.actions.at(-1)?.actionId, "verify_execution_profile");
+};
+
+const acceptExactHighDoesNotMatchExtraHigh = async (): Promise<void> => {
+  const browser = new ProfileBrowserFixture("GPT-5.6 Sol", "极高");
+  const proof = await enforceGptWebExecutionProfile({
+    browser: browser.asLease(),
+    context: context({ actions: [], profile: null }, browser),
+    request: request("high"),
+  });
+  assert.equal(proof?.reasoningUiLabel, "高");
+  assert.equal(browser.reasoning, "高");
+  assert.equal(browser.actions.filter((action) => action === "选择:高").length, 1);
+  assert.equal(browser.actions.filter((action) => action === "选择:极高").length, 0);
 };
 
 const acceptOneTimeProofEmptyProfileStateCorrection = async (): Promise<void> => {
@@ -401,6 +513,10 @@ const acceptOneTimeProofEmptyProfileStateCorrection = async (): Promise<void> =>
 await acceptExactMutationAndReadback();
 await acceptNoOpAndExclusion();
 await acceptDelayedAdvancedMenuMount();
+await acceptDelayedUniqueProfileTriggerMount();
+await rejectModelMenuClosureWithoutExactModelReadback();
 await acceptNoBacktrackingForReasoningOnlyChange();
+await acceptCommittedOutcomeUnknownWithoutReplay();
+await acceptExactHighDoesNotMatchExtraHigh();
 await acceptOneTimeProofEmptyProfileStateCorrection();
-process.stdout.write("[gpt-web-execution-profile] PASS atomic straight-line model/reasoning selection, delayed menu mount, readback, no-op, ambiguity exclusion and one-time proof-empty state correction\n");
+process.stdout.write("[gpt-web-execution-profile] PASS atomic straight-line model/reasoning selection, delayed 0-to-1 trigger observation, committed UNKNOWN adjudication without replay, immediate model readback before reasoning, exact terminal parent-summary readback, no-op, ambiguity exclusion and one-time proof-empty state correction\n");

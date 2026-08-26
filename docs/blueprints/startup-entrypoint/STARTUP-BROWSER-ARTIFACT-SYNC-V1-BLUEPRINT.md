@@ -27,3 +27,7 @@ governed extension sources、manifest、pairing page、protocol、site policy �
 preflight 的同一 artifact identity。状态只落在唯一 build 目录，调用方向固定为 `grasseye:start` ->
 preflight -> 必要时 build -> 再 preflight。失败恢复仅允许同链重建并保持启动失败，安全边界禁止配对、
 Target claim 与审计副作用；验收必须证明一致时不写入、漂移时重建、复检失败时 blocked。
+
+普通启动的 dependency preflight 只读取 `package.json` 声明、实际安装路径、Node engine 与必须的 native
+load/query 结果；`package.json`、lockfile、`node_modules/.package-lock.json` 的 mtime 不是 dependency 身份，
+不得因为仅修改 scripts 等非 dependency 字段要求操作员重装依赖或阻断 production Shell。

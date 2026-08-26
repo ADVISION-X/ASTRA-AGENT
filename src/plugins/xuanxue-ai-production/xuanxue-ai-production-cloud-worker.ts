@@ -62,6 +62,7 @@ type StagedCloudJob = Awaited<ReturnType<typeof stageXuanxueAiProductionCloudJob
 export const assertXuanxueAiProductionV6DeadlineBudget = (
   grant: CloudExecutionGrantV6,
   claimRoundTripMs: number,
+  abortSignal: AbortSignal = new AbortController().signal,
 ): XuanxueAiExecutionDeadlineBudget => {
   const serverNow = Date.parse(grant.server_now);
   const acceptBy = Date.parse(grant.accept_by);
@@ -77,25 +78,31 @@ export const assertXuanxueAiProductionV6DeadlineBudget = (
   return {
     expiresAtMonotonic: performance.now() + leaseRemaining - 10_000,
     commandTtlMs: Math.min(20_000, leaseRemaining - 10_000),
+    abortSignal,
   };
 };
 
 const executeReplayOrder = async (
   execution: Pick<XuanxueAiProductionExecutionPort, "createOrder" | "executeOrder">,
   order: StagedCloudJob["parentReplayDependencies"][number],
+  deadlineBudget: XuanxueAiExecutionDeadlineBudget,
 ): Promise<void> => {
   execution.createOrder(order);
-  const completed = await execution.executeOrder(order.orderId);
+  const completed = await execution.executeOrder(order.orderId, undefined, deadlineBudget);
   if (completed.status !== "completed") throw new Error(`XUANXUE_AI_PRODUCTION_PARENT_REPLAY_DEPENDENCY_INCOMPLETE:${order.productId}:${order.orderId}:${completed.failureReason ?? completed.status}`);
 };
 
 export const executeXuanxueAiProductionCloudReplayGraph = async (
   execution: Pick<XuanxueAiProductionExecutionPort, "createOrder" | "executeOrder">,
   staged: Pick<StagedCloudJob, "parentReplay" | "parentReplayDependencies">,
+  deadlineBudget: XuanxueAiExecutionDeadlineBudget,
 ): Promise<void> => {
-  for (const dependency of staged.parentReplayDependencies) await executeReplayOrder(execution, dependency);
-  if (staged.parentReplay) await executeReplayOrder(execution, staged.parentReplay);
+  for (const dependency of staged.parentReplayDependencies) await executeReplayOrder(execution, dependency, deadlineBudget);
+  if (staged.parentReplay) await executeReplayOrder(execution, staged.parentReplay, deadlineBudget);
 };
+
+const leaseOrFenceLost = (error: unknown): boolean =>
+  /(?:AI_LEASE_FENCE_STALE|LEASE_FENCE|SESSION_FENCE|DEVICE_EPOCH|WORKER_SESSION_EPOCH)/u.test(safeWorkerReason(error));
 
 const heartbeatUntilSettled = async (
   state: WorkerState,
@@ -104,23 +111,30 @@ const heartbeatUntilSettled = async (
   checkpointHash: `sha256:${string}`,
   deadlineBudget: XuanxueAiExecutionDeadlineBudget,
   localOrderId: string,
+  abort: AbortController,
 ): Promise<XuanxueAiOrderRecord> => {
   let settled = false;
   const tracked = execution.finally(() => { settled = true; });
-  while (!settled && !state.abort.signal.aborted) {
-    await Promise.race([tracked, waitForCloudWorker(20_000, state.abort.signal)]);
-    if (!settled && !state.abort.signal.aborted) {
+  while (!settled && !abort.signal.aborted) {
+    await Promise.race([tracked, waitForCloudWorker(20_000, abort.signal)]);
+    if (settled || abort.signal.aborted) break;
+    try {
       const renewal = await heartbeatXuanxueAiProductionJob(state.session, job, checkpointHash);
       const relativeLeaseMs = Date.parse(renewal.lease_expires_at) - Date.parse(renewal.server_now);
       if (!Number.isFinite(relativeLeaseMs) || relativeLeaseMs < 30_000) throw new Error("XUANXUE_AI_PRODUCTION_V6_RENEW_BUDGET_INVALID");
       deadlineBudget.expiresAtMonotonic = performance.now() + relativeLeaseMs - 10_000;
       deadlineBudget.commandTtlMs = Math.min(20_000, relativeLeaseMs - 10_000);
-      if (renewal.control_intent.intent !== "none") {
-        state.execution.applyControlIntent(
-          localOrderId, renewal.control_intent.intent,
-          renewal.control_intent.control_epoch, renewal.control_intent.reason_code,
-        );
+      state.execution.applyControlIntent(localOrderId, renewal.control_intent.intent,
+        renewal.control_intent.control_epoch, renewal.control_intent.reason_code);
+    } catch (error) {
+      const remainingMs = deadlineBudget.expiresAtMonotonic - performance.now();
+      if (leaseOrFenceLost(error) || !isRecoverableCloudWorkerFailure(error) || remainingMs <= 0) {
+        abort.abort(error);
+        await tracked.catch(() => undefined);
+        throw error;
       }
+      reportCloudWorkerError("XUANXUE_AI_PRODUCTION_JOB_RENEW_RETRY", error);
+      await waitForCloudWorker(Math.min(1_000, remainingMs), abort.signal);
     }
   }
   return tracked;
@@ -148,9 +162,10 @@ const executeCloudJobStages = async (
   localOrderId: string,
   deadlineBudget: XuanxueAiExecutionDeadlineBudget,
   acceptanceCheckpointHash: `sha256:${string}`,
+  abort: AbortController,
 ): Promise<XuanxueAiOrderRecord> => {
   const staged = await stageXuanxueAiProductionCloudJob(state.dataDir, state.session, job);
-  await executeXuanxueAiProductionCloudReplayGraph(state.execution, staged);
+  await executeXuanxueAiProductionCloudReplayGraph(state.execution, staged, deadlineBudget);
   const identity = staged.order.cloudExecutionIdentity;
   if (!identity || identity.jobId !== job.grant.job_id || identity.attemptId !== job.grant.attempt_id
     || identity.requiredDeviceId !== job.grant.device_id || identity.leaseVersion !== job.grant.lease_version
@@ -168,7 +183,7 @@ const executeCloudJobStages = async (
       onAttachmentUploadCompleted: async ({ stageId, proof }) =>
         checkpointAttachmentUpload(state, job, localOrderId, { stageId, proof }),
     }, deadlineBudget),
-    acceptanceCheckpointHash, deadlineBudget, localOrderId,
+    acceptanceCheckpointHash, deadlineBudget, localOrderId, abort,
   );
 };
 
@@ -207,13 +222,10 @@ const acceptCloudJob = async (
   job: XuanxueAiProductionCloudClaimedJob,
   claimRoundTripMs: number,
   context: CloudJobExecutionContext,
+  abort: AbortController,
 ): Promise<Readonly<{ deadlineBudget: XuanxueAiExecutionDeadlineBudget; checkpointHash: `sha256:${string}` }>> => {
   assertCloudGrant(state, job);
-  const deadlineBudget = assertXuanxueAiProductionV6DeadlineBudget(job.grant, claimRoundTripMs);
-  state.outbox.persistClaimIdentity({
-    jobId: job.job_id, attemptId: job.grant.attempt_id,
-    leaseVersion: job.grant.lease_version, createdAt: job.created_at, grant: job.grant,
-  });
+  const deadlineBudget = assertXuanxueAiProductionV6DeadlineBudget(job.grant, claimRoundTripMs, abort.signal);
   const preparedOrder = prepareXuanxueAiProductionCloudLocalOrder(state.dataDir, job);
   const created = state.execution.createOrder(preparedOrder);
   assertLocalOrderIdentity(created, job);
@@ -230,9 +242,10 @@ const finishCloudJob = async (
   job: XuanxueAiProductionCloudClaimedJob,
   context: Required<CloudJobExecutionContext>,
   accepted: Readonly<{ deadlineBudget: XuanxueAiExecutionDeadlineBudget; checkpointHash: `sha256:${string}` }>,
+  abort: AbortController,
 ): Promise<void> => {
   const terminal = await executeCloudJobStages(
-    state, job, context.localOrderId, accepted.deadlineBudget, accepted.checkpointHash,
+    state, job, context.localOrderId, accepted.deadlineBudget, accepted.checkpointHash, abort,
   );
   await publishXuanxueAiProductionCloudOrder({
     session: state.session, outbox: state.outbox, dataDir: state.dataDir, job, record: terminal,
@@ -288,12 +301,13 @@ const executeCloudJob = async (
   state: WorkerState,
   job: XuanxueAiProductionCloudClaimedJob,
   claimRoundTripMs: number,
+  abort: AbortController,
 ): Promise<void> => {
   const context: CloudJobExecutionContext = { accepted: false };
   try {
-    const accepted = await acceptCloudJob(state, job, claimRoundTripMs, context);
+    const accepted = await acceptCloudJob(state, job, claimRoundTripMs, context, abort);
     if (!context.localOrderId) throw new Error("XUANXUE_AI_PRODUCTION_LOCAL_ORDER_IDENTITY_INVALID");
-    await finishCloudJob(state, job, { accepted: true, localOrderId: context.localOrderId }, accepted);
+    await finishCloudJob(state, job, { accepted: true, localOrderId: context.localOrderId }, accepted, abort);
   } catch (error) {
     try {
       await reportCloudJobFailure(state, job, context, error);
@@ -333,8 +347,12 @@ const workerLoop = async (state: WorkerState): Promise<void> => {
         const ordered = [...batch.jobs].sort((left, right) => left.created_at.localeCompare(right.created_at) || left.job_id.localeCompare(right.job_id));
         for (const job of ordered) {
           if (state.active.has(job.job_id)) continue;
-          const tracked = executeCloudJob(state, job, roundTrip).finally(() => {
-            state.active.delete(job.job_id); publishHealth(state);
+          const jobAbort = new AbortController();
+          state.activeAbort.set(job.job_id, jobAbort);
+          const tracked = executeCloudJob(state, job, roundTrip, jobAbort).finally(() => {
+            state.active.delete(job.job_id);
+            state.activeAbort.delete(job.job_id);
+            publishHealth(state);
           });
           state.active.set(job.job_id, tracked);
         }
@@ -367,8 +385,7 @@ const assertCredentialBinding = (
   credential: XuanxueAiProductionCloudCredential,
 ): `sha256:${string}` => {
   if (credential.protocol_version !== "xuanxue-ai-production-v6"
-    || !/^sha256:[a-f0-9]{64}$/u.test(credential.control_manifest_hash)
-    || !/^sha256:[a-f0-9]{64}$/u.test(credential.product_bundle_hash)) {
+    || !/^sha256:[a-f0-9]{64}$/u.test(credential.control_manifest_hash)) {
     throw new Error("XUANXUE_AI_PRODUCTION_V6_DEVICE_CREDENTIAL_INVALID");
   }
   const configuredBase = process.env.XUANXUE_AI_PRODUCTION_CLOUD_BASE_URL?.trim().replace(/\/+$/u, "");
@@ -406,7 +423,7 @@ const createWorkerState = (
     return runtimeState;
   }, agentBuildHash);
   const state: WorkerState = {
-    abort: new AbortController(), active: new Map(), credential,
+    abort: new AbortController(), active: new Map(), activeAbort: new Map(), credential,
     dataDir: input.dataDir, execution: input.execution,
     reconciledLocalVersions: new Map(), session, outbox, database,
     ...(input.onStatus ? { onStatus: input.onStatus } : {}),
@@ -446,6 +463,7 @@ const workerHandle = (
     state.draining = true;
     await state.session.heartbeat().catch((error) => reportCloudWorkerError("XUANXUE_AI_PRODUCTION_DRAIN_ATTESTATION_DEFERRED", error));
     state.abort.abort();
+    for (const controller of state.activeAbort.values()) controller.abort("XUANXUE_AI_PRODUCTION_WORKER_STOPPED");
     await Promise.all([loop, heartbeatLoop]);
     await Promise.allSettled([...state.active.values()]);
     await flushXuanxueAiProductionCloudOutbox(state.session, state.outbox);

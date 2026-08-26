@@ -26,7 +26,7 @@ export interface XuanxueAiProductionExecutionPort {
   availableCapacity(): number;
   applyControlIntent(
     orderId: string,
-    intent: "pause_requested" | "cancel_requested" | "handover_requested",
+    intent: "none" | "pause_requested" | "cancel_requested" | "handover_requested",
     controlEpoch: number,
     reasonCode: string | null,
   ): void;
@@ -62,6 +62,7 @@ export type CloudWorkerInput = Readonly<{
 export interface WorkerState {
   readonly abort: AbortController;
   readonly active: Map<string, Promise<void>>;
+  readonly activeAbort: Map<string, AbortController>;
   readonly credential: XuanxueAiProductionCloudCredential;
   readonly dataDir: string;
   readonly execution: XuanxueAiProductionExecutionPort;

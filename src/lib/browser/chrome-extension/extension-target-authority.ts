@@ -75,7 +75,7 @@ export class ExtensionTargetAuthority {
     return this.targets.resolve(targetRef, documentRef);
   }
 
-  public async claimPreauthorizedChatGptTarget(): Promise<void> {
+  public async acquireJobBoundChatGptTarget(): Promise<void> {
     if (this.activeTarget || this.pendingCreatedTarget) throw new Error("BROWSER_TARGET_INVALID");
     const candidate = await this.resolvePreauthorizedCandidate();
     if (candidate.attached || candidate.tabId === undefined) throw new Error("BROWSER_DEVTOOLS_CONFLICT");

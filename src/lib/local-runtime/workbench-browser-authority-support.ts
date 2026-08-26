@@ -19,7 +19,7 @@ export type WorkbenchBrowserAuthority = Readonly<{
     browserAuthorityState: "present" | "absent";
     browserTargetState: "claimed" | "absent";
   }>;
-  acquireOperatorClaimedTargetLease(
+  acquireJobBoundTargetLease(
     binding: BrowserExecutionBinding,
     ownerId: string,
   ): Promise<BrowserTargetLease>;
@@ -64,8 +64,8 @@ export const createWorkbenchBrowserAuthority = async (
       browserAuthorityState: supervisor.authorityBroker().currentStatus().kind === "AVAILABLE" ? "present" : "absent",
       browserTargetState: supervisor.authorityBroker().currentOperatorTargetStatus(),
     }),
-    acquireOperatorClaimedTargetLease: (binding, ownerId) =>
-      supervisor.acquireOperatorClaimedTargetLease(binding, ownerId),
+    acquireJobBoundTargetLease: (binding, ownerId) =>
+      supervisor.acquireJobBoundTargetLease(binding, ownerId),
     acceptBrowserAuthoritySocket: (socket) => ({ receive: (payload) => supervisor.browserAuthorityWebSocket().receive(socket, payload), disconnect: (reasonCode, refs) => supervisor.browserAuthorityWebSocket().disconnect(socket, reasonCode, refs) }),
     shutdown: () => supervisor.stop(),
   };

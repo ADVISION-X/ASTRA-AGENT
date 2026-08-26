@@ -9,7 +9,6 @@ import { chromium, type BrowserContext, type Worker } from "playwright";
 import { createWorkbenchServer } from "../../src/app/create-workbench-server.js";
 import { createGrassEyeWorkbenchHandle } from "../../src/lib/local-runtime/workbench-launch-contract.js";
 import type { GrassEyeWorkbenchHandle } from "../../src/lib/local-runtime/workbench-handle.js";
-import { readBrowserProofJournal } from "../../src/lib/browser/exact-target/browser-proof-journal.js";
 import { GRASSEYE_UNPACKED_EXTENSION_ID } from "../../src/lib/browser/release/unpacked-extension-release-identity.js";
 
 const HOST = "127.0.0.1";
@@ -95,7 +94,6 @@ const readExtensionWorker = async (context: BrowserContext): Promise<Worker> => 
 
 const dataDir = await mkdtemp(join(tmpdir(), "grasseye-real-chrome-auto-pairing-"));
 const profileDirectory = join(dataDir, "browser", "profile");
-const journalPath = join(dataDir, "browser", "proof-events.ndjson");
 let chromeContext: BrowserContext | null = null;
 let workbench: RunningWorkbench | null = null;
 
@@ -109,14 +107,8 @@ try {
   assert.match(secret ?? "", /^[a-f0-9]{64}$/u);
   const page = chromeContext.pages()[0] ?? await chromeContext.newPage();
   await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
-  await waitFor("automatic Browser Authority and target", () =>
-    workbench!.handle.readBrowserAuthorityPairingState().authority === "present"
-    && readBrowserProofJournal(journalPath).some(({ event }) => event.phase === "TARGET_CLAIMED"));
-
-  const events = readBrowserProofJournal(journalPath);
-  assert.equal(events.filter(({ event }) => event.phase === "AUTHENTICATED").length, 1);
-  assert.equal(events.filter(({ event }) => event.phase === "TARGET_CLAIMED").length, 1,
-    "the fixed extension must automatically claim exactly one preauthorized ChatGPT target");
+  await waitFor("automatic Browser Authority", () =>
+    workbench!.handle.readBrowserAuthorityPairingState().authority === "present");
 
   const chromeVersion = chromeContext.browser()?.version() ?? "unknown";
   process.stdout.write(`${JSON.stringify({
@@ -125,8 +117,8 @@ try {
     extensionId: GRASSEYE_UNPACKED_EXTENSION_ID,
     manualSecretEntry: false,
     authenticated: true,
-    targetClaimed: true,
-    sessionWorkspaceEstablished: true,
+    targetClaimedBeforeJob: false,
+    sessionWorkspaceEstablishedBeforeJob: false,
   })}\n`);
 } finally {
   await chromeContext?.close().catch(() => undefined);

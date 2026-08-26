@@ -399,7 +399,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   const routingLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-003-V1");
   const proofLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-004-V1");
   const parallelLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-005-V4");
-  const atomicLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-002-V2");
+  const atomicLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-002-V3");
   const boundedJudgeLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-006-V2");
   const approvedInputLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-007-V2");
   const findings: Finding[] = [];
@@ -446,7 +446,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const evaluation = await inspectDomainEvaluation(context);
     const semanticChecks = (lawId: string): string[] => ({
       "LAW-AI-INPUT-GATEWAY-001-V1": ["inspectPublicBoundary"],
-      "LAW-AI-INPUT-GATEWAY-002-V2": ["inspectAtomicIfAndThenActions"],
+      "LAW-AI-INPUT-GATEWAY-002-V3": ["inspectAtomicIfAndThenActions"],
       "LAW-AI-INPUT-GATEWAY-003-V1": ["inspectAttachmentRoutingChild", "inspectRemovedRegion"],
       "LAW-AI-INPUT-GATEWAY-004-V1": ["inspectAttachmentProofChild"],
       "LAW-AI-INPUT-GATEWAY-005-V4": ["inspectBoundedParallelExecution", "inspectConversationTopology", "inspectGeneratedImageCapture"],
@@ -468,7 +468,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [
       lawResult("LAW-AI-INPUT-GATEWAY-001-V1", ["static.ast", "static.contract"], staticClauses(0, 1, 2, 3, 4)),
-      lawResult("LAW-AI-INPUT-GATEWAY-002-V2", ["static.ast"]),
+      lawResult("LAW-AI-INPUT-GATEWAY-002-V3", ["static.ast"]),
       lawResult("LAW-AI-INPUT-GATEWAY-003-V1", ["static.ast", "static.contract"]),
       lawResult("LAW-AI-INPUT-GATEWAY-004-V1", ["static.ast", "static.contract"]),
       lawResult("LAW-AI-INPUT-GATEWAY-005-V4", ["static.ast", "static.contract"]),

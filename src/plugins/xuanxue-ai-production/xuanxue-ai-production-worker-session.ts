@@ -140,7 +140,6 @@ export class XuanxueAiProductionWorkerSessionV6 {
           worker_session_id: this.workerSessionId,
           worker_session_epoch: this.workerSessionEpoch,
           control_manifest_hash: this.device.control_manifest_hash,
-          product_bundle_hash: this.device.product_bundle_hash,
           business_capacity_total: 10,
           business_in_flight: state.businessInFlight,
           browser_action_capacity_total: 1,

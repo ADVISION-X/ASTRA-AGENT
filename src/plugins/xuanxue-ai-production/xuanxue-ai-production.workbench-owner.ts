@@ -15,9 +15,6 @@ import type {
   XuanxueAiBrowserHash,
   XuanxueAiProductionRuntime,
 } from "./xuanxue-ai-production.runtime.js";
-import type { XuanxueAiInterventionRequest } from "./xuanxue-ai-production.schema.js";
-
-type XuanxueAiInterventionAction = "pause" | "cancel" | "takeover" | "resume";
 type CreateOrderRoute = (
   rawInput: unknown,
   runtime: XuanxueAiProductionRuntime,
@@ -51,17 +48,7 @@ const startOwnerCloudWorker = (input: {
     }),
     availableCapacity: () => input.coordinator.availableCapacity(),
     applyControlIntent: (orderId, intent, controlEpoch, reasonCode) => {
-      const current = input.store.readIntervention(orderId);
-      input.store.applyCloudControlIntent(
-        intent === "cancel_requested" ? "cancel" : intent === "handover_requested" ? "takeover" : "pause",
-        {
-          orderId,
-          expectedRevision: current.revision,
-          requestId: `cloud-control:${controlEpoch}`,
-          reason: reasonCode ?? intent,
-        },
-        controlEpoch,
-      );
+      input.store.applyControlIntent(orderId, intent, controlEpoch, reasonCode);
     },
   },
   readBrowserRuntimeState: async () => {
@@ -83,7 +70,6 @@ type OwnerState = {
   workerHealth: XuanxueAiProductionWorkerHealth | null;
   store: XuanxueAiProductionStore | null;
   coordinator: XuanxueAiProductionCoordinator | null;
-  interventionRuns: Set<Promise<unknown>>;
 };
 
 type OwnerDependencies = {
@@ -102,12 +88,6 @@ const requireStore = (state: OwnerState): XuanxueAiProductionStore => {
 const requireCoordinator = (state: OwnerState): XuanxueAiProductionCoordinator => {
   if (!state.coordinator) throw new Error("XUANXUE_AI_PRODUCTION_NOT_INITIALIZED");
   return state.coordinator;
-};
-
-const scheduleInterventionRun = (state: OwnerState, orderId: string): void => {
-  const run = requireCoordinator(state).execute(orderId);
-  state.interventionRuns.add(run);
-  run.finally(() => state.interventionRuns.delete(run)).catch(() => undefined);
 };
 
 const startupFailureHealth = (error: unknown): XuanxueAiProductionWorkerHealth => {
@@ -167,26 +147,7 @@ const initializeOwner = async (dependencies: OwnerDependencies, state: OwnerStat
   }
 };
 
-const requestOwnerIntervention = (
-  dependencies: OwnerDependencies,
-  state: OwnerState,
-  action: XuanxueAiInterventionAction,
-  input: XuanxueAiInterventionRequest,
-) => {
-  const requested = action === "resume"
-    ? requireStore(state).resumeIntervention(input)
-    : requireStore(state).requestIntervention(action, input);
-  if (action === "resume") {
-    dependencies.aiInputGateway.resumeProviderTargetAfterOperator?.(
-      `xuanxue-ai-production:${input.orderId}`,
-    );
-  }
-  scheduleInterventionRun(state, input.orderId);
-  return requested;
-};
-
 const shutdownOwner = async (state: OwnerState): Promise<void> => {
-  await Promise.allSettled([...state.interventionRuns]);
   await state.worker?.close();
   state.worker = null;
   await state.coordinator?.close();
@@ -214,7 +175,6 @@ export const createXuanxueAiProductionWorkbenchOwner = (
     workerHealth: null,
     store: null,
     coordinator: null,
-    interventionRuns: new Set(),
   };
   return {
     init: () => initializeOwner(dependencies, state),
@@ -227,11 +187,8 @@ export const createXuanxueAiProductionWorkbenchOwner = (
       if (!order) return null;
       return {
         order,
-        intervention: ownerStore.readIntervention(orderId),
+        controlIntent: ownerStore.readControlIntent(orderId),
       };
-    },
-    requestIntervention(action: XuanxueAiInterventionAction, input: XuanxueAiInterventionRequest) {
-      return requestOwnerIntervention(dependencies, state, action, input);
     },
     shutdown: () => shutdownOwner(state),
   };

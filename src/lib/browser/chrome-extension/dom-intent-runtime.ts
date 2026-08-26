@@ -14,7 +14,7 @@ const executeFindIntent = async (
   intent: FindIntent,
 ): Promise<unknown> => {
   const selector = intent.selector ?? selectorForLocator(intent.locator!);
-  const candidates = await queryAll(debuggerRuntime, target.tabId, selector, intent.maxMatches + 1);
+  const candidates = await queryAll(debuggerRuntime, target.tabId, selector, intent.maxMatches + 1, intent.scope);
   const nodes = intent.textEquals !== undefined
     ? await nodesWithExactText(debuggerRuntime, target.tabId, candidates, intent.textEquals)
     : intent.textContains !== undefined
@@ -30,7 +30,7 @@ const executeClickIntent = async (
   intent: ClickIntent,
 ): Promise<unknown> => {
   const expectedMatches = intent.expectedMatches ?? 1;
-  const nodes = await queryAll(debuggerRuntime, target.tabId, intent.selector, expectedMatches + 1);
+  const nodes = await queryAll(debuggerRuntime, target.tabId, intent.selector, expectedMatches + 1, intent.scope);
   const matchingNodes = intent.expectedTextEquals !== undefined
     ? await nodesWithExactText(debuggerRuntime, target.tabId, nodes, intent.expectedTextEquals)
     : intent.expectedText !== undefined
@@ -65,7 +65,7 @@ const executeValueIntent = async (
 ): Promise<unknown> => {
   const nodeId = intent.kind === "readText" || intent.kind === "readAttribute"
     ? await nodeForRead(debuggerRuntime, target.tabId, intent)
-    : await nodeForSelector(debuggerRuntime, target.tabId, intent.selector, intent.kind === "fill" ? intent.expectedMatches ?? 1 : 1);
+    : await nodeForSelector(debuggerRuntime, target.tabId, intent.selector, intent.kind === "fill" ? intent.expectedMatches ?? 1 : 1, intent.scope);
   if (intent.kind === "inspect") return inspectNode(debuggerRuntime, target.tabId, nodeId, intent.fields);
   if (intent.kind === "readText") return truncate(await nodeText(debuggerRuntime, target.tabId, nodeId), intent.maxChars);
   if (intent.kind === "readAttribute") return truncate(attribute(await describeNode(debuggerRuntime, target.tabId, nodeId), intent.name) ?? "", intent.maxChars);
@@ -97,8 +97,8 @@ export const executeRegisteredDomIntent = async (
   return executeValueIntent(debuggerRuntime, target, intent);
 };
 
-const nodeForSelector = async (runtime: ExtensionDebuggerRuntime, tabId: number, selector: string, expectedMatches: number): Promise<number> => {
-  const nodes = await queryAll(runtime, tabId, selector, expectedMatches + 1);
+const nodeForSelector = async (runtime: ExtensionDebuggerRuntime, tabId: number, selector: string, expectedMatches: number, scope?: Readonly<{ selector: string }>): Promise<number> => {
+  const nodes = await queryAll(runtime, tabId, selector, expectedMatches + 1, scope);
   if (nodes.length !== expectedMatches) throw new Error("BROWSER_TARGET_INVALID");
   const nodeId = nodes[0];
   if (nodeId === undefined) throw new Error("BROWSER_TARGET_INVALID");
@@ -111,7 +111,7 @@ const nodeForRead = async (
   intent: Extract<BrowserDomIntent, { kind: "readText" | "readAttribute" }>,
 ): Promise<number> => {
   const maximum = intent.expectedMatches ?? intent.maxMatches ?? 1;
-  const candidateNodes = await queryAll(runtime, tabId, intent.selector, maximum + 1);
+  const candidateNodes = await queryAll(runtime, tabId, intent.selector, maximum + 1, intent.scope);
   const nodes = intent.kind === "readAttribute" && intent.textContains !== undefined
     ? await nodesContainingText(runtime, tabId, candidateNodes, intent.textContains)
     : candidateNodes;
@@ -124,12 +124,33 @@ const nodeForRead = async (
   return nodeId;
 };
 
-const queryAll = async (runtime: ExtensionDebuggerRuntime, tabId: number, selector: string, limit: number): Promise<readonly number[]> => {
+const queryAll = async (
+  runtime: ExtensionDebuggerRuntime,
+  tabId: number,
+  selector: string,
+  limit: number,
+  scope?: Readonly<{ selector: string }>,
+): Promise<readonly number[]> => {
   const root = record(await runtime.send(tabId, "DOM.getDocument", { depth: 1, pierce: true }));
   const rootNode = record(root.root);
-  const result = record(await runtime.send(tabId, "DOM.querySelectorAll", { nodeId: numberValue(rootNode.nodeId, "BROWSER_TARGET_INVALID"), selector }));
+  let queryRootId = numberValue(rootNode.nodeId, "BROWSER_TARGET_INVALID");
+  if (scope) {
+    const scopeResult = record(await runtime.send(tabId, "DOM.querySelectorAll", { nodeId: queryRootId, selector: scope.selector }));
+    const scopeIds = Array.isArray(scopeResult.nodeIds) ? scopeResult.nodeIds.map((value) => numberValue(value, "BROWSER_TARGET_INVALID")) : [];
+    const visibleScopes = await visibleNodes(runtime, tabId, scopeIds);
+    if (visibleScopes.length !== 1) throw new Error("BROWSER_TARGET_INVALID");
+    queryRootId = visibleScopes[0]!;
+  }
+  const result = record(await runtime.send(tabId, "DOM.querySelectorAll", { nodeId: queryRootId, selector }));
   const values = Array.isArray(result.nodeIds) ? result.nodeIds : [];
-  return values.slice(0, limit).map((value) => numberValue(value, "BROWSER_TARGET_INVALID"));
+  const nodeIds = values.map((value) => numberValue(value, "BROWSER_TARGET_INVALID"));
+  return (await visibleNodes(runtime, tabId, nodeIds)).slice(0, limit);
+};
+
+const visibleNodes = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeIds: readonly number[]): Promise<readonly number[]> => {
+  const visible: number[] = [];
+  for (const nodeId of nodeIds) if (await boxCenter(runtime, tabId, nodeId).then(() => true).catch(() => false)) visible.push(nodeId);
+  return visible;
 };
 
 const nodesContainingText = async (

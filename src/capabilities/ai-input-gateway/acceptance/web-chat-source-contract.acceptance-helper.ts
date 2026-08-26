@@ -93,7 +93,8 @@ const assertFixedDevtoolsRuntime = (sources: Record<keyof typeof activeSources, 
 const assertNativeTargetBinding = (sources: Record<keyof typeof activeSources, string>): void => {
   assert.ok(
     sources.extensionSocket.includes('const SOCKET_URL = "ws://127.0.0.1:4173/browser-authority/v1"')
-      && sources.extensionSocket.includes("claimPreauthorizedChatGptTarget")
+      && sources.extensionSocket.includes("acquireJobBoundChatGptTarget")
+      && sources.extensionSocket.includes('frame.kind === "TARGET_ACQUIRE"')
       && sources.extensionTarget.includes("debugger.getTargets")
       && sources.extensionTarget.includes("GPT_WEB_CHAT_START_URL")
       && sources.extensionTarget.includes("claimOperatorTarget")

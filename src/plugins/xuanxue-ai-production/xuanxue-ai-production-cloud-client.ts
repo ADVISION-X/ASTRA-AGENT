@@ -109,14 +109,7 @@ export async function claimXuanxueAiProductionJobs(
   const receipt = ClaimBatchReceiptV6Schema.parse(raw);
   if (receipt.request_id !== requestId) throw new Error("XUANXUE_AI_PRODUCTION_V6_CLAIM_RECEIPT_MISMATCH");
   const parsedJobs = parseClaimedJobs(receipt);
-  outbox.commitClaimReceipt({
-    requestId,
-    claims: parsedJobs.map((job) => ({
-      jobId: job.job_id, attemptId: job.grant.attempt_id,
-      leaseVersion: job.grant.lease_version, createdAt: job.created_at,
-      grant: job.grant,
-    })),
-  });
+  outbox.commitClaimReceipt(requestId);
   const jobs = selectAddressableJobs(parsedJobs, session, reconcilingSupersededClaim);
   if (!reconcilingSupersededClaim && receipt.outcome === "LEASE_GRANTED" && jobs.length !== receipt.jobs.length) throw new Error("XUANXUE_AI_PRODUCTION_V6_CLAIM_BATCH_PARTIAL_REJECTED");
   return Object.freeze({

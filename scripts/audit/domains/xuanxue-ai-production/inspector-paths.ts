@@ -31,7 +31,7 @@ export const pluginPaths = [
   "src/plugins/xuanxue-ai-production/index.ts", schemaPath, profilePath, storePath,
   schemaRefinementsPath,
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-terminal-profile.ts",
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-intervention.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-control-intent.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production.workbench-owner.ts",
   "src/app/workbench-xuanxue-ai-production-routes.ts",
   "src/app/workbench-xuanxue-ai-production-client.ts",

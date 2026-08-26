@@ -23,7 +23,7 @@ assert.equal(GPT_WEB_CHAT_START_URL, "https://chatgpt.com/");
 assert.equal(requireGptWebChatPolicyForUrl("https://chatgpt.com/c/exact").siteId, "gpt-web-chat");
 for (const rejectedUrl of ["https://www.amazon.com/", "https://evil.chatgpt.com/", "http://chatgpt.com/"]) {
   assert.throws(() => requireGptWebChatPolicyForUrl(rejectedUrl), /BROWSER_ORIGIN_REJECTED/u,
-    `automatic target policy must reject ${rejectedUrl}`);
+    `job-bound target policy must reject ${rejectedUrl}`);
 }
 
 let observedInput = "";
@@ -208,7 +208,7 @@ const targetAuthority = new ExtensionTargetAuthority(
   () => undefined,
 );
 targetAuthority.start();
-await targetAuthority.claimPreauthorizedChatGptTarget();
+await targetAuthority.acquireJobBoundChatGptTarget();
 assert.deepEqual(attachedTabs, [1]);
 assert.equal(targetFrames[0]?.kind, "TARGET_CLAIM");
 assert.equal(targetFrames[0]?.body.url, "https://chatgpt.com/");
@@ -218,15 +218,15 @@ debugTargets = [
   { attached: false, id: "debug-target-1", tabId: 1, title: "ChatGPT", type: "page", url: "https://chatgpt.com/" },
   { attached: false, id: "debug-target-2", tabId: 2, title: "ChatGPT", type: "page", url: "https://chatgpt.com/c/second" },
 ];
-await assert.rejects(targetAuthority.claimPreauthorizedChatGptTarget(), /BROWSER_TARGET_INVALID/u,
+await assert.rejects(targetAuthority.acquireJobBoundChatGptTarget(), /BROWSER_TARGET_INVALID/u,
   "multiple exact ChatGPT targets must fail closed without guessing");
 
 debugTargets = [{ attached: true, id: "debug-target-1", tabId: 1, title: "ChatGPT", type: "page", url: "https://chatgpt.com/" }];
-await assert.rejects(targetAuthority.claimPreauthorizedChatGptTarget(), /BROWSER_DEVTOOLS_CONFLICT/u,
+await assert.rejects(targetAuthority.acquireJobBoundChatGptTarget(), /BROWSER_DEVTOOLS_CONFLICT/u,
   "an already attached exact target must not be stolen");
 
 debugTargets = [];
-await targetAuthority.claimPreauthorizedChatGptTarget();
+await targetAuthority.acquireJobBoundChatGptTarget();
 assert.deepEqual(createdTab, { active: false, url: "https://chatgpt.com/" },
   "zero exact targets must create one inactive fixed ChatGPT start URL");
 assert.equal(attachedTabs.at(-1), 3);

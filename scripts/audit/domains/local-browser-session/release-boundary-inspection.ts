@@ -78,7 +78,7 @@ export const inspectAutomaticPairingAndReload = (
     message: "The popup must not retain manual secret input, password or clipboard pairing paths.",
   }));
   if (/GRASSEYE_CLAIM_ACTIVE_TARGET|claimActiveTarget|#claim/iu.test(popupText)) findings.push(createLocalFinding({
-    checkId: "browser-authority/automatic-target-claim",
+    checkId: "browser-authority/job-bound-target-claim",
     lawId: claimLawId,
     filePath: sourcePaths[2],
     message: "The popup must not retain a manual active-tab claim control or message.",

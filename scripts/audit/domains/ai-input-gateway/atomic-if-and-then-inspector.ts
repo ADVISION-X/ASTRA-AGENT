@@ -1,4 +1,4 @@
-import { Node, SyntaxKind, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { astExpressionPath } from "../../shared/ast-node-identity.js";
 import type { InspectorContext } from "../../shared/inspector-contracts.js";
@@ -12,6 +12,101 @@ import {
 } from "./inspector-helpers.js";
 import * as P from "./paths.js";
 
+export const exactChoiceTransactionIsAtomic = (profile: SourceFile): boolean => {
+  const mutation = profile.getVariableDeclaration("runAtomicProfileMutation")?.getInitializer();
+  const select = profile.getVariableDeclaration("selectExactProfileValue")?.getInitializer();
+  const menuClosed = profile.getVariableDeclaration("readProfileMenuClosed")?.getInitializer();
+  const summary = profile.getVariableDeclaration("readProfileSummary")?.getInitializer();
+  if (!mutation || !select || !menuClosed || !summary) return false;
+
+  const executeCalls = mutation.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter((call) => astExpressionPath(call.getExpression())
+      === "input.execution.browser.executeDomIntent");
+  const executeIntent = executeCalls[0]?.getArguments()[0];
+  if (executeCalls.length !== 1
+    || !Node.isObjectLiteralExpression(executeIntent)
+    || !executeIntent.getText().includes('kind: "click"')
+    || executeIntent.getProperty("postClickAttribute") !== undefined) return false;
+
+  const mutationText = mutation.getText();
+  const observeIndex = mutationText.indexOf("input.observePostcondition");
+  const proofIndex = mutationText.indexOf("recordWebChatPageAction");
+  const unknownIsReadOnlyAdjudicated = mutationText.includes("isOutcomeUnknown(error)")
+    && observeIndex >= 0
+    && proofIndex > observeIndex
+    && !mutationText.includes("while (")
+    && !mutationText.includes("for (");
+
+  const exactChoiceCalls = select.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter((call) => astExpressionPath(call.getExpression()) === "runAtomicProfileMutation");
+  const exactChoice = exactChoiceCalls[0]?.getArguments()[0];
+  const exactChoiceText = exactChoice?.getText() ?? "";
+  const exactChoiceUsesMenuClosure = exactChoiceCalls.length === 1
+    && exactChoiceText.includes("selector: PROFILE_CHOICE_SELECTOR")
+    && exactChoiceText.includes("expectedText: { equals: expectedValue }")
+    && exactChoiceText.includes("readProfileMenuClosed")
+    && !exactChoiceText.includes("readCollapsedProfileState");
+
+  const menuClosureIsOnlyClickCompletion = menuClosed.getText().includes('"aria-expanded"')
+    && menuClosed.getText().includes('expanded === "false"')
+    && menuClosed.getText().includes('expanded === "true"')
+    && !menuClosed.getText().includes("modelDisplayName")
+    && !menuClosed.getText().includes("reasoningUiLabel");
+  const exactParentSummary = summary.getText().includes("PROFILE_SUBMENU_SELECTOR")
+    && summary.getText().includes('equals: `${parentLabel}${expectedValue}`')
+    && summary.getText().includes("parentCount !== 1")
+    && summary.getText().includes("expectedCount > 1");
+
+  return unknownIsReadOnlyAdjudicated
+    && exactChoiceUsesMenuClosure
+    && menuClosureIsOnlyClickCompletion
+    && exactParentSummary;
+};
+
+const profileAdvancesWithoutBacktracking = (profile: SourceFile): boolean => {
+  if (profile.getVariableDeclaration("observeSubmenuSelection")
+    || profile.getVariableDeclaration("clickExactChoiceAndProve")
+    || profile.getVariableDeclaration("clickAndProve")) return false;
+  const apply = profile.getVariableDeclaration("applyExactExecutionProfile")?.getInitializer();
+  const select = profile.getVariableDeclaration("selectExactProfileValue")?.getInitializer();
+  if (!apply || !select) return false;
+  const text = apply.getText();
+  const occurrenceIndexes = (needle: string): number[] => {
+    const indexes: number[] = [];
+    let cursor = 0;
+    while (cursor < text.length) {
+      const index = text.indexOf(needle, cursor);
+      if (index < 0) break;
+      indexes.push(index);
+      cursor = index + needle.length;
+    }
+    return indexes;
+  };
+  const modelReads = occurrenceIndexes("readCurrentProfileSummary(input, MODEL_LABEL");
+  const reasoningReads = occurrenceIndexes("readCurrentProfileSummary(input, REASONING_LABEL");
+  const modelSelect = text.indexOf("selectExactProfileValue(input, MODEL_LABEL");
+  const reasoningSelect = text.indexOf("selectExactProfileValue(input, REASONING_LABEL");
+  const terminalMenuOpen = text.lastIndexOf("openAdvancedProfileMenu(input)");
+  const immediateModelMismatch = text.indexOf(
+    'throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH")',
+    modelReads[1],
+  );
+  const selectCalls = select.getDescendantsOfKind(SyntaxKind.CallExpression);
+  return modelReads.length === 3
+    && reasoningReads.length === 2
+    && modelReads[0]! >= 0
+    && modelSelect > modelReads[0]!
+    && modelReads[1]! > modelSelect
+    && immediateModelMismatch > modelReads[1]!
+    && reasoningReads[0]! > immediateModelMismatch
+    && reasoningSelect > reasoningReads[0]!
+    && terminalMenuOpen > reasoningSelect
+    && modelReads[2]! > terminalMenuOpen
+    && reasoningReads[1]! > modelReads[2]!
+    && selectCalls.filter((call) => astExpressionPath(call.getExpression()) === "openExactProfileSubmenu").length === 1
+    && selectCalls.filter((call) => astExpressionPath(call.getExpression()) === "runAtomicProfileMutation").length === 1;
+};
+
 const inspectExactChoiceTransaction = (
   context: InspectorContext,
   findings: Finding[],
@@ -19,8 +114,6 @@ const inspectExactChoiceTransaction = (
 ): void => {
   const profile = requireSourceFile(context, findings, lawId, P.sessionControl.gptExecutionProfilePath);
   if (!profile) return;
-  const exactChoiceIsAtomic = exactChoiceTransactionIsAtomic(profile);
-  const straightLineProfile = profileAdvancesWithoutBacktracking(profile);
   const waitCalls = profile.getDescendantsOfKind(SyntaxKind.CallExpression)
     .filter((call) => astExpressionPath(call.getExpression()) === "input.browser.wait");
   const waitOwner = waitCalls[0]?.getFirstAncestor((node) =>
@@ -28,12 +121,19 @@ const inspectExactChoiceTransaction = (
   const actionBoundObservation = waitOwner
     ? waitOwner.getDescendantsOfKind(SyntaxKind.Identifier)
       .some((identifier) => identifier.getText() === "PROFILE_ACTION_OBSERVATION_TIMEOUT_MS")
-      && !waitOwner.getText().includes("Date.now() + input.request.timeoutMs")
+      && !waitOwner.getText().includes("input.request.timeoutMs")
     : false;
   const openProfile = profile.getVariableDeclaration("openAdvancedProfileMenu")?.getInitializer();
+  const uniqueTrigger = profile.getVariableDeclaration("readUniqueProfileTrigger")?.getInitializer();
+  const triggerWaitsBeforeRead = Boolean(openProfile
+    && uniqueTrigger
+    && uniqueTrigger.getText().includes("triggerCount > 1")
+    && uniqueTrigger.getText().includes("triggerCount === 1 ? true : null")
+    && openProfile.getText().indexOf("readUniqueProfileTrigger")
+      < openProfile.getText().indexOf('readAttribute(input.browser, PROFILE_TRIGGER_SELECTOR, "aria-expanded")'));
   const triggerActionResolvesItsMenuState = Boolean(openProfile
     && openProfile.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
-      if (astExpressionPath(call.getExpression()) !== "clickAndProve") return false;
+      if (astExpressionPath(call.getExpression()) !== "runAtomicProfileMutation") return false;
       const intent = call.getArguments()[0];
       if (!Node.isObjectLiteralExpression(intent)) return false;
       const selector = intent.getProperty("selector");
@@ -43,85 +143,16 @@ const inspectExactChoiceTransaction = (
           (nested) => astExpressionPath(nested.getExpression()) === "readAdvancedProfileState",
         );
     }));
-  if (exactChoiceIsAtomic && straightLineProfile && waitCalls.length === 1 && waitOwner
-    && actionBoundObservation && triggerActionResolvesItsMenuState) return;
+  if (exactChoiceTransactionIsAtomic(profile)
+    && profileAdvancesWithoutBacktracking(profile)
+    && waitCalls.length === 1
+    && waitOwner
+    && actionBoundObservation
+    && triggerWaitsBeforeRead
+    && triggerActionResolvesItsMenuState) return;
   pushFinding(findings, lawId, P.sessionControl.gptExecutionProfilePath,
     "ai-input-gateway/atomic-if-and-then",
-    "GPT execution-profile must advance in one straight line: read the current model, select it only when needed, prove it, then read reasoning and select it only when needed. It may not pre-observe future controls, backtrack for whole-profile rechecks, or let a task-wide timeout span the chain.");
-};
-
-const stringPropertyEquals = (
-  object: ObjectLiteralExpression,
-  name: string,
-  expected: string,
-): boolean => {
-  const property = object.getProperty(name);
-  if (!Node.isPropertyAssignment(property)) return false;
-  const initializer = property.getInitializer();
-  return Node.isStringLiteral(initializer) && initializer.getLiteralValue() === expected;
-};
-
-const hasFailureComparison = (
-  condition: Node,
-  leftPath: string,
-  rightKind: SyntaxKind.NumericLiteral | SyntaxKind.TrueKeyword,
-  rightValue?: number,
-): boolean => condition.getDescendantsOfKind(SyntaxKind.BinaryExpression).some((binary) => {
-  const right = binary.getRight();
-  if (astExpressionPath(binary.getLeft()) !== leftPath
-    || binary.getOperatorToken().getKind() !== SyntaxKind.ExclamationEqualsEqualsToken
-    || right.getKind() !== rightKind) return false;
-  return rightValue === undefined
-    || (Node.isNumericLiteral(right) && right.getLiteralValue() === rightValue);
-});
-
-export const exactChoiceTransactionIsAtomic = (profile: SourceFile): boolean => {
-  const exactChoice = profile.getVariableDeclaration("clickExactChoiceAndProve")?.getInitializer();
-  if (!exactChoice) return false;
-  const calls = exactChoice.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .filter((call) => astExpressionPath(call.getExpression())
-      === "input.execution.browser.executeDomIntent");
-  if (calls.length !== 1) return false;
-  const intent = calls[0]!.getArguments()[0];
-  if (!Node.isObjectLiteralExpression(intent)
-    || !stringPropertyEquals(intent, "kind", "click")
-    || intent.getProperty("expectedText") !== undefined) return false;
-  const exactText = intent.getProperty("expectedTextEquals");
-  if (!Node.isPropertyAssignment(exactText)
-    || astExpressionPath(exactText.getInitializer()) !== "input.expectedValue") return false;
-  if (intent.getProperty("postClickAttribute") !== undefined) return false;
-  const matchingGuards = exactChoice.getDescendantsOfKind(SyntaxKind.IfStatement)
-    .filter((guard) => {
-      const condition = guard.getExpression();
-      return hasFailureComparison(condition, "result.candidateCount", SyntaxKind.NumericLiteral, 1)
-        && hasFailureComparison(condition, "result.mutationCount", SyntaxKind.NumericLiteral, 1)
-        && hasFailureComparison(condition, "result.identityRevalidated", SyntaxKind.TrueKeyword);
-    });
-  const observesOnlyCurrentChoice = exactChoice.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .filter((call) => astExpressionPath(call.getExpression()) === "waitForProfileEvidence")
-    .length === 1
-    && exactChoice.getText().includes("PROFILE_TRIGGER_SELECTOR")
-    && exactChoice.getText().includes("input.parentLabel === REASONING_LABEL");
-  return matchingGuards.length === 1 && observesOnlyCurrentChoice;
-};
-
-const profileAdvancesWithoutBacktracking = (profile: SourceFile): boolean => {
-  if (profile.getVariableDeclaration("observeSubmenuSelection")) return false;
-  const apply = profile.getVariableDeclaration("applyExactExecutionProfile")?.getInitializer();
-  const select = profile.getVariableDeclaration("selectExactProfileValue")?.getInitializer();
-  if (!apply || !select) return false;
-  const text = apply.getText();
-  const modelRead = text.indexOf("readCurrentProfileSummary(input, MODEL_LABEL");
-  const modelSelect = text.indexOf("selectExactProfileValue(input, MODEL_LABEL");
-  const reasoningRead = text.indexOf("readCurrentProfileSummary(input, REASONING_LABEL");
-  const reasoningSelect = text.indexOf("selectExactProfileValue(input, REASONING_LABEL");
-  const selectCalls = select.getDescendantsOfKind(SyntaxKind.CallExpression);
-  return modelRead >= 0
-    && modelSelect > modelRead
-    && reasoningRead > modelSelect
-    && reasoningSelect > reasoningRead
-    && selectCalls.filter((call) => astExpressionPath(call.getExpression()) === "openExactProfileSubmenu").length === 1
-    && selectCalls.filter((call) => astExpressionPath(call.getExpression()) === "clickExactChoiceAndProve").length === 1;
+    "GPT execution-profile must advance in one straight line and treat every physical click as one indivisible transaction. A sent UNKNOWN may be resolved only by that click's exact read-only postcondition and must never be replayed before the next IF.");
 };
 
 const inspectCanonicalRouteTransaction = (

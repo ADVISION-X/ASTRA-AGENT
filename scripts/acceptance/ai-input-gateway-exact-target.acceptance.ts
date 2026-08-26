@@ -20,8 +20,9 @@ assert.ok(freshConversation, "The governed fresh ChatGPT conversation owner must
 const navigateAwait = freshConversation.getDescendantsOfKind(SyntaxKind.AwaitExpression)
   .find((node) => node.getExpression().getText().includes("input.browser.navigate"));
 const guardedNavigation = navigateAwait?.getFirstAncestorByKind(SyntaxKind.IfStatement);
-assert.ok(guardedNavigation?.getExpression().getText().includes("isExactFreshChatGptRoot"),
-  "An already exact empty ChatGPT root must bypass navigation as a proved no-op.");
+assert.ok(guardedNavigation?.getExpression().getText().includes("isChatGptRootUrl")
+  && guardedNavigation.getExpression().getText().includes("readDocumentUrl"),
+"An already exact ChatGPT root must bypass navigation before the minimal composer readiness IF.");
 const firstWaitAwait = freshConversation.getDescendantsOfKind(SyntaxKind.AwaitExpression)
   .find((node) => node.getExpression().getText().includes("input.browser.wait"));
 assert.ok(navigateAwait && firstWaitAwait && firstWaitAwait.getStart() > navigateAwait.getEnd(),
@@ -31,5 +32,13 @@ assert.equal(freshLiterals.has("BROWSER_TARGET_INVALID"), true,
   "Transient hydrated-node invalidation must remain inside the existing bounded fresh-root observation loop.");
 assert.equal(freshLiterals.has("WEB_CHAT_FRESH_CONVERSATION_HYDRATION_PENDING: BROWSER_TARGET_INVALID"), true,
   "Bounded hydrated-node exhaustion must preserve one explicit recoverable reason.");
+const freshSource = freshConversation.getFullText();
+assert.equal(freshSource.includes("#upload-files"), false,
+  "Fresh page readiness must not pre-read the later attachment input.");
+assert.equal(freshSource.includes("conversation-turn-") || freshSource.includes("ACTIVE_GENERATION"), false,
+  "Fresh page readiness must not aggregate later turn or generation denominators.");
+assert.ok(freshSource.includes('CHATGPT_CURRENT_PAGE_SCOPE = "main"')
+  && freshSource.includes("scope: { selector: CHATGPT_CURRENT_PAGE_SCOPE }"),
+"Fresh composer readiness must read only the current visible page container.");
 process.stdout.write("[ai-input-gateway-exact-target] PASS\n");
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-AI-INPUT-GATEWAY-002-V2", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","summary"], locator: "acceptance:exact-target:caller-owned-lease", observedValue: "BrowserTargetLease exact-target atomic boundary verified" });
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-AI-INPUT-GATEWAY-002-V3", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","summary"], locator: "acceptance:exact-target:caller-owned-lease", observedValue: "BrowserTargetLease exact-target atomic boundary verified" });

@@ -161,9 +161,9 @@ const inspectLocalLaunchAuthority = (
     addFinding(findings, lawId, launchPath, "The sole local Shell must default to port 4173.");
   }
   const forbiddenStartupCalls = new Set([
-    "enrollXuanxueAiProductionCloudDevice", "registerOperatorTargetClaim", "acquireOperatorClaimedTargetLease",
+    "enrollXuanxueAiProductionCloudDevice", "registerOperatorTargetClaim", "acquireJobBoundTargetLease",
     "createSyntheticJob", "claimJob", "runFullQuality", "buildBrowserExtension", "reloadExtension",
-    "getTargets", "claimPreauthorizedChatGptTarget",
+    "getTargets", "acquireJobBoundChatGptTarget",
   ]);
   const leaked = [...launchIdentifiers].find((name) => forbiddenStartupCalls.has(name));
   if (leaked) addFinding(findings, lawId, launchPath, `Ordinary startup must not execute ${leaked}.`);
@@ -185,7 +185,7 @@ const inspectArtifactSyncAuthority = (
   for (const required of ["UNPACKED_WEBSOCKET_AUTHORITY", "src/lib/browser/chrome-extension/build.mjs"]) {
     if (!artifactLiterals.has(required)) addFinding(findings, lawId, artifactSyncPath, `Browser artifact sync must bind ${required}.`);
   }
-  for (const forbidden of ["audit", "typecheck", "acceptance", "real-chrome", "GRASSEYE_AUTOMATIC_PAIRING_SECRET", "GRASSEYE_CLAIM_ACTIVE_TARGET", "TARGET_CLAIM", "claimPreauthorizedChatGptTarget", "https://chatgpt.com/"]) {
+  for (const forbidden of ["audit", "typecheck", "acceptance", "real-chrome", "GRASSEYE_AUTOMATIC_PAIRING_SECRET", "GRASSEYE_CLAIM_ACTIVE_TARGET", "TARGET_ACQUIRE", "TARGET_CLAIM", "acquireJobBoundChatGptTarget", "https://chatgpt.com/"]) {
     if (artifactSync.getFullText().includes(forbidden)) addFinding(findings, lawId, artifactSyncPath, `Ordinary artifact sync must not execute ${forbidden}.`);
   }
 };

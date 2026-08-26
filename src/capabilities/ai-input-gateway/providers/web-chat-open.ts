@@ -68,20 +68,16 @@ export const openProviderPage = async (
     });
     return null;
   }
+  const freshRequired = requiresFreshChatGptConversation(input);
   await startFreshChatGptConversation({
     browser: input.browser,
     context: input.context,
     request: input.request,
     providerUrl: input.providerUrl,
-    required: requiresFreshChatGptConversation(input),
-    waitForProviderComposer: () => waitForProviderComposer({
-      browser: input.browser,
-      request: input.request,
-      ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-    }),
-    isRecoverableComposerTimeout: () => false,
+    required: freshRequired,
     emitStage: (stage) => emitSubmitStage({ request: input.request }, stage.stage, stage.status, stage.startedAtMs, stage.refs),
   });
+  if (freshRequired) return null;
   await waitForProviderComposer({
     browser: input.browser,
     request: input.request,

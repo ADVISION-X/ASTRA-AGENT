@@ -6,13 +6,11 @@ export {
 export {
   XUANXUE_AI_PRODUCTION_JOB_ID,
   XuanxueAiProductionOrderSchema,
-  XuanxueAiInterventionRequestSchema,
-  type XuanxueAiInterventionRecord,
-  type XuanxueAiInterventionRequest,
   type XuanxueAiOrderRecord,
   type XuanxueAiProductionOrder,
   type XuanxueAiProductionResult,
 } from "./xuanxue-ai-production.schema.js";
+export type { XuanxueAiControlIntentProjection } from "./xuanxue-ai-production-store-control-intent.js";
 export { XuanxueAiProductionStore } from "./xuanxue-ai-production.store.js";
 export type {
   XuanxueAiProductionQuarantinedOrder,

@@ -32,8 +32,8 @@ import { inspectTransientLifecycleBehavior } from "./components/transient-materi
 import { inspectXuanxueBoundary } from "./components/boundary-inspector.js";
 import {
   collectXuanxueSourceValues,
-  inspectXuanxueLocalIntervention,
-} from "./components/local-intervention-inspector.js";
+  inspectXuanxueControlIntent,
+} from "./components/control-intent-inspector.js";
 import {
   inspectSubmissionAdmissionBinding,
 } from "./inspect-submission-admission.js";
@@ -42,7 +42,7 @@ type Laws = {
   boundary: string;
   durability: string;
   cloud: string;
-  intervention: string;
+  controlIntent: string;
   transient: string;
 };
 
@@ -292,11 +292,11 @@ const inspectCloud = (
 };
 
 const resolveLaws = (context: InspectorContext): Laws => ({
-  boundary: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V11"),
-  durability: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V11"),
-  cloud: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V11"),
-  intervention: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V11"),
-  transient: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V11"),
+  boundary: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V12"),
+  durability: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V12"),
+  cloud: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V12"),
+  controlIntent: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V12"),
+  transient: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V12"),
 });
 
 const collectDomainSources = (
@@ -359,7 +359,7 @@ const inspectDomainPolicy = (
   );
   inspectPluginBoundaries(findings, laws, sources);
   inspectCloud(context, findings, laws.cloud, values);
-  inspectXuanxueLocalIntervention({ context, findings, lawId: laws.intervention, values });
+  inspectXuanxueControlIntent({ findings, lawId: laws.controlIntent, values });
   inspectTransientLifecycleContract(context, findings, laws.transient, values);
   inspectSubmissionAdmissionBinding(context, findings, laws.durability);
 };
@@ -374,7 +374,7 @@ const inspectDomainEvaluation = async (
     .map((filePath) => context.project.getSourceFile(resolveFromRepo(filePath)))
     .filter((file): file is SourceFile => file !== undefined);
   inspectDomainPolicy(context, findings, laws, sources, values, collectXuanxueSourceValues(terminalMetaphysicsProfileSources));
-  const lawId = "LAW-XUANXUE-AI-PRODUCTION-001-V11";
+  const lawId = "LAW-XUANXUE-AI-PRODUCTION-001-V12";
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
@@ -389,7 +389,7 @@ export const inspectDomain = async (
   context: InspectorContext,
 ): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
-  const lawId = "LAW-XUANXUE-AI-PRODUCTION-001-V11";
+  const lawId = "LAW-XUANXUE-AI-PRODUCTION-001-V12";
   const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,

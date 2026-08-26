@@ -157,6 +157,15 @@ const verifySingleLocalEnvironmentInjection = async (): Promise<void> => {
     "ordinary production startup must never install or rebuild dependencies");
   assert.match(dependencyCheck, /DEPENDENCY_STATE_NOT_READY/u,
     "ordinary production startup must fail closed with one explicit repair instruction");
+  const dependencyState = await readFile(
+    "scripts/startup/lib/dependency-state-analysis.mjs",
+    "utf8",
+  );
+  assert.doesNotMatch(
+    dependencyState,
+    /mtimeMs|package\.json is newer|package-lock\.json is newer/u,
+    "ordinary production startup must inspect dependency reality instead of filesystem timestamps",
+  );
 };
 
 const createBrokenCredentialFixture = async (): Promise<Readonly<{

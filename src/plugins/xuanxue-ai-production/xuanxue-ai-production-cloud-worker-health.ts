@@ -10,7 +10,6 @@ import {
 
 const browserReady = (state: WorkerState): boolean =>
   state.lastRuntimeState.browserAuthorityState === "present"
-  && state.lastRuntimeState.browserTargetState === "claimed"
   && state.lastRuntimeState.browserLaneState !== "blocked";
 
 const executionHealth = (state: WorkerState): XuanxueAiProductionWorkerHealth["executionState"] => {

@@ -9,10 +9,7 @@
   },
   "scripts": {
     "browser:verify": "node --import tsx scripts/acceptance/browser-extension-build.acceptance.ts",
-    "browser:journal:recover": "node --import tsx src/lib/browser/exact-target/browser-proof-journal-recovery-cli.ts",
-    "proof:local-browser-journal-recovery": "node --import tsx scripts/acceptance/local-browser-journal-recovery.dynamic.ts",
     "proof:xuanxue-ai-production:recovery": "node --import tsx scripts/acceptance/xuanxue-ai-production.recovery-proof.ts",
-    "proof:xuanxue-ai-production:72h-soak": "node --import tsx scripts/acceptance/xuanxue-ai-production.72h-soak-proof.ts",
     "browser:protocol:generate": "node src/lib/browser/protocol/generate-browser-protocol.mjs",
     "browser:build": "npm run browser:protocol:generate && node src/lib/browser/chrome-extension/build.mjs",
     "build": "tsc -p tsconfig.json",
@@ -24,7 +21,6 @@
     "acceptance:ai-input-gateway-exact-target": "node --import tsx scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
     "acceptance:ai-input-gateway-execution-profile": "node --import tsx src/capabilities/ai-input-gateway/acceptance/gpt-web-execution-profile.acceptance.ts",
     "acceptance:ai-input-gateway": "npm run acceptance:ai-input-gateway-exact-target && npm run acceptance:ai-input-gateway-execution-profile && npm run acceptance:ai-input-gateway-attachment && npm run acceptance:ai-input-gateway-web-chat-concurrency",
-    "acceptance:browser-intervention": "node --import tsx scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts",
     "internal:app-server": "node dist/src/app/server.js",
     "grasseye:start": "node --env-file-if-exists=.env.local scripts/startup/launch-grasseye.mjs",
     "internal:app-server:dev": "tsx src/app/server.ts",

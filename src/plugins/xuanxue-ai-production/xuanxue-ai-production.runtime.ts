@@ -27,10 +27,11 @@ export type XuanxueAiBrowserTargetLease = NonNullable<
 export type XuanxueAiExecutionDeadlineBudget = {
   expiresAtMonotonic: number;
   commandTtlMs: number;
+  abortSignal: AbortSignal;
 };
 
 export type XuanxueAiBrowserAuthorityPort = Readonly<{
-  acquireOperatorClaimedTargetLease(
+  acquireJobBoundTargetLease(
     binding: XuanxueAiBrowserExecutionBinding,
     ownerId: string,
   ): Promise<XuanxueAiBrowserTargetLease>;

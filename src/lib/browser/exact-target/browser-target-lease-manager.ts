@@ -53,7 +53,7 @@ export class BrowserTargetLeaseManager {
       current: input.target,
       closed: false,
       sequence: 0,
-      pendingMutationCommandIds: [],
+      pendingMutationCommandIds: [...this.commandActor.pendingMutationCommandIds(this.executionBinding)],
     };
     const leaseRef = `target-lease-${randomUUID()}`;
     const command = this.createLeaseCommand(input, state, leaseRef);

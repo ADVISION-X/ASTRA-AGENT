@@ -125,7 +125,7 @@ const publishCancelledOrder = async (input: PublicationInput): Promise<boolean> 
 
 const publishHandover = async (input: PublicationInput): Promise<boolean> => {
   const handover = input.record.status === "recovery_pending"
-    && input.record.failureReason?.startsWith("XUANXUE_AI_INTERVENTION_TAKEOVER@");
+    && input.record.failureReason?.startsWith("XUANXUE_AI_CONTROL_HANDOVER@");
   if (!handover) return false;
   await acknowledgeXuanxueAiProductionHandover(
     input.session, input.outbox, input.job, input.record.order.orderId,

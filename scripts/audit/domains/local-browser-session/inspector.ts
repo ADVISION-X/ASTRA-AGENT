@@ -3,7 +3,7 @@ import { type InspectorContext, type InspectorEvaluation, type InspectorFinding,
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import { observeStaticAst, observeStaticContract } from "../../shared/static-target-object-inspector.js";
 import { inspectAuthenticatedChannelGuards } from "./authenticated-channel-inspection.js";
-import { inspectAtomicIfAndThenBoundary, inspectJournalRecoveryBoundary, inspectRegistryAndMutationBoundary } from "./mutation-atomicity-inspection.js";
+import { inspectAtomicIfAndThenBoundary, inspectCompactMutationRecoveryBoundary, inspectRegistryAndMutationBoundary } from "./mutation-atomicity-inspection.js";
 import { inspectOpaqueAuthorityBoundary } from "./opaque-proof-inspection.js";
 import { inspectAutomaticPairingAndReload, inspectReleaseAndRetiredPaths } from "./release-boundary-inspection.js";
 import { inspectSessionCore } from "./session-core-inspection.js";
@@ -11,7 +11,7 @@ import { inspectTargetClaimGuards } from "./target-claim-inspection.js";
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const lawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-001-V4");
-  const mutationLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V8");
+  const mutationLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V9");
   const channelLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-002-V5");
   const claimLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-003-V8");
   const releaseLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-005-V5");
@@ -24,7 +24,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   run("inspectSessionCore", [lawId], () => inspectSessionCore(context, findings, lawId));
   run("inspectRegistryAndMutationBoundary", [mutationLawId], () => inspectRegistryAndMutationBoundary(context, findings, mutationLawId));
   run("inspectAtomicIfAndThenBoundary", [mutationLawId], () => inspectAtomicIfAndThenBoundary(context, findings, mutationLawId));
-  run("inspectJournalRecoveryBoundary", [mutationLawId], () => inspectJournalRecoveryBoundary(context, findings, mutationLawId));
+  run("inspectCompactMutationRecoveryBoundary", [mutationLawId], () => inspectCompactMutationRecoveryBoundary(context, findings, mutationLawId));
   run("inspectAuthenticatedChannelGuards", [channelLawId], () => inspectAuthenticatedChannelGuards(context, findings, channelLawId));
   run("inspectAutomaticPairingAndReload", [channelLawId, claimLawId, releaseLawId], () => inspectAutomaticPairingAndReload(context, findings, channelLawId, claimLawId, releaseLawId));
   run("inspectTargetClaimGuards", [claimLawId], () => inspectTargetClaimGuards(context, findings, claimLawId));
@@ -46,7 +46,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     "LAW-LOCAL-BROWSER-SESSION-001-V4": ["inspectSessionCore"],
     "LAW-LOCAL-BROWSER-SESSION-002-V5": ["inspectAuthenticatedChannelGuards", "inspectAutomaticPairingAndReload"],
     "LAW-LOCAL-BROWSER-SESSION-003-V8": ["inspectAutomaticPairingAndReload", "inspectTargetClaimGuards"],
-    "LAW-LOCAL-BROWSER-SESSION-004-V8": ["inspectAtomicIfAndThenBoundary", "inspectJournalRecoveryBoundary", "inspectRegistryAndMutationBoundary"],
+    "LAW-LOCAL-BROWSER-SESSION-004-V9": ["inspectAtomicIfAndThenBoundary", "inspectCompactMutationRecoveryBoundary", "inspectRegistryAndMutationBoundary"],
     "LAW-LOCAL-BROWSER-SESSION-005-V5": ["inspectAutomaticPairingAndReload", "inspectReleaseAndRetiredPaths"],
     "LAW-LOCAL-BROWSER-SESSION-006-V3": ["inspectOpaqueAuthorityBoundary"],
   } as Readonly<Record<string, string[]>>)[lawId] ?? [];
@@ -69,7 +69,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
       lawResult("LAW-LOCAL-BROWSER-SESSION-001-V4", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)),
       lawResult("LAW-LOCAL-BROWSER-SESSION-002-V5", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)),
       lawResult("LAW-LOCAL-BROWSER-SESSION-003-V8", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)),
-      lawResult("LAW-LOCAL-BROWSER-SESSION-004-V8", staticClauses(10, 11, 12, 13, 14, 15, 16), false),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-004-V9", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12), false),
       lawResult("LAW-LOCAL-BROWSER-SESSION-005-V5", staticClauses(0, 1, 2, 3, 4, 5, 6)),
       lawResult("LAW-LOCAL-BROWSER-SESSION-006-V3", staticClauses(0)),
     ], inspectedFiles: evaluation.inspectedFiles,

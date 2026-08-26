@@ -20,6 +20,11 @@ const productionTableSchema = `
       order_json text not null,
       result_json text,
       failure_reason text,
+      control_intent text not null default 'none' check(control_intent in ('none','pause_requested','cancel_requested','handover_requested')),
+      control_epoch integer not null default 0,
+      control_ack_epoch integer not null default 0,
+      control_reason text,
+      control_checkpoint text,
       created_at text not null,
       updated_at text not null
     );
@@ -45,18 +50,6 @@ const productionTableSchema = `
       detail_json text not null,
       created_at text not null
     );
-    create table if not exists production_interventions (
-      order_id text primary key references production_orders(order_id),
-      revision integer not null default 0,
-      state text not null,
-      reason text,
-      request_id text,
-      pending_request text,
-      last_control_epoch integer not null default 0,
-      last_safe_checkpoint text,
-      requested_at text,
-      updated_at text not null
-    );
     create table if not exists production_cloud_outbox (
       request_id text primary key,
       job_id text not null,
@@ -74,16 +67,6 @@ const productionTableSchema = `
     );
     create index if not exists production_cloud_outbox_pending
       on production_cloud_outbox(state,created_at,request_id);
-    create table if not exists production_cloud_claim_ledger (
-      job_id text not null,
-      attempt_id text not null,
-      lease_version integer not null,
-      created_at text not null,
-      grant_json text not null,
-      grant_hash text not null,
-      persisted_at text not null,
-      primary key(job_id,attempt_id,lease_version)
-    );
     create table if not exists production_cloud_job_state (
       job_id text not null,
       attempt_id text not null,
@@ -104,6 +87,16 @@ const productionTableSchema = `
 
 const initializeProductionTables = (database: Database.Database): void => {
   database.exec(productionTableSchema);
+  const columns = new Set((database.prepare("pragma table_info(production_orders)").all() as readonly { name: string }[]).map((row) => row.name));
+  const additions = [
+    ["control_intent", "text not null default 'none'"],
+    ["control_epoch", "integer not null default 0"],
+    ["control_ack_epoch", "integer not null default 0"],
+    ["control_reason", "text"],
+    ["control_checkpoint", "text"],
+  ] as const;
+  for (const [name, declaration] of additions) if (!columns.has(name)) database.exec(`alter table production_orders add column ${name} ${declaration}`);
+  database.exec("drop table if exists production_interventions; drop table if exists production_cloud_claim_ledger");
 };
 
 export const openXuanxueAiProductionDatabase = (

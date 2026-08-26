@@ -1,19 +1,12 @@
 import type Database from "better-sqlite3";
 
 import type {
-  XuanxueAiInterventionRecord,
-  XuanxueAiInterventionRequest,
   XuanxueAiOrderRecord,
   XuanxueAiOrderStatus,
   XuanxueAiProductionOrder,
   XuanxueAiStageRecord,
 } from "./xuanxue-ai-production.schema.js";
-import {
-  acknowledgeXuanxueAiIntervention,
-  readXuanxueAiIntervention,
-  requestXuanxueAiIntervention,
-  resumeXuanxueAiIntervention,
-} from "./xuanxue-ai-production-store-intervention.js";
+import { acknowledgeXuanxueAiControlIntent, applyXuanxueAiControlIntent, readXuanxueAiControlIntent, type XuanxueAiControlIntent, type XuanxueAiControlIntentProjection } from "./xuanxue-ai-production-store-control-intent.js";
 import {
   cancelCloudRecoveryOrderInStore,
   quarantineForeignCloudRecoveryOrderInStore,
@@ -81,60 +74,24 @@ export class XuanxueAiProductionStore {
     return readQuarantinedStoredOrder(this.database, orderId);
   }
 
-  readIntervention(orderId: string): XuanxueAiInterventionRecord {
-    return readXuanxueAiIntervention(
-      this.database,
-      (candidateId) => this.readOrder(candidateId),
-      orderId,
-    );
+  readControlIntent(orderId: string): XuanxueAiControlIntentProjection {
+    return readXuanxueAiControlIntent(this.database, orderId);
   }
 
-  requestIntervention(
-    action: "pause" | "cancel" | "takeover",
-    input: XuanxueAiInterventionRequest,
-  ): XuanxueAiInterventionRecord {
-    return requestXuanxueAiIntervention(
-      this.database,
-      (candidateId) => this.readOrder(candidateId),
-      action,
-      input,
-    );
-  }
-
-  applyCloudControlIntent(
-    action: "pause" | "cancel" | "takeover",
-    input: XuanxueAiInterventionRequest,
+  applyControlIntent(
+    orderId: string,
+    intent: XuanxueAiControlIntent,
     controlEpoch: number,
-  ): XuanxueAiInterventionRecord {
-    return requestXuanxueAiIntervention(
-      this.database,
-      (candidateId) => this.readOrder(candidateId),
-      action,
-      input,
-      controlEpoch,
-    );
+    reasonCode: string | null,
+  ): XuanxueAiControlIntentProjection {
+    return applyXuanxueAiControlIntent(this.database, orderId, intent, controlEpoch, reasonCode);
   }
 
-  resumeIntervention(
-    input: XuanxueAiInterventionRequest,
-  ): XuanxueAiInterventionRecord {
-    return resumeXuanxueAiIntervention(
-      this.database,
-      (candidateId) => this.readOrder(candidateId),
-      input,
-    );
-  }
-
-  acknowledgeInterventionAtSafePoint(
+  acknowledgeControlIntentAtSafePoint(
     orderId: string,
     checkpoint: string,
-  ): XuanxueAiInterventionRecord | null {
-    return acknowledgeXuanxueAiIntervention(
-      this.database,
-      (candidateId) => this.readOrder(candidateId),
-      orderId,
-      checkpoint,
-    );
+  ): XuanxueAiControlIntentProjection | null {
+    return acknowledgeXuanxueAiControlIntent(this.database, orderId, checkpoint);
   }
 
   listRecoverableOrders(): XuanxueAiOrderRecord[] {

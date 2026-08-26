@@ -2,7 +2,6 @@ export type BrowserDomField = "tagName" | "type" | "role" | "ariaLabel" | "text"
 
 export type BrowserDomReadScope = Readonly<{
   selector: string;
-  matchIndex: number;
 }>;
 
 export type BrowserSemanticLocator = Readonly<{
@@ -14,7 +13,7 @@ export type BrowserSemanticLocator = Readonly<{
 
 export type BrowserDomIntent =
   | Readonly<{ kind: "document" }>
-  | Readonly<{ kind: "inspect"; selector: string; fields: readonly BrowserDomField[] }>
+  | Readonly<{ kind: "inspect"; selector: string; fields: readonly BrowserDomField[]; scope?: BrowserDomReadScope }>
   | Readonly<{
     kind: "find";
     /** A caller may use either a semantic locator or an owner-defined exact selector, never both. */
@@ -23,6 +22,7 @@ export type BrowserDomIntent =
     textContains?: string;
     textEquals?: string;
     maxMatches: number;
+    scope?: BrowserDomReadScope;
   }>
   | Readonly<{ kind: "readText"; selector: string; maxChars: number; maxMatches?: number; expectedMatches?: number; matchIndex?: number; scope?: BrowserDomReadScope }>
   | Readonly<{ kind: "readAttribute"; selector: string; name: string; maxChars: number; maxMatches?: number; expectedMatches?: number; matchIndex?: number; textContains?: string; scope?: BrowserDomReadScope }>
@@ -32,16 +32,18 @@ export type BrowserDomIntent =
     expectedText?: string;
     expectedTextEquals?: string;
     expectedMatches?: number;
+    scope?: BrowserDomReadScope;
     /** Same-node state that must be true immediately after the one click. */
     postClickAttribute?: Readonly<{ name: "aria-checked"; equals: "true" }>;
   }>
-  | Readonly<{ kind: "fill"; selector: string; approvedText: string; clearBeforeType: boolean; expectedMatches?: number }>;
+  | Readonly<{ kind: "fill"; selector: string; approvedText: string; clearBeforeType: boolean; expectedMatches?: number; scope?: BrowserDomReadScope }>;
 
 export const assertBrowserDomIntent = (intent: BrowserDomIntent): BrowserDomIntent => {
   assertSelector(intent);
   if (intent.kind === "find") assertFindIntent(intent);
   if (intent.kind === "readText" || intent.kind === "readAttribute") assertReadIntent(intent);
   if (intent.kind === "click" || intent.kind === "fill") assertOptionalExpectedMatches(intent.expectedMatches);
+  if ("scope" in intent) assertReadScope(intent.scope);
   if (intent.kind === "click") assertClickIntent(intent);
   return intent;
 };
@@ -83,7 +85,7 @@ const assertReadIntent = (intent: Extract<BrowserDomIntent, { kind: "readText" |
 
 const assertReadScope = (scope: BrowserDomReadScope | undefined): void => {
   if (!scope) return;
-  if (scope.selector.trim().length === 0 || !Number.isInteger(scope.matchIndex) || scope.matchIndex < 0 || scope.matchIndex > 99) {
+  if (!isBoundedText(scope.selector, 2_048)) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
 };

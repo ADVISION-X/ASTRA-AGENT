@@ -1,5 +1,4 @@
 import type Database from "better-sqlite3";
-import { createHash } from "node:crypto";
 
 export type XuanxueAiProductionCloudWriteKind = "checkpoint" | "artifact" | "terminal" | "cancel" | "handover";
 
@@ -65,32 +64,6 @@ export class XuanxueAiProductionCloudOutbox {
     return Object.freeze(rows.map(fromRow));
   }
 
-  private persistClaimIdentityWithinTransaction(input: {
-    jobId: string; attemptId: string; leaseVersion: number; createdAt: string;
-    grant: Readonly<Record<string, unknown>>;
-  }): void {
-    const grantJson = JSON.stringify(input.grant);
-    const grantHash = `sha256:${createHash("sha256").update(grantJson).digest("hex")}`;
-    const prior = this.database.prepare(`select grant_hash from production_cloud_claim_ledger
-      where job_id=? and attempt_id=? and lease_version=?`).get(
-      input.jobId, input.attemptId, input.leaseVersion,
-    ) as { grant_hash?: string } | undefined;
-    if (prior && prior.grant_hash !== grantHash) throw new Error("XUANXUE_AI_PRODUCTION_CLAIM_LEDGER_CONFLICT");
-    if (!prior) this.database.prepare(`insert into production_cloud_claim_ledger(
-      job_id,attempt_id,lease_version,created_at,grant_json,grant_hash,persisted_at
-    ) values(?,?,?,?,?,?,?)`).run(
-      input.jobId, input.attemptId, input.leaseVersion, input.createdAt,
-      grantJson, grantHash, new Date().toISOString(),
-    );
-  }
-
-  public persistClaimIdentity(input: {
-    jobId: string; attemptId: string; leaseVersion: number; createdAt: string;
-    grant: Readonly<Record<string, unknown>>;
-  }): void {
-    this.database.transaction(() => this.persistClaimIdentityWithinTransaction(input))();
-  }
-
   public pendingClaimRequest(): Readonly<{ requestId: string; payload: Record<string, unknown>; payloadHash: string }> | null {
     const row = this.database.prepare(`select request_id,payload_json,payload_hash from production_cloud_claim_requests
       where state='pending' order by created_at,request_id limit 1`).get() as { request_id: string; payload_json: string; payload_hash: string } | undefined;
@@ -108,22 +81,15 @@ export class XuanxueAiProductionCloudOutbox {
     ) values(?,?,?,'pending',?)`).run(input.requestId,JSON.stringify(input.payload),input.payloadHash,new Date().toISOString());
   }
 
-  public commitClaimReceipt(input: {
-    requestId: string;
-    claims: readonly {
-      jobId: string; attemptId: string; leaseVersion: number; createdAt: string;
-      grant: Readonly<Record<string, unknown>>;
-    }[];
-  }): void {
+  public commitClaimReceipt(requestId: string): void {
     this.database.transaction(() => {
       const pending = this.database.prepare(
         "select request_id from production_cloud_claim_requests where request_id=? and state='pending'",
-      ).get(input.requestId) as { request_id: string } | undefined;
+      ).get(requestId) as { request_id: string } | undefined;
       if (!pending) throw new Error("XUANXUE_AI_PRODUCTION_CLAIM_REQUEST_ACK_MISSING");
-      for (const claim of input.claims) this.persistClaimIdentityWithinTransaction(claim);
       const result = this.database.prepare(
         "delete from production_cloud_claim_requests where request_id=? and state='pending'",
-      ).run(input.requestId);
+      ).run(requestId);
       if (result.changes !== 1) throw new Error("XUANXUE_AI_PRODUCTION_CLAIM_REQUEST_ACK_MISSING");
     })();
   }

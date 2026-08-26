@@ -41,7 +41,6 @@ const dynamicScripts: Readonly<Record<string, Readonly<Partial<Record<string, st
   "local-browser-session": {
     "dynamic.browser": "acceptance:local-browser-real-chrome",
     "dynamic.storage": "acceptance:local-browser-real-chrome",
-    "dynamic.recovery": "proof:local-browser-journal-recovery",
   },
   "startup-entrypoint": { "dynamic.service": "proof:local-shell-current-runtime" },
   "xuanxue-ai-production": {
@@ -52,7 +51,6 @@ const dynamicScripts: Readonly<Record<string, Readonly<Partial<Record<string, st
     "dynamic.provider": "acceptance:xuanxue-ai-production:real-proof-verify",
     "dynamic.authorization": "acceptance:xuanxue-ai-production:real-proof-verify",
     "dynamic.recovery": "proof:xuanxue-ai-production:recovery",
-    "dynamic.performance": "proof:xuanxue-ai-production:72h-soak",
   },
 };
 

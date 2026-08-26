@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "xuanxue-ai-production",
   "lawIds": [
-    "LAW-XUANXUE-AI-PRODUCTION-001-V11"
+    "LAW-XUANXUE-AI-PRODUCTION-001-V12"
   ],
   "contractRefs": [
     "docs/specs/xuanxue-ai-production/product-execution-contract.dependency.spec.json",
@@ -50,7 +50,7 @@
 ```
 
 状态：active V6 terminal
-法案：`LAW-XUANXUE-AI-PRODUCTION-001-V11`
+法案：`LAW-XUANXUE-AI-PRODUCTION-001-V12`
 唯一 Local Order Execution Runtime Owner：`xuanxue-ai-production`
 Browser 私有 owner：`local-browser-session`
 ## 接入
@@ -108,12 +108,12 @@ Shell ready
 -> validate hardened device credential and exact environment/origin
 -> validate local consumer parser and dependency declarations
 -> reconcile local nonterminal ledger and durable outbox
--> open one worker session with higher server epoch and report `worker_instance_id`
+-> open one worker session with higher server epoch, atomically supersede the same device's prior session without a wall-clock wait, and report `worker_instance_id`
 ```
 
-Browser Authority 配对、正确 HTTPS Target 认领、Browser-required 生产任务创建与可领取任务的 claim
-均不属于启动器动作。它们只在 Shell 已建立后，由各自现役 Owner 的显式人工或正常运行流程执行；未完成时
-必须保持 Browser/Target/claim 为 absent 或 blocked，而不能通过自动化动作把启动器写成第二业务链。
+Browser Authority 配对、Browser-required 生产任务创建与可领取任务的 claim 均不属于启动器动作。扩展只在
+Shell 建立后自动配对 Authority；空闲 Target 必须保持 absent。exact job durable 接受后，第一个 Browser 原子
+动作才通过唯一 public facade 创建或认领正确 HTTPS Target，不能把启动器写成第二业务链。
 
 双仓运行只有 `production`：网站与 PostgreSQL 当前共同安装在本地 Mac，未来共同迁移到正式服务器；
 AGENT 始终留在用户本地 Mac，作为独立执行端主动连接网站，不进入服务器部署单元。当前网站 origin 为
@@ -127,19 +127,22 @@ endpoint、认证、request/response schema 与 manifest hash 后运行。descri
 bridge、dual-read 或 dual-write。
 
 ```txt
-explicit Browser Authority + Target state
+explicit Browser Authority state；Target 可为 absent
 -> heartbeat normalized capacity/state
 -> receive 45s RuntimeAttestationReceiptV6 + next 180s memory token
 -> server returns claim_eligible
 -> normal typed claim loop
+-> exact job durable accept
+-> one job-bound Target acquisition
 ```
 
-上一 session token generation 只允许同 session/epoch 60 秒在途重叠。Browser/Target/attestation
-任一缺失都令 browser-required claim blocked；不得先 claim 再以 Browser 错误释放。Heartbeat 独立于
-claim，并只在状态变化时完整记录。
+上一 session token generation 只允许同 session/epoch 60 秒在途重叠。Browser Authority 或 attestation
+缺失令 browser-required claim blocked；空闲 Target absent 是合法事实，不阻断 exact job claim。job durable
+接受后 Target acquisition 失败必须保持同一 job/attempt/checkpoint 恢复，不能回滚 claim、重放物理动作或
+创建第二任务。Heartbeat 独立于 claim，并只在状态变化时完整记录。
 
-Cloud credential、Provider、worker session、Browser Authority 或 Target 失败时，Shell 仍须提供
-health/status 诊断面，同时将 execution/claim 精确标为 blocked。该降级状态不得创建第二
+Cloud credential、Provider、worker session 或 Browser Authority 失败时，Shell 仍须提供 health/status 诊断面，
+同时将 execution/claim 精确标为 blocked；空闲 Target absent 只保持独立状态维，不降低 Shell/claim。该降级状态不得创建第二
 Shell、第二 worker 或临时 fallback，恢复时也不得重复建立 Browser/session Owner。
 
 ## Claim、容量和 durable 接受
@@ -155,7 +158,10 @@ Plugin 固定十个业务席位，Browser mutation 固定一个。所有 `queued
 
 Grant 固定 lease 90 秒、accept-by 30 秒、renew 20 秒指引。Plugin 用 monotonic clock 扣除 RTT；
 accept 剩余不足 5 秒或 lease 剩余不足 30 秒时，在无副作用条件调用 `LeaseReleaseV6`。本地
-`localOrderIdentity` 先 fsync；首个 durable checkpoint 即接受，不另建 ACK。
+grant 与 `localOrderIdentity` 在同一 SQLite transaction 持久化；不得另写 `production_cloud_claim_ledger`。
+首个 durable checkpoint 即接受，不另建 ACK。每 job 由同一个结构化 lifetime 同时拥有执行与 renew：
+瞬时 renew 网络错误只在 lease safety budget 内重试；确认 lease/fence 丢失后立即禁止新 Browser、Provider
+和 Cloud mutation，abort 并等待原执行 settle，settle 前不得从 active 移除或启动同 job 第二执行。
 
 Cloud job 的唯一状态固定为 `queued -> leased -> inputs_downloading -> factory_running`，随后只可进入
 `completed|recovery_pending|review_required|failed`；安全取消进入 `cancelled`，恢复任务仍以原 job
@@ -163,29 +169,43 @@ Cloud job 的唯一状态固定为 `queued -> leased -> inputs_downloading -> fa
 
 ## Browser 与恢复
 
-Browser side effect 只通过现役 public facade 取得当前 Workspace/Authority/Target/Document/action。
+Browser side effect 只通过现役 public facade 取得当前 Workspace/Authority/Target/Document/action。exact job
+durable 接受后，`IF job accepted -> THEN acquire target` 是唯一 Target 创建/认领入口；Authority READY 不得预取。
 Workspace 不设墙钟过期。断线、重启、Reload、identity drift 或 revoke 后停止新 claim；已接受任务
 保持同一 job/attempt/checkpoint 为 `recovery_pending`。重新配对/认领后先对账，再恢复最早任务。
 
-Browser 私有 Owner 必须先取得唯一排他 Owner lock，再打开、完整验证并绑定唯一 append-only proof
-journal 的当前尾部；构造阶段、等待锁阶段和锁外不得缓存 sequence 或 previous-entry hash。Authority、
-Target、Document、command 与 lifecycle 事件只允许在该锁持有期间 durable 追加。shutdown 固定先撤销
-Workspace/Authority、写入并 fsync revoke 事件，再释放 Owner lock；新进程取得锁后必须重新读取最新尾部，
-不得沿用取得锁前的内存快照。
-
-proof journal 任一 schema、sequence、previous hash、entry hash 或尾行完整性失败时，Shell 与只读诊断面
-保持可用，但 Browser Authority、Target、execution 与 claim 必须失败关闭。恢复不得截断、重排、重算、
-覆盖或分叉续写原 journal，不得建立第二活动 journal/epoch；任何恢复都必须由 `local-browser-session`
-Owner 保留原文件 hash 和明确 recovery receipt，且不能把旧候选历史冒充当前 Browser proof。
+Browser 私有 Owner 只在现有 SQLite/WAL 内持久化当前 mutation。每行精确绑定 `command_id`、job/fence、
+Target/Document/action、`PREPARED|SENT|CONFIRMED|FAILED|UNKNOWN`、request/payload/proof hash；发送前事务写
+PREPARED，发送边界写 SENT，后置只读 proof 原子解析 terminal。启动只查询未解析 row 并恢复只读对账；
+不得全量扫描 `proof-events.ndjson`、维护 lifecycle hash-chain、archive/recovery receipt 或 recovery genesis。
+当前 Dynamic Proof 直接绑定当前 Browser command receipt 与发布候选，不从历史生命周期账本推导。
 
 Mutation 只有 `PREPARED -> SEND -> CONFIRMED|FAILED|UNKNOWN`。UNKNOWN 永不自动 replay。
 `IF + AND -> THEN` 固定为逐动作状态链：`IF` 只读取当前已经成立并持久解析的事实，`AND` 表示
 “那么”并把这个事实承接给一个 `THEN`，`THEN` 只执行一个动作。接单 proof 成立才打开 provider；
-provider 页面就绪 proof 成立才选择模型；模型精确 readback proof 成立才进入附件或提交。每个动作的
+provider 页面就绪 proof 成立才选择模型；模型和推理的精确 readback proof 成立才进入附件或提交。每个动作的
 后置 proof 只能成为下一动作的 `IF`，精确语义、`candidate_count=1` 与相邻/错误/加载态排除只证明
-当前 `IF`。执行器必须按页面就绪、模型摘要、模型菜单、模型选择、模型读回、推理摘要、推理菜单、
-推理选择逐项直线推进；不得先预读后续状态再回头执行，不得为全量预观察或全量复查在步骤间往返，
+当前 `IF`。能力菜单入口读数为 0 只表示尚未就绪，继续只读观察且不得点击；读数为 1 才允许一个 THEN；
+fresh 页面就绪只读取 ChatGPT 根 URL 与唯一可见、可用、空 composer；`#upload-files`、附件卡、历史 turn、
+generation 和全局 form 分母只在各自后续步骤读取，不得提前并入 fresh proof，也不得因可选节点尚未挂载而
+把有效 Target 判成无效并从头重跑整组观察。
+读数大于 1 才是歧义并失败关闭。现役 GPT 页面必须按页面就绪、唯一能力菜单入口、菜单展开、高级选项展开、模型父摘要、
+模型子菜单、模型候选、模型选择、同一菜单重新展开后的模型摘要读回、推理父摘要、推理子菜单、
+推理候选、推理选择、同一菜单重新展开后的模型与推理双摘要终态读回逐项直线推进；不得跳过高级
+选项的展开事实后点击 DOM 中仍挂载但不可见的模型或推理节点，不得先预读后续状态再回头执行，
+不得为全量预观察或全量复查在步骤间往返，
 也不得把接单、开页、选模型、附件、提交聚合成一次 AND 或由一个 task-wide deadline 等齐整条链。
+
+每个 Browser mutation 必须是一个不可拆分的原子交易：已证前态 -> 精确一次物理动作 ->
+同一动作的只读后置观察 -> 一份 page-action proof -> 解析当前 pending mutation。物理动作已发出后，
+无论 transport 返回正常 mutation summary 还是 `BROWSER_OUTCOME_UNKNOWN`，执行器都不得再点一次；只允许
+继续读取当前 Document 上与该动作直接对应的唯一后置事实。正态、相邻错误态排除和唯一 Target
+同时成立时，当前 Owner 必须以这份 proof 解析原 mutation 后再进入下一个 IF；任一不成立时，
+必须停在原 checkpoint 并保留 UNKNOWN，不得执行第二 mutation。现役唯一 profile trigger 的可见
+`Pro` 只表示能力菜单入口，不携带模型与推理终态，严禁从它拼接或推导 profile。模型或推理选择使
+菜单关闭时，“菜单已关闭”只解析该次点击已经结束，不能冒充选中成功；执行器不得重放选择，只能把
+“重新打开同一菜单”作为下一原子动作，再分别以唯一 `模型 + 精确模型名` 和 `推理强度 + 精确档位`
+父摘要确认终态。不得用 `高` 命中 `极高`、用部分模型名或用菜单消失本身冒充选择成功。
 相对 deadline 只能界定当前未解析动作并安全停在原 checkpoint，不得充当状态证据、跨步骤倒计时
 或触发下一动作。日志不是 evidence，Browser receipt 不是业务结果。
 
@@ -194,8 +214,9 @@ provider 页面就绪 proof 成立才选择模型；模型精确 readback proof 
 Checkpoint、artifact、terminal、cancel、handover 全部写本地 durable outbox；未收到 Cloud receipt
 只重试同 request id/payload；同 payload 必须幂等读回同一 receipt。材料与结果只使用 canonical
 `object_ref + sha256 + byte_length + media_type`，并绑定 lease-scoped authority、前后重算 hash。
-每 job 独立 renew。Control intent 只消费 monotonic control epoch，不复制 job
-状态。Handover 由网站原子关闭旧 fence 并建立新 attempt/session-bound fence。
+Control intent 只在 Local Order 记录 `last_control_epoch` 并于安全 checkpoint 消费；不得建立
+`production_interventions` 或 Workbench pause/cancel/takeover/resume 状态机。Handover 由网站原子关闭旧
+fence 并建立新 attempt/session-bound fence。
 
 Workbench 分开显示 Shell、Cloud control plane、link/contract/session、Browser Authority/Target、
 claim admission、queue/outbox 和 e2e proof。任一局部 ready 不代表端到端 ready。
@@ -214,7 +235,7 @@ claim admission、queue/outbox 和 e2e proof。任一局部 ready 不代表端�
 切换依次冻结候选、双仓实现、验证 consumer parser、取得七层证据、网站停建 V5 job、
 AGENT drain 并停 claim V5、排空活动 lease、保持终态 V5 历史不变、在原 identity 上迁移安全未完成
 任务并写 event、以一个 release 激活网站/AGENT/Extension 且删除 V5 active surface、打开 V6 session、
-配对并认领 Target、普通 claim 保持 blocked 只跑一条 canary、PASS 后开放、最后审计 runtime 仅 V6。
+配对 Authority、普通 claim 保持 blocked 只跑一条 canary、job 接受后才取得 Target、PASS 后开放、最后审计 runtime 仅 V6。
 旧方案和 V5 证据只保留为历史，不再取得运行主权。
 
 V5 route/reader/writer/generated validator/config/package entry/process、外部 HMAC/LNA/localhost、
@@ -233,8 +254,9 @@ conversation/parent/join 正反例、零手写 topology，以及 strict V6 contr
 stale/replay、typed/idempotent claim、Browser absent no-claim、oldest eligible、十席位一 mutation、
 accept/release/renew/checkpoint/CAS、outbox restart、UNKNOWN、handover、drain 和 V5-zero。
 
-Static、Contract Exam、Integration、Fault、Real Chrome、Real Provider、72h Soak 互不替代。真实
-receipt 必须绑定双仓 SHA、V6 manifest、AGENT build 与 Extension release。未取得真实层时固定
+Static、Contract Exam、Integration、Fault、Real Chrome、Real Provider 与风险相称的 bounded observation
+互不替代。不得用历史固定场景数或固定 72 小时等待作为日常 claim 门。真实 receipt 必须绑定双仓 commit、
+V6 manifest、AGENT build 与 Extension release。未取得真实层时固定
 `NOT_PRODUCTION_VERIFIED`。
 
 正确性零容忍项固定包括：双 terminal、stale/foreign fence 写入、未 eligible session 获 lease、

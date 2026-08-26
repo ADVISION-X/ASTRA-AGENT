@@ -77,8 +77,8 @@ const assertFixedExtensionPairingBoundary = async (): Promise<void> => {
   });
 };
 
-const assertXuanxueLocalIntervention = async (): Promise<void> => {
-  await withServer(async ({ rootUrl, workbench }) => {
+const assertXuanxueLocalInterventionRetired = async (): Promise<void> => {
+  await withServer(async ({ rootUrl }) => {
     const response = await fetch(`${rootUrl}/api/xuanxue-ai-production/pause`, {
       method: "POST",
       headers: {
@@ -92,13 +92,12 @@ const assertXuanxueLocalIntervention = async (): Promise<void> => {
         requestId: "request_acceptance",
       }),
     });
-    assert.equal(response.status, 200);
-    assert.deepEqual(workbench.interventionCalls, ["pause"]);
+    assert.equal(response.status, 404);
   });
 };
 
 const assertXuanxueExternalIngressBlocked = async (): Promise<void> => {
-  await withServer(async ({ rootUrl, workbench }) => {
+  await withServer(async ({ rootUrl }) => {
     const response = await fetch(`${rootUrl}/api/xuanxue-ai-production/pause`, {
       method: "POST",
       headers: {
@@ -108,9 +107,8 @@ const assertXuanxueExternalIngressBlocked = async (): Promise<void> => {
       body: JSON.stringify({ orderId: "order_acceptance" }),
     });
     const body = await readJson(response);
-    assert.equal(response.status, 403);
-    assert.equal(body.error, "external_api_disabled");
-    assert.deepEqual(workbench.interventionCalls, []);
+    assert.equal(response.status, 404);
+    assert.equal(body.error, "api_route_not_allowed");
   });
 };
 
@@ -190,7 +188,7 @@ const assertPerSiteHmacBoundary = (): void => {
 
 await assertLocalShellRoutes();
 await assertFixedExtensionPairingBoundary();
-await assertXuanxueLocalIntervention();
+await assertXuanxueLocalInterventionRetired();
 await assertXuanxueExternalIngressBlocked();
 await assertRetiredRoutesAbsent();
 assertPerSiteHmacBoundary();

@@ -1,4 +1,4 @@
-import { access, stat } from "node:fs/promises";
+import { access } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 
 import { packageNameToPath } from "./dependency-package-utils.mjs";
@@ -26,24 +26,14 @@ function appendReason(reasons, condition, message) {
 }
 
 export async function collectMetadataReasons(paths) {
-  const packageStat = await stat(paths.packageJsonPath);
   const packageLockExists = await pathExists(paths.packageLockPath);
   const nodeModulesExists = await pathExists(paths.nodeModulesPath);
   const nodeModulesLockExists = await pathExists(paths.nodeModulesLockPath);
-  const lockStat = packageLockExists ? await stat(paths.packageLockPath) : undefined;
-  const nodeModulesLockStat = nodeModulesLockExists ? await stat(paths.nodeModulesLockPath) : undefined;
   const reasons = [];
 
   appendReason(reasons, !packageLockExists, "metadata_stale: package-lock.json is missing.");
   appendReason(reasons, !nodeModulesExists, "metadata_stale: node_modules directory is missing.");
-  appendReason(reasons, Boolean(lockStat) && packageStat.mtimeMs > lockStat.mtimeMs, "metadata_stale: package.json is newer than package-lock.json.");
   appendReason(reasons, nodeModulesExists && !nodeModulesLockExists, "metadata_stale: node_modules is missing npm install metadata.");
-  appendReason(reasons, Boolean(nodeModulesLockStat) && packageStat.mtimeMs > nodeModulesLockStat.mtimeMs, "metadata_stale: package.json is newer than node_modules install metadata.");
-  appendReason(
-    reasons,
-    Boolean(lockStat) && Boolean(nodeModulesLockStat) && lockStat.mtimeMs > nodeModulesLockStat.mtimeMs,
-    "metadata_stale: package-lock.json is newer than node_modules install metadata.",
-  );
 
   return { reasons, nodeModulesExists };
 }

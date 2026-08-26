@@ -441,7 +441,6 @@ export interface XuanxueAiProductionCloudCredential {
   readonly device_epoch: number;
   readonly credential: string;
   readonly control_manifest_hash: `sha256:${string}`;
-  readonly product_bundle_hash: `sha256:${string}`;
   readonly enrolled_at: string;
 }
 

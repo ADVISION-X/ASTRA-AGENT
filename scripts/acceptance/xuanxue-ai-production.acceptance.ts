@@ -62,7 +62,9 @@ assert.throws(() => assertXuanxueAiProductionV6DeadlineBudget(grant, 25_001), /V
 
 const source = await readFile(path.resolve("src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts"), "utf8");
 assert.doesNotMatch(source, /xuanxue-ai-production-v5|compat|fallback|dual.write|shadow/iu);
-assert.match(source, /persistClaimIdentity/u);
+assert.doesNotMatch(source, /persistClaimIdentity|production_cloud_claim_ledger/u);
+assert.match(source, /activeAbort/u);
+assert.match(source, /abortSignal/u);
 assert.match(source, /flushXuanxueAiProductionCloudOutbox/u);
 assert.match(source, /browserActionInFlight/u);
 const dataDir = await mkdtemp(path.join(tmpdir(), "xuanxue-ai-production-v6-"));
@@ -159,36 +161,11 @@ try {
     ["aiprod_localization_candidate_a", "localization_static_review_candidate", "candidate_a", "candidate_a"],
     ["aiprod_localization_candidate_b", "localization_static_review_candidate", "candidate_b", "candidate_b"],
     ["aiprod_localization_selector_first", "localization_static_review_selector", "selector_first", "selector_first"],
-    ["aiprod_localization_consistency", "localization_static_review_selector", "consistency", "consistency"],
   ] as const) {
     const localOrder = order(orderId, productId, [stageId], role);
     createXuanxueAiProductionOrder(runtime, localOrder);
     assert.equal((await executeXuanxueAiProductionOrder(runtime, orderId)).status, "completed");
   }
-  const selectorFirst = store.readOrder("aiprod_localization_selector_first")!;
-  const selectorFirstStage = selectorFirst.stages[0]!;
-  const selectorSwap = order(
-    "aiprod_localization_selector_swap",
-    "localization_static_review_selector",
-    ["selector_swap"],
-    "selector_swap",
-  );
-  selectorSwap.frozenSubject = selectorFirst.order.frozenSubject;
-  selectorSwap.conversationScopeRef = selectorFirst.order.conversationScopeRef;
-  selectorSwap.conversationParent = {
-    relation: "same_conversation",
-    jobId: selectorFirst.order.orderId,
-    stageId: "selector_first",
-    executionId: selectorFirstStage.executionId,
-    rawOutputHash: selectorFirstStage.rawOutputHash!,
-    inputBundleHash: selectorFirst.order.inputBundleHash,
-    conversationScopeRef: selectorFirst.order.conversationScopeRef,
-  };
-  createXuanxueAiProductionOrder(runtime, selectorSwap);
-  assert.equal(
-    (await executeXuanxueAiProductionOrder(runtime, selectorSwap.orderId)).status,
-    "completed",
-  );
   assert.ok(store.readOrder(hehun.orderId)?.result?.productContractHash);
   store.close();
 } finally {

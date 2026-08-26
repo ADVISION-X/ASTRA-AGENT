@@ -1,156 +1,28 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Project } from "ts-morph";
-import { BROWSER_ERROR_CODES } from "../../src/lib/browser/protocol/generated/browser-protocol.generated.js";
-import { BrowserOwnerLock } from "../../src/lib/browser/infrastructure/browser-owner-lock.js";
-import { readBrowserProofJournal } from "../../src/lib/browser/exact-target/browser-proof-journal.js";
-import { recoverBrowserProofJournal } from "../../src/lib/browser/exact-target/browser-proof-journal-recovery.js";
-import { inspectJournalRecoveryBoundary } from "../audit/domains/local-browser-session/mutation-atomicity-inspection.js";
-import { inspectTargetClaimGuards } from "../audit/domains/local-browser-session/target-claim-inspection.js";
-import { createInspectorContextFixture } from "../audit/shared/inspector-context-acceptance-support.js";
-import type { InspectorFinding } from "../audit/shared/inspector-contracts.js";
 
-const automaticClaimInspectionPaths = [
-  "src/lib/browser/transport/browser-authority-websocket.ts",
-  "src/lib/browser/chrome-extension/websocket-actor.ts",
-  "src/lib/browser/chrome-extension/websocket-target-claim-awaiter.ts",
-  "src/lib/browser/chrome-extension/extension-target-authority.ts",
-  "src/lib/browser/exact-target/browser-site-policy-registry.ts",
-  "src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts",
-  "src/lib/browser/infrastructure/browser-authority-broker.ts",
-  "scripts/acceptance/local-browser-auto-pairing.acceptance.ts",
-] as const;
+import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
 
-const automaticClaimFindings = (mutate?: (project: Project) => void): InspectorFinding[] => {
-  const project = new Project({ tsConfigFilePath: "tsconfig.json" });
-  mutate?.(project);
-  const fixture = createInspectorContextFixture(project, "local-browser-session", ["LAW-LOCAL-BROWSER-SESSION-003-V8"]);
-  const findings: InspectorFinding[] = [];
-  inspectTargetClaimGuards(
-    { ...fixture, targetPaths: [...automaticClaimInspectionPaths] },
-    findings,
-    "LAW-LOCAL-BROWSER-SESSION-003-V8",
-  );
-  return findings;
-};
-
-const automaticClaimMutants = [
-  ["src/lib/browser/chrome-extension/websocket-actor.ts", "await this.targetAuthority.claimPreauthorizedChatGptTarget();", "await Promise.resolve();"],
-  ["src/lib/browser/chrome-extension/websocket-actor.ts", "return false;", "if (request?.kind === \"GRASSEYE_CLAIM_ACTIVE_TARGET\") return false;\n      return false;"],
-  ["src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts", "requireGptWebChatPolicyForUrl(input.url);", "void input.url;"],
-  ["src/lib/browser/infrastructure/browser-authority-broker.ts", "current.targetRef !== claim.targetRef", "current.targetRef === claim.targetRef"],
-  ["src/lib/browser/exact-target/browser-site-policy-registry.ts", "allowedOrigins: [\"https://chatgpt.com\"],", "allowedOrigins: [\"https://chatgpt.com\", \"https://evil.chatgpt.com\"],"],
-] as const;
-
-assert.deepEqual(automaticClaimFindings(), [], "the current automatic-claim chain must pass its inspector baseline");
-for (const [path, from, to] of automaticClaimMutants) {
-  const findings = automaticClaimFindings((project) => {
-    const source = project.getSourceFileOrThrow(path);
-    const current = source.getFullText();
-    assert.ok(current.includes(from), `${path}: automatic-claim mutant anchor`);
-    source.replaceWithText(current.replace(from, to));
-  });
-  assert.ok(findings.length > 0, `${path}: automatic-claim mutant must produce a governance finding`);
-}
-
-const journalRecoveryPaths = [
-  "src/lib/browser/exact-target/browser-proof-journal.ts",
-  "src/lib/browser/exact-target/browser-proof-journal-recovery.ts",
-] as const;
-const journalRecoveryFindings = (mutate?: (project: Project) => void): InspectorFinding[] => {
-  const project = new Project({ tsConfigFilePath: "tsconfig.json" });
-  mutate?.(project);
-  const fixture = createInspectorContextFixture(project, "local-browser-session", ["LAW-LOCAL-BROWSER-SESSION-004-V8"]);
-  const findings: InspectorFinding[] = [];
-  inspectJournalRecoveryBoundary(
-    { ...fixture, targetPaths: [...journalRecoveryPaths] }, findings, "LAW-LOCAL-BROWSER-SESSION-004-V8",
-  );
-  return findings;
-};
-
-assert.deepEqual(journalRecoveryFindings(), [], "current recovery genesis must not carry current identity");
-for (const [from, to] of [
-  ["export type BrowserProofRecoveryEvent = Readonly<{", "export type BrowserProofRecoveryEvent = Readonly<{\n  candidateHash: `sha256:${string}`;"],
-  ["const recoveryKeys = [", "const recoveryKeys = [\n  \"releaseBuildId\","],
-] as const) {
-  const findings = journalRecoveryFindings((project) => {
-    const source = project.getSourceFileOrThrow(journalRecoveryPaths[0]);
-    const current = source.getFullText();
-    assert.ok(current.includes(from), "recovery identity mutant anchor");
-    source.replaceWithText(current.replace(from, to));
-  });
-  assert.ok(findings.some(({ checkId }) => checkId === "browser-authority/recovery-identity-boundary"),
-    "a recovery genesis carrying current identity must produce a governance finding");
-}
-
-const expected = [
-  "BROWSER_INSTALL_INVALID", "BROWSER_HOST_UNAVAILABLE", "BROWSER_ORIGIN_REJECTED", "BROWSER_EXTENSION_UNVERIFIED",
-  "BROWSER_ACTIVATION_TUPLE_INVALID", "BROWSER_AUTH_TRANSCRIPT_INVALID", "BROWSER_CAPABILITY_REJECTED", "BROWSER_PROFILE_UNVERIFIED",
-  "BROWSER_PROCESS_UNVERIFIED", "BROWSER_POLICY_UNVERIFIED", "BROWSER_LIVENESS_EXPIRED", "BROWSER_WORKER_FENCE_INVALID",
-  "BROWSER_DUAL_ACTIVE_WORKER", "BROWSER_BACKPRESSURE", "BROWSER_FILE_GRANT_INVALID", "BROWSER_ROLLBACK_REJECTED",
-  "BROWSER_REVOCATION_REJECTED", "BROWSER_COMMAND_PERMIT_INVALID", "BROWSER_TARGET_INVALID", "BROWSER_DOCUMENT_INVALID",
-  "BROWSER_DEVTOOLS_CONFLICT", "BROWSER_OUTCOME_UNKNOWN", "BROWSER_REPAIR_REQUIRED",
-] as const satisfies readonly (typeof BROWSER_ERROR_CODES)[number][];
-assert.equal(BROWSER_ERROR_CODES.length, expected.length);
-for (const code of expected) assert.equal(BROWSER_ERROR_CODES.includes(code), true, `missing mutant target ${code}`);
-const recovery = readFileSync("src/lib/browser/exact-target/browser-proof-journal-recovery.ts", "utf8");
-const journal = readFileSync("src/lib/browser/exact-target/browser-proof-journal.ts", "utf8");
-assert.match(recovery, /process\.env\[RECOVERY_AUTHORIZATION_ENV\] !== "1"/u, "mutant removing explicit human recovery authorization must fail");
-assert.match(recovery, /input\.assertExclusiveOwner\(\)/u, "mutant removing exclusive Owner proof must fail");
-assert.match(recovery, /ensureExactSealedFile\(archivePath, original\)/u, "mutant skipping byte-exact legacy archive must fail");
-assert.match(recovery, /sha256\(readFileSync\(archivePath\)\) !== originalJournalSha256/u, "mutant skipping archive hash verification must fail");
-assert.match(recovery, /BROWSER_JOURNAL_RECOVERY_SOURCE_DRIFT/u, "mutant accepting source drift before atomic commit must fail");
-assert.match(recovery, /renameSync\(temporaryPath, journalPath\)/u, "mutant replacing the canonical journal non-atomically must fail");
-assert.match(journal, /recoveryCount > 1/u, "mutant allowing a second recovery genesis must fail");
-
-const canonical = (value: unknown): unknown => Array.isArray(value) ? value.map(canonical)
-  : value && typeof value === "object" ? Object.fromEntries(Object.entries(value as Record<string, unknown>)
-    .sort(([left], [right]) => left.localeCompare(right)).map(([key, item]) => [key, canonical(item)])) : value;
-const hash = (value: unknown): `sha256:${string}` => `sha256:${createHash("sha256").update(JSON.stringify(canonical(value))).digest("hex")}`;
-const fixture = await mkdtemp(join(tmpdir(), "browser-proof-journal-recovery-"));
-const journalPath = join(fixture, "browser", "proof-events.ndjson");
-const lock = new BrowserOwnerLock(join(fixture, "browser", "owner.lock"));
-const priorAuthorization = process.env.GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZED;
+const root = await mkdtemp(join(tmpdir(), "browser-mutation-attacks-"));
+const hash = `sha256:${"b".repeat(64)}` as const;
 try {
-  await mkdir(join(fixture, "browser"), { recursive: true });
-  const firstCore = {
-    schemaVersion: "grasseye.browser-proof-journal.v1", sequence: 1,
-    previousEntryHash: `sha256:${"0".repeat(64)}`,
-    event: { eventType: "LIFECYCLE", phase: "AUTHENTICATED", candidateHash: `sha256:${"1".repeat(64)}`,
-      extensionId: "emkmbecadncngofidjgocmifhbonifgm", releaseBuildId: "first-release",
-      recordedAt: "2026-08-24T00:00:00.000Z", authorityRefHash: `sha256:${"5".repeat(64)}` },
-  } as const;
-  const competingCore = { ...firstCore, event: { ...firstCore.event,
-    candidateHash: `sha256:${"2".repeat(64)}`, releaseBuildId: "competing-release" } } as const;
-  const corrupted = Buffer.from(`${JSON.stringify({ ...firstCore, entryHash: hash(firstCore) })}\n${JSON.stringify({ ...competingCore, entryHash: hash(competingCore) })}\n`);
-  await writeFile(journalPath, corrupted, { mode: 0o600 });
-  await lock.acquire();
-  const input = { journalPath, operatorId: "operator:test", authorizationRef: "human-authorization:test",
-    reasonCode: "FORKED_SEQUENCE", assertExclusiveOwner: () => lock.assertHeld(), recoveredAt: "2026-08-25T00:00:00.000Z" } as const;
-  delete process.env.GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZED;
-  assert.throws(() => recoverBrowserProofJournal(input), /BROWSER_JOURNAL_RECOVERY_NOT_AUTHORIZED/u);
-  process.env.GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZED = "1";
-  const recovered = recoverBrowserProofJournal(input);
-  assert.equal(recovered.status, "RECOVERED");
-  assert.equal(recovered.firstInvalidLine, 2);
-  assert.deepEqual(await readFile(recovered.archivePath), corrupted);
-  assert.equal(existsSync(recovered.recoveryReceiptPath), true);
-  assert.deepEqual(readBrowserProofJournal(journalPath).map(({ event }) => event.eventType), ["RECOVERY"]);
-  const recovery = readBrowserProofJournal(journalPath)[0]!.event;
-  assert.equal(recovery.eventType === "RECOVERY" && recovery.operatorId, input.operatorId);
-  assert.equal(recoverBrowserProofJournal(input).status, "ALREADY_RECOVERED");
-  assert.throws(() => recoverBrowserProofJournal({ ...input, authorizationRef: "different-authorization" }),
-    /BROWSER_JOURNAL_RECOVERY_RECEIPT_CONFLICT/u);
-  assert.throws(() => recoverBrowserProofJournal({ ...input, reasonCode: "DIFFERENT_REASON" }),
-    /BROWSER_JOURNAL_RECOVERY_RECEIPT_CONFLICT/u);
+  const store = new BrowserMutationStore(root);
+  store.prepare({
+    commandId: "command-1", ownerPluginId: "xuanxue-ai-production",
+    jobId: "job-1", attemptId: "attempt-1", leaseVersion: 1,
+    executionFenceHash: hash, targetRef: "target-1", documentRef: "document-1",
+    actionId: "browser.dom.click.v1", requestHash: hash, payloadHash: hash,
+  });
+  assert.throws(() => store.resolve({ commandId: "command-1", ownerPluginId: "xuanxue-ai-production", targetRef: "target-1", state: "CONFIRMED", proofHash: hash }), /BROWSER_OUTCOME_UNKNOWN/u);
+  store.markSent("command-1");
+  store.markUnknown("command-1", "transport outcome unknown");
+  assert.throws(() => store.resolve({ commandId: "command-1", ownerPluginId: "foreign-owner", targetRef: "target-1", state: "CONFIRMED", proofHash: hash }), /BROWSER_OUTCOME_UNKNOWN/u);
+  assert.throws(() => store.resolve({ commandId: "command-1", ownerPluginId: "xuanxue-ai-production", targetRef: "target-2", state: "CONFIRMED", proofHash: hash }), /BROWSER_OUTCOME_UNKNOWN/u);
+  assert.equal(store.readUnknown("command-1")?.commandId, "command-1");
+  store.close();
+  process.stdout.write("LOCAL_BROWSER_RULE_MUTANTS_PASS\n");
 } finally {
-  if (priorAuthorization === undefined) delete process.env.GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZED;
-  else process.env.GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZED = priorAuthorization;
-  await lock.release().catch(() => undefined);
-  await rm(fixture, { recursive: true, force: true });
+  await rm(root, { recursive: true, force: true });
 }
-console.log("LOCAL_BROWSER_RULE_MUTANTS_ACCEPTANCE_PASS");

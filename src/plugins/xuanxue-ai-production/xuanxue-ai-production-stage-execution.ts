@@ -125,7 +125,7 @@ const acquireStageBrowser = async (input: {
     stageExecutionId: input.stage.executionId,
     stageOrdinal: input.stage.ordinal,
   });
-  const browser = await input.runtime.browserAuthority.acquireOperatorClaimedTargetLease({
+  const browser = await input.runtime.browserAuthority.acquireJobBoundTargetLease({
     kind: "xuanxue",
     ownerPluginId: "xuanxue-ai-production",
     jobId: identity.jobId,
@@ -203,7 +203,9 @@ export const continuationConversationUnavailable = (
 
 export const waitForRecoveryRetry = async (
   stage: XuanxueAiStageRecord,
+  signal?: AbortSignal,
 ): Promise<boolean> => {
+  if (signal?.aborted) return false;
   const deadline = new Date(stage.createdAt).getTime()
     + stage.material.timeoutMs;
   const remainingMs = deadline - Date.now();
@@ -213,7 +215,10 @@ export const waitForRecoveryRetry = async (
     MAX_RECOVERY_RETRY_DELAY_MS,
     RECOVERY_RETRY_DELAY_MS * Math.max(1, stage.attemptCount),
   );
-  await new Promise<void>((resolve) => setTimeout(resolve, retryDelayMs));
+  await new Promise<void>((resolve) => {
+    const timer = setTimeout(resolve, retryDelayMs);
+    signal?.addEventListener("abort", () => { clearTimeout(timer); resolve(); }, { once: true });
+  });
   return true;
 };
 
@@ -404,23 +409,23 @@ export const persistStageResult = (
   }, "stage_terminal");
 };
 
-export const acknowledgeInterventionSafePoint = async (
+export const acknowledgeControlIntentSafePoint = async (
   runtime: XuanxueAiProductionRuntime,
   orderId: string,
   checkpoint: string,
 ): Promise<void> => {
-  const acknowledged = runtime.store.acknowledgeInterventionAtSafePoint(
+  const acknowledged = runtime.store.acknowledgeControlIntentAtSafePoint(
     orderId,
     checkpoint,
   );
   if (acknowledged) {
-    if (acknowledged.state === "taken_over") {
+    if (acknowledged.intent === "handover_requested") {
       await runtime.aiInputGateway.releaseProviderTargetForOperator?.(
         `xuanxue-ai-production:${orderId}`,
       );
     }
     throw new Error(
-      `XUANXUE_AI_INTERVENTION_STOPPED:${acknowledged.state}:${checkpoint}`,
+      `XUANXUE_AI_CONTROL_STOPPED:${acknowledged.intent}:${checkpoint}`,
     );
   }
 };
@@ -438,6 +443,7 @@ export const executeGatewayStage = async (input: {
     input.feedInput,
     {
       executionId: input.stage.executionId,
+      ...(input.deadlineBudget ? { signal: input.deadlineBudget.abortSignal } : {}),
       ...(submissionAdmission ? { submissionAdmission } : {}),
       ...(browser ? { browser } : {}),
       ...(input.stage.supersededExecutionId && input.stage.attemptCount === 2

@@ -5,7 +5,7 @@ import { type InspectorContext, type InspectorFinding } from "../../shared/inspe
 import { createLocalFinding, identifiers, requireIdentifiers, requireSource, sourcePaths, stringLiterals, targetAuthorityPath } from "./inspector-support.js";
 
 type RegistryMutationSources = Readonly<Record<
-  "actor" | "broker" | "commandActor" | "domRuntime" | "journal" | "manager" | "registry" | "targetAuthority",
+  "actor" | "broker" | "commandActor" | "domRuntime" | "manager" | "mutationStore" | "registry" | "targetAuthority",
   SourceFile
 >>;
 
@@ -17,8 +17,8 @@ const requireRegistryMutationSources = (
   const paths = [sourcePaths[1], targetAuthorityPath, sourcePaths[8], sourcePaths[6], sourcePaths[7], sourcePaths[5], sourcePaths[18], sourcePaths[19]];
   const sources = paths.map((path) => requireSource(context, findings, lawId, path));
   if (sources.some((source) => source === null)) return null;
-  const [actor, targetAuthority, registry, commandActor, journal, manager, broker, domRuntime] = sources.map((source) => source!) as [SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile];
-  return { actor, targetAuthority, registry, commandActor, journal, manager, broker, domRuntime };
+  const [actor, targetAuthority, registry, commandActor, mutationStore, manager, broker, domRuntime] = sources.map((source) => source!) as [SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile];
+  return { actor, targetAuthority, registry, commandActor, mutationStore, manager, broker, domRuntime };
 };
 const inspectExtensionExecutionBoundary = (
   sources: RegistryMutationSources,
@@ -69,16 +69,17 @@ export const inspectRegistryAndMutationBoundary = (
     ...identifiers(sources.targetAuthority),
     ...identifiers(sources.registry),
     ...identifiers(sources.commandActor),
-    ...identifiers(sources.journal),
+    ...identifiers(sources.mutationStore),
     ...identifiers(sources.manager),
     ...identifiers(sources.broker),
   ]);
   for (const required of [
     "admitExtensionCommand",
     "executeRegisteredCommand",
-    "BrowserProofJournal",
-    "previousEntryHash",
-    "entryHash",
+    "BrowserMutationStore",
+    "requestHash",
+    "payloadHash",
+    "proofHash",
     "PREPARED",
     "UNKNOWN",
     "BrowserArtifactRegistry",
@@ -87,7 +88,7 @@ export const inspectRegistryAndMutationBoundary = (
     "resolveGrantPaths",
     "resolvedFilePaths",
   ]) {
-    if (!allIdentifiers.has(required) && !stringLiterals(sources.journal).includes(required)) {
+    if (!allIdentifiers.has(required) && !stringLiterals(sources.mutationStore).includes(required)) {
       findings.push(createLocalFinding({
         checkId: "browser-authority/terminal-authority",
         lawId,
@@ -281,57 +282,35 @@ export const exactTextMatcherIsStrict = (domRuntime: SourceFile): boolean => {
     && exactComparisonIsStrict(matcher);
 };
 
-const recoveryGenesisExcludesCurrentIdentity = (journal: SourceFile): boolean => {
-  const event = journal.getTypeAlias("BrowserProofRecoveryEvent")
-    ?.getFirstDescendantByKind(SyntaxKind.TypeLiteral);
-  const keys = journal.getVariableDeclaration("recoveryKeys")?.getInitializer();
-  if (!Node.isTypeLiteral(event) || !Node.isArrayLiteralExpression(keys)) return false;
-  const eventProperties = new Set(event.getProperties().flatMap((property) =>
-    Node.isPropertySignature(property) ? [property.getName()] : []));
-  const keyValues = new Set(keys.getElements().flatMap((element) =>
-    Node.isStringLiteral(element) ? [element.getLiteralValue()] : []));
-  const currentIdentity = ["candidateHash", "extensionId", "releaseBuildId"];
-  const historicalIdentity = ["observedCandidateHashes", "observedReleaseBuildIds"];
-  return currentIdentity.every((name) => !eventProperties.has(name) && !keyValues.has(name))
-    && historicalIdentity.every((name) => eventProperties.has(name) && keyValues.has(name));
-};
-
-export const inspectJournalRecoveryBoundary = (
+export const inspectCompactMutationRecoveryBoundary = (
   context: InspectorContext,
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  const recovery = requireSource(context, findings, lawId, sourcePaths[25]);
-  const journal = requireSource(context, findings, lawId, sourcePaths[7]);
-  if (!recovery || !journal) return;
-  requireIdentifiers(recovery, [
-    "recoverBrowserProofJournal", "assertExclusiveOwner", "ensureExactSealedFile",
-    "originalJournalSha256", "firstInvalidLine", "recoveryReceiptPath", "renameSync",
-    "fsyncSync",
-  ], findings, lawId, "Journal recovery must be explicit, exclusive, sealed, hash-bound, receipted and atomically committed.");
-  requireIdentifiers(journal, [
-    "BrowserProofRecoveryEvent", "createBrowserRecoveryEnvelope", "recoveryCount",
-  ], findings, lawId, "The V2 canonical journal must admit exactly one typed recovery genesis.");
-  if (!recoveryGenesisExcludesCurrentIdentity(journal)) findings.push(createLocalFinding({
-    checkId: "browser-authority/recovery-identity-boundary",
-    lawId,
-    filePath: sourcePaths[7],
-    message: "Recovery genesis may record sealed historical identity observations, but must not carry current candidate, extension, or release identity.",
-  }));
+  const mutationStore = requireSource(context, findings, lawId, sourcePaths[7]);
+  if (!mutationStore) return;
+  requireIdentifiers(mutationStore, [
+    "BrowserMutationStore", "prepare", "markSent", "markUnknown", "resolve",
+    "unknownForBinding", "readUnknown", "requestHash", "payloadHash", "proofHash",
+  ], findings, lawId, "Compact Browser mutation recovery must remain one SQLite/WAL row per physical mutation and exact job binding.");
+  const literals = new Set(stringLiterals(mutationStore));
   for (const literal of [
-    "grasseye.browser-proof-journal.v2",
-    "RECOVERY",
-    "GENESIS",
-    "BROWSER_JOURNAL_RECOVERY_NOT_AUTHORIZED",
-    "BROWSER_JOURNAL_RECOVERY_SOURCE_DRIFT",
-    "BROWSER_JOURNAL_RECOVERY_RECEIPT_CONFLICT",
+    "browser-mutations.sqlite",
+    "journal_mode = WAL",
+    "PREPARED",
+    "SENT",
+    "CONFIRMED",
+    "FAILED",
+    "UNKNOWN",
+    "BROWSER_OUTCOME_UNKNOWN",
+    "BROWSER_COMMAND_NOT_SENT",
   ]) {
-    if ([...stringLiterals(recovery), ...stringLiterals(journal)].includes(literal)) continue;
+    if (literals.has(literal)) continue;
     findings.push(createLocalFinding({
       checkId: "browser-authority/terminal-authority",
       lawId,
-      filePath: sourcePaths[25],
-      message: `The journal recovery boundary must retain ${literal}.`,
+      filePath: sourcePaths[7],
+      message: `The compact mutation recovery boundary must retain ${literal}.`,
     }));
   }
 };

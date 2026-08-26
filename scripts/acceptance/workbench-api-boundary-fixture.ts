@@ -8,25 +8,10 @@ export const externalOrigin = "https://external.example.com";
 
 export type FakeWorkbench = GrassEyeWorkbenchHandle & {
   apiBoundaryEvents: unknown[];
-  interventionCalls: string[];
 };
-
-const interventionRecord = (action: string) => ({
-  orderId: "order_acceptance",
-  revision: 1,
-  state: action === "cancel" ? "cancelled" as const : "pause_requested" as const,
-  reason: "acceptance",
-  requestId: "request_acceptance",
-  pendingRequest: action === "cancel" ? "cancel" as const : "pause" as const,
-  lastControlEpoch: 0,
-  lastSafeCheckpoint: null,
-  requestedAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-});
 
 const createFakeWorkbench = (): FakeWorkbench => {
   const apiBoundaryEvents: unknown[] = [];
-  const interventionCalls: string[] = [];
   const fake: Partial<GrassEyeWorkbenchHandle> = {
     recordWorkbenchApiBoundaryEvent(event) {
       apiBoundaryEvents.push(event);
@@ -58,24 +43,8 @@ const createFakeWorkbench = (): FakeWorkbench => {
     readXuanxueAiProductionStatus() {
       return null;
     },
-    pauseXuanxueAiProduction() {
-      interventionCalls.push("pause");
-      return interventionRecord("pause");
-    },
-    cancelXuanxueAiProduction() {
-      interventionCalls.push("cancel");
-      return interventionRecord("cancel");
-    },
-    takeoverXuanxueAiProduction() {
-      interventionCalls.push("takeover");
-      return interventionRecord("takeover");
-    },
-    resumeXuanxueAiProduction() {
-      interventionCalls.push("resume");
-      return interventionRecord("resume");
-    },
   };
-  return Object.assign(fake, { apiBoundaryEvents, interventionCalls }) as FakeWorkbench;
+  return Object.assign(fake, { apiBoundaryEvents }) as FakeWorkbench;
 };
 
 export const withServer = async (
