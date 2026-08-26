@@ -101,3 +101,12 @@ const canonicalize = (value: unknown): unknown => {
 
 export const hashXuanxueDynamicReceipt = (value: unknown): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(JSON.stringify(canonicalize(value))).digest("hex")}`;
+
+export const XuanxueDynamicProofBindingContract = Object.freeze({
+  fileName: XUANXUE_DYNAMIC_PROOF_BINDING_FILE,
+  parseSourceCandidateHash: parseXuanxueSourceCandidateHash,
+  validate: validateXuanxueDynamicProofBinding,
+  assertProviderRecordHash: assertXuanxueProviderRecordHash,
+  assertTimestampFresh: assertXuanxueDynamicTimestampFresh,
+  hashReceipt: hashXuanxueDynamicReceipt,
+});

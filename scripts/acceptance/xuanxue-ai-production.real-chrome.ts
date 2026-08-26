@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
-import { XuanxueDynamicProofBindingContract } from "../../src/capabilities/ai-input-gateway/index.js";
+import { XuanxueDynamicProofBindingContract } from "../audit/domains/xuanxue-ai-production/dynamic-proof-binding-contract.js";
 import { GRASSEYE_UNPACKED_EXTENSION_ID } from "../../src/lib/browser/release/unpacked-extension-release-identity.js";
 import { XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.js";
 import {

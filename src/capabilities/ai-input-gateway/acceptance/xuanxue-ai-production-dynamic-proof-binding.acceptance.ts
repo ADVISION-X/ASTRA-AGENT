@@ -4,10 +4,10 @@ import { emitQualityProofObservation } from "../../../../scripts/audit/shared/pr
 import {
   assertXuanxueProviderRecordHash,
   hashXuanxueDynamicReceipt,
+  parseXuanxueSourceCandidateHash,
   validateXuanxueDynamicProofBinding,
   XUANXUE_DYNAMIC_PROOF_MAX_AGE_MS,
-} from "../xuanxue-dynamic-proof-contract.js";
-import { parseXuanxueSourceCandidateHash } from "../xuanxue-dynamic-proof-contract.js";
+} from "../../../../scripts/audit/domains/xuanxue-ai-production/dynamic-proof-binding-contract.js";
 
 const candidateHash =
   "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;

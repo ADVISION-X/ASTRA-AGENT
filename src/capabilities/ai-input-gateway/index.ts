@@ -1,7 +1,6 @@
 export { createAiInputGatewayAbilityGroup } from "./ability-group.js";
 export {
   buildGptWebProviderExecutionProfile,
-  XuanxueDynamicProofBindingContract,
   type AiFeedInput,
   type AiFeedResult,
   type AiTaskLabelKey,
@@ -15,4 +14,3 @@ export type {
   AiInputGatewayProgress,
   AiInputGatewaySubmissionAdmission,
 } from "./contract.js";
-export type { WebChatFailureClassification } from "./failure-classification.js";

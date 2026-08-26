@@ -14,7 +14,7 @@ export const gatewayExecutionProfilePath = "src/capabilities/ai-input-gateway/pr
 export const gatewayConversationTitlePath = "src/capabilities/ai-input-gateway/providers/gpt-web-conversation-title.ts";
 export const gatewaySchemaPath = "src/capabilities/ai-input-gateway/schema.ts";
 export const gatewayDynamicProofContractPath =
-  "src/capabilities/ai-input-gateway/xuanxue-dynamic-proof-contract.ts";
+  "scripts/audit/domains/xuanxue-ai-production/dynamic-proof-binding-contract.ts";
 export const removedSecondChainPaths = [
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-provider-input-preflight.ts",
   "scripts/acceptance/xuanxue-ai-production-provider-preflight.ts",

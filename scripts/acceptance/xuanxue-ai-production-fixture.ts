@@ -2,7 +2,6 @@ import type {
   AiFeedInput,
   AiFeedResult,
   AiInputGatewayAbilityGroup,
-  WebChatFailureClassification,
 } from "../../src/capabilities/ai-input-gateway/index.js";
 import type {
   XuanxueAiProductionOrder,
@@ -16,12 +15,16 @@ import {
 } from "./xuanxue-ai-production-fixture-provider-profile.js";
 import { FixtureGatewayFaults } from "./xuanxue-ai-production-fixture-faults.js";
 
+type FixtureFailureClassification = ReturnType<
+  NonNullable<AiInputGatewayAbilityGroup["classifyFailure"]>
+>;
+
 export const hash = fixtureHash;
 
 const classifyFixtureWebChatFailure = (
   error: unknown,
   hasDurableSubmission: boolean,
-): WebChatFailureClassification => {
+): FixtureFailureClassification => {
   const reason = error instanceof Error ? error.message : String(error);
   if (hasDurableSubmission || /(?:WEB_CHAT_|ChatGPT fresh conversation pending|不能获取对象)/iu.test(reason)) {
     return "recovery_pending";
@@ -231,7 +234,7 @@ export class FixtureGateway implements AiInputGatewayAbilityGroup {
   classifyFailure(
     error: unknown,
     hasDurableSubmission: boolean,
-  ): WebChatFailureClassification {
+  ): FixtureFailureClassification {
     return classifyFixtureWebChatFailure(error, hasDurableSubmission);
   }
 

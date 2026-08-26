@@ -5,7 +5,7 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
-import { XuanxueDynamicProofBindingContract } from "../../src/capabilities/ai-input-gateway/index.js";
+import { XuanxueDynamicProofBindingContract } from "../audit/domains/xuanxue-ai-production/dynamic-proof-binding-contract.js";
 import {
   attestXuanxueAiProductionProviderRun,
   XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
