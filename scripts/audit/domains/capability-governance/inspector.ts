@@ -9,7 +9,7 @@ import {
   isCapabilityNonFacade,
   isCapabilityPrivateImplementationSection,
 } from "../../shared/repo-path-classifier.js";
-import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../shared/source-files.js";
 import {
   resolveCapabilityFacadePolicy,
@@ -413,40 +413,41 @@ export const inspectCapabilityGovernanceProject = (
   project: InspectorContext["project"],
   includeAuthority: boolean,
   lawId = "LAW-CAPABILITY-GOVERNANCE-001-V2",
-): { findings: ReturnType<typeof createFinding>[]; inspectedFiles: string[] } => {
+): { findings: ReturnType<typeof createFinding>[]; inspectedFiles: string[]; staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] } => {
   const findings: ReturnType<typeof createFinding>[] = [];
+  const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
   const pushFinding = createDedupedFindingPusher(findings);
-  const scan = collectCapabilityGovernanceScan({
+  const scan = recordStaticCheck({ check: "collectCapabilityGovernanceScan", findings, lawIds: [lawId], receipts: staticCheckReceipts, run: () => collectCapabilityGovernanceScan({
     facadeLawId: lawId,
     project,
     pushFinding,
-  });
+  }) });
 
-  if (includeAuthority) pushCapabilitySourceOfTruthFindings({
+  if (includeAuthority) recordStaticCheck({ check: "pushCapabilitySourceOfTruthFindings", findings, lawIds: [lawId], receipts: staticCheckReceipts, run: () => pushCapabilitySourceOfTruthFindings({
     admissionLawId: lawId,
     actualCapabilityRoots: scan.capabilityRoots,
     pushFinding,
-  });
-  pushMissingCapabilityFacades({
+  }) });
+  recordStaticCheck({ check: "pushMissingCapabilityFacades", findings, lawIds: [lawId], receipts: staticCheckReceipts, run: () => pushMissingCapabilityFacades({
     capabilityFacades: scan.capabilityFacades,
     capabilityRoots: scan.capabilityRoots,
     facadeLawId: lawId,
     pushFinding,
-  });
-  pushMissingCapabilityConsumers({
+  }) });
+  recordStaticCheck({ check: "pushMissingCapabilityConsumers", findings, lawIds: [lawId], receipts: staticCheckReceipts, run: () => pushMissingCapabilityConsumers({
     capabilityRoots: scan.capabilityRoots,
     consumedCapabilityRoots: scan.consumedCapabilityRoots,
     facadeLawId: lawId,
     pushFinding,
-  });
-  pushMissingFacadeExportConsumers({
+  }) });
+  recordStaticCheck({ check: "pushMissingFacadeExportConsumers", findings, lawIds: [lawId], receipts: staticCheckReceipts, run: () => pushMissingFacadeExportConsumers({
     facadeExports: scan.facadeExports,
     consumedFacadeExports: scan.consumedFacadeExports,
     facadeLawId: lawId,
     pushFinding,
-  });
+  }) });
 
-  return { findings, inspectedFiles: [...scan.inspectedFiles].sort() };
+  return { findings, inspectedFiles: [...scan.inspectedFiles].sort(), staticCheckReceipts };
 };
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
@@ -460,6 +461,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
     reportedLawIds: context.planEntry.lawIds,
     findings: evaluation.findings,
     inspectedFiles: [...context.targetPaths],
+    staticCheckReceipts: evaluation.staticCheckReceipts,
   };
 };
 
@@ -467,13 +469,21 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const evaluation = await inspectDomainEvaluation(context);
   const lawId = "LAW-CAPABILITY-GOVERNANCE-001-V2";
   const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
+  const checks = (mode: string): string[] => mode === "static.dependency" ? ["collectCapabilityGovernanceScan"]
+    : mode === "static.filesystem" ? ["pushMissingCapabilityFacades"]
+      : mode === "static.types" ? ["pushMissingFacadeExportConsumers"]
+        : ["collectCapabilityGovernanceScan", "pushMissingCapabilityConsumers"];
+  const refs = (mode: string, clauses: string[]) => ({
+    passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks(mode)),
+    refs: staticEvidenceRefs(context, lawId, mode, clauses, evaluation.staticCheckReceipts, checks(mode)),
+  });
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [{ lawId, assertions: [
-      { clauses: staticClauses(0), evidenceMode: "static.ast", passed: producerModePassed(findings, "static.ast"), refs: staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0), ["inspectCapabilityGovernanceProject"]) },
-      { clauses: staticClauses(0), evidenceMode: "static.dependency", passed: producerModePassed(findings, "static.dependency"), refs: staticEvidenceRefs(context, lawId, "static.dependency", staticClauses(0), ["inspectCapabilityGovernanceProject"]) },
-      { clauses: staticClauses(0), evidenceMode: "static.filesystem", passed: producerModePassed(findings, "static.filesystem"), refs: staticEvidenceRefs(context, lawId, "static.filesystem", staticClauses(0), ["inspectCapabilityGovernanceProject"]) },
-      { clauses: staticClauses(0), evidenceMode: "static.types", passed: producerModePassed(findings, "static.types"), refs: staticEvidenceRefs(context, lawId, "static.types", staticClauses(0), ["inspectCapabilityGovernanceProject"]) },
+      { clauses: staticClauses(0), evidenceMode: "static.ast", ...refs("static.ast", staticClauses(0)) },
+      { clauses: staticClauses(0), evidenceMode: "static.dependency", ...refs("static.dependency", staticClauses(0)) },
+      { clauses: staticClauses(0), evidenceMode: "static.filesystem", ...refs("static.filesystem", staticClauses(0)) },
+      { clauses: staticClauses(0), evidenceMode: "static.types", ...refs("static.types", staticClauses(0)) },
     ], findings }], inspectedFiles: evaluation.inspectedFiles,
   });
 };

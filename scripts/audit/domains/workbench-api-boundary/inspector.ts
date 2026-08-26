@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
 import {
   Node,
@@ -371,15 +371,19 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
     audit: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V6"),
   };
   const findings: InspectorFinding[] = [];
+  const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
+  const run = (check: string, action: () => void): void => recordStaticCheck({
+    check, findings, lawIds: [lawIds.ingress], receipts: staticCheckReceipts, run: action,
+  });
   const summary = initialSummary();
   const requiredFiles = inspectRequiredFiles(context.project, findings, lawIds.ingress);
   const inspectedFiles = new Set<string>(requiredFiles.map((file) => toRepoPath(file.getFilePath())));
   const boundaryFile = source(context.project, boundaryPath);
   if (boundaryFile) {
-    inspectRouteRules(boundaryFile, findings, summary, lawIds);
-    inspectForbiddenKeys(boundaryFile, findings, summary, lawIds.shape);
-    inspectExternalIngressIdentity({ boundaryPath, file: boundaryFile, findings, lawId: lawIds.ingress, summary });
-    inspectPerSiteHmac({ boundaryPath, file: boundaryFile, findings, lawId: lawIds.auth, summary });
+    run("inspectRouteRules", () => inspectRouteRules(boundaryFile, findings, summary, lawIds));
+    run("inspectForbiddenKeys", () => inspectForbiddenKeys(boundaryFile, findings, summary, lawIds.shape));
+    run("inspectExternalIngressIdentity", () => inspectExternalIngressIdentity({ boundaryPath, file: boundaryFile, findings, lawId: lawIds.ingress, summary }));
+    run("inspectPerSiteHmac", () => inspectPerSiteHmac({ boundaryPath, file: boundaryFile, findings, lawId: lawIds.auth, summary }));
   }
   inspectExtensionPairingBoundary(context.project, findings, lawIds.ingress);
   inspectSecondServers(context.project, findings, summary, lawIds.ingress);
@@ -390,6 +394,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths],
+    staticCheckReceipts,
   };
 };
 
@@ -397,11 +402,16 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const evaluation = await inspectDomainEvaluation(context);
   const lawId = "LAW-WORKBENCH-API-BOUNDARY-001-V6";
   const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
+  const assertion = (mode: string, checks: string[]) => ({
+    clauses: staticClauses(0), evidenceMode: mode,
+    passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks),
+    refs: staticEvidenceRefs(context, lawId, mode, staticClauses(0), evaluation.staticCheckReceipts, checks),
+  });
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [{ lawId, assertions: [
-      { clauses: staticClauses(0), evidenceMode: "static.ast", passed: producerModePassed(findings, "static.ast"), refs: staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0), ["inspectForbiddenKeys", "inspectRouteRules"]) },
-      { clauses: staticClauses(0), evidenceMode: "static.contract", passed: producerModePassed(findings, "static.contract"), refs: staticEvidenceRefs(context, lawId, "static.contract", staticClauses(0), ["inspectExternalIngressIdentity", "inspectPerSiteHmac"]) },
+      assertion("static.ast", ["inspectForbiddenKeys", "inspectRouteRules"]),
+      assertion("static.contract", ["inspectExternalIngressIdentity", "inspectPerSiteHmac"]),
     ], findings }], inspectedFiles: evaluation.inspectedFiles,
   });
 };

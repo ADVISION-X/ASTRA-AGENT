@@ -1,6 +1,6 @@
 import { selectLawId } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorEvaluation, type InspectorFinding, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
-import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import { inspectAuthenticatedChannelGuards } from "./authenticated-channel-inspection.js";
 import { inspectAtomicIfAndThenBoundary, inspectJournalRecoveryBoundary, inspectRegistryAndMutationBoundary } from "./mutation-atomicity-inspection.js";
 import { inspectOpaqueAuthorityBoundary } from "./opaque-proof-inspection.js";
@@ -16,20 +16,25 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   const releaseLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-005-V5");
   const opaqueLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-006-V3");
   const findings: InspectorFinding[] = [];
-  inspectSessionCore(context, findings, lawId);
-  inspectRegistryAndMutationBoundary(context, findings, mutationLawId);
-  inspectAtomicIfAndThenBoundary(context, findings, mutationLawId);
-  inspectJournalRecoveryBoundary(context, findings, mutationLawId);
-  inspectAuthenticatedChannelGuards(context, findings, channelLawId);
-  inspectAutomaticPairingAndReload(context, findings, channelLawId, claimLawId, releaseLawId);
-  inspectTargetClaimGuards(context, findings, claimLawId);
-  inspectReleaseAndRetiredPaths(findings, releaseLawId);
-  inspectOpaqueAuthorityBoundary(context, findings, opaqueLawId);
+  const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
+  const run = (check: string, lawIds: readonly string[], action: () => void): void => recordStaticCheck({
+    check, findings, lawIds, receipts: staticCheckReceipts, run: action,
+  });
+  run("inspectSessionCore", [lawId], () => inspectSessionCore(context, findings, lawId));
+  run("inspectRegistryAndMutationBoundary", [mutationLawId], () => inspectRegistryAndMutationBoundary(context, findings, mutationLawId));
+  run("inspectAtomicIfAndThenBoundary", [mutationLawId], () => inspectAtomicIfAndThenBoundary(context, findings, mutationLawId));
+  run("inspectJournalRecoveryBoundary", [mutationLawId], () => inspectJournalRecoveryBoundary(context, findings, mutationLawId));
+  run("inspectAuthenticatedChannelGuards", [channelLawId], () => inspectAuthenticatedChannelGuards(context, findings, channelLawId));
+  run("inspectAutomaticPairingAndReload", [channelLawId, claimLawId, releaseLawId], () => inspectAutomaticPairingAndReload(context, findings, channelLawId, claimLawId, releaseLawId));
+  run("inspectTargetClaimGuards", [claimLawId], () => inspectTargetClaimGuards(context, findings, claimLawId));
+  run("inspectReleaseAndRetiredPaths", [releaseLawId], () => inspectReleaseAndRetiredPaths(findings, releaseLawId));
+  run("inspectOpaqueAuthorityBoundary", [opaqueLawId], () => inspectOpaqueAuthorityBoundary(context, findings, opaqueLawId));
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths].sort(),
+    staticCheckReceipts,
   };
 };
 
@@ -46,10 +51,11 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   } as Readonly<Record<string, string[]>>)[lawId] ?? [];
   const lawResult = (lawId: string, astClauses: string[], hasContract = true) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
-      const assertions = [{ clauses: astClauses, evidenceMode: "static.ast", passed: producerModePassed(findings, "static.ast"),
-      refs: staticEvidenceRefs(context, lawId, "static.ast", astClauses, semanticChecks(lawId)) }];
-    if (hasContract) assertions.push({ clauses: staticClauses(0), evidenceMode: "static.contract", passed: producerModePassed(findings, "static.contract"),
-      refs: staticEvidenceRefs(context, lawId, "static.contract", staticClauses(0), semanticChecks(lawId)) });
+    const checks = semanticChecks(lawId);
+      const assertions = [{ clauses: astClauses, evidenceMode: "static.ast", passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks),
+      refs: staticEvidenceRefs(context, lawId, "static.ast", astClauses, evaluation.staticCheckReceipts, checks) }];
+    if (hasContract) assertions.push({ clauses: staticClauses(0), evidenceMode: "static.contract", passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks),
+      refs: staticEvidenceRefs(context, lawId, "static.contract", staticClauses(0), evaluation.staticCheckReceipts, checks) });
     return { lawId, assertions, findings };
   };
   return validateStaticInspection(context, {

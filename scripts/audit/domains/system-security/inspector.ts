@@ -158,11 +158,14 @@ export const inspectSystemSecurityProject = (project: Project): InspectorFinding
 };
 
 const evaluate = (context: InspectorContext): InspectorEvaluation => {
+  const findings = inspectSystemSecurityProject(context.project);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-    findings: inspectSystemSecurityProject(context.project),
+    findings,
     inspectedFiles: [...context.targetPaths],
+    staticCheckReceipts: [{ check: "inspectSystemSecurityProject", lawId: LAW_ID,
+      passed: findings.length === 0 }],
   };
 };
 
@@ -172,7 +175,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [{ lawId: LAW_ID, assertions: [
-      { clauses: staticClauses(0), evidenceMode: "static.ast", passed: producerModePassed(findings, "static.ast"), refs: staticEvidenceRefs(context, LAW_ID, "static.ast", staticClauses(0), ["inspectSystemSecurityProject"]) },
+      { clauses: staticClauses(0), evidenceMode: "static.ast", passed: producerModePassed(evaluation.staticCheckReceipts, LAW_ID, ["inspectSystemSecurityProject"]), refs: staticEvidenceRefs(context, LAW_ID, "static.ast", staticClauses(0), evaluation.staticCheckReceipts, ["inspectSystemSecurityProject"]) },
     ], findings }], inspectedFiles: evaluation.inspectedFiles,
   });
 };

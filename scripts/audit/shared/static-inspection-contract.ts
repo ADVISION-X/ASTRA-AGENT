@@ -1,8 +1,6 @@
 import { fail } from "../governance-runtime.js";
-import { resolve } from "node:path";
-import { SyntaxKind } from "ts-morph";
 import type {
-  InspectorContext, InspectorFinding, InspectorLawRequirement, InspectorOutput,
+  InspectorContext, InspectorFinding, InspectorLawRequirement, InspectorOutput, StaticCheckReceipt,
 } from "./inspector-contracts.js";
 import { inspectTargetObjects } from "./static-target-object-inspector.js";
 const ordered = (values: readonly string[]): string[] => [...new Set(values)].sort((left, right) =>
@@ -12,8 +10,28 @@ export const staticClauses = (...forbiddenIndexes: number[]): string[] => ordere
   ...forbiddenIndexes.map((index) => `forbidden:${index}`), "summary",
 ]);
 
-export const producerModePassed = (findings: readonly InspectorFinding[], evidenceMode: string): boolean =>
-  findings.every((finding) => finding.evidenceMode !== evidenceMode);
+export const recordStaticCheck = <T>(input: {
+  check: string;
+  findings: InspectorFinding[];
+  lawIds: readonly string[];
+  receipts: StaticCheckReceipt[];
+  run: () => T;
+}): T => {
+  const before = new Map(input.lawIds.map((lawId) => [lawId,
+    input.findings.filter((finding) => finding.lawId === lawId).length]));
+  const result = input.run();
+  for (const lawId of input.lawIds) input.receipts.push({
+    check: input.check,
+    lawId,
+    passed: input.findings.filter((finding) => finding.lawId === lawId).length === before.get(lawId),
+  });
+  return result;
+};
+
+export const producerModePassed = (
+  receipts: readonly StaticCheckReceipt[], lawId: string, semanticChecks: readonly string[],
+): boolean => semanticChecks.every((check) => receipts.some((receipt) =>
+  receipt.lawId === lawId && receipt.check === check && receipt.passed));
 
 const requirementFor = (context: InspectorContext, lawId: string): InspectorLawRequirement =>
   context.lawRequirements.find((requirement) => requirement.lawId === lawId)
@@ -21,6 +39,7 @@ const requirementFor = (context: InspectorContext, lawId: string): InspectorLawR
 
 export const staticEvidenceRefs = (
   context: InspectorContext, lawId: string, evidenceMode: string, clauses: readonly string[],
+  receipts: readonly StaticCheckReceipt[],
   semanticChecks: readonly string[],
 ): string[] => {
   const requirement = requirementFor(context, lawId);
@@ -28,15 +47,10 @@ export const staticEvidenceRefs = (
   if (!checks.length || checks.some((check) => !/^[A-Za-z_$][A-Za-z0-9_$]*$/u.test(check))) {
     fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:semantic-check`);
   }
+  const checkReceipts = checks.map((check) => receipts.find((receipt) =>
+    receipt.lawId === lawId && receipt.check === check)
+    ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:${check}:execution-receipt`));
   const ownerPath = context.planEntry.ownerInspectorPath;
-  const owner = context.project.getSourceFile(ownerPath)
-    ?? context.project.addSourceFileAtPathIfExists(resolve(context.sealedRoot, ownerPath))
-    ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${ownerPath}:owner-inspector`);
-  const calls = new Set(owner.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .map((call) => call.getExpression().getText()));
-  if (checks.some((check) => !calls.has(check))) {
-    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:semantic-check-call`);
-  }
   const evidenceKind = ({
     "static.ast": "ast", "static.config": "config", "static.contract": "config",
     "static.dependency": "dependency", "static.filesystem": "file", "static.json": "json",
@@ -45,8 +59,8 @@ export const staticEvidenceRefs = (
   } as Readonly<Record<string, string>>)[evidenceMode]
     ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:evidence-kind`);
   return ordered([
-    ...checks.map((check) => `${evidenceKind}:${ownerPath}#${encodeURIComponent(
-      `lawId=${lawId};mode=${evidenceMode};semanticCheck=${check};clauses=${clauses.join(",")}`,
+    ...checkReceipts.map((receipt) => `${evidenceKind}:${ownerPath}#${encodeURIComponent(
+      `lawId=${lawId};mode=${evidenceMode};semanticCheck=${receipt.check};executionResult=${receipt.passed ? "PASS" : "FAIL"};clauses=${clauses.join(",")}`,
     )}`),
     requirement.targetSet.queryRef,
   ]);
@@ -75,7 +89,8 @@ const validateAssertion = (input: {
   const clauseBinding = encodeURIComponent(`clauses=${assertion.clauses.join(",")}`);
   if (!assertion.refs.includes(requirement.targetSet.queryRef)
     || !assertion.refs.some((reference) => reference.includes(observationBinding)
-      && reference.includes(clauseBinding))) {
+      && reference.includes(clauseBinding)
+      && reference.includes("executionResult%3D"))) {
     fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}:native-observation`);
   }
 };
@@ -94,9 +109,10 @@ const validateLawResult = (context: InspectorContext, output: InspectorOutput, l
     const assertion = assertionsByMode.get(mode)
       ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}`);
     validateAssertion({ assertion, lawId, mode, requirement });
-    if (assertion.passed !== producerModePassed(result.findings, mode)) {
-      fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}:finding-verdict`);
-    }
+    const executionResults = assertion.refs.filter((reference) => reference.includes("semanticCheck%3D"))
+      .map((reference) => reference.includes("executionResult%3DPASS"));
+    if (!executionResults.length || assertion.passed !== executionResults.every(Boolean))
+      fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}:execution-verdict`);
   }
   if (result.findings.some((finding) => finding.lawId !== lawId
     || !requiredModes.includes(finding.evidenceMode))) {

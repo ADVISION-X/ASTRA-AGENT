@@ -6,7 +6,7 @@ import { selectLawId } from "../../shared/finding-utils.js";
 import { astExpressionPath } from "../../shared/ast-node-identity.js";
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
-import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import { inspectAiInputGatewayRecovery } from "./recovery-inspector.js";
 import { inspectSubmissionPriorityPatrol } from "./scheduler-inspector.js";
 import {
@@ -402,17 +402,21 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   const boundedJudgeLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-006-V2");
   const approvedInputLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-007-V2");
   const findings: Finding[] = [];
+  const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
+  const run = <T>(check: string, lawIds: readonly string[], action: () => T): T => recordStaticCheck({
+    check, findings, lawIds, receipts: staticCheckReceipts, run: action,
+  });
   for (const repoPath of P.governedPaths.filter((path) => context.targetPaths.includes(path))) {
     const absolutePath = resolveFromRepo(repoPath);
     if (!context.project.getSourceFile(absolutePath)) {
       requireSourceFile(context, findings, publicLawId, repoPath);
     }
   }
-  inspectPublicBoundary(context, findings, publicLawId);
-  inspectAttachmentRoutingChild(context, findings, routingLawId);
-  inspectAttachmentProofChild(context, findings, proofLawId);
-  inspectRemovedRegion(context, findings, routingLawId);
-  inspectBoundedParallelExecution(context, findings, parallelLawId);
+  run("inspectPublicBoundary", [publicLawId], () => inspectPublicBoundary(context, findings, publicLawId));
+  run("inspectAttachmentRoutingChild", [routingLawId], () => inspectAttachmentRoutingChild(context, findings, routingLawId));
+  run("inspectAttachmentProofChild", [proofLawId], () => inspectAttachmentProofChild(context, findings, proofLawId));
+  run("inspectRemovedRegion", [routingLawId], () => inspectRemovedRegion(context, findings, routingLawId));
+  run("inspectBoundedParallelExecution", [parallelLawId], () => inspectBoundedParallelExecution(context, findings, parallelLawId));
   inspectSerialProviderBrowserActions(context, findings, parallelLawId);
   inspectFreshConversationIdentity(context, findings, parallelLawId);
   inspectNoChatGptPageRefresh(context, findings, parallelLawId);
@@ -424,16 +428,17 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   inspectTransientPatrolRetry(context, findings, parallelLawId);
   inspectTransientSubmissionIsNotRoutable(context, findings, parallelLawId);
   inspectTransientOverlayHygiene(context, findings, parallelLawId);
-  inspectGeneratedImageCapture(context, findings, parallelLawId);
-  inspectAtomicIfAndThenActions(context, findings, atomicLawId);
-  inspectConversationTopology(context, findings, parallelLawId);
-  inspectBoundedChoiceJudge(context, findings, boundedJudgeLawId);
-  inspectCallerApprovedInputReferences(context, findings, approvedInputLawId);
+  run("inspectGeneratedImageCapture", [parallelLawId], () => inspectGeneratedImageCapture(context, findings, parallelLawId));
+  run("inspectAtomicIfAndThenActions", [atomicLawId], () => inspectAtomicIfAndThenActions(context, findings, atomicLawId));
+  run("inspectConversationTopology", [parallelLawId], () => inspectConversationTopology(context, findings, parallelLawId));
+  run("inspectBoundedChoiceJudge", [boundedJudgeLawId], () => inspectBoundedChoiceJudge(context, findings, boundedJudgeLawId));
+  run("inspectCallerApprovedInputReferences", [approvedInputLawId], () => inspectCallerApprovedInputReferences(context, findings, approvedInputLawId));
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths].sort(),
+    staticCheckReceipts,
   };
 };
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
@@ -451,8 +456,9 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
       const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
       return { lawId, assertions: modes.map((evidenceMode) => {
         const clauses = evidenceMode === "static.ast" ? astClauses : staticClauses(0);
-        return { clauses, evidenceMode, passed: producerModePassed(findings, evidenceMode),
-          refs: staticEvidenceRefs(context, lawId, evidenceMode, clauses, semanticChecks(lawId)) };
+        const checks = semanticChecks(lawId);
+        return { clauses, evidenceMode, passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks),
+          refs: staticEvidenceRefs(context, lawId, evidenceMode, clauses, evaluation.staticCheckReceipts, checks) };
       }), findings };
   };
   return validateStaticInspection(context, {

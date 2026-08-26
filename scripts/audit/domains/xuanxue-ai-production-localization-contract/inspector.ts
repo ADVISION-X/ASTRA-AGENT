@@ -131,6 +131,8 @@ const inspectDomainEvaluation = async (
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths],
+    staticCheckReceipts: [{ check: "inspectXuanxueLocalizationContract", lawId,
+      passed: findings.every((finding) => finding.lawId !== lawId) }],
   };
 };
 
@@ -141,7 +143,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [{ lawId, assertions: [
-      { clauses: staticClauses(0), evidenceMode: "static.ast", passed: producerModePassed(findings, "static.ast"), refs: staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0), ["inspectXuanxueLocalizationContract"]) },
+      { clauses: staticClauses(0), evidenceMode: "static.ast", passed: producerModePassed(evaluation.staticCheckReceipts, lawId, ["inspectXuanxueLocalizationContract"]), refs: staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0), evaluation.staticCheckReceipts, ["inspectXuanxueLocalizationContract"]) },
     ], findings }], inspectedFiles: evaluation.inspectedFiles,
   });
 };

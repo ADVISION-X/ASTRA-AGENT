@@ -7,7 +7,7 @@ import { inspectProjectSources } from "./components/scan-project-sources.js";
 import { inspectRootAllowlist } from "./components/scan-root-allowlist.js";
 import { inspectTypesContractRoot } from "./components/scan-types-contract-root.js";
 import { inspectConstitutionalBoundary } from "./constitutional-boundary-inspector.js";
-import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
 
 
@@ -16,9 +16,13 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   const lawId = context.planEntry.lawIds[0]!;
   const findings: ReturnType<typeof createFinding>[] = [];
   const inspectedFiles = new Set<string>();
+  const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
+  const run = <T>(check: string, action: () => T): T => recordStaticCheck({
+    check, findings, lawIds: [lawId], receipts: staticCheckReceipts, run: action,
+  });
 
-  inspectRootAllowlist(findings, lawIds.rootLawId);
-  inspectProjectSources(context.project, findings, inspectedFiles, lawIds);
+  run("inspectRootAllowlist", () => inspectRootAllowlist(findings, lawIds.rootLawId));
+  run("inspectProjectSources", () => inspectProjectSources(context.project, findings, inspectedFiles, lawIds));
   const activePluginGate = inspectActivePluginGate({
       lawId: lawIds.pluginStageLawId,
       project: context.project,
@@ -26,19 +30,19 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
       targetPaths: context.targetPaths,
     });
   findings.push(...activePluginGate.findings);
-  inspectActivePluginMediators({
+  run("inspectActivePluginMediators", () => inspectActivePluginMediators({
         entries: activePluginGate.activeContracts,
         findings,
         inspectedFiles,
         lawId: lawIds.intakeLawId,
         project: context.project,
-      });
-  inspectTypesContractRoot({
+      }));
+  run("inspectTypesContractRoot", () => inspectTypesContractRoot({
         findings,
         inspectedFiles,
         lawId: lawIds.lawFirstChangeLawId,
         project: context.project,
-      });
+      }));
 
   const constitutional = await inspectConstitutionalBoundary(context);
   findings.push(...constitutional.findings);
@@ -48,6 +52,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths],
+    staticCheckReceipts,
   };
 };
 
@@ -55,14 +60,18 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const evaluation = await inspectDomainEvaluation(context);
   const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V1";
   const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
+  const refs = (mode: string, clauses: string[], checks: string[]) => ({
+    passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks),
+    refs: staticEvidenceRefs(context, lawId, mode, clauses, evaluation.staticCheckReceipts, checks),
+  });
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain,
     reportedLawIds: evaluation.reportedLawIds,
     lawResults: [{ lawId, assertions: [
-      { clauses: staticClauses(0, 1, 2, 3, 4, 5, 6), evidenceMode: "static.ast", passed: producerModePassed(findings, "static.ast"), refs: staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0, 1, 2, 3, 4, 5, 6), ["inspectProjectSources", "inspectConstitutionalBoundary"]) },
-      { clauses: staticClauses(0), evidenceMode: "static.dependency", passed: producerModePassed(findings, "static.dependency"), refs: staticEvidenceRefs(context, lawId, "static.dependency", staticClauses(0), ["inspectActivePluginMediators", "inspectProjectSources"]) },
-      { clauses: staticClauses(0), evidenceMode: "static.filesystem", passed: producerModePassed(findings, "static.filesystem"), refs: staticEvidenceRefs(context, lawId, "static.filesystem", staticClauses(0), ["inspectRootAllowlist"]) },
-      { clauses: staticClauses(0), evidenceMode: "static.types", passed: producerModePassed(findings, "static.types"), refs: staticEvidenceRefs(context, lawId, "static.types", staticClauses(0), ["inspectTypesContractRoot"]) },
+      { clauses: staticClauses(0, 1, 2, 3, 4, 5, 6), evidenceMode: "static.ast", ...refs("static.ast", staticClauses(0, 1, 2, 3, 4, 5, 6), ["inspectProjectSources"]) },
+      { clauses: staticClauses(0), evidenceMode: "static.dependency", ...refs("static.dependency", staticClauses(0), ["inspectActivePluginMediators", "inspectProjectSources"]) },
+      { clauses: staticClauses(0), evidenceMode: "static.filesystem", ...refs("static.filesystem", staticClauses(0), ["inspectRootAllowlist"]) },
+      { clauses: staticClauses(0), evidenceMode: "static.types", ...refs("static.types", staticClauses(0), ["inspectTypesContractRoot"]) },
     ], findings }],
     inspectedFiles: evaluation.inspectedFiles,
   });

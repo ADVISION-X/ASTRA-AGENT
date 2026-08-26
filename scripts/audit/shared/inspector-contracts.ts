@@ -12,6 +12,7 @@ export type InspectorFinding = {
   filePath?: string | undefined;
   evidence?: string | undefined;
 };
+export type StaticCheckReceipt = { check: string; lawId: string; passed: boolean };
 export type InspectorAssertion = { clauses: string[]; evidenceMode: string; passed: boolean; refs: string[] };
 export type InspectorLawResult = { lawId: string; assertions: InspectorAssertion[]; findings: InspectorFinding[] };
 export type InspectorEvaluation = {
@@ -19,6 +20,7 @@ export type InspectorEvaluation = {
   reportedLawIds: string[];
   findings: InspectorFinding[];
   inspectedFiles: string[];
+  staticCheckReceipts: StaticCheckReceipt[];
 };
 export type InspectorLawRequirement = {
   lawId: string;

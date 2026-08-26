@@ -390,5 +390,6 @@ export const inspectConstitutionalBoundary = async (context: InspectorContext): 
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...inspectedFiles].sort(),
+    staticCheckReceipts: [],
   };
 };

@@ -1,4 +1,4 @@
-import type { InspectorContext, InspectorFinding } from "../../../shared/inspector-contracts.js";
+import type { InspectorContext, InspectorFinding, StaticCheckReceipt } from "../../../shared/inspector-contracts.js";
 import { collectCodePurityGovernedFiles } from "./code-purity-governed-files.js";
 import type { CodePurityInventoryItem } from "./code-purity-inventory.js";
 import { scanOwnerBoundaries } from "./scan-owner-boundaries.js";
@@ -10,6 +10,7 @@ type CodePurityPhaseRun = {
   inspectedFiles: string[];
   inventoryItems: CodePurityInventoryItem[];
   summary: ZombieScanSummary;
+  staticCheckReceipts: StaticCheckReceipt[];
 };
 
 const dedupeFindings = (findings: readonly InspectorFinding[]): InspectorFinding[] => {
@@ -55,5 +56,10 @@ export const runCodePurityPhases = async (context: InspectorContext): Promise<Co
     inspectedFiles: governedFiles.map((governedFile) => governedFile.repoPath),
     inventoryItems,
     summary: zombieScan.summary,
+    staticCheckReceipts: context.planEntry.lawIds.flatMap((lawId) => [
+      { check: "scanStructuralBudgets", lawId, passed: structuralScan.findings.every((finding) => finding.lawId !== lawId) },
+      { check: "scanOwnerBoundaries", lawId, passed: ownerBoundaryScan.findings.every((finding) => finding.lawId !== lawId) },
+      { check: "scanZombieSurfaces", lawId, passed: zombieScan.findings.every((finding) => finding.lawId !== lawId) },
+    ]),
   };
 };

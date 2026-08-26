@@ -10,6 +10,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
     reportedLawIds: context.planEntry.lawIds,
     findings: phaseRun.findings,
     inspectedFiles: [...context.targetPaths],
+    staticCheckReceipts: phaseRun.staticCheckReceipts,
   };
 };
 
@@ -17,13 +18,16 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const evaluation = await inspectDomainEvaluation(context);
   const lawResult = (lawId: string, clausesByMode: Readonly<Record<string, string[]>>) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
+    const checkForMode = (evidenceMode: string): string[] => evidenceMode === "static.ast" || evidenceMode === "static.types"
+      ? ["scanStructuralBudgets"]
+      : evidenceMode === "static.dependency" ? ["scanOwnerBoundaries"] : ["scanZombieSurfaces"];
     return {
       lawId,
       assertions: Object.entries(clausesByMode).map(([evidenceMode, clauses]) => ({
         clauses,
         evidenceMode,
-        passed: producerModePassed(findings, evidenceMode),
-        refs: staticEvidenceRefs(context, lawId, evidenceMode, clauses, ["runCodePurityPhases"]),
+        passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checkForMode(evidenceMode)),
+        refs: staticEvidenceRefs(context, lawId, evidenceMode, clauses, evaluation.staticCheckReceipts, checkForMode(evidenceMode)),
       })),
       findings,
     };

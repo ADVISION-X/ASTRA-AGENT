@@ -373,11 +373,14 @@ const inspectDomainEvaluation = async (
     .map((filePath) => context.project.getSourceFile(resolveFromRepo(filePath)))
     .filter((file): file is SourceFile => file !== undefined);
   inspectDomainPolicy(context, findings, laws, sources, values, collectXuanxueSourceValues(terminalMetaphysicsProfileSources));
+  const lawId = "LAW-XUANXUE-AI-PRODUCTION-001-V11";
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths],
+    staticCheckReceipts: [{ check: "inspectDomainPolicy", lawId,
+      passed: findings.every((finding) => finding.lawId !== lawId) }],
   };
 };
 
@@ -390,8 +393,8 @@ export const inspectDomain = async (
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [{ lawId, assertions: [
-      { clauses: staticClauses(0), evidenceMode: "static.ast", passed: producerModePassed(findings, "static.ast"), refs: staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0), ["inspectDomainPolicy"]) },
-      { clauses: staticClauses(0), evidenceMode: "static.contract", passed: producerModePassed(findings, "static.contract"), refs: staticEvidenceRefs(context, lawId, "static.contract", staticClauses(0), ["inspectDomainPolicy"]) },
+      { clauses: staticClauses(0), evidenceMode: "static.ast", passed: producerModePassed(evaluation.staticCheckReceipts, lawId, ["inspectDomainPolicy"]), refs: staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0), evaluation.staticCheckReceipts, ["inspectDomainPolicy"]) },
+      { clauses: staticClauses(0), evidenceMode: "static.contract", passed: producerModePassed(evaluation.staticCheckReceipts, lawId, ["inspectDomainPolicy"]), refs: staticEvidenceRefs(context, lawId, "static.contract", staticClauses(0), evaluation.staticCheckReceipts, ["inspectDomainPolicy"]) },
     ], findings }], inspectedFiles: evaluation.inspectedFiles,
   });
 };
