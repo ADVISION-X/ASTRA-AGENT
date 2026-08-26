@@ -69,7 +69,7 @@ const evidenceKindByMode: Readonly<Record<string, string>> = {
   "static.filesystem": "file",
   "static.text": "text",
   "static.ast": "ast",
-  "static.types": "ast",
+  "static.types": "test",
   "static.contract": "config",
   "static.dependency": "dependency",
   "static.config": "config",

@@ -438,12 +438,13 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
-  const lawResult = (lawId: string, modes: readonly string[], astClauses = staticClauses(0)) => {
-    const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
-      return { lawId, assertions: modes.map((evidenceMode) => ({
-      clauses: evidenceMode === "static.ast" ? astClauses : ["summary"], evidenceMode,
-      passed: producerModePassed(findings, evidenceMode), refs: staticEvidenceRefs(context, lawId, evidenceMode),
-    })), findings };
+    const lawResult = (lawId: string, modes: readonly string[], astClauses = staticClauses(0)) => {
+      const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
+      return { lawId, assertions: modes.map((evidenceMode) => {
+        const clauses = evidenceMode === "static.ast" ? astClauses : staticClauses(0);
+        return { clauses, evidenceMode, passed: producerModePassed(findings, evidenceMode),
+          refs: staticEvidenceRefs(context, lawId, evidenceMode, clauses) };
+      }), findings };
   };
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,

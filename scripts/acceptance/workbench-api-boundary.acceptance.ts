@@ -194,8 +194,8 @@ await assertXuanxueLocalIntervention();
 await assertXuanxueExternalIngressBlocked();
 await assertRetiredRoutesAbsent();
 assertPerSiteHmacBoundary();
-emitQualityProofObservation({
-  lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V6", evidenceMode: "exam.golden",
+emitQualityProofObservation({ passed: true, findings: [],
+  lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V6", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","forbidden:8","summary"],
   locator: "acceptance:workbench-api-boundary:per-site-hmac",
   observedValue: "known external route accepts only its source-bound HMAC and rejects missing foreign or invalid signatures",
 });

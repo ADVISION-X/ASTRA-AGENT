@@ -10,30 +10,19 @@ export const staticClauses = (...forbiddenIndexes: number[]): string[] => ordere
   ...forbiddenIndexes.map((index) => `forbidden:${index}`), "summary",
 ]);
 
-// A law finding invalidates every positive static assertion for that law. This
-// is deliberately fail-closed: a producer cannot hide a detected violation by
-// attaching it to a sibling static mode while another mode still reports PASS.
-export const producerModePassed = (findings: readonly InspectorFinding[], _evidenceMode: string): boolean =>
-  findings.length === 0;
+export const producerModePassed = (findings: readonly InspectorFinding[], evidenceMode: string): boolean =>
+  findings.every((finding) => finding.evidenceMode !== evidenceMode);
 
 const requirementFor = (context: InspectorContext, lawId: string): InspectorLawRequirement =>
   context.lawRequirements.find((requirement) => requirement.lawId === lawId)
     ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:requirement`);
 
-const bindRefToClauses = (reference: string, clauses: readonly string[]): string => {
-  if (reference.startsWith("scope:")) return reference;
-  const hashIndex = reference.indexOf("#");
-  if (hashIndex < 0) fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${reference}:selector`);
-  let selector: string;
-  try { selector = decodeURIComponent(reference.slice(hashIndex + 1)); }
-  catch { return fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${reference}:selector`); }
-  return `${reference.slice(0, hashIndex + 1)}${encodeURIComponent(`${selector};clauses=${clauses.join(",")}`)}`;
-};
-
-export const staticEvidenceRefs = (context: InspectorContext, lawId: string, evidenceMode: string): string[] => {
+export const staticEvidenceRefs = (
+  context: InspectorContext, lawId: string, evidenceMode: string, clauses: readonly string[],
+): string[] => {
   const requirement = requirementFor(context, lawId);
   return ordered([
-    ...collectStaticModeEvidenceRefs(context, requirement, evidenceMode),
+    ...collectStaticModeEvidenceRefs(context, requirement, evidenceMode, clauses),
     requirement.targetSet.queryRef,
   ]);
 };
@@ -46,11 +35,11 @@ const validateAssertion = (input: {
 }): void => {
   const { assertion, lawId, mode, requirement } = input;
   const clauseInvalid = !assertion.clauses.length
+    || (assertion.clauses.length === 1 && assertion.clauses[0] === "summary")
     || assertion.clauses.some((clause) => clause !== "summary"
       && !/^forbidden:(?:0|[1-9][0-9]*)$/u.test(clause))
     || assertion.clauses.some((clause) => clause.startsWith("forbidden:")
       && Number(clause.slice("forbidden:".length)) >= requirement.forbiddenCount);
-  assertion.refs = ordered(assertion.refs.map((reference) => bindRefToClauses(reference, assertion.clauses)));
   const refsInvalid = !assertion.refs.length
     || assertion.refs.length !== new Set(assertion.refs).size
     || JSON.stringify(assertion.refs) !== JSON.stringify(ordered(assertion.refs));

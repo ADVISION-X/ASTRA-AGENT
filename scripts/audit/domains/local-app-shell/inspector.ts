@@ -238,7 +238,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const lawResult = (lawId: string, clausesByMode: Readonly<Record<string, string[]>>) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
       return { lawId, assertions: Object.entries(clausesByMode).map(([evidenceMode, clauses]) => ({
-      clauses, evidenceMode, passed: producerModePassed(findings, evidenceMode), refs: staticEvidenceRefs(context, lawId, evidenceMode),
+      clauses, evidenceMode, passed: producerModePassed(findings, evidenceMode), refs: staticEvidenceRefs(context, lawId, evidenceMode, clauses),
     })), findings };
   };
   return validateStaticInspection(context, {

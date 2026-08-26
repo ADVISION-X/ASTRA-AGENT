@@ -12,7 +12,7 @@ const binaryExtensions = new Set([".jpg", ".pdf", ".png", ".zip"]);
 const sourceExtensions = new Set([".js", ".mjs", ".mts", ".ts"]);
 const structuredExtensions = new Set([".json", ".yaml", ".yml"]);
 const evidenceKindByMode: Readonly<Record<string, string>> = {
-  "static.filesystem": "file", "static.text": "text", "static.ast": "ast", "static.types": "ast",
+  "static.filesystem": "file", "static.text": "text", "static.ast": "ast", "static.types": "test",
   "static.contract": "config", "static.dependency": "dependency", "static.config": "config",
   "static.json": "json", "static.yaml": "yaml", "static.sql": "sql", "static.migration": "file",
 };
@@ -91,7 +91,7 @@ const typeRefs = (
     const node = declaration?.[1][0];
     if (!declaration || !node) return [];
     const observedType = checker.getTypeAtLocation(node).getText(node).slice(0, 256);
-    return [evidenceRef("ast", path, observation(requirement, evidenceMode,
+    return [evidenceRef("test", path, observation(requirement, evidenceMode,
       `symbol=${declaration[0]};declarations=${declaration[1].length};type=${observedType}`))];
   });
 };
@@ -189,6 +189,7 @@ export const collectStaticModeEvidenceRefs = (
   context: InspectorContext,
   requirement: InspectorLawRequirement,
   evidenceMode: string,
+  clauses: readonly string[],
 ): string[] => {
   const paths = requirement.targetPaths.filter((path) => !/[#@]/u.test(path));
   let refs: string[];
@@ -209,5 +210,12 @@ export const collectStaticModeEvidenceRefs = (
     default: refs = [];
   }
   if (refs.length === 0) fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${requirement.lawId}:${evidenceMode}:native-observation`);
-  return ordered(refs.slice(0, 256));
+  return ordered(refs.slice(0, 256).map((reference) => {
+    const hashIndex = reference.indexOf("#");
+    if (hashIndex < 0) return fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${reference}:selector`);
+    let selector: string;
+    try { selector = decodeURIComponent(reference.slice(hashIndex + 1)); }
+    catch { return fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${reference}:selector`); }
+    return `${reference.slice(0, hashIndex + 1)}${encodeURIComponent(`${selector};clauses=${clauses.join(",")}`)}`;
+  }));
 };

@@ -1,15 +1,25 @@
 export type QualityProofObservation = Readonly<{
   lawId: string;
   evidenceMode: string;
-  locator: string;
-  observedValue: string;
-  receipt?: string;
+  clauses: string[];
+  passed: boolean;
+  refs: string[];
+  findings: Array<{ code: string; evidenceRefs: string[] }>;
   proofRunId: string;
   candidate: string;
   proofKind: "exam" | "dynamic";
 }>;
 
-type QualityProofObservationInput = Omit<QualityProofObservation, "proofRunId" | "candidate" | "proofKind">;
+type QualityProofObservationInput = Readonly<{
+  lawId: string;
+  evidenceMode: string;
+  clauses: string[];
+  passed: boolean;
+  findings: Array<{ code: string; evidenceRefs: string[] }>;
+  locator: string;
+  observedValue: string;
+  receipt?: string;
+}>;
 export type QualityProofRequest = Readonly<{
   lawId: string;
   evidenceMode: string;
@@ -18,6 +28,7 @@ export type QualityProofRequest = Readonly<{
   proofKind: "exam" | "dynamic";
 }>;
 type ProofContext = Pick<QualityProofObservation, "proofRunId" | "candidate" | "proofKind">;
+type EmissionContext = ProofContext & { script: string; timeoutMs: number };
 
 export const proofObservationPrefix = "QUALITY_PROOF_OBSERVATION ";
 const digest = (value: unknown): value is string => typeof value === "string" && /^[a-f0-9]{64}$/u.test(value);
@@ -30,33 +41,75 @@ const locatorValid = (dynamic: boolean, locator: unknown): locator is string => 
   && (dynamic
     ? /^\//u.test(locator)
     : /^(?:acceptance|proof):[a-z0-9][a-z0-9:._/-]*$/u.test(locator));
-const contextForEmission = (): ProofContext => ({
+const clausesValid = (clauses: unknown): clauses is string[] => Array.isArray(clauses)
+  && clauses.length > 1
+  && clauses.every((clause) => typeof clause === "string"
+    && (clause === "summary" || /^forbidden:(?:0|[1-9][0-9]*)$/u.test(clause)))
+  && JSON.stringify(clauses) === JSON.stringify([...new Set(clauses)].sort((left, right) =>
+    Buffer.compare(Buffer.from(left), Buffer.from(right))));
+const findingsValid = (findings: unknown, passed: unknown): findings is QualityProofObservation["findings"] =>
+  Array.isArray(findings) && findings.every((finding) => finding && typeof finding === "object"
+    && Object.keys(finding).sort().join(",") === "code,evidenceRefs"
+    && /^[A-Z][A-Z0-9_]*$/u.test((finding as { code?: string }).code ?? "")
+    && Array.isArray((finding as { evidenceRefs?: unknown }).evidenceRefs)
+    && (finding as { evidenceRefs: unknown[] }).evidenceRefs.length > 0)
+  && (passed === true ? findings.length === 0 : findings.length > 0);
+const refsValid = (refs: unknown, dynamic: boolean): refs is string[] => Array.isArray(refs)
+  && refs.length > 0
+  && refs.every((reference) => typeof reference === "string"
+    && (dynamic ? reference.startsWith("dynamic:") : reference.startsWith("exam:")))
+  && JSON.stringify(refs) === JSON.stringify([...new Set(refs)].sort((left, right) =>
+    Buffer.compare(Buffer.from(left), Buffer.from(right))));
+const contextForEmission = (): EmissionContext => ({
   proofRunId: process.env.GOVERNANCE_PROOF_RUN_ID?.trim() ?? "",
   candidate: process.env.GOVERNANCE_PROOF_CANDIDATE?.trim() ?? "",
   proofKind: process.env.GOVERNANCE_PROOF_KIND?.trim() as ProofContext["proofKind"],
+  script: process.env.GOVERNANCE_PROOF_SCRIPT?.trim() ?? "",
+  timeoutMs: Number(process.env.GOVERNANCE_PROOF_TIMEOUT_MS ?? ""),
 });
 
 const observationValid = (
   observation: Partial<QualityProofObservation>, context: ProofContext, dynamic: boolean,
 ): boolean => observation.lawId?.startsWith("LAW-") === true
   && /^(exam|dynamic)\./u.test(observation.evidenceMode ?? "")
-  && locatorValid(dynamic, observation.locator) && Boolean(observation.observedValue?.trim())
+  && clausesValid(observation.clauses) && typeof observation.passed === "boolean"
+  && refsValid(observation.refs, dynamic) && findingsValid(observation.findings, observation.passed)
   && digest(context.proofRunId) && candidateValid(context.candidate)
-  && context.proofKind === (dynamic ? "dynamic" : "exam")
-  && receiptValid(dynamic, observation.receipt);
+  && context.proofKind === (dynamic ? "dynamic" : "exam");
+
+const proofRef = (observation: QualityProofObservationInput, context: EmissionContext): string => {
+  const dynamic = observation.evidenceMode.startsWith("dynamic.");
+  const selector = encodeURIComponent([
+    `lawId=${observation.lawId}`, `mode=${observation.evidenceMode}`, `command=npm run ${context.script}`,
+    `case=${observation.locator}`, `run=${context.proofRunId}`, `candidate=${context.candidate}`,
+    `timeoutMs=${context.timeoutMs}`, `observedValue=${observation.observedValue}`,
+  ].join(";"));
+  return dynamic
+    ? `dynamic:${encodeURIComponent(observation.locator)}#${selector}@${observation.receipt}`
+    : `exam:package.json#${selector}`;
+};
 
 export const emitQualityProofObservation = (observation: QualityProofObservationInput): void => {
   const context = contextForEmission();
   if (!context.proofRunId && !context.candidate && context.proofKind === undefined) return;
   const dynamic = observation.evidenceMode.startsWith("dynamic.");
-  if (!observationValid(observation, context, dynamic)) throw new Error("QUALITY_PROOF_OBSERVATION_INVALID");
-  process.stdout.write(`${proofObservationPrefix}${JSON.stringify({ ...observation, ...context })}\n`);
+  if (!locatorValid(dynamic, observation.locator) || !observation.observedValue.trim()
+    || !receiptValid(dynamic, observation.receipt) || !context.script
+    || !Number.isSafeInteger(context.timeoutMs) || context.timeoutMs < 1) {
+    throw new Error("QUALITY_PROOF_OBSERVATION_INVALID");
+  }
+  const emitted: QualityProofObservation = {
+    lawId: observation.lawId, evidenceMode: observation.evidenceMode,
+    clauses: observation.clauses, passed: observation.passed,
+    refs: [proofRef(observation, context)], findings: observation.findings,
+    proofRunId: context.proofRunId, candidate: context.candidate, proofKind: context.proofKind,
+  };
+  if (!observationValid(emitted, context, dynamic)) throw new Error("QUALITY_PROOF_OBSERVATION_INVALID");
+  process.stdout.write(`${proofObservationPrefix}${JSON.stringify(emitted)}\n`);
 };
 
-const exactObservationKeys = (parsed: Partial<QualityProofObservation>, dynamic: boolean): boolean => {
-  const expected = dynamic
-    ? "candidate,evidenceMode,lawId,locator,observedValue,proofKind,proofRunId,receipt"
-    : "candidate,evidenceMode,lawId,locator,observedValue,proofKind,proofRunId";
+const exactObservationKeys = (parsed: Partial<QualityProofObservation>): boolean => {
+  const expected = "candidate,clauses,evidenceMode,findings,lawId,passed,proofKind,proofRunId,refs";
   return Object.keys(parsed).sort().join(",") === expected;
 };
 
@@ -64,7 +117,7 @@ const parseObservation = (line: string): QualityProofObservation => {
   const parsed = JSON.parse(line.slice(proofObservationPrefix.length)) as Partial<QualityProofObservation>;
   const dynamic = parsed.evidenceMode?.startsWith("dynamic.") ?? false;
   const context = { proofRunId: parsed.proofRunId, candidate: parsed.candidate, proofKind: parsed.proofKind } as ProofContext;
-  if (!exactObservationKeys(parsed, dynamic) || !observationValid(parsed, context, dynamic)) {
+  if (!exactObservationKeys(parsed) || !observationValid(parsed, context, dynamic)) {
     throw new Error("QUALITY_PROOF_OBSERVATION_INVALID");
   }
   return parsed as QualityProofObservation;

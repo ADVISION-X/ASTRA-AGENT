@@ -44,8 +44,8 @@ assert.ok(Date.parse(proof.resumed_at) <= Date.parse(proof.terminal_at));
 assert.notEqual(proof.checkpoint_before_hash, proof.checkpoint_after_hash, "recovery must advance the durable checkpoint");
 
 const receipt = createHash("sha256").update(bytes).digest("hex");
-emitQualityProofObservation({
-  lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "dynamic.recovery",
+emitQualityProofObservation({ passed: true, findings: [],
+  lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "dynamic.recovery", clauses: ["forbidden:10","forbidden:11","summary"],
   locator: proofPath,
   receipt,
   observedValue: `order=${proof.original_order_id};attempt=${proof.attempt_id};terminal=${proof.terminal_receipt_hash}`,

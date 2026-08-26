@@ -22,7 +22,7 @@ import { validateProviderContractSpec } from "../../scripts/audit/shared/provide
 import type { InspectorContext } from "../../scripts/audit/shared/inspector-contracts.js";
 import { proofObservationPrefix } from "../../scripts/audit/shared/proof-observation.js";
 import type { QualityProofRequest } from "../../scripts/audit/shared/proof-observation.js";
-import { proofClausesFor, relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
+import { relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
 import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../scripts/audit/shared/static-inspection-contract.js";
 import { inspectPerSiteHmac } from "../../scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.js";
 
@@ -251,6 +251,12 @@ const proofRequests = (
   lawId: law.lawId, evidenceMode: mode, proofRunId: "a".repeat(64), candidate: "b".repeat(40),
   proofKind,
 }));
+const examRef = (selector: string): string => `exam:package.json#${encodeURIComponent(selector)}`;
+const dynamicRef = (locator: string, receipt: string, selector: string): string =>
+  `dynamic:${encodeURIComponent(locator)}#${encodeURIComponent(selector)}@${receipt}`;
+const directObservation = (
+  request: QualityProofRequest, clauses: string[], refs: string[],
+): Record<string, unknown> => ({ ...request, clauses, passed: true, refs, findings: [] });
 
 test("a fixed or unauthenticated stdout marker cannot mint evidence for unexecuted law routes", () => {
   const first = { ...fixtureLaw(), lawId: "LAW-AI-INPUT-GATEWAY-001-V1", capabilityDomain: "ai-input-gateway" };
@@ -259,34 +265,21 @@ test("a fixed or unauthenticated stdout marker cannot mint evidence for unexecut
   const script = "acceptance:ai-input-gateway";
   assert.equal(bindNativeProofObservations("FIXED_PASS\n", routes, requests, script, "exam").size, 0);
   const oneNativeObservation = `${proofObservationPrefix}${JSON.stringify({
-    lawId: first.lawId,
-    evidenceMode: "exam.golden",
-    locator: "acceptance:provider-boundary:injected-browser",
-    observedValue: "first route actually asserted",
-    ...requests[0],
+    ...directObservation(requests[0]!, ["forbidden:0", "summary"], [examRef(
+      "lawId=LAW-AI-INPUT-GATEWAY-001-V1;mode=exam.golden;case=provider-boundary",
+    )]),
   })}\n`;
   assert.equal(bindNativeProofObservations(oneNativeObservation, routes, requests, script, "exam").size, 1);
-  const selfAttestedClauses = `${proofObservationPrefix}${JSON.stringify({
-    lawId: first.lawId,
-    evidenceMode: "exam.golden",
-    clauses: ["forbidden:0", "summary"],
-    locator: "acceptance:provider-boundary:injected-browser",
-    observedValue: "producer attempted to expand the admitted proof scope",
-    ...requests[0],
+  const missingProducerClauses = `${proofObservationPrefix}${JSON.stringify({
+    ...requests[0], passed: true, refs: [examRef("case=missing-clauses")], findings: [],
   })}\n`;
   assert.throws(
-    () => bindNativeProofObservations(selfAttestedClauses, routes, requests, script, "exam"),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
-  );
-  assert.deepEqual(proofClausesFor(first.lawId, "exam.golden"), ["summary"]);
-  assert.throws(
-    () => proofClausesFor(first.lawId, "exam.property"),
+    () => bindNativeProofObservations(missingProducerClauses, routes, requests, script, "exam"),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
   );
   const invented = `${proofObservationPrefix}${JSON.stringify({
-    lawId: first.lawId, evidenceMode: "exam.golden", locator: "acceptance:provider-boundary:injected-browser",
-    observedValue: "forged execution result", proofRunId: "f".repeat(64), candidate: "b".repeat(40),
-    proofKind: "exam",
+    ...directObservation(requests[0]!, ["forbidden:0", "summary"], [examRef("case=forged")]),
+    proofRunId: "f".repeat(64),
   })}\n`;
   assert.throws(
     () => bindNativeProofObservations(invented, routes, requests, script, "exam"),
@@ -299,11 +292,9 @@ test("native proof observations reject one locator reused across law routes", ()
   const routes = [{ law, mode: "exam.golden" }];
   const requests = proofRequests(routes);
   const line = `${proofObservationPrefix}${JSON.stringify({
-    lawId: law.lawId,
-    evidenceMode: "exam.golden",
-    locator: "acceptance:exact-target:caller-owned-lease",
-    observedValue: "exact target route executed",
-    ...requests[0],
+    ...directObservation(requests[0]!, ["forbidden:0", "summary"], [examRef(
+      "lawId=LAW-AI-INPUT-GATEWAY-002-V2;mode=exam.golden;case=exact-target",
+    )]),
   })}`;
   assert.throws(
     () => bindNativeProofObservations(`${line}\n${line}`, routes, requests, "acceptance:ai-input-gateway", "exam"),
@@ -320,36 +311,38 @@ test("a Dynamic producer cannot self-authenticate an invented native object", ()
   const routes = [{ law, mode: "dynamic.service" }];
   const requests = proofRequests(routes, "dynamic");
   const marker = `${proofObservationPrefix}${JSON.stringify({
-    lawId: law.lawId, evidenceMode: "dynamic.service", locator: "invented://no-real-object",
-    observedValue: "value=forged", receipt: "a".repeat(64), ...requests[0],
+    ...directObservation(requests[0]!, ["forbidden:0", "summary"], [dynamicRef(
+      "/tmp/no-real-object", "a".repeat(64), "value=forged",
+    )]),
   })}`;
   assert.throws(
     () => bindNativeProofObservations(marker, routes, requests, "proof:local-shell-current-runtime", "dynamic"),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
   );
   const selfAuthenticatedUrl = `${proofObservationPrefix}${JSON.stringify({
-    lawId: law.lawId, evidenceMode: "dynamic.service", locator: "https://127.0.0.1/health",
-    observedValue: `run=${requests[0]!.proofRunId};candidate=${requests[0]!.candidate};health=healthy`,
-    receipt: "a".repeat(64), ...requests[0],
+    ...directObservation(requests[0]!, ["forbidden:0", "summary"], [dynamicRef(
+      "/tmp/self-authenticated-url", "a".repeat(64), "health=healthy",
+    )]),
   })}`;
   assert.throws(
     () => bindNativeProofObservations(selfAuthenticatedUrl, routes, requests, "proof:local-shell-current-runtime", "dynamic"),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
   );
   const nativeFileMarker = `${proofObservationPrefix}${JSON.stringify({
-    lawId: law.lawId, evidenceMode: "dynamic.service", locator: fixtureEvidencePath,
-    observedValue: "native health receipt observed",
-    receipt: fixtureEvidenceDigest, ...requests[0],
+    ...directObservation(requests[0]!, ["forbidden:0", "summary"], [dynamicRef(
+      fixtureEvidencePath, fixtureEvidenceDigest, "native health receipt observed",
+    )]),
   })}`;
   assert.equal(bindNativeProofObservations(
     nativeFileMarker, routes, requests, "proof:local-shell-current-runtime", "dynamic",
   ).size, 1);
+  const recoveryRequest = proofRequests([{ law: {
+    ...law, lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", capabilityDomain: "local-browser-session",
+  }, mode: "dynamic.recovery" }], "dynamic")[0]!;
   const missingNativeMarker = `${proofObservationPrefix}${JSON.stringify({
-    lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", evidenceMode: "dynamic.recovery",
-    locator: `/tmp/recovery-receipts/${"c".repeat(64)}.json`, observedValue: "atomic recovery verified",
-    receipt: "c".repeat(64), ...proofRequests([{ law: {
-      ...law, lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", capabilityDomain: "local-browser-session",
-    }, mode: "dynamic.recovery" }], "dynamic")[0],
+    ...directObservation(recoveryRequest, ["forbidden:12", "summary"], [dynamicRef(
+      `/tmp/recovery-receipts/${"c".repeat(64)}.json`, "c".repeat(64), "atomic recovery verified",
+    )]),
   })}`;
   const recoveryLaw = { ...law, lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", capabilityDomain: "local-browser-session" };
   const recoveryRoutes = [{ law: recoveryLaw, mode: "dynamic.recovery" }];
@@ -380,7 +373,7 @@ test("static validation rejects a law with no owner result", () => {
     () => validateStaticInspection(context, {
       capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1", "LAW-FIXTURE-002-V1"],
       lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(0),
-        evidenceMode: "static.ast", passed: true, refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast") }], findings: [] }],
+        evidenceMode: "static.ast", passed: true, refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(0)) }], findings: [] }],
       inspectedFiles: ["package.json"],
     }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
@@ -403,7 +396,17 @@ test("static validation rejects a producer clause outside the active law denomin
     () => validateStaticInspection(context, {
       capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
       lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(1),
-        evidenceMode: "static.ast", passed: true, refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast") }], findings: [] }],
+        evidenceMode: "static.ast", passed: true, refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(1)) }], findings: [] }],
+      inspectedFiles: ["package.json"],
+    }),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
+  );
+  assert.throws(
+    () => validateStaticInspection(context, {
+      capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
+      lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(),
+        evidenceMode: "static.ast", passed: true,
+        refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses()) }], findings: [] }],
       inspectedFiles: ["package.json"],
     }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
@@ -444,7 +447,7 @@ test("static PASS evidence names governed target objects instead of inspector de
       targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 1 },
     }],
   } as unknown as InspectorContext;
-  const refs = staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast");
+  const refs = staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(0));
   const output = validateStaticInspection(context, { capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
     lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(0), evidenceMode: "static.ast",
       passed: true, refs }], findings: [] }], inspectedFiles: [targetPath] });
@@ -468,7 +471,7 @@ test("static evidence keeps the exact scope when a governed path is not an evide
       targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 2 },
     }],
   } as unknown as InspectorContext;
-  const refs = staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast");
+  const refs = staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(0));
   const output = validateStaticInspection(context, { capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
     lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(0), evidenceMode: "static.ast",
       passed: true, refs }], findings: [] }], inspectedFiles: [pathWithReservedCharacter, targetPath] });
@@ -477,13 +480,13 @@ test("static evidence keeps the exact scope when a governed path is not an evide
   assert.equal(validatedRefs.some((ref) => ref.includes(pathWithReservedCharacter)), false);
 });
 
-test("a producer finding invalidates every positive static assertion for its law", () => {
+test("a producer finding invalidates only its own static evidence mode", () => {
   const finding = {
     checkId: "innocent-looking-check", lawId: "LAW-FIXTURE-001-V1", clauseId: "fixture",
     evidenceMode: "static.types", message: "native observation found a violation", severity: "fatal" as const,
   };
   assert.equal(producerModePassed([finding], "static.types"), false);
-  for (const mode of ["static.ast", "static.dependency", "static.config"]) assert.equal(producerModePassed([finding], mode), false);
+  for (const mode of ["static.ast", "static.dependency", "static.config"]) assert.equal(producerModePassed([finding], mode), true);
 });
 
 test("each static mode records a mode-native object selector", () => {
@@ -501,7 +504,7 @@ test("each static mode records a mode-native object selector", () => {
       requiredStaticModes: ["static.ast", "static.types", "static.contract", "static.dependency", "static.config", "static.json", "static.yaml"],
       targetPaths, targetSet: { queryRef: `scope:${lawId}#appliesTo-minus-excludes`, count: targetPaths.length } }],
   } as unknown as InspectorContext;
-  const modeSelector = (mode: string): string[] => staticEvidenceRefs(context, lawId, mode)
+  const modeSelector = (mode: string): string[] => staticEvidenceRefs(context, lawId, mode, staticClauses(0))
     .filter((ref) => !ref.startsWith("scope:"));
   assert.equal(modeSelector("static.ast").some((ref) => ref.includes("node%3DSourceFile")), true);
   for (const mode of context.lawRequirements[0]!.requiredStaticModes) {
@@ -509,12 +512,24 @@ test("each static mode records a mode-native object selector", () => {
       ref.includes(encodeURIComponent(`lawId=${lawId};mode=${mode};`))), true);
   }
   assert.equal(modeSelector("static.types").some((ref) => ref.includes("symbol%3D")), true);
-  assert.equal(modeSelector("static.types").every((ref) => ref.startsWith("ast:")), true);
+  assert.equal(modeSelector("static.types").every((ref) => ref.startsWith("test:")), true);
   assert.equal(modeSelector("static.contract").some((ref) => ref.includes("contract%3D")), true);
   assert.equal(modeSelector("static.dependency").some((ref) => ref.includes("from%3D") && ref.includes("to%3D")), true);
   assert.equal(modeSelector("static.config").some((ref) => ref.includes("parser%3Dtypescript") || ref.includes("pointer%3D%2F")), true);
   assert.equal(modeSelector("static.json").some((ref) => ref.startsWith("json:package.json#")), true);
   assert.equal(modeSelector("static.yaml").some((ref) => ref.startsWith("yaml:pnpm-workspace.yaml#")), true);
+});
+
+test("the active evidence-ownership blueprint rejects central clauses and mode substitution", () => {
+  const routes = readFileSync("scripts/audit/shared/quality-routes.ts", "utf8");
+  const proofContract = readFileSync("scripts/audit/shared/proof-observation.ts", "utf8");
+  const staticContract = readFileSync("scripts/audit/shared/static-inspection-contract.ts", "utf8");
+  const qualityContract = readFileSync("scripts/audit/shared/quality-contract.ts", "utf8");
+  assert.equal(/proofClauses|clausesForEvidenceMode/u.test(routes), false);
+  for (const field of ["clauses", "passed", "refs", "findings"]) assert.equal(proofContract.includes(`${field}:`), true);
+  assert.equal(staticContract.includes("finding.evidenceMode !== evidenceMode"), true);
+  assert.equal(qualityContract.includes('"static.types": "test"'), true);
+  assert.equal(qualityContract.includes('"static.types": "ast"'), false);
 });
 
 test("unsupported evidence kinds and projection identity drift fail closed", () => {

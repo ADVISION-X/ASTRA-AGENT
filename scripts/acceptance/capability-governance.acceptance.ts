@@ -77,8 +77,8 @@ assert.equal(blueprintMarkdownBodyValid(`${blueprintSource}\nTODO\n`), false);
 assert.equal(blueprintMarkdownBodyValid(blueprintSource.slice(0, blueprintSource.indexOf("## 正常写入"))), false);
 
 console.log("capability-governance-acceptance-ok");
-emitQualityProofObservation({
-  lawId: "LAW-CAPABILITY-GOVERNANCE-001-V2", evidenceMode: "exam.golden",
+emitQualityProofObservation({ passed: true, findings: [],
+  lawId: "LAW-CAPABILITY-GOVERNANCE-001-V2", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","summary"],
   locator: "acceptance:capability-governance:mutant-matrix",
   observedValue: "seven capability-governance clause mutants rejected by the capability-governance inspector",
 });

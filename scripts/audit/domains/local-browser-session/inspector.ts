@@ -39,9 +39,9 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const lawResult = (lawId: string, astClauses: string[], hasContract = true) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
       const assertions = [{ clauses: astClauses, evidenceMode: "static.ast", passed: producerModePassed(findings, "static.ast"),
-      refs: staticEvidenceRefs(context, lawId, "static.ast") }];
+      refs: staticEvidenceRefs(context, lawId, "static.ast", astClauses) }];
     if (hasContract) assertions.push({ clauses: staticClauses(0), evidenceMode: "static.contract", passed: producerModePassed(findings, "static.contract"),
-      refs: staticEvidenceRefs(context, lawId, "static.contract") });
+      refs: staticEvidenceRefs(context, lawId, "static.contract", staticClauses(0)) });
     return { lawId, assertions, findings };
   };
   return validateStaticInspection(context, {

@@ -39,7 +39,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
       ? staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
       : staticClauses(0);
       return { lawId, assertions: [{ clauses, evidenceMode: "static.ast", passed: producerModePassed(findings, "static.ast"),
-      refs: staticEvidenceRefs(context, lawId, "static.ast") }], findings };
+      refs: staticEvidenceRefs(context, lawId, "static.ast", clauses) }], findings };
   };
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
