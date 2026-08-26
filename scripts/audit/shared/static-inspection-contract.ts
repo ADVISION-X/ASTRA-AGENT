@@ -53,6 +53,32 @@ const staticEvidenceKind = (lawId: string, evidenceMode: string): string => ({
 } as Readonly<Record<string, string>>)[evidenceMode]
   ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:evidence-kind`);
 
+const nativeObservationInvalid = (input: {
+  assertion: InspectorOutput["lawResults"][number]["assertions"][number];
+  evidenceKind: string;
+  lawId: string;
+  mode: string;
+  requirement: InspectorLawRequirement;
+}): boolean => {
+  const { assertion, evidenceKind, lawId, mode, requirement } = input;
+  const scopeOnly = requirement.targetSet.count === 0 && requirement.targetPaths.length === 0
+    && assertion.refs.length === 1 && assertion.refs[0] === requirement.targetSet.queryRef;
+  if (scopeOnly) return false;
+  const nativeRefs = assertion.refs.filter((reference) => reference !== requirement.targetSet.queryRef);
+  const observationBinding = encodeURIComponent(`lawId=${lawId};mode=${mode};`);
+  const clauseBinding = encodeURIComponent(`clauses=${assertion.clauses.join(",")}`);
+  const semanticBinding = encodeURIComponent("semanticChecks=");
+  const executionBinding = encodeURIComponent(`executionResult=${assertion.passed ? "passed" : "failed"}`);
+  return !nativeRefs.length || nativeRefs.some((reference) => {
+    const fragment = reference.indexOf("#");
+    const objectPath = fragment > evidenceKind.length + 1
+      ? reference.slice(evidenceKind.length + 1, fragment) : "";
+    return !reference.startsWith(`${evidenceKind}:`) || !requirement.targetPaths.includes(objectPath)
+      || !reference.includes(observationBinding) || !reference.includes(clauseBinding)
+      || !reference.includes(semanticBinding) || !reference.includes(executionBinding);
+  });
+};
+
 export const staticEvidenceRefs = (
   context: InspectorContext, lawId: string, evidenceMode: string, clauses: readonly string[],
   receipts: readonly StaticCheckReceipt[],
@@ -114,23 +140,9 @@ const validateAssertion = (input: {
   if (clauseInvalid || refsInvalid) {
     fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}:assertion`);
   }
-  const observationBinding = encodeURIComponent(`lawId=${lawId};mode=${mode};`);
-  const clauseBinding = encodeURIComponent(`clauses=${assertion.clauses.join(",")}`);
-  const semanticBinding = encodeURIComponent("semanticChecks=");
-  const executionBinding = encodeURIComponent(`executionResult=${assertion.passed ? "passed" : "failed"}`);
   const evidenceKind = staticEvidenceKind(lawId, mode);
-  const nativeRefs = assertion.refs.filter((reference) => reference !== requirement.targetSet.queryRef);
-  const scopeOnly = requirement.targetSet.count === 0 && requirement.targetPaths.length === 0
-    && assertion.refs.length === 1 && assertion.refs[0] === requirement.targetSet.queryRef;
   if (!assertion.refs.includes(requirement.targetSet.queryRef)
-    || (!scopeOnly && (!nativeRefs.length || nativeRefs.some((reference) => {
-      const fragment = reference.indexOf("#");
-      const objectPath = fragment > evidenceKind.length + 1
-        ? reference.slice(evidenceKind.length + 1, fragment) : "";
-      return !reference.startsWith(`${evidenceKind}:`) || !requirement.targetPaths.includes(objectPath)
-        || !reference.includes(observationBinding) || !reference.includes(clauseBinding)
-        || !reference.includes(semanticBinding) || !reference.includes(executionBinding);
-    })))) {
+    || nativeObservationInvalid({ assertion, evidenceKind, lawId, mode, requirement })) {
     fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}:native-observation`);
   }
 };
