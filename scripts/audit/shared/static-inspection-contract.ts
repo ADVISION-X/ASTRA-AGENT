@@ -28,6 +28,32 @@ export const staticEvidenceRefs = (context: InspectorContext, lawId: string, evi
   ]);
 };
 
+const validateAssertion = (input: {
+  assertion: InspectorOutput["lawResults"][number]["assertions"][number];
+  lawId: string;
+  mode: string;
+  requirement: InspectorLawRequirement;
+}): void => {
+  const { assertion, lawId, mode, requirement } = input;
+  const clauseInvalid = !assertion.clauses.length
+    || assertion.clauses.every((clause) => clause === "summary")
+    || assertion.clauses.some((clause) => clause !== "summary"
+      && !/^forbidden:(?:0|[1-9][0-9]*)$/u.test(clause))
+    || assertion.clauses.some((clause) => clause.startsWith("forbidden:")
+      && Number(clause.slice("forbidden:".length)) >= requirement.forbiddenCount);
+  const refsInvalid = !assertion.refs.length
+    || assertion.refs.length !== new Set(assertion.refs).size
+    || JSON.stringify(assertion.refs) !== JSON.stringify(ordered(assertion.refs));
+  if (clauseInvalid || refsInvalid) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}:assertion`);
+  }
+  const observationBinding = encodeURIComponent(`lawId=${lawId};mode=${mode};`);
+  if (!assertion.refs.includes(requirement.targetSet.queryRef)
+    || !assertion.refs.some((reference) => reference.includes(observationBinding))) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}:native-observation`);
+  }
+};
+
 const validateLawResult = (context: InspectorContext, output: InspectorOutput, lawId: string): void => {
   const requirement = requirementFor(context, lawId);
   const result = output.lawResults.find((entry) => entry.lawId === lawId)
@@ -41,20 +67,7 @@ const validateLawResult = (context: InspectorContext, output: InspectorOutput, l
   for (const mode of requiredModes) {
     const assertion = assertionsByMode.get(mode)
       ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}`);
-    if (!assertion.clauses.length || assertion.clauses.every((clause) => clause === "summary")
-      || assertion.clauses.some((clause) => clause !== "summary"
-      && !/^forbidden:(?:0|[1-9][0-9]*)$/u.test(clause))
-      || assertion.clauses.some((clause) => clause.startsWith("forbidden:")
-        && Number(clause.slice("forbidden:".length)) >= requirement.forbiddenCount)
-      || !assertion.refs.length || assertion.refs.length !== new Set(assertion.refs).size
-      || JSON.stringify(assertion.refs) !== JSON.stringify(ordered(assertion.refs))) {
-      fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}:assertion`);
-    }
-    const observationBinding = encodeURIComponent(`lawId=${lawId};mode=${mode};`);
-    if (!assertion.refs.includes(requirement.targetSet.queryRef)
-      || !assertion.refs.some((reference) => reference.includes(observationBinding))) {
-      fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}:native-observation`);
-    }
+    validateAssertion({ assertion, lawId, mode, requirement });
     if (assertion.passed !== producerModePassed(result.findings, mode)) {
       fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}:finding-verdict`);
     }
