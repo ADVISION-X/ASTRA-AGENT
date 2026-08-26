@@ -9,7 +9,6 @@
   ],
   "ownedPaths": [
     ".github/CODEOWNERS",
-    ".github/workflows/quality-ready.yml",
     ".gitignore",
     ".nvmrc",
     ".vscode/tasks.json",

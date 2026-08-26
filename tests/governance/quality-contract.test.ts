@@ -480,7 +480,7 @@ test("each static mode records a mode-native object selector", () => {
     "scripts/audit/shared/quality-contract.ts",
     "scripts/audit/shared/quality-runner.ts",
     "package.json",
-    ".github/workflows/quality-ready.yml",
+    "pnpm-workspace.yaml",
   ];
   const context = {
     sealedRoot: process.cwd(), project: new Project({ tsConfigFilePath: "tsconfig.json" }),
@@ -497,7 +497,7 @@ test("each static mode records a mode-native object selector", () => {
   assert.equal(modeSelector("static.dependency").some((ref) => ref.includes("from%3D") && ref.includes("to%3D")), true);
   assert.equal(modeSelector("static.config").some((ref) => ref.includes("parser%3Dtypescript") || ref.includes("pointer%3D%2F")), true);
   assert.equal(modeSelector("static.json").some((ref) => ref.startsWith("json:package.json#")), true);
-  assert.equal(modeSelector("static.yaml").some((ref) => ref.startsWith("yaml:.github/workflows/quality-ready.yml#")), true);
+  assert.equal(modeSelector("static.yaml").some((ref) => ref.startsWith("yaml:pnpm-workspace.yaml#")), true);
 });
 
 test("a finding propagates from one law result to the only top-level verdict", () => {
