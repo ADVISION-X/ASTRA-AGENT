@@ -1,8 +1,8 @@
 import { spawnSync } from 'node:child_process';
-import { concreteString, exactKeys, isStringArray, parseJson, pathPatternValid, rejectDuplicateJsonKeys, sortedUnique } from './governance-json.js';
+import { blueprintMarkdownBodyValid, concreteString, exactKeys, isStringArray, parseJson, pathPatternValid, rejectDuplicateJsonKeys, sortedUnique } from './governance-json.js';
 import { validateLocalSpecContract } from './governance-local-spec-contract.js';
 import { fail, text } from './governance-runtime.js';
-import { blueprintMarkdownBodyValid, parseLawSource, type Law } from './governance-authority.js';
+import { parseLawSource, type Law } from './governance-authority.js';
 import { BASE, FUNCTIONAL } from './shared/governance-paths.js';
 
 const LAW = /^LAW-[A-Z0-9]+(?:-[A-Z0-9]+)*-[0-9]{3}-V[1-9][0-9]*$/u;

@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { canonicalBytes, cleanString, concreteString, exactKeys, isStringArray, parseJson, pathPatternContains, pathPatternValid, rejectDuplicateJsonKeys, sortedUnique } from './governance-json.js';
+import { blueprintMarkdownBodyValid, canonicalBytes, cleanString, concreteString, exactKeys, isStringArray, parseJson, pathPatternContains, pathPatternValid, rejectDuplicateJsonKeys, sortedUnique } from './governance-json.js';
 import { validateLocalSpecContract } from './governance-local-spec-contract.js';
 import { ROOT, fail, norm, repositoryPaths, text, validGitObjectId, walk } from './governance-runtime.js';
 import { BASE, FUNCTIONAL, pathRole, REGISTRY, REPORT, SPEC } from './shared/governance-paths.js';
@@ -310,27 +310,6 @@ function machineBlock(path: string, label: string): Record<string, unknown> {
   rejectDuplicateJsonKeys(raw, path);
   try { return JSON.parse(raw) as Record<string, unknown>; } catch { return fail('SOURCE_PARSE_FAILED', path); }
 }
-
-export const blueprintMarkdownBodyValid = (source: string): boolean => {
-  const marker = '```blueprint-record\n';
-  const start = source.indexOf(marker);
-  const end = start < 0 ? -1 : source.indexOf('\n```', start + marker.length);
-  if (end < 0) return false;
-  const body = source.slice(end + 4).trim();
-  const coverage = [
-    /终态|terminal|canonical|唯一/iu,
-    /owner/iu,
-    /输入|输出|request|response|receipt|artifact|事件|命令/iu,
-    /持久|状态|state|journal|ledger|memory|内存/iu,
-    /->|调用|依赖|访问|连接|导入|只经/iu,
-    /恢复|失败|blocked|拒绝|重试|recovery/iu,
-    /安全|不得|只允许|鉴权|权限|边界|固定/iu,
-    /验收|pass|fail|通过|证明|检查/iu,
-  ];
-  return body.length >= 160
-    && !/(?:TODO|TBD|TBC|待补|占位|未来规划)/iu.test(body)
-    && coverage.every((pattern) => pattern.test(body));
-};
 
 type BlueprintEndpoint = { repo: string; domain: string };
 type BlueprintDependencyEdge = { from: BlueprintEndpoint; to: BlueprintEndpoint; contractRef: string | null };

@@ -13,7 +13,7 @@ import {
   loadCapabilitySourceOfTruth,
 } from "../audit/domains/capability-governance/components/capability-source-of-truth.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
-import { blueprintMarkdownBodyValid } from "../audit/governance-authority.js";
+import { blueprintMarkdownBodyValid } from "../audit/governance-json.js";
 
 const projectWith = (files: Record<string, string>): Project => {
   const project = new Project({ useInMemoryFileSystem: true });

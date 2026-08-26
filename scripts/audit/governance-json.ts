@@ -50,9 +50,29 @@ const pathPatternValid = (value:string) => {
 };
 const pathPatternContains = (parent:string,child:string) => parent==='**/*' || parent===child || (parent.endsWith('/**') && (child===parent.slice(0,-3) || child.startsWith(`${parent.slice(0,-3)}/`)));
 
+const blueprintMarkdownBodyValid = (source:string):boolean => {
+  const marker='```blueprint-record\n';
+  const start=source.indexOf(marker);
+  const end=start<0?-1:source.indexOf('\n```',start+marker.length);
+  if(end<0)return false;
+  const body=source.slice(end+4).trim();
+  const coverage=[
+    /终态|terminal|canonical|唯一/iu,
+    /owner/iu,
+    /输入|输出|request|response|receipt|artifact|事件|命令/iu,
+    /持久|状态|state|journal|ledger|memory|内存/iu,
+    /->|调用|依赖|访问|连接|导入|只经/iu,
+    /恢复|失败|blocked|拒绝|重试|recovery/iu,
+    /安全|不得|只允许|鉴权|权限|边界|固定/iu,
+    /验收|pass|fail|通过|证明|检查/iu,
+  ];
+  return body.length>=160 && !/(?:TODO|TBD|TBC|待补|占位|未来规划)/iu.test(body)
+    && coverage.every((pattern)=>pattern.test(body));
+};
+
 
 export {
   sortedUnique, exactKeys, canonicalValue, canonicalBytes, parseJson, isStringArray, cleanString, concreteString,
-  pathPatternValid, pathPatternContains,
+  pathPatternValid, pathPatternContains, blueprintMarkdownBodyValid,
 };
 export type { Json };
