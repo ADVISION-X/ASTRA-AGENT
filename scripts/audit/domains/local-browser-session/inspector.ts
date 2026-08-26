@@ -50,7 +50,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
       lawResult("LAW-LOCAL-BROWSER-SESSION-001-V4", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)),
       lawResult("LAW-LOCAL-BROWSER-SESSION-002-V5", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)),
       lawResult("LAW-LOCAL-BROWSER-SESSION-003-V8", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)),
-      lawResult("LAW-LOCAL-BROWSER-SESSION-004-V8", staticClauses(10, 11, 12, 13, 14, 15), false),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-004-V8", staticClauses(10, 11, 12, 13, 14, 15, 16), false),
       lawResult("LAW-LOCAL-BROWSER-SESSION-005-V5", staticClauses(0, 1, 2, 3, 4, 5, 6)),
       lawResult("LAW-LOCAL-BROWSER-SESSION-006-V3", staticClauses(0)),
     ], inspectedFiles: evaluation.inspectedFiles,

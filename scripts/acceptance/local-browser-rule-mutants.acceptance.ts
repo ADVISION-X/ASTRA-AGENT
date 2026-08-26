@@ -9,6 +9,7 @@ import { BROWSER_ERROR_CODES } from "../../src/lib/browser/protocol/generated/br
 import { BrowserOwnerLock } from "../../src/lib/browser/infrastructure/browser-owner-lock.js";
 import { readBrowserProofJournal } from "../../src/lib/browser/exact-target/browser-proof-journal.js";
 import { recoverBrowserProofJournal } from "../../src/lib/browser/exact-target/browser-proof-journal-recovery.js";
+import { inspectJournalRecoveryBoundary } from "../audit/domains/local-browser-session/mutation-atomicity-inspection.js";
 import { inspectTargetClaimGuards } from "../audit/domains/local-browser-session/target-claim-inspection.js";
 import { createInspectorContextFixture } from "../audit/shared/inspector-context-acceptance-support.js";
 import type { InspectorFinding } from "../audit/shared/inspector-contracts.js";
@@ -54,6 +55,36 @@ for (const [path, from, to] of automaticClaimMutants) {
     source.replaceWithText(current.replace(from, to));
   });
   assert.ok(findings.length > 0, `${path}: automatic-claim mutant must produce a governance finding`);
+}
+
+const journalRecoveryPaths = [
+  "src/lib/browser/exact-target/browser-proof-journal.ts",
+  "src/lib/browser/exact-target/browser-proof-journal-recovery.ts",
+] as const;
+const journalRecoveryFindings = (mutate?: (project: Project) => void): InspectorFinding[] => {
+  const project = new Project({ tsConfigFilePath: "tsconfig.json" });
+  mutate?.(project);
+  const fixture = createInspectorContextFixture(project, "local-browser-session", ["LAW-LOCAL-BROWSER-SESSION-004-V8"]);
+  const findings: InspectorFinding[] = [];
+  inspectJournalRecoveryBoundary(
+    { ...fixture, targetPaths: [...journalRecoveryPaths] }, findings, "LAW-LOCAL-BROWSER-SESSION-004-V8",
+  );
+  return findings;
+};
+
+assert.deepEqual(journalRecoveryFindings(), [], "current recovery genesis must not carry current identity");
+for (const [from, to] of [
+  ["export type BrowserProofRecoveryEvent = Readonly<{", "export type BrowserProofRecoveryEvent = Readonly<{\n  candidateHash: `sha256:${string}`;"],
+  ["const recoveryKeys = [", "const recoveryKeys = [\n  \"releaseBuildId\","],
+] as const) {
+  const findings = journalRecoveryFindings((project) => {
+    const source = project.getSourceFileOrThrow(journalRecoveryPaths[0]);
+    const current = source.getFullText();
+    assert.ok(current.includes(from), "recovery identity mutant anchor");
+    source.replaceWithText(current.replace(from, to));
+  });
+  assert.ok(findings.some(({ checkId }) => checkId === "browser-authority/recovery-identity-boundary"),
+    "a recovery genesis carrying current identity must produce a governance finding");
 }
 
 const expected = [

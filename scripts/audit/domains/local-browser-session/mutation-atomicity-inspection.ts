@@ -281,6 +281,21 @@ export const exactTextMatcherIsStrict = (domRuntime: SourceFile): boolean => {
     && exactComparisonIsStrict(matcher);
 };
 
+const recoveryGenesisExcludesCurrentIdentity = (journal: SourceFile): boolean => {
+  const event = journal.getTypeAlias("BrowserProofRecoveryEvent")
+    ?.getFirstDescendantByKind(SyntaxKind.TypeLiteral);
+  const keys = journal.getVariableDeclaration("recoveryKeys")?.getInitializer();
+  if (!Node.isTypeLiteral(event) || !Node.isArrayLiteralExpression(keys)) return false;
+  const eventProperties = new Set(event.getProperties().flatMap((property) =>
+    Node.isPropertySignature(property) ? [property.getName()] : []));
+  const keyValues = new Set(keys.getElements().flatMap((element) =>
+    Node.isStringLiteral(element) ? [element.getLiteralValue()] : []));
+  const currentIdentity = ["candidateHash", "extensionId", "releaseBuildId"];
+  const historicalIdentity = ["observedCandidateHashes", "observedReleaseBuildIds"];
+  return currentIdentity.every((name) => !eventProperties.has(name) && !keyValues.has(name))
+    && historicalIdentity.every((name) => eventProperties.has(name) && keyValues.has(name));
+};
+
 export const inspectJournalRecoveryBoundary = (
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -297,6 +312,12 @@ export const inspectJournalRecoveryBoundary = (
   requireIdentifiers(journal, [
     "BrowserProofRecoveryEvent", "createBrowserRecoveryEnvelope", "recoveryCount",
   ], findings, lawId, "The V2 canonical journal must admit exactly one typed recovery genesis.");
+  if (!recoveryGenesisExcludesCurrentIdentity(journal)) findings.push(createLocalFinding({
+    checkId: "browser-authority/recovery-identity-boundary",
+    lawId,
+    filePath: sourcePaths[7],
+    message: "Recovery genesis may record sealed historical identity observations, but must not carry current candidate, extension, or release identity.",
+  }));
   for (const literal of [
     "grasseye.browser-proof-journal.v2",
     "RECOVERY",
