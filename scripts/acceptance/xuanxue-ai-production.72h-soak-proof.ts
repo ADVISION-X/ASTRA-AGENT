@@ -66,7 +66,7 @@ assert.ok(p95Ms <= LEASE_P95_LIMIT_MS, `eligible-to-lease P95 exceeded ${LEASE_P
 
 const receipt = createHash("sha256").update(bytes).digest("hex");
 emitQualityProofObservation({
-  lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "dynamic.performance", clauses: ["forbidden:15","summary"],
+  lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "dynamic.performance",
   locator: proofPath,
   receipt,
   observedValue: `soakMs=${completedAt - startedAt};samples=${durations.length};scenarios=75;p95Ms=${p95Ms};limitMs=${LEASE_P95_LIMIT_MS}`,

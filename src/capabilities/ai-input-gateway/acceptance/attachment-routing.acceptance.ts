@@ -32,4 +32,4 @@ assert.throws(
 );
 
 process.stdout.write("[ACCEPTANCE] AI Input Gateway attachment routing PASS\n");
-emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-003-V1", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","summary"], locator: "acceptance:attachment-routing:transport-not-public", observedValue: "caller cannot select attachment transport" });
+emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-003-V1", evidenceMode: "exam.golden", locator: "acceptance:attachment-routing:transport-not-public", observedValue: "caller cannot select attachment transport" });

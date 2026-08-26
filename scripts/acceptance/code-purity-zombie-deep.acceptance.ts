@@ -124,4 +124,4 @@ for (const [caseName, expected] of forbidden) assert.equal(hasFinding(caseName, 
 assert.ok(runCase("zombie-to-zombie-chain").filter((finding) => finding.checkId === "code-purity/zombie-file").length >= 3);
 rmSync(RUNTIME_ROOT, { force: true, recursive: true });
 console.log("code-purity-zombie-deep-acceptance-ok");
-emitQualityProofObservation({ lawId: "LAW-CODE-PURITY-003-V1", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","summary"], locator: "acceptance:code-purity:zombie-mutant-matrix", observedValue: "required zombie mutants rejected and allowed ownership cases retained" });
+emitQualityProofObservation({ lawId: "LAW-CODE-PURITY-003-V1", evidenceMode: "exam.golden", locator: "acceptance:code-purity:zombie-mutant-matrix", observedValue: "required zombie mutants rejected and allowed ownership cases retained" });

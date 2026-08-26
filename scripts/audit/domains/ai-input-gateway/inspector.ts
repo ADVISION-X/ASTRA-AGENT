@@ -438,16 +438,17 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
-  const lawResult = (lawId: string, modes: readonly string[]) => {
+  const lawResult = (lawId: string, modes: readonly string[], astClauses = staticClauses(0)) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
       return { lawId, assertions: modes.map((evidenceMode) => ({
-      clauses: staticClauses(0), evidenceMode, passed: producerModePassed(findings, evidenceMode), refs: staticEvidenceRefs(context, lawId, evidenceMode),
+      clauses: evidenceMode === "static.ast" ? astClauses : ["summary"], evidenceMode,
+      passed: producerModePassed(findings, evidenceMode), refs: staticEvidenceRefs(context, lawId, evidenceMode),
     })), findings };
   };
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [
-      lawResult("LAW-AI-INPUT-GATEWAY-001-V1", ["static.ast", "static.contract"]),
+      lawResult("LAW-AI-INPUT-GATEWAY-001-V1", ["static.ast", "static.contract"], staticClauses(0, 1, 2, 3, 4)),
       lawResult("LAW-AI-INPUT-GATEWAY-002-V2", ["static.ast"]),
       lawResult("LAW-AI-INPUT-GATEWAY-003-V1", ["static.ast", "static.contract"]),
       lawResult("LAW-AI-INPUT-GATEWAY-004-V1", ["static.ast", "static.contract"]),

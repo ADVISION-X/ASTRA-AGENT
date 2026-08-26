@@ -1,7 +1,6 @@
 export type QualityProofObservation = Readonly<{
   lawId: string;
   evidenceMode: string;
-  clauses: string[];
   locator: string;
   observedValue: string;
   receipt?: string;
@@ -31,12 +30,6 @@ const locatorValid = (dynamic: boolean, locator: unknown): locator is string => 
   && (dynamic
     ? /^\//u.test(locator)
     : /^(?:acceptance|proof):[a-z0-9][a-z0-9:._/-]*$/u.test(locator));
-const clausesValid = (clauses: unknown): clauses is string[] => Array.isArray(clauses)
-  && clauses.length > 0
-  && clauses.every((clause) => typeof clause === "string"
-    && (clause === "summary" || /^forbidden:(?:0|[1-9][0-9]*)$/u.test(clause)))
-  && JSON.stringify(clauses) === JSON.stringify([...new Set(clauses)].sort((left, right) =>
-    Buffer.compare(Buffer.from(left), Buffer.from(right))));
 const contextForEmission = (): ProofContext => ({
   proofRunId: process.env.GOVERNANCE_PROOF_RUN_ID?.trim() ?? "",
   candidate: process.env.GOVERNANCE_PROOF_CANDIDATE?.trim() ?? "",
@@ -47,7 +40,6 @@ const observationValid = (
   observation: Partial<QualityProofObservation>, context: ProofContext, dynamic: boolean,
 ): boolean => observation.lawId?.startsWith("LAW-") === true
   && /^(exam|dynamic)\./u.test(observation.evidenceMode ?? "")
-  && clausesValid(observation.clauses)
   && locatorValid(dynamic, observation.locator) && Boolean(observation.observedValue?.trim())
   && digest(context.proofRunId) && candidateValid(context.candidate)
   && context.proofKind === (dynamic ? "dynamic" : "exam")
@@ -63,8 +55,8 @@ export const emitQualityProofObservation = (observation: QualityProofObservation
 
 const exactObservationKeys = (parsed: Partial<QualityProofObservation>, dynamic: boolean): boolean => {
   const expected = dynamic
-    ? "candidate,clauses,evidenceMode,lawId,locator,observedValue,proofKind,proofRunId,receipt"
-    : "candidate,clauses,evidenceMode,lawId,locator,observedValue,proofKind,proofRunId";
+    ? "candidate,evidenceMode,lawId,locator,observedValue,proofKind,proofRunId,receipt"
+    : "candidate,evidenceMode,lawId,locator,observedValue,proofKind,proofRunId";
   return Object.keys(parsed).sort().join(",") === expected;
 };
 

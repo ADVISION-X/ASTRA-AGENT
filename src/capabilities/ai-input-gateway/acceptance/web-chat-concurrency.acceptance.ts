@@ -466,5 +466,5 @@ if (workerArgs[0] === "--ticket-worker") {
   process.stdout.write(
     "[ACCEPTANCE][ai-input-gateway-web-chat-concurrency] PASS\n",
   );
-  emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-005-V4", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:10","forbidden:11","forbidden:12","forbidden:13","forbidden:14","forbidden:15","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"], locator: "acceptance:web-chat:bounded-session-controller", observedValue: "bounded concurrency, single mutation lane and exact conversation topology verified" });
+  emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-005-V4", evidenceMode: "exam.golden", locator: "acceptance:web-chat:bounded-session-controller", observedValue: "bounded concurrency, single mutation lane and exact conversation topology verified" });
 }

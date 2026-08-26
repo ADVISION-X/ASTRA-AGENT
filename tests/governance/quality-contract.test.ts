@@ -22,7 +22,7 @@ import { validateProviderContractSpec } from "../../scripts/audit/shared/provide
 import type { InspectorContext } from "../../scripts/audit/shared/inspector-contracts.js";
 import { proofObservationPrefix } from "../../scripts/audit/shared/proof-observation.js";
 import type { QualityProofRequest } from "../../scripts/audit/shared/proof-observation.js";
-import { relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
+import { proofClausesFor, relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
 import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../scripts/audit/shared/static-inspection-contract.js";
 import { inspectPerSiteHmac } from "../../scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.js";
 
@@ -261,15 +261,30 @@ test("a fixed or unauthenticated stdout marker cannot mint evidence for unexecut
   const oneNativeObservation = `${proofObservationPrefix}${JSON.stringify({
     lawId: first.lawId,
     evidenceMode: "exam.golden",
-    clauses: ["forbidden:0", "summary"],
     locator: "acceptance:provider-boundary:injected-browser",
     observedValue: "first route actually asserted",
     ...requests[0],
   })}\n`;
   assert.equal(bindNativeProofObservations(oneNativeObservation, routes, requests, script, "exam").size, 1);
+  const selfAttestedClauses = `${proofObservationPrefix}${JSON.stringify({
+    lawId: first.lawId,
+    evidenceMode: "exam.golden",
+    clauses: ["forbidden:0", "summary"],
+    locator: "acceptance:provider-boundary:injected-browser",
+    observedValue: "producer attempted to expand the admitted proof scope",
+    ...requests[0],
+  })}\n`;
+  assert.throws(
+    () => bindNativeProofObservations(selfAttestedClauses, routes, requests, script, "exam"),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
+  );
+  assert.deepEqual(proofClausesFor(first.lawId, "exam.golden"), ["summary"]);
+  assert.throws(
+    () => proofClausesFor(first.lawId, "exam.property"),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
+  );
   const invented = `${proofObservationPrefix}${JSON.stringify({
     lawId: first.lawId, evidenceMode: "exam.golden", locator: "acceptance:provider-boundary:injected-browser",
-    clauses: ["forbidden:0", "summary"],
     observedValue: "forged execution result", proofRunId: "f".repeat(64), candidate: "b".repeat(40),
     proofKind: "exam",
   })}\n`;
@@ -286,7 +301,6 @@ test("native proof observations reject one locator reused across law routes", ()
   const line = `${proofObservationPrefix}${JSON.stringify({
     lawId: law.lawId,
     evidenceMode: "exam.golden",
-    clauses: ["forbidden:0", "summary"],
     locator: "acceptance:exact-target:caller-owned-lease",
     observedValue: "exact target route executed",
     ...requests[0],
@@ -307,7 +321,6 @@ test("a Dynamic producer cannot self-authenticate an invented native object", ()
   const requests = proofRequests(routes, "dynamic");
   const marker = `${proofObservationPrefix}${JSON.stringify({
     lawId: law.lawId, evidenceMode: "dynamic.service", locator: "invented://no-real-object",
-    clauses: ["forbidden:0", "summary"],
     observedValue: "value=forged", receipt: "a".repeat(64), ...requests[0],
   })}`;
   assert.throws(
@@ -316,7 +329,6 @@ test("a Dynamic producer cannot self-authenticate an invented native object", ()
   );
   const selfAuthenticatedUrl = `${proofObservationPrefix}${JSON.stringify({
     lawId: law.lawId, evidenceMode: "dynamic.service", locator: "https://127.0.0.1/health",
-    clauses: ["forbidden:0", "summary"],
     observedValue: `run=${requests[0]!.proofRunId};candidate=${requests[0]!.candidate};health=healthy`,
     receipt: "a".repeat(64), ...requests[0],
   })}`;
@@ -326,7 +338,7 @@ test("a Dynamic producer cannot self-authenticate an invented native object", ()
   );
   const nativeFileMarker = `${proofObservationPrefix}${JSON.stringify({
     lawId: law.lawId, evidenceMode: "dynamic.service", locator: fixtureEvidencePath,
-    clauses: ["forbidden:0", "summary"], observedValue: "native health receipt observed",
+    observedValue: "native health receipt observed",
     receipt: fixtureEvidenceDigest, ...requests[0],
   })}`;
   assert.equal(bindNativeProofObservations(
@@ -334,7 +346,6 @@ test("a Dynamic producer cannot self-authenticate an invented native object", ()
   ).size, 1);
   const missingNativeMarker = `${proofObservationPrefix}${JSON.stringify({
     lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", evidenceMode: "dynamic.recovery",
-    clauses: ["forbidden:12", "summary"],
     locator: `/tmp/recovery-receipts/${"c".repeat(64)}.json`, observedValue: "atomic recovery verified",
     receipt: "c".repeat(64), ...proofRequests([{ law: {
       ...law, lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", capabilityDomain: "local-browser-session",
@@ -440,6 +451,7 @@ test("static PASS evidence names governed target objects instead of inspector de
   const validatedRefs = output.lawResults[0]!.assertions[0]!.refs;
   assert.equal(validatedRefs.some((ref) => ref.startsWith(`ast:${targetPath}#`)), true);
   assert.equal(validatedRefs.some((ref) => ref.includes("node%3DSourceFile")), true);
+  assert.equal(validatedRefs.some((ref) => ref.includes("clauses%3Dforbidden%3A0%2Csummary")), true);
 });
 
 test("static evidence keeps the exact scope when a governed path is not an evidence locator", () => {

@@ -138,16 +138,16 @@ writeFileSync(startupListenerReceiptPath, `${JSON.stringify({
 const runtimeValue = `run=${proofRunId};candidate=${proofCandidate};pid=${observation.listenerPid};health=${observation.health.status}`;
 const browserValue = `${runtimeValue};browser=${observation.browserVersion};screenshotSha256=${observation.screenshotSha256}`;
 const nativeReceipt = (receiptPath: string): string => createHash("sha256").update(readFileSync(receiptPath)).digest("hex");
-emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-001-V5", evidenceMode: "dynamic.browser", clauses: ["forbidden:7","summary"],
+emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-001-V5", evidenceMode: "dynamic.browser",
   locator: browserReceiptPath, receipt: nativeReceipt(browserReceiptPath), observedValue: browserValue });
-emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-001-V5", evidenceMode: "dynamic.service", clauses: ["forbidden:4","forbidden:8","summary"],
+emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-001-V5", evidenceMode: "dynamic.service",
   locator: shellHealthReceiptPath, receipt: nativeReceipt(shellHealthReceiptPath), observedValue: runtimeValue });
-emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-003-V2", evidenceMode: "dynamic.service", clauses: ["forbidden:0","forbidden:1","summary"],
+emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-003-V2", evidenceMode: "dynamic.service",
   locator: degradedHealthReceiptPath, receipt: nativeReceipt(degradedHealthReceiptPath),
   observedValue: `${runtimeValue};components=${observation.health.components?.length ?? 0}` });
-emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMode: "dynamic.service", clauses: ["forbidden:11","summary"],
+emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMode: "dynamic.service",
   locator: startupProcessReceiptPath, receipt: nativeReceipt(startupProcessReceiptPath),
   observedValue: `${runtimeValue};startup=grasseye:start;cleanup=verified` });
-emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V4", evidenceMode: "dynamic.service", clauses: ["forbidden:0","summary"],
+emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V4", evidenceMode: "dynamic.service",
   locator: startupListenerReceiptPath, receipt: nativeReceipt(startupListenerReceiptPath),
   observedValue: `${runtimeValue};listenerOwner=${root};cleanup=verified` });

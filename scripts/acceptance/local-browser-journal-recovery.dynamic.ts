@@ -41,7 +41,7 @@ try {
     firstInvalidLine: recovered.firstInvalidLine,
     dataRoot: root,
   })}\n`);
-  emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", evidenceMode: "dynamic.recovery", clauses: ["forbidden:12","forbidden:13","forbidden:14","forbidden:15","summary"],
+  emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", evidenceMode: "dynamic.recovery",
     locator: recovered.recoveryReceiptPath, receipt: recovered.recoveryId.slice("sha256:".length),
     observedValue: `recoveryId=${recovered.recoveryId};firstInvalidLine=${recovered.firstInvalidLine}` });
 } finally {

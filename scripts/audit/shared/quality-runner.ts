@@ -10,7 +10,7 @@ import { buildQualityReport, type LawExecutionResult, type QualityAssertion, typ
 import { runInspectionWorker } from "./quality-inspector-worker.js";
 import type { InspectorFinding, InspectorLawResult, SessionInspectorOutput } from "./inspector-contracts.js";
 import { parseQualityProofObservations, type QualityProofObservation, type QualityProofRequest } from "./proof-observation.js";
-import { dynamicScriptFor, examScriptFor } from "./quality-routes.js";
+import { dynamicScriptFor, examScriptFor, proofClausesFor } from "./quality-routes.js";
 import { validateProviderContractSpec, type ProviderContract } from "./provider-contract-authority.js";
 
 export { dynamicScriptFor } from "./quality-routes.js";
@@ -277,7 +277,7 @@ const proofResults = (input: ProofResultInput): Map<string, ProofResult> => {
         ?? fail("LAW_EVIDENCE_MISSING", `${law.lawId}:${mode}:native-receipt`)}`;
     const current = results.get(law.lawId) ?? { assertions: [], findings: [] };
     current.assertions.push({
-      clauses: [...observation.clauses],
+      clauses: proofClausesFor(law.lawId, mode),
       evidenceMode: mode, passed: input.executionPassed, refs: [ref],
     });
     results.set(law.lawId, current);

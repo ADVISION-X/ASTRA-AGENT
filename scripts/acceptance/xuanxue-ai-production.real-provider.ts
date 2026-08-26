@@ -281,24 +281,24 @@ process.stdout.write(`${JSON.stringify({
 const attestationReceipt = continuationReceipt.successor.runtimeAttestationReceiptHash.replace(/^sha256:/u, "");
 const providerReceipt = Object.values(dynamicProofBinding.provider_record_hashes)[0];
 assert.ok(providerReceipt);
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "dynamic.service", clauses: ["forbidden:10","forbidden:11","forbidden:4","forbidden:6","forbidden:7","forbidden:9","summary"],
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "dynamic.service",
   locator: executionDirectory, receipt: attestationReceipt,
   observedValue: `predecessor=${continuationReceipt.predecessor.workerSessionId};successor=${continuationReceipt.successor.workerSessionId}` });
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "dynamic.database", clauses: ["forbidden:10","forbidden:13","forbidden:14","forbidden:4","summary"],
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "dynamic.database",
   locator: databasePath, receipt: databaseReceipt,
   observedValue: `integrity=${integrity};completedOrders=${terminalJobIds.length}` });
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "dynamic.storage", clauses: ["forbidden:10","forbidden:11","forbidden:13","forbidden:14","summary"],
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "dynamic.storage",
   locator: checkpointDirectory, receipt: storageReceipt,
   observedValue: `checkpoints=${outputs.length};uniqueHashes=${new Set(outputs.map((output) => byId.get(output.executionId)!.responseCheckpoint!.rawOutputHash)).size}` });
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "dynamic.provider", clauses: ["forbidden:13","forbidden:14","forbidden:15","summary"],
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "dynamic.provider",
   locator: executionDirectory, receipt: providerReceipt.replace(/^sha256:/u, ""),
   observedValue: `records=${records.length};uniqueTokens=${new Set(tokens).size}` });
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "dynamic.authorization", clauses: ["forbidden:2","forbidden:3","forbidden:4","forbidden:5","summary"],
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "dynamic.authorization",
   locator: executionDirectory, receipt: attestationReceipt,
   observedValue: `device=${continuationReceipt.successor.deviceId};sessionEpoch=${continuationReceipt.successor.workerSessionEpoch}` });
-emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-002-V2", evidenceMode: "dynamic.provider", clauses: ["forbidden:1","forbidden:4","forbidden:5","summary"],
+emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-002-V2", evidenceMode: "dynamic.provider",
   locator: executionDirectory, receipt: providerReceipt.replace(/^sha256:/u, ""),
   observedValue: `exactProviderRecords=${records.length};rawResponses=${outputs.length}` });
-emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-002-V2", evidenceMode: "dynamic.authorization", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:6","summary"],
+emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-002-V2", evidenceMode: "dynamic.authorization",
   locator: executionDirectory, receipt: attestationReceipt,
   observedValue: `authorizedDevice=${continuationReceipt.successor.deviceId};workerSession=${continuationReceipt.successor.workerSessionId}` });
