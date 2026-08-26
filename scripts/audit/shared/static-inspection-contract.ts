@@ -1,4 +1,5 @@
 import { fail } from "../governance-runtime.js";
+import { resolve } from "node:path";
 import { SyntaxKind } from "ts-morph";
 import type {
   InspectorContext, InspectorFinding, InspectorLawRequirement, InspectorOutput,
@@ -29,7 +30,7 @@ export const staticEvidenceRefs = (
   }
   const ownerPath = context.planEntry.ownerInspectorPath;
   const owner = context.project.getSourceFile(ownerPath)
-    ?? context.project.getSourceFile(`${context.sealedRoot}/${ownerPath}`)
+    ?? context.project.addSourceFileAtPathIfExists(resolve(context.sealedRoot, ownerPath))
     ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${ownerPath}:owner-inspector`);
   const calls = new Set(owner.getDescendantsOfKind(SyntaxKind.CallExpression)
     .map((call) => call.getExpression().getText()));
