@@ -235,11 +235,13 @@ const inspectDomainEvaluation = (context: InspectorContext) => {
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = inspectDomainEvaluation(context);
+  const semanticChecks = (lawId: string): string[] => lawId.endsWith("001-V4")
+    ? ["inspectStartupBoundary"] : ["inspectLocalStartupAuthorityBoundary"];
   const lawResult = (lawId: string, astClauses: string[]) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
       return { lawId, assertions: [
-      { clauses: astClauses, evidenceMode: "static.ast", passed: producerModePassed(findings, "static.ast"), refs: staticEvidenceRefs(context, lawId, "static.ast", astClauses) },
-      { clauses: staticClauses(0), evidenceMode: "static.contract", passed: producerModePassed(findings, "static.contract"), refs: staticEvidenceRefs(context, lawId, "static.contract", staticClauses(0)) },
+      { clauses: astClauses, evidenceMode: "static.ast", passed: producerModePassed(findings, "static.ast"), refs: staticEvidenceRefs(context, lawId, "static.ast", astClauses, semanticChecks(lawId)) },
+      { clauses: staticClauses(0), evidenceMode: "static.contract", passed: producerModePassed(findings, "static.contract"), refs: staticEvidenceRefs(context, lawId, "static.contract", staticClauses(0), semanticChecks(lawId)) },
     ], findings };
   };
   return validateStaticInspection(context, {

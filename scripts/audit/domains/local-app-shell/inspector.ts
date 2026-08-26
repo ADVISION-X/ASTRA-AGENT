@@ -235,10 +235,13 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => {
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = evaluate(context);
+  const semanticChecks = (lawId: string): string[] => lawId === LAW_SHELL
+    ? ["inspectShellOwnership"]
+    : lawId === LAW_BOUNDARY ? ["inspectBrowserAuthorityBoundary"] : ["inspectSeparatedStatus"];
   const lawResult = (lawId: string, clausesByMode: Readonly<Record<string, string[]>>) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
       return { lawId, assertions: Object.entries(clausesByMode).map(([evidenceMode, clauses]) => ({
-      clauses, evidenceMode, passed: producerModePassed(findings, evidenceMode), refs: staticEvidenceRefs(context, lawId, evidenceMode, clauses),
+      clauses, evidenceMode, passed: producerModePassed(findings, evidenceMode), refs: staticEvidenceRefs(context, lawId, evidenceMode, clauses, semanticChecks(lawId)),
     })), findings };
   };
   return validateStaticInspection(context, {

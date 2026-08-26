@@ -438,12 +438,21 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
+    const semanticChecks = (lawId: string): string[] => ({
+      "LAW-AI-INPUT-GATEWAY-001-V1": ["inspectPublicBoundary"],
+      "LAW-AI-INPUT-GATEWAY-002-V2": ["inspectAtomicIfAndThenActions"],
+      "LAW-AI-INPUT-GATEWAY-003-V1": ["inspectAttachmentRoutingChild", "inspectRemovedRegion"],
+      "LAW-AI-INPUT-GATEWAY-004-V1": ["inspectAttachmentProofChild"],
+      "LAW-AI-INPUT-GATEWAY-005-V4": ["inspectBoundedParallelExecution", "inspectConversationTopology", "inspectGeneratedImageCapture"],
+      "LAW-AI-INPUT-GATEWAY-006-V2": ["inspectBoundedChoiceJudge"],
+      "LAW-AI-INPUT-GATEWAY-007-V2": ["inspectCallerApprovedInputReferences"],
+    } as Readonly<Record<string, string[]>>)[lawId] ?? [];
     const lawResult = (lawId: string, modes: readonly string[], astClauses = staticClauses(0)) => {
       const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
       return { lawId, assertions: modes.map((evidenceMode) => {
         const clauses = evidenceMode === "static.ast" ? astClauses : staticClauses(0);
         return { clauses, evidenceMode, passed: producerModePassed(findings, evidenceMode),
-          refs: staticEvidenceRefs(context, lawId, evidenceMode, clauses) };
+          refs: staticEvidenceRefs(context, lawId, evidenceMode, clauses, semanticChecks(lawId)) };
       }), findings };
   };
   return validateStaticInspection(context, {

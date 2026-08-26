@@ -37,10 +37,13 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
+  const semanticChecks = (lawId: string): string[] => lawId.endsWith("001-V3")
+    ? ["collectRuntimeOperationalTraceFindings"]
+    : lawId.endsWith("002-V3") ? ["collectRuntimeRedactionFindings"] : ["collectRuntimeContractFindings"];
   const lawResult = (lawId: string) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
       return { lawId, assertions: ["static.ast", "static.contract"].map((evidenceMode) => ({
-      clauses: staticClauses(0), evidenceMode, passed: producerModePassed(findings, evidenceMode), refs: staticEvidenceRefs(context, lawId, evidenceMode, staticClauses(0)),
+      clauses: staticClauses(0), evidenceMode, passed: producerModePassed(findings, evidenceMode), refs: staticEvidenceRefs(context, lawId, evidenceMode, staticClauses(0), semanticChecks(lawId)),
     })), findings };
   };
   return validateStaticInspection(context, {

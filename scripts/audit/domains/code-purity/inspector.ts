@@ -23,7 +23,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
         clauses,
         evidenceMode,
         passed: producerModePassed(findings, evidenceMode),
-        refs: staticEvidenceRefs(context, lawId, evidenceMode, clauses),
+        refs: staticEvidenceRefs(context, lawId, evidenceMode, clauses, ["runCodePurityPhases"]),
       })),
       findings,
     };

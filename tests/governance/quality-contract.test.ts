@@ -367,13 +367,13 @@ test("static validation rejects a law with no owner result", () => {
       targetPaths: ["package.json"],
       targetSet: { queryRef: `scope:${lawId}`, count: 1 },
     })),
-    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
+    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/shared/static-inspection-contract.ts" },
   } as unknown as InspectorContext;
   assert.throws(
     () => validateStaticInspection(context, {
       capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1", "LAW-FIXTURE-002-V1"],
       lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(0),
-        evidenceMode: "static.ast", passed: true, refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(0)) }], findings: [] }],
+        evidenceMode: "static.ast", passed: true, refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(0), ["requirementFor"]) }], findings: [] }],
       inspectedFiles: ["package.json"],
     }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
@@ -383,7 +383,7 @@ test("static validation rejects a law with no owner result", () => {
 test("static validation rejects a producer clause outside the active law denominator", () => {
   const context = {
     project: new Project({ tsConfigFilePath: "tsconfig.json" }), sealedRoot: process.cwd(),
-    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
+    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/shared/static-inspection-contract.ts" },
     lawRequirements: [{
       lawId: "LAW-FIXTURE-001-V1",
       forbiddenCount: 1,
@@ -396,7 +396,7 @@ test("static validation rejects a producer clause outside the active law denomin
     () => validateStaticInspection(context, {
       capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
       lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(1),
-        evidenceMode: "static.ast", passed: true, refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(1)) }], findings: [] }],
+        evidenceMode: "static.ast", passed: true, refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(1), ["requirementFor"]) }], findings: [] }],
       inspectedFiles: ["package.json"],
     }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
@@ -406,7 +406,7 @@ test("static validation rejects a producer clause outside the active law denomin
       capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
       lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(),
         evidenceMode: "static.ast", passed: true,
-        refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses()) }], findings: [] }],
+        refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(), ["requirementFor"]) }], findings: [] }],
       inspectedFiles: ["package.json"],
     }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
@@ -434,12 +434,12 @@ test("static validation rejects an unreadable complete target set", () => {
   );
 });
 
-test("static PASS evidence names governed target objects instead of inspector declarations", () => {
+test("static PASS evidence names the owner semantic check and complete target scope", () => {
   const targetPath = "scripts/audit/shared/quality-contract.ts";
   const context = {
     sealedRoot: process.cwd(),
     project: new Project({ tsConfigFilePath: "tsconfig.json" }),
-    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
+    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/shared/static-inspection-contract.ts" },
     lawRequirements: [{
       lawId: "LAW-FIXTURE-001-V1", forbiddenCount: 1,
       requiredStaticModes: ["static.ast"],
@@ -447,13 +447,13 @@ test("static PASS evidence names governed target objects instead of inspector de
       targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 1 },
     }],
   } as unknown as InspectorContext;
-  const refs = staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(0));
+  const refs = staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(0), ["requirementFor"]);
   const output = validateStaticInspection(context, { capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
     lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(0), evidenceMode: "static.ast",
       passed: true, refs }], findings: [] }], inspectedFiles: [targetPath] });
   const validatedRefs = output.lawResults[0]!.assertions[0]!.refs;
-  assert.equal(validatedRefs.some((ref) => ref.startsWith(`ast:${targetPath}#`)), true);
-  assert.equal(validatedRefs.some((ref) => ref.includes("node%3DSourceFile")), true);
+  assert.equal(validatedRefs.some((ref) => ref.startsWith("ast:scripts/audit/shared/static-inspection-contract.ts#")), true);
+  assert.equal(validatedRefs.some((ref) => ref.includes("semanticCheck%3DrequirementFor")), true);
   assert.equal(validatedRefs.some((ref) => ref.includes("clauses%3Dforbidden%3A0%2Csummary")), true);
 });
 
@@ -463,7 +463,7 @@ test("static evidence keeps the exact scope when a governed path is not an evide
   const context = {
     sealedRoot: process.cwd(),
     project: new Project({ tsConfigFilePath: "tsconfig.json" }),
-    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
+    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/shared/static-inspection-contract.ts" },
     lawRequirements: [{
       lawId: "LAW-FIXTURE-001-V1", forbiddenCount: 1,
       requiredStaticModes: ["static.ast"],
@@ -471,7 +471,7 @@ test("static evidence keeps the exact scope when a governed path is not an evide
       targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 2 },
     }],
   } as unknown as InspectorContext;
-  const refs = staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(0));
+  const refs = staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(0), ["requirementFor"]);
   const output = validateStaticInspection(context, { capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
     lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(0), evidenceMode: "static.ast",
       passed: true, refs }], findings: [] }], inspectedFiles: [pathWithReservedCharacter, targetPath] });
@@ -489,7 +489,7 @@ test("a producer finding invalidates only its own static evidence mode", () => {
   for (const mode of ["static.ast", "static.dependency", "static.config"]) assert.equal(producerModePassed([finding], mode), true);
 });
 
-test("each static mode records a mode-native object selector", () => {
+test("each static mode records a mode-native semantic-check selector", () => {
   const lawId = "LAW-FIXTURE-001-V1";
   const targetPaths = [
     "scripts/audit/shared/quality-contract.ts",
@@ -499,25 +499,43 @@ test("each static mode records a mode-native object selector", () => {
   ];
   const context = {
     sealedRoot: process.cwd(), project: new Project({ tsConfigFilePath: "tsconfig.json" }),
-    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
+    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/shared/static-inspection-contract.ts" },
     lawRequirements: [{ lawId, forbiddenCount: 1,
       requiredStaticModes: ["static.ast", "static.types", "static.contract", "static.dependency", "static.config", "static.json", "static.yaml"],
       targetPaths, targetSet: { queryRef: `scope:${lawId}#appliesTo-minus-excludes`, count: targetPaths.length } }],
   } as unknown as InspectorContext;
-  const modeSelector = (mode: string): string[] => staticEvidenceRefs(context, lawId, mode, staticClauses(0))
+  const modeSelector = (mode: string): string[] => staticEvidenceRefs(context, lawId, mode, staticClauses(0), ["requirementFor"])
     .filter((ref) => !ref.startsWith("scope:"));
-  assert.equal(modeSelector("static.ast").some((ref) => ref.includes("node%3DSourceFile")), true);
+  assert.equal(modeSelector("static.ast").some((ref) => ref.includes("semanticCheck%3DrequirementFor")), true);
   for (const mode of context.lawRequirements[0]!.requiredStaticModes) {
     assert.equal(modeSelector(mode).some((ref) =>
       ref.includes(encodeURIComponent(`lawId=${lawId};mode=${mode};`))), true);
   }
-  assert.equal(modeSelector("static.types").some((ref) => ref.includes("symbol%3D")), true);
   assert.equal(modeSelector("static.types").every((ref) => ref.startsWith("test:")), true);
-  assert.equal(modeSelector("static.contract").some((ref) => ref.includes("contract%3D")), true);
-  assert.equal(modeSelector("static.dependency").some((ref) => ref.includes("from%3D") && ref.includes("to%3D")), true);
-  assert.equal(modeSelector("static.config").some((ref) => ref.includes("parser%3Dtypescript") || ref.includes("pointer%3D%2F")), true);
-  assert.equal(modeSelector("static.json").some((ref) => ref.startsWith("json:package.json#")), true);
-  assert.equal(modeSelector("static.yaml").some((ref) => ref.startsWith("yaml:pnpm-workspace.yaml#")), true);
+  assert.equal(modeSelector("static.contract").every((ref) => ref.startsWith("config:")), true);
+  assert.equal(modeSelector("static.dependency").every((ref) => ref.startsWith("dependency:")), true);
+  assert.equal(modeSelector("static.config").every((ref) => ref.startsWith("config:")), true);
+  assert.equal(modeSelector("static.json").every((ref) => ref.startsWith("json:")), true);
+  assert.equal(modeSelector("static.yaml").every((ref) => ref.startsWith("yaml:")), true);
+});
+
+test("removing a producer semantic check call invalidates its static evidence", () => {
+  const project = new Project({ useInMemoryFileSystem: true });
+  const ownerPath = "scripts/audit/domains/fixture/inspector.ts";
+  const owner = project.createSourceFile(`/sealed/${ownerPath}`, "inspectSemanticContract();\n");
+  const lawId = "LAW-FIXTURE-001-V1";
+  const context = {
+    sealedRoot: "/sealed", project,
+    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: ownerPath },
+    lawRequirements: [{ lawId, forbiddenCount: 1, requiredStaticModes: ["static.ast"], targetPaths: ["src/fixture.ts"],
+      targetSet: { queryRef: `scope:${lawId}#appliesTo-minus-excludes`, count: 1 } }],
+  } as unknown as InspectorContext;
+  assert.equal(staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0), ["inspectSemanticContract"]).length, 2);
+  owner.replaceWithText("void 0;\n");
+  assert.throws(
+    () => staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0), ["inspectSemanticContract"]),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
+  );
 });
 
 test("the active evidence-ownership blueprint rejects central clauses and mode substitution", () => {

@@ -36,12 +36,20 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
+  const semanticChecks = (lawId: string): string[] => ({
+    "LAW-LOCAL-BROWSER-SESSION-001-V4": ["inspectSessionCore"],
+    "LAW-LOCAL-BROWSER-SESSION-002-V5": ["inspectAuthenticatedChannelGuards", "inspectAutomaticPairingAndReload"],
+    "LAW-LOCAL-BROWSER-SESSION-003-V8": ["inspectAutomaticPairingAndReload", "inspectTargetClaimGuards"],
+    "LAW-LOCAL-BROWSER-SESSION-004-V8": ["inspectAtomicIfAndThenBoundary", "inspectJournalRecoveryBoundary", "inspectRegistryAndMutationBoundary"],
+    "LAW-LOCAL-BROWSER-SESSION-005-V5": ["inspectAutomaticPairingAndReload", "inspectReleaseAndRetiredPaths"],
+    "LAW-LOCAL-BROWSER-SESSION-006-V3": ["inspectOpaqueAuthorityBoundary"],
+  } as Readonly<Record<string, string[]>>)[lawId] ?? [];
   const lawResult = (lawId: string, astClauses: string[], hasContract = true) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
       const assertions = [{ clauses: astClauses, evidenceMode: "static.ast", passed: producerModePassed(findings, "static.ast"),
-      refs: staticEvidenceRefs(context, lawId, "static.ast", astClauses) }];
+      refs: staticEvidenceRefs(context, lawId, "static.ast", astClauses, semanticChecks(lawId)) }];
     if (hasContract) assertions.push({ clauses: staticClauses(0), evidenceMode: "static.contract", passed: producerModePassed(findings, "static.contract"),
-      refs: staticEvidenceRefs(context, lawId, "static.contract", staticClauses(0)) });
+      refs: staticEvidenceRefs(context, lawId, "static.contract", staticClauses(0), semanticChecks(lawId)) });
     return { lawId, assertions, findings };
   };
   return validateStaticInspection(context, {

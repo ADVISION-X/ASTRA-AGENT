@@ -1,8 +1,9 @@
 import { fail } from "../governance-runtime.js";
+import { SyntaxKind } from "ts-morph";
 import type {
   InspectorContext, InspectorFinding, InspectorLawRequirement, InspectorOutput,
 } from "./inspector-contracts.js";
-import { collectStaticModeEvidenceRefs, inspectTargetObjects } from "./static-target-object-inspector.js";
+import { inspectTargetObjects } from "./static-target-object-inspector.js";
 const ordered = (values: readonly string[]): string[] => [...new Set(values)].sort((left, right) =>
   Buffer.compare(Buffer.from(left), Buffer.from(right)));
 
@@ -19,10 +20,33 @@ const requirementFor = (context: InspectorContext, lawId: string): InspectorLawR
 
 export const staticEvidenceRefs = (
   context: InspectorContext, lawId: string, evidenceMode: string, clauses: readonly string[],
+  semanticChecks: readonly string[],
 ): string[] => {
   const requirement = requirementFor(context, lawId);
+  const checks = ordered(semanticChecks);
+  if (!checks.length || checks.some((check) => !/^[A-Za-z_$][A-Za-z0-9_$]*$/u.test(check))) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:semantic-check`);
+  }
+  const ownerPath = context.planEntry.ownerInspectorPath;
+  const owner = context.project.getSourceFile(ownerPath)
+    ?? context.project.getSourceFile(`${context.sealedRoot}/${ownerPath}`)
+    ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${ownerPath}:owner-inspector`);
+  const calls = new Set(owner.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .map((call) => call.getExpression().getText()));
+  if (checks.some((check) => !calls.has(check))) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:semantic-check-call`);
+  }
+  const evidenceKind = ({
+    "static.ast": "ast", "static.config": "config", "static.contract": "config",
+    "static.dependency": "dependency", "static.filesystem": "file", "static.json": "json",
+    "static.migration": "file", "static.sql": "sql", "static.text": "text",
+    "static.types": "test", "static.yaml": "yaml",
+  } as Readonly<Record<string, string>>)[evidenceMode]
+    ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:evidence-kind`);
   return ordered([
-    ...collectStaticModeEvidenceRefs(context, requirement, evidenceMode, clauses),
+    ...checks.map((check) => `${evidenceKind}:${ownerPath}#${encodeURIComponent(
+      `lawId=${lawId};mode=${evidenceMode};semanticCheck=${check};clauses=${clauses.join(",")}`,
+    )}`),
     requirement.targetSet.queryRef,
   ]);
 };

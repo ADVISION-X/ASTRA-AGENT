@@ -33,13 +33,18 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
+  const semanticChecks = (lawId: string): string[] => lawId === "LAW-APP-SHELL-UI-001-V2"
+    ? ["inspectAppShellLayout", "inspectForbiddenAppShellActions", "inspectSkillRegistry"]
+    : lawId === "LAW-APP-SHELL-UI-002-V1"
+      ? ["inspectAppShellLocalization"]
+      : ["inspectLegacyAppUserDemandPhysicalAbsence"];
   const lawResult = (lawId: string) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
     const clauses = lawId === "LAW-APP-SHELL-UI-001-V2"
       ? staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
       : staticClauses(0);
       return { lawId, assertions: [{ clauses, evidenceMode: "static.ast", passed: producerModePassed(findings, "static.ast"),
-      refs: staticEvidenceRefs(context, lawId, "static.ast", clauses) }], findings };
+      refs: staticEvidenceRefs(context, lawId, "static.ast", clauses, semanticChecks(lawId)) }], findings };
   };
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
