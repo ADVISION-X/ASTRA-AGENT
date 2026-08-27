@@ -10,6 +10,7 @@
     "docs/specs/agent-production-runtime/**",
     "scripts/acceptance/agent-product-skills.acceptance.ts",
     "scripts/acceptance/agent-production-runtime.acceptance.ts",
+    "scripts/acceptance/agent-production-runtime.real-proof-cleanup.ts",
     "scripts/acceptance/agent-production-runtime.real-proof.ts",
     "scripts/audit/domains/agent-production-runtime/**",
     "src/lib/local-runtime/production/**",

@@ -19,6 +19,10 @@ import type { GrassEyeWorkbenchHandle } from "../../src/lib/local-runtime/workbe
 import { agentPluginCapabilityManifest } from "../../src/lib/local-runtime/production/catalog.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { buildStartupSourceFingerprint } from "../startup/lib/source-fingerprint.mjs";
+import {
+  observeProductionProofCleanup,
+  type ProductionProofCleanupObservation,
+} from "./agent-production-runtime.real-proof-cleanup.js";
 
 const dynamicClaimContract = (/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_BEGIN */
 {
@@ -35,7 +39,7 @@ const dynamicClaimContract = (/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_BEGIN */
     "LAW-GPT-001-V2:dynamic.authorization": {"claims": {"forbidden:2": [{"path": "/facts/exact_target_document_binding_count", "operator": "gte", "expected": 12}]}},
     "LAW-GPT-001-V2:dynamic.recovery": {"claims": {"forbidden:6": [{"path": "/facts/recovery_pending_observed", "operator": "equals", "expected": true}, {"path": "/facts/completed_observed", "operator": "equals", "expected": true}, {"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}},
     "LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.browser": {"claims": {"forbidden:17": [{"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.service": {"claims": {"forbidden:17": [{"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.service": {"claims": {"forbidden:17": [{"path": "/facts/browser_context_closed", "operator": "equals", "expected": true}, {"path": "/facts/cleanup_verified", "operator": "equals", "expected": true}, {"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}, {"path": "/facts/workbench_stopped", "operator": "equals", "expected": true}]}},
     "LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.database": {"claims": {"forbidden:8": [{"path": "/facts/frozen_identity_count", "operator": "equals", "expected": 12}, {"path": "/facts/frozen_identity_invalid_count", "operator": "equals", "expected": 0}]}},
     "LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.storage": {"claims": {"forbidden:10": [{"path": "/unresolvedCount", "operator": "equals", "expected": 0}, {"path": "/facts/confirmed_row_invalid_count", "operator": "equals", "expected": 0}]}},
     "LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.provider": {"claims": {"forbidden:0": [{"path": "/facts/catalog_plugin_count", "operator": "equals", "expected": 12}, {"path": "/terminalReceiptCount", "operator": "gte", "expected": 12}]}},
@@ -167,6 +171,7 @@ let finalPairingState: Readonly<{ authority: "present" | "absent"; pairingSecret
 let context: BrowserContext | null = null;
 let operatorPage: Page | null = null;
 let running: Awaited<ReturnType<typeof startWorkbench>> | null = null;
+let cleanupObservation: ProductionProofCleanupObservation | null = null;
 
 try {
   context = await launchChrome();
@@ -214,11 +219,23 @@ try {
   assert.deepEqual(operatorAfter, operatorBefore, "production tasks must not navigate or close the operator page");
   finalPairingState = running.handle.readBrowserExtensionBootstrapState();
 } finally {
-  if (running) await stopWorkbench(running.handle, running.server).catch(() => undefined);
-  await context?.close().catch(() => undefined);
+  const runningToStop = running;
+  const contextToClose = context;
+  cleanupObservation = await observeProductionProofCleanup(
+    runningToStop === null ? null : async () => {
+      await stopWorkbench(runningToStop.handle, runningToStop.server);
+      return runningToStop.server.listening === false;
+    },
+    contextToClose === null ? null : async () => {
+      const pages = contextToClose.pages();
+      await contextToClose.close();
+      return pages.every((page) => page.isClosed());
+    },
+  );
 }
 
-assert(finalHealth && operatorBefore && operatorAfter && finalPairingState);
+assert(finalHealth && operatorBefore && operatorAfter && finalPairingState && cleanupObservation);
+assert.equal(cleanupObservation.cleanupVerified, true, "production proof cleanup was not observed");
 assert.equal(targetClaimedObserved, true, "a job-owned exact Target claim was not observed");
 assert.equal(taskOwnedChatgptPageObserved, true, "a task-owned real ChatGPT page was not observed");
 assert.equal(taskHistory.get(recoveryJobId)?.has("recovery_pending"), true,
@@ -365,11 +382,14 @@ const observation: DirectRuntimeObservation = Object.freeze({
     },
   },
   service: {
-    cleanupVerified: true,
+    cleanupVerified: cleanupObservation.cleanupVerified,
     components: observedHealth.components.map((item) => item.name), endpoint: BASE_URL, processId: process.pid,
     facts: {
+      browser_context_closed: cleanupObservation.browserContextClosed,
+      cleanup_verified: cleanupObservation.cleanupVerified,
       readiness_dimension_count: new Set(readinessNames).size,
       readiness_dimensions_distinct: new Set(readinessNames).size === readinessNames.length,
+      workbench_stopped: cleanupObservation.workbenchStopped,
     },
     serviceName: "agent-production-runtime", sourceFingerprint: observedHealth.sourceFingerprint,
     status: observedHealth.status,

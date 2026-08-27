@@ -9,7 +9,15 @@ import { Project } from "ts-morph";
 import { BASE, assertProjectionEqual, blueprintValid, buildRegistry, parseLawSource, type Law } from "../../scripts/audit/governance-authority.js";
 import { addedSourceAt, assertProjectionStable } from "../../scripts/audit/governance.js";
 import { validateLocalSpecContract } from "../../scripts/audit/governance-local-spec-contract.js";
-import { GovernanceError, sha, validateGitIndexEntries, validateRepositoryEntryAt } from "../../scripts/audit/governance-runtime.js";
+import {
+  decodeGitPathBytes,
+  GovernanceError,
+  sha,
+  validateGitIndexEntries,
+  validateRepositoryEntryAt,
+  walkAt,
+} from "../../scripts/audit/governance-runtime.js";
+import { observeProductionProofCleanup } from "../../scripts/acceptance/agent-production-runtime.real-proof-cleanup.js";
 import {
   buildQualityReport,
   deferredModes,
@@ -295,7 +303,8 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
     browser: { browserVersion: "Chromium 1", endpoint: "https://example.test/", pageTitle: "Fixture",
       facts: { authority_present: true, extension_worker_count: 1 }, sessionFacts: { exactTarget: true } },
     service: { cleanupVerified: true, components: ["fixture"], endpoint: "http://127.0.0.1:4173",
-      facts: { readiness_dimension_count: 4, readiness_dimensions_distinct: true },
+      facts: { browser_context_closed: true, cleanup_verified: true,
+        readiness_dimension_count: 4, readiness_dimensions_distinct: true, workbench_stopped: true },
       processId: 4173, serviceName: "fixture", sourceFingerprint: "sha256:fixture", status: "healthy" },
     database: { databaseEngine: "sqlite", databasePath: "/tmp/fixture.sqlite",
       facts: { frozen_identity_count: 12, frozen_identity_invalid_count: 0 },
@@ -916,6 +925,43 @@ test("filesystem mutation probes reject escaping symlinks and special devices", 
   );
 });
 
+test("repository path bytes and governance-source walks fail closed", () => {
+  assert.deepEqual(decodeGitPathBytes(Buffer.from("docs/specs/law.md\0")), ["docs/specs/law.md"]);
+  assert.throws(
+    () => decodeGitPathBytes(Buffer.from([0x62, 0x61, 0x64, 0xff, 0x00])),
+    (error: unknown) => error instanceof GovernanceError && error.code === "SOURCE_PARSE_FAILED",
+  );
+  assert.throws(
+    () => decodeGitPathBytes(Buffer.from("docs/specs/cafe\u0301.md\0")),
+    (error: unknown) => error instanceof GovernanceError && error.code === "SOURCE_PARSE_FAILED",
+  );
+  const root = mkdtempSync(resolve(tmpdir(), "governance-source-symlink-"));
+  mkdirSync(resolve(root, "docs", "specs"), { recursive: true });
+  const outside = resolve(root, "..", `outside-governance-${process.pid}.json`);
+  writeFileSync(outside, "{}\n");
+  symlinkSync(outside, resolve(root, "docs", "specs", "escaped.json"));
+  assert.throws(
+    () => walkAt(root, "docs/specs"),
+    (error: unknown) => error instanceof GovernanceError && error.code === "TARGET_OUTSIDE_DOMAIN_AUTHORITY",
+  );
+});
+
+test("production Dynamic Proof cleanup attempts every resource and fails closed", async () => {
+  assert.deepEqual(await observeProductionProofCleanup(async () => true, async () => true), {
+    browserContextClosed: true, cleanupVerified: true, workbenchStopped: true,
+  });
+  const calls: string[] = [];
+  await assert.rejects(
+    observeProductionProofCleanup(
+      async () => { calls.push("workbench"); throw new Error("injected workbench cleanup failure"); },
+      async () => { calls.push("browser"); return true; },
+    ),
+    (error: unknown) => error instanceof AggregateError
+      && error.message === "AGENT_PRODUCTION_DYNAMIC_PROOF_CLEANUP_FAILED",
+  );
+  assert.deepEqual(calls, ["workbench", "browser"]);
+});
+
 test("an untracked high-impact addition is included in CHANGE authorization input", () => {
   const root = mkdtempSync(resolve(tmpdir(), "governance-untracked-high-impact-"));
   execFileSync("git", ["init", "-q"], { cwd: root });
@@ -1080,6 +1126,7 @@ test("production Dynamic Proof directly observes real Chrome, runtime stores, pr
   for (const forbidden of [
     "GRASSEYE_GPT_DYNAMIC_PROOF_PATH", "agent-production-runtime-gpt-dynamic-proof.v1",
     "same_job_id", "zero_replayed_mutations", "checkpoint_before_hash", "candidate_hash",
+    ".catch(() => undefined)", "cleanupVerified: true",
   ]) assert.equal(proof.includes(forbidden), false, forbidden);
   for (const token of [
     "chromium.launchPersistentContext", "readProductionTaskStatus", "production-runtime.sqlite",
