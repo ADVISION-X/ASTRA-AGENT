@@ -95,34 +95,64 @@ const count = (value: unknown): value is number => Number.isSafeInteger(value) &
 const countMap = (value: unknown): boolean => plainObject(value) && Object.keys(value).length > 0
   && Object.values(value).every(count);
 
-const dynamicObservationValid = (kind: DynamicObservationKind, value: unknown): boolean => {
-  if (!plainObject(value)) return false;
-  if (kind === "browser") return exactKeys(value, ["browserVersion", "endpoint", "pageTitle", "sessionFacts"])
+const browserObservationValid = (value: Record<string, unknown>): boolean =>
+  exactKeys(value, ["browserVersion", "endpoint", "pageTitle", "sessionFacts"])
     && nonEmptyString(value.browserVersion) && nonEmptyString(value.endpoint) && nonEmptyString(value.pageTitle)
     && /^https?:\/\//u.test(value.endpoint) && plainObject(value.sessionFacts)
     && Object.keys(value.sessionFacts).length > 0;
-  if (kind === "service") return exactKeys(value, [
+const serviceObservationValid = (value: Record<string, unknown>): boolean => exactKeys(value, [
     "cleanupVerified", "components", "endpoint", "processId", "serviceName", "sourceFingerprint", "status",
   ]) && value.cleanupVerified === true && stringList(value.components) && nonEmptyString(value.endpoint)
     && /^https?:\/\//u.test(value.endpoint) && Number.isSafeInteger(value.processId) && Number(value.processId) > 0
     && nonEmptyString(value.serviceName) && nonEmptyString(value.sourceFingerprint) && nonEmptyString(value.status);
-  if (kind === "database") return exactKeys(value, ["databaseEngine", "databasePath", "identitySet", "recordCounts"])
+const databaseObservationValid = (value: Record<string, unknown>): boolean =>
+  exactKeys(value, ["databaseEngine", "databasePath", "identitySet", "recordCounts"])
     && value.databaseEngine === "sqlite" && nonEmptyString(value.databasePath) && /^\//u.test(value.databasePath)
     && stringList(value.identitySet) && countMap(value.recordCounts);
-  if (kind === "storage") return exactKeys(value, [
+const storageObservationValid = (value: Record<string, unknown>): boolean => exactKeys(value, [
     "confirmedCount", "mutationCount", "storageEngine", "storagePath", "unresolvedCount",
   ]) && value.storageEngine === "sqlite-wal" && nonEmptyString(value.storagePath) && /^\//u.test(value.storagePath)
     && count(value.confirmedCount) && count(value.mutationCount) && count(value.unresolvedCount)
     && Number(value.confirmedCount) <= Number(value.mutationCount);
-  if (kind === "provider") return exactKeys(value, ["catalogHash", "pluginIds", "providerName", "terminalReceiptCount"])
+const providerObservationValid = (value: Record<string, unknown>): boolean =>
+  exactKeys(value, ["catalogHash", "pluginIds", "providerName", "terminalReceiptCount"])
     && nonEmptyString(value.catalogHash) && stringList(value.pluginIds) && nonEmptyString(value.providerName)
     && count(value.terminalReceiptCount) && Number(value.terminalReceiptCount) > 0;
-  if (kind === "authorization") return exactKeys(value, ["authorityState", "fenceHashes", "grantCount", "principalIds"])
+const authorizationObservationValid = (value: Record<string, unknown>): boolean =>
+  exactKeys(value, ["authorityState", "fenceHashes", "grantCount", "principalIds"])
     && value.authorityState === "present" && stringList(value.fenceHashes) && count(value.grantCount)
     && Number(value.grantCount) > 0 && stringList(value.principalIds);
-  return exactKeys(value, ["finalState", "observedStates", "recoveryJobId", "unresolvedCount"])
+const recoveryObservationValid = (value: Record<string, unknown>): boolean =>
+  exactKeys(value, ["finalState", "observedStates", "recoveryJobId", "unresolvedCount"])
     && nonEmptyString(value.finalState) && stringList(value.observedStates) && nonEmptyString(value.recoveryJobId)
     && count(value.unresolvedCount);
+const observationValidators: Readonly<Record<DynamicObservationKind,
+  (value: Record<string, unknown>) => boolean>> = {
+  browser: browserObservationValid,
+  service: serviceObservationValid,
+  database: databaseObservationValid,
+  storage: storageObservationValid,
+  provider: providerObservationValid,
+  authorization: authorizationObservationValid,
+  recovery: recoveryObservationValid,
+};
+const dynamicKind = (value: string): value is DynamicObservationKind => Object.hasOwn(observationValidators, value);
+const dynamicObservationValid = (kind: DynamicObservationKind, value: unknown): boolean =>
+  plainObject(value) && observationValidators[kind](value);
+
+const dynamicReceiptIdentityValid = (
+  payload: Record<string, unknown>, binding: DynamicReceiptBinding, kind: DynamicObservationKind,
+): boolean => payload.schema_version === "governance-dynamic-observation.v1"
+  && payload.proof_run_id === binding.proofRunId && payload.candidate === binding.candidate
+  && payload.lawId === binding.lawId && payload.evidenceMode === binding.evidenceMode
+  && payload.observation_kind === kind && payload.observed_value === binding.observedValue;
+const dynamicReceiptClausesValid = (
+  payload: Record<string, unknown>, binding: DynamicReceiptBinding,
+): boolean => clausesValid(payload.clauses)
+  && JSON.stringify(payload.clauses) === JSON.stringify(binding.clauses);
+const dynamicReceiptTimestampValid = (value: unknown): boolean => {
+  const capturedAt = typeof value === "string" ? Date.parse(value) : Number.NaN;
+  return Number.isFinite(capturedAt) && new Date(capturedAt).toISOString() === value;
 };
 
 export const validateDynamicReceiptPayload = (
@@ -133,17 +163,10 @@ export const validateDynamicReceiptPayload = (
     "observation_kind", "observed_value", "proof_run_id", "schema_version",
   ])) return false;
   const kind = binding.evidenceMode.startsWith("dynamic.")
-    ? binding.evidenceMode.slice("dynamic.".length) as DynamicObservationKind : "";
-  const capturedAt = typeof payload.captured_at === "string" ? Date.parse(payload.captured_at) : Number.NaN;
-  return ["browser", "service", "database", "storage", "provider", "authorization", "recovery"].includes(kind)
-    && payload.schema_version === "governance-dynamic-observation.v1"
-    && payload.proof_run_id === binding.proofRunId && payload.candidate === binding.candidate
-    && payload.lawId === binding.lawId && payload.evidenceMode === binding.evidenceMode
-    && payload.observation_kind === kind && payload.observed_value === binding.observedValue
-    && clausesValid(payload.clauses)
-    && JSON.stringify(payload.clauses) === JSON.stringify(binding.clauses)
-    && Number.isFinite(capturedAt) && new Date(capturedAt).toISOString() === payload.captured_at
-    && dynamicObservationValid(kind as DynamicObservationKind, payload.observation);
+    ? binding.evidenceMode.slice("dynamic.".length) : "";
+  return dynamicKind(kind) && dynamicReceiptIdentityValid(payload, binding, kind)
+    && dynamicReceiptClausesValid(payload, binding) && dynamicReceiptTimestampValid(payload.captured_at)
+    && dynamicObservationValid(kind, payload.observation);
 };
 
 export const dynamicReceiptFileValid = (file: string, binding: DynamicReceiptBinding): boolean => {
