@@ -357,9 +357,9 @@ const inspectProtocolObjectLiterals = (input: {
 };
 
 export const inspectConstitutionalBoundary = async (context: InspectorContext): Promise<InspectorEvaluation> => {
-  const boundaryLawId = selectLawId(context.planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V1");
-  const facadeLawId = selectLawId(context.planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V1");
-  const protocolLawId = selectLawId(context.planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V1");
+  const boundaryLawId = selectLawId(context.planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V2");
+  const facadeLawId = selectLawId(context.planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V2");
+  const protocolLawId = selectLawId(context.planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V2");
   const findings: Finding[] = [];
   const inspectedFiles = new Set<string>();
   const pushFinding = createDedupedFindingPusher(findings);
