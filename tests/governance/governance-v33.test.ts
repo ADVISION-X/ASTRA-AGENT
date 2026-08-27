@@ -37,14 +37,14 @@ test('typed high-impact detector covers all twelve machine-owned categories', ()
 });
 
 test('normative law edits require a successor major', () => {
-  const prior = loadLaws().find((law) => law.lawId === 'LAW-GPT-001-V1');
+  const prior = loadLaws().find((law) => law.lawId === 'LAW-GPT-001-V2');
   assert.ok(prior);
   const sameMajorMutation = { ...prior, summary: `${prior.summary} changed` };
   assert.throws(
     () => assertLawMajorVersionChanges([prior], [sameMajorMutation]),
     (error: unknown) => error instanceof GovernanceError && error.code === 'LAW_MAJOR_CHANGE_UNENFORCED',
   );
-  const successor = { ...sameMajorMutation, lawId: 'LAW-GPT-001-V2', supersedesLawId: prior.lawId };
+  const successor = { ...sameMajorMutation, lawId: 'LAW-GPT-001-V3', supersedesLawId: prior.lawId };
   assert.doesNotThrow(() => assertLawMajorVersionChanges([prior], [successor]));
   assert.doesNotThrow(() => assertLawMajorVersionChanges([prior], []));
 });
@@ -222,24 +222,47 @@ test('quality CHANGE rejects malformed touched law, Manifest, blueprint, and spe
     } },
     { path: 'scripts/audit/domains/code-purity/manifest.json', mutate: (source) =>
       source.replace('    ".gitignore",', '    "<domain>/**",') },
+    { path: 'scripts/audit/domains/code-purity/manifest.json', mutate: (source) => {
+      const value = JSON.parse(source) as { capabilityDomain: string; lawIds: string[] };
+      value.capabilityDomain = 'gpt';
+      value.lawIds = ['LAW-GPT-001-V2'];
+      return `${JSON.stringify(value, null, 2)}\n`;
+    } },
     { path: 'docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md',
       mutate: (source) => source.replace('  "schemaVersion": 1,', '  "schemaVersion": 1,\n  "unexpected": true,') },
     { path: 'docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md',
       mutate: (source) => source.replace('"blueprintId": "local-browser-auto-pairing-and-exact-chatgpt-claim-v2"', '"blueprintId": "<stable-id>"') },
+    { path: 'docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md',
+      mutate: (source) => source.replace(/"LAW-LOCAL-BROWSER-SESSION-[^"]+"/u, '"LAW-LOCAL-BROWSER-SESSION-999-V1"') },
     { path: 'docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json', mutate: (source) => {
       const value = JSON.parse(source) as Record<string, unknown>;
       return `${JSON.stringify({ ...value, unexpected: true }, null, 2)}\n`;
     } },
     { path: 'docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json',
       mutate: (source) => source.replace('"contractId": "ai-acceptance.website-agent-task-result"', '"contractId": "<contract-id>"') },
+    { path: 'docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json', mutate: (source) => {
+      const value = JSON.parse(source) as { lawIds: string[] };
+      value.lawIds = ['LAW-NONEXISTENT-999-V1'];
+      return `${JSON.stringify(value, null, 2)}\n`;
+    } },
+    { path: 'docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json', mutate: (source) => {
+      const value = JSON.parse(source) as { contract: { providerRepo: string }; lawIds: string[]; owner: string };
+      value.owner = 'gpt';
+      value.lawIds = ['LAW-AGENT-PRODUCTION-RUNTIME-001-V3'];
+      return `${JSON.stringify(value, null, 2)}\n`;
+    } },
   ];
-  for (const mutation of mutations) {
+  for (const [mutationIndex, mutation] of mutations.entries()) {
     const temporary = mkdtempSync(resolve(tmpdir(), 'governance-change-authority-'));
     const repository = resolve(temporary, 'repo');
     try {
       execFileSync('git', ['clone', '-q', '--local', '--no-hardlinks', process.cwd(), repository]);
       writeFileSync(resolve(repository, '.git/info/exclude'), 'node_modules\n');
       symlinkSync(resolve(process.cwd(), 'node_modules'), resolve(repository, 'node_modules'), 'dir');
+      copyFileSync(resolve(process.cwd(), 'scripts/audit/governance-authority.ts'),
+        resolve(repository, 'scripts/audit/governance-authority.ts'));
+      copyFileSync(resolve(process.cwd(), 'scripts/audit/governance-change-authority.ts'),
+        resolve(repository, 'scripts/audit/governance-change-authority.ts'));
       const target = resolve(repository, mutation.path);
       if (!existsSync(target)) {
         mkdirSync(dirname(target), { recursive: true });
@@ -251,8 +274,8 @@ test('quality CHANGE rejects malformed touched law, Manifest, blueprint, and spe
         encoding: 'utf8',
         env: { ...process.env, GRASSEYE_LAW_AMENDMENT_AUTHORIZED: '1', GRASSEYE_HIGH_IMPACT_AUTHORIZED: '1' },
       });
-      assert.notEqual(execution.status, 0, mutation.path);
-      assert.match(`${execution.stdout}${execution.stderr}`, /SOURCE_PARSE_FAILED/u, mutation.path);
+      assert.notEqual(execution.status, 0, `${mutationIndex}:${mutation.path}`);
+      assert.match(`${execution.stdout}${execution.stderr}`, /SOURCE_PARSE_FAILED/u, `${mutationIndex}:${mutation.path}`);
     } finally {
       rmSync(temporary, { force: true, recursive: true });
     }

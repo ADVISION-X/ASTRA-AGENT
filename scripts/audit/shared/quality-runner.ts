@@ -3,8 +3,8 @@ import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSy
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 
-import { buildRegistry, diffPaths, gitCommit, providerDomainForDependencySpec, REPORT, type Law, type Level, type Registry } from "../governance-authority.js";
-import { canonicalBytes, exactKeys, rejectDuplicateJsonKeys } from "../governance-json.js";
+import { BASE, buildRegistry, diffPaths, FUNCTIONAL, gitCommit, parseLawSource, providerDomainForDependencySpec, REPORT, type Law, type Level, type Registry } from "../governance-authority.js";
+import { canonicalBytes, rejectDuplicateJsonKeys } from "../governance-json.js";
 import { ROOT, fail, repositoryPaths, sha } from "../governance-runtime.js";
 import { buildQualityReport, type LawExecutionResult, type QualityAssertion, type QualityFinding, type QualityParticipant } from "./quality-contract.js";
 import { runInspectionWorker } from "./quality-inspector-worker.js";
@@ -86,18 +86,18 @@ const gitAt = (path: string, args: string[]): string => execFileSync("git", args
   cwd: path, encoding: "utf8", maxBuffer: 64 * 1024 * 1024,
 }).trim();
 
-const providerDomains = (path: string, commit: string): Set<string> => new Set(gitAt(path, ["ls-tree", "-r", "--name-only", commit, "--", "scripts/audit/domains"])
-  .split("\n").filter((current) => current.endsWith("/manifest.json")).flatMap((manifestPath) => {
-    const source = gitAt(path, ["show", `${commit}:${manifestPath}`]);
-    rejectDuplicateJsonKeys(source, manifestPath);
-    const manifest = JSON.parse(source) as Record<string, unknown>;
-    return exactKeys(manifest, ["capabilityDomain", "lawIds", "observedPaths", "ownedPaths", "schemaVersion", "status"])
-      && manifest.schemaVersion === 5 && manifest.status === "active" && typeof manifest.capabilityDomain === "string"
-      ? [manifest.capabilityDomain] : [];
-  }));
+const providerLawDomains = (path: string, commit: string): Map<string, string> => {
+  const laws = [
+    ...parseLawSource(gitAt(path, ["show", `${commit}:${BASE}`]), BASE, "base-law", 100),
+    ...parseLawSource(gitAt(path, ["show", `${commit}:${FUNCTIONAL}`]), FUNCTIONAL, "functional-law", 90),
+  ];
+  const lawDomains = new Map(laws.map((law) => [law.lawId, law.capabilityDomain]));
+  if (lawDomains.size !== laws.length) fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${commit}:provider-law-identity`);
+  return lawDomains;
+};
 
 const providerContracts = (path: string, commit: string, repo: string): ProviderContract[] => {
-  const domains = providerDomains(path, commit);
+  const lawDomains = providerLawDomains(path, commit);
   const paths = gitAt(path, ["ls-tree", "-r", "--name-only", commit, "--", "docs/specs"])
     .split("\n").filter((current) => current.endsWith(".json"));
   return paths.flatMap((specPath) => {
@@ -105,7 +105,7 @@ const providerContracts = (path: string, commit: string, repo: string): Provider
     rejectDuplicateJsonKeys(source, specPath);
     const spec = JSON.parse(source) as Record<string, unknown>;
     if (spec.status !== "active" || spec.specKind !== "cross-repo-contract") return [];
-    return [validateProviderContractSpec(spec, repo, domains, (artifactPath) => {
+    return [validateProviderContractSpec(spec, repo, lawDomains, (artifactPath) => {
       try { gitAt(path, ["cat-file", "-e", `${commit}:${artifactPath}`]); return true; } catch { return false; }
     })];
   });

@@ -275,11 +275,27 @@ process.stdout.write("LOCAL_BROWSER_AUTO_PAIRING_AND_EXACT_CHATGPT_CLAIM_ACCEPTA
 emitQualityProofObservation({
   passed: true,
   findings: [],
-  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V9",
+  lawId: "LAW-LOCAL-BROWSER-SESSION-002-V6",
   evidenceMode: "exam.golden",
-  clauses: [
-    "forbidden:0", "forbidden:1", "forbidden:10", "forbidden:11", "forbidden:3", "forbidden:9", "summary",
-  ],
-  locator: "acceptance:local-browser-terminal:mutation-golden",
-  observedValue: "restart recovery preserves SENT as UNKNOWN without replay, rejects mismatched resolution identity, retains one compact SQLite mutation store, and excludes the retired lifecycle journal",
+  clauses: ["forbidden:0", "forbidden:6", "forbidden:7", "forbidden:8", "summary"],
+  locator: "acceptance:local-browser-terminal:auto-pairing-golden",
+  observedValue: "fixed extension retrieves one in-memory pairing secret only from the exact loopback route, rejects invalid origin responses, stays single-flight, and reloads before pairing when releaseBuildId differs",
+});
+emitQualityProofObservation({
+  passed: true,
+  findings: [],
+  lawId: "LAW-LOCAL-BROWSER-SESSION-003-V10",
+  evidenceMode: "exam.golden",
+  clauses: ["forbidden:1", "forbidden:13", "forbidden:2", "forbidden:3", "summary"],
+  locator: "acceptance:local-browser-terminal:job-target-golden",
+  observedValue: "each accepted acquisition creates one background ChatGPT page, waits for completion and exact origin before claim, never enumerates operator tabs, and removes rejected or conflicted task pages",
+});
+emitQualityProofObservation({
+  passed: true,
+  findings: [],
+  lawId: "LAW-LOCAL-BROWSER-SESSION-005-V6",
+  evidenceMode: "exam.golden",
+  clauses: ["forbidden:5", "summary"],
+  locator: "acceptance:local-browser-terminal:release-reload-golden",
+  observedValue: "the fixed unpacked extension compares the exact governed releaseBuildId and performs one self-reload before any pairing attempt when the build differs",
 });

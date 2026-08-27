@@ -9,18 +9,19 @@ export type ProviderContract = {
   authorityArtifact: { path: string; selector: string };
 };
 
-const envelopeValid = (spec: Record<string, unknown>, domains: ReadonlySet<string>): boolean =>
+const envelopeValid = (spec: Record<string, unknown>, lawDomains: ReadonlyMap<string, string>): boolean =>
   exactKeys(spec, ["contract", "lawIds", "owner", "schemaVersion", "specId", "specKind", "status", "version"])
   && spec.schemaVersion === 1 && spec.status === "active" && spec.specKind === "cross-repo-contract"
   && typeof spec.specId === "string" && cleanString(spec.specId)
-  && typeof spec.owner === "string" && domains.has(spec.owner)
+  && typeof spec.owner === "string"
   && Number.isInteger(spec.version) && Number(spec.version) >= 1
-  && isStringArray(spec.lawIds) && spec.lawIds.length > 0 && sortedUnique(spec.lawIds);
+  && isStringArray(spec.lawIds) && spec.lawIds.length > 0 && sortedUnique(spec.lawIds)
+  && spec.lawIds.every((lawId) => lawDomains.get(lawId) === spec.owner);
 
-const contractValid = (contract: Record<string, unknown>, spec: Record<string, unknown>, repo: string, domains: ReadonlySet<string>): boolean =>
+const contractValid = (contract: Record<string, unknown>, spec: Record<string, unknown>, repo: string): boolean =>
   exactKeys(contract, ["authorityArtifact", "contractId", "providerDomain", "providerRepo", "version"])
-  && contract.contractId === spec.specId && contract.version === spec.version && contract.providerRepo === repo
-  && contract.providerDomain === spec.owner && typeof contract.providerDomain === "string" && domains.has(contract.providerDomain);
+  && typeof contract.contractId === "string" && cleanString(contract.contractId)
+  && contract.version === spec.version && contract.providerRepo === repo && contract.providerDomain === spec.owner;
 
 const artifactValid = (artifact: Record<string, unknown>, artifactExists: (path: string) => boolean): boolean =>
   exactKeys(artifact, ["path", "selector"]) && typeof artifact.path === "string"
@@ -30,14 +31,14 @@ const artifactValid = (artifact: Record<string, unknown>, artifactExists: (path:
 export const validateProviderContractSpec = (
   raw: unknown,
   repo: string,
-  domains: ReadonlySet<string>,
+  lawDomains: ReadonlyMap<string, string>,
   artifactExists: (path: string) => boolean,
 ): ProviderContract => {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:provider-spec`);
   const spec = raw as Record<string, unknown>;
-  if (!envelopeValid(spec, domains)) fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:provider-spec-envelope`);
+  if (!envelopeValid(spec, lawDomains)) fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:provider-spec-envelope`);
   const contract = spec.contract as Record<string, unknown>;
-  if (!contract || !contractValid(contract, spec, repo, domains)) fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:${String(spec.specId)}:provider-contract`);
+  if (!contract || !contractValid(contract, spec, repo)) fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:${String(spec.specId)}:provider-contract`);
   const artifact = contract.authorityArtifact as Record<string, unknown>;
   if (!artifact || !artifactValid(artifact, artifactExists)) fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:${String(spec.specId)}:authority-artifact`);
   return {

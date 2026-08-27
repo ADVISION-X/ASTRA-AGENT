@@ -382,7 +382,7 @@ for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"
   emitQualityProofObservation({
     passed: true,
     findings: [],
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V2",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V3",
     evidenceMode,
     clauses: [
       "forbidden:0", "forbidden:10", "forbidden:11", "forbidden:12", "forbidden:17",

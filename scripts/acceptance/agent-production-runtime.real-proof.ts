@@ -303,18 +303,18 @@ const emit = (lawId: string, evidenceMode: string, lastClause: number, observedV
 
 for (const [lawId, mode, last] of [
   ["LAW-LOCAL-BROWSER-SESSION-001-V4", "dynamic.browser", 9],
-  ["LAW-LOCAL-BROWSER-SESSION-002-V5", "dynamic.browser", 13],
-  ["LAW-LOCAL-BROWSER-SESSION-003-V9", "dynamic.browser", 14],
+  ["LAW-LOCAL-BROWSER-SESSION-002-V6", "dynamic.browser", 13],
+  ["LAW-LOCAL-BROWSER-SESSION-003-V10", "dynamic.browser", 14],
   ["LAW-LOCAL-BROWSER-SESSION-004-V9", "dynamic.storage", 11],
-  ["LAW-LOCAL-BROWSER-SESSION-005-V5", "dynamic.browser", 6],
+  ["LAW-LOCAL-BROWSER-SESSION-005-V6", "dynamic.browser", 6],
   ["LAW-LOCAL-BROWSER-SESSION-006-V3", "dynamic.browser", 0],
 ] as const) emit(lawId, mode, last, `realChrome=${browserVersion};jobs=12;targetClaimed=true;targetAbsent=true`);
 for (const mode of ["dynamic.browser", "dynamic.provider", "dynamic.authorization", "dynamic.recovery"] as const) {
-  emit("LAW-GPT-001-V1", mode, 14, `realChildren=${completedBrowserEvents.length};jobs=12;mode=${mode}`);
+  emit("LAW-GPT-001-V2", mode, 14, `realChildren=${completedBrowserEvents.length};jobs=12;mode=${mode}`);
 }
 for (const mode of [
   "dynamic.browser", "dynamic.service", "dynamic.database", "dynamic.storage",
   "dynamic.provider", "dynamic.authorization", "dynamic.recovery",
-] as const) emit("LAW-AGENT-PRODUCTION-RUNTIME-001-V2", mode, 18, `plugins=12;jobs=12;mode=${mode}`);
+] as const) emit("LAW-AGENT-PRODUCTION-RUNTIME-001-V3", mode, 18, `plugins=12;jobs=12;mode=${mode}`);
 
 process.stdout.write(`[ACCEPTANCE][agent-production-runtime][direct-real-proof] PASS run=${proofRunId}\n`);

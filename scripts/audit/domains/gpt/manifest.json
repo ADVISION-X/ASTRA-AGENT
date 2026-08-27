@@ -3,7 +3,7 @@
   "capabilityDomain": "gpt",
   "status": "active",
   "lawIds": [
-    "LAW-GPT-001-V1"
+    "LAW-GPT-001-V2"
   ],
   "ownedPaths": [
     "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V1-BLUEPRINT.md",

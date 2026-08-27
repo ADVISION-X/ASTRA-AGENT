@@ -274,14 +274,14 @@ const directObservation = (
 ): Record<string, unknown> => ({ ...request, clauses, passed: true, refs, findings: [] });
 
 test("a fixed or unauthenticated stdout marker cannot mint evidence for unexecuted law routes", () => {
-  const first = { ...fixtureLaw(), lawId: "LAW-GPT-001-V1", capabilityDomain: "gpt" };
+  const first = { ...fixtureLaw(), lawId: "LAW-GPT-001-V2", capabilityDomain: "gpt" };
   const routes = [{ law: first, mode: "exam.golden" }];
   const requests = proofRequests(routes);
   const script = "acceptance:gpt";
   assert.equal(bindNativeProofObservations("FIXED_PASS\n", routes, requests, script, "exam").size, 0);
   const oneNativeObservation = `${proofObservationPrefix}${JSON.stringify({
     ...directObservation(requests[0]!, ["forbidden:0", "summary"], [examRef(
-      "lawId=LAW-GPT-001-V1;mode=exam.golden;case=provider-boundary",
+      "lawId=LAW-GPT-001-V2;mode=exam.golden;case=provider-boundary",
     )]),
   })}\n`;
   assert.equal(bindNativeProofObservations(oneNativeObservation, routes, requests, script, "exam").size, 1);
@@ -303,12 +303,12 @@ test("a fixed or unauthenticated stdout marker cannot mint evidence for unexecut
 });
 
 test("native proof observations reject one locator reused across law routes", () => {
-  const law = { ...fixtureLaw(), lawId: "LAW-GPT-001-V1", capabilityDomain: "gpt" };
+  const law = { ...fixtureLaw(), lawId: "LAW-GPT-001-V2", capabilityDomain: "gpt" };
   const routes = [{ law, mode: "exam.golden" }];
   const requests = proofRequests(routes);
   const line = `${proofObservationPrefix}${JSON.stringify({
     ...directObservation(requests[0]!, ["forbidden:0", "summary"], [examRef(
-      "lawId=LAW-GPT-001-V1;mode=exam.golden;case=exact-target",
+      "lawId=LAW-GPT-001-V2;mode=exam.golden;case=exact-target",
     )]),
   })}`;
   assert.throws(
@@ -705,24 +705,34 @@ test("candidate and provider mutations fail closed with fixed governance codes",
 });
 
 test("provider contracts reject malformed payloads before identity matching", () => {
+  const lawDomains = new Map([["LAW-AI-ACCEPTANCE-001-V1", "ai-acceptance"]]);
   const valid = {
-    schemaVersion: 1, specId: "xuanxue.report", status: "active", version: 3,
+    schemaVersion: 1, specId: "ai-acceptance.xuanxue-report-provider", status: "active", version: 3,
     owner: "ai-acceptance", lawIds: ["LAW-AI-ACCEPTANCE-001-V1"], specKind: "cross-repo-contract",
     contract: {
       contractId: "xuanxue.report", version: 3, providerRepo: "ADVISION-X/xuanxue-web",
       providerDomain: "ai-acceptance", authorityArtifact: { path: "artifacts/report.json", selector: "version=3" },
     },
   };
-  assert.doesNotThrow(() => validateProviderContractSpec(valid, "ADVISION-X/xuanxue-web", new Set(["ai-acceptance"]), () => true));
+  assert.doesNotThrow(() => validateProviderContractSpec(valid, "ADVISION-X/xuanxue-web", lawDomains, () => true));
   for (const malformed of [
     { ...valid, unexpected: true },
+    { ...valid, lawIds: ["LAW-NONEXISTENT-999-V1"] },
+    { ...valid, owner: "wrong-domain" },
     { ...valid, contract: { ...valid.contract, providerDomain: "wrong-domain" } },
+    { ...valid, contract: { ...valid.contract, contractId: "" } },
     { ...valid, contract: { ...valid.contract, authorityArtifact: null } },
     { ...valid, contract: { ...valid.contract, authorityArtifact: { ...valid.contract.authorityArtifact, unknown: true } } },
   ]) assert.throws(
-    () => validateProviderContractSpec(malformed, "ADVISION-X/xuanxue-web", new Set(["ai-acceptance"]), () => true),
+    () => validateProviderContractSpec(malformed, "ADVISION-X/xuanxue-web", lawDomains, () => true),
     (error: unknown) => error instanceof GovernanceError && error.code === "EXTERNAL_SURFACE_AUTHORITY_MISSING",
   );
+  const current = JSON.parse(readFileSync(
+    "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json", "utf8",
+  )) as unknown;
+  assert.doesNotThrow(() => validateProviderContractSpec(current, "ADVISION-X/AGENT",
+    new Map([["LAW-AGENT-PRODUCTION-RUNTIME-001-V3", "agent-production-runtime"]]),
+    (path) => path === "src/lib/local-runtime/production/catalog.ts"));
 });
 
 test("hidden inspector errors, stale projections, and unsafe index states fail closed", () => {

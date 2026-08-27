@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { verifyBrowserArtifactAndLockContracts } from "./local-browser-artifact-and-lock.acceptance-support.js";
 
 const hash = `sha256:${"a".repeat(64)}` as const;
@@ -57,3 +58,15 @@ try {
 } finally {
   await rm(root, { recursive: true, force: true });
 }
+
+emitQualityProofObservation({
+  passed: true,
+  findings: [],
+  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V9",
+  evidenceMode: "exam.golden",
+  clauses: [
+    "forbidden:0", "forbidden:1", "forbidden:10", "forbidden:11", "forbidden:3", "forbidden:9", "summary",
+  ],
+  locator: "acceptance:local-browser-terminal:mutation-golden",
+  observedValue: "restart recovery preserves SENT as UNKNOWN without replay, rejects mismatched resolution identity, retains one compact SQLite mutation store, and excludes the retired lifecycle journal",
+});

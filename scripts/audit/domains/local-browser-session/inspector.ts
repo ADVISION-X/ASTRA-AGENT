@@ -12,9 +12,9 @@ import { inspectTargetClaimGuards } from "./target-claim-inspection.js";
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const lawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-001-V4");
   const mutationLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V9");
-  const channelLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-002-V5");
-  const claimLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-003-V9");
-  const releaseLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-005-V5");
+  const channelLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-002-V6");
+  const claimLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-003-V10");
+  const releaseLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-005-V6");
   const opaqueLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-006-V3");
   const findings: InspectorFinding[] = [];
   const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
@@ -44,10 +44,10 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const evaluation = await inspectDomainEvaluation(context);
   const semanticChecks = (lawId: string): string[] => ({
     "LAW-LOCAL-BROWSER-SESSION-001-V4": ["inspectSessionCore"],
-    "LAW-LOCAL-BROWSER-SESSION-002-V5": ["inspectAuthenticatedChannelGuards", "inspectAutomaticPairingAndReload"],
-    "LAW-LOCAL-BROWSER-SESSION-003-V9": ["inspectAutomaticPairingAndReload", "inspectTargetClaimGuards"],
+    "LAW-LOCAL-BROWSER-SESSION-002-V6": ["inspectAuthenticatedChannelGuards", "inspectAutomaticPairingAndReload"],
+    "LAW-LOCAL-BROWSER-SESSION-003-V10": ["inspectAutomaticPairingAndReload", "inspectTargetClaimGuards"],
     "LAW-LOCAL-BROWSER-SESSION-004-V9": ["inspectAtomicIfAndThenBoundary", "inspectCompactMutationRecoveryBoundary", "inspectRegistryAndMutationBoundary"],
-    "LAW-LOCAL-BROWSER-SESSION-005-V5": ["inspectAutomaticPairingAndReload", "inspectReleaseAndRetiredPaths"],
+    "LAW-LOCAL-BROWSER-SESSION-005-V6": ["inspectAutomaticPairingAndReload", "inspectReleaseAndRetiredPaths"],
     "LAW-LOCAL-BROWSER-SESSION-006-V3": ["inspectOpaqueAuthorityBoundary"],
   } as Readonly<Record<string, string[]>>)[lawId] ?? [];
   const lawResult = (lawId: string, astClauses: string[], hasContract = true) => {
@@ -67,10 +67,10 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [
       lawResult("LAW-LOCAL-BROWSER-SESSION-001-V4", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)),
-      lawResult("LAW-LOCAL-BROWSER-SESSION-002-V5", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)),
-      lawResult("LAW-LOCAL-BROWSER-SESSION-003-V9", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14)),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-002-V6", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-003-V10", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14)),
       lawResult("LAW-LOCAL-BROWSER-SESSION-004-V9", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11), false),
-      lawResult("LAW-LOCAL-BROWSER-SESSION-005-V5", staticClauses(0, 1, 2, 3, 4, 5, 6)),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-005-V6", staticClauses(0, 1, 2, 3, 4, 5, 6)),
       lawResult("LAW-LOCAL-BROWSER-SESSION-006-V3", staticClauses(0)),
     ], inspectedFiles: evaluation.inspectedFiles,
   });

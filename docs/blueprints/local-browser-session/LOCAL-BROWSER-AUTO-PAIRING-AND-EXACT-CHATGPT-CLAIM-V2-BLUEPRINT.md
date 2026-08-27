@@ -10,9 +10,9 @@ Owner：`local-browser-session`
   "status": "active",
   "owner": "local-browser-session",
   "lawIds": [
-    "LAW-LOCAL-BROWSER-SESSION-002-V5",
-    "LAW-LOCAL-BROWSER-SESSION-003-V9",
-    "LAW-LOCAL-BROWSER-SESSION-005-V5"
+    "LAW-LOCAL-BROWSER-SESSION-002-V6",
+    "LAW-LOCAL-BROWSER-SESSION-003-V10",
+    "LAW-LOCAL-BROWSER-SESSION-005-V6"
   ],
   "contractRefs": [],
   "dependencyEdges": [

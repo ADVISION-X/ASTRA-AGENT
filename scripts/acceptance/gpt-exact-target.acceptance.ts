@@ -297,7 +297,7 @@ for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"
   emitQualityProofObservation({
     passed: true,
     findings: [],
-    lawId: "LAW-GPT-001-V1",
+    lawId: "LAW-GPT-001-V2",
     evidenceMode,
     clauses,
     locator: `acceptance:gpt:${evidenceMode}`,

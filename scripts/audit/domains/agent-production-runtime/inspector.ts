@@ -25,7 +25,7 @@ import {
   observeStaticTypes,
 } from "../../shared/static-target-object-inspector.js";
 
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V2";
+const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V3";
 const ALL_CLAUSES = staticClauses(...Array.from({ length: 19 }, (_, index) => index));
 const PLUGIN_ROOT = "src/plugins";
 const CATALOG_PATH = "src/lib/local-runtime/production/catalog.ts";
