@@ -46,6 +46,9 @@ const domCapabilityByIntent: Record<DomIntentKind, ExtensionCommandPermit["capab
   readText: "browser.dom.read-text.v1",
   readAttribute: "browser.dom.read-attribute.v1",
   click: "browser.dom.click.v1",
+  hover: "browser.dom.hover.v1",
+  doubleClick: "browser.dom.double-click.v1",
+  keypress: "browser.dom.keypress.v1",
   fill: "browser.dom.fill.v1",
 };
 
@@ -54,7 +57,9 @@ export const resolveCommand = (kind: string): RegisteredExtensionCommand => regi
 export const admitExtensionCommand = async (input: Readonly<{ command: BrowserGovernedCommand; permit: ExtensionCommandPermit }>): Promise<RegisteredExtensionCommand> => {
   if (!isBrowserCapabilityId(input.permit.capabilityId)) throw new Error("BROWSER_CAPABILITY_REJECTED");
   const command = resolveCommand(input.command.kind);
-  const expectedMutationClass = input.command.kind === "dom-intent" && (input.command.intent.kind === "click" || input.command.intent.kind === "fill")
+  const expectedMutationClass = input.command.kind === "dom-intent" && (input.command.intent.kind === "click"
+    || input.command.intent.kind === "hover" || input.command.intent.kind === "doubleClick"
+    || input.command.intent.kind === "keypress" || input.command.intent.kind === "fill")
     ? "mutation"
     : command.mutationClass;
   if (expectedMutationClass !== input.permit.mutationClass) throw new Error("BROWSER_CAPABILITY_REJECTED");

@@ -1,5 +1,5 @@
 export const GPT_PROFILE_TRIGGER_SELECTOR = "main button[aria-haspopup='menu']:not([aria-label])";
-export const GPT_PROFILE_POPUP_SELECTOR = "[data-radix-popper-content-wrapper]";
+export const GPT_PROFILE_POPUP_SELECTOR = "[role='menu']";
 export const GPT_PROFILE_DIAGNOSTIC_SELECTOR = [
   "[data-testid*='model']",
   "[id*='model']",

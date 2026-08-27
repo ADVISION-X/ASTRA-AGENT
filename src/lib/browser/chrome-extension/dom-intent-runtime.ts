@@ -5,7 +5,12 @@ import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 type DevToolsRecord = Record<string, unknown>;
 type FindIntent = Extract<BrowserDomIntent, { kind: "find" }>;
 type ClickIntent = Extract<BrowserDomIntent, { kind: "click" }>;
-type ValueIntent = Exclude<BrowserDomIntent, { kind: "document" | "find" | "click" }>;
+type HoverIntent = Extract<BrowserDomIntent, { kind: "hover" }>;
+type DoubleClickIntent = Extract<BrowserDomIntent, { kind: "doubleClick" }>;
+type KeypressIntent = Extract<BrowserDomIntent, { kind: "keypress" }>;
+type ValueIntent = Exclude<BrowserDomIntent, {
+  kind: "document" | "find" | "click" | "hover" | "doubleClick" | "keypress";
+}>;
 
 /** Executes the finite declarative DOM intent set without a script/eval surface. */
 const executeFindIntent = async (
@@ -63,7 +68,7 @@ const executeClickIntent = async (
   const postconditionVerified = intent.postClickAttribute !== undefined
     ? await waitForClickAttribute(debuggerRuntime, target, intent, expectedMatches, intent.postClickAttribute)
     : intent.postClickMatch !== undefined
-      ? await waitForClickMatch(debuggerRuntime, target, intent.postClickMatch)
+      ? await waitForMatch(debuggerRuntime, target, intent.postClickMatch)
       : undefined;
   if (postconditionVerified === false) throw new Error("BROWSER_TARGET_INVALID");
   return {
@@ -75,20 +80,114 @@ const executeClickIntent = async (
   };
 };
 
-const waitForClickMatch = async (
+const executeDoubleClickIntent = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
-  postClickMatch: NonNullable<ClickIntent["postClickMatch"]>,
+  intent: DoubleClickIntent,
+): Promise<unknown> => {
+  const expectedMatches = intent.expectedMatches ?? 1;
+  const matchingNodes = await queryAll(
+    debuggerRuntime, target.tabId, intent.selector, expectedMatches + 1, intent.scope,
+  );
+  if (matchingNodes.length !== expectedMatches) throw new Error("BROWSER_TARGET_INVALID");
+  const nodeId = matchingNodes[0];
+  if (nodeId === undefined) throw new Error("BROWSER_TARGET_INVALID");
+  const box = await boxCenter(debuggerRuntime, target.tabId, nodeId);
+  for (const clickCount of [1, 2] as const) {
+    await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", {
+      type: "mousePressed", x: box.x, y: box.y, button: "left", clickCount,
+    });
+    await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", {
+      type: "mouseReleased", x: box.x, y: box.y, button: "left", clickCount,
+    });
+  }
+  const postconditionVerified = await waitForMatch(
+    debuggerRuntime, target, intent.postDoubleClickMatch,
+  );
+  if (!postconditionVerified) throw new Error("BROWSER_TARGET_INVALID");
+  return {
+    doubleClicked: true,
+    candidateCount: 1,
+    identityRevalidated: true,
+    mutationCount: 1,
+    postconditionVerified: true,
+  };
+};
+
+const executeKeypressIntent = async (
+  debuggerRuntime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  intent: KeypressIntent,
+): Promise<unknown> => {
+  const expectedMatches = intent.expectedMatches ?? 1;
+  const nodeId = await nodeForSelector(
+    debuggerRuntime, target.tabId, intent.selector, expectedMatches, intent.scope,
+  );
+  await debuggerRuntime.send(target.tabId, "DOM.focus", { nodeId });
+  const keyEvent = {
+    key: intent.key,
+    code: intent.key,
+    windowsVirtualKeyCode: 13,
+    nativeVirtualKeyCode: 13,
+  } as const;
+  await debuggerRuntime.send(target.tabId, "Input.dispatchKeyEvent", { type: "rawKeyDown", ...keyEvent });
+  await debuggerRuntime.send(target.tabId, "Input.dispatchKeyEvent", { type: "keyUp", ...keyEvent });
+  const postconditionVerified = await waitForMatch(
+    debuggerRuntime, target, intent.postKeypressMatch,
+  );
+  if (!postconditionVerified) throw new Error("BROWSER_TARGET_INVALID");
+  return {
+    keyPressed: intent.key,
+    candidateCount: 1,
+    identityRevalidated: true,
+    mutationCount: 1,
+    postconditionVerified: true,
+  };
+};
+
+const executeHoverIntent = async (
+  debuggerRuntime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  intent: HoverIntent,
+): Promise<unknown> => {
+  const expectedMatches = intent.expectedMatches ?? 1;
+  const matchingNodes = intent.expectedTextEquals !== undefined
+    ? await queryVisibleTextMatches(debuggerRuntime, target.tabId, intent.selector, intent.expectedTextEquals, true, expectedMatches + 1, intent.scope)
+    : intent.expectedText !== undefined
+      ? await queryVisibleTextMatches(debuggerRuntime, target.tabId, intent.selector, intent.expectedText, false, expectedMatches + 1, intent.scope)
+      : await queryAll(debuggerRuntime, target.tabId, intent.selector, expectedMatches + 1, intent.scope);
+  if (matchingNodes.length !== expectedMatches) throw new Error("BROWSER_TARGET_INVALID");
+  const nodeId = matchingNodes[0];
+  if (nodeId === undefined) throw new Error("BROWSER_TARGET_INVALID");
+  const box = await boxCenter(debuggerRuntime, target.tabId, nodeId);
+  await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", { type: "mouseMoved", x: box.x, y: box.y });
+  const postconditionVerified = await waitForInteractionAttribute(
+    debuggerRuntime, target, intent, expectedMatches, intent.postHoverAttribute,
+  );
+  if (!postconditionVerified) throw new Error("BROWSER_TARGET_INVALID");
+  return {
+    hovered: true,
+    candidateCount: 1,
+    identityRevalidated: true,
+    mutationCount: 1,
+    postconditionVerified: true,
+  };
+};
+
+const waitForMatch = async (
+  debuggerRuntime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  match: Readonly<{ selector: string; expectedMatches: number; timeoutMs?: number }>,
 ): Promise<boolean> => {
-  const deadline = Date.now() + (postClickMatch.timeoutMs ?? 1);
+  const deadline = Date.now() + (match.timeoutMs ?? 1);
   do {
     const nodes = await queryAll(
       debuggerRuntime,
       target.tabId,
-      postClickMatch.selector,
-      postClickMatch.expectedMatches + 1,
+      match.selector,
+      match.expectedMatches + 1,
     );
-    if (nodes.length === postClickMatch.expectedMatches) return true;
+    if (nodes.length === match.expectedMatches) return true;
     if (Date.now() >= deadline) return false;
     await waitForNextBoundedObservation(deadline);
   } while (Date.now() <= deadline);
@@ -101,8 +200,18 @@ const waitForClickAttribute = async (
   intent: ClickIntent,
   expectedMatches: number,
   postClickAttribute: NonNullable<ClickIntent["postClickAttribute"]>,
+): Promise<boolean> => waitForInteractionAttribute(
+  debuggerRuntime, target, intent, expectedMatches, postClickAttribute,
+);
+
+const waitForInteractionAttribute = async (
+  debuggerRuntime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  intent: ClickIntent | HoverIntent,
+  expectedMatches: number,
+  postAttribute: NonNullable<ClickIntent["postClickAttribute"]> | HoverIntent["postHoverAttribute"],
 ): Promise<boolean> => {
-  const deadline = Date.now() + (postClickAttribute.timeoutMs ?? 1);
+  const deadline = Date.now() + (postAttribute.timeoutMs ?? 1);
   do {
     const nodes = intent.expectedTextEquals !== undefined
       ? await queryVisibleTextMatches(debuggerRuntime, target.tabId, intent.selector, intent.expectedTextEquals, true, expectedMatches + 1, intent.scope)
@@ -112,8 +221,8 @@ const waitForClickAttribute = async (
     if (nodes.length === expectedMatches) {
       const currentNodeId = nodes[0];
       if (currentNodeId !== undefined
-        && attribute(await describeNode(debuggerRuntime, target.tabId, currentNodeId), postClickAttribute.name)
-          === postClickAttribute.equals) return true;
+        && attribute(await describeNode(debuggerRuntime, target.tabId, currentNodeId), postAttribute.name)
+          === postAttribute.equals) return true;
     }
     if (Date.now() >= deadline) return false;
     await waitForNextBoundedObservation(deadline);
@@ -157,6 +266,9 @@ export const executeRegisteredDomIntent = async (
   if (intent.kind === "document") return documentState(debuggerRuntime, target.tabId);
   if (intent.kind === "find") return executeFindIntent(debuggerRuntime, target, intent);
   if (intent.kind === "click") return executeClickIntent(debuggerRuntime, target, intent);
+  if (intent.kind === "hover") return executeHoverIntent(debuggerRuntime, target, intent);
+  if (intent.kind === "doubleClick") return executeDoubleClickIntent(debuggerRuntime, target, intent);
+  if (intent.kind === "keypress") return executeKeypressIntent(debuggerRuntime, target, intent);
   return executeValueIntent(debuggerRuntime, target, intent);
 };
 

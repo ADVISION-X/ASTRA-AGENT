@@ -273,7 +273,8 @@ export class BrowserTargetLeaseManager {
   private mutationClass(command: Parameters<BrowserCommandActor["execute"]>[1]): BrowserCommandPermit["mutationClass"] {
     if (command.kind === "navigate" || command.kind === "close-target") return "lifecycle";
     if (command.kind === "file-input") return "mutation";
-    if (command.kind === "dom-intent" && (command.intent.kind === "click" || command.intent.kind === "fill")) return "mutation";
+    if (command.kind === "dom-intent" && (command.intent.kind === "click" || command.intent.kind === "hover"
+      || command.intent.kind === "doubleClick" || command.intent.kind === "keypress" || command.intent.kind === "fill")) return "mutation";
     return "observation";
   }
 
@@ -285,6 +286,9 @@ export class BrowserTargetLeaseManager {
       case "readText": return "browser.dom.read-text.v1";
       case "readAttribute": return "browser.dom.read-attribute.v1";
       case "click": return "browser.dom.click.v1";
+      case "hover": return "browser.dom.hover.v1";
+      case "doubleClick": return "browser.dom.double-click.v1";
+      case "keypress": return "browser.dom.keypress.v1";
       case "fill": return "browser.dom.fill.v1";
     }
   }

@@ -38,13 +38,13 @@ const dynamicClaimContract = (/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_BEGIN */
     "LAW-GPT-001-V2:dynamic.provider": {"claims": {"forbidden:1": [{"path": "/facts/provider_count", "operator": "equals", "expected": 1}]}},
     "LAW-GPT-001-V2:dynamic.authorization": {"claims": {"forbidden:2": [{"path": "/facts/exact_target_document_binding_count", "operator": "gte", "expected": 12}]}},
     "LAW-GPT-001-V2:dynamic.recovery": {"claims": {"forbidden:6": [{"path": "/facts/recovery_pending_observed", "operator": "equals", "expected": true}, {"path": "/facts/completed_observed", "operator": "equals", "expected": true}, {"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V4:dynamic.browser": {"claims": {"forbidden:17": [{"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V4:dynamic.service": {"claims": {"forbidden:17": [{"path": "/facts/browser_context_closed", "operator": "equals", "expected": true}, {"path": "/facts/cleanup_verified", "operator": "equals", "expected": true}, {"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}, {"path": "/facts/workbench_stopped", "operator": "equals", "expected": true}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V4:dynamic.database": {"claims": {"forbidden:8": [{"path": "/facts/frozen_identity_count", "operator": "equals", "expected": 12}, {"path": "/facts/frozen_identity_invalid_count", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V4:dynamic.storage": {"claims": {"forbidden:10": [{"path": "/unresolvedCount", "operator": "equals", "expected": 0}, {"path": "/facts/confirmed_row_invalid_count", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V4:dynamic.provider": {"claims": {"forbidden:0": [{"path": "/facts/catalog_plugin_count", "operator": "equals", "expected": 12}, {"path": "/terminalReceiptCount", "operator": "gte", "expected": 12}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V4:dynamic.authorization": {"claims": {"forbidden:3": [{"path": "/facts/lease_fence_bound_job_count", "operator": "equals", "expected": 12}, {"path": "/facts/unbound_lease_fence_job_count", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V4:dynamic.recovery": {"claims": {"forbidden:9": [{"path": "/facts/recovery_pending_observed", "operator": "equals", "expected": true}, {"path": "/facts/completed_observed", "operator": "equals", "expected": true}, {"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}}
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V5:dynamic.browser": {"claims": {"forbidden:17": [{"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V5:dynamic.service": {"claims": {"forbidden:17": [{"path": "/facts/browser_context_closed", "operator": "equals", "expected": true}, {"path": "/facts/cleanup_verified", "operator": "equals", "expected": true}, {"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}, {"path": "/facts/workbench_stopped", "operator": "equals", "expected": true}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V5:dynamic.database": {"claims": {"forbidden:8": [{"path": "/facts/frozen_identity_count", "operator": "equals", "expected": 12}, {"path": "/facts/frozen_identity_invalid_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V5:dynamic.storage": {"claims": {"forbidden:10": [{"path": "/unresolvedCount", "operator": "equals", "expected": 0}, {"path": "/facts/confirmed_row_invalid_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V5:dynamic.provider": {"claims": {"forbidden:0": [{"path": "/facts/catalog_plugin_count", "operator": "equals", "expected": 12}, {"path": "/terminalReceiptCount", "operator": "gte", "expected": 12}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V5:dynamic.authorization": {"claims": {"forbidden:3": [{"path": "/facts/lease_fence_bound_job_count", "operator": "equals", "expected": 12}, {"path": "/facts/unbound_lease_fence_job_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V5:dynamic.recovery": {"claims": {"forbidden:9": [{"path": "/facts/recovery_pending_observed", "operator": "equals", "expected": true}, {"path": "/facts/completed_observed", "operator": "equals", "expected": true}, {"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}}
   }
 }
 /* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_END */) as const;
@@ -471,6 +471,6 @@ for (const mode of ["dynamic.browser", "dynamic.provider", "dynamic.authorizatio
 for (const mode of [
   "dynamic.browser", "dynamic.service", "dynamic.database", "dynamic.storage",
   "dynamic.provider", "dynamic.authorization", "dynamic.recovery",
-] as const) emit("LAW-AGENT-PRODUCTION-RUNTIME-001-V4", mode, `${mode};plugins=12;jobs=12`);
+] as const) emit("LAW-AGENT-PRODUCTION-RUNTIME-001-V5", mode, `${mode};plugins=12;jobs=12`);
 
 process.stdout.write(`[ACCEPTANCE][agent-production-runtime][direct-real-proof] PASS run=${proofRunId}\n`);

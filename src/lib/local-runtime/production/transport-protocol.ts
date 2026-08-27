@@ -8,7 +8,7 @@ import {
 } from "./contracts.js";
 
 export const PRODUCTION_V6_MANIFEST_HASH =
-  "sha256:5902562579a1712b55f4076996ce6662623c044db8b56b74acd2d78836dc17fb" as const;
+  "sha256:27da4eb8e71246c18d38ea589436fbfd33f9efc674c1a34bb26e819888afb30d" as const;
 
 const hash = z.string().regex(/^sha256:[a-f0-9]{64}$/u)
   .transform((value): `sha256:${string}` => value as `sha256:${string}`);
@@ -87,6 +87,11 @@ const ExecutionGrantSchema = z.object({
   expected_catalog_hash: hash,
   expected_plugin_id: z.string().min(1),
   expected_plugin_version: z.number().int().positive(),
+  attempt_mode: z.enum(["execution", "reconciliation"]),
+  attempt_number: z.number().int().positive(),
+  max_attempts: z.number().int().positive(),
+  delivery_deadline_at: z.string().datetime(),
+  max_provider_turns: z.number().int().positive(),
   attempt_id: z.string().min(1),
   device_id: z.string().min(1),
   device_epoch: z.number().int().positive(),

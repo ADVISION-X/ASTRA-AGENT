@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { BrowserCommandPermit } from "../transport/command-permit.js";
+import type { BrowserExecutionBinding } from "../infrastructure/browser-authority-broker.js";
 import { assertValidCommandPermit } from "../transport/command-permit.js";
 import { BrowserCommandAdmissionBudget } from "../transport/browser-command-admission-budget.js";
 import { requireRuntimeLogWrite, withRuntimeLogCause, type RuntimeLogger } from "../../runtime-logs/index.js";
@@ -53,10 +54,17 @@ const assertAcceptedCommand = (permit: BrowserCommandPermit, command: BrowserGov
 
 const isMutation = (command: BrowserGovernedCommand): boolean =>
   command.kind === "file-input"
-  || (command.kind === "dom-intent" && (command.intent.kind === "click" || command.intent.kind === "fill"));
+  || (command.kind === "dom-intent" && (command.intent.kind === "click" || command.intent.kind === "hover"
+    || command.intent.kind === "doubleClick" || command.intent.kind === "keypress" || command.intent.kind === "fill"));
 
 const mutationIdentity = (permit: BrowserCommandPermit, command: BrowserGovernedCommand): BrowserMutationIdentity => ({
   commandId: permit.commandId,
+  logicalMutationId: hashValue([
+    permit.jobId,
+    `${permit.ownerPluginId}:${permit.capabilityId}`,
+    permit.sequence,
+    hashValue(command),
+  ]),
   ownerPluginId: permit.ownerPluginId,
   jobId: permit.jobId,
   attemptId: permit.attemptId,
@@ -89,11 +97,17 @@ const assertMutationReply = (command: BrowserGovernedCommand, result: unknown): 
   const postcondition = command.intent.kind === "click"
     && Boolean(command.intent.postClickAttribute ?? command.intent.postClickMatch)
     && value.postconditionVerified === true;
+  const hoverPostcondition = command.intent.kind === "hover"
+    && value.postconditionVerified === true;
+  const directPostcondition = (command.intent.kind === "doubleClick" || command.intent.kind === "keypress")
+    && value.postconditionVerified === true;
   if (value.candidateCount !== 1 || value.identityRevalidated !== true || value.mutationCount !== 1
     || (command.intent.kind === "fill" && !retained)
     || (command.intent.kind === "click"
       && (command.intent.postClickAttribute ?? command.intent.postClickMatch)
-      && !postcondition)) {
+      && !postcondition)
+    || (command.intent.kind === "hover" && !hoverPostcondition)
+    || ((command.intent.kind === "doubleClick" || command.intent.kind === "keypress") && !directPostcondition)) {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
 };
@@ -110,12 +124,13 @@ export class BrowserCommandActor {
     private readonly runtimeLogger: RuntimeLogger,
   ) {}
 
-  public pendingMutationCommandIds(binding: Readonly<{
-    jobId: string;
-    attemptId: string;
-    leaseVersion: number;
-    writerFenceHash: string;
-  }>): readonly string[] {
+  public pendingMutationCommandIds(binding: BrowserExecutionBinding): readonly string[] {
+    if (binding.kind === "production-reconciliation") {
+      return this.mutations.unknownForJob({
+        jobId: binding.jobId,
+        ownerPluginId: binding.ownerPluginId,
+      });
+    }
     return this.mutations.unknownForBinding({
       jobId: binding.jobId,
       attemptId: binding.attemptId,

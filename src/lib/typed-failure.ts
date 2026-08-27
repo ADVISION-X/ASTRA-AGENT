@@ -1,7 +1,6 @@
 export type ExecutionFailureStatus = "recovery_pending" | "review_required" | "failed";
 export type MutationOutcome = "no" | "yes" | "unknown";
 export type SerializedExecutionFailure = Readonly<{
-  status: "review_required" | "failed";
   code: string;
   mutation_outcome: MutationOutcome;
   evidence_ref: string | null;
@@ -67,7 +66,6 @@ export const failureCode = (error: unknown, fallback = "UNKNOWN_FAILURE"): strin
 
 export const serializeTerminalFailure = (
   error: unknown,
-  status: "review_required" | "failed",
 ): SerializedExecutionFailure => {
   const typed = typedExecutionFailure(error);
   const cause = typed?.cause ?? (typed ? undefined : error);
@@ -75,7 +73,6 @@ export const serializeTerminalFailure = (
     && typeof (cause as { code?: unknown }).code === "string"
     ? (cause as { code: string }).code : null;
   return Object.freeze({
-    status,
     code: failureCode(error),
     mutation_outcome: typed?.mutationOutcome ?? "no",
     evidence_ref: typed?.evidenceRef ?? null,

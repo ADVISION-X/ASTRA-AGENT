@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V4"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V5"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -213,7 +213,7 @@ GPT 原子 proof 只通过现役 `ForensicsPersistenceAbilityGroup` 落正式证
 顺序进入 `evidence_refs`；现有 `execution_receipt_hash` 绑定该有序集合，无需 Evidence Manifest、第二证据表或第二证据库。
 持久 proof 只允许 target/document hash、URL hash/page type、受控语义、mutation outcome、postcondition、code 和 evidence hash；
 raw URL/HTML/selector、Browser 私有 identity、用户输入、Prompt、附件内容与本地路径不得落盘。外部 mutation 后证据写失败
-固定进入 `review_required`、保留 Browser WAL 且不重放。Runtime Logs 只记录 authority ref/hash，不保存 proof 正文或取得证据主权。
+固定进入 `RECONCILE_ONLY`、保留 Browser WAL 且不重放；对账期限耗尽仍无法证明时收束为 failed，WAL 保留原事实。Runtime Logs 只记录 authority ref/hash，不保存 proof 正文或取得证据主权。
 
 ## 8. durable identity、状态与恢复
 
@@ -234,7 +234,7 @@ mutant。`agent_build_hash` 继续只绑定 worker session，不增加到六字�
 
 本地不可变接单记录写入成功即是 durable accept 的边界；不得延迟到远程 checkpoint 成功之后才认定。此后任何 checkpoint、下载或网络失败只能进入现役唯一恢复链，不得释放成“未接单”并重新解释。
 
-checkpoint、恢复、result 与 execution receipt 都绑定同一组合。发布新 Catalog/Plugin/Skill 前先 drain 已接受任务；版本或 checkpoint schema 不兼容时，在零新 Browser/Provider mutation 下进入 `review_required`，禁止用新代码静默续跑，也不保留第二 Plugin 兼容路径。
+checkpoint、恢复、result 与 execution receipt 都绑定同一组合。发布新 Catalog/Plugin/Skill 前先 drain 已接受任务；版本或 checkpoint schema 不兼容时禁止新 Browser/Provider mutation，并进入统一 attempt 决策；可证明零 mutation 才重试，UNKNOWN 只读对账，确定性不可满足或预算耗尽则 failed。禁止用新代码静默续跑，也不保留第二 Plugin 兼容路径。
 
 V6 继续唯一拥有 transport state、lease/fence、control、terminal 和重放语义。Plugin 私有 checkpoint 不成为第二 Cloud 状态机。UNKNOWN 物理动作永不自动重放；已失去 lease/fence 后停止新 mutation，等待原执行 settle；同 request/outbox payload 只以原幂等键重试。
 
@@ -243,25 +243,39 @@ artifact 与 terminal 都先在 SQLite/WAL 持久化确定性 intent 和 idempot
 remote-terminal/local-nonterminal、receipt 缺失与旧 fence；只有远端权威证明 superseded/delivered 才能终结旧写入，UNKNOWN
 不得重放。允许扩展网站现役 device-job status 读取 artifact/checkpoint/terminal receipt 事实，不新建 ledger。
 
-typed failure 从 GPT child 到 Plugin、runtime、Outbox 和 first-terminal 始终保持同一对象：
+切换后的历史隔离只有一个窄条件：现役 device-job status 对某 job 明确返回 404，且 AGENT 本地该 job 已经是
+`completed / failed` 或只读保留的旧 `review_required / cancelled` 不可变终态。此时只能将该 job 尚无回执的旧 Outbox
+标记为 `REMOTE_JOB_ABSENT_HISTORICAL` 并退出发送集合；标记不是远端 receipt、不得改写本地 terminal，也不得继续阻断
+无关新 job。任一本地非终态、远端仍可见但内容漂移、Browser UNKNOWN 或缺失对账事实都不得进入该隔离。
+
+typed failure 从 GPT child 到 Plugin、runtime、Outbox 和 first-terminal 始终保持同一事实：
 
 ```text
-status + code + mutation_outcome + evidence_ref/evidence_hash + cause（存在时）
+code + mutation_outcome + evidence_ref/evidence_hash + cause（存在时）
 ```
 
-禁止异常文本正则、自由字符串分类和冗余 `retryable` 布尔。failure/review 原因只由现役 V6 first-terminal record/receipt 拥有，
-不放入业务 result envelope，不建立 V7 或第二终态。
+禁止异常文本正则、自由字符串分类和冗余 `retryable` 布尔。每次 attempt 以 `job_id + attempt_id + lease_version`
+幂等追加现役 failure history，并精确选择 `RETRY_FROM_CHECKPOINT / RECONCILE_ONLY / FINAL_FAILED`；用户 first-terminal
+和用户结果只能是 `completed / failed`。final failure 只由现役 V6 terminal record/receipt 拥有，不放入业务 result envelope，
+不建立新协议或第二终态。取消是控制意图，安全 fence/abort 后以 `failed + USER_CANCELLED` 收束。
+
+任务 durable create 冻结 `max_attempts + delivery_deadline_at + max_provider_turns` 并随 claim grant 下发；预算耗尽后禁止
+新 claim、renew 和 Provider mutation。Browser mutation 五种物理状态不变，另以
+`logical_mutation_id = hash(job_id + plugin_step_id + action_ordinal + request_hash)` 跨 attempt 防重；同一 logical mutation 已
+CONFIRMED/SENT/UNKNOWN 时不得再发。
 
 `ledger_reconciled` 在每次 Store、Browser WAL、checkpoint、artifact/terminal Outbox、continuation、proof 或远端终态 authority
-变化时先失效，再由现有只读 authority 连续派生。未决阻断 Outbox、Browser UNKNOWN、缺失 receipt/evidence、孤儿 continuation/proof、
-remote/local terminal 漂移任一存在时必须为 false 并阻断新 claim；合法 busy lane 只表示忙，不表示 ledger 不一致。
+变化时先失效，再由现有只读 authority 连续派生。全局未决 Outbox、缺失 receipt/evidence、孤儿 continuation/proof、
+remote/local terminal 漂移或 Browser Authority 本身不可证明时必须为 false 并阻断新 claim；job 级 Browser UNKNOWN 只阻断
+同一 logical mutation、主体与授权范围；合法 busy lane 只表示忙，不表示 ledger 不一致。已按上述窄条件隔离的历史终态
+Outbox 不再属于全局未决集合，但仍以失败标记保留原事实，绝不冒充 delivered receipt。
 
 Browser Authority 只拥有一条最多十个 waiter 的有界 FIFO mutation lane。waiter 绑定精确 job Target，并感知 lease、deadline、abort；
-等待期间持续 renew，取消后确定性移除；UNKNOWN 锁住原现场直到人工裁决。heartbeat 的 lane/busy 来自 Browser Authority 真实队列与
+等待期间持续 renew，取消后确定性移除；UNKNOWN 锁住原现场直到证据对账或期限耗尽，禁止用人工猜测裁决。heartbeat 的 lane/busy 来自 Browser Authority 真实队列与
 owner，不从 `active.size` 猜测。上述边界闭合后业务 capacity 才按 `10 - active jobs` 派生，不能用 `availableCapacity()=1`
 把单 Browser lane 冒充整机容量。
 
-GPT Session Controller 不理解业务内容、不决定何时续问。无法证明原会话、主体、授权、Plugin 或 lane CAS 时失败关闭为 `review_required`，不得静默新开会话冒充续接。
+GPT Session Controller 不理解业务内容、不决定何时续问。无法证明原会话、主体、授权、Plugin 或 lane CAS 时进入统一 attempt 决策；可证明零 mutation 才重试，UNKNOWN 只读对账，确定性不可满足或预算耗尽则 failed，不得静默新开会话冒充续接。
 
 ## 9. Capability Manifest 与准入
 

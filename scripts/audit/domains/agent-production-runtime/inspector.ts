@@ -23,7 +23,7 @@ import {
   observeStaticFilesystem,
   observeStaticTypes,
 } from "../../shared/static-target-object-inspector.js";
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V4";
+const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V5";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 16, 17), "static.ast": staticClauses(2, 4, 5, 9, 10, 11, 13, 14, 15, 17, 18, 19, 20, 21, 23, 24, 25),
   "static.types": staticForbiddenClauses(3, 5, 8, 11, 12), "static.contract": staticForbiddenClauses(3, 5, 6, 7, 8, 12, 13, 15),
@@ -48,6 +48,8 @@ const EXECUTOR_PATH = "src/lib/local-runtime/production/executor.ts";
 const CLOUD_CLIENT_PATH = "src/lib/local-runtime/production/cloud-client.ts";
 const TYPED_FAILURE_PATH = "src/lib/typed-failure.ts";
 const GPT_RESPONSE_PATH = "src/capabilities/gpt/web/children/response-children.ts";
+const BROWSER_MUTATION_STORE_PATH = "src/lib/browser/exact-target/browser-mutation-store.ts";
+const BROWSER_COMMAND_ACTOR_PATH = "src/lib/browser/exact-target/browser-command-actor.ts";
 const PRODUCTION_BLUEPRINT_PATH = "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md";
 const forbiddenDeterministicProducts = [
   "bazi_basic_chart",
@@ -376,7 +378,7 @@ const inspectDirectDynamicProof = (context: InspectorContext, findings: Inspecto
   }
 };
 
-const inspectV4Hardening = (context: InspectorContext, findings: InspectorFinding[]): void => {
+const inspectV5Hardening = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const required: ReadonlyArray<Readonly<{ path: string; checkId: string; tokens: readonly string[] }>> = [
     { path: PLUGIN_CONTRACT_PATH, checkId: "strict-result-parser", tokens: ["readonly parseResult:"] },
     { path: EXECUTOR_PATH, checkId: "strict-result-parser", tokens: ["authorized.plugin.parseResult", "safeGptEvidenceProjection", "appendRecord", "readRecordRef", "EVIDENCE_READBACK_FAILED"] },
@@ -385,13 +387,18 @@ const inspectV4Hardening = (context: InspectorContext, findings: InspectorFindin
     { path: TYPED_FAILURE_PATH, checkId: "typed-failure-chain", tokens: ["typedExecutionFailure", "httpStatus", "cause"] },
     { path: RUNTIME_PATH, checkId: "typed-failure-chain", tokens: ["typedExecutionFailure(error)?.code", "causedByEventId"] },
     { path: TRANSPORT_PATH, checkId: "typed-failure-chain", tokens: ["executionFailure(", "httpStatus"] },
+    { path: CONTRACT_PATH, checkId: "binary-terminal", tokens: ["z.enum([\"completed\", \"failed\"])", "SerializedExecutionFailureSchema"] },
+    { path: RUNTIME_PATH, checkId: "bounded-attempt-decision", tokens: ["RETRY_FROM_CHECKPOINT", "RECONCILE_ONLY", "FINAL_FAILED", "attempt_mode", "max_provider_turns"] },
+    { path: CLOUD_CLIENT_PATH, checkId: "attempt-failure-receipt", tokens: ["attempt_failure", "RETRY_FROM_CHECKPOINT", "RECONCILE_ONLY"] },
+    { path: BROWSER_MUTATION_STORE_PATH, checkId: "logical-mutation-identity", tokens: ["logical_mutation_id", "browser_mutations_logical_identity"] },
+    { path: BROWSER_COMMAND_ACTOR_PATH, checkId: "logical-mutation-identity", tokens: ["logicalMutationId", "permit.sequence", "hashValue(command)"] },
     { path: PRODUCTION_BLUEPRINT_PATH, checkId: "local-agent-process-owner", tokens: ["AGENT 始终运行在用户本地 Mac", "不授予网站 AGENT 进程"] },
   ];
   for (const entry of required) {
     const source = read(context, entry.path);
     for (const token of entry.tokens) if (!source.includes(token)) findings.push(finding(
       `agent-production-runtime/${entry.checkId}`, entry.path,
-      `V4 hardening boundary is missing ${token}.`, undefined, "static.ast",
+      `V5 hardening boundary is missing ${token}.`, undefined, "static.ast",
     ));
   }
   const executor = read(context, EXECUTOR_PATH);
@@ -417,7 +424,7 @@ const inspectAgentProductionRuntime = (context: InspectorContext, findings: Insp
   inspectSharedRuntimeAndPsc(context, findings);
   inspectRetirementAndDurability(context, findings);
   inspectDirectDynamicProof(context, findings);
-  inspectV4Hardening(context, findings);
+  inspectV5Hardening(context, findings);
 };
 const inspectAgentFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const plugins = pluginDirectories(context);

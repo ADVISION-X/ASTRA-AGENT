@@ -121,7 +121,7 @@ export async function downloadProductionMaterials(
     if (bytes.byteLength !== material.bytes || sha256(bytes) !== material.sha256) {
       throw executionFailure("review_required", `MATERIAL_DOWNLOAD_IDENTITY_MISMATCH:${material.material_id}`);
     }
-    const destination = path.join(materialDir, `${String(material.ordinal).padStart(3, "0")}-${material.display_name}`);
+    const destination = path.join(materialDir, material.display_name);
     const temporary = `${destination}.${process.pid}.tmp`;
     const handle = await open(temporary, "wx", 0o600);
     try { await handle.writeFile(bytes); await handle.sync(); } finally { await handle.close(); }
@@ -137,7 +137,15 @@ export async function checkpointProductionTask(
   job: ClaimedProductionTask,
   status: "inputs_downloading" | "factory_running" | "recovery_pending",
   checkpointKind: string,
+  attemptFailure: (SerializedExecutionFailure & Readonly<{
+    decision: "RETRY_FROM_CHECKPOINT" | "RECONCILE_ONLY";
+  }>) | null = null,
 ): Promise<ProductionHash> {
+  const previous = store.readCheckpoint(job.job_id);
+  const checkpointSeq = status === "inputs_downloading" ? 1
+    : status === "factory_running" ? 2
+      : previous?.attemptId !== job.grant.attempt_id ? 1
+        : previous.checkpointId === "inputs_downloading" ? 2 : 3;
   const requestId = `aipcheckpoint_${hashCanonical({
     job_id: job.job_id,
     attempt_id: job.grant.attempt_id,
@@ -158,10 +166,11 @@ export async function checkpointProductionTask(
     fence_hash: job.grant.execution_fence.fence_hash,
     local_order_id: job.job_id,
     status,
-    checkpoint_seq: status === "inputs_downloading" ? 1 : status === "factory_running" ? 2 : 3,
+    checkpoint_seq: checkpointSeq,
     checkpoint_kind: checkpointKind,
     payload_hash: hashCanonical({ job_id: job.job_id, status, checkpoint_kind: checkpointKind }),
     object_receipts: [],
+    attempt_failure: attemptFailure,
   } as const;
   const pathname = `/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/checkpoints`;
   store.enqueue({ idempotency_key: requestId, kind: "checkpoint", path: pathname, method: "POST", headers: fenceHeaders(job), body: JSON.stringify(body) });
@@ -395,7 +404,7 @@ export async function terminalProductionTask(
   store: ProductionRuntimeStore,
   job: ClaimedProductionTask,
   input: Readonly<{
-    status: "completed" | "failed" | "review_required" | "cancelled";
+    status: "completed" | "failed";
     failure: SerializedExecutionFailure | null;
     payload_hash: ProductionHash;
     result_receipt_hashes: readonly ProductionHash[];
@@ -435,6 +444,61 @@ export async function terminalProductionTask(
     body,
   }));
   return parseTerminalReceipt(response, expected);
+}
+
+export type RemoteProductionWriteReceipt = Readonly<{
+  request_id: string;
+  write_kind: string;
+  payload_hash: ProductionHash;
+  response_json: Record<string, unknown>;
+}>;
+
+export async function readProductionDeviceJobStatus(
+  session: ProductionWorkerSession,
+  jobId: string,
+): Promise<Readonly<{
+  job_id: string;
+  status: string;
+  terminal_status: "completed" | "failed" | null;
+  write_receipts: readonly RemoteProductionWriteReceipt[];
+}>> {
+  const value = await session.request(
+    `/internal/ai-production/v6/jobs/${encodeURIComponent(jobId)}/device-status`,
+    { method: "GET" },
+  );
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw executionFailure("failed", "V6_DEVICE_JOB_STATUS_INVALID");
+  }
+  const row = value as Record<string, unknown>;
+  if (row.job_id !== jobId || typeof row.status !== "string"
+    || ![null, "completed", "failed"].includes(row.terminal_status as null | string)
+    || !Array.isArray(row.write_receipts)) {
+    throw executionFailure("failed", "V6_DEVICE_JOB_STATUS_INVALID");
+  }
+  const receipts = row.write_receipts.map((receipt) => {
+    if (!receipt || typeof receipt !== "object" || Array.isArray(receipt)) {
+      throw executionFailure("failed", "V6_DEVICE_JOB_STATUS_INVALID");
+    }
+    const item = receipt as Record<string, unknown>;
+    if (typeof item.request_id !== "string" || !item.request_id
+      || typeof item.write_kind !== "string" || !item.write_kind
+      || typeof item.payload_hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(item.payload_hash)
+      || !item.response_json || typeof item.response_json !== "object" || Array.isArray(item.response_json)) {
+      throw executionFailure("failed", "V6_DEVICE_JOB_STATUS_INVALID");
+    }
+    return Object.freeze({
+      request_id: item.request_id,
+      write_kind: item.write_kind,
+      payload_hash: item.payload_hash as ProductionHash,
+      response_json: item.response_json as Record<string, unknown>,
+    });
+  });
+  return Object.freeze({
+    job_id: jobId,
+    status: row.status,
+    terminal_status: row.terminal_status as "completed" | "failed" | null,
+    write_receipts: Object.freeze(receipts),
+  });
 }
 
 export const sendProductionOutboxWrite = async (

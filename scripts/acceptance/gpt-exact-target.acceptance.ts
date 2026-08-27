@@ -101,7 +101,8 @@ const createFakeBrowserLease = (
     },
     async executeDomIntent(intent: BrowserDomIntent) {
       state.domCalls += 1;
-      const mutation = intent.kind === "click" || intent.kind === "fill";
+      const mutation = intent.kind === "click" || intent.kind === "hover" || intent.kind === "doubleClick"
+        || intent.kind === "keypress" || intent.kind === "fill";
       if (mutation) {
         state.physicalMutations += 1;
         if (input.unknownMutation) {
@@ -246,10 +247,10 @@ const profileOpenProofFixture = fakeBrowser((intent) => {
   if (profileOpenCall === 2 && intent.kind === "find") return { count: 0 };
   if (profileOpenCall === 3 && intent.kind === "find") return { count: 1 };
   if (profileOpenCall === 4 && intent.kind === "click") {
-    assert.deepEqual(intent.postClickMatch, {
-      selector: "[data-radix-popper-content-wrapper]", expectedMatches: 1, timeoutMs: 5_000,
-    }, "the profile-menu mutation must directly prove a zero-to-one visible owned popup transition");
-    return { clicked: true, postClickAttributeVerified: true };
+    assert.deepEqual(intent.postClickAttribute, {
+      name: "aria-expanded", equals: "true", timeoutMs: 5_000,
+    }, "the profile-menu mutation must directly prove the trigger's expanded state");
+    return { clicked: true, postconditionVerified: true };
   }
   throw new Error(`UNEXPECTED_PROFILE_OPEN_INTENT:${intent.kind}:${profileOpenCall}`);
 });
@@ -257,6 +258,76 @@ const profileOpenProof = await execute("open_gpt_model_selector", profileOpenPro
 assert.equal(profileOpenProof.status, "success");
 assert.equal(profileOpenProofFixture.physicalMutations(), 1,
   "opening the profile menu must remain one physical mutation");
+
+let profileAdvancedCall = 0;
+const profileAdvancedFixture = fakeBrowser((intent) => {
+  if (intent.kind === "document") return documentResult;
+  profileAdvancedCall += 1;
+  if (profileAdvancedCall === 1 && intent.kind === "find") return {
+    count: 2,
+    matches: [
+      { role: "menuitem", ariaChecked: "", ariaExpanded: "false", text: "高级" },
+      { role: "menuitem", ariaChecked: "", ariaExpanded: "false", text: "模型 GPT-5.6 Sol" },
+    ],
+  };
+  if (profileAdvancedCall === 2 && intent.kind === "find") return { count: 1 };
+  if (profileAdvancedCall === 3 && intent.kind === "find") return { count: 1 };
+  if (profileAdvancedCall === 4 && intent.kind === "find") return { count: 1 };
+  if (profileAdvancedCall === 5 && intent.kind === "click") {
+    assert.equal(intent.selector, "[role='menuitem'][aria-label='显示高级选项']");
+    assert.deepEqual(intent.postClickAttribute, {
+      name: "aria-expanded", equals: "true", timeoutMs: 5_000,
+    });
+    return { clicked: true, postconditionVerified: true };
+  }
+  throw new Error(`UNEXPECTED_PROFILE_ADVANCED_INTENT:${intent.kind}:${profileAdvancedCall}`);
+});
+const profileAdvanced = await execute("open_gpt_model_selector", profileAdvancedFixture.browser, { profile });
+assert.equal(profileAdvanced.status, "success");
+assert.equal(profileAdvancedFixture.physicalMutations(), 1,
+  "opening advanced options must remain one directly proven mutation");
+
+let profileHoverCall = 0;
+const profileHoverFixture = fakeBrowser((intent) => {
+  if (intent.kind === "document") return documentResult;
+  profileHoverCall += 1;
+  if (profileHoverCall === 1 && intent.kind === "find") return {
+    count: 1,
+    matches: [{ role: "menuitem", ariaChecked: "", ariaExpanded: "false", text: "模型 GPT-5.6 Sol" }],
+  };
+  if (profileHoverCall === 2 && intent.kind === "find") return { count: 1 };
+  if (profileHoverCall === 3 && intent.kind === "find") return { count: 1 };
+  if (profileHoverCall === 4 && intent.kind === "find") return { count: 0 };
+  if (profileHoverCall === 5 && intent.kind === "hover") {
+    assert.equal(intent.selector, "[role='menuitem'][aria-haspopup='menu']");
+    assert.equal(intent.expectedText, "模型");
+    assert.deepEqual(intent.postHoverAttribute, {
+      name: "aria-expanded", equals: "true", timeoutMs: 5_000,
+    });
+    return { hovered: true, postconditionVerified: true };
+  }
+  throw new Error(`UNEXPECTED_PROFILE_HOVER_INTENT:${intent.kind}:${profileHoverCall}`);
+});
+const profileHovered = await execute("open_gpt_model_selector", profileHoverFixture.browser, { profile });
+assert.equal(profileHovered.status, "success");
+assert.equal(profileHoverFixture.physicalMutations(), 1,
+  "opening the current model submenu must use one directly proven hover mutation");
+
+let profileOpenReadbackCall = 0;
+const profileOpenReadbackFixture = fakeBrowser((intent) => {
+  if (intent.kind === "document") return documentResult;
+  profileOpenReadbackCall += 1;
+  if (profileOpenReadbackCall === 1 && intent.kind === "find") return {
+    count: 1,
+    matches: [{ role: "menuitem", ariaChecked: "", ariaExpanded: "true", text: "模型 GPT-5.6 Sol" }],
+  };
+  if (profileOpenReadbackCall === 2 && intent.kind === "find") return { count: 2 };
+  throw new Error(`UNEXPECTED_PROFILE_READBACK_INTENT:${intent.kind}:${profileOpenReadbackCall}`);
+});
+const profileOpenReadback = await execute("open_gpt_model_selector", profileOpenReadbackFixture.browser, { profile });
+assert.equal(profileOpenReadback.status, "success");
+assert.equal(profileOpenReadbackFixture.physicalMutations(), 0,
+  "an already expanded exact submenu must be observation-only");
 
 let profileChoiceFindCall = 0;
 const profileChoiceDriftFixture = fakeBrowser((intent) => {
@@ -389,6 +460,92 @@ assert.equal(unknownFixture.physicalMutations(), 1);
 const unknownReplay = await execute("focus_exact_gpt_composer", unknownFixture.browser, {});
 assert.equal(unknownReplay.status, "review_required");
 assert.equal(unknownFixture.physicalMutations(), 1);
+
+const titleUrl = "https://chatgpt.com/c/title-acceptance";
+const titleRow = 'a[href="/c/title-acceptance"]';
+const titleInput = 'input[aria-label="聊天标题"][name="title-editor"]';
+const exactTitle = "八字报告分析";
+
+let titleOpenCall = 0;
+const titleOpenFixture = fakeBrowser((intent) => {
+  titleOpenCall += 1;
+  if (titleOpenCall === 1 && intent.kind === "find") {
+    assert.equal(intent.selector, titleInput);
+    return { count: 0 };
+  }
+  if (titleOpenCall === 2 && intent.kind === "find") {
+    assert.equal(intent.selector, titleRow);
+    return { count: 1 };
+  }
+  if (titleOpenCall === 3 && intent.kind === "doubleClick") {
+    assert.equal(intent.selector, titleRow);
+    assert.equal(intent.expectedMatches, 1);
+    assert.deepEqual(intent.postDoubleClickMatch, {
+      selector: titleInput, expectedMatches: 1, timeoutMs: 5_000,
+    });
+    return { doubleClicked: true, postconditionVerified: true };
+  }
+  throw new Error(`UNEXPECTED_TITLE_OPEN_INTENT:${intent.kind}:${titleOpenCall}`);
+});
+const titleOpened = await execute("open_gpt_title_control", titleOpenFixture.browser, {
+  canonicalConversationUrl: titleUrl,
+});
+assert.equal(titleOpened.status, "success");
+assert.equal(titleOpenFixture.physicalMutations(), 1,
+  "the real Chrome double-click title editor entry must remain one physical mutation");
+
+let titleWriteCall = 0;
+const titleWriteFixture = fakeBrowser((intent) => {
+  titleWriteCall += 1;
+  if (titleWriteCall === 1 && intent.kind === "find") return { count: 1 };
+  if (titleWriteCall === 2 && intent.kind === "fill") {
+    assert.equal(intent.selector, titleInput);
+    assert.equal(intent.approvedText, exactTitle);
+    return { retainedValueVerified: true };
+  }
+  throw new Error(`UNEXPECTED_TITLE_WRITE_INTENT:${intent.kind}:${titleWriteCall}`);
+});
+const titleWritten = await execute("write_exact_gpt_title", titleWriteFixture.browser, { title: exactTitle });
+assert.equal(titleWritten.status, "success");
+assert.equal(titleWriteFixture.physicalMutations(), 1);
+
+let titleCommitCall = 0;
+const titleCommitFixture = fakeBrowser((intent) => {
+  titleCommitCall += 1;
+  if (titleCommitCall === 1 && intent.kind === "find") return { count: 1 };
+  if (titleCommitCall === 2 && intent.kind === "keypress") {
+    assert.equal(intent.selector, titleInput);
+    assert.equal(intent.key, "Enter");
+    assert.deepEqual(intent.postKeypressMatch, {
+      selector: titleRow, expectedMatches: 1, timeoutMs: 5_000,
+    });
+    return { keyPressed: "Enter", postconditionVerified: true };
+  }
+  if (titleCommitCall === 3 && intent.kind === "readText") return exactTitle;
+  throw new Error(`UNEXPECTED_TITLE_COMMIT_INTENT:${intent.kind}:${titleCommitCall}`);
+});
+const titleCommitted = await execute("commit_gpt_title", titleCommitFixture.browser, {
+  canonicalConversationUrl: titleUrl,
+  title: exactTitle,
+  timeoutMs: 5_000,
+});
+assert.equal(titleCommitted.status, "success");
+assert.equal(titleCommitFixture.physicalMutations(), 1,
+  "the real Chrome Enter commit must remain one physical mutation");
+
+const titleReadbackFixture = fakeBrowser((intent) => {
+  if (intent.kind === "document") return { url: titleUrl, title: "ChatGPT" };
+  if (intent.kind === "readText") return exactTitle;
+  if (intent.kind === "find") return { count: 1 };
+  throw new Error(`UNEXPECTED_TITLE_READBACK_INTENT:${intent.kind}`);
+}, { initialUrl: titleUrl });
+const titleReadback = await execute("verify_exact_gpt_title", titleReadbackFixture.browser, {
+  canonicalConversationUrl: titleUrl,
+  title: exactTitle,
+  turnMarker: "[GPT-TURN:title-acceptance]",
+});
+assert.equal(titleReadback.status, "success");
+assert.equal(titleReadbackFixture.physicalMutations(), 0);
 
 const checkpointFixture = fakeBrowser((intent) => {
   if (intent.kind === "document") return { url: "https://chatgpt.com/c/checkpoint", title: "ChatGPT" };

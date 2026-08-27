@@ -55,6 +55,8 @@ export interface ProductionExecutionLease {
   readonly lease_version: number;
   readonly execution_fence_hash: ProductionHash;
   readonly control_manifest_hash: ProductionHash;
+  readonly max_provider_turns: number;
+  provider_turns_used: number;
   expires_at_monotonic: number;
   command_ttl_ms: number;
   readonly abort_signal: AbortSignal;
@@ -199,16 +201,22 @@ export class ProductionExecutor {
     try {
       result = await dispatchWebsiteAgentTask(task, (authorized) => ({
         materials,
-        runTurn: (turn) => this.runGptTurn({
-          task: authorized.task,
-          pluginId: authorized.plugin.pluginId,
-          skillHash: authorized.skillHash,
-          skillText: authorized.skillText,
-          materials,
-          lease,
-          parentSpanId: pluginSpan.spanId,
-          turn,
-        }),
+        runTurn: (turn) => {
+          if (lease.provider_turns_used >= lease.max_provider_turns) {
+            throw executionFailure("failed", "PROVIDER_TURN_BUDGET_EXHAUSTED");
+          }
+          lease.provider_turns_used += 1;
+          return this.runGptTurn({
+            task: authorized.task,
+            pluginId: authorized.plugin.pluginId,
+            skillHash: authorized.skillHash,
+            skillText: authorized.skillText,
+            materials,
+            lease,
+            parentSpanId: pluginSpan.spanId,
+            turn,
+          });
+        },
         complete: async (output) => {
           if (completed) throw new Error("PLUGIN_RESULT_ALREADY_COMPLETED");
           authorized.plugin.parseResult(authorized.task, output.payload, "draft");

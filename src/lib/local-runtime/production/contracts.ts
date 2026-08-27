@@ -12,9 +12,8 @@ export const RESULT_CONTRACT_VERSION = 1 as const;
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u)
   .transform((value): `sha256:${string}` => value as `sha256:${string}`);
 
-const TerminalStatusSchema = z.enum(["completed", "failed", "review_required", "cancelled"]);
+const TerminalStatusSchema = z.enum(["completed", "failed"]);
 const SerializedExecutionFailureSchema = z.object({
-  status: z.enum(["review_required", "failed"]),
   code: z.string().min(1).max(240),
   mutation_outcome: z.enum(["no", "yes", "unknown"]),
   evidence_ref: z.string().min(1).max(1_000).nullable(),
@@ -38,9 +37,8 @@ export const TerminalReceiptSchema = z.object({
   worker_session_epoch: z.number().int().positive(),
   runtime_attestation_receipt_hash: hashSchema,
 }).strict().superRefine((receipt, context) => {
-  const failed = receipt.terminal_status === "failed" || receipt.terminal_status === "review_required";
-  if ((failed && receipt.failure?.status !== receipt.terminal_status)
-    || (!failed && receipt.failure !== null)) {
+  const failed = receipt.terminal_status === "failed";
+  if ((failed && receipt.failure === null) || (!failed && receipt.failure !== null)) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "V6_TERMINAL_RECEIPT_FAILURE_INVALID" });
   }
 });
@@ -64,9 +62,8 @@ const TerminalReceiptExpectationSourceSchema = z.object({
   worker_session_id: z.string().min(1).max(240),
   worker_session_epoch: z.number().int().positive(),
 }).passthrough().superRefine((request, context) => {
-  const failed = request.terminal_status === "failed" || request.terminal_status === "review_required";
-  if ((failed && request.failure?.status !== request.terminal_status)
-    || (!failed && request.failure !== null)) {
+  const failed = request.terminal_status === "failed";
+  if ((failed && request.failure === null) || (!failed && request.failure !== null)) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "V6_TERMINAL_REQUEST_FAILURE_INVALID" });
   }
 });

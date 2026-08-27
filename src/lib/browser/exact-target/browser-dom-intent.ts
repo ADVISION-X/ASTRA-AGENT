@@ -49,22 +49,86 @@ export type BrowserDomIntent =
       timeoutMs?: number;
     }>;
   }>
+  | Readonly<{
+    kind: "hover";
+    selector: string;
+    expectedText?: string;
+    expectedTextEquals?: string;
+    expectedMatches?: number;
+    scope?: BrowserDomReadScope;
+    /** Same-node state that must be true immediately after the one pointer hover. */
+    postHoverAttribute: Readonly<{
+      name: "aria-expanded";
+      equals: "true";
+      timeoutMs?: number;
+    }>;
+  }>
+  | Readonly<{
+    kind: "doubleClick";
+    selector: string;
+    expectedMatches?: number;
+    scope?: BrowserDomReadScope;
+    postDoubleClickMatch: Readonly<{
+      selector: string;
+      expectedMatches: number;
+      timeoutMs?: number;
+    }>;
+  }>
+  | Readonly<{
+    kind: "keypress";
+    selector: string;
+    key: "Enter";
+    expectedMatches?: number;
+    scope?: BrowserDomReadScope;
+    postKeypressMatch: Readonly<{
+      selector: string;
+      expectedMatches: number;
+      timeoutMs?: number;
+    }>;
+  }>
   | Readonly<{ kind: "fill"; selector: string; approvedText: string; clearBeforeType: boolean; expectedMatches?: number; scope?: BrowserDomReadScope }>;
 
 export const assertBrowserDomIntent = (intent: BrowserDomIntent): BrowserDomIntent => {
   assertSelector(intent);
   if (intent.kind === "find") assertFindIntent(intent);
   if (intent.kind === "readText" || intent.kind === "readAttribute") assertReadIntent(intent);
-  if (intent.kind === "click" || intent.kind === "fill") assertOptionalExpectedMatches(intent.expectedMatches);
+  if (intent.kind === "click" || intent.kind === "hover" || intent.kind === "doubleClick"
+    || intent.kind === "keypress" || intent.kind === "fill") assertOptionalExpectedMatches(intent.expectedMatches);
   if ("scope" in intent) assertReadScope(intent.scope);
   if (intent.kind === "click") assertClickIntent(intent);
+  if (intent.kind === "hover") assertHoverIntent(intent);
+  if (intent.kind === "doubleClick") assertBoundedPostMatch(intent.postDoubleClickMatch);
+  if (intent.kind === "keypress") {
+    if (intent.key !== "Enter") throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+    assertBoundedPostMatch(intent.postKeypressMatch);
+  }
   return intent;
 };
 
-const assertClickIntent = (intent: Extract<BrowserDomIntent, { kind: "click" }>): void => {
+const assertBoundedPostMatch = (match: Readonly<{
+  selector: string;
+  expectedMatches: number;
+  timeoutMs?: number;
+}>): void => {
+  if (!isBoundedText(match.selector, 2_048)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  assertOptionalRange(match.expectedMatches, 1, 20);
+  if (match.timeoutMs !== undefined
+    && (!Number.isInteger(match.timeoutMs) || match.timeoutMs < 1 || match.timeoutMs > 5_000)) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  }
+};
+
+const assertTargetText = (intent: Readonly<{
+  expectedText?: string;
+  expectedTextEquals?: string;
+}>): void => {
   if (intent.expectedText !== undefined && !isBoundedText(intent.expectedText, 1_024)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   if (intent.expectedTextEquals !== undefined && !isBoundedText(intent.expectedTextEquals, 1_024)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   if (intent.expectedText !== undefined && intent.expectedTextEquals !== undefined) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+};
+
+const assertClickIntent = (intent: Extract<BrowserDomIntent, { kind: "click" }>): void => {
+  assertTargetText(intent);
   if (intent.postClickAttribute !== undefined && intent.postClickMatch !== undefined) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
@@ -86,6 +150,19 @@ const assertClickIntent = (intent: Extract<BrowserDomIntent, { kind: "click" }>)
         || intent.postClickMatch.timeoutMs > 5_000)) {
       throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
     }
+  }
+};
+
+const assertHoverIntent = (intent: Extract<BrowserDomIntent, { kind: "hover" }>): void => {
+  assertTargetText(intent);
+  if (!intent.postHoverAttribute
+    || intent.postHoverAttribute.name !== "aria-expanded"
+    || intent.postHoverAttribute.equals !== "true"
+    || (intent.postHoverAttribute.timeoutMs !== undefined
+      && (!Number.isInteger(intent.postHoverAttribute.timeoutMs)
+        || intent.postHoverAttribute.timeoutMs < 1
+        || intent.postHoverAttribute.timeoutMs > 5_000))) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
 };
 

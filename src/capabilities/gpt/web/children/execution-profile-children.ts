@@ -180,49 +180,60 @@ const openSelectorOneMutation = async (
   label: string,
 ) => {
   const surface = await nodes(browser);
-  const popupCount = await findCount(browser, { selector: GPT_PROFILE_POPUP_SELECTOR, maxMatches: 2 });
-  if (popupCount === 1) return success({
-    value: { state: "choices-open" }, candidateCount: 1,
-    observedSemantics: ["one visible profile popup already open"], committedMutation: "no",
-  });
-  if (popupCount > 1) throw executionFailure("review_required", `GPT_EXECUTION_PROFILE_POPUP_COUNT_${popupCount}`);
+  const parents = summary(surface, label);
+  if (parents.length === 1 && parents[0]!.ariaExpanded === "true") {
+    const choiceCount = await findCount(browser, { selector: GPT_PROFILE_CHOICE_SELECTOR, maxMatches: 20 });
+    if (choiceCount < 1) throw executionFailure("review_required", `GPT_EXECUTION_PROFILE_${label}_CHOICES_MISSING`);
+    return success({
+      value: { state: "choices-open", label }, candidateCount: choiceCount,
+      observedSemantics: [`one ${label} submenu expanded`, "one-or-more exact choices"], committedMutation: "no",
+    });
+  }
+  const popupCount = await findCount(browser, { selector: GPT_PROFILE_POPUP_SELECTOR, maxMatches: 3 });
   const triggerCount = await findCount(browser, {
     selector: GPT_PROFILE_TRIGGER_SELECTOR,
     maxMatches: 2,
     waitFor: { minimumMatches: 1, timeoutMs: 5_000 },
   });
-  if (triggerCount === 1 && !surface.some((node) => node.ariaExpanded === "true")) {
+  if (popupCount === 0 && triggerCount === 1 && !surface.some((node) => node.ariaExpanded === "true")) {
     await browser.executeDomIntent({
       kind: "click",
       selector: GPT_PROFILE_TRIGGER_SELECTOR,
       expectedMatches: 1,
-      postClickMatch: { selector: GPT_PROFILE_POPUP_SELECTOR, expectedMatches: 1, timeoutMs: 5_000 },
+      postClickAttribute: { name: "aria-expanded", equals: "true", timeoutMs: 5_000 },
     });
     return success({
       value: { state: "profile-menu-open" }, candidateCount: 1,
-      observedSemantics: ["one profile trigger", "zero-to-one visible profile popup"], committedMutation: "yes",
+      observedSemantics: ["one profile trigger", "aria-expanded=true"], committedMutation: "yes",
     });
+  }
+  if (popupCount === 0) {
+    const diagnostics = await diagnosticSummary(browser);
+    throw executionFailure("review_required", `GPT_EXECUTION_PROFILE_POPUP_COUNT_0:visible=${diagnostics}`);
   }
   const advanced = await findCount(browser, { selector: GPT_ADVANCED_CLOSED_SELECTOR, maxMatches: 2 });
   if (advanced === 1) {
-    await browser.executeDomIntent({ kind: "click", selector: GPT_ADVANCED_CLOSED_SELECTOR, expectedMatches: 1 });
+    await browser.executeDomIntent({
+      kind: "click", selector: GPT_ADVANCED_CLOSED_SELECTOR, expectedMatches: 1,
+      postClickAttribute: { name: "aria-expanded", equals: "true", timeoutMs: 5_000 },
+    });
     return success({
       value: { state: "advanced-options-open" }, candidateCount: 1,
-      observedSemantics: ["one advanced-options control"], committedMutation: "yes",
+      observedSemantics: ["one advanced-options control", "aria-expanded=true"], committedMutation: "yes",
     });
   }
-  const parents = summary(surface, label);
   if (parents.length !== 1) {
     const diagnostics = await diagnosticSummary(browser);
     throw executionFailure("review_required", `GPT_EXECUTION_PROFILE_${label}_CONTROL_COUNT_${parents.length}:visible=${diagnostics}`);
   }
   await browser.executeDomIntent({
-    kind: "click", selector: GPT_MODEL_SUBMENU_SELECTOR,
+    kind: "hover", selector: GPT_MODEL_SUBMENU_SELECTOR,
     expectedText: label, expectedMatches: 1,
+    postHoverAttribute: { name: "aria-expanded", equals: "true", timeoutMs: 5_000 },
   });
   return success({
-    value: { state: "choices-opening", label }, candidateCount: 1,
-    observedSemantics: [`one ${label} submenu`], committedMutation: "yes",
+    value: { state: "choices-opened", label }, candidateCount: 1,
+    observedSemantics: [`one ${label} submenu`, "aria-expanded=true"], committedMutation: "yes",
   });
 };
 

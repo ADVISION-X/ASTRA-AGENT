@@ -296,7 +296,7 @@ test('quality CHANGE rejects malformed touched law, Manifest, blueprint, and spe
     { path: 'docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json', mutate: (source) => {
       const value = JSON.parse(source) as { contract: { providerRepo: string }; lawIds: string[]; owner: string };
       value.owner = 'gpt';
-      value.lawIds = ['LAW-AGENT-PRODUCTION-RUNTIME-001-V4'];
+      value.lawIds = ['LAW-AGENT-PRODUCTION-RUNTIME-001-V5'];
       return `${JSON.stringify(value, null, 2)}\n`;
     } },
   ];
