@@ -29,10 +29,9 @@ GPT 能力组只接收已经批准的原子请求并返回 GPT 页面事实与�
 ```text
 Product Plugin request
   -> src/capabilities/gpt/index.ts 唯一公共 Facade
-  -> 一个精确 Child Ability
+  -> 一个稳定 Provider 页面意图对应的精确 Child Ability
   -> Browser Authority exact Target + Document
-  -> 最多一次页面 mutation
-  -> 同一 Document 的直接后置证明
+  -> 一次有界 observation，或最多一次页面 mutation + 直接后置回读
   -> typed GPT child receipt
   -> Product Plugin 继续业务 Flow
 ```
@@ -48,16 +47,19 @@ Product Plugin request
 `candidateCount`、`observedSemantics`、`committedMutation`、`postconditionResult`、开始/结束时间以及
 `evidenceRef/evidenceHash`；非 DOM child 的 Target/Document 字段才允许为空。
 
+公共 Facade 只做合同解析、Child 定位和单次委派。它不得在 Child 前后或异常分支自行读取 DOM、执行页面动作、
+重试或补做后置流程；前置、物理动作和直接后置证明必须全部由当前 Child 自己拥有并一次收束。
+
 ## 原子子能力分母
 
-公开 `childCapabilityId` 固定为以下 44 项；实现文件可按同一页面元素 Owner 垂直合并，但不得用粗粒度
+公开 `childCapabilityId` 固定为以下 43 项；实现文件可按同一页面元素 Owner 垂直合并，但不得用粗粒度
 `feed-gpt-once`、动态字符串或私有别名替代这份分母。
 
 | 类别 | 固定 childCapabilityId |
 |---|---|
 | Target / Document | `bind_exact_gpt_target`、`observe_gpt_document`、`verify_gpt_workspace`、`restore_gpt_operator_source` |
 | 已知临时 UI | `acknowledge_known_gpt_rate_limit`、`dismiss_known_gpt_search_dialog`、`cleanup_owned_gpt_transient_ui` |
-| 会话 / 搜索 / 分叉 | `click_gpt_new_chat`、`verify_clean_gpt_chat`、`focus_exact_gpt_conversation`、`open_gpt_conversation_search`、`write_gpt_conversation_search_key`、`select_exact_gpt_conversation_result`、`open_gpt_fork_control`、`commit_gpt_checkpoint_fork`、`verify_gpt_conversation_identity` |
+| 会话 / 搜索 / 分叉 | `verify_clean_gpt_chat`、`focus_exact_gpt_conversation`、`open_gpt_conversation_search`、`write_gpt_conversation_search_key`、`select_exact_gpt_conversation_result`、`open_gpt_fork_control`、`commit_gpt_checkpoint_fork`、`verify_gpt_conversation_identity` |
 | 模型 / 推理 | `observe_gpt_execution_profile`、`open_gpt_model_selector`、`select_exact_gpt_model`、`open_gpt_reasoning_selector`、`select_exact_gpt_reasoning_tier`、`verify_gpt_execution_profile` |
 | 附件 | `open_gpt_attachment_control`、`attach_approved_gpt_files_once`、`verify_gpt_attachment_set` |
 | Composer / 提交 | `focus_exact_gpt_composer`、`write_exact_gpt_prompt`、`verify_exact_gpt_prompt`、`submit_exact_gpt_turn`、`verify_gpt_turn_submission` |
@@ -65,10 +67,11 @@ Product Plugin request
 | 标题 | `open_gpt_title_control`、`write_exact_gpt_title`、`commit_gpt_title`、`verify_exact_gpt_title` |
 | Continuation / 恢复 | `persist_gpt_continuation`、`acquire_gpt_continuation_lane`、`advance_gpt_continuation_lane`、`release_gpt_continuation_lane`、`recover_gpt_response_checkpoint` |
 
-每个 child 文件只拥有一个页面意图、一个输入合同、一个前置证明、一次有界 observation 或至多一次 mutation、
-一个直接后置证明、一个 evidence schema、一个 typed failure 集合和一个 replay policy。Child 不调用兄弟 child，
-不隐藏多步 workflow；唯一 `gpt-session-controller.ts` 只管理 opaque continuation、conversation identity、turn marker
-和 lane CAS，标题不是身份。
+每个 child 文件只拥有一个稳定、可独立验证的 Provider 页面意图、一个输入合同、一个前置证明、一次有界
+observation 或至多一次 mutation 及其直接后置回读、一个 evidence schema、一个 typed failure 集合和一个 replay
+policy。定位元素、读取属性、执行点击和核对结果是该页面意图内部的前置/动作/直接证明，不拆成互相竞争的公开
+兄弟能力。Child 不调用兄弟 child，不隐藏多步 workflow；唯一 `gpt-session-controller.ts` 只管理 opaque
+continuation、conversation identity、turn marker 和 lane CAS，标题不是身份。
 
 ## 状态、调用与安全边界
 
@@ -77,10 +80,17 @@ Controller 写入调用方提供的 shared persistence port；证据和日志只
 Product Plugin 到 GPT 公共 Facade，再到 Browser Authority，禁止 Product Plugin 导入 GPT 私有 DOM、selector、
 坐标、tab、Browser 命令或 Provider SDK。
 
-Browser Authority 是物理动作许可 Owner。候选为 0 时不得点击，候选大于 1 时不得猜选；Target/Document 漂移、
+Browser Authority 是物理动作许可 Owner。新 GPT turn 的首个 Browser 原子请求只取得该 turn 专属的后台
+ChatGPT Target，不复用、认领、关闭或操纵操作者已经打开的 ChatGPT 页面；页面加载完成并复核精确 Origin 后才
+建立 exact Target/Document。候选为 0 时不得点击，候选大于 1 时不得猜选；Target/Document 漂移、
 动作结果 UNKNOWN、已有 upload/submission/checkpoint proof 时必须失败关闭。恢复只允许在证明 mutation 尚未发生时
 重新绑定 exact Target；不得自动 replay，也不得刷新、重开、重传或重发。登录、验证码、2FA、风控、账户轮换、全局设置、
 cookie、storage、密码和 token 全部在能力组边界之外。
+
+会话拓扑的唯一判定者是 Product Plugin：fresh turn 使用 Browser Authority 新建的根页面并调用
+`verify_clean_gpt_chat`；authorized continuation 仍先新建任务专属根页面，再由 `focus_exact_gpt_conversation` 导航到
+冻结的 canonical conversation URL 并调用 `verify_gpt_conversation_identity`。物理建 tab 不是 Product Plugin 功能，
+也不是 GPT DOM Child；`click_gpt_new_chat` 因与任务 Target 创建重复而物理退出。
 
 ## 验收
 

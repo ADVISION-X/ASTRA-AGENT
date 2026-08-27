@@ -5,8 +5,8 @@ const skill = readProductSkill(import.meta.url);
 const provider = { labelKey: "generic_ai", profileRef: "localization-production:gpt-5.6-sol-pro", modelDisplayName: "GPT-5.6 Sol", modelFamily: "gpt-5.6", reasoningTier: "pro_standard" } as const;
 
 const instructionByAction = {
-  report_translation: "把中文报告忠实翻译为目标 locale，保留结构、术语、数据和风险表述，不增删业务事实。只返回合法 JSON，不要代码围栏。",
-  article_translation: "把中文公开文章忠实翻译为目标 locale，保留标题层级、链接、引文边界和 SEO 语义，不执行发布。只返回合法 JSON，不要代码围栏。",
+  report_translation: "联合 source_content、target_locale、terminology 与 locale_policy，把中文报告翻译为目标地区玄学读者自然且专业的表达；保留结构、事实、数据、古典原文边界和风险强度，不重新排盘或分析。只返回合法 JSON，不要代码围栏。",
+  article_translation: "联合 source_content、target_locale、terminology 与 locale_policy，把中文公开文章翻译为目标地区自然且专业的表达；保留标题层级、链接、引文边界和 SEO 语义，不执行发布。只返回合法 JSON，不要代码围栏。",
   static_review_candidate: "独立审阅候选译文，只报告错译、漏译、术语、locale 表达和结构问题。",
   static_review_selector: "对给定候选与审阅证据作确定性选择，返回被选候选和逐项理由，不改写源文。",
 } as const;
@@ -39,7 +39,7 @@ const parseTranslation = (
 
 export const localizationProductionPlugin: ProductPlugin = {
   pluginId: "localization-production",
-  pluginVersion: 1,
+  pluginVersion: 2,
   skillHash: skill.hash,
   checkpointSchemaVersion: 1,
   accepts: [

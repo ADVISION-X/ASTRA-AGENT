@@ -35,6 +35,7 @@ export type ExtensionChromeApi = Readonly<{
   }>;
   tabs: Readonly<{
     create(createProperties: Readonly<{ active: false; url: string }>): Promise<Readonly<{ id?: number }>>;
+    remove(tabId: number): Promise<void>;
     onUpdated: Readonly<{
       addListener(listener: (
         tabId: number,
@@ -86,7 +87,7 @@ const isDebuggerApi = (value: unknown): boolean =>
   && hasListener(value.onEvent);
 
 const isTabsApi = (value: unknown): boolean =>
-  isRecord(value) && typeof value.create === "function" && hasListener(value.onUpdated);
+  isRecord(value) && typeof value.create === "function" && typeof value.remove === "function" && hasListener(value.onUpdated);
 
 const isAlarmsApi = (value: unknown): boolean =>
   isRecord(value) && typeof value.create === "function" && hasListener(value.onAlarm);

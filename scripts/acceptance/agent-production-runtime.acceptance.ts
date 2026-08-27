@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -28,6 +28,11 @@ import {
 } from "../../src/lib/local-runtime/production/contracts.js";
 import { startProductionRuntime } from "../../src/lib/local-runtime/production/runtime.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
+import {
+  ClaimedProductionTaskSchema,
+  PRODUCTION_V6_MANIFEST_HASH,
+  websiteAgentTaskFromClaim,
+} from "../../src/lib/local-runtime/production/transport-protocol.js";
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../src/mediator/agent-production-route.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
@@ -176,6 +181,71 @@ assert.throws(() => task({
   }],
 }), /AGENT_MATERIAL_INSTRUCTION_AUTHORITY_INVALID/u);
 assert.throws(() => WebsiteAgentTaskSchema.parse({ ...productionTask, plugin_id: "forbidden" }), /unrecognized_keys/u);
+
+const claimedTask = ClaimedProductionTaskSchema.parse({
+  ...productionTask,
+  status: "leased",
+  lease_owner: "device:1",
+  lease_expires_at: "2030-01-01T00:05:00.000Z",
+  lease_token: "lease:1",
+  lease_version: 1,
+  grant: {
+    schema_version: "xuanxue-ai-cloud-execution-grant.v6",
+    control_protocol_version: "xuanxue-ai-production-v6",
+    claim_batch_id: "claim:1",
+    job_id: productionTask.job_id,
+    source_task_id: productionTask.source_task_id,
+    request_hash: productionTask.request_hash,
+    task_contract_id: TASK_CONTRACT_ID,
+    task_contract_version: TASK_CONTRACT_VERSION,
+    result_contract_id: RESULT_CONTRACT_ID,
+    result_contract_version: RESULT_CONTRACT_VERSION,
+    capability_manifest_hash: productionCatalogHash,
+    attempt_id: "attempt:1",
+    device_id: "device:1",
+    device_epoch: 1,
+    worker_session_id: "worker:1",
+    worker_session_epoch: 1,
+    lease_token: "lease:1",
+    lease_version: 1,
+    server_now: "2030-01-01T00:00:00.000Z",
+    accept_by: "2030-01-01T00:01:00.000Z",
+    lease_expires_at: "2030-01-01T00:05:00.000Z",
+    renew_after_ms: 20_000,
+    control_contract_manifest_hash: PRODUCTION_V6_MANIFEST_HASH,
+    execution_fence: {
+      schema_version: "xuanxue-ai-execution-fence.v6",
+      environment_id: "production",
+      device_id: "device:1",
+      device_epoch: 1,
+      worker_session_id: "worker:1",
+      worker_session_epoch: 1,
+      job_id: productionTask.job_id,
+      attempt_id: "attempt:1",
+      lease_version: 1,
+      lease_token_hash: HASH_A,
+      control_contract_manifest_hash: PRODUCTION_V6_MANIFEST_HASH,
+      fence_hash: HASH_B,
+    },
+  },
+});
+assert.throws(() => authorizeWebsiteAgentTask(claimedTask), /unrecognized_keys/u);
+const projectedTask = websiteAgentTaskFromClaim(claimedTask);
+assert.deepEqual(projectedTask, productionTask);
+assert.equal(authorizeWebsiteAgentTask(projectedTask).plugin.pluginId, "payment-screenshot-observation");
+
+const runtimeSource = await readFile(new URL("../../src/lib/local-runtime/production/runtime.ts", import.meta.url), "utf8");
+const durableAcceptAt = runtimeSource.indexOf("state.executor.accept(task)");
+const acceptedAt = runtimeSource.indexOf("accepted = true", durableAcceptAt);
+const remoteCheckpointAt = runtimeSource.indexOf("checkpointProductionTask(", durableAcceptAt);
+assert(durableAcceptAt >= 0 && acceptedAt > durableAcceptAt && remoteCheckpointAt > acceptedAt);
+assert.match(runtimeSource, /state\.executor\.execute\(task, materials/u);
+
+const executorSource = await readFile(new URL("../../src/lib/local-runtime/production/executor.ts", import.meta.url), "utf8");
+const settledTargetGuardAt = executorSource.indexOf("if (browser && browser.pendingMutationCount() === 0)");
+const settledTargetCloseAt = executorSource.indexOf("await browser.close({ reason: \"gpt-turn-settled\" })", settledTargetGuardAt);
+assert(settledTargetGuardAt >= 0 && settledTargetCloseAt > settledTargetGuardAt,
+  "a GPT turn must release its task-owned Target only when no Browser mutation remains UNKNOWN");
 
 let turnCalls = 0;
 let completionCalls = 0;

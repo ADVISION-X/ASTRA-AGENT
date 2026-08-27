@@ -27,7 +27,6 @@ const DOM_MUTATIONS = [
   "acknowledge_known_gpt_rate_limit",
   "dismiss_known_gpt_search_dialog",
   "cleanup_owned_gpt_transient_ui",
-  "click_gpt_new_chat",
   "focus_exact_gpt_conversation",
   "open_gpt_conversation_search",
   "write_gpt_conversation_search_key",
@@ -83,7 +82,6 @@ export interface ChildCapabilityContract {
 }
 
 const transitionIds = new Set<GptChildCapabilityId>([
-  "click_gpt_new_chat",
   "focus_exact_gpt_conversation",
   "select_exact_gpt_conversation_result",
   "commit_gpt_checkpoint_fork",

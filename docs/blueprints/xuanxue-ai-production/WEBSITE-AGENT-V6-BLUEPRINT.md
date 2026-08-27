@@ -71,6 +71,8 @@
 
 `manual_accuracy_challenge` 与 `scheduled_quality_reflection` 不新增 Plugin。网站带上原 `subject_product_id`、subject task/result/hash、授权和 review policy，以 `accuracy_challenge` 或 `quality_reflection` 路由回原产品 Plugin；网站仍唯一拥有 schedule、review ledger、finding、人工分诊与发布裁决。
 
+本地化的地区语义由唯一 `localization-production` Product Skill 持有：它联合读取 `source_content + target_locale + terminology + locale_policy`，把八字、奇门、合婚、起名等玄学术语表达为目标 locale 自然且专业的当地用语，同时保持事实、结构、风险强度和古典原文边界。该专业判断不是 GPT DOM 子能力，不得拆成按国家划分的 Plugin，也不得为了翻译已交付报告重新读取人物档案、命盘底层资料、FrozenSubject 或生成第二次分析；报告 id/version/hash 与 Delivery Manifest 已经冻结本次翻译的业务主体。
+
 `bazi_basic_chart`、`bazi_pdf_export`、`qimen_basic_chart`、`qimen_professional_chart`、`hehun_case_preparation` 是网站确定性产品，禁止进入 Catalog。
 
 ## 3. 物理结构
@@ -114,17 +116,19 @@ Product Skill 只保存专业规则、Provider-facing 指令、提示词语义�
 - Catalog 加载、版本冻结和 Session Capability Manifest 投影；
 - Shell 诊断状态，不把部分 ready 冒充端到端 ready。
 
-Mediator 只执行一次严格分发：解析 task envelope，校验 `product_id + action_id + task/result contract version`，从唯一 Catalog 得到一个 Plugin，然后调用 `execute`。它不读取 Skill 内容，不选择模型，不操作 DOM/附件，不创建步骤、重试、恢复或业务终态。
+V6 claim 运输包先由 shared runtime 在唯一入口校验 lease、grant 与 execution fence，随后只能单向投影出精确的 `WebsiteAgentTask` 字段。`status`、`lease_*`、`grant` 等运输控制字段到此为止，Mediator、Product Plugin 和 Skill 永远不可见。
+
+Mediator 只执行一次严格分发：解析上述业务 task envelope，校验 `product_id + action_id + task/result contract version`，从唯一 Catalog 得到一个 Plugin，然后调用 `execute`。它不读取 Skill 内容，不选择模型，不操作 DOM/附件，不创建步骤、重试、恢复或业务终态。
 
 ## 5. GPT 能力组
 
 GPT 是独立 Provider 能力组，公开 ID 固定为 `gpt`，当前执行方式固定为 `gpt-web`，物理根固定为 `src/capabilities/gpt/`。原 `ai-input-gateway` 在消费者迁完后物理退出，不保留 alias、wrapper、fallback、provider dispatcher 或第二页面链。未来接入其他 AI 时，只有出现真实消费者并获得授权后才建立其独立能力组；GPT 不代理其它 Provider，也不恢复通用 AI Gateway。
 
 ```text
-Product Plugin 决定业务步骤、模型策略、附件、会话拓扑与是否续问
+Product Plugin 决定业务步骤、模型策略、附件、fresh/continuation 会话拓扑与是否续问
   -> GptAbilityGroup.execute(one child intent)
   -> Browser Authority 许可 exact Target / Document 上的 observation 或最多一次 mutation
-  -> GPT Child Ability 验证唯一直接后置条件
+  -> GPT Child Ability 自己完成前置、单一页面意图和唯一直接后置回读
   -> proof / typed failure 返回 Product Plugin
 ```
 
@@ -142,9 +146,19 @@ GPT 能力组首批公开子能力按九类组成：
 | 标题 | 打开标题入口、写入、提交、标题与真实会话身份回读各自独立 |
 | 连续性/恢复 | continuation 保存、lane acquire/advance/release、response checkpoint 恢复各自独立且不执行 DOM mutation |
 
-一个 Child Ability 只允许一次有界 observation，或最多一次物理 mutation 加它唯一的直接后置回读；不得调用兄弟 Child Ability 隐藏多步 workflow。每个公开 childCapabilityId 必须绑定输入 Schema、Target/Document 条件、元素 Owner、候选数量、Document transition、proof Schema、typed failure 与 replay policy。Product Plugin 只按私有 Flow 请求原子动作，不携带 selector、坐标、tab、Browser command 或 Provider 私有对象。
+一个 Child Ability 只表达一个稳定、可独立验证的 Provider 页面意图，只允许一次有界 observation，或最多一次物理
+mutation 加它唯一的直接后置回读；find/read/click 是该意图内部的前置/动作/证明，不拆成公开兄弟能力。公共 Facade
+不得在 Child 前后或失败分支追加隐藏 DOM 观察、页面动作或重试。Child 不得调用兄弟 Child Ability 隐藏多步
+workflow。每个公开 childCapabilityId 必须绑定输入 Schema、Target/Document 条件、元素 Owner、候选数量、Document
+transition、proof Schema、typed failure 与 replay policy。Product Plugin 只按私有 Flow 请求原子动作，不携带 selector、
+坐标、tab、Browser command 或 Provider 私有对象。
 
 页面变化必须精确失败为带 childCapabilityId 的 precondition、element ambiguous、document changed、postcondition 或 mutation outcome unknown；UNKNOWN 永不自动重放。selector 和语义定位只在对应页面元素合同 Owner 内维护，不建立通用 selector registry，不保留旧新双 selector fallback。真实 Chrome 动态证明未完成前，不得声称新页面已经兼容。
+
+物理打开 ChatGPT 标签页属于 Browser Authority 的任务 Target lifecycle，不是 Product Plugin 功能，也不是 GPT DOM
+Child。fresh turn 直接验证新建根页面为干净会话；authorized continuation 在同样新建的任务页上用
+`focus_exact_gpt_conversation` 进入冻结 URL 并验证 conversation identity。`click_gpt_new_chat` 与任务 Target 创建重复，
+必须从能力分母、Child handler 和全部 Product Flow 物理退出。
 
 唯一 GPT Session Controller 只拥有 opaque continuation、原 Plugin、主体/授权/hash、规范 conversation URL、turn marker、conversation identity 与 lane CAS；标题只是人工可读标签，不得成为路由、恢复或去重身份。GPT 能力组生成结构化 proof，并复用 Evidence、Runtime Logs、shared runtime SQLite/WAL 和 Browser mutation Owner，不建立私有数据库、日志、证据库或第二 mutation ledger。
 
@@ -176,6 +190,8 @@ skill_hash
 checkpoint_schema_version
 request_hash
 ```
+
+本地不可变接单记录写入成功即是 durable accept 的边界；不得延迟到远程 checkpoint 成功之后才认定。此后任何 checkpoint、下载或网络失败只能进入现役唯一恢复链，不得释放成“未接单”并重新解释。
 
 checkpoint、恢复、result 与 execution receipt 都绑定同一组合。发布新 Catalog/Plugin/Skill 前先 drain 已接受任务；版本或 checkpoint schema 不兼容时，在零新 Browser/Provider mutation 下进入 `review_required`，禁止用新代码静默续跑，也不保留第二 Plugin 兼容路径。
 
@@ -218,7 +234,11 @@ Manifest 生效的同一删除片区必须物理退出 product bundle/canary 产
 
 ## 10. Shell、Browser 与启动
 
-`grasseye:start` 只建立 AGENT 自有 production Shell、shared runtime、状态诊断和安全清理本仓 listener；普通重启不 enrollment、不创建任务、不认领 Target、不运行 CI。固定 Extension 自行更新并配对 Browser Authority；空闲 Target absent 合法。exact browser-required job durable accept 后，首个 Browser 原子动作才创建或认领 Target。
+`grasseye:start` 只建立 AGENT 自有 production Shell、shared runtime、状态诊断和安全清理本仓 listener；普通重启不
+enrollment、不创建任务、不认领 Target、不运行 CI。固定 Extension 自行更新并配对 Browser Authority；空闲 Target
+absent 合法。exact browser-required job durable accept 后，首个 Browser 原子动作才后台创建一个任务专属 ChatGPT
+Target；绝不查询或复用操作者既存 ChatGPT 页面。页面完成加载并复核精确 Origin 后才 claim。GPT turn settle 且无
+UNKNOWN 后关闭该任务 Target 并释放 Workspace；UNKNOWN 时保留唯一恢复现场。
 
 Shell、Cloud contract/session、Browser Authority、Target、claim eligibility、queue/outbox 和端到端 proof 是独立状态维。Cloud、Provider、Browser 或凭证失败时 Shell 必须保留诊断面，只让相应 execution/claim 失败关闭；HTTP 200、空队列、进程存活或 Authority READY 都不是完整生产通过。
 

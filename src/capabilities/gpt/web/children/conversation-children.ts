@@ -16,7 +16,6 @@ import {
 import {
   GPT_FORK_CONTROL_SELECTOR,
   GPT_GENERATING_STOP_SELECTOR,
-  GPT_NEW_CHAT_SELECTOR,
   GPT_USER_TURN_SELECTOR,
 } from "../contracts/conversation.contract.js";
 import {
@@ -33,24 +32,6 @@ const hash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
 export const conversationChildHandlers: GptChildHandlerMap = {
-  async click_gpt_new_chat(intent, context) {
-    requireExactInputKeys(intent, []);
-    const browser = requireBrowser(context);
-    const before = await readGptDocument(browser);
-    if (new URL(before.url).pathname === "/") return success({
-      value: { url: before.url, state: "already-root" }, candidateCount: 1,
-      observedSemantics: ["exact GPT root already active"], committedMutation: "no",
-    });
-    await requireOneCandidate(browser, { selector: GPT_NEW_CHAT_SELECTOR, maxMatches: 2 });
-    await browser.executeDomIntent({ kind: "click", selector: GPT_NEW_CHAT_SELECTOR, expectedMatches: 1 });
-    const after = await readGptDocument(browser);
-    if (new URL(after.url).pathname !== "/") throw new Error("review_required:GPT_NEW_CHAT_UNCONFIRMED");
-    return success({
-      value: { url: after.url }, candidateCount: 1,
-      observedSemantics: ["one new-chat control", GPT_ROOT_URL], committedMutation: "yes",
-    });
-  },
-
   async verify_clean_gpt_chat(intent, context) {
     requireExactInputKeys(intent, []);
     const browser = requireBrowser(context);

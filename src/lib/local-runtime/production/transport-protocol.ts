@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-import { WebsiteAgentTaskBaseSchema, WebsiteAgentTaskSchema } from "./contracts.js";
+import {
+  WebsiteAgentTaskBaseSchema,
+  WebsiteAgentTaskSchema,
+  type WebsiteAgentTask,
+} from "./contracts.js";
 
 export const PRODUCTION_V6_MANIFEST_HASH =
   "sha256:5902562579a1712b55f4076996ce6662623c044db8b56b74acd2d78836dc17fb" as const;
@@ -94,6 +98,12 @@ const ExecutionGrantSchema = z.object({
   execution_fence: ExecutionFenceSchema,
 }).strict();
 
+const projectWebsiteAgentTaskEnvelope = (value: object): Record<string, unknown> => {
+  const record = value as Record<string, unknown>;
+  return Object.fromEntries(Object.keys(WebsiteAgentTaskBaseSchema.shape)
+    .flatMap((key) => record[key] === undefined ? [] : [[key, record[key]]]));
+};
+
 export const ClaimedProductionTaskSchema = WebsiteAgentTaskBaseSchema.extend({
   status: z.literal("leased"),
   lease_owner: z.string().min(1),
@@ -102,8 +112,7 @@ export const ClaimedProductionTaskSchema = WebsiteAgentTaskBaseSchema.extend({
   lease_version: z.number().int().positive(),
   grant: ExecutionGrantSchema,
 }).strict().superRefine((task, context) => {
-  const base = Object.fromEntries(Object.keys(WebsiteAgentTaskBaseSchema.shape)
-    .map((key) => [key, task[key as keyof typeof task]]));
+  const base = projectWebsiteAgentTaskEnvelope(task);
   const validated = WebsiteAgentTaskSchema.safeParse(base);
   if (!validated.success) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "V6_CLAIM_TASK_INVALID" });
@@ -121,6 +130,9 @@ export const ClaimedProductionTaskSchema = WebsiteAgentTaskBaseSchema.extend({
 });
 
 export type ClaimedProductionTask = z.infer<typeof ClaimedProductionTaskSchema>;
+
+export const websiteAgentTaskFromClaim = (claim: ClaimedProductionTask): WebsiteAgentTask =>
+  WebsiteAgentTaskSchema.parse(projectWebsiteAgentTaskEnvelope(claim));
 
 export const ClaimBatchReceiptSchema = z.object({
   schema_version: z.literal("xuanxue-ai-claim-batch-receipt.v6"),

@@ -104,7 +104,6 @@ const childInput = (
   switch (childCapabilityId) {
     case "bind_exact_gpt_target":
     case "observe_gpt_document":
-    case "click_gpt_new_chat":
     case "verify_clean_gpt_chat":
     case "acknowledge_known_gpt_rate_limit":
     case "dismiss_known_gpt_search_dialog":
@@ -385,8 +384,11 @@ export class ProductionExecutor {
       }
       return checkpoint;
     }
+    let browser: BrowserTargetLease | null = null;
+    let primaryError: unknown = null;
     try {
-      const browser = await this.acquireBrowser(input.task, input.pluginId, input.turn.step_id, input.lease);
+      const activeBrowser = await this.acquireBrowser(input.task, input.pluginId, input.turn.step_id, input.lease);
+      browser = activeBrowser;
       const executionId = `${input.task.job_id}:${input.pluginId}:${input.turn.step_id}`;
       const turnMarker = `[GPT-TURN:${hash(`${executionId}:${stepInputHash}`).slice(7, 23)}]`;
       const prompt = [
@@ -441,7 +443,7 @@ export class ProductionExecutor {
           input: childInput(step.childCapabilityId, state, continuation, timeoutMs),
         }, {
           dataDir: this.dataDir,
-          browser,
+          browser: activeBrowser,
           signal: input.lease.abort_signal,
           continuationStore: this.store,
         });
@@ -453,7 +455,7 @@ export class ProductionExecutor {
           }
           throwChildFailure(result);
         }
-        await resolveSuccessfulMutation(browser, input.pluginId, result);
+        await resolveSuccessfulMutation(activeBrowser, input.pluginId, result);
         applyChildValue(step.childCapabilityId, result.value, state);
         if (step.childCapabilityId === "checkpoint_gpt_text_response") {
           resultCheckpoint = this.buildTurnResult(state, executionId);
@@ -462,15 +464,24 @@ export class ProductionExecutor {
       }
       const turnResult = resultCheckpoint ?? this.buildTurnResult(state, executionId);
       if (!resultCheckpoint) this.store.writeStep(input.task.job_id, input.turn.step_id, stepInputHash, turnResult);
-      if (!state.titleFailure) browser.assertNoPendingMutations();
+      if (!state.titleFailure) activeBrowser.assertNoPendingMutations();
       if (lane) {
         if (!turnResult.provider_continuation) throw new Error("review_required:GPT_RESULT_CONTINUATION_MISSING");
         await this.advanceContinuation(lane, input.task, input.pluginId, turnResult.provider_continuation);
       }
       return turnResult;
     } catch (error) {
+      primaryError = error;
       if (lane) await this.releaseContinuation(lane, input.task, input.pluginId).catch(() => undefined);
       throw error;
+    } finally {
+      if (browser && browser.pendingMutationCount() === 0) {
+        try {
+          await browser.close({ reason: "gpt-turn-settled" });
+        } catch (closeError) {
+          if (primaryError === null) throw closeError;
+        }
+      }
     }
   }
 

@@ -64,9 +64,9 @@ export class ExtensionTargetAuthority {
         || typeof frame.url !== "string" || typeof frame.loaderId !== "string") return;
       void this.publishMainFrameNavigation(frame.url, "", frame.loaderId);
     });
-    this.chromeApi.tabs.onUpdated.addListener((tabId, changeInfo) => {
+    this.chromeApi.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
       if (changeInfo.status === "complete" && this.pendingCreatedTarget?.tabId === tabId) {
-        void this.completeCreatedTarget(tabId, true);
+        this.completeCreatedTarget(tabId, tab);
       }
     });
   }
@@ -77,11 +77,12 @@ export class ExtensionTargetAuthority {
 
   public async acquireJobBoundChatGptTarget(): Promise<void> {
     if (this.activeTarget || this.pendingCreatedTarget) throw new Error("BROWSER_TARGET_INVALID");
-    const candidate = await this.resolvePreauthorizedCandidate();
-    if (candidate.attached || candidate.tabId === undefined) throw new Error("BROWSER_DEVTOOLS_CONFLICT");
+    const candidate = await this.createJobOwnedCandidate();
+    if (candidate.tabId === undefined) throw new Error("BROWSER_TARGET_INVALID");
     try {
       await this.debuggerRuntime.attach(candidate.tabId);
     } catch {
+      await this.chromeApi.tabs.remove(candidate.tabId).catch(() => undefined);
       throw new Error("BROWSER_DEVTOOLS_CONFLICT");
     }
     try {
@@ -96,7 +97,7 @@ export class ExtensionTargetAuthority {
         title: candidate.title,
       }));
     } catch (error) {
-      await this.releaseActiveTarget(false);
+      await this.discardJobOwnedTarget(candidate.tabId);
       throw error;
     }
   }
@@ -136,10 +137,7 @@ export class ExtensionTargetAuthority {
     throw new Error("BROWSER_FILE_GRANT_INVALID");
   }
 
-  private async resolvePreauthorizedCandidate(): Promise<ExtensionDebugTarget> {
-    const matching = (await this.chromeApi.debugger.getTargets()).filter(isPreauthorizedChatGptTarget);
-    if (matching.length > 1) throw new Error("BROWSER_TARGET_INVALID");
-    if (matching[0]) return matching[0];
+  private async createJobOwnedCandidate(): Promise<ExtensionDebugTarget> {
     const created = await this.chromeApi.tabs.create({ active: false, url: GPT_WEB_START_URL });
     if (!Number.isInteger(created.id)) throw new Error("BROWSER_TARGET_INVALID");
     return this.waitForCreatedTarget(created.id!);
@@ -152,22 +150,30 @@ export class ExtensionTargetAuthority {
         this.rejectPendingCreatedTarget("BROWSER_TARGET_INVALID");
       }, BROWSER_COMMAND_DEFAULT_DEADLINE_MS);
       this.pendingCreatedTarget = { tabId, resolve, reject, timeout };
-      void this.completeCreatedTarget(tabId, false);
     });
   }
 
-  private async completeCreatedTarget(tabId: number, pageComplete: boolean): Promise<void> {
+  private completeCreatedTarget(
+    tabId: number,
+    tab: Readonly<{ id?: number; url?: string; title?: string }>,
+  ): void {
     const pending = this.pendingCreatedTarget;
     if (!pending || pending.tabId !== tabId) return;
-    const target = (await this.chromeApi.debugger.getTargets()).find((candidate) => candidate.type === "page" && candidate.tabId === tabId);
+    const target: ExtensionDebugTarget = Object.freeze({
+      attached: false,
+      id: `job-owned-tab:${tabId}`,
+      tabId,
+      title: tab.title ?? "",
+      type: "page",
+      url: tab.url ?? "",
+    });
     if (!target || !isPreauthorizedChatGptTarget(target)) {
-      if (pageComplete) this.rejectPendingCreatedTarget("BROWSER_ORIGIN_REJECTED");
+      this.rejectPendingCreatedTarget("BROWSER_ORIGIN_REJECTED");
       return;
     }
     this.pendingCreatedTarget = null;
     globalThis.clearTimeout(pending.timeout);
-    if (target.attached) pending.reject(new Error("BROWSER_DEVTOOLS_CONFLICT"));
-    else pending.resolve(target);
+    pending.resolve(target);
   }
 
   private rejectPendingCreatedTarget(reasonCode: string): void {
@@ -175,7 +181,17 @@ export class ExtensionTargetAuthority {
     if (!pending) return;
     this.pendingCreatedTarget = null;
     globalThis.clearTimeout(pending.timeout);
+    void this.chromeApi.tabs.remove(pending.tabId).catch(() => undefined);
     pending.reject(new Error(reasonCode));
+  }
+
+  private async discardJobOwnedTarget(tabId: number): Promise<void> {
+    if (this.activeTarget?.tabId === tabId) {
+      await this.releaseActiveTarget().catch(() => undefined);
+    } else {
+      await this.debuggerRuntime.detach(tabId).catch(() => undefined);
+    }
+    await this.chromeApi.tabs.remove(tabId).catch(() => undefined);
   }
 
   private async readMainFrame(tabId: number): Promise<MainFrame> {

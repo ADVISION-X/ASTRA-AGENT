@@ -45,6 +45,27 @@ const inspectSkill = (productIds: readonly string[], text: string): string[] => 
   return findings;
 };
 
+const assertAtomicGptFlows = (pluginId: string): void => {
+  const flowPath = new URL(`../../src/plugins/${pluginId}/gpt-flow.ts`, import.meta.url).pathname;
+  const text = readFileSync(flowPath, "utf8");
+  const flows = [...text.matchAll(/export const [A-Za-z0-9_]+ = Object\.freeze\(\[([\s\S]*?)\] satisfies/gmu)];
+  assert(flows.length >= 1, `${pluginId} must own at least one GPT flow`);
+  for (const flow of flows) {
+    const body = flow[1] ?? "";
+    for (const childCapabilityId of [
+      "open_gpt_model_selector",
+      "open_gpt_reasoning_selector",
+      "open_gpt_title_control",
+    ]) {
+      assert.equal(
+        [...body.matchAll(new RegExp(`childCapabilityId: "${childCapabilityId}"`, "gu"))].length,
+        1,
+        `${pluginId} repeats atomic GPT action ${childCapabilityId} in one turn flow`,
+      );
+    }
+  }
+};
+
 assert.equal(productionPluginCatalog.length, 12);
 assert.deepEqual(
   agentPluginCapabilityManifest.plugins.map((plugin) => plugin.plugin_id).sort(),
@@ -61,8 +82,14 @@ for (const plugin of productionPluginCatalog) {
   const skillPath = new URL(`../../src/plugins/${plugin.pluginId}/SKILL.md`, import.meta.url).pathname;
   assert.equal(readdirSync(dirname(skillPath)).filter((name) => name.toLowerCase() === "skill.md").length, 1);
   const text = readFileSync(skillPath, "utf8");
+  assertAtomicGptFlows(plugin.pluginId);
   const productIds = [...new Set(plugin.accepts.map((entry) => entry.productId))];
   assert.deepEqual(inspectSkill(productIds, text), [], `${plugin.pluginId} is not a production-grade Product Skill`);
+  if (plugin.pluginId === "localization-production") {
+    assert.match(text, /目标 locale、术语表和 locale policy/u);
+    assert.match(text, /zh-HK.*zh-TW.*en-US.*ja-JP.*ko-KR/u);
+    assert.match(text, /不得重新读取人物档案、命盘底层资料或 FrozenSubject/u);
+  }
 
   for (const entry of plugin.accepts) {
     const key = `${entry.productId}\0${entry.actionId}`;

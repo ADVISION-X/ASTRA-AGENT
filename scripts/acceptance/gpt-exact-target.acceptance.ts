@@ -23,7 +23,6 @@ const EXPECTED_CHILD_IDS = Object.freeze([
   "checkpoint_gpt_generated_image",
   "checkpoint_gpt_text_response",
   "cleanup_owned_gpt_transient_ui",
-  "click_gpt_new_chat",
   "commit_gpt_checkpoint_fork",
   "commit_gpt_title",
   "dismiss_known_gpt_search_dialog",
@@ -154,7 +153,7 @@ const execute = (
 assert.equal(createGptAbilityGroup().abilityGroupId, "gpt");
 assert.equal(createGptAbilityGroup().transport, "gpt-web");
 assert.deepEqual(GPT_CHILD_CAPABILITY_IDS, EXPECTED_CHILD_IDS);
-assert.equal(GPT_CHILD_CAPABILITY_IDS.length, 44);
+assert.equal(GPT_CHILD_CAPABILITY_IDS.length, 43);
 assert.deepEqual(createGptAbilityGroup().listChildCapabilityIds(), EXPECTED_CHILD_IDS);
 for (const id of GPT_CHILD_CAPABILITY_IDS) {
   const contract = GPT_CHILD_CAPABILITY_CONTRACTS[id];
@@ -164,6 +163,15 @@ for (const id of GPT_CHILD_CAPABILITY_IDS) {
   assert(contract.failureClassification.includes("review_required"));
   assert.match(contract.inputSchema, /^gpt\.[a-z0-9_]+\.input\.v1$/u);
 }
+
+const atomicDelegationFixture = fakeBrowser((intent) => {
+  if (intent.kind === "document") return documentResult;
+  throw new Error(`UNEXPECTED_INTENT:${intent.kind}`);
+});
+const atomicDelegation = await execute("bind_exact_gpt_target", atomicDelegationFixture.browser, {});
+assert.equal(atomicDelegation.status, "success");
+assert.equal(atomicDelegationFixture.documentCalls(), 1,
+  "the public Facade must delegate the Child's one owned observation without hidden before/after DOM reads");
 
 for (const candidateCount of [0, 2]) {
   const fixture = fakeBrowser((intent) => intent.kind === "document" ? documentResult : { count: candidateCount });
@@ -194,7 +202,8 @@ assert.match(selectorInjection.failureCode ?? "", /GPT_CHILD_INPUT_INVALID/u);
 
 const driftFixture = fakeBrowser((intent, callNumber) => {
   if (intent.kind !== "document") throw new Error("UNEXPECTED_INTENT");
-  return callNumber < 3 ? documentResult : { url: "https://chatgpt.com/c/drift", title: "ChatGPT" };
+  assert.equal(callNumber, 1, "document drift must be observed by the Child itself, not Facade probes");
+  return { url: "https://chatgpt.com/c/drift", title: "ChatGPT" };
 });
 const drift = await execute("observe_gpt_document", driftFixture.browser, {});
 assert.equal(drift.status, "review_required");
@@ -284,7 +293,7 @@ assert.equal(checkpoint.status, "success");
 assert.equal(checkpoint.value, checkpointValue);
 
 process.stdout.write("[ACCEPTANCE][gpt] PASS\n");
-const clauses = ["summary", ...Array.from({ length: 14 }, (_, index) => `forbidden:${index}`)]
+const clauses = ["summary", ...Array.from({ length: 15 }, (_, index) => `forbidden:${index}`)]
   .sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right)));
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
@@ -294,6 +303,6 @@ for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"
     evidenceMode,
     clauses,
     locator: `acceptance:gpt:${evidenceMode}`,
-    observedValue: "44 exact children, 0/1/many candidates, long prompt, exact attachments, document drift, UNKNOWN no-replay, and checkpoint-safe title failure passed",
+    observedValue: "43 exact children, no hidden Facade DOM reads, 0/1/many candidates, long prompt, exact attachments, document drift, UNKNOWN no-replay, and checkpoint-safe title failure passed",
   });
 }

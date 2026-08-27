@@ -23,7 +23,6 @@ import { responseChildHandlers } from "./web/children/response-children.js";
 import { targetDocumentChildHandlers } from "./web/children/target-document-children.js";
 import { titleChildHandlers } from "./web/children/title-children.js";
 import { transientUiChildHandlers } from "./web/children/transient-ui-children.js";
-import { readGptDocument } from "./web/gpt-dom-observation.js";
 
 const handlers: GptChildHandlerMap = Object.freeze({
   ...targetDocumentChildHandlers,
@@ -94,11 +93,11 @@ const proofFor = (input: Readonly<{
   });
 };
 
-const readDocument = async (context: GptExecutionContext): Promise<Readonly<{
+const currentDocument = (context: GptExecutionContext): Readonly<{
   ref: string | null;
   url: string | null;
-}>> => context.browser
-  ? Object.freeze({ ref: context.browser.document.documentRef, url: (await readGptDocument(context.browser)).url })
+}> => context.browser
+  ? Object.freeze({ ref: context.browser.document.documentRef, url: null })
   : Object.freeze({ ref: null, url: null });
 
 const documentTransitionAllowed = (
@@ -108,8 +107,8 @@ const documentTransitionAllowed = (
 ): boolean => {
   const contract = GPT_CHILD_CAPABILITY_CONTRACTS[childCapabilityId];
   if (contract.allowedDocumentTransition === "not-applicable") return before.ref === null && after.ref === null;
-  if (contract.allowedDocumentTransition === "forbidden") return before.ref === after.ref && before.url === after.url;
-  return before.ref !== null && after.ref !== null && after.url !== null;
+  if (contract.allowedDocumentTransition === "forbidden") return before.ref === after.ref;
+  return before.ref !== null && after.ref !== null;
 };
 
 const executeOne = async (
@@ -119,10 +118,7 @@ const executeOne = async (
   const startedAt = new Date().toISOString();
   const handler = handlers[intent.childCapabilityId];
   const contract = GPT_CHILD_CAPABILITY_CONTRACTS[intent.childCapabilityId];
-  let before: Readonly<{ ref: string | null; url: string | null }> = Object.freeze({
-    ref: context.browser?.document.documentRef ?? null,
-    url: null,
-  });
+  const before = currentDocument(context);
   let observation: GptChildObservation | undefined;
   try {
     if (!handler || !contract) throw new Error(`failed:GPT_CHILD_NOT_REGISTERED:${intent.childCapabilityId}`);
@@ -130,9 +126,8 @@ const executeOne = async (
     if (context.browser?.pendingMutationCount() !== 0) {
       throw new Error("review_required:GPT_PRIOR_BROWSER_MUTATION_UNRESOLVED");
     }
-    before = await readDocument(context);
     observation = await handler(intent, context);
-    const after = await readDocument(context);
+    const after = currentDocument(context);
     if (!documentTransitionAllowed(intent.childCapabilityId, before, after)) {
       throw new Error(`review_required:GPT_DOCUMENT_TRANSITION_FORBIDDEN:${intent.childCapabilityId}`);
     }
@@ -151,7 +146,7 @@ const executeOne = async (
     await context.onProof?.(proof);
     return Object.freeze({ status: "success", value: observation.value, proof, failureCode: null });
   } catch (error) {
-    const after = await readDocument(context).catch(() => Object.freeze({ ref: null, url: null }));
+    const after = currentDocument(context);
     const failure = classify(error);
     const browserMutationUnknown = (context.browser?.pendingMutationCount() ?? 0) > 0 && !observation;
     const sessionMutationUnknown = !observation && contract?.requiredTargetKind === "none"

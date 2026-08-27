@@ -18,7 +18,11 @@ import { hashCanonical, type ProductionHash } from "./contracts.js";
 import { readProductionCredential } from "./credential.js";
 import { ProductionExecutor, type ProductionExecutionLease } from "./executor.js";
 import { ProductionRuntimeStore } from "./store.js";
-import { PRODUCTION_V6_MANIFEST_HASH, type ClaimedProductionTask } from "./transport-protocol.js";
+import {
+  PRODUCTION_V6_MANIFEST_HASH,
+  websiteAgentTaskFromClaim,
+  type ClaimedProductionTask,
+} from "./transport-protocol.js";
 import { ProductionWorkerSession } from "./worker-session.js";
 
 export interface ProductionRuntimeHealth {
@@ -135,12 +139,13 @@ const executeClaim = async (state: RuntimeState, job: ClaimedProductionTask): Pr
     if (job.grant.capability_manifest_hash !== productionCatalogHash) {
       throw new Error("CAPABILITY_MANIFEST_CHANGED_BEFORE_ACCEPT");
     }
+    const task = websiteAgentTaskFromClaim(job);
     const budget = leaseBudget(job, abort);
-    const durableAccept = state.executor.accept(job);
+    const durableAccept = state.executor.accept(task);
+    accepted = true;
     const acceptanceCheckpoint = await checkpointProductionTask(
       state.session, state.store, job, "inputs_downloading", "durable_plugin_accept",
     );
-    accepted = true;
     const materials = await downloadProductionMaterials(state.session, job, materialDir);
     await checkpointProductionTask(state.session, state.store, job, "factory_running", "materials_verified");
     const uploadState: { value?: Awaited<ReturnType<typeof uploadProductionResult>> } = {};
@@ -149,7 +154,7 @@ const executeClaim = async (state: RuntimeState, job: ClaimedProductionTask): Pr
       job,
       budget,
       acceptanceCheckpoint,
-      state.executor.execute(job, materials, budget, async (output, continuationRef) => {
+      state.executor.execute(task, materials, budget, async (output, continuationRef) => {
         const uploaded = await uploadProductionResult(
           state.session,
           state.store,

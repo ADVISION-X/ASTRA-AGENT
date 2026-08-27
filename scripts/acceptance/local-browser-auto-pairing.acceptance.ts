@@ -90,6 +90,7 @@ const chromeApi: ExtensionChromeApi = {
   },
   tabs: {
     create: async () => ({ id: 1 }),
+    remove: async () => undefined,
     onUpdated: { addListener: (listener) => { listeners.tabUpdated = listener; } },
   },
   alarms: {
@@ -172,20 +173,24 @@ const rejectedBootstrap = new PairingAutoBootstrap(
 await rejectedBootstrap.attempt();
 assert.equal(rejectedBootstrap.currentFailureCode(), "BROWSER_PAIRING_ORIGIN_REJECTED");
 
-type DebugTarget = Awaited<ReturnType<ExtensionChromeApi["debugger"]["getTargets"]>>[number];
-let debugTargets: DebugTarget[] = [{
-  attached: false, id: "debug-target-1", tabId: 1, title: "ChatGPT", type: "page", url: "https://chatgpt.com/",
-}];
 let createdTab: Readonly<{ active: false; url: string }> | null = null;
 let debuggerEvent: Parameters<ExtensionChromeApi["debugger"]["onEvent"]["addListener"]>[0] | null = null;
+let targetTabUpdated: TabUpdatedListener = () => { throw new Error("target tab listener was not installed"); };
+let nextCreatedTabId = 3;
+let getTargetsCalls = 0;
+let attachFailureTabId: number | null = null;
 const attachedTabs: number[] = [];
+const removedTabs: number[] = [];
 const targetFrames: Array<Readonly<{ kind: "TARGET_CLAIM" | "TARGET_REVOKE"; body: Record<string, unknown> }>> = [];
 const targetChromeApi: ExtensionChromeApi = {
   runtime: chromeApi.runtime,
   debugger: {
-    attach: async ({ tabId }) => { attachedTabs.push(tabId); },
+    attach: async ({ tabId }) => {
+      if (tabId === attachFailureTabId) throw new Error("another debugger owns the new task tab");
+      attachedTabs.push(tabId);
+    },
     detach: async () => undefined,
-    getTargets: async () => debugTargets,
+    getTargets: async () => { getTargetsCalls += 1; return []; },
     sendCommand: async ({ tabId }, method) => method === "Page.getFrameTree"
       ? { frameTree: { frame: { loaderId: `loader-${tabId}`, url: "https://chatgpt.com/" } } }
       : {},
@@ -195,10 +200,10 @@ const targetChromeApi: ExtensionChromeApi = {
   tabs: {
     create: async (input) => {
       createdTab = input;
-      debugTargets = [{ attached: false, id: "debug-target-3", tabId: 3, title: "ChatGPT", type: "page", url: input.url }];
-      return { id: 3 };
+      return { id: nextCreatedTabId++ };
     },
-    onUpdated: { addListener: () => undefined },
+    remove: async (tabId) => { removedTabs.push(tabId); },
+    onUpdated: { addListener: (listener) => { targetTabUpdated = listener; } },
   },
   alarms: chromeApi.alarms,
 };
@@ -208,28 +213,39 @@ const targetAuthority = new ExtensionTargetAuthority(
   () => undefined,
 );
 targetAuthority.start();
-await targetAuthority.acquireJobBoundChatGptTarget();
-assert.deepEqual(attachedTabs, [1]);
+const firstAcquisition = targetAuthority.acquireJobBoundChatGptTarget();
+await Promise.resolve();
+assert.deepEqual(attachedTabs, [], "the task-owned tab must not attach before Chrome reports page completion");
+targetTabUpdated(3, { status: "complete" }, { id: 3, url: "https://chatgpt.com/", title: "ChatGPT" });
+await firstAcquisition;
+assert.deepEqual(attachedTabs, [3]);
+assert.equal(getTargetsCalls, 0, "job acquisition must not enumerate or reuse operator ChatGPT tabs");
+assert.deepEqual(createdTab, { active: false, url: "https://chatgpt.com/" });
 assert.equal(targetFrames[0]?.kind, "TARGET_CLAIM");
 assert.equal(targetFrames[0]?.body.url, "https://chatgpt.com/");
 await targetAuthority.releaseActiveTarget(false);
 
-debugTargets = [
-  { attached: false, id: "debug-target-1", tabId: 1, title: "ChatGPT", type: "page", url: "https://chatgpt.com/" },
-  { attached: false, id: "debug-target-2", tabId: 2, title: "ChatGPT", type: "page", url: "https://chatgpt.com/c/second" },
-];
-await assert.rejects(targetAuthority.acquireJobBoundChatGptTarget(), /BROWSER_TARGET_INVALID/u,
-  "multiple exact ChatGPT targets must fail closed without guessing");
+const secondAcquisition = targetAuthority.acquireJobBoundChatGptTarget();
+await Promise.resolve();
+targetTabUpdated(4, { status: "complete" }, { id: 4, url: "https://chatgpt.com/", title: "ChatGPT" });
+await secondAcquisition;
+assert.equal(attachedTabs.at(-1), 4, "every turn must create and attach its own new task tab");
+await targetAuthority.releaseActiveTarget(false);
 
-debugTargets = [{ attached: true, id: "debug-target-1", tabId: 1, title: "ChatGPT", type: "page", url: "https://chatgpt.com/" }];
-await assert.rejects(targetAuthority.acquireJobBoundChatGptTarget(), /BROWSER_DEVTOOLS_CONFLICT/u,
-  "an already attached exact target must not be stolen");
+const rejectedOrigin = targetAuthority.acquireJobBoundChatGptTarget();
+await Promise.resolve();
+targetTabUpdated(5, { status: "complete" }, { id: 5, url: "https://example.com/", title: "Wrong Origin" });
+await assert.rejects(rejectedOrigin, /BROWSER_ORIGIN_REJECTED/u);
+assert.ok(removedTabs.includes(5), "a rejected task-owned page must be removed");
 
-debugTargets = [];
-await targetAuthority.acquireJobBoundChatGptTarget();
-assert.deepEqual(createdTab, { active: false, url: "https://chatgpt.com/" },
-  "zero exact targets must create one inactive fixed ChatGPT start URL");
-assert.equal(attachedTabs.at(-1), 3);
+attachFailureTabId = 6;
+const debuggerConflict = targetAuthority.acquireJobBoundChatGptTarget();
+await Promise.resolve();
+targetTabUpdated(6, { status: "complete" }, { id: 6, url: "https://chatgpt.com/", title: "ChatGPT" });
+await assert.rejects(debuggerConflict, /BROWSER_DEVTOOLS_CONFLICT/u,
+  "debugger conflict on the new task-owned tab must fail without touching another page");
+assert.ok(removedTabs.includes(6), "a conflicted task-owned page must be removed");
+attachFailureTabId = null;
 assert.ok(debuggerEvent, "the exact target owner must observe main-frame navigation");
 
 const issuer = new BrowserAuthorityIssuer();
