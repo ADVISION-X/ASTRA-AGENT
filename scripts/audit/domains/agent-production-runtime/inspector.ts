@@ -337,6 +337,9 @@ const inspectRetirementAndDurability = (context: InspectorContext, findings: Ins
     ));
   }
 
+};
+
+const inspectDirectDynamicProof = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const realProofText = read(context, REAL_PROOF_PATH);
   for (const required of [
     "chromium.launchPersistentContext", "readProductionTaskStatus", "production-runtime.sqlite",
@@ -365,6 +368,7 @@ const inspectAgentProductionRuntime = (context: InspectorContext, findings: Insp
   inspectContractsAndMediator(context, findings);
   inspectSharedRuntimeAndPsc(context, findings);
   inspectRetirementAndDurability(context, findings);
+  inspectDirectDynamicProof(context, findings);
 };
 
 const evaluate = (context: InspectorContext): InspectorEvaluation => {

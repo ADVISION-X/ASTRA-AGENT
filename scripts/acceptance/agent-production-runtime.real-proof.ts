@@ -261,7 +261,11 @@ for (const capability of [
 ]) assert.equal(completedBrowserEvents.some((event) => event.stepId === capability), true,
   `missing real GPT child ${capability}`);
 
-const observedHealth = finalHealth as unknown as HealthReport;
+const requireHealth = (value: HealthReport | null): HealthReport => {
+  if (value === null) throw new Error("PRODUCTION_DYNAMIC_PROOF_HEALTH_MISSING");
+  return value;
+};
+const observedHealth = requireHealth(finalHealth);
 const component = (name: string) => observedHealth.components.find((item) => item.name === name);
 const observation: DirectRuntimeObservation = Object.freeze({
   browser: { chromeVersion: browserVersion, extensionId: GRASSEYE_UNPACKED_EXTENSION_ID, operatorBefore, operatorAfter,
