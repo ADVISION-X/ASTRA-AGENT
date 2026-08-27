@@ -14,6 +14,7 @@ import type { ExtensionChromeApi } from "../../src/lib/browser/chrome-extension/
 import { GPT_WEB_START_URL, requireGptWebPolicyForUrl } from "../../src/lib/browser/exact-target/browser-site-policy-registry.js";
 import { BrowserAuthorityBroker } from "../../src/lib/browser/infrastructure/browser-authority-broker.js";
 import { BrowserAuthorityIssuer } from "../../src/lib/browser/infrastructure/browser-authority-issuer.js";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 const secret = "a".repeat(64);
 const currentBuild = "build-00000000-0000-4000-8000-000000000001";
@@ -271,3 +272,14 @@ assert.throws(() => broker.registerOperatorTargetClaim({ ...initialClaim, docume
   "Document claims must advance by exactly one navigation epoch");
 
 process.stdout.write("LOCAL_BROWSER_AUTO_PAIRING_AND_EXACT_CHATGPT_CLAIM_ACCEPTANCE_PASS\n");
+emitQualityProofObservation({
+  passed: true,
+  findings: [],
+  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V9",
+  evidenceMode: "exam.golden",
+  clauses: [
+    "forbidden:0", "forbidden:1", "forbidden:10", "forbidden:11", "forbidden:3", "forbidden:9", "summary",
+  ],
+  locator: "acceptance:local-browser-terminal:mutation-golden",
+  observedValue: "restart recovery preserves SENT as UNKNOWN without replay, rejects mismatched resolution identity, retains one compact SQLite mutation store, and excludes the retired lifecycle journal",
+});
