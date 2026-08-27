@@ -111,64 +111,90 @@ const documentTransitionAllowed = (
   return before.ref !== null && after.ref !== null;
 };
 
+const assertObservationIsAtomic = (
+  intent: GptChildCapabilityIntent,
+  context: GptExecutionContext,
+  before: Readonly<{ ref: string | null; url: string | null }>,
+  observation: GptChildObservation,
+): void => {
+  if (!documentTransitionAllowed(intent.childCapabilityId, before, currentDocument(context))) {
+    throw new Error(`review_required:GPT_DOCUMENT_TRANSITION_FORBIDDEN:${intent.childCapabilityId}`);
+  }
+  const pendingMutationCount = context.browser?.pendingMutationCount() ?? 0;
+  if (observation.committedMutation === "yes" && pendingMutationCount > 1) {
+    throw new Error(`review_required:GPT_MUTATION_OUTCOME_NOT_UNIQUE:${intent.childCapabilityId}`);
+  }
+  if (observation.committedMutation === "no" && pendingMutationCount !== 0) {
+    throw new Error(`review_required:GPT_UNDECLARED_MUTATION:${intent.childCapabilityId}`);
+  }
+};
+
+const successfulExecution = async (input: Readonly<{
+  intent: GptChildCapabilityIntent;
+  context: GptExecutionContext;
+  startedAt: string;
+  before: Readonly<{ ref: string | null; url: string | null }>;
+  observation: GptChildObservation;
+}>): Promise<GptChildCapabilityResult> => {
+  const after = currentDocument(input.context);
+  const proof = proofFor({
+    intent: input.intent, context: input.context, startedAt: input.startedAt, endedAt: new Date().toISOString(),
+    beforeUrl: input.before.url, afterUrl: after.url,
+    beforeDocumentRef: input.before.ref, afterDocumentRef: after.ref,
+    observation: input.observation,
+  });
+  await input.context.onProof?.(proof);
+  return Object.freeze({ status: "success", value: input.observation.value, proof, failureCode: null });
+};
+
+const failedExecution = async (input: Readonly<{
+  intent: GptChildCapabilityIntent;
+  context: GptExecutionContext;
+  startedAt: string;
+  before: Readonly<{ ref: string | null; url: string | null }>;
+  observation?: GptChildObservation;
+  error: unknown;
+}>): Promise<GptChildCapabilityResult> => {
+  const after = currentDocument(input.context);
+  const failure = classify(input.error);
+  const contract = GPT_CHILD_CAPABILITY_CONTRACTS[input.intent.childCapabilityId];
+  const browserUnknown = (input.context.browser?.pendingMutationCount() ?? 0) > 0 && !input.observation;
+  const sessionUnknown = !input.observation && contract?.requiredTargetKind === "none"
+    && contract.oneObservationOrMutation === "at-most-one-mutation";
+  const committedMutation = input.observation?.committedMutation ?? (browserUnknown || sessionUnknown ? "unknown" : "no");
+  const proof = proofFor({
+    intent: input.intent, context: input.context, startedAt: input.startedAt, endedAt: new Date().toISOString(),
+    beforeUrl: input.before.url, afterUrl: after.url,
+    beforeDocumentRef: input.before.ref, afterDocumentRef: after.ref,
+    ...(input.observation ? { observation: input.observation } : {}), failureCode: failure.code, committedMutation,
+    postconditionResult: committedMutation === "unknown" ? "unknown" : "failed",
+  });
+  await input.context.onProof?.(proof);
+  return Object.freeze({
+    status: committedMutation === "unknown" ? "review_required" : failure.status,
+    value: null, proof, failureCode: failure.code,
+  });
+};
+
 const executeOne = async (
   intent: GptChildCapabilityIntent,
   context: GptExecutionContext,
 ): Promise<GptChildCapabilityResult> => {
   const startedAt = new Date().toISOString();
   const handler = handlers[intent.childCapabilityId];
-  const contract = GPT_CHILD_CAPABILITY_CONTRACTS[intent.childCapabilityId];
   const before = currentDocument(context);
   let observation: GptChildObservation | undefined;
   try {
-    if (!handler || !contract) throw new Error(`failed:GPT_CHILD_NOT_REGISTERED:${intent.childCapabilityId}`);
+    if (!handler) throw new Error(`failed:GPT_CHILD_NOT_REGISTERED:${intent.childCapabilityId}`);
     if (context.signal?.aborted) throw new Error("recovery_pending:GPT_EXECUTION_ABORTED");
     if ((context.browser?.pendingMutationCount() ?? 0) !== 0) {
       throw new Error("review_required:GPT_PRIOR_BROWSER_MUTATION_UNRESOLVED");
     }
     observation = await handler(intent, context);
-    const after = currentDocument(context);
-    if (!documentTransitionAllowed(intent.childCapabilityId, before, after)) {
-      throw new Error(`review_required:GPT_DOCUMENT_TRANSITION_FORBIDDEN:${intent.childCapabilityId}`);
-    }
-    if (observation.committedMutation === "yes" && (context.browser?.pendingMutationCount() ?? 0) > 1) {
-      throw new Error(`review_required:GPT_MUTATION_OUTCOME_NOT_UNIQUE:${intent.childCapabilityId}`);
-    }
-    if (observation.committedMutation === "no" && context.browser?.pendingMutationCount() !== 0) {
-      throw new Error(`review_required:GPT_UNDECLARED_MUTATION:${intent.childCapabilityId}`);
-    }
-    const proof = proofFor({
-      intent, context, startedAt, endedAt: new Date().toISOString(),
-      beforeUrl: before.url, afterUrl: after.url,
-      beforeDocumentRef: before.ref, afterDocumentRef: after.ref,
-      ...(observation ? { observation } : {}),
-    });
-    await context.onProof?.(proof);
-    return Object.freeze({ status: "success", value: observation.value, proof, failureCode: null });
+    assertObservationIsAtomic(intent, context, before, observation);
+    return await successfulExecution({ intent, context, startedAt, before, observation });
   } catch (error) {
-    const after = currentDocument(context);
-    const failure = classify(error);
-    const browserMutationUnknown = (context.browser?.pendingMutationCount() ?? 0) > 0 && !observation;
-    const sessionMutationUnknown = !observation && contract?.requiredTargetKind === "none"
-      && contract.oneObservationOrMutation === "at-most-one-mutation";
-    const committedMutation = observation?.committedMutation
-      ?? (browserMutationUnknown || sessionMutationUnknown ? "unknown" : "no");
-    const proof = proofFor({
-      intent, context, startedAt, endedAt: new Date().toISOString(),
-      beforeUrl: before.url, afterUrl: after.url,
-      beforeDocumentRef: before.ref, afterDocumentRef: after.ref,
-      ...(observation ? { observation } : {}),
-      failureCode: failure.code,
-      committedMutation,
-      postconditionResult: committedMutation === "unknown" ? "unknown" : "failed",
-    });
-    await context.onProof?.(proof);
-    return Object.freeze({
-      status: committedMutation === "unknown" ? "review_required" : failure.status,
-      value: null,
-      proof,
-      failureCode: failure.code,
-    });
+    return await failedExecution({ intent, context, startedAt, before, ...(observation ? { observation } : {}), error });
   }
 };
 

@@ -65,35 +65,26 @@ const assertProductionUrl = (value: string): string => {
   return url.origin + url.pathname.replace(/\/+$/u, "");
 };
 
-async function writeProductionCredential(dataDir: string, credential: DeviceCredential): Promise<string> {
-  const parsed = DeviceCredentialSchema.parse(credential);
-  const destination = productionCredentialPath(dataDir);
+const assertCredentialDestination = async (destination: string): Promise<string> => {
   const parent = path.dirname(destination);
   await mkdir(parent, { recursive: true, mode: 0o700 });
   const parentMetadata = await lstat(parent);
   const uid = process.getuid?.();
   if (!parentMetadata.isDirectory() || parentMetadata.isSymbolicLink()
-    || (parentMetadata.mode & 0o077) !== 0
-    || (uid !== undefined && parentMetadata.uid !== uid)) {
+    || (parentMetadata.mode & 0o077) !== 0 || (uid !== undefined && parentMetadata.uid !== uid)) {
     throw new Error("PRODUCTION_CREDENTIAL_PERMISSIONS_INVALID");
   }
   try {
     const existing = await lstat(destination);
     if (!existing.isFile() || existing.isSymbolicLink() || (existing.mode & 0o077) !== 0
-      || (uid !== undefined && existing.uid !== uid)) {
-      throw new Error("PRODUCTION_CREDENTIAL_PERMISSIONS_INVALID");
-    }
+      || (uid !== undefined && existing.uid !== uid)) throw new Error("PRODUCTION_CREDENTIAL_PERMISSIONS_INVALID");
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
-  const temporary = `${destination}.${process.pid}.${randomUUID()}.tmp`;
-  const handle = await open(temporary, "wx", 0o600);
-  try {
-    await handle.writeFile(`${JSON.stringify(parsed, null, 2)}\n`, "utf8");
-    await handle.sync();
-  } finally {
-    await handle.close();
-  }
+  return parent;
+};
+
+const replaceCredentialFile = async (temporary: string, destination: string, parent: string): Promise<void> => {
   try {
     await rename(temporary, destination);
     const directory = await open(parent, "r");
@@ -102,6 +93,21 @@ async function writeProductionCredential(dataDir: string, credential: DeviceCred
     await unlink(temporary).catch(() => undefined);
     throw error;
   }
+};
+
+async function writeProductionCredential(dataDir: string, credential: DeviceCredential): Promise<string> {
+  const parsed = DeviceCredentialSchema.parse(credential);
+  const destination = productionCredentialPath(dataDir);
+  const parent = await assertCredentialDestination(destination);
+  const temporary = `${destination}.${process.pid}.${randomUUID()}.tmp`;
+  const handle = await open(temporary, "wx", 0o600);
+  try {
+    await handle.writeFile(`${JSON.stringify(parsed, null, 2)}\n`, "utf8");
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+  await replaceCredentialFile(temporary, destination, parent);
   return destination;
 }
 

@@ -126,6 +126,23 @@ const inspectDenominatorAndContracts = (context: InspectorContext, findings: Ins
   ));
 };
 
+const inspectImportOwnership = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  for (const source of context.project.getSourceFiles()) {
+    const path = repoPath(context, source);
+    for (const declaration of source.getImportDeclarations()) {
+      const target = declaration.getModuleSpecifierValue();
+      if (path.startsWith(`${ROOT}/`) && (target.includes("/plugins/") || target.includes("local-runtime/production"))) {
+        findings.push(finding("gpt/no-product-authority-import", path,
+          `GPT owner imports forbidden product/runtime authority ${target}.`, declaration.getStartLineNumber()));
+      }
+      if (!path.startsWith(`${ROOT}/`) && target.includes("capabilities/gpt/") && !target.endsWith("/index.js")) {
+        findings.push(finding("gpt/private-boundary", path,
+          `External consumer imports GPT private implementation ${target}.`, declaration.getStartLineNumber()));
+      }
+    }
+  }
+};
+
 const inspectFacadeAndOwnership = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const contract = sourceFor(context, CONTRACT_PATH);
   const group = sourceFor(context, GROUP_PATH);
@@ -153,20 +170,7 @@ const inspectFacadeAndOwnership = (context: InspectorContext, findings: Inspecto
     "gpt/group-proof-boundary", GROUP_PATH, `GPT ability group is missing ${required}.`,
   ));
 
-  for (const source of context.project.getSourceFiles()) {
-    const path = repoPath(context, source);
-    for (const declaration of source.getImportDeclarations()) {
-      const target = declaration.getModuleSpecifierValue();
-      if (path.startsWith(`${ROOT}/`) && (target.includes("/plugins/") || target.includes("local-runtime/production"))) {
-        findings.push(finding("gpt/no-product-authority-import", path,
-          `GPT owner imports forbidden product/runtime authority ${target}.`, declaration.getStartLineNumber()));
-      }
-      if (!path.startsWith(`${ROOT}/`) && target.includes("capabilities/gpt/") && !target.endsWith("/index.js")) {
-        findings.push(finding("gpt/private-boundary", path,
-          `External consumer imports GPT private implementation ${target}.`, declaration.getStartLineNumber()));
-      }
-    }
-  }
+  inspectImportOwnership(context, findings);
 };
 
 const inspectAtomicSafety = (context: InspectorContext, findings: InspectorFinding[]): void => {

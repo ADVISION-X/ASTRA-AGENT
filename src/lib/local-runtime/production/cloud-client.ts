@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { mkdir, open, rename, rm } from "node:fs/promises";
+import path from "node:path";
 
 import {
   ClaimedProductionTaskSchema,
@@ -71,8 +73,6 @@ export async function downloadProductionMaterials(
   job: ClaimedProductionTask,
   materialDir: string,
 ): Promise<readonly LocalProductionMaterial[]> {
-  const { mkdir, open, rename, rm } = await import("node:fs/promises");
-  const path = await import("node:path");
   await mkdir(materialDir, { recursive: true, mode: 0o700 });
   const result: LocalProductionMaterial[] = [];
   for (const material of [...job.material_refs].sort((left, right) => left.ordinal - right.ordinal)) {

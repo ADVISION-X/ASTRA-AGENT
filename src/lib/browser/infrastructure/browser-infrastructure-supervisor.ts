@@ -15,6 +15,7 @@ import {
 } from "../transport/browser-authority-websocket.js";
 import { BrowserArtifactRegistry, BrowserAuthorityBroker, type BrowserExecutionBinding } from "./browser-authority-broker.js";
 import { BrowserAuthorityIssuer } from "./browser-authority-issuer.js";
+import { createBrowserInfrastructureState } from "./browser-infrastructure-state.js";
 import { BrowserOwnerLock } from "./browser-owner-lock.js";
 import { BrowserTransportActor } from "../transport/transport-actor.js";
 import type { BrowserProfileConfig } from "../profile/browser-profile-config.js";
@@ -67,25 +68,13 @@ export type BrowserInfrastructureSupervisorOptions = Readonly<{
   runtimeLogger: RuntimeLogger;
 }>;
 
-type PendingJobBoundTargetAcquisition = Readonly<{
-  authorityEpoch: number;
-  resolve(): void;
-  reject(error: Error): void;
-  timeout: ReturnType<typeof setTimeout>;
-}>;
-
 export class BrowserInfrastructureSupervisor {
   private readonly issuer = new BrowserAuthorityIssuer();
   private readonly transport = new BrowserTransportActor(this.issuer);
   private readonly ownerLock: BrowserOwnerLock;
   private readonly broker: BrowserAuthorityBroker;
   private readonly websocket: BrowserAuthorityWebSocket;
-  private mutationState: BrowserMutationStore | null = null;
-  private started = false;
-  private ownerLockHeld = false;
-  private connectionGeneration = 0;
-  private workspace: BrowserSessionWorkspace | undefined;
-  private pendingJobBoundTargetAcquisition: PendingJobBoundTargetAcquisition | null = null;
+  private readonly state = createBrowserInfrastructureState();
 
   public constructor(private readonly options: BrowserInfrastructureSupervisorOptions) {
     this.ownerLock = new BrowserOwnerLock(join(options.dataDir, "browser", "owner.lock"));
@@ -136,7 +125,7 @@ export class BrowserInfrastructureSupervisor {
   private onTargetClaim(input: BrowserAuthorityTargetClaim): void {
     requireGptWebPolicyForUrl(input.url);
     const initialClaim = this.broker.currentOperatorTargetStatus() === "absent";
-    if (initialClaim && !this.pendingJobBoundTargetAcquisition) {
+    if (initialClaim && !this.state.pendingJobBoundTargetAcquisition) {
       throw new Error("BROWSER_TARGET_INVALID");
     }
     this.establishClaimBoundWorkspace();
@@ -195,13 +184,13 @@ export class BrowserInfrastructureSupervisor {
   }
 
   public async start(): Promise<void> {
-    if (this.started) return;
+    if (this.state.started) return;
     await this.ownerLock.acquire();
-    this.ownerLockHeld = true;
+    this.state.ownerLockHeld = true;
     try {
-      this.mutationState = new BrowserMutationStore(this.options.dataDir);
+      this.state.mutationState = new BrowserMutationStore(this.options.dataDir);
       this.transport.start();
-      this.started = true;
+      this.state.started = true;
       this.emitBrowserRuntimeState(
         RuntimeLogEventType.BROWSER_INFRASTRUCTURE_READY,
         "success",
@@ -213,26 +202,26 @@ export class BrowserInfrastructureSupervisor {
         "等待固定扩展提交一次性配对证明。",
       );
     } catch (error) {
-      this.mutationState?.close();
-      this.mutationState = null;
+      this.state.mutationState?.close();
+      this.state.mutationState = null;
       await this.ownerLock.release();
-      this.ownerLockHeld = false;
+      this.state.ownerLockHeld = false;
       throw error;
     }
   }
 
   public async stop(reasonCode = "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE"): Promise<void> {
-    this.workspace?.revoke();
-    this.workspace = undefined;
+    this.state.workspace?.revoke();
+    this.state.workspace = undefined;
     this.rejectPendingJobBoundTargetAcquisition(reasonCode);
     this.transport.disconnect(reasonCode);
-    if (this.ownerLockHeld) {
+    if (this.state.ownerLockHeld) {
       await this.ownerLock.release();
-      this.ownerLockHeld = false;
+      this.state.ownerLockHeld = false;
     }
-    this.mutationState?.close();
-    this.mutationState = null;
-    this.started = false;
+    this.state.mutationState?.close();
+    this.state.mutationState = null;
+    this.state.started = false;
   }
 
   public authorityBroker(): BrowserAuthorityBroker { return this.broker; }
@@ -253,12 +242,12 @@ export class BrowserInfrastructureSupervisor {
   private establishClaimBoundWorkspace(): void {
     const current = this.issuer.current();
     if (current.kind === "ABSENT") throw new Error("BROWSER_AUTHENTICATION_INCOMPLETE");
-    if (this.workspace?.belongsTo(
+    if (this.state.workspace?.belongsTo(
       current.authority.authorityRef,
       current.authority.authorityEpoch,
       current.authority.connectionGeneration,
     )) {
-      this.workspace.assertCurrent();
+      this.state.workspace.assertCurrent();
       return;
     }
     const binding: SessionWorkspaceBindingV6 = {
@@ -274,8 +263,8 @@ export class BrowserInfrastructureSupervisor {
       sitePolicyHash: this.options.enrolledProfile.policyHash,
       establishedAt: new Date().toISOString(),
     };
-    this.workspace?.revoke();
-    this.workspace = new BrowserSessionWorkspace(binding);
+    this.state.workspace?.revoke();
+    this.state.workspace = new BrowserSessionWorkspace(binding);
   }
 
   public async acquireJobBoundTargetLease(binding: BrowserExecutionBinding, ownerId: string): Promise<BrowserTargetLease> {
@@ -291,15 +280,15 @@ export class BrowserInfrastructureSupervisor {
     if (!Number.isInteger(commandTtlMs) || commandTtlMs < 1 || commandTtlMs > 3_600_000) {
       throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
     }
-    if (this.pendingJobBoundTargetAcquisition) throw new Error("BROWSER_BACKPRESSURE");
+    if (this.state.pendingJobBoundTargetAcquisition) throw new Error("BROWSER_BACKPRESSURE");
     const deadlineMs = Math.min(commandTtlMs, BROWSER_COMMAND_DEFAULT_DEADLINE_MS);
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
-        if (this.pendingJobBoundTargetAcquisition?.authorityEpoch !== current.authority.authorityEpoch) return;
-        this.pendingJobBoundTargetAcquisition = null;
+        if (this.state.pendingJobBoundTargetAcquisition?.authorityEpoch !== current.authority.authorityEpoch) return;
+        this.state.pendingJobBoundTargetAcquisition = null;
         reject(new Error("BROWSER_OUTCOME_UNKNOWN"));
       }, deadlineMs);
-      this.pendingJobBoundTargetAcquisition = {
+      this.state.pendingJobBoundTargetAcquisition = {
         authorityEpoch: current.authority.authorityEpoch,
         resolve,
         reject,
@@ -316,17 +305,17 @@ export class BrowserInfrastructureSupervisor {
   }
 
   private resolvePendingJobBoundTargetAcquisition(): void {
-    const pending = this.pendingJobBoundTargetAcquisition;
+    const pending = this.state.pendingJobBoundTargetAcquisition;
     if (!pending) return;
-    this.pendingJobBoundTargetAcquisition = null;
+    this.state.pendingJobBoundTargetAcquisition = null;
     clearTimeout(pending.timeout);
     pending.resolve();
   }
 
   private rejectPendingJobBoundTargetAcquisition(reasonCode: string): void {
-    const pending = this.pendingJobBoundTargetAcquisition;
+    const pending = this.state.pendingJobBoundTargetAcquisition;
     if (!pending) return;
-    this.pendingJobBoundTargetAcquisition = null;
+    this.state.pendingJobBoundTargetAcquisition = null;
     clearTimeout(pending.timeout);
     pending.reject(new Error(reasonCode));
   }
@@ -335,7 +324,7 @@ export class BrowserInfrastructureSupervisor {
     const state = this.transport.currentState();
     const current = this.issuer.current();
     return {
-      browserInfrastructure: { ok: this.started && state.infrastructure.kind !== "STOPPED", ...(this.started ? {} : { reasonCode: "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE" }) },
+      browserInfrastructure: { ok: this.state.started && state.infrastructure.kind !== "STOPPED", ...(this.state.started ? {} : { reasonCode: "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE" }) },
       browserAuthority: current.kind === "PRESENT" ? { ok: true } : { ok: false, reasonCode: current.reasonCode },
     };
   }
@@ -368,15 +357,15 @@ export class BrowserInfrastructureSupervisor {
         this.options.runtimeLogger,
       ),
       this.issuer,
-      this.workspace,
+      this.state.workspace,
       resolveCurrentTarget,
       resolveGrantPaths,
     );
   }
 
   private mutationStore(): BrowserMutationStore {
-    if (!this.mutationState) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
-    return this.mutationState;
+    if (!this.state.mutationState) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
+    return this.state.mutationState;
   }
 
   private emitBrowserRuntimeState(
@@ -388,7 +377,7 @@ export class BrowserInfrastructureSupervisor {
   ): void {
     this.options.runtimeLogger.emit(createRuntimeEvent({
       context: {
-        traceId: `browser-session:${this.connectionGeneration}`,
+        traceId: `browser-session:${this.state.connectionGeneration}`,
         spanId: randomUUID(),
         owner: "browser-session",
       },
@@ -399,7 +388,7 @@ export class BrowserInfrastructureSupervisor {
       actionableMessage,
       ...(reason ? { reason } : {}),
       ...(refs ? { refs } : {}),
-      metrics: { connectionGeneration: this.connectionGeneration },
+      metrics: { connectionGeneration: this.state.connectionGeneration },
     }));
   }
 
@@ -416,7 +405,7 @@ export class BrowserInfrastructureSupervisor {
     channelSessionHash: `sha256:${string}`;
     commandPermitKey: string;
   }> {
-    if (!this.started) throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
+    if (!this.state.started) throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
     if (input.extensionId !== GRASSEYE_UNPACKED_EXTENSION_ID) throw new Error("BROWSER_UNPACKED_RELEASE_IDENTITY_INVALID");
     const release = this.options.releaseIdentity;
     if (input.extensionVersion !== release.version
@@ -429,7 +418,7 @@ export class BrowserInfrastructureSupervisor {
     if (commandPermitKey.byteLength !== 32 || commandPermitKey.toString("base64") !== input.commandPermitKey) {
       throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     }
-    this.connectionGeneration += 1;
+    this.state.connectionGeneration += 1;
     const protocolHash = hashFile("src/lib/browser/protocol/browser-protocol.schema.json");
     if (protocolHash !== BROWSER_PROTOCOL_SCHEMA_SHA256) throw new Error("BROWSER_POLICY_UNVERIFIED");
     const capabilityHash = hashFile("src/lib/browser/protocol/browser-capabilities.json");
@@ -451,7 +440,7 @@ export class BrowserInfrastructureSupervisor {
         artifactSetHash: release.extensionDirectoryHashV1,
         releaseSecurityPolicyHash: release.manifestHash,
         profileEnrollmentHash: this.options.enrolledProfile.enrollmentHash,
-        connectionGeneration: this.connectionGeneration,
+        connectionGeneration: this.state.connectionGeneration,
         protocolRevision: BROWSER_PROTOCOL_REVISION,
         capabilitySetHash: capabilityHash,
         permissionPolicyHash: release.manifestHash,
@@ -473,10 +462,10 @@ export class BrowserInfrastructureSupervisor {
   }
 
   private disconnectTransport(reasonCode: BrowserErrorCode | "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE"): void {
-    this.workspace?.revoke();
-    this.workspace = undefined;
+    this.state.workspace?.revoke();
+    this.state.workspace = undefined;
     this.broker.revokeOperatorTargetClaim();
-    if (this.started) this.transport.disconnect(reasonCode);
+    if (this.state.started) this.transport.disconnect(reasonCode);
   }
 
 }
@@ -485,15 +474,6 @@ const currentAuthorityEpoch = (issuer: BrowserAuthorityIssuer): number => {
   const current = issuer.current();
   if (current.kind === "ABSENT") throw new Error(current.reasonCode);
   return current.authority.authorityEpoch;
-};
-
-const currentAuthorityRefHash = (
-  issuer: BrowserAuthorityIssuer,
-): Readonly<{ authorityRefHash?: `sha256:${string}` }> => {
-  const current = issuer.current();
-  return current.kind === "PRESENT"
-    ? { authorityRefHash: `sha256:${createHash("sha256").update(current.authority.authorityRef).digest("hex")}` }
-    : {};
 };
 
 const hashValue = (value: unknown): `sha256:${string}` =>

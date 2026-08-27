@@ -49,6 +49,9 @@ const routeKey = (productId: ProductionProductId, actionId: ProductionActionId):
 const routeCatalog = new Map<string, ProductPlugin>();
 for (const plugin of productionPluginCatalog) {
   if (plugin.accepts.length < 1) throw new Error(`PLUGIN_ROUTE_EMPTY:${plugin.pluginId}`);
+  if (!Number.isSafeInteger(plugin.checkpointSchemaVersion) || plugin.checkpointSchemaVersion < 1) {
+    throw new Error(`PLUGIN_CHECKPOINT_SCHEMA_VERSION_INVALID:${plugin.pluginId}`);
+  }
   for (const route of plugin.accepts) {
     const key = routeKey(route.productId, route.actionId);
     if (routeCatalog.has(key)) throw new Error(`PLUGIN_ROUTE_DUPLICATE:${route.productId}:${route.actionId}`);

@@ -131,6 +131,40 @@ const heartbeatWhileRunning = async <T>(
   return tracked;
 };
 
+const handleClaimFailure = async (
+  state: RuntimeState,
+  job: ClaimedProductionTask,
+  materialDir: string,
+  accepted: boolean,
+  error: unknown,
+): Promise<void> => {
+  const reason = safeReason(error);
+  const status = classifyFailure(error);
+  if (!accepted) {
+    await releaseProductionLease(
+      state.session, job,
+      /DEADLINE/iu.test(reason) ? "DEADLINE_BUDGET_EXHAUSTED" : "CAPABILITY_CHANGED_BEFORE_ACCEPT",
+    ).catch(() => undefined);
+    return;
+  }
+  if (status === "recovery_pending") {
+    state.store.setRecoveryPending(job.job_id, reason);
+    await checkpointProductionTask(state.session, state.store, job, "recovery_pending", reason)
+      .catch(() => undefined);
+    return;
+  }
+  await terminalProductionTask(state.session, state.store, job, {
+    status,
+    payload_hash: hashCanonical({ job_id: job.job_id, status, reason }),
+    result_receipt_hashes: [],
+  }).catch((terminalError) => {
+    state.store.setRecoveryPending(job.job_id, `TERMINAL_DEFERRED:${safeReason(terminalError)}`);
+    throw terminalError;
+  });
+  state.store.setTerminal(job.job_id, status, reason, null);
+  await rm(materialDir, { recursive: true, force: true });
+};
+
 const executeClaim = async (state: RuntimeState, job: ClaimedProductionTask): Promise<void> => {
   const abort = state.activeAbort.get(job.job_id)!;
   let accepted = false;
@@ -178,33 +212,7 @@ const executeClaim = async (state: RuntimeState, job: ClaimedProductionTask): Pr
     state.store.setTerminal(job.job_id, "completed", null, execution.result);
     await rm(materialDir, { recursive: true, force: true });
   } catch (error) {
-    const reason = safeReason(error);
-    const status = classifyFailure(error);
-    if (!accepted) {
-      await releaseProductionLease(
-        state.session,
-        job,
-        /DEADLINE/iu.test(reason) ? "DEADLINE_BUDGET_EXHAUSTED" : "CAPABILITY_CHANGED_BEFORE_ACCEPT",
-      ).catch(() => undefined);
-      return;
-    }
-    if (status === "recovery_pending") {
-      state.store.setRecoveryPending(job.job_id, reason);
-      await checkpointProductionTask(state.session, state.store, job, "recovery_pending", reason)
-        .catch(() => undefined);
-      return;
-    }
-    const terminalHash = hashCanonical({ job_id: job.job_id, status, reason });
-    await terminalProductionTask(state.session, state.store, job, {
-      status,
-      payload_hash: terminalHash,
-      result_receipt_hashes: [],
-    }).catch((terminalError) => {
-      state.store.setRecoveryPending(job.job_id, `TERMINAL_DEFERRED:${safeReason(terminalError)}`);
-      throw terminalError;
-    });
-    state.store.setTerminal(job.job_id, status, reason, null);
-    await rm(materialDir, { recursive: true, force: true });
+    await handleClaimFailure(state, job, materialDir, accepted, error);
   }
 };
 
@@ -305,6 +313,34 @@ const sessionHeartbeatLoop = async (state: RuntimeState): Promise<void> => {
   }
 };
 
+const blockedRuntimeHandle = (
+  input: Readonly<{ browserAuthority: WorkbenchBrowserAuthority }>,
+  store: ProductionRuntimeStore,
+  error: unknown,
+): ProductionRuntimeHandle => {
+  const reason = safeReason(error);
+  let stopped = false;
+  return {
+    readHealth: () => {
+      const browser = input.browserAuthority.readProductionRuntimeState();
+      return {
+        shellState: "ready", cloudState: stopped ? "stopped" : "contract_blocked",
+        browserState: browser.browserAuthorityState === "present" ? "ready" : "blocked",
+        executionState: "blocked", claimAdmissionState: "blocked",
+        browserAuthorityState: browser.browserAuthorityState,
+        browserTargetState: browser.browserTargetState,
+        browserLaneState: browser.browserAuthorityState === "present" ? "idle" : "blocked",
+        contractManifestHash: PRODUCTION_V6_MANIFEST_HASH, catalogHash: productionCatalogHash,
+        activeCount: 0, pendingOutboxCount: store.pendingOutboxCount(), lastSuccessfulHeartbeatAt: null,
+        lastErrorCode: reason.split(":")[0] ?? "PRODUCTION_CREDENTIAL_INVALID",
+        lastErrorReason: reason, checkedAt: new Date().toISOString(),
+      };
+    },
+    readTask: (jobId) => store.readTask(jobId),
+    async close() { stopped = true; store.close(); },
+  };
+};
+
 export async function startProductionRuntime(input: Readonly<{
   dataDir: string;
   sourceHash: ProductionHash;
@@ -317,36 +353,7 @@ export async function startProductionRuntime(input: Readonly<{
   try {
     credential = await readProductionCredential(input.dataDir);
   } catch (error) {
-    const reason = safeReason(error);
-    let stopped = false;
-    return {
-      readHealth: () => {
-        const browser = input.browserAuthority.readProductionRuntimeState();
-        return {
-          shellState: "ready",
-          cloudState: stopped ? "stopped" : "contract_blocked",
-          browserState: browser.browserAuthorityState === "present" ? "ready" : "blocked",
-          executionState: "blocked",
-          claimAdmissionState: "blocked",
-          browserAuthorityState: browser.browserAuthorityState,
-          browserTargetState: browser.browserTargetState,
-          browserLaneState: browser.browserAuthorityState === "present" ? "idle" : "blocked",
-          contractManifestHash: PRODUCTION_V6_MANIFEST_HASH,
-          catalogHash: productionCatalogHash,
-          activeCount: 0,
-          pendingOutboxCount: store.pendingOutboxCount(),
-          lastSuccessfulHeartbeatAt: null,
-          lastErrorCode: reason.split(":")[0] ?? "PRODUCTION_CREDENTIAL_INVALID",
-          lastErrorReason: reason,
-          checkedAt: new Date().toISOString(),
-        };
-      },
-      readTask: (jobId) => store.readTask(jobId),
-      async close() {
-        stopped = true;
-        store.close();
-      },
-    };
+    return blockedRuntimeHandle(input, store, error);
   }
   let stateRef: RuntimeState | null = null;
   const session = new ProductionWorkerSession(

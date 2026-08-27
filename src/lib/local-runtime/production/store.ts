@@ -59,6 +59,57 @@ export interface ProductionOutboxWrite {
 const now = (): string => new Date().toISOString();
 const json = (value: unknown): string => JSON.stringify(value);
 
+const createProductionTables = (database: Database.Database): void => {
+  database.exec(`create table if not exists production_tasks(
+    job_id text primary key, request_hash text not null, task_json text not null,
+    identity_json text not null, status text not null, result_json text,
+    failure_reason text, created_at text not null, updated_at text not null
+  );
+  create table if not exists production_steps(
+    job_id text not null references production_tasks(job_id) on delete restrict,
+    step_id text not null, input_hash text not null, result_json text not null,
+    completed_at text not null, primary key(job_id,step_id)
+  );
+  create table if not exists production_continuations(
+    continuation_ref text primary key,
+    origin_job_id text not null references production_tasks(job_id) on delete restrict,
+    plugin_id text not null, owner_ref text not null, subject_ref text not null,
+    authorization_ref text not null, conversation_identity_hash text not null,
+    provider_json text not null, lane_version integer not null,
+    lane_owner_job_id text, created_at text not null
+  );
+  create table if not exists production_outbox(
+    idempotency_key text primary key, kind text not null, path text not null,
+    method text not null, headers_json text not null, body_blob blob not null,
+    created_at text not null, sent_at text
+  );
+  `);
+};
+
+const ensureContinuationSchema = (database: Database.Database): void => {
+  const columns = new Set((database.prepare("pragma table_info(production_continuations)").all() as Array<{ name: string }>)
+    .map((column) => column.name));
+  const required = [
+    "continuation_ref", "origin_job_id", "plugin_id", "owner_ref", "subject_ref",
+    "authorization_ref", "conversation_identity_hash", "provider_json", "lane_version",
+    "lane_owner_job_id", "created_at",
+  ];
+  if (required.every((column) => columns.has(column))) return;
+  const count = Number((database.prepare("select count(*) as count from production_continuations").get() as { count: number }).count);
+  if (count !== 0) throw new Error("PRODUCTION_CONTINUATION_SCHEMA_MIGRATION_REQUIRES_REVIEW");
+  database.exec(`
+    drop table production_continuations;
+    create table production_continuations(
+      continuation_ref text primary key,
+      origin_job_id text not null references production_tasks(job_id) on delete restrict,
+      plugin_id text not null, owner_ref text not null, subject_ref text not null,
+      authorization_ref text not null, conversation_identity_hash text not null,
+      provider_json text not null, lane_version integer not null,
+      lane_owner_job_id text, created_at text not null
+    );
+  `);
+};
+
 export class ProductionRuntimeStore implements GptContinuationStorePort {
   private readonly database: Database.Database;
 
@@ -66,77 +117,8 @@ export class ProductionRuntimeStore implements GptContinuationStorePort {
     this.database = new Database(path.join(dataDir, "production-runtime.sqlite"));
     this.database.pragma("journal_mode = WAL");
     this.database.pragma("synchronous = FULL");
-    this.database.exec(`
-      create table if not exists production_tasks(
-        job_id text primary key,
-        request_hash text not null,
-        task_json text not null,
-        identity_json text not null,
-        status text not null,
-        result_json text,
-        failure_reason text,
-        created_at text not null,
-        updated_at text not null
-      );
-      create table if not exists production_steps(
-        job_id text not null references production_tasks(job_id) on delete restrict,
-        step_id text not null,
-        input_hash text not null,
-        result_json text not null,
-        completed_at text not null,
-        primary key(job_id,step_id)
-      );
-      create table if not exists production_continuations(
-        continuation_ref text primary key,
-        origin_job_id text not null references production_tasks(job_id) on delete restrict,
-        plugin_id text not null,
-        owner_ref text not null,
-        subject_ref text not null,
-        authorization_ref text not null,
-        conversation_identity_hash text not null,
-        provider_json text not null,
-        lane_version integer not null,
-        lane_owner_job_id text,
-        created_at text not null
-      );
-      create table if not exists production_outbox(
-        idempotency_key text primary key,
-        kind text not null,
-        path text not null,
-        method text not null,
-        headers_json text not null,
-        body_blob blob not null,
-        created_at text not null,
-        sent_at text
-      );
-    `);
-    const continuationColumns = new Set((this.database.prepare("pragma table_info(production_continuations)").all() as Array<{ name: string }>)
-      .map((column) => column.name));
-    const requiredContinuationColumns = [
-      "continuation_ref", "origin_job_id", "plugin_id", "owner_ref", "subject_ref",
-      "authorization_ref", "conversation_identity_hash", "provider_json", "lane_version",
-      "lane_owner_job_id", "created_at",
-    ];
-    if (requiredContinuationColumns.some((column) => !continuationColumns.has(column))) {
-      const count = Number((this.database.prepare("select count(*) as count from production_continuations").get() as { count: number }).count);
-      if (count !== 0) throw new Error("PRODUCTION_CONTINUATION_SCHEMA_MIGRATION_REQUIRES_REVIEW");
-      this.database.exec(`
-        drop table production_continuations;
-        create table production_continuations(
-          continuation_ref text primary key,
-          origin_job_id text not null references production_tasks(job_id) on delete restrict,
-          plugin_id text not null,
-          owner_ref text not null,
-          subject_ref text not null,
-          authorization_ref text not null,
-          conversation_identity_hash text not null,
-          provider_json text not null,
-          lane_version integer not null,
-          lane_owner_job_id text,
-          created_at text not null
-        );
-      `);
-    }
+    createProductionTables(this.database);
+    ensureContinuationSchema(this.database);
   }
 
   public acceptTask(task: WebsiteAgentTask, identity: DurablePluginIdentity): StoredProductionTask {

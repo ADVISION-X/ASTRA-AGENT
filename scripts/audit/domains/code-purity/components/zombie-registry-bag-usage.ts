@@ -28,6 +28,27 @@ const collectPropertyReads = (nameNode: MorphNode | undefined): Set<string> => {
   return properties;
 };
 
+const addProperties = (target: Set<string>, source: ReadonlySet<string>): void => {
+  for (const property of source) target.add(property);
+};
+
+const forOfElementPropertyReads = (reference: MorphNode): Set<string> => {
+  const parent = reference.getParent();
+  if (!parent || !Node.isForOfStatement(parent) || parent.getExpression() !== reference) return new Set();
+  return collectPropertyReads(parent.getInitializer().getFirstDescendantByKind(SyntaxKind.Identifier));
+};
+
+const mapElementPropertyReads = (reference: MorphNode): Set<string> => {
+  const property = reference.getParent();
+  if (!property || !Node.isPropertyAccessExpression(property) || property.getExpression() !== reference
+    || property.getName() !== "map") return new Set();
+  const call = property.getParent();
+  if (!call || !Node.isCallExpression(call)) return new Set();
+  const callback = call.getArguments()[0];
+  if (!callback || (!Node.isArrowFunction(callback) && !Node.isFunctionExpression(callback))) return new Set();
+  return collectPropertyReads(callback.getParameters()[0]?.getNameNode());
+};
+
 const arrayElementPropertyReads = (referenceNode: MorphNode): Set<string> => {
   const properties = new Set<string>();
   const array = referenceNode.getFirstAncestorByKind(SyntaxKind.ArrayLiteralExpression);
@@ -35,18 +56,8 @@ const arrayElementPropertyReads = (referenceNode: MorphNode): Set<string> => {
   const nameNode = declaration?.getNameNode();
   if (!array || !nameNode || !Node.isIdentifier(nameNode)) return properties;
   for (const reference of nameNode.findReferencesAsNodes()) {
-    const parent = reference.getParent();
-    if (parent && Node.isForOfStatement(parent) && parent.getExpression() === reference) {
-      const elementName = parent.getInitializer().getFirstDescendantByKind(SyntaxKind.Identifier);
-      for (const property of collectPropertyReads(elementName)) properties.add(property);
-      continue;
-    }
-    if (!parent || !Node.isPropertyAccessExpression(parent) || parent.getExpression() !== reference) continue;
-    const call = parent.getParent();
-    if (parent.getName() !== "map" || !call || !Node.isCallExpression(call)) continue;
-    const callback = call.getArguments()[0];
-    if (!callback || (!Node.isArrowFunction(callback) && !Node.isFunctionExpression(callback))) continue;
-    for (const property of collectPropertyReads(callback.getParameters()[0]?.getNameNode())) properties.add(property);
+    addProperties(properties, forOfElementPropertyReads(reference));
+    addProperties(properties, mapElementPropertyReads(reference));
   }
   return properties;
 };

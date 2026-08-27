@@ -1,4 +1,4 @@
-import { randomBytes, timingSafeEqual } from "node:crypto";
+import { randomBytes } from "node:crypto";
 
 import {
   canonicalizeBrowserAuthorityValue,
@@ -16,6 +16,13 @@ import {
 } from "./browser-authority-session-crypto.js";
 import type { BrowserGovernedCommand, BrowserCommandReply, BrowserCommandPort } from "../exact-target/browser-command-actor.js";
 import type { BrowserCommandPermit } from "./command-permit.js";
+import {
+  authorityRecord,
+  canonicalBrowserAuthorityPlaintext,
+  compareReplyToken,
+  encryptedFrameBody,
+  parseCanonicalPlaintext,
+} from "./browser-authority-frame-payload.js";
 import {
   BROWSER_COMMAND_DEFAULT_DEADLINE_MS,
   BROWSER_MISSED_HEARTBEAT_TOLERANCE_MS,
@@ -89,37 +96,6 @@ const aadForFrame = (frame: Pick<BrowserAuthorityFrame, "protocolVersion" | "kin
     sequence: frame.sequence,
     deadline: frame.deadline,
   });
-
-const record = (value: unknown): Record<string, unknown> | null =>
-  typeof value === "object" && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : null;
-
-const encryptedFrameBody = (frame: BrowserAuthorityFrame): Readonly<{ nonce: string; ciphertext: string; tag: string }> => {
-  const body = record(frame.body);
-  const encrypted = body ? record(body.encrypted) : null;
-  if (!encrypted || typeof encrypted.nonce !== "string" || typeof encrypted.ciphertext !== "string" || typeof encrypted.tag !== "string") {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
-  return { nonce: encrypted.nonce, ciphertext: encrypted.ciphertext, tag: encrypted.tag };
-};
-
-const canonicalPlaintext = (value: unknown): string => canonicalizeBrowserAuthorityValue(value);
-
-const parsePlaintext = (value: string): Record<string, unknown> => {
-  try {
-    const parsed: unknown = JSON.parse(value);
-    const body = record(parsed);
-    if (!body || canonicalPlaintext(body) !== value) throw new Error("invalid canonical plaintext");
-    return body;
-  } catch {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
-};
-
-const compareReplyToken = (actual: string, expected: string): boolean => {
-  const left = Buffer.from(actual, "utf8");
-  const right = Buffer.from(expected, "utf8");
-  return left.byteLength === right.byteLength && timingSafeEqual(left, right);
-};
 
 /**
  * The only Agent-side socket session owner.  It never reconnects, never
@@ -237,7 +213,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       throw new Error("BROWSER_UNPACKED_RELEASE_IDENTITY_INVALID");
     }
     const clientEcdhPublicKey = stringField(body, "clientEcdhPublicKey");
-    const clientSigningPublicJwk = record(body.clientSigningPublicJwk);
+    const clientSigningPublicJwk = authorityRecord(body.clientSigningPublicJwk);
     if (!clientSigningPublicJwk) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     const state = createBrowserAuthorityHandshake(this.pairingSecret, {
       extensionId,
@@ -311,7 +287,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       aad: aadForFrame(frame),
       encrypted: encryptedFrameBody(frame),
     });
-    const body = parsePlaintext(plaintext);
+    const body = parseCanonicalPlaintext(plaintext);
     this.active = { ...active, lastClientSequence: frame.sequence, lastHeartbeatAt: Date.now() };
     if (this.acceptAuthenticatedControl(socket, frame, body)) return;
     this.acceptReply(body);
@@ -393,7 +369,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
           epoch: AUTH_EPOCH,
           sequence,
           aad: aadForFrame(header),
-          plaintext: canonicalPlaintext(body),
+          plaintext: canonicalBrowserAuthorityPlaintext(body),
         }),
       },
     };

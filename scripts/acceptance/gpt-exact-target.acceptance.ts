@@ -58,18 +58,21 @@ const EXPECTED_CHILD_IDS = Object.freeze([
 ].sort());
 
 type DomResponder = (intent: BrowserDomIntent, callNumber: number) => unknown | Promise<unknown>;
+type FakeBrowserOptions = Readonly<{ initialPending?: number; initialUrl?: string; unknownMutation?: boolean }>;
+type FakeBrowserState = {
+  pending: number;
+  documentRef: string;
+  navigationEpoch: number;
+  url: string;
+  domCalls: number;
+  physicalMutations: number;
+};
 
-const fakeBrowser = (
+const createFakeBrowserLease = (
   responder: DomResponder,
-  input: Readonly<{ initialPending?: number; initialUrl?: string; unknownMutation?: boolean }> = {},
-) => {
-  let pending = input.initialPending ?? 0;
-  let documentRef = "document:1";
-  let navigationEpoch = 1;
-  let url = input.initialUrl ?? "https://chatgpt.com/";
-  let domCalls = 0;
-  let physicalMutations = 0;
-  const browser = {
+  input: FakeBrowserOptions,
+  state: FakeBrowserState,
+): BrowserTargetLease => ({
     leaseRef: "lease:1",
     authorityRef: "authority:1",
     authorityEpoch: 1,
@@ -79,37 +82,37 @@ const fakeBrowser = (
     agentExecutionRefHash: `sha256:${"c".repeat(64)}`,
     writerLeaseEpoch: 1,
     writerFenceHash: `sha256:${"d".repeat(64)}`,
-    target: { targetRef: "target:1", tabId: 7 },
+    target: { targetRef: "target:1", authorityEpoch: 1, executionBindingHash: `sha256:${"a".repeat(64)}` },
     get document() {
-      return { documentRef, targetRef: "target:1", navigationEpoch };
+      return { documentRef: state.documentRef, targetRef: "target:1", navigationEpoch: state.navigationEpoch };
     },
     async navigate(navigation: Readonly<{ url: string }>) {
-      physicalMutations += 1;
-      pending += 1;
-      url = navigation.url;
-      navigationEpoch += 1;
-      documentRef = `document:${navigationEpoch}`;
-      return { documentRef, targetRef: "target:1", navigationEpoch };
+      state.physicalMutations += 1;
+      state.pending += 1;
+      state.url = navigation.url;
+      state.navigationEpoch += 1;
+      state.documentRef = `document:${state.navigationEpoch}`;
+      return { documentRef: state.documentRef, targetRef: "target:1", navigationEpoch: state.navigationEpoch };
     },
     async executeDomIntent(intent: BrowserDomIntent) {
-      domCalls += 1;
+      state.domCalls += 1;
       const mutation = intent.kind === "click" || intent.kind === "fill";
       if (mutation) {
-        physicalMutations += 1;
+        state.physicalMutations += 1;
         if (input.unknownMutation) {
-          pending += 1;
+          state.pending += 1;
           throw new Error("BROWSER_OUTCOME_UNKNOWN");
         }
       }
-      const value = await responder(intent, domCalls);
-      if (mutation) pending += 1;
+      const value = await responder(intent, state.domCalls);
+      if (mutation) state.pending += 1;
       if (intent.kind === "document" && value && typeof value === "object"
         && !Array.isArray(value) && typeof (value as { url?: unknown }).url === "string") {
         const nextUrl = (value as { url: string }).url;
-        if (nextUrl !== url) {
-          url = nextUrl;
-          navigationEpoch += 1;
-          documentRef = `document:${navigationEpoch}`;
+        if (nextUrl !== state.url) {
+          state.url = nextUrl;
+          state.navigationEpoch += 1;
+          state.documentRef = `document:${state.navigationEpoch}`;
         }
       }
       return value;
@@ -118,25 +121,32 @@ const fakeBrowser = (
     async captureScreenshot() {
       return { artifactRef: "screenshot:1", contentHash: `sha256:${"e".repeat(64)}` };
     },
-    async attachFile() { physicalMutations += 1; pending += 1; },
+    async attachFile() { state.physicalMutations += 1; state.pending += 1; },
     async registerFileArtifact() {},
     async issueFileArtifactGrant() { throw new Error("UNUSED"); },
     async wait() {},
-    async close() { physicalMutations += 1; pending += 1; },
+    async close() { state.physicalMutations += 1; state.pending += 1; },
     async resolvePendingMutation() {
-      if (pending !== 1) throw new Error("BROWSER_OUTCOME_UNKNOWN");
-      pending = 0;
+      if (state.pending !== 1) throw new Error("BROWSER_OUTCOME_UNKNOWN");
+      state.pending = 0;
       return 1;
     },
-    pendingMutationCount: () => pending,
+    pendingMutationCount: () => state.pending,
     assertNoPendingMutations() {
-      if (pending !== 0) throw new Error("BROWSER_OUTCOME_UNKNOWN");
+      if (state.pending !== 0) throw new Error("BROWSER_OUTCOME_UNKNOWN");
     },
-  } as unknown as BrowserTargetLease;
+  });
+
+const fakeBrowser = (responder: DomResponder, input: FakeBrowserOptions = {}) => {
+  const state: FakeBrowserState = {
+    pending: input.initialPending ?? 0, documentRef: "document:1", navigationEpoch: 1,
+    url: input.initialUrl ?? "https://chatgpt.com/", domCalls: 0, physicalMutations: 0,
+  };
+  const browser = createFakeBrowserLease(responder, input, state);
   return {
     browser,
-    physicalMutations: () => physicalMutations,
-    documentCalls: () => domCalls,
+    physicalMutations: () => state.physicalMutations,
+    documentCalls: () => state.domCalls,
   };
 };
 

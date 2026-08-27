@@ -65,6 +65,9 @@ const commandFrom = (value: unknown): BrowserGovernedCommand => {
   return command as BrowserGovernedCommand;
 };
 
+const canAttemptAutomaticPairing = (state: SocketState): boolean =>
+  state !== "CONNECTING" && state !== "PAIRING" && state !== "CONNECTED";
+
 /** The extension actor is the sole socket owner; every authentication discontinuity requires a fresh automatic pairing. */
 export class ExtensionWebSocketActor {
   private socket: WebSocket | null = null;
@@ -91,7 +94,7 @@ export class ExtensionWebSocketActor {
       (error) => this.reportRuntimeFailure(error, "liveness-pulse"),
     );
     this.autoBootstrap = new PairingAutoBootstrap(chromeApi, {
-      canAttemptAutomaticPairing: () => this.canAttemptAutomaticPairing(),
+      canAttemptAutomaticPairing: () => canAttemptAutomaticPairing(this.state),
       pair: (pairingSecret) => this.pair(pairingSecret),
     }, __GRASSEYE_RELEASE_BUILD_ID__);
   }
@@ -127,10 +130,6 @@ export class ExtensionWebSocketActor {
     });
     this.targetAuthority.start();
     this.autoBootstrap.start();
-  }
-
-  public canAttemptAutomaticPairing(): boolean {
-    return this.state !== "CONNECTING" && this.state !== "PAIRING" && this.state !== "CONNECTED";
   }
 
   public setOneTimePairingSecret(pairingSecret: string): void {
