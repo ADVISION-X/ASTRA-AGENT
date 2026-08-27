@@ -53,7 +53,8 @@ assert.match(worker, /runtime\.reload/u, "A stale unpacked extension must reload
 assert.match(worker, /releaseBuildId/u, "Automatic reload must compare the AGENT and loaded extension build identities.");
 assert.match(worker, /TARGET_ACQUIRE/u, "The authenticated channel must retain the sole job-bound target acquisition frame.");
 assert.match(worker, /acquireJobBoundChatGptTarget/u, "The job-bound frame must trigger the fixed extension's exact ChatGPT claim.");
-assert.match(worker, /debugger\.getTargets/u, "The fixed extension must resolve targets without activeTab or tabs permission.");
+assert.match(worker, /tabs\.create/u, "The fixed extension must create the one job-owned inactive target without activeTab permission.");
+assert.doesNotMatch(worker, /debugger\.getTargets/u, "The fixed extension must not enumerate or reuse operator-owned targets.");
 assert.match(worker, /https:\/\/chatgpt\.com\//u, "Zero matching targets must use the one fixed ChatGPT start URL.");
 assert.doesNotMatch(worker, /tabs\.query|GRASSEYE_CLAIM_ACTIVE_TARGET/u, "The retired active-tab claim path must be physically absent.");
 
