@@ -5,6 +5,7 @@ import { brokerPath, createLocalFinding, requireIdentifiers, requireSource, sour
 
 const targetClaimAwaiterPath = "src/lib/browser/chrome-extension/websocket-target-claim-awaiter.ts";
 const sitePolicyPath = "src/lib/browser/exact-target/browser-site-policy-registry.ts";
+const targetLeaseManagerPath = "src/lib/browser/exact-target/browser-target-lease-manager.ts";
 const jobBoundClaimAcceptancePath = "scripts/acceptance/local-browser-auto-pairing.acceptance.ts";
 
 const inspectJobBoundClaimOrder = (actor: ReturnType<typeof requireSource>, findings: InspectorFinding[], lawId: string): void => {
@@ -44,13 +45,32 @@ const inspectBrokerClaimMonotonicity = (brokerText: string, findings: InspectorF
 };
 
 const inspectJobBoundClaimAcceptance = (combined: string, findings: InspectorFinding[], lawId: string): void => {
-  for (const required of ["BROWSER_DEVTOOLS_CONFLICT", "multiple exact ChatGPT targets", "active: false", "Page.getFrameTree"]) {
+  for (const required of [
+    "BROWSER_DEVTOOLS_CONFLICT", "getTargetsCalls", "active: false", "Page.getFrameTree",
+    "every turn must create", "removedTabs.includes",
+  ]) {
     if (combined.includes(required)) continue;
     findings.push(createLocalFinding({
       checkId: "browser-authority/job-bound-target-claim", lawId, filePath: jobBoundClaimAcceptancePath,
       message: `Job-bound target claim must enforce and test ${required}.`,
     }));
   }
+};
+
+const inspectUnknownMutationReleaseGuard = (
+  leaseManager: ReturnType<typeof requireSource>,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const method = leaseManager?.getClass("BrowserTargetLeaseManager")?.getMethod("createTargetLease")?.getText() ?? "";
+  const closeAt = method.indexOf("close: async");
+  const guardAt = method.indexOf("state.pendingMutationCommandIds.length > 0", closeAt);
+  const physicalCloseAt = method.indexOf('command("browser.close-target.v1"', closeAt);
+  if (closeAt >= 0 && guardAt > closeAt && physicalCloseAt > guardAt) return;
+  findings.push(createLocalFinding({
+    checkId: "browser-authority/unknown-mutation-target-release", lawId, filePath: targetLeaseManagerPath,
+    message: "The Browser Owner must reject physical Target close while any mutation remains unresolved.",
+  }));
 };
 
 const inspectExactChatGptPolicy = (source: ReturnType<typeof requireSource>, findings: InspectorFinding[], lawId: string): void => {
@@ -73,11 +93,12 @@ const inspectJobBoundClaimPolicy = (
   const supervisor = requireSource(context, findings, lawId, sourcePaths[3]);
   const broker = requireSource(context, findings, lawId, brokerPath);
   const acceptance = requireSource(context, findings, lawId, jobBoundClaimAcceptancePath);
-  if (!targetAuthority || !sitePolicy || !actor || !supervisor || !broker || !acceptance) return;
+  const leaseManager = requireSource(context, findings, lawId, targetLeaseManagerPath);
+  if (!targetAuthority || !sitePolicy || !actor || !supervisor || !broker || !acceptance || !leaseManager) return;
   requireIdentifiers(targetAuthority, [
-    "acquireJobBoundChatGptTarget", "getTargets", "create", "GPT_WEB_START_URL",
-    "requireGptWebPolicyForUrl", "navigationPublication",
-  ], findings, lawId, "The fixed extension must own the exact single-target, zero-target creation and navigation claim chain.");
+    "acquireJobBoundChatGptTarget", "create", "remove", "GPT_WEB_START_URL",
+    "requireGptWebPolicyForUrl", "waitForCreatedTarget", "navigationPublication",
+  ], findings, lawId, "The fixed extension must create, validate and own exactly one new task Target for each GPT turn.");
   requireIdentifiers(supervisor, [
     "requireGptWebPolicyForUrl", "establishClaimBoundWorkspace", "pendingJobBoundTargetAcquisition",
     "acquireJobBoundTargetLease", "requestPreauthorizedTargetAcquisition",
@@ -89,6 +110,11 @@ const inspectJobBoundClaimPolicy = (
   inspectServerClaimOrder(supervisor.getClass("BrowserInfrastructureSupervisor")?.getMethod("onTargetClaim")?.getText() ?? "", findings, lawId);
   inspectBrokerClaimMonotonicity(broker.getFullText(), findings, lawId);
   inspectJobBoundClaimAcceptance(`${targetAuthority.getFullText()}\n${acceptance.getFullText()}`, findings, lawId);
+  if (targetAuthority.getFullText().includes(".getTargets(")) findings.push(createLocalFinding({
+    checkId: "browser-authority/job-bound-target-claim", lawId, filePath: targetAuthorityPath,
+    message: "A GPT turn must not enumerate or reuse an operator-owned browser Target.",
+  }));
+  inspectUnknownMutationReleaseGuard(leaseManager, findings, lawId);
   inspectExactChatGptPolicy(sitePolicy, findings, lawId);
 };
 
