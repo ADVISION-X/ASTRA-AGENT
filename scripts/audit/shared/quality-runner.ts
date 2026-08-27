@@ -322,6 +322,7 @@ const observationAuthenticatesRequest = (
       && dynamicReceiptFileValid(locator, {
         lawId: observation.lawId, evidenceMode: observation.evidenceMode, clauses: observation.clauses,
         observedValue, proofRunId: observation.proofRunId, candidate: observation.candidate,
+        producerScript: script,
       });
   });
 };

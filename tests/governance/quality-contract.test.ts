@@ -46,13 +46,16 @@ const fixtureLaw = (): Law => ({
 
 const fixtureEvidenceDirectory = mkdtempSync(resolve(tmpdir(), "quality-evidence-fixture-"));
 const fixtureEvidencePath = resolve(fixtureEvidenceDirectory, "receipt.json");
+const fixtureDynamicClauses = ["forbidden:4", "forbidden:8"];
 writeFileSync(fixtureEvidencePath, `${JSON.stringify({
-  schema_version: "governance-dynamic-observation.v1",
+  schema_version: "governance-dynamic-observation.v2",
   proof_run_id: "a".repeat(64), candidate: "b".repeat(40), captured_at: "2026-08-27T00:00:00.000Z",
   lawId: "LAW-LOCAL-APP-SHELL-001-V6", evidenceMode: "dynamic.service",
-  observation_kind: "service", clauses: ["forbidden:0", "summary"], observed_value: "fixture",
+  observation_kind: "service", clauses: fixtureDynamicClauses, observed_value: "fixture",
+  producer_script: "proof:local-shell-current-runtime",
   observation: {
     cleanupVerified: true, components: ["app-shell"], endpoint: "http://127.0.0.1:4173",
+    facts: { listener_count: 1, readiness_component_count: 2, readiness_components_distinct: true },
     processId: 4173, serviceName: "fixture-service", sourceFingerprint: "fixture-source", status: "healthy",
   },
 })}\n`);
@@ -284,45 +287,89 @@ const directObservation = (
 
 test("each Dynamic mode authenticates its native object, clause binding, and observed value", () => {
   const base = {
-    schema_version: "governance-dynamic-observation.v1", proof_run_id: "a".repeat(64),
+    schema_version: "governance-dynamic-observation.v2", proof_run_id: "a".repeat(64),
     candidate: "b".repeat(40), captured_at: "2026-08-27T00:00:00.000Z",
-    lawId: "LAW-FIXTURE-001-V1", clauses: ["forbidden:0"], observed_value: "native-fixture",
+    observed_value: "native-fixture", producer_script: "acceptance:agent-production-runtime:real-proof",
   };
   const observations = {
     browser: { browserVersion: "Chromium 1", endpoint: "https://example.test/", pageTitle: "Fixture",
-      sessionFacts: { exactTarget: true } },
+      facts: { authority_present: true, extension_worker_count: 1 }, sessionFacts: { exactTarget: true } },
     service: { cleanupVerified: true, components: ["fixture"], endpoint: "http://127.0.0.1:4173",
+      facts: { readiness_dimension_count: 4, readiness_dimensions_distinct: true },
       processId: 4173, serviceName: "fixture", sourceFingerprint: "sha256:fixture", status: "healthy" },
     database: { databaseEngine: "sqlite", databasePath: "/tmp/fixture.sqlite",
+      facts: { frozen_identity_count: 12, frozen_identity_invalid_count: 0 },
       identitySet: ["job-1"], recordCounts: { tasks: 1 } },
     storage: { confirmedCount: 1, mutationCount: 1, storageEngine: "sqlite-wal",
-      storagePath: "/tmp/fixture.sqlite", unresolvedCount: 0 },
+      facts: { confirmed_row_invalid_count: 0 }, storagePath: "/tmp/fixture.sqlite", unresolvedCount: 0 },
     provider: { catalogHash: "sha256:fixture", pluginIds: ["fixture-plugin"],
-      providerName: "ChatGPT", terminalReceiptCount: 1 },
+      facts: { catalog_plugin_count: 12 }, providerName: "ChatGPT", terminalReceiptCount: 12 },
     authorization: { authorityState: "present", fenceHashes: ["sha256:fixture"],
+      facts: { lease_fence_bound_job_count: 12, unbound_lease_fence_job_count: 0 },
       grantCount: 1, principalIds: ["fixture-plugin"] },
     recovery: { finalState: "completed", observedStates: ["recovery_pending", "completed"],
-      recoveryJobId: "job-1", unresolvedCount: 0 },
+      facts: { completed_observed: true, recovery_pending_observed: true }, recoveryJobId: "job-1", unresolvedCount: 0 },
+  } as const;
+  const routes = {
+    browser: { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", clauses: ["forbidden:6"] },
+    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V3", clauses: ["forbidden:17"] },
+    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V3", clauses: ["forbidden:8"] },
+    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V3", clauses: ["forbidden:10"] },
+    provider: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V3", clauses: ["forbidden:0"] },
+    authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V3", clauses: ["forbidden:3"] },
+    recovery: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V3", clauses: ["forbidden:9"] },
   } as const;
   for (const [kind, observation] of Object.entries(observations)) {
     const evidenceMode = `dynamic.${kind}`;
-    const payload = { ...base, evidenceMode, observation_kind: kind, observation };
-    const binding = { lawId: base.lawId, evidenceMode, clauses: base.clauses,
-      observedValue: base.observed_value, proofRunId: base.proof_run_id, candidate: base.candidate };
+    const route = routes[kind as keyof typeof routes];
+    const payload = { ...base, ...route, evidenceMode, observation_kind: kind, observation };
+    const binding = { ...route, evidenceMode, observedValue: base.observed_value,
+      proofRunId: base.proof_run_id, candidate: base.candidate, producerScript: base.producer_script };
     assert.equal(validateDynamicReceiptPayload(payload, binding), true, kind);
     assert.equal(validateDynamicReceiptPayload({ ...payload, observation: {} }, binding), false, `${kind}:empty`);
+    const originalFacts = observation.facts as Readonly<Record<string, string | number | boolean>>;
+    const [firstFact] = Object.keys(originalFacts);
+    const currentFact = originalFacts[firstFact!]!;
+    const wrongFact = typeof currentFact === "boolean" ? !currentFact : typeof currentFact === "number"
+      ? (currentFact === 0 ? 1 : 0) : `${currentFact}-wrong`;
+    assert.equal(validateDynamicReceiptPayload({ ...payload,
+      observation: { ...observation, facts: { ...originalFacts, [firstFact!]: wrongFact } } }, binding), false,
+    `${kind}:clause-fact-mismatch`);
     assert.equal(validateDynamicReceiptPayload({ ...payload, observation_kind: kind === "browser" ? "service" : "browser" }, binding), false,
       `${kind}:mode-mismatch`);
     assert.equal(validateDynamicReceiptPayload({ ...payload, clauses: ["forbidden:1"] }, binding), false,
       `${kind}:clause-mismatch`);
     assert.equal(validateDynamicReceiptPayload({ ...payload, observed_value: "wrong" }, binding), false,
       `${kind}:value-mismatch`);
+    const unsupportedClauses = ["forbidden:99"];
+    assert.equal(validateDynamicReceiptPayload({ ...payload, clauses: unsupportedClauses },
+      { ...binding, clauses: unsupportedClauses }), false, `${kind}:unsupported-clause-fact-mapping`);
   }
   const serviceMode = "dynamic.service";
-  assert.equal(validateDynamicReceiptPayload({ ...base, evidenceMode: serviceMode, observation_kind: "service",
-    observation: observations.browser }, { lawId: base.lawId, evidenceMode: serviceMode, clauses: base.clauses,
-    observedValue: base.observed_value, proofRunId: base.proof_run_id, candidate: base.candidate }), false,
+  const serviceRoute = routes.service;
+  assert.equal(validateDynamicReceiptPayload({ ...base, ...serviceRoute, evidenceMode: serviceMode,
+    observation_kind: "service", observation: observations.browser }, { ...serviceRoute, evidenceMode: serviceMode,
+    observedValue: base.observed_value, proofRunId: base.proof_run_id, candidate: base.candidate,
+    producerScript: base.producer_script }), false,
   "a browser object cannot authenticate a service receipt");
+});
+
+test("a generic service object cannot authenticate a factually unrelated startup clause", () => {
+  const route = { lawId: "LAW-STARTUP-ENTRYPOINT-002-V4", evidenceMode: "dynamic.service",
+    clauses: ["forbidden:0"] };
+  const producerScript = "proof:local-shell-current-runtime";
+  const payload = {
+    schema_version: "governance-dynamic-observation.v2", proof_run_id: "a".repeat(64),
+    candidate: "b".repeat(40), captured_at: "2026-08-27T00:00:00.000Z", ...route,
+    observation_kind: "service", observed_value: "generic-service", producer_script: producerScript,
+    observation: {
+      cleanupVerified: true, components: ["generic"], endpoint: "http://127.0.0.1:4173",
+      facts: { listener_count: 1 }, processId: 4173, serviceName: "generic",
+      sourceFingerprint: "sha256:generic", status: "healthy",
+    },
+  };
+  assert.equal(validateDynamicReceiptPayload(payload, { ...route, observedValue: payload.observed_value,
+    proofRunId: payload.proof_run_id, candidate: payload.candidate, producerScript }), false);
 });
 
 test("a fixed or unauthenticated stdout marker cannot mint evidence for unexecuted law routes", () => {
@@ -378,7 +425,7 @@ test("a Dynamic producer cannot self-authenticate an invented native object", ()
   const routes = [{ law, mode: "dynamic.service" }];
   const requests = proofRequests(routes, "dynamic");
   const marker = `${proofObservationPrefix}${JSON.stringify({
-    ...directObservation(requests[0]!, ["forbidden:0", "summary"], [dynamicRef(
+    ...directObservation(requests[0]!, fixtureDynamicClauses, [dynamicRef(
       requests[0]!, "/tmp/no-real-object", "a".repeat(64), "proof:local-shell-current-runtime",
     )]),
   })}`;
@@ -389,7 +436,7 @@ test("a Dynamic producer cannot self-authenticate an invented native object", ()
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
   );
   const selfAuthenticatedUrl = `${proofObservationPrefix}${JSON.stringify({
-    ...directObservation(requests[0]!, ["forbidden:0", "summary"], [dynamicRef(
+    ...directObservation(requests[0]!, fixtureDynamicClauses, [dynamicRef(
       requests[0]!, "/tmp/self-authenticated-url", "a".repeat(64), "proof:local-shell-current-runtime",
     )]),
   })}`;
@@ -400,7 +447,7 @@ test("a Dynamic producer cannot self-authenticate an invented native object", ()
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
   );
   const nativeFileMarker = `${proofObservationPrefix}${JSON.stringify({
-    ...directObservation(requests[0]!, ["forbidden:0", "summary"], [dynamicRef(
+    ...directObservation(requests[0]!, fixtureDynamicClauses, [dynamicRef(
       requests[0]!, fixtureEvidencePath, fixtureEvidenceDigest, "proof:local-shell-current-runtime",
     )]),
   })}`;
@@ -417,7 +464,7 @@ test("Dynamic receipts must be exact regular files created in this proof run dir
   const outsidePath = resolve(outsideDirectory, "receipt.json");
   writeFileSync(outsidePath, readFileSync(fixtureEvidencePath));
   const lineFor = (locator: string, receipt: string): string => `${proofObservationPrefix}${JSON.stringify({
-    ...directObservation(requests[0]!, ["forbidden:0", "summary"], [dynamicRef(
+    ...directObservation(requests[0]!, fixtureDynamicClauses, [dynamicRef(
       requests[0]!, locator, receipt, "proof:local-shell-current-runtime",
     )]),
   })}`;
@@ -450,7 +497,7 @@ test("Dynamic routes cannot substitute one mode-bound receipt locator or emit su
   const routes = [{ law, mode: "dynamic.service" }, { law, mode: "dynamic.browser" }];
   const requests = proofRequests(routes, "dynamic");
   const output = requests.map((request) => `${proofObservationPrefix}${JSON.stringify({
-    ...directObservation(request, ["forbidden:0", "summary"], [dynamicRef(
+    ...directObservation(request, fixtureDynamicClauses, [dynamicRef(
       request, fixtureEvidencePath, fixtureEvidenceDigest, "proof:local-shell-current-runtime",
     )]),
   })}`).join("\n");

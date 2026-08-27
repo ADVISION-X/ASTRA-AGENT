@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -8,9 +8,23 @@ import path from "node:path";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 
 import { chromium, type Browser } from "playwright";
+import Database from "better-sqlite3";
 
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { buildStartupSourceFingerprint } from "../startup/lib/source-fingerprint.mjs";
+
+const dynamicClaimContract = (/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_BEGIN */
+{
+  "schema_version": "producer-dynamic-claim-contract.v1",
+  "routes": {
+    "LAW-LOCAL-APP-SHELL-001-V6:dynamic.browser": {"claims": {"forbidden:5": [{"path": "/facts/browser_command_surface_count", "operator": "equals", "expected": 0}]}},
+    "LAW-LOCAL-APP-SHELL-001-V6:dynamic.service": {"claims": {"forbidden:4": [{"path": "/facts/listener_count", "operator": "equals", "expected": 1}], "forbidden:8": [{"path": "/facts/readiness_component_count", "operator": "gte", "expected": 2}, {"path": "/facts/readiness_components_distinct", "operator": "equals", "expected": true}]}},
+    "LAW-LOCAL-APP-SHELL-003-V3:dynamic.service": {"claims": {"forbidden:0": [{"path": "/facts/readiness_component_count", "operator": "gte", "expected": 2}, {"path": "/facts/readiness_components_distinct", "operator": "equals", "expected": true}]}},
+    "LAW-STARTUP-ENTRYPOINT-001-V4:dynamic.service": {"claims": {"forbidden:5": [{"path": "/facts/production_task_count", "operator": "equals", "expected": 0}, {"path": "/facts/shell_http_available", "operator": "equals", "expected": true}]}},
+    "LAW-STARTUP-ENTRYPOINT-002-V4:dynamic.service": {"claims": {"forbidden:0": [{"path": "/facts/foreign_repository_child_process_count", "operator": "equals", "expected": 0}]}}
+  }
+}
+/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_END */) as const;
 
 const root = process.cwd();
 const proofRunId = process.env.GOVERNANCE_PROOF_RUN_ID?.trim() ?? "";
@@ -44,6 +58,26 @@ const processField = (pid: number, field: "command" | "cwd"): string => {
   const result = spawnSync("lsof", ["-a", "-p", String(pid), "-d", "cwd", "-Fn"], { encoding: "utf8" });
   return result.stdout.split(/\r?\n/u).find((line) => line.startsWith("n"))?.slice(1).trim() ?? "";
 };
+const descendantPids = (parentPid: number): number[] => {
+  const found = new Set<number>();
+  const pending = [parentPid];
+  while (pending.length > 0) {
+    const current = pending.shift()!;
+    const result = spawnSync("pgrep", ["-P", String(current)], { encoding: "utf8" });
+    if (result.status !== 0 && !(result.status === 1 && !result.stdout.trim())) throw new Error(result.stderr);
+    for (const pid of result.stdout.split(/\r?\n/u).map(Number).filter((value) => Number.isInteger(value) && value > 0)) {
+      if (!found.has(pid)) { found.add(pid); pending.push(pid); }
+    }
+  }
+  return [...found];
+};
+const productionTaskCount = (directory: string): number => {
+  const databasePath = path.join(directory, "production-runtime.sqlite");
+  if (!existsSync(databasePath)) return 0;
+  const database = new Database(databasePath, { readonly: true, fileMustExist: true });
+  try { return (database.prepare("select count(*) as count from production_tasks").get() as { count: number }).count; }
+  finally { database.close(); }
+};
 
 const stopLaunch = async (child: ChildProcess): Promise<void> => {
   if (child.exitCode !== null || child.signalCode !== null) return;
@@ -57,7 +91,7 @@ const stopLaunch = async (child: ChildProcess): Promise<void> => {
   }
 };
 
-type Health = { status: string; sourceFingerprint: string; components?: Array<{ name?: string; ok?: boolean }> };
+type Health = { status: string; sourceFingerprint: string; components?: Array<{ name?: string; ok?: boolean; detail?: string }> };
 const waitForCurrentHealth = async (baseUrl: string, child: ChildProcess, output: () => string): Promise<Health> => {
   for (let attempt = 0; attempt < 240; attempt += 1) {
     if (child.exitCode !== null || child.signalCode !== null) throw new Error(`CURRENT_RUNTIME_EXITED:${output()}`);
@@ -79,7 +113,10 @@ const baseUrl = `http://127.0.0.1:${port}`;
 let stdout = "";
 let stderr = "";
 let browser: Browser | undefined;
-let observation: Readonly<{ health: Health; listenerPid: number; browserVersion: string; pageTitle: string; screenshotSha256: string }> | undefined;
+let observation: Readonly<{
+  health: Health; listenerPid: number; browserVersion: string; pageTitle: string; screenshotSha256: string;
+  browserCommandSurfaceCount: number; foreignRepositoryChildProcessCount: number; productionTaskCount: number;
+}> | undefined;
 const browserReceiptPath = path.join(proofReceiptDir, "app-shell-browser.json");
 const shellHealthReceiptPath = path.join(proofReceiptDir, "shell-health.json");
 const degradedHealthReceiptPath = path.join(proofReceiptDir, "degraded-health.json");
@@ -113,10 +150,23 @@ try {
     workspace: await page.locator("main[data-app-shell-workspace]").count(), inspector: await page.locator("[data-app-shell-inspector]").count(),
     console: await page.locator("[data-runtime-console]").count(), retired: await page.locator("[data-user-demand-startup], [data-legacy-app]").count(),
   }, { shell: 1, sidebar: 1, workspace: 1, inspector: 1, console: 1, retired: 0 });
+  const browserCommandSurfaceCount = await page.locator(
+    "[data-browser-command], [data-browser-action], form[action*='browser']",
+  ).count();
+  assert.equal(browserCommandSurfaceCount, 0);
   const screenshot = path.join(dataDir, "current-app-shell.png");
   await page.screenshot({ path: screenshot, fullPage: true, type: "png" });
+  const foreignRepositoryChildProcessCount = descendantPids(launch.pid!).filter((pid) => {
+    const cwd = processField(pid, "cwd");
+    return cwd.length > 0 && cwd !== root && !cwd.startsWith(`${root}/`);
+  }).length;
+  assert.equal(foreignRepositoryChildProcessCount, 0);
+  const observedProductionTaskCount = productionTaskCount(dataDir);
+  assert.equal(observedProductionTaskCount, 0);
   observation = Object.freeze({ health, listenerPid, browserVersion: browser.version(), pageTitle,
-    screenshotSha256: createHash("sha256").update(readFileSync(screenshot)).digest("hex") });
+    screenshotSha256: createHash("sha256").update(readFileSync(screenshot)).digest("hex"),
+    browserCommandSurfaceCount, foreignRepositoryChildProcessCount,
+    productionTaskCount: observedProductionTaskCount });
 } finally {
   await browser?.close();
   await stopLaunch(launch);
@@ -130,6 +180,14 @@ const browserValue = `${runtimeValue};browser=${observation.browserVersion};scre
 const componentNames = observation.health.components?.map((component) => component.name ?? "unnamed-component") ?? [];
 const serviceObservation = (serviceName: string) => ({
   cleanupVerified: listenerPids(port).length === 0, components: componentNames, endpoint: baseUrl,
+  facts: {
+    foreign_repository_child_process_count: observation.foreignRepositoryChildProcessCount,
+    listener_count: 1,
+    production_task_count: observation.productionTaskCount,
+    readiness_component_count: new Set(componentNames).size,
+    readiness_components_distinct: new Set(componentNames).size === componentNames.length,
+    shell_http_available: true,
+  },
   processId: observation.listenerPid, serviceName, sourceFingerprint: observation.health.sourceFingerprint,
   status: observation.health.status,
 });
@@ -140,19 +198,24 @@ const receiptPayload = (input: {
   observation: Readonly<Record<string, unknown>>;
   observedValue: string;
 }) => ({
-  schema_version: "governance-dynamic-observation.v1", proof_run_id: proofRunId, candidate: proofCandidate,
+  schema_version: "governance-dynamic-observation.v2", proof_run_id: proofRunId, candidate: proofCandidate,
   captured_at: new Date().toISOString(), lawId: input.lawId, evidenceMode: input.evidenceMode,
   observation_kind: input.evidenceMode.slice("dynamic.".length), clauses: input.clauses,
-  observed_value: input.observedValue, observation: input.observation,
+  observed_value: input.observedValue, producer_script: "proof:local-shell-current-runtime",
+  observation: input.observation,
 });
 const writeReceipt = (receiptPath: string, input: Parameters<typeof receiptPayload>[0]): void => {
   writeFileSync(receiptPath, `${JSON.stringify(receiptPayload(input))}\n`, { mode: 0o600, flag: "wx" });
 };
-const browserClauses = ["forbidden:7", "summary"];
-const shellClauses = ["forbidden:4", "forbidden:8", "summary"];
-const degradedClauses = ["forbidden:0"];
-const startupProcessClauses = ["forbidden:11", "summary"];
-const startupListenerClauses = ["forbidden:0", "summary"];
+const clausesFor = (lawId: string, evidenceMode: string): string[] => Object.keys(
+  (dynamicClaimContract.routes as Readonly<Record<string, { claims: Readonly<Record<string, unknown>> }>>)
+    [`${lawId}:${evidenceMode}`]!.claims,
+).sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right)));
+const browserClauses = clausesFor("LAW-LOCAL-APP-SHELL-001-V6", "dynamic.browser");
+const shellClauses = clausesFor("LAW-LOCAL-APP-SHELL-001-V6", "dynamic.service");
+const degradedClauses = clausesFor("LAW-LOCAL-APP-SHELL-003-V3", "dynamic.service");
+const startupProcessClauses = clausesFor("LAW-STARTUP-ENTRYPOINT-001-V4", "dynamic.service");
+const startupListenerClauses = clausesFor("LAW-STARTUP-ENTRYPOINT-002-V4", "dynamic.service");
 const degradedValue = `${runtimeValue};components=${componentNames.length}`;
 const startupProcessValue = `${runtimeValue};startup=grasseye:start;cleanup=verified`;
 const startupListenerValue = `${runtimeValue};listenerOwner=${root};cleanup=verified`;
@@ -160,6 +223,7 @@ writeReceipt(browserReceiptPath, {
   clauses: browserClauses, evidenceMode: "dynamic.browser", lawId: "LAW-LOCAL-APP-SHELL-001-V6",
   observedValue: browserValue,
   observation: { browserVersion: observation.browserVersion, endpoint: baseUrl, pageTitle: observation.pageTitle,
+    facts: { browser_command_surface_count: observation.browserCommandSurfaceCount },
     sessionFacts: { screenshotSha256: observation.screenshotSha256, shellCount: 1, retiredSurfaceCount: 0 } },
 });
 writeReceipt(shellHealthReceiptPath, { clauses: shellClauses, evidenceMode: "dynamic.service",
