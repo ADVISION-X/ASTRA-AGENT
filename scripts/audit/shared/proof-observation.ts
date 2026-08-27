@@ -33,6 +33,16 @@ export type QualityProofRequest = Readonly<{
 }>;
 type ProofContext = Pick<QualityProofObservation, "proofRunId" | "candidate" | "proofKind">;
 type EmissionContext = ProofContext & { script: string; timeoutMs: number };
+export type DynamicObservationKind = "browser" | "service" | "database" | "storage"
+  | "provider" | "authorization" | "recovery";
+export type DynamicReceiptBinding = Readonly<{
+  lawId: string;
+  evidenceMode: string;
+  clauses: readonly string[];
+  observedValue: string;
+  proofRunId: string;
+  candidate: string;
+}>;
 
 export const proofObservationPrefix = "QUALITY_PROOF_OBSERVATION ";
 const digest = (value: unknown): value is string => typeof value === "string" && /^[a-f0-9]{64}$/u.test(value);
@@ -46,9 +56,10 @@ const locatorValid = (dynamic: boolean, locator: unknown): locator is string => 
     ? /^\//u.test(locator)
     : /^(?:acceptance|proof):[a-z0-9][a-z0-9:._/-]*$/u.test(locator));
 const clausesValid = (clauses: unknown): clauses is string[] => Array.isArray(clauses)
-  && clauses.length > 1
+  && clauses.length > 0
   && clauses.every((clause) => typeof clause === "string"
     && (clause === "summary" || /^forbidden:(?:0|[1-9][0-9]*)$/u.test(clause)))
+  && !(clauses.length === 1 && clauses[0] === "summary")
   && JSON.stringify(clauses) === JSON.stringify([...new Set(clauses)].sort((left, right) =>
     Buffer.compare(Buffer.from(left), Buffer.from(right))));
 const findingsValid = (findings: unknown, passed: unknown): findings is QualityProofObservation["findings"] =>
@@ -72,21 +83,72 @@ const contextForEmission = (): EmissionContext => ({
   timeoutMs: Number(process.env.GOVERNANCE_PROOF_TIMEOUT_MS ?? ""),
 });
 
-const directRuntimeReceiptValid = (
-  file: string, observation: QualityProofObservationInput, context: EmissionContext,
+const exactKeys = (value: Readonly<Record<string, unknown>>, expected: readonly string[]): boolean =>
+  Object.keys(value).sort().join(",") === [...expected].sort().join(",");
+const plainObject = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+const nonEmptyString = (value: unknown): value is string =>
+  typeof value === "string" && value.trim().length > 0 && !/[\0-\x1f\x7f]/u.test(value);
+const stringList = (value: unknown): value is string[] => Array.isArray(value) && value.length > 0
+  && value.every(nonEmptyString) && value.length === new Set(value).size;
+const count = (value: unknown): value is number => Number.isSafeInteger(value) && Number(value) >= 0;
+const countMap = (value: unknown): boolean => plainObject(value) && Object.keys(value).length > 0
+  && Object.values(value).every(count);
+
+const dynamicObservationValid = (kind: DynamicObservationKind, value: unknown): boolean => {
+  if (!plainObject(value)) return false;
+  if (kind === "browser") return exactKeys(value, ["browserVersion", "endpoint", "pageTitle", "sessionFacts"])
+    && nonEmptyString(value.browserVersion) && nonEmptyString(value.endpoint) && nonEmptyString(value.pageTitle)
+    && /^https?:\/\//u.test(value.endpoint) && plainObject(value.sessionFacts)
+    && Object.keys(value.sessionFacts).length > 0;
+  if (kind === "service") return exactKeys(value, [
+    "cleanupVerified", "components", "endpoint", "processId", "serviceName", "sourceFingerprint", "status",
+  ]) && value.cleanupVerified === true && stringList(value.components) && nonEmptyString(value.endpoint)
+    && /^https?:\/\//u.test(value.endpoint) && Number.isSafeInteger(value.processId) && Number(value.processId) > 0
+    && nonEmptyString(value.serviceName) && nonEmptyString(value.sourceFingerprint) && nonEmptyString(value.status);
+  if (kind === "database") return exactKeys(value, ["databaseEngine", "databasePath", "identitySet", "recordCounts"])
+    && value.databaseEngine === "sqlite" && nonEmptyString(value.databasePath) && /^\//u.test(value.databasePath)
+    && stringList(value.identitySet) && countMap(value.recordCounts);
+  if (kind === "storage") return exactKeys(value, [
+    "confirmedCount", "mutationCount", "storageEngine", "storagePath", "unresolvedCount",
+  ]) && value.storageEngine === "sqlite-wal" && nonEmptyString(value.storagePath) && /^\//u.test(value.storagePath)
+    && count(value.confirmedCount) && count(value.mutationCount) && count(value.unresolvedCount)
+    && Number(value.confirmedCount) <= Number(value.mutationCount);
+  if (kind === "provider") return exactKeys(value, ["catalogHash", "pluginIds", "providerName", "terminalReceiptCount"])
+    && nonEmptyString(value.catalogHash) && stringList(value.pluginIds) && nonEmptyString(value.providerName)
+    && count(value.terminalReceiptCount) && Number(value.terminalReceiptCount) > 0;
+  if (kind === "authorization") return exactKeys(value, ["authorityState", "fenceHashes", "grantCount", "principalIds"])
+    && value.authorityState === "present" && stringList(value.fenceHashes) && count(value.grantCount)
+    && Number(value.grantCount) > 0 && stringList(value.principalIds);
+  return exactKeys(value, ["finalState", "observedStates", "recoveryJobId", "unresolvedCount"])
+    && nonEmptyString(value.finalState) && stringList(value.observedStates) && nonEmptyString(value.recoveryJobId)
+    && count(value.unresolvedCount);
+};
+
+export const validateDynamicReceiptPayload = (
+  payload: unknown, binding: DynamicReceiptBinding,
 ): boolean => {
-  if (context.script !== "acceptance:agent-production-runtime:real-proof") return true;
-  let parsed: Record<string, unknown>;
-  try { parsed = JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>; }
+  if (!plainObject(payload) || !exactKeys(payload, [
+    "candidate", "captured_at", "clauses", "evidenceMode", "lawId", "observation",
+    "observation_kind", "observed_value", "proof_run_id", "schema_version",
+  ])) return false;
+  const kind = binding.evidenceMode.startsWith("dynamic.")
+    ? binding.evidenceMode.slice("dynamic.".length) as DynamicObservationKind : "";
+  const capturedAt = typeof payload.captured_at === "string" ? Date.parse(payload.captured_at) : Number.NaN;
+  return ["browser", "service", "database", "storage", "provider", "authorization", "recovery"].includes(kind)
+    && payload.schema_version === "governance-dynamic-observation.v1"
+    && payload.proof_run_id === binding.proofRunId && payload.candidate === binding.candidate
+    && payload.lawId === binding.lawId && payload.evidenceMode === binding.evidenceMode
+    && payload.observation_kind === kind && payload.observed_value === binding.observedValue
+    && clausesValid(payload.clauses)
+    && JSON.stringify(payload.clauses) === JSON.stringify(binding.clauses)
+    && Number.isFinite(capturedAt) && new Date(capturedAt).toISOString() === payload.captured_at
+    && dynamicObservationValid(kind as DynamicObservationKind, payload.observation);
+};
+
+export const dynamicReceiptFileValid = (file: string, binding: DynamicReceiptBinding): boolean => {
+  try { return validateDynamicReceiptPayload(JSON.parse(readFileSync(file, "utf8")), binding); }
   catch { return false; }
-  const kind = observation.evidenceMode.slice("dynamic.".length);
-  const modeObjects = ["browser", "service", "database", "storage", "provider", "authorization", "recovery"];
-  const value = parsed.observation;
-  return parsed.schema_version === "direct-production-runtime-observation.v1"
-    && parsed.proof_run_id === context.proofRunId && parsed.candidate === context.candidate
-    && parsed.lawId === observation.lawId && parsed.evidenceMode === observation.evidenceMode
-    && parsed.observation_kind === kind && value !== null && typeof value === "object" && !Array.isArray(value)
-    && !modeObjects.some((field) => Object.hasOwn(value as object, field));
 };
 
 const nativeReceiptValid = (locator: string, receipt: string | undefined,
@@ -101,7 +163,10 @@ const nativeReceiptValid = (locator: string, receipt: string | undefined,
   return rootStat.isDirectory() && !rootStat.isSymbolicLink()
     && fileStat.isFile() && !fileStat.isSymbolicLink() && fileStat.size <= 16 * 1024 * 1024
     && createHash("sha256").update(readFileSync(file)).digest("hex") === receipt
-    && directRuntimeReceiptValid(file, observation, context);
+    && dynamicReceiptFileValid(file, {
+      lawId: observation.lawId, evidenceMode: observation.evidenceMode, clauses: observation.clauses,
+      observedValue: observation.observedValue, proofRunId: context.proofRunId, candidate: context.candidate,
+    });
 };
 
 const observationValid = (

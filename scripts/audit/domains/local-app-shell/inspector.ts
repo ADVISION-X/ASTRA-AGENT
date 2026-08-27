@@ -39,8 +39,9 @@ const sourcePath = (source: SourceFile): string => {
 };
 const sourceAt = (project: Project, path: string): SourceFile | undefined =>
   project.getSourceFiles().find((source) => sourcePath(source) === path);
-const finding = (lawId: string, filePath: string, message: string, line?: number): InspectorFinding =>
-  createFinding({ evidenceMode: "static.ast",
+const finding = (lawId: string, filePath: string, message: string, line?: number,
+  evidenceMode: "static.ast" | "static.contract" = "static.ast"): InspectorFinding =>
+  createFinding({ evidenceMode,
     checkId,
     lawId,
     clauseId: `${lawId.toLowerCase()}-requirement`,
@@ -123,6 +124,34 @@ const inspectShellOwnership = (
   inspectServerCounts(project, findings, lawId);
   inspectStartupOrder(project, findings, lawId);
   inspectRuntimeListenerAbsence(project, findings, lawId);
+};
+
+const inspectShellStatusContract = (
+  project: Project,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const handlePath = "src/lib/local-runtime/workbench-handle.ts";
+  const statusPath = "src/lib/local-runtime/workbench-status.ts";
+  const handle = sourceAt(project, handlePath);
+  const status = sourceAt(project, statusPath);
+  if (!handle || !status) {
+    findings.push(finding(lawId, handlePath, "Shell handle and status contracts must remain present.", undefined, "static.contract"));
+    return;
+  }
+  const handleFields = new Set(handle.getTypeAlias("GrassEyeWorkbenchHandle")
+    ?.getDescendantsOfKind(SyntaxKind.PropertySignature).map((property) => property.getName()) ?? []);
+  for (const required of [
+    "init", "shutdown", "getHealthReport", "getMissionReadinessReport",
+    "readBrowserAuthorityPairingState", "readBrowserExtensionBootstrapState",
+  ]) if (!handleFields.has(required)) findings.push(finding(lawId, handlePath,
+    `GrassEyeWorkbenchHandle is missing ${required}.`, undefined, "static.contract"));
+  const healthFields = new Set(status.getTypeAlias("AiProductionHealthSnapshot")
+    ?.getDescendantsOfKind(SyntaxKind.PropertySignature).map((property) => property.getName()) ?? []);
+  for (const required of [
+    "shellState", "cloudState", "browserState", "browserTargetState", "executionState", "claimAdmissionState",
+  ]) if (!healthFields.has(required)) findings.push(finding(lawId, statusPath,
+    `AiProductionHealthSnapshot is missing independent ${required}.`, undefined, "static.contract"));
 };
 
 const inspectBrowserAuthorityBoundary = (
@@ -222,6 +251,7 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => {
     check, findings, lawIds: [lawId], receipts: staticCheckReceipts, run: action,
   });
   run("inspectShellOwnership", LAW_SHELL, () => inspectShellOwnership(context.project, findings, LAW_SHELL, context.targetPaths));
+  run("inspectShellStatusContract", LAW_SHELL, () => inspectShellStatusContract(context.project, findings, LAW_SHELL));
   run("inspectBrowserAuthorityBoundary", LAW_BOUNDARY, () => inspectBrowserAuthorityBoundary(context.project, findings, LAW_BOUNDARY));
   run("inspectSeparatedStatus", LAW_STATUS, () => inspectSeparatedStatus(context.project, findings, LAW_STATUS, context.targetPaths));
   return {
@@ -235,22 +265,23 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => {
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = evaluate(context);
-  const semanticChecks = (lawId: string): string[] => lawId === LAW_SHELL
-    ? ["inspectShellOwnership"]
+  const semanticChecks = (lawId: string, evidenceMode: string): string[] => lawId === LAW_SHELL
+    ? evidenceMode === "static.ast" ? ["inspectShellOwnership"] : ["inspectShellStatusContract"]
     : lawId === LAW_BOUNDARY ? ["inspectBrowserAuthorityBoundary"] : ["inspectSeparatedStatus"];
   const lawResult = (lawId: string, clausesByMode: Readonly<Record<string, string[]>>) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
-    const checks = semanticChecks(lawId);
-      return { lawId, assertions: Object.entries(clausesByMode).map(([evidenceMode, clauses]) => ({
+      return { lawId, assertions: Object.entries(clausesByMode).map(([evidenceMode, clauses]) => {
+      const checks = semanticChecks(lawId, evidenceMode);
+      return ({
       clauses, evidenceMode, passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks), refs: staticEvidenceRefs(context, lawId, evidenceMode, clauses, evaluation.staticCheckReceipts, checks,
         (evidenceMode === "static.ast" ? observeStaticAst : observeStaticContract)({ context, lawId, evidenceMode, clauses, checks,
           executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks) })),
-    })), findings };
+    }); }), findings };
   };
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [
-      lawResult(LAW_SHELL, { "static.ast": staticClauses(4, 7, 8), "static.contract": staticClauses(0) }),
+      lawResult(LAW_SHELL, { "static.ast": staticClauses(4, 7, 8), "static.contract": staticClauses(8) }),
       lawResult(LAW_BOUNDARY, { "static.ast": staticClauses(0) }),
       lawResult(LAW_STATUS, { "static.ast": staticClauses(0, 1) }),
     ], inspectedFiles: evaluation.inspectedFiles,

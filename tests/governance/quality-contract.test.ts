@@ -20,7 +20,7 @@ import {
 import { assertCandidateStable, assertExactProviderContract, assertParticipantCommitIdentity, bindNativeProofObservations, computeTargetPaths, dynamicScriptFor, parseInspectorOutput } from "../../scripts/audit/shared/quality-runner.js";
 import { validateProviderContractSpec } from "../../scripts/audit/shared/provider-contract-authority.js";
 import type { InspectorContext } from "../../scripts/audit/shared/inspector-contracts.js";
-import { proofObservationPrefix } from "../../scripts/audit/shared/proof-observation.js";
+import { proofObservationPrefix, validateDynamicReceiptPayload } from "../../scripts/audit/shared/proof-observation.js";
 import type { QualityProofRequest } from "../../scripts/audit/shared/proof-observation.js";
 import { relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../scripts/audit/shared/static-inspection-contract.js";
@@ -46,7 +46,16 @@ const fixtureLaw = (): Law => ({
 
 const fixtureEvidenceDirectory = mkdtempSync(resolve(tmpdir(), "quality-evidence-fixture-"));
 const fixtureEvidencePath = resolve(fixtureEvidenceDirectory, "receipt.json");
-writeFileSync(fixtureEvidencePath, '{"status":"observed"}\n');
+writeFileSync(fixtureEvidencePath, `${JSON.stringify({
+  schema_version: "governance-dynamic-observation.v1",
+  proof_run_id: "a".repeat(64), candidate: "b".repeat(40), captured_at: "2026-08-27T00:00:00.000Z",
+  lawId: "LAW-LOCAL-APP-SHELL-001-V6", evidenceMode: "dynamic.service",
+  observation_kind: "service", clauses: ["forbidden:0", "summary"], observed_value: "fixture",
+  observation: {
+    cleanupVerified: true, components: ["app-shell"], endpoint: "http://127.0.0.1:4173",
+    processId: 4173, serviceName: "fixture-service", sourceFingerprint: "fixture-source", status: "healthy",
+  },
+})}\n`);
 const fixtureEvidenceDigest = sha(readFileSync(fixtureEvidencePath));
 const staticReceipt = (lawId: string, check: string, passed = true) => [{ check, lawId, passed }];
 const staticNativeRef = (lawId: string, mode: string, clauses: readonly string[], check: string,
@@ -273,6 +282,49 @@ const directObservation = (
   request: QualityProofRequest, clauses: string[], refs: string[],
 ): Record<string, unknown> => ({ ...request, clauses, passed: true, refs, findings: [] });
 
+test("each Dynamic mode authenticates its native object, clause binding, and observed value", () => {
+  const base = {
+    schema_version: "governance-dynamic-observation.v1", proof_run_id: "a".repeat(64),
+    candidate: "b".repeat(40), captured_at: "2026-08-27T00:00:00.000Z",
+    lawId: "LAW-FIXTURE-001-V1", clauses: ["forbidden:0"], observed_value: "native-fixture",
+  };
+  const observations = {
+    browser: { browserVersion: "Chromium 1", endpoint: "https://example.test/", pageTitle: "Fixture",
+      sessionFacts: { exactTarget: true } },
+    service: { cleanupVerified: true, components: ["fixture"], endpoint: "http://127.0.0.1:4173",
+      processId: 4173, serviceName: "fixture", sourceFingerprint: "sha256:fixture", status: "healthy" },
+    database: { databaseEngine: "sqlite", databasePath: "/tmp/fixture.sqlite",
+      identitySet: ["job-1"], recordCounts: { tasks: 1 } },
+    storage: { confirmedCount: 1, mutationCount: 1, storageEngine: "sqlite-wal",
+      storagePath: "/tmp/fixture.sqlite", unresolvedCount: 0 },
+    provider: { catalogHash: "sha256:fixture", pluginIds: ["fixture-plugin"],
+      providerName: "ChatGPT", terminalReceiptCount: 1 },
+    authorization: { authorityState: "present", fenceHashes: ["sha256:fixture"],
+      grantCount: 1, principalIds: ["fixture-plugin"] },
+    recovery: { finalState: "completed", observedStates: ["recovery_pending", "completed"],
+      recoveryJobId: "job-1", unresolvedCount: 0 },
+  } as const;
+  for (const [kind, observation] of Object.entries(observations)) {
+    const evidenceMode = `dynamic.${kind}`;
+    const payload = { ...base, evidenceMode, observation_kind: kind, observation };
+    const binding = { lawId: base.lawId, evidenceMode, clauses: base.clauses,
+      observedValue: base.observed_value, proofRunId: base.proof_run_id, candidate: base.candidate };
+    assert.equal(validateDynamicReceiptPayload(payload, binding), true, kind);
+    assert.equal(validateDynamicReceiptPayload({ ...payload, observation: {} }, binding), false, `${kind}:empty`);
+    assert.equal(validateDynamicReceiptPayload({ ...payload, observation_kind: kind === "browser" ? "service" : "browser" }, binding), false,
+      `${kind}:mode-mismatch`);
+    assert.equal(validateDynamicReceiptPayload({ ...payload, clauses: ["forbidden:1"] }, binding), false,
+      `${kind}:clause-mismatch`);
+    assert.equal(validateDynamicReceiptPayload({ ...payload, observed_value: "wrong" }, binding), false,
+      `${kind}:value-mismatch`);
+  }
+  const serviceMode = "dynamic.service";
+  assert.equal(validateDynamicReceiptPayload({ ...base, evidenceMode: serviceMode, observation_kind: "service",
+    observation: observations.browser }, { lawId: base.lawId, evidenceMode: serviceMode, clauses: base.clauses,
+    observedValue: base.observed_value, proofRunId: base.proof_run_id, candidate: base.candidate }), false,
+  "a browser object cannot authenticate a service receipt");
+});
+
 test("a fixed or unauthenticated stdout marker cannot mint evidence for unexecuted law routes", () => {
   const first = { ...fixtureLaw(), lawId: "LAW-GPT-001-V2", capabilityDomain: "gpt" };
   const routes = [{ law: first, mode: "exam.golden" }];
@@ -393,7 +445,7 @@ test("Dynamic receipts must be exact regular files created in this proof run dir
   );
 });
 
-test("Dynamic routes cannot reuse one native receipt locator or emit summary-only clauses", () => {
+test("Dynamic routes cannot substitute one mode-bound receipt locator or emit summary-only clauses", () => {
   const law = { ...fixtureLaw(), lawId: "LAW-LOCAL-APP-SHELL-001-V6", capabilityDomain: "local-app-shell" };
   const routes = [{ law, mode: "dynamic.service" }, { law, mode: "dynamic.browser" }];
   const requests = proofRequests(routes, "dynamic");
@@ -405,7 +457,7 @@ test("Dynamic routes cannot reuse one native receipt locator or emit summary-onl
   assert.throws(
     () => bindNativeProofObservations(output, routes, requests, "proof:local-shell-current-runtime",
       "dynamic", fixtureEvidenceDirectory),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_DUPLICATE",
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
   );
   const summaryOnly = `${proofObservationPrefix}${JSON.stringify({
     ...directObservation(requests[0]!, ["summary"], [dynamicRef(
@@ -616,7 +668,7 @@ test("each static mode records a mode-native semantic-check selector", () => {
   assert.equal(modeSelector("static.yaml").every((ref) => ref.startsWith("yaml:")), true);
 });
 
-test("one shared semantic check cannot mint an entire four-mode static matrix", () => {
+test("two-mode and partial multi-mode semantic-check substitution fail closed", () => {
   const lawId = "LAW-FIXTURE-001-V1";
   const targetPath = "scripts/audit/shared/static-inspection-contract.ts";
   const context = {
@@ -626,15 +678,19 @@ test("one shared semantic check cannot mint an entire four-mode static matrix", 
       requiredStaticModes: ["static.filesystem", "static.ast", "static.types", "static.dependency"],
       targetPaths: [targetPath], targetSet: { queryRef: `scope:${lawId}#appliesTo-minus-excludes`, count: 1 } }],
   } as unknown as InspectorContext;
-  const assertion = (mode: "static.filesystem" | "static.ast" | "static.types" | "static.dependency") =>
+  const assertion = (mode: "static.filesystem" | "static.ast" | "static.types" | "static.dependency", check: string) =>
     ({ clauses: staticClauses(0), evidenceMode: mode,
-    passed: true, refs: staticEvidenceRefs(context, lawId, mode, staticClauses(0), staticReceipt(lawId, "inspectEverything"),
-      ["inspectEverything"], staticNativeRef(lawId, mode, staticClauses(0), "inspectEverything", targetPath)) });
-  assert.throws(() => validateStaticInspection(context, { capabilityDomain: "fixture", reportedLawIds: [lawId],
-    lawResults: [{ lawId, assertions: [assertion("static.filesystem"), assertion("static.ast"),
-      assertion("static.types"), assertion("static.dependency")], findings: [] }],
-    inspectedFiles: [targetPath] }),
-  (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE");
+    passed: true, refs: staticEvidenceRefs(context, lawId, mode, staticClauses(0), staticReceipt(lawId, check),
+      [check], staticNativeRef(lawId, mode, staticClauses(0), check, targetPath)) });
+  const reject = (checks: readonly [string, string, string, string]) => assert.throws(
+    () => validateStaticInspection(context, { capabilityDomain: "fixture", reportedLawIds: [lawId],
+      lawResults: [{ lawId, assertions: [assertion("static.filesystem", checks[0]), assertion("static.ast", checks[1]),
+        assertion("static.types", checks[2]), assertion("static.dependency", checks[3])], findings: [] }],
+      inspectedFiles: [targetPath] }),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
+  );
+  reject(["inspectSharedPair", "inspectSharedPair", "inspectTypes", "inspectDependencies"]);
+  reject(["inspectPartialGroup", "inspectPartialGroup", "inspectPartialGroup", "inspectDependencies"]);
 });
 
 test("a dead or unexecuted producer semantic check cannot mint static evidence", () => {
@@ -705,7 +761,8 @@ test("the active evidence-ownership blueprint rejects central clauses and mode s
   assert.equal(directProof.includes("observation_kind: evidenceMode.slice"), true);
   assert.equal(directProof.includes("observation: observationForMode(evidenceMode as DynamicMode)"), true);
   assert.equal(directProof.includes("lawId, evidenceMode, observation })"), false);
-  assert.equal(proofContract.includes("directRuntimeReceiptValid"), true);
+  assert.equal(proofContract.includes("validateDynamicReceiptPayload"), true);
+  assert.equal(proofContract.includes("dynamicReceiptFileValid"), true);
 });
 
 test("unsupported evidence kinds and projection identity drift fail closed", () => {

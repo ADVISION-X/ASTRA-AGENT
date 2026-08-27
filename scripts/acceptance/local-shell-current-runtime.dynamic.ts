@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -79,8 +79,8 @@ const baseUrl = `http://127.0.0.1:${port}`;
 let stdout = "";
 let stderr = "";
 let browser: Browser | undefined;
-let observation: Readonly<{ health: Health; listenerPid: number; browserVersion: string; screenshotSha256: string }> | undefined;
-const browserReceiptPath = path.join(proofReceiptDir, "app-shell.png");
+let observation: Readonly<{ health: Health; listenerPid: number; browserVersion: string; pageTitle: string; screenshotSha256: string }> | undefined;
+const browserReceiptPath = path.join(proofReceiptDir, "app-shell-browser.json");
 const shellHealthReceiptPath = path.join(proofReceiptDir, "shell-health.json");
 const degradedHealthReceiptPath = path.join(proofReceiptDir, "degraded-health.json");
 const startupProcessReceiptPath = path.join(proofReceiptDir, "startup-process.json");
@@ -106,7 +106,8 @@ try {
   browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   await page.goto(baseUrl, { waitUntil: "networkidle" });
-  assert.equal(await page.title(), "GrassEye AGENT Workbench");
+  const pageTitle = await page.title();
+  assert.equal(pageTitle, "GrassEye AGENT Workbench");
   assert.deepEqual({
     shell: await page.locator("[data-app-shell]").count(), sidebar: await page.locator("[data-app-shell-sidebar]").count(),
     workspace: await page.locator("main[data-app-shell-workspace]").count(), inspector: await page.locator("[data-app-shell-inspector]").count(),
@@ -114,8 +115,7 @@ try {
   }, { shell: 1, sidebar: 1, workspace: 1, inspector: 1, console: 1, retired: 0 });
   const screenshot = path.join(dataDir, "current-app-shell.png");
   await page.screenshot({ path: screenshot, fullPage: true, type: "png" });
-  copyFileSync(screenshot, browserReceiptPath);
-  observation = Object.freeze({ health, listenerPid, browserVersion: browser.version(),
+  observation = Object.freeze({ health, listenerPid, browserVersion: browser.version(), pageTitle,
     screenshotSha256: createHash("sha256").update(readFileSync(screenshot)).digest("hex") });
 } finally {
   await browser?.close();
@@ -125,29 +125,66 @@ try {
 }
 
 assert(observation);
-writeFileSync(shellHealthReceiptPath, `${JSON.stringify(observation.health)}\n`, { mode: 0o600 });
-writeFileSync(degradedHealthReceiptPath, `${JSON.stringify({
-  health: observation.health, componentCount: observation.health.components?.length ?? 0,
-})}\n`, { mode: 0o600 });
-writeFileSync(startupProcessReceiptPath, `${JSON.stringify({
-  pid: observation.listenerPid, root, startup: "grasseye:start", listenerAbsentAfterCleanup: listenerPids(port).length === 0,
-})}\n`, { mode: 0o600 });
-writeFileSync(startupListenerReceiptPath, `${JSON.stringify({
-  host: "127.0.0.1", port, root, listenerAbsentAfterCleanup: listenerPids(port).length === 0,
-})}\n`, { mode: 0o600 });
 const runtimeValue = `run=${proofRunId};candidate=${proofCandidate};pid=${observation.listenerPid};health=${observation.health.status}`;
 const browserValue = `${runtimeValue};browser=${observation.browserVersion};screenshotSha256=${observation.screenshotSha256}`;
+const componentNames = observation.health.components?.map((component) => component.name ?? "unnamed-component") ?? [];
+const serviceObservation = (serviceName: string) => ({
+  cleanupVerified: listenerPids(port).length === 0, components: componentNames, endpoint: baseUrl,
+  processId: observation.listenerPid, serviceName, sourceFingerprint: observation.health.sourceFingerprint,
+  status: observation.health.status,
+});
+const receiptPayload = (input: {
+  clauses: string[];
+  evidenceMode: "dynamic.browser" | "dynamic.service";
+  lawId: string;
+  observation: Readonly<Record<string, unknown>>;
+  observedValue: string;
+}) => ({
+  schema_version: "governance-dynamic-observation.v1", proof_run_id: proofRunId, candidate: proofCandidate,
+  captured_at: new Date().toISOString(), lawId: input.lawId, evidenceMode: input.evidenceMode,
+  observation_kind: input.evidenceMode.slice("dynamic.".length), clauses: input.clauses,
+  observed_value: input.observedValue, observation: input.observation,
+});
+const writeReceipt = (receiptPath: string, input: Parameters<typeof receiptPayload>[0]): void => {
+  writeFileSync(receiptPath, `${JSON.stringify(receiptPayload(input))}\n`, { mode: 0o600, flag: "wx" });
+};
+const browserClauses = ["forbidden:7", "summary"];
+const shellClauses = ["forbidden:4", "forbidden:8", "summary"];
+const degradedClauses = ["forbidden:0"];
+const startupProcessClauses = ["forbidden:11", "summary"];
+const startupListenerClauses = ["forbidden:0", "summary"];
+const degradedValue = `${runtimeValue};components=${componentNames.length}`;
+const startupProcessValue = `${runtimeValue};startup=grasseye:start;cleanup=verified`;
+const startupListenerValue = `${runtimeValue};listenerOwner=${root};cleanup=verified`;
+writeReceipt(browserReceiptPath, {
+  clauses: browserClauses, evidenceMode: "dynamic.browser", lawId: "LAW-LOCAL-APP-SHELL-001-V6",
+  observedValue: browserValue,
+  observation: { browserVersion: observation.browserVersion, endpoint: baseUrl, pageTitle: observation.pageTitle,
+    sessionFacts: { screenshotSha256: observation.screenshotSha256, shellCount: 1, retiredSurfaceCount: 0 } },
+});
+writeReceipt(shellHealthReceiptPath, { clauses: shellClauses, evidenceMode: "dynamic.service",
+  lawId: "LAW-LOCAL-APP-SHELL-001-V6", observedValue: runtimeValue,
+  observation: serviceObservation("local-app-shell") });
+writeReceipt(degradedHealthReceiptPath, { clauses: degradedClauses, evidenceMode: "dynamic.service",
+  lawId: "LAW-LOCAL-APP-SHELL-003-V3", observedValue: degradedValue,
+  observation: serviceObservation("local-app-shell-status") });
+writeReceipt(startupProcessReceiptPath, { clauses: startupProcessClauses, evidenceMode: "dynamic.service",
+  lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", observedValue: startupProcessValue,
+  observation: serviceObservation("grasseye-startup-shell") });
+writeReceipt(startupListenerReceiptPath, { clauses: startupListenerClauses, evidenceMode: "dynamic.service",
+  lawId: "LAW-STARTUP-ENTRYPOINT-002-V4", observedValue: startupListenerValue,
+  observation: serviceObservation("grasseye-local-listener") });
 const nativeReceipt = (receiptPath: string): string => createHash("sha256").update(readFileSync(receiptPath)).digest("hex");
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-001-V6", evidenceMode: "dynamic.browser", clauses: ["forbidden:7","summary"],
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-001-V6", evidenceMode: "dynamic.browser", clauses: browserClauses,
   locator: browserReceiptPath, receipt: nativeReceipt(browserReceiptPath), observedValue: browserValue });
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-001-V6", evidenceMode: "dynamic.service", clauses: ["forbidden:4","forbidden:8","summary"],
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-001-V6", evidenceMode: "dynamic.service", clauses: shellClauses,
   locator: shellHealthReceiptPath, receipt: nativeReceipt(shellHealthReceiptPath), observedValue: runtimeValue });
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-003-V3", evidenceMode: "dynamic.service", clauses: ["forbidden:0","forbidden:1","summary"],
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-003-V3", evidenceMode: "dynamic.service", clauses: degradedClauses,
   locator: degradedHealthReceiptPath, receipt: nativeReceipt(degradedHealthReceiptPath),
-  observedValue: `${runtimeValue};components=${observation.health.components?.length ?? 0}` });
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMode: "dynamic.service", clauses: ["forbidden:11","summary"],
+  observedValue: degradedValue });
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMode: "dynamic.service", clauses: startupProcessClauses,
   locator: startupProcessReceiptPath, receipt: nativeReceipt(startupProcessReceiptPath),
-  observedValue: `${runtimeValue};startup=grasseye:start;cleanup=verified` });
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-STARTUP-ENTRYPOINT-002-V4", evidenceMode: "dynamic.service", clauses: ["forbidden:0","summary"],
+  observedValue: startupProcessValue });
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-STARTUP-ENTRYPOINT-002-V4", evidenceMode: "dynamic.service", clauses: startupListenerClauses,
   locator: startupListenerReceiptPath, receipt: nativeReceipt(startupListenerReceiptPath),
-  observedValue: `${runtimeValue};listenerOwner=${root};cleanup=verified` });
+  observedValue: startupListenerValue });

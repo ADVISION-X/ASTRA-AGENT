@@ -3,7 +3,6 @@ import { Node, SyntaxKind, type Identifier } from "ts-morph";
 import { selectLawId } from "../../../shared/finding-utils.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
 import type { InventoryFindingCollector } from "./code-purity-finding-collector.js";
-import { scanStructuralTypeEscapes } from "./scan-structural-type-escapes.js";
 
 const bannedPathTokens = [
   "bridge",
@@ -246,15 +245,21 @@ const scanRequireCall = (
   }
 };
 
-export const scanStructuralSourceShape = (
+export const scanStructuralFilesystemShape = (
   governedFile: GovernedFile,
   lawIds: readonly string[],
   collector: InventoryFindingCollector,
 ): void => {
   const sourceAtomicityLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V5");
-  const typeEscapeLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V5");
   const bridgeLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V5");
   scanPathBudget(collector, governedFile, sourceAtomicityLawId, bridgeLawId);
+};
+
+export const scanStructuralDependencyShape = (
+  governedFile: GovernedFile,
+  lawIds: readonly string[],
+  collector: InventoryFindingCollector,
+): void => {
+  const sourceAtomicityLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V5");
   scanImportExportBudgets(collector, governedFile, sourceAtomicityLawId);
-  scanStructuralTypeEscapes(collector, governedFile, typeEscapeLawId);
 };

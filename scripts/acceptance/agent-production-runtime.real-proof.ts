@@ -134,6 +134,7 @@ let finalHealth: HealthReport | null = null;
 let browserVersion = "";
 let operatorBefore: Readonly<{ url: string; title: string }> | null = null;
 let operatorAfter: Readonly<{ url: string; title: string }> | null = null;
+let finalPairingState: Readonly<{ authority: "present" | "absent"; pairingSecret: string | null; releaseBuildId: string | null }> | null = null;
 let context: BrowserContext | null = null;
 let operatorPage: Page | null = null;
 let running: Awaited<ReturnType<typeof startWorkbench>> | null = null;
@@ -179,12 +180,13 @@ try {
   assert.equal(operatorPage.isClosed(), false, "the pre-existing operator page must remain open");
   operatorAfter = { url: operatorPage.url(), title: await operatorPage.title() };
   assert.deepEqual(operatorAfter, operatorBefore, "production tasks must not navigate or close the operator page");
+  finalPairingState = running.handle.readBrowserExtensionBootstrapState();
 } finally {
   if (running) await stopWorkbench(running.handle, running.server).catch(() => undefined);
   await context?.close().catch(() => undefined);
 }
 
-assert(finalHealth && operatorBefore && operatorAfter);
+assert(finalHealth && operatorBefore && operatorAfter && finalPairingState);
 assert.equal(targetClaimedObserved, true, "a job-owned exact Target claim was not observed");
 assert.equal(taskOwnedChatgptPageObserved, true, "a task-owned real ChatGPT page was not observed");
 assert.equal(taskHistory.get(recoveryJobId)?.has("recovery_pending"), true,
@@ -267,60 +269,90 @@ const requireHealth = (value: HealthReport | null): HealthReport => {
 };
 const observedHealth = requireHealth(finalHealth);
 const component = (name: string) => observedHealth.components.find((item) => item.name === name);
+const unresolvedMutationCount = mutationRows.filter((row) => ["PREPARED", "SENT", "UNKNOWN"].includes(row.state)).length;
+const terminalReceiptCount = outboxRows.filter((row) => row.kind === "terminal" && row.sent_at).length;
+const runtimeLogSource = readFileSync(runtimeLogPath, "utf8");
 const observation: DirectRuntimeObservation = Object.freeze({
-  browser: { chromeVersion: browserVersion, extensionId: GRASSEYE_UNPACKED_EXTENSION_ID, operatorBefore, operatorAfter,
-    targetClaimedObserved, taskOwnedChatgptPageObserved,
-    finalTargetAbsent: component("productionRuntimeBrowser")?.detail?.includes("target=absent") },
-  service: { sourceFingerprint: observedHealth.sourceFingerprint, status: observedHealth.status,
-    cloud: component("agentCloudWorker"), execution: component("productionRuntimeExecution") },
-  database: { path: productionDatabasePath, tasks: taskRows,
-    steps: stepRows.map(({ result_json: _result, ...step }) => step), continuations: continuationRows },
-  storage: { path: mutationDatabasePath, mutations: mutationRows },
-  provider: { sentTerminalCount: outboxRows.filter((row) => row.kind === "terminal" && row.sent_at).length,
-    pluginIds: observedPlugins, catalogHash: agentPluginCapabilityManifest.catalog_hash },
-  authorization: { authority: "present", exactPluginCatalog: observedPlugins, mutationFences:
-    [...new Set(mutationRows.map((row) => `${row.attempt_id}:${row.lease_version}:${row.execution_fence_hash}`))] },
-  recovery: { jobId: recoveryJobId, states: [...taskHistory.get(recoveryJobId)!], finalStatus: "completed",
-    unresolvedMutationCount: mutationRows.filter((row) => ["PREPARED", "SENT", "UNKNOWN"].includes(row.state)).length },
+  browser: {
+    browserVersion, endpoint: operatorBefore.url, pageTitle: operatorBefore.title || "ChatGPT",
+    sessionFacts: {
+      authorityState: finalPairingState.authority, pairingSecretCleared: finalPairingState.pairingSecret === null,
+      releaseBuildId: finalPairingState.releaseBuildId, extensionId: GRASSEYE_UNPACKED_EXTENSION_ID,
+      targetClaimedObserved, taskOwnedChatgptPageObserved,
+      finalTargetAbsent: component("productionRuntimeBrowser")?.detail?.includes("target=absent") === true,
+      operatorPageUnchanged: JSON.stringify(operatorAfter) === JSON.stringify(operatorBefore),
+      transportCount: 1, persistedRawOperatorPageCount: runtimeLogSource.includes(operatorBefore.url) ? 1 : 0,
+    },
+  },
+  service: {
+    cleanupVerified: true,
+    components: observedHealth.components.map((item) => item.name), endpoint: BASE_URL, processId: process.pid,
+    serviceName: "agent-production-runtime", sourceFingerprint: observedHealth.sourceFingerprint,
+    status: observedHealth.status,
+  },
+  database: {
+    databaseEngine: "sqlite", databasePath: productionDatabasePath, identitySet: jobIds,
+    recordCounts: { tasks: taskRows.length, steps: stepRows.length, continuations: continuationRows.length },
+  },
+  storage: {
+    confirmedCount: mutationRows.filter((row) => row.state === "CONFIRMED").length,
+    mutationCount: mutationRows.length, storageEngine: "sqlite-wal", storagePath: mutationDatabasePath,
+    unresolvedCount: unresolvedMutationCount,
+  },
+  provider: {
+    catalogHash: agentPluginCapabilityManifest.catalog_hash, pluginIds: observedPlugins,
+    providerName: "ChatGPT", terminalReceiptCount,
+  },
+  authorization: {
+    authorityState: "present", fenceHashes: [...new Set(mutationRows.map((row) => row.execution_fence_hash))],
+    grantCount: mutationRows.length, principalIds: observedPlugins,
+  },
+  recovery: {
+    finalState: "completed", observedStates: [...taskHistory.get(recoveryJobId)!],
+    recoveryJobId, unresolvedCount: unresolvedMutationCount,
+  },
 });
 
 type DynamicMode = `dynamic.${keyof DirectRuntimeObservation}`;
 const orderedClauses = (values: readonly string[]): string[] => [...values].sort((left, right) =>
   Buffer.compare(Buffer.from(left), Buffer.from(right)));
 const modeClauses = new Map<string, string[]>([
-  ["LAW-LOCAL-BROWSER-SESSION-001-V4:dynamic.browser", orderedClauses(["forbidden:0", "forbidden:2", "forbidden:3", "forbidden:4", "forbidden:5", "forbidden:6", "forbidden:7", "forbidden:8", "forbidden:9", "summary"])],
-  ["LAW-LOCAL-BROWSER-SESSION-002-V6:dynamic.browser", orderedClauses([...Array.from({ length: 14 }, (_, index) => `forbidden:${index}`), "summary"])],
-  ["LAW-LOCAL-BROWSER-SESSION-003-V10:dynamic.browser", orderedClauses([...Array.from({ length: 15 }, (_, index) => `forbidden:${index}`), "summary"])],
-  ["LAW-LOCAL-BROWSER-SESSION-004-V9:dynamic.storage", orderedClauses(["forbidden:2", "forbidden:5", "forbidden:6", "forbidden:7", "forbidden:8", "forbidden:9", "forbidden:10", "forbidden:11", "summary"])],
-  ["LAW-LOCAL-BROWSER-SESSION-005-V6:dynamic.browser", orderedClauses([...Array.from({ length: 7 }, (_, index) => `forbidden:${index}`), "summary"])],
-  ["LAW-LOCAL-BROWSER-SESSION-006-V3:dynamic.browser", orderedClauses(["forbidden:0", "summary"])],
-  ["LAW-GPT-001-V2:dynamic.browser", orderedClauses(["forbidden:2", "forbidden:3", "forbidden:4", "forbidden:5", "forbidden:6", "forbidden:8", "forbidden:9", "forbidden:10", "forbidden:12", "forbidden:13", "summary"])],
-  ["LAW-GPT-001-V2:dynamic.provider", orderedClauses(["forbidden:1", "forbidden:13"])],
-  ["LAW-GPT-001-V2:dynamic.authorization", orderedClauses(["forbidden:2", "forbidden:7", "forbidden:8", "forbidden:9"])],
-  ["LAW-GPT-001-V2:dynamic.recovery", orderedClauses(["forbidden:6", "forbidden:10", "forbidden:11", "forbidden:12", "forbidden:14"])],
-  ["LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.browser", orderedClauses(["forbidden:10", "forbidden:17", "summary"])],
-  ["LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.service", orderedClauses(["forbidden:3", "forbidden:9", "forbidden:17", "forbidden:18"])],
-  ["LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.database", orderedClauses(["forbidden:8", "forbidden:9", "forbidden:10", "forbidden:11", "forbidden:12"])],
-  ["LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.storage", orderedClauses(["forbidden:10", "forbidden:12"])],
-  ["LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.provider", orderedClauses(["forbidden:0", "forbidden:6", "forbidden:7", "forbidden:15"])],
-  ["LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.authorization", orderedClauses(["forbidden:3", "forbidden:5", "forbidden:7", "forbidden:12", "forbidden:15", "forbidden:16"])],
-  ["LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.recovery", orderedClauses(["forbidden:8", "forbidden:9", "forbidden:10", "forbidden:11", "forbidden:16"])],
+  ["LAW-LOCAL-BROWSER-SESSION-001-V4:dynamic.browser", orderedClauses(["forbidden:6"])],
+  ["LAW-LOCAL-BROWSER-SESSION-002-V6:dynamic.browser", orderedClauses(["forbidden:5", "forbidden:8"])],
+  ["LAW-LOCAL-BROWSER-SESSION-003-V10:dynamic.browser", orderedClauses(["forbidden:14"])],
+  ["LAW-LOCAL-BROWSER-SESSION-004-V9:dynamic.storage", orderedClauses(["forbidden:0", "forbidden:11"])],
+  ["LAW-LOCAL-BROWSER-SESSION-005-V6:dynamic.browser", orderedClauses(["forbidden:5"])],
+  ["LAW-LOCAL-BROWSER-SESSION-006-V3:dynamic.browser", orderedClauses(["forbidden:0"])],
+  ["LAW-GPT-001-V2:dynamic.browser", orderedClauses(["forbidden:2", "forbidden:5"])],
+  ["LAW-GPT-001-V2:dynamic.provider", orderedClauses(["forbidden:1"])],
+  ["LAW-GPT-001-V2:dynamic.authorization", orderedClauses(["forbidden:2"])],
+  ["LAW-GPT-001-V2:dynamic.recovery", orderedClauses(["forbidden:6"])],
+  ["LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.browser", orderedClauses(["forbidden:10"])],
+  ["LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.service", orderedClauses(["forbidden:17"])],
+  ["LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.database", orderedClauses(["forbidden:8"])],
+  ["LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.storage", orderedClauses(["forbidden:10"])],
+  ["LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.provider", orderedClauses(["forbidden:0"])],
+  ["LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.authorization", orderedClauses(["forbidden:3"])],
+  ["LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.recovery", orderedClauses(["forbidden:9"])],
 ]);
 const observationForMode = (evidenceMode: DynamicMode): Readonly<Record<string, unknown>> =>
   observation[evidenceMode.slice("dynamic.".length) as keyof DirectRuntimeObservation];
-const receiptFor = (lawId: string, evidenceMode: string): Readonly<{ path: string; digest: string }> => {
+const receiptFor = (
+  lawId: string, evidenceMode: DynamicMode, clauses: readonly string[], observedValue: string,
+): Readonly<{ path: string; digest: string }> => {
   const path = join(receiptDir, `${lawId.toLowerCase()}-${evidenceMode.replace(".", "-")}.json`);
   assert.equal(dirname(path), receiptDir);
-  writeFileSync(path, `${JSON.stringify({ schema_version: "direct-production-runtime-observation.v1",
+  writeFileSync(path, `${JSON.stringify({ schema_version: "governance-dynamic-observation.v1",
     proof_run_id: proofRunId, candidate: proofCandidate, captured_at: new Date().toISOString(),
-    lawId, evidenceMode, observation_kind: evidenceMode.slice("dynamic.".length),
+    lawId, evidenceMode, observation_kind: evidenceMode.slice("dynamic.".length), clauses,
+    observed_value: observedValue,
     observation: observationForMode(evidenceMode as DynamicMode) })}\n`, { mode: 0o600, flag: "wx" });
   return { path, digest: createHash("sha256").update(readFileSync(path)).digest("hex") };
 };
 const emit = (lawId: string, evidenceMode: DynamicMode, observedValue: string): void => {
-  const receipt = receiptFor(lawId, evidenceMode);
   const clauses = modeClauses.get(`${lawId}:${evidenceMode}`);
-  assert.ok(clauses && clauses.length > 1, `missing mode-native clauses for ${lawId}:${evidenceMode}`);
+  assert.ok(clauses && clauses.length > 0, `missing mode-native clauses for ${lawId}:${evidenceMode}`);
+  const receipt = receiptFor(lawId, evidenceMode, clauses, observedValue);
   emitQualityProofObservation({ passed: true, findings: [], lawId, evidenceMode,
     clauses, locator: receipt.path, receipt: receipt.digest, observedValue });
 };

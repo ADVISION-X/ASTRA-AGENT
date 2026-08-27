@@ -9,7 +9,7 @@ import { ROOT, fail, repositoryPaths, sha } from "../governance-runtime.js";
 import { buildQualityReport, type LawExecutionResult, type QualityAssertion, type QualityFinding, type QualityParticipant } from "./quality-contract.js";
 import { runInspectionWorker } from "./quality-inspector-worker.js";
 import type { InspectorFinding, InspectorLawResult, SessionInspectorOutput } from "./inspector-contracts.js";
-import { parseQualityProofObservations, type QualityProofObservation, type QualityProofRequest } from "./proof-observation.js";
+import { dynamicReceiptFileValid, parseQualityProofObservations, type QualityProofObservation, type QualityProofRequest } from "./proof-observation.js";
 import { dynamicScriptFor, examScriptFor } from "./quality-routes.js";
 import { validateProviderContractSpec, type ProviderContract } from "./provider-contract-authority.js";
 
@@ -312,8 +312,17 @@ const observationAuthenticatesRequest = (
     try { locator = decodeURIComponent(match[1]!); selector = decodeURIComponent(match[2]!); } catch { return false; }
     const identity = `lawId=${request.lawId};mode=${request.evidenceMode};command=npm run ${script};`;
     const execution = `;run=${request.proofRunId};candidate=${request.candidate};`;
+    const observedValueMarker = ";observedValue=";
+    const observedValueIndex = selector.indexOf(observedValueMarker);
+    const observedValue = observedValueIndex >= 0
+      ? selector.slice(observedValueIndex + observedValueMarker.length) : "";
     return selector.startsWith(identity) && selector.includes(execution)
-      && nativeReceiptMatches(locator, match[3]!, nativeReceiptDirectory);
+      && observedValue.length > 0
+      && nativeReceiptMatches(locator, match[3]!, nativeReceiptDirectory)
+      && dynamicReceiptFileValid(locator, {
+        lawId: observation.lawId, evidenceMode: observation.evidenceMode, clauses: observation.clauses,
+        observedValue, proofRunId: observation.proofRunId, candidate: observation.candidate,
+      });
   });
 };
 

@@ -68,7 +68,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     reportedLawIds: evaluation.reportedLawIds,
     lawResults: [{ lawId, assertions: [
       { clauses: staticClauses(0, 1, 2, 3, 4, 5, 6), evidenceMode: "static.ast", ...refs("static.ast", staticClauses(0, 1, 2, 3, 4, 5, 6), ["inspectProjectSources"]) },
-      { clauses: staticClauses(0), evidenceMode: "static.dependency", ...refs("static.dependency", staticClauses(0), ["inspectActivePluginGate", "inspectProjectSources"]) },
+      { clauses: staticClauses(0), evidenceMode: "static.dependency", ...refs("static.dependency", staticClauses(0), ["inspectActivePluginGate"]) },
       { clauses: staticClauses(0), evidenceMode: "static.filesystem", ...refs("static.filesystem", staticClauses(0), ["inspectRootAllowlist"]) },
       { clauses: staticClauses(0), evidenceMode: "static.types", ...refs("static.types", staticClauses(0), ["inspectTypesContractRoot"]) },
     ], findings }],

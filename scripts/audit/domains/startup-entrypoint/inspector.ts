@@ -22,8 +22,9 @@ type Finding = ReturnType<typeof createFinding>;
 const sourceFile = (context: InspectorContext, filePath: string): SourceFile | undefined =>
   context.project.getSourceFile(resolveFromRepo(filePath));
 
-const addFinding = (findings: Finding[], lawId: string, filePath: string, message: string): void => {
-  findings.push(createFinding({ evidenceMode: "static.ast", checkId, lawId, clauseId, filePath, message }));
+const addFinding = (findings: Finding[], lawId: string, filePath: string, message: string,
+  evidenceMode: "static.ast" | "static.contract" = "static.ast"): void => {
+  findings.push(createFinding({ evidenceMode, checkId, lawId, clauseId, filePath, message }));
 };
 
 const hasNamedImport = (source: SourceFile, modulePart: string, name: string): boolean =>
@@ -139,6 +140,19 @@ const inspectStartupBoundary = (context: InspectorContext, findings: Finding[], 
   inspectUnpackedReadback(preflight, findings, lawId);
 };
 
+const inspectStartupCommandContract = (
+  context: InspectorContext, findings: Finding[], lawId: string,
+): void => {
+  const launch = sourceFile(context, launchPath);
+  const packageJson = JSON.parse(readFileSync(resolveFromRepo(packagePath), "utf8")) as { scripts?: Record<string, string> };
+  const expected = "node --env-file-if-exists=.env.local scripts/startup/launch-grasseye.mjs";
+  if (packageJson.scripts?.["grasseye:start"] !== expected) addFinding(findings, lawId, packagePath,
+    "grasseye:start must remain the one optional .env.local loader and startup entrypoint.", "static.contract");
+  const exportedStarts = launch?.getFunctions().filter((declaration) => declaration.isExported()).length ?? 0;
+  if (!launch || exportedStarts !== 0) addFinding(findings, lawId, launchPath,
+    "The startup entrypoint must execute directly and must not export a second callable startup contract.", "static.contract");
+};
+
 const inspectLocalLaunchAuthority = (
   launch: SourceFile,
   findings: Finding[],
@@ -220,6 +234,28 @@ const inspectLocalStartupAuthorityBoundary = (
   inspectListenerCleanupAuthority(processControl, findings, lawId);
 };
 
+const inspectArtifactResultContract = (
+  context: InspectorContext, findings: Finding[], lawId: string,
+): void => {
+  const artifactSync = sourceFile(context, artifactSyncPath);
+  const owner = artifactSync?.getFunction("ensureCurrentBrowserRuntimeArtifact");
+  if (!artifactSync || !owner || !owner.isExported()) {
+    addFinding(findings, lawId, artifactSyncPath,
+      "ensureCurrentBrowserRuntimeArtifact must remain the sole exported artifact synchronization contract.", "static.contract");
+    return;
+  }
+  const parameter = owner.getParameters()[0]?.getNameNode().getText() ?? "";
+  for (const required of ["rootDir", "runBuild", "readPreflight"]) if (!parameter.includes(required)) {
+    addFinding(findings, lawId, artifactSyncPath,
+      `Artifact synchronization contract is missing injected boundary ${required}.`, "static.contract");
+  }
+  const literals = stringLiterals(artifactSync);
+  for (const required of ["READY", "UNPACKED_WEBSOCKET_AUTHORITY", "BROWSER_UNPACKED_ARTIFACT_REBUILD_FAILED"]) {
+    if (!literals.has(required)) addFinding(findings, lawId, artifactSyncPath,
+      `Artifact synchronization result contract is missing ${required}.`, "static.contract");
+  }
+};
+
 const inspectDomainEvaluation = (context: InspectorContext) => {
   const lawId = selectLawId(context.planEntry.lawIds, "LAW-STARTUP-ENTRYPOINT-001-V4");
   const boundaryLawId = selectLawId(context.planEntry.lawIds, "LAW-STARTUP-ENTRYPOINT-002-V4");
@@ -227,8 +263,12 @@ const inspectDomainEvaluation = (context: InspectorContext) => {
   const staticCheckReceipts: import("../../shared/inspector-contracts.js").StaticCheckReceipt[] = [];
   recordStaticCheck({ check: "inspectStartupBoundary", findings, lawIds: [lawId], receipts: staticCheckReceipts,
     run: () => inspectStartupBoundary(context, findings, lawId) });
+  recordStaticCheck({ check: "inspectStartupCommandContract", findings, lawIds: [lawId], receipts: staticCheckReceipts,
+    run: () => inspectStartupCommandContract(context, findings, lawId) });
   recordStaticCheck({ check: "inspectLocalStartupAuthorityBoundary", findings, lawIds: [boundaryLawId], receipts: staticCheckReceipts,
     run: () => inspectLocalStartupAuthorityBoundary(context, findings, boundaryLawId) });
+  recordStaticCheck({ check: "inspectArtifactResultContract", findings, lawIds: [boundaryLawId], receipts: staticCheckReceipts,
+    run: () => inspectArtifactResultContract(context, findings, boundaryLawId) });
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
@@ -240,18 +280,21 @@ const inspectDomainEvaluation = (context: InspectorContext) => {
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = inspectDomainEvaluation(context);
-  const semanticChecks = (lawId: string): string[] => lawId.endsWith("001-V4")
-    ? ["inspectStartupBoundary"] : ["inspectLocalStartupAuthorityBoundary"];
+  const semanticChecks = (lawId: string, evidenceMode: string): string[] => lawId.endsWith("001-V4")
+    ? evidenceMode === "static.ast" ? ["inspectStartupBoundary"] : ["inspectStartupCommandContract"]
+    : evidenceMode === "static.ast" ? ["inspectLocalStartupAuthorityBoundary"] : ["inspectArtifactResultContract"];
   const lawResult = (lawId: string, astClauses: string[]) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
-    const checks = semanticChecks(lawId);
-      return { lawId, assertions: [
-      { clauses: astClauses, evidenceMode: "static.ast", passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks), refs: staticEvidenceRefs(context, lawId, "static.ast", astClauses, evaluation.staticCheckReceipts, checks,
-        observeStaticAst({ context, lawId, evidenceMode: "static.ast", clauses: astClauses, checks,
-          executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks) })) },
-      { clauses: staticClauses(0), evidenceMode: "static.contract", passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks), refs: staticEvidenceRefs(context, lawId, "static.contract", staticClauses(0), evaluation.staticCheckReceipts, checks,
-        observeStaticContract({ context, lawId, evidenceMode: "static.contract", clauses: staticClauses(0), checks,
-          executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks) })) },
+    const astChecks = semanticChecks(lawId, "static.ast");
+    const contractChecks = semanticChecks(lawId, "static.contract");
+    const contractClauses = lawId.endsWith("001-V4") ? staticClauses(7) : staticClauses(2);
+    return { lawId, assertions: [
+      { clauses: astClauses, evidenceMode: "static.ast", passed: producerModePassed(evaluation.staticCheckReceipts, lawId, astChecks), refs: staticEvidenceRefs(context, lawId, "static.ast", astClauses, evaluation.staticCheckReceipts, astChecks,
+        observeStaticAst({ context, lawId, evidenceMode: "static.ast", clauses: astClauses, checks: astChecks,
+          executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, astChecks) })) },
+      { clauses: contractClauses, evidenceMode: "static.contract", passed: producerModePassed(evaluation.staticCheckReceipts, lawId, contractChecks), refs: staticEvidenceRefs(context, lawId, "static.contract", contractClauses, evaluation.staticCheckReceipts, contractChecks,
+        observeStaticContract({ context, lawId, evidenceMode: "static.contract", clauses: contractClauses, checks: contractChecks,
+          executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, contractChecks) })) },
     ], findings };
   };
   return validateStaticInspection(context, {

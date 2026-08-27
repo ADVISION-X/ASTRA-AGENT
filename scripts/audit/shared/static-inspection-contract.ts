@@ -176,10 +176,18 @@ const validateLawResult = (context: InspectorContext, output: InspectorOutput, l
       ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}`);
     validateAssertion({ assertion, lawId, mode, requirement });
   }
-  const semanticSignatures = requiredModes.map((mode) => semanticCheckSignature(lawId, mode,
-    assertionsByMode.get(mode) ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}`)));
-  if (requiredModes.length >= 4 && new Set(semanticSignatures).size === 1) {
-    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:evidence-mode-semantic-substitution`);
+  const semanticCheckOwners = new Map<string, string>();
+  for (const mode of requiredModes) {
+    const signature = semanticCheckSignature(lawId, mode,
+      assertionsByMode.get(mode) ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}`));
+    if (signature.startsWith("scope-only:")) continue;
+    for (const check of signature.split(",")) {
+      const currentOwner = semanticCheckOwners.get(check);
+      if (currentOwner && currentOwner !== mode) {
+        fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:evidence-mode-semantic-substitution`);
+      }
+      semanticCheckOwners.set(check, mode);
+    }
   }
   if (result.findings.some((finding) => finding.lawId !== lawId
     || !requiredModes.includes(finding.evidenceMode))) {

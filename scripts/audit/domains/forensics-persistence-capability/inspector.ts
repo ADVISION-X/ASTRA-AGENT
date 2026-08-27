@@ -58,8 +58,9 @@ const pushFinding = (
   filePath: string,
   checkId: string,
   message: string,
+  evidenceMode: "static.ast" | "static.contract" = "static.ast",
 ): void => {
-  findings.push(createFinding({ evidenceMode: "static.ast", lawId, clauseId, filePath, checkId, message }));
+  findings.push(createFinding({ evidenceMode, lawId, clauseId, filePath, checkId, message }));
 };
 
 const inspectRequiredFiles = (
@@ -135,7 +136,7 @@ const inspectPublicFacade = (
   for (const declaration of source.getExportDeclarations()) {
     const specifier = declaration.getModuleSpecifierValue();
     if (!specifier || allowed.has(specifier)) continue;
-    pushFinding(findings, lawId, clauseId, repoPath, "forensics/public-facade", `Forensics public facade must not export private module ${specifier}.`);
+    pushFinding(findings, lawId, clauseId, repoPath, "forensics/public-facade", `Forensics public facade must not export private module ${specifier}.`, "static.contract");
   }
 };
 
@@ -154,7 +155,44 @@ const inspectStoragePort = (
   const actual = storagePort?.getMethods().map((method) => method.getName()).sort() ?? [];
   const expected = ["appendArtifact", "appendRecord", "readRecord"];
   if (actual.length === expected.length && actual.every((name, index) => name === expected[index])) return;
-  pushFinding(findings, lawId, clauseId, repoPath, "forensics/storage-port", "GrassEyeStoragePort must expose only appendArtifact, appendRecord, and readRecord.");
+  pushFinding(findings, lawId, clauseId, repoPath, "forensics/storage-port", "GrassEyeStoragePort must expose only appendArtifact, appendRecord, and readRecord.", "static.contract");
+};
+
+const inspectSchemaContract = (
+  context: InspectorContext,
+  findings: Finding[],
+  lawId: string,
+  clauseId: string,
+  inspectedFiles: Set<string>,
+): void => {
+  const capabilityPath = "src/capabilities/forensics-persistence/schema.ts";
+  const storagePath = "src/lib/storage/schema.ts";
+  const capability = sourceFile(context, capabilityPath);
+  const storage = sourceFile(context, storagePath);
+  for (const repoPath of [capabilityPath, storagePath]) inspectedFiles.add(repoPath);
+  if (!capability || !storage) {
+    pushFinding(findings, lawId, clauseId, capabilityPath, "forensics/schema-contract",
+      "Forensics capability and storage envelope schemas must both remain present.", "static.contract");
+    return;
+  }
+  const declarations = new Set(capability.getVariableDeclarations().map((declaration) => declaration.getName()));
+  for (const required of [
+    "ForensicsAppendRecordInputSchema", "ForensicsAppendArtifactInputSchema",
+    "ForensicsReadRecordRefInputSchema", "ForensicsProofSchema", "ForensicsResultSchema",
+  ]) if (!declarations.has(required)) pushFinding(findings, lawId, clauseId, capabilityPath,
+    "forensics/schema-contract", `Forensics schema contract is missing ${required}.`, "static.contract");
+  const storageFields = (name: string): Set<string> => new Set(storage.getTypeAlias(name)
+    ?.getDescendantsOfKind(SyntaxKind.PropertySignature).map((property) => property.getName()) ?? []);
+  const recordFields = storageFields("RecordEnvelope");
+  const artifactFields = storageFields("ArtifactEnvelope");
+  for (const required of ["recordType", "payload", "parentRefs", "artifactRefs", "idempotencyKey", "createdAt"]) {
+    if (!recordFields.has(required)) pushFinding(findings, lawId, clauseId, storagePath,
+      "forensics/record-envelope-contract", `RecordEnvelope is missing ${required}.`, "static.contract");
+  }
+  for (const required of ["artifactType", "content", "bytesRef", "sourceRef", "parentRefs", "idempotencyKey", "createdAt"]) {
+    if (!artifactFields.has(required)) pushFinding(findings, lawId, clauseId, storagePath,
+      "forensics/artifact-envelope-contract", `ArtifactEnvelope is missing ${required}.`, "static.contract");
+  }
 };
 
 const inspectSchemaVocabulary = (
@@ -197,6 +235,8 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   run("inspectPublicFacade", evidenceLaw, () => inspectPublicFacade(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles));
   run("inspectStoragePort", schemaBoundaryLaw, () => inspectStoragePort(context, findings, schemaBoundaryLaw, "grasseye-local-persistence-schema-001-requirement", inspectedFiles));
   run("inspectSchemaVocabulary", schemaVocabularyLaw, () => inspectSchemaVocabulary(context, findings, schemaVocabularyLaw, "grasseye-local-persistence-schema-002-v2-requirement", inspectedFiles));
+  run("inspectSchemaContract", schemaVocabularyLaw, () => inspectSchemaContract(context, findings, schemaVocabularyLaw,
+    "grasseye-local-persistence-schema-002-v2-requirement", inspectedFiles));
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
@@ -209,19 +249,20 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
-  const semanticChecks = (lawId: string): string[] => lawId.endsWith("001-V3")
-    ? ["inspectCapabilityRequiredFiles", "inspectOwnerImports", "inspectPublicFacade"]
+  const semanticChecks = (lawId: string, evidenceMode: string): string[] => lawId.endsWith("001-V3")
+    ? evidenceMode === "static.ast" ? ["inspectCapabilityRequiredFiles", "inspectOwnerImports"] : ["inspectPublicFacade"]
     : lawId.endsWith("002-V3")
-      ? ["inspectStoragePort", "inspectStorageRequiredFiles"]
-      : ["inspectSchemaVocabulary"];
+      ? evidenceMode === "static.ast" ? ["inspectStorageRequiredFiles"] : ["inspectStoragePort"]
+      : evidenceMode === "static.ast" ? ["inspectSchemaVocabulary"] : ["inspectSchemaContract"];
   const lawResult = (lawId: string) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
-    const checks = semanticChecks(lawId);
-      return { lawId, assertions: ["static.ast", "static.contract"].map((evidenceMode) => ({
+      return { lawId, assertions: ["static.ast", "static.contract"].map((evidenceMode) => {
+      const checks = semanticChecks(lawId, evidenceMode);
+      return ({
       clauses: staticClauses(0), evidenceMode, passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks), refs: staticEvidenceRefs(context, lawId, evidenceMode, staticClauses(0), evaluation.staticCheckReceipts, checks,
         (evidenceMode === "static.ast" ? observeStaticAst : observeStaticContract)({ context, lawId, evidenceMode, clauses: staticClauses(0), checks,
           executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks) })),
-    })), findings };
+    }); }), findings };
   };
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,

@@ -1,6 +1,6 @@
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { runCodePurityPhases } from "./components/code-purity-phase-runner.js";
-import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { producerModePassed, staticClauses, staticEvidenceRefs, staticForbiddenClauses, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import { observeStaticAst, observeStaticConfig, observeStaticDependency, observeStaticFilesystem, observeStaticJson, observeStaticTypes, observeStaticYaml } from "../../shared/static-target-object-inspector.js";
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
@@ -19,9 +19,29 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const evaluation = await inspectDomainEvaluation(context);
   const lawResult = (lawId: string, clausesByMode: Readonly<Record<string, string[]>>) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
-    const checkForMode = (evidenceMode: string): string[] => evidenceMode === "static.ast" || evidenceMode === "static.types"
-      ? ["scanStructuralBudgets"]
-      : evidenceMode === "static.dependency" ? ["scanOwnerBoundaries"] : ["scanZombieSurfaces"];
+    const checkForMode = (evidenceMode: string): string[] => ({
+      "LAW-CODE-PURITY-001-V5": {
+        "static.ast": ["scanStructuralAstBudgets", "scanZombieAst"],
+        "static.dependency": ["scanStructuralDependencyBudgets"],
+        "static.filesystem": ["scanStructuralFilesystemBudgets"],
+        "static.types": ["scanStructuralTypeBudgets"],
+      },
+      "LAW-CODE-PURITY-002-V2": {
+        "static.ast": ["scanOwnerAstRoles"],
+        "static.config": ["scanOwnerConfiguration"],
+        "static.dependency": ["scanOwnerBoundaries"],
+        "static.filesystem": ["scanOwnerFilesystemAuthority"],
+        "static.json": ["scanOwnerJsonAuthority"],
+        "static.yaml": ["scanOwnerYamlAuthority"],
+      },
+      "LAW-CODE-PURITY-003-V2": {
+        "static.ast": ["scanZombieAst"],
+        "static.config": ["scanConfiguredEntrypointLiveness"],
+        "static.dependency": ["scanZombieDependencies"],
+        "static.filesystem": ["scanZombieFilesystem"],
+        "static.json": ["scanJsonRegistryLiveness"],
+      },
+    } as Readonly<Record<string, Readonly<Record<string, string[]>>>>)[lawId]?.[evidenceMode] ?? [];
     const nativeRefs = (evidenceMode: string, clauses: string[], checks: string[]): string[] => {
       const input = { context, lawId, evidenceMode, clauses, checks,
         executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks) };
@@ -50,17 +70,18 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [
       lawResult("LAW-CODE-PURITY-001-V5", {
-        "static.filesystem": staticClauses(0), "static.ast": staticClauses(0, 1, 2, 3, 4),
-        "static.types": staticClauses(0), "static.dependency": staticClauses(0),
+        "static.filesystem": staticForbiddenClauses(0), "static.ast": staticClauses(0, 1, 3, 4),
+        "static.types": staticForbiddenClauses(1), "static.dependency": staticForbiddenClauses(2),
       }),
       lawResult("LAW-CODE-PURITY-002-V2", {
-        "static.filesystem": staticClauses(0), "static.ast": staticClauses(0, 1, 2, 3, 4, 5),
-        "static.dependency": staticClauses(0), "static.config": staticClauses(0),
-        "static.json": staticClauses(0), "static.yaml": staticClauses(0),
+        "static.filesystem": staticForbiddenClauses(0, 3), "static.ast": staticClauses(0),
+        "static.dependency": staticForbiddenClauses(1, 2, 4, 5), "static.config": staticForbiddenClauses(0, 3),
+        "static.json": staticForbiddenClauses(0, 3), "static.yaml": staticForbiddenClauses(0),
       }),
       lawResult("LAW-CODE-PURITY-003-V2", {
-        "static.filesystem": staticClauses(0), "static.ast": staticClauses(0),
-        "static.dependency": staticClauses(0), "static.config": staticClauses(0), "static.json": staticClauses(0),
+        "static.filesystem": staticForbiddenClauses(0), "static.ast": staticClauses(0),
+        "static.dependency": staticForbiddenClauses(1, 2, 3), "static.config": staticForbiddenClauses(0, 3),
+        "static.json": staticForbiddenClauses(1, 3),
       }),
     ], inspectedFiles: evaluation.inspectedFiles,
   });
