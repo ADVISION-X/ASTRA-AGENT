@@ -4,6 +4,7 @@ import type {
   ForensicsAppendArtifactInput,
   ForensicsAppendRecordInput,
   ForensicsReadRecordRefInput,
+  ForensicsReadArtifactRefInput,
   ForensicsResult,
 } from "./schema.js";
 
@@ -20,6 +21,7 @@ interface ForensicsPersistenceAbilityGroup {
   appendRecord(input: ForensicsAppendRecordRequest): Promise<ForensicsPersistenceAbilityResult>;
   appendArtifact(input: ForensicsAppendArtifactRequest): Promise<ForensicsPersistenceAbilityResult>;
   readRecordRef(input: ForensicsReadRecordRefInput): Promise<ForensicsPersistenceAbilityResult>;
+  readArtifactRef(input: ForensicsReadArtifactRefInput): Promise<ForensicsPersistenceAbilityResult>;
 }
 
 export type { ForensicsPersistenceAbilityGroup };

@@ -25,6 +25,7 @@ import { GRASSEYE_UNPACKED_EXTENSION_ID } from "../release/unpacked-extension-re
 import { hashBrowserAuthorityCertificate } from "./browser-authority-certificate.js";
 import type { UnpackedExtensionReleaseIdentity } from "../release/unpacked-extension-release-identity.js";
 import type { BrowserTargetLease } from "../exact-target/browser-target-lease.js";
+import { browserExecutionFailure } from "../browser-failure.js";
 import {
   RuntimeFailureImpact,
   RuntimeRecovery,
@@ -84,6 +85,17 @@ export class BrowserInfrastructureSupervisor {
   private readonly websocket: BrowserAuthorityWebSocket;
   private readonly state = createBrowserInfrastructureState();
   private readonly loggedStates = new Map<string, RuntimeStateValue>();
+  private readonly browserLaneQueue: Array<Readonly<{
+    binding: BrowserExecutionBinding;
+    ownerId: string;
+    signal: AbortSignal;
+    remainingMs(): number;
+    stopWaitingMonitor(): void;
+    resolve(lease: BrowserTargetLease): void;
+    reject(error: Error): void;
+  }>> = [];
+  private browserLaneActive = false;
+  private browserLaneUnknown = false;
 
   public constructor(private readonly options: BrowserInfrastructureSupervisorOptions) {
     this.ownerLock = new BrowserOwnerLock(join(options.dataDir, "browser", "owner.lock"));
@@ -191,6 +203,11 @@ export class BrowserInfrastructureSupervisor {
     this.state.workspace?.revoke();
     this.state.workspace = undefined;
     this.rejectPendingJobBoundTargetAcquisition(reasonCode);
+    for (const waiter of this.browserLaneQueue.splice(0)) {
+      waiter.reject(browserExecutionFailure(new Error(reasonCode)));
+    }
+    this.browserLaneActive = false;
+    this.browserLaneUnknown = false;
     this.transport.disconnect(reasonCode);
     if (this.state.ownerLockHeld) {
       await this.ownerLock.release();
@@ -247,11 +264,113 @@ export class BrowserInfrastructureSupervisor {
     this.state.workspace = new BrowserSessionWorkspace(binding);
   }
 
-  public async acquireJobBoundTargetLease(binding: BrowserExecutionBinding, ownerId: string): Promise<BrowserTargetLease> {
-    if (this.broker.currentOperatorTargetStatus() === "absent") {
-      await this.acquireJobBoundTarget(binding.commandTtlMs);
+  public acquireJobBoundTargetLease(
+    binding: BrowserExecutionBinding,
+    ownerId: string,
+    wait: Readonly<{ signal: AbortSignal; remainingMs(): number }>,
+  ): Promise<BrowserTargetLease> {
+    if (this.browserLaneUnknown) {
+      return Promise.reject(browserExecutionFailure(new Error("BROWSER_OUTCOME_UNKNOWN"), "unknown"));
     }
-    return this.broker.acquireOperatorClaimedTargetLease(binding, ownerId);
+    if (this.browserLaneQueue.length >= 10) {
+      return Promise.reject(browserExecutionFailure(new Error("BROWSER_BACKPRESSURE")));
+    }
+    return new Promise<BrowserTargetLease>((resolve, reject) => {
+      let settled = false;
+      let monitor: ReturnType<typeof setInterval> | null = null;
+      const finish = <T>(action: (value: T) => void, value: T): void => {
+        if (settled) return;
+        settled = true;
+        if (monitor) clearInterval(monitor);
+        action(value);
+      };
+      const waiter = {
+        binding,
+        ownerId,
+        signal: wait.signal,
+        remainingMs: wait.remainingMs,
+        stopWaitingMonitor: () => { if (monitor) clearInterval(monitor); monitor = null; },
+        resolve: (lease: BrowserTargetLease) => finish(resolve, lease),
+        reject: (error: Error) => finish(reject, error),
+      };
+      this.browserLaneQueue.push(waiter);
+      monitor = setInterval(() => {
+        if (!wait.signal.aborted && wait.remainingMs() >= 1) return;
+        const index = this.browserLaneQueue.indexOf(waiter);
+        if (index < 0) return;
+        this.browserLaneQueue.splice(index, 1);
+        waiter.reject(browserExecutionFailure(new Error(
+          wait.signal.aborted ? "BROWSER_WAIT_ABORTED" : "V6_DEADLINE_BUDGET_EXHAUSTED",
+        )));
+        void this.pumpBrowserLane();
+      }, 100);
+      void this.pumpBrowserLane();
+    });
+  }
+
+  public readBrowserLaneState(): "idle" | "busy" | "unknown" {
+    return this.browserLaneUnknown ? "unknown" : this.browserLaneActive ? "busy" : "idle";
+  }
+
+  public readBrowserLaneWaiterCount(): number {
+    return this.browserLaneQueue.length;
+  }
+
+  public hasUnresolvedBrowserMutation(): boolean {
+    return this.state.mutationState?.reconciliationStates()
+      .some((entry) => entry.current === "PREPARED" || entry.current === "SENT" || entry.current === "UNKNOWN") ?? false;
+  }
+
+  private async pumpBrowserLane(): Promise<void> {
+    if (this.browserLaneActive || this.browserLaneUnknown) return;
+    let waiter = this.browserLaneQueue.shift();
+    while (waiter && (waiter.signal.aborted || waiter.remainingMs() < 1)) {
+      waiter.reject(browserExecutionFailure(new Error(
+        waiter.signal.aborted ? "BROWSER_WAIT_ABORTED" : "V6_DEADLINE_BUDGET_EXHAUSTED",
+      )));
+      waiter = this.browserLaneQueue.shift();
+    }
+    if (!waiter) return;
+    waiter.stopWaitingMonitor();
+    this.browserLaneActive = true;
+    this.emitBrowserState("browser.execution", "busy");
+    try {
+      if (this.broker.currentOperatorTargetStatus() === "absent") {
+        await this.acquireJobBoundTarget(Math.min(waiter.binding.commandTtlMs, waiter.remainingMs()));
+      }
+      if (waiter.signal.aborted || waiter.remainingMs() < 1) {
+        throw browserExecutionFailure(new Error(
+          waiter.signal.aborted ? "BROWSER_WAIT_ABORTED" : "V6_DEADLINE_BUDGET_EXHAUSTED",
+        ));
+      }
+      const lease = await this.broker.acquireOperatorClaimedTargetLease(waiter.binding, waiter.ownerId);
+      waiter.resolve({
+        ...lease,
+        close: async (input) => {
+          try {
+            await lease.close(input);
+            this.browserLaneActive = false;
+            this.emitBrowserState("browser.execution", "idle");
+            void this.pumpBrowserLane();
+          } catch (error) {
+            this.browserLaneUnknown = true;
+            this.emitBrowserState("browser.execution", "review_required");
+            throw browserExecutionFailure(error, "unknown");
+          }
+        },
+      });
+    } catch (error) {
+      const failure = browserExecutionFailure(error);
+      if (failure.mutationOutcome === "unknown") {
+        this.browserLaneUnknown = true;
+        this.emitBrowserState("browser.execution", "review_required");
+      } else {
+        this.browserLaneActive = false;
+        this.emitBrowserState("browser.execution", "idle");
+        void this.pumpBrowserLane();
+      }
+      waiter.reject(failure);
+    }
   }
 
   private async acquireJobBoundTarget(commandTtlMs: number): Promise<void> {

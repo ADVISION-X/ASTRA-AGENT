@@ -4,6 +4,7 @@ import path from "node:path";
 
 import type { GptAbilityGroup } from "../../../capabilities/gpt/index.js";
 import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-support.js";
+import { executionFailure, failureCode, failureStatus, serializeTerminalFailure, typedExecutionFailure } from "../../typed-failure.js";
 import { resolveStoredBrowserMutationAuthority } from "../../browser/exact-target/browser-mutation-store.js";
 import {
   RuntimeFailureImpact,
@@ -19,10 +20,11 @@ import {
   type RuntimeSpanTerminalEvent,
 } from "../../runtime-logs/index.js";
 import type { RuntimeStateInput, RuntimeStateKey, RuntimeStateValue } from "../../runtime-logs/schema.js";
-import { productionCatalogHash } from "./catalog.js";
+import { productionCatalogHash, resolveProductionPlugin } from "./catalog.js";
 import {
   checkpointProductionTask,
   claimProductionTasks,
+  cleanupGeneratedImageTemporaryFiles,
   downloadProductionMaterials,
   releaseProductionLease,
   renewProductionLease,
@@ -106,6 +108,14 @@ type RuntimeState = {
   lastErrorReason: string | null;
   stopped: boolean;
   ledgerReconciled: boolean;
+  reconciliationBaselineValid: boolean;
+};
+
+const refreshLedgerReconciled = (state: RuntimeState): void => {
+  state.ledgerReconciled = state.reconciliationBaselineValid
+    && state.browserAuthority.readBrowserLaneState() !== "unknown"
+    && !state.browserAuthority.hasUnresolvedBrowserMutation()
+    && state.store.isLedgerConsistent(new Set(state.active.keys()));
 };
 
 const wait = async (milliseconds: number, signal: AbortSignal): Promise<void> => {
@@ -119,16 +129,7 @@ const wait = async (milliseconds: number, signal: AbortSignal): Promise<void> =>
 const safeReason = (error: unknown): string =>
   (error instanceof Error ? error.message : String(error)).replace(/\s+/gu, " ").slice(0, 1_000);
 
-const classifyFailure = (error: unknown): "recovery_pending" | "review_required" | "failed" => {
-  const reason = safeReason(error);
-  if (/BROWSER_OUTCOME_UNKNOWN|review_required|PLUGIN_IDENTITY_CHANGED|CHECKPOINT_.*DRIFT|CONTINUATION_NOT_AUTHORIZED/iu.test(reason)) {
-    return "review_required";
-  }
-  if (/fetch failed|ECONN|ETIMEDOUT|UND_ERR|PROVIDER.*(?:RECOVERY|TIMEOUT)|BROWSER_BACKPRESSURE/iu.test(reason)) {
-    return "recovery_pending";
-  }
-  return "failed";
-};
+const classifyFailure = failureStatus;
 
 const recoveryFor = (status: ReturnType<typeof classifyFailure>): RuntimeRecovery => {
   if (status === "recovery_pending") return RuntimeRecovery.RETRY;
@@ -260,7 +261,7 @@ const terminalSpanFailure = (
   error: unknown,
   status: ReturnType<typeof classifyFailure>,
   causedByEventId: string | null = runtimeLogCauseEventId(error),
-  failureCode = "PRODUCTION_ACTION_FAILED",
+  fallbackCode = "PRODUCTION_ACTION_FAILED",
   authority?: Readonly<{ authorityRef: string; authorityHash: `sha256:${string}` }>,
 ): RuntimeSpanTerminalEvent =>
   requireRuntimeLogWrite(span.terminal({
@@ -268,7 +269,7 @@ const terminalSpanFailure = (
     ...(authority ?? {}),
     failure: runtimeFailureFromError({
       error,
-      code: failureCode,
+      code: causedByEventId ? fallbackCode : typedExecutionFailure(error)?.code ?? fallbackCode,
       responsibleOwner: "production-runtime",
       recovery: recoveryFor(status),
       impact: causedByEventId ? RuntimeFailureImpact.CONSEQUENTIAL : RuntimeFailureImpact.BLOCKING,
@@ -388,7 +389,7 @@ const leaseBudget = (job: ClaimedProductionTask, abort: AbortController): Produc
   const serverNow = Date.parse(job.grant.server_now);
   const leaseExpires = Date.parse(job.grant.lease_expires_at);
   const remaining = leaseExpires - serverNow;
-  if (!Number.isFinite(remaining) || remaining < 30_000) throw new Error("V6_DEADLINE_BUDGET_EXHAUSTED");
+  if (!Number.isFinite(remaining) || remaining < 30_000) throw executionFailure("recovery_pending", "V6_DEADLINE_BUDGET_EXHAUSTED");
   return {
     attempt_id: job.grant.attempt_id,
     device_id: job.grant.device_id,
@@ -445,7 +446,7 @@ const heartbeatWhileRunning = async <T>(
       throw withRuntimeLogCause(error, terminal.eventId);
     }
     const relative = Date.parse(receipt.lease_expires_at) - Date.parse(receipt.server_now);
-    if (!Number.isFinite(relative) || relative < 30_000) throw new Error("V6_RENEW_BUDGET_INVALID");
+    if (!Number.isFinite(relative) || relative < 30_000) throw executionFailure("recovery_pending", "V6_RENEW_BUDGET_INVALID");
     budget.expires_at_monotonic = performance.now() + relative - 10_000;
     budget.command_ttl_ms = Math.min(20_000, relative - 10_000);
     if (receipt.control_intent.intent !== "none") {
@@ -470,7 +471,8 @@ const handleClaimFailure = async (
   if (!durablyAccepted) {
     await releaseLeaseWithLog(
       state, job, parentSpanId,
-      /DEADLINE/iu.test(reason) ? "DEADLINE_BUDGET_EXHAUSTED" : "CAPABILITY_CHANGED_BEFORE_ACCEPT",
+      failureCode(error).startsWith("V6_DEADLINE_")
+        ? "DEADLINE_BUDGET_EXHAUSTED" : "CAPABILITY_CHANGED_BEFORE_ACCEPT",
       causeEventId,
     );
     emitRuntimeState({ state, traceId: job.job_id, stateKey: "job.lease", current: "absent" });
@@ -483,7 +485,7 @@ const handleClaimFailure = async (
       await checkpointWithLog(state, job, parentSpanId, "recovery_pending", reason);
     } catch (checkpointError) {
       emitRuntimeState({ state, traceId: job.job_id, stateKey: "job.checkpoint", current: "failed" });
-      state.lastErrorCode = safeReason(checkpointError).split(":")[0] ?? "CHECKPOINT_STORAGE_FAILED";
+      state.lastErrorCode = failureCode(checkpointError, "CHECKPOINT_STORAGE_FAILED");
       state.lastErrorReason = safeReason(checkpointError);
     }
     const record = state.store.readTask(job.job_id)!;
@@ -504,12 +506,14 @@ const handleClaimFailure = async (
   }));
   let terminalRecord: NonNullable<ReturnType<ProductionRuntimeStore["readTask"]>>;
   try {
+    const terminalFailure = serializeTerminalFailure(error, status);
     await terminalProductionTask(state.session, state.store, job, {
       status,
-      payload_hash: hashCanonical({ job_id: job.job_id, status, reason }),
+      failure: terminalFailure,
+      payload_hash: hashCanonical({ job_id: job.job_id, failure: terminalFailure }),
       result_receipt_hashes: [],
     });
-    state.store.setTerminal(job.job_id, status, reason, null);
+    state.store.setTerminal(job.job_id, status, terminalFailure, null);
     terminalRecord = state.store.readTask(job.job_id)!;
   } catch (terminalError) {
     state.store.setRecoveryPending(job.job_id, `TERMINAL_DEFERRED:${safeReason(terminalError)}`);
@@ -561,9 +565,15 @@ const executeClaim = async (state: RuntimeState, job: ClaimedProductionTask): Pr
   }));
   try {
     if (job.grant.capability_manifest_hash !== productionCatalogHash) {
-      throw new Error("CAPABILITY_MANIFEST_CHANGED_BEFORE_ACCEPT");
+      throw executionFailure("review_required", "CAPABILITY_MANIFEST_CHANGED_BEFORE_ACCEPT");
     }
     const task = websiteAgentTaskFromClaim(job);
+    const expectedPlugin = resolveProductionPlugin(task.product_id, task.action_id).plugin;
+    if (job.grant.expected_catalog_hash !== productionCatalogHash
+      || job.grant.expected_plugin_id !== expectedPlugin.pluginId
+      || job.grant.expected_plugin_version !== expectedPlugin.pluginVersion) {
+      throw executionFailure("review_required", "CLAIMED_PLUGIN_IDENTITY_MISMATCH");
+    }
     const budget = leaseBudget(job, abort);
     const acceptSpan = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
       traceId: job.job_id,
@@ -646,6 +656,7 @@ const executeClaim = async (state: RuntimeState, job: ClaimedProductionTask): Pr
             durableAccept.identity,
             output,
             continuationRef,
+            state.dataDir,
           ),
         });
         uploadState.value = uploaded;
@@ -666,14 +677,16 @@ const executeClaim = async (state: RuntimeState, job: ClaimedProductionTask): Pr
       typedIdentity: jobIdentity(job),
     }));
     const payloadHash = hashCanonical(execution.result);
+    state.store.stageResult(job.job_id, execution.result);
     const completedRecord = await runRuntimeSpan({
       span: terminalSpan,
       failureCode: "JOB_TERMINAL_FAILED",
       action: async () => {
         await terminalProductionTask(state.session, state.store, job, {
           status: "completed",
+          failure: null,
           payload_hash: payloadHash,
-          result_receipt_hashes: [uploaded.payload_receipt.receipt_hash, uploaded.envelope_receipt.receipt_hash],
+          result_receipt_hashes: uploaded.artifact_receipts.map((receipt) => receipt.receipt_hash),
         });
         state.store.setTerminal(job.job_id, "completed", null, execution.result);
         return state.store.readTask(job.job_id)!;
@@ -704,13 +717,14 @@ const executeClaim = async (state: RuntimeState, job: ClaimedProductionTask): Pr
 };
 
 const runtimeState = async (state: RuntimeState) => {
+  refreshLedgerReconciled(state);
   const browser = state.browserAuthority.readProductionRuntimeState();
-  const lane: "blocked" | "busy" | "idle" = state.browserAuthority.readProductionRuntimeState().browserAuthorityState !== "present"
-    ? "blocked"
-    : state.active.size > 0 ? "busy" : "idle";
+  const observedLane = state.browserAuthority.readBrowserLaneState();
+  const lane: "blocked" | "busy" | "idle" = browser.browserAuthorityState !== "present"
+    || observedLane === "unknown" ? "blocked" : observedLane;
   return {
     business_in_flight: state.active.size,
-    browser_action_in_flight: lane === "busy" ? 1 as const : 0 as const,
+    browser_action_in_flight: observedLane === "busy" ? 1 as const : 0 as const,
     browser_authority_state: browser.browserAuthorityState,
     browser_target_state: browser.browserTargetState,
     browser_lane_state: lane,
@@ -720,7 +734,9 @@ const runtimeState = async (state: RuntimeState) => {
 };
 
 const readHealth = (state: RuntimeState): ProductionRuntimeHealth => {
+  refreshLedgerReconciled(state);
   const browser = state.browserAuthority.readProductionRuntimeState();
+  const browserLane = state.browserAuthority.readBrowserLaneState();
   const cloudState = state.stopped
     ? "stopped"
     : state.lastErrorCode
@@ -742,7 +758,7 @@ const readHealth = (state: RuntimeState): ProductionRuntimeHealth => {
     browserTargetState: browser.browserTargetState,
     browserLaneState: browser.browserAuthorityState !== "present"
       ? "blocked"
-      : state.active.size > 0 ? "busy" : "idle",
+      : browserLane === "unknown" ? "blocked" : browserLane,
     contractManifestHash: state.session.device.control_manifest_hash,
     catalogHash: productionCatalogHash,
     activeCount: state.active.size,
@@ -767,8 +783,8 @@ const flushOutboxWithLog = async (state: RuntimeState): Promise<void> => {
       typedIdentity: { kind: "outbox", jobId: authority.jobId, outboxId: authority.idempotencyKey },
     }));
     try {
-      await sendProductionOutboxWrite(state.session, write);
-      state.store.markOutboxSent(write.idempotency_key);
+      await state.store.deliverOutbox(write.idempotency_key, () =>
+        sendProductionOutboxWrite(state.session, write));
       const delivered = state.store.readOutboxAuthority(write.idempotency_key)!;
       requireRuntimeLogWrite(span.terminal({
         outcome: "success",
@@ -799,9 +815,7 @@ const workerLoop = async (state: RuntimeState): Promise<void> => {
   let delay = 1_000;
   while (!state.abort.signal.aborted) {
     try {
-      if (state.active.size === 0) {
-        await flushOutboxWithLog(state);
-      }
+      await flushOutboxWithLog(state);
       const attestation = await state.session.ensureFreshAttestation();
       state.lastHeartbeat = attestation.issued_at;
       emitRuntimeState({
@@ -862,19 +876,21 @@ const workerLoop = async (state: RuntimeState): Promise<void> => {
           const abort = new AbortController();
           state.activeAbort.set(job.job_id, abort);
           const tracked = executeClaim(state, job).catch((error) => {
-            state.lastErrorCode = safeReason(error).split(":")[0] ?? "PLUGIN_EXECUTION_FAILED";
+            state.lastErrorCode = failureCode(error, "PLUGIN_EXECUTION_FAILED");
             state.lastErrorReason = safeReason(error);
           }).finally(() => {
             state.active.delete(job.job_id);
             state.activeAbort.delete(job.job_id);
+            refreshLedgerReconciled(state);
           });
           state.active.set(job.job_id, tracked);
+          refreshLedgerReconciled(state);
         }
       }
       state.lastErrorCode = null;
       state.lastErrorReason = null;
     } catch (error) {
-      state.lastErrorCode = safeReason(error).split(":")[0] ?? "PRODUCTION_RUNTIME_FAILED";
+      state.lastErrorCode = failureCode(error, "PRODUCTION_RUNTIME_FAILED");
       state.lastErrorReason = safeReason(error);
       emitRuntimeState({
         state,
@@ -896,29 +912,34 @@ const sessionHeartbeatLoop = async (state: RuntimeState): Promise<void> => {
   while (!state.abort.signal.aborted) {
     await wait(20_000, state.abort.signal);
     if (state.abort.signal.aborted) return;
+    emitRuntimeState({
+      state,
+      stateKey: "producer.alive",
+      current: "alive",
+      freshForMs: 65_000,
+      force: true,
+      owner: "app-shell",
+    });
     try {
       const receipt = await state.session.heartbeat();
       state.lastHeartbeat = receipt.issued_at;
-      emitRuntimeState({
-        state,
-        stateKey: "producer.alive",
-        current: "alive",
-        freshForMs: 65_000,
-        force: true,
-        owner: "app-shell",
-      });
       emitRuntimeState({
         state,
         stateKey: "cloud.session",
         current: "connected",
       });
     } catch (error) {
-      state.lastErrorCode = safeReason(error).split(":")[0] ?? "SESSION_HEARTBEAT_FAILED";
+      state.lastErrorCode = failureCode(error, "SESSION_HEARTBEAT_FAILED");
       state.lastErrorReason = safeReason(error);
       emitRuntimeState({
         state,
         stateKey: "cloud.session",
         current: "stale",
+      });
+      if (!state.draining) emitRuntimeState({
+        state,
+        stateKey: "claim.admission",
+        current: "blocked",
       });
     }
   }
@@ -1001,6 +1022,7 @@ export async function startProductionRuntime(input: Readonly<{
   dataDir: string;
   sourceHash: ProductionHash;
   gpt: GptAbilityGroup;
+  evidenceStore: import("../../../capabilities/forensics-persistence/index.js").ForensicsPersistenceAbilityGroup;
   browserAuthority: WorkbenchBrowserAuthority;
   runtimeLogger: RuntimeLogger;
 }>): Promise<ProductionRuntimeHandle> {
@@ -1015,6 +1037,7 @@ export async function startProductionRuntime(input: Readonly<{
   let store: ProductionRuntimeStore;
   try {
     await mkdir(input.dataDir, { recursive: true });
+    await cleanupGeneratedImageTemporaryFiles(input.dataDir);
     store = new ProductionRuntimeStore(input.dataDir);
   } catch (error) {
     terminalSpanFailure(
@@ -1038,7 +1061,7 @@ export async function startProductionRuntime(input: Readonly<{
     input.sourceHash,
   );
   const executor = new ProductionExecutor(
-    input.dataDir, input.sourceHash, input.gpt, input.browserAuthority, store, input.runtimeLogger,
+    input.dataDir, input.sourceHash, input.gpt, input.evidenceStore, input.browserAuthority, store, input.runtimeLogger,
   );
   const state: RuntimeState = {
     abort: new AbortController(),
@@ -1058,10 +1081,21 @@ export async function startProductionRuntime(input: Readonly<{
     lastErrorReason: null,
     stopped: false,
     ledgerReconciled: false,
+    reconciliationBaselineValid: false,
   };
   stateRef = state;
-  store.setOutboxObserver((authority) => emitOutboxAuthority(state, authority));
+  store.setOutboxObserver((authority) => {
+    emitOutboxAuthority(state, authority);
+    refreshLedgerReconciled(state);
+  });
   let reconciliationComplete = true;
+  try {
+    store.reconcileDeliveredTerminals();
+  } catch (error) {
+    reconciliationComplete = false;
+    state.lastErrorCode = failureCode(error, "PRODUCTION_TERMINAL_RECONCILIATION_FAILED");
+    state.lastErrorReason = safeReason(error);
+  }
   for (const record of store.taskAuthorities()) {
     if (record.status === "cancelled") throw new Error("PRODUCTION_RECONCILIATION_STATUS_INVALID");
     const nonterminal = record.status === "accepted"
@@ -1081,6 +1115,7 @@ export async function startProductionRuntime(input: Readonly<{
       const reconciledLease = storedLease.state === "active"
         ? store.recordLease({ ...storedLease, state: "stale", expiresAt: null })
         : storedLease;
+      if (nonterminal && reconciledLease.state !== "active") reconciliationComplete = false;
       emitLeaseAuthority(state, reconciledLease, true);
     } else if (nonterminal) {
       reconciliationComplete = false;
@@ -1104,7 +1139,15 @@ export async function startProductionRuntime(input: Readonly<{
     }
   }
   for (const authority of store.outboxAuthorities()) emitOutboxAuthority(state, authority, true);
-  state.ledgerReconciled = reconciliationComplete;
+  for (const record of store.taskAuthorities()) {
+    if (record.status !== "completed" || !record.result) continue;
+    for (const recordRef of record.result.evidence_refs) {
+      const readback = await input.evidenceStore.readRecordRef({ childCapabilityId: "read-record-ref", recordRef });
+      if (readback.status !== "success" || !readback.record) reconciliationComplete = false;
+    }
+  }
+  state.reconciliationBaselineValid = reconciliationComplete;
+  refreshLedgerReconciled(state);
   const sessionBoundaryId = `aipsopen_${randomUUID()}`;
   const sessionSpan = requireRuntimeLogWrite(input.runtimeLogger.startSpan({
     traceId: runtimeTraceId,
@@ -1145,7 +1188,7 @@ export async function startProductionRuntime(input: Readonly<{
       sessionSpan, error, classifyFailure(error), runtimeLogCauseEventId(error), "CLOUD_SESSION_OPEN_FAILED",
     );
     terminalSpanFailure(runtimeStartSpan, error, classifyFailure(error), sessionFailure.eventId, "RUNTIME_START_FAILED");
-    state.lastErrorCode = safeReason(error).split(":")[0] ?? "PRODUCTION_SESSION_START_FAILED";
+    state.lastErrorCode = failureCode(error, "PRODUCTION_SESSION_START_FAILED");
     state.lastErrorReason = safeReason(error);
     emitRuntimeState({
       state,

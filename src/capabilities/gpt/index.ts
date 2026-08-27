@@ -2,6 +2,7 @@ export { createGptAbilityGroup } from "./ability-group.js";
 export {
   type GptAbilityGroup,
   type GptChildCapabilityId,
+  type GptChildCapabilityProof,
   type GptChildCapabilityResult,
 } from "./contract.js";
 export {

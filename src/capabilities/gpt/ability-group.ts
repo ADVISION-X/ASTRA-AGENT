@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { executionFailure, failureCode, failureStatus } from "../../lib/typed-failure.js";
 
 import {
   GPT_ABILITY_GROUP_ID,
@@ -42,14 +43,10 @@ const hash = (value: string): `sha256:${string}` =>
 const classify = (error: unknown): Readonly<{
   status: GptFailureClassification;
   code: string;
-}> => {
-  const message = error instanceof Error ? error.message : "GPT_CHILD_UNKNOWN_FAILURE";
-  const match = /^(recovery_pending|review_required|failed):(.*)$/u.exec(message);
-  return Object.freeze({
-    status: (match?.[1] ?? "failed") as GptFailureClassification,
-    code: match?.[2] ?? message,
-  });
-};
+}> => Object.freeze({
+  status: failureStatus(error),
+  code: failureCode(error, "GPT_CHILD_UNKNOWN_FAILURE"),
+});
 
 const documentRefHash = (value: string | null): `sha256:${string}` | null =>
   value === null ? null : hash(value);
@@ -118,14 +115,14 @@ const assertObservationIsAtomic = (
   observation: GptChildObservation,
 ): void => {
   if (!documentTransitionAllowed(intent.childCapabilityId, before, currentDocument(context))) {
-    throw new Error(`review_required:GPT_DOCUMENT_TRANSITION_FORBIDDEN:${intent.childCapabilityId}`);
+    throw executionFailure("review_required", `GPT_DOCUMENT_TRANSITION_FORBIDDEN:${intent.childCapabilityId}`);
   }
   const pendingMutationCount = context.browser?.pendingMutationCount() ?? 0;
   if (observation.committedMutation === "yes" && pendingMutationCount > 1) {
-    throw new Error(`review_required:GPT_MUTATION_OUTCOME_NOT_UNIQUE:${intent.childCapabilityId}`);
+    throw executionFailure("review_required", `GPT_MUTATION_OUTCOME_NOT_UNIQUE:${intent.childCapabilityId}`);
   }
   if (observation.committedMutation === "no" && pendingMutationCount !== 0) {
-    throw new Error(`review_required:GPT_UNDECLARED_MUTATION:${intent.childCapabilityId}`);
+    throw executionFailure("review_required", `GPT_UNDECLARED_MUTATION:${intent.childCapabilityId}`);
   }
 };
 
@@ -185,10 +182,10 @@ const executeOne = async (
   const before = currentDocument(context);
   let observation: GptChildObservation | undefined;
   try {
-    if (!handler) throw new Error(`failed:GPT_CHILD_NOT_REGISTERED:${intent.childCapabilityId}`);
-    if (context.signal?.aborted) throw new Error("recovery_pending:GPT_EXECUTION_ABORTED");
+    if (!handler) throw executionFailure("failed", `GPT_CHILD_NOT_REGISTERED:${intent.childCapabilityId}`);
+    if (context.signal?.aborted) throw executionFailure("recovery_pending", "GPT_EXECUTION_ABORTED");
     if ((context.browser?.pendingMutationCount() ?? 0) !== 0) {
-      throw new Error("review_required:GPT_PRIOR_BROWSER_MUTATION_UNRESOLVED");
+      throw executionFailure("review_required", "GPT_PRIOR_BROWSER_MUTATION_UNRESOLVED");
     }
     observation = await handler(intent, context);
     assertObservationIsAtomic(intent, context, before, observation);

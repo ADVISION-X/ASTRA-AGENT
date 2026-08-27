@@ -202,17 +202,25 @@ export function parseLawSource(source: string, path: string, documentType: 'base
   const start = lawBodyStart(source, path, documentType, authorityLevel);
   if (lines[start] !== documentHeading) fail('SOURCE_PARSE_FAILED', `${path}:document heading`);
   for (let index = start + 1; index < lines.length; index++) index = applyLawContentLine({ documentType, index, laws, lines, path, state });
-  if (state.headingId || !laws.length) fail('SOURCE_PARSE_FAILED', `${path}:incomplete`);
+  if (state.headingId) fail('SOURCE_PARSE_FAILED', `${path}:incomplete`);
   return laws;
 }
 function loadLawFile(path: string, documentType: 'base-law' | 'functional-law', authorityLevel: 100 | 90): Law[] {
   return parseLawSource(text(path), path, documentType, authorityLevel);
 }
 
+const lawKey = (lawId: string): string => lawId.replace(/-V[1-9][0-9]*$/u, '');
+
+export const assertOneActiveMajorPerLawKey = (laws: readonly Law[]): void => {
+  const keys = laws.map((law) => lawKey(law.lawId));
+  if (keys.length !== new Set(keys).size) fail('SOURCE_PARSE_FAILED', 'multiple active major versions for one lawKey');
+};
+
 export function loadLaws(): Law[] {
   const laws = [...loadLawFile(BASE, 'base-law', 100), ...loadLawFile(FUNCTIONAL, 'functional-law', 90)].sort((left, right) => byteCompare(left.lawId, right.lawId));
   const ids = laws.map((law) => law.lawId);
   if (ids.length !== new Set(ids).size) fail('SOURCE_PARSE_FAILED', 'duplicate lawId');
+  assertOneActiveMajorPerLawKey(laws);
   const active = new Set(ids);
   for (const law of laws) if (law.dependsOnLawIds.some((lawId) => !active.has(lawId))) fail('SOURCE_PARSE_FAILED', `${law.lawId}:dependency`);
   const visiting = new Set<string>();
@@ -249,6 +257,7 @@ function loadManifests(laws: Law[]): Manifest[] {
 }
 
 type GovernanceSpec = { schemaVersion: number; specId: string; status: string; version: number; owner: string; lawIds: string[]; specKind: string; contract: unknown };
+type LoadedGovernanceSpec = { file: string; raw: GovernanceSpec };
 const specEnvelopeValid = (raw: GovernanceSpec, domains: ReadonlySet<string>): boolean =>
   exactKeys(raw, SPEC_KEYS) && raw.schemaVersion === 1 && raw.status === 'active'
   && concreteString(raw.specId) && Number.isInteger(raw.version) && raw.version >= 1
@@ -298,10 +307,31 @@ const bindSpecLaws = (
   }
 };
 
+const specVersionIdentity = (spec: GovernanceSpec): string => `${spec.specId}@${spec.version}`;
+
+export const assertActiveSpecVersionWindows = (specs: readonly LoadedGovernanceSpec[]): void => {
+  const bySpecId = new Map<string, LoadedGovernanceSpec[]>();
+  for (const spec of specs) bySpecId.set(spec.raw.specId, [...(bySpecId.get(spec.raw.specId) ?? []), spec]);
+  for (const [specId, activeVersions] of bySpecId) {
+    if (activeVersions.length === 1) continue;
+    const ordered = [...activeVersions].sort((left, right) => left.raw.version - right.raw.version);
+    if (ordered.length !== 2 || ordered[0]!.raw.owner !== ordered[1]!.raw.owner) {
+      fail('SOURCE_PARSE_FAILED', `${specId}:active-version-window`);
+    }
+    const currentAuthority = specVersionIdentity(ordered[0]!.raw);
+    const targetAuthority = specVersionIdentity(ordered[1]!.raw);
+    const migrations = specs.filter(({ raw }) => raw.owner === ordered[0]!.raw.owner && raw.specKind === 'migration'
+      && (raw.contract as Record<string, unknown>).currentAuthority === currentAuthority
+      && (raw.contract as Record<string, unknown>).targetAuthority === targetAuthority);
+    if (migrations.length !== 1) fail('SOURCE_PARSE_FAILED', `${specId}:migration-window`);
+  }
+};
+
 function loadSpecs(laws: Law[], manifests: Manifest[], contractRefs: Map<string, string[]>): void {
   const lawById = new Map(laws.map((law) => [law.lawId, law]));
   const domains = new Set(manifests.map((manifest) => manifest.capabilityDomain));
   const identities = new Set<string>();
+  const loaded: LoadedGovernanceSpec[] = [];
   for (const file of walk('docs/specs').filter((path) => path.endsWith('.json'))) {
     const raw = parseJson<GovernanceSpec>(file);
     if (!specEnvelopeValid(raw, domains)) fail('SOURCE_PARSE_FAILED', `${file}:schema`);
@@ -310,7 +340,9 @@ function loadSpecs(laws: Law[], manifests: Manifest[], contractRefs: Map<string,
     identities.add(identity);
     bindSpecLaws(raw, file, lawById, contractRefs);
     validateSpecContract(raw, file);
+    loaded.push({ file, raw });
   }
+  assertActiveSpecVersionWindows(loaded);
 }
 
 function machineBlock(path: string, label: string): Record<string, unknown> {

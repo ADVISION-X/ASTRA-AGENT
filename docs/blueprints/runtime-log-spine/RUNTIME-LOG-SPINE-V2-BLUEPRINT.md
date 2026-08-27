@@ -76,6 +76,8 @@ failure = kind,code,nativeCause?,responsibleOwner,impact,recovery,
 
 `nativeCause` 只在真实底层 cause 存在时出现；网络错误必须保留 `ECONNREFUSED/ECONNRESET/ETIMEDOUT` 等稳定 cause。`CONSEQUENTIAL` 与 `CLEANUP` 必须有 `causedByEventId`，`BLOCKING` 只有确有上游根时才携带该字段。
 
+失败投影必须保留当前边界收到的最内层现役 typed machine code；`cloud.session-open` 之类操作包装码只能用于上层 consequential Span，不得覆盖根 Span 中的 `CLOUD_TRANSPORT_UNAVAILABLE`、HTTP/authentication 或业务拒绝码。底层 cause 只递归提取安全白名单中的稳定网络码；已收到 HTTP response 时同时记录 `httpStatus`。未知 `Error.message` 不得成为 code 或自由文本。
+
 ## 3. 原子生命周期
 
 每个真实边界动作只允许一次 `started`，至多一次由真实结果产生的 `terminal`。第一次 terminal 后 handle 物理关闭；第二次 terminal 同步返回 `DUPLICATE_SPAN_TERMINAL`。重试必须创建新 Span 并用 `parentSpanId` 指向原动作，禁止复用 Span 或用 retryable 布尔覆盖生命周期。
@@ -89,6 +91,8 @@ failure = kind,code,nativeCause?,responsibleOwner,impact,recovery,
 ## 4. 因果与跨仓边界
 
 Website 创建或继承 `traceId`。每个 Website/AGENT 跨进程请求必须携带一个 opaque `boundaryId`；优先直接复用现有 `request_id` 或 `idempotency_key`，禁止为同一边界再造第二 ID。发送、接收、响应和消费双方同时绑定现有 Job/Attempt/Lease/Fence identity。
+
+`cloud.session-open` 也属于该跨仓合同：AGENT 发送 Span 与 Website session-open 接收/响应 Span 必须复用同一 `request_id` 作为 `boundaryId`。任一侧缺失、换 ID 或不可读时，跨仓诊断必须输出 `BOUNDARY_SOURCE_INCOMPLETE + DIAGNOSIS_INCOMPLETE`，不得把 AGENT 一侧的包装码猜成网站拒绝原因。
 
 同一 producer run 由 `producerSeq` 排序；同一动作由 `spanId/parentSpanId` 连接；跨进程由 `boundaryId` 连接；错误因果由 `causedByEventId` 连接。`occurredAt` 只供人读，不参与跨进程业务排序。诊断器必须返回全部 `blockingRoots[]`：每条 root 都是没有可达上游 BLOCKING ancestor 的独立阻断失败；不得用固定 operation 顺序、最后一条 ERROR 或单一 first failure 代替因果计算。
 
@@ -120,11 +124,15 @@ Website 创建或继承 `traceId`。每个 Website/AGENT 跨进程请求必须�
 
 `producer.alive` 只复用现有 heartbeat，不新增 timer；它的 `freshForMs` 必须等于 `3 * 真实 heartbeat interval + grace`。该 producer heartbeat 过期后，它拥有的各轴统一派生为 `UNKNOWN_STALE`，但其他 producer 的轴保持独立。端到端 ready 只从这些原始轴派生，不再持久化一个总绿灯。
 
+`producer.alive` 证明的是本 producer 进程与现有工作循环仍在运行，不以 Cloud heartbeat 成功为前提。AGENT 必须在现有 session heartbeat 循环的同一 cadence 内投影该轴，Cloud 请求失败时仍分别记录 `producer.alive=alive`、`cloud.session=stale`与 `claim.admission=blocked`；不得新增 timer、把 Cloud 失败写成 Shell 死亡，或用 Shell 存活冒充 Cloud 已连接。
+
 ## 6. 完整性、文件与容量
 
 每个 producer run 单写者，`producerSeq` 从 1 严格递增；首事件 `previousEventHash=null`，其后等于上一事件 `eventHash`。hash 使用排除 `eventHash` 后的 UTF-8 canonical JSON；同一 run 跨 segment 继续前一 hash。正常停止必须先写最终 `producer.lifecycle=stopped`、fsync，再关闭文件，该事件 hash 即正常封口。hash 链只证明丢失/篡改/乱序，不替代业务 evidence 或签名。
 
 AGENT 路径固定为 `runtime-logs/<producer>/<producerRunId>-<segment>.jsonl`。唯一可配置容量是 producer 的 `maxTotalBytes`；segment 滚动阈值只能由该值内部派生，不能成为第二配置。达到上限时只删除最旧且同时满足以下条件的 segment：关联 Job 全部终态、没有 OPEN_SPAN、没有 UNKNOWN mutation、没有 pending Outbox、重启权威对账已完成。不得建立 retention ledger；资格直接从日志与现有公共只读 authority 计算。若所有 segment 均受保护，`log.sink=capacity_blocked` 并阻止新 Claim 和新外部 mutation。
+
+当 `--source` 指向目录时，只发现其直接 producer 子目录内符合 `<producerRunId>-<segment>.jsonl` 的 V2 segment；根目录 `workbench.jsonl` 之类布局外退役文件不属于 active source，不读取、不迁移、不增加兼容解析。已进入合法 producer 子目录的任意坏行、坏 segment 或链路缺口仍必须失败关闭。当 `--source` 显式指向普通文件时，它作为声明的 Website journal export 或单一 segment 被严格解析。
 
 中间坏行、sequence 缺口、hash 断裂、跨 segment 断裂或正常封口缺失必须失败关闭。只有文件最后一条截断行可标记为 `TRUNCATED_FINAL_LINE`，仍导致诊断不完整。
 
@@ -149,6 +157,8 @@ logs:inspect --job <jobId> \
 ```
 
 它只读流式解析显式来源，不建设常驻服务或复制日志。缺少声明来源输出 `SOURCE_UNAVAILABLE + DIAGNOSIS_INCOMPLETE`。输出必须包含：来源与完整性、各状态轴及新鲜度、最后成功动作、OPEN_SPAN、全部 `blockingRoots[]`、consequential/cleanup 因果链、Browser 副作用/WAL 状态、authority reconciliation、责任 Owner 与 recovery。只有来源、schema、完整性、因果、新鲜度和权威对账全部完整时才可输出 `DIAGNOSIS_COMPLETE`；任何缺口都必须精确说明，禁止 AI 猜根因。
+
+目录来源发现只消费第 6 节的 active V2 segment 布局；布局外旧文件不得把整个新运行误判为 schema 损坏，布局内坏文件也不得被忽略。诊断器不提供旧格式兼容、dual-read 或自动迁移。
 
 ## 10. Website 消费合同
 
@@ -189,6 +199,8 @@ Static 必须证明唯一 Logger、严格 SPAN/STATE 联合、封闭 identity/op
 13. Sink 不可写；
 14. segment 丢失/坏行/hash 断裂；
 15. 跨 boundary 重试错配。
+
+上述矩阵必须另外固定以下回归：根失败保留 typed code 而上层包装仅为 consequential；`nativeCause` 递归提取仅允许安全白名单；目录中退役根文件不进入 active source 而合法 producer 子目录坏文件必须失败；Cloud 不可用时仍沿现有 cadence 证明 Shell 存活且保持 Cloud/Claim 失败关闭；Website/AGENT session-open 同 boundary 完整且任一缺源都不得输出完整跨仓诊断。
 
 每个用例必须同时断言 `blockingRoots[]`、责任 Owner、状态轴、最后成功点、副作用、recovery 与完整/不完整裁决。真实 Dynamic Proof 再覆盖同候选的 Website、AGENT、Cloud、Browser、Storage、Outbox 与恢复；HTTP 200、进程存活、截图、日志文本或历史回执都不能代替真实证据。
 

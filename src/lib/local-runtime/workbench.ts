@@ -107,6 +107,7 @@ export class GrassEyeWorkbench {
           dataDir: assembly.dataDir,
           gpt: assembly.gptAbilityGroup,
           browserAuthority: assembly.browserAuthority,
+          evidenceStore: assembly.evidenceStore,
           sourceHash: requireSourceCandidateHash(),
           runtimeLogger: assembly.runtimeLogger,
         });

@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { executionFailure } from "../../../../lib/typed-failure.js";
 
 import type { GptChildHandlerMap } from "../child-handler.js";
 import {
@@ -39,11 +40,11 @@ export const composerSubmissionChildHandlers = {
       fields: ["tagName", "visible", "disabled"],
     });
     if (!inspected || typeof inspected !== "object" || Array.isArray(inspected)) {
-      throw new Error("review_required:GPT_COMPOSER_INVALID");
+      throw executionFailure("review_required", "GPT_COMPOSER_INVALID");
     }
     const state = inspected as Record<string, unknown>;
     if (state.tagName !== "DIV" || state.visible !== true || state.disabled === true) {
-      throw new Error("review_required:GPT_COMPOSER_INVALID");
+      throw executionFailure("review_required", "GPT_COMPOSER_INVALID");
     }
     await browser.executeDomIntent({ kind: "click", selector: GPT_COMPOSER_SELECTOR, expectedMatches: 1 });
     return success({
@@ -63,7 +64,7 @@ export const composerSubmissionChildHandlers = {
     });
     if (!value || typeof value !== "object" || Array.isArray(value)
       || (value as { retainedValueVerified?: unknown }).retainedValueVerified !== true) {
-      throw new Error("review_required:GPT_PROMPT_WRITE_UNCONFIRMED");
+      throw executionFailure("review_required", "GPT_PROMPT_WRITE_UNCONFIRMED");
     }
     return success({
       value: promptIdentity(prompt), candidateCount: 1,
@@ -76,12 +77,12 @@ export const composerSubmissionChildHandlers = {
     requireExactInputKeys(intent, ["prompt", "turnMarker"]);
     const prompt = stringInput(intent, "prompt");
     const marker = stringInput(intent, "turnMarker");
-    if (!prompt.includes(marker)) throw new Error("failed:GPT_PROMPT_MARKER_MISSING");
+    if (!prompt.includes(marker)) throw executionFailure("failed", "GPT_PROMPT_MARKER_MISSING");
     const browser = requireBrowser(context);
     const observed = await readExactText(browser, GPT_COMPOSER_SELECTOR, 65_536);
-    if (observed !== prompt) throw new Error("review_required:GPT_PROMPT_READBACK_MISMATCH");
+    if (observed !== prompt) throw executionFailure("review_required", "GPT_PROMPT_READBACK_MISMATCH");
     const sendCount = await findCount(browser, { selector: GPT_SEND_SELECTOR, maxMatches: 2 });
-    if (sendCount !== 1) throw new Error(`review_required:GPT_SEND_CONTROL_COUNT_${sendCount}`);
+    if (sendCount !== 1) throw executionFailure("review_required", `GPT_SEND_CONTROL_COUNT_${sendCount}`);
     return success({
       value: promptIdentity(observed), candidateCount: 1,
       observedSemantics: ["exact prompt bytes", "immutable turn marker", "one send control"],
@@ -92,7 +93,7 @@ export const composerSubmissionChildHandlers = {
   async submit_exact_gpt_turn(intent, context) {
     requireExactInputKeys(intent, ["promptHash"]);
     const promptHash = stringInput(intent, "promptHash");
-    if (!/^sha256:[a-f0-9]{64}$/u.test(promptHash)) throw new Error("failed:GPT_PROMPT_HASH_INVALID");
+    if (!/^sha256:[a-f0-9]{64}$/u.test(promptHash)) throw executionFailure("failed", "GPT_PROMPT_HASH_INVALID");
     const browser = requireBrowser(context);
     await requireOneCandidate(browser, { selector: GPT_SEND_SELECTOR, maxMatches: 2 });
     const inspected = await browser.executeDomIntent({
@@ -100,11 +101,11 @@ export const composerSubmissionChildHandlers = {
       fields: ["tagName", "visible", "disabled"],
     });
     if (!inspected || typeof inspected !== "object" || Array.isArray(inspected)) {
-      throw new Error("review_required:GPT_SEND_CONTROL_INVALID");
+      throw executionFailure("review_required", "GPT_SEND_CONTROL_INVALID");
     }
     const state = inspected as Record<string, unknown>;
     if (state.tagName !== "BUTTON" || state.visible !== true || state.disabled === true) {
-      throw new Error("review_required:GPT_SEND_CONTROL_INVALID");
+      throw executionFailure("review_required", "GPT_SEND_CONTROL_INVALID");
     }
     await browser.executeDomIntent({ kind: "click", selector: GPT_SEND_SELECTOR, expectedMatches: 1 });
     return success({
@@ -120,10 +121,10 @@ export const composerSubmissionChildHandlers = {
     const count = await findCount(browser, {
       selector: GPT_USER_TURN_SELECTOR, textContains: marker, maxMatches: 20,
     });
-    if (count !== 1) throw new Error(`review_required:GPT_SUBMITTED_TURN_COUNT_${count}`);
+    if (count !== 1) throw executionFailure("review_required", `GPT_SUBMITTED_TURN_COUNT_${count}`);
     const userTurnId = await readExactAttribute(browser, GPT_USER_TURN_SELECTOR, "data-testid", marker);
     const composerText = await readExactText(browser, GPT_COMPOSER_SELECTOR, 65_536);
-    if (composerText.trim().length !== 0) throw new Error("review_required:GPT_SUBMISSION_COMPOSER_NOT_CLEARED");
+    if (composerText.trim().length !== 0) throw executionFailure("review_required", "GPT_SUBMISSION_COMPOSER_NOT_CLEARED");
     const document = await readGptDocument(browser);
     const canonicalConversationUrl = canonicalGptConversationUrl(document.url);
     return success({

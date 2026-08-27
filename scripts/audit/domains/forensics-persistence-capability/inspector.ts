@@ -153,9 +153,9 @@ const inspectStoragePort = (
   inspectedFiles.add(repoPath);
   const storagePort = source.getInterface("GrassEyeStoragePort");
   const actual = storagePort?.getMethods().map((method) => method.getName()).sort() ?? [];
-  const expected = ["appendArtifact", "appendRecord", "readRecord"];
+  const expected = ["appendArtifact", "appendRecord", "readArtifact", "readRecord"];
   if (actual.length === expected.length && actual.every((name, index) => name === expected[index])) return;
-  pushFinding(findings, lawId, clauseId, repoPath, "forensics/storage-port", "GrassEyeStoragePort must expose only appendArtifact, appendRecord, and readRecord.", "static.contract");
+  pushFinding(findings, lawId, clauseId, repoPath, "forensics/storage-port", "GrassEyeStoragePort must expose only appendArtifact, appendRecord, readArtifact, and readRecord.", "static.contract");
 };
 
 const inspectSchemaContract = (

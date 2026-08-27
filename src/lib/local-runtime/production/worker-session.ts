@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { executionFailure } from "../../typed-failure.js";
 
 import { agentPluginCapabilityManifest } from "./catalog.js";
 import type { ProductionHash } from "./contracts.js";
@@ -69,7 +70,7 @@ export class ProductionWorkerSession {
     if (response.session?.device_id !== this.device.device_id
       || response.session.worker_session_id !== credential.worker_session_id
       || response.session.worker_session_epoch !== credential.worker_session_epoch) {
-      throw new Error("PRODUCTION_SESSION_BINDING_INVALID");
+      throw executionFailure("review_required", "PRODUCTION_SESSION_BINDING_INVALID");
     }
     this.credential = credential;
   }
@@ -109,7 +110,7 @@ export class ProductionWorkerSession {
     if (receipt.worker_session_id !== this.workerSessionId || receipt.attestation_seq !== next
       || credential.worker_session_id !== this.workerSessionId
       || credential.token_generation <= this.credential!.token_generation) {
-      throw new Error("PRODUCTION_ATTESTATION_BINDING_INVALID");
+      throw executionFailure("review_required", "PRODUCTION_ATTESTATION_BINDING_INVALID");
     }
     this.credential = credential;
     this.attestation = receipt;
@@ -136,19 +137,24 @@ export class ProductionWorkerSession {
 
   public async request(pathname: string, init: RequestInit): Promise<unknown> {
     await this.open();
-    const response = await fetch(`${this.device.server_base_url.replace(/\/+$/u, "")}${pathname}`, {
-      ...init,
-      headers: {
-        ...(await this.authorizationHeaders({ "content-type": "application/json" })),
-        ...(init.headers ?? {}),
-      },
-      signal: init.signal ?? AbortSignal.timeout(30_000),
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${this.device.server_base_url.replace(/\/+$/u, "")}${pathname}`, {
+        ...init,
+        headers: {
+          ...(await this.authorizationHeaders({ "content-type": "application/json" })),
+          ...(init.headers ?? {}),
+        },
+        signal: init.signal ?? AbortSignal.timeout(30_000),
+      });
+    } catch (cause) {
+      throw executionFailure("recovery_pending", "CLOUD_TRANSPORT_UNAVAILABLE", { cause });
+    }
     const raw = await response.json() as unknown;
     if (!response.ok) {
-      try { return parseJsonEnvelope(raw); } catch (error) { throw error; }
+      try { return parseJsonEnvelope(raw, response.status); } catch (error) { throw error; }
     }
-    return parseJsonEnvelope(raw);
+    return parseJsonEnvelope(raw, response.status);
   }
 
   public async close(): Promise<void> {
@@ -161,19 +167,24 @@ export class ProductionWorkerSession {
   }
 
   private async deviceRequest(pathname: string, body: Record<string, unknown>): Promise<unknown> {
-    const response = await fetch(`${this.device.server_base_url.replace(/\/+$/u, "")}${pathname}`, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${this.device.credential}`,
-        origin: this.device.origin,
-        "x-ai-agent-origin": this.device.origin,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(30_000),
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${this.device.server_base_url.replace(/\/+$/u, "")}${pathname}`, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${this.device.credential}`,
+          origin: this.device.origin,
+          "x-ai-agent-origin": this.device.origin,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(30_000),
+      });
+    } catch (cause) {
+      throw executionFailure("recovery_pending", "CLOUD_TRANSPORT_UNAVAILABLE", { cause });
+    }
     const raw = await response.json() as unknown;
-    if (!response.ok) return parseJsonEnvelope(raw);
-    return parseJsonEnvelope(raw);
+    if (!response.ok) return parseJsonEnvelope(raw, response.status);
+    return parseJsonEnvelope(raw, response.status);
   }
 }

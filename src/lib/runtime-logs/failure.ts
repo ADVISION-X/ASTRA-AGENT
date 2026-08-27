@@ -12,18 +12,38 @@ const cleanExplicitCode = (value: string): string => {
   return /^[A-Z][A-Z0-9_]*(?:\.[A-Z0-9_]+)*$/u.test(code) ? code : "INTERNAL_FAILURE";
 };
 
+const knownNativeCause = (value: unknown): string | undefined => typeof value === "string"
+  ? /\b(ECONNREFUSED|ECONNRESET|ETIMEDOUT|UND_ERR_[A-Z_]+)\b/u.exec(value)?.[1]
+  : undefined;
+
 const nativeCause = (error: unknown): string | undefined => {
-  if (!(error instanceof Error)) return undefined;
-  const cause = error.cause;
-  const known = (value: string): string | undefined =>
-    /\b(ECONNREFUSED|ECONNRESET|ETIMEDOUT|UND_ERR_[A-Z_]+)\b/u.exec(value)?.[1];
-  if (cause && typeof cause === "object" && "code" in cause && typeof cause.code === "string") return known(cause.code);
-  if (cause instanceof Error) return known(cause.message);
-  return /\b(ECONNREFUSED|ECONNRESET|ETIMEDOUT|UND_ERR_[A-Z_]+)\b/u.exec(error.message)?.[1];
+  const seen = new Set<object>();
+  const visit = (value: unknown): string | undefined => {
+    if (!value || typeof value !== "object" || seen.has(value)) return knownNativeCause(value);
+    seen.add(value);
+    const record = value as Readonly<Record<string, unknown>>;
+    return visit(record.cause) ?? knownNativeCause(record.code)
+      ?? (value instanceof Error ? knownNativeCause(value.message) : undefined);
+  };
+  return visit(error);
+};
+
+const httpStatus = (error: unknown): number | undefined => {
+  const seen = new Set<object>();
+  const visit = (value: unknown): number | undefined => {
+    if (!value || typeof value !== "object" || seen.has(value)) return undefined;
+    seen.add(value);
+    const record = value as Readonly<Record<string, unknown>>;
+    const nested = visit(record.cause);
+    if (nested !== undefined) return nested;
+    return Number.isInteger(record.httpStatus) && Number(record.httpStatus) >= 100 && Number(record.httpStatus) <= 599
+      ? Number(record.httpStatus) : undefined;
+  };
+  return visit(error);
 };
 
 const classifyKind = (code: string): RuntimeFailureKindValue => {
-  if (/ECONN|ETIMEDOUT|UND_ERR|FETCH|NETWORK|SOCKET/iu.test(code)) return RuntimeFailureKind.TRANSPORT;
+  if (/ECONN|ETIMEDOUT|UND_ERR|FETCH|NETWORK|SOCKET|TRANSPORT/iu.test(code)) return RuntimeFailureKind.TRANSPORT;
   if (/DATABASE|STORAGE|CHECKPOINT|UPLOAD|OUTBOX|DISK/iu.test(code)) return RuntimeFailureKind.STORAGE;
   if (/BROWSER|TARGET|DOCUMENT|MUTATION|UNKNOWN/iu.test(code)) return RuntimeFailureKind.BROWSER;
   if (/CONTRACT|SCHEMA|MANIFEST|BINDING|HASH_MISMATCH|DRIFT/iu.test(code)) return RuntimeFailureKind.CONTRACT;
@@ -46,6 +66,7 @@ export const runtimeFailureFromError = (input: Readonly<{
 }>): RuntimeFailure => {
   const code = input.code === undefined ? "INTERNAL_FAILURE" : cleanExplicitCode(input.code);
   const cause = nativeCause(input.error);
+  const responseStatus = input.httpStatus ?? httpStatus(input.error);
   return {
     kind: input.kind ?? classifyKind(cause ?? code),
     code,
@@ -54,7 +75,7 @@ export const runtimeFailureFromError = (input: Readonly<{
     recovery: input.recovery ?? RuntimeRecovery.STOP,
     ...(cause ? { nativeCause: cause } : {}),
     ...(input.causedByEventId ? { causedByEventId: input.causedByEventId } : {}),
-    ...(input.httpStatus === undefined ? {} : { httpStatus: input.httpStatus }),
+    ...(responseStatus === undefined ? {} : { httpStatus: responseStatus }),
   };
 };
 

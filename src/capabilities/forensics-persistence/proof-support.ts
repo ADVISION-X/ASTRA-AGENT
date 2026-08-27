@@ -51,7 +51,7 @@ export const buildForensicsFailureProof = (
   childCapabilityId: ForensicsChildCapabilityId,
   failureReason: string,
   timing: ForensicsProofTiming,
-  context: Pick<ForensicsProofContext, "missionId" | "runId" | "recordRef"> = {},
+  context: Pick<ForensicsProofContext, "missionId" | "runId" | "recordRef" | "artifactRef"> = {},
 ): ForensicsProof => ({
   proofId: randomUUID(),
   abilityGroupId: FORENSICS_PERSISTENCE_ABILITY_GROUP_ID,

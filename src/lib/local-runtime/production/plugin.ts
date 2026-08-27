@@ -30,6 +30,19 @@ export interface ProviderTurnResult {
     prior_raw_output_hash: ProductionHash;
     prior_turn_marker: string;
   }> | null;
+  readonly generated_image?: GeneratedImageArtifact;
+}
+
+export interface GeneratedImageArtifact {
+  readonly artifact_id: string;
+  readonly local_path: string;
+  readonly original_local_path: string;
+  readonly sha256: ProductionHash;
+  readonly original_sha256: ProductionHash;
+  readonly bytes: number;
+  readonly media_type: "image/webp";
+  readonly width: 1200;
+  readonly height: 630;
 }
 
 export interface SharedExecutionContext {
@@ -58,6 +71,7 @@ export interface ProductPluginOutput {
   readonly payload: unknown;
   readonly evidence_refs: readonly string[];
   readonly continuation?: ProviderTurnResult["provider_continuation"];
+  readonly generated_image?: GeneratedImageArtifact;
 }
 
 export interface ProductPlugin {
@@ -69,6 +83,11 @@ export interface ProductPlugin {
     productId: ProductionProductId;
     actionId: ProductionActionId;
   }>[];
+  readonly parseResult: (
+    task: WebsiteAgentTask,
+    value: unknown,
+    phase: "draft" | "final",
+  ) => Readonly<Record<string, unknown>>;
   execute(task: WebsiteAgentTask, context: SharedExecutionContext): Promise<WebsiteAgentResult>;
 }
 

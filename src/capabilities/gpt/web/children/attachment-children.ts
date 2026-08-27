@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
 import type { BrowserFileArtifactGrantV1 } from "../../../../lib/browser/browser-authority-api.js";
+import { executionFailure } from "../../../../lib/typed-failure.js";
 
 import type { GptChildCapabilityIntent } from "../../contract.js";
 import type { GptChildHandlerMap } from "../child-handler.js";
@@ -32,7 +33,7 @@ const digest = (bytes: Buffer): `sha256:${string}` =>
 const filesFromIntent = (intent: GptChildCapabilityIntent): readonly ApprovedFile[] => {
   const files = arrayInput(intent, "files").map((value): ApprovedFile => {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
-      throw new Error("failed:GPT_ATTACHMENT_INPUT_INVALID");
+      throw executionFailure("failed", "GPT_ATTACHMENT_INPUT_INVALID");
     }
     const item = value as Record<string, unknown>;
     if (typeof item.artifactRef !== "string" || item.artifactRef.length === 0
@@ -40,7 +41,7 @@ const filesFromIntent = (intent: GptChildCapabilityIntent): readonly ApprovedFil
       || typeof item.displayName !== "string" || item.displayName.length === 0
       || typeof item.sha256 !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(item.sha256)
       || typeof item.bytes !== "number" || !Number.isSafeInteger(item.bytes) || item.bytes < 0) {
-      throw new Error("failed:GPT_ATTACHMENT_INPUT_INVALID");
+      throw executionFailure("failed", "GPT_ATTACHMENT_INPUT_INVALID");
     }
     return {
       artifactRef: item.artifactRef,
@@ -51,7 +52,7 @@ const filesFromIntent = (intent: GptChildCapabilityIntent): readonly ApprovedFil
     };
   });
   const names = files.map((file) => file.displayName);
-  if (new Set(names).size !== names.length) throw new Error("review_required:GPT_ATTACHMENT_DISPLAY_NAME_DUPLICATE");
+  if (new Set(names).size !== names.length) throw executionFailure("review_required", "GPT_ATTACHMENT_DISPLAY_NAME_DUPLICATE");
   return files;
 };
 
@@ -59,7 +60,7 @@ const verifyFiles = async (files: readonly ApprovedFile[]): Promise<void> => {
   for (const file of files) {
     const bytes = await readFile(file.filePath);
     if (bytes.byteLength !== file.bytes || digest(bytes) !== file.sha256) {
-      throw new Error(`review_required:GPT_ATTACHMENT_SOURCE_CHANGED:${file.artifactRef}`);
+      throw executionFailure("review_required", `GPT_ATTACHMENT_SOURCE_CHANGED:${file.artifactRef}`);
     }
   }
 };
@@ -98,13 +99,13 @@ export const attachmentChildHandlers = {
       value: { state: "file-input-ready" }, candidateCount: 1,
       observedSemantics: ["one exact GPT file input"], committedMutation: "no",
     });
-    if (inputCount > 1) throw new Error(`review_required:GPT_FILE_INPUT_COUNT_${inputCount}`);
+    if (inputCount > 1) throw executionFailure("review_required", `GPT_FILE_INPUT_COUNT_${inputCount}`);
     await requireOneCandidate(browser, { selector: GPT_ATTACHMENT_CONTROL_SELECTOR, maxMatches: 2 });
     await browser.executeDomIntent({
       kind: "click", selector: GPT_ATTACHMENT_CONTROL_SELECTOR, expectedMatches: 1,
     });
     const after = await findCount(browser, { selector: GPT_FILE_INPUT_SELECTOR, maxMatches: 2 });
-    if (after !== 1) throw new Error("review_required:GPT_FILE_INPUT_OPEN_UNCONFIRMED");
+    if (after !== 1) throw executionFailure("review_required", "GPT_FILE_INPUT_OPEN_UNCONFIRMED");
     return success({
       value: { state: "file-input-ready" }, candidateCount: 1,
       observedSemantics: ["one attachment control", "one exact file input"], committedMutation: "yes",
@@ -139,13 +140,13 @@ export const attachmentChildHandlers = {
     const browser = requireBrowser(context);
     const regionCount = await findCount(browser, { selector: GPT_ATTACHMENT_REGION_SELECTOR, maxMatches: 2 });
     if (files.length === 0) {
-      if (regionCount !== 0) throw new Error(`review_required:GPT_ATTACHMENT_REGION_COUNT_${regionCount}`);
+      if (regionCount !== 0) throw executionFailure("review_required", `GPT_ATTACHMENT_REGION_COUNT_${regionCount}`);
       return success({
         value: { files: [] }, candidateCount: 0,
         observedSemantics: ["zero approved attachments", "zero visible attachment regions"], committedMutation: "no",
       });
     }
-    if (regionCount !== 1) throw new Error(`review_required:GPT_ATTACHMENT_REGION_COUNT_${regionCount}`);
+    if (regionCount !== 1) throw executionFailure("review_required", `GPT_ATTACHMENT_REGION_COUNT_${regionCount}`);
     const text = await readExactText(browser, GPT_ATTACHMENT_REGION_SELECTOR, 16_384);
     const mismatches = files.filter((file) => countOccurrences(text, file.displayName) !== 1);
     const unexplained = files.reduce(
@@ -153,7 +154,7 @@ export const attachmentChildHandlers = {
       text,
     ).replace(/\s+/gu, "");
     if (mismatches.length || unexplained.length > 0) {
-      throw new Error(`review_required:GPT_ATTACHMENT_SET_MISMATCH:${mismatches.map((file) => file.displayName).join("|")}`);
+      throw executionFailure("review_required", `GPT_ATTACHMENT_SET_MISMATCH:${mismatches.map((file) => file.displayName).join("|")}`);
     }
     return success({
       value: { files: files.map(({ artifactRef, displayName, sha256, bytes }) => ({ artifactRef, displayName, sha256, bytes })) },

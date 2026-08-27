@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import sharp from "sharp";
 
 import {
   buildGptExecutionProfile,
@@ -152,12 +156,13 @@ const fakeBrowser = (responder: DomResponder, input: FakeBrowserOptions = {}) =>
 };
 
 const documentResult = { url: "https://chatgpt.com/", title: "ChatGPT" } as const;
-const context = (browser: BrowserTargetLease) => ({ dataDir: "/tmp/gpt-acceptance", browser });
+const context = (browser: BrowserTargetLease, dataDir = "/tmp/gpt-acceptance") => ({ dataDir, browser });
 const execute = (
   id: GptChildCapabilityId,
   browser: BrowserTargetLease,
   input: Readonly<Record<string, unknown>>,
-) => createGptAbilityGroup().execute({ childCapabilityId: id, executionId: `acceptance:${id}`, input }, context(browser));
+  dataDir?: string,
+) => createGptAbilityGroup().execute({ childCapabilityId: id, executionId: `acceptance:${id}`, input }, context(browser, dataDir));
 
 assert.equal(createGptAbilityGroup().abilityGroupId, "gpt");
 assert.equal(createGptAbilityGroup().transport, "gpt-web");
@@ -411,6 +416,40 @@ const titleFailure = await execute("verify_exact_gpt_title", titleFixture.browse
 assert.equal(titleFailure.status, "review_required");
 assert.equal(checkpoint.status, "success");
 assert.equal(checkpoint.value, checkpointValue);
+
+const imageDirectory = await mkdtemp(join(tmpdir(), "gpt-image-acceptance-"));
+try {
+  const originalImage = await sharp({
+    create: { width: 16, height: 9, channels: 4, background: { r: 20, g: 80, b: 160, alpha: 1 } },
+  }).png().withMetadata({ orientation: 6 }).toBuffer();
+  const source = `data:image/png;base64,${originalImage.toString("base64")}`;
+  const imageFixture = fakeBrowser((intent) => {
+    if (intent.kind === "document") return documentResult;
+    if (intent.kind === "find") return { count: 1 };
+    if (intent.kind === "readAttribute") return source;
+    throw new Error(`UNEXPECTED_IMAGE_INTENT:${intent.kind}`);
+  });
+  const imageResult = await execute("checkpoint_gpt_generated_image", imageFixture.browser, {
+    assistantTurnId: "conversation-turn-2",
+  }, imageDirectory);
+  assert.equal(imageResult.status, "success", imageResult.failureCode ?? "image checkpoint failed");
+  const artifact = imageResult.value as Readonly<{
+    localPath: string; originalLocalPath: string; sha256: string; originalSha256: string; bytes: number;
+    mediaType: string; width: number; height: number;
+  }>;
+  const bytes = await readFile(artifact.localPath);
+  const originalReadback = await readFile(artifact.originalLocalPath);
+  const metadata = await sharp(bytes).metadata();
+  assert.equal(artifact.originalSha256, `sha256:${createHash("sha256").update(originalImage).digest("hex")}`);
+  assert.deepEqual(originalReadback, originalImage, "the exact Provider bytes must remain in the task-owned private directory");
+  assert.equal(artifact.sha256, `sha256:${createHash("sha256").update(bytes).digest("hex")}`);
+  assert.equal(artifact.bytes, bytes.byteLength);
+  assert.deepEqual([artifact.mediaType, artifact.width, artifact.height], ["image/webp", 1200, 630]);
+  assert.deepEqual([metadata.format, metadata.width, metadata.height], ["webp", 1200, 630]);
+  assert.equal(Boolean(metadata.exif || metadata.icc || metadata.iptc || metadata.xmp), false);
+} finally {
+  await rm(imageDirectory, { recursive: true, force: true });
+}
 
 process.stdout.write("[ACCEPTANCE][gpt] PASS\n");
 const clauses = ["summary", ...Array.from({ length: 15 }, (_, index) => `forbidden:${index}`)]

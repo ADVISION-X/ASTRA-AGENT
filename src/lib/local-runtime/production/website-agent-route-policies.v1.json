@@ -1,0 +1,1430 @@
+{
+  "schema_version": "website-agent-route-policies.v1",
+  "contract_id": "ai-acceptance.website-agent-task-result",
+  "contract_version": 1,
+  "parameter_types": {
+    "admitted_identity_catalog_hash": "sha256",
+    "analysis_kind": "bazi_analysis_kind",
+    "article_package_contract_version": "public_knowledge_package_version",
+    "case_manifest_hash": "sha256",
+    "case_manifest_ref": "non_empty_string",
+    "challenge_id": "non_empty_string",
+    "chart_hash": "sha256",
+    "chart_ref": "non_empty_string",
+    "chart_version": "non_empty_string",
+    "context_package_ref": "non_empty_string",
+    "domain_id": "non_empty_string",
+    "evidence_ref_catalog": "non_empty_string_array",
+    "locale": "locale",
+    "naming_context_package_hash": "sha256",
+    "naming_context_package_ref": "non_empty_string",
+    "naming_requirement_brief_hash": "sha256",
+    "naming_requirement_brief_ref": "non_empty_string",
+    "naming_task_ref": "non_empty_string",
+    "observation_schema_version": "payment_observation_version",
+    "output_contract_ref": "non_empty_string",
+    "parent_raw_output_hash": "sha256",
+    "parent_report_ref": "non_empty_string",
+    "policy_version": "non_empty_string",
+    "project_ref": "non_empty_string",
+    "question_snapshot": "non_empty_string",
+    "question_text": "non_empty_string",
+    "ready_corpus_snapshot_hash": "sha256",
+    "reflection_contract_version": "quality_reflection_version",
+    "reflection_plan_id": "non_empty_string",
+    "report_id": "non_empty_string",
+    "requirement_manifest_hash": "sha256",
+    "requirement_manifest_ref": "non_empty_string",
+    "resource_kind": "localization_resource_kind",
+    "result_schema_version": "route_result_schema_version",
+    "source_resource_id": "non_empty_string",
+    "source_sha256": "sha256",
+    "source_version": "non_empty_string",
+    "target_locale": "target_locale",
+    "thread_ref": "non_empty_string",
+    "topic_cluster_registry_version": "non_empty_string",
+    "user_question": "non_empty_string"
+  },
+  "routes": [
+    {
+      "product_id": "bazi_chart_interpretation",
+      "action_id": "produce",
+      "required_parameter_keys": [
+        "analysis_kind",
+        "result_schema_version",
+        "chart_ref",
+        "chart_version",
+        "chart_hash"
+      ],
+      "material_roles": [
+        {
+          "role": "bazi_input_bundle",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "result_contract",
+          "trust_class": "instruction",
+          "may_issue_instruction": true,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "bazi-chart-interpretation-output.v4",
+      "relation_kind": "primary"
+    },
+    {
+      "product_id": "bazi_ai_full_analysis",
+      "action_id": "produce",
+      "required_parameter_keys": [
+        "analysis_kind",
+        "result_schema_version",
+        "chart_ref",
+        "chart_version",
+        "chart_hash",
+        "user_question"
+      ],
+      "material_roles": [
+        {
+          "role": "bazi_input_bundle",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "result_contract",
+          "trust_class": "instruction",
+          "may_issue_instruction": true,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "bazi-initial-question-answer-output.v1",
+      "relation_kind": "primary"
+    },
+    {
+      "product_id": "bazi_report_followup",
+      "action_id": "followup",
+      "required_parameter_keys": [
+        "analysis_kind",
+        "result_schema_version",
+        "chart_ref",
+        "chart_version",
+        "chart_hash",
+        "user_question",
+        "thread_ref",
+        "parent_report_ref",
+        "parent_raw_output_hash"
+      ],
+      "material_roles": [
+        {
+          "role": "bazi_input_bundle",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "result_contract",
+          "trust_class": "instruction",
+          "may_issue_instruction": true,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "bazi-report-followup-answer-output.v1",
+      "relation_kind": "continuation"
+    },
+    {
+      "product_id": "qimen_professional_answer",
+      "action_id": "produce",
+      "required_parameter_keys": [
+        "result_schema_version",
+        "report_id",
+        "chart_ref",
+        "chart_version",
+        "chart_hash"
+      ],
+      "material_roles": [
+        {
+          "role": "qimen_business_input",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "result_contract",
+          "trust_class": "instruction",
+          "may_issue_instruction": true,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "qimen-professional-answer-output.v8",
+      "relation_kind": "primary"
+    },
+    {
+      "product_id": "qimen_report_followup",
+      "action_id": "followup",
+      "required_parameter_keys": [
+        "result_schema_version",
+        "parent_report_ref",
+        "parent_raw_output_hash",
+        "question_snapshot"
+      ],
+      "material_roles": [
+        {
+          "role": "qimen_followup_input",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "result_contract",
+          "trust_class": "instruction",
+          "may_issue_instruction": true,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "qimen-followup-answer-output.v2",
+      "relation_kind": "continuation"
+    },
+    {
+      "product_id": "hehun_ai_analysis",
+      "action_id": "produce",
+      "required_parameter_keys": [
+        "result_schema_version",
+        "case_manifest_ref",
+        "case_manifest_hash",
+        "question_snapshot"
+      ],
+      "material_roles": [
+        {
+          "role": "hehun_input_bundle",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "result_contract",
+          "trust_class": "instruction",
+          "may_issue_instruction": true,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "hehun-relationship-report-output.v4",
+      "relation_kind": "primary"
+    },
+    {
+      "product_id": "hehun_report_followup",
+      "action_id": "followup",
+      "required_parameter_keys": [
+        "result_schema_version",
+        "thread_ref",
+        "parent_report_ref",
+        "parent_raw_output_hash",
+        "question_snapshot"
+      ],
+      "material_roles": [
+        {
+          "role": "hehun_followup_input",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "result_contract",
+          "trust_class": "instruction",
+          "may_issue_instruction": true,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "hehun-followup-answer-output.v2",
+      "relation_kind": "continuation"
+    },
+    {
+      "product_id": "naming_bazi_analysis_and_naming",
+      "action_id": "produce",
+      "required_parameter_keys": [
+        "analysis_kind",
+        "result_schema_version",
+        "chart_ref",
+        "chart_version",
+        "chart_hash",
+        "user_question",
+        "naming_task_ref",
+        "naming_context_package_ref",
+        "naming_context_package_hash",
+        "naming_requirement_brief_ref",
+        "naming_requirement_brief_hash"
+      ],
+      "material_roles": [
+        {
+          "role": "bazi_input_bundle",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "naming_business_input",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "result_contract",
+          "trust_class": "instruction",
+          "may_issue_instruction": true,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "naming-bazi-analysis-and-naming-result.v1",
+      "relation_kind": "primary"
+    },
+    {
+      "product_id": "naming_from_existing_bazi_report",
+      "action_id": "produce",
+      "required_parameter_keys": [
+        "project_ref",
+        "context_package_ref",
+        "requirement_manifest_ref",
+        "requirement_manifest_hash",
+        "output_contract_ref"
+      ],
+      "material_roles": [
+        {
+          "role": "naming_context_package",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "naming_requirement_brief",
+          "trust_class": "user_provided_data",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "naming_prior_feedback",
+          "trust_class": "user_provided_data",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "result_contract",
+          "trust_class": "instruction",
+          "may_issue_instruction": true,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "naming-report-output.v2",
+      "relation_kind": "primary"
+    },
+    {
+      "product_id": "public_knowledge_article_pipeline",
+      "action_id": "produce_article",
+      "required_parameter_keys": [
+        "domain_id",
+        "locale",
+        "article_package_contract_version",
+        "ready_corpus_snapshot_hash",
+        "admitted_identity_catalog_hash",
+        "topic_cluster_registry_version"
+      ],
+      "material_roles": [
+        {
+          "role": "ready_corpus_archive",
+          "trust_class": "classical_source_data",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "shared_static",
+          "owner_scope_policy": "forbidden"
+        },
+        {
+          "role": "result_contract",
+          "trust_class": "instruction",
+          "may_issue_instruction": true,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "shared_static",
+          "owner_scope_policy": "forbidden"
+        }
+      ],
+      "result_schema_version": "public-knowledge-article-package.v1",
+      "relation_kind": "primary"
+    },
+    {
+      "product_id": "localization_report_translation",
+      "action_id": "report_translation",
+      "required_parameter_keys": [
+        "target_locale",
+        "resource_kind",
+        "source_resource_id",
+        "source_version",
+        "source_sha256",
+        "policy_version"
+      ],
+      "material_roles": [
+        {
+          "role": "source_content",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "terminology",
+          "trust_class": "instruction",
+          "may_issue_instruction": true,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "locale_policy",
+          "trust_class": "instruction",
+          "may_issue_instruction": true,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "render_policy",
+          "trust_class": "instruction",
+          "may_issue_instruction": true,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "terminal-localization-model-output.v1",
+      "relation_kind": "primary"
+    },
+    {
+      "product_id": "localization_article_translation",
+      "action_id": "article_translation",
+      "required_parameter_keys": [
+        "target_locale",
+        "resource_kind",
+        "source_resource_id",
+        "source_version",
+        "source_sha256",
+        "policy_version"
+      ],
+      "material_roles": [
+        {
+          "role": "source_content",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "terminology",
+          "trust_class": "instruction",
+          "may_issue_instruction": true,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "locale_policy",
+          "trust_class": "instruction",
+          "may_issue_instruction": true,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "render_policy",
+          "trust_class": "instruction",
+          "may_issue_instruction": true,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "terminal-localization-model-output.v1",
+      "relation_kind": "primary"
+    },
+    {
+      "product_id": "payment_screenshot_observation",
+      "action_id": "observe",
+      "required_parameter_keys": [
+        "observation_schema_version"
+      ],
+      "material_roles": [
+        {
+          "role": "payment_screenshot",
+          "trust_class": "transport_evidence",
+          "may_issue_instruction": false,
+          "media_types": [
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "result_contract",
+          "trust_class": "instruction",
+          "may_issue_instruction": true,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "payment-screenshot-observation-v1",
+      "relation_kind": "primary"
+    },
+    {
+      "product_id": "bazi_chart_interpretation",
+      "action_id": "accuracy_challenge",
+      "required_parameter_keys": [
+        "challenge_id",
+        "question_text"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "bazi_chart_interpretation",
+      "action_id": "quality_reflection",
+      "required_parameter_keys": [
+        "reflection_plan_id",
+        "reflection_contract_version",
+        "evidence_ref_catalog"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "bazi_ai_full_analysis",
+      "action_id": "accuracy_challenge",
+      "required_parameter_keys": [
+        "challenge_id",
+        "question_text"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "bazi_ai_full_analysis",
+      "action_id": "quality_reflection",
+      "required_parameter_keys": [
+        "reflection_plan_id",
+        "reflection_contract_version",
+        "evidence_ref_catalog"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "bazi_report_followup",
+      "action_id": "accuracy_challenge",
+      "required_parameter_keys": [
+        "challenge_id",
+        "question_text"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "bazi_report_followup",
+      "action_id": "quality_reflection",
+      "required_parameter_keys": [
+        "reflection_plan_id",
+        "reflection_contract_version",
+        "evidence_ref_catalog"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "qimen_professional_answer",
+      "action_id": "accuracy_challenge",
+      "required_parameter_keys": [
+        "challenge_id",
+        "question_text"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "qimen_professional_answer",
+      "action_id": "quality_reflection",
+      "required_parameter_keys": [
+        "reflection_plan_id",
+        "reflection_contract_version",
+        "evidence_ref_catalog"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "qimen_report_followup",
+      "action_id": "accuracy_challenge",
+      "required_parameter_keys": [
+        "challenge_id",
+        "question_text"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "qimen_report_followup",
+      "action_id": "quality_reflection",
+      "required_parameter_keys": [
+        "reflection_plan_id",
+        "reflection_contract_version",
+        "evidence_ref_catalog"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "hehun_ai_analysis",
+      "action_id": "accuracy_challenge",
+      "required_parameter_keys": [
+        "challenge_id",
+        "question_text"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "hehun_ai_analysis",
+      "action_id": "quality_reflection",
+      "required_parameter_keys": [
+        "reflection_plan_id",
+        "reflection_contract_version",
+        "evidence_ref_catalog"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "hehun_report_followup",
+      "action_id": "accuracy_challenge",
+      "required_parameter_keys": [
+        "challenge_id",
+        "question_text"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "hehun_report_followup",
+      "action_id": "quality_reflection",
+      "required_parameter_keys": [
+        "reflection_plan_id",
+        "reflection_contract_version",
+        "evidence_ref_catalog"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "naming_bazi_analysis_and_naming",
+      "action_id": "accuracy_challenge",
+      "required_parameter_keys": [
+        "challenge_id",
+        "question_text"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "naming_bazi_analysis_and_naming",
+      "action_id": "quality_reflection",
+      "required_parameter_keys": [
+        "reflection_plan_id",
+        "reflection_contract_version",
+        "evidence_ref_catalog"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "naming_from_existing_bazi_report",
+      "action_id": "accuracy_challenge",
+      "required_parameter_keys": [
+        "challenge_id",
+        "question_text"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "naming_from_existing_bazi_report",
+      "action_id": "quality_reflection",
+      "required_parameter_keys": [
+        "reflection_plan_id",
+        "reflection_contract_version",
+        "evidence_ref_catalog"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "public_knowledge_article_pipeline",
+      "action_id": "accuracy_challenge",
+      "required_parameter_keys": [
+        "challenge_id",
+        "question_text"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "public_knowledge_article_pipeline",
+      "action_id": "quality_reflection",
+      "required_parameter_keys": [
+        "reflection_plan_id",
+        "reflection_contract_version",
+        "evidence_ref_catalog"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "localization_report_translation",
+      "action_id": "accuracy_challenge",
+      "required_parameter_keys": [
+        "challenge_id",
+        "question_text"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "localization_report_translation",
+      "action_id": "quality_reflection",
+      "required_parameter_keys": [
+        "reflection_plan_id",
+        "reflection_contract_version",
+        "evidence_ref_catalog"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "localization_article_translation",
+      "action_id": "accuracy_challenge",
+      "required_parameter_keys": [
+        "challenge_id",
+        "question_text"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "localization_article_translation",
+      "action_id": "quality_reflection",
+      "required_parameter_keys": [
+        "reflection_plan_id",
+        "reflection_contract_version",
+        "evidence_ref_catalog"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "payment_screenshot_observation",
+      "action_id": "accuracy_challenge",
+      "required_parameter_keys": [
+        "challenge_id",
+        "question_text"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    },
+    {
+      "product_id": "payment_screenshot_observation",
+      "action_id": "quality_reflection",
+      "required_parameter_keys": [
+        "reflection_plan_id",
+        "reflection_contract_version",
+        "evidence_ref_catalog"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review"
+    }
+  ]
+}

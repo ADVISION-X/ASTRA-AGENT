@@ -1,11 +1,20 @@
 import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import {
+  executionFailure,
+  failureCode,
+  failureStatus,
+  typedExecutionFailure,
+} from "../../typed-failure.js";
 
 import {
   type GptAbilityGroup,
+  type GptChildCapabilityProof,
   type GptChildCapabilityResult,
   type GptContinuationLane,
   type GptProviderContinuation,
 } from "../../../capabilities/gpt/index.js";
+import type { ForensicsPersistenceAbilityGroup } from "../../../capabilities/forensics-persistence/index.js";
 import type { BrowserTargetLease } from "../../browser/browser-authority-api.js";
 import {
   RuntimeFailureImpact,
@@ -37,6 +46,8 @@ import {
   type GptTurnRequest,
 } from "./gpt-turn-state.js";
 import { ProductionRuntimeStore, type StoredProductionTask } from "./store.js";
+import { assertProductionTaskRoutePolicy } from "./route-policy.js";
+import { stableJsonHash } from "../../storage/hash.js";
 
 export interface ProductionExecutionLease {
   readonly attempt_id: string;
@@ -71,31 +82,50 @@ const resolveSuccessfulMutation = async (
   browser: BrowserTargetLease,
   pluginId: string,
   result: GptChildCapabilityResult,
+  evidenceRef: string,
 ): Promise<void> => {
   if (result.proof.committedMutation !== "yes") {
-    if (browser.pendingMutationCount() !== 0) throw new Error("BROWSER_OUTCOME_UNKNOWN");
+    if (browser.pendingMutationCount() !== 0) throw executionFailure("review_required", "BROWSER_OUTCOME_UNKNOWN", { mutationOutcome: "unknown" });
     return;
   }
   if (browser.pendingMutationCount() === 0) return;
-  if (browser.pendingMutationCount() !== 1) throw new Error("BROWSER_OUTCOME_UNKNOWN");
+  if (browser.pendingMutationCount() !== 1) throw executionFailure("review_required", "BROWSER_OUTCOME_UNKNOWN", { mutationOutcome: "unknown" });
   await browser.resolvePendingMutation({
     schemaVersion: "grasseye.browser.outcome-resolution.v1",
     ownerPluginId: pluginId,
     outcome: "TERMINAL_SUCCESS",
-    positiveEvidenceRef: result.proof.evidenceRef,
-    negativeEvidenceRef: `${result.proof.evidenceRef}:adjacent-states-excluded`,
+    positiveEvidenceRef: evidenceRef,
+    negativeEvidenceRef: `${evidenceRef}:adjacent-states-excluded`,
     uniqueTargetRef: browser.target.targetRef,
     boundedAt: result.proof.endedAt,
   });
 };
 
 const throwChildFailure = (result: GptChildCapabilityResult): never => {
-  const error = new Error(`${result.status}:${result.failureCode ?? "GPT_CHILD_FAILED"}`);
+  const error = executionFailure(result.status === "success" ? "failed" : result.status, result.failureCode ?? "GPT_CHILD_FAILED", {
+    mutationOutcome: result.proof.committedMutation,
+    evidenceRef: persistedEvidenceRefs.get(result) ?? null,
+    evidenceHash: result.proof.evidenceHash,
+  });
   const causeEventId = childFailureEventIds.get(result);
   throw causeEventId ? withRuntimeLogCause(error, causeEventId) : error;
 };
 
 const childFailureEventIds = new WeakMap<object, string>();
+const persistedEvidenceRefs = new WeakMap<object, string>();
+
+const safeGptEvidenceProjection = (proof: GptChildCapabilityProof): Readonly<Record<string, unknown>> =>
+  Object.freeze({
+    schema_version: "agent-gpt-evidence-safe.v1",
+    child_capability_id: proof.childCapabilityId,
+    execution_identity_hash: hash(proof.executionId),
+    candidate_count: proof.candidateCount,
+    committed_mutation: proof.committedMutation,
+    postcondition_result: proof.postconditionResult,
+    started_at: proof.startedAt,
+    ended_at: proof.endedAt,
+    source_evidence_hash: proof.evidenceHash,
+  });
 
 export class ProductionExecutor {
   private readonly gptStates = new Map<string, "idle" | "running" | "failed" | "review_required">();
@@ -104,16 +134,18 @@ export class ProductionExecutor {
     private readonly dataDir: string,
     private readonly sourceHash: ProductionHash,
     private readonly gpt: GptAbilityGroup,
+    private readonly evidenceStore: ForensicsPersistenceAbilityGroup,
     private readonly browserAuthority: WorkbenchBrowserAuthority,
     private readonly store: ProductionRuntimeStore,
     private readonly runtimeLogger: RuntimeLogger,
   ) {}
 
   public availableCapacity(): number {
-    return 1;
+    return 10;
   }
 
   public accept(task: WebsiteAgentTask): StoredProductionTask {
+    assertProductionTaskRoutePolicy(task);
     const resolved = authorizeWebsiteAgentTask(task);
     const identity: DurablePluginIdentity = {
       catalog_hash: productionCatalogHash,
@@ -136,6 +168,17 @@ export class ProductionExecutor {
     const accepted = this.store.readTask(task.job_id);
     if (!accepted) throw new Error("PRODUCTION_DURABLE_IDENTITY_MISSING");
     if (accepted.status === "completed" && accepted.result) throw new Error("PRODUCTION_TASK_ALREADY_TERMINAL");
+    assertProductionTaskRoutePolicy(task);
+    const current = authorizeWebsiteAgentTask(task);
+    const identity = accepted.identity;
+    if (identity.catalog_hash !== productionCatalogHash
+      || identity.plugin_id !== current.plugin.pluginId
+      || identity.plugin_version !== current.plugin.pluginVersion
+      || identity.skill_hash !== current.skillHash
+      || identity.checkpoint_schema_version !== current.plugin.checkpointSchemaVersion
+      || identity.request_hash !== task.request_hash) {
+      throw executionFailure("review_required", "PRODUCTION_PLUGIN_DURABLE_IDENTITY_MISMATCH");
+    }
     let completed = false;
     const pluginId = accepted.identity.plugin_id;
     const pluginSpan = requireRuntimeLogWrite(this.runtimeLogger.startSpan({
@@ -168,6 +211,7 @@ export class ProductionExecutor {
         }),
         complete: async (output) => {
           if (completed) throw new Error("PLUGIN_RESULT_ALREADY_COMPLETED");
+          authorized.plugin.parseResult(authorized.task, output.payload, "draft");
           const continuationRef = await this.persistContinuation(
             authorized.task, authorized.plugin.pluginId, output, lease, pluginSpan.spanId,
           );
@@ -181,23 +225,24 @@ export class ProductionExecutor {
         outcome: "success",
       }));
     } catch (error) {
+      const failure = typedExecutionFailure(error) ?? executionFailure(
+        "review_required", failureCode(error, "PLUGIN_EXECUTION_FAILED"), { cause: error },
+      );
       const causedByEventId = runtimeLogCauseEventId(error);
+      const status = failureStatus(failure);
       const terminal = requireRuntimeLogWrite(pluginSpan.terminal({
-        outcome: /review_required/iu.test(error instanceof Error ? error.message : String(error))
-          ? "review_required"
-          : "failed",
+        outcome: status === "review_required" ? "review_required" : "failed",
         failure: runtimeFailureFromError({
-          error,
+          error: failure,
           code: "PLUGIN_EXECUTION_FAILED",
           responsibleOwner: "product-plugin",
-          recovery: /review_required/iu.test(error instanceof Error ? error.message : String(error))
-            ? RuntimeRecovery.REVIEW
-            : RuntimeRecovery.STOP,
+          recovery: status === "review_required" ? RuntimeRecovery.REVIEW
+            : status === "recovery_pending" ? RuntimeRecovery.RETRY : RuntimeRecovery.STOP,
           impact: causedByEventId ? RuntimeFailureImpact.CONSEQUENTIAL : RuntimeFailureImpact.BLOCKING,
           ...(causedByEventId ? { causedByEventId } : {}),
         }),
       }));
-      throw withRuntimeLogCause(error, terminal.eventId);
+      throw withRuntimeLogCause(failure, terminal.eventId);
     }
     return { record: this.store.readTask(task.job_id)!, result };
   }
@@ -240,7 +285,7 @@ export class ProductionExecutor {
     parentSpanId: string,
   ): Promise<GptContinuationLane | null> {
     if (!turn.use_task_continuation) return null;
-    if (!task.continuation_ref) throw new Error("review_required:GPT_CONTINUATION_REQUIRED");
+    if (!task.continuation_ref) throw executionFailure("review_required", "GPT_CONTINUATION_REQUIRED");
     const result = await this.executeGptChild({
       task, pluginId, stepId: turn.step_id, lease, parentSpanId,
       intent: {
@@ -340,7 +385,95 @@ export class ProductionExecutor {
     }));
     emitGptState("running");
     try {
-      const result = await this.gpt.execute(input.intent, input.context);
+      const observedProofs: GptChildCapabilityProof[] = [];
+      const result = await this.gpt.execute(input.intent, {
+        ...input.context,
+        onProof: async (proof) => {
+          observedProofs.push(proof);
+          await input.context.onProof?.(proof);
+        },
+      });
+      const observedProof = observedProofs.at(-1);
+      if (!observedProof || observedProof.evidenceHash !== result.proof.evidenceHash) {
+        throw executionFailure("review_required", "EVIDENCE_PROOF_BINDING_INVALID");
+      }
+      const artifactInputs: Array<Readonly<{
+        suffix: string; artifactType: "ai_raw_output" | "ai_json_output" | "other";
+        mimeType: string; content: Uint8Array<ArrayBuffer>;
+      }>> = [];
+      if (result.status === "success" && input.intent.childCapabilityId === "checkpoint_gpt_generated_image") {
+        const value = result.value as { localPath?: unknown; originalLocalPath?: unknown };
+        if (typeof value.originalLocalPath !== "string" || typeof value.localPath !== "string") {
+          throw executionFailure("review_required", "GPT_GENERATED_IMAGE_TASK_ARTIFACT_MISSING");
+        }
+        artifactInputs.push(
+          { suffix: "original", artifactType: "other", mimeType: "application/octet-stream", content: new Uint8Array(await readFile(value.originalLocalPath)) },
+          { suffix: "webp", artifactType: "other", mimeType: "image/webp", content: new Uint8Array(await readFile(value.localPath)) },
+        );
+      } else if (result.status === "success" && input.intent.childCapabilityId === "capture_gpt_response_artifact") {
+        const raw = input.intent.input.rawText;
+        const mime = input.intent.input.mediaType;
+        if (typeof raw === "string" && (mime === "application/json" || mime === "text/html")) {
+          artifactInputs.push({
+            suffix: "response", artifactType: mime === "application/json" ? "ai_json_output" : "ai_raw_output",
+            mimeType: mime, content: new Uint8Array(Buffer.from(raw, "utf8")),
+          });
+        }
+      }
+      const artifactRefs: string[] = [];
+      for (const artifact of artifactInputs) {
+        const appendedArtifact = await this.evidenceStore.appendArtifact({
+          missionId: input.task.job_id,
+          runId: input.lease.attempt_id,
+          capabilityCallId: input.intent.executionId,
+          artifactType: artifact.artifactType,
+          mimeType: artifact.mimeType,
+          content: artifact.content,
+          idempotencyKey: `${result.proof.evidenceHash}:${artifact.suffix}`,
+        });
+        if (appendedArtifact.status !== "success" || !appendedArtifact.artifactRef) {
+          throw executionFailure("review_required", "EVIDENCE_ARTIFACT_APPEND_FAILED");
+        }
+        const artifactReadback = await this.evidenceStore.readArtifactRef({
+          childCapabilityId: "read-artifact-ref",
+          artifactRef: appendedArtifact.artifactRef,
+        });
+        const readbackBytes = artifactReadback.artifact?.content;
+        const expectedHash = createHash("sha256").update(artifact.content).digest("hex");
+        const actualHash = readbackBytes
+          ? createHash("sha256").update(readbackBytes).digest("hex") : null;
+        if (artifactReadback.status !== "success" || actualHash !== expectedHash) {
+          throw executionFailure("review_required", "EVIDENCE_ARTIFACT_READBACK_FAILED");
+        }
+        artifactRefs.push(appendedArtifact.artifactRef);
+      }
+      const projection = safeGptEvidenceProjection(result.proof);
+      const appended = await this.evidenceStore.appendRecord({
+        missionId: input.task.job_id,
+        runId: input.lease.attempt_id,
+        stepId: input.stepId,
+        sourceCapabilityId: "gpt",
+        sourceChildCapabilityId: result.proof.childCapabilityId,
+        recordType: result.proof.committedMutation === "unknown" ? "review_required" : "evidence",
+        recordPayload: projection,
+        ...(artifactRefs.length ? { artifactRefs } : {}),
+        idempotencyKey: result.proof.evidenceHash,
+        correlationId: input.intent.executionId,
+        createdAt: result.proof.endedAt,
+      });
+      if (appended.status !== "success" || !appended.recordRef) {
+        throw executionFailure("review_required", "EVIDENCE_APPEND_FAILED");
+      }
+      const readback = await this.evidenceStore.readRecordRef({
+        childCapabilityId: "read-record-ref",
+        recordRef: appended.recordRef,
+      });
+      const payload = readback.record?.payload;
+      if (readback.status !== "success" || !readback.record
+        || stableJsonHash(payload) !== stableJsonHash(projection)) {
+        throw executionFailure("review_required", "EVIDENCE_READBACK_FAILED");
+      }
+      persistedEvidenceRefs.set(result, appended.recordRef);
       if (result.status === "success") {
         const terminal = requireRuntimeLogWrite(span.terminal({
           outcome: "success",
@@ -365,18 +498,22 @@ export class ProductionExecutor {
       }
       return result;
     } catch (error) {
+      const failure = typedExecutionFailure(error) ?? executionFailure(
+        "recovery_pending", failureCode(error, "GPT_CHILD_RUNTIME_FAILED"), { cause: error },
+      );
       const terminal = requireRuntimeLogWrite(span.terminal({
-        outcome: "failed",
+        outcome: failure.status === "review_required" ? "review_required" : "failed",
         failure: runtimeFailureFromError({
-          error,
+          error: failure,
           code: "GPT_CHILD_RUNTIME_FAILED",
           responsibleOwner: "gpt",
-          recovery: RuntimeRecovery.RETRY,
+          recovery: failure.status === "review_required" ? RuntimeRecovery.REVIEW
+            : failure.status === "recovery_pending" ? RuntimeRecovery.RETRY : RuntimeRecovery.STOP,
           impact: RuntimeFailureImpact.BLOCKING,
         }),
       }));
-      emitGptState("failed");
-      throw withRuntimeLogCause(error, terminal.eventId);
+      emitGptState(failure.status === "review_required" ? "review_required" : "failed");
+      throw withRuntimeLogCause(failure, terminal.eventId);
     }
   }
 
@@ -413,7 +550,9 @@ export class ProductionExecutor {
           continuationStore: this.store,
         },
       });
-      input.state.evidenceRefs.push(result.proof.evidenceRef);
+      const evidenceRef = persistedEvidenceRefs.get(result);
+      if (!evidenceRef) throw executionFailure("review_required", "EVIDENCE_REF_MISSING");
+      input.state.evidenceRefs.push(evidenceRef);
       if (result.status !== "success") {
         if (input.state.checkpointRef && /_gpt_title$|^open_gpt_title_control$|^commit_gpt_title$/u.test(step.childCapabilityId)) {
           input.state.titleFailure = result.failureCode;
@@ -421,7 +560,7 @@ export class ProductionExecutor {
         }
         throwChildFailure(result);
       }
-      await resolveSuccessfulMutation(input.browser, input.pluginId, result);
+      await resolveSuccessfulMutation(input.browser, input.pluginId, result, evidenceRef);
       applyGptChildValue(step.childCapabilityId, result.value, input.state);
       if (step.childCapabilityId === "checkpoint_gpt_text_response") {
         resultCheckpoint = buildGptTurnResult(input.state);
@@ -441,7 +580,7 @@ export class ProductionExecutor {
   ): Promise<ProviderTurnResult | null> {
     if (!checkpoint) return null;
     if (!lane) return checkpoint;
-    if (!checkpoint.provider_continuation) throw new Error("review_required:GPT_CHECKPOINT_CONTINUATION_MISSING");
+    if (!checkpoint.provider_continuation) throw executionFailure("review_required", "GPT_CHECKPOINT_CONTINUATION_MISSING");
     await this.advanceContinuation(lane, task, pluginId, checkpoint.provider_continuation, lease, parentSpanId);
     return checkpoint;
   }
@@ -455,7 +594,7 @@ export class ProductionExecutor {
     parentSpanId: string,
   ): Promise<void> {
     if (!lane) return;
-    if (!result.provider_continuation) throw new Error("review_required:GPT_RESULT_CONTINUATION_MISSING");
+    if (!result.provider_continuation) throw executionFailure("review_required", "GPT_RESULT_CONTINUATION_MISSING");
     await this.advanceContinuation(lane, task, pluginId, result.provider_continuation, lease, parentSpanId);
   }
 
@@ -551,7 +690,7 @@ export class ProductionExecutor {
   ): Promise<BrowserTargetLease> {
     const remaining = Math.floor(lease.expires_at_monotonic - performance.now());
     const commandTtlMs = Math.min(lease.command_ttl_ms, remaining);
-    if (commandTtlMs < 1) throw new Error("V6_DEADLINE_BUDGET_EXHAUSTED");
+    if (commandTtlMs < 1) throw executionFailure("recovery_pending", "V6_DEADLINE_BUDGET_EXHAUSTED");
     const executionRef = `${task.job_id}:${pluginId}:${stepId}`;
     return this.browserAuthority.acquireJobBoundTargetLease({
       kind: "production",
@@ -569,6 +708,9 @@ export class ProductionExecutor {
       writerFenceHash: lease.execution_fence_hash,
       candidateHash: this.sourceHash,
       commandTtlMs,
-    }, `${pluginId}:${task.job_id}`);
+    }, `${pluginId}:${task.job_id}`, {
+      signal: lease.abort_signal,
+      remainingMs: () => Math.floor(lease.expires_at_monotonic - performance.now()),
+    });
   }
 }

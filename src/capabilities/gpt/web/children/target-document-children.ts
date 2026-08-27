@@ -1,4 +1,5 @@
 import type { GptChildHandlerMap } from "../child-handler.js";
+import { executionFailure } from "../../../../lib/typed-failure.js";
 import {
   booleanInput,
   requireBrowser,
@@ -15,7 +16,7 @@ export const targetDocumentChildHandlers = {
     const browser = requireBrowser(context);
     const document = await readGptDocument(browser);
     if (browser.document.targetRef !== browser.target.targetRef) {
-      throw new Error("review_required:GPT_TARGET_DOCUMENT_BINDING_INVALID");
+      throw executionFailure("review_required", "GPT_TARGET_DOCUMENT_BINDING_INVALID");
     }
     return success({
       value: { targetRef: browser.target.targetRef, documentRef: browser.document.documentRef, ...document },
@@ -42,7 +43,7 @@ export const targetDocumentChildHandlers = {
     const browser = requireBrowser(context);
     const document = await readGptDocument(browser);
     if (browser.authorityRef.length === 0 || browser.executionBindingHash.length === 0) {
-      throw new Error("review_required:GPT_WORKSPACE_AUTHORITY_INVALID");
+      throw executionFailure("review_required", "GPT_WORKSPACE_AUTHORITY_INVALID");
     }
     return success({
       value: { accountCapabilityRef, authorityRef: browser.authorityRef, url: document.url },
@@ -55,14 +56,14 @@ export const targetDocumentChildHandlers = {
   async restore_gpt_operator_source(intent, context) {
     requireExactInputKeys(intent, ["managedExecution", "sourceUrl"]);
     if (booleanInput(intent, "managedExecution")) {
-      throw new Error("failed:GPT_OPERATOR_SOURCE_MANAGED_EXECUTION_FORBIDDEN");
+      throw executionFailure("failed", "GPT_OPERATOR_SOURCE_MANAGED_EXECUTION_FORBIDDEN");
     }
     const sourceUrl = stringInput(intent, "sourceUrl");
     const expected = assertGptUrl(sourceUrl).href;
     const browser = requireBrowser(context);
     await browser.navigate({ url: expected, title: "restore approved GPT operator source" });
     const after = await readGptDocument(browser);
-    if (new URL(after.url).href !== expected) throw new Error("review_required:GPT_OPERATOR_SOURCE_RESTORE_UNCONFIRMED");
+    if (new URL(after.url).href !== expected) throw executionFailure("review_required", "GPT_OPERATOR_SOURCE_RESTORE_UNCONFIRMED");
     return success({
       value: after,
       candidateCount: 1,

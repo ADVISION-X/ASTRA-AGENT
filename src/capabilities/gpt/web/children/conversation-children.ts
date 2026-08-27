@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { executionFailure } from "../../../../lib/typed-failure.js";
 
 import type { GptChildHandlerMap } from "../child-handler.js";
 import {
@@ -44,7 +45,7 @@ export const conversationChildHandlers = {
     const attachments = await findCount(browser, { selector: GPT_ATTACHMENT_REGION_SELECTOR, maxMatches: 2 });
     const generating = await findCount(browser, { selector: GPT_GENERATING_STOP_SELECTOR, maxMatches: 2 });
     if (composer !== 1 || turns !== 0 || attachments !== 0 || generating !== 0) {
-      throw new Error(`review_required:GPT_CHAT_NOT_CLEAN:composer=${composer}:turns=${turns}:attachments=${attachments}:generating=${generating}`);
+      throw executionFailure("review_required", `GPT_CHAT_NOT_CLEAN:composer=${composer}:turns=${turns}:attachments=${attachments}:generating=${generating}`);
     }
     return success({
       value: { composer, turns, attachments, generating }, candidateCount: composer,
@@ -64,7 +65,7 @@ export const conversationChildHandlers = {
     });
     await browser.navigate({ url: expected, title: "focus exact GPT conversation" });
     const after = canonicalGptConversationUrl((await readGptDocument(browser)).url);
-    if (after !== expected) throw new Error("review_required:GPT_CONVERSATION_NAVIGATION_MISMATCH");
+    if (after !== expected) throw executionFailure("review_required", "GPT_CONVERSATION_NAVIGATION_MISMATCH");
     return success({
       value: { url: after }, candidateCount: 1,
       observedSemantics: ["exact canonical conversation URL"], committedMutation: "yes",
@@ -79,11 +80,11 @@ export const conversationChildHandlers = {
       value: { state: "already-open" }, candidateCount: 1,
       observedSemantics: ["one search dialog"], committedMutation: "no",
     });
-    if (dialog > 1) throw new Error(`review_required:GPT_SEARCH_DIALOG_COUNT_${dialog}`);
+    if (dialog > 1) throw executionFailure("review_required", `GPT_SEARCH_DIALOG_COUNT_${dialog}`);
     await requireOneCandidate(browser, { selector: GPT_SEARCH_BUTTON_SELECTOR, maxMatches: 2 });
     await browser.executeDomIntent({ kind: "click", selector: GPT_SEARCH_BUTTON_SELECTOR, expectedMatches: 1 });
     const after = await findCount(browser, { selector: GPT_SEARCH_DIALOG_SELECTOR, maxMatches: 2 });
-    if (after !== 1) throw new Error("review_required:GPT_SEARCH_DIALOG_OPEN_UNCONFIRMED");
+    if (after !== 1) throw executionFailure("review_required", "GPT_SEARCH_DIALOG_OPEN_UNCONFIRMED");
     return success({
       value: { state: "open" }, candidateCount: 1,
       observedSemantics: ["one search control", "one search dialog"], committedMutation: "yes",
@@ -101,7 +102,7 @@ export const conversationChildHandlers = {
     });
     if (!value || typeof value !== "object" || Array.isArray(value)
       || (value as { retainedValueVerified?: unknown }).retainedValueVerified !== true) {
-      throw new Error("review_required:GPT_SEARCH_KEY_NOT_RETAINED");
+      throw executionFailure("review_required", "GPT_SEARCH_KEY_NOT_RETAINED");
     }
     return success({
       value: { searchKeyHash: hash(searchKey) }, candidateCount: 1,
@@ -119,14 +120,14 @@ export const conversationChildHandlers = {
     });
     const href = await readExactAttribute(browser, GPT_SEARCH_RESULT_SELECTOR, "href", searchKey);
     if (canonicalGptConversationUrl(new URL(href, GPT_ROOT_URL).href) !== expected) {
-      throw new Error("review_required:GPT_SEARCH_RESULT_IDENTITY_MISMATCH");
+      throw executionFailure("review_required", "GPT_SEARCH_RESULT_IDENTITY_MISMATCH");
     }
     await browser.executeDomIntent({
       kind: "click", selector: GPT_SEARCH_RESULT_SELECTOR,
       expectedText: searchKey, expectedMatches: 1,
     });
     const after = canonicalGptConversationUrl((await readGptDocument(browser)).url);
-    if (after !== expected) throw new Error("review_required:GPT_SEARCH_RESULT_NAVIGATION_MISMATCH");
+    if (after !== expected) throw executionFailure("review_required", "GPT_SEARCH_RESULT_NAVIGATION_MISMATCH");
     return success({
       value: { canonicalConversationUrl: after }, candidateCount: 1,
       observedSemantics: ["one exact search result", "canonical URL matched"], committedMutation: "yes",
@@ -140,13 +141,13 @@ export const conversationChildHandlers = {
     const count = await findCount(browser, {
       selector: GPT_FORK_CONTROL_SELECTOR, textContains: marker, maxMatches: 2,
     });
-    if (count !== 1) throw new Error("review_required:GPT_FORK_CONTROL_NOT_PRODUCTION_VERIFIED");
-    throw new Error("review_required:GPT_FORK_CONTROL_NOT_PRODUCTION_VERIFIED");
+    if (count !== 1) throw executionFailure("review_required", "GPT_FORK_CONTROL_NOT_PRODUCTION_VERIFIED");
+    throw executionFailure("review_required", "GPT_FORK_CONTROL_NOT_PRODUCTION_VERIFIED");
   },
 
   async commit_gpt_checkpoint_fork(intent, _context) {
     requireExactInputKeys(intent, ["checkpointTurnMarker", "parentConversationUrl"]);
-    throw new Error("review_required:GPT_FORK_COMMIT_NOT_PRODUCTION_VERIFIED");
+    throw executionFailure("review_required", "GPT_FORK_COMMIT_NOT_PRODUCTION_VERIFIED");
   },
 
   async verify_gpt_conversation_identity(intent, context) {
@@ -159,7 +160,7 @@ export const conversationChildHandlers = {
       selector: GPT_USER_TURN_SELECTOR, textContains: marker, maxMatches: 20,
     });
     if (observed !== expected || markerCount !== 1) {
-      throw new Error(`review_required:GPT_CONVERSATION_IDENTITY_MISMATCH:markerCount=${markerCount}`);
+      throw executionFailure("review_required", `GPT_CONVERSATION_IDENTITY_MISMATCH:markerCount=${markerCount}`);
     }
     return success({
       value: { canonicalConversationUrl: observed, turnMarker: marker, conversationHash: hash(`${observed}\n${marker}`) },

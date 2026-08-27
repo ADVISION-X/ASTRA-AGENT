@@ -181,6 +181,16 @@ const inspectOperationalContract = (context: InspectorContext): InspectorFinding
       "DIAGNOSIS_COMPLETE", "DIAGNOSIS_INCOMPLETE", "blockingRoots", "lastSuccessfulActions",
       "currentStates", "openSpans", "interruptedSpans", "mutationState", "recoveries",
       "authorityRefs", "AUTHORITY_REF_UNVERIFIED", "AUTHORITY_STATE_MISMATCH", "PRODUCER_STALE",
+      "BOUNDARY_SOURCE_INCOMPLETE", "BOUNDARY_TRACE_MISMATCH",
+    ]);
+  requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "failure-truth",
+    "src/lib/runtime-logs/failure.ts", [
+      "knownNativeCause", "record.cause", "record.httpStatus", "RuntimeFailureKind.TRANSPORT",
+    ]);
+  requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "typed-root-and-liveness",
+    "src/lib/local-runtime/production/runtime.ts", [
+      "typedExecutionFailure(error)?.code ?? fallbackCode", "const sessionHeartbeatLoop",
+      "stateKey: \"producer.alive\"", "stateKey: \"cloud.session\"", "stateKey: \"claim.admission\"",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "diagnosis-api",
     "src/app/workbench-production-runtime-routes.ts", [
@@ -284,6 +294,10 @@ const inspectStructureContract = (context: InspectorContext): InspectorFinding[]
     "src/lib/browser/exact-target/browser-mutation-store.ts", ["reconciliationStates()", "from browser_mutations order by updated_at,command_id"]);
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "strict-reader",
     "src/lib/runtime-logs/schema.ts", ["exactKeys", "runtimeLogEventShapeValid", "failureValid"]);
+  requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "active-source-layout",
+    "src/lib/runtime-logs/diagnosis.ts", [
+      "activeJsonlFiles", "^.+-[0-9]{4}\\.jsonl$", "ACTIVE_SEGMENT_NAME_INVALID", "ACTIVE_SOURCE_LAYOUT_INVALID",
+    ]);
   return findings;
 };
 

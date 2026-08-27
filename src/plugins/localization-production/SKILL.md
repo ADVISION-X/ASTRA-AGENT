@@ -22,12 +22,10 @@
 
 `localization_article_translation / article_translation` 保持标题层级、正文主张、引文边界、链接、来源标记和公开知识与个人分析的界线；不堆砌关键词，不执行发布或搜索提交。
 
-`localization_static_review_candidate / static_review_candidate` 只审阅当前候选，逐项指出错译、漏译、增译、术语、locale 自然度、结构和风险措辞问题；不生成替代译稿。
-
-`localization_static_review_selector / static_review_selector` 只依据当前候选和审阅证据选择满足要求的候选或明确阻断；不合稿、不润色、不产生第三稿。
+候选检查与确定性选择只是本 Skill 内部的垂直校验步骤，不是公开 Product/Action，也不得产生可认领的第二链路；检查失败直接阻断当前翻译结果。
 
 `accuracy_challenge` 与 `quality_reflection` 是原产品结果的复核动作，不产生独立产品。复核必须绑定任务给出的 subject task/result/hash、当前授权与 `review_policy`，只输出可核验 finding；不得替网站保存 review 台账、作发布裁决或改写源内容。
 
 ## 输出要求
 
-只返回当前动作和当前结果合同要求的一份结果。翻译结果不得附带解释性第二版本；审阅和选择结果必须绑定当前源内容与候选，清楚区分已确认问题、无法确认事项和阻断原因。
+只返回当前动作和当前结果合同要求的一份结果。翻译结果不得附带解释性第二版本；复核结果必须返回 `website-agent-review-output.v1` 的 `decision` 与结构化 `issues`，绑定冻结的 `subject_result`、`review_context` 和其中列出的证据引用。

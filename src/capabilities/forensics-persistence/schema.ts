@@ -6,6 +6,7 @@ const ForensicsChildCapabilityIdSchema = z.enum([
   "append-record",
   "append-artifact",
   "read-record-ref",
+  "read-artifact-ref",
 ]);
 
 const ForensicsRecordTypeSchema = z.enum([
@@ -56,7 +57,7 @@ const ForensicsAppendArtifactInputSchema = z.object({
   artifactType: ForensicsArtifactTypeSchema,
   mimeType: z.string().optional(),
   bytesRef: z.string().optional(),
-  content: z.string().optional(),
+  content: z.union([z.string(), z.instanceof(Uint8Array)]).optional(),
   sourceRef: z.string().optional(),
   parentRefs: z.array(z.string()).optional(),
   idempotencyKey: z.string().min(1),
@@ -67,10 +68,16 @@ const ForensicsReadRecordRefInputSchema = z.object({
   recordRef: z.string().min(1),
 });
 
+const ForensicsReadArtifactRefInputSchema = z.object({
+  childCapabilityId: z.literal("read-artifact-ref"),
+  artifactRef: z.string().min(1),
+});
+
 const ForensicsAbilityInputSchema = z.discriminatedUnion("childCapabilityId", [
   ForensicsAppendRecordInputSchema,
   ForensicsAppendArtifactInputSchema,
   ForensicsReadRecordRefInputSchema,
+  ForensicsReadArtifactRefInputSchema,
 ]);
 
 const ForensicsProofSchema = z.object({
@@ -99,6 +106,11 @@ const ForensicsResultSchema = z.object({
   recordRef: z.string().optional(),
   artifactRef: z.string().optional(),
   record: z.record(z.string(), z.unknown()).optional(),
+  artifact: z.object({
+    content: z.instanceof(Uint8Array),
+    mimeType: z.string().optional(),
+    integrityHash: z.string(),
+  }).optional(),
   failureReason: z.string().optional(),
 });
 
@@ -107,6 +119,7 @@ type ForensicsProof = z.infer<typeof ForensicsProofSchema>;
 type ForensicsAppendRecordInput = z.infer<typeof ForensicsAppendRecordInputSchema>;
 type ForensicsAppendArtifactInput = z.infer<typeof ForensicsAppendArtifactInputSchema>;
 type ForensicsReadRecordRefInput = z.infer<typeof ForensicsReadRecordRefInputSchema>;
+type ForensicsReadArtifactRefInput = z.infer<typeof ForensicsReadArtifactRefInputSchema>;
 type ForensicsAbilityInput = z.infer<typeof ForensicsAbilityInputSchema>;
 type ForensicsResult = z.infer<typeof ForensicsResultSchema>;
 
@@ -120,6 +133,7 @@ export type {
   ForensicsAppendRecordInput,
   ForensicsAppendArtifactInput,
   ForensicsReadRecordRefInput,
+  ForensicsReadArtifactRefInput,
   ForensicsAbilityInput,
   ForensicsResult,
 };

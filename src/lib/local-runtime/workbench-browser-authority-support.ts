@@ -19,9 +19,13 @@ export type WorkbenchBrowserAuthority = Readonly<{
     browserAuthorityState: "present" | "absent";
     browserTargetState: "claimed" | "absent";
   }>;
+  readBrowserLaneState(): "idle" | "busy" | "unknown";
+  readBrowserLaneWaiterCount(): number;
+  hasUnresolvedBrowserMutation(): boolean;
   acquireJobBoundTargetLease(
     binding: BrowserExecutionBinding,
     ownerId: string,
+    wait: Readonly<{ signal: AbortSignal; remainingMs(): number }>,
   ): Promise<BrowserTargetLease>;
   acceptBrowserAuthoritySocket(input: Readonly<{ send(payload: string): void; close(code?: number): void }>): Readonly<{ receive(payload: string): void; disconnect(reasonCode?: string, refs?: Readonly<Record<string, string>>): void }>;
   shutdown(): Promise<void>;
@@ -64,8 +68,11 @@ export const createWorkbenchBrowserAuthority = async (
       browserAuthorityState: supervisor.authorityBroker().currentStatus().kind === "AVAILABLE" ? "present" : "absent",
       browserTargetState: supervisor.authorityBroker().currentOperatorTargetStatus(),
     }),
-    acquireJobBoundTargetLease: (binding, ownerId) =>
-      supervisor.acquireJobBoundTargetLease(binding, ownerId),
+    readBrowserLaneState: () => supervisor.readBrowserLaneState(),
+    readBrowserLaneWaiterCount: () => supervisor.readBrowserLaneWaiterCount(),
+    hasUnresolvedBrowserMutation: () => supervisor.hasUnresolvedBrowserMutation(),
+    acquireJobBoundTargetLease: (binding, ownerId, wait) =>
+      supervisor.acquireJobBoundTargetLease(binding, ownerId, wait),
     acceptBrowserAuthoritySocket: (socket) => ({ receive: (payload) => supervisor.browserAuthorityWebSocket().receive(socket, payload), disconnect: (reasonCode, refs) => supervisor.browserAuthorityWebSocket().disconnect(socket, reasonCode, refs) }),
     shutdown: () => supervisor.stop(),
   };

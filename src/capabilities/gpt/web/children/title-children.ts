@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { executionFailure } from "../../../../lib/typed-failure.js";
 
 import type { GptChildHandlerMap } from "../child-handler.js";
 import {
@@ -53,13 +54,13 @@ export const titleChildHandlers = {
         expectedTextEquals: GPT_TITLE_RENAME_LABEL, expectedMatches: 1,
       });
       const after = await findCount(browser, { selector: GPT_TITLE_INPUT_SELECTOR, maxMatches: 2 });
-      if (after !== 1) throw new Error("review_required:GPT_TITLE_EDITOR_OPEN_UNCONFIRMED");
+      if (after !== 1) throw executionFailure("review_required", "GPT_TITLE_EDITOR_OPEN_UNCONFIRMED");
       return success({
         value: { state: "editor-open" }, candidateCount: 1,
         observedSemantics: ["one rename menu item", "one title editor"], committedMutation: "yes",
       });
     }
-    if (renameCount > 1) throw new Error(`review_required:GPT_TITLE_RENAME_COUNT_${renameCount}`);
+    if (renameCount > 1) throw executionFailure("review_required", `GPT_TITLE_RENAME_COUNT_${renameCount}`);
     const trailingSelector = `${row} ${GPT_TITLE_TRAILING_BUTTON_ATTRIBUTE}`;
     await requireOneCandidate(browser, { selector: trailingSelector, maxMatches: 2 });
     await browser.executeDomIntent({ kind: "click", selector: trailingSelector, expectedMatches: 1 });
@@ -68,7 +69,7 @@ export const titleChildHandlers = {
       textEquals: GPT_TITLE_RENAME_LABEL,
       maxMatches: 2,
     });
-    if (after !== 1) throw new Error("review_required:GPT_TITLE_MENU_OPEN_UNCONFIRMED");
+    if (after !== 1) throw executionFailure("review_required", "GPT_TITLE_MENU_OPEN_UNCONFIRMED");
     return success({
       value: { state: "rename-menu-open" }, candidateCount: 1,
       observedSemantics: ["one exact conversation row", "one rename menu item"], committedMutation: "yes",
@@ -78,7 +79,7 @@ export const titleChildHandlers = {
   async write_exact_gpt_title(intent, context) {
     requireExactInputKeys(intent, ["title"]);
     const title = stringInput(intent, "title");
-    if (title.length > 80) throw new Error("failed:GPT_TITLE_TOO_LONG");
+    if (title.length > 80) throw executionFailure("failed", "GPT_TITLE_TOO_LONG");
     const browser = requireBrowser(context);
     await requireOneCandidate(browser, { selector: GPT_TITLE_INPUT_SELECTOR, maxMatches: 2 });
     const result = await browser.executeDomIntent({
@@ -87,7 +88,7 @@ export const titleChildHandlers = {
     });
     if (!result || typeof result !== "object" || Array.isArray(result)
       || (result as { retainedValueVerified?: unknown }).retainedValueVerified !== true) {
-      throw new Error("review_required:GPT_TITLE_WRITE_UNCONFIRMED");
+      throw executionFailure("review_required", "GPT_TITLE_WRITE_UNCONFIRMED");
     }
     return success({
       value: { titleHash: hash(title) }, candidateCount: 1,
@@ -119,7 +120,7 @@ export const titleChildHandlers = {
         });
       }
     }
-    throw new Error("review_required:GPT_TITLE_COMMIT_UNCONFIRMED");
+    throw executionFailure("review_required", "GPT_TITLE_COMMIT_UNCONFIRMED");
   },
 
   async verify_exact_gpt_title(intent, context) {
@@ -134,7 +135,7 @@ export const titleChildHandlers = {
       selector: GPT_USER_TURN_SELECTOR, textContains: turnMarker, maxMatches: 20,
     });
     if (observedUrl !== canonicalUrl || observedTitle !== title || markerCount !== 1) {
-      throw new Error("review_required:GPT_TITLE_IDENTITY_READBACK_MISMATCH");
+      throw executionFailure("review_required", "GPT_TITLE_IDENTITY_READBACK_MISMATCH");
     }
     return success({
       value: {

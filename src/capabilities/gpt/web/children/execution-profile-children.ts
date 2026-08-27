@@ -1,4 +1,5 @@
 import type { BrowserTargetLease } from "../../../../lib/browser/browser-authority-api.js";
+import { executionFailure } from "../../../../lib/typed-failure.js";
 
 import type { GptChildHandlerMap } from "../child-handler.js";
 import {
@@ -55,16 +56,16 @@ const nodes = async (browser: BrowserTargetLease): Promise<readonly ProfileNode[
   });
   if (!result || typeof result !== "object" || Array.isArray(result)
     || !Array.isArray((result as { matches?: unknown }).matches)) {
-    throw new Error("review_required:GPT_EXECUTION_PROFILE_SURFACE_INVALID");
+    throw executionFailure("review_required", "GPT_EXECUTION_PROFILE_SURFACE_INVALID");
   }
   return (result as { matches: unknown[] }).matches.map((value): ProfileNode => {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
-      throw new Error("review_required:GPT_EXECUTION_PROFILE_SURFACE_INVALID");
+      throw executionFailure("review_required", "GPT_EXECUTION_PROFILE_SURFACE_INVALID");
     }
     const item = value as Record<string, unknown>;
     if (typeof item.role !== "string" || typeof item.ariaChecked !== "string"
       || typeof item.ariaExpanded !== "string" || typeof item.text !== "string") {
-      throw new Error("review_required:GPT_EXECUTION_PROFILE_SURFACE_INVALID");
+      throw executionFailure("review_required", "GPT_EXECUTION_PROFILE_SURFACE_INVALID");
     }
     return { role: item.role, ariaChecked: item.ariaChecked, ariaExpanded: item.ariaExpanded, text: item.text };
   });
@@ -75,7 +76,7 @@ const summary = (surface: readonly ProfileNode[], label: string): readonly Profi
 
 const selectedChoice = (surface: readonly ProfileNode[]): ProfileNode | null => {
   const selected = surface.filter((node) => node.role === "menuitemradio" && node.ariaChecked === "true");
-  if (selected.length > 1) throw new Error("review_required:GPT_EXECUTION_PROFILE_SELECTION_AMBIGUOUS");
+  if (selected.length > 1) throw executionFailure("review_required", "GPT_EXECUTION_PROFILE_SELECTION_AMBIGUOUS");
   return selected[0] ?? null;
 };
 
@@ -184,7 +185,7 @@ const openSelectorOneMutation = async (
     value: { state: "choices-open" }, candidateCount: 1,
     observedSemantics: ["one visible profile popup already open"], committedMutation: "no",
   });
-  if (popupCount > 1) throw new Error(`review_required:GPT_EXECUTION_PROFILE_POPUP_COUNT_${popupCount}`);
+  if (popupCount > 1) throw executionFailure("review_required", `GPT_EXECUTION_PROFILE_POPUP_COUNT_${popupCount}`);
   const triggerCount = await findCount(browser, {
     selector: GPT_PROFILE_TRIGGER_SELECTOR,
     maxMatches: 2,
@@ -213,7 +214,7 @@ const openSelectorOneMutation = async (
   const parents = summary(surface, label);
   if (parents.length !== 1) {
     const diagnostics = await diagnosticSummary(browser);
-    throw new Error(`review_required:GPT_EXECUTION_PROFILE_${label}_CONTROL_COUNT_${parents.length}:visible=${diagnostics}`);
+    throw executionFailure("review_required", `GPT_EXECUTION_PROFILE_${label}_CONTROL_COUNT_${parents.length}:visible=${diagnostics}`);
   }
   await browser.executeDomIntent({
     kind: "click", selector: GPT_MODEL_SUBMENU_SELECTOR,
@@ -234,7 +235,7 @@ const selectExactChoice = async (
     && normalized(node.text) === normalized(exactText));
   if (matching.length !== 1) {
     const diagnostics = await choiceDiagnosticSummary(browser, exactText);
-    throw new Error(`review_required:GPT_EXECUTION_PROFILE_CHOICE_COUNT_${matching.length}:visible=${diagnostics}:surface=${profileSurfaceSummary(surface)}`);
+    throw executionFailure("review_required", `GPT_EXECUTION_PROFILE_CHOICE_COUNT_${matching.length}:visible=${diagnostics}:surface=${profileSurfaceSummary(surface)}`);
   }
   if (matching[0]!.ariaChecked === "true") return success({
     value: { exactText, state: "already-selected" }, candidateCount: 1,
@@ -304,7 +305,7 @@ export const executionProfileChildHandlers = {
     const reasoningMatches = reasoning.length === 1
       && normalized(reasoning[0]!.text) === normalized(`${GPT_REASONING_LABEL}${reasoningLabel}`);
     if (!modelMatches || !reasoningMatches) {
-      throw new Error(`review_required:GPT_EXECUTION_PROFILE_READBACK_MISMATCH:model=${model.length}:reasoning=${reasoning.length}`);
+      throw executionFailure("review_required", `GPT_EXECUTION_PROFILE_READBACK_MISMATCH:model=${model.length}:reasoning=${reasoning.length}`);
     }
     return success({
       value: {

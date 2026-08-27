@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { executionFailure } from "../../typed-failure.js";
 
 import {
   WebsiteAgentTaskBaseSchema,
@@ -83,6 +84,9 @@ const ExecutionGrantSchema = z.object({
   result_contract_id: z.literal("website-agent-result"),
   result_contract_version: z.literal(1),
   capability_manifest_hash: hash,
+  expected_catalog_hash: hash,
+  expected_plugin_id: z.string().min(1),
+  expected_plugin_version: z.number().int().positive(),
   attempt_id: z.string().min(1),
   device_id: z.string().min(1),
   device_epoch: z.number().int().positive(),
@@ -124,7 +128,8 @@ export const ClaimedProductionTaskSchema = WebsiteAgentTaskBaseSchema.extend({
     || grant.lease_expires_at !== task.lease_expires_at
     || grant.execution_fence.job_id !== task.job_id
     || grant.execution_fence.attempt_id !== grant.attempt_id
-    || grant.execution_fence.lease_version !== grant.lease_version) {
+    || grant.execution_fence.lease_version !== grant.lease_version
+    || grant.expected_catalog_hash !== grant.capability_manifest_hash) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "V6_CLAIM_TASK_GRANT_MISMATCH" });
   }
 });
@@ -164,23 +169,36 @@ export const LeaseRenewReceiptSchema = z.object({
 
 export const UploadedResultReceiptSchema = z.object({
   schema_version: z.literal("xuanxue-ai-material-receipt.v6"),
+  artifact_id: z.string().min(1),
+  role: z.enum(["result_payload", "result_envelope", "generated_image"]),
   object_ref: z.string().min(1),
   sha256: hash,
   byte_length: z.number().int().positive(),
-  media_type: z.literal("application/json"),
+  media_type: z.enum(["application/json", "image/webp"]),
+  state: z.literal("staged"),
   receipt_hash: hash,
 }).passthrough();
 
 export type UploadedResultReceipt = z.infer<typeof UploadedResultReceiptSchema>;
 
-export const parseJsonEnvelope = (value: unknown): unknown => {
+export const parseJsonEnvelope = (value: unknown, httpStatus?: number): unknown => {
   const envelope = z.object({
     ok: z.boolean(),
     data: z.unknown().optional(),
     error: z.object({ code: z.string(), message: z.string() }).passthrough().optional(),
   }).passthrough().parse(value);
   if (!envelope.ok || envelope.data === undefined) {
-    throw new Error(`PRODUCTION_CLOUD_API_FAILED:${envelope.error?.code ?? "UNKNOWN"}:${envelope.error?.message ?? "unknown"}`);
+    const code = envelope.error?.code ?? "PRODUCTION_CLOUD_API_UNKNOWN_FAILURE";
+    const recoveryCodes = new Set([
+      "AI_CONTROL_PLANE_NOT_READY",
+      "AI_SESSION_SUPERSEDED",
+      "AI_RUNTIME_ATTESTATION_STALE",
+      "AI_PRODUCTION_OUTPUT_READBACK_FAILED",
+    ]);
+    throw executionFailure(recoveryCodes.has(code) ? "recovery_pending" : "review_required", code, {
+      ...(httpStatus === undefined ? {} : { httpStatus }),
+      cause: new Error(envelope.error?.message ?? "Production cloud API rejected the request."),
+    });
   }
   return envelope.data;
 };

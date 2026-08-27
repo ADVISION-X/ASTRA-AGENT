@@ -217,6 +217,10 @@ export class BrowserAuthorityBroker {
         this.artifactResolver.registerArtifact(artifact),
       issueFileArtifactGrant: (grant) =>
         authorityLease.issueFileArtifactGrant(grant),
+      close: async (input) => {
+        await targetLease.close(input);
+        await authorityLease.release();
+      },
     };
   }
 

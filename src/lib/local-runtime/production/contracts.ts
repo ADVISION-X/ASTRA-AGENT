@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
 
+import { executionFailure, type SerializedExecutionFailure } from "../../typed-failure.js";
+
 export const WEBSITE_AGENT_PROTOCOL_VERSION = "xuanxue-ai-production-v6" as const;
 export const TASK_CONTRACT_ID = "website-agent-task" as const;
 export const TASK_CONTRACT_VERSION = 1 as const;
@@ -9,6 +11,65 @@ export const RESULT_CONTRACT_VERSION = 1 as const;
 
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u)
   .transform((value): `sha256:${string}` => value as `sha256:${string}`);
+
+const TerminalStatusSchema = z.enum(["completed", "failed", "review_required", "cancelled"]);
+const SerializedExecutionFailureSchema = z.object({
+  status: z.enum(["review_required", "failed"]),
+  code: z.string().min(1).max(240),
+  mutation_outcome: z.enum(["no", "yes", "unknown"]),
+  evidence_ref: z.string().min(1).max(1_000).nullable(),
+  evidence_hash: hashSchema.nullable(),
+  cause: z.object({
+    name: z.string().min(1).max(240),
+    code: z.string().min(1).max(240).nullable(),
+  }).strict().nullable(),
+}).strict();
+
+export const TerminalReceiptSchema = z.object({
+  schema_version: z.literal("xuanxue-ai-terminal-receipt.v6"),
+  job_id: z.string().min(1).max(240),
+  terminal_status: TerminalStatusSchema,
+  payload_hash: hashSchema,
+  failure: SerializedExecutionFailureSchema.nullable(),
+  first_terminal: z.boolean(),
+  device_id: z.string().min(1).max(240),
+  device_epoch: z.number().int().positive(),
+  worker_session_id: z.string().min(1).max(240),
+  worker_session_epoch: z.number().int().positive(),
+  runtime_attestation_receipt_hash: hashSchema,
+}).strict().superRefine((receipt, context) => {
+  const failed = receipt.terminal_status === "failed" || receipt.terminal_status === "review_required";
+  if ((failed && receipt.failure?.status !== receipt.terminal_status)
+    || (!failed && receipt.failure !== null)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "V6_TERMINAL_RECEIPT_FAILURE_INVALID" });
+  }
+});
+
+export type TerminalReceipt = z.infer<typeof TerminalReceiptSchema>;
+export type TerminalReceiptExpectation = Readonly<{
+  job_id: string;
+  terminal_status: TerminalReceipt["terminal_status"];
+  payload_hash: ProductionHash;
+  failure: SerializedExecutionFailure | null;
+  worker_session_id: string;
+  worker_session_epoch: number;
+}>;
+
+const TerminalReceiptExpectationSourceSchema = z.object({
+  schema_version: z.literal("xuanxue-ai-terminal-cas.v6"),
+  job_id: z.string().min(1).max(240),
+  terminal_status: TerminalStatusSchema,
+  payload_hash: hashSchema,
+  failure: SerializedExecutionFailureSchema.nullable(),
+  worker_session_id: z.string().min(1).max(240),
+  worker_session_epoch: z.number().int().positive(),
+}).passthrough().superRefine((request, context) => {
+  const failed = request.terminal_status === "failed" || request.terminal_status === "review_required";
+  if ((failed && request.failure?.status !== request.terminal_status)
+    || (!failed && request.failure !== null)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "V6_TERMINAL_REQUEST_FAILURE_INVALID" });
+  }
+});
 
 export const ProductionProductIdSchema = z.enum([
   "bazi_chart_interpretation",
@@ -23,8 +84,6 @@ export const ProductionProductIdSchema = z.enum([
   "public_knowledge_article_pipeline",
   "localization_report_translation",
   "localization_article_translation",
-  "localization_static_review_candidate",
-  "localization_static_review_selector",
   "payment_screenshot_observation",
 ]);
 
@@ -34,8 +93,6 @@ export const ProductionActionIdSchema = z.enum([
   "produce_article",
   "report_translation",
   "article_translation",
-  "static_review_candidate",
-  "static_review_selector",
   "observe",
   "accuracy_challenge",
   "quality_reflection",
@@ -245,6 +302,9 @@ export const AgentPluginCapabilityManifestSchema = z.object({
   if (pluginIds.size !== manifest.plugins.length || new Set(routes).size !== routes.length) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "AGENT_CAPABILITY_MANIFEST_IDENTITY_DUPLICATE" });
   }
+  if (routes.length !== 39) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "AGENT_CAPABILITY_ROUTE_DENOMINATOR_INVALID" });
+  }
 });
 
 export const sha256 = (value: string | Uint8Array): ProductionHash =>
@@ -260,4 +320,46 @@ export const hashCanonical = (value: unknown): ProductionHash => {
     return typeof input === "string" ? input.normalize("NFC") : input;
   };
   return sha256(JSON.stringify(canonical(value)));
+};
+
+export const parseTerminalReceiptExpectation = (value: unknown): TerminalReceiptExpectation => {
+  let candidate = value;
+  if (typeof value === "string") {
+    try { candidate = JSON.parse(value) as unknown; }
+    catch (cause) {
+      throw executionFailure("review_required", "V6_TERMINAL_RECEIPT_EXPECTATION_INVALID", { cause });
+    }
+  }
+  const parsed = TerminalReceiptExpectationSourceSchema.safeParse(candidate);
+  if (!parsed.success) {
+    throw executionFailure("review_required", "V6_TERMINAL_RECEIPT_EXPECTATION_INVALID", { cause: parsed.error });
+  }
+  return Object.freeze({
+    job_id: parsed.data.job_id,
+    terminal_status: parsed.data.terminal_status,
+    payload_hash: parsed.data.payload_hash,
+    failure: parsed.data.failure,
+    worker_session_id: parsed.data.worker_session_id,
+    worker_session_epoch: parsed.data.worker_session_epoch,
+  });
+};
+
+export const parseTerminalReceipt = (
+  value: unknown,
+  expected: TerminalReceiptExpectation,
+): TerminalReceipt => {
+  const parsed = TerminalReceiptSchema.safeParse(value);
+  if (!parsed.success) {
+    throw executionFailure("review_required", "V6_TERMINAL_RECEIPT_INVALID", { cause: parsed.error });
+  }
+  const receipt = parsed.data;
+  if (receipt.job_id !== expected.job_id
+    || receipt.terminal_status !== expected.terminal_status
+    || receipt.payload_hash !== expected.payload_hash
+    || receipt.worker_session_id !== expected.worker_session_id
+    || receipt.worker_session_epoch !== expected.worker_session_epoch
+    || hashCanonical(receipt.failure) !== hashCanonical(expected.failure)) {
+    throw executionFailure("review_required", "V6_TERMINAL_RECEIPT_MISMATCH");
+  }
+  return Object.freeze(receipt);
 };

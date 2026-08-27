@@ -5,8 +5,8 @@ import { tmpdir } from 'node:os';
 import { dirname, relative, resolve } from 'node:path';
 import test from 'node:test';
 
-import { buildRegistry, checkProjection, loadLaws, motherSpecIdentityValid, pathRole, verifyEntry, verifyProductionOwnership } from '../../scripts/audit/governance-authority.js';
-import { assertLawMajorVersionChanges } from '../../scripts/audit/governance-change-authority.js';
+import { assertActiveSpecVersionWindows, assertOneActiveMajorPerLawKey, buildRegistry, checkProjection, loadLaws, motherSpecIdentityValid, parseLawSource, pathRole, verifyEntry, verifyProductionOwnership } from '../../scripts/audit/governance-authority.js';
+import { assertLawMajorVersionChanges, assertProviderContractVersionChanges } from '../../scripts/audit/governance-change-authority.js';
 import { assertProductionDeleteAuthorization } from '../../scripts/audit/governance.js';
 import { GovernanceError } from '../../scripts/audit/governance-runtime.js';
 import { assertRoleConsumptionEdges } from '../../scripts/audit/shared/governance-role-consumption.js';
@@ -47,6 +47,54 @@ test('normative law edits require a successor major', () => {
   const successor = { ...sameMajorMutation, lawId: 'LAW-GPT-001-V3', supersedesLawId: prior.lawId };
   assert.doesNotThrow(() => assertLawMajorVersionChanges([prior], [successor]));
   assert.doesNotThrow(() => assertLawMajorVersionChanges([prior], []));
+});
+
+test('law corpus permits an empty source but rejects two active majors for one lawKey', () => {
+  const baseSource = readFileSync('.github/instructions/agent-rules/基础法案.md', 'utf8');
+  const headingAt = baseSource.indexOf('# 基础法案');
+  assert(headingAt >= 0);
+  assert.deepEqual(parseLawSource(`${baseSource.slice(0, headingAt)}# 基础法案\n`, 'empty-base.md', 'base-law', 100), []);
+  const active = loadLaws().find((law) => law.lawId === 'LAW-GPT-001-V2');
+  assert.ok(active);
+  assert.throws(
+    () => assertOneActiveMajorPerLawKey([active, {
+      ...active, lawId: 'LAW-GPT-001-V3', supersedesLawId: active.lawId,
+    }]),
+    (error: unknown) => error instanceof GovernanceError && error.code === 'SOURCE_PARSE_FAILED',
+  );
+});
+
+test('dual active spec versions require one exact migration window', () => {
+  const oldSpec = {
+    file: 'old.json', raw: { schemaVersion: 1, specId: 'gpt.contract', status: 'active', version: 1,
+      owner: 'gpt', lawIds: ['LAW-GPT-001-V2'], specKind: 'typed-contract', contract: { fields: {}, typeName: 'Old' } },
+  };
+  const newSpec = { file: 'new.json', raw: { ...oldSpec.raw, version: 2, contract: { fields: {}, typeName: 'New' } } };
+  assert.throws(() => assertActiveSpecVersionWindows([oldSpec, newSpec]),
+    (error: unknown) => error instanceof GovernanceError && error.code === 'SOURCE_PARSE_FAILED');
+  const migration = {
+    file: 'migration.json', raw: { ...oldSpec.raw, specId: 'gpt.contract-migration', specKind: 'migration', contract: {
+      currentAuthority: 'gpt.contract@1', targetAuthority: 'gpt.contract@2',
+      compatibilityMechanisms: ['dual-read'], startDate: '2026-08-27', monitoring: ['old reads'],
+      rollbackCondition: 'restore old', maximumDurationDays: 1, removalDate: '2026-08-28',
+      removalAcceptance: ['old version removed'],
+    } },
+  };
+  assert.doesNotThrow(() => assertActiveSpecVersionWindows([oldSpec, newSpec, migration]));
+});
+
+test('provider contract semantic changes require a higher native version', () => {
+  const prior = { schemaVersion: 1, specId: 'gpt.provider', status: 'active', version: 1, owner: 'gpt',
+    lawIds: ['LAW-GPT-001-V2'], specKind: 'cross-repo-contract', contract: {
+      authorityArtifact: { path: 'src/provider.ts', selector: 'ProviderV1' }, contractId: 'gpt.provider',
+      providerDomain: 'gpt', providerRepo: 'ADVISION-X/AGENT', version: 1,
+    } };
+  const sameVersionMutation = { ...prior, contract: { ...prior.contract,
+    authorityArtifact: { ...prior.contract.authorityArtifact, selector: 'ProviderChanged' } } };
+  assert.throws(() => assertProviderContractVersionChanges(prior, sameVersionMutation, 'provider.json'),
+    (error: unknown) => error instanceof GovernanceError && error.code === 'PROVIDER_CONTRACT_VERSION_UNENFORCED');
+  const successor = { ...sameVersionMutation, version: 2, contract: { ...sameVersionMutation.contract, version: 2 } };
+  assert.doesNotThrow(() => assertProviderContractVersionChanges(prior, successor, 'provider.json'));
 });
 
 test('mother specification version identity is fixed to the actual header', () => {
@@ -248,7 +296,7 @@ test('quality CHANGE rejects malformed touched law, Manifest, blueprint, and spe
     { path: 'docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json', mutate: (source) => {
       const value = JSON.parse(source) as { contract: { providerRepo: string }; lawIds: string[]; owner: string };
       value.owner = 'gpt';
-      value.lawIds = ['LAW-AGENT-PRODUCTION-RUNTIME-001-V3'];
+      value.lawIds = ['LAW-AGENT-PRODUCTION-RUNTIME-001-V4'];
       return `${JSON.stringify(value, null, 2)}\n`;
     } },
   ];
@@ -334,6 +382,10 @@ test('quality CHANGE executes a changed governance test and rejects its failing 
     writeFileSync(resolve(repository, '.git/info/exclude'), 'node_modules\n');
     symlinkSync(resolve(process.cwd(), 'node_modules'), resolve(repository, 'node_modules'), 'dir');
     copyFileSync(resolve(process.cwd(), 'scripts/audit/governance.ts'), resolve(repository, 'scripts/audit/governance.ts'));
+    copyFileSync(resolve(process.cwd(), 'scripts/audit/governance-authority.ts'),
+      resolve(repository, 'scripts/audit/governance-authority.ts'));
+    copyFileSync(resolve(process.cwd(), 'scripts/audit/governance-change-authority.ts'),
+      resolve(repository, 'scripts/audit/governance-change-authority.ts'));
     copyFileSync(resolve(process.cwd(), 'scripts/audit/shared/high-impact-detector.ts'),
       resolve(repository, 'scripts/audit/shared/high-impact-detector.ts'));
     const changedPath = resolve(repository, 'tests/governance/quality-contract.test.ts');

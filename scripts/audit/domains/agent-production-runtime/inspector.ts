@@ -23,9 +23,9 @@ import {
   observeStaticFilesystem,
   observeStaticTypes,
 } from "../../shared/static-target-object-inspector.js";
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V3";
+const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V4";
 const MODE_CLAUSES = {
-  "static.filesystem": staticForbiddenClauses(1, 16, 17), "static.ast": staticClauses(2, 4, 5, 9, 10, 11, 13, 14, 15, 17, 18),
+  "static.filesystem": staticForbiddenClauses(1, 16, 17), "static.ast": staticClauses(2, 4, 5, 9, 10, 11, 13, 14, 15, 17, 18, 19, 20, 21, 23, 24, 25),
   "static.types": staticForbiddenClauses(3, 5, 8, 11, 12), "static.contract": staticForbiddenClauses(3, 5, 6, 7, 8, 12, 13, 15),
   "static.dependency": staticForbiddenClauses(0, 1, 2, 4, 6, 16),
 } as const;
@@ -44,6 +44,11 @@ const PSC_PATH = "src/capabilities/gpt/session/gpt-session-controller.ts";
 const LOCALIZATION_PLUGIN_PATH = "src/plugins/localization-production/index.ts";
 const LOCALIZATION_SKILL_PATH = "src/plugins/localization-production/SKILL.md";
 const REAL_PROOF_PATH = "scripts/acceptance/agent-production-runtime.real-proof.ts";
+const EXECUTOR_PATH = "src/lib/local-runtime/production/executor.ts";
+const CLOUD_CLIENT_PATH = "src/lib/local-runtime/production/cloud-client.ts";
+const TYPED_FAILURE_PATH = "src/lib/typed-failure.ts";
+const GPT_RESPONSE_PATH = "src/capabilities/gpt/web/children/response-children.ts";
+const PRODUCTION_BLUEPRINT_PATH = "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md";
 const forbiddenDeterministicProducts = [
   "bazi_basic_chart",
   "bazi_pdf_export",
@@ -92,7 +97,9 @@ const importsAnotherPlugin = (
   const importedPath = resolve(dirname(resolve(context.sealedRoot, indexPath)), specifier);
   const importedRelativePath = relative(pluginsRoot, importedPath);
   if (importedRelativePath.startsWith("..") || importedRelativePath === "") return false;
-  return importedRelativePath.split("/")[0] !== pluginId;
+  const importedRoot = importedRelativePath.split("/")[0]!;
+  const importedRootPath = resolve(pluginsRoot, importedRoot);
+  return importedRoot !== pluginId && existsSync(importedRootPath) && statSync(importedRootPath).isDirectory();
 };
 
 const inspectPluginRoot = (
@@ -192,11 +199,11 @@ const inspectContractsAndMediator = (context: InspectorContext, findings: Inspec
     if (Node.isPropertySignature(member) || Node.isMethodSignature(member)) return member.getName();
     return "";
   }).filter(Boolean).sort() ?? [];
-  const expectedKeys = ["accepts", "checkpointSchemaVersion", "execute", "pluginId", "pluginVersion", "skillHash"].sort();
+  const expectedKeys = ["accepts", "checkpointSchemaVersion", "execute", "parseResult", "pluginId", "pluginVersion", "skillHash"].sort();
   if (JSON.stringify(actualKeys) !== JSON.stringify(expectedKeys)) findings.push(finding(
     "agent-production-runtime/product-plugin-exact-shape",
     PLUGIN_CONTRACT_PATH,
-    `ProductPlugin must expose exactly six fields; found ${actualKeys.join(",")}.`,
+    `ProductPlugin must expose exactly seven fields; found ${actualKeys.join(",")}.`,
   ));
 
   const contracts = sourceFor(context, CONTRACT_PATH);
@@ -243,7 +250,8 @@ const inspectContractsAndMediator = (context: InspectorContext, findings: Inspec
 const inspectSharedRuntimeAndPsc = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const runtimeRoot = resolve(context.sealedRoot, "src/lib/local-runtime/production");
   for (const entry of readdirSync(runtimeRoot, { withFileTypes: true })) {
-    if (!entry.isFile() || !entry.name.endsWith(".ts") || ["catalog.ts", "contracts.ts"].includes(entry.name)) continue;
+    if (!entry.isFile() || !entry.name.endsWith(".ts")
+      || ["catalog.ts", "contracts.ts", "route-policy.ts"].includes(entry.name)) continue;
     const repoPath = `src/lib/local-runtime/production/${entry.name}`;
     const text = read(context, repoPath);
     for (const token of businessTokens) {
@@ -321,7 +329,7 @@ const inspectRetirementAndDurability = (context: InspectorContext, findings: Ins
   const runtimeText = read(context, RUNTIME_PATH);
   const durableAcceptAt = runtimeText.indexOf("state.executor.accept(task)");
   const acceptedAt = runtimeText.indexOf("accepted = true", durableAcceptAt);
-  const remoteCheckpointAt = runtimeText.indexOf("checkpointProductionTask(", acceptedAt);
+  const remoteCheckpointAt = runtimeText.indexOf("checkpointWithLog(", acceptedAt);
   if (durableAcceptAt < 0 || acceptedAt <= durableAcceptAt || remoteCheckpointAt <= acceptedAt) findings.push(finding(
     "agent-production-runtime/durable-accept-before-remote-checkpoint", RUNTIME_PATH,
     "The runtime must mark durable local acceptance before attempting the remote acceptance checkpoint.",
@@ -368,12 +376,48 @@ const inspectDirectDynamicProof = (context: InspectorContext, findings: Inspecto
   }
 };
 
+const inspectV4Hardening = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const required: ReadonlyArray<Readonly<{ path: string; checkId: string; tokens: readonly string[] }>> = [
+    { path: PLUGIN_CONTRACT_PATH, checkId: "strict-result-parser", tokens: ["readonly parseResult:"] },
+    { path: EXECUTOR_PATH, checkId: "strict-result-parser", tokens: ["authorized.plugin.parseResult", "safeGptEvidenceProjection", "appendRecord", "readRecordRef", "EVIDENCE_READBACK_FAILED"] },
+    { path: CLOUD_CLIENT_PATH, checkId: "result-receipt-binding", tokens: ["plugin.parseResult", "uploadGeneratedImage", "execution_receipt_hash", "evidence_refs"] },
+    { path: GPT_RESPONSE_PATH, checkId: "generated-image-bytes", tokens: ["sharp(original", ".resize(1200, 630", ".webp(", "metadata.exif", "metadata.xmp", "GPT_GENERATED_IMAGE_READBACK_INVALID"] },
+    { path: TYPED_FAILURE_PATH, checkId: "typed-failure-chain", tokens: ["typedExecutionFailure", "httpStatus", "cause"] },
+    { path: RUNTIME_PATH, checkId: "typed-failure-chain", tokens: ["typedExecutionFailure(error)?.code", "causedByEventId"] },
+    { path: TRANSPORT_PATH, checkId: "typed-failure-chain", tokens: ["executionFailure(", "httpStatus"] },
+    { path: PRODUCTION_BLUEPRINT_PATH, checkId: "local-agent-process-owner", tokens: ["AGENT 始终运行在用户本地 Mac", "不授予网站 AGENT 进程"] },
+  ];
+  for (const entry of required) {
+    const source = read(context, entry.path);
+    for (const token of entry.tokens) if (!source.includes(token)) findings.push(finding(
+      `agent-production-runtime/${entry.checkId}`, entry.path,
+      `V4 hardening boundary is missing ${token}.`, undefined, "static.ast",
+    ));
+  }
+  const executor = read(context, EXECUTOR_PATH);
+  const projectionStart = executor.indexOf("const safeGptEvidenceProjection");
+  const projectionEnd = executor.indexOf("export class ProductionExecutor", projectionStart);
+  const projection = projectionStart >= 0 && projectionEnd > projectionStart
+    ? executor.slice(projectionStart, projectionEnd) : "";
+  for (const forbidden of ["raw_url", "selector", "prompt", "local_path", "html"]) {
+    if (!projection || projection.toLocaleLowerCase("en-US").includes(forbidden)) findings.push(finding(
+      "agent-production-runtime/forensics-safe-projection", EXECUTOR_PATH,
+      `Forensics evidence projection is missing or contains forbidden field ${forbidden}.`, undefined, "static.ast",
+    ));
+  }
+  if (read(context, TRANSPORT_PATH).includes("retryable")) findings.push(finding(
+    "agent-production-runtime/typed-failure-chain", TRANSPORT_PATH,
+    "The production transport reintroduced a retryable boolean beside the typed failure chain.", undefined, "static.ast",
+  ));
+};
+
 const inspectAgentProductionRuntime = (context: InspectorContext, findings: InspectorFinding[]): void => {
   inspectPluginRoots(context, findings);
   inspectContractsAndMediator(context, findings);
   inspectSharedRuntimeAndPsc(context, findings);
   inspectRetirementAndDurability(context, findings);
   inspectDirectDynamicProof(context, findings);
+  inspectV4Hardening(context, findings);
 };
 const inspectAgentFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const plugins = pluginDirectories(context);

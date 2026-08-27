@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 
 import { GovernanceError, ROOT, fail } from './governance-runtime.js';
 import { checkProjection, diffPaths, gitCommit, pathRole, readRegistryProjection, REGISTRY, verifyEntry, verifyProductionOwnership, writeRegistry, type Level, type Registry } from './governance-authority.js';
-import { validateChangedGovernanceSources } from './governance-change-authority.js';
+import { validateChangedGovernanceSources, validateCommittedProviderContractVersionChanges } from './governance-change-authority.js';
 import { runFullQuality } from './shared/quality-runner.js';
 import { relevantExamScripts } from './shared/quality-routes.js';
 import { detectHighImpactChanges } from './shared/high-impact-detector.js';
@@ -147,6 +147,7 @@ async function quality(level: Level): Promise<void> {
     return;
   }
   if (changes.length) fail(level === 'READY' ? 'READY_GIT_COMMIT_REQUIRED' : 'RELEASE_GIT_COMMIT_REQUIRED', 'dirty worktree');
+  validateCommittedProviderContractVersionChanges();
   checkProjection();
   verifyProductionOwnership();
   projectChecks();

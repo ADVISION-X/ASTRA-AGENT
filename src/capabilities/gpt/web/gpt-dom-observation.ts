@@ -1,10 +1,11 @@
 import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
+import { executionFailure } from "../../../lib/typed-failure.js";
 
 import { assertGptUrl } from "./contracts/target-document.contract.js";
 
 const record = (value: unknown): Record<string, unknown> => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error("review_required:GPT_DOM_RESULT_INVALID");
+    throw executionFailure("review_required", "GPT_DOM_RESULT_INVALID");
   }
   return value as Record<string, unknown>;
 };
@@ -14,7 +15,7 @@ export const readGptDocument = async (
 ): Promise<Readonly<{ url: string; title: string }>> => {
   const value = record(await browser.executeDomIntent({ kind: "document" }));
   if (typeof value.url !== "string" || typeof value.title !== "string") {
-    throw new Error("review_required:GPT_DOCUMENT_RESULT_INVALID");
+    throw executionFailure("review_required", "GPT_DOCUMENT_RESULT_INVALID");
   }
   assertGptUrl(value.url);
   return Object.freeze({ url: value.url, title: value.title });
@@ -41,7 +42,7 @@ export const findCount = async (
     ...(input.waitFor === undefined ? {} : { waitFor: input.waitFor }),
   }));
   if (!Number.isInteger(value.count) || (value.count as number) < 0) {
-    throw new Error("review_required:GPT_DOM_RESULT_INVALID");
+    throw executionFailure("review_required", "GPT_DOM_RESULT_INVALID");
   }
   return value.count as number;
 };
@@ -51,7 +52,7 @@ export const requireOneCandidate = async (
   input: Parameters<typeof findCount>[1],
 ): Promise<1> => {
   const count = await findCount(browser, input);
-  if (count !== 1) throw new Error(`review_required:GPT_PAGE_CANDIDATE_COUNT_${count}`);
+  if (count !== 1) throw executionFailure("review_required", `GPT_PAGE_CANDIDATE_COUNT_${count}`);
   return 1;
 };
 
@@ -66,7 +67,7 @@ export const readExactText = async (
     expectedMatches: 1,
     maxChars,
   });
-  if (typeof value !== "string") throw new Error("review_required:GPT_DOM_RESULT_INVALID");
+  if (typeof value !== "string") throw executionFailure("review_required", "GPT_DOM_RESULT_INVALID");
   return value;
 };
 
@@ -85,7 +86,7 @@ export const readExactAttribute = async (
     ...(textContains === undefined ? {} : { textContains }),
   });
   if (typeof value !== "string" || value.length === 0) {
-    throw new Error("review_required:GPT_DOM_RESULT_INVALID");
+    throw executionFailure("review_required", "GPT_DOM_RESULT_INVALID");
   }
   return value;
 };

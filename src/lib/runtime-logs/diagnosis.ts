@@ -25,6 +25,7 @@ type DiagnosedFailure = Readonly<{
   kind: string;
   code: string;
   nativeCause: string | null;
+  httpStatus: number | null;
   impact: string;
   recovery: string;
   causedByEventId: string | null;
@@ -66,20 +67,22 @@ export type RuntimeDiagnosis = Readonly<{
   findings: readonly string[];
 }>;
 
-const walkJsonl = (root: string): string[] => {
+const activeJsonlFiles = (root: string, findings: string[]): string[] => {
   if (!existsSync(root)) return [];
   const rootStat = statSync(root);
   if (rootStat.isFile()) return [root];
   if (!rootStat.isDirectory()) return [];
   const found: string[] = [];
-  const visit = (directory: string): void => {
-    for (const entry of readdirSync(directory, { withFileTypes: true })) {
-      const path = join(directory, entry.name);
-      if (entry.isDirectory()) visit(path);
-      else if (entry.isFile() && entry.name.endsWith(".jsonl")) found.push(path);
+  for (const producer of readdirSync(root, { withFileTypes: true }).filter((entry) => entry.isDirectory())) {
+    const producerDirectory = join(root, producer.name);
+    for (const entry of readdirSync(producerDirectory, { withFileTypes: true })) {
+      const path = join(producerDirectory, entry.name);
+      if (entry.isDirectory()) findings.push(`ACTIVE_SOURCE_LAYOUT_INVALID:${path}`);
+      if (!entry.isFile() || !entry.name.endsWith(".jsonl")) continue;
+      if (!/^.+-[0-9]{4}\.jsonl$/u.test(entry.name)) findings.push(`ACTIVE_SEGMENT_NAME_INVALID:${path}`);
+      found.push(path);
     }
-  };
-  visit(root);
+  }
   return found.sort();
 };
 
@@ -88,7 +91,7 @@ const parseSource = (source: string, findings: string[]): Readonly<{
   status: { source: string; available: boolean; files: number; events: number };
 }> => {
   let files: string[];
-  try { files = walkJsonl(source); }
+  try { files = activeJsonlFiles(source, findings); }
   catch { files = []; }
   if (files.length === 0) findings.push(`SOURCE_UNAVAILABLE:${source}`);
   const events: RuntimeLogEventV2[] = [];
@@ -249,6 +252,25 @@ const verifySpans = (
   return { open, interrupted };
 };
 
+const verifyCrossRepositoryBoundaries = (
+  events: readonly RuntimeLogEventV2[],
+  allEvents: readonly RuntimeLogEventV2[],
+  findings: string[],
+): void => {
+  const websiteRequests = allEvents.filter((event): event is RuntimeSpanStartedEvent =>
+    event.type === "SPAN" && event.phase === "started" && event.operation === "website.v6-request");
+  for (const event of events) {
+    if (event.type !== "SPAN" || event.phase !== "started" || event.operation !== "cloud.session-open"
+      || !event.boundaryId) continue;
+    const opposite = websiteRequests.filter((candidate) => candidate.producerRunId !== event.producerRunId
+      && candidate.boundaryId === event.boundaryId);
+    if (opposite.length === 0) findings.push(`BOUNDARY_SOURCE_INCOMPLETE:${event.boundaryId}`);
+    else if (!opposite.some((candidate) => candidate.traceId === event.traceId)) {
+      findings.push(`BOUNDARY_TRACE_MISMATCH:${event.boundaryId}`);
+    }
+  }
+};
+
 const STATE_OWNERS: Readonly<Record<RuntimeStateKey, RuntimeLogOwner | null>> = {
   "producer.lifecycle": null,
   "producer.alive": null,
@@ -400,6 +422,7 @@ const diagnosedFailure = (event: RuntimeSpanTerminalEvent): DiagnosedFailure => 
   kind: event.failure!.kind,
   code: event.failure!.code,
   nativeCause: event.failure!.nativeCause ?? null,
+  httpStatus: event.failure!.httpStatus ?? null,
   impact: event.failure!.impact,
   recovery: event.failure!.recovery,
   causedByEventId: event.failure!.causedByEventId ?? null,
@@ -461,6 +484,7 @@ export const diagnoseRuntimeLog = (input: Readonly<{
   const events = selectTraceEvents(allEvents, input.traceId);
   if (events.length === 0) findings.push(`TRACE_NOT_FOUND:${input.traceId}`);
   const freshRuns = producerFreshness(allEvents, (input.now ?? new Date()).getTime());
+  verifyCrossRepositoryBoundaries(events, allEvents, findings);
   const spans = verifySpans(events, freshRuns, findings);
   const states = currentStates(events, allEvents, freshRuns, findings);
   verifyApplicableStateAxes(events, states, findings);

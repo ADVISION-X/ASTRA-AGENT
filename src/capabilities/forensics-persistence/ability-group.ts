@@ -1,6 +1,7 @@
 import { executeAppendArtifact } from "./children/append-artifact.js";
 import { executeAppendRecord } from "./children/append-record.js";
 import { executeReadRecordRef } from "./children/read-record-ref.js";
+import { executeReadArtifactRef } from "./children/read-artifact-ref.js";
 import type { ForensicsPersistenceAbilityGroup } from "./contract.js";
 import { createForensicsStorageAdapter } from "./storage-adapter.js";
 import type {
@@ -104,6 +105,8 @@ const executeForensicsChild = (
       return appendArtifactWithLog(input, storage, runtimeLogger);
     case "read-record-ref":
       return executeReadRecordRef(input, storage);
+    case "read-artifact-ref":
+      return executeReadArtifactRef(input, storage);
   }
 };
 
@@ -136,6 +139,10 @@ export function createForensicsPersistenceAbilityGroup(
 
     readRecordRef(input: ForensicsReadRecordRefInput): Promise<ForensicsResult> {
       return executeReadRecordRef(input, storage);
+    },
+
+    readArtifactRef(input): Promise<ForensicsResult> {
+      return executeReadArtifactRef(input, storage);
     },
   };
 }

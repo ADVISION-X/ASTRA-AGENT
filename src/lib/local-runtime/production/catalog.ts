@@ -21,6 +21,7 @@ import {
 } from "./contracts.js";
 import type { ProductPlugin } from "./plugin.js";
 import { readProductSkill } from "./plugin.js";
+import { productionRoutePolicyMap } from "./route-policy.js";
 
 export const productionPluginCatalog = Object.freeze([
   baziChartInterpretationPlugin,
@@ -99,4 +100,8 @@ export const resolveProductionPlugin = (
 
 if (productionPluginCatalog.length !== 12 || skillBytes.size !== 12) {
   throw new Error("PLUGIN_CATALOG_DENOMINATOR_INVALID");
+}
+if (routeCatalog.size !== 39 || productionRoutePolicyMap.size !== 39
+  || [...productionRoutePolicyMap.keys()].some((key) => !routeCatalog.has(key))) {
+  throw new Error("PLUGIN_ROUTE_DENOMINATOR_INVALID");
 }

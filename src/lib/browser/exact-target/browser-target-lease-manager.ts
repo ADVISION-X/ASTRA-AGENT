@@ -11,6 +11,7 @@ import type { BrowserFileArtifactGrantV1 } from "./browser-file-artifact-grant.j
 import type { BrowserExecutionBinding } from "../infrastructure/browser-authority-broker.js";
 import type { BrowserSessionWorkspace, SessionWorkspaceBindingV6 } from "./browser-session-workspace.js";
 import type { BrowserOutcomeResolutionReceipt } from "./browser-outcome-resolver.js";
+import { browserExecutionFailure } from "../browser-failure.js";
 export type { SessionWorkspaceBindingV6 } from "./browser-session-workspace.js";
 
 export type BrowserExactTargetAcquisition = Readonly<{
@@ -111,8 +112,9 @@ export class BrowserTargetLeaseManager {
         if (this.mutationClass(value) === "mutation") state.pendingMutationCommandIds.push(permit.commandId);
         return result;
       } catch (error) {
-        if (this.commandActor.hasUnknownMutation(permit.commandId)) state.pendingMutationCommandIds.push(permit.commandId);
-        throw error;
+        const unknown = this.commandActor.hasUnknownMutation(permit.commandId);
+        if (unknown) state.pendingMutationCommandIds.push(permit.commandId);
+        throw browserExecutionFailure(error, unknown ? "unknown" : "no");
       }
     };
   }

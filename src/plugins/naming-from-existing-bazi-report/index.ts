@@ -1,4 +1,5 @@
 import { combineEvidence, readProductSkill, type ProductPlugin } from "../../lib/local-runtime/production/plugin.js";
+import { parseProductResult, parseRouteResult } from "../product-result-contract.js";
 import { freshGptTurnFlow } from "./gpt-flow.js";
 
 const skill = readProductSkill(import.meta.url);
@@ -6,9 +7,10 @@ const provider = { labelKey: "naming_analysis", profileRef: "naming-from-existin
 
 export const namingFromExistingBaziReportPlugin: ProductPlugin = {
   pluginId: "naming-from-existing-bazi-report",
-  pluginVersion: 1,
+  pluginVersion: 2,
   skillHash: skill.hash,
   checkpointSchemaVersion: 1,
+  parseResult: parseProductResult,
   accepts: [
     { productId: "naming_from_existing_bazi_report", actionId: "produce" },
     { productId: "naming_from_existing_bazi_report", actionId: "accuracy_challenge" },
@@ -18,11 +20,11 @@ export const namingFromExistingBaziReportPlugin: ProductPlugin = {
     const review = task.action_id !== "produce";
     const turn = await context.runTurn({
       step_id: review ? task.action_id : "produce_names_from_report",
-      instruction: review ? "复核原候选名与既有报告的绑定、字符事实和解释，只输出可核验 finding。" : "只依据这份已授权且哈希锁定的既有八字报告和当前起名要求生成候选；不得重新计算或串用其他命盘。",
-      material_roles: review ? ["subject_result", "review_context", "existing_bazi_report"] : ["existing_bazi_report", "naming_requirements", "character_reference"],
+      instruction: review ? "复核冻结的 subject_result 与 review_context，只返回 website-agent-review-output.v1 的合法 JSON（decision、issues 及完整 issue 字段）。" : "只依据 naming_context_package、naming_requirement_brief 与 naming_prior_feedback 生成候选；严格按 result_contract 返回 naming-report-output.v2 合法 JSON，不得重新计算或串用其他命盘，不要代码围栏、解释或额外字段。",
+      material_roles: review ? ["subject_result", "review_context"] : ["naming_context_package", "naming_requirement_brief", "naming_prior_feedback", "result_contract"],
       gpt_flow: freshGptTurnFlow,
       provider,
     });
-    return context.complete({ payload: review ? { findings: turn.raw_text } : { candidates: turn.raw_text }, evidence_refs: combineEvidence(turn), ...(review ? {} : { continuation: turn.provider_continuation }) });
+    return context.complete({ payload: parseRouteResult(task, turn.raw_text), evidence_refs: combineEvidence(turn), ...(review ? {} : { continuation: turn.provider_continuation }) });
   },
 };

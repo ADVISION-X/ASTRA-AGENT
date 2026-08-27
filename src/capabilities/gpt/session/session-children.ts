@@ -1,4 +1,5 @@
 import type { GptChildCapabilityIntent } from "../contract.js";
+import { executionFailure } from "../../../lib/typed-failure.js";
 import type { GptChildHandlerMap } from "../web/child-handler.js";
 import {
   arrayInput,
@@ -11,7 +12,7 @@ import { GptSessionController, type GptContinuationLane } from "./gpt-session-co
 import type { GptProviderContinuation } from "./gpt-continuation-store-port.js";
 
 const controller = (context: Parameters<NonNullable<GptChildHandlerMap[keyof GptChildHandlerMap]>>[1]) => {
-  if (!context.continuationStore) throw new Error("failed:GPT_CONTINUATION_STORE_REQUIRED");
+  if (!context.continuationStore) throw executionFailure("failed", "GPT_CONTINUATION_STORE_REQUIRED");
   return new GptSessionController(context.continuationStore);
 };
 
@@ -25,7 +26,7 @@ const providerFrom = (
     || typeof value.prior_raw_output_hash !== "string"
     || !/^sha256:[a-f0-9]{64}$/u.test(value.prior_raw_output_hash)
     || typeof value.prior_turn_marker !== "string") {
-    throw new Error("failed:GPT_CONTINUATION_PROVIDER_INVALID");
+    throw executionFailure("failed", "GPT_CONTINUATION_PROVIDER_INVALID");
   }
   return {
     provider_page_url: value.provider_page_url,
@@ -40,7 +41,7 @@ const laneFrom = (intent: GptChildCapabilityIntent): GptContinuationLane => {
   if (typeof value.continuation_ref !== "string"
     || typeof value.lane_version !== "number" || !Number.isSafeInteger(value.lane_version)
     || !value.provider || typeof value.provider !== "object" || Array.isArray(value.provider)) {
-    throw new Error("failed:GPT_CONTINUATION_LANE_INVALID");
+    throw executionFailure("failed", "GPT_CONTINUATION_LANE_INVALID");
   }
   return {
     continuation_ref: value.continuation_ref,
@@ -77,7 +78,7 @@ export const sessionChildHandlers = {
     ]);
     const allowed = arrayInput(intent, "allowedSourcePluginIds");
     if (!allowed.every((value): value is string => typeof value === "string" && value.length > 0)) {
-      throw new Error("failed:GPT_CONTINUATION_SOURCE_PLUGIN_IDS_INVALID");
+      throw executionFailure("failed", "GPT_CONTINUATION_SOURCE_PLUGIN_IDS_INVALID");
     }
     const lane = controller(context).acquire({
       continuationRef: stringInput(intent, "continuationRef"),
@@ -124,7 +125,7 @@ export const sessionChildHandlers = {
     const stored = controller(context).readVerified(stringInput(intent, "continuationRef"));
     if (stored.provider.prior_raw_output_hash !== stringInput(intent, "expectedOutputHash")
       || stored.provider.prior_task_id !== stringInput(intent, "expectedTaskId")) {
-      throw new Error("review_required:GPT_RESPONSE_CHECKPOINT_IDENTITY_MISMATCH");
+      throw executionFailure("review_required", "GPT_RESPONSE_CHECKPOINT_IDENTITY_MISMATCH");
     }
     return success({
       value: stored.provider, candidateCount: null,

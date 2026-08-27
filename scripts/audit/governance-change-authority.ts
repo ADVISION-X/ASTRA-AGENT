@@ -1,10 +1,10 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { blueprintMarkdownBodyValid, concreteString, exactKeys, isStringArray, parseJson, pathPatternValid, rejectDuplicateJsonKeys, sortedUnique } from './governance-json.js';
+import { blueprintMarkdownBodyValid, canonicalBytes, concreteString, exactKeys, isStringArray, parseJson, pathPatternValid, rejectDuplicateJsonKeys, sortedUnique } from './governance-json.js';
 import { validateLocalSpecContract } from './governance-local-spec-contract.js';
-import { fail, text } from './governance-runtime.js';
-import { blueprintValid, parseLawSource, type Law } from './governance-authority.js';
+import { fail, text, walk } from './governance-runtime.js';
+import { assertActiveSpecVersionWindows, blueprintValid, parseLawSource, type Law } from './governance-authority.js';
 import { BASE, FUNCTIONAL } from './shared/governance-paths.js';
 
 const LAW = /^LAW-[A-Z0-9]+(?:-[A-Z0-9]+)*-[0-9]{3}-V[1-9][0-9]*$/u;
@@ -144,6 +144,36 @@ const providerSpecValid = (raw: Spec): boolean => {
     && typeof artifact.path === 'string' && pathPatternValid(artifact.path) && concreteString(artifact.selector);
 };
 
+export const assertProviderContractVersionChanges = (prior: Spec, current: Spec, path: string): void => {
+  if (prior.specKind !== 'cross-repo-contract' || current.specKind !== 'cross-repo-contract') return;
+  if (prior.specId !== current.specId || prior.owner !== current.owner) {
+    fail('PROVIDER_CONTRACT_VERSION_UNENFORCED', `${path}:identity`);
+  }
+  if (canonicalBytes(prior.contract) !== canonicalBytes(current.contract) && current.version <= prior.version) {
+    fail('PROVIDER_CONTRACT_VERSION_UNENFORCED', `${path}:normative-contract`);
+  }
+};
+
+const specAtRevision = (revision: string, path: string): Spec | null => {
+  const result = spawnSync('git', ['show', `${revision}:${path}`], { cwd: process.cwd(), encoding: 'utf8' });
+  if (result.status !== 0) return null;
+  rejectDuplicateJsonKeys(result.stdout, `${revision}:${path}`);
+  try { return JSON.parse(result.stdout) as Spec; } catch { return fail('SOURCE_PARSE_FAILED', `${revision}:${path}`); }
+};
+
+export const validateCommittedProviderContractVersionChanges = (): void => {
+  if (spawnSync('git', ['rev-parse', '--verify', 'HEAD^'], { cwd: process.cwd(), stdio: 'ignore' }).status !== 0) return;
+  const paths = spawnSync('git', ['diff', '--name-only', 'HEAD^', 'HEAD', '--', 'docs/specs'], {
+    cwd: process.cwd(), encoding: 'utf8',
+  }).stdout.split('\n').filter((path) => path.endsWith('.json'));
+  for (const path of paths) {
+    if (!existsSync(resolve(process.cwd(), path))) continue;
+    const current = parseJson<Spec>(path);
+    const prior = specAtRevision('HEAD^', path);
+    if (prior) assertProviderContractVersionChanges(prior, current, path);
+  }
+};
+
 const validateBlueprint = (path: string, authority: CurrentAuthority): void => {
   if (path.endsWith('.md') && !blueprintMarkdownBodyValid(text(path))) fail('SOURCE_PARSE_FAILED', `${path}:body`);
   const raw = path.endsWith('.json') ? parseJson<Record<string, unknown>>(path) : machineBlock(path);
@@ -167,7 +197,13 @@ const validateChangedSource = (change: { status: string; path: string }, authori
   if (change.status === 'D') return;
   if (change.path === BASE || change.path === FUNCTIONAL) return;
   if (/^scripts\/audit\/domains\/[^/]+\/manifest\.json$/u.test(change.path)) return validateManifest(change.path, authority);
-  if (change.path.startsWith('docs/specs/') && change.path.endsWith('.json')) return validateSpec(change.path, authority);
+  if (change.path.startsWith('docs/specs/') && change.path.endsWith('.json')) {
+    validateSpec(change.path, authority);
+    const current = parseJson<Spec>(change.path);
+    const prior = specAtRevision('HEAD', change.path);
+    if (prior) assertProviderContractVersionChanges(prior, current, change.path);
+    return;
+  }
   if (change.path.startsWith('docs/blueprints/') && (change.path.endsWith('.md') || change.path.endsWith('.json'))) {
     validateBlueprint(change.path, authority);
   }
@@ -177,4 +213,8 @@ export const validateChangedGovernanceSources = (changes: Array<{ status: string
   if (changes.some((change) => change.path === BASE || change.path === FUNCTIONAL)) validateLawCorpusChange();
   const authority = loadCurrentAuthority();
   changes.forEach((change) => validateChangedSource(change, authority));
+  if (changes.some((change) => change.path.startsWith('docs/specs/') && change.path.endsWith('.json'))) {
+    assertActiveSpecVersionWindows(walk('docs/specs').filter((path) => path.endsWith('.json'))
+      .map((file) => ({ file, raw: parseJson<Spec>(file) })));
+  }
 };

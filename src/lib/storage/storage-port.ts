@@ -35,4 +35,9 @@ export interface GrassEyeStoragePort {
   appendRecord(record: RecordEnvelope): Promise<AppendRecordResult>;
   appendArtifact(artifact: ArtifactEnvelope): Promise<AppendArtifactResult>;
   readRecord(recordRef: string): Promise<RecordEnvelope | null>;
+  readArtifact(artifactRef: string): Promise<Readonly<{
+    content: Uint8Array;
+    mimeType?: string;
+    integrityHash: string;
+  }> | null>;
 }

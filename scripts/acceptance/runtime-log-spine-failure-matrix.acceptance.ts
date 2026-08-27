@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -17,6 +17,7 @@ import {
   type RuntimeRecovery as RuntimeRecoveryValue,
   type RuntimeStateInput,
 } from "../../src/lib/runtime-logs/index.js";
+import { executionFailure, failureCode } from "../../src/lib/typed-failure.js";
 
 const digest = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -45,13 +46,14 @@ type FailureCase = Readonly<{
   kind: (typeof RuntimeFailureKind)[keyof typeof RuntimeFailureKind];
   state: Omit<RuntimeStateInput, "traceId">;
   nativeCause?: string;
+  httpStatus?: number;
 }>;
 
 const failureCases: readonly FailureCase[] = [
   { name: "econnrefused", code: "FETCH_FAILED", nativeCause: "ECONNREFUSED", operation: "cloud.session-open", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.BACKOFF, kind: RuntimeFailureKind.TRANSPORT, state: { stateKey: "cloud.session", previous: null, current: "stale" } },
   { name: "econnreset", code: "FETCH_FAILED", nativeCause: "ECONNRESET", operation: "cloud.session-open", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.RETRY, kind: RuntimeFailureKind.TRANSPORT, state: { stateKey: "cloud.session", previous: null, current: "stale" } },
   { name: "etimedout", code: "PROVIDER_TIMEOUT", nativeCause: "ETIMEDOUT", operation: "gpt.child", owner: "gpt", responsibleOwner: "gpt", recovery: RuntimeRecovery.RETRY, kind: RuntimeFailureKind.TRANSPORT, state: { owner: "gpt", stateKey: "gpt.execution", previous: null, current: "failed" } },
-  { name: "http-auth", code: "HTTP_401_UNAUTHORIZED", operation: "cloud.session-open", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.REVIEW, kind: RuntimeFailureKind.AUTHENTICATION, state: { stateKey: "cloud.contract", previous: null, current: "blocked" } },
+  { name: "http-auth", code: "HTTP_401_UNAUTHORIZED", httpStatus: 401, operation: "cloud.session-open", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.REVIEW, kind: RuntimeFailureKind.AUTHENTICATION, state: { stateKey: "cloud.contract", previous: null, current: "blocked" } },
   { name: "business-reject", code: "CLAIM_BLOCKED", operation: "cloud.claim", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.BACKOFF, kind: RuntimeFailureKind.ADMISSION, state: { stateKey: "claim.admission", previous: null, current: "blocked" } },
   { name: "session-stale", code: "SESSION_STALE", operation: "cloud.session-open", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.RETRY, kind: RuntimeFailureKind.AUTHENTICATION, state: { stateKey: "cloud.session", previous: null, current: "stale" } },
   { name: "lease-stale", code: "LEASE_STALE", operation: "job.execute", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.REVIEW, kind: RuntimeFailureKind.ADMISSION, state: { stateKey: "job.lease", previous: null, current: "stale" } },
@@ -75,6 +77,28 @@ assert.deepEqual(runtimeFailureFromError({
   impact: RuntimeFailureImpact.BLOCKING,
   recovery: RuntimeRecovery.STOP,
 });
+
+const nestedTransport = executionFailure("recovery_pending", "CLOUD_TRANSPORT_UNAVAILABLE", {
+  httpStatus: 503,
+  cause: new Error("outer transport", {
+    cause: Object.assign(new Error("connect ECONNREFUSED 127.0.0.1"), { code: "ECONNREFUSED" }),
+  }),
+});
+assert.deepEqual(runtimeFailureFromError({
+  error: nestedTransport,
+  code: failureCode(nestedTransport, "CLOUD_SESSION_OPEN_FAILED"),
+  responsibleOwner: "production-runtime",
+  recovery: RuntimeRecovery.RETRY,
+}), {
+  kind: RuntimeFailureKind.TRANSPORT,
+  code: "CLOUD_TRANSPORT_UNAVAILABLE",
+  responsibleOwner: "production-runtime",
+  impact: RuntimeFailureImpact.BLOCKING,
+  recovery: RuntimeRecovery.RETRY,
+  nativeCause: "ECONNREFUSED",
+  httpStatus: 503,
+});
+assert.equal(failureCode(new Error("customer@example.com private failure text"), "SAFE_FALLBACK"), "SAFE_FALLBACK");
 
 withRoot("failure-code-shape", (root) => {
   const logger = loggerFor(root, "failure-code-shape");
@@ -149,6 +173,23 @@ for (const scenario of failureCases) withRoot(scenario.name, (root) => {
             ? { kind: "checkpoint", jobId: traceId, attemptId: "attempt-1", checkpointId: "checkpoint-1" }
           : { kind: "lease", jobId: traceId, attemptId: "attempt-1", leaseVersion: 1, fenceHash: digest("fence") },
   }));
+  if (scenario.operation === "cloud.session-open") {
+    const website = createRuntimeLogger({
+      producer: "website",
+      producerRunId: `website-${scenario.name}`,
+      owner: "website",
+      component: "website-v6-route",
+      terminalEnabled: false,
+      fileSink: { directoryPath: root, maxTotalBytes: 4 * 1024 * 1024 },
+    });
+    const websiteSpan = requireRuntimeLogWrite(website.startSpan({
+      traceId,
+      operation: "website.v6-request",
+      boundaryId: boundaryId!,
+      typedIdentity: { kind: "request", requestId: boundaryId! },
+    }));
+    requireRuntimeLogWrite(websiteSpan.terminal({ outcome: "success" }));
+  }
   const error = new Error(scenario.code, scenario.nativeCause
     ? { cause: Object.assign(new Error(scenario.nativeCause), { code: scenario.nativeCause }) }
     : undefined);
@@ -161,6 +202,7 @@ for (const scenario of failureCases) withRoot(scenario.name, (root) => {
       recovery: scenario.recovery,
       impact: RuntimeFailureImpact.BLOCKING,
       kind: scenario.kind,
+      ...(scenario.httpStatus === undefined ? {} : { httpStatus: scenario.httpStatus }),
     }),
   }));
   const leaseAxisRequired = !["cloud.claim", "cloud.session-open", "website.result-consume", "browser.command", "gpt.child", "job.checkpoint"]
@@ -183,6 +225,7 @@ for (const scenario of failureCases) withRoot(scenario.name, (root) => {
   assert.equal(diagnosis.blockingRoots[0]?.impact, RuntimeFailureImpact.BLOCKING, scenario.name);
   assert.equal(diagnosis.blockingRoots[0]?.recovery, scenario.recovery, scenario.name);
   assert.equal(diagnosis.blockingRoots[0]?.nativeCause, scenario.nativeCause ?? null, scenario.name);
+  assert.equal(diagnosis.blockingRoots[0]?.httpStatus, scenario.httpStatus ?? null, scenario.name);
   assert.equal(diagnosis.blockingRoots[0]?.causedByEventId, null, scenario.name);
   assert.deepEqual(diagnosis.recoveries, [scenario.recovery], scenario.name);
   assert.equal(diagnosis.lastSuccessfulActions[0]?.operation, "job.durable-accept", scenario.name);
@@ -203,6 +246,33 @@ for (const scenario of failureCases) withRoot(scenario.name, (root) => {
   }] : [], scenario.name);
   assert.deepEqual(diagnosis.openSpans, [], scenario.name);
   assert.deepEqual(diagnosis.findings, [], scenario.name);
+  if (scenario.name === "econnrefused") {
+    const missingWebsite = diagnoseRuntimeLog({
+      sources: [logger.currentSegmentPath()!], traceId, authorityResolver: () => "verified",
+    });
+    assert.equal(missingWebsite.status, "DIAGNOSIS_INCOMPLETE");
+    assert.ok(missingWebsite.findings.includes(`BOUNDARY_SOURCE_INCOMPLETE:${boundaryId}`));
+  }
+});
+
+withRoot("active-source-layout", (root) => {
+  const logger = loggerFor(root, "active-source-layout");
+  requireRuntimeLogWrite(logger.emitState({
+    traceId: "layout-trace", owner: "app-shell",
+    stateKey: "producer.alive", previous: null, current: "alive", freshForMs: 60_000,
+  }));
+  writeFileSync(path.join(root, "workbench.jsonl"), "legacy unstructured line\n", "utf8");
+  const clean = diagnoseRuntimeLog({ sources: [root], traceId: "layout-trace" });
+  assert.equal(clean.status, "DIAGNOSIS_COMPLETE");
+  assert.deepEqual(clean.findings, []);
+  const invalidProducer = path.join(root, "invalid-producer");
+  mkdirSync(invalidProducer);
+  const invalidSegment = path.join(invalidProducer, "broken.jsonl");
+  writeFileSync(invalidSegment, "not-json\n", "utf8");
+  const invalid = diagnoseRuntimeLog({ sources: [root], traceId: "layout-trace" });
+  assert.equal(invalid.status, "DIAGNOSIS_INCOMPLETE");
+  assert.ok(invalid.findings.includes(`ACTIVE_SEGMENT_NAME_INVALID:${invalidSegment}`));
+  assert.ok(invalid.findings.includes(`INVALID_JSONL_LINE:${invalidSegment}:1`));
 });
 
 withRoot("failure-causality", (root) => {

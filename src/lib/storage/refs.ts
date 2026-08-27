@@ -1,16 +1,18 @@
 /**
  * refs.ts — Ref-generation utilities for record and artifact references.
  *
- * createRecordRef: unique ref for an appended record.
- * createArtifactRef: unique ref for an appended artifact.
+ * References are content-addressed from the governed idempotency identity.
  */
 
-import { randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 
-export function createRecordRef(): string {
-  return `rec-${randomUUID()}`;
+const refHash = (identity: string): string =>
+  createHash("sha256").update(identity, "utf8").digest("hex");
+
+export function createRecordRef(identity: string): string {
+  return `rec-${refHash(`record\0${identity}`)}`;
 }
 
-export function createArtifactRef(): string {
-  return `art-${randomUUID()}`;
+export function createArtifactRef(identity: string): string {
+  return `art-${refHash(`artifact\0${identity}`)}`;
 }

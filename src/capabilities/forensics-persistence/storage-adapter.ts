@@ -94,6 +94,11 @@ const readRecord = async (
   return result as Record<string, unknown> | null;
 };
 
+const readArtifact = (
+  storage: GrassEyeStoragePort,
+  artifactRef: string,
+) => storage.readArtifact(artifactRef);
+
 export function createForensicsStorageAdapter(
   storage: GrassEyeStoragePort,
 ): ForensicsStoragePort {
@@ -101,5 +106,6 @@ export function createForensicsStorageAdapter(
     appendRecord: (input) => appendRecord(storage, input),
     appendArtifact: (input) => appendArtifact(storage, input),
     readRecord: (recordRef) => readRecord(storage, recordRef),
+    readArtifact: (artifactRef) => readArtifact(storage, artifactRef),
   };
 }

@@ -17,4 +17,9 @@ export interface ForensicsStoragePort {
   appendRecord(input: ForensicsAppendRecordInput): Promise<AppendRecordStorageResult>;
   appendArtifact(input: ForensicsAppendArtifactInput): Promise<AppendArtifactStorageResult>;
   readRecord(recordRef: string): Promise<Record<string, unknown> | null>;
+  readArtifact(artifactRef: string): Promise<Readonly<{
+    content: Uint8Array;
+    mimeType?: string;
+    integrityHash: string;
+  }> | null>;
 }

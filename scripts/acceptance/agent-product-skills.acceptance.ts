@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFileSync, readdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import {
   agentPluginCapabilityManifest,
@@ -9,6 +11,75 @@ import {
   resolveProductionPlugin,
 } from "../../src/lib/local-runtime/production/catalog.js";
 import { ProductionProductIdSchema, hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
+import { productionRoutePolicies } from "../../src/lib/local-runtime/production/route-policy.js";
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const PLUGIN_VERSION = /pluginVersion:\s*([1-9][0-9]*)/u;
+
+const pluginVersion = (source: string, label: string): number => {
+  const match = PLUGIN_VERSION.exec(source);
+  assert(match?.[1], `${label} pluginVersion missing`);
+  return Number(match[1]);
+};
+
+const assertPluginSemanticChangesBumpVersion = (input: Readonly<{
+  changedFiles: readonly string[];
+  beforeIndex: (pluginId: string) => string;
+  afterIndex: (pluginId: string) => string;
+}>): void => {
+  const changedPlugins = new Set(input.changedFiles.flatMap((path) => {
+    const match = /^src\/plugins\/([^/]+)\/(?:SKILL\.md|.*\.ts)$/u.exec(path);
+    return match?.[1] ? [match[1]] : [];
+  }));
+  for (const pluginId of changedPlugins) {
+    assert(
+      pluginVersion(input.afterIndex(pluginId), `${pluginId}:after`)
+        > pluginVersion(input.beforeIndex(pluginId), `${pluginId}:before`),
+      `${pluginId} semantic code changed without pluginVersion bump`,
+    );
+  }
+};
+
+const providerRepository = (): string => {
+  const configured = process.env.GRASSEYE_PROVIDER_REPOSITORIES?.trim();
+  if (configured) {
+    const value = (JSON.parse(configured) as Record<string, unknown>)["ADVISION-X/xuanxue-web"];
+    if (typeof value === "string" && value.trim()) return resolve(value);
+  }
+  return resolve(ROOT, "../xuanxue-web");
+};
+
+const localProjection = JSON.parse(readFileSync(resolve(
+  ROOT, "src/lib/local-runtime/production/website-agent-route-policies.v1.json",
+), "utf8")) as unknown;
+const providerProjectionPath = resolve(
+  providerRepository(), "packages/ai-contracts/src/agent-task/website-agent-route-policies.v1.json",
+);
+assert(existsSync(providerProjectionPath), "website route-policy provider artifact missing");
+assert.deepEqual(localProjection, JSON.parse(readFileSync(providerProjectionPath, "utf8")),
+  "AGENT route-policy projection drifted from website provider");
+assert.equal(productionRoutePolicies.length, 39);
+
+const candidate = process.env.GOVERNANCE_PROOF_CANDIDATE?.trim();
+const base = candidate ? `${candidate}^` : "HEAD";
+const target = candidate ?? null;
+const changedFiles = execFileSync("git", ["diff", "--name-only", base, ...(target ? [target] : []), "--", "src/plugins"], {
+  cwd: ROOT, encoding: "utf8",
+}).trim().split("\n").filter(Boolean);
+assertPluginSemanticChangesBumpVersion({
+  changedFiles,
+  beforeIndex: (pluginId) => execFileSync("git", ["show", `${base}:src/plugins/${pluginId}/index.ts`], {
+    cwd: ROOT, encoding: "utf8",
+  }),
+  afterIndex: (pluginId) => target
+    ? execFileSync("git", ["show", `${target}:src/plugins/${pluginId}/index.ts`], { cwd: ROOT, encoding: "utf8" })
+    : readFileSync(resolve(ROOT, `src/plugins/${pluginId}/index.ts`), "utf8"),
+});
+assert.throws(() => assertPluginSemanticChangesBumpVersion({
+  changedFiles: ["src/plugins/mutant/index.ts"],
+  beforeIndex: () => "pluginVersion: 7,",
+  afterIndex: () => "pluginVersion: 7, // semantic change without bump",
+}), /semantic code changed without pluginVersion bump/u);
 
 const forbiddenExecutionSyntax = [
   /\bStage\b/u,
@@ -67,6 +138,16 @@ const assertAtomicGptFlows = (pluginId: string): void => {
 };
 
 assert.equal(productionPluginCatalog.length, 12);
+assert.equal(existsSync(resolve(ROOT, "src/lib/local-runtime/production/output-contract.ts")), false,
+  "the shared runtime must not own Product payload semantics");
+const productContractSource = readFileSync(resolve(ROOT, "src/plugins/product-result-contract.ts"), "utf8");
+assert.match(productContractSource, /export const parseProductResult/u);
+const executorSource = readFileSync(resolve(ROOT, "src/lib/local-runtime/production/executor.ts"), "utf8");
+assert.match(executorSource, /authorized\.plugin\.parseResult\(authorized\.task, output\.payload, "draft"\)/u,
+  "context.complete must invoke the selected Product Plugin parser before upload");
+const cloudClientSource = readFileSync(resolve(ROOT, "src/lib/local-runtime/production/cloud-client.ts"), "utf8");
+assert.match(cloudClientSource, /resolveProductionPlugin\(job\.product_id, job\.action_id\)\.plugin\.parseResult\(job, payload, "final"\)/u,
+  "the final receipt-injected payload must return to the same Product Plugin parser");
 assert.deepEqual(
   agentPluginCapabilityManifest.plugins.map((plugin) => plugin.plugin_id).sort(),
   productionPluginCatalog.map((plugin) => plugin.pluginId).sort(),
@@ -78,7 +159,9 @@ const skillHashes = new Set<string>();
 const routeKeys = new Set<string>();
 const catalogProductIds = new Set<string>();
 for (const plugin of productionPluginCatalog) {
-  assert.deepEqual(Object.keys(plugin).sort(), ["accepts", "checkpointSchemaVersion", "execute", "pluginId", "pluginVersion", "skillHash"]);
+  assert.deepEqual(Object.keys(plugin).sort(), [
+    "accepts", "checkpointSchemaVersion", "execute", "parseResult", "pluginId", "pluginVersion", "skillHash",
+  ]);
   const skillPath = new URL(`../../src/plugins/${plugin.pluginId}/SKILL.md`, import.meta.url).pathname;
   assert.equal(readdirSync(dirname(skillPath)).filter((name) => name.toLowerCase() === "skill.md").length, 1);
   const text = readFileSync(skillPath, "utf8");
@@ -89,6 +172,16 @@ for (const plugin of productionPluginCatalog) {
     assert.match(text, /目标 locale、术语表和 locale policy/u);
     assert.match(text, /zh-HK.*zh-TW.*en-US.*ja-JP.*ko-KR/u);
     assert.match(text, /不得重新读取人物档案、命盘底层资料或 FrozenSubject/u);
+    const implementation = readFileSync(new URL("../../src/plugins/localization-production/index.ts", import.meta.url), "utf8");
+    for (const privateStep of ["candidate_a", "candidate_b", "private_review", "private_selector"]) {
+      assert.match(implementation, new RegExp(privateStep, "u"), `localization private Flow misses ${privateStep}`);
+    }
+    assert.match(implementation, /不得生成第三份译文/u);
+    assert.match(implementation, /非生成式 selector/u);
+    assert.match(implementation, /selection\.selected_candidate === "A" \? candidateA : candidateB/u);
+    assert.equal((implementation.match(/parseRouteResult\(task, candidateA\.raw_text\)/gu) ?? []).length, 1);
+    assert.equal((implementation.match(/parseRouteResult\(task, candidateB\.raw_text\)/gu) ?? []).length, 1);
+    assert.doesNotMatch(implementation, /localization_static_review_candidate|localization_static_review_selector/u);
   }
 
   for (const entry of plugin.accepts) {

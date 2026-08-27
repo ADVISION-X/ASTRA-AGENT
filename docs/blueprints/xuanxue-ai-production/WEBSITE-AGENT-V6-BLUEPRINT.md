@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V3"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V4"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -57,17 +57,20 @@
 | `naming-bazi-analysis-and-naming` | `naming_bazi_analysis_and_naming` | `produce` | 起名方案入库与交付 |
 | `naming-from-existing-bazi-report` | `naming_from_existing_bazi_report` | `produce` | 起名方案入库与交付 |
 | `public-knowledge-article-pipeline` | `public_knowledge_article_pipeline` | `produce_article` | 文章包验证、发布、sitemap 与搜索连接 |
-| `localization-production` | 四个现役本地化 identity | 四个现役 action | 翻译入库、资源合并与发布 |
+| `localization-production` | 两个现役本地化 identity | 两个现役 action | 翻译入库、资源合并与发布 |
 | `payment-screenshot-observation` | `payment_screenshot_observation` | `observe` | 网站确定性接受或拒绝 |
 
-本地化的四个映射固定为：
+本地化公开映射固定为：
 
 | `product_id` | `action_id` |
 |---|---|
 | `localization_report_translation` | `report_translation` |
 | `localization_article_translation` | `article_translation` |
-| `localization_static_review_candidate` | `static_review_candidate` |
-| `localization_static_review_selector` | `static_review_selector` |
+
+因此公开能力分母固定为：十二个 Product Plugin、十三个 primary `product_id + action_id`、每个 primary
+各自两条 `accuracy_challenge`/`quality_reflection`，合计三十九条公开路由。`static_review_candidate`、
+`static_review_selector`、候选 A/B、审校与选择仍是 `localization-production` 私有 Flow，禁止出现在网站产品枚举、
+AGENT Catalog `accepts`、Capability Manifest、跨仓 task/result 合同或公开验收分母中。
 
 `manual_accuracy_challenge` 与 `scheduled_quality_reflection` 不新增 Plugin。网站带上原 `subject_product_id`、subject task/result/hash、授权和 review policy，以 `accuracy_challenge` 或 `quality_reflection` 路由回原产品 Plugin；网站仍唯一拥有 schedule、review ledger、finding、人工分诊与发布裁决。
 
@@ -172,11 +175,45 @@ task envelope 禁止：`plugin_id`、Stage、node、dependency graph、join topo
 
 result envelope 允许：job/source task、product/action、实际 plugin/version、result contract、payload object/hash/bytes/media type、evidence refs、execution receipt hash 与必要 continuation。V6 terminal status 和 canonical terminal time 不在 result 中复制。
 
+网站 provider 必须在同一机器合同内为全部三十九条路由发布唯一 `route policy`。每条 policy 闭合：
+
+```text
+product_id + action_id
+parameter exact schema
+required/forbidden material role + cardinality + media/trust/owner policy
+parent/continuation/review subject relation policy
+result payload schema identity + version + strict validation semantics
+expected plugin_id + plugin_version（由当前 Capability Manifest 在 claim 时解析）
+```
+
+网站唯一规范机器工件是 `packages/ai-contracts/src/agent-task/website-agent-route-policies.v1.json`；AGENT 只消费逐字相同的 `src/lib/local-runtime/production/website-agent-route-policies.v1.json` dependency 投影，不另写可漂移的 route policy。跨仓生成与质检必须比较 policy 的规范化
+语义和三十九条完整分母，不得只比 contractId/version、文件 hash 或 route 名称。未知、缺失、额外、字段放宽、material
+role 漂移与 result parser 漂移都失败关闭。review task 必须带不可变 `subject_result`、`review_context`、locked facts、
+subject task/result/hash 与授权；空材料、盲审或让 Plugin 回查可变网站状态均不得接单。
+
+每个 Product Plugin 在 `context.complete` 前调用对应 route 的严格 parser；该 parser 必须验证 exact fields、schema version、
+业务主体、父子/review 关系、hash/引用闭包及 artifact receipt。网站在 `result_payload` 首次 staging 时使用同源同版本的纯
+route validator，领域 consumer 随后复用同一 domain validator 二次验证。付款观察、公开文章包、从既有报告起名、
+八字分析加起名以及全部 review payload 是确定性封口分母，禁止退回通用 JSON-object 校验。
+
 ## 7. 材料与安全
 
 每份材料必须按 `material_id + ordinal + role + NFC display_name + object_ref + sha256 + bytes + media_type + storage_class + owner_scope_hash + trust_class + may_issue_instruction` 精确鉴权。显示名来自稳定业务事实，不得含路径，不得依赖 attempt、临时目录或当前时间；集合内必须唯一。大文件和古籍使用既有 object ref 与 sealed manifest，不内嵌任务，也不在 Plugin 内部步骤反复复制。
 
 材料内容默认是数据而非指令；只有网站明确授权 `may_issue_instruction` 的可信业务材料才能影响专业 Skill，且不能改写 Product Plugin 的权限、合同或恢复边界。日志、错误和 receipt 不得泄漏 token、cookie、用户输入或附件内容。
+
+公开知识文章的 `generated_image` 必须使用 Provider 返回的精确原始 bytes，不得以截图、DOM URL 或 `raw_text` 代替。
+原始 bytes 只进入 task-owned 临时对象，复用现有 `sharp` 生成无 metadata 的 `1200x630 image/webp`，再经网站现役
+`generated_image` output-artifact 路由与同一 Outbox 上传；文章 payload、result envelope 和 first-terminal admission
+共同绑定 artifact/object ref、SHA-256、bytes、media type、width/height 与 receipt hash。不新增图片服务、对象库或第二上传链。
+
+GPT 原子 proof 只通过现役 `ForensicsPersistenceAbilityGroup` 落正式证据。底层 File Storage 必须按
+`idempotencyKey + canonical content hash` 内容寻址：同 key 同内容返回同 ref，同 key 不同内容失败；record/artifact ref
+必须可读并完成 hash readback。生产 runtime 向 GPT 注入 `onProof`，只有 append 成功且 readback 一致的脱敏 ref 才按调用
+顺序进入 `evidence_refs`；现有 `execution_receipt_hash` 绑定该有序集合，无需 Evidence Manifest、第二证据表或第二证据库。
+持久 proof 只允许 target/document hash、URL hash/page type、受控语义、mutation outcome、postcondition、code 和 evidence hash；
+raw URL/HTML/selector、Browser 私有 identity、用户输入、Prompt、附件内容与本地路径不得落盘。外部 mutation 后证据写失败
+固定进入 `review_required`、保留 Browser WAL 且不重放。Runtime Logs 只记录 authority ref/hash，不保存 proof 正文或取得证据主权。
 
 ## 8. durable identity、状态与恢复
 
@@ -191,11 +228,38 @@ checkpoint_schema_version
 request_hash
 ```
 
+该身份采用 claim 时实际 Catalog/Manifest 解析出的 `plugin_id + plugin_version`；result envelope 与 first-terminal 必须逐项相等。
+Plugin 实现代码有语义变化时必须递增 `plugin_version`、生成新 Catalog hash 并 drain 旧任务；质检保留“代码变化但版本未变”
+mutant。`agent_build_hash` 继续只绑定 worker session，不增加到六字段 Durable Identity，也不建立 source/build 第二身份链。
+
 本地不可变接单记录写入成功即是 durable accept 的边界；不得延迟到远程 checkpoint 成功之后才认定。此后任何 checkpoint、下载或网络失败只能进入现役唯一恢复链，不得释放成“未接单”并重新解释。
 
 checkpoint、恢复、result 与 execution receipt 都绑定同一组合。发布新 Catalog/Plugin/Skill 前先 drain 已接受任务；版本或 checkpoint schema 不兼容时，在零新 Browser/Provider mutation 下进入 `review_required`，禁止用新代码静默续跑，也不保留第二 Plugin 兼容路径。
 
 V6 继续唯一拥有 transport state、lease/fence、control、terminal 和重放语义。Plugin 私有 checkpoint 不成为第二 Cloud 状态机。UNKNOWN 物理动作永不自动重放；已失去 lease/fence 后停止新 mutation，等待原执行 settle；同 request/outbox payload 只以原幂等键重试。
+
+artifact 与 terminal 都先在 SQLite/WAL 持久化确定性 intent 和 idempotency key，再发网络；每次远端响应/receipt 先原子保存，
+随后才推进本地状态。一个持续运行的串行 flusher 按权威顺序投递，不等待 `active.size===0`。启动时必须对账
+remote-terminal/local-nonterminal、receipt 缺失与旧 fence；只有远端权威证明 superseded/delivered 才能终结旧写入，UNKNOWN
+不得重放。允许扩展网站现役 device-job status 读取 artifact/checkpoint/terminal receipt 事实，不新建 ledger。
+
+typed failure 从 GPT child 到 Plugin、runtime、Outbox 和 first-terminal 始终保持同一对象：
+
+```text
+status + code + mutation_outcome + evidence_ref/evidence_hash + cause（存在时）
+```
+
+禁止异常文本正则、自由字符串分类和冗余 `retryable` 布尔。failure/review 原因只由现役 V6 first-terminal record/receipt 拥有，
+不放入业务 result envelope，不建立 V7 或第二终态。
+
+`ledger_reconciled` 在每次 Store、Browser WAL、checkpoint、artifact/terminal Outbox、continuation、proof 或远端终态 authority
+变化时先失效，再由现有只读 authority 连续派生。未决阻断 Outbox、Browser UNKNOWN、缺失 receipt/evidence、孤儿 continuation/proof、
+remote/local terminal 漂移任一存在时必须为 false 并阻断新 claim；合法 busy lane 只表示忙，不表示 ledger 不一致。
+
+Browser Authority 只拥有一条最多十个 waiter 的有界 FIFO mutation lane。waiter 绑定精确 job Target，并感知 lease、deadline、abort；
+等待期间持续 renew，取消后确定性移除；UNKNOWN 锁住原现场直到人工裁决。heartbeat 的 lane/busy 来自 Browser Authority 真实队列与
+owner，不从 `active.size` 猜测。上述边界闭合后业务 capacity 才按 `10 - active jobs` 派生，不能用 `availableCapacity()=1`
+把单 Browser lane 冒充整机容量。
 
 GPT Session Controller 不理解业务内容、不决定何时续问。无法证明原会话、主体、授权、Plugin 或 lane CAS 时失败关闭为 `review_required`，不得静默新开会话冒充续接。
 
@@ -230,7 +294,7 @@ Manifest 绑定当前 session 与 attestation generation。网站只用它判断
 
 App Shell 的十二项支持表和质检分母必须直接消费这一份 Catalog 投影，不保存第二手写表、提交态 `plugin-status.json` 或人工开关。只有存在不可替代的构建消费者时才可生成进程内或临时投影，且不得取得新的持久真源身份。
 
-Manifest 生效的同一删除片区必须物理退出 product bundle/canary 产品准入、`blocked -> canary_only -> open` 状态机及其字段、脚本、UI 和 claim 判断。V6 session/attestation 准入继续保留；十二条真实任务是 RELEASE Dynamic Proof，不是永久 canary。
+Manifest 生效的同一删除片区必须物理退出 product bundle/canary 产品准入、`blocked -> canary_only -> open` 状态机及其字段、脚本、UI 和 claim 判断。V6 session/attestation 准入继续保留；十二个 Plugin journey、十三个真实主任务与三十九条公开路由的 RELEASE Dynamic Proof 只属于发布证据，不是永久 canary。
 
 ## 10. Shell、Browser 与启动
 
@@ -258,11 +322,11 @@ AGENT 始终运行在用户本地 Mac；网站与 PostgreSQL 当前同在这台 
 
 ## 12. 验收
 
-静态检查必须证明：Catalog 恰好十二个 Plugin；每个 Plugin 恰好一份 Skill；五个确定性产品不在 Catalog；shared runtime 无产品语义；Mediator 无 Prompt/DOM/model/stage sequence；网站任务无执行字段；GPT 能力组恰好一份公共 Facade、一个 Session Controller、完整原子 child 分母；旧 `ai-input-gateway`、巨型 Plugin、Stage/Graph、product bundle/canary 和第二链物理为零。
+静态检查必须证明：Catalog 恰好十二个 Plugin、十三个 primary、二十六个 review、三十九条公开路由；每个 Plugin 恰好一份 Skill；两个静态本地化 review 产品从公开面物理为零；五个确定性产品不在 Catalog；shared runtime 无产品语义；Mediator 无 Prompt/DOM/model/stage sequence；网站任务无执行字段；GPT 能力组恰好一份公共 Facade、一个 Session Controller、完整原子 child 分母；旧 `ai-input-gateway`、巨型 Plugin、Stage/Graph、product bundle/canary 和第二链物理为零。
 
-合同检查必须证明：双向 provider/dependency 身份匹配；网站 task/result 与 V6 各一份；AGENT Capability Manifest 一份；未知字段失败关闭；material、result、terminal、session/attestation 与 durable execution identity 精确绑定。
+合同检查必须证明：双向 provider/dependency 身份与三十九条 route policy 语义匹配；网站 task/result 与 V6 各一份；AGENT Capability Manifest 一份；未知字段、错误 route/parameter/material/relation/payload/plugin/version 失败关闭；material、result、evidence、terminal、session/attestation 与 durable execution identity 精确绑定。
 
-动态证明必须先在真实 Chrome/ChatGPT 上逐项证明 GPT Target/Document、模型读取与必要切换、附件、Prompt、发送、回答、continuation/fork、标题和 fail-closed；再从网站正常 sender 创建十二条真实任务。每条均经历真实材料上传、AGENT claim、唯一 Plugin、真实 GPT/Browser、result artifact、网站 first-terminal、business-result-ready 和领域入库/发布。先以全新本地化任务证明范例，再完成其余十一条；不得用 fixture、HTTP 200、空队列或模拟结果代替。
+动态证明必须先在真实 Chrome/ChatGPT 上逐项证明 GPT Target/Document、模型读取与必要切换、附件、Prompt、发送、回答、continuation/fork、原始图片 bytes、标题和 fail-closed；再从网站正常 sender 创建十三个真实主任务，并对每个 primary 各创建两类真实 review，覆盖全部三十九条公开路由。每条均经历真实材料上传、AGENT claim、唯一 Plugin、真实 GPT/Browser、严格 payload parser、result/image artifact、持久 evidence ref、网站 staging admission、first-terminal、business-result-ready 和领域入库/发布。先以全新本地化任务证明范例，再完成其余路由；不得用 fixture、HTTP 200、空队列或模拟结果代替。
 
 核心黑盒验收：从网站 Task 中完全删除 Stage、Prompt、Provider Profile、Conversation 与 Join，只保留业务类型、输入、授权和材料引用，AGENT 仍能完成产品。若失败，说明执行真相仍未回到 Product Plugin，验收固定 FAIL。
 

@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { executionFailure } from "../../../lib/typed-failure.js";
 
 import type {
   GptContinuationStorePort,
@@ -68,13 +69,13 @@ export class GptSessionController {
       || current.subject_ref !== input.subjectRef
       || current.authorization_ref !== input.authorizationRef
       || current.conversation_identity_hash !== gptContinuationIdentityHash(current.provider)) {
-      throw new Error("review_required:GPT_CONTINUATION_NOT_AUTHORIZED");
+      throw executionFailure("review_required", "GPT_CONTINUATION_NOT_AUTHORIZED");
     }
     const acquired = this.store.acquireGptContinuationLane(input.continuationRef, input.jobId);
     if (acquired.plugin_id !== current.plugin_id
       || acquired.conversation_identity_hash !== current.conversation_identity_hash) {
       this.store.releaseGptContinuationLane(acquired.continuation_ref, input.jobId, acquired.lane_version);
-      throw new Error("review_required:GPT_CONTINUATION_CAS_DRIFT");
+      throw executionFailure("review_required", "GPT_CONTINUATION_CAS_DRIFT");
     }
     return Object.freeze({
       continuation_ref: acquired.continuation_ref,
@@ -106,7 +107,7 @@ export class GptSessionController {
   public readVerified(continuationRef: string): StoredGptContinuation {
     const stored = this.store.readGptContinuation(continuationRef);
     if (!stored || stored.conversation_identity_hash !== gptContinuationIdentityHash(stored.provider)) {
-      throw new Error("review_required:GPT_CONTINUATION_IDENTITY_INVALID");
+      throw executionFailure("review_required", "GPT_CONTINUATION_IDENTITY_INVALID");
     }
     return stored;
   }

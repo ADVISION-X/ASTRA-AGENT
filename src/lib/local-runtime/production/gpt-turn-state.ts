@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { executionFailure } from "../../typed-failure.js";
 
 import {
   buildGptExecutionProfile,
@@ -6,7 +7,7 @@ import {
   type GptProviderContinuation,
 } from "../../../capabilities/gpt/index.js";
 import type { LocalProductionMaterial, ProductionHash } from "./contracts.js";
-import type { GptTurnFlowStep, ProviderTurnResult, SharedExecutionContext } from "./plugin.js";
+import type { GeneratedImageArtifact, GptTurnFlowStep, ProviderTurnResult, SharedExecutionContext } from "./plugin.js";
 
 export type GptTurnRequest = Parameters<SharedExecutionContext["runTurn"]>[0];
 
@@ -32,6 +33,7 @@ export type GptTurnState = {
   responseHash: ProductionHash | null;
   checkpointRef: string | null;
   titleFailure: string | null;
+  generatedImage: GeneratedImageArtifact | null;
 };
 
 const hash = (value: string): ProductionHash =>
@@ -76,6 +78,7 @@ export const createGptTurnState = (input: Readonly<{
     })),
     evidenceRefs: [], canonicalConversationUrl: null, userTurnId: null, assistantTurnId: null,
     responseText: null, responseHash: null, checkpointRef: null, titleFailure: null,
+    generatedImage: null,
   };
 };
 
@@ -123,10 +126,10 @@ const conversationChildInput = (
 ): Readonly<Record<string, unknown>> | null => {
   switch (childCapabilityId) {
     case "focus_exact_gpt_conversation":
-      if (!continuation) throw new Error("review_required:GPT_CONTINUATION_REQUIRED");
+      if (!continuation) throw executionFailure("review_required", "GPT_CONTINUATION_REQUIRED");
       return { canonicalConversationUrl: continuation.provider_page_url };
     case "verify_gpt_conversation_identity":
-      if (!continuation) throw new Error("review_required:GPT_CONTINUATION_REQUIRED");
+      if (!continuation) throw executionFailure("review_required", "GPT_CONTINUATION_REQUIRED");
       return { canonicalConversationUrl: continuation.provider_page_url, turnMarker: continuation.prior_turn_marker };
     case "write_exact_gpt_prompt": return { prompt: state.prompt };
     case "verify_exact_gpt_prompt": return { prompt: state.prompt, turnMarker: state.turnMarker };
@@ -143,13 +146,13 @@ const checkpointChildInput = (
 ): Readonly<Record<string, unknown>> | null => {
   switch (childCapabilityId) {
     case "wait_for_stable_gpt_response":
-      if (!state.assistantTurnId) throw new Error("failed:GPT_ASSISTANT_TURN_REQUIRED");
+      if (!state.assistantTurnId) throw executionFailure("failed", "GPT_ASSISTANT_TURN_REQUIRED");
       return { assistantTurnId: state.assistantTurnId, timeoutMs };
     case "checkpoint_gpt_text_response":
-      if (!state.assistantTurnId || !state.responseHash) throw new Error("failed:GPT_STABLE_RESPONSE_REQUIRED");
+      if (!state.assistantTurnId || !state.responseHash) throw executionFailure("failed", "GPT_STABLE_RESPONSE_REQUIRED");
       return { assistantTurnId: state.assistantTurnId, expectedResponseHash: state.responseHash };
     case "checkpoint_gpt_generated_image":
-      if (!state.assistantTurnId) throw new Error("failed:GPT_ASSISTANT_TURN_REQUIRED");
+      if (!state.assistantTurnId) throw executionFailure("failed", "GPT_ASSISTANT_TURN_REQUIRED");
       return { assistantTurnId: state.assistantTurnId };
     default: return null;
   }
@@ -163,7 +166,7 @@ const titleChildInput = (
   if (childCapabilityId === "write_exact_gpt_title") return { title: state.title };
   if (childCapabilityId === "open_gpt_title_control" || childCapabilityId === "commit_gpt_title"
     || childCapabilityId === "verify_exact_gpt_title") {
-    if (!state.canonicalConversationUrl) throw new Error("failed:GPT_CANONICAL_CONVERSATION_REQUIRED");
+    if (!state.canonicalConversationUrl) throw executionFailure("failed", "GPT_CANONICAL_CONVERSATION_REQUIRED");
     if (childCapabilityId === "open_gpt_title_control") return { canonicalConversationUrl: state.canonicalConversationUrl };
     if (childCapabilityId === "commit_gpt_title") {
       return { canonicalConversationUrl: state.canonicalConversationUrl, title: state.title, timeoutMs: Math.min(timeoutMs, 15_000) };
@@ -184,7 +187,7 @@ export const gptChildInput = (
     ?? conversationChildInput(childCapabilityId, state, continuation)
     ?? checkpointChildInput(childCapabilityId, state, timeoutMs)
     ?? titleChildInput(childCapabilityId, state, timeoutMs);
-  if (!value) throw new Error(`failed:GPT_FLOW_CHILD_NOT_ALLOWED:${childCapabilityId}`);
+  if (!value) throw executionFailure("failed", `GPT_FLOW_CHILD_NOT_ALLOWED:${childCapabilityId}`);
   return value;
 };
 
@@ -207,12 +210,29 @@ export const applyGptChildValue = (
     state.responseText = stringField(record.rawText, "GPT_RESPONSE_TEXT_MISSING");
     state.responseHash = stringField(record.rawHash, "GPT_RESPONSE_HASH_MISSING") as ProductionHash;
     state.checkpointRef = stringField(record.checkpointRef, "GPT_RESPONSE_CHECKPOINT_MISSING");
+  } else if (childCapabilityId === "checkpoint_gpt_generated_image") {
+    const image = {
+      artifact_id: stringField(record.artifactId, "GPT_IMAGE_ARTIFACT_ID_MISSING"),
+      local_path: stringField(record.localPath, "GPT_IMAGE_LOCAL_PATH_MISSING"),
+      original_local_path: stringField(record.originalLocalPath, "GPT_IMAGE_ORIGINAL_LOCAL_PATH_MISSING"),
+      sha256: stringField(record.sha256, "GPT_IMAGE_HASH_MISSING") as ProductionHash,
+      original_sha256: stringField(record.originalSha256, "GPT_IMAGE_ORIGINAL_HASH_MISSING") as ProductionHash,
+      bytes: record.bytes,
+      media_type: record.mediaType,
+      width: record.width,
+      height: record.height,
+    };
+    if (!Number.isSafeInteger(image.bytes) || image.bytes as number < 1
+      || image.media_type !== "image/webp" || image.width !== 1200 || image.height !== 630) {
+      throw new Error("GPT_IMAGE_ARTIFACT_INVALID");
+    }
+    state.generatedImage = image as GeneratedImageArtifact;
   }
 };
 
 export const buildGptTurnResult = (state: GptTurnState): ProviderTurnResult => {
   if (!state.responseText || !state.responseHash || !state.canonicalConversationUrl) {
-    throw new Error("review_required:GPT_RESPONSE_CHECKPOINT_INCOMPLETE");
+    throw executionFailure("review_required", "GPT_RESPONSE_CHECKPOINT_INCOMPLETE");
   }
   return {
     raw_text: state.responseText, raw_hash: state.responseHash,
@@ -221,5 +241,6 @@ export const buildGptTurnResult = (state: GptTurnState): ProviderTurnResult => {
       provider_page_url: state.canonicalConversationUrl, prior_task_id: state.executionId,
       prior_raw_output_hash: state.responseHash, prior_turn_marker: state.turnMarker,
     },
+    ...(state.generatedImage ? { generated_image: state.generatedImage } : {}),
   };
 };

@@ -14,10 +14,11 @@ export async function executeReadRecordRef(
   const startedAt = new Date().toISOString();
   try {
     const record = await storage.readRecord(input.recordRef);
+    if (!record) throw new Error("FORENSICS_RECORD_REF_NOT_FOUND");
     return {
       status: "success",
       recordRef: input.recordRef,
-      record: record ?? undefined,
+      record,
       proof: buildForensicsSuccessProof({
         childCapabilityId: "read-record-ref",
         recordRef: input.recordRef,
