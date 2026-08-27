@@ -128,7 +128,7 @@ export const scanStructuralFunctionBudgets = (
   lawIds: readonly string[],
   collector: InventoryFindingCollector,
 ): void => {
-  const inventoryLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V4");
+  const inventoryLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V5");
   scanFunctionBudgets(collector, governedFile, inventoryLawId);
   scanClassAndObjectBudgets(collector, governedFile, inventoryLawId);
 };

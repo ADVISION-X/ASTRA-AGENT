@@ -49,16 +49,16 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [
-      lawResult("LAW-CODE-PURITY-001-V4", {
+      lawResult("LAW-CODE-PURITY-001-V5", {
         "static.filesystem": staticClauses(0), "static.ast": staticClauses(0, 1, 2, 3, 4),
         "static.types": staticClauses(0), "static.dependency": staticClauses(0),
       }),
-      lawResult("LAW-CODE-PURITY-002-V1", {
-        "static.filesystem": staticClauses(0), "static.ast": staticClauses(0, 1, 2, 3, 4),
+      lawResult("LAW-CODE-PURITY-002-V2", {
+        "static.filesystem": staticClauses(0), "static.ast": staticClauses(0, 1, 2, 3, 4, 5),
         "static.dependency": staticClauses(0), "static.config": staticClauses(0),
         "static.json": staticClauses(0), "static.yaml": staticClauses(0),
       }),
-      lawResult("LAW-CODE-PURITY-003-V1", {
+      lawResult("LAW-CODE-PURITY-003-V2", {
         "static.filesystem": staticClauses(0), "static.ast": staticClauses(0),
         "static.dependency": staticClauses(0), "static.config": staticClauses(0), "static.json": staticClauses(0),
       }),
