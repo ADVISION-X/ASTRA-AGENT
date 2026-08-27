@@ -262,8 +262,13 @@ const proofRequests = (
   proofKind,
 }));
 const examRef = (selector: string): string => `exam:package.json#${encodeURIComponent(selector)}`;
-const dynamicRef = (locator: string, receipt: string, selector: string): string =>
-  `dynamic:${encodeURIComponent(locator)}#${encodeURIComponent(selector)}@${receipt}`;
+const dynamicRef = (
+  request: QualityProofRequest, locator: string, receipt: string, script: string,
+): string => `dynamic:${encodeURIComponent(locator)}#${encodeURIComponent([
+  `lawId=${request.lawId}`, `mode=${request.evidenceMode}`, `command=npm run ${script}`,
+  "case=fixture", `run=${request.proofRunId}`, `candidate=${request.candidate}`,
+  "timeoutMs=1", "observedValue=fixture",
+].join(";"))}@${receipt}`;
 const directObservation = (
   request: QualityProofRequest, clauses: string[], refs: string[],
 ): Record<string, unknown> => ({ ...request, clauses, passed: true, refs, findings: [] });
@@ -322,30 +327,96 @@ test("a Dynamic producer cannot self-authenticate an invented native object", ()
   const requests = proofRequests(routes, "dynamic");
   const marker = `${proofObservationPrefix}${JSON.stringify({
     ...directObservation(requests[0]!, ["forbidden:0", "summary"], [dynamicRef(
-      "/tmp/no-real-object", "a".repeat(64), "value=forged",
+      requests[0]!, "/tmp/no-real-object", "a".repeat(64), "proof:local-shell-current-runtime",
     )]),
   })}`;
   assert.throws(
-    () => bindNativeProofObservations(marker, routes, requests, "proof:local-shell-current-runtime", "dynamic"),
+    () => bindNativeProofObservations(
+      marker, routes, requests, "proof:local-shell-current-runtime", "dynamic", fixtureEvidenceDirectory,
+    ),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
   );
   const selfAuthenticatedUrl = `${proofObservationPrefix}${JSON.stringify({
     ...directObservation(requests[0]!, ["forbidden:0", "summary"], [dynamicRef(
-      "/tmp/self-authenticated-url", "a".repeat(64), "health=healthy",
+      requests[0]!, "/tmp/self-authenticated-url", "a".repeat(64), "proof:local-shell-current-runtime",
     )]),
   })}`;
   assert.throws(
-    () => bindNativeProofObservations(selfAuthenticatedUrl, routes, requests, "proof:local-shell-current-runtime", "dynamic"),
+    () => bindNativeProofObservations(
+      selfAuthenticatedUrl, routes, requests, "proof:local-shell-current-runtime", "dynamic", fixtureEvidenceDirectory,
+    ),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
   );
   const nativeFileMarker = `${proofObservationPrefix}${JSON.stringify({
     ...directObservation(requests[0]!, ["forbidden:0", "summary"], [dynamicRef(
-      fixtureEvidencePath, fixtureEvidenceDigest, "native health receipt observed",
+      requests[0]!, fixtureEvidencePath, fixtureEvidenceDigest, "proof:local-shell-current-runtime",
     )]),
   })}`;
   assert.equal(bindNativeProofObservations(
-    nativeFileMarker, routes, requests, "proof:local-shell-current-runtime", "dynamic",
+    nativeFileMarker, routes, requests, "proof:local-shell-current-runtime", "dynamic", fixtureEvidenceDirectory,
   ).size, 1);
+});
+
+test("Dynamic receipts must be exact regular files created in this proof run directory", () => {
+  const law = { ...fixtureLaw(), lawId: "LAW-LOCAL-APP-SHELL-001-V6", capabilityDomain: "local-app-shell" };
+  const routes = [{ law, mode: "dynamic.service" }];
+  const requests = proofRequests(routes, "dynamic");
+  const outsideDirectory = mkdtempSync(resolve(tmpdir(), "quality-outside-evidence-"));
+  const outsidePath = resolve(outsideDirectory, "receipt.json");
+  writeFileSync(outsidePath, readFileSync(fixtureEvidencePath));
+  const lineFor = (locator: string, receipt: string): string => `${proofObservationPrefix}${JSON.stringify({
+    ...directObservation(requests[0]!, ["forbidden:0", "summary"], [dynamicRef(
+      requests[0]!, locator, receipt, "proof:local-shell-current-runtime",
+    )]),
+  })}`;
+  assert.throws(
+    () => bindNativeProofObservations(lineFor(outsidePath, fixtureEvidenceDigest), routes, requests,
+      "proof:local-shell-current-runtime", "dynamic", fixtureEvidenceDirectory),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
+  );
+
+  const nestedDirectory = resolve(fixtureEvidenceDirectory, "recursive-hit");
+  mkdirSync(nestedDirectory);
+  writeFileSync(resolve(nestedDirectory, "receipt.txt"), fixtureEvidenceDigest);
+  assert.throws(
+    () => bindNativeProofObservations(lineFor(nestedDirectory, fixtureEvidenceDigest), routes, requests,
+      "proof:local-shell-current-runtime", "dynamic", fixtureEvidenceDirectory),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
+  );
+
+  const symlinkPath = resolve(fixtureEvidenceDirectory, "receipt-link.json");
+  symlinkSync(fixtureEvidencePath, symlinkPath);
+  assert.throws(
+    () => bindNativeProofObservations(lineFor(symlinkPath, fixtureEvidenceDigest), routes, requests,
+      "proof:local-shell-current-runtime", "dynamic", fixtureEvidenceDirectory),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
+  );
+});
+
+test("Dynamic routes cannot reuse one native receipt locator or emit summary-only clauses", () => {
+  const law = { ...fixtureLaw(), lawId: "LAW-LOCAL-APP-SHELL-001-V6", capabilityDomain: "local-app-shell" };
+  const routes = [{ law, mode: "dynamic.service" }, { law, mode: "dynamic.browser" }];
+  const requests = proofRequests(routes, "dynamic");
+  const output = requests.map((request) => `${proofObservationPrefix}${JSON.stringify({
+    ...directObservation(request, ["forbidden:0", "summary"], [dynamicRef(
+      request, fixtureEvidencePath, fixtureEvidenceDigest, "proof:local-shell-current-runtime",
+    )]),
+  })}`).join("\n");
+  assert.throws(
+    () => bindNativeProofObservations(output, routes, requests, "proof:local-shell-current-runtime",
+      "dynamic", fixtureEvidenceDirectory),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_DUPLICATE",
+  );
+  const summaryOnly = `${proofObservationPrefix}${JSON.stringify({
+    ...directObservation(requests[0]!, ["summary"], [dynamicRef(
+      requests[0]!, fixtureEvidencePath, fixtureEvidenceDigest, "proof:local-shell-current-runtime",
+    )]),
+  })}`;
+  assert.throws(
+    () => bindNativeProofObservations(summaryOnly, [routes[0]!], [requests[0]!],
+      "proof:local-shell-current-runtime", "dynamic", fixtureEvidenceDirectory),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
+  );
 });
 
 test("static validation rejects a law with no owner result", () => {
@@ -846,14 +917,26 @@ test("every declared dynamic evidence mode has one executable RELEASE proof rout
   }
 });
 
-test("recovery Dynamic Proof consumes one real governed receipt", () => {
+test("production Dynamic Proof directly observes real Chrome, runtime stores, provider and recovery", () => {
   const proof = readFileSync("scripts/acceptance/agent-production-runtime.real-proof.ts", "utf8");
   assert.equal(proof.includes("proofDurationMs"), false);
   assert.equal(proof.includes('evidenceMode: "dynamic.performance"'), false);
+  for (const forbidden of [
+    "GRASSEYE_GPT_DYNAMIC_PROOF_PATH", "agent-production-runtime-gpt-dynamic-proof.v1",
+    "same_job_id", "zero_replayed_mutations", "checkpoint_before_hash", "candidate_hash",
+  ]) assert.equal(proof.includes(forbidden), false, forbidden);
   for (const token of [
-    "GRASSEYE_GPT_DYNAMIC_PROOF_PATH", "same_job_id", "zero_replayed_mutations",
-    "checkpoint_before_hash", "checkpoint_after_hash", "candidate_hash",
+    "chromium.launchPersistentContext", "readProductionTaskStatus", "production-runtime.sqlite",
+    "browser-mutations.sqlite", "GOVERNANCE_PROOF_RECEIPT_DIR", "GRASSEYE_PRODUCTION_PROOF_JOB_IDS",
+    "agentPluginCapabilityManifest", "BROWSER_ACTION_COMPLETED", "recovery_pending",
+    "target=claimed", "target=absent", "gpt-child-proof:", "sent provider terminal receipt",
   ]) assert.ok(proof.includes(token), token);
+  assert.equal(existsSync("scripts/acceptance/local-browser.real-chrome.ts"), false);
+  assert.equal(existsSync("scripts/acceptance/local-browser-real-chrome-auto-pairing.acceptance.ts"), false);
+  assert.equal(dynamicScriptFor("local-browser-session", "dynamic.browser"),
+    "acceptance:agent-production-runtime:real-proof");
+  assert.equal(dynamicScriptFor("local-browser-session", "dynamic.storage"),
+    "acceptance:agent-production-runtime:real-proof");
 });
 
 test("Shell browser and service Dynamic Proof share one current-run runtime route", () => {

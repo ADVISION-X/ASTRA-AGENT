@@ -37,6 +37,7 @@ const MEDIATOR_PATH = "src/mediator/agent-production-route.ts";
 const PSC_PATH = "src/capabilities/gpt/session/gpt-session-controller.ts";
 const LOCALIZATION_PLUGIN_PATH = "src/plugins/localization-production/index.ts";
 const LOCALIZATION_SKILL_PATH = "src/plugins/localization-production/SKILL.md";
+const REAL_PROOF_PATH = "scripts/acceptance/agent-production-runtime.real-proof.ts";
 const forbiddenDeterministicProducts = [
   "bazi_basic_chart",
   "bazi_pdf_export",
@@ -333,6 +334,28 @@ const inspectRetirementAndDurability = (context: InspectorContext, findings: Ins
     if (!localizationSkillText.includes(required)) findings.push(finding(
       "agent-production-runtime/localization-skill-boundary", LOCALIZATION_SKILL_PATH,
       `Localization Product Skill is missing its required ${required} boundary.`,
+    ));
+  }
+
+  const realProofText = read(context, REAL_PROOF_PATH);
+  for (const required of [
+    "chromium.launchPersistentContext", "readProductionTaskStatus", "production-runtime.sqlite",
+    "browser-mutations.sqlite", "GOVERNANCE_PROOF_RECEIPT_DIR", "GRASSEYE_PRODUCTION_PROOF_JOB_IDS",
+    "agentPluginCapabilityManifest", "BROWSER_ACTION_COMPLETED", "recovery_pending", "target=claimed",
+    "target=absent", "gpt-child-proof:", "sent provider terminal receipt",
+  ]) {
+    if (!realProofText.includes(required)) findings.push(finding(
+      "agent-production-runtime/direct-dynamic-proof", REAL_PROOF_PATH,
+      `The RELEASE producer is missing direct real-runtime observation ${required}.`,
+    ));
+  }
+  for (const forbidden of [
+    "GRASSEYE_GPT_DYNAMIC_PROOF_PATH", "agent-production-runtime-gpt-dynamic-proof.v1",
+    "candidate_hash", "same_job_id", "zero_replayed_mutations",
+  ]) {
+    if (realProofText.includes(forbidden)) findings.push(finding(
+      "agent-production-runtime/self-asserted-dynamic-proof-forbidden", REAL_PROOF_PATH,
+      `The RELEASE producer still accepts self-asserted proof token ${forbidden}.`,
     ));
   }
 };

@@ -198,7 +198,8 @@
       ],
       "manifestPath": "scripts/audit/domains/local-browser-session/manifest.json",
       "observedPaths": [
-        "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md"
+        "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md",
+        "scripts/acceptance/agent-production-runtime.real-proof.ts"
       ],
       "ownedPaths": [
         "artifacts/browser-release/**",
@@ -209,10 +210,8 @@
         "scripts/acceptance/local-browser-artifact-and-lock.acceptance-support.ts",
         "scripts/acceptance/local-browser-auto-pairing.acceptance.ts",
         "scripts/acceptance/local-browser-property-model.acceptance.ts",
-        "scripts/acceptance/local-browser-real-chrome-auto-pairing.acceptance.ts",
         "scripts/acceptance/local-browser-rule-mutants.acceptance.ts",
         "scripts/acceptance/local-browser-terminal-contract.acceptance.ts",
-        "scripts/acceptance/local-browser.real-chrome.ts",
         "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
         "scripts/audit/domains/local-browser-session/**",
         "src/lib/browser/**"

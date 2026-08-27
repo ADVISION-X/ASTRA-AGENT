@@ -40,7 +40,6 @@ export const sourcePaths = [
   "src/app/workbench-browser-websocket-upgrade.ts",
   "src/lib/browser/chrome-extension/extension-heartbeat.ts",
   "src/lib/browser/chrome-extension/pairing-completion-gate.ts",
-  "scripts/acceptance/local-browser.real-chrome.ts",
 ] as const;
 
 export const retiredPaths = [

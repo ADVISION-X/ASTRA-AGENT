@@ -1,3 +1,7 @@
+import { createHash } from "node:crypto";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+
 export type QualityProofObservation = Readonly<{
   lawId: string;
   evidenceMode: string;
@@ -68,6 +72,19 @@ const contextForEmission = (): EmissionContext => ({
   timeoutMs: Number(process.env.GOVERNANCE_PROOF_TIMEOUT_MS ?? ""),
 });
 
+const nativeReceiptValid = (locator: string, receipt: string | undefined): boolean => {
+  const configuredRoot = process.env.GOVERNANCE_PROOF_RECEIPT_DIR?.trim();
+  if (!configuredRoot || !receipt) return false;
+  const root = resolve(configuredRoot);
+  const file = resolve(locator);
+  if (file !== locator || dirname(file) !== root || !existsSync(root) || !existsSync(file)) return false;
+  const rootStat = lstatSync(root);
+  const fileStat = lstatSync(file);
+  return rootStat.isDirectory() && !rootStat.isSymbolicLink()
+    && fileStat.isFile() && !fileStat.isSymbolicLink() && fileStat.size <= 16 * 1024 * 1024
+    && createHash("sha256").update(readFileSync(file)).digest("hex") === receipt;
+};
+
 const observationValid = (
   observation: Partial<QualityProofObservation>, context: ProofContext, dynamic: boolean,
 ): boolean => observation.lawId?.startsWith("LAW-") === true
@@ -95,6 +112,7 @@ export const emitQualityProofObservation = (observation: QualityProofObservation
   const dynamic = observation.evidenceMode.startsWith("dynamic.");
   if (!locatorValid(dynamic, observation.locator) || !observation.observedValue.trim()
     || !receiptValid(dynamic, observation.receipt) || !context.script
+    || (dynamic && !nativeReceiptValid(observation.locator, observation.receipt))
     || !Number.isSafeInteger(context.timeoutMs) || context.timeoutMs < 1) {
     throw new Error("QUALITY_PROOF_OBSERVATION_INVALID");
   }

@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 
@@ -285,46 +285,35 @@ const proofRequestIndex = (
   return { expected, byRoute };
 };
 
-const locatorFilePath = (locator: string): string | null => {
-  const candidate = locator.split("#", 1)[0]!;
-  return candidate.startsWith("/") ? candidate : null;
-};
-
-const objectContainsReceipt = (objectPath: string, receipt: string): boolean => {
-  if (!existsSync(objectPath)) return false;
-  const pending = [objectPath];
-  let inspected = 0;
-  while (pending.length > 0 && inspected < 4096) {
-    const current = pending.pop()!;
-    const stat = lstatSync(current);
-    if (stat.isSymbolicLink()) return false;
-    if (stat.isDirectory()) {
-      pending.push(...readdirSync(current).map((entry) => resolve(current, entry)));
-      continue;
-    }
-    if (!stat.isFile()) continue;
-    inspected += 1;
-    if (stat.size <= 16 * 1024 * 1024) {
-      const bytes = readFileSync(current);
-      if (sha(bytes) === receipt || bytes.toString("utf8").includes(receipt)) return true;
-    }
-  }
-  return false;
+const nativeReceiptMatches = (locator: string, receipt: string, nativeReceiptDirectory: string): boolean => {
+  const filePath = resolve(locator);
+  const receiptRoot = resolve(nativeReceiptDirectory);
+  if (filePath !== locator || dirname(filePath) !== receiptRoot || !existsSync(filePath) || !existsSync(receiptRoot)) return false;
+  const rootStat = lstatSync(receiptRoot);
+  const fileStat = lstatSync(filePath);
+  return rootStat.isDirectory() && !rootStat.isSymbolicLink()
+    && fileStat.isFile() && !fileStat.isSymbolicLink() && fileStat.size <= 16 * 1024 * 1024
+    && sha(readFileSync(filePath)) === receipt;
 };
 
 const observationAuthenticatesRequest = (
   observation: QualityProofObservation, request: QualityProofRequest, kind: "exam" | "dynamic",
+  nativeReceiptDirectory: string | null, script: string,
 ): boolean => {
   if (observation.proofRunId !== request.proofRunId || observation.candidate !== request.candidate
     || observation.proofKind !== request.proofKind || observation.proofKind !== kind) return false;
-  if (kind === "exam") return true;
+  if (kind === "exam") return nativeReceiptDirectory === null;
+  if (nativeReceiptDirectory === null || observation.refs.length !== 1) return false;
   return observation.refs.every((reference) => {
-    const match = /^dynamic:([^#@]+)#[^#@]+@([a-f0-9]{64})$/u.exec(reference);
+    const match = /^dynamic:([^#@]+)#([^#@]+)@([a-f0-9]{64})$/u.exec(reference);
     if (!match) return false;
     let locator: string;
-    try { locator = decodeURIComponent(match[1]!); } catch { return false; }
-    const filePath = locatorFilePath(locator);
-    return filePath !== null && objectContainsReceipt(filePath, match[2]!);
+    let selector: string;
+    try { locator = decodeURIComponent(match[1]!); selector = decodeURIComponent(match[2]!); } catch { return false; }
+    const identity = `lawId=${request.lawId};mode=${request.evidenceMode};command=npm run ${script};`;
+    const execution = `;run=${request.proofRunId};candidate=${request.candidate};`;
+    return selector.startsWith(identity) && selector.includes(execution)
+      && nativeReceiptMatches(locator, match[3]!, nativeReceiptDirectory);
   });
 };
 
@@ -334,19 +323,29 @@ export const bindNativeProofObservations = (
   requests: readonly QualityProofRequest[],
   script: string,
   kind: "exam" | "dynamic",
+  nativeReceiptDirectory: string | null = null,
 ): Map<string, QualityProofObservation> => {
   const index = proofRequestIndex(routes, requests);
   const bound = new Map<string, QualityProofObservation>();
   let observations: QualityProofObservation[];
   try { observations = parseQualityProofObservations(stdout); }
   catch { return fail("LAW_EVIDENCE_MISSING", "invalid native proof observation"); }
+  const dynamicLocators = new Set<string>();
   for (const observation of observations) {
     const key = `${observation.lawId}\0${observation.evidenceMode}`;
     if (!index.expected.has(key)) fail("LAW_EVIDENCE_UNEXPECTED", key.replace("\0", ":"));
     if (bound.has(key)) fail("LAW_EVIDENCE_DUPLICATE", key.replace("\0", ":"));
     const request = index.byRoute.get(key)!;
-    if (!observationAuthenticatesRequest(observation, request, kind)) {
+    if (!observationAuthenticatesRequest(observation, request, kind, nativeReceiptDirectory, script)) {
       fail("LAW_EVIDENCE_MISSING", `native-receipt-binding:${key.replace("\0", ":")}`);
+    }
+    if (kind === "dynamic") {
+      const locator = /^dynamic:([^#@]+)#/u.exec(observation.refs[0]!)?.[1];
+      if (!locator) return fail("LAW_EVIDENCE_MISSING", `native-receipt-locator:${key.replace("\0", ":")}`);
+      let decoded: string;
+      try { decoded = decodeURIComponent(locator); } catch { return fail("LAW_EVIDENCE_MISSING", "native-receipt-locator"); }
+      if (dynamicLocators.has(decoded)) fail("LAW_EVIDENCE_DUPLICATE", `native-receipt-locator:${decoded}`);
+      dynamicLocators.add(decoded);
     }
     bound.set(key, observation);
   }
@@ -363,7 +362,7 @@ const executeProofCommand = (
     lawId: law.lawId, evidenceMode: mode, proofRunId, candidate, proofKind: kind,
   }));
   assertCleanCandidate(candidate, `${script}:before`);
-  const timeoutMs = kind === "exam" ? 300_000 : 900_000;
+  const timeoutMs = kind === "exam" ? 300_000 : 7_200_000;
   const token = sha(`${kind}:${script}`).slice(0, 12);
   const nativeReceiptDirectory = resolve(runDirectory, `${kind}-${token}-native-receipts`);
   mkdirSync(nativeReceiptDirectory, { recursive: false, mode: 0o700 });
@@ -387,7 +386,10 @@ const executeProofCommand = (
   const stderrPath = resolve(runDirectory, `${kind}-${token}.stderr.txt`);
   writeFileSync(stdoutPath, execution.stdout ?? "", { mode: 0o600 });
   writeFileSync(stderrPath, execution.stderr ?? "", { mode: 0o600 });
-  const observations = bindNativeProofObservations(execution.stdout ?? "", routes, requests, script, kind);
+  const observations = bindNativeProofObservations(
+    execution.stdout ?? "", routes, requests, script, kind,
+    kind === "dynamic" ? nativeReceiptDirectory : null,
+  );
   const executionPassed = execution.status === 0 && execution.signal === null;
   if (!executionPassed || observations.size !== routes.length) process.stderr.write(execution.stderr || execution.stdout || `${script} failed\n`);
   if (!executionPassed) fail("CHECK_EXECUTION_FAILED", script);

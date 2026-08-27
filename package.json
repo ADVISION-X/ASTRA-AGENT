@@ -14,7 +14,6 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "acceptance:local-browser-terminal": "node --import tsx scripts/acceptance/local-browser-terminal-contract.acceptance.ts && node --import tsx scripts/acceptance/local-browser-property-model.acceptance.ts && node --import tsx scripts/acceptance/local-browser-rule-mutants.acceptance.ts && node --import tsx scripts/acceptance/local-runtime-browser-authority.acceptance.ts && node --import tsx scripts/acceptance/local-browser-auto-pairing.acceptance.ts",
-    "acceptance:local-browser-real-chrome": "node --import tsx scripts/acceptance/local-browser-real-chrome-auto-pairing.acceptance.ts && node --import tsx scripts/acceptance/local-browser.real-chrome.ts",
     "acceptance:local-browser-release-identity": "node --import tsx scripts/acceptance/browser-extension-release-identity.acceptance.ts",
     "acceptance:browser-extension-build": "node --import tsx scripts/acceptance/browser-extension-build.acceptance.ts",
     "acceptance:gpt": "node --import tsx scripts/acceptance/gpt-exact-target.acceptance.ts",

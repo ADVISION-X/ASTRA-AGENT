@@ -39,8 +39,8 @@ const dynamicScripts: Readonly<Record<string, Readonly<Partial<Record<string, st
     "dynamic.service": "proof:local-shell-current-runtime",
   },
   "local-browser-session": {
-    "dynamic.browser": "acceptance:local-browser-real-chrome",
-    "dynamic.storage": "acceptance:local-browser-real-chrome",
+    "dynamic.browser": "acceptance:agent-production-runtime:real-proof",
+    "dynamic.storage": "acceptance:agent-production-runtime:real-proof",
   },
   "startup-entrypoint": { "dynamic.service": "proof:local-shell-current-runtime" },
   "agent-production-runtime": {
