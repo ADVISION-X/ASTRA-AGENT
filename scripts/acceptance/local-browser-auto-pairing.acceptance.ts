@@ -11,7 +11,7 @@ import {
 } from "../../src/lib/browser/chrome-extension/pairing-auto-bootstrap.js";
 import { ExtensionTargetAuthority } from "../../src/lib/browser/chrome-extension/extension-target-authority.js";
 import type { ExtensionChromeApi } from "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
-import { GPT_WEB_CHAT_START_URL, requireGptWebChatPolicyForUrl } from "../../src/lib/browser/exact-target/browser-site-policy-registry.js";
+import { GPT_WEB_START_URL, requireGptWebPolicyForUrl } from "../../src/lib/browser/exact-target/browser-site-policy-registry.js";
 import { BrowserAuthorityBroker } from "../../src/lib/browser/infrastructure/browser-authority-broker.js";
 import { BrowserAuthorityIssuer } from "../../src/lib/browser/infrastructure/browser-authority-issuer.js";
 
@@ -19,10 +19,10 @@ const secret = "a".repeat(64);
 const currentBuild = "build-00000000-0000-4000-8000-000000000001";
 const nextBuild = "build-00000000-0000-4000-8000-000000000002";
 
-assert.equal(GPT_WEB_CHAT_START_URL, "https://chatgpt.com/");
-assert.equal(requireGptWebChatPolicyForUrl("https://chatgpt.com/c/exact").siteId, "gpt-web-chat");
+assert.equal(GPT_WEB_START_URL, "https://chatgpt.com/");
+assert.equal(requireGptWebPolicyForUrl("https://chatgpt.com/c/exact").siteId, "gpt-web");
 for (const rejectedUrl of ["https://www.amazon.com/", "https://evil.chatgpt.com/", "http://chatgpt.com/"]) {
-  assert.throws(() => requireGptWebChatPolicyForUrl(rejectedUrl), /BROWSER_ORIGIN_REJECTED/u,
+  assert.throws(() => requireGptWebPolicyForUrl(rejectedUrl), /BROWSER_ORIGIN_REJECTED/u,
     `job-bound target policy must reject ${rejectedUrl}`);
 }
 

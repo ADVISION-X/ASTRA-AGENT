@@ -6,7 +6,7 @@ import { handleWorkbenchApiBoundary, type WorkbenchApiBoundaryDecision } from ".
 import { readRequestBuffer, writeCorsPreflight, writeJson } from "./workbench-http.js";
 import { renderWorkbenchHomePage } from "./workbench-home-page.js";
 import { readMultipartFormData } from "./workbench-multipart.js";
-import { handleXuanxueAiProductionRequest } from "./workbench-xuanxue-ai-production-routes.js";
+import { handleProductionRuntimeRequest } from "./workbench-production-runtime-routes.js";
 import { upgradeWorkbenchBrowserAuthoritySocket } from "./workbench-browser-websocket-upgrade.js";
 
 const HOME_PAGE_PATHS = new Set(["/", "/index.html"]);
@@ -151,7 +151,7 @@ const handleKnownWorkbenchApiRequest = async (input: {
   if (await handleWorkbenchMetaRequest(input)) {
     return true;
   }
-  if (await handleXuanxueAiProductionRequest(
+  if (await handleProductionRuntimeRequest(
     input.request,
     input.response,
     input.workbench,

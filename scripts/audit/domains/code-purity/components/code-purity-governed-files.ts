@@ -21,7 +21,6 @@ export type GovernedFile = {
 const excludedCodePurityPaths = [
   "scripts/acceptance/fixtures/",
   "scripts/audit/generated/",
-  "src/plugins/xuanxue-ai-production/generated/",
 ] as const;
 
 const isCodePurityGovernedPath = (repoPath: string): boolean =>

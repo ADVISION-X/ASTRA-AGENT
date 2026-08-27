@@ -269,14 +269,14 @@ const directObservation = (
 ): Record<string, unknown> => ({ ...request, clauses, passed: true, refs, findings: [] });
 
 test("a fixed or unauthenticated stdout marker cannot mint evidence for unexecuted law routes", () => {
-  const first = { ...fixtureLaw(), lawId: "LAW-AI-INPUT-GATEWAY-001-V1", capabilityDomain: "ai-input-gateway" };
+  const first = { ...fixtureLaw(), lawId: "LAW-GPT-001-V1", capabilityDomain: "gpt" };
   const routes = [{ law: first, mode: "exam.golden" }];
   const requests = proofRequests(routes);
-  const script = "acceptance:ai-input-gateway";
+  const script = "acceptance:gpt";
   assert.equal(bindNativeProofObservations("FIXED_PASS\n", routes, requests, script, "exam").size, 0);
   const oneNativeObservation = `${proofObservationPrefix}${JSON.stringify({
     ...directObservation(requests[0]!, ["forbidden:0", "summary"], [examRef(
-      "lawId=LAW-AI-INPUT-GATEWAY-001-V1;mode=exam.golden;case=provider-boundary",
+      "lawId=LAW-GPT-001-V1;mode=exam.golden;case=provider-boundary",
     )]),
   })}\n`;
   assert.equal(bindNativeProofObservations(oneNativeObservation, routes, requests, script, "exam").size, 1);
@@ -298,26 +298,26 @@ test("a fixed or unauthenticated stdout marker cannot mint evidence for unexecut
 });
 
 test("native proof observations reject one locator reused across law routes", () => {
-  const law = { ...fixtureLaw(), lawId: "LAW-AI-INPUT-GATEWAY-002-V3", capabilityDomain: "ai-input-gateway" };
+  const law = { ...fixtureLaw(), lawId: "LAW-GPT-001-V1", capabilityDomain: "gpt" };
   const routes = [{ law, mode: "exam.golden" }];
   const requests = proofRequests(routes);
   const line = `${proofObservationPrefix}${JSON.stringify({
     ...directObservation(requests[0]!, ["forbidden:0", "summary"], [examRef(
-      "lawId=LAW-AI-INPUT-GATEWAY-002-V3;mode=exam.golden;case=exact-target",
+      "lawId=LAW-GPT-001-V1;mode=exam.golden;case=exact-target",
     )]),
   })}`;
   assert.throws(
-    () => bindNativeProofObservations(`${line}\n${line}`, routes, requests, "acceptance:ai-input-gateway", "exam"),
+    () => bindNativeProofObservations(`${line}\n${line}`, routes, requests, "acceptance:gpt", "exam"),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_DUPLICATE",
   );
   assert.throws(
-    () => bindNativeProofObservations(`${proofObservationPrefix}{not-json}`, routes, requests, "acceptance:ai-input-gateway", "exam"),
+    () => bindNativeProofObservations(`${proofObservationPrefix}{not-json}`, routes, requests, "acceptance:gpt", "exam"),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
   );
 });
 
 test("a Dynamic producer cannot self-authenticate an invented native object", () => {
-  const law = { ...fixtureLaw(), lawId: "LAW-LOCAL-APP-SHELL-001-V5", capabilityDomain: "local-app-shell" };
+  const law = { ...fixtureLaw(), lawId: "LAW-LOCAL-APP-SHELL-001-V6", capabilityDomain: "local-app-shell" };
   const routes = [{ law, mode: "dynamic.service" }];
   const requests = proofRequests(routes, "dynamic");
   const marker = `${proofObservationPrefix}${JSON.stringify({
@@ -847,14 +847,13 @@ test("every declared dynamic evidence mode has one executable RELEASE proof rout
 });
 
 test("recovery Dynamic Proof consumes one real governed receipt", () => {
-  const provider = readFileSync("scripts/acceptance/xuanxue-ai-production.real-provider.ts", "utf8");
-  assert.equal(provider.includes("proofDurationMs"), false);
-  assert.equal(provider.includes('evidenceMode: "dynamic.performance"'), false);
-  assert.equal(provider.includes('evidenceMode: "dynamic.recovery"'), false);
-  const recovery = readFileSync("scripts/acceptance/xuanxue-ai-production.recovery-proof.ts", "utf8");
-  for (const token of ["original_order_id", "resumed_order_id", "replacement_job_id", "checkpoint_before_hash", "checkpoint_after_hash"]) {
-    assert.ok(recovery.includes(token), token);
-  }
+  const proof = readFileSync("scripts/acceptance/agent-production-runtime.real-proof.ts", "utf8");
+  assert.equal(proof.includes("proofDurationMs"), false);
+  assert.equal(proof.includes('evidenceMode: "dynamic.performance"'), false);
+  for (const token of [
+    "GRASSEYE_GPT_DYNAMIC_PROOF_PATH", "same_job_id", "zero_replayed_mutations",
+    "checkpoint_before_hash", "checkpoint_after_hash", "candidate_hash",
+  ]) assert.ok(proof.includes(token), token);
 });
 
 test("Shell browser and service Dynamic Proof share one current-run runtime route", () => {

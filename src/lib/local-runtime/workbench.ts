@@ -1,5 +1,3 @@
-import { runXuanxueAiProductionRoute } from "../../mediator/xuanxue-ai-production-route.js";
-import { createXuanxueAiProductionWorkbenchOwner } from "../../plugins/xuanxue-ai-production/index.js";
 import type { GrassEyeWorkbenchOptions } from "./contract.js";
 import { getDefaultPhase04LocalDataDir } from "./default-data-dir.js";
 import { buildApiBoundaryLogHandle } from "./workbench-api-boundary-log.js";
@@ -19,13 +17,14 @@ import type {
   WorkbenchMissionReadinessReport,
   WorkbenchPreflightResult,
 } from "./workbench-status-types.js";
-import { buildXuanxueAiProductionHandle } from "./workbench-xuanxue-ai-production-handle.js";
+import { buildProductionRuntimeHandle } from "./workbench-production-runtime-handle.js";
+import { startProductionRuntime, type ProductionRuntimeHandle } from "./production/runtime.js";
 
 const buildWorkbenchHandle = (
   assembly: WorkbenchAssembly,
   init: () => Promise<void>,
   shutdown: () => Promise<void>,
-  xuanxueAiProduction: ReturnType<typeof createXuanxueAiProductionWorkbenchOwner>,
+  productionRuntime: ProductionRuntimeHandle,
   getInitializationState: () => WorkbenchInitializationState,
 ): GrassEyeWorkbenchHandle => {
   const dataDir = assembly.dataDir;
@@ -36,7 +35,7 @@ const buildWorkbenchHandle = (
     getHealthReport: async () => getHealthReport(
       assembly,
       getInitializationState(),
-      xuanxueAiProduction.readProductionHealth(),
+      productionRuntime.readHealth(),
     ),
     getMissionReadinessReport: async () => getMissionReadinessReport(assembly, assembly.options),
     getMissionStartPreflight: async (input) =>
@@ -50,7 +49,7 @@ const buildWorkbenchHandle = (
     }),
     getModeInfo: () => getModeInfo(assembly.options),
     ...buildSettingsHandle(dataDir),
-    ...buildXuanxueAiProductionHandle(xuanxueAiProduction),
+    ...buildProductionRuntimeHandle(productionRuntime),
   };
 };
 
@@ -72,7 +71,7 @@ const requireSourceCandidateHash = (): `sha256:${string}` => {
 
 export class GrassEyeWorkbench {
   private assembly: WorkbenchAssembly | null = null;
-  private xuanxueAiProduction: ReturnType<typeof createXuanxueAiProductionWorkbenchOwner> | null = null;
+  private productionRuntime: ProductionRuntimeHandle | null = null;
   private activeHandle: GrassEyeWorkbenchHandle | null = null;
   private initializationPromise: Promise<void> | null = null;
   private initializationState: WorkbenchInitializationState = {
@@ -100,24 +99,22 @@ export class GrassEyeWorkbench {
         this.assembly = await createWorkbenchAssembly(this.options);
       }
       const assembly = this.assembly;
-      if (!this.xuanxueAiProduction) {
-        this.xuanxueAiProduction = createXuanxueAiProductionWorkbenchOwner(
-          assembly.dataDir,
-          assembly.aiInputGateway,
-          runXuanxueAiProductionRoute,
-          assembly.browserAuthority,
-          requireSourceCandidateHash(),
-        );
+      if (!this.productionRuntime) {
+        this.productionRuntime = await startProductionRuntime({
+          dataDir: assembly.dataDir,
+          gpt: assembly.gptAbilityGroup,
+          browserAuthority: assembly.browserAuthority,
+          sourceHash: requireSourceCandidateHash(),
+        });
       }
-      const xuanxueAiProduction = this.xuanxueAiProduction;
+      const productionRuntime = this.productionRuntime;
       this.activeHandle = buildWorkbenchHandle(
         assembly,
         () => this.init(),
         () => this.shutdown(),
-        xuanxueAiProduction,
+        productionRuntime,
         () => this.initializationState,
       );
-      await xuanxueAiProduction.init();
       this.initializationState = { status: "ready", failureReason: null };
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
@@ -130,12 +127,12 @@ export class GrassEyeWorkbench {
   }
 
   async shutdown(): Promise<void> {
-    const xuanxue = this.xuanxueAiProduction;
+    const productionRuntime = this.productionRuntime;
     const assembly = this.assembly;
     this.activeHandle = null;
-    this.xuanxueAiProduction = null;
+    this.productionRuntime = null;
     this.assembly = null;
-    await xuanxue?.shutdown().catch(() => undefined);
+    await productionRuntime?.close().catch(() => undefined);
     await assembly?.browserAuthority.shutdown().catch(() => undefined);
   }
 
@@ -200,7 +197,7 @@ export class GrassEyeWorkbench {
       return getHealthReport(
         this.assembly,
         this.initializationState,
-        this.xuanxueAiProduction?.readProductionHealth() ?? null,
+        this.productionRuntime?.readHealth() ?? null,
       );
     }
     const disposition = runtimeInitializationDisposition(this.initializationState.failureReason);

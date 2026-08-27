@@ -23,14 +23,14 @@ assert.ok(inspect("src/leak.ts", "export const leak = (sessionToken: string) => 
   .some((finding) => finding.checkId === "system-security/sensitive-console-flow"));
 assert.ok(inspect("src/forgery.ts", "export const load = async (response: Response) => await response.json() as { ok: true };")
   .some((finding) => finding.checkId === "system-security/external-response-type-forgery"));
-assert.ok(inspect("src/plugins/xuanxue-ai-production/cloud-contract.ts", "export type CloudOrder = { selector: string };")
+assert.ok(inspect("src/lib/local-runtime/production/cloud-contract.ts", "export type CloudOrder = { selector: string };")
   .some((finding) => finding.checkId === "system-security/cloud-browser-control-field"));
-assert.ok(inspect("src/lib/browser/chrome-extension/actor.ts", "import { credential } from '../../../plugins/xuanxue-ai-production/cloud-credential.js'; export { credential };")
+assert.ok(inspect("src/lib/browser/chrome-extension/actor.ts", "import { credential } from '../../local-runtime/production/credential.js'; export { credential };")
   .some((finding) => finding.checkId === "system-security/extension-owner-bypass"));
-assert.ok(inspect("src/plugins/xuanxue-ai-production/cloud-client.ts", "export const run = () => { try { throw new Error('blocked'); } catch { return true; } };")
+assert.ok(inspect("src/lib/local-runtime/production/cloud-client.ts", "export const run = () => { try { throw new Error('blocked'); } catch { return true; } };")
   .some((finding) => finding.checkId === "system-security/unsafe-catch-fallback"));
 assert.ok(inspect("src/final-action.ts", "export const decide = (aiResponse: string) => publish(aiResponse);")
   .some((finding) => finding.checkId === "system-security/ai-irreversible-final-action"));
 
 console.log("system-security-acceptance-ok");
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-SYSTEM-SECURITY-001-V2", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","summary"], locator: "acceptance:system-security:attack-mutants", observedValue: "sensitive-flow type-forgery cloud-control extension-owner-bypass AI-final-action and unsafe-fallback mutants rejected" });
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-SYSTEM-SECURITY-001-V3", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","summary"], locator: "acceptance:system-security:attack-mutants", observedValue: "sensitive-flow type-forgery cloud-control extension-owner-bypass AI-final-action and unsafe-fallback mutants rejected" });

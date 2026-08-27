@@ -1,4 +1,4 @@
-import type { RuntimeActionEvent, StructuredRuntimeEvent } from "../../types/structured-log.js";
+import type { RuntimeActionEvent, StructuredRuntimeEvent } from "../runtime-logs/structured-log-contract.js";
 
 export type StructuredLogEntry =
   | { kind: "event"; entry: StructuredRuntimeEvent }

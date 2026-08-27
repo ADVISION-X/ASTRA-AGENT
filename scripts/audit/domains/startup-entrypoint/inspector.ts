@@ -161,7 +161,7 @@ const inspectLocalLaunchAuthority = (
     addFinding(findings, lawId, launchPath, "The sole local Shell must default to port 4173.");
   }
   const forbiddenStartupCalls = new Set([
-    "enrollXuanxueAiProductionCloudDevice", "registerOperatorTargetClaim", "acquireJobBoundTargetLease",
+    "enrollProductionRuntimeCloudDevice", "registerOperatorTargetClaim", "acquireJobBoundTargetLease",
     "createSyntheticJob", "claimJob", "runFullQuality", "buildBrowserExtension", "reloadExtension",
     "getTargets", "acquireJobBoundChatGptTarget",
   ]);

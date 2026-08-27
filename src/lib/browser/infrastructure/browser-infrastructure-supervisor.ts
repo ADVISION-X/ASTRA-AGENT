@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { BrowserCommandActor } from "../exact-target/browser-command-actor.js";
 import { BrowserMutationStore } from "../exact-target/browser-mutation-store.js";
-import { requireGptWebChatPolicyForUrl } from "../exact-target/browser-site-policy-registry.js";
+import { requireGptWebPolicyForUrl } from "../exact-target/browser-site-policy-registry.js";
 import { BrowserTargetLeaseManager, type BrowserExactTargetAcquisition } from "../exact-target/browser-target-lease-manager.js";
 import { BrowserCommandAdmissionBudget } from "../transport/browser-command-admission-budget.js";
 import {
@@ -99,7 +99,7 @@ export class BrowserInfrastructureSupervisor {
         resolveCurrentTarget,
       ),
       new BrowserArtifactRegistry(
-        join(options.dataDir, "runtime-data", "ai-input-gateway", "upload-attempts"),
+        join(options.dataDir, "runtime-data", "gpt", "upload-attempts"),
       ),
     );
   }
@@ -134,7 +134,7 @@ export class BrowserInfrastructureSupervisor {
   }
 
   private onTargetClaim(input: BrowserAuthorityTargetClaim): void {
-    requireGptWebChatPolicyForUrl(input.url);
+    requireGptWebPolicyForUrl(input.url);
     const initialClaim = this.broker.currentOperatorTargetStatus() === "absent";
     if (initialClaim && !this.pendingJobBoundTargetAcquisition) {
       throw new Error("BROWSER_TARGET_INVALID");

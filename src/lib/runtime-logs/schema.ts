@@ -1,14 +1,14 @@
 import type { RuntimeLogEventType } from "./event-types.js";
 
 export type RuntimeLogOwner =
-  | "ai-input-gateway"
+  | "gpt"
   | "forensics-persistence"
   | "runtime-logs"
   | "app-shell"
   | "browser-session"
   | "local-runtime"
   | "startup-entrypoint"
-  | "xuanxue-ai-production"
+  | "production-runtime"
   | "unknown";
 
 export type RuntimeLogLevel = "debug" | "info" | "warn" | "error";

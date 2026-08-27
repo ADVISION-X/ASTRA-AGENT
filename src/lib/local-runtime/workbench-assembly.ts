@@ -16,7 +16,7 @@ import {
   createWorkbenchBrowserAuthority,
   type WorkbenchBrowserAuthority,
 } from "./workbench-browser-authority-support.js";
-import { createWorkbenchAiInputGateway } from "./workbench-ai-gateway-support.js";
+import { createWorkbenchGptAbilityGroup } from "./workbench-gpt-support.js";
 import { createWorkbenchEvidenceStore } from "./workbench-evidence-support.js";
 
 export type WorkbenchAssembly = {
@@ -25,7 +25,7 @@ export type WorkbenchAssembly = {
   structuredLogBus: StructuredLogBus;
   browserAuthority: WorkbenchBrowserAuthority;
   evidenceStore: ReturnType<typeof createWorkbenchEvidenceStore>;
-  aiInputGateway: ReturnType<typeof createWorkbenchAiInputGateway>;
+  gptAbilityGroup: ReturnType<typeof createWorkbenchGptAbilityGroup>;
   runtimeLogger: RuntimeLogger;
 };
 
@@ -39,7 +39,7 @@ export async function createWorkbenchAssembly(
   const browserAuthority = await createWorkbenchBrowserAuthority(dataDir, runtimeLogger);
 
   const evidenceStore = createWorkbenchEvidenceStore(dataDir, runtimeLogger);
-  const aiInputGateway = createWorkbenchAiInputGateway(dataDir, runtimeLogger);
+  const gptAbilityGroup = createWorkbenchGptAbilityGroup();
 
   return {
     options,
@@ -47,7 +47,7 @@ export async function createWorkbenchAssembly(
     structuredLogBus,
     browserAuthority,
     evidenceStore,
-    aiInputGateway,
+    gptAbilityGroup,
     runtimeLogger,
   };
 }

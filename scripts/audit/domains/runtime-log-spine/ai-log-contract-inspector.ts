@@ -28,7 +28,7 @@ const identifierNames = (sourceFile: SourceFile): string[] => sourceFile
     return name ? [name] : [];
   });
 
-const isAiSourcePath = (repoPath: string): boolean => repoPath.startsWith("src/capabilities/ai-input-gateway/")
+const isAiSourcePath = (repoPath: string): boolean => repoPath.startsWith("src/capabilities/gpt/")
   || (repoPath.startsWith("src/plugins/") && repoPath.toLowerCase().includes("ai"));
 
 const hasAiSignal = (names: readonly string[]): boolean => names.some((name) => {

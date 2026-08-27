@@ -8,7 +8,7 @@ import type { BrowserAuthorityIssuer } from "./browser-authority-issuer.js";
 import type { BrowserControlledTarget, BrowserHash } from "../exact-target/browser-target-ref.js";
 
 export type BrowserExecutionBinding = Readonly<{
-  kind: "local" | "xuanxue";
+  kind: "local" | "production";
   ownerPluginId: string;
   jobId: string;
   attemptId: string;

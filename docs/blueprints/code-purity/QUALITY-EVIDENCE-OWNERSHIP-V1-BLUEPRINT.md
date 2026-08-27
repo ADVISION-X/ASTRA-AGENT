@@ -7,24 +7,23 @@
   "status": "active",
   "owner": "code-purity",
   "lawIds": [
-    "LAW-CODE-PURITY-002-V1",
-    "LAW-CODE-PURITY-003-V1"
+    "LAW-CODE-PURITY-002-V2",
+    "LAW-CODE-PURITY-003-V2"
   ],
   "contractRefs": [],
   "dependencyEdges": [
-    {"contractRef":null,"from":{"domain":"code-purity","repo":"local"},"to":{"domain":"ai-input-gateway","repo":"local"}},
+    {"contractRef":null,"from":{"domain":"code-purity","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"}},
     {"contractRef":null,"from":{"domain":"code-purity","repo":"local"},"to":{"domain":"app-shell-ui","repo":"local"}},
     {"contractRef":null,"from":{"domain":"code-purity","repo":"local"},"to":{"domain":"architecture-boundary","repo":"local"}},
     {"contractRef":null,"from":{"domain":"code-purity","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},
     {"contractRef":null,"from":{"domain":"code-purity","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},
+    {"contractRef":null,"from":{"domain":"code-purity","repo":"local"},"to":{"domain":"gpt","repo":"local"}},
     {"contractRef":null,"from":{"domain":"code-purity","repo":"local"},"to":{"domain":"local-app-shell","repo":"local"}},
     {"contractRef":null,"from":{"domain":"code-purity","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}},
     {"contractRef":null,"from":{"domain":"code-purity","repo":"local"},"to":{"domain":"runtime-log-spine","repo":"local"}},
     {"contractRef":null,"from":{"domain":"code-purity","repo":"local"},"to":{"domain":"startup-entrypoint","repo":"local"}},
     {"contractRef":null,"from":{"domain":"code-purity","repo":"local"},"to":{"domain":"system-security","repo":"local"}},
-    {"contractRef":null,"from":{"domain":"code-purity","repo":"local"},"to":{"domain":"workbench-api-boundary","repo":"local"}},
-    {"contractRef":null,"from":{"domain":"code-purity","repo":"local"},"to":{"domain":"xuanxue-ai-production","repo":"local"}},
-    {"contractRef":null,"from":{"domain":"code-purity","repo":"local"},"to":{"domain":"xuanxue-ai-production-localization-contract","repo":"local"}}
+    {"contractRef":null,"from":{"domain":"code-purity","repo":"local"},"to":{"domain":"workbench-api-boundary","repo":"local"}}
   ],
   "prohibitedDependencyEdges": []
 }

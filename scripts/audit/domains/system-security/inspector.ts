@@ -5,7 +5,7 @@ import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionIn
 import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import { observeStaticAst } from "../../shared/static-target-object-inspector.js";
 
-const LAW_ID = "LAW-SYSTEM-SECURITY-001-V2";
+const LAW_ID = "LAW-SYSTEM-SECURITY-001-V3";
 const CLAUSE_ID = `${LAW_ID.toLowerCase()}-requirement`;
 const sensitiveTerms = Object.freeze(["authorization", "cookie", "credential", "password", "secret", "token", "userinput", "attachmentcontent", "browseridentity"]);
 const forbiddenCloudControlFields = new Set(["browserCommand", "coordinate", "documentId", "nextAction", "selector", "targetId"]);
@@ -91,7 +91,8 @@ const propertyName = (node: Node): string | null => {
   return null;
 };
 const inspectCloudControlContract = (source: SourceFile, path: string, findings: InspectorFinding[]): void => {
-  if (!path.startsWith("src/plugins/xuanxue-ai-production/") || !path.includes("cloud")) return;
+  if (!path.startsWith("src/lib/local-runtime/production/")
+    || !["cloud", "transport", "worker-session"].some((token) => path.includes(token))) return;
   for (const node of source.getDescendants()) {
     const name = propertyName(node);
     if (name && forbiddenCloudControlFields.has(name)) {
@@ -104,16 +105,16 @@ const inspectExtensionDependencies = (source: SourceFile, path: string, findings
   if (!path.startsWith("src/lib/browser/chrome-extension/")) return;
   for (const declaration of source.getImportDeclarations()) {
     const target = declaration.getModuleSpecifierValue();
-    if (target.includes("plugins/xuanxue-ai-production") || target.includes("online-ai") || target.includes("cloud-credential")) {
+    if (target.includes("local-runtime/production") || target.includes("capabilities/gpt") || target.includes("cloud-credential")) {
       findings.push(finding("system-security/extension-owner-bypass", path, `Extension imports forbidden Cloud or Provider authority ${target}.`, declaration.getStartLineNumber()));
     }
   }
 };
 
 const inspectUnsafeFallbacks = (source: SourceFile, path: string, findings: InspectorFinding[]): void => {
-  const securityBoundary = path.startsWith("src/plugins/xuanxue-ai-production/")
+  const securityBoundary = path.startsWith("src/lib/local-runtime/production/")
     || path.startsWith("src/lib/browser/chrome-extension/")
-    || path.startsWith("src/capabilities/ai-input-gateway/");
+    || path.startsWith("src/capabilities/gpt/");
   if (!securityBoundary) return;
   for (const clause of source.getDescendantsOfKind(SyntaxKind.CatchClause)) {
     for (const statement of clause.getBlock().getDescendantsOfKind(SyntaxKind.ReturnStatement)) {

@@ -1,5 +1,5 @@
 import type { BrowserGovernedCommand } from "../exact-target/browser-command-actor.js";
-import { GPT_WEB_CHAT_START_URL, requireGptWebChatPolicyForUrl } from "../exact-target/browser-site-policy-registry.js";
+import { GPT_WEB_START_URL, requireGptWebPolicyForUrl } from "../exact-target/browser-site-policy-registry.js";
 import { BROWSER_COMMAND_DEFAULT_DEADLINE_MS } from "../protocol/generated/browser-protocol.generated.js";
 import { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import { executeRegisteredDomIntent } from "./dom-intent-runtime.js";
@@ -87,7 +87,7 @@ export class ExtensionTargetAuthority {
     try {
       await this.debuggerRuntime.send(candidate.tabId, "Page.enable");
       const mainFrame = await this.readMainFrame(candidate.tabId);
-      requireGptWebChatPolicyForUrl(mainFrame.url);
+      requireGptWebPolicyForUrl(mainFrame.url);
       const target = this.targets.claimOperatorTarget(candidate.tabId);
       this.activeTarget = target;
       this.activeLoaderId = mainFrame.loaderId;
@@ -140,7 +140,7 @@ export class ExtensionTargetAuthority {
     const matching = (await this.chromeApi.debugger.getTargets()).filter(isPreauthorizedChatGptTarget);
     if (matching.length > 1) throw new Error("BROWSER_TARGET_INVALID");
     if (matching[0]) return matching[0];
-    const created = await this.chromeApi.tabs.create({ active: false, url: GPT_WEB_CHAT_START_URL });
+    const created = await this.chromeApi.tabs.create({ active: false, url: GPT_WEB_START_URL });
     if (!Number.isInteger(created.id)) throw new Error("BROWSER_TARGET_INVALID");
     return this.waitForCreatedTarget(created.id!);
   }
@@ -220,7 +220,7 @@ export class ExtensionTargetAuthority {
       return this.activeTarget ?? current;
     }
     try {
-      requireGptWebChatPolicyForUrl(url);
+      requireGptWebPolicyForUrl(url);
     } catch (error) {
       await this.releaseActiveTarget();
       throw error;
@@ -274,7 +274,7 @@ export class ExtensionTargetAuthority {
 const isPreauthorizedChatGptTarget = (target: ExtensionDebugTarget): boolean => {
   if (target.type !== "page" || !Number.isInteger(target.tabId)) return false;
   try {
-    requireGptWebChatPolicyForUrl(target.url);
+    requireGptWebPolicyForUrl(target.url);
     return true;
   } catch {
     return false;

@@ -3,9 +3,9 @@
   "capabilityDomain": "code-purity",
   "status": "active",
   "lawIds": [
-    "LAW-CODE-PURITY-001-V4",
-    "LAW-CODE-PURITY-002-V1",
-    "LAW-CODE-PURITY-003-V1"
+    "LAW-CODE-PURITY-001-V5",
+    "LAW-CODE-PURITY-002-V2",
+    "LAW-CODE-PURITY-003-V2"
   ],
   "ownedPaths": [
     ".github/CODEOWNERS",

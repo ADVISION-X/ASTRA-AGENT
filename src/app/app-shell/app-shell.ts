@@ -1,6 +1,6 @@
 import { renderWorkbenchHomeClient } from "../workbench-home-client.js";
 import { renderWorkbenchHomeStyles } from "../workbench-home-styles.js";
-import { renderXuanxueAiProductionClient } from "../workbench-xuanxue-ai-production-client.js";
+import { renderProductionRuntimeClient } from "../workbench-production-runtime-client.js";
 import { renderCommandBar } from "./command-bar.js";
 import { renderInspector } from "./inspector.js";
 import { renderAppShellLocalizationClient } from "./localization.js";
@@ -16,7 +16,7 @@ export const renderAppShell = (): string => `<!doctype html>
   <title>GrassEye AGENT Workbench</title>
   <style>${renderWorkbenchHomeStyles()}</style>
 </head>
-<body class="inspector-collapsed" data-active-skill="xuanxue-ai-production">
+<body class="inspector-collapsed" data-active-skill="production-runtime">
   <div class="app-shell" data-workbench-shell data-app-shell>
     ${renderCommandBar()}
     <div class="app-shell-layout" data-app-shell-layout>
@@ -26,6 +26,6 @@ export const renderAppShell = (): string => `<!doctype html>
     </div>
     ${renderRuntimeConsole()}
   </div>
-  <script>${renderAppShellLocalizationClient()}${renderWorkbenchHomeClient()}${renderXuanxueAiProductionClient()}</script>
+  <script>${renderAppShellLocalizationClient()}${renderWorkbenchHomeClient()}${renderProductionRuntimeClient()}</script>
 </body>
 </html>`;

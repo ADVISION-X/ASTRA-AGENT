@@ -9,7 +9,7 @@ import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser
 const hash = `sha256:${"a".repeat(64)}` as const;
 const identity = (commandId: string) => ({
   commandId,
-  ownerPluginId: "xuanxue-ai-production",
+  ownerPluginId: "fixture-product-plugin",
   jobId: "job-1",
   attemptId: "attempt-1",
   leaseVersion: 1,
@@ -36,7 +36,7 @@ try {
   assert.equal(restarted.readUnknown("prepared-command"), null);
   restarted.resolve({
     commandId: "sent-command",
-    ownerPluginId: "xuanxue-ai-production",
+    ownerPluginId: "fixture-product-plugin",
     targetRef: "target-1",
     state: "CONFIRMED",
     proofHash: hash,

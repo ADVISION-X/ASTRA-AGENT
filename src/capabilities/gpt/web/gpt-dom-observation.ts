@@ -1,0 +1,89 @@
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
+
+import { assertGptUrl } from "./contracts/target-document.contract.js";
+
+const record = (value: unknown): Record<string, unknown> => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("review_required:GPT_DOM_RESULT_INVALID");
+  }
+  return value as Record<string, unknown>;
+};
+
+export const readGptDocument = async (
+  browser: Pick<BrowserTargetLease, "executeDomIntent">,
+): Promise<Readonly<{ url: string; title: string }>> => {
+  const value = record(await browser.executeDomIntent({ kind: "document" }));
+  if (typeof value.url !== "string" || typeof value.title !== "string") {
+    throw new Error("review_required:GPT_DOCUMENT_RESULT_INVALID");
+  }
+  assertGptUrl(value.url);
+  return Object.freeze({ url: value.url, title: value.title });
+};
+
+export const findCount = async (
+  browser: Pick<BrowserTargetLease, "executeDomIntent">,
+  input: Readonly<{
+    selector: string;
+    maxMatches?: number;
+    textContains?: string;
+    textEquals?: string;
+    scopeSelector?: string;
+  }>,
+): Promise<number> => {
+  const value = record(await browser.executeDomIntent({
+    kind: "find",
+    selector: input.selector,
+    maxMatches: input.maxMatches ?? 20,
+    ...(input.textContains === undefined ? {} : { textContains: input.textContains }),
+    ...(input.textEquals === undefined ? {} : { textEquals: input.textEquals }),
+    ...(input.scopeSelector === undefined ? {} : { scope: { selector: input.scopeSelector } }),
+  }));
+  if (!Number.isInteger(value.count) || (value.count as number) < 0) {
+    throw new Error("review_required:GPT_DOM_RESULT_INVALID");
+  }
+  return value.count as number;
+};
+
+export const requireOneCandidate = async (
+  browser: Pick<BrowserTargetLease, "executeDomIntent">,
+  input: Parameters<typeof findCount>[1],
+): Promise<1> => {
+  const count = await findCount(browser, input);
+  if (count !== 1) throw new Error(`review_required:GPT_PAGE_CANDIDATE_COUNT_${count}`);
+  return 1;
+};
+
+export const readExactText = async (
+  browser: Pick<BrowserTargetLease, "executeDomIntent">,
+  selector: string,
+  maxChars = 65_536,
+): Promise<string> => {
+  const value = await browser.executeDomIntent({
+    kind: "readText",
+    selector,
+    expectedMatches: 1,
+    maxChars,
+  });
+  if (typeof value !== "string") throw new Error("review_required:GPT_DOM_RESULT_INVALID");
+  return value;
+};
+
+export const readExactAttribute = async (
+  browser: Pick<BrowserTargetLease, "executeDomIntent">,
+  selector: string,
+  name: string,
+  textContains?: string,
+): Promise<string> => {
+  const value = await browser.executeDomIntent({
+    kind: "readAttribute",
+    selector,
+    name,
+    maxChars: 8_192,
+    expectedMatches: 1,
+    ...(textContains === undefined ? {} : { textContains }),
+  });
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error("review_required:GPT_DOM_RESULT_INVALID");
+  }
+  return value;
+};

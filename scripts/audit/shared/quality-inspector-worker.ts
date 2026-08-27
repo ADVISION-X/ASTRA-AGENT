@@ -1,20 +1,19 @@
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
-import { inspectDomain as inspectAiInputGateway } from "../domains/ai-input-gateway/inspector.js";
+import { inspectDomain as inspectAgentProductionRuntime } from "../domains/agent-production-runtime/inspector.js";
 import { inspectDomain as inspectAppShellUi } from "../domains/app-shell-ui/inspector.js";
 import { inspectDomain as inspectArchitectureBoundary } from "../domains/architecture-boundary/inspector.js";
 import { inspectDomain as inspectCapabilityGovernance } from "../domains/capability-governance/inspector.js";
 import { inspectDomain as inspectCodePurity } from "../domains/code-purity/inspector.js";
 import { inspectDomain as inspectForensics } from "../domains/forensics-persistence-capability/inspector.js";
+import { inspectDomain as inspectGpt } from "../domains/gpt/inspector.js";
 import { inspectDomain as inspectLocalAppShell } from "../domains/local-app-shell/inspector.js";
 import { inspectDomain as inspectLocalBrowserSession } from "../domains/local-browser-session/inspector.js";
 import { inspectDomain as inspectRuntimeLogSpine } from "../domains/runtime-log-spine/inspector.js";
 import { inspectDomain as inspectStartupEntrypoint } from "../domains/startup-entrypoint/inspector.js";
 import { inspectDomain as inspectSystemSecurity } from "../domains/system-security/inspector.js";
 import { inspectDomain as inspectWorkbenchApiBoundary } from "../domains/workbench-api-boundary/inspector.js";
-import { inspectDomain as inspectXuanxueProduction } from "../domains/xuanxue-ai-production/inspector.js";
-import { inspectDomain as inspectXuanxueLocalization } from "../domains/xuanxue-ai-production-localization-contract/inspector.js";
 import { createAuditProject } from "./project.js";
 import type { InspectorContext, SessionInspectorOutput } from "./inspector-contracts.js";
 
@@ -28,20 +27,19 @@ type WorkerRequest = {
 };
 
 const inspectors: Record<string, DomainInspector> = {
-  "ai-input-gateway": inspectAiInputGateway,
+  "agent-production-runtime": inspectAgentProductionRuntime,
   "app-shell-ui": inspectAppShellUi,
   "architecture-boundary": inspectArchitectureBoundary,
   "capability-governance": inspectCapabilityGovernance,
   "code-purity": inspectCodePurity,
   "forensics-persistence-capability": inspectForensics,
+  gpt: inspectGpt,
   "local-app-shell": inspectLocalAppShell,
   "local-browser-session": inspectLocalBrowserSession,
   "runtime-log-spine": inspectRuntimeLogSpine,
   "startup-entrypoint": inspectStartupEntrypoint,
   "system-security": inspectSystemSecurity,
   "workbench-api-boundary": inspectWorkbenchApiBoundary,
-  "xuanxue-ai-production": inspectXuanxueProduction,
-  "xuanxue-ai-production-localization-contract": inspectXuanxueLocalization,
 };
 
 const request = (): WorkerRequest => {

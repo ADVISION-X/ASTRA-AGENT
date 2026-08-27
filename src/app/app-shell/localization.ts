@@ -40,17 +40,7 @@ const appShellZhCopyEntries = [
   ["Runtime event stream unavailable.", "运行事件流不可用。"],
   ["manual_required events appear here.", "需要人工处理的事件显示在这里。"],
   ["failed events appear here.", "失败事件显示在这里。"],
-  ["Local-only whole-order control", "仅限本地的整单控制"],
   ["Local-only whole-order status and safe intervention surface.", "仅限本地的整单状态与安全介入界面。"],
-  ["Order ID", "订单 ID"],
-  ["Expected revision", "预期修订号"],
-  ["Request ID", "请求 ID"],
-  ["intervention state", "介入状态"],
-  ["revision", "修订号"],
-  ["last safe checkpoint", "最后安全检查点"],
-  ["order status", "订单状态"],
-  ["玄学 AI 生产", "玄学人工智能生产"],
-  ["只按整单 orderId 查看、暂停、取消、接管或恢复；这里不允许控制阶段、标签页、选择器或坐标。", "只按整单订单 ID 查看、暂停、取消、接管或恢复；这里不允许控制阶段、标签页、选择器或坐标。"],
 ] as const;
 
 export const appShellZhCopy: Readonly<Record<string, string>> = Object.freeze(

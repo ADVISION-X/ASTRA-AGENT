@@ -40,7 +40,7 @@ export const inspectSkillRegistry = (
   }
   const objects = registryObjects(registryFile);
   const ids = new Set(objects.map((objectLiteral) => getStringProperty(objectLiteral, "id")).filter((id): id is string => Boolean(id)));
-  for (const requiredId of ["xuanxue-ai-production"]) {
+  for (const requiredId of ["production-runtime"]) {
     if (ids.has(requiredId)) continue;
     findings.push(createFinding({ evidenceMode: "static.ast",
       checkId: "app-shell-ui/skill-registry-required-id",

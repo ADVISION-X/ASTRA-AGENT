@@ -58,7 +58,7 @@ const readAiProductionComponents = (
   if (!health) return [];
   return [
     {
-      name: "xuanxueAiProductionShell",
+      name: "productionRuntimeShell",
       ok: health.shellState === "ready",
       detail: `Shell state=${health.shellState}.`,
       actionableMessage: health.shellState === "ready" ? null : "Restart the local Workbench shell.",
@@ -70,23 +70,23 @@ const readAiProductionComponents = (
       detail: `AGENT Cloud Worker state=${health.cloudState}; manifest=${health.contractManifestHash}; last_heartbeat=${health.lastSuccessfulHeartbeatAt ?? "none"}; error=${health.lastErrorCode ?? "none"}.`,
       actionableMessage: health.cloudState === "ready" ? null
         : health.cloudState === "contract_blocked"
-          ? "Deploy xuanxue-web and AGENT with the exact same V6 manifest and product contract hashes."
+          ? "Deploy the website task/result contract and AGENT Capability Manifest with the exact same V6 manifest."
           : "Restore the AGENT Cloud Worker session/API dependency without changing task identity.",
-      ownerResponsible: "xuanxue-ai-production",
+      ownerResponsible: "production-runtime",
     },
     {
-      name: "xuanxueAiProductionBrowser",
+      name: "productionRuntimeBrowser",
       ok: health.browserState === "ready",
       detail: `Browser state=${health.browserState}; authority=${health.browserAuthorityState}; target=${health.browserTargetState}; lane=${health.browserLaneState}.`,
       actionableMessage: health.browserState === "ready" ? null : "Restore Browser Authority and claim the exact HTTPS target.",
       ownerResponsible: "Browser",
     },
     {
-      name: "xuanxueAiProductionExecution",
+      name: "productionRuntimeExecution",
       ok: health.executionState === "ready",
       detail: `Execution state=${health.executionState}; claim_admission=${health.claimAdmissionState}; active=${health.activeCount}.`,
       actionableMessage: health.executionState === "ready" ? null : "Resolve the named Cloud or Browser block before admitting production work.",
-      ownerResponsible: "xuanxue-ai-production",
+      ownerResponsible: "production-runtime",
     },
   ];
 };

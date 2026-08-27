@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "specId": "agent-production-runtime.website-agent-task-result-dependency",
+  "status": "active",
+  "version": 1,
+  "owner": "agent-production-runtime",
+  "lawIds": [
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V2"
+  ],
+  "specKind": "cross-repo-dependency",
+  "contract": {
+    "contractId": "ai-acceptance.website-agent-task-result",
+    "version": 1,
+    "providerRepo": "ADVISION-X/xuanxue-web"
+  }
+}

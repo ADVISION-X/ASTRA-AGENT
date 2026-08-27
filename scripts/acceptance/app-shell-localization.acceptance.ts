@@ -29,7 +29,8 @@ const isTranslatable = (value: string): boolean => {
 const collectStaticCopy = (html: string): string[] => {
   const withoutCode = html
     .replace(/<script[\s\S]*?<\/script>/g, "")
-    .replace(/<style[\s\S]*?<\/style>/g, "");
+    .replace(/<style[\s\S]*?<\/style>/g, "")
+    .replace(/<pre[\s\S]*?<\/pre>/g, "");
   const values = new Set<string>();
   for (const [, raw] of withoutCode.matchAll(/>([^<>]+)</g)) {
     const text = decodeHtml(raw ?? "").replace(/\s+/g, " ").trim();
@@ -59,7 +60,7 @@ assert.deepEqual(missing, [], `Missing App Shell Chinese translations: ${missing
 
 for (const [english, chinese] of Object.entries(zhCopy)) {
   assert.notEqual(chinese.trim(), "", `${english} must have a non-empty Chinese translation.`);
-  if (!["English", "GrassEye", "Telegram Web", "YouTube", "Facebook", "TikTok", "Gemini API", "WebP", "JPEG", "PNG", "MP4", "ID", "URL", "HTML", "AI", "PDF", "CSV", "SHA-256"].includes(english)) {
+  if (!["English", "GrassEye", "Telegram Web", "YouTube", "Facebook", "TikTok", "WebP", "JPEG", "PNG", "MP4", "ID", "URL", "HTML", "AI", "PDF", "CSV", "SHA-256"].includes(english)) {
     assert.notEqual(chinese, english, `${english} must not map to itself.`);
   }
 }

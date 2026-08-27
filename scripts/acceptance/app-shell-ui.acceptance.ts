@@ -6,12 +6,12 @@ const read = (filePath: string): string => readFileSync(filePath, "utf8");
 
 const appShell = read("src/app/app-shell/app-shell.ts");
 const layout = read("src/app/app-shell/app-shell-layout.ts");
-const workspace = read("src/app/app-shell/xuanxue-ai-production-workspace.ts");
+const workspace = read("src/app/app-shell/production-runtime-workspace.ts");
 const sidebar = read("src/app/app-shell/sidebar.ts");
 const inspector = read("src/app/app-shell/inspector.ts");
 const runtimeConsole = read("src/app/app-shell/runtime-console.ts");
 const client = read("src/app/workbench-home-client.ts");
-const xuanxueClient = read("src/app/workbench-xuanxue-ai-production-client.ts");
+const productionClient = read("src/app/workbench-production-runtime-client.ts");
 const styles = [
   "src/app/app-shell/app-shell-styles.ts",
   "src/app/app-shell/app-shell-core-styles.ts",
@@ -48,13 +48,15 @@ for (const token of [
 }
 
 assert(sidebar.includes("skillRegistry"), "Sidebar must render from Skill Registry.");
-assert(layout.includes("renderXuanxueAiProductionWorkspace"), "Main workspace must render only the xuanxue workspace.");
-assert(workspace.includes('data-skill-workspace="xuanxue-ai-production"'));
-for (const action of ["status", "pause", "cancel", "takeover", "resume"]) {
-  assert(workspace.includes(`data-xuanxue-${action}`), `Xuanxue workspace must expose ${action}.`);
-  assert(xuanxueClient.includes(`[data-xuanxue-${action}]`), `Xuanxue client must bind ${action}.`);
+assert(layout.includes("renderProductionRuntimeWorkspace"), "Main workspace must render the production runtime workspace.");
+assert(workspace.includes('data-skill-workspace="production-runtime"'));
+assert(workspace.includes("appShellProductionPluginSupport"), "Catalog support must be projected from the unique Catalog.");
+assert(workspace.includes("data-production-status"));
+assert(productionClient.includes("[data-production-status]"));
+assert(productionClient.includes('"/api/production-runtime/status?jobId="'));
+for (const forbidden of ["data-production-pause", "data-production-cancel", "data-production-takeover", "data-production-resume"]) {
+  assert.equal(workspace.includes(forbidden), false, `Diagnostic Shell must not expose execution control ${forbidden}.`);
 }
-assert(xuanxueClient.includes('"/api/xuanxue-ai-production/" + action'));
 assert(inspector.includes("data-app-shell-inspector"), "Right Inspector must exist.");
 assert(runtimeConsole.includes("data-runtime-console"), "Bottom Runtime Console must exist.");
 assert(client.includes("openInspector"), "Client must support Level 3 detail Inspector.");
@@ -65,6 +67,9 @@ for (const retiredPath of [
   "src/app/app-shell/amazon-invoice-workspace.ts",
   "src/app/skills/amazon-product-mining",
   "src/app/skills/media-optimizer",
+  "src/app/app-shell/xuanxue-ai-production-workspace.ts",
+  "src/app/workbench-xuanxue-ai-production-client.ts",
+  "src/app/workbench-xuanxue-ai-production-routes.ts",
 ]) {
   assert.equal(existsSync(retiredPath), false, `Retired App Shell surface remains: ${retiredPath}`);
 }

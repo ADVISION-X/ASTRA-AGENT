@@ -11,7 +11,7 @@ Owner：`local-browser-session`
   "owner": "local-browser-session",
   "lawIds": [
     "LAW-LOCAL-BROWSER-SESSION-002-V5",
-    "LAW-LOCAL-BROWSER-SESSION-003-V8",
+    "LAW-LOCAL-BROWSER-SESSION-003-V9",
     "LAW-LOCAL-BROWSER-SESSION-005-V5"
   ],
   "contractRefs": [],
@@ -32,7 +32,7 @@ AGENT 启动
 -> Browser Authority READY，Target 保持 absent
 -> exact Cloud job 已 durable 接受
 -> Browser Authority public facade 发出一次 job-bound Target acquisition
--> 扩展仅按预授权 gpt-web-chat 精确策略确定 ChatGPT Target
+-> 扩展仅按预授权 gpt-web 精确策略确定 ChatGPT Target
 -> 扩展提交现有 TARGET_CLAIM
 -> 服务端校验并 ACK
 -> 建立 connection-bound Session Workspace
@@ -44,7 +44,7 @@ durable 接受后的第一个 Browser 原子动作触发，固定扩展单独拥
 
 ## 2. 唯一认领策略
 
-预授权策略固定为现有 `gpt-web-chat` site policy：唯一 Origin 是 `https://chatgpt.com`，零 Target 时唯一
+预授权策略固定为现有 `gpt-web` site policy：唯一 Origin 是 `https://chatgpt.com`，零 Target 时唯一
 start URL 是 `https://chatgpt.com/`。扩展只读取 Chrome 提供的页面 Target 元数据，不接受调用方 URL、
 标题、tabId、顺序、坐标、选择器或任务输入。
 
@@ -61,7 +61,7 @@ start URL 是 `https://chatgpt.com/`。扩展只读取 Chrome 提供的页面 Ta
 
 扩展只有在现有 WebSocket READY 已安装 permit authority 且收到 exact job 触发的一次 acquisition 后才执行认领。它附加唯一 Target，读取
 主 frame，复核主 frame URL 的精确 Origin，然后发送现有加密 `TARGET_CLAIM`。服务端必须再次用同一
-`gpt-web-chat` policy 校验 URL，并拒绝在未 revoke 时用不同 `targetRef` 覆盖现有 claim。只有服务端完成
+`gpt-web` policy 校验 URL，并拒绝在未 revoke 时用不同 `targetRef` 覆盖现有 claim。只有服务端完成
 注册、SQLite/WAL compact claim receipt 持久化并返回现有 ACK 后，扩展和服务端才可报告 Target PRESENT 与 Session Workspace 已建立。
 
 同 Origin 主 frame 导航复用现有 claim 更新 Document lease；跨 Origin、Target 关闭、debugger detach、
@@ -91,7 +91,7 @@ session-level Target claim gate。唯一时序为 exact job durable 接受 -> �
 1. 构建与静态质检证明 manifest 无 `activeTab`/storage/宽 host，popup 无手动认领入口，源码无旧 handler。
 2. 确定性测试覆盖 Authority READY 与空闲期间不认领、job-bound acquisition 后单目标认领、零目标创建一次、多目标失败、debugger 冲突、精确 Origin
    复核、服务端拒绝、ACK 超时、同 Origin Document 更新、跨 Origin revoke 与连接级单次执行。
-3. 服务端测试证明非 `gpt-web-chat` Origin、未 revoke 的不同 `targetRef` 覆盖和未确认 Workspace 全部失败。
+3. 服务端测试证明非 `gpt-web` Origin、未 revoke 的不同 `targetRef` 覆盖和未确认 Workspace 全部失败。
 4. 真实 Chrome 证明：启动 AGENT 后固定扩展自动配对且 Target absent；无需复制密码或点击 popup；exact job
    durable 接受后唯一 ChatGPT Target 才被认领；服务端确认后建立 Session Workspace；随后现有真实命令、receipt 与 revoke 链仍成立。
 5. 启动器检查证明 scripts/startup 与 `grasseye:start` 不使用 Chrome Target API、不打开 ChatGPT、不发送

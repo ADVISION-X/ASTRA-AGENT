@@ -28,22 +28,22 @@ export const forbiddenAppShellActionGroups = [
 
 export const skillRegistry: AppShellSkillRegistryItem[] = [
   {
-    id: "xuanxue-ai-production",
-    label: "玄学 AI 生产",
+    id: "production-runtime",
+    label: "生产工厂",
     category: "system",
     description: "Local-only whole-order status and safe intervention surface.",
-    route: "/skills/xuanxue-ai-production",
+    route: "/skills/production-runtime",
     status: "active",
-    primarySurface: "xuanxue-ai-production-workspace",
-    historySurface: "xuanxue-ai-production-status",
-    detailSurface: "xuanxue-ai-production-inspector",
-    allowedActions: ["Status", "Pause", "Cancel", "Takeover", "Resume"],
+    primarySurface: "production-runtime-workspace",
+    historySurface: "production-runtime-status",
+    detailSurface: "production-runtime-inspector",
+    allowedActions: ["Status"],
     forbiddenActions: [...forbiddenAppShellActionGroups, "stage-control", "browser-command", "selector", "coordinate"],
   },
 ];
 
 export const getDefaultSkill = (): AppShellSkillRegistryItem => {
-  const defaultSkill = skillRegistry.find((skill) => skill.id === "xuanxue-ai-production");
+  const defaultSkill = skillRegistry.find((skill) => skill.id === "production-runtime");
   if (!defaultSkill) throw new Error("App Shell skill registry must contain at least one skill.");
   return defaultSkill;
 };

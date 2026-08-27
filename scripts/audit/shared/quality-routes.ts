@@ -13,26 +13,26 @@ const matches = (pattern: string, path: string): boolean => pattern === "**/*" |
   })();
 
 const examScripts: Readonly<Record<string, string>> = {
-  "ai-input-gateway": "acceptance:ai-input-gateway",
+  "agent-production-runtime": "acceptance:agent-production-runtime",
   "app-shell-ui": "acceptance:app-shell-ui",
   "capability-governance": "acceptance:capability-governance",
   "code-purity": "acceptance:code-purity-zombie-deep",
   "forensics-persistence-capability": "acceptance:forensics-persistence-capability",
+  gpt: "acceptance:gpt",
   "local-app-shell": "acceptance:local-app-shell",
   "local-browser-session": "acceptance:local-browser-terminal",
   "runtime-log-spine": "acceptance:runtime-log-spine",
   "startup-entrypoint": "acceptance:startup-entrypoint",
   "system-security": "acceptance:system-security",
   "workbench-api-boundary": "acceptance:workbench-api-boundary",
-  "xuanxue-ai-production": "acceptance:xuanxue-ai-production",
-  "xuanxue-ai-production-localization-contract": "acceptance:xuanxue-ai-production-localization-contract",
 };
 
 const dynamicScripts: Readonly<Record<string, Readonly<Partial<Record<string, string>>>>> = {
-  "ai-input-gateway": {
-    "dynamic.browser": "acceptance:xuanxue-ai-production:real-chrome",
-    "dynamic.provider": "acceptance:xuanxue-ai-production:real-proof-verify",
-    "dynamic.authorization": "acceptance:xuanxue-ai-production:real-proof-verify",
+  gpt: {
+    "dynamic.browser": "acceptance:agent-production-runtime:real-proof",
+    "dynamic.provider": "acceptance:agent-production-runtime:real-proof",
+    "dynamic.authorization": "acceptance:agent-production-runtime:real-proof",
+    "dynamic.recovery": "acceptance:agent-production-runtime:real-proof",
   },
   "local-app-shell": {
     "dynamic.browser": "proof:local-shell-current-runtime",
@@ -43,14 +43,14 @@ const dynamicScripts: Readonly<Record<string, Readonly<Partial<Record<string, st
     "dynamic.storage": "acceptance:local-browser-real-chrome",
   },
   "startup-entrypoint": { "dynamic.service": "proof:local-shell-current-runtime" },
-  "xuanxue-ai-production": {
-    "dynamic.browser": "acceptance:xuanxue-ai-production:real-chrome",
-    "dynamic.service": "acceptance:xuanxue-ai-production:real-proof-verify",
-    "dynamic.database": "acceptance:xuanxue-ai-production:real-proof-verify",
-    "dynamic.storage": "acceptance:xuanxue-ai-production:real-proof-verify",
-    "dynamic.provider": "acceptance:xuanxue-ai-production:real-proof-verify",
-    "dynamic.authorization": "acceptance:xuanxue-ai-production:real-proof-verify",
-    "dynamic.recovery": "proof:xuanxue-ai-production:recovery",
+  "agent-production-runtime": {
+    "dynamic.browser": "acceptance:agent-production-runtime:real-proof",
+    "dynamic.service": "acceptance:agent-production-runtime:real-proof",
+    "dynamic.database": "acceptance:agent-production-runtime:real-proof",
+    "dynamic.storage": "acceptance:agent-production-runtime:real-proof",
+    "dynamic.provider": "acceptance:agent-production-runtime:real-proof",
+    "dynamic.authorization": "acceptance:agent-production-runtime:real-proof",
+    "dynamic.recovery": "acceptance:agent-production-runtime:real-proof",
   },
 };
 

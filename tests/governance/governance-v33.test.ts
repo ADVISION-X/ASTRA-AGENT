@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { resolve } from 'node:path';
+import { dirname, relative, resolve } from 'node:path';
 import test from 'node:test';
 
 import { buildRegistry, checkProjection, loadLaws, motherSpecIdentityValid, pathRole, verifyEntry, verifyProductionOwnership } from '../../scripts/audit/governance-authority.js';
@@ -37,14 +37,14 @@ test('typed high-impact detector covers all twelve machine-owned categories', ()
 });
 
 test('normative law edits require a successor major', () => {
-  const prior = loadLaws().find((law) => law.lawId === 'LAW-AI-INPUT-GATEWAY-001-V1');
+  const prior = loadLaws().find((law) => law.lawId === 'LAW-GPT-001-V1');
   assert.ok(prior);
   const sameMajorMutation = { ...prior, summary: `${prior.summary} changed` };
   assert.throws(
     () => assertLawMajorVersionChanges([prior], [sameMajorMutation]),
     (error: unknown) => error instanceof GovernanceError && error.code === 'LAW_MAJOR_CHANGE_UNENFORCED',
   );
-  const successor = { ...sameMajorMutation, lawId: 'LAW-AI-INPUT-GATEWAY-001-V2', supersedesLawId: prior.lawId };
+  const successor = { ...sameMajorMutation, lawId: 'LAW-GPT-001-V2', supersedesLawId: prior.lawId };
   assert.doesNotThrow(() => assertLawMajorVersionChanges([prior], [successor]));
   assert.doesNotThrow(() => assertLawMajorVersionChanges([prior], []));
 });
@@ -180,16 +180,16 @@ test('quality CHANGE rejects malformed touched law, Manifest, blueprint, and spe
     } },
     { path: 'scripts/audit/domains/code-purity/manifest.json', mutate: (source) =>
       source.replace('    ".gitignore",', '    "<domain>/**",') },
-    { path: 'docs/blueprints/local-browser-session/LOCAL-BROWSER-SESSION-V6-OWNER-JOURNAL-BLUEPRINT.md',
+    { path: 'docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md',
       mutate: (source) => source.replace('  "schemaVersion": 1,', '  "schemaVersion": 1,\n  "unexpected": true,') },
-    { path: 'docs/blueprints/local-browser-session/LOCAL-BROWSER-SESSION-V6-OWNER-JOURNAL-BLUEPRINT.md',
-      mutate: (source) => source.replace('"blueprintId": "local-browser-session-v6-owner-journal"', '"blueprintId": "<stable-id>"') },
-    { path: 'docs/specs/xuanxue-ai-production/product-execution-contract.dependency.spec.json', mutate: (source) => {
+    { path: 'docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md',
+      mutate: (source) => source.replace('"blueprintId": "local-browser-auto-pairing-and-exact-chatgpt-claim-v2"', '"blueprintId": "<stable-id>"') },
+    { path: 'docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json', mutate: (source) => {
       const value = JSON.parse(source) as Record<string, unknown>;
       return `${JSON.stringify({ ...value, unexpected: true }, null, 2)}\n`;
     } },
-    { path: 'docs/specs/xuanxue-ai-production/product-execution-contract.dependency.spec.json',
-      mutate: (source) => source.replace('"contractId": "ai-acceptance.product-execution-contract"', '"contractId": "<contract-id>"') },
+    { path: 'docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json',
+      mutate: (source) => source.replace('"contractId": "ai-acceptance.website-agent-task-result"', '"contractId": "<contract-id>"') },
   ];
   for (const mutation of mutations) {
     const temporary = mkdtempSync(resolve(tmpdir(), 'governance-change-authority-'));
@@ -199,6 +199,10 @@ test('quality CHANGE rejects malformed touched law, Manifest, blueprint, and spe
       writeFileSync(resolve(repository, '.git/info/exclude'), 'node_modules\n');
       symlinkSync(resolve(process.cwd(), 'node_modules'), resolve(repository, 'node_modules'), 'dir');
       const target = resolve(repository, mutation.path);
+      if (!existsSync(target)) {
+        mkdirSync(dirname(target), { recursive: true });
+        copyFileSync(resolve(process.cwd(), mutation.path), target);
+      }
       writeFileSync(target, mutation.mutate(readFileSync(target, 'utf8')));
       const execution = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/audit/governance.ts', 'quality', 'CHANGE'], {
         cwd: repository,
@@ -217,13 +221,20 @@ test('quality CHANGE ignores malformed untouched authority while validating the 
   const temporary = mkdtempSync(resolve(tmpdir(), 'governance-change-focused-'));
   const repository = resolve(temporary, 'repo');
   try {
-    execFileSync('git', ['clone', '-q', '--local', '--no-hardlinks', process.cwd(), repository]);
+    const sourceRoot = resolve(process.cwd());
+    const ignoredRoots = new Set(['.git', '.grasseye-local', 'artifacts', 'node_modules', 'tmp']);
+    cpSync(sourceRoot, repository, { recursive: true, filter: (source) => {
+      const path = relative(sourceRoot, source).split('\\').join('/');
+      const first = path.split('/')[0] ?? '';
+      return path === '' || (!ignoredRoots.has(first) && !path.endsWith('/.DS_Store') && path !== '.DS_Store');
+    } });
+    execFileSync('git', ['init', '-q'], { cwd: repository });
+    execFileSync('git', ['config', 'user.email', 'governance@example.invalid'], { cwd: repository });
+    execFileSync('git', ['config', 'user.name', 'Governance Fixture'], { cwd: repository });
+    execFileSync('git', ['add', '.'], { cwd: repository });
+    execFileSync('git', ['commit', '-q', '-m', 'current candidate baseline'], { cwd: repository });
     writeFileSync(resolve(repository, '.git/info/exclude'), 'node_modules\n');
     symlinkSync(resolve(process.cwd(), 'node_modules'), resolve(repository, 'node_modules'), 'dir');
-    copyFileSync(resolve(process.cwd(), 'src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts'),
-      resolve(repository, 'src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts'));
-    copyFileSync(resolve(process.cwd(), 'scripts/audit/shared/inspector-context-acceptance-support.ts'),
-      resolve(repository, 'scripts/audit/shared/inspector-context-acceptance-support.ts'));
     const fixtureSupportPath = resolve(repository, 'scripts/audit/shared/inspector-context-acceptance-support.ts');
     const clonedInspectorContract = readFileSync(
       resolve(repository, 'scripts/audit/shared/inspector-contracts.ts'), 'utf8',
@@ -260,8 +271,6 @@ test('quality CHANGE executes a changed governance test and rejects its failing 
     copyFileSync(resolve(process.cwd(), 'scripts/audit/governance.ts'), resolve(repository, 'scripts/audit/governance.ts'));
     copyFileSync(resolve(process.cwd(), 'scripts/audit/shared/high-impact-detector.ts'),
       resolve(repository, 'scripts/audit/shared/high-impact-detector.ts'));
-    copyFileSync(resolve(process.cwd(), 'src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts'),
-      resolve(repository, 'src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts'));
     const changedPath = resolve(repository, 'tests/governance/quality-contract.test.ts');
     writeFileSync(changedPath, `${readFileSync(changedPath, 'utf8')}\ntest("focused failing mutant", () => assert.fail("mutant executed"));\n`);
     const execution = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/audit/governance.ts', 'quality', 'CHANGE'], {
@@ -282,8 +291,8 @@ test('quality CHANGE executes a changed governance test and rejects its failing 
 
 test('consumer cross-repo specs declare only dependency identity', () => {
   for (const path of [
-    'docs/specs/xuanxue-ai-production/product-execution-contract.dependency.spec.json',
-    'docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.dependency.spec.json',
+    'docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json',
+    'docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json',
   ]) {
     const spec = JSON.parse(readFileSync(path, 'utf8')) as { specKind: string; contract: Record<string, unknown> };
     assert.equal(spec.specKind, 'cross-repo-dependency');

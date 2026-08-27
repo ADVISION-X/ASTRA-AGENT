@@ -11,9 +11,9 @@ import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionIn
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import { observeStaticAst, observeStaticContract } from "../../shared/static-target-object-inspector.js";
 
-const LAW_SHELL = "LAW-LOCAL-APP-SHELL-001-V5";
+const LAW_SHELL = "LAW-LOCAL-APP-SHELL-001-V6";
 const LAW_BOUNDARY = "LAW-LOCAL-APP-SHELL-002-V3";
-const LAW_STATUS = "LAW-LOCAL-APP-SHELL-003-V2";
+const LAW_STATUS = "LAW-LOCAL-APP-SHELL-003-V3";
 const checkId = "local-app-shell/owner-contract";
 
 const requiredPaths = Object.freeze([
@@ -23,7 +23,7 @@ const requiredPaths = Object.freeze([
   "src/lib/local-runtime/workbench-handle.ts",
   "src/lib/local-runtime/workbench-status.ts",
   "src/lib/local-runtime/workbench.ts",
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production.workbench-owner.ts",
+  "src/lib/local-runtime/production/runtime.ts",
 ]);
 
 const normalizePath = (value: string): string => value.split("\\").join("/");
@@ -195,17 +195,11 @@ const inspectSeparatedStatus = (
     findings.push(finding(lawId, path, "Shell health aggregation must exclude Browser, Target, execution and claim admission readiness."));
   }
 
-  const ownerPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.workbench-owner.ts";
+  const ownerPath = "src/lib/local-runtime/production/runtime.ts";
   const owner = sourceAt(project, ownerPath);
-  const startupFailure = owner?.getVariableDeclaration("startupFailureHealth");
-  const assignments = new Map((startupFailure?.getDescendantsOfKind(SyntaxKind.PropertyAssignment) ?? [])
-    .map((property) => {
-      const initializer = property.getInitializer();
-      const value = initializer && (Node.isStringLiteral(initializer) || Node.isNoSubstitutionTemplateLiteral(initializer))
-        ? initializer.getLiteralValue() : null;
-      return [property.getName(), value] as const;
-    }));
-  if (assignments.get("shellState") !== "ready" || assignments.get("executionState") !== "blocked" || assignments.get("claimAdmissionState") !== "blocked") {
+  const ownerText = owner?.getFullText() ?? "";
+  if (!ownerText.includes('shellState: "ready"') || !ownerText.includes('executionState: "blocked"')
+    || !ownerText.includes('claimAdmissionState: "blocked"')) {
     findings.push(finding(lawId, ownerPath, "Cloud/provider startup failure must keep Shell ready while execution and claim admission fail closed."));
   }
 };

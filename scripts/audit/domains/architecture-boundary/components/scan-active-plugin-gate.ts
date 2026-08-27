@@ -35,29 +35,30 @@ type PluginExposureSummary = {
   activeContracts: ActivePluginContract[];
 };
 
-const activePluginContracts: ActivePluginContract[] = [{
-  pluginId: "xuanxue-ai-production",
-  status: "active",
-  owner: "xuanxue-ai-production",
-  phase: "production",
-  mediatorRoute: "src/mediator/xuanxue-ai-production-route.ts",
-  mediatorBindings: [{
-    routeExport: "runXuanxueAiProductionRoute",
-    schemaExport: "XuanxueAiProductionOrderSchema",
-    taskExport: "createXuanxueAiProductionOrder",
-  }],
-  allowedEntrypoints: [
-    "src/app/workbench-xuanxue-ai-production-routes.ts",
-    "src/lib/local-runtime/workbench-handle.ts",
-    "src/lib/local-runtime/workbench-xuanxue-ai-production-handle.ts",
-    "src/lib/local-runtime/workbench.ts",
-    "src/mediator/xuanxue-ai-production-route.ts",
-  ],
-  allowedAcceptanceTests: ["acceptance:xuanxue-ai-production"],
-  allowedNpmScripts: [],
-  exposureTokens: ["xuanxue-ai-production"],
-  lawSourceRefs: [],
-}];
+const catalogPath = "src/lib/local-runtime/production/catalog.ts";
+const mediatorPath = "src/mediator/agent-production-route.ts";
+
+const activePluginContracts = (project: Parameters<typeof listActiveSourceFiles>[0]): ActivePluginContract[] => {
+  const catalog = project.getSourceFiles().find((sourceFile) => getRepoSourcePath(sourceFile) === catalogPath);
+  const pluginIds = catalog?.getImportDeclarations()
+    .map((declaration) => declaration.getModuleSpecifierValue())
+    .filter((specifier) => specifier.startsWith("../../../plugins/"))
+    .map((specifier) => specifier.split("/")[3])
+    .filter((pluginId): pluginId is string => Boolean(pluginId)) ?? [];
+  return [...new Set(pluginIds)].sort().map((pluginId) => ({
+    pluginId,
+    status: "active" as const,
+    owner: pluginId,
+    phase: "production",
+    mediatorRoute: mediatorPath,
+    mediatorBindings: [],
+    allowedEntrypoints: [catalogPath],
+    allowedAcceptanceTests: ["acceptance:agent-production-runtime"],
+    allowedNpmScripts: [],
+    exposureTokens: [pluginId],
+    lawSourceRefs: [],
+  }));
+};
 
 const isRouteExposurePath = (repoPath: string): boolean => {
   const segments = pathSegments(repoPath);
@@ -141,7 +142,7 @@ const inspectActiveContracts = (input: {
   for (const pluginId of input.actualPluginIds) {
     if (expectedIds.has(pluginId)) continue;
     pushFinding(input.findings, input.lawId, `src/plugins/${pluginId}`, "architecture/second-active-plugin",
-      `Only xuanxue-ai-production may remain as an active business plugin; found ${pluginId}.`, pluginId);
+      `Only Product Plugins imported by the unique Catalog may remain active; found ${pluginId}.`, pluginId);
   }
   for (const entry of input.entries) {
     for (const lawSourceRef of entry.lawSourceRefs) {
@@ -153,7 +154,7 @@ const inspectActiveContracts = (input: {
     }
     if (!input.actualPluginIds.includes(entry.pluginId)) {
       pushFinding(input.findings, input.lawId, `src/plugins/${entry.pluginId}`, "architecture/active-plugin-root-missing",
-        `The sole active plugin ${entry.pluginId} is missing.`);
+        `Catalog-declared Product Plugin ${entry.pluginId} is missing.`);
     }
     for (const npmScript of input.packageScripts ? [...entry.allowedAcceptanceTests, ...entry.allowedNpmScripts] : []) {
       if (input.packageScripts?.[npmScript] === undefined) {
@@ -178,7 +179,7 @@ export const inspectActivePluginGate = (input: {
   targetPaths: readonly string[];
 }): PluginExposureSummary => {
   const findings: InspectorFinding[] = [];
-  const entries = [...activePluginContracts];
+  const entries = activePluginContracts(input.project);
   const packageScripts = input.targetPaths.includes("package.json") ? readPackageScripts() : null;
   if(packageScripts)input.inspectedFiles.add("package.json");
   const actualPluginIds = collectActualPluginIds(input.project);

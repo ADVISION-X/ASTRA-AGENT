@@ -12,7 +12,7 @@ const paths = [
   "src/lib/local-runtime/workbench-handle.ts",
   "src/lib/local-runtime/workbench-status.ts",
   "src/lib/local-runtime/workbench.ts",
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production.workbench-owner.ts",
+  "src/lib/local-runtime/production/runtime.ts",
 ] as const;
 
 const fixture = (): Project => {
@@ -58,19 +58,17 @@ assert.deepEqual(inspectLocalAppShellProject(fixture()), [], "the current owner 
   const property = source.getDescendantsOfKind(SyntaxKind.PropertySignature).find((item) => item.getName() === "executionState");
   property?.remove();
   const findings = inspectLocalAppShellProject(project);
-  assert.ok(findings.some((finding) => finding.lawId === "LAW-LOCAL-APP-SHELL-003-V2"
+  assert.ok(findings.some((finding) => finding.lawId === "LAW-LOCAL-APP-SHELL-003-V3"
     && finding.message.includes("executionState must remain an independently typed status dimension")));
 }
 {
   const project = fixture();
-  const owner = project.getSourceFileOrThrow("src/plugins/xuanxue-ai-production/xuanxue-ai-production.workbench-owner.ts");
-  const failure = owner.getVariableDeclarationOrThrow("startupFailureHealth");
-  const shell = failure.getDescendantsOfKind(SyntaxKind.PropertyAssignment).find((item) => item.getName() === "shellState");
-  shell?.setInitializer('"stopped"');
+  const owner = project.getSourceFileOrThrow("src/lib/local-runtime/production/runtime.ts");
+  owner.replaceWithText(owner.getFullText().replaceAll('shellState: "ready"', 'shellState: "stopped"'));
   assert.ok(checkIds(project).some((message) => message.includes("must keep Shell ready")));
 }
 
 console.log("local-app-shell-acceptance-ok");
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-001-V5", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:5","forbidden:6","summary"], locator: "acceptance:local-shell:single-owned-shell", observedValue: "single repository-owned Shell health boundary verified" });
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-001-V6", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:5","forbidden:6","summary"], locator: "acceptance:local-shell:single-owned-shell", observedValue: "single repository-owned Shell health boundary verified" });
 emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-002-V3", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","summary"], locator: "acceptance:local-shell:boundary-mutants", observedValue: "foreign and duplicate Shell boundary mutants rejected" });
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-003-V2", evidenceMode: "exam.golden", clauses: ["forbidden:2","summary"], locator: "acceptance:local-shell:degraded-readiness", observedValue: "execution dependency failure keeps diagnostic Shell ready" });
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-003-V3", evidenceMode: "exam.golden", clauses: ["forbidden:2","summary"], locator: "acceptance:local-shell:degraded-readiness", observedValue: "execution dependency failure keeps diagnostic Shell ready" });

@@ -25,7 +25,7 @@ const inspectJobBoundClaimOrder = (actor: ReturnType<typeof requireSource>, find
 };
 
 const inspectServerClaimOrder = (serverClaim: string, findings: InspectorFinding[], lawId: string): void => {
-  const policyIndex = serverClaim.indexOf("requireGptWebChatPolicyForUrl(input.url)");
+  const policyIndex = serverClaim.indexOf("requireGptWebPolicyForUrl(input.url)");
   const workspaceIndex = serverClaim.indexOf("this.establishClaimBoundWorkspace()");
   if (policyIndex >= 0 && workspaceIndex > policyIndex) return;
   findings.push(createLocalFinding({
@@ -55,10 +55,10 @@ const inspectJobBoundClaimAcceptance = (combined: string, findings: InspectorFin
 
 const inspectExactChatGptPolicy = (source: ReturnType<typeof requireSource>, findings: InspectorFinding[], lawId: string): void => {
   if (!source || (stringLiterals(source).includes("https://chatgpt.com/")
-    && /siteId: "gpt-web-chat",\s*allowedOrigins: \["https:\/\/chatgpt\.com"\]/u.test(source.getFullText()))) return;
+    && /siteId: "gpt-web",\s*allowedOrigins: \["https:\/\/chatgpt\.com"\]/u.test(source.getFullText()))) return;
   findings.push(createLocalFinding({
     checkId: "browser-authority/job-bound-target-claim", lawId, filePath: sitePolicyPath,
-    message: "The gpt-web-chat policy must own one exact https://chatgpt.com/ start URL.",
+    message: "The gpt-web policy must own one exact https://chatgpt.com/ start URL.",
   }));
 };
 
@@ -75,11 +75,11 @@ const inspectJobBoundClaimPolicy = (
   const acceptance = requireSource(context, findings, lawId, jobBoundClaimAcceptancePath);
   if (!targetAuthority || !sitePolicy || !actor || !supervisor || !broker || !acceptance) return;
   requireIdentifiers(targetAuthority, [
-    "acquireJobBoundChatGptTarget", "getTargets", "create", "GPT_WEB_CHAT_START_URL",
-    "requireGptWebChatPolicyForUrl", "navigationPublication",
+    "acquireJobBoundChatGptTarget", "getTargets", "create", "GPT_WEB_START_URL",
+    "requireGptWebPolicyForUrl", "navigationPublication",
   ], findings, lawId, "The fixed extension must own the exact single-target, zero-target creation and navigation claim chain.");
   requireIdentifiers(supervisor, [
-    "requireGptWebChatPolicyForUrl", "establishClaimBoundWorkspace", "pendingJobBoundTargetAcquisition",
+    "requireGptWebPolicyForUrl", "establishClaimBoundWorkspace", "pendingJobBoundTargetAcquisition",
     "acquireJobBoundTargetLease", "requestPreauthorizedTargetAcquisition",
   ], findings, lawId,
   "The server must bind initial Target acquisition to one current job request before establishing Session Workspace.");

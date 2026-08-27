@@ -1,332 +1,249 @@
-# GrassEye 玄学 AI Local Order Execution Runtime 施工图
+# AGENT 十二产品插件与网站 V6 施工图
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "website-agent-v6-worker",
+  "blueprintId": "agent-production-runtime-v1",
   "status": "active",
-  "owner": "xuanxue-ai-production",
+  "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-XUANXUE-AI-PRODUCTION-001-V14"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V2"
   ],
   "contractRefs": [
-    "docs/specs/xuanxue-ai-production/product-execution-contract.dependency.spec.json",
-    "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.dependency.spec.json"
+    "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
+    "docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json",
+    "docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json"
   ],
   "dependencyEdges": [
-    {
-      "from": {"repo": "local", "domain": "xuanxue-ai-production"},
-      "to": {"repo": "ADVISION-X/xuanxue-web", "domain": "ai-acceptance"},
-      "contractRef": "docs/specs/xuanxue-ai-production/product-execution-contract.dependency.spec.json"
-    },
-    {
-      "from": {"repo": "local", "domain": "xuanxue-ai-production"},
-      "to": {"repo": "ADVISION-X/xuanxue-web", "domain": "ai-acceptance"},
-      "contractRef": "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.dependency.spec.json"
-    },
-    {
-      "from": {"repo": "local", "domain": "xuanxue-ai-production"},
-      "to": {"repo": "local", "domain": "app-shell-ui"},
-      "contractRef": null
-    },
-    {
-      "from": {"repo": "local", "domain": "xuanxue-ai-production"},
-      "to": {"repo": "local", "domain": "local-app-shell"},
-      "contractRef": null
-    },
-    {
-      "from": {"repo": "local", "domain": "xuanxue-ai-production"},
-      "to": {"repo": "local", "domain": "local-browser-session"},
-      "contractRef": null
-    },
-    {
-      "from": {"repo": "local", "domain": "xuanxue-ai-production"},
-      "to": {"repo": "local", "domain": "startup-entrypoint"},
-      "contractRef": null
-    }
+    {"contractRef":"docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json","from":{"domain":"agent-production-runtime","repo":"local"},"to":{"domain":"ai-acceptance","repo":"ADVISION-X/xuanxue-web"}},
+    {"contractRef":"docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json","from":{"domain":"agent-production-runtime","repo":"local"},"to":{"domain":"ai-acceptance","repo":"ADVISION-X/xuanxue-web"}},
+    {"contractRef":null,"from":{"domain":"agent-production-runtime","repo":"local"},"to":{"domain":"gpt","repo":"local"}}
   ],
   "prohibitedDependencyEdges": []
 }
 ```
 
-状态：active V6 terminal
-法案：`LAW-XUANXUE-AI-PRODUCTION-001-V14`、`LAW-AI-INPUT-GATEWAY-005-V5`
-唯一 Local Order Execution Runtime Owner：`xuanxue-ai-production`
-Browser 私有 owner：`local-browser-session`
-## 接入
+## 1. 唯一终态
 
-```txt
-xuanxue-web canonical V6 control artifact
-  + authenticated immutable Cloud order
-  -> one outbound HTTPS Cloud Worker
-  -> src/mediator/xuanxue-ai-production-route.ts
-  -> src/plugins/xuanxue-ai-production/ immutable Local Order
-  -> generic generated Stage executor / checkpoint / recovery
-  -> Browser Authority public facade
-  -> checkpoint / outbox / first-terminal CAS
+网站是业务任务、业务结果合同、V6 运输、最终入库和发布的 Owner；AGENT 是执行工厂。AGENT 只有一个 shared production runtime、一个薄 Mediator、一个 Plugin Catalog、十二个 Product Plugin，以及一个 GPT 能力组、一个 GPT Session Controller、既有 Browser Authority、SQLite/WAL 和 Outbox。
+
+```text
+网站 business task + material refs
+  -> V6 session / claim / lease / fence
+  -> AGENT shared production runtime
+  -> Mediator(product_id + action_id + contract version)
+  -> 唯一 Product Plugin
+  -> Product Plugin 自己的 Product Skill 与私有 Flow
+  -> GPT 能力组或其它公共 Capability 的一个原子动作
+  -> result artifact + execution evidence
+  -> V6 first-terminal CAS
+  -> 网站 business-result-ready
+  -> 唯一领域 consumer 入库、发布或交付
 ```
 
-网站 artifact 是 V6 Cloud schema/manifest/vector/fixture 的唯一 owner；AGENT 只维护消费端最小严格
-wire parser，不复制网站合同 artifact。Cloud contract 不含 Workspace、Target、Document、command、mutation journal 或 Browser
-TTL。Plugin 只拥有 immutable local order、local Stage state、execution/recovery、
-Provider/Browser capability sequencing、checkpoint 和 result；Product Execution Contract canonical、
-跨 Job Product Graph、product-specific Stage topology、parent/join 与业务完成裁决均归网站。
-Browser 私有合同仍独占于
-`local-browser-session`，唯一 WebSocket 不改名、不复制。
-网站不得直连 Extension，Extension 不得访问 Cloud；二者只经 AGENT 现役 public facade 间接协作。
+任何组件只要回答“该产品下一步做什么”，它就是 Execution Owner；这个权力只属于命中的 Product Plugin。Mediator、shared runtime、Capability、网站 sender/receiver 都不得回答。
 
-## Product Execution 与本地边界
+## 2. 十二个 Product Plugin
 
-网站是玄学产品完整 FLOW 的唯一 source。AGENT 只通过两份最小 dependency spec 声明
-`contractId + version + providerRepo`，本仓不得保存 provider commit、provider contract bytes、
-provider artifact hash 或产品 bundle 副本。跨仓合同存在性与版本只在 RELEASE 从必要 participant
-的原生 Git commit 扫描；CHANGE 与 READY 不读取或固定 provider 工作树。
+| Plugin | 网站 `product_id` | `action_id` | 网站最终消费 |
+|---|---|---|---|
+| `bazi-chart-interpretation` | `bazi_chart_interpretation` | `produce` | 基础解读入库与展示 |
+| `bazi-ai-full-analysis` | `bazi_ai_full_analysis` | `produce` | 正式八字报告入库与交付 |
+| `bazi-report-followup` | `bazi_report_followup` | `followup` | 续问记录与展示 |
+| `qimen-professional-answer` | `qimen_professional_answer` | `produce` | 奇门分析与报告入库 |
+| `qimen-report-followup` | `qimen_report_followup` | `followup` | 奇门续问入库与展示 |
+| `hehun-ai-analysis` | `hehun_ai_analysis` | `produce` | 合婚报告入库 |
+| `hehun-report-followup` | `hehun_report_followup` | `followup` | 合婚续问入库 |
+| `naming-bazi-analysis-and-naming` | `naming_bazi_analysis_and_naming` | `produce` | 起名方案入库与交付 |
+| `naming-from-existing-bazi-report` | `naming_from_existing_bazi_report` | `produce` | 起名方案入库与交付 |
+| `public-knowledge-article-pipeline` | `public_knowledge_article_pipeline` | `produce_article` | 文章包验证、发布、sitemap 与搜索连接 |
+| `localization-production` | 四个现役本地化 identity | 四个现役 action | 翻译入库、资源合并与发布 |
+| `payment-screenshot-observation` | `payment_screenshot_observation` | `observe` | 网站确定性接受或拒绝 |
 
-每张 Cloud grant 必须在 claim、local immutable order、Stage 开始、checkpoint、terminal 与结果
-readback 逐点匹配同一非空 `product_contract_hash`。网站把已裁决的本 Job Stage 按顺序装入经过
-鉴权的 immutable Cloud order；本地 generic executor 只按该不可变顺序建立 Stage 链，不读取产品
-映射、不推导后继 Job、不裁决跨 Job graph。parent、typed join 与 conversation 只验证 Cloud order
-携带的具名身份、hash 和 checkpoint，不另查本地产品表。completed Stage 默认不重跑，已有 checkpoint 不重复 submit，UNKNOWN mutation
-永不自动 replay；恢复只回到原 job、attempt、order、Stage 与 checkpoint。
+本地化的四个映射固定为：
 
-AGENT 不得创建网站后继 Cloud Job，不得根据 Provider 回答、Browser 页面、token 长度或 operator
-偏好增删、重排、替换或追加业务 Stage。活动 runtime 中不得保留手写 product→Stage profile、
-followup/reusable-base parent map、join count、conversation mode 或 productId 特例分支；本地 profile
-只能从已鉴权 immutable Cloud order 的 materials 顺序生成。
+| `product_id` | `action_id` |
+|---|---|
+| `localization_report_translation` | `report_translation` |
+| `localization_article_translation` | `article_translation` |
+| `localization_static_review_candidate` | `static_review_candidate` |
+| `localization_static_review_selector` | `static_review_selector` |
 
-Cloud order 和 V6 均不得包含 selector、css、xpath、坐标、JavaScript、tab/window、
-任意 Browser action list、provider URL、browser command、next action、sleep 或 retry click。
-这些物理动作只能由 Browser Authority public facade 根据当前页面与 action registry 裁决。
+`manual_accuracy_challenge` 与 `scheduled_quality_reflection` 不新增 Plugin。网站带上原 `subject_product_id`、subject task/result/hash、授权和 review policy，以 `accuracy_challenge` 或 `quality_reflection` 路由回原产品 Plugin；网站仍唯一拥有 schedule、review ledger、finding、人工分诊与发布裁决。
 
-## Session 与 readiness
+`bazi_basic_chart`、`bazi_pdf_export`、`qimen_basic_chart`、`qimen_professional_chart`、`hehun_case_preparation` 是网站确定性产品，禁止进入 Catalog。
 
-运行依赖次序固定；其中只有第一段由 `grasseye:start` 自动执行：
+## 3. 物理结构
 
-```txt
-Shell ready
--> keep diagnostic HTTP/status surface available even when execution dependencies fail
--> validate hardened device credential and exact environment/origin
--> validate local consumer parser and dependency declarations
--> reconcile local nonterminal ledger and durable outbox
--> open one worker session with higher server epoch, atomically supersede the same device's prior session without a wall-clock wait, and report `worker_instance_id`
+每个产品根只按真实复杂度建设：
+
+```text
+src/plugins/<plugin-id>/
+  index.ts
+  <plugin-id>.plugin.ts
+  SKILL.md
+  flow.ts / schema.ts / result.ts / recovery.ts 仅在真实需要时出现
 ```
 
-Browser Authority 配对、Browser-required 生产任务创建与可领取任务的 claim 均不属于启动器动作。扩展只在
-Shell 建立后自动配对 Authority；空闲 Target 必须保持 absent。exact job durable 接受后，第一个 Browser 原子
-动作才通过唯一 public facade 创建或认领正确 HTTPS Target，不能把启动器写成第二业务链。
+唯一最低接口：
 
-双仓运行只有 `production`：网站与 PostgreSQL 当前共同安装在本地 Mac，未来共同迁移到正式服务器；
-AGENT 始终留在用户本地 Mac，作为独立执行端主动连接网站，不进入服务器部署单元。当前网站 origin 为
-`http://127.0.0.1:4322`，本 Shell origin 为 `http://127.0.0.1:4173`；迁移服务器后 AGENT 使用网站正式
-HTTPS origin。enrollment 只允许首次 production 设备、凭据撤销或 origin/device epoch/合同身份变化时
-显式执行；普通启动与失败恢复不得重建设备，也不得产生第二 device、credential、queue、状态或对象存储身份。
-
-跨仓 session、heartbeat、claim、renew、release 与 terminal 只可在同一现役 provider descriptor 完整证明
-endpoint、认证、request/response schema 与 manifest hash 后运行。descriptor 缺失、candidate 漂移或任一项不兼容
-时 Shell 继续诊断而 claim/e2e 保持 blocked；不得为此新增 route mapping、compatibility route、alias、fallback、
-bridge、dual-read 或 dual-write。
-
-```txt
-explicit Browser Authority state；Target 可为 absent
--> heartbeat normalized capacity/state
--> receive 45s RuntimeAttestationReceiptV6 + next 180s memory token
--> server returns claim_eligible
--> normal typed claim loop
--> exact job durable accept
--> one job-bound Target acquisition
+```ts
+type ProductPlugin = {
+  pluginId: string;
+  pluginVersion: number;
+  skillHash: `sha256:${string}`;
+  checkpointSchemaVersion: number;
+  accepts: readonly { productId: string; actionId: string }[];
+  execute(task: WebsiteAgentTask, context: SharedExecutionContext): Promise<WebsiteAgentResult>;
+};
 ```
 
-上一 session token generation 只允许同 session/epoch 60 秒在途重叠。Browser Authority 或 attestation
-缺失令 browser-required claim blocked；空闲 Target absent 是合法事实，不阻断 exact job claim。job durable
-接受后 Target acquisition 失败必须保持同一 job/attempt/checkpoint 恢复，不能回滚 claim、重放物理动作或
-创建第二任务。Heartbeat 独立于 claim，并只在状态变化时完整记录。
+Product Skill 只保存专业规则、Provider-facing 指令、提示词语义、材料解释和结果质量要求；可执行步骤、状态机、Browser 原子动作顺序、模型选择、checkpoint 与恢复只在 Plugin 代码中维护一次。Plugin 不互相 import，不读取彼此 checkpoint，不共享可变业务步骤。
 
-Cloud credential、Provider、worker session 或 Browser Authority 失败时，Shell 仍须提供 health/status 诊断面，
-同时将 execution/claim 精确标为 blocked；空闲 Target absent 只保持独立状态维，不降低 Shell/claim。该降级状态不得创建第二
-Shell、第二 worker 或临时 fallback，恢复时也不得重复建立 Browser/session Owner。
+未来只有同时满足以下事实才允许新增 Product Plugin：存在独立网站业务 identity、独立输入合同、独立最终结果合同、独立成功/失败/review 语义，并且该需求不是现有 Plugin 的内部工序、也不能只靠增强产品中性 Capability 完成。不满足时必须留在现有 Plugin、现有 Capability 或网站确定性逻辑中，禁止为了目录整齐、假设复用或未来扩展增加 Plugin。
 
-## Claim、容量和 durable 接受
+## 4. shared production runtime 与 Mediator
 
-Claim request id 是批次幂等键；未知响应重试原 ID，必须读回同一 `claim_batch_id` 与 grants。
-合法 outcome 只有 `LEASE_GRANTED|NO_ELIGIBLE_JOB|CLAIM_BLOCKED|CAPACITY_ZERO|DRAINING`。
-裁决优先级固定为 `DRAINING -> CLAIM_BLOCKED -> CAPACITY_ZERO -> LEASE_GRANTED ->
-NO_ELIGIBLE_JOB`；blocked、superseded 或 contract mismatch 不得伪装成空队列。
+`src/lib/local-runtime/production/` 只承接从旧巨型 Plugin 抽出的产品中性底座：
 
-Plugin 固定十个业务席位，Browser mutation 固定一个。所有 `queued + recovery_pending` 按
-`created_at + job_id` 全局最早，AGENT 本地按 `created_at + job_id + stage ordinal` 串行进入
-唯一页面窗口。Browser busy 不等于业务 capacity zero。
+- V6 session、heartbeat、claim、capacity、lease、renew、fence 与 control intent；
+- immutable task 接受、material 下载和鉴权；
+- SQLite/WAL、checkpoint、artifact、terminal 与 durable Outbox；
+- job lifetime、abort/settle、全局最老 eligible 调度和单 Browser mutation lock；
+- 通过唯一 `src/capabilities/gpt/session/gpt-session-controller.ts` 使用 opaque continuation、主体/授权/hash、turn marker、conversation identity 与 lane CAS；`src/lib/local-runtime/production/` 不另建第二 Controller；
+- Catalog 加载、版本冻结和 Session Capability Manifest 投影；
+- Shell 诊断状态，不把部分 ready 冒充端到端 ready。
 
-唯一 browser mutation lock 是进程级互斥，不是持久业务状态。每次读取 lane 状态时先复核锁内 Owner：
-存活 Owner 只报告 `busy`；死亡 Owner 遗留的整个锁目录由现有 lease Owner 就地物理删除，并在同一次读取
-返回 `idle`。不得把死亡 Owner 报成 `blocked` 后等待一份尚未允许领取的 Cloud job 来触发清理，也不得要求
-操作者手工删锁、重建 device/session、增加启动清理器、兼容锁或第二恢复链。格式非法且无法证明归属的锁仍
-失败关闭。
+Mediator 只执行一次严格分发：解析 task envelope，校验 `product_id + action_id + task/result contract version`，从唯一 Catalog 得到一个 Plugin，然后调用 `execute`。它不读取 Skill 内容，不选择模型，不操作 DOM/附件，不创建步骤、重试、恢复或业务终态。
 
-Grant 固定 lease 90 秒、accept-by 30 秒、renew 20 秒指引。Plugin 用 monotonic clock 扣除 RTT；
-accept 剩余不足 5 秒或 lease 剩余不足 30 秒时，在无副作用条件调用 `LeaseReleaseV6`。本地
-grant 与 `localOrderIdentity` 在同一 SQLite transaction 持久化；不得另写 `production_cloud_claim_ledger`。
-原 job recovery 的新 attempt/lease/fence 只替换 `cloudExecutionIdentity`；其余业务 Order 必须按结构语义等价
-鉴权，JSON 对象键顺序不属于身份，禁止用 `JSON.stringify` 字节序比较。durable accept 前拒绝时，本地结构化
-日志保留真实因果码，网站 `LeaseReleaseV6` 的标准 reason 只表示释放分类，不得被解释成根因裁决。
-进程中断可留下 `Order=running` 且唯一活跃 Stage 为
-`running|waiting_provider|response_checkpointed|recovery_pending`、其余 Stage 为 queued/completed；网站为同一不可变
-业务 Order 续发更高 lease version 与新 fence 后，这是原 job 的精确恢复形态。新 recovery lease 接受事务先鉴权
-业务 Order 结构语义等价并替换 fence：活跃 Stage 若已持久化 `review_required|failed` 子能力终态回执，必须以零
-Browser mutation 原子向上结算同一终态；没有终态子回执时才把 Order/Stage 收敛为 `recovery_pending`，再沿原
-execution/checkpoint 继续。不得清空终态子回执后重放；completed/failed/review_required Order 或 Stage 不得从该路径重开。
-首个 durable checkpoint 即接受，不另建 ACK。每 job 由同一个结构化 lifetime 同时拥有执行与 renew：
-瞬时 renew 网络错误只在 lease safety budget 内重试；确认 lease/fence 丢失后立即禁止新 Browser、Provider
-和 Cloud mutation，abort 并等待原执行 settle，settle 前不得从 active 移除或启动同 job 第二执行。
+## 5. GPT 能力组
 
-每次 renew 只严格消费网站唯一完整 `LeaseRenewV6` receipt。顶层精确字段为
-`schema_version=xuanxue-ai-lease-renew-receipt.v6`、`job_id`、`server_now`、`lease_expires_at`、
-`renew_after_ms`、`control_intent`；内层 `ControlIntentV6` 精确字段为
-`schema_version=xuanxue-ai-control-intent.v6`、同一 `job_id`、`intent`、`control_epoch`、
-`reason_code`。AGENT 不得另建删减字段的本地 response schema，不得 strip 网站字段，也不得以 adapter、
-fallback 或兼容 parser 吞掉合同漂移。
+GPT 是独立 Provider 能力组，公开 ID 固定为 `gpt`，当前执行方式固定为 `gpt-web`，物理根固定为 `src/capabilities/gpt/`。原 `ai-input-gateway` 在消费者迁完后物理退出，不保留 alias、wrapper、fallback、provider dispatcher 或第二页面链。未来接入其他 AI 时，只有出现真实消费者并获得授权后才建立其独立能力组；GPT 不代理其它 Provider，也不恢复通用 AI Gateway。
 
-Cloud job 的唯一状态固定为 `queued -> leased -> inputs_downloading -> factory_running`，随后只可进入
-`completed|recovery_pending|review_required|failed`；安全取消进入 `cancelled`，恢复任务仍以原 job
-从 `recovery_pending -> leased`。AGENT 本地订单的内部状态不得压缩或改写 Cloud job 状态机。
-
-## Browser 与恢复
-
-Browser side effect 只通过现役 public facade 取得当前 Workspace/Authority/Target/Document/action。exact job
-durable 接受后才可取得 Target，这是唯一 Target 创建/认领入口；Authority READY 不得预取。
-Workspace 不设墙钟过期。断线、重启、Reload、identity drift 或 revoke 后停止新 claim；已接受任务
-保持同一 job/attempt/checkpoint 为 `recovery_pending`。重新配对/认领后先对账，再恢复最早任务。
-
-Browser 私有 Owner 只在现有 SQLite/WAL 内持久化当前 mutation。每行精确绑定 `command_id`、job/fence、
-Target/Document/action、`PREPARED|SENT|CONFIRMED|FAILED|UNKNOWN`、request/payload/proof hash；发送前事务写
-PREPARED，发送边界写 SENT，后置只读 proof 原子解析 terminal。启动只查询未解析 row 并恢复只读对账；
-不得全量扫描 `proof-events.ndjson`、维护 lifecycle hash-chain、archive/recovery receipt 或 recovery genesis。
-当前 Dynamic Proof 直接绑定当前 Browser command receipt 与发布候选，不从历史生命周期账本推导。
-
-Mutation 只有 `PREPARED -> SEND -> CONFIRMED|FAILED|UNKNOWN`。UNKNOWN 永不自动 replay。
-AI Input Gateway 一旦以 `BROWSER_OUTCOME_UNKNOWN` 形成 `review_required`，该结果直接作为 Stage、Local Order
-与 Cloud job 的唯一终态向上提交；Stage 出口不得因未决 mutation 再次抛错，Scheduler、Cloud Worker 与
-Publication 不得将其改写为 `recovery_pending`。只有明确列入瞬时恢复白名单、尚无已发送 mutation 的异常可进入
-`recovery_pending`；确定性内部缺陷进入 `failed`，未分类异常失败关闭，不得以 catch-all 方式排队重跑。
-若历史版本已经留下 `recovery_pending + BROWSER_OUTCOME_UNKNOWN`，下一份同 Job 合法 lease 只替换新的
-attempt/lease/fence 身份，并在同一事务内把活动 Stage 与 Local Order 收敛为 `review_required`；随后走现有 Cloud
-terminal 回写，全程零 Browser mutation，不设清理脚本、人工按钮或迁移分支。
-Browser 执行不使用 IF/AND/THEN 文字 DSL，而使用一条受保护状态迁移：
-
-```txt
-OBSERVE_CURRENT_SURFACE
--> WAITING | READY_NOOP | READY_ACTION | AMBIGUOUS | DOCUMENT_CHANGED
--> 最多一次物理动作
--> VERIFY_DIRECT_POSTCONDITION
--> PERSIST_CHECKPOINT
+```text
+Product Plugin 决定业务步骤、模型策略、附件、会话拓扑与是否续问
+  -> GptAbilityGroup.execute(one child intent)
+  -> Browser Authority 许可 exact Target / Document 上的 observation 或最多一次 mutation
+  -> GPT Child Ability 验证唯一直接后置条件
+  -> proof / typed failure 返回 Product Plugin
 ```
 
-`OBSERVE_CURRENT_SURFACE` 在同一 Target/Document 上一次读取当前步骤决策不可分割的最小完整可见事实；
-不得用多个顺序 DOM find 拼接可能来自不同页面帧的状态，也不得用旧快照授权后续动作。0 个候选为
-`WAITING`，只能有界退避后取得新快照且不点击；1 个精确候选才可 `READY_ACTION`；大于 1 个为
-`AMBIGUOUS` 并失败关闭。Target/Document 失效必须是 `DOCUMENT_CHANGED` 或恢复错误，不能被吞成页面
-未挂载；禁止固定 100ms 高频轮询、catch-all 重试、selector fallback 和任务级倒计时推进状态。
+GPT 能力组首批公开子能力按九类组成：
 
-执行档位步骤只观察当前可见的能力菜单表面，按快照派生
-`NEED_OPEN_MENU|NEED_EXPAND_ADVANCED|NEED_OPEN_MODEL|NEED_SELECT_MODEL|NEED_OPEN_REASONING|
-NEED_SELECT_REASONING|PROFILE_READY`。每次只执行派生出的一个动作，然后重新读取当前表面；最终必须在
-同一份终态快照中同时精确证明模型与推理档位。现役 trigger 的可见 `Pro` 只表示菜单入口，不携带
-模型与推理终态；菜单关闭只证明点击结束，不证明选择正确；不得用 `高` 命中 `极高` 或部分模型名。
-所有 Browser-required 生产 Stage 都必须在 immutable Order 中携带完整 `provider_execution_profile`，
-AGENT 不得因产品不是本地化而跳过执行档位及其 proof。
+| 子能力类 | 原子动作边界 |
+|---|---|
+| Target/Document | 绑定、观察和验证唯一 GPT Target、Document、Workspace；获准人工流程可恢复原来源页 |
+| 临时 UI | 每次只处置一个已知且归属明确的限流、搜索或临时 UI |
+| 会话拓扑 | 新会话、干净验证、规范 URL 聚焦、搜索打开/写入/选择、checkpoint fork、conversation identity 验证各自独立 |
+| 执行档案 | 观察、打开模型/推理选择器、选择精确值、终态回读各自独立 |
+| 附件 | 打开附件入口、一次挂载获准集合、直接验证全部且仅有精确附件各自独立 |
+| Composer/提交 | 聚焦、写入、回读、发送、提交后 user turn 验证各自独立 |
+| 回答/Artifact | 定位 assistant turn、有界等待、文本 checkpoint、图片 checkpoint、单 artifact 捕获各自独立 |
+| 标题 | 打开标题入口、写入、提交、标题与真实会话身份回读各自独立 |
+| 连续性/恢复 | continuation 保存、lane acquire/advance/release、response checkpoint 恢复各自独立且不执行 DOM mutation |
 
-fresh 非 continuation 对话在进入附件步骤前，只用一份当前 turn 表面快照确认历史 user/assistant turn 均为 0；
-此否定性检查的 `count=0` 本身就是终态证据，不要求不存在节点的 `matches` 字段，非 0 才校验精确 turn
-身份并失败关闭；不得调用回答稳定器等待不存在的历史回答。已经在同一 Target/Document 持久化的执行档位
-终态 proof 是本次执行的 checkpoint，后续零 mutation 的提交前恢复必须从该 checkpoint 继续，不得重新打开或
-点击模型菜单；Target/Document 改变时该 checkpoint 失效并重新观察。附件步骤只保留一份当前可见
-composer/附件表面决策、至多一次 exact-target batch mutation 和一份包含可见精确文件名的直接后置条件。
-附件展示名由输入 ordinal、输入文件名与内容 hash 唯一确定，不得使用 attempt 随机后缀。可见前置条件只证明
-当前 Document、唯一空 composer 与空附件表面；不得把 document-global form、上传前可能不存在的 send button、
-删除按钮文案、删除按钮数量或隐藏 `#upload-files` 纳入许可。`#upload-files` 是 Browser Authority 在该次原子
-`attachFile` mutation 内部解析的唯一私有 target，上层不得重复鉴权。mutation 返回后只取得一份直接精确
-文件名快照；重复 upload preflight、固定 stable poll 或仅以等待时长证明上传成功都不构成证据。
-空附件表面只能由 composer 内真实可见 attachment region 缺席证明；composer form 自身的“添加文件等”、
-模型档位、听写、语音及其他正常控件文字不属于附件节点，严禁读取整段 form text/length 后把正常控件冒充为
-未知附件。attachment region 存在时必须在同一快照中只含全部确定性精确文件名；部分、额外、重复或残余文字
-一律 `AMBIGUOUS`，不得改用 delete button、隐藏 file input 或第二 DOM 读取补判。
-附件表面若明确为空，才许可一次 mutation；若进程中断后的新 lease 在同一可见表面已观察到全部确定性精确
-文件名，则必须以零 mutation 补齐附件 proof，不得再次上传；部分、额外或无法解释的附件集合立即失败关闭。
-精确表面合同不匹配为
-`ATTACHMENT_SURFACE_CONTRACT_MISMATCH` 并失败关闭，不得压缩成通用 `BROWSER_TARGET_INVALID` 后重跑整个
-Stage。只有明确的 Target/Document/channel 失效才进入 recovery。
-`uploadedFiles` 只记录 `attachments_stable` 后由同一可见文件名后置条件确认的文件，每项
-`detectedAttachmentCount` 必须为正数；传输层不得提前建立零检测数的 provisional uploaded file。物理附件动作
-是否已发送只由同一 `attachmentUploadProof.mutationSent` 表示，失败回执必须保持 schema-valid，不能打崩 Shell。
-附件 precondition 在 mutation 之前失败且 `mutationSent=false`、`uploadedFiles=[]` 时，Cloud 为原 job 续发 recovery lease 后必须让
-同一 Local Stage 在新 fence 下重新进入；不得只 rebound Local Order 后把旧 `recovery_pending` 原样回传。
-重进时清空 Stage 当前物化层里的旧 `aiFeedResult/attachmentUploadProof/raw output`，由新 attempt 重新写入；
-旧 attempt 的事实留在唯一 web-chat execution ledger，不把旧失败 proof 当作新 attempt 的漂移基线。
-一旦 `attachmentUploadProof.mutationSent=true`、存在 uploadedFiles 或返回 `BROWSER_OUTCOME_UNKNOWN`，则不得自动重放；
-只能由同一直接精确文件名后置条件结算，或保留旧 UNKNOWN 并在后续 lease 以零 mutation 识别同一确定性文件
-集合后补齐业务 proof；无法识别时失败关闭。
+一个 Child Ability 只允许一次有界 observation，或最多一次物理 mutation 加它唯一的直接后置回读；不得调用兄弟 Child Ability 隐藏多步 workflow。每个公开 childCapabilityId 必须绑定输入 Schema、Target/Document 条件、元素 Owner、候选数量、Document transition、proof Schema、typed failure 与 replay policy。Product Plugin 只按私有 Flow 请求原子动作，不携带 selector、坐标、tab、Browser command 或 Provider 私有对象。
 
-每个 Browser mutation 是不可拆交易：当前快照许可 -> 精确一次物理动作 -> 同一动作的只读直接后置
-观察 -> 一份 page-action proof -> 解析 pending mutation。物理动作发出后，无论 transport 返回正常
-summary 还是 `BROWSER_OUTCOME_UNKNOWN` 都不得重放；未能精确结算时停在原 checkpoint 并保留 UNKNOWN，
-不得执行第二 mutation。相对 deadline 只可界定当前未解析 transition 并安全停止，不得充当状态证据。
-日志不是 evidence，Browser receipt 不是业务结果。
+页面变化必须精确失败为带 childCapabilityId 的 precondition、element ambiguous、document changed、postcondition 或 mutation outcome unknown；UNKNOWN 永不自动重放。selector 和语义定位只在对应页面元素合同 Owner 内维护，不建立通用 selector registry，不保留旧新双 selector fallback。真实 Chrome 动态证明未完成前，不得声称新页面已经兼容。
 
-## Outbox、控制和接管
+唯一 GPT Session Controller 只拥有 opaque continuation、原 Plugin、主体/授权/hash、规范 conversation URL、turn marker、conversation identity 与 lane CAS；标题只是人工可读标签，不得成为路由、恢复或去重身份。GPT 能力组生成结构化 proof，并复用 Evidence、Runtime Logs、shared runtime SQLite/WAL 和 Browser mutation Owner，不建立私有数据库、日志、证据库或第二 mutation ledger。
 
-Checkpoint、artifact、terminal、cancel、handover 全部写本地 durable outbox；未收到 Cloud receipt
-只重试同 request id/payload；同 payload 必须幂等读回同一 receipt。材料与结果只使用 canonical
-`object_ref + sha256 + byte_length + media_type`，并绑定 lease-scoped authority、前后重算 hash。
-同一 pending outbox row 任一时刻只有一个发送/确认 owner：active job 直接发送时后台 flush 不运行；active job
-结束后或启动恢复时才由后台 flush 接管遗留 row，禁止双消费者同时发送后互相删除确认行。
-Control intent 只在 Local Order 记录 `last_control_epoch` 并于安全 checkpoint 消费；不得建立
-`production_interventions` 或 Workbench pause/cancel/takeover/resume 状态机。Handover 由网站原子关闭旧
-fence 并建立新 attempt/session-bound fence。
+## 6. 双向合同
 
-Workbench 分开显示 Shell、Cloud control plane、link/contract/session、Browser Authority/Target、
-claim admission、queue/outbox 和 e2e proof。任一局部 ready 不代表端到端 ready。
+网站 provider 合同 `ai-acceptance.website-agent-task-result@1` 同时定义业务 task envelope 与 result envelope；AGENT 只保存 dependency。AGENT provider 合同 `agent-production-runtime.plugin-capability-manifest@1` 只发布 Catalog 的最小能力投影；网站只保存 dependency。V6 `ai-acceptance.xuanxue-ai-production-v6@6` 继续是唯一运输协议，不因十二个 Plugin 复制。
 
-消费的 canonical 错误码至少包括 `AI_CONTROL_PLANE_NOT_READY`、`AI_SESSION_CONFLICT`、
-`AI_SESSION_SUPERSEDED`、`AI_SESSION_TOKEN_STALE`、`AI_RUNTIME_ATTESTATION_STALE`、
-`AI_RUNTIME_ATTESTATION_REPLAYED`、`AI_CLAIM_IDEMPOTENCY_CONFLICT`、
-`AI_CLAIM_BROWSER_AUTHORITY_ABSENT`、`AI_CLAIM_BROWSER_TARGET_ABSENT`、
-`AI_LEASE_ACCEPT_DEADLINE_EXPIRED`、`AI_LEASE_FENCE_STALE`、`AI_TERMINAL_CAS_CONFLICT`、
-`CONTRACT_CONTROL_MANIFEST_MISMATCH`、`CONTRACT_PRODUCT_UNSUPPORTED`、
-`AGENT_RUNTIME_LEDGER_NOT_RECONCILED` 与 `BROWSER_UNPACKED_RELEASE_IDENTITY_INVALID`；不得改名或补 alias。
+task envelope 允许：job/source task、product/action、幂等和 request hash、task/result contract 身份、业务 Owner/subject/authorization、业务参数、material refs、必要的 parent/subject refs、不透明 continuation，以及仅在 `accuracy_challenge` 或 `quality_reflection` 时存在的 `review_policy`。
 
-## 删除式迁移
+task envelope 禁止：`plugin_id`、Stage、node、dependency graph、join topology、Prompt、Provider Skill Capsule、model/reasoning profile、conversation mode、selector、browser action、retry flow、provider URL 和候选 A/B/selector 执行拓扑。
 
-同一 change-set 完成 V6 consumer parser、session client、worker、outbox、tests 和 evidence。
-切换依次冻结候选、双仓实现、验证 consumer parser、取得七层证据、网站停建 V5 job、
-AGENT drain 并停 claim V5、排空活动 lease、保持终态 V5 历史不变、在原 identity 上迁移安全未完成
-任务并写 event、以一个 release 激活网站/AGENT/Extension 且删除 V5 active surface、打开 V6 session、
-配对 Authority、普通 claim 保持 blocked 只跑一条 canary、job 接受后才取得 Target、PASS 后开放、最后审计 runtime 仅 V6。
-旧方案和 V5 证据只保留为历史，不再取得运行主权。
+result envelope 允许：job/source task、product/action、实际 plugin/version、result contract、payload object/hash/bytes/media type、evidence refs、execution receipt hash 与必要 continuation。V6 terminal status 和 canonical terminal time 不在 result 中复制。
 
-V5 route/reader/writer/generated validator/config/package entry/process、外部 HMAC/LNA/localhost、
-Cloud callback、第二 worker/mediator/scheduler/store/transport、compatibility/fallback/shadow/
-bridge/alias/default/normalization/dual read/write 必须物理为零。激活后无 runtime V5 fallback。
+## 7. 材料与安全
 
-同时物理退休 AGENT 手写 product→Stage topology、product-specific conversation/reusable-parent map、
-typed join count 与任何完成当前 Job 后自行选择下一网站 Job 的分支。切换后 active runtime 只消费
-经过鉴权的 immutable Cloud order；不得保留 provider projection、compatibility reader 或第二链。
+每份材料必须按 `material_id + ordinal + role + NFC display_name + object_ref + sha256 + bytes + media_type + storage_class + owner_scope_hash + trust_class + may_issue_instruction` 精确鉴权。显示名来自稳定业务事实，不得含路径，不得依赖 attempt、临时目录或当前时间；集合内必须唯一。大文件和古籍使用既有 object ref 与 sealed manifest，不内嵌任务，也不在 Plugin 内部步骤反复复制。
 
-## 验收边界
+材料内容默认是数据而非指令；只有网站明确授权 `may_issue_instruction` 的可信业务材料才能影响专业 Skill，且不能改写 Product Plugin 的权限、合同或恢复边界。日志、错误和 receipt 不得泄漏 token、cookie、用户输入或附件内容。
 
-任务内单项验证依次覆盖 dependency 最小声明、无 provider bytes/commit/hash、Cloud grant 与 local order
-身份一致、Stage 顺序/dependency、
-conversation/parent/join 正反例、零手写 topology，以及 strict V6 contract、session conflict/supersede/token rotation、attestation
-stale/replay、typed/idempotent claim、Browser Authority absent no-claim、空闲 Target absent 可 claim、
-死亡 mutation lock 就地物理删除并恢复 idle、oldest eligible、十席位一 mutation、
-accept/release/renew/checkpoint/CAS、outbox restart、UNKNOWN、handover、drain 和 V5-zero。
+## 8. durable identity、状态与恢复
 
-Static、Contract Exam、Integration、Fault、Real Chrome、Real Provider 与风险相称的 bounded observation
-互不替代。不得用历史固定场景数或固定 72 小时等待作为日常 claim 门。真实 receipt 必须绑定双仓 commit、
-V6 manifest、AGENT build 与 Extension release。未取得真实层时固定
-`NOT_PRODUCTION_VERIFIED`。
+首次 durable accept 必须在同一事务冻结：
 
-正确性零容忍项固定包括：双 terminal、stale/foreign fence 写入、未 eligible session 获 lease、
-Browser Authority absent 仍发 browser-required lease、死亡 mutation lock 阻断重启后 claim、production localhost/LNA、Extension Cloud access、
-unknown-field default、UNKNOWN replay、重启丢任务、双 eligible session、无 durable event 的状态变化、
-V5/V6 双写、控制协议改写 request hash、stale attestation 获 lease、Browser busy 把业务容量降零。
-时效固定为 heartbeat 30 秒、45 秒 stale 停新 claim、90 秒 offline、claim 1–30 秒、合格任务到 lease
-P95 不超过 15 秒、lease 90 秒、per-job renew 20 秒，并在一个 heartbeat/claim 周期内公开 block reason。
+```text
+catalog_hash
+plugin_id
+plugin_version
+skill_hash
+checkpoint_schema_version
+request_hash
+```
+
+checkpoint、恢复、result 与 execution receipt 都绑定同一组合。发布新 Catalog/Plugin/Skill 前先 drain 已接受任务；版本或 checkpoint schema 不兼容时，在零新 Browser/Provider mutation 下进入 `review_required`，禁止用新代码静默续跑，也不保留第二 Plugin 兼容路径。
+
+V6 继续唯一拥有 transport state、lease/fence、control、terminal 和重放语义。Plugin 私有 checkpoint 不成为第二 Cloud 状态机。UNKNOWN 物理动作永不自动重放；已失去 lease/fence 后停止新 mutation，等待原执行 settle；同 request/outbox payload 只以原幂等键重试。
+
+GPT Session Controller 不理解业务内容、不决定何时续问。无法证明原会话、主体、授权、Plugin 或 lane CAS 时失败关闭为 `review_required`，不得静默新开会话冒充续接。
+
+## 9. Capability Manifest 与准入
+
+唯一 Catalog 直接生成：
+
+```json
+{
+  "schema_version": "agent-plugin-capability-manifest.v1",
+  "catalog_hash": "sha256:...",
+  "plugins": [
+    {
+      "plugin_id": "bazi-ai-full-analysis",
+      "plugin_version": 1,
+      "accepts": [
+        {
+          "product_id": "bazi_ai_full_analysis",
+          "action_id": "produce"
+        }
+      ],
+      "task_contract_version": 1,
+      "result_contract_version": 1
+    }
+  ]
+}
+```
+
+该公开 Manifest 顶层只含 `schema_version + catalog_hash + plugins`；每项 Plugin 只含 `plugin_id + plugin_version + accepts + task_contract_version + result_contract_version`，每个 accepts 项只含 `product_id + action_id`。`skill_hash` 与 `checkpoint_schema_version` 只属于 AGENT durable accept 身份，不得作为网站准入字段或第二激活真相发布。
+
+Manifest 绑定当前 session 与 attestation generation。网站只用它判断 job eligibility，不读取 Skill bytes、Prompt、Flow、Provider URL 或会话策略。不支持的 job 保持不 eligible，但不能阻断队列中其他受支持 job。
+
+App Shell 的十二项支持表和质检分母必须直接消费这一份 Catalog 投影，不保存第二手写表、提交态 `plugin-status.json` 或人工开关。只有存在不可替代的构建消费者时才可生成进程内或临时投影，且不得取得新的持久真源身份。
+
+Manifest 生效的同一删除片区必须物理退出 product bundle/canary 产品准入、`blocked -> canary_only -> open` 状态机及其字段、脚本、UI 和 claim 判断。V6 session/attestation 准入继续保留；十二条真实任务是 RELEASE Dynamic Proof，不是永久 canary。
+
+## 10. Shell、Browser 与启动
+
+`grasseye:start` 只建立 AGENT 自有 production Shell、shared runtime、状态诊断和安全清理本仓 listener；普通重启不 enrollment、不创建任务、不认领 Target、不运行 CI。固定 Extension 自行更新并配对 Browser Authority；空闲 Target absent 合法。exact browser-required job durable accept 后，首个 Browser 原子动作才创建或认领 Target。
+
+Shell、Cloud contract/session、Browser Authority、Target、claim eligibility、queue/outbox 和端到端 proof 是独立状态维。Cloud、Provider、Browser 或凭证失败时 Shell 必须保留诊断面，只让相应 execution/claim 失败关闭；HTTP 200、空队列、进程存活或 Authority READY 都不是完整生产通过。
+
+AGENT 始终运行在用户本地 Mac；网站与 PostgreSQL 当前同在这台 Mac，未来共同迁到网站服务器。这个网络位置变化不授予网站 AGENT 进程、浏览器或 Provider 的所有权。
+
+## 11. 删除式切换
+
+施工按产品垂直片区完成“新 Plugin + 网站发单/收单 + 领域 consumer + 旧路径删除”，禁止先造十二个空壳或保留兼容桥。全部消费者迁出后，必须物理删除：
+
+- `src/plugins/xuanxue-ai-production/**` 巨型 Plugin、旧 route、旧 workbench handle 和 re-export；
+- AGENT 手写 product-to-Stage topology、Stage scheduler、Profile、join/conversation map、本地网站 Stage 镜像；
+- product bundle/canary 产品准入；
+- 第二 worker、mediator、transport、queue、ledger、GPT Session Controller、通用 AI Gateway；
+- alias、adapter、fallback、compatibility、bridge、shadow、dual reader/writer。
+
+旧路径不得保留为历史可执行代码；历史只存在于 Git。不可逆点在 durable accept 或任何外部 mutation 之前。切换失败后只允许定点数据修复或向前修复，不恢复整个数据库，不重开旧主链。
+
+## 12. 验收
+
+静态检查必须证明：Catalog 恰好十二个 Plugin；每个 Plugin 恰好一份 Skill；五个确定性产品不在 Catalog；shared runtime 无产品语义；Mediator 无 Prompt/DOM/model/stage sequence；网站任务无执行字段；GPT 能力组恰好一份公共 Facade、一个 Session Controller、完整原子 child 分母；旧 `ai-input-gateway`、巨型 Plugin、Stage/Graph、product bundle/canary 和第二链物理为零。
+
+合同检查必须证明：双向 provider/dependency 身份匹配；网站 task/result 与 V6 各一份；AGENT Capability Manifest 一份；未知字段失败关闭；material、result、terminal、session/attestation 与 durable execution identity 精确绑定。
+
+动态证明必须先在真实 Chrome/ChatGPT 上逐项证明 GPT Target/Document、模型读取与必要切换、附件、Prompt、发送、回答、continuation/fork、标题和 fail-closed；再从网站正常 sender 创建十二条真实任务。每条均经历真实材料上传、AGENT claim、唯一 Plugin、真实 GPT/Browser、result artifact、网站 first-terminal、business-result-ready 和领域入库/发布。先以全新本地化任务证明范例，再完成其余十一条；不得用 fixture、HTTP 200、空队列或模拟结果代替。
+
+核心黑盒验收：从网站 Task 中完全删除 Stage、Prompt、Provider Profile、Conversation 与 Join，只保留业务类型、输入、授权和材料引用，AGENT 仍能完成产品。若失败，说明执行真相仍未回到 Product Plugin，验收固定 FAIL。
+
+恢复证明覆盖：重启、断网、lease/fence 丢失、UNKNOWN、Outbox 重放、result consumer 中断、续问并发、Plugin/Skill 升级、Plugin-local failure 与 shared-authority failure。每次恢复必须保持原任务、原幂等身份、原不可变执行版本和最多一次物理动作。

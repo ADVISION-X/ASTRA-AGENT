@@ -4,7 +4,6 @@
  * Responsibilities:
  *   - App run limit settings (file I/O).
  *   - User requirement history (file I/O).
- *   - Online AI provider settings are delegated to src/lib/online-ai.
  *
  * No mission truth, no AI truth, no forensics.
  */
@@ -87,4 +86,3 @@ export async function saveAppRunLimitSettings(
   await safeChmod(filePath);
   return updated;
 }
-

@@ -118,7 +118,6 @@ const resolveLibOwner = (repoPath: string): string | null => {
     ["src/lib/storage/", "storage"],
     ["src/lib/runtime-logs/", "runtime-logs"],
     ["src/lib/local-runtime/", "local-runtime"],
-    ["src/lib/online-ai/", "online-ai"],
   ]) ?? (repoPath.startsWith("src/lib/") ? "lib" : null);
 };
 

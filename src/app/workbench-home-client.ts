@@ -1,7 +1,7 @@
 import { WORKBENCH_HOME_SKILL_MAP_CLIENT } from "./workbench-home-skill-map-client.js";
 
 const WORKBENCH_HOME_CLIENT = `
-const state = { skill: "xuanxue-ai-production" };
+const state = { skill: "production-runtime" };
 
 ${WORKBENCH_HOME_SKILL_MAP_CLIENT}
 const qs = (selector) => document.querySelector(selector);
@@ -118,7 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
   qs("[data-sidebar-toggle]")?.addEventListener("click", () => document.body.classList.toggle("sidebar-collapsed"));
   qs("[data-inspector-toggle]")?.addEventListener("click", () => document.body.classList.toggle("inspector-collapsed"));
   qs("[data-refresh-shell]")?.addEventListener("click", refreshShell);
-  showSkill("xuanxue-ai-production");
+  showSkill("production-runtime");
   refreshShell();
 });
 `;

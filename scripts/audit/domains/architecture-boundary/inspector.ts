@@ -2,7 +2,6 @@ import { createFinding } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveArchitectureLawIds } from "./components/architecture-boundary-shared.js";
 import { inspectActivePluginGate } from "./components/scan-active-plugin-gate.js";
-import { inspectActivePluginMediators } from "./components/scan-active-plugin-mediators.js";
 import { inspectProjectSources } from "./components/scan-project-sources.js";
 import { inspectRootAllowlist } from "./components/scan-root-allowlist.js";
 import { inspectTypesContractRoot } from "./components/scan-types-contract-root.js";
@@ -24,20 +23,16 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
   run("inspectRootAllowlist", () => inspectRootAllowlist(findings, lawIds.rootLawId));
   run("inspectProjectSources", () => inspectProjectSources(context.project, findings, inspectedFiles, lawIds));
-  const activePluginGate = inspectActivePluginGate({
+  run("inspectActivePluginGate", () => {
+    const result = inspectActivePluginGate({
       lawId: lawIds.pluginStageLawId,
       project: context.project,
       inspectedFiles,
       targetPaths: context.targetPaths,
     });
-  findings.push(...activePluginGate.findings);
-  run("inspectActivePluginMediators", () => inspectActivePluginMediators({
-        entries: activePluginGate.activeContracts,
-        findings,
-        inspectedFiles,
-        lawId: lawIds.intakeLawId,
-        project: context.project,
-      }));
+    findings.push(...result.findings);
+    return result;
+  });
   run("inspectTypesContractRoot", () => inspectTypesContractRoot({
         findings,
         inspectedFiles,
@@ -73,7 +68,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     reportedLawIds: evaluation.reportedLawIds,
     lawResults: [{ lawId, assertions: [
       { clauses: staticClauses(0, 1, 2, 3, 4, 5, 6), evidenceMode: "static.ast", ...refs("static.ast", staticClauses(0, 1, 2, 3, 4, 5, 6), ["inspectProjectSources"]) },
-      { clauses: staticClauses(0), evidenceMode: "static.dependency", ...refs("static.dependency", staticClauses(0), ["inspectActivePluginMediators", "inspectProjectSources"]) },
+      { clauses: staticClauses(0), evidenceMode: "static.dependency", ...refs("static.dependency", staticClauses(0), ["inspectActivePluginGate", "inspectProjectSources"]) },
       { clauses: staticClauses(0), evidenceMode: "static.filesystem", ...refs("static.filesystem", staticClauses(0), ["inspectRootAllowlist"]) },
       { clauses: staticClauses(0), evidenceMode: "static.types", ...refs("static.types", staticClauses(0), ["inspectTypesContractRoot"]) },
     ], findings }],

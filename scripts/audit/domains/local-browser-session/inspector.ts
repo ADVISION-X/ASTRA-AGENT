@@ -13,7 +13,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   const lawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-001-V4");
   const mutationLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V9");
   const channelLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-002-V5");
-  const claimLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-003-V8");
+  const claimLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-003-V9");
   const releaseLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-005-V5");
   const opaqueLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-006-V3");
   const findings: InspectorFinding[] = [];
@@ -45,7 +45,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const semanticChecks = (lawId: string): string[] => ({
     "LAW-LOCAL-BROWSER-SESSION-001-V4": ["inspectSessionCore"],
     "LAW-LOCAL-BROWSER-SESSION-002-V5": ["inspectAuthenticatedChannelGuards", "inspectAutomaticPairingAndReload"],
-    "LAW-LOCAL-BROWSER-SESSION-003-V8": ["inspectAutomaticPairingAndReload", "inspectTargetClaimGuards"],
+    "LAW-LOCAL-BROWSER-SESSION-003-V9": ["inspectAutomaticPairingAndReload", "inspectTargetClaimGuards"],
     "LAW-LOCAL-BROWSER-SESSION-004-V9": ["inspectAtomicIfAndThenBoundary", "inspectCompactMutationRecoveryBoundary", "inspectRegistryAndMutationBoundary"],
     "LAW-LOCAL-BROWSER-SESSION-005-V5": ["inspectAutomaticPairingAndReload", "inspectReleaseAndRetiredPaths"],
     "LAW-LOCAL-BROWSER-SESSION-006-V3": ["inspectOpaqueAuthorityBoundary"],
@@ -68,7 +68,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     lawResults: [
       lawResult("LAW-LOCAL-BROWSER-SESSION-001-V4", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)),
       lawResult("LAW-LOCAL-BROWSER-SESSION-002-V5", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)),
-      lawResult("LAW-LOCAL-BROWSER-SESSION-003-V8", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-003-V9", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)),
       lawResult("LAW-LOCAL-BROWSER-SESSION-004-V9", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12), false),
       lawResult("LAW-LOCAL-BROWSER-SESSION-005-V5", staticClauses(0, 1, 2, 3, 4, 5, 6)),
       lawResult("LAW-LOCAL-BROWSER-SESSION-006-V3", staticClauses(0)),

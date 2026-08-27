@@ -3,20 +3,37 @@
   "capabilityDomain": "local-app-shell",
   "status": "active",
   "lawIds": [
-    "LAW-LOCAL-APP-SHELL-001-V5",
+    "LAW-LOCAL-APP-SHELL-001-V6",
     "LAW-LOCAL-APP-SHELL-002-V3",
-    "LAW-LOCAL-APP-SHELL-003-V2"
+    "LAW-LOCAL-APP-SHELL-003-V3"
   ],
   "ownedPaths": [
     "scripts/acceptance/local-app-shell.acceptance.ts",
     "scripts/acceptance/local-shell-current-runtime.dynamic.ts",
     "scripts/audit/domains/local-app-shell/**",
-    "src/lib/local-runtime/**"
+    "src/lib/local-runtime/contract.ts",
+    "src/lib/local-runtime/default-data-dir.ts",
+    "src/lib/local-runtime/settings-types.ts",
+    "src/lib/local-runtime/settings.ts",
+    "src/lib/local-runtime/structured-log-bus.ts",
+    "src/lib/local-runtime/structured-log-terminal.ts",
+    "src/lib/local-runtime/workbench-api-boundary-log.ts",
+    "src/lib/local-runtime/workbench-assembly.ts",
+    "src/lib/local-runtime/workbench-browser-authority-support.ts",
+    "src/lib/local-runtime/workbench-evidence-support.ts",
+    "src/lib/local-runtime/workbench-gpt-support.ts",
+    "src/lib/local-runtime/workbench-handle.ts",
+    "src/lib/local-runtime/workbench-launch-contract.ts",
+    "src/lib/local-runtime/workbench-production-runtime-handle.ts",
+    "src/lib/local-runtime/workbench-settings-handle.ts",
+    "src/lib/local-runtime/workbench-status-types.ts",
+    "src/lib/local-runtime/workbench-status.ts",
+    "src/lib/local-runtime/workbench.ts"
   ],
   "observedPaths": [
     "src/app/create-workbench-server.ts",
     "src/app/server.ts",
     "src/app/workbench-browser-websocket-upgrade.ts",
-    "src/plugins/xuanxue-ai-production/xuanxue-ai-production.workbench-owner.ts"
+    "src/lib/local-runtime/production/**"
   ]
 }

@@ -205,7 +205,10 @@ const assertDiagnosticShellHealth = async (port: number): Promise<void> => {
     components?: Array<{ name?: string; ok?: boolean; detail?: string }>;
   };
   assert.equal(health.status, "degraded");
-  assert.equal(health.components?.find((component) => component.name === "runtimeInitialization")?.ok, false);
+  assert.equal(health.components?.find((component) => component.name === "runtimeInitialization")?.ok, true);
+  assert.equal(health.components?.find((component) => component.name === "productionRuntimeShell")?.ok, true);
+  assert.equal(health.components?.find((component) => component.name === "agentCloudWorker")?.ok, false);
+  assert.equal(health.components?.find((component) => component.name === "productionRuntimeExecution")?.ok, false);
   const pairingResponse = await fetch(`http://127.0.0.1:${port}/api/browser-authority/pairing`, {
     headers: { [GRASSEYE_TOOL_EXTENSION_ID_HEADER]: GRASSEYE_UNPACKED_EXTENSION_ID },
   });
@@ -221,8 +224,8 @@ const verifyDiagnosticShellSurvivesExecutionDependencyFailure = async (): Promis
       GRASSEYE_DATA_DIR: dataDir,
       GRASSEYE_PORT: String(port),
       GRASSEYE_SOURCE_FINGERPRINT: `sha256:${"0".repeat(64)}`,
-      XUANXUE_AI_PRODUCTION_CLOUD_BASE_URL: "https://example.invalid",
-      XUANXUE_AI_PRODUCTION_CREDENTIAL_FILE: credentialFile,
+      AGENT_PRODUCTION_CLOUD_BASE_URL: "https://example.invalid",
+      AGENT_PRODUCTION_CREDENTIAL_FILE: credentialFile,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });

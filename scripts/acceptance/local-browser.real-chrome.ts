@@ -31,7 +31,7 @@ process.stdout.write(`${JSON.stringify({
 for (const [lawId, mode] of [
   ["LAW-LOCAL-BROWSER-SESSION-001-V4", "dynamic.browser"],
   ["LAW-LOCAL-BROWSER-SESSION-002-V5", "dynamic.browser"],
-  ["LAW-LOCAL-BROWSER-SESSION-003-V8", "dynamic.browser"],
+  ["LAW-LOCAL-BROWSER-SESSION-003-V9", "dynamic.browser"],
   ["LAW-LOCAL-BROWSER-SESSION-004-V9", "dynamic.storage"],
   ["LAW-LOCAL-BROWSER-SESSION-005-V5", "dynamic.browser"],
   ["LAW-LOCAL-BROWSER-SESSION-006-V3", "dynamic.browser"],

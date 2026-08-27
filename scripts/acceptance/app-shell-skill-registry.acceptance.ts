@@ -6,7 +6,7 @@ const registry = readFileSync("src/app/app-shell/skill-registry.ts", "utf8");
 const sidebar = readFileSync("src/app/app-shell/sidebar.ts", "utf8");
 
 for (const requiredId of [
-  'id: "xuanxue-ai-production"',
+  'id: "production-runtime"',
 ]) {
   assert(registry.includes(requiredId), `Skill Registry must include ${requiredId}.`);
 }

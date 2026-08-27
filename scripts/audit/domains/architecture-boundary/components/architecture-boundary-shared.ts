@@ -55,7 +55,7 @@ export const findPlannerToken = (sourceFile: ArchitectureSourceFile): string | u
 
 export const isPlannerScope = (repoPath: string): boolean =>
   repoPath.startsWith("src/plugins/") ||
-  repoPath.startsWith("src/capabilities/ai-input-gateway/") ||
+  repoPath.startsWith("src/capabilities/gpt/") ||
   repoPath.startsWith("src/mediator/");
 
 export const resolveArchitectureLawIds = (planEntry: InspectorContext["planEntry"]): ArchitectureLawIds => ({

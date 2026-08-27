@@ -1,4 +1,3 @@
-import type { OnlineAiProviderPublicStatus } from "../online-ai/index.js";
 import type { AppRunLimitSettings } from "./settings-types.js";
 import type {
   WorkbenchHealthReport,
@@ -6,11 +5,7 @@ import type {
   WorkbenchPreflightInput,
   WorkbenchPreflightResult,
 } from "./workbench-status-types.js";
-import type {
-  XuanxueAiProductionQuarantinedOrder,
-  XuanxueAiControlIntentProjection,
-  XuanxueAiOrderRecord,
-} from "../../plugins/xuanxue-ai-production/index.js";
+import type { StoredProductionTask } from "./production/store.js";
 
 export type GrassEyeWorkbenchHandle = {
   init: () => Promise<void>;
@@ -41,21 +36,9 @@ export type GrassEyeWorkbenchHandle = {
     input: WorkbenchPreflightInput,
   ) => Promise<WorkbenchPreflightResult>;
   getModeInfo: () => unknown;
-  readXuanxueAiProductionQuarantine: (
-    orderId: string,
-  ) => XuanxueAiProductionQuarantinedOrder | null;
-  readXuanxueAiProductionStatus: (orderId: string) => {
-    order: XuanxueAiOrderRecord;
-    controlIntent: XuanxueAiControlIntentProjection;
-  } | null;
+  readProductionTaskStatus: (jobId: string) => StoredProductionTask | null;
   getAppRunLimitSettings: () => Promise<AppRunLimitSettings>;
   saveAppRunLimitSettings: (
     input: Pick<AppRunLimitSettings, "defaultMaxRounds" | "defaultMaxMinutes">,
   ) => Promise<AppRunLimitSettings>;
-  getOnlineAiProviderSettings: () => Promise<OnlineAiProviderPublicStatus>;
-  saveOnlineAiProviderSettings: (input: {
-    displayName?: string | null;
-    apiKey: string;
-    modelName?: string | null;
-  }) => Promise<OnlineAiProviderPublicStatus>;
 };

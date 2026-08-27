@@ -1,4 +1,4 @@
-import type { StructuredRuntimeEvent } from "../../types/structured-log.js";
+import type { StructuredRuntimeEvent } from "../runtime-logs/structured-log-contract.js";
 import type { StructuredLogEntry, StructuredLogListener } from "./structured-log-bus.js";
 
 type StructuredLogLevel = "info" | "debug";

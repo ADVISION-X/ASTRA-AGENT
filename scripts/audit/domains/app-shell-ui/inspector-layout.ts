@@ -15,8 +15,8 @@ const paths = {
   runtime: "src/app/app-shell/runtime-console.ts",
   sidebar: "src/app/app-shell/sidebar.ts",
   styles: "src/app/app-shell/app-shell-styles.ts",
-  workspace: "src/app/app-shell/xuanxue-ai-production-workspace.ts",
-  xuanxueClient: "src/app/workbench-xuanxue-ai-production-client.ts",
+  workspace: "src/app/app-shell/production-runtime-workspace.ts",
+  productionClient: "src/app/workbench-production-runtime-client.ts",
 } as const;
 
 const styleModulePaths = [
@@ -139,19 +139,16 @@ export const inspectAppShellLayout = (
     [paths.appShell, sources.appShell, "data-app-shell", "app-shell-ui/root-marker"],
     [paths.layout, sources.layout, "data-workspace-page-nav", "app-shell-ui/workspace-nav"],
     [paths.layout, sources.layout, "data-workspace-surface", "app-shell-ui/workspace-surface"],
-    [paths.workspace, sources.workspace, "data-skill-workspace", "app-shell-ui/xuanxue-workspace"],
-    [paths.workspace, sources.workspace, "data-xuanxue-status", "app-shell-ui/xuanxue-status"],
-    [paths.workspace, sources.workspace, "data-xuanxue-pause", "app-shell-ui/xuanxue-pause"],
-    [paths.workspace, sources.workspace, "data-xuanxue-cancel", "app-shell-ui/xuanxue-cancel"],
-    [paths.workspace, sources.workspace, "data-xuanxue-takeover", "app-shell-ui/xuanxue-takeover"],
-    [paths.workspace, sources.workspace, "data-xuanxue-resume", "app-shell-ui/xuanxue-resume"],
+    [paths.workspace, sources.workspace, "data-skill-workspace", "app-shell-ui/production-workspace"],
+    [paths.workspace, sources.workspace, "appShellProductionPluginSupport", "app-shell-ui/catalog-projection"],
+    [paths.workspace, sources.workspace, "data-production-status", "app-shell-ui/production-status"],
     [paths.inspector, sources.inspector, "data-app-shell-inspector", "app-shell-ui/right-inspector"],
     [paths.runtime, sources.runtime, "data-runtime-console", "app-shell-ui/runtime-console"],
     [paths.sidebar, sources.sidebar, "data-skill-registry", "app-shell-ui/sidebar-registry"],
     [paths.appShell, sources.appShell, "inspector-collapsed", "app-shell-ui/inspector-closed"],
     [paths.client, sources.client, "openInspector", "app-shell-ui/client-inspector"],
     [paths.client, sources.client, "resetInspector", "app-shell-ui/client-inspector-reset"],
-    [paths.xuanxueClient, sources.xuanxueClient, "/api/xuanxue-ai-production/", "app-shell-ui/xuanxue-client"],
+    [paths.productionClient, sources.productionClient, "/api/production-runtime/status", "app-shell-ui/production-client"],
   ] as const) {
     requireToken({ findings, lawId, repoPath, sourceFile, token, checkId });
   }
