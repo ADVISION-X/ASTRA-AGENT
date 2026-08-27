@@ -69,7 +69,6 @@ function startServer(): ReturnType<typeof createServer> {
 
 async function startLocalRuntime(): Promise<void> {
   const server = startServer();
-  process.stdout.write(`GrassEye local workbench listening on ${baseUrl}\n`);
   const shutdown = async (): Promise<void> => {
     await workbench.shutdown();
     await new Promise<void>((resolve) => server.close(() => resolve()));
@@ -83,16 +82,11 @@ async function startLocalRuntime(): Promise<void> {
   // The diagnostic shell is independently available. A Cloud/credential/provider
   // failure blocks execution and claim admission, but must not terminate health,
   // pairing diagnostics, or operator recovery surfaces.
-  await workbench.init().catch((error) => {
-    const message = error instanceof Error ? error.message : String(error);
-    process.stderr.write(`GrassEye execution dependencies blocked: ${message}\n`);
-  });
+  await workbench.init().catch(() => undefined);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  startLocalRuntime().catch((error) => {
-    const message = error instanceof Error ? error.message : String(error);
-    process.stderr.write(`GrassEye local runtime startup failed: ${message}\n`);
+  startLocalRuntime().catch(() => {
     process.exitCode = 1;
   });
 }

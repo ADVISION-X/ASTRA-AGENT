@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
-import { Project } from "ts-morph";
+import { directOutputViolations } from "../audit/domains/runtime-log-spine/inspector.js";
 
-import { resolveCallsInSourceFile } from "../audit/domains/runtime-log-spine/ast/ast-call-resolver.js";
-
-const project = new Project({ useInMemoryFileSystem: true });
-const aliasMutant = project.createSourceFile("/src/alias-mutant.ts", "const escaped = console.error; escaped('secret');\n");
-const unrelated = project.createSourceFile("/src/unrelated.ts", "const consoleLike = { error: (_v: string) => undefined }; consoleLike.error('ok');\n");
-assert.ok(resolveCallsInSourceFile(aliasMutant, "src/alias-mutant.ts").some((call) => call.kind === "console-call"));
-assert.ok(resolveCallsInSourceFile(unrelated, "src/unrelated.ts").every((call) => call.kind !== "console-call"));
-console.log("runtime-log-spine-ast-anti-escape-acceptance-ok");
+assert.deepEqual(directOutputViolations("const escaped = console.error; escaped('secret');\n", "src/alias-mutant.ts"), [1]);
+assert.deepEqual(directOutputViolations("process['stderr'].write('secret');\n", "src/dynamic-mutant.ts"), [1]);
+assert.deepEqual(directOutputViolations("const method = 'error'; console[method]('secret');\n", "src/computed-mutant.ts"), [1]);
+assert.deepEqual(directOutputViolations("const c = console; c.error('secret');\n", "src/alias-object-mutant.ts"), [1]);
+assert.deepEqual(directOutputViolations("const { error } = console; error('secret');\n", "src/destructure-mutant.ts"), [1]);
+assert.deepEqual(directOutputViolations("const { stdout } = process; stdout.write('secret');\n", "src/process-destructure-mutant.ts"), [1]);
+assert.deepEqual(directOutputViolations("const p = process; p.stderr.write('secret');\n", "src/process-alias-mutant.ts"), [1]);
+assert.deepEqual(directOutputViolations("const c = globalThis.console; c.error('secret');\n", "src/global-console-mutant.ts"), [1]);
+assert.deepEqual(directOutputViolations("globalThis['process']['stderr']['write']('secret');\n", "src/global-process-mutant.ts"), [1]);
+assert.deepEqual(directOutputViolations("const consoleLike = { error: (_v: string) => undefined }; consoleLike.error('ok');\n", "src/unrelated.ts"), []);
+process.stdout.write("[ACCEPTANCE] runtime-log-spine-anti-escape PASS\n");

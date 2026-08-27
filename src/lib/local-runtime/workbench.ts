@@ -19,6 +19,7 @@ import type {
 } from "./workbench-status-types.js";
 import { buildProductionRuntimeHandle } from "./workbench-production-runtime-handle.js";
 import { startProductionRuntime, type ProductionRuntimeHandle } from "./production/runtime.js";
+import { requireRuntimeLogWrite } from "../runtime-logs/index.js";
 
 const buildWorkbenchHandle = (
   assembly: WorkbenchAssembly,
@@ -78,6 +79,8 @@ export class GrassEyeWorkbench {
     status: "initializing",
     failureReason: null,
   };
+  private producerLifecycle: "starting" | "ready" | "stopping" | "stopped" = "starting";
+  private shellLifecycle: "starting" | "ready" | "failed" | "stopped" = "starting";
 
   constructor(private readonly options: GrassEyeWorkbenchOptions) {}
 
@@ -105,6 +108,7 @@ export class GrassEyeWorkbench {
           gpt: assembly.gptAbilityGroup,
           browserAuthority: assembly.browserAuthority,
           sourceHash: requireSourceCandidateHash(),
+          runtimeLogger: assembly.runtimeLogger,
         });
       }
       const productionRuntime = this.productionRuntime;
@@ -116,12 +120,30 @@ export class GrassEyeWorkbench {
         () => this.initializationState,
       );
       this.initializationState = { status: "ready", failureReason: null };
+      const traceId = `producer:${assembly.runtimeLogger.producerRunId}`;
+      requireRuntimeLogWrite(assembly.runtimeLogger.emitState({
+        traceId, stateKey: "agent.shell", previous: "starting", current: "ready",
+      }));
+      this.shellLifecycle = "ready";
+      requireRuntimeLogWrite(assembly.runtimeLogger.emitState({
+        traceId, stateKey: "producer.lifecycle", previous: "starting", current: "ready",
+      }));
+      this.producerLifecycle = "ready";
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       this.initializationState = {
         status: "failed",
         failureReason: reason.slice(0, 1_000),
       };
+      if (this.assembly) {
+        requireRuntimeLogWrite(this.assembly.runtimeLogger.emitState({
+          traceId: `producer:${this.assembly.runtimeLogger.producerRunId}`,
+          stateKey: "agent.shell",
+          previous: "starting",
+          current: "failed",
+        }));
+        this.shellLifecycle = "failed";
+      }
       throw error;
     }
   }
@@ -129,11 +151,38 @@ export class GrassEyeWorkbench {
   async shutdown(): Promise<void> {
     const productionRuntime = this.productionRuntime;
     const assembly = this.assembly;
+    if (assembly) {
+      requireRuntimeLogWrite(assembly.runtimeLogger.emitState({
+        traceId: `producer:${assembly.runtimeLogger.producerRunId}`,
+        stateKey: "producer.lifecycle",
+        previous: this.producerLifecycle,
+        current: "stopping",
+      }));
+      this.producerLifecycle = "stopping";
+    }
     this.activeHandle = null;
     this.productionRuntime = null;
     this.assembly = null;
-    await productionRuntime?.close().catch(() => undefined);
-    await assembly?.browserAuthority.shutdown().catch(() => undefined);
+    const cleanupErrors: unknown[] = [];
+    await productionRuntime?.close().catch((error) => { cleanupErrors.push(error); });
+    await assembly?.browserAuthority.shutdown().catch((error) => { cleanupErrors.push(error); });
+    if (assembly) {
+      requireRuntimeLogWrite(assembly.runtimeLogger.emitState({
+        traceId: `producer:${assembly.runtimeLogger.producerRunId}`,
+        stateKey: "agent.shell",
+        previous: this.shellLifecycle,
+        current: cleanupErrors.length === 0 ? "stopped" : "failed",
+      }));
+      this.shellLifecycle = cleanupErrors.length === 0 ? "stopped" : "failed";
+      requireRuntimeLogWrite(assembly.runtimeLogger.emitState({
+        traceId: `producer:${assembly.runtimeLogger.producerRunId}`,
+        stateKey: "producer.lifecycle",
+        previous: "stopping",
+        current: "stopped",
+      }));
+      this.producerLifecycle = "stopped";
+    }
+    if (cleanupErrors[0] !== undefined) throw cleanupErrors[0];
   }
 
   createHandle(): GrassEyeWorkbenchHandle {

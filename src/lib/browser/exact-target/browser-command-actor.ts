@@ -2,10 +2,15 @@ import { createHash } from "node:crypto";
 import type { BrowserCommandPermit } from "../transport/command-permit.js";
 import { assertValidCommandPermit } from "../transport/command-permit.js";
 import { BrowserCommandAdmissionBudget } from "../transport/browser-command-admission-budget.js";
-import type { RuntimeLogger } from "../../runtime-logs/index.js";
+import { requireRuntimeLogWrite, withRuntimeLogCause, type RuntimeLogger } from "../../runtime-logs/index.js";
 import type { BrowserDomIntent } from "./browser-dom-intent.js";
 import { assertBrowserDomIntent } from "./browser-dom-intent.js";
-import { emitBrowserCommandCompleted, emitBrowserCommandFailed, emitBrowserCommandStarted } from "./browser-command-runtime-logging.js";
+import {
+  completeBrowserCommandSpan,
+  emitBrowserMutationState,
+  failBrowserCommandSpan,
+  startBrowserCommandSpan,
+} from "./browser-command-runtime-logging.js";
 import { BrowserMutationStore, type BrowserMutationIdentity } from "./browser-mutation-store.js";
 import { assertPluginOutcomeResolution, type BrowserOutcomeResolutionReceipt } from "./browser-outcome-resolver.js";
 
@@ -82,15 +87,21 @@ const assertMutationReply = (command: BrowserGovernedCommand, result: unknown): 
   const value = result && typeof result === "object" ? result as Record<string, unknown> : {};
   const retained = command.intent.kind === "fill" && value.retainedValueVerified === true;
   const postcondition = command.intent.kind === "click"
-    && Boolean(command.intent.postClickAttribute) && value.postconditionVerified === true;
+    && Boolean(command.intent.postClickAttribute ?? command.intent.postClickMatch)
+    && value.postconditionVerified === true;
   if (value.candidateCount !== 1 || value.identityRevalidated !== true || value.mutationCount !== 1
     || (command.intent.kind === "fill" && !retained)
-    || (command.intent.kind === "click" && command.intent.postClickAttribute && !postcondition)) {
+    || (command.intent.kind === "click"
+      && (command.intent.postClickAttribute ?? command.intent.postClickMatch)
+      && !postcondition)) {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
 };
 
 export class BrowserCommandActor {
+  private readonly pendingCommandSpans = new Map<string, ReturnType<typeof startBrowserCommandSpan>>();
+  private readonly executionStates = new Map<string, "idle" | "busy" | "failed" | "review_required">();
+
   public constructor(
     private readonly budget: BrowserCommandAdmissionBudget,
     private readonly port: BrowserCommandPort,
@@ -114,9 +125,8 @@ export class BrowserCommandActor {
   }
 
   public async execute(permit: BrowserCommandPermit, command: BrowserGovernedCommand): Promise<unknown> {
-    const startedAt = performance.now();
-    const beforeHash = hashValue([permit.targetRef, permit.documentRef]);
-    emitBrowserCommandStarted({ runtimeLogger: this.runtimeLogger, permit, beforeHash });
+    const commandSpan = startBrowserCommandSpan(this.runtimeLogger, permit);
+    this.emitExecutionState(permit.jobId, "busy");
     const mutation = isMutation(command);
     let budgetEntered = false;
     let prepared = false;
@@ -129,8 +139,17 @@ export class BrowserCommandActor {
       if (mutation) {
         this.mutations.prepare(mutationIdentity(permit, command));
         prepared = true;
+        emitBrowserMutationState({
+          runtimeLogger: this.runtimeLogger, mutation: permit, previous: null, current: "PREPARED",
+          authorityHash: this.mutations.authorityHash(permit.commandId),
+        });
         this.authorityGuard.assertCurrentAuthority(permit);
         this.mutations.markSent(permit.commandId);
+        sent = true;
+        emitBrowserMutationState({
+          runtimeLogger: this.runtimeLogger, mutation: permit, previous: "PREPARED", current: "SENT",
+          authorityHash: this.mutations.authorityHash(permit.commandId),
+        });
       }
       sent = true;
       const reply = await this.port.send(permit, command);
@@ -138,31 +157,51 @@ export class BrowserCommandActor {
       this.authorityGuard.assertCurrentAuthority(permit);
       if (mutation) {
         assertMutationReply(command, reply.result);
-        this.mutations.markUnknown(permit.commandId, "awaiting owning-plugin postcondition", hashValue(reply.result));
+        const replyHash = hashValue(reply.result);
+        this.mutations.markUnknown(permit.commandId, "awaiting owning-plugin postcondition", replyHash);
+        emitBrowserMutationState({
+          runtimeLogger: this.runtimeLogger, mutation: permit, previous: "SENT", current: "UNKNOWN",
+          authorityHash: this.mutations.authorityHash(permit.commandId),
+        });
       }
-      const durationMs = Math.max(0, performance.now() - startedAt);
       if (mutation) {
-        emitBrowserCommandFailed({
-          runtimeLogger: this.runtimeLogger, permit, beforeHash, afterHash: hashValue(reply.result),
-          durationMs, failureCode: "BROWSER_OUTCOME_UNKNOWN", outcomeUnknown: true,
-        });
+        this.pendingCommandSpans.set(permit.commandId, commandSpan);
+        this.emitExecutionState(permit.jobId, "review_required");
       } else {
-        emitBrowserCommandCompleted({
-          runtimeLogger: this.runtimeLogger, permit, beforeHash, afterHash: hashValue(reply.result), durationMs,
-        });
+        completeBrowserCommandSpan({ span: commandSpan });
+        this.emitExecutionState(permit.jobId, "idle");
       }
       return reply.result;
     } catch (error) {
       const code = failureCode(mutation, sent, error);
       if (mutation && prepared) {
-        if (sent) this.mutations.markUnknown(permit.commandId, code);
-        else this.mutations.markFailedBeforeSend(permit.commandId, code);
+        if (sent) {
+          this.mutations.markUnknown(permit.commandId, code);
+          emitBrowserMutationState({
+            runtimeLogger: this.runtimeLogger, mutation: permit, previous: "SENT", current: "UNKNOWN",
+            authorityHash: this.mutations.authorityHash(permit.commandId),
+          });
+        } else {
+          this.mutations.markFailedBeforeSend(permit.commandId, code);
+          emitBrowserMutationState({
+            runtimeLogger: this.runtimeLogger, mutation: permit, previous: "PREPARED", current: "FAILED",
+            authorityHash: this.mutations.authorityHash(permit.commandId),
+          });
+        }
       }
-      emitBrowserCommandFailed({
-        runtimeLogger: this.runtimeLogger, permit, beforeHash, afterHash: hashValue(code),
-        durationMs: Math.max(0, performance.now() - startedAt), failureCode: code,
-        outcomeUnknown: code === "BROWSER_OUTCOME_UNKNOWN",
-      });
+      if (code === "BROWSER_OUTCOME_UNKNOWN") this.pendingCommandSpans.set(permit.commandId, commandSpan);
+      else {
+        const failureEvent = failBrowserCommandSpan({
+          span: commandSpan,
+          permit,
+          proofHash: mutation && prepared ? this.mutations.authorityHash(permit.commandId) : hashValue(code),
+          failureCode: code,
+          outcomeUnknown: false,
+        });
+        this.emitExecutionState(permit.jobId, "failed");
+        throw withRuntimeLogCause(new Error(code, { cause: error }), failureEvent.eventId);
+      }
+      this.emitExecutionState(permit.jobId, "review_required");
       throw new Error(code, { cause: error });
     } finally {
       if (budgetEntered) this.budget.leave();
@@ -185,5 +224,50 @@ export class BrowserCommandActor {
       state: receipt.outcome === "TERMINAL_SUCCESS" ? "CONFIRMED" : "FAILED",
       proofHash: hashValue(receipt),
     });
+    const authorityHash = this.mutations.authorityHash(receipt.commandId);
+    emitBrowserMutationState({
+      runtimeLogger: this.runtimeLogger,
+      mutation: entry,
+      previous: "UNKNOWN",
+      current: receipt.outcome === "TERMINAL_SUCCESS" ? "CONFIRMED" : "FAILED",
+      authorityHash,
+    });
+    const span = this.pendingCommandSpans.get(receipt.commandId);
+    if (span) {
+      if (receipt.outcome === "TERMINAL_SUCCESS") {
+        requireRuntimeLogWrite(span.terminal({
+          outcome: "success",
+          authorityRef: `browser-mutation:${receipt.commandId}`,
+          authorityHash,
+        }));
+      } else {
+        failBrowserCommandSpan({
+          span,
+          permit: {
+            commandId: entry.commandId,
+            jobId: entry.jobId,
+            mutationClass: "mutation",
+          },
+          proofHash: authorityHash,
+          failureCode: "BROWSER_MUTATION_TERMINAL_FAILED",
+          outcomeUnknown: false,
+        });
+      }
+      this.pendingCommandSpans.delete(receipt.commandId);
+      this.emitExecutionState(entry.jobId, receipt.outcome === "TERMINAL_SUCCESS" ? "idle" : "failed");
+    }
+  }
+
+  private emitExecutionState(jobId: string, current: "idle" | "busy" | "failed" | "review_required"): void {
+    const previous = this.executionStates.get(jobId) ?? null;
+    requireRuntimeLogWrite(this.runtimeLogger.emitState({
+      traceId: jobId,
+      owner: "browser-session",
+      component: "browser-command",
+      stateKey: "browser.execution",
+      previous,
+      current,
+    }));
+    this.executionStates.set(jobId, current);
   }
 }

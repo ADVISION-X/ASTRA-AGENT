@@ -1,4 +1,15 @@
 export const GPT_PROFILE_TRIGGER_SELECTOR = "main button[aria-haspopup='menu']:not([aria-label])";
+export const GPT_PROFILE_POPUP_SELECTOR = "[data-radix-popper-content-wrapper]";
+export const GPT_PROFILE_DIAGNOSTIC_SELECTOR = [
+  "[data-testid*='model']",
+  "[id*='model']",
+  "[data-testid*='switcher']",
+  "[id*='switcher']",
+  "[aria-label*='模型']",
+  "[aria-label*='GPT']",
+  "[aria-label*='ChatGPT']",
+  "[aria-haspopup]",
+].join(",");
 export const GPT_ADVANCED_CLOSED_SELECTOR = "[role='menuitem'][aria-label='显示高级选项']";
 export const GPT_MODEL_SUBMENU_SELECTOR = "[role='menuitem'][aria-haspopup='menu']";
 export const GPT_PROFILE_CHOICE_SELECTOR = "[role='menuitemradio']";

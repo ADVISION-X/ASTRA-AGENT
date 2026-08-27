@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 
 import {
+  buildGptExecutionProfile,
   createGptAbilityGroup,
   type GptChildCapabilityId,
 } from "../../src/capabilities/gpt/index.js";
@@ -171,6 +172,127 @@ assert.equal(atomicDelegation.status, "success");
 assert.equal(atomicDelegationFixture.documentCalls(), 1,
   "the public Facade must delegate the Child's one owned observation without hidden before/after DOM reads");
 
+let cleanChatFindCall = 0;
+const cleanChatFixture = fakeBrowser((intent) => {
+  if (intent.kind === "document") return documentResult;
+  if (intent.kind !== "find") throw new Error(`UNEXPECTED_INTENT:${intent.kind}`);
+  cleanChatFindCall += 1;
+  if (cleanChatFindCall === 1) {
+    assert.deepEqual(intent.waitFor, { minimumMatches: 1, timeoutMs: 5_000 },
+      "clean-chat verification must issue one bounded composer-readiness observation");
+    return { count: 1 };
+  }
+  assert.equal(intent.waitFor, undefined, "zero-state assertions must remain immediate after composer readiness");
+  return { count: 0 };
+});
+const cleanChat = await execute("verify_clean_gpt_chat", cleanChatFixture.browser, {});
+assert.equal(cleanChat.status, "success");
+
+const profile = buildGptExecutionProfile({
+  profileRef: "acceptance:gpt-profile",
+  accountCapabilityRef: "acceptance:account-capability",
+  modelDisplayName: "GPT-5.6 Sol",
+  modelFamily: "gpt-5.6",
+  reasoningTier: "pro_standard",
+  executorIdentityRef: "acceptance:executor",
+  acceptanceRef: "acceptance:gpt-exact-target",
+  acceptanceVersion: "v1",
+});
+let profileFindCall = 0;
+const profileDiagnosticFixture = fakeBrowser((intent) => {
+  if (intent.kind === "document") return documentResult;
+  if (intent.kind !== "find") throw new Error(`UNEXPECTED_INTENT:${intent.kind}`);
+  profileFindCall += 1;
+  if (profileFindCall === 1) return { count: 0, matches: [] };
+  if (profileFindCall === 2) return { count: 0 };
+  if (profileFindCall === 3) {
+    assert.deepEqual(intent.waitFor, { minimumMatches: 1, timeoutMs: 5_000 },
+      "profile selection must wait for the independently hydrated model trigger");
+    return { count: 0 };
+  }
+  if (profileFindCall === 4) return { count: 0 };
+  assert.deepEqual(intent.fields, ["id", "tagName", "role", "ariaLabel", "ariaExpanded", "testId", "text"]);
+  return {
+    count: 1,
+    matches: [{
+      id: "model-switcher",
+      tagName: "BUTTON",
+      role: "button",
+      ariaLabel: "模型选择器",
+      ariaExpanded: "false",
+      testId: "model-switcher-dropdown-button",
+      text: "GPT-5.6",
+    }],
+  };
+});
+const profileDiagnostic = await execute("open_gpt_model_selector", profileDiagnosticFixture.browser, { profile });
+assert.equal(profileDiagnostic.status, "review_required");
+assert.match(profileDiagnostic.failureCode ?? "", /visible=model-switcher~model-switcher-dropdown-button~BUTTON~button~/u);
+assert.equal(profileDiagnosticFixture.physicalMutations(), 0,
+  "profile drift diagnostics must stay observation-only");
+
+let profileOpenCall = 0;
+const profileOpenProofFixture = fakeBrowser((intent) => {
+  if (intent.kind === "document") return documentResult;
+  profileOpenCall += 1;
+  if (profileOpenCall === 1 && intent.kind === "find") {
+    return { count: 1, matches: [{ role: "", ariaChecked: "", ariaExpanded: "false", text: "Pro" }] };
+  }
+  if (profileOpenCall === 2 && intent.kind === "find") return { count: 0 };
+  if (profileOpenCall === 3 && intent.kind === "find") return { count: 1 };
+  if (profileOpenCall === 4 && intent.kind === "click") {
+    assert.deepEqual(intent.postClickMatch, {
+      selector: "[data-radix-popper-content-wrapper]", expectedMatches: 1, timeoutMs: 5_000,
+    }, "the profile-menu mutation must directly prove a zero-to-one visible owned popup transition");
+    return { clicked: true, postClickAttributeVerified: true };
+  }
+  throw new Error(`UNEXPECTED_PROFILE_OPEN_INTENT:${intent.kind}:${profileOpenCall}`);
+});
+const profileOpenProof = await execute("open_gpt_model_selector", profileOpenProofFixture.browser, { profile });
+assert.equal(profileOpenProof.status, "success");
+assert.equal(profileOpenProofFixture.physicalMutations(), 1,
+  "opening the profile menu must remain one physical mutation");
+
+let profileChoiceFindCall = 0;
+const profileChoiceDriftFixture = fakeBrowser((intent) => {
+  if (intent.kind === "document") return documentResult;
+  if (intent.kind !== "find") throw new Error(`UNEXPECTED_INTENT:${intent.kind}`);
+  profileChoiceFindCall += 1;
+  if (profileChoiceFindCall === 2) {
+    assert.equal(intent.selector, "[role],button");
+    assert.equal(intent.textContains, "GPT-5.6");
+    return { count: 0, matches: [] };
+  }
+  if (profileChoiceFindCall === 3) {
+    assert.equal(intent.selector, "[role='menuitem'],[role='menuitemradio'],[role='option'],[role='radio']");
+    return {
+      count: 1,
+      matches: [{
+        id: "radix-model-pro",
+        tagName: "DIV",
+        role: "menuitem",
+        ariaLabel: "",
+        ariaExpanded: "",
+        testId: "model-switcher-gpt-5-6-pro",
+        text: "GPT-5.6 Pro",
+      }],
+    };
+  }
+  return {
+    count: 2,
+    matches: [
+      { role: "menuitem", ariaChecked: "", ariaExpanded: "", text: "GPT-5.6" },
+      { role: "menuitem", ariaChecked: "", ariaExpanded: "", text: "GPT-5.6 Thinking" },
+    ],
+  };
+});
+const profileChoiceDrift = await execute("select_exact_gpt_model", profileChoiceDriftFixture.browser, { profile });
+assert.equal(profileChoiceDrift.status, "review_required");
+assert.match(profileChoiceDrift.failureCode ?? "", /visible=radix-model-pro~model-switcher-gpt-5-6-pro~DIV~menuitem/u);
+assert.match(profileChoiceDrift.failureCode ?? "", /surface=menuitem~~~GPT-5.6\|menuitem~~~GPT-5.6%20Thinking/u);
+assert.equal(profileChoiceDriftFixture.physicalMutations(), 0,
+  "choice-role drift must remain observation-only");
+
 for (const candidateCount of [0, 2]) {
   const fixture = fakeBrowser((intent) => intent.kind === "document" ? documentResult : { count: candidateCount });
   const result = await execute("open_gpt_attachment_control", fixture.browser, {});
@@ -301,6 +423,6 @@ for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"
     evidenceMode,
     clauses,
     locator: `acceptance:gpt:${evidenceMode}`,
-    observedValue: "43 exact children, no hidden Facade DOM reads, 0/1/many candidates, long prompt, exact attachments, document drift, UNKNOWN no-replay, and checkpoint-safe title failure passed",
+    observedValue: "43 exact children, bounded clean-chat composer readiness, no hidden Facade DOM reads, 0/1/many candidates, long prompt, exact attachments, document drift, UNKNOWN no-replay, and checkpoint-safe title failure passed",
   });
 }

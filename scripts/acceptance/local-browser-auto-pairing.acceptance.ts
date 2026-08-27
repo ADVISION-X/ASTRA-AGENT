@@ -10,6 +10,8 @@ import {
   type WorkbenchPairingState,
 } from "../../src/lib/browser/chrome-extension/pairing-auto-bootstrap.js";
 import { ExtensionTargetAuthority } from "../../src/lib/browser/chrome-extension/extension-target-authority.js";
+import { executeRegisteredDomIntent } from "../../src/lib/browser/chrome-extension/dom-intent-runtime.js";
+import type { ExtensionDebuggerRuntime } from "../../src/lib/browser/chrome-extension/debugger-runtime.js";
 import type { ExtensionChromeApi } from "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
 import { GPT_WEB_START_URL, requireGptWebPolicyForUrl } from "../../src/lib/browser/exact-target/browser-site-policy-registry.js";
 import { BrowserAuthorityBroker } from "../../src/lib/browser/infrastructure/browser-authority-broker.js";
@@ -182,6 +184,7 @@ let getTargetsCalls = 0;
 let attachFailureTabId: number | null = null;
 const attachedTabs: number[] = [];
 const removedTabs: number[] = [];
+const mainFrameUrlByTab = new Map<number, string>();
 const targetFrames: Array<Readonly<{ kind: "TARGET_CLAIM" | "TARGET_REVOKE"; body: Record<string, unknown> }>> = [];
 const targetChromeApi: ExtensionChromeApi = {
   runtime: chromeApi.runtime,
@@ -193,7 +196,7 @@ const targetChromeApi: ExtensionChromeApi = {
     detach: async () => undefined,
     getTargets: async () => { getTargetsCalls += 1; return []; },
     sendCommand: async ({ tabId }, method) => method === "Page.getFrameTree"
-      ? { frameTree: { frame: { loaderId: `loader-${tabId}`, url: "https://chatgpt.com/" } } }
+      ? { frameTree: { frame: { loaderId: `loader-${tabId}`, url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/" } } }
       : {},
     onDetach: { addListener: () => undefined },
     onEvent: { addListener: (listener) => { debuggerEvent = listener; } },
@@ -226,17 +229,84 @@ assert.equal(targetFrames[0]?.kind, "TARGET_CLAIM");
 assert.equal(targetFrames[0]?.body.url, "https://chatgpt.com/");
 await targetAuthority.releaseActiveTarget(false);
 
+let delayedComposerQueries = 0;
+const delayedComposerRuntime = {
+  async send(_tabId: number, method: string) {
+    if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
+    if (method === "DOM.querySelectorAll") {
+      delayedComposerQueries += 1;
+      return { nodeIds: delayedComposerQueries < 3 ? [] : [7] };
+    }
+    if (method === "DOM.getBoxModel") return { model: { content: [0, 0, 10, 0, 10, 10, 0, 10] } };
+    throw new Error(`UNEXPECTED_DELAYED_COMPOSER_METHOD:${method}`);
+  },
+} as ExtensionDebuggerRuntime;
+const delayedComposer = await executeRegisteredDomIntent(
+  delayedComposerRuntime,
+  { tabId: 99 } as never,
+  { kind: "find", selector: "#prompt-textarea", maxMatches: 2, waitFor: { minimumMatches: 1, timeoutMs: 500 } },
+) as Readonly<{ count: number }>;
+assert.equal(delayedComposer.count, 1, "one bounded find command must observe a composer that appears after ChatGPT hydration");
+assert.equal(delayedComposerQueries, 3, "bounded readiness must stop immediately after its predicate is satisfied");
+
+const missingComposerRuntime = {
+  async send(_tabId: number, method: string) {
+    if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
+    if (method === "DOM.querySelectorAll") return { nodeIds: [] };
+    throw new Error(`UNEXPECTED_MISSING_COMPOSER_METHOD:${method}`);
+  },
+} as ExtensionDebuggerRuntime;
+const missingComposer = await executeRegisteredDomIntent(
+  missingComposerRuntime,
+  { tabId: 100 } as never,
+  { kind: "find", selector: "#prompt-textarea", maxMatches: 2, waitFor: { minimumMatches: 1, timeoutMs: 1 } },
+) as Readonly<{ count: number }>;
+assert.equal(missingComposer.count, 0, "bounded readiness timeout must preserve a zero-candidate fail-closed result");
+
+let lateTextDescribeCalls = 0;
+const lateTextRuntime = {
+  async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
+    if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
+    if (method === "DOM.querySelectorAll") return { nodeIds: Array.from({ length: 25 }, (_, index) => index + 2) };
+    if (method === "DOM.describeNode") {
+      lateTextDescribeCalls += 1;
+      const nodeId = Number(parameters?.nodeId);
+      return { node: {
+        nodeId,
+        backendNodeId: nodeId + 100,
+        nodeName: "BUTTON",
+        attributes: [],
+        children: [{ nodeValue: nodeId === 26 ? "GPT-5.6" : `unrelated-${nodeId}` }],
+      } };
+    }
+    if (method === "DOM.getBoxModel") return { model: { content: [0, 0, 10, 0, 10, 10, 0, 10] } };
+    throw new Error(`UNEXPECTED_LATE_TEXT_METHOD:${method}`);
+  },
+} as ExtensionDebuggerRuntime;
+const lateTextMatch = await executeRegisteredDomIntent(
+  lateTextRuntime,
+  { tabId: 101 } as never,
+  { kind: "find", selector: "button", textContains: "GPT", maxMatches: 2, fields: ["text"] },
+) as Readonly<{ count: number; matches: readonly Readonly<{ text: string }>[] }>;
+assert.deepEqual(lateTextMatch, { count: 1, matches: [{ text: "GPT-5.6" }] },
+  "text identity must be filtered before the output cardinality bound so later exact controls are not hidden by unrelated DOM order");
+assert.ok(lateTextDescribeCalls > 20, "the regression fixture must place the exact control beyond the old pre-filter cutoff");
+
 const secondAcquisition = targetAuthority.acquireJobBoundChatGptTarget();
 await Promise.resolve();
-targetTabUpdated(4, { status: "complete" }, { id: 4, url: "https://chatgpt.com/", title: "ChatGPT" });
+targetTabUpdated(4, { status: "complete" }, { id: 4, title: "ChatGPT" });
 await secondAcquisition;
 assert.equal(attachedTabs.at(-1), 4, "every turn must create and attach its own new task tab");
+assert.equal(targetFrames.at(-1)?.body.url, "https://chatgpt.com/",
+  "the debugger-owned main frame must prove the exact origin when Chrome redacts tab.url without tabs permission");
 await targetAuthority.releaseActiveTarget(false);
 
 const rejectedOrigin = targetAuthority.acquireJobBoundChatGptTarget();
 await Promise.resolve();
+mainFrameUrlByTab.set(5, "https://example.com/");
 targetTabUpdated(5, { status: "complete" }, { id: 5, url: "https://example.com/", title: "Wrong Origin" });
 await assert.rejects(rejectedOrigin, /BROWSER_ORIGIN_REJECTED/u);
+assert.equal(Number(attachedTabs.at(-1)), 5, "origin verification may attach only to the exact tab just created for this job");
 assert.ok(removedTabs.includes(5), "a rejected task-owned page must be removed");
 
 attachFailureTabId = 6;
@@ -288,7 +358,7 @@ emitQualityProofObservation({
   evidenceMode: "exam.golden",
   clauses: ["forbidden:1", "forbidden:13", "forbidden:2", "forbidden:3", "summary"],
   locator: "acceptance:local-browser-terminal:job-target-golden",
-  observedValue: "each accepted acquisition creates one background ChatGPT page, waits for completion and exact origin before claim, never enumerates operator tabs, and removes rejected or conflicted task pages",
+  observedValue: "each accepted acquisition creates one background ChatGPT page, tolerates Chrome-redacted tab metadata, verifies the debugger-owned main-frame exact origin before claim, never enumerates operator tabs, and removes rejected or conflicted task pages",
 });
 emitQualityProofObservation({
   passed: true,

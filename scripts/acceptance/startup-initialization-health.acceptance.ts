@@ -13,6 +13,8 @@ import { GRASSEYE_TOOL_EXTENSION_ID_HEADER } from "../../src/app/workbench-api-b
 import { GRASSEYE_UNPACKED_EXTENSION_ID } from "../../src/lib/browser/release/unpacked-extension-release-identity.js";
 import { clearPortListeners } from "../startup/lib/process-control.mjs";
 import { waitForWorkbenchHealth } from "../startup/lib/service-readiness.mjs";
+import { createStartupLogHelpers } from "../startup/lib/startup-log-helpers.mjs";
+import { diagnoseRuntimeLog } from "../../src/lib/runtime-logs/index.js";
 
 const waitForChildReady = (child: ChildProcess): Promise<void> => new Promise((resolve, reject) => {
   let output = "";
@@ -145,7 +147,7 @@ const verifySingleLocalEnvironmentInjection = async (): Promise<void> => {
   };
   assert.equal(
     packageJson.scripts?.["grasseye:start"],
-    "node --env-file-if-exists=.env.local scripts/startup/launch-grasseye.mjs",
+    "node --import tsx --env-file-if-exists=.env.local scripts/startup/launch-grasseye.mjs",
     "the sole startup command must make the enrolled cloud worker configuration available without a second environment loader",
   );
   const launcher = await readFile("scripts/startup/launch-grasseye.mjs", "utf8");
@@ -282,12 +284,38 @@ const verifyUnpackedWebSocketPreflight = async (): Promise<void> => {
   assert.equal(preflight.failureReason, "BROWSER_CHROME_PROFILE_READBACK_NOT_PRODUCTION_VERIFIED");
 };
 
+const verifyStartupFailureClosesExactSteps = async (): Promise<void> => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), "grasseye-startup-log-"));
+  const runId = "startup-failure-acceptance";
+  try {
+    const logs = createStartupLogHelpers({ runId, dataDir });
+    logs.startStartupStep("update_preflight_check");
+    logs.startStartupStep("dependency_update");
+    logs.failOpenStartupSteps(new Error("DEPENDENCY_UPDATE_FAILED"));
+    logs.logStartupStopped();
+    const diagnosis = diagnoseRuntimeLog({
+      sources: [path.join(dataDir, "runtime-logs")],
+      traceId: `startup:${runId}`,
+    });
+    assert.deepEqual(diagnosis.openSpans, []);
+    assert.deepEqual(diagnosis.interruptedSpans, []);
+    assert.equal(diagnosis.blockingRoots.length, 1);
+    assert.equal(diagnosis.blockingRoots[0]?.operation, "startup.step");
+    assert.equal(diagnosis.blockingRoots[0]?.code, "STARTUP_DEPENDENCY_UPDATE_FAILED");
+    assert.equal(diagnosis.consequentialFailures.length, 1);
+    assert.equal(diagnosis.consequentialFailures[0]?.causedByEventId, diagnosis.blockingRoots[0]?.eventId);
+  } finally {
+    await rm(dataDir, { recursive: true, force: true });
+  }
+};
+
 export async function runStartupInitializationHealthAcceptance(): Promise<void> {
   await verifySingleLocalEnvironmentInjection();
   await verifyInitializationHealth();
   await verifyDiagnosticShellSurvivesExecutionDependencyFailure();
   await verifyStartupEntrypointAcceptsDiagnosticShell();
   await verifyUnpackedWebSocketPreflight();
+  await verifyStartupFailureClosesExactSteps();
   await verifyRepositoryOwnedPortCleanup();
 }
 

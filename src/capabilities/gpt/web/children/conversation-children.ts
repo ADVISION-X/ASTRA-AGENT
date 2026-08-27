@@ -35,7 +35,11 @@ export const conversationChildHandlers = {
   async verify_clean_gpt_chat(intent, context) {
     requireExactInputKeys(intent, []);
     const browser = requireBrowser(context);
-    const composer = await findCount(browser, { selector: GPT_COMPOSER_SELECTOR, maxMatches: 2 });
+    const composer = await findCount(browser, {
+      selector: GPT_COMPOSER_SELECTOR,
+      maxMatches: 2,
+      waitFor: { minimumMatches: 1, timeoutMs: 5_000 },
+    });
     const turns = await findCount(browser, { selector: GPT_USER_TURN_SELECTOR, maxMatches: 20 });
     const attachments = await findCount(browser, { selector: GPT_ATTACHMENT_REGION_SELECTOR, maxMatches: 2 });
     const generating = await findCount(browser, { selector: GPT_GENERATING_STOP_SELECTOR, maxMatches: 2 });

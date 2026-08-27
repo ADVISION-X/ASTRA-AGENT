@@ -3,17 +3,27 @@
   "capabilityDomain": "runtime-log-spine",
   "status": "active",
   "lawIds": [
-    "LAW-RUNTIME-LOG-SPINE-001-V3",
-    "LAW-RUNTIME-LOG-SPINE-002-V3",
-    "LAW-RUNTIME-LOG-SPINE-003-V3"
+    "LAW-RUNTIME-LOG-SPINE-001-V4",
+    "LAW-RUNTIME-LOG-SPINE-002-V4",
+    "LAW-RUNTIME-LOG-SPINE-003-V4"
   ],
   "ownedPaths": [
-    "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
+    "docs/blueprints/runtime-log-spine/RUNTIME-LOG-SPINE-V2-BLUEPRINT.md",
+    "docs/specs/runtime-log-spine/**",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
     "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
-    "scripts/acceptance/runtime-log-stage-pair.acceptance.ts",
+    "scripts/acceptance/runtime-log-spine-failure-matrix.acceptance.ts",
+    "scripts/acceptance/runtime-log-spine-v2.acceptance.ts",
     "scripts/audit/domains/runtime-log-spine/**",
+    "scripts/runtime-logs/**",
     "src/lib/runtime-logs/**"
   ],
-  "observedPaths": []
+  "observedPaths": [
+    "scripts/startup/**",
+    "src/app/**",
+    "src/capabilities/**",
+    "src/lib/browser/**",
+    "src/lib/local-runtime/**",
+    "src/plugins/**"
+  ]
 }

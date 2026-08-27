@@ -1,5 +1,3 @@
-import { writeStartupFailureBundle } from "./startup-failure-bundle.mjs";
-
 const FAILURE_ACTIONS = [
   [/BROWSER_PROFILE_ENROLLMENT_MISSING/i, "Complete the explicit browserctl profile enrollment with the required bootstrap inputs; startup does not install or enroll Browser Runtime."],
   [/BROWSER_UNPACKED_|BROWSER_PAIRING_|BROWSER_AUTHENTICATION_INCOMPLETE/i, "Rebuild the fixed unpacked extension, manually Reload it, complete a fresh pairing and repair only the one loopback WebSocket chain."],
@@ -18,23 +16,10 @@ const actionableForFailure = (failureReason) =>
   FAILURE_ACTIONS.find(([pattern]) => pattern.test(failureReason))?.[1]
   ?? "Inspect startup structured logs and rerun npm run grasseye:start.";
 
-export async function createStartupFailureReport({
-  rootDir,
-  runId,
-  baseUrl,
-  failureReason,
-}) {
+export async function createStartupFailureReport({ failureReason }) {
   const ownerResponsible = ownerForFailure(failureReason);
   const actionableMessage = actionableForFailure(failureReason);
-  const bundleDir = await writeStartupFailureBundle({
-    rootDir,
-    runId,
-    baseUrl,
-    failureReason,
-    ownerResponsible,
-    actionableMessage,
-  });
-  return { bundleDir, ownerResponsible, actionableMessage };
+  return { ownerResponsible, actionableMessage };
 }
 
 export async function handleStartupBootstrapFailure({
@@ -42,16 +27,13 @@ export async function handleStartupBootstrapFailure({
   runId,
   baseUrl,
   failureReason,
-  logFail,
+  failOpenStartupSteps,
+  failStartupStep,
   shutdown,
 }) {
-  const failureReport = await createStartupFailureReport({ rootDir, runId, baseUrl, failureReason });
-  logFail("STARTUP", "startup_entrypoint", "bootstrap_failed", "failed", "startup bootstrap failed", {
-    failureReason,
-    refs: [`startupFailureBundle=${failureReport.bundleDir}`],
-    ownerResponsible: failureReport.ownerResponsible,
-    actionableMessage: failureReport.actionableMessage,
-  });
+  const failureReport = await createStartupFailureReport({ failureReason });
+  const failedOpenSteps = failOpenStartupSteps(new Error(failureReason));
+  if (failedOpenSteps.length === 0) failStartupStep("bootstrap_failed", new Error(failureReason));
   await shutdown("SIGTERM");
   process.exitCode = 1;
 }

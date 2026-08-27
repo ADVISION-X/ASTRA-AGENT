@@ -13,6 +13,8 @@ import {
   GPT_MODEL_LABEL,
   GPT_MODEL_SUBMENU_SELECTOR,
   GPT_PROFILE_CHOICE_SELECTOR,
+  GPT_PROFILE_DIAGNOSTIC_SELECTOR,
+  GPT_PROFILE_POPUP_SELECTOR,
   GPT_PROFILE_TRIGGER_SELECTOR,
   GPT_REASONING_LABEL,
   reasoningTierUiLabel,
@@ -26,6 +28,16 @@ type ProfileNode = Readonly<{
   role: string;
   ariaChecked: string;
   ariaExpanded: string;
+  text: string;
+}>;
+
+type ProfileDiagnosticNode = Readonly<{
+  id: string;
+  tagName: string;
+  role: string;
+  ariaLabel: string;
+  ariaExpanded: string;
+  testId: string;
   text: string;
 }>;
 
@@ -67,21 +79,127 @@ const selectedChoice = (surface: readonly ProfileNode[]): ProfileNode | null => 
   return selected[0] ?? null;
 };
 
+const diagnosticToken = (value: string): string =>
+  encodeURIComponent(value.replace(/\s+/gu, " ").trim().slice(0, 160));
+
+const profileSurfaceSummary = (surface: readonly ProfileNode[]): string =>
+  surface.length === 0 ? "none" : surface.map((node) => [
+    node.role,
+    node.ariaChecked,
+    node.ariaExpanded,
+    node.text,
+  ].map(diagnosticToken).join("~")).join("|");
+
+const diagnosticMatches = (result: unknown): readonly ProfileDiagnosticNode[] => {
+  if (!result || typeof result !== "object" || Array.isArray(result)
+    || !Array.isArray((result as { matches?: unknown }).matches)) return [];
+  return (result as { matches: unknown[] }).matches.flatMap((value): ProfileDiagnosticNode[] => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+    const item = value as Record<string, unknown>;
+    if (typeof item.id !== "string" || typeof item.tagName !== "string"
+      || typeof item.role !== "string" || typeof item.ariaLabel !== "string"
+      || typeof item.ariaExpanded !== "string" || typeof item.testId !== "string"
+      || typeof item.text !== "string") return [];
+    return [{
+      id: item.id,
+      tagName: item.tagName,
+      role: item.role,
+      ariaLabel: item.ariaLabel,
+      ariaExpanded: item.ariaExpanded,
+      testId: item.testId,
+      text: item.text,
+    }];
+  });
+};
+
+const diagnosticNodeSummary = (matches: readonly ProfileDiagnosticNode[]): string => {
+  if (matches.length === 0) return "none";
+  return matches.slice(0, 8).map((node) => [
+    node.id,
+    node.testId,
+    node.tagName,
+    node.role,
+    node.ariaLabel,
+    node.ariaExpanded,
+    node.text,
+  ].map(diagnosticToken).join("~")).join("|");
+};
+
+const diagnosticSummary = async (browser: BrowserTargetLease): Promise<string> => {
+  const fields = ["id", "tagName", "role", "ariaLabel", "ariaExpanded", "testId", "text"] as const;
+  const candidates = [
+    { selector: GPT_PROFILE_DIAGNOSTIC_SELECTOR },
+    { selector: "[id],[data-testid],[aria-label]", textContains: "GPT" },
+    { selector: "[id],[data-testid],[aria-label]", textContains: "5.6" },
+  ] as const;
+  let result: unknown = null;
+  for (const candidate of candidates) {
+    const observed = await browser.executeDomIntent({
+      kind: "find",
+      selector: candidate.selector,
+      ...("textContains" in candidate ? { textContains: candidate.textContains } : {}),
+      maxMatches: 20,
+      fields,
+    });
+    result = observed;
+    if (observed && typeof observed === "object" && !Array.isArray(observed)
+      && Array.isArray((observed as { matches?: unknown }).matches)
+      && (observed as { matches: unknown[] }).matches.length > 0) break;
+  }
+  return diagnosticNodeSummary(diagnosticMatches(result));
+};
+
+const choiceDiagnosticSummary = async (
+  browser: BrowserTargetLease,
+  exactText: string,
+): Promise<string> => {
+  const fields = ["id", "tagName", "role", "ariaLabel", "ariaExpanded", "testId", "text"] as const;
+  const primaryText = exactText.startsWith("GPT-") ? exactText.split(/\s+/u)[0]! : exactText;
+  const candidates = [
+    { selector: "[role],button", textContains: primaryText },
+    { selector: "[role='menuitem'],[role='menuitemradio'],[role='option'],[role='radio']" },
+    { selector: "[role],button", textContains: "GPT" },
+  ] as const;
+  for (const candidate of candidates) {
+    const observed = await browser.executeDomIntent({
+      kind: "find",
+      selector: candidate.selector,
+      ...("textContains" in candidate ? { textContains: candidate.textContains } : {}),
+      maxMatches: 20,
+      fields,
+    });
+    const matches = diagnosticMatches(observed);
+    if (matches.length > 0) return diagnosticNodeSummary(matches);
+  }
+  return "none";
+};
+
 const openSelectorOneMutation = async (
   browser: BrowserTargetLease,
   label: string,
 ) => {
   const surface = await nodes(browser);
-  if (surface.some((node) => node.role === "menuitemradio")) return success({
+  const popupCount = await findCount(browser, { selector: GPT_PROFILE_POPUP_SELECTOR, maxMatches: 2 });
+  if (popupCount === 1) return success({
     value: { state: "choices-open" }, candidateCount: 1,
-    observedSemantics: ["profile choices already open"], committedMutation: "no",
+    observedSemantics: ["one visible profile popup already open"], committedMutation: "no",
   });
-  const triggerCount = await findCount(browser, { selector: GPT_PROFILE_TRIGGER_SELECTOR, maxMatches: 2 });
+  if (popupCount > 1) throw new Error(`review_required:GPT_EXECUTION_PROFILE_POPUP_COUNT_${popupCount}`);
+  const triggerCount = await findCount(browser, {
+    selector: GPT_PROFILE_TRIGGER_SELECTOR,
+    maxMatches: 2,
+    waitFor: { minimumMatches: 1, timeoutMs: 5_000 },
+  });
   if (triggerCount === 1 && !surface.some((node) => node.ariaExpanded === "true")) {
-    await browser.executeDomIntent({ kind: "click", selector: GPT_PROFILE_TRIGGER_SELECTOR, expectedMatches: 1 });
+    await browser.executeDomIntent({
+      kind: "click",
+      selector: GPT_PROFILE_TRIGGER_SELECTOR,
+      expectedMatches: 1,
+      postClickMatch: { selector: GPT_PROFILE_POPUP_SELECTOR, expectedMatches: 1, timeoutMs: 5_000 },
+    });
     return success({
       value: { state: "profile-menu-open" }, candidateCount: 1,
-      observedSemantics: ["one profile trigger", "menu opening dispatched"], committedMutation: "yes",
+      observedSemantics: ["one profile trigger", "zero-to-one visible profile popup"], committedMutation: "yes",
     });
   }
   const advanced = await findCount(browser, { selector: GPT_ADVANCED_CLOSED_SELECTOR, maxMatches: 2 });
@@ -93,7 +211,10 @@ const openSelectorOneMutation = async (
     });
   }
   const parents = summary(surface, label);
-  if (parents.length !== 1) throw new Error(`review_required:GPT_EXECUTION_PROFILE_${label}_CONTROL_COUNT_${parents.length}`);
+  if (parents.length !== 1) {
+    const diagnostics = await diagnosticSummary(browser);
+    throw new Error(`review_required:GPT_EXECUTION_PROFILE_${label}_CONTROL_COUNT_${parents.length}:visible=${diagnostics}`);
+  }
   await browser.executeDomIntent({
     kind: "click", selector: GPT_MODEL_SUBMENU_SELECTOR,
     expectedText: label, expectedMatches: 1,
@@ -111,7 +232,10 @@ const selectExactChoice = async (
   const surface = await nodes(browser);
   const matching = surface.filter((node) => node.role === "menuitemradio"
     && normalized(node.text) === normalized(exactText));
-  if (matching.length !== 1) throw new Error(`review_required:GPT_EXECUTION_PROFILE_CHOICE_COUNT_${matching.length}`);
+  if (matching.length !== 1) {
+    const diagnostics = await choiceDiagnosticSummary(browser, exactText);
+    throw new Error(`review_required:GPT_EXECUTION_PROFILE_CHOICE_COUNT_${matching.length}:visible=${diagnostics}:surface=${profileSurfaceSummary(surface)}`);
+  }
   if (matching[0]!.ariaChecked === "true") return success({
     value: { exactText, state: "already-selected" }, candidateCount: 1,
     observedSemantics: ["one exact choice already selected"], committedMutation: "no",

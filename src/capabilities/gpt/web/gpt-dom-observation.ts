@@ -28,6 +28,7 @@ export const findCount = async (
     textContains?: string;
     textEquals?: string;
     scopeSelector?: string;
+    waitFor?: Readonly<{ minimumMatches: number; timeoutMs: number }>;
   }>,
 ): Promise<number> => {
   const value = record(await browser.executeDomIntent({
@@ -37,6 +38,7 @@ export const findCount = async (
     ...(input.textContains === undefined ? {} : { textContains: input.textContains }),
     ...(input.textEquals === undefined ? {} : { textEquals: input.textEquals }),
     ...(input.scopeSelector === undefined ? {} : { scope: { selector: input.scopeSelector } }),
+    ...(input.waitFor === undefined ? {} : { waitFor: input.waitFor }),
   }));
   if (!Number.isInteger(value.count) || (value.count as number) < 0) {
     throw new Error("review_required:GPT_DOM_RESULT_INVALID");

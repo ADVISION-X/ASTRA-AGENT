@@ -32,6 +32,7 @@ const fenceHeaders = (job: ClaimedProductionTask): Record<string, string> => ({
 export async function claimProductionTasks(
   session: ProductionWorkerSession,
   limit: number,
+  requestId = `aipclaim_${randomUUID()}`,
 ): Promise<Readonly<{
   outcome: "LEASE_GRANTED" | "NO_ELIGIBLE_JOB" | "CAPACITY_ZERO" | "CLAIM_BLOCKED" | "DRAINING";
   jobs: readonly ClaimedProductionTask[];
@@ -43,7 +44,7 @@ export async function claimProductionTasks(
   const request = {
     schema_version: "xuanxue-ai-claim-request.v6",
     control_protocol_version: "xuanxue-ai-production-v6",
-    request_id: `aipclaim_${randomUUID()}`,
+    request_id: requestId,
     worker_session_id: session.workerSessionId,
     worker_session_epoch: session.workerSessionEpoch,
     requested_limit: limit,
@@ -306,7 +307,7 @@ export async function terminalProductionTask(
   return response;
 }
 
-const sendPendingWrite = async (
+export const sendProductionOutboxWrite = async (
   session: ProductionWorkerSession,
   write: ProductionOutboxWrite,
 ): Promise<void> => {
@@ -327,13 +328,3 @@ const sendPendingWrite = async (
     body: typeof write.body === "string" ? write.body : Buffer.from(write.body).toString("utf8"),
   });
 };
-
-export async function flushProductionOutbox(
-  session: ProductionWorkerSession,
-  store: ProductionRuntimeStore,
-): Promise<void> {
-  for (const write of store.pendingOutbox()) {
-    await sendPendingWrite(session, write);
-    store.markOutboxSent(write.idempotency_key);
-  }
-}

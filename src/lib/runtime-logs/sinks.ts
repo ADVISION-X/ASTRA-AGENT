@@ -1,105 +1,193 @@
-// Runtime Log Spine — Sinks
-// Terminal sink: display-only real-time relay.
-// File debug bundle sink: full structured JSONL bundle.
-// Neither sink is persistence truth. Forensics governs final truth.
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { basename, join } from "node:path";
 
-import { appendFileSync, mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { isEventVisibleInMode, type RuntimeLogMode } from "./mode.js";
+import { runtimeEventIntegrityValid } from "./integrity.js";
+import { runtimeLogEventShapeValid, type RuntimeLogEventV2 } from "./schema.js";
 
-import type { RuntimeLogEvent } from "./schema.js";
-import type { RuntimeLogMode } from "./mode.js";
-import { isEventVisibleInMode } from "./mode.js";
-import { redactRuntimeLogEvent } from "./redaction.js";
+export type RuntimeFileSinkOptions = Readonly<{
+  directoryPath: string;
+  maxTotalBytes?: number;
+}>;
 
-// ─── Terminal Sink ───────────────────────────────────────────────────────────
+export type RuntimeFileSink = Readonly<{
+  write(event: RuntimeLogEventV2): void;
+  currentPath(): string;
+}>;
 
-function appendRecordParts<TValue>(
-  parts: string[],
-  record: Record<string, TValue> | undefined,
-  render: (key: string, value: TValue) => string,
-): void {
-  if (!record) {
-    return;
-  }
-  for (const [key, value] of Object.entries(record)) {
-    parts.push(render(key, value));
-  }
-}
+const DEFAULT_MAX_TOTAL_BYTES = 2 * 1024 * 1024 * 1024;
+const SEGMENTS_PER_CAPACITY = 16;
+const safeToken = (value: string): string => value.replace(/[^A-Za-z0-9_.-]/gu, "-");
+const runIdFromPath = (path: string): string | null => /^(.+)-[0-9]{4}\.jsonl$/u.exec(basename(path))?.[1] ?? null;
 
-function appendDebugParts(parts: string[], event: RuntimeLogEvent): void {
-  appendRecordParts(parts, event.preview, (key, value) => `${key}=${JSON.stringify(value).slice(0, 80)}`);
-  appendRecordParts(parts, event.hashes, (key, value) => `${key}=${value.slice(0, 16)}…`);
-  appendRecordParts(parts, event.refs, (key, value) => `${key}=${value}`);
-}
-
-function formatFlowTerminalLine(base: string, event: RuntimeLogEvent): string {
-  const suffix = event.status ? ` status=${event.status}` : "";
-  const mission = event.missionId ? ` mission=${event.missionId.slice(0, 8)}` : "";
-  return `${base}${mission}${suffix}`;
-}
-
-function appendCoreParts(parts: string[], event: RuntimeLogEvent): void {
-  const coreParts = [
-    event.missionId ? `mission=${event.missionId.slice(0, 8)}` : null,
-    event.traceId ? `trace=${event.traceId.slice(0, 8)}` : null,
-    event.status ? `status=${event.status}` : null,
-    event.reason ? `reason=${event.reason}` : null,
-    event.durationMs !== undefined ? `durationMs=${event.durationMs}` : null,
-    event.actionableMessage ? `=> ${event.actionableMessage}` : null,
-  ];
-  for (const part of coreParts) {
-    if (part) {
-      parts.push(part);
-    }
-  }
-}
-
-function formatTerminalLine(event: RuntimeLogEvent, mode: RuntimeLogMode): string {
-  const ts = event.createdAt.slice(11, 23); // HH:mm:ss.sss
-  const level = event.level.toUpperCase().padEnd(5);
-  const base = `[${ts}] ${level} [${event.owner}] ${event.eventType}`;
-
-  if (mode === "FLOW") {
-    return formatFlowTerminalLine(base, event);
-  }
-
-  const parts: string[] = [base];
-  appendCoreParts(parts, event);
-
-  if (mode === "TRACE" || mode === "DEBUG") {
-    appendDebugParts(parts, event);
-  }
-
-  return parts.join(" | ");
-}
-
-export function writeTerminalSink(event: RuntimeLogEvent, activeMode: RuntimeLogMode): void {
-  const redactedEvent = redactRuntimeLogEvent(event);
-  if (!isEventVisibleInMode(redactedEvent.modeVisibility, activeMode)) return;
-  const line = formatTerminalLine(redactedEvent, activeMode);
-  process.stdout.write(line + "\n");
-}
-
-// ─── File Debug Bundle Sink ──────────────────────────────────────────────────
-
-export type FileSinkOptions = {
-  bundlePath: string; // e.g. tmp/runtime-logs/<runId>.jsonl
-  redact?: boolean;   // default true
+const segmentFiles = (directoryPath: string): string[] => {
+  if (!existsSync(directoryPath)) return [];
+  return readdirSync(directoryPath)
+    .filter((name) => name.endsWith(".jsonl"))
+    .map((name) => join(directoryPath, name))
+    .sort((left, right) => statSync(left).mtimeMs - statSync(right).mtimeMs || left.localeCompare(right));
 };
 
-export function writeFileSink(
-  event: RuntimeLogEvent,
-  options: FileSinkOptions,
-): void {
-  const shouldRedact = options.redact !== false;
-  const serializable = shouldRedact ? redactRuntimeLogEvent(event) : event;
+type RunState = {
+  files: string[];
+  invalid: boolean;
+  openSpans: Set<string>;
+  openJobs: Set<string>;
+  openMutations: Set<string>;
+  pendingOutbox: Set<string>;
+  reconciledJobs: Set<string>;
+  reconciledLeases: Set<string>;
+  reconciledCheckpoints: Set<string>;
+  sealed: boolean;
+};
 
-  const line = JSON.stringify(serializable) + "\n";
+const initialRunState = (): RunState => ({
+  files: [], invalid: false, openSpans: new Set(), openJobs: new Set(), openMutations: new Set(),
+  pendingOutbox: new Set(), reconciledJobs: new Set(), reconciledLeases: new Set(),
+  reconciledCheckpoints: new Set(), sealed: false,
+});
 
-  try {
-    mkdirSync(dirname(options.bundlePath), { recursive: true });
-    appendFileSync(options.bundlePath, line, "utf8");
-  } catch {
-    // File sink failure must NOT crash the mission. Log nothing else here.
+const updateProtection = (state: RunState, event: RuntimeLogEventV2): void => {
+  state.sealed = event.type === "STATE"
+    && event.stateKey === "producer.lifecycle"
+    && event.current === "stopped";
+  if (event.type === "SPAN") {
+    if (event.phase === "started") state.openSpans.add(event.spanId);
+    else state.openSpans.delete(event.spanId);
+    return;
   }
-}
+  if (event.stateKey === "job.lifecycle") {
+    const key = event.traceId;
+    if (event.reconciledFromAuthority === true) {
+      if (["accepted", "running", "recovery_pending"].includes(event.current)) state.reconciledJobs.add(key);
+      else state.reconciledJobs.delete(key);
+    }
+    if (["completed", "failed", "review_required"].includes(event.current)) state.openJobs.delete(key);
+    else state.openJobs.add(key);
+  }
+  if (event.stateKey === "job.lease" && event.reconciledFromAuthority === true) {
+    state.reconciledLeases.add(event.traceId);
+  }
+  if (event.stateKey === "job.checkpoint" && event.reconciledFromAuthority === true) {
+    state.reconciledCheckpoints.add(event.traceId);
+  }
+  if (event.stateKey === "browser.mutation") {
+    const key = event.authorityRef ?? event.traceId;
+    if (["CONFIRMED", "FAILED"].includes(event.current)) state.openMutations.delete(key);
+    else state.openMutations.add(key);
+  }
+  if (event.stateKey === "outbox.delivery") {
+    const key = event.authorityRef ?? event.traceId;
+    if (event.current === "delivered") state.pendingOutbox.delete(key);
+    else state.pendingOutbox.add(key);
+  }
+};
+
+const scanRuns = (files: readonly string[]): Map<string, RunState> => {
+  const runs = new Map<string, RunState>();
+  for (const file of files) {
+    const fileRunId = runIdFromPath(file);
+    if (!fileRunId) continue;
+    const state = runs.get(fileRunId) ?? initialRunState();
+    runs.set(fileRunId, state);
+    state.files.push(file);
+  }
+  for (const [fileRunId, state] of runs) {
+    let previous: RuntimeLogEventV2 | null = null;
+    for (const file of [...state.files].sort((left, right) => left.localeCompare(right))) {
+      for (const line of readFileSync(file, "utf8").split("\n").filter(Boolean)) {
+      let parsed: unknown;
+      try { parsed = JSON.parse(line) as unknown; }
+      catch { state.invalid = true; continue; }
+      if (!runtimeLogEventShapeValid(parsed)
+        || safeToken(parsed.producerRunId) !== fileRunId
+        || !runtimeEventIntegrityValid(parsed)
+        || parsed.producerSeq !== (previous?.producerSeq ?? 0) + 1
+        || parsed.previousEventHash !== (previous?.eventHash ?? null)) {
+        state.invalid = true;
+        continue;
+      }
+      updateProtection(state, parsed);
+      previous = parsed;
+      }
+    }
+  }
+  return runs;
+};
+
+const eligibleRun = (state: RunState): boolean => state.sealed && !state.invalid
+  && state.openSpans.size === 0 && state.openJobs.size === 0
+  && state.openMutations.size === 0 && state.pendingOutbox.size === 0
+  && [...state.reconciledJobs].every((jobId) =>
+    state.reconciledLeases.has(jobId) && state.reconciledCheckpoints.has(jobId));
+
+const freeCapacity = (directoryPath: string, currentRunId: string, requiredBytes: number, maxTotalBytes: number): void => {
+  let files = segmentFiles(directoryPath);
+  let used = files.reduce((total, file) => total + statSync(file).size, 0);
+  if (used + requiredBytes <= maxTotalBytes) return;
+  const candidates = [...scanRuns(files).entries()]
+    .filter(([runId, state]) => runId !== safeToken(currentRunId) && eligibleRun(state))
+    .sort(([, left], [, right]) => statSync(left.files[0]!).mtimeMs - statSync(right.files[0]!).mtimeMs);
+  for (const [, state] of candidates) {
+    for (const file of state.files) rmSync(file);
+    files = segmentFiles(directoryPath);
+    used = files.reduce((total, file) => total + statSync(file).size, 0);
+    if (used + requiredBytes <= maxTotalBytes) return;
+  }
+  throw new Error("RUNTIME_LOG_CAPACITY_BLOCKED");
+};
+
+export const createRuntimeFileSink = (
+  producer: string,
+  producerRunId: string,
+  options: RuntimeFileSinkOptions,
+): RuntimeFileSink => {
+  const directoryPath = join(options.directoryPath, safeToken(producer));
+  const maxTotalBytes = options.maxTotalBytes ?? DEFAULT_MAX_TOTAL_BYTES;
+  if (!Number.isInteger(maxTotalBytes) || maxTotalBytes < 1) throw new Error("RUNTIME_LOG_CAPACITY_INVALID");
+  const segmentBytes = Math.max(1, Math.floor(maxTotalBytes / SEGMENTS_PER_CAPACITY));
+  mkdirSync(directoryPath, { recursive: true });
+  const prefix = `${safeToken(producerRunId)}-`;
+  const writerLockPath = join(directoryPath, `${safeToken(producerRunId)}.writer.lock`);
+  try {
+    writeFileSync(writerLockPath, `${process.pid}\n`, { encoding: "utf8", flag: "wx", flush: true });
+  } catch {
+    throw new Error("RUNTIME_LOG_PRODUCER_RUN_MULTI_WRITER");
+  }
+  const existingSegments = segmentFiles(directoryPath)
+    .map((path) => basename(path))
+    .filter((name) => name.startsWith(prefix))
+    .map((name) => Number(name.slice(prefix.length, -".jsonl".length)))
+    .filter(Number.isInteger);
+  let segment = Math.max(1, ...existingSegments);
+  const pathFor = (): string => join(directoryPath, `${prefix}${String(segment).padStart(4, "0")}.jsonl`);
+
+  return {
+    currentPath: pathFor,
+    write(event) {
+      const line = `${JSON.stringify(event)}\n`;
+      const bytes = Buffer.byteLength(line);
+      const currentBytes = existsSync(pathFor()) ? statSync(pathFor()).size : 0;
+      if (currentBytes > 0 && currentBytes + bytes > segmentBytes) segment += 1;
+      freeCapacity(directoryPath, producerRunId, bytes, maxTotalBytes);
+      appendFileSync(pathFor(), line, { encoding: "utf8", flush: true });
+    },
+  };
+};
+
+export const writeTerminalSink = (event: RuntimeLogEventV2, activeMode: RuntimeLogMode): void => {
+  if (isEventVisibleInMode(event.visibility, activeMode)) process.stdout.write(`${JSON.stringify(event)}\n`);
+};
+
+export const writeEmergencyTerminalSink = (event: RuntimeLogEventV2): void => {
+  process.stderr.write(`${JSON.stringify(event)}\n`);
+};

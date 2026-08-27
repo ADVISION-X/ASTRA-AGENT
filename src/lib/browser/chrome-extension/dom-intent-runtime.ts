@@ -14,12 +14,17 @@ const executeFindIntent = async (
   intent: FindIntent,
 ): Promise<unknown> => {
   const selector = intent.selector ?? selectorForLocator(intent.locator!);
-  const candidates = await queryAll(debuggerRuntime, target.tabId, selector, intent.maxMatches + 1, intent.scope);
-  const nodes = intent.textEquals !== undefined
-    ? await nodesWithExactText(debuggerRuntime, target.tabId, candidates, intent.textEquals)
-    : intent.textContains !== undefined
-      ? await nodesContainingText(debuggerRuntime, target.tabId, candidates, intent.textContains)
-      : candidates;
+  const deadline = intent.waitFor === undefined ? null : Date.now() + intent.waitFor.timeoutMs;
+  let nodes: readonly number[] = [];
+  do {
+    nodes = intent.textEquals !== undefined
+      ? await queryVisibleTextMatches(debuggerRuntime, target.tabId, selector, intent.textEquals, true, intent.maxMatches + 1, intent.scope)
+      : intent.textContains !== undefined
+        ? await queryVisibleTextMatches(debuggerRuntime, target.tabId, selector, intent.textContains, false, intent.maxMatches + 1, intent.scope)
+        : await queryAll(debuggerRuntime, target.tabId, selector, intent.maxMatches + 1, intent.scope);
+    if (intent.waitFor === undefined || nodes.length >= intent.waitFor.minimumMatches || Date.now() >= deadline!) break;
+    await waitForNextBoundedObservation(deadline!);
+  } while (Date.now() <= deadline!);
   if (nodes.length > intent.maxMatches) throw new Error("BROWSER_TARGET_INVALID");
   const matches = intent.fields === undefined
     ? undefined
@@ -32,30 +37,34 @@ const executeFindIntent = async (
   return { count: nodes.length, ...(matches === undefined ? {} : { matches }) };
 };
 
+const waitForNextBoundedObservation = async (deadline: number): Promise<void> => {
+  const remaining = deadline - Date.now();
+  if (remaining <= 0) return;
+  await new Promise<void>((resolve) => globalThis.setTimeout(resolve, Math.min(50, remaining)));
+};
+
 const executeClickIntent = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
   intent: ClickIntent,
 ): Promise<unknown> => {
   const expectedMatches = intent.expectedMatches ?? 1;
-  const nodes = await queryAll(debuggerRuntime, target.tabId, intent.selector, expectedMatches + 1, intent.scope);
   const matchingNodes = intent.expectedTextEquals !== undefined
-    ? await nodesWithExactText(debuggerRuntime, target.tabId, nodes, intent.expectedTextEquals)
+    ? await queryVisibleTextMatches(debuggerRuntime, target.tabId, intent.selector, intent.expectedTextEquals, true, expectedMatches + 1, intent.scope)
     : intent.expectedText !== undefined
-      ? await nodesContainingText(debuggerRuntime, target.tabId, nodes, intent.expectedText)
-      : nodes;
+      ? await queryVisibleTextMatches(debuggerRuntime, target.tabId, intent.selector, intent.expectedText, false, expectedMatches + 1, intent.scope)
+      : await queryAll(debuggerRuntime, target.tabId, intent.selector, expectedMatches + 1, intent.scope);
   if (matchingNodes.length !== expectedMatches) throw new Error("BROWSER_TARGET_INVALID");
   const nodeId = matchingNodes[0];
   if (nodeId === undefined) throw new Error("BROWSER_TARGET_INVALID");
   const box = await boxCenter(debuggerRuntime, target.tabId, nodeId);
   await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", { type: "mousePressed", x: box.x, y: box.y, button: "left", clickCount: 1 });
   await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", { type: "mouseReleased", x: box.x, y: box.y, button: "left", clickCount: 1 });
-  const postconditionVerified = intent.postClickAttribute === undefined
-    ? undefined
-    : attribute(
-      await describeNode(debuggerRuntime, target.tabId, nodeId),
-      intent.postClickAttribute.name,
-    ) === intent.postClickAttribute.equals;
+  const postconditionVerified = intent.postClickAttribute !== undefined
+    ? await waitForClickAttribute(debuggerRuntime, target, intent, expectedMatches, intent.postClickAttribute)
+    : intent.postClickMatch !== undefined
+      ? await waitForClickMatch(debuggerRuntime, target, intent.postClickMatch)
+      : undefined;
   if (postconditionVerified === false) throw new Error("BROWSER_TARGET_INVALID");
   return {
     clicked: true,
@@ -64,6 +73,52 @@ const executeClickIntent = async (
     mutationCount: 1,
     ...(postconditionVerified === undefined ? {} : { postconditionVerified }),
   };
+};
+
+const waitForClickMatch = async (
+  debuggerRuntime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  postClickMatch: NonNullable<ClickIntent["postClickMatch"]>,
+): Promise<boolean> => {
+  const deadline = Date.now() + (postClickMatch.timeoutMs ?? 1);
+  do {
+    const nodes = await queryAll(
+      debuggerRuntime,
+      target.tabId,
+      postClickMatch.selector,
+      postClickMatch.expectedMatches + 1,
+    );
+    if (nodes.length === postClickMatch.expectedMatches) return true;
+    if (Date.now() >= deadline) return false;
+    await waitForNextBoundedObservation(deadline);
+  } while (Date.now() <= deadline);
+  return false;
+};
+
+const waitForClickAttribute = async (
+  debuggerRuntime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  intent: ClickIntent,
+  expectedMatches: number,
+  postClickAttribute: NonNullable<ClickIntent["postClickAttribute"]>,
+): Promise<boolean> => {
+  const deadline = Date.now() + (postClickAttribute.timeoutMs ?? 1);
+  do {
+    const nodes = intent.expectedTextEquals !== undefined
+      ? await queryVisibleTextMatches(debuggerRuntime, target.tabId, intent.selector, intent.expectedTextEquals, true, expectedMatches + 1, intent.scope)
+      : intent.expectedText !== undefined
+        ? await queryVisibleTextMatches(debuggerRuntime, target.tabId, intent.selector, intent.expectedText, false, expectedMatches + 1, intent.scope)
+        : await queryAll(debuggerRuntime, target.tabId, intent.selector, expectedMatches + 1, intent.scope);
+    if (nodes.length === expectedMatches) {
+      const currentNodeId = nodes[0];
+      if (currentNodeId !== undefined
+        && attribute(await describeNode(debuggerRuntime, target.tabId, currentNodeId), postClickAttribute.name)
+          === postClickAttribute.equals) return true;
+    }
+    if (Date.now() >= deadline) return false;
+    await waitForNextBoundedObservation(deadline);
+  } while (Date.now() <= deadline);
+  return false;
 };
 
 const executeValueIntent = async (
@@ -119,10 +174,9 @@ const nodeForRead = async (
   intent: Extract<BrowserDomIntent, { kind: "readText" | "readAttribute" }>,
 ): Promise<number> => {
   const maximum = intent.expectedMatches ?? intent.maxMatches ?? 1;
-  const candidateNodes = await queryAll(runtime, tabId, intent.selector, maximum + 1, intent.scope);
   const nodes = intent.kind === "readAttribute" && intent.textContains !== undefined
-    ? await nodesContainingText(runtime, tabId, candidateNodes, intent.textContains)
-    : candidateNodes;
+    ? await queryVisibleTextMatches(runtime, tabId, intent.selector, intent.textContains, false, maximum + 1, intent.scope)
+    : await queryAll(runtime, tabId, intent.selector, maximum + 1, intent.scope);
   if (intent.expectedMatches !== undefined ? nodes.length !== intent.expectedMatches : nodes.length > maximum) {
     throw new Error("BROWSER_TARGET_INVALID");
   }
@@ -139,6 +193,16 @@ const queryAll = async (
   limit: number,
   scope?: Readonly<{ selector: string }>,
 ): Promise<readonly number[]> => {
+  const nodeIds = await queryNodeIds(runtime, tabId, selector, scope);
+  return visibleNodes(runtime, tabId, nodeIds, limit);
+};
+
+const queryNodeIds = async (
+  runtime: ExtensionDebuggerRuntime,
+  tabId: number,
+  selector: string,
+  scope?: Readonly<{ selector: string }>,
+): Promise<readonly number[]> => {
   const root = record(await runtime.send(tabId, "DOM.getDocument", { depth: 1, pierce: true }));
   const rootNode = record(root.root);
   let queryRootId = numberValue(rootNode.nodeId, "BROWSER_TARGET_INVALID");
@@ -151,37 +215,40 @@ const queryAll = async (
   }
   const result = record(await runtime.send(tabId, "DOM.querySelectorAll", { nodeId: queryRootId, selector }));
   const values = Array.isArray(result.nodeIds) ? result.nodeIds : [];
-  const nodeIds = values.map((value) => numberValue(value, "BROWSER_TARGET_INVALID"));
-  return (await visibleNodes(runtime, tabId, nodeIds)).slice(0, limit);
+  return values.map((value) => numberValue(value, "BROWSER_TARGET_INVALID"));
 };
 
-const visibleNodes = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeIds: readonly number[]): Promise<readonly number[]> => {
+const visibleNodes = async (
+  runtime: ExtensionDebuggerRuntime,
+  tabId: number,
+  nodeIds: readonly number[],
+  limit = nodeIds.length,
+): Promise<readonly number[]> => {
   const visible: number[] = [];
-  for (const nodeId of nodeIds) if (await boxCenter(runtime, tabId, nodeId).then(() => true).catch(() => false)) visible.push(nodeId);
+  for (const nodeId of nodeIds) {
+    if (await boxCenter(runtime, tabId, nodeId).then(() => true).catch(() => false)) visible.push(nodeId);
+    if (visible.length >= limit) break;
+  }
   return visible;
 };
 
-const nodesContainingText = async (
+const queryVisibleTextMatches = async (
   runtime: ExtensionDebuggerRuntime,
   tabId: number,
-  nodeIds: readonly number[],
+  selector: string,
   expectedText: string,
+  exact: boolean,
+  limit: number,
+  scope?: Readonly<{ selector: string }>,
 ): Promise<readonly number[]> => {
+  const expected = exact ? expectedText.trim() : expectedText;
   const matches: number[] = [];
-  for (const nodeId of nodeIds) if ((await nodeText(runtime, tabId, nodeId)).includes(expectedText)) matches.push(nodeId);
-  return matches;
-};
-
-const nodesWithExactText = async (
-  runtime: ExtensionDebuggerRuntime,
-  tabId: number,
-  nodeIds: readonly number[],
-  expectedText: string,
-): Promise<readonly number[]> => {
-  const expected = expectedText.trim();
-  const matches: number[] = [];
-  for (const nodeId of nodeIds) {
-    if ((await nodeText(runtime, tabId, nodeId)).trim() === expected) matches.push(nodeId);
+  for (const nodeId of await queryNodeIds(runtime, tabId, selector, scope)) {
+    const actual = await nodeText(runtime, tabId, nodeId);
+    if (exact ? actual.trim() !== expected : !actual.includes(expected)) continue;
+    if (!await boxCenter(runtime, tabId, nodeId).then(() => true).catch(() => false)) continue;
+    matches.push(nodeId);
+    if (matches.length >= limit) break;
   }
   return matches;
 };

@@ -7,6 +7,15 @@ import {
   type GptProviderContinuation,
 } from "../../../capabilities/gpt/index.js";
 import type { BrowserTargetLease } from "../../browser/browser-authority-api.js";
+import {
+  RuntimeFailureImpact,
+  RuntimeRecovery,
+  requireRuntimeLogWrite,
+  runtimeFailureFromError,
+  runtimeLogCauseEventId,
+  withRuntimeLogCause,
+  type RuntimeLogger,
+} from "../../runtime-logs/index.js";
 import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-support.js";
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../../mediator/agent-production-route.js";
 import { productionCatalogHash } from "./catalog.js";
@@ -81,16 +90,23 @@ const resolveSuccessfulMutation = async (
 };
 
 const throwChildFailure = (result: GptChildCapabilityResult): never => {
-  throw new Error(`${result.status}:${result.failureCode ?? "GPT_CHILD_FAILED"}`);
+  const error = new Error(`${result.status}:${result.failureCode ?? "GPT_CHILD_FAILED"}`);
+  const causeEventId = childFailureEventIds.get(result);
+  throw causeEventId ? withRuntimeLogCause(error, causeEventId) : error;
 };
 
+const childFailureEventIds = new WeakMap<object, string>();
+
 export class ProductionExecutor {
+  private readonly gptStates = new Map<string, "idle" | "running" | "failed" | "review_required">();
+
   public constructor(
     private readonly dataDir: string,
     private readonly sourceHash: ProductionHash,
     private readonly gpt: GptAbilityGroup,
     private readonly browserAuthority: WorkbenchBrowserAuthority,
     private readonly store: ProductionRuntimeStore,
+    private readonly runtimeLogger: RuntimeLogger,
   ) {}
 
   public availableCapacity(): number {
@@ -114,32 +130,75 @@ export class ProductionExecutor {
     task: WebsiteAgentTask,
     materials: readonly LocalProductionMaterial[],
     lease: ProductionExecutionLease,
+    parentSpanId: string,
     complete: (output: ProductPluginOutput, continuationRef: string | null) => Promise<WebsiteAgentResult>,
   ): Promise<ProductionExecutionResult> {
-    const accepted = this.accept(task);
+    const accepted = this.store.readTask(task.job_id);
+    if (!accepted) throw new Error("PRODUCTION_DURABLE_IDENTITY_MISSING");
     if (accepted.status === "completed" && accepted.result) throw new Error("PRODUCTION_TASK_ALREADY_TERMINAL");
-    this.store.markRunning(task.job_id);
     let completed = false;
-    const result = await dispatchWebsiteAgentTask(task, (authorized) => ({
-      materials,
-      runTurn: (turn) => this.runGptTurn({
-        task: authorized.task,
-        pluginId: authorized.plugin.pluginId,
-        skillHash: authorized.skillHash,
-        skillText: authorized.skillText,
-        materials,
-        lease,
-        turn,
-      }),
-      complete: async (output) => {
-        if (completed) throw new Error("PLUGIN_RESULT_ALREADY_COMPLETED");
-        const continuationRef = await this.persistContinuation(authorized.task, authorized.plugin.pluginId, output);
-        const envelope = await complete(output, continuationRef);
-        completed = true;
-        return envelope;
+    const pluginId = accepted.identity.plugin_id;
+    const pluginSpan = requireRuntimeLogWrite(this.runtimeLogger.startSpan({
+      traceId: task.job_id,
+      parentSpanId,
+      owner: "product-plugin",
+      component: pluginId,
+      operation: "plugin.execute",
+      typedIdentity: {
+        kind: "plugin-step",
+        jobId: task.job_id,
+        attemptId: lease.attempt_id,
+        pluginId,
+        stepId: "plugin.execute",
       },
     }));
-    if (!completed) throw new Error("PLUGIN_RESULT_NOT_COMPLETED");
+    let result: WebsiteAgentResult;
+    try {
+      result = await dispatchWebsiteAgentTask(task, (authorized) => ({
+        materials,
+        runTurn: (turn) => this.runGptTurn({
+          task: authorized.task,
+          pluginId: authorized.plugin.pluginId,
+          skillHash: authorized.skillHash,
+          skillText: authorized.skillText,
+          materials,
+          lease,
+          parentSpanId: pluginSpan.spanId,
+          turn,
+        }),
+        complete: async (output) => {
+          if (completed) throw new Error("PLUGIN_RESULT_ALREADY_COMPLETED");
+          const continuationRef = await this.persistContinuation(
+            authorized.task, authorized.plugin.pluginId, output, lease, pluginSpan.spanId,
+          );
+          const envelope = await complete(output, continuationRef);
+          completed = true;
+          return envelope;
+        },
+      }));
+      if (!completed) throw new Error("PLUGIN_RESULT_NOT_COMPLETED");
+      requireRuntimeLogWrite(pluginSpan.terminal({
+        outcome: "success",
+      }));
+    } catch (error) {
+      const causedByEventId = runtimeLogCauseEventId(error);
+      const terminal = requireRuntimeLogWrite(pluginSpan.terminal({
+        outcome: /review_required/iu.test(error instanceof Error ? error.message : String(error))
+          ? "review_required"
+          : "failed",
+        failure: runtimeFailureFromError({
+          error,
+          code: "PLUGIN_EXECUTION_FAILED",
+          responsibleOwner: "product-plugin",
+          recovery: /review_required/iu.test(error instanceof Error ? error.message : String(error))
+            ? RuntimeRecovery.REVIEW
+            : RuntimeRecovery.STOP,
+          impact: causedByEventId ? RuntimeFailureImpact.CONSEQUENTIAL : RuntimeFailureImpact.BLOCKING,
+          ...(causedByEventId ? { causedByEventId } : {}),
+        }),
+      }));
+      throw withRuntimeLogCause(error, terminal.eventId);
+    }
     return { record: this.store.readTask(task.job_id)!, result };
   }
 
@@ -147,9 +206,13 @@ export class ProductionExecutor {
     task: WebsiteAgentTask,
     pluginId: string,
     output: ProductPluginOutput,
+    lease: ProductionExecutionLease,
+    parentSpanId: string,
   ): Promise<string | null> {
     if (!output.continuation) return task.continuation_ref ?? null;
-    const result = await this.gpt.execute({
+    const result = await this.executeGptChild({
+      task, pluginId, stepId: "persist-continuation", lease, parentSpanId,
+      intent: {
       childCapabilityId: "persist_gpt_continuation",
       executionId: `${task.job_id}:${pluginId}:persist-continuation`,
       input: {
@@ -161,7 +224,9 @@ export class ProductionExecutor {
         authorizationRef: task.business_identity.authorization_ref,
         provider: output.continuation,
       },
-    }, { dataDir: this.dataDir, continuationStore: this.store });
+      },
+      context: { dataDir: this.dataDir, continuationStore: this.store },
+    });
     if (result.status !== "success") throwChildFailure(result);
     const value = asRecord(result.value, "GPT_CONTINUATION_RESULT_INVALID");
     return value.continuationRef === null ? null : stringField(value.continuationRef, "GPT_CONTINUATION_REF_INVALID");
@@ -171,10 +236,14 @@ export class ProductionExecutor {
     task: WebsiteAgentTask,
     pluginId: string,
     turn: GptTurnRequest,
+    lease: ProductionExecutionLease,
+    parentSpanId: string,
   ): Promise<GptContinuationLane | null> {
     if (!turn.use_task_continuation) return null;
     if (!task.continuation_ref) throw new Error("review_required:GPT_CONTINUATION_REQUIRED");
-    const result = await this.gpt.execute({
+    const result = await this.executeGptChild({
+      task, pluginId, stepId: turn.step_id, lease, parentSpanId,
+      intent: {
       childCapabilityId: "acquire_gpt_continuation_lane",
       executionId: `${task.job_id}:${pluginId}:${turn.step_id}:acquire-continuation`,
       input: {
@@ -186,7 +255,9 @@ export class ProductionExecutor {
         subjectRef: task.business_identity.subject_ref,
         authorizationRef: task.business_identity.authorization_ref,
       },
-    }, { dataDir: this.dataDir, continuationStore: this.store });
+      },
+      context: { dataDir: this.dataDir, continuationStore: this.store },
+    });
     if (result.status !== "success") throwChildFailure(result);
     return result.value as GptContinuationLane;
   }
@@ -196,12 +267,18 @@ export class ProductionExecutor {
     task: WebsiteAgentTask,
     pluginId: string,
     provider: GptProviderContinuation,
+    lease: ProductionExecutionLease,
+    parentSpanId: string,
   ): Promise<void> {
-    const result = await this.gpt.execute({
+    const result = await this.executeGptChild({
+      task, pluginId, stepId: "advance-continuation", lease, parentSpanId,
+      intent: {
       childCapabilityId: "advance_gpt_continuation_lane",
       executionId: `${task.job_id}:${pluginId}:advance-continuation`,
       input: { lane, jobId: task.job_id, pluginId, provider },
-    }, { dataDir: this.dataDir, continuationStore: this.store });
+      },
+      context: { dataDir: this.dataDir, continuationStore: this.store },
+    });
     if (result.status !== "success") throwChildFailure(result);
   }
 
@@ -209,13 +286,98 @@ export class ProductionExecutor {
     lane: GptContinuationLane,
     task: WebsiteAgentTask,
     pluginId: string,
+    lease: ProductionExecutionLease,
+    parentSpanId: string,
   ): Promise<void> {
-    const result = await this.gpt.execute({
+    const result = await this.executeGptChild({
+      task, pluginId, stepId: "release-continuation", lease, parentSpanId,
+      intent: {
       childCapabilityId: "release_gpt_continuation_lane",
       executionId: `${task.job_id}:${pluginId}:release-continuation`,
       input: { lane, jobId: task.job_id },
-    }, { dataDir: this.dataDir, continuationStore: this.store });
+      },
+      context: { dataDir: this.dataDir, continuationStore: this.store },
+    });
     if (result.status !== "success") throwChildFailure(result);
+  }
+
+  private async executeGptChild(input: Readonly<{
+    task: WebsiteAgentTask;
+    pluginId: string;
+    stepId: string;
+    lease: ProductionExecutionLease;
+    parentSpanId: string;
+    intent: Parameters<GptAbilityGroup["execute"]>[0];
+    context: Parameters<GptAbilityGroup["execute"]>[1];
+  }>): Promise<GptChildCapabilityResult> {
+    const emitGptState = (current: "idle" | "running" | "failed" | "review_required"): void => {
+      const previous = this.gptStates.get(input.task.job_id) ?? null;
+      requireRuntimeLogWrite(this.runtimeLogger.emitState({
+        traceId: input.task.job_id,
+        owner: "gpt",
+        component: "gpt-child",
+        stateKey: "gpt.execution",
+        previous,
+        current,
+      }));
+      this.gptStates.set(input.task.job_id, current);
+    };
+    const span = requireRuntimeLogWrite(this.runtimeLogger.startSpan({
+      traceId: input.task.job_id,
+      parentSpanId: input.parentSpanId,
+      boundaryId: input.intent.executionId,
+      owner: "gpt",
+      component: "gpt-child",
+      operation: "gpt.child",
+      typedIdentity: {
+        kind: "gpt-call",
+        jobId: input.task.job_id,
+        attemptId: input.lease.attempt_id,
+        pluginId: input.pluginId,
+        stepId: input.stepId,
+        capabilityCallId: input.intent.executionId,
+      },
+    }));
+    emitGptState("running");
+    try {
+      const result = await this.gpt.execute(input.intent, input.context);
+      if (result.status === "success") {
+        const terminal = requireRuntimeLogWrite(span.terminal({
+          outcome: "success",
+        }));
+        childFailureEventIds.set(result, terminal.eventId);
+        emitGptState("idle");
+      } else {
+        const terminal = requireRuntimeLogWrite(span.terminal({
+          outcome: result.status === "review_required" ? "review_required" : "failed",
+          failure: runtimeFailureFromError({
+            error: new Error(result.failureCode ?? result.status),
+            code: result.status === "review_required" ? "GPT_CHILD_REVIEW_REQUIRED" : "GPT_CHILD_FAILED",
+            responsibleOwner: "gpt",
+            recovery: result.status === "recovery_pending"
+              ? RuntimeRecovery.RETRY
+              : result.status === "review_required" ? RuntimeRecovery.REVIEW : RuntimeRecovery.STOP,
+            impact: RuntimeFailureImpact.BLOCKING,
+          }),
+        }));
+        childFailureEventIds.set(result, terminal.eventId);
+        emitGptState(result.status === "review_required" ? "review_required" : "failed");
+      }
+      return result;
+    } catch (error) {
+      const terminal = requireRuntimeLogWrite(span.terminal({
+        outcome: "failed",
+        failure: runtimeFailureFromError({
+          error,
+          code: "GPT_CHILD_RUNTIME_FAILED",
+          responsibleOwner: "gpt",
+          recovery: RuntimeRecovery.RETRY,
+          impact: RuntimeFailureImpact.BLOCKING,
+        }),
+      }));
+      emitGptState("failed");
+      throw withRuntimeLogCause(error, terminal.eventId);
+    }
   }
 
   private async executeGptFlow(input: Readonly<{
@@ -228,18 +390,28 @@ export class ProductionExecutor {
     timeoutMs: number;
     stepInputHash: ProductionHash;
     signal: AbortSignal;
+    lease: ProductionExecutionLease;
+    parentSpanId: string;
   }>): Promise<ProviderTurnResult | null> {
     let resultCheckpoint: ProviderTurnResult | null = null;
     for (const [index, step] of input.turn.gpt_flow.entries()) {
       if (!gptChildEnabled(step, input.state, input.turn.output_kind)) continue;
-      const result = await this.gpt.execute({
-        childCapabilityId: step.childCapabilityId,
-        executionId: `${input.state.executionId}:${index}:${step.childCapabilityId}`,
-        input: gptChildInput(step.childCapabilityId, input.state, input.continuation, input.timeoutMs),
-      }, {
-        dataDir: this.dataDir, browser: input.browser,
-        signal: input.signal,
-        continuationStore: this.store,
+      const result = await this.executeGptChild({
+        task: input.task,
+        pluginId: input.pluginId,
+        stepId: input.turn.step_id,
+        lease: input.lease,
+        parentSpanId: input.parentSpanId,
+        intent: {
+          childCapabilityId: step.childCapabilityId,
+          executionId: `${input.state.executionId}:${index}:${step.childCapabilityId}`,
+          input: gptChildInput(step.childCapabilityId, input.state, input.continuation, input.timeoutMs),
+        },
+        context: {
+          dataDir: this.dataDir, browser: input.browser,
+          signal: input.signal,
+          continuationStore: this.store,
+        },
       });
       input.state.evidenceRefs.push(result.proof.evidenceRef);
       if (result.status !== "success") {
@@ -264,11 +436,13 @@ export class ProductionExecutor {
     task: WebsiteAgentTask,
     pluginId: string,
     checkpoint: ProviderTurnResult | null,
+    lease: ProductionExecutionLease,
+    parentSpanId: string,
   ): Promise<ProviderTurnResult | null> {
     if (!checkpoint) return null;
     if (!lane) return checkpoint;
     if (!checkpoint.provider_continuation) throw new Error("review_required:GPT_CHECKPOINT_CONTINUATION_MISSING");
-    await this.advanceContinuation(lane, task, pluginId, checkpoint.provider_continuation);
+    await this.advanceContinuation(lane, task, pluginId, checkpoint.provider_continuation, lease, parentSpanId);
     return checkpoint;
   }
 
@@ -277,10 +451,12 @@ export class ProductionExecutor {
     task: WebsiteAgentTask,
     pluginId: string,
     result: ProviderTurnResult,
+    lease: ProductionExecutionLease,
+    parentSpanId: string,
   ): Promise<void> {
     if (!lane) return;
     if (!result.provider_continuation) throw new Error("review_required:GPT_RESULT_CONTINUATION_MISSING");
-    await this.advanceContinuation(lane, task, pluginId, result.provider_continuation);
+    await this.advanceContinuation(lane, task, pluginId, result.provider_continuation, lease, parentSpanId);
   }
 
   private async runGptTurn(input: Readonly<{
@@ -290,13 +466,16 @@ export class ProductionExecutor {
     skillText: string;
     materials: readonly LocalProductionMaterial[];
     lease: ProductionExecutionLease;
+    parentSpanId: string;
     turn: GptTurnRequest;
   }>): Promise<ProviderTurnResult> {
     const selected = input.materials.filter((material) => input.turn.material_roles.includes(material.role));
     const durableIdentity = this.store.readTask(input.task.job_id)?.identity;
     if (!durableIdentity) throw new Error("PRODUCTION_DURABLE_IDENTITY_MISSING");
     let continuation = input.turn.same_conversation_as?.provider_continuation ?? null;
-    const lane = await this.acquireContinuation(input.task, input.pluginId, input.turn);
+    const lane = await this.acquireContinuation(
+      input.task, input.pluginId, input.turn, input.lease, input.parentSpanId,
+    );
     if (lane) continuation = lane.provider;
     const stepInputHash = hashCanonical({
       request_hash: input.task.request_hash,
@@ -313,6 +492,8 @@ export class ProductionExecutor {
     const resumed = await this.resumeCheckpoint(
       lane, input.task, input.pluginId,
       this.store.readStep(input.task.job_id, input.turn.step_id, stepInputHash),
+      input.lease,
+      input.parentSpanId,
     );
     if (resumed) return resumed;
     let browser: BrowserTargetLease | null = null;
@@ -330,15 +511,26 @@ export class ProductionExecutor {
       const resultCheckpoint = await this.executeGptFlow({
         task: input.task, pluginId: input.pluginId, turn: input.turn, state, browser: activeBrowser,
         continuation, timeoutMs, stepInputHash, signal: input.lease.abort_signal,
+        lease: input.lease, parentSpanId: input.parentSpanId,
       });
       const turnResult = resultCheckpoint ?? buildGptTurnResult(state);
       if (!resultCheckpoint) this.store.writeStep(input.task.job_id, input.turn.step_id, stepInputHash, turnResult);
       if (!state.titleFailure) activeBrowser.assertNoPendingMutations();
-      await this.advanceTurnContinuation(lane, input.task, input.pluginId, turnResult);
+      await this.advanceTurnContinuation(
+        lane, input.task, input.pluginId, turnResult, input.lease, input.parentSpanId,
+      );
       return turnResult;
     } catch (error) {
       primaryError = error;
-      if (lane) await this.releaseContinuation(lane, input.task, input.pluginId).catch(() => undefined);
+      if (lane) {
+        try {
+          await this.releaseContinuation(
+            lane, input.task, input.pluginId, input.lease, input.parentSpanId,
+          );
+        } catch {
+          // executeGptChild already emitted the release failure as its own terminal SPAN.
+        }
+      }
       throw error;
     } finally {
       if (browser && browser.pendingMutationCount() === 0) {

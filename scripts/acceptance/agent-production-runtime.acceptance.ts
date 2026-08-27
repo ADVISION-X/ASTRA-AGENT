@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 
 import { createGptAbilityGroup } from "../../src/capabilities/gpt/index.js";
 import {
@@ -27,7 +28,11 @@ import {
   type WebsiteAgentTask,
 } from "../../src/lib/local-runtime/production/contracts.js";
 import { startProductionRuntime } from "../../src/lib/local-runtime/production/runtime.js";
-import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
+import {
+  ProductionRuntimeStore,
+  resolveStoredProductionAuthority,
+} from "../../src/lib/local-runtime/production/store.js";
+import { createRuntimeLogger, requireRuntimeLogWrite } from "../../src/lib/runtime-logs/index.js";
 import {
   ClaimedProductionTaskSchema,
   PRODUCTION_V6_MANIFEST_HASH,
@@ -237,11 +242,19 @@ assert.equal(authorizeWebsiteAgentTask(projectedTask).plugin.pluginId, "payment-
 const runtimeSource = await readFile(new URL("../../src/lib/local-runtime/production/runtime.ts", import.meta.url), "utf8");
 const durableAcceptAt = runtimeSource.indexOf("state.executor.accept(task)");
 const acceptedAt = runtimeSource.indexOf("accepted = true", durableAcceptAt);
-const remoteCheckpointAt = runtimeSource.indexOf("checkpointProductionTask(", durableAcceptAt);
+const remoteCheckpointAt = runtimeSource.indexOf("checkpointWithLog(", acceptedAt);
 assert(durableAcceptAt >= 0 && acceptedAt > durableAcceptAt && remoteCheckpointAt > acceptedAt);
 assert.match(runtimeSource, /state\.executor\.execute\(task, materials/u);
+assert.match(runtimeSource, /current: durableAccept\.status/u);
+assert.match(runtimeSource, /const durablyAccepted = accepted \|\| state\.store\.readTask\(job\.job_id\) !== null/u);
+assert.match(runtimeSource, /impact: RuntimeFailureImpact\.CLEANUP,[\s\S]*causedByEventId/u);
+const deferredCommitAt = runtimeSource.indexOf("state.store.setRecoveryPending(job.job_id, `TERMINAL_DEFERRED:");
+const deferredReadAt = runtimeSource.indexOf("const recoveryRecord = state.store.readTask(job.job_id)!", deferredCommitAt);
+const deferredProjectionAt = runtimeSource.indexOf("current: \"recovery_pending\"", deferredReadAt);
+assert(deferredCommitAt >= 0 && deferredReadAt > deferredCommitAt && deferredProjectionAt > deferredReadAt);
 
 const executorSource = await readFile(new URL("../../src/lib/local-runtime/production/executor.ts", import.meta.url), "utf8");
+assert.doesNotMatch(executorSource, /this\.store\.markRunning/u);
 const settledTargetGuardAt = executorSource.indexOf("if (browser && browser.pendingMutationCount() === 0)");
 const settledTargetCloseAt = executorSource.indexOf("await browser.close({ reason: \"gpt-turn-settled\" })", settledTargetGuardAt);
 assert(settledTargetGuardAt >= 0 && settledTargetCloseAt > settledTargetGuardAt,
@@ -272,8 +285,42 @@ try {
   assert.equal(store.acceptTask(sourceTask, sourceIdentity).status, "accepted");
   assert.equal(store.acceptTask(sourceTask, sourceIdentity).identity.skill_hash, sourceIdentity.skill_hash);
   store.markRunning(sourceTask.job_id);
+  const firstRunning = store.readTask(sourceTask.job_id)!;
+  store.markRunning(sourceTask.job_id);
+  assert.deepEqual(store.readTask(sourceTask.job_id), firstRunning);
   store.setRecoveryPending(sourceTask.job_id, "network");
   assert.equal(store.readTask(sourceTask.job_id)?.status, "recovery_pending");
+  const checkpointAuthority = store.recordCheckpoint({
+    jobId: sourceTask.job_id, attemptId: "attempt:source", checkpointId: "factory_running",
+    checkpointHash: HASH_C, state: "persisted",
+  });
+  const leaseAuthority = store.recordLease({
+    jobId: sourceTask.job_id, attemptId: "attempt:source", leaseVersion: 1,
+    fenceHash: HASH_B, state: "active", expiresAt: "2026-08-27T16:00:00.000Z",
+  });
+  assert.equal(store.resolveAuthority(`production-checkpoint:${sourceTask.job_id}`, hashCanonical(checkpointAuthority)), "verified");
+  assert.equal(store.resolveAuthority(`production-lease:${sourceTask.job_id}`, hashCanonical(leaseAuthority)), "verified");
+  assert.equal(resolveStoredProductionAuthority(temporary, `production-checkpoint:${sourceTask.job_id}`, hashCanonical(checkpointAuthority)), "verified");
+  const cliLogger = createRuntimeLogger({
+    producer: "agent-cli-acceptance", producerRunId: "agent-cli-acceptance-run",
+    owner: "production-runtime", component: "production-runtime", terminalEnabled: false,
+    fileSink: { directoryPath: path.join(temporary, "runtime-logs"), maxTotalBytes: 1_048_576 },
+  });
+  requireRuntimeLogWrite(cliLogger.emitState({
+    traceId: `producer:${cliLogger.producerRunId}`, owner: "app-shell",
+    stateKey: "producer.alive", previous: null, current: "alive", freshForMs: 60_000,
+  }));
+  requireRuntimeLogWrite(cliLogger.emitState({
+    traceId: sourceTask.job_id, stateKey: "job.checkpoint", previous: null, current: "persisted",
+    authorityRef: `production-checkpoint:${sourceTask.job_id}`,
+    authorityHash: hashCanonical(checkpointAuthority), reconciledFromAuthority: true,
+  }));
+  const cli = spawnSync(process.execPath, [
+    "--import", "tsx", "scripts/runtime-logs/inspect.ts", "--job", sourceTask.job_id,
+    "--source", cliLogger.currentSegmentPath()!,
+  ], { cwd: process.cwd(), encoding: "utf8" });
+  assert.equal(cli.status, 0, cli.stderr || cli.stdout);
+  assert.equal((JSON.parse(cli.stdout) as { status?: string }).status, "DIAGNOSIS_COMPLETE");
 
   const gpt = createGptAbilityGroup();
   const continuationContext = { dataDir: temporary, continuationStore: store };
@@ -346,11 +393,26 @@ try {
   assert.equal(unauthorized.status, "review_required");
   assert.match(unauthorized.failureCode ?? "", /GPT_CONTINUATION_NOT_AUTHORIZED/u);
 
-  store.enqueue({ idempotency_key: "outbox:1", kind: "checkpoint", path: "/checkpoint", method: "POST", headers: {}, body: "{}" });
-  store.enqueue({ idempotency_key: "outbox:1", kind: "checkpoint", path: "/checkpoint", method: "POST", headers: {}, body: "{}" });
-  assert.throws(() => store.enqueue({ idempotency_key: "outbox:1", kind: "checkpoint", path: "/checkpoint", method: "POST", headers: {}, body: "{\"drift\":true}" }), /PRODUCTION_OUTBOX_IDEMPOTENCY_CONFLICT/u);
+  const outboxPath = `/internal/ai-production/v6/jobs/${encodeURIComponent(sourceTask.job_id)}/checkpoints`;
+  store.enqueue({ idempotency_key: "outbox:1", kind: "checkpoint", path: outboxPath, method: "POST", headers: {}, body: "{}" });
+  store.enqueue({ idempotency_key: "outbox:1", kind: "checkpoint", path: outboxPath, method: "POST", headers: {}, body: "{}" });
+  const pendingOutbox = store.readOutboxAuthority("outbox:1")!;
+  assert.equal(pendingOutbox.state, "pending");
+  assert.equal(store.resolveAuthority("production-outbox:outbox:1", hashCanonical(pendingOutbox)), "verified");
+  store.markOutboxFailed("outbox:1", "FETCH_FAILED");
+  assert.equal(store.readOutboxAuthority("outbox:1")?.state, "failed");
+  store.markOutboxPending("outbox:1");
+  store.markOutboxSent("outbox:1");
+  assert.equal(store.readOutboxAuthority("outbox:1")?.state, "delivered");
+  assert.deepEqual(store.outboxAuthorities().map((authority) => authority.state), ["delivered"]);
+  assert.throws(() => store.enqueue({ idempotency_key: "outbox:1", kind: "checkpoint", path: outboxPath, method: "POST", headers: {}, body: "{\"drift\":true}" }), /PRODUCTION_OUTBOX_IDEMPOTENCY_CONFLICT/u);
   assert.throws(() => store.acceptTask(sourceTask, { ...sourceIdentity, plugin_version: 2 }), /PLUGIN_IDENTITY_CHANGED_BEFORE_RECOVERY/u);
-  assert.equal(store.readTask(sourceTask.job_id)?.status, "review_required");
+  assert.equal(store.readTask(sourceTask.job_id)?.status, "recovery_pending");
+  const terminalTask = task({ jobId: "job:terminal-reconciliation", productId: "payment_screenshot_observation", actionId: "observe" });
+  const terminalIdentity = identityFor(terminalTask);
+  store.acceptTask(terminalTask, terminalIdentity);
+  store.setTerminal(terminalTask.job_id, "completed", null, resultFor(terminalTask, terminalIdentity));
+  assert.equal(store.taskAuthorities().find((record) => record.task.job_id === terminalTask.job_id)?.status, "completed");
   store.close();
 
   const previousCredentialPath = process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
@@ -364,6 +426,13 @@ try {
       sourceHash: HASH_A,
       gpt: createGptAbilityGroup(),
       browserAuthority: browserAuthority as never,
+      runtimeLogger: createRuntimeLogger({
+        producer: "agent-acceptance",
+        owner: "app-shell",
+        component: "production-runtime-acceptance",
+        terminalEnabled: false,
+        fileSink: { directoryPath: path.join(temporary, "runtime-logs") },
+      }),
     });
     assert.equal(blocked.readHealth().shellState, "ready");
     assert.equal(blocked.readHealth().cloudState, "contract_blocked");

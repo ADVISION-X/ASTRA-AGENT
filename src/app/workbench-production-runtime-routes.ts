@@ -9,10 +9,18 @@ export const handleProductionRuntimeRequest = async (
   workbench: GrassEyeWorkbenchHandle,
   url: URL,
 ): Promise<boolean> => {
-  if (request.method !== "GET" || url.pathname !== "/api/production-runtime/status") return false;
+  if (request.method !== "GET" || ![
+    "/api/production-runtime/status",
+    "/api/production-runtime/diagnosis",
+  ].includes(url.pathname)) return false;
   const jobId = url.searchParams.get("jobId")?.trim();
   if (!jobId) {
     writeJson(response, 400, { error: "missing_job_id" });
+    return true;
+  }
+  if (url.pathname === "/api/production-runtime/diagnosis") {
+    const diagnosis = workbench.diagnoseProductionRuntime(jobId);
+    writeJson(response, diagnosis.status === "DIAGNOSIS_COMPLETE" ? 200 : 409, diagnosis);
     return true;
   }
   const status = workbench.readProductionTaskStatus(jobId);

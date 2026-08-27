@@ -13,35 +13,67 @@ import type {
 import { FORENSICS_PERSISTENCE_ABILITY_GROUP_ID } from "./schema.js";
 import type { ForensicsStoragePort } from "./storage-port.js";
 import type { GrassEyeStoragePort } from "../../lib/storage/index.js";
-import { RuntimeLogEventType, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
+import {
+  RuntimeFailureImpact,
+  RuntimeRecovery,
+  requireRuntimeLogWrite,
+  runtimeFailureFromError,
+  type RuntimeLogger,
+} from "../../lib/runtime-logs/index.js";
 
 type AppendableForensicsInput =
   | ForensicsAppendArtifactInput
   | ForensicsAppendRecordInput;
 
-const emitAppendSuccess = (
+const appendWithLog = async (
   runtimeLogger: RuntimeLogger | undefined,
   input: AppendableForensicsInput,
-  eventType: typeof RuntimeLogEventType.FORENSICS_RECORD_APPENDED | typeof RuntimeLogEventType.FORENSICS_ARTIFACT_APPENDED,
   capabilityLabel: "append-record" | "append-artifact",
-) => {
-  if (!runtimeLogger) {
-    return;
-  }
-
-  const baseEvent: Omit<Parameters<RuntimeLogger["emit"]>[0], "roundId"> = {
+  execute: () => Promise<ForensicsResult>,
+): Promise<ForensicsResult> => {
+  const span = runtimeLogger ? requireRuntimeLogWrite(runtimeLogger.startSpan({
     traceId: input.missionId,
-    level: "debug",
-    modeVisibility: ["DEBUG", "TRACE"],
-    eventType,
     owner: "forensics-persistence",
-    missionId: input.missionId,
-    runId: input.runId,
-    status: "success",
-    reason: `${capabilityLabel} ok callId=${input.capabilityCallId ?? "?"}`,
-  };
-
-  runtimeLogger.emit(input.roundId ? { ...baseEvent, roundId: input.roundId } : baseEvent);
+    component: "forensics-persistence",
+    operation: capabilityLabel === "append-record" ? "forensics.append-record" : "forensics.append-artifact",
+    typedIdentity: {
+      kind: "request",
+      requestId: input.capabilityCallId ?? `${input.missionId}:${input.runId}`,
+    },
+    visibility: "DEBUG",
+  })) : undefined;
+  let result: ForensicsResult;
+  try {
+    result = await execute();
+  } catch (error) {
+    if (span) requireRuntimeLogWrite(span.terminal({
+      outcome: "failed",
+      failure: runtimeFailureFromError({
+        error,
+        code: "FORENSICS_APPEND_FAILED",
+        responsibleOwner: "forensics-persistence",
+        recovery: RuntimeRecovery.STOP,
+        impact: RuntimeFailureImpact.BLOCKING,
+      }),
+    }));
+    throw error;
+  }
+  if (!span) return result;
+  if (result.status === "success") {
+    requireRuntimeLogWrite(span.terminal({ outcome: "success" }));
+  } else {
+    requireRuntimeLogWrite(span.terminal({
+      outcome: "failed",
+      failure: runtimeFailureFromError({
+        error: new Error(result.failureReason ?? "FORENSICS_APPEND_FAILED"),
+        code: "FORENSICS_APPEND_FAILED",
+        responsibleOwner: "forensics-persistence",
+        recovery: RuntimeRecovery.STOP,
+        impact: RuntimeFailureImpact.BLOCKING,
+      }),
+    }));
+  }
+  return result;
 };
 
 const appendRecordWithLog = async (
@@ -49,16 +81,7 @@ const appendRecordWithLog = async (
   storage: ForensicsStoragePort,
   runtimeLogger?: RuntimeLogger,
 ) => {
-  const result = await executeAppendRecord(input, storage);
-  if (result.status === "success") {
-    emitAppendSuccess(
-      runtimeLogger,
-      input,
-      RuntimeLogEventType.FORENSICS_RECORD_APPENDED,
-      "append-record",
-    );
-  }
-  return result;
+  return appendWithLog(runtimeLogger, input, "append-record", () => executeAppendRecord(input, storage));
 };
 
 const appendArtifactWithLog = async (
@@ -66,16 +89,7 @@ const appendArtifactWithLog = async (
   storage: ForensicsStoragePort,
   runtimeLogger?: RuntimeLogger,
 ) => {
-  const result = await executeAppendArtifact(input, storage);
-  if (result.status === "success") {
-    emitAppendSuccess(
-      runtimeLogger,
-      input,
-      RuntimeLogEventType.FORENSICS_ARTIFACT_APPENDED,
-      "append-artifact",
-    );
-  }
-  return result;
+  return appendWithLog(runtimeLogger, input, "append-artifact", () => executeAppendArtifact(input, storage));
 };
 
 const executeForensicsChild = (

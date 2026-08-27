@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "specId": "runtime-log-spine.runtime-log-event-v2",
+  "status": "active",
+  "version": 2,
+  "owner": "runtime-log-spine",
+  "lawIds": [
+    "LAW-RUNTIME-LOG-SPINE-001-V4",
+    "LAW-RUNTIME-LOG-SPINE-002-V4",
+    "LAW-RUNTIME-LOG-SPINE-003-V4"
+  ],
+  "specKind": "typed-contract",
+  "contract": {
+    "typeName": "RuntimeLogEventV2",
+    "fields": {
+      "authority": "authorityRef?,authorityHash?;authorityHash=sha256:64-lowercase-hex;durable-readonly-resolvable-only;commit-before-log;lease-checkpoint-by-job;outbox-by-idempotency-key-and-job",
+      "common": "schemaVersion=2,eventId,occurredAt,producer,producerRunId,producerSeq,previousEventHash,eventHash,type,traceId,owner,component,visibility;additionalProperties=false",
+      "failure": "kind=transport|authentication|contract|admission|dependency|storage|browser|provider|internal;code;nativeCause?;responsibleOwner;impact=BLOCKING|CONSEQUENTIAL|CLEANUP;recovery=retry|backoff|drain|review|stop|none;causedByEventId?;httpStatus?;additionalProperties=false",
+      "integrity": "single-writer;producerSeq=1..n;first.previousEventHash=null;next.previousEventHash=prior.eventHash;eventHash=sha256(canonical-json-without-eventHash);cross-segment-continuity;normal-stop-final-state=producer.lifecycle:stopped",
+      "spanStarted": "type=SPAN;phase=started;spanId;parentSpanId?;boundaryId?;operation;typedIdentity;additionalProperties=false",
+      "spanTerminal": "type=SPAN;phase=terminal;spanId;operation;outcome=success|failed|review_required|skipped;durationMs;authorityRef?;authorityHash?;success-forbids-failure;non-success-requires-failure;additionalProperties=false",
+      "state": "type=STATE;stateKey;previous;current;freshForMs?;authorityRef?;authorityHash?;reconciledFromAuthority?;initial-previous=null;next-previous=prior-current;additionalProperties=false",
+      "stateKeys": "producer.lifecycle|producer.alive|log.sink|website.core|website.worker|website.consume|agent.shell|cloud.contract|cloud.session|claim.admission|browser.authority|browser.target|job.lifecycle|job.lease|job.checkpoint|gpt.execution|browser.execution|browser.mutation|outbox.delivery;values-closed-by-stateKey",
+      "typedIdentity": "producer|request|job|job-attempt|lease|plugin-step|gpt-call|browser-command|browser-mutation|checkpoint|outbox;closed-discriminated-union;additionalProperties=false",
+      "writeResult": "ok=true,event | ok=false,code,emergencyProjected;no-void;no-silent-catch"
+    }
+  }
+}

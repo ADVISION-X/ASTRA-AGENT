@@ -15,8 +15,6 @@
     "src/lib/local-runtime/default-data-dir.ts",
     "src/lib/local-runtime/settings-types.ts",
     "src/lib/local-runtime/settings.ts",
-    "src/lib/local-runtime/structured-log-bus.ts",
-    "src/lib/local-runtime/structured-log-terminal.ts",
     "src/lib/local-runtime/workbench-api-boundary-log.ts",
     "src/lib/local-runtime/workbench-assembly.ts",
     "src/lib/local-runtime/workbench-browser-authority-support.ts",

@@ -60,6 +60,7 @@ export const WORKBENCH_API_ROUTE_RULES: WorkbenchApiRouteRule[] = [
   { method: "GET", pathPattern: "exact", path: "/api/mode", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, purpose: "workbench_mode" },
   { method: "GET", pathPattern: "exact", path: "/api/browser-authority/pairing", localUiAllowed: false, localExtensionAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, purpose: "local_browser_authority_pairing" },
   { method: "GET", pathPattern: "exact", path: "/api/production-runtime/status", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, jobOwner: "production-runtime", purpose: "local_production_task_status" },
+  { method: "GET", pathPattern: "exact", path: "/api/production-runtime/diagnosis", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, jobOwner: "production-runtime", purpose: "local_production_runtime_diagnosis" },
 ];
 
 type BodyPreview = {

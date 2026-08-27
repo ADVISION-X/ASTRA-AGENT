@@ -1,5 +1,6 @@
 import Database from "better-sqlite3";
-import { mkdirSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 export type BrowserMutationState = "PREPARED" | "SENT" | "CONFIRMED" | "FAILED" | "UNKNOWN";
@@ -16,6 +17,12 @@ export type BrowserMutationIdentity = Readonly<{
   actionId: string;
   requestHash: `sha256:${string}`;
   payloadHash: `sha256:${string}`;
+}>;
+
+export type BrowserMutationRecoveryState = Readonly<{
+  mutation: BrowserMutationIdentity;
+  current: BrowserMutationState;
+  authorityHash: `sha256:${string}`;
 }>;
 
 type MutationRow = Readonly<{
@@ -46,6 +53,33 @@ const mutationIdentity = (row: MutationRow): BrowserMutationIdentity => ({
   requestHash: row.request_hash,
   payloadHash: row.payload_hash,
 });
+
+const mutationAuthorityHash = (row: unknown): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(JSON.stringify(row)).digest("hex")}`;
+
+export const resolveStoredBrowserMutationAuthority = (
+  dataDir: string,
+  authorityRef: string,
+  authorityHash: `sha256:${string}`,
+): "verified" | "missing" | "mismatch" => {
+  if (!authorityRef.startsWith("browser-mutation:")) return "missing";
+  const commandId = authorityRef.slice("browser-mutation:".length);
+  const file = join(dataDir, "browser", "browser-mutations.sqlite");
+  if (!commandId || !existsSync(file)) return "missing";
+  let database: Database.Database | null = null;
+  try {
+    database = new Database(file, { readonly: true, fileMustExist: true });
+    const row = database.prepare(`select command_id,owner_plugin_id,job_id,attempt_id,
+      lease_version,execution_fence_hash,target_ref,document_ref,action_id,request_hash,payload_hash,
+      proof_hash,state,reason,updated_at from browser_mutations where command_id=?`).get(commandId);
+    if (!row) return "missing";
+    return mutationAuthorityHash(row) === authorityHash ? "verified" : "mismatch";
+  } catch {
+    return "missing";
+  } finally {
+    database?.close();
+  }
+};
 
 export class BrowserMutationStore {
   private readonly database: Database.Database;
@@ -147,6 +181,25 @@ export class BrowserMutationStore {
       lease_version,execution_fence_hash,target_ref,document_ref,action_id,request_hash,payload_hash,state
       from browser_mutations where command_id=? and state='UNKNOWN'`).get(commandId) as MutationRow | undefined;
     return row ? Object.freeze(mutationIdentity(row)) : null;
+  }
+
+  public authorityHash(commandId: string): `sha256:${string}` {
+    const row = this.database.prepare(`select command_id,owner_plugin_id,job_id,attempt_id,
+      lease_version,execution_fence_hash,target_ref,document_ref,action_id,request_hash,payload_hash,
+      proof_hash,state,reason,updated_at from browser_mutations where command_id=?`).get(commandId);
+    if (!row) throw new Error("BROWSER_OUTCOME_UNKNOWN");
+    return mutationAuthorityHash(row);
+  }
+
+  public reconciliationStates(): readonly BrowserMutationRecoveryState[] {
+    const rows = this.database.prepare(`select command_id,owner_plugin_id,job_id,attempt_id,
+      lease_version,execution_fence_hash,target_ref,document_ref,action_id,request_hash,payload_hash,state
+      from browser_mutations order by updated_at,command_id`).all() as MutationRow[];
+    return Object.freeze(rows.map((row) => Object.freeze({
+      mutation: mutationIdentity(row),
+      current: row.state,
+      authorityHash: this.authorityHash(row.command_id),
+    })));
   }
 
   public close(): void {

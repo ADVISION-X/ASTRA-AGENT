@@ -51,11 +51,11 @@ export class ProductionWorkerSession {
     return this.attestation;
   }
 
-  public async open(): Promise<void> {
+  public async open(requestId = `aipsopen_${randomUUID()}`): Promise<void> {
     if (this.credential) return;
     const data = await this.deviceRequest("/internal/ai-production/v6/sessions/open", {
       schema_version: "xuanxue-ai-worker-session-open.v6",
-      request_id: `aipsopen_${randomUUID()}`,
+      request_id: requestId,
       environment_id: "production",
       origin: this.device.origin,
       device_id: this.device.device_id,

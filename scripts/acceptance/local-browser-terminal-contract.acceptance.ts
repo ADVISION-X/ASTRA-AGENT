@@ -32,6 +32,10 @@ try {
   first.close();
 
   const restarted = new BrowserMutationStore(root);
+  assert.deepEqual(restarted.reconciliationStates().map((entry) => [entry.mutation.commandId, entry.current]), [
+    ["prepared-command", "FAILED"],
+    ["sent-command", "UNKNOWN"],
+  ]);
   assert.deepEqual(restarted.unknownForBinding({
     jobId: "job-1", attemptId: "attempt-1", leaseVersion: 1, executionFenceHash: hash,
   }), ["sent-command"]);
@@ -47,6 +51,13 @@ try {
     jobId: "job-1", attemptId: "attempt-1", leaseVersion: 1, executionFenceHash: hash,
   }), []);
   restarted.close();
+
+  const terminalRestart = new BrowserMutationStore(root);
+  assert.deepEqual(terminalRestart.reconciliationStates().map((entry) => [entry.mutation.commandId, entry.current]), [
+    ["prepared-command", "FAILED"],
+    ["sent-command", "CONFIRMED"],
+  ]);
+  terminalRestart.close();
 
   const supervisor = readFileSync("src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts", "utf8");
   const actor = readFileSync("src/lib/browser/exact-target/browser-command-actor.ts", "utf8");

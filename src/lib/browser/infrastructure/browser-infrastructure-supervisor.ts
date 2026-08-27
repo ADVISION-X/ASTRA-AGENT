@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { BrowserCommandActor } from "../exact-target/browser-command-actor.js";
+import { emitBrowserMutationState } from "../exact-target/browser-command-runtime-logging.js";
 import { BrowserMutationStore } from "../exact-target/browser-mutation-store.js";
 import { requireGptWebPolicyForUrl } from "../exact-target/browser-site-policy-registry.js";
 import { BrowserTargetLeaseManager, type BrowserExactTargetAcquisition } from "../exact-target/browser-target-lease-manager.js";
@@ -24,7 +25,14 @@ import { GRASSEYE_UNPACKED_EXTENSION_ID } from "../release/unpacked-extension-re
 import { hashBrowserAuthorityCertificate } from "./browser-authority-certificate.js";
 import type { UnpackedExtensionReleaseIdentity } from "../release/unpacked-extension-release-identity.js";
 import type { BrowserTargetLease } from "../exact-target/browser-target-lease.js";
-import { createRuntimeEvent, RuntimeLogEventType, type RuntimeLogger } from "../../runtime-logs/index.js";
+import {
+  RuntimeFailureImpact,
+  RuntimeRecovery,
+  requireRuntimeLogWrite,
+  runtimeFailureFromError,
+  type RuntimeLogger,
+} from "../../runtime-logs/index.js";
+import type { RuntimeStateInput, RuntimeStateKey, RuntimeStateValue } from "../../runtime-logs/schema.js";
 import {
   BrowserSessionWorkspace,
   type SessionWorkspaceBindingV6,
@@ -75,6 +83,7 @@ export class BrowserInfrastructureSupervisor {
   private readonly broker: BrowserAuthorityBroker;
   private readonly websocket: BrowserAuthorityWebSocket;
   private readonly state = createBrowserInfrastructureState();
+  private readonly loggedStates = new Map<string, RuntimeStateValue>();
 
   public constructor(private readonly options: BrowserInfrastructureSupervisorOptions) {
     this.ownerLock = new BrowserOwnerLock(join(options.dataDir, "browser", "owner.lock"));
@@ -96,16 +105,10 @@ export class BrowserInfrastructureSupervisor {
   private createWebSocket(): BrowserAuthorityWebSocket {
     const callbacks: BrowserAuthorityWebSocketOptions = {
       pairingSecret: process.env.GRASSEYE_BROWSER_PAIRING_SECRET ?? null,
-      onPairingStarted: () => this.emitBrowserRuntimeState(
-        RuntimeLogEventType.BROWSER_AUTH_PAIRING_STARTED,
-        "started",
-        "插件已连接，正在校验一次性配对密钥。",
-      ),
-      onHeartbeat: () => this.emitBrowserRuntimeState(
-        RuntimeLogEventType.BROWSER_LIVENESS_HEARTBEAT,
-        "success",
-        "插件认证通道存活。",
-      ),
+      onPairingStarted: () => this.emitBrowserState("browser.authority", "absent"),
+      onHeartbeat: () => {
+        this.emitBrowserState("browser.authority", "present");
+      },
       onAuthenticated: (input) => this.onAuthenticated(input),
       onTargetClaim: (input) => this.onTargetClaim(input),
       onTargetRevoke: (targetRef) => this.onTargetRevoke(targetRef),
@@ -117,8 +120,7 @@ export class BrowserInfrastructureSupervisor {
 
   private onAuthenticated(input: Parameters<BrowserAuthorityWebSocketOptions["onAuthenticated"]>[0]): BrowserAuthorityReady {
     const ready = this.commitUnpackedWebSocketAuthentication(input);
-    this.emitBrowserRuntimeState(RuntimeLogEventType.BROWSER_AUTH_PAIRING_COMPLETED, "success", "插件配对完成。");
-    this.emitBrowserRuntimeState(RuntimeLogEventType.BROWSER_SOCKET_AUTHENTICATED, "success", "插件 WebSocket 已认证。");
+    this.emitBrowserState("browser.authority", "present");
     return ready;
   }
 
@@ -130,13 +132,7 @@ export class BrowserInfrastructureSupervisor {
     }
     this.establishClaimBoundWorkspace();
     this.broker.registerOperatorTargetClaim({ authorityEpoch: currentAuthorityEpoch(this.issuer), ...input });
-    this.emitBrowserRuntimeState(
-      RuntimeLogEventType.BROWSER_TARGET_CLAIMED,
-      "success",
-      "预授权 ChatGPT Target 已由固定扩展认领。",
-      undefined,
-      { targetRef: input.targetRef, documentRef: input.documentRef },
-    );
+    this.emitBrowserState("browser.target", "claimed");
     if (initialClaim) this.resolvePendingJobBoundTargetAcquisition();
   }
 
@@ -144,24 +140,12 @@ export class BrowserInfrastructureSupervisor {
     if (refs.runtimeEventType === "job-bound-target-acquisition") {
       this.rejectPendingJobBoundTargetAcquisition(reasonCode);
     }
-    this.emitBrowserRuntimeState(
-      RuntimeLogEventType.BROWSER_EXTENSION_FAILURE,
-      "failed",
-      "插件运行时故障已由认证通道上报；现役 Browser Authority 保持有效。",
-      reasonCode,
-      { ...refs },
-    );
+    this.emitBrowserFailure(reasonCode, refs.runtimeEventType ?? "extension-diagnostic");
   }
 
   private onTargetRevoke(targetRef: string): void {
     this.broker.revokeOperatorTargetClaim(targetRef);
-    this.emitBrowserRuntimeState(
-      RuntimeLogEventType.BROWSER_TARGET_LEASE_INVALIDATED,
-      "success",
-      "插件目标标签页已撤销。",
-      undefined,
-      { targetRef },
-    );
+    this.emitBrowserState("browser.target", "absent");
   }
 
   private onRevoked(reasonCode: string, refs?: Readonly<Record<string, string>>): void {
@@ -170,17 +154,9 @@ export class BrowserInfrastructureSupervisor {
       || refs?.diagnosticSource === "extension-runtime";
     this.rejectPendingJobBoundTargetAcquisition(reasonCode);
     this.disconnectTransport(normalizeBrowserDisconnectReason(reasonCode));
-    this.emitBrowserRuntimeState(
-      extensionFailure
-        ? RuntimeLogEventType.BROWSER_EXTENSION_FAILURE
-        : authenticated ? RuntimeLogEventType.BROWSER_AUTH_REVOKED : RuntimeLogEventType.BROWSER_AUTH_PAIRING_FAILED,
-      "failed",
-      extensionFailure
-        ? "插件运行时故障已由认证通道上报，Browser Authority 已撤销。"
-        : authenticated ? "插件认证通道已撤销。" : "插件配对失败，请按失败码处理。",
-      reasonCode,
-      refs,
-    );
+    this.emitBrowserState("browser.authority", "absent");
+    this.emitBrowserState("browser.target", "absent");
+    this.emitBrowserFailure(reasonCode, extensionFailure ? "extension-runtime" : "authority-revoked");
   }
 
   public async start(): Promise<void> {
@@ -189,18 +165,19 @@ export class BrowserInfrastructureSupervisor {
     this.state.ownerLockHeld = true;
     try {
       this.state.mutationState = new BrowserMutationStore(this.options.dataDir);
+      for (const recovery of this.state.mutationState.reconciliationStates()) emitBrowserMutationState({
+        runtimeLogger: this.options.runtimeLogger,
+        mutation: recovery.mutation,
+        previous: null,
+        current: recovery.current,
+        authorityHash: recovery.authorityHash,
+        reconciledFromAuthority: true,
+      });
       this.transport.start();
       this.state.started = true;
-      this.emitBrowserRuntimeState(
-        RuntimeLogEventType.BROWSER_INFRASTRUCTURE_READY,
-        "success",
-        "浏览器基础设施已就绪。",
-      );
-      this.emitBrowserRuntimeState(
-        RuntimeLogEventType.BROWSER_AUTH_WAITING_FOR_PAIRING,
-        "started",
-        "等待固定扩展提交一次性配对证明。",
-      );
+      this.emitBrowserState("browser.execution", "idle");
+      this.emitBrowserState("browser.authority", "absent");
+      this.emitBrowserState("browser.target", "absent");
     } catch (error) {
       this.state.mutationState?.close();
       this.state.mutationState = null;
@@ -222,6 +199,9 @@ export class BrowserInfrastructureSupervisor {
     this.state.mutationState?.close();
     this.state.mutationState = null;
     this.state.started = false;
+    this.emitBrowserState("browser.target", "absent");
+    this.emitBrowserState("browser.authority", "absent");
+    this.emitBrowserState("browser.execution", "idle");
   }
 
   public authorityBroker(): BrowserAuthorityBroker { return this.broker; }
@@ -368,27 +348,44 @@ export class BrowserInfrastructureSupervisor {
     return this.state.mutationState;
   }
 
-  private emitBrowserRuntimeState(
-    eventType: (typeof RuntimeLogEventType)[keyof typeof RuntimeLogEventType],
-    status: "started" | "success" | "failed",
-    actionableMessage: string,
-    reason?: string,
-    refs?: Record<string, string>,
+  private emitBrowserState(
+    stateKey: RuntimeStateKey,
+    current: RuntimeStateValue,
   ): void {
-    this.options.runtimeLogger.emit(createRuntimeEvent({
-      context: {
-        traceId: `browser-session:${this.state.connectionGeneration}`,
-        spanId: randomUUID(),
-        owner: "browser-session",
-      },
-      eventType,
-      level: status === "failed" ? "error" : "info",
-      modeVisibility: ["FLOW", "DEBUG", "TRACE"],
-      status,
-      actionableMessage,
-      ...(reason ? { reason } : {}),
-      ...(refs ? { refs } : {}),
-      metrics: { connectionGeneration: this.state.connectionGeneration },
+    const traceId = `browser-session:${this.state.connectionGeneration}`;
+    const stateIdentity = `${traceId}\u0000${stateKey}`;
+    const previous = this.loggedStates.get(stateIdentity) ?? null;
+    if (previous === current) return;
+    const event = {
+      traceId,
+      owner: "browser-session",
+      component: "browser-infrastructure",
+      stateKey,
+      previous,
+      current,
+    } as RuntimeStateInput;
+    requireRuntimeLogWrite(this.options.runtimeLogger.emitState(event));
+    this.loggedStates.set(stateIdentity, current);
+  }
+
+  private emitBrowserFailure(reasonCode: string, subjectId: string): void {
+    const span = requireRuntimeLogWrite(this.options.runtimeLogger.startSpan({
+      traceId: `browser-session:${this.state.connectionGeneration}`,
+      owner: "browser-session",
+      component: "browser-infrastructure",
+      operation: "browser.infrastructure",
+      typedIdentity: { kind: "producer", producerId: subjectId },
+      visibility: "FLOW",
+    }));
+    requireRuntimeLogWrite(span.terminal({
+      outcome: "failed",
+      failure: runtimeFailureFromError({
+        error: new Error(reasonCode),
+        code: "BROWSER_INFRASTRUCTURE_FAILED",
+        responsibleOwner: "browser-session",
+        recovery: RuntimeRecovery.REVIEW,
+        impact: RuntimeFailureImpact.BLOCKING,
+      }),
     }));
   }
 

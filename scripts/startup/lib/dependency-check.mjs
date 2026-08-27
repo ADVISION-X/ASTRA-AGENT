@@ -20,12 +20,6 @@ const MANDATORY_NATIVE_DEPENDENCIES = ["better-sqlite3"];
 const MISSING_PACKAGE_PREFIX = "package_missing: ";
 const NATIVE_PROBE_TIMEOUT_MS = 20_000;
 
-function debugDependencyCheck(message) {
-  if (process.env.GRASSEYE_AUDIT_DEBUG === "1") {
-    process.stdout.write(`[startup:dependency-check] ${message}\n`);
-  }
-}
-
 function isPackageMissingReason(reason) {
   return reason.startsWith(MISSING_PACKAGE_PREFIX);
 }
@@ -214,7 +208,6 @@ async function pathExists(filePath) {
     await readFile(filePath);
     return true;
   } catch (error) {
-    debugDependencyCheck(`pathExists unavailable for ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
     return false;
   }
 }

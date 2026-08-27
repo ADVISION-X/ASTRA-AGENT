@@ -1,14 +1,8 @@
 import { getDefaultPhase04LocalDataDir } from "./default-data-dir.js";
 import path from "node:path";
-import { StructuredLogBus } from "./structured-log-bus.js";
-import {
-  createStructuredTerminalLogListener,
-  isStructuredLogStdoutEnabled,
-  resolveStructuredLogLevel,
-} from "./structured-log-terminal.js";
 import {
   createRuntimeLogger,
-  setDefaultRuntimeLogger,
+  requireRuntimeLogWrite,
   type RuntimeLogger,
 } from "../runtime-logs/index.js";
 import type { GrassEyeWorkbenchOptions } from "./contract.js";
@@ -22,7 +16,6 @@ import { createWorkbenchEvidenceStore } from "./workbench-evidence-support.js";
 export type WorkbenchAssembly = {
   options: GrassEyeWorkbenchOptions;
   dataDir: string;
-  structuredLogBus: StructuredLogBus;
   browserAuthority: WorkbenchBrowserAuthority;
   evidenceStore: ReturnType<typeof createWorkbenchEvidenceStore>;
   gptAbilityGroup: ReturnType<typeof createWorkbenchGptAbilityGroup>;
@@ -34,9 +27,19 @@ export async function createWorkbenchAssembly(
 ): Promise<WorkbenchAssembly> {
   const dataDir = options.dataDir ?? getDefaultPhase04LocalDataDir();
   const runtimeLogger = createWorkbenchRuntimeLogger(dataDir);
-  const structuredLogBus = createWorkbenchStructuredLogBus();
-
-  const browserAuthority = await createWorkbenchBrowserAuthority(dataDir, runtimeLogger);
+  let browserAuthority: WorkbenchBrowserAuthority;
+  try {
+    browserAuthority = await createWorkbenchBrowserAuthority(dataDir, runtimeLogger);
+  } catch (error) {
+    const traceId = `producer:${runtimeLogger.producerRunId}`;
+    requireRuntimeLogWrite(runtimeLogger.emitState({
+      traceId, stateKey: "agent.shell", previous: "starting", current: "failed",
+    }));
+    requireRuntimeLogWrite(runtimeLogger.emitState({
+      traceId, stateKey: "producer.lifecycle", previous: "starting", current: "stopped",
+    }));
+    throw error;
+  }
 
   const evidenceStore = createWorkbenchEvidenceStore(dataDir, runtimeLogger);
   const gptAbilityGroup = createWorkbenchGptAbilityGroup();
@@ -44,7 +47,6 @@ export async function createWorkbenchAssembly(
   return {
     options,
     dataDir,
-    structuredLogBus,
     browserAuthority,
     evidenceStore,
     gptAbilityGroup,
@@ -54,21 +56,24 @@ export async function createWorkbenchAssembly(
 
 function createWorkbenchRuntimeLogger(dataDir: string): RuntimeLogger {
   const runtimeLogger = createRuntimeLogger({
+    producer: "agent",
+    owner: "app-shell",
+    component: "workbench",
     terminalEnabled: true,
     fileSink: {
-      bundlePath: path.join(dataDir, "runtime-logs", "workbench.jsonl"),
+      directoryPath: path.join(dataDir, "runtime-logs"),
     },
   });
-  setDefaultRuntimeLogger(runtimeLogger);
+  const traceId = `producer:${runtimeLogger.producerRunId}`;
+  requireRuntimeLogWrite(runtimeLogger.emitState({
+    traceId, stateKey: "producer.lifecycle", previous: null, current: "starting",
+  }));
+  requireRuntimeLogWrite(runtimeLogger.emitState({
+    traceId, owner: "runtime-logs", component: "runtime-log-sink",
+    stateKey: "log.sink", previous: null, current: "ready",
+  }));
+  requireRuntimeLogWrite(runtimeLogger.emitState({
+    traceId, stateKey: "agent.shell", previous: null, current: "starting",
+  }));
   return runtimeLogger;
-}
-
-function createWorkbenchStructuredLogBus(): StructuredLogBus {
-  const structuredLogBus = new StructuredLogBus();
-  if (isStructuredLogStdoutEnabled()) {
-    structuredLogBus.subscribe(
-      createStructuredTerminalLogListener(resolveStructuredLogLevel()),
-    );
-  }
-  return structuredLogBus;
 }

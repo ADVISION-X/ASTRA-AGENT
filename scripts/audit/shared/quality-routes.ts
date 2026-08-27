@@ -42,6 +42,12 @@ const dynamicScripts: Readonly<Record<string, Readonly<Partial<Record<string, st
     "dynamic.browser": "acceptance:agent-production-runtime:real-proof",
     "dynamic.storage": "acceptance:agent-production-runtime:real-proof",
   },
+  "runtime-log-spine": {
+    "dynamic.browser": "acceptance:agent-production-runtime:real-proof",
+    "dynamic.service": "acceptance:agent-production-runtime:real-proof",
+    "dynamic.storage": "acceptance:agent-production-runtime:real-proof",
+    "dynamic.recovery": "acceptance:agent-production-runtime:real-proof",
+  },
   "startup-entrypoint": { "dynamic.service": "proof:local-shell-current-runtime" },
   "agent-production-runtime": {
     "dynamic.browser": "acceptance:agent-production-runtime:real-proof",

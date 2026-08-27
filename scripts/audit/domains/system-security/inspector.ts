@@ -5,7 +5,7 @@ import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionIn
 import { producerModePassed, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import { observeStaticAst } from "../../shared/static-target-object-inspector.js";
 
-const LAW_ID = "LAW-SYSTEM-SECURITY-001-V3";
+const LAW_ID = "LAW-SYSTEM-SECURITY-001-V4";
 const CLAUSE_ID = `${LAW_ID.toLowerCase()}-requirement`;
 const sensitiveTerms = Object.freeze(["authorization", "cookie", "credential", "password", "secret", "token", "userinput", "attachmentcontent", "browseridentity"]);
 const forbiddenCloudControlFields = new Set(["browserCommand", "coordinate", "documentId", "nextAction", "selector", "targetId"]);

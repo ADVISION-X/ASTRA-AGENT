@@ -167,8 +167,8 @@ export class ExtensionTargetAuthority {
       type: "page",
       url: tab.url ?? "",
     });
-    if (!target || !isPreauthorizedChatGptTarget(target)) {
-      this.rejectPendingCreatedTarget("BROWSER_ORIGIN_REJECTED");
+    if (target.tabId !== pending.tabId) {
+      this.rejectPendingCreatedTarget("BROWSER_TARGET_INVALID");
       return;
     }
     this.pendingCreatedTarget = null;
@@ -286,13 +286,3 @@ export class ExtensionTargetAuthority {
     return { selectedFileCount: resolvedFilePaths.length };
   }
 }
-
-const isPreauthorizedChatGptTarget = (target: ExtensionDebugTarget): boolean => {
-  if (target.type !== "page" || !Number.isInteger(target.tabId)) return false;
-  try {
-    requireGptWebPolicyForUrl(target.url);
-    return true;
-  } catch {
-    return false;
-  }
-};

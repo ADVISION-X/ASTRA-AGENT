@@ -22,6 +22,8 @@ export type BrowserDomIntent =
     textContains?: string;
     textEquals?: string;
     maxMatches: number;
+    /** Optional bounded readiness condition evaluated inside this one observation command. */
+    waitFor?: Readonly<{ minimumMatches: number; timeoutMs: number }>;
     /** Optional bounded fields returned for every visible match in the same DOM snapshot. */
     fields?: readonly BrowserDomField[];
     scope?: BrowserDomReadScope;
@@ -36,7 +38,16 @@ export type BrowserDomIntent =
     expectedMatches?: number;
     scope?: BrowserDomReadScope;
     /** Same-node state that must be true immediately after the one click. */
-    postClickAttribute?: Readonly<{ name: "aria-checked"; equals: "true" }>;
+    postClickAttribute?: Readonly<{
+      name: "aria-checked" | "aria-expanded";
+      equals: "true";
+      timeoutMs?: number;
+    }>;
+    postClickMatch?: Readonly<{
+      selector: string;
+      expectedMatches: number;
+      timeoutMs?: number;
+    }>;
   }>
   | Readonly<{ kind: "fill"; selector: string; approvedText: string; clearBeforeType: boolean; expectedMatches?: number; scope?: BrowserDomReadScope }>;
 
@@ -54,9 +65,27 @@ const assertClickIntent = (intent: Extract<BrowserDomIntent, { kind: "click" }>)
   if (intent.expectedText !== undefined && !isBoundedText(intent.expectedText, 1_024)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   if (intent.expectedTextEquals !== undefined && !isBoundedText(intent.expectedTextEquals, 1_024)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   if (intent.expectedText !== undefined && intent.expectedTextEquals !== undefined) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-  if (intent.postClickAttribute
-    && (intent.postClickAttribute.name !== "aria-checked" || intent.postClickAttribute.equals !== "true")) {
+  if (intent.postClickAttribute !== undefined && intent.postClickMatch !== undefined) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  }
+  if (intent.postClickAttribute
+    && (!(["aria-checked", "aria-expanded"] as const).includes(intent.postClickAttribute.name)
+      || intent.postClickAttribute.equals !== "true"
+      || (intent.postClickAttribute.timeoutMs !== undefined
+        && (!Number.isInteger(intent.postClickAttribute.timeoutMs)
+          || intent.postClickAttribute.timeoutMs < 1
+          || intent.postClickAttribute.timeoutMs > 5_000)))) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  }
+  if (intent.postClickMatch !== undefined) {
+    if (!isBoundedText(intent.postClickMatch.selector, 2_048)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+    assertOptionalRange(intent.postClickMatch.expectedMatches, 1, 20);
+    if (intent.postClickMatch.timeoutMs !== undefined
+      && (!Number.isInteger(intent.postClickMatch.timeoutMs)
+        || intent.postClickMatch.timeoutMs < 1
+        || intent.postClickMatch.timeoutMs > 5_000)) {
+      throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+    }
   }
 };
 
@@ -72,6 +101,16 @@ const assertFindIntent = (intent: Extract<BrowserDomIntent, { kind: "find" }>): 
   if (intent.textContains !== undefined && !isBoundedText(intent.textContains, 1_024)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   if (intent.textEquals !== undefined && !isBoundedText(intent.textEquals, 1_024)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   if (intent.textContains !== undefined && intent.textEquals !== undefined) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  if (intent.waitFor !== undefined) {
+    if (!Number.isInteger(intent.waitFor.minimumMatches)
+      || intent.waitFor.minimumMatches < 1
+      || intent.waitFor.minimumMatches > intent.maxMatches
+      || !Number.isInteger(intent.waitFor.timeoutMs)
+      || intent.waitFor.timeoutMs < 1
+      || intent.waitFor.timeoutMs > 30_000) {
+      throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+    }
+  }
 };
 
 const assertReadIntent = (intent: Extract<BrowserDomIntent, { kind: "readText" | "readAttribute" }>): void => {

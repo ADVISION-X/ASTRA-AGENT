@@ -1,82 +1,55 @@
-// Runtime Log Spine — Redaction
-// All secrets, credentials, and base64 image content must be
-// redacted before reaching any sink (terminal or file bundle).
+import type { RuntimeLogEventV2 } from "./schema.js";
 
-import type { RuntimeLogEvent } from "./schema.js";
+export const REDACTED = "[REDACTED]";
+export const REDACTED_UNSAFE = "[REDACTED_UNSAFE]";
 
-const REDACTED = "[REDACTED]";
-const API_KEY_PATTERN = /api_key|api-key|apiKey/iu;
-const SECRET_KEYS = /^(cookie|cookies|token|authorization|password|api[_-]?key|secret|pairingSecret|privateKey|sharedSecret|signature|session|auth|bearer|localStorage|sessionStorage|rawBody|rawPath|artifactBytes|providerSecret|prompt|payload)$/i;
-const BASE64_PATTERN = /^data:[^;]+;base64,/;
-const SIGNED_URL_QUERY_KEY = /(token|sig|signature|expires|auth|key|policy|session|credential|x-amz-|googleaccessid)/i;
-const INLINE_SECRET_VALUE = /(bearer\s+[a-z0-9._-]+|authorization\s*[:=]|password\s*[:=]|api[_-]?key\s*[:=]|token\s*[:=])/iu;
+const SECRET_KEYS = /(?:authorization|bearer|cookie|password|token|secret|signature|api[_-]?key|storage|rawbody|rawpath|prompt|payload|filepath|selector|html)/iu;
+const INLINE_SECRET = /(?:bearer\s+[a-z0-9._-]+|authorization\s*[:=]|password\s*[:=]|api[_-]?key\s*[:=]|token\s*[:=]|cookie\s*[:=])/iu;
+const BASE64 = /^data:[^;]+;base64,/iu;
+const ABSOLUTE_PATH = /(?:^|\s)\/(?!\/)[^\s]*|[A-Za-z]:\\|file:\/\//u;
+const URL_PATTERN = /https?:\/\/[^\s]+/giu;
+
+const ALLOWED_STRING_KEYS = new Set([
+  "eventId", "occurredAt", "producer", "producerRunId", "previousEventHash", "eventHash", "type",
+  "traceId", "owner", "component", "visibility", "phase", "spanId", "operation", "parentSpanId",
+  "boundaryId", "outcome", "authorityRef", "authorityHash", "stateKey", "previous", "current", "kind",
+  "producerId", "requestId", "jobId", "attemptId", "fenceHash", "pluginId", "stepId", "capabilityCallId",
+  "commandId", "checkpointId", "outboxId", "code", "responsibleOwner", "impact", "recovery", "nativeCause",
+  "causedByEventId",
+]);
 
 export const redactUrlForLog = (value: string): string => {
   try {
     const parsed = new URL(value);
-    parsed.search = "";
-    parsed.hash = "";
-    return parsed.toString();
+    return `${parsed.origin}/[REDACTED_PATH]`;
   } catch {
-    return value.split("?")[0] ?? value;
+    return REDACTED_UNSAFE;
   }
 };
 
-const isSensitiveUrl = (value: string): boolean => {
-  try {
-    const parsed = new URL(value);
-    return [...parsed.searchParams.keys()].some((key) => SIGNED_URL_QUERY_KEY.test(key));
-  } catch {
-    return false;
-  }
+const redactString = (key: string, value: string): string => {
+  if (SECRET_KEYS.test(key) || INLINE_SECRET.test(value) || BASE64.test(value)) return REDACTED;
+  if (!ALLOWED_STRING_KEYS.has(key)) return REDACTED_UNSAFE;
+  if (ABSOLUTE_PATH.test(value)) return REDACTED_UNSAFE;
+  if (/^https?:\/\//iu.test(value)) return redactUrlForLog(value);
+  const withoutUrls = value.replace(URL_PATTERN, "[REDACTED_URL]");
+  return withoutUrls.length > 1_000 ? `${withoutUrls.slice(0, 1_000)}…` : withoutUrls;
 };
 
-const isSecretKeyValue = (key: string): boolean => SECRET_KEYS.test(key) || API_KEY_PATTERN.test(key);
-
-const isInlineSecretValue = (value: string): boolean =>
-  BASE64_PATTERN.test(value)
-  || INLINE_SECRET_VALUE.test(value)
-  || (value.length >= 500 && /^[A-Za-z0-9+/=]+$/.test(value));
-
-/** Redact a single value if it looks like a secret or base64 image. */
-function redactValue(key: string, value: unknown): unknown {
-  if (typeof value === "string") {
-    if (isSecretKeyValue(key)) return REDACTED;
-    if (isInlineSecretValue(value)) return REDACTED;
-    if (isSensitiveUrl(value)) return redactUrlForLog(value);
-    if (/^https?:\/\//iu.test(value)) return redactUrlForLog(value);
+const redactUnknown = (key: string, value: unknown, depth: number): unknown => {
+  if (depth > 5) return REDACTED_UNSAFE;
+  if (typeof value === "string") return redactString(key, value);
+  if (value === null || typeof value === "number" || typeof value === "boolean") return value;
+  if (Array.isArray(value)) return value.map((item) => redactUnknown(key, item, depth + 1));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>)
+      .map(([childKey, child]) => [childKey, redactUnknown(childKey, child, depth + 1)]));
   }
-  return value;
-}
+  return REDACTED_UNSAFE;
+};
 
-/** Recursively redact a payload record. */
-export function redactRuntimeLogRecord(
-  payload: Record<string, unknown>,
-  depth = 0,
-): Record<string, unknown> {
-  if (depth > 5) return payload; // safety limit
-  const result: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(payload)) {
-    if (value !== null && typeof value === "object" && !Array.isArray(value)) {
-      result[key] = redactRuntimeLogRecord(value as Record<string, unknown>, depth + 1);
-    } else if (Array.isArray(value)) {
-      result[key] = value.map((item) =>
-        typeof item === "object" && item !== null
-          ? redactRuntimeLogRecord(item as Record<string, unknown>, depth + 1)
-          : item,
-      );
-    } else {
-      result[key] = redactValue(key, value);
-    }
-  }
-  return result;
-}
+export const redactRuntimeLogRecord = (record: Readonly<Record<string, unknown>>): Record<string, unknown> =>
+  redactUnknown("record", record, 0) as Record<string, unknown>;
 
-export const redactRuntimeLogEvent = (event: RuntimeLogEvent): RuntimeLogEvent => ({
-  ...event,
-  ...(event.reason ? { reason: String(redactValue("reason", event.reason)) } : {}),
-  ...(event.preview ? { preview: redactRuntimeLogRecord(event.preview) as Record<string, string> } : {}),
-  ...(event.refs ? { refs: redactRuntimeLogRecord(event.refs) as Record<string, string> } : {}),
-  ...(event.hashes ? { hashes: redactRuntimeLogRecord(event.hashes) as Record<string, string> } : {}),
-  ...(event.payload ? { payload: redactRuntimeLogRecord(event.payload) } : {}),
-});
+export const redactRuntimeLogEvent = (event: RuntimeLogEventV2): RuntimeLogEventV2 =>
+  redactRuntimeLogRecord(event as unknown as Readonly<Record<string, unknown>>) as unknown as RuntimeLogEventV2;
