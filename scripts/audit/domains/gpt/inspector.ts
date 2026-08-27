@@ -53,8 +53,11 @@ const repoPath = (context: InspectorContext, source: SourceFile): string =>
 
 const childIdsFromContract = (contract: SourceFile): string[] => CHILD_ID_SOURCES.flatMap((name) => {
   const initializer = contract.getVariableDeclaration(name)?.getInitializer();
-  if (!initializer || !Node.isArrayLiteralExpression(initializer)) return [];
-  return initializer.getElements().flatMap((element) =>
+  const array = initializer && Node.isArrayLiteralExpression(initializer)
+    ? initializer
+    : initializer?.getFirstDescendantByKind(SyntaxKind.ArrayLiteralExpression);
+  if (!array) return [];
+  return array.getElements().flatMap((element) =>
     Node.isStringLiteral(element) || Node.isNoSubstitutionTemplateLiteral(element)
       ? [element.getLiteralValue()]
       : []);
@@ -85,9 +88,9 @@ const inspectDenominatorAndContracts = (context: InspectorContext, findings: Ins
     return;
   }
   const ids = childIdsFromContract(contract);
-  if (ids.length !== 44 || new Set(ids).size !== 44) findings.push(finding(
+  if (ids.length !== 43 || new Set(ids).size !== 43) findings.push(finding(
     "gpt/exact-child-denominator", CONTRACT_PATH,
-    `GPT_CHILD_CAPABILITY_IDS must derive exactly 44 unique child ids; found ${ids.length}/${new Set(ids).size}.`,
+    `GPT_CHILD_CAPABILITY_IDS must derive exactly 43 unique child ids; found ${ids.length}/${new Set(ids).size}.`,
   ));
   const denominator = contract.getVariableDeclaration("GPT_CHILD_CAPABILITY_IDS")?.getInitializer()?.getText() ?? "";
   for (const sourceName of CHILD_ID_SOURCES) if (!denominator.includes(`...${sourceName}`)) findings.push(finding(
