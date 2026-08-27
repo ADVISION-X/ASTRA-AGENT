@@ -14,8 +14,6 @@ import { findCount, readExactAttribute } from "../gpt-dom-observation.js";
 import { GPT_GENERATING_STOP_SELECTOR, GPT_USER_TURN_SELECTOR } from "../contracts/conversation.contract.js";
 import { GPT_GENERATED_IMAGE_ALT_PREFIX } from "../contracts/response.contract.js";
 
-const GPT_ASSISTANT_TURN_SELECTOR = "[data-testid^='conversation-turn-'][data-turn='assistant']";
-
 const hash = (value: string | Buffer): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 

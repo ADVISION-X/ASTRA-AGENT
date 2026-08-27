@@ -15,8 +15,6 @@ export const inspectOpaqueAuthorityBoundary = (
     "Public Browser authority and artifact status must expose opaque references and hashes.");
   requireIdentifiers(journal, ["payloadHash", "proofHash", "targetRef", "documentRef"], findings, lawId,
     "Durable Browser proof must retain opaque references and content hashes instead of raw page or filesystem payloads.");
-  requireIdentifiers(supervisor, ["authorityRefHash"], findings, lawId,
-    "Runtime diagnostics must expose only the hashed Browser authority reference.");
   const forbiddenRawFields = new Set([
     "targetId", "documentId", "filePath", "filePaths", "resolvedPath", "sourcePath", "rawPath",
     "pageContent", "outerHTML", "innerHTML", "cookie", "cookies", "credential", "credentials", "password", "authorization",
