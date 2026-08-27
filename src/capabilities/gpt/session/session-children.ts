@@ -49,7 +49,7 @@ const laneFrom = (intent: GptChildCapabilityIntent): GptContinuationLane => {
   };
 };
 
-export const sessionChildHandlers: GptChildHandlerMap = {
+export const sessionChildHandlers = {
   async persist_gpt_continuation(intent, context) {
     requireExactInputKeys(intent, [
       "authorizationRef", "jobId", "ownerRef", "pluginId", "provider", "subjectRef",
@@ -132,4 +132,4 @@ export const sessionChildHandlers: GptChildHandlerMap = {
       committedMutation: "no",
     });
   },
-};
+} satisfies GptChildHandlerMap;

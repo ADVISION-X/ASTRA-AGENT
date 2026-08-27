@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { createGptAbilityGroup, GptSessionController } from "../../src/capabilities/gpt/index.js";
+import { createGptAbilityGroup } from "../../src/capabilities/gpt/index.js";
 import {
   agentPluginCapabilityManifest,
   productionCatalogHash,
@@ -275,60 +275,76 @@ try {
   store.setRecoveryPending(sourceTask.job_id, "network");
   assert.equal(store.readTask(sourceTask.job_id)?.status, "recovery_pending");
 
-  const controller = new GptSessionController(store);
-  const continuationRef = controller.persist({
-    jobId: sourceTask.job_id,
-    pluginId: sourceIdentity.plugin_id,
-    ownerRef: sourceTask.business_identity.owner_ref,
-    subjectRef: sourceTask.business_identity.subject_ref,
-    authorizationRef: sourceTask.business_identity.authorization_ref,
-    provider: {
-      provider_page_url: "https://chatgpt.com/c/source",
-      prior_task_id: "provider:source",
-      prior_raw_output_hash: HASH_A,
-      prior_turn_marker: "turn:source",
+  const gpt = createGptAbilityGroup();
+  const continuationContext = { dataDir: temporary, continuationStore: store };
+  const provider = {
+    provider_page_url: "https://chatgpt.com/c/source",
+    prior_task_id: "provider:source",
+    prior_raw_output_hash: HASH_A,
+    prior_turn_marker: "turn:source",
+  };
+  const persisted = await gpt.execute({
+    childCapabilityId: "persist_gpt_continuation",
+    executionId: "acceptance:persist-continuation",
+    input: {
+      jobId: sourceTask.job_id, pluginId: sourceIdentity.plugin_id,
+      ownerRef: sourceTask.business_identity.owner_ref,
+      subjectRef: sourceTask.business_identity.subject_ref,
+      authorizationRef: sourceTask.business_identity.authorization_ref,
+      provider,
     },
-  });
-  assert(continuationRef);
-  const lane = controller.acquire({
-    continuationRef,
-    jobId: "job:followup",
-    pluginId: "bazi-report-followup",
+  }, continuationContext);
+  assert.equal(persisted.status, "success", persisted.failureCode ?? "persist continuation failed");
+  const continuationValue = persisted.value as { continuationRef?: unknown };
+  if (typeof continuationValue.continuationRef !== "string") throw new Error("GPT_CONTINUATION_REF_MISSING");
+  const continuationRef = continuationValue.continuationRef;
+  const acquireInput = {
+    continuationRef, pluginId: "bazi-report-followup",
     allowedSourcePluginIds: ["bazi-ai-full-analysis"],
     ownerRef: sourceTask.business_identity.owner_ref,
     subjectRef: sourceTask.business_identity.subject_ref,
     authorizationRef: sourceTask.business_identity.authorization_ref,
-  });
-  assert.throws(() => controller.acquire({
-    continuationRef,
-    jobId: "job:other",
-    pluginId: "bazi-report-followup",
-    allowedSourcePluginIds: ["bazi-ai-full-analysis"],
-    ownerRef: sourceTask.business_identity.owner_ref,
-    subjectRef: sourceTask.business_identity.subject_ref,
-    authorizationRef: sourceTask.business_identity.authorization_ref,
-  }), /GPT_CONTINUATION_LANE_BUSY/u);
-  controller.advance({
-    lane,
-    jobId: "job:followup",
-    pluginId: "bazi-report-followup",
-    provider: {
-      provider_page_url: "https://chatgpt.com/c/source",
-      prior_task_id: "provider:followup",
-      prior_raw_output_hash: HASH_B,
-      prior_turn_marker: "turn:followup",
+  };
+  const acquired = await gpt.execute({
+    childCapabilityId: "acquire_gpt_continuation_lane",
+    executionId: "acceptance:acquire-continuation",
+    input: { ...acquireInput, jobId: "job:followup" },
+  }, continuationContext);
+  assert.equal(acquired.status, "success");
+  const busy = await gpt.execute({
+    childCapabilityId: "acquire_gpt_continuation_lane",
+    executionId: "acceptance:busy-continuation",
+    input: { ...acquireInput, jobId: "job:other" },
+  }, continuationContext);
+  assert.equal(busy.status, "review_required");
+  assert.match(busy.failureCode ?? "", /GPT_CONTINUATION_LANE_BUSY/u);
+  const advanced = await gpt.execute({
+    childCapabilityId: "advance_gpt_continuation_lane",
+    executionId: "acceptance:advance-continuation",
+    input: {
+      lane: acquired.value, jobId: "job:followup", pluginId: "bazi-report-followup",
+      provider: {
+        provider_page_url: "https://chatgpt.com/c/source",
+        prior_task_id: "provider:followup",
+        prior_raw_output_hash: HASH_B,
+        prior_turn_marker: "turn:followup",
+      },
     },
-  });
+  }, continuationContext);
+  assert.equal(advanced.status, "success");
   assert.equal(store.readGptContinuation(continuationRef)?.plugin_id, "bazi-report-followup");
-  assert.throws(() => controller.acquire({
-    continuationRef,
-    jobId: "job:intruder",
-    pluginId: "qimen-report-followup",
-    allowedSourcePluginIds: ["qimen-professional-answer"],
-    ownerRef: sourceTask.business_identity.owner_ref,
-    subjectRef: "subject:other",
-    authorizationRef: sourceTask.business_identity.authorization_ref,
-  }), /GPT_CONTINUATION_NOT_AUTHORIZED/u);
+  const unauthorized = await gpt.execute({
+    childCapabilityId: "acquire_gpt_continuation_lane",
+    executionId: "acceptance:unauthorized-continuation",
+    input: {
+      continuationRef, jobId: "job:intruder", pluginId: "qimen-report-followup",
+      allowedSourcePluginIds: ["qimen-professional-answer"],
+      ownerRef: sourceTask.business_identity.owner_ref, subjectRef: "subject:other",
+      authorizationRef: sourceTask.business_identity.authorization_ref,
+    },
+  }, continuationContext);
+  assert.equal(unauthorized.status, "review_required");
+  assert.match(unauthorized.failureCode ?? "", /GPT_CONTINUATION_NOT_AUTHORIZED/u);
 
   store.enqueue({ idempotency_key: "outbox:1", kind: "checkpoint", path: "/checkpoint", method: "POST", headers: {}, body: "{}" });
   store.enqueue({ idempotency_key: "outbox:1", kind: "checkpoint", path: "/checkpoint", method: "POST", headers: {}, body: "{}" });

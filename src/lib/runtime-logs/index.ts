@@ -2,7 +2,6 @@
 // Core runtime contract only. Acceptance-specific contracts live in dedicated files.
 
 export { RuntimeLogEventType } from "./event-types.js";
-export type { TraceContext } from "./trace.js";
 export { createRuntimeLogger, setDefaultRuntimeLogger } from "./logger.js";
 export { createRuntimeEvent } from "./event-factory.js";
 export type { RuntimeLogger } from "./logger.js";

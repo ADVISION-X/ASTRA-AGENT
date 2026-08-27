@@ -1,0 +1,4 @@
+export const plugin = {
+  pluginId: "plugin-1",
+  pluginVersion: 1,
+};

@@ -26,7 +26,7 @@ const closeSearchDialog = async (browser: ReturnType<typeof requireBrowser>) => 
   });
 };
 
-export const transientUiChildHandlers: GptChildHandlerMap = {
+export const transientUiChildHandlers = {
   async acknowledge_known_gpt_rate_limit(intent, context) {
     requireExactInputKeys(intent, []);
     const browser = requireBrowser(context);
@@ -55,4 +55,4 @@ export const transientUiChildHandlers: GptChildHandlerMap = {
     }
     return closeSearchDialog(requireBrowser(context));
   },
-};
+} satisfies GptChildHandlerMap;

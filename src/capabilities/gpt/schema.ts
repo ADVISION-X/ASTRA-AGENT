@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 
 import { z } from "zod";
 
-export const GptTaskLabelKeySchema = z.enum([
+const GptTaskLabelKeySchema = z.enum([
   "seo_research",
   "seo_article",
   "hehun_analysis",

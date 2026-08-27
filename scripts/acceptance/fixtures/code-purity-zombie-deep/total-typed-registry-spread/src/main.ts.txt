@@ -1,0 +1,6 @@
+import { handlers } from "./module.js";
+
+type Flow = "oldFlow" | "newFlow";
+const registry = { ...handlers } satisfies Record<Flow, () => string>;
+const selected: Flow = "newFlow";
+console.log(registry[selected]());

@@ -127,7 +127,7 @@ const selectExactChoice = async (
   });
 };
 
-export const executionProfileChildHandlers: GptChildHandlerMap = {
+export const executionProfileChildHandlers = {
   async observe_gpt_execution_profile(intent, context) {
     requireExactInputKeys(intent, ["profile"]);
     const profile = profileFromIntent(intent);
@@ -196,4 +196,4 @@ export const executionProfileChildHandlers: GptChildHandlerMap = {
       committedMutation: "no",
     });
   },
-};
+} satisfies GptChildHandlerMap;

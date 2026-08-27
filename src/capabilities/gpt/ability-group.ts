@@ -14,7 +14,7 @@ import {
   type GptFailureClassification,
 } from "./contract.js";
 import { sessionChildHandlers } from "./session/session-children.js";
-import type { GptChildHandlerMap, GptChildObservation } from "./web/child-handler.js";
+import type { GptChildHandler, GptChildObservation } from "./web/child-handler.js";
 import { attachmentChildHandlers } from "./web/children/attachment-children.js";
 import { composerSubmissionChildHandlers } from "./web/children/composer-submission-children.js";
 import { conversationChildHandlers } from "./web/children/conversation-children.js";
@@ -24,7 +24,7 @@ import { targetDocumentChildHandlers } from "./web/children/target-document-chil
 import { titleChildHandlers } from "./web/children/title-children.js";
 import { transientUiChildHandlers } from "./web/children/transient-ui-children.js";
 
-const handlers: GptChildHandlerMap = Object.freeze({
+const handlers = Object.freeze({
   ...targetDocumentChildHandlers,
   ...transientUiChildHandlers,
   ...conversationChildHandlers,
@@ -34,7 +34,7 @@ const handlers: GptChildHandlerMap = Object.freeze({
   ...responseChildHandlers,
   ...titleChildHandlers,
   ...sessionChildHandlers,
-});
+} satisfies Record<GptChildCapabilityId, GptChildHandler>);
 
 const hash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -123,7 +123,7 @@ const executeOne = async (
   try {
     if (!handler || !contract) throw new Error(`failed:GPT_CHILD_NOT_REGISTERED:${intent.childCapabilityId}`);
     if (context.signal?.aborted) throw new Error("recovery_pending:GPT_EXECUTION_ABORTED");
-    if (context.browser?.pendingMutationCount() !== 0) {
+    if ((context.browser?.pendingMutationCount() ?? 0) !== 0) {
       throw new Error("review_required:GPT_PRIOR_BROWSER_MUTATION_UNRESOLVED");
     }
     observation = await handler(intent, context);

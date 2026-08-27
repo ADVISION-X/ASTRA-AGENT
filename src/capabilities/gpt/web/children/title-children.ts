@@ -30,7 +30,7 @@ const hash = (value: string): `sha256:${string}` =>
 const rowSelector = (canonicalUrl: string): string =>
   `a[href=${JSON.stringify(new URL(canonicalUrl).pathname)}]`;
 
-export const titleChildHandlers: GptChildHandlerMap = {
+export const titleChildHandlers = {
   async open_gpt_title_control(intent, context) {
     requireExactInputKeys(intent, ["canonicalConversationUrl"]);
     const canonicalUrl = canonicalGptConversationUrl(stringInput(intent, "canonicalConversationUrl"));
@@ -148,4 +148,4 @@ export const titleChildHandlers: GptChildHandlerMap = {
       committedMutation: "no",
     });
   },
-};
+} satisfies GptChildHandlerMap;

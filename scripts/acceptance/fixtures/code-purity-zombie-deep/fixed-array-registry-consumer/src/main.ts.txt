@@ -1,0 +1,6 @@
+import { plugin } from "./module.js";
+
+type Plugin = Readonly<{ pluginId: string; pluginVersion: number }>;
+
+const catalog = [plugin] as const satisfies readonly Plugin[];
+for (const entry of catalog) console.log(entry.pluginId, entry.pluginVersion);

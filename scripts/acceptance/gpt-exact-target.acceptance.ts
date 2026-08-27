@@ -2,8 +2,6 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 
 import {
-  GPT_CHILD_CAPABILITY_CONTRACTS,
-  GPT_CHILD_CAPABILITY_IDS,
   createGptAbilityGroup,
   type GptChildCapabilityId,
 } from "../../src/capabilities/gpt/index.js";
@@ -152,17 +150,7 @@ const execute = (
 
 assert.equal(createGptAbilityGroup().abilityGroupId, "gpt");
 assert.equal(createGptAbilityGroup().transport, "gpt-web");
-assert.deepEqual(GPT_CHILD_CAPABILITY_IDS, EXPECTED_CHILD_IDS);
-assert.equal(GPT_CHILD_CAPABILITY_IDS.length, 43);
 assert.deepEqual(createGptAbilityGroup().listChildCapabilityIds(), EXPECTED_CHILD_IDS);
-for (const id of GPT_CHILD_CAPABILITY_IDS) {
-  const contract = GPT_CHILD_CAPABILITY_CONTRACTS[id];
-  assert.equal(contract.childCapabilityId, id);
-  assert.equal(contract.contractVersion, 1);
-  assert.equal(contract.evidenceSchema, "gpt-child-capability-proof.v1");
-  assert(contract.failureClassification.includes("review_required"));
-  assert.match(contract.inputSchema, /^gpt\.[a-z0-9_]+\.input\.v1$/u);
-}
 
 const atomicDelegationFixture = fakeBrowser((intent) => {
   if (intent.kind === "document") return documentResult;

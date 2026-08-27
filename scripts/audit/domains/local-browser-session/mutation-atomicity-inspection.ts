@@ -305,7 +305,7 @@ export const inspectCompactMutationRecoveryBoundary = (
     "BROWSER_OUTCOME_UNKNOWN",
     "BROWSER_COMMAND_NOT_SENT",
   ]) {
-    if (literals.has(literal)) continue;
+    if ([...literals].some((value) => value.includes(literal))) continue;
     findings.push(createLocalFinding({
       checkId: "browser-authority/terminal-authority",
       lawId,

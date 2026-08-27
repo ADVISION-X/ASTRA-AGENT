@@ -13,7 +13,7 @@ export const inspectOpaqueAuthorityBoundary = (
   if (!transport || !journal || !broker || !supervisor) return;
   requireIdentifiers(broker, ["authorityRefHash", "certificateHash", "channelSessionHash", "artifactRef", "contentHash"], findings, lawId,
     "Public Browser authority and artifact status must expose opaque references and hashes.");
-  requireIdentifiers(journal, ["payloadHash", "resultHash", "artifactRefs", "targetRef", "documentRef"], findings, lawId,
+  requireIdentifiers(journal, ["payloadHash", "proofHash", "targetRef", "documentRef"], findings, lawId,
     "Durable Browser proof must retain opaque references and content hashes instead of raw page or filesystem payloads.");
   requireIdentifiers(supervisor, ["authorityRefHash"], findings, lawId,
     "Runtime diagnostics must expose only the hashed Browser authority reference.");

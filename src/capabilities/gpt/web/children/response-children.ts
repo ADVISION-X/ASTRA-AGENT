@@ -51,7 +51,7 @@ const readAssistantText = async (
   return state.text;
 };
 
-export const responseChildHandlers: GptChildHandlerMap = {
+export const responseChildHandlers = {
   async observe_exact_gpt_assistant_turn(intent, context) {
     requireExactInputKeys(intent, ["turnMarker"]);
     const marker = stringInput(intent, "turnMarker");
@@ -169,4 +169,4 @@ export const responseChildHandlers: GptChildHandlerMap = {
       committedMutation: "no",
     });
   },
-};
+} satisfies GptChildHandlerMap;

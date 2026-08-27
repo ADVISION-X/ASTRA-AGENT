@@ -83,11 +83,6 @@ export const readProductSkill = (pluginModuleUrl: string): Readonly<{
   return Object.freeze({ path, text, hash: sha256(text) });
 };
 
-export const requireParameter = (task: WebsiteAgentTask, key: string): unknown => {
-  if (!(key in task.parameters)) throw new Error(`PLUGIN_PARAMETER_REQUIRED:${key}`);
-  return task.parameters[key];
-};
-
 export const combineEvidence = (...turns: readonly ProviderTurnResult[]): readonly string[] =>
   Object.freeze([...new Set(turns.flatMap((turn) => turn.evidence_refs))]);
 

@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
+import { verifyBrowserArtifactAndLockContracts } from "./local-browser-artifact-and-lock.acceptance-support.js";
 
 const hash = `sha256:${"a".repeat(64)}` as const;
 const identity = (commandId: string) => ({
@@ -51,6 +52,7 @@ try {
   assert.match(supervisor, /new BrowserMutationStore\(this\.options\.dataDir\)/u);
   assert.match(actor, /markSent[\s\S]*markUnknown/u);
   assert.doesNotMatch(`${supervisor}\n${actor}`, /BrowserProofJournal|proof-events\.ndjson/u);
+  await verifyBrowserArtifactAndLockContracts();
   process.stdout.write("LOCAL_BROWSER_TERMINAL_CONTRACT_PASS\n");
 } finally {
   await rm(root, { recursive: true, force: true });

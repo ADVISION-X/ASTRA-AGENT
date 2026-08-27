@@ -31,7 +31,7 @@ import { GPT_COMPOSER_SELECTOR } from "../contracts/composer.contract.js";
 const hash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
-export const conversationChildHandlers: GptChildHandlerMap = {
+export const conversationChildHandlers = {
   async verify_clean_gpt_chat(intent, context) {
     requireExactInputKeys(intent, []);
     const browser = requireBrowser(context);
@@ -164,4 +164,4 @@ export const conversationChildHandlers: GptChildHandlerMap = {
       committedMutation: "no",
     });
   },
-};
+} satisfies GptChildHandlerMap;

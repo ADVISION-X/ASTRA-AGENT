@@ -89,7 +89,7 @@ const issueGrants = async (
 const countOccurrences = (value: string, needle: string): number =>
   needle.length === 0 ? 0 : value.split(needle).length - 1;
 
-export const attachmentChildHandlers: GptChildHandlerMap = {
+export const attachmentChildHandlers = {
   async open_gpt_attachment_control(intent, context) {
     requireExactInputKeys(intent, []);
     const browser = requireBrowser(context);
@@ -162,4 +162,4 @@ export const attachmentChildHandlers: GptChildHandlerMap = {
       committedMutation: "no",
     });
   },
-};
+} satisfies GptChildHandlerMap;

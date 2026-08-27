@@ -117,6 +117,10 @@ const forbidden: Array<[string, ExpectedFinding]> = [
   ["lawful-manifest-entry", { checkId: "code-purity/zombie-file" }],
   ["lawful-manifest-entry", { checkId: "code-purity/zombie-export" }],
   ["lawful-side-effect-import", { checkId: "code-purity/zombie-file", fileIncludes: "/lawful-side-effect-import/src/side-effect.ts" }],
+  ["fixed-array-registry-consumer", { checkId: "code-purity/object-bag-dynamic-usage" }],
+  ["fixed-array-registry-consumer", { checkId: "code-purity/object-bag-unused-property" }],
+  ["total-typed-registry-spread", { checkId: "code-purity/object-bag-dynamic-usage" }],
+  ["total-typed-registry-spread", { checkId: "code-purity/object-bag-unused-property" }],
 ];
 
 for (const [caseName, expected] of required) assert.equal(hasFinding(caseName, expected), true, `${caseName} must emit ${expected.checkId}`);

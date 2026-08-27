@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
@@ -75,6 +75,71 @@ const pluginDirectories = (context: InspectorContext): string[] => {
     .sort();
 };
 
+const importsAnotherPlugin = (
+  context: InspectorContext,
+  pluginId: string,
+  indexPath: string,
+  specifier: string,
+): boolean => {
+  if (!specifier.startsWith(".")) return false;
+  const pluginsRoot = resolve(context.sealedRoot, PLUGIN_ROOT);
+  const importedPath = resolve(dirname(resolve(context.sealedRoot, indexPath)), specifier);
+  const importedRelativePath = relative(pluginsRoot, importedPath);
+  if (importedRelativePath.startsWith("..") || importedRelativePath === "") return false;
+  return importedRelativePath.split("/")[0] !== pluginId;
+};
+
+const inspectPluginRoot = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  pluginId: string,
+): void => {
+  const root = resolve(context.sealedRoot, PLUGIN_ROOT, pluginId);
+  const entries = readdirSync(root, { withFileTypes: true });
+  const skills = entries.filter((entry) => entry.isFile() && entry.name.toLocaleLowerCase("en-US") === "skill.md");
+  const indexPath = `${PLUGIN_ROOT}/${pluginId}/index.ts`;
+  if (skills.length !== 1) findings.push(finding(
+    "agent-production-runtime/one-skill-per-plugin", `${PLUGIN_ROOT}/${pluginId}`,
+    `${pluginId} must own exactly one same-root SKILL.md; found ${skills.length}.`,
+  ));
+  if (!existsSync(resolve(context.sealedRoot, indexPath))) findings.push(finding(
+    "agent-production-runtime/plugin-entry-present", indexPath, `${pluginId} is missing its Product Plugin entry.`,
+  ));
+  if (skills.length === 1) inspectProductSkill(findings, pluginId, root, skills[0]!.name);
+  const pluginSource = sourceFor(context, indexPath);
+  if (!pluginSource) return;
+  for (const declaration of pluginSource.getImportDeclarations()) {
+    const specifier = declaration.getModuleSpecifierValue();
+    if (importsAnotherPlugin(context, pluginId, indexPath, specifier)) findings.push(finding(
+      "agent-production-runtime/plugin-cross-import",
+      indexPath,
+      `${pluginId} imports another Product Plugin through ${specifier}.`,
+      declaration.getStartLineNumber(),
+    ));
+  }
+};
+
+const inspectProductSkill = (
+  findings: InspectorFinding[],
+  pluginId: string,
+  root: string,
+  skillFileName: string,
+): void => {
+  const skillPath = join(root, skillFileName);
+  const skillText = readFileSync(skillPath, "utf8");
+  if (statSync(skillPath).size < 1_400 || !skillText.includes("## ") || !skillText.includes("复核")) {
+    findings.push(finding("agent-production-runtime/skill-not-shell", relative(resolve(root, "../../.."), skillPath),
+      `${pluginId} Product Skill is an empty or under-specified shell.`));
+  }
+  for (const token of ["Stage", "runTurn", "step_id", "checkpoint_schema_version", "same_conversation_as"]) {
+    if (skillText.includes(token)) findings.push(finding(
+      "agent-production-runtime/skill-execution-truth-forbidden",
+      relative(resolve(root, "../../.."), skillPath),
+      `${pluginId} Product Skill contains executable runtime token ${token}.`,
+    ));
+  }
+};
+
 const inspectPluginRoots = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const pluginIds = pluginDirectories(context);
   if (pluginIds.length !== 12) {
@@ -111,45 +176,7 @@ const inspectPluginRoots = (context: InspectorContext, findings: InspectorFindin
     ));
   }
 
-  for (const pluginId of pluginIds) {
-    const root = resolve(context.sealedRoot, PLUGIN_ROOT, pluginId);
-    const entries = readdirSync(root, { withFileTypes: true });
-    const skills = entries.filter((entry) => entry.isFile() && entry.name.toLocaleLowerCase("en-US") === "skill.md");
-    const indexPath = `${PLUGIN_ROOT}/${pluginId}/index.ts`;
-    if (skills.length !== 1) findings.push(finding(
-      "agent-production-runtime/one-skill-per-plugin", `${PLUGIN_ROOT}/${pluginId}`,
-      `${pluginId} must own exactly one same-root SKILL.md; found ${skills.length}.`,
-    ));
-    if (!existsSync(resolve(context.sealedRoot, indexPath))) findings.push(finding(
-      "agent-production-runtime/plugin-entry-present", indexPath, `${pluginId} is missing its Product Plugin entry.`,
-    ));
-    if (skills.length === 1) {
-      const skillPath = join(root, skills[0]!.name);
-      const skillText = readFileSync(skillPath, "utf8");
-      if (statSync(skillPath).size < 1_400 || !skillText.includes("## ") || !skillText.includes("复核")) {
-        findings.push(finding("agent-production-runtime/skill-not-shell", relative(context.sealedRoot, skillPath),
-          `${pluginId} Product Skill is an empty or under-specified shell.`));
-      }
-      for (const token of ["Stage", "runTurn", "step_id", "checkpoint_schema_version", "same_conversation_as"]) {
-        if (skillText.includes(token)) findings.push(finding(
-          "agent-production-runtime/skill-execution-truth-forbidden",
-          relative(context.sealedRoot, skillPath),
-          `${pluginId} Product Skill contains executable runtime token ${token}.`,
-        ));
-      }
-    }
-    const pluginSource = sourceFor(context, indexPath);
-    if (!pluginSource) continue;
-    for (const declaration of pluginSource.getImportDeclarations()) {
-      const specifier = declaration.getModuleSpecifierValue();
-      if (specifier.includes("/plugins/") || specifier.startsWith("../")) findings.push(finding(
-        "agent-production-runtime/plugin-cross-import",
-        indexPath,
-        `${pluginId} imports another Product Plugin through ${specifier}.`,
-        declaration.getStartLineNumber(),
-      ));
-    }
-  }
+  for (const pluginId of pluginIds) inspectPluginRoot(context, findings, pluginId);
 };
 
 const inspectContractsAndMediator = (context: InspectorContext, findings: InspectorFinding[]): void => {
@@ -223,7 +250,7 @@ const inspectSharedRuntimeAndPsc = (context: InspectorContext, findings: Inspect
   const psc = sourceFor(context, PSC_PATH);
   const pscText = psc?.getFullText() ?? "";
   for (const required of [
-    "opaque", "plugin_id", "owner_ref", "subject_ref", "authorization_ref",
+    "continuation_ref", "plugin_id", "owner_ref", "subject_ref", "authorization_ref",
     "conversation_identity_hash", "lane_version", "lane_owner_job_id",
   ]) {
     if (!pscText.toLocaleLowerCase("en-US").includes(required.toLocaleLowerCase("en-US"))) findings.push(finding(
@@ -259,8 +286,8 @@ const inspectRetirementAndDurability = (context: InspectorContext, findings: Ins
   }
   const storeText = read(context, "src/lib/local-runtime/production/store.ts");
   for (const required of [
-    "journal_mode = WAL", "catalog_hash", "plugin_id", "plugin_version", "skill_hash",
-    "checkpoint_schema_version", "request_hash", "PRODUCTION_OUTBOX_IDEMPOTENCY_CONFLICT",
+    "journal_mode = WAL", "identity_json", "plugin_id", "plugin_version", "request_hash",
+    "PRODUCTION_OUTBOX_IDEMPOTENCY_CONFLICT",
     "PLUGIN_IDENTITY_CHANGED_BEFORE_RECOVERY", "review_required", "lane_owner_job_id",
   ]) {
     if (!storeText.includes(required)) findings.push(finding(

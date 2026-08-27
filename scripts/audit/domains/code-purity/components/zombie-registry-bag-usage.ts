@@ -1,4 +1,4 @@
-import { Node } from "ts-morph";
+import { Node, SyntaxKind, type Node as MorphNode } from "ts-morph";
 
 import { astIdentifierName } from "../../../shared/ast-node-identity.js";
 import { toRepoPath } from "../../../shared/paths.js";
@@ -14,6 +14,58 @@ export type ZombieObjectBagDynamicUsage = {
 export type ZombieObjectBagUsage = {
   dynamicUsages: ZombieObjectBagDynamicUsage[];
   usedPropertyNames: Set<string>;
+};
+
+const collectPropertyReads = (nameNode: MorphNode | undefined): Set<string> => {
+  const properties = new Set<string>();
+  if (!nameNode || !Node.isIdentifier(nameNode)) return properties;
+  for (const reference of nameNode.findReferencesAsNodes()) {
+    const parent = reference.getParent();
+    if (parent && Node.isPropertyAccessExpression(parent) && parent.getExpression() === reference) {
+      properties.add(parent.getName());
+    }
+  }
+  return properties;
+};
+
+const arrayElementPropertyReads = (referenceNode: MorphNode): Set<string> => {
+  const properties = new Set<string>();
+  const array = referenceNode.getFirstAncestorByKind(SyntaxKind.ArrayLiteralExpression);
+  const declaration = array?.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
+  const nameNode = declaration?.getNameNode();
+  if (!array || !nameNode || !Node.isIdentifier(nameNode)) return properties;
+  for (const reference of nameNode.findReferencesAsNodes()) {
+    const parent = reference.getParent();
+    if (parent && Node.isForOfStatement(parent) && parent.getExpression() === reference) {
+      const elementName = parent.getInitializer().getFirstDescendantByKind(SyntaxKind.Identifier);
+      for (const property of collectPropertyReads(elementName)) properties.add(property);
+      continue;
+    }
+    if (!parent || !Node.isPropertyAccessExpression(parent) || parent.getExpression() !== reference) continue;
+    const call = parent.getParent();
+    if (parent.getName() !== "map" || !call || !Node.isCallExpression(call)) continue;
+    const callback = call.getArguments()[0];
+    if (!callback || (!Node.isArrowFunction(callback) && !Node.isFunctionExpression(callback))) continue;
+    for (const property of collectPropertyReads(callback.getParameters()[0]?.getNameNode())) properties.add(property);
+  }
+  return properties;
+};
+
+const isTotalTypedRegistrySpread = (referenceNode: MorphNode): boolean => {
+  const spread = referenceNode.getParent();
+  if (!spread || !Node.isSpreadAssignment(spread)) return false;
+  const object = spread.getParent();
+  const declaration = object?.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
+  const nameNode = declaration?.getNameNode();
+  if (!object || !Node.isObjectLiteralExpression(object)
+    || !declaration?.getInitializer()?.getText().includes("satisfies Record<")
+    || !nameNode || !Node.isIdentifier(nameNode)) return false;
+  return nameNode.findReferencesAsNodes().some((reference) => {
+    const parent = reference.getParent();
+    if (!parent || !Node.isElementAccessExpression(parent) || parent.getExpression() !== reference) return false;
+    const key = parent.getArgumentExpression();
+    return Boolean(key && !Node.isStringLiteral(key) && !Node.isNoSubstitutionTemplateLiteral(key));
+  });
 };
 
 const terminalObjectProperty = (
@@ -112,6 +164,15 @@ export const collectZombieObjectBagUsage = (input: {
     }
     const usageKind = classifyZombieReferenceUsage(referenceNode);
     if (usageKind === "import-binding" || usageKind === "re-export") {
+      continue;
+    }
+    if (isTotalTypedRegistrySpread(referenceNode)) {
+      for (const entry of input.bag.entries) usedPropertyNames.add(entry.propertyName);
+      continue;
+    }
+    const arrayProperties = arrayElementPropertyReads(referenceNode);
+    if (arrayProperties.size > 0) {
+      for (const property of arrayProperties) usedPropertyNames.add(property);
       continue;
     }
     if (terminalObjectProperty(referenceNode)) {

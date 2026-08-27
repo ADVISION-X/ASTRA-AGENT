@@ -44,7 +44,7 @@ export const readRequestBuffer = async (
   return bufferedRequest.workbenchRawBody;
 };
 
-export const readJsonBody = async (request: IncomingMessage): Promise<unknown> => {
+const readJsonBody = async (request: IncomingMessage): Promise<unknown> => {
   const raw = (await readRequestBuffer(request)).toString("utf8").trim();
   return raw ? JSON.parse(raw) : {};
 };

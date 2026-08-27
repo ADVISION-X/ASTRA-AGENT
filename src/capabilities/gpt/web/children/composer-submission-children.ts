@@ -29,7 +29,7 @@ const promptIdentity = (text: string) => ({
   hash: hash(text),
 });
 
-export const composerSubmissionChildHandlers: GptChildHandlerMap = {
+export const composerSubmissionChildHandlers = {
   async focus_exact_gpt_composer(intent, context) {
     requireExactInputKeys(intent, []);
     const browser = requireBrowser(context);
@@ -138,4 +138,4 @@ export const composerSubmissionChildHandlers: GptChildHandlerMap = {
       committedMutation: "no",
     });
   },
-};
+} satisfies GptChildHandlerMap;

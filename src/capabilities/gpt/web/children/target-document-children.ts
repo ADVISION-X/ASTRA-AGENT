@@ -9,7 +9,7 @@ import {
 import { readGptDocument } from "../gpt-dom-observation.js";
 import { GPT_ROOT_URL, assertGptUrl } from "../contracts/target-document.contract.js";
 
-export const targetDocumentChildHandlers: GptChildHandlerMap = {
+export const targetDocumentChildHandlers = {
   async bind_exact_gpt_target(intent, context) {
     requireExactInputKeys(intent, []);
     const browser = requireBrowser(context);
@@ -70,4 +70,4 @@ export const targetDocumentChildHandlers: GptChildHandlerMap = {
       committedMutation: "yes",
     });
   },
-};
+} satisfies GptChildHandlerMap;
