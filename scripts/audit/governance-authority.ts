@@ -63,11 +63,22 @@ const verifyRegistrySourceAuthority = (): void => {
   if (!motherSpecIdentityValid(spec)) fail('SOURCE_PARSE_FAILED', SPEC);
   if (text('AGENTS.md') !== AGENTS_EXACT) fail('ENTRY_CONTRACT_MISMATCH', 'AGENTS.md');
 };
-
 export const motherSpecIdentityValid = (source: string): boolean => source.startsWith(MOTHER_SPEC_IDENTITY_HEADER);
-
+const verifyQualityReportIsolation = (): void => {
+  for (const probe of [REPORT, `${REPORT}.tmp-probe`, 'scripts/audit/reports/nested/probe.json']) {
+    try {
+      execFileSync('git', ['check-ignore', '-q', '--no-index', '--', probe], { cwd: ROOT, stdio: 'ignore' });
+    } catch {
+      fail('REPORT_GITIGNORE_ENFORCEMENT_MISSING', probe);
+    }
+  }
+  const trackedReports = execFileSync('git', ['ls-files', '-z', '--', 'scripts/audit/reports'],
+    { cwd: ROOT, encoding: 'utf8' }).split('\0').filter(Boolean);
+  if (trackedReports.length) fail('REPORT_GITIGNORE_ENFORCEMENT_MISSING', trackedReports.join(','));
+};
 export function verifyEntry(): void {
   verifyRegistrySourceAuthority();
+  verifyQualityReportIsolation();
   if (existsSync(resolve(ROOT, 'docs/governance/GOVERNANCE-FREEZE.json'))) fail('GENERATED_FILESET_INVALID', 'retired freeze record');
   const scripts = parseJson<{ scripts?: Record<string, string> }>('package.json').scripts ?? {};
   const publicGovernance = Object.keys(scripts).filter((name) => name === 'quality:check' || name.startsWith('audit:') || name.startsWith('governance:') || name === 'ci:full' || name.startsWith('exam:')).sort(byteCompare);

@@ -76,6 +76,48 @@ test('V3.3 entry has one public command surface and no freeze sidecar', () => {
   assert.deepEqual(publicGovernance, ['audit:build', 'audit:projection:check', 'quality:check']);
 });
 
+test('quality report isolation rejects removed, narrowed, and tracked report mutants', () => {
+  const mutations: Array<(repository: string) => void> = [
+    (repository) => {
+      const path = resolve(repository, '.gitignore');
+      writeFileSync(path, readFileSync(path, 'utf8').replace('scripts/audit/reports/\n', ''));
+    },
+    (repository) => {
+      const path = resolve(repository, '.gitignore');
+      writeFileSync(path, readFileSync(path, 'utf8')
+        .replace('scripts/audit/reports/', 'scripts/audit/reports/*.tmp-*'));
+    },
+    (repository) => {
+      const report = resolve(repository, 'scripts/audit/reports/law-quality.report.json');
+      mkdirSync(dirname(report), { recursive: true });
+      writeFileSync(report, '{}\n');
+      execFileSync('git', ['add', '-f', 'scripts/audit/reports/law-quality.report.json'], { cwd: repository });
+    },
+  ];
+  for (const [mutationIndex, mutate] of mutations.entries()) {
+    const temporary = mkdtempSync(resolve(tmpdir(), 'governance-report-isolation-'));
+    const repository = resolve(temporary, 'repo');
+    try {
+      execFileSync('git', ['clone', '-q', '--local', '--no-hardlinks', process.cwd(), repository]);
+      writeFileSync(resolve(repository, '.git/info/exclude'), 'node_modules\n');
+      symlinkSync(resolve(process.cwd(), 'node_modules'), resolve(repository, 'node_modules'), 'dir');
+      copyFileSync(resolve(process.cwd(), 'scripts/audit/governance-authority.ts'),
+        resolve(repository, 'scripts/audit/governance-authority.ts'));
+      mutate(repository);
+      const execution = spawnSync(process.execPath, ['--import', 'tsx', '--input-type=module', '-e',
+        'import { verifyEntry } from "./scripts/audit/governance-authority.ts"; verifyEntry();'], {
+        cwd: repository,
+        encoding: 'utf8',
+      });
+      assert.notEqual(execution.status, 0,
+        `report isolation mutation ${mutationIndex} unexpectedly passed: ${execution.stdout}${execution.stderr}`);
+      assert.match(`${execution.stdout}${execution.stderr}`, /REPORT_GITIGNORE_ENFORCEMENT_MISSING/u);
+    } finally {
+      rmSync(temporary, { force: true, recursive: true });
+    }
+  }
+});
+
 test('active corpus and manifests exclude retired meta-law owners', () => {
   const laws = loadLaws();
   assert.ok(laws.length > 0);
