@@ -72,8 +72,11 @@ const handlerIds = (context: InspectorContext): string[] => context.project.getS
   .filter((declaration) => declaration.getName().endsWith("ChildHandlers"))
   .flatMap((declaration) => {
     const initializer = declaration.getInitializer();
-    return initializer && Node.isObjectLiteralExpression(initializer)
-      ? initializer.getProperties().flatMap((property) => {
+    const object = initializer && Node.isObjectLiteralExpression(initializer)
+      ? initializer
+      : initializer?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
+    return object
+      ? object.getProperties().flatMap((property) => {
         if (Node.isMethodDeclaration(property) || Node.isPropertyAssignment(property)) return [property.getName()];
         return [];
       })
