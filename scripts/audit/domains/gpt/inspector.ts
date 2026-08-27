@@ -14,6 +14,7 @@ import {
   producerModePassed,
   recordStaticCheck,
   staticClauses,
+  staticForbiddenClauses,
   staticEvidenceRefs,
   validateStaticInspection,
 } from "../../shared/static-inspection-contract.js";
@@ -26,7 +27,18 @@ import {
 } from "../../shared/static-target-object-inspector.js";
 
 const LAW_ID = "LAW-GPT-001-V2";
-const ALL_CLAUSES = staticClauses(...Array.from({ length: 15 }, (_, index) => index));
+const MODE_CLAUSES = {
+  "static.filesystem": staticForbiddenClauses(1, 11, 14),
+  "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13),
+  "static.types": staticForbiddenClauses(3, 4, 13),
+  "static.contract": staticForbiddenClauses(2, 3, 4, 8, 9, 10, 11, 13),
+  "static.dependency": staticForbiddenClauses(0, 1, 2, 5, 14),
+} as const;
+const MODE_CHECKS = {
+  "static.filesystem": ["inspectGptFilesystem"], "static.ast": ["inspectGptAst"],
+  "static.types": ["inspectGptTypes"], "static.contract": ["inspectGptContracts"],
+  "static.dependency": ["inspectGptDependencies"],
+} as const;
 const ROOT = "src/capabilities/gpt";
 const CONTRACT_PATH = `${ROOT}/contract.ts`;
 const FACADE_PATH = `${ROOT}/index.ts`;
@@ -170,7 +182,6 @@ const inspectFacadeAndOwnership = (context: InspectorContext, findings: Inspecto
     "gpt/group-proof-boundary", GROUP_PATH, `GPT ability group is missing ${required}.`,
   ));
 
-  inspectImportOwnership(context, findings);
 };
 
 const inspectAtomicSafety = (context: InspectorContext, findings: InspectorFinding[]): void => {
@@ -224,23 +235,62 @@ const inspectUniqueRuntimeChain = (context: InspectorContext, findings: Inspecto
   ));
 };
 
-const inspectGpt = (context: InspectorContext, findings: InspectorFinding[]): void => {
+const inspectGptContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {
   inspectDenominatorAndContracts(context, findings);
   inspectFacadeAndOwnership(context, findings);
-  inspectAtomicSafety(context, findings);
   inspectUniqueRuntimeChain(context, findings);
 };
+
+const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  for (const path of [CONTRACT_PATH, FACADE_PATH, GROUP_PATH, SESSION_PATH])
+    if (!existsSync(resolve(context.sealedRoot, path))) findings.push(finding(
+      "gpt/filesystem-required-owner-file", path, `${path} is missing.`));
+  const controllers = readdirSync(resolve(context.sealedRoot, ROOT, "session"))
+    .filter((name) => name.endsWith("session-controller.ts"));
+  if (JSON.stringify(controllers) !== JSON.stringify(["gpt-session-controller.ts"])) findings.push(finding(
+    "gpt/filesystem-single-session-controller", `${ROOT}/session`,
+    `Expected one GPT Session Controller; found ${controllers.join(",")}.`));
+  const forbidden = context.targetPaths.find((path) => /(?:gemini|claude|gateway|adapter|fallback)/iu.test(path));
+  if (forbidden) findings.push(finding("gpt/filesystem-secondary-provider", forbidden,
+    `Secondary provider or compatibility path is forbidden: ${forbidden}.`));
+};
+
+const inspectGptTypes = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const contract = sourceFor(context, CONTRACT_PATH);
+  const group = contract?.getInterface("GptAbilityGroup");
+  const proof = contract?.getInterface("GptChildCapabilityProof");
+  const checks = [[group, "execute", (value: string) => value.startsWith("Promise<")
+    && value.includes("GptFailureClassification") && value.includes("GptChildCapabilityProof")],
+    [group, "listChildCapabilityIds", (value: string) => value.startsWith("readonly (")
+      && value.includes('"bind_exact_gpt_target"') && value.includes('"recover_gpt_response_checkpoint"')],
+    [proof, "evidenceHash", (value: string) => value === "`sha256:${string}`"]] as const;
+  for (const [owner, name, valid] of checks) {
+    const member = owner?.getMembers().find((candidate) => "getName" in candidate && candidate.getName() === name);
+    const actual = member && "getReturnType" in member ? member.getReturnType().getText(member)
+      : member && "getType" in member ? member.getType().getText(member) : "missing";
+    if (!valid(actual)) findings.push(finding("gpt/typed-public-contract", CONTRACT_PATH,
+      `${name} has an invalid resolved TypeChecker relation: ${actual}.`));
+  }
+};
+
+const inspectGptAst = (context: InspectorContext, findings: InspectorFinding[]): void =>
+  inspectAtomicSafety(context, findings);
+const inspectGptDependencies = (context: InspectorContext, findings: InspectorFinding[]): void =>
+  inspectImportOwnership(context, findings);
 
 const evaluate = (context: InspectorContext): InspectorEvaluation => {
   const findings: InspectorFinding[] = [];
   const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
-  recordStaticCheck({
-    check: "inspectGpt",
-    findings,
-    lawIds: [LAW_ID],
-    receipts: staticCheckReceipts,
-    run: () => inspectGpt(context, findings),
-  });
+  recordStaticCheck({ check: "inspectGptFilesystem", findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
+    run: () => inspectGptFilesystem(context, findings) });
+  recordStaticCheck({ check: "inspectGptAst", findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
+    run: () => inspectGptAst(context, findings) });
+  recordStaticCheck({ check: "inspectGptTypes", findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
+    run: () => inspectGptTypes(context, findings) });
+  recordStaticCheck({ check: "inspectGptContracts", findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
+    run: () => inspectGptContracts(context, findings) });
+  recordStaticCheck({ check: "inspectGptDependencies", findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
+    run: () => inspectGptDependencies(context, findings) });
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
@@ -255,12 +305,12 @@ const observationFor = (
   evidenceMode: "static.filesystem" | "static.ast" | "static.types" | "static.contract" | "static.dependency",
   receipts: InspectorEvaluation["staticCheckReceipts"],
 ): string[] => {
-  const checks = ["inspectGpt"];
+  const checks = MODE_CHECKS[evidenceMode];
   const input = {
     context,
     lawId: LAW_ID,
     evidenceMode,
-    clauses: ALL_CLAUSES,
+    clauses: MODE_CLAUSES[evidenceMode],
     checks,
     executionPassed: producerModePassed(receipts, LAW_ID, checks),
   };
@@ -273,20 +323,20 @@ const observationFor = (
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = evaluate(context);
-  const checks = ["inspectGpt"];
+  const checks = (evidenceMode: keyof typeof MODE_CLAUSES): string[] => [...MODE_CHECKS[evidenceMode]];
   const assertions = ([
     "static.filesystem", "static.ast", "static.types", "static.contract", "static.dependency",
   ] as const).map((evidenceMode) => ({
-    clauses: ALL_CLAUSES,
+    clauses: [...MODE_CLAUSES[evidenceMode]],
     evidenceMode,
-    passed: producerModePassed(evaluation.staticCheckReceipts, LAW_ID, checks),
+    passed: producerModePassed(evaluation.staticCheckReceipts, LAW_ID, checks(evidenceMode)),
     refs: staticEvidenceRefs(
       context,
       LAW_ID,
       evidenceMode,
-      ALL_CLAUSES,
+      MODE_CLAUSES[evidenceMode],
       evaluation.staticCheckReceipts,
-      checks,
+      checks(evidenceMode),
       observationFor(context, evidenceMode, evaluation.staticCheckReceipts),
     ),
   }));

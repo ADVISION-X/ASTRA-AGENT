@@ -72,7 +72,25 @@ const contextForEmission = (): EmissionContext => ({
   timeoutMs: Number(process.env.GOVERNANCE_PROOF_TIMEOUT_MS ?? ""),
 });
 
-const nativeReceiptValid = (locator: string, receipt: string | undefined): boolean => {
+const directRuntimeReceiptValid = (
+  file: string, observation: QualityProofObservationInput, context: EmissionContext,
+): boolean => {
+  if (context.script !== "acceptance:agent-production-runtime:real-proof") return true;
+  let parsed: Record<string, unknown>;
+  try { parsed = JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>; }
+  catch { return false; }
+  const kind = observation.evidenceMode.slice("dynamic.".length);
+  const modeObjects = ["browser", "service", "database", "storage", "provider", "authorization", "recovery"];
+  const value = parsed.observation;
+  return parsed.schema_version === "direct-production-runtime-observation.v1"
+    && parsed.proof_run_id === context.proofRunId && parsed.candidate === context.candidate
+    && parsed.lawId === observation.lawId && parsed.evidenceMode === observation.evidenceMode
+    && parsed.observation_kind === kind && value !== null && typeof value === "object" && !Array.isArray(value)
+    && !modeObjects.some((field) => Object.hasOwn(value as object, field));
+};
+
+const nativeReceiptValid = (locator: string, receipt: string | undefined,
+  observation: QualityProofObservationInput, context: EmissionContext): boolean => {
   const configuredRoot = process.env.GOVERNANCE_PROOF_RECEIPT_DIR?.trim();
   if (!configuredRoot || !receipt) return false;
   const root = resolve(configuredRoot);
@@ -82,7 +100,8 @@ const nativeReceiptValid = (locator: string, receipt: string | undefined): boole
   const fileStat = lstatSync(file);
   return rootStat.isDirectory() && !rootStat.isSymbolicLink()
     && fileStat.isFile() && !fileStat.isSymbolicLink() && fileStat.size <= 16 * 1024 * 1024
-    && createHash("sha256").update(readFileSync(file)).digest("hex") === receipt;
+    && createHash("sha256").update(readFileSync(file)).digest("hex") === receipt
+    && directRuntimeReceiptValid(file, observation, context);
 };
 
 const observationValid = (
@@ -112,7 +131,7 @@ export const emitQualityProofObservation = (observation: QualityProofObservation
   const dynamic = observation.evidenceMode.startsWith("dynamic.");
   if (!locatorValid(dynamic, observation.locator) || !observation.observedValue.trim()
     || !receiptValid(dynamic, observation.receipt) || !context.script
-    || (dynamic && !nativeReceiptValid(observation.locator, observation.receipt))
+    || (dynamic && !nativeReceiptValid(observation.locator, observation.receipt, observation, context))
     || !Number.isSafeInteger(context.timeoutMs) || context.timeoutMs < 1) {
     throw new Error("QUALITY_PROOF_OBSERVATION_INVALID");
   }

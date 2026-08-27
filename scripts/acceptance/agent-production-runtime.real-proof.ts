@@ -284,37 +284,58 @@ const observation: DirectRuntimeObservation = Object.freeze({
     unresolvedMutationCount: mutationRows.filter((row) => ["PREPARED", "SENT", "UNKNOWN"].includes(row.state)).length },
 });
 
-const clauses = (last: number): string[] => [
-  ...Array.from({ length: last + 1 }, (_, index) => `forbidden:${index}`), "summary",
-].sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right)));
+type DynamicMode = `dynamic.${keyof DirectRuntimeObservation}`;
+const orderedClauses = (values: readonly string[]): string[] => [...values].sort((left, right) =>
+  Buffer.compare(Buffer.from(left), Buffer.from(right)));
+const modeClauses = new Map<string, string[]>([
+  ["LAW-LOCAL-BROWSER-SESSION-001-V4:dynamic.browser", orderedClauses(["forbidden:0", "forbidden:2", "forbidden:3", "forbidden:4", "forbidden:5", "forbidden:6", "forbidden:7", "forbidden:8", "forbidden:9", "summary"])],
+  ["LAW-LOCAL-BROWSER-SESSION-002-V6:dynamic.browser", orderedClauses([...Array.from({ length: 14 }, (_, index) => `forbidden:${index}`), "summary"])],
+  ["LAW-LOCAL-BROWSER-SESSION-003-V10:dynamic.browser", orderedClauses([...Array.from({ length: 15 }, (_, index) => `forbidden:${index}`), "summary"])],
+  ["LAW-LOCAL-BROWSER-SESSION-004-V9:dynamic.storage", orderedClauses(["forbidden:2", "forbidden:5", "forbidden:6", "forbidden:7", "forbidden:8", "forbidden:9", "forbidden:10", "forbidden:11", "summary"])],
+  ["LAW-LOCAL-BROWSER-SESSION-005-V6:dynamic.browser", orderedClauses([...Array.from({ length: 7 }, (_, index) => `forbidden:${index}`), "summary"])],
+  ["LAW-LOCAL-BROWSER-SESSION-006-V3:dynamic.browser", orderedClauses(["forbidden:0", "summary"])],
+  ["LAW-GPT-001-V2:dynamic.browser", orderedClauses(["forbidden:2", "forbidden:3", "forbidden:4", "forbidden:5", "forbidden:6", "forbidden:8", "forbidden:9", "forbidden:10", "forbidden:12", "forbidden:13", "summary"])],
+  ["LAW-GPT-001-V2:dynamic.provider", orderedClauses(["forbidden:1", "forbidden:13"])],
+  ["LAW-GPT-001-V2:dynamic.authorization", orderedClauses(["forbidden:2", "forbidden:7", "forbidden:8", "forbidden:9"])],
+  ["LAW-GPT-001-V2:dynamic.recovery", orderedClauses(["forbidden:6", "forbidden:10", "forbidden:11", "forbidden:12", "forbidden:14"])],
+  ["LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.browser", orderedClauses(["forbidden:10", "forbidden:17", "summary"])],
+  ["LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.service", orderedClauses(["forbidden:3", "forbidden:9", "forbidden:17", "forbidden:18"])],
+  ["LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.database", orderedClauses(["forbidden:8", "forbidden:9", "forbidden:10", "forbidden:11", "forbidden:12"])],
+  ["LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.storage", orderedClauses(["forbidden:10", "forbidden:12"])],
+  ["LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.provider", orderedClauses(["forbidden:0", "forbidden:6", "forbidden:7", "forbidden:15"])],
+  ["LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.authorization", orderedClauses(["forbidden:3", "forbidden:5", "forbidden:7", "forbidden:12", "forbidden:15", "forbidden:16"])],
+  ["LAW-AGENT-PRODUCTION-RUNTIME-001-V3:dynamic.recovery", orderedClauses(["forbidden:8", "forbidden:9", "forbidden:10", "forbidden:11", "forbidden:16"])],
+]);
+const observationForMode = (evidenceMode: DynamicMode): Readonly<Record<string, unknown>> =>
+  observation[evidenceMode.slice("dynamic.".length) as keyof DirectRuntimeObservation];
 const receiptFor = (lawId: string, evidenceMode: string): Readonly<{ path: string; digest: string }> => {
   const path = join(receiptDir, `${lawId.toLowerCase()}-${evidenceMode.replace(".", "-")}.json`);
   assert.equal(dirname(path), receiptDir);
   writeFileSync(path, `${JSON.stringify({ schema_version: "direct-production-runtime-observation.v1",
     proof_run_id: proofRunId, candidate: proofCandidate, captured_at: new Date().toISOString(),
-    lawId, evidenceMode, observation })}\n`, { mode: 0o600, flag: "wx" });
+    lawId, evidenceMode, observation_kind: evidenceMode.slice("dynamic.".length),
+    observation: observationForMode(evidenceMode as DynamicMode) })}\n`, { mode: 0o600, flag: "wx" });
   return { path, digest: createHash("sha256").update(readFileSync(path)).digest("hex") };
 };
-const emit = (lawId: string, evidenceMode: string, lastClause: number, observedValue: string): void => {
+const emit = (lawId: string, evidenceMode: DynamicMode, observedValue: string): void => {
   const receipt = receiptFor(lawId, evidenceMode);
+  const clauses = modeClauses.get(`${lawId}:${evidenceMode}`);
+  assert.ok(clauses && clauses.length > 1, `missing mode-native clauses for ${lawId}:${evidenceMode}`);
   emitQualityProofObservation({ passed: true, findings: [], lawId, evidenceMode,
-    clauses: clauses(lastClause), locator: receipt.path, receipt: receipt.digest, observedValue });
+    clauses, locator: receipt.path, receipt: receipt.digest, observedValue });
 };
 
-for (const [lawId, mode, last] of [
-  ["LAW-LOCAL-BROWSER-SESSION-001-V4", "dynamic.browser", 9],
-  ["LAW-LOCAL-BROWSER-SESSION-002-V6", "dynamic.browser", 13],
-  ["LAW-LOCAL-BROWSER-SESSION-003-V10", "dynamic.browser", 14],
-  ["LAW-LOCAL-BROWSER-SESSION-004-V9", "dynamic.storage", 11],
-  ["LAW-LOCAL-BROWSER-SESSION-005-V6", "dynamic.browser", 6],
-  ["LAW-LOCAL-BROWSER-SESSION-006-V3", "dynamic.browser", 0],
-] as const) emit(lawId, mode, last, `realChrome=${browserVersion};jobs=12;targetClaimed=true;targetAbsent=true`);
+for (const [lawId, mode] of [
+  ["LAW-LOCAL-BROWSER-SESSION-001-V4", "dynamic.browser"], ["LAW-LOCAL-BROWSER-SESSION-002-V6", "dynamic.browser"],
+  ["LAW-LOCAL-BROWSER-SESSION-003-V10", "dynamic.browser"], ["LAW-LOCAL-BROWSER-SESSION-004-V9", "dynamic.storage"],
+  ["LAW-LOCAL-BROWSER-SESSION-005-V6", "dynamic.browser"], ["LAW-LOCAL-BROWSER-SESSION-006-V3", "dynamic.browser"],
+] as const) emit(lawId, mode, `${mode};realChrome=${browserVersion};jobs=12;targetClaimed=true;targetAbsent=true`);
 for (const mode of ["dynamic.browser", "dynamic.provider", "dynamic.authorization", "dynamic.recovery"] as const) {
-  emit("LAW-GPT-001-V2", mode, 14, `realChildren=${completedBrowserEvents.length};jobs=12;mode=${mode}`);
+  emit("LAW-GPT-001-V2", mode, `${mode};realChildren=${completedBrowserEvents.length};jobs=12`);
 }
 for (const mode of [
   "dynamic.browser", "dynamic.service", "dynamic.database", "dynamic.storage",
   "dynamic.provider", "dynamic.authorization", "dynamic.recovery",
-] as const) emit("LAW-AGENT-PRODUCTION-RUNTIME-001-V3", mode, 18, `plugins=12;jobs=12;mode=${mode}`);
+] as const) emit("LAW-AGENT-PRODUCTION-RUNTIME-001-V3", mode, `${mode};plugins=12;jobs=12`);
 
 process.stdout.write(`[ACCEPTANCE][agent-production-runtime][direct-real-proof] PASS run=${proofRunId}\n`);

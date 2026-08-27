@@ -1,8 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
-
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
-
 import { createFinding } from "../../shared/finding-utils.js";
 import type {
   InspectorContext,
@@ -14,6 +12,7 @@ import {
   producerModePassed,
   recordStaticCheck,
   staticClauses,
+  staticForbiddenClauses,
   staticEvidenceRefs,
   validateStaticInspection,
 } from "../../shared/static-inspection-contract.js";
@@ -24,9 +23,16 @@ import {
   observeStaticFilesystem,
   observeStaticTypes,
 } from "../../shared/static-target-object-inspector.js";
-
 const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V3";
-const ALL_CLAUSES = staticClauses(...Array.from({ length: 19 }, (_, index) => index));
+const MODE_CLAUSES = {
+  "static.filesystem": staticForbiddenClauses(1, 16, 17), "static.ast": staticClauses(2, 4, 5, 9, 10, 11, 13, 14, 15, 17, 18),
+  "static.types": staticForbiddenClauses(3, 5, 8, 11, 12), "static.contract": staticForbiddenClauses(3, 5, 6, 7, 8, 12, 13, 15),
+  "static.dependency": staticForbiddenClauses(0, 1, 2, 4, 6, 16),
+} as const;
+const MODE_CHECKS = {
+  "static.filesystem": ["inspectAgentFilesystem"], "static.ast": ["inspectAgentProductionRuntime"],
+  "static.types": ["inspectAgentTypes"], "static.contract": ["inspectAgentContracts"], "static.dependency": ["inspectAgentDependencies"],
+} as const;
 const PLUGIN_ROOT = "src/plugins";
 const CATALOG_PATH = "src/lib/local-runtime/production/catalog.ts";
 const CONTRACT_PATH = "src/lib/local-runtime/production/contracts.ts";
@@ -50,9 +56,10 @@ const businessTokens = [
   "public_knowledge_", "八字", "奇门", "合婚", "起名", "本地化", "付款截图",
 ] as const;
 
-const finding = (checkId: string, filePath: string, message: string, line?: number): InspectorFinding =>
+const finding = (checkId: string, filePath: string, message: string, line?: number,
+  evidenceMode = "static.ast"): InspectorFinding =>
   createFinding({
-    evidenceMode: "static.ast",
+    evidenceMode,
     lawId: LAW_ID,
     clauseId: `${LAW_ID.toLowerCase()}-requirement`,
     checkId,
@@ -66,7 +73,6 @@ const sourceFor = (context: InspectorContext, repoPath: string): SourceFile | un
 
 const read = (context: InspectorContext, repoPath: string): string =>
   readFileSync(resolve(context.sealedRoot, repoPath), "utf8");
-
 const pluginDirectories = (context: InspectorContext): string[] => {
   const root = resolve(context.sealedRoot, PLUGIN_ROOT);
   if (!existsSync(root)) return [];
@@ -75,7 +81,6 @@ const pluginDirectories = (context: InspectorContext): string[] => {
     .map((entry) => entry.name)
     .sort();
 };
-
 const importsAnotherPlugin = (
   context: InspectorContext,
   pluginId: string,
@@ -370,17 +375,81 @@ const inspectAgentProductionRuntime = (context: InspectorContext, findings: Insp
   inspectRetirementAndDurability(context, findings);
   inspectDirectDynamicProof(context, findings);
 };
+const inspectAgentFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const plugins = pluginDirectories(context);
+  if (plugins.length !== 12) findings.push(finding("agent-production-runtime/filesystem-plugin-count", PLUGIN_ROOT,
+    `Expected twelve physical Product Plugin roots; found ${plugins.length}.`, undefined, "static.filesystem"));
+  for (const pluginId of plugins) {
+    const root = resolve(context.sealedRoot, PLUGIN_ROOT, pluginId);
+    const files = readdirSync(root, { withFileTypes: true }).filter((entry) => entry.isFile());
+    if (files.filter((entry) => entry.name.toLocaleLowerCase("en-US") === "skill.md").length !== 1
+      || !files.some((entry) => entry.name === "index.ts")) findings.push(finding(
+      "agent-production-runtime/filesystem-plugin-pair", `${PLUGIN_ROOT}/${pluginId}`,
+      `${pluginId} must physically contain one SKILL.md and one index.ts.`, undefined, "static.filesystem"));
+  }
+  for (const retired of ["src/plugins/xuanxue-ai-production", "src/mediator/xuanxue-ai-production-route.ts",
+    "src/lib/local-runtime/workbench-xuanxue-ai-production-handle.ts", "src/capabilities/ai-input-gateway",
+    "src/lib/online-ai"]) if (existsSync(resolve(context.sealedRoot, retired))) findings.push(finding(
+    "agent-production-runtime/filesystem-retired-path", retired, `${retired} must be absent.`, undefined,
+    "static.filesystem"));
+};
+const inspectAgentTypes = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const source = sourceFor(context, PLUGIN_CONTRACT_PATH);
+  const plugin = source?.getInterface("ProductPlugin");
+  const expected = new Map([["pluginId", "string"], ["pluginVersion", "number"], ["checkpointSchemaVersion", "number"],
+    ["execute", "Promise<WebsiteAgentResult>"]]);
+  for (const [name, type] of expected) {
+    const member = plugin?.getMembers().find((candidate) => "getName" in candidate && candidate.getName() === name);
+    const actual = member && "getReturnType" in member ? member.getReturnType().getText(member)
+      : member && "getType" in member ? member.getType().getText(member) : "missing";
+    if (!actual.endsWith(type)) findings.push(finding("agent-production-runtime/typed-plugin-contract",
+      PLUGIN_CONTRACT_PATH, `${name} must resolve to ${type}; found ${actual}.`, undefined, "static.types"));
+  }
+};
+const inspectAgentContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const contracts = read(context, CONTRACT_PATH);
+  for (const token of ["WebsiteAgentTaskSchema", "WebsiteAgentResultSchema", "AgentPluginCapabilityManifestSchema",
+    "catalog_hash", "plugin_id", "plugin_version", "skill_hash", "request_hash", "owner_scope_hash", "trust_class"])
+    if (!contracts.includes(token)) findings.push(finding("agent-production-runtime/parsed-contract-field", CONTRACT_PATH,
+      `Production contract is missing ${token}.`, undefined, "static.contract"));
+  for (const token of ["stage_id", "graph", "provider_url", "retry_flow", "plugin_status"])
+    if (contracts.includes(token)) findings.push(finding("agent-production-runtime/forbidden-contract-field", CONTRACT_PATH,
+      `Production contract contains ${token}.`, undefined, "static.contract"));
+};
+const inspectAgentDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const plugins = pluginDirectories(context);
+  const catalog = sourceFor(context, CATALOG_PATH);
+  const imports = catalog?.getImportDeclarations().map((declaration) => declaration.getModuleSpecifierValue())
+    .filter((specifier) => specifier.startsWith("../../../plugins/"))
+    .map((specifier) => specifier.slice("../../../plugins/".length).split("/")[0]!).sort() ?? [];
+  if (JSON.stringify(imports) !== JSON.stringify(plugins)) findings.push(finding(
+    "agent-production-runtime/dependency-catalog-denominator", CATALOG_PATH,
+    `Catalog imports ${imports.join(",")} but Plugin roots are ${plugins.join(",")}.`, undefined, "static.dependency"));
+  for (const pluginId of plugins) {
+    const indexPath = `${PLUGIN_ROOT}/${pluginId}/index.ts`;
+    for (const declaration of sourceFor(context, indexPath)?.getImportDeclarations() ?? []) {
+      const specifier = declaration.getModuleSpecifierValue();
+      if (importsAnotherPlugin(context, pluginId, indexPath, specifier)) findings.push(finding(
+        "agent-production-runtime/dependency-cross-plugin", indexPath,
+        `${pluginId} imports another Product Plugin through ${specifier}.`, declaration.getStartLineNumber(),
+        "static.dependency"));
+    }
+  }
+};
 
 const evaluate = (context: InspectorContext): InspectorEvaluation => {
   const findings: InspectorFinding[] = [];
   const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
-  recordStaticCheck({
-    check: "inspectAgentProductionRuntime",
-    findings,
-    lawIds: [LAW_ID],
-    receipts: staticCheckReceipts,
-    run: () => inspectAgentProductionRuntime(context, findings),
-  });
+  recordStaticCheck({ check: "inspectAgentProductionRuntime", findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
+    run: () => inspectAgentProductionRuntime(context, findings), });
+  recordStaticCheck({ check: "inspectAgentFilesystem", findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
+    run: () => inspectAgentFilesystem(context, findings) });
+  recordStaticCheck({ check: "inspectAgentTypes", findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
+    run: () => inspectAgentTypes(context, findings) });
+  recordStaticCheck({ check: "inspectAgentContracts", findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
+    run: () => inspectAgentContracts(context, findings) });
+  recordStaticCheck({ check: "inspectAgentDependencies", findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
+    run: () => inspectAgentDependencies(context, findings) });
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
@@ -389,18 +458,17 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => {
     staticCheckReceipts,
   };
 };
-
 const observationFor = (
   context: InspectorContext,
   evidenceMode: "static.filesystem" | "static.ast" | "static.types" | "static.contract" | "static.dependency",
   receipts: InspectorEvaluation["staticCheckReceipts"],
 ): string[] => {
-  const checks = ["inspectAgentProductionRuntime"];
+  const checks = MODE_CHECKS[evidenceMode];
   const input = {
     context,
     lawId: LAW_ID,
     evidenceMode,
-    clauses: ALL_CLAUSES,
+    clauses: MODE_CLAUSES[evidenceMode],
     checks,
     executionPassed: producerModePassed(receipts, LAW_ID, checks),
   };
@@ -410,25 +478,17 @@ const observationFor = (
   if (evidenceMode === "static.contract") return observeStaticContract(input);
   return observeStaticDependency(input);
 };
-
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = evaluate(context);
-  const checks = ["inspectAgentProductionRuntime"];
+  const checks = (evidenceMode: keyof typeof MODE_CLAUSES): string[] => [...MODE_CHECKS[evidenceMode]];
   const assertions = ([
     "static.filesystem", "static.ast", "static.types", "static.contract", "static.dependency",
   ] as const).map((evidenceMode) => ({
-    clauses: ALL_CLAUSES,
+    clauses: [...MODE_CLAUSES[evidenceMode]],
     evidenceMode,
-    passed: producerModePassed(evaluation.staticCheckReceipts, LAW_ID, checks),
-    refs: staticEvidenceRefs(
-      context,
-      LAW_ID,
-      evidenceMode,
-      ALL_CLAUSES,
-      evaluation.staticCheckReceipts,
-      checks,
-      observationFor(context, evidenceMode, evaluation.staticCheckReceipts),
-    ),
+    passed: producerModePassed(evaluation.staticCheckReceipts, LAW_ID, checks(evidenceMode)),
+    refs: staticEvidenceRefs(context, LAW_ID, evidenceMode, MODE_CLAUSES[evidenceMode], evaluation.staticCheckReceipts,
+      checks(evidenceMode), observationFor(context, evidenceMode, evaluation.staticCheckReceipts)),
   }));
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain,

@@ -616,6 +616,27 @@ test("each static mode records a mode-native semantic-check selector", () => {
   assert.equal(modeSelector("static.yaml").every((ref) => ref.startsWith("yaml:")), true);
 });
 
+test("one shared semantic check cannot mint an entire four-mode static matrix", () => {
+  const lawId = "LAW-FIXTURE-001-V1";
+  const targetPath = "scripts/audit/shared/static-inspection-contract.ts";
+  const context = {
+    sealedRoot: process.cwd(), project: new Project({ tsConfigFilePath: "tsconfig.json" }),
+    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: targetPath },
+    lawRequirements: [{ lawId, forbiddenCount: 1,
+      requiredStaticModes: ["static.filesystem", "static.ast", "static.types", "static.dependency"],
+      targetPaths: [targetPath], targetSet: { queryRef: `scope:${lawId}#appliesTo-minus-excludes`, count: 1 } }],
+  } as unknown as InspectorContext;
+  const assertion = (mode: "static.filesystem" | "static.ast" | "static.types" | "static.dependency") =>
+    ({ clauses: staticClauses(0), evidenceMode: mode,
+    passed: true, refs: staticEvidenceRefs(context, lawId, mode, staticClauses(0), staticReceipt(lawId, "inspectEverything"),
+      ["inspectEverything"], staticNativeRef(lawId, mode, staticClauses(0), "inspectEverything", targetPath)) });
+  assert.throws(() => validateStaticInspection(context, { capabilityDomain: "fixture", reportedLawIds: [lawId],
+    lawResults: [{ lawId, assertions: [assertion("static.filesystem"), assertion("static.ast"),
+      assertion("static.types"), assertion("static.dependency")], findings: [] }],
+    inspectedFiles: [targetPath] }),
+  (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE");
+});
+
 test("a dead or unexecuted producer semantic check cannot mint static evidence", () => {
   const project = new Project({ useInMemoryFileSystem: true });
   const ownerPath = "scripts/audit/domains/fixture/inspector.ts";
@@ -664,6 +685,27 @@ test("the active evidence-ownership blueprint rejects central clauses and mode s
   assert.equal(staticContract.includes("requirement.targetPaths.includes(objectPath)"), true);
   assert.equal(qualityContract.includes('"static.types": "test"'), true);
   assert.equal(qualityContract.includes('"static.types": "ast"'), false);
+  const agent = readFileSync("scripts/audit/domains/agent-production-runtime/inspector.ts", "utf8");
+  const gpt = readFileSync("scripts/audit/domains/gpt/inspector.ts", "utf8");
+  const capability = readFileSync("scripts/audit/domains/capability-governance/inspector.ts", "utf8");
+  const directProof = readFileSync("scripts/acceptance/agent-production-runtime.real-proof.ts", "utf8");
+  const uniqueModeChecks = (source: string): boolean => {
+    const body = /const MODE_CHECKS = \{([\s\S]*?)\} as const;/u.exec(source)?.[1] ?? "";
+    const checks = [...body.matchAll(/"static\.[a-z]+": \["([A-Za-z]+)"\]/gu)].map((match) => match[1]!);
+    return checks.length === 5 && new Set(checks).size === 5;
+  };
+  assert.equal(uniqueModeChecks(agent), true);
+  assert.equal(uniqueModeChecks(gpt), true);
+  assert.equal(uniqueModeChecks(agent.replace('"static.types": ["inspectAgentTypes"]',
+    '"static.types": ["inspectAgentProductionRuntime"]')), false);
+  assert.equal(capability.includes('mode === "static.types" ? ["inspectCapabilityFacadeTypes"]'), true);
+  assert.equal(capability.replace('mode === "static.types" ? ["inspectCapabilityFacadeTypes"]',
+    'mode === "static.types" ? ["pushMissingFacadeExportConsumers"]')
+    .includes('mode === "static.types" ? ["inspectCapabilityFacadeTypes"]'), false);
+  assert.equal(directProof.includes("observation_kind: evidenceMode.slice"), true);
+  assert.equal(directProof.includes("observation: observationForMode(evidenceMode as DynamicMode)"), true);
+  assert.equal(directProof.includes("lawId, evidenceMode, observation })"), false);
+  assert.equal(proofContract.includes("directRuntimeReceiptValid"), true);
 });
 
 test("unsupported evidence kinds and projection identity drift fail closed", () => {

@@ -9,7 +9,7 @@ import {
   isCapabilityNonFacade,
   isCapabilityPrivateImplementationSection,
 } from "../../shared/repo-path-classifier.js";
-import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, staticForbiddenClauses, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import { observeStaticAst, observeStaticDependency, observeStaticFilesystem, observeStaticTypes } from "../../shared/static-target-object-inspector.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../shared/source-files.js";
 import {
@@ -17,8 +17,9 @@ import {
 } from "./components/capability-source-of-truth.js";
 import { pushCapabilitySourceOfTruthFindings } from "./components/capability-governance-report.js";
 import { pushFacadePurityFindings } from "./components/capability-facade-purity.js";
+import { inspectCapabilityFacadeTypes } from "./components/capability-facade-types.js";
 
-type CapabilityGroupFindingInput = Omit<Parameters<typeof createFinding>[0], "evidenceMode">;
+type CapabilityGroupFindingInput = Omit<Parameters<typeof createFinding>[0], "evidenceMode"> & { evidenceMode?: string };
 
 const createDedupedFindingPusher = (findings: ReturnType<typeof createFinding>[]) => {
   const findingKeys = new Set<string>();
@@ -28,7 +29,7 @@ const createDedupedFindingPusher = (findings: ReturnType<typeof createFinding>[]
       return;
     }
     findingKeys.add(key);
-    findings.push(createFinding({ evidenceMode: "static.ast", ...input }));
+    findings.push(createFinding({ ...input, evidenceMode: input.evidenceMode ?? "static.ast" }));
   };
 };
 
@@ -447,6 +448,8 @@ export const inspectCapabilityGovernanceProject = (
     facadeLawId: lawId,
     pushFinding,
   }) });
+  recordStaticCheck({ check: "inspectCapabilityFacadeTypes", findings, lawIds: [lawId], receipts: staticCheckReceipts,
+    run: () => inspectCapabilityFacadeTypes({ lawId, project, pushFinding }) });
 
   return { findings, inspectedFiles: [...scan.inspectedFiles].sort(), staticCheckReceipts };
 };
@@ -470,10 +473,14 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const evaluation = await inspectDomainEvaluation(context);
   const lawId = "LAW-CAPABILITY-GOVERNANCE-001-V3";
   const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
-  const checks = (mode: string): string[] => mode === "static.dependency" ? ["collectCapabilityGovernanceScan"]
+  const checks = (mode: string): string[] => mode === "static.dependency"
+    ? ["pushMissingCapabilityConsumers", "pushMissingFacadeExportConsumers"]
     : mode === "static.filesystem" ? ["pushMissingCapabilityFacades"]
-      : mode === "static.types" ? ["pushMissingFacadeExportConsumers"]
-        : ["collectCapabilityGovernanceScan", "pushMissingCapabilityConsumers"];
+      : mode === "static.types" ? ["inspectCapabilityFacadeTypes"]
+        : ["collectCapabilityGovernanceScan"];
+  const clauses = (mode: string): string[] => mode === "static.ast" ? staticClauses(0, 1, 3, 5, 6)
+    : mode === "static.dependency" ? staticForbiddenClauses(2, 4)
+      : mode === "static.types" ? staticForbiddenClauses(0) : staticForbiddenClauses(3);
   const refs = (mode: string, clauses: string[]) => ({
     passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks(mode)),
     refs: staticEvidenceRefs(context, lawId, mode, clauses, evaluation.staticCheckReceipts, checks(mode),
@@ -484,10 +491,8 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [{ lawId, assertions: [
-      { clauses: staticClauses(0), evidenceMode: "static.ast", ...refs("static.ast", staticClauses(0)) },
-      { clauses: staticClauses(0), evidenceMode: "static.dependency", ...refs("static.dependency", staticClauses(0)) },
-      { clauses: staticClauses(0), evidenceMode: "static.filesystem", ...refs("static.filesystem", staticClauses(0)) },
-      { clauses: staticClauses(0), evidenceMode: "static.types", ...refs("static.types", staticClauses(0)) },
+      ...(["static.ast", "static.dependency", "static.filesystem", "static.types"] as const).map((evidenceMode) =>
+        ({ clauses: clauses(evidenceMode), evidenceMode, ...refs(evidenceMode, clauses(evidenceMode)) })),
     ], findings }], inspectedFiles: evaluation.inspectedFiles,
   });
 };

@@ -6,9 +6,10 @@ import { inspectTargetObjects } from "./static-target-object-inspector.js";
 const ordered = (values: readonly string[]): string[] => [...new Set(values)].sort((left, right) =>
   Buffer.compare(Buffer.from(left), Buffer.from(right)));
 
-export const staticClauses = (...forbiddenIndexes: number[]): string[] => ordered([
-  ...forbiddenIndexes.map((index) => `forbidden:${index}`), "summary",
-]);
+export const staticForbiddenClauses = (...forbiddenIndexes: number[]): string[] =>
+  ordered(forbiddenIndexes.map((index) => `forbidden:${index}`));
+export const staticClauses = (...forbiddenIndexes: number[]): string[] =>
+  ordered([...staticForbiddenClauses(...forbiddenIndexes), "summary"]);
 
 export const recordStaticCheck = <T>(input: {
   check: string;
@@ -147,6 +148,19 @@ const validateAssertion = (input: {
   }
 };
 
+const semanticCheckSignature = (lawId: string, mode: string,
+  assertion: InspectorOutput["lawResults"][number]["assertions"][number]): string => {
+  if (assertion.refs.length === 1 && assertion.refs[0]?.startsWith("scope:")) return `scope-only:${mode}`;
+  const signatures = assertion.refs.filter((reference) => !reference.startsWith("scope:"))
+    .map((reference) => {
+      try { return /(?:^|;)semanticChecks=([^;]+)/u.exec(decodeURIComponent(reference.slice(reference.indexOf("#") + 1)))?.[1] ?? ""; }
+      catch { return ""; }
+    });
+  if (!signatures.length || signatures.some((signature) => !signature)
+    || new Set(signatures).size !== 1) fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}:semantic-check-binding`);
+  return signatures[0]!;
+};
+
 const validateLawResult = (context: InspectorContext, output: InspectorOutput, lawId: string): void => {
   const requirement = requirementFor(context, lawId);
   const result = output.lawResults.find((entry) => entry.lawId === lawId)
@@ -161,6 +175,11 @@ const validateLawResult = (context: InspectorContext, output: InspectorOutput, l
     const assertion = assertionsByMode.get(mode)
       ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}`);
     validateAssertion({ assertion, lawId, mode, requirement });
+  }
+  const semanticSignatures = requiredModes.map((mode) => semanticCheckSignature(lawId, mode,
+    assertionsByMode.get(mode) ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${mode}`)));
+  if (requiredModes.length >= 4 && new Set(semanticSignatures).size === 1) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:evidence-mode-semantic-substitution`);
   }
   if (result.findings.some((finding) => finding.lawId !== lawId
     || !requiredModes.includes(finding.evidenceMode))) {
