@@ -94,7 +94,7 @@ const inspectPluginRoots = (context: InspectorContext, findings: InspectorFindin
   const catalogPluginImports = catalog.getImportDeclarations()
     .map((declaration) => declaration.getModuleSpecifierValue())
     .filter((specifier) => specifier.startsWith("../../../plugins/"))
-    .map((specifier) => specifier.split("/")[3])
+    .map((specifier) => specifier.slice("../../../plugins/".length).split("/")[0])
     .filter((value): value is string => Boolean(value))
     .sort();
   if (new Set(catalogPluginImports).size !== 12

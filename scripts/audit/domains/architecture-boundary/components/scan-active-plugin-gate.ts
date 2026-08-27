@@ -43,7 +43,7 @@ const activePluginContracts = (project: Parameters<typeof listActiveSourceFiles>
   const pluginIds = catalog?.getImportDeclarations()
     .map((declaration) => declaration.getModuleSpecifierValue())
     .filter((specifier) => specifier.startsWith("../../../plugins/"))
-    .map((specifier) => specifier.split("/")[3])
+    .map((specifier) => specifier.slice("../../../plugins/".length).split("/")[0])
     .filter((pluginId): pluginId is string => Boolean(pluginId)) ?? [];
   return [...new Set(pluginIds)].sort().map((pluginId) => ({
     pluginId,

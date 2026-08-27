@@ -17,7 +17,6 @@ type Finding = ReturnType<typeof createFinding>;
 
 const forbiddenProtocolKeys = new Set([
   "abilityGroupId",
-  "childCapabilityId",
   "capabilityCallId",
   "artifactDisposition",
 ]);
