@@ -368,8 +368,11 @@ for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"
     findings: [],
     lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V2",
     evidenceMode,
-    clauses: ["forbidden:0", "forbidden:2", "forbidden:7", "forbidden:9", "forbidden:10", "forbidden:14"],
+    clauses: [
+      "forbidden:0", "forbidden:10", "forbidden:11", "forbidden:12", "forbidden:17",
+      "forbidden:2", "forbidden:3", "forbidden:8", "forbidden:9",
+    ],
     locator: `acceptance:agent-production-runtime:${evidenceMode}`,
-    observedValue: "strict contracts, one mediator dispatch, durable identity, outbox idempotency, continuation lane CAS, and blocked-shell isolation pass with rejecting mutants",
+    observedValue: "strict V6 claim projection, one mediator dispatch, durable local acceptance before remote checkpoint, frozen identity, outbox idempotency, continuation lane CAS, task-owned Target cleanup, and blocked-shell isolation pass with rejecting mutants",
   });
 }

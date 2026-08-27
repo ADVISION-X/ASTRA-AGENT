@@ -26,13 +26,17 @@ import {
 } from "../../shared/static-target-object-inspector.js";
 
 const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V2";
-const ALL_CLAUSES = staticClauses(...Array.from({ length: 16 }, (_, index) => index));
+const ALL_CLAUSES = staticClauses(...Array.from({ length: 19 }, (_, index) => index));
 const PLUGIN_ROOT = "src/plugins";
 const CATALOG_PATH = "src/lib/local-runtime/production/catalog.ts";
 const CONTRACT_PATH = "src/lib/local-runtime/production/contracts.ts";
+const TRANSPORT_PATH = "src/lib/local-runtime/production/transport-protocol.ts";
+const RUNTIME_PATH = "src/lib/local-runtime/production/runtime.ts";
 const PLUGIN_CONTRACT_PATH = "src/lib/local-runtime/production/plugin.ts";
 const MEDIATOR_PATH = "src/mediator/agent-production-route.ts";
 const PSC_PATH = "src/capabilities/gpt/session/gpt-session-controller.ts";
+const LOCALIZATION_PLUGIN_PATH = "src/plugins/localization-production/index.ts";
+const LOCALIZATION_SKILL_PATH = "src/plugins/localization-production/SKILL.md";
 const forbiddenDeterministicProducts = [
   "bazi_basic_chart",
   "bazi_pdf_export",
@@ -268,6 +272,42 @@ const inspectRetirementAndDurability = (context: InspectorContext, findings: Ins
     "agent-production-runtime/stage-ledger-retired", "src/lib/local-runtime/production/store.ts",
     "Production store still contains the retired website Stage mirror.",
   ));
+
+  const transportText = read(context, TRANSPORT_PATH);
+  for (const required of [
+    "ClaimedProductionTaskSchema", "ExecutionGrantSchema", "ExecutionFenceSchema",
+    "WebsiteAgentTaskSchema.safeParse", "V6_CLAIM_TASK_GRANT_MISMATCH",
+    "WebsiteAgentTaskSchema.parse(projectWebsiteAgentTaskEnvelope(claim))",
+  ]) {
+    if (!transportText.includes(required)) findings.push(finding(
+      "agent-production-runtime/v6-claim-projection", TRANSPORT_PATH,
+      `V6 claim validation and strict WebsiteAgentTask projection are missing ${required}.`,
+    ));
+  }
+
+  const runtimeText = read(context, RUNTIME_PATH);
+  const durableAcceptAt = runtimeText.indexOf("state.executor.accept(task)");
+  const acceptedAt = runtimeText.indexOf("accepted = true", durableAcceptAt);
+  const remoteCheckpointAt = runtimeText.indexOf("checkpointProductionTask(", acceptedAt);
+  if (durableAcceptAt < 0 || acceptedAt <= durableAcceptAt || remoteCheckpointAt <= acceptedAt) findings.push(finding(
+    "agent-production-runtime/durable-accept-before-remote-checkpoint", RUNTIME_PATH,
+    "The runtime must mark durable local acceptance before attempting the remote acceptance checkpoint.",
+  ));
+
+  const localizationPluginText = read(context, LOCALIZATION_PLUGIN_PATH);
+  const localizationSkillText = read(context, LOCALIZATION_SKILL_PATH);
+  for (const required of ["source_content", "target_locale", "terminology", "locale_policy"]) {
+    if (!localizationPluginText.includes(required)) findings.push(finding(
+      "agent-production-runtime/localization-input-contract", LOCALIZATION_PLUGIN_PATH,
+      `Localization production input is missing ${required}.`,
+    ));
+  }
+  for (const required of ["目标 locale", "术语表", "locale policy", "FrozenSubject"]) {
+    if (!localizationSkillText.includes(required)) findings.push(finding(
+      "agent-production-runtime/localization-skill-boundary", LOCALIZATION_SKILL_PATH,
+      `Localization Product Skill is missing its required ${required} boundary.`,
+    ));
+  }
 };
 
 const inspectAgentProductionRuntime = (context: InspectorContext, findings: InspectorFinding[]): void => {

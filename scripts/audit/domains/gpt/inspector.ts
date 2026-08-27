@@ -26,7 +26,7 @@ import {
 } from "../../shared/static-target-object-inspector.js";
 
 const LAW_ID = "LAW-GPT-001-V1";
-const ALL_CLAUSES = staticClauses(...Array.from({ length: 13 }, (_, index) => index));
+const ALL_CLAUSES = staticClauses(...Array.from({ length: 15 }, (_, index) => index));
 const ROOT = "src/capabilities/gpt";
 const CONTRACT_PATH = `${ROOT}/contract.ts`;
 const FACADE_PATH = `${ROOT}/index.ts`;

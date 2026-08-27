@@ -118,28 +118,28 @@ const emit = (
   observedValue,
 });
 
-emit("LAW-GPT-001-V1", "dynamic.browser", ["forbidden:3", "forbidden:4", "forbidden:5", "forbidden:11", "summary"],
+emit("LAW-GPT-001-V1", "dynamic.browser", ["forbidden:3", "forbidden:4", "forbidden:5", "forbidden:6", "forbidden:12", "summary"],
   `target=${proof.browser.target_ref_hash};document=${proof.browser.document_ref_hash};children=${byChild.size}`);
-emit("LAW-GPT-001-V1", "dynamic.provider", ["forbidden:1", "forbidden:2", "forbidden:6", "forbidden:7", "forbidden:8", "forbidden:10", "summary"],
+emit("LAW-GPT-001-V1", "dynamic.provider", ["forbidden:1", "forbidden:2", "forbidden:7", "forbidden:8", "forbidden:9", "forbidden:11", "summary"],
   `origin=${proof.browser.origin};checkpoint=${byChild.get("checkpoint_gpt_text_response")!.evidenceHash}`);
-emit("LAW-GPT-001-V1", "dynamic.authorization", ["forbidden:0", "forbidden:4", "forbidden:5", "forbidden:8", "summary"],
+emit("LAW-GPT-001-V1", "dynamic.authorization", ["forbidden:0", "forbidden:5", "forbidden:6", "forbidden:9", "summary"],
   `authority=${proof.browser.authority_state};authorization=${proof.runtime.authorization_receipt_hash}`);
-emit("LAW-GPT-001-V1", "dynamic.recovery", ["forbidden:5", "forbidden:9", "forbidden:10", "forbidden:12", "summary"],
+emit("LAW-GPT-001-V1", "dynamic.recovery", ["forbidden:6", "forbidden:10", "forbidden:11", "forbidden:13", "summary"],
   `sameJob=${proof.recovery.same_job_id};zeroReplay=${proof.recovery.zero_replayed_mutations}`);
 
-emit("LAW-AGENT-PRODUCTION-RUNTIME-001-V2", "dynamic.browser", ["forbidden:3", "forbidden:8", "forbidden:13", "forbidden:14", "summary"],
+emit("LAW-AGENT-PRODUCTION-RUNTIME-001-V2", "dynamic.browser", ["forbidden:4", "forbidden:10", "forbidden:16", "forbidden:17", "summary"],
   `target=${proof.browser.target_ref_hash};lane=${proof.browser.lane_state}`);
-emit("LAW-AGENT-PRODUCTION-RUNTIME-001-V2", "dynamic.service", ["forbidden:6", "forbidden:8", "forbidden:13", "forbidden:14", "forbidden:15", "summary"],
+emit("LAW-AGENT-PRODUCTION-RUNTIME-001-V2", "dynamic.service", ["forbidden:7", "forbidden:10", "forbidden:16", "forbidden:17", "forbidden:18", "summary"],
   `shell=${proof.runtime.shell_state};cloud=${proof.runtime.cloud_state};service=${proof.runtime.service_receipt_hash}`);
-emit("LAW-AGENT-PRODUCTION-RUNTIME-001-V2", "dynamic.database", ["forbidden:7", "forbidden:8", "forbidden:9", "forbidden:12", "summary"],
+emit("LAW-AGENT-PRODUCTION-RUNTIME-001-V2", "dynamic.database", ["forbidden:8", "forbidden:10", "forbidden:11", "forbidden:15", "summary"],
   `integrity=${proof.runtime.database_integrity};receipt=${proof.runtime.database_receipt_hash}`);
-emit("LAW-AGENT-PRODUCTION-RUNTIME-001-V2", "dynamic.storage", ["forbidden:7", "forbidden:8", "forbidden:10", "summary"],
+emit("LAW-AGENT-PRODUCTION-RUNTIME-001-V2", "dynamic.storage", ["forbidden:8", "forbidden:10", "forbidden:12", "summary"],
   `storage=${proof.runtime.storage_receipt_hash};checkpoint=${proof.recovery.checkpoint_after_hash}`);
-emit("LAW-AGENT-PRODUCTION-RUNTIME-001-V2", "dynamic.provider", ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "forbidden:11", "summary"],
+emit("LAW-AGENT-PRODUCTION-RUNTIME-001-V2", "dynamic.provider", ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:4", "forbidden:6", "forbidden:14", "summary"],
   `gptChildren=${byChild.size};run=${proof.run_id}`);
-emit("LAW-AGENT-PRODUCTION-RUNTIME-001-V2", "dynamic.authorization", ["forbidden:4", "forbidden:5", "forbidden:6", "forbidden:10", "forbidden:11", "forbidden:12", "summary"],
+emit("LAW-AGENT-PRODUCTION-RUNTIME-001-V2", "dynamic.authorization", ["forbidden:5", "forbidden:6", "forbidden:7", "forbidden:12", "forbidden:14", "forbidden:15", "summary"],
   `claim=${proof.runtime.claim_admission_state};authorization=${proof.runtime.authorization_receipt_hash}`);
-emit("LAW-AGENT-PRODUCTION-RUNTIME-001-V2", "dynamic.recovery", ["forbidden:7", "forbidden:8", "forbidden:9", "forbidden:13", "summary"],
+emit("LAW-AGENT-PRODUCTION-RUNTIME-001-V2", "dynamic.recovery", ["forbidden:8", "forbidden:10", "forbidden:11", "forbidden:16", "summary"],
   `sameJob=${proof.recovery.same_job_id};zeroReplay=${proof.recovery.zero_replayed_mutations}`);
 
 process.stdout.write(`[ACCEPTANCE][agent-production-runtime][real-proof] PASS run=${proof.run_id}\n`);
