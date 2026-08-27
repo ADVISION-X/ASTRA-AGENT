@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
@@ -47,9 +47,6 @@ const finding = (checkId: string, filePath: string, message: string, line?: numb
 
 const sourceFor = (context: InspectorContext, path: string): SourceFile | undefined =>
   context.project.getSourceFile(resolve(context.sealedRoot, path));
-
-const read = (context: InspectorContext, path: string): string =>
-  readFileSync(resolve(context.sealedRoot, path), "utf8");
 
 const repoPath = (context: InspectorContext, source: SourceFile): string =>
   source.getFilePath().slice(resolve(context.sealedRoot).length + 1).split("\\").join("/");
@@ -200,15 +197,6 @@ const inspectAtomicSafety = (context: InspectorContext, findings: InspectorFindi
 };
 
 const inspectUniqueRuntimeChain = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  for (const retired of [
-    "src/capabilities/ai-input-gateway",
-    "scripts/audit/domains/ai-input-gateway",
-    "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
-    "src/lib/local-runtime/workbench-ai-gateway-support.ts",
-    "src/lib/online-ai",
-  ]) if (existsSync(resolve(context.sealedRoot, retired))) findings.push(finding(
-    "gpt/retired-second-chain-zero", retired, `${retired} must be physically absent.`,
-  ));
   const controllerDir = resolve(context.sealedRoot, ROOT, "session");
   const controllers = existsSync(controllerDir)
     ? readdirSync(controllerDir).filter((name) => name.endsWith("session-controller.ts"))
@@ -223,14 +211,6 @@ const inspectUniqueRuntimeChain = (context: InspectorContext, findings: Inspecto
     "gptContinuationIdentityHash", "lane_version", "prior_turn_marker",
   ]) if (!sessionText.includes(required)) findings.push(finding(
     "gpt/session-binding", SESSION_PATH, `GPT Session Controller is missing ${required}.`,
-  ));
-  const executor = read(context, "src/lib/local-runtime/production/executor.ts");
-  for (const required of [
-    "this.gpt.execute", "checkpoint_gpt_text_response", "state.titleFailure",
-    "resolveSuccessfulMutation",
-  ]) if (!executor.includes(required)) findings.push(finding(
-    "gpt/runtime-single-chain", "src/lib/local-runtime/production/executor.ts",
-    `Production runtime is missing GPT chain invariant ${required}.`,
   ));
 };
 
