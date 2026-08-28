@@ -104,6 +104,7 @@ const claimFailureDecision = (
 ): ClaimFailureDecision => {
   const terminal = serializeTerminalFailure(error);
   if (terminal.mutation_outcome === "dispatched") return "RECONCILE_ONLY";
+  if (job.grant.attempt_mode === "reconciliation") return "RECONCILE_ONLY";
   const terminalCodes = new Set([
     "USER_CANCELLED",
     "CLAIMED_PLUGIN_IDENTITY_MISMATCH",

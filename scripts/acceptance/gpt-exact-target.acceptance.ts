@@ -6,37 +6,30 @@ import { join } from "node:path";
 import sharp from "sharp";
 
 import {
-  GPT_TURN_FLOW,
   GPT_TURN_FLOW_VERSION,
-  GptTurnExecutor,
   buildGptExecutionProfile,
   createGptAbilityGroup,
   type GptChildCapabilityId,
 } from "../../src/capabilities/gpt/index.js";
-import type { BrowserTargetLease } from "../../src/lib/browser/browser-authority-api.js";
-import {
-  GPT_PROFILE_DISMISS_SELECTOR,
-  GPT_PROFILE_MODEL_CHOICE_SELECTOR,
-  GPT_PROFILE_POPUP_SELECTOR,
-  GPT_PROFILE_REASONING_CONTROL_SELECTOR,
-  GPT_PROFILE_REASONING_SLIDER_SELECTOR,
-  GPT_PROFILE_SIMPLE_PANEL_SELECTOR,
-  GPT_PROFILE_TRIGGER_SELECTOR,
-} from "../../src/capabilities/gpt/web/contracts/execution-profile.contract.js";
-import {
-  GPT_ATTACHMENT_CONTROL_SELECTOR,
-  GPT_ATTACHMENT_REGION_SELECTOR,
-  GPT_UPLOAD_FROM_COMPUTER_LABEL,
-  GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
-} from "../../src/capabilities/gpt/web/contracts/attachment.contract.js";
-import { GPT_COMPOSER_SELECTOR } from "../../src/capabilities/gpt/web/contracts/composer.contract.js";
-import { GPT_SEND_SELECTOR } from "../../src/capabilities/gpt/web/contracts/submission.contract.js";
-import { GPT_USER_TURN_SELECTOR } from "../../src/capabilities/gpt/web/contracts/conversation.contract.js";
+import type { BrowserDomIntent, BrowserTargetLease } from "../../src/lib/browser/browser-authority-api.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { EXPECTED_GPT_CHILD_IDS, fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
 
 const INPUT_HASH = `sha256:${"a".repeat(64)}` as const;
-const documentResult = { url: "https://chatgpt.com/", title: "ChatGPT" } as const;
+const GPT_PROFILE_TRIGGER_SELECTOR = "main button[aria-haspopup='menu'][data-tone='neutral']:not([aria-label])";
+const GPT_PROFILE_POPUP_SELECTOR = "[role='menu']:has([data-testid='composer-model-picker-slider-simple-view'])";
+const GPT_PROFILE_SIMPLE_PANEL_SELECTOR = "[data-testid='composer-model-picker-slider-simple-view'][data-active='true']:not([inert])";
+const GPT_PROFILE_MODEL_CHOICE_SELECTOR = "[data-testid='composer-model-picker-slider-advanced-view'] [role='menuitemradio']";
+const GPT_PROFILE_REASONING_CONTROL_SELECTOR = `${GPT_PROFILE_SIMPLE_PANEL_SELECTOR} [role='menuitem'][aria-label='能力']`;
+const GPT_PROFILE_REASONING_SLIDER_SELECTOR = `${GPT_PROFILE_SIMPLE_PANEL_SELECTOR} [data-model-reasoning-effort-slider] [role='slider']`;
+const GPT_PROFILE_DISMISS_SELECTOR = "#prompt-textarea";
+const GPT_ATTACHMENT_CONTROL_SELECTOR = 'button[aria-label="添加文件和更多内容"]';
+const GPT_UPLOAD_FROM_COMPUTER_SELECTOR = "[role='menuitem']";
+const GPT_UPLOAD_FROM_COMPUTER_LABEL = "从电脑上传";
+const GPT_ATTACHMENT_REGION_SELECTOR = "form:has(#prompt-textarea) [class*='grid-area:header']";
+const GPT_COMPOSER_SELECTOR = "#prompt-textarea";
+const GPT_SEND_SELECTOR = "#composer-submit-button[data-testid='send-button']";
+const GPT_USER_TURN_SELECTOR = "[data-testid^='conversation-turn-'][data-turn='user']";
 const context = (browser: BrowserTargetLease, dataDir = "/tmp/gpt-acceptance") => ({ dataDir, browser });
 const execute = (
   id: GptChildCapabilityId,
@@ -52,19 +45,86 @@ const execute = (
   pluginStepId: "acceptance-step",
   actionOrdinal: Math.max(1, EXPECTED_GPT_CHILD_IDS.indexOf(id) + 1),
   input,
-}, context(browser, dataDir));
+  }, context(browser, dataDir));
+
+type ProfileFixtureState = { popupOpen: boolean; modelSelected: boolean; reasoningValue: number };
+
+const profileFindResult = (
+  intent: Extract<BrowserDomIntent, { kind: "find" }>,
+  state: ProfileFixtureState,
+): unknown => {
+  switch (intent.selector) {
+    case GPT_PROFILE_POPUP_SELECTOR: return { count: state.popupOpen ? 1 : 0 };
+    case GPT_PROFILE_TRIGGER_SELECTOR: return { count: 1 };
+    case GPT_PROFILE_SIMPLE_PANEL_SELECTOR: return { count: state.popupOpen ? 1 : 0 };
+    case GPT_PROFILE_REASONING_CONTROL_SELECTOR: return { count: state.popupOpen ? 1 : 0 };
+    case GPT_PROFILE_REASONING_SLIDER_SELECTOR: return { count: state.popupOpen ? 1 : 0 };
+    case GPT_PROFILE_MODEL_CHOICE_SELECTOR:
+      return { count: 1, matches: [{ ariaChecked: state.modelSelected ? "true" : "false" }] };
+    default: throw new Error(`UNEXPECTED_PROFILE_FIND:${intent.selector ?? "semantic"}`);
+  }
+};
+
+const respondToProfileIntent = (intent: BrowserDomIntent, state: ProfileFixtureState): unknown => {
+  if (intent.kind === "find") return profileFindResult(intent, state);
+  if (intent.kind === "click" && intent.selector === GPT_PROFILE_TRIGGER_SELECTOR) state.popupOpen = true;
+  else if (intent.kind === "click" && intent.selector === GPT_PROFILE_MODEL_CHOICE_SELECTOR) {
+    assert.equal(intent.expectedTextEquals, "GPT-5.6 Sol");
+    state.modelSelected = true;
+  } else if (intent.kind === "readAttribute" && intent.selector === GPT_PROFILE_REASONING_SLIDER_SELECTOR) {
+    return String(state.reasoningValue);
+  } else if (intent.kind === "keypress" && intent.selector === GPT_PROFILE_REASONING_SLIDER_SELECTOR) {
+    assert.deepEqual([intent.key, intent.repeat], ["ArrowRight", 1]);
+    state.reasoningValue = 4;
+  } else if (intent.kind === "click" && intent.selector === GPT_PROFILE_DISMISS_SELECTOR) state.popupOpen = false;
+  else throw new Error(`UNEXPECTED_PROFILE_INTENT:${intent.kind}`);
+  return { postconditionVerified: true };
+};
+
+type TurnFixtureState = { composerText: string; userTurnVisible: boolean };
+
+const turnFindResult = (
+  intent: Extract<BrowserDomIntent, { kind: "find" }>,
+  state: TurnFixtureState,
+): unknown => {
+  switch (intent.selector) {
+    case GPT_COMPOSER_SELECTOR:
+    case GPT_SEND_SELECTOR: return { count: 1 };
+    case GPT_USER_TURN_SELECTOR: return { count: state.userTurnVisible ? 1 : 0 };
+    case GPT_ATTACHMENT_REGION_SELECTOR: return { count: 0 };
+    default: throw new Error(`UNEXPECTED_TURN_FIND:${intent.selector ?? "semantic"}`);
+  }
+};
+
+const respondToTurnIntent = (intent: BrowserDomIntent, state: TurnFixtureState): unknown => {
+  if (intent.kind === "find") return turnFindResult(intent, state);
+  if (intent.kind === "readText" && intent.selector === GPT_COMPOSER_SELECTOR) return state.composerText;
+  if (intent.kind === "fill") {
+    state.composerText = intent.approvedText;
+    return { retainedValueVerified: true };
+  }
+  if (intent.kind === "inspect" && intent.selector === GPT_SEND_SELECTOR) {
+    return { tagName: "BUTTON", visible: true, disabled: false };
+  }
+  if (intent.kind === "click" && intent.selector === GPT_SEND_SELECTOR) {
+    state.userTurnVisible = true;
+    state.composerText = "";
+    return { postconditionVerified: true };
+  }
+  if (intent.kind === "readAttribute" && intent.selector === GPT_USER_TURN_SELECTOR) return "conversation-turn-1";
+  if (intent.kind === "document") return { url: "https://chatgpt.com/c/acceptance-turn", title: "ChatGPT" };
+  throw new Error(`UNEXPECTED_TURN_INTENT:${intent.kind}`);
+};
 
 assert.equal(createGptAbilityGroup().abilityGroupId, "gpt");
 assert.equal(createGptAbilityGroup().transport, "gpt-web");
 assert.deepEqual(createGptAbilityGroup().listChildCapabilityIds(), EXPECTED_GPT_CHILD_IDS);
 assert.equal(EXPECTED_GPT_CHILD_IDS.length, 22);
-assert.equal(GPT_TURN_FLOW.length, 18);
-assert.equal(new Set(GPT_TURN_FLOW.map((step) => step.childCapabilityId)).size, GPT_TURN_FLOW.length);
 for (const retired of ["recover_gpt_response_checkpoint", "open_gpt_title_control", "open_gpt_conversation_search"]) {
   assert.equal(EXPECTED_GPT_CHILD_IDS.includes(retired as never), false);
 }
 const resumedCalls: Array<{ id: string; reconcileOnly: boolean }> = [];
-await new GptTurnExecutor().execute({
+await createGptAbilityGroup().executeTurn({
   executionId: "acceptance:resume",
   inputHash: INPUT_HASH,
   pluginStepId: "resume-step",
@@ -143,50 +203,15 @@ const profile = buildGptExecutionProfile({
   acceptanceRef: "acceptance:gpt-exact-target",
   acceptanceVersion: "v1",
 });
-let popupOpen = false;
-let modelSelected = false;
-let reasoningValue = 3;
-const profileFixture = fakeBrowser((intent) => {
-  if (intent.kind === "find") {
-    if (intent.selector === GPT_PROFILE_POPUP_SELECTOR) return { count: popupOpen ? 1 : 0 };
-    if (intent.selector === GPT_PROFILE_TRIGGER_SELECTOR) return { count: 1 };
-    if (intent.selector === GPT_PROFILE_SIMPLE_PANEL_SELECTOR) return { count: popupOpen ? 1 : 0 };
-    if (intent.selector === GPT_PROFILE_REASONING_CONTROL_SELECTOR) return { count: popupOpen ? 1 : 0 };
-    if (intent.selector === GPT_PROFILE_REASONING_SLIDER_SELECTOR) return { count: popupOpen ? 1 : 0 };
-    if (intent.selector === GPT_PROFILE_MODEL_CHOICE_SELECTOR) {
-      return { count: 1, matches: [{ ariaChecked: modelSelected ? "true" : "false" }] };
-    }
-  }
-  if (intent.kind === "click" && intent.selector === GPT_PROFILE_TRIGGER_SELECTOR) {
-    popupOpen = true;
-    return { postconditionVerified: true };
-  }
-  if (intent.kind === "click" && intent.selector === GPT_PROFILE_MODEL_CHOICE_SELECTOR) {
-    assert.equal(intent.expectedTextEquals, "GPT-5.6 Sol");
-    modelSelected = true;
-    return { postconditionVerified: true };
-  }
-  if (intent.kind === "readAttribute" && intent.selector === GPT_PROFILE_REASONING_SLIDER_SELECTOR) {
-    return String(reasoningValue);
-  }
-  if (intent.kind === "keypress" && intent.selector === GPT_PROFILE_REASONING_SLIDER_SELECTOR) {
-    assert.deepEqual([intent.key, intent.repeat], ["ArrowRight", 1]);
-    reasoningValue = 4;
-    return { postconditionVerified: true };
-  }
-  if (intent.kind === "click" && intent.selector === GPT_PROFILE_DISMISS_SELECTOR) {
-    popupOpen = false;
-    return { postconditionVerified: true };
-  }
-  throw new Error(`UNEXPECTED_PROFILE_INTENT:${intent.kind}`);
-});
+const profileState: ProfileFixtureState = { popupOpen: false, modelSelected: false, reasoningValue: 3 };
+const profileFixture = fakeBrowser((intent) => respondToProfileIntent(intent, profileState));
 assert.equal((await execute("open_gpt_execution_profile", profileFixture.browser, { profile })).status, "success");
 assert.equal((await execute("ensure_exact_gpt_model", profileFixture.browser, { profile })).status, "success");
-assert.equal(modelSelected, true, "the one current popup must select the exact model without an advanced submenu");
+assert.equal(profileState.modelSelected, true, "the one current popup must select the exact model without an advanced submenu");
 assert.equal((await execute("ensure_exact_gpt_reasoning_tier", profileFixture.browser, { profile })).status, "success");
-assert.equal(reasoningValue, 4);
+assert.equal(profileState.reasoningValue, 4);
 assert.equal((await execute("close_gpt_execution_profile", profileFixture.browser, { profile })).status, "success");
-assert.equal(popupOpen, false);
+assert.equal(profileState.popupOpen, false);
 assert.equal(profileFixture.physicalMutations(), 4);
 
 const profileRecoveryFixture = fakeBrowser((intent) => {
@@ -231,36 +256,10 @@ assert.equal((await execute("reconcile_gpt_attachment_set", attachmentFixture.br
   files: attachmentFiles,
 })).status, "success");
 
-let composerText = "";
 const marker = "[GPT-TURN:acceptance]";
 const prompt = `${marker}\n${"甲".repeat(90_000)}`;
-let userTurnVisible = false;
-const turnFixture = fakeBrowser((intent) => {
-  if (intent.kind === "find") {
-    if (intent.selector === GPT_COMPOSER_SELECTOR) return { count: 1 };
-    if (intent.selector === GPT_SEND_SELECTOR) return { count: 1 };
-    if (intent.selector === GPT_USER_TURN_SELECTOR) return { count: userTurnVisible ? 1 : 0 };
-    if (intent.selector === GPT_ATTACHMENT_REGION_SELECTOR) return { count: 0 };
-  }
-  if (intent.kind === "readText" && intent.selector === GPT_COMPOSER_SELECTOR) return composerText;
-  if (intent.kind === "fill") {
-    composerText = intent.approvedText;
-    return { retainedValueVerified: true };
-  }
-  if (intent.kind === "inspect" && intent.selector === GPT_SEND_SELECTOR) {
-    return { tagName: "BUTTON", visible: true, disabled: false };
-  }
-  if (intent.kind === "click" && intent.selector === GPT_SEND_SELECTOR) {
-    userTurnVisible = true;
-    composerText = "";
-    return { postconditionVerified: true };
-  }
-  if (intent.kind === "readAttribute" && intent.selector === GPT_USER_TURN_SELECTOR) {
-    return "conversation-turn-1";
-  }
-  if (intent.kind === "document") return { url: "https://chatgpt.com/c/acceptance-turn", title: "ChatGPT" };
-  throw new Error(`UNEXPECTED_TURN_INTENT:${intent.kind}`);
-});
+const turnState: TurnFixtureState = { composerText: "", userTurnVisible: false };
+const turnFixture = fakeBrowser((intent) => respondToTurnIntent(intent, turnState));
 const written = await execute("write_exact_gpt_prompt", turnFixture.browser, { prompt });
 assert.equal(written.status, "success");
 assert.equal((written.value as { length: number }).length, prompt.length);

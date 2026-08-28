@@ -97,25 +97,39 @@ export type BrowserDomIntent =
 
 export const assertBrowserDomIntent = (intent: BrowserDomIntent): BrowserDomIntent => {
   assertSelector(intent);
+  assertObservationIntent(intent);
+  assertMutationIntent(intent);
+  assertScopedIntent(intent);
+  return intent;
+};
+
+const assertObservationIntent = (intent: BrowserDomIntent): void => {
   if (intent.kind === "find") assertFindIntent(intent);
   if (intent.kind === "readText" || intent.kind === "readAttribute") assertReadIntent(intent);
+};
+
+const assertMutationIntent = (intent: BrowserDomIntent): void => {
   if (intent.kind === "click" || intent.kind === "hover" || intent.kind === "doubleClick"
     || intent.kind === "keypress" || intent.kind === "fill") assertOptionalExpectedMatches(intent.expectedMatches);
-  if ("scope" in intent) assertReadScope(intent.scope);
   if (intent.kind === "click") assertClickIntent(intent);
   if (intent.kind === "hover") assertHoverIntent(intent);
   if (intent.kind === "doubleClick") assertBoundedPostMatch(intent.postDoubleClickMatch);
-  if (intent.kind === "keypress") {
-    if (!(intent.key === "Enter" || intent.key === "ArrowLeft" || intent.key === "ArrowRight")) {
-      throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-    }
-    if (intent.repeat !== undefined
-      && (!Number.isInteger(intent.repeat) || intent.repeat < 1 || intent.repeat > 4)) {
-      throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-    }
-    assertBoundedPostMatch(intent.postKeypressMatch);
+  if (intent.kind === "keypress") assertKeypressIntent(intent);
+};
+
+const assertScopedIntent = (intent: BrowserDomIntent): void => {
+  if ("scope" in intent) assertReadScope(intent.scope);
+};
+
+const assertKeypressIntent = (intent: Extract<BrowserDomIntent, { kind: "keypress" }>): void => {
+  if (!(intent.key === "Enter" || intent.key === "ArrowLeft" || intent.key === "ArrowRight")) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
-  return intent;
+  if (intent.repeat !== undefined
+    && (!Number.isInteger(intent.repeat) || intent.repeat < 1 || intent.repeat > 4)) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  }
+  assertBoundedPostMatch(intent.postKeypressMatch);
 };
 
 const assertBoundedPostMatch = (match: Readonly<{

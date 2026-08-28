@@ -7,7 +7,7 @@ import { executionFailure } from "../../../../lib/typed-failure.js";
 import type { BrowserTargetLease } from "../../../../lib/browser/browser-authority-api.js";
 import type { GptChildCapabilityIntent, GptExecutionContext } from "../../contract.js";
 
-import type { GptChildHandlerMap } from "../child-handler.js";
+import type { GptChildHandlerMap, GptChildObservation } from "../child-handler.js";
 import {
   numberInput,
   requireBrowser,
@@ -49,6 +49,48 @@ const readAssistantText = async (
     throw executionFailure("review_required", "GPT_ASSISTANT_TURN_INVALID");
   }
   return state.text;
+};
+
+type StableImageState = { assistantTurnId: string | null; stableSince: number };
+
+const observeStableImage = async (
+  browser: BrowserTargetLease,
+  marker: string,
+  state: StableImageState,
+): Promise<GptChildObservation | null> => {
+  const userCount = await findCount(browser, {
+    selector: GPT_USER_TURN_SELECTOR, textContains: marker, maxMatches: 20,
+  });
+  if (userCount > 1) throw executionFailure("review_required", `GPT_USER_TURN_COUNT_${userCount}`);
+  if (userCount !== 1) return null;
+  const userTurnId = await readExactAttribute(browser, GPT_USER_TURN_SELECTOR, "data-testid", marker);
+  const assistantTurnId = `conversation-turn-${turnOrdinal(userTurnId) + 1}`;
+  const assistantCount = await findCount(browser, { selector: assistantSelector(assistantTurnId), maxMatches: 2 });
+  const imageCount = assistantCount === 1
+    ? await findCount(browser, { selector: `${assistantSelector(assistantTurnId)} img[alt]`, maxMatches: 2 })
+    : 0;
+  const generating = await findCount(browser, { selector: GPT_GENERATING_STOP_SELECTOR, maxMatches: 2 });
+  if (imageCount > 1) throw executionFailure("review_required", `GPT_GENERATED_IMAGE_COUNT_${imageCount}`);
+  if (assistantCount !== 1 || imageCount !== 1 || generating !== 0) return null;
+  if (state.assistantTurnId !== assistantTurnId) {
+    state.assistantTurnId = assistantTurnId;
+    state.stableSince = Date.now();
+    return null;
+  }
+  if (Date.now() - state.stableSince < 3_000) return null;
+  const responseText = await readAssistantText(browser, assistantTurnId);
+  if (!responseText.trim()) throw executionFailure("recovery_pending", "GPT_IMAGE_RESPONSE_TEXT_PENDING");
+  return success({
+    value: {
+      assistantTurnId,
+      semanticMediaId: "gpt-generated-image-main",
+      responseText,
+      responseHash: hash(responseText),
+    },
+    candidateCount: 1,
+    observedSemantics: ["one directly following assistant turn", "one semantic image", "generation control absent", "stable bounded interval"],
+    committedMutation: "no",
+  });
 };
 
 const renderGeneratedImage = async (original: Buffer): Promise<Buffer> => {
@@ -207,44 +249,11 @@ export const responseChildHandlers = {
     const timeoutMs = Math.max(1_000, Math.min(numberInput(intent, "timeoutMs"), 3_600_000));
     const browser = requireBrowser(context);
     const deadline = Date.now() + timeoutMs;
-    let stableAssistantTurnId: string | null = null;
-    let stableSince = 0;
+    const state: StableImageState = { assistantTurnId: null, stableSince: 0 };
     while (Date.now() < deadline) {
       if (context.signal?.aborted) throw executionFailure("recovery_pending", "GPT_IMAGE_WAIT_ABORTED");
-      const userCount = await findCount(browser, {
-        selector: GPT_USER_TURN_SELECTOR, textContains: marker, maxMatches: 20,
-      });
-      if (userCount > 1) throw executionFailure("review_required", `GPT_USER_TURN_COUNT_${userCount}`);
-      if (userCount === 1) {
-        const userTurnId = await readExactAttribute(browser, GPT_USER_TURN_SELECTOR, "data-testid", marker);
-        const assistantTurnId = `conversation-turn-${turnOrdinal(userTurnId) + 1}`;
-        const assistantCount = await findCount(browser, { selector: assistantSelector(assistantTurnId), maxMatches: 2 });
-        const imageCount = assistantCount === 1
-          ? await findCount(browser, { selector: `${assistantSelector(assistantTurnId)} img[alt]`, maxMatches: 2 })
-          : 0;
-        const generating = await findCount(browser, { selector: GPT_GENERATING_STOP_SELECTOR, maxMatches: 2 });
-        if (imageCount > 1) throw executionFailure("review_required", `GPT_GENERATED_IMAGE_COUNT_${imageCount}`);
-        if (assistantCount === 1 && imageCount === 1 && generating === 0) {
-          if (stableAssistantTurnId !== assistantTurnId) {
-            stableAssistantTurnId = assistantTurnId;
-            stableSince = Date.now();
-          } else if (Date.now() - stableSince >= 3_000) {
-            const responseText = await readAssistantText(browser, assistantTurnId);
-            if (!responseText.trim()) throw executionFailure("recovery_pending", "GPT_IMAGE_RESPONSE_TEXT_PENDING");
-            return success({
-              value: {
-                assistantTurnId,
-                semanticMediaId: "gpt-generated-image-main",
-                responseText,
-                responseHash: hash(responseText),
-              },
-              candidateCount: 1,
-              observedSemantics: ["one directly following assistant turn", "one semantic image", "generation control absent", "stable bounded interval"],
-              committedMutation: "no",
-            });
-          }
-        }
-      }
+      const observation = await observeStableImage(browser, marker, state);
+      if (observation) return observation;
       const remaining = deadline - Date.now();
       if (remaining > 0) await browser.wait({ durationMs: Math.max(25, Math.min(500, Math.ceil(remaining / 20))) });
     }

@@ -37,6 +37,41 @@ type LeaseCommand = (
   value: Parameters<BrowserCommandActor["execute"]>[1],
 ) => Promise<unknown>;
 
+type AuthenticatedMedia = Awaited<ReturnType<BrowserTargetLease["downloadAuthenticatedMedia"]>>;
+
+const authenticatedMediaIdentityValid = (
+  input: Readonly<{ assistantTurnId: string; semanticMediaId: "gpt-generated-image-main" }>,
+): boolean => /^conversation-turn-[1-9][0-9]*$/u.test(input.assistantTurnId)
+  && input.semanticMediaId === "gpt-generated-image-main";
+
+const authenticatedMediaBytesValid = (value: Readonly<Record<string, unknown>>): boolean =>
+  typeof value.bytesBase64 === "string"
+  && typeof value.sha256 === "string"
+  && /^sha256:[a-f0-9]{64}$/u.test(value.sha256)
+  && typeof value.sizeBytes === "number"
+  && Number.isSafeInteger(value.sizeBytes)
+  && value.sizeBytes >= 1
+  && value.sizeBytes <= 25 * 1024 * 1024;
+
+const authenticatedMediaShapeValid = (value: Readonly<Record<string, unknown>>): boolean =>
+  typeof value.mediaType === "string"
+  && /^image\/[a-z0-9.+-]+$/u.test(value.mediaType)
+  && typeof value.width === "number"
+  && Number.isSafeInteger(value.width)
+  && value.width >= 1
+  && typeof value.height === "number"
+  && Number.isSafeInteger(value.height)
+  && value.height >= 1;
+
+const parseAuthenticatedMedia = (raw: unknown): AuthenticatedMedia => {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  const value = raw as Readonly<Record<string, unknown>>;
+  if (!authenticatedMediaBytesValid(value) || !authenticatedMediaShapeValid(value)) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  return value as AuthenticatedMedia;
+};
+
 export class BrowserTargetLeaseManager {
   public constructor(
     private readonly certificate: BrowserAuthorityCertificateV1,
@@ -254,8 +289,7 @@ export class BrowserTargetLeaseManager {
     width: number;
     height: number;
   }>> {
-    if (!/^conversation-turn-[1-9][0-9]*$/u.test(input.assistantTurnId)
-      || input.semanticMediaId !== "gpt-generated-image-main") {
+    if (!authenticatedMediaIdentityValid(input)) {
       throw new Error("BROWSER_TARGET_INVALID");
     }
     const raw = await command("browser.authenticated-media.v1", {
@@ -263,23 +297,13 @@ export class BrowserTargetLeaseManager {
       assistantTurnId: input.assistantTurnId,
       semanticMediaId: input.semanticMediaId,
     });
-    if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-    const value = raw as Record<string, unknown>;
-    if (typeof value.bytesBase64 !== "string" || typeof value.sha256 !== "string"
-      || !/^sha256:[a-f0-9]{64}$/u.test(value.sha256)
-      || typeof value.sizeBytes !== "number" || !Number.isSafeInteger(value.sizeBytes)
-      || value.sizeBytes < 1 || value.sizeBytes > 25 * 1024 * 1024
-      || typeof value.mediaType !== "string" || !/^image\/[a-z0-9.+-]+$/u.test(value.mediaType)
-      || typeof value.width !== "number" || !Number.isSafeInteger(value.width) || value.width < 1
-      || typeof value.height !== "number" || !Number.isSafeInteger(value.height) || value.height < 1) {
-      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-    }
+    const value = parseAuthenticatedMedia(raw);
     const bytes = Buffer.from(value.bytesBase64, "base64");
     const digest = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
     if (bytes.byteLength !== value.sizeBytes || digest !== value.sha256) {
       throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     }
-    return value as ReturnType<BrowserTargetLease["downloadAuthenticatedMedia"]> extends Promise<infer T> ? T : never;
+    return value;
   }
 
   private async resolvePendingMutation(

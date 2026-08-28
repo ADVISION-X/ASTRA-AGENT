@@ -14,6 +14,7 @@ import {
   type GptExecutionContext,
   type GptFailureClassification,
 } from "./contract.js";
+import { GptTurnExecutor, type GptTurnExecutionInput } from "./gpt-turn-executor.js";
 import { sessionChildHandlers } from "./session/session-children.js";
 import type { GptChildHandler, GptChildObservation } from "./web/child-handler.js";
 import { attachmentChildHandlers } from "./web/children/attachment-children.js";
@@ -202,9 +203,14 @@ const executeOne = async (
   }
 };
 
+const turnExecutor = new GptTurnExecutor();
+
+export { GPT_TURN_FLOW_VERSION } from "./contract.js";
+
 export const createGptAbilityGroup = (): GptAbilityGroup => Object.freeze({
   abilityGroupId: GPT_ABILITY_GROUP_ID,
   transport: GPT_TRANSPORT,
   listChildCapabilityIds: () => GPT_CHILD_CAPABILITY_IDS,
   execute: executeOne,
+  executeTurn: (input: GptTurnExecutionInput) => turnExecutor.execute(input),
 });

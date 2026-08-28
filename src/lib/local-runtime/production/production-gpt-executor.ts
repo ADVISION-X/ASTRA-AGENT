@@ -2,14 +2,12 @@ import { createHash } from "node:crypto";
 
 import {
   GPT_TURN_FLOW_VERSION,
-  GptTurnExecutor,
   type GptAbilityGroup,
   type GptChildCapabilityId,
   type GptChildCapabilityIntent,
   type GptChildCapabilityResult,
   type GptContinuationLane,
   type GptProviderContinuation,
-  type GptTurnResumePoint,
 } from "../../../capabilities/gpt/index.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../../capabilities/forensics-persistence/index.js";
 import type { BrowserTargetLease } from "../../browser/browser-authority-api.js";
@@ -27,10 +25,7 @@ import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-s
 import type { LocalProductionMaterial, ProductionHash, WebsiteAgentTask } from "./contracts.js";
 import { hashCanonical } from "./contracts.js";
 import {
-  applyGptChildValue,
-  buildGptTurnResult,
   createGptTurnState,
-  gptChildInput,
   restoreGptTurnState,
   type GptTurnRequest,
 } from "./gpt-turn-state.js";
@@ -43,6 +38,7 @@ import {
   persistedEvidenceRefs,
 } from "./gpt-evidence-writer.js";
 import { productionCatalogHash } from "./catalog.js";
+import { closeSettledGptBrowser, executeProductionGptTurnFlow, gptTurnTimeoutMs } from "./production-gpt-turn-flow.js";
 
 type ChildExecutionInput = Readonly<{
   task: WebsiteAgentTask;
@@ -113,7 +109,6 @@ const stepInputHash = (
 
 export class ProductionGptExecutor {
   private readonly states = new Map<string, "idle" | "running" | "failed" | "review_required">();
-  private readonly turnExecutor = new GptTurnExecutor();
 
   public constructor(
     private readonly dataDir: string,
@@ -398,132 +393,10 @@ export class ProductionGptExecutor {
     });
   }
 
-  private async executeTurnFlow(input: Readonly<{
-    request: ProductionGptTurnInput;
-    state: ReturnType<typeof createGptTurnState>;
-    browser: BrowserTargetLease;
-    continuation: GptProviderContinuation | null;
-    timeoutMs: number;
-    inputHash: ProductionHash;
-    checkpoint: GptTurnDurableCheckpoint | null;
-  }>): Promise<ProviderTurnResult> {
-    const resume: GptTurnResumePoint | null = input.checkpoint ? {
-      stepIndex: input.checkpoint.step_index,
-      childCapabilityId: input.checkpoint.child_capability_id,
-      status: input.checkpoint.status,
-      mutationState: input.checkpoint.mutation_state,
-    } : null;
-    let providerDispatchUsed = input.checkpoint?.provider_dispatch_used ?? false;
-    const outputKind = input.request.turn.output_kind ?? "text";
-    const execution = await this.turnExecutor.execute({
-      executionId: input.state.executionId,
-      inputHash: input.inputHash,
-      pluginStepId: input.request.turn.step_id,
-      mode: input.continuation ? "continuation" : "fresh",
-      hasAttachments: input.state.files.length > 0,
-      outputKind,
-      resume,
-      context: {
-        dataDir: this.dataDir,
-        browser: input.browser,
-        signal: input.request.lease.abort_signal,
-        continuationStore: this.store,
-      },
-      inputFor: (step, reconcileOnly) => gptChildInput(
-        step.childCapabilityId,
-        input.state,
-        input.continuation,
-        input.timeoutMs,
-        reconcileOnly,
-      ),
-      dispatch: async (intent, context) => {
-        if (intent.childCapabilityId === "submit_exact_gpt_turn_once"
-          && intent.input.reconcileOnly !== true
-          && this.store.countGptProviderDispatches(input.request.task.job_id)
-            >= input.request.lease.max_provider_turns) {
-          throw executionFailure("failed", "PROVIDER_TURN_BUDGET_EXHAUSTED");
-        }
-        return this.executeChild({
-          task: input.request.task,
-          pluginId: input.request.pluginId,
-          stepId: input.request.turn.step_id,
-          lease: input.request.lease,
-          parentSpanId: input.request.parentSpanId,
-          intent,
-          context,
-        });
-      },
-      checkpoint: async ({ step, stepIndex, reconcileOnly, result }) => {
-        const evidenceRef = persistedEvidenceRefs.get(result);
-        if (!evidenceRef) throw executionFailure("review_required", "EVIDENCE_REF_MISSING");
-        if (!input.state.evidenceRefs.includes(evidenceRef)) input.state.evidenceRefs.push(evidenceRef);
-        if (result.status === "success") applyGptChildValue(step.childCapabilityId, result.value, input.state);
-        const reconciledPendingMutation = reconcileOnly
-          && result.status === "success"
-          && input.browser.pendingMutationCount() === 1;
-        if (reconciledPendingMutation) {
-          await input.browser.resolvePendingMutation({
-            schemaVersion: "grasseye.browser.outcome-resolution.v1",
-            ownerPluginId: input.request.pluginId,
-            outcome: "TERMINAL_SUCCESS",
-            positiveEvidenceRef: `${evidenceRef}#positive-postcondition`,
-            negativeEvidenceRef: `${evidenceRef}#negative-postcondition-absent`,
-            uniqueTargetRef: input.browser.target.targetRef,
-            boundedAt: new Date().toISOString(),
-          });
-        }
-        if (step.childCapabilityId === "submit_exact_gpt_turn_once"
-          && result.proof.committedMutation !== "no") {
-          providerDispatchUsed = true;
-          input.request.lease.provider_turns_used += 1;
-        }
-        const finalChild = outputKind === "text"
-          ? step.childCapabilityId === "checkpoint_gpt_text_response"
-          : step.childCapabilityId === "checkpoint_gpt_generated_image";
-        const completedResult = result.status === "success" && finalChild
-          ? buildGptTurnResult(input.state)
-          : null;
-        this.store.writeGptTurnCheckpoint(
-          input.request.task.job_id,
-          input.request.turn.step_id,
-          {
-            schema_version: "gpt-turn-checkpoint.v2",
-            flow_version: GPT_TURN_FLOW_VERSION,
-            input_hash: input.inputHash,
-            step_index: stepIndex,
-            child_capability_id: step.childCapabilityId,
-            status: result.status === "success" ? "success" : "failed",
-            mutation_state: reconciledPendingMutation ? "confirmed" : result.proof.committedMutation,
-            postcondition_result: result.proof.postconditionResult,
-            evidence_ref: evidenceRef,
-            evidence_hash: result.proof.evidenceHash,
-            provider_dispatch_used: providerDispatchUsed,
-            state: structuredClone(input.state),
-            result: completedResult,
-          },
-        );
-      },
-    });
-    if (execution.failure) throwChildFailure(execution.failure);
-    const result = buildGptTurnResult(input.state);
-    const finalCheckpoint = this.store.readGptTurnCheckpoint(
-      input.request.task.job_id,
-      input.request.turn.step_id,
-      input.inputHash,
-    );
-    if (!finalCheckpoint?.result || JSON.stringify(finalCheckpoint.result) !== JSON.stringify(result)) {
-      throw executionFailure("review_required", "GPT_TURN_FINAL_CHECKPOINT_MISSING");
-    }
-    return result;
-  }
-
   private async executeBoundTurn(
-    input: ProductionGptTurnInput,
-    lane: GptContinuationLane | null,
-    continuation: GptProviderContinuation | null,
-    inputHash: ProductionHash,
-    selected: readonly LocalProductionMaterial[],
-    checkpoint: GptTurnDurableCheckpoint | null,
+    input: ProductionGptTurnInput, lane: GptContinuationLane | null,
+    continuation: GptProviderContinuation | null, inputHash: ProductionHash,
+    selected: readonly LocalProductionMaterial[], checkpoint: GptTurnDurableCheckpoint | null,
   ): Promise<ProviderTurnResult> {
     let browser: BrowserTargetLease | null = null;
     let primaryError: unknown = null;
@@ -540,18 +413,39 @@ export class ProductionGptExecutor {
         acceptanceVersion: productionCatalogHash,
       });
       if (checkpoint) restoreGptTurnState(state, checkpoint.state);
-      const timeoutMs = Math.min(
-        3_600_000,
-        Math.max(60_000, Math.floor(input.lease.expires_at_monotonic - performance.now())),
-      );
-      const result = await this.executeTurnFlow({
-        request: input,
+      const timeoutMs = gptTurnTimeoutMs(input.lease.expires_at_monotonic);
+      const result = await executeProductionGptTurnFlow({
+        gpt: this.gpt,
+        store: this.store,
+        request: {
+          jobId: input.task.job_id,
+          pluginId: input.pluginId,
+          stepId: input.turn.step_id,
+          lease: input.lease,
+          outputKind: input.turn.output_kind ?? "text",
+        },
         state,
         browser,
         continuation,
         timeoutMs,
         inputHash,
         checkpoint,
+        context: {
+          dataDir: this.dataDir,
+          browser,
+          signal: input.lease.abort_signal,
+          continuationStore: this.store,
+        },
+        executeChild: (intent, context) => this.executeChild({
+          task: input.task,
+          pluginId: input.pluginId,
+          stepId: input.turn.step_id,
+          lease: input.lease,
+          parentSpanId: input.parentSpanId,
+          intent,
+          context,
+        }),
+        failChild: throwChildFailure,
       });
       browser.assertNoPendingMutations();
       if (lane) {
@@ -571,13 +465,7 @@ export class ProductionGptExecutor {
       }
       throw error;
     } finally {
-      const safeToClose = browser && browser.pendingMutationCount() === 0
-        && (primaryError === null || typedExecutionFailure(primaryError)?.mutationOutcome === "no");
-      const browserForClose = safeToClose ? browser : null;
-      if (browserForClose) {
-        try { await browserForClose.close({ reason: "gpt-turn-settled" }); }
-        catch (closeError) { if (primaryError === null) throw closeError; }
-      }
+      await closeSettledGptBrowser(browser, primaryError);
     }
   }
 

@@ -1,5 +1,6 @@
 import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
 import type { GptContinuationStorePort } from "./session/gpt-continuation-store-port.js";
+import type { GptTurnExecutionInput, GptTurnExecutionResult } from "./gpt-turn-executor.js";
 
 export const GPT_ABILITY_GROUP_ID = "gpt" as const;
 export const GPT_TRANSPORT = "gpt-web" as const;
@@ -146,4 +147,5 @@ export interface GptAbilityGroup {
   readonly transport: typeof GPT_TRANSPORT;
   listChildCapabilityIds(): readonly GptChildCapabilityId[];
   execute(intent: GptChildCapabilityIntent, context: GptExecutionContext): Promise<GptChildCapabilityResult>;
+  executeTurn(input: GptTurnExecutionInput): Promise<GptTurnExecutionResult>;
 }

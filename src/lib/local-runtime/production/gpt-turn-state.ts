@@ -119,6 +119,79 @@ export const restoreGptTurnState = (
   return state;
 };
 
+type ChildInput = Readonly<Record<string, unknown>>;
+
+const conversationChildInput = (
+  childCapabilityId: GptChildCapabilityId,
+  continuation: GptProviderContinuation | null,
+  timeoutMs: number,
+  recovery: ChildInput,
+): ChildInput | null => {
+  if (childCapabilityId === "prepare_clean_gpt_chat") return { timeoutMs };
+  if (childCapabilityId === "focus_exact_gpt_conversation") {
+    if (!continuation) throw executionFailure("review_required", "GPT_CONTINUATION_REQUIRED");
+    return { canonicalConversationUrl: continuation.provider_page_url, ...recovery };
+  }
+  if (childCapabilityId !== "verify_gpt_conversation_identity") return null;
+  if (!continuation) throw executionFailure("review_required", "GPT_CONTINUATION_REQUIRED");
+  return {
+    canonicalConversationUrl: continuation.provider_page_url,
+    turnMarker: continuation.prior_turn_marker,
+    timeoutMs,
+  };
+};
+
+const profileAttachmentChildInput = (
+  childCapabilityId: GptChildCapabilityId,
+  state: GptTurnState,
+  recovery: ChildInput,
+): ChildInput | null => {
+  if ([
+    "open_gpt_execution_profile", "ensure_exact_gpt_model",
+    "ensure_exact_gpt_reasoning_tier", "close_gpt_execution_profile",
+  ].includes(childCapabilityId)) return { profile: state.profile, ...recovery };
+  if (childCapabilityId === "open_gpt_attachment_control") return recovery;
+  if (childCapabilityId === "attach_approved_gpt_files_once") return { files: state.files, ...recovery };
+  if (childCapabilityId === "reconcile_gpt_attachment_set") return { files: state.files };
+  return null;
+};
+
+const composerChildInput = (
+  childCapabilityId: GptChildCapabilityId,
+  state: GptTurnState,
+  timeoutMs: number,
+  recovery: ChildInput,
+): ChildInput | null => {
+  if (childCapabilityId === "write_exact_gpt_prompt") return { prompt: state.prompt, ...recovery };
+  if (childCapabilityId === "reconcile_gpt_draft") {
+    return { files: state.files, prompt: state.prompt, turnMarker: state.turnMarker };
+  }
+  if (childCapabilityId === "submit_exact_gpt_turn_once") {
+    return { promptHash: state.promptHash, turnMarker: state.turnMarker, ...recovery };
+  }
+  if (childCapabilityId === "reconcile_gpt_turn_submission") return { timeoutMs, turnMarker: state.turnMarker };
+  return null;
+};
+
+const responseChildInput = (
+  childCapabilityId: GptChildCapabilityId,
+  state: GptTurnState,
+  timeoutMs: number,
+): ChildInput | null => {
+  if (childCapabilityId === "wait_for_stable_gpt_text" || childCapabilityId === "wait_for_stable_gpt_image") {
+    return { timeoutMs, turnMarker: state.turnMarker };
+  }
+  if (childCapabilityId === "checkpoint_gpt_text_response") {
+    if (!state.assistantTurnId || !state.responseHash) {
+      throw executionFailure("failed", "GPT_STABLE_RESPONSE_REQUIRED");
+    }
+    return { assistantTurnId: state.assistantTurnId, expectedResponseHash: state.responseHash };
+  }
+  if (childCapabilityId !== "checkpoint_gpt_generated_image") return null;
+  if (!state.assistantTurnId) throw executionFailure("failed", "GPT_ASSISTANT_TURN_REQUIRED");
+  return { assistantTurnId: state.assistantTurnId };
+};
+
 export const gptChildInput = (
   childCapabilityId: GptChildCapabilityId,
   state: GptTurnState,
@@ -127,45 +200,15 @@ export const gptChildInput = (
   reconcileOnly: boolean,
 ): Readonly<Record<string, unknown>> => {
   const recovery = reconcileOnly ? { reconcileOnly: true } : {};
-  switch (childCapabilityId) {
-    case "prepare_clean_gpt_chat": return { timeoutMs };
-    case "focus_exact_gpt_conversation":
-      if (!continuation) throw executionFailure("review_required", "GPT_CONTINUATION_REQUIRED");
-      return { canonicalConversationUrl: continuation.provider_page_url, ...recovery };
-    case "verify_gpt_conversation_identity":
-      if (!continuation) throw executionFailure("review_required", "GPT_CONTINUATION_REQUIRED");
-      return {
-        canonicalConversationUrl: continuation.provider_page_url,
-        turnMarker: continuation.prior_turn_marker,
-        timeoutMs,
-      };
-    case "open_gpt_execution_profile":
-    case "ensure_exact_gpt_model":
-    case "ensure_exact_gpt_reasoning_tier":
-    case "close_gpt_execution_profile":
-      return { profile: state.profile, ...recovery };
-    case "open_gpt_attachment_control": return recovery;
-    case "attach_approved_gpt_files_once": return { files: state.files, ...recovery };
-    case "reconcile_gpt_attachment_set": return { files: state.files };
-    case "write_exact_gpt_prompt": return { prompt: state.prompt, ...recovery };
-    case "reconcile_gpt_draft": return { files: state.files, prompt: state.prompt, turnMarker: state.turnMarker };
-    case "submit_exact_gpt_turn_once":
-      return { promptHash: state.promptHash, turnMarker: state.turnMarker, ...recovery };
-    case "reconcile_gpt_turn_submission": return { timeoutMs, turnMarker: state.turnMarker };
-    case "wait_for_stable_gpt_text":
-    case "wait_for_stable_gpt_image":
-      return { timeoutMs, turnMarker: state.turnMarker };
-    case "checkpoint_gpt_text_response":
-      if (!state.assistantTurnId || !state.responseHash) {
-        throw executionFailure("failed", "GPT_STABLE_RESPONSE_REQUIRED");
-      }
-      return { assistantTurnId: state.assistantTurnId, expectedResponseHash: state.responseHash };
-    case "checkpoint_gpt_generated_image":
-      if (!state.assistantTurnId) throw executionFailure("failed", "GPT_ASSISTANT_TURN_REQUIRED");
-      return { assistantTurnId: state.assistantTurnId };
-    default:
-      throw executionFailure("failed", `GPT_FLOW_CHILD_NOT_ALLOWED:${childCapabilityId}`);
-  }
+  const conversation = conversationChildInput(childCapabilityId, continuation, timeoutMs, recovery);
+  if (conversation) return conversation;
+  const profileAttachment = profileAttachmentChildInput(childCapabilityId, state, recovery);
+  if (profileAttachment) return profileAttachment;
+  const composer = composerChildInput(childCapabilityId, state, timeoutMs, recovery);
+  if (composer) return composer;
+  const response = responseChildInput(childCapabilityId, state, timeoutMs);
+  if (response) return response;
+  throw executionFailure("failed", `GPT_FLOW_CHILD_NOT_ALLOWED:${childCapabilityId}`);
 };
 
 export const applyGptChildValue = (

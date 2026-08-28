@@ -62,20 +62,33 @@ export type GptTurnDurableCheckpoint = Readonly<{
   result: ProviderTurnResult | null;
 }>;
 
+const checkpointIdentityValid = (parsed: Partial<GptTurnDurableCheckpoint>): boolean =>
+  parsed.schema_version === "gpt-turn-checkpoint.v2"
+  && parsed.flow_version === GPT_TURN_FLOW_VERSION
+  && typeof parsed.input_hash === "string"
+  && /^sha256:[a-f0-9]{64}$/u.test(parsed.input_hash)
+  && Number.isSafeInteger(parsed.step_index)
+  && (parsed.step_index as number) >= 0
+  && typeof parsed.child_capability_id === "string";
+
+const checkpointProgressValid = (parsed: Partial<GptTurnDurableCheckpoint>): boolean =>
+  (parsed.status === "success" || parsed.status === "failed")
+  && ["no", "dispatched", "confirmed"].includes(String(parsed.mutation_state))
+  && ["passed", "failed", "pending"].includes(String(parsed.postcondition_result))
+  && typeof parsed.provider_dispatch_used === "boolean";
+
+const checkpointEvidenceValid = (parsed: Partial<GptTurnDurableCheckpoint>): boolean =>
+  typeof parsed.evidence_ref === "string"
+  && parsed.evidence_ref.length > 0
+  && typeof parsed.evidence_hash === "string"
+  && /^sha256:[a-f0-9]{64}$/u.test(parsed.evidence_hash)
+  && Boolean(parsed.state)
+  && typeof parsed.state === "object"
+  && !Array.isArray(parsed.state);
+
 const parseGptTurnCheckpoint = (value: string): GptTurnDurableCheckpoint => {
   const parsed = JSON.parse(value) as Partial<GptTurnDurableCheckpoint>;
-  if (parsed.schema_version !== "gpt-turn-checkpoint.v2"
-    || parsed.flow_version !== GPT_TURN_FLOW_VERSION
-    || typeof parsed.input_hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(parsed.input_hash)
-    || !Number.isSafeInteger(parsed.step_index) || (parsed.step_index as number) < 0
-    || typeof parsed.child_capability_id !== "string"
-    || (parsed.status !== "success" && parsed.status !== "failed")
-    || !["no", "dispatched", "confirmed"].includes(String(parsed.mutation_state))
-    || !["passed", "failed", "pending"].includes(String(parsed.postcondition_result))
-    || typeof parsed.evidence_ref !== "string" || !parsed.evidence_ref
-    || typeof parsed.evidence_hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(parsed.evidence_hash)
-    || typeof parsed.provider_dispatch_used !== "boolean"
-    || !parsed.state || typeof parsed.state !== "object" || Array.isArray(parsed.state)) {
+  if (!checkpointIdentityValid(parsed) || !checkpointProgressValid(parsed) || !checkpointEvidenceValid(parsed)) {
     throw executionFailure("review_required", "GPT_TURN_CHECKPOINT_INVALID");
   }
   return parsed as GptTurnDurableCheckpoint;

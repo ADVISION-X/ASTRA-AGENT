@@ -5,14 +5,6 @@ export const GPT_PROFILE_MODEL_CHOICE_SELECTOR = "[data-testid='composer-model-p
 export const GPT_PROFILE_REASONING_CONTROL_SELECTOR = `${GPT_PROFILE_SIMPLE_PANEL_SELECTOR} [role='menuitem'][aria-label='能力']`;
 export const GPT_PROFILE_REASONING_SLIDER_SELECTOR = `${GPT_PROFILE_SIMPLE_PANEL_SELECTOR} [data-model-reasoning-effort-slider] [role='slider']`;
 export const GPT_PROFILE_DISMISS_SELECTOR = "#prompt-textarea";
-export const GPT_PROFILE_DIAGNOSTIC_SELECTOR = [
-  GPT_PROFILE_TRIGGER_SELECTOR,
-  GPT_PROFILE_SIMPLE_PANEL_SELECTOR,
-  GPT_PROFILE_MODEL_CHOICE_SELECTOR,
-  GPT_PROFILE_REASONING_CONTROL_SELECTOR,
-  GPT_PROFILE_REASONING_SLIDER_SELECTOR,
-].join(",");
-
 export const reasoningTierUiLabel = Object.freeze({
   medium: "中",
   high: "高",

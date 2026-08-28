@@ -48,6 +48,25 @@ export type GptTurnExecutionResult = Readonly<{
   failure: GptChildCapabilityResult | null;
 }>;
 
+export type GptTurnExecutionInput = Readonly<{
+  executionId: string;
+  inputHash: `sha256:${string}`;
+  pluginStepId: string;
+  mode: GptTurnMode;
+  hasAttachments: boolean;
+  outputKind: GptTurnOutputKind;
+  resume: GptTurnResumePoint | null;
+  context: GptExecutionContext;
+  inputFor(step: GptTurnFlowStep, reconcileOnly: boolean): Readonly<Record<string, unknown>>;
+  dispatch(intent: GptChildCapabilityIntent, context: GptExecutionContext): Promise<GptChildCapabilityResult>;
+  checkpoint(input: Readonly<{
+    step: GptTurnFlowStep;
+    stepIndex: number;
+    reconcileOnly: boolean;
+    result: GptChildCapabilityResult;
+  }>): Promise<void> | void;
+}>;
+
 const enabled = (
   step: GptTurnFlowStep,
   mode: GptTurnMode,
@@ -68,24 +87,7 @@ const assertResumePoint = (resume: GptTurnResumePoint | null): void => {
 
 /** The one product-neutral owner of GPT provider-page step order. */
 export class GptTurnExecutor {
-  public async execute(input: Readonly<{
-    executionId: string;
-    inputHash: `sha256:${string}`;
-    pluginStepId: string;
-    mode: GptTurnMode;
-    hasAttachments: boolean;
-    outputKind: GptTurnOutputKind;
-    resume: GptTurnResumePoint | null;
-    context: GptExecutionContext;
-    inputFor(step: GptTurnFlowStep, reconcileOnly: boolean): Readonly<Record<string, unknown>>;
-    dispatch(intent: GptChildCapabilityIntent, context: GptExecutionContext): Promise<GptChildCapabilityResult>;
-    checkpoint(input: Readonly<{
-      step: GptTurnFlowStep;
-      stepIndex: number;
-      reconcileOnly: boolean;
-      result: GptChildCapabilityResult;
-    }>): Promise<void> | void;
-  }>): Promise<GptTurnExecutionResult> {
+  public async execute(input: GptTurnExecutionInput): Promise<GptTurnExecutionResult> {
     assertResumePoint(input.resume);
     const start = input.resume?.status === "success"
       ? input.resume.stepIndex + 1

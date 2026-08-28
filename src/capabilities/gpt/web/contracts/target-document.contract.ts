@@ -1,7 +1,6 @@
 import { executionFailure } from "../../../../lib/typed-failure.js";
 
 export const GPT_ORIGIN = "https://chatgpt.com" as const;
-export const GPT_ROOT_URL = `${GPT_ORIGIN}/` as const;
 export const canonicalGptConversationUrl = (value: string): string => {
   const url = new URL(value);
   if (url.protocol !== "https:" || url.host !== "chatgpt.com"

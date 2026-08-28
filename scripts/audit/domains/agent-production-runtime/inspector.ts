@@ -5,6 +5,7 @@ import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { recordStaticCheck } from "../../shared/static-inspection-contract.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
+import { inspectRuntimeHardening } from "./runtime-hardening-inspection.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
 const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V7";
 const PLUGIN_ROOT = "src/plugins";
@@ -21,6 +22,7 @@ const LOCALIZATION_SKILL_PATH = "src/plugins/localization-production/SKILL.md";
 const REAL_PROOF_PATH = "scripts/acceptance/agent-production-runtime.real-proof.ts";
 const EXECUTOR_PATH = "src/lib/local-runtime/production/executor.ts";
 const GPT_EXECUTOR_PATH = "src/lib/local-runtime/production/production-gpt-executor.ts";
+const GPT_TURN_FLOW_PATH = "src/lib/local-runtime/production/production-gpt-turn-flow.ts";
 const GPT_EVIDENCE_PATH = "src/lib/local-runtime/production/gpt-evidence-writer.ts";
 const CLOUD_CLIENT_PATH = "src/lib/local-runtime/production/cloud-client.ts";
 const TYPED_FAILURE_PATH = "src/lib/typed-failure.ts";
@@ -365,65 +367,32 @@ const inspectDirectDynamicProof = (context: InspectorContext, findings: Inspecto
   }
 };
 
-const inspectV5Hardening = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const required: ReadonlyArray<Readonly<{ path: string; checkId: string; tokens: readonly string[] }>> = [
-    { path: PLUGIN_CONTRACT_PATH, checkId: "strict-result-parser", tokens: ["readonly parseResult:"] },
-    { path: EXECUTOR_PATH, checkId: "strict-result-parser", tokens: ["authorized.plugin.parseResult"] },
-    { path: GPT_EVIDENCE_PATH, checkId: "strict-result-parser", tokens: ["safeProjection", "appendRecord", "readRecordRef", "EVIDENCE_READBACK_FAILED"] },
-    { path: CLOUD_CLIENT_PATH, checkId: "result-receipt-binding", tokens: ["plugin.parseResult", "uploadGeneratedImage", "execution_receipt_hash", "evidence_refs"] },
-    { path: GPT_RESPONSE_PATH, checkId: "generated-image-bytes", tokens: ["downloadAuthenticatedMedia", "sharp(original", ".resize(1200, 630", ".webp(", "metadata.exif", "metadata.xmp", "GPT_GENERATED_IMAGE_READBACK_INVALID"] },
-    { path: TYPED_FAILURE_PATH, checkId: "typed-failure-chain", tokens: ["typedExecutionFailure", "httpStatus", "cause"] },
-    { path: RUNTIME_LOGGING_PATH, checkId: "typed-failure-chain", tokens: ["typedExecutionFailure(error)?.code", "causedByEventId"] },
-    { path: TRANSPORT_PATH, checkId: "typed-failure-chain", tokens: ["executionFailure(", "httpStatus"] },
-    { path: CONTRACT_PATH, checkId: "binary-terminal", tokens: ["z.enum([\"completed\", \"failed\"])", "SerializedExecutionFailureSchema"] },
-    { path: RUNTIME_PATH, checkId: "bounded-attempt-decision", tokens: ["RETRY_FROM_CHECKPOINT", "RECONCILE_ONLY", "FINAL_FAILED", "attempt_mode"] },
-    { path: "src/lib/local-runtime/production/runtime-state.ts", checkId: "bounded-attempt-decision", tokens: ["max_provider_turns"] },
-    { path: CLOUD_CLIENT_PATH, checkId: "attempt-failure-receipt", tokens: ["attempt_failure", "RETRY_FROM_CHECKPOINT", "RECONCILE_ONLY"] },
-    { path: GPT_EXECUTOR_PATH, checkId: "logical-mutation-boundary", tokens: [
-      "GptTurnExecutor", "runAtomicStep({", "pluginStepId: input.stepId", "childCapabilityId: input.intent.childCapabilityId",
-      "readGptTurnCheckpoint", "writeGptTurnCheckpoint", "production-reconciliation", "reconcileOnly",
-    ] },
-    { path: GPT_EVIDENCE_PATH, checkId: "logical-mutation-boundary", tokens: ["committedMutation === \"dispatched\""] },
-    { path: PRODUCTION_BLUEPRINT_PATH, checkId: "local-agent-process-owner", tokens: ["AGENT 始终运行在用户本地 Mac", "不授予网站 AGENT 进程"] },
-  ];
-  for (const entry of required) {
-    const source = read(context, entry.path);
-    for (const token of entry.tokens) if (!source.includes(token)) findings.push(finding(
-      `agent-production-runtime/${entry.checkId}`, entry.path,
-      `V5 hardening boundary is missing ${token}.`, undefined, "static.ast",
-    ));
-  }
-  const executor = read(context, GPT_EVIDENCE_PATH);
-  const projectionStart = executor.indexOf("const safeProjection");
-  const projectionEnd = executor.indexOf("const generatedImageArtifacts", projectionStart);
-  const projection = projectionStart >= 0 && projectionEnd > projectionStart
-    ? executor.slice(projectionStart, projectionEnd) : "";
-  for (const forbidden of ["raw_url", "selector", "prompt", "local_path", "html"]) {
-    if (!projection || projection.toLocaleLowerCase("en-US").includes(forbidden)) findings.push(finding(
-      "agent-production-runtime/forensics-safe-projection", GPT_EVIDENCE_PATH,
-      `Forensics evidence projection is missing or contains forbidden field ${forbidden}.`, undefined, "static.ast",
-    ));
-  }
-  if (read(context, TRANSPORT_PATH).includes("retryable")) findings.push(finding(
-    "agent-production-runtime/typed-failure-chain", TRANSPORT_PATH,
-    "The production transport reintroduced a retryable boolean beside the typed failure chain.", undefined, "static.ast",
-  ));
-  const runtime = read(context, RUNTIME_PATH);
-  for (const forbiddenTerminal of ["BROWSER_", "GPT_", "EVIDENCE_", "BROWSER_POSTCONDITION_FAILED"]) {
-    if (runtime.includes(`terminalCodes = new Set([\n    \"${forbiddenTerminal}`)) findings.push(finding(
-      "agent-production-runtime/recoverable-failure-terminal-forbidden", RUNTIME_PATH,
-      `Recoverable page/runtime failure ${forbiddenTerminal} must not enter the terminal-code set.`, undefined, "static.ast",
-    ));
-  }
-};
-
 const inspectAgentProductionRuntime = (context: InspectorContext, findings: InspectorFinding[]): void => {
   inspectPluginRoots(context, findings);
   inspectContractsAndMediator(context, findings);
   inspectSharedRuntimeAndPsc(context, findings);
   inspectRetirementAndDurability(context, findings);
   inspectDirectDynamicProof(context, findings);
-  inspectV5Hardening(context, findings);
+  inspectRuntimeHardening(context, findings, LAW_ID, {
+    pluginContract: PLUGIN_CONTRACT_PATH,
+    executor: EXECUTOR_PATH,
+    evidence: GPT_EVIDENCE_PATH,
+    cloudClient: CLOUD_CLIENT_PATH,
+    response: GPT_RESPONSE_PATH,
+    typedFailure: TYPED_FAILURE_PATH,
+    runtimeLogging: RUNTIME_LOGGING_PATH,
+    transport: TRANSPORT_PATH,
+    contract: CONTRACT_PATH,
+    runtime: RUNTIME_PATH,
+    gptExecutor: GPT_EXECUTOR_PATH,
+    gptTurnFlow: GPT_TURN_FLOW_PATH,
+    blueprint: PRODUCTION_BLUEPRINT_PATH,
+    mutationCheckId: "logical-mutation-boundary",
+    gptExecutorMutationTokens: ["runAtomicStep({", "pluginStepId: input.stepId",
+      "childCapabilityId: input.intent.childCapabilityId", "readGptTurnCheckpoint", "production-reconciliation"],
+    gptTurnFlowMutationTokens: ["executeTurn", "writeGptTurnCheckpoint", "reconcileOnly"],
+    evidenceMutationTokens: ["committedMutation === \"dispatched\""],
+  });
 };
 const inspectAgentFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const plugins = pluginDirectories(context);

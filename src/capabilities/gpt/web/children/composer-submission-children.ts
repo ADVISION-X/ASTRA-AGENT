@@ -32,6 +32,14 @@ const promptIdentity = (text: string) => ({
   hash: hash(text),
 });
 
+const canonicalConversationOrNull = (value: string): string | null => {
+  try {
+    return canonicalGptConversationUrl(value);
+  } catch {
+    return null;
+  }
+};
+
 export const composerSubmissionChildHandlers = {
   async write_exact_gpt_prompt(intent, context) {
     requireExactInputKeys(intent, ["prompt"], ["reconcileOnly"]);
@@ -151,8 +159,7 @@ export const composerSubmissionChildHandlers = {
       if (count > 1) throw executionFailure("review_required", `GPT_SUBMITTED_TURN_COUNT_${count}`);
       if (count === 1) {
         const composerText = await readExactText(browser, GPT_COMPOSER_SELECTOR, 65_536);
-        let canonicalConversationUrl: string | null = null;
-        try { canonicalConversationUrl = canonicalGptConversationUrl((await readGptDocument(browser)).url); } catch {}
+        const canonicalConversationUrl = canonicalConversationOrNull((await readGptDocument(browser)).url);
         if (composerText.trim().length === 0 && canonicalConversationUrl) {
           const userTurnId = await readExactAttribute(browser, GPT_USER_TURN_SELECTOR, "data-testid", marker);
           return success({
