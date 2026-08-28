@@ -33,6 +33,8 @@ import type { QualityProofRequest } from "../../scripts/audit/shared/proof-obser
 import { relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../scripts/audit/shared/static-inspection-contract.js";
 import { inspectPerSiteHmac } from "../../scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.js";
+import { exactTextMatcherIsStrict } from "../../scripts/audit/domains/local-browser-session/mutation-atomicity-inspection.js";
+import { redactHashWriteOrderIsExact } from "../../scripts/audit/domains/runtime-log-spine/inspector.js";
 
 const fixtureLaw = (): Law => ({
   schemaVersion: 2,
@@ -1110,6 +1112,67 @@ test("every active law scope is deterministic, owned, unique, and includes all c
     assert.equal(first.length, new Set(first).size, law.lawId);
     for (const reference of law.contractRefs) assert.ok(first.includes(reference), `${law.lawId}:${reference}`);
   }
+});
+
+test("active mutation inspectors use one DISPATCHED chain inside each law scope", () => {
+  const registry = buildRegistry();
+  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V6");
+  assert.ok(agentLaw);
+  const agentTargets = computeTargetPaths(agentLaw, registry);
+  const crossOwnerPaths = [
+    "src/lib/browser/exact-target/browser-command-actor.ts",
+    "src/lib/browser/exact-target/browser-mutation-store.ts",
+  ];
+  for (const path of crossOwnerPaths) assert.equal(agentTargets.includes(path), false, path);
+
+  const agentInspector = readFileSync("scripts/audit/domains/agent-production-runtime/inspector.ts", "utf8");
+  for (const path of crossOwnerPaths) assert.equal(agentInspector.includes(path), false, path);
+  for (const token of [
+    "logical-mutation-boundary", "runAtomicStep({", "pluginStepId: input.stepId",
+    "childCapabilityId: input.intent.childCapabilityId", "committedMutation === \\\"dispatched\\\"",
+  ]) assert.equal(agentInspector.includes(token), true, token);
+
+  const browserInspector = readFileSync(
+    "scripts/audit/domains/local-browser-session/mutation-atomicity-inspection.ts", "utf8",
+  );
+  const runtimeInspector = readFileSync("scripts/audit/domains/runtime-log-spine/inspector.ts", "utf8");
+  const activeInspectors = `${browserInspector}\n${runtimeInspector}`;
+  for (const retired of [
+    "markSent", "markUnknown", "unknownForBinding", "readUnknown", "BROWSER_OUTCOME_UNKNOWN",
+    "current: \\\"SENT\\\"", "current: \\\"UNKNOWN\\\"",
+  ]) assert.equal(runtimeInspector.includes(retired), false, retired);
+  for (const retiredGuard of ["retiredIdentifiers", "retiredLiterals", "retired-mutation-chain"]) {
+    assert.equal(browserInspector.includes(retiredGuard), true, retiredGuard);
+  }
+  for (const current of [
+    "markDispatched", "markReceiptMissing", "dispatchedForBinding", "readDispatched",
+    "logicalMutationId", "positivePostconditionHash", "current: \\\"DISPATCHED\\\"",
+  ]) assert.equal(activeInspectors.includes(current), true, current);
+});
+
+test("active Browser and Runtime Log inspectors reject semantic decoys", () => {
+  const inspectSource = (path: string, source: string) => {
+    const project = new Project({ useInMemoryFileSystem: true });
+    return project.createSourceFile(path, source);
+  };
+  const domPath = "src/lib/browser/chrome-extension/dom-intent-runtime.ts";
+  const dom = readFileSync(domPath, "utf8");
+  assert.equal(exactTextMatcherIsStrict(inspectSource(domPath, dom)), true);
+  for (const mutant of [
+    dom.replace("exact ? expectedText.trim() : expectedText", "exact ? expectedText : expectedText"),
+    dom.replace("exact ? actual.trim() !== expected : !actual.includes(expected)",
+      "exact ? !actual.includes(expected) : !actual.includes(expected)"),
+    dom.replace("actual.trim() !== expected", "actual.trim() != expected"),
+  ]) assert.equal(exactTextMatcherIsStrict(inspectSource(domPath, mutant)), false);
+
+  const loggerPath = "src/lib/runtime-logs/logger.ts";
+  const logger = readFileSync(loggerPath, "utf8");
+  assert.equal(redactHashWriteOrderIsExact(inspectSource(loggerPath, logger)), true);
+  const redactionDecoy = logger
+    .replace("const unsigned = redactedUnsigned(unsignedInput);", "const unsigned = unsignedInput;")
+    .replace("if (fileSink) fileSink.write(event as RuntimeLogEventV2);",
+      "redactedUnsigned(unsignedInput);\n      if (fileSink) fileSink.write(event as RuntimeLogEventV2);");
+  assert.equal(redactHashWriteOrderIsExact(inspectSource(loggerPath, redactionDecoy)), false);
 });
 
 test("every declared dynamic evidence mode has one executable RELEASE proof route", () => {

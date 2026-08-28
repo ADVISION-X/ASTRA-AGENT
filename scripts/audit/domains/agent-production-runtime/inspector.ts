@@ -48,8 +48,6 @@ const EXECUTOR_PATH = "src/lib/local-runtime/production/executor.ts";
 const CLOUD_CLIENT_PATH = "src/lib/local-runtime/production/cloud-client.ts";
 const TYPED_FAILURE_PATH = "src/lib/typed-failure.ts";
 const GPT_RESPONSE_PATH = "src/capabilities/gpt/web/children/response-children.ts";
-const BROWSER_MUTATION_STORE_PATH = "src/lib/browser/exact-target/browser-mutation-store.ts";
-const BROWSER_COMMAND_ACTOR_PATH = "src/lib/browser/exact-target/browser-command-actor.ts";
 const PRODUCTION_BLUEPRINT_PATH = "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md";
 const forbiddenDeterministicProducts = [
   "bazi_basic_chart",
@@ -390,8 +388,10 @@ const inspectV5Hardening = (context: InspectorContext, findings: InspectorFindin
     { path: CONTRACT_PATH, checkId: "binary-terminal", tokens: ["z.enum([\"completed\", \"failed\"])", "SerializedExecutionFailureSchema"] },
     { path: RUNTIME_PATH, checkId: "bounded-attempt-decision", tokens: ["RETRY_FROM_CHECKPOINT", "RECONCILE_ONLY", "FINAL_FAILED", "attempt_mode", "max_provider_turns"] },
     { path: CLOUD_CLIENT_PATH, checkId: "attempt-failure-receipt", tokens: ["attempt_failure", "RETRY_FROM_CHECKPOINT", "RECONCILE_ONLY"] },
-    { path: BROWSER_MUTATION_STORE_PATH, checkId: "logical-mutation-identity", tokens: ["logical_mutation_id", "browser_mutations_logical_identity"] },
-    { path: BROWSER_COMMAND_ACTOR_PATH, checkId: "logical-mutation-identity", tokens: ["logicalMutationId", "permit.sequence", "hashValue(command)"] },
+    { path: EXECUTOR_PATH, checkId: "logical-mutation-boundary", tokens: [
+      "runAtomicStep({", "pluginStepId: input.stepId", "childCapabilityId: input.intent.childCapabilityId",
+      "committedMutation === \"dispatched\"",
+    ] },
     { path: PRODUCTION_BLUEPRINT_PATH, checkId: "local-agent-process-owner", tokens: ["AGENT 始终运行在用户本地 Mac", "不授予网站 AGENT 进程"] },
   ];
   for (const entry of required) {

@@ -57,7 +57,7 @@ const inspectJobBoundClaimAcceptance = (combined: string, findings: InspectorFin
   }
 };
 
-const inspectUnknownMutationReleaseGuard = (
+const inspectDispatchedMutationReleaseGuard = (
   leaseManager: ReturnType<typeof requireSource>,
   findings: InspectorFinding[],
   lawId: string,
@@ -68,8 +68,8 @@ const inspectUnknownMutationReleaseGuard = (
   const physicalCloseAt = method.indexOf('command("browser.close-target.v1"', closeAt);
   if (closeAt >= 0 && guardAt > closeAt && physicalCloseAt > guardAt) return;
   findings.push(createLocalFinding({
-    checkId: "browser-authority/unknown-mutation-target-release", lawId, filePath: targetLeaseManagerPath,
-    message: "The Browser Owner must reject physical Target close while any mutation remains unresolved.",
+    checkId: "browser-authority/dispatched-mutation-target-release", lawId, filePath: targetLeaseManagerPath,
+    message: "The Browser Owner must reject physical Target close while any DISPATCHED mutation remains unresolved.",
   }));
 };
 
@@ -114,7 +114,7 @@ const inspectJobBoundClaimPolicy = (
     checkId: "browser-authority/job-bound-target-claim", lawId, filePath: targetAuthorityPath,
     message: "A GPT turn must not enumerate or reuse an operator-owned browser Target.",
   }));
-  inspectUnknownMutationReleaseGuard(leaseManager, findings, lawId);
+  inspectDispatchedMutationReleaseGuard(leaseManager, findings, lawId);
   inspectExactChatGptPolicy(sitePolicy, findings, lawId);
 };
 

@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { extname, resolve } from "node:path";
-import { SyntaxKind } from "ts-morph";
+import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type {
@@ -204,19 +204,31 @@ const inspectPrivacyAst = (context: InspectorContext): InspectorFinding[] => {
   requireTokens(context, findings, LAW_PRIVACY, "static.ast", "write-before-redaction",
     "src/lib/runtime-logs/logger.ts", [
       "redactedUnsigned(unsignedInput)", "runtimeEventHash(unsigned)", "fileSink.write(event",
-    ]);
+  ]);
   const loggerPath = resolve(context.sealedRoot, "src/lib/runtime-logs/logger.ts");
   const loggerSource = context.project.getSourceFile(loggerPath);
-  const persist = loggerSource?.getVariableDeclaration("persist")?.getInitializerIfKind(SyntaxKind.ArrowFunction);
-  const calls = persist?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
-  const redactAt = calls.find((call) => call.getExpression().getText() === "redactedUnsigned")?.getStart() ?? -1;
-  const hashAt = calls.find((call) => call.getExpression().getText() === "runtimeEventHash")?.getStart() ?? -1;
-  const writeAt = calls.find((call) => call.getExpression().getText() === "fileSink.write")?.getStart() ?? -1;
-  if (!(redactAt >= 0 && redactAt < hashAt && hashAt < writeAt)) findings.push(finding(
+  if (!redactHashWriteOrderIsExact(loggerSource)) findings.push(finding(
     LAW_PRIVACY, "static.ast", "write-before-redaction", "src/lib/runtime-logs/logger.ts",
     "Redaction, hash, and sink ordering is not redact -> hash -> write.",
   ));
   return findings;
+};
+
+export const redactHashWriteOrderIsExact = (loggerSource: SourceFile | undefined): boolean => {
+  const logger = loggerSource?.getVariableDeclaration("createRuntimeLogger")
+    ?.getInitializerIfKind(SyntaxKind.ArrowFunction);
+  const persistDeclarations = logger?.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
+    .filter((declaration) => declaration.getName() === "persist") ?? [];
+  if (persistDeclarations.length !== 1) return false;
+  const persist = persistDeclarations[0]!.getInitializerIfKind(SyntaxKind.ArrowFunction);
+  const calls = persist?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
+  const redactAt = calls.find((call) => call.getExpression().getText() === "redactedUnsigned"
+    && call.getArguments()[0]?.getText() === "unsignedInput")?.getStart() ?? -1;
+  const hashAt = calls.find((call) => call.getExpression().getText() === "runtimeEventHash"
+    && call.getArguments()[0]?.getText() === "unsigned")?.getStart() ?? -1;
+  const writeAt = calls.find((call) => call.getExpression().getText() === "fileSink.write"
+    && call.getArguments()[0]?.getText().startsWith("event") === true)?.getStart() ?? -1;
+  return redactAt >= 0 && redactAt < hashAt && hashAt < writeAt;
 };
 
 const inspectPrivacyContract = (context: InspectorContext): InspectorFinding[] => {
@@ -233,9 +245,11 @@ const inspectStructureAst = (context: InspectorContext): InspectorFinding[] => {
   const findings: InspectorFinding[] = [];
   requireTokens(context, findings, LAW_STRUCTURE, "static.ast", "wal-before-log",
     "src/lib/browser/exact-target/browser-command-actor.ts", [
-      "this.mutations.prepare", "current: \"PREPARED\"", "this.mutations.markSent",
-      "current: \"SENT\"", "this.mutations.markUnknown", "current: \"UNKNOWN\"",
-      "this.mutations.resolve", "current: receipt.outcome",
+      "this.mutations.prepare", "current: \"PREPARED\"", "this.mutations.markDispatched",
+      "current: \"DISPATCHED\"", "this.mutations.markReceiptMissing", "this.mutations.markRejected",
+      "current: \"REJECTED\"", "this.mutations.markConfirmed", "current: \"CONFIRMED\"",
+      "this.mutations.markFailedBeforeDispatch", "current: \"FAILED\"",
+      "this.mutations.resolve", "current: state",
     ]);
   const actorPath = resolve(context.sealedRoot, "src/lib/browser/exact-target/browser-command-actor.ts");
   const actorSource = context.project.getSourceFile(actorPath);
@@ -243,9 +257,12 @@ const inspectStructureAst = (context: InspectorContext): InspectorFinding[] => {
   const calls = actorClass?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
   for (const [first, second] of [
     ["this.mutations.prepare", "current: \"PREPARED\""],
-    ["this.mutations.markSent", "current: \"SENT\""],
-    ["this.mutations.markUnknown", "current: \"UNKNOWN\""],
-    ["this.mutations.resolve", "current: receipt.outcome"],
+    ["this.mutations.markDispatched", "current: \"DISPATCHED\""],
+    ["this.mutations.markReceiptMissing", "current: \"DISPATCHED\""],
+    ["this.mutations.markRejected", "current: \"REJECTED\""],
+    ["this.mutations.markConfirmed", "current: \"CONFIRMED\""],
+    ["this.mutations.markFailedBeforeDispatch", "current: \"FAILED\""],
+    ["this.mutations.resolve", "current: state"],
   ] as const) {
     const authorities = calls.filter((call) => call.getExpression().getText() === first);
     const ordered = authorities.length > 0 && authorities.every((authorityCall) => calls.some((call) =>

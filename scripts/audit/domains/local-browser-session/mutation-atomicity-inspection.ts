@@ -73,6 +73,7 @@ export const inspectRegistryAndMutationBoundary = (
     ...identifiers(sources.manager),
     ...identifiers(sources.broker),
   ]);
+  const mutationLiterals = stringLiterals(sources.mutationStore);
   for (const required of [
     "admitExtensionCommand",
     "executeRegisteredCommand",
@@ -80,15 +81,22 @@ export const inspectRegistryAndMutationBoundary = (
     "requestHash",
     "payloadHash",
     "proofHash",
+    "logicalMutationId",
+    "pluginStepId",
+    "childCapabilityId",
+    "actionOrdinal",
+    "positivePostconditionHash",
+    "negativePostconditionHash",
     "PREPARED",
-    "UNKNOWN",
+    "DISPATCHED",
+    "REJECTED",
     "BrowserArtifactRegistry",
     "registerFileArtifact",
     "issueFileArtifactGrant",
     "resolveGrantPaths",
     "resolvedFilePaths",
   ]) {
-    if (!allIdentifiers.has(required) && !stringLiterals(sources.mutationStore).includes(required)) {
+    if (!allIdentifiers.has(required) && !mutationLiterals.includes(required)) {
       findings.push(createLocalFinding({
         checkId: "browser-authority/terminal-authority",
         lawId,
@@ -96,6 +104,17 @@ export const inspectRegistryAndMutationBoundary = (
         message: `The registry/mutation chain must contain ${required}.`,
       }));
     }
+  }
+  const retiredIdentifiers = ["markSent", "markUnknown", "unknownForBinding", "readUnknown"];
+  const retiredLiterals = ["SENT", "UNKNOWN", "BROWSER_OUTCOME_UNKNOWN"];
+  for (const retired of [...retiredIdentifiers.filter((name) => allIdentifiers.has(name)),
+    ...retiredLiterals.filter((value) => mutationLiterals.includes(value))]) {
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/retired-mutation-chain",
+      lawId,
+      filePath: sourcePaths[7],
+      message: `The retired Browser mutation token ${retired} must be physically absent.`,
+    }));
   }
   inspectExtensionExecutionBoundary(sources, findings, lawId);
 };
@@ -138,17 +157,17 @@ export const inspectAtomicIfAndThenBoundary = (
     "The Browser transcript must reject mutation replies that omit their declared atomic postcondition.");
 };
 
-const throwsOutcomeUnknown = (statement: Node): boolean => {
+const throwsMutationUnsettled = (statement: Node): boolean => {
   if (Node.isBlock(statement)) {
     const statements = statement.getStatements();
-    return statements.length === 1 && throwsOutcomeUnknown(statements[0]!);
+    return statements.length === 1 && throwsMutationUnsettled(statements[0]!);
   }
   if (!Node.isThrowStatement(statement)) return false;
   const expression = statement.getExpression();
   if (!Node.isNewExpression(expression)
     || astIdentifierName(expression.getExpression()) !== "Error") return false;
   const argument = expression.getArguments()[0];
-  return Node.isStringLiteral(argument) && argument.getLiteralValue() === "BROWSER_OUTCOME_UNKNOWN";
+  return Node.isStringLiteral(argument) && argument.getLiteralValue() === "BROWSER_MUTATION_UNSETTLED";
 };
 
 const isNumericComparison = (
@@ -193,7 +212,7 @@ const resolveOneMutationGuardIsExact = (managerClass: ClassDeclaration): boolean
     || resolveCondition.getOperatorToken().getKind() !== SyntaxKind.BarBarToken
     || !isNumericComparison(resolveCondition.getLeft(), "commandIds.length", SyntaxKind.ExclamationEqualsEqualsToken, 1)
     || !isUndefinedComparison(resolveCondition.getRight(), "commandId")
-    || !throwsOutcomeUnknown(resolveGuard.getThenStatement())
+    || !throwsMutationUnsettled(resolveGuard.getThenStatement())
     || (resolveMethod?.getDescendantsOfKind(SyntaxKind.ForOfStatement).length ?? 0) > 0
     || (resolveMethod?.getDescendantsOfKind(SyntaxKind.ForStatement).length ?? 0) > 0) return false;
   return true;
@@ -220,7 +239,7 @@ const newMutationGuardIsExact = (managerClass: ClassDeclaration): boolean => {
       SyntaxKind.GreaterThanToken,
       0,
     )
-    && throwsOutcomeUnknown(mutationGuard.getThenStatement());
+    && throwsMutationUnsettled(mutationGuard.getThenStatement());
 };
 
 export const browserMutationLedgerIsAtomic = (manager: SourceFile): boolean => {
@@ -230,53 +249,50 @@ export const browserMutationLedgerIsAtomic = (manager: SourceFile): boolean => {
     && newMutationGuardIsExact(managerClass);
 };
 
+const isTrimCall = (node: MorphNode, ownerName: string): boolean => {
+  if (!Node.isCallExpression(node) || node.getArguments().length !== 0) return false;
+  const expression = node.getExpression();
+  return Node.isPropertyAccessExpression(expression)
+    && expression.getName() === "trim"
+    && astIdentifierName(expression.getExpression()) === ownerName;
+};
+
 const normalizedExpectedIsExact = (matcher: MorphNode): boolean => {
-  const includesCall = matcher.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .some((call) => {
-      const expression = call.getExpression();
-      return Node.isPropertyAccessExpression(expression) && expression.getName() === "includes";
-    });
   const expected = matcher.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
     .find((declaration) => declaration.getName() === "expected")?.getInitializer();
-  return !includesCall && Node.isCallExpression(expected)
-    && Node.isPropertyAccessExpression(expected.getExpression())
-    && astExpressionPath(expected.getExpression()) === "expectedText.trim";
-};
-
-const effectiveExactComparison = (matcher: MorphNode): MorphNode | null => {
-  const loops = matcher.getDescendantsOfKind(SyntaxKind.ForOfStatement);
-  if (loops.length !== 1) return null;
-  const body = loops[0]!.getStatement();
-  if (!Node.isBlock(body)) return null;
-  const comparison = body.getStatements()[0];
-  return Node.isIfStatement(comparison) ? comparison.getExpression() : null;
-};
-
-const isTrimmedObservedNodeText = (left: MorphNode): boolean => {
-  if (!Node.isCallExpression(left)) return false;
-  const trimExpression = left.getExpression();
-  if (!Node.isPropertyAccessExpression(trimExpression)
-    || trimExpression.getName() !== "trim") return false;
-  const trimOwner = trimExpression.getExpression();
-  if (!Node.isParenthesizedExpression(trimOwner)) return false;
-  const observedText = trimOwner.getExpression();
-  if (!Node.isAwaitExpression(observedText)) return false;
-  const nodeTextCall = observedText.getExpression();
-  return Node.isCallExpression(nodeTextCall)
-    && astExpressionPath(nodeTextCall.getExpression()) === "nodeText"
-    && astIdentifierName(nodeTextCall.getArguments()[2]) === "nodeId";
+  return Node.isConditionalExpression(expected)
+    && astIdentifierName(expected.getCondition()) === "exact"
+    && isTrimCall(expected.getWhenTrue(), "expectedText")
+    && astIdentifierName(expected.getWhenFalse()) === "expectedText";
 };
 
 const exactComparisonIsStrict = (matcher: MorphNode): boolean => {
-  const condition = effectiveExactComparison(matcher);
-  return condition !== null && Node.isBinaryExpression(condition)
-    && condition.getOperatorToken().getKind() === SyntaxKind.EqualsEqualsEqualsToken
-    && astIdentifierName(condition.getRight()) === "expected"
-    && isTrimmedObservedNodeText(condition.getLeft());
+  const loops = matcher.getDescendantsOfKind(SyntaxKind.ForOfStatement);
+  if (loops.length !== 1) return false;
+  const body = loops[0]!.getStatement();
+  if (!Node.isBlock(body)) return false;
+  const [actualStatement, comparison] = body.getStatements();
+  if (!Node.isVariableStatement(actualStatement) || !Node.isIfStatement(comparison)
+    || !Node.isContinueStatement(comparison.getThenStatement())) return false;
+  const actual = actualStatement.getDeclarations()[0];
+  const observed = actual?.getInitializer();
+  if (actual?.getName() !== "actual" || !Node.isAwaitExpression(observed)) return false;
+  const nodeTextCall = observed.getExpression();
+  if (!Node.isCallExpression(nodeTextCall)
+    || astExpressionPath(nodeTextCall.getExpression()) !== "nodeText"
+    || astIdentifierName(nodeTextCall.getArguments()[2]) !== "nodeId") return false;
+  const condition = comparison.getExpression();
+  if (!Node.isConditionalExpression(condition)
+    || astIdentifierName(condition.getCondition()) !== "exact") return false;
+  const exactMismatch = condition.getWhenTrue();
+  return Node.isBinaryExpression(exactMismatch)
+    && exactMismatch.getOperatorToken().getKind() === SyntaxKind.ExclamationEqualsEqualsToken
+    && isTrimCall(exactMismatch.getLeft(), "actual")
+    && astIdentifierName(exactMismatch.getRight()) === "expected";
 };
 
 export const exactTextMatcherIsStrict = (domRuntime: SourceFile): boolean => {
-  const matcher = domRuntime.getVariableDeclaration("nodesWithExactText")?.getInitializer();
+  const matcher = domRuntime.getVariableDeclaration("queryVisibleTextMatches")?.getInitializer();
   return matcher !== undefined
     && normalizedExpectedIsExact(matcher)
     && exactComparisonIsStrict(matcher);
@@ -290,20 +306,24 @@ export const inspectCompactMutationRecoveryBoundary = (
   const mutationStore = requireSource(context, findings, lawId, sourcePaths[7]);
   if (!mutationStore) return;
   requireIdentifiers(mutationStore, [
-    "BrowserMutationStore", "prepare", "markSent", "markUnknown", "resolve",
-    "unknownForBinding", "readUnknown", "requestHash", "payloadHash", "proofHash",
+    "BrowserMutationStore", "prepare", "markDispatched", "markReceiptMissing", "markConfirmed",
+    "markRejected", "markFailedBeforeDispatch", "resolve", "dispatchedForBinding", "dispatchedForJob",
+    "reconciliationScope", "readDispatched", "logicalMutationId", "pluginStepId", "childCapabilityId",
+    "actionOrdinal", "positivePostconditionHash", "negativePostconditionHash", "requestHash", "payloadHash",
+    "proofHash",
   ], findings, lawId, "Compact Browser mutation recovery must remain one SQLite/WAL row per physical mutation and exact job binding.");
   const literals = new Set(stringLiterals(mutationStore));
   for (const literal of [
     "browser-mutations.sqlite",
     "journal_mode = WAL",
     "PREPARED",
-    "SENT",
+    "DISPATCHED",
     "CONFIRMED",
+    "REJECTED",
     "FAILED",
-    "UNKNOWN",
-    "BROWSER_OUTCOME_UNKNOWN",
-    "BROWSER_COMMAND_NOT_SENT",
+    "BROWSER_COMMAND_RECEIPT_MISSING",
+    "BROWSER_COMMAND_NOT_DISPATCHED",
+    "BROWSER_LOGICAL_MUTATION_REPLAY_FORBIDDEN",
   ]) {
     if ([...literals].some((value) => value.includes(literal))) continue;
     findings.push(createLocalFinding({
@@ -311,6 +331,14 @@ export const inspectCompactMutationRecoveryBoundary = (
       lawId,
       filePath: sourcePaths[7],
       message: `The compact mutation recovery boundary must retain ${literal}.`,
+    }));
+  }
+  for (const retired of ["SENT", "UNKNOWN", "BROWSER_OUTCOME_UNKNOWN"]) if (literals.has(retired)) {
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/retired-mutation-chain",
+      lawId,
+      filePath: sourcePaths[7],
+      message: `The retired compact mutation state ${retired} must be physically absent.`,
     }));
   }
 };
