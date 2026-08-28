@@ -12,7 +12,7 @@ const paths = [
   "src/lib/local-runtime/workbench-handle.ts",
   "src/lib/local-runtime/workbench-status.ts",
   "src/lib/local-runtime/workbench.ts",
-  "src/lib/local-runtime/production/runtime.ts",
+  "src/lib/local-runtime/production/runtime-startup.ts",
 ] as const;
 
 const fixture = (): Project => {
@@ -63,7 +63,7 @@ assert.deepEqual(inspectLocalAppShellProject(fixture()), [], "the current owner 
 }
 {
   const project = fixture();
-  const owner = project.getSourceFileOrThrow("src/lib/local-runtime/production/runtime.ts");
+  const owner = project.getSourceFileOrThrow("src/lib/local-runtime/production/runtime-startup.ts");
   owner.replaceWithText(owner.getFullText().replaceAll('shellState: "ready"', 'shellState: "stopped"'));
   assert.ok(checkIds(project).some((message) => message.includes("must keep Shell ready")));
 }

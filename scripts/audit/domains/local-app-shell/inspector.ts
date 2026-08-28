@@ -23,7 +23,7 @@ const requiredPaths = Object.freeze([
   "src/lib/local-runtime/workbench-handle.ts",
   "src/lib/local-runtime/workbench-status.ts",
   "src/lib/local-runtime/workbench.ts",
-  "src/lib/local-runtime/production/runtime.ts",
+  "src/lib/local-runtime/production/runtime-startup.ts",
 ]);
 
 const normalizePath = (value: string): string => value.split("\\").join("/");
@@ -224,7 +224,7 @@ const inspectSeparatedStatus = (
     findings.push(finding(lawId, path, "Shell health aggregation must exclude Browser, Target, execution and claim admission readiness."));
   }
 
-  const ownerPath = "src/lib/local-runtime/production/runtime.ts";
+  const ownerPath = "src/lib/local-runtime/production/runtime-startup.ts";
   const owner = sourceAt(project, ownerPath);
   const ownerText = owner?.getFullText() ?? "";
   if (!ownerText.includes('shellState: "ready"') || !ownerText.includes('executionState: "blocked"')
