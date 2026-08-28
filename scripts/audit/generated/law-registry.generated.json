@@ -55,7 +55,7 @@
       "ownedPaths": [
         "docs/current-sub-capabilities.zh.md",
         "scripts/acceptance/app-shell-localization.acceptance.ts",
-        "scripts/acceptance/app-shell-skill-registry.acceptance.ts",
+        "scripts/acceptance/app-shell-retired-authority-absence.acceptance.ts",
         "scripts/acceptance/app-shell-ui.acceptance.ts",
         "scripts/audit/domains/app-shell-ui/**",
         "src/app/**"

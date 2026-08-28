@@ -31,7 +31,7 @@
     "quality:check": "node --import tsx scripts/audit/governance.ts quality",
     "acceptance:code-purity-zombie-deep": "node --import tsx scripts/acceptance/code-purity-zombie-deep.acceptance.ts",
     "lint": "npm run typecheck",
-    "acceptance:app-shell-ui": "node --import tsx scripts/acceptance/app-shell-ui.acceptance.ts && node --import tsx scripts/acceptance/app-shell-localization.acceptance.ts && node --import tsx scripts/acceptance/app-shell-skill-registry.acceptance.ts",
+    "acceptance:app-shell-ui": "node --import tsx scripts/acceptance/app-shell-ui.acceptance.ts && node --import tsx scripts/acceptance/app-shell-localization.acceptance.ts && node --import tsx scripts/acceptance/app-shell-retired-authority-absence.acceptance.ts",
     "acceptance:agent-product-skills": "node --import tsx scripts/acceptance/agent-product-skills.acceptance.ts",
     "acceptance:agent-production-runtime": "node --import tsx scripts/acceptance/agent-product-skills.acceptance.ts && node --import tsx scripts/acceptance/agent-route-contract.acceptance.ts && node --import tsx scripts/acceptance/browser-lane-fifo.acceptance.ts && node --import tsx scripts/acceptance/agent-production-runtime.acceptance.ts",
     "acceptance:agent-production-runtime:real-proof": "node --import tsx scripts/acceptance/agent-production-runtime.real-proof.ts",

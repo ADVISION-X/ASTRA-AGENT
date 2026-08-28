@@ -34,6 +34,7 @@ import { validateProviderContractSpec } from "../../scripts/audit/shared/provide
 import type { InspectorContext } from "../../scripts/audit/shared/inspector-contracts.js";
 import { producerClaimRoutesFor, proofObservationPrefix, validateDynamicReceiptPayload } from "../../scripts/audit/shared/proof-observation.js";
 import type { QualityProofRequest } from "../../scripts/audit/shared/proof-observation.js";
+import { retiredAuthorityExamContractViolations } from "../../scripts/audit/domains/app-shell-ui/inspector-retired-authority-absence.js";
 import { relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, staticImplementationDigest, validateStaticInspection } from "../../scripts/audit/shared/static-inspection-contract.js";
 import { inspectPerSiteHmac } from "../../scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.js";
@@ -666,6 +667,25 @@ test("static evidence rejects a governed wrong-object substitution", () => {
     lawResults: [{ lawId, assertions: [{ clauses: staticClauses(0), evidenceMode: "static.ast",
       passed: true, refs: wrongObjectRefs }], findings: [] }],
   }), (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE");
+});
+
+test("retired APP authority Exam rejects semantic wrong-object substitutions", () => {
+  const path = "scripts/acceptance/app-shell-retired-authority-absence.acceptance.ts";
+  const source = readFileSync(path, "utf8");
+  assert.deepEqual(retiredAuthorityExamContractViolations(source), []);
+  for (const [label, before, after] of [
+    ["path", "docs/法案辅助文件/GrassEye APP 用户需求启动施工图.md", "docs/unrelated.md"],
+    ["title", "GrassEye APP 用户需求启动施工图", "Unrelated title"],
+    ["repository denominator", '"git", ["ls-files", "--cached", "--others", "--exclude-standard"]', '"git", ["status"]'],
+    ["physical absence", "assert.equal(existsSync(legacyDocPath), false", "assert.equal(true, true"],
+    ["copy absence", "assert.equal(copiedVariant, false", "assert.equal(true, false"],
+    ["reference absence", "assert.equal(referencesRetiredAuthority, false", "assert.equal(true, false"],
+    ["locator", "acceptance:app-shell-ui:retired-startup-blueprint-physical-absence", "acceptance:app-shell-ui:active-skill-registry"],
+  ] as const) {
+    const mutant = source.replace(before, after);
+    assert.notEqual(mutant, source, label);
+    assert.notDeepEqual(retiredAuthorityExamContractViolations(mutant), [], label);
+  }
 });
 
 test("a zero-target pure absence check emits only its exact scope evidence", () => {
