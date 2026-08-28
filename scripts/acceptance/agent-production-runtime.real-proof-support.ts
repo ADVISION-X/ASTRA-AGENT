@@ -15,6 +15,80 @@ export type ProductionProofCleanupObservation = Readonly<{
 }>;
 type CleanupCheck = Readonly<{ label: string; run: (() => Promise<boolean>) | null }>;
 
+type RouteManifest = Readonly<{ plugins: readonly Readonly<{
+  plugin_id: string;
+  accepts: readonly Readonly<{ product_id: string; action_id: string }>[];
+}>[] }>;
+export type ProductionProofRouteRow = Readonly<{
+  created_at: string;
+  identity_json: string;
+  job_id: string;
+  task_json: string;
+}>;
+export type ProductionProofRouteCoverage = Readonly<{
+  pluginIds: readonly string[];
+  primaryCount: number;
+  reviewCount: number;
+  routeCount: number;
+}>;
+const routeKey = (productId: string, actionId: string): string => `${productId}\0${actionId}`;
+const denominatorInvalid = (detail: string): never => {
+  throw new Error(`PRODUCTION_DYNAMIC_ROUTE_DENOMINATOR_INVALID:${detail}`);
+};
+const objectJson = (source: string, label: string): Record<string, unknown> => {
+  let value: unknown;
+  try { value = JSON.parse(source); } catch { return denominatorInvalid(`${label}:json`); }
+  if (!value || typeof value !== "object" || Array.isArray(value)) return denominatorInvalid(`${label}:object`);
+  return value as Record<string, unknown>;
+};
+
+export const assertProductionProofRouteCoverage = (
+  rows: readonly ProductionProofRouteRow[], manifest: RouteManifest,
+): ProductionProofRouteCoverage => {
+  const expected = new Map<string, string>();
+  for (const plugin of manifest.plugins) for (const route of plugin.accepts) {
+    const key = routeKey(route.product_id, route.action_id);
+    if (expected.has(key)) denominatorInvalid(`manifest-duplicate:${route.product_id}:${route.action_id}`);
+    expected.set(key, plugin.plugin_id);
+  }
+  if (manifest.plugins.length !== 12 || expected.size !== 39) denominatorInvalid("manifest-count");
+  if (rows.length !== expected.size) denominatorInvalid(`row-count:${rows.length}`);
+  const seen = new Set<string>();
+  let primaryCount = 0;
+  let reviewCount = 0;
+  const orderedRows = [...rows].sort((left, right) => left.created_at.localeCompare(right.created_at)
+    || left.job_id.localeCompare(right.job_id));
+  for (const row of orderedRows) {
+    if (!Number.isFinite(Date.parse(row.created_at))) denominatorInvalid(`created-at:${row.job_id}`);
+    const task = objectJson(row.task_json, `${row.job_id}:task`);
+    const identity = objectJson(row.identity_json, `${row.job_id}:identity`);
+    if (task.job_id !== row.job_id || typeof task.product_id !== "string" || typeof task.action_id !== "string"
+      || typeof identity.plugin_id !== "string") denominatorInvalid(`identity:${row.job_id}`);
+    const productId = String(task.product_id);
+    const actionId = String(task.action_id);
+    const key = routeKey(productId, actionId);
+    const owner = expected.get(key);
+    if (!owner) denominatorInvalid(`extra:${productId}:${actionId}`);
+    if (seen.has(key)) denominatorInvalid(`duplicate:${productId}:${actionId}`);
+    if (identity.plugin_id !== owner) denominatorInvalid(`owner:${productId}:${actionId}`);
+    seen.add(key);
+    if (actionId === "accuracy_challenge" || actionId === "quality_reflection") reviewCount += 1;
+    else primaryCount += 1;
+  }
+  for (const key of expected.keys()) if (!seen.has(key)) denominatorInvalid(`missing:${key.replace("\0", ":")}`);
+  if (primaryCount !== 13 || reviewCount !== 26) denominatorInvalid(`relation-count:${primaryCount}:${reviewCount}`);
+  const firstTask = objectJson(orderedRows[0]!.task_json, `${orderedRows[0]!.job_id}:first-task`);
+  if (!["localization_report_translation", "localization_article_translation"].includes(String(firstTask.product_id))
+    || firstTask.action_id === "accuracy_challenge" || firstTask.action_id === "quality_reflection") {
+    denominatorInvalid("first-route-not-localization-primary");
+  }
+  return Object.freeze({
+    pluginIds: Object.freeze([...new Set(rows.map((row) =>
+      String(objectJson(row.identity_json, `${row.job_id}:identity`).plugin_id)))].sort()),
+    primaryCount, reviewCount, routeCount: seen.size,
+  });
+};
+
 export const observeProductionProofCleanup = async (
   workbench: CleanupCheck["run"], browserContext: CleanupCheck["run"],
 ): Promise<ProductionProofCleanupObservation> => {

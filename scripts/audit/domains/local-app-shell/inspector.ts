@@ -9,7 +9,6 @@ import {
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
-import { observeStaticAst, observeStaticContract } from "../../shared/static-target-object-inspector.js";
 
 const LAW_SHELL = "LAW-LOCAL-APP-SHELL-001-V6";
 const LAW_BOUNDARY = "LAW-LOCAL-APP-SHELL-002-V3";
@@ -247,13 +246,14 @@ export const inspectLocalAppShellProject = (
 const evaluate = (context: InspectorContext): InspectorEvaluation => {
   const findings: InspectorFinding[] = [];
   const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
-  const run = (check: string, lawId: string, action: () => void): void => recordStaticCheck({
-    check, findings, lawIds: [lawId], receipts: staticCheckReceipts, run: action,
+  const run = (check: string, lawId: string, implementation: (...args: never[]) => unknown,
+    action: () => void): void => recordStaticCheck({
+    check, findings, implementation, lawIds: [lawId], receipts: staticCheckReceipts, run: action,
   });
-  run("inspectShellOwnership", LAW_SHELL, () => inspectShellOwnership(context.project, findings, LAW_SHELL, context.targetPaths));
-  run("inspectShellStatusContract", LAW_SHELL, () => inspectShellStatusContract(context.project, findings, LAW_SHELL));
-  run("inspectBrowserAuthorityBoundary", LAW_BOUNDARY, () => inspectBrowserAuthorityBoundary(context.project, findings, LAW_BOUNDARY));
-  run("inspectSeparatedStatus", LAW_STATUS, () => inspectSeparatedStatus(context.project, findings, LAW_STATUS, context.targetPaths));
+  run("inspectShellOwnership", LAW_SHELL, inspectShellOwnership, () => inspectShellOwnership(context.project, findings, LAW_SHELL, context.targetPaths));
+  run("inspectShellStatusContract", LAW_SHELL, inspectShellStatusContract, () => inspectShellStatusContract(context.project, findings, LAW_SHELL));
+  run("inspectBrowserAuthorityBoundary", LAW_BOUNDARY, inspectBrowserAuthorityBoundary, () => inspectBrowserAuthorityBoundary(context.project, findings, LAW_BOUNDARY));
+  run("inspectSeparatedStatus", LAW_STATUS, inspectSeparatedStatus, () => inspectSeparatedStatus(context.project, findings, LAW_STATUS, context.targetPaths));
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
@@ -273,9 +273,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
       return { lawId, assertions: Object.entries(clausesByMode).map(([evidenceMode, clauses]) => {
       const checks = semanticChecks(lawId, evidenceMode);
       return ({
-      clauses, evidenceMode, passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks), refs: staticEvidenceRefs(context, lawId, evidenceMode, clauses, evaluation.staticCheckReceipts, checks,
-        (evidenceMode === "static.ast" ? observeStaticAst : observeStaticContract)({ context, lawId, evidenceMode, clauses, checks,
-          executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks) })),
+      clauses, evidenceMode, passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks), refs: staticEvidenceRefs(context, lawId, evidenceMode, clauses, evaluation.staticCheckReceipts, checks),
     }); }), findings };
   };
   return validateStaticInspection(context, {

@@ -1,7 +1,6 @@
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { runCodePurityPhases } from "./components/code-purity-phase-runner.js";
 import { producerModePassed, staticClauses, staticEvidenceRefs, staticForbiddenClauses, validateStaticInspection } from "../../shared/static-inspection-contract.js";
-import { observeStaticAst, observeStaticConfig, observeStaticDependency, observeStaticFilesystem, observeStaticJson, observeStaticTypes, observeStaticYaml } from "../../shared/static-target-object-inspector.js";
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const project = context.project;
@@ -42,18 +41,6 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
         "static.json": ["scanJsonRegistryLiveness"],
       },
     } as Readonly<Record<string, Readonly<Record<string, string[]>>>>)[lawId]?.[evidenceMode] ?? [];
-    const nativeRefs = (evidenceMode: string, clauses: string[], checks: string[]): string[] => {
-      const input = { context, lawId, evidenceMode, clauses, checks,
-        executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks) };
-      if (evidenceMode === "static.ast") return observeStaticAst(input);
-      if (evidenceMode === "static.types") return observeStaticTypes(input);
-      if (evidenceMode === "static.dependency") return observeStaticDependency(input);
-      if (evidenceMode === "static.filesystem") return observeStaticFilesystem(input);
-      if (evidenceMode === "static.config") return observeStaticConfig(input);
-      if (evidenceMode === "static.json") return observeStaticJson(input);
-      if (evidenceMode === "static.yaml") return observeStaticYaml(input);
-      return [];
-    };
     return {
       lawId,
       assertions: Object.entries(clausesByMode).map(([evidenceMode, clauses]) => ({
@@ -61,7 +48,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
         evidenceMode,
         passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checkForMode(evidenceMode)),
         refs: staticEvidenceRefs(context, lawId, evidenceMode, clauses, evaluation.staticCheckReceipts,
-          checkForMode(evidenceMode), nativeRefs(evidenceMode, clauses, checkForMode(evidenceMode))),
+          checkForMode(evidenceMode)),
       })),
       findings,
     };

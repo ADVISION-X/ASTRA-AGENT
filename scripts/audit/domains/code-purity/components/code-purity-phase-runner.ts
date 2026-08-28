@@ -1,4 +1,5 @@
 import type { InspectorContext, InspectorFinding, StaticCheckReceipt } from "../../../shared/inspector-contracts.js";
+import { staticImplementationDigest } from "../../../shared/static-inspection-contract.js";
 import { collectCodePurityGovernedFiles } from "./code-purity-governed-files.js";
 import type { CodePurityInventoryItem } from "./code-purity-inventory.js";
 import { scanOwnerBoundaries } from "./scan-owner-boundaries.js";
@@ -97,21 +98,21 @@ export const runCodePurityPhases = async (context: InspectorContext): Promise<Co
   ]);
 
   const checks = [
-    ["scanStructuralAstBudgets", structuralAst.findings],
-    ["scanStructuralFilesystemBudgets", structuralFilesystem.findings],
-    ["scanStructuralTypeBudgets", structuralTypes.findings],
-    ["scanStructuralDependencyBudgets", structuralDependencies.findings],
-    ["scanOwnerBoundaries", ownerBoundaryScan.findings],
-    ["scanOwnerAstRoles", ownerAst],
-    ["scanOwnerFilesystemAuthority", ownerFilesystem],
-    ["scanOwnerConfiguration", ownerConfig],
-    ["scanOwnerJsonAuthority", ownerJson],
-    ["scanOwnerYamlAuthority", ownerYaml],
-    ["scanZombieAst", zombieAst],
-    ["scanZombieFilesystem", zombieFilesystem],
-    ["scanZombieDependencies", zombieDependencies],
-    ["scanConfiguredEntrypointLiveness", liveConfig],
-    ["scanJsonRegistryLiveness", liveJson],
+    ["scanStructuralAstBudgets", structuralAst.findings, scanStructuralAstBudgets],
+    ["scanStructuralFilesystemBudgets", structuralFilesystem.findings, scanStructuralFilesystemBudgets],
+    ["scanStructuralTypeBudgets", structuralTypes.findings, scanStructuralTypeBudgets],
+    ["scanStructuralDependencyBudgets", structuralDependencies.findings, scanStructuralDependencyBudgets],
+    ["scanOwnerBoundaries", ownerBoundaryScan.findings, scanOwnerBoundaries],
+    ["scanOwnerAstRoles", ownerAst, scanOwnerAstRoles],
+    ["scanOwnerFilesystemAuthority", ownerFilesystem, scanOwnerFilesystemAuthority],
+    ["scanOwnerConfiguration", ownerConfig, scanOwnerConfiguration],
+    ["scanOwnerJsonAuthority", ownerJson, scanOwnerJsonAuthority],
+    ["scanOwnerYamlAuthority", ownerYaml, scanOwnerYamlAuthority],
+    ["scanZombieAst", zombieAst, scanZombieSurfaces],
+    ["scanZombieFilesystem", zombieFilesystem, scanZombieSurfaces],
+    ["scanZombieDependencies", zombieDependencies, scanZombieSurfaces],
+    ["scanConfiguredEntrypointLiveness", liveConfig, scanConfiguredEntrypointLiveness],
+    ["scanJsonRegistryLiveness", liveJson, scanJsonRegistryLiveness],
   ] as const;
 
   return {
@@ -119,8 +120,9 @@ export const runCodePurityPhases = async (context: InspectorContext): Promise<Co
     inspectedFiles: governedFiles.map((governedFile) => governedFile.repoPath),
     inventoryItems,
     summary: zombieScan.summary,
-    staticCheckReceipts: context.planEntry.lawIds.flatMap((lawId) => checks.map(([check, checkFindings]) => ({
-      check, lawId, passed: checkFindings.every((finding) => finding.lawId !== lawId),
+    staticCheckReceipts: context.planEntry.lawIds.flatMap((lawId) => checks.map(([check, checkFindings, implementation]) => ({
+      check, implementationDigest: staticImplementationDigest(implementation), lawId,
+      passed: checkFindings.every((finding) => finding.lawId !== lawId),
     }))),
   };
 };

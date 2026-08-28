@@ -47,10 +47,8 @@ const finding = (checkId: string, filePath: string, message: string, line?: numb
     message,
     ...(line === undefined ? {} : { line }),
   });
-
 const sourceFor = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
   context.project.getSourceFile(resolve(context.sealedRoot, repoPath));
-
 const read = (context: InspectorContext, repoPath: string): string =>
   readFileSync(resolve(context.sealedRoot, repoPath), "utf8");
 const pluginDirectories = (context: InspectorContext): string[] => {
@@ -76,7 +74,6 @@ const importsAnotherPlugin = (
   const importedRootPath = resolve(pluginsRoot, importedRoot);
   return importedRoot !== pluginId && existsSync(importedRootPath) && statSync(importedRootPath).isDirectory();
 };
-
 const inspectPluginRoot = (
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -106,7 +103,6 @@ const inspectPluginRoot = (
     ));
   }
 };
-
 const inspectProductSkill = (
   findings: InspectorFinding[],
   pluginId: string,
@@ -127,7 +123,6 @@ const inspectProductSkill = (
     ));
   }
 };
-
 const inspectPluginRoots = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const pluginIds = pluginDirectories(context);
   if (pluginIds.length !== 12) {
@@ -138,7 +133,6 @@ const inspectPluginRoots = (context: InspectorContext, findings: InspectorFindin
     findings.push(finding("agent-production-runtime/giant-plugin-retired", `${PLUGIN_ROOT}/xuanxue-ai-production`,
       "The retired giant xuanxue-ai-production Plugin remains physically present."));
   }
-
   const catalog = sourceFor(context, CATALOG_PATH);
   if (!catalog) {
     findings.push(finding("agent-production-runtime/catalog-present", CATALOG_PATH, "The unique Product Plugin Catalog is missing."));
@@ -166,7 +160,6 @@ const inspectPluginRoots = (context: InspectorContext, findings: InspectorFindin
 
   for (const pluginId of pluginIds) inspectPluginRoot(context, findings, pluginId);
 };
-
 const inspectContractsAndMediator = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const pluginContract = sourceFor(context, PLUGIN_CONTRACT_PATH);
   const productPlugin = pluginContract?.getInterface("ProductPlugin");
@@ -339,7 +332,8 @@ const inspectDirectDynamicProof = (context: InspectorContext, findings: Inspecto
     "chromium.launchPersistentContext", "readProductionTaskStatus", "production-runtime.sqlite",
     "browser-mutations.sqlite", "GOVERNANCE_PROOF_RECEIPT_DIR", "GRASSEYE_PRODUCTION_PROOF_JOB_IDS",
     "agentPluginCapabilityManifest", "observeProductionProofRuntimeLogs", "Object.keys(dynamicClaimContract.routes).sort()",
-    "recovery_pending", "target=claimed",
+    "assertProductionProofRouteCoverage", "jobIds.length, 39", "task_json", "routes=39",
+    "executed_route_count", "route_denominator_complete", "recovery_pending", "target=claimed",
     "target=absent", "gpt-child-proof:", "sent provider terminal receipt",
   ]) {
     if (!realProofText.includes(required)) findings.push(finding(
@@ -475,15 +469,20 @@ const inspectAgentDependencies = (context: InspectorContext, findings: Inspector
 const evaluate = (context: InspectorContext): InspectorEvaluation => {
   const findings: InspectorFinding[] = [];
   const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
-  recordStaticCheck({ check: "inspectAgentProductionRuntime", findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
+  recordStaticCheck({ check: "inspectAgentProductionRuntime", findings, implementation: inspectAgentProductionRuntime,
+    lawIds: [LAW_ID], receipts: staticCheckReceipts,
     run: () => inspectAgentProductionRuntime(context, findings), });
-  recordStaticCheck({ check: "inspectAgentFilesystem", findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
+  recordStaticCheck({ check: "inspectAgentFilesystem", findings, implementation: inspectAgentFilesystem,
+    lawIds: [LAW_ID], receipts: staticCheckReceipts,
     run: () => inspectAgentFilesystem(context, findings) });
-  recordStaticCheck({ check: "inspectAgentTypes", findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
+  recordStaticCheck({ check: "inspectAgentTypes", findings, implementation: inspectAgentTypes,
+    lawIds: [LAW_ID], receipts: staticCheckReceipts,
     run: () => inspectAgentTypes(context, findings) });
-  recordStaticCheck({ check: "inspectAgentContracts", findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
+  recordStaticCheck({ check: "inspectAgentContracts", findings, implementation: inspectAgentContracts,
+    lawIds: [LAW_ID], receipts: staticCheckReceipts,
     run: () => inspectAgentContracts(context, findings) });
-  recordStaticCheck({ check: "inspectAgentDependencies", findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
+  recordStaticCheck({ check: "inspectAgentDependencies", findings, implementation: inspectAgentDependencies,
+    lawIds: [LAW_ID], receipts: staticCheckReceipts,
     run: () => inspectAgentDependencies(context, findings) });
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

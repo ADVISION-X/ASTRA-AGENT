@@ -18,13 +18,6 @@ import {
   staticEvidenceRefs,
   validateStaticInspection,
 } from "../../shared/static-inspection-contract.js";
-import {
-  observeStaticAst,
-  observeStaticContract,
-  observeStaticDependency,
-  observeStaticFilesystem,
-  observeStaticTypes,
-} from "../../shared/static-target-object-inspector.js";
 
 const LAW_ID = "LAW-GPT-001-V3";
 const MODE_CLAUSES = {
@@ -307,15 +300,20 @@ const inspectGptDependencies = (context: InspectorContext, findings: InspectorFi
 const evaluate = (context: InspectorContext): InspectorEvaluation => {
   const findings: InspectorFinding[] = [];
   const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
-  recordStaticCheck({ check: "inspectGptFilesystem", findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
+  recordStaticCheck({ check: "inspectGptFilesystem", findings, implementation: inspectGptFilesystem,
+    lawIds: [LAW_ID], receipts: staticCheckReceipts,
     run: () => inspectGptFilesystem(context, findings) });
-  recordStaticCheck({ check: "inspectGptAst", findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
+  recordStaticCheck({ check: "inspectGptAst", findings, implementation: inspectGptAst,
+    lawIds: [LAW_ID], receipts: staticCheckReceipts,
     run: () => inspectGptAst(context, findings) });
-  recordStaticCheck({ check: "inspectGptTypes", findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
+  recordStaticCheck({ check: "inspectGptTypes", findings, implementation: inspectGptTypes,
+    lawIds: [LAW_ID], receipts: staticCheckReceipts,
     run: () => inspectGptTypes(context, findings) });
-  recordStaticCheck({ check: "inspectGptContracts", findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
+  recordStaticCheck({ check: "inspectGptContracts", findings, implementation: inspectGptContracts,
+    lawIds: [LAW_ID], receipts: staticCheckReceipts,
     run: () => inspectGptContracts(context, findings) });
-  recordStaticCheck({ check: "inspectGptDependencies", findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
+  recordStaticCheck({ check: "inspectGptDependencies", findings, implementation: inspectGptDependencies,
+    lawIds: [LAW_ID], receipts: staticCheckReceipts,
     run: () => inspectGptDependencies(context, findings) });
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
@@ -324,27 +322,6 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => {
     inspectedFiles: [...context.targetPaths],
     staticCheckReceipts,
   };
-};
-
-const observationFor = (
-  context: InspectorContext,
-  evidenceMode: "static.filesystem" | "static.ast" | "static.types" | "static.contract" | "static.dependency",
-  receipts: InspectorEvaluation["staticCheckReceipts"],
-): string[] => {
-  const checks = MODE_CHECKS[evidenceMode];
-  const input = {
-    context,
-    lawId: LAW_ID,
-    evidenceMode,
-    clauses: MODE_CLAUSES[evidenceMode],
-    checks,
-    executionPassed: producerModePassed(receipts, LAW_ID, checks),
-  };
-  if (evidenceMode === "static.filesystem") return observeStaticFilesystem(input);
-  if (evidenceMode === "static.ast") return observeStaticAst(input);
-  if (evidenceMode === "static.types") return observeStaticTypes(input);
-  if (evidenceMode === "static.contract") return observeStaticContract(input);
-  return observeStaticDependency(input);
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
@@ -363,7 +340,6 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
       MODE_CLAUSES[evidenceMode],
       evaluation.staticCheckReceipts,
       checks(evidenceMode),
-      observationFor(context, evidenceMode, evaluation.staticCheckReceipts),
     ),
   }));
   return validateStaticInspection(context, {

@@ -6,7 +6,6 @@ import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { repoRoot, resolveFromRepo } from "../../shared/paths.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
-import { observeStaticAst, observeStaticContract } from "../../shared/static-target-object-inspector.js";
 
 type Finding = ReturnType<typeof createFinding>;
 
@@ -225,17 +224,18 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   const findings: Finding[] = [];
   const inspectedFiles = new Set<string>();
   const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
-  const run = (check: string, lawId: string, action: () => void): void => recordStaticCheck({
-    check, findings, lawIds: [lawId], receipts: staticCheckReceipts, run: action,
+  const run = (check: string, lawId: string, implementation: (...args: never[]) => unknown,
+    action: () => void): void => recordStaticCheck({
+    check, findings, implementation, lawIds: [lawId], receipts: staticCheckReceipts, run: action,
   });
 
-  run("inspectCapabilityRequiredFiles", evidenceLaw, () => inspectCapabilityRequiredFiles(context, findings, evidenceLaw, inspectedFiles));
-  run("inspectStorageRequiredFiles", schemaBoundaryLaw, () => inspectStorageRequiredFiles(context, findings, schemaBoundaryLaw, inspectedFiles));
-  run("inspectOwnerImports", evidenceLaw, () => inspectOwnerImports(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles));
-  run("inspectPublicFacade", evidenceLaw, () => inspectPublicFacade(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles));
-  run("inspectStoragePort", schemaBoundaryLaw, () => inspectStoragePort(context, findings, schemaBoundaryLaw, "grasseye-local-persistence-schema-001-requirement", inspectedFiles));
-  run("inspectSchemaVocabulary", schemaVocabularyLaw, () => inspectSchemaVocabulary(context, findings, schemaVocabularyLaw, "grasseye-local-persistence-schema-002-v2-requirement", inspectedFiles));
-  run("inspectSchemaContract", schemaVocabularyLaw, () => inspectSchemaContract(context, findings, schemaVocabularyLaw,
+  run("inspectCapabilityRequiredFiles", evidenceLaw, inspectCapabilityRequiredFiles, () => inspectCapabilityRequiredFiles(context, findings, evidenceLaw, inspectedFiles));
+  run("inspectStorageRequiredFiles", schemaBoundaryLaw, inspectStorageRequiredFiles, () => inspectStorageRequiredFiles(context, findings, schemaBoundaryLaw, inspectedFiles));
+  run("inspectOwnerImports", evidenceLaw, inspectOwnerImports, () => inspectOwnerImports(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles));
+  run("inspectPublicFacade", evidenceLaw, inspectPublicFacade, () => inspectPublicFacade(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles));
+  run("inspectStoragePort", schemaBoundaryLaw, inspectStoragePort, () => inspectStoragePort(context, findings, schemaBoundaryLaw, "grasseye-local-persistence-schema-001-requirement", inspectedFiles));
+  run("inspectSchemaVocabulary", schemaVocabularyLaw, inspectSchemaVocabulary, () => inspectSchemaVocabulary(context, findings, schemaVocabularyLaw, "grasseye-local-persistence-schema-002-v2-requirement", inspectedFiles));
+  run("inspectSchemaContract", schemaVocabularyLaw, inspectSchemaContract, () => inspectSchemaContract(context, findings, schemaVocabularyLaw,
     "grasseye-local-persistence-schema-002-v2-requirement", inspectedFiles));
 
   return {
@@ -259,9 +259,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
       return { lawId, assertions: ["static.ast", "static.contract"].map((evidenceMode) => {
       const checks = semanticChecks(lawId, evidenceMode);
       return ({
-      clauses: staticClauses(0), evidenceMode, passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks), refs: staticEvidenceRefs(context, lawId, evidenceMode, staticClauses(0), evaluation.staticCheckReceipts, checks,
-        (evidenceMode === "static.ast" ? observeStaticAst : observeStaticContract)({ context, lawId, evidenceMode, clauses: staticClauses(0), checks,
-          executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks) })),
+      clauses: staticClauses(0), evidenceMode, passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks), refs: staticEvidenceRefs(context, lawId, evidenceMode, staticClauses(0), evaluation.staticCheckReceipts, checks),
     }); }), findings };
   };
   return validateStaticInspection(context, {

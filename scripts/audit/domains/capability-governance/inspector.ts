@@ -10,7 +10,6 @@ import {
   isCapabilityPrivateImplementationSection,
 } from "../../shared/repo-path-classifier.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, staticForbiddenClauses, validateStaticInspection } from "../../shared/static-inspection-contract.js";
-import { observeStaticAst, observeStaticDependency, observeStaticFilesystem, observeStaticTypes } from "../../shared/static-target-object-inspector.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../shared/source-files.js";
 import {
   resolveCapabilityFacadePolicy,
@@ -18,7 +17,6 @@ import {
 import { pushCapabilitySourceOfTruthFindings } from "./components/capability-governance-report.js";
 import { pushFacadePurityFindings } from "./components/capability-facade-purity.js";
 import { inspectCapabilityFacadeTypes } from "./components/capability-facade-types.js";
-
 type CapabilityGroupFindingInput = Omit<Parameters<typeof createFinding>[0], "evidenceMode"> & { evidenceMode?: string };
 
 const createDedupedFindingPusher = (findings: ReturnType<typeof createFinding>[]) => {
@@ -419,36 +417,42 @@ export const inspectCapabilityGovernanceProject = (
   const findings: ReturnType<typeof createFinding>[] = [];
   const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
   const pushFinding = createDedupedFindingPusher(findings);
-  const scan = recordStaticCheck({ check: "collectCapabilityGovernanceScan", findings, lawIds: [lawId], receipts: staticCheckReceipts, run: () => collectCapabilityGovernanceScan({
+  const scan = recordStaticCheck({ check: "collectCapabilityGovernanceScan", findings,
+    implementation: collectCapabilityGovernanceScan, lawIds: [lawId], receipts: staticCheckReceipts, run: () => collectCapabilityGovernanceScan({
     facadeLawId: lawId,
     project,
     pushFinding,
   }) });
 
-  if (includeAuthority) recordStaticCheck({ check: "pushCapabilitySourceOfTruthFindings", findings, lawIds: [lawId], receipts: staticCheckReceipts, run: () => pushCapabilitySourceOfTruthFindings({
+  if (includeAuthority) recordStaticCheck({ check: "pushCapabilitySourceOfTruthFindings", findings,
+    implementation: pushCapabilitySourceOfTruthFindings, lawIds: [lawId], receipts: staticCheckReceipts, run: () => pushCapabilitySourceOfTruthFindings({
     admissionLawId: lawId,
     actualCapabilityRoots: scan.capabilityRoots,
     pushFinding,
   }) });
-  recordStaticCheck({ check: "pushMissingCapabilityFacades", findings, lawIds: [lawId], receipts: staticCheckReceipts, run: () => pushMissingCapabilityFacades({
+  recordStaticCheck({ check: "pushMissingCapabilityFacades", findings, implementation: pushMissingCapabilityFacades,
+    lawIds: [lawId], receipts: staticCheckReceipts, run: () => pushMissingCapabilityFacades({
     capabilityFacades: scan.capabilityFacades,
     capabilityRoots: scan.capabilityRoots,
     facadeLawId: lawId,
     pushFinding,
   }) });
-  recordStaticCheck({ check: "pushMissingCapabilityConsumers", findings, lawIds: [lawId], receipts: staticCheckReceipts, run: () => pushMissingCapabilityConsumers({
+  recordStaticCheck({ check: "pushMissingCapabilityConsumers", findings, implementation: pushMissingCapabilityConsumers,
+    lawIds: [lawId], receipts: staticCheckReceipts, run: () => pushMissingCapabilityConsumers({
     capabilityRoots: scan.capabilityRoots,
     consumedCapabilityRoots: scan.consumedCapabilityRoots,
     facadeLawId: lawId,
     pushFinding,
   }) });
-  recordStaticCheck({ check: "pushMissingFacadeExportConsumers", findings, lawIds: [lawId], receipts: staticCheckReceipts, run: () => pushMissingFacadeExportConsumers({
+  recordStaticCheck({ check: "pushMissingFacadeExportConsumers", findings, implementation: pushMissingFacadeExportConsumers,
+    lawIds: [lawId], receipts: staticCheckReceipts, run: () => pushMissingFacadeExportConsumers({
     facadeExports: scan.facadeExports,
     consumedFacadeExports: scan.consumedFacadeExports,
     facadeLawId: lawId,
     pushFinding,
   }) });
-  recordStaticCheck({ check: "inspectCapabilityFacadeTypes", findings, lawIds: [lawId], receipts: staticCheckReceipts,
+  recordStaticCheck({ check: "inspectCapabilityFacadeTypes", findings, implementation: inspectCapabilityFacadeTypes,
+    lawIds: [lawId], receipts: staticCheckReceipts,
     run: () => inspectCapabilityFacadeTypes({ lawId, project, pushFinding }) });
 
   return { findings, inspectedFiles: [...scan.inspectedFiles].sort(), staticCheckReceipts };
@@ -483,10 +487,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
       : mode === "static.types" ? staticForbiddenClauses(0) : staticForbiddenClauses(3);
   const refs = (mode: string, clauses: string[]) => ({
     passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks(mode)),
-    refs: staticEvidenceRefs(context, lawId, mode, clauses, evaluation.staticCheckReceipts, checks(mode),
-      (mode === "static.ast" ? observeStaticAst : mode === "static.dependency" ? observeStaticDependency
-        : mode === "static.filesystem" ? observeStaticFilesystem : observeStaticTypes)({ context, lawId, evidenceMode: mode, clauses,
-        checks: checks(mode), executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks(mode)) })),
+    refs: staticEvidenceRefs(context, lawId, mode, clauses, evaluation.staticCheckReceipts, checks(mode)),
   });
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,

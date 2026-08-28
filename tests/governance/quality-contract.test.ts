@@ -20,7 +20,8 @@ import {
   validateRepositoryEntryAt,
   walkAt,
 } from "../../scripts/audit/governance-runtime.js";
-import { observeProductionProofCleanup } from "../../scripts/acceptance/agent-production-runtime.real-proof-support.js";
+import { assertProductionProofRouteCoverage, observeProductionProofCleanup } from "../../scripts/acceptance/agent-production-runtime.real-proof-support.js";
+import { agentPluginCapabilityManifest } from "../../src/lib/local-runtime/production/catalog.js";
 import {
   buildQualityReport,
   deferredModes,
@@ -34,7 +35,7 @@ import type { InspectorContext } from "../../scripts/audit/shared/inspector-cont
 import { producerClaimRoutesFor, proofObservationPrefix, validateDynamicReceiptPayload } from "../../scripts/audit/shared/proof-observation.js";
 import type { QualityProofRequest } from "../../scripts/audit/shared/proof-observation.js";
 import { relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
-import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../scripts/audit/shared/static-inspection-contract.js";
+import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, staticImplementationDigest, validateStaticInspection } from "../../scripts/audit/shared/static-inspection-contract.js";
 import { inspectPerSiteHmac } from "../../scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.js";
 import { containsPageMutation } from "../../scripts/audit/domains/gpt/inspector.js";
 import { exactTextMatcherIsStrict } from "../../scripts/audit/domains/local-browser-session/mutation-atomicity-inspection.js";
@@ -74,16 +75,9 @@ writeFileSync(fixtureEvidencePath, `${JSON.stringify({
   },
 })}\n`);
 const fixtureEvidenceDigest = sha(readFileSync(fixtureEvidencePath));
-const staticReceipt = (lawId: string, check: string, passed = true) => [{ check, lawId, passed }];
-const staticNativeRef = (lawId: string, mode: string, clauses: readonly string[], check: string,
-  path = "scripts/audit/shared/static-inspection-contract.ts", passed = true): string[] => {
-  const kind = ({ "static.ast": "ast", "static.contract": "config", "static.types": "test",
-    "static.dependency": "dependency", "static.filesystem": "file", "static.config": "config",
-    "static.json": "json", "static.yaml": "yaml" } as Readonly<Record<string, string>>)[mode]!;
-  return [`${kind}:${path}#${encodeURIComponent(
-    `lawId=${lawId};mode=${mode};semanticChecks=${check};executionResult=${passed ? "passed" : "failed"};object=fixture;clauses=${clauses.join(",")}`,
-  )}`];
-};
+const staticReceipt = (lawId: string, check: string, passed = true) => [{
+  check, implementationDigest: sha(Buffer.from(check)), lawId, passed,
+}];
 const externalFixtureRef = (kind: "exam" | "dynamic", selector: string): string =>
   kind === "exam" ? `exam:package.json#${encodeURIComponent(selector)}`
     : `dynamic:${encodeURIComponent(fixtureEvidencePath)}#${encodeURIComponent(selector)}@${fixtureEvidenceDigest}`;
@@ -313,14 +307,16 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
         readiness_dimension_count: 4, readiness_dimensions_distinct: true, workbench_stopped: true },
       processId: 4173, serviceName: "fixture", sourceFingerprint: "sha256:fixture", status: "healthy" },
     database: { databaseEngine: "sqlite", databasePath: "/tmp/fixture.sqlite",
-      facts: { frozen_identity_count: 12, frozen_identity_invalid_count: 0 },
+      facts: { frozen_identity_count: 39, frozen_identity_invalid_count: 0 },
       identitySet: ["job-1"], recordCounts: { tasks: 1 } },
     storage: { confirmedCount: 1, mutationCount: 1, storageEngine: "sqlite-wal",
       facts: { confirmed_row_invalid_count: 0 }, storagePath: "/tmp/fixture.sqlite", unresolvedCount: 0 },
     provider: { catalogHash: "sha256:fixture", pluginIds: ["fixture-plugin"],
-      facts: { catalog_plugin_count: 12 }, providerName: "ChatGPT", terminalReceiptCount: 12 },
+      facts: { catalog_plugin_count: 12, executed_route_count: 39, primary_route_count: 13,
+        review_route_count: 26, route_denominator_complete: true },
+      providerName: "ChatGPT", terminalReceiptCount: 39 },
     authorization: { authorityState: "present", fenceHashes: ["sha256:fixture"],
-      facts: { lease_fence_bound_job_count: 12, unbound_lease_fence_job_count: 0 },
+      facts: { lease_fence_bound_job_count: 39, unbound_lease_fence_job_count: 0 },
       grantCount: 1, principalIds: ["fixture-plugin"] },
     recovery: { finalState: "completed", observedStates: ["recovery_pending", "completed"],
       facts: { completed_observed: true, recovery_pending_observed: true }, recoveryJobId: "job-1", unresolvedCount: 0 },
@@ -543,7 +539,7 @@ test("static validation rejects a law with no owner result", () => {
     () => validateStaticInspection(context, {
       capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1", "LAW-FIXTURE-002-V1"],
       lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(0),
-        evidenceMode: "static.ast", passed: true, refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(0), staticReceipt("LAW-FIXTURE-001-V1", "requirementFor"), ["requirementFor"], staticNativeRef("LAW-FIXTURE-001-V1", "static.ast", staticClauses(0), "requirementFor")) }], findings: [] }],
+        evidenceMode: "static.ast", passed: true, refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(0), staticReceipt("LAW-FIXTURE-001-V1", "requirementFor"), ["requirementFor"]) }], findings: [] }],
       inspectedFiles: ["package.json"],
     }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
@@ -566,7 +562,7 @@ test("static validation rejects a producer clause outside the active law denomin
     () => validateStaticInspection(context, {
       capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
       lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(1),
-        evidenceMode: "static.ast", passed: true, refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(1), staticReceipt("LAW-FIXTURE-001-V1", "requirementFor"), ["requirementFor"], staticNativeRef("LAW-FIXTURE-001-V1", "static.ast", staticClauses(1), "requirementFor")) }], findings: [] }],
+        evidenceMode: "static.ast", passed: true, refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(1), staticReceipt("LAW-FIXTURE-001-V1", "requirementFor"), ["requirementFor"]) }], findings: [] }],
       inspectedFiles: ["package.json"],
     }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
@@ -576,7 +572,7 @@ test("static validation rejects a producer clause outside the active law denomin
       capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
       lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(),
         evidenceMode: "static.ast", passed: true,
-        refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(), staticReceipt("LAW-FIXTURE-001-V1", "requirementFor"), ["requirementFor"], staticNativeRef("LAW-FIXTURE-001-V1", "static.ast", staticClauses(), "requirementFor", "package.json")) }], findings: [] }],
+        refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(), staticReceipt("LAW-FIXTURE-001-V1", "requirementFor"), ["requirementFor"]) }], findings: [] }],
       inspectedFiles: ["package.json"],
     }),
   );
@@ -616,7 +612,7 @@ test("static PASS evidence names the native target object, producer result, and 
       targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 1 },
     }],
   } as unknown as InspectorContext;
-  const refs = staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(0), staticReceipt("LAW-FIXTURE-001-V1", "requirementFor"), ["requirementFor"], staticNativeRef("LAW-FIXTURE-001-V1", "static.ast", staticClauses(0), "requirementFor", targetPath));
+  const refs = staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(0), staticReceipt("LAW-FIXTURE-001-V1", "requirementFor"), ["requirementFor"]);
   const output = validateStaticInspection(context, { capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
     lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(0), evidenceMode: "static.ast",
       passed: true, refs }], findings: [] }], inspectedFiles: [targetPath] });
@@ -627,7 +623,7 @@ test("static PASS evidence names the native target object, producer result, and 
   assert.equal(validatedRefs.some((ref) => ref.includes("clauses%3Dforbidden%3A0%2Csummary")), true);
 });
 
-test("static evidence keeps the exact scope when a governed path is not an evidence locator", () => {
+test("static evidence binds every object in the exact governed scope", () => {
   const pathWithReservedCharacter = "docs/history/legacy-root/grasseye-local-workbench@0.1.0";
   const targetPath = "scripts/audit/shared/quality-contract.ts";
   const context = {
@@ -641,13 +637,33 @@ test("static evidence keeps the exact scope when a governed path is not an evide
       targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 2 },
     }],
   } as unknown as InspectorContext;
-  const refs = staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(0), staticReceipt("LAW-FIXTURE-001-V1", "requirementFor"), ["requirementFor"], staticNativeRef("LAW-FIXTURE-001-V1", "static.ast", staticClauses(0), "requirementFor", targetPath));
+  const refs = staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(0), staticReceipt("LAW-FIXTURE-001-V1", "requirementFor"), ["requirementFor"]);
   const output = validateStaticInspection(context, { capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
     lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(0), evidenceMode: "static.ast",
       passed: true, refs }], findings: [] }], inspectedFiles: [pathWithReservedCharacter, targetPath] });
   const validatedRefs = output.lawResults[0]!.assertions[0]!.refs;
   assert.equal(validatedRefs.includes("scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes"), true);
-  assert.equal(validatedRefs.some((ref) => ref.includes(pathWithReservedCharacter)), false);
+  assert.equal(validatedRefs.some((ref) => ref.includes(pathWithReservedCharacter)), true);
+  assert.equal(validatedRefs.filter((ref) => !ref.startsWith("scope:")).length, 2);
+});
+
+test("static evidence rejects a governed wrong-object substitution", () => {
+  const lawId = "LAW-FIXTURE-001-V1";
+  const targetPaths = ["package.json", "pnpm-workspace.yaml"];
+  const context = {
+    sealedRoot: process.cwd(), project: new Project({ tsConfigFilePath: "tsconfig.json" }),
+    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/shared/static-inspection-contract.ts" },
+    lawRequirements: [{ lawId, forbiddenCount: 1, requiredStaticModes: ["static.ast"], targetPaths,
+      targetSet: { queryRef: `scope:${lawId}#appliesTo-minus-excludes`, count: targetPaths.length } }],
+  } as unknown as InspectorContext;
+  const refs = staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0),
+    staticReceipt(lawId, "inspectSemanticContract"), ["inspectSemanticContract"]);
+  const wrongObjectRefs = refs.filter((reference) => !reference.startsWith("ast:package.json#"));
+  assert.throws(() => validateStaticInspection(context, {
+    capabilityDomain: "fixture", reportedLawIds: [lawId], inspectedFiles: targetPaths,
+    lawResults: [{ lawId, assertions: [{ clauses: staticClauses(0), evidenceMode: "static.ast",
+      passed: true, refs: wrongObjectRefs }], findings: [] }],
+  }), (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE");
 });
 
 test("a zero-target pure absence check emits only its exact scope evidence", () => {
@@ -660,7 +676,7 @@ test("a zero-target pure absence check emits only its exact scope evidence", () 
   } as unknown as InspectorContext;
   const receipts = staticReceipt(lawId, "inspectRetiredSurfaceAbsence");
   const refs = staticEvidenceRefs(context, lawId, "static.filesystem", staticClauses(0), receipts,
-    ["inspectRetiredSurfaceAbsence"], "scope-only");
+    ["inspectRetiredSurfaceAbsence"]);
   assert.deepEqual(refs, [`scope:${lawId}#appliesTo-minus-excludes`]);
   assert.doesNotThrow(() => validateStaticInspection(context, {
     capabilityDomain: "fixture", reportedLawIds: [lawId], inspectedFiles: [],
@@ -672,9 +688,6 @@ test("a zero-target pure absence check emits only its exact scope evidence", () 
     lawId, findings: [], assertions: [{ clauses: staticClauses(0), evidenceMode: "static.filesystem",
       passed: true, refs }],
   }] }).outcome, "PASS");
-  assert.throws(() => staticEvidenceRefs(context, lawId, "static.filesystem", staticClauses(0), receipts,
-    ["inspectRetiredSurfaceAbsence"], []),
-  (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE");
 });
 
 test("a producer verdict is derived from its executed semantic-check receipt", () => {
@@ -701,10 +714,7 @@ test("each static mode records a mode-native semantic-check selector", () => {
       requiredStaticModes: ["static.ast", "static.types", "static.contract", "static.dependency", "static.config", "static.json", "static.yaml"],
       targetPaths, targetSet: { queryRef: `scope:${lawId}#appliesTo-minus-excludes`, count: targetPaths.length } }],
   } as unknown as InspectorContext;
-  const nativePath = (mode: string): string => mode === "static.yaml" ? "pnpm-workspace.yaml"
-    : ["static.contract", "static.config", "static.json"].includes(mode) ? "package.json"
-      : "scripts/audit/shared/quality-contract.ts";
-  const modeSelector = (mode: string): string[] => staticEvidenceRefs(context, lawId, mode, staticClauses(0), staticReceipt(lawId, "requirementFor"), ["requirementFor"], staticNativeRef(lawId, mode, staticClauses(0), "requirementFor", nativePath(mode)))
+  const modeSelector = (mode: string): string[] => staticEvidenceRefs(context, lawId, mode, staticClauses(0), staticReceipt(lawId, "requirementFor"), ["requirementFor"])
     .filter((ref) => !ref.startsWith("scope:"));
   assert.equal(modeSelector("static.ast").some((ref) => ref.includes("semanticChecks%3DrequirementFor")), true);
   for (const mode of context.lawRequirements[0]!.requiredStaticModes) {
@@ -732,7 +742,7 @@ test("two-mode and partial multi-mode semantic-check substitution fail closed", 
   const assertion = (mode: "static.filesystem" | "static.ast" | "static.types" | "static.dependency", check: string) =>
     ({ clauses: staticClauses(0), evidenceMode: mode,
     passed: true, refs: staticEvidenceRefs(context, lawId, mode, staticClauses(0), staticReceipt(lawId, check),
-      [check], staticNativeRef(lawId, mode, staticClauses(0), check, targetPath)) });
+      [check]) });
   const reject = (checks: readonly [string, string, string, string]) => assert.throws(
     () => validateStaticInspection(context, { capabilityDomain: "fixture", reportedLawIds: [lawId],
       lawResults: [{ lawId, assertions: [assertion("static.filesystem", checks[0]), assertion("static.ast", checks[1]),
@@ -745,40 +755,44 @@ test("two-mode and partial multi-mode semantic-check substitution fail closed", 
 });
 
 test("a dead or unexecuted producer semantic check cannot mint static evidence", () => {
-  const project = new Project({ useInMemoryFileSystem: true });
+  const sealedRoot = mkdtempSync(resolve(tmpdir(), "static-semantic-check-"));
   const ownerPath = "scripts/audit/domains/fixture/inspector.ts";
-  const owner = project.createSourceFile(`/sealed/${ownerPath}`, "inspectSemanticContract();\n");
+  const targetPath = "src/fixture.ts";
+  mkdirSync(resolve(sealedRoot, "scripts/audit/domains/fixture"), { recursive: true });
+  mkdirSync(resolve(sealedRoot, "src"), { recursive: true });
+  writeFileSync(resolve(sealedRoot, ownerPath), "inspectSemanticContract();\n");
+  writeFileSync(resolve(sealedRoot, targetPath), "export const fixture = true;\n");
+  const project = new Project();
+  const owner = project.addSourceFileAtPath(resolve(sealedRoot, ownerPath));
+  project.addSourceFileAtPath(resolve(sealedRoot, targetPath));
   const lawId = "LAW-FIXTURE-001-V1";
   const context = {
-    sealedRoot: "/sealed", project,
+    sealedRoot, project,
     planEntry: { capabilityDomain: "fixture", ownerInspectorPath: ownerPath },
-    lawRequirements: [{ lawId, forbiddenCount: 1, requiredStaticModes: ["static.ast"], targetPaths: ["src/fixture.ts"],
+    lawRequirements: [{ lawId, forbiddenCount: 1, requiredStaticModes: ["static.ast"], targetPaths: [targetPath],
       targetSet: { queryRef: `scope:${lawId}#appliesTo-minus-excludes`, count: 1 } }],
   } as unknown as InspectorContext;
   const findings: import("../../scripts/audit/shared/inspector-contracts.js").InspectorFinding[] = [];
   const receipts: import("../../scripts/audit/shared/inspector-contracts.js").StaticCheckReceipt[] = [];
   let executionCount = 0;
   const inspectSemanticContract = (): void => { executionCount += 1; };
-  recordStaticCheck({ check: "inspectSemanticContract", findings, lawIds: [lawId], receipts, run: () => inspectSemanticContract() });
+  recordStaticCheck({ check: "inspectSemanticContract", findings, implementation: inspectSemanticContract,
+    lawIds: [lawId], receipts, run: () => inspectSemanticContract() });
   assert.equal(executionCount, 1);
-  assert.equal(staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0), receipts, ["inspectSemanticContract"], staticNativeRef(lawId, "static.ast", staticClauses(0), "inspectSemanticContract", "src/fixture.ts")).length, 2);
-  assert.throws(() => recordStaticCheck({ check: "inspectSemanticContract", findings, lawIds: [lawId], receipts: [], run: () => undefined }),
+  assert.equal(receipts[0]!.implementationDigest, staticImplementationDigest(inspectSemanticContract));
+  assert.equal(staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0), receipts, ["inspectSemanticContract"]).length, 2);
+  assert.throws(() => recordStaticCheck({ check: "inspectSemanticContract", findings,
+    implementation: inspectSemanticContract, lawIds: [lawId], receipts: [], run: () => undefined }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE");
   owner.replaceWithText("if (false) { inspectSemanticContract(); }\n");
   assert.throws(
-    () => staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0), [], ["inspectSemanticContract"], staticNativeRef(lawId, "static.ast", staticClauses(0), "inspectSemanticContract", "src/fixture.ts")),
+    () => staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0), [], ["inspectSemanticContract"]),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
   );
-  assert.throws(
-    () => staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0), receipts, ["inspectSemanticContract"],
-      staticNativeRef(lawId, "static.ast", staticClauses(0), "inspectSemanticContract", "src/fixture.ts", false)),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
-  );
-  assert.throws(
-    () => staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0), receipts, ["inspectSemanticContract"],
-      staticNativeRef(lawId, "static.ast", staticClauses(0), "inspectSemanticContract", "src/not-governed.ts")),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
-  );
+  receipts[0]!.implementationDigest = "invalid";
+  assert.throws(() => staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0), receipts,
+    ["inspectSemanticContract"]),
+  (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE");
 });
 
 test("the active evidence-ownership blueprint rejects central clauses and mode substitution", () => {
@@ -790,6 +804,10 @@ test("the active evidence-ownership blueprint rejects central clauses and mode s
   for (const field of ["clauses", "passed", "refs", "findings"]) assert.equal(proofContract.includes(`${field}:`), true);
   assert.equal(staticContract.includes("executionResult="), true);
   assert.equal(staticContract.includes("requirement.targetPaths.includes(objectPath)"), true);
+  assert.equal(staticContract.includes("objectDigest="), true);
+  assert.equal(staticContract.includes("checkImplementations="), true);
+  const retiredObservers = readFileSync("scripts/audit/shared/static-target-object-inspector.ts", "utf8");
+  assert.equal(/observeStatic|statements=|descendants=|getExportedDeclarations|getImportDeclarations/u.test(retiredObservers), false);
   assert.equal(qualityContract.includes('"static.types": "test"'), true);
   assert.equal(qualityContract.includes('"static.types": "ast"'), false);
   const agent = readFileSync("scripts/audit/domains/agent-production-runtime/session-output.ts", "utf8");
@@ -1226,7 +1244,7 @@ test("a law-authorized summary-only Dynamic claim validates against its exact pr
     evidenceMode: binding.evidenceMode, clauses: binding.clauses, observed_value: binding.observedValue,
     producer_script: binding.producerScript, observation_kind: "browser",
     observation: { browserVersion: "Chromium 1", endpoint: "https://chatgpt.com/", pageTitle: "ChatGPT",
-      facts: { runtime_log_browser_span_count: 12 }, sessionFacts: { authorityState: "present" } },
+      facts: { runtime_log_browser_span_count: 39 }, sessionFacts: { authorityState: "present" } },
   };
   assert.equal(validateDynamicReceiptPayload(payload, binding), true);
 });
@@ -1245,7 +1263,8 @@ test("production Dynamic Proof directly observes real Chrome, runtime stores, pr
     "chromium.launchPersistentContext", "readProductionTaskStatus", "production-runtime.sqlite",
     "browser-mutations.sqlite", "GOVERNANCE_PROOF_RECEIPT_DIR", "GRASSEYE_PRODUCTION_PROOF_JOB_IDS",
     "agentPluginCapabilityManifest", "observeProductionProofRuntimeLogs", "Object.keys(dynamicClaimContract.routes).sort()",
-    "recovery_pending",
+    "assertProductionProofRouteCoverage", "jobIds.length, 39", "task_json", "routes=39",
+    "executed_route_count", "route_denominator_complete", "recovery_pending",
     "target=claimed", "target=absent", "gpt-child-proof:", "sent provider terminal receipt",
   ]) assert.ok(proof.includes(token), token);
   for (const token of ["runtimeLogEventShapeValid", "runtimeEventIntegrityValid", 'operation === "browser.command"',
@@ -1256,6 +1275,29 @@ test("production Dynamic Proof directly observes real Chrome, runtime stores, pr
     "acceptance:agent-production-runtime:real-proof");
   assert.equal(dynamicScriptFor("local-browser-session", "dynamic.storage"),
     "acceptance:agent-production-runtime:real-proof");
+});
+
+test("production Dynamic Proof rejects one missing public route", () => {
+  const routes = agentPluginCapabilityManifest.plugins.flatMap((plugin) => plugin.accepts.map((route) => ({
+    pluginId: plugin.plugin_id, ...route,
+  }))).sort((left, right) => {
+    const rank = (route: typeof left): number => route.pluginId === "localization-production"
+      && !["accuracy_challenge", "quality_reflection"].includes(route.action_id) ? 0 : 1;
+    return rank(left) - rank(right) || left.product_id.localeCompare(right.product_id)
+      || left.action_id.localeCompare(right.action_id);
+  });
+  const rows = routes.map((route, index) => {
+    const jobId = `route-job-${index}`;
+    return { created_at: new Date(Date.UTC(2026, 7, 28, 0, 0, index)).toISOString(), job_id: jobId,
+      identity_json: JSON.stringify({ plugin_id: route.pluginId }),
+      task_json: JSON.stringify({ action_id: route.action_id, job_id: jobId, product_id: route.product_id }) };
+  });
+  assert.deepEqual(assertProductionProofRouteCoverage(rows, agentPluginCapabilityManifest), {
+    pluginIds: agentPluginCapabilityManifest.plugins.map((plugin) => plugin.plugin_id).sort(),
+    primaryCount: 13, reviewCount: 26, routeCount: 39,
+  });
+  assert.throws(() => assertProductionProofRouteCoverage(rows.slice(0, -1), agentPluginCapabilityManifest),
+    /PRODUCTION_DYNAMIC_ROUTE_DENOMINATOR_INVALID:row-count:38/u);
 });
 
 test("Shell browser and service Dynamic Proof share one current-run runtime route", () => {

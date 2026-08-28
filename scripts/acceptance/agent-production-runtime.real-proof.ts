@@ -6,7 +6,6 @@ import { dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import Database from "better-sqlite3";
 import { chromium, type BrowserContext, type Page, type Worker } from "playwright";
-
 import { createWorkbenchServer } from "../../src/app/create-workbench-server.js";
 import {
   GRASSEYE_UNPACKED_EXTENSION_ID,
@@ -19,11 +18,11 @@ import { agentPluginCapabilityManifest } from "../../src/lib/local-runtime/produ
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { buildStartupSourceFingerprint } from "../startup/lib/source-fingerprint.mjs";
 import {
+  assertProductionProofRouteCoverage,
   observeProductionProofCleanup,
   observeProductionProofRuntimeLogs,
   type ProductionProofCleanupObservation,
 } from "./agent-production-runtime.real-proof-support.js";
-
 const dynamicClaimContract = (/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_BEGIN */
 {
   "schema_version": "producer-dynamic-claim-contract.v1",
@@ -34,26 +33,26 @@ const dynamicClaimContract = (/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_BEGIN */
     "LAW-LOCAL-BROWSER-SESSION-004-V10:dynamic.storage": {"claims": {"forbidden:11": [{"path": "/facts/mutation_rows_complete", "operator": "equals", "expected": true}, {"path": "/facts/sqlite_wal_mode", "operator": "equals", "expected": true}]}},
     "LAW-LOCAL-BROWSER-SESSION-005-V6:dynamic.browser": {"claims": {"forbidden:5": [{"path": "/facts/release_build_matches_record", "operator": "equals", "expected": true}]}},
     "LAW-LOCAL-BROWSER-SESSION-006-V3:dynamic.browser": {"claims": {"forbidden:0": [{"path": "/facts/persisted_sensitive_value_count", "operator": "equals", "expected": 0}]}},
-    "LAW-RUNTIME-LOG-SPINE-001-V4:dynamic.browser": {"claims": {"summary": [{"path": "/facts/runtime_log_browser_span_count", "operator": "gte", "expected": 12}]}},
-    "LAW-RUNTIME-LOG-SPINE-001-V4:dynamic.service": {"claims": {"summary": [{"path": "/facts/runtime_log_event_count", "operator": "gte", "expected": 12}, {"path": "/facts/runtime_log_integrity_valid", "operator": "equals", "expected": true}, {"path": "/facts/runtime_log_sink_ready", "operator": "equals", "expected": true}]}},
-    "LAW-RUNTIME-LOG-SPINE-001-V4:dynamic.storage": {"claims": {"forbidden:4": [{"path": "/facts/runtime_log_authority_hash_count", "operator": "gte", "expected": 12}, {"path": "/facts/runtime_log_unresolved_mutation_state_count", "operator": "equals", "expected": 0}]}},
+    "LAW-RUNTIME-LOG-SPINE-001-V4:dynamic.browser": {"claims": {"summary": [{"path": "/facts/runtime_log_browser_span_count", "operator": "gte", "expected": 39}]}},
+    "LAW-RUNTIME-LOG-SPINE-001-V4:dynamic.service": {"claims": {"summary": [{"path": "/facts/runtime_log_event_count", "operator": "gte", "expected": 39}, {"path": "/facts/runtime_log_integrity_valid", "operator": "equals", "expected": true}, {"path": "/facts/runtime_log_sink_ready", "operator": "equals", "expected": true}]}},
+    "LAW-RUNTIME-LOG-SPINE-001-V4:dynamic.storage": {"claims": {"forbidden:4": [{"path": "/facts/runtime_log_authority_hash_count", "operator": "gte", "expected": 39}, {"path": "/facts/runtime_log_unresolved_mutation_state_count", "operator": "equals", "expected": 0}]}},
     "LAW-RUNTIME-LOG-SPINE-001-V4:dynamic.recovery": {"claims": {"summary": [{"path": "/facts/runtime_log_completed_observed", "operator": "equals", "expected": true}, {"path": "/facts/runtime_log_recovery_pending_observed", "operator": "equals", "expected": true}]}},
     "LAW-RUNTIME-LOG-SPINE-002-V4:dynamic.browser": {"claims": {"forbidden:0": [{"path": "/facts/persisted_sensitive_value_count", "operator": "equals", "expected": 0}]}},
     "LAW-RUNTIME-LOG-SPINE-002-V4:dynamic.storage": {"claims": {"forbidden:0": [{"path": "/facts/runtime_log_sensitive_value_count", "operator": "equals", "expected": 0}]}},
-    "LAW-RUNTIME-LOG-SPINE-003-V5:dynamic.browser": {"claims": {"forbidden:4": [{"path": "/facts/runtime_log_mutation_state_count", "operator": "gte", "expected": 12}, {"path": "/facts/runtime_log_unresolved_mutation_state_count", "operator": "equals", "expected": 0}]}},
+    "LAW-RUNTIME-LOG-SPINE-003-V5:dynamic.browser": {"claims": {"forbidden:4": [{"path": "/facts/runtime_log_mutation_state_count", "operator": "gte", "expected": 39}, {"path": "/facts/runtime_log_unresolved_mutation_state_count", "operator": "equals", "expected": 0}]}},
     "LAW-RUNTIME-LOG-SPINE-003-V5:dynamic.service": {"claims": {"forbidden:3": [{"path": "/facts/runtime_log_integrity_valid", "operator": "equals", "expected": true}, {"path": "/facts/runtime_log_open_span_count", "operator": "equals", "expected": 0}, {"path": "/facts/runtime_log_producer_count", "operator": "equals", "expected": 1}, {"path": "/facts/runtime_log_sealed", "operator": "equals", "expected": true}]}},
-    "LAW-RUNTIME-LOG-SPINE-003-V5:dynamic.storage": {"claims": {"forbidden:4": [{"path": "/facts/runtime_log_authority_hash_count", "operator": "gte", "expected": 12}, {"path": "/facts/runtime_log_unresolved_mutation_state_count", "operator": "equals", "expected": 0}]}},
+    "LAW-RUNTIME-LOG-SPINE-003-V5:dynamic.storage": {"claims": {"forbidden:4": [{"path": "/facts/runtime_log_authority_hash_count", "operator": "gte", "expected": 39}, {"path": "/facts/runtime_log_unresolved_mutation_state_count", "operator": "equals", "expected": 0}]}},
     "LAW-RUNTIME-LOG-SPINE-003-V5:dynamic.recovery": {"claims": {"summary": [{"path": "/facts/runtime_log_completed_observed", "operator": "equals", "expected": true}, {"path": "/facts/runtime_log_recovery_pending_observed", "operator": "equals", "expected": true}]}},
-    "LAW-GPT-001-V3:dynamic.browser": {"claims": {"forbidden:5": [{"path": "/facts/exact_target_document_binding_count", "operator": "gte", "expected": 12}, {"path": "/facts/operator_page_unchanged", "operator": "equals", "expected": true}]}},
+    "LAW-GPT-001-V3:dynamic.browser": {"claims": {"forbidden:5": [{"path": "/facts/exact_target_document_binding_count", "operator": "gte", "expected": 39}, {"path": "/facts/operator_page_unchanged", "operator": "equals", "expected": true}]}},
     "LAW-GPT-001-V3:dynamic.provider": {"claims": {"forbidden:1": [{"path": "/facts/provider_count", "operator": "equals", "expected": 1}]}},
-    "LAW-GPT-001-V3:dynamic.authorization": {"claims": {"forbidden:2": [{"path": "/facts/exact_target_document_binding_count", "operator": "gte", "expected": 12}]}},
+    "LAW-GPT-001-V3:dynamic.authorization": {"claims": {"forbidden:2": [{"path": "/facts/exact_target_document_binding_count", "operator": "gte", "expected": 39}]}},
     "LAW-GPT-001-V3:dynamic.recovery": {"claims": {"forbidden:6": [{"path": "/facts/recovery_pending_observed", "operator": "equals", "expected": true}, {"path": "/facts/completed_observed", "operator": "equals", "expected": true}, {"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}},
     "LAW-AGENT-PRODUCTION-RUNTIME-001-V6:dynamic.browser": {"claims": {"forbidden:17": [{"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}]}},
     "LAW-AGENT-PRODUCTION-RUNTIME-001-V6:dynamic.service": {"claims": {"forbidden:17": [{"path": "/facts/browser_context_closed", "operator": "equals", "expected": true}, {"path": "/facts/cleanup_verified", "operator": "equals", "expected": true}, {"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}, {"path": "/facts/workbench_stopped", "operator": "equals", "expected": true}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V6:dynamic.database": {"claims": {"forbidden:8": [{"path": "/facts/frozen_identity_count", "operator": "equals", "expected": 12}, {"path": "/facts/frozen_identity_invalid_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V6:dynamic.database": {"claims": {"forbidden:8": [{"path": "/facts/frozen_identity_count", "operator": "equals", "expected": 39}, {"path": "/facts/frozen_identity_invalid_count", "operator": "equals", "expected": 0}]}},
     "LAW-AGENT-PRODUCTION-RUNTIME-001-V6:dynamic.storage": {"claims": {"forbidden:10": [{"path": "/unresolvedCount", "operator": "equals", "expected": 0}, {"path": "/facts/confirmed_row_invalid_count", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V6:dynamic.provider": {"claims": {"forbidden:0": [{"path": "/facts/catalog_plugin_count", "operator": "equals", "expected": 12}, {"path": "/terminalReceiptCount", "operator": "gte", "expected": 12}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V6:dynamic.authorization": {"claims": {"forbidden:3": [{"path": "/facts/lease_fence_bound_job_count", "operator": "equals", "expected": 12}, {"path": "/facts/unbound_lease_fence_job_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V6:dynamic.provider": {"claims": {"forbidden:0": [{"path": "/facts/catalog_plugin_count", "operator": "equals", "expected": 12}, {"path": "/facts/executed_route_count", "operator": "equals", "expected": 39}, {"path": "/facts/primary_route_count", "operator": "equals", "expected": 13}, {"path": "/facts/review_route_count", "operator": "equals", "expected": 26}, {"path": "/facts/route_denominator_complete", "operator": "equals", "expected": true}, {"path": "/terminalReceiptCount", "operator": "equals", "expected": 39}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V6:dynamic.authorization": {"claims": {"forbidden:3": [{"path": "/facts/lease_fence_bound_job_count", "operator": "equals", "expected": 39}, {"path": "/facts/unbound_lease_fence_job_count", "operator": "equals", "expected": 0}]}},
     "LAW-AGENT-PRODUCTION-RUNTIME-001-V6:dynamic.recovery": {"claims": {"forbidden:9": [{"path": "/facts/recovery_pending_observed", "operator": "equals", "expected": true}, {"path": "/facts/completed_observed", "operator": "equals", "expected": true}, {"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}}
   }
 }
@@ -70,7 +69,6 @@ const dataDir = resolve(process.env.GRASSEYE_PRODUCTION_PROOF_DATA_DIR?.trim() ?
 const recoveryJobId = process.env.GRASSEYE_PRODUCTION_RECOVERY_JOB_ID?.trim() ?? "";
 const startedAt = new Date().toISOString();
 const browserProfile = resolveProductionBrowserProfileConfig(dataDir);
-
 assert.equal(process.env.GOVERNANCE_PROOF_KIND, "dynamic");
 assert.match(proofRunId, /^[a-f0-9]{64}$/u);
 assert.match(proofCandidate, /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u);
@@ -78,19 +76,17 @@ assert.ok(receiptDir.startsWith(`${resolve(tmpdir())}/`));
 assert.equal(lstatSync(receiptDir).isSymbolicLink(), false);
 assert.equal(lstatSync(dataDir).isDirectory(), true, "production proof must use the real runtime data directory");
 assert.equal(lstatSync(dataDir).isSymbolicLink(), false);
-
 const jobIds = (process.env.GRASSEYE_PRODUCTION_PROOF_JOB_IDS ?? "")
   .split(",").map((value) => value.trim()).filter(Boolean);
-assert.equal(jobIds.length, 12, "GRASSEYE_PRODUCTION_PROOF_JOB_IDS must name twelve new website jobs");
-assert.equal(new Set(jobIds).size, 12, "production proof job IDs must be unique");
-assert.equal(jobIds.includes(recoveryJobId), true, "the recovery job must be one of the twelve new website jobs");
+assert.equal(jobIds.length, 39, "GRASSEYE_PRODUCTION_PROOF_JOB_IDS must name all thirty-nine new website jobs");
+assert.equal(new Set(jobIds).size, 39, "production proof job IDs must be unique");
+assert.equal(jobIds.includes(recoveryJobId), true, "the recovery job must be one of the thirty-nine new website jobs");
 
 const productionDatabasePath = join(dataDir, "production-runtime.sqlite");
 const mutationDatabasePath = join(dataDir, "browser", "browser-mutations.sqlite");
 const runtimeLogDirectory = join(dataDir, "runtime-logs");
 const placeholders = jobIds.map(() => "?").join(",");
 const openReadOnly = (file: string): Database.Database => new Database(file, { readonly: true, fileMustExist: true });
-
 const assertJobsAreNew = (): void => {
   if (!existsSync(productionDatabasePath)) return;
   const database = openReadOnly(productionDatabasePath);
@@ -101,7 +97,6 @@ const assertJobsAreNew = (): void => {
   } finally { database.close(); }
 };
 assertJobsAreNew();
-
 const delay = (milliseconds: number): Promise<void> => new Promise((done) => setTimeout(done, milliseconds));
 const waitFor = async (label: string, predicate: () => boolean | Promise<boolean>): Promise<void> => {
   const timeout = Number(process.env.GOVERNANCE_PROOF_TIMEOUT_MS ?? "0");
@@ -206,7 +201,7 @@ try {
   const workbenchPage = await context.newPage();
   await workbenchPage.goto(BASE_URL, { waitUntil: "domcontentloaded" });
   await waitFor("browser-authority", () => running!.handle.readBrowserAuthorityPairingState().authority === "present");
-  await waitFor("twelve-real-jobs", async () => {
+  await waitFor("thirty-nine-real-routes", async () => {
     finalHealth = await running!.handle.getHealthReport();
     const browser = finalHealth.components.find((component) => component.name === "productionRuntimeBrowser");
     if (browser?.detail?.includes("target=claimed")) targetClaimedObserved = true;
@@ -251,7 +246,8 @@ assert.equal(taskOwnedChatgptPageObserved, true, "a task-owned real ChatGPT page
 assert.equal(taskHistory.get(recoveryJobId)?.has("recovery_pending"), true,
   "the named real job must be observed recovery_pending before completing with the same identity");
 
-type TaskRow = { job_id: string; identity_json: string; request_hash: string; status: string; result_json: string; updated_at: string };
+type TaskRow = { created_at: string; identity_json: string; job_id: string; request_hash: string;
+  result_json: string; status: string; task_json: string; updated_at: string };
 type StepRow = { job_id: string; step_id: string; result_json: string; completed_at: string };
 type OutboxRow = { kind: string; path: string; body_blob: Buffer; sent_at: string | null };
 type MutationRow = { command_id: string; owner_plugin_id: string; job_id: string; attempt_id: string;
@@ -269,7 +265,7 @@ let mutationRows: MutationRow[];
 let continuationRows: Array<{ continuation_ref: string; origin_job_id: string; lane_owner_job_id: string | null }>;
 let mutationJournalMode = "";
 try {
-  taskRows = production.prepare(`select job_id,identity_json,request_hash,status,result_json,updated_at from production_tasks
+  taskRows = production.prepare(`select created_at,identity_json,job_id,request_hash,result_json,status,task_json,updated_at from production_tasks
     where job_id in (${placeholders}) order by job_id`).all(...jobIds) as TaskRow[];
   stepRows = production.prepare(`select job_id,step_id,result_json,completed_at from production_steps
     where job_id in (${placeholders}) order by job_id,step_id`).all(...jobIds) as StepRow[];
@@ -285,11 +281,12 @@ try {
   mutationJournalMode = String(mutations.pragma("journal_mode", { simple: true }));
 } finally { production.close(); mutations.close(); }
 
-assert.equal(taskRows.length, 12);
+assert.equal(taskRows.length, 39);
 assert.equal(taskRows.every((row) => row.status === "completed" && Boolean(row.result_json)), true);
-const observedPlugins = taskRows.map((row) => (JSON.parse(row.identity_json) as { plugin_id: string }).plugin_id).sort();
+const routeCoverage = assertProductionProofRouteCoverage(taskRows, agentPluginCapabilityManifest);
+const observedPlugins = [...routeCoverage.pluginIds];
 const catalogPlugins = agentPluginCapabilityManifest.plugins.map((plugin) => plugin.plugin_id).sort();
-assert.deepEqual(observedPlugins, catalogPlugins, "the twelve real jobs must cover the exact Plugin Catalog");
+assert.deepEqual(observedPlugins, catalogPlugins, "the thirty-nine real routes must cover the exact Plugin Catalog");
 assert.equal(jobIds.every((jobId) => stepRows.some((step) => step.job_id === jobId)), true,
   "each real job must persist at least one GPT step");
 assert.equal(stepRows.every((step) => {
@@ -333,7 +330,8 @@ const requireHealth = (value: HealthReport | null): HealthReport => {
 const observedHealth = requireHealth(finalHealth);
 const component = (name: string) => observedHealth.components.find((item) => item.name === name);
 const unresolvedMutationCount = mutationRows.filter((row) => ["PREPARED", "DISPATCHED"].includes(row.state)).length;
-const terminalReceiptCount = outboxRows.filter((row) => row.kind === "terminal" && row.sent_at).length;
+const terminalReceiptCount = jobIds.filter((jobId) => outboxRows.some((row) => row.kind === "terminal" && row.sent_at
+  && row.path.includes(encodeURIComponent(jobId)) && row.body_blob.toString("utf8").includes(jobId))).length;
 const releaseIdentity = await readUnpackedExtensionReleaseIdentity(
   resolve(root, ".grasseye-local", "browser-release", "release-record.json"),
 );
@@ -436,7 +434,9 @@ const observation: DirectRuntimeObservation = Object.freeze({
   },
   provider: {
     catalogHash: agentPluginCapabilityManifest.catalog_hash, pluginIds: observedPlugins,
-    facts: { catalog_plugin_count: catalogPlugins.length, provider_count: 1 },
+    facts: { catalog_plugin_count: catalogPlugins.length, executed_route_count: routeCoverage.routeCount,
+      primary_route_count: routeCoverage.primaryCount, provider_count: 1,
+      review_route_count: routeCoverage.reviewCount, route_denominator_complete: routeCoverage.routeCount === 39 },
     providerName: "ChatGPT", terminalReceiptCount,
   },
   authorization: {
@@ -493,7 +493,7 @@ for (const route of Object.keys(dynamicClaimContract.routes).sort()) {
   const evidenceMode = route.slice(separator + 1) as DynamicMode;
   assert.equal(separator > 0 && Object.hasOwn(observation, evidenceMode.slice("dynamic.".length)), true,
     `invalid dynamic producer route ${route}`);
-  emit(lawId, evidenceMode, `${evidenceMode};realChrome=${browserVersion};plugins=12;jobs=12`);
+  emit(lawId, evidenceMode, `${evidenceMode};realChrome=${browserVersion};plugins=12;jobs=39;routes=39`);
 }
 
 process.stdout.write(`[ACCEPTANCE][agent-production-runtime][direct-real-proof] PASS run=${proofRunId}\n`);

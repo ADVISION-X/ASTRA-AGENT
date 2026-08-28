@@ -16,7 +16,6 @@ import {
   staticEvidenceRefs,
   validateStaticInspection,
 } from "../../shared/static-inspection-contract.js";
-import { observeStaticAst, observeStaticContract } from "../../shared/static-target-object-inspector.js";
 
 const LAW_OPERATIONAL = "LAW-RUNTIME-LOG-SPINE-001-V4";
 const LAW_PRIVACY = "LAW-RUNTIME-LOG-SPINE-002-V4";
@@ -363,17 +362,23 @@ const CLAUSES = {
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const findings: InspectorFinding[] = [];
   const receipts: StaticCheckReceipt[] = [];
-  recordStaticCheck({ check: "inspectOperationalAst", findings, lawIds: [LAW_OPERATIONAL], receipts,
+  recordStaticCheck({ check: "inspectOperationalAst", findings, implementation: inspectOperationalAst,
+    lawIds: [LAW_OPERATIONAL], receipts,
     run: () => { findings.push(...inspectOperationalAst(context)); } });
-  recordStaticCheck({ check: "inspectOperationalContract", findings, lawIds: [LAW_OPERATIONAL], receipts,
+  recordStaticCheck({ check: "inspectOperationalContract", findings, implementation: inspectOperationalContract,
+    lawIds: [LAW_OPERATIONAL], receipts,
     run: () => { findings.push(...inspectOperationalContract(context)); } });
-  recordStaticCheck({ check: "inspectPrivacyAst", findings, lawIds: [LAW_PRIVACY], receipts,
+  recordStaticCheck({ check: "inspectPrivacyAst", findings, implementation: inspectPrivacyAst,
+    lawIds: [LAW_PRIVACY], receipts,
     run: () => { findings.push(...inspectPrivacyAst(context)); } });
-  recordStaticCheck({ check: "inspectPrivacyContract", findings, lawIds: [LAW_PRIVACY], receipts,
+  recordStaticCheck({ check: "inspectPrivacyContract", findings, implementation: inspectPrivacyContract,
+    lawIds: [LAW_PRIVACY], receipts,
     run: () => { findings.push(...inspectPrivacyContract(context)); } });
-  recordStaticCheck({ check: "inspectStructureAst", findings, lawIds: [LAW_STRUCTURE], receipts,
+  recordStaticCheck({ check: "inspectStructureAst", findings, implementation: inspectStructureAst,
+    lawIds: [LAW_STRUCTURE], receipts,
     run: () => { findings.push(...inspectStructureAst(context)); } });
-  recordStaticCheck({ check: "inspectStructureContract", findings, lawIds: [LAW_STRUCTURE], receipts,
+  recordStaticCheck({ check: "inspectStructureContract", findings, implementation: inspectStructureContract,
+    lawIds: [LAW_STRUCTURE], receipts,
     run: () => { findings.push(...inspectStructureContract(context)); } });
   const lawResults = context.lawRequirements.map((requirement) => ({
     lawId: requirement.lawId,
@@ -382,14 +387,11 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
       const checks = [CHECKS[requirement.lawId as keyof typeof CHECKS][mode]];
       const clauses = CLAUSES[requirement.lawId as keyof typeof CLAUSES];
       const passed = producerModePassed(receipts, requirement.lawId, checks);
-      const observation = (mode === "static.ast" ? observeStaticAst : observeStaticContract)({
-        context, lawId: requirement.lawId, evidenceMode: mode, clauses, checks, executionPassed: passed,
-      });
       return {
         clauses,
         evidenceMode: mode,
         passed,
-        refs: staticEvidenceRefs(context, requirement.lawId, mode, clauses, receipts, checks, observation),
+        refs: staticEvidenceRefs(context, requirement.lawId, mode, clauses, receipts, checks),
       };
     }),
     findings: findings.filter((item) => item.lawId === requirement.lawId),

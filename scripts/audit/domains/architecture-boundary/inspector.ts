@@ -7,7 +7,6 @@ import { inspectRootAllowlist } from "./components/scan-root-allowlist.js";
 import { inspectTypesContractRoot } from "./components/scan-types-contract-root.js";
 import { inspectConstitutionalBoundary } from "./constitutional-boundary-inspector.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
-import { observeStaticAst, observeStaticDependency, observeStaticFilesystem, observeStaticTypes } from "../../shared/static-target-object-inspector.js";
 
 
 
@@ -17,13 +16,13 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   const findings: ReturnType<typeof createFinding>[] = [];
   const inspectedFiles = new Set<string>();
   const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
-  const run = <T>(check: string, action: () => T): T => recordStaticCheck({
-    check, findings, lawIds: [lawId], receipts: staticCheckReceipts, run: action,
+  const run = <T>(check: string, implementation: (...args: never[]) => unknown, action: () => T): T => recordStaticCheck({
+    check, findings, implementation, lawIds: [lawId], receipts: staticCheckReceipts, run: action,
   });
 
-  run("inspectRootAllowlist", () => inspectRootAllowlist(findings, lawIds.rootLawId));
-  run("inspectProjectSources", () => inspectProjectSources(context.project, findings, inspectedFiles, lawIds));
-  run("inspectActivePluginGate", () => {
+  run("inspectRootAllowlist", inspectRootAllowlist, () => inspectRootAllowlist(findings, lawIds.rootLawId));
+  run("inspectProjectSources", inspectProjectSources, () => inspectProjectSources(context.project, findings, inspectedFiles, lawIds));
+  run("inspectActivePluginGate", inspectActivePluginGate, () => {
     const result = inspectActivePluginGate({
       lawId: lawIds.pluginStageLawId,
       project: context.project,
@@ -33,7 +32,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
     findings.push(...result.findings);
     return result;
   });
-  run("inspectTypesContractRoot", () => inspectTypesContractRoot({
+  run("inspectTypesContractRoot", inspectTypesContractRoot, () => inspectTypesContractRoot({
         findings,
         inspectedFiles,
         lawId: lawIds.lawFirstChangeLawId,
@@ -58,10 +57,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
   const refs = (mode: string, clauses: string[], checks: string[]) => ({
     passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks),
-    refs: staticEvidenceRefs(context, lawId, mode, clauses, evaluation.staticCheckReceipts, checks,
-      (mode === "static.ast" ? observeStaticAst : mode === "static.dependency" ? observeStaticDependency
-        : mode === "static.filesystem" ? observeStaticFilesystem : observeStaticTypes)({ context, lawId, evidenceMode: mode, clauses, checks,
-        executionPassed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks) })),
+    refs: staticEvidenceRefs(context, lawId, mode, clauses, evaluation.staticCheckReceipts, checks),
   });
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain,

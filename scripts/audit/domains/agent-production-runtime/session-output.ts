@@ -10,13 +10,6 @@ import {
   staticForbiddenClauses,
   validateStaticInspection,
 } from "../../shared/static-inspection-contract.js";
-import {
-  observeStaticAst,
-  observeStaticContract,
-  observeStaticDependency,
-  observeStaticFilesystem,
-  observeStaticTypes,
-} from "../../shared/static-target-object-inspector.js";
 
 const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V6";
 const MODE_CLAUSES = {
@@ -35,26 +28,6 @@ const MODE_CHECKS = {
 } as const;
 type EvidenceMode = keyof typeof MODE_CLAUSES;
 
-const observationFor = (
-  context: InspectorContext,
-  evidenceMode: EvidenceMode,
-  receipts: InspectorEvaluation["staticCheckReceipts"],
-): string[] => {
-  const checks = MODE_CHECKS[evidenceMode];
-  const input = {
-    context, lawId: LAW_ID, evidenceMode, clauses: MODE_CLAUSES[evidenceMode], checks,
-    executionPassed: producerModePassed(receipts, LAW_ID, checks),
-  };
-  const observers = {
-    "static.filesystem": observeStaticFilesystem,
-    "static.ast": observeStaticAst,
-    "static.types": observeStaticTypes,
-    "static.contract": observeStaticContract,
-    "static.dependency": observeStaticDependency,
-  } as const;
-  return observers[evidenceMode](input);
-};
-
 export const buildAgentProductionSessionOutput = (
   context: InspectorContext,
   evaluation: InspectorEvaluation,
@@ -66,7 +39,7 @@ export const buildAgentProductionSessionOutput = (
       clauses: [...MODE_CLAUSES[evidenceMode]], evidenceMode,
       passed: producerModePassed(evaluation.staticCheckReceipts, LAW_ID, checks),
       refs: staticEvidenceRefs(context, LAW_ID, evidenceMode, MODE_CLAUSES[evidenceMode],
-        evaluation.staticCheckReceipts, checks, observationFor(context, evidenceMode, evaluation.staticCheckReceipts)),
+        evaluation.staticCheckReceipts, checks),
     };
   });
   return validateStaticInspection(context, {
