@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "gpt",
   "lawIds": [
-    "LAW-GPT-001-V2"
+    "LAW-GPT-001-V3"
   ],
   "contractRefs": [],
   "dependencyEdges": [
@@ -31,7 +31,7 @@ Product Plugin request
   -> src/capabilities/gpt/index.ts 唯一公共 Facade
   -> 一个稳定 Provider 页面意图对应的精确 Child Ability
   -> Browser Authority exact Target + Document
-  -> 一次有界 observation，或最多一次页面 mutation + 直接后置回读
+  -> 一次有界 observation，或一次 precondition + 唯一 dispatch + 完备 postcondition
   -> typed GPT child receipt
   -> Product Plugin 继续业务 Flow
 ```
@@ -44,11 +44,12 @@ Product Plugin request
 `requiredTargetKind`、`allowedDocumentTransition`、`precondition`、`oneObservationOrMutation`、
 `postcondition`、`evidenceSchema`、`failureClassification` 和 `replayPolicy`。每次执行必须返回同一
 `GptChildCapabilityProof` 的 `childCapabilityId`、`executionId`、`targetRefHash`、前后 Document ref/hash 与 URL、
-`candidateCount`、`observedSemantics`、`committedMutation`、`postconditionResult`、开始/结束时间以及
+`pluginStepId`、`childCapabilityId`、`actionOrdinal`、`candidateCount`、`observedSemantics`、
+`mutationOutcome=no|dispatched|confirmed`、`postconditionResult=passed|failed|pending`、开始/结束时间以及
 `evidenceRef/evidenceHash`；非 DOM child 的 Target/Document 字段才允许为空。
 
 公共 Facade 只做合同解析、Child 定位和单次委派。它不得在 Child 前后或异常分支自行读取 DOM、执行页面动作、
-重试或补做后置流程；前置、物理动作和直接后置证明必须全部由当前 Child 自己拥有并一次收束。
+重试或补做后置流程；前置、物理动作、互斥且覆盖允许页面结果的正向/负向后置判据必须在 dispatch 前冻结，并由当前 Child 自己一次收束。物理 dispatch 已发而 receipt 未返回时只形成精确 `DISPATCHED + postcondition pending`，不得生成 UNKNOWN 结果。
 
 ## 原子子能力分母
 
@@ -68,7 +69,7 @@ Product Plugin request
 | Continuation / 恢复 | `persist_gpt_continuation`、`acquire_gpt_continuation_lane`、`advance_gpt_continuation_lane`、`release_gpt_continuation_lane`、`recover_gpt_response_checkpoint` |
 
 每个 child 文件只拥有一个稳定、可独立验证的 Provider 页面意图、一个输入合同、一个前置证明、一次有界
-observation 或至多一次 mutation 及其直接后置回读、一个 evidence schema、一个 typed failure 集合和一个 replay
+observation 或一次 precondition、至多一次 dispatch 及其完备 postcondition、一个 evidence schema、一个 typed failure 集合和一个 replay
 policy。定位元素、读取属性、执行点击和核对结果是该页面意图内部的前置/动作/直接证明，不拆成互相竞争的公开
 兄弟能力。Child 不调用兄弟 child，不隐藏多步 workflow；唯一 `gpt-session-controller.ts` 只管理 opaque
 continuation、conversation identity、turn marker 和 lane CAS，标题不是身份。
@@ -83,8 +84,7 @@ Product Plugin 到 GPT 公共 Facade，再到 Browser Authority，禁止 Product
 Browser Authority 是物理动作许可 Owner。新 GPT turn 的首个 Browser 原子请求只取得该 turn 专属的后台
 ChatGPT Target，不复用、认领、关闭或操纵操作者已经打开的 ChatGPT 页面；页面加载完成并复核精确 Origin 后才
 建立 exact Target/Document。候选为 0 时不得点击，候选大于 1 时不得猜选；Target/Document 漂移、
-动作结果 UNKNOWN、已有 upload/submission/checkpoint proof 时必须失败关闭。恢复只允许在证明 mutation 尚未发生时
-重新绑定 exact Target；不得自动 replay，也不得刷新、重开、重传或重发。登录、验证码、2FA、风控、账户轮换、全局设置、
+动作已 DISPATCHED、已有 upload/submission/checkpoint proof 时必须失败关闭。恢复只允许在原 Target/Document 上按当前 Child 已冻结的正向/负向判据只读补核；只有 `mutationOutcome=no` 才允许重新绑定 exact Target；不得自动 replay，也不得刷新、重开、重传或重发。登录、验证码、2FA、风控、账户轮换、全局设置、
 cookie、storage、密码和 token 全部在能力组边界之外。
 
 会话拓扑的唯一判定者是 Product Plugin：fresh turn 使用 Browser Authority 新建的根页面并调用
@@ -96,7 +96,7 @@ cookie、storage、密码和 token 全部在能力组边界之外。
 
 静态检查必须证明只有一个 `gpt` 根、一个公共 Facade、一个 Session Controller，全部 childCapabilityId 可枚举且旧
 `src/capabilities/ai-input-gateway/` 与其脚本、Manifest、路由、wrapper 和别名物理为零。AST、类型与依赖检查必须
-证明调用方向和私有边界；golden、property、state-machine Exam 必须覆盖 0/1/多候选、页面漂移、UNKNOWN、附件
+证明调用方向和私有边界；golden、property、state-machine Exam 必须覆盖 0/1/多候选、页面漂移、DISPATCHED receipt 丢失只读补核、附件
 精确集合、长 Prompt、提交后禁重放与 checkpoint 后标题失败。Dynamic Proof 必须在真实 Chrome 的同一 Target/Document
 证明 execution profile、附件、Prompt、提交、回答 checkpoint 和恢复分类；任一证据缺失即 FAIL，不得用 HTTP 200、
 截图、日志或旧快照冒充页面终态。

@@ -19,6 +19,15 @@ export const renderProductionRuntimeWorkspace = (): string => `
         <div><b data-production-plugin-version>-</b><span>版本</span></div>
         <div><b data-production-failure>-</b><span>故障</span></div>
       </div>
+      <div class="field wide" data-production-atomic-steps>
+        <label>浏览器原子步骤（步骤 / 子能力 / 序号 / 前置 / 发送 / 后置 / 终态 / 证据）</label>
+        <div class="listing-edit-read-table-shell">
+          <table class="compact-data-table">
+            <thead><tr><th>步骤</th><th>子能力</th><th>序号</th><th>前置</th><th>发送</th><th>后置</th><th>终态</th><th>证据定位</th></tr></thead>
+            <tbody data-production-atomic-step-rows><tr><td colspan="8">尚未读取任务</td></tr></tbody>
+          </table>
+        </div>
+      </div>
       <div class="field wide"><label>目录支持范围</label><pre>${JSON.stringify(appShellProductionPluginSupport, null, 2)}</pre></div>
     </form>
   </section>

@@ -9,7 +9,7 @@ export type BrowserOutcomeResolutionReceipt = Readonly<{
   boundedAt: string;
 }>;
 
-/** Only an owning plugin may resolve UNKNOWN; transport cannot replay it. */
+/** Only the owning plugin may reconcile an already-dispatched command; transport cannot replay it. */
 export const assertPluginOutcomeResolution = (
   receipt: BrowserOutcomeResolutionReceipt,
   ownerPluginId: string,
@@ -22,6 +22,6 @@ export const assertPluginOutcomeResolution = (
     || receipt.positiveEvidenceRef === receipt.negativeEvidenceRef
     || receipt.uniqueTargetRef.length === 0
     || Number.isNaN(Date.parse(receipt.boundedAt))) {
-    throw new Error("BROWSER_OUTCOME_UNKNOWN");
+    throw new Error("BROWSER_RECONCILIATION_RECEIPT_INVALID");
   }
 };

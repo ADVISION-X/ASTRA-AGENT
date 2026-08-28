@@ -24,6 +24,9 @@ export const handleProductionRuntimeRequest = async (
     return true;
   }
   const status = workbench.readProductionTaskStatus(jobId);
-  writeJson(response, status ? 200 : 404, status ?? { error: "production_task_not_found", jobId });
+  writeJson(response, status ? 200 : 404, status ? {
+    ...status,
+    atomic_steps: workbench.diagnoseProductionRuntime(jobId).atomicSteps,
+  } : { error: "production_task_not_found", jobId });
   return true;
 };

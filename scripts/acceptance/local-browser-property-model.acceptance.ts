@@ -8,4 +8,4 @@ for (let sequence = 0; sequence < 64; sequence += 1) {
   assert.deepEqual(decodeBrowserAuthorityFrame(encodeBrowserAuthorityFrame(frame)), frame);
 }
 console.log("LOCAL_BROWSER_PROPERTY_MODEL_ACCEPTANCE_PASS");
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-BROWSER-SESSION-004-V9", evidenceMode: "exam.property", clauses: ["forbidden:1","forbidden:3","forbidden:4","summary"], locator: "acceptance:browser-terminal:frame-property-model", observedValue: "64 authenticated frame sequences round-trip exactly" });
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-BROWSER-SESSION-004-V10", evidenceMode: "exam.property", clauses: ["forbidden:1","forbidden:3","forbidden:4","summary"], locator: "acceptance:browser-terminal:frame-property-model", observedValue: "64 authenticated frame sequences round-trip exactly" });

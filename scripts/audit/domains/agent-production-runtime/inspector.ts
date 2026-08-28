@@ -23,7 +23,7 @@ import {
   observeStaticFilesystem,
   observeStaticTypes,
 } from "../../shared/static-target-object-inspector.js";
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V5";
+const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V6";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 16, 17), "static.ast": staticClauses(2, 4, 5, 9, 10, 11, 13, 14, 15, 17, 18, 19, 20, 21, 23, 24, 25),
   "static.types": staticForbiddenClauses(3, 5, 8, 11, 12), "static.contract": staticForbiddenClauses(3, 5, 6, 7, 8, 12, 13, 15),

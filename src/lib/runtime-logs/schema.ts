@@ -109,6 +109,9 @@ export type RuntimeBrowserCommandIdentity = Readonly<{
   pluginId: string;
   commandId: string;
   capabilityCallId?: string;
+  pluginStepId: string;
+  childCapabilityId: string;
+  actionOrdinal: number;
 }>;
 export type RuntimeBrowserMutationIdentity = Readonly<{
   kind: "browser-mutation";
@@ -214,7 +217,7 @@ type RuntimeStateDefinition =
   | Readonly<{ stateKey: "job.checkpoint"; previous: "none" | "persisted" | "failed" | null; current: "none" | "persisted" | "failed" }>
   | Readonly<{ stateKey: "gpt.execution"; previous: "idle" | "running" | "failed" | "review_required" | null; current: "idle" | "running" | "failed" | "review_required" }>
   | Readonly<{ stateKey: "browser.execution"; previous: "idle" | "busy" | "failed" | "review_required" | null; current: "idle" | "busy" | "failed" | "review_required" }>
-  | Readonly<{ stateKey: "browser.mutation"; previous: "PREPARED" | "SENT" | "CONFIRMED" | "FAILED" | "UNKNOWN" | null; current: "PREPARED" | "SENT" | "CONFIRMED" | "FAILED" | "UNKNOWN" }>
+  | Readonly<{ stateKey: "browser.mutation"; previous: "PREPARED" | "DISPATCHED" | "CONFIRMED" | "REJECTED" | "FAILED" | null; current: "PREPARED" | "DISPATCHED" | "CONFIRMED" | "REJECTED" | "FAILED" }>
   | Readonly<{ stateKey: "outbox.delivery"; previous: "pending" | "delivered" | "failed" | null; current: "pending" | "delivered" | "failed" }>;
 
 export type RuntimeStateKey = RuntimeStateDefinition["stateKey"];
@@ -312,7 +315,7 @@ const STATE_VALUES: Readonly<Record<RuntimeStateKey, ReadonlySet<RuntimeStateVal
   "job.checkpoint": new Set(["none", "persisted", "failed"]),
   "gpt.execution": new Set(["idle", "running", "failed", "review_required"]),
   "browser.execution": new Set(["idle", "busy", "failed", "review_required"]),
-  "browser.mutation": new Set(["PREPARED", "SENT", "CONFIRMED", "FAILED", "UNKNOWN"]),
+  "browser.mutation": new Set(["PREPARED", "DISPATCHED", "CONFIRMED", "REJECTED", "FAILED"]),
   "outbox.delivery": new Set(["pending", "delivered", "failed"]),
 };
 
@@ -345,7 +348,12 @@ const identityValid = (value: unknown): value is RuntimeTypedIdentity => {
     lease: { required: ["kind", "jobId", "attemptId", "leaseVersion", "fenceHash"], numbers: ["leaseVersion"] },
     "plugin-step": { required: ["kind", "jobId", "attemptId", "pluginId", "stepId"] },
     "gpt-call": { required: ["kind", "jobId", "attemptId", "pluginId", "stepId", "capabilityCallId"] },
-    "browser-command": { required: ["kind", "jobId", "attemptId", "leaseVersion", "fenceHash", "pluginId", "commandId"], optional: ["capabilityCallId"], numbers: ["leaseVersion"] },
+    "browser-command": {
+      required: ["kind", "jobId", "attemptId", "leaseVersion", "fenceHash", "pluginId", "commandId",
+        "pluginStepId", "childCapabilityId", "actionOrdinal"],
+      optional: ["capabilityCallId"],
+      numbers: ["leaseVersion", "actionOrdinal"],
+    },
     "browser-mutation": { required: ["kind", "jobId", "attemptId", "commandId"] },
     checkpoint: { required: ["kind", "jobId", "attemptId", "checkpointId"] },
     outbox: { required: ["kind", "jobId", "outboxId"] },

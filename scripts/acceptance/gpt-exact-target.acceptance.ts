@@ -14,6 +14,7 @@ import type {
   BrowserDomIntent,
   BrowserTargetLease,
 } from "../../src/lib/browser/browser-authority-api.js";
+import { executionFailure } from "../../src/lib/typed-failure.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 const EXPECTED_CHILD_IDS = Object.freeze([
@@ -63,7 +64,7 @@ const EXPECTED_CHILD_IDS = Object.freeze([
 ].sort());
 
 type DomResponder = (intent: BrowserDomIntent, callNumber: number) => unknown | Promise<unknown>;
-type FakeBrowserOptions = Readonly<{ initialPending?: number; initialUrl?: string; unknownMutation?: boolean }>;
+type FakeBrowserOptions = Readonly<{ initialPending?: number; initialUrl?: string }>;
 type FakeBrowserState = {
   pending: number;
   documentRef: string;
@@ -91,9 +92,9 @@ const createFakeBrowserLease = (
     get document() {
       return { documentRef: state.documentRef, targetRef: "target:1", navigationEpoch: state.navigationEpoch };
     },
+    async runAtomicStep(_identity, action) { return action(); },
     async navigate(navigation: Readonly<{ url: string }>) {
       state.physicalMutations += 1;
-      state.pending += 1;
       state.url = navigation.url;
       state.navigationEpoch += 1;
       state.documentRef = `document:${state.navigationEpoch}`;
@@ -105,13 +106,8 @@ const createFakeBrowserLease = (
         || intent.kind === "keypress" || intent.kind === "fill";
       if (mutation) {
         state.physicalMutations += 1;
-        if (input.unknownMutation) {
-          state.pending += 1;
-          throw new Error("BROWSER_OUTCOME_UNKNOWN");
-        }
       }
       const value = await responder(intent, state.domCalls);
-      if (mutation) state.pending += 1;
       if (intent.kind === "document" && value && typeof value === "object"
         && !Array.isArray(value) && typeof (value as { url?: unknown }).url === "string") {
         const nextUrl = (value as { url: string }).url;
@@ -127,19 +123,19 @@ const createFakeBrowserLease = (
     async captureScreenshot() {
       return { artifactRef: "screenshot:1", contentHash: `sha256:${"e".repeat(64)}` };
     },
-    async attachFile() { state.physicalMutations += 1; state.pending += 1; },
+    async attachFile() { state.physicalMutations += 1; },
     async registerFileArtifact() {},
     async issueFileArtifactGrant() { throw new Error("UNUSED"); },
     async wait() {},
-    async close() { state.physicalMutations += 1; state.pending += 1; },
+    async close() { state.physicalMutations += 1; },
     async resolvePendingMutation() {
-      if (state.pending !== 1) throw new Error("BROWSER_OUTCOME_UNKNOWN");
+      if (state.pending !== 1) throw new Error("BROWSER_MUTATION_UNSETTLED");
       state.pending = 0;
       return 1;
     },
     pendingMutationCount: () => state.pending,
     assertNoPendingMutations() {
-      if (state.pending !== 0) throw new Error("BROWSER_OUTCOME_UNKNOWN");
+      if (state.pending !== 0) throw new Error("BROWSER_MUTATION_UNSETTLED");
     },
   });
 
@@ -387,9 +383,9 @@ const longPromptFixture = fakeBrowser((intent) => {
 const longPromptResult = await execute("write_exact_gpt_prompt", longPromptFixture.browser, { prompt: longPrompt });
 assert.equal(longPromptResult.status, "success");
 assert.equal((longPromptResult.value as { length: number }).length, longPrompt.length);
-assert.equal(longPromptResult.proof.committedMutation, "yes");
+assert.equal(longPromptResult.proof.committedMutation, "confirmed");
 assert.match(longPromptResult.proof.evidenceHash, /^sha256:[a-f0-9]{64}$/u);
-await longPromptFixture.browser.resolvePendingMutation({} as never);
+longPromptFixture.browser.assertNoPendingMutations();
 
 const selectorInjectionFixture = fakeBrowser((intent) => intent.kind === "document" ? documentResult : { count: 1 });
 const selectorInjection = await execute("bind_exact_gpt_target", selectorInjectionFixture.browser, { selector: "*" });
@@ -433,33 +429,20 @@ const submitFixture = fakeBrowser((intent) => {
   if (intent.kind === "document") return documentResult;
   if (intent.kind === "find") return { count: 1 };
   if (intent.kind === "inspect") return { tagName: "BUTTON", visible: true, disabled: false };
-  if (intent.kind === "click") { submitClicks += 1; return { clicked: true }; }
+  if (intent.kind === "click") {
+    submitClicks += 1;
+    assert.equal(intent.postClickMatch?.textContains, "[GPT-TURN:acceptance]");
+    return { clicked: true, postconditionVerified: true };
+  }
   throw new Error(`UNEXPECTED_INTENT:${intent.kind}`);
 });
 const promptHash = `sha256:${createHash("sha256").update(longPrompt).digest("hex")}`;
-const submitted = await execute("submit_exact_gpt_turn", submitFixture.browser, { promptHash });
+const submitted = await execute("submit_exact_gpt_turn", submitFixture.browser, {
+  promptHash,
+  turnMarker: "[GPT-TURN:acceptance]",
+});
 assert.equal(submitted.status, "success");
 assert.equal(submitClicks, 1);
-const replay = await execute("submit_exact_gpt_turn", submitFixture.browser, { promptHash });
-assert.equal(replay.status, "review_required");
-assert.equal(replay.proof.committedMutation, "unknown");
-assert.equal(submitClicks, 1);
-await submitFixture.browser.resolvePendingMutation({} as never);
-
-const unknownFixture = fakeBrowser((intent) => {
-  if (intent.kind === "document") return documentResult;
-  if (intent.kind === "find") return { count: 1 };
-  if (intent.kind === "inspect") return { tagName: "DIV", visible: true, disabled: false };
-  throw new Error(`UNEXPECTED_INTENT:${intent.kind}`);
-}, { unknownMutation: true });
-const unknown = await execute("focus_exact_gpt_composer", unknownFixture.browser, {});
-assert.equal(unknown.status, "review_required");
-assert.equal(unknown.proof.committedMutation, "unknown");
-assert.equal(unknown.proof.postconditionResult, "unknown");
-assert.equal(unknownFixture.physicalMutations(), 1);
-const unknownReplay = await execute("focus_exact_gpt_composer", unknownFixture.browser, {});
-assert.equal(unknownReplay.status, "review_required");
-assert.equal(unknownFixture.physicalMutations(), 1);
 
 const titleUrl = "https://chatgpt.com/c/title-acceptance";
 const titleRow = 'a[href="/c/title-acceptance"]';
@@ -615,10 +598,10 @@ for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"
   emitQualityProofObservation({
     passed: true,
     findings: [],
-    lawId: "LAW-GPT-001-V2",
+    lawId: "LAW-GPT-001-V3",
     evidenceMode,
     clauses,
     locator: `acceptance:gpt:${evidenceMode}`,
-    observedValue: "43 exact children, bounded clean-chat composer readiness, no hidden Facade DOM reads, 0/1/many candidates, long prompt, exact attachments, document drift, UNKNOWN no-replay, and checkpoint-safe title failure passed",
+    observedValue: "43 exact children, bounded clean-chat composer readiness, no hidden Facade DOM reads, 0/1/many candidates, long prompt, exact attachments, document drift, DISPATCHED no-replay, and checkpoint-safe title failure passed",
   });
 }

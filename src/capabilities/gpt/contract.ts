@@ -134,8 +134,8 @@ export interface GptChildCapabilityProof {
   readonly afterUrl: string | null;
   readonly candidateCount: number | null;
   readonly observedSemantics: readonly string[];
-  readonly committedMutation: "no" | "yes" | "unknown";
-  readonly postconditionResult: "passed" | "failed" | "unknown";
+  readonly committedMutation: "no" | "dispatched" | "confirmed";
+  readonly postconditionResult: "passed" | "failed" | "pending";
   readonly startedAt: string;
   readonly endedAt: string;
   readonly evidenceRef: string;

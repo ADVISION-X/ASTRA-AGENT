@@ -22,6 +22,9 @@ const identityFor = (permit: BrowserCommandPermit): RuntimeBrowserCommandIdentit
   pluginId: permit.ownerPluginId,
   commandId: permit.commandId,
   capabilityCallId: permit.capabilityId,
+  pluginStepId: permit.pluginStepId,
+  childCapabilityId: permit.childCapabilityId,
+  actionOrdinal: permit.actionOrdinal,
 });
 
 export const startBrowserCommandSpan = (
@@ -41,8 +44,8 @@ export const startBrowserCommandSpan = (
 export const emitBrowserMutationState = (input: Readonly<{
   runtimeLogger: RuntimeLogger;
   mutation: BrowserCommandPermit | BrowserMutationIdentity;
-  previous: "PREPARED" | "SENT" | "UNKNOWN" | "CONFIRMED" | "FAILED" | null;
-  current: "PREPARED" | "SENT" | "UNKNOWN" | "CONFIRMED" | "FAILED";
+  previous: "PREPARED" | "DISPATCHED" | "CONFIRMED" | "REJECTED" | "FAILED" | null;
+  current: "PREPARED" | "DISPATCHED" | "CONFIRMED" | "REJECTED" | "FAILED";
   authorityHash: `sha256:${string}`;
   reconciledFromAuthority?: boolean;
 }>): void => {
@@ -72,11 +75,11 @@ export const failBrowserCommandSpan = (input: Readonly<{
   span: RuntimeSpanHandle;
   permit: Pick<BrowserCommandPermit, "commandId" | "jobId" | "mutationClass">;
   failureCode: string;
-  outcomeUnknown: boolean;
+  pendingReceipt: boolean;
   proofHash: `sha256:${string}`;
 }>): RuntimeSpanTerminalEvent =>
   requireRuntimeLogWrite(input.span.terminal({
-    outcome: input.outcomeUnknown ? "review_required" : "failed",
+    outcome: input.pendingReceipt ? "review_required" : "failed",
     ...(input.permit.mutationClass === "mutation" ? {
       authorityRef: `browser-mutation:${input.permit.commandId}`,
       authorityHash: input.proofHash,
@@ -85,7 +88,7 @@ export const failBrowserCommandSpan = (input: Readonly<{
       error: new Error(input.failureCode),
       code: input.failureCode,
       responsibleOwner: "browser-session",
-      recovery: input.outcomeUnknown ? RuntimeRecovery.REVIEW : RuntimeRecovery.STOP,
+      recovery: input.pendingReceipt ? RuntimeRecovery.REVIEW : RuntimeRecovery.STOP,
       impact: RuntimeFailureImpact.BLOCKING,
     }),
   }));

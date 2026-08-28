@@ -22,6 +22,9 @@ export type ExtensionCommandPermit = Readonly<{
   targetLeaseRef: string;
   targetRef: string;
   documentRef: string;
+  pluginStepId: string;
+  childCapabilityId: string;
+  actionOrdinal: number;
   capabilityId: BrowserCapabilityId;
   commandId: string;
   sequence: number;
@@ -57,6 +60,8 @@ const hasRequiredPermitReferences = (permit: ExtensionCommandPermit): boolean =>
   permit.targetLeaseRef,
   permit.targetRef,
   permit.documentRef,
+  permit.pluginStepId,
+  permit.childCapabilityId,
   permit.capabilityId,
   permit.commandId,
   permit.replyChannelToken,
@@ -71,6 +76,8 @@ const hasRequiredPermitReferences = (permit: ExtensionCommandPermit): boolean =>
 const hasValidPermitMetadata = (permit: ExtensionCommandPermit): boolean => permit.authorityEpoch >= 1
   && Number.isInteger(permit.sequence)
   && permit.sequence >= 1
+  && Number.isInteger(permit.actionOrdinal)
+  && permit.actionOrdinal >= 1
   && Number.isInteger(permit.leaseVersion)
   && permit.leaseVersion >= 1
   && Number.isInteger(permit.commandTtlMs)

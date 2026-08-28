@@ -6,7 +6,9 @@ import {
 } from "../typed-failure.js";
 
 const reviewRequired = new Set([
-  "BROWSER_OUTCOME_UNKNOWN",
+  "BROWSER_MUTATION_UNSETTLED",
+  "BROWSER_COMMAND_RECEIPT_MISSING",
+  "BROWSER_POSTCONDITION_FAILED",
   "BROWSER_TARGET_INVALID",
   "BROWSER_DOCUMENT_INVALID",
   "BROWSER_FILE_GRANT_INVALID",
@@ -27,11 +29,11 @@ export const browserExecutionFailure = (
 ): TypedExecutionFailure => {
   const existing = typedExecutionFailure(error);
   if (existing) return existing;
-  const code = error instanceof Error && error.message ? error.message : "BROWSER_UNKNOWN_FAILURE";
+  const code = error instanceof Error && error.message ? error.message : "BROWSER_FAILURE_UNCLASSIFIED";
   const status = reviewRequired.has(code) ? "review_required"
     : recoveryPending.has(code) ? "recovery_pending" : "failed";
   return executionFailure(status, code, {
-    mutationOutcome: mutationOutcome ?? (code === "BROWSER_OUTCOME_UNKNOWN" ? "unknown" : "no"),
+    mutationOutcome: mutationOutcome ?? (code === "BROWSER_COMMAND_RECEIPT_MISSING" ? "dispatched" : "no"),
     cause: error,
   });
 };

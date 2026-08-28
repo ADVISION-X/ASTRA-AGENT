@@ -69,14 +69,14 @@ const executeClickIntent = async (
     ? await waitForClickAttribute(debuggerRuntime, target, intent, expectedMatches, intent.postClickAttribute)
     : intent.postClickMatch !== undefined
       ? await waitForMatch(debuggerRuntime, target, intent.postClickMatch)
-      : undefined;
-  if (postconditionVerified === false) throw new Error("BROWSER_TARGET_INVALID");
+      : await waitForUrl(debuggerRuntime, target, intent.postClickUrl!);
   return {
     clicked: true,
     candidateCount: 1,
     identityRevalidated: true,
     mutationCount: 1,
-    ...(postconditionVerified === undefined ? {} : { postconditionVerified }),
+    postconditionVerified,
+    ...(postconditionVerified ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }),
   };
 };
 
@@ -104,13 +104,13 @@ const executeDoubleClickIntent = async (
   const postconditionVerified = await waitForMatch(
     debuggerRuntime, target, intent.postDoubleClickMatch,
   );
-  if (!postconditionVerified) throw new Error("BROWSER_TARGET_INVALID");
   return {
     doubleClicked: true,
     candidateCount: 1,
     identityRevalidated: true,
     mutationCount: 1,
-    postconditionVerified: true,
+    postconditionVerified,
+    ...(postconditionVerified ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }),
   };
 };
 
@@ -135,13 +135,13 @@ const executeKeypressIntent = async (
   const postconditionVerified = await waitForMatch(
     debuggerRuntime, target, intent.postKeypressMatch,
   );
-  if (!postconditionVerified) throw new Error("BROWSER_TARGET_INVALID");
   return {
     keyPressed: intent.key,
     candidateCount: 1,
     identityRevalidated: true,
     mutationCount: 1,
-    postconditionVerified: true,
+    postconditionVerified,
+    ...(postconditionVerified ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }),
   };
 };
 
@@ -164,30 +164,50 @@ const executeHoverIntent = async (
   const postconditionVerified = await waitForInteractionAttribute(
     debuggerRuntime, target, intent, expectedMatches, intent.postHoverAttribute,
   );
-  if (!postconditionVerified) throw new Error("BROWSER_TARGET_INVALID");
   return {
     hovered: true,
     candidateCount: 1,
     identityRevalidated: true,
     mutationCount: 1,
-    postconditionVerified: true,
+    postconditionVerified,
+    ...(postconditionVerified ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }),
   };
 };
 
 const waitForMatch = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
-  match: Readonly<{ selector: string; expectedMatches: number; timeoutMs?: number }>,
+  match: Readonly<{
+    selector: string;
+    expectedMatches: number;
+    textContains?: string;
+    textEquals?: string;
+    timeoutMs?: number;
+  }>,
 ): Promise<boolean> => {
   const deadline = Date.now() + (match.timeoutMs ?? 1);
   do {
-    const nodes = await queryAll(
-      debuggerRuntime,
-      target.tabId,
-      match.selector,
-      match.expectedMatches + 1,
-    );
+    const nodes = match.textEquals !== undefined
+      ? await queryVisibleTextMatches(debuggerRuntime, target.tabId, match.selector, match.textEquals, true, match.expectedMatches + 1)
+      : match.textContains !== undefined
+        ? await queryVisibleTextMatches(debuggerRuntime, target.tabId, match.selector, match.textContains, false, match.expectedMatches + 1)
+        : await queryAll(debuggerRuntime, target.tabId, match.selector, match.expectedMatches + 1);
     if (nodes.length === match.expectedMatches) return true;
+    if (Date.now() >= deadline) return false;
+    await waitForNextBoundedObservation(deadline);
+  } while (Date.now() <= deadline);
+  return false;
+};
+
+const waitForUrl = async (
+  debuggerRuntime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  postcondition: Readonly<{ equals: string; timeoutMs?: number }>,
+): Promise<boolean> => {
+  const deadline = Date.now() + (postcondition.timeoutMs ?? 1);
+  do {
+    const document = await documentState(debuggerRuntime, target.tabId) as { url?: unknown };
+    if (document.url === postcondition.equals) return true;
     if (Date.now() >= deadline) return false;
     await waitForNextBoundedObservation(deadline);
   } while (Date.now() <= deadline);
@@ -248,13 +268,15 @@ const executeValueIntent = async (
   }
   await debuggerRuntime.send(target.tabId, "Input.insertText", { text: intent.approvedText });
   const retainedValue = await accessibilityValue(debuggerRuntime, target.tabId, nodeId);
-  if (retainedValue !== intent.approvedText) throw new Error("BROWSER_TARGET_INVALID");
+  const postconditionVerified = retainedValue === intent.approvedText;
   return {
     filled: true,
     candidateCount: 1,
     identityRevalidated: true,
     mutationCount: 1,
-    retainedValueVerified: true,
+    retainedValueVerified: postconditionVerified,
+    postconditionVerified,
+    ...(postconditionVerified ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }),
   };
 };
 

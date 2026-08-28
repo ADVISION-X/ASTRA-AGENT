@@ -59,7 +59,7 @@ const failureCases: readonly FailureCase[] = [
   { name: "lease-stale", code: "LEASE_STALE", operation: "job.execute", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.REVIEW, kind: RuntimeFailureKind.ADMISSION, state: { stateKey: "job.lease", previous: null, current: "stale" } },
   { name: "fence-mismatch", code: "FENCE_HASH_MISMATCH", operation: "job.execute", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.REVIEW, kind: RuntimeFailureKind.CONTRACT, state: { stateKey: "job.lease", previous: null, current: "lost" } },
   { name: "target-drift", code: "BROWSER_TARGET_DRIFT", operation: "browser.command", owner: "browser-session", responsibleOwner: "browser-session", recovery: RuntimeRecovery.REVIEW, kind: RuntimeFailureKind.BROWSER, state: { owner: "browser-session", stateKey: "browser.target", previous: null, current: "drifted" } },
-  { name: "mutation-unknown", code: "BROWSER_OUTCOME_UNKNOWN", operation: "browser.command", owner: "browser-session", responsibleOwner: "browser-session", recovery: RuntimeRecovery.REVIEW, kind: RuntimeFailureKind.BROWSER, state: { owner: "browser-session", stateKey: "browser.mutation", previous: null, current: "UNKNOWN", authorityRef: "browser-mutation:matrix-command", authorityHash: digest("matrix-command-unknown") } },
+  { name: "mutation-dispatched", code: "BROWSER_COMMAND_RECEIPT_MISSING", operation: "browser.command", owner: "browser-session", responsibleOwner: "browser-session", recovery: RuntimeRecovery.REVIEW, kind: RuntimeFailureKind.BROWSER, state: { owner: "browser-session", stateKey: "browser.mutation", previous: null, current: "DISPATCHED", authorityRef: "browser-mutation:matrix-command", authorityHash: digest("matrix-command-dispatched") } },
   { name: "provider-reject", code: "PROVIDER_REJECTED", operation: "gpt.child", owner: "gpt", responsibleOwner: "gpt", recovery: RuntimeRecovery.REVIEW, kind: RuntimeFailureKind.PROVIDER, state: { owner: "gpt", stateKey: "gpt.execution", previous: null, current: "review_required" } },
   { name: "checkpoint-failed", code: "CHECKPOINT_STORAGE_FAILED", operation: "job.checkpoint", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.RETRY, kind: RuntimeFailureKind.STORAGE, state: { stateKey: "job.checkpoint", previous: null, current: "failed" } },
   { name: "renew-failed", code: "LEASE_RENEW_TIMEOUT", nativeCause: "ETIMEDOUT", operation: "job.lease-renew", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.RETRY, kind: RuntimeFailureKind.TRANSPORT, state: { stateKey: "job.lease", previous: null, current: "stale" } },
@@ -166,7 +166,7 @@ for (const scenario of failureCases) withRoot(scenario.name, (root) => {
     typedIdentity: scenario.operation === "cloud.claim" || scenario.operation === "cloud.session-open" || scenario.operation === "website.result-consume"
       ? { kind: "request", requestId: boundaryId! }
       : scenario.operation === "browser.command"
-        ? { kind: "browser-command", jobId: traceId, attemptId: "attempt-1", leaseVersion: 1, fenceHash: digest("fence"), pluginId: "plugin-1", commandId: `command-${scenario.name}` }
+        ? { kind: "browser-command", jobId: traceId, attemptId: "attempt-1", leaseVersion: 1, fenceHash: digest("fence"), pluginId: "plugin-1", commandId: `command-${scenario.name}`, pluginStepId: "step-1", childCapabilityId: "open_gpt_model_selector", actionOrdinal: 1 }
         : scenario.operation === "gpt.child"
           ? { kind: "gpt-call", jobId: traceId, attemptId: "attempt-1", pluginId: "plugin-1", stepId: "step-1", capabilityCallId: `call-${scenario.name}` }
           : scenario.operation === "job.checkpoint"
@@ -237,7 +237,7 @@ for (const scenario of failureCases) withRoot(scenario.name, (root) => {
   assert.equal(diagnosis.currentStates[stateOutputKey]?.fresh, true, scenario.name);
   assert.equal(diagnosis.currentStates[stateOutputKey]?.authorityRef, scenario.state.authorityRef ?? null, scenario.name);
   assert.equal(diagnosis.currentStates[stateOutputKey]?.authorityHash, scenario.state.authorityHash ?? null, scenario.name);
-  assert.equal(diagnosis.mutationState, scenario.state.stateKey === "browser.mutation" ? "UNKNOWN" : null, scenario.name);
+  assert.equal(diagnosis.mutationState, scenario.state.stateKey === "browser.mutation" ? "DISPATCHED" : null, scenario.name);
   assert.deepEqual(diagnosis.sideEffects, scenario.state.stateKey === "browser.mutation" ? [{
     authorityRef: scenario.state.authorityRef,
     authorityHash: scenario.state.authorityHash,

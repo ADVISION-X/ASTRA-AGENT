@@ -37,7 +37,7 @@ export type WorkbenchBrowserAuthority = Readonly<{
     browserAuthorityState: "present" | "absent";
     browserTargetState: "claimed" | "absent";
   }>;
-  readBrowserLaneState(): "idle" | "busy" | "unknown";
+  readBrowserLaneState(): "idle" | "busy" | "unsettled";
   readBrowserLaneWaiterCount(): number;
   hasUnresolvedBrowserMutation(): boolean;
   readBrowserReconciliationScope(

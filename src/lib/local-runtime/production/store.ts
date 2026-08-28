@@ -161,7 +161,7 @@ const isSerializedTerminalFailure = (
     JSON.stringify(Object.keys(row).sort()) === JSON.stringify(keys) &&
     typeof row.code === "string" &&
     row.code.length > 0 &&
-    ["no", "yes", "unknown"].includes(String(row.mutation_outcome)) &&
+    ["no", "dispatched", "confirmed"].includes(String(row.mutation_outcome)) &&
     (row.evidence_ref === null ||
       (typeof row.evidence_ref === "string" && row.evidence_ref.length > 0)) &&
     (row.evidence_hash === null ||

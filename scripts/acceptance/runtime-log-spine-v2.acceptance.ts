@@ -127,16 +127,34 @@ try {
     traceId: "job-atomic-log", stateKey: "job.lease", previous: null, current: "stale",
     authorityRef: "acceptance:lease-store", authorityHash: digest("lease-stale"), reconciledFromAuthority: true,
   }));
-  requireRuntimeLogWrite(logger.emitState({
-    traceId: "job-atomic-log", owner: "browser-session", component: "browser-mutation-wal",
-    stateKey: "browser.mutation", previous: null, current: "UNKNOWN",
-    authorityRef: "acceptance:browser-wal", authorityHash: digest("browser-unknown"), reconciledFromAuthority: true,
+  const browserAtomicSpan = requireRuntimeLogWrite(logger.startSpan({
+    traceId: "job-atomic-log",
+    operation: "browser.command",
+    owner: "browser-session",
+    component: "exact-target",
+    typedIdentity: {
+      kind: "browser-command", jobId: "job-atomic-log", attemptId: "attempt-1",
+      leaseVersion: 1, fenceHash: digest("fence"), pluginId: "plugin-1", commandId: "atomic-command",
+      capabilityCallId: "browser.dom.click.v1", pluginStepId: "report_translation:candidate_a",
+      childCapabilityId: "open_gpt_model_selector", actionOrdinal: 5,
+    },
   }));
   requireRuntimeLogWrite(logger.emitState({
     traceId: "job-atomic-log", owner: "browser-session", component: "browser-mutation-wal",
-    stateKey: "browser.mutation", previous: "UNKNOWN", current: "CONFIRMED",
-    authorityRef: "acceptance:browser-wal", authorityHash: digest("browser-confirmed"), reconciledFromAuthority: true,
+    stateKey: "browser.mutation", previous: null, current: "PREPARED",
+    authorityRef: "browser-mutation:atomic-command", authorityHash: digest("browser-prepared"), reconciledFromAuthority: true,
   }));
+  requireRuntimeLogWrite(logger.emitState({
+    traceId: "job-atomic-log", owner: "browser-session", component: "browser-mutation-wal",
+    stateKey: "browser.mutation", previous: "PREPARED", current: "DISPATCHED",
+    authorityRef: "browser-mutation:atomic-command", authorityHash: digest("browser-dispatched"), reconciledFromAuthority: true,
+  }));
+  requireRuntimeLogWrite(logger.emitState({
+    traceId: "job-atomic-log", owner: "browser-session", component: "browser-mutation-wal",
+    stateKey: "browser.mutation", previous: "DISPATCHED", current: "CONFIRMED",
+    authorityRef: "browser-mutation:atomic-command", authorityHash: digest("browser-confirmed"), reconciledFromAuthority: true,
+  }));
+  requireRuntimeLogWrite(browserAtomicSpan.terminal({ outcome: "success" }));
   requireRuntimeLogWrite(logger.emitState({
     traceId: "job-atomic-log", owner: "browser-session", component: "browser-mutation-wal",
     stateKey: "browser.mutation", previous: null, current: "PREPARED",
@@ -144,7 +162,12 @@ try {
   }));
   requireRuntimeLogWrite(logger.emitState({
     traceId: "job-atomic-log", owner: "browser-session", component: "browser-mutation-wal",
-    stateKey: "browser.mutation", previous: "PREPARED", current: "CONFIRMED",
+    stateKey: "browser.mutation", previous: "PREPARED", current: "DISPATCHED",
+    authorityRef: "acceptance:browser-wal:second", authorityHash: digest("browser-second-dispatched"), reconciledFromAuthority: true,
+  }));
+  requireRuntimeLogWrite(logger.emitState({
+    traceId: "job-atomic-log", owner: "browser-session", component: "browser-mutation-wal",
+    stateKey: "browser.mutation", previous: "DISPATCHED", current: "REJECTED",
     authorityRef: "acceptance:browser-wal:second", authorityHash: digest("browser-second-confirmed"), reconciledFromAuthority: true,
   }));
 
@@ -164,14 +187,23 @@ try {
     authorityResolver: () => "verified",
   });
   assert.equal(diagnosis.status, "DIAGNOSIS_COMPLETE");
-  assert.equal(diagnosis.lastSuccessfulActions[0]?.operation, "material.download-verify");
+  assert.equal(diagnosis.lastSuccessfulActions[0]?.operation, "browser.command");
   assert.equal(diagnosis.blockingRoots[0]?.operation, "gpt.child");
   assert.equal(diagnosis.blockingRoots[0]?.code, "PROVIDER_TIMEOUT");
   assert.equal(diagnosis.blockingRoots[0]?.nativeCause, "ETIMEDOUT");
   assert.equal(diagnosis.blockingRoots[0]?.responsibleOwner, "gpt");
   assert.deepEqual(diagnosis.recoveries, ["retry"]);
   assert.equal(diagnosis.mutationState, null);
-  assert.deepEqual(diagnosis.sideEffects.map((effect) => effect.state), ["CONFIRMED", "CONFIRMED"]);
+  assert.deepEqual(diagnosis.sideEffects.map((effect) => effect.state), ["CONFIRMED", "REJECTED"]);
+  assert.deepEqual(diagnosis.atomicSteps.map((step) => ({
+    identity: [step.pluginStepId, step.childCapabilityId, step.actionOrdinal, step.commandId],
+    phases: [step.precondition, step.dispatch, step.postcondition, step.terminalState],
+    authorityRef: step.authorityRef,
+  })), [{
+    identity: ["report_translation:candidate_a", "open_gpt_model_selector", 5, "atomic-command"],
+    phases: ["passed", "dispatched", "passed", "CONFIRMED"],
+    authorityRef: "browser-mutation:atomic-command",
+  }]);
   assert.equal(diagnosis.currentStates["job.lifecycle"]?.value, "recovery_pending");
   assert.equal(diagnosis.currentStates["job.lifecycle"]?.fresh, true);
   assert.deepEqual(diagnosis.findings, []);
@@ -188,7 +220,9 @@ try {
   mutationStore.prepare({
     commandId: "authority-command", ownerPluginId: "plugin-1", jobId: "job-atomic-log",
     attemptId: "attempt-1", leaseVersion: 1, executionFenceHash: digest("fence"),
+    pluginStepId: "step-1", childCapabilityId: "open_gpt_model_selector", actionOrdinal: 1,
     targetRef: "target-1", documentRef: "document-1", actionId: "action-1",
+    positivePostconditionHash: digest("positive"), negativePostconditionHash: digest("negative"),
     requestHash: digest("request"), payloadHash: digest("payload"),
   });
   const mutationHash = mutationStore.authorityHash("authority-command");
@@ -298,7 +332,7 @@ process.stdout.write("[ACCEPTANCE] runtime-log-spine-v2 PASS\n");
 for (const [lawId, modes] of [
   ["LAW-RUNTIME-LOG-SPINE-001-V4", ["exam.golden", "exam.property", "exam.state-machine"]],
   ["LAW-RUNTIME-LOG-SPINE-002-V4", ["exam.property"]],
-  ["LAW-RUNTIME-LOG-SPINE-003-V4", ["exam.golden", "exam.property", "exam.state-machine"]],
+  ["LAW-RUNTIME-LOG-SPINE-003-V5", ["exam.golden", "exam.property", "exam.state-machine"]],
 ] as const) {
   for (const evidenceMode of modes) emitQualityProofObservation({
     passed: true,

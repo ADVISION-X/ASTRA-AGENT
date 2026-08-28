@@ -28,6 +28,8 @@ type LeaseState = {
   closed: boolean;
   sequence: number;
   pendingMutationCommandIds: string[];
+  atomicStep: Readonly<{ pluginStepId: string; childCapabilityId: string }> | null;
+  actionOrdinal: number;
 };
 
 type LeaseCommand = (
@@ -55,6 +57,8 @@ export class BrowserTargetLeaseManager {
       closed: false,
       sequence: 0,
       pendingMutationCommandIds: [...this.commandActor.pendingMutationCommandIds(this.executionBinding)],
+      atomicStep: null,
+      actionOrdinal: 0,
     };
     const leaseRef = `target-lease-${randomUUID()}`;
     const command = this.createLeaseCommand(input, state, leaseRef);
@@ -86,7 +90,10 @@ export class BrowserTargetLeaseManager {
     return async (capabilityId, value) => {
       if (state.closed) throw new Error("BROWSER_TARGET_INVALID");
       if (this.mutationClass(value) === "mutation" && state.pendingMutationCommandIds.length > 0) {
-        throw new Error("BROWSER_OUTCOME_UNKNOWN");
+        throw new Error("BROWSER_MUTATION_UNSETTLED");
+      }
+      if (this.mutationClass(value) === "mutation" && state.atomicStep === null) {
+        throw new Error("BROWSER_ATOMIC_STEP_IDENTITY_REQUIRED");
       }
       this.workspace?.assertCurrent();
       const currentTarget = this.resolveCurrentTarget();
@@ -99,22 +106,30 @@ export class BrowserTargetLeaseManager {
         throw new Error("BROWSER_DOCUMENT_INVALID");
       }
       state.current = currentTarget;
+      const sequence = ++state.sequence;
+      const step = state.atomicStep ?? {
+        pluginStepId: "browser-lifecycle",
+        childCapabilityId: capabilityId,
+      };
+      const actionOrdinal = state.atomicStep ? ++state.actionOrdinal : sequence;
       const permit = this.permit({
         leaseRef,
-        sequence: ++state.sequence,
+        sequence,
         targetRef: input.target.target.targetRef,
         documentRef: state.current.document.documentRef,
+        pluginStepId: step.pluginStepId,
+        childCapabilityId: step.childCapabilityId,
+        actionOrdinal,
         capabilityId,
         mutationClass: this.mutationClass(value),
       });
       try {
         const result = await this.commandActor.execute(permit, value);
-        if (this.mutationClass(value) === "mutation") state.pendingMutationCommandIds.push(permit.commandId);
         return result;
       } catch (error) {
-        const unknown = this.commandActor.hasUnknownMutation(permit.commandId);
-        if (unknown) state.pendingMutationCommandIds.push(permit.commandId);
-        throw browserExecutionFailure(error, unknown ? "unknown" : "no");
+        const mutationOutcome = this.commandActor.mutationOutcome(permit.commandId);
+        if (mutationOutcome === "dispatched") state.pendingMutationCommandIds.push(permit.commandId);
+        throw browserExecutionFailure(error, mutationOutcome);
       }
     };
   }
@@ -137,6 +152,19 @@ export class BrowserTargetLeaseManager {
       writerFenceHash: this.executionBinding.writerFenceHash,
       target: input.target.target,
       get document() { return state.current.document; },
+      runAtomicStep: async (identity, action) => {
+        if (!identity.pluginStepId || !identity.childCapabilityId || state.atomicStep !== null) {
+          throw new Error("BROWSER_ATOMIC_STEP_IDENTITY_INVALID");
+        }
+        state.atomicStep = Object.freeze({ ...identity });
+        state.actionOrdinal = 0;
+        try {
+          return await action();
+        } finally {
+          state.atomicStep = null;
+          state.actionOrdinal = 0;
+        }
+      },
       navigate: ({ url, title }) => this.navigate(input, state, command, url, title),
       executeDomIntent: async (intent: BrowserDomIntent) => command(this.capabilityForIntent(intent), { kind: "dom-intent", intent }),
       observeCapability: async ({ capabilityId }) => command(capabilityId, { kind: "observe", capabilityId }),
@@ -150,14 +178,14 @@ export class BrowserTargetLeaseManager {
       },
       wait: async ({ durationMs }) => { await command("browser.wait.v1", { kind: "wait", durationMs }); },
       close: async ({ reason }) => {
-        if (state.pendingMutationCommandIds.length > 0) throw new Error("BROWSER_OUTCOME_UNKNOWN");
+        if (state.pendingMutationCommandIds.length > 0) throw new Error("BROWSER_MUTATION_UNSETTLED");
         await command("browser.close-target.v1", { kind: "close-target", reason });
         state.closed = true;
       },
       resolvePendingMutation: (receipt) => this.resolvePendingMutation(state, receipt),
       pendingMutationCount: () => state.pendingMutationCommandIds.length,
       assertNoPendingMutations: () => {
-        if (state.pendingMutationCommandIds.length > 0) throw new Error("BROWSER_OUTCOME_UNKNOWN");
+        if (state.pendingMutationCommandIds.length > 0) throw new Error("BROWSER_MUTATION_UNSETTLED");
       },
     };
   }
@@ -220,8 +248,8 @@ export class BrowserTargetLeaseManager {
   ): Promise<number> {
     const commandIds = [...state.pendingMutationCommandIds];
     const commandId = commandIds[0];
-    if (commandIds.length !== 1 || commandId === undefined) throw new Error("BROWSER_OUTCOME_UNKNOWN");
-    await this.commandActor.resolveUnknownMutation({ ...receipt, commandId });
+    if (commandIds.length !== 1 || commandId === undefined) throw new Error("BROWSER_MUTATION_UNSETTLED");
+    await this.commandActor.resolveDispatchedMutation({ ...receipt, commandId });
     state.pendingMutationCommandIds.splice(state.pendingMutationCommandIds.indexOf(commandId), 1);
     return 1;
   }
@@ -231,6 +259,9 @@ export class BrowserTargetLeaseManager {
     sequence: number;
     targetRef: string;
     documentRef: string;
+    pluginStepId: string;
+    childCapabilityId: string;
+    actionOrdinal: number;
     capabilityId: BrowserCapabilityId;
     mutationClass: BrowserCommandPermit["mutationClass"];
   }>): BrowserCommandPermit {
@@ -256,6 +287,9 @@ export class BrowserTargetLeaseManager {
       targetLeaseRef: input.leaseRef,
       targetRef: input.targetRef,
       documentRef: input.documentRef,
+      pluginStepId: input.pluginStepId,
+      childCapabilityId: input.childCapabilityId,
+      actionOrdinal: input.actionOrdinal,
       capabilityId: input.capabilityId,
       commandId,
       sequence: input.sequence,

@@ -4,11 +4,16 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { BrowserCommandActor } from "../../src/lib/browser/exact-target/browser-command-actor.js";
 import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
+import { BrowserCommandAdmissionBudget } from "../../src/lib/browser/transport/browser-command-admission-budget.js";
+import type { BrowserCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
+import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { verifyBrowserArtifactAndLockContracts } from "./local-browser-artifact-and-lock.acceptance-support.js";
 
 const hash = `sha256:${"a".repeat(64)}` as const;
+const negativeHash = `sha256:${"b".repeat(64)}` as const;
 const identity = (
   commandId: string,
   jobId = "job-1",
@@ -20,18 +25,66 @@ const identity = (
   attemptId: "attempt-1",
   leaseVersion: 1,
   executionFenceHash: hash,
+  pluginStepId: "report_translation:candidate_a",
+  childCapabilityId: "open_gpt_model_selector",
+  actionOrdinal: 1,
   targetRef: "target-1",
   documentRef: "document-1",
   actionId: "browser.dom.click.v1",
+  positivePostconditionHash: hash,
+  negativePostconditionHash: negativeHash,
   requestHash: hash,
   payloadHash: hash,
 });
 
+const permit = (commandId: string): BrowserCommandPermit => ({
+  permitRef: `permit:${commandId}`,
+  authorityRef: "authority-1",
+  authorityEpoch: 1,
+  certificateHash: hash,
+  channelSessionHash: hash,
+  executionBindingHash: hash,
+  writerFenceHash: hash,
+  candidateHash: hash,
+  contractManifestHash: hash,
+  ownerPluginId: "fixture-product-plugin",
+  jobId: `job:${commandId}`,
+  attemptId: "attempt-actor",
+  deviceId: "device-1",
+  leaseVersion: 1,
+  localOrderId: `order:${commandId}`,
+  targetLeaseRef: "lease-1",
+  targetRef: "target-1",
+  documentRef: "document-1",
+  pluginStepId: "report_translation:candidate_a",
+  childCapabilityId: "open_gpt_model_selector",
+  actionOrdinal: 1,
+  capabilityId: "browser.dom.click.v1",
+  commandId,
+  sequence: 1,
+  mutationClass: "mutation",
+  workspaceRef: "workspace-1",
+  commandTtlMs: 5_000,
+  replyChannelToken: `reply:${commandId}`,
+  commandFrameMac: hash,
+});
+
+const clickCommand = {
+  kind: "dom-intent" as const,
+  intent: {
+    kind: "click" as const,
+    selector: "button[aria-label='Model selector']",
+    expectedMatches: 1,
+    postClickAttribute: { name: "aria-expanded" as const, equals: "true" as const, timeoutMs: 1_000 },
+  },
+};
+
 const root = await mkdtemp(join(tmpdir(), "browser-mutation-state-"));
 try {
   const first = new BrowserMutationStore(root);
-  first.prepare(identity("sent-command"));
-  first.markSent("sent-command");
+  first.prepare(identity("dispatched-command"));
+  first.markDispatched("dispatched-command");
+  first.markReceiptMissing("dispatched-command");
   first.prepare(identity("prepared-command"));
   first.close();
 
@@ -39,20 +92,21 @@ try {
   assert.deepEqual(
     restarted
       .reconciliationStates()
-      .map((entry) => [entry.mutation.commandId, entry.current]),
+      .map((entry) => [entry.mutation.commandId, entry.current])
+      .sort((left, right) => left[0]!.localeCompare(right[0]!)),
     [
+      ["dispatched-command", "DISPATCHED"],
       ["prepared-command", "FAILED"],
-      ["sent-command", "UNKNOWN"],
     ],
   );
   assert.deepEqual(
-    restarted.unknownForBinding({
+    restarted.dispatchedForBinding({
       jobId: "job-1",
       attemptId: "attempt-1",
       leaseVersion: 1,
       executionFenceHash: hash,
     }),
-    ["sent-command"],
+    ["dispatched-command"],
   );
   assert.equal(
     restarted.reconciliationScope({
@@ -60,7 +114,7 @@ try {
       ownerPluginId: "fixture-product-plugin",
     }),
     null,
-    "UNKNOWN reconciliation must be scoped to the owning job",
+    "DISPATCHED reconciliation must be scoped to the owning job",
   );
   assert.deepEqual(
     restarted.reconciliationScope({
@@ -68,7 +122,7 @@ try {
       ownerPluginId: "fixture-product-plugin",
     }),
     {
-      commandId: "sent-command",
+      commandId: "dispatched-command",
       ownerPluginId: "fixture-product-plugin",
       jobId: "job-1",
       targetRef: "target-1",
@@ -76,9 +130,9 @@ try {
       payloadHash: hash,
     },
   );
-  restarted.prepare(identity("second-sent-command"));
-  restarted.markSent("second-sent-command");
-  restarted.markUnknown("second-sent-command", "BROWSER_OUTCOME_UNKNOWN");
+  restarted.prepare(identity("second-dispatched-command"));
+  restarted.markDispatched("second-dispatched-command");
+  restarted.markReceiptMissing("second-dispatched-command");
   assert.throws(
     () =>
       restarted.reconciliationScope({
@@ -86,25 +140,25 @@ try {
         ownerPluginId: "fixture-product-plugin",
       }),
     /BROWSER_RECONCILIATION_SCOPE_AMBIGUOUS/u,
-    "multiple UNKNOWN mutations in one job must fail closed without affecting other jobs",
+    "multiple DISPATCHED mutations in one job must fail closed without affecting other jobs",
   );
   restarted.resolve({
-    commandId: "second-sent-command",
+    commandId: "second-dispatched-command",
     ownerPluginId: "fixture-product-plugin",
     targetRef: "target-1",
-    state: "FAILED",
+    state: "REJECTED",
     proofHash: hash,
   });
-  assert.equal(restarted.readUnknown("prepared-command"), null);
+  assert.equal(restarted.readDispatched("prepared-command"), null);
   restarted.resolve({
-    commandId: "sent-command",
+    commandId: "dispatched-command",
     ownerPluginId: "fixture-product-plugin",
     targetRef: "target-1",
     state: "CONFIRMED",
     proofHash: hash,
   });
   assert.deepEqual(
-    restarted.unknownForBinding({
+    restarted.dispatchedForBinding({
       jobId: "job-1",
       attemptId: "attempt-1",
       leaseVersion: 1,
@@ -118,14 +172,84 @@ try {
   assert.deepEqual(
     terminalRestart
       .reconciliationStates()
-      .map((entry) => [entry.mutation.commandId, entry.current]),
+      .map((entry) => [entry.mutation.commandId, entry.current])
+      .sort((left, right) => left[0]!.localeCompare(right[0]!)),
     [
+      ["dispatched-command", "CONFIRMED"],
       ["prepared-command", "FAILED"],
-      ["second-sent-command", "FAILED"],
-      ["sent-command", "CONFIRMED"],
+      ["second-dispatched-command", "REJECTED"],
     ],
   );
   terminalRestart.close();
+
+  const actorRoot = join(root, "actor");
+  const actorStore = new BrowserMutationStore(actorRoot);
+  const actorLogger = createRuntimeLogger({
+    producer: "browser-actor-acceptance",
+    producerRunId: "browser-actor-acceptance-run",
+    owner: "browser-session",
+    component: "browser-command",
+    terminalEnabled: false,
+    fileSink: { directoryPath: join(root, "actor-logs"), maxTotalBytes: 1_048_576 },
+  });
+  const actorFor = (send: ConstructorParameters<typeof BrowserCommandActor>[1]["send"]) =>
+    new BrowserCommandActor(
+      new BrowserCommandAdmissionBudget(),
+      { send },
+      actorStore,
+      { assertCurrentAuthority: () => {} },
+      actorLogger,
+    );
+
+  const confirmedPermit = permit("actor-confirmed");
+  await actorFor(async (candidate, _command, onDispatched) => {
+    onDispatched?.();
+    return {
+      replyChannelToken: candidate.replyChannelToken,
+      transportSequence: 1,
+      permitSequence: candidate.sequence,
+      result: { candidateCount: 1, identityRevalidated: true, mutationCount: 1, postconditionVerified: true },
+    };
+  }).execute(confirmedPermit, clickCommand);
+  assert.equal(actorStore.readState(confirmedPermit.commandId), "CONFIRMED");
+
+  const rejectedPermit = permit("actor-rejected");
+  await assert.rejects(
+    actorFor(async (candidate, _command, onDispatched) => {
+      onDispatched?.();
+      return {
+        replyChannelToken: candidate.replyChannelToken,
+        transportSequence: 2,
+        permitSequence: candidate.sequence,
+        result: {
+          candidateCount: 1,
+          identityRevalidated: true,
+          mutationCount: 1,
+          postconditionVerified: false,
+          failureCode: "BROWSER_POSTCONDITION_FAILED",
+        },
+      };
+    }).execute(rejectedPermit, clickCommand),
+    /BROWSER_POSTCONDITION_FAILED/u,
+  );
+  assert.equal(actorStore.readState(rejectedPermit.commandId), "REJECTED");
+
+  let dispatchCount = 0;
+  const receiptMissingPermit = permit("actor-receipt-missing");
+  const receiptMissingActor = actorFor(async (_candidate, _command, onDispatched) => {
+    onDispatched?.();
+    dispatchCount += 1;
+    throw new Error("SOCKET_CLOSED_AFTER_SEND");
+  });
+  await assert.rejects(
+    receiptMissingActor.execute(receiptMissingPermit, clickCommand),
+    /BROWSER_COMMAND_RECEIPT_MISSING/u,
+  );
+  assert.equal(dispatchCount, 1);
+  assert.equal(actorStore.readState(receiptMissingPermit.commandId), "DISPATCHED");
+  assert.equal(receiptMissingActor.hasDispatchedMutation(receiptMissingPermit.commandId), true);
+  assert.equal(receiptMissingActor.mutationOutcome(receiptMissingPermit.commandId), "dispatched");
+  actorStore.close();
 
   const supervisor = readFileSync(
     "src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts",
@@ -139,7 +263,9 @@ try {
     supervisor,
     /new BrowserMutationStore\(this\.options\.dataDir\)/u,
   );
-  assert.match(actor, /markSent[\s\S]*markUnknown/u);
+  assert.match(actor, /markDispatched/u);
+  assert.match(actor, /markConfirmed/u);
+  assert.match(actor, /markRejected/u);
   assert.doesNotMatch(
     `${supervisor}\n${actor}`,
     /BrowserProofJournal|proof-events\.ndjson/u,
@@ -153,7 +279,7 @@ try {
 emitQualityProofObservation({
   passed: true,
   findings: [],
-  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V9",
+  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V10",
   evidenceMode: "exam.golden",
   clauses: [
     "forbidden:0",
@@ -166,5 +292,5 @@ emitQualityProofObservation({
   ],
   locator: "acceptance:local-browser-terminal:mutation-golden",
   observedValue:
-    "restart recovery preserves SENT as UNKNOWN without replay, rejects mismatched resolution identity, retains one compact SQLite mutation store, and excludes the retired lifecycle journal",
+    "restart recovery preserves DISPATCHED without replay, binds exact plugin step child and action ordinal, rejects mismatched resolution identity, and terminalizes direct postconditions as CONFIRMED or REJECTED",
 });

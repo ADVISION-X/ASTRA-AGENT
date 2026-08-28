@@ -20,7 +20,7 @@ import { observeStaticAst, observeStaticContract } from "../../shared/static-tar
 
 const LAW_OPERATIONAL = "LAW-RUNTIME-LOG-SPINE-001-V4";
 const LAW_PRIVACY = "LAW-RUNTIME-LOG-SPINE-002-V4";
-const LAW_STRUCTURE = "LAW-RUNTIME-LOG-SPINE-003-V4";
+const LAW_STRUCTURE = "LAW-RUNTIME-LOG-SPINE-003-V5";
 const SOURCE_EXTENSIONS = new Set([".js", ".mjs", ".mts", ".ts"]);
 const TERMINAL_PROTOCOL_OUTPUTS = new Set([
   "scripts/startup/lib/dependency-check.mjs",

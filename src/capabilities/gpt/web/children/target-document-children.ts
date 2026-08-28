@@ -68,7 +68,7 @@ export const targetDocumentChildHandlers = {
       value: after,
       candidateCount: 1,
       observedSemantics: ["approved non-managed source", GPT_ROOT_URL],
-      committedMutation: "yes",
+      committedMutation: "confirmed",
     });
   },
 } satisfies GptChildHandlerMap;

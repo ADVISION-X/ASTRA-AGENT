@@ -44,23 +44,25 @@ try {
   });
   const mutationStore = new BrowserMutationStore(temporary);
   mutationStore.prepare({
-    commandId: "historic-unknown-command",
+    commandId: "historic-dispatched-command",
     ownerPluginId: "plugin",
     jobId: "job:historic",
     attemptId: "attempt:historic",
     leaseVersion: 1,
     executionFenceHash: HASH,
+    pluginStepId: "historic-step",
+    childCapabilityId: "open_gpt_model_selector",
+    actionOrdinal: 1,
     targetRef: "target:historic",
     documentRef: "document:historic",
     actionId: "browser.dom.click.v1",
+    positivePostconditionHash: HASH,
+    negativePostconditionHash: `sha256:${"b".repeat(64)}`,
     requestHash: HASH,
     payloadHash: HASH,
   });
-  mutationStore.markSent("historic-unknown-command");
-  mutationStore.markUnknown(
-    "historic-unknown-command",
-    "BROWSER_OUTCOME_UNKNOWN",
-  );
+  mutationStore.markDispatched("historic-dispatched-command");
+  mutationStore.markReceiptMissing("historic-dispatched-command");
   mutationStore.close();
   supervisor = new BrowserInfrastructureSupervisor({
     dataDir: temporary,
@@ -74,7 +76,7 @@ try {
   assert.equal(
     supervisor.readBrowserLaneState(),
     "idle",
-    "a historical job-scoped UNKNOWN must not deadlock the shared lane after restart",
+    "a historical job-scoped DISPATCHED command must not deadlock unrelated jobs after restart",
   );
   assert.equal(
     supervisor.readBrowserReconciliationScope({
@@ -95,7 +97,7 @@ try {
       jobId: "job:historic",
       ownerPluginId: "plugin",
     })?.commandId,
-    "historic-unknown-command",
+    "historic-dispatched-command",
   );
   const acquisitions: string[] = [];
   const broker = {
@@ -106,11 +108,11 @@ try {
       acquisitions.push(entry.jobId);
       return {
         close: async () => {
-          if (entry.jobId === "job:unknown") {
+          if (entry.jobId === "job:unsettled") {
             throw executionFailure(
               "review_required",
-              "BROWSER_OUTCOME_UNKNOWN",
-              { mutationOutcome: "unknown" },
+              "BROWSER_TARGET_LIFECYCLE_UNSETTLED",
+              { mutationOutcome: "no" },
             );
           }
         },
@@ -205,16 +207,16 @@ try {
   assert(waitingOutcomes.every((outcome) => outcome.status === "rejected"));
   await boundedActive.close({ reason: "settled" });
 
-  const unknown = await supervisor.acquireJobBoundTargetLease(
-    binding("job:unknown"),
-    "owner:unknown",
+  const unsettled = await supervisor.acquireJobBoundTargetLease(
+    binding("job:unsettled"),
+    "owner:unsettled",
     { signal: openSignal.signal, remainingMs: () => 60_000 },
   );
   await assert.rejects(
-    unknown.close({ reason: "unknown" }),
-    /BROWSER_OUTCOME_UNKNOWN/u,
+    unsettled.close({ reason: "unsettled" }),
+    /BROWSER_TARGET_LIFECYCLE_UNSETTLED/u,
   );
-  assert.equal(supervisor.readBrowserLaneState(), "unknown");
+  assert.equal(supervisor.readBrowserLaneState(), "unsettled");
   await assert.rejects(
     supervisor.acquireJobBoundTargetLease(
       binding("job:blocked"),
@@ -224,8 +226,8 @@ try {
     (error) => {
       const failure = typedExecutionFailure(error);
       assert.equal(failure?.status, "review_required");
-      assert.equal(failure?.code, "BROWSER_OUTCOME_UNKNOWN");
-      assert.equal(failure?.mutationOutcome, "unknown");
+      assert.equal(failure?.code, "BROWSER_MUTATION_UNSETTLED");
+      assert.equal(failure?.mutationOutcome, "dispatched");
       return true;
     },
   );

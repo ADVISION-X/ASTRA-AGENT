@@ -65,6 +65,22 @@ export type RuntimeDiagnosis = Readonly<{
   authorityRefs: readonly string[];
   warnings: readonly string[];
   findings: readonly string[];
+  atomicSteps: readonly Readonly<{
+    pluginStepId: string;
+    childCapabilityId: string;
+    actionOrdinal: number;
+    commandId: string;
+    capabilityId: string | null;
+    precondition: "passed" | "failed" | "not_applicable";
+    dispatch: "dispatched" | "not_dispatched" | "not_applicable";
+    postcondition: "passed" | "failed" | "pending_reconciliation" | "not_reached" | "not_applicable";
+    terminalState: string;
+    failureCode: string | null;
+    authorityRef: string | null;
+    authorityHash: string | null;
+    startedEventId: string;
+    terminalEventId: string | null;
+  }>[];
 }>;
 
 const activeJsonlFiles = (root: string, findings: string[]): string[] => {
@@ -142,6 +158,64 @@ const verifyProducerChains = (events: readonly RuntimeLogEventV2[], findings: st
 
 const spanKey = (event: Pick<RuntimeLogEventV2, "producerRunId"> & { spanId: string }): string =>
   `${event.producerRunId}\u0000${event.spanId}`;
+
+const MUTATION_CAPABILITIES = new Set([
+  "browser.dom.click.v1",
+  "browser.dom.hover.v1",
+  "browser.dom.double-click.v1",
+  "browser.dom.keypress.v1",
+  "browser.dom.fill.v1",
+  "browser.file-input.v1",
+]);
+
+const atomicBrowserSteps = (events: readonly RuntimeLogEventV2[]): RuntimeDiagnosis["atomicSteps"] => {
+  const terminals = new Map(events.filter((event): event is RuntimeSpanTerminalEvent =>
+    event.type === "SPAN" && event.phase === "terminal").map((event) => [spanKey(event), event]));
+  const starts = events.filter((event): event is RuntimeSpanStartedEvent =>
+    event.type === "SPAN" && event.phase === "started"
+      && event.operation === "browser.command" && event.typedIdentity.kind === "browser-command");
+  return starts.map((started) => {
+    const identity = started.typedIdentity;
+    if (identity.kind !== "browser-command") throw new Error("RUNTIME_BROWSER_IDENTITY_INVALID");
+    const authorityRef = `browser-mutation:${identity.commandId}`;
+    const mutationEvents = events.filter((event): event is RuntimeStateEvent =>
+      event.type === "STATE" && event.stateKey === "browser.mutation" && event.authorityRef === authorityRef)
+      .sort((left, right) => left.producerRunId.localeCompare(right.producerRunId)
+        || left.producerSeq - right.producerSeq);
+    const latestMutation = mutationEvents.at(-1);
+    const terminal = terminals.get(spanKey(started));
+    const capabilityId = identity.capabilityCallId ?? null;
+    const mutation = mutationEvents.length > 0 || (capabilityId !== null && MUTATION_CAPABILITIES.has(capabilityId));
+    const prepared = mutationEvents.some((event) => event.current === "PREPARED");
+    const dispatched = mutationEvents.some((event) => event.current === "DISPATCHED");
+    const terminalState = latestMutation?.current ?? terminal?.outcome.toUpperCase() ?? "OPEN";
+    const precondition: RuntimeDiagnosis["atomicSteps"][number]["precondition"] = mutation
+      ? (prepared ? "passed" : "failed") : "not_applicable";
+    const dispatch: RuntimeDiagnosis["atomicSteps"][number]["dispatch"] = mutation
+      ? (dispatched ? "dispatched" : "not_dispatched") : "not_applicable";
+    const postcondition: RuntimeDiagnosis["atomicSteps"][number]["postcondition"] = terminalState === "CONFIRMED" ? "passed"
+      : terminalState === "REJECTED" ? "failed"
+        : terminalState === "DISPATCHED" ? "pending_reconciliation"
+          : mutation ? "not_reached" : "not_applicable";
+    return {
+      pluginStepId: identity.pluginStepId,
+      childCapabilityId: identity.childCapabilityId,
+      actionOrdinal: identity.actionOrdinal,
+      commandId: identity.commandId,
+      capabilityId,
+      precondition,
+      dispatch,
+      postcondition,
+      terminalState,
+      failureCode: terminal?.failure?.code ?? null,
+      authorityRef: latestMutation?.authorityRef ?? (terminal && "authorityRef" in terminal ? terminal.authorityRef ?? null : null),
+      authorityHash: latestMutation?.authorityHash ?? (terminal && "authorityHash" in terminal ? terminal.authorityHash ?? null : null),
+      startedEventId: started.eventId,
+      terminalEventId: terminal?.eventId ?? null,
+    };
+  }).sort((left, right) => left.pluginStepId.localeCompare(right.pluginStepId)
+    || left.actionOrdinal - right.actionOrdinal || left.commandId.localeCompare(right.commandId));
+};
 
 const GLOBAL_STATE_KEYS = new Set<RuntimeStateKey>([
   "producer.lifecycle", "producer.alive", "log.sink", "website.core", "website.worker", "agent.shell",
@@ -315,7 +389,7 @@ const currentStates = (
     }
     if (latest.stateKey === "job.lease") return latest.current !== "absent";
     if (latest.stateKey === "outbox.delivery") return latest.current !== "delivered";
-    if (latest.stateKey === "browser.mutation") return ["PREPARED", "SENT", "UNKNOWN"].includes(latest.current);
+    if (latest.stateKey === "browser.mutation") return ["PREPARED", "DISPATCHED"].includes(latest.current);
     if (latest.stateKey === "job.checkpoint") {
       const lifecycle = events.filter((event): event is RuntimeStateEvent =>
         event.type === "STATE" && event.traceId === latest.traceId && event.stateKey === "job.lifecycle")
@@ -534,6 +608,7 @@ export const diagnoseRuntimeLog = (input: Readonly<{
       state: state.value,
       owner: state.owner,
     }));
+  const atomicSteps = atomicBrowserSteps(events);
   return {
     status: findings.length === 0 ? "DIAGNOSIS_COMPLETE" : "DIAGNOSIS_INCOMPLETE",
     traceId: input.traceId,
@@ -551,6 +626,7 @@ export const diagnoseRuntimeLog = (input: Readonly<{
     consequentialFailures: failures.filter((event) => event.failure?.impact === "CONSEQUENTIAL").map(diagnosedFailure),
     cleanupFailures: failures.filter((event) => event.failure?.impact === "CLEANUP").map(diagnosedFailure),
     sideEffects,
+    atomicSteps,
     mutationState: sideEffects.length === 1 ? sideEffects[0]!.state : null,
     recoveries: [...new Set(roots.map((event) => event.failure!.recovery))].sort(),
     authorityRefs: [...authorityEvents.keys()].sort(),

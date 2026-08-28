@@ -51,7 +51,7 @@ export const titleChildHandlers = {
     return success({
       value: { state: "editor-open" }, candidateCount: 1,
       observedSemantics: ["one exact conversation row", "one title editor after double-click"],
-      committedMutation: "yes",
+      committedMutation: "confirmed",
     });
   },
 
@@ -71,7 +71,7 @@ export const titleChildHandlers = {
     }
     return success({
       value: { titleHash: hash(title) }, candidateCount: 1,
-      observedSemantics: ["one title input", "exact title retained"], committedMutation: "yes",
+      observedSemantics: ["one title input", "exact title retained"], committedMutation: "confirmed",
     });
   },
 
@@ -103,7 +103,7 @@ export const titleChildHandlers = {
         return success({
           value: { titleHash: hash(title) }, candidateCount: 1,
           observedSemantics: ["one exact title editor", "Enter committed exact sidebar title"],
-          committedMutation: "yes",
+          committedMutation: "confirmed",
         });
       }
       const remainingMs = deadline - Date.now();

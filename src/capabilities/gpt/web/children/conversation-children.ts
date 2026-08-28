@@ -68,7 +68,7 @@ export const conversationChildHandlers = {
     if (after !== expected) throw executionFailure("review_required", "GPT_CONVERSATION_NAVIGATION_MISMATCH");
     return success({
       value: { url: after }, candidateCount: 1,
-      observedSemantics: ["exact canonical conversation URL"], committedMutation: "yes",
+      observedSemantics: ["exact canonical conversation URL"], committedMutation: "confirmed",
     });
   },
 
@@ -82,12 +82,17 @@ export const conversationChildHandlers = {
     });
     if (dialog > 1) throw executionFailure("review_required", `GPT_SEARCH_DIALOG_COUNT_${dialog}`);
     await requireOneCandidate(browser, { selector: GPT_SEARCH_BUTTON_SELECTOR, maxMatches: 2 });
-    await browser.executeDomIntent({ kind: "click", selector: GPT_SEARCH_BUTTON_SELECTOR, expectedMatches: 1 });
+    await browser.executeDomIntent({
+      kind: "click",
+      selector: GPT_SEARCH_BUTTON_SELECTOR,
+      expectedMatches: 1,
+      postClickMatch: { selector: GPT_SEARCH_DIALOG_SELECTOR, expectedMatches: 1, timeoutMs: 5_000 },
+    });
     const after = await findCount(browser, { selector: GPT_SEARCH_DIALOG_SELECTOR, maxMatches: 2 });
     if (after !== 1) throw executionFailure("review_required", "GPT_SEARCH_DIALOG_OPEN_UNCONFIRMED");
     return success({
       value: { state: "open" }, candidateCount: 1,
-      observedSemantics: ["one search control", "one search dialog"], committedMutation: "yes",
+      observedSemantics: ["one search control", "one search dialog"], committedMutation: "confirmed",
     });
   },
 
@@ -106,7 +111,7 @@ export const conversationChildHandlers = {
     }
     return success({
       value: { searchKeyHash: hash(searchKey) }, candidateCount: 1,
-      observedSemantics: ["one search input", "exact key retained"], committedMutation: "yes",
+      observedSemantics: ["one search input", "exact key retained"], committedMutation: "confirmed",
     });
   },
 
@@ -125,12 +130,13 @@ export const conversationChildHandlers = {
     await browser.executeDomIntent({
       kind: "click", selector: GPT_SEARCH_RESULT_SELECTOR,
       expectedText: searchKey, expectedMatches: 1,
+      postClickUrl: { equals: expected, timeoutMs: 5_000 },
     });
     const after = canonicalGptConversationUrl((await readGptDocument(browser)).url);
     if (after !== expected) throw executionFailure("review_required", "GPT_SEARCH_RESULT_NAVIGATION_MISMATCH");
     return success({
       value: { canonicalConversationUrl: after }, candidateCount: 1,
-      observedSemantics: ["one exact search result", "canonical URL matched"], committedMutation: "yes",
+      observedSemantics: ["one exact search result", "canonical URL matched"], committedMutation: "confirmed",
     });
   },
 

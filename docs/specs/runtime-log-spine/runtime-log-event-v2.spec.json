@@ -7,7 +7,7 @@
   "lawIds": [
     "LAW-RUNTIME-LOG-SPINE-001-V4",
     "LAW-RUNTIME-LOG-SPINE-002-V4",
-    "LAW-RUNTIME-LOG-SPINE-003-V4"
+    "LAW-RUNTIME-LOG-SPINE-003-V5"
   ],
   "specKind": "typed-contract",
   "contract": {

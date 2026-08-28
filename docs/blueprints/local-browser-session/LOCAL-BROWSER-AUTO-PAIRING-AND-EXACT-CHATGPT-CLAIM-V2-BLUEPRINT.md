@@ -11,7 +11,7 @@ Owner：`local-browser-session`
   "owner": "local-browser-session",
   "lawIds": [
     "LAW-LOCAL-BROWSER-SESSION-002-V6",
-    "LAW-LOCAL-BROWSER-SESSION-003-V10",
+    "LAW-LOCAL-BROWSER-SESSION-003-V11",
     "LAW-LOCAL-BROWSER-SESSION-005-V6"
   ],
   "contractRefs": [],
@@ -37,7 +37,7 @@ AGENT 启动
 -> 扩展提交该任务专属 Target 的现有 TARGET_CLAIM
 -> 服务端校验并 ACK
 -> 建立 connection-bound Session Workspace
--> GPT turn settle 且不存在 UNKNOWN 后关闭 Target 并释放 Workspace
+-> GPT turn settle 且不存在未收束 DISPATCHED 后关闭 Target 并释放 Workspace
 ```
 
 操作者不复制密码、不点击“认领当前标签页”。启动器只同步固定扩展 artifact 并启动本地 Shell；它不读取、
@@ -59,7 +59,7 @@ Child，也不允许 Product Plugin 直接接触 Chrome 资源。
 - 新页面加载未完成或主 frame Origin 不精确：不得附加、认领或建立 Workspace。
 - 只对本次 acquisition 创建并记录的 tab 执行 debugger attach；冲突时失败关闭，不改认领其它页面。
 - GPT turn settle 且 `pendingMutationCount = 0`：关闭任务专属 Target，经现有 revoke 释放 Workspace。
-- 存在 UNKNOWN mutation：保留 Target 与 Workspace 作为唯一恢复现场，不关闭、不重建、不重放。
+- 存在未收束 DISPATCHED mutation：保留 Target、Document、冻结的正向/负向后置判据与 Workspace 作为唯一补核现场，不关闭、不重建、不重放，只允许只读判据核验。
 
 不增加设置页、授权台账、extension storage、宽 host permission、新 API、新 WebSocket、新 mutation store
 或第二 registry；只在现有认证协议增加唯一无业务载荷的 `TARGET_ACQUIRE` 帧，复用现有
@@ -73,7 +73,7 @@ Child，也不允许 Product Plugin 直接接触 Chrome 资源。
 注册、SQLite/WAL compact claim receipt 持久化并返回现有 ACK 后，扩展和服务端才可报告 Target PRESENT 与 Session Workspace 已建立。
 
 同 Origin 主 frame 导航复用现有 claim 更新 Document lease；跨 Origin、Target 关闭、debugger detach、
-socket 断开或 Authority revoke 都走现有 revoke 路径。无 UNKNOWN 的 turn settle 由 runtime 关闭任务专属 Target；
+socket 断开或 Authority revoke 都走现有 revoke 路径。无未收束 DISPATCHED 的 turn settle 由 runtime 关闭任务专属 Target；
 异常 detach 或关闭后不得在同一 turn 争抢式重建，新的 turn 才能重新执行一次创建策略。
 
 ## 4. 配对、更新与失败关闭
@@ -92,7 +92,7 @@ Workbench 不存在、LNA 阻止、配对响应非法、握手失败、创建失
 `activeTab` permission 及其质检断言。保留现有 pairing、encrypted WebSocket、target registry、claim ACK、
 revoke、compact mutation receipt 和 Session Workspace；同时物理删除 `READY -> claimPreauthorizedChatGptTarget` 自动链与
 session-level Target claim gate。唯一时序为 exact job durable 接受 -> 同一加密 WebSocket acquisition ->
-任务专属后台 Target 创建并完成加载 -> 现有 TARGET_CLAIM/ACK -> 无 UNKNOWN 的 turn settle 后 close/revoke；
+任务专属后台 Target 创建并完成加载 -> 现有 TARGET_CLAIM/ACK -> 无未收束 DISPATCHED 的 turn settle 后 close/revoke；
 物理删除“查询并复用既存 ChatGPT Target”、单/多候选选择分支及其测试，不存在 manual/auto 兼容桥、feature flag、
 fallback 或第二 claim path。
 
@@ -101,7 +101,7 @@ fallback 或第二 claim path。
 1. 构建与静态质检证明 manifest 无 `activeTab`/storage/宽 host，popup 无手动认领入口，源码无旧 handler。
 2. 确定性测试覆盖 Authority READY 与空闲期间不创建/认领、job-bound acquisition 后忽略既存操作者页面并只创建一个
    inactive Target、加载完成前不 attach、精确 Origin 复核、debugger 冲突、服务端拒绝、ACK 超时、同 Origin
-   Document 更新、跨 Origin revoke、无 UNKNOWN settle 后关闭，以及 UNKNOWN 时保留恢复现场。
+   Document 更新、跨 Origin revoke、无 DISPATCHED settle 后关闭，以及 DISPATCHED 时保留原现场和冻结判据供只读补核。
 3. 服务端测试证明非 `gpt-web` Origin、未 revoke 的不同 `targetRef` 覆盖和未确认 Workspace 全部失败。
 4. 真实 Chrome 证明：启动 AGENT 后固定扩展自动配对且 Target absent；无需复制密码或点击 popup；exact job
    durable 接受后才创建唯一任务专属 ChatGPT Target，且操作者既存页面完全不受影响；服务端确认后建立 Session
@@ -115,5 +115,5 @@ fallback 或第二 claim path。
 正文闭环：终态 Owner 是 `local-browser-session`；输入是当前 release identity、精确 Extension Origin、
 exact job 接受事实与任务专属 Chrome Target 元数据，输出是已确认的 connection-bound Workspace receipt。状态只持久进入现有 SQLite/WAL
 compact mutation row，调用方向固定为 Extension -> Workbench -> Browser Owner。失败恢复保持 Target/Workspace blocked，
-安全边界拒绝调用方 selector、坐标和 tab 身份；验收必须同时证明任务专属 Target、既存页面零影响、无 UNKNOWN
-自动释放、UNKNOWN 保留现场和 revoke 后失效。
+安全边界拒绝调用方 selector、坐标和 tab 身份；验收必须同时证明任务专属 Target、既存页面零影响、无未收束 DISPATCHED
+自动释放、DISPATCHED 原现场只读补核和 revoke 后失效；不得出现 `BROWSER_OUTCOME_UNKNOWN`。

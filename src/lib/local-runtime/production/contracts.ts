@@ -15,7 +15,7 @@ const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u)
 const TerminalStatusSchema = z.enum(["completed", "failed"]);
 const SerializedExecutionFailureSchema = z.object({
   code: z.string().min(1).max(240),
-  mutation_outcome: z.enum(["no", "yes", "unknown"]),
+  mutation_outcome: z.enum(["no", "dispatched", "confirmed"]),
   evidence_ref: z.string().min(1).max(1_000).nullable(),
   evidence_hash: hashSchema.nullable(),
   cause: z.object({

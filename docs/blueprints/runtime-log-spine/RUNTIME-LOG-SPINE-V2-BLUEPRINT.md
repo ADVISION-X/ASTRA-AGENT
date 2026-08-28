@@ -9,7 +9,7 @@
   "lawIds": [
     "LAW-RUNTIME-LOG-SPINE-001-V4",
     "LAW-RUNTIME-LOG-SPINE-002-V4",
-    "LAW-RUNTIME-LOG-SPINE-003-V4"
+    "LAW-RUNTIME-LOG-SPINE-003-V5"
   ],
   "contractRefs": [
     "docs/specs/runtime-log-spine/runtime-log-event-v2.provider.spec.json",
@@ -82,7 +82,7 @@ failure = kind,code,nativeCause?,responsibleOwner,impact,recovery,
 
 每个真实边界动作只允许一次 `started`，至多一次由真实结果产生的 `terminal`。第一次 terminal 后 handle 物理关闭；第二次 terminal 同步返回 `DUPLICATE_SPAN_TERMINAL`。重试必须创建新 Span 并用 `parentSpanId` 指向原动作，禁止复用 Span 或用 retryable 布尔覆盖生命周期。
 
-进程崩溃、日志截断或来源丢失时不得补造 `failed`/`unknown` terminal。诊断必须同时报告 `OPEN_SPAN`、`PRODUCER_STALE`、`INTERRUPTED` 和 `DIAGNOSIS_INCOMPLETE`。Browser 外部副作用只有 Browser WAL 已提交真实 `UNKNOWN` 时才可报告 UNKNOWN。
+进程崩溃、日志截断或来源丢失时不得补造 terminal。诊断必须同时报告 `OPEN_SPAN`、`PRODUCER_STALE`、`INTERRUPTED` 和 `DIAGNOSIS_INCOMPLETE`。Browser 外部动作只按 WAL 报告 `PREPARED`、`DISPATCHED`、`CONFIRMED`、`REJECTED` 或 `FAILED`，不得生成 UNKNOWN outcome。
 
 只记录真实边界：进程 lifecycle；网络、数据库、对象存储和跨进程请求；Cloud contract/session、claim、lease/fence；GPT 与 Browser 物理动作；Browser WAL 状态；checkpoint、upload、first-terminal、Outbox 和 Website consume。纯计算、字段映射和内部 helper 不建立 Span。
 
@@ -119,7 +119,7 @@ Website 创建或继承 `traceId`。每个 Website/AGENT 跨进程请求必须�
 | `job.checkpoint` | Checkpoint Owner | `none/persisted/failed` |
 | `gpt.execution` | GPT Child | `idle/running/failed/review_required` |
 | `browser.execution` | Browser command Owner | `idle/busy/failed/review_required` |
-| `browser.mutation` | Browser WAL adapter | `PREPARED/SENT/CONFIRMED/FAILED/UNKNOWN` |
+| `browser.mutation` | Browser WAL adapter | `PREPARED/DISPATCHED/CONFIRMED/REJECTED/FAILED` |
 | `outbox.delivery` | Outbox Owner | `pending/delivered/failed` |
 
 `producer.alive` 只复用现有 heartbeat，不新增 timer；它的 `freshForMs` 必须等于 `3 * 真实 heartbeat interval + grace`。该 producer heartbeat 过期后，它拥有的各轴统一派生为 `UNKNOWN_STALE`，但其他 producer 的轴保持独立。端到端 ready 只从这些原始轴派生，不再持久化一个总绿灯。
@@ -130,7 +130,7 @@ Website 创建或继承 `traceId`。每个 Website/AGENT 跨进程请求必须�
 
 每个 producer run 单写者，`producerSeq` 从 1 严格递增；首事件 `previousEventHash=null`，其后等于上一事件 `eventHash`。hash 使用排除 `eventHash` 后的 UTF-8 canonical JSON；同一 run 跨 segment 继续前一 hash。正常停止必须先写最终 `producer.lifecycle=stopped`、fsync，再关闭文件，该事件 hash 即正常封口。hash 链只证明丢失/篡改/乱序，不替代业务 evidence 或签名。
 
-AGENT 路径固定为 `runtime-logs/<producer>/<producerRunId>-<segment>.jsonl`。唯一可配置容量是 producer 的 `maxTotalBytes`；segment 滚动阈值只能由该值内部派生，不能成为第二配置。达到上限时只删除最旧且同时满足以下条件的 segment：关联 Job 全部终态、没有 OPEN_SPAN、没有 UNKNOWN mutation、没有 pending Outbox、重启权威对账已完成。不得建立 retention ledger；资格直接从日志与现有公共只读 authority 计算。若所有 segment 均受保护，`log.sink=capacity_blocked` 并阻止新 Claim 和新外部 mutation。
+AGENT 路径固定为 `runtime-logs/<producer>/<producerRunId>-<segment>.jsonl`。唯一可配置容量是 producer 的 `maxTotalBytes`；segment 滚动阈值只能由该值内部派生，不能成为第二配置。达到上限时只删除最旧且同时满足以下条件的 segment：关联 Job 全部终态、没有 OPEN_SPAN、没有未收束 DISPATCHED mutation、没有 pending Outbox、重启权威对账已完成。不得建立 retention ledger；资格直接从日志与现有公共只读 authority 计算。若所有 segment 均受保护，`log.sink=capacity_blocked` 并阻止新 Claim 和新外部 mutation。
 
 当 `--source` 指向目录时，只发现其直接 producer 子目录内符合 `<producerRunId>-<segment>.jsonl` 的 V2 segment；根目录 `workbench.jsonl` 之类布局外退役文件不属于 active source，不读取、不迁移、不增加兼容解析。已进入合法 producer 子目录的任意坏行、坏 segment 或链路缺口仍必须失败关闭。当 `--source` 显式指向普通文件时，它作为声明的 Website journal export 或单一 segment 被严格解析。
 
@@ -140,7 +140,7 @@ AGENT 路径固定为 `runtime-logs/<producer>/<producerRunId>-<segment>.jsonl`�
 
 Production Store、Browser WAL、Checkpoint、Outbox 与 Website 业务事务必须先提交，再记录 `authorityRef + authorityHash`。authority 只允许指向诊断器能够只读重读的持久事实；临时网络回执、内存对象、heartbeat、attestation、一次性 session 或 claim response 不得伪装 authority。Lease 与 Checkpoint 按 `jobId` 持久化当前权威投影，Outbox 按 `idempotencyKey + jobId` 逐项持久化 `pending/delivered/failed`，禁止一个聚合 Outbox 状态代替各项真实状态。若进程在权威提交后、日志写入前崩溃，新 producer run 必须通过现有公共只读接口对账，并记录 `reconciledFromAuthority=true` 的当前 STATE；在该 STATE 出现前输出 `AUTHORITY_RECONCILIATION_PENDING` 与 `DIAGNOSIS_INCOMPLETE`。引用不可读输出 `AUTHORITY_REF_UNVERIFIED`，引用 hash 或状态冲突输出 `AUTHORITY_STATE_MISMATCH`。
 
-Browser mutation 唯一顺序：WAL 提交 PREPARED 后记录 STATE PREPARED；WAL 提交 SENT 后记录 STATE SENT；后置证明完成后，WAL 先提交 CONFIRMED、FAILED 或 UNKNOWN，再记录同一 `commandId + authorityHash` 的 STATE，最后关闭 browser command Span。UNKNOWN 永不自动重放；已 SENT mutation 即使日志 Sink 故障，仍必须确认、清理或转人工复核。
+Browser mutation 唯一顺序：WAL 提交 PREPARED 后记录 STATE PREPARED；物理发送前冻结正向/负向 postcondition hash，发送后 WAL 提交并记录 STATE DISPATCHED；后置证明完成后，WAL 先提交 CONFIRMED、REJECTED 或 FAILED，再记录同一 `commandId + authorityHash` 的 STATE，最后关闭 browser command Span。DISPATCHED 永不再次发送，只能在原 Target/Document 上只读补核；日志 Sink 故障也不得改变这一事实。
 
 ## 8. Sink 失败
 
@@ -189,7 +189,7 @@ Static 必须证明唯一 Logger、严格 SPAN/STATE 联合、封闭 identity/op
 3. stale session、lease 与 fence；
 4. 空 claim 与 claim refused 的区分；
 5. Target/Document 漂移；
-6. Browser mutation UNKNOWN；
+6. Browser mutation DISPATCHED 且 postcondition 尚未收束；
 7. Provider rejection；
 8. checkpoint/renew 失败；
 9. upload/outbox 失败；

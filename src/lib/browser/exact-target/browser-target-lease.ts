@@ -16,6 +16,10 @@ export type BrowserTargetLease = Readonly<{
   writerFenceHash: `sha256:${string}`;
   target: BrowserTargetRef;
   document: BrowserDocumentRef;
+  runAtomicStep<T>(
+    identity: Readonly<{ pluginStepId: string; childCapabilityId: string }>,
+    action: () => Promise<T>,
+  ): Promise<T>;
   navigate(input: Readonly<{ url: string; title: string; deadlineMs?: number }>): Promise<BrowserDocumentRef>;
   executeDomIntent(input: BrowserDomIntent): Promise<unknown>;
   observeCapability(input: Readonly<{ capabilityId: BrowserCapabilityId; timeoutMs?: number }>): Promise<unknown>;

@@ -133,7 +133,7 @@ const conversationChildInput = (
       return { canonicalConversationUrl: continuation.provider_page_url, turnMarker: continuation.prior_turn_marker };
     case "write_exact_gpt_prompt": return { prompt: state.prompt };
     case "verify_exact_gpt_prompt": return { prompt: state.prompt, turnMarker: state.turnMarker };
-    case "submit_exact_gpt_turn": return { promptHash: state.promptHash };
+    case "submit_exact_gpt_turn": return { promptHash: state.promptHash, turnMarker: state.turnMarker };
     case "verify_gpt_turn_submission": case "observe_exact_gpt_assistant_turn": return { turnMarker: state.turnMarker };
     default: return null;
   }

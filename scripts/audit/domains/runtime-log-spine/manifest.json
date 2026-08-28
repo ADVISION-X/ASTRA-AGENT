@@ -5,7 +5,7 @@
   "lawIds": [
     "LAW-RUNTIME-LOG-SPINE-001-V4",
     "LAW-RUNTIME-LOG-SPINE-002-V4",
-    "LAW-RUNTIME-LOG-SPINE-003-V4"
+    "LAW-RUNTIME-LOG-SPINE-003-V5"
   ],
   "ownedPaths": [
     "docs/blueprints/runtime-log-spine/RUNTIME-LOG-SPINE-V2-BLUEPRINT.md",

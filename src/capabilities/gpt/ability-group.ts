@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { executionFailure, failureCode, failureStatus } from "../../lib/typed-failure.js";
+import { executionFailure, failureCode, failureStatus, typedExecutionFailure } from "../../lib/typed-failure.js";
 
 import {
   GPT_ABILITY_GROUP_ID,
@@ -62,8 +62,8 @@ const proofFor = (input: Readonly<{
   afterDocumentRef: string | null;
   observation?: GptChildObservation;
   failureCode?: string;
-  committedMutation?: "no" | "yes" | "unknown";
-  postconditionResult?: "passed" | "failed" | "unknown";
+  committedMutation?: "no" | "dispatched" | "confirmed";
+  postconditionResult?: "passed" | "failed" | "pending";
 }>): GptChildCapabilityProof => {
   const unsigned = {
     schemaVersion: "gpt-child-capability-proof.v1" as const,
@@ -118,7 +118,7 @@ const assertObservationIsAtomic = (
     throw executionFailure("review_required", `GPT_DOCUMENT_TRANSITION_FORBIDDEN:${intent.childCapabilityId}`);
   }
   const pendingMutationCount = context.browser?.pendingMutationCount() ?? 0;
-  if (observation.committedMutation === "yes" && pendingMutationCount > 1) {
+  if (observation.committedMutation === "confirmed" && pendingMutationCount > 1) {
     throw executionFailure("review_required", `GPT_MUTATION_OUTCOME_NOT_UNIQUE:${intent.childCapabilityId}`);
   }
   if (observation.committedMutation === "no" && pendingMutationCount !== 0) {
@@ -155,20 +155,23 @@ const failedExecution = async (input: Readonly<{
   const after = currentDocument(input.context);
   const failure = classify(input.error);
   const contract = GPT_CHILD_CAPABILITY_CONTRACTS[input.intent.childCapabilityId];
-  const browserUnknown = (input.context.browser?.pendingMutationCount() ?? 0) > 0 && !input.observation;
-  const sessionUnknown = !input.observation && contract?.requiredTargetKind === "none"
+  const browserFailureOutcome = typedExecutionFailure(input.error)?.mutationOutcome ?? "no";
+  const browserDispatched = (input.context.browser?.pendingMutationCount() ?? 0) > 0 && !input.observation;
+  const sessionDispatched = !input.observation && contract?.requiredTargetKind === "none"
     && contract.oneObservationOrMutation === "at-most-one-mutation";
-  const committedMutation = input.observation?.committedMutation ?? (browserUnknown || sessionUnknown ? "unknown" : "no");
+  const committedMutation = input.observation?.committedMutation
+    ?? (browserFailureOutcome !== "no" ? browserFailureOutcome
+      : browserDispatched || sessionDispatched ? "dispatched" : "no");
   const proof = proofFor({
     intent: input.intent, context: input.context, startedAt: input.startedAt, endedAt: new Date().toISOString(),
     beforeUrl: input.before.url, afterUrl: after.url,
     beforeDocumentRef: input.before.ref, afterDocumentRef: after.ref,
     ...(input.observation ? { observation: input.observation } : {}), failureCode: failure.code, committedMutation,
-    postconditionResult: committedMutation === "unknown" ? "unknown" : "failed",
+    postconditionResult: committedMutation === "dispatched" ? "pending" : "failed",
   });
   await input.context.onProof?.(proof);
   return Object.freeze({
-    status: committedMutation === "unknown" ? "review_required" : failure.status,
+    status: committedMutation === "dispatched" ? "review_required" : failure.status,
     value: null, proof, failureCode: failure.code,
   });
 };

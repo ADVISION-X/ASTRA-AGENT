@@ -14,6 +14,7 @@ const ALLOWED_STRING_KEYS = new Set([
   "traceId", "owner", "component", "visibility", "phase", "spanId", "operation", "parentSpanId",
   "boundaryId", "outcome", "authorityRef", "authorityHash", "stateKey", "previous", "current", "kind",
   "producerId", "requestId", "jobId", "attemptId", "fenceHash", "pluginId", "stepId", "capabilityCallId",
+  "pluginStepId", "childCapabilityId",
   "commandId", "checkpointId", "outboxId", "code", "responsibleOwner", "impact", "recovery", "nativeCause",
   "causedByEventId",
 ]);

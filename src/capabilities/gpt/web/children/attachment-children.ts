@@ -103,12 +103,13 @@ export const attachmentChildHandlers = {
     await requireOneCandidate(browser, { selector: GPT_ATTACHMENT_CONTROL_SELECTOR, maxMatches: 2 });
     await browser.executeDomIntent({
       kind: "click", selector: GPT_ATTACHMENT_CONTROL_SELECTOR, expectedMatches: 1,
+      postClickMatch: { selector: GPT_FILE_INPUT_SELECTOR, expectedMatches: 1, timeoutMs: 5_000 },
     });
     const after = await findCount(browser, { selector: GPT_FILE_INPUT_SELECTOR, maxMatches: 2 });
     if (after !== 1) throw executionFailure("review_required", "GPT_FILE_INPUT_OPEN_UNCONFIRMED");
     return success({
       value: { state: "file-input-ready" }, candidateCount: 1,
-      observedSemantics: ["one attachment control", "one exact file input"], committedMutation: "yes",
+      observedSemantics: ["one attachment control", "one exact file input"], committedMutation: "confirmed",
     });
   },
 
@@ -130,7 +131,7 @@ export const attachmentChildHandlers = {
       },
       candidateCount: 1,
       observedSemantics: ["one exact file input", "one approved batch", `${files.length} immutable grants`],
-      committedMutation: "yes",
+      committedMutation: "confirmed",
     });
   },
 

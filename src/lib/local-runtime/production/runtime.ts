@@ -136,7 +136,7 @@ type RuntimeState = {
 const refreshLedgerReconciled = (state: RuntimeState): void => {
   state.ledgerReconciled =
     state.reconciliationBaselineValid &&
-    state.browserAuthority.readBrowserLaneState() !== "unknown" &&
+    state.browserAuthority.readBrowserLaneState() !== "unsettled" &&
     state.store.isLedgerConsistent(new Set(state.active.keys()));
 };
 
@@ -610,7 +610,7 @@ const handleClaimFailure = async (
     job.grant.attempt_mode === "reconciliation" ||
     Date.now() >= Date.parse(job.grant.delivery_deadline_at)
       ? ("FINAL_FAILED" as const)
-      : terminalFailure.mutation_outcome === "unknown"
+      : terminalFailure.mutation_outcome === "dispatched"
         ? ("RECONCILE_ONLY" as const)
         : status === "recovery_pending" && withinRetryBudget
           ? ("RETRY_FROM_CHECKPOINT" as const)
@@ -857,7 +857,7 @@ const executeClaim = async (
     });
     if (job.grant.attempt_mode === "reconciliation") {
       throw executionFailure("failed", "RECONCILIATION_EVIDENCE_UNAVAILABLE", {
-        mutationOutcome: "unknown",
+        mutationOutcome: "dispatched",
         evidenceRef: `browser-mutation-job:${job.job_id}`,
       });
     }
@@ -1035,7 +1035,7 @@ const runtimeState = async (state: RuntimeState) => {
   const browser = state.browserAuthority.readProductionRuntimeState();
   const observedLane = state.browserAuthority.readBrowserLaneState();
   const lane: "blocked" | "busy" | "idle" =
-    browser.browserAuthorityState !== "present" || observedLane === "unknown"
+    browser.browserAuthorityState !== "present" || observedLane === "unsettled"
       ? "blocked"
       : observedLane;
   return {
@@ -1089,7 +1089,7 @@ const readHealth = (state: RuntimeState): ProductionRuntimeHealth => {
     browserLaneState:
       browser.browserAuthorityState !== "present"
         ? "blocked"
-        : browserLane === "unknown"
+        : browserLane === "unsettled"
           ? "blocked"
           : browserLane,
     contractManifestHash: state.session.device.control_manifest_hash,

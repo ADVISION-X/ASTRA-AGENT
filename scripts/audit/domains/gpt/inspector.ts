@@ -26,7 +26,7 @@ import {
   observeStaticTypes,
 } from "../../shared/static-target-object-inspector.js";
 
-const LAW_ID = "LAW-GPT-001-V2";
+const LAW_ID = "LAW-GPT-001-V3";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 11, 14),
   "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13),

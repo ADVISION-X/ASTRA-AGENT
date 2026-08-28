@@ -46,6 +46,12 @@ export type BrowserDomIntent =
     postClickMatch?: Readonly<{
       selector: string;
       expectedMatches: number;
+      textContains?: string;
+      textEquals?: string;
+      timeoutMs?: number;
+    }>;
+    postClickUrl?: Readonly<{
+      equals: string;
       timeoutMs?: number;
     }>;
   }>
@@ -111,7 +117,7 @@ const assertBoundedPostMatch = (match: Readonly<{
   timeoutMs?: number;
 }>): void => {
   if (!isBoundedText(match.selector, 2_048)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-  assertOptionalRange(match.expectedMatches, 1, 20);
+  assertOptionalRange(match.expectedMatches, 0, 20);
   if (match.timeoutMs !== undefined
     && (!Number.isInteger(match.timeoutMs) || match.timeoutMs < 1 || match.timeoutMs > 5_000)) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
@@ -129,7 +135,9 @@ const assertTargetText = (intent: Readonly<{
 
 const assertClickIntent = (intent: Extract<BrowserDomIntent, { kind: "click" }>): void => {
   assertTargetText(intent);
-  if (intent.postClickAttribute !== undefined && intent.postClickMatch !== undefined) {
+  const postconditions = [intent.postClickAttribute, intent.postClickMatch, intent.postClickUrl]
+    .filter((value) => value !== undefined);
+  if (postconditions.length !== 1) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
   if (intent.postClickAttribute
@@ -143,13 +151,28 @@ const assertClickIntent = (intent: Extract<BrowserDomIntent, { kind: "click" }>)
   }
   if (intent.postClickMatch !== undefined) {
     if (!isBoundedText(intent.postClickMatch.selector, 2_048)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-    assertOptionalRange(intent.postClickMatch.expectedMatches, 1, 20);
+    assertOptionalRange(intent.postClickMatch.expectedMatches, 0, 20);
+    if (intent.postClickMatch.textContains !== undefined
+      && !isBoundedText(intent.postClickMatch.textContains, 1_024)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+    if (intent.postClickMatch.textEquals !== undefined
+      && !isBoundedText(intent.postClickMatch.textEquals, 1_024)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+    if (intent.postClickMatch.textContains !== undefined && intent.postClickMatch.textEquals !== undefined) {
+      throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+    }
     if (intent.postClickMatch.timeoutMs !== undefined
       && (!Number.isInteger(intent.postClickMatch.timeoutMs)
         || intent.postClickMatch.timeoutMs < 1
         || intent.postClickMatch.timeoutMs > 5_000)) {
       throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
     }
+  }
+  if (intent.postClickUrl !== undefined
+    && (!isBoundedText(intent.postClickUrl.equals, 2_048)
+      || (intent.postClickUrl.timeoutMs !== undefined
+        && (!Number.isInteger(intent.postClickUrl.timeoutMs)
+          || intent.postClickUrl.timeoutMs < 1
+          || intent.postClickUrl.timeoutMs > 5_000)))) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
 };
 

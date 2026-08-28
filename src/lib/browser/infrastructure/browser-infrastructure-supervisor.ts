@@ -114,7 +114,7 @@ export class BrowserInfrastructureSupervisor {
     }>
   > = [];
   private browserLaneActive = false;
-  private browserLaneUnknown = false;
+  private browserLaneUnsettled = false;
 
   public constructor(
     private readonly options: BrowserInfrastructureSupervisorOptions,
@@ -220,7 +220,7 @@ export class BrowserInfrastructureSupervisor {
     this.state.ownerLockHeld = true;
     try {
       this.state.mutationState = new BrowserMutationStore(this.options.dataDir);
-      this.browserLaneUnknown = false;
+      this.browserLaneUnsettled = false;
       for (const recovery of this.state.mutationState.reconciliationStates())
         emitBrowserMutationState({
           runtimeLogger: this.options.runtimeLogger,
@@ -254,7 +254,7 @@ export class BrowserInfrastructureSupervisor {
       waiter.reject(browserExecutionFailure(new Error(reasonCode)));
     }
     this.browserLaneActive = false;
-    this.browserLaneUnknown = false;
+    this.browserLaneUnsettled = false;
     this.transport.disconnect(reasonCode);
     if (this.state.ownerLockHeld) {
       await this.ownerLock.release();
@@ -326,11 +326,12 @@ export class BrowserInfrastructureSupervisor {
     if (binding.kind === "production-reconciliation") {
       return this.acquireReconciliationTargetLease(binding, ownerId, wait);
     }
-    if (this.browserLaneUnknown) {
+    if (this.browserLaneUnsettled) {
+      const dispatched = this.hasUnresolvedBrowserMutation();
       return Promise.reject(
         browserExecutionFailure(
-          new Error("BROWSER_OUTCOME_UNKNOWN"),
-          "unknown",
+          new Error(dispatched ? "BROWSER_MUTATION_UNSETTLED" : "BROWSER_TARGET_LIFECYCLE_UNSETTLED"),
+          dispatched ? "dispatched" : "no",
         ),
       );
     }
@@ -381,9 +382,9 @@ export class BrowserInfrastructureSupervisor {
     });
   }
 
-  public readBrowserLaneState(): "idle" | "busy" | "unknown" {
-    return this.browserLaneUnknown
-      ? "unknown"
+  public readBrowserLaneState(): "idle" | "busy" | "unsettled" {
+    return this.browserLaneUnsettled
+      ? "unsettled"
       : this.browserLaneActive
         ? "busy"
         : "idle";
@@ -400,8 +401,7 @@ export class BrowserInfrastructureSupervisor {
         .some(
           (entry) =>
             entry.current === "PREPARED" ||
-            entry.current === "SENT" ||
-            entry.current === "UNKNOWN",
+            entry.current === "DISPATCHED",
         ) ?? false
     );
   }
@@ -436,8 +436,8 @@ export class BrowserInfrastructureSupervisor {
       this.broker.currentOperatorTargetStatus() !== "claimed"
     ) {
       throw browserExecutionFailure(
-        new Error("BROWSER_OUTCOME_UNKNOWN"),
-        "unknown",
+        new Error("BROWSER_RECONCILIATION_SCOPE_INVALID"),
+        "dispatched",
       );
     }
     this.browserLaneActive = true;
@@ -456,14 +456,14 @@ export class BrowserInfrastructureSupervisor {
       return this.withLaneLifecycle(lease);
     } catch (error) {
       this.browserLaneActive = false;
-      this.browserLaneUnknown = true;
+      this.browserLaneUnsettled = true;
       this.emitBrowserState("browser.execution", "review_required");
-      throw browserExecutionFailure(error, "unknown");
+      throw browserExecutionFailure(error, "dispatched");
     }
   }
 
   private async pumpBrowserLane(): Promise<void> {
-    if (this.browserLaneActive || this.browserLaneUnknown) return;
+    if (this.browserLaneActive || this.browserLaneUnsettled) return;
     let waiter = this.browserLaneQueue.shift();
     while (waiter && (waiter.signal.aborted || waiter.remainingMs() < 1)) {
       waiter.reject(
@@ -503,8 +503,8 @@ export class BrowserInfrastructureSupervisor {
       waiter.resolve(this.withLaneLifecycle(lease));
     } catch (error) {
       const failure = browserExecutionFailure(error);
-      if (failure.mutationOutcome === "unknown") {
-        this.browserLaneUnknown = true;
+      if (failure.mutationOutcome === "dispatched") {
+        this.browserLaneUnsettled = true;
         this.emitBrowserState("browser.execution", "review_required");
       } else {
         this.browserLaneActive = false;
@@ -522,13 +522,16 @@ export class BrowserInfrastructureSupervisor {
         try {
           await lease.close(input);
           this.browserLaneActive = false;
-          this.browserLaneUnknown = false;
+          this.browserLaneUnsettled = false;
           this.emitBrowserState("browser.execution", "idle");
           void this.pumpBrowserLane();
         } catch (error) {
-          this.browserLaneUnknown = true;
+          this.browserLaneUnsettled = true;
           this.emitBrowserState("browser.execution", "review_required");
-          throw browserExecutionFailure(error, "unknown");
+          throw browserExecutionFailure(
+            new Error("BROWSER_TARGET_LIFECYCLE_UNSETTLED", { cause: error }),
+            "no",
+          );
         }
       },
     };
@@ -558,7 +561,7 @@ export class BrowserInfrastructureSupervisor {
         )
           return;
         this.state.pendingJobBoundTargetAcquisition = null;
-        reject(new Error("BROWSER_OUTCOME_UNKNOWN"));
+        reject(new Error("BROWSER_TARGET_ACQUISITION_TIMEOUT"));
       }, deadlineMs);
       this.state.pendingJobBoundTargetAcquisition = {
         authorityEpoch: current.authority.authorityEpoch,

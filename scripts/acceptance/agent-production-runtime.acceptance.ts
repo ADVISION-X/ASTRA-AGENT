@@ -478,7 +478,7 @@ const settledTargetCloseAt = executorSource.indexOf(
 );
 assert(
   settledTargetGuardAt >= 0 && settledTargetCloseAt > settledTargetGuardAt,
-  "a GPT turn must release its task-owned Target only when no Browser mutation remains UNKNOWN",
+  "a GPT turn must release its task-owned Target only when no Browser mutation remains DISPATCHED",
 );
 const cloudClientSource = await readFile(
   new URL(
@@ -1344,7 +1344,7 @@ for (const evidenceMode of [
   emitQualityProofObservation({
     passed: true,
     findings: [],
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V5",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V6",
     evidenceMode,
     clauses: [
       "forbidden:0",
@@ -1364,6 +1364,6 @@ for (const evidenceMode of [
     ],
     locator: `acceptance:agent-production-runtime:${evidenceMode}`,
     observedValue:
-      "the canonical agent runtime command completed strict 39-route input/result rejection, bounded browser-lane FIFO/UNKNOWN mutants, typed failure propagation, durable acceptance, frozen identity, outbox idempotency, continuation lane CAS, task-owned Target cleanup, and blocked-shell isolation",
+      "the canonical agent runtime command completed strict 39-route input/result rejection, bounded browser-lane FIFO/DISPATCHED no-replay mutants, typed failure propagation, durable acceptance, frozen identity, outbox idempotency, continuation lane CAS, task-owned Target cleanup, and blocked-shell isolation",
   });
 }

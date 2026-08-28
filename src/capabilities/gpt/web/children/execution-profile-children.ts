@@ -204,7 +204,7 @@ const openSelectorOneMutation = async (
     });
     return success({
       value: { state: "profile-menu-open" }, candidateCount: 1,
-      observedSemantics: ["one profile trigger", "aria-expanded=true"], committedMutation: "yes",
+      observedSemantics: ["one profile trigger", "aria-expanded=true"], committedMutation: "confirmed",
     });
   }
   if (popupCount === 0) {
@@ -219,7 +219,7 @@ const openSelectorOneMutation = async (
     });
     return success({
       value: { state: "advanced-options-open" }, candidateCount: 1,
-      observedSemantics: ["one advanced-options control", "aria-expanded=true"], committedMutation: "yes",
+      observedSemantics: ["one advanced-options control", "aria-expanded=true"], committedMutation: "confirmed",
     });
   }
   if (parents.length !== 1) {
@@ -233,7 +233,7 @@ const openSelectorOneMutation = async (
   });
   return success({
     value: { state: "choices-opened", label }, candidateCount: 1,
-    observedSemantics: [`one ${label} submenu`, "aria-expanded=true"], committedMutation: "yes",
+    observedSemantics: [`one ${label} submenu`, "aria-expanded=true"], committedMutation: "confirmed",
   });
 };
 
@@ -259,7 +259,7 @@ const selectExactChoice = async (
   });
   return success({
     value: { exactText, state: "selected" }, candidateCount: 1,
-    observedSemantics: ["one exact choice", "aria-checked=true"], committedMutation: "yes",
+    observedSemantics: ["one exact choice", "aria-checked=true"], committedMutation: "confirmed",
   });
 };
 

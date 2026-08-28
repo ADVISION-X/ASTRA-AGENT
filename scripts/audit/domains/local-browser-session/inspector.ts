@@ -18,9 +18,9 @@ import {
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const lawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-001-V4");
-  const mutationLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V9");
+  const mutationLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V10");
   const channelLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-002-V6");
-  const claimLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-003-V10");
+  const claimLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-003-V11");
   const releaseLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-005-V6");
   const opaqueLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-006-V3");
   const findings: InspectorFinding[] = [];
@@ -57,22 +57,22 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const astChecks = (lawId: string): string[] => ({
     "LAW-LOCAL-BROWSER-SESSION-001-V4": ["inspectSessionCore"],
     "LAW-LOCAL-BROWSER-SESSION-002-V6": ["inspectAuthenticatedChannelGuards", "inspectAutomaticPairingAndReload"],
-    "LAW-LOCAL-BROWSER-SESSION-003-V10": ["inspectAutomaticPairingAndReload", "inspectTargetClaimGuards"],
-    "LAW-LOCAL-BROWSER-SESSION-004-V9": ["inspectAtomicIfAndThenBoundary", "inspectCompactMutationRecoveryBoundary", "inspectRegistryAndMutationBoundary"],
+    "LAW-LOCAL-BROWSER-SESSION-003-V11": ["inspectAutomaticPairingAndReload", "inspectTargetClaimGuards"],
+    "LAW-LOCAL-BROWSER-SESSION-004-V10": ["inspectAtomicIfAndThenBoundary", "inspectCompactMutationRecoveryBoundary", "inspectRegistryAndMutationBoundary"],
     "LAW-LOCAL-BROWSER-SESSION-005-V6": ["inspectAutomaticPairingAndReload", "inspectReleaseAndRetiredPaths"],
     "LAW-LOCAL-BROWSER-SESSION-006-V3": ["inspectOpaqueAuthorityBoundary"],
   } as Readonly<Record<string, string[]>>)[lawId] ?? [];
   const contractChecks = (lawId: string): string[] => ({
     "LAW-LOCAL-BROWSER-SESSION-001-V4": ["inspectSessionCoreContract"],
     "LAW-LOCAL-BROWSER-SESSION-002-V6": ["inspectAuthenticatedChannelContract"],
-    "LAW-LOCAL-BROWSER-SESSION-003-V10": ["inspectTargetClaimContract"],
+    "LAW-LOCAL-BROWSER-SESSION-003-V11": ["inspectTargetClaimContract"],
     "LAW-LOCAL-BROWSER-SESSION-005-V6": ["inspectReleaseIdentityContract"],
     "LAW-LOCAL-BROWSER-SESSION-006-V3": ["inspectOpaqueAuthorityContract"],
   } as Readonly<Record<string, string[]>>)[lawId] ?? [];
   const contractClauses = (lawId: string): string[] => ({
     "LAW-LOCAL-BROWSER-SESSION-001-V4": staticClauses(6, 7),
     "LAW-LOCAL-BROWSER-SESSION-002-V6": staticClauses(5, 8),
-    "LAW-LOCAL-BROWSER-SESSION-003-V10": staticClauses(14),
+    "LAW-LOCAL-BROWSER-SESSION-003-V11": staticClauses(14),
     "LAW-LOCAL-BROWSER-SESSION-005-V6": staticClauses(4, 5),
     "LAW-LOCAL-BROWSER-SESSION-006-V3": staticClauses(0),
   } as Readonly<Record<string, string[]>>)[lawId] ?? [];
@@ -98,8 +98,8 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     lawResults: [
       lawResult("LAW-LOCAL-BROWSER-SESSION-001-V4", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)),
       lawResult("LAW-LOCAL-BROWSER-SESSION-002-V6", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)),
-      lawResult("LAW-LOCAL-BROWSER-SESSION-003-V10", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14)),
-      lawResult("LAW-LOCAL-BROWSER-SESSION-004-V9", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11), false),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-003-V11", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14)),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-004-V10", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11), false),
       lawResult("LAW-LOCAL-BROWSER-SESSION-005-V6", staticClauses(0, 1, 2, 3, 4, 5, 6)),
       lawResult("LAW-LOCAL-BROWSER-SESSION-006-V3", staticClauses(0)),
     ], inspectedFiles: evaluation.inspectedFiles,

@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V5"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V6"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -156,7 +156,7 @@ workflow。每个公开 childCapabilityId 必须绑定输入 Schema、Target/Doc
 transition、proof Schema、typed failure 与 replay policy。Product Plugin 只按私有 Flow 请求原子动作，不携带 selector、
 坐标、tab、Browser command 或 Provider 私有对象。
 
-页面变化必须精确失败为带 childCapabilityId 的 precondition、element ambiguous、document changed、postcondition 或 mutation outcome unknown；UNKNOWN 永不自动重放。selector 和语义定位只在对应页面元素合同 Owner 内维护，不建立通用 selector registry，不保留旧新双 selector fallback。真实 Chrome 动态证明未完成前，不得声称新页面已经兼容。
+页面变化必须精确绑定 `plugin_step_id + childCapabilityId + action_ordinal`，并展示 precondition、唯一 dispatch、正向/负向 postcondition、terminal 与 evidence ref/hash；failure 的 `mutation_outcome` 只能是 `no|dispatched|confirmed`。DISPATCHED 只允许在原 Target/Document 上只读补核，永不自动重放；不得产生持久 UNKNOWN。selector 和语义定位只在对应页面元素合同 Owner 内维护，不建立通用 selector registry，不保留旧新双 selector fallback。真实 Chrome 动态证明未完成前，不得声称新页面已经兼容。
 
 物理打开 ChatGPT 标签页属于 Browser Authority 的任务 Target lifecycle，不是 Product Plugin 功能，也不是 GPT DOM
 Child。fresh turn 直接验证新建根页面为干净会话；authorized continuation 在同样新建的任务页上用
@@ -234,19 +234,19 @@ mutant。`agent_build_hash` 继续只绑定 worker session，不增加到六字�
 
 本地不可变接单记录写入成功即是 durable accept 的边界；不得延迟到远程 checkpoint 成功之后才认定。此后任何 checkpoint、下载或网络失败只能进入现役唯一恢复链，不得释放成“未接单”并重新解释。
 
-checkpoint、恢复、result 与 execution receipt 都绑定同一组合。发布新 Catalog/Plugin/Skill 前先 drain 已接受任务；版本或 checkpoint schema 不兼容时禁止新 Browser/Provider mutation，并进入统一 attempt 决策；可证明零 mutation 才重试，UNKNOWN 只读对账，确定性不可满足或预算耗尽则 failed。禁止用新代码静默续跑，也不保留第二 Plugin 兼容路径。
+checkpoint、恢复、result 与 execution receipt 都绑定同一组合。发布新 Catalog/Plugin/Skill 前先 drain 已接受任务；版本或 checkpoint schema 不兼容时禁止新 Browser/Provider mutation，并进入统一 attempt 决策；`mutation_outcome=no` 才重试，`dispatched` 只读补核，确定性不可满足或预算耗尽则 failed。禁止用新代码静默续跑，也不保留第二 Plugin 兼容路径。
 
-V6 继续唯一拥有 transport state、lease/fence、control、terminal 和重放语义。Plugin 私有 checkpoint 不成为第二 Cloud 状态机。UNKNOWN 物理动作永不自动重放；已失去 lease/fence 后停止新 mutation，等待原执行 settle；同 request/outbox payload 只以原幂等键重试。
+V6 继续唯一拥有 transport state、lease/fence、control、terminal 和重放语义。Plugin 私有 checkpoint 不成为第二 Cloud 状态机。DISPATCHED 物理动作永不再次 dispatch；已失去 lease/fence 后停止新 mutation，等待原执行 settle；同 request/outbox payload 只以原幂等键重试。
 
 artifact 与 terminal 都先在 SQLite/WAL 持久化确定性 intent 和 idempotency key，再发网络；每次远端响应/receipt 先原子保存，
 随后才推进本地状态。一个持续运行的串行 flusher 按权威顺序投递，不等待 `active.size===0`。启动时必须对账
-remote-terminal/local-nonterminal、receipt 缺失与旧 fence；只有远端权威证明 superseded/delivered 才能终结旧写入，UNKNOWN
+remote-terminal/local-nonterminal、receipt 缺失与旧 fence；只有远端权威证明 superseded/delivered 才能终结旧写入，DISPATCHED
 不得重放。允许扩展网站现役 device-job status 读取 artifact/checkpoint/terminal receipt 事实，不新建 ledger。
 
 切换后的历史隔离只有一个窄条件：现役 device-job status 对某 job 明确返回 404，且 AGENT 本地该 job 已经是
 `completed / failed` 或只读保留的旧 `review_required / cancelled` 不可变终态。此时只能将该 job 尚无回执的旧 Outbox
 标记为 `REMOTE_JOB_ABSENT_HISTORICAL` 并退出发送集合；标记不是远端 receipt、不得改写本地 terminal，也不得继续阻断
-无关新 job。任一本地非终态、远端仍可见但内容漂移、Browser UNKNOWN 或缺失对账事实都不得进入该隔离。
+无关新 job。任一本地非终态、远端仍可见但内容漂移、Browser DISPATCHED 或缺失对账事实都不得进入该隔离。
 
 typed failure 从 GPT child 到 Plugin、runtime、Outbox 和 first-terminal 始终保持同一事实：
 
@@ -262,20 +262,20 @@ code + mutation_outcome + evidence_ref/evidence_hash + cause（存在时）
 任务 durable create 冻结 `max_attempts + delivery_deadline_at + max_provider_turns` 并随 claim grant 下发；预算耗尽后禁止
 新 claim、renew 和 Provider mutation。Browser mutation 五种物理状态不变，另以
 `logical_mutation_id = hash(job_id + plugin_step_id + action_ordinal + request_hash)` 跨 attempt 防重；同一 logical mutation 已
-CONFIRMED/SENT/UNKNOWN 时不得再发。
+CONFIRMED/DISPATCHED/REJECTED 时不得再发。
 
 `ledger_reconciled` 在每次 Store、Browser WAL、checkpoint、artifact/terminal Outbox、continuation、proof 或远端终态 authority
 变化时先失效，再由现有只读 authority 连续派生。全局未决 Outbox、缺失 receipt/evidence、孤儿 continuation/proof、
-remote/local terminal 漂移或 Browser Authority 本身不可证明时必须为 false 并阻断新 claim；job 级 Browser UNKNOWN 只阻断
+remote/local terminal 漂移或 Browser Authority 本身不可证明时必须为 false 并阻断新 claim；job 级 Browser DISPATCHED 只阻断
 同一 logical mutation、主体与授权范围；合法 busy lane 只表示忙，不表示 ledger 不一致。已按上述窄条件隔离的历史终态
 Outbox 不再属于全局未决集合，但仍以失败标记保留原事实，绝不冒充 delivered receipt。
 
 Browser Authority 只拥有一条最多十个 waiter 的有界 FIFO mutation lane。waiter 绑定精确 job Target，并感知 lease、deadline、abort；
-等待期间持续 renew，取消后确定性移除；UNKNOWN 锁住原现场直到证据对账或期限耗尽，禁止用人工猜测裁决。heartbeat 的 lane/busy 来自 Browser Authority 真实队列与
+等待期间持续 renew，取消后确定性移除；DISPATCHED 锁住原现场和冻结后置判据直到只读补核收束或期限耗尽，禁止用人工猜测裁决。heartbeat 的 lane/busy 来自 Browser Authority 真实队列与
 owner，不从 `active.size` 猜测。上述边界闭合后业务 capacity 才按 `10 - active jobs` 派生，不能用 `availableCapacity()=1`
 把单 Browser lane 冒充整机容量。
 
-GPT Session Controller 不理解业务内容、不决定何时续问。无法证明原会话、主体、授权、Plugin 或 lane CAS 时进入统一 attempt 决策；可证明零 mutation 才重试，UNKNOWN 只读对账，确定性不可满足或预算耗尽则 failed，不得静默新开会话冒充续接。
+GPT Session Controller 不理解业务内容、不决定何时续问。无法证明原会话、主体、授权、Plugin 或 lane CAS 时进入统一 attempt 决策；`mutation_outcome=no` 才重试，`dispatched` 只读补核，确定性不可满足或预算耗尽则 failed，不得静默新开会话冒充续接。
 
 ## 9. Capability Manifest 与准入
 
@@ -316,7 +316,7 @@ Manifest 生效的同一删除片区必须物理退出 product bundle/canary 产
 enrollment、不创建任务、不认领 Target、不运行 CI。固定 Extension 自行更新并配对 Browser Authority；空闲 Target
 absent 合法。exact browser-required job durable accept 后，首个 Browser 原子动作才后台创建一个任务专属 ChatGPT
 Target；绝不查询或复用操作者既存 ChatGPT 页面。页面完成加载并复核精确 Origin 后才 claim。GPT turn settle 且无
-UNKNOWN 后关闭该任务 Target 并释放 Workspace；UNKNOWN 时保留唯一恢复现场。
+DISPATCHED 后关闭该任务 Target 并释放 Workspace；存在 DISPATCHED 时保留唯一补核现场和冻结判据。
 
 Shell、Cloud contract/session、Browser Authority、Target、claim eligibility、queue/outbox 和端到端 proof 是独立状态维。Cloud、Provider、Browser 或凭证失败时 Shell 必须保留诊断面，只让相应 execution/claim 失败关闭；HTTP 200、空队列、进程存活或 Authority READY 都不是完整生产通过。
 
@@ -344,4 +344,4 @@ AGENT 始终运行在用户本地 Mac；网站与 PostgreSQL 当前同在这台 
 
 核心黑盒验收：从网站 Task 中完全删除 Stage、Prompt、Provider Profile、Conversation 与 Join，只保留业务类型、输入、授权和材料引用，AGENT 仍能完成产品。若失败，说明执行真相仍未回到 Product Plugin，验收固定 FAIL。
 
-恢复证明覆盖：重启、断网、lease/fence 丢失、UNKNOWN、Outbox 重放、result consumer 中断、续问并发、Plugin/Skill 升级、Plugin-local failure 与 shared-authority failure。每次恢复必须保持原任务、原幂等身份、原不可变执行版本和最多一次物理动作。
+恢复证明覆盖：重启、断网、lease/fence 丢失、DISPATCHED receipt 丢失与只读补核、Outbox 重放、result consumer 中断、续问并发、Plugin/Skill 升级、Plugin-local failure 与 shared-authority failure。每次恢复必须保持原任务、原幂等身份、原不可变执行版本和最多一次物理 dispatch。

@@ -80,29 +80,6 @@ const stringField = (value: unknown, code: string): string => {
 const hash = (value: string): ProductionHash =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
-const resolveSuccessfulMutation = async (
-  browser: BrowserTargetLease,
-  pluginId: string,
-  result: GptChildCapabilityResult,
-  evidenceRef: string,
-): Promise<void> => {
-  if (result.proof.committedMutation !== "yes") {
-    if (browser.pendingMutationCount() !== 0) throw executionFailure("review_required", "BROWSER_OUTCOME_UNKNOWN", { mutationOutcome: "unknown" });
-    return;
-  }
-  if (browser.pendingMutationCount() === 0) return;
-  if (browser.pendingMutationCount() !== 1) throw executionFailure("review_required", "BROWSER_OUTCOME_UNKNOWN", { mutationOutcome: "unknown" });
-  await browser.resolvePendingMutation({
-    schemaVersion: "grasseye.browser.outcome-resolution.v1",
-    ownerPluginId: pluginId,
-    outcome: "TERMINAL_SUCCESS",
-    positiveEvidenceRef: evidenceRef,
-    negativeEvidenceRef: `${evidenceRef}:adjacent-states-excluded`,
-    uniqueTargetRef: browser.target.targetRef,
-    boundedAt: result.proof.endedAt,
-  });
-};
-
 const throwChildFailure = (result: GptChildCapabilityResult): never => {
   const error = executionFailure(result.status === "success" ? "failed" : result.status, result.failureCode ?? "GPT_CHILD_FAILED", {
     mutationOutcome: result.proof.committedMutation,
@@ -394,13 +371,19 @@ export class ProductionExecutor {
     emitGptState("running");
     try {
       const observedProofs: GptChildCapabilityProof[] = [];
-      const result = await this.gpt.execute(input.intent, {
+      const executeChild = () => this.gpt.execute(input.intent, {
         ...input.context,
         onProof: async (proof) => {
           observedProofs.push(proof);
           await input.context.onProof?.(proof);
         },
       });
+      const result = input.context.browser
+        ? await input.context.browser.runAtomicStep({
+          pluginStepId: input.stepId,
+          childCapabilityId: input.intent.childCapabilityId,
+        }, executeChild)
+        : await executeChild();
       const observedProof = observedProofs.at(-1);
       if (!observedProof || observedProof.evidenceHash !== result.proof.evidenceHash) {
         throw executionFailure("review_required", "EVIDENCE_PROOF_BINDING_INVALID");
@@ -462,7 +445,7 @@ export class ProductionExecutor {
         stepId: input.stepId,
         sourceCapabilityId: "gpt",
         sourceChildCapabilityId: result.proof.childCapabilityId,
-        recordType: result.proof.committedMutation === "unknown" ? "review_required" : "evidence",
+        recordType: result.proof.committedMutation === "dispatched" ? "review_required" : "evidence",
         recordPayload: projection,
         ...(artifactRefs.length ? { artifactRefs } : {}),
         idempotencyKey: result.proof.evidenceHash,
@@ -568,7 +551,6 @@ export class ProductionExecutor {
         }
         throwChildFailure(result);
       }
-      await resolveSuccessfulMutation(input.browser, input.pluginId, result, evidenceRef);
       applyGptChildValue(step.childCapabilityId, result.value, input.state);
       if (step.childCapabilityId === "checkpoint_gpt_text_response") {
         resultCheckpoint = buildGptTurnResult(input.state);

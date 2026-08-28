@@ -141,7 +141,11 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     }
   }
 
-  public async send(permit: BrowserCommandPermit, command: BrowserGovernedCommand): Promise<BrowserCommandReply> {
+  public async send(
+    permit: BrowserCommandPermit,
+    command: BrowserGovernedCommand,
+    onDispatched?: () => void,
+  ): Promise<BrowserCommandReply> {
     this.assertLive();
     const active = this.active;
     if (!active) throw new Error("BROWSER_LIVENESS_EXPIRED");
@@ -155,8 +159,8 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     return new Promise<BrowserCommandReply>((resolve, reject) => {
       const timeout = setTimeout(() => {
         this.removeReply(sequence);
-        this.revoke(active.socket, "BROWSER_OUTCOME_UNKNOWN");
-        reject(new Error("BROWSER_OUTCOME_UNKNOWN"));
+        this.revoke(active.socket, "BROWSER_COMMAND_RECEIPT_MISSING");
+        reject(new Error("BROWSER_COMMAND_RECEIPT_MISSING"));
       }, commandDeadlineMs);
       const replies = new Map(active.replies);
       replies.set(sequence, {
@@ -169,6 +173,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       this.active = { ...active, nextServerSequence: sequence + 1, replies };
       try {
         active.socket.send(encodeBrowserAuthorityFrame(frame));
+        onDispatched?.();
       } catch (error) {
         const reasonCode = error instanceof Error && /^BROWSER_[A-Z_]+$/u.test(error.message)
           ? error.message

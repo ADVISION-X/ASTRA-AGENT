@@ -18,7 +18,7 @@ const textParameter = (parameters: Readonly<Record<string, unknown>>, key: strin
 
 export const localizationProductionPlugin: ProductPlugin = {
   pluginId: "localization-production",
-  pluginVersion: 5,
+  pluginVersion: 6,
   skillHash: skill.hash,
   checkpointSchemaVersion: 1,
   parseResult: parseProductResult,

@@ -46,10 +46,9 @@ export const composerSubmissionChildHandlers = {
     if (state.tagName !== "DIV" || state.visible !== true || state.disabled === true) {
       throw executionFailure("review_required", "GPT_COMPOSER_INVALID");
     }
-    await browser.executeDomIntent({ kind: "click", selector: GPT_COMPOSER_SELECTOR, expectedMatches: 1 });
     return success({
-      value: { focused: true }, candidateCount: 1,
-      observedSemantics: ["one visible enabled composer", "focus mutation dispatched"], committedMutation: "yes",
+      value: { ready: true }, candidateCount: 1,
+      observedSemantics: ["one visible enabled composer", "composer ready for governed fill"], committedMutation: "no",
     });
   },
 
@@ -69,7 +68,7 @@ export const composerSubmissionChildHandlers = {
     return success({
       value: promptIdentity(prompt), candidateCount: 1,
       observedSemantics: ["one composer", "approved prompt retained", "no local prompt ceiling"],
-      committedMutation: "yes",
+      committedMutation: "confirmed",
     });
   },
 
@@ -91,8 +90,9 @@ export const composerSubmissionChildHandlers = {
   },
 
   async submit_exact_gpt_turn(intent, context) {
-    requireExactInputKeys(intent, ["promptHash"]);
+    requireExactInputKeys(intent, ["promptHash", "turnMarker"]);
     const promptHash = stringInput(intent, "promptHash");
+    const turnMarker = stringInput(intent, "turnMarker");
     if (!/^sha256:[a-f0-9]{64}$/u.test(promptHash)) throw executionFailure("failed", "GPT_PROMPT_HASH_INVALID");
     const browser = requireBrowser(context);
     await requireOneCandidate(browser, { selector: GPT_SEND_SELECTOR, maxMatches: 2 });
@@ -107,10 +107,20 @@ export const composerSubmissionChildHandlers = {
     if (state.tagName !== "BUTTON" || state.visible !== true || state.disabled === true) {
       throw executionFailure("review_required", "GPT_SEND_CONTROL_INVALID");
     }
-    await browser.executeDomIntent({ kind: "click", selector: GPT_SEND_SELECTOR, expectedMatches: 1 });
+    await browser.executeDomIntent({
+      kind: "click",
+      selector: GPT_SEND_SELECTOR,
+      expectedMatches: 1,
+      postClickMatch: {
+        selector: GPT_USER_TURN_SELECTOR,
+        expectedMatches: 1,
+        textContains: turnMarker,
+        timeoutMs: 5_000,
+      },
+    });
     return success({
       value: { promptHash, mutationSent: true }, candidateCount: 1,
-      observedSemantics: ["one enabled send control", promptHash], committedMutation: "yes",
+      observedSemantics: ["one enabled send control", promptHash, "one exact user turn"], committedMutation: "confirmed",
     });
   },
 

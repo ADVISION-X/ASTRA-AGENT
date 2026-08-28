@@ -52,7 +52,11 @@ assert(layout.includes("renderProductionRuntimeWorkspace"), "Main workspace must
 assert(workspace.includes('data-skill-workspace="production-runtime"'));
 assert(workspace.includes("appShellProductionPluginSupport"), "Catalog support must be projected from the unique Catalog.");
 assert(workspace.includes("data-production-status"));
+assert(workspace.includes("data-production-atomic-steps"));
+assert(workspace.includes("data-production-atomic-step-rows"));
 assert(productionClient.includes("[data-production-status]"));
+assert(productionClient.includes("renderProductionAtomicSteps(payload.atomic_steps)"));
+assert(productionClient.includes("productionAtomicCommandId"));
 assert(productionClient.includes('"/api/production-runtime/status?jobId="'));
 for (const forbidden of ["data-production-pause", "data-production-cancel", "data-production-takeover", "data-production-resume"]) {
   assert.equal(workspace.includes(forbidden), false, `Diagnostic Shell must not expose execution control ${forbidden}.`);

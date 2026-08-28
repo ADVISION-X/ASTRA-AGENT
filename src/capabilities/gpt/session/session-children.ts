@@ -67,7 +67,7 @@ export const sessionChildHandlers = {
     return success({
       value: { continuationRef: ref }, candidateCount: null,
       observedSemantics: ["opaque GPT continuation", "plugin/subject/authorization bound"],
-      committedMutation: "yes",
+      committedMutation: "confirmed",
     });
   },
 
@@ -92,7 +92,7 @@ export const sessionChildHandlers = {
     return success({
       value: lane, candidateCount: null,
       observedSemantics: ["one continuation", "lane CAS acquired", `lane-version:${lane.lane_version}`],
-      committedMutation: "yes",
+      committedMutation: "confirmed",
     });
   },
 
@@ -107,7 +107,7 @@ export const sessionChildHandlers = {
     return success({
       value: { advanced: true }, candidateCount: null,
       observedSemantics: ["lane version matched", "new turn identity persisted", "lane released"],
-      committedMutation: "yes",
+      committedMutation: "confirmed",
     });
   },
 
@@ -116,7 +116,7 @@ export const sessionChildHandlers = {
     controller(context).release(laneFrom(intent), stringInput(intent, "jobId"));
     return success({
       value: { released: true }, candidateCount: null,
-      observedSemantics: ["same lane owner", "lane released"], committedMutation: "yes",
+      observedSemantics: ["same lane owner", "lane released"], committedMutation: "confirmed",
     });
   },
 

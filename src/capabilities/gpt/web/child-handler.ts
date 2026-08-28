@@ -9,7 +9,7 @@ export type GptChildObservation = Readonly<{
   value: unknown;
   candidateCount: number | null;
   observedSemantics: readonly string[];
-  committedMutation: "no" | "yes";
+  committedMutation: "no" | "confirmed";
   postconditionResult: "passed";
 }>;
 

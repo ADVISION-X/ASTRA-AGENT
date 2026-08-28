@@ -18,12 +18,17 @@ const closeSearchDialog = async (browser: ReturnType<typeof requireBrowser>) => 
   });
   if (dialogCount !== 1) throw executionFailure("review_required", `GPT_SEARCH_DIALOG_COUNT_${dialogCount}`);
   await requireOneCandidate(browser, { selector: GPT_SEARCH_CLOSE_SELECTOR, maxMatches: 2 });
-  await browser.executeDomIntent({ kind: "click", selector: GPT_SEARCH_CLOSE_SELECTOR, expectedMatches: 1 });
+  await browser.executeDomIntent({
+    kind: "click",
+    selector: GPT_SEARCH_CLOSE_SELECTOR,
+    expectedMatches: 1,
+    postClickMatch: { selector: GPT_SEARCH_DIALOG_SELECTOR, expectedMatches: 0, timeoutMs: 5_000 },
+  });
   const after = await findCount(browser, { selector: GPT_SEARCH_DIALOG_SELECTOR, maxMatches: 2 });
   if (after !== 0) throw executionFailure("review_required", "GPT_SEARCH_DIALOG_CLOSE_UNCONFIRMED");
   return success({
     value: { state: "closed" }, candidateCount: 1,
-    observedSemantics: ["one owned search dialog", "dialog absent after click"], committedMutation: "yes",
+    observedSemantics: ["one owned search dialog", "dialog absent after click"], committedMutation: "confirmed",
   });
 };
 

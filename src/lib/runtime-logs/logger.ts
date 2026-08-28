@@ -247,7 +247,8 @@ export const createRuntimeLogger = (config: RuntimeLoggerConfig): RuntimeLogger 
       const stateIdentity = `${input.stateKey}\u0000${stateSubject}`;
       const actualPrevious = states.get(stateIdentity) ?? null;
       if (input.previous !== actualPrevious) throw new Error("RUNTIME_LOG_STATE_TRANSITION_INVALID");
-      if (input.stateKey !== "producer.alive" && input.previous === input.current) {
+      if (input.stateKey !== "producer.alive" && input.stateKey !== "browser.mutation"
+        && input.previous === input.current) {
         throw new Error("RUNTIME_LOG_STATE_NOOP_FORBIDDEN");
       }
       const written = persist({

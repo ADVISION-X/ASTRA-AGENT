@@ -1,5 +1,5 @@
 export type ExecutionFailureStatus = "recovery_pending" | "review_required" | "failed";
-export type MutationOutcome = "no" | "yes" | "unknown";
+export type MutationOutcome = "no" | "dispatched" | "confirmed";
 export type SerializedExecutionFailure = Readonly<{
   code: string;
   mutation_outcome: MutationOutcome;

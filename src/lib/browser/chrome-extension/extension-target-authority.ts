@@ -257,7 +257,13 @@ export class ExtensionTargetAuthority {
     selector: string,
     grantRefs: readonly string[],
     resolvedFilePaths: readonly string[],
-  ): Promise<Readonly<{ selectedFileCount: number }>> {
+  ): Promise<Readonly<{
+    selectedFileCount: number;
+    candidateCount: 1;
+    identityRevalidated: true;
+    mutationCount: 1;
+    postconditionVerified: true;
+  }>> {
     if (selector !== "#upload-files" || grantRefs.length < 1 || grantRefs.length > 20
       || resolvedFilePaths.length !== grantRefs.length || new Set(grantRefs).size !== grantRefs.length
       || resolvedFilePaths.some((filePath) => !filePath.startsWith("/"))) {
@@ -283,6 +289,12 @@ export class ExtensionTargetAuthority {
       nodeId: nodeIds[0],
       files: [...resolvedFilePaths],
     });
-    return { selectedFileCount: resolvedFilePaths.length };
+    return {
+      selectedFileCount: resolvedFilePaths.length,
+      candidateCount: 1,
+      identityRevalidated: true,
+      mutationCount: 1,
+      postconditionVerified: true,
+    };
   }
 }
