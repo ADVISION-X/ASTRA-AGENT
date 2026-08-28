@@ -5,11 +5,12 @@ import { tmpdir } from 'node:os';
 import { dirname, relative, resolve } from 'node:path';
 import test from 'node:test';
 
-import { assertActiveSpecVersionWindows, assertOneActiveMajorPerLawKey, buildRegistry, checkProjection, loadLaws, motherSpecIdentityValid, parseLawSource, pathRole, verifyEntry, verifyProductionOwnership } from '../../scripts/audit/governance-authority.js';
+import { assertActiveSpecVersionWindows, assertOneActiveMajorPerLawKey, buildRegistry, checkProjection, loadLaws, motherSpecIdentityValid, parseLawSource, verifyEntry, verifyProductionOwnership } from '../../scripts/audit/governance-authority.js';
 import { assertLawMajorVersionChanges, assertProviderContractVersionChanges } from '../../scripts/audit/governance-change-authority.js';
 import { assertProductionDeleteAuthorization } from '../../scripts/audit/governance.js';
 import { GovernanceError } from '../../scripts/audit/governance-runtime.js';
 import { assertRoleConsumptionEdges } from '../../scripts/audit/shared/governance-role-consumption.js';
+import { pathRole } from '../../scripts/audit/shared/governance-paths.js';
 import { detectHighImpactChanges, type HighImpactFinding } from '../../scripts/audit/shared/high-impact-detector.js';
 
 const retiredDomains = ['audit-system', 'audit-truth', 'domain-registry', 'exam-system', 'law-system', 'project-governance'];

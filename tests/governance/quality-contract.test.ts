@@ -6,9 +6,11 @@ import { resolve } from "node:path";
 import test from "node:test";
 import { Project } from "ts-morph";
 
-import { BASE, assertProjectionEqual, blueprintValid, buildRegistry, parseLawSource, type Law } from "../../scripts/audit/governance-authority.js";
+import { assertProjectionEqual, blueprintValid, buildRegistry, parseLawSource } from "../../scripts/audit/governance-authority.js";
+import type { Law } from "../../scripts/audit/governance-contract.js";
 import { addedSourceAt, assertProjectionStable } from "../../scripts/audit/governance.js";
 import { validateLocalSpecContract } from "../../scripts/audit/governance-local-spec-contract.js";
+import { BASE } from "../../scripts/audit/shared/governance-paths.js";
 import {
   decodeGitPathBytes,
   GovernanceError,
