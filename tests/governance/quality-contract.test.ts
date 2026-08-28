@@ -1042,7 +1042,9 @@ test("blueprint edge schema and local spec payloads reject arbitrary fields", ()
     blueprintId: "BLUEPRINT-MUTATION-V1", contractRefs: [], dependencyEdges: [], lawIds: [law.lawId],
     owner: law.capabilityDomain, prohibitedDependencyEdges: [], schemaVersion: 1, status: "active",
   };
-  const contexts = [new Set([law.lawId]), domains, new Set<string>(), new Map<string, string>(), new Map([[law.lawId, law.capabilityDomain]])] as const;
+  const lawDomains = new Map([[law.lawId, law.capabilityDomain], ["LAW-BLUEPRINT-DEPENDENCY-001-V1", secondDomain]]);
+  const contexts = [new Set([law.lawId]), domains, new Set<string>(), new Map<string, string>(), lawDomains,
+    new Map<string, readonly string[]>()] as const;
   assert.equal(blueprintValid(base, ...contexts), true);
   const invalid = { ...base, dependencyEdges: [{ contractRef: null,
     from: { domain: law.capabilityDomain, repo: "local", unexpected: true },
@@ -1053,9 +1055,9 @@ test("blueprint edge schema and local spec payloads reject arbitrary fields", ()
     from: { domain: law.capabilityDomain, repo: "local" },
     to: { domain: "provider-authority", repo: "ADVISION-X/provider" } }] };
   assert.equal(blueprintValid(remoteBase, new Set([law.lawId]), domains, new Set([remoteRef]),
-    new Map([[remoteRef, "ADVISION-X/provider"]]), new Map([[law.lawId, law.capabilityDomain]])), true);
+    new Map([[remoteRef, "ADVISION-X/provider"]]), lawDomains, new Map()), true);
   assert.equal(blueprintValid(remoteBase, new Set([law.lawId]), domains, new Set([remoteRef]),
-    new Map([[remoteRef, "ADVISION-X/other"]]), new Map([[law.lawId, law.capabilityDomain]])), false);
+    new Map([[remoteRef, "ADVISION-X/other"]]), lawDomains, new Map()), false);
   const foreignLawId = "LAW-BLUEPRINT-FOREIGN-001-V1";
   const foreignLawEdge = { ...base, prohibitedDependencyEdges: [{
     from: { domain: law.capabilityDomain, repo: "local" },
@@ -1069,7 +1071,15 @@ test("blueprint edge schema and local spec payloads reject arbitrary fields", ()
     new Set<string>(),
     new Map<string, string>(),
     new Map([[law.lawId, law.capabilityDomain], [foreignLawId, law.capabilityDomain]]),
+    new Map(),
   ), false);
+  const dependencyLawId = "LAW-BLUEPRINT-DEPENDENCY-001-V1";
+  const dependencyContext = [new Set([law.lawId, dependencyLawId]), domains, new Set<string>(),
+    new Map<string, string>(), lawDomains, new Map([[law.lawId, [dependencyLawId]]])] as const;
+  assert.equal(blueprintValid(base, ...dependencyContext), false);
+  assert.equal(blueprintValid({ ...base, dependencyEdges: [{ contractRef: null,
+    from: { domain: law.capabilityDomain, repo: "local" }, to: { domain: secondDomain, repo: "local" } }] },
+  ...dependencyContext), true);
   assert.throws(
     () => validateLocalSpecContract({ owner: law.capabilityDomain, specKind: "config", contract: { arbitrary: "value" } }, "mutation.json"),
     (error: unknown) => error instanceof GovernanceError && error.code === "SOURCE_PARSE_FAILED",

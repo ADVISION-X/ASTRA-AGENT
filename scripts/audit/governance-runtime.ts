@@ -54,10 +54,13 @@ export const validateRepositoryEntryAt=(root:string,path:string):boolean=>{
   return true;
 };
 const validateRepositoryEntry=(path:string):boolean=>validateRepositoryEntryAt(ROOT,path);
+export const assertNoCaseCollision=(paths:readonly string[]):void=>{
+  const folded=new Map<string,string>();
+  for(const path of paths){const key=path.toLocaleLowerCase('en-US');const prior=folded.get(key);if(prior&&prior!==path)fail('SOURCE_PARSE_FAILED',`case collision ${prior} ${path}`);folded.set(key,path)}
+};
 const sortPaths=(paths:readonly string[]):string[]=>{
   const normalized=[...new Set(paths.map(validateRepositoryPathText))].filter(validateRepositoryEntry).sort((left,right)=>Buffer.compare(Buffer.from(left),Buffer.from(right)));
-  const folded=new Map<string,string>();for(const path of normalized){const key=path.toLocaleLowerCase('en-US');const prior=folded.get(key);if(prior&&prior!==path)fail('SOURCE_PARSE_FAILED',`case collision ${prior} ${path}`);folded.set(key,path)}
-  return normalized;
+  assertNoCaseCollision(normalized);return normalized;
 };
 const sealedRepositoryPaths=():string[]=>{
   const raw=process.env.GOVERNANCE_BINDING_CONTRACT?.trim()??fail('SOURCE_PARSE_FAILED','sealed binding contract missing');
@@ -102,7 +105,8 @@ export function walkAt(root:string,dir:string):string[]{
     if(entry.isDirectory())out.push(...walkAt(root,child));
     else if(validateRepositoryEntryAt(root,child))out.push(child);
   }
-  return out.sort((left,right)=>Buffer.compare(Buffer.from(left),Buffer.from(right)));
+  out.sort((left,right)=>Buffer.compare(Buffer.from(left),Buffer.from(right)));
+  assertNoCaseCollision(out);return out;
 }
 function walk(dir:string):string[]{return walkAt(ROOT,dir)}
 

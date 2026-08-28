@@ -18,6 +18,7 @@ type Spec = { schemaVersion: number; specId: string; status: string; version: nu
 type CurrentAuthority = {
   activeLawIds: ReadonlySet<string>;
   domains: ReadonlySet<string>;
+  lawDependencies: ReadonlyMap<string, readonly string[]>;
   lawDomains: ReadonlyMap<string, string>;
   lawIdsByDomain: ReadonlyMap<string, string[]>;
 };
@@ -67,6 +68,7 @@ const loadCurrentAuthority = (): CurrentAuthority => {
   return {
     activeLawIds: new Set(laws.map((law) => law.lawId)),
     domains: new Set(laws.map((law) => law.capabilityDomain)),
+    lawDependencies: new Map(laws.map((law) => [law.lawId, law.dependsOnLawIds])),
     lawDomains: new Map(laws.map((law) => [law.lawId, law.capabilityDomain])),
     lawIdsByDomain,
   };
@@ -194,7 +196,7 @@ const validateBlueprint = (path: string, authority: CurrentAuthority): void => {
     }
   }
   if (!blueprintValid(raw, authority.activeLawIds, authority.domains, specPaths,
-    dependencyRepos, authority.lawDomains)) fail('SOURCE_PARSE_FAILED', `${path}:schema`);
+    dependencyRepos, authority.lawDomains, authority.lawDependencies)) fail('SOURCE_PARSE_FAILED', `${path}:schema`);
   if (path.endsWith('.md')) assertBlueprintMarkdownContractAuthority(text(path), contractAuthorities);
 };
 

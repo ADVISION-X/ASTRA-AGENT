@@ -358,6 +358,19 @@ const validEdges = (
   return prohibited.every((edge) => !allowedDirections.has(`${endpointSignature(edge.from)}\0${endpointSignature(edge.to)}`));
 };
 
+const lawDependenciesReflected = (
+  raw: Record<string, unknown>, lawIds: readonly string[], lawDomains: ReadonlyMap<string, string>,
+  lawDependencies: ReadonlyMap<string, readonly string[]>,
+): boolean => {
+  const actual = new Set((raw.dependencyEdges as BlueprintDependencyEdge[])
+    .filter((edge) => edge.from.repo === 'local' && edge.to.repo === 'local')
+    .map((edge) => `${edge.from.domain}\0${edge.to.domain}`));
+  return lawIds.every((lawId) => (lawDependencies.get(lawId) ?? []).every((dependencyLawId) => {
+    const from = lawDomains.get(lawId); const to = lawDomains.get(dependencyLawId);
+    return Boolean(from && to && (from === to || actual.has(`${from}\0${to}`)));
+  }));
+};
+
 export const blueprintValid = (
   raw: Record<string, unknown>,
   active: ReadonlySet<string>,
@@ -365,6 +378,7 @@ export const blueprintValid = (
   specPaths: ReadonlySet<string>,
   dependencyRepos: ReadonlyMap<string, string>,
   lawDomains: ReadonlyMap<string, string>,
+  lawDependencies: ReadonlyMap<string, readonly string[]>,
 ): boolean => {
   const lawIds = raw.lawIds;
   const refs = raw.contractRefs;
@@ -373,12 +387,14 @@ export const blueprintValid = (
     && isStringArray(lawIds) && lawIds.length > 0 && sortedUnique(lawIds)
     && lawIds.every((lawId) => active.has(lawId) && lawDomains.get(lawId) === raw.owner)
     && isStringArray(refs) && sortedUnique(refs) && refs.every((path) => specPaths.has(path))
-    && validEdges(raw, active, new Set(lawIds), domains, new Set(refs), dependencyRepos);
+    && validEdges(raw, active, new Set(lawIds), domains, new Set(refs), dependencyRepos)
+    && lawDependenciesReflected(raw, lawIds, lawDomains, lawDependencies);
 };
 
 function loadBlueprints(laws: Law[], manifests: Manifest[], contractRefs: Map<string, string[]>): void {
   const active = new Set(laws.map((law) => law.lawId));
   const lawDomains = new Map(laws.map((law) => [law.lawId, law.capabilityDomain]));
+  const lawDependencies = new Map(laws.map((law) => [law.lawId, law.dependsOnLawIds]));
   const domains = new Set(manifests.map((manifest) => manifest.capabilityDomain));
   const specPaths = new Set(walk('docs/specs').filter((path) => path.endsWith('.json')));
   const specs = new Map<string, GovernanceSpec>();
@@ -393,7 +409,7 @@ function loadBlueprints(laws: Law[], manifests: Manifest[], contractRefs: Map<st
   for (const file of walk('docs/blueprints').filter((path) => path.endsWith('.md') || path.endsWith('.json'))) {
     if (file.endsWith('.md') && !blueprintMarkdownBodyValid(text(file))) fail('SOURCE_PARSE_FAILED', `${file}:body`);
     const raw = file.endsWith('.json') ? parseJson<Record<string, unknown>>(file) : machineBlock(file, 'blueprint-record');
-    if (!blueprintValid(raw, active, domains, specPaths, dependencyRepos, lawDomains)) fail('SOURCE_PARSE_FAILED', `${file}:schema`);
+    if (!blueprintValid(raw, active, domains, specPaths, dependencyRepos, lawDomains, lawDependencies)) fail('SOURCE_PARSE_FAILED', `${file}:schema`);
     if (file.endsWith('.md')) assertBlueprintMarkdownContractAuthority(text(file), (raw.contractRefs as string[]).map((ref) => {
       const spec = specs.get(ref)!; const contract = spec.contract as Record<string, unknown>;
       return { contractId: typeof contract.contractId === 'string' ? contract.contractId : spec.specId, version: spec.version };

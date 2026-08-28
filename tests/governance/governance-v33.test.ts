@@ -8,12 +8,18 @@ import test from 'node:test';
 import { assertActiveSpecVersionWindows, assertOneActiveMajorPerLawKey, buildRegistry, checkProjection, loadLaws, motherSpecIdentityValid, parseLawSource, verifyEntry, verifyProductionOwnership } from '../../scripts/audit/governance-authority.js';
 import { assertLawMajorVersionChanges, assertProviderContractVersionChanges } from '../../scripts/audit/governance-change-authority.js';
 import { assertProductionDeleteAuthorization } from '../../scripts/audit/governance.js';
-import { GovernanceError } from '../../scripts/audit/governance-runtime.js';
+import { assertNoCaseCollision, GovernanceError } from '../../scripts/audit/governance-runtime.js';
 import { assertRoleConsumptionEdges } from '../../scripts/audit/shared/governance-role-consumption.js';
 import { pathRole } from '../../scripts/audit/shared/governance-paths.js';
 import { detectHighImpactChanges, type HighImpactFinding } from '../../scripts/audit/shared/high-impact-detector.js';
 
 const retiredDomains = ['audit-system', 'audit-truth', 'domain-registry', 'exam-system', 'law-system', 'project-governance'];
+
+test('builder source walk rejects case-fold path collisions', () => {
+  assert.throws(() => assertNoCaseCollision(['docs/blueprints/Case.md', 'docs/blueprints/case.md']),
+    (error: unknown) => error instanceof GovernanceError && error.code === 'SOURCE_PARSE_FAILED');
+  assert.doesNotThrow(() => assertNoCaseCollision(['docs/blueprints/alpha.md', 'docs/blueprints/beta.md']));
+});
 
 test('typed high-impact detector covers all twelve machine-owned categories', () => {
   const cases: Array<{ category: HighImpactFinding['category']; path: string; source: string }> = [
