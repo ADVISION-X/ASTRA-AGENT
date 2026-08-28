@@ -9,6 +9,7 @@ import {
   GPT_TURN_FLOW_VERSION,
   buildGptExecutionProfile,
   createGptAbilityGroup,
+  GptTurnExecutor,
   type GptChildCapabilityId,
 } from "../../src/capabilities/gpt/index.js";
 import type { BrowserDomIntent, BrowserTargetLease } from "../../src/lib/browser/browser-authority-api.js";
@@ -124,7 +125,7 @@ for (const retired of ["recover_gpt_response_checkpoint", "open_gpt_title_contro
   assert.equal(EXPECTED_GPT_CHILD_IDS.includes(retired as never), false);
 }
 const resumedCalls: Array<{ id: string; reconcileOnly: boolean }> = [];
-await createGptAbilityGroup().executeTurn({
+await new GptTurnExecutor().execute({
   executionId: "acceptance:resume",
   inputHash: INPUT_HASH,
   pluginStepId: "resume-step",

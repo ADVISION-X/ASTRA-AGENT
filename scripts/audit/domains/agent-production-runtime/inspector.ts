@@ -390,7 +390,7 @@ const inspectAgentProductionRuntime = (context: InspectorContext, findings: Insp
     mutationCheckId: "logical-mutation-boundary",
     gptExecutorMutationTokens: ["runAtomicStep({", "pluginStepId: input.stepId",
       "childCapabilityId: input.intent.childCapabilityId", "readGptTurnCheckpoint", "production-reconciliation"],
-    gptTurnFlowMutationTokens: ["executeTurn", "writeGptTurnCheckpoint", "reconcileOnly"],
+    gptTurnFlowMutationTokens: ["turnExecutor.execute", "writeGptTurnCheckpoint", "reconcileOnly"],
     evidenceMutationTokens: ["committedMutation === \"dispatched\""],
   });
 };

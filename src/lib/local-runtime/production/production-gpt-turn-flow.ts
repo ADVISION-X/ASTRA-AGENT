@@ -1,5 +1,6 @@
 import {
   GPT_TURN_FLOW_VERSION,
+  GptTurnExecutor,
   type GptAbilityGroup,
   type GptChildCapabilityIntent,
   type GptChildCapabilityResult,
@@ -42,6 +43,8 @@ type FlowInput = Readonly<{
   executeChild(intent: GptChildCapabilityIntent, context: GptExecutionContext): Promise<GptChildCapabilityResult>;
   failChild(result: GptChildCapabilityResult): never;
 }>;
+
+const turnExecutor = new GptTurnExecutor();
 
 const resumePoint = (checkpoint: GptTurnDurableCheckpoint | null): GptTurnResumePoint | null => checkpoint ? {
   stepIndex: checkpoint.step_index,
@@ -150,7 +153,7 @@ const assertFinalCheckpoint = (input: FlowInput, result: ProviderTurnResult): vo
 
 export const executeProductionGptTurnFlow = async (input: FlowInput): Promise<ProviderTurnResult> => {
   const dispatchState = { used: input.checkpoint?.provider_dispatch_used ?? false };
-  const execution = await input.gpt.executeTurn({
+  const execution = await turnExecutor.execute({
     executionId: input.state.executionId,
     inputHash: input.inputHash,
     pluginStepId: input.request.stepId,
