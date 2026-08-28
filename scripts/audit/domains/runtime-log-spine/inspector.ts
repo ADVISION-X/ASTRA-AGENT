@@ -188,9 +188,13 @@ const inspectOperationalContract = (context: InspectorContext): InspectorFinding
       "knownNativeCause", "record.cause", "record.httpStatus", "RuntimeFailureKind.TRANSPORT",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "typed-root-and-liveness",
-    "src/lib/local-runtime/production/runtime.ts", [
-      "typedExecutionFailure(error)?.code ?? fallbackCode", "const sessionHeartbeatLoop",
-      "stateKey: \"producer.alive\"", "stateKey: \"cloud.session\"", "stateKey: \"claim.admission\"",
+    "src/lib/local-runtime/production/runtime-logging.ts", [
+      "typedExecutionFailure(error)?.code ?? fallbackCode", "causedByEventId",
+    ]);
+  requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "typed-root-and-liveness",
+    "src/lib/local-runtime/production/runtime-loops.ts", [
+      "const sessionHeartbeatLoop", "stateKey: \"producer.alive\"",
+      "stateKey: \"cloud.session\"", "stateKey: \"claim.admission\"",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "diagnosis-api",
     "src/app/workbench-production-runtime-routes.ts", [
@@ -215,18 +219,14 @@ const inspectPrivacyAst = (context: InspectorContext): InspectorFinding[] => {
 };
 
 export const redactHashWriteOrderIsExact = (loggerSource: SourceFile | undefined): boolean => {
-  const logger = loggerSource?.getVariableDeclaration("createRuntimeLogger")
-    ?.getInitializerIfKind(SyntaxKind.ArrowFunction);
-  const persistDeclarations = logger?.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
-    .filter((declaration) => declaration.getName() === "persist") ?? [];
-  if (persistDeclarations.length !== 1) return false;
-  const persist = persistDeclarations[0]!.getInitializerIfKind(SyntaxKind.ArrowFunction);
+  const persist = loggerSource?.getClass("RuntimeLoggerOwner")?.getMethod("persist");
+  if (!persist) return false;
   const calls = persist?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
   const redactAt = calls.find((call) => call.getExpression().getText() === "redactedUnsigned"
     && call.getArguments()[0]?.getText() === "unsignedInput")?.getStart() ?? -1;
   const hashAt = calls.find((call) => call.getExpression().getText() === "runtimeEventHash"
     && call.getArguments()[0]?.getText() === "unsigned")?.getStart() ?? -1;
-  const writeAt = calls.find((call) => call.getExpression().getText() === "fileSink.write"
+  const writeAt = calls.find((call) => call.getExpression().getText() === "this.fileSink.write"
     && call.getArguments()[0]?.getText().startsWith("event") === true)?.getStart() ?? -1;
   return redactAt >= 0 && redactAt < hashAt && hashAt < writeAt;
 };

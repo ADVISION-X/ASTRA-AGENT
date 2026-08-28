@@ -802,7 +802,7 @@ test("the active evidence-ownership blueprint rejects central clauses and mode s
   assert.equal(staticContract.includes("requirement.targetPaths.includes(objectPath)"), true);
   assert.equal(qualityContract.includes('"static.types": "test"'), true);
   assert.equal(qualityContract.includes('"static.types": "ast"'), false);
-  const agent = readFileSync("scripts/audit/domains/agent-production-runtime/inspector.ts", "utf8");
+  const agent = readFileSync("scripts/audit/domains/agent-production-runtime/session-output.ts", "utf8");
   const gpt = readFileSync("scripts/audit/domains/gpt/inspector.ts", "utf8");
   const capability = readFileSync("scripts/audit/domains/capability-governance/inspector.ts", "utf8");
   const directProof = readFileSync("scripts/acceptance/agent-production-runtime.real-proof.ts", "utf8");
@@ -1158,7 +1158,7 @@ test("active Browser and Runtime Log inspectors reject semantic decoys", () => {
     const project = new Project({ useInMemoryFileSystem: true });
     return project.createSourceFile(path, source);
   };
-  const domPath = "src/lib/browser/chrome-extension/dom-intent-runtime.ts";
+  const domPath = "src/lib/browser/chrome-extension/dom-query-runtime.ts";
   const dom = readFileSync(domPath, "utf8");
   assert.equal(exactTextMatcherIsStrict(inspectSource(domPath, dom)), true);
   for (const mutant of [
@@ -1171,10 +1171,9 @@ test("active Browser and Runtime Log inspectors reject semantic decoys", () => {
   const loggerPath = "src/lib/runtime-logs/logger.ts";
   const logger = readFileSync(loggerPath, "utf8");
   assert.equal(redactHashWriteOrderIsExact(inspectSource(loggerPath, logger)), true);
-  const redactionDecoy = logger
-    .replace("const unsigned = redactedUnsigned(unsignedInput);", "const unsigned = unsignedInput;")
-    .replace("if (fileSink) fileSink.write(event as RuntimeLogEventV2);",
-      "redactedUnsigned(unsignedInput);\n      if (fileSink) fileSink.write(event as RuntimeLogEventV2);");
+  const redactionDecoy = logger.replace(
+    "const unsigned = redactedUnsigned(unsignedInput);", "const unsigned = unsignedInput;",
+  );
   assert.equal(redactHashWriteOrderIsExact(inspectSource(loggerPath, redactionDecoy)), false);
 });
 
