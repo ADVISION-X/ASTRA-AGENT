@@ -1,0 +1,30 @@
+import type { RuntimeDiagnosis } from "../../runtime-logs/index.js";
+import type { ProductionHash } from "./contracts.js";
+import type { ProductionRuntimeStore } from "./store.js";
+
+export interface ProductionRuntimeHealth {
+  readonly shellState: "ready";
+  readonly cloudState: "ready" | "contract_blocked" | "transient_degraded" | "stopped";
+  readonly browserState: "ready" | "blocked";
+  readonly executionState: "ready" | "blocked" | "draining";
+  readonly claimAdmissionState: "eligible" | "blocked" | "draining";
+  readonly logSinkState: "ready" | "failed" | "capacity_blocked";
+  readonly browserAuthorityState: "present" | "absent";
+  readonly browserTargetState: "claimed" | "absent";
+  readonly browserLaneState: "idle" | "busy" | "blocked";
+  readonly contractManifestHash: ProductionHash;
+  readonly catalogHash: ProductionHash;
+  readonly activeCount: number;
+  readonly pendingOutboxCount: number;
+  readonly lastSuccessfulHeartbeatAt: string | null;
+  readonly lastErrorCode: string | null;
+  readonly lastErrorReason: string | null;
+  readonly checkedAt: string;
+}
+
+export interface ProductionRuntimeHandle {
+  readonly close: () => Promise<void>;
+  readonly readHealth: () => ProductionRuntimeHealth;
+  readonly readTask: (jobId: string) => ReturnType<ProductionRuntimeStore["readTask"]>;
+  readonly diagnose: (jobId: string) => RuntimeDiagnosis;
+}

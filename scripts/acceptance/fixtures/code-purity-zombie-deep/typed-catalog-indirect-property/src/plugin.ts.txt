@@ -1,0 +1,11 @@
+export interface Runner {
+  readonly id: string;
+  readonly execute: () => string;
+}
+
+const executeRunner = (): string => "done";
+
+export const runner: Runner = {
+  id: "runner",
+  execute: executeRunner,
+};

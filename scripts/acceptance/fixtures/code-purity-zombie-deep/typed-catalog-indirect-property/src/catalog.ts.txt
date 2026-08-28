@@ -1,0 +1,6 @@
+import { runner, type Runner } from "./plugin.js";
+
+const catalog = Object.freeze([runner] as const satisfies readonly Runner[]);
+const byId = new Map(catalog.map((entry) => [entry.id, entry]));
+
+export const resolveRunner = (): Runner => byId.get("runner")!;

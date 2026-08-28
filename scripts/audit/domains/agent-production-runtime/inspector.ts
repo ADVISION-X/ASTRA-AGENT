@@ -9,35 +9,16 @@ import type {
   SessionInspectorOutput,
 } from "../../shared/inspector-contracts.js";
 import {
-  producerModePassed,
   recordStaticCheck,
-  staticClauses,
-  staticForbiddenClauses,
-  staticEvidenceRefs,
-  validateStaticInspection,
 } from "../../shared/static-inspection-contract.js";
-import {
-  observeStaticAst,
-  observeStaticContract,
-  observeStaticDependency,
-  observeStaticFilesystem,
-  observeStaticTypes,
-} from "../../shared/static-target-object-inspector.js";
+import { buildAgentProductionSessionOutput } from "./session-output.js";
 const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V6";
-const MODE_CLAUSES = {
-  "static.filesystem": staticForbiddenClauses(1, 16, 17), "static.ast": staticClauses(2, 4, 5, 9, 10, 11, 13, 14, 15, 17, 18, 19, 20, 21, 23, 24, 25),
-  "static.types": staticForbiddenClauses(3, 5, 8, 11, 12), "static.contract": staticForbiddenClauses(3, 5, 6, 7, 8, 12, 13, 15),
-  "static.dependency": staticForbiddenClauses(0, 1, 2, 4, 6, 16),
-} as const;
-const MODE_CHECKS = {
-  "static.filesystem": ["inspectAgentFilesystem"], "static.ast": ["inspectAgentProductionRuntime"],
-  "static.types": ["inspectAgentTypes"], "static.contract": ["inspectAgentContracts"], "static.dependency": ["inspectAgentDependencies"],
-} as const;
 const PLUGIN_ROOT = "src/plugins";
 const CATALOG_PATH = "src/lib/local-runtime/production/catalog.ts";
 const CONTRACT_PATH = "src/lib/local-runtime/production/contracts.ts";
 const TRANSPORT_PATH = "src/lib/local-runtime/production/transport-protocol.ts";
-const RUNTIME_PATH = "src/lib/local-runtime/production/runtime.ts";
+const RUNTIME_PATH = "src/lib/local-runtime/production/runtime-claim.ts";
+const RUNTIME_LOGGING_PATH = "src/lib/local-runtime/production/runtime-logging.ts";
 const PLUGIN_CONTRACT_PATH = "src/lib/local-runtime/production/plugin.ts";
 const MEDIATOR_PATH = "src/mediator/agent-production-route.ts";
 const PSC_PATH = "src/capabilities/gpt/session/gpt-session-controller.ts";
@@ -45,6 +26,8 @@ const LOCALIZATION_PLUGIN_PATH = "src/plugins/localization-production/index.ts";
 const LOCALIZATION_SKILL_PATH = "src/plugins/localization-production/SKILL.md";
 const REAL_PROOF_PATH = "scripts/acceptance/agent-production-runtime.real-proof.ts";
 const EXECUTOR_PATH = "src/lib/local-runtime/production/executor.ts";
+const GPT_EXECUTOR_PATH = "src/lib/local-runtime/production/production-gpt-executor.ts";
+const GPT_EVIDENCE_PATH = "src/lib/local-runtime/production/gpt-evidence-writer.ts";
 const CLOUD_CLIENT_PATH = "src/lib/local-runtime/production/cloud-client.ts";
 const TYPED_FAILURE_PATH = "src/lib/typed-failure.ts";
 const GPT_RESPONSE_PATH = "src/capabilities/gpt/web/children/response-children.ts";
@@ -298,19 +281,25 @@ const inspectRetirementAndDurability = (context: InspectorContext, findings: Ins
       "agent-production-runtime/retired-path-zero", retired, `${retired} must be physically absent.`,
     ));
   }
-  const storeText = read(context, "src/lib/local-runtime/production/store.ts");
+  const storePaths = [
+    "src/lib/local-runtime/production/store-foundation.ts",
+    "src/lib/local-runtime/production/store-task-state.ts",
+    "src/lib/local-runtime/production/store-outbox.ts",
+    "src/lib/local-runtime/production/store-ledger.ts",
+  ] as const;
+  const storeText = storePaths.map((path) => read(context, path)).join("\n");
   for (const required of [
     "journal_mode = WAL", "identity_json", "plugin_id", "plugin_version", "request_hash",
     "PRODUCTION_OUTBOX_IDEMPOTENCY_CONFLICT",
     "PLUGIN_IDENTITY_CHANGED_BEFORE_RECOVERY", "review_required", "lane_owner_job_id",
   ]) {
     if (!storeText.includes(required)) findings.push(finding(
-      "agent-production-runtime/durable-runtime", "src/lib/local-runtime/production/store.ts",
+      "agent-production-runtime/durable-runtime", "src/lib/local-runtime/production/store-foundation.ts",
       `Production store is missing durable invariant ${required}.`,
     ));
   }
   if (storeText.includes("production_stages")) findings.push(finding(
-    "agent-production-runtime/stage-ledger-retired", "src/lib/local-runtime/production/store.ts",
+    "agent-production-runtime/stage-ledger-retired", "src/lib/local-runtime/production/store-foundation.ts",
     "Production store still contains the retired website Stage mirror.",
   ));
 
@@ -329,7 +318,7 @@ const inspectRetirementAndDurability = (context: InspectorContext, findings: Ins
   const runtimeText = read(context, RUNTIME_PATH);
   const durableAcceptAt = runtimeText.indexOf("state.executor.accept(task)");
   const acceptedAt = runtimeText.indexOf("accepted = true", durableAcceptAt);
-  const remoteCheckpointAt = runtimeText.indexOf("checkpointWithLog(", acceptedAt);
+  const remoteCheckpointAt = runtimeText.indexOf("downloadClaimMaterials(state, job", acceptedAt);
   if (durableAcceptAt < 0 || acceptedAt <= durableAcceptAt || remoteCheckpointAt <= acceptedAt) findings.push(finding(
     "agent-production-runtime/durable-accept-before-remote-checkpoint", RUNTIME_PATH,
     "The runtime must mark durable local acceptance before attempting the remote acceptance checkpoint.",
@@ -379,19 +368,21 @@ const inspectDirectDynamicProof = (context: InspectorContext, findings: Inspecto
 const inspectV5Hardening = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const required: ReadonlyArray<Readonly<{ path: string; checkId: string; tokens: readonly string[] }>> = [
     { path: PLUGIN_CONTRACT_PATH, checkId: "strict-result-parser", tokens: ["readonly parseResult:"] },
-    { path: EXECUTOR_PATH, checkId: "strict-result-parser", tokens: ["authorized.plugin.parseResult", "safeGptEvidenceProjection", "appendRecord", "readRecordRef", "EVIDENCE_READBACK_FAILED"] },
+    { path: EXECUTOR_PATH, checkId: "strict-result-parser", tokens: ["authorized.plugin.parseResult"] },
+    { path: GPT_EVIDENCE_PATH, checkId: "strict-result-parser", tokens: ["safeProjection", "appendRecord", "readRecordRef", "EVIDENCE_READBACK_FAILED"] },
     { path: CLOUD_CLIENT_PATH, checkId: "result-receipt-binding", tokens: ["plugin.parseResult", "uploadGeneratedImage", "execution_receipt_hash", "evidence_refs"] },
     { path: GPT_RESPONSE_PATH, checkId: "generated-image-bytes", tokens: ["sharp(original", ".resize(1200, 630", ".webp(", "metadata.exif", "metadata.xmp", "GPT_GENERATED_IMAGE_READBACK_INVALID"] },
     { path: TYPED_FAILURE_PATH, checkId: "typed-failure-chain", tokens: ["typedExecutionFailure", "httpStatus", "cause"] },
-    { path: RUNTIME_PATH, checkId: "typed-failure-chain", tokens: ["typedExecutionFailure(error)?.code", "causedByEventId"] },
+    { path: RUNTIME_LOGGING_PATH, checkId: "typed-failure-chain", tokens: ["typedExecutionFailure(error)?.code", "causedByEventId"] },
     { path: TRANSPORT_PATH, checkId: "typed-failure-chain", tokens: ["executionFailure(", "httpStatus"] },
     { path: CONTRACT_PATH, checkId: "binary-terminal", tokens: ["z.enum([\"completed\", \"failed\"])", "SerializedExecutionFailureSchema"] },
-    { path: RUNTIME_PATH, checkId: "bounded-attempt-decision", tokens: ["RETRY_FROM_CHECKPOINT", "RECONCILE_ONLY", "FINAL_FAILED", "attempt_mode", "max_provider_turns"] },
+    { path: RUNTIME_PATH, checkId: "bounded-attempt-decision", tokens: ["RETRY_FROM_CHECKPOINT", "RECONCILE_ONLY", "FINAL_FAILED", "attempt_mode"] },
+    { path: "src/lib/local-runtime/production/runtime-state.ts", checkId: "bounded-attempt-decision", tokens: ["max_provider_turns"] },
     { path: CLOUD_CLIENT_PATH, checkId: "attempt-failure-receipt", tokens: ["attempt_failure", "RETRY_FROM_CHECKPOINT", "RECONCILE_ONLY"] },
-    { path: EXECUTOR_PATH, checkId: "logical-mutation-boundary", tokens: [
+    { path: GPT_EXECUTOR_PATH, checkId: "logical-mutation-boundary", tokens: [
       "runAtomicStep({", "pluginStepId: input.stepId", "childCapabilityId: input.intent.childCapabilityId",
-      "committedMutation === \"dispatched\"",
     ] },
+    { path: GPT_EVIDENCE_PATH, checkId: "logical-mutation-boundary", tokens: ["committedMutation === \"dispatched\""] },
     { path: PRODUCTION_BLUEPRINT_PATH, checkId: "local-agent-process-owner", tokens: ["AGENT 始终运行在用户本地 Mac", "不授予网站 AGENT 进程"] },
   ];
   for (const entry of required) {
@@ -401,14 +392,14 @@ const inspectV5Hardening = (context: InspectorContext, findings: InspectorFindin
       `V5 hardening boundary is missing ${token}.`, undefined, "static.ast",
     ));
   }
-  const executor = read(context, EXECUTOR_PATH);
-  const projectionStart = executor.indexOf("const safeGptEvidenceProjection");
-  const projectionEnd = executor.indexOf("export class ProductionExecutor", projectionStart);
+  const executor = read(context, GPT_EVIDENCE_PATH);
+  const projectionStart = executor.indexOf("const safeProjection");
+  const projectionEnd = executor.indexOf("const generatedImageArtifacts", projectionStart);
   const projection = projectionStart >= 0 && projectionEnd > projectionStart
     ? executor.slice(projectionStart, projectionEnd) : "";
   for (const forbidden of ["raw_url", "selector", "prompt", "local_path", "html"]) {
     if (!projection || projection.toLocaleLowerCase("en-US").includes(forbidden)) findings.push(finding(
-      "agent-production-runtime/forensics-safe-projection", EXECUTOR_PATH,
+      "agent-production-runtime/forensics-safe-projection", GPT_EVIDENCE_PATH,
       `Forensics evidence projection is missing or contains forbidden field ${forbidden}.`, undefined, "static.ast",
     ));
   }
@@ -509,42 +500,7 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => {
     staticCheckReceipts,
   };
 };
-const observationFor = (
-  context: InspectorContext,
-  evidenceMode: "static.filesystem" | "static.ast" | "static.types" | "static.contract" | "static.dependency",
-  receipts: InspectorEvaluation["staticCheckReceipts"],
-): string[] => {
-  const checks = MODE_CHECKS[evidenceMode];
-  const input = {
-    context,
-    lawId: LAW_ID,
-    evidenceMode,
-    clauses: MODE_CLAUSES[evidenceMode],
-    checks,
-    executionPassed: producerModePassed(receipts, LAW_ID, checks),
-  };
-  if (evidenceMode === "static.filesystem") return observeStaticFilesystem(input);
-  if (evidenceMode === "static.ast") return observeStaticAst(input);
-  if (evidenceMode === "static.types") return observeStaticTypes(input);
-  if (evidenceMode === "static.contract") return observeStaticContract(input);
-  return observeStaticDependency(input);
-};
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = evaluate(context);
-  const checks = (evidenceMode: keyof typeof MODE_CLAUSES): string[] => [...MODE_CHECKS[evidenceMode]];
-  const assertions = ([
-    "static.filesystem", "static.ast", "static.types", "static.contract", "static.dependency",
-  ] as const).map((evidenceMode) => ({
-    clauses: [...MODE_CLAUSES[evidenceMode]],
-    evidenceMode,
-    passed: producerModePassed(evaluation.staticCheckReceipts, LAW_ID, checks(evidenceMode)),
-    refs: staticEvidenceRefs(context, LAW_ID, evidenceMode, MODE_CLAUSES[evidenceMode], evaluation.staticCheckReceipts,
-      checks(evidenceMode), observationFor(context, evidenceMode, evaluation.staticCheckReceipts)),
-  }));
-  return validateStaticInspection(context, {
-    capabilityDomain: evaluation.capabilityDomain,
-    reportedLawIds: evaluation.reportedLawIds,
-    lawResults: [{ lawId: LAW_ID, assertions, findings: evaluation.findings }],
-    inspectedFiles: evaluation.inspectedFiles,
-  });
+  return buildAgentProductionSessionOutput(context, evaluation);
 };

@@ -1,4 +1,4 @@
-import type { Registry } from "../governance-authority.js";
+import type { Registry } from "../governance-contract.js";
 import { fail } from "../governance-runtime.js";
 
 const byteCompare = (left: string, right: string): number => Buffer.compare(Buffer.from(left), Buffer.from(right));

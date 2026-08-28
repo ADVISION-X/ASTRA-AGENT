@@ -12,7 +12,8 @@ import { basename, join } from "node:path";
 
 import { isEventVisibleInMode, type RuntimeLogMode } from "./mode.js";
 import { runtimeEventIntegrityValid } from "./integrity.js";
-import { runtimeLogEventShapeValid, type RuntimeLogEventV2 } from "./schema.js";
+import { runtimeLogEventShapeValid } from "./schema.js";
+import type { RuntimeLogEventV2 } from "./runtime-event-contract.js";
 
 export type RuntimeFileSinkOptions = Readonly<{
   directoryPath: string;
@@ -56,6 +57,32 @@ const initialRunState = (): RunState => ({
   reconciledCheckpoints: new Set(), sealed: false,
 });
 
+const updateJobProtection = (state: RunState, event: Extract<RuntimeLogEventV2, { type: "STATE" }>): void => {
+  if (event.stateKey !== "job.lifecycle") return;
+  const key = event.traceId;
+  if (event.reconciledFromAuthority === true) {
+    if (["accepted", "running", "recovery_pending"].includes(event.current)) state.reconciledJobs.add(key);
+    else state.reconciledJobs.delete(key);
+  }
+  if (["completed", "failed", "review_required"].includes(event.current)) state.openJobs.delete(key);
+  else state.openJobs.add(key);
+};
+
+const updateAuthorityProtection = (state: RunState, event: Extract<RuntimeLogEventV2, { type: "STATE" }>): void => {
+  if (event.reconciledFromAuthority !== true) return;
+  if (event.stateKey === "job.lease") state.reconciledLeases.add(event.traceId);
+  if (event.stateKey === "job.checkpoint") state.reconciledCheckpoints.add(event.traceId);
+};
+
+const updateOpenSet = (
+  values: Set<string>,
+  key: string,
+  closed: boolean,
+): void => {
+  if (closed) values.delete(key);
+  else values.add(key);
+};
+
 const updateProtection = (state: RunState, event: RuntimeLogEventV2): void => {
   state.sealed = event.type === "STATE"
     && event.stateKey === "producer.lifecycle"
@@ -65,30 +92,15 @@ const updateProtection = (state: RunState, event: RuntimeLogEventV2): void => {
     else state.openSpans.delete(event.spanId);
     return;
   }
-  if (event.stateKey === "job.lifecycle") {
-    const key = event.traceId;
-    if (event.reconciledFromAuthority === true) {
-      if (["accepted", "running", "recovery_pending"].includes(event.current)) state.reconciledJobs.add(key);
-      else state.reconciledJobs.delete(key);
-    }
-    if (["completed", "failed", "review_required"].includes(event.current)) state.openJobs.delete(key);
-    else state.openJobs.add(key);
-  }
-  if (event.stateKey === "job.lease" && event.reconciledFromAuthority === true) {
-    state.reconciledLeases.add(event.traceId);
-  }
-  if (event.stateKey === "job.checkpoint" && event.reconciledFromAuthority === true) {
-    state.reconciledCheckpoints.add(event.traceId);
-  }
+  updateJobProtection(state, event);
+  updateAuthorityProtection(state, event);
   if (event.stateKey === "browser.mutation") {
     const key = event.authorityRef ?? event.traceId;
-    if (["CONFIRMED", "FAILED"].includes(event.current)) state.openMutations.delete(key);
-    else state.openMutations.add(key);
+    updateOpenSet(state.openMutations, key, ["CONFIRMED", "FAILED"].includes(event.current));
   }
   if (event.stateKey === "outbox.delivery") {
     const key = event.authorityRef ?? event.traceId;
-    if (event.current === "delivered") state.pendingOutbox.delete(key);
-    else state.pendingOutbox.add(key);
+    updateOpenSet(state.pendingOutbox, key, event.current === "delivered");
   }
 };
 

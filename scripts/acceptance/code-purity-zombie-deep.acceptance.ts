@@ -121,7 +121,14 @@ const forbidden: Array<[string, ExpectedFinding]> = [
   ["fixed-array-registry-consumer", { checkId: "code-purity/object-bag-unused-property" }],
   ["total-typed-registry-spread", { checkId: "code-purity/object-bag-dynamic-usage" }],
   ["total-typed-registry-spread", { checkId: "code-purity/object-bag-unused-property" }],
+  ["typed-catalog-indirect-property", { checkId: "code-purity/object-bag-unused-property", symbolName: "executeRunner" }],
+  ["eager-destructured-initializer", { checkId: "code-purity/zombie-top-level-declaration", symbolName: "liveValue" }],
 ];
+
+assert.equal(resolveCodePurityOwner("scripts/generate/sync.ts"), "agent-production-runtime");
+assert.equal(resolveCodePurityOwner("scripts/runtime-logs/inspect.ts"), "runtime-logs");
+assert.equal(resolveCodePurityRole("scripts/generate/sync.ts"), "audit-phase");
+assert.equal(resolveCodePurityRole("scripts/runtime-logs/inspect.ts"), "audit-phase");
 
 for (const [caseName, expected] of required) assert.equal(hasFinding(caseName, expected), true, `${caseName} must emit ${expected.checkId}`);
 for (const [caseName, expected] of forbidden) assert.equal(hasFinding(caseName, expected), false, `${caseName} must not emit ${expected.checkId}`);

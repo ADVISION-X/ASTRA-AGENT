@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { executionFailure, type SerializedExecutionFailure } from "../../typed-failure.js";
 
-export const WEBSITE_AGENT_PROTOCOL_VERSION = "xuanxue-ai-production-v6" as const;
+const WEBSITE_AGENT_PROTOCOL_VERSION = "xuanxue-ai-production-v6" as const;
 export const TASK_CONTRACT_ID = "website-agent-task" as const;
 export const TASK_CONTRACT_VERSION = 1 as const;
 export const RESULT_CONTRACT_ID = "website-agent-result" as const;
@@ -24,7 +24,7 @@ const SerializedExecutionFailureSchema = z.object({
   }).strict().nullable(),
 }).strict();
 
-export const TerminalReceiptSchema = z.object({
+const TerminalReceiptSchema = z.object({
   schema_version: z.literal("xuanxue-ai-terminal-receipt.v6"),
   job_id: z.string().min(1).max(240),
   terminal_status: TerminalStatusSchema,
@@ -44,7 +44,7 @@ export const TerminalReceiptSchema = z.object({
 });
 
 export type TerminalReceipt = z.infer<typeof TerminalReceiptSchema>;
-export type TerminalReceiptExpectation = Readonly<{
+type TerminalReceiptExpectation = Readonly<{
   job_id: string;
   terminal_status: TerminalReceipt["terminal_status"];
   payload_hash: ProductionHash;
@@ -84,7 +84,7 @@ export const ProductionProductIdSchema = z.enum([
   "payment_screenshot_observation",
 ]);
 
-export const ProductionActionIdSchema = z.enum([
+const ProductionActionIdSchema = z.enum([
   "produce",
   "followup",
   "produce_article",
@@ -95,7 +95,7 @@ export const ProductionActionIdSchema = z.enum([
   "quality_reflection",
 ]);
 
-export const ProductionMaterialSchema = z.object({
+const ProductionMaterialSchema = z.object({
   material_id: z.string().min(1).max(240),
   ordinal: z.number().int().nonnegative(),
   role: z.string().min(1).max(120),
@@ -195,7 +195,7 @@ export const WebsiteAgentTaskSchema = WebsiteAgentTaskBaseSchema.superRefine((ta
 export type WebsiteAgentTask = z.infer<typeof WebsiteAgentTaskSchema>;
 export type ProductionProductId = z.infer<typeof ProductionProductIdSchema>;
 export type ProductionActionId = z.infer<typeof ProductionActionIdSchema>;
-export type ProductionMaterial = z.infer<typeof ProductionMaterialSchema>;
+type ProductionMaterial = z.infer<typeof ProductionMaterialSchema>;
 export type ProductionHash = `sha256:${string}`;
 
 export type LocalProductionMaterial = ProductionMaterial & Readonly<{ local_path: string }>;

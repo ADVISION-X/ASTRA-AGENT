@@ -32,6 +32,36 @@ const binding = (jobId: string): BrowserExecutionBinding => ({
   commandTtlMs: 60_000,
 });
 
+const fixtureLease = (
+  entry: BrowserExecutionBinding,
+  close: BrowserTargetLease["close"],
+): BrowserTargetLease => ({
+  leaseRef: `lease:${entry.jobId}`,
+  authorityRef: "authority:fixture",
+  authorityEpoch: 1,
+  executionBindingHash: HASH,
+  ownerId: entry.ownerPluginId,
+  agentJobRefHash: HASH,
+  agentExecutionRefHash: HASH,
+  writerLeaseEpoch: 1,
+  writerFenceHash: HASH,
+  target: { targetRef: `target:${entry.jobId}`, authorityEpoch: 1, executionBindingHash: HASH },
+  document: { documentRef: `document:${entry.jobId}`, targetRef: `target:${entry.jobId}`, navigationEpoch: 1 },
+  async runAtomicStep(_identity, action) { return action(); },
+  async navigate() { throw new Error("FIXTURE_NAVIGATION_FORBIDDEN"); },
+  async executeDomIntent() { throw new Error("FIXTURE_DOM_INTENT_FORBIDDEN"); },
+  async observeCapability() { throw new Error("FIXTURE_CAPABILITY_FORBIDDEN"); },
+  async captureScreenshot() { throw new Error("FIXTURE_SCREENSHOT_FORBIDDEN"); },
+  async attachFile() { throw new Error("FIXTURE_ATTACHMENT_FORBIDDEN"); },
+  async registerFileArtifact() { throw new Error("FIXTURE_ARTIFACT_FORBIDDEN"); },
+  async issueFileArtifactGrant() { throw new Error("FIXTURE_ARTIFACT_GRANT_FORBIDDEN"); },
+  async wait() { throw new Error("FIXTURE_WAIT_FORBIDDEN"); },
+  close,
+  async resolvePendingMutation() { throw new Error("FIXTURE_MUTATION_RESOLUTION_FORBIDDEN"); },
+  pendingMutationCount: () => 0,
+  assertNoPendingMutations() {},
+});
+
 const temporary = await mkdtemp(join(tmpdir(), "browser-lane-fifo-"));
 let supervisor: BrowserInfrastructureSupervisor | null = null;
 try {
@@ -106,8 +136,7 @@ try {
       entry: BrowserExecutionBinding,
     ): Promise<BrowserTargetLease> => {
       acquisitions.push(entry.jobId);
-      return {
-        close: async () => {
+      return fixtureLease(entry, async () => {
           if (entry.jobId === "job:unsettled") {
             throw executionFailure(
               "review_required",
@@ -115,11 +144,10 @@ try {
               { mutationOutcome: "no" },
             );
           }
-        },
-      } as unknown as BrowserTargetLease;
+        });
     },
   };
-  (supervisor as unknown as { broker: typeof broker }).broker = broker;
+  assert.equal(Reflect.set(supervisor, "broker", broker), true);
 
   const openSignal = new AbortController();
   const first = await supervisor.acquireJobBoundTargetLease(

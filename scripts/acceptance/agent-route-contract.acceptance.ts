@@ -23,17 +23,17 @@ const common = Object.freeze({
 });
 
 const parameterValue = (key: string, route: ProductionRoutePolicy): unknown => {
+  const fixed: Readonly<Record<string, unknown>> = {
+    evidence_ref_catalog: ["rec-a"], analysis_kind: "chart_interpretation",
+    article_package_contract_version: "public-knowledge-article-package.v1",
+    observation_schema_version: "payment-screenshot-observation-v1",
+    reflection_contract_version: "scheduled-quality-reflection.v1",
+    target_locale: "en-US", locale: "zh-CN", thread_ref: "continuation:1",
+  };
   if (key === "result_schema_version") return route.result_schema_version;
-  if (key === "evidence_ref_catalog") return ["rec-a"];
-  if (key === "analysis_kind") return "chart_interpretation";
-  if (key === "article_package_contract_version") return "public-knowledge-article-package.v1";
-  if (key === "observation_schema_version") return "payment-screenshot-observation-v1";
-  if (key === "reflection_contract_version") return "scheduled-quality-reflection.v1";
-  if (key === "target_locale") return "en-US";
-  if (key === "locale") return "zh-CN";
+  if (Object.hasOwn(fixed, key)) return fixed[key];
   if (key === "resource_kind") return route.product_id === "localization_report_translation" ? "report" : "article";
   if (key.endsWith("_hash") || key.endsWith("_sha256")) return HASH;
-  if (key === "thread_ref") return "continuation:1";
   return `${key}:1`;
 };
 
@@ -106,8 +106,7 @@ const publicResearch = Object.freeze({
   novelty_basis: "novel",
 });
 
-const outputFor = (task: WebsiteAgentTask, route: ProductionRoutePolicy): Record<string, unknown> => {
-  if (route.relation_kind === "review") return { decision: "no_issue", issues: [] };
+const coreOutputFor = (task: WebsiteAgentTask, route: ProductionRoutePolicy): Record<string, unknown> | null => {
   switch (task.product_id) {
     case "bazi_chart_interpretation": return {
       ...report(route.result_schema_version, "report_summary", "interpretation_blocks"),
@@ -149,6 +148,12 @@ const outputFor = (task: WebsiteAgentTask, route: ProductionRoutePolicy): Record
       parent_raw_output_hash: task.parameters.parent_raw_output_hash,
       new_question_snapshot: "question", covered_question_unit_refs: ["question:1"],
     };
+    default: return null;
+  }
+};
+
+const specializedOutputFor = (task: WebsiteAgentTask, route: ProductionRoutePolicy): Record<string, unknown> => {
+  switch (task.product_id) {
     case "naming_from_existing_bazi_report": return {
       schema_version: route.result_schema_version,
       requirement_manifest_ref: task.parameters.requirement_manifest_ref,
@@ -198,7 +203,13 @@ const outputFor = (task: WebsiteAgentTask, route: ProductionRoutePolicy): Record
       schema_version: route.result_schema_version, page_kind: "payment_success", payment_app: "alipay",
       success_visible: true, visible_amount_minor_units: 100, reason_code: "VISIBLE_SUCCESS",
     };
+    default: throw new Error(`AGENT_ROUTE_ACCEPTANCE_OUTPUT_MISSING:${task.product_id}`);
   }
+};
+
+const outputFor = (task: WebsiteAgentTask, route: ProductionRoutePolicy): Record<string, unknown> => {
+  if (route.relation_kind === "review") return { decision: "no_issue", issues: [] };
+  return coreOutputFor(task, route) ?? specializedOutputFor(task, route);
 };
 
 assert.equal(productionRoutePolicies.length, 39);

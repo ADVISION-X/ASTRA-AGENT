@@ -1,5 +1,3 @@
-import type { RuntimeLogEventV2 } from "./schema.js";
-
 export const REDACTED = "[REDACTED]";
 export const REDACTED_UNSAFE = "[REDACTED_UNSAFE]";
 
@@ -49,8 +47,5 @@ const redactUnknown = (key: string, value: unknown, depth: number): unknown => {
   return REDACTED_UNSAFE;
 };
 
-export const redactRuntimeLogRecord = (record: Readonly<Record<string, unknown>>): Record<string, unknown> =>
-  redactUnknown("record", record, 0) as Record<string, unknown>;
-
-export const redactRuntimeLogEvent = (event: RuntimeLogEventV2): RuntimeLogEventV2 =>
-  redactRuntimeLogRecord(event as unknown as Readonly<Record<string, unknown>>) as unknown as RuntimeLogEventV2;
+export const redactRuntimeLogRecord = <T extends Readonly<Record<string, unknown>>>(record: T): T =>
+  redactUnknown("record", record, 0) as T;

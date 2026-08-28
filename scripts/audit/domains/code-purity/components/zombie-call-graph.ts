@@ -1,4 +1,4 @@
-import { Node, type Identifier, type Node as MorphNode, type Statement } from "ts-morph";
+import { Node, SyntaxKind, type Identifier, type Node as MorphNode, type Statement } from "ts-morph";
 
 import { toRepoPath } from "../../../shared/paths.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
@@ -116,6 +116,23 @@ const isTopLevelVariableInitializerReference = (
   });
 };
 
+const isEagerTopLevelVariableInitializerReference = (referenceNode: MorphNode): boolean => {
+  const declaration = referenceNode.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
+  if (!declaration || !Node.isVariableDeclaration(declaration)) return false;
+  const statement = declaration.getFirstAncestorByKind(SyntaxKind.VariableStatement);
+  if (!statement || !Node.isVariableStatement(statement) || !isTopLevelStatement(statement)) return false;
+  const initializer = declaration.getInitializer();
+  if (!initializer || !isWithinBoundary(referenceNode, initializer)) return false;
+  return !referenceNode.getAncestors().some((ancestor) => ancestor !== initializer && (
+    Node.isArrowFunction(ancestor)
+    || Node.isFunctionDeclaration(ancestor)
+    || Node.isFunctionExpression(ancestor)
+    || Node.isMethodDeclaration(ancestor)
+    || Node.isGetAccessorDeclaration(ancestor)
+    || Node.isSetAccessorDeclaration(ancestor)
+  ));
+};
+
 export const buildZombieCallGraph = (input: {
   declarations: readonly ZombieTopLevelDeclaration[];
   reachableFiles: ReadonlySet<string>;
@@ -199,7 +216,8 @@ const collectDeclarationReferenceEdges = (input: {
           continue;
         }
         const topLevelStatement = getTopLevelStatement(referenceNode);
-        if (topLevelStatement && isRuntimeTopLevelStatement(topLevelStatement)) {
+        if ((topLevelStatement && isRuntimeTopLevelStatement(topLevelStatement))
+          || isEagerTopLevelVariableInitializerReference(referenceNode)) {
           input.rootDeclarationIdsFromTopLevelExecution.add(declaration.id);
         }
       }

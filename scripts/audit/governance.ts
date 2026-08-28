@@ -4,7 +4,10 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { GovernanceError, ROOT, fail } from './governance-runtime.js';
-import { checkProjection, diffPaths, gitCommit, pathRole, readRegistryProjection, REGISTRY, verifyEntry, verifyProductionOwnership, writeRegistry, type Level, type Registry } from './governance-authority.js';
+import { checkProjection, readRegistryProjection, verifyEntry, verifyProductionOwnership, writeRegistry } from './governance-authority.js';
+import type { Level, Registry } from './governance-contract.js';
+import { diffPaths, gitCommit } from './governance-git-state.js';
+import { pathRole, REGISTRY } from './shared/governance-paths.js';
 import { validateChangedGovernanceSources, validateCommittedProviderContractVersionChanges } from './governance-change-authority.js';
 import { runFullQuality } from './shared/quality-runner.js';
 import { relevantExamScripts } from './shared/quality-routes.js';

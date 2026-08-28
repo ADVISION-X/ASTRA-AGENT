@@ -146,7 +146,7 @@ const executorSource = readFileSync(resolve(ROOT, "src/lib/local-runtime/product
 assert.match(executorSource, /authorized\.plugin\.parseResult\(authorized\.task, output\.payload, "draft"\)/u,
   "context.complete must invoke the selected Product Plugin parser before upload");
 const cloudClientSource = readFileSync(resolve(ROOT, "src/lib/local-runtime/production/cloud-client.ts"), "utf8");
-assert.match(cloudClientSource, /resolveProductionPlugin\(job\.product_id, job\.action_id\)\.plugin\.parseResult\(job, payload, "final"\)/u,
+assert.match(cloudClientSource, /resolveProductionPlugin\(input\.job\.product_id, input\.job\.action_id\)[\s\S]*?\.plugin\.parseResult\(input\.job, prepared\.payload, "final"\)/u,
   "the final receipt-injected payload must return to the same Product Plugin parser");
 assert.deepEqual(
   agentPluginCapabilityManifest.plugins.map((plugin) => plugin.plugin_id).sort(),

@@ -32,6 +32,29 @@ const addProperties = (target: Set<string>, source: ReadonlySet<string>): void =
   for (const property of source) target.add(property);
 };
 
+const contextualTypePropertyReads = (bag: ZombieObjectBag): Set<string> => {
+  const properties = new Set<string>();
+  const declaration = bag.nameNode.getParent();
+  if (!declaration || !Node.isVariableDeclaration(declaration)) return properties;
+  const initializer = declaration.getInitializer();
+  if (!initializer || !Node.isObjectLiteralExpression(initializer)) return properties;
+  const contextualType = initializer.getContextualType();
+  if (!contextualType) return properties;
+  for (const entry of bag.entries) {
+    const propertySymbol = contextualType.getProperty(entry.propertyName);
+    const hasRuntimeRead = propertySymbol?.getDeclarations().some((propertyDeclaration) => {
+      const propertyName = propertyDeclaration.getFirstDescendantByKind(SyntaxKind.Identifier);
+      return propertyName?.findReferencesAsNodes().some((reference) => {
+        const parent = reference.getParent();
+        return Boolean(parent && Node.isPropertyAccessExpression(parent)
+          && parent.getNameNode() === reference);
+      });
+    }) ?? false;
+    if (hasRuntimeRead) properties.add(entry.propertyName);
+  }
+  return properties;
+};
+
 const forOfElementPropertyReads = (reference: MorphNode): Set<string> => {
   const parent = reference.getParent();
   if (!parent || !Node.isForOfStatement(parent) || parent.getExpression() !== reference) return new Set();
@@ -166,7 +189,7 @@ const buildDynamicUsage = (
 export const collectZombieObjectBagUsage = (input: {
   bag: ZombieObjectBag;
 }): ZombieObjectBagUsage => {
-  const usedPropertyNames = new Set<string>();
+  const usedPropertyNames = contextualTypePropertyReads(input.bag);
   const dynamicUsages: ZombieObjectBagDynamicUsage[] = [];
 
   for (const referenceNode of input.bag.nameNode.findReferencesAsNodes()) {

@@ -9,7 +9,7 @@ import {
 } from "../../runtime-logs/index.js";
 import type {
   RuntimeBrowserCommandIdentity,
-} from "../../runtime-logs/schema.js";
+} from "../../runtime-logs/runtime-identity-contract.js";
 import type { BrowserMutationIdentity } from "./browser-mutation-store.js";
 import type { BrowserCommandPermit } from "../transport/command-permit.js";
 

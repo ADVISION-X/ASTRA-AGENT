@@ -43,6 +43,13 @@ export type BrowserCommandAuthorityGuard = Readonly<{
   assertCurrentAuthority(permit: BrowserCommandPermit): void;
 }>;
 
+type BrowserCommandExecutionState = {
+  budgetEntered: boolean;
+  prepared: boolean;
+  dispatched: boolean;
+  terminalized: boolean;
+};
+
 const hashValue = (value: unknown): `sha256:${string}` => {
   try {
     return `sha256:${createHash("sha256").update(JSON.stringify(value)).digest("hex")}`;
@@ -187,27 +194,18 @@ export class BrowserCommandActor {
     const commandSpan = startBrowserCommandSpan(this.runtimeLogger, permit);
     this.emitExecutionState(permit.jobId, "busy");
     const mutation = isMutation(command);
-    let budgetEntered = false;
-    let prepared = false;
-    let dispatched = false;
-    let terminalized = false;
+    const state: BrowserCommandExecutionState = {
+      budgetEntered: false, prepared: false, dispatched: false, terminalized: false,
+    };
     try {
       assertAcceptedCommand(permit, command);
       this.authorityGuard.assertCurrentAuthority(permit);
       this.budget.enter();
-      budgetEntered = true;
-      if (mutation) {
-        this.mutations.prepare(mutationIdentity(permit, command));
-        prepared = true;
-        emitBrowserMutationState({
-          runtimeLogger: this.runtimeLogger, mutation: permit, previous: null, current: "PREPARED",
-          authorityHash: this.mutations.authorityHash(permit.commandId),
-        });
-        this.authorityGuard.assertCurrentAuthority(permit);
-      }
+      state.budgetEntered = true;
+      if (mutation) this.prepareMutation(permit, command, state);
       const reply = await this.port.send(permit, command, mutation ? () => {
         this.mutations.markDispatched(permit.commandId);
-        dispatched = true;
+        state.dispatched = true;
         emitBrowserMutationState({
           runtimeLogger: this.runtimeLogger, mutation: permit, previous: "PREPARED", current: "DISPATCHED",
           authorityHash: this.mutations.authorityHash(permit.commandId),
@@ -215,69 +213,84 @@ export class BrowserCommandActor {
       } : undefined);
       assertMatchingReply(permit, reply);
       this.authorityGuard.assertCurrentAuthority(permit);
-      if (mutation) {
-        if (!dispatched) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-        const result = mutationReceipt(command, reply.result);
-        const replyHash = hashValue(reply.result);
-        if (result === "rejected") {
-          this.mutations.markRejected(permit.commandId, replyHash);
-          emitBrowserMutationState({
-            runtimeLogger: this.runtimeLogger, mutation: permit, previous: "DISPATCHED", current: "REJECTED",
-            authorityHash: this.mutations.authorityHash(permit.commandId),
-          });
-          const failureEvent = failBrowserCommandSpan({
-            span: commandSpan, permit, proofHash: this.mutations.authorityHash(permit.commandId),
-            failureCode: "BROWSER_POSTCONDITION_FAILED", pendingReceipt: false,
-          });
-          this.emitExecutionState(permit.jobId, "failed");
-          terminalized = true;
-          throw withRuntimeLogCause(
-            new Error("BROWSER_POSTCONDITION_FAILED"),
-            failureEvent.eventId,
-          );
-        }
-        this.mutations.markConfirmed(permit.commandId, replyHash);
-        emitBrowserMutationState({
-          runtimeLogger: this.runtimeLogger, mutation: permit, previous: "DISPATCHED", current: "CONFIRMED",
-          authorityHash: this.mutations.authorityHash(permit.commandId),
-        });
-      }
+      if (mutation) this.completeMutation(permit, command, reply, commandSpan, state);
       completeBrowserCommandSpan({ span: commandSpan });
       this.emitExecutionState(permit.jobId, "idle");
-      terminalized = true;
+      state.terminalized = true;
       return reply.result;
     } catch (error) {
-      if (terminalized) throw error;
-      const code = mutation && dispatched
-        ? "BROWSER_COMMAND_RECEIPT_MISSING"
-        : causalBrowserFailureCode(error);
-      if (mutation && prepared) {
-        if (dispatched) {
-          this.mutations.markReceiptMissing(permit.commandId);
-          emitBrowserMutationState({
-            runtimeLogger: this.runtimeLogger, mutation: permit, previous: "DISPATCHED", current: "DISPATCHED",
-            authorityHash: this.mutations.authorityHash(permit.commandId),
-          });
-        } else {
-          this.mutations.markFailedBeforeDispatch(permit.commandId, code);
-          emitBrowserMutationState({
-            runtimeLogger: this.runtimeLogger, mutation: permit, previous: "PREPARED", current: "FAILED",
-            authorityHash: this.mutations.authorityHash(permit.commandId),
-          });
-        }
-      }
-      const failureEvent = failBrowserCommandSpan({
-        span: commandSpan,
-        permit,
-        proofHash: mutation && prepared ? this.mutations.authorityHash(permit.commandId) : hashValue(code),
-        failureCode: code,
-        pendingReceipt: mutation && dispatched,
-      });
-      this.emitExecutionState(permit.jobId, mutation && dispatched ? "review_required" : "failed");
-      throw withRuntimeLogCause(new Error(code, { cause: error }), failureEvent.eventId);
+      this.failExecution(permit, commandSpan, mutation, state, error);
     } finally {
-      if (budgetEntered) this.budget.leave();
+      if (state.budgetEntered) this.budget.leave();
     }
+  }
+
+  private prepareMutation(
+    permit: BrowserCommandPermit,
+    command: BrowserGovernedCommand,
+    state: BrowserCommandExecutionState,
+  ): void {
+    this.mutations.prepare(mutationIdentity(permit, command));
+    state.prepared = true;
+    emitBrowserMutationState({
+      runtimeLogger: this.runtimeLogger, mutation: permit, previous: null, current: "PREPARED",
+      authorityHash: this.mutations.authorityHash(permit.commandId),
+    });
+    this.authorityGuard.assertCurrentAuthority(permit);
+  }
+
+  private completeMutation(
+    permit: BrowserCommandPermit,
+    command: BrowserGovernedCommand,
+    reply: BrowserCommandReply,
+    commandSpan: ReturnType<typeof startBrowserCommandSpan>,
+    state: BrowserCommandExecutionState,
+  ): void {
+    if (!state.dispatched) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    const result = mutationReceipt(command, reply.result);
+    const replyHash = hashValue(reply.result);
+    this.mutations[result === "rejected" ? "markRejected" : "markConfirmed"](permit.commandId, replyHash);
+    emitBrowserMutationState({
+      runtimeLogger: this.runtimeLogger, mutation: permit, previous: "DISPATCHED",
+      current: result === "rejected" ? "REJECTED" : "CONFIRMED",
+      authorityHash: this.mutations.authorityHash(permit.commandId),
+    });
+    if (result !== "rejected") return;
+    const failureEvent = failBrowserCommandSpan({
+      span: commandSpan, permit, proofHash: this.mutations.authorityHash(permit.commandId),
+      failureCode: "BROWSER_POSTCONDITION_FAILED", pendingReceipt: false,
+    });
+    this.emitExecutionState(permit.jobId, "failed");
+    state.terminalized = true;
+    throw withRuntimeLogCause(new Error("BROWSER_POSTCONDITION_FAILED"), failureEvent.eventId);
+  }
+
+  private failExecution(
+    permit: BrowserCommandPermit,
+    commandSpan: ReturnType<typeof startBrowserCommandSpan>,
+    mutation: boolean,
+    state: BrowserCommandExecutionState,
+    error: unknown,
+  ): never {
+    if (state.terminalized) throw error;
+    const code = mutation && state.dispatched ? "BROWSER_COMMAND_RECEIPT_MISSING" : causalBrowserFailureCode(error);
+    if (mutation && state.prepared) {
+      if (state.dispatched) this.mutations.markReceiptMissing(permit.commandId);
+      else this.mutations.markFailedBeforeDispatch(permit.commandId, code);
+      emitBrowserMutationState({
+        runtimeLogger: this.runtimeLogger, mutation: permit,
+        previous: state.dispatched ? "DISPATCHED" : "PREPARED",
+        current: state.dispatched ? "DISPATCHED" : "FAILED",
+        authorityHash: this.mutations.authorityHash(permit.commandId),
+      });
+    }
+    const failureEvent = failBrowserCommandSpan({
+      span: commandSpan, permit,
+      proofHash: mutation && state.prepared ? this.mutations.authorityHash(permit.commandId) : hashValue(code),
+      failureCode: code, pendingReceipt: mutation && state.dispatched,
+    });
+    this.emitExecutionState(permit.jobId, mutation && state.dispatched ? "review_required" : "failed");
+    throw withRuntimeLogCause(new Error(code, { cause: error }), failureEvent.eventId);
   }
 
   public hasDispatchedMutation(commandId: string): boolean {

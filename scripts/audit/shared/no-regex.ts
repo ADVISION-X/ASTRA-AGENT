@@ -3,9 +3,6 @@ const sourceExtensions = [".ts", ".tsx", ".js", ".jsx", ".mjs"] as const;
 export const hasSourceExtension = (repoPath: string): boolean =>
   sourceExtensions.some((extension) => repoPath.endsWith(extension));
 
-export const hasTypeScriptExtension = (repoPath: string): boolean =>
-  repoPath.endsWith(".ts") || repoPath.endsWith(".tsx");
-
 export const splitLines = (text: string): string[] => {
   const lines: string[] = [];
   let current = "";
@@ -29,9 +26,6 @@ export const splitLines = (text: string): string[] => {
   lines.push(current);
   return lines;
 };
-
-export const containsAny = (text: string, tokens: readonly string[]): boolean =>
-  tokens.some((token) => text.includes(token));
 
 export const pathSegments = (repoPath: string): string[] => repoPath.split("/").filter((segment) => segment.length > 0);
 

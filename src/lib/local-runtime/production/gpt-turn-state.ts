@@ -198,20 +198,25 @@ export const applyGptChildValue = (
 ): void => {
   const record = value && typeof value === "object" && !Array.isArray(value)
     ? value as Readonly<Record<string, unknown>> : {};
-  if (childCapabilityId === "verify_gpt_turn_submission") {
-    state.canonicalConversationUrl = stringField(record.canonicalConversationUrl, "GPT_CANONICAL_CONVERSATION_MISSING");
-    state.userTurnId = stringField(record.userTurnId, "GPT_USER_TURN_ID_MISSING");
-  } else if (childCapabilityId === "observe_exact_gpt_assistant_turn") {
-    state.assistantTurnId = stringField(record.assistantTurnId, "GPT_ASSISTANT_TURN_ID_MISSING");
-  } else if (childCapabilityId === "wait_for_stable_gpt_response") {
-    state.responseText = stringField(record.responseText, "GPT_RESPONSE_TEXT_MISSING");
-    state.responseHash = stringField(record.responseHash, "GPT_RESPONSE_HASH_MISSING") as ProductionHash;
-  } else if (childCapabilityId === "checkpoint_gpt_text_response") {
-    state.responseText = stringField(record.rawText, "GPT_RESPONSE_TEXT_MISSING");
-    state.responseHash = stringField(record.rawHash, "GPT_RESPONSE_HASH_MISSING") as ProductionHash;
-    state.checkpointRef = stringField(record.checkpointRef, "GPT_RESPONSE_CHECKPOINT_MISSING");
-  } else if (childCapabilityId === "checkpoint_gpt_generated_image") {
-    const image = {
+  switch (childCapabilityId) {
+    case "verify_gpt_turn_submission":
+      state.canonicalConversationUrl = stringField(record.canonicalConversationUrl, "GPT_CANONICAL_CONVERSATION_MISSING");
+      state.userTurnId = stringField(record.userTurnId, "GPT_USER_TURN_ID_MISSING");
+      return;
+    case "observe_exact_gpt_assistant_turn":
+      state.assistantTurnId = stringField(record.assistantTurnId, "GPT_ASSISTANT_TURN_ID_MISSING");
+      return;
+    case "wait_for_stable_gpt_response":
+      state.responseText = stringField(record.responseText, "GPT_RESPONSE_TEXT_MISSING");
+      state.responseHash = stringField(record.responseHash, "GPT_RESPONSE_HASH_MISSING") as ProductionHash;
+      return;
+    case "checkpoint_gpt_text_response":
+      state.responseText = stringField(record.rawText, "GPT_RESPONSE_TEXT_MISSING");
+      state.responseHash = stringField(record.rawHash, "GPT_RESPONSE_HASH_MISSING") as ProductionHash;
+      state.checkpointRef = stringField(record.checkpointRef, "GPT_RESPONSE_CHECKPOINT_MISSING");
+      return;
+    case "checkpoint_gpt_generated_image": {
+      const image = {
       artifact_id: stringField(record.artifactId, "GPT_IMAGE_ARTIFACT_ID_MISSING"),
       local_path: stringField(record.localPath, "GPT_IMAGE_LOCAL_PATH_MISSING"),
       original_local_path: stringField(record.originalLocalPath, "GPT_IMAGE_ORIGINAL_LOCAL_PATH_MISSING"),
@@ -227,6 +232,7 @@ export const applyGptChildValue = (
       throw new Error("GPT_IMAGE_ARTIFACT_INVALID");
     }
     state.generatedImage = image as GeneratedImageArtifact;
+    }
   }
 };
 

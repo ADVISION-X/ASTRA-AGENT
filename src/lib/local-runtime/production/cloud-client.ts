@@ -26,16 +26,12 @@ import {
   type WebsiteAgentResult,
 } from "./contracts.js";
 import { ProductionWorkerSession } from "./worker-session.js";
-import { ProductionRuntimeStore, type ProductionOutboxWrite } from "./store.js";
+import { ProductionRuntimeStore } from "./store.js";
 import type { GeneratedImageArtifact } from "./plugin.js";
 import { resolveProductionPlugin } from "./catalog.js";
 import { routeProducesGeneratedImage } from "./route-policy.js";
 import { executionFailure, type SerializedExecutionFailure } from "../../typed-failure.js";
-
-const cloudFetch = async (url: string, init: RequestInit): Promise<Response> => {
-  try { return await fetch(url, init); }
-  catch (cause) { throw executionFailure("recovery_pending", "CLOUD_TRANSPORT_UNAVAILABLE", { cause }); }
-};
+import { productionCloudFetch } from "./cloud-transport.js";
 
 const generatedImageTemporaryRoot = (dataDir: string): string => path.resolve(dataDir, "generated-images");
 
@@ -109,7 +105,7 @@ export async function downloadProductionMaterials(
   await mkdir(materialDir, { recursive: true, mode: 0o700 });
   const result: LocalProductionMaterial[] = [];
   for (const material of [...job.material_refs].sort((left, right) => left.ordinal - right.ordinal)) {
-    const response = await cloudFetch(
+    const response = await productionCloudFetch(
       `${session.device.server_base_url.replace(/\/+$/u, "")}/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/materials/${encodeURIComponent(material.material_id)}`,
       {
         headers: await session.authorizationHeaders(fenceHeaders(job)),
@@ -264,7 +260,7 @@ async function uploadJsonObject(
   };
   store.enqueue({ idempotency_key: requestId, kind: "artifact", path: pathname, method: "PUT", headers: durableHeaders, body: bytes });
   return store.deliverOutbox(requestId, async () => {
-    const response = await cloudFetch(`${session.device.server_base_url.replace(/\/+$/u, "")}${pathname}`, {
+    const response = await productionCloudFetch(`${session.device.server_base_url.replace(/\/+$/u, "")}${pathname}`, {
       method: "PUT",
       headers: await session.authorizationHeaders(durableHeaders),
       body: bytes,
@@ -300,7 +296,7 @@ async function uploadGeneratedImage(
   };
   store.enqueue({ idempotency_key: requestId, kind: "artifact", path: pathname, method: "PUT", headers: durableHeaders, body: bytes });
   return store.deliverOutbox(requestId, async () => {
-    const response = await cloudFetch(`${session.device.server_base_url.replace(/\/+$/u, "")}${pathname}`, {
+    const response = await productionCloudFetch(`${session.device.server_base_url.replace(/\/+$/u, "")}${pathname}`, {
       method: "PUT",
       headers: await session.authorizationHeaders(durableHeaders),
       body: bytes,
@@ -310,38 +306,33 @@ async function uploadGeneratedImage(
   });
 }
 
-export async function uploadProductionResult(
-  session: ProductionWorkerSession,
-  store: ProductionRuntimeStore,
-  job: ClaimedProductionTask,
-  identity: DurablePluginIdentity,
+type ProductionResultUploadInput = Readonly<{
+  session: ProductionWorkerSession;
+  store: ProductionRuntimeStore;
+  job: ClaimedProductionTask;
+  identity: DurablePluginIdentity;
   output: Readonly<{
     payload: unknown;
     evidence_refs: readonly string[];
     generated_image?: GeneratedImageArtifact;
-  }>,
-  continuationRef: string | null,
-  dataDir: string,
-): Promise<Readonly<{
-  envelope: WebsiteAgentResult;
-  payload_receipt: UploadedResultReceipt;
-  envelope_receipt: UploadedResultReceipt;
-  artifact_receipts: readonly UploadedResultReceipt[];
-}>> {
-  const temporaryDirectory = output.generated_image
-    ? generatedImageTemporaryDirectory(dataDir, output.generated_image) : null;
-  try {
-  let payload = output.payload;
-  let imageReceipt: UploadedResultReceipt | null = null;
-  if (output.generated_image) {
-    if (!routeProducesGeneratedImage(job)) {
-      throw new Error("GENERATED_IMAGE_ROUTE_FORBIDDEN");
-    }
-    imageReceipt = await uploadGeneratedImage(session, store, job, output.generated_image);
-    const draft = payload && typeof payload === "object" && !Array.isArray(payload)
-      ? payload as Record<string, unknown> : null;
-    if (!draft || draft.image !== null) throw new Error("PUBLIC_KNOWLEDGE_IMAGE_DRAFT_INVALID");
-    payload = {
+  }>;
+  continuationRef: string | null;
+  dataDir: string;
+}>;
+
+const uploadGeneratedImagePayload = async (input: ProductionResultUploadInput): Promise<Readonly<{
+  payload: unknown;
+  imageReceipt: UploadedResultReceipt | null;
+}>> => {
+  if (!input.output.generated_image) return { payload: input.output.payload, imageReceipt: null };
+  if (!routeProducesGeneratedImage(input.job)) throw new Error("GENERATED_IMAGE_ROUTE_FORBIDDEN");
+  const imageReceipt = await uploadGeneratedImage(input.session, input.store, input.job, input.output.generated_image);
+  const draft = input.output.payload && typeof input.output.payload === "object" && !Array.isArray(input.output.payload)
+    ? input.output.payload as Record<string, unknown> : null;
+  if (!draft || draft.image !== null) throw new Error("PUBLIC_KNOWLEDGE_IMAGE_DRAFT_INVALID");
+  return {
+    imageReceipt,
+    payload: {
       ...draft,
       image: {
         schema_version: "public-knowledge-agent-hero-image.v1",
@@ -354,46 +345,72 @@ export async function uploadProductionResult(
         width: 1200,
         height: 630,
       },
-    };
-  }
-  resolveProductionPlugin(job.product_id, job.action_id).plugin.parseResult(job, payload, "final");
-  const payloadReceipt = await uploadJsonObject(session, store, job, "result_payload", payload);
-  const envelope = WebsiteAgentResultSchema.parse({
-    schema_version: "website-agent-result.v1",
-    job_id: job.job_id,
-    source_task_id: job.source_task_id,
-    product_id: job.product_id,
-    action_id: job.action_id,
-    plugin_id: identity.plugin_id,
-    plugin_version: identity.plugin_version,
-    result_contract_id: RESULT_CONTRACT_ID,
-    result_contract_version: RESULT_CONTRACT_VERSION,
-    result_payload_ref: payloadReceipt.object_ref,
-    result_payload_hash: payloadReceipt.sha256,
-    result_payload_bytes: payloadReceipt.byte_length,
-    result_payload_media_type: payloadReceipt.media_type,
-    result_object_receipt: {
-      object_ref: payloadReceipt.object_ref,
-      sha256: payloadReceipt.sha256,
-      bytes: payloadReceipt.byte_length,
-      media_type: payloadReceipt.media_type,
-      receipt_hash: payloadReceipt.receipt_hash,
     },
-    evidence_refs: output.evidence_refs,
-    execution_receipt_hash: hashCanonical({
-      job_id: job.job_id,
-      attempt_id: job.grant.attempt_id,
-      durable_identity: identity,
-      payload_hash: payloadReceipt.sha256,
-      evidence_refs: output.evidence_refs,
-    }),
-    ...(continuationRef ? { continuation_ref: continuationRef } : {}),
-  }) as WebsiteAgentResult;
-  const envelopeReceipt = await uploadJsonObject(session, store, job, "result_envelope", envelope);
-  const artifactReceipts = Object.freeze([
-    ...(imageReceipt ? [imageReceipt] : []), payloadReceipt, envelopeReceipt,
-  ]);
-  return { envelope, payload_receipt: payloadReceipt, envelope_receipt: envelopeReceipt, artifact_receipts: artifactReceipts };
+  };
+};
+
+const buildProductionResultEnvelope = (
+  input: ProductionResultUploadInput,
+  payloadReceipt: UploadedResultReceipt,
+): WebsiteAgentResult => WebsiteAgentResultSchema.parse({
+  schema_version: "website-agent-result.v1",
+  job_id: input.job.job_id,
+  source_task_id: input.job.source_task_id,
+  product_id: input.job.product_id,
+  action_id: input.job.action_id,
+  plugin_id: input.identity.plugin_id,
+  plugin_version: input.identity.plugin_version,
+  result_contract_id: RESULT_CONTRACT_ID,
+  result_contract_version: RESULT_CONTRACT_VERSION,
+  result_payload_ref: payloadReceipt.object_ref,
+  result_payload_hash: payloadReceipt.sha256,
+  result_payload_bytes: payloadReceipt.byte_length,
+  result_payload_media_type: payloadReceipt.media_type,
+  result_object_receipt: {
+    object_ref: payloadReceipt.object_ref,
+    sha256: payloadReceipt.sha256,
+    bytes: payloadReceipt.byte_length,
+    media_type: payloadReceipt.media_type,
+    receipt_hash: payloadReceipt.receipt_hash,
+  },
+  evidence_refs: input.output.evidence_refs,
+  execution_receipt_hash: hashCanonical({
+    job_id: input.job.job_id,
+    attempt_id: input.job.grant.attempt_id,
+    durable_identity: input.identity,
+    payload_hash: payloadReceipt.sha256,
+    evidence_refs: input.output.evidence_refs,
+  }),
+  ...(input.continuationRef ? { continuation_ref: input.continuationRef } : {}),
+}) as WebsiteAgentResult;
+
+export async function uploadProductionResult(input: ProductionResultUploadInput): Promise<Readonly<{
+  envelope: WebsiteAgentResult;
+  payload_receipt: UploadedResultReceipt;
+  envelope_receipt: UploadedResultReceipt;
+  artifact_receipts: readonly UploadedResultReceipt[];
+}>> {
+  const temporaryDirectory = input.output.generated_image
+    ? generatedImageTemporaryDirectory(input.dataDir, input.output.generated_image) : null;
+  try {
+    const prepared = await uploadGeneratedImagePayload(input);
+    resolveProductionPlugin(input.job.product_id, input.job.action_id)
+      .plugin.parseResult(input.job, prepared.payload, "final");
+    const payloadReceipt = await uploadJsonObject(
+      input.session, input.store, input.job, "result_payload", prepared.payload,
+    );
+    const envelope = buildProductionResultEnvelope(input, payloadReceipt);
+    const envelopeReceipt = await uploadJsonObject(
+      input.session, input.store, input.job, "result_envelope", envelope,
+    );
+    return {
+      envelope,
+      payload_receipt: payloadReceipt,
+      envelope_receipt: envelopeReceipt,
+      artifact_receipts: Object.freeze([
+        ...(prepared.imageReceipt ? [prepared.imageReceipt] : []), payloadReceipt, envelopeReceipt,
+      ]),
+    };
   } finally {
     if (temporaryDirectory) await rm(temporaryDirectory, { recursive: true, force: true });
   }
@@ -445,82 +462,3 @@ export async function terminalProductionTask(
   }));
   return parseTerminalReceipt(response, expected);
 }
-
-export type RemoteProductionWriteReceipt = Readonly<{
-  request_id: string;
-  write_kind: string;
-  payload_hash: ProductionHash;
-  response_json: Record<string, unknown>;
-}>;
-
-export async function readProductionDeviceJobStatus(
-  session: ProductionWorkerSession,
-  jobId: string,
-): Promise<Readonly<{
-  job_id: string;
-  status: string;
-  terminal_status: "completed" | "failed" | null;
-  write_receipts: readonly RemoteProductionWriteReceipt[];
-}>> {
-  const value = await session.request(
-    `/internal/ai-production/v6/jobs/${encodeURIComponent(jobId)}/device-status`,
-    { method: "GET" },
-  );
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw executionFailure("failed", "V6_DEVICE_JOB_STATUS_INVALID");
-  }
-  const row = value as Record<string, unknown>;
-  if (row.job_id !== jobId || typeof row.status !== "string"
-    || ![null, "completed", "failed"].includes(row.terminal_status as null | string)
-    || !Array.isArray(row.write_receipts)) {
-    throw executionFailure("failed", "V6_DEVICE_JOB_STATUS_INVALID");
-  }
-  const receipts = row.write_receipts.map((receipt) => {
-    if (!receipt || typeof receipt !== "object" || Array.isArray(receipt)) {
-      throw executionFailure("failed", "V6_DEVICE_JOB_STATUS_INVALID");
-    }
-    const item = receipt as Record<string, unknown>;
-    if (typeof item.request_id !== "string" || !item.request_id
-      || typeof item.write_kind !== "string" || !item.write_kind
-      || typeof item.payload_hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(item.payload_hash)
-      || !item.response_json || typeof item.response_json !== "object" || Array.isArray(item.response_json)) {
-      throw executionFailure("failed", "V6_DEVICE_JOB_STATUS_INVALID");
-    }
-    return Object.freeze({
-      request_id: item.request_id,
-      write_kind: item.write_kind,
-      payload_hash: item.payload_hash as ProductionHash,
-      response_json: item.response_json as Record<string, unknown>,
-    });
-  });
-  return Object.freeze({
-    job_id: jobId,
-    status: row.status,
-    terminal_status: row.terminal_status as "completed" | "failed" | null,
-    write_receipts: Object.freeze(receipts),
-  });
-}
-
-export const sendProductionOutboxWrite = async (
-  session: ProductionWorkerSession,
-  write: ProductionOutboxWrite,
-): Promise<unknown> => {
-  if (write.kind === "artifact") {
-    const response = await cloudFetch(`${session.device.server_base_url.replace(/\/+$/u, "")}${write.path}`, {
-      method: write.method,
-      headers: await session.authorizationHeaders(write.headers),
-      body: Buffer.from(write.body),
-      signal: AbortSignal.timeout(120_000),
-    });
-    const raw = await response.json() as unknown;
-    return UploadedResultReceiptSchema.parse(parseJsonEnvelope(raw, response.status));
-  }
-  const response = await session.request(write.path, {
-    method: write.method,
-    headers: write.headers,
-    body: typeof write.body === "string" ? write.body : Buffer.from(write.body).toString("utf8"),
-  });
-  if (write.kind !== "terminal") return response;
-  const body = typeof write.body === "string" ? write.body : Buffer.from(write.body).toString("utf8");
-  return parseTerminalReceipt(response, parseTerminalReceiptExpectation(body));
-};

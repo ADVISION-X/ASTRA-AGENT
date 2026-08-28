@@ -26,6 +26,18 @@ export const parsePublicKnowledgeArticle = (raw: string): Readonly<Record<string
   return Object.freeze(output);
 };
 
+const validatePublicKnowledgeImage = (value: unknown): void => {
+  const image = result.object(value, "PUBLIC_KNOWLEDGE_IMAGE_INVALID");
+  result.exact(image, ["schema_version", "artifact_id", "object_ref", "sha256", "receipt_hash", "bytes", "mime_type", "width", "height"], "PUBLIC_KNOWLEDGE_IMAGE_FIELDS_INVALID");
+  if (image.schema_version !== "public-knowledge-agent-hero-image.v1" || image.mime_type !== "image/webp"
+    || image.width !== 1200 || image.height !== 630 || !Number.isSafeInteger(image.bytes)
+    || Number(image.bytes) < 1) throw new Error("PUBLIC_KNOWLEDGE_IMAGE_INVALID");
+  result.text(image.artifact_id, "PUBLIC_KNOWLEDGE_IMAGE_INVALID");
+  result.text(image.object_ref, "PUBLIC_KNOWLEDGE_IMAGE_INVALID");
+  result.hash(image.sha256, "PUBLIC_KNOWLEDGE_IMAGE_HASH_INVALID");
+  result.hash(image.receipt_hash, "PUBLIC_KNOWLEDGE_IMAGE_RECEIPT_INVALID");
+};
+
 export const parseProductResult = (
   task: WebsiteAgentTask,
   value: unknown,
@@ -44,17 +56,7 @@ export const parseProductResult = (
     throw new Error("PUBLIC_KNOWLEDGE_PACKAGE_COMPLETENESS_INVALID");
   }
   if (output.article) parsePublicKnowledgeArticle(JSON.stringify(result.object(output.article, "PUBLIC_KNOWLEDGE_ARTICLE_INVALID")));
-  if (output.image) {
-    const image = result.object(output.image, "PUBLIC_KNOWLEDGE_IMAGE_INVALID");
-    result.exact(image, ["schema_version", "artifact_id", "object_ref", "sha256", "receipt_hash", "bytes", "mime_type", "width", "height"], "PUBLIC_KNOWLEDGE_IMAGE_FIELDS_INVALID");
-    if (image.schema_version !== "public-knowledge-agent-hero-image.v1" || image.mime_type !== "image/webp"
-      || image.width !== 1200 || image.height !== 630 || !Number.isSafeInteger(image.bytes)
-      || Number(image.bytes) < 1) throw new Error("PUBLIC_KNOWLEDGE_IMAGE_INVALID");
-    result.text(image.artifact_id, "PUBLIC_KNOWLEDGE_IMAGE_INVALID");
-    result.text(image.object_ref, "PUBLIC_KNOWLEDGE_IMAGE_INVALID");
-    result.hash(image.sha256, "PUBLIC_KNOWLEDGE_IMAGE_HASH_INVALID");
-    result.hash(image.receipt_hash, "PUBLIC_KNOWLEDGE_IMAGE_RECEIPT_INVALID");
-  }
+  if (output.image) validatePublicKnowledgeImage(output.image);
   return Object.freeze(output);
 };
 

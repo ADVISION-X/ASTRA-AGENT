@@ -1,0 +1,3 @@
+import { resolveRunner } from "./catalog.js";
+
+console.log(resolveRunner().execute());

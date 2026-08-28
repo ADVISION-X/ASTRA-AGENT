@@ -8,7 +8,7 @@ const articleProvider = { ...researchProvider, labelKey: "seo_article", profileR
 
 export const publicKnowledgeArticlePipelinePlugin: ProductPlugin = {
   pluginId: "public-knowledge-article-pipeline",
-  pluginVersion: 3,
+  pluginVersion: 4,
   skillHash: skill.hash,
   checkpointSchemaVersion: 1,
   parseResult: parseProductResult,

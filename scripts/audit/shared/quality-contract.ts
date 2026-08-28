@@ -3,7 +3,7 @@ import { relative, resolve } from "node:path";
 
 import { exactKeys } from "../governance-json.js";
 import { ROOT, fail, validGitObjectId } from "../governance-runtime.js";
-import type { Law, Level } from "../governance-authority.js";
+import type { Law, Level } from "../governance-contract.js";
 
 export type QualityAssertion = {
   clauses: string[];

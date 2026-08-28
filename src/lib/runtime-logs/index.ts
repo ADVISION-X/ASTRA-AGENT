@@ -1,27 +1,22 @@
 export { createRuntimeLogger, requireRuntimeLogWrite } from "./logger.js";
-export type { RuntimeLogger, RuntimeLoggerConfig, RuntimeSpanHandle } from "./logger.js";
+export type { RuntimeLogger, RuntimeSpanHandle } from "./logger.js";
 export { runtimeFailureFromError, runtimeLogCauseEventId, withRuntimeLogCause } from "./failure.js";
-export { runtimeEventHash, runtimeEventIntegrityValid } from "./integrity.js";
-export { assertRuntimeLogEventV2, runtimeLogEventShapeValid } from "./schema.js";
+export { runtimeEventIntegrityValid } from "./integrity.js";
+export { runtimeLogEventShapeValid } from "./schema.js";
 export { diagnoseRuntimeLog } from "./diagnosis.js";
-export type { RuntimeAuthorityResolver, RuntimeDiagnosis } from "./diagnosis.js";
-export { redactRuntimeLogEvent, redactRuntimeLogRecord, redactUrlForLog } from "./redaction.js";
+export type { RuntimeDiagnosis } from "./diagnosis-contract.js";
+export { redactRuntimeLogRecord, redactUrlForLog } from "./redaction.js";
 export {
   RuntimeFailureImpact,
   RuntimeFailureKind,
   RuntimeRecovery,
-} from "./schema.js";
+} from "./runtime-failure-contract.js";
 export type {
-  RuntimeFailure,
-  RuntimeLogEventV2,
   RuntimeLogOwner,
-  RuntimeLogWriteResult,
-  RuntimeLogVisibility,
   RuntimeOperation,
-  RuntimeSpanStartInput,
+} from "./runtime-failure-contract.js";
+export type {
+  RuntimeLogEventV2,
   RuntimeSpanTerminalEvent,
-  RuntimeSpanTerminalInput,
-  RuntimeStateEvent,
   RuntimeStateInput,
-  RuntimeTypedIdentity,
-} from "./schema.js";
+} from "./runtime-event-contract.js";

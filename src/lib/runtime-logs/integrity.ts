@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { RuntimeLogEventV2, RuntimeLogEventWithoutIntegrity } from "./schema.js";
+import type { RuntimeLogEventV2, RuntimeLogEventWithoutIntegrity } from "./runtime-event-contract.js";
 
 const canonicalize = (value: unknown): unknown => {
   if (Array.isArray(value)) return value.map(canonicalize);

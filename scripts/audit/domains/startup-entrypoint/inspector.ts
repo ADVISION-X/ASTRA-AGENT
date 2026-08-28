@@ -13,9 +13,12 @@ const launchPath = "scripts/startup/launch-grasseye.mjs";
 const preflightPath = "scripts/startup/lib/browser-runtime-preflight.mjs";
 const artifactSyncPath = "scripts/startup/lib/browser-runtime-artifact.mjs";
 const processControlPath = "scripts/startup/lib/process-control.mjs";
+const failureHandlerPath = "scripts/startup/lib/startup-failure-handler.mjs";
+const serviceReadinessPath = "scripts/startup/lib/service-readiness.mjs";
 const inspectorPath = "scripts/audit/domains/startup-entrypoint/inspector.ts";
 const checkId = "startup-entrypoint/unpacked-readback";
 const clauseId = "apex-startup-001-v3-clean-restart";
+const startupCommand = "node --import tsx --env-file-if-exists=.env.local scripts/startup/launch-grasseye.mjs";
 
 type Finding = ReturnType<typeof createFinding>;
 
@@ -129,7 +132,7 @@ const inspectStartupBoundary = (context: InspectorContext, findings: Finding[], 
   const packageJson = JSON.parse(readFileSync(resolveFromRepo(packagePath), "utf8")) as {
     scripts?: Record<string, string>;
   };
-  if (packageJson.scripts?.["grasseye:start"] !== "node --env-file-if-exists=.env.local scripts/startup/launch-grasseye.mjs") {
+  if (packageJson.scripts?.["grasseye:start"] !== startupCommand) {
     addFinding(findings, lawId, packagePath, "grasseye:start must inject only the optional local runtime configuration before the sole startup entrypoint.");
   }
   if (!hasNamedImport(launch, "browser-runtime-preflight", "runBrowserRuntimePreflight")
@@ -145,8 +148,7 @@ const inspectStartupCommandContract = (
 ): void => {
   const launch = sourceFile(context, launchPath);
   const packageJson = JSON.parse(readFileSync(resolveFromRepo(packagePath), "utf8")) as { scripts?: Record<string, string> };
-  const expected = "node --env-file-if-exists=.env.local scripts/startup/launch-grasseye.mjs";
-  if (packageJson.scripts?.["grasseye:start"] !== expected) addFinding(findings, lawId, packagePath,
+  if (packageJson.scripts?.["grasseye:start"] !== startupCommand) addFinding(findings, lawId, packagePath,
     "grasseye:start must remain the one optional .env.local loader and startup entrypoint.", "static.contract");
   const exportedStarts = launch?.getFunctions().filter((declaration) => declaration.isExported()).length ?? 0;
   if (!launch || exportedStarts !== 0) addFinding(findings, lawId, launchPath,
@@ -155,21 +157,28 @@ const inspectStartupCommandContract = (
 
 const inspectLocalLaunchAuthority = (
   launch: SourceFile,
+  failureHandler: SourceFile,
+  serviceReadiness: SourceFile,
   findings: Finding[],
   lawId: string,
 ): void => {
   const packageJson = JSON.parse(readFileSync(resolveFromRepo(packagePath), "utf8")) as { scripts?: Record<string, string> };
-  const startupCommand = packageJson.scripts?.["grasseye:start"] ?? "";
-  if (startupCommand !== "node --env-file-if-exists=.env.local scripts/startup/launch-grasseye.mjs") {
+  const configuredStartupCommand = packageJson.scripts?.["grasseye:start"] ?? "";
+  if (configuredStartupCommand !== startupCommand) {
     addFinding(findings, lawId, packagePath, "The ordinary startup command must load only this repository's optional .env.local and the sole launch entrypoint.");
   }
   const launchIdentifiers = new Set(launch.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()));
   const launchLiterals = stringLiterals(launch);
+  const boundaryLiterals = new Set([
+    ...launchLiterals,
+    ...stringLiterals(failureHandler),
+    ...stringLiterals(serviceReadiness),
+  ]);
   for (const required of ["runBrowserRuntimePreflight", "ensureCurrentBrowserRuntimeArtifact", "clearPortListeners", "startLocalService", "waitForWorkbenchHealth"]) {
     if (!launchIdentifiers.has(required)) addFinding(findings, lawId, launchPath, `Local startup must execute ${required}.`);
   }
   for (const required of ["127.0.0.1", "src/app/server.ts", "degraded"]) {
-    if (!launchLiterals.has(required)) addFinding(findings, lawId, launchPath, `Local startup must retain the ${required} fail-closed Shell boundary.`);
+    if (!boundaryLiterals.has(required)) addFinding(findings, lawId, launchPath, `Local startup must retain the ${required} fail-closed Shell boundary.`);
   }
   if (!launch.getDescendantsOfKind(SyntaxKind.NumericLiteral).some((node) => node.getLiteralValue() === 4173)) {
     addFinding(findings, lawId, launchPath, "The sole local Shell must default to port 4173.");
@@ -225,11 +234,13 @@ const inspectLocalStartupAuthorityBoundary = (
   const preflight = sourceFile(context, preflightPath);
   const artifactSync = sourceFile(context, artifactSyncPath);
   const processControl = sourceFile(context, processControlPath);
-  if (!launch || !preflight || !artifactSync || !processControl) {
+  const failureHandler = sourceFile(context, failureHandlerPath);
+  const serviceReadiness = sourceFile(context, serviceReadinessPath);
+  if (!launch || !preflight || !artifactSync || !processControl || !failureHandler || !serviceReadiness) {
     addFinding(findings, lawId, inspectorPath, "The local startup authority boundary must remain inspectable.");
     return;
   }
-  inspectLocalLaunchAuthority(launch, findings, lawId);
+  inspectLocalLaunchAuthority(launch, failureHandler, serviceReadiness, findings, lawId);
   inspectArtifactSyncAuthority(artifactSync, findings, lawId);
   inspectListenerCleanupAuthority(processControl, findings, lawId);
 };

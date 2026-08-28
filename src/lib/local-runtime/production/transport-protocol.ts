@@ -92,6 +92,7 @@ const ExecutionGrantSchema = z.object({
   max_attempts: z.number().int().positive(),
   delivery_deadline_at: z.string().datetime(),
   max_provider_turns: z.number().int().positive(),
+}).extend({
   attempt_id: z.string().min(1),
   device_id: z.string().min(1),
   device_epoch: z.number().int().positive(),

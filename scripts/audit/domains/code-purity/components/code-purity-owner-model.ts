@@ -123,6 +123,8 @@ const resolveLibOwner = (repoPath: string): string | null => {
 
 const resolveScriptOwner = (repoPath: string): string | null => {
   return resolveByPrefix(repoPath, [
+    ["scripts/generate/", "agent-production-runtime"],
+    ["scripts/runtime-logs/", "runtime-logs"],
     ["scripts/startup/", "startup"],
     ["scripts/acceptance/", "acceptance"],
   ]) ?? (repoPath.startsWith("scripts/audit/") ? "audit-core" : null);
@@ -142,6 +144,8 @@ export const resolveCodePurityOwner = (repoPath: string): string => {
 const resolveScriptRole = (repoPath: string): CodePurityRole | null =>
   (isAuditInspectorPath(repoPath) ? "audit-inspector" : null) ??
   (resolveByPrefix(repoPath, [
+    ["scripts/generate/", "audit-phase"],
+    ["scripts/runtime-logs/", "audit-phase"],
     ["scripts/audit/", "audit-phase"],
     ["scripts/acceptance/", "acceptance-smoke"],
     ["scripts/startup/", "startup-script"],

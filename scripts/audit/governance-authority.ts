@@ -3,45 +3,11 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFile
 import { dirname, resolve } from 'node:path';
 import { blueprintMarkdownBodyValid, canonicalBytes, cleanString, concreteString, exactKeys, isStringArray, parseJson, pathPatternContains, pathPatternValid, rejectDuplicateJsonKeys, sortedUnique } from './governance-json.js';
 import { validateLocalSpecContract } from './governance-local-spec-contract.js';
-import { ROOT, fail, norm, repositoryPaths, text, validGitObjectId, walk } from './governance-runtime.js';
+import { ROOT, fail, repositoryPaths, text, walk } from './governance-runtime.js';
 import { BASE, FUNCTIONAL, pathRole, REGISTRY, REPORT, SPEC } from './shared/governance-paths.js';
+import type { Law, Manifest, Registry } from './governance-contract.js';
 import { lawBodyStart } from './shared/law-document-front-matter.js';
 import { verifyPathRoleEscalation } from './shared/governance-role-consumption.js';
-export { BASE, FUNCTIONAL, pathRole, REGISTRY, REPORT, SPEC } from './shared/governance-paths.js';
-export type Level = 'CHANGE' | 'READY' | 'RELEASE';
-export type Law = {
-  schemaVersion: 2;
-  lawId: string;
-  supersedesLawId: string | null;
-  status: 'active';
-  tier: 'P0' | 'P1' | 'P2';
-  capabilityDomain: string;
-  enforcementMode: 'static' | 'exam' | 'dynamic' | 'composite';
-  evidenceModes: string[];
-  summary: string;
-  appliesTo: string[];
-  excludes: string[];
-  forbidden: string[];
-  dependsOnLawIds: string[];
-  source: { path: string; lineStart: number; lineEnd: number };
-  contractRefs: string[];
-};
-export type Manifest = {
-  schemaVersion: 5;
-  capabilityDomain: string;
-  status: 'active';
-  lawIds: string[];
-  ownedPaths: string[];
-  observedPaths: string[];
-  manifestPath: string;
-};
-export type Registry = {
-  schemaVersion: 5;
-  sourceSpec: { path: string };
-  lawCorpus: { baseLawPath: string; functionalLawPath: string };
-  laws: Law[];
-  domains: Array<Pick<Manifest, 'capabilityDomain' | 'manifestPath' | 'lawIds' | 'ownedPaths' | 'observedPaths'>>;
-};
 const AGENTS_EXACT = `# Codex Governance Entry\n\n本仓库使用冻结的法案系统。\n\n1. READ_ONLY 直接读取并回答，不写入任何文件。\n2. CHANGE 开始修改前只读查看目标路径的 Git 状态，不得覆盖、删除、恢复或移动未获授权的用户改动。\n3. CHANGE 的实际差异必须与授权人的请求及完成该请求不可分割的直接关联对象一致。\n4. READY 不等于 RELEASE；静态检查、普通测试或部分证据不得被认定为已经完成生产发布。\n5. READY、RELEASE 使用原生 clean Git commit；RELEASE 执行全部 active law 声明的 Dynamic Proof。\n6. 只允许一份 active law corpus、一份 law registry；每个生产路径和合同只允许一个 primary Owner；只允许一个 quality verdict。\n7. 迁移桥、用于迁移的 feature flag、dual-read/write 或 shadow traffic 必须有 Owner、监控、期限、删除日期和删除验收。\n8. 本说明书与 active law 只在授权人分别明确批准对应修改后变更。\n9. 任一 finding、候选漂移、错误证据类型或无事实依据的 PASS 必须失败关闭。\n`;
 const LAW_KEYS = ['appliesTo', 'capabilityDomain', 'dependsOnLawIds', 'enforcementMode', 'evidenceModes', 'excludes', 'forbidden', 'lawId', 'schemaVersion', 'status', 'summary', 'supersedesLawId', 'tier'];
 const MANIFEST_KEYS = ['capabilityDomain', 'lawIds', 'observedPaths', 'ownedPaths', 'schemaVersion', 'status'];
@@ -503,27 +469,4 @@ export function checkProjection(): void {
 }
 export function assertProjectionEqual(expected: Buffer, actual: Buffer): void {
   if (!actual.equals(expected)) fail('GENERATED_PROJECTION_STALE', REGISTRY);
-}
-
-export function gitCommit(): string {
-  const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim();
-  if (!validGitObjectId(commit)) fail('SOURCE_PARSE_FAILED', 'git commit');
-  return commit;
-}
-
-export function diffPaths(base = 'HEAD'): Array<{ status: string; path: string }> {
-  const raw = execFileSync('git', ['diff', '--name-status', '-z', base, '--'], { cwd: ROOT }).toString().split('\0').filter(Boolean);
-  const changes: Array<{ status: string; path: string }> = [];
-  for (let index = 0; index < raw.length;) {
-    const status = raw[index++]!;
-    if (status.startsWith('R') || status.startsWith('C')) {
-      const oldPath = norm(raw[index++]!);
-      const newPath = norm(raw[index++]!);
-      if (status.startsWith('R')) changes.push({ status: 'D', path: oldPath });
-      changes.push({ status: 'A', path: newPath });
-    } else changes.push({ status: status[0]!, path: norm(raw[index++]!) });
-  }
-  const tracked = new Set(changes.map((change) => change.path));
-  for (const path of execFileSync('git', ['ls-files', '--others', '--exclude-standard', '-z'], { cwd: ROOT }).toString().split('\0').filter(Boolean).map(norm)) if (!tracked.has(path)) changes.push({ status: 'A', path });
-  return changes.sort((left, right) => byteCompare(left.path, right.path) || byteCompare(left.status, right.status));
 }

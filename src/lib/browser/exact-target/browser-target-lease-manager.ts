@@ -313,17 +313,18 @@ export class BrowserTargetLeaseManager {
   }
 
   private capabilityForIntent(intent: BrowserDomIntent): BrowserCapabilityId {
-    switch (intent.kind) {
-      case "document":
-      case "inspect": return "browser.dom.inspect.v1";
-      case "find": return "browser.dom.find.v1";
-      case "readText": return "browser.dom.read-text.v1";
-      case "readAttribute": return "browser.dom.read-attribute.v1";
-      case "click": return "browser.dom.click.v1";
-      case "hover": return "browser.dom.hover.v1";
-      case "doubleClick": return "browser.dom.double-click.v1";
-      case "keypress": return "browser.dom.keypress.v1";
-      case "fill": return "browser.dom.fill.v1";
-    }
+    const capabilities: Readonly<Record<BrowserDomIntent["kind"], BrowserCapabilityId>> = {
+      document: "browser.dom.inspect.v1",
+      inspect: "browser.dom.inspect.v1",
+      find: "browser.dom.find.v1",
+      readText: "browser.dom.read-text.v1",
+      readAttribute: "browser.dom.read-attribute.v1",
+      click: "browser.dom.click.v1",
+      hover: "browser.dom.hover.v1",
+      doubleClick: "browser.dom.double-click.v1",
+      keypress: "browser.dom.keypress.v1",
+      fill: "browser.dom.fill.v1",
+    };
+    return capabilities[intent.kind];
   }
 }

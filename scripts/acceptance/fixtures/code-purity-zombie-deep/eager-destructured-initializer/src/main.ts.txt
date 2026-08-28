@@ -1,0 +1,4 @@
+const liveValue = "alive";
+const { value } = { value: liveValue };
+
+console.log(value);

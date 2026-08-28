@@ -52,6 +52,28 @@ export const productionRoutePolicyMap = new Map(
 );
 const productionParameterTypes = Object.freeze({ ...projection.parameter_types });
 
+type ParameterValidator = (
+  value: unknown,
+  task: WebsiteAgentTask,
+  expected: ProductionRoutePolicy,
+) => boolean;
+
+const nonEmptyString = (value: unknown): boolean => typeof value === "string" && value.trim().length > 0;
+const parameterValidators: Readonly<Record<ProductionParameterType, ParameterValidator>> = {
+  non_empty_string: nonEmptyString,
+  sha256: (value) => typeof value === "string" && /^sha256:[a-f0-9]{64}$/u.test(value),
+  non_empty_string_array: (value) => Array.isArray(value) && value.length > 0 && value.every(nonEmptyString),
+  bazi_analysis_kind: (value) => value === "chart_interpretation" || value === "question_analysis",
+  public_knowledge_package_version: (value) => value === "public-knowledge-article-package.v1",
+  payment_observation_version: (value) => value === "payment-screenshot-observation-v1",
+  quality_reflection_version: (value) => value === "scheduled-quality-reflection.v1",
+  route_result_schema_version: (value, _task, expected) => value === expected.result_schema_version,
+  target_locale: (value) => ["zh-HK", "zh-TW", "en-US", "ja-JP", "ko-KR"].includes(String(value)),
+  locale: (value) => ["zh-CN", "zh-HK", "zh-TW", "en-US", "ja-JP", "ko-KR"].includes(String(value)),
+  localization_resource_kind: (value, task) => task.product_id === "localization_report_translation"
+    ? value === "report" : task.product_id === "localization_article_translation" && value === "article",
+};
+
 const primaryProducts = productionRoutePolicies.filter((entry) => entry.relation_kind !== "review")
   .map((entry) => entry.product_id);
 if (primaryProducts.length !== 13 || new Set(primaryProducts).size !== 13
@@ -71,31 +93,19 @@ export function productionRoutePolicy(
 export const routeProducesGeneratedImage = (task: Pick<WebsiteAgentTask, "product_id" | "action_id">): boolean =>
   task.product_id === "public_knowledge_article_pipeline" && task.action_id === "produce_article";
 
-export function assertProductionTaskRoutePolicy(task: WebsiteAgentTask): void {
-  const expected = productionRoutePolicy(task.product_id, task.action_id);
+const assertRouteParameters = (task: WebsiteAgentTask, expected: ProductionRoutePolicy): void => {
   if (Object.keys(task.parameters).sort().join("\0")
     !== [...expected.required_parameter_keys].sort().join("\0")) {
     throw new Error("AGENT_ROUTE_PARAMETER_SET_INVALID");
   }
   for (const [parameterKey, parameter] of Object.entries(task.parameters)) {
     const kind = productionParameterTypes[parameterKey];
-    const nonempty = typeof parameter === "string" && parameter.trim().length > 0;
-    const valid = kind === "non_empty_string" ? nonempty
-      : kind === "sha256" ? typeof parameter === "string" && /^sha256:[a-f0-9]{64}$/u.test(parameter)
-      : kind === "non_empty_string_array" ? Array.isArray(parameter) && parameter.length > 0
-        && parameter.every((item) => typeof item === "string" && item.trim().length > 0)
-      : kind === "bazi_analysis_kind" ? parameter === "chart_interpretation" || parameter === "question_analysis"
-      : kind === "public_knowledge_package_version" ? parameter === "public-knowledge-article-package.v1"
-      : kind === "payment_observation_version" ? parameter === "payment-screenshot-observation-v1"
-      : kind === "quality_reflection_version" ? parameter === "scheduled-quality-reflection.v1"
-      : kind === "route_result_schema_version" ? parameter === expected.result_schema_version
-      : kind === "target_locale" ? ["zh-HK", "zh-TW", "en-US", "ja-JP", "ko-KR"].includes(String(parameter))
-      : kind === "locale" ? ["zh-CN", "zh-HK", "zh-TW", "en-US", "ja-JP", "ko-KR"].includes(String(parameter))
-      : kind === "localization_resource_kind" ? (task.product_id === "localization_report_translation"
-        ? parameter === "report" : task.product_id === "localization_article_translation" && parameter === "article")
-      : false;
+    const valid = kind !== undefined && parameterValidators[kind](parameter, task, expected);
     if (!valid) throw new Error(`AGENT_ROUTE_PARAMETER_VALUE_INVALID:${parameterKey}`);
   }
+};
+
+const assertRouteMaterials = (task: WebsiteAgentTask, expected: ProductionRoutePolicy): void => {
   const materials = [...task.material_refs].sort((left, right) => left.ordinal - right.ordinal);
   if (materials.length !== expected.material_roles.length) throw new Error("AGENT_ROUTE_MATERIAL_SET_INVALID");
   for (const [index, role] of expected.material_roles.entries()) {
@@ -109,6 +119,10 @@ export function assertProductionTaskRoutePolicy(task: WebsiteAgentTask): void {
       throw new Error("AGENT_ROUTE_MATERIAL_SET_INVALID");
     }
   }
+};
+
+const assertRouteRelation = (task: WebsiteAgentTask, expected: ProductionRoutePolicy): void => {
+  const materials = [...task.material_refs].sort((left, right) => left.ordinal - right.ordinal);
   const continuationIdentity = [task.continuation_ref, task.parent_task_ref, task.parent_result_ref,
     task.parent_result_hash];
   const reviewIdentity = [task.subject_task_ref, task.subject_result_ref, task.subject_result_hash,
@@ -125,4 +139,11 @@ export function assertProductionTaskRoutePolicy(task: WebsiteAgentTask): void {
       throw new Error("AGENT_REVIEW_SUBJECT_MATERIAL_INVALID");
     }
   }
+};
+
+export function assertProductionTaskRoutePolicy(task: WebsiteAgentTask): void {
+  const expected = productionRoutePolicy(task.product_id, task.action_id);
+  assertRouteParameters(task, expected);
+  assertRouteMaterials(task, expected);
+  assertRouteRelation(task, expected);
 }

@@ -5,7 +5,7 @@ import {
   type RuntimeFailure,
   type RuntimeFailureKind as RuntimeFailureKindValue,
   type RuntimeLogOwner,
-} from "./schema.js";
+} from "./runtime-failure-contract.js";
 
 const cleanExplicitCode = (value: string): string => {
   const code = value.trim().split(/[\s:]/u)[0] ?? "";
@@ -43,15 +43,17 @@ const httpStatus = (error: unknown): number | undefined => {
 };
 
 const classifyKind = (code: string): RuntimeFailureKindValue => {
-  if (/ECONN|ETIMEDOUT|UND_ERR|FETCH|NETWORK|SOCKET|TRANSPORT/iu.test(code)) return RuntimeFailureKind.TRANSPORT;
-  if (/DATABASE|STORAGE|CHECKPOINT|UPLOAD|OUTBOX|DISK/iu.test(code)) return RuntimeFailureKind.STORAGE;
-  if (/BROWSER|TARGET|DOCUMENT|MUTATION|UNKNOWN/iu.test(code)) return RuntimeFailureKind.BROWSER;
-  if (/CONTRACT|SCHEMA|MANIFEST|BINDING|HASH_MISMATCH|DRIFT/iu.test(code)) return RuntimeFailureKind.CONTRACT;
-  if (/AUTH|CREDENTIAL|FORBIDDEN|UNAUTHORIZED|TOKEN|SESSION/iu.test(code)) return RuntimeFailureKind.AUTHENTICATION;
-  if (/ADMISSION|CLAIM|LEASE|FENCE|CAPACITY|STALE/iu.test(code)) return RuntimeFailureKind.ADMISSION;
-  if (/PROVIDER|MODEL|HTTP|REMOTE|REJECT/iu.test(code)) return RuntimeFailureKind.PROVIDER;
-  if (/DEPENDENCY|CHANNEL_UNAVAILABLE/iu.test(code)) return RuntimeFailureKind.DEPENDENCY;
-  return RuntimeFailureKind.INTERNAL;
+  const rules: readonly Readonly<{ pattern: RegExp; kind: RuntimeFailureKindValue }>[] = [
+    { pattern: /ECONN|ETIMEDOUT|UND_ERR|FETCH|NETWORK|SOCKET|TRANSPORT/iu, kind: RuntimeFailureKind.TRANSPORT },
+    { pattern: /DATABASE|STORAGE|CHECKPOINT|UPLOAD|OUTBOX|DISK/iu, kind: RuntimeFailureKind.STORAGE },
+    { pattern: /BROWSER|TARGET|DOCUMENT|MUTATION|UNKNOWN/iu, kind: RuntimeFailureKind.BROWSER },
+    { pattern: /CONTRACT|SCHEMA|MANIFEST|BINDING|HASH_MISMATCH|DRIFT/iu, kind: RuntimeFailureKind.CONTRACT },
+    { pattern: /AUTH|CREDENTIAL|FORBIDDEN|UNAUTHORIZED|TOKEN|SESSION/iu, kind: RuntimeFailureKind.AUTHENTICATION },
+    { pattern: /ADMISSION|CLAIM|LEASE|FENCE|CAPACITY|STALE/iu, kind: RuntimeFailureKind.ADMISSION },
+    { pattern: /PROVIDER|MODEL|HTTP|REMOTE|REJECT/iu, kind: RuntimeFailureKind.PROVIDER },
+    { pattern: /DEPENDENCY|CHANNEL_UNAVAILABLE/iu, kind: RuntimeFailureKind.DEPENDENCY },
+  ];
+  return rules.find((rule) => rule.pattern.test(code))?.kind ?? RuntimeFailureKind.INTERNAL;
 };
 
 export const runtimeFailureFromError = (input: Readonly<{
@@ -94,6 +96,6 @@ export const withRuntimeLogCause = (error: unknown, eventId: string): Error => {
 
 export const runtimeLogCauseEventId = (error: unknown): string | null => {
   if (!(error instanceof Error)) return null;
-  const value = (error as unknown as Record<symbol, unknown>)[RUNTIME_CAUSE_EVENT];
+  const value = Reflect.get(error, RUNTIME_CAUSE_EVENT) as unknown;
   return typeof value === "string" && value.length > 0 ? value : null;
 };

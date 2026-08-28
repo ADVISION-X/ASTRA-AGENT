@@ -4,7 +4,8 @@ import { resolve } from 'node:path';
 import { blueprintMarkdownBodyValid, canonicalBytes, concreteString, exactKeys, isStringArray, parseJson, pathPatternValid, rejectDuplicateJsonKeys, sortedUnique } from './governance-json.js';
 import { validateLocalSpecContract } from './governance-local-spec-contract.js';
 import { fail, text, walk } from './governance-runtime.js';
-import { assertActiveSpecVersionWindows, blueprintValid, parseLawSource, type Law } from './governance-authority.js';
+import { assertActiveSpecVersionWindows, blueprintValid, parseLawSource } from './governance-authority.js';
+import type { Law } from './governance-contract.js';
 import { BASE, FUNCTIONAL } from './shared/governance-paths.js';
 
 const LAW = /^LAW-[A-Z0-9]+(?:-[A-Z0-9]+)*-[0-9]{3}-V[1-9][0-9]*$/u;

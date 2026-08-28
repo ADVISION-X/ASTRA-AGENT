@@ -127,13 +127,19 @@ export const inspectAtomicIfAndThenBoundary = (
   const manager = requireSource(context, findings, lawId, sourcePaths[5]);
   const commandActor = requireSource(context, findings, lawId, sourcePaths[6]);
   const domRuntime = requireSource(context, findings, lawId, sourcePaths[19]);
+  const domQueryRuntime = requireSource(
+    context,
+    findings,
+    lawId,
+    "src/lib/browser/chrome-extension/dom-query-runtime.ts",
+  );
   const leaseContract = requireSource(
     context,
     findings,
     lawId,
     "src/lib/browser/exact-target/browser-target-lease.ts",
   );
-  if (!manager || !commandActor || !domRuntime || !leaseContract) return;
+  if (!manager || !commandActor || !domRuntime || !domQueryRuntime || !leaseContract) return;
   const contractIdentifiers = identifiers(leaseContract);
   if (!browserMutationLedgerIsAtomic(manager)
     || !contractIdentifiers.has("resolvePendingMutation")
@@ -145,10 +151,10 @@ export const inspectAtomicIfAndThenBoundary = (
       message: "Browser mutation orchestration must enforce IF current exact state AND one terminal receipt THEN resolve exactly one mutation; a second mutation and batch drain must remain impossible.",
     }));
   }
-  if (!exactTextMatcherIsStrict(domRuntime)) findings.push(createLocalFinding({
+  if (!exactTextMatcherIsStrict(domQueryRuntime)) findings.push(createLocalFinding({
     checkId: "browser-authority/terminal-authority",
     lawId,
-    filePath: sourcePaths[19],
+    filePath: "src/lib/browser/chrome-extension/dom-query-runtime.ts",
     message: "The effective exact-text matcher must use normalized strict equality and cannot be replaced by substring containment or an unreachable decoy.",
   }));
   requireIdentifiers(domRuntime, ["postconditionVerified"], findings, lawId,

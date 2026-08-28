@@ -1,4 +1,4 @@
-import type { RuntimeLogVisibility } from "./schema.js";
+import type { RuntimeLogVisibility } from "./runtime-failure-contract.js";
 
 export type RuntimeLogMode = RuntimeLogVisibility;
 

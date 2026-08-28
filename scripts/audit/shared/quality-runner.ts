@@ -2,8 +2,10 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
-
-import { BASE, buildRegistry, diffPaths, FUNCTIONAL, gitCommit, parseLawSource, providerDomainForDependencySpec, REPORT, type Law, type Level, type Registry } from "../governance-authority.js";
+import { buildRegistry, parseLawSource, providerDomainForDependencySpec } from "../governance-authority.js";
+import type { Law, Level, Registry } from "../governance-contract.js";
+import { diffPaths, gitCommit } from "../governance-git-state.js";
+import { BASE, FUNCTIONAL, REPORT } from "./governance-paths.js";
 import { canonicalBytes, rejectDuplicateJsonKeys } from "../governance-json.js";
 import { ROOT, fail, repositoryPaths, sha } from "../governance-runtime.js";
 import { buildQualityReport, type LawExecutionResult, type QualityAssertion, type QualityFinding, type QualityParticipant } from "./quality-contract.js";
@@ -12,9 +14,7 @@ import type { InspectorFinding, InspectorLawResult, SessionInspectorOutput } fro
 import { dynamicReceiptFileValid, parseQualityProofObservations, type QualityProofObservation, type QualityProofRequest } from "./proof-observation.js";
 import { dynamicScriptFor, examScriptFor } from "./quality-routes.js";
 import { validateProviderContractSpec, type ProviderContract } from "./provider-contract-authority.js";
-
 export { dynamicScriptFor } from "./quality-routes.js";
-
 type TargetSet = { queryRef: string; count: number };
 type ProofResult = { assertions: QualityAssertion[]; findings: QualityFinding[] };
 type ProofRoute = { law: Law; mode: string };
