@@ -114,7 +114,7 @@ const inspectDenominatorAndContracts = (context: InspectorContext, findings: Ins
   ));
   const implemented = handlerIds(context);
   if (JSON.stringify(ids) !== JSON.stringify(implemented)) findings.push(finding(
-    "gpt/one-handler-per-child", ROOT,
+    "gpt/one-handler-per-child", CONTRACT_PATH,
     `Handler denominator differs from contract: contract=${ids.join(",")}; handlers=${implemented.join(",")}.`,
   ));
   const childContract = contract.getInterface("ChildCapabilityContract");
@@ -186,13 +186,14 @@ const inspectFacadeAndOwnership = (context: InspectorContext, findings: Inspecto
 
 const inspectAtomicSafety = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const sources = context.project.getSourceFiles().filter((source) => repoPath(context, source).startsWith(`${ROOT}/`));
-  const allText = sources.map((source) => source.getFullText()).join("\n");
   for (const forbidden of [
     "feed-provider-once", "gpt-web-chat", "gemini", "claude", "document.cookie",
-    "localStorage", "sessionStorage", "location.reload", "Promise.all(",
-  ]) if (allText.toLocaleLowerCase("en-US").includes(forbidden.toLocaleLowerCase("en-US"))) findings.push(finding(
-    "gpt/forbidden-secondary-or-unsafe-path", ROOT, `GPT implementation retains forbidden token ${forbidden}.`,
-  ));
+    "localStorage", "sessionStorage", "location.reload",
+  ]) for (const source of sources) {
+    if (!source.getFullText().toLocaleLowerCase("en-US").includes(forbidden.toLocaleLowerCase("en-US"))) continue;
+    findings.push(finding("gpt/forbidden-secondary-or-unsafe-path", repoPath(context, source),
+      `GPT implementation retains forbidden token ${forbidden}.`));
+  }
   for (const source of sources) {
     const path = repoPath(context, source);
     const siblingImports = source.getImportDeclarations().filter((declaration) =>
@@ -202,14 +203,21 @@ const inspectAtomicSafety = (context: InspectorContext, findings: InspectorFindi
       `Child implementation imports sibling child module ${declaration.getModuleSpecifierValue()}.`,
       declaration.getStartLineNumber(),
     ));
+    for (const concurrent of source.getDescendantsOfKind(SyntaxKind.CallExpression)
+      .filter((call) => call.getExpression().getText() === "Promise.all")) {
+      if (!containsPageMutation(concurrent)) continue;
+      findings.push(finding(
+        "gpt/no-concurrent-page-mutation", path,
+        "GPT page mutation must not be dispatched concurrently.", concurrent.getStartLineNumber(),
+      ));
+    }
     for (const loop of [
       ...source.getDescendantsOfKind(SyntaxKind.ForStatement),
       ...source.getDescendantsOfKind(SyntaxKind.ForOfStatement),
       ...source.getDescendantsOfKind(SyntaxKind.WhileStatement),
       ...source.getDescendantsOfKind(SyntaxKind.DoStatement),
     ]) {
-      const text = loop.getText();
-      if (/executeDomIntent\s*\(|\.navigate\s*\(|\.attachFile\s*\(/u.test(text)) findings.push(finding(
+      if (containsPageMutation(loop)) findings.push(finding(
         "gpt/no-looped-page-mutation", path,
         "GPT page mutation must not be dispatched from a loop.", loop.getStartLineNumber(),
       ));
@@ -217,13 +225,31 @@ const inspectAtomicSafety = (context: InspectorContext, findings: InspectorFindi
   }
 };
 
+const READ_ONLY_DOM_INTENTS = new Set(["document", "find", "inspect", "readAttribute", "readText"]);
+
+const isPageMutationCall = (call: import("ts-morph").CallExpression): boolean => {
+  const expression = call.getExpression().getText();
+  if (expression.endsWith(".navigate") || expression.endsWith(".attachFile")) return true;
+  if (!expression.endsWith(".executeDomIntent")) return false;
+  const argument = call.getArguments()[0];
+  if (!Node.isObjectLiteralExpression(argument)) return true;
+  const kind = argument.getProperty("kind");
+  if (!Node.isPropertyAssignment(kind)) return true;
+  const value = kind.getInitializer();
+  return !(Node.isStringLiteral(value) || Node.isNoSubstitutionTemplateLiteral(value))
+    || !READ_ONLY_DOM_INTENTS.has(value.getLiteralValue());
+};
+
+export const containsPageMutation = (node: Node): boolean =>
+  node.getDescendantsOfKind(SyntaxKind.CallExpression).some(isPageMutationCall);
+
 const inspectUniqueRuntimeChain = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const controllerDir = resolve(context.sealedRoot, ROOT, "session");
   const controllers = existsSync(controllerDir)
     ? readdirSync(controllerDir).filter((name) => name.endsWith("session-controller.ts"))
     : [];
   if (controllers.length !== 1 || controllers[0] !== "gpt-session-controller.ts") findings.push(finding(
-    "gpt/one-session-controller", `${ROOT}/session`,
+    "gpt/one-session-controller", SESSION_PATH,
     `Exactly one GPT Session Controller is allowed; found ${controllers.join(",")}.`,
   ));
   const sessionText = sourceFor(context, SESSION_PATH)?.getFullText() ?? "";
@@ -248,7 +274,7 @@ const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFind
   const controllers = readdirSync(resolve(context.sealedRoot, ROOT, "session"))
     .filter((name) => name.endsWith("session-controller.ts"));
   if (JSON.stringify(controllers) !== JSON.stringify(["gpt-session-controller.ts"])) findings.push(finding(
-    "gpt/filesystem-single-session-controller", `${ROOT}/session`,
+    "gpt/filesystem-single-session-controller", SESSION_PATH,
     `Expected one GPT Session Controller; found ${controllers.join(",")}.`));
   const forbidden = context.targetPaths.find((path) => /(?:gemini|claude|gateway|adapter|fallback)/iu.test(path));
   if (forbidden) findings.push(finding("gpt/filesystem-secondary-provider", forbidden,

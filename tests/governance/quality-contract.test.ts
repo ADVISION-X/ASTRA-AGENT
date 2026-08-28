@@ -33,6 +33,7 @@ import type { QualityProofRequest } from "../../scripts/audit/shared/proof-obser
 import { relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../scripts/audit/shared/static-inspection-contract.js";
 import { inspectPerSiteHmac } from "../../scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.js";
+import { containsPageMutation } from "../../scripts/audit/domains/gpt/inspector.js";
 import { exactTextMatcherIsStrict } from "../../scripts/audit/domains/local-browser-session/mutation-atomicity-inspection.js";
 import { redactHashWriteOrderIsExact } from "../../scripts/audit/domains/runtime-log-spine/inspector.js";
 
@@ -1173,6 +1174,23 @@ test("active Browser and Runtime Log inspectors reject semantic decoys", () => {
     .replace("if (fileSink) fileSink.write(event as RuntimeLogEventV2);",
       "redactedUnsigned(unsignedInput);\n      if (fileSink) fileSink.write(event as RuntimeLogEventV2);");
   assert.equal(redactHashWriteOrderIsExact(inspectSource(loggerPath, redactionDecoy)), false);
+});
+
+test("GPT mutation inspection permits bounded reads but rejects looped or concurrent dispatch", () => {
+  const source = (body: string) => {
+    const project = new Project({ useInMemoryFileSystem: true });
+    return project.createSourceFile("src/capabilities/gpt/mutant.ts", body);
+  };
+  assert.equal(containsPageMutation(source(`for (const candidate of candidates) {
+    await browser.executeDomIntent({ kind: "find", selector: candidate.selector, maxMatches: 2 });
+  }`)), false);
+  assert.equal(containsPageMutation(source(`for (const candidate of candidates) {
+    await browser.executeDomIntent({ kind: "click", selector: candidate.selector, expectedMatches: 1 });
+  }`)), true);
+  assert.equal(containsPageMutation(source("await Promise.all([readFile(first), readFile(second)]);")), false);
+  assert.equal(containsPageMutation(source(`await Promise.all([
+    browser.executeDomIntent({ kind: "click", selector: "button", expectedMatches: 1 }),
+  ]);`)), true);
 });
 
 test("every declared dynamic evidence mode has one executable RELEASE proof route", () => {
