@@ -205,5 +205,3 @@ try {
 } finally {
   await rm(temporary, { recursive: true, force: true });
 }
-
-export const agentProductionLedgerAcceptancePassed = true;

@@ -45,5 +45,3 @@ try {
   else process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = previousCredentialPath;
   await rm(temporary, { recursive: true, force: true });
 }
-
-export const agentProductionStartupAcceptancePassed = true;

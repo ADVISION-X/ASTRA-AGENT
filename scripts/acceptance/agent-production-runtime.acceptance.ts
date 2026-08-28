@@ -15,9 +15,9 @@ import { assertProductionTaskRoutePolicy } from "../../src/lib/local-runtime/pro
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../src/mediator/agent-production-route.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { HASH_A, HASH_B, claimTask, identityFor, resultFor, task } from "./agent-production-runtime-fixtures.js";
-import { agentProductionLedgerAcceptancePassed } from "./agent-production-runtime-ledger.acceptance.js";
-import { agentProductionContinuationAcceptancePassed } from "./agent-production-runtime-continuation.acceptance.js";
-import { agentProductionStartupAcceptancePassed } from "./agent-production-runtime-startup.acceptance.js";
+import "./agent-production-runtime-ledger.acceptance.js";
+import "./agent-production-runtime-continuation.acceptance.js";
+import "./agent-production-runtime-startup.acceptance.js";
 
 assert.equal(productionPluginCatalog.length, 12);
 assert.equal(agentPluginCapabilityManifest.plugins.length, 12);
@@ -120,10 +120,6 @@ const dispatched = await dispatchWebsiteAgentTask(productionTask, (authorized) =
 }));
 assert.equal(dispatched.plugin_id, "payment-screenshot-observation");
 assert.deepEqual([turnCalls, completionCalls], [1, 1]);
-assert.equal(agentProductionLedgerAcceptancePassed, true);
-assert.equal(agentProductionContinuationAcceptancePassed, true);
-assert.equal(agentProductionStartupAcceptancePassed, true);
-
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
