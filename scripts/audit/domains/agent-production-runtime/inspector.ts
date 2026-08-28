@@ -36,7 +36,6 @@ const businessTokens = [
   "bazi_", "qimen_", "hehun_", "naming_", "localization_", "payment_screenshot_",
   "public_knowledge_", "八字", "奇门", "合婚", "起名", "本地化", "付款截图",
 ] as const;
-
 const finding = (checkId: string, filePath: string, message: string, line?: number,
   evidenceMode = "static.ast"): InspectorFinding =>
   createFinding({

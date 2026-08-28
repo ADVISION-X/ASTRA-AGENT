@@ -79,7 +79,6 @@ const participantPath = (repo: string): string => {
   }
   return providerPath;
 };
-
 const gitAt = (path: string, args: string[]): string => execFileSync("git", args, {
   cwd: path, encoding: "utf8", maxBuffer: 64 * 1024 * 1024,
 }).trim();
