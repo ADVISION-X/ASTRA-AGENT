@@ -6,7 +6,7 @@ import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionIn
 import { recordStaticCheck } from "../../shared/static-inspection-contract.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V6";
+const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V7";
 const PLUGIN_ROOT = "src/plugins";
 const CATALOG_PATH = "src/lib/local-runtime/production/catalog.ts";
 const CONTRACT_PATH = "src/lib/local-runtime/production/contracts.ts";
@@ -92,6 +92,18 @@ const inspectPluginRoot = (
   if (skills.length === 1) inspectProductSkill(findings, pluginId, root, skills[0]!.name);
   const pluginSource = sourceFor(context, indexPath);
   if (!pluginSource) return;
+  const pluginText = pluginSource.getFullText();
+  if (entries.some((entry) => entry.isFile() && entry.name === "gpt-flow.ts")
+    || pluginText.includes("gpt_flow") || pluginText.includes("gpt-flow")) {
+    findings.push(finding(
+      "agent-production-runtime/product-page-flow-retired", indexPath,
+      `${pluginId} must not own or import provider-page step arrays.`,
+    ));
+  }
+  if (!pluginText.includes("checkpointSchemaVersion: 2")) findings.push(finding(
+    "agent-production-runtime/atomic-checkpoint-schema", indexPath,
+    `${pluginId} must bind atomic GPT checkpoint schema version 2.`,
+  ));
   for (const declaration of pluginSource.getImportDeclarations()) {
     const specifier = declaration.getModuleSpecifierValue();
     if (importsAnotherPlugin(context, pluginId, indexPath, specifier)) findings.push(finding(
@@ -276,6 +288,8 @@ const inspectRetirementAndDurability = (context: InspectorContext, findings: Ins
     "journal_mode = WAL", "identity_json", "plugin_id", "plugin_version", "request_hash",
     "PRODUCTION_OUTBOX_IDEMPOTENCY_CONFLICT",
     "PLUGIN_IDENTITY_CHANGED_BEFORE_RECOVERY", "review_required", "lane_owner_job_id",
+    "gpt-turn-checkpoint.v2", "writeGptTurnCheckpoint", "readGptTurnCheckpoint",
+    "on conflict(job_id,step_id) do update set",
   ]) {
     if (!storeText.includes(required)) findings.push(finding(
       "agent-production-runtime/durable-runtime", "src/lib/local-runtime/production/store-foundation.ts",
@@ -357,7 +371,7 @@ const inspectV5Hardening = (context: InspectorContext, findings: InspectorFindin
     { path: EXECUTOR_PATH, checkId: "strict-result-parser", tokens: ["authorized.plugin.parseResult"] },
     { path: GPT_EVIDENCE_PATH, checkId: "strict-result-parser", tokens: ["safeProjection", "appendRecord", "readRecordRef", "EVIDENCE_READBACK_FAILED"] },
     { path: CLOUD_CLIENT_PATH, checkId: "result-receipt-binding", tokens: ["plugin.parseResult", "uploadGeneratedImage", "execution_receipt_hash", "evidence_refs"] },
-    { path: GPT_RESPONSE_PATH, checkId: "generated-image-bytes", tokens: ["sharp(original", ".resize(1200, 630", ".webp(", "metadata.exif", "metadata.xmp", "GPT_GENERATED_IMAGE_READBACK_INVALID"] },
+    { path: GPT_RESPONSE_PATH, checkId: "generated-image-bytes", tokens: ["downloadAuthenticatedMedia", "sharp(original", ".resize(1200, 630", ".webp(", "metadata.exif", "metadata.xmp", "GPT_GENERATED_IMAGE_READBACK_INVALID"] },
     { path: TYPED_FAILURE_PATH, checkId: "typed-failure-chain", tokens: ["typedExecutionFailure", "httpStatus", "cause"] },
     { path: RUNTIME_LOGGING_PATH, checkId: "typed-failure-chain", tokens: ["typedExecutionFailure(error)?.code", "causedByEventId"] },
     { path: TRANSPORT_PATH, checkId: "typed-failure-chain", tokens: ["executionFailure(", "httpStatus"] },
@@ -366,7 +380,8 @@ const inspectV5Hardening = (context: InspectorContext, findings: InspectorFindin
     { path: "src/lib/local-runtime/production/runtime-state.ts", checkId: "bounded-attempt-decision", tokens: ["max_provider_turns"] },
     { path: CLOUD_CLIENT_PATH, checkId: "attempt-failure-receipt", tokens: ["attempt_failure", "RETRY_FROM_CHECKPOINT", "RECONCILE_ONLY"] },
     { path: GPT_EXECUTOR_PATH, checkId: "logical-mutation-boundary", tokens: [
-      "runAtomicStep({", "pluginStepId: input.stepId", "childCapabilityId: input.intent.childCapabilityId",
+      "GptTurnExecutor", "runAtomicStep({", "pluginStepId: input.stepId", "childCapabilityId: input.intent.childCapabilityId",
+      "readGptTurnCheckpoint", "writeGptTurnCheckpoint", "production-reconciliation", "reconcileOnly",
     ] },
     { path: GPT_EVIDENCE_PATH, checkId: "logical-mutation-boundary", tokens: ["committedMutation === \"dispatched\""] },
     { path: PRODUCTION_BLUEPRINT_PATH, checkId: "local-agent-process-owner", tokens: ["AGENT 始终运行在用户本地 Mac", "不授予网站 AGENT 进程"] },
@@ -393,6 +408,13 @@ const inspectV5Hardening = (context: InspectorContext, findings: InspectorFindin
     "agent-production-runtime/typed-failure-chain", TRANSPORT_PATH,
     "The production transport reintroduced a retryable boolean beside the typed failure chain.", undefined, "static.ast",
   ));
+  const runtime = read(context, RUNTIME_PATH);
+  for (const forbiddenTerminal of ["BROWSER_", "GPT_", "EVIDENCE_", "BROWSER_POSTCONDITION_FAILED"]) {
+    if (runtime.includes(`terminalCodes = new Set([\n    \"${forbiddenTerminal}`)) findings.push(finding(
+      "agent-production-runtime/recoverable-failure-terminal-forbidden", RUNTIME_PATH,
+      `Recoverable page/runtime failure ${forbiddenTerminal} must not enter the terminal-code set.`, undefined, "static.ast",
+    ));
+  }
 };
 
 const inspectAgentProductionRuntime = (context: InspectorContext, findings: InspectorFinding[]): void => {

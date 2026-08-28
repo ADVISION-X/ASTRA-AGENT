@@ -83,7 +83,8 @@ export type BrowserDomIntent =
   | Readonly<{
     kind: "keypress";
     selector: string;
-    key: "Enter";
+    key: "Enter" | "ArrowLeft" | "ArrowRight";
+    repeat?: 1 | 2 | 3 | 4;
     expectedMatches?: number;
     scope?: BrowserDomReadScope;
     postKeypressMatch: Readonly<{
@@ -105,7 +106,13 @@ export const assertBrowserDomIntent = (intent: BrowserDomIntent): BrowserDomInte
   if (intent.kind === "hover") assertHoverIntent(intent);
   if (intent.kind === "doubleClick") assertBoundedPostMatch(intent.postDoubleClickMatch);
   if (intent.kind === "keypress") {
-    if (intent.key !== "Enter") throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+    if (!(intent.key === "Enter" || intent.key === "ArrowLeft" || intent.key === "ArrowRight")) {
+      throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+    }
+    if (intent.repeat !== undefined
+      && (!Number.isInteger(intent.repeat) || intent.repeat < 1 || intent.repeat > 4)) {
+      throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+    }
     assertBoundedPostMatch(intent.postKeypressMatch);
   }
   return intent;

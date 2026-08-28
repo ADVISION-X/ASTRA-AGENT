@@ -3,7 +3,7 @@
   "capabilityDomain": "gpt",
   "status": "active",
   "lawIds": [
-    "LAW-GPT-001-V3"
+    "LAW-GPT-001-V4"
   ],
   "ownedPaths": [
     "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V1-BLUEPRINT.md",
@@ -15,6 +15,7 @@
   "observedPaths": [
     "src/lib/browser/**",
     "src/lib/local-runtime/production/**",
-    "src/lib/runtime-logs/**"
+    "src/lib/runtime-logs/**",
+    "src/plugins/**"
   ]
 }

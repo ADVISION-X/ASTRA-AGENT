@@ -1,15 +1,14 @@
 import { combineEvidence, readProductSkill, type ProductPlugin } from "../../lib/local-runtime/production/plugin.js";
 import { parseProductResult, parseRouteResult } from "./result-contract.js";
-import { continuationGptTurnFlow, freshGptTurnFlow } from "./gpt-flow.js";
 
 const skill = readProductSkill(import.meta.url);
 const provider = { labelKey: "hehun_analysis", profileRef: "hehun-report-followup:gpt-5.6-sol-pro", modelDisplayName: "GPT-5.6 Sol", modelFamily: "gpt-5.6", reasoningTier: "pro_standard" } as const;
 
 export const hehunReportFollowupPlugin: ProductPlugin = {
   pluginId: "hehun-report-followup",
-  pluginVersion: 3,
+  pluginVersion: 5,
   skillHash: skill.hash,
-  checkpointSchemaVersion: 1,
+  checkpointSchemaVersion: 2,
   parseResult: parseProductResult,
   accepts: [
     { productId: "hehun_report_followup", actionId: "followup" },
@@ -23,7 +22,6 @@ export const hehunReportFollowupPlugin: ProductPlugin = {
       step_id: review ? task.action_id : "answer_followup",
       instruction: review ? "复核冻结的 subject_result 与 review_context，只返回 website-agent-review-output.v1 的合法 JSON（decision、issues 及完整 issue 字段）。" : "在已授权的原合婚会话中回答续问，保持甲乙身份和原报告不变。严格按 result_contract 返回一个合法 JSON 对象，不要代码围栏、解释或额外字段。",
       material_roles: review ? ["subject_result", "review_context"] : ["hehun_followup_input", "result_contract"],
-      gpt_flow: review ? freshGptTurnFlow : continuationGptTurnFlow,
       use_task_continuation: !review,
       continuation_source_plugin_ids: ["hehun-ai-analysis", "hehun-report-followup"],
       provider,

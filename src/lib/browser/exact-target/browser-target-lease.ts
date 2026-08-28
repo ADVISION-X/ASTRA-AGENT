@@ -25,6 +25,17 @@ export type BrowserTargetLease = Readonly<{
   observeCapability(input: Readonly<{ capabilityId: BrowserCapabilityId; timeoutMs?: number }>): Promise<unknown>;
   captureScreenshot(input: Readonly<{ regionLabel: string }>): Promise<Readonly<{ artifactRef: string; contentHash: `sha256:${string}` }>>;
   attachFile(input: Readonly<{ selector: string; grants: readonly BrowserFileArtifactGrantV1[] }>): Promise<void>;
+  downloadAuthenticatedMedia(input: Readonly<{
+    assistantTurnId: string;
+    semanticMediaId: "gpt-generated-image-main";
+  }>): Promise<Readonly<{
+    bytesBase64: string;
+    sha256: `sha256:${string}`;
+    sizeBytes: number;
+    mediaType: `image/${string}`;
+    width: number;
+    height: number;
+  }>>;
   registerFileArtifact(input: Readonly<{
     artifactRef: string;
     filePath: string;

@@ -20,7 +20,7 @@ import {
 } from "../../shared/static-inspection-contract.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 
-const LAW_ID = "LAW-GPT-001-V3";
+const LAW_ID = "LAW-GPT-001-V4";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 11, 14),
   "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13),
@@ -38,7 +38,8 @@ const CONTRACT_PATH = `${ROOT}/contract.ts`;
 const FACADE_PATH = `${ROOT}/index.ts`;
 const GROUP_PATH = `${ROOT}/ability-group.ts`;
 const SESSION_PATH = `${ROOT}/session/gpt-session-controller.ts`;
-const CHILD_ID_SOURCES = ["DOM_OBSERVATIONS", "DOM_MUTATIONS", "SESSION_MUTATIONS", "SESSION_OBSERVATIONS"] as const;
+const TURN_EXECUTOR_PATH = `${ROOT}/gpt-turn-executor.ts`;
+const CHILD_ID_SOURCES = ["PAGE_OBSERVATIONS", "PAGE_MUTATIONS", "SESSION_MUTATIONS"] as const;
 
 const finding = (checkId: string, filePath: string, message: string, line?: number): InspectorFinding =>
   createFinding({
@@ -97,9 +98,9 @@ const inspectDenominatorAndContracts = (context: InspectorContext, findings: Ins
     return;
   }
   const ids = childIdsFromContract(contract);
-  if (ids.length !== 43 || new Set(ids).size !== 43) findings.push(finding(
+  if (ids.length !== 22 || new Set(ids).size !== 22) findings.push(finding(
     "gpt/exact-child-denominator", CONTRACT_PATH,
-    `GPT_CHILD_CAPABILITY_IDS must derive exactly 43 unique child ids; found ${ids.length}/${new Set(ids).size}.`,
+    `GPT_CHILD_CAPABILITY_IDS must derive exactly 22 unique child ids; found ${ids.length}/${new Set(ids).size}.`,
   ));
   const denominator = contract.getVariableDeclaration("GPT_CHILD_CAPABILITY_IDS")?.getInitializer()?.getText() ?? "";
   for (const sourceName of CHILD_ID_SOURCES) if (!denominator.includes(`...${sourceName}`)) findings.push(finding(
@@ -124,8 +125,9 @@ const inspectDenominatorAndContracts = (context: InspectorContext, findings: Ins
     `ChildCapabilityContract fields must remain exact; found ${actualFields.join(",")}.`,
   ));
   for (const proofField of [
-    "childCapabilityId", "executionId", "targetRefHash", "beforeDocumentRefHash",
-    "afterDocumentRefHash", "beforeUrl", "afterUrl", "candidateCount", "observedSemantics",
+    "childCapabilityId", "executionId", "flowVersion", "stepIndex", "inputHash", "pluginStepId",
+    "actionOrdinal", "targetRefHash", "beforeDocumentRefHash", "afterDocumentRefHash",
+    "candidateCount", "observedSemantics",
     "committedMutation", "postconditionResult", "startedAt", "endedAt", "evidenceRef", "evidenceHash",
   ]) if (!contract.getInterface("GptChildCapabilityProof")?.getProperty(proofField)) findings.push(finding(
     "gpt/proof-field-required", CONTRACT_PATH, `GptChildCapabilityProof is missing ${proofField}.`,
@@ -253,6 +255,21 @@ const inspectUniqueRuntimeChain = (context: InspectorContext, findings: Inspecto
   ]) if (!sessionText.includes(required)) findings.push(finding(
     "gpt/session-binding", SESSION_PATH, `GPT Session Controller is missing ${required}.`,
   ));
+  const turnExecutor = sourceFor(context, TURN_EXECUTOR_PATH)?.getFullText() ?? "";
+  for (const required of ["GPT_TURN_FLOW", "GptTurnExecutor", "reconcileOnly", "inputHash", "stepIndex"]) {
+    if (!turnExecutor.includes(required)) findings.push(finding(
+      "gpt/one-shared-turn-executor", TURN_EXECUTOR_PATH,
+      `The shared GPT turn executor is missing ${required}.`,
+    ));
+  }
+  const pluginRoot = resolve(context.sealedRoot, "src/plugins");
+  for (const pluginId of existsSync(pluginRoot) ? readdirSync(pluginRoot) : []) {
+    const flowPath = resolve(pluginRoot, pluginId, "gpt-flow.ts");
+    if (existsSync(flowPath)) findings.push(finding(
+      "gpt/product-flow-retired", `src/plugins/${pluginId}/gpt-flow.ts`,
+      "Product Plugins must not own provider-page step arrays.",
+    ));
+  }
 };
 
 const inspectGptContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {
@@ -262,7 +279,7 @@ const inspectGptContracts = (context: InspectorContext, findings: InspectorFindi
 };
 
 const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  for (const path of [CONTRACT_PATH, FACADE_PATH, GROUP_PATH, SESSION_PATH])
+  for (const path of [CONTRACT_PATH, FACADE_PATH, GROUP_PATH, SESSION_PATH, TURN_EXECUTOR_PATH])
     if (!existsSync(resolve(context.sealedRoot, path))) findings.push(finding(
       "gpt/filesystem-required-owner-file", path, `${path} is missing.`));
   const controllers = readdirSync(resolve(context.sealedRoot, ROOT, "session"))
@@ -282,7 +299,8 @@ const inspectGptTypes = (context: InspectorContext, findings: InspectorFinding[]
   const checks = [[group, "execute", (value: string) => value.startsWith("Promise<")
     && value.includes("GptFailureClassification") && value.includes("GptChildCapabilityProof")],
     [group, "listChildCapabilityIds", (value: string) => value.startsWith("readonly (")
-      && value.includes('"bind_exact_gpt_target"') && value.includes('"recover_gpt_response_checkpoint"')],
+      && value.includes('"prepare_clean_gpt_chat"') && value.includes('"release_gpt_continuation_lane"')
+      && !value.includes('"recover_gpt_response_checkpoint"')],
     [proof, "evidenceHash", (value: string) => value === "`sha256:${string}`"]] as const;
   for (const [owner, name, valid] of checks) {
     const member = owner?.getMembers().find((candidate) => "getName" in candidate && candidate.getName() === name);

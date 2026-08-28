@@ -4,13 +4,21 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 
-import { createGptAbilityGroup } from "../../src/capabilities/gpt/index.js";
+import { GPT_TURN_FLOW_VERSION, createGptAbilityGroup } from "../../src/capabilities/gpt/index.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { ProductionRuntimeStore, resolveStoredProductionAuthority } from "../../src/lib/local-runtime/production/store.js";
+import { createGptTurnState } from "../../src/lib/local-runtime/production/gpt-turn-state.js";
 import { createRuntimeLogger, requireRuntimeLogWrite } from "../../src/lib/runtime-logs/index.js";
 import { HASH_A, HASH_B, HASH_C, identityFor, resultFor, task } from "./agent-production-runtime-fixtures.js";
 
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-production-continuation-"));
+const intentMeta = (stepIndex: number) => ({
+  flowVersion: GPT_TURN_FLOW_VERSION,
+  stepIndex,
+  inputHash: HASH_A,
+  pluginStepId: "continuation-acceptance",
+  actionOrdinal: stepIndex + 1,
+});
 try {
   const store = new ProductionRuntimeStore(temporary);
   const sourceTask = task({ jobId: "job:source", productId: "bazi_ai_full_analysis", actionId: "produce" });
@@ -23,6 +31,56 @@ try {
   assert.deepEqual(store.readTask(sourceTask.job_id), firstRunning);
   store.setRecoveryPending(sourceTask.job_id, "network");
   assert.equal(store.readTask(sourceTask.job_id)?.status, "recovery_pending");
+  const atomicState = createGptTurnState({
+    executionId: `${sourceTask.job_id}:bazi-ai-full-analysis:analyze`,
+    stepInputHash: HASH_A,
+    skillText: "acceptance skill",
+    instruction: "acceptance instruction",
+    parameters: sourceTask.parameters,
+    provider: {
+      labelKey: "bazi_analysis",
+      profileRef: "acceptance:gpt-profile",
+      modelDisplayName: "GPT-5.6 Sol",
+      modelFamily: "gpt-5.6",
+      reasoningTier: "pro_standard",
+    },
+    selectedMaterials: [],
+    acceptanceVersion: HASH_B,
+  });
+  const dispatchedCheckpoint = {
+    schema_version: "gpt-turn-checkpoint.v2" as const,
+    flow_version: GPT_TURN_FLOW_VERSION,
+    input_hash: HASH_A,
+    step_index: 12,
+    child_capability_id: "submit_exact_gpt_turn_once" as const,
+    status: "failed" as const,
+    mutation_state: "dispatched" as const,
+    postcondition_result: "pending" as const,
+    evidence_ref: "evidence:submit-dispatched",
+    evidence_hash: HASH_C,
+    provider_dispatch_used: true,
+    state: atomicState,
+    result: null,
+  };
+  store.writeGptTurnCheckpoint(sourceTask.job_id, "analyze", dispatchedCheckpoint);
+  const restartedStore = new ProductionRuntimeStore(temporary);
+  assert.deepEqual(
+    restartedStore.readGptTurnCheckpoint(sourceTask.job_id, "analyze", HASH_A),
+    dispatchedCheckpoint,
+    "restart must recover the exact failed atomic step and mutation state",
+  );
+  assert.equal(restartedStore.countGptProviderDispatches(sourceTask.job_id), 1,
+    "restart reconciliation must not erase or re-spend the prior provider dispatch");
+  restartedStore.writeGptTurnCheckpoint(sourceTask.job_id, "analyze", {
+    ...dispatchedCheckpoint,
+    status: "success",
+    mutation_state: "confirmed",
+    postcondition_result: "passed",
+    evidence_ref: "evidence:submit-reconciled",
+  });
+  assert.throws(() => restartedStore.writeGptTurnCheckpoint(sourceTask.job_id, "analyze", dispatchedCheckpoint),
+    /GPT_TURN_CHECKPOINT_REGRESSION/u);
+  restartedStore.close();
   const checkpointAuthority = store.recordCheckpoint({
     jobId: sourceTask.job_id, attemptId: "attempt:source", checkpointId: "factory_running",
     checkpointHash: HASH_C, state: "persisted",
@@ -65,6 +123,7 @@ try {
   };
   const persisted = await gpt.execute({
     childCapabilityId: "persist_gpt_continuation", executionId: "acceptance:persist-continuation",
+    ...intentMeta(18),
     input: {
       jobId: sourceTask.job_id, pluginId: sourceIdentity.plugin_id,
       ownerRef: sourceTask.business_identity.owner_ref, subjectRef: sourceTask.business_identity.subject_ref,
@@ -81,17 +140,20 @@ try {
   };
   const acquired = await gpt.execute({
     childCapabilityId: "acquire_gpt_continuation_lane", executionId: "acceptance:acquire-continuation",
+    ...intentMeta(19),
     input: { ...acquireInput, jobId: "job:followup" },
   }, context);
   assert.equal(acquired.status, "success");
   const busy = await gpt.execute({
     childCapabilityId: "acquire_gpt_continuation_lane", executionId: "acceptance:busy-continuation",
+    ...intentMeta(19),
     input: { ...acquireInput, jobId: "job:other" },
   }, context);
   assert.equal(busy.status, "review_required");
   assert.match(busy.failureCode ?? "", /GPT_CONTINUATION_LANE_BUSY/u);
   const advanced = await gpt.execute({
     childCapabilityId: "advance_gpt_continuation_lane", executionId: "acceptance:advance-continuation",
+    ...intentMeta(20),
     input: {
       lane: acquired.value, jobId: "job:followup", pluginId: "bazi-report-followup",
       provider: {
@@ -104,6 +166,7 @@ try {
   assert.equal(store.readGptContinuation(continuationRef)?.plugin_id, "bazi-report-followup");
   const unauthorized = await gpt.execute({
     childCapabilityId: "acquire_gpt_continuation_lane", executionId: "acceptance:unauthorized-continuation",
+    ...intentMeta(19),
     input: {
       continuationRef, jobId: "job:intruder", pluginId: "qimen-report-followup",
       allowedSourcePluginIds: ["qimen-professional-answer"], ownerRef: sourceTask.business_identity.owner_ref,

@@ -1,22 +1,41 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sharp from "sharp";
 
 import {
+  GPT_TURN_FLOW,
+  GPT_TURN_FLOW_VERSION,
+  GptTurnExecutor,
   buildGptExecutionProfile,
   createGptAbilityGroup,
   type GptChildCapabilityId,
 } from "../../src/capabilities/gpt/index.js";
-import type {
-  BrowserTargetLease,
-} from "../../src/lib/browser/browser-authority-api.js";
-import { executionFailure } from "../../src/lib/typed-failure.js";
+import type { BrowserTargetLease } from "../../src/lib/browser/browser-authority-api.js";
+import {
+  GPT_PROFILE_DISMISS_SELECTOR,
+  GPT_PROFILE_MODEL_CHOICE_SELECTOR,
+  GPT_PROFILE_POPUP_SELECTOR,
+  GPT_PROFILE_REASONING_CONTROL_SELECTOR,
+  GPT_PROFILE_REASONING_SLIDER_SELECTOR,
+  GPT_PROFILE_SIMPLE_PANEL_SELECTOR,
+  GPT_PROFILE_TRIGGER_SELECTOR,
+} from "../../src/capabilities/gpt/web/contracts/execution-profile.contract.js";
+import {
+  GPT_ATTACHMENT_CONTROL_SELECTOR,
+  GPT_ATTACHMENT_REGION_SELECTOR,
+  GPT_UPLOAD_FROM_COMPUTER_LABEL,
+  GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
+} from "../../src/capabilities/gpt/web/contracts/attachment.contract.js";
+import { GPT_COMPOSER_SELECTOR } from "../../src/capabilities/gpt/web/contracts/composer.contract.js";
+import { GPT_SEND_SELECTOR } from "../../src/capabilities/gpt/web/contracts/submission.contract.js";
+import { GPT_USER_TURN_SELECTOR } from "../../src/capabilities/gpt/web/contracts/conversation.contract.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { EXPECTED_GPT_CHILD_IDS, fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
 
+const INPUT_HASH = `sha256:${"a".repeat(64)}` as const;
 const documentResult = { url: "https://chatgpt.com/", title: "ChatGPT" } as const;
 const context = (browser: BrowserTargetLease, dataDir = "/tmp/gpt-acceptance") => ({ dataDir, browser });
 const execute = (
@@ -24,36 +43,95 @@ const execute = (
   browser: BrowserTargetLease,
   input: Readonly<Record<string, unknown>>,
   dataDir?: string,
-) => createGptAbilityGroup().execute({ childCapabilityId: id, executionId: `acceptance:${id}`, input }, context(browser, dataDir));
+) => createGptAbilityGroup().execute({
+  childCapabilityId: id,
+  executionId: `acceptance:${id}`,
+  flowVersion: GPT_TURN_FLOW_VERSION,
+  stepIndex: Math.max(0, EXPECTED_GPT_CHILD_IDS.indexOf(id)),
+  inputHash: INPUT_HASH,
+  pluginStepId: "acceptance-step",
+  actionOrdinal: Math.max(1, EXPECTED_GPT_CHILD_IDS.indexOf(id) + 1),
+  input,
+}, context(browser, dataDir));
 
 assert.equal(createGptAbilityGroup().abilityGroupId, "gpt");
 assert.equal(createGptAbilityGroup().transport, "gpt-web");
 assert.deepEqual(createGptAbilityGroup().listChildCapabilityIds(), EXPECTED_GPT_CHILD_IDS);
-
-const atomicDelegationFixture = fakeBrowser((intent) => {
-  if (intent.kind === "document") return documentResult;
-  throw new Error(`UNEXPECTED_INTENT:${intent.kind}`);
+assert.equal(EXPECTED_GPT_CHILD_IDS.length, 22);
+assert.equal(GPT_TURN_FLOW.length, 18);
+assert.equal(new Set(GPT_TURN_FLOW.map((step) => step.childCapabilityId)).size, GPT_TURN_FLOW.length);
+for (const retired of ["recover_gpt_response_checkpoint", "open_gpt_title_control", "open_gpt_conversation_search"]) {
+  assert.equal(EXPECTED_GPT_CHILD_IDS.includes(retired as never), false);
+}
+const resumedCalls: Array<{ id: string; reconcileOnly: boolean }> = [];
+await new GptTurnExecutor().execute({
+  executionId: "acceptance:resume",
+  inputHash: INPUT_HASH,
+  pluginStepId: "resume-step",
+  mode: "fresh",
+  hasAttachments: false,
+  outputKind: "text",
+  resume: {
+    stepIndex: 12,
+    childCapabilityId: "submit_exact_gpt_turn_once",
+    status: "failed",
+    mutationState: "dispatched",
+  },
+  context: { dataDir: "/tmp/gpt-resume" },
+  inputFor: (step, reconcileOnly) => {
+    resumedCalls.push({ id: step.childCapabilityId, reconcileOnly });
+    return reconcileOnly ? { reconcileOnly: true } : {};
+  },
+  dispatch: async (intent) => ({
+    status: "success",
+    value: {},
+    failureCode: null,
+    proof: {
+      schemaVersion: "gpt-child-capability-proof.v2",
+      childCapabilityId: intent.childCapabilityId,
+      executionId: intent.executionId,
+      flowVersion: intent.flowVersion,
+      stepIndex: intent.stepIndex,
+      inputHash: intent.inputHash,
+      pluginStepId: intent.pluginStepId,
+      actionOrdinal: intent.actionOrdinal,
+      targetRefHash: null,
+      beforeDocumentRefHash: null,
+      afterDocumentRefHash: null,
+      candidateCount: 1,
+      observedSemantics: ["acceptance"],
+      committedMutation: "no",
+      postconditionResult: "passed",
+      startedAt: "2026-08-28T00:00:00.000Z",
+      endedAt: "2026-08-28T00:00:00.001Z",
+      evidenceRef: `evidence:${intent.stepIndex}`,
+      evidenceHash: INPUT_HASH,
+    },
+  }),
+  checkpoint: () => {},
 });
-const atomicDelegation = await execute("bind_exact_gpt_target", atomicDelegationFixture.browser, {});
-assert.equal(atomicDelegation.status, "success");
-assert.equal(atomicDelegationFixture.documentCalls(), 1,
-  "the public Facade must delegate the Child's one owned observation without hidden before/after DOM reads");
+assert.deepEqual(resumedCalls.map((call) => call.id), [
+  "submit_exact_gpt_turn_once",
+  "reconcile_gpt_turn_submission",
+  "wait_for_stable_gpt_text",
+  "checkpoint_gpt_text_response",
+]);
+assert.equal(resumedCalls[0]?.reconcileOnly, true,
+  "a dispatched failed mutation must resume with read-only reconciliation, never redispatch");
+assert.equal(GPT_PROFILE_TRIGGER_SELECTOR, "main button[aria-haspopup='menu'][data-tone='neutral']:not([aria-label])");
+assert.match(GPT_PROFILE_SIMPLE_PANEL_SELECTOR, /data-active='true'.*:not\(\[inert\]\)/u);
+assert.equal(GPT_PROFILE_DISMISS_SELECTOR, GPT_COMPOSER_SELECTOR,
+  "closing the profile must target the exact composer surface, never the geometric center of main");
 
-let cleanChatFindCall = 0;
-const cleanChatFixture = fakeBrowser((intent) => {
-  if (intent.kind === "document") return documentResult;
-  if (intent.kind !== "find") throw new Error(`UNEXPECTED_INTENT:${intent.kind}`);
-  cleanChatFindCall += 1;
-  if (cleanChatFindCall === 1) {
-    assert.deepEqual(intent.waitFor, { minimumMatches: 1, timeoutMs: 5_000 },
-      "clean-chat verification must issue one bounded composer-readiness observation");
-    return { count: 1 };
-  }
-  assert.equal(intent.waitFor, undefined, "zero-state assertions must remain immediate after composer readiness");
+const cleanFixture = fakeBrowser((intent) => {
+  if (intent.kind !== "find") throw new Error(`UNEXPECTED_CLEAN_INTENT:${intent.kind}`);
+  if (intent.selector === GPT_COMPOSER_SELECTOR) return { count: 1 };
   return { count: 0 };
 });
-const cleanChat = await execute("verify_clean_gpt_chat", cleanChatFixture.browser, {});
-assert.equal(cleanChat.status, "success");
+const clean = await execute("prepare_clean_gpt_chat", cleanFixture.browser, { timeoutMs: 5_000 });
+assert.equal(clean.status, "success");
+assert.equal(clean.proof.flowVersion, GPT_TURN_FLOW_VERSION);
+assert.equal(clean.proof.inputHash, INPUT_HASH);
 
 const profile = buildGptExecutionProfile({
   profileRef: "acceptance:gpt-profile",
@@ -65,374 +143,168 @@ const profile = buildGptExecutionProfile({
   acceptanceRef: "acceptance:gpt-exact-target",
   acceptanceVersion: "v1",
 });
-let profileFindCall = 0;
-const profileDiagnosticFixture = fakeBrowser((intent) => {
-  if (intent.kind === "document") return documentResult;
-  if (intent.kind !== "find") throw new Error(`UNEXPECTED_INTENT:${intent.kind}`);
-  profileFindCall += 1;
-  if (profileFindCall === 1) return { count: 0, matches: [] };
-  if (profileFindCall === 2) return { count: 0 };
-  if (profileFindCall === 3) {
-    assert.deepEqual(intent.waitFor, { minimumMatches: 1, timeoutMs: 5_000 },
-      "profile selection must wait for the independently hydrated model trigger");
-    return { count: 0 };
+let popupOpen = false;
+let modelSelected = false;
+let reasoningValue = 3;
+const profileFixture = fakeBrowser((intent) => {
+  if (intent.kind === "find") {
+    if (intent.selector === GPT_PROFILE_POPUP_SELECTOR) return { count: popupOpen ? 1 : 0 };
+    if (intent.selector === GPT_PROFILE_TRIGGER_SELECTOR) return { count: 1 };
+    if (intent.selector === GPT_PROFILE_SIMPLE_PANEL_SELECTOR) return { count: popupOpen ? 1 : 0 };
+    if (intent.selector === GPT_PROFILE_REASONING_CONTROL_SELECTOR) return { count: popupOpen ? 1 : 0 };
+    if (intent.selector === GPT_PROFILE_REASONING_SLIDER_SELECTOR) return { count: popupOpen ? 1 : 0 };
+    if (intent.selector === GPT_PROFILE_MODEL_CHOICE_SELECTOR) {
+      return { count: 1, matches: [{ ariaChecked: modelSelected ? "true" : "false" }] };
+    }
   }
-  if (profileFindCall === 4) return { count: 0 };
-  assert.deepEqual(intent.fields, ["id", "tagName", "role", "ariaLabel", "ariaExpanded", "testId", "text"]);
-  return {
-    count: 1,
-    matches: [{
-      id: "model-switcher",
-      tagName: "BUTTON",
-      role: "button",
-      ariaLabel: "模型选择器",
-      ariaExpanded: "false",
-      testId: "model-switcher-dropdown-button",
-      text: "GPT-5.6",
-    }],
-  };
-});
-const profileDiagnostic = await execute("open_gpt_model_selector", profileDiagnosticFixture.browser, { profile });
-assert.equal(profileDiagnostic.status, "review_required");
-assert.match(profileDiagnostic.failureCode ?? "", /visible=model-switcher~model-switcher-dropdown-button~BUTTON~button~/u);
-assert.equal(profileDiagnosticFixture.physicalMutations(), 0,
-  "profile drift diagnostics must stay observation-only");
-
-let profileOpenCall = 0;
-const profileOpenProofFixture = fakeBrowser((intent) => {
-  if (intent.kind === "document") return documentResult;
-  profileOpenCall += 1;
-  if (profileOpenCall === 1 && intent.kind === "find") {
-    return { count: 1, matches: [{ role: "", ariaChecked: "", ariaExpanded: "false", text: "Pro" }] };
+  if (intent.kind === "click" && intent.selector === GPT_PROFILE_TRIGGER_SELECTOR) {
+    popupOpen = true;
+    return { postconditionVerified: true };
   }
-  if (profileOpenCall === 2 && intent.kind === "find") return { count: 0 };
-  if (profileOpenCall === 3 && intent.kind === "find") return { count: 1 };
-  if (profileOpenCall === 4 && intent.kind === "click") {
-    assert.deepEqual(intent.postClickAttribute, {
-      name: "aria-expanded", equals: "true", timeoutMs: 5_000,
-    }, "the profile-menu mutation must directly prove the trigger's expanded state");
-    return { clicked: true, postconditionVerified: true };
+  if (intent.kind === "click" && intent.selector === GPT_PROFILE_MODEL_CHOICE_SELECTOR) {
+    assert.equal(intent.expectedTextEquals, "GPT-5.6 Sol");
+    modelSelected = true;
+    return { postconditionVerified: true };
   }
-  throw new Error(`UNEXPECTED_PROFILE_OPEN_INTENT:${intent.kind}:${profileOpenCall}`);
-});
-const profileOpenProof = await execute("open_gpt_model_selector", profileOpenProofFixture.browser, { profile });
-assert.equal(profileOpenProof.status, "success");
-assert.equal(profileOpenProofFixture.physicalMutations(), 1,
-  "opening the profile menu must remain one physical mutation");
-
-let profileAdvancedCall = 0;
-const profileAdvancedFixture = fakeBrowser((intent) => {
-  if (intent.kind === "document") return documentResult;
-  profileAdvancedCall += 1;
-  if (profileAdvancedCall === 1 && intent.kind === "find") return {
-    count: 2,
-    matches: [
-      { role: "menuitem", ariaChecked: "", ariaExpanded: "false", text: "高级" },
-      { role: "menuitem", ariaChecked: "", ariaExpanded: "false", text: "模型 GPT-5.6 Sol" },
-    ],
-  };
-  if (profileAdvancedCall === 2 && intent.kind === "find") return { count: 1 };
-  if (profileAdvancedCall === 3 && intent.kind === "find") return { count: 1 };
-  if (profileAdvancedCall === 4 && intent.kind === "find") return { count: 1 };
-  if (profileAdvancedCall === 5 && intent.kind === "click") {
-    assert.equal(intent.selector, "[role='menuitem'][aria-label='显示高级选项']");
-    assert.deepEqual(intent.postClickAttribute, {
-      name: "aria-expanded", equals: "true", timeoutMs: 5_000,
-    });
-    return { clicked: true, postconditionVerified: true };
+  if (intent.kind === "readAttribute" && intent.selector === GPT_PROFILE_REASONING_SLIDER_SELECTOR) {
+    return String(reasoningValue);
   }
-  throw new Error(`UNEXPECTED_PROFILE_ADVANCED_INTENT:${intent.kind}:${profileAdvancedCall}`);
-});
-const profileAdvanced = await execute("open_gpt_model_selector", profileAdvancedFixture.browser, { profile });
-assert.equal(profileAdvanced.status, "success");
-assert.equal(profileAdvancedFixture.physicalMutations(), 1,
-  "opening advanced options must remain one directly proven mutation");
-
-let profileHoverCall = 0;
-const profileHoverFixture = fakeBrowser((intent) => {
-  if (intent.kind === "document") return documentResult;
-  profileHoverCall += 1;
-  if (profileHoverCall === 1 && intent.kind === "find") return {
-    count: 1,
-    matches: [{ role: "menuitem", ariaChecked: "", ariaExpanded: "false", text: "模型 GPT-5.6 Sol" }],
-  };
-  if (profileHoverCall === 2 && intent.kind === "find") return { count: 1 };
-  if (profileHoverCall === 3 && intent.kind === "find") return { count: 1 };
-  if (profileHoverCall === 4 && intent.kind === "find") return { count: 0 };
-  if (profileHoverCall === 5 && intent.kind === "hover") {
-    assert.equal(intent.selector, "[role='menuitem'][aria-haspopup='menu']");
-    assert.equal(intent.expectedText, "模型");
-    assert.deepEqual(intent.postHoverAttribute, {
-      name: "aria-expanded", equals: "true", timeoutMs: 5_000,
-    });
-    return { hovered: true, postconditionVerified: true };
+  if (intent.kind === "keypress" && intent.selector === GPT_PROFILE_REASONING_SLIDER_SELECTOR) {
+    assert.deepEqual([intent.key, intent.repeat], ["ArrowRight", 1]);
+    reasoningValue = 4;
+    return { postconditionVerified: true };
   }
-  throw new Error(`UNEXPECTED_PROFILE_HOVER_INTENT:${intent.kind}:${profileHoverCall}`);
-});
-const profileHovered = await execute("open_gpt_model_selector", profileHoverFixture.browser, { profile });
-assert.equal(profileHovered.status, "success");
-assert.equal(profileHoverFixture.physicalMutations(), 1,
-  "opening the current model submenu must use one directly proven hover mutation");
-
-let profileOpenReadbackCall = 0;
-const profileOpenReadbackFixture = fakeBrowser((intent) => {
-  if (intent.kind === "document") return documentResult;
-  profileOpenReadbackCall += 1;
-  if (profileOpenReadbackCall === 1 && intent.kind === "find") return {
-    count: 1,
-    matches: [{ role: "menuitem", ariaChecked: "", ariaExpanded: "true", text: "模型 GPT-5.6 Sol" }],
-  };
-  if (profileOpenReadbackCall === 2 && intent.kind === "find") return { count: 2 };
-  throw new Error(`UNEXPECTED_PROFILE_READBACK_INTENT:${intent.kind}:${profileOpenReadbackCall}`);
-});
-const profileOpenReadback = await execute("open_gpt_model_selector", profileOpenReadbackFixture.browser, { profile });
-assert.equal(profileOpenReadback.status, "success");
-assert.equal(profileOpenReadbackFixture.physicalMutations(), 0,
-  "an already expanded exact submenu must be observation-only");
-
-let profileChoiceFindCall = 0;
-const profileChoiceDriftFixture = fakeBrowser((intent) => {
-  if (intent.kind === "document") return documentResult;
-  if (intent.kind !== "find") throw new Error(`UNEXPECTED_INTENT:${intent.kind}`);
-  profileChoiceFindCall += 1;
-  if (profileChoiceFindCall === 2) {
-    assert.equal(intent.selector, "[role],button");
-    assert.equal(intent.textContains, "GPT-5.6");
-    return { count: 0, matches: [] };
+  if (intent.kind === "click" && intent.selector === GPT_PROFILE_DISMISS_SELECTOR) {
+    popupOpen = false;
+    return { postconditionVerified: true };
   }
-  if (profileChoiceFindCall === 3) {
-    assert.equal(intent.selector, "[role='menuitem'],[role='menuitemradio'],[role='option'],[role='radio']");
-    return {
-      count: 1,
-      matches: [{
-        id: "radix-model-pro",
-        tagName: "DIV",
-        role: "menuitem",
-        ariaLabel: "",
-        ariaExpanded: "",
-        testId: "model-switcher-gpt-5-6-pro",
-        text: "GPT-5.6 Pro",
-      }],
-    };
+  throw new Error(`UNEXPECTED_PROFILE_INTENT:${intent.kind}`);
+});
+assert.equal((await execute("open_gpt_execution_profile", profileFixture.browser, { profile })).status, "success");
+assert.equal((await execute("ensure_exact_gpt_model", profileFixture.browser, { profile })).status, "success");
+assert.equal(modelSelected, true, "the one current popup must select the exact model without an advanced submenu");
+assert.equal((await execute("ensure_exact_gpt_reasoning_tier", profileFixture.browser, { profile })).status, "success");
+assert.equal(reasoningValue, 4);
+assert.equal((await execute("close_gpt_execution_profile", profileFixture.browser, { profile })).status, "success");
+assert.equal(popupOpen, false);
+assert.equal(profileFixture.physicalMutations(), 4);
+
+const profileRecoveryFixture = fakeBrowser((intent) => {
+  if (intent.kind === "find" && intent.selector === GPT_PROFILE_POPUP_SELECTOR) return { count: 0 };
+  throw new Error(`UNEXPECTED_PROFILE_RECOVERY_INTENT:${intent.kind}`);
+});
+const profileRecovery = await execute("open_gpt_execution_profile", profileRecoveryFixture.browser, {
+  profile,
+  reconcileOnly: true,
+});
+assert.equal(profileRecovery.status, "recovery_pending");
+assert.equal(profileRecoveryFixture.physicalMutations(), 0);
+
+let attachmentMenuOpen = false;
+const attachmentOpenFixture = fakeBrowser((intent) => {
+  if (intent.kind === "find") {
+    if (intent.selector === GPT_UPLOAD_FROM_COMPUTER_SELECTOR) return { count: attachmentMenuOpen ? 1 : 0 };
+    if (intent.selector === GPT_ATTACHMENT_CONTROL_SELECTOR) return { count: 1 };
   }
-  return {
-    count: 2,
-    matches: [
-      { role: "menuitem", ariaChecked: "", ariaExpanded: "", text: "GPT-5.6" },
-      { role: "menuitem", ariaChecked: "", ariaExpanded: "", text: "GPT-5.6 Thinking" },
-    ],
-  };
+  if (intent.kind === "click" && intent.selector === GPT_ATTACHMENT_CONTROL_SELECTOR) {
+    assert.equal(intent.postClickMatch?.textEquals, GPT_UPLOAD_FROM_COMPUTER_LABEL);
+    attachmentMenuOpen = true;
+    return { postconditionVerified: true };
+  }
+  throw new Error(`UNEXPECTED_ATTACHMENT_OPEN_INTENT:${intent.kind}`);
 });
-const profileChoiceDrift = await execute("select_exact_gpt_model", profileChoiceDriftFixture.browser, { profile });
-assert.equal(profileChoiceDrift.status, "review_required");
-assert.match(profileChoiceDrift.failureCode ?? "", /visible=radix-model-pro~model-switcher-gpt-5-6-pro~DIV~menuitem/u);
-assert.match(profileChoiceDrift.failureCode ?? "", /surface=menuitem~~~GPT-5.6\|menuitem~~~GPT-5.6%20Thinking/u);
-assert.equal(profileChoiceDriftFixture.physicalMutations(), 0,
-  "choice-role drift must remain observation-only");
-
-for (const candidateCount of [0, 2]) {
-  const fixture = fakeBrowser((intent) => intent.kind === "document" ? documentResult : { count: candidateCount });
-  const result = await execute("open_gpt_attachment_control", fixture.browser, {});
-  assert.equal(result.status, "review_required");
-  assert.equal(fixture.physicalMutations(), 0);
-  assert.equal(result.proof.childCapabilityId, "open_gpt_attachment_control");
-}
-
-const longPrompt = `[GPT-TURN:long-prompt]\n${"甲".repeat(100_000)}`;
-const longPromptFixture = fakeBrowser((intent) => {
-  if (intent.kind === "document") return documentResult;
-  if (intent.kind === "find") return { count: 1 };
-  if (intent.kind === "fill") return { retainedValueVerified: true };
-  throw new Error(`UNEXPECTED_INTENT:${intent.kind}`);
-});
-const longPromptResult = await execute("write_exact_gpt_prompt", longPromptFixture.browser, { prompt: longPrompt });
-assert.equal(longPromptResult.status, "success");
-assert.equal((longPromptResult.value as { length: number }).length, longPrompt.length);
-assert.equal(longPromptResult.proof.committedMutation, "confirmed");
-assert.match(longPromptResult.proof.evidenceHash, /^sha256:[a-f0-9]{64}$/u);
-longPromptFixture.browser.assertNoPendingMutations();
-
-const selectorInjectionFixture = fakeBrowser((intent) => intent.kind === "document" ? documentResult : { count: 1 });
-const selectorInjection = await execute("bind_exact_gpt_target", selectorInjectionFixture.browser, { selector: "*" });
-assert.equal(selectorInjection.status, "failed");
-assert.match(selectorInjection.failureCode ?? "", /GPT_CHILD_INPUT_INVALID/u);
-
-const driftFixture = fakeBrowser((intent, callNumber) => {
-  if (intent.kind !== "document") throw new Error("UNEXPECTED_INTENT");
-  assert.equal(callNumber, 1, "document drift must be observed by the Child itself, not Facade probes");
-  return { url: "https://chatgpt.com/c/drift", title: "ChatGPT" };
-});
-const drift = await execute("observe_gpt_document", driftFixture.browser, {});
-assert.equal(drift.status, "review_required");
-assert.match(drift.failureCode ?? "", /^GPT_DOCUMENT_TRANSITION_FORBIDDEN/u);
-assert.notEqual(drift.proof.beforeDocumentRefHash, drift.proof.afterDocumentRefHash);
+const attachmentOpened = await execute("open_gpt_attachment_control", attachmentOpenFixture.browser, {});
+assert.equal(attachmentOpened.status, "success");
+assert.equal(attachmentMenuOpen, true);
+assert.equal(attachmentOpenFixture.physicalMutations(), 1);
 
 const attachmentFiles = [
   { artifactRef: "artifact:1", filePath: "/not-read/1", displayName: "甲.pdf", sha256: `sha256:${"1".repeat(64)}`, bytes: 10 },
   { artifactRef: "artifact:2", filePath: "/not-read/2", displayName: "乙.txt", sha256: `sha256:${"2".repeat(64)}`, bytes: 20 },
 ];
-const exactAttachmentFixture = fakeBrowser((intent) => {
-  if (intent.kind === "document") return documentResult;
-  if (intent.kind === "find") return { count: 1 };
+const attachmentFixture = fakeBrowser((intent) => {
+  if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_REGION_SELECTOR) return { count: 1 };
   if (intent.kind === "readText") return "甲.pdf 乙.txt";
-  throw new Error(`UNEXPECTED_INTENT:${intent.kind}`);
+  throw new Error(`UNEXPECTED_ATTACHMENT_INTENT:${intent.kind}`);
 });
-const exactAttachments = await execute("verify_gpt_attachment_set", exactAttachmentFixture.browser, { files: attachmentFiles });
-assert.equal(exactAttachments.status, "success");
-const injectedAttachmentFixture = fakeBrowser((intent) => {
-  if (intent.kind === "document") return documentResult;
-  if (intent.kind === "find") return { count: 1 };
-  if (intent.kind === "readText") return "甲.pdf 乙.txt 恶意.exe";
-  throw new Error(`UNEXPECTED_INTENT:${intent.kind}`);
-});
-const injectedAttachments = await execute("verify_gpt_attachment_set", injectedAttachmentFixture.browser, { files: attachmentFiles });
-assert.equal(injectedAttachments.status, "review_required");
-assert.match(injectedAttachments.failureCode ?? "", /GPT_ATTACHMENT_SET_MISMATCH/u);
+assert.equal((await execute("reconcile_gpt_attachment_set", attachmentFixture.browser, {
+  files: attachmentFiles,
+})).status, "success");
 
-let submitClicks = 0;
-const submitFixture = fakeBrowser((intent) => {
-  if (intent.kind === "document") return documentResult;
-  if (intent.kind === "find") return { count: 1 };
-  if (intent.kind === "inspect") return { tagName: "BUTTON", visible: true, disabled: false };
-  if (intent.kind === "click") {
-    submitClicks += 1;
-    assert.equal(intent.postClickMatch?.textContains, "[GPT-TURN:acceptance]");
-    return { clicked: true, postconditionVerified: true };
+let composerText = "";
+const marker = "[GPT-TURN:acceptance]";
+const prompt = `${marker}\n${"甲".repeat(90_000)}`;
+let userTurnVisible = false;
+const turnFixture = fakeBrowser((intent) => {
+  if (intent.kind === "find") {
+    if (intent.selector === GPT_COMPOSER_SELECTOR) return { count: 1 };
+    if (intent.selector === GPT_SEND_SELECTOR) return { count: 1 };
+    if (intent.selector === GPT_USER_TURN_SELECTOR) return { count: userTurnVisible ? 1 : 0 };
+    if (intent.selector === GPT_ATTACHMENT_REGION_SELECTOR) return { count: 0 };
   }
-  throw new Error(`UNEXPECTED_INTENT:${intent.kind}`);
-});
-const promptHash = `sha256:${createHash("sha256").update(longPrompt).digest("hex")}`;
-const submitted = await execute("submit_exact_gpt_turn", submitFixture.browser, {
-  promptHash,
-  turnMarker: "[GPT-TURN:acceptance]",
-});
-assert.equal(submitted.status, "success");
-assert.equal(submitClicks, 1);
-
-const titleUrl = "https://chatgpt.com/c/title-acceptance";
-const titleRow = 'a[href="/c/title-acceptance"]';
-const titleInput = 'input[aria-label="聊天标题"][name="title-editor"]';
-const exactTitle = "八字报告分析";
-
-let titleOpenCall = 0;
-const titleOpenFixture = fakeBrowser((intent) => {
-  titleOpenCall += 1;
-  if (titleOpenCall === 1 && intent.kind === "find") {
-    assert.equal(intent.selector, titleInput);
-    return { count: 0 };
-  }
-  if (titleOpenCall === 2 && intent.kind === "find") {
-    assert.equal(intent.selector, titleRow);
-    return { count: 1 };
-  }
-  if (titleOpenCall === 3 && intent.kind === "doubleClick") {
-    assert.equal(intent.selector, titleRow);
-    assert.equal(intent.expectedMatches, 1);
-    assert.deepEqual(intent.postDoubleClickMatch, {
-      selector: titleInput, expectedMatches: 1, timeoutMs: 5_000,
-    });
-    return { doubleClicked: true, postconditionVerified: true };
-  }
-  throw new Error(`UNEXPECTED_TITLE_OPEN_INTENT:${intent.kind}:${titleOpenCall}`);
-});
-const titleOpened = await execute("open_gpt_title_control", titleOpenFixture.browser, {
-  canonicalConversationUrl: titleUrl,
-});
-assert.equal(titleOpened.status, "success");
-assert.equal(titleOpenFixture.physicalMutations(), 1,
-  "the real Chrome double-click title editor entry must remain one physical mutation");
-
-let titleWriteCall = 0;
-const titleWriteFixture = fakeBrowser((intent) => {
-  titleWriteCall += 1;
-  if (titleWriteCall === 1 && intent.kind === "find") return { count: 1 };
-  if (titleWriteCall === 2 && intent.kind === "fill") {
-    assert.equal(intent.selector, titleInput);
-    assert.equal(intent.approvedText, exactTitle);
+  if (intent.kind === "readText" && intent.selector === GPT_COMPOSER_SELECTOR) return composerText;
+  if (intent.kind === "fill") {
+    composerText = intent.approvedText;
     return { retainedValueVerified: true };
   }
-  throw new Error(`UNEXPECTED_TITLE_WRITE_INTENT:${intent.kind}:${titleWriteCall}`);
-});
-const titleWritten = await execute("write_exact_gpt_title", titleWriteFixture.browser, { title: exactTitle });
-assert.equal(titleWritten.status, "success");
-assert.equal(titleWriteFixture.physicalMutations(), 1);
-
-let titleCommitCall = 0;
-const titleCommitFixture = fakeBrowser((intent) => {
-  titleCommitCall += 1;
-  if (titleCommitCall === 1 && intent.kind === "find") return { count: 1 };
-  if (titleCommitCall === 2 && intent.kind === "keypress") {
-    assert.equal(intent.selector, titleInput);
-    assert.equal(intent.key, "Enter");
-    assert.deepEqual(intent.postKeypressMatch, {
-      selector: titleRow, expectedMatches: 1, timeoutMs: 5_000,
-    });
-    return { keyPressed: "Enter", postconditionVerified: true };
+  if (intent.kind === "inspect" && intent.selector === GPT_SEND_SELECTOR) {
+    return { tagName: "BUTTON", visible: true, disabled: false };
   }
-  if (titleCommitCall === 3 && intent.kind === "readText") return exactTitle;
-  throw new Error(`UNEXPECTED_TITLE_COMMIT_INTENT:${intent.kind}:${titleCommitCall}`);
+  if (intent.kind === "click" && intent.selector === GPT_SEND_SELECTOR) {
+    userTurnVisible = true;
+    composerText = "";
+    return { postconditionVerified: true };
+  }
+  if (intent.kind === "readAttribute" && intent.selector === GPT_USER_TURN_SELECTOR) {
+    return "conversation-turn-1";
+  }
+  if (intent.kind === "document") return { url: "https://chatgpt.com/c/acceptance-turn", title: "ChatGPT" };
+  throw new Error(`UNEXPECTED_TURN_INTENT:${intent.kind}`);
 });
-const titleCommitted = await execute("commit_gpt_title", titleCommitFixture.browser, {
-  canonicalConversationUrl: titleUrl,
-  title: exactTitle,
-  timeoutMs: 5_000,
+const written = await execute("write_exact_gpt_prompt", turnFixture.browser, { prompt });
+assert.equal(written.status, "success");
+assert.equal((written.value as { length: number }).length, prompt.length);
+assert.equal((await execute("reconcile_gpt_draft", turnFixture.browser, {
+  files: [], prompt, turnMarker: marker,
+})).status, "success");
+const promptHash = `sha256:${createHash("sha256").update(prompt).digest("hex")}`;
+assert.equal((await execute("submit_exact_gpt_turn_once", turnFixture.browser, {
+  promptHash, turnMarker: marker,
+})).status, "success");
+assert.equal((await execute("reconcile_gpt_turn_submission", turnFixture.browser, {
+  timeoutMs: 5_000, turnMarker: marker,
+})).status, "success");
+const duplicateSafe = await execute("submit_exact_gpt_turn_once", turnFixture.browser, {
+  promptHash, turnMarker: marker,
 });
-assert.equal(titleCommitted.status, "success");
-assert.equal(titleCommitFixture.physicalMutations(), 1,
-  "the real Chrome Enter commit must remain one physical mutation");
-
-const titleReadbackFixture = fakeBrowser((intent) => {
-  if (intent.kind === "document") return { url: titleUrl, title: "ChatGPT" };
-  if (intent.kind === "readText") return exactTitle;
-  if (intent.kind === "find") return { count: 1 };
-  throw new Error(`UNEXPECTED_TITLE_READBACK_INTENT:${intent.kind}`);
-}, { initialUrl: titleUrl });
-const titleReadback = await execute("verify_exact_gpt_title", titleReadbackFixture.browser, {
-  canonicalConversationUrl: titleUrl,
-  title: exactTitle,
-  turnMarker: "[GPT-TURN:title-acceptance]",
-});
-assert.equal(titleReadback.status, "success");
-assert.equal(titleReadbackFixture.physicalMutations(), 0);
+assert.equal(duplicateSafe.status, "success");
+assert.equal(duplicateSafe.proof.committedMutation, "no");
 
 const checkpointFixture = fakeBrowser((intent) => {
-  if (intent.kind === "document") return { url: "https://chatgpt.com/c/checkpoint", title: "ChatGPT" };
   if (intent.kind === "inspect") return { visible: true, connected: true, text: "已完成回答" };
-  throw new Error(`UNEXPECTED_INTENT:${intent.kind}`);
-}, { initialUrl: "https://chatgpt.com/c/checkpoint" });
-const checkpointHash = `sha256:${createHash("sha256").update("已完成回答").digest("hex")}`;
-const checkpoint = await execute("checkpoint_gpt_text_response", checkpointFixture.browser, {
+  throw new Error(`UNEXPECTED_CHECKPOINT_INTENT:${intent.kind}`);
+});
+const responseHash = `sha256:${createHash("sha256").update("已完成回答").digest("hex")}`;
+assert.equal((await execute("checkpoint_gpt_text_response", checkpointFixture.browser, {
   assistantTurnId: "conversation-turn-2",
-  expectedResponseHash: checkpointHash,
-});
-assert.equal(checkpoint.status, "success");
-const checkpointValue = checkpoint.value;
-const titleFixture = fakeBrowser((intent) => {
-  if (intent.kind === "document") return { url: "https://chatgpt.com/c/checkpoint", title: "ChatGPT" };
-  if (intent.kind === "readText") return "错误标题";
-  if (intent.kind === "find") return { count: 1 };
-  throw new Error(`UNEXPECTED_INTENT:${intent.kind}`);
-}, { initialUrl: "https://chatgpt.com/c/checkpoint" });
-const titleFailure = await execute("verify_exact_gpt_title", titleFixture.browser, {
-  canonicalConversationUrl: "https://chatgpt.com/c/checkpoint",
-  title: "正确标题",
-  turnMarker: "[GPT-TURN:checkpoint]",
-});
-assert.equal(titleFailure.status, "review_required");
-assert.equal(checkpoint.status, "success");
-assert.equal(checkpoint.value, checkpointValue);
+  expectedResponseHash: responseHash,
+})).status, "success");
 
 const imageDirectory = await mkdtemp(join(tmpdir(), "gpt-image-acceptance-"));
 try {
   const originalImage = await sharp({
-    create: { width: 16, height: 9, channels: 4, background: { r: 20, g: 80, b: 160, alpha: 1 } },
-  }).png().withMetadata({ orientation: 6 }).toBuffer();
-  const source = `data:image/png;base64,${originalImage.toString("base64")}`;
-  const imageFixture = fakeBrowser((intent) => {
-    if (intent.kind === "document") return documentResult;
-    if (intent.kind === "find") return { count: 1 };
-    if (intent.kind === "readAttribute") return source;
-    throw new Error(`UNEXPECTED_IMAGE_INTENT:${intent.kind}`);
+    create: { width: 256, height: 256, channels: 4, background: { r: 20, g: 80, b: 160, alpha: 1 } },
+  }).png().toBuffer();
+  const originalHash = `sha256:${createHash("sha256").update(originalImage).digest("hex")}` as const;
+  const imageFixture = fakeBrowser(() => { throw new Error("IMAGE_CHECKPOINT_MUST_USE_AUTHENTICATED_MEDIA"); }, {
+    authenticatedMedia: {
+      bytesBase64: originalImage.toString("base64"),
+      sha256: originalHash,
+      sizeBytes: originalImage.byteLength,
+      mediaType: "image/png",
+      width: 256,
+      height: 256,
+    },
   });
   const imageResult = await execute("checkpoint_gpt_generated_image", imageFixture.browser, {
     assistantTurnId: "conversation-turn-2",
@@ -442,18 +314,32 @@ try {
     localPath: string; originalLocalPath: string; sha256: string; originalSha256: string; bytes: number;
     mediaType: string; width: number; height: number;
   }>;
-  const bytes = await readFile(artifact.localPath);
-  const originalReadback = await readFile(artifact.originalLocalPath);
-  const metadata = await sharp(bytes).metadata();
-  assert.equal(artifact.originalSha256, `sha256:${createHash("sha256").update(originalImage).digest("hex")}`);
-  assert.deepEqual(originalReadback, originalImage, "the exact Provider bytes must remain in the task-owned private directory");
+  const [bytes, originalReadback] = await Promise.all([
+    readFile(artifact.localPath), readFile(artifact.originalLocalPath),
+  ]);
+  assert.deepEqual(originalReadback, originalImage);
+  assert.equal(artifact.originalSha256, originalHash);
   assert.equal(artifact.sha256, `sha256:${createHash("sha256").update(bytes).digest("hex")}`);
-  assert.equal(artifact.bytes, bytes.byteLength);
   assert.deepEqual([artifact.mediaType, artifact.width, artifact.height], ["image/webp", 1200, 630]);
-  assert.deepEqual([metadata.format, metadata.width, metadata.height], ["webp", 1200, 630]);
-  assert.equal(Boolean(metadata.exif || metadata.icc || metadata.iptc || metadata.xmp), false);
 } finally {
   await rm(imageDirectory, { recursive: true, force: true });
+}
+
+const pluginIds = [
+  "bazi-chart-interpretation", "hehun-report-followup", "localization-production",
+  "public-knowledge-article-pipeline", "naming-bazi-analysis-and-naming",
+  "naming-from-existing-bazi-report", "payment-screenshot-observation",
+  "bazi-report-followup", "qimen-report-followup", "qimen-professional-answer",
+  "hehun-ai-analysis", "bazi-ai-full-analysis",
+];
+for (const pluginId of pluginIds) {
+  await assert.rejects(
+    access(new URL(`../../src/plugins/${pluginId}/gpt-flow.ts`, import.meta.url)),
+    /ENOENT/u,
+  );
+  const source = await readFile(new URL(`../../src/plugins/${pluginId}/index.ts`, import.meta.url), "utf8");
+  assert.doesNotMatch(source, /gpt_flow|gpt-flow/u, `${pluginId} must not own provider-page step order`);
+  assert.match(source, /checkpointSchemaVersion: 2/u);
 }
 
 process.stdout.write("[ACCEPTANCE][gpt] PASS\n");
@@ -463,10 +349,10 @@ for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"
   emitQualityProofObservation({
     passed: true,
     findings: [],
-    lawId: "LAW-GPT-001-V3",
+    lawId: "LAW-GPT-001-V4",
     evidenceMode,
     clauses,
     locator: `acceptance:gpt:${evidenceMode}`,
-    observedValue: "43 exact children, bounded clean-chat composer readiness, no hidden Facade DOM reads, 0/1/many candidates, long prompt, exact attachments, document drift, DISPATCHED no-replay, and checkpoint-safe title failure passed",
+    observedValue: "22 exact public children, one shared flow, current one-popup model and reasoning selection, visible attachment entry, idempotent submit reconciliation, authenticated image bytes, and no Product Plugin page arrays passed",
   });
 }

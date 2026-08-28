@@ -11,8 +11,9 @@ Owner：`local-browser-session`
   "owner": "local-browser-session",
   "lawIds": [
     "LAW-LOCAL-BROWSER-SESSION-002-V6",
-    "LAW-LOCAL-BROWSER-SESSION-003-V11",
-    "LAW-LOCAL-BROWSER-SESSION-005-V6"
+    "LAW-LOCAL-BROWSER-SESSION-003-V12",
+    "LAW-LOCAL-BROWSER-SESSION-005-V6",
+    "LAW-LOCAL-BROWSER-SESSION-006-V4"
   ],
   "contractRefs": [],
   "dependencyEdges": [
@@ -37,6 +38,7 @@ AGENT 启动
 -> 扩展提交该任务专属 Target 的现有 TARGET_CLAIM
 -> 服务端校验并 ACK
 -> 建立 connection-bound Session Workspace
+-> 需要生成媒体原件时，在同一已鉴权 Target/Document 内取回精确 assistant turn 原始 bytes 并出具 receipt
 -> GPT turn settle 且不存在未收束 DISPATCHED 后关闭 Target 并释放 Workspace
 ```
 
@@ -76,6 +78,14 @@ Child，也不允许 Product Plugin 直接接触 Chrome 资源。
 socket 断开或 Authority revoke 都走现有 revoke 路径。无未收束 DISPATCHED 的 turn settle 由 runtime 关闭任务专属 Target；
 异常 detach 或关闭后不得在同一 turn 争抢式重建，新的 turn 才能重新执行一次创建策略。
 
+Browser Authority 同时是当前已鉴权页面资源传输的唯一 Owner。调用方只能提交精确 assistant turn、语义媒体身份、
+预期 media type 与 task-owned 接收端口，不能提交任意资源 URL、cookie、token 或第二 transport 指令。扩展在当前 exact
+Target/Document 与现有登录会话内解析该 turn 的唯一语义主媒体并取回原始 bytes，经同一加密 WebSocket authority reply
+交给 task-owned 接收端和现役 artifact/checkpoint Owner；receipt 必须绑定 Target/Document、conversation/turn、媒体 identity、content hash、
+bytes、media type 与尺寸。资源 URL 只可作为页面内短期实现细节，不得进入调用合同、日志或持久证据；页面外直接请求、
+截图、DOM URL、重复 raw 节点或 selector fallback 均不是原件。该动作是现有 Browser Authority 的入站 payload 能力，
+不新增 downloader、对象库、下载 API、网络链、mutation store 或上传链。
+
 ## 4. 配对、更新与失败关闭
 
 固定扩展 ID、loopback pairing route、P-256 ECDSA/ECDH、HKDF、AES-GCM、内存一次性密钥、
@@ -101,11 +111,13 @@ fallback 或第二 claim path。
 1. 构建与静态质检证明 manifest 无 `activeTab`/storage/宽 host，popup 无手动认领入口，源码无旧 handler。
 2. 确定性测试覆盖 Authority READY 与空闲期间不创建/认领、job-bound acquisition 后忽略既存操作者页面并只创建一个
    inactive Target、加载完成前不 attach、精确 Origin 复核、debugger 冲突、服务端拒绝、ACK 超时、同 Origin
-   Document 更新、跨 Origin revoke、无 DISPATCHED settle 后关闭，以及 DISPATCHED 时保留原现场和冻结判据供只读补核。
+   Document 更新、跨 Origin revoke、无 DISPATCHED settle 后关闭、DISPATCHED 时保留原现场和冻结判据供只读补核，
+   以及精确 assistant turn 单一语义媒体、重复 raw 节点、跨 turn/Document 拒绝、已鉴权原始 bytes hash/尺寸 receipt。
 3. 服务端测试证明非 `gpt-web` Origin、未 revoke 的不同 `targetRef` 覆盖和未确认 Workspace 全部失败。
 4. 真实 Chrome 证明：启动 AGENT 后固定扩展自动配对且 Target absent；无需复制密码或点击 popup；exact job
    durable 接受后才创建唯一任务专属 ChatGPT Target，且操作者既存页面完全不受影响；服务端确认后建立 Session
-   Workspace；turn settle 后页面关闭、Target absent，随后现有真实命令、receipt 与 revoke 链仍成立。
+   Workspace；对精确 assistant turn 的生成图片通过当前登录页面取得原始 bytes，并证明页面外直接资源请求不能替代；
+   turn settle 后页面关闭、Target absent，随后现有真实命令、媒体 receipt 与 revoke 链仍成立。
 5. 启动器检查证明 scripts/startup 与 `grasseye:start` 不使用 Chrome Target API、不打开 ChatGPT、不发送
    `TARGET_CLAIM`、不创建或认领任务。
 
@@ -113,7 +125,9 @@ fallback 或第二 claim path。
 真实 Chrome 均通过，才可报告本次生产候选实测成功；READY、RELEASE 与部署仍分别报告。
 
 正文闭环：终态 Owner 是 `local-browser-session`；输入是当前 release identity、精确 Extension Origin、
-exact job 接受事实与任务专属 Chrome Target 元数据，输出是已确认的 connection-bound Workspace receipt。状态只持久进入现有 SQLite/WAL
-compact mutation row，调用方向固定为 Extension -> Workbench -> Browser Owner。失败恢复保持 Target/Workspace blocked，
+exact job 接受事实、任务专属 Chrome Target 元数据，以及需要时的精确 assistant turn 媒体 identity；输出是已确认的
+connection-bound Workspace receipt 或绑定 content identity 的已鉴权媒体 receipt。状态只持久进入现有 SQLite/WAL
+compact mutation row 与调用方现役 artifact/checkpoint，调用方向固定为 Extension -> Workbench -> Browser Owner。失败恢复保持 Target/Workspace blocked，
 安全边界拒绝调用方 selector、坐标和 tab 身份；验收必须同时证明任务专属 Target、既存页面零影响、无未收束 DISPATCHED
-自动释放、DISPATCHED 原现场只读补核和 revoke 后失效；不得出现 `BROWSER_OUTCOME_UNKNOWN`。
+自动释放、DISPATCHED 原现场只读补核、生成媒体原始 bytes 的唯一已鉴权链和 revoke 后失效；mutation outcome 只能是
+现役三值枚举，不得产生额外状态。

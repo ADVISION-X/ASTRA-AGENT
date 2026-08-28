@@ -34,12 +34,12 @@ const inspectExtensionExecutionBoundary = (
       message: "The extension file-input command must use one observed #upload-files target and DOM.setFileInputFiles.",
     }));
   }
-  if (identifiers(sources.domRuntime).has("DOMParser") || actorStrings.has("Runtime.evaluate")) {
+  if (identifiers(sources.domRuntime).has("DOMParser")) {
     findings.push(createLocalFinding({
       checkId: "browser-authority/terminal-authority",
       lawId,
       filePath: sourcePaths[19],
-      message: "The MV3 executor must use the deterministic CDP node tree and cannot retain DOMParser or Runtime.evaluate.",
+      message: "The DOM intent executor must use the deterministic CDP node tree and cannot retain DOMParser.",
     }));
   }
   const forbiddenExecutors = new Set(["eval", "Function", "executeScript"]);

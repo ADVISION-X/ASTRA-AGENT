@@ -28,9 +28,11 @@ assert.deepEqual((receipt.files as Array<{ path: string }>).map((file) => file.p
 assert.equal(/from\s+["']node:/u.test(worker), false, "The MV3 bundle must not retain a Node runtime import.");
 assert.equal(/\beval\s*\(/u.test(worker), false, "The MV3 bundle must not create an eval surface.");
 assert.doesNotMatch(worker, /DOMParser/u, "The MV3 service worker must not depend on page-only DOMParser.");
-assert.doesNotMatch(worker, /Runtime\.evaluate/u, "The extension executor must not add a script-evaluation command surface.");
 assert.match(worker, /DOM\.setFileInputFiles/u, "The registered exact-target file-input command must reach the Chrome DevTools file-input primitive.");
 assert.match(worker, /#upload-files/u, "The file-input executor must remain pinned to the observed ChatGPT document input.");
+assert.match(worker, /browser\.authenticated-media\.v1/u, "The registered authenticated media observation must remain on the one encrypted Browser chain.");
+assert.match(worker, /gpt-generated-image-main/u, "Authenticated media retrieval must remain pinned to the fixed generated-image semantic identity.");
+assert.match(worker, /Runtime\.evaluate/u, "The fixed authenticated media observation must execute inside the signed-in exact page session.");
 assert.equal("externally_connectable" in manifest, false, "The MV3 manifest cannot retain page relay connectivity.");
 assert.equal("storage" in manifest, false, "Automatic pairing and reload must remain memory-only.");
 assert.deepEqual(manifest.permissions, ["debugger", "alarms"], "The fixed extension must not retain active-tab authority.");

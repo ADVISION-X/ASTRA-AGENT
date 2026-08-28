@@ -123,7 +123,7 @@ assert.deepEqual([turnCalls, completionCalls], [1, 1]);
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    passed: true, findings: [], lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V6", evidenceMode,
+    passed: true, findings: [], lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V7", evidenceMode,
     clauses: ["forbidden:0", "forbidden:10", "forbidden:11", "forbidden:12", "forbidden:17",
       "forbidden:18", "forbidden:19", "forbidden:2", "forbidden:21", "forbidden:22",
       "forbidden:25", "forbidden:3", "forbidden:8", "forbidden:9"],

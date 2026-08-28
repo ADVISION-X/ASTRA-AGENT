@@ -50,25 +50,13 @@ const generatedImageArtifacts = async (value: unknown): Promise<EvidenceArtifact
   ];
 };
 
-const responseArtifact = (intent: Parameters<GptAbilityGroup["execute"]>[0]): EvidenceArtifact[] => {
-  const raw = intent.input.rawText;
-  const mime = intent.input.mediaType;
-  if (typeof raw !== "string" || (mime !== "application/json" && mime !== "text/html")) return [];
-  return [{
-    suffix: "response",
-    artifactType: mime === "application/json" ? "ai_json_output" : "ai_raw_output",
-    mimeType: mime,
-    content: new Uint8Array(Buffer.from(raw, "utf8")),
-  }];
-};
-
 const evidenceArtifacts = async (
   result: GptChildCapabilityResult,
   intent: Parameters<GptAbilityGroup["execute"]>[0],
 ): Promise<EvidenceArtifact[]> => {
   if (result.status !== "success") return [];
   if (intent.childCapabilityId === "checkpoint_gpt_generated_image") return generatedImageArtifacts(result.value);
-  return intent.childCapabilityId === "capture_gpt_response_artifact" ? responseArtifact(intent) : [];
+  return [];
 };
 
 const appendVerifiedArtifact = async (input: Readonly<{

@@ -116,25 +116,12 @@ const inspectSkill = (productIds: readonly string[], text: string): string[] => 
   return findings;
 };
 
-const assertAtomicGptFlows = (pluginId: string): void => {
+const assertSharedGptFlowOwnership = (pluginId: string): void => {
   const flowPath = new URL(`../../src/plugins/${pluginId}/gpt-flow.ts`, import.meta.url).pathname;
-  const text = readFileSync(flowPath, "utf8");
-  const flows = [...text.matchAll(/export const [A-Za-z0-9_]+ = Object\.freeze\(\[([\s\S]*?)\] satisfies/gmu)];
-  assert(flows.length >= 1, `${pluginId} must own at least one GPT flow`);
-  for (const flow of flows) {
-    const body = flow[1] ?? "";
-    for (const childCapabilityId of [
-      "open_gpt_model_selector",
-      "open_gpt_reasoning_selector",
-      "open_gpt_title_control",
-    ]) {
-      assert.equal(
-        [...body.matchAll(new RegExp(`childCapabilityId: "${childCapabilityId}"`, "gu"))].length,
-        1,
-        `${pluginId} repeats atomic GPT action ${childCapabilityId} in one turn flow`,
-      );
-    }
-  }
+  assert.equal(existsSync(flowPath), false, `${pluginId} must not own a GPT provider-page flow file`);
+  const source = readFileSync(new URL(`../../src/plugins/${pluginId}/index.ts`, import.meta.url), "utf8");
+  assert.doesNotMatch(source, /gpt_flow|gpt-flow/u, `${pluginId} must not own provider-page step order`);
+  assert.match(source, /checkpointSchemaVersion: 2/u, `${pluginId} must bind atomic checkpoint schema v2`);
 };
 
 assert.equal(productionPluginCatalog.length, 12);
@@ -170,7 +157,7 @@ for (const plugin of productionPluginCatalog) {
   assert.match(readFileSync(resultContractPath, "utf8"), /export const parseProductResult/u);
   assert.match(readFileSync(implementationPath, "utf8"), /from "\.\/result-contract\.js"/u);
   const text = readFileSync(skillPath, "utf8");
-  assertAtomicGptFlows(plugin.pluginId);
+  assertSharedGptFlowOwnership(plugin.pluginId);
   const productIds = [...new Set(plugin.accepts.map((entry) => entry.productId))];
   assert.deepEqual(inspectSkill(productIds, text), [], `${plugin.pluginId} is not a production-grade Product Skill`);
   if (plugin.pluginId === "localization-production") {

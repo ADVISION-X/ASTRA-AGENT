@@ -103,14 +103,14 @@ const claimFailureDecision = (
   error: unknown,
 ): ClaimFailureDecision => {
   const terminal = serializeTerminalFailure(error);
-  if (job.grant.attempt_mode === "reconciliation" || Date.now() >= Date.parse(job.grant.delivery_deadline_at)) {
-    return "FINAL_FAILED";
-  }
   if (terminal.mutation_outcome === "dispatched") return "RECONCILE_ONLY";
-  const retryBudget = job.grant.attempt_number < job.grant.max_attempts
-    && Date.now() < Date.parse(job.grant.delivery_deadline_at);
-  return classifyFailure(error) === "recovery_pending" && retryBudget
-    ? "RETRY_FROM_CHECKPOINT" : "FINAL_FAILED";
+  const terminalCodes = new Set([
+    "USER_CANCELLED",
+    "CLAIMED_PLUGIN_IDENTITY_MISMATCH",
+    "CAPABILITY_MANIFEST_CHANGED_BEFORE_ACCEPT",
+    "PRODUCTION_TASK_REQUEST_HASH_CONFLICT",
+  ]);
+  return terminalCodes.has(terminal.code) ? "FINAL_FAILED" : "RETRY_FROM_CHECKPOINT";
 };
 
 const releaseUnacceptedClaim = async (
@@ -270,11 +270,6 @@ const acceptClaim = (
     state, traceId: job.job_id, stateKey: "job.lifecycle", current: "running",
     authorityRef: `production-task:${job.job_id}`, authorityHash: hashCanonical(running),
   });
-  if (job.grant.attempt_mode === "reconciliation") {
-    throw executionFailure("failed", "RECONCILIATION_EVIDENCE_UNAVAILABLE", {
-      mutationOutcome: "dispatched", evidenceRef: `browser-mutation-job:${job.job_id}`,
-    });
-  }
   return { task, budget, record };
 };
 

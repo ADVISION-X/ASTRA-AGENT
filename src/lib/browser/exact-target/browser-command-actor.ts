@@ -21,6 +21,11 @@ export type BrowserGovernedCommand =
   | Readonly<{ kind: "observe"; capabilityId: import("../protocol/generated/browser-protocol.generated.js").BrowserCapabilityId }>
   | Readonly<{ kind: "screenshot"; regionLabel: string }>
   | Readonly<{ kind: "file-input"; selector: string; grantRefs: readonly string[]; resolvedFilePaths: readonly string[] }>
+  | Readonly<{
+    kind: "authenticated-media";
+    assistantTurnId: string;
+    semanticMediaId: "gpt-generated-image-main";
+  }>
   | Readonly<{ kind: "wait"; durationMs: number }>
   | Readonly<{ kind: "close-target"; reason: string }>;
 
@@ -98,7 +103,7 @@ const postconditionPair = (command: BrowserGovernedCommand): Readonly<{
       positive = { kind: "doubleClick", selector: intent.selector, postcondition: intent.postDoubleClickMatch };
       break;
     case "keypress":
-      positive = { kind: "keypress", selector: intent.selector, key: intent.key,
+      positive = { kind: "keypress", selector: intent.selector, key: intent.key, repeat: intent.repeat ?? 1,
         postcondition: intent.postKeypressMatch };
       break;
     default:

@@ -17,6 +17,7 @@ import { assertProductionTaskRoutePolicy } from "./route-policy.js";
 import { ProductionRuntimeStore, type StoredProductionTask } from "./store.js";
 
 export interface ProductionExecutionLease {
+  readonly attempt_mode: "execution" | "reconciliation";
   readonly attempt_id: string;
   readonly device_id: string;
   readonly lease_version: number;
@@ -135,17 +136,11 @@ export class ProductionExecutor {
     let completed = false;
     const result = await dispatchWebsiteAgentTask(input.task, (authorized) => ({
       materials: input.materials,
-      runTurn: (turn) => {
-        if (input.lease.provider_turns_used >= input.lease.max_provider_turns) {
-          throw executionFailure("failed", "PROVIDER_TURN_BUDGET_EXHAUSTED");
-        }
-        input.lease.provider_turns_used += 1;
-        return this.gptExecutor.runTurn({
+      runTurn: (turn) => this.gptExecutor.runTurn({
           task: authorized.task, pluginId: authorized.plugin.pluginId,
           skillHash: authorized.skillHash, skillText: authorized.skillText,
           materials: input.materials, lease: input.lease, parentSpanId: input.span.spanId, turn,
-        });
-      },
+        }),
       complete: async (output) => {
         if (completed) throw new Error("PLUGIN_RESULT_ALREADY_COMPLETED");
         authorized.plugin.parseResult(authorized.task, output.payload, "draft");

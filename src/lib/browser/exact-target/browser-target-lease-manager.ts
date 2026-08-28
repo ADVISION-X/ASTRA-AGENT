@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { BrowserAuthorityCertificateV1 } from "../infrastructure/browser-authority-certificate.js";
 import { hashBrowserAuthorityCertificate } from "../infrastructure/browser-authority-certificate.js";
 import type { BrowserCommandActor } from "./browser-command-actor.js";
@@ -170,6 +170,7 @@ export class BrowserTargetLeaseManager {
       observeCapability: async ({ capabilityId }) => command(capabilityId, { kind: "observe", capabilityId }),
       captureScreenshot: ({ regionLabel }) => this.captureScreenshot(command, regionLabel),
       attachFile: ({ selector, grants }) => this.attachFile(command, selector, grants),
+      downloadAuthenticatedMedia: (media) => this.downloadAuthenticatedMedia(command, media),
       registerFileArtifact: async () => {
         throw new Error("BROWSER_FILE_GRANT_INVALID");
       },
@@ -240,6 +241,45 @@ export class BrowserTargetLeaseManager {
       grantRefs: grants.map((grant) => grant.grantRef),
       resolvedFilePaths,
     });
+  }
+
+  private async downloadAuthenticatedMedia(
+    command: LeaseCommand,
+    input: Readonly<{ assistantTurnId: string; semanticMediaId: "gpt-generated-image-main" }>,
+  ): Promise<Readonly<{
+    bytesBase64: string;
+    sha256: `sha256:${string}`;
+    sizeBytes: number;
+    mediaType: `image/${string}`;
+    width: number;
+    height: number;
+  }>> {
+    if (!/^conversation-turn-[1-9][0-9]*$/u.test(input.assistantTurnId)
+      || input.semanticMediaId !== "gpt-generated-image-main") {
+      throw new Error("BROWSER_TARGET_INVALID");
+    }
+    const raw = await command("browser.authenticated-media.v1", {
+      kind: "authenticated-media",
+      assistantTurnId: input.assistantTurnId,
+      semanticMediaId: input.semanticMediaId,
+    });
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    const value = raw as Record<string, unknown>;
+    if (typeof value.bytesBase64 !== "string" || typeof value.sha256 !== "string"
+      || !/^sha256:[a-f0-9]{64}$/u.test(value.sha256)
+      || typeof value.sizeBytes !== "number" || !Number.isSafeInteger(value.sizeBytes)
+      || value.sizeBytes < 1 || value.sizeBytes > 25 * 1024 * 1024
+      || typeof value.mediaType !== "string" || !/^image\/[a-z0-9.+-]+$/u.test(value.mediaType)
+      || typeof value.width !== "number" || !Number.isSafeInteger(value.width) || value.width < 1
+      || typeof value.height !== "number" || !Number.isSafeInteger(value.height) || value.height < 1) {
+      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    }
+    const bytes = Buffer.from(value.bytesBase64, "base64");
+    const digest = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+    if (bytes.byteLength !== value.sizeBytes || digest !== value.sha256) {
+      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    }
+    return value as ReturnType<BrowserTargetLease["downloadAuthenticatedMedia"]> extends Promise<infer T> ? T : never;
   }
 
   private async resolvePendingMutation(

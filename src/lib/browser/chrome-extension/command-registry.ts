@@ -16,6 +16,7 @@ export class ExtensionCommandRegistry {
     ["observe", { kind: "observe", mutationClass: "observation" }],
     ["screenshot", { kind: "screenshot", mutationClass: "observation" }],
     ["file-input", { kind: "file-input", mutationClass: "mutation" }],
+    ["authenticated-media", { kind: "authenticated-media", mutationClass: "observation" }],
     ["wait", { kind: "wait", mutationClass: "observation" }],
     ["close-target", { kind: "close-target", mutationClass: "lifecycle" }],
   ]);
@@ -34,6 +35,7 @@ const fixedCapabilityByKind: Partial<Record<ExtensionCommandKind, ExtensionComma
   observe: "browser.dom.inspect.v1",
   screenshot: "browser.screenshot.v1",
   "file-input": "browser.file-input.v1",
+  "authenticated-media": "browser.authenticated-media.v1",
   wait: "browser.wait.v1",
   "close-target": "browser.close-target.v1",
 };

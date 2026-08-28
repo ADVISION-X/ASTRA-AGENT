@@ -8,6 +8,7 @@ import type { GptChildCapabilityIntent } from "../../contract.js";
 import type { GptChildHandlerMap } from "../child-handler.js";
 import {
   arrayInput,
+  booleanInput,
   requireBrowser,
   requireExactInputKeys,
   success,
@@ -17,6 +18,8 @@ import {
   GPT_ATTACHMENT_CONTROL_SELECTOR,
   GPT_ATTACHMENT_REGION_SELECTOR,
   GPT_FILE_INPUT_SELECTOR,
+  GPT_UPLOAD_FROM_COMPUTER_LABEL,
+  GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
 } from "../contracts/attachment.contract.js";
 
 type ApprovedFile = Readonly<{
@@ -92,35 +95,53 @@ const countOccurrences = (value: string, needle: string): number =>
 
 export const attachmentChildHandlers = {
   async open_gpt_attachment_control(intent, context) {
-    requireExactInputKeys(intent, []);
+    requireExactInputKeys(intent, [], ["reconcileOnly"]);
     const browser = requireBrowser(context);
-    const inputCount = await findCount(browser, { selector: GPT_FILE_INPUT_SELECTOR, maxMatches: 2 });
-    if (inputCount === 1) return success({
-      value: { state: "file-input-ready" }, candidateCount: 1,
-      observedSemantics: ["one exact GPT file input"], committedMutation: "no",
+    const reconcileOnly = intent.input.reconcileOnly === undefined ? false : booleanInput(intent, "reconcileOnly");
+    const visibleChoiceCount = await findCount(browser, {
+      selector: GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
+      textEquals: GPT_UPLOAD_FROM_COMPUTER_LABEL,
+      maxMatches: 2,
     });
-    if (inputCount > 1) throw executionFailure("review_required", `GPT_FILE_INPUT_COUNT_${inputCount}`);
+    if (visibleChoiceCount === 1) return success({
+      value: { state: "upload-choice-ready" }, candidateCount: 1,
+      observedSemantics: ["one visible upload-from-computer choice"], committedMutation: "no",
+    });
+    if (visibleChoiceCount > 1) {
+      throw executionFailure("review_required", `GPT_UPLOAD_CHOICE_COUNT_${visibleChoiceCount}`);
+    }
+    if (reconcileOnly) throw executionFailure("recovery_pending", "GPT_ATTACHMENT_CONTROL_OPEN_PENDING");
     await requireOneCandidate(browser, { selector: GPT_ATTACHMENT_CONTROL_SELECTOR, maxMatches: 2 });
     await browser.executeDomIntent({
       kind: "click", selector: GPT_ATTACHMENT_CONTROL_SELECTOR, expectedMatches: 1,
-      postClickMatch: { selector: GPT_FILE_INPUT_SELECTOR, expectedMatches: 1, timeoutMs: 5_000 },
+      postClickMatch: {
+        selector: GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
+        textEquals: GPT_UPLOAD_FROM_COMPUTER_LABEL,
+        expectedMatches: 1,
+        timeoutMs: 5_000,
+      },
     });
-    const after = await findCount(browser, { selector: GPT_FILE_INPUT_SELECTOR, maxMatches: 2 });
-    if (after !== 1) throw executionFailure("review_required", "GPT_FILE_INPUT_OPEN_UNCONFIRMED");
     return success({
-      value: { state: "file-input-ready" }, candidateCount: 1,
-      observedSemantics: ["one attachment control", "one exact file input"], committedMutation: "confirmed",
+      value: { state: "upload-choice-ready" }, candidateCount: 1,
+      observedSemantics: ["one attachment control", "one visible upload-from-computer choice"], committedMutation: "confirmed",
     });
   },
 
   async attach_approved_gpt_files_once(intent, context) {
-    requireExactInputKeys(intent, ["files"]);
+    requireExactInputKeys(intent, ["files"], ["reconcileOnly"]);
     const files = filesFromIntent(intent);
     if (files.length === 0) return success({
       value: { files: [], mutationSent: false }, candidateCount: 0,
       observedSemantics: ["approved attachment set empty"], committedMutation: "no",
     });
     const browser = requireBrowser(context);
+    const reconcileOnly = intent.input.reconcileOnly === undefined ? false : booleanInput(intent, "reconcileOnly");
+    if (reconcileOnly) throw executionFailure("recovery_pending", "GPT_ATTACHMENT_UPLOAD_PENDING");
+    await requireOneCandidate(browser, {
+      selector: GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
+      textEquals: GPT_UPLOAD_FROM_COMPUTER_LABEL,
+      maxMatches: 2,
+    });
     await requireOneCandidate(browser, { selector: GPT_FILE_INPUT_SELECTOR, maxMatches: 2 });
     const grants = await issueGrants(browser, files);
     await browser.attachFile({ selector: GPT_FILE_INPUT_SELECTOR, grants });
@@ -130,12 +151,12 @@ export const attachmentChildHandlers = {
         mutationSent: true,
       },
       candidateCount: 1,
-      observedSemantics: ["one exact file input", "one approved batch", `${files.length} immutable grants`],
+      observedSemantics: ["one visible upload-from-computer choice", "one approved file-input batch", `${files.length} immutable grants`],
       committedMutation: "confirmed",
     });
   },
 
-  async verify_gpt_attachment_set(intent, context) {
+  async reconcile_gpt_attachment_set(intent, context) {
     requireExactInputKeys(intent, ["files"]);
     const files = filesFromIntent(intent);
     const browser = requireBrowser(context);

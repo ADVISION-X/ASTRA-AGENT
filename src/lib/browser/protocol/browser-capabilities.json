@@ -13,6 +13,7 @@
     "browser.dom.keypress.v1",
     "browser.dom.fill.v1",
     "browser.file-input.v1",
+    "browser.authenticated-media.v1",
     "browser.screenshot.v1",
     "browser.wait.v1",
     "browser.close-target.v1",

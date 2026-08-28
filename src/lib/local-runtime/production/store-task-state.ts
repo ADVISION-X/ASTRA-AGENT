@@ -1,9 +1,15 @@
 import type { SerializedExecutionFailure } from "../../typed-failure.js";
 import { executionFailure } from "../../typed-failure.js";
-import type { GptProviderContinuation, StoredGptContinuation } from "../../../capabilities/gpt/index.js";
+import {
+  GPT_TURN_FLOW_VERSION,
+  type GptChildCapabilityId,
+  type GptProviderContinuation,
+  type StoredGptContinuation,
+} from "../../../capabilities/gpt/index.js";
 import type { DurablePluginIdentity, WebsiteAgentResult, WebsiteAgentTask } from "./contracts.js";
 import { WebsiteAgentResultSchema, type ProductionHash } from "./contracts.js";
 import type { ProviderTurnResult } from "./plugin.js";
+import type { GptTurnStateSnapshot } from "./gpt-turn-state.js";
 import {
   ProductionStoreFoundation,
   isSerializedTerminalFailure,
@@ -39,6 +45,41 @@ const sameTerminal = (
   result: WebsiteAgentResult | null,
 ): boolean => Boolean(existing && existing.status === status
   && json(existing.result) === json(result) && json(existing.failure) === json(failure));
+
+export type GptTurnDurableCheckpoint = Readonly<{
+  schema_version: "gpt-turn-checkpoint.v2";
+  flow_version: typeof GPT_TURN_FLOW_VERSION;
+  input_hash: ProductionHash;
+  step_index: number;
+  child_capability_id: GptChildCapabilityId;
+  status: "success" | "failed";
+  mutation_state: "no" | "dispatched" | "confirmed";
+  postcondition_result: "passed" | "failed" | "pending";
+  evidence_ref: string;
+  evidence_hash: ProductionHash;
+  provider_dispatch_used: boolean;
+  state: GptTurnStateSnapshot;
+  result: ProviderTurnResult | null;
+}>;
+
+const parseGptTurnCheckpoint = (value: string): GptTurnDurableCheckpoint => {
+  const parsed = JSON.parse(value) as Partial<GptTurnDurableCheckpoint>;
+  if (parsed.schema_version !== "gpt-turn-checkpoint.v2"
+    || parsed.flow_version !== GPT_TURN_FLOW_VERSION
+    || typeof parsed.input_hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(parsed.input_hash)
+    || !Number.isSafeInteger(parsed.step_index) || (parsed.step_index as number) < 0
+    || typeof parsed.child_capability_id !== "string"
+    || (parsed.status !== "success" && parsed.status !== "failed")
+    || !["no", "dispatched", "confirmed"].includes(String(parsed.mutation_state))
+    || !["passed", "failed", "pending"].includes(String(parsed.postcondition_result))
+    || typeof parsed.evidence_ref !== "string" || !parsed.evidence_ref
+    || typeof parsed.evidence_hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(parsed.evidence_hash)
+    || typeof parsed.provider_dispatch_used !== "boolean"
+    || !parsed.state || typeof parsed.state !== "object" || Array.isArray(parsed.state)) {
+    throw executionFailure("review_required", "GPT_TURN_CHECKPOINT_INVALID");
+  }
+  return parsed as GptTurnDurableCheckpoint;
+};
 
 export abstract class ProductionStoreTaskState extends ProductionStoreFoundation {
   public acceptTask(task: WebsiteAgentTask, identity: DurablePluginIdentity): StoredProductionTask {
@@ -81,7 +122,11 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     ).run(now(), jobId);
   }
 
-  public readStep(jobId: string, stepId: string, inputHash: ProductionHash): ProviderTurnResult | null {
+  public readGptTurnCheckpoint(
+    jobId: string,
+    stepId: string,
+    inputHash: ProductionHash,
+  ): GptTurnDurableCheckpoint | null {
     const row = this.database.prepare(
       "select input_hash,result_json from production_steps where job_id=? and step_id=?",
     ).get(jobId, stepId) as StepRow | undefined;
@@ -89,20 +134,44 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     if (row.input_hash !== inputHash) {
       throw executionFailure("review_required", `PLUGIN_CHECKPOINT_INPUT_DRIFT:${stepId}`);
     }
-    return JSON.parse(row.result_json) as ProviderTurnResult;
+    const checkpoint = parseGptTurnCheckpoint(row.result_json);
+    if (checkpoint.input_hash !== inputHash) {
+      throw executionFailure("review_required", `PLUGIN_CHECKPOINT_INPUT_DRIFT:${stepId}`);
+    }
+    return checkpoint;
   }
 
-  public writeStep(jobId: string, stepId: string, inputHash: ProductionHash, result: ProviderTurnResult): void {
-    const existing = this.readStep(jobId, stepId, inputHash);
-    if (existing) {
-      if (json(existing) !== json(result)) {
-        throw executionFailure("review_required", `PLUGIN_CHECKPOINT_RESULT_DRIFT:${stepId}`);
-      }
-      return;
+  public writeGptTurnCheckpoint(
+    jobId: string,
+    stepId: string,
+    checkpoint: GptTurnDurableCheckpoint,
+  ): void {
+    const existing = this.readGptTurnCheckpoint(jobId, stepId, checkpoint.input_hash);
+    if (existing && (existing.step_index > checkpoint.step_index
+      || (existing.step_index === checkpoint.step_index
+        && existing.status === "success" && checkpoint.status === "failed")
+      || (existing.result && checkpoint.result && json(existing.result) !== json(checkpoint.result)))) {
+      throw executionFailure("review_required", `GPT_TURN_CHECKPOINT_REGRESSION:${stepId}`);
     }
-    this.database.prepare(
-      "insert into production_steps(job_id,step_id,input_hash,result_json,completed_at) values(?,?,?,?,?)",
-    ).run(jobId, stepId, inputHash, json(result), now());
+    this.database.prepare(`insert into production_steps(
+      job_id,step_id,input_hash,result_json,completed_at
+    ) values(?,?,?,?,?) on conflict(job_id,step_id) do update set
+      input_hash=excluded.input_hash,result_json=excluded.result_json,completed_at=excluded.completed_at`
+    ).run(jobId, stepId, checkpoint.input_hash, json(checkpoint), now());
+    const readback = this.readGptTurnCheckpoint(jobId, stepId, checkpoint.input_hash);
+    if (!readback || json(readback) !== json(checkpoint)) {
+      throw executionFailure("review_required", `GPT_TURN_CHECKPOINT_READBACK_INVALID:${stepId}`);
+    }
+  }
+
+  public countGptProviderDispatches(jobId: string): number {
+    const rows = this.database.prepare(
+      "select result_json from production_steps where job_id=?",
+    ).all(jobId) as Array<{ result_json: string }>;
+    return rows.reduce(
+      (count, row) => count + (parseGptTurnCheckpoint(row.result_json).provider_dispatch_used ? 1 : 0),
+      0,
+    );
   }
 
   public createGptContinuation(continuation: StoredGptContinuation): void {

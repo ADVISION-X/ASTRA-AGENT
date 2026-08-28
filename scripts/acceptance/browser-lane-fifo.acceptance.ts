@@ -53,6 +53,7 @@ const fixtureLease = (
   async observeCapability() { throw new Error("FIXTURE_CAPABILITY_FORBIDDEN"); },
   async captureScreenshot() { throw new Error("FIXTURE_SCREENSHOT_FORBIDDEN"); },
   async attachFile() { throw new Error("FIXTURE_ATTACHMENT_FORBIDDEN"); },
+  async downloadAuthenticatedMedia() { throw new Error("FIXTURE_AUTHENTICATED_MEDIA_FORBIDDEN"); },
   async registerFileArtifact() { throw new Error("FIXTURE_ARTIFACT_FORBIDDEN"); },
   async issueFileArtifactGrant() { throw new Error("FIXTURE_ARTIFACT_GRANT_FORBIDDEN"); },
   async wait() { throw new Error("FIXTURE_WAIT_FORBIDDEN"); },

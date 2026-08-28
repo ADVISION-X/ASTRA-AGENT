@@ -21,19 +21,13 @@ import { composerSubmissionChildHandlers } from "./web/children/composer-submiss
 import { conversationChildHandlers } from "./web/children/conversation-children.js";
 import { executionProfileChildHandlers } from "./web/children/execution-profile-children.js";
 import { responseChildHandlers } from "./web/children/response-children.js";
-import { targetDocumentChildHandlers } from "./web/children/target-document-children.js";
-import { titleChildHandlers } from "./web/children/title-children.js";
-import { transientUiChildHandlers } from "./web/children/transient-ui-children.js";
 
 const handlers = Object.freeze({
-  ...targetDocumentChildHandlers,
-  ...transientUiChildHandlers,
   ...conversationChildHandlers,
   ...executionProfileChildHandlers,
   ...attachmentChildHandlers,
   ...composerSubmissionChildHandlers,
   ...responseChildHandlers,
-  ...titleChildHandlers,
   ...sessionChildHandlers,
 } satisfies Record<GptChildCapabilityId, GptChildHandler>);
 
@@ -45,7 +39,7 @@ const classify = (error: unknown): Readonly<{
   code: string;
 }> => Object.freeze({
   status: failureStatus(error),
-  code: failureCode(error, "GPT_CHILD_UNKNOWN_FAILURE"),
+  code: failureCode(error, "GPT_CHILD_UNCLASSIFIED_FAILURE"),
 });
 
 const documentRefHash = (value: string | null): `sha256:${string}` | null =>
@@ -66,14 +60,17 @@ const proofFor = (input: Readonly<{
   postconditionResult?: "passed" | "failed" | "pending";
 }>): GptChildCapabilityProof => {
   const unsigned = {
-    schemaVersion: "gpt-child-capability-proof.v1" as const,
+    schemaVersion: "gpt-child-capability-proof.v2" as const,
     childCapabilityId: input.intent.childCapabilityId,
     executionId: input.intent.executionId,
+    flowVersion: input.intent.flowVersion,
+    stepIndex: input.intent.stepIndex,
+    inputHash: input.intent.inputHash,
+    pluginStepId: input.intent.pluginStepId,
+    actionOrdinal: input.intent.actionOrdinal,
     targetRefHash: input.context.browser ? hash(input.context.browser.target.targetRef) : null,
     beforeDocumentRefHash: documentRefHash(input.beforeDocumentRef),
     afterDocumentRefHash: documentRefHash(input.afterDocumentRef),
-    beforeUrl: input.beforeUrl,
-    afterUrl: input.afterUrl,
     candidateCount: input.observation?.candidateCount ?? null,
     observedSemantics: input.observation?.observedSemantics
       ?? Object.freeze([`failure:${input.failureCode ?? "GPT_CHILD_FAILED"}`]),
@@ -122,7 +119,9 @@ const assertObservationIsAtomic = (
     throw executionFailure("review_required", `GPT_MUTATION_OUTCOME_NOT_UNIQUE:${intent.childCapabilityId}`);
   }
   if (observation.committedMutation === "no" && pendingMutationCount !== 0) {
-    throw executionFailure("review_required", `GPT_UNDECLARED_MUTATION:${intent.childCapabilityId}`);
+    if (intent.input.reconcileOnly !== true || pendingMutationCount !== 1) {
+      throw executionFailure("review_required", `GPT_UNDECLARED_MUTATION:${intent.childCapabilityId}`);
+    }
   }
 };
 
@@ -185,9 +184,14 @@ const executeOne = async (
   const before = currentDocument(context);
   let observation: GptChildObservation | undefined;
   try {
+    if (!Number.isSafeInteger(intent.stepIndex) || intent.stepIndex < 0
+      || !Number.isSafeInteger(intent.actionOrdinal) || intent.actionOrdinal < 1
+      || !intent.pluginStepId || !/^sha256:[a-f0-9]{64}$/u.test(intent.inputHash)) {
+      throw executionFailure("failed", "GPT_CHILD_EXECUTION_IDENTITY_INVALID");
+    }
     if (!handler) throw executionFailure("failed", `GPT_CHILD_NOT_REGISTERED:${intent.childCapabilityId}`);
     if (context.signal?.aborted) throw executionFailure("recovery_pending", "GPT_EXECUTION_ABORTED");
-    if ((context.browser?.pendingMutationCount() ?? 0) !== 0) {
+    if ((context.browser?.pendingMutationCount() ?? 0) !== 0 && intent.input.reconcileOnly !== true) {
       throw executionFailure("review_required", "GPT_PRIOR_BROWSER_MUTATION_UNRESOLVED");
     }
     observation = await handler(intent, context);

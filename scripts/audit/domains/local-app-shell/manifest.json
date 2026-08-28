@@ -26,7 +26,8 @@
     "src/lib/local-runtime/workbench-settings-handle.ts",
     "src/lib/local-runtime/workbench-status-types.ts",
     "src/lib/local-runtime/workbench-status.ts",
-    "src/lib/local-runtime/workbench.ts"
+    "src/lib/local-runtime/workbench.ts",
+    "监控大盘实现方案.md"
   ],
   "observedPaths": [
     "src/app/create-workbench-server.ts",

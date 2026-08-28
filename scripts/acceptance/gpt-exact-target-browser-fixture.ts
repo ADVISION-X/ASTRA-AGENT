@@ -1,24 +1,24 @@
 import type { BrowserDomIntent, BrowserTargetLease } from "../../src/lib/browser/browser-authority-api.js";
 
 export const EXPECTED_GPT_CHILD_IDS = Object.freeze([
-  "acknowledge_known_gpt_rate_limit", "acquire_gpt_continuation_lane", "advance_gpt_continuation_lane",
-  "attach_approved_gpt_files_once", "bind_exact_gpt_target", "capture_gpt_response_artifact",
-  "checkpoint_gpt_generated_image", "checkpoint_gpt_text_response", "cleanup_owned_gpt_transient_ui",
-  "commit_gpt_checkpoint_fork", "commit_gpt_title", "dismiss_known_gpt_search_dialog",
-  "focus_exact_gpt_composer", "focus_exact_gpt_conversation", "observe_exact_gpt_assistant_turn",
-  "observe_gpt_document", "observe_gpt_execution_profile", "open_gpt_attachment_control",
-  "open_gpt_conversation_search", "open_gpt_fork_control", "open_gpt_model_selector",
-  "open_gpt_reasoning_selector", "open_gpt_title_control", "persist_gpt_continuation",
-  "recover_gpt_response_checkpoint", "release_gpt_continuation_lane", "restore_gpt_operator_source",
-  "select_exact_gpt_conversation_result", "select_exact_gpt_model", "select_exact_gpt_reasoning_tier",
-  "submit_exact_gpt_turn", "verify_clean_gpt_chat", "verify_exact_gpt_prompt", "verify_exact_gpt_title",
-  "verify_gpt_attachment_set", "verify_gpt_conversation_identity", "verify_gpt_execution_profile",
-  "verify_gpt_turn_submission", "verify_gpt_workspace", "wait_for_stable_gpt_response",
-  "write_exact_gpt_prompt", "write_exact_gpt_title", "write_gpt_conversation_search_key",
+  "acquire_gpt_continuation_lane", "advance_gpt_continuation_lane",
+  "attach_approved_gpt_files_once", "checkpoint_gpt_generated_image",
+  "checkpoint_gpt_text_response", "close_gpt_execution_profile",
+  "ensure_exact_gpt_model", "ensure_exact_gpt_reasoning_tier",
+  "focus_exact_gpt_conversation", "open_gpt_attachment_control",
+  "open_gpt_execution_profile", "persist_gpt_continuation", "prepare_clean_gpt_chat",
+  "reconcile_gpt_attachment_set", "reconcile_gpt_draft", "reconcile_gpt_turn_submission",
+  "release_gpt_continuation_lane", "submit_exact_gpt_turn_once",
+  "verify_gpt_conversation_identity", "wait_for_stable_gpt_image",
+  "wait_for_stable_gpt_text", "write_exact_gpt_prompt",
 ].sort());
 
 type DomResponder = (intent: BrowserDomIntent, callNumber: number) => unknown | Promise<unknown>;
-type FakeBrowserOptions = Readonly<{ initialPending?: number; initialUrl?: string }>;
+type FakeBrowserOptions = Readonly<{
+  initialPending?: number;
+  initialUrl?: string;
+  authenticatedMedia?: Awaited<ReturnType<BrowserTargetLease["downloadAuthenticatedMedia"]>>;
+}>;
 type FakeBrowserState = {
   pending: number;
   documentRef: string;
@@ -31,6 +31,7 @@ type FakeBrowserState = {
 const createFakeBrowserLease = (
   responder: DomResponder,
   state: FakeBrowserState,
+  options: FakeBrowserOptions,
 ): BrowserTargetLease => ({
   leaseRef: "lease:1",
   authorityRef: "authority:1",
@@ -70,6 +71,10 @@ const createFakeBrowserLease = (
   async observeCapability() { return {}; },
   async captureScreenshot() { return { artifactRef: "screenshot:1", contentHash: `sha256:${"e".repeat(64)}` }; },
   async attachFile() { state.physicalMutations += 1; },
+  async downloadAuthenticatedMedia() {
+    if (!options.authenticatedMedia) throw new Error("FIXTURE_AUTHENTICATED_MEDIA_MISSING");
+    return options.authenticatedMedia;
+  },
   async registerFileArtifact() {},
   async issueFileArtifactGrant() { throw new Error("UNUSED"); },
   async wait() {},
@@ -95,7 +100,7 @@ export const fakeBrowser = (responder: DomResponder, input: FakeBrowserOptions =
     physicalMutations: 0,
   };
   return {
-    browser: createFakeBrowserLease(responder, state),
+    browser: createFakeBrowserLease(responder, state, input),
     physicalMutations: () => state.physicalMutations,
     documentCalls: () => state.domCalls,
   };

@@ -33,6 +33,33 @@ try {
     kind: "click", selector: "button", expectedMatches: 1,
   }), /BROWSER_COMMAND_PERMIT_INVALID/u,
   "a click without one direct postcondition must fail before dispatch");
+  for (const key of ["ArrowLeft", "ArrowRight"] as const) {
+    assert.equal(assertBrowserDomIntent({
+      kind: "keypress",
+      selector: "[role='slider']",
+      key,
+      repeat: 4,
+      expectedMatches: 1,
+      postKeypressMatch: { selector: "[role='slider'][aria-valuenow='3']", expectedMatches: 1, timeoutMs: 5_000 },
+    }).kind, "keypress", `${key} must be admitted for the governed reasoning slider`);
+  }
+  assert.throws(() => assertBrowserDomIntent({
+    kind: "keypress",
+    selector: "[role='slider']",
+    key: "ArrowRight",
+    repeat: 5,
+    expectedMatches: 1,
+    postKeypressMatch: { selector: "[role='slider']", expectedMatches: 1 },
+  } as never), /BROWSER_COMMAND_PERMIT_INVALID/u,
+  "a keypress repeat beyond the complete five-value slider must fail closed");
+  assert.throws(() => assertBrowserDomIntent({
+    kind: "keypress",
+    selector: "[role='slider']",
+    key: "Tab",
+    expectedMatches: 1,
+    postKeypressMatch: { selector: "[role='slider']", expectedMatches: 1 },
+  } as never), /BROWSER_COMMAND_PERMIT_INVALID/u,
+  "keypress admission must stay closed to unowned keys");
   const store = new BrowserMutationStore(root);
   store.prepare({
     commandId: "command-1", logicalMutationId, ownerPluginId: "fixture-product-plugin",

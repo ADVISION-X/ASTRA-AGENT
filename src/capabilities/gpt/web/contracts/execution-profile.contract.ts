@@ -1,20 +1,17 @@
-export const GPT_PROFILE_TRIGGER_SELECTOR = "main button[aria-haspopup='menu']:not([aria-label])";
-export const GPT_PROFILE_POPUP_SELECTOR = "[role='menu']";
+export const GPT_PROFILE_TRIGGER_SELECTOR = "main button[aria-haspopup='menu'][data-tone='neutral']:not([aria-label])";
+export const GPT_PROFILE_POPUP_SELECTOR = "[role='menu']:has([data-testid='composer-model-picker-slider-simple-view'])";
+export const GPT_PROFILE_SIMPLE_PANEL_SELECTOR = "[data-testid='composer-model-picker-slider-simple-view'][data-active='true']:not([inert])";
+export const GPT_PROFILE_MODEL_CHOICE_SELECTOR = "[data-testid='composer-model-picker-slider-advanced-view'] [role='menuitemradio']";
+export const GPT_PROFILE_REASONING_CONTROL_SELECTOR = `${GPT_PROFILE_SIMPLE_PANEL_SELECTOR} [role='menuitem'][aria-label='能力']`;
+export const GPT_PROFILE_REASONING_SLIDER_SELECTOR = `${GPT_PROFILE_SIMPLE_PANEL_SELECTOR} [data-model-reasoning-effort-slider] [role='slider']`;
+export const GPT_PROFILE_DISMISS_SELECTOR = "#prompt-textarea";
 export const GPT_PROFILE_DIAGNOSTIC_SELECTOR = [
-  "[data-testid*='model']",
-  "[id*='model']",
-  "[data-testid*='switcher']",
-  "[id*='switcher']",
-  "[aria-label*='模型']",
-  "[aria-label*='GPT']",
-  "[aria-label*='ChatGPT']",
-  "[aria-haspopup]",
+  GPT_PROFILE_TRIGGER_SELECTOR,
+  GPT_PROFILE_SIMPLE_PANEL_SELECTOR,
+  GPT_PROFILE_MODEL_CHOICE_SELECTOR,
+  GPT_PROFILE_REASONING_CONTROL_SELECTOR,
+  GPT_PROFILE_REASONING_SLIDER_SELECTOR,
 ].join(",");
-export const GPT_ADVANCED_CLOSED_SELECTOR = "[role='menuitem'][aria-label='显示高级选项']";
-export const GPT_MODEL_SUBMENU_SELECTOR = "[role='menuitem'][aria-haspopup='menu']";
-export const GPT_PROFILE_CHOICE_SELECTOR = "[role='menuitemradio']";
-export const GPT_MODEL_LABEL = "模型";
-export const GPT_REASONING_LABEL = "推理强度";
 
 export const reasoningTierUiLabel = Object.freeze({
   medium: "中",
@@ -22,4 +19,12 @@ export const reasoningTierUiLabel = Object.freeze({
   extra_high: "极高",
   pro_standard: "Pro",
   pro_extended: "Pro",
+});
+
+export const reasoningTierUiValue = Object.freeze({
+  medium: 1,
+  high: 2,
+  extra_high: 3,
+  pro_standard: 4,
+  pro_extended: 4,
 });

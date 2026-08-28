@@ -120,17 +120,4 @@ export const sessionChildHandlers = {
     });
   },
 
-  async recover_gpt_response_checkpoint(intent, context) {
-    requireExactInputKeys(intent, ["continuationRef", "expectedOutputHash", "expectedTaskId"]);
-    const stored = controller(context).readVerified(stringInput(intent, "continuationRef"));
-    if (stored.provider.prior_raw_output_hash !== stringInput(intent, "expectedOutputHash")
-      || stored.provider.prior_task_id !== stringInput(intent, "expectedTaskId")) {
-      throw executionFailure("review_required", "GPT_RESPONSE_CHECKPOINT_IDENTITY_MISMATCH");
-    }
-    return success({
-      value: stored.provider, candidateCount: null,
-      observedSemantics: ["verified continuation identity", "exact output hash", "exact task id"],
-      committedMutation: "no",
-    });
-  },
 } satisfies GptChildHandlerMap;

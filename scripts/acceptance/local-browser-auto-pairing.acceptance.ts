@@ -292,6 +292,47 @@ assert.deepEqual(lateTextMatch, { count: 1, matches: [{ text: "GPT-5.6" }] },
   "text identity must be filtered before the output cardinality bound so later exact controls are not hidden by unrelated DOM order");
 assert.ok(lateTextDescribeCalls > 20, "the regression fixture must place the exact control beyond the old pre-filter cutoff");
 
+for (const [key, virtualKeyCode, repeat] of [["ArrowLeft", 37, 1], ["ArrowRight", 39, 4]] as const) {
+  const dispatchedKeyEvents: Readonly<Record<string, unknown>>[] = [];
+  const reasoningSliderRuntime = {
+    async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
+      if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
+      if (method === "DOM.querySelectorAll") return { nodeIds: [7] };
+      if (method === "DOM.getBoxModel") return { model: { content: [0, 0, 10, 0, 10, 10, 0, 10] } };
+      if (method === "DOM.focus") return {};
+      if (method === "Input.dispatchKeyEvent") {
+        dispatchedKeyEvents.push(parameters ?? {});
+        return {};
+      }
+      throw new Error(`UNEXPECTED_REASONING_SLIDER_METHOD:${method}`);
+    },
+  } as ExtensionDebuggerRuntime;
+  const keypressResult = await executeRegisteredDomIntent(
+    reasoningSliderRuntime,
+    { tabId: 102 } as never,
+    {
+      kind: "keypress",
+      selector: "[role='slider']",
+      key,
+      repeat,
+      expectedMatches: 1,
+      postKeypressMatch: { selector: "[role='slider'][aria-valuenow='4']", expectedMatches: 1, timeoutMs: 5_000 },
+    },
+  ) as Readonly<{ postconditionVerified: boolean }>;
+  assert.equal(keypressResult.postconditionVerified, true);
+  const expectedKeyEvents = Array.from({ length: repeat }, () => [
+    { type: "rawKeyDown", key, code: key, windowsVirtualKeyCode: virtualKeyCode, nativeVirtualKeyCode: virtualKeyCode },
+    { type: "keyUp", key, code: key, windowsVirtualKeyCode: virtualKeyCode, nativeVirtualKeyCode: virtualKeyCode },
+  ]).flat();
+  assert.deepEqual(dispatchedKeyEvents.map((event) => ({
+    type: event.type,
+    key: event.key,
+    code: event.code,
+    windowsVirtualKeyCode: event.windowsVirtualKeyCode,
+    nativeVirtualKeyCode: event.nativeVirtualKeyCode,
+  })), expectedKeyEvents);
+}
+
 const secondAcquisition = targetAuthority.acquireJobBoundChatGptTarget();
 await Promise.resolve();
 targetTabUpdated(4, { status: "complete" }, { id: 4, title: "ChatGPT" });
@@ -354,7 +395,7 @@ emitQualityProofObservation({
 emitQualityProofObservation({
   passed: true,
   findings: [],
-  lawId: "LAW-LOCAL-BROWSER-SESSION-003-V11",
+  lawId: "LAW-LOCAL-BROWSER-SESSION-003-V12",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:1", "forbidden:13", "forbidden:2", "forbidden:3", "summary"],
   locator: "acceptance:local-browser-terminal:job-target-golden",

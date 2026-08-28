@@ -138,19 +138,23 @@ const executeKeypressIntent = async (
     debuggerRuntime, target.tabId, intent.selector, expectedMatches, intent.scope,
   );
   await debuggerRuntime.send(target.tabId, "DOM.focus", { nodeId });
+  const virtualKeyCode = intent.key === "Enter" ? 13 : intent.key === "ArrowLeft" ? 37 : 39;
   const keyEvent = {
     key: intent.key,
     code: intent.key,
-    windowsVirtualKeyCode: 13,
-    nativeVirtualKeyCode: 13,
+    windowsVirtualKeyCode: virtualKeyCode,
+    nativeVirtualKeyCode: virtualKeyCode,
   } as const;
-  await debuggerRuntime.send(target.tabId, "Input.dispatchKeyEvent", { type: "rawKeyDown", ...keyEvent });
-  await debuggerRuntime.send(target.tabId, "Input.dispatchKeyEvent", { type: "keyUp", ...keyEvent });
+  for (let index = 0; index < (intent.repeat ?? 1); index += 1) {
+    await debuggerRuntime.send(target.tabId, "Input.dispatchKeyEvent", { type: "rawKeyDown", ...keyEvent });
+    await debuggerRuntime.send(target.tabId, "Input.dispatchKeyEvent", { type: "keyUp", ...keyEvent });
+  }
   const postconditionVerified = await waitForMatch(
     debuggerRuntime, target, intent.postKeypressMatch,
   );
   return {
     keyPressed: intent.key,
+    keypressCount: intent.repeat ?? 1,
     candidateCount: 1,
     identityRevalidated: true,
     mutationCount: 1,

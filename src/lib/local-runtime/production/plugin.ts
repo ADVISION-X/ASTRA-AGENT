@@ -10,15 +10,9 @@ import type {
 } from "./contracts.js";
 import { sha256 } from "./contracts.js";
 import type {
-  GptChildCapabilityId,
   GptReasoningTier,
   GptTaskLabelKey,
 } from "../../../capabilities/gpt/index.js";
-
-export interface GptTurnFlowStep {
-  readonly childCapabilityId: GptChildCapabilityId;
-  readonly when?: "has_attachments" | "text_output" | "generated_image" | "has_title";
-}
 
 export interface ProviderTurnResult {
   readonly raw_text: string;
@@ -51,7 +45,6 @@ export interface SharedExecutionContext {
     step_id: string;
     instruction: string;
     material_roles: readonly string[];
-    gpt_flow: readonly GptTurnFlowStep[];
     provider: Readonly<{
       labelKey: GptTaskLabelKey;
       profileRef: string;

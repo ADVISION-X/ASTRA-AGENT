@@ -119,6 +119,7 @@ export const leaseBudget = (
     throw executionFailure("recovery_pending", "V6_DEADLINE_BUDGET_EXHAUSTED");
   }
   return {
+    attempt_mode: job.grant.attempt_mode,
     attempt_id: job.grant.attempt_id, device_id: job.grant.device_id,
     lease_version: job.grant.lease_version, execution_fence_hash: job.grant.execution_fence.fence_hash,
     control_manifest_hash: job.grant.control_contract_manifest_hash,
