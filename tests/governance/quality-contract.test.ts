@@ -20,7 +20,7 @@ import {
   validateRepositoryEntryAt,
   walkAt,
 } from "../../scripts/audit/governance-runtime.js";
-import { observeProductionProofCleanup } from "../../scripts/acceptance/agent-production-runtime.real-proof-cleanup.js";
+import { observeProductionProofCleanup } from "../../scripts/acceptance/agent-production-runtime.real-proof-support.js";
 import {
   buildQualityReport,
   deferredModes,
@@ -31,7 +31,7 @@ import {
 import { assertCandidateStable, assertExactProviderContract, assertParticipantCommitIdentity, bindNativeProofObservations, computeTargetPaths, dynamicScriptFor, parseInspectorOutput } from "../../scripts/audit/shared/quality-runner.js";
 import { validateProviderContractSpec } from "../../scripts/audit/shared/provider-contract-authority.js";
 import type { InspectorContext } from "../../scripts/audit/shared/inspector-contracts.js";
-import { proofObservationPrefix, validateDynamicReceiptPayload } from "../../scripts/audit/shared/proof-observation.js";
+import { producerClaimRoutesFor, proofObservationPrefix, validateDynamicReceiptPayload } from "../../scripts/audit/shared/proof-observation.js";
 import type { QualityProofRequest } from "../../scripts/audit/shared/proof-observation.js";
 import { relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../scripts/audit/shared/static-inspection-contract.js";
@@ -507,7 +507,7 @@ test("Dynamic receipts must be exact regular files created in this proof run dir
   );
 });
 
-test("Dynamic routes cannot substitute one mode-bound receipt locator or emit summary-only clauses", () => {
+test("Dynamic routes cannot substitute one mode-bound receipt locator", () => {
   const law = { ...fixtureLaw(), lawId: "LAW-LOCAL-APP-SHELL-001-V6", capabilityDomain: "local-app-shell" };
   const routes = [{ law, mode: "dynamic.service" }, { law, mode: "dynamic.browser" }];
   const requests = proofRequests(routes, "dynamic");
@@ -519,16 +519,6 @@ test("Dynamic routes cannot substitute one mode-bound receipt locator or emit su
   assert.throws(
     () => bindNativeProofObservations(output, routes, requests, "proof:local-shell-current-runtime",
       "dynamic", fixtureEvidenceDirectory),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
-  );
-  const summaryOnly = `${proofObservationPrefix}${JSON.stringify({
-    ...directObservation(requests[0]!, ["summary"], [dynamicRef(
-      requests[0]!, fixtureEvidencePath, fixtureEvidenceDigest, "proof:local-shell-current-runtime",
-    )]),
-  })}`;
-  assert.throws(
-    () => bindNativeProofObservations(summaryOnly, [routes[0]!], [requests[0]!],
-      "proof:local-shell-current-runtime", "dynamic", fixtureEvidenceDirectory),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
   );
 });
@@ -581,15 +571,14 @@ test("static validation rejects a producer clause outside the active law denomin
     }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
   );
-  assert.throws(
+  assert.doesNotThrow(
     () => validateStaticInspection(context, {
       capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
       lawResults: [{ lawId: "LAW-FIXTURE-001-V1", assertions: [{ clauses: staticClauses(),
         evidenceMode: "static.ast", passed: true,
-        refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(), staticReceipt("LAW-FIXTURE-001-V1", "requirementFor"), ["requirementFor"], staticNativeRef("LAW-FIXTURE-001-V1", "static.ast", staticClauses(), "requirementFor")) }], findings: [] }],
+        refs: staticEvidenceRefs(context, "LAW-FIXTURE-001-V1", "static.ast", staticClauses(), staticReceipt("LAW-FIXTURE-001-V1", "requirementFor"), ["requirementFor"], staticNativeRef("LAW-FIXTURE-001-V1", "static.ast", staticClauses(), "requirementFor", "package.json")) }], findings: [] }],
       inspectedFiles: ["package.json"],
     }),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
   );
 });
 
@@ -1213,15 +1202,38 @@ test("GPT mutation inspection permits bounded reads but rejects looped or concur
   ]);`)), true);
 });
 
-test("every declared dynamic evidence mode has one executable RELEASE proof route", () => {
+test("every declared Dynamic mode has one exact producer claim route", () => {
   const registry = buildRegistry();
+  const expectedByScript = new Map<string, string[]>();
   for (const law of registry.laws) for (const mode of law.evidenceModes.filter((item) => item.startsWith("dynamic."))) {
-    assert.ok(dynamicScriptFor(law.capabilityDomain, mode).length > 0, `${law.lawId}:${mode}`);
+    const script = dynamicScriptFor(law.capabilityDomain, mode);
+    expectedByScript.set(script, [...(expectedByScript.get(script) ?? []), `${law.lawId}:${mode}`]);
   }
+  for (const [script, routes] of expectedByScript) {
+    assert.deepEqual(producerClaimRoutesFor(script), routes.sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right))));
+  }
+});
+
+test("a law-authorized summary-only Dynamic claim validates against its exact producer fact", () => {
+  const binding = {
+    lawId: "LAW-RUNTIME-LOG-SPINE-001-V4", evidenceMode: "dynamic.browser", clauses: ["summary"],
+    observedValue: "native-runtime-log", proofRunId: "a".repeat(64), candidate: "b".repeat(40),
+    producerScript: "acceptance:agent-production-runtime:real-proof",
+  };
+  const payload = {
+    schema_version: "governance-dynamic-observation.v2", proof_run_id: binding.proofRunId,
+    candidate: binding.candidate, captured_at: "2026-08-28T00:00:00.000Z", lawId: binding.lawId,
+    evidenceMode: binding.evidenceMode, clauses: binding.clauses, observed_value: binding.observedValue,
+    producer_script: binding.producerScript, observation_kind: "browser",
+    observation: { browserVersion: "Chromium 1", endpoint: "https://chatgpt.com/", pageTitle: "ChatGPT",
+      facts: { runtime_log_browser_span_count: 12 }, sessionFacts: { authorityState: "present" } },
+  };
+  assert.equal(validateDynamicReceiptPayload(payload, binding), true);
 });
 
 test("production Dynamic Proof directly observes real Chrome, runtime stores, provider and recovery", () => {
   const proof = readFileSync("scripts/acceptance/agent-production-runtime.real-proof.ts", "utf8");
+  const proofSupport = readFileSync("scripts/acceptance/agent-production-runtime.real-proof-support.ts", "utf8");
   assert.equal(proof.includes("proofDurationMs"), false);
   assert.equal(proof.includes('evidenceMode: "dynamic.performance"'), false);
   for (const forbidden of [
@@ -1232,9 +1244,12 @@ test("production Dynamic Proof directly observes real Chrome, runtime stores, pr
   for (const token of [
     "chromium.launchPersistentContext", "readProductionTaskStatus", "production-runtime.sqlite",
     "browser-mutations.sqlite", "GOVERNANCE_PROOF_RECEIPT_DIR", "GRASSEYE_PRODUCTION_PROOF_JOB_IDS",
-    "agentPluginCapabilityManifest", "BROWSER_ACTION_COMPLETED", "recovery_pending",
+    "agentPluginCapabilityManifest", "observeProductionProofRuntimeLogs", "Object.keys(dynamicClaimContract.routes).sort()",
+    "recovery_pending",
     "target=claimed", "target=absent", "gpt-child-proof:", "sent provider terminal receipt",
   ]) assert.ok(proof.includes(token), token);
+  for (const token of ["runtimeLogEventShapeValid", "runtimeEventIntegrityValid", 'operation === "browser.command"',
+    'stateKey === "browser.mutation"', 'stateKey === "producer.lifecycle"']) assert.ok(proofSupport.includes(token), token);
   assert.equal(existsSync("scripts/acceptance/local-browser.real-chrome.ts"), false);
   assert.equal(existsSync("scripts/acceptance/local-browser-real-chrome-auto-pairing.acceptance.ts"), false);
   assert.equal(dynamicScriptFor("local-browser-session", "dynamic.browser"),

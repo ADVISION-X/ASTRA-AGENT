@@ -11,13 +11,13 @@ import { ROOT, fail, repositoryPaths, sha } from "../governance-runtime.js";
 import { buildQualityReport, type LawExecutionResult, type QualityAssertion, type QualityFinding, type QualityParticipant } from "./quality-contract.js";
 import { runInspectionWorker } from "./quality-inspector-worker.js";
 import type { InspectorFinding, InspectorLawResult, SessionInspectorOutput } from "./inspector-contracts.js";
-import { dynamicReceiptFileValid, parseQualityProofObservations, type QualityProofObservation, type QualityProofRequest } from "./proof-observation.js";
+import { dynamicReceiptFileValid, parseQualityProofObservations, producerClaimRoutesMatch, type QualityProofObservation, type QualityProofRequest } from "./proof-observation.js";
 import { dynamicScriptFor, examScriptFor } from "./quality-routes.js";
 import { validateProviderContractSpec, type ProviderContract } from "./provider-contract-authority.js";
 export { dynamicScriptFor } from "./quality-routes.js";
 type TargetSet = { queryRef: string; count: number };
-type ProofResult = { assertions: QualityAssertion[]; findings: QualityFinding[] };
 type ProofRoute = { law: Law; mode: string };
+type ProofResult = { assertions: QualityAssertion[]; findings: QualityFinding[] };
 type ProofResultInput = {
   routes: ProofRoute[];
   observations: ReadonlyMap<string, QualityProofObservation>;
@@ -42,7 +42,6 @@ const matches = (pattern: string, path: string): boolean => pattern === "**/*" |
     return index >= 0 && path.startsWith(`${pattern.slice(0, index)}/`)
       && path.endsWith(`.${pattern.slice(index + marker.length)}`);
   })();
-
 const consumerDependencies = (): Dependency[] => repositoryPaths()
   .filter((path) => path.startsWith("docs/specs/") && path.endsWith(".json"))
   .flatMap((path) => {
@@ -55,7 +54,6 @@ const consumerDependencies = (): Dependency[] => repositoryPaths()
         providerDomain: providerDomainForDependencySpec(path), version: contract.version }]
       : [];
   });
-
 const participantPath = (repo: string): string => {
   const configured = process.env.GRASSEYE_PROVIDER_REPOSITORIES?.trim();
   if (!configured) return fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", repo);
@@ -366,6 +364,9 @@ const executeProofCommand = (
   kind: "exam" | "dynamic", script: string, routes: ProofRoute[],
   runDirectory: string, candidate: string,
 ): Map<string, ProofResult> => {
+  if (kind === "dynamic" && !producerClaimRoutesMatch(script,
+    routes.map(({ law, mode }) => `${law.lawId}:${mode}`)))
+    fail("RELEASE_EVIDENCE_MISSING", `${script}:producer-route-denominator`);
   const startedAt = new Date().toISOString();
   const proofRunId = sha(`${candidate}\0${kind}\0${script}\0${startedAt}\0${process.pid}`);
   const requests: QualityProofRequest[] = routes.map(({ law, mode }) => ({

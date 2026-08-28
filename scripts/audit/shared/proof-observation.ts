@@ -60,7 +60,6 @@ const clausesValid = (clauses: unknown): clauses is string[] => Array.isArray(cl
   && clauses.length > 0
   && clauses.every((clause) => typeof clause === "string"
     && (clause === "summary" || /^forbidden:(?:0|[1-9][0-9]*)$/u.test(clause)))
-  && !(clauses.length === 1 && clauses[0] === "summary")
   && JSON.stringify(clauses) === JSON.stringify([...new Set(clauses)].sort((left, right) =>
     Buffer.compare(Buffer.from(left), Buffer.from(right))));
 const findingsValid = (findings: unknown, passed: unknown): findings is QualityProofObservation["findings"] =>
@@ -190,6 +189,19 @@ const producerContractFor = (script: string): Record<string, unknown> | null => 
     return plainObject(parsed) ? parsed : null;
   } catch { return null; }
 };
+export const producerClaimRoutesFor = (script: string): string[] | null => {
+  const contract = producerContractFor(script);
+  if (!contract || !exactKeys(contract, ["routes", "schema_version"])
+    || contract.schema_version !== "producer-dynamic-claim-contract.v1" || !plainObject(contract.routes)) return null;
+  const routes = Object.entries(contract.routes);
+  if (!routes.length || routes.some(([route, value]) => !/^LAW-[A-Z0-9-]+:dynamic\.[a-z]+$/u.test(route)
+    || !plainObject(value) || !exactKeys(value, ["claims"]) || !plainObject(value.claims)
+    || Object.keys(value.claims).length === 0)) return null;
+  return routes.map(([route]) => route).sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right)));
+};
+export const producerClaimRoutesMatch = (script: string, required: readonly string[]): boolean =>
+  JSON.stringify(producerClaimRoutesFor(script)) === JSON.stringify([...required].sort((left, right) =>
+    Buffer.compare(Buffer.from(left), Buffer.from(right))));
 const valueAt = (observation: Record<string, unknown>, pointer: string): unknown => {
   if (!/^\/(?:facts\/)?[a-z][a-zA-Z0-9_]*(?:\/[a-z][a-zA-Z0-9_]*)*$/u.test(pointer)) return undefined;
   let current: unknown = observation;

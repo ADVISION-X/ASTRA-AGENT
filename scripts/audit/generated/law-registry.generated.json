@@ -27,7 +27,7 @@
         "scripts/acceptance/agent-production-runtime-ledger.acceptance.ts",
         "scripts/acceptance/agent-production-runtime-startup.acceptance.ts",
         "scripts/acceptance/agent-production-runtime.acceptance.ts",
-        "scripts/acceptance/agent-production-runtime.real-proof-cleanup.ts",
+        "scripts/acceptance/agent-production-runtime.real-proof-support.ts",
         "scripts/acceptance/agent-production-runtime.real-proof.ts",
         "scripts/acceptance/agent-route-contract.acceptance.ts",
         "scripts/acceptance/browser-lane-fifo.acceptance.ts",

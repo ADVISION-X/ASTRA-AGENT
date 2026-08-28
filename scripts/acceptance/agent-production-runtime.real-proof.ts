@@ -21,8 +21,9 @@ import { emitQualityProofObservation } from "../audit/shared/proof-observation.j
 import { buildStartupSourceFingerprint } from "../startup/lib/source-fingerprint.mjs";
 import {
   observeProductionProofCleanup,
+  observeProductionProofRuntimeLogs,
   type ProductionProofCleanupObservation,
-} from "./agent-production-runtime.real-proof-cleanup.js";
+} from "./agent-production-runtime.real-proof-support.js";
 
 const dynamicClaimContract = (/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_BEGIN */
 {
@@ -34,6 +35,16 @@ const dynamicClaimContract = (/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_BEGIN */
     "LAW-LOCAL-BROWSER-SESSION-004-V10:dynamic.storage": {"claims": {"forbidden:11": [{"path": "/facts/mutation_rows_complete", "operator": "equals", "expected": true}, {"path": "/facts/sqlite_wal_mode", "operator": "equals", "expected": true}]}},
     "LAW-LOCAL-BROWSER-SESSION-005-V6:dynamic.browser": {"claims": {"forbidden:5": [{"path": "/facts/release_build_matches_record", "operator": "equals", "expected": true}]}},
     "LAW-LOCAL-BROWSER-SESSION-006-V3:dynamic.browser": {"claims": {"forbidden:0": [{"path": "/facts/persisted_sensitive_value_count", "operator": "equals", "expected": 0}]}},
+    "LAW-RUNTIME-LOG-SPINE-001-V4:dynamic.browser": {"claims": {"summary": [{"path": "/facts/runtime_log_browser_span_count", "operator": "gte", "expected": 12}]}},
+    "LAW-RUNTIME-LOG-SPINE-001-V4:dynamic.service": {"claims": {"summary": [{"path": "/facts/runtime_log_event_count", "operator": "gte", "expected": 12}, {"path": "/facts/runtime_log_integrity_valid", "operator": "equals", "expected": true}, {"path": "/facts/runtime_log_sink_ready", "operator": "equals", "expected": true}]}},
+    "LAW-RUNTIME-LOG-SPINE-001-V4:dynamic.storage": {"claims": {"forbidden:4": [{"path": "/facts/runtime_log_authority_hash_count", "operator": "gte", "expected": 12}, {"path": "/facts/runtime_log_unresolved_mutation_state_count", "operator": "equals", "expected": 0}]}},
+    "LAW-RUNTIME-LOG-SPINE-001-V4:dynamic.recovery": {"claims": {"summary": [{"path": "/facts/runtime_log_completed_observed", "operator": "equals", "expected": true}, {"path": "/facts/runtime_log_recovery_pending_observed", "operator": "equals", "expected": true}]}},
+    "LAW-RUNTIME-LOG-SPINE-002-V4:dynamic.browser": {"claims": {"forbidden:0": [{"path": "/facts/persisted_sensitive_value_count", "operator": "equals", "expected": 0}]}},
+    "LAW-RUNTIME-LOG-SPINE-002-V4:dynamic.storage": {"claims": {"forbidden:0": [{"path": "/facts/runtime_log_sensitive_value_count", "operator": "equals", "expected": 0}]}},
+    "LAW-RUNTIME-LOG-SPINE-003-V5:dynamic.browser": {"claims": {"forbidden:4": [{"path": "/facts/runtime_log_mutation_state_count", "operator": "gte", "expected": 12}, {"path": "/facts/runtime_log_unresolved_mutation_state_count", "operator": "equals", "expected": 0}]}},
+    "LAW-RUNTIME-LOG-SPINE-003-V5:dynamic.service": {"claims": {"forbidden:3": [{"path": "/facts/runtime_log_integrity_valid", "operator": "equals", "expected": true}, {"path": "/facts/runtime_log_open_span_count", "operator": "equals", "expected": 0}, {"path": "/facts/runtime_log_producer_count", "operator": "equals", "expected": 1}, {"path": "/facts/runtime_log_sealed", "operator": "equals", "expected": true}]}},
+    "LAW-RUNTIME-LOG-SPINE-003-V5:dynamic.storage": {"claims": {"forbidden:4": [{"path": "/facts/runtime_log_authority_hash_count", "operator": "gte", "expected": 12}, {"path": "/facts/runtime_log_unresolved_mutation_state_count", "operator": "equals", "expected": 0}]}},
+    "LAW-RUNTIME-LOG-SPINE-003-V5:dynamic.recovery": {"claims": {"summary": [{"path": "/facts/runtime_log_completed_observed", "operator": "equals", "expected": true}, {"path": "/facts/runtime_log_recovery_pending_observed", "operator": "equals", "expected": true}]}},
     "LAW-GPT-001-V3:dynamic.browser": {"claims": {"forbidden:5": [{"path": "/facts/exact_target_document_binding_count", "operator": "gte", "expected": 12}, {"path": "/facts/operator_page_unchanged", "operator": "equals", "expected": true}]}},
     "LAW-GPT-001-V3:dynamic.provider": {"claims": {"forbidden:1": [{"path": "/facts/provider_count", "operator": "equals", "expected": 1}]}},
     "LAW-GPT-001-V3:dynamic.authorization": {"claims": {"forbidden:2": [{"path": "/facts/exact_target_document_binding_count", "operator": "gte", "expected": 12}]}},
@@ -77,7 +88,7 @@ assert.equal(jobIds.includes(recoveryJobId), true, "the recovery job must be one
 
 const productionDatabasePath = join(dataDir, "production-runtime.sqlite");
 const mutationDatabasePath = join(dataDir, "browser", "browser-mutations.sqlite");
-const runtimeLogPath = join(dataDir, "runtime-logs", "workbench.jsonl");
+const runtimeLogDirectory = join(dataDir, "runtime-logs");
 const placeholders = jobIds.map(() => "?").join(",");
 const openReadOnly = (file: string): Database.Database => new Database(file, { readonly: true, fileMustExist: true });
 
@@ -302,21 +313,18 @@ assert.equal(mutationRows.filter((row) => row.state === "CONFIRMED").every((row)
     && row.positive_postcondition_hash && row.negative_postcondition_hash
     && row.request_hash && row.payload_hash)), true);
 
-type RuntimeEvent = { createdAt?: string; eventType?: string; missionId?: string; stepId?: string; refs?: Record<string, string> };
-const runtimeEvents = readFileSync(runtimeLogPath, "utf8").split("\n").filter(Boolean)
-  .map((line) => JSON.parse(line) as RuntimeEvent)
-  .filter((event) => event.createdAt && event.createdAt >= startedAt && event.missionId && jobIds.includes(event.missionId));
-const completedBrowserEvents = runtimeEvents.filter((event) => event.eventType === "BROWSER_ACTION_COMPLETED");
-assert.equal(jobIds.every((jobId) => completedBrowserEvents.some((event) => event.missionId === jobId
-  && event.refs?.targetRef && event.refs.documentRef)), true,
-"each job must have direct Target and Document runtime observations");
+const runtimeLogProof = observeProductionProofRuntimeLogs({
+  directory: runtimeLogDirectory, jobIds, recoveryJobId, startedAt,
+});
+const completedBrowserEvents = runtimeLogProof.completedBrowserEvents;
 for (const capability of [
   "bind_exact_gpt_target", "verify_gpt_workspace", "verify_gpt_execution_profile",
   "attach_approved_gpt_files_once", "verify_gpt_attachment_set", "write_exact_gpt_prompt",
   "verify_exact_gpt_prompt", "submit_exact_gpt_turn", "verify_gpt_turn_submission",
   "observe_exact_gpt_assistant_turn", "wait_for_stable_gpt_response", "checkpoint_gpt_text_response",
   "focus_exact_gpt_conversation", "verify_gpt_conversation_identity", "verify_exact_gpt_title",
-]) assert.equal(completedBrowserEvents.some((event) => event.stepId === capability), true,
+]) assert.equal(completedBrowserEvents.some((event) => event.typedIdentity.kind === "browser-command"
+  && event.typedIdentity.childCapabilityId === capability), true,
   `missing real GPT child ${capability}`);
 
 const requireHealth = (value: HealthReport | null): HealthReport => {
@@ -327,7 +335,6 @@ const observedHealth = requireHealth(finalHealth);
 const component = (name: string) => observedHealth.components.find((item) => item.name === name);
 const unresolvedMutationCount = mutationRows.filter((row) => ["PREPARED", "DISPATCHED"].includes(row.state)).length;
 const terminalReceiptCount = outboxRows.filter((row) => row.kind === "terminal" && row.sent_at).length;
-const runtimeLogSource = readFileSync(runtimeLogPath, "utf8");
 const releaseIdentity = await readUnpackedExtensionReleaseIdentity(
   resolve(root, ".grasseye-local", "browser-release", "release-record.json"),
 );
@@ -355,12 +362,14 @@ const confirmedRowInvalidCount = mutationRows.filter((row) => row.state === "CON
 assert.equal(confirmedRowInvalidCount, 0);
 assert.equal(mutationJournalMode.toLowerCase(), "wal", "Browser mutations must remain on SQLite WAL");
 const exactTargetDocumentBindingCount = jobIds.filter((jobId) => completedBrowserEvents.some((event) =>
-  event.missionId === jobId && event.refs?.targetRef && event.refs.documentRef)).length;
+  event.typedIdentity.kind === "browser-command" && event.typedIdentity.jobId === jobId)
+  && mutationRows.some((row) => row.job_id === jobId && Boolean(row.target_ref && row.document_ref))).length;
 const leaseFenceBoundJobCount = jobIds.filter((jobId) => mutationRows.some((row) => row.job_id === jobId
   && row.lease_version > 0 && Boolean(row.attempt_id && row.execution_fence_hash))).length;
 const readinessNames = observedHealth.components.map((item) => item.name);
 const persistedSensitiveValueCount = [operatorBefore.url, browserProfile.profileDir]
-  .filter((needle) => runtimeLogSource.includes(needle) || JSON.stringify(mutationRows).includes(needle)).length;
+  .filter((needle) => runtimeLogProof.source.includes(needle) || JSON.stringify(mutationRows).includes(needle)).length;
+const runtimeLogFacts = Object.freeze({ ...runtimeLogProof.facts, sensitiveValueCount: persistedSensitiveValueCount });
 const observation: DirectRuntimeObservation = Object.freeze({
   browser: {
     browserVersion, endpoint: operatorBefore.url, pageTitle: operatorBefore.title || "ChatGPT",
@@ -374,6 +383,9 @@ const observation: DirectRuntimeObservation = Object.freeze({
       readiness_dimension_count: new Set(readinessNames).size,
       readiness_dimensions_distinct: new Set(readinessNames).size === readinessNames.length,
       release_build_matches_record: finalPairingState.releaseBuildId === releaseIdentity.releaseBuildId,
+      runtime_log_browser_span_count: completedBrowserEvents.length,
+      runtime_log_mutation_state_count: runtimeLogFacts.mutationStateCount,
+      runtime_log_unresolved_mutation_state_count: runtimeLogFacts.unresolvedMutationStateCount,
       target_claimed_observed: targetClaimedObserved,
       task_owned_chatgpt_page_observed: taskOwnedChatgptPageObserved,
     },
@@ -383,7 +395,7 @@ const observation: DirectRuntimeObservation = Object.freeze({
       targetClaimedObserved, taskOwnedChatgptPageObserved,
       finalTargetAbsent: component("productionRuntimeBrowser")?.detail?.includes("target=absent") === true,
       operatorPageUnchanged: JSON.stringify(operatorAfter) === JSON.stringify(operatorBefore),
-      transportCount: 1, persistedRawOperatorPageCount: runtimeLogSource.includes(operatorBefore.url) ? 1 : 0,
+      transportCount: 1, persistedRawOperatorPageCount: runtimeLogProof.source.includes(operatorBefore.url) ? 1 : 0,
     },
   },
   service: {
@@ -394,6 +406,12 @@ const observation: DirectRuntimeObservation = Object.freeze({
       cleanup_verified: cleanupObservation.cleanupVerified,
       readiness_dimension_count: new Set(readinessNames).size,
       readiness_dimensions_distinct: new Set(readinessNames).size === readinessNames.length,
+      runtime_log_event_count: runtimeLogFacts.eventCount,
+      runtime_log_integrity_valid: runtimeLogFacts.integrityValid,
+      runtime_log_open_span_count: runtimeLogFacts.openSpanCount,
+      runtime_log_producer_count: runtimeLogFacts.producerCount,
+      runtime_log_sealed: runtimeLogFacts.sealed,
+      runtime_log_sink_ready: runtimeLogFacts.sinkReady,
       workbench_stopped: cleanupObservation.workbenchStopped,
     },
     serviceName: "agent-production-runtime", sourceFingerprint: observedHealth.sourceFingerprint,
@@ -409,6 +427,9 @@ const observation: DirectRuntimeObservation = Object.freeze({
     facts: {
       confirmed_row_invalid_count: confirmedRowInvalidCount,
       mutation_rows_complete: confirmedRowInvalidCount === 0,
+      runtime_log_authority_hash_count: runtimeLogFacts.authorityHashCount,
+      runtime_log_sensitive_value_count: runtimeLogFacts.sensitiveValueCount,
+      runtime_log_unresolved_mutation_state_count: runtimeLogFacts.unresolvedMutationStateCount,
       sqlite_wal_mode: mutationJournalMode.toLowerCase() === "wal",
     },
     mutationCount: mutationRows.length, storageEngine: "sqlite-wal", storagePath: mutationDatabasePath,
@@ -432,6 +453,8 @@ const observation: DirectRuntimeObservation = Object.freeze({
     facts: {
       completed_observed: taskHistory.get(recoveryJobId)!.has("completed"),
       recovery_pending_observed: taskHistory.get(recoveryJobId)!.has("recovery_pending"),
+      runtime_log_completed_observed: runtimeLogFacts.completedObserved,
+      runtime_log_recovery_pending_observed: runtimeLogFacts.recoveryPendingObserved,
     },
     finalState: "completed", observedStates: [...taskHistory.get(recoveryJobId)!],
     recoveryJobId, unresolvedCount: unresolvedMutationCount,
@@ -465,17 +488,13 @@ const emit = (lawId: string, evidenceMode: DynamicMode, observedValue: string): 
     clauses, locator: receipt.path, receipt: receipt.digest, observedValue });
 };
 
-for (const [lawId, mode] of [
-  ["LAW-LOCAL-BROWSER-SESSION-001-V4", "dynamic.browser"], ["LAW-LOCAL-BROWSER-SESSION-002-V6", "dynamic.browser"],
-  ["LAW-LOCAL-BROWSER-SESSION-003-V11", "dynamic.browser"], ["LAW-LOCAL-BROWSER-SESSION-004-V10", "dynamic.storage"],
-  ["LAW-LOCAL-BROWSER-SESSION-005-V6", "dynamic.browser"], ["LAW-LOCAL-BROWSER-SESSION-006-V3", "dynamic.browser"],
-] as const) emit(lawId, mode, `${mode};realChrome=${browserVersion};jobs=12;targetClaimed=true;targetAbsent=true`);
-for (const mode of ["dynamic.browser", "dynamic.provider", "dynamic.authorization", "dynamic.recovery"] as const) {
-  emit("LAW-GPT-001-V3", mode, `${mode};realChildren=${completedBrowserEvents.length};jobs=12`);
+for (const route of Object.keys(dynamicClaimContract.routes).sort()) {
+  const separator = route.indexOf(":");
+  const lawId = route.slice(0, separator);
+  const evidenceMode = route.slice(separator + 1) as DynamicMode;
+  assert.equal(separator > 0 && Object.hasOwn(observation, evidenceMode.slice("dynamic.".length)), true,
+    `invalid dynamic producer route ${route}`);
+  emit(lawId, evidenceMode, `${evidenceMode};realChrome=${browserVersion};plugins=12;jobs=12`);
 }
-for (const mode of [
-  "dynamic.browser", "dynamic.service", "dynamic.database", "dynamic.storage",
-  "dynamic.provider", "dynamic.authorization", "dynamic.recovery",
-] as const) emit("LAW-AGENT-PRODUCTION-RUNTIME-001-V6", mode, `${mode};plugins=12;jobs=12`);
 
 process.stdout.write(`[ACCEPTANCE][agent-production-runtime][direct-real-proof] PASS run=${proofRunId}\n`);

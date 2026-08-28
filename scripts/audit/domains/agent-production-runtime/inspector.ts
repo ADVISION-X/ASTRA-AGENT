@@ -18,6 +18,7 @@ const PSC_PATH = "src/capabilities/gpt/session/gpt-session-controller.ts";
 const LOCALIZATION_PLUGIN_PATH = "src/plugins/localization-production/index.ts";
 const LOCALIZATION_SKILL_PATH = "src/plugins/localization-production/SKILL.md";
 const REAL_PROOF_PATH = "scripts/acceptance/agent-production-runtime.real-proof.ts";
+const REAL_PROOF_SUPPORT_PATH = "scripts/acceptance/agent-production-runtime.real-proof-support.ts";
 const EXECUTOR_PATH = "src/lib/local-runtime/production/executor.ts";
 const GPT_EXECUTOR_PATH = "src/lib/local-runtime/production/production-gpt-executor.ts";
 const GPT_EVIDENCE_PATH = "src/lib/local-runtime/production/gpt-evidence-writer.ts";
@@ -339,12 +340,22 @@ const inspectDirectDynamicProof = (context: InspectorContext, findings: Inspecto
   for (const required of [
     "chromium.launchPersistentContext", "readProductionTaskStatus", "production-runtime.sqlite",
     "browser-mutations.sqlite", "GOVERNANCE_PROOF_RECEIPT_DIR", "GRASSEYE_PRODUCTION_PROOF_JOB_IDS",
-    "agentPluginCapabilityManifest", "BROWSER_ACTION_COMPLETED", "recovery_pending", "target=claimed",
+    "agentPluginCapabilityManifest", "observeProductionProofRuntimeLogs", "recovery_pending", "target=claimed",
     "target=absent", "gpt-child-proof:", "sent provider terminal receipt",
   ]) {
     if (!realProofText.includes(required)) findings.push(finding(
       "agent-production-runtime/direct-dynamic-proof", REAL_PROOF_PATH,
       `The RELEASE producer is missing direct real-runtime observation ${required}.`,
+    ));
+  }
+  const supportText = read(context, REAL_PROOF_SUPPORT_PATH);
+  for (const required of [
+    "runtimeLogEventShapeValid", "runtimeEventIntegrityValid", 'operation === "browser.command"',
+    'stateKey === "browser.mutation"', 'stateKey === "producer.lifecycle"',
+  ]) {
+    if (!supportText.includes(required)) findings.push(finding(
+      "agent-production-runtime/direct-runtime-log-proof", REAL_PROOF_SUPPORT_PATH,
+      `The RELEASE producer support is missing active V2 runtime observation ${required}.`,
     ));
   }
   for (const forbidden of [

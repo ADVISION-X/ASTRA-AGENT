@@ -130,7 +130,6 @@ const validateAssertion = (input: {
 }): void => {
   const { assertion, lawId, mode, requirement } = input;
   const clauseInvalid = !assertion.clauses.length
-    || (assertion.clauses.length === 1 && assertion.clauses[0] === "summary")
     || assertion.clauses.some((clause) => clause !== "summary"
       && !/^forbidden:(?:0|[1-9][0-9]*)$/u.test(clause))
     || assertion.clauses.some((clause) => clause.startsWith("forbidden:")
