@@ -162,9 +162,9 @@ logs:inspect --job <jobId> \
 
 ## 10. Website 消费合同
 
-AGENT 通过 `runtime-log-spine.runtime-log-event-v2@2` 发布唯一机器合同；Website 的 active `system-security` 法案与施工图必须绑定该 provider contract、精确 spec SHA-256，并从 AGENT 合同生成本仓 validator/type。Website 不复制或手写第二 schema，只拥有 Website producer adapter：创建/继承 trace、复用 boundary、记录 Website 三个状态轴和业务边界、把同一 JSON 事件写 stdout/journald。
+AGENT 通过 `runtime-log-spine.runtime-log-event-v2@2` 发布唯一机器合同；Website 只保存 `contractId`、`version` 与 `providerRepo` dependency，并从 RELEASE participant 中解析的唯一匹配 provider contract 生成本仓 validator/type。Website 不复制或手写第二 schema，只拥有 Website producer adapter：创建/继承 trace、复用 boundary、记录 Website 三个状态轴和业务边界、把同一 JSON 事件写 stdout/journald。
 
-AGENT 法案不跨仓支配 Website；跨仓 RELEASE 由各自法案、cross-repo dependency、provider commit 与 digest 对账共同失败关闭。
+AGENT 法案不跨仓支配 Website；跨仓 RELEASE 由各自法案、cross-repo dependency 与母本规定的 participant contract lookup 共同失败关闭。
 
 ## 11. 片区删除
 

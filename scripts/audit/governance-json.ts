@@ -50,12 +50,15 @@ const pathPatternValid = (value:string) => {
 };
 const pathPatternContains = (parent:string,child:string) => parent==='**/*' || parent===child || (parent.endsWith('/**') && (child===parent.slice(0,-3) || child.startsWith(`${parent.slice(0,-3)}/`)));
 
-const blueprintMarkdownBodyValid = (source:string):boolean => {
+const blueprintMarkdownBody = (source:string):string|null => {
   const marker='```blueprint-record\n';
   const start=source.indexOf(marker);
   const end=start<0?-1:source.indexOf('\n```',start+marker.length);
-  if(end<0)return false;
-  const body=source.slice(end+4).trim();
+  return end<0?null:source.slice(end+4).trim();
+};
+const blueprintMarkdownBodyValid = (source:string):boolean => {
+  const body=blueprintMarkdownBody(source);
+  if(body===null)return false;
   const coverage=[
     /终态|terminal|canonical|唯一/iu,
     /owner/iu,
@@ -69,10 +72,25 @@ const blueprintMarkdownBodyValid = (source:string):boolean => {
   return body.length>=160 && !/(?:TODO|TBD|TBC|待补|占位|未来规划)/iu.test(body)
     && coverage.every((pattern)=>pattern.test(body));
 };
+type ContractAuthority={contractId:string;version:number};
+const assertBlueprintMarkdownContractAuthority = (source:string,authorities:readonly ContractAuthority[]):void => {
+  const body=blueprintMarkdownBody(source);
+  if(body===null)return fail('SOURCE_PARSE_FAILED','blueprint body');
+  const versions=new Map<string,Set<number>>();
+  for(const authority of authorities)versions.set(authority.contractId,new Set([...(versions.get(authority.contractId)??[]),authority.version]));
+  for(const match of body.matchAll(/`([a-z0-9][a-z0-9.-]*)@([1-9][0-9]*)`/gu)){
+    const expected=versions.get(match[1]!);const actual=Number(match[2]);
+    if(!expected)return fail('BLUEPRINT_CONTRACT_IDENTITY_UNREFERENCED',match[0]);
+    if(!expected.has(actual))fail('BLUEPRINT_CONTRACT_IDENTITY_CONFLICT',`${match[1]}@${actual}`);
+  }
+  if(/(?:spec SHA-256|provider commit|provider (?:contract )?(?:hash|digest)|digest 对账)/iu.test(body)){
+    fail('BLUEPRINT_PROVIDER_IDENTITY_BINDING_FORBIDDEN','provider commit/hash');
+  }
+};
 
 
 export {
   sortedUnique, exactKeys, canonicalValue, canonicalBytes, parseJson, isStringArray, cleanString, concreteString,
-  pathPatternValid, pathPatternContains, blueprintMarkdownBodyValid,
+  pathPatternValid, pathPatternContains, blueprintMarkdownBodyValid, assertBlueprintMarkdownContractAuthority,
 };
-export type { Json };
+export type { ContractAuthority, Json };

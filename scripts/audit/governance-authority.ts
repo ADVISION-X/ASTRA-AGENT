@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { blueprintMarkdownBodyValid, canonicalBytes, cleanString, concreteString, exactKeys, isStringArray, parseJson, pathPatternContains, pathPatternValid, rejectDuplicateJsonKeys, sortedUnique } from './governance-json.js';
+import { assertBlueprintMarkdownContractAuthority, blueprintMarkdownBodyValid, canonicalBytes, cleanString, concreteString, exactKeys, isStringArray, parseJson, pathPatternContains, pathPatternValid, rejectDuplicateJsonKeys, sortedUnique } from './governance-json.js';
 import { validateLocalSpecContract } from './governance-local-spec-contract.js';
 import { ROOT, fail, repositoryPaths, text, walk } from './governance-runtime.js';
 import { BASE, FUNCTIONAL, pathRole, REGISTRY, REPORT, SPEC } from './shared/governance-paths.js';
@@ -381,9 +381,11 @@ function loadBlueprints(laws: Law[], manifests: Manifest[], contractRefs: Map<st
   const lawDomains = new Map(laws.map((law) => [law.lawId, law.capabilityDomain]));
   const domains = new Set(manifests.map((manifest) => manifest.capabilityDomain));
   const specPaths = new Set(walk('docs/specs').filter((path) => path.endsWith('.json')));
+  const specs = new Map<string, GovernanceSpec>();
   const dependencyRepos = new Map<string, string>();
   for (const specPath of specPaths) {
     const spec = parseJson<GovernanceSpec>(specPath);
+    specs.set(specPath, spec);
     if (spec.specKind !== 'cross-repo-dependency') continue;
     const contract = spec.contract as { providerRepo: string };
     dependencyRepos.set(specPath, contract.providerRepo);
@@ -392,6 +394,10 @@ function loadBlueprints(laws: Law[], manifests: Manifest[], contractRefs: Map<st
     if (file.endsWith('.md') && !blueprintMarkdownBodyValid(text(file))) fail('SOURCE_PARSE_FAILED', `${file}:body`);
     const raw = file.endsWith('.json') ? parseJson<Record<string, unknown>>(file) : machineBlock(file, 'blueprint-record');
     if (!blueprintValid(raw, active, domains, specPaths, dependencyRepos, lawDomains)) fail('SOURCE_PARSE_FAILED', `${file}:schema`);
+    if (file.endsWith('.md')) assertBlueprintMarkdownContractAuthority(text(file), (raw.contractRefs as string[]).map((ref) => {
+      const spec = specs.get(ref)!; const contract = spec.contract as Record<string, unknown>;
+      return { contractId: typeof contract.contractId === 'string' ? contract.contractId : spec.specId, version: spec.version };
+    }));
     for (const lawId of raw.lawIds as string[]) contractRefs.set(lawId, [...(contractRefs.get(lawId) ?? []), file]);
   }
 }

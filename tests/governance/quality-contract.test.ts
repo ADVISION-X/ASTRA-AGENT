@@ -7,6 +7,7 @@ import test from "node:test";
 import { Project } from "ts-morph";
 
 import { assertProjectionEqual, blueprintValid, buildRegistry, parseLawSource } from "../../scripts/audit/governance-authority.js";
+import { assertBlueprintMarkdownContractAuthority } from "../../scripts/audit/governance-json.js";
 import type { Law } from "../../scripts/audit/governance-contract.js";
 import { addedSourceAt, assertProjectionStable } from "../../scripts/audit/governance.js";
 import { validateLocalSpecContract } from "../../scripts/audit/governance-local-spec-contract.js";
@@ -1088,6 +1089,24 @@ test("blueprint edge schema and local spec payloads reject arbitrary fields", ()
       },
     }, "alternate-migration.json"),
     (error: unknown) => error instanceof GovernanceError && error.code === "SOURCE_PARSE_FAILED",
+  );
+});
+
+test("blueprint prose cannot shadow machine contract identity", () => {
+  const source = "```blueprint-record\n{}\n```\n\n`provider.runtime-events@2` is active.\n";
+  const authority = [{ contractId: "provider.runtime-events", version: 2 }];
+  assert.doesNotThrow(() => assertBlueprintMarkdownContractAuthority(source, authority));
+  assert.throws(
+    () => assertBlueprintMarkdownContractAuthority(source.replace("@2", "@1"), authority),
+    (error: unknown) => error instanceof GovernanceError && error.code === "BLUEPRINT_CONTRACT_IDENTITY_CONFLICT",
+  );
+  assert.throws(
+    () => assertBlueprintMarkdownContractAuthority(`${source}consumer must bind exact spec SHA-256.\n`, authority),
+    (error: unknown) => error instanceof GovernanceError && error.code === "BLUEPRINT_PROVIDER_IDENTITY_BINDING_FORBIDDEN",
+  );
+  assert.throws(
+    () => assertBlueprintMarkdownContractAuthority(`${source}provider commit and digest 对账 are mandatory.\n`, authority),
+    (error: unknown) => error instanceof GovernanceError && error.code === "BLUEPRINT_PROVIDER_IDENTITY_BINDING_FORBIDDEN",
   );
 });
 

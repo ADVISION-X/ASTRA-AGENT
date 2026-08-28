@@ -167,7 +167,7 @@ Child。fresh turn 直接验证新建根页面为干净会话；authorized conti
 
 ## 6. 双向合同
 
-网站 provider 合同 `ai-acceptance.website-agent-task-result@1` 同时定义业务 task envelope 与 result envelope；AGENT 只保存 dependency。AGENT provider 合同 `agent-production-runtime.plugin-capability-manifest@1` 只发布 Catalog 的最小能力投影；网站只保存 dependency。V6 `ai-acceptance.xuanxue-ai-production-v6@6` 继续是唯一运输协议，不因十二个 Plugin 复制。
+网站 provider 合同 `ai-acceptance.website-agent-task-result@1` 同时定义业务 task envelope 与 result envelope；AGENT 只保存 dependency。AGENT provider 合同 `agent-production-runtime.plugin-capability-manifest@1` 只发布 Catalog 的最小能力投影；网站只保存 dependency。V6 运输由机器 block 引用的 active dependency spec 唯一定义，不因十二个 Plugin 复制。
 
 task envelope 允许：job/source task、product/action、幂等和 request hash、task/result contract 身份、业务 Owner/subject/authorization、业务参数、material refs、必要的 parent/subject refs、不透明 continuation，以及仅在 `accuracy_challenge` 或 `quality_reflection` 时存在的 `review_policy`。
 

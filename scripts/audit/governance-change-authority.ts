@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { blueprintMarkdownBodyValid, canonicalBytes, concreteString, exactKeys, isStringArray, parseJson, pathPatternValid, rejectDuplicateJsonKeys, sortedUnique } from './governance-json.js';
+import { assertBlueprintMarkdownContractAuthority, blueprintMarkdownBodyValid, canonicalBytes, concreteString, exactKeys, isStringArray, parseJson, pathPatternValid, rejectDuplicateJsonKeys, sortedUnique } from './governance-json.js';
 import { validateLocalSpecContract } from './governance-local-spec-contract.js';
 import { fail, text, walk } from './governance-runtime.js';
 import { assertActiveSpecVersionWindows, blueprintValid, parseLawSource } from './governance-authority.js';
@@ -180,18 +180,22 @@ const validateBlueprint = (path: string, authority: CurrentAuthority): void => {
   const raw = path.endsWith('.json') ? parseJson<Record<string, unknown>>(path) : machineBlock(path);
   const refs = isStringArray(raw.contractRefs) ? raw.contractRefs : [];
   const specPaths = new Set<string>();
+  const contractAuthorities: Array<{ contractId: string; version: number }> = [];
   const dependencyRepos = new Map<string, string>();
   for (const ref of refs) {
     if (!existsSync(resolve(process.cwd(), ref))) continue;
     validateSpec(ref, authority);
     specPaths.add(ref);
     const spec = parseJson<Spec>(ref);
+    const contract = spec.contract as Record<string, unknown>;
+    contractAuthorities.push({ contractId: typeof contract.contractId === 'string' ? contract.contractId : spec.specId, version: spec.version });
     if (spec.specKind === 'cross-repo-dependency') {
-      dependencyRepos.set(ref, String((spec.contract as Record<string, unknown>).providerRepo));
+      dependencyRepos.set(ref, String(contract.providerRepo));
     }
   }
   if (!blueprintValid(raw, authority.activeLawIds, authority.domains, specPaths,
     dependencyRepos, authority.lawDomains)) fail('SOURCE_PARSE_FAILED', `${path}:schema`);
+  if (path.endsWith('.md')) assertBlueprintMarkdownContractAuthority(text(path), contractAuthorities);
 };
 
 const validateChangedSource = (change: { status: string; path: string }, authority: CurrentAuthority): void => {
