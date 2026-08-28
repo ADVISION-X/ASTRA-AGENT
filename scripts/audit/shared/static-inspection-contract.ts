@@ -54,6 +54,13 @@ export const producerModePassed = (
 const requirementFor = (context: InspectorContext, lawId: string): InspectorLawRequirement =>
   context.lawRequirements.find((requirement) => requirement.lawId === lawId)
     ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:requirement`);
+const evidenceLocatorPaths = (requirement: InspectorLawRequirement): string[] =>
+  requirement.targetPaths.filter((path) => !/[#@:%]/u.test(path));
+const targetSetObjectDigest = (context: InspectorContext, requirement: InspectorLawRequirement): string =>
+  sha256(requirement.targetPaths.map((path) => {
+    try { return `${path}\0${sha256(readFileSync(resolve(context.sealedRoot, path)))}`; }
+    catch { return fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${requirement.lawId}:${path}:object-digest`); }
+  }).join("\0"));
 
 const staticEvidenceKind = (lawId: string, evidenceMode: string): string => ({
   "static.ast": "ast", "static.config": "config", "static.contract": "config",
@@ -76,9 +83,11 @@ const nativeObservationInvalid = (input: {
     && assertion.refs.length === 1 && assertion.refs[0] === requirement.targetSet.queryRef;
   if (scopeOnly) return false;
   const nativeRefs = assertion.refs.filter((reference) => reference !== requirement.targetSet.queryRef);
-  if (nativeRefs.length !== requirement.targetPaths.length) return true;
+  const locatorPaths = evidenceLocatorPaths(requirement);
+  if (nativeRefs.length !== locatorPaths.length) return true;
   const observedPaths: string[] = [];
   const implementationSignatures: string[] = [];
+  const expectedTargetSetDigest = targetSetObjectDigest(context, requirement);
   const invalid = nativeRefs.some((reference) => {
     const fragment = reference.indexOf("#");
     const objectPath = fragment > evidenceKind.length + 1
@@ -98,11 +107,12 @@ const nativeObservationInvalid = (input: {
       || binding.get("clauses") !== assertion.clauses.join(",")
       || binding.get("executionResult") !== (assertion.passed ? "passed" : "failed")
       || binding.get("objectDigest") !== objectDigest
+      || binding.get("targetSetDigest") !== expectedTargetSetDigest
       || !checks.length || JSON.stringify(implementationNames) !== JSON.stringify(checks)
       || implementations.some((entry) => !/^[A-Za-z_$][A-Za-z0-9_$]*:[a-f0-9]{64}$/u.test(entry));
   });
   return invalid || new Set(implementationSignatures).size !== 1
-    || JSON.stringify(ordered(observedPaths)) !== JSON.stringify(ordered(requirement.targetPaths));
+    || JSON.stringify(ordered(observedPaths)) !== JSON.stringify(ordered(locatorPaths));
 };
 
 export const staticEvidenceRefs = (
@@ -124,7 +134,8 @@ export const staticEvidenceRefs = (
   if (requirement.targetSet.count === 0 && requirement.targetPaths.length === 0) {
     return [requirement.targetSet.queryRef];
   }
-  if (!requirement.targetPaths.length) fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:native-object`);
+  const locatorPaths = evidenceLocatorPaths(requirement);
+  if (!locatorPaths.length) fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:native-object`);
   const matchingReceipts = checks.map((check) => receipts.find((receipt) =>
     receipt.lawId === lawId && receipt.check === check)!);
   if (matchingReceipts.some((receipt) => !/^[a-f0-9]{64}$/u.test(receipt.implementationDigest))) {
@@ -136,11 +147,12 @@ export const staticEvidenceRefs = (
   const executionBinding = encodeURIComponent(`executionResult=${producerModePassed(receipts, lawId, checks) ? "passed" : "failed"}`);
   const implementationBinding = encodeURIComponent(`checkImplementations=${matchingReceipts
     .map((receipt) => `${receipt.check}:${receipt.implementationDigest}`).join(",")}`);
-  const nativeRefs = requirement.targetPaths.map((path) => {
+  const targetSetBinding = encodeURIComponent(`targetSetDigest=${targetSetObjectDigest(context, requirement)};`);
+  const nativeRefs = locatorPaths.map((path) => {
     let objectDigest: string;
     try { objectDigest = sha256(readFileSync(resolve(context.sealedRoot, path))); }
     catch { return fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:${path}:object-digest`); }
-    return `${evidenceKind}:${path}#${lawModeBinding}${semanticBinding}%3B${executionBinding}%3B${implementationBinding}%3B${encodeURIComponent(`objectDigest=${objectDigest};`)}${clauseBinding}`;
+    return `${evidenceKind}:${path}#${lawModeBinding}${semanticBinding}%3B${executionBinding}%3B${implementationBinding}%3B${encodeURIComponent(`objectDigest=${objectDigest};`)}${targetSetBinding}${clauseBinding}`;
   });
   return ordered([
     ...nativeRefs,

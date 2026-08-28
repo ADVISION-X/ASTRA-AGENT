@@ -643,8 +643,9 @@ test("static evidence binds every object in the exact governed scope", () => {
       passed: true, refs }], findings: [] }], inspectedFiles: [pathWithReservedCharacter, targetPath] });
   const validatedRefs = output.lawResults[0]!.assertions[0]!.refs;
   assert.equal(validatedRefs.includes("scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes"), true);
-  assert.equal(validatedRefs.some((ref) => ref.includes(pathWithReservedCharacter)), true);
-  assert.equal(validatedRefs.filter((ref) => !ref.startsWith("scope:")).length, 2);
+  assert.equal(validatedRefs.some((ref) => ref.includes(pathWithReservedCharacter)), false);
+  assert.equal(validatedRefs.filter((ref) => !ref.startsWith("scope:")).length, 1);
+  assert.equal(validatedRefs.some((ref) => ref.includes("targetSetDigest%3D")), true);
 });
 
 test("static evidence rejects a governed wrong-object substitution", () => {
@@ -805,6 +806,7 @@ test("the active evidence-ownership blueprint rejects central clauses and mode s
   assert.equal(staticContract.includes("executionResult="), true);
   assert.equal(staticContract.includes("requirement.targetPaths.includes(objectPath)"), true);
   assert.equal(staticContract.includes("objectDigest="), true);
+  assert.equal(staticContract.includes("targetSetDigest="), true);
   assert.equal(staticContract.includes("checkImplementations="), true);
   const retiredObservers = readFileSync("scripts/audit/shared/static-target-object-inspector.ts", "utf8");
   assert.equal(/observeStatic|statements=|descendants=|getExportedDeclarations|getImportDeclarations/u.test(retiredObservers), false);
