@@ -6,6 +6,7 @@
     "LAW-AGENT-PRODUCTION-RUNTIME-001-V6"
   ],
   "ownedPaths": [
+    ".agents/skills/agent-production-maintenance-loop/**",
     "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
     "docs/specs/agent-production-runtime/**",
     "scripts/acceptance/agent-product-skills.acceptance.ts",
