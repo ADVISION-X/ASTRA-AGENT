@@ -382,7 +382,7 @@ export class ExtensionWebSocketActor {
     clearExtensionPermitAuthority();
     this.heartbeat.stop();
     try { await this.targetAuthority.releaseActiveTarget(false); }
-    catch (error) { globalThis.console.error("BROWSER_TARGET_CLEANUP_FAILED", errorCode(error)); }
+    catch (error) { this.autoBootstrap.recordFailure(error); }
   }
 
   private close(reasonCode: string): void {
@@ -398,7 +398,7 @@ export class ExtensionWebSocketActor {
     clearExtensionPermitAuthority();
     this.heartbeat.stop();
     void this.targetAuthority.releaseActiveTarget(false).catch((error) => {
-      globalThis.console.error("BROWSER_TARGET_CLEANUP_FAILED", errorCode(error));
+      this.autoBootstrap.recordFailure(error);
     });
     socket?.close(4000, reasonCode);
   }

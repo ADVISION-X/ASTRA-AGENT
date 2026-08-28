@@ -76,10 +76,8 @@ export class PairingAutoBootstrap {
     this.chromeApi.alarms.onAlarm.addListener((alarm) => {
       if (alarm.name === GRASSEYE_AUTO_PAIRING_ALARM) void this.attempt();
     });
-    void this.chromeApi.alarms.create(GRASSEYE_AUTO_PAIRING_ALARM, { periodInMinutes: 1 }).catch((error) => {
-      const code = error instanceof Error ? error.message : "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE";
-      this.failureCode = /^BROWSER_[A-Z_]+$/u.test(code) ? code : "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE";
-    });
+    void this.chromeApi.alarms.create(GRASSEYE_AUTO_PAIRING_ALARM, { periodInMinutes: 1 })
+      .catch((error) => { this.recordFailure(error); });
     void this.attempt();
   }
 
@@ -92,6 +90,11 @@ export class PairingAutoBootstrap {
 
   public currentFailureCode(): string | null {
     return this.failureCode;
+  }
+
+  public recordFailure(error: unknown): void {
+    const code = error instanceof Error ? error.message : "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE";
+    this.failureCode = /^BROWSER_[A-Z_]+$/u.test(code) ? code : "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE";
   }
 
   private async run(): Promise<void> {
@@ -112,8 +115,7 @@ export class PairingAutoBootstrap {
       await this.actor.pair(pairingSecret);
       this.failureCode = null;
     } catch (error) {
-      const code = error instanceof Error ? error.message : "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE";
-      this.failureCode = /^BROWSER_[A-Z_]+$/u.test(code) ? code : "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE";
+      this.recordFailure(error);
     } finally {
       pairingSecret = null;
     }
