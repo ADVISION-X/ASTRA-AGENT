@@ -1,5 +1,5 @@
 import { combineEvidence, parsePluginJsonObject, readProductSkill, type ProductPlugin } from "../../lib/local-runtime/production/plugin.js";
-import { assertRouteResultPayload, parseProductResult, parseRouteResult } from "../product-result-contract.js";
+import { parseProductResult, parseRouteResult } from "./result-contract.js";
 import { continuationGptTurnFlow, freshGptTurnFlow } from "./gpt-flow.js";
 
 const skill = readProductSkill(import.meta.url);
@@ -7,7 +7,7 @@ const provider = { labelKey: "naming_analysis", profileRef: "naming-bazi-analysi
 
 export const namingBaziAnalysisAndNamingPlugin: ProductPlugin = {
   pluginId: "naming-bazi-analysis-and-naming",
-  pluginVersion: 2,
+  pluginVersion: 3,
   skillHash: skill.hash,
   checkpointSchemaVersion: 1,
   parseResult: parseProductResult,
@@ -23,7 +23,7 @@ export const namingBaziAnalysisAndNamingPlugin: ProductPlugin = {
     }
     const analysis = await context.runTurn({ step_id: "analyze_bazi_for_naming", instruction: "只为起名目的分析 bazi_input_bundle 的冻结八字，严格返回 bazi-naming-basis-report-output.v1 合法 JSON，不要代码围栏、解释或额外字段。", material_roles: ["bazi_input_bundle", "naming_business_input", "result_contract"], gpt_flow: freshGptTurnFlow, provider });
     const names = await context.runTurn({ step_id: "produce_names", instruction: "依据同一任务的 naming_business_input 与前一步命盘约束生成候选，严格返回 naming-report-output.v2 合法 JSON，不得改变前一步命盘结论，不要代码围栏、解释或额外字段。", material_roles: ["bazi_input_bundle", "naming_business_input", "result_contract"], gpt_flow: continuationGptTurnFlow, same_conversation_as: analysis, provider });
-    const payload = assertRouteResultPayload(task, {
+    const payload = parseProductResult(task, {
       schema_version: "naming-bazi-analysis-and-naming-result.v1",
       bazi_analysis: parsePluginJsonObject(analysis.raw_text, "NAMING_BAZI_ANALYSIS_RESULT"),
       naming: parsePluginJsonObject(names.raw_text, "NAMING_RESULT"),

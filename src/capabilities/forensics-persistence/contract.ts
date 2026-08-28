@@ -13,7 +13,9 @@ type ForensicsPersistenceAbilityResult = ForensicsResult;
 type ForensicsAppendRecordRequest = Omit<ForensicsAppendRecordInput, "childCapabilityId" | "capabilityCallId"> & {
   correlationId?: string;
 };
-type ForensicsAppendArtifactRequest = Omit<ForensicsAppendArtifactInput, "childCapabilityId">;
+type ForensicsAppendArtifactRequest = Omit<ForensicsAppendArtifactInput, "childCapabilityId" | "capabilityCallId"> & {
+  correlationId?: string;
+};
 
 interface ForensicsPersistenceAbilityGroup {
   readonly abilityGroupId: ForensicsPersistenceAbilityGroupId;

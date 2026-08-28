@@ -1,5 +1,5 @@
 import { combineEvidence, parsePluginJsonObject, readProductSkill, type ProductPlugin } from "../../lib/local-runtime/production/plugin.js";
-import { parseProductResult, parseRouteResult } from "../product-result-contract.js";
+import { parseProductResult, parseRouteResult } from "./result-contract.js";
 import { freshGptTurnFlow } from "./gpt-flow.js";
 
 const skill = readProductSkill(import.meta.url);
@@ -18,7 +18,7 @@ const textParameter = (parameters: Readonly<Record<string, unknown>>, key: strin
 
 export const localizationProductionPlugin: ProductPlugin = {
   pluginId: "localization-production",
-  pluginVersion: 6,
+  pluginVersion: 7,
   skillHash: skill.hash,
   checkpointSchemaVersion: 1,
   parseResult: parseProductResult,

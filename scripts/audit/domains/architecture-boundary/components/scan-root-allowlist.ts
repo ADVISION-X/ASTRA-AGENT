@@ -6,7 +6,8 @@ import { hasSourceExtension } from "../../../shared/no-regex.js";
 import { resolveFromRepo } from "../../../shared/paths.js";
 
 const allowedSrcRoots = new Set(["app", "mediator", "plugins", "capabilities", "lib", "types"]);
-const allowedScriptRoots = new Set(["acceptance", "audit", "exam", "startup"]);
+const allowedScriptRoots = new Set(["acceptance", "audit", "exam", "generate", "runtime-logs", "startup"]);
+const inspectorPath = "scripts/audit/domains/architecture-boundary/components/scan-root-allowlist.ts";
 
 const collectUnexpectedRoots = (rootPath: string, allowedRoots: ReadonlySet<string>): string[] =>
   readdirSync(resolveFromRepo(rootPath), { withFileTypes: true })
@@ -35,7 +36,8 @@ const pushUnexpectedRoots = (
       createFinding({ evidenceMode: "static.ast",
         checkId: input.checkId,
         lawId: input.lawId,
-        filePath: unexpectedRoot,
+        filePath: inspectorPath,
+        evidence: unexpectedRoot,
         message: `${unexpectedRoot} ${input.messageSuffix}`,
       }),
     );

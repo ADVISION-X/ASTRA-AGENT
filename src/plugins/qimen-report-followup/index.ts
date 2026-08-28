@@ -1,5 +1,5 @@
 import { combineEvidence, readProductSkill, type ProductPlugin } from "../../lib/local-runtime/production/plugin.js";
-import { parseProductResult, parseRouteResult } from "../product-result-contract.js";
+import { parseProductResult, parseRouteResult } from "./result-contract.js";
 import { continuationGptTurnFlow, freshGptTurnFlow } from "./gpt-flow.js";
 
 const skill = readProductSkill(import.meta.url);
@@ -7,7 +7,7 @@ const provider = { labelKey: "qimen_analysis", profileRef: "qimen-report-followu
 
 export const qimenReportFollowupPlugin: ProductPlugin = {
   pluginId: "qimen-report-followup",
-  pluginVersion: 2,
+  pluginVersion: 3,
   skillHash: skill.hash,
   checkpointSchemaVersion: 1,
   parseResult: parseProductResult,

@@ -140,8 +140,8 @@ const assertAtomicGptFlows = (pluginId: string): void => {
 assert.equal(productionPluginCatalog.length, 12);
 assert.equal(existsSync(resolve(ROOT, "src/lib/local-runtime/production/output-contract.ts")), false,
   "the shared runtime must not own Product payload semantics");
-const productContractSource = readFileSync(resolve(ROOT, "src/plugins/product-result-contract.ts"), "utf8");
-assert.match(productContractSource, /export const parseProductResult/u);
+assert.equal(existsSync(resolve(ROOT, "src/plugins/product-result-contract.ts")), false,
+  "a top-level cross-Product result contract must remain physically absent");
 const executorSource = readFileSync(resolve(ROOT, "src/lib/local-runtime/production/executor.ts"), "utf8");
 assert.match(executorSource, /authorized\.plugin\.parseResult\(authorized\.task, output\.payload, "draft"\)/u,
   "context.complete must invoke the selected Product Plugin parser before upload");
@@ -163,7 +163,12 @@ for (const plugin of productionPluginCatalog) {
     "accepts", "checkpointSchemaVersion", "execute", "parseResult", "pluginId", "pluginVersion", "skillHash",
   ]);
   const skillPath = new URL(`../../src/plugins/${plugin.pluginId}/SKILL.md`, import.meta.url).pathname;
+  const resultContractPath = new URL(`../../src/plugins/${plugin.pluginId}/result-contract.ts`, import.meta.url).pathname;
+  const implementationPath = new URL(`../../src/plugins/${plugin.pluginId}/index.ts`, import.meta.url).pathname;
   assert.equal(readdirSync(dirname(skillPath)).filter((name) => name.toLowerCase() === "skill.md").length, 1);
+  assert.equal(existsSync(resultContractPath), true, `${plugin.pluginId} must own its result contract`);
+  assert.match(readFileSync(resultContractPath, "utf8"), /export const parseProductResult/u);
+  assert.match(readFileSync(implementationPath, "utf8"), /from "\.\/result-contract\.js"/u);
   const text = readFileSync(skillPath, "utf8");
   assertAtomicGptFlows(plugin.pluginId);
   const productIds = [...new Set(plugin.accepts.map((entry) => entry.productId))];

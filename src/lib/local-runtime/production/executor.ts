@@ -416,7 +416,7 @@ export class ProductionExecutor {
         const appendedArtifact = await this.evidenceStore.appendArtifact({
           missionId: input.task.job_id,
           runId: input.lease.attempt_id,
-          capabilityCallId: input.intent.executionId,
+          correlationId: input.intent.executionId,
           artifactType: artifact.artifactType,
           mimeType: artifact.mimeType,
           content: artifact.content,

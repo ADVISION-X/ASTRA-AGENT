@@ -1,12 +1,19 @@
 import assert from "node:assert/strict";
 
 import type { ProductionHash, WebsiteAgentTask } from "../../src/lib/local-runtime/production/contracts.js";
-import { assertRouteResultPayload } from "../../src/plugins/product-result-contract.js";
+import { resolveProductionPlugin } from "../../src/lib/local-runtime/production/catalog.js";
 import {
   assertProductionTaskRoutePolicy,
   productionRoutePolicies,
   type ProductionRoutePolicy,
 } from "../../src/lib/local-runtime/production/route-policy.js";
+
+const assertRouteResultPayload = (
+  task: WebsiteAgentTask,
+  value: unknown,
+  phase: "draft" | "final" = "final",
+): Readonly<Record<string, unknown>> =>
+  resolveProductionPlugin(task.product_id, task.action_id).plugin.parseResult(task, value, phase);
 
 const HASH = `sha256:${"a".repeat(64)}` as ProductionHash;
 const HASH_B = `sha256:${"b".repeat(64)}` as ProductionHash;

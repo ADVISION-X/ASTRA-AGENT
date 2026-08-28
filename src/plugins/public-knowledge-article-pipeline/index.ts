@@ -1,5 +1,5 @@
 import { combineEvidence, readProductSkill, type ProductPlugin } from "../../lib/local-runtime/production/plugin.js";
-import { parseProductResult, parsePublicKnowledgeArticle, parsePublicKnowledgeResearch, parseRouteResult } from "../product-result-contract.js";
+import { parseProductResult, parsePublicKnowledgeArticle, parsePublicKnowledgeResearch, parseRouteResult } from "./result-contract.js";
 import { continuationGptTurnFlow, freshGptTurnFlow } from "./gpt-flow.js";
 
 const skill = readProductSkill(import.meta.url);
@@ -8,7 +8,7 @@ const articleProvider = { ...researchProvider, labelKey: "seo_article", profileR
 
 export const publicKnowledgeArticlePipelinePlugin: ProductPlugin = {
   pluginId: "public-knowledge-article-pipeline",
-  pluginVersion: 2,
+  pluginVersion: 3,
   skillHash: skill.hash,
   checkpointSchemaVersion: 1,
   parseResult: parseProductResult,

@@ -131,9 +131,11 @@ export function createForensicsPersistenceAbilityGroup(
     },
 
     async appendArtifact(input): Promise<ForensicsResult> {
+      const { correlationId, ...artifactInput } = input;
       return appendArtifactWithLog({
-        ...input,
+        ...artifactInput,
         childCapabilityId: "append-artifact",
+        ...(correlationId ? { capabilityCallId: correlationId } : {}),
       }, storage, runtimeLogger);
     },
 

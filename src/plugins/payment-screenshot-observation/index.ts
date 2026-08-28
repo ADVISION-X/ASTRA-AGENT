@@ -1,5 +1,5 @@
 import { combineEvidence, readProductSkill, type ProductPlugin } from "../../lib/local-runtime/production/plugin.js";
-import { parseProductResult, parseRouteResult } from "../product-result-contract.js";
+import { parseProductResult, parseRouteResult } from "./result-contract.js";
 import { freshGptTurnFlow } from "./gpt-flow.js";
 
 const skill = readProductSkill(import.meta.url);
@@ -7,7 +7,7 @@ const provider = { labelKey: "generic_ai", profileRef: "payment-screenshot-obser
 
 export const paymentScreenshotObservationPlugin: ProductPlugin = {
   pluginId: "payment-screenshot-observation",
-  pluginVersion: 2,
+  pluginVersion: 3,
   skillHash: skill.hash,
   checkpointSchemaVersion: 1,
   parseResult: parseProductResult,
