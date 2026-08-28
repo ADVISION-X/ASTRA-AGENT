@@ -744,7 +744,7 @@ test("each static mode records a mode-native semantic-check selector", () => {
       ref.includes(encodeURIComponent(`lawId=${lawId};mode=${mode};`))), true);
   }
   assert.equal(modeSelector("static.types").every((ref) => ref.startsWith("test:")), true);
-  assert.equal(modeSelector("static.types").every((ref) => ref.includes("nativeTypeObservations%3D")), true);
+  assert.equal(modeSelector("static.types").every((ref) => ref.includes("modeNativeObservation%3Dtypechecker%3A")), true);
   assert.equal(modeSelector("static.contract").every((ref) => ref.startsWith("config:")), true);
   assert.equal(modeSelector("static.dependency").every((ref) => ref.startsWith("dependency:")), true);
   assert.equal(modeSelector("static.config").every((ref) => ref.startsWith("config:")), true);
@@ -752,7 +752,7 @@ test("each static mode records a mode-native semantic-check selector", () => {
   assert.equal(modeSelector("static.yaml").every((ref) => ref.startsWith("yaml:")), true);
 });
 
-test("static.types rejects a SyntaxKind label without a TypeChecker observation", () => {
+test("static evidence rejects a substituted mode-native observation", () => {
   const lawId = "LAW-FIXTURE-001-V1";
   const targetPath = "scripts/audit/shared/static-inspection-contract.ts";
   const context = {
@@ -761,11 +761,17 @@ test("static.types rejects a SyntaxKind label without a TypeChecker observation"
     lawRequirements: [{ lawId, forbiddenCount: 1, requiredStaticModes: ["static.types"],
       targetPaths: [targetPath], targetSet: { queryRef: `scope:${lawId}#appliesTo-minus-excludes`, count: 1 } }],
   } as unknown as InspectorContext;
-  const receipts = staticReceipt(lawId, "inspectTypes");
-  receipts[0]!.nativeObservation = `ast:${"a".repeat(64)}`;
-  assert.throws(() => staticEvidenceRefs(context, lawId, "static.types", staticClauses(0), receipts,
-    ["inspectTypes"]),
-  (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE");
+  const refs = staticEvidenceRefs(context, lawId, "static.types", staticClauses(0),
+    staticReceipt(lawId, "inspectTypes"), ["inspectTypes"]);
+  const mutant = refs.map((ref) => ref.replace(
+    /modeNativeObservation%3Dtypechecker%3A[a-f0-9]{64}/u,
+    `modeNativeObservation%3Dstatic.ast%3A${"a".repeat(64)}`,
+  ));
+  assert.throws(() => validateStaticInspection(context, {
+    capabilityDomain: "fixture", reportedLawIds: [lawId], inspectedFiles: [targetPath],
+    lawResults: [{ lawId, assertions: [{ clauses: staticClauses(0), evidenceMode: "static.types",
+      passed: true, refs: mutant }], findings: [] }],
+  }), (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE");
 });
 
 test("two-mode and partial multi-mode semantic-check substitution fail closed", () => {
@@ -793,7 +799,7 @@ test("two-mode and partial multi-mode semantic-check substitution fail closed", 
   reject(["inspectPartialGroup", "inspectPartialGroup", "inspectPartialGroup", "inspectDependencies"]);
 });
 
-test("a dead or unexecuted producer semantic check cannot mint static evidence", () => {
+test("a no-op or unexecuted producer semantic check cannot mint static evidence", () => {
   const sealedRoot = mkdtempSync(resolve(tmpdir(), "static-semantic-check-"));
   const ownerPath = "scripts/audit/domains/fixture/inspector.ts";
   const targetPath = "src/fixture.ts";
@@ -814,10 +820,25 @@ test("a dead or unexecuted producer semantic check cannot mint static evidence",
   const findings: import("../../scripts/audit/shared/inspector-contracts.js").InspectorFinding[] = [];
   const receipts: import("../../scripts/audit/shared/inspector-contracts.js").StaticCheckReceipt[] = [];
   let executionCount = 0;
-  const inspectSemanticContract = (): void => { executionCount += 1; };
+  const inspectNoop = (): void => { executionCount += 1; };
+  assert.throws(() => recordStaticCheck({ check: "inspectNoop", findings, implementation: inspectNoop,
+    lawIds: [lawId], receipts, run: () => inspectNoop() }),
+  (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE");
+  assert.equal(executionCount, 0);
+  const inspectFixedPass = (source: string): boolean => source.length >= 0;
+  assert.throws(() => recordStaticCheck({ check: "inspectFixedPass", findings,
+    implementation: inspectFixedPass, lawIds: [lawId], receipts,
+    run: () => inspectFixedPass(readFileSync(resolve(sealedRoot, targetPath), "utf8")) }),
+  (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE");
+  const inspectSemanticContract = (source: string, targetFindings: typeof findings): void => {
+    if (!source.includes("fixture = true")) targetFindings.push({
+      checkId: "fixture/semantic-contract", clauseId: "forbidden:0", evidenceMode: "static.ast",
+      lawId, message: "fixture semantic contract is absent", severity: "fatal",
+    });
+  };
   recordStaticCheck({ check: "inspectSemanticContract", findings, implementation: inspectSemanticContract,
-    lawIds: [lawId], receipts, run: () => inspectSemanticContract() });
-  assert.equal(executionCount, 1);
+    lawIds: [lawId], receipts,
+    run: () => inspectSemanticContract(readFileSync(resolve(sealedRoot, targetPath), "utf8"), findings) });
   assert.equal(receipts[0]!.implementationDigest, staticImplementationDigest(inspectSemanticContract));
   assert.equal(staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0), receipts, ["inspectSemanticContract"]).length, 2);
   assert.throws(() => recordStaticCheck({ check: "inspectSemanticContract", findings,
@@ -832,6 +853,14 @@ test("a dead or unexecuted producer semantic check cannot mint static evidence",
   assert.throws(() => staticEvidenceRefs(context, lawId, "static.ast", staticClauses(0), receipts,
     ["inspectSemanticContract"]),
   (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE");
+  writeFileSync(resolve(sealedRoot, targetPath), "export const fixture = false;\n");
+  const mutantFindings: typeof findings = [];
+  const mutantReceipts: typeof receipts = [];
+  recordStaticCheck({ check: "inspectSemanticContract", findings: mutantFindings,
+    implementation: inspectSemanticContract, lawIds: [lawId], receipts: mutantReceipts,
+    run: () => inspectSemanticContract(readFileSync(resolve(sealedRoot, targetPath), "utf8"), mutantFindings) });
+  assert.equal(producerModePassed(mutantReceipts, lawId, ["inspectSemanticContract"]), false);
+  assert.equal(mutantFindings[0]!.checkId, "fixture/semantic-contract");
 });
 
 test("the active evidence-ownership blueprint rejects central clauses and mode substitution", () => {
@@ -846,9 +875,9 @@ test("the active evidence-ownership blueprint rejects central clauses and mode s
   assert.equal(staticContract.includes("objectDigest="), true);
   assert.equal(staticContract.includes("targetSetDigest="), true);
   assert.equal(staticContract.includes("checkImplementations="), true);
-  assert.equal(staticContract.includes("nativeTypeObservations="), true);
+  assert.equal(staticContract.includes("modeNativeObservation="), true);
   const retiredObservers = readFileSync("scripts/audit/shared/static-target-object-inspector.ts", "utf8");
-  assert.equal(/observeStatic|statements=|descendants=|getExportedDeclarations|getImportDeclarations/u.test(retiredObservers), false);
+  assert.equal(retiredObservers.includes("observeStaticMode"), true);
   assert.equal(qualityContract.includes('"static.types": "test"'), true);
   assert.equal(qualityContract.includes('"static.types": "ast"'), false);
   const agent = readFileSync("scripts/audit/domains/agent-production-runtime/session-output.ts", "utf8");

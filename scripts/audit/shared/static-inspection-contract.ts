@@ -6,7 +6,7 @@ import { fail } from "../governance-runtime.js";
 import type {
   InspectorContext, InspectorFinding, InspectorLawRequirement, InspectorOutput, StaticCheckReceipt,
 } from "./inspector-contracts.js";
-import { inspectTargetObjects } from "./static-target-object-inspector.js";
+import { inspectTargetObjects, observeStaticMode } from "./static-target-object-inspector.js";
 const ordered = (values: readonly string[]): string[] => [...new Set(values)].sort((left, right) =>
   Buffer.compare(Buffer.from(left), Buffer.from(right)));
 const sha256 = (value: string | Buffer): string => createHash("sha256").update(value).digest("hex");
@@ -17,6 +17,19 @@ export const staticForbiddenClauses = (...forbiddenIndexes: number[]): string[] 
   ordered(forbiddenIndexes.map((index) => `forbidden:${index}`));
 export const staticClauses = (...forbiddenIndexes: number[]): string[] =>
   ordered([...staticForbiddenClauses(...forbiddenIndexes), "summary"]);
+
+const substantiveSemanticImplementation = (check: string, implementation: (...args: never[]) => unknown): boolean => {
+  const source = implementation.toString();
+  const arrow = source.indexOf("=>");
+  const block = source.indexOf("{", arrow < 0 ? 0 : arrow + 2);
+  const header = source.slice(0, arrow < 0 ? block : arrow);
+  const body = block < 0 ? source.slice(arrow + 2) : source.slice(block + 1, source.lastIndexOf("}"));
+  const parameterTokens = (header.match(/[A-Za-z_$][A-Za-z0-9_$]*/gu) ?? [])
+    .filter((token) => !["async", "function", check].includes(token));
+  return implementation.length > 0 && body.trim().length > 0
+    && parameterTokens.some((token) => new RegExp(`\\b${token}\\b`, "u").test(body))
+    && /\b(?:if|for|switch|throw|while)\b|(?:\b|\.)[A-Za-z_$][A-Za-z0-9_$]*\s*\(/u.test(body);
+};
 
 export const recordStaticCheck = <T>(input: {
   check: string;
@@ -29,7 +42,8 @@ export const recordStaticCheck = <T>(input: {
 }): T => {
   const callbackSource = input.run.toString();
   if (input.implementation.name !== input.check || !callbackSource.includes(`${input.check}(`)
-    || /\b(?:if|switch|while|for)\s*\(|\?[^:]+:/u.test(callbackSource)) {
+    || /\b(?:if|switch|while|for)\s*\(|\?[^:]+:/u.test(callbackSource)
+    || !substantiveSemanticImplementation(input.check, input.implementation)) {
     fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${input.check}:direct-execution`);
   }
   const before = new Map(input.lawIds.map((lawId) => [lawId,
@@ -99,16 +113,12 @@ const observeNativeRef = (input: {
   const implementations = binding.get("checkImplementations")?.split(",") ?? [];
   const implementationSignature = binding.get("checkImplementations") ?? "";
   const implementationNames = implementations.map((entry) => entry.split(":", 1)[0]);
-  const nativeObservations = binding.get("nativeTypeObservations")?.split(",") ?? [];
-  const nativeObservationSignature = binding.get("nativeTypeObservations") ?? "";
-  const nativeObservationNames = nativeObservations.map((entry) => entry.split(":", 1)[0]);
+  const nativeObservationSignature = binding.get("modeNativeObservation") ?? "";
   let objectDigest = "";
   try { objectDigest = sha256(readFileSync(resolve(context.sealedRoot, objectPath))); }
   catch { return { implementationSignature, invalid: true, nativeObservationSignature, objectPath }; }
-  const nativeTypeInvalid = mode === "static.types" && [
-    JSON.stringify(nativeObservationNames) !== JSON.stringify(checks),
-    nativeObservations.some((entry) => !/^[A-Za-z_$][A-Za-z0-9_$]*:typechecker:[a-f0-9]{64}$/u.test(entry)),
-  ].includes(true);
+  const expectedNativeObservation = observeStaticMode(context, mode);
+  const nativeObservationInvalid = nativeObservationSignature !== expectedNativeObservation;
   const invalid = [
     !reference.startsWith(`${evidenceKind}:`), !requirement.targetPaths.includes(objectPath),
     binding.get("lawId") !== lawId, binding.get("mode") !== mode,
@@ -117,7 +127,7 @@ const observeNativeRef = (input: {
     binding.get("objectDigest") !== objectDigest, binding.get("targetSetDigest") !== targetSetDigest,
     !checks.length, JSON.stringify(implementationNames) !== JSON.stringify(checks),
     implementations.some((entry) => !/^[A-Za-z_$][A-Za-z0-9_$]*:[a-f0-9]{64}$/u.test(entry)),
-    nativeTypeInvalid,
+    nativeObservationInvalid,
   ].includes(true);
   return { implementationSignature, invalid, nativeObservationSignature, objectPath };
 };
@@ -174,19 +184,16 @@ export const staticEvidenceRefs = (
   if (matchingReceipts.some((receipt) => !/^[a-f0-9]{64}$/u.test(receipt.implementationDigest))) {
     fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:implementation-digest`);
   }
-  if (evidenceMode === "static.types" && matchingReceipts.some((receipt) =>
-    !/^typechecker:[a-f0-9]{64}$/u.test(receipt.nativeObservation ?? ""))) {
-    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:typechecker-observation`);
-  }
+  const expectedNativeObservation = observeStaticMode(context, evidenceMode);
   const semanticBinding = encodeURIComponent(`semanticChecks=${checks.join(",")}`);
   const lawModeBinding = encodeURIComponent(`lawId=${lawId};mode=${evidenceMode};`);
   const clauseBinding = encodeURIComponent(`clauses=${clauses.join(",")}`);
   const executionBinding = encodeURIComponent(`executionResult=${producerModePassed(receipts, lawId, checks) ? "passed" : "failed"}`);
   const implementationBinding = encodeURIComponent(`checkImplementations=${matchingReceipts
     .map((receipt) => `${receipt.check}:${receipt.implementationDigest}`).join(",")}`);
-  const nativeObservationBinding = evidenceMode === "static.types" ? `%3B${encodeURIComponent(
-    `nativeTypeObservations=${matchingReceipts.map((receipt) => `${receipt.check}:${receipt.nativeObservation}`).join(",")}`,
-  )}` : "";
+  const nativeObservationBinding = `%3B${encodeURIComponent(
+    `modeNativeObservation=${expectedNativeObservation}`,
+  )}`;
   const targetSetBinding = encodeURIComponent(`targetSetDigest=${targetSetObjectDigest(context, requirement)};`);
   const nativeRefs = locatorPaths.map((path) => {
     let objectDigest: string;

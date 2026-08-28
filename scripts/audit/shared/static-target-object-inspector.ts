@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { extname, relative, resolve } from "node:path";
 import { TextDecoder } from "node:util";
@@ -6,6 +7,7 @@ import { parseDocument } from "yaml";
 import { rejectDuplicateJsonKeys } from "../governance-json.js";
 import { fail } from "../governance-runtime.js";
 import type { InspectorContext } from "./inspector-contracts.js";
+import { observeTypeCheckerRelations } from "./typechecker-observation.js";
 
 const utf8 = new TextDecoder("utf-8", { fatal: true });
 const binaryExtensions = new Set([".jpg", ".pdf", ".png", ".zip"]);
@@ -52,4 +54,51 @@ const inspectTargetObject = (context: InspectorContext, root: string, path: stri
 export const inspectTargetObjects = (context: InspectorContext, targetPaths: readonly string[]): void => {
   const root = resolve(context.sealedRoot);
   for (const path of targetPaths) inspectTargetObject(context, root, path);
+};
+
+const observationDigest = (facts: readonly (string | Buffer)[]): string =>
+  createHash("sha256").update(facts.map((fact) => Buffer.isBuffer(fact) ? fact.toString("hex") : fact)
+    .sort().join("\0")).digest("hex");
+const observationCache = new WeakMap<InspectorContext, Map<string, string>>();
+
+export const observeStaticMode = (context: InspectorContext, evidenceMode: string): string => {
+  const cache = observationCache.get(context) ?? new Map<string, string>();
+  observationCache.set(context, cache);
+  const cached = cache.get(evidenceMode);
+  if (cached) return cached;
+  const targetPaths = context.targetPaths ?? context.lawRequirements.flatMap((requirement) => requirement.targetPaths);
+  if (evidenceMode === "static.types") {
+    const observation = observeTypeCheckerRelations(context.project, targetPaths);
+    cache.set(evidenceMode, observation);
+    return observation;
+  }
+  const root = resolve(context.sealedRoot);
+  const facts = targetPaths.map((path) => {
+    const absolute = resolve(root, path);
+    const value = readFileSync(absolute);
+    const sourceFile = context.project.getSourceFile(absolute);
+    if (evidenceMode === "static.filesystem") {
+      return `${path}:file:${value.byteLength}`;
+    }
+    if (evidenceMode === "static.ast") {
+      if (!sourceFile) return `${path}:text:${observationDigest([value.toString("utf8")])}`;
+      return `${path}:ast:${observationDigest(sourceFile.getDescendants().map((node) => String(node.getKind())))}`;
+    }
+    if (evidenceMode === "static.dependency") {
+      if (!sourceFile) return `${path}:no-module-edges`;
+      const imports = sourceFile.getImportDeclarations().map((entry) => `import:${entry.getModuleSpecifierValue()}`);
+      const exports = sourceFile.getExportDeclarations().map((entry) =>
+        `export:${entry.getModuleSpecifierValue() ?? "local"}`);
+      return `${path}:edges:${observationDigest([...imports, ...exports])}`;
+    }
+    if (["static.config", "static.contract", "static.json", "static.migration", "static.sql", "static.text", "static.yaml"]
+      .includes(evidenceMode)) {
+      return `${path}:parsed-object:${observationDigest([value])}`;
+    }
+    return fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${evidenceMode}:native-observation-mode`);
+  });
+  if (!facts.length) fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${evidenceMode}:native-observation-empty`);
+  const observation = `${evidenceMode}:${observationDigest(facts)}`;
+  cache.set(evidenceMode, observation);
+  return observation;
 };
