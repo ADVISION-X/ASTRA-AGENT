@@ -82,7 +82,9 @@ async function startLocalRuntime(): Promise<void> {
   // The diagnostic shell is independently available. A Cloud/credential/provider
   // failure blocks execution and claim admission, but must not terminate health,
   // pairing diagnostics, or operator recovery surfaces.
-  await workbench.init().catch(() => undefined);
+  await workbench.init().catch(() => {
+    process.stderr.write("WORKBENCH_INITIALIZATION_FAILED\n");
+  });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

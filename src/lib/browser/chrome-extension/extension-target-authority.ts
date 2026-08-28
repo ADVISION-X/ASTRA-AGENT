@@ -11,9 +11,10 @@ type TargetFrameSender = (
   body: Record<string, unknown>,
 ) => Promise<void>;
 
-type DebuggerDetachReporter = (input: Readonly<{
+type TargetFailureReporter = (input: Readonly<{
   targetRef: string;
   reason: string;
+  runtimeEventType: "debugger-detach" | "tab-remove";
 }>) => void;
 
 type PendingCreatedTarget = Readonly<{
@@ -41,7 +42,7 @@ export class ExtensionTargetAuthority {
   public constructor(
     private readonly chromeApi: ExtensionChromeApi,
     private readonly send: TargetFrameSender,
-    private readonly reportDebuggerDetach: DebuggerDetachReporter,
+    private readonly reportTargetFailure: TargetFailureReporter,
   ) {
     this.debuggerRuntime = new ExtensionDebuggerRuntime(chromeApi);
   }
@@ -54,7 +55,7 @@ export class ExtensionTargetAuthority {
       this.activeTarget = null;
       this.activeLoaderId = null;
       this.navigationPublication = null;
-      this.reportDebuggerDetach({ targetRef, reason });
+      this.reportTargetFailure({ targetRef, reason, runtimeEventType: "debugger-detach" });
       void this.send("TARGET_REVOKE", { targetRef });
     });
     this.chromeApi.debugger.onEvent.addListener((target, method, parameters) => {
@@ -81,9 +82,12 @@ export class ExtensionTargetAuthority {
     if (candidate.tabId === undefined) throw new Error("BROWSER_TARGET_INVALID");
     try {
       await this.debuggerRuntime.attach(candidate.tabId);
-    } catch {
-      await this.chromeApi.tabs.remove(candidate.tabId).catch(() => undefined);
-      throw new Error("BROWSER_DEVTOOLS_CONFLICT");
+    } catch (error) {
+      try { await this.chromeApi.tabs.remove(candidate.tabId); }
+      catch (cleanupError) {
+        throw new AggregateError([error, cleanupError], "BROWSER_TARGET_CLEANUP_FAILED");
+      }
+      throw new Error("BROWSER_DEVTOOLS_CONFLICT", { cause: error });
     }
     try {
       await this.debuggerRuntime.send(candidate.tabId, "Page.enable");
@@ -97,7 +101,10 @@ export class ExtensionTargetAuthority {
         title: candidate.title,
       }));
     } catch (error) {
-      await this.discardJobOwnedTarget(candidate.tabId);
+      try { await this.discardJobOwnedTarget(candidate.tabId); }
+      catch (cleanupError) {
+        throw new AggregateError([error, cleanupError], "BROWSER_TARGET_CLEANUP_FAILED");
+      }
       throw error;
     }
   }
@@ -181,17 +188,25 @@ export class ExtensionTargetAuthority {
     if (!pending) return;
     this.pendingCreatedTarget = null;
     globalThis.clearTimeout(pending.timeout);
-    void this.chromeApi.tabs.remove(pending.tabId).catch(() => undefined);
+    void this.chromeApi.tabs.remove(pending.tabId).catch((error: unknown) => {
+      this.reportTargetFailure({
+        targetRef: `job-owned-tab:${pending.tabId}`,
+        reason: error instanceof Error ? error.name : "TabRemoveError",
+        runtimeEventType: "tab-remove",
+      });
+    });
     pending.reject(new Error(reasonCode));
   }
 
   private async discardJobOwnedTarget(tabId: number): Promise<void> {
+    const cleanupErrors: unknown[] = [];
     if (this.activeTarget?.tabId === tabId) {
-      await this.releaseActiveTarget().catch(() => undefined);
+      await this.releaseActiveTarget().catch((error) => { cleanupErrors.push(error); });
     } else {
-      await this.debuggerRuntime.detach(tabId).catch(() => undefined);
+      await this.debuggerRuntime.detach(tabId).catch((error) => { cleanupErrors.push(error); });
     }
-    await this.chromeApi.tabs.remove(tabId).catch(() => undefined);
+    await this.chromeApi.tabs.remove(tabId).catch((error) => { cleanupErrors.push(error); });
+    if (cleanupErrors.length) throw new AggregateError(cleanupErrors, "BROWSER_TARGET_CLEANUP_FAILED");
   }
 
   private async readMainFrame(tabId: number): Promise<MainFrame> {

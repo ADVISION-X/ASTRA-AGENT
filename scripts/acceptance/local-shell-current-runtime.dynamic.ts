@@ -93,6 +93,7 @@ const stopLaunch = async (child: ChildProcess): Promise<void> => {
 
 type Health = { status: string; sourceFingerprint: string; components?: Array<{ name?: string; ok?: boolean; detail?: string }> };
 const waitForCurrentHealth = async (baseUrl: string, child: ChildProcess, output: () => string): Promise<Health> => {
+  let lastFailure = "health endpoint not ready";
   for (let attempt = 0; attempt < 240; attempt += 1) {
     if (child.exitCode !== null || child.signalCode !== null) throw new Error(`CURRENT_RUNTIME_EXITED:${output()}`);
     try {
@@ -101,10 +102,13 @@ const waitForCurrentHealth = async (baseUrl: string, child: ChildProcess, output
         const health = await response.json() as Health;
         if (["healthy", "degraded"].includes(health.status)) return health;
       }
-    } catch { /* retry until the real startup entrypoint finishes */ }
+      lastFailure = `health endpoint returned ${response.status}`;
+    } catch (error) {
+      lastFailure = error instanceof Error ? error.message : String(error);
+    }
     await delay(500);
   }
-  throw new Error(`CURRENT_RUNTIME_HEALTH_TIMEOUT:${output()}`);
+  throw new Error(`CURRENT_RUNTIME_HEALTH_TIMEOUT:${lastFailure}:${output()}`);
 };
 
 const port = await freePort();

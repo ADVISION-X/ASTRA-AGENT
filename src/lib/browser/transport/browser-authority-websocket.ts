@@ -326,7 +326,8 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     if (frame.kind === "REVOKE") {
       const diagnostic = parseExtensionDiagnostic(body);
       this.clearActive(diagnostic.reasonCode, diagnostic.refs);
-      try { socket.close(1008); } catch { /* close is best-effort after authenticated client diagnostic */ }
+      try { socket.close(1008); }
+      catch { this.options.onDiagnostic("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", { failedOperation: "socket-close" }); }
       return true;
     }
     if (frame.kind !== "REPLY") throw new Error("BROWSER_CAPABILITY_REJECTED");
@@ -425,7 +426,8 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     if (this.pending?.socket === socket) this.pending = null;
     if (this.active?.socket === socket) this.clearActive(reasonCode);
     else this.options.onRevoked(reasonCode);
-    try { socket.close(1008); } catch { /* close is best-effort after revoke */ }
+    try { socket.close(1008); }
+    catch { this.options.onDiagnostic("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", { failedOperation: "socket-close" }); }
   }
 
   private createPairingSecret(): string {

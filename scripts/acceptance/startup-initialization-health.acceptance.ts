@@ -190,13 +190,18 @@ const createBrokenCredentialFixture = async (): Promise<Readonly<{
 };
 
 const waitForDiagnosticShell = async (port: number): Promise<void> => {
+  let lastFailure = "health endpoint not ready";
   for (let attempt = 0; attempt < 100; attempt += 1) {
     try {
-      if ((await fetch(`http://127.0.0.1:${port}/api/health`)).ok) return;
-    } catch { /* retry while the listener binds */ }
+      const response = await fetch(`http://127.0.0.1:${port}/api/health`);
+      if (response.ok) return;
+      lastFailure = `health endpoint returned ${response.status}`;
+    } catch (error) {
+      lastFailure = error instanceof Error ? error.message : String(error);
+    }
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
-  throw new Error("diagnostic shell readiness timeout");
+  throw new Error(`diagnostic shell readiness timeout: ${lastFailure}`);
 };
 
 const assertDiagnosticShellHealth = async (port: number): Promise<void> => {

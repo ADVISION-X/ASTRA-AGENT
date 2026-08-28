@@ -26,9 +26,7 @@ const CLOUD_CLIENT_PATH = "src/lib/local-runtime/production/cloud-client.ts";
 const TYPED_FAILURE_PATH = "src/lib/typed-failure.ts";
 const GPT_RESPONSE_PATH = "src/capabilities/gpt/web/children/response-children.ts";
 const PRODUCTION_BLUEPRINT_PATH = "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md";
-const forbiddenDeterministicProducts = [
-  "bazi_basic_chart",
-  "bazi_pdf_export",
+const forbiddenDeterministicProducts = ["bazi_basic_chart", "bazi_pdf_export",
   "qimen_basic_chart",
   "qimen_professional_chart",
   "hehun_case_preparation",

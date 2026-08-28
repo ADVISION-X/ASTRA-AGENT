@@ -90,7 +90,10 @@ const replaceCredentialFile = async (temporary: string, destination: string, par
     const directory = await open(parent, "r");
     try { await directory.sync(); } finally { await directory.close(); }
   } catch (error) {
-    await unlink(temporary).catch(() => undefined);
+    try { await unlink(temporary); }
+    catch (cleanupError) {
+      throw new AggregateError([error, cleanupError], "PRODUCTION_CREDENTIAL_CLEANUP_FAILED");
+    }
     throw error;
   }
 };

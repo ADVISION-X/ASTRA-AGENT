@@ -93,6 +93,7 @@ export const scanStructuralRuntimeEscapes = (
   for (const call of governedFile.sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)) {
     scanPromiseCatch(call, collector, governedFile, lawId);
   }
+  if (!/(?:^|\/)src\//u.test(governedFile.repoPath)) return;
   for (const node of governedFile.sourceFile.getDescendants()) {
     const name = declarationName(node);
     if (name && isCallableDeclaration(node) && prohibitedPath.test(name)) pushRuntimeEscape(

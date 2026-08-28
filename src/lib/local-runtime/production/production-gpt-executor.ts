@@ -350,7 +350,10 @@ export class ProductionGptExecutor {
       return result;
     } catch (error) {
       primaryError = error;
-      if (lane) try { await this.continuationCommand("release", lane, input); } catch { /* terminal span emitted */ }
+      if (lane) try { await this.continuationCommand("release", lane, input); }
+      catch (releaseError) {
+        throw new AggregateError([error, releaseError], "GPT_CONTINUATION_RELEASE_FAILED");
+      }
       throw error;
     } finally {
       if (browser && browser.pendingMutationCount() === 0) {

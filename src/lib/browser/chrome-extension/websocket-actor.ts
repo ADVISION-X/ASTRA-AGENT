@@ -86,7 +86,7 @@ export class ExtensionWebSocketActor {
     this.targetAuthority = new ExtensionTargetAuthority(
       chromeApi,
       (kind, body) => this.sendTargetFrame(kind, body),
-      (input) => this.reportDebuggerDetach(input),
+      (input) => this.reportTargetFailure(input),
     );
     this.heartbeat = new ExtensionHeartbeat(
       chromeApi,
@@ -161,7 +161,6 @@ export class ExtensionWebSocketActor {
     this.session = null;
     this.commandReady = false;
     clearExtensionPermitAuthority();
-    void this.targetAuthority.releaseActiveTarget();
     this.close(closeReason);
   }
 
@@ -224,10 +223,11 @@ export class ExtensionWebSocketActor {
       if (frame.kind === "COMMAND") { await this.executeCommand(socket, frame); return; }
       this.close("BROWSER_UNEXPECTED_FRAME_KIND");
     } catch (error) {
-      const reasonCode = pairingErrorCode(error);
+      let reasonCode = pairingErrorCode(error);
       const diagnostic = extensionFrameDiagnostic(error, frame, data);
       if (this.state === "CONNECTED" && this.session) {
-        try { await this.sendEncrypted(socket, "REVOKE", diagnostic); } catch { /* the authenticated channel is already failing */ }
+        try { await this.sendEncrypted(socket, "REVOKE", diagnostic); }
+        catch (sendError) { reasonCode = errorCode(sendError); }
       }
       this.pairingCompletion.fail(reasonCode);
       this.clearPairing(reasonCode);
@@ -381,7 +381,8 @@ export class ExtensionWebSocketActor {
     this.targetClaims.fail("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
     clearExtensionPermitAuthority();
     this.heartbeat.stop();
-    try { await this.targetAuthority.releaseActiveTarget(false); } catch { /* channel is already absent; local target state is already cleared */ }
+    try { await this.targetAuthority.releaseActiveTarget(false); }
+    catch (error) { globalThis.console.error("BROWSER_TARGET_CLEANUP_FAILED", errorCode(error)); }
   }
 
   private close(reasonCode: string): void {
@@ -396,7 +397,9 @@ export class ExtensionWebSocketActor {
     this.targetClaims.fail("BROWSER_AUTHENTICATION_INCOMPLETE");
     clearExtensionPermitAuthority();
     this.heartbeat.stop();
-    void this.targetAuthority.releaseActiveTarget(false);
+    void this.targetAuthority.releaseActiveTarget(false).catch((error) => {
+      globalThis.console.error("BROWSER_TARGET_CLEANUP_FAILED", errorCode(error));
+    });
     socket?.close(4000, reasonCode);
   }
 
@@ -404,24 +407,30 @@ export class ExtensionWebSocketActor {
     const body = extensionRuntimeDiagnostic(error, runtimeEventType, this.session?.nextClientSequence ?? 0);
     void (async () => {
       if (this.state !== "CONNECTED" || !this.session) return;
-      try { await this.sendEncrypted(this.socket, "DIAGNOSTIC", body); } catch { /* a diagnostic must never create another unhandled failure */ }
+      try { await this.sendEncrypted(this.socket, "DIAGNOSTIC", body); }
+      catch (sendError) { this.close(errorCode(sendError)); }
     })();
   }
 
-  private reportDebuggerDetach(input: Readonly<{ targetRef: string; reason: string }>): void {
+  private reportTargetFailure(input: Readonly<{
+    targetRef: string;
+    reason: string;
+    runtimeEventType: "debugger-detach" | "tab-remove";
+  }>): void {
     const body = {
       reasonCode: "BROWSER_TARGET_INVALID",
       failedFrameKind: "EXTENSION_RUNTIME",
       failedFrameSequence: this.session?.nextClientSequence ?? 0,
       diagnosticSource: "extension-runtime",
-      runtimeEventType: "debugger-detach",
+      runtimeEventType: input.runtimeEventType,
       errorName: /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/u.test(input.reason) ? input.reason : "UnknownDetachReason",
       targetRef: input.targetRef,
       encodedByteLength: 0,
     };
     void (async () => {
       if (this.state !== "CONNECTED" || !this.session) return;
-      try { await this.sendEncrypted(this.socket, "DIAGNOSTIC", body); } catch { /* diagnostic failure cannot create another failure */ }
+      try { await this.sendEncrypted(this.socket, "DIAGNOSTIC", body); }
+      catch (sendError) { this.close(errorCode(sendError)); }
     })();
   }
 

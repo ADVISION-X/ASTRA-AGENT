@@ -12,9 +12,7 @@ import {
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, staticForbiddenClauses, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../shared/source-files.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
-import {
-  resolveCapabilityFacadePolicy,
-} from "./components/capability-source-of-truth.js";
+import { resolveCapabilityFacadePolicy } from "./components/capability-source-of-truth.js";
 import { pushCapabilitySourceOfTruthFindings } from "./components/capability-governance-report.js";
 import { pushFacadePurityFindings } from "./components/capability-facade-purity.js";
 import { inspectCapabilityFacadeTypes } from "./components/capability-facade-types.js";

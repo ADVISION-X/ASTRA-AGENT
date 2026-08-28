@@ -13,8 +13,9 @@ export class ExtensionDebuggerRuntime {
   }
 
   public async detach(tabId: number): Promise<void> {
-    if (!this.attached.delete(tabId)) return;
-    await this.chromeApi.debugger.detach({ tabId }).catch(() => undefined);
+    if (!this.attached.has(tabId)) return;
+    await this.chromeApi.debugger.detach({ tabId });
+    this.attached.delete(tabId);
   }
 
   public async send(tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>): Promise<unknown> {
