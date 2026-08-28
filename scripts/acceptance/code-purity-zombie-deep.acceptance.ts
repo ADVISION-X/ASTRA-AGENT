@@ -12,12 +12,13 @@ import {
   resolveCodePurityRole,
 } from "../audit/domains/code-purity/components/code-purity-owner-model.js";
 import type { GovernedFile } from "../audit/domains/code-purity/components/code-purity-governed-files.js";
+import { scanStructuralAstBudgets } from "../audit/domains/code-purity/components/scan-structural-budgets.js";
 import { scanOwnerBoundaries } from "../audit/domains/code-purity/components/scan-owner-boundaries.js";
 import { scanZombieSurfaces } from "../audit/domains/code-purity/components/scan-zombie-surfaces.js";
 import { createInspectorContextFixture } from "../audit/shared/inspector-context-acceptance-support.js";
 
 type FixtureConfig = { entryScripts: string[] };
-type ExpectedFinding = { checkId: string; fileIncludes?: string; symbolName?: string };
+type ExpectedFinding = { checkId: string; fileIncludes?: string; messageIncludes?: string; symbolName?: string };
 
 const LAW_IDS = ["LAW-CODE-PURITY-001-V5", "LAW-CODE-PURITY-002-V2", "LAW-CODE-PURITY-003-V2"];
 const FIXTURE_ROOT = resolveFromRepo("scripts/acceptance/fixtures/code-purity-zombie-deep");
@@ -76,12 +77,14 @@ const runCase = (caseName: string) => {
     `fixture:${index + 1}`, `node --import tsx ${prefix(runtimeRepoPath, entry)}`,
   ]));
   const zombie = scanZombieSurfaces(context, governedFiles, LAW_IDS, { packageScripts });
-  return [...zombie.findings, ...scanOwnerBoundaries(governedFiles, LAW_IDS).findings];
+  const structural = scanStructuralAstBudgets(governedFiles, LAW_IDS);
+  return [...zombie.findings, ...structural.findings, ...scanOwnerBoundaries(governedFiles, LAW_IDS).findings];
 };
 
 const hasFinding = (caseName: string, expected: ExpectedFinding): boolean => runCase(caseName).some((finding) =>
   finding.checkId === expected.checkId
   && (!expected.fileIncludes || finding.filePath?.includes(expected.fileIncludes))
+  && (!expected.messageIncludes || finding.message.includes(expected.messageIncludes))
   && (!expected.symbolName || parseEvidence(finding.evidence).symbolName === expected.symbolName));
 
 const required: Array<[string, ExpectedFinding]> = [
@@ -110,6 +113,15 @@ const required: Array<[string, ExpectedFinding]> = [
   ["dynamic-import-nonliteral", { checkId: "code-purity/dynamic-import-nonliteral" }],
   ["dynamic-import-owner-boundary-violation", { checkId: "code-purity/plugin-non-facade-capability-import" }],
   ["side-effect-import-owner-boundary-violation", { checkId: "code-purity/plugin-non-facade-capability-import" }],
+  ["catch-and-swallow", { checkId: "code-purity/catch-and-swallow" }],
+  ["catch-fake-success", { checkId: "code-purity/catch-fake-success" }],
+  ["promise-catch-and-swallow", { checkId: "code-purity/promise-catch-and-swallow" }],
+  ["promise-catch-fake-success", { checkId: "code-purity/promise-catch-fake-success" }],
+  ["prohibited-production-path", { checkId: "code-purity/prohibited-production-path", messageIncludes: "mockRoute" }],
+  ["prohibited-production-path", { checkId: "code-purity/prohibited-production-path", messageIncludes: "demoRoute" }],
+  ["prohibited-production-path", { checkId: "code-purity/prohibited-production-path", messageIncludes: "placeholderRoute" }],
+  ["prohibited-production-path", { checkId: "code-purity/prohibited-production-path", messageIncludes: "noOpRoute" }],
+  ["prohibited-production-path", { checkId: "code-purity/prohibited-production-path", messageIncludes: "fallbackRoute" }],
 ];
 const forbidden: Array<[string, ExpectedFinding]> = [
   ["default-import-alias", { checkId: "code-purity/zombie-export", symbolName: "default" }],
@@ -124,6 +136,8 @@ const forbidden: Array<[string, ExpectedFinding]> = [
   ["typed-catalog-indirect-property", { checkId: "code-purity/object-bag-unused-property", symbolName: "executeRunner" }],
   ["eager-destructured-initializer", { checkId: "code-purity/zombie-top-level-declaration", symbolName: "liveValue" }],
   ["runtime-extends-import", { checkId: "code-purity/zombie-export", symbolName: "RuntimeBase" }],
+  ["lawful-catch-failure", { checkId: "code-purity/catch-and-swallow" }],
+  ["lawful-catch-failure", { checkId: "code-purity/catch-fake-success" }],
 ];
 
 assert.equal(resolveCodePurityOwner("scripts/generate/sync.ts"), "agent-production-runtime");

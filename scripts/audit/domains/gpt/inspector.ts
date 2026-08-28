@@ -18,6 +18,7 @@ import {
   staticEvidenceRefs,
   validateStaticInspection,
 } from "../../shared/static-inspection-contract.js";
+import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 
 const LAW_ID = "LAW-GPT-001-V3";
 const MODE_CLAUSES = {
@@ -307,7 +308,8 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => {
     lawIds: [LAW_ID], receipts: staticCheckReceipts,
     run: () => inspectGptAst(context, findings) });
   recordStaticCheck({ check: "inspectGptTypes", findings, implementation: inspectGptTypes,
-    lawIds: [LAW_ID], receipts: staticCheckReceipts,
+    lawIds: [LAW_ID], observe: () => observeTypeCheckerRelations(context.project, context.targetPaths),
+    receipts: staticCheckReceipts,
     run: () => inspectGptTypes(context, findings) });
   recordStaticCheck({ check: "inspectGptContracts", findings, implementation: inspectGptContracts,
     lawIds: [LAW_ID], receipts: staticCheckReceipts,

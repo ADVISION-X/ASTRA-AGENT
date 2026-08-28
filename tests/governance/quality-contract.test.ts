@@ -76,7 +76,8 @@ writeFileSync(fixtureEvidencePath, `${JSON.stringify({
 })}\n`);
 const fixtureEvidenceDigest = sha(readFileSync(fixtureEvidencePath));
 const staticReceipt = (lawId: string, check: string, passed = true) => [{
-  check, implementationDigest: sha(Buffer.from(check)), lawId, passed,
+  check, implementationDigest: sha(Buffer.from(check)), lawId,
+  nativeObservation: `typechecker:${sha(Buffer.from(`typechecker:${check}`))}`, passed,
 }];
 const externalFixtureRef = (kind: "exam" | "dynamic", selector: string): string =>
   kind === "exam" ? `exam:package.json#${encodeURIComponent(selector)}`
@@ -723,11 +724,28 @@ test("each static mode records a mode-native semantic-check selector", () => {
       ref.includes(encodeURIComponent(`lawId=${lawId};mode=${mode};`))), true);
   }
   assert.equal(modeSelector("static.types").every((ref) => ref.startsWith("test:")), true);
+  assert.equal(modeSelector("static.types").every((ref) => ref.includes("nativeTypeObservations%3D")), true);
   assert.equal(modeSelector("static.contract").every((ref) => ref.startsWith("config:")), true);
   assert.equal(modeSelector("static.dependency").every((ref) => ref.startsWith("dependency:")), true);
   assert.equal(modeSelector("static.config").every((ref) => ref.startsWith("config:")), true);
   assert.equal(modeSelector("static.json").every((ref) => ref.startsWith("json:")), true);
   assert.equal(modeSelector("static.yaml").every((ref) => ref.startsWith("yaml:")), true);
+});
+
+test("static.types rejects a SyntaxKind label without a TypeChecker observation", () => {
+  const lawId = "LAW-FIXTURE-001-V1";
+  const targetPath = "scripts/audit/shared/static-inspection-contract.ts";
+  const context = {
+    sealedRoot: process.cwd(), project: new Project({ tsConfigFilePath: "tsconfig.json" }),
+    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: targetPath },
+    lawRequirements: [{ lawId, forbiddenCount: 1, requiredStaticModes: ["static.types"],
+      targetPaths: [targetPath], targetSet: { queryRef: `scope:${lawId}#appliesTo-minus-excludes`, count: 1 } }],
+  } as unknown as InspectorContext;
+  const receipts = staticReceipt(lawId, "inspectTypes");
+  receipts[0]!.nativeObservation = `ast:${"a".repeat(64)}`;
+  assert.throws(() => staticEvidenceRefs(context, lawId, "static.types", staticClauses(0), receipts,
+    ["inspectTypes"]),
+  (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE");
 });
 
 test("two-mode and partial multi-mode semantic-check substitution fail closed", () => {
@@ -808,6 +826,7 @@ test("the active evidence-ownership blueprint rejects central clauses and mode s
   assert.equal(staticContract.includes("objectDigest="), true);
   assert.equal(staticContract.includes("targetSetDigest="), true);
   assert.equal(staticContract.includes("checkImplementations="), true);
+  assert.equal(staticContract.includes("nativeTypeObservations="), true);
   const retiredObservers = readFileSync("scripts/audit/shared/static-target-object-inspector.ts", "utf8");
   assert.equal(/observeStatic|statements=|descendants=|getExportedDeclarations|getImportDeclarations/u.test(retiredObservers), false);
   assert.equal(qualityContract.includes('"static.types": "test"'), true);

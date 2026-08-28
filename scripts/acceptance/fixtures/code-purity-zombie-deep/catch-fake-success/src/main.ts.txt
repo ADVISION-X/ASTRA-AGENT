@@ -1,0 +1,4 @@
+export const run = (): { success: boolean } => {
+  try { throw new Error("blocked"); }
+  catch { return { success: true }; }
+};

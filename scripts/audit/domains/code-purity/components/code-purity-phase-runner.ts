@@ -28,7 +28,7 @@ type CodePurityPhaseRun = {
   staticCheckReceipts: StaticCheckReceipt[];
 };
 type ZombieScan = ReturnType<typeof scanZombieSurfaces>;
-type StaticCheck = readonly [string, readonly InspectorFinding[], (...args: never[]) => unknown];
+type StaticCheck = readonly [string, readonly InspectorFinding[], (...args: never[]) => unknown, string?];
 
 const dedupeFindings = (findings: readonly InspectorFinding[]): InspectorFinding[] => {
   const byKey = new Map<string, InspectorFinding>();
@@ -65,8 +65,9 @@ const scanZombieDependencies = (
 
 const buildStaticCheckReceipts = (
   lawIds: readonly string[], checks: readonly StaticCheck[],
-): StaticCheckReceipt[] => lawIds.flatMap((lawId) => checks.map(([check, findings, implementation]) => ({
+): StaticCheckReceipt[] => lawIds.flatMap((lawId) => checks.map(([check, findings, implementation, nativeObservation]) => ({
   check, implementationDigest: staticImplementationDigest(implementation), lawId,
+  ...(nativeObservation === undefined ? {} : { nativeObservation }),
   passed: findings.every((finding) => finding.lawId !== lawId),
 })));
 
@@ -111,11 +112,15 @@ export const runCodePurityPhases = async (context: InspectorContext): Promise<Co
     ...ownerBoundaryScan.inventoryItems,
     ...zombieScan.inventoryItems,
   ]);
+  const structuralTypeCheck: StaticCheck = structuralTypes.nativeObservation === undefined
+    ? ["scanStructuralTypeBudgets", structuralTypes.findings, scanStructuralTypeBudgets]
+    : ["scanStructuralTypeBudgets", structuralTypes.findings, scanStructuralTypeBudgets,
+      structuralTypes.nativeObservation];
 
   const checks: readonly StaticCheck[] = [
     ["scanStructuralAstBudgets", structuralAst.findings, scanStructuralAstBudgets],
     ["scanStructuralFilesystemBudgets", structuralFilesystem.findings, scanStructuralFilesystemBudgets],
-    ["scanStructuralTypeBudgets", structuralTypes.findings, scanStructuralTypeBudgets],
+    structuralTypeCheck,
     ["scanStructuralDependencyBudgets", structuralDependencies.findings, scanStructuralDependencyBudgets],
     ["scanOwnerBoundaries", ownerBoundaryScan.findings, scanOwnerBoundaries],
     ["scanOwnerAstRoles", ownerAst, scanOwnerAstRoles],

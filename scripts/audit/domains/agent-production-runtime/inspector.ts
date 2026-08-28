@@ -4,6 +4,7 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { recordStaticCheck } from "../../shared/static-inspection-contract.js";
+import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
 const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V6";
 const PLUGIN_ROOT = "src/plugins";
@@ -477,6 +478,7 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => {
     run: () => inspectAgentFilesystem(context, findings) });
   recordStaticCheck({ check: "inspectAgentTypes", findings, implementation: inspectAgentTypes,
     lawIds: [LAW_ID], receipts: staticCheckReceipts,
+    observe: () => observeTypeCheckerRelations(context.project, context.targetPaths),
     run: () => inspectAgentTypes(context, findings) });
   recordStaticCheck({ check: "inspectAgentContracts", findings, implementation: inspectAgentContracts,
     lawIds: [LAW_ID], receipts: staticCheckReceipts,

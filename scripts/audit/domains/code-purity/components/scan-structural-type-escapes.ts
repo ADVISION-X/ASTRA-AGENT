@@ -36,7 +36,8 @@ const scanAnyKeywordEscape = (
   governedFile: GovernedFile,
   typeEscapeLawId: string,
 ): void => {
-  const anyKeyword = governedFile.sourceFile.getDescendantsOfKind(SyntaxKind.AnyKeyword)[0];
+  const anyKeyword = governedFile.sourceFile.getDescendantsOfKind(SyntaxKind.AnyKeyword)
+    .find((keyword) => keyword.getParent()?.getType().isAny() === true);
   if (!anyKeyword) {
     return;
   }
@@ -58,7 +59,8 @@ const scanAsAnyEscape = (
 ): void => {
   const anyAssertion = governedFile.sourceFile
     .getDescendantsOfKind(SyntaxKind.AsExpression)
-    .find((expression) => expression.getTypeNode()?.getKind() === SyntaxKind.AnyKeyword);
+    .find((expression) => expression.getTypeNode()?.getKind() === SyntaxKind.AnyKeyword
+      && expression.getType().isAny());
   if (!anyAssertion) {
     return;
   }
@@ -82,7 +84,8 @@ const scanUnknownAsChain = (
     .getDescendantsOfKind(SyntaxKind.AsExpression)
     .find(
       (expression) =>
-        expression.getTypeNode()?.getKind() === SyntaxKind.UnknownKeyword && Node.isAsExpression(expression.getParent()),
+        expression.getTypeNode()?.getKind() === SyntaxKind.UnknownKeyword && expression.getType().isUnknown()
+        && Node.isAsExpression(expression.getParent()),
     );
   if (!unknownAsChain) {
     return;

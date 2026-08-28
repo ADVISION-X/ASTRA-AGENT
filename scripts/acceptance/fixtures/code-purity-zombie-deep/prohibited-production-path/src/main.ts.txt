@@ -1,0 +1,5 @@
+export const mockRoute = (): boolean => true;
+export const demoRoute = (): boolean => true;
+export const placeholderRoute = (): boolean => true;
+export const noOpRoute = (): boolean => true;
+export const fallbackRoute = (): boolean => true;

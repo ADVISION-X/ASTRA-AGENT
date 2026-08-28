@@ -115,3 +115,27 @@ export const inspectTypesContractRoot = (input: {
     }));
   }
 };
+
+export const inspectTypesContractRelations = (input: {
+  findings: InspectorFinding[];
+  inspectedFiles: Set<string>;
+  lawId: string;
+  project: Project;
+}): void => {
+  for (const sourceFile of listActiveSourceFiles(input.project)) {
+    const repoPath = getRepoSourcePath(sourceFile);
+    if (!repoPath.startsWith("src/types/")) continue;
+    input.inspectedFiles.add(repoPath);
+    for (const symbol of sourceFile.getExportSymbols()) {
+      const target = symbol.isAlias() ? symbol.getAliasedSymbol() : symbol;
+      const declaration = target?.getDeclarations()[0];
+      const type = declaration?.getType().getText(declaration) ?? "missing";
+      if (type !== "missing" && type !== "any") continue;
+      input.findings.push(createFinding({ evidenceMode: "static.types",
+        checkId: "architecture/types-contract-unresolved-type", lawId: input.lawId,
+        filePath: repoPath, message: `${repoPath} export ${symbol.getName()} resolves to ${type}.`,
+        evidence: `TypeChecker relation ${symbol.getName()}:${type}`,
+      }));
+    }
+  }
+};

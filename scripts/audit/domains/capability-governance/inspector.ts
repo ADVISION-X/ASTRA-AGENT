@@ -11,6 +11,7 @@ import {
 } from "../../shared/repo-path-classifier.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, staticForbiddenClauses, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../shared/source-files.js";
+import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 import {
   resolveCapabilityFacadePolicy,
 } from "./components/capability-source-of-truth.js";
@@ -452,7 +453,7 @@ export const inspectCapabilityGovernanceProject = (
     pushFinding,
   }) });
   recordStaticCheck({ check: "inspectCapabilityFacadeTypes", findings, implementation: inspectCapabilityFacadeTypes,
-    lawIds: [lawId], receipts: staticCheckReceipts,
+    lawIds: [lawId], observe: () => observeTypeCheckerRelations(project), receipts: staticCheckReceipts,
     run: () => inspectCapabilityFacadeTypes({ lawId, project, pushFinding }) });
 
   return { findings, inspectedFiles: [...scan.inspectedFiles].sort(), staticCheckReceipts };

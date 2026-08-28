@@ -23,6 +23,7 @@ export const recordStaticCheck = <T>(input: {
   findings: InspectorFinding[];
   implementation: (...args: never[]) => unknown;
   lawIds: readonly string[];
+  observe?: (result: T) => string;
   receipts: StaticCheckReceipt[];
   run: () => T;
 }): T => {
@@ -34,10 +35,15 @@ export const recordStaticCheck = <T>(input: {
   const before = new Map(input.lawIds.map((lawId) => [lawId,
     input.findings.filter((finding) => finding.lawId === lawId).length]));
   const result = input.run();
+  const nativeObservation = input.observe?.(result);
+  if (nativeObservation !== undefined && !/^typechecker:[a-f0-9]{64}$/u.test(nativeObservation)) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${input.check}:native-observation`);
+  }
   for (const lawId of input.lawIds) input.receipts.push({
     check: input.check,
     implementationDigest: staticImplementationDigest(input.implementation),
     lawId,
+    ...(nativeObservation === undefined ? {} : { nativeObservation }),
     passed: input.findings.filter((finding) => finding.lawId === lawId).length === before.get(lawId),
   });
   return result;
@@ -70,7 +76,9 @@ const staticEvidenceKind = (lawId: string, evidenceMode: string): string => ({
 } as Readonly<Record<string, string>>)[evidenceMode]
   ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:evidence-kind`);
 
-type NativeRefObservation = Readonly<{ implementationSignature: string; invalid: boolean; objectPath: string }>;
+type NativeRefObservation = Readonly<{
+  implementationSignature: string; invalid: boolean; nativeObservationSignature: string; objectPath: string;
+}>;
 const observeNativeRef = (input: {
   assertion: InspectorOutput["lawResults"][number]["assertions"][number];
   context: InspectorContext;
@@ -86,14 +94,21 @@ const observeNativeRef = (input: {
   const objectPath = fragment > evidenceKind.length + 1 ? reference.slice(evidenceKind.length + 1, fragment) : "";
   let binding: URLSearchParams;
   try { binding = new URLSearchParams(decodeURIComponent(reference.slice(fragment + 1)).replaceAll(";", "&")); }
-  catch { return { implementationSignature: "", invalid: true, objectPath }; }
+  catch { return { implementationSignature: "", invalid: true, nativeObservationSignature: "", objectPath }; }
   const checks = binding.get("semanticChecks")?.split(",") ?? [];
   const implementations = binding.get("checkImplementations")?.split(",") ?? [];
   const implementationSignature = binding.get("checkImplementations") ?? "";
   const implementationNames = implementations.map((entry) => entry.split(":", 1)[0]);
+  const nativeObservations = binding.get("nativeTypeObservations")?.split(",") ?? [];
+  const nativeObservationSignature = binding.get("nativeTypeObservations") ?? "";
+  const nativeObservationNames = nativeObservations.map((entry) => entry.split(":", 1)[0]);
   let objectDigest = "";
   try { objectDigest = sha256(readFileSync(resolve(context.sealedRoot, objectPath))); }
-  catch { return { implementationSignature, invalid: true, objectPath }; }
+  catch { return { implementationSignature, invalid: true, nativeObservationSignature, objectPath }; }
+  const nativeTypeInvalid = mode === "static.types" && [
+    JSON.stringify(nativeObservationNames) !== JSON.stringify(checks),
+    nativeObservations.some((entry) => !/^[A-Za-z_$][A-Za-z0-9_$]*:typechecker:[a-f0-9]{64}$/u.test(entry)),
+  ].includes(true);
   const invalid = [
     !reference.startsWith(`${evidenceKind}:`), !requirement.targetPaths.includes(objectPath),
     binding.get("lawId") !== lawId, binding.get("mode") !== mode,
@@ -102,8 +117,9 @@ const observeNativeRef = (input: {
     binding.get("objectDigest") !== objectDigest, binding.get("targetSetDigest") !== targetSetDigest,
     !checks.length, JSON.stringify(implementationNames) !== JSON.stringify(checks),
     implementations.some((entry) => !/^[A-Za-z_$][A-Za-z0-9_$]*:[a-f0-9]{64}$/u.test(entry)),
+    nativeTypeInvalid,
   ].includes(true);
-  return { implementationSignature, invalid, objectPath };
+  return { implementationSignature, invalid, nativeObservationSignature, objectPath };
 };
 
 const nativeObservationInvalid = (input: {
@@ -127,6 +143,7 @@ const nativeObservationInvalid = (input: {
   }));
   return observations.some((observation) => observation.invalid)
     || new Set(observations.map((observation) => observation.implementationSignature)).size !== 1
+    || new Set(observations.map((observation) => observation.nativeObservationSignature)).size !== 1
     || JSON.stringify(ordered(observations.map((observation) => observation.objectPath)))
       !== JSON.stringify(ordered(locatorPaths));
 };
@@ -157,18 +174,25 @@ export const staticEvidenceRefs = (
   if (matchingReceipts.some((receipt) => !/^[a-f0-9]{64}$/u.test(receipt.implementationDigest))) {
     fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:implementation-digest`);
   }
+  if (evidenceMode === "static.types" && matchingReceipts.some((receipt) =>
+    !/^typechecker:[a-f0-9]{64}$/u.test(receipt.nativeObservation ?? ""))) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:typechecker-observation`);
+  }
   const semanticBinding = encodeURIComponent(`semanticChecks=${checks.join(",")}`);
   const lawModeBinding = encodeURIComponent(`lawId=${lawId};mode=${evidenceMode};`);
   const clauseBinding = encodeURIComponent(`clauses=${clauses.join(",")}`);
   const executionBinding = encodeURIComponent(`executionResult=${producerModePassed(receipts, lawId, checks) ? "passed" : "failed"}`);
   const implementationBinding = encodeURIComponent(`checkImplementations=${matchingReceipts
     .map((receipt) => `${receipt.check}:${receipt.implementationDigest}`).join(",")}`);
+  const nativeObservationBinding = evidenceMode === "static.types" ? `%3B${encodeURIComponent(
+    `nativeTypeObservations=${matchingReceipts.map((receipt) => `${receipt.check}:${receipt.nativeObservation}`).join(",")}`,
+  )}` : "";
   const targetSetBinding = encodeURIComponent(`targetSetDigest=${targetSetObjectDigest(context, requirement)};`);
   const nativeRefs = locatorPaths.map((path) => {
     let objectDigest: string;
     try { objectDigest = sha256(readFileSync(resolve(context.sealedRoot, path))); }
     catch { return fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:${path}:object-digest`); }
-    return `${evidenceKind}:${path}#${lawModeBinding}${semanticBinding}%3B${executionBinding}%3B${implementationBinding}%3B${encodeURIComponent(`objectDigest=${objectDigest};`)}${targetSetBinding}${clauseBinding}`;
+    return `${evidenceKind}:${path}#${lawModeBinding}${semanticBinding}%3B${executionBinding}%3B${implementationBinding}${nativeObservationBinding}%3B${encodeURIComponent(`objectDigest=${objectDigest};`)}${targetSetBinding}${clauseBinding}`;
   });
   return ordered([
     ...nativeRefs,

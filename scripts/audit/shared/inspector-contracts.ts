@@ -16,6 +16,7 @@ export type StaticCheckReceipt = {
   check: string;
   implementationDigest: string;
   lawId: string;
+  nativeObservation?: string;
   passed: boolean;
 };
 export type InspectorAssertion = { clauses: string[]; evidenceMode: string; passed: boolean; refs: string[] };
