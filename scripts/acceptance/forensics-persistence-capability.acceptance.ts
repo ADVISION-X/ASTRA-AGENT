@@ -103,13 +103,16 @@ try {
   assert.equal(recordLog.trim().split("\n").length, 1, "idempotent record append must not duplicate the WAL row");
   assert.equal(artifactLog.trim().split("\n").length, 2, "idempotent append and crash recovery must each own one index row");
 
-  const executorSource = await readFile(new URL("../../src/lib/local-runtime/production/executor.ts", import.meta.url), "utf8");
-  const artifactAppendAt = executorSource.indexOf("this.evidenceStore.appendArtifact");
-  const artifactReadbackAt = executorSource.indexOf("this.evidenceStore.readArtifactRef", artifactAppendAt);
-  const recordAppendAt = executorSource.indexOf("this.evidenceStore.appendRecord", artifactReadbackAt);
+  const evidenceWriterSource = await readFile(
+    new URL("../../src/lib/local-runtime/production/gpt-evidence-writer.ts", import.meta.url),
+    "utf8",
+  );
+  const artifactAppendAt = evidenceWriterSource.indexOf("input.evidenceStore.appendArtifact");
+  const artifactReadbackAt = evidenceWriterSource.indexOf("input.evidenceStore.readArtifactRef", artifactAppendAt);
+  const recordAppendAt = evidenceWriterSource.indexOf("input.evidenceStore.appendRecord", artifactReadbackAt);
   assert(artifactAppendAt >= 0 && artifactReadbackAt > artifactAppendAt && recordAppendAt > artifactReadbackAt,
     "binary Provider artifacts must be persisted and byte-readback verified before their safe proof record is admitted");
-  assert.match(executorSource, /artifactRefs/u,
+  assert.match(evidenceWriterSource, /artifactRefs/u,
     "the safe proof record must bind the ordered binary artifact refs");
 } finally {
   await rm(tempRoot, { recursive: true, force: true });
