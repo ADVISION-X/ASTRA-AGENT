@@ -70,6 +70,42 @@ const staticEvidenceKind = (lawId: string, evidenceMode: string): string => ({
 } as Readonly<Record<string, string>>)[evidenceMode]
   ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:evidence-kind`);
 
+type NativeRefObservation = Readonly<{ implementationSignature: string; invalid: boolean; objectPath: string }>;
+const observeNativeRef = (input: {
+  assertion: InspectorOutput["lawResults"][number]["assertions"][number];
+  context: InspectorContext;
+  evidenceKind: string;
+  lawId: string;
+  mode: string;
+  reference: string;
+  requirement: InspectorLawRequirement;
+  targetSetDigest: string;
+}): NativeRefObservation => {
+  const { assertion, context, evidenceKind, lawId, mode, reference, requirement, targetSetDigest } = input;
+  const fragment = reference.indexOf("#");
+  const objectPath = fragment > evidenceKind.length + 1 ? reference.slice(evidenceKind.length + 1, fragment) : "";
+  let binding: URLSearchParams;
+  try { binding = new URLSearchParams(decodeURIComponent(reference.slice(fragment + 1)).replaceAll(";", "&")); }
+  catch { return { implementationSignature: "", invalid: true, objectPath }; }
+  const checks = binding.get("semanticChecks")?.split(",") ?? [];
+  const implementations = binding.get("checkImplementations")?.split(",") ?? [];
+  const implementationSignature = binding.get("checkImplementations") ?? "";
+  const implementationNames = implementations.map((entry) => entry.split(":", 1)[0]);
+  let objectDigest = "";
+  try { objectDigest = sha256(readFileSync(resolve(context.sealedRoot, objectPath))); }
+  catch { return { implementationSignature, invalid: true, objectPath }; }
+  const invalid = [
+    !reference.startsWith(`${evidenceKind}:`), !requirement.targetPaths.includes(objectPath),
+    binding.get("lawId") !== lawId, binding.get("mode") !== mode,
+    binding.get("clauses") !== assertion.clauses.join(","),
+    binding.get("executionResult") !== (assertion.passed ? "passed" : "failed"),
+    binding.get("objectDigest") !== objectDigest, binding.get("targetSetDigest") !== targetSetDigest,
+    !checks.length, JSON.stringify(implementationNames) !== JSON.stringify(checks),
+    implementations.some((entry) => !/^[A-Za-z_$][A-Za-z0-9_$]*:[a-f0-9]{64}$/u.test(entry)),
+  ].includes(true);
+  return { implementationSignature, invalid, objectPath };
+};
+
 const nativeObservationInvalid = (input: {
   assertion: InspectorOutput["lawResults"][number]["assertions"][number];
   context: InspectorContext;
@@ -85,34 +121,14 @@ const nativeObservationInvalid = (input: {
   const nativeRefs = assertion.refs.filter((reference) => reference !== requirement.targetSet.queryRef);
   const locatorPaths = evidenceLocatorPaths(requirement);
   if (nativeRefs.length !== locatorPaths.length) return true;
-  const observedPaths: string[] = [];
-  const implementationSignatures: string[] = [];
-  const expectedTargetSetDigest = targetSetObjectDigest(context, requirement);
-  const invalid = nativeRefs.some((reference) => {
-    const fragment = reference.indexOf("#");
-    const objectPath = fragment > evidenceKind.length + 1
-      ? reference.slice(evidenceKind.length + 1, fragment) : "";
-    observedPaths.push(objectPath);
-    let binding: URLSearchParams;
-    try { binding = new URLSearchParams(decodeURIComponent(reference.slice(fragment + 1)).replaceAll(";", "&")); }
-    catch { return true; }
-    const checks = binding.get("semanticChecks")?.split(",") ?? [];
-    const implementations = binding.get("checkImplementations")?.split(",") ?? [];
-    implementationSignatures.push(binding.get("checkImplementations") ?? "");
-    const implementationNames = implementations.map((entry) => entry.split(":", 1)[0]);
-    let objectDigest = "";
-    try { objectDigest = sha256(readFileSync(resolve(context.sealedRoot, objectPath))); } catch { return true; }
-    return !reference.startsWith(`${evidenceKind}:`) || !requirement.targetPaths.includes(objectPath)
-      || binding.get("lawId") !== lawId || binding.get("mode") !== mode
-      || binding.get("clauses") !== assertion.clauses.join(",")
-      || binding.get("executionResult") !== (assertion.passed ? "passed" : "failed")
-      || binding.get("objectDigest") !== objectDigest
-      || binding.get("targetSetDigest") !== expectedTargetSetDigest
-      || !checks.length || JSON.stringify(implementationNames) !== JSON.stringify(checks)
-      || implementations.some((entry) => !/^[A-Za-z_$][A-Za-z0-9_$]*:[a-f0-9]{64}$/u.test(entry));
-  });
-  return invalid || new Set(implementationSignatures).size !== 1
-    || JSON.stringify(ordered(observedPaths)) !== JSON.stringify(ordered(locatorPaths));
+  const targetSetDigest = targetSetObjectDigest(context, requirement);
+  const observations = nativeRefs.map((reference) => observeNativeRef({
+    assertion, context, evidenceKind, lawId, mode, reference, requirement, targetSetDigest,
+  }));
+  return observations.some((observation) => observation.invalid)
+    || new Set(observations.map((observation) => observation.implementationSignature)).size !== 1
+    || JSON.stringify(ordered(observations.map((observation) => observation.objectPath)))
+      !== JSON.stringify(ordered(locatorPaths));
 };
 
 export const staticEvidenceRefs = (

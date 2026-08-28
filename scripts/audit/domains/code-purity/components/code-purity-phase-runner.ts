@@ -27,6 +27,8 @@ type CodePurityPhaseRun = {
   summary: ZombieScanSummary;
   staticCheckReceipts: StaticCheckReceipt[];
 };
+type ZombieScan = ReturnType<typeof scanZombieSurfaces>;
+type StaticCheck = readonly [string, readonly InspectorFinding[], (...args: never[]) => unknown];
 
 const dedupeFindings = (findings: readonly InspectorFinding[]): InspectorFinding[] => {
   const byKey = new Map<string, InspectorFinding>();
@@ -50,6 +52,24 @@ const dedupeInventoryItems = (items: readonly CodePurityInventoryItem[]): CodePu
   return [...byKey.values()];
 };
 
+const scanZombieFilesystem = (scan: ZombieScan): InspectorFinding[] =>
+  scan.findings.filter((finding) => finding.checkId === "code-purity/zombie-file");
+const scanZombieAst = (scan: ZombieScan): InspectorFinding[] => scan.findings.filter((finding) => [
+  "code-purity/commented-out-executable-code", "code-purity/zombie-dead-branch",
+  "code-purity/dead-export-helper-subgraph", "code-purity/dead-internal-declaration-subgraph",
+  "code-purity/runtime-rooted-liveness-unproven",
+].includes(finding.checkId));
+const scanZombieDependencies = (
+  scan: ZombieScan, filesystem: readonly InspectorFinding[], ast: readonly InspectorFinding[],
+): InspectorFinding[] => scan.findings.filter((finding) => !filesystem.includes(finding) && !ast.includes(finding));
+
+const buildStaticCheckReceipts = (
+  lawIds: readonly string[], checks: readonly StaticCheck[],
+): StaticCheckReceipt[] => lawIds.flatMap((lawId) => checks.map(([check, findings, implementation]) => ({
+  check, implementationDigest: staticImplementationDigest(implementation), lawId,
+  passed: findings.every((finding) => finding.lawId !== lawId),
+})));
+
 export const runCodePurityPhases = async (context: InspectorContext): Promise<CodePurityPhaseRun> => {
   const governedFiles = collectCodePurityGovernedFiles(context.project);
   const structuralAst = scanStructuralAstBudgets(governedFiles, context.planEntry.lawIds);
@@ -58,14 +78,9 @@ export const runCodePurityPhases = async (context: InspectorContext): Promise<Co
   const structuralDependencies = scanStructuralDependencyBudgets(governedFiles, context.planEntry.lawIds);
   const ownerBoundaryScan = scanOwnerBoundaries(governedFiles, context.planEntry.lawIds);
   const zombieScan = scanZombieSurfaces(context, governedFiles, context.planEntry.lawIds);
-  const zombieFilesystem = zombieScan.findings.filter((finding) => finding.checkId === "code-purity/zombie-file");
-  const zombieAst = zombieScan.findings.filter((finding) => [
-    "code-purity/commented-out-executable-code", "code-purity/zombie-dead-branch",
-    "code-purity/dead-export-helper-subgraph", "code-purity/dead-internal-declaration-subgraph",
-    "code-purity/runtime-rooted-liveness-unproven",
-  ].includes(finding.checkId));
-  const zombieDependencies = zombieScan.findings.filter((finding) =>
-    !zombieFilesystem.includes(finding) && !zombieAst.includes(finding));
+  const zombieFilesystem = scanZombieFilesystem(zombieScan);
+  const zombieAst = scanZombieAst(zombieScan);
+  const zombieDependencies = scanZombieDependencies(zombieScan, zombieFilesystem, zombieAst);
   const ownerAst = scanOwnerAstRoles(governedFiles, context.planEntry.lawIds);
   const ownerFilesystem = scanOwnerFilesystemAuthority(governedFiles, context.planEntry.lawIds);
   const ownerConfig = scanOwnerConfiguration(context, context.planEntry.lawIds);
@@ -97,7 +112,7 @@ export const runCodePurityPhases = async (context: InspectorContext): Promise<Co
     ...zombieScan.inventoryItems,
   ]);
 
-  const checks = [
+  const checks: readonly StaticCheck[] = [
     ["scanStructuralAstBudgets", structuralAst.findings, scanStructuralAstBudgets],
     ["scanStructuralFilesystemBudgets", structuralFilesystem.findings, scanStructuralFilesystemBudgets],
     ["scanStructuralTypeBudgets", structuralTypes.findings, scanStructuralTypeBudgets],
@@ -108,21 +123,18 @@ export const runCodePurityPhases = async (context: InspectorContext): Promise<Co
     ["scanOwnerConfiguration", ownerConfig, scanOwnerConfiguration],
     ["scanOwnerJsonAuthority", ownerJson, scanOwnerJsonAuthority],
     ["scanOwnerYamlAuthority", ownerYaml, scanOwnerYamlAuthority],
-    ["scanZombieAst", zombieAst, scanZombieSurfaces],
-    ["scanZombieFilesystem", zombieFilesystem, scanZombieSurfaces],
-    ["scanZombieDependencies", zombieDependencies, scanZombieSurfaces],
+    ["scanZombieAst", zombieAst, scanZombieAst],
+    ["scanZombieFilesystem", zombieFilesystem, scanZombieFilesystem],
+    ["scanZombieDependencies", zombieDependencies, scanZombieDependencies],
     ["scanConfiguredEntrypointLiveness", liveConfig, scanConfiguredEntrypointLiveness],
     ["scanJsonRegistryLiveness", liveJson, scanJsonRegistryLiveness],
-  ] as const;
+  ];
 
   return {
     findings: dedupeFindings(findings),
     inspectedFiles: governedFiles.map((governedFile) => governedFile.repoPath),
     inventoryItems,
     summary: zombieScan.summary,
-    staticCheckReceipts: context.planEntry.lawIds.flatMap((lawId) => checks.map(([check, checkFindings, implementation]) => ({
-      check, implementationDigest: staticImplementationDigest(implementation), lawId,
-      passed: checkFindings.every((finding) => finding.lawId !== lawId),
-    }))),
+    staticCheckReceipts: buildStaticCheckReceipts(context.planEntry.lawIds, checks),
   };
 };
