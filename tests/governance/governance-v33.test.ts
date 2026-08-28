@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { dirname, relative, resolve } from 'node:path';
 import test from 'node:test';
 
-import { assertActiveSpecVersionWindows, assertOneActiveMajorPerLawKey, buildRegistry, checkProjection, loadLaws, motherSpecIdentityValid, parseLawSource, verifyEntry, verifyProductionOwnership } from '../../scripts/audit/governance-authority.js';
+import { assertActiveSpecVersionWindows, assertOneActiveMajorPerLawKey, buildRegistry, checkProjection, loadLaws, motherSpecIdentityValid, parseLawSource, verifyEntry, verifyGovernanceCommandSurface, verifyProductionOwnership } from '../../scripts/audit/governance-authority.js';
 import { assertLawMajorVersionChanges, assertProviderContractVersionChanges } from '../../scripts/audit/governance-change-authority.js';
 import { assertProductionDeleteAuthorization } from '../../scripts/audit/governance.js';
 import { assertNoCaseCollision, GovernanceError } from '../../scripts/audit/governance-runtime.js';
@@ -127,8 +127,14 @@ test('V3.3 entry has one public command surface and no freeze sidecar', () => {
   verifyEntry();
   assert.equal(existsSync('docs/governance/GOVERNANCE-FREEZE.json'), false);
   const scripts = (JSON.parse(readFileSync('package.json', 'utf8')) as { scripts: Record<string, string> }).scripts;
-  const publicGovernance = Object.keys(scripts).filter((name) => name === 'quality:check' || name.startsWith('audit:') || name.startsWith('governance:') || name === 'ci:full' || name.startsWith('exam:')).sort();
-  assert.deepEqual(publicGovernance, ['audit:build', 'audit:projection:check', 'quality:check']);
+  assert.doesNotThrow(() => verifyGovernanceCommandSurface(scripts));
+  for (const [name, command] of [
+    ['verify:ready', 'npm run quality:check -- READY'],
+    ['verify:indirect', 'npm run verify:ready'],
+    ['verify:direct', 'node --import tsx scripts/audit/governance.ts quality READY'],
+    ['verify:yarn', 'yarn quality:check -- READY'],
+  ]) assert.throws(() => verifyGovernanceCommandSurface({ ...scripts, 'verify:ready': 'npm run quality:check -- READY', [name]: command }),
+    (error: unknown) => error instanceof GovernanceError && error.code === 'ENTRY_CONTRACT_MISMATCH');
 });
 
 test('quality report isolation rejects removed, narrowed, and tracked report mutants', () => {

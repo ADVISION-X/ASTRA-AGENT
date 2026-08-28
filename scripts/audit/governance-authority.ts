@@ -30,6 +30,16 @@ const verifyRegistrySourceAuthority = (): void => {
   if (text('AGENTS.md') !== AGENTS_EXACT) fail('ENTRY_CONTRACT_MISMATCH', 'AGENTS.md');
 };
 export const motherSpecIdentityValid = (source: string): boolean => source.startsWith(MOTHER_SPEC_IDENTITY_HEADER);
+const GOVERNANCE_COMMANDS = new Map<string, string>([['audit:build', 'node --import tsx scripts/audit/governance.ts build'], ['audit:projection:check', 'node --import tsx scripts/audit/governance.ts projection'], ['quality:check', 'node --import tsx scripts/audit/governance.ts quality']]);
+const npmRunTargets = (command: string): string[] => [...command.matchAll(/\bnpm(?:\s+--[^\s]+)*\s+run(?:-script)?\s+['"]?([A-Za-z0-9:_-]+)/gu)].map((match) => match[1]!);
+const reachesGovernanceEntry = (name: string, scripts: Record<string, string>, seen = new Set<string>()): boolean => {
+  if (GOVERNANCE_COMMANDS.has(name)) return true;if (seen.has(name)) return false;seen.add(name);
+  const command = scripts[name] ?? '';return [...GOVERNANCE_COMMANDS.keys()].some((entry) => command.includes(entry)) || /(?:^|[\s'"/])scripts\/audit\/governance\.(?:ts|js)\b/u.test(command) || npmRunTargets(command).some((target) => reachesGovernanceEntry(target, scripts, seen));
+};
+export const verifyGovernanceCommandSurface = (scripts: Record<string, string>): void => { const entries = Object.keys(scripts).filter((name) => name.startsWith('audit:') || name.startsWith('governance:') || name === 'ci:full' || name.startsWith('exam:') || reachesGovernanceEntry(name, scripts)).sort(byteCompare);
+  if (JSON.stringify(entries) !== JSON.stringify([...GOVERNANCE_COMMANDS.keys()])) fail('ENTRY_CONTRACT_MISMATCH', `public commands ${entries.join(',')}`);
+  for (const [name, command] of GOVERNANCE_COMMANDS) if (scripts[name] !== command) fail('ENTRY_CONTRACT_MISMATCH', 'command identity');
+};
 const verifyQualityReportIsolation = (): void => {
   for (const probe of [REPORT, `${REPORT}.tmp-probe`, 'scripts/audit/reports/nested/probe.json']) {
     try {
@@ -47,11 +57,7 @@ export function verifyEntry(): void {
   verifyQualityReportIsolation();
   if (existsSync(resolve(ROOT, 'docs/governance/GOVERNANCE-FREEZE.json'))) fail('GENERATED_FILESET_INVALID', 'retired freeze record');
   const scripts = parseJson<{ scripts?: Record<string, string> }>('package.json').scripts ?? {};
-  const publicGovernance = Object.keys(scripts).filter((name) => name === 'quality:check' || name.startsWith('audit:') || name.startsWith('governance:') || name === 'ci:full' || name.startsWith('exam:')).sort(byteCompare);
-  if (JSON.stringify(publicGovernance) !== JSON.stringify(['audit:build', 'audit:projection:check', 'quality:check'])) fail('ENTRY_CONTRACT_MISMATCH', `public commands ${publicGovernance.join(',')}`);
-  if (scripts['audit:build'] !== 'node --import tsx scripts/audit/governance.ts build'
-    || scripts['audit:projection:check'] !== 'node --import tsx scripts/audit/governance.ts projection'
-    || scripts['quality:check'] !== 'node --import tsx scripts/audit/governance.ts quality') fail('ENTRY_CONTRACT_MISMATCH', 'command identity');
+  verifyGovernanceCommandSurface(scripts);
 }
 type ParsedLaw = Omit<Law, 'source' | 'contractRefs'>;
 type LawParserState = { domain: string; headingId: string; headingLine: number; priorDomain: string; priorLawOrder: string };
@@ -71,7 +77,6 @@ const lawTextValid = (raw: ParsedLaw): boolean => cleanString(raw.summary)
   && !/(建议|尽量|可能|一般|视情况|原则上)/u.test(raw.summary);
 const hasContainedRedundancy = (values: readonly string[]): boolean => values.some((value, index) =>
   values.some((other, otherIndex) => index !== otherIndex && pathPatternContains(other, value)));
-
 const lawListsValid = (raw: ParsedLaw, documentType: 'base-law' | 'functional-law'): boolean => {
   for (const field of ['appliesTo', 'excludes', 'dependsOnLawIds'] as const) {
     if (!isStringArray(raw[field]) || !sortedUnique(raw[field]) || raw[field].some((value) => !cleanString(value))) return false;
