@@ -22,6 +22,10 @@
         "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
         "docs/specs/agent-production-runtime/**",
         "scripts/acceptance/agent-product-skills.acceptance.ts",
+        "scripts/acceptance/agent-production-runtime-continuation.acceptance.ts",
+        "scripts/acceptance/agent-production-runtime-fixtures.ts",
+        "scripts/acceptance/agent-production-runtime-ledger.acceptance.ts",
+        "scripts/acceptance/agent-production-runtime-startup.acceptance.ts",
         "scripts/acceptance/agent-production-runtime.acceptance.ts",
         "scripts/acceptance/agent-production-runtime.real-proof-cleanup.ts",
         "scripts/acceptance/agent-production-runtime.real-proof.ts",
@@ -113,6 +117,8 @@
         "scripts/audit/domains/code-purity/**",
         "scripts/audit/governance-authority.ts",
         "scripts/audit/governance-change-authority.ts",
+        "scripts/audit/governance-contract.ts",
+        "scripts/audit/governance-git-state.ts",
         "scripts/audit/governance-json.ts",
         "scripts/audit/governance-local-spec-contract.ts",
         "scripts/audit/governance-runtime.ts",
@@ -150,6 +156,7 @@
       ],
       "ownedPaths": [
         "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V1-BLUEPRINT.md",
+        "scripts/acceptance/gpt-exact-target-browser-fixture.ts",
         "scripts/acceptance/gpt-exact-target.acceptance.ts",
         "scripts/audit/domains/gpt/**",
         "src/capabilities/gpt/**"

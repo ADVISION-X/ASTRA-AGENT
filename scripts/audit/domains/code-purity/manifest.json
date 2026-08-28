@@ -20,6 +20,8 @@
     "scripts/audit/domains/code-purity/**",
     "scripts/audit/governance-authority.ts",
     "scripts/audit/governance-change-authority.ts",
+    "scripts/audit/governance-contract.ts",
+    "scripts/audit/governance-git-state.ts",
     "scripts/audit/governance-json.ts",
     "scripts/audit/governance-local-spec-contract.ts",
     "scripts/audit/governance-runtime.ts",
