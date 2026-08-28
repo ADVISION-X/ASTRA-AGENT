@@ -249,7 +249,8 @@ export class BrowserCommandActor {
     if (!state.dispatched) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     const result = mutationReceipt(command, reply.result);
     const replyHash = hashValue(reply.result);
-    this.mutations[result === "rejected" ? "markRejected" : "markConfirmed"](permit.commandId, replyHash);
+    if (result === "rejected") this.mutations.markRejected(permit.commandId, replyHash);
+    else this.mutations.markConfirmed(permit.commandId, replyHash);
     emitBrowserMutationState({
       runtimeLogger: this.runtimeLogger, mutation: permit, previous: "DISPATCHED",
       current: result === "rejected" ? "REJECTED" : "CONFIRMED",

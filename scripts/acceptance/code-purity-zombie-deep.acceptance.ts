@@ -123,6 +123,7 @@ const forbidden: Array<[string, ExpectedFinding]> = [
   ["total-typed-registry-spread", { checkId: "code-purity/object-bag-unused-property" }],
   ["typed-catalog-indirect-property", { checkId: "code-purity/object-bag-unused-property", symbolName: "executeRunner" }],
   ["eager-destructured-initializer", { checkId: "code-purity/zombie-top-level-declaration", symbolName: "liveValue" }],
+  ["runtime-extends-import", { checkId: "code-purity/zombie-export", symbolName: "RuntimeBase" }],
 ];
 
 assert.equal(resolveCodePurityOwner("scripts/generate/sync.ts"), "agent-production-runtime");

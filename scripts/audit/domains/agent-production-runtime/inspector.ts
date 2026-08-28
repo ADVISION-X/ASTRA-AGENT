@@ -2,15 +2,8 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding } from "../../shared/finding-utils.js";
-import type {
-  InspectorContext,
-  InspectorEvaluation,
-  InspectorFinding,
-  SessionInspectorOutput,
-} from "../../shared/inspector-contracts.js";
-import {
-  recordStaticCheck,
-} from "../../shared/static-inspection-contract.js";
+import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import { recordStaticCheck } from "../../shared/static-inspection-contract.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
 const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V6";
 const PLUGIN_ROOT = "src/plugins";

@@ -120,10 +120,12 @@ export const isZombieTypePosition = (node: MorphNode): boolean => {
     return true;
   }
 
+  const heritage = node.getAncestors().find(Node.isHeritageClause);
+  if (heritage) {
+    return heritage.getToken() === SyntaxKind.ImplementsKeyword;
+  }
+
   for (const ancestor of node.getAncestors()) {
-    if (Node.isHeritageClause(ancestor)) {
-      return ancestor.getToken() === SyntaxKind.ImplementsKeyword;
-    }
     if (ts.isTypeNode(ancestor.compilerNode)) {
       return true;
     }

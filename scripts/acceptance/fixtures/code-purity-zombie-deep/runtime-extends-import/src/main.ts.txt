@@ -1,0 +1,5 @@
+import { RuntimeBase } from "./runtime-base.js";
+
+class RuntimeOwner extends RuntimeBase {}
+
+console.log(new RuntimeOwner().state);

@@ -47,6 +47,10 @@ const RETIRED_PATHS = [
   "src/lib/runtime-logs/trace-context.ts",
 ] as const;
 const REQUIRED_CORE_PATHS = [
+  "src/lib/runtime-logs/diagnosis-authority.ts",
+  "src/lib/runtime-logs/diagnosis-contract.ts",
+  "src/lib/runtime-logs/diagnosis-source.ts",
+  "src/lib/runtime-logs/diagnosis-state.ts",
   "src/lib/runtime-logs/diagnosis.ts",
   "src/lib/runtime-logs/failure.ts",
   "src/lib/runtime-logs/index.ts",
@@ -54,6 +58,9 @@ const REQUIRED_CORE_PATHS = [
   "src/lib/runtime-logs/logger.ts",
   "src/lib/runtime-logs/mode.ts",
   "src/lib/runtime-logs/redaction.ts",
+  "src/lib/runtime-logs/runtime-event-contract.ts",
+  "src/lib/runtime-logs/runtime-failure-contract.ts",
+  "src/lib/runtime-logs/runtime-identity-contract.ts",
   "src/lib/runtime-logs/schema.ts",
   "src/lib/runtime-logs/sinks.ts",
 ] as const;
@@ -140,18 +147,32 @@ const inspectOperationalAst = (context: InspectorContext): InspectorFinding[] =>
     ));
   }
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "production-boundaries",
-    "src/lib/local-runtime/production/runtime.ts", [
-      "operation: \"job.execute\"", "operation: \"job.durable-accept\"",
-      "operation: \"job.checkpoint\"", "operation: \"job.lease-renew\"", "operation: \"job.lease-release\"",
-      "operation: \"material.download-verify\"", "operation: \"result.upload\"",
-      "operation: \"job.terminal\"", "operation: \"cloud.claim\"", "operation: \"cloud.session-open\"",
-      "operation: \"outbox.flush\"", "operation: \"runtime.start\"", "operation: \"runtime.shutdown\"",
-      "state.runtimeLogger.isWritable()", "requireRuntimeLogWrite",
+    "src/lib/local-runtime/production/runtime-claim.ts", [
+      "operation: \"job.execute\"", "operation: \"job.durable-accept\"", "operation: \"job.lease-renew\"",
+      "operation: \"material.download-verify\"", "operation: \"result.upload\"", "operation: \"job.terminal\"",
+      "requireRuntimeLogWrite",
+    ]);
+  requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "production-boundaries",
+    "src/lib/local-runtime/production/runtime-logging.ts", [
+      "operation: \"job.checkpoint\"", "operation: \"job.lease-release\"", "requireRuntimeLogWrite",
+    ]);
+  requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "production-boundaries",
+    "src/lib/local-runtime/production/runtime-loops.ts", [
+      "operation: \"cloud.claim\"", "operation: \"outbox.flush\"", "state.runtimeLogger.isWritable()",
+      "requireRuntimeLogWrite",
+    ]);
+  requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "production-boundaries",
+    "src/lib/local-runtime/production/runtime-startup.ts", [
+      "operation: \"cloud.session-open\"", "operation: \"runtime.start\"", "operation: \"runtime.shutdown\"",
+      "requireRuntimeLogWrite",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "executor-boundaries",
     "src/lib/local-runtime/production/executor.ts", [
-      "operation: \"plugin.execute\"", "operation: \"gpt.child\"", "parentSpanId",
-      "causedByEventId", "requireRuntimeLogWrite",
+      "operation: \"plugin.execute\"", "parentSpanId", "causedByEventId", "requireRuntimeLogWrite",
+    ]);
+  requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "executor-boundaries",
+    "src/lib/local-runtime/production/production-gpt-executor.ts", [
+      "operation: \"gpt.child\"", "parentSpanId", "requireRuntimeLogWrite",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "producer-boundaries",
     "src/lib/browser/exact-target/browser-command-runtime-logging.ts", [
@@ -163,9 +184,12 @@ const inspectOperationalAst = (context: InspectorContext): InspectorFinding[] =>
       "operation: \"startup.step\"", "STARTUP_STEPS", "failOpenStartupSteps",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "durable-state-authorities",
-    "src/lib/local-runtime/production/store.ts", [
-      "production_checkpoints", "production_leases", "failure_code",
-      "production-outbox:", "resolveStoredProductionAuthority",
+    "src/lib/local-runtime/production/store-foundation.ts", [
+      "production_checkpoints", "production_leases", "failure_code", "production-outbox:",
+    ]);
+  requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "durable-state-authorities",
+    "src/lib/local-runtime/production/store-authority-reader.ts", [
+      "resolveStoredProductionAuthority",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "readonly-authority-resolution",
     "scripts/runtime-logs/inspect.ts", [
@@ -177,12 +201,16 @@ const inspectOperationalAst = (context: InspectorContext): InspectorFinding[] =>
 const inspectOperationalContract = (context: InspectorContext): InspectorFinding[] => {
   const findings: InspectorFinding[] = [];
   requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "diagnosis-output",
-    "src/lib/runtime-logs/diagnosis.ts", [
+    "src/lib/runtime-logs/diagnosis-contract.ts", [
       "DIAGNOSIS_COMPLETE", "DIAGNOSIS_INCOMPLETE", "blockingRoots", "lastSuccessfulActions",
-      "currentStates", "openSpans", "interruptedSpans", "mutationState", "recoveries",
-      "authorityRefs", "AUTHORITY_REF_UNVERIFIED", "AUTHORITY_STATE_MISMATCH", "PRODUCER_STALE",
-      "BOUNDARY_SOURCE_INCOMPLETE", "BOUNDARY_TRACE_MISMATCH",
+      "currentStates", "openSpans", "interruptedSpans", "mutationState", "recoveries", "authorityRefs",
     ]);
+  requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "diagnosis-output",
+    "src/lib/runtime-logs/diagnosis-authority.ts", ["AUTHORITY_REF_UNVERIFIED", "AUTHORITY_STATE_MISMATCH"]);
+  requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "diagnosis-output",
+    "src/lib/runtime-logs/diagnosis-state.ts", ["PRODUCER_STALE"]);
+  requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "diagnosis-output",
+    "src/lib/runtime-logs/diagnosis.ts", ["BOUNDARY_SOURCE_INCOMPLETE", "BOUNDARY_TRACE_MISMATCH"]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "failure-truth",
     "src/lib/runtime-logs/failure.ts", [
       "knownNativeCause", "record.cause", "record.httpStatus", "RuntimeFailureKind.TRANSPORT",
@@ -247,32 +275,33 @@ const inspectStructureAst = (context: InspectorContext): InspectorFinding[] => {
     "src/lib/browser/exact-target/browser-command-actor.ts", [
       "this.mutations.prepare", "current: \"PREPARED\"", "this.mutations.markDispatched",
       "current: \"DISPATCHED\"", "this.mutations.markReceiptMissing", "this.mutations.markRejected",
-      "current: \"REJECTED\"", "this.mutations.markConfirmed", "current: \"CONFIRMED\"",
-      "this.mutations.markFailedBeforeDispatch", "current: \"FAILED\"",
+      "this.mutations.markConfirmed", "this.mutations.markFailedBeforeDispatch",
       "this.mutations.resolve", "current: state",
     ]);
   const actorPath = resolve(context.sealedRoot, "src/lib/browser/exact-target/browser-command-actor.ts");
   const actorSource = context.project.getSourceFile(actorPath);
   const actorClass = actorSource?.getClass("BrowserCommandActor");
-  const calls = actorClass?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
-  for (const [first, second] of [
-    ["this.mutations.prepare", "current: \"PREPARED\""],
-    ["this.mutations.markDispatched", "current: \"DISPATCHED\""],
-    ["this.mutations.markReceiptMissing", "current: \"DISPATCHED\""],
-    ["this.mutations.markRejected", "current: \"REJECTED\""],
-    ["this.mutations.markConfirmed", "current: \"CONFIRMED\""],
-    ["this.mutations.markFailedBeforeDispatch", "current: \"FAILED\""],
-    ["this.mutations.resolve", "current: state"],
+  for (const [methodName, authorityCalls, emission] of [
+    ["prepareMutation", ["this.mutations.prepare"], "current: \"PREPARED\""],
+    ["execute", ["this.mutations.markDispatched"], "current: \"DISPATCHED\""],
+    ["completeMutation", ["this.mutations.markRejected", "this.mutations.markConfirmed"],
+      "current: result === \"rejected\" ? \"REJECTED\" : \"CONFIRMED\""],
+    ["failExecution", ["this.mutations.markReceiptMissing", "this.mutations.markFailedBeforeDispatch"],
+      "current: state.dispatched ? \"DISPATCHED\" : \"FAILED\""],
+    ["resolveDispatchedMutation", ["this.mutations.resolve"], "current: state"],
   ] as const) {
-    const authorities = calls.filter((call) => call.getExpression().getText() === first);
-    const ordered = authorities.length > 0 && authorities.every((authorityCall) => calls.some((call) =>
-      call.getStart() > authorityCall.getStart()
-      && call.getExpression().getText() === "emitBrowserMutationState"
-      && call.getText().includes(second)));
-    if (!ordered) findings.push(finding(
-      LAW_STRUCTURE, "static.ast", "wal-before-log", "src/lib/browser/exact-target/browser-command-actor.ts",
-      `Browser mutation log precedes its WAL authority transition: ${first}.`,
-    ));
+    const calls = actorClass?.getMethod(methodName)?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
+    const emissionCalls = calls.filter((call) => call.getExpression().getText() === "emitBrowserMutationState"
+      && call.getText().includes(emission));
+    for (const authorityName of authorityCalls) {
+      const authorities = calls.filter((call) => call.getExpression().getText() === authorityName);
+      const transitionOrdered = authorities.length === 1 && authorities.every((authorityCall) =>
+        emissionCalls.some((call) => call.getStart() > authorityCall.getStart()));
+      if (!transitionOrdered) findings.push(finding(
+        LAW_STRUCTURE, "static.ast", "wal-before-log", "src/lib/browser/exact-target/browser-command-actor.ts",
+        `Browser mutation log precedes its WAL authority transition: ${authorityName}.`,
+      ));
+    }
   }
   return findings;
 };
@@ -285,11 +314,13 @@ const inspectStructureContract = (context: InspectorContext): InspectorFinding[]
     ));
   }
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "closed-event-union",
-    "src/lib/runtime-logs/schema.ts", [
+    "src/lib/runtime-logs/runtime-event-contract.ts", [
       "type: \"SPAN\"", "phase: \"started\"", "phase: \"terminal\"", "type: \"STATE\"",
       "RuntimeLogEventV2", "typedIdentity", "producerSeq", "previousEventHash", "eventHash",
-      "causedByEventId", "authorityRef", "authorityHash", "RuntimeLogWriteResult",
+      "authorityRef", "authorityHash", "RuntimeLogWriteResult",
     ]);
+  requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "closed-event-union",
+    "src/lib/runtime-logs/runtime-failure-contract.ts", ["causedByEventId"]);
   const schema = read(context, "src/lib/runtime-logs/schema.ts");
   for (const forbidden of ["payload:", "metrics:", "retryable:", "level:", "message:", "truthRef"]) {
     if (schema.includes(forbidden)) findings.push(finding(
@@ -306,13 +337,13 @@ const inspectStructureContract = (context: InspectorContext): InspectorFinding[]
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "unique-diagnosis-cli",
     "scripts/runtime-logs/inspect.ts", ["--job", "--source", "sources", "DIAGNOSIS_COMPLETE"]);
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "authority-reconciliation",
-    "src/lib/local-runtime/production/runtime.ts", ["taskAuthorities()", "outboxAuthorities()", "reconciledFromAuthority: true"]);
+    "src/lib/local-runtime/production/runtime-startup.ts", ["taskAuthorities()", "outboxAuthorities()", "reconciledFromAuthority: true"]);
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "browser-authority-reconciliation",
     "src/lib/browser/exact-target/browser-mutation-store.ts", ["reconciliationStates()", "from browser_mutations order by updated_at,command_id"]);
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "strict-reader",
     "src/lib/runtime-logs/schema.ts", ["exactKeys", "runtimeLogEventShapeValid", "failureValid"]);
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "active-source-layout",
-    "src/lib/runtime-logs/diagnosis.ts", [
+    "src/lib/runtime-logs/diagnosis-source.ts", [
       "activeJsonlFiles", "^.+-[0-9]{4}\\.jsonl$", "ACTIVE_SEGMENT_NAME_INVALID", "ACTIVE_SOURCE_LAYOUT_INVALID",
     ]);
   return findings;
