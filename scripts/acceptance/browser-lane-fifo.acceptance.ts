@@ -14,11 +14,11 @@ import {
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 
 const HASH = `sha256:${"a".repeat(64)}` as const;
-const binding = (jobId: string, pluginStepId = "fixture-step"): BrowserExecutionBinding => ({
+const binding = (jobId: string, productStepId = "fixture-step"): BrowserExecutionBinding => ({
   kind: "production",
   ownerPluginId: "plugin",
   jobId,
-  pluginStepId,
+  productStepId,
   attemptId: `attempt:${jobId}`,
   deviceId: "device:1",
   leaseVersion: 1,
@@ -53,7 +53,7 @@ const fixtureLease = (
   document: { documentRef, targetRef, navigationEpoch: 1 },
   async runAtomicStep(_identity, action) { return action(); },
   readAtomicStepRecovery: () => null,
-  requiresTurnRecovery: () => false,
+  requiresMutationRecovery: () => false,
   async navigate() { throw new Error("FIXTURE_NAVIGATION_FORBIDDEN"); },
   async executeDomIntent() { throw new Error("FIXTURE_DOM_INTENT_FORBIDDEN"); },
   async observeCapability() { throw new Error("FIXTURE_CAPABILITY_FORBIDDEN"); },
@@ -89,10 +89,9 @@ try {
     attemptId: "attempt:historic",
     leaseVersion: 1,
     executionFenceHash: HASH,
-    pluginStepId: "historic-step",
+    productStepId: "historic-step",
     childCapabilityId: "open_gpt_model_selector_v2",
-    flowVersion: "gpt-turn-flow.v3",
-    stepIndex: 3,
+    callId: "gpt-turn-flow.v3",
     effectScope: "target_local",
     actionOrdinal: 1,
     targetRef: "target:historic",

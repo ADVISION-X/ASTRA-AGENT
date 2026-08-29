@@ -62,6 +62,7 @@ export type ProductGptCallRequest = Readonly<{
   same_conversation_as?: ProviderTurnResult;
   use_task_continuation?: boolean;
   continuation_source_plugin_ids?: readonly string[];
+  persist_continuation?: boolean;
 }>;
 
 export type ProductGptChildResult = Readonly<{
@@ -79,6 +80,7 @@ export interface ProductGptTools {
     actionOrdinal: number;
     input: Readonly<Record<string, unknown>>;
   }>): Promise<ProductGptChildResult>;
+  finishCall(productStepId: string, callId: string): Promise<void>;
 }
 
 export interface ProductPluginOutput {

@@ -65,8 +65,7 @@ try {
     commandId: "command-1", logicalMutationId, ownerPluginId: "fixture-product-plugin",
     jobId: "job-1", attemptId: "attempt-1", leaseVersion: 1,
     executionFenceHash: hash, targetRef: "target-1", documentRef: "document-1",
-    pluginStepId: "step-1", childCapabilityId: "open_gpt_model_selector_v2",
-    flowVersion: "gpt-turn-flow.v3", stepIndex: 3, effectScope: "target_local", actionOrdinal: 1,
+    productStepId: "step-1", childCapabilityId: "open_gpt_model_selector_v2",
     actionId: "browser.dom.click.v1", positivePostconditionHash: hash,
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
   });
@@ -77,8 +76,7 @@ try {
     commandId: "command-retry", logicalMutationId, ownerPluginId: "fixture-product-plugin",
     jobId: "job-1", attemptId: "attempt-2", leaseVersion: 2,
     executionFenceHash: hash, targetRef: "target-1", documentRef: "document-1",
-    pluginStepId: "step-1", childCapabilityId: "open_gpt_model_selector_v2",
-    flowVersion: "gpt-turn-flow.v3", stepIndex: 3, effectScope: "target_local", actionOrdinal: 1,
+    productStepId: "step-1", childCapabilityId: "open_gpt_model_selector_v2",
     actionId: "browser.dom.click.v1", positivePostconditionHash: hash,
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
   }), /BROWSER_LOGICAL_MUTATION_REPLAY_FORBIDDEN/u);
@@ -86,25 +84,22 @@ try {
   assert.throws(() => store.resolve({ commandId: "command-1", ownerPluginId: "fixture-product-plugin", targetRef: "target-2", state: "CONFIRMED", proofHash: hash }), /BROWSER_MUTATION_STATE_CONFLICT/u);
   assert.equal(store.readDispatched("command-1")?.childCapabilityId, "open_gpt_model_selector_v2");
   assert.equal(store.atomicStepRecovery({
-    jobId: "job-1", ownerPluginId: "fixture-product-plugin", pluginStepId: "step-1",
-    childCapabilityId: "open_gpt_model_selector_v2", flowVersion: "gpt-turn-flow.v3", stepIndex: 3,
+    jobId: "job-1", ownerPluginId: "fixture-product-plugin", productStepId: "step-1",
     inputHash: hash, actionOrdinal: 1, targetRef: "target-1", effectScope: "target_local",
   })?.state, "dispatched");
   assert.equal(store.atomicStepRecovery({
-    jobId: "job-1", ownerPluginId: "fixture-product-plugin", pluginStepId: "step-1",
-    childCapabilityId: "open_gpt_model_selector_v2", flowVersion: "gpt-turn-flow.v3", stepIndex: 3,
+    jobId: "job-1", ownerPluginId: "fixture-product-plugin", productStepId: "step-1",
     inputHash: hash, actionOrdinal: 1, targetRef: "target-2", effectScope: "target_local",
   }), null, "target-local recovery identity must not cross Target generations");
   store.resolve({ commandId: "command-1", ownerPluginId: "fixture-product-plugin", targetRef: "target-1", state: "REJECTED", proofHash: hash });
-  assert.equal(store.turnRecoveryScope({
-    jobId: "job-1", ownerPluginId: "fixture-product-plugin", pluginStepId: "step-1",
+  assert.equal(store.callRecoveryScope({
+    jobId: "job-1", ownerPluginId: "fixture-product-plugin", productStepId: "step-1",
   }), null, "a target-local REJECTED action must not preserve and globally block the old Target");
   store.prepare({
     commandId: "command-new-target", logicalMutationId: `sha256:${"e".repeat(64)}`,
     ownerPluginId: "fixture-product-plugin", jobId: "job-1", attemptId: "attempt-2", leaseVersion: 2,
     executionFenceHash: hash, targetRef: "target-2", documentRef: "document-2",
-    pluginStepId: "step-1", childCapabilityId: "open_gpt_model_selector_v2",
-    flowVersion: "gpt-turn-flow.v3", stepIndex: 3, effectScope: "target_local", actionOrdinal: 1,
+    productStepId: "step-1", childCapabilityId: "open_gpt_model_selector_v2",
     actionId: "browser.dom.click.v1", positivePostconditionHash: hash,
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
   });
@@ -114,16 +109,14 @@ try {
     commandId: "command-provider-effect", logicalMutationId: `sha256:${"f".repeat(64)}`,
     ownerPluginId: "fixture-product-plugin", jobId: "job-1", attemptId: "attempt-2", leaseVersion: 2,
     executionFenceHash: hash, targetRef: "target-2", documentRef: "document-2",
-    pluginStepId: "step-provider", childCapabilityId: "submit_exact_gpt_turn_once",
-    flowVersion: "gpt-turn-flow.v3", stepIndex: 12, effectScope: "provider_effect", actionOrdinal: 13,
+    productStepId: "step-provider", childCapabilityId: "submit_exact_gpt_turn_once",
     actionId: "browser.dom.click.v1", positivePostconditionHash: hash,
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
   });
   store.markDispatched("command-provider-effect");
   store.markConfirmed("command-provider-effect", hash);
   assert.equal(store.atomicStepRecovery({
-    jobId: "job-1", ownerPluginId: "fixture-product-plugin", pluginStepId: "step-provider",
-    childCapabilityId: "submit_exact_gpt_turn_once", flowVersion: "gpt-turn-flow.v3", stepIndex: 12,
+    jobId: "job-1", ownerPluginId: "fixture-product-plugin", productStepId: "step-provider",
     inputHash: hash, actionOrdinal: 13, targetRef: "target-replacement", effectScope: "provider_effect",
   })?.state, "confirmed", "provider effects must recover across Target/attempt generations without replay");
   store.close();

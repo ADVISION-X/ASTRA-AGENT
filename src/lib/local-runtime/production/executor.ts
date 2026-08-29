@@ -12,7 +12,7 @@ import type {
   DurablePluginIdentity, LocalProductionMaterial, ProductionHash, WebsiteAgentResult, WebsiteAgentTask,
 } from "./contracts.js";
 import type { ProductPluginOutput } from "./plugin.js";
-import { ProductionGptExecutor } from "./production-gpt-executor.js";
+import { ProductionGptChildTools, type ProductGptExecution } from "./production-gpt-child-tools.js";
 import { assertProductionTaskRoutePolicy } from "./route-policy.js";
 import { ProductionRuntimeStore, type StoredProductionTask } from "./store.js";
 
@@ -61,7 +61,7 @@ const pluginIdentity = (task: WebsiteAgentTask): DurablePluginIdentity => {
 };
 
 export class ProductionExecutor {
-  private readonly gptExecutor: ProductionGptExecutor;
+  private readonly gptChildTools: ProductionGptChildTools;
 
   public constructor(
     private readonly store: ProductionRuntimeStore,
@@ -74,7 +74,7 @@ export class ProductionExecutor {
       browserAuthority: WorkbenchBrowserAuthority;
     }>,
   ) {
-    this.gptExecutor = new ProductionGptExecutor(
+    this.gptChildTools = new ProductionGptChildTools(
       input.dataDir, input.sourceHash, input.gpt, input.evidenceStore,
       input.browserAuthority, store, runtimeLogger,
     );
@@ -130,24 +130,43 @@ export class ProductionExecutor {
     complete: (output: ProductPluginOutput, continuationRef: string | null) => Promise<WebsiteAgentResult>;
   }>): Promise<WebsiteAgentResult> {
     let completed = false;
-    const result = await dispatchWebsiteAgentTask(input.task, (authorized) => ({
-      materials: input.materials,
-      runTurn: (turn) => this.gptExecutor.runTurn({
-          task: authorized.task, pluginId: authorized.plugin.pluginId,
-          skillHash: authorized.skillHash, skillText: authorized.skillText,
-          materials: input.materials, lease: input.lease, parentSpanId: input.span.spanId, turn,
-        }),
-      complete: async (output) => {
-        if (completed) throw new Error("PLUGIN_RESULT_ALREADY_COMPLETED");
-        authorized.plugin.parseResult(authorized.task, output.payload, "draft");
-        const continuationRef = await this.gptExecutor.persistContinuation(
-          authorized.task, authorized.plugin.pluginId, output, input.lease, input.span.spanId,
-        );
-        const envelope = await input.complete(output, continuationRef);
-        completed = true;
-        return envelope;
-      },
-    }));
+    let gptExecution: ProductGptExecution | null = null;
+    let settleGptExecution: ((error: unknown | null) => Promise<void>) | null = null;
+    let primaryError: unknown = null;
+    let result: WebsiteAgentResult;
+    try {
+      result = await dispatchWebsiteAgentTask(input.task, (authorized) => {
+        gptExecution = this.gptChildTools.createExecution({
+          task: authorized.task,
+          pluginId: authorized.plugin.pluginId,
+          pluginVersion: authorized.plugin.pluginVersion,
+          lease: input.lease,
+          parentSpanId: input.span.spanId,
+        });
+        settleGptExecution = gptExecution.settle;
+        return {
+          materials: input.materials,
+          gpt: gptExecution.tools,
+          complete: async (output) => {
+            if (completed) throw new Error("PLUGIN_RESULT_ALREADY_COMPLETED");
+            authorized.plugin.parseResult(authorized.task, output.payload, "draft");
+            const envelope = await input.complete(output, gptExecution!.continuationRef());
+            completed = true;
+            return envelope;
+          },
+        };
+      });
+    } catch (error) {
+      primaryError = error;
+      throw error;
+    } finally {
+      try {
+        if (settleGptExecution) await settleGptExecution(primaryError);
+      } catch (settleError) {
+        if (primaryError === null) throw settleError;
+        throw new AggregateError([primaryError, settleError], "GPT_BROWSER_LIFECYCLE_FAILED");
+      }
+    }
     if (!completed) throw new Error("PLUGIN_RESULT_NOT_COMPLETED");
     return result;
   }

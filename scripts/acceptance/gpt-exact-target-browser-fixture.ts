@@ -50,7 +50,7 @@ const createFakeBrowserLease = (
   },
   async runAtomicStep(_identity, action) { return action(); },
   readAtomicStepRecovery: () => null,
-  requiresTurnRecovery: () => state.pending > 0,
+  requiresMutationRecovery: () => state.pending > 0,
   async navigate(navigation: Readonly<{ url: string }>) {
     state.physicalMutations += 1;
     state.url = navigation.url;
