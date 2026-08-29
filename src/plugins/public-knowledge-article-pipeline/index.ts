@@ -31,21 +31,6 @@ const MODEL_PROFILE = buildGptExecutionProfile({
   acceptanceVersion: "v1",
 });
 const WAIT_TIMEOUT_MS = 3_600_000;
-const CHILD_SETTLE_DELAY_MS = 5_000;
-
-let seoProductExecutionTail: Promise<void> = Promise.resolve();
-
-const runSeoProductExecutionExclusive = async <T>(operation: () => Promise<T>): Promise<T> => {
-  const predecessor = seoProductExecutionTail;
-  let release!: () => void;
-  seoProductExecutionTail = new Promise<void>((resolve) => { release = resolve; });
-  await predecessor;
-  try {
-    return await operation();
-  } finally {
-    release();
-  }
-};
 
 type SeoChild = ProductGptTools["execute"];
 type SeoTurnCheckpoint = Readonly<{
@@ -144,7 +129,6 @@ const createSeoExecutor = (task: WebsiteAgentTask, context: SharedExecutionConte
   const execute: SeoChild = async (input) => {
     const result = await context.gpt.execute({ ...input, sessionKey, actionOrdinal: ++actionOrdinal });
     evidenceRefs.push(result.evidenceRef);
-    await new Promise<void>((resolve) => { setTimeout(resolve, CHILD_SETTLE_DELAY_MS); });
     return result;
   };
   return Object.freeze({ evidenceRefs, execute });
@@ -152,9 +136,9 @@ const createSeoExecutor = (task: WebsiteAgentTask, context: SharedExecutionConte
 
 const applyExactProfile = async (execute: SeoChild, stepId: string): Promise<void> => {
   await execute({ sessionKey: "", productStepId: stepId, callId: "profile-open", child: "open_gpt_execution_profile", actionOrdinal: 0, input: { profile: MODEL_PROFILE } });
-  await execute({ sessionKey: "", productStepId: stepId, callId: "reasoning-select", child: "ensure_exact_gpt_reasoning_tier", actionOrdinal: 0, input: { profile: MODEL_PROFILE } });
   await execute({ sessionKey: "", productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v2", actionOrdinal: 0, input: { profile: MODEL_PROFILE } });
   await execute({ sessionKey: "", productStepId: stepId, callId: "model-select", child: "select_exact_gpt_model_v2", actionOrdinal: 0, input: { profile: MODEL_PROFILE } });
+  await execute({ sessionKey: "", productStepId: stepId, callId: "reasoning-select", child: "ensure_exact_gpt_reasoning_tier", actionOrdinal: 0, input: { profile: MODEL_PROFILE } });
   await execute({ sessionKey: "", productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: 0, input: { profile: MODEL_PROFILE } });
 };
 
@@ -358,7 +342,7 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
 };
 
 export const publicKnowledgeArticlePipelinePlugin: ProductPlugin = {
-  pluginId: PLUGIN_ID, pluginVersion: 11, skillHash: skill.hash, checkpointSchemaVersion: 2,
+  pluginId: PLUGIN_ID, pluginVersion: 12, skillHash: skill.hash, checkpointSchemaVersion: 2,
   parseResult: parseProductResult,
   accepts: [
     { productId: "public_knowledge_article_pipeline", actionId: "produce_article" },
@@ -366,10 +350,8 @@ export const publicKnowledgeArticlePipelinePlugin: ProductPlugin = {
     { productId: "public_knowledge_article_pipeline", actionId: "quality_reflection" },
   ],
   execute(task, context) {
-    return runSeoProductExecutionExclusive(() => (
-      task.action_id === "produce_article"
-        ? executeArticleProduction(task, context)
-        : executeReview(task, context)
-    ));
+    return task.action_id === "produce_article"
+      ? executeArticleProduction(task, context)
+      : executeReview(task, context);
   },
 };

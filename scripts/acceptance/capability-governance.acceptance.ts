@@ -57,7 +57,7 @@ assert.ok(findingIds({
 const sourceOfTruth = loadCapabilitySourceOfTruth();
 const sourceTruthFindings: Array<{ checkId: string }> = [];
 pushCapabilitySourceOfTruthFindings({
-  admissionLawId: "LAW-CAPABILITY-GOVERNANCE-001-V3",
+  admissionLawId: "LAW-CAPABILITY-GOVERNANCE-001-V4",
   actualCapabilityRoots: new Set([...sourceOfTruth.lawActiveCapabilityRoots, "src/capabilities/amazon-legacy"]),
   pushFinding: (finding) => sourceTruthFindings.push(finding),
 });
@@ -74,11 +74,12 @@ const blueprintSource = readFileSync(
 );
 assert.equal(blueprintMarkdownBodyValid(blueprintSource), true);
 assert.equal(blueprintMarkdownBodyValid(`${blueprintSource}\nTODO\n`), false);
-assert.equal(blueprintMarkdownBodyValid(blueprintSource.slice(0, blueprintSource.indexOf("## 5. 删除式迁移"))), false);
+const blueprintWithoutAcceptanceEvidence = blueprintSource.replace(/验收|pass|fail|通过|证明|检查/giu, "确认");
+assert.equal(blueprintMarkdownBodyValid(blueprintWithoutAcceptanceEvidence), false);
 
 console.log("capability-governance-acceptance-ok");
 emitQualityProofObservation({ passed: true, findings: [],
-  lawId: "LAW-CAPABILITY-GOVERNANCE-001-V3", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","summary"],
+  lawId: "LAW-CAPABILITY-GOVERNANCE-001-V4", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","summary"],
   locator: "acceptance:capability-governance:mutant-matrix",
   observedValue: "seven capability-governance clause mutants rejected by the capability-governance inspector",
 });

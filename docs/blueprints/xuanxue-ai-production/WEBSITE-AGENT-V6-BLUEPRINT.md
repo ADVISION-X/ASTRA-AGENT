@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V10"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V11"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -97,7 +97,7 @@ Product Plugin 用普通静态 TypeScript 唯一拥有 Prompt、`GPT-5.6 Sol + p
 
 ```text
 corpus_research（fresh conversation）
-  prepare_clean_gpt_chat（唯一 composer + exact empty draft + zero prior turn/attachment + not generating）
+  prepare_clean_gpt_chat（唯一 composer + exact empty draft + zero prior turn/attachment + not generating；仅旧 draft 污染时由该 Child 至多一次清空并读回）
   -> open profile / open model selector / select exact model / ensure reasoning / close profile
   -> open attachment control / attach ready_corpus_archive + result_contract once / reconcile exact set
   -> write exact research Prompt / reconcile draft / submit once / reconcile submission

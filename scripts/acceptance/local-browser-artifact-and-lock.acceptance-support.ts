@@ -9,10 +9,10 @@ import { BrowserOwnerLock } from "../../src/lib/browser/infrastructure/browser-o
 
 const prepareArtifactFixture = async () => {
   const fixture = await mkdtemp(join(tmpdir(), "browser-artifact-registry-"));
-  const allowedRoot = join(fixture, "upload-attempts");
-  const stagedFile = join(allowedRoot, "attempt-1", "proof.txt");
+  const allowedRoot = join(fixture, "upload-staging");
+  const stagedFile = join(fixture, "incoming", "proof.txt");
   const outsideFile = join(fixture, "outside.txt");
-  await mkdir(join(allowedRoot, "attempt-1"), { recursive: true });
+  await mkdir(join(fixture, "incoming"), { recursive: true });
   await writeFile(stagedFile, "approved-browser-artifact", "utf8");
   await writeFile(outsideFile, "outside-browser-artifact", "utf8");
   const approvedBytes = await readFile(stagedFile);
@@ -29,7 +29,13 @@ const verifyArtifactRegistry = async (): Promise<void> => {
       artifactRef: "approved", filePath: stagedFile,
       contentHash: approvedHash, sizeBytes: approvedBytes.byteLength,
     });
-    assert.equal((await registry.resolveArtifact("approved")).canonicalPath, await realpath(stagedFile));
+    const resolved = await registry.resolveArtifact("approved");
+    assert.equal(
+      resolved.canonicalPath,
+      await realpath(join(allowedRoot, approvedHash.slice("sha256:".length), "proof.txt")),
+    );
+    assert.notEqual(resolved.canonicalPath, await realpath(stagedFile));
+    assert.deepEqual(await readFile(resolved.canonicalPath), approvedBytes);
     await assert.rejects(registry.registerArtifact({
       artifactRef: "outside", filePath: outsideFile,
       contentHash: `sha256:${"0".repeat(64)}`, sizeBytes: 24,

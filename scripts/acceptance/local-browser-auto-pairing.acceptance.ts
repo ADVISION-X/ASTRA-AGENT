@@ -341,6 +341,61 @@ for (const [key, virtualKeyCode, repeat] of [["ArrowLeft", 37, 1], ["ArrowRight"
   })), expectedKeyEvents);
 }
 
+let composerText = "stale SEO prompt";
+const fillKeyEvents: Readonly<Record<string, unknown>>[] = [];
+const contentEditableFillRuntime = {
+  async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
+    if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
+    if (method === "DOM.querySelectorAll") return { nodeIds: [7] };
+    if (method === "DOM.getBoxModel") return { model: { content: [0, 0, 10, 0, 10, 10, 0, 10] } };
+    if (method === "DOM.focus") return {};
+    if (method === "Input.dispatchKeyEvent") {
+      fillKeyEvents.push(parameters ?? {});
+      if (parameters?.type === "rawKeyDown" && parameters.key === "Backspace") composerText = "";
+      return {};
+    }
+    if (method === "Input.insertText") {
+      composerText += String(parameters?.text ?? "");
+      return {};
+    }
+    if (method === "DOM.describeNode") return {
+      node: {
+        nodeId: 7,
+        backendNodeId: 107,
+        nodeName: "DIV",
+        attributes: ["contenteditable", "true"],
+        children: composerText.length === 0 ? [] : [{ nodeName: "P", nodeValue: composerText }],
+      },
+    };
+    throw new Error(`UNEXPECTED_CONTENTEDITABLE_FILL_METHOD:${method}`);
+  },
+} as ExtensionDebuggerRuntime;
+const clearedComposer = await executeRegisteredDomIntent(
+  contentEditableFillRuntime,
+  { tabId: 103 } as never,
+  {
+    kind: "fill",
+    selector: "#prompt-textarea",
+    approvedText: "",
+    clearBeforeType: true,
+    expectedMatches: 1,
+  },
+) as Readonly<{ retainedValueVerified: boolean; postconditionVerified: boolean }>;
+assert.deepEqual(clearedComposer, {
+  filled: true,
+  candidateCount: 1,
+  identityRevalidated: true,
+  mutationCount: 1,
+  retainedValueVerified: true,
+  postconditionVerified: true,
+});
+assert.deepEqual(fillKeyEvents, [
+  { type: "rawKeyDown", key: "a", code: "KeyA", commands: ["selectAll"] },
+  { type: "keyUp", key: "a", code: "KeyA" },
+  { type: "rawKeyDown", key: "Backspace", code: "Backspace" },
+  { type: "keyUp", key: "Backspace", code: "Backspace" },
+], "fill clear must use the platform-independent Blink selectAll command before deleting stale content");
+
 const secondAcquisition = targetAuthority.acquireJobBoundChatGptTarget();
 await Promise.resolve();
 targetTabUpdated(4, { status: "complete" }, { id: 4, title: "ChatGPT" });

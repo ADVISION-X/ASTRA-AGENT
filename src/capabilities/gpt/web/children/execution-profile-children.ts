@@ -10,7 +10,6 @@ import {
 } from "../child-handler.js";
 import { findCount, readExactAttribute } from "../gpt-dom-observation.js";
 import {
-  GPT_PROFILE_DISMISS_SELECTOR,
   GPT_PROFILE_POPUP_SELECTOR,
   GPT_PROFILE_REASONING_CONTROL_SELECTOR,
   GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR,
@@ -182,19 +181,23 @@ const closeProfilePopup = async (browser: BrowserTargetLease, readbackOnly: bool
     });
   }
   await requireUniqueProfilePopup(browser);
+  const expanded = await readExactAttribute(browser, GPT_PROFILE_TRIGGER_SELECTOR, "aria-expanded");
+  if (expanded !== "true") {
+    throw executionFailure("failed", "GPT_EXECUTION_PROFILE_CLOSE_TRIGGER_INVALID");
+  }
   if (readbackOnly) {
     throw executionFailure("failed", "GPT_EXECUTION_PROFILE_CLOSE_PENDING");
   }
   await browser.executeDomIntent({
     kind: "click",
-    selector: GPT_PROFILE_DISMISS_SELECTOR,
+    selector: GPT_PROFILE_TRIGGER_SELECTOR,
     expectedMatches: 1,
     postClickMatch: { selector: GPT_PROFILE_POPUP_SELECTOR, expectedMatches: 0, timeoutMs: 5_000 },
   });
   return success({
     value: { state: "profile-popup-closed" },
     candidateCount: 1,
-    observedSemantics: ["one exact composer focus surface", "profile popup absent"],
+    observedSemantics: ["one expanded execution-profile trigger", "profile popup absent"],
     committedMutation: "confirmed",
   });
 };

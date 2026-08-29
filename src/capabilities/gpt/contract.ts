@@ -6,7 +6,6 @@ export const GPT_TRANSPORT = "gpt-web" as const;
 export const GPT_MODEL_SELECTION_VERSION = "gpt-model-selection.v2" as const;
 
 const PAGE_OBSERVATIONS = [
-  "prepare_clean_gpt_chat",
   "verify_gpt_conversation_identity",
   "reconcile_gpt_attachment_set",
   "reconcile_gpt_draft",
@@ -18,6 +17,7 @@ const PAGE_OBSERVATIONS = [
 ] as const;
 
 const PAGE_MUTATIONS = [
+  "prepare_clean_gpt_chat",
   "focus_exact_gpt_conversation",
   "open_gpt_execution_profile",
   "open_gpt_model_selector_v2",

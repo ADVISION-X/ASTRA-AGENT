@@ -411,7 +411,7 @@ const inspectSourceFile = (
 export const inspectCapabilityGovernanceProject = (
   project: InspectorContext["project"],
   includeAuthority: boolean,
-  lawId = "LAW-CAPABILITY-GOVERNANCE-001-V3",
+  lawId = "LAW-CAPABILITY-GOVERNANCE-001-V4",
 ): { findings: ReturnType<typeof createFinding>[]; inspectedFiles: string[]; staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] } => {
   const findings: ReturnType<typeof createFinding>[] = [];
   const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
@@ -458,7 +458,7 @@ export const inspectCapabilityGovernanceProject = (
 };
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
-  const lawId = selectLawId(context.planEntry.lawIds, "LAW-CAPABILITY-GOVERNANCE-001-V3");
+  const lawId = selectLawId(context.planEntry.lawIds, context.selectedLawId);
   const authorityAvailable = context.targetPaths.includes(".github/instructions/agent-rules/基础法案.md")
     && context.targetPaths.includes(".github/instructions/agent-rules/功能法案.md");
   const evaluation = inspectCapabilityGovernanceProject(context.project, authorityAvailable, lawId);
@@ -474,7 +474,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
-  const lawId = "LAW-CAPABILITY-GOVERNANCE-001-V3";
+  const lawId = selectLawId(evaluation.reportedLawIds, context.selectedLawId);
   const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
   const checks = (mode: string): string[] => mode === "static.dependency"
     ? ["pushMissingCapabilityConsumers", "pushMissingFacadeExportConsumers"]

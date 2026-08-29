@@ -20,7 +20,7 @@ import {
 } from "../../shared/static-inspection-contract.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 
-const LAW_ID = "LAW-GPT-001-V6";
+const LAW_ID = "LAW-GPT-001-V7";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 12, 15),
   "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14),
@@ -137,6 +137,7 @@ const inspectDenominatorAndContracts = (context: InspectorContext, findings: Ins
   for (const required of [
     "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
     "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR", "GPT_PROFILE_SIMPLE_PANEL_SELECTOR",
+    "GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR",
     "isAlreadyOpen", "isOpenable", "ALREADY_OPEN", "OPENABLE",
   ]) if (!modelV2Handler.includes(required)) findings.push(finding(
     "gpt/model-selection-v2-handler", MODEL_SELECTION_V2_HANDLER_PATH,

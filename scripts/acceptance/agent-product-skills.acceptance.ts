@@ -17,6 +17,53 @@ import { parsePublicKnowledgeArticle, parsePublicKnowledgeResearch } from "../..
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const HASH = `sha256:${"1".repeat(64)}` as const;
+const PROFILE_SEQUENCE = [
+  "open_gpt_execution_profile",
+  "open_gpt_model_selector_v2",
+  "select_exact_gpt_model_v2",
+  "ensure_exact_gpt_reasoning_tier",
+  "close_gpt_execution_profile",
+] as const;
+const ATTACHMENT_SEQUENCE = [
+  "open_gpt_attachment_control",
+  "attach_approved_gpt_files_once",
+  "reconcile_gpt_attachment_set",
+] as const;
+const TEXT_TURN_SEQUENCE = [
+  "write_exact_gpt_prompt",
+  "reconcile_gpt_draft",
+  "submit_exact_gpt_turn_once",
+  "reconcile_gpt_turn_submission",
+  "wait_for_stable_gpt_text",
+  "checkpoint_gpt_text_response",
+] as const;
+const INITIAL_TEXT_SEQUENCE = [
+  "prepare_clean_gpt_chat",
+  ...PROFILE_SEQUENCE,
+  ...ATTACHMENT_SEQUENCE,
+  ...TEXT_TURN_SEQUENCE,
+] as const;
+const CONTINUATION_TEXT_SEQUENCE = [
+  "acquire_gpt_continuation_lane",
+  "focus_exact_gpt_conversation",
+  "verify_gpt_conversation_identity",
+  ...PROFILE_SEQUENCE,
+  ...TEXT_TURN_SEQUENCE,
+  "advance_gpt_continuation_lane",
+] as const;
+const CONTINUATION_IMAGE_SEQUENCE = [
+  "acquire_gpt_continuation_lane",
+  "focus_exact_gpt_conversation",
+  "verify_gpt_conversation_identity",
+  ...PROFILE_SEQUENCE,
+  "write_exact_gpt_prompt",
+  "reconcile_gpt_draft",
+  "submit_exact_gpt_turn_once",
+  "reconcile_gpt_turn_submission",
+  "wait_for_stable_gpt_image",
+  "checkpoint_gpt_generated_image",
+  "advance_gpt_continuation_lane",
+] as const;
 
 const researchOutput = (decision: "proceed" | "decline") => ({
   schema_version: "public-knowledge-research-output.v3", decision,
@@ -162,15 +209,25 @@ for (const plugin of productionPluginCatalog) {
   const firstRoute = plugin.accepts[0]!;
   assert.equal(resolveProductionPlugin(firstRoute.productId, firstRoute.actionId).plugin, plugin);
   if (plugin.pluginId === "public-knowledge-article-pipeline") {
-    assert.equal(plugin.pluginVersion, 9);
+    assert.equal(plugin.pluginVersion, 12);
     assert.doesNotMatch(source, /PRODUCT_FLOW_NOT_IMPLEMENTED:/u);
     assert.match(source, /corpus_research/u);
     assert.match(source, /article_synthesis/u);
     assert.match(source, /article_image_generation/u);
     const decline = await exerciseSeoFlow(plugin, "produce_article", "decline");
+    assert.deepEqual(decline.calls.map((call) => call.child), [
+      ...INITIAL_TEXT_SEQUENCE,
+      "persist_gpt_continuation",
+    ]);
     assert.equal(decline.calls.filter((call) => call.child === "attach_approved_gpt_files_once").length, 1);
     assert.equal(decline.calls.some((call) => call.productStepId === "article_synthesis"), false);
     const proceed = await exerciseSeoFlow(plugin, "produce_article", "proceed");
+    assert.deepEqual(proceed.calls.map((call) => call.child), [
+      ...INITIAL_TEXT_SEQUENCE,
+      "persist_gpt_continuation",
+      ...CONTINUATION_TEXT_SEQUENCE,
+      ...CONTINUATION_IMAGE_SEQUENCE,
+    ]);
     assert.deepEqual([...new Set(proceed.calls.map((call) => call.productStepId))], [
       "corpus_research", "article_synthesis", "article_image_generation",
     ]);
@@ -180,6 +237,7 @@ for (const plugin of productionPluginCatalog) {
     assert.ok(proceed.completed.generated_image);
     for (const actionId of ["accuracy_challenge", "quality_reflection"] as const) {
       const review = await exerciseSeoFlow(plugin, actionId);
+      assert.deepEqual(review.calls.map((call) => call.child), INITIAL_TEXT_SEQUENCE);
       assert.equal(review.calls.filter((call) => call.child === "submit_exact_gpt_turn_once").length, 1);
       assert.equal(review.calls.some((call) => call.child.includes("continuation")), false);
     }

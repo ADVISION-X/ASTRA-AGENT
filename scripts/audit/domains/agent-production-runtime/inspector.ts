@@ -8,7 +8,7 @@ import { recordStaticCheck } from "../../shared/static-inspection-contract.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
 
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V10";
+const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V11";
 const PLUGIN_ROOT = "src/plugins";
 const CATALOG_PATH = "src/lib/local-runtime/production/catalog.ts";
 const CONTRACT_PATH = "src/lib/local-runtime/production/contracts.ts";
@@ -99,6 +99,12 @@ const inspectAgentProductionRuntime = (context: InspectorContext, findings: Insp
       if (source.includes("PRODUCT_FLOW_NOT_IMPLEMENTED:")) findings.push(finding(
         "agent-production-runtime/seo-product-flow-stub-retired", path,
         "SEO Product Flow still contains its retired fail-closed stub.",
+      ));
+      for (const forbidden of [
+        "CHILD_SETTLE_DELAY_MS", "seoProductExecutionTail", "runSeoProductExecutionExclusive", "setTimeout(",
+      ]) if (source.includes(forbidden)) findings.push(finding(
+        "agent-production-runtime/seo-product-second-scheduler-retired", path,
+        `SEO Product Flow retains forbidden pacing or scheduling token ${forbidden}.`,
       ));
     } else {
       if (!source.includes(`PRODUCT_FLOW_NOT_IMPLEMENTED:${pluginId}:`)) findings.push(finding(

@@ -159,16 +159,33 @@ export const modelSelectionV2ChildHandlers = {
       );
     }
     if (candidate.ariaChecked === "true") {
+      if (context.mutationMode === "readback") {
+        throw executionFailure("failed", "GPT_MODEL_SELECTION_V2_PROFILE_RESTORE_PENDING");
+      }
+      await browser.executeDomIntent({
+        kind: "click",
+        selector: GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR,
+        expectedMatches: 1,
+        postClickMatch: {
+          selector: GPT_PROFILE_SIMPLE_PANEL_SELECTOR,
+          expectedMatches: 1,
+          timeoutMs: 5_000,
+        },
+      });
       return success({
         value: {
           modelDisplayName: profile.modelDisplayName,
           previousChecked: candidate.ariaChecked,
           selectionVersion: GPT_MODEL_SELECTION_VERSION,
-          state: "exact-model-already-selected",
+          state: "exact-model-already-selected-profile-restored",
         },
         candidateCount: 1,
-        observedSemantics: ["one exact selected model in the active non-inert v2 panel"],
-        committedMutation: "no",
+        observedSemantics: [
+          "one exact selected model in the active non-inert v2 panel",
+          "one exact expanded model entry click",
+          "active execution profile restored",
+        ],
+        committedMutation: "confirmed",
       });
     }
     if (context.mutationMode === "readback") {

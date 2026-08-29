@@ -9,7 +9,7 @@ import {
   stringInput,
   success,
 } from "../child-handler.js";
-import { findCount, readExactAttribute, readGptDocument } from "../gpt-dom-observation.js";
+import { findCount, readExactAttribute, readExactText, readGptDocument } from "../gpt-dom-observation.js";
 import { GPT_GENERATING_STOP_SELECTOR, GPT_USER_TURN_SELECTOR } from "../contracts/conversation.contract.js";
 import { canonicalGptConversationUrl } from "../contracts/target-document.contract.js";
 import { GPT_ATTACHMENT_REGION_SELECTOR } from "../contracts/attachment.contract.js";
@@ -36,25 +36,48 @@ export const conversationChildHandlers = {
     requireExactInputKeys(intent, ["timeoutMs"]);
     const browser = requireBrowser(context);
     const deadline = Date.now() + boundedTimeout(intent);
-    let observed = { composer: 0, turns: 0, attachments: 0, generating: 0 };
+    let observed = { composer: 0, turns: 0, attachments: 0, generating: 0, draftEmpty: null as boolean | null };
     while (Date.now() < deadline) {
       observed = {
         composer: await findCount(browser, { selector: GPT_COMPOSER_SELECTOR, maxMatches: 2 }),
         turns: await findCount(browser, { selector: GPT_USER_TURN_SELECTOR, maxMatches: 20 }),
         attachments: await findCount(browser, { selector: GPT_ATTACHMENT_REGION_SELECTOR, maxMatches: 2 }),
         generating: await findCount(browser, { selector: GPT_GENERATING_STOP_SELECTOR, maxMatches: 2 }),
+        draftEmpty: null,
       };
       if (observed.composer === 1 && observed.turns === 0
         && observed.attachments === 0 && observed.generating === 0) {
+        const draft = await readExactText(browser, GPT_COMPOSER_SELECTOR, 65_536);
+        observed = { ...observed, draftEmpty: draft === "" };
+        if (!observed.draftEmpty) {
+          if (context.mutationMode === "readback") {
+            throw executionFailure("failed", "GPT_CHAT_DRAFT_CLEAR_PENDING");
+          }
+          await browser.executeDomIntent({
+            kind: "fill",
+            selector: GPT_COMPOSER_SELECTOR,
+            approvedText: "",
+            clearBeforeType: true,
+            expectedMatches: 1,
+          });
+          const clearedDraft = await readExactText(browser, GPT_COMPOSER_SELECTOR, 65_536);
+          if (clearedDraft !== "") throw executionFailure("failed", "GPT_CHAT_DRAFT_CLEAR_FAILED");
+          observed = { ...observed, draftEmpty: true };
+          return success({
+            value: { ...observed, staleDraftCleared: true }, candidateCount: 1,
+            observedSemantics: ["hydrated fresh composer", "one stale draft cleared", "exact empty draft", "zero prior turns", "zero attachments", "not generating"],
+            committedMutation: "confirmed",
+          });
+        }
         return success({
-          value: observed, candidateCount: 1,
-          observedSemantics: ["hydrated fresh composer", "zero prior turns", "zero attachments", "not generating"],
+          value: { ...observed, staleDraftCleared: false }, candidateCount: 1,
+          observedSemantics: ["hydrated fresh composer", "exact empty draft", "zero prior turns", "zero attachments", "not generating"],
           committedMutation: "no",
         });
       }
       await waitSlice(browser, deadline);
     }
-    throw executionFailure("failed", `GPT_CHAT_HYDRATION_PENDING:composer=${observed.composer}:turns=${observed.turns}:attachments=${observed.attachments}:generating=${observed.generating}`);
+    throw executionFailure("failed", `GPT_CHAT_HYDRATION_PENDING:composer=${observed.composer}:turns=${observed.turns}:attachments=${observed.attachments}:generating=${observed.generating}:draftEmpty=${observed.draftEmpty ?? "unread"}`);
   },
 
   async focus_exact_gpt_conversation(intent, context) {

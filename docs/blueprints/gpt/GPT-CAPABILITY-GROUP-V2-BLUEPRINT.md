@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "gpt",
   "lawIds": [
-    "LAW-GPT-001-V6"
+    "LAW-GPT-001-V7"
   ],
   "contractRefs": [],
   "dependencyEdges": [
@@ -58,12 +58,12 @@ Product Plugin 不得提供 Target、Document、selector、WAL、lease、fence�
 
 | 类别 | childId | 原子语义 |
 |---|---|---|
-| 会话 | `prepare_clean_gpt_chat` | 证明唯一 fresh composer、exact empty draft、zero prior turn/attachment 与 not generating |
+| 会话 | `prepare_clean_gpt_chat` | 证明唯一 fresh composer、exact empty draft、zero prior turn/attachment 与 not generating；仅草稿污染时至多一次清空并读回 |
 | 会话 | `focus_exact_gpt_conversation` | 导航到冻结永久 conversation |
 | 会话 | `verify_gpt_conversation_identity` | 证明 composer、turn marker 与 conversation identity |
 | 档案 | `open_gpt_execution_profile` | 在当前 Document 打开或确认唯一 execution profile |
 | 模型 | `open_gpt_model_selector_v2` | 以 ALREADY_OPEN OR OPENABLE 到达唯一 active advanced panel |
-| 模型 | `select_exact_gpt_model_v2` | 在 active advanced panel 选择唯一精确模型 |
+| 模型 | `select_exact_gpt_model_v2` | 在 active advanced panel 确认或选择唯一精确模型，并以至多一次动作恢复 active simple panel |
 | 档案 | `ensure_exact_gpt_reasoning_tier` | 用数值 readback 到达精确推理档位 |
 | 档案 | `close_gpt_execution_profile` | 关闭并直接证明弹面收束 |
 | 附件 | `open_gpt_attachment_control` | 打开唯一附件入口并证明唯一上传动作 |
@@ -103,7 +103,7 @@ Provider effect 一次性只在同一业务 attempt/call 内成立；新 attempt
 
 所有 Child 每次都读取当前 Target + 当前 Document。过去调用成功、产品步骤位置或任何 checkpoint 都不能证明瞬态弹面仍存在。模型或推理操作前，若 execution profile 不存在，Product Plugin 必须先调用 `open_gpt_execution_profile`；Child 自身仍须重新验证当前 DOM。
 
-`prepare_clean_gpt_chat` 的成功集合只能是：唯一 composer，读回的 exact draft 为空字符串，user turn、attachment 与 generating 候选均为零。它不清空旧 draft，也不把旧 draft 当成新任务输入；任一条件不成立都必须以 `mutation_outcome=no` 失败关闭。
+`prepare_clean_gpt_chat` 的成功集合只能是：唯一 composer，读回的 exact draft 为空字符串，user turn、attachment 与 generating 候选均为零。当且仅当后三项均为零且 composer 唯一、但读回存在旧 draft 时，该 Child 必须通过 Browser WAL 执行至多一次 exact composer 清空并直接读回空字符串；不得把旧 draft 当成新任务输入。存在 prior turn、attachment、generating 或候选不唯一时不得清理，必须以 `mutation_outcome=no` 失败关闭。
 
 `open_gpt_model_selector_v2` 的唯一许可是：
 
@@ -121,7 +121,7 @@ OPENABLE :=
 success := ALREADY_OPEN OR (OPENABLE -> click once -> ALREADY_OPEN)
 ```
 
-状态是等于或 OR 关系；两者均不成立、同时成立或任一候选不唯一都返回 `failed + reason`，不得点击。`select_exact_gpt_model_v2` 只在唯一 active、non-inert advanced panel 中读取 visible `[role='menuitemradio']`。
+状态是等于或 OR 关系；两者均不成立、同时成立或任一候选不唯一都返回 `failed + reason`，不得点击。`select_exact_gpt_model_v2` 只在唯一 active、non-inert advanced panel 中读取 visible `[role='menuitemradio']`；目标 radio 未选中时点击该 radio，已经选中时点击唯一 expanded 模型入口，两条分支均只允许一次 mutation，并必须直接证明 active simple panel 已恢复后才成功。
 
 推理的可操作节点固定为唯一 `[role='menuitem'][aria-label='能力']`；状态只从 `[data-model-reasoning-effort-slider] [role='slider']` 读取，必须满足 `aria-valuemin=0`、`aria-valuemax=4`、`aria-valuenow in 0..4`。映射为 `0=极速、1=中、2=高、3=极高、4=Pro`。等于目标时零 mutation，否则只向唯一能力 menuitem 发送有界方向键并回读等于目标；不可直接操作 `aria-hidden` slider。
 
