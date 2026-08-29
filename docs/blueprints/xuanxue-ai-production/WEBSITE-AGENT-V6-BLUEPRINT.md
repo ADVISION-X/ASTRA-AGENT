@@ -107,52 +107,82 @@ corpus_research
 
 ### 3.2 `corpus_research`
 
-Plugin 以现役单 Turn 接口开启 fresh conversation：
+Plugin 以普通 TypeScript 直接开启 fresh conversation，顺序在本 Product 内写死：
 
 ```ts
-context.runTurn({
-  step_id: "corpus_research",
-  material_roles: ["ready_corpus_archive", "result_contract"],
-  provider: researchProvider,
-});
+await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "prepare_clean_gpt_chat", input: {} });
+await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "open_gpt_execution_profile", input: { profile } });
+await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "open_gpt_model_selector_v2", input: { profile } });
+await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "select_exact_gpt_model_v2", input: { profile } });
+await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "ensure_exact_gpt_reasoning_tier", input: { profile } });
+await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "close_gpt_execution_profile", input: { profile } });
+await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "open_gpt_attachment_control", input: {} });
+await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "attach_approved_gpt_files_once", input: { files } });
+await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "reconcile_gpt_attachment_set", input: { files } });
+await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "write_exact_gpt_prompt", input: { prompt } });
+await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "reconcile_gpt_draft", input: { promptHash } });
+await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "submit_exact_gpt_turn_once", input: { promptHash, turnMarker } });
+await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "reconcile_gpt_turn_submission", input: { promptHash, turnMarker } });
+await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "wait_for_stable_gpt_text", input: { turnMarker } });
+const research = await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "checkpoint_gpt_text_response", input: { turnMarker } });
+await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "persist_gpt_continuation", input: { turnMarker } });
 ```
 
 该 Turn 必须且只能挂载任务已鉴权的 `ready_corpus_archive + result_contract`。研究 Prompt 必须要求：只使用冻结语料和现役目录，逐项给出可回查引用、claim unit、uncertainty、目录相似项、关系断言与 novelty basis；无法形成新的、可公开且可核验的选题时返回 `decline`。输出只能是严格 JSON。
 
 ### 3.3 `article_synthesis`
 
-仅当研究严格解析为 `proceed` 时进入，并通过 `same_conversation_as` 续接研究 Turn；禁止重新上传材料：
+仅当研究严格解析为 `proceed` 时进入，显式取得 continuation lane 并续接研究 conversation；禁止重新上传材料：
 
 ```ts
-context.runTurn({
-  step_id: "article_synthesis",
-  material_roles: [],
-  same_conversation_as: research,
-  provider: articleProvider,
-});
+await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "acquire_gpt_continuation_lane", input: { continuation } });
+await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "focus_exact_gpt_conversation", input: { continuation } });
+await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "verify_gpt_conversation_identity", input: { continuation } });
+await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "open_gpt_execution_profile", input: { profile } });
+await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "open_gpt_model_selector_v2", input: { profile } });
+await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "select_exact_gpt_model_v2", input: { profile } });
+await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "ensure_exact_gpt_reasoning_tier", input: { profile } });
+await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "close_gpt_execution_profile", input: { profile } });
+await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "write_exact_gpt_prompt", input: { prompt } });
+await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "reconcile_gpt_draft", input: { promptHash } });
+await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "submit_exact_gpt_turn_once", input: { promptHash, turnMarker } });
+await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "reconcile_gpt_turn_submission", input: { promptHash, turnMarker } });
+await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "wait_for_stable_gpt_text", input: { turnMarker } });
+const article = await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "checkpoint_gpt_text_response", input: { turnMarker } });
+await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "advance_gpt_continuation_lane", input: { continuation, turnMarker } });
+await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "release_gpt_continuation_lane", input: { continuation } });
 ```
 
 文章 Prompt 只消费同一 conversation 中已 checkpoint 的研究结论，要求标题、编辑说明、正文、引用、claim coverage 与 safety notes 闭合；不得把未被研究材料支持的断言写成事实。输出只能是严格 JSON。
 
 ### 3.4 `article_image_generation`
 
-仅当文章严格解析成功后进入，并通过 `same_conversation_as` 续接文章 Turn；禁止重新上传材料：
+仅当文章严格解析成功后进入，显式续接文章 conversation；禁止重新上传材料：
 
 ```ts
-context.runTurn({
-  step_id: "article_image_generation",
-  material_roles: [],
-  same_conversation_as: article,
-  output_kind: "generated_image",
-  provider: articleProvider,
-});
+await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "acquire_gpt_continuation_lane", input: { continuation } });
+await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "focus_exact_gpt_conversation", input: { continuation } });
+await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "verify_gpt_conversation_identity", input: { continuation } });
+await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "open_gpt_execution_profile", input: { profile } });
+await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "open_gpt_model_selector_v2", input: { profile } });
+await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "select_exact_gpt_model_v2", input: { profile } });
+await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "ensure_exact_gpt_reasoning_tier", input: { profile } });
+await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "close_gpt_execution_profile", input: { profile } });
+await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "write_exact_gpt_prompt", input: { prompt } });
+await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "reconcile_gpt_draft", input: { promptHash } });
+await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "submit_exact_gpt_turn_once", input: { promptHash, turnMarker } });
+await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "reconcile_gpt_turn_submission", input: { promptHash, turnMarker } });
+await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "wait_for_stable_gpt_image", input: { turnMarker } });
+const image = await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "checkpoint_gpt_generated_image", input: { turnMarker } });
+await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "advance_gpt_continuation_lane", input: { continuation, turnMarker } });
+await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "release_gpt_continuation_lane", input: { continuation } });
 ```
 
 图片 Prompt 只要求一张与文章主题一致、无文字、不冒充古籍或史料原图的原创主图。Browser Authority 必须从精确 assistant turn 在当前已鉴权 Target/Document 内取得 Provider 原始 bytes；现役 output-artifact 链再生成无 metadata 的 `1200x630 image/webp`，并把下载、变换与 artifact receipt 绑定到 `image`、result envelope 和 completion intent。URL、截图、DOM 图片节点或页面外下载均不是图片结果。
 
 ### 3.5 失败、恢复与网站交接
 
-三个步骤只使用现役 Product execution context 的既有恢复合同：Plugin 不增加 checkpoint、恢复状态机、Browser 对账或第二执行入口。任何 Turn 失败原样抛出 typed reason，由 runtime 在原任务和原现役恢复链上处理；Plugin 不以错误文本猜测重试，也不自行重发未知结果的外部动作。
+三个步骤没有全局 GPT checkpoint、恢复状态机或第二执行入口。任何 Child 失败原样抛出 typed reason；下一 attempt 从同一 Product 静态 Flow 入口重新执行，并使用该 attempt 的稳定 `call_id` 身份。Browser Authority 只对当前精确 Child 的 WAL 与当前页面后置事实做对账，不选择 Product 的下一 Child；未决 `DISPATCHED` 永不盲目重发。Plugin 不以错误文本猜测重试。
 
 AGENT 只交付 staged package。Website domain consumer 严格验收并以 `job_id + result_hash` 幂等入库、签发 hash-bound admission receipt 后，AGENT job 才可 `completed`。SEO 栏目的后续业务链仍由 Website 唯一拥有：
 

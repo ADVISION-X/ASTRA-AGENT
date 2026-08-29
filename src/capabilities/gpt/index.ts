@@ -1,8 +1,6 @@
 export {
   createGptAbilityGroup,
   GPT_MODEL_SELECTION_VERSION,
-  GPT_TURN_FLOW_VERSION,
-  GptTurnExecutor,
 } from "./ability-group.js";
 export { GPT_CHILD_CAPABILITY_CONTRACTS } from "./contract.js";
 export {
@@ -13,9 +11,6 @@ export {
   type GptChildCapabilityResult,
   type GptExecutionContext,
 } from "./contract.js";
-export {
-  type GptTurnResumePoint,
-} from "./gpt-turn-executor.js";
 export {
   buildGptExecutionProfile,
   type GptReasoningTier,

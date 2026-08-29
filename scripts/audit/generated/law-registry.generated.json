@@ -1148,7 +1148,7 @@
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须由唯一 Browser Owner 在现有 SQLite/WAL 中原子持久化每个物理 mutation 的语义身份、effect scope、precondition、DISPATCHED、postcondition 与 terminal 紧凑状态；Provider effect 跨 Target/attempt/build 至多一次，Target-local 动作按 Target 代次隔离；DISPATCHED 只允许按冻结判据只读补核且恢复现场不得冻结其他 job；持久状态与 failure contract 不允许 UNKNOWN。",
+      "summary": "必须由唯一 Browser Owner 在现有 SQLite/WAL 中原子持久化每个物理 mutation 的语义身份、effect scope、precondition、DISPATCHED、postcondition 与 terminal 紧凑状态；Provider effect identity 只在同一业务 attempt/call 内跨 lease、process、Target、build 稳定且至多一次，新 attempt 必须使用包含新 attempt_id 的新 identity；Target-local 动作另按 Target 代次隔离；DISPATCHED 只允许按冻结判据只读补核且恢复现场不得冻结其他 job；持久状态与 failure contract 不允许 UNKNOWN。",
       "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-004-V11",
       "tier": "P0"
     },
@@ -1254,7 +1254,7 @@
       "excludes": [],
       "forbidden": [
         "不得发生：第二 logger、第二日志总线、第二持久化诊断报告，或绕过 Runtime Log Spine 的直接业务日志路径。",
-        "不得发生：生产原子动作缺少唯一 Owner、trace/span identity、按适用场景必需的 parent/boundary identity、一次 started 与至多一次真实 terminal，或失败缺少稳定 code、responsibleOwner、impact、recovery 以及存在时的原生 cause。",
+        "不得发生：生产原子动作缺少唯一 Owner、trace/span identity、按适用场景必需的 parent/boundary identity、一次 started 与至多一次真实 terminal，或失败缺少稳定 code、responsibleOwner、impact 以及存在时的原生 cause。",
         "不得发生：只返回最后一条 ERROR 或单一首因，或把 HTTP 200、heartbeat、listener、Browser Authority、Target 与日志文本单独冒充全部独立阻断根、端到端运行态或业务成功。",
         "不得发生：把历史事件重放、状态投影、startup summary 或日志新鲜度计算成任务权威状态；任务当前状态只从 Website 任务记录读取 failed + current_reason 或 completed + admission receipt。",
         "不得发生：日志或诊断器决定业务下一步、重放外部 mutation，或取代 Production Store、Browser WAL、Forensics 与网站业务结果真相。",
@@ -1355,7 +1355,7 @@
         "不得发生：除受控 event、SPAN started、SPAN terminal 与 error 之外的任务运行事件形态，或任意状态机 payload、recovery decision、流程位置、动态 refs/hashes/metrics bag 与重复 terminal/retryable 布尔语义。",
         "不得发生：同一 Span 缺少 started、存在多个 terminal、父 Span 不存在、独立阻断根与 consequential/cleanup 错误无确定因果引用，或失败终态缺少机器必填字段。",
         "不得发生：进程崩溃后补造 failed/unknown terminal；真实开放 Span 只能连同 PRODUCER_STALE、INTERRUPTED 与 DIAGNOSIS_INCOMPLETE 报告。",
-        "不得发生：同一 producer run 多写者、producerSeq 非单调、事件 hash 链或跨 segment 连续性断裂、正常停止无最终 producer.lifecycle=stopped 封口、跨 Website/AGENT boundary 无 boundaryId，或按墙钟时间裁决跨进程业务顺序。",
+        "不得发生：同一 producer run 多写者、producerSeq 非单调、事件 hash 链或跨 segment 连续性断裂、正常停止无最终 `PRODUCER_STOPPED` event 封口、跨 Website/AGENT boundary 无 boundaryId，或按墙钟时间裁决跨进程业务顺序。",
         "不得发生：Browser WAL 未先提交就记录 mutation 事件、DISPATCHED 缺少精确 product_step_id/call_id/child_id 与冻结 postcondition hash、DISPATCHED 自动重放，或日志与 WAL 的 commandId/authorityHash 不一致。",
         "不得发生：Runtime Log 保存 task state、stepIndex、resumePoint、flowVersion、reconcileOnly、recovery_pending、review_required、parked 或 delivery_pending，或从历史事件重放派生端到端任务状态。",
         "不得发生：使用两个独立容量阈值、保留第二 retention ledger，或删除仍关联非终态 Job、开放 Span、未收束 DISPATCHED mutation、未决 Outbox 或未完成权威对账的日志 segment。",

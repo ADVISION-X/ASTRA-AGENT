@@ -3,7 +3,6 @@ import type { GptContinuationStorePort } from "./session/gpt-continuation-store-
 
 export const GPT_ABILITY_GROUP_ID = "gpt" as const;
 export const GPT_TRANSPORT = "gpt-web" as const;
-export const GPT_TURN_FLOW_VERSION = "gpt-turn-flow.v3" as const;
 export const GPT_MODEL_SELECTION_VERSION = "gpt-model-selection.v2" as const;
 
 const PAGE_OBSERVATIONS = [
@@ -106,10 +105,12 @@ export const GPT_CHILD_CAPABILITY_CONTRACTS = Object.freeze(
 export type GptChildCapabilityIntent = Readonly<{
   childCapabilityId: GptChildCapabilityId;
   executionId: string;
-  flowVersion: typeof GPT_TURN_FLOW_VERSION;
-  stepIndex: number;
+  attemptId: string;
+  pluginId: string;
+  pluginVersion: number;
+  productStepId: string;
+  callId: string;
   inputHash: `sha256:${string}`;
-  pluginStepId: string;
   actionOrdinal: number;
   input: Readonly<Record<string, unknown>>;
 }>;
@@ -118,10 +119,12 @@ export interface GptChildCapabilityProof {
   readonly schemaVersion: "gpt-child-capability-proof.v2";
   readonly childCapabilityId: GptChildCapabilityId;
   readonly executionId: string;
-  readonly flowVersion: typeof GPT_TURN_FLOW_VERSION;
-  readonly stepIndex: number;
+  readonly attemptId: string;
+  readonly pluginId: string;
+  readonly pluginVersion: number;
+  readonly productStepId: string;
+  readonly callId: string;
   readonly inputHash: `sha256:${string}`;
-  readonly pluginStepId: string;
   readonly actionOrdinal: number;
   readonly targetRefHash: `sha256:${string}` | null;
   readonly beforeDocumentRefHash: `sha256:${string}` | null;
@@ -148,6 +151,7 @@ export type GptExecutionContext = Readonly<{
   browser?: BrowserTargetLease;
   signal?: AbortSignal;
   continuationStore?: GptContinuationStorePort;
+  mutationMode?: "normal" | "readback";
   onProof?: (proof: GptChildCapabilityProof) => Promise<void>;
 }>;
 

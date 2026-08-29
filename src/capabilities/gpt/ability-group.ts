@@ -65,10 +65,12 @@ const proofFor = (input: Readonly<{
     schemaVersion: "gpt-child-capability-proof.v2" as const,
     childCapabilityId: input.intent.childCapabilityId,
     executionId: input.intent.executionId,
-    flowVersion: input.intent.flowVersion,
-    stepIndex: input.intent.stepIndex,
+    attemptId: input.intent.attemptId,
+    pluginId: input.intent.pluginId,
+    pluginVersion: input.intent.pluginVersion,
+    productStepId: input.intent.productStepId,
+    callId: input.intent.callId,
     inputHash: input.intent.inputHash,
-    pluginStepId: input.intent.pluginStepId,
     actionOrdinal: input.intent.actionOrdinal,
     targetRefHash: input.context.browser ? hash(input.context.browser.target.targetRef) : null,
     beforeDocumentRefHash: documentRefHash(input.beforeDocumentRef),
@@ -121,7 +123,7 @@ const assertObservationIsAtomic = (
     throw executionFailure("failed", `GPT_MUTATION_OUTCOME_NOT_UNIQUE:${intent.childCapabilityId}`);
   }
   if (observation.committedMutation === "no" && pendingMutationCount !== 0) {
-    if (intent.input.reconcileOnly !== true || pendingMutationCount !== 1) {
+    if (context.mutationMode !== "readback" || pendingMutationCount !== 1) {
       throw executionFailure("failed", `GPT_UNDECLARED_MUTATION:${intent.childCapabilityId}`);
     }
   }
@@ -186,14 +188,16 @@ const executeOne = async (
   const before = currentDocument(context);
   let observation: GptChildObservation | undefined;
   try {
-    if (!Number.isSafeInteger(intent.stepIndex) || intent.stepIndex < 0
+    if (!intent.executionId || !intent.attemptId || !intent.pluginId
+      || !Number.isSafeInteger(intent.pluginVersion) || intent.pluginVersion < 1
+      || !intent.productStepId || !intent.callId
       || !Number.isSafeInteger(intent.actionOrdinal) || intent.actionOrdinal < 1
-      || !intent.pluginStepId || !/^sha256:[a-f0-9]{64}$/u.test(intent.inputHash)) {
+      || !/^sha256:[a-f0-9]{64}$/u.test(intent.inputHash)) {
       throw executionFailure("failed", "GPT_CHILD_EXECUTION_IDENTITY_INVALID");
     }
     if (!handler) throw executionFailure("failed", `GPT_CHILD_NOT_REGISTERED:${intent.childCapabilityId}`);
     if (context.signal?.aborted) throw executionFailure("failed", "GPT_EXECUTION_ABORTED");
-    if ((context.browser?.pendingMutationCount() ?? 0) !== 0 && intent.input.reconcileOnly !== true) {
+    if ((context.browser?.pendingMutationCount() ?? 0) !== 0 && context.mutationMode !== "readback") {
       throw executionFailure("failed", "GPT_PRIOR_BROWSER_MUTATION_UNRESOLVED");
     }
     observation = await handler(intent, context);
@@ -204,8 +208,7 @@ const executeOne = async (
   }
 };
 
-export { GPT_MODEL_SELECTION_VERSION, GPT_TURN_FLOW_VERSION } from "./contract.js";
-export { GptTurnExecutor } from "./gpt-turn-executor.js";
+export { GPT_MODEL_SELECTION_VERSION } from "./contract.js";
 
 export const createGptAbilityGroup = (): GptAbilityGroup => Object.freeze({
   abilityGroupId: GPT_ABILITY_GROUP_ID,
