@@ -11,7 +11,9 @@ import {
   resolveProductionPlugin,
 } from "../../src/lib/local-runtime/production/catalog.js";
 import { ProductionProductIdSchema, hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
+import type { ProductPluginOutput, ProviderTurnResult } from "../../src/lib/local-runtime/production/plugin.js";
 import { productionRoutePolicies } from "../../src/lib/local-runtime/production/route-policy.js";
+import { HASH_A, task } from "./agent-production-runtime-fixtures.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const PLUGIN_VERSION = /pluginVersion:\s*([1-9][0-9]*)/u;
@@ -175,6 +177,30 @@ for (const plugin of productionPluginCatalog) {
     assert.equal((implementation.match(/parseRouteResult\(task, candidateB\.raw_text\)/gu) ?? []).length, 1);
     assert.doesNotMatch(implementation, /localization_static_review_candidate|localization_static_review_selector/u);
   }
+  if (plugin.pluginId === "public-knowledge-article-pipeline") {
+    const implementation = readFileSync(implementationPath, "utf8");
+    assert.equal(plugin.pluginVersion, 7, "SEO flow semantic revision must publish pluginVersion 7");
+    for (const productStep of ["corpus_research", "article_synthesis", "article_image_generation"]) {
+      assert.equal((implementation.match(new RegExp(`step_id: "${productStep}"`, "gu")) ?? []).length, 1,
+        `SEO primary Flow must own exactly one ${productStep} step`);
+    }
+    assert(implementation.indexOf('step_id: "corpus_research"')
+      < implementation.indexOf('step_id: "article_synthesis"'));
+    assert(implementation.indexOf('step_id: "article_synthesis"')
+      < implementation.indexOf('step_id: "article_image_generation"'));
+    assert.match(implementation,
+      /step_id: "corpus_research",[\s\S]*?material_roles: \["ready_corpus_archive", "result_contract"\]/u);
+    assert.match(implementation,
+      /step_id: "article_synthesis",[\s\S]*?material_roles: \[\],[\s\S]*?same_conversation_as: research/u);
+    assert.match(implementation,
+      /step_id: "article_image_generation",[\s\S]*?material_roles: \[\],[\s\S]*?same_conversation_as: article,[\s\S]*?output_kind: "generated_image"/u);
+    assert.match(implementation,
+      /researchPayload\.decision === "decline"[\s\S]*?article: null, image: null/u);
+    assert.match(implementation, /continuation: image\.provider_continuation/u);
+    assert.doesNotMatch(implementation,
+      /step_id: "(?:article_synthesis|article_image_generation)"[\s\S]{0,700}?material_roles: \[(?!\])/u,
+      "SEO follow-on turns must not upload materials again");
+  }
 
   for (const entry of plugin.accepts) {
     const key = `${entry.productId}\0${entry.actionId}`;
@@ -206,5 +232,119 @@ const firstProductIds = [...new Set(productionPluginCatalog[0]!.accepts.map((ent
 assert(inspectSkill(firstProductIds, "# 空壳\n\n只有一句说明。").includes("skill-content-shell"));
 assert(inspectSkill(firstProductIds, `${firstText}\n\n## 执行流程\nStage 1 调用 Browser。`).some((finding) => finding.startsWith("skill-execution-truth-leak:")));
 assert(inspectSkill(firstProductIds, firstText.replace(firstProductIds[0]!, "")).includes(`skill-product-identity-missing:${firstProductIds[0]}`));
+
+const seoPlugin = resolveProductionPlugin("public_knowledge_article_pipeline", "produce_article").plugin;
+const seoTask = task({
+  jobId: "job:seo-product-flow",
+  productId: "public_knowledge_article_pipeline",
+  actionId: "produce_article",
+});
+const researchOutput = {
+  schema_version: "public-knowledge-research-output.v3",
+  decision: "proceed",
+  topic_manifest: { topic: "可核验的新主题" },
+  editorial_intent: "向普通读者解释一个有来源闭包的新主题",
+  catalog_comparison_note: "与现役目录没有实质重复",
+  research_markdown: "研究正文",
+  citations: [],
+  uncertainties: [],
+  research_claim_units: [],
+  closest_existing_article_ids: [],
+  relation_assertions: [],
+  novelty_basis: "现役目录未覆盖该问题",
+};
+const articleOutput = {
+  schema_version: "public-knowledge-article-output.v3",
+  title: "可核验的新主题",
+  editor_note: "依据冻结研究材料编写",
+  article_markdown: "文章正文",
+  citations: [],
+  claim_coverage: [],
+  safety_notes: [],
+};
+const continuation = {
+  provider_page_url: "provider:seo-product-flow",
+  prior_task_id: "provider-task:seo-product-flow",
+  prior_raw_output_hash: HASH_A,
+  prior_turn_marker: "turn:seo-product-flow",
+};
+const imageArtifact = {
+  artifact_id: "artifact:seo-hero",
+  local_path: "/tmp/seo-hero.webp",
+  original_local_path: "/tmp/seo-hero-original.png",
+  sha256: HASH_A,
+  original_sha256: HASH_A,
+  bytes: 10,
+  media_type: "image/webp" as const,
+  width: 1200 as const,
+  height: 630 as const,
+};
+type SeoTurnInput = Parameters<Parameters<typeof seoPlugin.execute>[1]["runTurn"]>[0];
+const seoTurns: SeoTurnInput[] = [];
+let researchTurnResult: ProviderTurnResult | undefined;
+let articleTurnResult: ProviderTurnResult | undefined;
+const seoCompletions: ProductPluginOutput[] = [];
+await seoPlugin.execute(seoTask, {
+  materials: [],
+  runTurn: async (input) => {
+    seoTurns.push(input);
+    const common = { raw_hash: HASH_A, evidence_refs: [`evidence:${input.step_id}`], provider_continuation: continuation };
+    if (input.step_id === "corpus_research") {
+      researchTurnResult = { ...common, raw_text: JSON.stringify(researchOutput) };
+      return researchTurnResult;
+    }
+    if (input.step_id === "article_synthesis") {
+      articleTurnResult = { ...common, raw_text: JSON.stringify(articleOutput) };
+      return articleTurnResult;
+    }
+    if (input.step_id === "article_image_generation") return { ...common, raw_text: "", generated_image: imageArtifact };
+    throw new Error(`SEO_UNEXPECTED_STEP:${input.step_id}`);
+  },
+  complete: async (output) => {
+    seoCompletions.push(output);
+    seoPlugin.parseResult(seoTask, output.payload, "draft");
+    return {} as never;
+  },
+});
+assert.deepEqual(seoTurns.map((turn) => turn.step_id), [
+  "corpus_research", "article_synthesis", "article_image_generation",
+]);
+assert.deepEqual(seoTurns.map((turn) => turn.material_roles), [
+  ["ready_corpus_archive", "result_contract"], [], [],
+]);
+assert.equal(seoTurns[1]?.same_conversation_as, researchTurnResult);
+assert.equal(seoTurns[2]?.same_conversation_as, articleTurnResult);
+assert.equal(seoTurns[2]?.output_kind, "generated_image");
+assert.equal(seoCompletions.length, 1);
+assert.equal(seoCompletions[0]?.continuation, continuation);
+assert.equal(seoCompletions[0]?.generated_image, imageArtifact);
+assert.deepEqual((seoCompletions[0]?.payload as Record<string, unknown>).image, null);
+
+const declineTurns: string[] = [];
+let declinePayload: unknown;
+await seoPlugin.execute(seoTask, {
+  materials: [],
+  runTurn: async (input) => {
+    declineTurns.push(input.step_id);
+    return {
+      raw_text: JSON.stringify({ ...researchOutput, decision: "decline" }),
+      raw_hash: HASH_A,
+      evidence_refs: ["evidence:corpus_research"],
+      provider_continuation: continuation,
+    };
+  },
+  complete: async (output) => {
+    declinePayload = output.payload;
+    seoPlugin.parseResult(seoTask, output.payload, "draft");
+    return {} as never;
+  },
+});
+assert.deepEqual(declineTurns, ["corpus_research"]);
+assert.deepEqual(declinePayload, {
+  schema_version: "public-knowledge-article-package.v1",
+  research: { ...researchOutput, decision: "decline" },
+  article: null,
+  image: null,
+});
 
 process.stdout.write("[ACCEPTANCE][agent-product-skills] PASS\n");

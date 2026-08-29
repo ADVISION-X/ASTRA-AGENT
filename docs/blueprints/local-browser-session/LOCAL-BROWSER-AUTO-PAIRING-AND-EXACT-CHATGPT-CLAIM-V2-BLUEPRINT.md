@@ -63,7 +63,7 @@ Child，也不允许 Product Plugin 直接接触 Chrome 资源。
 - 只对本次 acquisition 创建并记录的 tab 执行 debugger attach；冲突时失败关闭，不改认领其它页面。
 - GPT turn settle 且无需恢复：关闭任务专属 Target，经现有 revoke 释放 Workspace。
 - 存在未收束 DISPATCHED，或 Provider effect 已 terminal 但 shared checkpoint 尚未追平：扩展执行一次 `park-target`，保留 Target、Document 和冻结判据，撤销 active claim/Workspace 并立即释放 FIFO；同一 job 后续 acquisition 必须携带 exact targetRef 重领该停放 Target，其他 job 继续按 FIFO 获取自己的 Target。
-- Provider effect 的 logical identity 跨 Target/attempt/build 稳定，已 DISPATCHED/CONFIRMED/REJECTED 均不得重发；Target-local 页面动作的 identity 绑定 targetRef，新 Target 代次可以重新执行，不得拿旧 Target 的本地 REJECTED 永久封死任务。
+- Provider effect 的 logical identity 只在同一业务 attempt/call 内跨 lease、process、Target、build 稳定且至多一次；新 attempt 必须使用包含新 attempt_id 的新 identity，但创建前必须证明前一 attempt 没有未收束 DISPATCHED。Target-local 页面动作的 identity 另绑定 target generation，不得拿旧 Target 的本地 REJECTED 永久封死任务。
 
 不增加设置页、授权台账、extension storage、宽 host permission、新 API、新 WebSocket、新 mutation store
 或第二 registry；只在现有认证协议增加唯一无业务载荷的 `TARGET_ACQUIRE` 帧，复用现有

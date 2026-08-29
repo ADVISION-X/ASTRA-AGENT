@@ -106,7 +106,7 @@ export const restoreGptTurnState = (
     files: value.files,
   });
   if (JSON.stringify(fixed(state)) !== JSON.stringify(fixed(snapshot))) {
-    throw executionFailure("review_required", "GPT_TURN_CHECKPOINT_IDENTITY_DRIFT");
+    throw executionFailure("failed", "GPT_TURN_CHECKPOINT_IDENTITY_DRIFT");
   }
   state.evidenceRefs.splice(0, state.evidenceRefs.length, ...snapshot.evidenceRefs);
   state.canonicalConversationUrl = snapshot.canonicalConversationUrl;
@@ -129,11 +129,11 @@ const conversationChildInput = (
 ): ChildInput | null => {
   if (childCapabilityId === "prepare_clean_gpt_chat") return { timeoutMs };
   if (childCapabilityId === "focus_exact_gpt_conversation") {
-    if (!continuation) throw executionFailure("review_required", "GPT_CONTINUATION_REQUIRED");
+    if (!continuation) throw executionFailure("failed", "GPT_CONTINUATION_REQUIRED");
     return { canonicalConversationUrl: continuation.provider_page_url, ...recovery };
   }
   if (childCapabilityId !== "verify_gpt_conversation_identity") return null;
-  if (!continuation) throw executionFailure("review_required", "GPT_CONTINUATION_REQUIRED");
+  if (!continuation) throw executionFailure("failed", "GPT_CONTINUATION_REQUIRED");
   return {
     canonicalConversationUrl: continuation.provider_page_url,
     turnMarker: continuation.prior_turn_marker,
@@ -264,7 +264,7 @@ export const applyGptChildValue = (
 
 export const buildGptTurnResult = (state: GptTurnState): ProviderTurnResult => {
   if (!state.responseText || !state.responseHash || !state.canonicalConversationUrl) {
-    throw executionFailure("review_required", "GPT_RESPONSE_CHECKPOINT_INCOMPLETE");
+    throw executionFailure("failed", "GPT_RESPONSE_CHECKPOINT_INCOMPLETE");
   }
   return {
     raw_text: state.responseText,

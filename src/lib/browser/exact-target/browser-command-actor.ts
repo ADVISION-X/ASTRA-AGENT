@@ -3,12 +3,12 @@ import type { BrowserCommandPermit } from "../transport/command-permit.js";
 import type { BrowserExecutionBinding } from "../infrastructure/browser-authority-broker.js";
 import { assertValidCommandPermit } from "../transport/command-permit.js";
 import { BrowserCommandAdmissionBudget } from "../transport/browser-command-admission-budget.js";
-import { requireRuntimeLogWrite, withRuntimeLogCause, type RuntimeLogger } from "../../runtime-logs/index.js";
+import { withRuntimeLogCause, type RuntimeLogger } from "../../runtime-logs/index.js";
 import type { BrowserDomIntent } from "./browser-dom-intent.js";
 import { assertBrowserDomIntent } from "./browser-dom-intent.js";
 import {
   completeBrowserCommandSpan,
-  emitBrowserMutationState,
+  emitBrowserMutationEvent,
   failBrowserCommandSpan,
   startBrowserCommandSpan,
 } from "./browser-command-runtime-logging.js";
@@ -191,7 +191,6 @@ const mutationReceipt = (
 };
 
 export class BrowserCommandActor {
-  private readonly executionStates = new Map<string, "idle" | "busy" | "failed" | "review_required">();
 
   public constructor(
     private readonly budget: BrowserCommandAdmissionBudget,
@@ -239,7 +238,6 @@ export class BrowserCommandActor {
 
   public async execute(permit: BrowserCommandPermit, command: BrowserGovernedCommand): Promise<unknown> {
     const commandSpan = startBrowserCommandSpan(this.runtimeLogger, permit);
-    this.emitExecutionState(permit.jobId, "busy");
     const mutation = isMutation(command);
     const state: BrowserCommandExecutionState = {
       budgetEntered: false, prepared: false, dispatched: false, terminalized: false,
@@ -253,8 +251,8 @@ export class BrowserCommandActor {
       const reply = await this.port.send(permit, command, mutation ? () => {
         this.mutations.markDispatched(permit.commandId);
         state.dispatched = true;
-        emitBrowserMutationState({
-          runtimeLogger: this.runtimeLogger, mutation: permit, previous: "PREPARED", current: "DISPATCHED",
+        emitBrowserMutationEvent({
+          runtimeLogger: this.runtimeLogger, mutation: permit, outcome: "DISPATCHED",
           authorityHash: this.mutations.authorityHash(permit.commandId),
         });
       } : undefined);
@@ -262,7 +260,6 @@ export class BrowserCommandActor {
       this.authorityGuard.assertCurrentAuthority(permit);
       if (mutation) this.completeMutation(permit, command, reply, commandSpan, state);
       completeBrowserCommandSpan({ span: commandSpan });
-      this.emitExecutionState(permit.jobId, "idle");
       state.terminalized = true;
       return reply.result;
     } catch (error) {
@@ -279,8 +276,8 @@ export class BrowserCommandActor {
   ): void {
     this.mutations.prepare(mutationIdentity(permit, command));
     state.prepared = true;
-    emitBrowserMutationState({
-      runtimeLogger: this.runtimeLogger, mutation: permit, previous: null, current: "PREPARED",
+    emitBrowserMutationEvent({
+      runtimeLogger: this.runtimeLogger, mutation: permit, outcome: "PREPARED",
       authorityHash: this.mutations.authorityHash(permit.commandId),
     });
     this.authorityGuard.assertCurrentAuthority(permit);
@@ -299,9 +296,9 @@ export class BrowserCommandActor {
     const replyHash = hashValue(reply.result);
     if (result === "rejected") this.mutations.markRejected(permit.commandId, replyHash);
     else this.mutations.markConfirmed(permit.commandId, replyHash);
-    emitBrowserMutationState({
-      runtimeLogger: this.runtimeLogger, mutation: permit, previous: "DISPATCHED",
-      current: result === "rejected" ? "REJECTED" : "CONFIRMED",
+    emitBrowserMutationEvent({
+      runtimeLogger: this.runtimeLogger, mutation: permit,
+      outcome: result === "rejected" ? "REJECTED" : "CONFIRMED",
       authorityHash: this.mutations.authorityHash(permit.commandId),
     });
     if (result !== "rejected") return;
@@ -309,7 +306,6 @@ export class BrowserCommandActor {
       span: commandSpan, permit, proofHash: this.mutations.authorityHash(permit.commandId),
       failureCode: "BROWSER_POSTCONDITION_FAILED", pendingReceipt: false,
     });
-    this.emitExecutionState(permit.jobId, "failed");
     state.terminalized = true;
     throw withRuntimeLogCause(new Error("BROWSER_POSTCONDITION_FAILED"), failureEvent.eventId);
   }
@@ -326,9 +322,9 @@ export class BrowserCommandActor {
     if (mutation && state.prepared) {
       if (state.dispatched) this.mutations.markReceiptMissing(permit.commandId);
       else this.mutations.markFailedBeforeDispatch(permit.commandId, code);
-      if (!state.dispatched) emitBrowserMutationState({
+      if (!state.dispatched) emitBrowserMutationEvent({
         runtimeLogger: this.runtimeLogger, mutation: permit,
-        previous: "PREPARED", current: "FAILED",
+        outcome: "FAILED",
         authorityHash: this.mutations.authorityHash(permit.commandId),
       });
     }
@@ -337,7 +333,6 @@ export class BrowserCommandActor {
       proofHash: mutation && state.prepared ? this.mutations.authorityHash(permit.commandId) : hashValue(code),
       failureCode: code, pendingReceipt: mutation && state.dispatched,
     });
-    this.emitExecutionState(permit.jobId, mutation && state.dispatched ? "review_required" : "failed");
     throw withRuntimeLogCause(new Error(code, { cause: error }), failureEvent.eventId);
   }
 
@@ -365,27 +360,11 @@ export class BrowserCommandActor {
       state,
       proofHash: hashValue(receipt),
     });
-    emitBrowserMutationState({
+    emitBrowserMutationEvent({
       runtimeLogger: this.runtimeLogger,
       mutation: entry,
-      previous: "DISPATCHED",
-      current: state,
+      outcome: state,
       authorityHash: this.mutations.authorityHash(receipt.commandId),
-      reconciledFromAuthority: true,
     });
-    this.emitExecutionState(entry.jobId, state === "CONFIRMED" ? "idle" : "failed");
-  }
-
-  private emitExecutionState(jobId: string, current: "idle" | "busy" | "failed" | "review_required"): void {
-    const previous = this.executionStates.get(jobId) ?? null;
-    requireRuntimeLogWrite(this.runtimeLogger.emitState({
-      traceId: jobId,
-      owner: "browser-session",
-      component: "browser-command",
-      stateKey: "browser.execution",
-      previous,
-      current,
-    }));
-    this.executionStates.set(jobId, current);
   }
 }

@@ -152,7 +152,7 @@ try {
       return fixtureLease(entry, async () => {
           if (entry.jobId === "job:unsettled") {
             throw executionFailure(
-              "review_required",
+              "failed",
               "BROWSER_TARGET_LIFECYCLE_UNSETTLED",
               { mutationOutcome: "no" },
             );
@@ -245,7 +245,7 @@ try {
     ),
     (error) => {
       const failure = typedExecutionFailure(error);
-      assert.equal(failure?.status, "recovery_pending");
+      assert.equal(failure?.status, "failed");
       assert.equal(failure?.code, "BROWSER_BACKPRESSURE");
       assert.equal(failure?.mutationOutcome, "no");
       return true;

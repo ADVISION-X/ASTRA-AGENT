@@ -8,7 +8,6 @@ import {
 } from "../../typed-failure.js";
 import {
   RuntimeFailureImpact,
-  RuntimeRecovery,
   requireRuntimeLogWrite,
   runtimeFailureFromError,
   runtimeLogCauseEventId,
@@ -29,9 +28,6 @@ import type { StoredProductionTask } from "./store.js";
 import { websiteAgentTaskFromClaim, type ClaimedProductionTask } from "./transport-protocol.js";
 import {
   checkpointWithLog,
-  emitCheckpointAuthority,
-  emitLeaseAuthority,
-  emitRuntimeState,
   releaseLeaseWithLog,
   runRuntimeSpan,
   runRuntimeSpanSync,
@@ -39,7 +35,6 @@ import {
 } from "./runtime-logging.js";
 import {
   checkpointAuthority,
-  classifyFailure,
   jobIdentity,
   leaseAuthority,
   leaseBudget,
@@ -71,22 +66,20 @@ const heartbeatWhileRunning = async <T>(
       receipt = await renewProductionLease(state.session, job, checkpointHash);
       const authority = state.store.recordLease(leaseAuthority(job, "active", receipt.lease_expires_at));
       requireRuntimeLogWrite(span.terminal({
-        outcome: "success", authorityRef: `production-lease:${job.job_id}`,
+        outcome: "succeeded", authorityRef: `production-lease:${job.job_id}`,
         authorityHash: hashCanonical(authority),
       }));
-      emitLeaseAuthority(state, authority);
     } catch (error) {
       const authority = state.store.recordLease(leaseAuthority(job, "stale", null));
-      const terminal = terminalSpanFailure(span, error, classifyFailure(error), runtimeLogCauseEventId(error),
+      const terminal = terminalSpanFailure(span, error, runtimeLogCauseEventId(error),
         "LEASE_RENEW_FAILED", {
           authorityRef: `production-lease:${job.job_id}`, authorityHash: hashCanonical(authority),
         });
-      emitLeaseAuthority(state, authority);
       throw withRuntimeLogCause(error, terminal.eventId);
     }
     const relative = Date.parse(receipt.lease_expires_at) - Date.parse(receipt.server_now);
     if (!Number.isFinite(relative) || relative < 30_000) {
-      throw executionFailure("recovery_pending", "V6_RENEW_BUDGET_INVALID");
+      throw executionFailure("failed", "V6_RENEW_BUDGET_INVALID");
     }
     budget.expires_at_monotonic = performance.now() + relative - 10_000;
     budget.command_ttl_ms = Math.min(20_000, relative - 10_000);
@@ -95,18 +88,6 @@ const heartbeatWhileRunning = async <T>(
     }
   }
   return tracked;
-};
-
-type ClaimFailureDecision = "RECONCILE_ONLY" | "RETRY_FROM_CHECKPOINT";
-
-export const claimFailureDecision = (
-  job: ClaimedProductionTask,
-  error: unknown,
-): ClaimFailureDecision => {
-  const terminal = serializeTerminalFailure(error);
-  if (terminal.mutation_outcome === "dispatched") return "RECONCILE_ONLY";
-  if (job.grant.attempt_mode === "reconciliation") return "RECONCILE_ONLY";
-  return "RETRY_FROM_CHECKPOINT";
 };
 
 const releaseUnacceptedClaim = async (
@@ -119,33 +100,25 @@ const releaseUnacceptedClaim = async (
   await releaseLeaseWithLog(state, job, spanId,
     failureCode(error).startsWith("V6_DEADLINE_") ? "LEASE_SAFETY_BUDGET_EXHAUSTED" : "CAPABILITY_CHANGED_BEFORE_ACCEPT",
     causeEventId);
-  emitRuntimeState({ state, traceId: job.job_id, stateKey: "job.lease", current: "absent" });
 };
 
-const persistRecoveryPending = async (
+const persistAttemptFailure = async (
   state: RuntimeState,
   job: ClaimedProductionTask,
   error: unknown,
-  decision: ClaimFailureDecision,
   parentSpanId: string,
 ): Promise<void> => {
-  const reason = safeReason(error);
-  state.store.setRecoveryPending(job.job_id, reason);
-  emitLeaseAuthority(state, state.store.recordLease(leaseAuthority(job, "stale", null)));
+  const failure = serializeTerminalFailure(error);
+  state.store.recordAttemptFailure(job.job_id, job.grant.attempt_id, failure);
+  state.store.recordLease(leaseAuthority(job, "stale", null));
   try {
-    await checkpointWithLog(state, job, parentSpanId, "recovery_pending", reason, {
-      ...serializeTerminalFailure(error), decision,
-    });
+    await checkpointWithLog(
+      state, job, parentSpanId, "attempt_failure", failure,
+    );
   } catch (checkpointError) {
-    emitRuntimeState({ state, traceId: job.job_id, stateKey: "job.checkpoint", current: "failed" });
     state.lastErrorCode = failureCode(checkpointError, "CHECKPOINT_STORAGE_FAILED");
     state.lastErrorReason = safeReason(checkpointError);
   }
-  const record = state.store.readTask(job.job_id)!;
-  emitRuntimeState({
-    state, traceId: job.job_id, stateKey: "job.lifecycle", current: "recovery_pending",
-    authorityRef: `production-task:${job.job_id}`, authorityHash: hashCanonical(record),
-  });
 };
 
 const handleClaimFailure = async (input: Readonly<{
@@ -160,21 +133,20 @@ const handleClaimFailure = async (input: Readonly<{
   if (!durable) return releaseUnacceptedClaim(
     input.state, input.job, input.error, input.parentSpanId, input.causeEventId,
   );
-  const decision = claimFailureDecision(input.job, input.error);
-  return persistRecoveryPending(
-    input.state, input.job, input.error, decision, input.parentSpanId,
+  return persistAttemptFailure(
+    input.state, input.job, input.error, input.parentSpanId,
   );
 };
 
 const assertClaimIdentity = (job: ClaimedProductionTask, task: WebsiteAgentTask): void => {
   if (job.grant.capability_manifest_hash !== productionCatalogHash) {
-    throw executionFailure("review_required", "CAPABILITY_MANIFEST_CHANGED_BEFORE_ACCEPT");
+    throw executionFailure("failed", "CAPABILITY_MANIFEST_CHANGED_BEFORE_ACCEPT");
   }
   const plugin = resolveProductionPlugin(task.product_id, task.action_id).plugin;
   if (job.grant.expected_catalog_hash !== productionCatalogHash
     || job.grant.expected_plugin_id !== plugin.pluginId
     || job.grant.expected_plugin_version !== plugin.pluginVersion) {
-    throw executionFailure("review_required", "CLAIMED_PLUGIN_IDENTITY_MISMATCH");
+    throw executionFailure("failed", "CLAIMED_PLUGIN_IDENTITY_MISMATCH");
   }
 };
 
@@ -187,32 +159,22 @@ const acceptClaim = (
   const task = websiteAgentTaskFromClaim(job);
   assertClaimIdentity(job, task);
   const budget = leaseBudget(job, abort);
-  const browserMutationPresent = state.browserAuthority.hasBrowserMutationForJob(job.job_id);
   const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
     traceId: job.job_id, parentSpanId: jobSpan.spanId, owner: "production-runtime",
     component: "production-store", operation: "job.durable-accept", typedIdentity: jobIdentity(job),
   }));
   const record = runRuntimeSpanSync({
-    span, action: () => state.executor.accept(task, browserMutationPresent), failureCode: "DURABLE_ACCEPT_FAILED",
+    span, action: () => state.executor.accept(task, job.grant.attempt_id), failureCode: "DURABLE_ACCEPT_FAILED",
     success: (accepted) => ({
       authorityRef: `production-task:${job.job_id}`, authorityHash: hashCanonical(accepted),
     }),
   });
-  if (record.status !== "accepted" && record.status !== "running" && record.status !== "recovery_pending") {
+  if (record.status !== "failed") {
     throw new Error("PRODUCTION_TASK_ALREADY_TERMINAL");
   }
-  emitLeaseAuthority(state, state.store.recordLease(leaseAuthority(job, "active", job.grant.lease_expires_at)));
-  emitCheckpointAuthority(state, state.store.recordCheckpoint(checkpointAuthority(job, "none", null, null)));
-  emitRuntimeState({
-    state, traceId: job.job_id, stateKey: "job.lifecycle", current: record.status,
-    authorityRef: `production-task:${job.job_id}`, authorityHash: hashCanonical(record),
-  });
-  state.store.markRunning(job.job_id);
-  const running = state.store.readTask(job.job_id)!;
-  emitRuntimeState({
-    state, traceId: job.job_id, stateKey: "job.lifecycle", current: "running",
-    authorityRef: `production-task:${job.job_id}`, authorityHash: hashCanonical(running),
-  });
+  state.store.recordLease(leaseAuthority(job, "active", job.grant.lease_expires_at));
+  state.store.recordCheckpoint(checkpointAuthority(job, "none", null, null));
+  state.store.markExecuting(job.job_id);
   return { task, budget, record };
 };
 
@@ -228,11 +190,9 @@ const downloadClaimMaterials = async (
   }));
   return runRuntimeSpan({
     span, failureCode: "MATERIAL_DOWNLOAD_VERIFY_FAILED", action: async () => {
-      const checkpoint = await checkpointWithLog(
-        state, job, span.spanId, "inputs_downloading", "durable_plugin_accept",
-      );
+      const checkpoint = await checkpointWithLog(state, job, span.spanId, "accepted");
       const materials = await downloadProductionMaterials(state.session, job, materialDir);
-      await checkpointWithLog(state, job, span.spanId, "factory_running", "materials_verified");
+      await checkpointWithLog(state, job, span.spanId, "progress");
       return { checkpoint, materials };
     },
   });
@@ -281,7 +241,7 @@ export const reconcileBusinessAdmission = async (
   const remote = await readProductionDeviceJobStatus(state.session, record.task.job_id);
   const admission = remote.business_admission_receipt;
   if (!admission) {
-    state.store.setRecoveryPending(
+    state.store.setCurrentReason(
       record.task.job_id,
       remote.business_consumer_error
         ? `BUSINESS_ADMISSION_FAILED:${remote.business_consumer_error}`
@@ -294,12 +254,6 @@ export const reconcileBusinessAdmission = async (
     throw executionFailure("failed", "BUSINESS_ADMISSION_RESULT_HASH_MISMATCH");
   }
   state.store.completeTask(record.task.job_id, staged);
-  const completed = state.store.readTask(record.task.job_id)!;
-  emitRuntimeState({
-    state, traceId: record.task.job_id, stateKey: "job.lifecycle", current: "completed",
-    authorityRef: `production-task:${record.task.job_id}`, authorityHash: hashCanonical(completed),
-    reconciledFromAuthority: true,
-  });
   await rm(path.join(state.dataDir, "plugin-tasks", "production-runtime", record.task.job_id, "materials"), {
     recursive: true, force: true,
   });
@@ -327,34 +281,30 @@ const completeClaim = async (input: Readonly<{
         status: "completed", payload_hash: payloadHash,
         result_receipt_hashes: input.uploaded.artifact_receipts.map((receipt) => receipt.receipt_hash),
       });
-      input.state.store.setRecoveryPending(input.job.job_id, "BUSINESS_ADMISSION_PENDING");
+      input.state.store.setCurrentReason(input.job.job_id, "BUSINESS_ADMISSION_PENDING");
       return input.state.store.readTask(input.job.job_id)!;
     },
     success: (record) => ({
       authorityRef: `production-task:${input.job.job_id}`, authorityHash: hashCanonical(record),
     }),
   });
-  emitLeaseAuthority(input.state, input.state.store.recordLease(leaseAuthority(input.job, "absent", null)));
+  input.state.store.recordLease(leaseAuthority(input.job, "absent", null));
   const record = input.state.store.readTask(input.job.job_id)!;
   const admission = await reconcileBusinessAdmission(input.state, record);
   const current = input.state.store.readTask(input.job.job_id)!;
   if (admission === "completed") {
     requireRuntimeLogWrite(input.jobSpan.terminal({
-      outcome: "success", authorityRef: `production-task:${input.job.job_id}`,
+      outcome: "succeeded", authorityRef: `production-task:${input.job.job_id}`,
       authorityHash: hashCanonical(current),
     }));
     return;
   }
-  emitRuntimeState({
-    state: input.state, traceId: input.job.job_id, stateKey: "job.lifecycle", current: "recovery_pending",
-    authorityRef: `production-task:${input.job.job_id}`, authorityHash: hashCanonical(current),
-  });
   requireRuntimeLogWrite(input.jobSpan.terminal({
     outcome: "failed", authorityRef: `production-task:${input.job.job_id}`,
     authorityHash: hashCanonical(current), failure: runtimeFailureFromError({
-      error: new Error(current.failure_reason ?? "BUSINESS_ADMISSION_PENDING"),
-      code: current.failure_reason?.split(":")[0] ?? "BUSINESS_ADMISSION_PENDING",
-      responsibleOwner: "website", recovery: RuntimeRecovery.RETRY,
+      error: new Error(current.current_reason ?? "BUSINESS_ADMISSION_PENDING"),
+      code: current.current_reason?.split(":")[0] ?? "BUSINESS_ADMISSION_PENDING",
+      responsibleOwner: "website",
       impact: RuntimeFailureImpact.BLOCKING,
     }),
   }));
@@ -381,7 +331,7 @@ export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTa
     const normalized = abort.signal.aborted && String(abort.signal.reason ?? "").includes("cancel_requested")
       ? executionFailure("failed", "USER_CANCELLED", { mutationOutcome: "no", cause: error }) : error;
     const failureEvent = terminalSpanFailure(
-      jobSpan, normalized, classifyFailure(normalized), runtimeLogCauseEventId(normalized), "JOB_EXECUTION_FAILED",
+      jobSpan, normalized, runtimeLogCauseEventId(normalized), "JOB_EXECUTION_FAILED",
     );
     await handleClaimFailure({
       state, job, accepted, error: normalized, parentSpanId: jobSpan.spanId,

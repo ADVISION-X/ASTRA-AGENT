@@ -6,33 +6,20 @@ const authorityCandidates = (
 ): ReadonlyMap<string, RuntimeLogEventV2[]> => {
   const groups = new Map<string, RuntimeLogEventV2[]>();
   for (const event of events) {
-    if (!("authorityRef" in event) || !event.authorityRef) continue;
-    if (!("authorityHash" in event) || !event.authorityHash) continue;
+    if (!("authorityRef" in event) || !event.authorityRef || !event.authorityHash) continue;
     groups.set(event.authorityRef, [...(groups.get(event.authorityRef) ?? []), event]);
   }
   return groups;
 };
 
-const selectedAuthorityRun = (
+const latestWithinOneRun = (
+  authorityRef: string,
   candidates: readonly RuntimeLogEventV2[],
-  freshRuns: ReadonlyMap<string, boolean>,
-): string | null => {
-  const liveRuns = new Set(candidates.filter((event) => freshRuns.get(event.producerRunId) === true)
-    .map((event) => event.producerRunId));
-  const reconciledRuns = new Set(candidates.filter((event) =>
-    event.type === "STATE" && event.reconciledFromAuthority === true).map((event) => event.producerRunId));
-  if (liveRuns.size === 1) return [...liveRuns][0]!;
-  return reconciledRuns.size === 1 ? [...reconciledRuns][0]! : null;
-};
-
-const lastAuthorityEvent = (
-  candidates: readonly RuntimeLogEventV2[],
-  selectedRun: string | null,
+  findings: string[],
 ): RuntimeLogEventV2 => {
-  const eligible = selectedRun
-    ? candidates.filter((event) => event.producerRunId === selectedRun)
-    : [...candidates];
-  return eligible.sort((left, right) =>
+  const runs = new Set(candidates.map((event) => event.producerRunId));
+  if (runs.size !== 1) findings.push(`AUTHORITY_CROSS_RUN_ORDER_UNPROVEN:${authorityRef}`);
+  return [...candidates].sort((left, right) =>
     left.producerRunId.localeCompare(right.producerRunId) || left.producerSeq - right.producerSeq).at(-1)!;
 };
 
@@ -46,21 +33,17 @@ const verifyAuthority = (
   if (!authorityHash) return;
   const verdict = resolver?.(authorityRef, authorityHash);
   if (!verdict || verdict === "missing") findings.push(`AUTHORITY_REF_UNVERIFIED:${authorityRef}`);
-  else if (verdict === "mismatch") findings.push(`AUTHORITY_STATE_MISMATCH:${authorityRef}`);
+  else if (verdict === "mismatch") findings.push(`AUTHORITY_HASH_MISMATCH:${authorityRef}`);
 };
 
 export const resolveRuntimeAuthorities = (input: Readonly<{
   events: readonly RuntimeLogEventV2[];
-  freshRuns: ReadonlyMap<string, boolean>;
   resolver: RuntimeAuthorityResolver | undefined;
   findings: string[];
 }>): ReadonlyMap<string, RuntimeLogEventV2> => {
   const selectedEvents = new Map<string, RuntimeLogEventV2>();
   for (const [authorityRef, candidates] of authorityCandidates(input.events)) {
-    const selectedRun = selectedAuthorityRun(candidates, input.freshRuns);
-    const runCount = new Set(candidates.map((event) => event.producerRunId)).size;
-    if (runCount > 1 && !selectedRun) input.findings.push(`AUTHORITY_RECONCILIATION_PENDING:${authorityRef}`);
-    const selected = lastAuthorityEvent(candidates, selectedRun);
+    const selected = latestWithinOneRun(authorityRef, candidates, input.findings);
     selectedEvents.set(authorityRef, selected);
     verifyAuthority(authorityRef, selected, input.resolver, input.findings);
   }

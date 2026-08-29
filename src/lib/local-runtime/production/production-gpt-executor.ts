@@ -14,7 +14,6 @@ import type { ForensicsPersistenceAbilityGroup } from "../../../capabilities/for
 import type { BrowserTargetLease } from "../../browser/browser-authority-api.js";
 import {
   RuntimeFailureImpact,
-  RuntimeRecovery,
   requireRuntimeLogWrite,
   runtimeFailureFromError,
   withRuntimeLogCause,
@@ -109,8 +108,6 @@ const stepInputHash = (
 });
 
 export class ProductionGptExecutor {
-  private readonly states = new Map<string, "idle" | "running" | "failed" | "review_required">();
-
   public constructor(
     private readonly dataDir: string,
     private readonly sourceHash: ProductionHash,
@@ -181,18 +178,6 @@ export class ProductionGptExecutor {
       : stringField(value.continuationRef, "GPT_CONTINUATION_REF_INVALID");
   }
 
-  private emitState(jobId: string, current: "idle" | "running" | "failed" | "review_required"): void {
-    requireRuntimeLogWrite(this.runtimeLogger.emitState({
-      traceId: jobId,
-      owner: "gpt",
-      component: "gpt-child",
-      stateKey: "gpt.execution",
-      previous: this.states.get(jobId) ?? null,
-      current,
-    }));
-    this.states.set(jobId, current);
-  }
-
   private childSpan(input: ChildExecutionInput): RuntimeSpanHandle {
     return requireRuntimeLogWrite(this.runtimeLogger.startSpan({
       traceId: input.task.job_id,
@@ -233,7 +218,7 @@ export class ProductionGptExecutor {
       }, execute)
       : await execute();
     if (observedProofs.at(-1)?.evidenceHash !== result.proof.evidenceHash) {
-      throw executionFailure("review_required", "EVIDENCE_PROOF_BINDING_INVALID");
+      throw executionFailure("failed", "EVIDENCE_PROOF_BINDING_INVALID");
     }
     return result;
   }
@@ -244,54 +229,42 @@ export class ProductionGptExecutor {
     result: GptChildCapabilityResult,
   ): void {
     if (result.status === "success") {
-      const terminal = requireRuntimeLogWrite(span.terminal({ outcome: "success" }));
+      const terminal = requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
       childFailureEventIds.set(result, terminal.eventId);
-      this.emitState(input.task.job_id, "idle");
       return;
     }
-    const recovery = result.status === "recovery_pending"
-      ? RuntimeRecovery.RETRY
-      : result.status === "review_required" ? RuntimeRecovery.REVIEW : RuntimeRecovery.STOP;
     const terminal = requireRuntimeLogWrite(span.terminal({
-      outcome: result.status === "review_required" ? "review_required" : "failed",
+      outcome: "failed",
       failure: runtimeFailureFromError({
         error: new Error(result.failureCode ?? result.status),
-        code: result.status === "review_required" ? "GPT_CHILD_REVIEW_REQUIRED" : "GPT_CHILD_FAILED",
+        code: result.failureCode ?? "GPT_CHILD_FAILED",
         responsibleOwner: "gpt",
-        recovery,
         impact: RuntimeFailureImpact.BLOCKING,
       }),
     }));
     childFailureEventIds.set(result, terminal.eventId);
-    this.emitState(input.task.job_id, result.status === "review_required" ? "review_required" : "failed");
   }
 
   private terminalizeError(input: ChildExecutionInput, span: RuntimeSpanHandle, error: unknown): never {
     const failure = typedExecutionFailure(error) ?? executionFailure(
-      "recovery_pending",
+      "failed",
       failureCode(error, "GPT_CHILD_RUNTIME_FAILED"),
       { cause: error },
     );
-    const recovery = failure.status === "review_required"
-      ? RuntimeRecovery.REVIEW
-      : failure.status === "recovery_pending" ? RuntimeRecovery.RETRY : RuntimeRecovery.STOP;
     const terminal = requireRuntimeLogWrite(span.terminal({
-      outcome: failure.status === "review_required" ? "review_required" : "failed",
+      outcome: "failed",
       failure: runtimeFailureFromError({
         error: failure,
         code: "GPT_CHILD_RUNTIME_FAILED",
         responsibleOwner: "gpt",
-        recovery,
         impact: RuntimeFailureImpact.BLOCKING,
       }),
     }));
-    this.emitState(input.task.job_id, failure.status === "review_required" ? "review_required" : "failed");
     throw withRuntimeLogCause(failure, terminal.eventId);
   }
 
   private async executeChild(input: ChildExecutionInput): Promise<GptChildCapabilityResult> {
     const span = this.childSpan(input);
-    this.emitState(input.task.job_id, "running");
     try {
       const result = await this.runChild(input);
       await persistGptChildEvidence({
@@ -311,7 +284,7 @@ export class ProductionGptExecutor {
 
   private async acquireContinuation(input: ProductionGptTurnInput): Promise<GptContinuationLane | null> {
     if (!input.turn.use_task_continuation) return null;
-    if (!input.task.continuation_ref) throw executionFailure("review_required", "GPT_CONTINUATION_REQUIRED");
+    if (!input.task.continuation_ref) throw executionFailure("failed", "GPT_CONTINUATION_REQUIRED");
     const stepId = input.turn.step_id;
     const result = await this.executeChild({
       task: input.task,
@@ -375,10 +348,10 @@ export class ProductionGptExecutor {
   private acquireBrowser(input: ProductionGptTurnInput): Promise<BrowserTargetLease> {
     const remaining = Math.floor(input.lease.expires_at_monotonic - performance.now());
     const commandTtlMs = Math.min(input.lease.command_ttl_ms, remaining);
-    if (commandTtlMs < 1) throw executionFailure("recovery_pending", "V6_DEADLINE_BUDGET_EXHAUSTED");
+    if (commandTtlMs < 1) throw executionFailure("failed", "V6_DEADLINE_BUDGET_EXHAUSTED");
     const executionRef = `${input.task.job_id}:${input.pluginId}:${input.turn.step_id}`;
     return this.browserAuthority.acquireJobBoundTargetLease({
-      kind: input.lease.attempt_mode === "reconciliation" ? "production-reconciliation" : "production",
+      kind: "production",
       ownerPluginId: input.pluginId,
       jobId: input.task.job_id,
       pluginStepId: input.turn.step_id,
@@ -457,7 +430,7 @@ export class ProductionGptExecutor {
       browser.assertNoPendingMutations();
       if (lane) {
         if (!result.provider_continuation) {
-          throw executionFailure("review_required", "GPT_RESULT_CONTINUATION_MISSING");
+          throw executionFailure("failed", "GPT_RESULT_CONTINUATION_MISSING");
         }
         await this.continuationCommand("advance", lane, input, result.provider_continuation);
       }
@@ -483,24 +456,11 @@ export class ProductionGptExecutor {
     const lane = await this.acquireContinuation(input);
     const continuation = lane?.provider ?? input.turn.same_conversation_as?.provider_continuation ?? null;
     const inputHash = stepInputHash(input, selected, durableIdentity, continuation);
-    const checkpointMetadata = this.store.readGptTurnCheckpointMetadata(input.task.job_id, input.turn.step_id);
-    if (checkpointMetadata && checkpointMetadata.flowVersion !== GPT_TURN_FLOW_VERSION) {
-      this.store.reconstructStaleGptTurnStep({
-        jobId: input.task.job_id,
-        stepId: input.turn.step_id,
-        nextInputHash: inputHash,
-        safeByBrowserWal: this.browserAuthority.canReconstructGptTurnStep({
-          jobId: input.task.job_id,
-          ownerPluginId: input.pluginId,
-          pluginStepId: input.turn.step_id,
-        }),
-      });
-    }
     const checkpoint = this.store.readGptTurnCheckpoint(input.task.job_id, input.turn.step_id, inputHash);
     if (checkpoint?.result) {
       if (lane) {
         if (!checkpoint.result.provider_continuation) {
-          throw executionFailure("review_required", "GPT_CHECKPOINT_CONTINUATION_MISSING");
+          throw executionFailure("failed", "GPT_CHECKPOINT_CONTINUATION_MISSING");
         }
         await this.continuationCommand("advance", lane, input, checkpoint.result.provider_continuation);
       }

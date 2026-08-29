@@ -1,10 +1,10 @@
 import type { GptAbilityGroup } from "../../../capabilities/gpt/index.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../../capabilities/forensics-persistence/index.js";
 import {
-  RuntimeFailureImpact, RuntimeRecovery, requireRuntimeLogWrite, runtimeFailureFromError,
+  RuntimeFailureImpact, requireRuntimeLogWrite, runtimeFailureFromError,
   runtimeLogCauseEventId, withRuntimeLogCause, type RuntimeLogger, type RuntimeSpanHandle,
 } from "../../runtime-logs/index.js";
-import { executionFailure, failureCode, failureStatus, typedExecutionFailure } from "../../typed-failure.js";
+import { executionFailure, failureCode, typedExecutionFailure } from "../../typed-failure.js";
 import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-support.js";
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../../mediator/agent-production-route.js";
 import { productionCatalogHash } from "./catalog.js";
@@ -17,7 +17,6 @@ import { assertProductionTaskRoutePolicy } from "./route-policy.js";
 import { ProductionRuntimeStore, type StoredProductionTask } from "./store.js";
 
 export interface ProductionExecutionLease {
-  readonly attempt_mode: "execution" | "reconciliation";
   readonly attempt_id: string;
   readonly device_id: string;
   readonly lease_version: number;
@@ -86,9 +85,9 @@ export class ProductionExecutor {
 
   public availableCapacity(): number { return 10; }
 
-  public accept(task: WebsiteAgentTask, browserMutationPresent = false): StoredProductionTask {
+  public accept(task: WebsiteAgentTask, attemptId: string): StoredProductionTask {
     assertProductionTaskRoutePolicy(task);
-    return this.store.acceptTask(task, pluginIdentity(task), browserMutationPresent);
+    return this.store.acceptTask(task, pluginIdentity(task), attemptId);
   }
 
   private startPluginSpan(
@@ -109,16 +108,13 @@ export class ProductionExecutor {
 
   private terminalizePluginFailure(span: RuntimeSpanHandle, error: unknown): never {
     const failure = typedExecutionFailure(error) ?? executionFailure(
-      "review_required", failureCode(error, "PLUGIN_EXECUTION_FAILED"), { cause: error },
+      "failed", failureCode(error, "PLUGIN_EXECUTION_FAILED"), { cause: error },
     );
     const causedByEventId = runtimeLogCauseEventId(error);
-    const status = failureStatus(failure);
-    const recovery = status === "review_required" ? RuntimeRecovery.REVIEW
-      : status === "recovery_pending" ? RuntimeRecovery.RETRY : RuntimeRecovery.STOP;
     const terminal = requireRuntimeLogWrite(span.terminal({
-      outcome: status === "review_required" ? "review_required" : "failed",
+      outcome: "failed",
       failure: runtimeFailureFromError({
-        error: failure, code: "PLUGIN_EXECUTION_FAILED", responsibleOwner: "product-plugin", recovery,
+        error: failure, code: "PLUGIN_EXECUTION_FAILED", responsibleOwner: "product-plugin",
         impact: causedByEventId ? RuntimeFailureImpact.CONSEQUENTIAL : RuntimeFailureImpact.BLOCKING,
         ...(causedByEventId ? { causedByEventId } : {}),
       }),
@@ -168,12 +164,12 @@ export class ProductionExecutor {
     if (accepted.status === "completed" && accepted.result) throw new Error("PRODUCTION_TASK_ALREADY_TERMINAL");
     assertProductionTaskRoutePolicy(task);
     if (!durableIdentityValid(accepted, task)) {
-      throw executionFailure("review_required", "PRODUCTION_PLUGIN_DURABLE_IDENTITY_MISMATCH");
+      throw executionFailure("failed", "PRODUCTION_PLUGIN_DURABLE_IDENTITY_MISMATCH");
     }
     const span = this.startPluginSpan(task, lease, parentSpanId, accepted.identity.plugin_id);
     try {
       const result = await this.dispatchPlugin({ task, materials, lease, span, complete });
-      requireRuntimeLogWrite(span.terminal({ outcome: "success" }));
+      requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
       return { record: this.store.readTask(task.job_id)!, result };
     } catch (error) {
       return this.terminalizePluginFailure(span, error);

@@ -30,30 +30,30 @@ const dynamicClaimContract = (/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_BEGIN */
     "LAW-LOCAL-BROWSER-SESSION-001-V4:dynamic.browser": {"claims": {"forbidden:6": [{"path": "/facts/extension_worker_count", "operator": "equals", "expected": 1}, {"path": "/facts/authority_present", "operator": "equals", "expected": true}]}},
     "LAW-LOCAL-BROWSER-SESSION-002-V6:dynamic.browser": {"claims": {"forbidden:8": [{"path": "/facts/release_build_matches_record", "operator": "equals", "expected": true}]}},
     "LAW-LOCAL-BROWSER-SESSION-003-V13:dynamic.browser": {"claims": {"forbidden:14": [{"path": "/facts/target_claimed_observed", "operator": "equals", "expected": true}, {"path": "/facts/task_owned_chatgpt_page_observed", "operator": "equals", "expected": true}, {"path": "/facts/final_target_absent", "operator": "equals", "expected": true}, {"path": "/facts/operator_page_unchanged", "operator": "equals", "expected": true}]}},
-    "LAW-LOCAL-BROWSER-SESSION-004-V11:dynamic.storage": {"claims": {"forbidden:11": [{"path": "/facts/mutation_rows_complete", "operator": "equals", "expected": true}, {"path": "/facts/sqlite_wal_mode", "operator": "equals", "expected": true}]}},
+    "LAW-LOCAL-BROWSER-SESSION-004-V12:dynamic.storage": {"claims": {"forbidden:11": [{"path": "/facts/mutation_rows_complete", "operator": "equals", "expected": true}, {"path": "/facts/sqlite_wal_mode", "operator": "equals", "expected": true}]}},
     "LAW-LOCAL-BROWSER-SESSION-005-V6:dynamic.browser": {"claims": {"forbidden:5": [{"path": "/facts/release_build_matches_record", "operator": "equals", "expected": true}]}},
     "LAW-LOCAL-BROWSER-SESSION-006-V5:dynamic.browser": {"claims": {"forbidden:0": [{"path": "/facts/persisted_sensitive_value_count", "operator": "equals", "expected": 0}]}},
-    "LAW-RUNTIME-LOG-SPINE-001-V4:dynamic.browser": {"claims": {"summary": [{"path": "/facts/runtime_log_browser_span_count", "operator": "gte", "expected": 39}]}},
-    "LAW-RUNTIME-LOG-SPINE-001-V4:dynamic.service": {"claims": {"summary": [{"path": "/facts/runtime_log_event_count", "operator": "gte", "expected": 39}, {"path": "/facts/runtime_log_integrity_valid", "operator": "equals", "expected": true}, {"path": "/facts/runtime_log_sink_ready", "operator": "equals", "expected": true}]}},
-    "LAW-RUNTIME-LOG-SPINE-001-V4:dynamic.storage": {"claims": {"forbidden:4": [{"path": "/facts/runtime_log_authority_hash_count", "operator": "gte", "expected": 39}, {"path": "/facts/runtime_log_unresolved_mutation_state_count", "operator": "equals", "expected": 0}]}},
-    "LAW-RUNTIME-LOG-SPINE-001-V4:dynamic.recovery": {"claims": {"summary": [{"path": "/facts/runtime_log_completed_observed", "operator": "equals", "expected": true}, {"path": "/facts/runtime_log_recovery_pending_observed", "operator": "equals", "expected": true}]}},
+    "LAW-RUNTIME-LOG-SPINE-001-V5:dynamic.browser": {"claims": {"summary": [{"path": "/facts/runtime_log_browser_span_count", "operator": "gte", "expected": 39}]}},
+    "LAW-RUNTIME-LOG-SPINE-001-V5:dynamic.service": {"claims": {"summary": [{"path": "/facts/runtime_log_event_count", "operator": "gte", "expected": 39}, {"path": "/facts/runtime_log_integrity_valid", "operator": "equals", "expected": true}]}},
+    "LAW-RUNTIME-LOG-SPINE-001-V5:dynamic.storage": {"claims": {"forbidden:3": [{"path": "/facts/runtime_log_authority_hash_count", "operator": "gte", "expected": 39}, {"path": "/facts/runtime_log_forbidden_task_state_field_count", "operator": "equals", "expected": 0}]}},
+    "LAW-RUNTIME-LOG-SPINE-001-V5:dynamic.recovery": {"claims": {"summary": [{"path": "/facts/runtime_log_forbidden_task_state_field_count", "operator": "equals", "expected": 0}]}},
     "LAW-RUNTIME-LOG-SPINE-002-V4:dynamic.browser": {"claims": {"forbidden:0": [{"path": "/facts/persisted_sensitive_value_count", "operator": "equals", "expected": 0}]}},
     "LAW-RUNTIME-LOG-SPINE-002-V4:dynamic.storage": {"claims": {"forbidden:0": [{"path": "/facts/runtime_log_sensitive_value_count", "operator": "equals", "expected": 0}]}},
-    "LAW-RUNTIME-LOG-SPINE-003-V5:dynamic.browser": {"claims": {"forbidden:4": [{"path": "/facts/runtime_log_mutation_state_count", "operator": "gte", "expected": 39}, {"path": "/facts/runtime_log_unresolved_mutation_state_count", "operator": "equals", "expected": 0}]}},
-    "LAW-RUNTIME-LOG-SPINE-003-V5:dynamic.service": {"claims": {"forbidden:3": [{"path": "/facts/runtime_log_integrity_valid", "operator": "equals", "expected": true}, {"path": "/facts/runtime_log_open_span_count", "operator": "equals", "expected": 0}, {"path": "/facts/runtime_log_producer_count", "operator": "equals", "expected": 1}, {"path": "/facts/runtime_log_sealed", "operator": "equals", "expected": true}]}},
-    "LAW-RUNTIME-LOG-SPINE-003-V5:dynamic.storage": {"claims": {"forbidden:4": [{"path": "/facts/runtime_log_authority_hash_count", "operator": "gte", "expected": 39}, {"path": "/facts/runtime_log_unresolved_mutation_state_count", "operator": "equals", "expected": 0}]}},
-    "LAW-RUNTIME-LOG-SPINE-003-V5:dynamic.recovery": {"claims": {"summary": [{"path": "/facts/runtime_log_completed_observed", "operator": "equals", "expected": true}, {"path": "/facts/runtime_log_recovery_pending_observed", "operator": "equals", "expected": true}]}},
-    "LAW-GPT-001-V5:dynamic.browser": {"claims": {"forbidden:5": [{"path": "/facts/exact_target_document_binding_count", "operator": "gte", "expected": 39}, {"path": "/facts/operator_page_unchanged", "operator": "equals", "expected": true}]}},
-    "LAW-GPT-001-V5:dynamic.provider": {"claims": {"forbidden:1": [{"path": "/facts/provider_count", "operator": "equals", "expected": 1}]}},
-    "LAW-GPT-001-V5:dynamic.authorization": {"claims": {"forbidden:2": [{"path": "/facts/exact_target_document_binding_count", "operator": "gte", "expected": 39}]}},
-    "LAW-GPT-001-V5:dynamic.recovery": {"claims": {"forbidden:6": [{"path": "/facts/recovery_pending_observed", "operator": "equals", "expected": true}, {"path": "/facts/completed_observed", "operator": "equals", "expected": true}, {"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V8:dynamic.browser": {"claims": {"forbidden:17": [{"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V8:dynamic.service": {"claims": {"forbidden:17": [{"path": "/facts/browser_context_closed", "operator": "equals", "expected": true}, {"path": "/facts/cleanup_verified", "operator": "equals", "expected": true}, {"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}, {"path": "/facts/workbench_stopped", "operator": "equals", "expected": true}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V8:dynamic.database": {"claims": {"forbidden:8": [{"path": "/facts/frozen_identity_count", "operator": "equals", "expected": 39}, {"path": "/facts/frozen_identity_invalid_count", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V8:dynamic.storage": {"claims": {"forbidden:10": [{"path": "/unresolvedCount", "operator": "equals", "expected": 0}, {"path": "/facts/confirmed_row_invalid_count", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V8:dynamic.provider": {"claims": {"forbidden:0": [{"path": "/facts/catalog_plugin_count", "operator": "equals", "expected": 12}, {"path": "/facts/executed_route_count", "operator": "equals", "expected": 39}, {"path": "/facts/primary_route_count", "operator": "equals", "expected": 13}, {"path": "/facts/review_route_count", "operator": "equals", "expected": 26}, {"path": "/facts/route_denominator_complete", "operator": "equals", "expected": true}, {"path": "/terminalReceiptCount", "operator": "equals", "expected": 39}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V8:dynamic.authorization": {"claims": {"forbidden:3": [{"path": "/facts/lease_fence_bound_job_count", "operator": "equals", "expected": 39}, {"path": "/facts/unbound_lease_fence_job_count", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V8:dynamic.recovery": {"claims": {"forbidden:9": [{"path": "/facts/recovery_pending_observed", "operator": "equals", "expected": true}, {"path": "/facts/completed_observed", "operator": "equals", "expected": true}, {"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}}
+    "LAW-RUNTIME-LOG-SPINE-003-V6:dynamic.browser": {"claims": {"forbidden:4": [{"path": "/facts/runtime_log_mutation_event_count", "operator": "gte", "expected": 39}, {"path": "/facts/runtime_log_forbidden_task_state_field_count", "operator": "equals", "expected": 0}]}},
+    "LAW-RUNTIME-LOG-SPINE-003-V6:dynamic.service": {"claims": {"forbidden:3": [{"path": "/facts/runtime_log_integrity_valid", "operator": "equals", "expected": true}, {"path": "/facts/runtime_log_open_span_count", "operator": "equals", "expected": 0}, {"path": "/facts/runtime_log_producer_count", "operator": "equals", "expected": 1}, {"path": "/facts/runtime_log_sealed", "operator": "equals", "expected": true}]}},
+    "LAW-RUNTIME-LOG-SPINE-003-V6:dynamic.storage": {"claims": {"forbidden:4": [{"path": "/facts/runtime_log_authority_hash_count", "operator": "gte", "expected": 39}, {"path": "/facts/runtime_log_forbidden_task_state_field_count", "operator": "equals", "expected": 0}]}},
+    "LAW-RUNTIME-LOG-SPINE-003-V6:dynamic.recovery": {"claims": {"summary": [{"path": "/facts/runtime_log_forbidden_task_state_field_count", "operator": "equals", "expected": 0}]}},
+    "LAW-GPT-001-V6:dynamic.browser": {"claims": {"forbidden:5": [{"path": "/facts/exact_target_document_binding_count", "operator": "gte", "expected": 39}, {"path": "/facts/operator_page_unchanged", "operator": "equals", "expected": true}]}},
+    "LAW-GPT-001-V6:dynamic.provider": {"claims": {"forbidden:1": [{"path": "/facts/provider_count", "operator": "equals", "expected": 1}]}},
+    "LAW-GPT-001-V6:dynamic.authorization": {"claims": {"forbidden:2": [{"path": "/facts/exact_target_document_binding_count", "operator": "gte", "expected": 39}]}},
+    "LAW-GPT-001-V6:dynamic.recovery": {"claims": {"forbidden:6": [{"path": "/facts/failed_observed", "operator": "equals", "expected": true}, {"path": "/facts/completed_observed", "operator": "equals", "expected": true}, {"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V9:dynamic.browser": {"claims": {"forbidden:17": [{"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V9:dynamic.service": {"claims": {"forbidden:17": [{"path": "/facts/browser_context_closed", "operator": "equals", "expected": true}, {"path": "/facts/cleanup_verified", "operator": "equals", "expected": true}, {"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}, {"path": "/facts/workbench_stopped", "operator": "equals", "expected": true}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V9:dynamic.database": {"claims": {"forbidden:8": [{"path": "/facts/frozen_identity_count", "operator": "equals", "expected": 39}, {"path": "/facts/frozen_identity_invalid_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V9:dynamic.storage": {"claims": {"forbidden:10": [{"path": "/unresolvedCount", "operator": "equals", "expected": 0}, {"path": "/facts/confirmed_row_invalid_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V9:dynamic.provider": {"claims": {"forbidden:0": [{"path": "/facts/catalog_plugin_count", "operator": "equals", "expected": 12}, {"path": "/facts/executed_route_count", "operator": "equals", "expected": 39}, {"path": "/facts/primary_route_count", "operator": "equals", "expected": 13}, {"path": "/facts/review_route_count", "operator": "equals", "expected": 26}, {"path": "/facts/route_denominator_complete", "operator": "equals", "expected": true}, {"path": "/terminalReceiptCount", "operator": "equals", "expected": 39}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V9:dynamic.authorization": {"claims": {"forbidden:3": [{"path": "/facts/lease_fence_bound_job_count", "operator": "equals", "expected": 39}, {"path": "/facts/unbound_lease_fence_job_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V9:dynamic.recovery": {"claims": {"forbidden:9": [{"path": "/facts/failed_observed", "operator": "equals", "expected": true}, {"path": "/facts/completed_observed", "operator": "equals", "expected": true}, {"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}}
   }
 }
 /* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_END */) as const;
@@ -243,8 +243,8 @@ assert(finalHealth && operatorBefore && operatorAfter && finalPairingState && cl
 assert.equal(cleanupObservation.cleanupVerified, true, "production proof cleanup was not observed");
 assert.equal(targetClaimedObserved, true, "a job-owned exact Target claim was not observed");
 assert.equal(taskOwnedChatgptPageObserved, true, "a task-owned real ChatGPT page was not observed");
-assert.equal(taskHistory.get(recoveryJobId)?.has("recovery_pending"), true,
-  "the named real job must be observed recovery_pending before completing with the same identity");
+assert.equal(taskHistory.get(recoveryJobId)?.has("failed"), true,
+  "the named real job must remain failed before completing with the same identity");
 
 type TaskRow = { created_at: string; identity_json: string; job_id: string; request_hash: string;
   result_json: string; status: string; task_json: string; updated_at: string };
@@ -310,7 +310,7 @@ assert.equal(mutationRows.filter((row) => row.state === "CONFIRMED").every((row)
     && row.request_hash && row.payload_hash)), true);
 
 const runtimeLogProof = observeProductionProofRuntimeLogs({
-  directory: runtimeLogDirectory, jobIds, recoveryJobId, startedAt,
+  directory: runtimeLogDirectory, jobIds, startedAt,
 });
 const completedBrowserEvents = runtimeLogProof.completedBrowserEvents;
 for (const capability of [
@@ -381,8 +381,8 @@ const observation: DirectRuntimeObservation = Object.freeze({
       readiness_dimensions_distinct: new Set(readinessNames).size === readinessNames.length,
       release_build_matches_record: finalPairingState.releaseBuildId === releaseIdentity.releaseBuildId,
       runtime_log_browser_span_count: completedBrowserEvents.length,
-      runtime_log_mutation_state_count: runtimeLogFacts.mutationStateCount,
-      runtime_log_unresolved_mutation_state_count: runtimeLogFacts.unresolvedMutationStateCount,
+      runtime_log_mutation_event_count: runtimeLogFacts.mutationEventCount,
+      runtime_log_forbidden_task_state_field_count: runtimeLogFacts.forbiddenTaskStateFieldCount,
       target_claimed_observed: targetClaimedObserved,
       task_owned_chatgpt_page_observed: taskOwnedChatgptPageObserved,
     },
@@ -408,7 +408,7 @@ const observation: DirectRuntimeObservation = Object.freeze({
       runtime_log_open_span_count: runtimeLogFacts.openSpanCount,
       runtime_log_producer_count: runtimeLogFacts.producerCount,
       runtime_log_sealed: runtimeLogFacts.sealed,
-      runtime_log_sink_ready: runtimeLogFacts.sinkReady,
+      runtime_log_forbidden_task_state_field_count: runtimeLogFacts.forbiddenTaskStateFieldCount,
       workbench_stopped: cleanupObservation.workbenchStopped,
     },
     serviceName: "agent-production-runtime", sourceFingerprint: observedHealth.sourceFingerprint,
@@ -426,7 +426,7 @@ const observation: DirectRuntimeObservation = Object.freeze({
       mutation_rows_complete: confirmedRowInvalidCount === 0,
       runtime_log_authority_hash_count: runtimeLogFacts.authorityHashCount,
       runtime_log_sensitive_value_count: runtimeLogFacts.sensitiveValueCount,
-      runtime_log_unresolved_mutation_state_count: runtimeLogFacts.unresolvedMutationStateCount,
+      runtime_log_forbidden_task_state_field_count: runtimeLogFacts.forbiddenTaskStateFieldCount,
       sqlite_wal_mode: mutationJournalMode.toLowerCase() === "wal",
     },
     mutationCount: mutationRows.length, storageEngine: "sqlite-wal", storagePath: mutationDatabasePath,
@@ -451,9 +451,7 @@ const observation: DirectRuntimeObservation = Object.freeze({
   recovery: {
     facts: {
       completed_observed: taskHistory.get(recoveryJobId)!.has("completed"),
-      recovery_pending_observed: taskHistory.get(recoveryJobId)!.has("recovery_pending"),
-      runtime_log_completed_observed: runtimeLogFacts.completedObserved,
-      runtime_log_recovery_pending_observed: runtimeLogFacts.recoveryPendingObserved,
+      failed_observed: taskHistory.get(recoveryJobId)!.has("failed"),
     },
     finalState: "completed", observedStates: [...taskHistory.get(recoveryJobId)!],
     recoveryJobId, unresolvedCount: unresolvedMutationCount,

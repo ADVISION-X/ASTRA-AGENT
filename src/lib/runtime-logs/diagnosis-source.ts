@@ -5,10 +5,7 @@ import { runtimeEventIntegrityValid } from "./integrity.js";
 import {
   runtimeLogEventShapeValid,
 } from "./schema.js";
-import type {
-  RuntimeLogEventV2,
-  RuntimeStateEvent,
-} from "./runtime-event-contract.js";
+import type { RuntimeLogEventV2 } from "./runtime-event-contract.js";
 
 const activeJsonlFiles = (root: string, findings: string[]): string[] => {
   if (!existsSync(root)) return [];
@@ -77,8 +74,8 @@ const verifyProducerRun = (runId: string, runEvents: readonly RuntimeLogEventV2[
     }
     previous = event;
   }
-  const stopped = [...ordered].reverse().find((event): event is RuntimeStateEvent =>
-    event.type === "STATE" && event.stateKey === "producer.lifecycle" && event.current === "stopped");
+  const stopped = [...ordered].reverse().find((event) =>
+    event.kind === "event" && event.code === "PRODUCER_STOPPED");
   if (stopped && stopped.eventId !== ordered.at(-1)?.eventId) findings.push(`PRODUCER_NORMAL_STOP_NOT_SEALED:${runId}`);
 };
 

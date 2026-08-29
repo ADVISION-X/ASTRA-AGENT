@@ -10,8 +10,7 @@ import {
 import {
   LeaseRenewReceiptSchema, parseJsonEnvelope, websiteAgentTaskFromClaim,
 } from "../../src/lib/local-runtime/production/transport-protocol.js";
-import { claimFailureDecision } from "../../src/lib/local-runtime/production/runtime-claim.js";
-import { executionFailure, typedExecutionFailure } from "../../src/lib/typed-failure.js";
+import { typedExecutionFailure } from "../../src/lib/typed-failure.js";
 import { assertProductionTaskRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../src/mediator/agent-production-route.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
@@ -100,30 +99,9 @@ assert.throws(() => LeaseRenewReceiptSchema.parse({
 const claimedTask = claimTask(productionTask);
 assert.deepEqual(websiteAgentTaskFromClaim(claimedTask), productionTask);
 assert.throws(() => authorizeWebsiteAgentTask(claimedTask), /unrecognized_keys/u);
-assert.equal(claimFailureDecision(
-  claimedTask, executionFailure("recovery_pending", "TRANSIENT_PROVIDER_FAILURE"),
-), "RETRY_FROM_CHECKPOINT");
-assert.equal(claimFailureDecision(
-  claimedTask,
-  executionFailure("recovery_pending", "BROWSER_RECEIPT_PENDING", { mutationOutcome: "dispatched" }),
-), "RECONCILE_ONLY");
-assert.equal(claimFailureDecision(
-  claimedTask, executionFailure("failed", "CLAIMED_PLUGIN_IDENTITY_MISMATCH"),
-), "RETRY_FROM_CHECKPOINT");
-for (const [index, plugin] of agentPluginCapabilityManifest.plugins.entries()) {
-  const route = plugin.accepts[0]!;
-  const pluginTask = claimTask(task({
-    jobId: `job:recoverable-failure:${index}`, productId: route.product_id, actionId: route.action_id,
-  }));
-  assert.equal(claimFailureDecision(
-    pluginTask, executionFailure("failed", `PLUGIN_ATTEMPT_FAILED:${plugin.plugin_id}`),
-  ), "RETRY_FROM_CHECKPOINT", `${plugin.plugin_id} must recover the original website task`);
-  assert.equal(claimFailureDecision(
-    pluginTask, executionFailure("recovery_pending", `PLUGIN_MUTATION_UNCERTAIN:${plugin.plugin_id}`, {
-      mutationOutcome: "dispatched",
-    }),
-  ), "RECONCILE_ONLY", `${plugin.plugin_id} must reconcile an already-dispatched mutation`);
-}
+assert.equal(claimedTask.status, "failed");
+assert.equal(claimedTask.current_reason, "LEASE_GRANTED");
+assert.equal(claimedTask.grant.accepted_attempt_count, 1);
 
 const runtimeSource = await readFile(new URL("../../src/lib/local-runtime/production/runtime-claim.ts", import.meta.url), "utf8");
 const transportSource = await readFile(new URL("../../src/lib/local-runtime/production/transport-protocol.ts", import.meta.url), "utf8");
@@ -132,13 +110,15 @@ const gptExecutorSource = await readFile(new URL("../../src/lib/local-runtime/pr
 const cloudClientSource = await readFile(new URL("../../src/lib/local-runtime/production/cloud-client.ts", import.meta.url), "utf8");
 assert.doesNotMatch(runtimeSource, /(?:message|reason)\.(?:includes|startsWith|match).*?(?:review_required|recovery_required|failed)/u);
 assert.doesNotMatch(transportSource, /retryable/u);
+assert.doesNotMatch(transportSource, /attempt_mode/u);
 assert.match(transportSource, /throw executionFailure\(/u);
 assert.match(runtimeSource, /state\.executor\.execute\(input\.task, input\.materials/u);
-assert.match(runtimeSource, /current: record\.status/u);
+assert.doesNotMatch(runtimeSource, /emitState|stateKey:|currentStates|reconciledFromAuthority/u);
 assert.doesNotMatch(executorSource, /this\.store\.markRunning/u);
 assert.match(gptExecutorSource, /assertNoPendingMutations/u);
 assert.match(cloudClientSource, /delivered\?\.state === "delivered"/u);
 assert.match(cloudClientSource, /readFile\(image\.local_path\)/u);
+assert.doesNotMatch(runtimeSource, /RETRY_FROM_CHECKPOINT|RECONCILE_ONLY/u);
 
 assert.throws(() => parseJsonEnvelope({
   ok: false, error: { code: "HTTP_401_UNAUTHORIZED", message: "unauthorized" },

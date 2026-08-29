@@ -1,6 +1,5 @@
 import {
   RuntimeFailureImpact,
-  RuntimeRecovery,
   requireRuntimeLogWrite,
   runtimeFailureFromError,
   type RuntimeLogger,
@@ -41,26 +40,33 @@ export const startBrowserCommandSpan = (
   visibility: "TRACE",
 }));
 
-export const emitBrowserMutationState = (input: Readonly<{
+export const emitBrowserMutationEvent = (input: Readonly<{
   runtimeLogger: RuntimeLogger;
   mutation: BrowserCommandPermit | BrowserMutationIdentity;
-  previous: "PREPARED" | "DISPATCHED" | "CONFIRMED" | "REJECTED" | "FAILED" | null;
-  current: "PREPARED" | "DISPATCHED" | "CONFIRMED" | "REJECTED" | "FAILED";
+  outcome: "PREPARED" | "DISPATCHED" | "CONFIRMED" | "REJECTED" | "FAILED";
   authorityHash: `sha256:${string}`;
-  reconciledFromAuthority?: boolean;
 }>): void => {
-  requireRuntimeLogWrite(input.runtimeLogger.emitState({
+  const mutation = input.mutation;
+  requireRuntimeLogWrite(input.runtimeLogger.emitEvent({
     traceId: input.mutation.jobId,
     owner: "browser-session",
     component: "browser-mutation-wal",
-    stateKey: "browser.mutation",
-    previous: input.previous,
-    current: input.current,
+    operation: "browser.command",
+    code: `BROWSER_MUTATION_${input.outcome}`,
+    typedIdentity: "writerFenceHash" in mutation ? identityFor(mutation) : {
+      kind: "browser-command",
+      jobId: mutation.jobId,
+      attemptId: mutation.attemptId,
+      leaseVersion: mutation.leaseVersion,
+      fenceHash: mutation.executionFenceHash,
+      pluginId: mutation.ownerPluginId,
+      commandId: mutation.commandId,
+      pluginStepId: mutation.pluginStepId,
+      childCapabilityId: mutation.childCapabilityId,
+      actionOrdinal: mutation.actionOrdinal,
+    },
     authorityRef: `browser-mutation:${input.mutation.commandId}`,
     authorityHash: input.authorityHash,
-    ...(input.reconciledFromAuthority === undefined ? {} : {
-      reconciledFromAuthority: input.reconciledFromAuthority,
-    }),
     visibility: "TRACE",
   }));
 };
@@ -68,7 +74,7 @@ export const emitBrowserMutationState = (input: Readonly<{
 export const completeBrowserCommandSpan = (input: Readonly<{
   span: RuntimeSpanHandle;
 }>): void => {
-  requireRuntimeLogWrite(input.span.terminal({ outcome: "success" }));
+  requireRuntimeLogWrite(input.span.terminal({ outcome: "succeeded" }));
 };
 
 export const failBrowserCommandSpan = (input: Readonly<{
@@ -79,7 +85,7 @@ export const failBrowserCommandSpan = (input: Readonly<{
   proofHash: `sha256:${string}`;
 }>): RuntimeSpanTerminalEvent =>
   requireRuntimeLogWrite(input.span.terminal({
-    outcome: input.pendingReceipt ? "review_required" : "failed",
+    outcome: "failed",
     ...(input.permit.mutationClass === "mutation" ? {
       authorityRef: `browser-mutation:${input.permit.commandId}`,
       authorityHash: input.proofHash,
@@ -88,7 +94,6 @@ export const failBrowserCommandSpan = (input: Readonly<{
       error: new Error(input.failureCode),
       code: input.failureCode,
       responsibleOwner: "browser-session",
-      recovery: input.pendingReceipt ? RuntimeRecovery.REVIEW : RuntimeRecovery.STOP,
       impact: RuntimeFailureImpact.BLOCKING,
     }),
   }));

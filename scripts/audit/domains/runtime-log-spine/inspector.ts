@@ -17,9 +17,9 @@ import {
   validateStaticInspection,
 } from "../../shared/static-inspection-contract.js";
 
-const LAW_OPERATIONAL = "LAW-RUNTIME-LOG-SPINE-001-V4";
+const LAW_OPERATIONAL = "LAW-RUNTIME-LOG-SPINE-001-V5";
 const LAW_PRIVACY = "LAW-RUNTIME-LOG-SPINE-002-V4";
-const LAW_STRUCTURE = "LAW-RUNTIME-LOG-SPINE-003-V5";
+const LAW_STRUCTURE = "LAW-RUNTIME-LOG-SPINE-003-V6";
 const SOURCE_EXTENSIONS = new Set([".js", ".mjs", ".mts", ".ts"]);
 const TERMINAL_PROTOCOL_OUTPUTS = new Set([
   "scripts/startup/lib/dependency-check.mjs",
@@ -49,7 +49,6 @@ const REQUIRED_CORE_PATHS = [
   "src/lib/runtime-logs/diagnosis-authority.ts",
   "src/lib/runtime-logs/diagnosis-contract.ts",
   "src/lib/runtime-logs/diagnosis-source.ts",
-  "src/lib/runtime-logs/diagnosis-state.ts",
   "src/lib/runtime-logs/diagnosis.ts",
   "src/lib/runtime-logs/failure.ts",
   "src/lib/runtime-logs/index.ts",
@@ -175,7 +174,7 @@ const inspectOperationalAst = (context: InspectorContext): InspectorFinding[] =>
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "producer-boundaries",
     "src/lib/browser/exact-target/browser-command-runtime-logging.ts", [
-      "operation: \"browser.command\"", "stateKey: \"browser.mutation\"",
+      "operation: \"browser.command\"", "code: `BROWSER_MUTATION_${input.outcome}`",
       "authorityHash", "requireRuntimeLogWrite",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "startup-boundaries",
@@ -202,14 +201,12 @@ const inspectOperationalContract = (context: InspectorContext): InspectorFinding
   requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "diagnosis-output",
     "src/lib/runtime-logs/diagnosis-contract.ts", [
       "DIAGNOSIS_COMPLETE", "DIAGNOSIS_INCOMPLETE", "blockingRoots", "lastSuccessfulActions",
-      "currentStates", "openSpans", "interruptedSpans", "mutationState", "recoveries", "authorityRefs",
+      "observedEvents", "openSpans", "interruptedSpans", "atomicSteps", "authorityRefs",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "diagnosis-output",
-    "src/lib/runtime-logs/diagnosis-authority.ts", ["AUTHORITY_REF_UNVERIFIED", "AUTHORITY_STATE_MISMATCH"]);
+    "src/lib/runtime-logs/diagnosis-authority.ts", ["AUTHORITY_REF_UNVERIFIED", "AUTHORITY_HASH_MISMATCH"]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "diagnosis-output",
-    "src/lib/runtime-logs/diagnosis-state.ts", ["PRODUCER_STALE"]);
-  requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "diagnosis-output",
-    "src/lib/runtime-logs/diagnosis.ts", ["BOUNDARY_SOURCE_INCOMPLETE", "BOUNDARY_TRACE_MISMATCH"]);
+    "src/lib/runtime-logs/diagnosis.ts", ["BOUNDARY_SOURCE_INCOMPLETE", "BOUNDARY_TRACE_MISMATCH", "PRODUCER_STALE"]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "failure-truth",
     "src/lib/runtime-logs/failure.ts", [
       "knownNativeCause", "record.cause", "record.httpStatus", "RuntimeFailureKind.TRANSPORT",
@@ -220,8 +217,7 @@ const inspectOperationalContract = (context: InspectorContext): InspectorFinding
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "typed-root-and-liveness",
     "src/lib/local-runtime/production/runtime-loops.ts", [
-      "const sessionHeartbeatLoop", "stateKey: \"producer.alive\"",
-      "stateKey: \"cloud.session\"", "stateKey: \"claim.admission\"",
+      "const sessionHeartbeatLoop", "state.runtimeLogger.isWritable()",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "diagnosis-api",
     "src/app/workbench-production-runtime-routes.ts", [
@@ -272,25 +268,25 @@ const inspectStructureAst = (context: InspectorContext): InspectorFinding[] => {
   const findings: InspectorFinding[] = [];
   requireTokens(context, findings, LAW_STRUCTURE, "static.ast", "wal-before-log",
     "src/lib/browser/exact-target/browser-command-actor.ts", [
-      "this.mutations.prepare", "current: \"PREPARED\"", "this.mutations.markDispatched",
-      "current: \"DISPATCHED\"", "this.mutations.markReceiptMissing", "this.mutations.markRejected",
+      "this.mutations.prepare", "outcome: \"PREPARED\"", "this.mutations.markDispatched",
+      "outcome: \"DISPATCHED\"", "this.mutations.markReceiptMissing", "this.mutations.markRejected",
       "this.mutations.markConfirmed", "this.mutations.markFailedBeforeDispatch",
-      "this.mutations.resolve", "current: state",
+      "this.mutations.resolve", "outcome: state",
     ]);
   const actorPath = resolve(context.sealedRoot, "src/lib/browser/exact-target/browser-command-actor.ts");
   const actorSource = context.project.getSourceFile(actorPath);
   const actorClass = actorSource?.getClass("BrowserCommandActor");
   for (const [methodName, authorityCalls, emission] of [
-    ["prepareMutation", ["this.mutations.prepare"], "current: \"PREPARED\""],
-    ["execute", ["this.mutations.markDispatched"], "current: \"DISPATCHED\""],
+    ["prepareMutation", ["this.mutations.prepare"], "outcome: \"PREPARED\""],
+    ["execute", ["this.mutations.markDispatched"], "outcome: \"DISPATCHED\""],
     ["completeMutation", ["this.mutations.markRejected", "this.mutations.markConfirmed"],
-      "current: result === \"rejected\" ? \"REJECTED\" : \"CONFIRMED\""],
+      "outcome: result === \"rejected\" ? \"REJECTED\" : \"CONFIRMED\""],
     ["failExecution", ["this.mutations.markReceiptMissing", "this.mutations.markFailedBeforeDispatch"],
-      "current: state.dispatched ? \"DISPATCHED\" : \"FAILED\""],
-    ["resolveDispatchedMutation", ["this.mutations.resolve"], "current: state"],
+      "outcome: \"FAILED\""],
+    ["resolveDispatchedMutation", ["this.mutations.resolve"], "outcome: state"],
   ] as const) {
     const calls = actorClass?.getMethod(methodName)?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
-    const emissionCalls = calls.filter((call) => call.getExpression().getText() === "emitBrowserMutationState"
+    const emissionCalls = calls.filter((call) => call.getExpression().getText() === "emitBrowserMutationEvent"
       && call.getText().includes(emission));
     for (const authorityName of authorityCalls) {
       const authorities = calls.filter((call) => call.getExpression().getText() === authorityName);
@@ -314,7 +310,7 @@ const inspectStructureContract = (context: InspectorContext): InspectorFinding[]
   }
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "closed-event-union",
     "src/lib/runtime-logs/runtime-event-contract.ts", [
-      "type: \"SPAN\"", "phase: \"started\"", "phase: \"terminal\"", "type: \"STATE\"",
+      "kind: \"event\"", "kind: \"span.started\"", "kind: \"span.terminal\"", "kind: \"error\"",
       "RuntimeLogEventV2", "typedIdentity", "producerSeq", "previousEventHash", "eventHash",
       "authorityRef", "authorityHash", "RuntimeLogWriteResult",
     ]);
@@ -329,14 +325,11 @@ const inspectStructureContract = (context: InspectorContext): InspectorFinding[]
   }
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "integrity-and-retention",
     "src/lib/runtime-logs/sinks.ts", [
-      "flush: true", "maxTotalBytes", "SEGMENTS_PER_CAPACITY", "eligibleRun", "openSpans", "openJobs",
-      "openMutations", "pendingOutbox", "reconciledJobs", "reconciledLeases", "reconciledCheckpoints",
+      "flush: true", "maxTotalBytes", "SEGMENTS_PER_CAPACITY", "ensureCapacity",
       "writerLockPath", "flag: \"wx\"", "RUNTIME_LOG_CAPACITY_BLOCKED",
     ]);
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "unique-diagnosis-cli",
     "scripts/runtime-logs/inspect.ts", ["--job", "--source", "sources", "DIAGNOSIS_COMPLETE"]);
-  requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "authority-reconciliation",
-    "src/lib/local-runtime/production/runtime-startup.ts", ["taskAuthorities()", "outboxAuthorities()", "reconciledFromAuthority: true"]);
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "browser-authority-reconciliation",
     "src/lib/browser/exact-target/browser-mutation-store.ts", ["reconciliationStates()", "from browser_mutations order by updated_at,command_id"]);
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "strict-reader",

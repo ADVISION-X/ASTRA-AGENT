@@ -126,19 +126,16 @@ export const observeProductionProofCleanup = async (
   });
 };
 
-type BrowserStart = Extract<RuntimeLogEventV2, { type: "SPAN"; phase: "started" }>;
+type BrowserStart = Extract<RuntimeLogEventV2, { kind: "span.started" }>;
 type RuntimeLogProofFacts = Readonly<{
   authorityHashCount: number;
-  completedObserved: boolean;
   eventCount: number;
+  forbiddenTaskStateFieldCount: number;
   integrityValid: boolean;
-  mutationStateCount: number;
+  mutationEventCount: number;
   openSpanCount: number;
   producerCount: number;
-  recoveryPendingObserved: boolean;
   sealed: boolean;
-  sinkReady: boolean;
-  unresolvedMutationStateCount: number;
 }>;
 export type ProductionProofRuntimeLogs = Readonly<{
   completedBrowserEvents: readonly BrowserStart[];
@@ -149,7 +146,6 @@ export type ProductionProofRuntimeLogs = Readonly<{
 export const observeProductionProofRuntimeLogs = (input: Readonly<{
   directory: string;
   jobIds: readonly string[];
-  recoveryJobId: string;
   startedAt: string;
 }>): ProductionProofRuntimeLogs => {
   const files = readdirSync(join(input.directory, "agent")).filter((name) => name.endsWith(".jsonl")).sort()
@@ -158,7 +154,7 @@ export const observeProductionProofRuntimeLogs = (input: Readonly<{
   const source = files.map((path) => readFileSync(path, "utf8")).join("");
   const parsed = source.split("\n").filter(Boolean).map((line) => JSON.parse(line) as unknown);
   assert.equal(parsed.every(runtimeLogEventShapeValid), true, "runtime segments must contain only V2 events");
-  const events = (parsed as RuntimeLogEventV2[]).filter((event) => event.occurredAt >= input.startedAt);
+  const events = (parsed as RuntimeLogEventV2[]).filter((event) => event.emittedAt >= input.startedAt);
   assert.equal(events.length > 0, true, "the current proof run must write runtime events");
   const runs = new Map<string, RuntimeLogEventV2[]>();
   for (const event of events) runs.set(event.producerRunId, [...(runs.get(event.producerRunId) ?? []), event]);
@@ -166,39 +162,34 @@ export const observeProductionProofRuntimeLogs = (input: Readonly<{
     runEvents.sort((left, right) => left.producerSeq - right.producerSeq).every((event, index) =>
       runtimeEventIntegrityValid(event) && event.producerSeq === index + 1
         && event.previousEventHash === (runEvents[index - 1]?.eventHash ?? null)));
-  const browserStarts = events.filter((event): event is BrowserStart => event.type === "SPAN"
-    && event.phase === "started" && event.operation === "browser.command"
+  const browserStarts = events.filter((event): event is BrowserStart => event.kind === "span.started"
+    && event.operation === "browser.command"
     && event.typedIdentity.kind === "browser-command");
   const successfulBrowserSpans = new Set(events.filter((event): event is Extract<RuntimeLogEventV2,
-  { type: "SPAN"; phase: "terminal" }> => event.type === "SPAN" && event.phase === "terminal"
-    && event.operation === "browser.command" && event.outcome === "success").map((event) => event.spanId));
+  { kind: "span.terminal" }> => event.kind === "span.terminal"
+    && event.operation === "browser.command" && event.outcome === "succeeded").map((event) => event.spanId));
   const completedBrowserEvents = browserStarts.filter((event) => successfulBrowserSpans.has(event.spanId));
   assert.equal(input.jobIds.every((jobId) => completedBrowserEvents.some((event) =>
     event.typedIdentity.kind === "browser-command" && event.typedIdentity.jobId === jobId)), true,
   "each job must have a completed typed Browser span");
-  const states = events.filter((event): event is Extract<RuntimeLogEventV2, { type: "STATE" }> => event.type === "STATE");
-  const latestMutations = new Map<string, Extract<RuntimeLogEventV2, { type: "STATE" }>>();
-  for (const event of states.filter((current) => current.stateKey === "browser.mutation")) {
-    latestMutations.set(event.authorityRef ?? event.traceId, event);
-  }
-  const openSpans = new Set(events.filter((event) => event.type === "SPAN" && event.phase === "started")
+  const mutationEvents = events.filter((event): event is Extract<RuntimeLogEventV2, { kind: "event" }> =>
+    event.kind === "event" && event.code.startsWith("BROWSER_MUTATION_"));
+  const openSpans = new Set(events.filter((event) => event.kind === "span.started")
     .map((event) => `${event.producerRunId}:${event.spanId}`));
-  for (const event of events.filter((current) => current.type === "SPAN" && current.phase === "terminal")) {
+  for (const event of events.filter((current) => current.kind === "span.terminal")) {
     openSpans.delete(`${event.producerRunId}:${event.spanId}`);
   }
   const facts = Object.freeze({
-    authorityHashCount: states.filter((event) => event.authorityHash !== undefined).length,
-    completedObserved: states.some((event) => event.traceId === input.recoveryJobId
-      && event.stateKey === "job.lifecycle" && event.current === "completed"),
+    authorityHashCount: events.filter((event) => "authorityHash" in event && event.authorityHash !== undefined).length,
     eventCount: events.length, integrityValid,
-    mutationStateCount: states.filter((event) => event.stateKey === "browser.mutation").length,
+    forbiddenTaskStateFieldCount: parsed.filter((event) => {
+      if (!event || typeof event !== "object") return false;
+      const record = event as Record<string, unknown>;
+      return "stateKey" in record || "previous" in record || "current" in record || "recovery" in record;
+    }).length,
+    mutationEventCount: mutationEvents.length,
     openSpanCount: openSpans.size, producerCount: runs.size,
-    recoveryPendingObserved: states.some((event) => event.traceId === input.recoveryJobId
-      && event.stateKey === "job.lifecycle" && event.current === "recovery_pending"),
-    sealed: states.some((event) => event.stateKey === "producer.lifecycle" && event.current === "stopped"),
-    sinkReady: states.some((event) => event.stateKey === "log.sink" && event.current === "ready"),
-    unresolvedMutationStateCount: [...latestMutations.values()]
-      .filter((event) => event.current === "PREPARED" || event.current === "DISPATCHED").length,
+    sealed: events.some((event) => event.kind === "event" && event.code === "PRODUCER_STOPPED"),
   });
   assert.equal(facts.integrityValid, true, "runtime V2 event hashes and producer chains must be intact");
   assert.equal(facts.openSpanCount, 0, "the runtime proof must leave no open Span");

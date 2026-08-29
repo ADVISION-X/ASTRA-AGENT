@@ -322,12 +322,12 @@ export const parseTerminalReceiptExpectation = (value: unknown): TerminalReceipt
   if (typeof value === "string") {
     try { candidate = JSON.parse(value) as unknown; }
     catch (cause) {
-      throw executionFailure("review_required", "V6_TERMINAL_RECEIPT_EXPECTATION_INVALID", { cause });
+      throw executionFailure("failed", "V6_TERMINAL_RECEIPT_EXPECTATION_INVALID", { cause });
     }
   }
   const parsed = TerminalReceiptExpectationSourceSchema.safeParse(candidate);
   if (!parsed.success) {
-    throw executionFailure("review_required", "V6_TERMINAL_RECEIPT_EXPECTATION_INVALID", { cause: parsed.error });
+    throw executionFailure("failed", "V6_TERMINAL_RECEIPT_EXPECTATION_INVALID", { cause: parsed.error });
   }
   return Object.freeze({
     job_id: parsed.data.job_id,
@@ -345,7 +345,7 @@ export const parseTerminalReceipt = (
 ): TerminalReceipt => {
   const parsed = TerminalReceiptSchema.safeParse(value);
   if (!parsed.success) {
-    throw executionFailure("review_required", "V6_TERMINAL_RECEIPT_INVALID", { cause: parsed.error });
+    throw executionFailure("failed", "V6_TERMINAL_RECEIPT_INVALID", { cause: parsed.error });
   }
   const receipt = parsed.data;
   if (receipt.job_id !== expected.job_id
@@ -354,7 +354,7 @@ export const parseTerminalReceipt = (
     || receipt.worker_session_id !== expected.worker_session_id
     || receipt.worker_session_epoch !== expected.worker_session_epoch
     || hashCanonical(receipt.failure) !== hashCanonical(expected.failure)) {
-    throw executionFailure("review_required", "V6_TERMINAL_RECEIPT_MISMATCH");
+    throw executionFailure("failed", "V6_TERMINAL_RECEIPT_MISMATCH");
   }
   return Object.freeze(receipt);
 };

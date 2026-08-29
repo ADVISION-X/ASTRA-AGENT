@@ -72,7 +72,7 @@ export class ProductionWorkerSession {
     if (response.session?.device_id !== this.device.device_id
       || response.session.worker_session_id !== credential.worker_session_id
       || response.session.worker_session_epoch !== credential.worker_session_epoch) {
-      throw executionFailure("review_required", "PRODUCTION_SESSION_BINDING_INVALID");
+      throw executionFailure("failed", "PRODUCTION_SESSION_BINDING_INVALID");
     }
     this.credential = credential;
   }
@@ -112,7 +112,7 @@ export class ProductionWorkerSession {
     if (receipt.worker_session_id !== this.workerSessionId || receipt.attestation_seq !== next
       || credential.worker_session_id !== this.workerSessionId
       || credential.token_generation <= this.credential!.token_generation) {
-      throw executionFailure("review_required", "PRODUCTION_ATTESTATION_BINDING_INVALID");
+      throw executionFailure("failed", "PRODUCTION_ATTESTATION_BINDING_INVALID");
     }
     this.credential = credential;
     this.attestation = receipt;
@@ -150,7 +150,7 @@ export class ProductionWorkerSession {
         signal: init.signal ?? AbortSignal.timeout(30_000),
       });
     } catch (cause) {
-      throw executionFailure("recovery_pending", "CLOUD_TRANSPORT_UNAVAILABLE", { cause });
+      throw executionFailure("failed", "CLOUD_TRANSPORT_UNAVAILABLE", { cause });
     }
     const raw = await response.json() as unknown;
     if (!response.ok) {
@@ -183,7 +183,7 @@ export class ProductionWorkerSession {
         signal: AbortSignal.timeout(30_000),
       });
     } catch (cause) {
-      throw executionFailure("recovery_pending", "CLOUD_TRANSPORT_UNAVAILABLE", { cause });
+      throw executionFailure("failed", "CLOUD_TRANSPORT_UNAVAILABLE", { cause });
     }
     const raw = await response.json() as unknown;
     if (!response.ok) return parseJsonEnvelope(raw, response.status);

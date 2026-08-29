@@ -1,24 +1,26 @@
 import { randomUUID } from "node:crypto";
 
+import { runtimeFailureFromError } from "./failure.js";
 import { runtimeEventHash } from "./integrity.js";
 import { resolveRuntimeLogMode, type RuntimeLogMode } from "./mode.js";
 import { redactRuntimeLogRecord } from "./redaction.js";
 import { assertRuntimeLogEventV2 } from "./schema.js";
 import type {
+  RuntimeErrorEvent,
+  RuntimeErrorInput,
+  RuntimeEventInput,
   RuntimeLogEventV2,
   RuntimeLogEventWithoutIntegrity,
   RuntimeLogWriteFailure,
   RuntimeLogWriteResult,
+  RuntimeObservedEvent,
   RuntimeSpanStartedEvent,
   RuntimeSpanStartInput,
   RuntimeSpanTerminalEvent,
   RuntimeSpanTerminalInput,
-  RuntimeStateEvent,
-  RuntimeStateInput,
-  RuntimeStateValue,
   WithoutEventHash,
 } from "./runtime-event-contract.js";
-import type { RuntimeLogOwner } from "./runtime-failure-contract.js";
+import { RuntimeFailureImpact, RuntimeFailureKind, type RuntimeLogOwner } from "./runtime-failure-contract.js";
 import {
   createRuntimeFileSink,
   type RuntimeFileSink,
@@ -47,7 +49,8 @@ export type RuntimeLoggerConfig = Readonly<{
 export type RuntimeLogger = Readonly<{
   producerRunId: string;
   startSpan(input: RuntimeSpanStartInput): RuntimeLogWriteResult<RuntimeSpanHandle>;
-  emitState(input: RuntimeStateInput): RuntimeLogWriteResult<RuntimeStateEvent>;
+  emitEvent(input: RuntimeEventInput): RuntimeLogWriteResult<RuntimeObservedEvent>;
+  emitError(input: RuntimeErrorInput): RuntimeLogWriteResult<RuntimeErrorEvent>;
   getActiveMode(): RuntimeLogMode;
   isDebugEnabled(): boolean;
   isTraceEnabled(): boolean;
@@ -78,6 +81,18 @@ const redactedUnsigned = (event: RuntimeLogEventWithoutIntegrity): RuntimeLogEve
 const optional = <TKey extends string, TValue>(key: TKey, value: TValue | undefined): Partial<Record<TKey, TValue>> =>
   value === undefined ? {} : { [key]: value } as Record<TKey, TValue>;
 
+const referenceFields = (input: Readonly<{
+  authorityRef?: string;
+  authorityHash?: `sha256:${string}`;
+  evidenceRef?: string;
+  evidenceHash?: `sha256:${string}`;
+}>): Readonly<Record<string, unknown>> => ({
+  ...optional("authorityRef", input.authorityRef),
+  ...optional("authorityHash", input.authorityHash),
+  ...optional("evidenceRef", input.evidenceRef),
+  ...optional("evidenceHash", input.evidenceHash),
+});
+
 class RuntimeLoggerOwner implements RuntimeLogger {
   public readonly producerRunId: string;
   private readonly activeMode: RuntimeLogMode;
@@ -87,7 +102,6 @@ class RuntimeLoggerOwner implements RuntimeLogger {
   private sinkWritable = true;
   private sinkState: "ready" | "failed" | "capacity_blocked" = "ready";
   private readonly openSpans = new Set<string>();
-  private readonly states = new Map<string, RuntimeStateValue>();
 
   public constructor(private readonly config: RuntimeLoggerConfig) {
     if (!tokenValid(config.producer) || !tokenValid(config.component)) throw new Error("RUNTIME_LOG_PRODUCER_INVALID");
@@ -108,6 +122,7 @@ class RuntimeLoggerOwner implements RuntimeLogger {
 
   private common(input: Readonly<{
     traceId: string;
+    operation: RuntimeLogEventV2["operation"];
     owner?: RuntimeLogOwner;
     component?: string;
     visibility?: RuntimeLogEventV2["visibility"];
@@ -117,7 +132,7 @@ class RuntimeLoggerOwner implements RuntimeLogger {
     return {
       schemaVersion: 2 as const,
       eventId: randomUUID(),
-      occurredAt: new Date().toISOString(),
+      emittedAt: new Date().toISOString(),
       producer: this.config.producer,
       producerRunId: this.producerRunId,
       producerSeq: this.producerSeq + 1,
@@ -125,24 +140,35 @@ class RuntimeLoggerOwner implements RuntimeLogger {
       traceId: input.traceId,
       owner: input.owner ?? this.config.owner,
       component,
+      operation: input.operation,
       visibility: input.visibility ?? "FLOW" as const,
     };
   }
 
-  private emergencySinkState(event: RuntimeLogEventV2): boolean {
+  private emergencySinkError(error: unknown, attempted: RuntimeLogEventV2): boolean {
     try {
-      const sinkTraceId = `producer:${this.producerRunId}`;
-      const sinkUnsigned = redactedUnsigned({
-        schemaVersion: 2, eventId: randomUUID(), occurredAt: new Date().toISOString(),
-        producer: this.config.producer, producerRunId: this.producerRunId,
-        producerSeq: event.producerSeq, previousEventHash: this.previousEventHash,
-        type: "STATE", traceId: sinkTraceId, owner: "runtime-logs", component: "runtime-log-sink",
-        visibility: "FLOW", stateKey: "log.sink",
-        previous: this.states.get(`log.sink\u0000${sinkTraceId}`) ?? null, current: this.sinkState,
-      } as WithoutEventHash<RuntimeStateEvent>);
-      const sinkEvent = { ...sinkUnsigned, eventHash: runtimeEventHash(sinkUnsigned) } as RuntimeStateEvent;
-      assertRuntimeLogEventV2(sinkEvent);
-      writeEmergencyTerminalSink(sinkEvent);
+      const code = writeFailureCode(error);
+      const unsigned = redactedUnsigned({
+        ...this.common({
+          traceId: `producer:${this.producerRunId}`,
+          operation: "runtime.start",
+          owner: "runtime-logs",
+          component: "runtime-log-sink",
+        }),
+        kind: "error",
+        typedIdentity: { kind: "producer", producerId: this.config.producer },
+        failure: runtimeFailureFromError({
+          error,
+          responsibleOwner: "runtime-logs",
+          kind: RuntimeFailureKind.STORAGE,
+          code,
+          impact: RuntimeFailureImpact.BLOCKING,
+          causedByEventId: attempted.eventId,
+        }),
+      } satisfies WithoutEventHash<RuntimeErrorEvent>);
+      const emergency = { ...unsigned, eventHash: runtimeEventHash(unsigned) } as RuntimeErrorEvent;
+      assertRuntimeLogEventV2(emergency);
+      writeEmergencyTerminalSink(emergency);
       return true;
     } catch {
       return false;
@@ -153,7 +179,7 @@ class RuntimeLoggerOwner implements RuntimeLogger {
     this.sinkWritable = false;
     const code = writeFailureCode(error);
     this.sinkState = code === "RUNTIME_LOG_CAPACITY_BLOCKED" ? "capacity_blocked" : "failed";
-    return { ok: false, code, emergencyProjected: this.emergencySinkState(event) };
+    return { ok: false, code, emergencyProjected: this.emergencySinkError(error, event) };
   }
 
   private terminalWriteFailure(event: RuntimeLogEventV2): RuntimeLogWriteFailure {
@@ -196,30 +222,57 @@ class RuntimeLoggerOwner implements RuntimeLogger {
     return { ok: true, event };
   }
 
+  public emitEvent(input: RuntimeEventInput): RuntimeLogWriteResult<RuntimeObservedEvent> {
+    return this.persist({
+      ...this.common(input),
+      kind: "event",
+      code: input.code,
+      typedIdentity: input.typedIdentity,
+      ...referenceFields(input),
+    } as WithoutEventHash<RuntimeObservedEvent>) as RuntimeLogWriteResult<RuntimeObservedEvent>;
+  }
+
+  public emitError(input: RuntimeErrorInput): RuntimeLogWriteResult<RuntimeErrorEvent> {
+    return this.persist({
+      ...this.common(input),
+      kind: "error",
+      failure: input.failure,
+      typedIdentity: input.typedIdentity,
+      ...referenceFields(input),
+    } as WithoutEventHash<RuntimeErrorEvent>) as RuntimeLogWriteResult<RuntimeErrorEvent>;
+  }
+
   public startSpan(input: RuntimeSpanStartInput): RuntimeLogWriteResult<RuntimeSpanHandle> {
     const spanId = input.spanId ?? randomUUID();
     if (!tokenValid(spanId) || this.openSpans.has(spanId)) throw new Error("RUNTIME_LOG_SPAN_ID_INVALID");
     const startedAt = performance.now();
     const written = this.persist({
-      ...this.common(input), type: "SPAN", phase: "started", spanId, operation: input.operation,
-      typedIdentity: input.typedIdentity, ...optional("parentSpanId", input.parentSpanId),
+      ...this.common(input),
+      kind: "span.started",
+      spanId,
+      typedIdentity: input.typedIdentity,
+      ...optional("parentSpanId", input.parentSpanId),
       ...optional("boundaryId", input.boundaryId),
     } satisfies WithoutEventHash<RuntimeSpanStartedEvent>);
     if (!written.ok) return written;
     this.openSpans.add(spanId);
     let closed = false;
     return { ok: true, event: {
-      eventId: written.event.eventId, spanId, traceId: input.traceId,
+      eventId: written.event.eventId,
+      spanId,
+      traceId: input.traceId,
       terminal: (terminalInput) => {
         if (closed || !this.openSpans.has(spanId)) {
           return { ok: false, code: "DUPLICATE_SPAN_TERMINAL", emergencyProjected: false };
         }
         const terminal = this.persist({
-          ...this.common(input), type: "SPAN", phase: "terminal", spanId, operation: input.operation,
-          outcome: terminalInput.outcome, durationMs: Math.max(0, performance.now() - startedAt),
-          ...optional("authorityRef", terminalInput.authorityRef),
-          ...optional("authorityHash", terminalInput.authorityHash),
-          ...(terminalInput.outcome === "success" ? {} : { failure: terminalInput.failure }),
+          ...this.common(input),
+          kind: "span.terminal",
+          spanId,
+          outcome: terminalInput.outcome,
+          durationMs: Math.max(0, performance.now() - startedAt),
+          ...referenceFields(terminalInput),
+          ...(terminalInput.outcome === "succeeded" ? {} : { failure: terminalInput.failure }),
         } as WithoutEventHash<RuntimeSpanTerminalEvent>) as RuntimeLogWriteResult<RuntimeSpanTerminalEvent>;
         if (terminal.ok) {
           closed = true;
@@ -228,24 +281,6 @@ class RuntimeLoggerOwner implements RuntimeLogger {
         return terminal;
       },
     } };
-  }
-
-  public emitState(input: RuntimeStateInput): RuntimeLogWriteResult<RuntimeStateEvent> {
-    const stateSubject = input.stateKey === "browser.mutation" || input.stateKey === "outbox.delivery"
-      ? input.authorityRef ?? input.traceId : input.traceId;
-    const stateIdentity = `${input.stateKey}\u0000${stateSubject}`;
-    if (input.previous !== (this.states.get(stateIdentity) ?? null)) throw new Error("RUNTIME_LOG_STATE_TRANSITION_INVALID");
-    if (input.stateKey !== "producer.alive" && input.stateKey !== "browser.mutation"
-      && input.previous === input.current) throw new Error("RUNTIME_LOG_STATE_NOOP_FORBIDDEN");
-    const written = this.persist({
-      ...this.common(input), type: "STATE", stateKey: input.stateKey,
-      previous: input.previous, current: input.current,
-      ...optional("freshForMs", input.freshForMs), ...optional("authorityRef", input.authorityRef),
-      ...optional("authorityHash", input.authorityHash),
-      ...optional("reconciledFromAuthority", input.reconciledFromAuthority),
-    } as WithoutEventHash<RuntimeStateEvent>) as RuntimeLogWriteResult<RuntimeStateEvent>;
-    if (written.ok) this.states.set(stateIdentity, input.current);
-    return written;
   }
 }
 

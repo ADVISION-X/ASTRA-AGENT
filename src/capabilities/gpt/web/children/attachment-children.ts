@@ -55,7 +55,7 @@ const filesFromIntent = (intent: GptChildCapabilityIntent): readonly ApprovedFil
     };
   });
   const names = files.map((file) => file.displayName);
-  if (new Set(names).size !== names.length) throw executionFailure("review_required", "GPT_ATTACHMENT_DISPLAY_NAME_DUPLICATE");
+  if (new Set(names).size !== names.length) throw executionFailure("failed", "GPT_ATTACHMENT_DISPLAY_NAME_DUPLICATE");
   return files;
 };
 
@@ -63,7 +63,7 @@ const verifyFiles = async (files: readonly ApprovedFile[]): Promise<void> => {
   for (const file of files) {
     const bytes = await readFile(file.filePath);
     if (bytes.byteLength !== file.bytes || digest(bytes) !== file.sha256) {
-      throw executionFailure("review_required", `GPT_ATTACHMENT_SOURCE_CHANGED:${file.artifactRef}`);
+      throw executionFailure("failed", `GPT_ATTACHMENT_SOURCE_CHANGED:${file.artifactRef}`);
     }
   }
 };
@@ -108,9 +108,9 @@ export const attachmentChildHandlers = {
       observedSemantics: ["one visible upload-from-computer choice"], committedMutation: "no",
     });
     if (visibleChoiceCount > 1) {
-      throw executionFailure("review_required", `GPT_UPLOAD_CHOICE_COUNT_${visibleChoiceCount}`);
+      throw executionFailure("failed", `GPT_UPLOAD_CHOICE_COUNT_${visibleChoiceCount}`);
     }
-    if (reconcileOnly) throw executionFailure("recovery_pending", "GPT_ATTACHMENT_CONTROL_OPEN_PENDING");
+    if (reconcileOnly) throw executionFailure("failed", "GPT_ATTACHMENT_CONTROL_OPEN_PENDING");
     await requireOneCandidate(browser, {
       selector: GPT_ATTACHMENT_CONTROL_SELECTOR,
       maxMatches: 2,
@@ -140,7 +140,7 @@ export const attachmentChildHandlers = {
     });
     const browser = requireBrowser(context);
     const reconcileOnly = intent.input.reconcileOnly === undefined ? false : booleanInput(intent, "reconcileOnly");
-    if (reconcileOnly) throw executionFailure("recovery_pending", "GPT_ATTACHMENT_UPLOAD_PENDING");
+    if (reconcileOnly) throw executionFailure("failed", "GPT_ATTACHMENT_UPLOAD_PENDING");
     await requireOneCandidate(browser, {
       selector: GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
       textEquals: GPT_UPLOAD_FROM_COMPUTER_LABEL,
@@ -165,13 +165,13 @@ export const attachmentChildHandlers = {
     const browser = requireBrowser(context);
     const regionCount = await findCount(browser, { selector: GPT_ATTACHMENT_REGION_SELECTOR, maxMatches: 2 });
     if (files.length === 0) {
-      if (regionCount !== 0) throw executionFailure("review_required", `GPT_ATTACHMENT_REGION_COUNT_${regionCount}`);
+      if (regionCount !== 0) throw executionFailure("failed", `GPT_ATTACHMENT_REGION_COUNT_${regionCount}`);
       return success({
         value: { files: [] }, candidateCount: 0,
         observedSemantics: ["zero approved attachments", "zero visible attachment regions"], committedMutation: "no",
       });
     }
-    if (regionCount !== 1) throw executionFailure("review_required", `GPT_ATTACHMENT_REGION_COUNT_${regionCount}`);
+    if (regionCount !== 1) throw executionFailure("failed", `GPT_ATTACHMENT_REGION_COUNT_${regionCount}`);
     const text = await readExactText(browser, GPT_ATTACHMENT_REGION_SELECTOR, 16_384);
     const mismatches = files.filter((file) => countOccurrences(text, file.displayName) !== 1);
     const unexplained = files.reduce(
@@ -179,7 +179,7 @@ export const attachmentChildHandlers = {
       text,
     ).replace(/\s+/gu, "");
     if (mismatches.length || unexplained.length > 0) {
-      throw executionFailure("review_required", `GPT_ATTACHMENT_SET_MISMATCH:${mismatches.map((file) => file.displayName).join("|")}`);
+      throw executionFailure("failed", `GPT_ATTACHMENT_SET_MISMATCH:${mismatches.map((file) => file.displayName).join("|")}`);
     }
     return success({
       value: { files: files.map(({ artifactRef, displayName, sha256, bytes }) => ({ artifactRef, displayName, sha256, bytes })) },

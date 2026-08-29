@@ -1,7 +1,4 @@
-import { rmSync } from "node:fs";
-import path from "node:path";
-
-import { executionFailure } from "../../typed-failure.js";
+import { executionFailure, type SerializedExecutionFailure } from "../../typed-failure.js";
 import {
   GPT_TURN_FLOW_VERSION,
   type GptChildCapabilityId,
@@ -14,6 +11,7 @@ import type { ProviderTurnResult } from "./plugin.js";
 import type { GptTurnStateSnapshot } from "./gpt-turn-state.js";
 import {
   ProductionStoreFoundation,
+  isSerializedTerminalFailure,
   json,
   now,
   storedTaskFromRow,
@@ -34,7 +32,7 @@ const assertResultIdentity = (
     || result.action_id !== accepted.task.action_id
     || result.plugin_id !== accepted.identity.plugin_id
     || result.plugin_version !== accepted.identity.plugin_version) {
-    throw executionFailure("review_required", "PRODUCTION_RESULT_DURABLE_IDENTITY_MISMATCH");
+    throw executionFailure("failed", "PRODUCTION_RESULT_DURABLE_IDENTITY_MISMATCH");
   }
 };
 
@@ -57,14 +55,6 @@ export type GptTurnDurableCheckpoint = Readonly<{
   provider_dispatch_used: boolean;
   state: GptTurnStateSnapshot;
   result: ProviderTurnResult | null;
-}>;
-
-export type GptTurnCheckpointMetadata = Readonly<{
-  inputHash: string;
-  flowVersion: string;
-  status: string;
-  mutationState: string;
-  hasResult: boolean;
 }>;
 
 const checkpointIdentityValid = (parsed: Partial<GptTurnDurableCheckpoint>): boolean =>
@@ -94,139 +84,67 @@ const checkpointEvidenceValid = (parsed: Partial<GptTurnDurableCheckpoint>): boo
 const parseGptTurnCheckpoint = (value: string): GptTurnDurableCheckpoint => {
   const parsed = JSON.parse(value) as Partial<GptTurnDurableCheckpoint>;
   if (!checkpointIdentityValid(parsed) || !checkpointProgressValid(parsed) || !checkpointEvidenceValid(parsed)) {
-    throw executionFailure("review_required", "GPT_TURN_CHECKPOINT_INVALID");
+    throw executionFailure("failed", "GPT_TURN_CHECKPOINT_INVALID");
   }
   return parsed as GptTurnDurableCheckpoint;
 };
 
 export abstract class ProductionStoreTaskState extends ProductionStoreFoundation {
-  private reconstructExecutionSlice(
-    task: WebsiteAgentTask,
-    identity: DurablePluginIdentity,
-    browserMutationPresent: boolean,
-  ): StoredProductionTask {
-    const jobPath = `%/jobs/${encodeURIComponent(task.job_id)}/%`;
-    const safeRejectedCheckpointCodes = [
-      "AI_LEASE_ACCEPT_DEADLINE_EXPIRED",
-      "AI_V6_CHECKPOINT_TRANSITION_INVALID",
-    ];
-    const safe = this.database.prepare(`select
-      t.status='recovery_pending' and t.result_json is null and t.staged_result_json is null
-      and not exists(select 1 from production_steps s where s.job_id=t.job_id)
-      and not exists(select 1 from production_continuations c where c.origin_job_id=t.job_id)
-      and not exists(select 1 from production_leases l where l.job_id=t.job_id and l.state='active')
-      and exists(
-        select 1 from production_outbox retired
-         where retired.path like ? and retired.failure_code='HISTORICAL_FAILED_COMPLETION_RETIRED'
-      )
-      and not exists(
-        select 1 from production_outbox pending
-         where pending.path like ? and pending.sent_at is null
-           and not (pending.kind='checkpoint' and pending.failure_code in (?,?))
-      ) as safe
-      from production_tasks t where t.job_id=?`).get(
-      jobPath, jobPath, safeRejectedCheckpointCodes[0], safeRejectedCheckpointCodes[1], task.job_id,
-    ) as { safe: number } | undefined;
-    if (!safe?.safe || browserMutationPresent) {
-      throw executionFailure("review_required", "PLUGIN_EXECUTION_SLICE_RECONSTRUCTION_UNSAFE");
-    }
-    const existing = this.readTask(task.job_id)!;
-    const oldIdentityHash = hashCanonical(existing.identity);
-    const newIdentityHash = hashCanonical(identity);
-    const recordedAt = now();
-    const retiredCheckpointAttempts = this.database.prepare(`select
-      idempotency_key as idempotencyKey,failure_code as failureCode,created_at as createdAt
-      from production_outbox where path like ? and sent_at is null and kind='checkpoint'
-        and failure_code in (?,?) order by created_at,idempotency_key`).all(
-      jobPath, safeRejectedCheckpointCodes[0], safeRejectedCheckpointCodes[1],
-    ) as Array<{ idempotencyKey: string; failureCode: string; createdAt: string }>;
-    const reconstructionReceipt = {
-      schema_version: "agent-execution-slice-reconstruction.v1",
-      job_id: task.job_id,
-      recorded_at: recordedAt,
-      reason_code: "PLUGIN_IDENTITY_CHANGED_BEFORE_RECOVERY",
-      disposition: "OLD_EXECUTION_SLICE_RETIRED",
-      old_identity: existing.identity,
-      old_identity_hash: oldIdentityHash,
-      new_identity: identity,
-      new_identity_hash: newIdentityHash,
-      previous_failure: existing.failure,
-      previous_failure_reason: existing.failure_reason,
-      retired_checkpoint_attempts: retiredCheckpointAttempts,
-    } as const;
-    const receiptKey = `execution-slice-reconstructed:${hashCanonical({
-      job_id: task.job_id, old_identity_hash: oldIdentityHash, new_identity_hash: newIdentityHash,
-    })}`;
-    this.database.prepare(`insert into production_outbox(
-      idempotency_key,kind,path,method,headers_json,body_blob,created_at,sent_at,failure_code
-    ) values(?,?,?,?,?,?,?,?,?)`).run(
-      receiptKey, "checkpoint",
-      `/internal/agent-production/jobs/${encodeURIComponent(task.job_id)}/execution-slice-reconstructions`,
-      "POST", json({ "content-type": "application/json" }), Buffer.from(json(reconstructionReceipt)),
-      recordedAt, recordedAt, "EXECUTION_SLICE_RECONSTRUCTED",
-    );
-    this.database.prepare(`update production_outbox
-      set failure_code='EXECUTION_SLICE_RECONSTRUCTED',sent_at=coalesce(sent_at,?)
-      where path like ? and sent_at is null and kind='checkpoint' and failure_code in (?,?)`
-    ).run(recordedAt, jobPath, safeRejectedCheckpointCodes[0], safeRejectedCheckpointCodes[1]);
-    this.database.prepare("delete from production_checkpoints where job_id=?").run(task.job_id);
-    this.database.prepare("delete from production_leases where job_id=?").run(task.job_id);
-    this.database.prepare(`update production_tasks set request_hash=?,task_json=?,identity_json=?,
-      status='accepted',result_json=null,staged_result_json=null,failure_json=null,
-      failure_reason=?,updated_at=? where job_id=?`).run(
-      task.request_hash, json(task), json(identity),
-      `EXECUTION_SLICE_RECONSTRUCTED:${oldIdentityHash}:${newIdentityHash}`,
-      recordedAt, task.job_id,
-    );
-    rmSync(path.join(this.dataDir, "plugin-tasks", "production-runtime", task.job_id, "materials"), {
-      recursive: true, force: true,
-    });
-    return this.readTask(task.job_id)!;
-  }
-
   public acceptTask(
     task: WebsiteAgentTask,
     identity: DurablePluginIdentity,
-    browserMutationPresent = false,
+    attemptId: string,
   ): StoredProductionTask {
     const existing = this.readTask(task.job_id);
     if (existing) {
       if (existing.task.request_hash !== task.request_hash) {
-        throw executionFailure("review_required", "PRODUCTION_TASK_REQUEST_HASH_CONFLICT");
+        throw executionFailure("failed", "PRODUCTION_TASK_REQUEST_HASH_CONFLICT");
       }
       if (json(existing.identity) !== json(identity)) {
-        const transaction = this.database.transaction(() =>
-          this.reconstructExecutionSlice(task, identity, browserMutationPresent));
-        return transaction();
+        throw executionFailure("failed", "PRODUCTION_TASK_IDENTITY_CONFLICT");
+      }
+      if (existing.status === "failed" && existing.current_attempt_id !== attemptId) {
+        if (existing.staged_result) throw executionFailure("failed", "PRODUCTION_NEW_ATTEMPT_AFTER_STAGED_RESULT");
+        this.database.prepare(`update production_tasks
+          set current_attempt_id=?,current_reason='LEASE_GRANTED',updated_at=?
+          where job_id=? and status='failed'`).run(attemptId, now(), task.job_id);
+        return this.readTask(task.job_id)!;
       }
       return existing;
     }
     const timestamp = now();
     this.database.prepare(`insert into production_tasks(
-      job_id,request_hash,task_json,identity_json,status,created_at,updated_at
-    ) values(?,?,?,?,?,?,?)`).run(
-      task.job_id, task.request_hash, json(task), json(identity), "accepted", timestamp, timestamp,
+      job_id,request_hash,task_json,identity_json,status,current_attempt_id,current_reason,created_at,updated_at
+    ) values(?,?,?,?,?,?,?,?,?)`).run(
+      task.job_id, task.request_hash, json(task), json(identity), "failed", attemptId,
+      "LEASE_GRANTED", timestamp, timestamp,
     );
     return this.readTask(task.job_id)!;
   }
 
   public readTask(jobId: string): StoredProductionTask | null {
     const row = this.database.prepare(
-      "select task_json,identity_json,status,result_json,staged_result_json,failure_json,failure_reason,updated_at from production_tasks where job_id=?",
+      `select t.task_json,t.identity_json,t.status,t.result_json,t.staged_result_json,t.current_attempt_id,
+        t.current_reason,t.updated_at,(select f.failure_json from production_attempt_failures f
+          where f.job_id=t.job_id and f.attempt_id=t.current_attempt_id) as attempt_failure_json
+       from production_tasks t where t.job_id=?`,
     ).get(jobId) as TaskRow | undefined;
     return row ? storedTaskFromRow(row) : null;
   }
 
   public taskAuthorities(): readonly StoredProductionTask[] {
     const rows = this.database.prepare(
-      "select task_json,identity_json,status,result_json,staged_result_json,failure_json,failure_reason,updated_at from production_tasks order by updated_at,job_id",
+      `select t.task_json,t.identity_json,t.status,t.result_json,t.staged_result_json,t.current_attempt_id,
+        t.current_reason,t.updated_at,(select f.failure_json from production_attempt_failures f
+          where f.job_id=t.job_id and f.attempt_id=t.current_attempt_id) as attempt_failure_json
+       from production_tasks t order by t.updated_at,t.job_id`,
     ).all() as TaskRow[];
     return rows.map(storedTaskFromRow);
   }
 
-  public markRunning(jobId: string): void {
+  public markExecuting(jobId: string): void {
     this.database.prepare(
-      "update production_tasks set status='running',failure_reason=null,updated_at=? where job_id=? and status in ('accepted','recovery_pending')",
+      "update production_tasks set current_reason='EXECUTING',updated_at=? where job_id=? and status='failed'",
     ).run(now(), jobId);
   }
 
@@ -240,11 +158,11 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     ).get(jobId, stepId) as StepRow | undefined;
     if (!row) return null;
     if (row.input_hash !== inputHash) {
-      throw executionFailure("review_required", `PLUGIN_CHECKPOINT_INPUT_DRIFT:${stepId}`);
+      throw executionFailure("failed", `PLUGIN_CHECKPOINT_INPUT_DRIFT:${stepId}`);
     }
     const checkpoint = parseGptTurnCheckpoint(row.result_json);
     if (checkpoint.input_hash !== inputHash) {
-      throw executionFailure("review_required", `PLUGIN_CHECKPOINT_INPUT_DRIFT:${stepId}`);
+      throw executionFailure("failed", `PLUGIN_CHECKPOINT_INPUT_DRIFT:${stepId}`);
     }
     return checkpoint;
   }
@@ -264,10 +182,10 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
       || (existing.step_index === checkpoint.step_index
         && existing.status === "success" && checkpoint.status === "failed")
       || (existing.result && checkpoint.result && json(existing.result) !== json(checkpoint.result)))) {
-      throw executionFailure("review_required", `GPT_TURN_CHECKPOINT_REGRESSION:${stepId}`);
+      throw executionFailure("failed", `GPT_TURN_CHECKPOINT_REGRESSION:${stepId}`);
     }
     if (durableCheckpoint.status === "success" && durableCheckpoint.mutation_state === "dispatched") {
-      throw executionFailure("review_required", `GPT_TURN_CHECKPOINT_MUTATION_UNSETTLED:${stepId}`);
+      throw executionFailure("failed", `GPT_TURN_CHECKPOINT_MUTATION_UNSETTLED:${stepId}`);
     }
     this.database.prepare(`insert into production_steps(
       job_id,step_id,input_hash,result_json,completed_at
@@ -276,81 +194,7 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     ).run(jobId, stepId, durableCheckpoint.input_hash, json(durableCheckpoint), now());
     const readback = this.readGptTurnCheckpoint(jobId, stepId, checkpoint.input_hash);
     if (!readback || json(readback) !== json(durableCheckpoint)) {
-      throw executionFailure("review_required", `GPT_TURN_CHECKPOINT_READBACK_INVALID:${stepId}`);
-    }
-  }
-
-  public readGptTurnCheckpointMetadata(jobId: string, stepId: string): GptTurnCheckpointMetadata | null {
-    const row = this.database.prepare(
-      "select input_hash,result_json from production_steps where job_id=? and step_id=?",
-    ).get(jobId, stepId) as { input_hash: string; result_json: string } | undefined;
-    if (!row) return null;
-    let parsed: Readonly<Record<string, unknown>>;
-    try { parsed = JSON.parse(row.result_json) as Readonly<Record<string, unknown>>; }
-    catch { throw executionFailure("review_required", `GPT_TURN_CHECKPOINT_INVALID:${stepId}`); }
-    return Object.freeze({
-      inputHash: row.input_hash,
-      flowVersion: typeof parsed.flow_version === "string" ? parsed.flow_version : "invalid",
-      status: typeof parsed.status === "string" ? parsed.status : "invalid",
-      mutationState: typeof parsed.mutation_state === "string" ? parsed.mutation_state : "invalid",
-      hasResult: parsed.result !== null && parsed.result !== undefined,
-    });
-  }
-
-  public reconstructStaleGptTurnStep(input: Readonly<{
-    jobId: string;
-    stepId: string;
-    nextInputHash: ProductionHash;
-    safeByBrowserWal: boolean;
-  }>): void {
-    const metadata = this.readGptTurnCheckpointMetadata(input.jobId, input.stepId);
-    if (!metadata || metadata.flowVersion === GPT_TURN_FLOW_VERSION
-      || metadata.status !== "failed" || metadata.hasResult || !input.safeByBrowserWal) {
-      throw executionFailure("review_required", `GPT_FLOW_EXECUTION_SLICE_RECONSTRUCTION_UNSAFE:${input.stepId}`);
-    }
-    const task = this.readTask(input.jobId);
-    if (!task || task.status === "completed" || task.result !== null || task.staged_result !== null) {
-      throw executionFailure("review_required", `GPT_FLOW_EXECUTION_SLICE_RECONSTRUCTION_UNSAFE:${input.stepId}`);
-    }
-    const recordedAt = now();
-    const receipt = {
-      schema_version: "gpt-flow-execution-slice-reconstruction.v1",
-      job_id: input.jobId,
-      step_id: input.stepId,
-      previous_flow_version: metadata.flowVersion,
-      next_flow_version: GPT_TURN_FLOW_VERSION,
-      previous_input_hash: metadata.inputHash,
-      next_input_hash: input.nextInputHash,
-      previous_mutation_state: metadata.mutationState,
-      browser_wal_safety: "NO_DISPATCHED_OR_PROVIDER_EFFECT_TERMINAL",
-      recorded_at: recordedAt,
-    } as const;
-    const receiptHash = hashCanonical(receipt);
-    const localAcceptance = { accepted: true, receipt_hash: receiptHash } as const;
-    const localAcceptanceHash = hashCanonical(localAcceptance);
-    this.database.transaction(() => {
-      this.database.prepare("delete from production_steps where job_id=? and step_id=?")
-        .run(input.jobId, input.stepId);
-      this.database.prepare(`insert into production_outbox(
-        idempotency_key,kind,path,method,headers_json,body_blob,created_at,sent_at,failure_code,
-        response_json,response_hash,receipt_hash
-      ) values(?,?,?,?,?,?,?,?,?,?,?,?)`).run(
-        `gpt-flow-slice-reconstructed:${receiptHash}`,
-        "checkpoint",
-        `/internal/agent-production/jobs/${encodeURIComponent(input.jobId)}/gpt-flow-execution-slice-reconstructions`,
-        "POST",
-        json({ "content-type": "application/json" }),
-        Buffer.from(json(receipt)),
-        recordedAt,
-        recordedAt,
-        null,
-        json(localAcceptance),
-        localAcceptanceHash,
-        receiptHash,
-      );
-    })();
-    if (this.readGptTurnCheckpointMetadata(input.jobId, input.stepId) !== null) {
-      throw executionFailure("review_required", `GPT_FLOW_EXECUTION_SLICE_RECONSTRUCTION_FAILED:${input.stepId}`);
+      throw executionFailure("failed", `GPT_TURN_CHECKPOINT_READBACK_INVALID:${stepId}`);
     }
   }
 
@@ -389,7 +233,7 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
       set lane_owner_job_id=?,lane_version=case when lane_owner_job_id is null then lane_version+1 else lane_version end
       where continuation_ref=? and (lane_owner_job_id is null or lane_owner_job_id=?)`
     ).run(ownerJobId, continuationRef, ownerJobId);
-    if (changed.changes !== 1) throw executionFailure("review_required", "GPT_CONTINUATION_LANE_BUSY");
+    if (changed.changes !== 1) throw executionFailure("failed", "GPT_CONTINUATION_LANE_BUSY");
     return this.readGptContinuation(continuationRef)!;
   }
 
@@ -408,7 +252,7 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
       input.ownerJobId, input.laneVersion,
     );
     if (changed.changes !== 1) {
-      throw executionFailure("review_required", "GPT_CONTINUATION_ADVANCE_CAS_FAILED");
+      throw executionFailure("failed", "GPT_CONTINUATION_ADVANCE_CAS_FAILED");
     }
   }
 
@@ -422,44 +266,77 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     WebsiteAgentResultSchema.parse(result);
     const accepted = this.readTask(jobId);
     assertResultIdentity(accepted, result);
-    if (accepted!.staged_result && json(accepted!.staged_result) !== json(result)) {
-      throw executionFailure("review_required", "PRODUCTION_STAGED_RESULT_CONFLICT");
+    if (accepted!.attempt_failure) {
+      throw executionFailure("failed", "PRODUCTION_ATTEMPT_ALREADY_FAILED");
     }
-    const changed = this.database.prepare(`update production_tasks set staged_result_json=?,updated_at=?
-      where job_id=? and status not in ('completed','review_required','failed','cancelled')`
-    ).run(json(result), now(), jobId);
+    if (accepted!.staged_result && json(accepted!.staged_result) !== json(result)) {
+      throw executionFailure("failed", "PRODUCTION_STAGED_RESULT_CONFLICT");
+    }
+    const changed = this.database.prepare(`update production_tasks
+      set staged_result_json=?,current_reason='BUSINESS_ADMISSION_PENDING',updated_at=?
+      where job_id=? and status='failed'`).run(json(result), now(), jobId);
     if (changed.changes !== 1) {
-      throw executionFailure("review_required", "PRODUCTION_STAGED_RESULT_TERMINAL_CONFLICT");
+      throw executionFailure("failed", "PRODUCTION_STAGED_RESULT_TERMINAL_CONFLICT");
     }
   }
 
   public completeTask(jobId: string, result: WebsiteAgentResult): void {
     WebsiteAgentResultSchema.parse(result);
     assertResultIdentity(this.readTask(jobId), result);
-    const changed = this.database.prepare(`update production_tasks set status='completed',failure_json=null,failure_reason=null,
+    const changed = this.database.prepare(`update production_tasks set status='completed',current_reason=null,
       result_json=?,staged_result_json=null,updated_at=?
-      where job_id=? and status not in ('completed','review_required','failed','cancelled')`).run(
+      where job_id=? and status='failed'`).run(
       json(result), now(), jobId,
     );
     if (changed.changes === 0 && !sameCompletion(this.readTask(jobId), result)) {
-      throw executionFailure("review_required", "PRODUCTION_TASK_COMPLETION_CONFLICT");
+      throw executionFailure("failed", "PRODUCTION_TASK_COMPLETION_CONFLICT");
     }
   }
 
   public pendingBusinessAdmissions(): readonly StoredProductionTask[] {
     const rows = this.database.prepare(`select task_json,identity_json,status,result_json,staged_result_json,
-      failure_json,failure_reason,updated_at from production_tasks
-      where status='recovery_pending' and staged_result_json is not null order by updated_at,job_id`).all() as TaskRow[];
+      current_attempt_id,current_reason,updated_at,(select f.failure_json from production_attempt_failures f
+        where f.job_id=production_tasks.job_id and f.attempt_id=production_tasks.current_attempt_id)
+        as attempt_failure_json from production_tasks
+      where status='failed' and staged_result_json is not null order by updated_at,job_id`).all() as TaskRow[];
     return rows.map(storedTaskFromRow);
   }
 
-  public setRecoveryPending(jobId: string, reason: string): void {
+  public setCurrentReason(jobId: string, reason: string): void {
     this.database.prepare(
-      "update production_tasks set status='recovery_pending',failure_reason=?,updated_at=? where job_id=? and status in ('accepted','running','recovery_pending')",
+      "update production_tasks set current_reason=?,updated_at=? where job_id=? and status='failed'",
     ).run(reason.slice(0, 1_000), now(), jobId);
   }
 
+  public recordAttemptFailure(jobId: string, attemptId: string, failure: SerializedExecutionFailure): void {
+    if (!isSerializedTerminalFailure(failure)) {
+      throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_INVALID");
+    }
+    const existing = this.database.prepare(
+      "select current_attempt_id from production_tasks where job_id=? and status='failed'",
+    ).get(jobId) as { current_attempt_id: string } | undefined;
+    if (!existing || existing.current_attempt_id !== attemptId) {
+      throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_IDENTITY_MISMATCH");
+    }
+    const serialized = json(failure);
+    const first = this.database.prepare(`select failure_json from production_attempt_failures
+      where job_id=? and attempt_id=?`).get(jobId, attemptId) as { failure_json: string } | undefined;
+    if (first && first.failure_json !== serialized) {
+      throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_IMMUTABLE");
+    }
+    this.database.transaction(() => {
+      this.database.prepare(`insert into production_attempt_failures(job_id,attempt_id,failure_json,created_at)
+        values(?,?,?,?) on conflict(job_id,attempt_id) do nothing`).run(jobId, attemptId, serialized, now());
+      this.database.prepare(`update production_tasks set current_reason=?,updated_at=?
+        where job_id=? and status='failed'`).run(failure.code.slice(0, 1_000), now(), jobId);
+    })();
+  }
+
   public recordCheckpoint(authority: ProductionCheckpointAuthority): ProductionCheckpointAuthority {
+    const task = this.readTask(authority.jobId);
+    if (!task || task.status !== "failed" || task.current_attempt_id !== authority.attemptId) {
+      throw executionFailure("failed", "PRODUCTION_CHECKPOINT_ATTEMPT_IDENTITY_MISMATCH");
+    }
     this.database.prepare(`insert into production_checkpoints(
       job_id,attempt_id,checkpoint_id,checkpoint_hash,state,updated_at
     ) values(?,?,?,?,?,?) on conflict(job_id) do update set
@@ -483,6 +360,14 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
   }
 
   public recordLease(authority: ProductionLeaseAuthority): ProductionLeaseAuthority {
+    const task = this.readTask(authority.jobId);
+    if (!task || task.status !== "failed" || task.current_attempt_id !== authority.attemptId) {
+      throw executionFailure("failed", "PRODUCTION_LEASE_ATTEMPT_IDENTITY_MISMATCH");
+    }
+    const existing = this.readLease(authority.jobId);
+    if (existing?.attemptId === authority.attemptId && authority.leaseVersion < existing.leaseVersion) {
+      throw executionFailure("failed", "PRODUCTION_LEASE_VERSION_REGRESSION");
+    }
     this.database.prepare(`insert into production_leases(
       job_id,attempt_id,lease_version,fence_hash,state,expires_at,updated_at
     ) values(?,?,?,?,?,?,?) on conflict(job_id) do update set

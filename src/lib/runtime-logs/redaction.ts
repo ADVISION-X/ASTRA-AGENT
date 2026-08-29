@@ -8,12 +8,12 @@ const ABSOLUTE_PATH = /(?:^|\s)\/(?!\/)[^\s]*|[A-Za-z]:\\|file:\/\//u;
 const URL_PATTERN = /https?:\/\/[^\s]+/giu;
 
 const ALLOWED_STRING_KEYS = new Set([
-  "eventId", "occurredAt", "producer", "producerRunId", "previousEventHash", "eventHash", "type",
-  "traceId", "owner", "component", "visibility", "phase", "spanId", "operation", "parentSpanId",
-  "boundaryId", "outcome", "authorityRef", "authorityHash", "stateKey", "previous", "current", "kind",
+  "eventId", "emittedAt", "producer", "producerRunId", "previousEventHash", "eventHash", "kind",
+  "traceId", "owner", "component", "visibility", "spanId", "operation", "parentSpanId",
+  "boundaryId", "outcome", "authorityRef", "authorityHash", "evidenceRef", "evidenceHash",
   "producerId", "requestId", "jobId", "attemptId", "fenceHash", "pluginId", "stepId", "capabilityCallId",
   "pluginStepId", "childCapabilityId",
-  "commandId", "checkpointId", "outboxId", "code", "responsibleOwner", "impact", "recovery", "nativeCause",
+  "commandId", "checkpointId", "outboxId", "code", "responsibleOwner", "impact", "nativeCause",
   "causedByEventId",
 ]);
 

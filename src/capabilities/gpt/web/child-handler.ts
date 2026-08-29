@@ -21,8 +21,8 @@ export type GptChildHandler = (
 export type GptChildHandlerMap = Partial<Record<GptChildCapabilityId, GptChildHandler>>;
 
 export const requireBrowser = (context: GptExecutionContext) => {
-  if (!context.browser) throw executionFailure("review_required", "GPT_BROWSER_TARGET_REQUIRED");
-  if (context.signal?.aborted) throw executionFailure("recovery_pending", "GPT_EXECUTION_ABORTED");
+  if (!context.browser) throw executionFailure("failed", "GPT_BROWSER_TARGET_REQUIRED");
+  if (context.signal?.aborted) throw executionFailure("failed", "GPT_EXECUTION_ABORTED");
   return context.browser;
 };
 

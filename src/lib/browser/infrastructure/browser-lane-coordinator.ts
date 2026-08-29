@@ -29,7 +29,6 @@ export class BrowserLaneCoordinator {
     private readonly websocket: BrowserAuthorityWebSocket,
     private readonly issuer: BrowserAuthorityIssuer,
     private readonly infrastructure: LaneState,
-    private readonly emitState: (current: "idle" | "busy" | "review_required") => void,
   ) {}
 
   public acquire(
@@ -116,7 +115,6 @@ export class BrowserLaneCoordinator {
     if (!waiter) return;
     waiter.stopWaitingMonitor();
     this.active = true;
-    this.emitState("busy");
     const recovery = this.infrastructure.mutationState?.turnRecoveryScope({
       jobId: waiter.binding.jobId,
       ownerPluginId: waiter.binding.ownerPluginId,
@@ -141,7 +139,6 @@ export class BrowserLaneCoordinator {
     } catch (error) {
       const failure = browserExecutionFailure(error, recovery?.state === "DISPATCHED" ? "dispatched" : "no");
       this.active = false;
-      this.emitState("idle");
       void this.pump();
       waiter.reject(failure);
     }
@@ -156,7 +153,6 @@ export class BrowserLaneCoordinator {
         throw browserExecutionFailure(new Error("BROWSER_TARGET_LIFECYCLE_UNSETTLED", { cause: error }), "no");
       } finally {
         this.active = false;
-        this.emitState("idle");
         void this.pump();
       }
     };

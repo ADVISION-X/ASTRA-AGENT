@@ -48,7 +48,7 @@ const generatedImageTemporaryDirectory = (dataDir: string, image: GeneratedImage
     || path.dirname(originalPath) !== directory
     || path.basename(localPath) !== `${image.sha256.slice("sha256:".length)}.webp`
     || path.basename(originalPath) !== `${image.original_sha256.slice("sha256:".length)}.original`) {
-    throw executionFailure("review_required", "GENERATED_IMAGE_TEMPORARY_PATH_INVALID");
+    throw executionFailure("failed", "GENERATED_IMAGE_TEMPORARY_PATH_INVALID");
   }
   return directory;
 };
@@ -82,12 +82,12 @@ export async function claimProductionTasks(
     "/internal/ai-production/v6/jobs/claim",
     { method: "POST", body: JSON.stringify(request) },
   ));
-  if (receipt.request_id !== request.request_id) throw executionFailure("review_required", "V6_CLAIM_RECEIPT_MISMATCH");
+  if (receipt.request_id !== request.request_id) throw executionFailure("failed", "V6_CLAIM_RECEIPT_MISMATCH");
   const jobs = receipt.jobs.map((raw) => ClaimedProductionTaskSchema.parse(raw));
   if ((receipt.outcome === "LEASE_GRANTED") !== (jobs.length > 0)
     || jobs.some((job) => job.grant.worker_session_id !== session.workerSessionId
       || job.grant.worker_session_epoch !== session.workerSessionEpoch)) {
-    throw executionFailure("review_required", "V6_CLAIM_BATCH_INVALID");
+    throw executionFailure("failed", "V6_CLAIM_BATCH_INVALID");
   }
   return {
     outcome: receipt.outcome,
@@ -112,10 +112,10 @@ export async function downloadProductionMaterials(
         signal: AbortSignal.timeout(120_000),
       },
     );
-    if (!response.ok) throw executionFailure(response.status >= 500 ? "recovery_pending" : "failed", `MATERIAL_DOWNLOAD_FAILED:${response.status}:${material.material_id}`);
+    if (!response.ok) throw executionFailure("failed", `MATERIAL_DOWNLOAD_FAILED:${response.status}:${material.material_id}`);
     const bytes = new Uint8Array(await response.arrayBuffer());
     if (bytes.byteLength !== material.bytes || sha256(bytes) !== material.sha256) {
-      throw executionFailure("review_required", `MATERIAL_DOWNLOAD_IDENTITY_MISMATCH:${material.material_id}`);
+      throw executionFailure("failed", `MATERIAL_DOWNLOAD_IDENTITY_MISMATCH:${material.material_id}`);
     }
     const destination = path.join(materialDir, material.display_name);
     const temporary = `${destination}.${process.pid}.tmp`;
@@ -131,22 +131,17 @@ export async function checkpointProductionTask(
   session: ProductionWorkerSession,
   store: ProductionRuntimeStore,
   job: ClaimedProductionTask,
-  status: "inputs_downloading" | "factory_running" | "recovery_pending",
-  checkpointKind: string,
-  attemptFailure: (SerializedExecutionFailure & Readonly<{
-    decision: "RETRY_FROM_CHECKPOINT" | "RECONCILE_ONLY";
-  }>) | null = null,
+  checkpointKind: "accepted" | "progress" | "attempt_failure" | "handover_acknowledgement",
+  attemptFailure: SerializedExecutionFailure | null = null,
 ): Promise<ProductionHash> {
   const previous = store.readCheckpoint(job.job_id);
-  const checkpointSeq = status === "inputs_downloading" ? 1
-    : status === "factory_running" ? 2
-      : previous?.attemptId !== job.grant.attempt_id ? 1
-        : previous.checkpointId === "inputs_downloading" ? 2 : 3;
+  const checkpointSeq = previous?.attemptId !== job.grant.attempt_id ? 1
+    : previous.checkpointId === "accepted" ? 2
+      : previous.checkpointId === "progress" ? 3 : 1;
   const requestId = `aipcheckpoint_${hashCanonical({
     job_id: job.job_id,
     attempt_id: job.grant.attempt_id,
     lease_version: job.grant.lease_version,
-    status,
     checkpoint_kind: checkpointKind,
   }).slice(7, 47)}`;
   const body = {
@@ -161,21 +156,25 @@ export async function checkpointProductionTask(
     lease_version: job.grant.lease_version,
     fence_hash: job.grant.execution_fence.fence_hash,
     local_order_id: job.job_id,
-    status,
     checkpoint_seq: checkpointSeq,
     checkpoint_kind: checkpointKind,
-    payload_hash: hashCanonical({ job_id: job.job_id, status, checkpoint_kind: checkpointKind }),
+    payload_hash: hashCanonical({
+      job_id: job.job_id,
+      attempt_id: job.grant.attempt_id,
+      checkpoint_seq: checkpointSeq,
+      checkpoint_kind: checkpointKind,
+    }),
     object_receipts: [],
     attempt_failure: attemptFailure,
   } as const;
   const pathname = `/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/checkpoints`;
   store.enqueue({ idempotency_key: requestId, kind: "checkpoint", path: pathname, method: "POST", headers: fenceHeaders(job), body: JSON.stringify(body) });
-  const response = await store.deliverOutbox(requestId, session.buildHash, async () => {
+  const response = await store.deliverOutbox(requestId, async () => {
     const received = await session.request(pathname, {
       method: "POST", headers: fenceHeaders(job), body: JSON.stringify(body),
     }) as Record<string, unknown>;
     if (typeof received.checkpoint_hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(received.checkpoint_hash)) {
-      throw executionFailure("review_required", "V6_CHECKPOINT_RECEIPT_INVALID");
+      throw executionFailure("failed", "V6_CHECKPOINT_RECEIPT_INVALID");
     }
     return received;
   });
@@ -259,7 +258,7 @@ async function uploadJsonObject(
     "x-ai-content-bytes": String(bytes.byteLength),
   };
   store.enqueue({ idempotency_key: requestId, kind: "artifact", path: pathname, method: "PUT", headers: durableHeaders, body: bytes });
-  return store.deliverOutbox(requestId, session.buildHash, async () => {
+  return store.deliverOutbox(requestId, async () => {
     const response = await productionCloudFetch(`${session.device.server_base_url.replace(/\/+$/u, "")}${pathname}`, {
       method: "PUT",
       headers: await session.authorizationHeaders(durableHeaders),
@@ -285,7 +284,7 @@ async function uploadGeneratedImage(
   const bytes = await readFile(image.local_path);
   if (bytes.byteLength !== image.bytes || sha256(bytes) !== image.sha256
     || image.media_type !== "image/webp" || image.width !== 1200 || image.height !== 630) {
-    throw executionFailure("review_required", "GENERATED_IMAGE_LOCAL_IDENTITY_MISMATCH");
+    throw executionFailure("failed", "GENERATED_IMAGE_LOCAL_IDENTITY_MISMATCH");
   }
   const durableHeaders = {
     ...fenceHeaders(job),
@@ -295,7 +294,7 @@ async function uploadGeneratedImage(
     "x-ai-content-bytes": String(image.bytes),
   };
   store.enqueue({ idempotency_key: requestId, kind: "artifact", path: pathname, method: "PUT", headers: durableHeaders, body: bytes });
-  return store.deliverOutbox(requestId, session.buildHash, async () => {
+  return store.deliverOutbox(requestId, async () => {
     const response = await productionCloudFetch(`${session.device.server_base_url.replace(/\/+$/u, "")}${pathname}`, {
       method: "PUT",
       headers: await session.authorizationHeaders(durableHeaders),
@@ -454,7 +453,7 @@ export async function terminalProductionTask(
   });
   const expected = parseTerminalReceiptExpectation(body);
   store.enqueue({ idempotency_key: requestId, kind: "terminal", path: pathname, method: "POST", headers: fenceHeaders(job), body });
-  const response = await store.deliverOutbox(requestId, session.buildHash, async () => session.request(pathname, {
+  const response = await store.deliverOutbox(requestId, async () => session.request(pathname, {
     method: "POST",
     headers: fenceHeaders(job),
     body,

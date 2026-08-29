@@ -9,7 +9,6 @@ export { redactRuntimeLogRecord, redactUrlForLog } from "./redaction.js";
 export {
   RuntimeFailureImpact,
   RuntimeFailureKind,
-  RuntimeRecovery,
 } from "./runtime-failure-contract.js";
 export type {
   RuntimeLogOwner,
@@ -17,6 +16,6 @@ export type {
 } from "./runtime-failure-contract.js";
 export type {
   RuntimeLogEventV2,
+  RuntimeEventInput,
   RuntimeSpanTerminalEvent,
-  RuntimeStateInput,
 } from "./runtime-event-contract.js";

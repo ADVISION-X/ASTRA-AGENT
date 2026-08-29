@@ -16,7 +16,6 @@ const ForensicsRecordTypeSchema = z.enum([
   "evidence",
   "visual_evidence",
   "failure",
-  "review_required",
   "mission_event",
 ]);
 

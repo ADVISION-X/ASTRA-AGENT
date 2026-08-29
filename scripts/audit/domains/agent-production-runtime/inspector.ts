@@ -7,7 +7,7 @@ import { recordStaticCheck } from "../../shared/static-inspection-contract.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 import { inspectRuntimeHardening } from "./runtime-hardening-inspection.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V8";
+const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V9";
 const PLUGIN_ROOT = "src/plugins";
 const CATALOG_PATH = "src/lib/local-runtime/production/catalog.ts";
 const CONTRACT_PATH = "src/lib/local-runtime/production/contracts.ts";
@@ -22,7 +22,6 @@ const LOCALIZATION_SKILL_PATH = "src/plugins/localization-production/SKILL.md";
 const REAL_PROOF_PATH = "scripts/acceptance/agent-production-runtime.real-proof.ts";
 const EXECUTOR_PATH = "src/lib/local-runtime/production/executor.ts";
 const GPT_EXECUTOR_PATH = "src/lib/local-runtime/production/production-gpt-executor.ts";
-const GPT_TURN_FLOW_PATH = "src/lib/local-runtime/production/production-gpt-turn-flow.ts";
 const GPT_EVIDENCE_PATH = "src/lib/local-runtime/production/gpt-evidence-writer.ts";
 const CLOUD_CLIENT_PATH = "src/lib/local-runtime/production/cloud-client.ts";
 const TYPED_FAILURE_PATH = "src/lib/typed-failure.ts";
@@ -292,7 +291,7 @@ const inspectRetirementAndDurability = (context: InspectorContext, findings: Ins
     "pendingBusinessAdmissions", "completeTask", "HISTORICAL_FAILED_COMPLETION_RETIRED",
     "EXECUTION_SLICE_RECONSTRUCTED", "agent-execution-slice-reconstruction.v1",
     "old_identity_hash", "new_identity_hash", "PLUGIN_EXECUTION_SLICE_RECONSTRUCTION_UNSAFE",
-    "review_required", "lane_owner_job_id",
+    "status text not null check(status in ('failed','completed'))", "lane_owner_job_id",
     "gpt-turn-checkpoint.v2", "writeGptTurnCheckpoint", "readGptTurnCheckpoint",
     "on conflict(job_id,step_id) do update set",
   ]) {
@@ -353,7 +352,7 @@ const inspectDirectDynamicProof = (context: InspectorContext, findings: Inspecto
     "browser-mutations.sqlite", "GOVERNANCE_PROOF_RECEIPT_DIR", "GRASSEYE_PRODUCTION_PROOF_JOB_IDS",
     "agentPluginCapabilityManifest", "observeProductionProofRuntimeLogs", "Object.keys(dynamicClaimContract.routes).sort()",
     "assertProductionProofRouteCoverage", "jobIds.length, 39", "task_json", "routes=39",
-    "executed_route_count", "route_denominator_complete", "recovery_pending", "target=claimed",
+    "executed_route_count", "route_denominator_complete", "failed_observed", "completed_observed", "target=claimed",
     "target=absent", "gpt-child-proof:", "sent provider terminal receipt",
   ]) {
     if (!realProofText.includes(required)) findings.push(finding(
@@ -390,12 +389,10 @@ const inspectAgentProductionRuntime = (context: InspectorContext, findings: Insp
     contract: CONTRACT_PATH,
     runtime: RUNTIME_PATH,
     gptExecutor: GPT_EXECUTOR_PATH,
-    gptTurnFlow: GPT_TURN_FLOW_PATH,
     blueprint: PRODUCTION_BLUEPRINT_PATH,
     mutationCheckId: "logical-mutation-boundary",
     gptExecutorMutationTokens: ["runAtomicStep({", "pluginStepId: input.stepId",
-      "childCapabilityId: input.intent.childCapabilityId", "readGptTurnCheckpoint", "production-reconciliation"],
-    gptTurnFlowMutationTokens: ["turnExecutor.execute", "writeGptTurnCheckpoint", "reconcileOnly"],
+      "childCapabilityId: input.intent.childCapabilityId", "readGptTurnCheckpoint", "assertNoPendingMutations"],
     evidenceMutationTokens: ["committedMutation === \"dispatched\""],
   });
 };

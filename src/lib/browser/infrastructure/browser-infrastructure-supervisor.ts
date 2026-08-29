@@ -3,7 +3,6 @@ import { join } from "node:path";
 
 import { browserExecutionFailure } from "../browser-failure.js";
 import { BrowserCommandActor } from "../exact-target/browser-command-actor.js";
-import { emitBrowserMutationState } from "../exact-target/browser-command-runtime-logging.js";
 import { BrowserMutationStore, type BrowserMutationReconciliationScope } from "../exact-target/browser-mutation-store.js";
 import { BrowserSessionWorkspace, type SessionWorkspaceBindingV6 } from "../exact-target/browser-session-workspace.js";
 import { requireGptWebPolicyForUrl } from "../exact-target/browser-site-policy-registry.js";
@@ -67,8 +66,8 @@ export class BrowserInfrastructureSupervisor {
     this.ownerLock = new BrowserOwnerLock(join(options.dataDir, "browser", "owner.lock"));
     const callbacks: BrowserAuthorityWebSocketOptions = {
       pairingSecret: process.env.GRASSEYE_BROWSER_PAIRING_SECRET ?? null,
-      onPairingStarted: () => this.logs.state("browser.authority", "absent"),
-      onHeartbeat: () => this.logs.state("browser.authority", "present"),
+      onPairingStarted: () => {},
+      onHeartbeat: () => {},
       onAuthenticated: (input) => this.onAuthenticated(input),
       onTargetClaim: (input) => this.onTargetClaim(input),
       onTargetRevoke: (targetRef) => this.onTargetRevoke(targetRef),
@@ -83,10 +82,7 @@ export class BrowserInfrastructureSupervisor {
       new BrowserArtifactRegistry(join(options.dataDir, "runtime-data", "gpt", "upload-attempts")),
     );
     this.logs = new BrowserRuntimeLogEmitter(options.runtimeLogger, () => this.state.connectionGeneration);
-    this.lane = new BrowserLaneCoordinator(
-      () => this.broker, this.websocket, this.issuer, this.state,
-      (current) => this.logs.state("browser.execution", current),
-    );
+    this.lane = new BrowserLaneCoordinator(() => this.broker, this.websocket, this.issuer, this.state);
   }
 
   private onAuthenticated(
@@ -97,7 +93,6 @@ export class BrowserInfrastructureSupervisor {
       profileConfig: this.options.profileConfig, enrolledProfile: this.options.enrolledProfile,
       releaseIdentity: this.options.releaseIdentity,
     });
-    this.logs.state("browser.authority", "present");
     return ready;
   }
 
@@ -107,7 +102,6 @@ export class BrowserInfrastructureSupervisor {
     if (initialClaim && !this.state.pendingJobBoundTargetAcquisition) throw new Error("BROWSER_TARGET_INVALID");
     this.establishClaimBoundWorkspace();
     this.broker.registerOperatorTargetClaim({ authorityEpoch: currentAuthorityEpoch(this.issuer), ...input });
-    this.logs.state("browser.target", "claimed");
     if (initialClaim) this.lane.resolvePending(input.targetRef);
   }
 
@@ -118,7 +112,6 @@ export class BrowserInfrastructureSupervisor {
 
   private onTargetRevoke(targetRef: string): void {
     this.broker.revokeOperatorTargetClaim(targetRef);
-    this.logs.state("browser.target", "absent");
   }
 
   private onRevoked(reasonCode: string, refs?: Readonly<Record<string, string>>): void {
@@ -126,8 +119,6 @@ export class BrowserInfrastructureSupervisor {
       || refs?.diagnosticSource === "extension-runtime";
     this.lane.rejectPending(reasonCode);
     this.disconnectTransport(normalizeBrowserDisconnectReason(reasonCode));
-    this.logs.state("browser.authority", "absent");
-    this.logs.state("browser.target", "absent");
     this.logs.failure(reasonCode, extensionFailure ? "extension-runtime" : "authority-revoked");
   }
 
@@ -138,15 +129,8 @@ export class BrowserInfrastructureSupervisor {
     try {
       this.state.mutationState = new BrowserMutationStore(this.options.dataDir);
       this.lane.reset();
-      for (const recovery of this.state.mutationState.reconciliationStates()) emitBrowserMutationState({
-        runtimeLogger: this.options.runtimeLogger, mutation: recovery.mutation, previous: null,
-        current: recovery.current, authorityHash: recovery.authorityHash, reconciledFromAuthority: true,
-      });
       this.transport.start();
       this.state.started = true;
-      this.logs.state("browser.execution", "idle");
-      this.logs.state("browser.authority", "absent");
-      this.logs.state("browser.target", "absent");
     } catch (error) {
       this.state.mutationState?.close();
       this.state.mutationState = null;
@@ -168,9 +152,6 @@ export class BrowserInfrastructureSupervisor {
     this.state.mutationState?.close();
     this.state.mutationState = null;
     this.state.started = false;
-    this.logs.state("browser.target", "absent");
-    this.logs.state("browser.authority", "absent");
-    this.logs.state("browser.execution", "idle");
   }
 
   public authorityBroker(): BrowserAuthorityBroker { return this.broker; }

@@ -1,6 +1,5 @@
 import {
   RuntimeFailureImpact,
-  RuntimeRecovery,
   requireRuntimeLogWrite,
   runtimeFailureFromError,
 } from "../runtime-logs/index.js";
@@ -23,7 +22,7 @@ export const buildApiBoundaryLogHandle = (assembly: WorkbenchAssembly) => ({
       visibility: "DEBUG",
     }));
     if (input.decision === "allowed") {
-      requireRuntimeLogWrite(span.terminal({ outcome: "success" }));
+      requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
       return;
     }
     requireRuntimeLogWrite(span.terminal({
@@ -32,7 +31,6 @@ export const buildApiBoundaryLogHandle = (assembly: WorkbenchAssembly) => ({
         error: new Error(input.reason),
         code: "API_BOUNDARY_DENIED",
         responsibleOwner: "app-shell",
-        recovery: RuntimeRecovery.STOP,
         impact: RuntimeFailureImpact.BLOCKING,
       }),
     }));

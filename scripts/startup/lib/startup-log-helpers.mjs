@@ -2,7 +2,6 @@ import path from "node:path";
 
 import {
   RuntimeFailureImpact,
-  RuntimeRecovery,
   createRuntimeLogger,
   requireRuntimeLogWrite,
   runtimeFailureFromError,
@@ -34,7 +33,7 @@ const createSpanLogHelpers = (runtimeLogger, traceId) => {
     return span;
   };
   const pass = (stepId) => {
-    requireRuntimeLogWrite(start(stepId).terminal({ outcome: "success" }));
+    requireRuntimeLogWrite(start(stepId).terminal({ outcome: "succeeded" }));
     openSpans.delete(stepId);
   };
   const fail = (stepId, error, impact = RuntimeFailureImpact.BLOCKING, causedByEventId = null) => {
@@ -42,7 +41,7 @@ const createSpanLogHelpers = (runtimeLogger, traceId) => {
       outcome: "failed",
       failure: runtimeFailureFromError({
         error, code: `STARTUP_${stepId.toUpperCase()}_FAILED`, responsibleOwner: "startup-entrypoint",
-        recovery: RuntimeRecovery.STOP, impact, ...(causedByEventId ? { causedByEventId } : {}),
+        impact, ...(causedByEventId ? { causedByEventId } : {}),
       }),
     }));
     openSpans.delete(stepId);
@@ -88,43 +87,46 @@ export function createStartupLogHelpers({ runId, dataDir }) {
     fileSink: { directoryPath: path.join(dataDir, "runtime-logs") },
   });
   const traceId = `startup:${runId}`;
-  let lifecycle = "starting";
-  requireRuntimeLogWrite(runtimeLogger.emitState({
+  const startupIdentity = { kind: "producer", producerId: "startup-entrypoint" };
+  let readyLogged = false;
+  let stoppedLogged = false;
+  requireRuntimeLogWrite(runtimeLogger.emitEvent({
     traceId,
-    stateKey: "producer.lifecycle",
-    previous: null,
-    current: "starting",
+    operation: "runtime.start",
+    typedIdentity: startupIdentity,
+    code: "PRODUCER_STARTED",
   }));
-  requireRuntimeLogWrite(runtimeLogger.emitState({
+  requireRuntimeLogWrite(runtimeLogger.emitEvent({
     traceId,
     owner: "runtime-logs",
     component: "runtime-log-sink",
-    stateKey: "log.sink",
-    previous: null,
-    current: "ready",
+    operation: "runtime.start",
+    typedIdentity: startupIdentity,
+    code: "RUNTIME_LOG_SINK_READY",
   }));
   const spans = createSpanLogHelpers(runtimeLogger, traceId);
   const relays = createServiceRelays(runtimeLogger, spans.fail);
 
   const logStartupReady = () => {
-    if (lifecycle !== "starting") return;
-    requireRuntimeLogWrite(runtimeLogger.emitState({
+    if (readyLogged || stoppedLogged) return;
+    requireRuntimeLogWrite(runtimeLogger.emitEvent({
       traceId,
-      stateKey: "producer.lifecycle",
-      previous: "starting",
-      current: "ready",
+      operation: "runtime.start",
+      typedIdentity: startupIdentity,
+      code: "STARTUP_READY",
     }));
-    lifecycle = "ready";
+    readyLogged = true;
   };
 
   const logStartupStopped = () => {
-    requireRuntimeLogWrite(runtimeLogger.emitState({
+    if (stoppedLogged) return;
+    requireRuntimeLogWrite(runtimeLogger.emitEvent({
       traceId,
-      stateKey: "producer.lifecycle",
-      previous: lifecycle,
-      current: "stopped",
+      operation: "runtime.shutdown",
+      typedIdentity: startupIdentity,
+      code: "PRODUCER_STOPPED",
     }));
-    lifecycle = "stopped";
+    stoppedLogged = true;
   };
 
   return {

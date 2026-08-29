@@ -77,7 +77,7 @@ const isOpenable = (value: ModelSelectorTopology): boolean => value.popup === 1
 const requireAlreadyOpen = async (browser: BrowserTargetLease): Promise<void> => {
   const observed = await readModelSelectorTopology(browser);
   if (!isAlreadyOpen(observed)) {
-    throw executionFailure("review_required", `GPT_MODEL_SELECTION_V2_STATE_INVALID:${topologyCode(observed)}`);
+    throw executionFailure("failed", `GPT_MODEL_SELECTION_V2_STATE_INVALID:${topologyCode(observed)}`);
   }
 };
 
@@ -94,11 +94,11 @@ const exactVisibleModelState = async (
     fields: ["ariaChecked"],
   });
   if (!result || typeof result !== "object" || Array.isArray(result)) {
-    throw executionFailure("review_required", "GPT_MODEL_SELECTION_V2_READBACK_INVALID");
+    throw executionFailure("failed", "GPT_MODEL_SELECTION_V2_READBACK_INVALID");
   }
   const value = result as { count?: unknown; matches?: unknown };
   if (!Number.isInteger(value.count) || !Array.isArray(value.matches)) {
-    throw executionFailure("review_required", "GPT_MODEL_SELECTION_V2_READBACK_INVALID");
+    throw executionFailure("failed", "GPT_MODEL_SELECTION_V2_READBACK_INVALID");
   }
   const first = value.matches[0];
   const ariaChecked = first && typeof first === "object" && !Array.isArray(first)
@@ -126,10 +126,10 @@ export const modelSelectionV2ChildHandlers = {
       });
     }
     if (!isOpenable(observed)) {
-      throw executionFailure("review_required", `GPT_MODEL_SELECTION_V2_STATE_INVALID:${topologyCode(observed)}`);
+      throw executionFailure("failed", `GPT_MODEL_SELECTION_V2_STATE_INVALID:${topologyCode(observed)}`);
     }
     if (reconcileOnly) {
-      throw executionFailure("recovery_pending", "GPT_MODEL_SELECTION_V2_OPEN_PENDING");
+      throw executionFailure("failed", "GPT_MODEL_SELECTION_V2_OPEN_PENDING");
     }
     await browser.executeDomIntent({
       kind: "click",
@@ -161,12 +161,12 @@ export const modelSelectionV2ChildHandlers = {
     const candidate = await exactVisibleModelState(browser, profile.modelDisplayName);
     if (candidate.count !== 1 || (candidate.ariaChecked !== "true" && candidate.ariaChecked !== "false")) {
       throw executionFailure(
-        "review_required",
+        "failed",
         `GPT_MODEL_SELECTION_V2_CANDIDATE_INVALID:count=${candidate.count}:checked=${candidate.ariaChecked ?? "missing"}`,
       );
     }
     if (reconcileOnly) {
-      throw executionFailure("recovery_pending", "GPT_MODEL_SELECTION_V2_SELECTION_PENDING");
+      throw executionFailure("failed", "GPT_MODEL_SELECTION_V2_SELECTION_PENDING");
     }
     await browser.executeDomIntent({
       kind: "click",

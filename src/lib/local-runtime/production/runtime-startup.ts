@@ -6,7 +6,6 @@ import type { ForensicsPersistenceAbilityGroup } from "../../../capabilities/for
 import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-support.js";
 import {
   RuntimeFailureImpact,
-  RuntimeRecovery,
   requireRuntimeLogWrite,
   runtimeFailureFromError,
   runtimeLogCauseEventId,
@@ -16,9 +15,8 @@ import {
 } from "../../runtime-logs/index.js";
 import { failureCode } from "../../typed-failure.js";
 import { cleanupGeneratedImageTemporaryFiles } from "./cloud-client.js";
-import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
 import { productionCatalogHash } from "./catalog.js";
-import { hashCanonical, type ProductionHash } from "./contracts.js";
+import type { ProductionHash } from "./contracts.js";
 import { readProductionCredential } from "./credential.js";
 import { ProductionExecutor } from "./executor.js";
 import { ProductionRuntimeStore, type StoredProductionTask } from "./store.js";
@@ -32,15 +30,8 @@ import {
   sessionHeartbeatLoop,
   workerLoop,
 } from "./runtime-loops.js";
+import { terminalSpanFailure } from "./runtime-logging.js";
 import {
-  emitCheckpointAuthority,
-  emitLeaseAuthority,
-  emitOutboxAuthority,
-  emitRuntimeState,
-  terminalSpanFailure,
-} from "./runtime-logging.js";
-import {
-  classifyFailure,
   diagnoseProductionRuntime,
   refreshLedgerReconciled,
   safeReason,
@@ -55,15 +46,6 @@ export type ProductionRuntimeStartInput = Readonly<{
   browserAuthority: WorkbenchBrowserAuthority;
   runtimeLogger: RuntimeLogger;
 }>;
-
-const emitBlockedStates = (input: ProductionRuntimeStartInput): void => {
-  for (const stateKey of ["cloud.contract", "claim.admission"] as const) {
-    requireRuntimeLogWrite(input.runtimeLogger.emitState({
-      traceId: `producer:${input.runtimeLogger.producerRunId}`, owner: "production-runtime",
-      component: "production-runtime", stateKey, previous: null, current: "blocked",
-    }));
-  }
-};
 
 const blockedHealth = (
   input: ProductionRuntimeStartInput,
@@ -81,7 +63,7 @@ const blockedHealth = (
     browserLaneState: browser.browserAuthorityState === "present" ? "idle" : "blocked",
     contractManifestHash: PRODUCTION_V6_MANIFEST_HASH, catalogHash: productionCatalogHash,
     activeCount: 0, pendingOutboxCount: store.pendingOutboxCount(),
-    parkedOutboxCount: store.parkedOutboxCount(), lastSuccessfulHeartbeatAt: null,
+    lastSuccessfulHeartbeatAt: null,
     lastErrorCode: reason.split(":")[0] ?? "PRODUCTION_CREDENTIAL_INVALID",
     lastErrorReason: reason, checkedAt: new Date().toISOString(),
   };
@@ -98,12 +80,12 @@ const closeBlockedStore = (
   }));
   try {
     store.close();
-    requireRuntimeLogWrite(span.terminal({ outcome: "success" }));
+    requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
   } catch (error) {
     const terminal = requireRuntimeLogWrite(span.terminal({
       outcome: "failed", failure: runtimeFailureFromError({
         error, code: "RUNTIME_SHUTDOWN_FAILED", responsibleOwner: "production-runtime",
-        recovery: RuntimeRecovery.REVIEW, impact: RuntimeFailureImpact.BLOCKING,
+        impact: RuntimeFailureImpact.BLOCKING,
       }),
     }));
     throw withRuntimeLogCause(error, terminal.eventId);
@@ -118,7 +100,6 @@ const blockedRuntimeHandle = (
   const reason = safeReason(error);
   const traceId = `producer:${input.runtimeLogger.producerRunId}`;
   let stopped = false;
-  emitBlockedStates(input);
   return {
     readHealth: () => blockedHealth(input, store, reason, stopped),
     readTask: (jobId) => store.readTask(jobId),
@@ -141,7 +122,7 @@ const initializeStore = async (
     return new ProductionRuntimeStore(input.dataDir);
   } catch (error) {
     terminalSpanFailure(
-      startSpan, error, classifyFailure(error), runtimeLogCauseEventId(error), "RUNTIME_START_FAILED",
+      startSpan, error, runtimeLogCauseEventId(error), "RUNTIME_START_FAILED",
     );
     throw error;
   }
@@ -161,15 +142,12 @@ const createRuntimeState = (
   const state: RuntimeState = {
     abort: new AbortController(), active: new Map(), activeAbort: new Map(), store, executor, session,
     browserAuthority: input.browserAuthority, gpt: input.gpt, dataDir: input.dataDir,
-    runtimeLogger: input.runtimeLogger, loggedStates: new Map(), draining: false, lastHeartbeat: null,
+    runtimeLogger: input.runtimeLogger, draining: false, lastHeartbeat: null,
     lastErrorCode: null, lastErrorReason: null, stopped: false, ledgerReconciled: false,
     reconciliationBaselineValid: false,
   };
   stateRef = state;
-  store.setOutboxObserver((authority) => {
-    emitOutboxAuthority(state, authority);
-    refreshLedgerReconciled(state);
-  });
+  store.setOutboxObserver(() => refreshLedgerReconciled(state));
   return state;
 };
 
@@ -177,37 +155,23 @@ const reconcileTaskRecord = (
   state: RuntimeState,
   persisted: StoredProductionTask,
 ): boolean => {
-  let record = persisted;
-  const nonterminal = record.status === "accepted" || record.status === "running"
-    || record.status === "recovery_pending";
-  const storedLease = state.store.readLease(record.task.job_id);
+  const nonterminal = persisted.status === "failed";
+  const storedLease = state.store.readLease(persisted.task.job_id);
   const lease = storedLease?.state === "active"
     ? state.store.recordLease({ ...storedLease, state: "stale", expiresAt: null }) : storedLease;
-  const checkpoint = state.store.readCheckpoint(record.task.job_id);
-  const remoteRedeliveryPending = state.store.isRemoteRedeliveryPending(record.task.job_id);
-  if (nonterminal && record.status !== "recovery_pending" && lease?.state === "stale" && checkpoint) {
-    state.store.setRecoveryPending(record.task.job_id, "AGENT_PROCESS_RESTARTED");
-    record = state.store.readTask(record.task.job_id)!;
+  const checkpoint = state.store.readCheckpoint(persisted.task.job_id);
+  const remoteRedeliveryPending = state.store.hasUnsentOutbox(persisted.task.job_id);
+  if (nonterminal && lease?.state === "stale" && checkpoint && !persisted.staged_result) {
+    state.store.setCurrentReason(persisted.task.job_id, "AGENT_PROCESS_RESTARTED");
   }
-  emitRuntimeState({
-    state, traceId: record.task.job_id, stateKey: "job.lifecycle", current: record.status,
-    authorityRef: `production-task:${record.task.job_id}`, authorityHash: hashCanonical(record),
-    reconciledFromAuthority: true,
-  });
   let complete = true;
   if (lease) {
     if (nonterminal && !remoteRedeliveryPending
-      && (record.status !== "recovery_pending" || lease.state !== "stale")) complete = false;
-    emitLeaseAuthority(state, lease, true);
+      && lease.state !== "stale") complete = false;
   } else if (nonterminal && !remoteRedeliveryPending) {
     complete = false;
-    emitRuntimeState({ state, traceId: record.task.job_id, stateKey: "job.lease", current: "lost" });
   }
-  if (checkpoint) emitCheckpointAuthority(state, checkpoint, true);
-  else if (nonterminal && !remoteRedeliveryPending) {
-    complete = false;
-    emitRuntimeState({ state, traceId: record.task.job_id, stateKey: "job.checkpoint", current: "failed" });
-  }
+  if (!checkpoint && nonterminal && !remoteRedeliveryPending) complete = false;
   return complete;
 };
 
@@ -239,24 +203,9 @@ const reconcileLocalState = async (
   }
   const records = state.store.taskAuthorities();
   for (const record of records) if (!reconcileTaskRecord(state, record)) complete = false;
-  for (const authority of state.store.outboxAuthorities()) emitOutboxAuthority(state, authority, true);
   if (!await reconcileEvidence(input, records)) complete = false;
   state.reconciliationBaselineValid = complete;
   refreshLedgerReconciled(state);
-};
-
-const hydrateRemoteReceipts = async (state: RuntimeState): Promise<void> => {
-  for (const jobId of state.store.unreconciledOutboxJobIds()) {
-    try {
-      const remote = await readProductionDeviceJobStatus(state.session, jobId);
-      state.store.hydrateRemoteOutboxReceipts(jobId, remote.write_receipts);
-    } catch (error) {
-      if (failureCode(error) === "AI_V6_DEVICE_JOB_NOT_FOUND" && state.store.markRemoteAbsentHistorical(jobId)) {
-        continue;
-      }
-      throw error;
-    }
-  }
 };
 
 const establishCloudSession = async (
@@ -272,28 +221,20 @@ const establishCloudSession = async (
   }));
   try {
     await state.session.open(boundaryId);
-    emitRuntimeState({ state, stateKey: "cloud.contract", current: "ready" });
-    emitRuntimeState({ state, stateKey: "cloud.session", current: "connected" });
-    await hydrateRemoteReceipts(state);
     state.store.reconcileDeliveredTerminals();
     refreshLedgerReconciled(state);
     await flushOutboxWithLog(state);
     const receipt = await state.session.heartbeat();
     state.lastHeartbeat = receipt.issued_at;
-    emitRuntimeState({
-      state, stateKey: "producer.alive", current: "alive", freshForMs: 65_000, force: true, owner: "app-shell",
-    });
-    requireRuntimeLogWrite(span.terminal({ outcome: "success" }));
-    requireRuntimeLogWrite(startSpan.terminal({ outcome: "success" }));
+    requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
+    requireRuntimeLogWrite(startSpan.terminal({ outcome: "succeeded" }));
   } catch (error) {
     const sessionFailure = terminalSpanFailure(
-      span, error, classifyFailure(error), runtimeLogCauseEventId(error), "CLOUD_SESSION_OPEN_FAILED",
+      span, error, runtimeLogCauseEventId(error), "CLOUD_SESSION_OPEN_FAILED",
     );
-    terminalSpanFailure(startSpan, error, classifyFailure(error), sessionFailure.eventId, "RUNTIME_START_FAILED");
+    terminalSpanFailure(startSpan, error, sessionFailure.eventId, "RUNTIME_START_FAILED");
     state.lastErrorCode = failureCode(error, "PRODUCTION_SESSION_START_FAILED");
     state.lastErrorReason = safeReason(error);
-    emitRuntimeState({ state, stateKey: "cloud.session", current: "stale" });
-    emitRuntimeState({ state, stateKey: "claim.admission", current: "blocked" });
   }
 };
 
@@ -304,13 +245,13 @@ const finishShutdown = (
 ): void => {
   const error = errors[0];
   if (error === undefined) {
-    requireRuntimeLogWrite(span.terminal({ outcome: "success" }));
+    requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
     return;
   }
   const terminal = requireRuntimeLogWrite(span.terminal({
     outcome: "failed", failure: runtimeFailureFromError({
       error, code: "RUNTIME_SHUTDOWN_FAILED", responsibleOwner: "production-runtime",
-      recovery: RuntimeRecovery.REVIEW, impact: RuntimeFailureImpact.BLOCKING,
+      impact: RuntimeFailureImpact.BLOCKING,
     }),
   }));
   throw withRuntimeLogCause(error, terminal.eventId);
@@ -327,7 +268,6 @@ const shutdownRuntime = async (
     typedIdentity: { kind: "producer", producerId: state.runtimeLogger.producerRunId },
   }));
   state.draining = true;
-  emitRuntimeState({ state, stateKey: "claim.admission", current: "draining" });
   const errors: unknown[] = [];
   await state.session.heartbeat().catch((error) => errors.push(error));
   state.abort.abort();
@@ -337,7 +277,6 @@ const shutdownRuntime = async (
   await flushOutboxWithLog(state).catch((error) => errors.push(error));
   await state.session.close().catch((error) => errors.push(error));
   state.stopped = true;
-  emitRuntimeState({ state, stateKey: "cloud.session", current: "disconnected" });
   try { state.store.close(); } catch (error) { errors.push(error); }
   finishShutdown(state, span, errors);
 };
@@ -368,7 +307,7 @@ export const startProductionRuntime = async (
   let credential: Awaited<ReturnType<typeof readProductionCredential>>;
   try { credential = await readProductionCredential(input.dataDir); }
   catch (error) {
-    terminalSpanFailure(startSpan, error, classifyFailure(error), runtimeLogCauseEventId(error), "RUNTIME_START_FAILED");
+    terminalSpanFailure(startSpan, error, runtimeLogCauseEventId(error), "RUNTIME_START_FAILED");
     return blockedRuntimeHandle(input, store, error);
   }
   const state = createRuntimeState(input, store, credential);

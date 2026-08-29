@@ -7,7 +7,7 @@ const articleProvider = { ...researchProvider, labelKey: "seo_article", profileR
 
 export const publicKnowledgeArticlePipelinePlugin: ProductPlugin = {
   pluginId: "public-knowledge-article-pipeline",
-  pluginVersion: 6,
+  pluginVersion: 7,
   skillHash: skill.hash,
   checkpointSchemaVersion: 2,
   parseResult: parseProductResult,
@@ -21,7 +21,12 @@ export const publicKnowledgeArticlePipelinePlugin: ProductPlugin = {
       const finding = await context.runTurn({ step_id: task.action_id, instruction: "复核冻结的 subject_result 与 review_context，只返回 website-agent-review-output.v1 的合法 JSON（decision、issues 及完整 issue 字段）。", material_roles: ["subject_result", "review_context"], provider: researchProvider });
       return context.complete({ payload: parseRouteResult(task, finding.raw_text), evidence_refs: combineEvidence(finding) });
     }
-    const research = await context.runTurn({ step_id: "research", instruction: "从 ready_corpus_archive 中提取可公开、可引用、可核验的研究结论；严格按 result_contract 返回 public-knowledge-research-output.v3 合法 JSON，不要代码围栏、解释或额外字段。", material_roles: ["ready_corpus_archive", "result_contract"], provider: researchProvider });
+    const research = await context.runTurn({
+      step_id: "corpus_research",
+      instruction: "只使用 ready_corpus_archive 的冻结语料与现役文章目录完成研究。先比较已有主题与覆盖范围，再选择一个对普通读者有独立价值、可由当前来源闭合且不存在实质重复的问题；逐项给出 topic_manifest、editorial_intent、catalog_comparison_note、可回查 citations、uncertainties、research_claim_units、closest_existing_article_ids、relation_assertions 与 novelty_basis。材料不足、没有实质新意、无法公开或无法核验时必须 decision=decline；否则 decision=proceed。严格按 result_contract 返回 public-knowledge-research-output.v3 合法 JSON，不要代码围栏、解释或额外字段。",
+      material_roles: ["ready_corpus_archive", "result_contract"],
+      provider: researchProvider,
+    });
     const researchPayload = parsePublicKnowledgeResearch(research.raw_text);
     if (researchPayload.decision === "decline") {
       return context.complete({
@@ -30,15 +35,28 @@ export const publicKnowledgeArticlePipelinePlugin: ProductPlugin = {
         continuation: research.provider_continuation,
       });
     }
-    const article = await context.runTurn({ step_id: "compose_article", instruction: "依据已完成研究写成独立、清晰的知识文章；严格按 result_contract 返回 public-knowledge-article-output.v3 合法 JSON，不得把无来源断言写成事实，不要代码围栏、解释或额外字段。", material_roles: ["ready_corpus_archive", "result_contract"], same_conversation_as: research, provider: articleProvider });
+    const article = await context.runTurn({
+      step_id: "article_synthesis",
+      instruction: "依据同一会话中已经完成并 checkpoint 的研究写成一篇独立、清晰的简体中文知识文章。标题、editor_note、article_markdown、citations、claim_coverage 与 safety_notes 必须逐项闭合；清楚区分原典、历史语境、流派观点、当前解释、推断与不确定性，不得把未被研究材料支持的断言写成事实，不堆关键词，不作收录或排名承诺。严格返回 public-knowledge-article-output.v3 合法 JSON，不要代码围栏、解释或额外字段。",
+      material_roles: [],
+      same_conversation_as: research,
+      provider: articleProvider,
+    });
     const articlePayload = parsePublicKnowledgeArticle(article.raw_text);
-    const image = await context.runTurn({ step_id: "create_image", instruction: "为刚完成的文章生成一张不含文字、不冒充古籍原图、适合 1200x630 展示的原创配图；只生成一张图。", material_roles: [], same_conversation_as: article, output_kind: "generated_image", provider: articleProvider });
+    const image = await context.runTurn({
+      step_id: "article_image_generation",
+      instruction: "依据同一会话中刚完成的文章只生成一张原创横向主图。画面必须与文章核心主题一致，不含文字、书名、印章、引用或商业 CTA，不冒充古籍原页、历史文物、真实人物或史料照片，不使用玄学恐吓画面。只生成图片，不输出第二张图。",
+      material_roles: [],
+      same_conversation_as: article,
+      output_kind: "generated_image",
+      provider: articleProvider,
+    });
     if (!image.generated_image) throw new Error("PUBLIC_KNOWLEDGE_GENERATED_IMAGE_REQUIRED");
     return context.complete({
       payload: { schema_version: "public-knowledge-article-package.v1", research: researchPayload, article: articlePayload, image: null },
       generated_image: image.generated_image,
       evidence_refs: combineEvidence(research, article, image),
-      continuation: article.provider_continuation,
+      continuation: image.provider_continuation,
     });
   },
 };

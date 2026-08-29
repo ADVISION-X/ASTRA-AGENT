@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 
 import {
   RuntimeFailureImpact,
-  RuntimeRecovery,
   requireRuntimeLogWrite,
   runtimeFailureFromError,
   runtimeLogCauseEventId,
@@ -10,14 +9,13 @@ import {
 } from "../../runtime-logs/index.js";
 import { failureCode } from "../../typed-failure.js";
 import { claimProductionTasks } from "./cloud-client.js";
-import { sendProductionOutboxWrite } from "./cloud-reconciliation-client.js";
+import { readProductionDeviceJobStatus, sendProductionOutboxWrite } from "./cloud-reconciliation-client.js";
 import { productionCatalogHash } from "./catalog.js";
 import { hashCanonical } from "./contracts.js";
 import type { ProductionRuntimeHealth } from "./runtime-contract.js";
 import { executeClaim, reconcileBusinessAdmission } from "./runtime-claim.js";
-import { emitRuntimeState, terminalSpanFailure } from "./runtime-logging.js";
+import { terminalSpanFailure } from "./runtime-logging.js";
 import {
-  classifyFailure,
   refreshLedgerReconciled,
   safeReason,
   wait,
@@ -63,13 +61,17 @@ export const readHealth = (state: RuntimeState): ProductionRuntimeHealth => {
     contractManifestHash: state.session.device.control_manifest_hash,
     catalogHash: productionCatalogHash, activeCount: state.active.size,
     pendingOutboxCount: state.store.pendingOutboxCount(),
-    parkedOutboxCount: state.store.parkedOutboxCount(), lastSuccessfulHeartbeatAt: state.lastHeartbeat,
+    lastSuccessfulHeartbeatAt: state.lastHeartbeat,
     lastErrorCode: state.lastErrorCode, lastErrorReason: state.lastErrorReason, checkedAt: new Date().toISOString(),
   };
 };
 
 export const flushOutboxWithLog = async (state: RuntimeState): Promise<void> => {
-  for (const write of state.store.pendingOutbox(state.session.buildHash)) {
+  for (const jobId of state.store.unreconciledOutboxJobIds()) {
+    const remote = await readProductionDeviceJobStatus(state.session, jobId);
+    state.store.hydrateRemoteOutboxReceipts(jobId, remote.write_receipts);
+  }
+  for (const write of state.store.pendingOutbox()) {
     const authority = state.store.readOutboxAuthority(write.idempotency_key)!;
     const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
       traceId: authority.jobId, owner: "outbox", component: "production-outbox", operation: "outbox.flush",
@@ -77,23 +79,20 @@ export const flushOutboxWithLog = async (state: RuntimeState): Promise<void> => 
     }));
     try {
       await state.store.deliverOutbox(
-        write.idempotency_key, state.session.buildHash,
-        () => sendProductionOutboxWrite(state.session, write),
+        write.idempotency_key, () => sendProductionOutboxWrite(state.session, write),
       );
       const delivered = state.store.readOutboxAuthority(write.idempotency_key)!;
       requireRuntimeLogWrite(span.terminal({
-        outcome: "success", authorityRef: `production-outbox:${delivered.idempotencyKey}`,
+        outcome: "succeeded", authorityRef: `production-outbox:${delivered.idempotencyKey}`,
         authorityHash: hashCanonical(delivered),
       }));
     } catch (error) {
       const remoteFailureCode = failureCode(error, "OUTBOX_DELIVERY_FAILED");
       const failed = state.store.readOutboxAuthority(write.idempotency_key)!;
-      const stopped = failed.state === "parked" || failed.failureCode?.startsWith("STALE_LEASE_OUTBOX_RETIRED:");
       requireRuntimeLogWrite(span.terminal({
         outcome: "failed", authorityRef: `production-outbox:${failed.idempotencyKey}`,
         authorityHash: hashCanonical(failed), failure: runtimeFailureFromError({
           error, code: remoteFailureCode, responsibleOwner: "outbox",
-          recovery: stopped ? RuntimeRecovery.STOP : RuntimeRecovery.RETRY,
           impact: RuntimeFailureImpact.BLOCKING,
         }),
       }));
@@ -115,15 +114,14 @@ const requestClaimBatch = async (state: RuntimeState, available: number) => {
         outcome: "failed", failure: runtimeFailureFromError({
           error: new Error(`CLAIM_BLOCKED:${batch.reason_codes.join(",") || "unspecified"}`),
           code: "CLAIM_BLOCKED", responsibleOwner: "production-runtime",
-          recovery: RuntimeRecovery.BACKOFF, impact: RuntimeFailureImpact.BLOCKING,
+          impact: RuntimeFailureImpact.BLOCKING,
         }),
       }));
-      emitRuntimeState({ state, stateKey: "claim.admission", current: "blocked" });
-    } else requireRuntimeLogWrite(span.terminal({ outcome: "success" }));
+    } else requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
     return batch;
   } catch (error) {
     const terminal = terminalSpanFailure(
-      span, error, classifyFailure(error), runtimeLogCauseEventId(error), "CLAIM_REQUEST_FAILED",
+      span, error, runtimeLogCauseEventId(error), "CLAIM_REQUEST_FAILED",
     );
     throw withRuntimeLogCause(error, terminal.eventId);
   }
@@ -162,22 +160,22 @@ const reconcilePendingBusinessAdmissions = async (state: RuntimeState): Promise<
       const current = state.store.readTask(task.task.job_id)!;
       if (outcome === "completed") {
         requireRuntimeLogWrite(span.terminal({
-          outcome: "success", authorityRef: `production-task:${task.task.job_id}`,
+          outcome: "succeeded", authorityRef: `production-task:${task.task.job_id}`,
           authorityHash: hashCanonical(current),
         }));
       } else {
         requireRuntimeLogWrite(span.terminal({
           outcome: "failed", authorityRef: `production-task:${task.task.job_id}`,
           authorityHash: hashCanonical(current), failure: runtimeFailureFromError({
-            error: new Error(current.failure_reason ?? "BUSINESS_ADMISSION_PENDING"),
-            code: current.failure_reason?.split(":")[0] ?? "BUSINESS_ADMISSION_PENDING",
-            responsibleOwner: "website", recovery: RuntimeRecovery.RETRY,
+            error: new Error(current.current_reason ?? "BUSINESS_ADMISSION_PENDING"),
+            code: current.current_reason?.split(":")[0] ?? "BUSINESS_ADMISSION_PENDING",
+            responsibleOwner: "website",
             impact: RuntimeFailureImpact.BLOCKING,
           }),
         }));
       }
     } catch (error) {
-      terminalSpanFailure(span, error, classifyFailure(error), runtimeLogCauseEventId(error),
+      terminalSpanFailure(span, error, runtimeLogCauseEventId(error),
         "BUSINESS_ADMISSION_RECONCILIATION_FAILED");
     }
   }
@@ -189,14 +187,9 @@ const workerIteration = async (state: RuntimeState): Promise<number> => {
   refreshLedgerReconciled(state);
   const attestation = await state.session.ensureFreshAttestation();
   state.lastHeartbeat = attestation.issued_at;
-  emitRuntimeState({ state, stateKey: "cloud.session", current: "connected" });
   const available = Math.min(10 - state.active.size, state.executor.availableCapacity());
   const eligible = available > 0 && attestation.claim_eligible && state.ledgerReconciled
     && !state.draining && state.runtimeLogger.isWritable();
-  emitRuntimeState({
-    state, stateKey: "claim.admission",
-    current: state.draining ? "draining" : eligible ? "eligible" : "blocked",
-  });
   if (!eligible) return 1_000;
   const batch = await requestClaimBatch(state, available);
   launchClaimJobs(state, batch.jobs);
@@ -213,8 +206,6 @@ export const workerLoop = async (state: RuntimeState): Promise<void> => {
     } catch (error) {
       state.lastErrorCode = failureCode(error, "PRODUCTION_RUNTIME_FAILED");
       state.lastErrorReason = safeReason(error);
-      emitRuntimeState({ state, stateKey: "cloud.session", current: "stale" });
-      emitRuntimeState({ state, stateKey: "claim.admission", current: "blocked" });
       delay = Math.min(30_000, Math.max(1_000, delay * 2));
     }
     await wait(delay, state.abort.signal);
@@ -225,18 +216,12 @@ export const sessionHeartbeatLoop = async (state: RuntimeState): Promise<void> =
   while (!state.abort.signal.aborted) {
     await wait(20_000, state.abort.signal);
     if (state.abort.signal.aborted) return;
-    emitRuntimeState({
-      state, stateKey: "producer.alive", current: "alive", freshForMs: 65_000, force: true, owner: "app-shell",
-    });
     try {
       const receipt = await state.session.heartbeat();
       state.lastHeartbeat = receipt.issued_at;
-      emitRuntimeState({ state, stateKey: "cloud.session", current: "connected" });
     } catch (error) {
       state.lastErrorCode = failureCode(error, "SESSION_HEARTBEAT_FAILED");
       state.lastErrorReason = safeReason(error);
-      emitRuntimeState({ state, stateKey: "cloud.session", current: "stale" });
-      if (!state.draining) emitRuntimeState({ state, stateKey: "claim.admission", current: "blocked" });
     }
   }
 };

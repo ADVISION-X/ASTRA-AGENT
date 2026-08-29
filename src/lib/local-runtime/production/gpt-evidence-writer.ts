@@ -36,11 +36,11 @@ const safeProjection = (proof: GptChildCapabilityProof): Readonly<Record<string,
 });
 
 const generatedImageArtifacts = async (value: unknown): Promise<EvidenceArtifact[]> => {
-  if (!value || typeof value !== "object") throw executionFailure("review_required", "GPT_GENERATED_IMAGE_TASK_ARTIFACT_MISSING");
+  if (!value || typeof value !== "object") throw executionFailure("failed", "GPT_GENERATED_IMAGE_TASK_ARTIFACT_MISSING");
   const originalLocalPath = Reflect.get(value, "originalLocalPath");
   const localPath = Reflect.get(value, "localPath");
   if (typeof originalLocalPath !== "string" || typeof localPath !== "string") {
-    throw executionFailure("review_required", "GPT_GENERATED_IMAGE_TASK_ARTIFACT_MISSING");
+    throw executionFailure("failed", "GPT_GENERATED_IMAGE_TASK_ARTIFACT_MISSING");
   }
   return [
     { suffix: "original", artifactType: "other", mimeType: "application/octet-stream",
@@ -73,7 +73,7 @@ const appendVerifiedArtifact = async (input: Readonly<{
     idempotencyKey: `${input.evidenceHash}:${input.artifact.suffix}`,
   });
   if (appended.status !== "success" || !appended.artifactRef) {
-    throw executionFailure("review_required", "EVIDENCE_ARTIFACT_APPEND_FAILED");
+    throw executionFailure("failed", "EVIDENCE_ARTIFACT_APPEND_FAILED");
   }
   const readback = await input.evidenceStore.readArtifactRef({
     childCapabilityId: "read-artifact-ref", artifactRef: appended.artifactRef,
@@ -82,7 +82,7 @@ const appendVerifiedArtifact = async (input: Readonly<{
   const actual = readback.artifact?.content
     ? createHash("sha256").update(readback.artifact.content).digest("hex") : null;
   if (readback.status !== "success" || actual !== expected) {
-    throw executionFailure("review_required", "EVIDENCE_ARTIFACT_READBACK_FAILED");
+    throw executionFailure("failed", "EVIDENCE_ARTIFACT_READBACK_FAILED");
   }
   return appended.artifactRef;
 };
@@ -106,18 +106,18 @@ export const persistGptChildEvidence = async (input: Readonly<{
   const appended = await input.evidenceStore.appendRecord({
     missionId: input.jobId, runId: input.attemptId, stepId: input.stepId, sourceCapabilityId: "gpt",
     sourceChildCapabilityId: input.result.proof.childCapabilityId,
-    recordType: input.result.proof.committedMutation === "dispatched" ? "review_required" : "evidence",
+    recordType: input.result.proof.committedMutation === "dispatched" ? "failure" : "evidence",
     recordPayload: projection, ...(artifactRefs.length ? { artifactRefs } : {}),
     idempotencyKey: input.result.proof.evidenceHash, correlationId: input.intent.executionId,
     createdAt: input.result.proof.endedAt,
   });
-  if (appended.status !== "success" || !appended.recordRef) throw executionFailure("review_required", "EVIDENCE_APPEND_FAILED");
+  if (appended.status !== "success" || !appended.recordRef) throw executionFailure("failed", "EVIDENCE_APPEND_FAILED");
   const readback = await input.evidenceStore.readRecordRef({
     childCapabilityId: "read-record-ref", recordRef: appended.recordRef,
   });
   if (readback.status !== "success" || !readback.record
     || stableJsonHash(readback.record.payload) !== stableJsonHash(projection)) {
-    throw executionFailure("review_required", "EVIDENCE_READBACK_FAILED");
+    throw executionFailure("failed", "EVIDENCE_READBACK_FAILED");
   }
   persistedEvidenceRefs.set(input.result, appended.recordRef);
   return appended.recordRef;

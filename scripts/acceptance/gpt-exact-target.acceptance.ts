@@ -363,13 +363,13 @@ const profileRecovery = await execute("open_gpt_execution_profile", profileRecov
   profile,
   reconcileOnly: true,
 });
-assert.equal(profileRecovery.status, "recovery_pending");
+assert.equal(profileRecovery.status, "failed");
 assert.equal(profileRecoveryFixture.physicalMutations(), 0);
 
 const rejectedTurnBrowser = fakeBrowser(() => { throw new Error("UNUSED"); });
 await closeSettledGptBrowser(
   rejectedTurnBrowser.browser,
-  executionFailure("review_required", "BROWSER_POSTCONDITION_FAILED", { mutationOutcome: "confirmed" }),
+  executionFailure("failed", "BROWSER_POSTCONDITION_FAILED", { mutationOutcome: "confirmed" }),
 );
 assert.equal(rejectedTurnBrowser.physicalMutations(), 1,
   "a terminal REJECTED postcondition must close its Target and release the browser lane");
@@ -377,7 +377,7 @@ assert.equal(rejectedTurnBrowser.physicalMutations(), 1,
 const dispatchedTurnBrowser = fakeBrowser(() => { throw new Error("UNUSED"); }, { initialPending: 1 });
 await closeSettledGptBrowser(
   dispatchedTurnBrowser.browser,
-  executionFailure("review_required", "BROWSER_COMMAND_RECEIPT_MISSING", { mutationOutcome: "dispatched" }),
+  executionFailure("failed", "BROWSER_COMMAND_RECEIPT_MISSING", { mutationOutcome: "dispatched" }),
 );
 assert.equal(dispatchedTurnBrowser.physicalMutations(), 1,
   "an unresolved DISPATCHED mutation must park its exact Target and release lane capacity");
@@ -414,7 +414,7 @@ for (const candidateCount of [0, 2]) {
     throw new Error(`UNEXPECTED_REJECTED_ATTACHMENT_INTENT:${intent.kind}`);
   });
   const rejectedAttachment = await execute("open_gpt_attachment_control", rejectedAttachmentFixture.browser, {});
-  assert.equal(rejectedAttachment.status, "review_required");
+  assert.equal(rejectedAttachment.status, "failed");
   assert.equal(rejectedAttachment.failureCode, `GPT_PAGE_CANDIDATE_COUNT_${candidateCount}`);
   assert.equal(rejectedAttachmentFixture.physicalMutations(), 0,
     "zero or multiple attachment controls must never dispatch a click");

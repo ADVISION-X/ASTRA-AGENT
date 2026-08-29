@@ -286,7 +286,7 @@ try {
 emitQualityProofObservation({
   passed: true,
   findings: [],
-  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V11",
+  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V12",
   evidenceMode: "exam.golden",
   clauses: [
     "forbidden:0",

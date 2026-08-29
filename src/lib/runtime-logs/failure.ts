@@ -1,7 +1,6 @@
 import {
   RuntimeFailureImpact,
   RuntimeFailureKind,
-  RuntimeRecovery,
   type RuntimeFailure,
   type RuntimeFailureKind as RuntimeFailureKindValue,
   type RuntimeLogOwner,
@@ -61,7 +60,6 @@ export const runtimeFailureFromError = (input: Readonly<{
   responsibleOwner: RuntimeLogOwner;
   kind?: RuntimeFailureKindValue;
   code?: string;
-  recovery?: RuntimeFailure["recovery"];
   impact?: RuntimeFailure["impact"];
   causedByEventId?: string;
   httpStatus?: number;
@@ -74,7 +72,6 @@ export const runtimeFailureFromError = (input: Readonly<{
     code,
     responsibleOwner: input.responsibleOwner,
     impact: input.impact ?? RuntimeFailureImpact.BLOCKING,
-    recovery: input.recovery ?? RuntimeRecovery.STOP,
     ...(cause ? { nativeCause: cause } : {}),
     ...(input.causedByEventId ? { causedByEventId: input.causedByEventId } : {}),
     ...(responseStatus === undefined ? {} : { httpStatus: responseStatus }),

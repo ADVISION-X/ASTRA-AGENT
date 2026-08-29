@@ -1,21 +1,18 @@
-import {
-  runtimeLogEventShapeValid,
-} from "./schema.js";
-import type {
-  RuntimeLogEventV2,
-  RuntimeSpanStartedEvent,
-  RuntimeSpanTerminalEvent,
-  RuntimeStateEvent,
-  RuntimeStateKey,
-} from "./runtime-event-contract.js";
-import { parseRuntimeLogSource, verifyRuntimeProducerChains } from "./diagnosis-source.js";
-import { deriveRuntimeCurrentStates } from "./diagnosis-state.js";
 import { resolveRuntimeAuthorities } from "./diagnosis-authority.js";
 import type {
   DiagnosedFailure,
   RuntimeAuthorityResolver,
   RuntimeDiagnosis,
 } from "./diagnosis-contract.js";
+import { parseRuntimeLogSource, verifyRuntimeProducerChains } from "./diagnosis-source.js";
+import type {
+  RuntimeErrorEvent,
+  RuntimeLogEventV2,
+  RuntimeObservedEvent,
+  RuntimeSpanStartedEvent,
+  RuntimeSpanTerminalEvent,
+} from "./runtime-event-contract.js";
+
 export type { RuntimeAuthorityResolver, RuntimeDiagnosis } from "./diagnosis-contract.js";
 
 const spanKey = (event: Pick<RuntimeLogEventV2, "producerRunId"> & { spanId: string }): string =>
@@ -30,52 +27,33 @@ const MUTATION_CAPABILITIES = new Set([
   "browser.file-input.v1",
 ]);
 
-const atomicPostcondition = (
-  terminalState: string,
-  mutation: boolean,
-): RuntimeDiagnosis["atomicSteps"][number]["postcondition"] => {
-  if (terminalState === "CONFIRMED") return "passed";
-  if (terminalState === "REJECTED") return "failed";
-  if (terminalState === "DISPATCHED") return "pending_reconciliation";
-  return mutation ? "not_reached" : "not_applicable";
+const mutationOutcome = (event: RuntimeObservedEvent | undefined): string | null => {
+  if (!event?.code.startsWith("BROWSER_MUTATION_")) return null;
+  return event.code.slice("BROWSER_MUTATION_".length);
 };
 
 const mutationEventsFor = (
   started: RuntimeSpanStartedEvent,
   events: readonly RuntimeLogEventV2[],
-): RuntimeStateEvent[] => {
+): RuntimeObservedEvent[] => {
   const identity = started.typedIdentity;
   if (identity.kind !== "browser-command") throw new Error("RUNTIME_BROWSER_IDENTITY_INVALID");
-  const authorityRef = `browser-mutation:${identity.commandId}`;
-  return events.filter((event): event is RuntimeStateEvent =>
-    event.type === "STATE" && event.stateKey === "browser.mutation" && event.authorityRef === authorityRef)
+  return events.filter((event): event is RuntimeObservedEvent => event.kind === "event"
+    && event.operation === "browser.command"
+    && event.typedIdentity.kind === "browser-command"
+    && event.typedIdentity.commandId === identity.commandId
+    && event.code.startsWith("BROWSER_MUTATION_"))
     .sort((left, right) => left.producerRunId.localeCompare(right.producerRunId) || left.producerSeq - right.producerSeq);
 };
 
-const stepTerminalState = (
-  latest: RuntimeStateEvent | undefined,
-  terminal: RuntimeSpanTerminalEvent | undefined,
-): string => latest?.current ?? terminal?.outcome.toUpperCase() ?? "OPEN";
-
-const mutationStepStatus = (
-  mutations: readonly RuntimeStateEvent[],
-  capabilityId: string | null,
-  terminalState: string,
-): Pick<RuntimeDiagnosis["atomicSteps"][number], "precondition" | "dispatch" | "postcondition"> => {
-  const mutation = mutations.length > 0 || (capabilityId !== null && MUTATION_CAPABILITIES.has(capabilityId));
-  if (!mutation) return { precondition: "not_applicable", dispatch: "not_applicable", postcondition: "not_applicable" };
-  return {
-    precondition: mutations.some((event) => event.current === "PREPARED") ? "passed" : "failed",
-    dispatch: mutations.some((event) => event.current === "DISPATCHED") ? "dispatched" : "not_dispatched",
-    postcondition: atomicPostcondition(terminalState, true),
-  };
-};
-
-const terminalAuthority = (
-  terminal: RuntimeSpanTerminalEvent | undefined,
-): Readonly<{ authorityRef: string | null; authorityHash: string | null }> => {
-  if (!terminal || !("authorityRef" in terminal)) return { authorityRef: null, authorityHash: null };
-  return { authorityRef: terminal.authorityRef ?? null, authorityHash: terminal.authorityHash ?? null };
+const atomicPostcondition = (
+  observedOutcome: string,
+  mutation: boolean,
+): RuntimeDiagnosis["atomicSteps"][number]["postcondition"] => {
+  if (observedOutcome === "CONFIRMED") return "passed";
+  if (observedOutcome === "REJECTED") return "failed";
+  if (observedOutcome === "DISPATCHED") return "pending_reconciliation";
+  return mutation ? "not_reached" : "not_applicable";
 };
 
 const atomicBrowserStep = (
@@ -89,64 +67,46 @@ const atomicBrowserStep = (
   const latest = mutations.at(-1);
   const terminal = terminals.get(spanKey(started));
   const capabilityId = identity.capabilityCallId ?? null;
-  const terminalState = stepTerminalState(latest, terminal);
-  const status = mutationStepStatus(mutations, capabilityId, terminalState);
-  const authority = terminalAuthority(terminal);
+  const isMutation = mutations.length > 0 || (capabilityId !== null && MUTATION_CAPABILITIES.has(capabilityId));
+  const observedOutcome = mutationOutcome(latest) ?? terminal?.outcome.toUpperCase() ?? "OPEN";
   return {
-    pluginStepId: identity.pluginStepId, childCapabilityId: identity.childCapabilityId,
-    actionOrdinal: identity.actionOrdinal, commandId: identity.commandId, capabilityId,
-    ...status, terminalState,
+    pluginStepId: identity.pluginStepId,
+    childCapabilityId: identity.childCapabilityId,
+    actionOrdinal: identity.actionOrdinal,
+    commandId: identity.commandId,
+    capabilityId,
+    precondition: isMutation
+      ? (mutations.some((event) => mutationOutcome(event) === "PREPARED") ? "passed" : "failed")
+      : "not_applicable",
+    dispatch: isMutation
+      ? (mutations.some((event) => mutationOutcome(event) === "DISPATCHED") ? "dispatched" : "not_dispatched")
+      : "not_applicable",
+    postcondition: atomicPostcondition(observedOutcome, isMutation),
+    observedOutcome,
     failureCode: terminal?.failure?.code ?? null,
-    authorityRef: latest?.authorityRef ?? authority.authorityRef,
-    authorityHash: latest?.authorityHash ?? authority.authorityHash,
-    startedEventId: started.eventId, terminalEventId: terminal?.eventId ?? null,
+    authorityRef: latest?.authorityRef ?? terminal?.authorityRef ?? null,
+    authorityHash: latest?.authorityHash ?? terminal?.authorityHash ?? null,
+    startedEventId: started.eventId,
+    terminalEventId: terminal?.eventId ?? null,
   };
 };
 
 const atomicBrowserSteps = (events: readonly RuntimeLogEventV2[]): RuntimeDiagnosis["atomicSteps"] => {
-  const terminals = new Map(events.filter((event): event is RuntimeSpanTerminalEvent =>
-    event.type === "SPAN" && event.phase === "terminal").map((event) => [spanKey(event), event]));
-  const starts = events.filter((event): event is RuntimeSpanStartedEvent =>
-    event.type === "SPAN" && event.phase === "started"
-      && event.operation === "browser.command" && event.typedIdentity.kind === "browser-command");
+  const terminals = new Map(events.filter((event): event is RuntimeSpanTerminalEvent => event.kind === "span.terminal")
+    .map((event) => [spanKey(event), event]));
+  const starts = events.filter((event): event is RuntimeSpanStartedEvent => event.kind === "span.started"
+    && event.operation === "browser.command" && event.typedIdentity.kind === "browser-command");
   return starts.map((started) => atomicBrowserStep(started, events, terminals))
     .sort((left, right) => left.pluginStepId.localeCompare(right.pluginStepId)
-    || left.actionOrdinal - right.actionOrdinal || left.commandId.localeCompare(right.commandId));
+      || left.actionOrdinal - right.actionOrdinal || left.commandId.localeCompare(right.commandId));
 };
-
-const GLOBAL_STATE_KEYS = new Set<RuntimeStateKey>([
-  "producer.lifecycle", "producer.alive", "log.sink", "website.core", "website.worker", "agent.shell",
-  "cloud.contract", "cloud.session", "claim.admission", "browser.authority", "browser.target",
-]);
 
 const selectTraceEvents = (events: readonly RuntimeLogEventV2[], traceId: string): RuntimeLogEventV2[] => {
-  const selectedSpanKeys = new Set(events.filter((event): event is RuntimeSpanStartedEvent =>
-    event.type === "SPAN" && event.phase === "started")
+  const selectedSpanKeys = new Set(events.filter((event): event is RuntimeSpanStartedEvent => event.kind === "span.started")
     .filter((event) => event.traceId === traceId || ("jobId" in event.typedIdentity && event.typedIdentity.jobId === traceId))
     .map(spanKey));
-  const participatingRuns = new Set(events.filter((event) => event.traceId === traceId
-    || (event.type === "SPAN" && selectedSpanKeys.has(spanKey(event))))
-    .map((event) => event.producerRunId));
   return events.filter((event) => event.traceId === traceId
-    || (event.type === "SPAN" && selectedSpanKeys.has(spanKey(event)))
-    || (event.type === "STATE" && GLOBAL_STATE_KEYS.has(event.stateKey) && participatingRuns.has(event.producerRunId)));
-};
-
-const producerFreshness = (allEvents: readonly RuntimeLogEventV2[], now: number): ReadonlyMap<string, boolean> => {
-  const latest = new Map<string, RuntimeStateEvent>();
-  const stoppedRuns = new Set<string>();
-  for (const event of allEvents) {
-    if (event.type === "STATE" && event.stateKey === "producer.lifecycle" && event.current === "stopped") {
-      stoppedRuns.add(event.producerRunId);
-    }
-    if (event.type !== "STATE" || event.stateKey !== "producer.alive") continue;
-    const prior = latest.get(event.producerRunId);
-    if (!prior || event.producerSeq > prior.producerSeq) latest.set(event.producerRunId, event);
-  }
-  return new Map([...latest].map(([runId, event]) => [
-    runId,
-    !stoppedRuns.has(runId) && event.freshForMs !== undefined && now - Date.parse(event.occurredAt) <= event.freshForMs,
-  ]));
+    || ((event.kind === "span.started" || event.kind === "span.terminal") && selectedSpanKeys.has(spanKey(event))));
 };
 
 const BOUNDARY_REQUIRED_OPERATIONS = new Set([
@@ -177,6 +137,11 @@ const recordStartedSpan = (input: Readonly<{
   } else if (input.event.boundaryId) input.boundaryByAction.set(actionKey, input.event.boundaryId);
 };
 
+const failureEvent = (
+  event: RuntimeLogEventV2 | undefined,
+): event is RuntimeSpanTerminalEvent | RuntimeErrorEvent => Boolean(event)
+  && ((event!.kind === "span.terminal" && event!.failure !== undefined) || event!.kind === "error");
+
 const recordTerminalSpan = (input: Readonly<{
   event: RuntimeSpanTerminalEvent;
   terminals: Map<string, RuntimeSpanTerminalEvent>;
@@ -189,9 +154,8 @@ const recordTerminalSpan = (input: Readonly<{
   const causeId = input.event.failure?.causedByEventId;
   if (!causeId) return;
   const cause = input.eventById.get(causeId);
-  if (!cause || cause.type !== "SPAN" || cause.phase !== "terminal" || !cause.failure) {
-    input.findings.push(`CAUSE_EVENT_INVALID:${input.event.eventId}`);
-  } else if (cause.traceId !== input.event.traceId) input.findings.push(`CAUSE_TRACE_MISMATCH:${input.event.eventId}`);
+  if (!failureEvent(cause)) input.findings.push(`CAUSE_EVENT_INVALID:${input.event.eventId}`);
+  else if (cause.traceId !== input.event.traceId) input.findings.push(`CAUSE_TRACE_MISMATCH:${input.event.eventId}`);
 };
 
 const verifySpanRelations = (
@@ -216,7 +180,7 @@ const verifySpanRelations = (
 
 const verifySpanCycles = (
   starts: ReadonlyMap<string, RuntimeSpanStartedEvent>,
-  terminals: ReadonlyMap<string, RuntimeSpanTerminalEvent>,
+  failures: readonly (RuntimeSpanTerminalEvent | RuntimeErrorEvent)[],
   findings: string[],
 ): void => {
   const visit = (start: RuntimeSpanStartedEvent, seen: Set<string>): void => {
@@ -230,9 +194,8 @@ const verifySpanCycles = (
     if (parent) visit(parent, new Set([...seen, key]));
   };
   for (const start of starts.values()) visit(start, new Set([spanKey(start)]));
-  const failures = new Map([...terminals.values()].filter((event) => event.failure)
-    .map((event) => [event.eventId, event]));
-  for (const failure of failures.values()) {
+  const byId = new Map(failures.map((event) => [event.eventId, event]));
+  for (const failure of failures) {
     const seen = new Set([failure.eventId]);
     let cause = failure.failure?.causedByEventId;
     while (cause) {
@@ -241,14 +204,13 @@ const verifySpanCycles = (
         break;
       }
       seen.add(cause);
-      cause = failures.get(cause)?.failure?.causedByEventId;
+      cause = byId.get(cause)?.failure?.causedByEventId;
     }
   }
 };
 
 const verifySpans = (
   events: readonly RuntimeLogEventV2[],
-  freshRuns: ReadonlyMap<string, boolean>,
   findings: string[],
 ): Readonly<{ open: string[]; interrupted: string[] }> => {
   const starts = new Map<string, RuntimeSpanStartedEvent>();
@@ -256,15 +218,17 @@ const verifySpans = (
   const eventById = new Map(events.map((event) => [event.eventId, event]));
   const boundaryByAction = new Map<string, string>();
   for (const event of events) {
-    if (event.type !== "SPAN") continue;
-    if (event.phase === "started") recordStartedSpan({ event, starts, boundaryByAction, findings });
-    else recordTerminalSpan({ event, terminals, eventById, findings });
+    if (event.kind === "span.started") recordStartedSpan({ event, starts, boundaryByAction, findings });
+    if (event.kind === "span.terminal") recordTerminalSpan({ event, terminals, eventById, findings });
   }
   verifySpanRelations(starts, terminals, findings);
-  verifySpanCycles(starts, terminals, findings);
-  const open = [...starts].filter(([key]) => !terminals.has(key)).map(([, event]) => event.spanId).sort();
-  const interrupted = [...starts].filter(([key, event]) => !terminals.has(key) && freshRuns.get(event.producerRunId) !== true)
-    .map(([, event]) => event.spanId).sort();
+  const failures = events.filter(failureEvent);
+  verifySpanCycles(starts, failures, findings);
+  const openEvents = [...starts].filter(([key]) => !terminals.has(key)).map(([, event]) => event);
+  const sealedRuns = new Set(events.filter((event) => event.kind === "event" && event.code === "PRODUCER_STOPPED")
+    .map((event) => event.producerRunId));
+  const open = openEvents.map((event) => event.spanId).sort();
+  const interrupted = openEvents.filter((event) => sealedRuns.has(event.producerRunId)).map((event) => event.spanId).sort();
   for (const id of open) findings.push(`OPEN_SPAN:${id}`);
   for (const id of interrupted) findings.push(`INTERRUPTED:${id}`);
   return { open, interrupted };
@@ -276,10 +240,9 @@ const verifyCrossRepositoryBoundaries = (
   findings: string[],
 ): void => {
   const websiteRequests = allEvents.filter((event): event is RuntimeSpanStartedEvent =>
-    event.type === "SPAN" && event.phase === "started" && event.operation === "website.v6-request");
+    event.kind === "span.started" && event.operation === "website.v6-request");
   for (const event of events) {
-    if (event.type !== "SPAN" || event.phase !== "started" || event.operation !== "cloud.session-open"
-      || !event.boundaryId) continue;
+    if (event.kind !== "span.started" || event.operation !== "cloud.session-open" || !event.boundaryId) continue;
     const opposite = websiteRequests.filter((candidate) => candidate.producerRunId !== event.producerRunId
       && candidate.boundaryId === event.boundaryId);
     if (opposite.length === 0) findings.push(`BOUNDARY_SOURCE_INCOMPLETE:${event.boundaryId}`);
@@ -289,7 +252,7 @@ const verifyCrossRepositoryBoundaries = (
   }
 };
 
-const diagnosedFailure = (event: RuntimeSpanTerminalEvent): DiagnosedFailure => ({
+const diagnosedFailure = (event: RuntimeSpanTerminalEvent | RuntimeErrorEvent): DiagnosedFailure => ({
   eventId: event.eventId,
   operation: event.operation,
   owner: event.owner,
@@ -299,39 +262,16 @@ const diagnosedFailure = (event: RuntimeSpanTerminalEvent): DiagnosedFailure => 
   nativeCause: event.failure!.nativeCause ?? null,
   httpStatus: event.failure!.httpStatus ?? null,
   impact: event.failure!.impact,
-  recovery: event.failure!.recovery,
   causedByEventId: event.failure!.causedByEventId ?? null,
 });
 
-const verifyApplicableStateAxes = (
-  events: readonly RuntimeLogEventV2[],
-  states: RuntimeDiagnosis["currentStates"],
-  findings: string[],
-): void => {
-  const required = new Set<RuntimeStateKey>();
-  const durableAcceptSuccess = events.some((event) =>
-    event.type === "SPAN" && event.phase === "terminal"
-    && event.operation === "job.durable-accept" && event.outcome === "success");
-  for (const event of events) {
-    if (event.type !== "SPAN" || event.phase !== "started") continue;
-    if (durableAcceptSuccess || event.operation === "job.terminal") required.add("job.lifecycle");
-    if (event.typedIdentity.kind === "lease"
-      || event.operation === "job.lease-renew"
-      || event.operation === "job.lease-release") {
-      required.add("job.lease");
-    }
-    if (event.operation === "job.checkpoint") required.add("job.checkpoint");
-  }
-  for (const stateKey of required) {
-    if (!(stateKey in states)) findings.push(`STATE_AXIS_MISSING:${stateKey}`);
-  }
-};
-
-const blockingRoots = (failures: readonly RuntimeSpanTerminalEvent[]): RuntimeSpanTerminalEvent[] => {
+const blockingRoots = (
+  failures: readonly (RuntimeSpanTerminalEvent | RuntimeErrorEvent)[],
+): (RuntimeSpanTerminalEvent | RuntimeErrorEvent)[] => {
   const blockers = failures.filter((event) => event.failure?.impact === "BLOCKING");
   const blockerIds = new Set(blockers.map((event) => event.eventId));
   const byId = new Map(failures.map((event) => [event.eventId, event]));
-  const hasBlockingAncestor = (event: RuntimeSpanTerminalEvent): boolean => {
+  const hasBlockingAncestor = (event: RuntimeSpanTerminalEvent | RuntimeErrorEvent): boolean => {
     const seen = new Set<string>();
     let causeId = event.failure?.causedByEventId;
     while (causeId && !seen.has(causeId)) {
@@ -348,7 +288,7 @@ const lastSuccessfulActions = (
   terminals: readonly RuntimeSpanTerminalEvent[],
 ): RuntimeDiagnosis["lastSuccessfulActions"] => {
   const byRun = new Map<string, RuntimeSpanTerminalEvent>();
-  for (const event of terminals.filter((item) => item.outcome === "success")) {
+  for (const event of terminals.filter((item) => item.outcome === "succeeded")) {
     const prior = byRun.get(event.producerRunId);
     if (!prior || event.producerSeq > prior.producerSeq) byRun.set(event.producerRunId, event);
   }
@@ -360,21 +300,19 @@ const lastSuccessfulActions = (
   }));
 };
 
-const diagnosedSideEffects = (
-  states: RuntimeDiagnosis["currentStates"],
-): RuntimeDiagnosis["sideEffects"] => Object.entries(states)
-  .filter(([key]) => key.startsWith("browser.mutation:"))
-  .map(([key, state]) => ({
-    authorityRef: state.authorityRef ?? key.slice("browser.mutation:".length),
-    authorityHash: state.authorityHash,
-    state: state.value,
-    owner: state.owner,
+const observedEvents = (events: readonly RuntimeLogEventV2[]): RuntimeDiagnosis["observedEvents"] =>
+  events.filter((event): event is RuntimeObservedEvent => event.kind === "event").map((event) => ({
+    code: event.code,
+    operation: event.operation,
+    owner: event.owner,
+    eventId: event.eventId,
+    authorityRef: event.authorityRef ?? null,
+    authorityHash: event.authorityHash ?? null,
   }));
 
 export const diagnoseRuntimeLog = (input: Readonly<{
   sources: readonly string[];
   traceId: string;
-  now?: Date;
   authorityResolver?: RuntimeAuthorityResolver;
 }>): RuntimeDiagnosis => {
   const findings: string[] = [];
@@ -385,35 +323,28 @@ export const diagnoseRuntimeLog = (input: Readonly<{
   verifyRuntimeProducerChains(allEvents, findings);
   const events = selectTraceEvents(allEvents, input.traceId);
   if (events.length === 0) findings.push(`TRACE_NOT_FOUND:${input.traceId}`);
-  const freshRuns = producerFreshness(allEvents, (input.now ?? new Date()).getTime());
   verifyCrossRepositoryBoundaries(events, allEvents, findings);
-  const spans = verifySpans(events, freshRuns, findings);
-  const states = deriveRuntimeCurrentStates({ events, allEvents, freshRuns, findings });
-  verifyApplicableStateAxes(events, states, findings);
-  const terminals = events.filter((event): event is RuntimeSpanTerminalEvent =>
-    event.type === "SPAN" && event.phase === "terminal");
-  const failures = terminals.filter((event) => event.failure !== undefined);
+  const spans = verifySpans(events, findings);
+  const terminals = events.filter((event): event is RuntimeSpanTerminalEvent => event.kind === "span.terminal");
+  const failures = events.filter(failureEvent);
   const roots = blockingRoots(failures);
   const authorityEvents = resolveRuntimeAuthorities({
-    events, freshRuns, resolver: input.authorityResolver, findings,
+    events,
+    resolver: input.authorityResolver,
+    findings,
   });
-  const sideEffects = diagnosedSideEffects(states);
-  const atomicSteps = atomicBrowserSteps(events);
   return {
     status: findings.length === 0 ? "DIAGNOSIS_COMPLETE" : "DIAGNOSIS_INCOMPLETE",
     traceId: input.traceId,
     sources: parsed.map((item) => item.status),
-    currentStates: states,
     lastSuccessfulActions: lastSuccessfulActions(terminals),
+    observedEvents: observedEvents(events),
     openSpans: spans.open,
     interruptedSpans: spans.interrupted,
     blockingRoots: roots.map(diagnosedFailure),
     consequentialFailures: failures.filter((event) => event.failure?.impact === "CONSEQUENTIAL").map(diagnosedFailure),
     cleanupFailures: failures.filter((event) => event.failure?.impact === "CLEANUP").map(diagnosedFailure),
-    sideEffects,
-    atomicSteps,
-    mutationState: sideEffects.length === 1 ? sideEffects[0]!.state : null,
-    recoveries: [...new Set(roots.map((event) => event.failure!.recovery))].sort(),
+    atomicSteps: atomicBrowserSteps(events),
     authorityRefs: [...authorityEvents.keys()].sort(),
     warnings,
     findings: [...new Set(findings)],

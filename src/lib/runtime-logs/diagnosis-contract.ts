@@ -13,41 +13,32 @@ export type DiagnosedFailure = Readonly<{
   nativeCause: string | null;
   httpStatus: number | null;
   impact: string;
-  recovery: string;
   causedByEventId: string | null;
 }>;
 
 export type RuntimeDiagnosis = Readonly<{
   status: "DIAGNOSIS_COMPLETE" | "DIAGNOSIS_INCOMPLETE";
   traceId: string;
-  sources: readonly Readonly<{ source: string; available: boolean; files: number; events: number }>[];
-  currentStates: Readonly<Record<string, Readonly<{
-    value: string;
-    owner: string;
-    producerRunId: string;
-    fresh: boolean;
-    authorityRef: string | null;
-    authorityHash: string | null;
-  }>>>;
+  sources: readonly Readonly<{ source: string; available: boolean; files: number; events: number }> [];
   lastSuccessfulActions: readonly Readonly<{
     producerRunId: string;
     operation: string;
     owner: string;
     eventId: string;
   }>[];
+  observedEvents: readonly Readonly<{
+    code: string;
+    operation: string;
+    owner: string;
+    eventId: string;
+    authorityRef: string | null;
+    authorityHash: string | null;
+  }>[];
   openSpans: readonly string[];
   interruptedSpans: readonly string[];
   blockingRoots: readonly DiagnosedFailure[];
   consequentialFailures: readonly DiagnosedFailure[];
   cleanupFailures: readonly DiagnosedFailure[];
-  sideEffects: readonly Readonly<{
-    authorityRef: string;
-    authorityHash: string | null;
-    state: string;
-    owner: string;
-  }>[];
-  mutationState: string | null;
-  recoveries: readonly string[];
   authorityRefs: readonly string[];
   warnings: readonly string[];
   findings: readonly string[];
@@ -60,7 +51,7 @@ export type RuntimeDiagnosis = Readonly<{
     precondition: "passed" | "failed" | "not_applicable";
     dispatch: "dispatched" | "not_dispatched" | "not_applicable";
     postcondition: "passed" | "failed" | "pending_reconciliation" | "not_reached" | "not_applicable";
-    terminalState: string;
+    observedOutcome: string;
     failureCode: string | null;
     authorityRef: string | null;
     authorityHash: string | null;

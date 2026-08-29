@@ -32,11 +32,9 @@ export async function createWorkbenchAssembly(
     browserAuthority = await createWorkbenchBrowserAuthority(dataDir, runtimeLogger);
   } catch (error) {
     const traceId = `producer:${runtimeLogger.producerRunId}`;
-    requireRuntimeLogWrite(runtimeLogger.emitState({
-      traceId, stateKey: "agent.shell", previous: "starting", current: "failed",
-    }));
-    requireRuntimeLogWrite(runtimeLogger.emitState({
-      traceId, stateKey: "producer.lifecycle", previous: "starting", current: "stopped",
+    requireRuntimeLogWrite(runtimeLogger.emitEvent({
+      traceId, operation: "runtime.shutdown", code: "PRODUCER_STOPPED",
+      typedIdentity: { kind: "producer", producerId: runtimeLogger.producerRunId },
     }));
     throw error;
   }
@@ -65,15 +63,9 @@ function createWorkbenchRuntimeLogger(dataDir: string): RuntimeLogger {
     },
   });
   const traceId = `producer:${runtimeLogger.producerRunId}`;
-  requireRuntimeLogWrite(runtimeLogger.emitState({
-    traceId, stateKey: "producer.lifecycle", previous: null, current: "starting",
-  }));
-  requireRuntimeLogWrite(runtimeLogger.emitState({
-    traceId, owner: "runtime-logs", component: "runtime-log-sink",
-    stateKey: "log.sink", previous: null, current: "ready",
-  }));
-  requireRuntimeLogWrite(runtimeLogger.emitState({
-    traceId, stateKey: "agent.shell", previous: null, current: "starting",
+  requireRuntimeLogWrite(runtimeLogger.emitEvent({
+    traceId, operation: "runtime.start", code: "PRODUCER_STARTED",
+    typedIdentity: { kind: "producer", producerId: runtimeLogger.producerRunId },
   }));
   return runtimeLogger;
 }

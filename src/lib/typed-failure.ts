@@ -1,4 +1,4 @@
-export type ExecutionFailureStatus = "recovery_pending" | "review_required" | "failed";
+export type ExecutionFailureStatus = "failed";
 export type MutationOutcome = "no" | "dispatched" | "confirmed";
 export type SerializedExecutionFailure = Readonly<{
   code: string;
@@ -55,11 +55,6 @@ export const typedExecutionFailure = (error: unknown): TypedExecutionFailure | n
   }
   return typed;
 };
-
-export const failureStatus = (
-  error: unknown,
-  fallback: ExecutionFailureStatus = "failed",
-): ExecutionFailureStatus => typedExecutionFailure(error)?.status ?? fallback;
 
 export const failureCode = (error: unknown, fallback = "UNKNOWN_FAILURE"): string =>
   typedExecutionFailure(error)?.code ?? fallback;

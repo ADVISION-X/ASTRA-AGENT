@@ -58,7 +58,7 @@ const topologyCode = (value: ProfileTopology): string => [
 ].join(":");
 
 const failTopology = (code: string, value: ProfileTopology): never => {
-  throw executionFailure("review_required", `${code}:${topologyCode(value)}`);
+  throw executionFailure("failed", `${code}:${topologyCode(value)}`);
 };
 
 const requireActiveReasoningProfile = async (browser: BrowserTargetLease): Promise<ProfileTopology> => {
@@ -74,7 +74,7 @@ const requireActiveReasoningProfile = async (browser: BrowserTargetLease): Promi
 const requireUniqueProfilePopup = async (browser: BrowserTargetLease): Promise<void> => {
   const popupCount = await findCount(browser, { selector: GPT_PROFILE_POPUP_SELECTOR, maxMatches: 2 });
   if (popupCount !== 1) {
-    throw executionFailure("review_required", `GPT_EXECUTION_PROFILE_POPUP_COUNT_${popupCount}`);
+    throw executionFailure("failed", `GPT_EXECUTION_PROFILE_POPUP_COUNT_${popupCount}`);
   }
 };
 
@@ -89,7 +89,7 @@ const openProfilePopup = async (browser: BrowserTargetLease) => {
     });
   }
   if (popupCount !== 0) {
-    throw executionFailure("review_required", `GPT_EXECUTION_PROFILE_POPUP_COUNT_${popupCount}`);
+    throw executionFailure("failed", `GPT_EXECUTION_PROFILE_POPUP_COUNT_${popupCount}`);
   }
   const triggerCount = await findCount(browser, {
     selector: GPT_PROFILE_TRIGGER_SELECTOR,
@@ -97,7 +97,7 @@ const openProfilePopup = async (browser: BrowserTargetLease) => {
     waitFor: { minimumMatches: 1, timeoutMs: 5_000 },
   });
   if (triggerCount !== 1) {
-    throw executionFailure("review_required", `GPT_EXECUTION_PROFILE_TRIGGER_COUNT_${triggerCount}`);
+    throw executionFailure("failed", `GPT_EXECUTION_PROFILE_TRIGGER_COUNT_${triggerCount}`);
   }
   await browser.executeDomIntent({
     kind: "click",
@@ -124,7 +124,7 @@ const readReasoningValue = async (browser: BrowserTargetLease): Promise<number> 
   const value = Number(rawNow);
   if (minimum !== 0 || maximum !== 4 || !Number.isInteger(value) || value < minimum || value > maximum) {
     throw executionFailure(
-      "review_required",
+      "failed",
       `GPT_EXECUTION_PROFILE_REASONING_RANGE_INVALID:min=${encodeURIComponent(rawMin)}:max=${encodeURIComponent(rawMax)}:now=${encodeURIComponent(rawNow)}`,
     );
   }
@@ -148,7 +148,7 @@ const selectReasoning = async (
     });
   }
   if (reconcileOnly) {
-    throw executionFailure("recovery_pending", "GPT_EXECUTION_PROFILE_REASONING_SELECTION_PENDING");
+    throw executionFailure("failed", "GPT_EXECUTION_PROFILE_REASONING_SELECTION_PENDING");
   }
   const key = currentValue < targetValue ? "ArrowRight" : "ArrowLeft";
   const repeat = Math.abs(targetValue - currentValue) as 1 | 2 | 3 | 4;
@@ -184,7 +184,7 @@ const closeProfilePopup = async (browser: BrowserTargetLease, reconcileOnly: boo
   }
   await requireUniqueProfilePopup(browser);
   if (reconcileOnly) {
-    throw executionFailure("recovery_pending", "GPT_EXECUTION_PROFILE_CLOSE_PENDING");
+    throw executionFailure("failed", "GPT_EXECUTION_PROFILE_CLOSE_PENDING");
   }
   await browser.executeDomIntent({
     kind: "click",
@@ -208,7 +208,7 @@ export const executionProfileChildHandlers = {
     const browser = requireBrowser(context);
     const popupCount = await findCount(browser, { selector: GPT_PROFILE_POPUP_SELECTOR, maxMatches: 2 });
     if (popupCount === 1) return openProfilePopup(browser);
-    if (reconcileOnly) throw executionFailure("recovery_pending", "GPT_EXECUTION_PROFILE_OPEN_PENDING");
+    if (reconcileOnly) throw executionFailure("failed", "GPT_EXECUTION_PROFILE_OPEN_PENDING");
     return openProfilePopup(browser);
   },
 

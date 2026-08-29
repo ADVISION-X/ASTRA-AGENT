@@ -16,7 +16,6 @@ import type { ForensicsStoragePort } from "./storage-port.js";
 import type { GrassEyeStoragePort } from "../../lib/storage/index.js";
 import {
   RuntimeFailureImpact,
-  RuntimeRecovery,
   requireRuntimeLogWrite,
   runtimeFailureFromError,
   type RuntimeLogger,
@@ -53,7 +52,6 @@ const appendWithLog = async (
         error,
         code: "FORENSICS_APPEND_FAILED",
         responsibleOwner: "forensics-persistence",
-        recovery: RuntimeRecovery.STOP,
         impact: RuntimeFailureImpact.BLOCKING,
       }),
     }));
@@ -61,7 +59,7 @@ const appendWithLog = async (
   }
   if (!span) return result;
   if (result.status === "success") {
-    requireRuntimeLogWrite(span.terminal({ outcome: "success" }));
+    requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
   } else {
     requireRuntimeLogWrite(span.terminal({
       outcome: "failed",
@@ -69,7 +67,6 @@ const appendWithLog = async (
         error: new Error(result.failureReason ?? "FORENSICS_APPEND_FAILED"),
         code: "FORENSICS_APPEND_FAILED",
         responsibleOwner: "forensics-persistence",
-        recovery: RuntimeRecovery.STOP,
         impact: RuntimeFailureImpact.BLOCKING,
       }),
     }));

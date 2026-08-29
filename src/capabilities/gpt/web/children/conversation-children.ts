@@ -55,7 +55,7 @@ export const conversationChildHandlers = {
       }
       await waitSlice(browser, deadline);
     }
-    throw executionFailure("recovery_pending", `GPT_CHAT_HYDRATION_PENDING:composer=${observed.composer}:turns=${observed.turns}:attachments=${observed.attachments}:generating=${observed.generating}`);
+    throw executionFailure("failed", `GPT_CHAT_HYDRATION_PENDING:composer=${observed.composer}:turns=${observed.turns}:attachments=${observed.attachments}:generating=${observed.generating}`);
   },
 
   async focus_exact_gpt_conversation(intent, context) {
@@ -69,11 +69,11 @@ export const conversationChildHandlers = {
       observedSemantics: ["exact permanent conversation already focused"], committedMutation: "no",
     });
     if (reconcileOnly) {
-      throw executionFailure("recovery_pending", "GPT_CONVERSATION_NAVIGATION_NOT_YET_CONFIRMED");
+      throw executionFailure("failed", "GPT_CONVERSATION_NAVIGATION_NOT_YET_CONFIRMED");
     }
     await browser.navigate({ url: expected, title: "focus exact GPT conversation" });
     const after = canonicalOrNull((await readGptDocument(browser)).url);
-    if (after !== expected) throw executionFailure("recovery_pending", "GPT_CONVERSATION_NAVIGATION_NOT_YET_CONFIRMED");
+    if (after !== expected) throw executionFailure("failed", "GPT_CONVERSATION_NAVIGATION_NOT_YET_CONFIRMED");
     return success({
       value: { url: after }, candidateCount: 1,
       observedSemantics: ["exact permanent conversation URL"], committedMutation: "confirmed",
@@ -110,6 +110,6 @@ export const conversationChildHandlers = {
       }
       await waitSlice(browser, deadline);
     }
-    throw executionFailure("recovery_pending", `GPT_CONVERSATION_HYDRATION_PENDING:marker=${markerCount}:composer=${composerCount}`);
+    throw executionFailure("failed", `GPT_CONVERSATION_HYDRATION_PENDING:marker=${markerCount}:composer=${composerCount}`);
   },
 } satisfies GptChildHandlerMap;

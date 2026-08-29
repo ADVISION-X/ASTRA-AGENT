@@ -6,8 +6,7 @@ import { executionFailure, type SerializedExecutionFailure } from "../../typed-f
 import type { DurablePluginIdentity, WebsiteAgentResult, WebsiteAgentTask } from "./contracts.js";
 import { hashCanonical, type ProductionHash } from "./contracts.js";
 
-export type ProductionTaskStatus = "accepted" | "running" | "recovery_pending" | "completed";
-export type LegacyProductionTaskStatus = ProductionTaskStatus | "failed" | "review_required" | "cancelled";
+export type ProductionTaskStatus = "failed" | "completed";
 
 export interface StoredProductionTask {
   readonly task: WebsiteAgentTask;
@@ -15,19 +14,21 @@ export interface StoredProductionTask {
   readonly status: ProductionTaskStatus;
   readonly result: WebsiteAgentResult | null;
   readonly staged_result: WebsiteAgentResult | null;
-  readonly failure: SerializedExecutionFailure | null;
-  readonly failure_reason: string | null;
+  readonly attempt_failure: SerializedExecutionFailure | null;
+  readonly current_attempt_id: string;
+  readonly current_reason: string | null;
   readonly updated_at: string;
 }
 
 export type TaskRow = {
   task_json: string;
   identity_json: string;
-  status: LegacyProductionTaskStatus;
+  status: ProductionTaskStatus;
   result_json: string | null;
   staged_result_json: string | null;
-  failure_json: string | null;
-  failure_reason: string | null;
+  attempt_failure_json: string | null;
+  current_attempt_id: string;
+  current_reason: string | null;
   updated_at: string;
 };
 
@@ -63,12 +64,9 @@ export type ProductionOutboxAuthority = Readonly<{
   idempotencyKey: string;
   jobId: string;
   kind: ProductionOutboxWrite["kind"];
-  state: "pending" | "delivered" | "failed" | "parked";
-  deliveryBuildHash: ProductionHash | null;
-  deliveryAttemptCount: number;
-  nextDeliveryAttemptAt: string | null;
-  parkedAt: string | null;
-  failureCode: string | null;
+  state: "pending" | "delivered" | "failed";
+  nextDeliveryAt: string | null;
+  lastError: string | null;
   responseHash: ProductionHash | null;
   receiptHash: ProductionHash | null;
 }>;
@@ -104,29 +102,16 @@ export const isSerializedTerminalFailure = (value: unknown): value is Serialized
     && validRef && validHash && validSerializedCause(row.cause);
 };
 
-export const projectedTaskStatus = (status: LegacyProductionTaskStatus): ProductionTaskStatus =>
-  status === "failed" || status === "review_required" || status === "cancelled" ? "recovery_pending" : status;
-
-export const projectedFailure = (
-  value: string | null,
-  status: LegacyProductionTaskStatus,
-): SerializedExecutionFailure | null => {
-  if (!value) return status === "cancelled" ? Object.freeze({
-    code: "USER_CANCELLED", mutation_outcome: "no", evidence_ref: null, evidence_hash: null, cause: null,
-  }) : null;
-  const parsed = JSON.parse(value) as Record<string, unknown>;
-  const { status: _legacyStatus, ...failure } = parsed;
-  return failure as SerializedExecutionFailure;
-};
-
 export const storedTaskFromRow = (row: TaskRow): StoredProductionTask => ({
   task: JSON.parse(row.task_json) as WebsiteAgentTask,
   identity: JSON.parse(row.identity_json) as DurablePluginIdentity,
-  status: projectedTaskStatus(row.status),
+  status: row.status,
   result: row.result_json ? JSON.parse(row.result_json) as WebsiteAgentResult : null,
   staged_result: row.staged_result_json ? JSON.parse(row.staged_result_json) as WebsiteAgentResult : null,
-  failure: projectedFailure(row.failure_json, row.status),
-  failure_reason: row.failure_reason,
+  attempt_failure: row.attempt_failure_json
+    ? JSON.parse(row.attempt_failure_json) as SerializedExecutionFailure : null,
+  current_attempt_id: row.current_attempt_id,
+  current_reason: row.current_reason,
   updated_at: row.updated_at,
 });
 
@@ -159,18 +144,25 @@ export const resolveProductionAuthority = (
 };
 
 const createProductionTables = (database: Database.Database): void => {
-  database.exec(`create table if not exists production_tasks(
+  database.exec(`create table production_tasks(
     job_id text primary key, request_hash text not null, task_json text not null,
-    identity_json text not null, status text not null, result_json text,
-    staged_result_json text, failure_json text, failure_reason text,
-    created_at text not null, updated_at text not null
+    identity_json text not null, status text not null check(status in ('failed','completed')),
+    result_json text, staged_result_json text, current_attempt_id text not null, current_reason text,
+    created_at text not null, updated_at text not null,
+    check((status='failed' and result_json is null and current_reason is not null)
+      or (status='completed' and result_json is not null and staged_result_json is null and current_reason is null))
   );
-  create table if not exists production_steps(
+  create table production_steps(
     job_id text not null references production_tasks(job_id) on delete restrict,
     step_id text not null, input_hash text not null, result_json text not null,
     completed_at text not null, primary key(job_id,step_id)
   );
-  create table if not exists production_continuations(
+  create table production_attempt_failures(
+    job_id text not null references production_tasks(job_id) on delete restrict,
+    attempt_id text not null, failure_json text not null, created_at text not null,
+    primary key(job_id,attempt_id)
+  );
+  create table production_continuations(
     continuation_ref text primary key,
     origin_job_id text not null references production_tasks(job_id) on delete restrict,
     plugin_id text not null, owner_ref text not null, subject_ref text not null,
@@ -178,20 +170,19 @@ const createProductionTables = (database: Database.Database): void => {
     provider_json text not null, lane_version integer not null,
     lane_owner_job_id text, created_at text not null
   );
-  create table if not exists production_outbox(
+  create table production_outbox(
     idempotency_key text primary key, kind text not null, path text not null,
     method text not null, headers_json text not null, body_blob blob not null,
-    created_at text not null, sent_at text, failure_code text,
+    created_at text not null, sent_at text, last_error text,
     response_json text, response_hash text, receipt_hash text,
-    delivery_build_hash text, delivery_attempt_count integer not null default 0,
-    next_delivery_attempt_at text, delivery_parked_at text
+    next_delivery_at text
   );
-  create table if not exists production_checkpoints(
+  create table production_checkpoints(
     job_id text primary key references production_tasks(job_id) on delete restrict,
     attempt_id text not null, checkpoint_id text, checkpoint_hash text,
     state text not null check(state in ('none','persisted','failed')), updated_at text not null
   );
-  create table if not exists production_leases(
+  create table production_leases(
     job_id text primary key references production_tasks(job_id) on delete restrict,
     attempt_id text not null, lease_version integer not null, fence_hash text not null,
     state text not null check(state in ('absent','active','stale','lost')),
@@ -203,67 +194,31 @@ const tableColumns = (database: Database.Database, table: string): ReadonlySet<s
   (database.prepare(`pragma table_info(${table})`).all() as Array<{ name: string }>).map((column) => column.name),
 );
 
-const ensureContinuationSchema = (database: Database.Database): void => {
-  const columns = tableColumns(database, "production_continuations");
-  const required = ["continuation_ref", "origin_job_id", "plugin_id", "owner_ref", "subject_ref",
-    "authorization_ref", "conversation_identity_hash", "provider_json", "lane_version", "lane_owner_job_id", "created_at"];
-  if (required.every((column) => columns.has(column))) return;
-  const count = Number((database.prepare("select count(*) as count from production_continuations").get() as { count: number }).count);
-  if (count !== 0) throw executionFailure(
-    "review_required", "PRODUCTION_CONTINUATION_SCHEMA_MIGRATION_REQUIRES_REVIEW",
-  );
-  database.exec(`drop table production_continuations;
-    create table production_continuations(
-      continuation_ref text primary key,
-      origin_job_id text not null references production_tasks(job_id) on delete restrict,
-      plugin_id text not null, owner_ref text not null, subject_ref text not null,
-      authorization_ref text not null, conversation_identity_hash text not null,
-      provider_json text not null, lane_version integer not null,
-      lane_owner_job_id text, created_at text not null
-    );`);
+const executionTables = [
+  "production_steps", "production_attempt_failures", "production_continuations", "production_outbox",
+  "production_checkpoints", "production_leases", "production_tasks",
+] as const;
+
+const currentSchemaPresent = (database: Database.Database): boolean => {
+  const tasks = tableColumns(database, "production_tasks");
+  const outbox = tableColumns(database, "production_outbox");
+  const failures = tableColumns(database, "production_attempt_failures");
+  return tasks.has("current_attempt_id") && tasks.has("current_reason")
+    && !tasks.has("failure_json") && !tasks.has("failure_reason")
+    && failures.has("attempt_id") && failures.has("failure_json")
+    && outbox.has("last_error") && outbox.has("next_delivery_at")
+    && !outbox.has("delivery_build_hash") && !outbox.has("delivery_attempt_count")
+    && !outbox.has("delivery_parked_at");
 };
 
-const ensureOutboxSchema = (database: Database.Database): void => {
-  const columns = tableColumns(database, "production_outbox");
-  if (!columns.has("failure_code")) database.exec("alter table production_outbox add column failure_code text");
-  if (!columns.has("response_json")) database.exec("alter table production_outbox add column response_json text");
-  if (!columns.has("response_hash")) database.exec("alter table production_outbox add column response_hash text");
-  if (!columns.has("receipt_hash")) database.exec("alter table production_outbox add column receipt_hash text");
-  if (!columns.has("delivery_build_hash")) database.exec(
-    "alter table production_outbox add column delivery_build_hash text",
-  );
-  if (!columns.has("delivery_attempt_count")) database.exec(
-    "alter table production_outbox add column delivery_attempt_count integer not null default 0",
-  );
-  if (!columns.has("next_delivery_attempt_at")) database.exec(
-    "alter table production_outbox add column next_delivery_attempt_at text",
-  );
-  if (!columns.has("delivery_parked_at")) database.exec(
-    "alter table production_outbox add column delivery_parked_at text",
-  );
-};
-
-const ensureTaskSchema = (database: Database.Database): void => {
-  const columns = tableColumns(database, "production_tasks");
-  if (!columns.has("staged_result_json")) database.exec("alter table production_tasks add column staged_result_json text");
-  if (!columns.has("failure_json")) database.exec("alter table production_tasks add column failure_json text");
-};
-
-const migrateFailedTaskTerminalsToRecovery = (database: Database.Database): void => {
-  const timestamp = now();
-  database.transaction(() => {
-    database.prepare(`update production_tasks
-      set status='recovery_pending',result_json=null,
-          failure_reason=coalesce(failure_reason,json_extract(failure_json,'$.code'),'HISTORICAL_FAILED_TASK_RECOVERY'),
-          updated_at=?
-      where status in ('failed','review_required','cancelled')`).run(timestamp);
-    database.prepare(`update production_outbox
-      set failure_code='HISTORICAL_FAILED_COMPLETION_RETIRED',sent_at=coalesce(sent_at,?),
-          response_json=null,response_hash=null,receipt_hash=null
-      where kind='terminal'
-        and json_extract(cast(body_blob as text),'$.terminal_status') in ('failed','review_required','cancelled')`
-    ).run(timestamp);
-  })();
+const replaceEmptyExecutionSchema = (database: Database.Database): void => {
+  if (currentSchemaPresent(database)) return;
+  const existing = executionTables.filter((table) => tableColumns(database, table).size > 0);
+  for (const table of existing) {
+    const count = Number((database.prepare(`select count(*) as count from ${table}`).get() as { count: number }).count);
+    if (count !== 0) throw executionFailure("failed", "PRODUCTION_EMPTY_CUTOVER_REQUIRED");
+  }
+  database.exec(`${executionTables.map((table) => `drop table if exists ${table};`).join("\n")}`);
 };
 
 type ProductionOutboxObserver = (authority: ProductionOutboxAuthority) => void;
@@ -279,11 +234,10 @@ export abstract class ProductionStoreFoundation implements GptContinuationStoreP
     this.database = new Database(path.join(dataDir, "production-runtime.sqlite"));
     this.database.pragma("journal_mode = WAL");
     this.database.pragma("synchronous = FULL");
+    this.database.pragma("foreign_keys = ON");
+    replaceEmptyExecutionSchema(this.database);
+    if (currentSchemaPresent(this.database)) return;
     createProductionTables(this.database);
-    ensureContinuationSchema(this.database);
-    ensureTaskSchema(this.database);
-    ensureOutboxSchema(this.database);
-    migrateFailedTaskTerminalsToRecovery(this.database);
   }
 
   public setOutboxObserver(observer: ProductionOutboxObserver): void { this.outboxObserver = observer; }

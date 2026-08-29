@@ -12,7 +12,7 @@ type RecordType =
   | "evidence"
   | "visual_evidence"
   | "failure"
-  | "review_required"
+  | "failed"
   | "mission_event";
 
 type ArtifactType =

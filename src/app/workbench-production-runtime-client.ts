@@ -43,7 +43,7 @@ const refreshProductionTaskStatus = async () => {
   setText("[data-production-task-status]", payload.status || "-");
   setText("[data-production-plugin-id]", payload.identity?.plugin_id || "-");
   setText("[data-production-plugin-version]", payload.identity?.plugin_version || "-");
-  setText("[data-production-failure]", payload.failure_reason || "-");
+  setText("[data-production-failure]", payload.current_reason || "-");
   renderProductionAtomicSteps(payload.atomic_steps);
   openInspector({ kind: "production task status", title: jobId, payload });
 };

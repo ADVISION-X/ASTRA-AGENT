@@ -15,8 +15,10 @@ import {
 } from "./store-foundation.js";
 
 const readTask = (database: Database.Database, jobId: string) => {
-  const row = database.prepare(`select task_json,identity_json,status,result_json,staged_result_json,
-    failure_json,failure_reason,updated_at from production_tasks where job_id=?`
+  const row = database.prepare(`select t.task_json,t.identity_json,t.status,t.result_json,t.staged_result_json,
+    t.current_attempt_id,t.current_reason,t.updated_at,(select f.failure_json
+      from production_attempt_failures f where f.job_id=t.job_id and f.attempt_id=t.current_attempt_id)
+      as attempt_failure_json from production_tasks t where t.job_id=?`
   ).get(jobId) as TaskRow | undefined;
   return row ? storedTaskFromRow(row) : null;
 };
@@ -52,13 +54,12 @@ const readOutbox = (
   database: Database.Database,
   idempotencyKey: string,
 ): ProductionOutboxAuthority | null => {
-  const row = database.prepare(`select idempotency_key,kind,path,sent_at,failure_code,response_hash,receipt_hash,
-    delivery_build_hash,delivery_attempt_count,next_delivery_attempt_at,delivery_parked_at
+  const row = database.prepare(`select idempotency_key,kind,path,sent_at,last_error,response_hash,receipt_hash,
+    next_delivery_at
     from production_outbox where idempotency_key=?`).get(idempotencyKey) as Readonly<{
     idempotency_key: string; kind: ProductionOutboxWrite["kind"]; path: string; sent_at: string | null;
-    failure_code: string | null; response_hash: ProductionHash | null; receipt_hash: ProductionHash | null;
-    delivery_build_hash: ProductionHash | null; delivery_attempt_count: number;
-    next_delivery_attempt_at: string | null; delivery_parked_at: string | null;
+    last_error: string | null; response_hash: ProductionHash | null; receipt_hash: ProductionHash | null;
+    next_delivery_at: string | null;
   }> | undefined;
   if (!row) return null;
   const match = /\/jobs\/([^/]+)\//u.exec(row.path);
@@ -66,10 +67,9 @@ const readOutbox = (
   return {
     idempotencyKey: row.idempotency_key, jobId: decodeURIComponent(match[1]), kind: row.kind,
     state: row.sent_at && row.response_hash ? "delivered"
-      : row.delivery_parked_at ? "parked" : row.failure_code ? "failed" : "pending",
-    deliveryBuildHash: row.delivery_build_hash, deliveryAttemptCount: row.delivery_attempt_count,
-    nextDeliveryAttemptAt: row.next_delivery_attempt_at, parkedAt: row.delivery_parked_at,
-    failureCode: row.failure_code, responseHash: row.response_hash, receiptHash: row.receipt_hash,
+      : row.last_error && row.next_delivery_at === null ? "failed" : "pending",
+    nextDeliveryAt: row.next_delivery_at, lastError: row.last_error,
+    responseHash: row.response_hash, receiptHash: row.receipt_hash,
   };
 };
 

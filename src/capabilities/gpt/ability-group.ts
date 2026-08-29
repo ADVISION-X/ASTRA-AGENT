@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { executionFailure, failureCode, failureStatus, typedExecutionFailure } from "../../lib/typed-failure.js";
+import { executionFailure, failureCode, typedExecutionFailure } from "../../lib/typed-failure.js";
 
 import {
   GPT_ABILITY_GROUP_ID,
@@ -40,7 +40,7 @@ const classify = (error: unknown): Readonly<{
   status: GptFailureClassification;
   code: string;
 }> => Object.freeze({
-  status: failureStatus(error),
+  status: "failed",
   code: failureCode(error, "GPT_CHILD_UNCLASSIFIED_FAILURE"),
 });
 
@@ -114,15 +114,15 @@ const assertObservationIsAtomic = (
   observation: GptChildObservation,
 ): void => {
   if (!documentTransitionAllowed(intent.childCapabilityId, before, currentDocument(context))) {
-    throw executionFailure("review_required", `GPT_DOCUMENT_TRANSITION_FORBIDDEN:${intent.childCapabilityId}`);
+    throw executionFailure("failed", `GPT_DOCUMENT_TRANSITION_FORBIDDEN:${intent.childCapabilityId}`);
   }
   const pendingMutationCount = context.browser?.pendingMutationCount() ?? 0;
   if (observation.committedMutation === "confirmed" && pendingMutationCount > 1) {
-    throw executionFailure("review_required", `GPT_MUTATION_OUTCOME_NOT_UNIQUE:${intent.childCapabilityId}`);
+    throw executionFailure("failed", `GPT_MUTATION_OUTCOME_NOT_UNIQUE:${intent.childCapabilityId}`);
   }
   if (observation.committedMutation === "no" && pendingMutationCount !== 0) {
     if (intent.input.reconcileOnly !== true || pendingMutationCount !== 1) {
-      throw executionFailure("review_required", `GPT_UNDECLARED_MUTATION:${intent.childCapabilityId}`);
+      throw executionFailure("failed", `GPT_UNDECLARED_MUTATION:${intent.childCapabilityId}`);
     }
   }
 };
@@ -172,7 +172,7 @@ const failedExecution = async (input: Readonly<{
   });
   await input.context.onProof?.(proof);
   return Object.freeze({
-    status: committedMutation === "dispatched" ? "review_required" : failure.status,
+    status: failure.status,
     value: null, proof, failureCode: failure.code,
   });
 };
@@ -192,9 +192,9 @@ const executeOne = async (
       throw executionFailure("failed", "GPT_CHILD_EXECUTION_IDENTITY_INVALID");
     }
     if (!handler) throw executionFailure("failed", `GPT_CHILD_NOT_REGISTERED:${intent.childCapabilityId}`);
-    if (context.signal?.aborted) throw executionFailure("recovery_pending", "GPT_EXECUTION_ABORTED");
+    if (context.signal?.aborted) throw executionFailure("failed", "GPT_EXECUTION_ABORTED");
     if ((context.browser?.pendingMutationCount() ?? 0) !== 0 && intent.input.reconcileOnly !== true) {
-      throw executionFailure("review_required", "GPT_PRIOR_BROWSER_MUTATION_UNRESOLVED");
+      throw executionFailure("failed", "GPT_PRIOR_BROWSER_MUTATION_UNRESOLVED");
     }
     observation = await handler(intent, context);
     assertObservationIsAtomic(intent, context, before, observation);

@@ -3,7 +3,7 @@
   "capabilityDomain": "agent-production-runtime",
   "status": "active",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V8"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V9"
   ],
   "ownedPaths": [
     ".agents/skills/agent-production-maintenance-loop/**",

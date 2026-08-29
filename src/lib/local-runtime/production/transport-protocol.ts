@@ -87,8 +87,7 @@ const ExecutionGrantSchema = z.object({
   expected_catalog_hash: hash,
   expected_plugin_id: z.string().min(1),
   expected_plugin_version: z.number().int().positive(),
-  attempt_mode: z.enum(["execution", "reconciliation"]),
-  attempt_number: z.number().int().positive(),
+  accepted_attempt_count: z.number().int().min(0).max(3),
   max_provider_turns: z.number().int().positive(),
 }).extend({
   attempt_id: z.string().min(1),
@@ -113,7 +112,8 @@ const projectWebsiteAgentTaskEnvelope = (value: object): Record<string, unknown>
 };
 
 export const ClaimedProductionTaskSchema = WebsiteAgentTaskBaseSchema.extend({
-  status: z.literal("leased"),
+  status: z.literal("failed"),
+  current_reason: z.literal("LEASE_GRANTED"),
   lease_owner: z.string().min(1),
   lease_expires_at: z.string().datetime(),
   lease_token: z.string().min(1),
@@ -201,13 +201,7 @@ export const parseJsonEnvelope = (value: unknown, httpStatus?: number): unknown 
   }).passthrough().parse(value);
   if (!envelope.ok || envelope.data === undefined) {
     const code = envelope.error?.code ?? "PRODUCTION_CLOUD_API_UNKNOWN_FAILURE";
-    const recoveryCodes = new Set([
-      "AI_CONTROL_PLANE_NOT_READY",
-      "AI_SESSION_SUPERSEDED",
-      "AI_RUNTIME_ATTESTATION_STALE",
-      "AI_PRODUCTION_OUTPUT_READBACK_FAILED",
-    ]);
-    throw executionFailure(recoveryCodes.has(code) ? "recovery_pending" : "review_required", code, {
+    throw executionFailure("failed", code, {
       ...(httpStatus === undefined ? {} : { httpStatus }),
       cause: new Error(envelope.error?.message ?? "Production cloud API rejected the request."),
     });

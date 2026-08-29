@@ -3,7 +3,7 @@
   "capabilityDomain": "architecture-boundary",
   "status": "active",
   "lawIds": [
-    "LAW-ARCHITECTURE-BOUNDARY-001-V2"
+    "LAW-ARCHITECTURE-BOUNDARY-001-V3"
   ],
   "ownedPaths": [
     "scripts/acceptance/constitutional-boundary-anti-escape.acceptance.ts",

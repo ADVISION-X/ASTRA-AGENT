@@ -30,16 +30,10 @@ type LedgerProjection = {
   generatedImageByJob: Set<string>;
 };
 
-const outboxIsIsolated = (failureCode: string | null): boolean =>
-  failureCode === "REMOTE_JOB_ABSENT_HISTORICAL"
-  || failureCode === "HISTORICAL_FAILED_COMPLETION_RETIRED"
-  || failureCode === "EXECUTION_SLICE_RECONSTRUCTED"
-  || failureCode?.startsWith("STALE_LEASE_OUTBOX_RETIRED:") === true;
-
 const parsePersistedReceipt = (value: string | null): unknown => {
   try { return value ? JSON.parse(value) as unknown : null; }
   catch (cause) {
-    throw executionFailure("review_required", "PRODUCTION_TERMINAL_RECEIPT_PERSISTED_INVALID", { cause });
+    throw executionFailure("failed", "PRODUCTION_TERMINAL_RECEIPT_PERSISTED_INVALID", { cause });
   }
 };
 
@@ -106,10 +100,10 @@ export class ProductionStoreLedger extends ProductionStoreOutbox {
     if (request.terminal_status !== "completed") return false;
     const receipt = parseTerminalReceipt(rawReceipt, parseTerminalReceiptExpectation(request));
     const task = this.readTask(receipt.job_id);
-    if (!task) throw executionFailure("review_required", "PRODUCTION_TERMINAL_TASK_MISSING");
+    if (!task) throw executionFailure("failed", "PRODUCTION_TERMINAL_TASK_MISSING");
     if (!terminalAlreadyMatches(task, receipt)) {
       if (!task.staged_result || receipt.payload_hash !== hashCanonical(task.staged_result)) {
-      throw executionFailure("review_required", "PRODUCTION_TERMINAL_OUTBOX_RESULT_MISSING");
+      throw executionFailure("failed", "PRODUCTION_TERMINAL_OUTBOX_RESULT_MISSING");
       }
     }
     return false;
@@ -137,12 +131,6 @@ export class ProductionStoreLedger extends ProductionStoreOutbox {
     ).get() as { count: number }).count);
   }
 
-  public parkedOutboxCount(): number {
-    return Number((this.database.prepare(
-      "select count(*) as count from production_outbox where sent_at is null and delivery_parked_at is not null",
-    ).get() as { count: number }).count);
-  }
-
   private buildLedgerProjection(
     tasks: ReadonlyMap<string, StoredProductionTask>,
   ): LedgerProjection | null {
@@ -167,27 +155,12 @@ export class ProductionStoreLedger extends ProductionStoreOutbox {
   private terminalTaskConsistent(
     task: StoredProductionTask,
     terminal: Record<string, unknown> | undefined,
-    isolatedRemoteAuthority: boolean,
   ): boolean {
     const isTerminal = task.status === "completed";
-    const admissionPending = task.status === "recovery_pending" && task.staged_result !== null;
-    if (isolatedRemoteAuthority && isTerminal && !terminal) return true;
+    const admissionPending = task.status === "failed" && task.staged_result !== null;
     if (admissionPending) return Boolean(terminal && terminal.terminal_status === "completed");
-    if (isTerminal !== Boolean(terminal) || (terminal && terminal.terminal_status !== task.status)) return false;
-    return task.status !== "completed" || task.failure === null;
-  }
-
-  private activeTaskConsistent(
-    task: StoredProductionTask,
-    activeJobIds: ReadonlySet<string>,
-  ): boolean {
-    const jobId = task.task.job_id;
-    const lease = this.readLease(jobId);
-    const checkpoint = this.readCheckpoint(jobId);
-    const activelyOwned = activeJobIds.has(jobId) && lease?.state === "active" && checkpoint !== null;
-    const awaitingRecovery = !activeJobIds.has(jobId) && task.status === "recovery_pending"
-      && lease?.state === "stale" && checkpoint !== null;
-    return activelyOwned || awaitingRecovery || this.isRemoteRedeliveryPending(jobId);
+    return isTerminal === Boolean(terminal)
+      && (!terminal || terminal.terminal_status === "completed");
   }
 
   public isLedgerConsistent(activeJobIds: ReadonlySet<string>): boolean {
@@ -195,26 +168,17 @@ export class ProductionStoreLedger extends ProductionStoreOutbox {
     const outbox = this.outboxAuthorities();
     if (outbox.some((authority) => authority.state === "delivered"
       && (!authority.responseHash || (authority.kind === "artifact" && !authority.receiptHash)))) return false;
-    if (outbox.some((authority) => authority.state !== "delivered" && !outboxIsIsolated(authority.failureCode)
-      && (!tasks.has(authority.jobId) || tasks.get(authority.jobId)?.status === "completed"))) return false;
-    const isolated = new Set(outbox.filter(
-      (authority) => outboxIsIsolated(authority.failureCode),
-    ).map((authority) => authority.jobId));
+    if (outbox.some((authority) => !tasks.has(authority.jobId))) return false;
     const projection = this.buildLedgerProjection(tasks);
     if (!projection) return false;
     for (const [jobId, task] of tasks) {
       const terminal = projection.terminalByJob.get(jobId);
       const jobOutbox = outbox.filter((authority) => authority.jobId === jobId);
-      if (task.status === "completed" && jobOutbox.some(
-        (authority) => authority.state !== "delivered" && !outboxIsIsolated(authority.failureCode),
-      )) return false;
-      if (!this.terminalTaskConsistent(task, terminal, isolated.has(jobId))) return false;
-      const admissionPending = task.status === "recovery_pending" && task.staged_result !== null;
+      if (task.status === "completed" && jobOutbox.some((authority) => authority.state !== "delivered")) return false;
+      if (!this.terminalTaskConsistent(task, terminal)) return false;
+      const admissionPending = task.status === "failed" && task.staged_result !== null;
       if ((task.status === "completed" || admissionPending)
         && !completionPayloadConsistent(task, terminal!, projection)) return false;
-      if (task.status !== "completed" && !admissionPending) {
-        if (!this.activeTaskConsistent(task, activeJobIds)) return false;
-      }
     }
     const lanes = this.database.prepare(`select lane_owner_job_id from production_continuations
       where lane_owner_job_id is not null`).all() as Array<{ lane_owner_job_id: string }>;

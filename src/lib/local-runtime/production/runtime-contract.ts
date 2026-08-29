@@ -16,7 +16,6 @@ export interface ProductionRuntimeHealth {
   readonly catalogHash: ProductionHash;
   readonly activeCount: number;
   readonly pendingOutboxCount: number;
-  readonly parkedOutboxCount: number;
   readonly lastSuccessfulHeartbeatAt: string | null;
   readonly lastErrorCode: string | null;
   readonly lastErrorReason: string | null;

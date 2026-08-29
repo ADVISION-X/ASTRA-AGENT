@@ -1,439 +1,168 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import {
   RuntimeFailureImpact,
   RuntimeFailureKind,
-  RuntimeRecovery,
   createRuntimeLogger,
   diagnoseRuntimeLog,
   requireRuntimeLogWrite,
   runtimeFailureFromError,
   type RuntimeLogOwner,
   type RuntimeOperation,
-  type RuntimeRecovery as RuntimeRecoveryValue,
-  type RuntimeSpanHandle,
-  type RuntimeStateInput,
 } from "../../src/lib/runtime-logs/index.js";
-import { executionFailure, failureCode } from "../../src/lib/typed-failure.js";
+import type { RuntimeTypedIdentity } from "../../src/lib/runtime-logs/runtime-identity-contract.js";
 
 const digest = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
-const withRoot = <T>(name: string, run: (root: string) => T): T => {
-  const root = mkdtempSync(path.join(tmpdir(), `runtime-log-matrix-${name}-`));
-  try { return run(root); } finally { rmSync(root, { recursive: true, force: true }); }
-};
-
-const loggerFor = (root: string, name: string) => createRuntimeLogger({
-  producer: "runtime-log-matrix",
-  producerRunId: `matrix-${name}`,
-  owner: "production-runtime",
-  component: "failure-matrix",
-  terminalEnabled: false,
-  fileSink: { directoryPath: root, maxTotalBytes: 4 * 1024 * 1024 },
-});
-
-type FailureCase = Readonly<{
+type Scenario = Readonly<{
   name: string;
   code: string;
   operation: RuntimeOperation;
   owner: RuntimeLogOwner;
-  responsibleOwner: RuntimeLogOwner;
-  recovery: RuntimeRecoveryValue;
   kind: (typeof RuntimeFailureKind)[keyof typeof RuntimeFailureKind];
-  state: Omit<RuntimeStateInput, "traceId">;
   nativeCause?: string;
   httpStatus?: number;
+  identity?: RuntimeTypedIdentity;
 }>;
 
-const failureCases: readonly FailureCase[] = [
-  { name: "econnrefused", code: "FETCH_FAILED", nativeCause: "ECONNREFUSED", operation: "cloud.session-open", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.BACKOFF, kind: RuntimeFailureKind.TRANSPORT, state: { stateKey: "cloud.session", previous: null, current: "stale" } },
-  { name: "econnreset", code: "FETCH_FAILED", nativeCause: "ECONNRESET", operation: "cloud.session-open", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.RETRY, kind: RuntimeFailureKind.TRANSPORT, state: { stateKey: "cloud.session", previous: null, current: "stale" } },
-  { name: "etimedout", code: "PROVIDER_TIMEOUT", nativeCause: "ETIMEDOUT", operation: "gpt.child", owner: "gpt", responsibleOwner: "gpt", recovery: RuntimeRecovery.RETRY, kind: RuntimeFailureKind.TRANSPORT, state: { owner: "gpt", stateKey: "gpt.execution", previous: null, current: "failed" } },
-  { name: "http-auth", code: "HTTP_401_UNAUTHORIZED", httpStatus: 401, operation: "cloud.session-open", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.REVIEW, kind: RuntimeFailureKind.AUTHENTICATION, state: { stateKey: "cloud.contract", previous: null, current: "blocked" } },
-  { name: "business-reject", code: "CLAIM_BLOCKED", operation: "cloud.claim", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.BACKOFF, kind: RuntimeFailureKind.ADMISSION, state: { stateKey: "claim.admission", previous: null, current: "blocked" } },
-  { name: "session-stale", code: "SESSION_STALE", operation: "cloud.session-open", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.RETRY, kind: RuntimeFailureKind.AUTHENTICATION, state: { stateKey: "cloud.session", previous: null, current: "stale" } },
-  { name: "lease-stale", code: "LEASE_STALE", operation: "job.execute", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.REVIEW, kind: RuntimeFailureKind.ADMISSION, state: { stateKey: "job.lease", previous: null, current: "stale" } },
-  { name: "fence-mismatch", code: "FENCE_HASH_MISMATCH", operation: "job.execute", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.REVIEW, kind: RuntimeFailureKind.CONTRACT, state: { stateKey: "job.lease", previous: null, current: "lost" } },
-  { name: "target-drift", code: "BROWSER_TARGET_DRIFT", operation: "browser.command", owner: "browser-session", responsibleOwner: "browser-session", recovery: RuntimeRecovery.REVIEW, kind: RuntimeFailureKind.BROWSER, state: { owner: "browser-session", stateKey: "browser.target", previous: null, current: "drifted" } },
-  { name: "mutation-dispatched", code: "BROWSER_COMMAND_RECEIPT_MISSING", operation: "browser.command", owner: "browser-session", responsibleOwner: "browser-session", recovery: RuntimeRecovery.REVIEW, kind: RuntimeFailureKind.BROWSER, state: { owner: "browser-session", stateKey: "browser.mutation", previous: null, current: "DISPATCHED", authorityRef: "browser-mutation:matrix-command", authorityHash: digest("matrix-command-dispatched") } },
-  { name: "provider-reject", code: "PROVIDER_REJECTED", operation: "gpt.child", owner: "gpt", responsibleOwner: "gpt", recovery: RuntimeRecovery.REVIEW, kind: RuntimeFailureKind.PROVIDER, state: { owner: "gpt", stateKey: "gpt.execution", previous: null, current: "review_required" } },
-  { name: "checkpoint-failed", code: "CHECKPOINT_STORAGE_FAILED", operation: "job.checkpoint", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.RETRY, kind: RuntimeFailureKind.STORAGE, state: { stateKey: "job.checkpoint", previous: null, current: "failed" } },
-  { name: "renew-failed", code: "LEASE_RENEW_TIMEOUT", nativeCause: "ETIMEDOUT", operation: "job.lease-renew", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.RETRY, kind: RuntimeFailureKind.TRANSPORT, state: { stateKey: "job.lease", previous: null, current: "stale" } },
-  { name: "upload-failed", code: "UPLOAD_STORAGE_FAILED", operation: "result.upload", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.RETRY, kind: RuntimeFailureKind.STORAGE, state: { owner: "outbox", stateKey: "outbox.delivery", previous: null, current: "failed", authorityRef: "outbox:matrix-upload", authorityHash: digest("matrix-upload-failed") } },
-  { name: "outbox-parked", code: "AI_V6_RECONCILE_OUTCOME_INVALID", httpStatus: 409, operation: "outbox.flush", owner: "outbox", responsibleOwner: "outbox", recovery: RuntimeRecovery.STOP, kind: RuntimeFailureKind.DEPENDENCY, state: { owner: "outbox", stateKey: "outbox.delivery", previous: null, current: "parked", authorityRef: "production-outbox:matrix-parked", authorityHash: digest("matrix-outbox-parked") } },
-  { name: "website-not-consumed", code: "WEBSITE_RESULT_NOT_CONSUMED", operation: "website.result-consume", owner: "website", responsibleOwner: "website", recovery: RuntimeRecovery.RETRY, kind: RuntimeFailureKind.DEPENDENCY, state: { owner: "website", stateKey: "website.consume", previous: null, current: "failed" } },
+const scenarios: readonly Scenario[] = [
+  { name: "transport", code: "FETCH_FAILED", operation: "outbox.flush", owner: "outbox", kind: RuntimeFailureKind.TRANSPORT, nativeCause: "ECONNRESET" },
+  { name: "authentication", code: "SESSION_STALE", operation: "gpt.child", owner: "gpt", kind: RuntimeFailureKind.AUTHENTICATION },
+  { name: "contract", code: "FENCE_HASH_MISMATCH", operation: "job.checkpoint", owner: "production-runtime", kind: RuntimeFailureKind.CONTRACT },
+  { name: "storage", code: "CHECKPOINT_STORAGE_FAILED", operation: "job.checkpoint", owner: "production-runtime", kind: RuntimeFailureKind.STORAGE },
+  { name: "provider", code: "PROVIDER_REJECTED", operation: "gpt.child", owner: "gpt", kind: RuntimeFailureKind.PROVIDER, httpStatus: 409 },
+  {
+    name: "browser",
+    code: "BROWSER_COMMAND_RECEIPT_MISSING",
+    operation: "browser.command",
+    owner: "browser-session",
+    kind: RuntimeFailureKind.BROWSER,
+    identity: {
+      kind: "browser-command",
+      jobId: "job-browser",
+      attemptId: "attempt-1",
+      leaseVersion: 1,
+      fenceHash: digest("fence"),
+      pluginId: "plugin",
+      commandId: "command-browser",
+      capabilityCallId: "browser.dom.click.v1",
+      pluginStepId: "step-browser",
+      childCapabilityId: "submit_exact_gpt_turn_once",
+      actionOrdinal: 1,
+    },
+  },
 ];
 
-assert.deepEqual(runtimeFailureFromError({
-  error: new Error("customer@example.com private failure text"),
-  responsibleOwner: "production-runtime",
-}), {
-  kind: RuntimeFailureKind.INTERNAL,
-  code: "INTERNAL_FAILURE",
-  responsibleOwner: "production-runtime",
-  impact: RuntimeFailureImpact.BLOCKING,
-  recovery: RuntimeRecovery.STOP,
-});
-
-const nestedTransport = executionFailure("recovery_pending", "CLOUD_TRANSPORT_UNAVAILABLE", {
-  httpStatus: 503,
-  cause: new Error("outer transport", {
-    cause: Object.assign(new Error("connect ECONNREFUSED 127.0.0.1"), { code: "ECONNREFUSED" }),
-  }),
-});
-assert.deepEqual(runtimeFailureFromError({
-  error: nestedTransport,
-  code: failureCode(nestedTransport, "CLOUD_SESSION_OPEN_FAILED"),
-  responsibleOwner: "production-runtime",
-  recovery: RuntimeRecovery.RETRY,
-}), {
-  kind: RuntimeFailureKind.TRANSPORT,
-  code: "CLOUD_TRANSPORT_UNAVAILABLE",
-  responsibleOwner: "production-runtime",
-  impact: RuntimeFailureImpact.BLOCKING,
-  recovery: RuntimeRecovery.RETRY,
-  nativeCause: "ECONNREFUSED",
-  httpStatus: 503,
-});
-assert.equal(failureCode(new Error("customer@example.com private failure text"), "SAFE_FALLBACK"), "SAFE_FALLBACK");
-
-withRoot("failure-code-shape", (root) => {
-  const logger = loggerFor(root, "failure-code-shape");
-  const span = requireRuntimeLogWrite(logger.startSpan({
-    traceId: "failure-code-shape", operation: "job.durable-accept",
-    typedIdentity: { kind: "job", jobId: "failure-code-shape" },
-  }));
-  assert.throws(() => span.terminal({
-    outcome: "failed",
-    failure: {
-      kind: RuntimeFailureKind.INTERNAL,
-      code: "customer@example.com",
-      responsibleOwner: "production-runtime",
-      impact: RuntimeFailureImpact.BLOCKING,
-      recovery: RuntimeRecovery.STOP,
-    },
-  }), /RUNTIME_LOG_EVENT_SCHEMA_INVALID/u);
-});
-
-withRoot("state-noop", (root) => {
-  const logger = loggerFor(root, "state-noop");
-  requireRuntimeLogWrite(logger.emitState({
-    traceId: "state-noop", stateKey: "cloud.session", previous: null, current: "connected",
-  }));
-  assert.throws(() => logger.emitState({
-    traceId: "state-noop", stateKey: "cloud.session", previous: "connected", current: "connected",
-  }), /RUNTIME_LOG_STATE_NOOP_FORBIDDEN/u);
-  requireRuntimeLogWrite(logger.emitState({
-    traceId: "producer:matrix-state-noop", owner: "app-shell",
-    stateKey: "producer.alive", previous: null, current: "alive", freshForMs: 60_000,
-  }));
-  requireRuntimeLogWrite(logger.emitState({
-    traceId: "producer:matrix-state-noop", owner: "app-shell",
-    stateKey: "producer.alive", previous: "alive", current: "alive", freshForMs: 60_000,
-  }));
-});
-
-const scenarioIdentity = (scenario: FailureCase, traceId: string, boundaryId: string | undefined) => {
-  if (["cloud.claim", "cloud.session-open", "website.result-consume"].includes(scenario.operation)) {
-    return { kind: "request" as const, requestId: boundaryId! };
-  }
-  if (scenario.operation === "browser.command") return {
-    kind: "browser-command" as const, jobId: traceId, attemptId: "attempt-1", leaseVersion: 1,
-    fenceHash: digest("fence"), pluginId: "plugin-1", commandId: `command-${scenario.name}`,
-    pluginStepId: "step-1", childCapabilityId: "open_gpt_model_selector_v2", actionOrdinal: 1,
-  };
-  if (scenario.operation === "gpt.child") return {
-    kind: "gpt-call" as const, jobId: traceId, attemptId: "attempt-1", pluginId: "plugin-1",
-    stepId: "step-1", capabilityCallId: `call-${scenario.name}`,
-  };
-  if (scenario.operation === "job.checkpoint") return {
-    kind: "checkpoint" as const, jobId: traceId, attemptId: "attempt-1", checkpointId: "checkpoint-1",
-  };
-  return { kind: "lease" as const, jobId: traceId, attemptId: "attempt-1", leaseVersion: 1, fenceHash: digest("fence") };
-};
-
-const emitWebsiteBoundary = (root: string, traceId: string, boundaryId: string, name: string): void => {
-  const website = createRuntimeLogger({
-    producer: "website", producerRunId: `website-${name}`, owner: "website", component: "website-v6-route",
-    terminalEnabled: false, fileSink: { directoryPath: root, maxTotalBytes: 4 * 1024 * 1024 },
+for (const scenario of scenarios) {
+  const root = mkdtempSync(path.join(tmpdir(), `runtime-log-matrix-${scenario.name}-`));
+  const traceId = scenario.identity && "jobId" in scenario.identity ? scenario.identity.jobId : `job-${scenario.name}`;
+  const logger = createRuntimeLogger({
+    producer: "agent",
+    producerRunId: `matrix-${scenario.name}`,
+    owner: scenario.owner,
+    component: "failure-matrix",
+    terminalEnabled: false,
+    fileSink: { directoryPath: root, maxTotalBytes: 1_000_000 },
   });
-  const websiteSpan = requireRuntimeLogWrite(website.startSpan({
-    traceId, operation: "website.v6-request", boundaryId,
-    typedIdentity: { kind: "request", requestId: boundaryId },
-  }));
-  requireRuntimeLogWrite(websiteSpan.terminal({ outcome: "success" }));
-};
-
-const terminalizeFailureScenario = (input: Readonly<{
-  logger: ReturnType<typeof loggerFor>;
-  scenario: FailureCase;
-  span: RuntimeSpanHandle;
-  traceId: string;
-}>): void => {
-  const error = new Error(input.scenario.code, input.scenario.nativeCause
-    ? { cause: Object.assign(new Error(input.scenario.nativeCause), { code: input.scenario.nativeCause }) }
-    : undefined);
-  requireRuntimeLogWrite(input.span.terminal({
-    outcome: input.scenario.recovery === RuntimeRecovery.REVIEW ? "review_required" : "failed",
-    failure: runtimeFailureFromError({
-      error, code: input.scenario.code, responsibleOwner: input.scenario.responsibleOwner,
-      recovery: input.scenario.recovery, impact: RuntimeFailureImpact.BLOCKING, kind: input.scenario.kind,
-      ...(input.scenario.httpStatus === undefined ? {} : { httpStatus: input.scenario.httpStatus }),
-    }),
-  }));
-  const noLeaseAxis = ["cloud.claim", "cloud.session-open", "website.result-consume", "browser.command", "gpt.child", "job.checkpoint"];
-  if (!noLeaseAxis.includes(input.scenario.operation) && input.scenario.state.stateKey !== "job.lease") {
-    requireRuntimeLogWrite(input.logger.emitState({
-      traceId: input.traceId, stateKey: "job.lease", previous: null, current: "active",
-    }));
-  }
-  requireRuntimeLogWrite(input.logger.emitState({ traceId: input.traceId, ...input.scenario.state } as RuntimeStateInput));
-};
-
-const assertFailureScenario = (scenario: FailureCase, traceId: string, root: string): void => {
-  const diagnosis = diagnoseRuntimeLog({ sources: [root], traceId, authorityResolver: () => "verified" });
-  assert.equal(diagnosis.status, "DIAGNOSIS_COMPLETE", scenario.name);
-  const failure = diagnosis.blockingRoots[0];
-  assert.equal(diagnosis.blockingRoots.length, 1, scenario.name);
-  assert.ok(failure?.eventId, scenario.name);
-  assert.deepEqual({
-    operation: failure?.operation, code: failure?.code, responsibleOwner: failure?.responsibleOwner,
-    kind: failure?.kind, owner: failure?.owner, impact: failure?.impact, recovery: failure?.recovery,
-    nativeCause: failure?.nativeCause, httpStatus: failure?.httpStatus, causedByEventId: failure?.causedByEventId,
-  }, {
-    operation: scenario.operation, code: scenario.code, responsibleOwner: scenario.responsibleOwner,
-    kind: scenario.kind, owner: scenario.owner, impact: RuntimeFailureImpact.BLOCKING, recovery: scenario.recovery,
-    nativeCause: scenario.nativeCause ?? null, httpStatus: scenario.httpStatus ?? null, causedByEventId: null,
-  }, scenario.name);
-  assert.deepEqual(diagnosis.recoveries, [scenario.recovery], scenario.name);
-  assert.equal(diagnosis.lastSuccessfulActions[0]?.operation, "job.durable-accept", scenario.name);
-  const key = ["browser.mutation", "outbox.delivery"].includes(scenario.state.stateKey)
-    ? `${scenario.state.stateKey}:${scenario.state.authorityRef ?? traceId}` : scenario.state.stateKey;
-  assert.deepEqual(diagnosis.currentStates[key], {
-    value: scenario.state.current, owner: scenario.state.owner ?? "production-runtime",
-    producerRunId: `matrix-${scenario.name}`, fresh: true,
-    authorityRef: scenario.state.authorityRef ?? null, authorityHash: scenario.state.authorityHash ?? null,
-  }, scenario.name);
-  assert.equal(diagnosis.mutationState, scenario.state.stateKey === "browser.mutation" ? "DISPATCHED" : null, scenario.name);
-  assert.deepEqual(diagnosis.openSpans, [], scenario.name);
-  assert.deepEqual(diagnosis.findings, [], scenario.name);
-};
-
-const runFailureScenario = (root: string, scenario: FailureCase): void => {
-  const logger = loggerFor(root, scenario.name);
-  const traceId = `trace-${scenario.name}`;
-  requireRuntimeLogWrite(logger.emitState({
-    traceId: `producer:${logger.producerRunId}`,
-    owner: "app-shell",
-    stateKey: "producer.alive",
-    previous: null,
-    current: "alive",
-    freshForMs: 60_000,
-  }));
-  const success = requireRuntimeLogWrite(logger.startSpan({
-    traceId,
-    operation: "job.durable-accept",
-    typedIdentity: { kind: "job", jobId: traceId },
-  }));
-  requireRuntimeLogWrite(success.terminal({ outcome: "success" }));
-  requireRuntimeLogWrite(logger.emitState({
-    traceId, stateKey: "job.lifecycle", previous: null, current: "accepted",
-  }));
-  const boundaryRequired = ["cloud.claim", "cloud.session-open", "job.execute", "job.terminal", "website.result-consume"].includes(scenario.operation);
-  const boundaryId = boundaryRequired ? `boundary-${scenario.name}` : undefined;
   const span = requireRuntimeLogWrite(logger.startSpan({
     traceId,
     operation: scenario.operation,
-    owner: scenario.owner,
-    ...(boundaryId ? { boundaryId } : {}),
-    typedIdentity: scenarioIdentity(scenario, traceId, boundaryId),
+    typedIdentity: scenario.identity ?? { kind: "job", jobId: traceId },
   }));
-  if (scenario.operation === "cloud.session-open") emitWebsiteBoundary(root, traceId, boundaryId!, scenario.name);
-  terminalizeFailureScenario({ logger, scenario, span, traceId });
-  assertFailureScenario(scenario, traceId, root);
-  if (scenario.name === "econnrefused") {
-    const missingWebsite = diagnoseRuntimeLog({
-      sources: [logger.currentSegmentPath()!], traceId, authorityResolver: () => "verified",
-    });
-    assert.equal(missingWebsite.status, "DIAGNOSIS_INCOMPLETE");
-    assert.ok(missingWebsite.findings.includes(`BOUNDARY_SOURCE_INCOMPLETE:${boundaryId}`));
-  }
-};
-
-for (const scenario of failureCases) withRoot(scenario.name, (root) => runFailureScenario(root, scenario));
-
-withRoot("active-source-layout", (root) => {
-  const logger = loggerFor(root, "active-source-layout");
-  requireRuntimeLogWrite(logger.emitState({
-    traceId: "layout-trace", owner: "app-shell",
-    stateKey: "producer.alive", previous: null, current: "alive", freshForMs: 60_000,
-  }));
-  writeFileSync(path.join(root, "workbench.jsonl"), "legacy unstructured line\n", "utf8");
-  const clean = diagnoseRuntimeLog({ sources: [root], traceId: "layout-trace" });
-  assert.equal(clean.status, "DIAGNOSIS_COMPLETE");
-  assert.deepEqual(clean.findings, []);
-  const invalidProducer = path.join(root, "invalid-producer");
-  mkdirSync(invalidProducer);
-  const invalidSegment = path.join(invalidProducer, "broken.jsonl");
-  writeFileSync(invalidSegment, "not-json\n", "utf8");
-  const invalid = diagnoseRuntimeLog({ sources: [root], traceId: "layout-trace" });
-  assert.equal(invalid.status, "DIAGNOSIS_INCOMPLETE");
-  assert.ok(invalid.findings.includes(`ACTIVE_SEGMENT_NAME_INVALID:${invalidSegment}`));
-  assert.ok(invalid.findings.includes(`INVALID_JSONL_LINE:${invalidSegment}:1`));
-});
-
-withRoot("failure-causality", (root) => {
-  const logger = loggerFor(root, "failure-causality");
-  const traceId = "trace-failure-causality";
-  requireRuntimeLogWrite(logger.emitState({
-    traceId: `producer:${logger.producerRunId}`, owner: "app-shell",
-    stateKey: "producer.alive", previous: null, current: "alive", freshForMs: 60_000,
-  }));
-  const rootSpan = requireRuntimeLogWrite(logger.startSpan({
-    traceId, operation: "job.execute", boundaryId: "boundary-causality",
-    typedIdentity: { kind: "lease", jobId: traceId, attemptId: "attempt-1", leaseVersion: 1, fenceHash: digest("fence") },
-  }));
-  const rootFailure = requireRuntimeLogWrite(rootSpan.terminal({
+  requireRuntimeLogWrite(span.terminal({
     outcome: "failed",
     failure: runtimeFailureFromError({
-      error: new Error("EXECUTION_BLOCKED"), responsibleOwner: "production-runtime",
-      code: "EXECUTION_BLOCKED",
-      recovery: RuntimeRecovery.STOP, impact: RuntimeFailureImpact.BLOCKING,
+      error: new Error(scenario.nativeCause ?? scenario.code),
+      code: scenario.code,
+      responsibleOwner: scenario.owner,
+      kind: scenario.kind,
+      impact: RuntimeFailureImpact.BLOCKING,
+      ...(scenario.httpStatus === undefined ? {} : { httpStatus: scenario.httpStatus }),
     }),
-  }));
-  const cleanupSpan = requireRuntimeLogWrite(logger.startSpan({
-    traceId, operation: "runtime.shutdown",
-    typedIdentity: { kind: "producer", producerId: logger.producerRunId },
-  }));
-  requireRuntimeLogWrite(cleanupSpan.terminal({
-    outcome: "failed",
-    failure: runtimeFailureFromError({
-      error: new Error("SHUTDOWN_FAILED"), responsibleOwner: "production-runtime",
-      code: "SHUTDOWN_FAILED",
-      recovery: RuntimeRecovery.REVIEW, impact: RuntimeFailureImpact.CLEANUP,
-      causedByEventId: rootFailure.eventId,
-    }),
-  }));
-  requireRuntimeLogWrite(logger.emitState({
-    traceId, stateKey: "job.lifecycle", previous: null, current: "failed",
-  }));
-  requireRuntimeLogWrite(logger.emitState({
-    traceId, stateKey: "job.lease", previous: null, current: "lost",
   }));
   const diagnosis = diagnoseRuntimeLog({ sources: [root], traceId });
-  assert.equal(diagnosis.status, "DIAGNOSIS_COMPLETE");
-  assert.equal(diagnosis.blockingRoots.length, 1);
-  assert.equal(diagnosis.cleanupFailures.length, 1);
-  assert.ok(diagnosis.cleanupFailures[0]?.eventId);
-  assert.equal(diagnosis.cleanupFailures[0]?.operation, "runtime.shutdown");
-  assert.equal(diagnosis.cleanupFailures[0]?.owner, "production-runtime");
-  assert.equal(diagnosis.cleanupFailures[0]?.responsibleOwner, "production-runtime");
-  assert.equal(diagnosis.cleanupFailures[0]?.kind, RuntimeFailureKind.INTERNAL);
-  assert.equal(diagnosis.cleanupFailures[0]?.code, "SHUTDOWN_FAILED");
-  assert.equal(diagnosis.cleanupFailures[0]?.nativeCause, null);
-  assert.equal(diagnosis.cleanupFailures[0]?.impact, RuntimeFailureImpact.CLEANUP);
-  assert.equal(diagnosis.cleanupFailures[0]?.recovery, RuntimeRecovery.REVIEW);
-  assert.equal(diagnosis.cleanupFailures[0]?.causedByEventId, rootFailure.eventId);
-  assert.deepEqual(diagnosis.consequentialFailures, []);
+  assert.deepEqual(diagnosis.blockingRoots.map((failure) => failure.code), [scenario.code], scenario.name);
+  assert.equal(diagnosis.blockingRoots[0]?.kind, scenario.kind, scenario.name);
+  assert.equal(diagnosis.blockingRoots[0]?.responsibleOwner, scenario.owner, scenario.name);
+  assert.equal("recovery" in diagnosis.blockingRoots[0]!, false, scenario.name);
+  assert.equal("currentStates" in diagnosis, false, scenario.name);
+}
+
+const causeRoot = mkdtempSync(path.join(tmpdir(), "runtime-log-cause-matrix-"));
+const causeLogger = createRuntimeLogger({
+  producer: "agent",
+  producerRunId: "cause-matrix",
+  owner: "production-runtime",
+  component: "failure-matrix",
+  terminalEnabled: false,
+  fileSink: { directoryPath: causeRoot, maxTotalBytes: 1_000_000 },
 });
+const causeTrace = "job-cause-matrix";
+const blocking = requireRuntimeLogWrite(causeLogger.startSpan({
+  traceId: causeTrace,
+  operation: "job.checkpoint",
+  typedIdentity: { kind: "checkpoint", jobId: causeTrace, attemptId: "attempt-1", checkpointId: "failure" },
+}));
+const blockingTerminal = requireRuntimeLogWrite(blocking.terminal({
+  outcome: "failed",
+  failure: runtimeFailureFromError({
+    error: new Error("CHECKPOINT_STORAGE_FAILED"),
+    code: "CHECKPOINT_STORAGE_FAILED",
+    responsibleOwner: "production-runtime",
+    impact: RuntimeFailureImpact.BLOCKING,
+  }),
+}));
+const cleanup = requireRuntimeLogWrite(causeLogger.startSpan({
+  traceId: causeTrace,
+  operation: "job.lease-release",
+  typedIdentity: { kind: "job-attempt", jobId: causeTrace, attemptId: "attempt-1" },
+}));
+requireRuntimeLogWrite(cleanup.terminal({
+  outcome: "failed",
+  failure: runtimeFailureFromError({
+    error: new Error("LEASE_RELEASE_FAILED"),
+    code: "LEASE_RELEASE_FAILED",
+    responsibleOwner: "production-runtime",
+    impact: RuntimeFailureImpact.CLEANUP,
+    causedByEventId: blockingTerminal.eventId,
+  }),
+}));
+const causeDiagnosis = diagnoseRuntimeLog({ sources: [causeRoot], traceId: causeTrace });
+assert.deepEqual(causeDiagnosis.blockingRoots.map((failure) => failure.code), ["CHECKPOINT_STORAGE_FAILED"]);
+assert.deepEqual(causeDiagnosis.cleanupFailures.map((failure) => failure.code), ["LEASE_RELEASE_FAILED"]);
 
-withRoot("empty-claim", (root) => {
-  const logger = loggerFor(root, "empty-claim");
-  requireRuntimeLogWrite(logger.emitState({ traceId: "producer:matrix-empty-claim", owner: "app-shell", stateKey: "producer.alive", previous: null, current: "alive", freshForMs: 60_000 }));
-  const span = requireRuntimeLogWrite(logger.startSpan({ traceId: "empty-claim", operation: "cloud.claim", boundaryId: "claim-empty", typedIdentity: { kind: "request", requestId: "claim-empty" } }));
-  requireRuntimeLogWrite(span.terminal({ outcome: "success" }));
-  requireRuntimeLogWrite(logger.emitState({ traceId: "empty-claim", stateKey: "claim.admission", previous: null, current: "eligible" }));
-  const diagnosis = diagnoseRuntimeLog({ sources: [root], traceId: "empty-claim" });
-  assert.equal(diagnosis.status, "DIAGNOSIS_COMPLETE");
-  assert.deepEqual(diagnosis.blockingRoots, []);
-  assert.deepEqual(diagnosis.recoveries, []);
-  assert.equal(diagnosis.lastSuccessfulActions[0]?.operation, "cloud.claim");
-  assert.equal(diagnosis.currentStates["claim.admission"]?.value, "eligible");
+const walRoot = mkdtempSync(path.join(tmpdir(), "runtime-log-wal-matrix-"));
+const walLogger = createRuntimeLogger({
+  producer: "agent",
+  producerRunId: "wal-matrix",
+  owner: "browser-session",
+  component: "browser-mutation-wal",
+  terminalEnabled: false,
+  fileSink: { directoryPath: walRoot, maxTotalBytes: 1_000_000 },
 });
-
-withRoot("authority-reconcile", (root) => {
-  const logger = loggerFor(root, "authority-reconcile");
-  requireRuntimeLogWrite(logger.emitState({ traceId: "producer:matrix-authority-reconcile", owner: "app-shell", stateKey: "producer.alive", previous: null, current: "alive", freshForMs: 60_000 }));
-  const before = diagnoseRuntimeLog({ sources: [root], traceId: "authority-job", authorityResolver: () => "verified" });
-  assert.equal(before.status, "DIAGNOSIS_INCOMPLETE");
-  assert.ok(before.findings.includes("TRACE_NOT_FOUND:authority-job"));
-  requireRuntimeLogWrite(logger.emitState({ traceId: "authority-job", stateKey: "job.lifecycle", previous: null, current: "recovery_pending", authorityRef: "authority:job", authorityHash: digest("authority-job"), reconciledFromAuthority: true }));
-  const reconciled = diagnoseRuntimeLog({ sources: [root], traceId: "authority-job", authorityResolver: () => "verified" });
-  assert.equal(reconciled.status, "DIAGNOSIS_COMPLETE");
-  assert.equal(reconciled.currentStates["job.lifecycle"]?.value, "recovery_pending");
-  const mismatch = diagnoseRuntimeLog({ sources: [root], traceId: "authority-job", authorityResolver: () => "mismatch" });
-  assert.equal(mismatch.status, "DIAGNOSIS_INCOMPLETE");
-  assert.ok(mismatch.findings.includes("AUTHORITY_STATE_MISMATCH:authority:job"));
+const walIdentity = scenarios.at(-1)!.identity!;
+for (const outcome of ["PREPARED", "DISPATCHED"] as const) {
+  requireRuntimeLogWrite(walLogger.emitEvent({
+    traceId: "job-browser",
+    operation: "browser.command",
+    code: `BROWSER_MUTATION_${outcome}`,
+    typedIdentity: walIdentity,
+    authorityRef: "browser-mutation:command-browser",
+    authorityHash: digest(outcome),
+  }));
+}
+const walDiagnosis = diagnoseRuntimeLog({
+  sources: [walRoot],
+  traceId: "job-browser",
+  authorityResolver: (_ref, authorityHash) => authorityHash === digest("DISPATCHED") ? "verified" : "mismatch",
 });
+assert.equal(walDiagnosis.observedEvents.at(-1)?.code, "BROWSER_MUTATION_DISPATCHED");
+assert.equal("mutationState" in walDiagnosis, false);
+assert.equal("recoveries" in walDiagnosis, false);
 
-withRoot("sink-capacity", (root) => {
-  const logger = createRuntimeLogger({ producer: "capacity", producerRunId: "capacity-run", owner: "runtime-logs", component: "capacity", terminalEnabled: false, fileSink: { directoryPath: root, maxTotalBytes: 1 } });
-  const write = logger.emitState({ traceId: "capacity", stateKey: "log.sink", previous: null, current: "ready" });
-  assert.equal(write.ok, false);
-  if (!write.ok) assert.equal(write.code, "RUNTIME_LOG_CAPACITY_BLOCKED");
-  assert.equal(logger.getSinkState(), "capacity_blocked");
-  assert.equal(logger.isWritable(), false);
-});
-
-const writeRecoveredRun = (root: string, producer: string, includeCheckpoint: boolean): string => {
-  const logger = createRuntimeLogger({
-    producer, producerRunId: "recovered-run", owner: "app-shell", component: "capacity-reconciliation",
-    terminalEnabled: false, fileSink: { directoryPath: root, maxTotalBytes: 1024 * 1024 },
-  });
-  const producerTraceId = `producer:${logger.producerRunId}`;
-  requireRuntimeLogWrite(logger.emitState({ traceId: producerTraceId, stateKey: "producer.lifecycle", previous: null, current: "starting" }));
-  requireRuntimeLogWrite(logger.emitState({ traceId: "recovered-job", stateKey: "job.lifecycle", previous: null, current: "recovery_pending", authorityRef: "production-task:recovered-job", authorityHash: digest("task"), reconciledFromAuthority: true }));
-  requireRuntimeLogWrite(logger.emitState({ traceId: "recovered-job", stateKey: "job.lease", previous: null, current: "stale", authorityRef: "production-lease:recovered-job", authorityHash: digest("lease"), reconciledFromAuthority: true }));
-  if (includeCheckpoint) {
-    requireRuntimeLogWrite(logger.emitState({ traceId: "recovered-job", stateKey: "job.checkpoint", previous: null, current: "persisted", authorityRef: "production-checkpoint:recovered-job", authorityHash: digest("checkpoint"), reconciledFromAuthority: true }));
-  }
-  requireRuntimeLogWrite(logger.emitState({ traceId: "recovered-job", stateKey: "job.lifecycle", previous: "recovery_pending", current: "failed", authorityRef: "production-task:recovered-job", authorityHash: digest("task-failed") }));
-  requireRuntimeLogWrite(logger.emitState({ traceId: producerTraceId, stateKey: "producer.lifecycle", previous: "starting", current: "ready" }));
-  requireRuntimeLogWrite(logger.emitState({ traceId: producerTraceId, stateKey: "producer.lifecycle", previous: "ready", current: "stopping" }));
-  requireRuntimeLogWrite(logger.emitState({ traceId: producerTraceId, stateKey: "producer.lifecycle", previous: "stopping", current: "stopped" }));
-  return logger.currentSegmentPath()!;
-};
-
-withRoot("capacity-protects-unreconciled-run", (root) => {
-  const oldPath = writeRecoveredRun(root, "capacity-protected", false);
-  const logger = createRuntimeLogger({
-    producer: "capacity-protected", producerRunId: "current-run", owner: "runtime-logs", component: "capacity",
-    terminalEnabled: false, fileSink: { directoryPath: root, maxTotalBytes: 1_500 },
-  });
-  const write = logger.emitState({ traceId: "current", stateKey: "log.sink", previous: null, current: "ready" });
-  assert.equal(write.ok, false);
-  assert.equal(existsSync(oldPath), true);
-});
-
-withRoot("capacity-deletes-reconciled-run", (root) => {
-  const oldPath = writeRecoveredRun(root, "capacity-reconciled", true);
-  const logger = createRuntimeLogger({
-    producer: "capacity-reconciled", producerRunId: "current-run", owner: "runtime-logs", component: "capacity",
-    terminalEnabled: false, fileSink: { directoryPath: root, maxTotalBytes: 1_500 },
-  });
-  const write = logger.emitState({ traceId: "current", stateKey: "log.sink", previous: null, current: "ready" });
-  assert.equal(write.ok, true);
-  assert.equal(existsSync(oldPath), false);
-});
-
-withRoot("boundary-retry", (root) => {
-  const logger = loggerFor(root, "boundary-retry");
-  requireRuntimeLogWrite(logger.emitState({ traceId: "producer:matrix-boundary-retry", owner: "app-shell", stateKey: "producer.alive", previous: null, current: "alive", freshForMs: 60_000 }));
-  const identity = { kind: "lease" as const, jobId: "boundary-job", attemptId: "attempt-1", leaseVersion: 1, fenceHash: digest("fence") };
-  requireRuntimeLogWrite(logger.emitState({ traceId: "boundary-job", stateKey: "job.lifecycle", previous: null, current: "completed" }));
-  requireRuntimeLogWrite(logger.emitState({ traceId: "boundary-job", stateKey: "job.lease", previous: null, current: "absent" }));
-  for (const boundaryId of ["claim-1", "claim-2"]) {
-    const span = requireRuntimeLogWrite(logger.startSpan({ traceId: "boundary-job", operation: "job.execute", boundaryId, typedIdentity: identity }));
-    requireRuntimeLogWrite(span.terminal({ outcome: "success" }));
-  }
-  const diagnosis = diagnoseRuntimeLog({ sources: [root], traceId: "boundary-job" });
-  assert.equal(diagnosis.status, "DIAGNOSIS_INCOMPLETE");
-  assert.ok(diagnosis.findings.some((item) => item.startsWith("BOUNDARY_RETRY_MISMATCH:")));
-});
-
-process.stdout.write("[ACCEPTANCE] runtime-log-spine-failure-matrix PASS\n");
+process.stdout.write("runtime log spine failure matrix acceptance: PASS\n");

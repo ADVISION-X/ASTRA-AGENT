@@ -61,7 +61,7 @@ const recoveredMutationResult = (input: Readonly<{
 }>): GptChildCapabilityResult => {
   const timestamp = new Date().toISOString();
   const result: GptChildCapabilityResult = Object.freeze({
-    status: input.state === "confirmed" ? "success" : "review_required",
+    status: input.state === "confirmed" ? "success" : "failed",
     value: Object.freeze({ recoveredFromBrowserWal: input.state }),
     proof: Object.freeze({
       schemaVersion: "gpt-child-capability-proof.v2",
@@ -141,7 +141,7 @@ const checkpointTurnStep = async (input: Readonly<{
   dispatchState: { used: boolean };
 }>): Promise<void> => {
   const evidenceRef = persistedEvidenceRefs.get(input.result);
-  if (!evidenceRef) throw executionFailure("review_required", "EVIDENCE_REF_MISSING");
+  if (!evidenceRef) throw executionFailure("failed", "EVIDENCE_REF_MISSING");
   if (!input.flow.state.evidenceRefs.includes(evidenceRef)) input.flow.state.evidenceRefs.push(evidenceRef);
   if (input.result.status === "success") {
     applyGptChildValue(input.childCapabilityId, input.result.value, input.flow.state);
@@ -191,7 +191,7 @@ const dispatchTurnChild = async (
 const assertFinalCheckpoint = (input: FlowInput, result: ProviderTurnResult): void => {
   const checkpoint = input.store.readGptTurnCheckpoint(input.request.jobId, input.request.stepId, input.inputHash);
   if (!checkpoint?.result || JSON.stringify(checkpoint.result) !== JSON.stringify(result)) {
-    throw executionFailure("review_required", "GPT_TURN_FINAL_CHECKPOINT_MISSING");
+    throw executionFailure("failed", "GPT_TURN_FINAL_CHECKPOINT_MISSING");
   }
 };
 

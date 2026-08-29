@@ -47,20 +47,20 @@ export const composerSubmissionChildHandlers = {
     const browser = requireBrowser(context);
     const reconcileOnly = intent.input.reconcileOnly === undefined ? false : booleanInput(intent, "reconcileOnly");
     const composerCount = await findCount(browser, { selector: GPT_COMPOSER_SELECTOR, maxMatches: 2 });
-    if (composerCount !== 1) throw executionFailure("recovery_pending", `GPT_COMPOSER_COUNT_${composerCount}`);
+    if (composerCount !== 1) throw executionFailure("failed", `GPT_COMPOSER_COUNT_${composerCount}`);
     const existing = await readExactText(browser, GPT_COMPOSER_SELECTOR, 65_536);
     if (existing === prompt) return success({
       value: promptIdentity(prompt), candidateCount: 1,
       observedSemantics: ["exact prompt already retained"], committedMutation: "no",
     });
-    if (reconcileOnly) throw executionFailure("recovery_pending", "GPT_PROMPT_WRITE_PENDING");
+    if (reconcileOnly) throw executionFailure("failed", "GPT_PROMPT_WRITE_PENDING");
     const value = await browser.executeDomIntent({
       kind: "fill", selector: GPT_COMPOSER_SELECTOR,
       approvedText: prompt, clearBeforeType: true, expectedMatches: 1,
     });
     if (!value || typeof value !== "object" || Array.isArray(value)
       || (value as { retainedValueVerified?: unknown }).retainedValueVerified !== true) {
-      throw executionFailure("review_required", "GPT_PROMPT_WRITE_UNCONFIRMED");
+      throw executionFailure("failed", "GPT_PROMPT_WRITE_UNCONFIRMED");
     }
     return success({
       value: promptIdentity(prompt), candidateCount: 1,
@@ -83,15 +83,15 @@ export const composerSubmissionChildHandlers = {
     if (!prompt.includes(marker)) throw executionFailure("failed", "GPT_PROMPT_MARKER_MISSING");
     const browser = requireBrowser(context);
     const observed = await readExactText(browser, GPT_COMPOSER_SELECTOR, 65_536);
-    if (observed !== prompt) throw executionFailure("review_required", "GPT_PROMPT_READBACK_MISMATCH");
+    if (observed !== prompt) throw executionFailure("failed", "GPT_PROMPT_READBACK_MISMATCH");
     const sendCount = await findCount(browser, { selector: GPT_SEND_SELECTOR, maxMatches: 2 });
-    if (sendCount !== 1) throw executionFailure("recovery_pending", `GPT_SEND_CONTROL_COUNT_${sendCount}`);
+    if (sendCount !== 1) throw executionFailure("failed", `GPT_SEND_CONTROL_COUNT_${sendCount}`);
     const send = await browser.executeDomIntent({
       kind: "inspect", selector: GPT_SEND_SELECTOR, fields: ["visible", "disabled"],
     });
     if (!send || typeof send !== "object" || Array.isArray(send)
       || (send as { visible?: unknown }).visible !== true || (send as { disabled?: unknown }).disabled === true) {
-      throw executionFailure("recovery_pending", "GPT_SEND_CONTROL_NOT_READY");
+      throw executionFailure("failed", "GPT_SEND_CONTROL_NOT_READY");
     }
     return success({
       value: { ...promptIdentity(observed), attachmentDisplayNames: expectedNames }, candidateCount: 1,
@@ -114,20 +114,20 @@ export const composerSubmissionChildHandlers = {
       value: { promptHash, mutationSent: false }, candidateCount: 1,
       observedSemantics: ["one exact user turn already submitted", promptHash], committedMutation: "no",
     });
-    if (submitted > 1) throw executionFailure("review_required", `GPT_SUBMITTED_TURN_COUNT_${submitted}`);
-    if (reconcileOnly) throw executionFailure("recovery_pending", "GPT_TURN_SUBMISSION_PENDING");
+    if (submitted > 1) throw executionFailure("failed", `GPT_SUBMITTED_TURN_COUNT_${submitted}`);
+    if (reconcileOnly) throw executionFailure("failed", "GPT_TURN_SUBMISSION_PENDING");
     const sendCount = await findCount(browser, { selector: GPT_SEND_SELECTOR, maxMatches: 2 });
-    if (sendCount !== 1) throw executionFailure("recovery_pending", `GPT_SEND_CONTROL_COUNT_${sendCount}`);
+    if (sendCount !== 1) throw executionFailure("failed", `GPT_SEND_CONTROL_COUNT_${sendCount}`);
     const inspected = await browser.executeDomIntent({
       kind: "inspect", selector: GPT_SEND_SELECTOR,
       fields: ["tagName", "visible", "disabled"],
     });
     if (!inspected || typeof inspected !== "object" || Array.isArray(inspected)) {
-      throw executionFailure("review_required", "GPT_SEND_CONTROL_INVALID");
+      throw executionFailure("failed", "GPT_SEND_CONTROL_INVALID");
     }
     const state = inspected as Record<string, unknown>;
     if (state.tagName !== "BUTTON" || state.visible !== true || state.disabled === true) {
-      throw executionFailure("review_required", "GPT_SEND_CONTROL_INVALID");
+      throw executionFailure("failed", "GPT_SEND_CONTROL_INVALID");
     }
     await browser.executeDomIntent({
       kind: "click",
@@ -156,7 +156,7 @@ export const composerSubmissionChildHandlers = {
       const count = await findCount(browser, {
         selector: GPT_USER_TURN_SELECTOR, textContains: marker, maxMatches: 20,
       });
-      if (count > 1) throw executionFailure("review_required", `GPT_SUBMITTED_TURN_COUNT_${count}`);
+      if (count > 1) throw executionFailure("failed", `GPT_SUBMITTED_TURN_COUNT_${count}`);
       if (count === 1) {
         const composerText = await readExactText(browser, GPT_COMPOSER_SELECTOR, 65_536);
         const canonicalConversationUrl = canonicalConversationOrNull((await readGptDocument(browser)).url);
@@ -178,6 +178,6 @@ export const composerSubmissionChildHandlers = {
       const remaining = deadline - Date.now();
       if (remaining > 0) await browser.wait({ durationMs: Math.max(25, Math.min(500, Math.ceil(remaining / 20))) });
     }
-    throw executionFailure("recovery_pending", "GPT_TURN_SUBMISSION_RECONCILIATION_PENDING");
+    throw executionFailure("failed", "GPT_TURN_SUBMISSION_RECONCILIATION_PENDING");
   },
 } satisfies GptChildHandlerMap;

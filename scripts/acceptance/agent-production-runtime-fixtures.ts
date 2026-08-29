@@ -96,8 +96,8 @@ const executionGrant = (
     request_hash: base.request_hash, task_contract_id: TASK_CONTRACT_ID, task_contract_version: TASK_CONTRACT_VERSION,
     result_contract_id: RESULT_CONTRACT_ID, result_contract_version: RESULT_CONTRACT_VERSION,
     capability_manifest_hash: productionCatalogHash, expected_catalog_hash: productionCatalogHash,
-    expected_plugin_id: plugin.pluginId, expected_plugin_version: plugin.pluginVersion, attempt_mode: "execution",
-    attempt_number: 1, max_provider_turns: 8,
+    expected_plugin_id: plugin.pluginId, expected_plugin_version: plugin.pluginVersion,
+    accepted_attempt_count: 1, max_provider_turns: 8,
   } as const;
   return {
     ...route, attempt_id: `attempt:${base.job_id}`, device_id: "device:1", device_epoch: 1,
@@ -117,7 +117,8 @@ const executionGrant = (
 export const claimTask = (base: WebsiteAgentTask): ClaimedProductionTask => {
   const plugin = resolveProductionPlugin(base.product_id, base.action_id).plugin;
   return ClaimedProductionTaskSchema.parse({
-    ...base, status: "leased", lease_owner: "device:1", lease_expires_at: "2030-01-01T00:05:00.000Z",
+    ...base, status: "failed", current_reason: "LEASE_GRANTED", lease_owner: "device:1",
+    lease_expires_at: "2030-01-01T00:05:00.000Z",
     lease_token: `lease:${base.job_id}`, lease_version: 1,
     grant: executionGrant(base, plugin),
   });

@@ -3,14 +3,12 @@ import path from "node:path";
 import type { GptAbilityGroup } from "../../../capabilities/gpt/index.js";
 import { resolveStoredBrowserMutationAuthority } from "../../browser/exact-target/browser-mutation-store.js";
 import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-support.js";
-import { executionFailure, failureStatus } from "../../typed-failure.js";
+import { executionFailure } from "../../typed-failure.js";
 import {
   diagnoseRuntimeLog,
-  RuntimeRecovery,
   type RuntimeDiagnosis,
   type RuntimeLogger,
 } from "../../runtime-logs/index.js";
-import type { RuntimeStateValue } from "../../runtime-logs/runtime-event-contract.js";
 import type { ProductionHash } from "./contracts.js";
 import type { ProductionExecutionLease, ProductionExecutor } from "./executor.js";
 import type {
@@ -32,7 +30,6 @@ export type RuntimeState = {
   readonly gpt: GptAbilityGroup;
   readonly dataDir: string;
   readonly runtimeLogger: RuntimeLogger;
-  readonly loggedStates: Map<string, RuntimeStateValue>;
   draining: boolean;
   lastHeartbeat: string | null;
   lastErrorCode: string | null;
@@ -72,14 +69,6 @@ export const wait = async (milliseconds: number, signal: AbortSignal): Promise<v
 export const safeReason = (error: unknown): string =>
   (error instanceof Error ? error.message : String(error)).replace(/\s+/gu, " ").slice(0, 1_000);
 
-export const classifyFailure = failureStatus;
-
-export const recoveryFor = (status: ReturnType<typeof classifyFailure>): RuntimeRecovery => {
-  if (status === "recovery_pending") return RuntimeRecovery.RETRY;
-  if (status === "review_required") return RuntimeRecovery.REVIEW;
-  return RuntimeRecovery.STOP;
-};
-
 export const jobIdentity = (job: ClaimedProductionTask) => ({
   kind: "lease" as const,
   jobId: job.job_id,
@@ -113,10 +102,9 @@ export const leaseBudget = (
   const serverNow = Date.parse(job.grant.server_now);
   const remaining = Date.parse(job.grant.lease_expires_at) - serverNow;
   if (!Number.isFinite(remaining) || remaining < 30_000) {
-    throw executionFailure("recovery_pending", "V6_LEASE_BUDGET_EXHAUSTED");
+    throw executionFailure("failed", "V6_LEASE_BUDGET_EXHAUSTED");
   }
   return {
-    attempt_mode: job.grant.attempt_mode,
     attempt_id: job.grant.attempt_id, device_id: job.grant.device_id,
     lease_version: job.grant.lease_version, execution_fence_hash: job.grant.execution_fence.fence_hash,
     control_manifest_hash: job.grant.control_contract_manifest_hash,

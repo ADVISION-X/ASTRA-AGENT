@@ -45,7 +45,7 @@ export const GPT_CHILD_CAPABILITY_IDS = Object.freeze([
 ].sort((left, right) => left.localeCompare(right)));
 
 export type GptChildCapabilityId = typeof GPT_CHILD_CAPABILITY_IDS[number];
-export type GptFailureClassification = "recovery_pending" | "review_required" | "failed";
+export type GptFailureClassification = "failed";
 
 export interface ChildCapabilityContract {
   readonly childCapabilityId: GptChildCapabilityId;
@@ -90,7 +90,7 @@ const contractFor = (childCapabilityId: GptChildCapabilityId): ChildCapabilityCo
     oneObservationOrMutation: mutation ? "at-most-one-mutation" : "bounded-observation",
     postcondition: "the named child returns its direct typed postcondition and evidence",
     evidenceSchema: "gpt-child-capability-proof.v2",
-    failureClassification: ["recovery_pending", "review_required", "failed"] as const,
+    failureClassification: ["failed"] as const,
     replayPolicy: !mutation
       ? "observation-only"
       : providerEffectIds.has(childCapabilityId)
