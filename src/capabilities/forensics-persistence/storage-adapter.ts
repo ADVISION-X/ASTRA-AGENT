@@ -11,6 +11,7 @@
  */
 
 import type { ArtifactEnvelope, GrassEyeStoragePort, RecordEnvelope } from "../../lib/storage/index.js";
+import { createIdempotentRecordRef } from "../../lib/storage/refs.js";
 import type { ForensicsAppendArtifactInput, ForensicsAppendRecordInput } from "./schema.js";
 import type {
   AppendArtifactStorageResult,
@@ -106,6 +107,11 @@ export function createForensicsStorageAdapter(
     appendRecord: (input) => appendRecord(storage, input),
     appendArtifact: (input) => appendArtifact(storage, input),
     readRecord: (recordRef) => readRecord(storage, recordRef),
+    readRecordByIdentity: async (input) => {
+      const recordRef = createIdempotentRecordRef(input);
+      const record = await readRecord(storage, recordRef);
+      return record ? Object.freeze({ recordRef, record }) : null;
+    },
     readArtifact: (artifactRef) => readArtifact(storage, artifactRef),
   };
 }

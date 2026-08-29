@@ -3,12 +3,13 @@
   "capabilityDomain": "agent-production-runtime",
   "status": "active",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V11"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V12"
   ],
   "ownedPaths": [
     "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
     "docs/specs/agent-production-runtime/**",
     "docs/项目方案/AGNET迭代会议记录.md",
+    "docs/项目方案/智慧调度方案.md",
     "scripts/acceptance/agent-product-skills.acceptance.ts",
     "scripts/acceptance/agent-production-runtime-continuation.acceptance.ts",
     "scripts/acceptance/agent-production-runtime-fixtures.ts",

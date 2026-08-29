@@ -14,6 +14,7 @@ export interface ProductionRoutePolicy {
     owner_scope_policy: "required" | "forbidden";
   }>[];
   readonly result_schema_version: string;
+  readonly result_contract?: Readonly<Record<string, unknown>>;
   readonly relation_kind: "primary" | "continuation" | "review";
 }
 

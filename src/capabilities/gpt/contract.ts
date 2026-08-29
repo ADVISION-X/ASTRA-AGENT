@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
 import type { GptContinuationStorePort } from "./session/gpt-continuation-store-port.js";
 
@@ -105,6 +107,7 @@ export const GPT_CHILD_CAPABILITY_CONTRACTS = Object.freeze(
 export type GptChildCapabilityIntent = Readonly<{
   childCapabilityId: GptChildCapabilityId;
   executionId: string;
+  jobId: string;
   attemptId: string;
   pluginId: string;
   pluginVersion: number;
@@ -119,6 +122,7 @@ export interface GptChildCapabilityProof {
   readonly schemaVersion: "gpt-child-capability-proof.v2";
   readonly childCapabilityId: GptChildCapabilityId;
   readonly executionId: string;
+  readonly jobId: string;
   readonly attemptId: string;
   readonly pluginId: string;
   readonly pluginVersion: number;
@@ -152,8 +156,23 @@ export type GptExecutionContext = Readonly<{
   signal?: AbortSignal;
   continuationStore?: GptContinuationStorePort;
   mutationMode?: "normal" | "readback";
+  yieldForProviderWait?: (durationMs: number) => Promise<void>;
   onProof?: (proof: GptChildCapabilityProof) => Promise<void>;
 }>;
+
+export const gptExactCallIdentityHash = (
+  intent: Pick<GptChildCapabilityIntent,
+    "jobId" | "attemptId" | "pluginId" | "pluginVersion" | "productStepId" | "callId" | "childCapabilityId" | "inputHash">,
+): `sha256:${string}` => `sha256:${createHash("sha256").update(JSON.stringify([
+  intent.jobId,
+  intent.attemptId,
+  intent.pluginId,
+  intent.pluginVersion,
+  intent.productStepId,
+  intent.callId,
+  intent.childCapabilityId,
+  intent.inputHash,
+])).digest("hex")}`;
 
 export interface GptAbilityGroup {
   readonly abilityGroupId: typeof GPT_ABILITY_GROUP_ID;

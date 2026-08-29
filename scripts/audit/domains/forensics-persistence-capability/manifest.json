@@ -3,8 +3,8 @@
   "capabilityDomain": "forensics-persistence-capability",
   "status": "active",
   "lawIds": [
-    "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V3",
-    "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V3",
+    "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V4",
+    "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V4",
     "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V3"
   ],
   "ownedPaths": [

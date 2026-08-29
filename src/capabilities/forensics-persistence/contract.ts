@@ -24,6 +24,11 @@ interface ForensicsPersistenceAbilityGroup {
   appendArtifact(input: ForensicsAppendArtifactRequest): Promise<ForensicsPersistenceAbilityResult>;
   readRecordRef(input: ForensicsReadRecordRefInput): Promise<ForensicsPersistenceAbilityResult>;
   readArtifactRef(input: ForensicsReadArtifactRefInput): Promise<ForensicsPersistenceAbilityResult>;
+  readExactCallEvidence(input: Readonly<{
+    missionId: string;
+    runId: string;
+    exactCallIdentityHash: `sha256:${string}`;
+  }>): Promise<Readonly<{ recordRef: string; record: Readonly<Record<string, unknown>> }> | null>;
 }
 
 export type { ForensicsPersistenceAbilityGroup };

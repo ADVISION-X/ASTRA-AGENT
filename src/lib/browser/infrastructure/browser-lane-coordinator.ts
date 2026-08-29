@@ -1,5 +1,8 @@
 import type { BrowserTargetLease } from "../exact-target/browser-target-lease.js";
-import type { BrowserMutationReconciliationScope } from "../exact-target/browser-mutation-store.js";
+import type {
+  BrowserExactCallMutationFact,
+  BrowserMutationReconciliationScope,
+} from "../exact-target/browser-mutation-store.js";
 import type { BrowserExecutionBinding } from "./browser-authority-broker.js";
 import { BrowserAuthorityBroker } from "./browser-authority-broker.js";
 import { BrowserAuthorityIssuer } from "./browser-authority-issuer.js";
@@ -102,6 +105,17 @@ export class BrowserLaneCoordinator {
     return this.infrastructure.mutationState?.reconciliationScope(input) ?? null;
   }
 
+  public readExactCallMutationFact(input: Readonly<{
+    jobId: string;
+    attemptId: string;
+    ownerPluginId: string;
+    pluginVersion: number;
+    exactCallIdentityHash: `sha256:${string}`;
+    actionOrdinal: number;
+  }>): BrowserExactCallMutationFact | null {
+    return this.infrastructure.mutationState?.readExactCallMutationFact(input) ?? null;
+  }
+
   private nextWaiter(): LaneWaiter | null {
     let waiter = this.queue.shift();
     while (waiter && (waiter.signal.aborted || waiter.remainingMs() < 1)) {
@@ -121,7 +135,9 @@ export class BrowserLaneCoordinator {
     this.active = true;
     const recovery = this.infrastructure.mutationState?.callRecoveryScope({
       jobId: waiter.binding.jobId,
+      attemptId: waiter.binding.attemptId,
       ownerPluginId: waiter.binding.ownerPluginId,
+      pluginVersion: waiter.binding.pluginVersion,
       productStepId: waiter.binding.productStepId,
     }) ?? null;
     try {

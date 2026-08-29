@@ -15,7 +15,7 @@ import { appendFile, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { stableJsonHash } from "./hash.js";
-import { createArtifactRef, createRecordRef } from "./refs.js";
+import { createArtifactRef, createIdempotentRecordRef } from "./refs.js";
 import type { ArtifactEnvelope, RecordEnvelope } from "./schema.js";
 import type { AppendArtifactResult, AppendRecordResult, GrassEyeStoragePort } from "./storage-port.js";
 
@@ -96,8 +96,12 @@ const assertStoredIntegrity = (stored: StoredRecord | StoredArtifact): void => {
 const createAppendRecord = (storageDir: string) =>
   async (record: RecordEnvelope): Promise<AppendRecordResult> => {
     ensureDir(storageDir);
-    const identity = idempotencyIdentity("record", record);
-    const recordRef = createRecordRef(identity);
+    idempotencyIdentity("record", record);
+    const recordRef = createIdempotentRecordRef({
+      ...(record.missionId ? { missionId: record.missionId } : {}),
+      ...(record.runId ? { runId: record.runId } : {}),
+      idempotencyKey: record.idempotencyKey!,
+    });
     const idempotencyFingerprint = recordFingerprint(record);
     const existing = (await readRecordLines(storageDir)).find((item) => item.recordRef === recordRef);
     if (existing) {

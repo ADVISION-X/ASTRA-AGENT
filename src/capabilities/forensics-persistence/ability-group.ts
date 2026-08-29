@@ -143,6 +143,14 @@ export function createForensicsPersistenceAbilityGroup(
     readArtifactRef(input): Promise<ForensicsResult> {
       return executeReadArtifactRef(input, storage);
     },
+
+    readExactCallEvidence(input) {
+      return storage.readRecordByIdentity({
+        missionId: input.missionId,
+        runId: input.runId,
+        idempotencyKey: `gpt-call-evidence:v1:${input.exactCallIdentityHash}`,
+      });
+    },
   };
 }
 

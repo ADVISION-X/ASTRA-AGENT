@@ -81,6 +81,10 @@ export const inspectRegistryAndMutationBoundary = (
     "requestHash",
     "payloadHash",
     "proofHash",
+    "exactCallIdentityHash",
+    "pluginVersion",
+    "terminalAt",
+    "readExactCallMutationFact",
     "logicalMutationId",
     "productStepId",
     "callId",
@@ -318,9 +322,9 @@ export const inspectCompactMutationRecoveryBoundary = (
     "BrowserMutationStore", "prepare", "markDispatched", "markReceiptMissing", "markConfirmed",
     "markRejected", "markFailedBeforeDispatch", "resolve", "dispatchedForBinding", "dispatchedForJob",
     "reconciliationScope", "callRecoveryScope", "atomicStepRecovery", "readDispatched",
-    "logicalMutationId", "productStepId", "callId", "childCapabilityId", "inputHash", "effectScope",
+    "logicalMutationId", "exactCallIdentityHash", "pluginVersion", "productStepId", "callId", "childCapabilityId", "inputHash", "effectScope",
     "actionOrdinal", "positivePostconditionHash", "negativePostconditionHash", "requestHash", "payloadHash",
-    "proofHash",
+    "proofHash", "terminalAt", "readExactCallMutationFact",
   ], findings, lawId, "Compact Browser mutation recovery must remain one SQLite/WAL row per physical mutation and exact job binding.");
   const literals = new Set(stringLiterals(mutationStore));
   for (const literal of [
@@ -375,7 +379,10 @@ export const inspectJobScopedMutationRecovery = (
     }));
   }
   const actorText = actor.getFullText();
-  for (const required of ["provider_effect", "target_local", 'effectScope === "target_local" ? [permit.targetRef] : []']) {
+  for (const required of [
+    "provider_effect", "target_local", 'effectScope === "target_local" ? [permit.targetRef] : []',
+    "exactCallIdentityHash", "pluginVersion",
+  ]) {
     if (actorText.includes(required)) continue;
     findings.push(createLocalFinding({
       checkId: "browser-authority/logical-effect-scope",

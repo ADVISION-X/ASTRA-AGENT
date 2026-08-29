@@ -203,6 +203,15 @@ export class BrowserInfrastructureSupervisor {
     input: Readonly<{ jobId: string; ownerPluginId: string }>,
   ): BrowserMutationReconciliationScope | null { return this.lane.reconciliationScope(input); }
 
+  public readExactCallMutationFact(input: Readonly<{
+    jobId: string;
+    attemptId: string;
+    ownerPluginId: string;
+    pluginVersion: number;
+    exactCallIdentityHash: `sha256:${string}`;
+    actionOrdinal: number;
+  }>) { return this.lane.readExactCallMutationFact(input); }
+
   public health(): BrowserHealthSnapshot {
     const state = this.transport.currentState();
     const current = this.issuer.current();

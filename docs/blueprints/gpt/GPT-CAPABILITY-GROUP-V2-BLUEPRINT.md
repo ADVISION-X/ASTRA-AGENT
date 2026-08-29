@@ -1,13 +1,13 @@
-# GPT 能力组 V2 施工图
+# GPT 能力组 V3 施工图
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "gpt-capability-group-v2",
+  "blueprintId": "gpt-capability-group-v3",
   "status": "active",
   "owner": "gpt",
   "lawIds": [
-    "LAW-GPT-001-V7"
+    "LAW-GPT-001-V8"
   ],
   "contractRefs": [],
   "dependencyEdges": [
@@ -49,10 +49,20 @@ interface ProductGptTools {
     evidenceRef: string;
     evidenceHash: string;
   }>;
+
+  readCallFacts<K extends GptChildId>(call: {
+    productStepId: string;
+    callId: string;
+    child: K;
+    actionOrdinal: number;
+    input: GptChildInputMap[K];
+  }): Promise<ExactGptCallFacts>;
 }
 ```
 
 Product Plugin 不得提供 Target、Document、selector、WAL、lease、fence、mutation identity 或恢复指令。`sessionKey` 是产品定义的不透明逻辑会话槽；Browser Authority 唯一解析真实 Target 与 generation。
+
+`readCallFacts` 不是第二 GPT Child 入口。它由 production execution binding 注入 job/attempt/plugin/version，以完整 input 计算 exact call identity，只组合 Browser mutation、Forensics evidence/artifact 和 GPT continuation 的安全只读事实。它不调用 Child、不写入、不决定下一步，且禁止返回 target/document、WAL row、state/phase/resumePoint/nextStep 或 per-call failure history。
 
 ## 2. 公开 Child 分母
 
@@ -95,7 +105,7 @@ job_id + attempt_id + plugin_id + plugin_version
 + product_step_id + call_id + child_id + input_hash
 ```
 
-同一业务 attempt 跨 lease、进程、Target 和 build 保持同一 Provider effect identity；新业务 attempt 取得新 identity。Target-local 动作另加 Browser Authority `target_generation`。创建下一 attempt 前必须证明前一 attempt 没有未收束 `DISPATCHED`。
+同一业务 attempt 跨 lease、进程、Target 和 build 保持同一 Provider effect identity；新业务 attempt 取得新 identity。Target-local Browser mutation 另加 `target_generation`，但 exact GPT call evidence identity 不加 target generation。同 attempt 已有 verified evidence 或 DISPATCHED/CONFIRMED/REJECTED Browser fact 的 target-local call 禁止在新 Target generation 重做物理 mutation；原 Target 可恢复时只读 rehydrate，否则当前 attempt typed fail-close。创建下一 attempt 前必须证明前一 attempt 没有未收束 `DISPATCHED`。
 
 Provider effect 一次性只在同一业务 attempt/call 内成立；新 attempt 可在安全前提满足后重新执行。`DISPATCHED` 永远先读 WAL 与当前页面后置判据，禁止盲重放。
 
@@ -131,8 +141,8 @@ success := ALREADY_OPEN OR (OPENABLE -> click once -> ALREADY_OPEN)
 
 ## 5. 失败、证据与验收
 
-Child 只返回 `success` 或 `failed + typed reason`。失败必须包含 `code`、`mutationOutcome=no|dispatched|confirmed`、`evidenceRef/evidenceHash` 和存在时的原生 cause；不得返回 `review_required`、`recovery_pending`、流程位置或重试决策。
+Child 只返回 `success` 或 `failed + typed reason`。失败必须包含 `code`、`mutationOutcome=no|dispatched|confirmed`、`evidenceRef/evidenceHash` 和存在时的原生 cause；它直接终止当前 attempt，不得返回 `review_required`、`recovery_pending`、流程位置、重试决策或可供 Product 继续编排的历史 per-call failure。
 
-固定 5 秒等待被删除。等待只允许是单个 Child 为 fresh DOM、hydration 或直接 postcondition 使用的有界实现，并由真实条件提前结束。`close_gpt_execution_profile` 只能使用当前 profile Owner 内经实证唯一的收束动作并直接证明 popup 缺席，不得假定点击 composer 必然收束 profile。
+固定 5 秒等待被删除。等待只允许是单个 Child 为 fresh DOM、hydration 或直接 postcondition 使用的有界实现，并由真实条件提前结束。Provider text/image wait 必须分解为 fresh DOM 驱动的短 probe，每次 probe 后根据实际 Provider 状态计算瞬时 nextCheckAt，未到时不进 Browser FIFO；总生命期以 exact submit 首次 CONFIRMED 的 immutable terminalAt + Product timeoutMs 为 absoluteDeadline，重启不刷新。不得新增 wait table/ticket/durable nextCheckAt。`close_gpt_execution_profile` 只能使用当前 profile Owner 内经实证唯一的收束动作并直接证明 popup 缺席，不得假定点击 composer 必然收束 profile。
 
-聚焦验收必须证明：23 个 Child 精确；公共面无 turn API；产品能显式调用任意 Child 序列；模型面板支持 ALREADY_OPEN/OPENABLE；五个推理数值往返；恢复时重新打开当前 Document 弹层；同一业务文件在不同 attempt 获得不同但确定的精确 `providerDisplayName`；附件名称已出现但上传未完成时不得成功且不得产生 mutation，全部完成后立即成功，持续未完成时 typed timeout；Prompt 在提交前被页面清空或改写时不得点击；候选 0 或多于 1 时无物理点击；`DISPATCHED` 不重放；失败只返回原因和证据。
+聚焦验收必须证明：23 个 Child 精确；公共面无 turn API；产品能显式调用任意 Child 序列；readCallFacts 只读、无流程决策与无 failure/state/Target/WAL 泄漏；模型面板支持 ALREADY_OPEN/OPENABLE；五个推理数值往返；同一业务文件在不同 attempt 获得不同但确定的精确 `providerDisplayName`；附件名称已出现但上传未完成时不得成功且不得产生 mutation，全部完成后立即成功，持续未完成时 typed timeout；Prompt 在提交前被页面清空或改写时不得点击；候选 0 或多于 1 时无物理点击；`DISPATCHED` 不重放；同 attempt 已有 evidence 的 target-local call 跨 Target generation mutation count 为 0；原 Target 不可只读恢复时 attempt fail-close；wait 重启不刷新 absoluteDeadline；continuation persist/advance/release 在 DB commit/return 边界幂等；失败只返回当前原因和证据。

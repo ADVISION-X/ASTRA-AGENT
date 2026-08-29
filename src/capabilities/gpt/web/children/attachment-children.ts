@@ -46,7 +46,7 @@ type AttachmentSetState = Readonly<{
 const digest = (bytes: Buffer): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 
-const providerDisplayName = (displayName: string, attemptId: string, artifactRef: string): string => {
+export const gptAttachmentProviderDisplayName = (displayName: string, attemptId: string, artifactRef: string): string => {
   const parsed = parse(displayName);
   if (parsed.base !== displayName || !parsed.name) {
     throw executionFailure("failed", "GPT_ATTACHMENT_DISPLAY_NAME_INVALID");
@@ -76,7 +76,7 @@ const filesFromIntent = (intent: GptChildCapabilityIntent): readonly ApprovedFil
       artifactRef: item.artifactRef,
       filePath: item.filePath,
       displayName,
-      providerDisplayName: providerDisplayName(displayName, intent.attemptId, item.artifactRef),
+      providerDisplayName: gptAttachmentProviderDisplayName(displayName, intent.attemptId, item.artifactRef),
       sha256: item.sha256 as `sha256:${string}`,
       bytes: item.bytes,
     };

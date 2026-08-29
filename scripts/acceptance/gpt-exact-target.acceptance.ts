@@ -7,6 +7,7 @@ import {
   buildGptExecutionProfile,
   GPT_CHILD_CAPABILITY_CONTRACTS,
   type GptChildCapabilityId,
+  type GptExecutionContext,
 } from "../../src/capabilities/gpt/index.js";
 import type { BrowserTargetLease } from "../../src/lib/browser/browser-authority-api.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
@@ -76,11 +77,13 @@ const execute = (
   browser: BrowserTargetLease,
   input: Readonly<Record<string, unknown>>,
   mutationMode?: "normal" | "readback",
+  contextOverrides?: Partial<GptExecutionContext>,
 ) => {
   ordinal += 1;
   return gpt.execute({
     childCapabilityId,
     executionId: `acceptance:${childCapabilityId}:${ordinal}`,
+    jobId: "job:gpt-exact-target",
     attemptId: "attempt:gpt-exact-target",
     pluginId: "acceptance-product",
     pluginVersion: 1,
@@ -89,7 +92,11 @@ const execute = (
     inputHash: hashCanonical(input),
     actionOrdinal: ordinal,
     input,
-  }, { dataDir: "/tmp/gpt-exact-target", browser, ...(mutationMode ? { mutationMode } : {}) });
+  }, {
+    dataDir: "/tmp/gpt-exact-target", browser,
+    ...(mutationMode ? { mutationMode } : {}),
+    ...contextOverrides,
+  });
 };
 
 const profile = buildGptExecutionProfile({
@@ -355,5 +362,33 @@ const retainedBeforeSubmit = await execute("submit_exact_gpt_turn_once", retaine
 });
 assert.equal(retainedBeforeSubmit.status, "success", retainedBeforeSubmit.failureCode ?? "retained prompt submit failed");
 assert.equal(retainedPromptFixture.physicalMutations(), 1, "retained exact prompt may dispatch send exactly once");
+
+const providerWaitFixture = fakeBrowser((intent) => {
+  if (intent.kind === "find" && intent.selector === GPT_USER_TURN_SELECTOR) return { count: 0 };
+  throw new Error(`UNEXPECTED_PROVIDER_WAIT_INTENT:${intent.kind}`);
+});
+const yielded: number[] = [];
+const providerWaitDeadline = new Date(Date.now() + 75).toISOString();
+const providerWaitResult = await execute("wait_for_stable_gpt_text", providerWaitFixture.browser, {
+  absoluteDeadline: providerWaitDeadline,
+  turnMarker: promptMarker,
+}, undefined, {
+  yieldForProviderWait: async (durationMs) => {
+    yielded.push(durationMs);
+    await new Promise<void>((resolve) => setTimeout(resolve, durationMs));
+  },
+});
+assert.equal(providerWaitResult.status, "failed");
+assert.equal(providerWaitResult.failureCode, "GPT_RESPONSE_STABILITY_TIMEOUT");
+assert.equal(yielded.length >= 1, true, "Provider wait must cooperatively yield its Browser lane");
+assert.equal(yielded.every((duration) => duration >= 25 && duration <= 5_000), true);
+assert.deepEqual(providerWaitFixture.waitDurations(), [], "cooperative Provider wait must not hold Browser.wait");
+
+const invalidDeadline = await execute("wait_for_stable_gpt_text", providerWaitFixture.browser, {
+  absoluteDeadline: new Date(Date.now() + 3_700_000).toISOString(),
+  turnMarker: promptMarker,
+});
+assert.equal(invalidDeadline.status, "failed");
+assert.equal(invalidDeadline.failureCode, "GPT_RESPONSE_ABSOLUTE_DEADLINE_INVALID");
 
 process.stdout.write("[ACCEPTANCE][gpt-exact-target] PASS\n");

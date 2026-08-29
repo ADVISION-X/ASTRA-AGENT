@@ -124,20 +124,23 @@ const postconditionPair = (command: BrowserGovernedCommand): Readonly<{
 const mutationIdentity = (permit: BrowserCommandPermit, command: BrowserGovernedCommand): BrowserMutationIdentity => {
   const postconditions = postconditionPair(command);
   const effectScope = permit.replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local";
-  const logicalIdentity = [
+  const exactCallIdentityHash = hashValue([
     permit.jobId,
     permit.attemptId,
     permit.ownerPluginId,
+    permit.pluginVersion,
     permit.productStepId,
     permit.callId,
     permit.childCapabilityId,
     permit.inputHash,
-    ...(effectScope === "target_local" ? [permit.targetRef] : []),
-  ];
+  ]);
   return {
     commandId: permit.commandId,
-    logicalMutationId: hashValue(logicalIdentity),
+    logicalMutationId: effectScope === "provider_effect"
+      ? exactCallIdentityHash : hashValue([exactCallIdentityHash, permit.targetRef]),
+    exactCallIdentityHash,
     ownerPluginId: permit.ownerPluginId,
+    pluginVersion: permit.pluginVersion,
     jobId: permit.jobId,
     attemptId: permit.attemptId,
     leaseVersion: permit.leaseVersion,
@@ -210,10 +213,12 @@ export class BrowserCommandActor {
   public requiresMutationRecovery(binding: BrowserExecutionBinding, targetRef: string): boolean {
     const scope = this.mutations.callRecoveryScope({
       jobId: binding.jobId,
+      attemptId: binding.attemptId,
       ownerPluginId: binding.ownerPluginId,
+      pluginVersion: binding.pluginVersion,
       productStepId: binding.productStepId,
     });
-    return scope?.targetRef === targetRef;
+    return scope?.state === "DISPATCHED" && scope.targetRef === targetRef;
   }
 
   public readAtomicStepRecovery(
@@ -224,11 +229,19 @@ export class BrowserCommandActor {
     if (identity.replayPolicy === "observation-only") return null;
     return this.mutations.atomicStepRecovery({
       jobId: binding.jobId,
+      attemptId: binding.attemptId,
       ownerPluginId: binding.ownerPluginId,
-      productStepId: identity.productStepId,
-      callId: identity.callId,
-      childCapabilityId: identity.childCapabilityId,
-      inputHash: identity.inputHash,
+      pluginVersion: binding.pluginVersion,
+      exactCallIdentityHash: hashValue([
+        binding.jobId,
+        binding.attemptId,
+        binding.ownerPluginId,
+        binding.pluginVersion,
+        identity.productStepId,
+        identity.callId,
+        identity.childCapabilityId,
+        identity.inputHash,
+      ]),
       actionOrdinal: identity.actionOrdinal,
       targetRef,
       effectScope: identity.replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local",

@@ -9,6 +9,7 @@ import {
   productionPluginCatalog,
   resolveProductionPlugin,
 } from "../../src/lib/local-runtime/production/catalog.js";
+import { gptAttachmentProviderDisplayName } from "../../src/capabilities/gpt/index.js";
 import { ProductionProductIdSchema, hashCanonical, type WebsiteAgentTask } from "../../src/lib/local-runtime/production/contracts.js";
 import type { ProductPluginOutput, SharedExecutionContext } from "../../src/lib/local-runtime/production/plugin.js";
 import { typedExecutionFailure } from "../../src/lib/typed-failure.js";
@@ -85,7 +86,7 @@ const articleOutput = {
 
 const seoTask = (actionId: WebsiteAgentTask["action_id"]): WebsiteAgentTask => ({
   job_id: `job-${actionId}`, action_id: actionId, product_id: "public_knowledge_article_pipeline",
-  parameters: { domain_id: "bazi", locale: "zh-CN" },
+  parameters: { domain_id: "bazi", locale: "zh-CN", ready_corpus_snapshot_hash: HASH },
   business_identity: { owner_ref: "owner", subject_ref: "subject", authorization_ref: "authorization" },
   ...(actionId === "produce_article" ? {} : {
     subject_task_ref: "subject-task", subject_result_ref: "subject-result",
@@ -99,8 +100,31 @@ const exerciseSeoFlow = async (
   decision: "proceed" | "decline" = "proceed",
 ) => {
   const calls: Array<Parameters<SharedExecutionContext["gpt"]["execute"]>[0]> = [];
+  const factsByCall = new Map<string, Readonly<{
+    evidenceRef: string;
+    mutation: boolean;
+    terminalAt: string | null;
+  }>>();
   const handoffDelays: number[] = [];
   let completed: ProductPluginOutput | null = null;
+  let continuationProvider: Readonly<Record<string, unknown>> | null = null;
+  const providerNames = [
+    gptAttachmentProviderDisplayName("one.json", "attempt-1", "m0"),
+    gptAttachmentProviderDisplayName("two.json", "attempt-1", "m1"),
+  ] as const;
+  const factKey = (input: Readonly<{
+    productStepId: string;
+    callId: string;
+    child: string;
+    actionOrdinal: number;
+    input: Readonly<Record<string, unknown>>;
+  }>): string => hashCanonical({
+    productStepId: input.productStepId,
+    callId: input.callId,
+    child: input.child,
+    actionOrdinal: input.actionOrdinal,
+    input: input.input,
+  });
   const context = {
     materials: [
       { material_id: "m0", ordinal: 0, display_name: "one.json", local_path: "/tmp/one.json", sha256: HASH, bytes: 1 },
@@ -108,6 +132,26 @@ const exerciseSeoFlow = async (
     ],
     gpt: {
       attemptId: "attempt-1",
+      readCallFacts: async (input: Parameters<SharedExecutionContext["gpt"]["readCallFacts"]>[0]) => {
+        const stored = factsByCall.get(factKey(input));
+        return {
+          exactCallIdentityHash: HASH,
+          mutation: stored?.mutation ? {
+            owner: "browser" as const,
+            effectScope: "provider_effect" as const,
+            outcome: "CONFIRMED" as const,
+            terminalAt: stored.terminalAt,
+          } : null,
+          evidence: stored ? {
+            owner: "forensics-persistence" as const,
+            evidenceRef: stored.evidenceRef,
+            evidenceHash: HASH,
+            readbackVerified: true as const,
+            artifactRefs: [],
+          } : null,
+          continuation: null,
+        };
+      },
       execute: async (input: Parameters<SharedExecutionContext["gpt"]["execute"]>[0]) => {
         calls.push(input);
         const marker = `[GRASSEYE:${"a".repeat(24)}]`;
@@ -119,8 +163,8 @@ const exerciseSeoFlow = async (
         const values: Partial<Record<typeof input.child, unknown>> = {
           reconcile_gpt_attachment_set: {
             files: [
-              { artifactRef: "m0", displayName: "one.json", providerDisplayName: "one-attempt-1.json", sha256: HASH, bytes: 1 },
-              { artifactRef: "m1", displayName: "two.json", providerDisplayName: "two-attempt-1.json", sha256: HASH, bytes: 1 },
+              { artifactRef: "m0", displayName: "one.json", providerDisplayName: providerNames[0], sha256: HASH, bytes: 1 },
+              { artifactRef: "m1", displayName: "two.json", providerDisplayName: providerNames[1], sha256: HASH, bytes: 1 },
             ],
           },
           write_exact_gpt_prompt: { hash: HASH },
@@ -129,9 +173,9 @@ const exerciseSeoFlow = async (
           checkpoint_gpt_text_response: { assistantTurnId: "conversation-turn-2", rawText: text, rawHash: HASH },
           persist_gpt_continuation: { continuationRef: "gpt-continuation:test" },
           acquire_gpt_continuation_lane: {
-            continuation_ref: "gpt-continuation:test", lane_version: 1,
-            provider: { provider_page_url: "https://chatgpt.com/c/example", prior_task_id: "job",
-              prior_raw_output_hash: HASH, prior_turn_marker: marker },
+            continuation_ref: "gpt-continuation:test",
+            lane_version: input.productStepId === "article_synthesis" ? 1 : 2,
+            provider: continuationProvider,
           },
           wait_for_stable_gpt_image: { assistantTurnId: "conversation-turn-6", responseHash: HASH },
           checkpoint_gpt_generated_image: {
@@ -139,7 +183,19 @@ const exerciseSeoFlow = async (
             sha256: HASH, originalSha256: HASH, bytes: 42, mediaType: "image/webp", width: 1200, height: 630,
           },
         };
-        return { value: values[input.child] ?? {}, evidenceRef: `evidence:${calls.length}`, evidenceHash: HASH };
+        if (input.child === "persist_gpt_continuation") {
+          continuationProvider = input.input.provider as Readonly<Record<string, unknown>>;
+        }
+        if (input.child === "advance_gpt_continuation_lane") {
+          continuationProvider = input.input.provider as Readonly<Record<string, unknown>>;
+        }
+        const evidenceRef = `evidence:${calls.length}`;
+        factsByCall.set(factKey(input), {
+          evidenceRef,
+          mutation: input.child === "submit_exact_gpt_turn_once",
+          terminalAt: input.child === "submit_exact_gpt_turn_once" ? new Date().toISOString() : null,
+        });
+        return { value: values[input.child] ?? {}, evidenceRef, evidenceHash: HASH };
       },
     },
     complete: async (output: ProductPluginOutput) => {
@@ -172,13 +228,18 @@ const exerciseSeoFlow = async (
   assert.ok(handoffDelays.every((delay) => delay === 2_000), "every adjacent SEO Child must retain a 2s handoff floor");
   const firstPrompt = calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt;
   assert.equal(typeof firstPrompt, "string");
-  assert.match(firstPrompt as string, /one-attempt-1\.json 与 two-attempt-1\.json/u);
+  assert.match(firstPrompt as string, new RegExp(`${providerNames[0]} 与 ${providerNames[1]}`, "u"));
+  if (actionId === "produce_article") {
+    assert.match(firstPrompt as string, /public-knowledge-research-output\.v3/u);
+    assert.match(firstPrompt as string, /本回合不得返回 article package/u);
+    assert.doesNotMatch(firstPrompt as string, /ready_corpus_snapshot_hash|sha256:/u);
+  }
   const firstDraftFiles = calls.find((call) => call.child === "reconcile_gpt_draft")?.input.files;
   assert.deepEqual(
     Array.isArray(firstDraftFiles)
       ? firstDraftFiles.map((file) => (file as { providerDisplayName?: unknown }).providerDisplayName)
       : null,
-    ["one-attempt-1.json", "two-attempt-1.json"],
+    providerNames,
   );
   return { calls, completed: output };
 };
@@ -242,7 +303,7 @@ for (const plugin of productionPluginCatalog) {
   const firstRoute = plugin.accepts[0]!;
   assert.equal(resolveProductionPlugin(firstRoute.productId, firstRoute.actionId).plugin, plugin);
   if (plugin.pluginId === "public-knowledge-article-pipeline") {
-    assert.equal(plugin.pluginVersion, 12);
+    assert.equal(plugin.pluginVersion, 14);
     assert.doesNotMatch(source, /PRODUCT_FLOW_NOT_IMPLEMENTED:/u);
     assert.match(source, /corpus_research/u);
     assert.match(source, /article_synthesis/u);
@@ -267,6 +328,12 @@ for (const plugin of productionPluginCatalog) {
     assert.equal(proceed.calls.filter((call) => call.child === "attach_approved_gpt_files_once").length, 1);
     assert.equal(proceed.calls.filter((call) => call.child === "submit_exact_gpt_turn_once").length, 3);
     assert.equal(proceed.calls.filter((call) => call.child === "advance_gpt_continuation_lane").length, 2);
+    const prompts = proceed.calls.filter((call) => call.child === "write_exact_gpt_prompt")
+      .map((call) => String(call.input.prompt));
+    assert.match(prompts[0]!, /public-knowledge-research-output\.v3/u);
+    assert.match(prompts[1]!, /public-knowledge-article-output\.v3/u);
+    assert.match(prompts[2]!, /一张横向文章主图/u);
+    assert.doesNotMatch(prompts[2]!, /无文字|无印章|不冒充/u);
     assert.ok(proceed.completed.generated_image);
     for (const actionId of ["accuracy_challenge", "quality_reflection"] as const) {
       const review = await exerciseSeoFlow(plugin, actionId);

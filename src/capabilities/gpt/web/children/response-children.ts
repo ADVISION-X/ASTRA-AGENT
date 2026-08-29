@@ -9,7 +9,6 @@ import type { GptChildCapabilityIntent, GptExecutionContext } from "../../contra
 
 import type { GptChildHandlerMap, GptChildObservation } from "../child-handler.js";
 import {
-  numberInput,
   requireBrowser,
   requireExactInputKeys,
   stringInput,
@@ -31,6 +30,14 @@ const turnOrdinal = (testId: string): number => {
 
 const assistantSelector = (assistantTurnId: string): string =>
   `[data-testid=${JSON.stringify(assistantTurnId)}][data-turn='assistant']`;
+
+const providerWait = (
+  context: GptExecutionContext,
+  browser: BrowserTargetLease,
+  durationMs: number,
+): Promise<void> => context.yieldForProviderWait
+  ? context.yieldForProviderWait(Math.max(25, Math.min(5_000, Math.floor(durationMs))))
+  : browser.wait({ durationMs: Math.max(25, Math.min(5_000, Math.floor(durationMs))) });
 
 const readAssistantText = async (
   browser: BrowserTargetLease,
@@ -138,14 +145,17 @@ const persistGeneratedImage = async (input: Readonly<{
 
 export const responseChildHandlers = {
   async wait_for_stable_gpt_text(intent, context) {
-    requireExactInputKeys(intent, ["timeoutMs", "turnMarker"]);
+    requireExactInputKeys(intent, ["absoluteDeadline", "turnMarker"]);
     const marker = stringInput(intent, "turnMarker");
-    const timeoutMs = Math.max(1_000, Math.min(numberInput(intent, "timeoutMs"), 3_600_000));
+    const deadline = Date.parse(stringInput(intent, "absoluteDeadline"));
+    if (!Number.isFinite(deadline) || deadline > Date.now() + 3_600_000) {
+      throw executionFailure("failed", "GPT_RESPONSE_ABSOLUTE_DEADLINE_INVALID");
+    }
     const browser = requireBrowser(context);
-    const deadline = Date.now() + timeoutMs;
     let assistantTurnId: string | null = null;
     let priorHash: string | null = null;
     let stableSince = 0;
+    let probeDelayMs = 250;
     while (Date.now() < deadline) {
       if (context.signal?.aborted) throw executionFailure("failed", "GPT_RESPONSE_WAIT_ABORTED");
       const userCount = await findCount(browser, {
@@ -153,14 +163,20 @@ export const responseChildHandlers = {
       });
       if (userCount > 1) throw executionFailure("failed", `GPT_USER_TURN_COUNT_${userCount}`);
       if (userCount === 0) {
-        await browser.wait({ durationMs: 250 });
+        const remainingMs = deadline - Date.now();
+        if (remainingMs < 25) break;
+        await providerWait(context, browser, Math.min(probeDelayMs, remainingMs));
+        probeDelayMs = Math.min(5_000, Math.ceil(probeDelayMs * 1.5));
         continue;
       }
       const userTurnId = await readExactAttribute(browser, GPT_USER_TURN_SELECTOR, "data-testid", marker);
       assistantTurnId = `conversation-turn-${turnOrdinal(userTurnId) + 1}`;
       const assistantCount = await findCount(browser, { selector: assistantSelector(assistantTurnId), maxMatches: 2 });
       if (assistantCount !== 1) {
-        await browser.wait({ durationMs: 250 });
+        const remainingMs = deadline - Date.now();
+        if (remainingMs < 25) break;
+        await providerWait(context, browser, Math.min(probeDelayMs, remainingMs));
+        probeDelayMs = Math.min(5_000, Math.ceil(probeDelayMs * 1.5));
         continue;
       }
       const text = await readAssistantText(browser, assistantTurnId);
@@ -170,6 +186,7 @@ export const responseChildHandlers = {
         if (currentHash !== priorHash) {
           priorHash = currentHash;
           stableSince = Date.now();
+          probeDelayMs = 250;
         } else if (Date.now() - stableSince >= 3_000) {
           return success({
             value: { assistantTurnId, responseHash: currentHash, responseText: text },
@@ -180,11 +197,10 @@ export const responseChildHandlers = {
         }
       }
       const remainingMs = deadline - Date.now();
-      if (remainingMs > 0) {
-        await browser.wait({
-          durationMs: Math.max(25, Math.min(500, Math.ceil(remainingMs / 20))),
-        });
-      }
+      if (remainingMs >= 25) {
+        await providerWait(context, browser, Math.min(probeDelayMs, remainingMs));
+        probeDelayMs = Math.min(5_000, Math.ceil(probeDelayMs * 1.5));
+      } else break;
     }
     throw executionFailure("failed", "GPT_RESPONSE_STABILITY_TIMEOUT");
   },
@@ -244,18 +260,24 @@ export const responseChildHandlers = {
   },
 
   async wait_for_stable_gpt_image(intent, context) {
-    requireExactInputKeys(intent, ["timeoutMs", "turnMarker"]);
+    requireExactInputKeys(intent, ["absoluteDeadline", "turnMarker"]);
     const marker = stringInput(intent, "turnMarker");
-    const timeoutMs = Math.max(1_000, Math.min(numberInput(intent, "timeoutMs"), 3_600_000));
+    const deadline = Date.parse(stringInput(intent, "absoluteDeadline"));
+    if (!Number.isFinite(deadline) || deadline > Date.now() + 3_600_000) {
+      throw executionFailure("failed", "GPT_RESPONSE_ABSOLUTE_DEADLINE_INVALID");
+    }
     const browser = requireBrowser(context);
-    const deadline = Date.now() + timeoutMs;
     const state: StableImageState = { assistantTurnId: null, stableSince: 0 };
+    let probeDelayMs = 250;
     while (Date.now() < deadline) {
       if (context.signal?.aborted) throw executionFailure("failed", "GPT_IMAGE_WAIT_ABORTED");
       const observation = await observeStableImage(browser, marker, state);
       if (observation) return observation;
       const remaining = deadline - Date.now();
-      if (remaining > 0) await browser.wait({ durationMs: Math.max(25, Math.min(500, Math.ceil(remaining / 20))) });
+      if (remaining >= 25) {
+        await providerWait(context, browser, Math.min(probeDelayMs, remaining));
+        probeDelayMs = Math.min(5_000, Math.ceil(probeDelayMs * 1.5));
+      } else break;
     }
     throw executionFailure("failed", "GPT_IMAGE_STABILITY_TIMEOUT");
   },

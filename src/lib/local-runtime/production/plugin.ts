@@ -38,16 +38,43 @@ export type ProductGptChildResult = Readonly<{
   evidenceHash: ProductionHash;
 }>;
 
+export type ProductGptCallInput = Readonly<{
+  sessionKey?: string;
+  productStepId: string;
+  callId: string;
+  child: GptChildCapabilityId;
+  actionOrdinal: number;
+  input: Readonly<Record<string, unknown>>;
+}>;
+
+export type ExactGptCallFacts = Readonly<{
+  exactCallIdentityHash: ProductionHash;
+  mutation: Readonly<{
+    owner: "browser";
+    effectScope: "target_local" | "provider_effect";
+    outcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
+    terminalAt: string | null;
+  }> | null;
+  evidence: Readonly<{
+    owner: "forensics-persistence";
+    evidenceRef: string;
+    evidenceHash: ProductionHash;
+    readbackVerified: true;
+    artifactRefs: readonly string[];
+  }> | null;
+  continuation: Readonly<{
+    owner: "gpt-session-controller";
+    continuationRef: string;
+    conversationIdentityHash: ProductionHash;
+    laneVersion: number;
+    contentReadbackVerified: true;
+  }> | null;
+}>;
+
 export interface ProductGptTools {
   readonly attemptId: string;
-  execute(input: Readonly<{
-    sessionKey: string;
-    productStepId: string;
-    callId: string;
-    child: GptChildCapabilityId;
-    actionOrdinal: number;
-    input: Readonly<Record<string, unknown>>;
-  }>): Promise<ProductGptChildResult>;
+  execute(input: ProductGptCallInput & Readonly<{ sessionKey: string }>): Promise<ProductGptChildResult>;
+  readCallFacts(input: ProductGptCallInput): Promise<ExactGptCallFacts>;
 }
 
 export interface ProductPluginOutput {

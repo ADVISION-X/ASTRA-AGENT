@@ -11,7 +11,7 @@ import {
   validateStaticInspection,
 } from "../../shared/static-inspection-contract.js";
 
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V11";
+const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V12";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 16, 17, 18, 28),
   "static.ast": staticClauses(1, 2, 4, 5, 9, 10, 11, 13, 14, 15, 17, 18, 19, 20, 21, 23, 24, 25, 27, 28),

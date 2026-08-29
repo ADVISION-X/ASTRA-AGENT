@@ -20,7 +20,7 @@ import {
 } from "../../shared/static-inspection-contract.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 
-const LAW_ID = "LAW-GPT-001-V7";
+const LAW_ID = "LAW-GPT-001-V8";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 12, 15),
   "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14),
@@ -38,6 +38,8 @@ const CONTRACT_PATH = `${ROOT}/contract.ts`;
 const FACADE_PATH = `${ROOT}/index.ts`;
 const GROUP_PATH = `${ROOT}/ability-group.ts`;
 const SESSION_PATH = `${ROOT}/session/gpt-session-controller.ts`;
+const SESSION_CHILDREN_PATH = `${ROOT}/session/session-children.ts`;
+const RESPONSE_HANDLER_PATH = `${ROOT}/web/children/response-children.ts`;
 const TURN_EXECUTOR_PATH = `${ROOT}/gpt-turn-executor.ts`;
 const MODEL_SELECTION_V2_HANDLER_PATH = `${ROOT}/web/children/model-selection-v2-children.ts`;
 const MODEL_SELECTION_V2_CONTRACT_PATH = `${ROOT}/web/contracts/model-selection-v2.contract.ts`;
@@ -181,7 +183,7 @@ const inspectDenominatorAndContracts = (context: InspectorContext, findings: Ins
     `ChildCapabilityContract fields must remain exact; found ${actualFields.join(",")}.`,
   ));
   for (const proofField of [
-    "childCapabilityId", "executionId", "attemptId", "pluginId", "pluginVersion",
+    "childCapabilityId", "executionId", "jobId", "attemptId", "pluginId", "pluginVersion",
     "productStepId", "callId", "inputHash", "actionOrdinal", "targetRefHash",
     "beforeDocumentRefHash", "afterDocumentRefHash",
     "candidateCount", "observedSemantics",
@@ -389,16 +391,63 @@ const inspectUniqueRuntimeChain = (context: InspectorContext, findings: Inspecto
   }
 };
 
+const inspectIntelligentExecutionContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const contract = sourceFor(context, CONTRACT_PATH);
+  const identity = contract?.getVariableDeclaration("gptExactCallIdentityHash")?.getFullText() ?? "";
+  for (const required of [
+    "jobId", "attemptId", "pluginId", "pluginVersion", "productStepId", "callId",
+    "childCapabilityId", "inputHash",
+  ]) if (!identity.includes(required)) findings.push(finding(
+    "gpt/exact-call-identity", CONTRACT_PATH, `Exact GPT call identity is missing ${required}.`,
+  ));
+  if (identity.includes("actionOrdinal")) findings.push(finding(
+    "gpt/ordinal-separated-from-effect-identity", CONTRACT_PATH,
+    "actionOrdinal must remain a Product ordering proof outside the exact effect identity hash.",
+  ));
+  if (!contract?.getTypeAlias("GptExecutionContext")?.getFullText().includes("yieldForProviderWait")) findings.push(finding(
+    "gpt/cooperative-provider-yield-contract", CONTRACT_PATH,
+    "GptExecutionContext must expose the Product-neutral cooperative Provider wait yield hook.",
+  ));
+
+  const sessionChildren = sourceFor(context, SESSION_CHILDREN_PATH)?.getFullText() ?? "";
+  for (const required of ["gptExactCallIdentityHash", "gpt-continuation:"]) if (!sessionChildren.includes(required)) findings.push(finding(
+    "gpt/deterministic-continuation-ref", SESSION_CHILDREN_PATH,
+    `Continuation persistence must derive its ref from exact call identity; missing ${required}.`,
+  ));
+  if (sessionChildren.includes("randomUUID")) findings.push(finding(
+    "gpt/random-continuation-ref-retired", SESSION_CHILDREN_PATH,
+    "Random continuation refs are forbidden after deterministic cutover.",
+  ));
+  const controller = sourceFor(context, SESSION_PATH)?.getFullText() ?? "";
+  for (const required of [
+    "readGptContinuation", "sameProvider", "GPT_CONTINUATION_IDEMPOTENCY_CONFLICT",
+    "GPT_CONTINUATION_ADVANCE_CAS_FAILED", "GPT_CONTINUATION_RELEASE_CAS_FAILED",
+  ]) if (!controller.includes(required)) findings.push(finding(
+    "gpt/continuation-content-idempotency", SESSION_PATH,
+    `Continuation persist/advance/release readback is missing ${required}.`,
+  ));
+
+  const response = sourceFor(context, RESPONSE_HANDLER_PATH)?.getFullText() ?? "";
+  for (const required of [
+    'requireExactInputKeys(intent, ["absoluteDeadline", "turnMarker"])',
+    "Date.parse", "yieldForProviderWait", "Math.min(5_000",
+  ]) if (!response.includes(required)) findings.push(finding(
+    "gpt/absolute-deadline-dynamic-backoff", RESPONSE_HANDLER_PATH,
+    `Stable Provider wait is missing ${required}.`,
+  ));
+};
+
 const inspectGptContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {
   inspectDenominatorAndContracts(context, findings);
   inspectFacadeAndOwnership(context, findings);
   inspectAttachmentDomContract(context, findings);
   inspectUniqueRuntimeChain(context, findings);
+  inspectIntelligentExecutionContracts(context, findings);
 };
 
 const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const path of [
-    CONTRACT_PATH, FACADE_PATH, GROUP_PATH, SESSION_PATH,
+    CONTRACT_PATH, FACADE_PATH, GROUP_PATH, SESSION_PATH, SESSION_CHILDREN_PATH, RESPONSE_HANDLER_PATH,
     MODEL_SELECTION_V2_HANDLER_PATH, MODEL_SELECTION_V2_CONTRACT_PATH,
     EXECUTION_PROFILE_HANDLER_PATH, EXECUTION_PROFILE_CONTRACT_PATH,
     ATTACHMENT_HANDLER_PATH, ATTACHMENT_CONTRACT_PATH,

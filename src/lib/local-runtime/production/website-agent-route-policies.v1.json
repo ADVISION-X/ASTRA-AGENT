@@ -434,6 +434,178 @@
         }
       ],
       "result_schema_version": "public-knowledge-article-package.v1",
+      "result_contract": {
+        "schema_version": "public-knowledge-article-package-contract.v1",
+        "package": {
+          "schema_version": "public-knowledge-article-package.v1",
+          "exact_fields": [
+            "schema_version",
+            "research",
+            "article",
+            "image"
+          ],
+          "decline_requires_null": [
+            "article",
+            "image"
+          ],
+          "proceed_requires_non_null": [
+            "article",
+            "image"
+          ]
+        },
+        "research": {
+          "schema_version": "public-knowledge-research-output.v3",
+          "exact_fields": [
+            "schema_version",
+            "decision",
+            "topic_manifest",
+            "editorial_intent",
+            "catalog_comparison_note",
+            "research_markdown",
+            "citations",
+            "uncertainties",
+            "research_claim_units",
+            "closest_existing_article_ids",
+            "relation_assertions",
+            "novelty_basis"
+          ],
+          "decision_values": [
+            "proceed",
+            "decline"
+          ],
+          "novelty_basis_values": [
+            "independent_question",
+            "narrower_condition",
+            "broader_scope",
+            "new_relationship",
+            "new_source_conflict",
+            "new_method_boundary",
+            "new_source_exegesis",
+            "not_applicable"
+          ],
+          "topic_manifest": {
+            "exact_fields": [
+              "primary_question",
+              "answer_scope",
+              "excluded_scope",
+              "primary_cluster_id",
+              "secondary_cluster_ids",
+              "reader_level",
+              "concept_keys",
+              "relation_keys",
+              "method_scope"
+            ],
+            "reader_level_values": [
+              "introductory",
+              "intermediate",
+              "advanced"
+            ]
+          },
+          "citation": {
+            "exact_fields": [
+              "citation_id",
+              "book_id",
+              "locator"
+            ]
+          },
+          "uncertainty": {
+            "exact_fields": [
+              "uncertainty_id",
+              "topic",
+              "status",
+              "detail",
+              "impact"
+            ],
+            "status_values": [
+              "resolved",
+              "open",
+              "conflicting"
+            ]
+          },
+          "claim": {
+            "exact_fields": [
+              "claim_id",
+              "claim_kind",
+              "summary",
+              "conditions",
+              "exceptions",
+              "supporting_citations",
+              "counter_citations",
+              "uncertainty_refs"
+            ],
+            "claim_kind_values": [
+              "definition",
+              "relationship",
+              "method",
+              "condition",
+              "exception",
+              "comparison",
+              "disagreement",
+              "warning",
+              "boundary",
+              "uncertainty",
+              "source_exegesis"
+            ]
+          },
+          "relation": {
+            "exact_fields": [
+              "target_article_id",
+              "relation_kind",
+              "supporting_claim_ids"
+            ],
+            "relation_kind_values": [
+              "prerequisite",
+              "broader_question",
+              "narrower_question",
+              "contrast",
+              "exception",
+              "source_disagreement",
+              "method_alternative",
+              "common_error"
+            ]
+          }
+        },
+        "article": {
+          "schema_version": "public-knowledge-article-output.v3",
+          "exact_fields": [
+            "schema_version",
+            "title",
+            "editor_note",
+            "article_markdown",
+            "citations",
+            "claim_coverage",
+            "safety_notes"
+          ],
+          "claim_coverage": {
+            "exact_fields": [
+              "claim_id",
+              "status",
+              "reason_if_omitted"
+            ],
+            "status_values": [
+              "addressed",
+              "intentionally_omitted"
+            ]
+          }
+        },
+        "image": {
+          "schema_version": "public-knowledge-agent-hero-image.v1",
+          "exact_fields": [
+            "schema_version",
+            "artifact_id",
+            "object_ref",
+            "sha256",
+            "receipt_hash",
+            "bytes",
+            "mime_type",
+            "width",
+            "height"
+          ],
+          "mime_type": "image/webp",
+          "width": 1200,
+          "height": 630
+        }
+      },
       "relation_kind": "primary"
     },
     {

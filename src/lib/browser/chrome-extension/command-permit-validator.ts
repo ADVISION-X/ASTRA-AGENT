@@ -14,6 +14,7 @@ export type ExtensionCommandPermit = Readonly<{
   candidateHash: BrowserHash;
   contractManifestHash: BrowserHash;
   ownerPluginId: string;
+  pluginVersion: number;
   jobId: string;
   attemptId: string;
   deviceId: string;
@@ -84,6 +85,8 @@ const hasValidPermitMetadata = (permit: ExtensionCommandPermit): boolean => perm
   && permit.actionOrdinal >= 1
   && Number.isInteger(permit.leaseVersion)
   && permit.leaseVersion >= 1
+  && Number.isInteger(permit.pluginVersion)
+  && permit.pluginVersion >= 1
   && Number.isInteger(permit.commandTtlMs)
   && permit.commandTtlMs >= 1
   && permit.commandTtlMs <= 3_600_000

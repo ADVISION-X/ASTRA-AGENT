@@ -67,7 +67,10 @@ export type BrowserTargetLease = Readonly<{
     maxBytes: number;
   }>): Promise<BrowserFileArtifactGrantV1>;
   wait(input: Readonly<{ durationMs: number }>): Promise<void>;
-  park(input: Readonly<{ reason: string }>): Promise<void>;
+  park(input: Readonly<{
+    reason: string;
+    mode: "normal-provider-wait" | "recovery";
+  }>): Promise<void>;
   close(input: Readonly<{ reason: string }>): Promise<void>;
   resolvePendingMutation(
     input: Omit<BrowserOutcomeResolutionReceipt, "commandId">,

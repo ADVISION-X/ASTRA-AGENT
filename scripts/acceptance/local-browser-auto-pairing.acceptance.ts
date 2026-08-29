@@ -458,7 +458,7 @@ emitQualityProofObservation({
 emitQualityProofObservation({
   passed: true,
   findings: [],
-  lawId: "LAW-LOCAL-BROWSER-SESSION-003-V13",
+  lawId: "LAW-LOCAL-BROWSER-SESSION-003-V14",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:1", "forbidden:13", "forbidden:2", "forbidden:3", "summary"],
   locator: "acceptance:local-browser-terminal:job-target-golden",

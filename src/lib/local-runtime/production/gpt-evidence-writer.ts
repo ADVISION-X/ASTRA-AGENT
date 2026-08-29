@@ -23,9 +23,15 @@ export const persistedEvidenceRefs = new WeakMap<object, string>();
 const hash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
-const safeProjection = (proof: GptChildCapabilityProof): Readonly<Record<string, unknown>> => Object.freeze({
+const safeProjection = (
+  proof: GptChildCapabilityProof,
+  exactCallIdentityHash: `sha256:${string}`,
+): Readonly<Record<string, unknown>> => Object.freeze({
   schema_version: "agent-gpt-evidence-safe.v1",
+  exact_call_identity_hash: exactCallIdentityHash,
   child_capability_id: proof.childCapabilityId,
+  plugin_version: proof.pluginVersion,
+  action_ordinal: proof.actionOrdinal,
   execution_identity_hash: hash(proof.executionId),
   candidate_count: proof.candidateCount,
   committed_mutation: proof.committedMutation,
@@ -65,12 +71,12 @@ const appendVerifiedArtifact = async (input: Readonly<{
   jobId: string;
   attemptId: string;
   executionId: string;
-  evidenceHash: string;
+  exactCallIdentityHash: `sha256:${string}`;
 }>): Promise<string> => {
   const appended = await input.evidenceStore.appendArtifact({
     missionId: input.jobId, runId: input.attemptId, correlationId: input.executionId,
     artifactType: input.artifact.artifactType, mimeType: input.artifact.mimeType, content: input.artifact.content,
-    idempotencyKey: `${input.evidenceHash}:${input.artifact.suffix}`,
+    idempotencyKey: `gpt-call-artifact:v1:${input.exactCallIdentityHash}:${input.artifact.suffix}`,
   });
   if (appended.status !== "success" || !appended.artifactRef) {
     throw executionFailure("failed", "EVIDENCE_ARTIFACT_APPEND_FAILED");
@@ -94,21 +100,23 @@ export const persistGptChildEvidence = async (input: Readonly<{
   jobId: string;
   attemptId: string;
   stepId: string;
+  exactCallIdentityHash: `sha256:${string}`;
 }>): Promise<string> => {
   const artifactRefs: string[] = [];
   for (const artifact of await evidenceArtifacts(input.result, input.intent)) {
     artifactRefs.push(await appendVerifiedArtifact({
       artifact, evidenceStore: input.evidenceStore, jobId: input.jobId, attemptId: input.attemptId,
-      executionId: input.intent.executionId, evidenceHash: input.result.proof.evidenceHash,
+      executionId: input.intent.executionId, exactCallIdentityHash: input.exactCallIdentityHash,
     }));
   }
-  const projection = safeProjection(input.result.proof);
+  const projection = safeProjection(input.result.proof, input.exactCallIdentityHash);
   const appended = await input.evidenceStore.appendRecord({
     missionId: input.jobId, runId: input.attemptId, stepId: input.stepId, sourceCapabilityId: "gpt",
     sourceChildCapabilityId: input.result.proof.childCapabilityId,
     recordType: input.result.proof.committedMutation === "dispatched" ? "failure" : "evidence",
     recordPayload: projection, ...(artifactRefs.length ? { artifactRefs } : {}),
-    idempotencyKey: input.result.proof.evidenceHash, correlationId: input.intent.executionId,
+    idempotencyKey: `gpt-call-evidence:v1:${input.exactCallIdentityHash}`,
+    correlationId: input.intent.executionId,
     createdAt: input.result.proof.endedAt,
   });
   if (appended.status !== "success" || !appended.recordRef) throw executionFailure("failed", "EVIDENCE_APPEND_FAILED");

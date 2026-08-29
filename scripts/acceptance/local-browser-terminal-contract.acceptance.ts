@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -14,13 +15,17 @@ import { verifyBrowserArtifactAndLockContracts } from "./local-browser-artifact-
 
 const hash = `sha256:${"a".repeat(64)}` as const;
 const negativeHash = `sha256:${"b".repeat(64)}` as const;
+const exactHash = (value: string): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(value).digest("hex")}`;
 const identity = (
   commandId: string,
   jobId = "job-1",
   ownerPluginId = "fixture-product-plugin",
 ) => ({
   commandId,
+  exactCallIdentityHash: exactHash(commandId),
   ownerPluginId,
+  pluginVersion: 1,
   jobId,
   attemptId: "attempt-1",
   leaseVersion: 1,
@@ -50,6 +55,7 @@ const permit = (commandId: string): BrowserCommandPermit => ({
   candidateHash: hash,
   contractManifestHash: hash,
   ownerPluginId: "fixture-product-plugin",
+  pluginVersion: 1,
   jobId: `job:${commandId}`,
   attemptId: "attempt-actor",
   deviceId: "device-1",
@@ -284,7 +290,7 @@ try {
 emitQualityProofObservation({
   passed: true,
   findings: [],
-  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V12",
+  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V13",
   evidenceMode: "exam.golden",
   clauses: [
     "forbidden:0",

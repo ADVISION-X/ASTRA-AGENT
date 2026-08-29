@@ -17,6 +17,7 @@ const HASH = `sha256:${"a".repeat(64)}` as const;
 const binding = (jobId: string, productStepId = "fixture-step"): BrowserExecutionBinding => ({
   kind: "production",
   ownerPluginId: "plugin",
+  pluginVersion: 1,
   jobId,
   productStepId,
   attemptId: `attempt:${jobId}`,
@@ -84,7 +85,9 @@ try {
   const mutationStore = new BrowserMutationStore(temporary);
   mutationStore.prepare({
     commandId: "historic-dispatched-command",
+    exactCallIdentityHash: HASH,
     ownerPluginId: "plugin",
+    pluginVersion: 1,
     jobId: "job:historic",
     attemptId: "attempt:historic",
     leaseVersion: 1,
@@ -169,7 +172,7 @@ try {
   );
   assert.deepEqual([recovered.target.targetRef, recovered.document.documentRef],
     ["target:historic", "document:historic"]);
-  await recovered.park({ reason: "recovery-scope-proven" });
+  await recovered.park({ reason: "recovery-scope-proven", mode: "recovery" });
   const first = await supervisor.acquireJobBoundTargetLease(
     binding("job:1"),
     "owner:1",

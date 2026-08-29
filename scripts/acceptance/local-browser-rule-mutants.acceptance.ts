@@ -10,6 +10,7 @@ const root = await mkdtemp(join(tmpdir(), "browser-mutation-attacks-"));
 const hash = `sha256:${"b".repeat(64)}` as const;
 const negativeHash = `sha256:${"d".repeat(64)}` as const;
 const logicalMutationId = `sha256:${"c".repeat(64)}` as const;
+const exactCallIdentityHash = `sha256:${"e".repeat(64)}` as const;
 try {
   assert.deepEqual(assertBrowserDomIntent({
     kind: "hover", selector: "[role='menuitem'][aria-haspopup='menu']",
@@ -62,7 +63,8 @@ try {
   "keypress admission must stay closed to unowned keys");
   const store = new BrowserMutationStore(root);
   store.prepare({
-    commandId: "command-1", logicalMutationId, ownerPluginId: "fixture-product-plugin",
+    commandId: "command-1", logicalMutationId, exactCallIdentityHash,
+    ownerPluginId: "fixture-product-plugin", pluginVersion: 1,
     jobId: "job-1", attemptId: "attempt-1", leaseVersion: 1,
     executionFenceHash: hash, targetRef: "target-1", documentRef: "document-1",
     productStepId: "step-1", callId: "call-1", childCapabilityId: "open_gpt_model_selector_v2",
@@ -74,7 +76,8 @@ try {
   store.markDispatched("command-1");
   store.markReceiptMissing("command-1");
   assert.throws(() => store.prepare({
-    commandId: "command-retry", logicalMutationId, ownerPluginId: "fixture-product-plugin",
+    commandId: "command-retry", logicalMutationId, exactCallIdentityHash,
+    ownerPluginId: "fixture-product-plugin", pluginVersion: 1,
     jobId: "job-1", attemptId: "attempt-2", leaseVersion: 2,
     executionFenceHash: hash, targetRef: "target-1", documentRef: "document-1",
     productStepId: "step-1", callId: "call-1", childCapabilityId: "open_gpt_model_selector_v2",
@@ -86,22 +89,47 @@ try {
   assert.throws(() => store.resolve({ commandId: "command-1", ownerPluginId: "fixture-product-plugin", targetRef: "target-2", state: "CONFIRMED", proofHash: hash }), /BROWSER_MUTATION_STATE_CONFLICT/u);
   assert.equal(store.readDispatched("command-1")?.childCapabilityId, "open_gpt_model_selector_v2");
   assert.equal(store.atomicStepRecovery({
-    jobId: "job-1", ownerPluginId: "fixture-product-plugin", productStepId: "step-1",
-    callId: "call-1", childCapabilityId: "open_gpt_model_selector_v2",
-    inputHash: hash, actionOrdinal: 1, targetRef: "target-1", effectScope: "target_local",
+    jobId: "job-1", attemptId: "attempt-1", ownerPluginId: "fixture-product-plugin",
+    pluginVersion: 1, exactCallIdentityHash,
+    actionOrdinal: 1, targetRef: "target-1", effectScope: "target_local",
   })?.state, "dispatched");
   assert.equal(store.atomicStepRecovery({
-    jobId: "job-1", ownerPluginId: "fixture-product-plugin", productStepId: "step-1",
-    callId: "call-1", childCapabilityId: "open_gpt_model_selector_v2",
-    inputHash: hash, actionOrdinal: 1, targetRef: "target-2", effectScope: "target_local",
+    jobId: "job-1", attemptId: "attempt-1", ownerPluginId: "fixture-product-plugin",
+    pluginVersion: 1, exactCallIdentityHash,
+    actionOrdinal: 1, targetRef: "target-2", effectScope: "target_local",
   }), null, "target-local recovery identity must not cross Target generations");
   store.resolve({ commandId: "command-1", ownerPluginId: "fixture-product-plugin", targetRef: "target-1", state: "REJECTED", proofHash: hash });
+  const rejectedFact = store.readExactCallMutationFact({
+    jobId: "job-1", attemptId: "attempt-1", ownerPluginId: "fixture-product-plugin",
+    pluginVersion: 1, exactCallIdentityHash, actionOrdinal: 1,
+  });
+  assert.equal(rejectedFact?.outcome, "REJECTED");
+  assert.equal(typeof rejectedFact?.terminalAt, "string");
+  assert.throws(() => store.readExactCallMutationFact({
+    jobId: "job-1", attemptId: "attempt-1", ownerPluginId: "fixture-product-plugin",
+    pluginVersion: 1, exactCallIdentityHash, actionOrdinal: 2,
+  }), /BROWSER_ACTION_SEQUENCE_DRIFT/u,
+  "actionOrdinal must be checked after exact effect identity lookup and must not create a second mutation");
+  assert.throws(() => store.prepare({
+    commandId: "command-cross-generation", logicalMutationId: `sha256:${"0".repeat(64)}`,
+    exactCallIdentityHash, ownerPluginId: "fixture-product-plugin", pluginVersion: 1,
+    jobId: "job-1", attemptId: "attempt-1", leaseVersion: 2,
+    executionFenceHash: hash, targetRef: "target-2", documentRef: "document-2",
+    productStepId: "step-1", callId: "call-1", childCapabilityId: "open_gpt_model_selector_v2",
+    effectScope: "target_local", actionOrdinal: 1,
+    actionId: "browser.dom.click.v1", positivePostconditionHash: hash,
+    negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
+  }), /BROWSER_EXACT_CALL_REPLAY_FORBIDDEN/u,
+  "verified target-local facts must prevent physical replay in a new Target generation");
   assert.equal(store.callRecoveryScope({
-    jobId: "job-1", ownerPluginId: "fixture-product-plugin", productStepId: "step-1",
-  }), null, "a target-local REJECTED action must not preserve and globally block the old Target");
+    jobId: "job-1", attemptId: "attempt-1", ownerPluginId: "fixture-product-plugin",
+    pluginVersion: 1, productStepId: "step-1",
+  })?.targetRef, "target-1", "a terminal target-local fact must preserve the exact old Target for read-only recovery");
   store.prepare({
     commandId: "command-new-target", logicalMutationId: `sha256:${"e".repeat(64)}`,
-    ownerPluginId: "fixture-product-plugin", jobId: "job-1", attemptId: "attempt-2", leaseVersion: 2,
+    exactCallIdentityHash: `sha256:${"1".repeat(64)}`,
+    ownerPluginId: "fixture-product-plugin", pluginVersion: 1,
+    jobId: "job-1", attemptId: "attempt-2", leaseVersion: 2,
     executionFenceHash: hash, targetRef: "target-2", documentRef: "document-2",
     productStepId: "step-1", callId: "call-1", childCapabilityId: "open_gpt_model_selector_v2",
     effectScope: "target_local", actionOrdinal: 1,
@@ -112,7 +140,9 @@ try {
   store.markConfirmed("command-new-target", hash);
   store.prepare({
     commandId: "command-provider-effect", logicalMutationId: `sha256:${"f".repeat(64)}`,
-    ownerPluginId: "fixture-product-plugin", jobId: "job-1", attemptId: "attempt-2", leaseVersion: 2,
+    exactCallIdentityHash: `sha256:${"2".repeat(64)}`,
+    ownerPluginId: "fixture-product-plugin", pluginVersion: 1,
+    jobId: "job-1", attemptId: "attempt-2", leaseVersion: 2,
     executionFenceHash: hash, targetRef: "target-2", documentRef: "document-2",
     productStepId: "step-provider", callId: "call-provider", childCapabilityId: "submit_exact_gpt_turn_once",
     effectScope: "provider_effect", actionOrdinal: 13,
@@ -122,9 +152,9 @@ try {
   store.markDispatched("command-provider-effect");
   store.markConfirmed("command-provider-effect", hash);
   assert.equal(store.atomicStepRecovery({
-    jobId: "job-1", ownerPluginId: "fixture-product-plugin", productStepId: "step-provider",
-    callId: "call-provider", childCapabilityId: "submit_exact_gpt_turn_once",
-    inputHash: hash, actionOrdinal: 13, targetRef: "target-replacement", effectScope: "provider_effect",
+    jobId: "job-1", attemptId: "attempt-2", ownerPluginId: "fixture-product-plugin",
+    pluginVersion: 1, exactCallIdentityHash: `sha256:${"2".repeat(64)}`,
+    actionOrdinal: 13, targetRef: "target-replacement", effectScope: "provider_effect",
   })?.state, "confirmed", "provider effects must recover across Target/attempt generations without replay");
   store.close();
   process.stdout.write("LOCAL_BROWSER_RULE_MUTANTS_PASS\n");

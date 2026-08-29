@@ -32,13 +32,18 @@ if (artifact.schema_version !== "website-agent-route-policies.v1"
 const identities = new Set<string>();
 const usedParameters = new Set<string>();
 for (const route of artifact.routes) {
-  if (!isRecord(route) || !exactKeys(route, ["product_id", "action_id", "required_parameter_keys",
-    "material_roles", "result_schema_version", "relation_kind"])
+  const routeKeys = ["product_id", "action_id", "required_parameter_keys",
+    "material_roles", "result_schema_version", "relation_kind",
+    ...(isRecord(route) && route.result_contract !== undefined ? ["result_contract"] : [])];
+  if (!isRecord(route) || !exactKeys(route, routeKeys)
     || typeof route.product_id !== "string" || typeof route.action_id !== "string"
     || typeof route.result_schema_version !== "string" || !route.result_schema_version
     || !Array.isArray(route.required_parameter_keys) || !Array.isArray(route.material_roles)
     || route.material_roles.length < 1) throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_INVALID");
   const identity = `${route.product_id}\0${route.action_id}`;
+  if ((identity === "public_knowledge_article_pipeline\0produce_article") !== isRecord(route.result_contract)) {
+    throw new Error("WEBSITE_AGENT_ROUTE_POLICY_RESULT_CONTRACT_INVALID");
+  }
   if (identities.has(identity)) throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_DUPLICATE");
   identities.add(identity);
   for (const key of route.required_parameter_keys) {

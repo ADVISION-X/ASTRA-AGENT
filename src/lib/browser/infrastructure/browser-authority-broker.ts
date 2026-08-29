@@ -10,6 +10,7 @@ import type { BrowserControlledTarget, BrowserHash } from "../exact-target/brows
 export type BrowserExecutionBinding = Readonly<{
   kind: "local" | "production" | "production-reconciliation";
   ownerPluginId: string;
+  pluginVersion: number;
   jobId: string;
   productStepId: string;
   attemptId: string;

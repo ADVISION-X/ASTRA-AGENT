@@ -231,7 +231,13 @@ export class BrowserTargetLeaseManager {
         throw new Error("BROWSER_FILE_GRANT_INVALID");
       },
       wait: async ({ durationMs }) => { await command("browser.wait.v1", { kind: "wait", durationMs }); },
-      park: async ({ reason }) => {
+      park: async ({ reason, mode }) => {
+        const unresolved = state.pendingMutationCommandIds.length > 0
+          || this.commandActor.requiresMutationRecovery(this.executionBinding, input.target.target.targetRef);
+        if ((mode === "normal-provider-wait" && unresolved)
+          || (mode === "recovery" && !unresolved)) {
+          throw new Error("BROWSER_PARK_MODE_INVALID");
+        }
         await command("browser.park-target.v1", { kind: "park-target", reason });
         state.closed = true;
       },
@@ -368,6 +374,7 @@ export class BrowserTargetLeaseManager {
       candidateHash: this.executionBinding.candidateHash,
       contractManifestHash: this.executionBinding.contractManifestHash,
       ownerPluginId: this.executionBinding.ownerPluginId,
+      pluginVersion: this.executionBinding.pluginVersion,
       jobId: this.executionBinding.jobId,
       attemptId: this.executionBinding.attemptId,
       deviceId: this.executionBinding.deviceId,

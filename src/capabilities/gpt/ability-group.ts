@@ -65,6 +65,7 @@ const proofFor = (input: Readonly<{
     schemaVersion: "gpt-child-capability-proof.v2" as const,
     childCapabilityId: input.intent.childCapabilityId,
     executionId: input.intent.executionId,
+    jobId: input.intent.jobId,
     attemptId: input.intent.attemptId,
     pluginId: input.intent.pluginId,
     pluginVersion: input.intent.pluginVersion,
@@ -188,7 +189,7 @@ const executeOne = async (
   const before = currentDocument(context);
   let observation: GptChildObservation | undefined;
   try {
-    if (!intent.executionId || !intent.attemptId || !intent.pluginId
+    if (!intent.executionId || !intent.jobId || !intent.attemptId || !intent.pluginId
       || !Number.isSafeInteger(intent.pluginVersion) || intent.pluginVersion < 1
       || !intent.productStepId || !intent.callId
       || !Number.isSafeInteger(intent.actionOrdinal) || intent.actionOrdinal < 1

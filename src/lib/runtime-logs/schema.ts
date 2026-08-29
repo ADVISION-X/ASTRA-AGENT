@@ -46,7 +46,7 @@ const identityEntryValid = (input: Readonly<{
   numberKeys: ReadonlySet<string>;
 }>): boolean => input.key === "kind"
   || (input.numberKeys.has(input.key)
-    ? Number.isInteger(input.item) && Number(input.item) >= 0
+    ? Number.isInteger(input.item) && Number(input.item) >= (input.key === "pluginVersion" || input.key === "actionOrdinal" ? 1 : 0)
     : token(input.item));
 
 const identityValid = (value: unknown): value is RuntimeTypedIdentity => {
@@ -62,12 +62,15 @@ const identityValid = (value: unknown): value is RuntimeTypedIdentity => {
     "job-attempt": { required: ["kind", "jobId", "attemptId"] },
     lease: { required: ["kind", "jobId", "attemptId", "leaseVersion", "fenceHash"], numbers: ["leaseVersion"] },
     "plugin-step": { required: ["kind", "jobId", "attemptId", "pluginId", "stepId"] },
-    "gpt-call": { required: ["kind", "jobId", "attemptId", "pluginId", "stepId", "capabilityCallId"] },
+    "gpt-call": {
+      required: ["kind", "jobId", "attemptId", "pluginId", "pluginVersion", "stepId", "capabilityCallId"],
+      numbers: ["pluginVersion"],
+    },
     "browser-command": {
-      required: ["kind", "jobId", "attemptId", "leaseVersion", "fenceHash", "pluginId", "commandId",
+      required: ["kind", "jobId", "attemptId", "leaseVersion", "fenceHash", "pluginId", "pluginVersion", "commandId",
         "pluginStepId", "childCapabilityId", "actionOrdinal"],
       optional: ["capabilityCallId"],
-      numbers: ["leaseVersion", "actionOrdinal"],
+      numbers: ["leaseVersion", "pluginVersion", "actionOrdinal"],
     },
     "browser-mutation": { required: ["kind", "jobId", "attemptId", "commandId"] },
     checkpoint: { required: ["kind", "jobId", "attemptId", "checkpointId"] },

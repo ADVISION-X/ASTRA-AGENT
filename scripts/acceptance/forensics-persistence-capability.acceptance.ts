@@ -45,6 +45,39 @@ try {
   assert.equal(recordConflict.status, "failed");
   assert.match(recordConflict.failureReason ?? "", /FORENSICS_IDEMPOTENCY_CONFLICT/u);
 
+  const exactCallIdentityHash = `sha256:${"7".repeat(64)}` as const;
+  const exactEvidence = await group.appendRecord({
+    missionId: "mission-exact",
+    runId: "run-exact",
+    stepId: "step-exact",
+    sourceCapabilityId: "gpt",
+    sourceChildCapabilityId: "submit_exact_gpt_turn_once",
+    recordType: "evidence",
+    recordPayload: {
+      exact_call_identity_hash: exactCallIdentityHash,
+      action_ordinal: 12,
+      source_evidence_hash: `sha256:${"8".repeat(64)}`,
+    },
+    idempotencyKey: `gpt-call-evidence:v1:${exactCallIdentityHash}`,
+  });
+  const exactReadback = await group.readExactCallEvidence({
+    missionId: "mission-exact",
+    runId: "run-exact",
+    exactCallIdentityHash,
+  });
+  assert.equal(exactReadback?.recordRef, exactEvidence.recordRef,
+    "exact call identity must derive and read back the original deterministic recordRef");
+  assert.deepEqual(exactReadback?.record.payload, {
+    exact_call_identity_hash: exactCallIdentityHash,
+    action_ordinal: 12,
+    source_evidence_hash: `sha256:${"8".repeat(64)}`,
+  });
+  assert.equal(await group.readExactCallEvidence({
+    missionId: "mission-exact",
+    runId: "run-exact",
+    exactCallIdentityHash: `sha256:${"9".repeat(64)}`,
+  }), null, "an absent exact call must remain a null fact without creating a record");
+
   const artifact = await group.appendArtifact({
     missionId: "mission-1",
     runId: "run-1",
@@ -119,6 +152,6 @@ try {
 }
 
 process.stdout.write("[ACCEPTANCE] forensics-persistence-capability PASS\n");
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V3", evidenceMode: "exam.golden", clauses: ["forbidden:0","summary"], locator: "acceptance:forensics:append-only-record", observedValue: "record append and integrity hash verified" });
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V3", evidenceMode: "exam.golden", clauses: ["forbidden:0","summary"], locator: "acceptance:forensics:artifact-index", observedValue: "artifact index binds integrity hash without embedding private body" });
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V4", evidenceMode: "exam.golden", clauses: ["forbidden:0","summary"], locator: "acceptance:forensics:append-only-record", observedValue: "exact-call record append, deterministic readback, and integrity hash verified" });
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V4", evidenceMode: "exam.golden", clauses: ["forbidden:0","summary"], locator: "acceptance:forensics:artifact-index", observedValue: "exact-call keys bind one record and artifact index without embedding private body" });
 emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V3", evidenceMode: "exam.golden", clauses: ["forbidden:0","summary"], locator: "acceptance:forensics:storage-owner", observedValue: "ability group persists through sole governed file storage" });

@@ -14,7 +14,10 @@ import type {
 import { hashExtensionDirectoryV1 } from "../browser/release/extension-directory-hash-v1.js";
 import { readUnpackedExtensionReleaseIdentity } from "../browser/release/unpacked-extension-release-identity.js";
 import type { RuntimeLogger } from "../runtime-logs/index.js";
-import type { BrowserMutationReconciliationScope } from "../browser/exact-target/browser-mutation-store.js";
+import type {
+  BrowserExactCallMutationFact,
+  BrowserMutationReconciliationScope,
+} from "../browser/exact-target/browser-mutation-store.js";
 
 export type WorkbenchBrowserAuthority = Readonly<{
   broker: Pick<
@@ -48,6 +51,14 @@ export type WorkbenchBrowserAuthority = Readonly<{
       ownerPluginId: string;
     }>,
   ): BrowserMutationReconciliationScope | null;
+  readExactCallMutationFact(input: Readonly<{
+    jobId: string;
+    attemptId: string;
+    ownerPluginId: string;
+    pluginVersion: number;
+    exactCallIdentityHash: `sha256:${string}`;
+    actionOrdinal: number;
+  }>): BrowserExactCallMutationFact | null;
   acquireJobBoundTargetLease(
     binding: BrowserExecutionBinding,
     ownerId: string,
@@ -130,6 +141,7 @@ export const createWorkbenchBrowserAuthority = async (
       supervisor.countProviderTurnDispatches(jobId, attemptId),
     readBrowserReconciliationScope: (input) =>
       supervisor.readBrowserReconciliationScope(input),
+    readExactCallMutationFact: (input) => supervisor.readExactCallMutationFact(input),
     acquireJobBoundTargetLease: (binding, ownerId, wait) =>
       supervisor.acquireJobBoundTargetLease(binding, ownerId, wait),
     acceptBrowserAuthoritySocket: (socket) => ({

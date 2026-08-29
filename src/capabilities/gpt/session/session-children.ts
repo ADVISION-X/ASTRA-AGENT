@@ -1,4 +1,4 @@
-import type { GptChildCapabilityIntent } from "../contract.js";
+import { gptExactCallIdentityHash, type GptChildCapabilityIntent } from "../contract.js";
 import { executionFailure } from "../../../lib/typed-failure.js";
 import type { GptChildHandlerMap } from "../web/child-handler.js";
 import {
@@ -54,9 +54,9 @@ export const sessionChildHandlers = {
   async persist_gpt_continuation(intent, context) {
     requireExactInputKeys(intent, [
       "authorizationRef", "jobId", "ownerRef", "pluginId", "provider", "subjectRef",
-    ], ["continuationRef"]);
+    ]);
     const ref = controller(context).persist({
-      ...(intent.input.continuationRef === undefined ? {} : { continuationRef: stringInput(intent, "continuationRef") }),
+      continuationRef: `gpt-continuation:${gptExactCallIdentityHash(intent).slice(7)}`,
       jobId: stringInput(intent, "jobId"),
       pluginId: stringInput(intent, "pluginId"),
       ownerRef: stringInput(intent, "ownerRef"),
