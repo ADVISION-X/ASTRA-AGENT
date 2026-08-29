@@ -227,6 +227,14 @@ assert.equal(getTargetsCalls, 0, "job acquisition must not enumerate or reuse op
 assert.deepEqual(createdTab, { active: false, url: "https://chatgpt.com/" });
 assert.equal(targetFrames[0]?.kind, "TARGET_CLAIM");
 assert.equal(targetFrames[0]?.body.url, "https://chatgpt.com/");
+const firstTargetRef = String(targetFrames[0]?.body.targetRef);
+await targetAuthority.parkActiveTarget();
+assert.equal(targetFrames.at(-1)?.kind, "TARGET_REVOKE");
+await targetAuthority.acquireJobBoundChatGptTarget(firstTargetRef);
+assert.deepEqual(attachedTabs, [3, 3],
+  "same-job recovery must reattach the exact parked Target without creating or guessing another tab");
+assert.equal(nextCreatedTabId, 4);
+assert.equal(targetFrames.at(-1)?.body.targetRef, firstTargetRef);
 await targetAuthority.releaseActiveTarget(false);
 
 let delayedComposerQueries = 0;
@@ -395,7 +403,7 @@ emitQualityProofObservation({
 emitQualityProofObservation({
   passed: true,
   findings: [],
-  lawId: "LAW-LOCAL-BROWSER-SESSION-003-V12",
+  lawId: "LAW-LOCAL-BROWSER-SESSION-003-V13",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:1", "forbidden:13", "forbidden:2", "forbidden:3", "summary"],
   locator: "acceptance:local-browser-terminal:job-target-golden",

@@ -3,11 +3,11 @@
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v1",
+  "blueprintId": "agent-production-runtime-v4",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V7"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V8"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -42,9 +42,10 @@
   -> 唯一共享 GPT Turn 执行器恢复或推进一个产品中性 turn
   -> GPT 能力组或其它公共 Capability 的一个原子动作
   -> result artifact + execution evidence
-  -> V6 first-terminal CAS
-  -> 网站 business-result-ready
-  -> 唯一领域 consumer 入库、发布或交付
+  -> V6 completion submission CAS
+  -> 网站 delivery_pending
+  -> 唯一领域 consumer 入库、发布或交付并签发 hash-bound admission receipt
+  -> AGENT 对账 receipt 后本地 completed
 ```
 
 任何组件只要回答“该产品下一步做什么”，它就是 Execution Owner；这个权力只属于命中的 Product Plugin。Mediator、shared runtime、Capability、网站 sender/receiver 都不得回答。
@@ -118,6 +119,7 @@ Product Skill 只保存专业规则、Provider-facing 指令、提示词语义�
 `src/lib/local-runtime/production/` 只承接从旧巨型 Plugin 抽出的产品中性底座：
 
 - V6 session、heartbeat、claim、capacity、lease、renew、fence 与 control intent；
+- control intent 只有一条单调序列：初始必须是 `none/0`，网站每持久化一次真实 `pause_requested|cancel_requested|handover_requested` 才把 epoch 递增为正数；AGENT 严格消费该序列，不生成、归一化或推测 epoch；
 - immutable task 接受、material 下载和鉴权；
 - SQLite/WAL、checkpoint、artifact、terminal 与 durable Outbox；
 - job lifetime、abort/settle、全局最老 eligible 调度和单 Browser mutation lock；
@@ -143,12 +145,12 @@ Product Plugin 决定业务轮次、模型策略、附件、fresh/continuation �
   -> 每步持久化后继续，最终 turn receipt / typed failure 返回 Product Plugin
 ```
 
-GPT 公开子能力分母固定为 22 项，不多不少：
+GPT 公开子能力分母固定为 23 项，不多不少：
 
 | 类别 | 固定 childCapabilityId |
 |---|---|
 | 会话 | `prepare_clean_gpt_chat`、`focus_exact_gpt_conversation`、`verify_gpt_conversation_identity` |
-| 执行档案 | `open_gpt_execution_profile`、`ensure_exact_gpt_model`、`ensure_exact_gpt_reasoning_tier`、`close_gpt_execution_profile` |
+| 执行档案 | `open_gpt_execution_profile`、`open_gpt_model_selector_v2`、`select_exact_gpt_model_v2`、`ensure_exact_gpt_reasoning_tier`、`close_gpt_execution_profile` |
 | 附件 | `open_gpt_attachment_control`、`attach_approved_gpt_files_once`、`reconcile_gpt_attachment_set` |
 | Prompt/提交 | `write_exact_gpt_prompt`、`reconcile_gpt_draft`、`submit_exact_gpt_turn_once`、`reconcile_gpt_turn_submission` |
 | 文本回答 | `wait_for_stable_gpt_text`、`checkpoint_gpt_text_response` |
@@ -217,8 +219,9 @@ route validator，领域 consumer 随后复用同一 domain validator 二次验�
 `raw_text` 代替。Browser Authority 只可在当前 exact Target/Document、精确 assistant turn 和现有已鉴权页面会话内取得
 语义主图原始 bytes，并把 Target/Document、conversation/turn、content hash、bytes、media type、width/height 绑定进下载
 receipt。原始 bytes 只进入 task-owned 临时对象，复用现有 `sharp` 生成无 metadata 的 `1200x630 image/webp`，再经网站
-现役 `generated_image` output-artifact 路由与同一 Outbox 上传；文章 payload、result envelope 和 first-terminal admission
+现役 `generated_image` output-artifact 路由与同一 Outbox 上传；文章 payload、result envelope 和 completion submission
 共同绑定原图下载 receipt、变换 receipt、artifact/object ref、SHA-256、bytes、media type、width/height 与上传 receipt hash。
+该图片在 completion submission 后仍是 staged，只有公开知识领域 consumer 的文章入库事务有权 admission。
 不新增图片服务、对象库、下载链或第二上传链。
 
 GPT 原子 proof 只通过现役 `ForensicsPersistenceAbilityGroup` 落正式证据。底层 File Storage 必须按
@@ -227,7 +230,7 @@ GPT 原子 proof 只通过现役 `ForensicsPersistenceAbilityGroup` 落正式证
 顺序进入 `evidence_refs`；现有 `execution_receipt_hash` 绑定该有序集合，无需 Evidence Manifest、第二证据表或第二证据库。
 持久 proof 只允许 target/document hash、URL hash/page type、受控语义、mutation outcome、postcondition、code 和 evidence hash；
 raw URL/HTML/selector、Browser 私有 identity、用户输入、Prompt、附件内容与本地路径不得落盘。外部 mutation 后证据写失败
-固定进入 `RECONCILE_ONLY`、保留 Browser WAL 且不重放；对账期限耗尽仍无法证明时收束为 failed，WAL 保留原事实。Runtime Logs 只记录 authority ref/hash，不保存 proof 正文或取得证据主权。
+固定进入 `RECONCILE_ONLY`、保留 Browser WAL 且不重放；持续无法证明时保持故障现场、公开精确 code 并等待修复，WAL 保留原事实，不得把网站任务收束成失败终态。Runtime Logs 只记录 authority ref/hash，不保存 proof 正文或取得证据主权。
 
 ## 8. durable identity、状态与恢复
 
@@ -242,66 +245,73 @@ checkpoint_schema_version
 request_hash
 ```
 
-该身份采用 claim 时实际 Catalog/Manifest 解析出的 `plugin_id + plugin_version`；result envelope 与 first-terminal 必须逐项相等。
+该身份采用 claim 时实际 Catalog/Manifest 解析出的 `plugin_id + plugin_version`；result envelope 与 completion submission 必须逐项相等。
 Plugin 实现代码有语义变化时必须递增 `plugin_version`、生成新 Catalog hash 并 drain 旧任务；质检保留“代码变化但版本未变”
 mutant。`agent_build_hash` 继续只绑定 worker session，不增加到六字段 Durable Identity，也不建立 source/build 第二身份链。
 
 本地不可变接单记录写入成功即是 durable accept 的边界；不得延迟到远程 checkpoint 成功之后才认定。此后任何 checkpoint、下载或网络失败只能进入现役唯一恢复链，不得释放成“未接单”并重新解释。
 
-checkpoint、恢复、result 与 execution receipt 都绑定同一组合。共享 `GptTurnExecutor` 在每个安全原子步骤返回上层前，
-通过现役 checkpoint 保存 `flow_version + step_index + input_hash + proof + mutation_state + Target/Document identity + conversation identity`。
-发布新 Catalog/Plugin/Skill 前先 drain 已接受任务；版本或 checkpoint schema 不兼容时禁止新 Browser/Provider mutation，
-并进入统一 attempt 决策。重启先读取未终态 durable job、原冻结执行身份、GPT step checkpoint、Browser WAL 与当前 Document：
+checkpoint、恢复、result 与 execution receipt 都绑定同一组合。Browser WAL 是物理 mutation 是否发送的先行权威；共享
+`GptTurnExecutor` 通过现役 checkpoint 保存 `flow_version + step_index + input_hash + proof + mutation_state + Target/Document identity + conversation identity`，
+checkpoint 只能单调追平 WAL，不能把已 DISPATCHED/CONFIRMED 降级为未发生。
+发布新 Catalog/Plugin/Skill 前先 drain 已接受任务。若历史失败完成已由网站正式退役，且本地该 job 没有 result/staged result、Provider step、continuation、Browser mutation、active lease 或未知 Outbox，则在一个事务中删除旧 checkpoint/lease/材料执行片区，保留退役 Outbox 原文，并在现役 Outbox 追加一份不可投递的本地重构凭据，冻结 job、时间、原因、旧/新完整 Plugin 身份及 hash、原失败和被退役 checkpoint 引用，再以现役 Plugin 身份重建原 job。该凭据只用于尸检，不参与 Cloud 状态、不得被后续 running 清除，也不新建第二台账。任一条件不成立都禁止重建和新 mutation，不设置兼容 reader、旧 Plugin 分支或第二身份链。重启先读取未终态 durable job、原冻结执行身份、GPT step checkpoint、Browser WAL 与当前 Document：
 已确认且仍相容的步骤越过；已 dispatch 的上传、提交或媒体取得只执行对应对账；明确未 dispatch 且前置仍成立才允许
 原 action ordinal 继续；输入、主体、授权、Document 或页面事实冲突则失败关闭并保留原事实。禁止整轮 replay、用新代码
 静默续跑或保留第二 Plugin 兼容路径。
 
-V6 继续唯一拥有 transport state、lease/fence、control、terminal 和重放语义。Plugin 私有 checkpoint 不成为第二 Cloud 状态机。DISPATCHED 物理动作永不再次 dispatch；已失去 lease/fence 后停止新 mutation，等待原执行 settle；同 request/outbox payload 只以原幂等键重试。
+GPT flow version 切换不保留旧 flow reader。旧 step 只有在 `status=failed`、没有 result、任务没有 result/staged result，且
+Browser WAL 证明该 job + plugin step 不存在 DISPATCHED，也不存在已 CONFIRMED/REJECTED 的 Provider effect 时，才允许在一个
+事务中物理删除该旧 step，并在现役 Outbox 写入已本地验收的 `gpt-flow-execution-slice-reconstruction.v1` 凭据；凭据绑定旧/新
+flow、旧/新 input hash、旧 mutation state 与 WAL 安全结论。任一上传/提交外部 effect 或结果事实存在即拒绝重构，不得改写旧
+checkpoint、伪造 v2 或用兼容分支解释 v1。
 
-artifact 与 terminal 都先在 SQLite/WAL 持久化确定性 intent 和 idempotency key，再发网络；每次远端响应/receipt 先原子保存，
+V6 继续唯一拥有 transport state、lease/fence、control、completion submission 和重放语义。Plugin 私有 checkpoint 不成为第二 Cloud 状态机。DISPATCHED 物理动作永不再次 dispatch；已失去 lease/fence 后停止新 mutation，等待原执行 settle；同 request/outbox payload 只以原幂等键重试。
+
+artifact 与 completion submission 都先在 SQLite/WAL 持久化确定性 intent 和 idempotency key，再发网络；每次远端响应/receipt 先原子保存，
 随后才推进本地状态。一个持续运行的串行 flusher 按权威顺序投递，不等待 `active.size===0`。启动时必须对账
-remote-terminal/local-nonterminal、receipt 缺失与旧 fence；只有远端权威证明 superseded/delivered 才能终结旧写入，DISPATCHED
-不得重放。允许扩展网站现役 device-job status 读取 artifact/checkpoint/terminal receipt 事实，不新建 ledger。
+remote-completion/local-noncompleted、business admission receipt 缺失与旧 fence；只有 authoritative stale-lease/fence code 或 delivered receipt 才能终结旧写入，DISPATCHED
+不得重放。网站现役 device-job status 同时公开 artifact/checkpoint/completion receipt、business admission receipt 与 consumer error，不新建 ledger。
 
 切换后的历史隔离只有一个窄条件：现役 device-job status 对某 job 明确返回 404，且 AGENT 本地该 job 已经是
-`completed / failed` 或只读保留的旧 `review_required / cancelled` 不可变终态。此时只能将该 job 尚无回执的旧 Outbox
-标记为 `REMOTE_JOB_ABSENT_HISTORICAL` 并退出发送集合；标记不是远端 receipt、不得改写本地 terminal，也不得继续阻断
+`completed` 不可变终态。此时只能将该 job 尚无回执的旧 Outbox
+标记为 `REMOTE_JOB_ABSENT_HISTORICAL` 并退出发送集合；标记不是远端 receipt、不得改写本地状态，也不得继续阻断
 无关新 job。任一本地非终态、远端仍可见但内容漂移、Browser DISPATCHED 或缺失对账事实都不得进入该隔离。
 
-typed failure 从 GPT child 到共享 GPT Turn 执行器、Plugin、runtime、Outbox 和 first-terminal 始终保持同一事实：
+typed failure 从 GPT child 到共享 GPT Turn 执行器、Plugin、runtime 和 Outbox 始终保持同一事实：
 
 ```text
 code + mutation_outcome + evidence_ref/evidence_hash + cause（存在时）
 ```
 
 禁止异常文本正则、自由字符串分类和冗余 `retryable` 布尔。每次 attempt 以 `job_id + attempt_id + lease_version`
-幂等追加现役 failure history。Browser/postcondition 失败、页面未 hydration、提交后的短暂 conversation URL、request
+幂等追加现役 failure history，并在 Runtime Log 同时记录时间、组件/步骤、Plugin/version、typed code、责任 Owner、mutation outcome、evidence ref/hash 与容量影响。Browser/postcondition 失败、页面未 hydration、提交后的短暂 conversation URL、request
 placeholder、回答仍在生成都只是 step/attempt 事实，必须保存 checkpoint 并精确选择从 checkpoint 继续或只读补核，
-不得直接裁决用户终态。只有确定性合同不可满足、授权或安全边界拒绝，或已 dispatch 动作完成补核后仍有明确期限事实，
-才允许唯一 V6 terminal Owner 裁决 `failed`；用户 first-terminal 和用户结果只能是 `completed / failed`。final failure 不放入
-业务 result envelope，不建立新协议或第二终态。取消是控制意图，安全 fence/abort 后以 `failed + USER_CANCELLED` 收束。
+不得直接裁决任务完成。确定性合同不可满足、授权或安全边界拒绝同样只是必须公开的故障现场：记录精确 typed failure，保持
+`recovery_pending`，待代码、权限或外部条件修复后继续原 job。每轮执行结果只取 `success / failed`；网站任务唯一完成态是
+`completed`，且必须绑定领域 consumer 已提交的入库回执。取消只停止当前执行，不得把 failed 冒充完成。
 
-任务 durable create 冻结 `max_attempts + delivery_deadline_at + max_provider_turns` 并随 claim grant 下发；预算只约束新的
-claim 和 Provider dispatch，不得阻止已 dispatch 动作的只读补核、已确认输出 checkpoint 与原任务收口。Browser mutation
+任务 durable create 只冻结单次 `max_provider_turns` 安全上限并随 claim grant 下发。网站按当前 worker session 的 `agent_build_hash` 拥有唯一自动执行预算：每次 grant 形成一个 attempt，每次 failed checkpoint 必须立即释放 lease 与业务容量；第一次失败退避 5 秒，第二次退避 15 秒，第三次失败后该 build 不得再 claim 此 job。网站任务仍保持 `recovery_pending`，不产生 failed terminal；新的 `agent_build_hash` 才能开启新的三次预算。三次是自动执行熔断，不是业务终态或交付期限。Browser mutation
 五种物理状态不变，另以
 `logical_mutation_id = hash(job_id + plugin_step_id + action_ordinal + request_hash)` 跨 attempt 防重；同一 logical mutation 已
 CONFIRMED/DISPATCHED/REJECTED 时不得再发。
 
-`ledger_reconciled` 在每次 Store、Browser WAL、checkpoint、artifact/terminal Outbox、continuation、proof 或远端终态 authority
-变化时先失效，再由现有只读 authority 连续派生。全局未决 Outbox、缺失 receipt/evidence、孤儿 continuation/proof、
-remote/local terminal 漂移或 Browser Authority 本身不可证明时必须为 false 并阻断新 claim；job 级 Browser DISPATCHED 只阻断
-同一 logical mutation、主体与授权范围；合法 busy lane 只表示忙，不表示 ledger 不一致。已按上述窄条件隔离的历史终态
-Outbox 不再属于全局未决集合，但仍以失败标记保留原事实，绝不冒充 delivered receipt。
+attempt 裁决只看冻结现场与 typed failure：`mutation_outcome=dispatched` 或 reconciliation attempt 固定进入
+`RECONCILE_ONLY`，其余失败固定进入 `RETRY_FROM_CHECKPOINT`。Cloud Outbox 拒绝必须把原生业务 `code` 写入本地 authority
+并在日志中公开责任组件、影响和恢复动作。每个 Outbox intent 的自动交付预算同样绑定原 `agent_build_hash`：第一次失败后退避 5 秒，第二次失败后退避 15 秒，第三次失败后持久化为 `parked` 并停止该 intent 的网络重放；同 build 重启不得清零，只有新的 build hash 才能恢复三次预算。Outbox 停车只隔离该 intent，不得阻断其他 Outbox、其他 job 或网站入口。每次任务失败都要先持久化现场再释放 lease，第三次后停车该 build，同时让无关任务继续领取；不得生成 `FINAL_FAILED` 或远端 failed completion。结果上传成功后，本地仍保持
+交付等待，直到 device-job status 返回与 result hash 绑定的 `business_admission_receipt`，才原子写本地 `completed`。
+
+`ledger_reconciled` 在每次 Store、Browser WAL、checkpoint、artifact/completion Outbox、continuation、proof 或远端 authority
+变化时先失效，再由现有只读 authority 连续派生。结构损坏、无 Owner 的孤儿记录、或 completed job 缺少自己的 receipt/evidence 时必须为 false。普通 job 的 pending/failed Outbox 和 Browser DISPATCHED 只阻断该 job 的同一 logical mutation、主体与授权范围，绝不能阻断其他产品 claim；合法 busy lane 只表示忙，不表示 ledger 不一致。按 authoritative stale-lease/fence code 隔离的旧 Outbox 仍以失败标记保留原事实，绝不冒充 delivered receipt。
 
 Browser Authority 只拥有一条最多十个 waiter 的有界 FIFO mutation lane。waiter 绑定精确 job Target，并感知 lease、deadline、abort；
 等待期间持续 renew，取消后确定性移除；DISPATCHED 锁住原现场和冻结后置判据直到只读补核收束或期限耗尽，禁止用人工猜测裁决。heartbeat 的 lane/busy 来自 Browser Authority 真实队列与
-owner，不从 `active.size` 猜测。上述边界闭合后业务 capacity 才按 `10 - active jobs` 派生，不能用 `availableCapacity()=1`
+owner，不从 `active.size` 猜测。某个 waiter、Outbox 或 Product Plugin 失败不得冻结该队列中的其他 job，也不得把网站入口改成不可用。上述边界闭合后业务 capacity 才按 `10 - active jobs` 派生，不能用 `availableCapacity()=1`
 把单 Browser lane 冒充整机容量。
 
 GPT Session Controller 不理解业务内容、不决定何时续问。提交后的短暂 conversation URL 不得写入 continuation；聚焦历史
 会话后必须有界等待页面 hydration、精确 turn marker、composer 与 conversation identity，不能因 URL 先到而 DOM 尚未出现就
 判会话不存在。无法证明原会话、主体、授权、Plugin 或 lane CAS 时进入统一 attempt 决策；明确未 dispatch 才允许原步骤
-继续，已 dispatch 只读补核，确定性不可满足时才由唯一 terminal Owner 收束，不得静默新开会话冒充续接。
+继续，已 dispatch 只读补核，确定性不可满足时保留故障现场并等待修复，不得静默新开会话冒充续接。
 
 ## 9. Capability Manifest 与准入
 
@@ -364,14 +374,14 @@ AGENT 始终运行在用户本地 Mac；网站与 PostgreSQL 当前同在这台 
 
 静态检查必须证明：Catalog 恰好十二个 Plugin、十三个 primary、二十六个 review、三十九条公开路由；每个 Plugin 恰好一份 Skill；两个静态本地化 review 产品从公开面物理为零；五个确定性产品不在 Catalog；shared runtime 无产品语义；Mediator 无 Prompt/DOM/model/stage sequence；网站任务无执行字段；GPT 能力组恰好一份公共 Facade、一个 Session Controller、完整原子 child 分母；旧 `ai-input-gateway`、巨型 Plugin、Stage/Graph、product bundle/canary 和第二链物理为零。
 
-合同检查必须证明：双向 provider/dependency 身份与三十九条 route policy 语义匹配；网站 task/result 与 V6 各一份；AGENT Capability Manifest 一份；未知字段、错误 route/parameter/material/relation/payload/plugin/version 失败关闭；material、result、evidence、terminal、session/attestation 与 durable execution identity 精确绑定。
+合同检查必须证明：双向 provider/dependency 身份与三十九条 route policy 语义匹配；网站 task/result 与 V6 各一份；AGENT Capability Manifest 一份；未知字段、错误 route/parameter/material/relation/payload/plugin/version 失败关闭；material、result、evidence、completion submission、business admission、session/attestation 与 durable execution identity 精确绑定。
 
 动态证明必须先在真实 Chrome/ChatGPT 上逐项证明 GPT Target/Document、当前同一弹面的模型与推理档位读取/必要切换、
 真实附件、Prompt、一次发送、短暂 URL 到永久 conversation identity、request placeholder 到稳定回答、continuation hydration、
 精确 assistant turn 的已鉴权原始图片 bytes、每步 checkpoint、进程重启从首个未完成步骤继续和 fail-closed；再从网站正常
 sender 创建十三个真实主任务，并对每个 primary 各创建两类真实 review，覆盖全部三十九条公开路由。每条均经历真实材料
-上传、AGENT claim、唯一 Plugin、真实 GPT/Browser、严格 payload parser、result/image artifact、持久 evidence ref、网站 staging
-admission、first-terminal、business-result-ready 和领域入库/发布。先以全新本地化任务证明范例，再完成其余路由；不得用
+上传、AGENT claim、唯一 Plugin、真实 GPT/Browser、严格 payload parser、result/image artifact、持久 evidence ref、网站 staging、
+completion submission、delivery_pending、领域入库/发布、business admission receipt 和 AGENT 本地完成对账。先以全新本地化任务证明范例，再完成其余路由；不得用
 fixture、HTTP 200、空队列、截图、直接资源 URL 或模拟结果代替。
 
 核心黑盒验收：从网站 Task 中完全删除 Stage、Prompt、Provider Profile、Conversation 与 Join，只保留业务类型、输入、授权和材料引用，AGENT 仍能完成产品。若失败，说明执行真相仍未回到 Product Plugin，验收固定 FAIL。

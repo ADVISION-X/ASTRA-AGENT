@@ -19,7 +19,8 @@ export const GPT_TURN_FLOW = Object.freeze([
   { childCapabilityId: "focus_exact_gpt_conversation", when: "continuation" },
   { childCapabilityId: "verify_gpt_conversation_identity", when: "continuation" },
   { childCapabilityId: "open_gpt_execution_profile", when: "always" },
-  { childCapabilityId: "ensure_exact_gpt_model", when: "always" },
+  { childCapabilityId: "open_gpt_model_selector_v2", when: "always" },
+  { childCapabilityId: "select_exact_gpt_model_v2", when: "always" },
   { childCapabilityId: "ensure_exact_gpt_reasoning_tier", when: "always" },
   { childCapabilityId: "close_gpt_execution_profile", when: "always" },
   { childCapabilityId: "open_gpt_attachment_control", when: "attachments" },
@@ -34,6 +35,18 @@ export const GPT_TURN_FLOW = Object.freeze([
   { childCapabilityId: "wait_for_stable_gpt_image", when: "generated_image" },
   { childCapabilityId: "checkpoint_gpt_generated_image", when: "generated_image" },
 ] satisfies readonly GptTurnFlowStep[]);
+
+const GPT_INTER_STEP_PACING_MS = 5_000;
+const GPT_EXECUTION_PROFILE_START_INDEX = GPT_TURN_FLOW.findIndex(
+  (step) => step.childCapabilityId === "open_gpt_execution_profile",
+);
+const GPT_EXECUTION_PROFILE_END_INDEX = GPT_TURN_FLOW.findIndex(
+  (step) => step.childCapabilityId === "close_gpt_execution_profile",
+);
+
+if (GPT_EXECUTION_PROFILE_START_INDEX < 0 || GPT_EXECUTION_PROFILE_END_INDEX < GPT_EXECUTION_PROFILE_START_INDEX) {
+  throw new Error("GPT_EXECUTION_PROFILE_FLOW_INVALID");
+}
 
 export type GptTurnResumePoint = Readonly<{
   stepIndex: number;
@@ -58,6 +71,10 @@ export type GptTurnExecutionInput = Readonly<{
   resume: GptTurnResumePoint | null;
   context: GptExecutionContext;
   inputFor(step: GptTurnFlowStep, reconcileOnly: boolean): Readonly<Record<string, unknown>>;
+  recoverMutation?(step: GptTurnFlowStep, stepIndex: number): Promise<Readonly<{
+    state: "dispatched" | "confirmed" | "rejected";
+    result: GptChildCapabilityResult;
+  }> | null>;
   dispatch(intent: GptChildCapabilityIntent, context: GptExecutionContext): Promise<GptChildCapabilityResult>;
   checkpoint(input: Readonly<{
     step: GptTurnFlowStep;
@@ -85,20 +102,63 @@ const assertResumePoint = (resume: GptTurnResumePoint | null): void => {
   }
 };
 
+const hasNextEnabledStep = (
+  stepIndex: number,
+  mode: GptTurnMode,
+  hasAttachments: boolean,
+  outputKind: GptTurnOutputKind,
+): boolean => GPT_TURN_FLOW.slice(stepIndex + 1)
+  .some((step) => enabled(step, mode, hasAttachments, outputKind));
+
+const waitForStepPacing = async (input: GptTurnExecutionInput): Promise<void> => {
+  if (!input.context.browser) throw new Error("GPT_INTER_STEP_PACING_BROWSER_REQUIRED");
+  await input.context.browser.wait({ durationMs: GPT_INTER_STEP_PACING_MS });
+};
+
+const paceBeforeNextStep = async (input: GptTurnExecutionInput, stepIndex: number): Promise<void> => {
+  if (!hasNextEnabledStep(stepIndex, input.mode, input.hasAttachments, input.outputKind)) return;
+  await waitForStepPacing(input);
+};
+
 /** The one product-neutral owner of GPT provider-page step order. */
 export class GptTurnExecutor {
   public async execute(input: GptTurnExecutionInput): Promise<GptTurnExecutionResult> {
     assertResumePoint(input.resume);
-    const start = input.resume?.status === "success"
+    const checkpointStart = input.resume?.status === "success"
       ? input.resume.stepIndex + 1
       : input.resume?.stepIndex ?? 0;
+    const start = input.resume
+      && checkpointStart >= GPT_EXECUTION_PROFILE_START_INDEX
+      && checkpointStart <= GPT_EXECUTION_PROFILE_END_INDEX
+      ? GPT_EXECUTION_PROFILE_START_INDEX
+      : checkpointStart;
+    if (GPT_TURN_FLOW.slice(start).some((step) =>
+      enabled(step, input.mode, input.hasAttachments, input.outputKind))) {
+      await waitForStepPacing(input);
+    }
     let lastStepIndex = start - 1;
+    let reconcileRecoveredDispatch = false;
     for (let stepIndex = start; stepIndex < GPT_TURN_FLOW.length; stepIndex += 1) {
       const step = GPT_TURN_FLOW[stepIndex]!;
       if (!enabled(step, input.mode, input.hasAttachments, input.outputKind)) continue;
-      const reconcileOnly = input.resume?.status === "failed"
+      const recovery = await input.recoverMutation?.(step, stepIndex) ?? null;
+      if (recovery?.state === "dispatched") {
+        reconcileRecoveredDispatch = true;
+        lastStepIndex = stepIndex;
+        continue;
+      }
+      if (recovery) {
+        await input.checkpoint({ step, stepIndex, reconcileOnly: true, result: recovery.result });
+        lastStepIndex = stepIndex;
+        if (recovery.result.status !== "success") {
+          return Object.freeze({ completed: false, lastStepIndex, failure: recovery.result });
+        }
+        await paceBeforeNextStep(input, stepIndex);
+        continue;
+      }
+      const reconcileOnly = reconcileRecoveredDispatch || (input.resume?.status === "failed"
         && input.resume.stepIndex === stepIndex
-        && input.resume.mutationState !== "no";
+        && input.resume.mutationState !== "no");
       const intent: GptChildCapabilityIntent = Object.freeze({
         childCapabilityId: step.childCapabilityId,
         executionId: `${input.executionId}:${stepIndex}:${step.childCapabilityId}`,
@@ -111,10 +171,12 @@ export class GptTurnExecutor {
       });
       const result = await input.dispatch(intent, input.context);
       await input.checkpoint({ step, stepIndex, reconcileOnly, result });
+      reconcileRecoveredDispatch = false;
       lastStepIndex = stepIndex;
       if (result.status !== "success") {
         return Object.freeze({ completed: false, lastStepIndex, failure: result });
       }
+      await paceBeforeNextStep(input, stepIndex);
     }
     return Object.freeze({ completed: true, lastStepIndex, failure: null });
   }

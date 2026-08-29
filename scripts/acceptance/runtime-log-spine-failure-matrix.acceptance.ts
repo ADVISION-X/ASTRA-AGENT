@@ -65,6 +65,7 @@ const failureCases: readonly FailureCase[] = [
   { name: "checkpoint-failed", code: "CHECKPOINT_STORAGE_FAILED", operation: "job.checkpoint", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.RETRY, kind: RuntimeFailureKind.STORAGE, state: { stateKey: "job.checkpoint", previous: null, current: "failed" } },
   { name: "renew-failed", code: "LEASE_RENEW_TIMEOUT", nativeCause: "ETIMEDOUT", operation: "job.lease-renew", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.RETRY, kind: RuntimeFailureKind.TRANSPORT, state: { stateKey: "job.lease", previous: null, current: "stale" } },
   { name: "upload-failed", code: "UPLOAD_STORAGE_FAILED", operation: "result.upload", owner: "production-runtime", responsibleOwner: "production-runtime", recovery: RuntimeRecovery.RETRY, kind: RuntimeFailureKind.STORAGE, state: { owner: "outbox", stateKey: "outbox.delivery", previous: null, current: "failed", authorityRef: "outbox:matrix-upload", authorityHash: digest("matrix-upload-failed") } },
+  { name: "outbox-parked", code: "AI_V6_RECONCILE_OUTCOME_INVALID", httpStatus: 409, operation: "outbox.flush", owner: "outbox", responsibleOwner: "outbox", recovery: RuntimeRecovery.STOP, kind: RuntimeFailureKind.DEPENDENCY, state: { owner: "outbox", stateKey: "outbox.delivery", previous: null, current: "parked", authorityRef: "production-outbox:matrix-parked", authorityHash: digest("matrix-outbox-parked") } },
   { name: "website-not-consumed", code: "WEBSITE_RESULT_NOT_CONSUMED", operation: "website.result-consume", owner: "website", responsibleOwner: "website", recovery: RuntimeRecovery.RETRY, kind: RuntimeFailureKind.DEPENDENCY, state: { owner: "website", stateKey: "website.consume", previous: null, current: "failed" } },
 ];
 
@@ -144,7 +145,7 @@ const scenarioIdentity = (scenario: FailureCase, traceId: string, boundaryId: st
   if (scenario.operation === "browser.command") return {
     kind: "browser-command" as const, jobId: traceId, attemptId: "attempt-1", leaseVersion: 1,
     fenceHash: digest("fence"), pluginId: "plugin-1", commandId: `command-${scenario.name}`,
-    pluginStepId: "step-1", childCapabilityId: "open_gpt_model_selector", actionOrdinal: 1,
+    pluginStepId: "step-1", childCapabilityId: "open_gpt_model_selector_v2", actionOrdinal: 1,
   };
   if (scenario.operation === "gpt.child") return {
     kind: "gpt-call" as const, jobId: traceId, attemptId: "attempt-1", pluginId: "plugin-1",

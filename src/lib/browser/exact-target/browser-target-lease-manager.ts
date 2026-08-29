@@ -26,10 +26,10 @@ export type BrowserCommandPermitSigner = Readonly<{
 type LeaseState = {
   current: BrowserControlledTarget;
   closed: boolean;
+  commandInFlight: boolean;
   sequence: number;
   pendingMutationCommandIds: string[];
-  atomicStep: Readonly<{ pluginStepId: string; childCapabilityId: string }> | null;
-  actionOrdinal: number;
+  atomicStep: Parameters<BrowserTargetLease["runAtomicStep"]>[0] | null;
 };
 
 type LeaseCommand = (
@@ -38,6 +38,9 @@ type LeaseCommand = (
 ) => Promise<unknown>;
 
 type AuthenticatedMedia = Awaited<ReturnType<BrowserTargetLease["downloadAuthenticatedMedia"]>>;
+
+const hashText = (value: string): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
 const authenticatedMediaIdentityValid = (
   input: Readonly<{ assistantTurnId: string; semanticMediaId: "gpt-generated-image-main" }>,
@@ -90,10 +93,10 @@ export class BrowserTargetLeaseManager {
     const state: LeaseState = {
       current: input.target,
       closed: false,
+      commandInFlight: false,
       sequence: 0,
       pendingMutationCommandIds: [...this.commandActor.pendingMutationCommandIds(this.executionBinding)],
       atomicStep: null,
-      actionOrdinal: 0,
     };
     const leaseRef = `target-lease-${randomUUID()}`;
     const command = this.createLeaseCommand(input, state, leaseRef);
@@ -124,6 +127,7 @@ export class BrowserTargetLeaseManager {
   ): LeaseCommand {
     return async (capabilityId, value) => {
       if (state.closed) throw new Error("BROWSER_TARGET_INVALID");
+      if (state.commandInFlight) throw new Error("BROWSER_BACKPRESSURE");
       if (this.mutationClass(value) === "mutation" && state.pendingMutationCommandIds.length > 0) {
         throw new Error("BROWSER_MUTATION_UNSETTLED");
       }
@@ -145,8 +149,12 @@ export class BrowserTargetLeaseManager {
       const step = state.atomicStep ?? {
         pluginStepId: "browser-lifecycle",
         childCapabilityId: capabilityId,
+        flowVersion: "browser-lifecycle.v1",
+        stepIndex: 0,
+        inputHash: hashText(this.executionBinding.executionRef),
+        actionOrdinal: sequence,
+        replayPolicy: "observation-only" as const,
       };
-      const actionOrdinal = state.atomicStep ? ++state.actionOrdinal : sequence;
       const permit = this.permit({
         leaseRef,
         sequence,
@@ -154,10 +162,15 @@ export class BrowserTargetLeaseManager {
         documentRef: state.current.document.documentRef,
         pluginStepId: step.pluginStepId,
         childCapabilityId: step.childCapabilityId,
-        actionOrdinal,
+        flowVersion: step.flowVersion,
+        stepIndex: step.stepIndex,
+        inputHash: step.inputHash,
+        replayPolicy: step.replayPolicy,
+        actionOrdinal: step.actionOrdinal,
         capabilityId,
         mutationClass: this.mutationClass(value),
       });
+      state.commandInFlight = true;
       try {
         const result = await this.commandActor.execute(permit, value);
         return result;
@@ -165,6 +178,8 @@ export class BrowserTargetLeaseManager {
         const mutationOutcome = this.commandActor.mutationOutcome(permit.commandId);
         if (mutationOutcome === "dispatched") state.pendingMutationCommandIds.push(permit.commandId);
         throw browserExecutionFailure(error, mutationOutcome);
+      } finally {
+        state.commandInFlight = false;
       }
     };
   }
@@ -188,18 +203,24 @@ export class BrowserTargetLeaseManager {
       target: input.target.target,
       get document() { return state.current.document; },
       runAtomicStep: async (identity, action) => {
-        if (!identity.pluginStepId || !identity.childCapabilityId || state.atomicStep !== null) {
+        if (!identity.pluginStepId || !identity.childCapabilityId || !identity.flowVersion
+          || !Number.isInteger(identity.stepIndex) || identity.stepIndex < 0
+          || !/^sha256:[a-f0-9]{64}$/u.test(identity.inputHash)
+          || !Number.isInteger(identity.actionOrdinal) || identity.actionOrdinal < 1
+          || state.atomicStep !== null) {
           throw new Error("BROWSER_ATOMIC_STEP_IDENTITY_INVALID");
         }
         state.atomicStep = Object.freeze({ ...identity });
-        state.actionOrdinal = 0;
         try {
           return await action();
         } finally {
           state.atomicStep = null;
-          state.actionOrdinal = 0;
         }
       },
+      readAtomicStepRecovery: (identity) =>
+        this.commandActor.readAtomicStepRecovery(this.executionBinding, input.target.target.targetRef, identity),
+      requiresTurnRecovery: () =>
+        this.commandActor.requiresTurnRecovery(this.executionBinding, input.target.target.targetRef),
       navigate: ({ url, title }) => this.navigate(input, state, command, url, title),
       executeDomIntent: async (intent: BrowserDomIntent) => command(this.capabilityForIntent(intent), { kind: "dom-intent", intent }),
       observeCapability: async ({ capabilityId }) => command(capabilityId, { kind: "observe", capabilityId }),
@@ -213,6 +234,10 @@ export class BrowserTargetLeaseManager {
         throw new Error("BROWSER_FILE_GRANT_INVALID");
       },
       wait: async ({ durationMs }) => { await command("browser.wait.v1", { kind: "wait", durationMs }); },
+      park: async ({ reason }) => {
+        await command("browser.park-target.v1", { kind: "park-target", reason });
+        state.closed = true;
+      },
       close: async ({ reason }) => {
         if (state.pendingMutationCommandIds.length > 0) throw new Error("BROWSER_MUTATION_UNSETTLED");
         await command("browser.close-target.v1", { kind: "close-target", reason });
@@ -325,6 +350,10 @@ export class BrowserTargetLeaseManager {
     documentRef: string;
     pluginStepId: string;
     childCapabilityId: string;
+    flowVersion: string;
+    stepIndex: number;
+    inputHash: `sha256:${string}`;
+    replayPolicy: BrowserCommandPermit["replayPolicy"];
     actionOrdinal: number;
     capabilityId: BrowserCapabilityId;
     mutationClass: BrowserCommandPermit["mutationClass"];
@@ -353,6 +382,10 @@ export class BrowserTargetLeaseManager {
       documentRef: input.documentRef,
       pluginStepId: input.pluginStepId,
       childCapabilityId: input.childCapabilityId,
+      flowVersion: input.flowVersion,
+      stepIndex: input.stepIndex,
+      inputHash: input.inputHash,
+      replayPolicy: input.replayPolicy,
       actionOrdinal: input.actionOrdinal,
       capabilityId: input.capabilityId,
       commandId,
@@ -369,7 +402,7 @@ export class BrowserTargetLeaseManager {
   }
 
   private mutationClass(command: Parameters<BrowserCommandActor["execute"]>[1]): BrowserCommandPermit["mutationClass"] {
-    if (command.kind === "navigate" || command.kind === "close-target") return "lifecycle";
+    if (command.kind === "navigate" || command.kind === "park-target" || command.kind === "close-target") return "lifecycle";
     if (command.kind === "file-input") return "mutation";
     if (command.kind === "dom-intent" && (command.intent.kind === "click" || command.intent.kind === "hover"
       || command.intent.kind === "doubleClick" || command.intent.kind === "keypress" || command.intent.kind === "fill")) return "mutation";

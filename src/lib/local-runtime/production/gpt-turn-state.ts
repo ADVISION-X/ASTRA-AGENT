@@ -147,7 +147,7 @@ const profileAttachmentChildInput = (
   recovery: ChildInput,
 ): ChildInput | null => {
   if ([
-    "open_gpt_execution_profile", "ensure_exact_gpt_model",
+    "open_gpt_execution_profile", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
     "ensure_exact_gpt_reasoning_tier", "close_gpt_execution_profile",
   ].includes(childCapabilityId)) return { profile: state.profile, ...recovery };
   if (childCapabilityId === "open_gpt_attachment_control") return recovery;

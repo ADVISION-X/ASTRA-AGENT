@@ -9,13 +9,13 @@ import {
   requireExactInputKeys,
   success,
 } from "../child-handler.js";
-import { findCount, readExactAttribute, readExactText } from "../gpt-dom-observation.js";
+import { findCount, readExactAttribute } from "../gpt-dom-observation.js";
 import {
   GPT_PROFILE_DISMISS_SELECTOR,
-  GPT_PROFILE_MODEL_CHOICE_SELECTOR,
   GPT_PROFILE_POPUP_SELECTOR,
   GPT_PROFILE_REASONING_CONTROL_SELECTOR,
-  GPT_PROFILE_REASONING_SLIDER_SELECTOR,
+  GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR,
+  GPT_PROFILE_REASONING_VALUE_SELECTOR,
   GPT_PROFILE_SIMPLE_PANEL_SELECTOR,
   GPT_PROFILE_TRIGGER_SELECTOR,
   reasoningTierUiLabel,
@@ -33,47 +33,58 @@ type ProfileTopology = Readonly<{
   popup: number;
   simplePanel: number;
   reasoningControl: number;
-  reasoningSlider: number;
+  enabledReasoningControl: number;
+  reasoningValue: number;
 }>;
 
 const topology = async (browser: BrowserTargetLease): Promise<ProfileTopology> => {
-  const [popup, simplePanel, reasoningControl, reasoningSlider] = await Promise.all([
-    findCount(browser, { selector: GPT_PROFILE_POPUP_SELECTOR, maxMatches: 2 }),
-    findCount(browser, { selector: GPT_PROFILE_SIMPLE_PANEL_SELECTOR, maxMatches: 2 }),
-    findCount(browser, { selector: GPT_PROFILE_REASONING_CONTROL_SELECTOR, maxMatches: 2 }),
-    findCount(browser, { selector: GPT_PROFILE_REASONING_SLIDER_SELECTOR, maxMatches: 2 }),
-  ]);
-  return { popup, simplePanel, reasoningControl, reasoningSlider };
+  const popup = await findCount(browser, { selector: GPT_PROFILE_POPUP_SELECTOR, maxMatches: 2 });
+  const simplePanel = await findCount(browser, { selector: GPT_PROFILE_SIMPLE_PANEL_SELECTOR, maxMatches: 2 });
+  const reasoningControl = await findCount(browser, { selector: GPT_PROFILE_REASONING_CONTROL_SELECTOR, maxMatches: 2 });
+  const enabledReasoningControl = await findCount(browser, {
+    selector: GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR,
+    maxMatches: 2,
+  });
+  const reasoningValue = await findCount(browser, { selector: GPT_PROFILE_REASONING_VALUE_SELECTOR, maxMatches: 2 });
+  return { popup, simplePanel, reasoningControl, enabledReasoningControl, reasoningValue };
 };
 
 const topologyCode = (value: ProfileTopology): string => [
   `popup=${value.popup}`,
   `simple=${value.simplePanel}`,
   `reasoningControl=${value.reasoningControl}`,
-  `reasoningSlider=${value.reasoningSlider}`,
+  `enabledReasoningControl=${value.enabledReasoningControl}`,
+  `reasoningValue=${value.reasoningValue}`,
 ].join(":");
 
 const failTopology = (code: string, value: ProfileTopology): never => {
   throw executionFailure("review_required", `${code}:${topologyCode(value)}`);
 };
 
-const requireActiveProfilePopup = async (browser: BrowserTargetLease): Promise<ProfileTopology> => {
+const requireActiveReasoningProfile = async (browser: BrowserTargetLease): Promise<ProfileTopology> => {
   const observed = await topology(browser);
   if (observed.popup !== 1 || observed.simplePanel !== 1
-    || observed.reasoningControl !== 1 || observed.reasoningSlider !== 1) {
+    || observed.reasoningControl !== 1 || observed.enabledReasoningControl !== 1
+    || observed.reasoningValue !== 1) {
     failTopology("GPT_EXECUTION_PROFILE_POPUP_INVALID", observed);
   }
   return observed;
 };
 
+const requireUniqueProfilePopup = async (browser: BrowserTargetLease): Promise<void> => {
+  const popupCount = await findCount(browser, { selector: GPT_PROFILE_POPUP_SELECTOR, maxMatches: 2 });
+  if (popupCount !== 1) {
+    throw executionFailure("review_required", `GPT_EXECUTION_PROFILE_POPUP_COUNT_${popupCount}`);
+  }
+};
+
 const openProfilePopup = async (browser: BrowserTargetLease) => {
   const popupCount = await findCount(browser, { selector: GPT_PROFILE_POPUP_SELECTOR, maxMatches: 2 });
   if (popupCount === 1) {
-    await requireActiveProfilePopup(browser);
     return success({
       value: { state: "profile-popup-open" },
       candidateCount: 1,
-      observedSemantics: ["one active current profile popup", "one reasoning slider"],
+      observedSemantics: ["one current execution-profile popup"],
       committedMutation: "no",
     });
   }
@@ -94,7 +105,8 @@ const openProfilePopup = async (browser: BrowserTargetLease) => {
     expectedMatches: 1,
     postClickAttribute: { name: "aria-expanded", equals: "true", timeoutMs: 5_000 },
   });
-  await requireActiveProfilePopup(browser);
+  await requireUniqueProfilePopup(browser);
+  await requireActiveReasoningProfile(browser);
   return success({
     value: { state: "profile-popup-open" },
     candidateCount: 1,
@@ -103,76 +115,18 @@ const openProfilePopup = async (browser: BrowserTargetLease) => {
   });
 };
 
-const exactModelState = async (
-  browser: BrowserTargetLease,
-  modelDisplayName: string,
-): Promise<Readonly<{ count: number; ariaChecked: string | null }>> => {
-  const result = await browser.executeDomIntent({
-    kind: "find",
-    selector: GPT_PROFILE_MODEL_CHOICE_SELECTOR,
-    textEquals: modelDisplayName,
-    maxMatches: 2,
-    fields: ["ariaChecked"],
-  });
-  if (!result || typeof result !== "object" || Array.isArray(result)) {
-    throw executionFailure("review_required", "GPT_EXECUTION_PROFILE_MODEL_READBACK_INVALID");
-  }
-  const value = result as { count?: unknown; matches?: unknown };
-  if (!Number.isInteger(value.count) || !Array.isArray(value.matches)) {
-    throw executionFailure("review_required", "GPT_EXECUTION_PROFILE_MODEL_READBACK_INVALID");
-  }
-  const first = value.matches[0];
-  const ariaChecked = first && typeof first === "object" && !Array.isArray(first)
-    && typeof (first as { ariaChecked?: unknown }).ariaChecked === "string"
-    ? (first as { ariaChecked: string }).ariaChecked
-    : null;
-  return { count: value.count as number, ariaChecked };
-};
-
-const ensureExactModel = async (
-  browser: BrowserTargetLease,
-  modelDisplayName: string,
-  reconcileOnly: boolean,
-) => {
-  await requireActiveProfilePopup(browser);
-  const selected = await exactModelState(browser, modelDisplayName);
-  if (selected.count !== 1) {
+const readReasoningValue = async (browser: BrowserTargetLease): Promise<number> => {
+  const rawMin = await readExactAttribute(browser, GPT_PROFILE_REASONING_VALUE_SELECTOR, "aria-valuemin");
+  const rawMax = await readExactAttribute(browser, GPT_PROFILE_REASONING_VALUE_SELECTOR, "aria-valuemax");
+  const rawNow = await readExactAttribute(browser, GPT_PROFILE_REASONING_VALUE_SELECTOR, "aria-valuenow");
+  const minimum = Number(rawMin);
+  const maximum = Number(rawMax);
+  const value = Number(rawNow);
+  if (minimum !== 0 || maximum !== 4 || !Number.isInteger(value) || value < minimum || value > maximum) {
     throw executionFailure(
       "review_required",
-      `GPT_EXECUTION_PROFILE_MODEL_MISMATCH:count=${selected.count}:checked=${selected.ariaChecked ?? "missing"}`,
+      `GPT_EXECUTION_PROFILE_REASONING_RANGE_INVALID:min=${encodeURIComponent(rawMin)}:max=${encodeURIComponent(rawMax)}:now=${encodeURIComponent(rawNow)}`,
     );
-  }
-  if (selected.ariaChecked === "true") {
-    return success({
-      value: { modelDisplayName, state: "current-model-verified" },
-      candidateCount: 1,
-      observedSemantics: ["one exact selected model readback", "model panel left active"],
-      committedMutation: "no",
-    });
-  }
-  if (reconcileOnly) {
-    throw executionFailure("recovery_pending", "GPT_EXECUTION_PROFILE_MODEL_SELECTION_PENDING");
-  }
-  await browser.executeDomIntent({
-    kind: "click",
-    selector: GPT_PROFILE_MODEL_CHOICE_SELECTOR,
-    expectedTextEquals: modelDisplayName,
-    expectedMatches: 1,
-    postClickAttribute: { name: "aria-checked", equals: "true", timeoutMs: 5_000 },
-  });
-  return success({
-    value: { modelDisplayName, state: "model-selected" },
-    candidateCount: 1,
-    observedSemantics: ["one exact model candidate", "aria-checked=true"],
-    committedMutation: "confirmed",
-  });
-};
-
-const readReasoningValue = async (browser: BrowserTargetLease): Promise<number> => {
-  const raw = await readExactAttribute(browser, GPT_PROFILE_REASONING_SLIDER_SELECTOR, "aria-valuenow");
-  const value = Number(raw);
-  if (!Number.isInteger(value) || value < 0 || value > 4) {
-    throw executionFailure("review_required", `GPT_EXECUTION_PROFILE_REASONING_VALUE_INVALID:${encodeURIComponent(raw)}`);
   }
   return value;
 };
@@ -183,7 +137,7 @@ const selectReasoning = async (
   targetLabel: string,
   reconcileOnly: boolean,
 ) => {
-  await requireActiveProfilePopup(browser);
+  await requireActiveReasoningProfile(browser);
   const currentValue = await readReasoningValue(browser);
   if (currentValue === targetValue) {
     return success({
@@ -200,12 +154,12 @@ const selectReasoning = async (
   const repeat = Math.abs(targetValue - currentValue) as 1 | 2 | 3 | 4;
   await browser.executeDomIntent({
     kind: "keypress",
-    selector: GPT_PROFILE_REASONING_SLIDER_SELECTOR,
+    selector: GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR,
     key,
     repeat,
     expectedMatches: 1,
     postKeypressMatch: {
-      selector: `${GPT_PROFILE_REASONING_SLIDER_SELECTOR}[aria-valuenow='${targetValue}']`,
+      selector: `${GPT_PROFILE_REASONING_VALUE_SELECTOR}[aria-valuenow='${targetValue}']`,
       expectedMatches: 1,
       timeoutMs: 5_000,
     },
@@ -228,7 +182,7 @@ const closeProfilePopup = async (browser: BrowserTargetLease, reconcileOnly: boo
       committedMutation: "no",
     });
   }
-  await requireActiveProfilePopup(browser);
+  await requireUniqueProfilePopup(browser);
   if (reconcileOnly) {
     throw executionFailure("recovery_pending", "GPT_EXECUTION_PROFILE_CLOSE_PENDING");
   }
@@ -256,13 +210,6 @@ export const executionProfileChildHandlers = {
     if (popupCount === 1) return openProfilePopup(browser);
     if (reconcileOnly) throw executionFailure("recovery_pending", "GPT_EXECUTION_PROFILE_OPEN_PENDING");
     return openProfilePopup(browser);
-  },
-
-  async ensure_exact_gpt_model(intent, context) {
-    requireExactInputKeys(intent, ["profile"], ["reconcileOnly"]);
-    const profile = profileFromIntent(intent);
-    const reconcileOnly = intent.input.reconcileOnly === undefined ? false : booleanInput(intent, "reconcileOnly");
-    return ensureExactModel(requireBrowser(context), profile.modelDisplayName, reconcileOnly);
   },
 
   async ensure_exact_gpt_reasoning_tier(intent, context) {

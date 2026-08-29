@@ -60,7 +60,7 @@ const commandFrom = (value: unknown): BrowserGovernedCommand => {
   const command = asRecord(value);
   if (!command || typeof command.kind !== "string") throw new Error("BROWSER_CAPABILITY_REJECTED");
   if (![
-    "navigate", "dom-intent", "observe", "screenshot", "file-input", "authenticated-media", "wait", "close-target",
+    "navigate", "dom-intent", "observe", "screenshot", "file-input", "authenticated-media", "wait", "park-target", "close-target",
   ].includes(command.kind)) throw new Error("BROWSER_CAPABILITY_REJECTED");
   return command as BrowserGovernedCommand;
 };
@@ -300,9 +300,16 @@ export class ExtensionWebSocketActor {
       throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     }
     const request = await decrypt(session.serverToClientKey, "server-to-client", frame);
-    if (Object.keys(request).length !== 0) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    const targetRef = request.targetRef === undefined
+      ? undefined
+      : typeof request.targetRef === "string" && request.targetRef.length > 0
+        ? request.targetRef
+        : (() => { throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID"); })();
+    if (Object.keys(request).some((key) => key !== "targetRef")) {
+      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    }
     try {
-      await this.targetAuthority.acquireJobBoundChatGptTarget();
+      await this.targetAuthority.acquireJobBoundChatGptTarget(targetRef);
     } catch (error) {
       this.reportRuntimeFailure(error, "job-bound-target-acquisition");
     }

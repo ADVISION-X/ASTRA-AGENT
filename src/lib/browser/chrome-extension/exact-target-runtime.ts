@@ -58,6 +58,12 @@ export class ExtensionExactTargetRegistry {
     return target;
   }
 
+  public read(targetRef: string): ExtensionExactTarget {
+    const target = this.targets.get(targetRef);
+    if (!target) throw new Error("BROWSER_TARGET_INVALID");
+    return target;
+  }
+
   public advanceDocument(targetRef: string): ExtensionExactTarget {
     const current = this.targets.get(targetRef);
     if (!current) throw new Error("BROWSER_TARGET_INVALID");

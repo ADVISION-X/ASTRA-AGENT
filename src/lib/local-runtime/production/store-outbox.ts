@@ -1,4 +1,4 @@
-import { executionFailure } from "../../typed-failure.js";
+import { executionFailure, failureCode } from "../../typed-failure.js";
 import { hashCanonical, parseTerminalReceipt, parseTerminalReceiptExpectation, type ProductionHash } from "./contracts.js";
 import { ProductionStoreTaskState } from "./store-task-state.js";
 import {
@@ -25,6 +25,14 @@ type LocalReceiptIntent = Readonly<{
   response_hash: ProductionHash | null;
 }>;
 
+const OUTBOX_DELIVERY_MAX_ATTEMPTS = 3;
+const OUTBOX_DELIVERY_BACKOFF_MS = [5_000, 15_000] as const;
+const OUTBOX_STALE_RETIRE_CODES = new Set([
+  "AI_LEASE_FENCE_STALE",
+  "AI_V6_LEASE_RACE",
+  "AI_V6_JOB_NOT_FOUND",
+]);
+
 const receiptHashOf = (response: Record<string, unknown>): ProductionHash | null =>
   typeof response.receipt_hash === "string" && /^sha256:[a-f0-9]{64}$/u.test(response.receipt_hash)
     ? response.receipt_hash as ProductionHash : null;
@@ -48,14 +56,11 @@ const assertReceiptIdentity = (jobId: string, local: LocalReceiptIntent, receipt
 const assertTerminalReceipt = (local: LocalReceiptIntent, response: Record<string, unknown>): void => {
   if (local.kind !== "terminal") return;
   const request = JSON.parse(local.body_blob.toString("utf8")) as Record<string, unknown>;
-  if (request.terminal_status === "completed" || request.terminal_status === "failed") {
+  if (request.terminal_status === "completed") {
     parseTerminalReceipt(response, parseTerminalReceiptExpectation(request));
     return;
   }
-  if (response.job_id !== request.job_id || response.terminal_status !== request.terminal_status
-    || response.payload_hash !== request.payload_hash) {
-    throw executionFailure("review_required", "PRODUCTION_LEGACY_TERMINAL_RECEIPT_MISMATCH");
-  }
+  throw executionFailure("review_required", "PRODUCTION_FAILED_COMPLETION_RETIRED");
 };
 
 export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
@@ -82,10 +87,29 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
     this.notifyOutbox(this.readOutboxAuthority(write.idempotency_key));
   }
 
-  public pendingOutbox(): readonly ProductionOutboxWrite[] {
+  private bindDeliveryBuild(idempotencyKey: string | null, buildHash: ProductionHash): void {
+    const where = idempotencyKey === null
+      ? "sent_at is null and (delivery_build_hash is null or delivery_build_hash<>?)"
+      : "idempotency_key=? and sent_at is null and (delivery_build_hash is null or delivery_build_hash<>?)";
+    const whereValues = idempotencyKey === null ? [buildHash] : [idempotencyKey, buildHash];
+    const changed = this.database.prepare(
+      `select idempotency_key from production_outbox where ${where}`,
+    ).all(...whereValues) as Array<{ idempotency_key: string }>;
+    if (changed.length === 0) return;
+    this.database.prepare(`update production_outbox
+      set delivery_build_hash=?,delivery_attempt_count=0,next_delivery_attempt_at=null,delivery_parked_at=null
+      where ${where}`).run(buildHash, ...whereValues);
+    for (const row of changed) this.notifyOutbox(this.readOutboxAuthority(row.idempotency_key));
+  }
+
+  public pendingOutbox(buildHash: ProductionHash, observedAt = now()): readonly ProductionOutboxWrite[] {
+    this.bindDeliveryBuild(null, buildHash);
     const rows = this.database.prepare(
-      "select idempotency_key,kind,path,method,headers_json,body_blob from production_outbox where sent_at is null order by created_at,idempotency_key",
-    ).all() as Array<{
+      `select idempotency_key,kind,path,method,headers_json,body_blob from production_outbox
+       where sent_at is null and delivery_parked_at is null
+         and (next_delivery_attempt_at is null or next_delivery_attempt_at<=?)
+       order by created_at,idempotency_key`,
+    ).all(observedAt) as Array<{
       idempotency_key: string; kind: ProductionOutboxWrite["kind"]; path: string;
       method: ProductionOutboxWrite["method"]; headers_json: string; body_blob: Buffer;
     }>;
@@ -117,7 +141,8 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
         return;
       }
       this.database.prepare(`update production_outbox set response_json=?,response_hash=?,receipt_hash=?,
-        sent_at=?,failure_code=null where idempotency_key=? and sent_at is null`
+        sent_at=?,failure_code=null,next_delivery_attempt_at=null,delivery_parked_at=null
+        where idempotency_key=? and sent_at is null`
       ).run(responseJson, responseHash, receiptHash, now(), idempotencyKey);
     });
     transaction();
@@ -133,11 +158,28 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
 
   public unreconciledOutboxJobIds(): readonly string[] {
     const rows = this.database.prepare(`select path from production_outbox
-      where response_hash is null and failure_code is not 'REMOTE_JOB_ABSENT_HISTORICAL'
+      where sent_at is null and response_hash is null
       order by created_at,idempotency_key`).all() as Array<{ path: string }>;
     const jobIds = rows.map((row) => /\/jobs\/([^/]+)\//u.exec(row.path)?.[1])
       .filter((jobId): jobId is string => Boolean(jobId)).map(decodeURIComponent);
     return Object.freeze([...new Set(jobIds)]);
+  }
+
+  public isRemoteRedeliveryPending(jobId: string): boolean {
+    const jobPath = `%/jobs/${encodeURIComponent(jobId)}/%`;
+    const row = this.database.prepare(`select 1
+      from production_tasks t
+      where t.job_id=? and t.status='recovery_pending' and t.staged_result_json is null
+        and exists(
+          select 1 from production_outbox retired
+          where retired.path like ? and retired.failure_code='HISTORICAL_FAILED_COMPLETION_RETIRED'
+        )
+        and not exists(
+          select 1 from production_outbox pending
+          where pending.path like ? and pending.sent_at is null
+        )
+      limit 1`).get(jobId, jobPath, jobPath);
+    return Boolean(row);
   }
 
   private hydrateOne(jobId: string, receipt: RemoteReceipt): boolean {
@@ -155,7 +197,8 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
     }
     assertTerminalReceipt(local, receipt.response_json);
     this.database.prepare(`update production_outbox set response_json=?,response_hash=?,receipt_hash=?,
-      sent_at=coalesce(sent_at,?),failure_code=null where idempotency_key=? and response_hash is null`).run(
+      sent_at=coalesce(sent_at,?),failure_code=null,next_delivery_attempt_at=null,delivery_parked_at=null
+      where idempotency_key=? and response_hash is null`).run(
       responseJson, responseHash, receiptHashOf(receipt.response_json), now(), receipt.request_id,
     );
     return true;
@@ -173,25 +216,69 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
   public markRemoteAbsentHistorical(jobId: string): boolean {
     const task = this.database.prepare("select status from production_tasks where job_id=?")
       .get(jobId) as { status: LegacyProductionTaskStatus } | undefined;
-    if (!task || !["completed", "failed", "review_required", "cancelled"].includes(task.status)) return false;
+    if (!task || task.status !== "completed") return false;
     this.database.prepare(`update production_outbox set failure_code='REMOTE_JOB_ABSENT_HISTORICAL',
-      sent_at=coalesce(sent_at,?) where path like ? and response_hash is null`
+      sent_at=coalesce(sent_at,?),next_delivery_attempt_at=null,delivery_parked_at=null
+      where path like ? and response_hash is null`
     ).run(now(), `%/jobs/${encodeURIComponent(jobId)}/%`);
     return true;
   }
 
-  public deliverOutbox<T>(idempotencyKey: string, send: () => Promise<T>): Promise<T> {
+  private recordDeliveryFailure(
+    idempotencyKey: string,
+    buildHash: ProductionHash,
+    code: string,
+  ): void {
+    const timestamp = now();
+    const transaction = this.database.transaction(() => {
+      const row = this.database.prepare(`select delivery_build_hash,delivery_attempt_count,sent_at
+        from production_outbox where idempotency_key=?`).get(idempotencyKey) as Readonly<{
+        delivery_build_hash: ProductionHash | null; delivery_attempt_count: number; sent_at: string | null;
+      }> | undefined;
+      if (!row) throw new Error("PRODUCTION_OUTBOX_INTENT_MISSING");
+      if (row.sent_at) return;
+      if (row.delivery_build_hash !== buildHash) {
+        throw executionFailure("review_required", "PRODUCTION_OUTBOX_DELIVERY_BUILD_MISMATCH");
+      }
+      const attemptCount = row.delivery_attempt_count + 1;
+      const parked = attemptCount >= OUTBOX_DELIVERY_MAX_ATTEMPTS;
+      const delay = OUTBOX_DELIVERY_BACKOFF_MS[attemptCount - 1];
+      const nextAttemptAt = parked || delay === undefined
+        ? null : new Date(Date.parse(timestamp) + delay).toISOString();
+      this.database.prepare(`update production_outbox
+        set failure_code=?,delivery_attempt_count=?,next_delivery_attempt_at=?,delivery_parked_at=?
+        where idempotency_key=? and sent_at is null`).run(
+        code, attemptCount, nextAttemptAt, parked ? timestamp : null, idempotencyKey,
+      );
+    });
+    transaction();
+    this.notifyOutbox(this.readOutboxAuthority(idempotencyKey));
+  }
+
+  public deliverOutbox<T>(
+    idempotencyKey: string,
+    buildHash: ProductionHash,
+    send: () => Promise<T>,
+  ): Promise<T> {
     const operation = async (): Promise<T> => {
+      this.bindDeliveryBuild(idempotencyKey, buildHash);
       const authority = this.readOutboxAuthority(idempotencyKey);
       if (!authority) throw new Error("PRODUCTION_OUTBOX_INTENT_MISSING");
       if (authority.state === "delivered") return this.readOutboxResponse(idempotencyKey) as T;
-      if (authority.state === "failed") this.markOutboxPending(idempotencyKey);
+      if (authority.state === "parked") {
+        throw executionFailure("review_required", "PRODUCTION_OUTBOX_DELIVERY_PARKED");
+      }
+      if (authority.nextDeliveryAttemptAt && authority.nextDeliveryAttemptAt > now()) {
+        throw executionFailure("recovery_pending", "PRODUCTION_OUTBOX_DELIVERY_BACKOFF_ACTIVE");
+      }
       try {
         const response = await send();
         this.markOutboxSent(idempotencyKey, response);
         return response;
       } catch (error) {
-        this.markOutboxFailed(idempotencyKey, "OUTBOX_DELIVERY_FAILED");
+        const code = failureCode(error, "OUTBOX_DELIVERY_FAILED");
+        if (OUTBOX_STALE_RETIRE_CODES.has(code)) this.retireStaleOutbox(idempotencyKey, code);
+        else this.recordDeliveryFailure(idempotencyKey, buildHash, code);
         throw error;
       }
     };
@@ -200,32 +287,32 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
     return result;
   }
 
-  public markOutboxPending(idempotencyKey: string): void {
-    this.database.prepare(
-      "update production_outbox set failure_code=null where idempotency_key=? and sent_at is null",
-    ).run(idempotencyKey);
-    this.notifyOutbox(this.readOutboxAuthority(idempotencyKey));
-  }
-
-  public markOutboxFailed(idempotencyKey: string, failureCode: string): void {
-    this.database.prepare(
-      "update production_outbox set failure_code=? where idempotency_key=? and sent_at is null",
-    ).run(failureCode, idempotencyKey);
+  private retireStaleOutbox(idempotencyKey: string, remoteCode: string): void {
+    this.database.prepare(`update production_outbox
+      set failure_code=?,sent_at=coalesce(sent_at,?),next_delivery_attempt_at=null,delivery_parked_at=null
+      where idempotency_key=? and response_hash is null`
+    ).run(`STALE_LEASE_OUTBOX_RETIRED:${remoteCode}`.slice(0, 240), now(), idempotencyKey);
     this.notifyOutbox(this.readOutboxAuthority(idempotencyKey));
   }
 
   public readOutboxAuthority(idempotencyKey: string): ProductionOutboxAuthority | null {
-    const row = this.database.prepare(`select idempotency_key,kind,path,sent_at,failure_code,response_hash,receipt_hash
+    const row = this.database.prepare(`select idempotency_key,kind,path,sent_at,failure_code,response_hash,receipt_hash,
+      delivery_build_hash,delivery_attempt_count,next_delivery_attempt_at,delivery_parked_at
       from production_outbox where idempotency_key=?`).get(idempotencyKey) as Readonly<{
       idempotency_key: string; kind: ProductionOutboxWrite["kind"]; path: string; sent_at: string | null;
       failure_code: string | null; response_hash: ProductionHash | null; receipt_hash: ProductionHash | null;
+      delivery_build_hash: ProductionHash | null; delivery_attempt_count: number;
+      next_delivery_attempt_at: string | null; delivery_parked_at: string | null;
     }> | undefined;
     if (!row) return null;
     const match = /\/jobs\/([^/]+)\//u.exec(row.path);
     if (!match?.[1]) throw new Error("PRODUCTION_OUTBOX_JOB_ID_MISSING");
     return Object.freeze({
       idempotencyKey: row.idempotency_key, jobId: decodeURIComponent(match[1]), kind: row.kind,
-      state: row.sent_at && row.response_hash ? "delivered" : row.failure_code ? "failed" : "pending",
+      state: row.sent_at && row.response_hash ? "delivered"
+        : row.delivery_parked_at ? "parked" : row.failure_code ? "failed" : "pending",
+      deliveryBuildHash: row.delivery_build_hash, deliveryAttemptCount: row.delivery_attempt_count,
+      nextDeliveryAttemptAt: row.next_delivery_attempt_at, parkedAt: row.delivery_parked_at,
       failureCode: row.failure_code, responseHash: row.response_hash, receiptHash: row.receipt_hash,
     });
   }

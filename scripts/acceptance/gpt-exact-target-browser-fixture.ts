@@ -4,11 +4,12 @@ export const EXPECTED_GPT_CHILD_IDS = Object.freeze([
   "acquire_gpt_continuation_lane", "advance_gpt_continuation_lane",
   "attach_approved_gpt_files_once", "checkpoint_gpt_generated_image",
   "checkpoint_gpt_text_response", "close_gpt_execution_profile",
-  "ensure_exact_gpt_model", "ensure_exact_gpt_reasoning_tier",
+  "ensure_exact_gpt_reasoning_tier",
   "focus_exact_gpt_conversation", "open_gpt_attachment_control",
-  "open_gpt_execution_profile", "persist_gpt_continuation", "prepare_clean_gpt_chat",
+  "open_gpt_execution_profile", "open_gpt_model_selector_v2",
+  "persist_gpt_continuation", "prepare_clean_gpt_chat",
   "reconcile_gpt_attachment_set", "reconcile_gpt_draft", "reconcile_gpt_turn_submission",
-  "release_gpt_continuation_lane", "submit_exact_gpt_turn_once",
+  "release_gpt_continuation_lane", "select_exact_gpt_model_v2", "submit_exact_gpt_turn_once",
   "verify_gpt_conversation_identity", "wait_for_stable_gpt_image",
   "wait_for_stable_gpt_text", "write_exact_gpt_prompt",
 ].sort());
@@ -26,6 +27,7 @@ type FakeBrowserState = {
   url: string;
   domCalls: number;
   physicalMutations: number;
+  waitDurations: number[];
 };
 
 const createFakeBrowserLease = (
@@ -47,6 +49,8 @@ const createFakeBrowserLease = (
     return { documentRef: state.documentRef, targetRef: "target:1", navigationEpoch: state.navigationEpoch };
   },
   async runAtomicStep(_identity, action) { return action(); },
+  readAtomicStepRecovery: () => null,
+  requiresTurnRecovery: () => state.pending > 0,
   async navigate(navigation: Readonly<{ url: string }>) {
     state.physicalMutations += 1;
     state.url = navigation.url;
@@ -77,7 +81,8 @@ const createFakeBrowserLease = (
   },
   async registerFileArtifact() {},
   async issueFileArtifactGrant() { throw new Error("UNUSED"); },
-  async wait() {},
+  async wait(input) { state.waitDurations.push(input.durationMs); },
+  async park() { state.physicalMutations += 1; },
   async close() { state.physicalMutations += 1; },
   async resolvePendingMutation() {
     if (state.pending !== 1) throw new Error("BROWSER_MUTATION_UNSETTLED");
@@ -98,10 +103,12 @@ export const fakeBrowser = (responder: DomResponder, input: FakeBrowserOptions =
     url: input.initialUrl ?? "https://chatgpt.com/",
     domCalls: 0,
     physicalMutations: 0,
+    waitDurations: [],
   };
   return {
     browser: createFakeBrowserLease(responder, state, input),
     physicalMutations: () => state.physicalMutations,
     documentCalls: () => state.domCalls,
+    waitDurations: () => [...state.waitDurations],
   };
 };

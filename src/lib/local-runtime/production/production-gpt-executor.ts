@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import {
+  GPT_CHILD_CAPABILITY_CONTRACTS,
   GPT_TURN_FLOW_VERSION,
   type GptAbilityGroup,
   type GptChildCapabilityId,
@@ -224,6 +225,11 @@ export class ProductionGptExecutor {
       ? await input.context.browser.runAtomicStep({
         pluginStepId: input.stepId,
         childCapabilityId: input.intent.childCapabilityId,
+        flowVersion: input.intent.flowVersion,
+        stepIndex: input.intent.stepIndex,
+        inputHash: input.intent.inputHash,
+        actionOrdinal: input.intent.actionOrdinal,
+        replayPolicy: GPT_CHILD_CAPABILITY_CONTRACTS[input.intent.childCapabilityId].replayPolicy,
       }, execute)
       : await execute();
     if (observedProofs.at(-1)?.evidenceHash !== result.proof.evidenceHash) {
@@ -375,6 +381,7 @@ export class ProductionGptExecutor {
       kind: input.lease.attempt_mode === "reconciliation" ? "production-reconciliation" : "production",
       ownerPluginId: input.pluginId,
       jobId: input.task.job_id,
+      pluginStepId: input.turn.step_id,
       attemptId: input.lease.attempt_id,
       deviceId: input.lease.device_id,
       leaseVersion: input.lease.lease_version,
@@ -476,6 +483,19 @@ export class ProductionGptExecutor {
     const lane = await this.acquireContinuation(input);
     const continuation = lane?.provider ?? input.turn.same_conversation_as?.provider_continuation ?? null;
     const inputHash = stepInputHash(input, selected, durableIdentity, continuation);
+    const checkpointMetadata = this.store.readGptTurnCheckpointMetadata(input.task.job_id, input.turn.step_id);
+    if (checkpointMetadata && checkpointMetadata.flowVersion !== GPT_TURN_FLOW_VERSION) {
+      this.store.reconstructStaleGptTurnStep({
+        jobId: input.task.job_id,
+        stepId: input.turn.step_id,
+        nextInputHash: inputHash,
+        safeByBrowserWal: this.browserAuthority.canReconstructGptTurnStep({
+          jobId: input.task.job_id,
+          ownerPluginId: input.pluginId,
+          pluginStepId: input.turn.step_id,
+        }),
+      });
+    }
     const checkpoint = this.store.readGptTurnCheckpoint(input.task.job_id, input.turn.step_id, inputHash);
     if (checkpoint?.result) {
       if (lane) {

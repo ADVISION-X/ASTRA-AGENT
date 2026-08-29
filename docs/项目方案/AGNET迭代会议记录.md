@@ -407,3 +407,227 @@
 本轮已经确定迭代方向和子能力分母：**保留十二个 Product Plugin 的业务编排，删除它们重复的厂商页面步骤；将当前 44 项 GPT child denominator 收敛为 22 项真实公共子能力；Browser Authority 与 Runtime 恢复各守自己的边界。**
 
 这份结论可以作为下一步重构方案输入，但本次没有修改冻结法案或施工图，也没有获得实施重构、READY、提交、部署或 RELEASE 授权。
+
+## 2026-08-29 会议续记：任务失败情报、有限重试与容量熔断
+
+### 本轮讨论背景
+
+网站任务的业务红线保持不变：
+
+> 网站任务只有“成功交付并入库”才算完成。任何一次执行失败，都只是故障现场，不是任务终点。
+
+本轮继续讨论 AGENT 收到网站任务后的执行纪律。讨论重点不是把失败包装成成功，也不是让同一故障无限循环，而是同时满足以下三点：
+
+1. 网站任务最终仍须成功交付并入库；
+2. 每次失败都必须保留足以尸检和修复的完整情报；
+3. 自动重试必须有上限，单个故障任务不得拖垮全局或阻塞后续任务。
+
+### 已实证的 A/B 分叉结论
+
+本轮对当前运行日志、AGENT 本地 durable ledger、Website PostgreSQL 状态及双仓代码进行了只读交叉核对。
+
+候选 A：Website 与 AGENT 的 V6 通讯格式不兼容。
+
+候选 B：V6 通讯已经成功，但同一历史任务的旧 durable identity 与当前新租约 identity 冲突。
+
+实证裁决：**B 成立，A 不成立。**
+
+证据闭环如下：
+
+1. Website 与 AGENT 当前使用同一 V6 合同指纹 `sha256:9d9cef79fda1b7f4dd01ac10f5d5cbb76e474d74bafef40f9fd24c3e04423bda`。
+2. 当前 Worker Session 已达到 `claim_eligible`、`ledger_reconciled=true`，运行日志出现真实 `cloud.claim=success`；因此报文解析、设备鉴权、会话绑定和领取接口已经通过。
+3. Website 随后真实租出十个历史本地化任务，并按当前 Worker Manifest 写入 `localization-production` Plugin 版本 9。
+4. 同一批任务在 AGENT 本地已经冻结为 Plugin 版本 2、checkpoint schema 版本 1；当前实现则是 Plugin 版本 9、checkpoint schema 版本 2。
+5. AGENT 在 durable accept 时依法拒绝用新 Plugin 静默解释旧任务，报出 `PLUGIN_IDENTITY_CHANGED_BEFORE_RECOVERY`。
+6. AGENT 因本地已存在旧 durable task，随后尝试上报 `recovery_pending`；Website 却把本次租约视为 `accepted_at=null` 的新租约，要求第一条 checkpoint 必须是 `inputs_downloading`，因此返回 `AI_V6_CHECKPOINT_TRANSITION_INVALID`。
+7. 重试越过 30 秒接单期限后，同一 outbox 又收到 `AI_LEASE_ACCEPT_DEADLINE_EXPIRED`。
+
+责任判断不能简单说成某一边全部正确：
+
+- AGENT 拒绝冒用 Plugin 9 续跑 Plugin 2 的旧 durable task 是正确的，它保护冻结执行身份和旧 checkpoint 不被新代码静默重解释。
+- Website 拒绝“未完成首次接收的新租约直接跳到 recovery_pending”也是正确的，它保护新租约的状态转换纪律。
+- 真正错误发生在两者之前：Website 对历史 `recovery_pending` 任务重新发租约时，直接使用当前 Worker Manifest 重写期望 Plugin 身份，却没有先完成旧执行片区退役、新执行片区重建或正式交接。这制造了一条无法同时满足的命令。
+
+当前 SEO 任务尚未在这一身份门禁上直接失败，而是被历史任务占满执行容量后堵在队列中。只读数据库快照显示：SEO 工单仍为 `running`，目标 100，成功入库与 admission receipt 均为 0；76 个相关 AI 任务仍为 `queued`，10 个为 `recovery_pending`。同时，十个历史本地化任务占用了当前全部十个租约容量。这正是“一个故障片区拖住后续士兵”的现实故障现场。
+
+### 用户明确的执行纪律
+
+AGENT 收到网站任务后，每次执行尝试只有两个事实结果：
+
+1. **成功**：按既定步骤完成执行、结果回传、Website 业务消费和入库；只有取得匹配的业务 admission receipt，网站任务才算完成。
+2. **失败**：本次执行尝试阵亡。阵亡不是网站任务完成，也不能只返回一个笼统失败状态；任务继续保留为待恢复、待重试或待修复对象。
+
+失败必须“透露情报”。任何失败现场至少要回答：
+
+- 谁阵亡：网站任务、AGENT job、attempt、lease、Plugin 与版本；
+- 何时阵亡：发生时间、持续时间、重试次数和下一次允许重试时间；
+- 在哪里阵亡：Owner、component、业务阶段、安全原子步骤与 checkpoint；
+- 为什么阵亡：稳定错误码、直接原因、根因 Owner 与因果事件；
+- 阵亡前做了什么：外部 mutation 是 `no`、`dispatched` 还是 `confirmed`；
+- 留下什么证据：日志事件、checkpoint、Browser WAL、对象或回执的 ref/hash；
+- 现在影响什么：是否占用租约、业务容量、Browser lane、continuation lane 或 outbox；
+- 下一步能做什么：可以安全重试、只能对账，还是必须停下来等待修复。
+
+禁止只记录 `failed`、HTTP 409、异常字符串或“执行失败”后结束。没有时间、地点、步骤、身份、外部动作状态和证据引用的失败，不足以支持尸检。
+
+### 有限重试与兜底原则
+
+失败可能是假死，因此系统必须支持自动重试；但重试不是无限循环。
+
+本轮已经确定以下原则：
+
+1. 每个 task/attempt 必须有明确重试预算，不能无限占用执行线程、租约、Browser lane 或全局容量。
+2. 重试必须从最近一个已证明安全的 checkpoint 继续；已经 dispatch 的上传、提交、媒体下载或其他外部 mutation 必须先对账，禁止盲目重放。
+3. 每次重试都要增加 attempt/lease 代次并保留上一现场，不能覆盖旧错误或伪造一条干净历史。
+4. 同一稳定错误连续出现时必须采用有界退避，不能毫秒级空转轰击 Website、数据库、Provider 或 Browser。
+5. 达到重试上限后，必须停止该任务的自动执行，释放它占用的租约、全局业务容量和其他共享 lane；后续健康任务必须能够继续领取和执行。
+6. 停止自动重试不等于把网站任务宣判为完成或永久失败。该任务应保留完整故障情报，进入明确的待修复/人工判定位置；修复后才能获得新的受控执行机会，最终目标仍是成功交付并入库。
+7. 任何兜底都不得静默丢任务、伪造成功、伪造入库、清除故障证据，或让 Website 用户承担 AGENT 内部故障。
+
+授权人现已冻结参数：同一 AGENT 代码候选累计形成 **3 次失败现场** 后停车自动执行。这里的三次包含首次失败，不是“首次失败后再重试三次”。每次失败都必须先持久化故障情报再释放租约与容量；第三次后网站任务仍保留为待交付债务，新代码候选上线才重新获得三次预算。
+
+### 当前系统为什么违反上述纪律
+
+当前故障链同时暴露了两个缺口：
+
+1. **身份恢复缺口**：旧 durable identity 与新租约 identity 不兼容时，没有唯一的退役、重建或交接路径。
+2. **容量熔断缺口**：十个同类历史任务反复领取、反复失败并占满十个业务位置，导致后续 SEO 任务无法前进。
+
+因此，仅增加一次 `retry`、改一个状态名或吞掉 409 都是表面处理。后续方案必须对“历史任务重新派发、AGENT durable accept、失败情报、重试预算、达到上限后的任务停车和容量释放”这一完整片区做删除与重构，不能增加兼容旁路、第二状态链或无限 fallback。
+
+### 本轮冻结的实现裁决
+
+1. Website 是 `attempt_number`、三次预算、退避时间与停车裁决的唯一事实源；AGENT 只按 grant 执行并完整上报现场。
+2. 第一次失败退避 5 秒，第二次失败退避 15 秒，第三次失败后同一 `agent_build_hash` 不再领取该 job；新的 build hash 才开启新预算。
+3. 每次失败 checkpoint 必须在同一事务追加 failure history、清除 lease/session/fence 并释放业务容量；停车任务保持 `recovery_pending`，没有 failed terminal。
+4. `mutation_outcome=dispatched` 仍只能 `RECONCILE_ONLY`，三次预算不授权盲目重放。
+5. 旧 Plugin 身份仅在网站已退役历史失败完成、本地执行片区完全没有 result、step、continuation、Browser mutation、active lease 或未知 Outbox 时，才允许删除旧 checkpoint/lease/材料片区并按现役身份重建；证据保留，不设兼容链。
+
+本次会议续记授权同步修改法案、施工图、质检系统和生产代码；它不代表 READY、RELEASE 或 SEO 已成功交付入库，最终仍以真实 admission receipt 为准。
+
+## 2026-08-29 会议续记：GPT WEB 战场位置与历史执行片区删除边界
+
+### 当前任务究竟走到了哪里
+
+实证结论是：**任务已经进入 GPT WEB 的真实浏览器执行战场，但没有通过“打开执行配置”这一道关口。**
+
+已经证明的事实：
+
+1. Browser Authority 已建立，真实 ChatGPT Target 已被 claim，AGENT 已进入 GPT Child 执行链。
+2. `open_gpt_execution_profile` 已真实下发 `browser.dom.click.v1`，Browser WAL 已经过 `PREPARED -> DISPATCHED`。
+3. 点击后在 5.085 秒内没有出现合同要求的执行配置弹面，因此 WAL 收束为 `REJECTED`，错误码为 `BROWSER_POSTCONDITION_FAILED`，随后上报 `GPT_CHILD_REVIEW_REQUIRED` 与 `PLUGIN_EXECUTION_FAILED`。
+
+因此，用战场比喻表述：部队已经到达 GPT WEB 战场并发出了打开执行配置的动作，但在确认该配置界面真正打开时阵亡，没有继续到模型/推理档位确认、prompt 提交、结果回收或 Website 入库。“已进入 GPT WEB”不得被升级为“GPT 已开始生产”或“任务已成功”。
+
+### `PLUGIN_EXECUTION_SLICE_RECONSTRUCTION_UNSAFE` 与本次浏览器阵亡不是同一件事
+
+`BROWSER_POSTCONDITION_FAILED` 是当前真实 GPT WEB 动作的故障现场。
+
+`PLUGIN_EXECUTION_SLICE_RECONSTRUCTION_UNSAFE` 则来自另一个历史 job：现行安全门发现该 job 至少有一项旧 result/step/continuation/Browser mutation/active lease/未知 Outbox 条件没有满足，因此拒绝直接重建。这个错误码本身只证明“现行条件下禁止重建”，不能单独证明该 job 仍有业务价值，也不能单独证明它可以无条件删除。
+
+### 授权人对“纯历史产物”的新裁决
+
+授权人明确：系统持续迭代时，如果某个旧执行对象已经是**纯历史产物**，它不再对应任何当前网站交付债务，也不再有现役业务消费者，则它的旧执行片区没有继续占用现役数据库和恢复链的价值，可以物理删除。
+
+本次会议对“无痕删除”的精确定义是：
+
+1. 从现役 runtime 存储中事务性删除该历史 job 的 checkpoint、lease、material、continuation、Browser mutation、Outbox 及只为它存在的关联行。
+2. 不为已删除的历史对象新建 tombstone、重构回执、兼容 reader、旧 Plugin 分支、第二台账或第二身份链；删除后它不再被现役代码看见、恢复或重放。
+3. “无痕”指不在现役运行系统中额外建立历史影子链；正常 Git 字节历史仍由 Git 自然记录，不为此改写 Git 历史。
+
+删除前必须由 Website 和 AGENT 的当前权威事实完成二元归类：
+
+- **现役交付债务**：网站仍要求交付，或仍有未收束的外部 mutation/回传。这类不得删除，必须保留阵亡情报、对账并继续修复。
+- **纯历史产物**：Website 已明确退役且不再存在交付债务，所有现役执行入口先被断开。这类可在一个定点事务中无痕物理删除，不得继续报 `PLUGIN_EXECUTION_SLICE_RECONSTRUCTION_UNSAFE`、占用容量或反复进入恢复链。
+
+这条新裁决与“每次现役失败必须保留尸检情报”不冲突：前者处理已退役且无交付债务的纯历史垃圾，后者处理当前仍要成功交付的网站任务。禁止把当前故障现场谎报成历史垃圾后删除。
+
+现行施工图仍要求保留退役 Outbox 原文和本地重构凭据，因此它与本次“纯历史产物无痕删除”的新裁决存在明确 GAP。本次仅更新会议记录和讨论边界，还没有修改法案、施工图、质检系统、生产代码或删除任何运行数据。
+
+## 2026-08-29 会议续记：GPT WEB 任务局部恢复片区重构
+
+### WHY HAPPEN
+
+本轮重新对照法案、施工图、生产代码、Browser WAL、GPT checkpoint 与质检系统后，确认“点击后几乎立刻失败、重试又被判重复动作、一个任务拖住后续任务”并非一个 DOM selector 小问题，而是恢复模型同时存在四个冲突：
+
+1. Browser 已完成物理动作并把 WAL 写成 `DISPATCHED/CONFIRMED` 后，Forensics 或 shared checkpoint 仍可能失败；旧 checkpoint 会把同一步降级成 `mutation_state=no`，重试据此再次发送。
+2. 旧 logical mutation identity 把执行中动态 observation 次数当 action ordinal，又没有区分 Provider 外部 effect 与 Target-local 页面动作；结果是本地弹面动作换新 Target 后仍可能被旧 identity 永久封死。
+3. 旧 Browser lane 用全局 `unsettled` 保存一个 job 的现场，导致该 job 的 Target 生命周期问题冻结整条 FIFO；“保留尸检现场”被错误实现成“占住全局道路”。
+4. 磁盘上的现役失败 checkpoint 仍是 `gpt-turn-flow.v1`。若只换成 v2 代码而不处理旧 step，重启会在新代码入口再次因 flow/input identity 漂移失败。
+
+### 片区删除与唯一新链
+
+本轮物理删除全局 `unsettled` 闸门、reconciliation 抢占旁路和按 attempt 读取 pending mutation 的旧行为。普通执行与恢复执行统一进入同一有界 FIFO；恢复身份只由 Browser WAL 按 `job + plugin step` 派生。
+
+唯一新链如下：
+
+1. 每个 GPT step 使用冻结的 `flow version + step index + input hash + plugin step + child + semantic action ordinal`。
+2. `attach_approved_gpt_files_once` 与 `submit_exact_gpt_turn_once` 是 `provider-effect-once`，identity 跨 Target/attempt/build 稳定；已 `DISPATCHED/CONFIRMED/REJECTED` 均不得重发。
+3. 模型弹面、推理档位、附件入口和 draft 等是 `target-local-per-generation`，identity 追加 `targetRef`；旧 Target 的 terminal 不再永久封死新 Target 代次。
+4. Browser WAL 是物理副作用先行权威。WAL 领先 checkpoint 时，已确认 Provider effect 直接从 WAL authority 恢复；已发送但未确认时跳过 mutation Child，只进入下一项只读 reconcile；checkpoint mutation state 只能单调前进。
+5. 需要恢复时扩展执行 `park-target`：保留任务专属 tab/Target/Document，撤销 active claim 与 Workspace，立即释放 FIFO；同一 job 重试携带 exact targetRef 重领，其他 job 可继续执行。
+
+## 2026-08-29 会议续记：片区重构后的真实重启实证与下一阻塞点
+
+### CHANGE 质检与重启事实
+
+1. 本轮没有启动 CI-FULL。定向治理测试 77/77 通过，随后项目唯一 `quality:check` 以 CHANGE 模式返回 `CHANGE_PASS`；受影响的 Agent Runtime、GPT、Local Browser、Runtime Log、App Shell 与治理路由验收全部通过。
+2. 2026-08-29 02:27（Asia/Dubai）通过项目原生 `grasseye:start` 入口清理旧 4173 实例并重启。新 Agent run id 为 `29d1428b-dac7-4e4d-a5ce-64bd425618ce`，健康端点返回 `status=healthy`、`cloud=ready`、`claim.admission=eligible`、`browser.authority=present`、`browser.target=claimed`，当时 Browser lane 为真实 `busy`。
+3. Browser mutation 现役库已完成原位 schema 迁移，新增 `flow_version`、`step_index`、`effect_scope`。真实新任务已产生 `gpt-turn-flow.v2` 记录，`open_gpt_execution_profile` 和 `close_gpt_execution_profile` 都在各自 exact Target 上写入 `CONFIRMED`。这证明旧的全局 `unsettled` 冻结和按 attempt 盲目重放已不再是新执行链的首故障。
+4. 但本次不得将上述事实升级为“SEO 已全流程修复”。当时网站 FIFO 先发放创建时间更早的本地化恢复任务；12 个 `public_knowledge_article_pipeline` 本地债务仍是 `recovery_pending`，其中旧 SEO checkpoint 仍为 `gpt-turn-flow.v1`，还没有获得本轮新租约，因此安全 step 重建尚未在 SEO 实例上触发。
+
+### 下一真实阻塞点：GPT 附件入口未出现，而故障情报又被 Website 409 拒收
+
+新链的第一个真实页面故障发生在 `open_gpt_attachment_control`：
+
+1. 真实任务 `aiprod_b9dddc6e-dec5-4d7e-812f-56a7e3717c50` 已成功完成模型确认、推理档位确认和配置面板关闭；随后打开附件控件时仅用约 59 ms 就返回 `GPT_PAGE_CANDIDATE_COUNT_0`。
+2. 直接原因不是“GPT 生成太慢”，而是现役附件子能力对 `GPT_ATTACHMENT_CONTROL_SELECTOR` 调用一次 `requireOneCandidate`，该读取没有语义等待门。页面尚未水合或 selector 已随 GPT WEB 改变时，系统会立即宣判为不是唯一候选。这与授权人看到的“刚点击就宣判失败”完全吻合。
+3. 这个页面失败被 AGENT 保存为 `mutation_outcome=no`。但 Website 对该历史任务发放的 grant 仍是 `attempt_mode=reconciliation`，AGENT 现役 `claimFailureDecision` 因此又上报 `RECONCILE_ONLY`。Website 正确拒绝这个矛盾组合，返回 HTTP 409 / `AI_V6_RECONCILE_OUTCOME_INVALID`：只有 `mutation_outcome=dispatched` 才允许 `RECONCILE_ONLY`。
+4. 该 409 不是页面失败的原因，而是“阵亡情报无法入库”的第二层故障。当前 outbox 会反复尝试同一份被拒 checkpoint；若不重构这个边界，三次阵亡历史不能可靠入 Website，而且会制造 outbox 噪声和后续诊断污染。
+
+因此下一步不能继续盲跑。需要授权人判定下一个重构片区的顺序：先重构 GPT 附件入口的有界语义水合/精确 selector 链，还是先重构 `attempt_mode + mutation_outcome + decision` 失败回传合同。无论选哪个，都不得吞掉 409、降级为普通 retry，也不得宣称 SEO 已入库。
+6. 旧 flow step 不保留兼容 reader。只有 `failed + no result/staged result`，且 Browser WAL 证明没有 DISPATCHED、没有 Provider effect CONFIRMED/REJECTED 时，才事务删除该旧 step并写入现役 Outbox 的已本地验收重构凭据；任何上传/提交副作用存在都拒绝删除。
+
+### 法案、施工图与质检同步
+
+法案现已明确“现场归任务、容量归全局”，并把 logical identity 分成 Provider effect 与 Target-local 两类。Local Browser、GPT 与 Website-Agent V6 施工图同步写入 WAL 先行、checkpoint 单调、park/re-acquire、flow step 安全退役边界。
+
+质检系统新增并绑定以下检查：
+
+- 全局 `private unsettled`、`acquireReconciliation`、`reconciliationAllowed` 必须物理缺席；
+- lane 必须包含 `turnRecoveryScope + expectedTargetRef + park`；
+- mutation row 必须含 `flowVersion + stepIndex + effectScope`，并提供 `atomicStepRecovery`；
+- GPT flow 旧 step 删除必须同时出现 WAL 安全判断、拒绝码和重构凭据；
+- acceptance 覆盖 WAL 领先 checkpoint 禁重放、Target-local 跨代隔离、Provider effect 跨代恢复、一个 lifecycle 故障不冻结 FIFO、扩展停放后 exact Target 重领。
+
+### 当前定向证据
+
+当前候选的 `typecheck`、GPT acceptance、Browser FIFO acceptance、Browser mutation rule mutants、Browser terminal contract、自动配对与 exact ChatGPT claim acceptance、旧 flow step 重构 acceptance 均已通过；法案 registry 已重新生成，projection current，57 项治理契约测试通过。本轮没有启动 CI-FULL，这些证据只证明当前 CHANGE 的定向边界，尚不等于 SEO 已完成入库。
+
+重启前只读磁盘实证显示，现有 SEO 失败 step 均停在 `research/open_gpt_execution_profile`，Browser WAL 只有该 Target-local 动作的 CONFIRMED/REJECTED，没有附件上传或 GPT 提交 Provider effect；因此它们满足旧 flow step 定点退役条件。下一步是重启当前候选，让数据库完成 schema/step 重构并观察第一条 SEO 任务实际进入哪个新原子阻塞点，最终完成仍只认 Website 的 business admission receipt。
+
+## 2026-08-29 会议续记：Outbox 409 重试风暴专项
+
+### 真实故障现场与 WHY HAPPEN
+
+模型选择 V2 经真实 Chrome、Browser WAL 和 runtime log 证明已经完成入口点击、精确模型选中和推理强度确认；任务随后在 `open_gpt_attachment_control` 失败。页面失败本身没有发送附件副作用，但它产生的 checkpoint Outbox 被 Website 以 HTTP 409 / `AI_V6_RECONCILE_OUTCOME_INVALID` 拒绝。
+
+AGENT 旧 Outbox 链存在三个直接缺陷：
+
+1. `production_outbox` 只保存 `failure_code`，没有交付尝试次数、下次允许时间、停车时间或 build 预算身份。
+2. `pendingOutbox()` 只用 `sent_at is null` 选取任务，失败 Outbox 因此每轮都重新进入发送队列。
+3. `deliverOutbox()` 和外层 flusher 同时处理同一次失败；外层又把失败态重置为 pending，导致 HTTP 409 每秒重复。真实调试 run 在约五分钟内产生 7,800 余条事件，证明该路径会制造重试风暴并污染其他任务诊断。
+
+### 专项唯一新链
+
+每个 Outbox intent 以 `idempotency_key + agent_build_hash` 持久化一份唯一交付预算：
+
+1. 第一次网络失败原子写入原生 code、`delivery_attempt_count=1` 和 5 秒后的 `next_delivery_attempt_at`。
+2. 第二次失败写入计数 2，并退避 15 秒。
+3. 第三次失败写入计数 3、`delivery_parked_at`，authority 状态成为 `parked`；同 build 的循环和重启都不得再选择或发送该 intent。
+4. 新 `agent_build_hash` 才能重开该 durable Outbox 的三次预算；这不是把网站任务判失败，任务仍是 `recovery_pending` 交付债务。
+5. `parked` 只隔离该 intent。其他 Outbox、其他 job、Website 入口和全局 Claim 不得被它阻断。
+6. 每次失败只有 Store Owner 记账一次；flusher 只记录 terminal span，并在第三次明确输出 `recovery=stop`，不得再把失败态改回 pending。
+7. Website 已权威判定为旧租约/任务不存在的 409 不消耗三次假死预算；Store 在同一事务路径中直接退役该 Outbox，只暴露 `failed + STALE_LEASE_OUTBOX_RETIRED:<remote_code>`，禁止短暂进入 `parked` 后再被外层改写。
+
+质检必须覆盖 5 秒/15 秒退避、第三次持久停车、同 build 重启不重放、新 build 恢复预算、原生 409 code 保留，以及一个 parked intent 不阻断无关 intent。

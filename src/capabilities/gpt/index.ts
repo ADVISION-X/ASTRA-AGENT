@@ -1,4 +1,10 @@
-export { createGptAbilityGroup, GPT_TURN_FLOW_VERSION, GptTurnExecutor } from "./ability-group.js";
+export {
+  createGptAbilityGroup,
+  GPT_MODEL_SELECTION_VERSION,
+  GPT_TURN_FLOW_VERSION,
+  GptTurnExecutor,
+} from "./ability-group.js";
+export { GPT_CHILD_CAPABILITY_CONTRACTS } from "./contract.js";
 export {
   type GptAbilityGroup,
   type GptChildCapabilityId,

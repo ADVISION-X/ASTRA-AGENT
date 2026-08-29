@@ -81,6 +81,29 @@ try {
   assert.throws(() => restartedStore.writeGptTurnCheckpoint(sourceTask.job_id, "analyze", dispatchedCheckpoint),
     /GPT_TURN_CHECKPOINT_REGRESSION/u);
   restartedStore.close();
+  const staleTask = task({ jobId: "job:stale-flow", productId: "bazi_ai_full_analysis", actionId: "produce" });
+  store.acceptTask(staleTask, identityFor(staleTask));
+  const database = Reflect.get(store, "database") as import("better-sqlite3").Database;
+  database.prepare(`insert into production_steps(job_id,step_id,input_hash,result_json,completed_at)
+    values(?,?,?,?,?)`).run(
+    staleTask.job_id,
+    "analyze",
+    HASH_A,
+    JSON.stringify({ ...dispatchedCheckpoint, flow_version: "gpt-turn-flow.v1",
+      step_index: 3, child_capability_id: "open_gpt_execution_profile",
+      mutation_state: "confirmed", provider_dispatch_used: false }),
+    "2026-08-28T00:00:00.000Z",
+  );
+  assert.throws(() => store.reconstructStaleGptTurnStep({
+    jobId: staleTask.job_id, stepId: "analyze", nextInputHash: HASH_B, safeByBrowserWal: false,
+  }), /GPT_FLOW_EXECUTION_SLICE_RECONSTRUCTION_UNSAFE/u);
+  store.reconstructStaleGptTurnStep({
+    jobId: staleTask.job_id, stepId: "analyze", nextInputHash: HASH_B, safeByBrowserWal: true,
+  });
+  assert.equal(store.readGptTurnCheckpointMetadata(staleTask.job_id, "analyze"), null);
+  assert.match((database.prepare(`select response_hash from production_outbox
+    where path like '%/gpt-flow-execution-slice-reconstructions'`).get() as { response_hash: string }).response_hash,
+  /^sha256:[a-f0-9]{64}$/u);
   const checkpointAuthority = store.recordCheckpoint({
     jobId: sourceTask.job_id, attemptId: "attempt:source", checkpointId: "factory_running",
     checkpointHash: HASH_C, state: "persisted",
@@ -186,23 +209,20 @@ try {
   const pendingOutbox = store.readOutboxAuthority("outbox:1")!;
   assert.equal(pendingOutbox.state, "pending");
   assert.equal(store.resolveAuthority("production-outbox:outbox:1", hashCanonical(pendingOutbox)), "verified");
-  store.markOutboxFailed("outbox:1", "FETCH_FAILED");
-  assert.equal(store.readOutboxAuthority("outbox:1")?.state, "failed");
-  store.markOutboxPending("outbox:1");
   store.markOutboxSent("outbox:1", { checkpoint_hash: HASH_A });
   assert.equal(store.readOutboxAuthority("outbox:1")?.state, "delivered");
-  assert.deepEqual(store.outboxAuthorities().map((authority) => authority.state), ["delivered"]);
+  assert.deepEqual(store.outboxAuthorities().map((authority) => authority.state), ["delivered", "delivered"]);
   assert.throws(() => store.enqueue({ ...outbox, body: '{"drift":true}' }), /PRODUCTION_OUTBOX_IDEMPOTENCY_CONFLICT/u);
   assert.throws(() => store.acceptTask(sourceTask, {
     ...sourceIdentity, plugin_version: sourceIdentity.plugin_version + 1,
-  }), /PLUGIN_IDENTITY_CHANGED_BEFORE_RECOVERY/u);
+  }), /PLUGIN_EXECUTION_SLICE_RECONSTRUCTION_UNSAFE/u);
   assert.equal(store.readTask(sourceTask.job_id)?.status, "recovery_pending");
   const terminalTask = task({
     jobId: "job:terminal-reconciliation", productId: "payment_screenshot_observation", actionId: "observe",
   });
   const terminalIdentity = identityFor(terminalTask);
   store.acceptTask(terminalTask, terminalIdentity);
-  store.setTerminal(terminalTask.job_id, "completed", null, resultFor(terminalTask, terminalIdentity));
+  store.completeTask(terminalTask.job_id, resultFor(terminalTask, terminalIdentity));
   assert.equal(store.taskAuthorities().find((record) => record.task.job_id === terminalTask.job_id)?.status, "completed");
   store.close();
 } finally {

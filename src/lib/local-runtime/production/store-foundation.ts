@@ -6,8 +6,8 @@ import { executionFailure, type SerializedExecutionFailure } from "../../typed-f
 import type { DurablePluginIdentity, WebsiteAgentResult, WebsiteAgentTask } from "./contracts.js";
 import { hashCanonical, type ProductionHash } from "./contracts.js";
 
-export type ProductionTaskStatus = "accepted" | "running" | "recovery_pending" | "completed" | "failed";
-export type LegacyProductionTaskStatus = ProductionTaskStatus | "review_required" | "cancelled";
+export type ProductionTaskStatus = "accepted" | "running" | "recovery_pending" | "completed";
+export type LegacyProductionTaskStatus = ProductionTaskStatus | "failed" | "review_required" | "cancelled";
 
 export interface StoredProductionTask {
   readonly task: WebsiteAgentTask;
@@ -63,7 +63,11 @@ export type ProductionOutboxAuthority = Readonly<{
   idempotencyKey: string;
   jobId: string;
   kind: ProductionOutboxWrite["kind"];
-  state: "pending" | "delivered" | "failed";
+  state: "pending" | "delivered" | "failed" | "parked";
+  deliveryBuildHash: ProductionHash | null;
+  deliveryAttemptCount: number;
+  nextDeliveryAttemptAt: string | null;
+  parkedAt: string | null;
   failureCode: string | null;
   responseHash: ProductionHash | null;
   receiptHash: ProductionHash | null;
@@ -101,7 +105,7 @@ export const isSerializedTerminalFailure = (value: unknown): value is Serialized
 };
 
 export const projectedTaskStatus = (status: LegacyProductionTaskStatus): ProductionTaskStatus =>
-  status === "review_required" || status === "cancelled" ? "failed" : status;
+  status === "failed" || status === "review_required" || status === "cancelled" ? "recovery_pending" : status;
 
 export const projectedFailure = (
   value: string | null,
@@ -178,7 +182,9 @@ const createProductionTables = (database: Database.Database): void => {
     idempotency_key text primary key, kind text not null, path text not null,
     method text not null, headers_json text not null, body_blob blob not null,
     created_at text not null, sent_at text, failure_code text,
-    response_json text, response_hash text, receipt_hash text
+    response_json text, response_hash text, receipt_hash text,
+    delivery_build_hash text, delivery_attempt_count integer not null default 0,
+    next_delivery_attempt_at text, delivery_parked_at text
   );
   create table if not exists production_checkpoints(
     job_id text primary key references production_tasks(job_id) on delete restrict,
@@ -223,6 +229,18 @@ const ensureOutboxSchema = (database: Database.Database): void => {
   if (!columns.has("response_json")) database.exec("alter table production_outbox add column response_json text");
   if (!columns.has("response_hash")) database.exec("alter table production_outbox add column response_hash text");
   if (!columns.has("receipt_hash")) database.exec("alter table production_outbox add column receipt_hash text");
+  if (!columns.has("delivery_build_hash")) database.exec(
+    "alter table production_outbox add column delivery_build_hash text",
+  );
+  if (!columns.has("delivery_attempt_count")) database.exec(
+    "alter table production_outbox add column delivery_attempt_count integer not null default 0",
+  );
+  if (!columns.has("next_delivery_attempt_at")) database.exec(
+    "alter table production_outbox add column next_delivery_attempt_at text",
+  );
+  if (!columns.has("delivery_parked_at")) database.exec(
+    "alter table production_outbox add column delivery_parked_at text",
+  );
 };
 
 const ensureTaskSchema = (database: Database.Database): void => {
@@ -231,14 +249,33 @@ const ensureTaskSchema = (database: Database.Database): void => {
   if (!columns.has("failure_json")) database.exec("alter table production_tasks add column failure_json text");
 };
 
+const migrateFailedTaskTerminalsToRecovery = (database: Database.Database): void => {
+  const timestamp = now();
+  database.transaction(() => {
+    database.prepare(`update production_tasks
+      set status='recovery_pending',result_json=null,
+          failure_reason=coalesce(failure_reason,json_extract(failure_json,'$.code'),'HISTORICAL_FAILED_TASK_RECOVERY'),
+          updated_at=?
+      where status in ('failed','review_required','cancelled')`).run(timestamp);
+    database.prepare(`update production_outbox
+      set failure_code='HISTORICAL_FAILED_COMPLETION_RETIRED',sent_at=coalesce(sent_at,?),
+          response_json=null,response_hash=null,receipt_hash=null
+      where kind='terminal'
+        and json_extract(cast(body_blob as text),'$.terminal_status') in ('failed','review_required','cancelled')`
+    ).run(timestamp);
+  })();
+};
+
 type ProductionOutboxObserver = (authority: ProductionOutboxAuthority) => void;
 
 export abstract class ProductionStoreFoundation implements GptContinuationStorePort {
   protected readonly database: Database.Database;
+  protected readonly dataDir: string;
   protected outboxDeliveryTail = Promise.resolve();
   private outboxObserver: ProductionOutboxObserver | null = null;
 
   public constructor(dataDir: string) {
+    this.dataDir = dataDir;
     this.database = new Database(path.join(dataDir, "production-runtime.sqlite"));
     this.database.pragma("journal_mode = WAL");
     this.database.pragma("synchronous = FULL");
@@ -246,6 +283,7 @@ export abstract class ProductionStoreFoundation implements GptContinuationStoreP
     ensureContinuationSchema(this.database);
     ensureTaskSchema(this.database);
     ensureOutboxSchema(this.database);
+    migrateFailedTaskTerminalsToRecovery(this.database);
   }
 
   public setOutboxObserver(observer: ProductionOutboxObserver): void { this.outboxObserver = observer; }

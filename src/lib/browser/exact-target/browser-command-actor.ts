@@ -12,7 +12,12 @@ import {
   failBrowserCommandSpan,
   startBrowserCommandSpan,
 } from "./browser-command-runtime-logging.js";
-import { BrowserMutationStore, type BrowserMutationIdentity } from "./browser-mutation-store.js";
+import {
+  BrowserMutationStore,
+  type BrowserAtomicStepRecovery,
+  type BrowserMutationIdentity,
+} from "./browser-mutation-store.js";
+import type { BrowserAtomicStepIdentity } from "./browser-target-lease.js";
 import { assertPluginOutcomeResolution, type BrowserOutcomeResolutionReceipt } from "./browser-outcome-resolver.js";
 
 export type BrowserGovernedCommand =
@@ -27,6 +32,7 @@ export type BrowserGovernedCommand =
     semanticMediaId: "gpt-generated-image-main";
   }>
   | Readonly<{ kind: "wait"; durationMs: number }>
+  | Readonly<{ kind: "park-target"; reason: string }>
   | Readonly<{ kind: "close-target"; reason: string }>;
 
 export type BrowserCommandPort = Readonly<{
@@ -117,11 +123,19 @@ const postconditionPair = (command: BrowserGovernedCommand): Readonly<{
 
 const mutationIdentity = (permit: BrowserCommandPermit, command: BrowserGovernedCommand): BrowserMutationIdentity => {
   const postconditions = postconditionPair(command);
+  const effectScope = permit.replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local";
+  const logicalIdentity = [
+    permit.jobId,
+    permit.pluginStepId,
+    permit.childCapabilityId,
+    permit.actionOrdinal,
+    permit.inputHash,
+    permit.flowVersion,
+    ...(effectScope === "target_local" ? [permit.targetRef] : []),
+  ];
   return {
     commandId: permit.commandId,
-    logicalMutationId: hashValue([
-      permit.jobId, permit.pluginStepId, permit.childCapabilityId, permit.actionOrdinal, hashValue(command),
-    ]),
+    logicalMutationId: hashValue(logicalIdentity),
     ownerPluginId: permit.ownerPluginId,
     jobId: permit.jobId,
     attemptId: permit.attemptId,
@@ -129,13 +143,16 @@ const mutationIdentity = (permit: BrowserCommandPermit, command: BrowserGoverned
     executionFenceHash: permit.writerFenceHash,
     pluginStepId: permit.pluginStepId,
     childCapabilityId: permit.childCapabilityId,
+    flowVersion: permit.flowVersion,
+    stepIndex: permit.stepIndex,
+    effectScope,
     actionOrdinal: permit.actionOrdinal,
     targetRef: permit.targetRef,
     documentRef: permit.documentRef,
     actionId: permit.capabilityId,
     positivePostconditionHash: postconditions.positive,
     negativePostconditionHash: postconditions.negative,
-    requestHash: hashValue(permit),
+    requestHash: permit.inputHash,
     payloadHash: hashValue(command),
   };
 };
@@ -150,7 +167,11 @@ const causalBrowserFailureCode = (error: unknown): string =>
   error instanceof Error && /^BROWSER_[A-Z_]+$/u.test(error.message)
     ? error.message : "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE";
 
-const mutationReceipt = (command: BrowserGovernedCommand, result: unknown): "confirmed" | "rejected" => {
+const mutationReceipt = (
+  command: BrowserGovernedCommand,
+  result: unknown,
+  replayPolicy: BrowserCommandPermit["replayPolicy"],
+): "confirmed" | "rejected" | "unresolved" => {
   const value = result && typeof result === "object" ? result as Record<string, unknown> : {};
   if (value.candidateCount !== 1 || value.identityRevalidated !== true || value.mutationCount !== 1
     || typeof value.postconditionVerified !== "boolean") {
@@ -160,7 +181,7 @@ const mutationReceipt = (command: BrowserGovernedCommand, result: unknown): "con
     if (value.failureCode !== "BROWSER_POSTCONDITION_FAILED") {
       throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     }
-    return "rejected";
+    return replayPolicy === "provider-effect-once" ? "unresolved" : "rejected";
   }
   if (command.kind === "dom-intent" && command.intent.kind === "fill"
     && value.retainedValueVerified !== true) {
@@ -181,17 +202,38 @@ export class BrowserCommandActor {
   ) {}
 
   public pendingMutationCommandIds(binding: BrowserExecutionBinding): readonly string[] {
-    if (binding.kind === "production-reconciliation") {
-      return this.mutations.dispatchedForJob({
-        jobId: binding.jobId,
-        ownerPluginId: binding.ownerPluginId,
-      });
-    }
-    return this.mutations.dispatchedForBinding({
+    return this.mutations.dispatchedForJob({
       jobId: binding.jobId,
-      attemptId: binding.attemptId,
-      leaseVersion: binding.leaseVersion,
-      executionFenceHash: binding.writerFenceHash,
+      ownerPluginId: binding.ownerPluginId,
+    });
+  }
+
+  public requiresTurnRecovery(binding: BrowserExecutionBinding, targetRef: string): boolean {
+    const scope = this.mutations.turnRecoveryScope({
+      jobId: binding.jobId,
+      ownerPluginId: binding.ownerPluginId,
+      pluginStepId: binding.pluginStepId,
+    });
+    return scope?.targetRef === targetRef;
+  }
+
+  public readAtomicStepRecovery(
+    binding: BrowserExecutionBinding,
+    targetRef: string,
+    identity: BrowserAtomicStepIdentity,
+  ): BrowserAtomicStepRecovery | null {
+    if (identity.replayPolicy === "observation-only") return null;
+    return this.mutations.atomicStepRecovery({
+      jobId: binding.jobId,
+      ownerPluginId: binding.ownerPluginId,
+      pluginStepId: identity.pluginStepId,
+      childCapabilityId: identity.childCapabilityId,
+      flowVersion: identity.flowVersion,
+      stepIndex: identity.stepIndex,
+      inputHash: identity.inputHash,
+      actionOrdinal: identity.actionOrdinal,
+      targetRef,
+      effectScope: identity.replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local",
     });
   }
 
@@ -252,7 +294,8 @@ export class BrowserCommandActor {
     state: BrowserCommandExecutionState,
   ): void {
     if (!state.dispatched) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-    const result = mutationReceipt(command, reply.result);
+    const result = mutationReceipt(command, reply.result, permit.replayPolicy);
+    if (result === "unresolved") throw new Error("BROWSER_COMMAND_RECEIPT_MISSING");
     const replyHash = hashValue(reply.result);
     if (result === "rejected") this.mutations.markRejected(permit.commandId, replyHash);
     else this.mutations.markConfirmed(permit.commandId, replyHash);
@@ -283,10 +326,9 @@ export class BrowserCommandActor {
     if (mutation && state.prepared) {
       if (state.dispatched) this.mutations.markReceiptMissing(permit.commandId);
       else this.mutations.markFailedBeforeDispatch(permit.commandId, code);
-      emitBrowserMutationState({
+      if (!state.dispatched) emitBrowserMutationState({
         runtimeLogger: this.runtimeLogger, mutation: permit,
-        previous: state.dispatched ? "DISPATCHED" : "PREPARED",
-        current: state.dispatched ? "DISPATCHED" : "FAILED",
+        previous: "PREPARED", current: "FAILED",
         authorityHash: this.mutations.authorityHash(permit.commandId),
       });
     }

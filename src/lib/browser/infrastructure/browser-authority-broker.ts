@@ -11,6 +11,7 @@ export type BrowserExecutionBinding = Readonly<{
   kind: "local" | "production" | "production-reconciliation";
   ownerPluginId: string;
   jobId: string;
+  pluginStepId: string;
   attemptId: string;
   deviceId: string;
   leaseVersion: number;
@@ -217,6 +218,10 @@ export class BrowserAuthorityBroker {
         this.artifactResolver.registerArtifact(artifact),
       issueFileArtifactGrant: (grant) =>
         authorityLease.issueFileArtifactGrant(grant),
+      park: async (input) => {
+        await targetLease.park(input);
+        await authorityLease.release();
+      },
       close: async (input) => {
         await targetLease.close(input);
         await authorityLease.release();

@@ -8,7 +8,7 @@ import {
 } from "./contracts.js";
 
 export const PRODUCTION_V6_MANIFEST_HASH =
-  "sha256:27da4eb8e71246c18d38ea589436fbfd33f9efc674c1a34bb26e819888afb30d" as const;
+  "sha256:9d9cef79fda1b7f4dd01ac10f5d5cbb76e474d74bafef40f9fd24c3e04423bda" as const;
 
 const hash = z.string().regex(/^sha256:[a-f0-9]{64}$/u)
   .transform((value): `sha256:${string}` => value as `sha256:${string}`);
@@ -89,8 +89,6 @@ const ExecutionGrantSchema = z.object({
   expected_plugin_version: z.number().int().positive(),
   attempt_mode: z.enum(["execution", "reconciliation"]),
   attempt_number: z.number().int().positive(),
-  max_attempts: z.number().int().positive(),
-  delivery_deadline_at: z.string().datetime(),
   max_provider_turns: z.number().int().positive(),
 }).extend({
   attempt_id: z.string().min(1),
@@ -168,9 +166,17 @@ export const LeaseRenewReceiptSchema = z.object({
     schema_version: z.literal("xuanxue-ai-control-intent.v6"),
     job_id: z.string().min(1),
     intent: z.enum(["none", "pause_requested", "cancel_requested", "handover_requested"]),
-    control_epoch: z.number().int().positive(),
+    control_epoch: z.number().int().nonnegative(),
     reason_code: z.string().nullable(),
-  }).strict(),
+  }).strict().superRefine((controlIntent, context) => {
+    if (controlIntent.control_epoch === 0 && controlIntent.intent !== "none") {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "AI_V6_CONTROL_INTENT_INITIAL_EPOCH_INVALID",
+        path: ["control_epoch"],
+      });
+    }
+  }),
 }).strict();
 
 export const UploadedResultReceiptSchema = z.object({

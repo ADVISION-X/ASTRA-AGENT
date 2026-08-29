@@ -86,9 +86,9 @@ export class ProductionExecutor {
 
   public availableCapacity(): number { return 10; }
 
-  public accept(task: WebsiteAgentTask): StoredProductionTask {
+  public accept(task: WebsiteAgentTask, browserMutationPresent = false): StoredProductionTask {
     assertProductionTaskRoutePolicy(task);
-    return this.store.acceptTask(task, pluginIdentity(task));
+    return this.store.acceptTask(task, pluginIdentity(task), browserMutationPresent);
   }
 
   private startPluginSpan(

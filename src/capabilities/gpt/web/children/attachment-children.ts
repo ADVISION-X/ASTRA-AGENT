@@ -111,7 +111,11 @@ export const attachmentChildHandlers = {
       throw executionFailure("review_required", `GPT_UPLOAD_CHOICE_COUNT_${visibleChoiceCount}`);
     }
     if (reconcileOnly) throw executionFailure("recovery_pending", "GPT_ATTACHMENT_CONTROL_OPEN_PENDING");
-    await requireOneCandidate(browser, { selector: GPT_ATTACHMENT_CONTROL_SELECTOR, maxMatches: 2 });
+    await requireOneCandidate(browser, {
+      selector: GPT_ATTACHMENT_CONTROL_SELECTOR,
+      maxMatches: 2,
+      waitFor: { minimumMatches: 1, timeoutMs: 5_000 },
+    });
     await browser.executeDomIntent({
       kind: "click", selector: GPT_ATTACHMENT_CONTROL_SELECTOR, expectedMatches: 1,
       postClickMatch: {
@@ -142,7 +146,6 @@ export const attachmentChildHandlers = {
       textEquals: GPT_UPLOAD_FROM_COMPUTER_LABEL,
       maxMatches: 2,
     });
-    await requireOneCandidate(browser, { selector: GPT_FILE_INPUT_SELECTOR, maxMatches: 2 });
     const grants = await issueGrants(browser, files);
     await browser.attachFile({ selector: GPT_FILE_INPUT_SELECTOR, grants });
     return success({

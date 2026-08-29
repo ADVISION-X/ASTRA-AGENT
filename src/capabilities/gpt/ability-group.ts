@@ -20,11 +20,13 @@ import { attachmentChildHandlers } from "./web/children/attachment-children.js";
 import { composerSubmissionChildHandlers } from "./web/children/composer-submission-children.js";
 import { conversationChildHandlers } from "./web/children/conversation-children.js";
 import { executionProfileChildHandlers } from "./web/children/execution-profile-children.js";
+import { modelSelectionV2ChildHandlers } from "./web/children/model-selection-v2-children.js";
 import { responseChildHandlers } from "./web/children/response-children.js";
 
 const handlers = Object.freeze({
   ...conversationChildHandlers,
   ...executionProfileChildHandlers,
+  ...modelSelectionV2ChildHandlers,
   ...attachmentChildHandlers,
   ...composerSubmissionChildHandlers,
   ...responseChildHandlers,
@@ -202,7 +204,7 @@ const executeOne = async (
   }
 };
 
-export { GPT_TURN_FLOW_VERSION } from "./contract.js";
+export { GPT_MODEL_SELECTION_VERSION, GPT_TURN_FLOW_VERSION } from "./contract.js";
 export { GptTurnExecutor } from "./gpt-turn-executor.js";
 
 export const createGptAbilityGroup = (): GptAbilityGroup => Object.freeze({

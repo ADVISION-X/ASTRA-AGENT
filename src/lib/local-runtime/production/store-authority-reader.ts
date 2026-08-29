@@ -52,17 +52,23 @@ const readOutbox = (
   database: Database.Database,
   idempotencyKey: string,
 ): ProductionOutboxAuthority | null => {
-  const row = database.prepare(`select idempotency_key,kind,path,sent_at,failure_code,response_hash,receipt_hash
+  const row = database.prepare(`select idempotency_key,kind,path,sent_at,failure_code,response_hash,receipt_hash,
+    delivery_build_hash,delivery_attempt_count,next_delivery_attempt_at,delivery_parked_at
     from production_outbox where idempotency_key=?`).get(idempotencyKey) as Readonly<{
     idempotency_key: string; kind: ProductionOutboxWrite["kind"]; path: string; sent_at: string | null;
     failure_code: string | null; response_hash: ProductionHash | null; receipt_hash: ProductionHash | null;
+    delivery_build_hash: ProductionHash | null; delivery_attempt_count: number;
+    next_delivery_attempt_at: string | null; delivery_parked_at: string | null;
   }> | undefined;
   if (!row) return null;
   const match = /\/jobs\/([^/]+)\//u.exec(row.path);
   if (!match?.[1]) return null;
   return {
     idempotencyKey: row.idempotency_key, jobId: decodeURIComponent(match[1]), kind: row.kind,
-    state: row.sent_at && row.response_hash ? "delivered" : row.failure_code ? "failed" : "pending",
+    state: row.sent_at && row.response_hash ? "delivered"
+      : row.delivery_parked_at ? "parked" : row.failure_code ? "failed" : "pending",
+    deliveryBuildHash: row.delivery_build_hash, deliveryAttemptCount: row.delivery_attempt_count,
+    nextDeliveryAttemptAt: row.next_delivery_attempt_at, parkedAt: row.delivery_parked_at,
     failureCode: row.failure_code, responseHash: row.response_hash, receiptHash: row.receipt_hash,
   };
 };

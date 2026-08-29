@@ -136,7 +136,7 @@ try {
       kind: "browser-command", jobId: "job-atomic-log", attemptId: "attempt-1",
       leaseVersion: 1, fenceHash: digest("fence"), pluginId: "plugin-1", commandId: "atomic-command",
       capabilityCallId: "browser.dom.click.v1", pluginStepId: "report_translation:candidate_a",
-      childCapabilityId: "open_gpt_model_selector", actionOrdinal: 5,
+      childCapabilityId: "open_gpt_model_selector_v2", actionOrdinal: 5,
     },
   }));
   requireRuntimeLogWrite(logger.emitState({
@@ -200,7 +200,7 @@ try {
     phases: [step.precondition, step.dispatch, step.postcondition, step.terminalState],
     authorityRef: step.authorityRef,
   })), [{
-    identity: ["report_translation:candidate_a", "open_gpt_model_selector", 5, "atomic-command"],
+    identity: ["report_translation:candidate_a", "open_gpt_model_selector_v2", 5, "atomic-command"],
     phases: ["passed", "dispatched", "passed", "CONFIRMED"],
     authorityRef: "browser-mutation:atomic-command",
   }]);
@@ -220,7 +220,8 @@ try {
   mutationStore.prepare({
     commandId: "authority-command", ownerPluginId: "plugin-1", jobId: "job-atomic-log",
     attemptId: "attempt-1", leaseVersion: 1, executionFenceHash: digest("fence"),
-    pluginStepId: "step-1", childCapabilityId: "open_gpt_model_selector", actionOrdinal: 1,
+    pluginStepId: "step-1", childCapabilityId: "open_gpt_model_selector_v2", actionOrdinal: 1,
+    flowVersion: "gpt-turn-flow.v3", stepIndex: 3, effectScope: "target_local",
     targetRef: "target-1", documentRef: "document-1", actionId: "action-1",
     positivePostconditionHash: digest("positive"), negativePostconditionHash: digest("negative"),
     requestHash: digest("request"), payloadHash: digest("payload"),

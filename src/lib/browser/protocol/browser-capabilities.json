@@ -16,6 +16,7 @@
     "browser.authenticated-media.v1",
     "browser.screenshot.v1",
     "browser.wait.v1",
+    "browser.park-target.v1",
     "browser.close-target.v1",
     "video.media-probe.universal.v1",
     "video.media-probe.tiktok.v1",

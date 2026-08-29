@@ -1,4 +1,6 @@
-import type { SerializedExecutionFailure } from "../../typed-failure.js";
+import { rmSync } from "node:fs";
+import path from "node:path";
+
 import { executionFailure } from "../../typed-failure.js";
 import {
   GPT_TURN_FLOW_VERSION,
@@ -7,18 +9,16 @@ import {
   type StoredGptContinuation,
 } from "../../../capabilities/gpt/index.js";
 import type { DurablePluginIdentity, WebsiteAgentResult, WebsiteAgentTask } from "./contracts.js";
-import { WebsiteAgentResultSchema, type ProductionHash } from "./contracts.js";
+import { hashCanonical, WebsiteAgentResultSchema, type ProductionHash } from "./contracts.js";
 import type { ProviderTurnResult } from "./plugin.js";
 import type { GptTurnStateSnapshot } from "./gpt-turn-state.js";
 import {
   ProductionStoreFoundation,
-  isSerializedTerminalFailure,
   json,
   now,
   storedTaskFromRow,
   type ProductionCheckpointAuthority,
   type ProductionLeaseAuthority,
-  type ProductionTaskStatus,
   type StepRow,
   type StoredProductionTask,
   type TaskRow,
@@ -38,13 +38,10 @@ const assertResultIdentity = (
   }
 };
 
-const sameTerminal = (
+const sameCompletion = (
   existing: StoredProductionTask | null,
-  status: Extract<ProductionTaskStatus, "completed" | "failed">,
-  failure: SerializedExecutionFailure | null,
-  result: WebsiteAgentResult | null,
-): boolean => Boolean(existing && existing.status === status
-  && json(existing.result) === json(result) && json(existing.failure) === json(failure));
+  result: WebsiteAgentResult,
+): boolean => Boolean(existing?.status === "completed" && json(existing.result) === json(result));
 
 export type GptTurnDurableCheckpoint = Readonly<{
   schema_version: "gpt-turn-checkpoint.v2";
@@ -60,6 +57,14 @@ export type GptTurnDurableCheckpoint = Readonly<{
   provider_dispatch_used: boolean;
   state: GptTurnStateSnapshot;
   result: ProviderTurnResult | null;
+}>;
+
+export type GptTurnCheckpointMetadata = Readonly<{
+  inputHash: string;
+  flowVersion: string;
+  status: string;
+  mutationState: string;
+  hasResult: boolean;
 }>;
 
 const checkpointIdentityValid = (parsed: Partial<GptTurnDurableCheckpoint>): boolean =>
@@ -95,14 +100,104 @@ const parseGptTurnCheckpoint = (value: string): GptTurnDurableCheckpoint => {
 };
 
 export abstract class ProductionStoreTaskState extends ProductionStoreFoundation {
-  public acceptTask(task: WebsiteAgentTask, identity: DurablePluginIdentity): StoredProductionTask {
+  private reconstructExecutionSlice(
+    task: WebsiteAgentTask,
+    identity: DurablePluginIdentity,
+    browserMutationPresent: boolean,
+  ): StoredProductionTask {
+    const jobPath = `%/jobs/${encodeURIComponent(task.job_id)}/%`;
+    const safeRejectedCheckpointCodes = [
+      "AI_LEASE_ACCEPT_DEADLINE_EXPIRED",
+      "AI_V6_CHECKPOINT_TRANSITION_INVALID",
+    ];
+    const safe = this.database.prepare(`select
+      t.status='recovery_pending' and t.result_json is null and t.staged_result_json is null
+      and not exists(select 1 from production_steps s where s.job_id=t.job_id)
+      and not exists(select 1 from production_continuations c where c.origin_job_id=t.job_id)
+      and not exists(select 1 from production_leases l where l.job_id=t.job_id and l.state='active')
+      and exists(
+        select 1 from production_outbox retired
+         where retired.path like ? and retired.failure_code='HISTORICAL_FAILED_COMPLETION_RETIRED'
+      )
+      and not exists(
+        select 1 from production_outbox pending
+         where pending.path like ? and pending.sent_at is null
+           and not (pending.kind='checkpoint' and pending.failure_code in (?,?))
+      ) as safe
+      from production_tasks t where t.job_id=?`).get(
+      jobPath, jobPath, safeRejectedCheckpointCodes[0], safeRejectedCheckpointCodes[1], task.job_id,
+    ) as { safe: number } | undefined;
+    if (!safe?.safe || browserMutationPresent) {
+      throw executionFailure("review_required", "PLUGIN_EXECUTION_SLICE_RECONSTRUCTION_UNSAFE");
+    }
+    const existing = this.readTask(task.job_id)!;
+    const oldIdentityHash = hashCanonical(existing.identity);
+    const newIdentityHash = hashCanonical(identity);
+    const recordedAt = now();
+    const retiredCheckpointAttempts = this.database.prepare(`select
+      idempotency_key as idempotencyKey,failure_code as failureCode,created_at as createdAt
+      from production_outbox where path like ? and sent_at is null and kind='checkpoint'
+        and failure_code in (?,?) order by created_at,idempotency_key`).all(
+      jobPath, safeRejectedCheckpointCodes[0], safeRejectedCheckpointCodes[1],
+    ) as Array<{ idempotencyKey: string; failureCode: string; createdAt: string }>;
+    const reconstructionReceipt = {
+      schema_version: "agent-execution-slice-reconstruction.v1",
+      job_id: task.job_id,
+      recorded_at: recordedAt,
+      reason_code: "PLUGIN_IDENTITY_CHANGED_BEFORE_RECOVERY",
+      disposition: "OLD_EXECUTION_SLICE_RETIRED",
+      old_identity: existing.identity,
+      old_identity_hash: oldIdentityHash,
+      new_identity: identity,
+      new_identity_hash: newIdentityHash,
+      previous_failure: existing.failure,
+      previous_failure_reason: existing.failure_reason,
+      retired_checkpoint_attempts: retiredCheckpointAttempts,
+    } as const;
+    const receiptKey = `execution-slice-reconstructed:${hashCanonical({
+      job_id: task.job_id, old_identity_hash: oldIdentityHash, new_identity_hash: newIdentityHash,
+    })}`;
+    this.database.prepare(`insert into production_outbox(
+      idempotency_key,kind,path,method,headers_json,body_blob,created_at,sent_at,failure_code
+    ) values(?,?,?,?,?,?,?,?,?)`).run(
+      receiptKey, "checkpoint",
+      `/internal/agent-production/jobs/${encodeURIComponent(task.job_id)}/execution-slice-reconstructions`,
+      "POST", json({ "content-type": "application/json" }), Buffer.from(json(reconstructionReceipt)),
+      recordedAt, recordedAt, "EXECUTION_SLICE_RECONSTRUCTED",
+    );
+    this.database.prepare(`update production_outbox
+      set failure_code='EXECUTION_SLICE_RECONSTRUCTED',sent_at=coalesce(sent_at,?)
+      where path like ? and sent_at is null and kind='checkpoint' and failure_code in (?,?)`
+    ).run(recordedAt, jobPath, safeRejectedCheckpointCodes[0], safeRejectedCheckpointCodes[1]);
+    this.database.prepare("delete from production_checkpoints where job_id=?").run(task.job_id);
+    this.database.prepare("delete from production_leases where job_id=?").run(task.job_id);
+    this.database.prepare(`update production_tasks set request_hash=?,task_json=?,identity_json=?,
+      status='accepted',result_json=null,staged_result_json=null,failure_json=null,
+      failure_reason=?,updated_at=? where job_id=?`).run(
+      task.request_hash, json(task), json(identity),
+      `EXECUTION_SLICE_RECONSTRUCTED:${oldIdentityHash}:${newIdentityHash}`,
+      recordedAt, task.job_id,
+    );
+    rmSync(path.join(this.dataDir, "plugin-tasks", "production-runtime", task.job_id, "materials"), {
+      recursive: true, force: true,
+    });
+    return this.readTask(task.job_id)!;
+  }
+
+  public acceptTask(
+    task: WebsiteAgentTask,
+    identity: DurablePluginIdentity,
+    browserMutationPresent = false,
+  ): StoredProductionTask {
     const existing = this.readTask(task.job_id);
     if (existing) {
       if (existing.task.request_hash !== task.request_hash) {
         throw executionFailure("review_required", "PRODUCTION_TASK_REQUEST_HASH_CONFLICT");
       }
       if (json(existing.identity) !== json(identity)) {
-        throw executionFailure("review_required", "PLUGIN_IDENTITY_CHANGED_BEFORE_RECOVERY");
+        const transaction = this.database.transaction(() =>
+          this.reconstructExecutionSlice(task, identity, browserMutationPresent));
+        return transaction();
       }
       return existing;
     }
@@ -160,20 +255,102 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     checkpoint: GptTurnDurableCheckpoint,
   ): void {
     const existing = this.readGptTurnCheckpoint(jobId, stepId, checkpoint.input_hash);
+    const mutationRank = { no: 0, dispatched: 1, confirmed: 2 } as const;
+    const durableCheckpoint = existing?.step_index === checkpoint.step_index
+      && mutationRank[existing.mutation_state] > mutationRank[checkpoint.mutation_state]
+      ? { ...checkpoint, mutation_state: existing.mutation_state }
+      : checkpoint;
     if (existing && (existing.step_index > checkpoint.step_index
       || (existing.step_index === checkpoint.step_index
         && existing.status === "success" && checkpoint.status === "failed")
       || (existing.result && checkpoint.result && json(existing.result) !== json(checkpoint.result)))) {
       throw executionFailure("review_required", `GPT_TURN_CHECKPOINT_REGRESSION:${stepId}`);
     }
+    if (durableCheckpoint.status === "success" && durableCheckpoint.mutation_state === "dispatched") {
+      throw executionFailure("review_required", `GPT_TURN_CHECKPOINT_MUTATION_UNSETTLED:${stepId}`);
+    }
     this.database.prepare(`insert into production_steps(
       job_id,step_id,input_hash,result_json,completed_at
     ) values(?,?,?,?,?) on conflict(job_id,step_id) do update set
       input_hash=excluded.input_hash,result_json=excluded.result_json,completed_at=excluded.completed_at`
-    ).run(jobId, stepId, checkpoint.input_hash, json(checkpoint), now());
+    ).run(jobId, stepId, durableCheckpoint.input_hash, json(durableCheckpoint), now());
     const readback = this.readGptTurnCheckpoint(jobId, stepId, checkpoint.input_hash);
-    if (!readback || json(readback) !== json(checkpoint)) {
+    if (!readback || json(readback) !== json(durableCheckpoint)) {
       throw executionFailure("review_required", `GPT_TURN_CHECKPOINT_READBACK_INVALID:${stepId}`);
+    }
+  }
+
+  public readGptTurnCheckpointMetadata(jobId: string, stepId: string): GptTurnCheckpointMetadata | null {
+    const row = this.database.prepare(
+      "select input_hash,result_json from production_steps where job_id=? and step_id=?",
+    ).get(jobId, stepId) as { input_hash: string; result_json: string } | undefined;
+    if (!row) return null;
+    let parsed: Readonly<Record<string, unknown>>;
+    try { parsed = JSON.parse(row.result_json) as Readonly<Record<string, unknown>>; }
+    catch { throw executionFailure("review_required", `GPT_TURN_CHECKPOINT_INVALID:${stepId}`); }
+    return Object.freeze({
+      inputHash: row.input_hash,
+      flowVersion: typeof parsed.flow_version === "string" ? parsed.flow_version : "invalid",
+      status: typeof parsed.status === "string" ? parsed.status : "invalid",
+      mutationState: typeof parsed.mutation_state === "string" ? parsed.mutation_state : "invalid",
+      hasResult: parsed.result !== null && parsed.result !== undefined,
+    });
+  }
+
+  public reconstructStaleGptTurnStep(input: Readonly<{
+    jobId: string;
+    stepId: string;
+    nextInputHash: ProductionHash;
+    safeByBrowserWal: boolean;
+  }>): void {
+    const metadata = this.readGptTurnCheckpointMetadata(input.jobId, input.stepId);
+    if (!metadata || metadata.flowVersion === GPT_TURN_FLOW_VERSION
+      || metadata.status !== "failed" || metadata.hasResult || !input.safeByBrowserWal) {
+      throw executionFailure("review_required", `GPT_FLOW_EXECUTION_SLICE_RECONSTRUCTION_UNSAFE:${input.stepId}`);
+    }
+    const task = this.readTask(input.jobId);
+    if (!task || task.status === "completed" || task.result !== null || task.staged_result !== null) {
+      throw executionFailure("review_required", `GPT_FLOW_EXECUTION_SLICE_RECONSTRUCTION_UNSAFE:${input.stepId}`);
+    }
+    const recordedAt = now();
+    const receipt = {
+      schema_version: "gpt-flow-execution-slice-reconstruction.v1",
+      job_id: input.jobId,
+      step_id: input.stepId,
+      previous_flow_version: metadata.flowVersion,
+      next_flow_version: GPT_TURN_FLOW_VERSION,
+      previous_input_hash: metadata.inputHash,
+      next_input_hash: input.nextInputHash,
+      previous_mutation_state: metadata.mutationState,
+      browser_wal_safety: "NO_DISPATCHED_OR_PROVIDER_EFFECT_TERMINAL",
+      recorded_at: recordedAt,
+    } as const;
+    const receiptHash = hashCanonical(receipt);
+    const localAcceptance = { accepted: true, receipt_hash: receiptHash } as const;
+    const localAcceptanceHash = hashCanonical(localAcceptance);
+    this.database.transaction(() => {
+      this.database.prepare("delete from production_steps where job_id=? and step_id=?")
+        .run(input.jobId, input.stepId);
+      this.database.prepare(`insert into production_outbox(
+        idempotency_key,kind,path,method,headers_json,body_blob,created_at,sent_at,failure_code,
+        response_json,response_hash,receipt_hash
+      ) values(?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+        `gpt-flow-slice-reconstructed:${receiptHash}`,
+        "checkpoint",
+        `/internal/agent-production/jobs/${encodeURIComponent(input.jobId)}/gpt-flow-execution-slice-reconstructions`,
+        "POST",
+        json({ "content-type": "application/json" }),
+        Buffer.from(json(receipt)),
+        recordedAt,
+        recordedAt,
+        null,
+        json(localAcceptance),
+        localAcceptanceHash,
+        receiptHash,
+      );
+    })();
+    if (this.readGptTurnCheckpointMetadata(input.jobId, input.stepId) !== null) {
+      throw executionFailure("review_required", `GPT_FLOW_EXECUTION_SLICE_RECONSTRUCTION_FAILED:${input.stepId}`);
     }
   }
 
@@ -256,32 +433,29 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     }
   }
 
-  public setTerminal(
-    jobId: string,
-    status: Extract<ProductionTaskStatus, "completed" | "failed">,
-    failure: SerializedExecutionFailure | null,
-    result: WebsiteAgentResult | null,
-  ): void {
-    if (status === "completed") {
-      if (!result) throw new Error("PRODUCTION_COMPLETED_RESULT_REQUIRED");
-      WebsiteAgentResultSchema.parse(result);
-      assertResultIdentity(this.readTask(jobId), result);
-      if (failure) throw new Error("PRODUCTION_COMPLETED_FAILURE_FORBIDDEN");
-    } else if (result) throw new Error("PRODUCTION_NONCOMPLETED_RESULT_FORBIDDEN");
-    else if (!isSerializedTerminalFailure(failure)) throw new Error("PRODUCTION_TYPED_TERMINAL_FAILURE_REQUIRED");
-    const changed = this.database.prepare(`update production_tasks set status=?,failure_json=?,failure_reason=?,
+  public completeTask(jobId: string, result: WebsiteAgentResult): void {
+    WebsiteAgentResultSchema.parse(result);
+    assertResultIdentity(this.readTask(jobId), result);
+    const changed = this.database.prepare(`update production_tasks set status='completed',failure_json=null,failure_reason=null,
       result_json=?,staged_result_json=null,updated_at=?
       where job_id=? and status not in ('completed','review_required','failed','cancelled')`).run(
-      status, failure ? json(failure) : null, failure?.code ?? null, result ? json(result) : null, now(), jobId,
+      json(result), now(), jobId,
     );
-    if (changed.changes === 0 && !sameTerminal(this.readTask(jobId), status, failure, result)) {
-      throw executionFailure("review_required", "PRODUCTION_TASK_FIRST_TERMINAL_CONFLICT");
+    if (changed.changes === 0 && !sameCompletion(this.readTask(jobId), result)) {
+      throw executionFailure("review_required", "PRODUCTION_TASK_COMPLETION_CONFLICT");
     }
+  }
+
+  public pendingBusinessAdmissions(): readonly StoredProductionTask[] {
+    const rows = this.database.prepare(`select task_json,identity_json,status,result_json,staged_result_json,
+      failure_json,failure_reason,updated_at from production_tasks
+      where status='recovery_pending' and staged_result_json is not null order by updated_at,job_id`).all() as TaskRow[];
+    return rows.map(storedTaskFromRow);
   }
 
   public setRecoveryPending(jobId: string, reason: string): void {
     this.database.prepare(
-      "update production_tasks set status='recovery_pending',failure_json=null,failure_reason=?,updated_at=? where job_id=? and status in ('accepted','running','recovery_pending')",
+      "update production_tasks set status='recovery_pending',failure_reason=?,updated_at=? where job_id=? and status in ('accepted','running','recovery_pending')",
     ).run(reason.slice(0, 1_000), now(), jobId);
   }
 

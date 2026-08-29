@@ -30,13 +30,11 @@ type LedgerProjection = {
   generatedImageByJob: Set<string>;
 };
 
-const legacyReceiptMatches = (
-  receipt: unknown,
-  request: Record<string, unknown>,
-): boolean => Boolean(receipt && typeof receipt === "object" && !Array.isArray(receipt)
-  && (receipt as Record<string, unknown>).job_id === request.job_id
-  && (receipt as Record<string, unknown>).terminal_status === request.terminal_status
-  && (receipt as Record<string, unknown>).payload_hash === request.payload_hash);
+const outboxIsIsolated = (failureCode: string | null): boolean =>
+  failureCode === "REMOTE_JOB_ABSENT_HISTORICAL"
+  || failureCode === "HISTORICAL_FAILED_COMPLETION_RETIRED"
+  || failureCode === "EXECUTION_SLICE_RECONSTRUCTED"
+  || failureCode?.startsWith("STALE_LEASE_OUTBOX_RETIRED:") === true;
 
 const parsePersistedReceipt = (value: string | null): unknown => {
   try { return value ? JSON.parse(value) as unknown : null; }
@@ -49,13 +47,9 @@ const terminalAlreadyMatches = (
   task: StoredProductionTask,
   receipt: ReturnType<typeof parseTerminalReceipt>,
 ): boolean => {
-  const failureMatches = task.status === "failed"
-    ? hashCanonical(task.failure) === hashCanonical(receipt.failure)
-    : task.failure === null && receipt.failure === null;
-  const resultMatches = task.status === "completed"
-    ? Boolean(task.result) && hashCanonical(task.result) === receipt.payload_hash
-    : task.result === null;
-  return task.status === receipt.terminal_status && failureMatches && resultMatches;
+  const result = task.status === "completed" ? task.result : task.staged_result;
+  return Boolean(result) && receipt.terminal_status === "completed"
+    && receipt.failure === null && hashCanonical(result) === receipt.payload_hash;
 };
 
 const registerArtifact = (projection: LedgerProjection, row: LedgerRow, jobId: string): boolean => {
@@ -76,12 +70,7 @@ const registerTerminal = (
 ): boolean => {
   try {
     const terminal = JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>;
-    if (terminal.terminal_status === "review_required" || terminal.terminal_status === "cancelled") {
-      const receipt = row.response_json ? JSON.parse(row.response_json) as unknown : null;
-      if (!task || !legacyReceiptMatches(receipt, terminal)) return false;
-      projection.terminalByJob.set(jobId, { ...terminal, terminal_status: "failed", failure: task.failure });
-      return true;
-    }
+    if (terminal.terminal_status !== "completed") return false;
     const expected = parseTerminalReceiptExpectation(terminal);
     if (expected.job_id !== jobId || !row.response_json) return false;
     parseTerminalReceipt(JSON.parse(row.response_json) as unknown, expected);
@@ -90,15 +79,16 @@ const registerTerminal = (
   } catch { return false; }
 };
 
-const completedTaskConsistent = (
+const completionPayloadConsistent = (
   task: StoredProductionTask,
   terminal: Record<string, unknown>,
   projection: LedgerProjection,
 ): boolean => {
   const jobId = task.task.job_id;
-  if (!task.result || terminal.payload_hash !== hashCanonical(task.result)
-    || task.result.evidence_refs.length === 0
-    || task.result.evidence_refs.some((ref) => !/^rec-[a-f0-9]{64}$/u.test(ref))) return false;
+  const result = task.status === "completed" ? task.result : task.staged_result;
+  if (!result || terminal.payload_hash !== hashCanonical(result)
+    || result.evidence_refs.length === 0
+    || result.evidence_refs.some((ref) => !/^rec-[a-f0-9]{64}$/u.test(ref))) return false;
   const generated = projection.generatedImageByJob.has(jobId);
   if (generated && !routeProducesGeneratedImage(task.task)) return false;
   if (projection.artifactCountByJob.get(jobId) !== (generated ? 3 : 2)) return false;
@@ -113,34 +103,16 @@ export class ProductionStoreLedger extends ProductionStoreOutbox {
   private reconcileTerminalRow(row: TerminalRow): boolean {
     const request = JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>;
     const rawReceipt = parsePersistedReceipt(row.response_json);
-    if (request.terminal_status === "review_required" || request.terminal_status === "cancelled") {
-      if (!legacyReceiptMatches(rawReceipt, request)) {
-        throw executionFailure("review_required", "PRODUCTION_LEGACY_TERMINAL_RECEIPT_MISMATCH");
-      }
-      return false;
-    }
+    if (request.terminal_status !== "completed") return false;
     const receipt = parseTerminalReceipt(rawReceipt, parseTerminalReceiptExpectation(request));
     const task = this.readTask(receipt.job_id);
     if (!task) throw executionFailure("review_required", "PRODUCTION_TERMINAL_TASK_MISSING");
-    if (task.status === "completed" || task.status === "failed") {
-      if (!terminalAlreadyMatches(task, receipt)) {
-        throw executionFailure("review_required", "PRODUCTION_TERMINAL_RECEIPT_LOCAL_STATE_MISMATCH");
-      }
-      return false;
-    }
-    const result = receipt.terminal_status === "completed" ? task.staged_result : null;
-    if (receipt.terminal_status === "completed" && (!result || receipt.payload_hash !== hashCanonical(result))) {
+    if (!terminalAlreadyMatches(task, receipt)) {
+      if (!task.staged_result || receipt.payload_hash !== hashCanonical(task.staged_result)) {
       throw executionFailure("review_required", "PRODUCTION_TERMINAL_OUTBOX_RESULT_MISSING");
+      }
     }
-    if (receipt.terminal_status === "failed"
-      && receipt.payload_hash !== hashCanonical({ job_id: receipt.job_id, failure: receipt.failure })) {
-      throw executionFailure("review_required", "PRODUCTION_TERMINAL_RECEIPT_FAILURE_HASH_MISMATCH");
-    }
-    this.setTerminal(
-      receipt.job_id, receipt.terminal_status,
-      receipt.terminal_status === "failed" ? receipt.failure : null, result,
-    );
-    return true;
+    return false;
   }
 
   public reconcileDeliveredTerminals(): number {
@@ -165,11 +137,18 @@ export class ProductionStoreLedger extends ProductionStoreOutbox {
     ).get() as { count: number }).count);
   }
 
+  public parkedOutboxCount(): number {
+    return Number((this.database.prepare(
+      "select count(*) as count from production_outbox where sent_at is null and delivery_parked_at is not null",
+    ).get() as { count: number }).count);
+  }
+
   private buildLedgerProjection(
     tasks: ReadonlyMap<string, StoredProductionTask>,
   ): LedgerProjection | null {
     const rows = this.database.prepare(`select kind,path,body_blob,response_json,receipt_hash
-      from production_outbox where failure_code is not 'REMOTE_JOB_ABSENT_HISTORICAL'
+      from production_outbox
+      where sent_at is not null and response_hash is not null
       order by created_at,idempotency_key`).all() as LedgerRow[];
     const projection: LedgerProjection = {
       terminalByJob: new Map(), artifactCountByJob: new Map(),
@@ -188,14 +167,13 @@ export class ProductionStoreLedger extends ProductionStoreOutbox {
   private terminalTaskConsistent(
     task: StoredProductionTask,
     terminal: Record<string, unknown> | undefined,
-    historicalAbsent: boolean,
+    isolatedRemoteAuthority: boolean,
   ): boolean {
-    const isTerminal = task.status === "completed" || task.status === "failed";
-    if (historicalAbsent && isTerminal && !terminal) return true;
+    const isTerminal = task.status === "completed";
+    const admissionPending = task.status === "recovery_pending" && task.staged_result !== null;
+    if (isolatedRemoteAuthority && isTerminal && !terminal) return true;
+    if (admissionPending) return Boolean(terminal && terminal.terminal_status === "completed");
     if (isTerminal !== Boolean(terminal) || (terminal && terminal.terminal_status !== task.status)) return false;
-    if (task.status === "failed") {
-      return Boolean(task.failure && terminal?.failure !== undefined && json(task.failure) === json(terminal.failure));
-    }
     return task.status !== "completed" || task.failure === null;
   }
 
@@ -209,27 +187,33 @@ export class ProductionStoreLedger extends ProductionStoreOutbox {
     const activelyOwned = activeJobIds.has(jobId) && lease?.state === "active" && checkpoint !== null;
     const awaitingRecovery = !activeJobIds.has(jobId) && task.status === "recovery_pending"
       && lease?.state === "stale" && checkpoint !== null;
-    return activelyOwned || awaitingRecovery;
+    return activelyOwned || awaitingRecovery || this.isRemoteRedeliveryPending(jobId);
   }
 
   public isLedgerConsistent(activeJobIds: ReadonlySet<string>): boolean {
     const tasks = new Map(this.taskAuthorities().map((record) => [record.task.job_id, record] as const));
     const outbox = this.outboxAuthorities();
-    if (outbox.some((authority) => authority.failureCode !== "REMOTE_JOB_ABSENT_HISTORICAL"
-      && (authority.state !== "delivered" || !authority.responseHash
-        || (authority.kind === "artifact" && !authority.receiptHash)))) return false;
-    const historical = new Set(outbox.filter(
-      (authority) => authority.failureCode === "REMOTE_JOB_ABSENT_HISTORICAL",
+    if (outbox.some((authority) => authority.state === "delivered"
+      && (!authority.responseHash || (authority.kind === "artifact" && !authority.receiptHash)))) return false;
+    if (outbox.some((authority) => authority.state !== "delivered" && !outboxIsIsolated(authority.failureCode)
+      && (!tasks.has(authority.jobId) || tasks.get(authority.jobId)?.status === "completed"))) return false;
+    const isolated = new Set(outbox.filter(
+      (authority) => outboxIsIsolated(authority.failureCode),
     ).map((authority) => authority.jobId));
     const projection = this.buildLedgerProjection(tasks);
     if (!projection) return false;
     for (const [jobId, task] of tasks) {
       const terminal = projection.terminalByJob.get(jobId);
-      if (!this.terminalTaskConsistent(task, terminal, historical.has(jobId))) return false;
-      if (task.status === "completed" && !completedTaskConsistent(task, terminal!, projection)) return false;
-      if (task.status !== "completed" && task.status !== "failed") {
+      const jobOutbox = outbox.filter((authority) => authority.jobId === jobId);
+      if (task.status === "completed" && jobOutbox.some(
+        (authority) => authority.state !== "delivered" && !outboxIsIsolated(authority.failureCode),
+      )) return false;
+      if (!this.terminalTaskConsistent(task, terminal, isolated.has(jobId))) return false;
+      const admissionPending = task.status === "recovery_pending" && task.staged_result !== null;
+      if ((task.status === "completed" || admissionPending)
+        && !completionPayloadConsistent(task, terminal!, projection)) return false;
+      if (task.status !== "completed" && !admissionPending) {
         if (!this.activeTaskConsistent(task, activeJobIds)) return false;
-        if ((projection.artifactCountByJob.get(jobId) ?? 0) > 0) return false;
       }
     }
     const lanes = this.database.prepare(`select lane_owner_job_id from production_continuations

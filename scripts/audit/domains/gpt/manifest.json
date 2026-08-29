@@ -3,10 +3,10 @@
   "capabilityDomain": "gpt",
   "status": "active",
   "lawIds": [
-    "LAW-GPT-001-V4"
+    "LAW-GPT-001-V5"
   ],
   "ownedPaths": [
-    "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V1-BLUEPRINT.md",
+    "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
     "scripts/acceptance/gpt-exact-target-browser-fixture.ts",
     "scripts/acceptance/gpt-exact-target.acceptance.ts",
     "scripts/audit/domains/gpt/**",

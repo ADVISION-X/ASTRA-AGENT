@@ -120,7 +120,7 @@ Website 创建或继承 `traceId`。每个 Website/AGENT 跨进程请求必须�
 | `gpt.execution` | GPT Child | `idle/running/failed/review_required` |
 | `browser.execution` | Browser command Owner | `idle/busy/failed/review_required` |
 | `browser.mutation` | Browser WAL adapter | `PREPARED/DISPATCHED/CONFIRMED/REJECTED/FAILED` |
-| `outbox.delivery` | Outbox Owner | `pending/delivered/failed` |
+| `outbox.delivery` | Outbox Owner | `pending/delivered/failed/parked` |
 
 `producer.alive` 只复用现有 heartbeat，不新增 timer；它的 `freshForMs` 必须等于 `3 * 真实 heartbeat interval + grace`。该 producer heartbeat 过期后，它拥有的各轴统一派生为 `UNKNOWN_STALE`，但其他 producer 的轴保持独立。端到端 ready 只从这些原始轴派生，不再持久化一个总绿灯。
 
@@ -138,7 +138,7 @@ AGENT 路径固定为 `runtime-logs/<producer>/<producerRunId>-<segment>.jsonl`�
 
 ## 7. 权威提交与恢复
 
-Production Store、Browser WAL、Checkpoint、Outbox 与 Website 业务事务必须先提交，再记录 `authorityRef + authorityHash`。authority 只允许指向诊断器能够只读重读的持久事实；临时网络回执、内存对象、heartbeat、attestation、一次性 session 或 claim response 不得伪装 authority。Lease 与 Checkpoint 按 `jobId` 持久化当前权威投影，Outbox 按 `idempotencyKey + jobId` 逐项持久化 `pending/delivered/failed`，禁止一个聚合 Outbox 状态代替各项真实状态。若进程在权威提交后、日志写入前崩溃，新 producer run 必须通过现有公共只读接口对账，并记录 `reconciledFromAuthority=true` 的当前 STATE；在该 STATE 出现前输出 `AUTHORITY_RECONCILIATION_PENDING` 与 `DIAGNOSIS_INCOMPLETE`。引用不可读输出 `AUTHORITY_REF_UNVERIFIED`，引用 hash 或状态冲突输出 `AUTHORITY_STATE_MISMATCH`。
+Production Store、Browser WAL、Checkpoint、Outbox 与 Website 业务事务必须先提交，再记录 `authorityRef + authorityHash`。authority 只允许指向诊断器能够只读重读的持久事实；临时网络回执、内存对象、heartbeat、attestation、一次性 session 或 claim response 不得伪装 authority。Lease 与 Checkpoint 按 `jobId` 持久化当前权威投影，Outbox 按 `idempotencyKey + jobId` 逐项持久化 `pending/delivered/failed/parked`，禁止一个聚合 Outbox 状态代替各项真实状态。`parked` 必须绑定原 `agent_build_hash`、三次交付失败计数、最后原生 code、下次允许时间与停车时间；同 build 重启不得恢复发送，新 build 才能重开预算。若进程在权威提交后、日志写入前崩溃，新 producer run 必须通过现有公共只读接口对账，并记录 `reconciledFromAuthority=true` 的当前 STATE；在该 STATE 出现前输出 `AUTHORITY_RECONCILIATION_PENDING` 与 `DIAGNOSIS_INCOMPLETE`。引用不可读输出 `AUTHORITY_REF_UNVERIFIED`，引用 hash 或状态冲突输出 `AUTHORITY_STATE_MISMATCH`。
 
 Browser mutation 唯一顺序：WAL 提交 PREPARED 后记录 STATE PREPARED；物理发送前冻结正向/负向 postcondition hash，发送后 WAL 提交并记录 STATE DISPATCHED；后置证明完成后，WAL 先提交 CONFIRMED、REJECTED 或 FAILED，再记录同一 `commandId + authorityHash` 的 STATE，最后关闭 browser command Span。DISPATCHED 永不再次发送，只能在原 Target/Document 上只读补核；日志 Sink 故障也不得改变这一事实。
 

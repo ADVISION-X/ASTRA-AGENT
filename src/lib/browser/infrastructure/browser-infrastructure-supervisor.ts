@@ -108,7 +108,7 @@ export class BrowserInfrastructureSupervisor {
     this.establishClaimBoundWorkspace();
     this.broker.registerOperatorTargetClaim({ authorityEpoch: currentAuthorityEpoch(this.issuer), ...input });
     this.logs.state("browser.target", "claimed");
-    if (initialClaim) this.lane.resolvePending();
+    if (initialClaim) this.lane.resolvePending(input.targetRef);
   }
 
   private onDiagnostic(reasonCode: string, refs: Readonly<Record<string, string>>): void {
@@ -211,9 +211,17 @@ export class BrowserInfrastructureSupervisor {
     wait: Readonly<{ signal: AbortSignal; remainingMs(): number }>,
   ): Promise<BrowserTargetLease> { return this.lane.acquire(binding, ownerId, wait); }
 
-  public readBrowserLaneState(): "idle" | "busy" | "unsettled" { return this.lane.readState(); }
+  public readBrowserLaneState(): "idle" | "busy" { return this.lane.readState(); }
   public readBrowserLaneWaiterCount(): number { return this.lane.waiterCount(); }
   public hasUnresolvedBrowserMutation(): boolean { return this.lane.hasUnresolvedMutation(); }
+  public hasBrowserMutationForJob(jobId: string): boolean { return this.lane.hasMutationForJob(jobId); }
+  public canReconstructGptTurnStep(input: Readonly<{
+    jobId: string;
+    ownerPluginId: string;
+    pluginStepId: string;
+  }>): boolean {
+    return this.state.mutationState?.canReconstructGptTurnStep(input) ?? false;
+  }
   public readBrowserReconciliationScope(
     input: Readonly<{ jobId: string; ownerPluginId: string }>,
   ): BrowserMutationReconciliationScope | null { return this.lane.reconciliationScope(input); }

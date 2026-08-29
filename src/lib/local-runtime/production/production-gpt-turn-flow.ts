@@ -1,5 +1,6 @@
 import {
   GPT_TURN_FLOW_VERSION,
+  GPT_CHILD_CAPABILITY_CONTRACTS,
   GptTurnExecutor,
   type GptAbilityGroup,
   type GptChildCapabilityIntent,
@@ -8,8 +9,9 @@ import {
   type GptProviderContinuation,
   type GptTurnResumePoint,
 } from "../../../capabilities/gpt/index.js";
+import { createHash } from "node:crypto";
 import type { BrowserTargetLease } from "../../browser/browser-authority-api.js";
-import { executionFailure, typedExecutionFailure } from "../../typed-failure.js";
+import { executionFailure } from "../../typed-failure.js";
 import type { ProductionExecutionLease } from "./executor.js";
 import {
   applyGptChildValue,
@@ -45,6 +47,48 @@ type FlowInput = Readonly<{
 }>;
 
 const turnExecutor = new GptTurnExecutor();
+
+const hashText = (value: string): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(value).digest("hex")}`;
+
+const recoveredMutationResult = (input: Readonly<{
+  flow: FlowInput;
+  childCapabilityId: GptChildCapabilityIntent["childCapabilityId"];
+  stepIndex: number;
+  state: "confirmed" | "rejected";
+  authorityRef: string;
+  authorityHash: `sha256:${string}`;
+}>): GptChildCapabilityResult => {
+  const timestamp = new Date().toISOString();
+  const result: GptChildCapabilityResult = Object.freeze({
+    status: input.state === "confirmed" ? "success" : "review_required",
+    value: Object.freeze({ recoveredFromBrowserWal: input.state }),
+    proof: Object.freeze({
+      schemaVersion: "gpt-child-capability-proof.v2",
+      childCapabilityId: input.childCapabilityId,
+      executionId: `${input.flow.state.executionId}:${input.stepIndex}:${input.childCapabilityId}`,
+      flowVersion: GPT_TURN_FLOW_VERSION,
+      stepIndex: input.stepIndex,
+      inputHash: input.flow.inputHash,
+      pluginStepId: input.flow.request.stepId,
+      actionOrdinal: input.stepIndex + 1,
+      targetRefHash: hashText(input.flow.browser.target.targetRef),
+      beforeDocumentRefHash: hashText(input.flow.browser.document.documentRef),
+      afterDocumentRefHash: hashText(input.flow.browser.document.documentRef),
+      candidateCount: 1,
+      observedSemantics: Object.freeze(["durable-browser-wal-recovery", input.state]),
+      committedMutation: "confirmed",
+      postconditionResult: input.state === "confirmed" ? "passed" : "failed",
+      startedAt: timestamp,
+      endedAt: timestamp,
+      evidenceRef: input.authorityRef,
+      evidenceHash: input.authorityHash,
+    }),
+    failureCode: input.state === "confirmed" ? null : "BROWSER_POSTCONDITION_FAILED",
+  });
+  persistedEvidenceRefs.set(result, input.authorityRef);
+  return result;
+};
 
 const resumePoint = (checkpoint: GptTurnDurableCheckpoint | null): GptTurnResumePoint | null => checkpoint ? {
   stepIndex: checkpoint.step_index,
@@ -165,6 +209,36 @@ export const executeProductionGptTurnFlow = async (input: FlowInput): Promise<Pr
     inputFor: (step, reconcileOnly) => gptChildInput(
       step.childCapabilityId, input.state, input.continuation, input.timeoutMs, reconcileOnly,
     ),
+    recoverMutation: async (step, stepIndex) => {
+      const contract = GPT_CHILD_CAPABILITY_CONTRACTS[step.childCapabilityId];
+      if (contract.replayPolicy === "observation-only") return null;
+      const recovery = input.browser.readAtomicStepRecovery({
+        pluginStepId: input.request.stepId,
+        childCapabilityId: step.childCapabilityId,
+        flowVersion: GPT_TURN_FLOW_VERSION,
+        stepIndex,
+        inputHash: input.inputHash,
+        actionOrdinal: stepIndex + 1,
+        replayPolicy: contract.replayPolicy,
+      });
+      if (!recovery) return null;
+      if (step.childCapabilityId === "submit_exact_gpt_turn_once" && !dispatchState.used) {
+        dispatchState.used = true;
+        input.request.lease.provider_turns_used += 1;
+      }
+      return {
+        state: recovery.state,
+        result: recovery.state === "dispatched"
+          ? recoveredMutationResult({
+            flow: input, childCapabilityId: step.childCapabilityId, stepIndex,
+            state: "confirmed", authorityRef: recovery.authorityRef, authorityHash: recovery.authorityHash,
+          })
+          : recoveredMutationResult({
+            flow: input, childCapabilityId: step.childCapabilityId, stepIndex,
+            state: recovery.state, authorityRef: recovery.authorityRef, authorityHash: recovery.authorityHash,
+          }),
+      };
+    },
     dispatch: (intent, context) => dispatchTurnChild(input, intent, context),
     checkpoint: ({ step, stepIndex, reconcileOnly, result }) => checkpointTurnStep({
       flow: input, stepIndex, childCapabilityId: step.childCapabilityId,
@@ -181,13 +255,15 @@ export const closeSettledGptBrowser = async (
   browser: BrowserTargetLease | null,
   primaryError: unknown,
 ): Promise<void> => {
-  const safeToClose = browser && browser.pendingMutationCount() === 0
-    && (primaryError === null || typedExecutionFailure(primaryError)?.mutationOutcome === "no");
-  if (!safeToClose) return;
+  if (!browser) return;
+  const shouldPark = primaryError !== null
+    && (browser.pendingMutationCount() > 0 || browser.requiresTurnRecovery());
   try {
-    await browser.close({ reason: "gpt-turn-settled" });
+    if (shouldPark) await browser.park({ reason: "gpt-turn-recovery-required" });
+    else await browser.close({ reason: "gpt-turn-settled" });
   } catch (closeError) {
     if (primaryError === null) throw closeError;
+    throw new AggregateError([primaryError, closeError], "GPT_BROWSER_LIFECYCLE_FAILED");
   }
 };
 

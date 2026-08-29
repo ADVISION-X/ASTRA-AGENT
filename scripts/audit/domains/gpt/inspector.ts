@@ -20,13 +20,13 @@ import {
 } from "../../shared/static-inspection-contract.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 
-const LAW_ID = "LAW-GPT-001-V4";
+const LAW_ID = "LAW-GPT-001-V5";
 const MODE_CLAUSES = {
-  "static.filesystem": staticForbiddenClauses(1, 11, 14),
-  "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13),
-  "static.types": staticForbiddenClauses(3, 4, 13),
-  "static.contract": staticForbiddenClauses(2, 3, 4, 8, 9, 10, 11, 13),
-  "static.dependency": staticForbiddenClauses(0, 1, 2, 5, 14),
+  "static.filesystem": staticForbiddenClauses(1, 12, 15),
+  "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14),
+  "static.types": staticForbiddenClauses(3, 4, 14),
+  "static.contract": staticForbiddenClauses(2, 3, 4, 9, 10, 11, 12, 14),
+  "static.dependency": staticForbiddenClauses(0, 1, 2, 5, 15),
 } as const;
 const MODE_CHECKS = {
   "static.filesystem": ["inspectGptFilesystem"], "static.ast": ["inspectGptAst"],
@@ -39,6 +39,10 @@ const FACADE_PATH = `${ROOT}/index.ts`;
 const GROUP_PATH = `${ROOT}/ability-group.ts`;
 const SESSION_PATH = `${ROOT}/session/gpt-session-controller.ts`;
 const TURN_EXECUTOR_PATH = `${ROOT}/gpt-turn-executor.ts`;
+const MODEL_SELECTION_V2_HANDLER_PATH = `${ROOT}/web/children/model-selection-v2-children.ts`;
+const MODEL_SELECTION_V2_CONTRACT_PATH = `${ROOT}/web/contracts/model-selection-v2.contract.ts`;
+const ATTACHMENT_HANDLER_PATH = `${ROOT}/web/children/attachment-children.ts`;
+const ATTACHMENT_CONTRACT_PATH = `${ROOT}/web/contracts/attachment.contract.ts`;
 const CHILD_ID_SOURCES = ["PAGE_OBSERVATIONS", "PAGE_MUTATIONS", "SESSION_MUTATIONS"] as const;
 
 const finding = (checkId: string, filePath: string, message: string, line?: number): InspectorFinding =>
@@ -98,9 +102,42 @@ const inspectDenominatorAndContracts = (context: InspectorContext, findings: Ins
     return;
   }
   const ids = childIdsFromContract(contract);
-  if (ids.length !== 22 || new Set(ids).size !== 22) findings.push(finding(
+  if (ids.length !== 23 || new Set(ids).size !== 23) findings.push(finding(
     "gpt/exact-child-denominator", CONTRACT_PATH,
-    `GPT_CHILD_CAPABILITY_IDS must derive exactly 22 unique child ids; found ${ids.length}/${new Set(ids).size}.`,
+    `GPT_CHILD_CAPABILITY_IDS must derive exactly 23 unique child ids; found ${ids.length}/${new Set(ids).size}.`,
+  ));
+  for (const requiredV2 of ["open_gpt_model_selector_v2", "select_exact_gpt_model_v2"]) {
+    if (!ids.includes(requiredV2)) findings.push(finding(
+      "gpt/model-selection-v2-required", CONTRACT_PATH,
+      `The public denominator is missing ${requiredV2}.`,
+    ));
+  }
+  if (ids.includes("ensure_exact_gpt_model")) findings.push(finding(
+    "gpt/model-selection-v1-retired", CONTRACT_PATH,
+    "V1 ensure_exact_gpt_model must not remain production-reachable.",
+  ));
+  const modelV2Contract = sourceFor(context, MODEL_SELECTION_V2_CONTRACT_PATH)?.getFullText() ?? "";
+  for (const required of [
+    "GPT_MODEL_SELECTION_V2_ENTRY_SELECTOR",
+    "GPT_PROFILE_POPUP_SELECTOR",
+    "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR",
+    "[data-active='true']:not([inert])",
+    "GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR",
+  ]) if (!modelV2Contract.includes(required)) findings.push(finding(
+    "gpt/model-selection-v2-visible-contract", MODEL_SELECTION_V2_CONTRACT_PATH,
+    `Model selection V2 contract is missing ${required}.`,
+  ));
+  if (modelV2Contract.includes("GPT_PROFILE_SIMPLE_PANEL_SELECTOR")) findings.push(finding(
+    "gpt/model-selection-v2-entry-owner", MODEL_SELECTION_V2_CONTRACT_PATH,
+    "The exact model entry belongs to the active profile menu and must not be scoped under the sibling reasoning panel.",
+  ));
+  const modelV2Handler = sourceFor(context, MODEL_SELECTION_V2_HANDLER_PATH)?.getFullText() ?? "";
+  for (const required of [
+    "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
+    "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR", "GPT_PROFILE_SIMPLE_PANEL_SELECTOR",
+  ]) if (!modelV2Handler.includes(required)) findings.push(finding(
+    "gpt/model-selection-v2-handler", MODEL_SELECTION_V2_HANDLER_PATH,
+    `Model selection V2 handler is missing ${required}.`,
   ));
   const denominator = contract.getVariableDeclaration("GPT_CHILD_CAPABILITY_IDS")?.getInitializer()?.getText() ?? "";
   for (const sourceName of CHILD_ID_SOURCES) if (!denominator.includes(`...${sourceName}`)) findings.push(finding(
@@ -178,6 +215,63 @@ const inspectFacadeAndOwnership = (context: InspectorContext, findings: Inspecto
     "gpt/group-proof-boundary", GROUP_PATH, `GPT ability group is missing ${required}.`,
   ));
 
+};
+
+const inspectAttachmentDomContract = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const contract = sourceFor(context, ATTACHMENT_CONTRACT_PATH);
+  const literal = (name: string): string | null => {
+    const initializer = contract?.getVariableDeclaration(name)?.getInitializer();
+    return initializer && (Node.isStringLiteral(initializer) || Node.isNoSubstitutionTemplateLiteral(initializer))
+      ? initializer.getLiteralValue()
+      : null;
+  };
+  const expected = {
+    GPT_ATTACHMENT_CONTROL_SELECTOR:
+      "button#composer-plus-btn[data-testid='composer-plus-btn'][aria-haspopup='menu']",
+    GPT_UPLOAD_FROM_COMPUTER_SELECTOR: "div.__menu-item[tabindex='0'] span",
+    GPT_UPLOAD_FROM_COMPUTER_LABEL: "从电脑上传",
+    GPT_FILE_INPUT_SELECTOR: "#upload-files",
+  } as const;
+  for (const [name, value] of Object.entries(expected)) {
+    if (literal(name) !== value) findings.push(finding(
+      "gpt/chrome-proven-attachment-dom", ATTACHMENT_CONTRACT_PATH,
+      `${name} must equal the current Chrome-proven value ${value}.`,
+    ));
+  }
+  const contractText = contract?.getFullText() ?? "";
+  for (const stale of ['button[aria-label="添加文件和更多内容"]', "[role='menuitem']"]) {
+    if (contractText.includes(stale)) findings.push(finding(
+      "gpt/stale-attachment-dom-absent", ATTACHMENT_CONTRACT_PATH,
+      `Attachment DOM contract retains stale selector ${stale}.`,
+    ));
+  }
+
+  const handler = sourceFor(context, ATTACHMENT_HANDLER_PATH);
+  const calls = handler?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
+  const entryObservation = calls.find((call) => call.getExpression().getText() === "requireOneCandidate"
+    && call.getText().includes("GPT_ATTACHMENT_CONTROL_SELECTOR"));
+  if (!entryObservation?.getText().includes("waitFor: { minimumMatches: 1, timeoutMs: 5_000 }")) findings.push(finding(
+    "gpt/attachment-entry-bounded-hydration", ATTACHMENT_HANDLER_PATH,
+    "Attachment entry must use one bounded five-second hydration observation before clicking.",
+  ));
+  const postcondition = calls.find((call) => call.getExpression().getText().endsWith(".executeDomIntent")
+    && call.getText().includes("GPT_ATTACHMENT_CONTROL_SELECTOR"));
+  if (!postcondition || !postcondition.getText().includes("GPT_UPLOAD_FROM_COMPUTER_SELECTOR")
+    || !postcondition.getText().includes("GPT_UPLOAD_FROM_COMPUTER_LABEL")) findings.push(finding(
+    "gpt/attachment-entry-direct-postcondition", ATTACHMENT_HANDLER_PATH,
+    "Attachment entry click must prove the Chrome-observed upload action selector and exact label.",
+  ));
+  if (calls.some((call) => call.getExpression().getText() === "requireOneCandidate"
+    && call.getText().includes("GPT_FILE_INPUT_SELECTOR"))) findings.push(finding(
+    "gpt/hidden-file-input-not-visible-permit", ATTACHMENT_HANDLER_PATH,
+    "The hidden #upload-files input must not be treated as a visible find permit.",
+  ));
+  const authorityUpload = calls.find((call) => call.getExpression().getText().endsWith(".attachFile")
+    && call.getText().includes("GPT_FILE_INPUT_SELECTOR"));
+  if (!authorityUpload) findings.push(finding(
+    "gpt/browser-authority-file-input-owner", ATTACHMENT_HANDLER_PATH,
+    "Approved file attachment must remain owned by Browser Authority attachFile on #upload-files.",
+  ));
 };
 
 const inspectAtomicSafety = (context: InspectorContext, findings: InspectorFinding[]): void => {
@@ -262,6 +356,23 @@ const inspectUniqueRuntimeChain = (context: InspectorContext, findings: Inspecto
       `The shared GPT turn executor is missing ${required}.`,
     ));
   }
+  for (const required of [
+    "const GPT_INTER_STEP_PACING_MS = 5_000",
+    "hasNextEnabledStep",
+    "GPT_TURN_FLOW.slice(start).some",
+    "GPT_INTER_STEP_PACING_BROWSER_REQUIRED",
+    "await input.context.browser.wait({ durationMs: GPT_INTER_STEP_PACING_MS })",
+  ]) if (!turnExecutor.includes(required)) findings.push(finding(
+    "gpt/inter-step-pacing-required", TURN_EXECUTOR_PATH,
+    `The unique GPT turn executor is missing governed inter-step pacing token ${required}.`,
+  ));
+  if ((turnExecutor.match(/await paceBeforeNextStep\(input, stepIndex\)/gu) ?? []).length !== 2
+    || (turnExecutor.match(/await waitForStepPacing\(input\)/gu) ?? []).length !== 2
+    || !/await input\.checkpoint\([\s\S]*?if \(result\.status !== "success"\)[\s\S]*?await paceBeforeNextStep\(input, stepIndex\)/u
+      .test(turnExecutor)) findings.push(finding(
+    "gpt/inter-step-pacing-order", TURN_EXECUTOR_PATH,
+    "Inter-step pacing must occur only after checkpoint and success handling, with the final-step guard owned by the executor.",
+  ));
   const pluginRoot = resolve(context.sealedRoot, "src/plugins");
   for (const pluginId of existsSync(pluginRoot) ? readdirSync(pluginRoot) : []) {
     const flowPath = resolve(pluginRoot, pluginId, "gpt-flow.ts");
@@ -275,11 +386,16 @@ const inspectUniqueRuntimeChain = (context: InspectorContext, findings: Inspecto
 const inspectGptContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {
   inspectDenominatorAndContracts(context, findings);
   inspectFacadeAndOwnership(context, findings);
+  inspectAttachmentDomContract(context, findings);
   inspectUniqueRuntimeChain(context, findings);
 };
 
 const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  for (const path of [CONTRACT_PATH, FACADE_PATH, GROUP_PATH, SESSION_PATH, TURN_EXECUTOR_PATH])
+  for (const path of [
+    CONTRACT_PATH, FACADE_PATH, GROUP_PATH, SESSION_PATH, TURN_EXECUTOR_PATH,
+    MODEL_SELECTION_V2_HANDLER_PATH, MODEL_SELECTION_V2_CONTRACT_PATH,
+    ATTACHMENT_HANDLER_PATH, ATTACHMENT_CONTRACT_PATH,
+  ])
     if (!existsSync(resolve(context.sealedRoot, path))) findings.push(finding(
       "gpt/filesystem-required-owner-file", path, `${path} is missing.`));
   const controllers = readdirSync(resolve(context.sealedRoot, ROOT, "session"))

@@ -80,7 +80,8 @@ const blockedHealth = (
     browserTargetState: browser.browserTargetState,
     browserLaneState: browser.browserAuthorityState === "present" ? "idle" : "blocked",
     contractManifestHash: PRODUCTION_V6_MANIFEST_HASH, catalogHash: productionCatalogHash,
-    activeCount: 0, pendingOutboxCount: store.pendingOutboxCount(), lastSuccessfulHeartbeatAt: null,
+    activeCount: 0, pendingOutboxCount: store.pendingOutboxCount(),
+    parkedOutboxCount: store.parkedOutboxCount(), lastSuccessfulHeartbeatAt: null,
     lastErrorCode: reason.split(":")[0] ?? "PRODUCTION_CREDENTIAL_INVALID",
     lastErrorReason: reason, checkedAt: new Date().toISOString(),
   };
@@ -183,6 +184,7 @@ const reconcileTaskRecord = (
   const lease = storedLease?.state === "active"
     ? state.store.recordLease({ ...storedLease, state: "stale", expiresAt: null }) : storedLease;
   const checkpoint = state.store.readCheckpoint(record.task.job_id);
+  const remoteRedeliveryPending = state.store.isRemoteRedeliveryPending(record.task.job_id);
   if (nonterminal && record.status !== "recovery_pending" && lease?.state === "stale" && checkpoint) {
     state.store.setRecoveryPending(record.task.job_id, "AGENT_PROCESS_RESTARTED");
     record = state.store.readTask(record.task.job_id)!;
@@ -194,14 +196,15 @@ const reconcileTaskRecord = (
   });
   let complete = true;
   if (lease) {
-    if (nonterminal && (record.status !== "recovery_pending" || lease.state !== "stale")) complete = false;
+    if (nonterminal && !remoteRedeliveryPending
+      && (record.status !== "recovery_pending" || lease.state !== "stale")) complete = false;
     emitLeaseAuthority(state, lease, true);
-  } else if (nonterminal) {
+  } else if (nonterminal && !remoteRedeliveryPending) {
     complete = false;
     emitRuntimeState({ state, traceId: record.task.job_id, stateKey: "job.lease", current: "lost" });
   }
   if (checkpoint) emitCheckpointAuthority(state, checkpoint, true);
-  else if (nonterminal) {
+  else if (nonterminal && !remoteRedeliveryPending) {
     complete = false;
     emitRuntimeState({ state, traceId: record.task.job_id, stateKey: "job.checkpoint", current: "failed" });
   }

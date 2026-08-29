@@ -44,14 +44,14 @@ test('typed high-impact detector covers all twelve machine-owned categories', ()
 });
 
 test('normative law edits require a successor major', () => {
-  const prior = loadLaws().find((law) => law.lawId === 'LAW-GPT-001-V4');
+  const prior = loadLaws().find((law) => law.lawId === 'LAW-GPT-001-V5');
   assert.ok(prior);
   const sameMajorMutation = { ...prior, summary: `${prior.summary} changed` };
   assert.throws(
     () => assertLawMajorVersionChanges([prior], [sameMajorMutation]),
     (error: unknown) => error instanceof GovernanceError && error.code === 'LAW_MAJOR_CHANGE_UNENFORCED',
   );
-  const successor = { ...sameMajorMutation, lawId: 'LAW-GPT-001-V5', supersedesLawId: prior.lawId };
+  const successor = { ...sameMajorMutation, lawId: 'LAW-GPT-001-V6', supersedesLawId: prior.lawId };
   assert.doesNotThrow(() => assertLawMajorVersionChanges([prior], [successor]));
   assert.doesNotThrow(() => assertLawMajorVersionChanges([prior], []));
 });
@@ -61,11 +61,11 @@ test('law corpus permits an empty source but rejects two active majors for one l
   const headingAt = baseSource.indexOf('# 基础法案');
   assert(headingAt >= 0);
   assert.deepEqual(parseLawSource(`${baseSource.slice(0, headingAt)}# 基础法案\n`, 'empty-base.md', 'base-law', 100), []);
-  const active = loadLaws().find((law) => law.lawId === 'LAW-GPT-001-V4');
+  const active = loadLaws().find((law) => law.lawId === 'LAW-GPT-001-V5');
   assert.ok(active);
   assert.throws(
     () => assertOneActiveMajorPerLawKey([active, {
-      ...active, lawId: 'LAW-GPT-001-V5', supersedesLawId: active.lawId,
+      ...active, lawId: 'LAW-GPT-001-V6', supersedesLawId: active.lawId,
     }]),
     (error: unknown) => error instanceof GovernanceError && error.code === 'SOURCE_PARSE_FAILED',
   );
@@ -164,6 +164,7 @@ test('quality report isolation rejects removed, narrowed, and tracked report mut
       symlinkSync(resolve(process.cwd(), 'node_modules'), resolve(repository, 'node_modules'), 'dir');
       copyFileSync(resolve(process.cwd(), 'scripts/audit/governance-authority.ts'),
         resolve(repository, 'scripts/audit/governance-authority.ts'));
+      copyFileSync(resolve(process.cwd(), 'AGENTS.md'), resolve(repository, 'AGENTS.md'));
       mutate(repository);
       const execution = spawnSync(process.execPath, ['--import', 'tsx', '--input-type=module', '-e',
         'import { verifyEntry } from "./scripts/audit/governance-authority.ts"; verifyEntry();'], {
@@ -324,6 +325,7 @@ test('quality CHANGE rejects malformed touched law, Manifest, blueprint, and spe
         resolve(repository, 'scripts/audit/governance-authority.ts'));
       copyFileSync(resolve(process.cwd(), 'scripts/audit/governance-change-authority.ts'),
         resolve(repository, 'scripts/audit/governance-change-authority.ts'));
+      copyFileSync(resolve(process.cwd(), 'AGENTS.md'), resolve(repository, 'AGENTS.md'));
       const target = resolve(repository, mutation.path);
       if (!existsSync(target)) {
         mkdirSync(dirname(target), { recursive: true });
@@ -401,6 +403,7 @@ test('quality CHANGE executes a changed governance test and rejects its failing 
       resolve(repository, 'scripts/audit/governance-change-authority.ts'));
     copyFileSync(resolve(process.cwd(), 'scripts/audit/shared/high-impact-detector.ts'),
       resolve(repository, 'scripts/audit/shared/high-impact-detector.ts'));
+    copyFileSync(resolve(process.cwd(), 'AGENTS.md'), resolve(repository, 'AGENTS.md'));
     const changedPath = resolve(repository, 'tests/governance/quality-contract.test.ts');
     writeFileSync(changedPath, `${readFileSync(changedPath, 'utf8')}\ntest("focused failing mutant", () => assert.fail("mutant executed"));\n`);
     const execution = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/audit/governance.ts', 'quality', 'CHANGE'], {

@@ -47,6 +47,8 @@ export class ProductionWorkerSession {
     return this.credential.worker_session_epoch;
   }
 
+  public get buildHash(): ProductionHash { return this.agentBuildHash; }
+
   public get latestAttestation(): RuntimeAttestationReceipt {
     if (!this.attestation) throw new Error("PRODUCTION_ATTESTATION_MISSING");
     return this.attestation;

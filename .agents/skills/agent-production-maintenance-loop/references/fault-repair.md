@@ -1,21 +1,47 @@
-# 故障定责、重构、清理与复跑
+# 故障定责、重构、原任务恢复与交付
 
 ## 1. 先冻结现场
 
-首次故障立即停止发布下一任务。固化 job/source/request、attempt、lease/fence、最后完成的 step checkpoint、Outbox、Browser mutation/WAL、Target/Document、网站 terminal/consumer 以及双仓日志源。不要先删任务、重启链路、关闭 GPT 页面或打开新页面。
+首次故障立即停止当前任务及同一故障片区的新生产动作。不要先删任务、重启链路、关闭 GPT 页面或打开新页面；停车并安全释放容量后，只有已证明不共享故障 Owner、Plugin/version、合同或运行片区的健康任务可以继续。
+
+每个失败 attempt 都必须明确记为 `failed`，并先形成一份可尸检的故障情报包：
+
+- 网站任务、AGENT job、Plugin/version、attempt、lease/fence 和最后 step checkpoint；
+- 开始/失败时间、持续时间、累计重试次数与 Website 给出的 `next_retry_at`；
+- Owner、component、业务阶段、安全原子步骤、稳定错误码、直接原因、根因 Owner 和因果事件；
+- 外部 mutation 是 `no`、`dispatched` 还是 `confirmed`；
+- 日志事件、checkpoint、Browser WAL、对象/回执的脱敏 ref/hash；
+- 当前是否占用 worker slot、lease、业务容量、Browser/continuation lane 或 Outbox；
+- `safe_to_retry` 判断，以及为何可重试、只能对账或必须停车。
+
+只有 HTTP 409、异常字符串或笼统 `failed` 不足以进入下一处置。外部结果未知属于 mutation 证据，不得把 attempt 留成第三种含糊结果。
 
 按 mutation 状态分流：
 
-- 无 mutation、`PREPARED` 或 dispatch 前 `FAILED`：确认没有外部动作后，只处置当前 attempt，并由正式任务 Owner 根据 checkpoint 与冻结业务合同决定 `recovery_pending`、`review_required` 或业务终态；不得把 attempt failure 自动提升为永久业务失败。
-- `DISPATCHED`：只在原 Target/Document 上按冻结正反后置条件做只读对账；禁止重发、刷新、关闭/重建 Target、重启链路或 selector 广扫。观察次数受现役 Owner 的有限预算约束，最迟不得超过任务冻结的 `delivery_deadline_at`；到期只结束当前观察/attempt，由正式任务 Owner 结合 mutation 和外部副作用事实裁决业务任务，不由页面适配器自行永久终结。
-- `CONFIRMED` 或 `REJECTED`：尊重既有事实，不再次执行同一动作。
+- 无 mutation、`PREPARED` 或 dispatch 前 `FAILED`：确认没有外部动作后，只结束当前 attempt，并把原网站任务保持在 `recovery_pending` 或 `review_required`；不得写任务失败终点。
+- `DISPATCHED`：只在原 Target/Document 上按冻结正反后置条件做只读对账；禁止重发、刷新、关闭/重建 Target、重启链路或 selector 广扫。观察次数受现役 Owner 的有限预算约束，最迟不得超过任务冻结的 `delivery_deadline_at`；到期只停止本次观察/attempt，原网站任务仍是未完成的恢复对象。
+- `CONFIRMED` 或 `REJECTED`：尊重既有 mutation 事实，不再次执行同一动作；这两个值都不是网站任务完成状态。
 - 尚未到 Browser 层：记录 `BROWSER_NOT_REACHED`；不得为了“实证”额外发送 GPT/Browser 动作。
 
-只在旧 mutation 已明确终结、旧任务安全收口后，才能选择新的 production diagnostic job 或下文受控 Codex Chrome 人工复现。前者属于新的生产 QA 动作并消耗生产预算；后者不是 job，不得写入生产成功链。
+随后只能选择一种处置：
 
-恢复或重启前必须联合读取最后 step checkpoint、Browser WAL 和当前 Document。checkpoint 至少包含 `flow version + step index + input hash + proof + mutation state + canonical document identity`；三者不一致时先观察或对账，只有第一个尚未完成、没有已派发副作用且仍获授权的动作可以继续。不得从头重放整轮，也不得仅因所有 attempt 都标记失败就永久终结业务任务。
+| 失败事实 | 唯一允许处置 |
+| --- | --- |
+| 已证明没有外部动作，且错误是现役策略明确列出的可恢复临时故障 | 仅在 Website 剩余预算授权下，从最近安全 checkpoint 有限重试并执行持久退避 |
+| 外部动作已 `DISPATCHED` 但结果不明 | attempt 记为 `failed`；禁止重放，只在冻结期限和预算内只读对账，仍不明则停车 |
+| identity、Plugin/checkpoint version、合同、权限或授权等确定性冲突 | 第一次即停车并报告，修复和 Website 正式放行前不得重复冲锋 |
 
-只读观察本身不改变 WAL、job 或 recovery 状态，也不能补造缺失的 provider receipt。只有现役 Browser reconciliation Owner 能按当前合同生成独立 reconciliation record 并执行单调转换：正向后置条件成立则确认既有 mutation 并恢复原 job；反向成立则拒绝当前 mutation 并结束本 attempt；无法判断则在 `delivery_deadline_at` 到期后生成 typed attempt/recovery outcome 并停止观察。后两者都交给正式任务 Owner 依据冻结业务合同裁决，不自动写永久业务终态。不得用全新 job 代替正向确认后的原 job 恢复。Owner、正式 API/命令或消费链未接通时返回 `DISPATCHED_RECONCILIATION_OWNER_UNAVAILABLE`，禁止清理 Target、创建 diagnostic job 或复跑。
+重试预算、累计次数、`next_retry_at`、停车/放行和故障片区熔断只认 Website 侧持久事实，不能因 AGENT 重启、换设备、新 attempt、新 candidate 或用户再次调用 Skill 而清零。AGENT 提交故障情报、checkpoint、外部动作事实和 `safe_to_retry` 判断，不拥有预算或放行决定。会议尚未冻结 `3`、`5`、熔断阈值和 Website 内部具体 Owner；现役合同缺失时不得猜数字或自建状态，记录 `WEBSITE_RETRY_POLICY_OWNER_UNRESOLVED` 并停车受影响片区。
+
+同一 `Plugin/version/稳定错误码/根因 Owner` 指纹连续击倒多个任务时，按 Website 现役策略只熔断该故障片区。停车前先持久化故障情报、checkpoint 和 WAL，终结本 attempt；外部动作必须由正式 reconciliation Owner 确认、拒绝，或在预算/期限后封存为“结果未知且永不重放”，随后释放 lease/fence、worker slot、业务容量及不再需要的 Browser/continuation lane，且不得破坏后续只读尸检依据。任务和最终交付义务继续保留。若十个同类历史任务占满十个位置而健康 SEO 任务无法领取，这是 `PARKED_TASK_CAPACITY_LEAK`，不得靠继续重试、判任务失败或删任务腾位；必须修复正式 Owner 的停车/释放片区，健康任务随后继续。
+
+本轮 A/B 实证是拒绝旧错误的运行反例：V6 claim 已成功且双仓合同指纹一致时，十个旧 durable 任务因 Plugin `2 -> 9`、checkpoint schema `1 -> 2` 与新 lease 身份冲突而报 `PLUGIN_IDENTITY_CHANGED_BEFORE_RECOVERY`、`AI_V6_CHECKPOINT_TRANSITION_INVALID`，不能归因于 V6 通讯不兼容，也不能对十个任务重复相同尝试。该类确定性 identity/合同冲突第一次即停车对应 Plugin/version 片区，保留旧身份现场，释放容量，修复唯一退役/重建/交接路径后由 Website 放行；健康 SEO 片区不得被拖住。
+
+旧 mutation 已明确终结、失败 attempt 的执行资源安全收口后，原网站任务必须继续保留为恢复对象。不得创建 production diagnostic job 或 replacement job 绕过该任务；诊断使用本地复现、结构化日志和下文受控 Codex Chrome 人工复现，均不得写入生产成功链。
+
+恢复或重启前必须联合读取原任务最后 step checkpoint、Browser WAL 和当前 Document。checkpoint 至少包含 `flow version + step index + input hash + proof + mutation state + canonical document identity`；三者不一致时先观察或对账，只有第一个尚未完成、没有已派发副作用且仍获授权的动作可以继续。不得从头重放整轮，也不得仅因所有 attempt 都标记失败就结束或替换原网站任务。
+
+只读观察本身不改变 WAL、job 或 recovery 状态，也不能补造缺失的 provider receipt。只有现役 Browser reconciliation Owner 能按当前合同生成独立 reconciliation record 并执行单调转换：正向后置条件成立则确认既有 mutation 并恢复原 job；反向成立则拒绝当前 mutation 并结束本 attempt；无法判断则在 `delivery_deadline_at` 到期后生成 typed attempt/recovery outcome 并停止观察。后两者都让原任务继续处于未完成恢复状态。不得用全新 job 代替原 job 恢复。Owner、正式 API/命令或消费链未接通时返回 `DISPATCHED_RECONCILIATION_OWNER_UNAVAILABLE`，禁止清理原任务事实、创建 replacement job 或继续生产 mutation。
 
 ## 2. Browser 与 Chrome 原子实证
 
@@ -23,7 +49,7 @@
 
 - GrassEye Chrome 扩展：Browser Authority 管辖下的生产物理执行适配器；不等于 Authority。
 - Browser Authority：唯一生产 Target/Document、动作许可、mutation WAL、后置条件和 reconciliation Owner。
-- Codex Chrome：操作者 Chrome 的诊断能力；不属于 AGENT 生产链，不写 WAL、receipt、checkpoint、网站 terminal 或业务结果。
+- Codex Chrome：操作者 Chrome 的诊断能力；不属于 AGENT 生产链，不写 WAL、receipt、checkpoint、网站任务状态或业务结果。
 
 生产任务存续时，在唯一 Browser Authority 下检查原 Target/Document、页面身份、DOM、新鲜候选、动作前状态、WAL、直接后置条件、GPT child、下载/产物和 cleanup。Codex Chrome 此时只能在不附加第二控制器、不改变原页面的前提下辅助只读观察；不能点击、刷新、导航、关闭或重建生产现场。
 
@@ -45,11 +71,11 @@ selector、语义定位和后置条件只能按以下顺序修复：真实 Chrom
 
 ### 2.3 受控 Codex Chrome 人工复现
 
-只允许在以下条件全部成立后，由用户对确切 `product_id/action_id` 和 GPT 页面动作重新显式授权：旧任务已 typed terminal；mutation/WAL 无未决项；原生产 Target/Document 已按 Owner 合同释放；lease、lane、Outbox 和 recovery 全部闭合；AGENT 已停止且不会重新认领页面；没有待核外部副作用。
+只允许在以下条件全部成立后，由用户对确切原 `job_id/product_id/action_id` 和 GPT 页面动作重新显式授权：失败 attempt 已结束但原网站任务仍处于恢复状态；mutation/WAL 无未决项；该 attempt 的生产 Target/Document 已按 Owner 合同释放；lease、lane 和 Outbox 已收口；AGENT 已停止且不会重新认领页面；没有待核外部副作用。
 
 每次授权只允许一个专用诊断 tab、一次从同一冻结输入开始到失败 action 为止的最小前缀，以及每个原子 UI mutation 最多一次。禁止重试、刷新、广扫 selector 或继续执行失败 action 之后的业务步骤。只有失败 action 本身必须发送 GPT 输入且用户同时授权该 provider 副作用时才可发送；否则在发送前停止。
 
-Codex Chrome 必须记录诊断 tab/Document 身份、冻结输入 hash、页面认证和新鲜度、hydration/节点替换、候选计数、动作前后状态及 console/DevTools 事实。它不得创建网站任务、调用内部 job API、写生产 WAL/receipt/checkpoint/terminal，或把人工结果冒充生产复跑、网站成功、发布、通知或支付证据。
+Codex Chrome 必须记录诊断 tab/Document 身份、冻结输入 hash、页面认证和新鲜度、hydration/节点替换、候选计数、动作前后状态及 console/DevTools 事实。它不得创建网站任务、调用内部 job API、写生产 WAL/receipt/checkpoint/任务状态，或把人工结果冒充原任务恢复、成功交付、入库、发布、通知或支付证据。
 
 完成后关闭本次新建的专用诊断 tab，并确认没有下载、临时文件或新增生产 Target/lease/lane。若产生 provider conversation 或其他远端残留，只能按另行授权和正式能力清理；无法清理时记录残留并停止。任何前置条件、动作预算、证据或清理不闭合时，Codex Chrome 只能只读观察或返回 `CONTROLLED_CHROME_REPRODUCTION_BLOCKED`。
 
@@ -89,7 +115,7 @@ Skill 诊断报告必须独立记录两个布尔条件：
 
 动作已派发而后置观察落入上述暂态时，先持久化当前 step/mutation 事实并在同一 Document 有界观察；不得重放。当前模型不匹配但唯一选择路径尚未在本次页面获得新鲜原子证据时失败关闭，不根据旧菜单猜测点击。每个安全原子步骤只有在自己的直接后置条件成立并写入 step checkpoint 后才能推进。
 
-沿真实链逐段定位唯一语义 Owner：网站正式 sender -> API/contract/store -> claim/session/lease/fence -> AGENT route/plugin -> GPT child/Browser mutation -> checkpoint/Outbox -> 网站 terminal/consumer/domain -> 用户页面。
+沿真实链逐段定位唯一语义 Owner：网站正式 sender -> API/contract/store -> claim/session/lease/fence -> AGENT route/plugin -> GPT child/Browser mutation -> checkpoint/Outbox -> 网站成功交付 receipt -> 领域 consumer 入库 -> 用户页面。
 
 ## 4. 片区删除加重构
 
@@ -110,28 +136,32 @@ Skill 诊断报告必须独立记录两个布尔条件：
 - 公共分母验收必须精确证明 18 项 GPT 页面语义子能力加 4 项 continuation 状态子能力；3 项 Browser Authority 边界能力不得进入 Product Flow，十二个 Product Plugin 不得复制 `gpt_flow` 页面步骤。旧 44 项、退出 child、alias、兼容映射、Product 私有页面数组和第二公共执行链都必须被拒绝；
 - 页面状态机回归与 mutant 必须分别拒绝：关闭浮层同瞬间归零、隐藏 file input 冒充上传、持久化 `/c/WEB:...`、placeholder 或停止按钮仍在时提前终结、hydration 前判 marker 缺失、图片页面外 `fetch(src)` 以及重复 DOM 图片冒充多个产物；
 - Product flow 验收必须拒绝当前实时 topology 中已经消失的面板步骤、重复入口动作和已选模型点击；模型只读核验不匹配且没有新鲜选择证据时失败关闭。bounded keypress 只能在单个 command 内为 `1..4`，并直接证明目标 `aria-valuenow`；
-- Runtime 状态机/性质测试必须证明每个安全原子步骤先 checkpoint 后推进，重启联合消费 checkpoint、Browser WAL 与当前 Document，已派发 upload/submit/media download 不整轮重放，attempt 全失败不自动写永久业务终态；
+- Runtime 状态机/性质测试必须证明每个安全原子步骤先 checkpoint 后推进，重启联合消费 checkpoint、Browser WAL 与当前 Document，已派发 upload/submit/media download 不整轮重放；attempt 失败只保留原任务进入恢复，不能写任务失败终点、删除原任务或创建 replacement job；
+- 完成语义 mutant 必须证明：缺少成功交付 receipt、同一 job/source/request 结果准入或领域 consumer 入库中的任何一项，网站任务都不能完成；
+- 失败处置测试必须证明 attempt 只有 `success|failed`，外部未知不产生第三种结果；无外部动作的临时故障服从 Website 预算和退避，`DISPATCHED` 只读对账不重放，确定性 identity/合同/权限冲突第一次即停车；
+- 恢复测试必须证明 Website 累计次数、`next_retry_at`、停车和熔断在 AGENT 重启、换设备、新 candidate 与 Skill 重入后不被清零；策略或唯一 Owner 缺失时自动重试失败关闭；
+- 容量测试必须证明外部动作确认、拒绝或封存为“结果未知且永不重放”后，停车任务释放 lease、worker slot、业务容量及不再需要的 lane，同时保留 checkpoint/WAL/尸检依据；同故障片区被隔离而无共享故障面的健康任务继续，十个历史故障任务不得占满十个位置拖住 SEO；
 - Browser 故障的跨 attempt 身份稳定、`DISPATCHED` 不重放、原 Target/Document 对账、未知结果阻止新 mutation；
 - 合同变化时双仓 provider/dependency 投影一致；
 - 实际 Owner 的聚焦验收，以及两个仓库分别按本仓唯一命令执行的 `quality:check CHANGE`。
 
-这些只证明 CHANGE。代码修改后的真实复跑必须绑定更新后的 debug candidate，并证明运行实例已重新加载这些字节；本地真实系统允许运行未提交的工作树快照。只有声称外部已部署结果时才必须读回对应部署工件，不得用本地修改冒充远端生产结果。
+这些只证明 CHANGE。代码修改后的原任务恢复必须绑定更新后的 debug candidate，并证明运行实例已重新加载这些字节；本地真实系统允许运行未提交的工作树快照。只有声称外部已部署结果时才必须读回对应部署工件，不得用本地修改冒充远端生产结果。
 
-## 6. 安全清理旧任务
+## 6. 清理失败 attempt，保留原任务
 
-保留 job、event、failure、receipt、mutation 和最小脱敏审计事实。将失败任务置于 typed terminal，释放 lease/fence，确认 Outbox 无待处理项，并通过正式 Owner 清理任务私有 Target、临时下载、孤立输出对象或受 retention/privacy 合同允许清理的材料。
+保留原 job、source、request、idempotency、event、failure、receipt、mutation、checkpoint、完整故障情报包和最小脱敏审计事实。只结束失败 attempt；外部动作经正式 Owner 确认、拒绝或封存为“结果未知且永不重放”后，释放该 attempt 的 lease/fence、worker slot、业务容量与不再需要的 Browser/continuation lane，确认 Outbox 已对账，并通过正式 Owner 清理任务私有 Target、临时下载和孤立输出对象，不得破坏 WAL 与只读尸检依据。原网站任务保持 Website 现役合同定义的未完成停车/恢复状态，等待修复后放行。
 
-普通用户页面不得展示管理员 QA 数据。“用户侧无残留”不等于数据库无事实。不得直接 SQL 硬删、级联删除、覆盖、复活或复制失败任务；没有正式清理 API/Owner 时返回 `CLEANUP_OWNER_ABSENT`，要求抹除不可变事实时返回 `UNSUPPORTED_BY_ACTIVE_LAW`。
+普通用户页面不得展示管理员 QA 故障数据或错误成功提示。“用户侧无故障残留”不等于删除任务事实。不得直接 SQL 硬删、级联删除、覆盖、复制或用新任务替换失败任务；没有正式执行资源清理 API/Owner 时返回 `CLEANUP_OWNER_ABSENT`，要求抹除不可变事实时返回 `UNSUPPORTED_BY_ACTIVE_LAW`。
 
-## 7. 全新任务复跑
+## 7. 恢复原网站任务并完成交付
 
-使用新的 `job_id`、`source_task_id` 和 `idempotency_key`，从同一个正式产品入口完整重跑；不得复活旧任务。成功必须再次闭合网站终态、领域消费、真实用户页面、Target/临时产物和 Outbox。
+恢复必须沿用原 `job_id`、`source_task_id`、`idempotency_key`、`request_hash` 和冻结业务输入；只为新的执行 attempt 生成合同要求的新 attempt、lease、fence 和尚未完成步骤的 mutation 身份。先读取 checkpoint、Browser WAL 与当前 Document：已确认步骤不重放，结果未知步骤先对账，只执行第一个尚未完成且仍获授权的动作。不得重新走网站发单入口，不得创建 replacement job。
 
-默认只允许一次修复后生产复跑。同一根因再次出现、仍有 `DISPATCHED`、外部副作用未知、清理不完整、候选漂移或认证/风控介入时停止创建和发送新的生产 QA 动作。只要旧任务已 terminal 且 mutation、Target、lease、lane、Outbox 和 recovery 全部闭合，就继续第 2—5 节允许的 Chrome 诊断、本地复现、代码修复和聚焦测试；不得把生产复跑预算耗尽解释成调试结束。
+同一任务只有在 AGENT 结果完成、Outbox 交付成功、网站正式结果准入、领域 consumer 幂等入库、真实用户页面结果正确且 Target/临时产物收口后才完成。任何一项缺失或新的 attempt 再次失败，都回到第 1 节保留新故障现场；原任务继续未完成。恢复生产动作必须同时满足 Website 正式放行、持久预算和 `next_retry_at`、安全 checkpoint、未解决外部副作用为零以及当前生产授权；用户授权或新 candidate 都不能自行清零预算。预算耗尽只停止自动 mutation 并释放容量，继续允许诊断和修复，不能解释成任务结束。
 
 ## 8. 后置 WHY-HAPPEN
 
-只有第 7 节已经证明原故障在更新后的 debug candidate 上真实解决，才追查它为什么逃过现役治理。真实复跑仍失败时回到运行根因和代码片区，不修改法案、施工图或质检系统。
+只有第 7 节已经证明同一原网站任务在更新后的 debug candidate 上成功交付并入库，才追查故障为什么逃过现役治理。原任务恢复仍失败时回到运行根因和代码片区，不修改法案、施工图或质检系统。
 
 用已经确认的故障根因和修复事实依次核对：
 
@@ -142,7 +172,7 @@ Skill 诊断报告必须独立记录两个布尔条件：
 
 逐层检查，但只修改证明确有缺口的层。现役法案和施工图已经清楚时不得为了记录事故而改写；规则和检查都存在但没有运行时，只修唯一入口或覆盖关系；属于治理无法合理预防的外部运行事件时，不制造法案条款，只在已证明需要时修复诊断、恢复或观测能力。
 
-修改冻结 active law 或 blueprint 仍须用户另行明确授权。缺少该授权时保留复跑成功事实，但暂停下一条 route。存在治理缺口时，修复必须加入或收紧能够拒绝本次旧错误的持久反例/mutant，并通过受影响仓库该层的现役检查和唯一 CHANGE 质量入口；不得新增第二 verdict、第二台账或旁路检查器。若四层均核查充分，且证据证明该事件不存在可合理预防或提前拦截的治理缺口，则以四层核查证据和已验证的运行修复或恢复证据闭合，不为凑流程强改治理文件。除此以外，只有旧错误已在最早应负责的层被确定性拒绝，后置 `WHY-HAPPEN` 才算闭合。
+修改冻结 active law 或 blueprint 仍须用户另行明确授权。缺少该授权时保留原任务成功交付和入库事实，但暂停下一条 route。存在治理缺口时，修复必须加入或收紧能够拒绝本次旧错误的持久反例/mutant，并通过受影响仓库该层的现役检查和唯一 CHANGE 质量入口；不得新增第二 verdict、第二台账或旁路检查器。若四层均核查充分，且证据证明该事件不存在可合理预防或提前拦截的治理缺口，则以四层核查证据和已验证的运行修复或恢复证据闭合，不为凑流程强改治理文件。除此以外，只有旧错误已在最早应负责的层被确定性拒绝，后置 `WHY-HAPPEN` 才算闭合。
 
 ## 9. Dynamic Proof 交接
 

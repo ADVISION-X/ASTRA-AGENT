@@ -7,6 +7,7 @@ import Database from "better-sqlite3";
 import { uploadProductionResult } from "../../src/lib/local-runtime/production/cloud-client.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
+import { executionFailure } from "../../src/lib/typed-failure.js";
 import { claimTask, HASH_A, HASH_B, HASH_C, identityFor, resultFor, task, terminalReceipt } from "./agent-production-runtime-fixtures.js";
 
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-production-ledger-"));
@@ -89,7 +90,7 @@ try {
     }),
   });
   const completedReceipt = terminalReceipt({
-    jobId: deliveredTask.job_id, status: "completed", payloadHash: hashCanonical(deliveredResult), failure: null,
+    jobId: deliveredTask.job_id, payloadHash: hashCanonical(deliveredResult),
   });
   assert.throws(() => store.markOutboxSent("terminal:delivered", { terminal_status: "completed" }),
     /V6_TERMINAL_RECEIPT_INVALID/u);
@@ -105,51 +106,28 @@ try {
   }), /V6_TERMINAL_RECEIPT_INVALID/u);
   store.markOutboxSent("terminal:delivered", completedReceipt);
   assert.equal(store.readTask(deliveredTask.job_id)?.status, "accepted");
-  assert.equal(store.reconcileDeliveredTerminals(), 1);
+  assert.equal(store.reconcileDeliveredTerminals(), 0);
+  assert.equal(store.readTask(deliveredTask.job_id)?.status, "accepted");
+  store.setRecoveryPending(deliveredTask.job_id, "BUSINESS_ADMISSION_PENDING");
+  store.completeTask(deliveredTask.job_id, deliveredResult);
   assert.equal(store.readTask(deliveredTask.job_id)?.status, "completed");
   assert.deepEqual(store.readTask(deliveredTask.job_id)?.result, deliveredResult);
 
-  const failedTask = task({ jobId: "job:typed-failure", productId: "payment_screenshot_observation", actionId: "observe" });
-  store.acceptTask(failedTask, identityFor(failedTask));
-  const terminalFailure = {
-    code: "PROVIDER_REJECTED", mutation_outcome: "no" as const, evidence_ref: "rec-proof",
-    evidence_hash: HASH_C, cause: { name: "ProviderError", code: "PROVIDER_REJECTED" },
-  };
-  const failedPayloadHash = hashCanonical({ job_id: failedTask.job_id, failure: terminalFailure });
-  store.enqueue({
-    idempotency_key: "terminal:failed", kind: "terminal",
-    path: `/internal/ai-production/v6/jobs/${encodeURIComponent(failedTask.job_id)}/terminal`,
-    method: "POST", headers: {},
-    body: JSON.stringify({
-      schema_version: "xuanxue-ai-terminal-cas.v6", job_id: failedTask.job_id, terminal_status: "failed",
-      failure: terminalFailure, payload_hash: failedPayloadHash,
-      worker_session_id: "worker:receipt", worker_session_epoch: 1,
-    }),
-  });
-  const failedReceipt = terminalReceipt({
-    jobId: failedTask.job_id, status: "failed", payloadHash: failedPayloadHash, failure: terminalFailure,
-  });
-  assert.throws(() => store.markOutboxSent("terminal:failed", {
-    ...failedReceipt, failure: { ...terminalFailure, code: "WRONG_FAILURE" },
-  }), /V6_TERMINAL_RECEIPT_MISMATCH/u);
-  store.markOutboxSent("terminal:failed", failedReceipt);
-  assert.equal(store.reconcileDeliveredTerminals(), 1);
-  assert.deepEqual(store.readTask(failedTask.job_id)?.failure, terminalFailure);
-
   const historical = task({
-    jobId: "job:remote-absent-historical-failed", productId: "payment_screenshot_observation", actionId: "observe",
+    jobId: "job:remote-absent-historical-completed", productId: "payment_screenshot_observation", actionId: "observe",
   });
-  store.acceptTask(historical, identityFor(historical));
-  store.setTerminal(historical.job_id, "failed", terminalFailure, null);
+  const historicalIdentity = identityFor(historical);
+  store.acceptTask(historical, historicalIdentity);
+  store.completeTask(historical.job_id, resultFor(historical, historicalIdentity));
   store.enqueue({
-    idempotency_key: "terminal:remote-absent-historical-failed", kind: "terminal",
+    idempotency_key: "terminal:remote-absent-historical-completed", kind: "terminal",
     path: `/internal/ai-production/v6/jobs/${encodeURIComponent(historical.job_id)}/terminal`,
     method: "POST", headers: {}, body: "{}",
   });
   assert.equal(store.markRemoteAbsentHistorical(historical.job_id), true);
   assert.deepEqual({
-    code: store.readOutboxAuthority("terminal:remote-absent-historical-failed")?.failureCode,
-    state: store.readOutboxAuthority("terminal:remote-absent-historical-failed")?.state,
+    code: store.readOutboxAuthority("terminal:remote-absent-historical-completed")?.failureCode,
+    state: store.readOutboxAuthority("terminal:remote-absent-historical-completed")?.state,
   }, { code: "REMOTE_JOB_ABSENT_HISTORICAL", state: "failed" });
 
   const current = task({
@@ -164,7 +142,236 @@ try {
   assert.equal(store.markRemoteAbsentHistorical(current.job_id), false);
   assert.equal(store.readOutboxAuthority("checkpoint:remote-absent-current-nonterminal")?.state, "pending");
   assert.equal(store.isLedgerConsistent(new Set()), false);
+  store.enqueue({
+    idempotency_key: "checkpoint:native-failure", kind: "checkpoint",
+    path: `/internal/ai-production/v6/jobs/${encodeURIComponent(current.job_id)}/checkpoints`,
+    method: "POST", headers: {}, body: '{"attempt_failure":true}',
+  });
+  await assert.rejects(
+    store.deliverOutbox("checkpoint:native-failure", HASH_A, async () => {
+      throw executionFailure("review_required", "REMOTE_CHECKPOINT_REJECTED", { httpStatus: 409 });
+    }),
+    /REMOTE_CHECKPOINT_REJECTED/u,
+  );
+  assert.equal(
+    store.readOutboxAuthority("checkpoint:native-failure")?.failureCode,
+    "REMOTE_CHECKPOINT_REJECTED",
+  );
+
+  const retired = task({
+    jobId: "job:authoritative-stale-lease-retired", productId: "payment_screenshot_observation", actionId: "observe",
+  });
+  store.acceptTask(retired, identityFor(retired));
+  store.enqueue({
+    idempotency_key: "checkpoint:authoritative-stale-lease-retired", kind: "checkpoint",
+    path: `/internal/ai-production/v6/jobs/${encodeURIComponent(retired.job_id)}/checkpoints`,
+    method: "POST", headers: {}, body: "{}",
+  });
+  assert.ok(store.unreconciledOutboxJobIds().includes(retired.job_id));
+  const retiredStates: string[] = [];
+  store.setOutboxObserver((authority) => {
+    if (authority?.idempotencyKey === "checkpoint:authoritative-stale-lease-retired") {
+      retiredStates.push(authority.state);
+    }
+  });
+  await assert.rejects(store.deliverOutbox(
+    "checkpoint:authoritative-stale-lease-retired", HASH_A,
+    async () => { throw executionFailure("review_required", "AI_LEASE_FENCE_STALE", { httpStatus: 409 }); },
+  ), /AI_LEASE_FENCE_STALE/u);
+  assert.deepEqual(retiredStates, ["pending", "failed"],
+    "an authoritative stale lease must retire atomically without entering the retry or parked states");
+  assert.equal(
+    store.readOutboxAuthority("checkpoint:authoritative-stale-lease-retired")?.failureCode,
+    "STALE_LEASE_OUTBOX_RETIRED:AI_LEASE_FENCE_STALE",
+  );
+  assert.equal(store.unreconciledOutboxJobIds().includes(retired.job_id), false);
   store.close();
+
+  const isolationDirectory = path.join(temporary, "per-job-failure-isolation");
+  await mkdir(isolationDirectory);
+  const isolationStore = new ProductionRuntimeStore(isolationDirectory);
+  const isolatedFailure = task({
+    jobId: "job:isolated-outbox-failure", productId: "payment_screenshot_observation", actionId: "observe",
+  });
+  isolationStore.acceptTask(isolatedFailure, identityFor(isolatedFailure));
+  isolationStore.recordCheckpoint({
+    jobId: isolatedFailure.job_id, attemptId: "attempt:isolated-failure", checkpointId: "recovery_pending",
+    checkpointHash: HASH_A, state: "persisted",
+  });
+  isolationStore.recordLease({
+    jobId: isolatedFailure.job_id, attemptId: "attempt:isolated-failure", leaseVersion: 1,
+    fenceHash: HASH_B, state: "stale", expiresAt: "2026-08-28T00:00:00.000Z",
+  });
+  isolationStore.setRecoveryPending(isolatedFailure.job_id, "REMOTE_CHECKPOINT_REJECTED");
+  isolationStore.enqueue({
+    idempotency_key: "checkpoint:isolated-failure", kind: "checkpoint",
+    path: `/internal/ai-production/v6/jobs/${encodeURIComponent(isolatedFailure.job_id)}/checkpoints`,
+    method: "POST", headers: {}, body: '{}',
+  });
+  await assert.rejects(isolationStore.deliverOutbox(
+    "checkpoint:isolated-failure", HASH_A,
+    async () => { throw executionFailure("review_required", "REMOTE_CHECKPOINT_REJECTED", { httpStatus: 409 }); },
+  ), /REMOTE_CHECKPOINT_REJECTED/u);
+  const unaffected = task({
+    jobId: "job:unaffected-by-other-job-outbox", productId: "payment_screenshot_observation", actionId: "observe",
+  });
+  isolationStore.acceptTask(unaffected, identityFor(unaffected));
+  isolationStore.recordCheckpoint({
+    jobId: unaffected.job_id, attemptId: "attempt:unaffected", checkpointId: "accepted",
+    checkpointHash: HASH_A, state: "persisted",
+  });
+  isolationStore.recordLease({
+    jobId: unaffected.job_id, attemptId: "attempt:unaffected", leaseVersion: 1,
+    fenceHash: HASH_B, state: "active", expiresAt: "2030-01-01T00:05:00.000Z",
+  });
+  assert.equal(isolationStore.isLedgerConsistent(new Set([unaffected.job_id])), true,
+    "one job's failed Outbox must not block an unrelated active job");
+  isolationStore.close();
+
+  const boundedOutboxDirectory = path.join(temporary, "bounded-outbox-delivery");
+  await mkdir(boundedOutboxDirectory);
+  let boundedOutboxStore = new ProductionRuntimeStore(boundedOutboxDirectory);
+  const boundedTask = task({
+    jobId: "job:bounded-outbox-delivery", productId: "payment_screenshot_observation", actionId: "observe",
+  });
+  boundedOutboxStore.acceptTask(boundedTask, identityFor(boundedTask));
+  const boundedOutboxPath = `/internal/ai-production/v6/jobs/${encodeURIComponent(boundedTask.job_id)}/checkpoints`;
+  boundedOutboxStore.enqueue({
+    idempotency_key: "checkpoint:bounded-delivery", kind: "checkpoint",
+    path: boundedOutboxPath, method: "POST", headers: {}, body: "{}",
+  });
+  boundedOutboxStore.enqueue({
+    idempotency_key: "checkpoint:unrelated-delivery", kind: "checkpoint",
+    path: boundedOutboxPath, method: "POST", headers: {}, body: '{"unrelated":true}',
+  });
+  let deliveryCalls = 0;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    await assert.rejects(boundedOutboxStore.deliverOutbox(
+      "checkpoint:bounded-delivery", HASH_A,
+      async () => {
+        deliveryCalls += 1;
+        throw executionFailure("review_required", "AI_V6_RECONCILE_OUTCOME_INVALID", { httpStatus: 409 });
+      },
+    ), /AI_V6_RECONCILE_OUTCOME_INVALID/u);
+    const authority = boundedOutboxStore.readOutboxAuthority("checkpoint:bounded-delivery")!;
+    assert.equal(authority.deliveryBuildHash, HASH_A);
+    assert.equal(authority.deliveryAttemptCount, attempt);
+    assert.equal(authority.failureCode, "AI_V6_RECONCILE_OUTCOME_INVALID");
+    assert.equal(authority.state, attempt === 3 ? "parked" : "failed");
+    assert.equal(Boolean(authority.parkedAt), attempt === 3);
+    if (attempt < 3) {
+      assert.ok(authority.nextDeliveryAttemptAt);
+      const boundedDatabase = Reflect.get(boundedOutboxStore, "database") as Database.Database;
+      boundedDatabase.prepare(`update production_outbox set next_delivery_attempt_at=?
+        where idempotency_key=?`).run("2000-01-01T00:00:00.000Z", "checkpoint:bounded-delivery");
+    } else assert.equal(authority.nextDeliveryAttemptAt, null);
+  }
+  assert.equal(deliveryCalls, 3, "one build may physically send one Outbox intent at most three times");
+  assert.deepEqual(
+    boundedOutboxStore.pendingOutbox(HASH_A).map((write) => write.idempotency_key),
+    ["checkpoint:unrelated-delivery"],
+    "a parked Outbox must disappear from automatic delivery without blocking an unrelated Outbox",
+  );
+  assert.equal(boundedOutboxStore.parkedOutboxCount(), 1);
+  boundedOutboxStore.close();
+
+  boundedOutboxStore = new ProductionRuntimeStore(boundedOutboxDirectory);
+  assert.deepEqual(
+    boundedOutboxStore.pendingOutbox(HASH_A).map((write) => write.idempotency_key),
+    ["checkpoint:unrelated-delivery"],
+    "restart with the same build must not reset or replay a parked Outbox",
+  );
+  await assert.rejects(boundedOutboxStore.deliverOutbox(
+    "checkpoint:bounded-delivery", HASH_A,
+    async () => { deliveryCalls += 1; return { checkpoint_hash: HASH_A }; },
+  ), /PRODUCTION_OUTBOX_DELIVERY_PARKED/u);
+  assert.equal(deliveryCalls, 3);
+  await boundedOutboxStore.deliverOutbox(
+    "checkpoint:bounded-delivery", HASH_B,
+    async () => { deliveryCalls += 1; return { checkpoint_hash: HASH_A }; },
+  );
+  assert.equal(deliveryCalls, 4, "a new build may resume the same durable Outbox debt once");
+  assert.equal(boundedOutboxStore.readOutboxAuthority("checkpoint:bounded-delivery")?.state, "delivered");
+  assert.equal(boundedOutboxStore.parkedOutboxCount(), 0);
+  boundedOutboxStore.close();
+
+  const redeliveryDirectory = path.join(temporary, "historical-failure-remote-redelivery");
+  await mkdir(redeliveryDirectory);
+  const redeliveryTask = task({
+    jobId: "job:historical-failure-remote-redelivery", productId: "payment_screenshot_observation", actionId: "observe",
+  });
+  let redeliveryStore = new ProductionRuntimeStore(redeliveryDirectory);
+  redeliveryStore.acceptTask(redeliveryTask, identityFor(redeliveryTask));
+  redeliveryStore.enqueue({
+    idempotency_key: "terminal:historical-failure-remote-redelivery", kind: "terminal",
+    path: `/internal/ai-production/v6/jobs/${encodeURIComponent(redeliveryTask.job_id)}/terminal`,
+    method: "POST", headers: {}, body: JSON.stringify({ terminal_status: "failed" }),
+  });
+  redeliveryStore.close();
+  const redeliveryDatabase = new Database(path.join(redeliveryDirectory, "production-runtime.sqlite"));
+  redeliveryDatabase.prepare("update production_tasks set status='failed' where job_id=?").run(redeliveryTask.job_id);
+  redeliveryDatabase.prepare(`update production_outbox
+    set sent_at=?,response_json=?,response_hash=?,receipt_hash=? where idempotency_key=?`).run(
+    "2026-08-28T00:00:00.000Z", JSON.stringify({ terminal_status: "failed" }), HASH_A, HASH_B,
+    "terminal:historical-failure-remote-redelivery",
+  );
+  redeliveryDatabase.close();
+  redeliveryStore = new ProductionRuntimeStore(redeliveryDirectory);
+  assert.equal(redeliveryStore.readTask(redeliveryTask.job_id)?.status, "recovery_pending");
+  assert.deepEqual(redeliveryStore.readOutboxAuthority(
+    "terminal:historical-failure-remote-redelivery",
+  ), {
+    idempotencyKey: "terminal:historical-failure-remote-redelivery",
+    jobId: redeliveryTask.job_id,
+    kind: "terminal",
+    state: "failed",
+    deliveryBuildHash: null,
+    deliveryAttemptCount: 0,
+    nextDeliveryAttemptAt: null,
+    parkedAt: null,
+    failureCode: "HISTORICAL_FAILED_COMPLETION_RETIRED",
+    responseHash: null,
+    receiptHash: null,
+  });
+  assert.equal(redeliveryStore.isRemoteRedeliveryPending(redeliveryTask.job_id), true);
+  assert.equal(redeliveryStore.isLedgerConsistent(new Set()), true,
+    "a retired historical failure delegated to Website redelivery must not block unrelated claims");
+  redeliveryStore.enqueue({
+    idempotency_key: "checkpoint:rejected-before-reconstruction", kind: "checkpoint",
+    path: `/internal/ai-production/v6/jobs/${encodeURIComponent(redeliveryTask.job_id)}/checkpoints`,
+    method: "POST", headers: {}, body: "{}",
+  });
+  await assert.rejects(redeliveryStore.deliverOutbox(
+    "checkpoint:rejected-before-reconstruction", HASH_A,
+    async () => { throw executionFailure("review_required", "AI_LEASE_ACCEPT_DEADLINE_EXPIRED", { httpStatus: 409 }); },
+  ), /AI_LEASE_ACCEPT_DEADLINE_EXPIRED/u);
+  const reconstructedIdentity = { ...identityFor(redeliveryTask), plugin_version: 2 };
+  const reconstructed = redeliveryStore.acceptTask(redeliveryTask, reconstructedIdentity, false);
+  assert.equal(reconstructed.status, "accepted");
+  assert.deepEqual(reconstructed.identity, reconstructedIdentity);
+  assert.match(reconstructed.failure_reason ?? "", /^EXECUTION_SLICE_RECONSTRUCTED:/u);
+  assert.equal(redeliveryStore.readOutboxAuthority(
+    "checkpoint:rejected-before-reconstruction",
+  )?.failureCode, "EXECUTION_SLICE_RECONSTRUCTED");
+  redeliveryStore.markRunning(redeliveryTask.job_id);
+  assert.equal(redeliveryStore.readTask(redeliveryTask.job_id)?.failure_reason, null,
+    "the transient task diagnosis may clear after execution starts");
+  redeliveryStore.close();
+  const reconstructionDatabase = new Database(path.join(redeliveryDirectory, "production-runtime.sqlite"));
+  const reconstructionRow = reconstructionDatabase.prepare(`select body_blob from production_outbox
+    where failure_code='EXECUTION_SLICE_RECONSTRUCTED'
+      and path like '%/execution-slice-reconstructions'`).get() as { body_blob: Buffer } | undefined;
+  reconstructionDatabase.close();
+  assert.ok(reconstructionRow, "execution-slice reconstruction must retain a durable local receipt");
+  const reconstructionReceipt = JSON.parse(reconstructionRow.body_blob.toString("utf8")) as Record<string, unknown>;
+  assert.equal(reconstructionReceipt.schema_version, "agent-execution-slice-reconstruction.v1");
+  assert.deepEqual(reconstructionReceipt.old_identity, identityFor(redeliveryTask));
+  assert.deepEqual(reconstructionReceipt.new_identity, reconstructedIdentity);
+  assert.deepEqual(reconstructionReceipt.retired_checkpoint_attempts, [{
+    idempotencyKey: "checkpoint:rejected-before-reconstruction",
+    failureCode: "AI_LEASE_ACCEPT_DEADLINE_EXPIRED",
+    createdAt: (reconstructionReceipt.retired_checkpoint_attempts as Array<Record<string, unknown>>)[0]?.createdAt,
+  }]);
 
   const persistedDirectory = path.join(temporary, "persisted-terminal-receipt-mutant");
   await mkdir(persistedDirectory);
@@ -187,7 +394,7 @@ try {
     }),
   });
   const durableReceipt = terminalReceipt({
-    jobId: persistedTask.job_id, status: "completed", payloadHash: hashCanonical(persistedResult), failure: null,
+    jobId: persistedTask.job_id, payloadHash: hashCanonical(persistedResult),
   });
   persistedStore.markOutboxSent("terminal:persisted-mutant", durableReceipt);
   persistedStore.close();

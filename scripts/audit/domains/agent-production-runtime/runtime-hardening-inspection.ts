@@ -59,20 +59,35 @@ const inspectRequiredTokens = (
     { path: paths.typedFailure, checkId: "typed-failure-chain", tokens: ["typedExecutionFailure", "httpStatus", "cause"] },
     { path: paths.runtimeLogging, checkId: "typed-failure-chain", tokens: ["typedExecutionFailure(error)?.code", "causedByEventId"] },
     { path: paths.transport, checkId: "typed-failure-chain", tokens: ["executionFailure(", "httpStatus"] },
-    { path: paths.contract, checkId: "binary-terminal", tokens: ["z.enum([\"completed\", \"failed\"])", "SerializedExecutionFailureSchema"] },
-    { path: paths.runtime, checkId: "bounded-attempt-decision", tokens: ["RETRY_FROM_CHECKPOINT", "RECONCILE_ONLY", "FINAL_FAILED", "attempt_mode"] },
+    { path: paths.contract, checkId: "completion-only", tokens: ["z.literal(\"completed\")", "failure: z.null()"] },
+    { path: paths.runtime, checkId: "recoverable-attempt-decision", tokens: ["RETRY_FROM_CHECKPOINT", "RECONCILE_ONLY", "attempt_mode"] },
     { path: "src/lib/local-runtime/production/runtime-state.ts", checkId: "bounded-attempt-decision", tokens: ["max_provider_turns"] },
     { path: paths.cloudClient, checkId: "attempt-failure-receipt", tokens: ["attempt_failure", "RETRY_FROM_CHECKPOINT", "RECONCILE_ONLY"] },
     { path: paths.gptExecutor, checkId: paths.mutationCheckId, tokens: paths.gptExecutorMutationTokens },
     { path: paths.gptTurnFlow, checkId: paths.mutationCheckId, tokens: paths.gptTurnFlowMutationTokens },
+    { path: paths.gptExecutor, checkId: "gpt-flow-slice-reconstruction", tokens: [
+      "readGptTurnCheckpointMetadata", "reconstructStaleGptTurnStep", "canReconstructGptTurnStep",
+    ] },
+    { path: "src/lib/local-runtime/production/store-task-state.ts", checkId: "gpt-flow-slice-reconstruction", tokens: [
+      "GPT_FLOW_EXECUTION_SLICE_RECONSTRUCTION_UNSAFE", "NO_DISPATCHED_OR_PROVIDER_EFFECT_TERMINAL",
+      "gpt-flow-execution-slice-reconstruction.v1",
+    ] },
     { path: paths.evidence, checkId: paths.mutationCheckId, tokens: paths.evidenceMutationTokens },
     { path: paths.blueprint, checkId: "local-agent-process-owner", tokens: ["AGENT 始终运行在用户本地 Mac", "不授予网站 AGENT 进程"] },
+    { path: "src/lib/local-runtime/production/cloud-reconciliation-client.ts", checkId: "business-admission-reconciliation", tokens: ["business_admission_receipt", "business_consumer_error", "V6_BUSINESS_ADMISSION_AUTHORITY_INVALID"] },
   ];
   for (const entry of required) {
     const source = read(context, entry.path);
     for (const token of entry.tokens) if (!source.includes(token)) pushFinding(
       findings, lawId, `agent-production-runtime/${entry.checkId}`, entry.path,
       `V5 hardening boundary is missing ${token}.`,
+    );
+  }
+  const runtime = read(context, paths.runtime);
+  for (const forbidden of ["FINAL_FAILED", "max_attempts", "delivery_deadline_at", "status: \"failed\""]) {
+    if (runtime.includes(forbidden)) pushFinding(
+      findings, lawId, "agent-production-runtime/failed-task-terminal-retired", paths.runtime,
+      `Active runtime still contains retired task terminal token ${forbidden}.`,
     );
   }
 };
@@ -115,6 +130,62 @@ const inspectFailurePolicy = (
   }
 };
 
+const inspectPerJobFailureIsolation = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const loopsPath = "src/lib/local-runtime/production/runtime-loops.ts";
+  const loops = read(context, loopsPath);
+  const flushStart = loops.indexOf("export const flushOutboxWithLog");
+  const flushEnd = loops.indexOf("const requestClaimBatch", flushStart);
+  const flush = flushStart >= 0 && flushEnd > flushStart ? loops.slice(flushStart, flushEnd) : "";
+  for (const token of [
+    "state.store.pendingOutbox(state.session.buildHash)",
+    "failed.state === \"parked\"",
+    "RuntimeRecovery.STOP",
+  ]) {
+    if (!flush.includes(token)) pushFinding(findings, lawId,
+      "agent-production-runtime/per-job-outbox-isolation", loopsPath,
+      `Outbox flusher is missing per-job failure isolation token ${token}.`);
+  }
+  if (!flush || /\bthrow\b/u.test(flush)) pushFinding(findings, lawId,
+    "agent-production-runtime/per-job-outbox-isolation", loopsPath,
+    "One Outbox delivery failure must be logged on that job without escaping the shared flusher.");
+
+  const outboxPath = "src/lib/local-runtime/production/store-outbox.ts";
+  const outbox = read(context, outboxPath);
+  for (const token of [
+    "OUTBOX_DELIVERY_MAX_ATTEMPTS = 3",
+    "OUTBOX_DELIVERY_BACKOFF_MS = [5_000, 15_000]",
+    "deliveryAttemptCount",
+    "delivery_parked_at",
+    "PRODUCTION_OUTBOX_DELIVERY_PARKED",
+    "OUTBOX_STALE_RETIRE_CODES",
+    "this.retireStaleOutbox(idempotencyKey, code)",
+  ]) if (!outbox.includes(token)) pushFinding(findings, lawId,
+    "agent-production-runtime/bounded-outbox-delivery", outboxPath,
+    `Outbox delivery is missing bounded retry token ${token}.`);
+
+  const foundationPath = "src/lib/local-runtime/production/store-foundation.ts";
+  const foundation = read(context, foundationPath);
+  for (const token of [
+    "delivery_build_hash", "delivery_attempt_count integer not null default 0",
+    "next_delivery_attempt_at", "delivery_parked_at", 'state: "pending" | "delivered" | "failed" | "parked"',
+  ]) if (!foundation.includes(token)) pushFinding(findings, lawId,
+    "agent-production-runtime/durable-outbox-parking", foundationPath,
+    `Outbox authority is missing durable parking token ${token}.`);
+
+  const ledgerPath = "src/lib/local-runtime/production/store-ledger.ts";
+  const ledger = read(context, ledgerPath);
+  for (const token of ["tasks.get(authority.jobId)?.status === \"completed\"",
+    "task.status === \"completed\" && jobOutbox.some", "this.activeTaskConsistent(task, activeJobIds)"]) {
+    if (!ledger.includes(token)) pushFinding(findings, lawId,
+      "agent-production-runtime/per-job-ledger-isolation", ledgerPath,
+      `Ledger is missing job-scoped consistency token ${token}.`);
+  }
+};
+
 export const inspectRuntimeHardening = (
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -124,4 +195,5 @@ export const inspectRuntimeHardening = (
   inspectRequiredTokens(context, findings, lawId, paths);
   inspectForensicsProjection(context, findings, lawId, paths.evidence);
   inspectFailurePolicy(context, findings, lawId, paths);
+  inspectPerJobFailureIsolation(context, findings, lawId);
 };

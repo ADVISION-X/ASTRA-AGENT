@@ -14,7 +14,7 @@ import { sendProductionOutboxWrite } from "./cloud-reconciliation-client.js";
 import { productionCatalogHash } from "./catalog.js";
 import { hashCanonical } from "./contracts.js";
 import type { ProductionRuntimeHealth } from "./runtime-contract.js";
-import { executeClaim } from "./runtime-claim.js";
+import { executeClaim, reconcileBusinessAdmission } from "./runtime-claim.js";
 import { emitRuntimeState, terminalSpanFailure } from "./runtime-logging.js";
 import {
   classifyFailure,
@@ -29,7 +29,7 @@ export const runtimeState = async (state: RuntimeState) => {
   const browser = state.browserAuthority.readProductionRuntimeState();
   const observedLane = state.browserAuthority.readBrowserLaneState();
   const lane: "blocked" | "busy" | "idle" = browser.browserAuthorityState !== "present"
-    || observedLane === "unsettled" ? "blocked" : observedLane;
+    ? "blocked" : observedLane;
   return {
     business_in_flight: state.active.size,
     browser_action_in_flight: observedLane === "busy" ? 1 as const : 0 as const,
@@ -58,42 +58,45 @@ export const readHealth = (state: RuntimeState): ProductionRuntimeHealth => {
     claimAdmissionState: claimEligible ? state.draining ? "draining" : "eligible" : "blocked",
     logSinkState: state.runtimeLogger.getSinkState(), browserAuthorityState: browser.browserAuthorityState,
     browserTargetState: browser.browserTargetState,
-    browserLaneState: browser.browserAuthorityState !== "present" || browserLane === "unsettled"
+    browserLaneState: browser.browserAuthorityState !== "present"
       ? "blocked" : browserLane,
     contractManifestHash: state.session.device.control_manifest_hash,
     catalogHash: productionCatalogHash, activeCount: state.active.size,
-    pendingOutboxCount: state.store.pendingOutboxCount(), lastSuccessfulHeartbeatAt: state.lastHeartbeat,
+    pendingOutboxCount: state.store.pendingOutboxCount(),
+    parkedOutboxCount: state.store.parkedOutboxCount(), lastSuccessfulHeartbeatAt: state.lastHeartbeat,
     lastErrorCode: state.lastErrorCode, lastErrorReason: state.lastErrorReason, checkedAt: new Date().toISOString(),
   };
 };
 
 export const flushOutboxWithLog = async (state: RuntimeState): Promise<void> => {
-  for (const write of state.store.pendingOutbox()) {
-    const current = state.store.readOutboxAuthority(write.idempotency_key)!;
-    if (current.state === "failed") state.store.markOutboxPending(write.idempotency_key);
+  for (const write of state.store.pendingOutbox(state.session.buildHash)) {
     const authority = state.store.readOutboxAuthority(write.idempotency_key)!;
     const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
       traceId: authority.jobId, owner: "outbox", component: "production-outbox", operation: "outbox.flush",
       typedIdentity: { kind: "outbox", jobId: authority.jobId, outboxId: authority.idempotencyKey },
     }));
     try {
-      await state.store.deliverOutbox(write.idempotency_key, () => sendProductionOutboxWrite(state.session, write));
+      await state.store.deliverOutbox(
+        write.idempotency_key, state.session.buildHash,
+        () => sendProductionOutboxWrite(state.session, write),
+      );
       const delivered = state.store.readOutboxAuthority(write.idempotency_key)!;
       requireRuntimeLogWrite(span.terminal({
         outcome: "success", authorityRef: `production-outbox:${delivered.idempotencyKey}`,
         authorityHash: hashCanonical(delivered),
       }));
     } catch (error) {
-      state.store.markOutboxFailed(write.idempotency_key, "OUTBOX_DELIVERY_FAILED");
+      const remoteFailureCode = failureCode(error, "OUTBOX_DELIVERY_FAILED");
       const failed = state.store.readOutboxAuthority(write.idempotency_key)!;
-      const terminal = requireRuntimeLogWrite(span.terminal({
+      const stopped = failed.state === "parked" || failed.failureCode?.startsWith("STALE_LEASE_OUTBOX_RETIRED:");
+      requireRuntimeLogWrite(span.terminal({
         outcome: "failed", authorityRef: `production-outbox:${failed.idempotencyKey}`,
         authorityHash: hashCanonical(failed), failure: runtimeFailureFromError({
-          error, code: "OUTBOX_DELIVERY_FAILED", responsibleOwner: "outbox",
-          recovery: RuntimeRecovery.RETRY, impact: RuntimeFailureImpact.BLOCKING,
+          error, code: remoteFailureCode, responsibleOwner: "outbox",
+          recovery: stopped ? RuntimeRecovery.STOP : RuntimeRecovery.RETRY,
+          impact: RuntimeFailureImpact.BLOCKING,
         }),
       }));
-      throw withRuntimeLogCause(error, terminal.eventId);
     }
   }
 };
@@ -147,8 +150,43 @@ const launchClaimJobs = (
   }
 };
 
+const reconcilePendingBusinessAdmissions = async (state: RuntimeState): Promise<void> => {
+  for (const task of state.store.pendingBusinessAdmissions()) {
+    const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
+      traceId: task.task.job_id, owner: "production-runtime", component: "production-runtime",
+      operation: "website.result-consume",
+      typedIdentity: { kind: "job", jobId: task.task.job_id },
+    }));
+    try {
+      const outcome = await reconcileBusinessAdmission(state, task);
+      const current = state.store.readTask(task.task.job_id)!;
+      if (outcome === "completed") {
+        requireRuntimeLogWrite(span.terminal({
+          outcome: "success", authorityRef: `production-task:${task.task.job_id}`,
+          authorityHash: hashCanonical(current),
+        }));
+      } else {
+        requireRuntimeLogWrite(span.terminal({
+          outcome: "failed", authorityRef: `production-task:${task.task.job_id}`,
+          authorityHash: hashCanonical(current), failure: runtimeFailureFromError({
+            error: new Error(current.failure_reason ?? "BUSINESS_ADMISSION_PENDING"),
+            code: current.failure_reason?.split(":")[0] ?? "BUSINESS_ADMISSION_PENDING",
+            responsibleOwner: "website", recovery: RuntimeRecovery.RETRY,
+            impact: RuntimeFailureImpact.BLOCKING,
+          }),
+        }));
+      }
+    } catch (error) {
+      terminalSpanFailure(span, error, classifyFailure(error), runtimeLogCauseEventId(error),
+        "BUSINESS_ADMISSION_RECONCILIATION_FAILED");
+    }
+  }
+};
+
 const workerIteration = async (state: RuntimeState): Promise<number> => {
   await flushOutboxWithLog(state);
+  await reconcilePendingBusinessAdmissions(state);
+  refreshLedgerReconciled(state);
   const attestation = await state.session.ensureFreshAttestation();
   state.lastHeartbeat = attestation.issued_at;
   emitRuntimeState({ state, stateKey: "cloud.session", current: "connected" });

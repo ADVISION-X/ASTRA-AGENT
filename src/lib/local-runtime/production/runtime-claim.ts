@@ -21,6 +21,7 @@ import {
   terminalProductionTask,
   uploadProductionResult,
 } from "./cloud-client.js";
+import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
 import { productionCatalogHash, resolveProductionPlugin } from "./catalog.js";
 import { hashCanonical, type ProductionHash, type WebsiteAgentTask } from "./contracts.js";
 import type { ProductionExecutionLease } from "./executor.js";
@@ -96,22 +97,16 @@ const heartbeatWhileRunning = async <T>(
   return tracked;
 };
 
-type ClaimFailureDecision = "FINAL_FAILED" | "RECONCILE_ONLY" | "RETRY_FROM_CHECKPOINT";
+type ClaimFailureDecision = "RECONCILE_ONLY" | "RETRY_FROM_CHECKPOINT";
 
-const claimFailureDecision = (
+export const claimFailureDecision = (
   job: ClaimedProductionTask,
   error: unknown,
 ): ClaimFailureDecision => {
   const terminal = serializeTerminalFailure(error);
   if (terminal.mutation_outcome === "dispatched") return "RECONCILE_ONLY";
   if (job.grant.attempt_mode === "reconciliation") return "RECONCILE_ONLY";
-  const terminalCodes = new Set([
-    "USER_CANCELLED",
-    "CLAIMED_PLUGIN_IDENTITY_MISMATCH",
-    "CAPABILITY_MANIFEST_CHANGED_BEFORE_ACCEPT",
-    "PRODUCTION_TASK_REQUEST_HASH_CONFLICT",
-  ]);
-  return terminalCodes.has(terminal.code) ? "FINAL_FAILED" : "RETRY_FROM_CHECKPOINT";
+  return "RETRY_FROM_CHECKPOINT";
 };
 
 const releaseUnacceptedClaim = async (
@@ -122,7 +117,7 @@ const releaseUnacceptedClaim = async (
   causeEventId: string,
 ): Promise<void> => {
   await releaseLeaseWithLog(state, job, spanId,
-    failureCode(error).startsWith("V6_DEADLINE_") ? "DEADLINE_BUDGET_EXHAUSTED" : "CAPABILITY_CHANGED_BEFORE_ACCEPT",
+    failureCode(error).startsWith("V6_DEADLINE_") ? "LEASE_SAFETY_BUDGET_EXHAUSTED" : "CAPABILITY_CHANGED_BEFORE_ACCEPT",
     causeEventId);
   emitRuntimeState({ state, traceId: job.job_id, stateKey: "job.lease", current: "absent" });
 };
@@ -131,7 +126,7 @@ const persistRecoveryPending = async (
   state: RuntimeState,
   job: ClaimedProductionTask,
   error: unknown,
-  decision: Exclude<ClaimFailureDecision, "FINAL_FAILED">,
+  decision: ClaimFailureDecision,
   parentSpanId: string,
 ): Promise<void> => {
   const reason = safeReason(error);
@@ -153,60 +148,9 @@ const persistRecoveryPending = async (
   });
 };
 
-const finalizeFailedClaim = async (
-  state: RuntimeState,
-  job: ClaimedProductionTask,
-  error: unknown,
-  materialDir: string,
-  parentSpanId: string,
-  causeEventId: string,
-): Promise<void> => {
-  const failure = serializeTerminalFailure(error);
-  const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
-    traceId: job.job_id, parentSpanId, boundaryId: job.grant.claim_batch_id,
-    owner: "production-runtime", component: "production-runtime", operation: "job.terminal",
-    typedIdentity: jobIdentity(job),
-  }));
-  let terminalRecord: StoredProductionTask;
-  try {
-    await terminalProductionTask(state.session, state.store, job, {
-      status: "failed", failure, payload_hash: hashCanonical({ job_id: job.job_id, failure }),
-      result_receipt_hashes: [],
-    });
-    state.store.setTerminal(job.job_id, "failed", failure, null);
-    terminalRecord = state.store.readTask(job.job_id)!;
-  } catch (terminalError) {
-    state.store.setRecoveryPending(job.job_id, `TERMINAL_DEFERRED:${safeReason(terminalError)}`);
-    const record = state.store.readTask(job.job_id)!;
-    const terminal = requireRuntimeLogWrite(span.terminal({
-      outcome: "failed", authorityRef: `production-task:${job.job_id}`, authorityHash: hashCanonical(record),
-      failure: runtimeFailureFromError({
-        error: terminalError, code: "JOB_TERMINAL_DEFERRED", responsibleOwner: "production-runtime",
-        recovery: RuntimeRecovery.RETRY, impact: RuntimeFailureImpact.CONSEQUENTIAL, causedByEventId: causeEventId,
-      }),
-    }));
-    emitRuntimeState({
-      state, traceId: job.job_id, stateKey: "job.lifecycle", current: "recovery_pending",
-      authorityRef: `production-task:${job.job_id}`, authorityHash: hashCanonical(record),
-    });
-    throw withRuntimeLogCause(terminalError, terminal.eventId);
-  }
-  requireRuntimeLogWrite(span.terminal({
-    outcome: "success", authorityRef: `production-task:${job.job_id}`,
-    authorityHash: hashCanonical(terminalRecord),
-  }));
-  emitRuntimeState({
-    state, traceId: job.job_id, stateKey: "job.lifecycle", current: "failed",
-    authorityRef: `production-task:${job.job_id}`, authorityHash: hashCanonical(terminalRecord),
-  });
-  emitLeaseAuthority(state, state.store.recordLease(leaseAuthority(job, "absent", null)));
-  await rm(materialDir, { recursive: true, force: true });
-};
-
 const handleClaimFailure = async (input: Readonly<{
   state: RuntimeState;
   job: ClaimedProductionTask;
-  materialDir: string;
   accepted: boolean;
   error: unknown;
   parentSpanId: string;
@@ -217,11 +161,8 @@ const handleClaimFailure = async (input: Readonly<{
     input.state, input.job, input.error, input.parentSpanId, input.causeEventId,
   );
   const decision = claimFailureDecision(input.job, input.error);
-  if (decision !== "FINAL_FAILED") return persistRecoveryPending(
+  return persistRecoveryPending(
     input.state, input.job, input.error, decision, input.parentSpanId,
-  );
-  return finalizeFailedClaim(
-    input.state, input.job, input.error, input.materialDir, input.parentSpanId, input.causeEventId,
   );
 };
 
@@ -246,12 +187,13 @@ const acceptClaim = (
   const task = websiteAgentTaskFromClaim(job);
   assertClaimIdentity(job, task);
   const budget = leaseBudget(job, abort);
+  const browserMutationPresent = state.browserAuthority.hasBrowserMutationForJob(job.job_id);
   const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
     traceId: job.job_id, parentSpanId: jobSpan.spanId, owner: "production-runtime",
     component: "production-store", operation: "job.durable-accept", typedIdentity: jobIdentity(job),
   }));
   const record = runRuntimeSpanSync({
-    span, action: () => state.executor.accept(task), failureCode: "DURABLE_ACCEPT_FAILED",
+    span, action: () => state.executor.accept(task, browserMutationPresent), failureCode: "DURABLE_ACCEPT_FAILED",
     success: (accepted) => ({
       authorityRef: `production-task:${job.job_id}`, authorityHash: hashCanonical(accepted),
     }),
@@ -330,6 +272,40 @@ const executeAndUpload = async (input: Readonly<{
   return { execution, uploaded };
 };
 
+export const reconcileBusinessAdmission = async (
+  state: RuntimeState,
+  record: StoredProductionTask,
+): Promise<"completed" | "pending"> => {
+  const staged = record.staged_result;
+  if (!staged) return record.status === "completed" ? "completed" : "pending";
+  const remote = await readProductionDeviceJobStatus(state.session, record.task.job_id);
+  const admission = remote.business_admission_receipt;
+  if (!admission) {
+    state.store.setRecoveryPending(
+      record.task.job_id,
+      remote.business_consumer_error
+        ? `BUSINESS_ADMISSION_FAILED:${remote.business_consumer_error}`
+        : "BUSINESS_ADMISSION_PENDING",
+    );
+    return "pending";
+  }
+  if (remote.terminal_payload_hash !== hashCanonical(staged)
+    || admission.result_payload_hash !== staged.result_payload_hash) {
+    throw executionFailure("failed", "BUSINESS_ADMISSION_RESULT_HASH_MISMATCH");
+  }
+  state.store.completeTask(record.task.job_id, staged);
+  const completed = state.store.readTask(record.task.job_id)!;
+  emitRuntimeState({
+    state, traceId: record.task.job_id, stateKey: "job.lifecycle", current: "completed",
+    authorityRef: `production-task:${record.task.job_id}`, authorityHash: hashCanonical(completed),
+    reconciledFromAuthority: true,
+  });
+  await rm(path.join(state.dataDir, "plugin-tasks", "production-runtime", record.task.job_id, "materials"), {
+    recursive: true, force: true,
+  });
+  return "completed";
+};
+
 const completeClaim = async (input: Readonly<{
   state: RuntimeState;
   job: ClaimedProductionTask;
@@ -345,28 +321,42 @@ const completeClaim = async (input: Readonly<{
   }));
   const payloadHash = hashCanonical(input.execution.result);
   input.state.store.stageResult(input.job.job_id, input.execution.result);
-  const completed = await runRuntimeSpan({
+  await runRuntimeSpan({
     span, failureCode: "JOB_TERMINAL_FAILED", action: async () => {
       await terminalProductionTask(input.state.session, input.state.store, input.job, {
-        status: "completed", failure: null, payload_hash: payloadHash,
+        status: "completed", payload_hash: payloadHash,
         result_receipt_hashes: input.uploaded.artifact_receipts.map((receipt) => receipt.receipt_hash),
       });
-      input.state.store.setTerminal(input.job.job_id, "completed", null, input.execution.result);
+      input.state.store.setRecoveryPending(input.job.job_id, "BUSINESS_ADMISSION_PENDING");
       return input.state.store.readTask(input.job.job_id)!;
     },
     success: (record) => ({
       authorityRef: `production-task:${input.job.job_id}`, authorityHash: hashCanonical(record),
     }),
   });
-  emitRuntimeState({
-    state: input.state, traceId: input.job.job_id, stateKey: "job.lifecycle", current: "completed",
-    authorityRef: `production-task:${input.job.job_id}`, authorityHash: hashCanonical(completed),
-  });
   emitLeaseAuthority(input.state, input.state.store.recordLease(leaseAuthority(input.job, "absent", null)));
-  await rm(input.materialDir, { recursive: true, force: true });
+  const record = input.state.store.readTask(input.job.job_id)!;
+  const admission = await reconcileBusinessAdmission(input.state, record);
+  const current = input.state.store.readTask(input.job.job_id)!;
+  if (admission === "completed") {
+    requireRuntimeLogWrite(input.jobSpan.terminal({
+      outcome: "success", authorityRef: `production-task:${input.job.job_id}`,
+      authorityHash: hashCanonical(current),
+    }));
+    return;
+  }
+  emitRuntimeState({
+    state: input.state, traceId: input.job.job_id, stateKey: "job.lifecycle", current: "recovery_pending",
+    authorityRef: `production-task:${input.job.job_id}`, authorityHash: hashCanonical(current),
+  });
   requireRuntimeLogWrite(input.jobSpan.terminal({
-    outcome: "success", authorityRef: `production-task:${input.job.job_id}`,
-    authorityHash: hashCanonical(completed),
+    outcome: "failed", authorityRef: `production-task:${input.job.job_id}`,
+    authorityHash: hashCanonical(current), failure: runtimeFailureFromError({
+      error: new Error(current.failure_reason ?? "BUSINESS_ADMISSION_PENDING"),
+      code: current.failure_reason?.split(":")[0] ?? "BUSINESS_ADMISSION_PENDING",
+      responsibleOwner: "website", recovery: RuntimeRecovery.RETRY,
+      impact: RuntimeFailureImpact.BLOCKING,
+    }),
   }));
 };
 
@@ -394,7 +384,7 @@ export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTa
       jobSpan, normalized, classifyFailure(normalized), runtimeLogCauseEventId(normalized), "JOB_EXECUTION_FAILED",
     );
     await handleClaimFailure({
-      state, job, materialDir, accepted, error: normalized, parentSpanId: jobSpan.spanId,
+      state, job, accepted, error: normalized, parentSpanId: jobSpan.spanId,
       causeEventId: failureEvent.eventId,
     });
   }

@@ -8,9 +8,10 @@ import {
   WebsiteAgentTaskSchema, hashCanonical,
 } from "../../src/lib/local-runtime/production/contracts.js";
 import {
-  parseJsonEnvelope, websiteAgentTaskFromClaim,
+  LeaseRenewReceiptSchema, parseJsonEnvelope, websiteAgentTaskFromClaim,
 } from "../../src/lib/local-runtime/production/transport-protocol.js";
-import { typedExecutionFailure } from "../../src/lib/typed-failure.js";
+import { claimFailureDecision } from "../../src/lib/local-runtime/production/runtime-claim.js";
+import { executionFailure, typedExecutionFailure } from "../../src/lib/typed-failure.js";
 import { assertProductionTaskRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../src/mediator/agent-production-route.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
@@ -76,9 +77,53 @@ assert.throws(() => assertProductionTaskRoutePolicy(task({
 assert.throws(() => resolveProductionPlugin("bazi_basic_chart" as never, "produce" as never),
   /PLUGIN_ROUTE_UNSUPPORTED/u);
 
+const leaseRenewReceipt = {
+  schema_version: "xuanxue-ai-lease-renew-receipt.v6",
+  job_id: "job:control-epoch",
+  server_now: "2026-08-28T18:00:00.000Z",
+  lease_expires_at: "2026-08-28T18:01:30.000Z",
+  renew_after_ms: 20_000,
+  control_intent: {
+    schema_version: "xuanxue-ai-control-intent.v6",
+    job_id: "job:control-epoch",
+    control_epoch: 0,
+    intent: "none",
+    reason_code: null,
+  },
+} as const;
+assert.equal(LeaseRenewReceiptSchema.parse(leaseRenewReceipt).control_intent.control_epoch, 0);
+assert.throws(() => LeaseRenewReceiptSchema.parse({
+  ...leaseRenewReceipt,
+  control_intent: { ...leaseRenewReceipt.control_intent, intent: "pause_requested" },
+}), /AI_V6_CONTROL_INTENT_INITIAL_EPOCH_INVALID/u);
+
 const claimedTask = claimTask(productionTask);
 assert.deepEqual(websiteAgentTaskFromClaim(claimedTask), productionTask);
 assert.throws(() => authorizeWebsiteAgentTask(claimedTask), /unrecognized_keys/u);
+assert.equal(claimFailureDecision(
+  claimedTask, executionFailure("recovery_pending", "TRANSIENT_PROVIDER_FAILURE"),
+), "RETRY_FROM_CHECKPOINT");
+assert.equal(claimFailureDecision(
+  claimedTask,
+  executionFailure("recovery_pending", "BROWSER_RECEIPT_PENDING", { mutationOutcome: "dispatched" }),
+), "RECONCILE_ONLY");
+assert.equal(claimFailureDecision(
+  claimedTask, executionFailure("failed", "CLAIMED_PLUGIN_IDENTITY_MISMATCH"),
+), "RETRY_FROM_CHECKPOINT");
+for (const [index, plugin] of agentPluginCapabilityManifest.plugins.entries()) {
+  const route = plugin.accepts[0]!;
+  const pluginTask = claimTask(task({
+    jobId: `job:recoverable-failure:${index}`, productId: route.product_id, actionId: route.action_id,
+  }));
+  assert.equal(claimFailureDecision(
+    pluginTask, executionFailure("failed", `PLUGIN_ATTEMPT_FAILED:${plugin.plugin_id}`),
+  ), "RETRY_FROM_CHECKPOINT", `${plugin.plugin_id} must recover the original website task`);
+  assert.equal(claimFailureDecision(
+    pluginTask, executionFailure("recovery_pending", `PLUGIN_MUTATION_UNCERTAIN:${plugin.plugin_id}`, {
+      mutationOutcome: "dispatched",
+    }),
+  ), "RECONCILE_ONLY", `${plugin.plugin_id} must reconcile an already-dispatched mutation`);
+}
 
 const runtimeSource = await readFile(new URL("../../src/lib/local-runtime/production/runtime-claim.ts", import.meta.url), "utf8");
 const transportSource = await readFile(new URL("../../src/lib/local-runtime/production/transport-protocol.ts", import.meta.url), "utf8");
@@ -123,10 +168,10 @@ assert.deepEqual([turnCalls, completionCalls], [1, 1]);
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    passed: true, findings: [], lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V7", evidenceMode,
+    passed: true, findings: [], lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V8", evidenceMode,
     clauses: ["forbidden:0", "forbidden:10", "forbidden:11", "forbidden:12", "forbidden:17",
       "forbidden:18", "forbidden:19", "forbidden:2", "forbidden:21", "forbidden:22",
-      "forbidden:25", "forbidden:3", "forbidden:8", "forbidden:9"],
+      "forbidden:25", "forbidden:26", "forbidden:27", "forbidden:3", "forbidden:8", "forbidden:9"],
     locator: `acceptance:agent-production-runtime:${evidenceMode}`,
     observedValue: "the canonical agent runtime command completed strict 39-route input/result rejection, bounded browser-lane FIFO/DISPATCHED no-replay mutants, typed failure propagation, durable acceptance, frozen identity, outbox idempotency, continuation lane CAS, task-owned Target cleanup, and blocked-shell isolation",
   });

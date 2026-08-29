@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
 
-import { executionFailure, type SerializedExecutionFailure } from "../../typed-failure.js";
+import { executionFailure } from "../../typed-failure.js";
 
 const WEBSITE_AGENT_PROTOCOL_VERSION = "xuanxue-ai-production-v6" as const;
 export const TASK_CONTRACT_ID = "website-agent-task" as const;
@@ -12,8 +12,8 @@ export const RESULT_CONTRACT_VERSION = 1 as const;
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u)
   .transform((value): `sha256:${string}` => value as `sha256:${string}`);
 
-const TerminalStatusSchema = z.enum(["completed", "failed"]);
-const SerializedExecutionFailureSchema = z.object({
+const TerminalStatusSchema = z.literal("completed");
+export const SerializedExecutionFailureSchema = z.object({
   code: z.string().min(1).max(240),
   mutation_outcome: z.enum(["no", "dispatched", "confirmed"]),
   evidence_ref: z.string().min(1).max(1_000).nullable(),
@@ -29,7 +29,7 @@ const TerminalReceiptSchema = z.object({
   job_id: z.string().min(1).max(240),
   terminal_status: TerminalStatusSchema,
   payload_hash: hashSchema,
-  failure: SerializedExecutionFailureSchema.nullable(),
+  failure: z.null(),
   first_terminal: z.boolean(),
   device_id: z.string().min(1).max(240),
   device_epoch: z.number().int().positive(),
@@ -37,9 +37,8 @@ const TerminalReceiptSchema = z.object({
   worker_session_epoch: z.number().int().positive(),
   runtime_attestation_receipt_hash: hashSchema,
 }).strict().superRefine((receipt, context) => {
-  const failed = receipt.terminal_status === "failed";
-  if ((failed && receipt.failure === null) || (!failed && receipt.failure !== null)) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "V6_TERMINAL_RECEIPT_FAILURE_INVALID" });
+  if (receipt.failure !== null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "V6_COMPLETION_RECEIPT_FAILURE_FORBIDDEN" });
   }
 });
 
@@ -48,7 +47,7 @@ type TerminalReceiptExpectation = Readonly<{
   job_id: string;
   terminal_status: TerminalReceipt["terminal_status"];
   payload_hash: ProductionHash;
-  failure: SerializedExecutionFailure | null;
+  failure: null;
   worker_session_id: string;
   worker_session_epoch: number;
 }>;
@@ -58,13 +57,12 @@ const TerminalReceiptExpectationSourceSchema = z.object({
   job_id: z.string().min(1).max(240),
   terminal_status: TerminalStatusSchema,
   payload_hash: hashSchema,
-  failure: SerializedExecutionFailureSchema.nullable(),
+  failure: z.null(),
   worker_session_id: z.string().min(1).max(240),
   worker_session_epoch: z.number().int().positive(),
 }).passthrough().superRefine((request, context) => {
-  const failed = request.terminal_status === "failed";
-  if ((failed && request.failure === null) || (!failed && request.failure !== null)) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "V6_TERMINAL_REQUEST_FAILURE_INVALID" });
+  if (request.failure !== null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "V6_COMPLETION_REQUEST_FAILURE_FORBIDDEN" });
   }
 });
 

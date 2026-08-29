@@ -24,6 +24,10 @@ export type ExtensionCommandPermit = Readonly<{
   documentRef: string;
   pluginStepId: string;
   childCapabilityId: string;
+  flowVersion: string;
+  stepIndex: number;
+  inputHash: BrowserHash;
+  replayPolicy: "observation-only" | "target-local-per-generation" | "provider-effect-once";
   actionOrdinal: number;
   capabilityId: BrowserCapabilityId;
   commandId: string;
@@ -62,6 +66,7 @@ const hasRequiredPermitReferences = (permit: ExtensionCommandPermit): boolean =>
   permit.documentRef,
   permit.pluginStepId,
   permit.childCapabilityId,
+  permit.flowVersion,
   permit.capabilityId,
   permit.commandId,
   permit.replyChannelToken,
@@ -76,6 +81,8 @@ const hasRequiredPermitReferences = (permit: ExtensionCommandPermit): boolean =>
 const hasValidPermitMetadata = (permit: ExtensionCommandPermit): boolean => permit.authorityEpoch >= 1
   && Number.isInteger(permit.sequence)
   && permit.sequence >= 1
+  && Number.isInteger(permit.stepIndex)
+  && permit.stepIndex >= 0
   && Number.isInteger(permit.actionOrdinal)
   && permit.actionOrdinal >= 1
   && Number.isInteger(permit.leaseVersion)
@@ -89,6 +96,7 @@ const hasValidPermitMetadata = (permit: ExtensionCommandPermit): boolean => perm
   && isHash(permit.writerFenceHash)
   && isHash(permit.candidateHash)
   && isHash(permit.contractManifestHash)
+  && isHash(permit.inputHash)
   && isHash(permit.commandFrameMac);
 
 const hasValidPermitShape = (permit: ExtensionCommandPermit): boolean => hasRequiredPermitReferences(permit)

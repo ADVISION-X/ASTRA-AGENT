@@ -37,9 +37,15 @@ export type WorkbenchBrowserAuthority = Readonly<{
     browserAuthorityState: "present" | "absent";
     browserTargetState: "claimed" | "absent";
   }>;
-  readBrowserLaneState(): "idle" | "busy" | "unsettled";
+  readBrowserLaneState(): "idle" | "busy";
   readBrowserLaneWaiterCount(): number;
   hasUnresolvedBrowserMutation(): boolean;
+  hasBrowserMutationForJob(jobId: string): boolean;
+  canReconstructGptTurnStep(input: Readonly<{
+    jobId: string;
+    ownerPluginId: string;
+    pluginStepId: string;
+  }>): boolean;
   readBrowserReconciliationScope(
     input: Readonly<{
       jobId: string;
@@ -123,6 +129,8 @@ export const createWorkbenchBrowserAuthority = async (
     readBrowserLaneWaiterCount: () => supervisor.readBrowserLaneWaiterCount(),
     hasUnresolvedBrowserMutation: () =>
       supervisor.hasUnresolvedBrowserMutation(),
+    hasBrowserMutationForJob: (jobId) => supervisor.hasBrowserMutationForJob(jobId),
+    canReconstructGptTurnStep: (input) => supervisor.canReconstructGptTurnStep(input),
     readBrowserReconciliationScope: (input) =>
       supervisor.readBrowserReconciliationScope(input),
     acquireJobBoundTargetLease: (binding, ownerId, wait) =>

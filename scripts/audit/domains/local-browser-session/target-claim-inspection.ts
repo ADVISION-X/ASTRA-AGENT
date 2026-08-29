@@ -13,7 +13,7 @@ const inspectJobBoundClaimOrder = (actor: ReturnType<typeof requireSource>, find
   const readyText = actorClass?.getMethod("acceptReady")?.getText() ?? "";
   const acquisitionText = actorClass?.getMethod("acceptTargetAcquire")?.getText() ?? "";
   const decryptIndex = acquisitionText.indexOf("await decrypt(");
-  const claimIndex = acquisitionText.indexOf("await this.targetAuthority.acquireJobBoundChatGptTarget()");
+  const claimIndex = acquisitionText.indexOf("await this.targetAuthority.acquireJobBoundChatGptTarget(");
   if (readyText.includes("this.commandReady = true")
     && !readyText.includes("acquireJobBoundChatGptTarget")
     && acquisitionText.includes("!this.commandReady")
@@ -66,10 +66,13 @@ const inspectDispatchedMutationReleaseGuard = (
   const closeAt = method.indexOf("close: async");
   const guardAt = method.indexOf("state.pendingMutationCommandIds.length > 0", closeAt);
   const physicalCloseAt = method.indexOf('command("browser.close-target.v1"', closeAt);
-  if (closeAt >= 0 && guardAt > closeAt && physicalCloseAt > guardAt) return;
+  const parkAt = method.indexOf("park: async");
+  const physicalParkAt = method.indexOf('command("browser.park-target.v1"', parkAt);
+  if (parkAt >= 0 && physicalParkAt > parkAt
+    && closeAt >= 0 && guardAt > closeAt && physicalCloseAt > guardAt) return;
   findings.push(createLocalFinding({
     checkId: "browser-authority/dispatched-mutation-target-release", lawId, filePath: targetLeaseManagerPath,
-    message: "The Browser Owner must reject physical Target close while any DISPATCHED mutation remains unresolved.",
+    message: "The Browser Owner must park a recovery Target while rejecting physical close for unresolved DISPATCHED mutations.",
   }));
 };
 
@@ -98,6 +101,7 @@ const inspectJobBoundClaimPolicy = (
   requireIdentifiers(targetAuthority, [
     "acquireJobBoundChatGptTarget", "create", "remove", "GPT_WEB_START_URL",
     "requireGptWebPolicyForUrl", "waitForCreatedTarget", "navigationPublication",
+    "parkActiveTarget", "parkedLoaderIds",
   ], findings, lawId, "The fixed extension must create, validate and own exactly one new task Target for each GPT turn.");
   requireIdentifiers(supervisor, [
     "requireGptWebPolicyForUrl", "establishClaimBoundWorkspace", "pendingJobBoundTargetAcquisition",

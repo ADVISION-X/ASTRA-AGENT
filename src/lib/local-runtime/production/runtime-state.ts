@@ -58,7 +58,6 @@ export const diagnoseProductionRuntime = (
 
 export const refreshLedgerReconciled = (state: RuntimeState): void => {
   state.ledgerReconciled = state.reconciliationBaselineValid
-    && state.browserAuthority.readBrowserLaneState() !== "unsettled"
     && state.store.isLedgerConsistent(new Set(state.active.keys()));
 };
 
@@ -112,11 +111,9 @@ export const leaseBudget = (
   abort: AbortController,
 ): ProductionExecutionLease => {
   const serverNow = Date.parse(job.grant.server_now);
-  const remaining = Math.min(
-    Date.parse(job.grant.lease_expires_at), Date.parse(job.grant.delivery_deadline_at),
-  ) - serverNow;
+  const remaining = Date.parse(job.grant.lease_expires_at) - serverNow;
   if (!Number.isFinite(remaining) || remaining < 30_000) {
-    throw executionFailure("recovery_pending", "V6_DEADLINE_BUDGET_EXHAUSTED");
+    throw executionFailure("recovery_pending", "V6_LEASE_BUDGET_EXHAUSTED");
   }
   return {
     attempt_mode: job.grant.attempt_mode,

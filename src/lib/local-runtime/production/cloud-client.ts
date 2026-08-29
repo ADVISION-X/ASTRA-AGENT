@@ -170,7 +170,7 @@ export async function checkpointProductionTask(
   } as const;
   const pathname = `/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/checkpoints`;
   store.enqueue({ idempotency_key: requestId, kind: "checkpoint", path: pathname, method: "POST", headers: fenceHeaders(job), body: JSON.stringify(body) });
-  const response = await store.deliverOutbox(requestId, async () => {
+  const response = await store.deliverOutbox(requestId, session.buildHash, async () => {
     const received = await session.request(pathname, {
       method: "POST", headers: fenceHeaders(job), body: JSON.stringify(body),
     }) as Record<string, unknown>;
@@ -213,7 +213,7 @@ export async function renewProductionLease(
 export async function releaseProductionLease(
   session: ProductionWorkerSession,
   job: ClaimedProductionTask,
-  reason: "CAPABILITY_CHANGED_BEFORE_ACCEPT" | "DEADLINE_BUDGET_EXHAUSTED" | "LOCAL_CAPACITY_CHANGED",
+  reason: "CAPABILITY_CHANGED_BEFORE_ACCEPT" | "LEASE_SAFETY_BUDGET_EXHAUSTED" | "LOCAL_CAPACITY_CHANGED",
 ): Promise<void> {
   const requestId = `aiprelease_${randomUUID()}`;
   const payload = { reason_code: reason, job_id: job.job_id, fence_hash: job.grant.execution_fence.fence_hash };
@@ -259,7 +259,7 @@ async function uploadJsonObject(
     "x-ai-content-bytes": String(bytes.byteLength),
   };
   store.enqueue({ idempotency_key: requestId, kind: "artifact", path: pathname, method: "PUT", headers: durableHeaders, body: bytes });
-  return store.deliverOutbox(requestId, async () => {
+  return store.deliverOutbox(requestId, session.buildHash, async () => {
     const response = await productionCloudFetch(`${session.device.server_base_url.replace(/\/+$/u, "")}${pathname}`, {
       method: "PUT",
       headers: await session.authorizationHeaders(durableHeaders),
@@ -295,7 +295,7 @@ async function uploadGeneratedImage(
     "x-ai-content-bytes": String(image.bytes),
   };
   store.enqueue({ idempotency_key: requestId, kind: "artifact", path: pathname, method: "PUT", headers: durableHeaders, body: bytes });
-  return store.deliverOutbox(requestId, async () => {
+  return store.deliverOutbox(requestId, session.buildHash, async () => {
     const response = await productionCloudFetch(`${session.device.server_base_url.replace(/\/+$/u, "")}${pathname}`, {
       method: "PUT",
       headers: await session.authorizationHeaders(durableHeaders),
@@ -421,8 +421,7 @@ export async function terminalProductionTask(
   store: ProductionRuntimeStore,
   job: ClaimedProductionTask,
   input: Readonly<{
-    status: "completed" | "failed";
-    failure: SerializedExecutionFailure | null;
+    status: "completed";
     payload_hash: ProductionHash;
     result_receipt_hashes: readonly ProductionHash[];
   }>,
@@ -432,7 +431,7 @@ export async function terminalProductionTask(
     attempt_id: job.grant.attempt_id,
     lease_version: job.grant.lease_version,
     terminal_status: input.status,
-    failure: input.failure,
+    failure: null,
     payload_hash: input.payload_hash,
     result_object_receipts: input.result_receipt_hashes,
   }).slice(7, 47)}`;
@@ -449,13 +448,13 @@ export async function terminalProductionTask(
     lease_version: job.grant.lease_version,
     fence_hash: job.grant.execution_fence.fence_hash,
     terminal_status: input.status,
-    failure: input.failure,
+    failure: null,
     payload_hash: input.payload_hash,
     result_object_receipts: input.result_receipt_hashes,
   });
   const expected = parseTerminalReceiptExpectation(body);
   store.enqueue({ idempotency_key: requestId, kind: "terminal", path: pathname, method: "POST", headers: fenceHeaders(job), body });
-  const response = await store.deliverOutbox(requestId, async () => session.request(pathname, {
+  const response = await store.deliverOutbox(requestId, session.buildHash, async () => session.request(pathname, {
     method: "POST",
     headers: fenceHeaders(job),
     body,

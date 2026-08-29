@@ -4,6 +4,24 @@ import type { BrowserFileArtifactGrantV1 } from "./browser-file-artifact-grant.j
 import type { BrowserCapabilityId } from "../protocol/generated/browser-protocol.generated.js";
 import type { BrowserOutcomeResolutionReceipt } from "./browser-outcome-resolver.js";
 
+export type BrowserAtomicStepIdentity = Readonly<{
+  pluginStepId: string;
+  childCapabilityId: string;
+  flowVersion: string;
+  stepIndex: number;
+  inputHash: `sha256:${string}`;
+  actionOrdinal: number;
+  replayPolicy: "observation-only" | "target-local-per-generation" | "provider-effect-once";
+}>;
+
+export type BrowserAtomicStepRecovery = Readonly<{
+  state: "dispatched" | "confirmed" | "rejected";
+  authorityRef: string;
+  authorityHash: `sha256:${string}`;
+  targetRef: string;
+  documentRef: string;
+}>;
+
 export type BrowserTargetLease = Readonly<{
   leaseRef: string;
   authorityRef: string;
@@ -17,9 +35,11 @@ export type BrowserTargetLease = Readonly<{
   target: BrowserTargetRef;
   document: BrowserDocumentRef;
   runAtomicStep<T>(
-    identity: Readonly<{ pluginStepId: string; childCapabilityId: string }>,
+    identity: BrowserAtomicStepIdentity,
     action: () => Promise<T>,
   ): Promise<T>;
+  readAtomicStepRecovery(identity: BrowserAtomicStepIdentity): BrowserAtomicStepRecovery | null;
+  requiresTurnRecovery(): boolean;
   navigate(input: Readonly<{ url: string; title: string; deadlineMs?: number }>): Promise<BrowserDocumentRef>;
   executeDomIntent(input: BrowserDomIntent): Promise<unknown>;
   observeCapability(input: Readonly<{ capabilityId: BrowserCapabilityId; timeoutMs?: number }>): Promise<unknown>;
@@ -48,6 +68,7 @@ export type BrowserTargetLease = Readonly<{
     maxBytes: number;
   }>): Promise<BrowserFileArtifactGrantV1>;
   wait(input: Readonly<{ durationMs: number }>): Promise<void>;
+  park(input: Readonly<{ reason: string }>): Promise<void>;
   close(input: Readonly<{ reason: string }>): Promise<void>;
   resolvePendingMutation(
     input: Omit<BrowserOutcomeResolutionReceipt, "commandId">,

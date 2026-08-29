@@ -27,15 +27,13 @@ export const HASH_C = `sha256:${"c".repeat(64)}` as ProductionHash;
 
 export const terminalReceipt = (input: Readonly<{
   jobId: string;
-  status: "completed" | "failed";
   payloadHash: ProductionHash;
-  failure: Readonly<Record<string, unknown>> | null;
 }>) => ({
   schema_version: "xuanxue-ai-terminal-receipt.v6",
   job_id: input.jobId,
-  terminal_status: input.status,
+  terminal_status: "completed" as const,
   payload_hash: input.payloadHash,
-  failure: input.failure,
+  failure: null,
   first_terminal: true,
   device_id: "device:receipt",
   device_epoch: 1,
@@ -99,7 +97,7 @@ const executionGrant = (
     result_contract_id: RESULT_CONTRACT_ID, result_contract_version: RESULT_CONTRACT_VERSION,
     capability_manifest_hash: productionCatalogHash, expected_catalog_hash: productionCatalogHash,
     expected_plugin_id: plugin.pluginId, expected_plugin_version: plugin.pluginVersion, attempt_mode: "execution",
-    attempt_number: 1, max_attempts: 5, delivery_deadline_at: "2030-01-02T00:00:00.000Z", max_provider_turns: 8,
+    attempt_number: 1, max_provider_turns: 8,
   } as const;
   return {
     ...route, attempt_id: `attempt:${base.job_id}`, device_id: "device:1", device_epoch: 1,

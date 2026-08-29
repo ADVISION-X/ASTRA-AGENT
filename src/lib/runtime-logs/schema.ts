@@ -34,7 +34,7 @@ const STATE_VALUES: Readonly<Record<RuntimeStateKey, ReadonlySet<RuntimeStateVal
   "gpt.execution": new Set(["idle", "running", "failed", "review_required"]),
   "browser.execution": new Set(["idle", "busy", "failed", "review_required"]),
   "browser.mutation": new Set(["PREPARED", "DISPATCHED", "CONFIRMED", "REJECTED", "FAILED"]),
-  "outbox.delivery": new Set(["pending", "delivered", "failed"]),
+  "outbox.delivery": new Set(["pending", "delivered", "failed", "parked"]),
 };
 
 const record = (value: unknown): value is Readonly<Record<string, unknown>> =>

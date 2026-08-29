@@ -24,6 +24,10 @@ export type BrowserCommandPermit = Readonly<{
   documentRef: string;
   pluginStepId: string;
   childCapabilityId: string;
+  flowVersion: string;
+  stepIndex: number;
+  inputHash: BrowserHash;
+  replayPolicy: "observation-only" | "target-local-per-generation" | "provider-effect-once";
   actionOrdinal: number;
   capabilityId: BrowserCapabilityId;
   commandId: string;
@@ -59,6 +63,10 @@ export const browserCommandPermitMacPayload = (permit: BrowserUnsignedCommandPer
   permit.documentRef,
   permit.pluginStepId,
   permit.childCapabilityId,
+  permit.flowVersion,
+  permit.stepIndex,
+  permit.inputHash,
+  permit.replayPolicy,
   permit.actionOrdinal,
   permit.capabilityId,
   permit.commandId,
@@ -76,6 +84,7 @@ const hasCompletePermitIdentity = (permit: BrowserCommandPermit): boolean => [
   permit.documentRef,
   permit.pluginStepId,
   permit.childCapabilityId,
+  permit.flowVersion,
   permit.commandId,
   permit.replyChannelToken,
   permit.workspaceRef,
@@ -91,6 +100,8 @@ const hasValidPermitNumbers = (permit: BrowserCommandPermit): boolean =>
   && permit.leaseVersion >= 1
   && permit.authorityEpoch >= 1
   && permit.sequence >= 1
+  && Number.isInteger(permit.stepIndex)
+  && permit.stepIndex >= 0
   && Number.isInteger(permit.actionOrdinal)
   && permit.actionOrdinal >= 1
   && Number.isInteger(permit.commandTtlMs)
@@ -105,6 +116,7 @@ const hasValidPermitHashes = (permit: BrowserCommandPermit): boolean => {
     permit.writerFenceHash,
     permit.candidateHash,
     permit.contractManifestHash,
+    permit.inputHash,
     permit.commandFrameMac,
   ];
   return hashes.every((value) => /^sha256:[a-f0-9]{64}$/u.test(value));

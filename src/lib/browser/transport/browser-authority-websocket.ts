@@ -185,7 +185,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     });
   }
 
-  public requestPreauthorizedTargetAcquisition(): void {
+  public requestPreauthorizedTargetAcquisition(targetRef?: string): void {
     this.assertLive();
     const active = this.active;
     if (!active) throw new Error("BROWSER_LIVENESS_EXPIRED");
@@ -195,7 +195,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       "TARGET_ACQUIRE",
       sequence,
       new Date(Date.now() + COMMAND_DEADLINE_MS).toISOString(),
-      {},
+      targetRef ? { targetRef } : {},
     );
     this.active = { ...active, nextServerSequence: sequence + 1 };
     try {

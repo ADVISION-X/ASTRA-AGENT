@@ -14,10 +14,11 @@ import {
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 
 const HASH = `sha256:${"a".repeat(64)}` as const;
-const binding = (jobId: string): BrowserExecutionBinding => ({
+const binding = (jobId: string, pluginStepId = "fixture-step"): BrowserExecutionBinding => ({
   kind: "production",
   ownerPluginId: "plugin",
   jobId,
+  pluginStepId,
   attemptId: `attempt:${jobId}`,
   deviceId: "device:1",
   leaseVersion: 1,
@@ -35,7 +36,10 @@ const binding = (jobId: string): BrowserExecutionBinding => ({
 const fixtureLease = (
   entry: BrowserExecutionBinding,
   close: BrowserTargetLease["close"],
-): BrowserTargetLease => ({
+): BrowserTargetLease => {
+  const targetRef = entry.jobId === "job:historic" ? "target:historic" : `target:${entry.jobId}`;
+  const documentRef = entry.jobId === "job:historic" ? "document:historic" : `document:${entry.jobId}`;
+  return ({
   leaseRef: `lease:${entry.jobId}`,
   authorityRef: "authority:fixture",
   authorityEpoch: 1,
@@ -45,9 +49,11 @@ const fixtureLease = (
   agentExecutionRefHash: HASH,
   writerLeaseEpoch: 1,
   writerFenceHash: HASH,
-  target: { targetRef: `target:${entry.jobId}`, authorityEpoch: 1, executionBindingHash: HASH },
-  document: { documentRef: `document:${entry.jobId}`, targetRef: `target:${entry.jobId}`, navigationEpoch: 1 },
+  target: { targetRef, authorityEpoch: 1, executionBindingHash: HASH },
+  document: { documentRef, targetRef, navigationEpoch: 1 },
   async runAtomicStep(_identity, action) { return action(); },
+  readAtomicStepRecovery: () => null,
+  requiresTurnRecovery: () => false,
   async navigate() { throw new Error("FIXTURE_NAVIGATION_FORBIDDEN"); },
   async executeDomIntent() { throw new Error("FIXTURE_DOM_INTENT_FORBIDDEN"); },
   async observeCapability() { throw new Error("FIXTURE_CAPABILITY_FORBIDDEN"); },
@@ -57,11 +63,13 @@ const fixtureLease = (
   async registerFileArtifact() { throw new Error("FIXTURE_ARTIFACT_FORBIDDEN"); },
   async issueFileArtifactGrant() { throw new Error("FIXTURE_ARTIFACT_GRANT_FORBIDDEN"); },
   async wait() { throw new Error("FIXTURE_WAIT_FORBIDDEN"); },
+  async park() {},
   close,
   async resolvePendingMutation() { throw new Error("FIXTURE_MUTATION_RESOLUTION_FORBIDDEN"); },
   pendingMutationCount: () => 0,
   assertNoPendingMutations() {},
-});
+  });
+};
 
 const temporary = await mkdtemp(join(tmpdir(), "browser-lane-fifo-"));
 let supervisor: BrowserInfrastructureSupervisor | null = null;
@@ -82,7 +90,10 @@ try {
     leaseVersion: 1,
     executionFenceHash: HASH,
     pluginStepId: "historic-step",
-    childCapabilityId: "open_gpt_model_selector",
+    childCapabilityId: "open_gpt_model_selector_v2",
+    flowVersion: "gpt-turn-flow.v3",
+    stepIndex: 3,
+    effectScope: "target_local",
     actionOrdinal: 1,
     targetRef: "target:historic",
     documentRef: "document:historic",
@@ -133,6 +144,7 @@ try {
   const acquisitions: string[] = [];
   const broker = {
     currentOperatorTargetStatus: () => "claimed" as const,
+    revokeOperatorTargetClaim: () => {},
     acquireOperatorClaimedTargetLease: async (
       entry: BrowserExecutionBinding,
     ): Promise<BrowserTargetLease> => {
@@ -151,6 +163,14 @@ try {
   assert.equal(Reflect.set(supervisor, "broker", broker), true);
 
   const openSignal = new AbortController();
+  const recovered = await supervisor.acquireJobBoundTargetLease(
+    binding("job:historic", "historic-step"),
+    "owner:historic",
+    { signal: openSignal.signal, remainingMs: () => 60_000 },
+  );
+  assert.deepEqual([recovered.target.targetRef, recovered.document.documentRef],
+    ["target:historic", "document:historic"]);
+  await recovered.park({ reason: "recovery-scope-proven" });
   const first = await supervisor.acquireJobBoundTargetLease(
     binding("job:1"),
     "owner:1",
@@ -168,11 +188,11 @@ try {
     });
   await Promise.resolve();
   assert.equal(secondResolved, false);
-  assert.deepEqual(acquisitions, ["job:1"]);
+  assert.deepEqual(acquisitions, ["job:historic", "job:1"]);
   assert.equal(supervisor.readBrowserLaneWaiterCount(), 1);
   await first.close({ reason: "settled" });
   const second = await secondPromise;
-  assert.deepEqual(acquisitions, ["job:1", "job:2"]);
+  assert.deepEqual(acquisitions, ["job:historic", "job:1", "job:2"]);
   await second.close({ reason: "settled" });
   assert.equal(supervisor.readBrowserLaneState(), "idle");
 
@@ -245,21 +265,16 @@ try {
     unsettled.close({ reason: "unsettled" }),
     /BROWSER_TARGET_LIFECYCLE_UNSETTLED/u,
   );
-  assert.equal(supervisor.readBrowserLaneState(), "unsettled");
-  await assert.rejects(
-    supervisor.acquireJobBoundTargetLease(
-      binding("job:blocked"),
-      "owner:blocked",
-      { signal: openSignal.signal, remainingMs: () => 60_000 },
-    ),
-    (error) => {
-      const failure = typedExecutionFailure(error);
-      assert.equal(failure?.status, "review_required");
-      assert.equal(failure?.code, "BROWSER_MUTATION_UNSETTLED");
-      assert.equal(failure?.mutationOutcome, "dispatched");
-      return true;
-    },
+  assert.equal(supervisor.readBrowserLaneState(), "idle");
+  const afterLifecycleFault = await supervisor.acquireJobBoundTargetLease(
+    binding("job:after-lifecycle-fault"),
+    "owner:after-lifecycle-fault",
+    { signal: openSignal.signal, remainingMs: () => 60_000 },
   );
+  await afterLifecycleFault.close({ reason: "settled" });
+  assert.equal(supervisor.readBrowserLaneState(), "idle",
+    "one job's lifecycle fault must be reported without permanently freezing the global FIFO lane");
+  assert.equal(supervisor.readBrowserLaneWaiterCount(), 0);
 } finally {
   await supervisor?.stop();
   await rm(temporary, { recursive: true, force: true });

@@ -37,7 +37,7 @@ type RuntimeStateDefinition =
   | Readonly<{ stateKey: "gpt.execution"; previous: "idle" | "running" | "failed" | "review_required" | null; current: "idle" | "running" | "failed" | "review_required" }>
   | Readonly<{ stateKey: "browser.execution"; previous: "idle" | "busy" | "failed" | "review_required" | null; current: "idle" | "busy" | "failed" | "review_required" }>
   | Readonly<{ stateKey: "browser.mutation"; previous: "PREPARED" | "DISPATCHED" | "CONFIRMED" | "REJECTED" | "FAILED" | null; current: "PREPARED" | "DISPATCHED" | "CONFIRMED" | "REJECTED" | "FAILED" }>
-  | Readonly<{ stateKey: "outbox.delivery"; previous: "pending" | "delivered" | "failed" | null; current: "pending" | "delivered" | "failed" }>;
+  | Readonly<{ stateKey: "outbox.delivery"; previous: "pending" | "delivered" | "failed" | "parked" | null; current: "pending" | "delivered" | "failed" | "parked" }>;
 
 export type RuntimeStateKey = RuntimeStateDefinition["stateKey"];
 export type RuntimeStateValue = RuntimeStateDefinition["current"];

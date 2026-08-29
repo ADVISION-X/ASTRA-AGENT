@@ -7,7 +7,7 @@ import { recordStaticCheck } from "../../shared/static-inspection-contract.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 import { inspectRuntimeHardening } from "./runtime-hardening-inspection.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V7";
+const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V8";
 const PLUGIN_ROOT = "src/plugins";
 const CATALOG_PATH = "src/lib/local-runtime/production/catalog.ts";
 const CONTRACT_PATH = "src/lib/local-runtime/production/contracts.ts";
@@ -288,8 +288,11 @@ const inspectRetirementAndDurability = (context: InspectorContext, findings: Ins
   const storeText = storePaths.map((path) => read(context, path)).join("\n");
   for (const required of [
     "journal_mode = WAL", "identity_json", "plugin_id", "plugin_version", "request_hash",
-    "PRODUCTION_OUTBOX_IDEMPOTENCY_CONFLICT",
-    "PLUGIN_IDENTITY_CHANGED_BEFORE_RECOVERY", "review_required", "lane_owner_job_id",
+    "PRODUCTION_OUTBOX_IDEMPOTENCY_CONFLICT", "failureCode(error, \"OUTBOX_DELIVERY_FAILED\")",
+    "pendingBusinessAdmissions", "completeTask", "HISTORICAL_FAILED_COMPLETION_RETIRED",
+    "EXECUTION_SLICE_RECONSTRUCTED", "agent-execution-slice-reconstruction.v1",
+    "old_identity_hash", "new_identity_hash", "PLUGIN_EXECUTION_SLICE_RECONSTRUCTION_UNSAFE",
+    "review_required", "lane_owner_job_id",
     "gpt-turn-checkpoint.v2", "writeGptTurnCheckpoint", "readGptTurnCheckpoint",
     "on conflict(job_id,step_id) do update set",
   ]) {
@@ -308,6 +311,8 @@ const inspectRetirementAndDurability = (context: InspectorContext, findings: Ins
     "ClaimedProductionTaskSchema", "ExecutionGrantSchema", "ExecutionFenceSchema",
     "WebsiteAgentTaskSchema.safeParse", "V6_CLAIM_TASK_GRANT_MISMATCH",
     "WebsiteAgentTaskSchema.parse(projectWebsiteAgentTaskEnvelope(claim))",
+    "control_epoch: z.number().int().nonnegative()",
+    "AI_V6_CONTROL_INTENT_INITIAL_EPOCH_INVALID",
   ]) {
     if (!transportText.includes(required)) findings.push(finding(
       "agent-production-runtime/v6-claim-projection", TRANSPORT_PATH,
@@ -316,7 +321,7 @@ const inspectRetirementAndDurability = (context: InspectorContext, findings: Ins
   }
 
   const runtimeText = read(context, RUNTIME_PATH);
-  const durableAcceptAt = runtimeText.indexOf("state.executor.accept(task)");
+  const durableAcceptAt = runtimeText.indexOf("state.executor.accept(task, browserMutationPresent)");
   const acceptedAt = runtimeText.indexOf("accepted = true", durableAcceptAt);
   const remoteCheckpointAt = runtimeText.indexOf("downloadClaimMaterials(state, job", acceptedAt);
   if (durableAcceptAt < 0 || acceptedAt <= durableAcceptAt || remoteCheckpointAt <= acceptedAt) findings.push(finding(

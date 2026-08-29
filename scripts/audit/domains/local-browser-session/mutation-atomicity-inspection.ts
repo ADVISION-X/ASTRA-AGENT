@@ -84,6 +84,9 @@ export const inspectRegistryAndMutationBoundary = (
     "logicalMutationId",
     "pluginStepId",
     "childCapabilityId",
+    "flowVersion",
+    "stepIndex",
+    "effectScope",
     "actionOrdinal",
     "positivePostconditionHash",
     "negativePostconditionHash",
@@ -314,7 +317,8 @@ export const inspectCompactMutationRecoveryBoundary = (
   requireIdentifiers(mutationStore, [
     "BrowserMutationStore", "prepare", "markDispatched", "markReceiptMissing", "markConfirmed",
     "markRejected", "markFailedBeforeDispatch", "resolve", "dispatchedForBinding", "dispatchedForJob",
-    "reconciliationScope", "readDispatched", "logicalMutationId", "pluginStepId", "childCapabilityId",
+    "reconciliationScope", "turnRecoveryScope", "atomicStepRecovery", "canReconstructGptTurnStep", "readDispatched",
+    "logicalMutationId", "pluginStepId", "childCapabilityId", "flowVersion", "stepIndex", "effectScope",
     "actionOrdinal", "positivePostconditionHash", "negativePostconditionHash", "requestHash", "payloadHash",
     "proofHash",
   ], findings, lawId, "Compact Browser mutation recovery must remain one SQLite/WAL row per physical mutation and exact job binding.");
@@ -345,6 +349,39 @@ export const inspectCompactMutationRecoveryBoundary = (
       lawId,
       filePath: sourcePaths[7],
       message: `The retired compact mutation state ${retired} must be physically absent.`,
+    }));
+  }
+};
+
+export const inspectJobScopedMutationRecovery = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const lanePath = "src/lib/browser/infrastructure/browser-lane-coordinator.ts";
+  const lane = requireSource(context, findings, lawId, lanePath);
+  const actor = requireSource(context, findings, lawId, sourcePaths[6]);
+  if (!lane || !actor) return;
+  requireIdentifiers(lane, ["turnRecoveryScope", "expectedTargetRef", "park", "pump"], findings, lawId,
+    "Browser recovery must be job-scoped, exact-target and capacity releasing.");
+  const laneText = lane.getFullText();
+  for (const retired of ["private unsettled", "acquireReconciliation", "reconciliationAllowed"]) {
+    if (!laneText.includes(retired)) continue;
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/job-scoped-recovery",
+      lawId,
+      filePath: lanePath,
+      message: `The retired global Browser recovery gate ${retired} must be physically absent.`,
+    }));
+  }
+  const actorText = actor.getFullText();
+  for (const required of ["provider_effect", "target_local", 'effectScope === "target_local" ? [permit.targetRef] : []']) {
+    if (actorText.includes(required)) continue;
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/logical-effect-scope",
+      lawId,
+      filePath: sourcePaths[6],
+      message: `Browser logical mutation identity is missing ${required}.`,
     }));
   }
 };
