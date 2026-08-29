@@ -14,10 +14,9 @@ export type BrowserMutationIdentity = Readonly<{
   attemptId: string;
   leaseVersion: number;
   executionFenceHash: `sha256:${string}`;
-  pluginStepId: string;
+  productStepId: string;
+  callId: string;
   childCapabilityId: string;
-  flowVersion: string;
-  stepIndex: number;
   effectScope: "target_local" | "provider_effect";
   actionOrdinal: number;
   targetRef: string;
@@ -44,8 +43,8 @@ export type BrowserMutationReconciliationScope = Readonly<{
   payloadHash: `sha256:${string}`;
 }>;
 
-export type BrowserTurnRecoveryScope = BrowserMutationReconciliationScope & Readonly<{
-  pluginStepId: string;
+export type BrowserCallRecoveryScope = BrowserMutationReconciliationScope & Readonly<{
+  productStepId: string;
   state: "DISPATCHED" | "CONFIRMED" | "REJECTED";
   effectScope: "target_local" | "provider_effect";
 }>;
@@ -66,10 +65,9 @@ type MutationRow = Readonly<{
   attempt_id: string;
   lease_version: number;
   execution_fence_hash: `sha256:${string}`;
-  plugin_step_id: string;
+  product_step_id: string;
+  call_id: string;
   child_capability_id: string;
-  flow_version: string;
-  step_index: number;
   effect_scope: "target_local" | "provider_effect";
   action_ordinal: number;
   target_ref: string;
@@ -83,7 +81,7 @@ type MutationRow = Readonly<{
 }>;
 
 const identityColumns = `command_id,logical_mutation_id,owner_plugin_id,job_id,attempt_id,
-  lease_version,execution_fence_hash,plugin_step_id,child_capability_id,flow_version,step_index,effect_scope,action_ordinal,
+  lease_version,execution_fence_hash,product_step_id,call_id,child_capability_id,effect_scope,action_ordinal,
   target_ref,document_ref,action_id,positive_postcondition_hash,negative_postcondition_hash,
   request_hash,payload_hash`;
 
@@ -95,10 +93,9 @@ const mutationIdentity = (row: MutationRow): BrowserMutationIdentity => ({
   attemptId: row.attempt_id,
   leaseVersion: row.lease_version,
   executionFenceHash: row.execution_fence_hash,
-  pluginStepId: row.plugin_step_id,
+  productStepId: row.product_step_id,
+  callId: row.call_id,
   childCapabilityId: row.child_capability_id,
-  flowVersion: row.flow_version,
-  stepIndex: row.step_index,
   effectScope: row.effect_scope,
   actionOrdinal: row.action_ordinal,
   targetRef: row.target_ref,
@@ -122,10 +119,9 @@ const currentTableSql = `
     attempt_id text not null,
     lease_version integer not null,
     execution_fence_hash text not null,
-    plugin_step_id text not null,
+    product_step_id text not null,
+    call_id text not null,
     child_capability_id text not null,
-    flow_version text not null,
-    step_index integer not null check(step_index >= 0),
     effect_scope text not null check(effect_scope in ('target_local','provider_effect')),
     action_ordinal integer not null check(action_ordinal >= 1),
     target_ref text not null,
@@ -161,22 +157,9 @@ const ensureCurrentSchema = (database: Database.Database): void => {
   }
   const columns = new Set((database.prepare("pragma table_info(browser_mutations)").all() as Array<{ name: string }>)
     .map((column) => column.name));
-  const atomicIdentityColumns = ["plugin_step_id", "child_capability_id", "action_ordinal",
-    "positive_postcondition_hash", "negative_postcondition_hash"];
-  if (atomicIdentityColumns.every((column) => columns.has(column))) {
-    database.transaction(() => {
-      if (!columns.has("flow_version")) {
-        database.exec("alter table browser_mutations add column flow_version text not null default 'gpt-turn-flow.v1'");
-      }
-      if (!columns.has("step_index")) {
-        database.exec("alter table browser_mutations add column step_index integer not null default 0 check(step_index >= 0)");
-      }
-      if (!columns.has("effect_scope")) {
-        database.exec("alter table browser_mutations add column effect_scope text not null default 'target_local' check(effect_scope in ('target_local','provider_effect'))");
-      }
-      database.prepare(`update browser_mutations set effect_scope='provider_effect'
-        where child_capability_id in ('attach_approved_gpt_files_once','submit_exact_gpt_turn_once')`).run();
-    })();
+  const currentIdentityColumns = ["product_step_id", "call_id", "child_capability_id", "effect_scope",
+    "action_ordinal", "positive_postcondition_hash", "negative_postcondition_hash"];
+  if (currentIdentityColumns.every((column) => columns.has(column))) {
     createIndexes(database);
     return;
   }
@@ -230,7 +213,7 @@ export class BrowserMutationStore {
   }
 
   public prepare(input: BrowserMutationIdentity): void {
-    if (!input.pluginStepId || !input.childCapabilityId
+    if (!input.productStepId || !input.callId || !input.childCapabilityId
       || !Number.isInteger(input.actionOrdinal) || input.actionOrdinal < 1
       || !input.positivePostconditionHash || !input.negativePostconditionHash) {
       throw new Error("BROWSER_ATOMIC_STEP_IDENTITY_REQUIRED");
@@ -246,11 +229,11 @@ export class BrowserMutationStore {
       this.database.prepare(
         `insert into browser_mutations(
           ${identityColumns},state,updated_at
-        ) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'PREPARED',?)`,
+        ) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'PREPARED',?)`,
       ).run(
         input.commandId, input.logicalMutationId ?? null, input.ownerPluginId, input.jobId,
-        input.attemptId, input.leaseVersion, input.executionFenceHash, input.pluginStepId,
-        input.childCapabilityId, input.flowVersion, input.stepIndex, input.effectScope,
+        input.attemptId, input.leaseVersion, input.executionFenceHash, input.productStepId,
+        input.callId, input.childCapabilityId, input.effectScope,
         input.actionOrdinal, input.targetRef, input.documentRef,
         input.actionId, input.positivePostconditionHash, input.negativePostconditionHash,
         input.requestHash, input.payloadHash, new Date().toISOString(),
@@ -321,18 +304,11 @@ export class BrowserMutationStore {
     ).get(jobId));
   }
 
-  public canReconstructGptTurnStep(input: Readonly<{
-    jobId: string;
-    ownerPluginId: string;
-    pluginStepId: string;
-  }>): boolean {
-    const unsafe = this.database.prepare(
-      `select 1 from browser_mutations
-       where job_id=? and owner_plugin_id=? and plugin_step_id=?
-         and (state='DISPATCHED' or (effect_scope='provider_effect' and state in ('CONFIRMED','REJECTED')))
-       limit 1`,
-    ).get(input.jobId, input.ownerPluginId, input.pluginStepId);
-    return !unsafe;
+  public countProviderTurnDispatches(jobId: string, attemptId: string): number {
+    const row = this.database.prepare(`select count(*) as count from browser_mutations
+      where job_id=? and attempt_id=? and child_capability_id='submit_exact_gpt_turn_once'
+        and state in ('DISPATCHED','CONFIRMED','REJECTED')`).get(jobId, attemptId) as { count: number };
+    return Number(row.count);
   }
 
   public reconciliationScope(input: Readonly<{
@@ -355,17 +331,17 @@ export class BrowserMutationStore {
     });
   }
 
-  public turnRecoveryScope(input: Readonly<{
-    jobId: string; ownerPluginId: string; pluginStepId: string;
-  }>): BrowserTurnRecoveryScope | null {
+  public callRecoveryScope(input: Readonly<{
+    jobId: string; ownerPluginId: string; productStepId: string;
+  }>): BrowserCallRecoveryScope | null {
     const rows = this.database.prepare(
-      `select command_id,owner_plugin_id,job_id,plugin_step_id,target_ref,document_ref,payload_hash,state,effect_scope
+      `select command_id,owner_plugin_id,job_id,product_step_id,target_ref,document_ref,payload_hash,state,effect_scope
        from browser_mutations
-       where job_id=? and owner_plugin_id=? and plugin_step_id=?
+       where job_id=? and owner_plugin_id=? and product_step_id=?
          and (state='DISPATCHED' or (effect_scope='provider_effect' and state in ('CONFIRMED','REJECTED')))
        order by updated_at desc,command_id desc limit 2`,
-    ).all(input.jobId, input.ownerPluginId, input.pluginStepId) as ReadonlyArray<{
-      command_id: string; owner_plugin_id: string; job_id: string; plugin_step_id: string;
+    ).all(input.jobId, input.ownerPluginId, input.productStepId) as ReadonlyArray<{
+      command_id: string; owner_plugin_id: string; job_id: string; product_step_id: string;
       target_ref: string; document_ref: string; payload_hash: `sha256:${string}`;
       state: "DISPATCHED" | "CONFIRMED" | "REJECTED";
       effect_scope: "target_local" | "provider_effect";
@@ -376,7 +352,7 @@ export class BrowserMutationStore {
     const row = rows[0]!;
     return Object.freeze({
       commandId: row.command_id, ownerPluginId: row.owner_plugin_id, jobId: row.job_id,
-      pluginStepId: row.plugin_step_id, targetRef: row.target_ref, documentRef: row.document_ref,
+      productStepId: row.product_step_id, targetRef: row.target_ref, documentRef: row.document_ref,
       payloadHash: row.payload_hash, state: row.state, effectScope: row.effect_scope,
     });
   }
@@ -384,10 +360,9 @@ export class BrowserMutationStore {
   public atomicStepRecovery(input: Readonly<{
     jobId: string;
     ownerPluginId: string;
-    pluginStepId: string;
+    productStepId: string;
+    callId: string;
     childCapabilityId: string;
-    flowVersion: string;
-    stepIndex: number;
     inputHash: `sha256:${string}`;
     actionOrdinal: number;
     targetRef: string;
@@ -395,15 +370,15 @@ export class BrowserMutationStore {
   }>): BrowserAtomicStepRecovery | null {
     const targetClause = input.effectScope === "target_local" ? "and target_ref=?" : "";
     const parameters = [
-      input.jobId, input.ownerPluginId, input.pluginStepId, input.childCapabilityId,
-      input.flowVersion, input.stepIndex, input.inputHash, input.actionOrdinal, input.effectScope,
+      input.jobId, input.ownerPluginId, input.productStepId, input.callId, input.childCapabilityId,
+      input.inputHash, input.actionOrdinal, input.effectScope,
       ...(input.effectScope === "target_local" ? [input.targetRef] : []),
     ];
     const rows = this.database.prepare(
       `select command_id,target_ref,document_ref,state
        from browser_mutations
-       where job_id=? and owner_plugin_id=? and plugin_step_id=? and child_capability_id=?
-         and flow_version=? and step_index=? and request_hash=? and action_ordinal=? and effect_scope=?
+       where job_id=? and owner_plugin_id=? and product_step_id=? and call_id=? and child_capability_id=?
+         and request_hash=? and action_ordinal=? and effect_scope=?
          ${targetClause} and state in ('DISPATCHED','CONFIRMED','REJECTED')
        order by updated_at desc,command_id desc limit 2`,
     ).all(...parameters) as ReadonlyArray<{

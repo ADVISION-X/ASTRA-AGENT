@@ -4,7 +4,6 @@ import { executionFailure } from "../../../../lib/typed-failure.js";
 import type { GptChildHandlerMap } from "../child-handler.js";
 import {
   recordInput,
-  booleanInput,
   requireBrowser,
   requireExactInputKeys,
   success,
@@ -135,7 +134,7 @@ const selectReasoning = async (
   browser: BrowserTargetLease,
   targetValue: number,
   targetLabel: string,
-  reconcileOnly: boolean,
+  readbackOnly: boolean,
 ) => {
   await requireActiveReasoningProfile(browser);
   const currentValue = await readReasoningValue(browser);
@@ -147,7 +146,7 @@ const selectReasoning = async (
       committedMutation: "no",
     });
   }
-  if (reconcileOnly) {
+  if (readbackOnly) {
     throw executionFailure("failed", "GPT_EXECUTION_PROFILE_REASONING_SELECTION_PENDING");
   }
   const key = currentValue < targetValue ? "ArrowRight" : "ArrowLeft";
@@ -172,7 +171,7 @@ const selectReasoning = async (
   });
 };
 
-const closeProfilePopup = async (browser: BrowserTargetLease, reconcileOnly: boolean) => {
+const closeProfilePopup = async (browser: BrowserTargetLease, readbackOnly: boolean) => {
   const popupCount = await findCount(browser, { selector: GPT_PROFILE_POPUP_SELECTOR, maxMatches: 2 });
   if (popupCount === 0) {
     return success({
@@ -183,7 +182,7 @@ const closeProfilePopup = async (browser: BrowserTargetLease, reconcileOnly: boo
     });
   }
   await requireUniqueProfilePopup(browser);
-  if (reconcileOnly) {
+  if (readbackOnly) {
     throw executionFailure("failed", "GPT_EXECUTION_PROFILE_CLOSE_PENDING");
   }
   await browser.executeDomIntent({
@@ -202,32 +201,29 @@ const closeProfilePopup = async (browser: BrowserTargetLease, reconcileOnly: boo
 
 export const executionProfileChildHandlers = {
   async open_gpt_execution_profile(intent, context) {
-    requireExactInputKeys(intent, ["profile"], ["reconcileOnly"]);
+    requireExactInputKeys(intent, ["profile"]);
     profileFromIntent(intent);
-    const reconcileOnly = intent.input.reconcileOnly === undefined ? false : booleanInput(intent, "reconcileOnly");
     const browser = requireBrowser(context);
     const popupCount = await findCount(browser, { selector: GPT_PROFILE_POPUP_SELECTOR, maxMatches: 2 });
     if (popupCount === 1) return openProfilePopup(browser);
-    if (reconcileOnly) throw executionFailure("failed", "GPT_EXECUTION_PROFILE_OPEN_PENDING");
+    if (context.mutationMode === "readback") throw executionFailure("failed", "GPT_EXECUTION_PROFILE_OPEN_PENDING");
     return openProfilePopup(browser);
   },
 
   async ensure_exact_gpt_reasoning_tier(intent, context) {
-    requireExactInputKeys(intent, ["profile"], ["reconcileOnly"]);
+    requireExactInputKeys(intent, ["profile"]);
     const profile = profileFromIntent(intent);
-    const reconcileOnly = intent.input.reconcileOnly === undefined ? false : booleanInput(intent, "reconcileOnly");
     return selectReasoning(
       requireBrowser(context),
       reasoningTierUiValue[profile.reasoningTier],
       reasoningTierUiLabel[profile.reasoningTier],
-      reconcileOnly,
+      context.mutationMode === "readback",
     );
   },
 
   async close_gpt_execution_profile(intent, context) {
-    requireExactInputKeys(intent, ["profile"], ["reconcileOnly"]);
+    requireExactInputKeys(intent, ["profile"]);
     profileFromIntent(intent);
-    const reconcileOnly = intent.input.reconcileOnly === undefined ? false : booleanInput(intent, "reconcileOnly");
-    return closeProfilePopup(requireBrowser(context), reconcileOnly);
+    return closeProfilePopup(requireBrowser(context), context.mutationMode === "readback");
   },
 } satisfies GptChildHandlerMap;

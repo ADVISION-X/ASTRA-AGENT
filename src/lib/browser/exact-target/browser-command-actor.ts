@@ -126,11 +126,12 @@ const mutationIdentity = (permit: BrowserCommandPermit, command: BrowserGoverned
   const effectScope = permit.replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local";
   const logicalIdentity = [
     permit.jobId,
-    permit.pluginStepId,
+    permit.attemptId,
+    permit.ownerPluginId,
+    permit.productStepId,
+    permit.callId,
     permit.childCapabilityId,
-    permit.actionOrdinal,
     permit.inputHash,
-    permit.flowVersion,
     ...(effectScope === "target_local" ? [permit.targetRef] : []),
   ];
   return {
@@ -141,10 +142,9 @@ const mutationIdentity = (permit: BrowserCommandPermit, command: BrowserGoverned
     attemptId: permit.attemptId,
     leaseVersion: permit.leaseVersion,
     executionFenceHash: permit.writerFenceHash,
-    pluginStepId: permit.pluginStepId,
+    productStepId: permit.productStepId,
+    callId: permit.callId,
     childCapabilityId: permit.childCapabilityId,
-    flowVersion: permit.flowVersion,
-    stepIndex: permit.stepIndex,
     effectScope,
     actionOrdinal: permit.actionOrdinal,
     targetRef: permit.targetRef,
@@ -207,11 +207,11 @@ export class BrowserCommandActor {
     });
   }
 
-  public requiresTurnRecovery(binding: BrowserExecutionBinding, targetRef: string): boolean {
-    const scope = this.mutations.turnRecoveryScope({
+  public requiresMutationRecovery(binding: BrowserExecutionBinding, targetRef: string): boolean {
+    const scope = this.mutations.callRecoveryScope({
       jobId: binding.jobId,
       ownerPluginId: binding.ownerPluginId,
-      pluginStepId: binding.pluginStepId,
+      productStepId: binding.productStepId,
     });
     return scope?.targetRef === targetRef;
   }
@@ -225,10 +225,9 @@ export class BrowserCommandActor {
     return this.mutations.atomicStepRecovery({
       jobId: binding.jobId,
       ownerPluginId: binding.ownerPluginId,
-      pluginStepId: identity.pluginStepId,
+      productStepId: identity.productStepId,
+      callId: identity.callId,
       childCapabilityId: identity.childCapabilityId,
-      flowVersion: identity.flowVersion,
-      stepIndex: identity.stepIndex,
       inputHash: identity.inputHash,
       actionOrdinal: identity.actionOrdinal,
       targetRef,

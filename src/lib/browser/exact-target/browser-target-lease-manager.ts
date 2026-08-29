@@ -147,10 +147,9 @@ export class BrowserTargetLeaseManager {
       state.current = currentTarget;
       const sequence = ++state.sequence;
       const step = state.atomicStep ?? {
-        pluginStepId: "browser-lifecycle",
+        productStepId: "browser-lifecycle",
+        callId: `lifecycle:${sequence}`,
         childCapabilityId: capabilityId,
-        flowVersion: "browser-lifecycle.v1",
-        stepIndex: 0,
         inputHash: hashText(this.executionBinding.executionRef),
         actionOrdinal: sequence,
         replayPolicy: "observation-only" as const,
@@ -160,10 +159,9 @@ export class BrowserTargetLeaseManager {
         sequence,
         targetRef: input.target.target.targetRef,
         documentRef: state.current.document.documentRef,
-        pluginStepId: step.pluginStepId,
+        productStepId: step.productStepId,
+        callId: step.callId,
         childCapabilityId: step.childCapabilityId,
-        flowVersion: step.flowVersion,
-        stepIndex: step.stepIndex,
         inputHash: step.inputHash,
         replayPolicy: step.replayPolicy,
         actionOrdinal: step.actionOrdinal,
@@ -203,8 +201,7 @@ export class BrowserTargetLeaseManager {
       target: input.target.target,
       get document() { return state.current.document; },
       runAtomicStep: async (identity, action) => {
-        if (!identity.pluginStepId || !identity.childCapabilityId || !identity.flowVersion
-          || !Number.isInteger(identity.stepIndex) || identity.stepIndex < 0
+        if (!identity.productStepId || !identity.callId || !identity.childCapabilityId
           || !/^sha256:[a-f0-9]{64}$/u.test(identity.inputHash)
           || !Number.isInteger(identity.actionOrdinal) || identity.actionOrdinal < 1
           || state.atomicStep !== null) {
@@ -219,8 +216,8 @@ export class BrowserTargetLeaseManager {
       },
       readAtomicStepRecovery: (identity) =>
         this.commandActor.readAtomicStepRecovery(this.executionBinding, input.target.target.targetRef, identity),
-      requiresTurnRecovery: () =>
-        this.commandActor.requiresTurnRecovery(this.executionBinding, input.target.target.targetRef),
+      requiresMutationRecovery: () =>
+        this.commandActor.requiresMutationRecovery(this.executionBinding, input.target.target.targetRef),
       navigate: ({ url, title }) => this.navigate(input, state, command, url, title),
       executeDomIntent: async (intent: BrowserDomIntent) => command(this.capabilityForIntent(intent), { kind: "dom-intent", intent }),
       observeCapability: async ({ capabilityId }) => command(capabilityId, { kind: "observe", capabilityId }),
@@ -348,10 +345,9 @@ export class BrowserTargetLeaseManager {
     sequence: number;
     targetRef: string;
     documentRef: string;
-    pluginStepId: string;
+    productStepId: string;
+    callId: string;
     childCapabilityId: string;
-    flowVersion: string;
-    stepIndex: number;
     inputHash: `sha256:${string}`;
     replayPolicy: BrowserCommandPermit["replayPolicy"];
     actionOrdinal: number;
@@ -380,10 +376,9 @@ export class BrowserTargetLeaseManager {
       targetLeaseRef: input.leaseRef,
       targetRef: input.targetRef,
       documentRef: input.documentRef,
-      pluginStepId: input.pluginStepId,
+      productStepId: input.productStepId,
+      callId: input.callId,
       childCapabilityId: input.childCapabilityId,
-      flowVersion: input.flowVersion,
-      stepIndex: input.stepIndex,
       inputHash: input.inputHash,
       replayPolicy: input.replayPolicy,
       actionOrdinal: input.actionOrdinal,

@@ -5,10 +5,9 @@ import type { BrowserCapabilityId } from "../protocol/generated/browser-protocol
 import type { BrowserOutcomeResolutionReceipt } from "./browser-outcome-resolver.js";
 
 export type BrowserAtomicStepIdentity = Readonly<{
-  pluginStepId: string;
+  productStepId: string;
+  callId: string;
   childCapabilityId: string;
-  flowVersion: string;
-  stepIndex: number;
   inputHash: `sha256:${string}`;
   actionOrdinal: number;
   replayPolicy: "observation-only" | "target-local-per-generation" | "provider-effect-once";
@@ -39,7 +38,7 @@ export type BrowserTargetLease = Readonly<{
     action: () => Promise<T>,
   ): Promise<T>;
   readAtomicStepRecovery(identity: BrowserAtomicStepIdentity): BrowserAtomicStepRecovery | null;
-  requiresTurnRecovery(): boolean;
+  requiresMutationRecovery(): boolean;
   navigate(input: Readonly<{ url: string; title: string; deadlineMs?: number }>): Promise<BrowserDocumentRef>;
   executeDomIntent(input: BrowserDomIntent): Promise<unknown>;
   observeCapability(input: Readonly<{ capabilityId: BrowserCapabilityId; timeoutMs?: number }>): Promise<unknown>;

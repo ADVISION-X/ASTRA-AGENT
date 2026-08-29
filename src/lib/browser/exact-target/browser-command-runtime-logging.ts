@@ -21,7 +21,7 @@ const identityFor = (permit: BrowserCommandPermit): RuntimeBrowserCommandIdentit
   pluginId: permit.ownerPluginId,
   commandId: permit.commandId,
   capabilityCallId: permit.capabilityId,
-  pluginStepId: permit.pluginStepId,
+  pluginStepId: permit.productStepId,
   childCapabilityId: permit.childCapabilityId,
   actionOrdinal: permit.actionOrdinal,
 });
@@ -61,7 +61,7 @@ export const emitBrowserMutationEvent = (input: Readonly<{
       fenceHash: mutation.executionFenceHash,
       pluginId: mutation.ownerPluginId,
       commandId: mutation.commandId,
-      pluginStepId: mutation.pluginStepId,
+      pluginStepId: mutation.productStepId,
       childCapabilityId: mutation.childCapabilityId,
       actionOrdinal: mutation.actionOrdinal,
     },

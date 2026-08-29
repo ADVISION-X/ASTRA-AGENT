@@ -11,4 +11,3 @@ export type {
   ProductionTaskStatus,
   StoredProductionTask,
 } from "./store-foundation.js";
-export type { GptTurnDurableCheckpoint } from "./store-task-state.js";

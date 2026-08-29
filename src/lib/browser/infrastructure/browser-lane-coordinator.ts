@@ -92,6 +92,10 @@ export class BrowserLaneCoordinator {
     return this.infrastructure.mutationState?.hasMutationForJob(jobId) ?? false;
   }
 
+  public countProviderTurnDispatches(jobId: string, attemptId: string): number {
+    return this.infrastructure.mutationState?.countProviderTurnDispatches(jobId, attemptId) ?? 0;
+  }
+
   public reconciliationScope(
     input: Readonly<{ jobId: string; ownerPluginId: string }>,
   ): BrowserMutationReconciliationScope | null {
@@ -115,10 +119,10 @@ export class BrowserLaneCoordinator {
     if (!waiter) return;
     waiter.stopWaitingMonitor();
     this.active = true;
-    const recovery = this.infrastructure.mutationState?.turnRecoveryScope({
+    const recovery = this.infrastructure.mutationState?.callRecoveryScope({
       jobId: waiter.binding.jobId,
       ownerPluginId: waiter.binding.ownerPluginId,
-      pluginStepId: waiter.binding.pluginStepId,
+      productStepId: waiter.binding.productStepId,
     }) ?? null;
     try {
       if (this.resolveBroker().currentOperatorTargetStatus() === "absent") {

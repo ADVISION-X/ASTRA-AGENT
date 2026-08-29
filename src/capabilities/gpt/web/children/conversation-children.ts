@@ -3,7 +3,6 @@ import { executionFailure } from "../../../../lib/typed-failure.js";
 
 import type { GptChildHandlerMap } from "../child-handler.js";
 import {
-  booleanInput,
   numberInput,
   requireBrowser,
   requireExactInputKeys,
@@ -59,16 +58,15 @@ export const conversationChildHandlers = {
   },
 
   async focus_exact_gpt_conversation(intent, context) {
-    requireExactInputKeys(intent, ["canonicalConversationUrl"], ["reconcileOnly"]);
+    requireExactInputKeys(intent, ["canonicalConversationUrl"]);
     const expected = canonicalGptConversationUrl(stringInput(intent, "canonicalConversationUrl"));
-    const reconcileOnly = intent.input.reconcileOnly === undefined ? false : booleanInput(intent, "reconcileOnly");
     const browser = requireBrowser(context);
     const before = canonicalOrNull((await readGptDocument(browser)).url);
     if (before === expected) return success({
       value: { url: expected, state: "already-focused" }, candidateCount: 1,
       observedSemantics: ["exact permanent conversation already focused"], committedMutation: "no",
     });
-    if (reconcileOnly) {
+    if (context.mutationMode === "readback") {
       throw executionFailure("failed", "GPT_CONVERSATION_NAVIGATION_NOT_YET_CONFIRMED");
     }
     await browser.navigate({ url: expected, title: "focus exact GPT conversation" });

@@ -11,7 +11,7 @@ export type BrowserExecutionBinding = Readonly<{
   kind: "local" | "production" | "production-reconciliation";
   ownerPluginId: string;
   jobId: string;
-  pluginStepId: string;
+  productStepId: string;
   attemptId: string;
   deviceId: string;
   leaseVersion: number;

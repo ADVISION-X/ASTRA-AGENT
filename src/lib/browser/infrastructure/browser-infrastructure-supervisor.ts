@@ -196,12 +196,8 @@ export class BrowserInfrastructureSupervisor {
   public readBrowserLaneWaiterCount(): number { return this.lane.waiterCount(); }
   public hasUnresolvedBrowserMutation(): boolean { return this.lane.hasUnresolvedMutation(); }
   public hasBrowserMutationForJob(jobId: string): boolean { return this.lane.hasMutationForJob(jobId); }
-  public canReconstructGptTurnStep(input: Readonly<{
-    jobId: string;
-    ownerPluginId: string;
-    pluginStepId: string;
-  }>): boolean {
-    return this.state.mutationState?.canReconstructGptTurnStep(input) ?? false;
+  public countProviderTurnDispatches(jobId: string, attemptId: string): number {
+    return this.lane.countProviderTurnDispatches(jobId, attemptId);
   }
   public readBrowserReconciliationScope(
     input: Readonly<{ jobId: string; ownerPluginId: string }>,

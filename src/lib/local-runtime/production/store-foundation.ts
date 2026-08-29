@@ -32,8 +32,6 @@ export type TaskRow = {
   updated_at: string;
 };
 
-export type StepRow = { input_hash: ProductionHash; result_json: string };
-
 export interface ProductionOutboxWrite {
   readonly idempotency_key: string;
   readonly kind: "checkpoint" | "artifact" | "terminal";
@@ -152,11 +150,6 @@ const createProductionTables = (database: Database.Database): void => {
     check((status='failed' and result_json is null and current_reason is not null)
       or (status='completed' and result_json is not null and staged_result_json is null and current_reason is null))
   );
-  create table production_steps(
-    job_id text not null references production_tasks(job_id) on delete restrict,
-    step_id text not null, input_hash text not null, result_json text not null,
-    completed_at text not null, primary key(job_id,step_id)
-  );
   create table production_attempt_failures(
     job_id text not null references production_tasks(job_id) on delete restrict,
     attempt_id text not null, failure_json text not null, created_at text not null,
@@ -204,6 +197,7 @@ const currentSchemaPresent = (database: Database.Database): boolean => {
   const outbox = tableColumns(database, "production_outbox");
   const failures = tableColumns(database, "production_attempt_failures");
   return tasks.has("current_attempt_id") && tasks.has("current_reason")
+    && tableColumns(database, "production_steps").size === 0
     && !tasks.has("failure_json") && !tasks.has("failure_reason")
     && failures.has("attempt_id") && failures.has("failure_json")
     && outbox.has("last_error") && outbox.has("next_delivery_at")

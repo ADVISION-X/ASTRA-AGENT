@@ -4,7 +4,6 @@ import { executionFailure } from "../../../../lib/typed-failure.js";
 import type { GptChildHandlerMap } from "../child-handler.js";
 import {
   arrayInput,
-  booleanInput,
   numberInput,
   requireBrowser,
   requireExactInputKeys,
@@ -42,10 +41,9 @@ const canonicalConversationOrNull = (value: string): string | null => {
 
 export const composerSubmissionChildHandlers = {
   async write_exact_gpt_prompt(intent, context) {
-    requireExactInputKeys(intent, ["prompt"], ["reconcileOnly"]);
+    requireExactInputKeys(intent, ["prompt"]);
     const prompt = stringInput(intent, "prompt");
     const browser = requireBrowser(context);
-    const reconcileOnly = intent.input.reconcileOnly === undefined ? false : booleanInput(intent, "reconcileOnly");
     const composerCount = await findCount(browser, { selector: GPT_COMPOSER_SELECTOR, maxMatches: 2 });
     if (composerCount !== 1) throw executionFailure("failed", `GPT_COMPOSER_COUNT_${composerCount}`);
     const existing = await readExactText(browser, GPT_COMPOSER_SELECTOR, 65_536);
@@ -53,7 +51,7 @@ export const composerSubmissionChildHandlers = {
       value: promptIdentity(prompt), candidateCount: 1,
       observedSemantics: ["exact prompt already retained"], committedMutation: "no",
     });
-    if (reconcileOnly) throw executionFailure("failed", "GPT_PROMPT_WRITE_PENDING");
+    if (context.mutationMode === "readback") throw executionFailure("failed", "GPT_PROMPT_WRITE_PENDING");
     const value = await browser.executeDomIntent({
       kind: "fill", selector: GPT_COMPOSER_SELECTOR,
       approvedText: prompt, clearBeforeType: true, expectedMatches: 1,
@@ -101,12 +99,11 @@ export const composerSubmissionChildHandlers = {
   },
 
   async submit_exact_gpt_turn_once(intent, context) {
-    requireExactInputKeys(intent, ["promptHash", "turnMarker"], ["reconcileOnly"]);
+    requireExactInputKeys(intent, ["promptHash", "turnMarker"]);
     const promptHash = stringInput(intent, "promptHash");
     const turnMarker = stringInput(intent, "turnMarker");
     if (!/^sha256:[a-f0-9]{64}$/u.test(promptHash)) throw executionFailure("failed", "GPT_PROMPT_HASH_INVALID");
     const browser = requireBrowser(context);
-    const reconcileOnly = intent.input.reconcileOnly === undefined ? false : booleanInput(intent, "reconcileOnly");
     const submitted = await findCount(browser, {
       selector: GPT_USER_TURN_SELECTOR, textContains: turnMarker, maxMatches: 20,
     });
@@ -115,7 +112,7 @@ export const composerSubmissionChildHandlers = {
       observedSemantics: ["one exact user turn already submitted", promptHash], committedMutation: "no",
     });
     if (submitted > 1) throw executionFailure("failed", `GPT_SUBMITTED_TURN_COUNT_${submitted}`);
-    if (reconcileOnly) throw executionFailure("failed", "GPT_TURN_SUBMISSION_PENDING");
+    if (context.mutationMode === "readback") throw executionFailure("failed", "GPT_TURN_SUBMISSION_PENDING");
     const sendCount = await findCount(browser, { selector: GPT_SEND_SELECTOR, maxMatches: 2 });
     if (sendCount !== 1) throw executionFailure("failed", `GPT_SEND_CONTROL_COUNT_${sendCount}`);
     const inspected = await browser.executeDomIntent({

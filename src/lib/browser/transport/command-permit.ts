@@ -22,10 +22,9 @@ export type BrowserCommandPermit = Readonly<{
   targetLeaseRef: string;
   targetRef: string;
   documentRef: string;
-  pluginStepId: string;
+  productStepId: string;
+  callId: string;
   childCapabilityId: string;
-  flowVersion: string;
-  stepIndex: number;
   inputHash: BrowserHash;
   replayPolicy: "observation-only" | "target-local-per-generation" | "provider-effect-once";
   actionOrdinal: number;
@@ -61,10 +60,9 @@ export const browserCommandPermitMacPayload = (permit: BrowserUnsignedCommandPer
   permit.targetLeaseRef,
   permit.targetRef,
   permit.documentRef,
-  permit.pluginStepId,
+  permit.productStepId,
+  permit.callId,
   permit.childCapabilityId,
-  permit.flowVersion,
-  permit.stepIndex,
   permit.inputHash,
   permit.replayPolicy,
   permit.actionOrdinal,
@@ -82,9 +80,9 @@ const hasCompletePermitIdentity = (permit: BrowserCommandPermit): boolean => [
   permit.targetLeaseRef,
   permit.targetRef,
   permit.documentRef,
-  permit.pluginStepId,
+  permit.productStepId,
+  permit.callId,
   permit.childCapabilityId,
-  permit.flowVersion,
   permit.commandId,
   permit.replyChannelToken,
   permit.workspaceRef,
@@ -100,8 +98,6 @@ const hasValidPermitNumbers = (permit: BrowserCommandPermit): boolean =>
   && permit.leaseVersion >= 1
   && permit.authorityEpoch >= 1
   && permit.sequence >= 1
-  && Number.isInteger(permit.stepIndex)
-  && permit.stepIndex >= 0
   && Number.isInteger(permit.actionOrdinal)
   && permit.actionOrdinal >= 1
   && Number.isInteger(permit.commandTtlMs)

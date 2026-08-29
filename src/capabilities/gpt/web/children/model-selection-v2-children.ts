@@ -4,7 +4,6 @@ import { executionFailure } from "../../../../lib/typed-failure.js";
 import { GPT_MODEL_SELECTION_VERSION } from "../../contract.js";
 import type { GptChildHandlerMap } from "../child-handler.js";
 import {
-  booleanInput,
   recordInput,
   requireBrowser,
   requireExactInputKeys,
@@ -110,12 +109,9 @@ const exactVisibleModelState = async (
 
 export const modelSelectionV2ChildHandlers = {
   async open_gpt_model_selector_v2(intent, context) {
-    requireExactInputKeys(intent, ["profile"], ["reconcileOnly"]);
+    requireExactInputKeys(intent, ["profile"]);
     profileFromIntent(intent);
     const browser = requireBrowser(context);
-    const reconcileOnly = intent.input.reconcileOnly === undefined
-      ? false
-      : booleanInput(intent, "reconcileOnly");
     const observed = await readModelSelectorTopology(browser);
     if (isAlreadyOpen(observed)) {
       return success({
@@ -128,7 +124,7 @@ export const modelSelectionV2ChildHandlers = {
     if (!isOpenable(observed)) {
       throw executionFailure("failed", `GPT_MODEL_SELECTION_V2_STATE_INVALID:${topologyCode(observed)}`);
     }
-    if (reconcileOnly) {
+    if (context.mutationMode === "readback") {
       throw executionFailure("failed", "GPT_MODEL_SELECTION_V2_OPEN_PENDING");
     }
     await browser.executeDomIntent({
@@ -151,12 +147,9 @@ export const modelSelectionV2ChildHandlers = {
   },
 
   async select_exact_gpt_model_v2(intent, context) {
-    requireExactInputKeys(intent, ["profile"], ["reconcileOnly"]);
+    requireExactInputKeys(intent, ["profile"]);
     const profile = profileFromIntent(intent);
     const browser = requireBrowser(context);
-    const reconcileOnly = intent.input.reconcileOnly === undefined
-      ? false
-      : booleanInput(intent, "reconcileOnly");
     await requireAlreadyOpen(browser);
     const candidate = await exactVisibleModelState(browser, profile.modelDisplayName);
     if (candidate.count !== 1 || (candidate.ariaChecked !== "true" && candidate.ariaChecked !== "false")) {
@@ -165,7 +158,20 @@ export const modelSelectionV2ChildHandlers = {
         `GPT_MODEL_SELECTION_V2_CANDIDATE_INVALID:count=${candidate.count}:checked=${candidate.ariaChecked ?? "missing"}`,
       );
     }
-    if (reconcileOnly) {
+    if (candidate.ariaChecked === "true") {
+      return success({
+        value: {
+          modelDisplayName: profile.modelDisplayName,
+          previousChecked: candidate.ariaChecked,
+          selectionVersion: GPT_MODEL_SELECTION_VERSION,
+          state: "exact-model-already-selected",
+        },
+        candidateCount: 1,
+        observedSemantics: ["one exact selected model in the active non-inert v2 panel"],
+        committedMutation: "no",
+      });
+    }
+    if (context.mutationMode === "readback") {
       throw executionFailure("failed", "GPT_MODEL_SELECTION_V2_SELECTION_PENDING");
     }
     await browser.executeDomIntent({

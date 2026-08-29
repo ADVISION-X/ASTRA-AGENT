@@ -8,7 +8,6 @@ import type { GptChildCapabilityIntent } from "../../contract.js";
 import type { GptChildHandlerMap } from "../child-handler.js";
 import {
   arrayInput,
-  booleanInput,
   requireBrowser,
   requireExactInputKeys,
   success,
@@ -95,9 +94,8 @@ const countOccurrences = (value: string, needle: string): number =>
 
 export const attachmentChildHandlers = {
   async open_gpt_attachment_control(intent, context) {
-    requireExactInputKeys(intent, [], ["reconcileOnly"]);
+    requireExactInputKeys(intent, []);
     const browser = requireBrowser(context);
-    const reconcileOnly = intent.input.reconcileOnly === undefined ? false : booleanInput(intent, "reconcileOnly");
     const visibleChoiceCount = await findCount(browser, {
       selector: GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
       textEquals: GPT_UPLOAD_FROM_COMPUTER_LABEL,
@@ -110,7 +108,7 @@ export const attachmentChildHandlers = {
     if (visibleChoiceCount > 1) {
       throw executionFailure("failed", `GPT_UPLOAD_CHOICE_COUNT_${visibleChoiceCount}`);
     }
-    if (reconcileOnly) throw executionFailure("failed", "GPT_ATTACHMENT_CONTROL_OPEN_PENDING");
+    if (context.mutationMode === "readback") throw executionFailure("failed", "GPT_ATTACHMENT_CONTROL_OPEN_PENDING");
     await requireOneCandidate(browser, {
       selector: GPT_ATTACHMENT_CONTROL_SELECTOR,
       maxMatches: 2,
@@ -132,15 +130,14 @@ export const attachmentChildHandlers = {
   },
 
   async attach_approved_gpt_files_once(intent, context) {
-    requireExactInputKeys(intent, ["files"], ["reconcileOnly"]);
+    requireExactInputKeys(intent, ["files"]);
     const files = filesFromIntent(intent);
     if (files.length === 0) return success({
       value: { files: [], mutationSent: false }, candidateCount: 0,
       observedSemantics: ["approved attachment set empty"], committedMutation: "no",
     });
     const browser = requireBrowser(context);
-    const reconcileOnly = intent.input.reconcileOnly === undefined ? false : booleanInput(intent, "reconcileOnly");
-    if (reconcileOnly) throw executionFailure("failed", "GPT_ATTACHMENT_UPLOAD_PENDING");
+    if (context.mutationMode === "readback") throw executionFailure("failed", "GPT_ATTACHMENT_UPLOAD_PENDING");
     await requireOneCandidate(browser, {
       selector: GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
       textEquals: GPT_UPLOAD_FROM_COMPUTER_LABEL,

@@ -10,6 +10,7 @@ import type {
 } from "./contracts.js";
 import { sha256 } from "./contracts.js";
 import type {
+  GptChildCapabilityId,
   GptReasoningTier,
   GptTaskLabelKey,
 } from "../../../capabilities/gpt/index.js";
@@ -41,23 +42,43 @@ export interface GeneratedImageArtifact {
 
 export interface SharedExecutionContext {
   readonly materials: readonly LocalProductionMaterial[];
-  readonly runTurn: (input: Readonly<{
-    step_id: string;
-    instruction: string;
-    material_roles: readonly string[];
-    provider: Readonly<{
-      labelKey: GptTaskLabelKey;
-      profileRef: string;
-      modelDisplayName: string;
-      modelFamily: string;
-      reasoningTier: GptReasoningTier;
-    }>;
-    output_kind?: "text" | "generated_image";
-    same_conversation_as?: ProviderTurnResult;
-    use_task_continuation?: boolean;
-    continuation_source_plugin_ids?: readonly string[];
-  }>) => Promise<ProviderTurnResult>;
+  readonly gpt: ProductGptTools;
   readonly complete: (output: ProductPluginOutput) => Promise<WebsiteAgentResult>;
+}
+
+export type ProductGptCallRequest = Readonly<{
+  product_step_id: string;
+  call_id: string;
+  instruction: string;
+  material_roles: readonly string[];
+  provider: Readonly<{
+    labelKey: GptTaskLabelKey;
+    profileRef: string;
+    modelDisplayName: string;
+    modelFamily: string;
+    reasoningTier: GptReasoningTier;
+  }>;
+  output_kind?: "text" | "generated_image";
+  same_conversation_as?: ProviderTurnResult;
+  use_task_continuation?: boolean;
+  continuation_source_plugin_ids?: readonly string[];
+}>;
+
+export type ProductGptChildResult = Readonly<{
+  value: unknown;
+  evidenceRef: string;
+  evidenceHash: ProductionHash;
+}>;
+
+export interface ProductGptTools {
+  readonly attemptId: string;
+  execute(input: Readonly<{
+    productStepId: string;
+    callId: string;
+    child: GptChildCapabilityId;
+    actionOrdinal: number;
+    input: Readonly<Record<string, unknown>>;
+  }>): Promise<ProductGptChildResult>;
 }
 
 export interface ProductPluginOutput {
