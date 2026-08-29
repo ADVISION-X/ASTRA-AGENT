@@ -94,7 +94,11 @@ const report = (schema_version: string, summary: string, blocks: string): Record
 const publicResearch = Object.freeze({
   schema_version: "public-knowledge-research-output.v3",
   decision: "proceed",
-  topic_manifest: { topic: "one" },
+  topic_manifest: {
+    primary_question: "one", answer_scope: "one", excluded_scope: "one",
+    primary_cluster_id: "one", secondary_cluster_ids: [], reader_level: "introductory",
+    concept_keys: [], relation_keys: [], method_scope: [],
+  },
   editorial_intent: "intent",
   catalog_comparison_note: "comparison",
   research_markdown: "research",
@@ -103,7 +107,7 @@ const publicResearch = Object.freeze({
   research_claim_units: [],
   closest_existing_article_ids: [],
   relation_assertions: [],
-  novelty_basis: "novel",
+  novelty_basis: "independent_question",
 });
 
 const coreOutputFor = (task: WebsiteAgentTask, route: ProductionRoutePolicy): Record<string, unknown> | null => {

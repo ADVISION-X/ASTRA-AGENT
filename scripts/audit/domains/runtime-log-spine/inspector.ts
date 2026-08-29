@@ -169,7 +169,7 @@ const inspectOperationalAst = (context: InspectorContext): InspectorFinding[] =>
       "operation: \"plugin.execute\"", "parentSpanId", "causedByEventId", "requireRuntimeLogWrite",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "executor-boundaries",
-    "src/lib/local-runtime/production/production-gpt-executor.ts", [
+    "src/lib/local-runtime/production/production-gpt-child-tools.ts", [
       "operation: \"gpt.child\"", "parentSpanId", "requireRuntimeLogWrite",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "producer-boundaries",

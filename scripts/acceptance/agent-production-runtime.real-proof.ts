@@ -47,13 +47,13 @@ const dynamicClaimContract = (/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_BEGIN */
     "LAW-GPT-001-V6:dynamic.provider": {"claims": {"forbidden:1": [{"path": "/facts/provider_count", "operator": "equals", "expected": 1}]}},
     "LAW-GPT-001-V6:dynamic.authorization": {"claims": {"forbidden:2": [{"path": "/facts/exact_target_document_binding_count", "operator": "gte", "expected": 39}]}},
     "LAW-GPT-001-V6:dynamic.recovery": {"claims": {"forbidden:6": [{"path": "/facts/failed_observed", "operator": "equals", "expected": true}, {"path": "/facts/completed_observed", "operator": "equals", "expected": true}, {"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V9:dynamic.browser": {"claims": {"forbidden:17": [{"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V9:dynamic.service": {"claims": {"forbidden:17": [{"path": "/facts/browser_context_closed", "operator": "equals", "expected": true}, {"path": "/facts/cleanup_verified", "operator": "equals", "expected": true}, {"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}, {"path": "/facts/workbench_stopped", "operator": "equals", "expected": true}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V9:dynamic.database": {"claims": {"forbidden:8": [{"path": "/facts/frozen_identity_count", "operator": "equals", "expected": 39}, {"path": "/facts/frozen_identity_invalid_count", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V9:dynamic.storage": {"claims": {"forbidden:10": [{"path": "/unresolvedCount", "operator": "equals", "expected": 0}, {"path": "/facts/confirmed_row_invalid_count", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V9:dynamic.provider": {"claims": {"forbidden:0": [{"path": "/facts/catalog_plugin_count", "operator": "equals", "expected": 12}, {"path": "/facts/executed_route_count", "operator": "equals", "expected": 39}, {"path": "/facts/primary_route_count", "operator": "equals", "expected": 13}, {"path": "/facts/review_route_count", "operator": "equals", "expected": 26}, {"path": "/facts/route_denominator_complete", "operator": "equals", "expected": true}, {"path": "/terminalReceiptCount", "operator": "equals", "expected": 39}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V9:dynamic.authorization": {"claims": {"forbidden:3": [{"path": "/facts/lease_fence_bound_job_count", "operator": "equals", "expected": 39}, {"path": "/facts/unbound_lease_fence_job_count", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V9:dynamic.recovery": {"claims": {"forbidden:9": [{"path": "/facts/failed_observed", "operator": "equals", "expected": true}, {"path": "/facts/completed_observed", "operator": "equals", "expected": true}, {"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}}
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V10:dynamic.browser": {"claims": {"forbidden:17": [{"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V10:dynamic.service": {"claims": {"forbidden:17": [{"path": "/facts/browser_context_closed", "operator": "equals", "expected": true}, {"path": "/facts/cleanup_verified", "operator": "equals", "expected": true}, {"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}, {"path": "/facts/workbench_stopped", "operator": "equals", "expected": true}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V10:dynamic.database": {"claims": {"forbidden:8": [{"path": "/facts/frozen_identity_count", "operator": "equals", "expected": 39}, {"path": "/facts/frozen_identity_invalid_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V10:dynamic.storage": {"claims": {"forbidden:10": [{"path": "/unresolvedCount", "operator": "equals", "expected": 0}, {"path": "/facts/confirmed_row_invalid_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V10:dynamic.provider": {"claims": {"forbidden:0": [{"path": "/facts/catalog_plugin_count", "operator": "equals", "expected": 12}, {"path": "/facts/executed_route_count", "operator": "equals", "expected": 39}, {"path": "/facts/primary_route_count", "operator": "equals", "expected": 13}, {"path": "/facts/review_route_count", "operator": "equals", "expected": 26}, {"path": "/facts/route_denominator_complete", "operator": "equals", "expected": true}, {"path": "/terminalReceiptCount", "operator": "equals", "expected": 39}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V10:dynamic.authorization": {"claims": {"forbidden:3": [{"path": "/facts/lease_fence_bound_job_count", "operator": "equals", "expected": 39}, {"path": "/facts/unbound_lease_fence_job_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V10:dynamic.recovery": {"claims": {"forbidden:9": [{"path": "/facts/failed_observed", "operator": "equals", "expected": true}, {"path": "/facts/completed_observed", "operator": "equals", "expected": true}, {"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}}
   }
 }
 /* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_END */) as const;
@@ -248,18 +248,17 @@ assert.equal(taskHistory.get(recoveryJobId)?.has("failed"), true,
 
 type TaskRow = { created_at: string; identity_json: string; job_id: string; request_hash: string;
   result_json: string; status: string; task_json: string; updated_at: string };
-type StepRow = { job_id: string; step_id: string; result_json: string; completed_at: string };
 type OutboxRow = { kind: string; path: string; body_blob: Buffer; sent_at: string | null };
 type MutationRow = { command_id: string; owner_plugin_id: string; job_id: string; attempt_id: string;
   lease_version: number; execution_fence_hash: string; target_ref: string; document_ref: string;
-  plugin_step_id: string; child_capability_id: string; action_ordinal: number; action_id: string;
+  product_step_id: string; call_id: string; child_capability_id: string; effect_scope: string;
+  action_ordinal: number; action_id: string;
   positive_postcondition_hash: string; negative_postcondition_hash: string;
   request_hash: string; payload_hash: string; proof_hash: string | null; state: string };
 
 const production = openReadOnly(productionDatabasePath);
 const mutations = openReadOnly(mutationDatabasePath);
 let taskRows: TaskRow[];
-let stepRows: StepRow[];
 let outboxRows: OutboxRow[];
 let mutationRows: MutationRow[];
 let continuationRows: Array<{ continuation_ref: string; origin_job_id: string; lane_owner_job_id: string | null }>;
@@ -267,14 +266,12 @@ let mutationJournalMode = "";
 try {
   taskRows = production.prepare(`select created_at,identity_json,job_id,request_hash,result_json,status,task_json,updated_at from production_tasks
     where job_id in (${placeholders}) order by job_id`).all(...jobIds) as TaskRow[];
-  stepRows = production.prepare(`select job_id,step_id,result_json,completed_at from production_steps
-    where job_id in (${placeholders}) order by job_id,step_id`).all(...jobIds) as StepRow[];
   outboxRows = production.prepare("select kind,path,body_blob,sent_at from production_outbox order by created_at,idempotency_key")
     .all() as OutboxRow[];
   continuationRows = production.prepare(`select continuation_ref,origin_job_id,lane_owner_job_id from production_continuations
     where origin_job_id in (${placeholders}) order by continuation_ref`).all(...jobIds) as typeof continuationRows;
   mutationRows = mutations.prepare(`select command_id,owner_plugin_id,job_id,attempt_id,lease_version,
-    execution_fence_hash,plugin_step_id,child_capability_id,action_ordinal,target_ref,document_ref,action_id,
+    execution_fence_hash,product_step_id,call_id,child_capability_id,effect_scope,action_ordinal,target_ref,document_ref,action_id,
     positive_postcondition_hash,negative_postcondition_hash,request_hash,payload_hash,proof_hash,state
     from browser_mutations where job_id in (${placeholders}) order by job_id,updated_at,command_id`)
     .all(...jobIds) as MutationRow[];
@@ -287,13 +284,6 @@ const routeCoverage = assertProductionProofRouteCoverage(taskRows, agentPluginCa
 const observedPlugins = [...routeCoverage.pluginIds];
 const catalogPlugins = agentPluginCapabilityManifest.plugins.map((plugin) => plugin.plugin_id).sort();
 assert.deepEqual(observedPlugins, catalogPlugins, "the thirty-nine real routes must cover the exact Plugin Catalog");
-assert.equal(jobIds.every((jobId) => stepRows.some((step) => step.job_id === jobId)), true,
-  "each real job must persist at least one GPT step");
-assert.equal(stepRows.every((step) => {
-  const refs = (JSON.parse(step.result_json) as { evidence_refs?: unknown }).evidence_refs;
-  return Array.isArray(refs) && refs.length > 0
-    && refs.every((ref) => typeof ref === "string" && ref.startsWith("gpt-child-proof:"));
-}), true, "every persisted GPT step must bind direct child proof references");
 assert.equal(jobIds.every((jobId) => outboxRows.some((row) => row.kind === "terminal" && row.sent_at
   && row.path.includes(encodeURIComponent(jobId)) && row.body_blob.toString("utf8").includes(jobId))), true,
 "each real job must have a sent provider terminal receipt");
@@ -305,7 +295,8 @@ assert.equal(mutationRows.some((row) => ["PREPARED", "DISPATCHED"].includes(row.
   "no physical mutation may remain unresolved");
 assert.equal(mutationRows.filter((row) => row.state === "CONFIRMED").every((row) =>
   Boolean(row.proof_hash && row.target_ref && row.document_ref && row.execution_fence_hash
-    && row.plugin_step_id && row.child_capability_id && row.action_ordinal >= 1
+    && row.product_step_id && row.call_id && row.child_capability_id && row.effect_scope
+    && row.action_ordinal >= 1
     && row.positive_postcondition_hash && row.negative_postcondition_hash
     && row.request_hash && row.payload_hash)), true);
 
@@ -314,11 +305,11 @@ const runtimeLogProof = observeProductionProofRuntimeLogs({
 });
 const completedBrowserEvents = runtimeLogProof.completedBrowserEvents;
 for (const capability of [
-  "bind_exact_gpt_target", "verify_gpt_workspace", "verify_gpt_execution_profile",
-  "attach_approved_gpt_files_once", "verify_gpt_attachment_set", "write_exact_gpt_prompt",
-  "verify_exact_gpt_prompt", "submit_exact_gpt_turn", "verify_gpt_turn_submission",
-  "observe_exact_gpt_assistant_turn", "wait_for_stable_gpt_response", "checkpoint_gpt_text_response",
-  "focus_exact_gpt_conversation", "verify_gpt_conversation_identity", "verify_exact_gpt_title",
+  "prepare_clean_gpt_chat", "open_gpt_execution_profile", "open_gpt_model_selector_v2",
+  "select_exact_gpt_model_v2", "ensure_exact_gpt_reasoning_tier", "close_gpt_execution_profile",
+  "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set", "write_exact_gpt_prompt",
+  "reconcile_gpt_draft", "submit_exact_gpt_turn_once", "reconcile_gpt_turn_submission",
+  "wait_for_stable_gpt_text", "checkpoint_gpt_text_response",
 ]) assert.equal(completedBrowserEvents.some((event) => event.typedIdentity.kind === "browser-command"
   && event.typedIdentity.childCapabilityId === capability), true,
   `missing real GPT child ${capability}`);
@@ -417,7 +408,7 @@ const observation: DirectRuntimeObservation = Object.freeze({
   database: {
     databaseEngine: "sqlite", databasePath: productionDatabasePath, identitySet: jobIds,
     facts: { frozen_identity_count: taskRows.length, frozen_identity_invalid_count: frozenIdentityInvalidCount },
-    recordCounts: { tasks: taskRows.length, steps: stepRows.length, continuations: continuationRows.length },
+    recordCounts: { tasks: taskRows.length, continuations: continuationRows.length },
   },
   storage: {
     confirmedCount: mutationRows.filter((row) => row.state === "CONFIRMED").length,

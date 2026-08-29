@@ -24,6 +24,7 @@ import {
   reasoningTierUiLabel,
   reasoningTierUiValue,
 } from "../../src/capabilities/gpt/web/contracts/execution-profile.contract.js";
+import { GPT_ATTACHMENT_REGION_SELECTOR } from "../../src/capabilities/gpt/web/contracts/attachment.contract.js";
 import { EXPECTED_GPT_CHILD_IDS, fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
 
 const gpt = createGptAbilityGroup();
@@ -52,6 +53,7 @@ const execute = (
   childCapabilityId: GptChildCapabilityId,
   browser: BrowserTargetLease,
   input: Readonly<Record<string, unknown>>,
+  mutationMode?: "normal" | "readback",
 ) => {
   ordinal += 1;
   return gpt.execute({
@@ -65,7 +67,7 @@ const execute = (
     inputHash: hashCanonical(input),
     actionOrdinal: ordinal,
     input,
-  }, { dataDir: "/tmp/gpt-exact-target", browser });
+  }, { dataDir: "/tmp/gpt-exact-target", browser, ...(mutationMode ? { mutationMode } : {}) });
 };
 
 const profile = buildGptExecutionProfile({
@@ -165,5 +167,19 @@ assert.equal(moved.status, "success", moved.failureCode ?? "reasoning move faile
 assert.equal(current, 4);
 assert.equal(moveFixture.physicalMutations(), 1);
 assert.equal(GPT_PROFILE_REASONING_VALUE_SELECTOR, "[data-model-reasoning-effort-slider] [role='slider']");
+
+const attachmentFixture = fakeBrowser((intent) => {
+  if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_REGION_SELECTOR) return { count: 1 };
+  if (intent.kind === "readText" && intent.selector === GPT_ATTACHMENT_REGION_SELECTOR) return "甲.pdf";
+  throw new Error(`UNEXPECTED_ATTACHMENT_READBACK_INTENT:${intent.kind}`);
+});
+const attachmentReadback = await execute("attach_approved_gpt_files_once", attachmentFixture.browser, {
+  files: [{
+    artifactRef: "artifact:1", filePath: "/must-not-be-read", displayName: "甲.pdf",
+    sha256: `sha256:${"1".repeat(64)}`, bytes: 10,
+  }],
+}, "readback");
+assert.equal(attachmentReadback.status, "success", attachmentReadback.failureCode ?? "attachment readback failed");
+assert.equal(attachmentFixture.physicalMutations(), 0, "DISPATCHED attachment recovery must only read exact postcondition");
 
 process.stdout.write("[ACCEPTANCE][gpt-exact-target] PASS\n");

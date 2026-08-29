@@ -92,6 +92,36 @@ const issueGrants = async (
 const countOccurrences = (value: string, needle: string): number =>
   needle.length === 0 ? 0 : value.split(needle).length - 1;
 
+const observeExactAttachmentSet = async (
+  browser: ReturnType<typeof requireBrowser>,
+  files: readonly ApprovedFile[],
+) => {
+  const regionCount = await findCount(browser, { selector: GPT_ATTACHMENT_REGION_SELECTOR, maxMatches: 2 });
+  if (files.length === 0) {
+    if (regionCount !== 0) throw executionFailure("failed", `GPT_ATTACHMENT_REGION_COUNT_${regionCount}`);
+    return success({
+      value: { files: [] }, candidateCount: 0,
+      observedSemantics: ["zero approved attachments", "zero visible attachment regions"], committedMutation: "no",
+    });
+  }
+  if (regionCount !== 1) throw executionFailure("failed", `GPT_ATTACHMENT_REGION_COUNT_${regionCount}`);
+  const text = await readExactText(browser, GPT_ATTACHMENT_REGION_SELECTOR, 16_384);
+  const mismatches = files.filter((file) => countOccurrences(text, file.displayName) !== 1);
+  const unexplained = files.reduce(
+    (remaining, file) => remaining.split(file.displayName).join(""),
+    text,
+  ).replace(/\s+/gu, "");
+  if (mismatches.length || unexplained.length > 0) {
+    throw executionFailure("failed", `GPT_ATTACHMENT_SET_MISMATCH:${mismatches.map((file) => file.displayName).join("|")}`);
+  }
+  return success({
+    value: { files: files.map(({ artifactRef, displayName, sha256, bytes }) => ({ artifactRef, displayName, sha256, bytes })) },
+    candidateCount: regionCount,
+    observedSemantics: ["one exact attachment region", "all and only approved display names"],
+    committedMutation: "no",
+  });
+};
+
 export const attachmentChildHandlers = {
   async open_gpt_attachment_control(intent, context) {
     requireExactInputKeys(intent, []);
@@ -137,7 +167,7 @@ export const attachmentChildHandlers = {
       observedSemantics: ["approved attachment set empty"], committedMutation: "no",
     });
     const browser = requireBrowser(context);
-    if (context.mutationMode === "readback") throw executionFailure("failed", "GPT_ATTACHMENT_UPLOAD_PENDING");
+    if (context.mutationMode === "readback") return observeExactAttachmentSet(browser, files);
     await requireOneCandidate(browser, {
       selector: GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
       textEquals: GPT_UPLOAD_FROM_COMPUTER_LABEL,
@@ -160,29 +190,6 @@ export const attachmentChildHandlers = {
     requireExactInputKeys(intent, ["files"]);
     const files = filesFromIntent(intent);
     const browser = requireBrowser(context);
-    const regionCount = await findCount(browser, { selector: GPT_ATTACHMENT_REGION_SELECTOR, maxMatches: 2 });
-    if (files.length === 0) {
-      if (regionCount !== 0) throw executionFailure("failed", `GPT_ATTACHMENT_REGION_COUNT_${regionCount}`);
-      return success({
-        value: { files: [] }, candidateCount: 0,
-        observedSemantics: ["zero approved attachments", "zero visible attachment regions"], committedMutation: "no",
-      });
-    }
-    if (regionCount !== 1) throw executionFailure("failed", `GPT_ATTACHMENT_REGION_COUNT_${regionCount}`);
-    const text = await readExactText(browser, GPT_ATTACHMENT_REGION_SELECTOR, 16_384);
-    const mismatches = files.filter((file) => countOccurrences(text, file.displayName) !== 1);
-    const unexplained = files.reduce(
-      (remaining, file) => remaining.split(file.displayName).join(""),
-      text,
-    ).replace(/\s+/gu, "");
-    if (mismatches.length || unexplained.length > 0) {
-      throw executionFailure("failed", `GPT_ATTACHMENT_SET_MISMATCH:${mismatches.map((file) => file.displayName).join("|")}`);
-    }
-    return success({
-      value: { files: files.map(({ artifactRef, displayName, sha256, bytes }) => ({ artifactRef, displayName, sha256, bytes })) },
-      candidateCount: regionCount,
-      observedSemantics: ["one exact attachment region", "all and only approved display names"],
-      committedMutation: "no",
-    });
+    return observeExactAttachmentSet(browser, files);
   },
 } satisfies GptChildHandlerMap;

@@ -1,6 +1,0 @@
-interface:
-  display_name: "AGENT 生产内测维护"
-  short_description: "逐产品实测、定责、重构、安全清理与复跑"
-  default_prompt: "Use $agent-production-maintenance-loop to run or plan the governed dual-repository AGENT production maintenance loop, fail closed on unresolved authority or browser mutation state, and report the exact claim ceiling in Chinese."
-policy:
-  allow_implicit_invocation: false

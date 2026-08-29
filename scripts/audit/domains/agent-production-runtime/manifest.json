@@ -3,10 +3,9 @@
   "capabilityDomain": "agent-production-runtime",
   "status": "active",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V9"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V10"
   ],
   "ownedPaths": [
-    ".agents/skills/agent-production-maintenance-loop/**",
     "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
     "docs/specs/agent-production-runtime/**",
     "docs/项目方案/AGNET迭代会议记录.md",

@@ -1,459 +1,214 @@
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
-import { Node, SyntaxKind, type SourceFile } from "ts-morph";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { relative, resolve } from "node:path";
+import { Node, type SourceFile } from "ts-morph";
+
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { recordStaticCheck } from "../../shared/static-inspection-contract.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
-import { inspectRuntimeHardening } from "./runtime-hardening-inspection.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V9";
+
+const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V10";
 const PLUGIN_ROOT = "src/plugins";
 const CATALOG_PATH = "src/lib/local-runtime/production/catalog.ts";
 const CONTRACT_PATH = "src/lib/local-runtime/production/contracts.ts";
-const TRANSPORT_PATH = "src/lib/local-runtime/production/transport-protocol.ts";
-const RUNTIME_PATH = "src/lib/local-runtime/production/runtime-claim.ts";
-const RUNTIME_LOGGING_PATH = "src/lib/local-runtime/production/runtime-logging.ts";
 const PLUGIN_CONTRACT_PATH = "src/lib/local-runtime/production/plugin.ts";
-const MEDIATOR_PATH = "src/mediator/agent-production-route.ts";
-const PSC_PATH = "src/capabilities/gpt/session/gpt-session-controller.ts";
-const LOCALIZATION_PLUGIN_PATH = "src/plugins/localization-production/index.ts";
-const LOCALIZATION_SKILL_PATH = "src/plugins/localization-production/SKILL.md";
-const REAL_PROOF_PATH = "scripts/acceptance/agent-production-runtime.real-proof.ts";
 const EXECUTOR_PATH = "src/lib/local-runtime/production/executor.ts";
-const GPT_EXECUTOR_PATH = "src/lib/local-runtime/production/production-gpt-executor.ts";
-const GPT_EVIDENCE_PATH = "src/lib/local-runtime/production/gpt-evidence-writer.ts";
-const CLOUD_CLIENT_PATH = "src/lib/local-runtime/production/cloud-client.ts";
-const TYPED_FAILURE_PATH = "src/lib/typed-failure.ts";
-const GPT_RESPONSE_PATH = "src/capabilities/gpt/web/children/response-children.ts";
-const PRODUCTION_BLUEPRINT_PATH = "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md";
-const forbiddenDeterministicProducts = ["bazi_basic_chart", "bazi_pdf_export",
-  "qimen_basic_chart",
-  "qimen_professional_chart",
-  "hehun_case_preparation",
+const CHILD_TOOLS_PATH = "src/lib/local-runtime/production/production-gpt-child-tools.ts";
+const STORE_FOUNDATION_PATH = "src/lib/local-runtime/production/store-foundation.ts";
+
+const retiredPaths = [
+  "src/capabilities/gpt/gpt-turn-executor.ts",
+  "src/lib/local-runtime/production/gpt-turn-state.ts",
+  "src/lib/local-runtime/production/production-gpt-executor.ts",
+  "src/lib/local-runtime/production/production-gpt-turn-flow.ts",
+  "src/plugins/product-gpt-call.ts",
 ] as const;
-const businessTokens = [
-  "bazi_", "qimen_", "hehun_", "naming_", "localization_", "payment_screenshot_",
-  "public_knowledge_", "八字", "奇门", "合婚", "起名", "本地化", "付款截图",
-] as const;
-const finding = (checkId: string, filePath: string, message: string, line?: number,
-  evidenceMode = "static.ast"): InspectorFinding =>
-  createFinding({
-    evidenceMode,
-    lawId: LAW_ID,
-    clauseId: `${LAW_ID.toLowerCase()}-requirement`,
-    checkId,
-    filePath,
-    message,
-    ...(line === undefined ? {} : { line }),
-  });
-const sourceFor = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
-  context.project.getSourceFile(resolve(context.sealedRoot, repoPath));
-const read = (context: InspectorContext, repoPath: string): string =>
-  readFileSync(resolve(context.sealedRoot, repoPath), "utf8");
-const pluginDirectories = (context: InspectorContext): string[] => {
+
+const finding = (
+  checkId: string,
+  filePath: string,
+  message: string,
+  evidenceMode: "static.ast" | "static.filesystem" | "static.types" | "static.contract" | "static.dependency" = "static.ast",
+  line?: number,
+): InspectorFinding => createFinding({
+  evidenceMode, lawId: LAW_ID, clauseId: `${LAW_ID.toLowerCase()}-requirement`,
+  checkId, filePath, message, ...(line === undefined ? {} : { line }),
+});
+
+const sourceFor = (context: InspectorContext, path: string): SourceFile | undefined =>
+  context.project.getSourceFile(resolve(context.sealedRoot, path));
+const read = (context: InspectorContext, path: string): string =>
+  readFileSync(resolve(context.sealedRoot, path), "utf8");
+const pluginIds = (context: InspectorContext): string[] => {
   const root = resolve(context.sealedRoot, PLUGIN_ROOT);
-  if (!existsSync(root)) return [];
-  return readdirSync(root, { withFileTypes: true })
+  return existsSync(root) ? readdirSync(root, { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && !entry.isSymbolicLink())
-    .map((entry) => entry.name)
-    .sort();
-};
-const importsAnotherPlugin = (
-  context: InspectorContext,
-  pluginId: string,
-  indexPath: string,
-  specifier: string,
-): boolean => {
-  if (!specifier.startsWith(".")) return false;
-  const pluginsRoot = resolve(context.sealedRoot, PLUGIN_ROOT);
-  const importedPath = resolve(dirname(resolve(context.sealedRoot, indexPath)), specifier);
-  const importedRelativePath = relative(pluginsRoot, importedPath);
-  if (importedRelativePath.startsWith("..") || importedRelativePath === "") return false;
-  const importedRoot = importedRelativePath.split("/")[0]!;
-  const importedRootPath = resolve(pluginsRoot, importedRoot);
-  return importedRoot !== pluginId && existsSync(importedRootPath) && statSync(importedRootPath).isDirectory();
-};
-const inspectPluginRoot = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  pluginId: string,
-): void => {
-  const root = resolve(context.sealedRoot, PLUGIN_ROOT, pluginId);
-  const entries = readdirSync(root, { withFileTypes: true });
-  const skills = entries.filter((entry) => entry.isFile() && entry.name.toLocaleLowerCase("en-US") === "skill.md");
-  const indexPath = `${PLUGIN_ROOT}/${pluginId}/index.ts`;
-  if (skills.length !== 1) findings.push(finding(
-    "agent-production-runtime/one-skill-per-plugin", `${PLUGIN_ROOT}/${pluginId}`,
-    `${pluginId} must own exactly one same-root SKILL.md; found ${skills.length}.`,
-  ));
-  if (!existsSync(resolve(context.sealedRoot, indexPath))) findings.push(finding(
-    "agent-production-runtime/plugin-entry-present", indexPath, `${pluginId} is missing its Product Plugin entry.`,
-  ));
-  if (skills.length === 1) inspectProductSkill(findings, pluginId, root, skills[0]!.name);
-  const pluginSource = sourceFor(context, indexPath);
-  if (!pluginSource) return;
-  const pluginText = pluginSource.getFullText();
-  if (entries.some((entry) => entry.isFile() && entry.name === "gpt-flow.ts")
-    || pluginText.includes("gpt_flow") || pluginText.includes("gpt-flow")) {
-    findings.push(finding(
-      "agent-production-runtime/product-page-flow-retired", indexPath,
-      `${pluginId} must not own or import provider-page step arrays.`,
-    ));
-  }
-  if (!pluginText.includes("checkpointSchemaVersion: 2")) findings.push(finding(
-    "agent-production-runtime/atomic-checkpoint-schema", indexPath,
-    `${pluginId} must bind atomic GPT checkpoint schema version 2.`,
-  ));
-  for (const declaration of pluginSource.getImportDeclarations()) {
-    const specifier = declaration.getModuleSpecifierValue();
-    if (importsAnotherPlugin(context, pluginId, indexPath, specifier)) findings.push(finding(
-      "agent-production-runtime/plugin-cross-import",
-      indexPath,
-      `${pluginId} imports another Product Plugin through ${specifier}.`,
-      declaration.getStartLineNumber(),
-    ));
-  }
-};
-const inspectProductSkill = (
-  findings: InspectorFinding[],
-  pluginId: string,
-  root: string,
-  skillFileName: string,
-): void => {
-  const skillPath = join(root, skillFileName);
-  const skillText = readFileSync(skillPath, "utf8");
-  if (statSync(skillPath).size < 1_400 || !skillText.includes("## ") || !skillText.includes("复核")) {
-    findings.push(finding("agent-production-runtime/skill-not-shell", relative(resolve(root, "../../.."), skillPath),
-      `${pluginId} Product Skill is an empty or under-specified shell.`));
-  }
-  for (const token of ["Stage", "runTurn", "step_id", "checkpoint_schema_version", "same_conversation_as"]) {
-    if (skillText.includes(token)) findings.push(finding(
-      "agent-production-runtime/skill-execution-truth-forbidden",
-      relative(resolve(root, "../../.."), skillPath),
-      `${pluginId} Product Skill contains executable runtime token ${token}.`,
-    ));
-  }
-};
-const inspectPluginRoots = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const pluginIds = pluginDirectories(context);
-  if (pluginIds.length !== 12) {
-    findings.push(finding("agent-production-runtime/plugin-count", PLUGIN_ROOT,
-      `Catalog surface must contain exactly twelve Product Plugin roots; found ${pluginIds.length}: ${pluginIds.join(",")}.`));
-  }
-  if (pluginIds.includes("xuanxue-ai-production")) {
-    findings.push(finding("agent-production-runtime/giant-plugin-retired", `${PLUGIN_ROOT}/xuanxue-ai-production`,
-      "The retired giant xuanxue-ai-production Plugin remains physically present."));
-  }
-  const catalog = sourceFor(context, CATALOG_PATH);
-  if (!catalog) {
-    findings.push(finding("agent-production-runtime/catalog-present", CATALOG_PATH, "The unique Product Plugin Catalog is missing."));
-    return;
-  }
-  const catalogPluginImports = catalog.getImportDeclarations()
-    .map((declaration) => declaration.getModuleSpecifierValue())
-    .filter((specifier) => specifier.startsWith("../../../plugins/"))
-    .map((specifier) => specifier.slice("../../../plugins/".length).split("/")[0])
-    .filter((value): value is string => Boolean(value))
-    .sort();
-  if (new Set(catalogPluginImports).size !== 12
-    || JSON.stringify(catalogPluginImports) !== JSON.stringify(pluginIds)) {
-    findings.push(finding("agent-production-runtime/catalog-is-plugin-denominator", CATALOG_PATH,
-      `Catalog imports must be the exact Plugin-root denominator; imports=${catalogPluginImports.join(",")}; roots=${pluginIds.join(",")}.`));
-  }
-  const catalogText = catalog.getFullText();
-  for (const forbidden of forbiddenDeterministicProducts) {
-    if (catalogText.includes(forbidden)) findings.push(finding(
-      "agent-production-runtime/deterministic-product-forbidden",
-      CATALOG_PATH,
-      `Website-deterministic product ${forbidden} must not enter the AGENT Catalog.`,
-    ));
-  }
-
-  for (const pluginId of pluginIds) inspectPluginRoot(context, findings, pluginId);
-};
-const inspectContractsAndMediator = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const pluginContract = sourceFor(context, PLUGIN_CONTRACT_PATH);
-  const productPlugin = pluginContract?.getInterface("ProductPlugin");
-  const actualKeys = productPlugin?.getMembers().map((member) => {
-    if (Node.isPropertySignature(member) || Node.isMethodSignature(member)) return member.getName();
-    return "";
-  }).filter(Boolean).sort() ?? [];
-  const expectedKeys = ["accepts", "checkpointSchemaVersion", "execute", "parseResult", "pluginId", "pluginVersion", "skillHash"].sort();
-  if (JSON.stringify(actualKeys) !== JSON.stringify(expectedKeys)) findings.push(finding(
-    "agent-production-runtime/product-plugin-exact-shape",
-    PLUGIN_CONTRACT_PATH,
-    `ProductPlugin must expose exactly seven fields; found ${actualKeys.join(",")}.`,
-  ));
-
-  const contracts = sourceFor(context, CONTRACT_PATH);
-  const contractText = contracts?.getFullText() ?? "";
-  for (const required of [
-    "WebsiteAgentTaskSchema", "WebsiteAgentResultSchema", "AgentPluginCapabilityManifestSchema",
-    "catalog_hash", "plugin_id", "plugin_version", "skill_hash", "checkpoint_schema_version", "request_hash",
-    "material_id", "ordinal", "display_name", "owner_scope_hash", "trust_class", "may_issue_instruction",
-    "review_policy", "accuracy_challenge", "quality_reflection",
-  ]) {
-    if (!contractText.includes(required)) findings.push(finding(
-      "agent-production-runtime/contract-binding", CONTRACT_PATH, `Production contracts are missing ${required}.`,
-    ));
-  }
-  for (const forbidden of ["stage_id", "graph", "join_topology", "provider_url", "retry_flow", "plugin_status"]) {
-    if (contractText.includes(forbidden)) findings.push(finding(
-      "agent-production-runtime/website-execution-field-forbidden", CONTRACT_PATH,
-      `Website task contract surface contains forbidden execution field ${forbidden}.`,
-    ));
-  }
-
-  const mediator = sourceFor(context, MEDIATOR_PATH);
-  const mediatorText = mediator?.getFullText() ?? "";
-  for (const required of ["WebsiteAgentTaskSchema.parse", "resolveProductionPlugin", ".execute("]) {
-    if (!mediatorText.includes(required)) findings.push(finding(
-      "agent-production-runtime/thin-mediator", MEDIATOR_PATH, `Mediator is missing required one-shot dispatch operation ${required}.`,
-    ));
-  }
-  for (const forbidden of ["runTurn", "prompt", "selector", "modelFamily", "reasoningTier", "checkpoint", "retry", "Browser"]) {
-    if (mediatorText.includes(forbidden)) findings.push(finding(
-      "agent-production-runtime/mediator-authority-leak", MEDIATOR_PATH,
-      `Mediator contains forbidden execution authority token ${forbidden}.`,
-    ));
-  }
-  const mediatorFiles = readdirSync(resolve(context.sealedRoot, "src/mediator"), { withFileTypes: true })
-    .filter((entry) => entry.isFile() && entry.name.endsWith(".ts"))
-    .map((entry) => entry.name);
-  if (JSON.stringify(mediatorFiles.sort()) !== JSON.stringify(["agent-production-route.ts"])) findings.push(finding(
-    "agent-production-runtime/one-mediator", "src/mediator",
-    `Exactly one production Mediator is allowed; found ${mediatorFiles.sort().join(",")}.`,
-  ));
-};
-
-const inspectSharedRuntimeAndPsc = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const runtimeRoot = resolve(context.sealedRoot, "src/lib/local-runtime/production");
-  for (const entry of readdirSync(runtimeRoot, { withFileTypes: true })) {
-    if (!entry.isFile() || !entry.name.endsWith(".ts")
-      || ["catalog.ts", "contracts.ts", "route-policy.ts"].includes(entry.name)) continue;
-    const repoPath = `src/lib/local-runtime/production/${entry.name}`;
-    const text = read(context, repoPath);
-    for (const token of businessTokens) {
-      if (text.includes(token)) findings.push(finding(
-        "agent-production-runtime/shared-runtime-product-neutral", repoPath,
-        `Shared production runtime contains product semantic token ${token}.`,
-      ));
-    }
-  }
-  const psc = sourceFor(context, PSC_PATH);
-  const pscText = psc?.getFullText() ?? "";
-  for (const required of [
-    "continuation_ref", "plugin_id", "owner_ref", "subject_ref", "authorization_ref",
-    "conversation_identity_hash", "lane_version", "lane_owner_job_id",
-  ]) {
-    if (!pscText.toLocaleLowerCase("en-US").includes(required.toLocaleLowerCase("en-US"))) findings.push(finding(
-      "agent-production-runtime/psc-durable-binding", PSC_PATH, `Provider Session Controller is missing ${required}.`,
-    ));
-  }
-  for (const token of businessTokens) {
-    if (pscText.includes(token)) findings.push(finding(
-      "agent-production-runtime/psc-product-neutral", PSC_PATH,
-      `Provider Session Controller contains product semantic token ${token}.`,
-    ));
-  }
-  const secondControllers = context.targetPaths.filter((path) =>
-    path !== PSC_PATH && path.endsWith("session-controller.ts"));
-  if (secondControllers.length) findings.push(finding(
-    "agent-production-runtime/one-provider-session-controller", secondControllers[0]!,
-    `A second Provider Session Controller exists: ${secondControllers.join(",")}.`,
-  ));
-};
-
-const inspectRetirementAndDurability = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  for (const retired of [
-    "src/plugins/xuanxue-ai-production",
-    "src/mediator/xuanxue-ai-production-route.ts",
-    "src/lib/local-runtime/workbench-xuanxue-ai-production-handle.ts",
-    "src/app/app-shell/xuanxue-ai-production-workspace.ts",
-    "src/capabilities/ai-input-gateway",
-    "src/lib/online-ai",
-  ]) {
-    if (existsSync(resolve(context.sealedRoot, retired))) findings.push(finding(
-      "agent-production-runtime/retired-path-zero", retired, `${retired} must be physically absent.`,
-    ));
-  }
-  const storePaths = [
-    "src/lib/local-runtime/production/store-foundation.ts",
-    "src/lib/local-runtime/production/store-task-state.ts",
-    "src/lib/local-runtime/production/store-outbox.ts",
-    "src/lib/local-runtime/production/store-ledger.ts",
-  ] as const;
-  const storeText = storePaths.map((path) => read(context, path)).join("\n");
-  for (const required of [
-    "journal_mode = WAL", "identity_json", "plugin_id", "plugin_version", "request_hash",
-    "PRODUCTION_OUTBOX_IDEMPOTENCY_CONFLICT", "failureCode(error, \"OUTBOX_DELIVERY_FAILED\")",
-    "pendingBusinessAdmissions", "completeTask", "HISTORICAL_FAILED_COMPLETION_RETIRED",
-    "EXECUTION_SLICE_RECONSTRUCTED", "agent-execution-slice-reconstruction.v1",
-    "old_identity_hash", "new_identity_hash", "PLUGIN_EXECUTION_SLICE_RECONSTRUCTION_UNSAFE",
-    "status text not null check(status in ('failed','completed'))", "lane_owner_job_id",
-    "gpt-turn-checkpoint.v2", "writeGptTurnCheckpoint", "readGptTurnCheckpoint",
-    "on conflict(job_id,step_id) do update set",
-  ]) {
-    if (!storeText.includes(required)) findings.push(finding(
-      "agent-production-runtime/durable-runtime", "src/lib/local-runtime/production/store-foundation.ts",
-      `Production store is missing durable invariant ${required}.`,
-    ));
-  }
-  if (storeText.includes("production_stages")) findings.push(finding(
-    "agent-production-runtime/stage-ledger-retired", "src/lib/local-runtime/production/store-foundation.ts",
-    "Production store still contains the retired website Stage mirror.",
-  ));
-
-  const transportText = read(context, TRANSPORT_PATH);
-  for (const required of [
-    "ClaimedProductionTaskSchema", "ExecutionGrantSchema", "ExecutionFenceSchema",
-    "WebsiteAgentTaskSchema.safeParse", "V6_CLAIM_TASK_GRANT_MISMATCH",
-    "WebsiteAgentTaskSchema.parse(projectWebsiteAgentTaskEnvelope(claim))",
-    "control_epoch: z.number().int().nonnegative()",
-    "AI_V6_CONTROL_INTENT_INITIAL_EPOCH_INVALID",
-  ]) {
-    if (!transportText.includes(required)) findings.push(finding(
-      "agent-production-runtime/v6-claim-projection", TRANSPORT_PATH,
-      `V6 claim validation and strict WebsiteAgentTask projection are missing ${required}.`,
-    ));
-  }
-
-  const runtimeText = read(context, RUNTIME_PATH);
-  const durableAcceptAt = runtimeText.indexOf("state.executor.accept(task, browserMutationPresent)");
-  const acceptedAt = runtimeText.indexOf("accepted = true", durableAcceptAt);
-  const remoteCheckpointAt = runtimeText.indexOf("downloadClaimMaterials(state, job", acceptedAt);
-  if (durableAcceptAt < 0 || acceptedAt <= durableAcceptAt || remoteCheckpointAt <= acceptedAt) findings.push(finding(
-    "agent-production-runtime/durable-accept-before-remote-checkpoint", RUNTIME_PATH,
-    "The runtime must mark durable local acceptance before attempting the remote acceptance checkpoint.",
-  ));
-
-  const localizationPluginText = read(context, LOCALIZATION_PLUGIN_PATH);
-  const localizationSkillText = read(context, LOCALIZATION_SKILL_PATH);
-  for (const required of ["source_content", "target_locale", "terminology", "locale_policy"]) {
-    if (!localizationPluginText.includes(required)) findings.push(finding(
-      "agent-production-runtime/localization-input-contract", LOCALIZATION_PLUGIN_PATH,
-      `Localization production input is missing ${required}.`,
-    ));
-  }
-  for (const required of ["目标 locale", "术语表", "locale policy", "FrozenSubject"]) {
-    if (!localizationSkillText.includes(required)) findings.push(finding(
-      "agent-production-runtime/localization-skill-boundary", LOCALIZATION_SKILL_PATH,
-      `Localization Product Skill is missing its required ${required} boundary.`,
-    ));
-  }
-
-};
-
-const inspectDirectDynamicProof = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const realProofText = read(context, REAL_PROOF_PATH);
-  for (const required of [
-    "chromium.launchPersistentContext", "readProductionTaskStatus", "production-runtime.sqlite",
-    "browser-mutations.sqlite", "GOVERNANCE_PROOF_RECEIPT_DIR", "GRASSEYE_PRODUCTION_PROOF_JOB_IDS",
-    "agentPluginCapabilityManifest", "observeProductionProofRuntimeLogs", "Object.keys(dynamicClaimContract.routes).sort()",
-    "assertProductionProofRouteCoverage", "jobIds.length, 39", "task_json", "routes=39",
-    "executed_route_count", "route_denominator_complete", "failed_observed", "completed_observed", "target=claimed",
-    "target=absent", "gpt-child-proof:", "sent provider terminal receipt",
-  ]) {
-    if (!realProofText.includes(required)) findings.push(finding(
-      "agent-production-runtime/direct-dynamic-proof", REAL_PROOF_PATH,
-      `The RELEASE producer is missing direct real-runtime observation ${required}.`,
-    ));
-  }
-  for (const forbidden of [
-    "GRASSEYE_GPT_DYNAMIC_PROOF_PATH", "agent-production-runtime-gpt-dynamic-proof.v1",
-    "candidate_hash", "same_job_id", "zero_replayed_mutations",
-  ]) {
-    if (realProofText.includes(forbidden)) findings.push(finding(
-      "agent-production-runtime/self-asserted-dynamic-proof-forbidden", REAL_PROOF_PATH,
-      `The RELEASE producer still accepts self-asserted proof token ${forbidden}.`,
-    ));
-  }
+    .map((entry) => entry.name).sort() : [];
 };
 
 const inspectAgentProductionRuntime = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  inspectPluginRoots(context, findings);
-  inspectContractsAndMediator(context, findings);
-  inspectSharedRuntimeAndPsc(context, findings);
-  inspectRetirementAndDurability(context, findings);
-  inspectDirectDynamicProof(context, findings);
-  inspectRuntimeHardening(context, findings, LAW_ID, {
-    pluginContract: PLUGIN_CONTRACT_PATH,
-    executor: EXECUTOR_PATH,
-    evidence: GPT_EVIDENCE_PATH,
-    cloudClient: CLOUD_CLIENT_PATH,
-    response: GPT_RESPONSE_PATH,
-    typedFailure: TYPED_FAILURE_PATH,
-    runtimeLogging: RUNTIME_LOGGING_PATH,
-    transport: TRANSPORT_PATH,
-    contract: CONTRACT_PATH,
-    runtime: RUNTIME_PATH,
-    gptExecutor: GPT_EXECUTOR_PATH,
-    blueprint: PRODUCTION_BLUEPRINT_PATH,
-    mutationCheckId: "logical-mutation-boundary",
-    gptExecutorMutationTokens: ["runAtomicStep({", "pluginStepId: input.stepId",
-      "childCapabilityId: input.intent.childCapabilityId", "readGptTurnCheckpoint", "assertNoPendingMutations"],
-    evidenceMutationTokens: ["committedMutation === \"dispatched\""],
-  });
+  const executor = read(context, EXECUTOR_PATH);
+  const childTools = read(context, CHILD_TOOLS_PATH);
+  const store = read(context, STORE_FOUNDATION_PATH);
+  for (const token of ["runTurn", "GptTurnExecutor", "GPT_TURN_FLOW", "resumePoint", "reconcileOnly"])
+    if (`${executor}\n${childTools}`.includes(token)) findings.push(finding(
+      "agent-production-runtime/central-turn-owner-retired", EXECUTOR_PATH,
+      `Shared runtime retains retired GPT turn token ${token}.`,
+    ));
+  for (const required of [
+    "ProductionGptChildTools", "this.gpt.execute(intent", "runAtomicStep(",
+    'mutationMode: "readback"', "sessionKey", "productStepId", "callId", "childCapabilityId", "inputHash",
+  ]) if (!childTools.includes(required)) findings.push(finding(
+    "agent-production-runtime/one-child-transport", CHILD_TOOLS_PATH,
+    `Child transport is missing ${required}.`,
+  ));
+  if (!executor.includes("gpt: gptExecution.tools") || executor.includes("runTurn:")) findings.push(finding(
+    "agent-production-runtime/product-child-interface", EXECUTOR_PATH,
+    "Executor must inject only ProductGptTools, never a shared turn runner.",
+  ));
+  for (const required of [
+    'ProductionTaskStatus = "failed" | "completed"',
+    "status text not null check(status in ('failed','completed'))",
+    "PRODUCTION_EMPTY_CUTOVER_REQUIRED",
+  ]) if (!store.includes(required)) findings.push(finding(
+    "agent-production-runtime/binary-task-store", STORE_FOUNDATION_PATH,
+    `Binary task store is missing ${required}.`,
+  ));
+  for (const forbidden of ["create table production_steps", "writeGptTurnCheckpoint", "readGptTurnCheckpoint"])
+    if (store.includes(forbidden)) findings.push(finding(
+      "agent-production-runtime/global-gpt-checkpoint-retired", STORE_FOUNDATION_PATH,
+      `Production store retains retired global GPT checkpoint token ${forbidden}.`,
+    ));
+  for (const pluginId of pluginIds(context)) {
+    const path = `${PLUGIN_ROOT}/${pluginId}/index.ts`;
+    const source = read(context, path);
+    if (source.includes("runTurn") || source.includes("executeProductGptCall")) findings.push(finding(
+      "agent-production-runtime/product-old-turn-api-retired", path,
+      `${pluginId} still calls a retired shared turn API.`,
+    ));
+    if (pluginId === "public-knowledge-article-pipeline") {
+      for (const required of [
+        "context.gpt.execute", "corpus_research", "article_synthesis", "article_image_generation",
+        "accuracy_challenge", "quality_reflection", "GPT-5.6 Sol", 'reasoningTier: "pro_standard"',
+        "acquire_gpt_continuation_lane", "advance_gpt_continuation_lane", "release_gpt_continuation_lane",
+      ]) if (!source.includes(required)) findings.push(finding(
+        "agent-production-runtime/seo-product-flow", path,
+        `SEO Product Flow is missing ${required}.`,
+      ));
+      if (source.includes("PRODUCT_FLOW_NOT_IMPLEMENTED:")) findings.push(finding(
+        "agent-production-runtime/seo-product-flow-stub-retired", path,
+        "SEO Product Flow still contains its retired fail-closed stub.",
+      ));
+    } else {
+      if (!source.includes(`PRODUCT_FLOW_NOT_IMPLEMENTED:${pluginId}:`)) findings.push(finding(
+        "agent-production-runtime/unimplemented-product-fail-closed", path,
+        `${pluginId} must remain precisely fail-closed until separately constructed.`,
+      ));
+      if (source.includes("context.gpt.execute")) findings.push(finding(
+        "agent-production-runtime/unimplemented-product-provider-call", path,
+        `${pluginId} must not call a Provider before its Product Flow is constructed.`,
+      ));
+    }
+  }
 };
+
 const inspectAgentFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const plugins = pluginDirectories(context);
-  if (plugins.length !== 12) findings.push(finding("agent-production-runtime/filesystem-plugin-count", PLUGIN_ROOT,
-    `Expected twelve physical Product Plugin roots; found ${plugins.length}.`, undefined, "static.filesystem"));
+  const plugins = pluginIds(context);
+  if (plugins.length !== 12) findings.push(finding(
+    "agent-production-runtime/plugin-count", PLUGIN_ROOT,
+    `Expected 12 Product roots; found ${plugins.length}.`, "static.filesystem",
+  ));
   for (const pluginId of plugins) {
     const root = resolve(context.sealedRoot, PLUGIN_ROOT, pluginId);
-    const files = readdirSync(root, { withFileTypes: true }).filter((entry) => entry.isFile());
-    if (files.filter((entry) => entry.name.toLocaleLowerCase("en-US") === "skill.md").length !== 1
-      || !files.some((entry) => entry.name === "index.ts")) findings.push(finding(
-      "agent-production-runtime/filesystem-plugin-pair", `${PLUGIN_ROOT}/${pluginId}`,
-      `${pluginId} must physically contain one SKILL.md and one index.ts.`, undefined, "static.filesystem"));
+    const files = readdirSync(root, { withFileTypes: true });
+    if (!files.some((entry) => entry.isFile() && entry.name === "index.ts")
+      || files.filter((entry) => entry.isFile() && entry.name.toLowerCase() === "skill.md").length !== 1) {
+      findings.push(finding("agent-production-runtime/product-root-shape", `${PLUGIN_ROOT}/${pluginId}`,
+        `${pluginId} must contain one index.ts and one SKILL.md.`, "static.filesystem"));
+    }
+    if (files.some((entry) => entry.isFile() && entry.name === "gpt-flow.ts")) findings.push(finding(
+      "agent-production-runtime/fabricated-product-flow-retired", `${PLUGIN_ROOT}/${pluginId}/gpt-flow.ts`,
+      "Copied generic Product flow must be physically absent.", "static.filesystem",
+    ));
   }
-  for (const retired of ["src/plugins/xuanxue-ai-production", "src/mediator/xuanxue-ai-production-route.ts",
-    "src/lib/local-runtime/workbench-xuanxue-ai-production-handle.ts", "src/capabilities/ai-input-gateway",
-    "src/lib/online-ai"]) if (existsSync(resolve(context.sealedRoot, retired))) findings.push(finding(
-    "agent-production-runtime/filesystem-retired-path", retired, `${retired} must be absent.`, undefined,
-    "static.filesystem"));
+  for (const path of retiredPaths) if (existsSync(resolve(context.sealedRoot, path))) findings.push(finding(
+    "agent-production-runtime/retired-path-absent", path,
+    `Retired central owner remains: ${path}.`, "static.filesystem",
+  ));
+  if (!existsSync(resolve(context.sealedRoot, CHILD_TOOLS_PATH))) findings.push(finding(
+    "agent-production-runtime/child-tools-present", CHILD_TOOLS_PATH,
+    "Atomic GPT Child transport is missing.", "static.filesystem",
+  ));
 };
+
 const inspectAgentTypes = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const source = sourceFor(context, PLUGIN_CONTRACT_PATH);
-  const plugin = source?.getInterface("ProductPlugin");
-  const expected = new Map([["pluginId", "string"], ["pluginVersion", "number"], ["checkpointSchemaVersion", "number"],
-    ["execute", "Promise<WebsiteAgentResult>"]]);
-  for (const [name, type] of expected) {
-    const member = plugin?.getMembers().find((candidate) => "getName" in candidate && candidate.getName() === name);
-    const actual = member && "getReturnType" in member ? member.getReturnType().getText(member)
-      : member && "getType" in member ? member.getType().getText(member) : "missing";
-    if (!actual.endsWith(type)) findings.push(finding("agent-production-runtime/typed-plugin-contract",
-      PLUGIN_CONTRACT_PATH, `${name} must resolve to ${type}; found ${actual}.`, undefined, "static.types"));
-  }
+  const productPlugin = source?.getInterface("ProductPlugin");
+  const productGptTools = source?.getInterface("ProductGptTools");
+  const pluginFields = productPlugin?.getMembers().flatMap((member) =>
+    Node.isPropertySignature(member) || Node.isMethodSignature(member) ? [member.getName()] : []).sort() ?? [];
+  const expectedPluginFields = [
+    "accepts", "checkpointSchemaVersion", "execute", "parseResult", "pluginId", "pluginVersion", "skillHash",
+  ].sort();
+  if (JSON.stringify(pluginFields) !== JSON.stringify(expectedPluginFields)) findings.push(finding(
+    "agent-production-runtime/product-plugin-type", PLUGIN_CONTRACT_PATH,
+    `ProductPlugin fields drifted: ${pluginFields.join(",")}.`, "static.types",
+  ));
+  const toolFields = productGptTools?.getMembers().flatMap((member) =>
+    Node.isPropertySignature(member) || Node.isMethodSignature(member) ? [member.getName()] : []).sort() ?? [];
+  if (JSON.stringify(toolFields) !== JSON.stringify(["attemptId", "execute"])) findings.push(finding(
+    "agent-production-runtime/product-gpt-tools-type", PLUGIN_CONTRACT_PATH,
+    `ProductGptTools may expose only attemptId and execute; found ${toolFields.join(",")}.`, "static.types",
+  ));
+  const execute = productGptTools?.getMethod("execute")?.getText() ?? "";
+  for (const required of ["sessionKey", "productStepId", "callId", "child", "actionOrdinal", "input"])
+    if (!execute.includes(required)) findings.push(finding(
+      "agent-production-runtime/product-gpt-call-identity", PLUGIN_CONTRACT_PATH,
+      `ProductGptTools.execute is missing ${required}.`, "static.types",
+    ));
 };
+
 const inspectAgentContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const contracts = read(context, CONTRACT_PATH);
-  for (const token of ["WebsiteAgentTaskSchema", "WebsiteAgentResultSchema", "AgentPluginCapabilityManifestSchema",
-    "catalog_hash", "plugin_id", "plugin_version", "skill_hash", "request_hash", "owner_scope_hash", "trust_class"])
-    if (!contracts.includes(token)) findings.push(finding("agent-production-runtime/parsed-contract-field", CONTRACT_PATH,
-      `Production contract is missing ${token}.`, undefined, "static.contract"));
-  for (const token of ["stage_id", "graph", "provider_url", "retry_flow", "plugin_status"])
-    if (contracts.includes(token)) findings.push(finding("agent-production-runtime/forbidden-contract-field", CONTRACT_PATH,
-      `Production contract contains ${token}.`, undefined, "static.contract"));
+  for (const required of [
+    "WebsiteAgentTaskSchema", "WebsiteAgentResultSchema", "AgentPluginCapabilityManifestSchema",
+    "catalog_hash", "plugin_id", "plugin_version", "request_hash", "owner_scope_hash", "trust_class",
+    'z.literal("completed")', "failure: z.null()",
+  ]) if (!contracts.includes(required)) findings.push(finding(
+    "agent-production-runtime/contract-field", CONTRACT_PATH,
+    `Production contract is missing ${required}.`, "static.contract",
+  ));
+  for (const forbidden of ["stage_id", "retryable", "attempt_mode", "plugin_status"])
+    if (contracts.includes(forbidden)) findings.push(finding(
+      "agent-production-runtime/contract-state-inflation", CONTRACT_PATH,
+      `Production contract retains forbidden state token ${forbidden}.`, "static.contract",
+    ));
 };
+
 const inspectAgentDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const plugins = pluginDirectories(context);
+  const plugins = pluginIds(context);
   const catalog = sourceFor(context, CATALOG_PATH);
-  const imports = catalog?.getImportDeclarations().map((declaration) => declaration.getModuleSpecifierValue())
+  const catalogImports = catalog?.getImportDeclarations()
+    .map((declaration) => declaration.getModuleSpecifierValue())
     .filter((specifier) => specifier.startsWith("../../../plugins/"))
     .map((specifier) => specifier.slice("../../../plugins/".length).split("/")[0]!).sort() ?? [];
-  if (JSON.stringify(imports) !== JSON.stringify(plugins)) findings.push(finding(
-    "agent-production-runtime/dependency-catalog-denominator", CATALOG_PATH,
-    `Catalog imports ${imports.join(",")} but Plugin roots are ${plugins.join(",")}.`, undefined, "static.dependency"));
+  if (JSON.stringify(catalogImports) !== JSON.stringify(plugins)) findings.push(finding(
+    "agent-production-runtime/catalog-denominator", CATALOG_PATH,
+    `Catalog imports ${catalogImports.join(",")} but roots are ${plugins.join(",")}.`, "static.dependency",
+  ));
   for (const pluginId of plugins) {
-    const indexPath = `${PLUGIN_ROOT}/${pluginId}/index.ts`;
-    for (const declaration of sourceFor(context, indexPath)?.getImportDeclarations() ?? []) {
+    const path = `${PLUGIN_ROOT}/${pluginId}/index.ts`;
+    for (const declaration of sourceFor(context, path)?.getImportDeclarations() ?? []) {
       const specifier = declaration.getModuleSpecifierValue();
-      if (importsAnotherPlugin(context, pluginId, indexPath, specifier)) findings.push(finding(
-        "agent-production-runtime/dependency-cross-plugin", indexPath,
-        `${pluginId} imports another Product Plugin through ${specifier}.`, declaration.getStartLineNumber(),
-        "static.dependency"));
+      if (!specifier.startsWith(".")) continue;
+      const imported = relative(resolve(context.sealedRoot, PLUGIN_ROOT),
+        resolve(resolve(context.sealedRoot, PLUGIN_ROOT, pluginId), specifier));
+      const root = imported.split("/")[0];
+      if (root && root !== pluginId && plugins.includes(root)) findings.push(finding(
+        "agent-production-runtime/cross-product-import", path,
+        `${pluginId} imports ${root}.`, "static.dependency", declaration.getStartLineNumber(),
+      ));
     }
   }
 };
@@ -462,30 +217,20 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => {
   const findings: InspectorFinding[] = [];
   const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
   recordStaticCheck({ check: "inspectAgentProductionRuntime", findings, implementation: inspectAgentProductionRuntime,
-    lawIds: [LAW_ID], receipts: staticCheckReceipts,
-    run: () => inspectAgentProductionRuntime(context, findings), });
+    lawIds: [LAW_ID], receipts: staticCheckReceipts, run: () => inspectAgentProductionRuntime(context, findings) });
   recordStaticCheck({ check: "inspectAgentFilesystem", findings, implementation: inspectAgentFilesystem,
-    lawIds: [LAW_ID], receipts: staticCheckReceipts,
-    run: () => inspectAgentFilesystem(context, findings) });
+    lawIds: [LAW_ID], receipts: staticCheckReceipts, run: () => inspectAgentFilesystem(context, findings) });
   recordStaticCheck({ check: "inspectAgentTypes", findings, implementation: inspectAgentTypes,
     lawIds: [LAW_ID], receipts: staticCheckReceipts,
     observe: () => observeTypeCheckerRelations(context.project, context.targetPaths),
     run: () => inspectAgentTypes(context, findings) });
   recordStaticCheck({ check: "inspectAgentContracts", findings, implementation: inspectAgentContracts,
-    lawIds: [LAW_ID], receipts: staticCheckReceipts,
-    run: () => inspectAgentContracts(context, findings) });
+    lawIds: [LAW_ID], receipts: staticCheckReceipts, run: () => inspectAgentContracts(context, findings) });
   recordStaticCheck({ check: "inspectAgentDependencies", findings, implementation: inspectAgentDependencies,
-    lawIds: [LAW_ID], receipts: staticCheckReceipts,
-    run: () => inspectAgentDependencies(context, findings) });
-  return {
-    capabilityDomain: context.planEntry.capabilityDomain,
-    reportedLawIds: context.planEntry.lawIds,
-    findings,
-    inspectedFiles: [...context.targetPaths],
-    staticCheckReceipts,
-  };
+    lawIds: [LAW_ID], receipts: staticCheckReceipts, run: () => inspectAgentDependencies(context, findings) });
+  return { capabilityDomain: context.planEntry.capabilityDomain, reportedLawIds: context.planEntry.lawIds,
+    findings, inspectedFiles: [...context.targetPaths], staticCheckReceipts };
 };
-export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  const evaluation = evaluate(context);
-  return buildAgentProductionSessionOutput(context, evaluation);
-};
+
+export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> =>
+  buildAgentProductionSessionOutput(context, evaluate(context));

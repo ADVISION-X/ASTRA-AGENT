@@ -20,7 +20,7 @@ import {
 } from "../../shared/static-inspection-contract.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 
-const LAW_ID = "LAW-GPT-001-V5";
+const LAW_ID = "LAW-GPT-001-V6";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 12, 15),
   "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14),
@@ -41,6 +41,8 @@ const SESSION_PATH = `${ROOT}/session/gpt-session-controller.ts`;
 const TURN_EXECUTOR_PATH = `${ROOT}/gpt-turn-executor.ts`;
 const MODEL_SELECTION_V2_HANDLER_PATH = `${ROOT}/web/children/model-selection-v2-children.ts`;
 const MODEL_SELECTION_V2_CONTRACT_PATH = `${ROOT}/web/contracts/model-selection-v2.contract.ts`;
+const EXECUTION_PROFILE_HANDLER_PATH = `${ROOT}/web/children/execution-profile-children.ts`;
+const EXECUTION_PROFILE_CONTRACT_PATH = `${ROOT}/web/contracts/execution-profile.contract.ts`;
 const ATTACHMENT_HANDLER_PATH = `${ROOT}/web/children/attachment-children.ts`;
 const ATTACHMENT_CONTRACT_PATH = `${ROOT}/web/contracts/attachment.contract.ts`;
 const CHILD_ID_SOURCES = ["PAGE_OBSERVATIONS", "PAGE_MUTATIONS", "SESSION_MUTATIONS"] as const;
@@ -135,10 +137,26 @@ const inspectDenominatorAndContracts = (context: InspectorContext, findings: Ins
   for (const required of [
     "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
     "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR", "GPT_PROFILE_SIMPLE_PANEL_SELECTOR",
+    "isAlreadyOpen", "isOpenable", "ALREADY_OPEN", "OPENABLE",
   ]) if (!modelV2Handler.includes(required)) findings.push(finding(
     "gpt/model-selection-v2-handler", MODEL_SELECTION_V2_HANDLER_PATH,
     `Model selection V2 handler is missing ${required}.`,
   ));
+  const reasoningContract = sourceFor(context, EXECUTION_PROFILE_CONTRACT_PATH)?.getFullText() ?? "";
+  for (const required of [
+    "[role='menuitem'][aria-label='能力']",
+    "[data-model-reasoning-effort-slider] [role='slider']",
+    'fast: 0', 'medium: 1', 'high: 2', 'extra_high: 3', 'pro_standard: 4',
+  ]) if (!reasoningContract.includes(required)) findings.push(finding(
+    "gpt/reasoning-five-value-contract", EXECUTION_PROFILE_CONTRACT_PATH,
+    `Reasoning contract is missing ${required}.`,
+  ));
+  const reasoningHandler = sourceFor(context, EXECUTION_PROFILE_HANDLER_PATH)?.getFullText() ?? "";
+  for (const required of ["aria-valuemin", "aria-valuemax", "aria-valuenow", "minimum !== 0", "maximum !== 4"])
+    if (!reasoningHandler.includes(required)) findings.push(finding(
+      "gpt/reasoning-numeric-readback", EXECUTION_PROFILE_HANDLER_PATH,
+      `Reasoning handler is missing numeric readback guard ${required}.`,
+    ));
   const denominator = contract.getVariableDeclaration("GPT_CHILD_CAPABILITY_IDS")?.getInitializer()?.getText() ?? "";
   for (const sourceName of CHILD_ID_SOURCES) if (!denominator.includes(`...${sourceName}`)) findings.push(finding(
     "gpt/denominator-derived-once", CONTRACT_PATH,
@@ -162,8 +180,9 @@ const inspectDenominatorAndContracts = (context: InspectorContext, findings: Ins
     `ChildCapabilityContract fields must remain exact; found ${actualFields.join(",")}.`,
   ));
   for (const proofField of [
-    "childCapabilityId", "executionId", "flowVersion", "stepIndex", "inputHash", "pluginStepId",
-    "actionOrdinal", "targetRefHash", "beforeDocumentRefHash", "afterDocumentRefHash",
+    "childCapabilityId", "executionId", "attemptId", "pluginId", "pluginVersion",
+    "productStepId", "callId", "inputHash", "actionOrdinal", "targetRefHash",
+    "beforeDocumentRefHash", "afterDocumentRefHash",
     "candidateCount", "observedSemantics",
     "committedMutation", "postconditionResult", "startedAt", "endedAt", "evidenceRef", "evidenceHash",
   ]) if (!contract.getInterface("GptChildCapabilityProof")?.getProperty(proofField)) findings.push(finding(
@@ -349,29 +368,15 @@ const inspectUniqueRuntimeChain = (context: InspectorContext, findings: Inspecto
   ]) if (!sessionText.includes(required)) findings.push(finding(
     "gpt/session-binding", SESSION_PATH, `GPT Session Controller is missing ${required}.`,
   ));
-  const turnExecutor = sourceFor(context, TURN_EXECUTOR_PATH)?.getFullText() ?? "";
-  for (const required of ["GPT_TURN_FLOW", "GptTurnExecutor", "reconcileOnly", "inputHash", "stepIndex"]) {
-    if (!turnExecutor.includes(required)) findings.push(finding(
-      "gpt/one-shared-turn-executor", TURN_EXECUTOR_PATH,
-      `The shared GPT turn executor is missing ${required}.`,
-    ));
-  }
-  for (const required of [
-    "const GPT_INTER_STEP_PACING_MS = 5_000",
-    "hasNextEnabledStep",
-    "GPT_TURN_FLOW.slice(start).some",
-    "GPT_INTER_STEP_PACING_BROWSER_REQUIRED",
-    "await input.context.browser.wait({ durationMs: GPT_INTER_STEP_PACING_MS })",
-  ]) if (!turnExecutor.includes(required)) findings.push(finding(
-    "gpt/inter-step-pacing-required", TURN_EXECUTOR_PATH,
-    `The unique GPT turn executor is missing governed inter-step pacing token ${required}.`,
-  ));
-  if ((turnExecutor.match(/await paceBeforeNextStep\(input, stepIndex\)/gu) ?? []).length !== 2
-    || (turnExecutor.match(/await waitForStepPacing\(input\)/gu) ?? []).length !== 2
-    || !/await input\.checkpoint\([\s\S]*?if \(result\.status !== "success"\)[\s\S]*?await paceBeforeNextStep\(input, stepIndex\)/u
-      .test(turnExecutor)) findings.push(finding(
-    "gpt/inter-step-pacing-order", TURN_EXECUTOR_PATH,
-    "Inter-step pacing must occur only after checkpoint and success handling, with the final-step guard owned by the executor.",
+  for (const retired of [
+    TURN_EXECUTOR_PATH,
+    "src/lib/local-runtime/production/gpt-turn-state.ts",
+    "src/lib/local-runtime/production/production-gpt-executor.ts",
+    "src/lib/local-runtime/production/production-gpt-turn-flow.ts",
+    "src/plugins/product-gpt-call.ts",
+  ]) if (existsSync(resolve(context.sealedRoot, retired))) findings.push(finding(
+    "gpt/central-turn-owner-retired", retired,
+    `Retired shared GPT turn owner must be physically absent: ${retired}.`,
   ));
   const pluginRoot = resolve(context.sealedRoot, "src/plugins");
   for (const pluginId of existsSync(pluginRoot) ? readdirSync(pluginRoot) : []) {
@@ -392,8 +397,9 @@ const inspectGptContracts = (context: InspectorContext, findings: InspectorFindi
 
 const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const path of [
-    CONTRACT_PATH, FACADE_PATH, GROUP_PATH, SESSION_PATH, TURN_EXECUTOR_PATH,
+    CONTRACT_PATH, FACADE_PATH, GROUP_PATH, SESSION_PATH,
     MODEL_SELECTION_V2_HANDLER_PATH, MODEL_SELECTION_V2_CONTRACT_PATH,
+    EXECUTION_PROFILE_HANDLER_PATH, EXECUTION_PROFILE_CONTRACT_PATH,
     ATTACHMENT_HANDLER_PATH, ATTACHMENT_CONTRACT_PATH,
   ])
     if (!existsSync(resolve(context.sealedRoot, path))) findings.push(finding(

@@ -82,10 +82,10 @@ export const inspectRegistryAndMutationBoundary = (
     "payloadHash",
     "proofHash",
     "logicalMutationId",
-    "pluginStepId",
+    "productStepId",
+    "callId",
     "childCapabilityId",
-    "flowVersion",
-    "stepIndex",
+    "inputHash",
     "effectScope",
     "actionOrdinal",
     "positivePostconditionHash",
@@ -317,8 +317,8 @@ export const inspectCompactMutationRecoveryBoundary = (
   requireIdentifiers(mutationStore, [
     "BrowserMutationStore", "prepare", "markDispatched", "markReceiptMissing", "markConfirmed",
     "markRejected", "markFailedBeforeDispatch", "resolve", "dispatchedForBinding", "dispatchedForJob",
-    "reconciliationScope", "turnRecoveryScope", "atomicStepRecovery", "canReconstructGptTurnStep", "readDispatched",
-    "logicalMutationId", "pluginStepId", "childCapabilityId", "flowVersion", "stepIndex", "effectScope",
+    "reconciliationScope", "callRecoveryScope", "atomicStepRecovery", "readDispatched",
+    "logicalMutationId", "productStepId", "callId", "childCapabilityId", "inputHash", "effectScope",
     "actionOrdinal", "positivePostconditionHash", "negativePostconditionHash", "requestHash", "payloadHash",
     "proofHash",
   ], findings, lawId, "Compact Browser mutation recovery must remain one SQLite/WAL row per physical mutation and exact job binding.");
@@ -362,7 +362,7 @@ export const inspectJobScopedMutationRecovery = (
   const lane = requireSource(context, findings, lawId, lanePath);
   const actor = requireSource(context, findings, lawId, sourcePaths[6]);
   if (!lane || !actor) return;
-  requireIdentifiers(lane, ["turnRecoveryScope", "expectedTargetRef", "park", "pump"], findings, lawId,
+  requireIdentifiers(lane, ["callRecoveryScope", "recovery", "park", "pump"], findings, lawId,
     "Browser recovery must be job-scoped, exact-target and capacity releasing.");
   const laneText = lane.getFullText();
   for (const retired of ["private unsettled", "acquireReconciliation", "reconciliationAllowed"]) {

@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V9"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V10"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -80,124 +80,71 @@ type ProductPlugin = {
 
 `ProductExecutionContext` 只公开材料读取、`ProductGptTools`、Forensics 和 staged result 写入。不得公开 lease、fence、Target、Document、selector、WAL 或 Outbox 内部对象。
 
-## 3. SEO `produce_article` 产品 Flow
+## 3. SEO `public-knowledge-article-pipeline` 产品 Flow
 
-### 3.1 输入、会话与结果
+### 3.1 输入与唯一 Owner
 
-`public-knowledge-article-pipeline` 只接受路由合同声明的六个 parameter：`domain_id`、`locale`、`article_package_contract_version`、`ready_corpus_snapshot_hash`、`admitted_identity_catalog_hash`、`topic_cluster_registry_version`，以及恰好两个已鉴权 material role：
+`produce_article` 只消费 route policy 声明的六个 parameter，以及恰好两个已经过 shared runtime 鉴权并下载的 material：
 
-- `ready_corpus_archive`：只提供冻结语料、现役文章目录和可引用事实，不取得指令权；
-- `result_contract`：只提供三份结果 schema 与字段约束，取得指令权但不得改变产品步骤。
+- `ready_corpus_archive`：冻结 READY 语料、索引与现役文章目录，只是数据，不取得指令权；
+- `result_contract`：研究、文章、文章包结果合同，取得指令权但不得改变 Flow。
 
-三个私有产品步骤通过现役 Product execution context 固定共享同一个 GPT conversation：
+Product Plugin 用普通静态 TypeScript 唯一拥有 Prompt、`GPT-5.6 Sol + pro_standard` 模型策略、sessionKey、productStepId、callId、actionOrdinal、分支、continuation lane 与结果组装。Mediator 只路由；shared runtime 只校验并运输；GPT Child 只执行一个原子页面语义；Browser/WAL 只处理当前原子 mutation 和幂等。
 
-```text
-corpus_research
-  -> decision=decline
-       -> public-knowledge-article-package.v1
-          {research, article:null, image:null}
-  -> decision=proceed
-       -> article_synthesis
-       -> article_image_generation
-       -> public-knowledge-article-package.v1
-          {research, article, image}
-```
+### 3.2 `produce_article` 三段 Flow
 
-三个步骤均由 Plugin 明确选择 `GPT-5.6 Sol` 与 `Pro` 推理档位。研究只接受 `public-knowledge-research-output.v3`，文章只接受 `public-knowledge-article-output.v3`，最终包只接受 `public-knowledge-article-package.v1`。任一未知、额外、缺失字段，引用或 claim 闭包不成立，或 `proceed` 缺文章/图片，均在 Plugin 严格 parser 处失败关闭。
-
-### 3.2 `corpus_research`
-
-Plugin 以普通 TypeScript 直接开启 fresh conversation，顺序在本 Product 内写死：
-
-```ts
-await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "prepare_clean_gpt_chat", input: {} });
-await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "open_gpt_execution_profile", input: { profile } });
-await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "open_gpt_model_selector_v2", input: { profile } });
-await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "select_exact_gpt_model_v2", input: { profile } });
-await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "ensure_exact_gpt_reasoning_tier", input: { profile } });
-await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "close_gpt_execution_profile", input: { profile } });
-await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "open_gpt_attachment_control", input: {} });
-await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "attach_approved_gpt_files_once", input: { files } });
-await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "reconcile_gpt_attachment_set", input: { files } });
-await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "write_exact_gpt_prompt", input: { prompt } });
-await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "reconcile_gpt_draft", input: { promptHash } });
-await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "submit_exact_gpt_turn_once", input: { promptHash, turnMarker } });
-await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "reconcile_gpt_turn_submission", input: { promptHash, turnMarker } });
-await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "wait_for_stable_gpt_text", input: { turnMarker } });
-const research = await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "checkpoint_gpt_text_response", input: { turnMarker } });
-await gpt.execute({ sessionKey, productStepId: "corpus_research", callId, child: "persist_gpt_continuation", input: { turnMarker } });
-```
-
-该 Turn 必须且只能挂载任务已鉴权的 `ready_corpus_archive + result_contract`。研究 Prompt 必须要求：只使用冻结语料和现役目录，逐项给出可回查引用、claim unit、uncertainty、目录相似项、关系断言与 novelty basis；无法形成新的、可公开且可核验的选题时返回 `decline`。输出只能是严格 JSON。
-
-### 3.3 `article_synthesis`
-
-仅当研究严格解析为 `proceed` 时进入，显式取得 continuation lane 并续接研究 conversation；禁止重新上传材料：
-
-```ts
-await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "acquire_gpt_continuation_lane", input: { continuation } });
-await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "focus_exact_gpt_conversation", input: { continuation } });
-await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "verify_gpt_conversation_identity", input: { continuation } });
-await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "open_gpt_execution_profile", input: { profile } });
-await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "open_gpt_model_selector_v2", input: { profile } });
-await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "select_exact_gpt_model_v2", input: { profile } });
-await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "ensure_exact_gpt_reasoning_tier", input: { profile } });
-await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "close_gpt_execution_profile", input: { profile } });
-await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "write_exact_gpt_prompt", input: { prompt } });
-await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "reconcile_gpt_draft", input: { promptHash } });
-await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "submit_exact_gpt_turn_once", input: { promptHash, turnMarker } });
-await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "reconcile_gpt_turn_submission", input: { promptHash, turnMarker } });
-await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "wait_for_stable_gpt_text", input: { turnMarker } });
-const article = await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "checkpoint_gpt_text_response", input: { turnMarker } });
-await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "advance_gpt_continuation_lane", input: { continuation, turnMarker } });
-await gpt.execute({ sessionKey, productStepId: "article_synthesis", callId, child: "release_gpt_continuation_lane", input: { continuation } });
-```
-
-文章 Prompt 只消费同一 conversation 中已 checkpoint 的研究结论，要求标题、编辑说明、正文、引用、claim coverage 与 safety notes 闭合；不得把未被研究材料支持的断言写成事实。输出只能是严格 JSON。
-
-### 3.4 `article_image_generation`
-
-仅当文章严格解析成功后进入，显式续接文章 conversation；禁止重新上传材料：
-
-```ts
-await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "acquire_gpt_continuation_lane", input: { continuation } });
-await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "focus_exact_gpt_conversation", input: { continuation } });
-await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "verify_gpt_conversation_identity", input: { continuation } });
-await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "open_gpt_execution_profile", input: { profile } });
-await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "open_gpt_model_selector_v2", input: { profile } });
-await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "select_exact_gpt_model_v2", input: { profile } });
-await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "ensure_exact_gpt_reasoning_tier", input: { profile } });
-await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "close_gpt_execution_profile", input: { profile } });
-await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "write_exact_gpt_prompt", input: { prompt } });
-await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "reconcile_gpt_draft", input: { promptHash } });
-await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "submit_exact_gpt_turn_once", input: { promptHash, turnMarker } });
-await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "reconcile_gpt_turn_submission", input: { promptHash, turnMarker } });
-await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "wait_for_stable_gpt_image", input: { turnMarker } });
-const image = await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "checkpoint_gpt_generated_image", input: { turnMarker } });
-await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "advance_gpt_continuation_lane", input: { continuation, turnMarker } });
-await gpt.execute({ sessionKey, productStepId: "article_image_generation", callId, child: "release_gpt_continuation_lane", input: { continuation } });
-```
-
-图片 Prompt 只要求一张与文章主题一致、无文字、不冒充古籍或史料原图的原创主图。Browser Authority 必须从精确 assistant turn 在当前已鉴权 Target/Document 内取得 Provider 原始 bytes；现役 output-artifact 链再生成无 metadata 的 `1200x630 image/webp`，并把下载、变换与 artifact receipt 绑定到 `image`、result envelope 和 completion intent。URL、截图、DOM 图片节点或页面外下载均不是图片结果。
-
-### 3.5 失败、恢复与网站交接
-
-三个步骤没有全局 GPT checkpoint、恢复状态机或第二执行入口。任何 Child 失败原样抛出 typed reason；下一 attempt 从同一 Product 静态 Flow 入口重新执行，并使用该 attempt 的稳定 `call_id` 身份。Browser Authority 只对当前精确 Child 的 WAL 与当前页面后置事实做对账，不选择 Product 的下一 Child；未决 `DISPATCHED` 永不盲目重发。Plugin 不以错误文本猜测重试。
-
-AGENT 只交付 staged package。Website domain consumer 严格验收并以 `job_id + result_hash` 幂等入库、签发 hash-bound admission receipt 后，AGENT job 才可 `completed`。SEO 栏目的后续业务链仍由 Website 唯一拥有：
+同一 attempt 内每个 Child 使用固定、唯一、从 1 单调递增的 `actionOrdinal`，每段使用稳定 callId 和不可变 turnMarker。禁止动态规划、循环选择下一步、共享 workflow、`gpt-flow.ts`、通用 Turn executor 或第二 checkpoint。
 
 ```text
-staged article
--> preflight_ready
--> publishing
--> public postcheck
--> released
--> URL/canonical/sitemap/index submission/distribution/effect evidence
+corpus_research（fresh conversation）
+  prepare_clean_gpt_chat
+  -> open profile / open model selector / select exact model / ensure reasoning / close profile
+  -> open attachment control / attach ready_corpus_archive + result_contract once / reconcile exact set
+  -> write exact research Prompt / reconcile draft / submit once / reconcile submission
+  -> wait stable text / checkpoint exact text
+  -> persist plugin/subject/authorization-bound continuation
+  -> strict parse public-knowledge-research-output.v3
+
+  decision=decline
+    -> package {research, article:null, image:null}
+    -> staged result
+
+  decision=proceed
+    -> article_synthesis
+
+article_synthesis（same conversation, zero attachments）
+  acquire continuation lane
+  -> focus exact conversation / verify prior turn identity
+  -> exact profile stack
+  -> write exact article Prompt / reconcile draft / submit once / reconcile submission
+  -> wait stable text / checkpoint exact text
+  -> strict parse public-knowledge-article-output.v3
+  -> advance continuation lane atomically; failure before advance releases the same lane
+  -> article_image_generation
+
+article_image_generation（same conversation, zero attachments）
+  acquire continuation lane
+  -> focus exact conversation / verify prior turn identity
+  -> exact profile stack
+  -> write exact one-image Prompt / reconcile draft / submit once / reconcile submission
+  -> wait stable image / checkpoint exact authenticated Provider bytes
+  -> transform and read back one metadata-free 1200x630 WebP
+  -> advance continuation lane atomically; failure before advance releases the same lane
+  -> package draft {research, article, image:null} + generated_image
+  -> staged result
 ```
 
-AGENT、SEO Plugin、GPT 或 shared runtime 均不得发布、选择公开 URL、修改 canonical/sitemap、提交索引、分发内容或裁决流量成效。
+研究 Prompt 只允许从冻结语料中选择一个可公开、可引用、可核验且与目录不存在实质重复的问题；材料不足或无实质新意必须 `decline`。文章 Prompt 只消费同 conversation 已 checkpoint 的研究结论。图片 Prompt 只生成一张无文字、不冒充古籍原页、文物、人物或史料照片的原创横向主图。
 
-`accuracy_challenge` 与 `quality_reflection` 仍路由回本 Plugin，但各自是独立的产品私有 review Flow；不得复用 `produce_article` 的材料挂载、conversation 或 mutation identity。
+### 3.3 SEO 两条复核 Flow
+
+`accuracy_challenge` 与 `quality_reflection` 各自开启独立 fresh conversation，只挂载 route policy 已鉴权的 `subject_result + review_context`，执行一次 exact profile、附件、Prompt、submission 与 text checkpoint，并严格解析 `website-agent-review-output.v1`。它们不得复用 `produce_article` 的材料、conversation、continuation 或 mutation identity，不得改写文章、发布内容或替网站裁决 finding。
+
+### 3.4 结果、失败与未施工产品
+
+每个成功 Child 的 Forensics ref 按真实执行顺序进入 `evidence_refs`；typed failure 原样抛出，不以字符串猜测重试。Plugin 只交付 staged article package 与 staged generated image；Website domain consumer 严格验收、幂等入库并签发 hash-bound receipt 后才 completed。发布、URL、canonical、sitemap、索引提交、分发和搜索成效始终只属于 Website。
+
+除 `public-knowledge-article-pipeline` 外，其余尚未单独施工的 Product `execute` 必须继续立即返回 `failed + PRODUCT_FLOW_NOT_IMPLEMENTED:<plugin>:<action>`，Provider 调用和物理页面动作均为零。该失败是唯一主链 fail-closed，不是兼容桥或第三状态。
 
 ## 4. shared runtime 的窄职责
 
@@ -286,7 +233,9 @@ AGENT staged result、Outbox delivered、Website completion submission 均不等
 
 ## 9. 聚焦验收
 
-静态验收：十二个 Product Plugin 直接调用 Child；SEO primary 精确拥有三步同会话 Flow、研究仅一次挂载两份材料、decline 短路、proceed 后无重挂载、单张图片 artifact；无 shared turn executor；无全局 GPT checkpoint/flow；runtime 不决定 Child；公开状态 union 精确为 failed/completed；accepted attempt 上限为 3 且不含 build reset；Outbox 无 parked/独立预算；旧状态和旧链零引用。
+本轮静态验收：十二个 Product Plugin 只保留既有身份、路由、Skill 与严格结果 parser；未施工的 `execute` 全部以精确 `PRODUCT_FLOW_NOT_IMPLEMENTED:<plugin>:<action>` 失败，且 Provider 调用与物理页面动作均为零。仓库不存在伪造的产品 `gpt-flow.ts`、shared turn helper/executor、全局 GPT checkpoint/flow、兼容桥或第二链路；runtime 不决定 Child；公开状态 union 精确为 failed/completed；accepted attempt 上限为 3 且不含 build reset；Outbox 无 parked/独立预算。
+
+单个 Product 的业务步骤、Prompt、模型、分支、材料和结果验收不属于本轮分母；后续每个 Product 单独施工时，必须新增该 Product 自己的聚焦验收。全部 Product 尚未分别交付前，质量系统必须报告未完成，不得给出全系统 READY、CI_FULL_PASS 或生产流程已跑通结论。
 
 状态机验收：初始失败、durable accept、同 attempt re-lease、第一次 failure 冻结、第二/第三 attempt、第三次后禁止 attempt4、DISPATCHED 在原 attempt 对账、staged result 待入库仍 failed、领域 admission 原子 completed。
 
