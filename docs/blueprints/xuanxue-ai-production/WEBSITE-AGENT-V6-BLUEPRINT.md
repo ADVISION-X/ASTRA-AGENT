@@ -97,7 +97,7 @@ Product Plugin 用普通静态 TypeScript 唯一拥有 Prompt、`GPT-5.6 Sol + p
 
 ```text
 corpus_research（fresh conversation）
-  prepare_clean_gpt_chat
+  prepare_clean_gpt_chat（唯一 composer + exact empty draft + zero prior turn/attachment + not generating）
   -> open profile / open model selector / select exact model / ensure reasoning / close profile
   -> open attachment control / attach ready_corpus_archive + result_contract once / reconcile exact set
   -> write exact research Prompt / reconcile draft / submit once / reconcile submission
@@ -133,6 +133,8 @@ article_image_generation（same conversation, zero attachments）
   -> package draft {research, article, image:null} + generated_image
   -> staged result
 ```
+
+`exact profile stack` 的顺序唯一固定为 `open_gpt_execution_profile -> open_gpt_model_selector_v2 -> select_exact_gpt_model_v2 -> ensure_exact_gpt_reasoning_tier -> close_gpt_execution_profile`。模型选择之后才对最终推理档位做直接 readback；不得使用推理在前、模型在后或任何等价顺序。
 
 研究 Prompt 只允许从冻结语料中选择一个可公开、可引用、可核验且与目录不存在实质重复的问题；材料不足或无实质新意必须 `decline`。文章 Prompt 只消费同 conversation 已 checkpoint 的研究结论。图片 Prompt 只生成一张无文字、不冒充古籍原页、文物、人物或史料照片的原创横向主图。
 
@@ -235,7 +237,7 @@ AGENT staged result、Outbox delivered、Website completion submission 均不等
 
 本轮静态验收：十二个 Product Plugin 只保留既有身份、路由、Skill 与严格结果 parser；未施工的 `execute` 全部以精确 `PRODUCT_FLOW_NOT_IMPLEMENTED:<plugin>:<action>` 失败，且 Provider 调用与物理页面动作均为零。仓库不存在伪造的产品 `gpt-flow.ts`、shared turn helper/executor、全局 GPT checkpoint/flow、兼容桥或第二链路；runtime 不决定 Child；公开状态 union 精确为 failed/completed；accepted attempt 上限为 3 且不含 build reset；Outbox 无 parked/独立预算。
 
-单个 Product 的业务步骤、Prompt、模型、分支、材料和结果验收不属于本轮分母；后续每个 Product 单独施工时，必须新增该 Product 自己的聚焦验收。全部 Product 尚未分别交付前，质量系统必须报告未完成，不得给出全系统 READY、CI_FULL_PASS 或生产流程已跑通结论。
+单个 Product 的业务步骤、Prompt、模型、分支、材料和结果验收不属于本轮分母；后续每个 Product 单独施工时，必须新增该 Product 自己的聚焦验收。已施工的 SEO Product 聚焦验收必须分别对 produce_article 的 proceed/decline 与两条 review 路由按 actionOrdinal 断言 exact Child sequence，不得以“全部 Child 均曾出现”代替顺序证明。全部 Product 尚未分别交付前，质量系统必须报告未完成，不得给出全系统 READY、CI_FULL_PASS 或生产流程已跑通结论。
 
 状态机验收：初始失败、durable accept、同 attempt re-lease、第一次 failure 冻结、第二/第三 attempt、第三次后禁止 attempt4、DISPATCHED 在原 attempt 对账、staged result 待入库仍 failed、领域 admission 原子 completed。
 

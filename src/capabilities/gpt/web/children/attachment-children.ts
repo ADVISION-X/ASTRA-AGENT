@@ -12,9 +12,10 @@ import {
   requireExactInputKeys,
   success,
 } from "../child-handler.js";
-import { findCount, readExactText, requireOneCandidate } from "../gpt-dom-observation.js";
+import { findCount, requireOneCandidate } from "../gpt-dom-observation.js";
 import {
   GPT_ATTACHMENT_CONTROL_SELECTOR,
+  GPT_ATTACHMENT_ITEM_SELECTOR,
   GPT_ATTACHMENT_REGION_SELECTOR,
   GPT_FILE_INPUT_SELECTOR,
   GPT_UPLOAD_FROM_COMPUTER_LABEL,
@@ -89,8 +90,32 @@ const issueGrants = async (
   return grants;
 };
 
-const countOccurrences = (value: string, needle: string): number =>
-  needle.length === 0 ? 0 : value.split(needle).length - 1;
+const attachmentLabels = async (
+  browser: ReturnType<typeof requireBrowser>,
+): Promise<readonly string[]> => {
+  const result = await browser.executeDomIntent({
+    kind: "find",
+    selector: GPT_ATTACHMENT_ITEM_SELECTOR,
+    maxMatches: 20,
+    fields: ["ariaLabel"],
+  });
+  if (!result || typeof result !== "object" || Array.isArray(result)) {
+    throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
+  }
+  const observation = result as Record<string, unknown>;
+  if (!Array.isArray(observation.matches)
+    || !Number.isInteger(observation.count)
+    || observation.count !== observation.matches.length) {
+    throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
+  }
+  return observation.matches.map((match) => {
+    if (!match || typeof match !== "object" || Array.isArray(match)
+      || typeof (match as Record<string, unknown>).ariaLabel !== "string") {
+      throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
+    }
+    return (match as Record<string, unknown>).ariaLabel as string;
+  });
+};
 
 const observeExactAttachmentSet = async (
   browser: ReturnType<typeof requireBrowser>,
@@ -105,14 +130,12 @@ const observeExactAttachmentSet = async (
     });
   }
   if (regionCount !== 1) throw executionFailure("failed", `GPT_ATTACHMENT_REGION_COUNT_${regionCount}`);
-  const text = await readExactText(browser, GPT_ATTACHMENT_REGION_SELECTOR, 16_384);
-  const mismatches = files.filter((file) => countOccurrences(text, file.displayName) !== 1);
-  const unexplained = files.reduce(
-    (remaining, file) => remaining.split(file.displayName).join(""),
-    text,
-  ).replace(/\s+/gu, "");
-  if (mismatches.length || unexplained.length > 0) {
-    throw executionFailure("failed", `GPT_ATTACHMENT_SET_MISMATCH:${mismatches.map((file) => file.displayName).join("|")}`);
+  const observedLabels = await attachmentLabels(browser);
+  const expectedLabels = files.map((file) => file.displayName);
+  const missing = expectedLabels.filter((label) => !observedLabels.includes(label));
+  const unexpected = observedLabels.filter((label) => !expectedLabels.includes(label));
+  if (observedLabels.length !== expectedLabels.length || missing.length > 0 || unexpected.length > 0) {
+    throw executionFailure("failed", `GPT_ATTACHMENT_SET_MISMATCH:${[...missing, ...unexpected].join("|")}`);
   }
   return success({
     value: { files: files.map(({ artifactRef, displayName, sha256, bytes }) => ({ artifactRef, displayName, sha256, bytes })) },

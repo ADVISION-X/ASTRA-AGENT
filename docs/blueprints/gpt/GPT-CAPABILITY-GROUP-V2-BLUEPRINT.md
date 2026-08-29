@@ -58,7 +58,7 @@ Product Plugin 不得提供 Target、Document、selector、WAL、lease、fence�
 
 | 类别 | childId | 原子语义 |
 |---|---|---|
-| 会话 | `prepare_clean_gpt_chat` | 证明 fresh composer 与无历史 turn |
+| 会话 | `prepare_clean_gpt_chat` | 证明唯一 fresh composer、exact empty draft、zero prior turn/attachment 与 not generating |
 | 会话 | `focus_exact_gpt_conversation` | 导航到冻结永久 conversation |
 | 会话 | `verify_gpt_conversation_identity` | 证明 composer、turn marker 与 conversation identity |
 | 档案 | `open_gpt_execution_profile` | 在当前 Document 打开或确认唯一 execution profile |
@@ -103,6 +103,8 @@ Provider effect 一次性只在同一业务 attempt/call 内成立；新 attempt
 
 所有 Child 每次都读取当前 Target + 当前 Document。过去调用成功、产品步骤位置或任何 checkpoint 都不能证明瞬态弹面仍存在。模型或推理操作前，若 execution profile 不存在，Product Plugin 必须先调用 `open_gpt_execution_profile`；Child 自身仍须重新验证当前 DOM。
 
+`prepare_clean_gpt_chat` 的成功集合只能是：唯一 composer，读回的 exact draft 为空字符串，user turn、attachment 与 generating 候选均为零。它不清空旧 draft，也不把旧 draft 当成新任务输入；任一条件不成立都必须以 `mutation_outcome=no` 失败关闭。
+
 `open_gpt_model_selector_v2` 的唯一许可是：
 
 ```text
@@ -129,6 +131,6 @@ success := ALREADY_OPEN OR (OPENABLE -> click once -> ALREADY_OPEN)
 
 Child 只返回 `success` 或 `failed + typed reason`。失败必须包含 `code`、`mutationOutcome=no|dispatched|confirmed`、`evidenceRef/evidenceHash` 和存在时的原生 cause；不得返回 `review_required`、`recovery_pending`、流程位置或重试决策。
 
-固定 5 秒等待被删除。等待只允许是单个 Child 为 fresh DOM、hydration 或直接 postcondition 使用的有界实现，并由真实条件提前结束。
+固定 5 秒等待被删除。等待只允许是单个 Child 为 fresh DOM、hydration 或直接 postcondition 使用的有界实现，并由真实条件提前结束。`close_gpt_execution_profile` 只能使用当前 profile Owner 内经实证唯一的收束动作并直接证明 popup 缺席，不得假定点击 composer 必然收束 profile。
 
 聚焦验收必须证明：23 个 Child 精确；公共面无 turn API；产品能显式调用任意 Child 序列；模型面板支持 ALREADY_OPEN/OPENABLE；五个推理数值往返；恢复时重新打开当前 Document 弹层；候选 0 或多于 1 时无物理点击；`DISPATCHED` 不重放；失败只返回原因和证据。

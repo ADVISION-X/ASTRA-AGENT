@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { readFile, realpath, stat } from "node:fs/promises";
+import { copyFile, mkdir, readFile, realpath, rename, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import type { BrowserTargetLeaseManager, BrowserExactTargetAcquisition } from "../exact-target/browser-target-lease-manager.js";
 import type { BrowserTargetLease } from "../exact-target/browser-target-lease.js";
@@ -67,20 +67,30 @@ export class BrowserArtifactRegistry implements BrowserArtifactResolver {
     contentHash: BrowserHash;
     sizeBytes: number;
   }>): Promise<void> {
-    const [root, canonicalPath] = await Promise.all([
-      realpath(this.allowedRoot),
-      realpath(input.filePath),
-    ]);
-    const relativePath = path.relative(root, canonicalPath);
-    if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
-      throw new Error("BROWSER_FILE_GRANT_INVALID");
-    }
-    const metadata = await stat(canonicalPath);
-    const bytes = await readFile(canonicalPath);
+    const sourcePath = await realpath(input.filePath);
+    const metadata = await stat(sourcePath);
+    const bytes = await readFile(sourcePath);
     const actualHash = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
     if (!metadata.isFile()
       || metadata.size !== input.sizeBytes
       || actualHash !== input.contentHash) {
+      throw new Error("BROWSER_FILE_GRANT_INVALID");
+    }
+    await mkdir(this.allowedRoot, { recursive: true, mode: 0o700 });
+    const root = await realpath(this.allowedRoot);
+    const artifactDirectory = path.join(root, input.contentHash.slice("sha256:".length));
+    await mkdir(artifactDirectory, { recursive: true, mode: 0o700 });
+    const stagedPath = path.join(artifactDirectory, path.basename(sourcePath));
+    const temporaryPath = `${stagedPath}.${randomUUID()}.tmp`;
+    try {
+      await copyFile(sourcePath, temporaryPath);
+      await rename(temporaryPath, stagedPath);
+    } finally {
+      await rm(temporaryPath, { force: true });
+    }
+    const canonicalPath = await realpath(stagedPath);
+    const relativePath = path.relative(root, canonicalPath);
+    if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
       throw new Error("BROWSER_FILE_GRANT_INVALID");
     }
     if (this.artifacts.size >= MAX_REGISTERED_BROWSER_ARTIFACTS) {

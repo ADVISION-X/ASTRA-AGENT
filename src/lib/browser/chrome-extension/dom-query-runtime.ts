@@ -115,7 +115,28 @@ export const accessibilityValue = async (runtime: ExtensionDebuggerRuntime, tabI
 
 export const nodeText = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number): Promise<string> => {
   const described = record(await runtime.send(tabId, "DOM.describeNode", { nodeId, depth: -1, pierce: true }));
-  return collectNodeText(record(described.node));
+  const node = record(described.node);
+  return attribute(node, "contenteditable") === "true"
+    ? collectContentEditableText(node)
+    : collectNodeText(node);
+};
+
+const collectContentEditableText = (node: DevToolsRecord): string => {
+  const children = Array.isArray(node.children) ? node.children.map(record) : [];
+  if (children.length === 0) return collectNodeText(node);
+  return children.map((child) => collectEditableBlockText(child)).join("\n");
+};
+
+const collectEditableBlockText = (node: DevToolsRecord): string => {
+  if (node.nodeName === "BR") return "";
+  const own = typeof node.nodeValue === "string" ? node.nodeValue : "";
+  const children = Array.isArray(node.children)
+    ? node.children.map((child) => {
+      const value = record(child);
+      return value.nodeName === "BR" ? "\n" : collectEditableBlockText(value);
+    }).join("")
+    : "";
+  return `${own}${children}`.replace(/\n$/u, "");
 };
 
 const collectNodeText = (node: DevToolsRecord): string => {

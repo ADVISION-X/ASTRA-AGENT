@@ -2,7 +2,6 @@ import type { BrowserDomIntent } from "../exact-target/browser-dom-intent.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import {
-  accessibilityValue,
   attribute,
   boxCenter,
   describeNode,
@@ -285,7 +284,7 @@ const executeValueIntent = async (
     await debuggerRuntime.send(target.tabId, "Input.dispatchKeyEvent", { type: "keyDown", key: "Backspace", code: "Backspace" });
   }
   await debuggerRuntime.send(target.tabId, "Input.insertText", { text: intent.approvedText });
-  const retainedValue = await accessibilityValue(debuggerRuntime, target.tabId, nodeId);
+  const retainedValue = await nodeText(debuggerRuntime, target.tabId, nodeId);
   const postconditionVerified = retainedValue === intent.approvedText;
   return {
     filled: true,
