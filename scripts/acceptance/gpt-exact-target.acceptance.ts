@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 
 import {
@@ -26,14 +27,31 @@ import {
   reasoningTierUiLabel,
   reasoningTierUiValue,
 } from "../../src/capabilities/gpt/web/contracts/execution-profile.contract.js";
-import { GPT_ATTACHMENT_ITEM_SELECTOR, GPT_ATTACHMENT_REGION_SELECTOR } from "../../src/capabilities/gpt/web/contracts/attachment.contract.js";
+import {
+  GPT_ATTACHMENT_ITEM_SELECTOR,
+  GPT_ATTACHMENT_READY_ICON_SELECTOR,
+  GPT_ATTACHMENT_REGION_SELECTOR,
+  GPT_ATTACHMENT_UPLOAD_SPINNER_SELECTOR,
+} from "../../src/capabilities/gpt/web/contracts/attachment.contract.js";
 import { GPT_COMPOSER_SELECTOR } from "../../src/capabilities/gpt/web/contracts/composer.contract.js";
 import { GPT_GENERATING_STOP_SELECTOR, GPT_USER_TURN_SELECTOR } from "../../src/capabilities/gpt/web/contracts/conversation.contract.js";
+import { GPT_SEND_SELECTOR } from "../../src/capabilities/gpt/web/contracts/submission.contract.js";
 import { EXPECTED_GPT_CHILD_IDS, fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
 
 const gpt = createGptAbilityGroup();
 assert.deepEqual(gpt.listChildCapabilityIds(), EXPECTED_GPT_CHILD_IDS);
 assert.equal(Object.keys(GPT_CHILD_CAPABILITY_CONTRACTS).length, 23);
+
+const providerAttachmentName = (displayName: string, artifactRef: string): string => {
+  const dot = displayName.lastIndexOf(".");
+  const stem = dot > 0 ? displayName.slice(0, dot) : displayName;
+  const extension = dot > 0 ? displayName.slice(dot) : "";
+  const token = createHash("sha256")
+    .update(`attempt:gpt-exact-target\u0000${artifactRef}`)
+    .digest("hex")
+    .slice(0, 12);
+  return `${stem}-${token}${extension}`;
+};
 
 for (const retired of [
   "../../src/capabilities/gpt/gpt-turn-executor.ts",
@@ -247,7 +265,7 @@ for (const initialOpen of [true, false]) {
 const attachmentFixture = fakeBrowser((intent) => {
   if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_REGION_SELECTOR) return { count: 1 };
   if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_ITEM_SELECTOR) {
-    return { count: 1, matches: [{ ariaLabel: "甲.pdf" }] };
+    return { count: 1, matches: [{ ariaLabel: providerAttachmentName("甲.pdf", "artifact:1") }] };
   }
   throw new Error(`UNEXPECTED_ATTACHMENT_READBACK_INTENT:${intent.kind}`);
 });
@@ -259,5 +277,83 @@ const attachmentReadback = await execute("attach_approved_gpt_files_once", attac
 }, "readback");
 assert.equal(attachmentReadback.status, "success", attachmentReadback.failureCode ?? "attachment readback failed");
 assert.equal(attachmentFixture.physicalMutations(), 0, "DISPATCHED attachment recovery must only read exact postcondition");
+
+const approvedAttachment = Object.freeze({
+  artifactRef: "artifact:1", filePath: "/must-not-be-read", displayName: "甲.pdf",
+  sha256: `sha256:${"1".repeat(64)}`, bytes: 10,
+});
+let uploadObservations = 0;
+const uploadingFixture = fakeBrowser((intent) => {
+  if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_REGION_SELECTOR) return { count: 1 };
+  if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_ITEM_SELECTOR) {
+    return { count: 1, matches: [{ ariaLabel: providerAttachmentName("甲.pdf", "artifact:1") }] };
+  }
+  if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_READY_ICON_SELECTOR) {
+    uploadObservations += 1;
+    return { count: uploadObservations >= 3 ? 1 : 0 };
+  }
+  if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_UPLOAD_SPINNER_SELECTOR) {
+    return { count: uploadObservations >= 3 ? 0 : 1 };
+  }
+  throw new Error(`UNEXPECTED_ATTACHMENT_UPLOAD_INTENT:${intent.kind}`);
+});
+const uploaded = await execute("reconcile_gpt_attachment_set", uploadingFixture.browser, {
+  files: [approvedAttachment], timeoutMs: 2_000,
+});
+assert.equal(uploaded.status, "success", uploaded.failureCode ?? "uploaded attachment reconciliation failed");
+assert.equal(
+  (uploaded.value as { files: Array<{ providerDisplayName: string }> }).files[0]?.providerDisplayName,
+  providerAttachmentName("甲.pdf", "artifact:1"),
+);
+assert.equal(uploadObservations, 3, "attachment name alone must not complete reconciliation");
+assert.equal(uploadingFixture.waitDurations().length, 2, "pending upload must wait only between fresh observations");
+assert.equal(uploadingFixture.physicalMutations(), 0, "attachment reconciliation must remain read-only");
+
+const uploadTimeoutFixture = fakeBrowser((intent) => {
+  if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_REGION_SELECTOR) return { count: 1 };
+  if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_ITEM_SELECTOR) {
+    return { count: 1, matches: [{ ariaLabel: providerAttachmentName("甲.pdf", "artifact:1") }] };
+  }
+  if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_READY_ICON_SELECTOR) return { count: 0 };
+  if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_UPLOAD_SPINNER_SELECTOR) return { count: 1 };
+  throw new Error(`UNEXPECTED_ATTACHMENT_TIMEOUT_INTENT:${intent.kind}`);
+});
+const uploadTimedOut = await execute("reconcile_gpt_attachment_set", uploadTimeoutFixture.browser, {
+  files: [approvedAttachment], timeoutMs: 1_000,
+});
+assert.equal(uploadTimedOut.status, "failed");
+assert.equal(uploadTimedOut.failureCode, "GPT_ATTACHMENT_UPLOAD_TIMEOUT:ready=0:uploading=1:expected=1");
+assert.equal(uploadTimeoutFixture.physicalMutations(), 0, "timed-out reconciliation must never mutate the page");
+
+const promptMarker = `[GRASSEYE:${"a".repeat(24)}]`;
+const prompt = `approved prompt\n${promptMarker}`;
+const promptHash = `sha256:${createHash("sha256").update(prompt).digest("hex")}`;
+const clearedPromptFixture = fakeBrowser((intent) => {
+  if (intent.kind === "find" && intent.selector === GPT_USER_TURN_SELECTOR) return { count: 0 };
+  if (intent.kind === "readText" && intent.selector === GPT_COMPOSER_SELECTOR) return "";
+  throw new Error(`UNEXPECTED_CLEARED_PROMPT_INTENT:${intent.kind}`);
+});
+const clearedBeforeSubmit = await execute("submit_exact_gpt_turn_once", clearedPromptFixture.browser, {
+  promptHash, turnMarker: promptMarker,
+});
+assert.equal(clearedBeforeSubmit.status, "failed");
+assert.equal(clearedBeforeSubmit.failureCode, "GPT_PROMPT_CHANGED_BEFORE_SUBMIT");
+assert.equal(clearedPromptFixture.physicalMutations(), 0, "cleared prompt must never reach send dispatch");
+
+const retainedPromptFixture = fakeBrowser((intent) => {
+  if (intent.kind === "find" && intent.selector === GPT_USER_TURN_SELECTOR) return { count: 0 };
+  if (intent.kind === "readText" && intent.selector === GPT_COMPOSER_SELECTOR) return prompt;
+  if (intent.kind === "find" && intent.selector === GPT_SEND_SELECTOR) return { count: 1 };
+  if (intent.kind === "inspect" && intent.selector === GPT_SEND_SELECTOR) {
+    return { tagName: "BUTTON", visible: true, disabled: false };
+  }
+  if (intent.kind === "click" && intent.selector === GPT_SEND_SELECTOR) return { postconditionVerified: true };
+  throw new Error(`UNEXPECTED_RETAINED_PROMPT_INTENT:${intent.kind}`);
+});
+const retainedBeforeSubmit = await execute("submit_exact_gpt_turn_once", retainedPromptFixture.browser, {
+  promptHash, turnMarker: promptMarker,
+});
+assert.equal(retainedBeforeSubmit.status, "success", retainedBeforeSubmit.failureCode ?? "retained prompt submit failed");
+assert.equal(retainedPromptFixture.physicalMutations(), 1, "retained exact prompt may dispatch send exactly once");
 
 process.stdout.write("[ACCEPTANCE][gpt-exact-target] PASS\n");

@@ -68,7 +68,7 @@ Product Plugin 不得提供 Target、Document、selector、WAL、lease、fence�
 | 档案 | `close_gpt_execution_profile` | 关闭并直接证明弹面收束 |
 | 附件 | `open_gpt_attachment_control` | 打开唯一附件入口并证明唯一上传动作 |
 | 附件 | `attach_approved_gpt_files_once` | 至多一次挂载获准文件集合 |
-| 附件 | `reconcile_gpt_attachment_set` | 只读证明全部且仅有批准附件 |
+| 附件 | `reconcile_gpt_attachment_set` | 有界只读等待并证明全部且仅有批准附件已上传完成 |
 | Prompt | `write_exact_gpt_prompt` | 至多一次写入 exact Prompt |
 | Prompt | `reconcile_gpt_draft` | 证明 exact draft 或返回冲突 |
 | 提交 | `submit_exact_gpt_turn_once` | 至多一次提交 exact turn |
@@ -127,10 +127,12 @@ success := ALREADY_OPEN OR (OPENABLE -> click once -> ALREADY_OPEN)
 
 附件入口固定为 `button#composer-plus-btn[data-testid='composer-plus-btn'][aria-haspopup='menu']`。允许为 hydration 有界等待；展开后必须在唯一 `div.__menu-item[tabindex='0']` 中由唯一叶子精确匹配“从电脑上传”。隐藏 `#upload-files` 只由 Browser Authority 在 dispatch 前校验，不作为上层可见候选。
 
+`attach_approved_gpt_files_once` 只负责一次获准 file-input batch。由于 Provider 会对跨会话重复文件名自动追加 `(n)`，该 Child 必须在不改变获准 bytes、sha256、artifactRef 与业务 display name 的前提下，为每个 attempt + artifact 派生唯一且确定的 `providerDisplayName`，以该精确名称构造临时上传文件并通过 Browser grant 发送；后续 Prompt 只能引用 Child 返回的 `providerDisplayName`，不得继续引用会被 Provider 改写的业务 display name。附件卡片与文件名出现不能证明 Provider 上传完成。`reconcile_gpt_attachment_set` 必须在 Product 给定的 `timeoutMs` 内重复读取 fresh DOM：attachment region 唯一、卡片数量与 NFC `providerDisplayName` 集合全部且仅有批准项，每个精确卡片的 `svg[data-testid='library-file-icon']` 都具有 Browser 可见盒子，并且 `svg[class*='animate-spin']` 可见数为零，才可成功。选择器必须直接落到待判定 SVG，不得用 `:has(...)` 让可见外层卡片掩盖不可见子节点。条件满足即提前返回；集合冲突立即失败；直到上限仍存在上传进度、错误或其他未完成卡片时以 `GPT_ATTACHMENT_UPLOAD_TIMEOUT` 失败。该 Child 成功前 Product 不得写 Prompt 或提交；`submit_exact_gpt_turn_once` dispatch 前必须重新读取 composer，证明 exact prompt hash 与 turnMarker 仍在，否则以 `GPT_PROMPT_CHANGED_BEFORE_SUBMIT` 零 mutation 失败。
+
 ## 5. 失败、证据与验收
 
 Child 只返回 `success` 或 `failed + typed reason`。失败必须包含 `code`、`mutationOutcome=no|dispatched|confirmed`、`evidenceRef/evidenceHash` 和存在时的原生 cause；不得返回 `review_required`、`recovery_pending`、流程位置或重试决策。
 
 固定 5 秒等待被删除。等待只允许是单个 Child 为 fresh DOM、hydration 或直接 postcondition 使用的有界实现，并由真实条件提前结束。`close_gpt_execution_profile` 只能使用当前 profile Owner 内经实证唯一的收束动作并直接证明 popup 缺席，不得假定点击 composer 必然收束 profile。
 
-聚焦验收必须证明：23 个 Child 精确；公共面无 turn API；产品能显式调用任意 Child 序列；模型面板支持 ALREADY_OPEN/OPENABLE；五个推理数值往返；恢复时重新打开当前 Document 弹层；候选 0 或多于 1 时无物理点击；`DISPATCHED` 不重放；失败只返回原因和证据。
+聚焦验收必须证明：23 个 Child 精确；公共面无 turn API；产品能显式调用任意 Child 序列；模型面板支持 ALREADY_OPEN/OPENABLE；五个推理数值往返；恢复时重新打开当前 Document 弹层；同一业务文件在不同 attempt 获得不同但确定的精确 `providerDisplayName`；附件名称已出现但上传未完成时不得成功且不得产生 mutation，全部完成后立即成功，持续未完成时 typed timeout；Prompt 在提交前被页面清空或改写时不得点击；候选 0 或多于 1 时无物理点击；`DISPATCHED` 不重放；失败只返回原因和证据。

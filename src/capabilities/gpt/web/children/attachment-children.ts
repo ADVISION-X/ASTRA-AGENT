@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { copyFile, mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, parse } from "node:path";
 
 import type { BrowserFileArtifactGrantV1 } from "../../../../lib/browser/browser-authority-api.js";
 import { executionFailure } from "../../../../lib/typed-failure.js";
@@ -8,6 +10,7 @@ import type { GptChildCapabilityIntent } from "../../contract.js";
 import type { GptChildHandlerMap } from "../child-handler.js";
 import {
   arrayInput,
+  numberInput,
   requireBrowser,
   requireExactInputKeys,
   success,
@@ -16,7 +19,9 @@ import { findCount, requireOneCandidate } from "../gpt-dom-observation.js";
 import {
   GPT_ATTACHMENT_CONTROL_SELECTOR,
   GPT_ATTACHMENT_ITEM_SELECTOR,
+  GPT_ATTACHMENT_READY_ICON_SELECTOR,
   GPT_ATTACHMENT_REGION_SELECTOR,
+  GPT_ATTACHMENT_UPLOAD_SPINNER_SELECTOR,
   GPT_FILE_INPUT_SELECTOR,
   GPT_UPLOAD_FROM_COMPUTER_LABEL,
   GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
@@ -26,12 +31,32 @@ type ApprovedFile = Readonly<{
   artifactRef: string;
   filePath: string;
   displayName: string;
+  providerDisplayName: string;
   sha256: `sha256:${string}`;
   bytes: number;
 }>;
 
+type AttachmentSetState = Readonly<{
+  regionCount: number;
+  observedLabels: readonly string[];
+  readyCount: number;
+  uploadingCount: number;
+}>;
+
 const digest = (bytes: Buffer): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+
+const providerDisplayName = (displayName: string, attemptId: string, artifactRef: string): string => {
+  const parsed = parse(displayName);
+  if (parsed.base !== displayName || !parsed.name) {
+    throw executionFailure("failed", "GPT_ATTACHMENT_DISPLAY_NAME_INVALID");
+  }
+  const attemptToken = createHash("sha256")
+    .update(`${attemptId}\u0000${artifactRef}`)
+    .digest("hex")
+    .slice(0, 12);
+  return `${parsed.name}-${attemptToken}${parsed.ext}`.normalize("NFC");
+};
 
 const filesFromIntent = (intent: GptChildCapabilityIntent): readonly ApprovedFile[] => {
   const files = arrayInput(intent, "files").map((value): ApprovedFile => {
@@ -46,10 +71,12 @@ const filesFromIntent = (intent: GptChildCapabilityIntent): readonly ApprovedFil
       || typeof item.bytes !== "number" || !Number.isSafeInteger(item.bytes) || item.bytes < 0) {
       throw executionFailure("failed", "GPT_ATTACHMENT_INPUT_INVALID");
     }
+    const displayName = item.displayName.normalize("NFC");
     return {
       artifactRef: item.artifactRef,
       filePath: item.filePath,
-      displayName: item.displayName.normalize("NFC"),
+      displayName,
+      providerDisplayName: providerDisplayName(displayName, intent.attemptId, item.artifactRef),
       sha256: item.sha256 as `sha256:${string}`,
       bytes: item.bytes,
     };
@@ -74,18 +101,25 @@ const issueGrants = async (
 ): Promise<readonly BrowserFileArtifactGrantV1[]> => {
   await verifyFiles(files);
   const grants: BrowserFileArtifactGrantV1[] = [];
-  for (const file of files) {
-    await browser.registerFileArtifact({
-      artifactRef: file.artifactRef,
-      filePath: file.filePath,
-      contentHash: file.sha256,
-      sizeBytes: file.bytes,
-    });
-    grants.push(await browser.issueFileArtifactGrant({
-      artifactRef: file.artifactRef,
-      expectedSha256: file.sha256,
-      maxBytes: file.bytes,
-    }));
+  const stagingDirectory = await mkdtemp(join(tmpdir(), "grasseye-gpt-upload-"));
+  try {
+    for (const file of files) {
+      const stagedPath = join(stagingDirectory, file.providerDisplayName);
+      await copyFile(file.filePath, stagedPath);
+      await browser.registerFileArtifact({
+        artifactRef: file.artifactRef,
+        filePath: stagedPath,
+        contentHash: file.sha256,
+        sizeBytes: file.bytes,
+      });
+      grants.push(await browser.issueFileArtifactGrant({
+        artifactRef: file.artifactRef,
+        expectedSha256: file.sha256,
+        maxBytes: file.bytes,
+      }));
+    }
+  } finally {
+    await rm(stagingDirectory, { force: true, recursive: true });
   }
   return grants;
 };
@@ -117,32 +151,108 @@ const attachmentLabels = async (
   });
 };
 
+const attachmentSetState = async (
+  browser: ReturnType<typeof requireBrowser>,
+  includeReady = true,
+): Promise<AttachmentSetState> => {
+  const regionCount = await findCount(browser, { selector: GPT_ATTACHMENT_REGION_SELECTOR, maxMatches: 2 });
+  if (regionCount === 0) return Object.freeze({
+    regionCount, observedLabels: [], readyCount: 0, uploadingCount: 0,
+  });
+  if (regionCount !== 1) throw executionFailure("failed", `GPT_ATTACHMENT_REGION_COUNT_${regionCount}`);
+  return Object.freeze({
+    regionCount,
+    observedLabels: await attachmentLabels(browser),
+    readyCount: includeReady
+      ? await findCount(browser, { selector: GPT_ATTACHMENT_READY_ICON_SELECTOR, maxMatches: 20 })
+      : 0,
+    uploadingCount: includeReady
+      ? await findCount(browser, { selector: GPT_ATTACHMENT_UPLOAD_SPINNER_SELECTOR, maxMatches: 20 })
+      : 0,
+  });
+};
+
+const attachmentSetDifference = (
+  files: readonly ApprovedFile[],
+  observedLabels: readonly string[],
+) => {
+  const expectedLabels = files.map((file) => file.providerDisplayName);
+  const missing = expectedLabels.filter((label) => !observedLabels.includes(label));
+  const unexpected = observedLabels.filter((label) => !expectedLabels.includes(label));
+  return Object.freeze({ expectedLabels, missing, unexpected });
+};
+
+const attachmentValue = (files: readonly ApprovedFile[]) => ({
+  files: files.map(({ artifactRef, displayName, providerDisplayName, sha256, bytes }) => ({
+    artifactRef, displayName, providerDisplayName, sha256, bytes,
+  })),
+});
+
 const observeExactAttachmentSet = async (
   browser: ReturnType<typeof requireBrowser>,
   files: readonly ApprovedFile[],
 ) => {
-  const regionCount = await findCount(browser, { selector: GPT_ATTACHMENT_REGION_SELECTOR, maxMatches: 2 });
+  const observed = await attachmentSetState(browser, false);
   if (files.length === 0) {
-    if (regionCount !== 0) throw executionFailure("failed", `GPT_ATTACHMENT_REGION_COUNT_${regionCount}`);
+    if (observed.regionCount !== 0) throw executionFailure("failed", `GPT_ATTACHMENT_REGION_COUNT_${observed.regionCount}`);
     return success({
       value: { files: [] }, candidateCount: 0,
       observedSemantics: ["zero approved attachments", "zero visible attachment regions"], committedMutation: "no",
     });
   }
-  if (regionCount !== 1) throw executionFailure("failed", `GPT_ATTACHMENT_REGION_COUNT_${regionCount}`);
-  const observedLabels = await attachmentLabels(browser);
-  const expectedLabels = files.map((file) => file.displayName);
-  const missing = expectedLabels.filter((label) => !observedLabels.includes(label));
-  const unexpected = observedLabels.filter((label) => !expectedLabels.includes(label));
-  if (observedLabels.length !== expectedLabels.length || missing.length > 0 || unexpected.length > 0) {
+  const { expectedLabels, missing, unexpected } = attachmentSetDifference(files, observed.observedLabels);
+  if (observed.observedLabels.length !== expectedLabels.length || missing.length > 0 || unexpected.length > 0) {
     throw executionFailure("failed", `GPT_ATTACHMENT_SET_MISMATCH:${[...missing, ...unexpected].join("|")}`);
   }
   return success({
-    value: { files: files.map(({ artifactRef, displayName, sha256, bytes }) => ({ artifactRef, displayName, sha256, bytes })) },
-    candidateCount: regionCount,
-    observedSemantics: ["one exact attachment region", "all and only approved display names"],
+    value: attachmentValue(files), candidateCount: observed.regionCount,
+    observedSemantics: ["one exact attachment region", "all and only attempt-unique provider display names mounted"],
     committedMutation: "no",
   });
+};
+
+const waitForUploadedAttachmentSet = async (
+  browser: ReturnType<typeof requireBrowser>,
+  files: readonly ApprovedFile[],
+  timeoutMs: number,
+  signal?: AbortSignal,
+) => {
+  if (files.length === 0) return observeExactAttachmentSet(browser, files);
+  const deadline = Date.now() + timeoutMs;
+  let last: AttachmentSetState = Object.freeze({
+    regionCount: 0, observedLabels: [], readyCount: 0, uploadingCount: 0,
+  });
+  while (true) {
+    if (signal?.aborted) throw executionFailure("failed", "GPT_EXECUTION_ABORTED");
+    last = await attachmentSetState(browser);
+    const { expectedLabels, missing, unexpected } = attachmentSetDifference(files, last.observedLabels);
+    if (unexpected.length > 0 || last.observedLabels.length > expectedLabels.length) {
+      throw executionFailure("failed", `GPT_ATTACHMENT_SET_MISMATCH:${[...missing, ...unexpected].join("|")}`);
+    }
+    const exactSet = last.regionCount === 1
+      && last.observedLabels.length === expectedLabels.length
+      && missing.length === 0;
+    if (last.readyCount > last.observedLabels.length || last.uploadingCount > last.observedLabels.length) {
+      throw executionFailure("failed", "GPT_ATTACHMENT_VISIBILITY_COUNT_INVALID");
+    }
+    if (exactSet && last.readyCount === expectedLabels.length && last.uploadingCount === 0) {
+      return success({
+        value: attachmentValue(files), candidateCount: last.regionCount,
+        observedSemantics: [
+          "one exact attachment region",
+          "all and only attempt-unique provider display names",
+          "every exact attachment has visible provider file icon",
+          "zero visible upload spinners",
+        ],
+        committedMutation: "no",
+      });
+    }
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) {
+      throw executionFailure("failed", `GPT_ATTACHMENT_UPLOAD_TIMEOUT:ready=${last.readyCount}:uploading=${last.uploadingCount}:expected=${files.length}`);
+    }
+    await browser.wait({ durationMs: Math.max(25, Math.min(500, Math.ceil(remaining / 20))) });
+  }
 };
 
 export const attachmentChildHandlers = {
@@ -200,7 +310,9 @@ export const attachmentChildHandlers = {
     await browser.attachFile({ selector: GPT_FILE_INPUT_SELECTOR, grants });
     return success({
       value: {
-        files: files.map(({ artifactRef, displayName, sha256, bytes }) => ({ artifactRef, displayName, sha256, bytes })),
+        files: files.map(({ artifactRef, displayName, providerDisplayName, sha256, bytes }) => ({
+          artifactRef, displayName, providerDisplayName, sha256, bytes,
+        })),
         mutationSent: true,
       },
       candidateCount: 1,
@@ -210,9 +322,10 @@ export const attachmentChildHandlers = {
   },
 
   async reconcile_gpt_attachment_set(intent, context) {
-    requireExactInputKeys(intent, ["files"]);
+    requireExactInputKeys(intent, ["files", "timeoutMs"]);
     const files = filesFromIntent(intent);
     const browser = requireBrowser(context);
-    return observeExactAttachmentSet(browser, files);
+    const timeoutMs = Math.max(1_000, Math.min(numberInput(intent, "timeoutMs"), 60_000));
+    return waitForUploadedAttachmentSet(browser, files, timeoutMs, context.signal);
   },
 } satisfies GptChildHandlerMap;

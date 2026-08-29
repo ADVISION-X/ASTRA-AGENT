@@ -99,6 +99,7 @@ const exerciseSeoFlow = async (
   decision: "proceed" | "decline" = "proceed",
 ) => {
   const calls: Array<Parameters<SharedExecutionContext["gpt"]["execute"]>[0]> = [];
+  const handoffDelays: number[] = [];
   let completed: ProductPluginOutput | null = null;
   const context = {
     materials: [
@@ -116,6 +117,12 @@ const exerciseSeoFlow = async (
             ? JSON.stringify(articleOutput)
             : JSON.stringify({ decision: "no_issue", issues: [] });
         const values: Partial<Record<typeof input.child, unknown>> = {
+          reconcile_gpt_attachment_set: {
+            files: [
+              { artifactRef: "m0", displayName: "one.json", providerDisplayName: "one-attempt-1.json", sha256: HASH, bytes: 1 },
+              { artifactRef: "m1", displayName: "two.json", providerDisplayName: "two-attempt-1.json", sha256: HASH, bytes: 1 },
+            ],
+          },
           write_exact_gpt_prompt: { hash: HASH },
           reconcile_gpt_turn_submission: { canonicalConversationUrl: "https://chatgpt.com/c/example" },
           wait_for_stable_gpt_text: { assistantTurnId: "conversation-turn-2", responseHash: HASH, responseText: text },
@@ -140,13 +147,39 @@ const exerciseSeoFlow = async (
       return {} as Awaited<ReturnType<SharedExecutionContext["complete"]>>;
     },
   } as unknown as SharedExecutionContext;
-  await plugin.execute(seoTask(actionId), context);
+  const nativeSetTimeout = globalThis.setTimeout;
+  const acceleratedSetTimeout = ((
+    handler: (...args: unknown[]) => void,
+    timeout?: number,
+    ...args: unknown[]
+  ) => {
+    handoffDelays.push(timeout ?? 0);
+    return nativeSetTimeout(() => handler(...args), 0);
+  }) as typeof setTimeout;
+  globalThis.setTimeout = acceleratedSetTimeout;
+  try {
+    await plugin.execute(seoTask(actionId), context);
+  } finally {
+    globalThis.setTimeout = nativeSetTimeout;
+  }
   const output = completed as ProductPluginOutput | null;
   assert(output);
   assert.deepEqual(calls.map((call) => call.actionOrdinal), calls.map((_call, index) => index + 1));
   assert.equal(new Set(calls.map((call) => call.sessionKey)).size, 1);
   assert.ok(calls.every((call) => call.sessionKey.includes("attempt-1")));
   assert.deepEqual(output.evidence_refs, calls.map((_call, index) => `evidence:${index + 1}`));
+  assert.equal(handoffDelays.length, Math.max(0, calls.length - 1));
+  assert.ok(handoffDelays.every((delay) => delay === 2_000), "every adjacent SEO Child must retain a 2s handoff floor");
+  const firstPrompt = calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt;
+  assert.equal(typeof firstPrompt, "string");
+  assert.match(firstPrompt as string, /one-attempt-1\.json 与 two-attempt-1\.json/u);
+  const firstDraftFiles = calls.find((call) => call.child === "reconcile_gpt_draft")?.input.files;
+  assert.deepEqual(
+    Array.isArray(firstDraftFiles)
+      ? firstDraftFiles.map((file) => (file as { providerDisplayName?: unknown }).providerDisplayName)
+      : null,
+    ["one-attempt-1.json", "two-attempt-1.json"],
+  );
   return { calls, completed: output };
 };
 

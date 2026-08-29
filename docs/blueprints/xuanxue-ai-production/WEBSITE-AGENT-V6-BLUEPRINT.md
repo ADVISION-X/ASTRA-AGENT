@@ -93,13 +93,13 @@ Product Plugin 用普通静态 TypeScript 唯一拥有 Prompt、`GPT-5.6 Sol + p
 
 ### 3.2 `produce_article` 三段 Flow
 
-同一 attempt 内每个 Child 使用固定、唯一、从 1 单调递增的 `actionOrdinal`，每段使用稳定 callId 和不可变 turnMarker。禁止动态规划、循环选择下一步、共享 workflow、`gpt-flow.ts`、通用 Turn executor 或第二 checkpoint。
+同一 attempt 内每个 Child 使用固定、唯一、从 1 单调递增的 `actionOrdinal`，每段使用稳定 callId 和不可变 turnMarker。该 Product 的所有 Child 严格串行；除第一个 Child 外，下一 Child 的调用时间不得早于上一 Child 成功返回后的 2000ms。这个产品专属交接节拍只由 `public-knowledge-article-pipeline` 持有，不进入 GPT 公共 Facade、Runtime、Mediator 或 Browser。禁止动态规划、循环选择下一步、共享 workflow、`gpt-flow.ts`、通用 Turn executor 或第二 checkpoint。
 
 ```text
 corpus_research（fresh conversation）
   prepare_clean_gpt_chat（唯一 composer + exact empty draft + zero prior turn/attachment + not generating；仅旧 draft 污染时由该 Child 至多一次清空并读回）
   -> open profile / open model selector / select exact model / ensure reasoning / close profile
-  -> open attachment control / attach ready_corpus_archive + result_contract once / reconcile exact set
+  -> open attachment control / 以 attempt 唯一 providerDisplayName attach ready_corpus_archive + result_contract once / reconcile exact uploaded-ready set
   -> write exact research Prompt / reconcile draft / submit once / reconcile submission
   -> wait stable text / checkpoint exact text
   -> persist plugin/subject/authorization-bound continuation

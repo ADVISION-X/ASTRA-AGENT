@@ -73,10 +73,10 @@ export const composerSubmissionChildHandlers = {
     const marker = stringInput(intent, "turnMarker");
     const expectedNames = arrayInput(intent, "files").map((file) => {
       if (!file || typeof file !== "object" || Array.isArray(file)
-        || typeof (file as { displayName?: unknown }).displayName !== "string") {
+        || typeof (file as { providerDisplayName?: unknown }).providerDisplayName !== "string") {
         throw executionFailure("failed", "GPT_ATTACHMENT_INPUT_INVALID");
       }
-      return (file as { displayName: string }).displayName.normalize("NFC");
+      return (file as { providerDisplayName: string }).providerDisplayName.normalize("NFC");
     });
     if (!prompt.includes(marker)) throw executionFailure("failed", "GPT_PROMPT_MARKER_MISSING");
     const browser = requireBrowser(context);
@@ -113,6 +113,10 @@ export const composerSubmissionChildHandlers = {
     });
     if (submitted > 1) throw executionFailure("failed", `GPT_SUBMITTED_TURN_COUNT_${submitted}`);
     if (context.mutationMode === "readback") throw executionFailure("failed", "GPT_TURN_SUBMISSION_PENDING");
+    const currentPrompt = await readExactText(browser, GPT_COMPOSER_SELECTOR, 65_536);
+    if (hash(currentPrompt) !== promptHash || !currentPrompt.includes(turnMarker)) {
+      throw executionFailure("failed", "GPT_PROMPT_CHANGED_BEFORE_SUBMIT");
+    }
     const sendCount = await findCount(browser, { selector: GPT_SEND_SELECTOR, maxMatches: 2 });
     if (sendCount !== 1) throw executionFailure("failed", `GPT_SEND_CONTROL_COUNT_${sendCount}`);
     const inspected = await browser.executeDomIntent({
@@ -139,7 +143,7 @@ export const composerSubmissionChildHandlers = {
     });
     return success({
       value: { promptHash, mutationSent: true }, candidateCount: 1,
-      observedSemantics: ["one enabled send control", promptHash, "one exact user turn"], committedMutation: "confirmed",
+      observedSemantics: ["exact prompt retained before dispatch", "one enabled send control", promptHash, "one exact user turn"], committedMutation: "confirmed",
     });
   },
 

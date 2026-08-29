@@ -31,6 +31,7 @@ const MODEL_PROFILE = buildGptExecutionProfile({
   acceptanceVersion: "v1",
 });
 const WAIT_TIMEOUT_MS = 3_600_000;
+const SEO_CHILD_HANDOFF_DELAY_MS = 2_000;
 
 type SeoChild = ProductGptTools["execute"];
 type SeoTurnCheckpoint = Readonly<{
@@ -38,6 +39,9 @@ type SeoTurnCheckpoint = Readonly<{
   rawHash: ProductionHash;
   canonicalConversationUrl: string;
   turnMarker: string;
+}>;
+type SeoUploadedAttachment = Readonly<Record<string, unknown>> & Readonly<{
+  providerDisplayName: string;
 }>;
 
 const objectValue = (value: unknown, code: string): Record<string, unknown> => {
@@ -51,6 +55,17 @@ const textValue = (value: unknown, code: string): string => {
 const hashValue = (value: unknown, code: string): ProductionHash => {
   if (typeof value !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(value)) throw new Error(code);
   return value as ProductionHash;
+};
+const uploadedAttachmentFiles = (value: unknown, code: string): readonly SeoUploadedAttachment[] => {
+  const files = objectValue(value, code).files;
+  if (!Array.isArray(files) || files.length === 0) throw new Error(code);
+  return files.map((file) => {
+    const attachment = objectValue(file, code);
+    return Object.freeze({
+      ...attachment,
+      providerDisplayName: textValue(attachment.providerDisplayName, code),
+    });
+  });
 };
 const providerValue = (value: unknown): GptProviderContinuation => {
   const provider = objectValue(value, "SEO_CONTINUATION_PROVIDER_INVALID");
@@ -83,8 +98,12 @@ const promptEnvelope = (task: WebsiteAgentTask, marker: string, instruction: str
   `把此不可变标记原样保留在本次用户消息中，不要写入 JSON 结果：${marker}`,
 ].join("\n");
 
-const researchPrompt = (task: WebsiteAgentTask, marker: string): string => promptEnvelope(task, marker, [
-  "读取且只读取本轮两个附件：ready-corpus-archive.json 与 article-package-result-contract.json。",
+const researchPrompt = (
+  task: WebsiteAgentTask,
+  marker: string,
+  providerDisplayNames: readonly string[],
+): string => promptEnvelope(task, marker, [
+  `读取且只读取本轮两个附件：${providerDisplayNames.join(" 与 ")}。`,
   "从冻结 READY 语料与现役文章目录中研究一个可公开、可引用、可核验、且不存在实质重复的问题。",
   "材料不足或没有实质新意时必须 decision=decline；否则 decision=proceed。",
   "严格返回 public-knowledge-research-output.v3 的全部且仅有合同字段。",
@@ -104,8 +123,12 @@ const imagePrompt = (task: WebsiteAgentTask, marker: string): string => promptEn
   "本轮唯一业务输出是一张可下载的生成图片。",
 ].join("\n"));
 
-const reviewPrompt = (task: WebsiteAgentTask, marker: string): string => promptEnvelope(task, marker, [
-  "读取且只读取本轮 subject_result 与 review_context 两个附件。",
+const reviewPrompt = (
+  task: WebsiteAgentTask,
+  marker: string,
+  providerDisplayNames: readonly string[],
+): string => promptEnvelope(task, marker, [
+  `读取且只读取本轮两个附件：${providerDisplayNames.join(" 与 ")}。`,
   task.action_id === "accuracy_challenge"
     ? "只检查公开性、来源、主张、引文与事实准确性；不得改写文章或替 Website 裁决。"
     : "只检查独立性、表达、读者价值、合同摩擦与质量风险；不得改写文章或替 Website 裁决。",
@@ -126,8 +149,13 @@ const createSeoExecutor = (task: WebsiteAgentTask, context: SharedExecutionConte
   const sessionKey = `${PLUGIN_ID}:${task.job_id}:${context.gpt.attemptId}`;
   const evidenceRefs: string[] = [];
   let actionOrdinal = 0;
+  let priorChildCompleted = false;
   const execute: SeoChild = async (input) => {
+    if (priorChildCompleted) {
+      await new Promise<void>((resolve) => setTimeout(resolve, SEO_CHILD_HANDOFF_DELAY_MS));
+    }
     const result = await context.gpt.execute({ ...input, sessionKey, actionOrdinal: ++actionOrdinal });
+    priorChildCompleted = true;
     evidenceRefs.push(result.evidenceRef);
     return result;
   };
@@ -269,9 +297,12 @@ const executeArticleProduction = async (task: WebsiteAgentTask, context: SharedE
   await applyExactProfile(flow.execute, researchStep);
   await flow.execute({ sessionKey: "", productStepId: researchStep, callId: "attachment-control-open", child: "open_gpt_attachment_control", actionOrdinal: 0, input: {} });
   await flow.execute({ sessionKey: "", productStepId: researchStep, callId: "attachments-attach", child: "attach_approved_gpt_files_once", actionOrdinal: 0, input: { files } });
-  await flow.execute({ sessionKey: "", productStepId: researchStep, callId: "attachments-reconcile", child: "reconcile_gpt_attachment_set", actionOrdinal: 0, input: { files } });
+  const reconciledAttachments = await flow.execute({ sessionKey: "", productStepId: researchStep, callId: "attachments-reconcile", child: "reconcile_gpt_attachment_set", actionOrdinal: 0, input: { files, timeoutMs: 60_000 } });
+  const uploadedFiles = uploadedAttachmentFiles(reconciledAttachments.value, "SEO_ATTACHMENT_RECONCILIATION_INVALID");
   const researchCheckpoint = await submitTextTurn({
-    execute: flow.execute, stepId: researchStep, prompt: researchPrompt(task, researchMarker), marker: researchMarker, files,
+    execute: flow.execute, stepId: researchStep,
+    prompt: researchPrompt(task, researchMarker, uploadedFiles.map((file) => file.providerDisplayName)),
+    marker: researchMarker, files: uploadedFiles,
   });
   const persisted = await flow.execute({
     sessionKey: "", productStepId: researchStep, callId: "continuation-persist", child: "persist_gpt_continuation", actionOrdinal: 0,
@@ -333,9 +364,12 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
   await applyExactProfile(flow.execute, stepId);
   await flow.execute({ sessionKey: "", productStepId: stepId, callId: "attachment-control-open", child: "open_gpt_attachment_control", actionOrdinal: 0, input: {} });
   await flow.execute({ sessionKey: "", productStepId: stepId, callId: "attachments-attach", child: "attach_approved_gpt_files_once", actionOrdinal: 0, input: { files } });
-  await flow.execute({ sessionKey: "", productStepId: stepId, callId: "attachments-reconcile", child: "reconcile_gpt_attachment_set", actionOrdinal: 0, input: { files } });
+  const reconciledAttachments = await flow.execute({ sessionKey: "", productStepId: stepId, callId: "attachments-reconcile", child: "reconcile_gpt_attachment_set", actionOrdinal: 0, input: { files, timeoutMs: 60_000 } });
+  const uploadedFiles = uploadedAttachmentFiles(reconciledAttachments.value, "SEO_ATTACHMENT_RECONCILIATION_INVALID");
   const checkpoint = await submitTextTurn({
-    execute: flow.execute, stepId, prompt: reviewPrompt(task, marker), marker, files,
+    execute: flow.execute, stepId,
+    prompt: reviewPrompt(task, marker, uploadedFiles.map((file) => file.providerDisplayName)),
+    marker, files: uploadedFiles,
   });
   const payload = parseRouteResult(task, checkpoint.rawText);
   return context.complete({ payload, evidence_refs: flow.evidenceRefs });
