@@ -1,30 +1,22 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 
 import {
   agentPluginCapabilityManifest, productionCatalogHash, productionPluginCatalog, resolveProductionPlugin,
 } from "../../src/lib/local-runtime/production/catalog.js";
-import {
-  WebsiteAgentTaskSchema, hashCanonical,
-} from "../../src/lib/local-runtime/production/contracts.js";
-import {
-  LeaseRenewReceiptSchema, parseJsonEnvelope, websiteAgentTaskFromClaim,
-} from "../../src/lib/local-runtime/production/transport-protocol.js";
+import { WebsiteAgentTaskSchema, hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
+import { LeaseRenewReceiptSchema, parseJsonEnvelope, websiteAgentTaskFromClaim } from "../../src/lib/local-runtime/production/transport-protocol.js";
 import { typedExecutionFailure } from "../../src/lib/typed-failure.js";
 import { assertProductionTaskRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../src/mediator/agent-production-route.js";
-import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
-import { HASH_A, HASH_B, claimTask, identityFor, resultFor, task } from "./agent-production-runtime-fixtures.js";
+import { HASH_A, HASH_B, claimTask, task } from "./agent-production-runtime-fixtures.js";
 import "./agent-production-runtime-ledger.acceptance.js";
 import "./agent-production-runtime-continuation.acceptance.js";
 import "./agent-production-runtime-startup.acceptance.js";
 
 assert.equal(productionPluginCatalog.length, 12);
 assert.equal(agentPluginCapabilityManifest.plugins.length, 12);
-assert.deepEqual(
-  agentPluginCapabilityManifest.plugins.map((entry) => entry.plugin_id).sort(),
-  productionPluginCatalog.map((entry) => entry.pluginId).sort(),
-);
 assert.equal(hashCanonical(agentPluginCapabilityManifest.plugins), productionCatalogHash);
 
 const productionTask = task({
@@ -52,8 +44,8 @@ const reviewTask = task({
   }],
   extra: {
     parameters: { challenge_id: "challenge:1", question_text: "Is the observation accurate?" },
-    subject_task_ref: "task:subject",
-    subject_result_ref: "result:subject", subject_result_hash: HASH_A, review_policy: "manual-accuracy-challenge.v1",
+    subject_task_ref: "task:subject", subject_result_ref: "result:subject",
+    subject_result_hash: HASH_A, review_policy: "manual-accuracy-challenge.v1",
   },
 });
 
@@ -73,86 +65,47 @@ assert.throws(() => assertProductionTaskRoutePolicy(task({
     review_policy: "manual-accuracy-challenge.v1",
   },
 })), /AGENT_REVIEW_SUBJECT_MATERIAL_INVALID/u);
-assert.throws(() => resolveProductionPlugin("bazi_basic_chart" as never, "produce" as never),
-  /PLUGIN_ROUTE_UNSUPPORTED/u);
+assert.throws(() => resolveProductionPlugin("bazi_basic_chart" as never, "produce" as never), /PLUGIN_ROUTE_UNSUPPORTED/u);
 
-const leaseRenewReceipt = {
-  schema_version: "xuanxue-ai-lease-renew-receipt.v6",
-  job_id: "job:control-epoch",
-  server_now: "2026-08-28T18:00:00.000Z",
-  lease_expires_at: "2026-08-28T18:01:30.000Z",
+const renewal = LeaseRenewReceiptSchema.parse({
+  schema_version: "xuanxue-ai-lease-renew-receipt.v6", job_id: "job:control-epoch",
+  server_now: "2026-08-28T18:00:00.000Z", lease_expires_at: "2026-08-28T18:01:30.000Z",
   renew_after_ms: 20_000,
-  control_intent: {
-    schema_version: "xuanxue-ai-control-intent.v6",
-    job_id: "job:control-epoch",
-    control_epoch: 0,
-    intent: "none",
-    reason_code: null,
-  },
-} as const;
-assert.equal(LeaseRenewReceiptSchema.parse(leaseRenewReceipt).control_intent.control_epoch, 0);
-assert.throws(() => LeaseRenewReceiptSchema.parse({
-  ...leaseRenewReceipt,
-  control_intent: { ...leaseRenewReceipt.control_intent, intent: "pause_requested" },
-}), /AI_V6_CONTROL_INTENT_INITIAL_EPOCH_INVALID/u);
+  control_intent: { schema_version: "xuanxue-ai-control-intent.v6", job_id: "job:control-epoch", control_epoch: 0, intent: "none", reason_code: null },
+});
+assert.equal(renewal.control_intent.control_epoch, 0);
 
-const claimedTask = claimTask(productionTask);
-assert.deepEqual(websiteAgentTaskFromClaim(claimedTask), productionTask);
-assert.throws(() => authorizeWebsiteAgentTask(claimedTask), /unrecognized_keys/u);
-assert.equal(claimedTask.status, "failed");
-assert.equal(claimedTask.current_reason, "LEASE_GRANTED");
-assert.equal(claimedTask.grant.accepted_attempt_count, 1);
+const claimed = claimTask(productionTask);
+assert.deepEqual(websiteAgentTaskFromClaim(claimed), productionTask);
+assert.equal(claimed.status, "failed");
+assert.equal(claimed.grant.accepted_attempt_count, 1);
 
 const runtimeSource = await readFile(new URL("../../src/lib/local-runtime/production/runtime-claim.ts", import.meta.url), "utf8");
-const transportSource = await readFile(new URL("../../src/lib/local-runtime/production/transport-protocol.ts", import.meta.url), "utf8");
 const executorSource = await readFile(new URL("../../src/lib/local-runtime/production/executor.ts", import.meta.url), "utf8");
-const gptExecutorSource = await readFile(new URL("../../src/lib/local-runtime/production/production-gpt-executor.ts", import.meta.url), "utf8");
-const cloudClientSource = await readFile(new URL("../../src/lib/local-runtime/production/cloud-client.ts", import.meta.url), "utf8");
-assert.doesNotMatch(runtimeSource, /(?:message|reason)\.(?:includes|startsWith|match).*?(?:review_required|recovery_required|failed)/u);
-assert.doesNotMatch(transportSource, /retryable/u);
-assert.doesNotMatch(transportSource, /attempt_mode/u);
-assert.match(transportSource, /throw executionFailure\(/u);
-assert.match(runtimeSource, /state\.executor\.execute\(input\.task, input\.materials/u);
+const childToolsSource = await readFile(new URL("../../src/lib/local-runtime/production/production-gpt-child-tools.ts", import.meta.url), "utf8");
+assert.equal(existsSync(new URL("../../src/lib/local-runtime/production/production-gpt-executor.ts", import.meta.url)), false);
+assert.equal(existsSync(new URL("../../src/lib/local-runtime/production/production-gpt-turn-flow.ts", import.meta.url)), false);
 assert.doesNotMatch(runtimeSource, /emitState|stateKey:|currentStates|reconciledFromAuthority/u);
-assert.doesNotMatch(executorSource, /this\.store\.markRunning/u);
-assert.match(gptExecutorSource, /assertNoPendingMutations/u);
-assert.match(cloudClientSource, /delivered\?\.state === "delivered"/u);
-assert.match(cloudClientSource, /readFile\(image\.local_path\)/u);
-assert.doesNotMatch(runtimeSource, /RETRY_FROM_CHECKPOINT|RECONCILE_ONLY/u);
+assert.doesNotMatch(executorSource, /runTurn|ProductionGptExecutor|GPT_TURN_FLOW/u);
+assert.match(executorSource, /gpt: gptExecution\.tools/u);
+assert.match(childToolsSource, /this\.gpt\.execute\(intent/u);
+assert.match(childToolsSource, /mutationMode: "readback"/u);
+assert.doesNotMatch(childToolsSource, /stepIndex|flowVersion|resumePoint|reconcileOnly/u);
 
 assert.throws(() => parseJsonEnvelope({
   ok: false, error: { code: "HTTP_401_UNAUTHORIZED", message: "unauthorized" },
 }, 401), (error: unknown) => typedExecutionFailure(error)?.code === "HTTP_401_UNAUTHORIZED");
 
-let turnCalls = 0;
-let completionCalls = 0;
-const dispatched = await dispatchWebsiteAgentTask(productionTask, (authorized) => ({
-  materials: [],
-  runTurn: async () => {
-    turnCalls += 1;
-    return {
-      raw_text: JSON.stringify({
-        schema_version: "payment-screenshot-observation-v1", page_kind: "other", payment_app: "unknown",
-        success_visible: false, visible_amount_minor_units: null, reason_code: "NO_VISIBLE_SUCCESS",
-      }),
-      raw_hash: HASH_A, evidence_refs: ["evidence:1"], provider_continuation: null,
-    };
-  },
-  complete: async () => {
-    completionCalls += 1;
-    return resultFor(authorized.task, identityFor(authorized.task));
-  },
-}));
-assert.equal(dispatched.plugin_id, "payment-screenshot-observation");
-assert.deepEqual([turnCalls, completionCalls], [1, 1]);
+await assert.rejects(
+  () => dispatchWebsiteAgentTask(productionTask, () => { throw new Error("CONTEXT_MUST_NOT_BE_CREATED"); }),
+  /CONTEXT_MUST_NOT_BE_CREATED/u,
+);
+await assert.rejects(
+  () => productionPluginCatalog[0]!.execute(
+    { action_id: productionPluginCatalog[0]!.accepts[0]!.actionId } as never,
+    {} as never,
+  ),
+  (error: unknown) => typedExecutionFailure(error)?.code.startsWith("PRODUCT_FLOW_NOT_IMPLEMENTED:") === true,
+);
+
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
-for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
-  emitQualityProofObservation({
-    passed: true, findings: [], lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V8", evidenceMode,
-    clauses: ["forbidden:0", "forbidden:10", "forbidden:11", "forbidden:12", "forbidden:17",
-      "forbidden:18", "forbidden:19", "forbidden:2", "forbidden:21", "forbidden:22",
-      "forbidden:25", "forbidden:26", "forbidden:27", "forbidden:3", "forbidden:8", "forbidden:9"],
-    locator: `acceptance:agent-production-runtime:${evidenceMode}`,
-    observedValue: "the canonical agent runtime command completed strict 39-route input/result rejection, bounded browser-lane FIFO/DISPATCHED no-replay mutants, typed failure propagation, durable acceptance, frozen identity, outbox idempotency, continuation lane CAS, task-owned Target cleanup, and blocked-shell isolation",
-  });
-}

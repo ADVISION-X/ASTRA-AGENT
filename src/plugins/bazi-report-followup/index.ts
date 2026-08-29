@@ -5,7 +5,7 @@ import { parseProductResult } from "./result-contract.js";
 const skill = readProductSkill(import.meta.url);
 
 export const baziReportFollowupPlugin: ProductPlugin = {
-  pluginId: "bazi-report-followup", pluginVersion: 5, skillHash: skill.hash, checkpointSchemaVersion: 2,
+  pluginId: "bazi-report-followup", pluginVersion: 6, skillHash: skill.hash, checkpointSchemaVersion: 2,
   parseResult: parseProductResult,
   accepts: [
     { productId: "bazi_report_followup", actionId: "followup" },

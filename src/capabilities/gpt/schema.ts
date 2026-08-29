@@ -15,6 +15,7 @@ const GptTaskLabelKeySchema = z.enum([
 ]);
 
 export const GptReasoningTierSchema = z.enum([
+  "fast",
   "medium",
   "high",
   "extra_high",

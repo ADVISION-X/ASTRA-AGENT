@@ -5,7 +5,7 @@ import { parseProductResult } from "./result-contract.js";
 const skill = readProductSkill(import.meta.url);
 
 export const baziChartInterpretationPlugin: ProductPlugin = {
-  pluginId: "bazi-chart-interpretation", pluginVersion: 5, skillHash: skill.hash, checkpointSchemaVersion: 2,
+  pluginId: "bazi-chart-interpretation", pluginVersion: 6, skillHash: skill.hash, checkpointSchemaVersion: 2,
   parseResult: parseProductResult,
   accepts: [
     { productId: "bazi_chart_interpretation", actionId: "produce" },

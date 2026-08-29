@@ -65,7 +65,8 @@ try {
     commandId: "command-1", logicalMutationId, ownerPluginId: "fixture-product-plugin",
     jobId: "job-1", attemptId: "attempt-1", leaseVersion: 1,
     executionFenceHash: hash, targetRef: "target-1", documentRef: "document-1",
-    productStepId: "step-1", childCapabilityId: "open_gpt_model_selector_v2",
+    productStepId: "step-1", callId: "call-1", childCapabilityId: "open_gpt_model_selector_v2",
+    effectScope: "target_local", actionOrdinal: 1,
     actionId: "browser.dom.click.v1", positivePostconditionHash: hash,
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
   });
@@ -76,7 +77,8 @@ try {
     commandId: "command-retry", logicalMutationId, ownerPluginId: "fixture-product-plugin",
     jobId: "job-1", attemptId: "attempt-2", leaseVersion: 2,
     executionFenceHash: hash, targetRef: "target-1", documentRef: "document-1",
-    productStepId: "step-1", childCapabilityId: "open_gpt_model_selector_v2",
+    productStepId: "step-1", callId: "call-1", childCapabilityId: "open_gpt_model_selector_v2",
+    effectScope: "target_local", actionOrdinal: 1,
     actionId: "browser.dom.click.v1", positivePostconditionHash: hash,
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
   }), /BROWSER_LOGICAL_MUTATION_REPLAY_FORBIDDEN/u);
@@ -85,10 +87,12 @@ try {
   assert.equal(store.readDispatched("command-1")?.childCapabilityId, "open_gpt_model_selector_v2");
   assert.equal(store.atomicStepRecovery({
     jobId: "job-1", ownerPluginId: "fixture-product-plugin", productStepId: "step-1",
+    callId: "call-1", childCapabilityId: "open_gpt_model_selector_v2",
     inputHash: hash, actionOrdinal: 1, targetRef: "target-1", effectScope: "target_local",
   })?.state, "dispatched");
   assert.equal(store.atomicStepRecovery({
     jobId: "job-1", ownerPluginId: "fixture-product-plugin", productStepId: "step-1",
+    callId: "call-1", childCapabilityId: "open_gpt_model_selector_v2",
     inputHash: hash, actionOrdinal: 1, targetRef: "target-2", effectScope: "target_local",
   }), null, "target-local recovery identity must not cross Target generations");
   store.resolve({ commandId: "command-1", ownerPluginId: "fixture-product-plugin", targetRef: "target-1", state: "REJECTED", proofHash: hash });
@@ -99,7 +103,8 @@ try {
     commandId: "command-new-target", logicalMutationId: `sha256:${"e".repeat(64)}`,
     ownerPluginId: "fixture-product-plugin", jobId: "job-1", attemptId: "attempt-2", leaseVersion: 2,
     executionFenceHash: hash, targetRef: "target-2", documentRef: "document-2",
-    productStepId: "step-1", childCapabilityId: "open_gpt_model_selector_v2",
+    productStepId: "step-1", callId: "call-1", childCapabilityId: "open_gpt_model_selector_v2",
+    effectScope: "target_local", actionOrdinal: 1,
     actionId: "browser.dom.click.v1", positivePostconditionHash: hash,
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
   });
@@ -109,7 +114,8 @@ try {
     commandId: "command-provider-effect", logicalMutationId: `sha256:${"f".repeat(64)}`,
     ownerPluginId: "fixture-product-plugin", jobId: "job-1", attemptId: "attempt-2", leaseVersion: 2,
     executionFenceHash: hash, targetRef: "target-2", documentRef: "document-2",
-    productStepId: "step-provider", childCapabilityId: "submit_exact_gpt_turn_once",
+    productStepId: "step-provider", callId: "call-provider", childCapabilityId: "submit_exact_gpt_turn_once",
+    effectScope: "provider_effect", actionOrdinal: 13,
     actionId: "browser.dom.click.v1", positivePostconditionHash: hash,
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
   });
@@ -117,6 +123,7 @@ try {
   store.markConfirmed("command-provider-effect", hash);
   assert.equal(store.atomicStepRecovery({
     jobId: "job-1", ownerPluginId: "fixture-product-plugin", productStepId: "step-provider",
+    callId: "call-provider", childCapabilityId: "submit_exact_gpt_turn_once",
     inputHash: hash, actionOrdinal: 13, targetRef: "target-replacement", effectScope: "provider_effect",
   })?.state, "confirmed", "provider effects must recover across Target/attempt generations without replay");
   store.close();

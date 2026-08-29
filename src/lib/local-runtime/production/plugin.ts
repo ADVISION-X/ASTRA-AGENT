@@ -11,22 +11,8 @@ import type {
 import { sha256 } from "./contracts.js";
 import type {
   GptChildCapabilityId,
-  GptReasoningTier,
-  GptTaskLabelKey,
+  GptProviderContinuation,
 } from "../../../capabilities/gpt/index.js";
-
-export interface ProviderTurnResult {
-  readonly raw_text: string;
-  readonly raw_hash: ProductionHash;
-  readonly evidence_refs: readonly string[];
-  readonly provider_continuation: Readonly<{
-    provider_page_url: string;
-    prior_task_id: string;
-    prior_raw_output_hash: ProductionHash;
-    prior_turn_marker: string;
-  }> | null;
-  readonly generated_image?: GeneratedImageArtifact;
-}
 
 export interface GeneratedImageArtifact {
   readonly artifact_id: string;
@@ -46,25 +32,6 @@ export interface SharedExecutionContext {
   readonly complete: (output: ProductPluginOutput) => Promise<WebsiteAgentResult>;
 }
 
-export type ProductGptCallRequest = Readonly<{
-  product_step_id: string;
-  call_id: string;
-  instruction: string;
-  material_roles: readonly string[];
-  provider: Readonly<{
-    labelKey: GptTaskLabelKey;
-    profileRef: string;
-    modelDisplayName: string;
-    modelFamily: string;
-    reasoningTier: GptReasoningTier;
-  }>;
-  output_kind?: "text" | "generated_image";
-  same_conversation_as?: ProviderTurnResult;
-  use_task_continuation?: boolean;
-  continuation_source_plugin_ids?: readonly string[];
-  persist_continuation?: boolean;
-}>;
-
 export type ProductGptChildResult = Readonly<{
   value: unknown;
   evidenceRef: string;
@@ -74,19 +41,19 @@ export type ProductGptChildResult = Readonly<{
 export interface ProductGptTools {
   readonly attemptId: string;
   execute(input: Readonly<{
+    sessionKey: string;
     productStepId: string;
     callId: string;
     child: GptChildCapabilityId;
     actionOrdinal: number;
     input: Readonly<Record<string, unknown>>;
   }>): Promise<ProductGptChildResult>;
-  finishCall(productStepId: string, callId: string): Promise<void>;
 }
 
 export interface ProductPluginOutput {
   readonly payload: unknown;
   readonly evidence_refs: readonly string[];
-  readonly continuation?: ProviderTurnResult["provider_continuation"];
+  readonly continuation?: GptProviderContinuation | null;
   readonly generated_image?: GeneratedImageArtifact;
 }
 
@@ -117,9 +84,6 @@ export const readProductSkill = (pluginModuleUrl: string): Readonly<{
   if (!text.trim()) throw new Error("PLUGIN_SKILL_EMPTY");
   return Object.freeze({ path, text, hash: sha256(text) });
 };
-
-export const combineEvidence = (...turns: readonly ProviderTurnResult[]): readonly string[] =>
-  Object.freeze([...new Set(turns.flatMap((turn) => turn.evidence_refs))]);
 
 export function parsePluginJsonObject(raw: string, code: string): Readonly<Record<string, unknown>> {
   const normalized = raw.trim().replace(/^```(?:json)?\s*/iu, "").replace(/\s*```$/u, "");

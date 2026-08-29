@@ -5,7 +5,7 @@ import { parseProductResult } from "./result-contract.js";
 const skill = readProductSkill(import.meta.url);
 
 export const localizationProductionPlugin: ProductPlugin = {
-  pluginId: "localization-production", pluginVersion: 9, skillHash: skill.hash, checkpointSchemaVersion: 2,
+  pluginId: "localization-production", pluginVersion: 10, skillHash: skill.hash, checkpointSchemaVersion: 2,
   parseResult: parseProductResult,
   accepts: [
     { productId: "localization_report_translation", actionId: "report_translation" },

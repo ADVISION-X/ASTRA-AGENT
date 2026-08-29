@@ -5,7 +5,7 @@ import { parseProductResult } from "./result-contract.js";
 const skill = readProductSkill(import.meta.url);
 
 export const publicKnowledgeArticlePipelinePlugin: ProductPlugin = {
-  pluginId: "public-knowledge-article-pipeline", pluginVersion: 7, skillHash: skill.hash, checkpointSchemaVersion: 2,
+  pluginId: "public-knowledge-article-pipeline", pluginVersion: 8, skillHash: skill.hash, checkpointSchemaVersion: 2,
   parseResult: parseProductResult,
   accepts: [
     { productId: "public_knowledge_article_pipeline", actionId: "produce_article" },

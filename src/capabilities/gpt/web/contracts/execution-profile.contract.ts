@@ -6,6 +6,7 @@ export const GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR = `${GPT_PROFILE_REA
 export const GPT_PROFILE_REASONING_VALUE_SELECTOR = "[data-model-reasoning-effort-slider] [role='slider']";
 export const GPT_PROFILE_DISMISS_SELECTOR = "#prompt-textarea";
 export const reasoningTierUiLabel = Object.freeze({
+  fast: "极速",
   medium: "中",
   high: "高",
   extra_high: "极高",
@@ -14,6 +15,7 @@ export const reasoningTierUiLabel = Object.freeze({
 });
 
 export const reasoningTierUiValue = Object.freeze({
+  fast: 0,
   medium: 1,
   high: 2,
   extra_high: 3,

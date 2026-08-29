@@ -5,7 +5,7 @@ import { parseProductResult } from "./result-contract.js";
 const skill = readProductSkill(import.meta.url);
 
 export const namingBaziAnalysisAndNamingPlugin: ProductPlugin = {
-  pluginId: "naming-bazi-analysis-and-naming", pluginVersion: 5, skillHash: skill.hash, checkpointSchemaVersion: 2,
+  pluginId: "naming-bazi-analysis-and-naming", pluginVersion: 6, skillHash: skill.hash, checkpointSchemaVersion: 2,
   parseResult: parseProductResult,
   accepts: [
     { productId: "naming_bazi_analysis_and_naming", actionId: "produce" },

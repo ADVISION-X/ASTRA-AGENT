@@ -38,8 +38,7 @@ type ExecutionInput = Readonly<{
 }>;
 
 type ActiveBrowserCall = Readonly<{
-  productStepId: string;
-  callId: string;
+  sessionKey: string;
   browser: BrowserTargetLease;
 }>;
 
@@ -145,8 +144,6 @@ export class ProductionGptChildTools {
       tools: Object.freeze({
         attemptId: input.lease.attempt_id,
         execute,
-        finishCall: (productStepId: string, callId: string) =>
-          this.finishCall(browsers, productStepId, callId),
       }),
       continuationRef: () => continuationRef,
       settle: (error) => this.settleBrowsers(browsers, error),
@@ -234,7 +231,7 @@ export class ProductionGptChildTools {
     });
     const contract = GPT_CHILD_CAPABILITY_CONTRACTS[call.child];
     const browser = contract.requiredTargetKind === "chatgpt"
-      ? await this.browserFor(execution, browsers, call.productStepId, call.callId)
+      ? await this.browserFor(execution, browsers, call.sessionKey, call.productStepId, call.callId)
       : undefined;
     if (call.child === "submit_exact_gpt_turn_once"
       && this.browserAuthority.countProviderTurnDispatches(
@@ -337,31 +334,15 @@ export class ProductionGptChildTools {
     };
   }
 
-  private callKey(productStepId: string, callId: string): string {
-    return `${productStepId}\u0000${callId}`;
-  }
-
-  private async finishCall(
-    browsers: Map<string, ActiveBrowserCall>,
-    productStepId: string,
-    callId: string,
-  ): Promise<void> {
-    const key = this.callKey(productStepId, callId);
-    const call = browsers.get(key);
-    if (!call) return;
-    call.browser.assertNoPendingMutations();
-    await call.browser.close({ reason: "gpt-product-call-settled" });
-    browsers.delete(key);
-  }
-
   private async browserFor(
     input: ExecutionInput,
     browsers: Map<string, ActiveBrowserCall>,
+    sessionKey: string,
     productStepId: string,
     callId: string,
   ): Promise<BrowserTargetLease> {
-    const key = this.callKey(productStepId, callId);
-    const current = browsers.get(key);
+    if (!sessionKey) throw executionFailure("failed", "GPT_SESSION_KEY_REQUIRED");
+    const current = browsers.get(sessionKey);
     if (current) return current.browser;
     const remaining = Math.floor(input.lease.expires_at_monotonic - performance.now());
     const commandTtlMs = Math.min(input.lease.command_ttl_ms, remaining);
@@ -394,7 +375,7 @@ export class ProductionGptChildTools {
       signal: input.lease.abort_signal,
       remainingMs: () => Math.floor(input.lease.expires_at_monotonic - performance.now()),
     });
-    browsers.set(key, { productStepId, callId, browser });
+    browsers.set(sessionKey, { sessionKey, browser });
     return browser;
   }
 

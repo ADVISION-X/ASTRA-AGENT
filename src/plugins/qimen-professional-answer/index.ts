@@ -5,7 +5,7 @@ import { parseProductResult } from "./result-contract.js";
 const skill = readProductSkill(import.meta.url);
 
 export const qimenProfessionalAnswerPlugin: ProductPlugin = {
-  pluginId: "qimen-professional-answer", pluginVersion: 5, skillHash: skill.hash, checkpointSchemaVersion: 2,
+  pluginId: "qimen-professional-answer", pluginVersion: 6, skillHash: skill.hash, checkpointSchemaVersion: 2,
   parseResult: parseProductResult,
   accepts: [
     { productId: "qimen_professional_answer", actionId: "produce" },

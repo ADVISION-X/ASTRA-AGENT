@@ -131,7 +131,7 @@ export class ProductionExecutor {
   }>): Promise<WebsiteAgentResult> {
     let completed = false;
     let gptExecution: ProductGptExecution | null = null;
-    let settleGptExecution: ((error: unknown | null) => Promise<void>) | null = null;
+    const gptLifecycle: { settle: ((error: unknown | null) => Promise<void>) | null } = { settle: null };
     let primaryError: unknown = null;
     let result: WebsiteAgentResult;
     try {
@@ -143,7 +143,7 @@ export class ProductionExecutor {
           lease: input.lease,
           parentSpanId: input.span.spanId,
         });
-        settleGptExecution = gptExecution.settle;
+        gptLifecycle.settle = gptExecution.settle;
         return {
           materials: input.materials,
           gpt: gptExecution.tools,
@@ -161,7 +161,7 @@ export class ProductionExecutor {
       throw error;
     } finally {
       try {
-        if (settleGptExecution) await settleGptExecution(primaryError);
+        if (gptLifecycle.settle) await gptLifecycle.settle(primaryError);
       } catch (settleError) {
         if (primaryError === null) throw settleError;
         throw new AggregateError([primaryError, settleError], "GPT_BROWSER_LIFECYCLE_FAILED");
