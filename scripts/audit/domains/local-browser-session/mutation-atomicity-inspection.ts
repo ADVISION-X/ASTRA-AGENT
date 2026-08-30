@@ -240,7 +240,9 @@ const newMutationGuardIsExact = (managerClass: ClassDeclaration): boolean => {
   if (!Node.isArrowFunction(worker)) return false;
   const workerBody = worker.getBody();
   if (!Node.isBlock(workerBody)) return false;
-  const mutationGuard = workerBody.getStatements()[1];
+  const mutationGuard = workerBody.getStatements().find((statement): statement is import("ts-morph").IfStatement =>
+    Node.isIfStatement(statement)
+    && statement.getExpression().getText().includes("state.pendingMutationCommandIds.length"));
   if (!Node.isIfStatement(mutationGuard)) return false;
   const mutationCondition = mutationGuard.getExpression();
   return Node.isBinaryExpression(mutationCondition)
@@ -322,7 +324,7 @@ export const inspectCompactMutationRecoveryBoundary = (
     "BrowserMutationStore", "prepare", "markDispatched", "markReceiptMissing", "markConfirmed",
     "markRejected", "markFailedBeforeDispatch", "resolve", "dispatchedForBinding", "dispatchedForJob",
     "reconciliationScope", "callRecoveryScope", "atomicStepRecovery", "readDispatched",
-    "logicalMutationId", "exactCallIdentityHash", "pluginVersion", "productStepId", "callId", "childCapabilityId", "inputHash", "effectScope",
+    "logicalMutationId", "exactCallIdentityHash", "pluginVersion", "productStepId", "callId", "childCapabilityId", "requestHash", "effectScope",
     "actionOrdinal", "positivePostconditionHash", "negativePostconditionHash", "requestHash", "payloadHash",
     "proofHash", "terminalAt", "readExactCallMutationFact",
   ], findings, lawId, "Compact Browser mutation recovery must remain one SQLite/WAL row per physical mutation and exact job binding.");

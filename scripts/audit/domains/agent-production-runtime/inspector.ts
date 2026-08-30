@@ -17,6 +17,8 @@ const EXECUTOR_PATH = "src/lib/local-runtime/production/executor.ts";
 const CHILD_TOOLS_PATH = "src/lib/local-runtime/production/production-gpt-child-tools.ts";
 const CHILD_BROWSER_LIFECYCLE_PATH =
   "src/lib/local-runtime/production/production-gpt-browser-lifecycle.ts";
+const CHILD_CALL_FACTS_PATH =
+  "src/lib/local-runtime/production/production-gpt-call-facts.ts";
 const STORE_FOUNDATION_PATH = "src/lib/local-runtime/production/store-foundation.ts";
 const STORE_TASK_STATE_PATH = "src/lib/local-runtime/production/store-task-state.ts";
 const CLOUD_RECONCILIATION_PATH =
@@ -93,7 +95,8 @@ const inspectTaskStoreContract = (
 const inspectSharedProductionRuntime = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const executor = read(context, EXECUTOR_PATH);
   const childTools = read(context, CHILD_TOOLS_PATH);
-  const childRuntime = `${childTools}\n${read(context, CHILD_BROWSER_LIFECYCLE_PATH)}`;
+  const childRuntime = [childTools, read(context, CHILD_BROWSER_LIFECYCLE_PATH),
+    read(context, CHILD_CALL_FACTS_PATH)].join("\n");
   const store = read(context, STORE_FOUNDATION_PATH);
   const taskStateStore = read(context, STORE_TASK_STATE_PATH);
   const cloudReconciliation = read(context, CLOUD_RECONCILIATION_PATH);

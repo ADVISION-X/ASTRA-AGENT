@@ -134,10 +134,11 @@ const mutationIdentity = (permit: BrowserCommandPermit, command: BrowserGoverned
     permit.childCapabilityId,
     permit.inputHash,
   ]);
+  const targetScope = effectScope === "target_local" ? [permit.targetRef] : [];
   return {
     commandId: permit.commandId,
-    logicalMutationId: effectScope === "provider_effect"
-      ? exactCallIdentityHash : hashValue([exactCallIdentityHash, permit.targetRef]),
+    logicalMutationId: targetScope.length === 0
+      ? exactCallIdentityHash : hashValue([exactCallIdentityHash, ...targetScope]),
     exactCallIdentityHash,
     ownerPluginId: permit.ownerPluginId,
     pluginVersion: permit.pluginVersion,

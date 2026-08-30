@@ -236,8 +236,11 @@ const verifySpans = (
     .map((event) => event.producerRunId));
   const open = openEvents.map((event) => event.spanId).sort();
   const interrupted = openEvents.filter((event) => sealedRuns.has(event.producerRunId)).map((event) => event.spanId).sort();
+  const staleProducerRuns = new Set(openEvents.filter((event) => !sealedRuns.has(event.producerRunId))
+    .map((event) => event.producerRunId));
   for (const id of open) findings.push(`OPEN_SPAN:${id}`);
   for (const id of interrupted) findings.push(`INTERRUPTED:${id}`);
+  for (const runId of [...staleProducerRuns].sort()) findings.push(`PRODUCER_STALE:${runId}`);
   return { open, interrupted };
 };
 

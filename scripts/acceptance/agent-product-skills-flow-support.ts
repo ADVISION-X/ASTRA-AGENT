@@ -30,11 +30,11 @@ export const researchOutput = (decision: "proceed" | "decline") => ({
   research_markdown: "研究工件", citations: [], uncertainties: [], research_claim_units: [],
   closest_existing_article_ids: [], relation_assertions: [], novelty_basis: "independent_question",
 });
-export const articleOutput = {
+export const articleOutput = () => ({
   schema_version: "public-knowledge-article-output.v3", title: "旺衰判断的条件",
   editor_note: "说明边界", article_markdown: "## 判断边界\n不能机械计数。",
   citations: [], claim_coverage: [], safety_notes: [],
-};
+});
 
 type SeoAction = "produce_article" | "accuracy_challenge" | "quality_reflection";
 type SeoCall = Parameters<SharedExecutionContext["gpt"]["execute"]>[0];
@@ -95,7 +95,7 @@ const outputForCall = (state: SeoHarness, input: SeoCall, decision: "proceed" | 
   const text = input.productStepId === "corpus_research"
     ? JSON.stringify(researchOutput(decision))
     : input.productStepId === "article_synthesis"
-      ? JSON.stringify(articleOutput)
+      ? JSON.stringify(articleOutput())
       : JSON.stringify({ decision: "no_issue", issues: [] });
   const values: Partial<Record<SeoCall["child"], unknown>> = {
     reconcile_gpt_attachment_set: {

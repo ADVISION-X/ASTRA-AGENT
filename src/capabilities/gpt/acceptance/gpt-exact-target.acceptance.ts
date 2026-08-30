@@ -379,7 +379,6 @@ assert.equal(uploadTimedOut.status, "failed");
 assert.equal(uploadTimedOut.failureCode, "GPT_ATTACHMENT_UPLOAD_TIMEOUT:ready=0:uploading=1:expected=1");
 assert.equal(uploadTimeoutFixture.physicalMutations(), 0, "timed-out reconciliation must never mutate the page");
 
-process.stdout.write("[ACCEPTANCE][gpt-exact-target] PASS\n");
 emitQualityProofObservation({
   passed: true,
   findings: [],

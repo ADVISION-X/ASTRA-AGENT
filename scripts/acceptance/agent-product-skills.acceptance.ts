@@ -105,7 +105,7 @@ assert.equal(parsePublicKnowledgeResearch(JSON.stringify({
   ...researchOutput("proceed"), citations: [{ citation_id: "bad", book_id: "book", locator: "one" }],
 })).schema_version, "public-knowledge-research-output.v3");
 assert.equal(parsePublicKnowledgeArticle(JSON.stringify({
-  ...articleOutput, claim_coverage: [{ claim_id: "CL1", status: "addressed", reason_if_omitted: "must-be-null" }],
+  ...articleOutput(), claim_coverage: [{ claim_id: "CL1", status: "addressed", reason_if_omitted: "must-be-null" }],
 })).schema_version, "public-knowledge-article-output.v3");
 
 const routeKeys = new Set<string>();

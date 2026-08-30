@@ -146,9 +146,13 @@ const inspectOperationalAst = (context: InspectorContext): InspectorFinding[] =>
   }
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "production-boundaries",
     "src/lib/local-runtime/production/runtime-claim.ts", [
-      "operation: \"job.execute\"", "operation: \"job.durable-accept\"", "operation: \"job.lease-renew\"",
+      "operation: \"job.execute\"", "operation: \"job.durable-accept\"",
       "operation: \"material.download-verify\"", "operation: \"result.upload\"", "operation: \"job.terminal\"",
       "requireRuntimeLogWrite",
+    ]);
+  requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "production-boundaries",
+    "src/lib/local-runtime/production/runtime-execution-heartbeat.ts", [
+      "operation: \"job.lease-renew\"", "requireRuntimeLogWrite",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "production-boundaries",
     "src/lib/local-runtime/production/runtime-logging.ts", [
@@ -183,7 +187,7 @@ const inspectOperationalAst = (context: InspectorContext): InspectorFinding[] =>
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "durable-state-authorities",
     "src/lib/local-runtime/production/store-foundation.ts", [
-      "production_checkpoints", "production_leases", "failure_code", "production-outbox:",
+      "production_checkpoints", "production_leases", "failure_json", "production-outbox:",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "durable-state-authorities",
     "src/lib/local-runtime/production/store-authority-reader.ts", [
