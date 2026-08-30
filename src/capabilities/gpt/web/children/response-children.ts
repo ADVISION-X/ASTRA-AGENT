@@ -22,7 +22,11 @@ import {
   readExactText,
   readGptDocument,
 } from "../gpt-dom-observation.js";
-import { GPT_GENERATING_STOP_SELECTOR, GPT_USER_TURN_SELECTOR } from "../contracts/conversation.contract.js";
+import {
+  GPT_GENERATING_STOP_SELECTOR,
+  GPT_USER_PROMPT_BODY_SELECTOR,
+  GPT_USER_TURN_SELECTOR,
+} from "../contracts/conversation.contract.js";
 import { canonicalGptConversationUrl } from "../contracts/target-document.contract.js";
 
 const hash = (value: string | Buffer): `sha256:${string}` =>
@@ -40,7 +44,7 @@ const assistantSelector = (assistantTurnId: string): string =>
   `[data-testid=${JSON.stringify(assistantTurnId)}][data-turn='assistant'] [data-message-author-role='assistant']`;
 
 const userSelector = (userTurnId: string): string =>
-  `[data-testid=${JSON.stringify(userTurnId)}][data-turn='user'] [data-message-author-role='user']`;
+  `[data-testid=${JSON.stringify(userTurnId)}][data-turn='user'] [data-message-author-role='user'] ${GPT_USER_PROMPT_BODY_SELECTOR}`;
 
 const inputHash = (value: string): `sha256:${string}` => {
   if (!/^sha256:[a-f0-9]{64}$/u.test(value)) {

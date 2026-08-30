@@ -8,7 +8,7 @@ import { recordStaticCheck } from "../../shared/static-inspection-contract.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
 
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V13";
+const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V14";
 const PLUGIN_ROOT = "src/plugins";
 const CATALOG_PATH = "src/lib/local-runtime/production/catalog.ts";
 const CONTRACT_PATH = "src/lib/local-runtime/production/contracts.ts";
@@ -22,6 +22,9 @@ const STORE_TASK_STATE_PATH = "src/lib/local-runtime/production/store-task-state
 const CLOUD_RECONCILIATION_PATH =
   "src/lib/local-runtime/production/cloud-reconciliation-client.ts";
 const TRANSPORT_PROTOCOL_PATH = "src/lib/local-runtime/production/transport-protocol.ts";
+const RUNTIME_CLAIM_PATH = "src/lib/local-runtime/production/runtime-claim.ts";
+const CLOUD_CLIENT_PATH = "src/lib/local-runtime/production/cloud-client.ts";
+const TYPED_FAILURE_PATH = "src/lib/typed-failure.ts";
 
 const retiredPaths = [
   "src/capabilities/gpt/gpt-turn-executor.ts",
@@ -61,6 +64,9 @@ const inspectAgentProductionRuntime = (context: InspectorContext, findings: Insp
   const taskStateStore = read(context, STORE_TASK_STATE_PATH);
   const cloudReconciliation = read(context, CLOUD_RECONCILIATION_PATH);
   const transportProtocol = read(context, TRANSPORT_PROTOCOL_PATH);
+  const runtimeClaim = read(context, RUNTIME_CLAIM_PATH);
+  const cloudClient = read(context, CLOUD_CLIENT_PATH);
+  const typedFailure = read(context, TYPED_FAILURE_PATH);
   for (const token of ["runTurn", "GptTurnExecutor", "GPT_TURN_FLOW", "resumePoint", "reconcileOnly"])
     if (`${executor}\n${childRuntime}`.includes(token)) findings.push(finding(
       "agent-production-runtime/central-turn-owner-retired", EXECUTOR_PATH,
@@ -75,6 +81,13 @@ const inspectAgentProductionRuntime = (context: InspectorContext, findings: Insp
   ]) if (!childRuntime.includes(required)) findings.push(finding(
     "agent-production-runtime/one-child-transport", CHILD_TOOLS_PATH,
     `Child transport is missing ${required}.`,
+  ));
+  for (const required of [
+    "PostSubmitReadbackFault", "postSubmitReadbackReceipt",
+    'reasonCode: "POST_SUBMIT_READBACK_FAULT"', "confirmedSubmit",
+  ]) if (!`${typedFailure}\n${runtimeClaim}\n${cloudClient}`.includes(required)) findings.push(finding(
+    "agent-production-runtime/post-submit-same-attempt-release", RUNTIME_CLAIM_PATH,
+    `Confirmed-submit readback recovery is missing ${required}.`,
   ));
   if (!executor.includes("gpt: gptExecution.tools") || executor.includes("runTurn:")) findings.push(finding(
     "agent-production-runtime/product-child-interface", EXECUTOR_PATH,
@@ -124,7 +137,8 @@ const inspectAgentProductionRuntime = (context: InspectorContext, findings: Insp
         "acquire_gpt_continuation_lane", "advance_gpt_continuation_lane", "release_gpt_continuation_lane",
         "SEO_CHILD_HANDOFF_DELAY_MS = 2_000", "setTimeout(resolve, SEO_CHILD_HANDOFF_DELAY_MS)",
         'publicKnowledgeTurnContract("research")', 'publicKnowledgeTurnContract("article")',
-        "readCallFacts", "requireEvidence", "absoluteDeadline",
+        "readCallFacts", "requireEvidence", "absoluteDeadline", "prior_prompt_hash",
+        "expectedPromptHash", "preservePostSubmitReadback",
       ]) if (!source.includes(required)) findings.push(finding(
         "agent-production-runtime/seo-product-flow", path,
         `SEO Product Flow is missing ${required}.`,
@@ -230,7 +244,8 @@ const inspectAgentTypes = (context: InspectorContext, findings: InspectorFinding
   const facts = source?.getTypeAlias("ExactGptCallFacts")?.getFullText() ?? "";
   for (const required of [
     "exactCallIdentityHash", "mutation", "effectScope", "outcome", "terminalAt",
-    "evidence", "readbackVerified", "artifactRefs", "continuation", "contentReadbackVerified",
+    "evidence", "readbackVerified", "artifactRefs", "continuation", "priorPromptHash",
+    "priorResponseHash", "contentReadbackVerified",
   ]) if (!facts.includes(required)) findings.push(finding(
     "agent-production-runtime/exact-call-facts", PLUGIN_CONTRACT_PATH,
     `ExactGptCallFacts is missing ${required}.`, "static.types",

@@ -257,6 +257,8 @@ export class ProductionGptChildTools {
       continuationRef,
       conversationIdentityHash: stored.conversation_identity_hash,
       laneVersion: stored.lane_version,
+      priorPromptHash: stored.provider.prior_prompt_hash,
+      priorResponseHash: stored.provider.prior_raw_output_hash,
       contentReadbackVerified: true,
     });
   }
@@ -333,9 +335,7 @@ export class ProductionGptChildTools {
   ): Promise<ProductGptChildResult | null> {
     if (!facts.evidence) return null;
     if (call.child === "persist_gpt_continuation") {
-      if (!facts.continuation) {
-        return this.terminalizeError(span, executionFailure("failed", "GPT_CONTINUATION_IDENTITY_INVALID"));
-      }
+      if (!facts.continuation) return null;
       requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
       return Object.freeze({
         value: { continuationRef: facts.continuation.continuationRef },

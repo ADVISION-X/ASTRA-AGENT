@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import Database from "better-sqlite3";
 
 import {
+  createGptAbilityGroup,
   gptExactCallIdentityHash,
   type GptAbilityGroup,
   type GptChildCapabilityIntent,
@@ -362,3 +364,102 @@ const exerciseProviderEffectRecovery = async (initial: ProviderOutcome): Promise
 
 await exerciseProviderEffectRecovery("CONFIRMED");
 await exerciseProviderEffectRecovery("DISPATCHED");
+
+const exerciseContinuationRebuild = async (): Promise<void> => {
+  const root = await mkdtemp(path.join(tmpdir(), "agent-continuation-rebuild-"));
+  const providerTask = task({
+    jobId: "job:continuation-rebuild",
+    productId: "public_knowledge_article_pipeline",
+    actionId: "produce_article",
+  });
+  const attemptId = "attempt:continuation-rebuild";
+  let store = new ProductionRuntimeStore(root);
+  try {
+    store.acceptTask(providerTask, identityFor(providerTask), attemptId);
+    const evidence = createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(root));
+    const authority = {
+      readExactCallMutationFact: () => null,
+      countProviderTurnDispatches: () => 0,
+      acquireJobBoundTargetLease: async () => { throw new Error("UNEXPECTED_CONTINUATION_BROWSER"); },
+    } as unknown as WorkbenchBrowserAuthority;
+    const execution = (leaseVersion: number) => new ProductionGptChildTools(
+      root,
+      HASH_A,
+      createGptAbilityGroup(),
+      evidence,
+      authority,
+      store,
+      createRuntimeLogger({
+        producer: "agent-continuation-rebuild",
+        owner: "production-runtime",
+        component: "gpt-child",
+        terminalEnabled: false,
+        fileSink: { directoryPath: path.join(root, "runtime-logs") },
+      }),
+    ).createExecution({
+      task: providerTask,
+      pluginId: "public-knowledge-article-pipeline",
+      pluginVersion: 14,
+      lease: {
+        attempt_id: attemptId,
+        device_id: "device:continuation-rebuild",
+        lease_version: leaseVersion,
+        execution_fence_hash: leaseVersion === 1 ? HASH_A : HASH_B,
+        control_manifest_hash: HASH_A,
+        max_provider_turns: 2,
+        provider_turns_used: 0,
+        expires_at_monotonic: performance.now() + 10_000,
+        command_ttl_ms: 1_000,
+        abort_signal: new AbortController().signal,
+      },
+      parentSpanId: `span:continuation-rebuild:${leaseVersion}`,
+    });
+    const call = Object.freeze({
+      sessionKey: "session:continuation-rebuild",
+      productStepId: "corpus_research",
+      callId: "continuation-persist",
+      child: "persist_gpt_continuation" as const,
+      actionOrdinal: 16,
+      input: Object.freeze({
+        jobId: providerTask.job_id,
+        pluginId: "public-knowledge-article-pipeline",
+        ownerRef: providerTask.business_identity.owner_ref,
+        subjectRef: providerTask.business_identity.subject_ref,
+        authorizationRef: providerTask.business_identity.authorization_ref,
+        provider: Object.freeze({
+          provider_page_url: "https://chatgpt.com/c/continuation-rebuild",
+          prior_task_id: providerTask.job_id,
+          prior_prompt_hash: HASH_A,
+          prior_raw_output_hash: HASH_B,
+          prior_turn_marker: "[GRASSEYE:continuation-rebuild]",
+        }),
+      }),
+    });
+    const first = execution(1);
+    const persisted = await first.tools.execute(call);
+    await first.settle(null);
+    const continuationRef = Reflect.get(persisted.value ?? {}, "continuationRef");
+    assert.equal(typeof continuationRef, "string");
+
+    store.close();
+    const database = new Database(path.join(root, "production-runtime.sqlite"));
+    const deleted = database.prepare(
+      "delete from production_continuations where continuation_ref=?",
+    ).run(continuationRef);
+    database.close();
+    assert.equal(deleted.changes, 1);
+
+    store = new ProductionRuntimeStore(root);
+    const recovered = execution(2);
+    const rebuilt = await recovered.tools.execute(call);
+    await recovered.settle(null);
+    assert.equal(Reflect.get(rebuilt.value ?? {}, "continuationRef"), continuationRef);
+    assert.equal(store.readGptContinuation(continuationRef as string)?.provider.prior_prompt_hash, HASH_A,
+      "exact persisted evidence must rebuild only the missing local continuation row");
+  } finally {
+    store.close();
+    await rm(root, { recursive: true, force: true });
+  }
+};
+
+await exerciseContinuationRebuild();

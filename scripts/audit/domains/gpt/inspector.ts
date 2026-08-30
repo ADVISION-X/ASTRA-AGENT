@@ -20,7 +20,7 @@ import {
 } from "../../shared/static-inspection-contract.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 
-const LAW_ID = "LAW-GPT-001-V9";
+const LAW_ID = "LAW-GPT-001-V10";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 12, 15),
   "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14),
@@ -40,6 +40,8 @@ const GROUP_PATH = `${ROOT}/ability-group.ts`;
 const SESSION_PATH = `${ROOT}/session/gpt-session-controller.ts`;
 const SESSION_CHILDREN_PATH = `${ROOT}/session/session-children.ts`;
 const RESPONSE_HANDLER_PATH = `${ROOT}/web/children/response-children.ts`;
+const CONVERSATION_HANDLER_PATH = `${ROOT}/web/children/conversation-children.ts`;
+const CONVERSATION_CONTRACT_PATH = `${ROOT}/web/contracts/conversation.contract.ts`;
 const TURN_EXECUTOR_PATH = `${ROOT}/gpt-turn-executor.ts`;
 const MODEL_SELECTION_V2_HANDLER_PATH = `${ROOT}/web/children/model-selection-v2-children.ts`;
 const MODEL_SELECTION_V2_CONTRACT_PATH = `${ROOT}/web/contracts/model-selection-v2.contract.ts`;
@@ -367,7 +369,7 @@ const inspectUniqueRuntimeChain = (context: InspectorContext, findings: Inspecto
   const sessionText = sourceFor(context, SESSION_PATH)?.getFullText() ?? "";
   for (const required of [
     "continuation_ref", "pluginId", "ownerRef", "subjectRef", "authorizationRef",
-    "gptContinuationIdentityHash", "lane_version", "prior_turn_marker",
+    "gptContinuationIdentityHash", "lane_version", "prior_turn_marker", "prior_prompt_hash",
   ]) if (!sessionText.includes(required)) findings.push(finding(
     "gpt/session-binding", SESSION_PATH, `GPT Session Controller is missing ${required}.`,
   ));
@@ -410,7 +412,7 @@ const inspectIntelligentExecutionContracts = (context: InspectorContext, finding
   ));
 
   const sessionChildren = sourceFor(context, SESSION_CHILDREN_PATH)?.getFullText() ?? "";
-  for (const required of ["gptExactCallIdentityHash", "gpt-continuation:"]) if (!sessionChildren.includes(required)) findings.push(finding(
+  for (const required of ["gptExactCallIdentityHash", "gpt-continuation:", "prior_prompt_hash"]) if (!sessionChildren.includes(required)) findings.push(finding(
     "gpt/deterministic-continuation-ref", SESSION_CHILDREN_PATH,
     `Continuation persistence must derive its ref from exact call identity; missing ${required}.`,
   ));
@@ -428,6 +430,23 @@ const inspectIntelligentExecutionContracts = (context: InspectorContext, finding
   ));
 
   const response = sourceFor(context, RESPONSE_HANDLER_PATH)?.getFullText() ?? "";
+  const responseUserSelector = sourceFor(context, RESPONSE_HANDLER_PATH)
+    ?.getVariableDeclaration("userSelector")?.getFullText() ?? "";
+  const conversation = sourceFor(context, CONVERSATION_HANDLER_PATH)?.getFullText() ?? "";
+  const conversationContract = sourceFor(context, CONVERSATION_CONTRACT_PATH)?.getFullText() ?? "";
+  if (!conversationContract.includes(
+    `GPT_USER_PROMPT_BODY_SELECTOR = "[data-testid='collapsible-user-message-content']"`,
+  ) || !responseUserSelector.includes("GPT_USER_PROMPT_BODY_SELECTOR")) findings.push(finding(
+    "gpt/exact-user-prompt-body", RESPONSE_HANDLER_PATH,
+    "Prompt hash must read only the one proven user-turn prompt body selector.",
+  ));
+  for (const required of [
+    '"expectedPromptHash"', "userPromptBodySelector", "readExactText", "GPT_USER_TURN_HASH_MISMATCH",
+    "promptHash", "expectedResponseHash",
+  ]) if (!conversation.includes(required)) findings.push(finding(
+    "gpt/continuation-four-part-identity", CONVERSATION_HANDLER_PATH,
+    `Continuation verification is missing ${required}.`,
+  ));
   for (const required of [
     'requireExactInputKeys(intent, ["absoluteDeadline", "canonicalConversationUrl", "expectedPromptHash", "turnMarker"])',
     "ensurePollingConversation", "canonicalGptConversationUrl", "pollingUserTurnId",
@@ -452,6 +471,7 @@ const inspectGptContracts = (context: InspectorContext, findings: InspectorFindi
 const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const path of [
     CONTRACT_PATH, FACADE_PATH, GROUP_PATH, SESSION_PATH, SESSION_CHILDREN_PATH, RESPONSE_HANDLER_PATH,
+    CONVERSATION_HANDLER_PATH, CONVERSATION_CONTRACT_PATH,
     MODEL_SELECTION_V2_HANDLER_PATH, MODEL_SELECTION_V2_CONTRACT_PATH,
     EXECUTION_PROFILE_HANDLER_PATH, EXECUTION_PROFILE_CONTRACT_PATH,
     ATTACHMENT_HANDLER_PATH, ATTACHMENT_CONTRACT_PATH,

@@ -5,6 +5,7 @@ import {
   executionFailure,
   failureCode,
   postCheckpointReceiverReceipt,
+  postSubmitReadbackReceipt,
   serializeTerminalFailure,
   typedExecutionFailure,
 } from "../../typed-failure.js";
@@ -72,6 +73,7 @@ const releaseUnacceptedClaim = async (
       reasonCode: failureCode(error).startsWith("V6_DEADLINE_")
         ? "LEASE_SAFETY_BUDGET_EXHAUSTED" : "CAPABILITY_CHANGED_BEFORE_ACCEPT",
       receiverCheckpoint: null,
+      confirmedSubmit: null,
     },
     causeEventId);
 };
@@ -94,6 +96,38 @@ const preservePostCheckpointReceiverFault = async (
         artifact_ref: receipt.artifactRef,
         raw_dom_hash: receipt.rawDomHash,
         semantic_text_hash: receipt.semanticTextHash,
+      },
+      confirmedSubmit: null,
+    }, causeEventId);
+  } catch (releaseError) {
+    state.lastErrorCode = failureCode(releaseError, "LEASE_RELEASE_FAILED");
+    state.lastErrorReason = safeReason(releaseError);
+  }
+  return true;
+};
+
+const preservePostSubmitReadbackFault = async (
+  state: RuntimeState,
+  job: ClaimedProductionTask,
+  error: unknown,
+  parentSpanId: string,
+  causeEventId: string,
+): Promise<boolean> => {
+  const receipt = postSubmitReadbackReceipt(error);
+  if (!receipt) return false;
+  state.store.setCurrentReason(job.job_id, failureCode(error));
+  state.store.recordLease(leaseAuthority(job, "stale", null));
+  try {
+    await releaseLeaseWithLog(state, job, parentSpanId, {
+      reasonCode: "POST_SUBMIT_READBACK_FAULT",
+      receiverCheckpoint: null,
+      confirmedSubmit: {
+        cause_code: receipt.causeCode,
+        exact_call_identity_hash: receipt.exactCallIdentityHash,
+        outcome: "CONFIRMED",
+        terminal_at: receipt.terminalAt,
+        evidence_ref: receipt.evidenceRef,
+        evidence_hash: receipt.evidenceHash,
       },
     }, causeEventId);
   } catch (releaseError) {
@@ -462,6 +496,9 @@ export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTa
         jobSpan, error, runtimeLogCauseEventId(error), "JOB_EXECUTION_FAILED",
       );
       if (await preservePostCheckpointReceiverFault(
+        state, job, error, jobSpan.spanId, failureEvent.eventId,
+      )) return;
+      if (await preservePostSubmitReadbackFault(
         state, job, error, jobSpan.spanId, failureEvent.eventId,
       )) return;
       await persistAttemptFailure(

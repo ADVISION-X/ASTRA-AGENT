@@ -12,12 +12,18 @@ import {
 import { gptAttachmentProviderDisplayName } from "../../src/capabilities/gpt/index.js";
 import { ProductionProductIdSchema, hashCanonical, type WebsiteAgentTask } from "../../src/lib/local-runtime/production/contracts.js";
 import type { ProductPluginOutput, SharedExecutionContext } from "../../src/lib/local-runtime/production/plugin.js";
-import { typedExecutionFailure } from "../../src/lib/typed-failure.js";
+import {
+  executionFailure,
+  postSubmitReadbackReceipt,
+  typedExecutionFailure,
+} from "../../src/lib/typed-failure.js";
 import { productionRoutePolicies } from "../../src/lib/local-runtime/production/route-policy.js";
 import { parsePublicKnowledgeArticle, parsePublicKnowledgeResearch } from "../../src/plugins/public-knowledge-article-pipeline/result-contract.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const HASH = `sha256:${"1".repeat(64)}` as const;
+const hashText = (value: string): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(value).digest("hex")}`;
 const PROFILE_SEQUENCE = [
   "open_gpt_execution_profile",
   "open_gpt_model_selector_v2",
@@ -98,6 +104,8 @@ const exerciseSeoFlow = async (
   plugin: (typeof productionPluginCatalog)[number],
   actionId: "produce_article" | "accuracy_challenge" | "quality_reflection",
   decision: "proceed" | "decline" = "proceed",
+  failureAt?: Readonly<{ child: string; code: string; productStepId?: string }>,
+  recoverAfterFault = false,
 ) => {
   const calls: Array<Parameters<SharedExecutionContext["gpt"]["execute"]>[0]> = [];
   const factsByCall = new Map<string, Readonly<{
@@ -108,6 +116,11 @@ const exerciseSeoFlow = async (
   const handoffDelays: number[] = [];
   let completed: ProductPluginOutput | null = null;
   let continuationProvider: Readonly<Record<string, unknown>> | null = null;
+  let continuationLaneVersion = 0;
+  let continuationLaneOwned = false;
+  let remainingFailures = failureAt ? 1 : 0;
+  let physicalSubmitDispatches = 0;
+  const acquiredLaneVersions: number[] = [];
   const providerNames = [
     gptAttachmentProviderDisplayName("one.json", "attempt-1", "m0"),
     gptAttachmentProviderDisplayName("two.json", "attempt-1", "m1"),
@@ -132,7 +145,14 @@ const exerciseSeoFlow = async (
     ],
     gpt: {
       attemptId: "attempt-1",
-      readContinuationForTurn: () => null,
+      readContinuationForTurn: (marker: string) => continuationProvider
+        && continuationProvider.prior_turn_marker === marker
+        ? {
+          continuation_ref: "gpt-continuation:test",
+          lane_version: continuationLaneVersion,
+          provider: continuationProvider,
+        }
+        : null,
       readCallFacts: async (input: Parameters<SharedExecutionContext["gpt"]["readCallFacts"]>[0]) => {
         const stored = factsByCall.get(factKey(input));
         return {
@@ -156,6 +176,11 @@ const exerciseSeoFlow = async (
       },
       execute: async (input: Parameters<SharedExecutionContext["gpt"]["execute"]>[0]) => {
         calls.push(input);
+        if (remainingFailures > 0 && input.child === failureAt?.child
+          && (!failureAt.productStepId || input.productStepId === failureAt.productStepId)) {
+          remainingFailures -= 1;
+          throw executionFailure("failed", failureAt.code);
+        }
         const marker = `[GRASSEYE:${"a".repeat(24)}]`;
         const text = input.productStepId === "corpus_research"
           ? JSON.stringify(researchOutput(decision))
@@ -180,11 +205,6 @@ const exerciseSeoFlow = async (
             semanticTextHash: HASH,
           },
           persist_gpt_continuation: { continuationRef: "gpt-continuation:test" },
-          acquire_gpt_continuation_lane: {
-            continuation_ref: "gpt-continuation:test",
-            lane_version: input.productStepId === "article_synthesis" ? 1 : 2,
-            provider: continuationProvider,
-          },
           wait_for_stable_gpt_image: { assistantTurnId: "conversation-turn-6", responseHash: HASH },
           checkpoint_gpt_generated_image: {
             artifactId: "image-1", localPath: "/tmp/image.webp", originalLocalPath: "/tmp/image.original",
@@ -192,18 +212,47 @@ const exerciseSeoFlow = async (
           },
         };
         if (input.child === "persist_gpt_continuation") {
-          continuationProvider = input.input.provider as Readonly<Record<string, unknown>>;
+          continuationProvider ??= input.input.provider as Readonly<Record<string, unknown>>;
+        }
+        let value: unknown = values[input.child] ?? {};
+        if (input.child === "acquire_gpt_continuation_lane") {
+          assert.equal(continuationLaneOwned, false, "released continuation must be reacquired physically");
+          continuationLaneVersion += 1;
+          acquiredLaneVersions.push(continuationLaneVersion);
+          continuationLaneOwned = true;
+          value = {
+            continuation_ref: "gpt-continuation:test",
+            lane_version: continuationLaneVersion,
+            provider: continuationProvider,
+          };
         }
         if (input.child === "advance_gpt_continuation_lane") {
+          assert.equal(continuationLaneOwned, true);
+          assert.equal(
+            (input.input.lane as Readonly<Record<string, unknown>>).lane_version,
+            continuationLaneVersion,
+          );
           continuationProvider = input.input.provider as Readonly<Record<string, unknown>>;
+          continuationLaneOwned = false;
         }
-        const evidenceRef = `evidence:${calls.length}`;
+        if (input.child === "release_gpt_continuation_lane") {
+          assert.equal(
+            (input.input.lane as Readonly<Record<string, unknown>>).lane_version,
+            continuationLaneVersion,
+          );
+          continuationLaneOwned = false;
+        }
+        const priorFact = factsByCall.get(factKey(input));
+        if (input.child === "submit_exact_gpt_turn_once" && !priorFact) {
+          physicalSubmitDispatches += 1;
+        }
+        const evidenceRef = priorFact?.evidenceRef ?? `evidence:${calls.length}`;
         factsByCall.set(factKey(input), {
           evidenceRef,
           mutation: input.child === "submit_exact_gpt_turn_once",
-          terminalAt: input.child === "submit_exact_gpt_turn_once" ? new Date().toISOString() : null,
+          terminalAt: input.child === "submit_exact_gpt_turn_once" ? "2020-01-01T00:00:00.000Z" : null,
         });
-        return { value: values[input.child] ?? {}, evidenceRef, evidenceHash: HASH };
+        return { value, evidenceRef, evidenceHash: HASH };
       },
     },
     complete: async (output: ProductPluginOutput) => {
@@ -221,18 +270,29 @@ const exerciseSeoFlow = async (
     return nativeSetTimeout(() => handler(...args), 0);
   }) as typeof setTimeout;
   globalThis.setTimeout = acceleratedSetTimeout;
+  let firstFailure: unknown = null;
   try {
-    await plugin.execute(seoTask(actionId), context);
+    try {
+      await plugin.execute(seoTask(actionId), context);
+    } catch (error) {
+      if (!recoverAfterFault) throw error;
+      firstFailure = error;
+    }
+    if (recoverAfterFault) await plugin.execute(seoTask(actionId), context);
   } finally {
     globalThis.setTimeout = nativeSetTimeout;
   }
   const output = completed as ProductPluginOutput | null;
   assert(output);
-  assert.deepEqual(calls.map((call) => call.actionOrdinal), calls.map((_call, index) => index + 1));
+  if (!recoverAfterFault) {
+    assert.deepEqual(calls.map((call) => call.actionOrdinal), calls.map((_call, index) => index + 1));
+  }
   assert.equal(new Set(calls.map((call) => call.sessionKey)).size, 1);
   assert.ok(calls.every((call) => call.sessionKey.includes("attempt-1")));
-  assert.deepEqual(output.evidence_refs, calls.map((_call, index) => `evidence:${index + 1}`));
-  assert.equal(handoffDelays.length, Math.max(0, calls.length - 1));
+  if (!recoverAfterFault) {
+    assert.deepEqual(output.evidence_refs, calls.map((_call, index) => `evidence:${index + 1}`));
+  }
+  if (!recoverAfterFault) assert.equal(handoffDelays.length, Math.max(0, calls.length - 1));
   assert.ok(handoffDelays.every((delay) => delay === 2_000), "every adjacent SEO Child must retain a 2s handoff floor");
   const firstPrompt = calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt;
   assert.equal(typeof firstPrompt, "string");
@@ -249,7 +309,7 @@ const exerciseSeoFlow = async (
       : null,
     providerNames,
   );
-  return { calls, completed: output };
+  return { calls, completed: output, firstFailure, physicalSubmitDispatches, acquiredLaneVersions };
 };
 
 const inspectSkill = (productIds: readonly string[], text: string): readonly string[] => {
@@ -345,7 +405,46 @@ for (const plugin of productionPluginCatalog) {
     assert.match(prompts[1]!, /public-knowledge-article-output\.v3/u);
     assert.match(prompts[2]!, /一张横向文章主图/u);
     assert.doesNotMatch(prompts[2]!, /无文字|无印章|不冒充/u);
+    const persistProvider = proceed.calls.find((call) => call.child === "persist_gpt_continuation")
+      ?.input.provider as Readonly<Record<string, unknown>>;
+    const continuationVerifies = proceed.calls.filter((call) => call.child === "verify_gpt_conversation_identity");
+    const continuationAdvances = proceed.calls.filter((call) => call.child === "advance_gpt_continuation_lane");
+    assert.equal(persistProvider.prior_prompt_hash, hashText(prompts[0]!));
+    assert.equal(continuationVerifies[0]?.input.expectedPromptHash, hashText(prompts[0]!));
+    assert.equal((continuationAdvances[0]?.input.provider as Readonly<Record<string, unknown>>).prior_prompt_hash, hashText(prompts[1]!));
+    assert.equal(continuationVerifies[1]?.input.expectedPromptHash, hashText(prompts[1]!));
+    assert.equal((continuationAdvances[1]?.input.provider as Readonly<Record<string, unknown>>).prior_prompt_hash, hashText(prompts[2]!));
     assert.ok(proceed.completed.generated_image);
+    const recovered = await exerciseSeoFlow(
+      plugin, "produce_article", "proceed",
+      { child: "checkpoint_gpt_text_response", code: "GPT_CHECKPOINT_SOFTWARE_FAULT", productStepId: "article_synthesis" },
+      true,
+    );
+    assert.equal(
+      postSubmitReadbackReceipt(recovered.firstFailure)?.causeCode,
+      "GPT_CHECKPOINT_SOFTWARE_FAULT",
+      "article readback software fault must release and retain the same attempt",
+    );
+    assert.equal(recovered.physicalSubmitDispatches, 3,
+      "restart must not physically dispatch research or article submit again");
+    assert.deepEqual(recovered.acquiredLaneVersions, [1, 2, 3],
+      "released article lane must be physically reacquired before advance");
+    assert.ok(recovered.completed.generated_image);
+    await assert.rejects(
+      () => exerciseSeoFlow(plugin, "accuracy_challenge", "proceed", {
+        child: "wait_for_stable_gpt_text", code: "GPT_USER_TURN_HASH_MISMATCH",
+      }),
+      (error: unknown) => postSubmitReadbackReceipt(error)?.causeCode === "GPT_USER_TURN_HASH_MISMATCH",
+      "confirmed submit followed by a no-mutation readback software fault must preserve the same attempt",
+    );
+    await assert.rejects(
+      () => exerciseSeoFlow(plugin, "accuracy_challenge", "proceed", {
+        child: "wait_for_stable_gpt_text", code: "GPT_RESPONSE_STABILITY_TIMEOUT",
+      }),
+      (error: unknown) => typedExecutionFailure(error)?.code === "GPT_RESPONSE_STABILITY_TIMEOUT"
+        && postSubmitReadbackReceipt(error) === null,
+      "a terminal Provider wait deadline must end the attempt instead of entering same-attempt recovery",
+    );
     for (const actionId of ["accuracy_challenge", "quality_reflection"] as const) {
       const review = await exerciseSeoFlow(plugin, actionId);
       assert.deepEqual(review.calls.map((call) => call.child), INITIAL_TEXT_SEQUENCE);

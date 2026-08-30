@@ -35,7 +35,11 @@ import {
   GPT_ATTACHMENT_UPLOAD_SPINNER_SELECTOR,
 } from "../../src/capabilities/gpt/web/contracts/attachment.contract.js";
 import { GPT_COMPOSER_SELECTOR } from "../../src/capabilities/gpt/web/contracts/composer.contract.js";
-import { GPT_GENERATING_STOP_SELECTOR, GPT_USER_TURN_SELECTOR } from "../../src/capabilities/gpt/web/contracts/conversation.contract.js";
+import {
+  GPT_GENERATING_STOP_SELECTOR,
+  GPT_USER_PROMPT_BODY_SELECTOR,
+  GPT_USER_TURN_SELECTOR,
+} from "../../src/capabilities/gpt/web/contracts/conversation.contract.js";
 import { GPT_SEND_SELECTOR } from "../../src/capabilities/gpt/web/contracts/submission.contract.js";
 import { EXPECTED_GPT_CHILD_IDS, fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
 
@@ -378,6 +382,8 @@ const promptMarker = `[GRASSEYE:${"a".repeat(24)}]`;
 const prompt = `approved prompt\n${promptMarker}`;
 const promptHash = `sha256:${createHash("sha256").update(prompt).digest("hex")}`;
 const canonicalConversationUrl = "https://chatgpt.com/c/gpt-exact-target";
+const promptBodySelector =
+  `[data-testid="conversation-turn-1"][data-turn='user'] [data-message-author-role='user'] ${GPT_USER_PROMPT_BODY_SELECTOR}`;
 const clearedPromptFixture = fakeBrowser((intent) => {
   if (intent.kind === "find" && intent.selector === GPT_USER_TURN_SELECTOR) return { count: 0 };
   if (intent.kind === "readText" && intent.selector === GPT_COMPOSER_SELECTOR) return "";
@@ -412,8 +418,7 @@ const assistantCheckpointFixture = fakeBrowser((intent) => {
   if (intent.kind === "document") return { url: canonicalConversationUrl, title: "ChatGPT" };
   if (intent.kind === "find" && intent.selector === GPT_USER_TURN_SELECTOR) return { count: 1 };
   if (intent.kind === "readAttribute" && intent.selector === GPT_USER_TURN_SELECTOR) return "conversation-turn-1";
-  if (intent.kind === "readText"
-    && intent.selector === `[data-testid="conversation-turn-1"][data-turn='user'] [data-message-author-role='user']`) {
+  if (intent.kind === "readText" && intent.selector === promptBodySelector) {
     return prompt;
   }
   if (intent.kind === "inspect") {
@@ -444,6 +449,47 @@ assert.equal(
   assistantText,
   "checkpoint must read only the assistant message body, excluding turn headings and action controls",
 );
+
+const continuationIdentityFixture = fakeBrowser((intent) => {
+  if (intent.kind === "document") return { url: canonicalConversationUrl, title: "ChatGPT" };
+  if (intent.kind === "find" && intent.selector === GPT_COMPOSER_SELECTOR) return { count: 1 };
+  if (intent.kind === "find" && intent.selector === GPT_USER_TURN_SELECTOR) return { count: 1 };
+  if (intent.kind === "readAttribute" && intent.selector === GPT_USER_TURN_SELECTOR) {
+    return "conversation-turn-1";
+  }
+  if (intent.kind === "readText" && intent.selector === promptBodySelector) return prompt;
+  if (intent.kind === "find"
+    && intent.selector === `[data-testid="conversation-turn-2"][data-turn='assistant'] [data-message-author-role='assistant']`) {
+    return { count: 1 };
+  }
+  if (intent.kind === "inspect") return { semanticText: assistantText, visible: true, connected: true };
+  throw new Error(`UNEXPECTED_CONTINUATION_IDENTITY_INTENT:${intent.kind}`);
+}, { initialUrl: canonicalConversationUrl });
+const continuationIdentity = await execute(
+  "verify_gpt_conversation_identity",
+  continuationIdentityFixture.browser,
+  {
+    canonicalConversationUrl,
+    expectedPromptHash: promptHash,
+    expectedResponseHash: assistantHash,
+    timeoutMs: 1_000,
+    turnMarker: promptMarker,
+  },
+);
+assert.equal(continuationIdentity.status, "success", continuationIdentity.failureCode ?? "continuation identity failed");
+const continuationPromptDrift = await execute(
+  "verify_gpt_conversation_identity",
+  continuationIdentityFixture.browser,
+  {
+    canonicalConversationUrl,
+    expectedPromptHash: `sha256:${"f".repeat(64)}`,
+    expectedResponseHash: assistantHash,
+    timeoutMs: 1_000,
+    turnMarker: promptMarker,
+  },
+);
+assert.equal(continuationPromptDrift.status, "failed");
+assert.equal(continuationPromptDrift.failureCode, "GPT_USER_TURN_HASH_MISMATCH");
 
 const nonAdjacentAssistant = await execute(
   "checkpoint_gpt_text_response",
@@ -481,8 +527,7 @@ const urlDriftFixture = fakeBrowser((intent) => {
   if (intent.kind === "readAttribute" && intent.selector === GPT_USER_TURN_SELECTOR) {
     return "conversation-turn-1";
   }
-  if (intent.kind === "readText"
-    && intent.selector === `[data-testid="conversation-turn-1"][data-turn='user'] [data-message-author-role='user']`) {
+  if (intent.kind === "readText" && intent.selector === promptBodySelector) {
     return prompt;
   }
   if (intent.kind === "find"
@@ -511,7 +556,9 @@ const wrongPromptHashFixture = fakeBrowser((intent) => {
   if (intent.kind === "readAttribute" && intent.selector === GPT_USER_TURN_SELECTOR) {
     return "conversation-turn-1";
   }
-  if (intent.kind === "readText") return `${prompt}\nprovider-mutated`;
+  if (intent.kind === "readText" && intent.selector === promptBodySelector) {
+    return `${prompt}\nprovider-mutated`;
+  }
   throw new Error(`UNEXPECTED_WRONG_PROMPT_HASH_INTENT:${intent.kind}`);
 });
 const wrongPromptHash = await execute("wait_for_stable_gpt_text", wrongPromptHashFixture.browser, {
@@ -557,8 +604,7 @@ const overdueTextFixture = fakeBrowser((intent) => {
       "the exact turn marker must scope user-turn identity in a multi-turn conversation");
     return "conversation-turn-1";
   }
-  if (intent.kind === "readText"
-    && intent.selector === `[data-testid="conversation-turn-1"][data-turn='user'] [data-message-author-role='user']`) {
+  if (intent.kind === "readText" && intent.selector === promptBodySelector) {
     return prompt;
   }
   if (intent.kind === "find"

@@ -14,6 +14,14 @@ export type PostCheckpointReceiverReceipt = Readonly<{
   semanticTextHash: `sha256:${string}`;
 }>;
 
+export type PostSubmitReadbackReceipt = Readonly<{
+  causeCode: string;
+  exactCallIdentityHash: `sha256:${string}`;
+  terminalAt: string;
+  evidenceRef: string;
+  evidenceHash: `sha256:${string}`;
+}>;
+
 export class TypedExecutionFailure extends Error {
   public override readonly name: string = "TypedExecutionFailure";
 
@@ -55,6 +63,36 @@ export const postCheckpointReceiverReceipt = (
   while (current && typeof current === "object" && !seen.has(current)) {
     seen.add(current);
     if (current instanceof PostCheckpointReceiverFault) return current.checkpointReceipt;
+    current = current instanceof Error ? current.cause : undefined;
+  }
+  return null;
+};
+
+export class PostSubmitReadbackFault extends TypedExecutionFailure {
+  public override readonly name = "PostSubmitReadbackFault";
+
+  public constructor(
+    code: string,
+    public readonly submitReceipt: PostSubmitReadbackReceipt,
+  ) {
+    super("failed", `POST_SUBMIT_READBACK_FAULT:${code}`, "no",
+      submitReceipt.evidenceRef, submitReceipt.evidenceHash);
+  }
+}
+
+export const postSubmitReadbackFault = (
+  code: string,
+  submitReceipt: PostSubmitReadbackReceipt,
+): PostSubmitReadbackFault => new PostSubmitReadbackFault(code, submitReceipt);
+
+export const postSubmitReadbackReceipt = (
+  error: unknown,
+): PostSubmitReadbackReceipt | null => {
+  let current = error;
+  const seen = new Set<object>();
+  while (current && typeof current === "object" && !seen.has(current)) {
+    seen.add(current);
+    if (current instanceof PostSubmitReadbackFault) return current.submitReceipt;
     current = current instanceof Error ? current.cause : undefined;
   }
   return null;

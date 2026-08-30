@@ -226,6 +226,7 @@ export type ProductionLeaseRelease =
   | Readonly<{
     reasonCode: "CAPABILITY_CHANGED_BEFORE_ACCEPT" | "LEASE_SAFETY_BUDGET_EXHAUSTED" | "LOCAL_CAPACITY_CHANGED";
     receiverCheckpoint: null;
+    confirmedSubmit: null;
   }>
   | Readonly<{
     reasonCode: "POST_CHECKPOINT_RECEIVER_FAULT";
@@ -233,6 +234,19 @@ export type ProductionLeaseRelease =
       artifact_ref: string;
       raw_dom_hash: ProductionHash;
       semantic_text_hash: ProductionHash;
+    }>;
+    confirmedSubmit: null;
+  }>
+  | Readonly<{
+    reasonCode: "POST_SUBMIT_READBACK_FAULT";
+    receiverCheckpoint: null;
+    confirmedSubmit: Readonly<{
+      cause_code: string;
+      exact_call_identity_hash: ProductionHash;
+      outcome: "CONFIRMED";
+      terminal_at: string;
+      evidence_ref: string;
+      evidence_hash: ProductionHash;
     }>;
   }>;
 
@@ -245,6 +259,7 @@ export async function releaseProductionLease(
   const payload = {
     reason_code: release.reasonCode,
     receiver_checkpoint: release.receiverCheckpoint,
+    confirmed_submit: release.confirmedSubmit,
     job_id: job.job_id,
     fence_hash: job.grant.execution_fence.fence_hash,
   };
@@ -265,6 +280,7 @@ export async function releaseProductionLease(
       payload_hash: hashCanonical(payload),
       reason_code: release.reasonCode,
       receiver_checkpoint: release.receiverCheckpoint,
+      confirmed_submit: release.confirmedSubmit,
     }),
   });
 }

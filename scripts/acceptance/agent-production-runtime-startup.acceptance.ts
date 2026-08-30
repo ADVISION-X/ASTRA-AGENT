@@ -6,6 +6,7 @@ import path from "node:path";
 import { createGptAbilityGroup } from "../../src/capabilities/gpt/index.js";
 import { createForensicsPersistenceAbilityGroupFromStorage } from "../../src/capabilities/forensics-persistence/index.js";
 import { ProductionExecutor } from "../../src/lib/local-runtime/production/executor.js";
+import { terminalSpanFailure } from "../../src/lib/local-runtime/production/runtime-logging.js";
 import { startProductionRuntime } from "../../src/lib/local-runtime/production/runtime.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import {
@@ -56,6 +57,32 @@ try {
   if (previousCredentialPath === undefined) delete process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
   else process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = previousCredentialPath;
   await rm(temporary, { recursive: true, force: true });
+}
+
+const remoteClaimLogTemporary = await mkdtemp(path.join(tmpdir(), "agent-remote-claim-log-"));
+try {
+  const logger = createRuntimeLogger({
+    producer: "agent-remote-claim-log", owner: "production-runtime", component: "production-claim",
+    terminalEnabled: false, fileSink: { directoryPath: path.join(remoteClaimLogTemporary, "runtime-logs") },
+  });
+  const span = requireRuntimeLogWrite(logger.startSpan({
+    traceId: "producer:remote-claim", boundaryId: "claim:remote-column", owner: "production-runtime",
+    component: "production-claim", operation: "cloud.claim",
+    typedIdentity: { kind: "request", requestId: "claim:remote-column" },
+  }));
+  const terminal = terminalSpanFailure(
+    span,
+    executionFailure("failed", "COLUMN", { httpStatus: 500 }),
+    null,
+    "CLAIM_REQUEST_FAILED",
+    undefined,
+    "website",
+  );
+  assert.equal(terminal.failure?.code, "COLUMN");
+  assert.equal(terminal.failure?.httpStatus, 500);
+  assert.equal(terminal.failure?.responsibleOwner, "website");
+} finally {
+  await rm(remoteClaimLogTemporary, { recursive: true, force: true });
 }
 
 const pluginFailureTemporary = await mkdtemp(path.join(tmpdir(), "agent-plugin-failure-code-"));

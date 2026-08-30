@@ -113,7 +113,7 @@ const requestClaimBatch = async (state: RuntimeState, available: number) => {
       requireRuntimeLogWrite(span.terminal({
         outcome: "failed", failure: runtimeFailureFromError({
           error: new Error(`CLAIM_BLOCKED:${batch.reason_codes.join(",") || "unspecified"}`),
-          code: "CLAIM_BLOCKED", responsibleOwner: "production-runtime",
+          code: "CLAIM_BLOCKED", responsibleOwner: "website",
           impact: RuntimeFailureImpact.BLOCKING,
         }),
       }));
@@ -121,7 +121,7 @@ const requestClaimBatch = async (state: RuntimeState, available: number) => {
     return batch;
   } catch (error) {
     const terminal = terminalSpanFailure(
-      span, error, runtimeLogCauseEventId(error), "CLAIM_REQUEST_FAILED",
+      span, error, runtimeLogCauseEventId(error), "CLAIM_REQUEST_FAILED", undefined, "website",
     );
     throw withRuntimeLogCause(error, terminal.eventId);
   }

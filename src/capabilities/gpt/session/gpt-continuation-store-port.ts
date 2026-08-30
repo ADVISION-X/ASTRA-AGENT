@@ -1,6 +1,7 @@
 export interface GptProviderContinuation {
   readonly provider_page_url: string;
   readonly prior_task_id: string;
+  readonly prior_prompt_hash: `sha256:${string}`;
   readonly prior_raw_output_hash: `sha256:${string}`;
   readonly prior_turn_marker: string;
 }

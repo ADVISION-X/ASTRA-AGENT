@@ -69,6 +69,8 @@ export type ExactGptCallFacts = Readonly<{
     continuationRef: string;
     conversationIdentityHash: ProductionHash;
     laneVersion: number;
+    priorPromptHash: ProductionHash;
+    priorResponseHash: ProductionHash;
     contentReadbackVerified: true;
   }> | null;
 }>;

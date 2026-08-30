@@ -15,17 +15,25 @@ export interface GptContinuationLane {
 
 export const gptContinuationIdentityHash = (
   provider: GptProviderContinuation,
-): `sha256:${string}` => `sha256:${createHash("sha256").update(JSON.stringify({
-  prior_raw_output_hash: provider.prior_raw_output_hash,
-  prior_task_id: provider.prior_task_id,
-  prior_turn_marker: provider.prior_turn_marker,
-  provider_page_url: provider.provider_page_url,
-})).digest("hex")}`;
+): `sha256:${string}` => {
+  if (!/^sha256:[a-f0-9]{64}$/u.test(provider.prior_prompt_hash)
+    || !/^sha256:[a-f0-9]{64}$/u.test(provider.prior_raw_output_hash)) {
+    throw executionFailure("failed", "GPT_CONTINUATION_PROVIDER_INVALID");
+  }
+  return `sha256:${createHash("sha256").update(JSON.stringify({
+    prior_raw_output_hash: provider.prior_raw_output_hash,
+    prior_prompt_hash: provider.prior_prompt_hash,
+    prior_task_id: provider.prior_task_id,
+    prior_turn_marker: provider.prior_turn_marker,
+    provider_page_url: provider.provider_page_url,
+  })).digest("hex")}`;
+};
 
 const sameProvider = (left: GptProviderContinuation, right: GptProviderContinuation): boolean =>
   gptContinuationIdentityHash(left) === gptContinuationIdentityHash(right)
   && left.provider_page_url === right.provider_page_url
   && left.prior_task_id === right.prior_task_id
+  && left.prior_prompt_hash === right.prior_prompt_hash
   && left.prior_raw_output_hash === right.prior_raw_output_hash
   && left.prior_turn_marker === right.prior_turn_marker;
 

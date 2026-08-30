@@ -10,7 +10,7 @@ import type { RuntimeState } from "../../src/lib/local-runtime/production/runtim
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import type { ProductionWorkerSession } from "../../src/lib/local-runtime/production/worker-session.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
-import { executionFailure } from "../../src/lib/typed-failure.js";
+import { executionFailure, postSubmitReadbackFault } from "../../src/lib/typed-failure.js";
 import {
   HASH_A,
   HASH_B,
@@ -29,6 +29,7 @@ const recoverySession = (
   job: RecoveryIncident["job"],
   receipts: RecoveryIncident["receipts"],
   checkpointBodies: Record<string, unknown>[],
+  releaseBodies: Record<string, unknown>[] = [],
 ) => ({
   workerSessionId: job.grant.worker_session_id,
   workerSessionEpoch: job.grant.worker_session_epoch,
@@ -52,6 +53,19 @@ const recoverySession = (
         accepted_at: "2026-08-29T20:19:07.000Z",
         accepted_attempt_count: job.grant.accepted_attempt_count,
         status: "failed",
+      };
+    }
+    if (pathname.endsWith("/lease-release")) {
+      const body = JSON.parse(init.body ?? "{}") as Record<string, unknown>;
+      releaseBodies.push(body);
+      return {
+        schema_version: "xuanxue-ai-lease-release-receipt.v6",
+        job_id: job.job_id,
+        task_status: "failed",
+        lease_disposition: "released",
+        reason_code: body.reason_code,
+        payload_hash: body.payload_hash,
+        terminal_payload_hash: null,
       };
     }
     throw new Error(`UNEXPECTED_RUNTIME_REQUEST:${pathname}`);
@@ -154,6 +168,78 @@ try {
   ]);
   assert.equal(store.readTask(acceptedOnlyTask.job_id)?.attempt_failure?.code,
     "TEST_ACCEPTED_ONLY_PRODUCT_FAILURE");
+
+  const postSubmitTask = task({
+    jobId: "job:recovery:post-submit", productId: "payment_screenshot_observation", actionId: "observe",
+  });
+  const postSubmitOriginalJob = claimTask(postSubmitTask);
+  const postSubmitAttemptId = postSubmitOriginalJob.grant.attempt_id;
+  const postSubmitCheckpointBodies: Record<string, unknown>[] = [];
+  const postSubmitReleaseBodies: Record<string, unknown>[] = [];
+  await executeClaim(recoveryRuntimeState({
+    store, dataDir: recoveryTemporary, incident: { accepted: postSubmitTask }, job: postSubmitOriginalJob,
+    abort: new AbortController(),
+    session: recoverySession(
+      postSubmitOriginalJob, [], postSubmitCheckpointBodies, postSubmitReleaseBodies,
+    ),
+    execute: async () => {
+      throw postSubmitReadbackFault("GPT_USER_TURN_HASH_MISMATCH", {
+        causeCode: "GPT_USER_TURN_HASH_MISMATCH",
+        exactCallIdentityHash: HASH_A,
+        terminalAt: "2026-08-30T00:00:00.000Z",
+        evidenceRef: "gpt-call-evidence:submit",
+        evidenceHash: HASH_B,
+      });
+    },
+  }), postSubmitOriginalJob);
+  assert.deepEqual(postSubmitCheckpointBodies.map((body) => [body.checkpoint_seq, body.checkpoint_kind]), [
+    [1, "accepted"],
+    [2, "progress"],
+  ]);
+  assert.equal(postSubmitReleaseBodies.length, 1);
+  assert.equal(postSubmitReleaseBodies[0]?.reason_code, "POST_SUBMIT_READBACK_FAULT");
+  assert.equal(
+    (postSubmitReleaseBodies[0]?.confirmed_submit as Record<string, unknown>)?.outcome,
+    "CONFIRMED",
+  );
+  assert.equal(store.readTask(postSubmitTask.job_id)?.attempt_failure, null,
+    "a confirmed-submit readback fault must release the lease without freezing attempt_failure");
+  const postSubmitReceipts = postSubmitCheckpointBodies.map((body) => checkpointReceipt(
+    body as ReturnType<typeof recoveryCheckpointBody>, 1,
+  ));
+  store.close();
+  store = new ProductionRuntimeStore(recoveryTemporary);
+  const postSubmitReclaimedJob = {
+    ...postSubmitOriginalJob,
+    lease_version: 2,
+    lease_token: "lease:post-submit:2",
+    grant: {
+      ...postSubmitOriginalJob.grant,
+      lease_version: 2,
+      lease_token: "lease:post-submit:2",
+      execution_fence: {
+        ...postSubmitOriginalJob.grant.execution_fence,
+        lease_version: 2,
+        fence_hash: HASH_B,
+      },
+    },
+  } as typeof postSubmitOriginalJob;
+  const postSubmitRestartBodies: Record<string, unknown>[] = [];
+  let postSubmitRestartExecutions = 0;
+  await executeClaim(recoveryRuntimeState({
+    store, dataDir: recoveryTemporary, incident: { accepted: postSubmitTask }, job: postSubmitReclaimedJob,
+    abort: new AbortController(),
+    session: recoverySession(postSubmitReclaimedJob, postSubmitReceipts, postSubmitRestartBodies),
+    execute: async () => {
+      postSubmitRestartExecutions += 1;
+      throw executionFailure("failed", "TEST_POST_SUBMIT_RESTART_PRODUCT_FAILURE");
+    },
+  }), postSubmitReclaimedJob);
+  assert.equal(postSubmitRestartExecutions, 1);
+  assert.deepEqual(postSubmitRestartBodies.map((body) => [body.checkpoint_seq, body.checkpoint_kind]), [
+    [3, "progress"],
+    [4, "attempt_failure"],
+  ], "accepted#1/progress#2 must resume as progress#3 on the same attempt after restart");
 
   const continuingAccepted = task({
     jobId: "job:recovery:continuing", productId: "payment_screenshot_observation", actionId: "observe",

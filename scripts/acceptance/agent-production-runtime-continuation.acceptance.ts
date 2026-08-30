@@ -4,10 +4,14 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
 
-import { createGptAbilityGroup, type GptChildCapabilityId } from "../../src/capabilities/gpt/index.js";
+import {
+  createGptAbilityGroup,
+  gptContinuationIdentityHash,
+  type GptChildCapabilityId,
+} from "../../src/capabilities/gpt/index.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
-import { HASH_A, identityFor, task } from "./agent-production-runtime-fixtures.js";
+import { HASH_A, HASH_B, HASH_C, identityFor, task } from "./agent-production-runtime-fixtures.js";
 
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-production-continuation-"));
 try {
@@ -50,6 +54,7 @@ try {
   const provider = {
     provider_page_url: "https://chatgpt.com/c/source",
     prior_task_id: "provider:source",
+    prior_prompt_hash: HASH_B,
     prior_raw_output_hash: HASH_A,
     prior_turn_marker: "turn:source",
   } as const;
@@ -68,6 +73,11 @@ try {
   const persistedReadback = await executeAt("persist_gpt_continuation", persistInput, ordinal);
   assert.equal(persistedReadback.status, "success", persistedReadback.failureCode ?? "persist readback failed");
   assert.equal(Reflect.get(persistedReadback.value ?? {}, "continuationRef"), continuationRef);
+  assert.notEqual(
+    gptContinuationIdentityHash(provider),
+    gptContinuationIdentityHash({ ...provider, prior_prompt_hash: HASH_C }),
+    "continuations that differ only by prompt hash must have different identities",
+  );
 
   const acquired = await execute("acquire_gpt_continuation_lane", {
     continuationRef,

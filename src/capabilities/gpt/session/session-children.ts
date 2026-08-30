@@ -23,6 +23,8 @@ const providerFrom = (
   const value = recordInput(intent, key);
   if (typeof value.provider_page_url !== "string"
     || typeof value.prior_task_id !== "string"
+    || typeof value.prior_prompt_hash !== "string"
+    || !/^sha256:[a-f0-9]{64}$/u.test(value.prior_prompt_hash)
     || typeof value.prior_raw_output_hash !== "string"
     || !/^sha256:[a-f0-9]{64}$/u.test(value.prior_raw_output_hash)
     || typeof value.prior_turn_marker !== "string") {
@@ -31,6 +33,7 @@ const providerFrom = (
   return {
     provider_page_url: value.provider_page_url,
     prior_task_id: value.prior_task_id,
+    prior_prompt_hash: value.prior_prompt_hash as `sha256:${string}`,
     prior_raw_output_hash: value.prior_raw_output_hash as `sha256:${string}`,
     prior_turn_marker: value.prior_turn_marker,
   };

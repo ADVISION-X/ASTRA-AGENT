@@ -4,6 +4,7 @@ import {
   runtimeFailureFromError,
   runtimeLogCauseEventId,
   withRuntimeLogCause,
+  type RuntimeLogOwner,
   type RuntimeSpanHandle,
   type RuntimeSpanTerminalEvent,
 } from "../../runtime-logs/index.js";
@@ -27,12 +28,13 @@ export const terminalSpanFailure = (
   causedByEventId: string | null = runtimeLogCauseEventId(error),
   fallbackCode = "PRODUCTION_ACTION_FAILED",
   authority?: Readonly<{ authorityRef: string; authorityHash: `sha256:${string}` }>,
+  responsibleOwner: RuntimeLogOwner = "production-runtime",
 ): RuntimeSpanTerminalEvent => requireRuntimeLogWrite(span.terminal({
   outcome: "failed",
   ...(authority ?? {}),
   failure: runtimeFailureFromError({
     error, code: causedByEventId ? fallbackCode : typedExecutionFailure(error)?.code ?? fallbackCode,
-    responsibleOwner: "production-runtime",
+    responsibleOwner,
     impact: causedByEventId ? RuntimeFailureImpact.CONSEQUENTIAL : RuntimeFailureImpact.BLOCKING,
     ...(causedByEventId ? { causedByEventId } : {}),
   }),

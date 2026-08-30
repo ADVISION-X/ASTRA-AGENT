@@ -157,7 +157,7 @@ const inspectOperationalAst = (context: InspectorContext): InspectorFinding[] =>
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "production-boundaries",
     "src/lib/local-runtime/production/runtime-loops.ts", [
       "operation: \"cloud.claim\"", "operation: \"outbox.flush\"", "state.runtimeLogger.isWritable()",
-      "requireRuntimeLogWrite",
+      "requireRuntimeLogWrite", "responsibleOwner: \"website\"",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "production-boundaries",
     "src/lib/local-runtime/production/runtime-startup.ts", [
