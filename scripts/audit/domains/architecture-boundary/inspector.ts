@@ -59,7 +59,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
-  const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V2";
+  const lawId = context.planEntry.lawIds[0]!;
   const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
   const refs = (mode: string, clauses: string[], checks: string[]) => ({
     passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks),

@@ -15,7 +15,7 @@ const targetPath = "scripts/audit/shared/quality-contract.ts";
 const fixture = createInspectorContextFixture(
   project,
   "architecture-boundary",
-  ["LAW-ARCHITECTURE-BOUNDARY-001-V2"],
+  ["LAW-ARCHITECTURE-BOUNDARY-001-V3"],
 );
 const context = {
   ...fixture,

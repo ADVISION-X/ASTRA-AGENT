@@ -1,6 +1,6 @@
 import { Node, SyntaxKind, type ImportDeclaration, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
 
-import { createFinding, selectLawId } from "../../shared/finding-utils.js";
+import { createFinding } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorEvaluation } from "../../shared/inspector-contracts.js";
 import {
   buildCapabilityRoot,
@@ -356,9 +356,9 @@ const inspectProtocolObjectLiterals = (input: {
 };
 
 export const inspectConstitutionalBoundary = async (context: InspectorContext): Promise<InspectorEvaluation> => {
-  const boundaryLawId = selectLawId(context.planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V2");
-  const facadeLawId = selectLawId(context.planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V2");
-  const protocolLawId = selectLawId(context.planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V2");
+  const boundaryLawId = context.planEntry.lawIds[0]!;
+  const facadeLawId = boundaryLawId;
+  const protocolLawId = boundaryLawId;
   const findings: Finding[] = [];
   const inspectedFiles = new Set<string>();
   const pushFinding = createDedupedFindingPusher(findings);
