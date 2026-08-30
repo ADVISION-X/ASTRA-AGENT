@@ -68,10 +68,12 @@ export const inspectTargetClaimContract = (
 
 export const inspectReleaseIdentityContract = (
   context: InspectorContext, findings: InspectorFinding[], lawId: string,
-): void => requireExactType({ context, findings, lawId,
-  filePath: "src/lib/browser/release/unpacked-extension-release-identity.ts", typeName: "UnpackedExtensionReleaseIdentity",
-  expected: ["createdAt", "extensionDirectoryHashV1", "extensionId", "manifestHash", "protocolHash",
-    "releaseBuildId", "schemaVersion", "sitePolicyHash", "version"] });
+): void => {
+  requireExactType({ context, findings, lawId,
+    filePath: "src/lib/browser/release/unpacked-extension-release-identity.ts", typeName: "UnpackedExtensionReleaseIdentity",
+    expected: ["createdAt", "extensionDirectoryHashV1", "extensionId", "manifestHash", "protocolHash",
+      "releaseBuildId", "schemaVersion", "sitePolicyHash", "version"] });
+};
 
 export const inspectOpaqueAuthorityContract = (
   context: InspectorContext, findings: InspectorFinding[], lawId: string,
