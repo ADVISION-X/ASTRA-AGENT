@@ -10,6 +10,7 @@ import { LeaseRenewReceiptSchema, parseJsonEnvelope, websiteAgentTaskFromClaim }
 import { typedExecutionFailure } from "../../src/lib/typed-failure.js";
 import { assertProductionTaskRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../src/mediator/agent-production-route.js";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { HASH_A, HASH_B, claimTask, task } from "./agent-production-runtime-fixtures.js";
 import "./agent-production-gpt-browser-lifecycle.acceptance.js";
 import "./agent-production-runtime-ledger.acceptance.js";
@@ -111,3 +112,12 @@ await assert.rejects(
 );
 
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
+emitQualityProofObservation({
+  passed: true,
+  findings: [],
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V14",
+  evidenceMode: "exam.state-machine",
+  clauses: ["forbidden:10", "forbidden:11", "forbidden:12", "forbidden:13", "forbidden:19", "forbidden:23", "forbidden:24", "forbidden:25", "forbidden:26", "forbidden:29", "forbidden:9", "summary"],
+  locator: "acceptance:agent-production-runtime:attempt-recovery-state-machine",
+  observedValue: "binary task lifecycle continuation lease outbox and typed failure transitions exercised",
+});

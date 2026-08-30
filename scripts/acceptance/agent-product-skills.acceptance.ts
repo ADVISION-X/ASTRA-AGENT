@@ -19,6 +19,7 @@ import {
 } from "../../src/lib/typed-failure.js";
 import { productionRoutePolicies } from "../../src/lib/local-runtime/production/route-policy.js";
 import { parsePublicKnowledgeArticle, parsePublicKnowledgeResearch } from "../../src/plugins/public-knowledge-article-pipeline/result-contract.js";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const HASH = `sha256:${"1".repeat(64)}` as const;
@@ -468,3 +469,12 @@ for (const plugin of productionPluginCatalog) {
 assert.equal(routeKeys.size, 39);
 assert.deepEqual([...productIds].sort(), [...ProductionProductIdSchema.options].sort());
 process.stdout.write("[ACCEPTANCE][agent-product-skills] PASS\n");
+emitQualityProofObservation({
+  passed: true,
+  findings: [],
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V14",
+  evidenceMode: "exam.golden",
+  clauses: ["forbidden:1", "forbidden:15", "forbidden:16", "forbidden:2", "forbidden:21", "forbidden:22", "forbidden:29", "forbidden:5", "summary"],
+  locator: "acceptance:agent-production-runtime:product-flow-golden",
+  observedValue: "12 product plugins and one owned SEO flow exercised with exact child sequence and recovery branches",
+});

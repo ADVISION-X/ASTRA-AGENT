@@ -7,6 +7,7 @@ import {
   productionRoutePolicies,
   type ProductionRoutePolicy,
 } from "../../src/lib/local-runtime/production/route-policy.js";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 const assertRouteResultPayload = (
   task: WebsiteAgentTask,
@@ -273,3 +274,12 @@ assert.throws(() => assertRouteResultPayload(reviewTask, {
 }), /AGENT_REVIEW_EVIDENCE_REQUIRED/u);
 
 process.stdout.write("[ACCEPTANCE][agent-route-contract] PASS 39/39\n");
+emitQualityProofObservation({
+  passed: true,
+  findings: [],
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V14",
+  evidenceMode: "exam.property",
+  clauses: ["forbidden:0", "forbidden:14", "forbidden:17", "forbidden:18", "forbidden:20", "forbidden:27", "forbidden:28", "forbidden:3", "forbidden:4", "forbidden:6", "forbidden:7", "forbidden:8", "summary"],
+  locator: "acceptance:agent-production-runtime:route-contract-property",
+  observedValue: "39 route policies accepted valid fixtures and rejected malformed parameters materials and results",
+});
