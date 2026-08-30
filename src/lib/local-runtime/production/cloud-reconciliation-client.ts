@@ -13,9 +13,16 @@ import type { ProductionOutboxWrite } from "./store.js";
 import { executionFailure } from "../../typed-failure.js";
 import { productionCloudFetch } from "./cloud-transport.js";
 
+type RemoteProductionWriteKind =
+  | "checkpoint" | "artifact" | "terminal" | "cancel" | "handover" | "lease_release" | "renew";
+
+const remoteProductionWriteKinds = new Set<RemoteProductionWriteKind>([
+  "checkpoint", "artifact", "terminal", "cancel", "handover", "lease_release", "renew",
+]);
+
 export type RemoteProductionWriteReceipt = Readonly<{
   request_id: string;
-  write_kind: string;
+  write_kind: RemoteProductionWriteKind;
   payload_hash: ProductionHash;
   response_json: Record<string, unknown>;
 }>;
@@ -35,6 +42,7 @@ export type RemoteProductionDeviceJobStatus = Readonly<{
     consumed_at: string;
   }> | null;
   business_consumer_error: string | null;
+  accepted_attempt_count: number;
   write_receipts: readonly RemoteProductionWriteReceipt[];
 }>;
 
@@ -79,21 +87,35 @@ const parseRemoteWriteReceipt = (receipt: unknown): RemoteProductionWriteReceipt
   }
   const item = receipt as Record<string, unknown>;
   if (typeof item.request_id !== "string" || !item.request_id
-    || typeof item.write_kind !== "string" || !item.write_kind
+    || typeof item.write_kind !== "string"
+    || !remoteProductionWriteKinds.has(item.write_kind as RemoteProductionWriteKind)
     || typeof item.payload_hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(item.payload_hash)
     || !item.response_json || typeof item.response_json !== "object" || Array.isArray(item.response_json)) {
     throw executionFailure("failed", "V6_DEVICE_JOB_STATUS_INVALID");
   }
   return Object.freeze({
     request_id: item.request_id,
-    write_kind: item.write_kind,
+    write_kind: item.write_kind as RemoteProductionWriteKind,
     payload_hash: item.payload_hash as ProductionHash,
     response_json: item.response_json as Record<string, unknown>,
   });
 };
 
+const deviceStatusIdentityValid = (row: Record<string, unknown>, jobId: string): boolean =>
+  row.schema_version === "xuanxue-ai-device-job-status.v6"
+  && row.job_id === jobId && typeof row.status === "string";
+
+const deviceStatusAuthorityFieldsValid = (row: Record<string, unknown>): boolean =>
+  [null, "completed"].includes(row.terminal_status as null | string)
+  && (row.terminal_payload_hash === null || typeof row.terminal_payload_hash === "string")
+  && (row.business_consumer_error === null || typeof row.business_consumer_error === "string")
+  && Array.isArray(row.write_receipts);
+
+const deviceStatusAttemptAuthorityValid = (row: Record<string, unknown>): boolean =>
+  Number.isSafeInteger(row.accepted_attempt_count) && Number(row.accepted_attempt_count) >= 0;
+
 export async function readProductionDeviceJobStatus(
-  session: ProductionWorkerSession,
+  session: Pick<ProductionWorkerSession, "request">,
   jobId: string,
 ): Promise<RemoteProductionDeviceJobStatus> {
   const value = await session.request(
@@ -104,11 +126,8 @@ export async function readProductionDeviceJobStatus(
     throw executionFailure("failed", "V6_DEVICE_JOB_STATUS_INVALID");
   }
   const row = value as Record<string, unknown>;
-  if (row.job_id !== jobId || typeof row.status !== "string"
-    || ![null, "completed"].includes(row.terminal_status as null | string)
-    || !(row.terminal_payload_hash === null || typeof row.terminal_payload_hash === "string")
-    || !(row.business_consumer_error === null || typeof row.business_consumer_error === "string")
-    || !Array.isArray(row.write_receipts)) {
+  if (!deviceStatusIdentityValid(row, jobId) || !deviceStatusAuthorityFieldsValid(row)
+    || !deviceStatusAttemptAuthorityValid(row)) {
     throw executionFailure("failed", "V6_DEVICE_JOB_STATUS_INVALID");
   }
   const terminalStatus = row.terminal_status as "completed" | null;
@@ -123,12 +142,13 @@ export async function readProductionDeviceJobStatus(
   }
   return Object.freeze({
     job_id: jobId,
-    status: row.status,
+    status: row.status as string,
     terminal_status: terminalStatus,
     terminal_payload_hash: terminalPayloadHash,
     business_admission_receipt: admission,
     business_consumer_error: row.business_consumer_error as string | null,
-    write_receipts: Object.freeze(row.write_receipts.map(parseRemoteWriteReceipt)),
+    accepted_attempt_count: row.accepted_attempt_count as number,
+    write_receipts: Object.freeze((row.write_receipts as unknown[]).map(parseRemoteWriteReceipt)),
   });
 }
 

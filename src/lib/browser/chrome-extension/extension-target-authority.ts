@@ -72,6 +72,7 @@ export class ExtensionTargetAuthority {
   private activeTarget: ExtensionExactTarget | null = null;
   private activeLoaderId: string | null = null;
   private readonly parkedLoaderIds = new Map<string, string>();
+  private attachedTabId: number | null = null;
   private pendingCreatedTarget: PendingCreatedTarget | null = null;
   private navigationPublication: Readonly<{ loaderId: string; promise: Promise<void> }> | null = null;
 
@@ -85,11 +86,18 @@ export class ExtensionTargetAuthority {
 
   public start(): void {
     this.chromeApi.debugger.onDetach.addListener((target, reason) => {
-      if (this.activeTarget?.tabId !== target.tabId) return;
-      const targetRef = this.activeTarget.targetRef;
+      const deterministicTargetRef = `target-tab-${target.tabId}`;
+      const targetRef = this.activeTarget?.tabId === target.tabId
+        ? this.activeTarget.targetRef
+        : this.attachedTabId === target.tabId && this.parkedLoaderIds.has(deterministicTargetRef)
+          ? deterministicTargetRef
+          : null;
+      if (!targetRef) return;
       this.targets.invalidateTab(target.tabId);
+      this.parkedLoaderIds.delete(targetRef);
       this.activeTarget = null;
       this.activeLoaderId = null;
+      this.attachedTabId = null;
       this.navigationPublication = null;
       this.reportTargetFailure({ targetRef, reason, runtimeEventType: "debugger-detach" });
       void this.send("TARGET_REVOKE", { targetRef });
@@ -106,6 +114,21 @@ export class ExtensionTargetAuthority {
         this.completeCreatedTarget(tabId, tab);
       }
     });
+    this.chromeApi.tabs.onRemoved?.addListener((tabId) => {
+      const targetRef = `target-tab-${tabId}`;
+      const known = this.activeTarget?.tabId === tabId || this.parkedLoaderIds.has(targetRef);
+      if (!known) return;
+      this.targets.invalidateTab(tabId);
+      this.parkedLoaderIds.delete(targetRef);
+      if (this.activeTarget?.tabId === tabId) {
+        this.activeTarget = null;
+        this.activeLoaderId = null;
+        this.navigationPublication = null;
+      }
+      if (this.attachedTabId === tabId) this.attachedTabId = null;
+      this.reportTargetFailure({ targetRef, reason: "tab-removed", runtimeEventType: "tab-remove" });
+      void this.send("TARGET_REVOKE", { targetRef });
+    });
   }
 
   public resolve(targetRef: string, documentRef: string): ExtensionExactTarget {
@@ -115,10 +138,13 @@ export class ExtensionTargetAuthority {
   public async acquireJobBoundChatGptTarget(targetRef?: string): Promise<void> {
     if (this.activeTarget || this.pendingCreatedTarget) throw new Error("BROWSER_TARGET_INVALID");
     if (targetRef) return this.reacquireParkedTarget(targetRef);
-    const candidate = await this.createJobOwnedCandidate();
+    const parkedTargetRef = this.singleParkedTargetRef();
+    if (parkedTargetRef) return this.reacquireParkedTarget(parkedTargetRef, true);
+    const candidate = await this.createProductionCandidate();
     if (candidate.tabId === undefined) throw new Error("BROWSER_TARGET_INVALID");
     try {
       await this.debuggerRuntime.attach(candidate.tabId);
+      this.attachedTabId = candidate.tabId;
     } catch (error) {
       try { await this.chromeApi.tabs.remove(candidate.tabId); }
       catch (cleanupError) {
@@ -127,6 +153,7 @@ export class ExtensionTargetAuthority {
       throw new Error("BROWSER_DEVTOOLS_CONFLICT", { cause: error });
     }
     try {
+      await this.debuggerRuntime.send(candidate.tabId, "Page.bringToFront");
       await this.debuggerRuntime.send(candidate.tabId, "Page.enable");
       const mainFrame = await this.readMainFrame(candidate.tabId);
       requireGptWebPolicyForUrl(mainFrame.url);
@@ -150,12 +177,22 @@ export class ExtensionTargetAuthority {
     this.rejectPendingCreatedTarget("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
     const target = this.activeTarget;
     if (!target) return;
+    const loaderId = this.activeLoaderId;
     this.activeTarget = null;
     this.activeLoaderId = null;
     this.navigationPublication = null;
-    this.targets.remove(target.targetRef);
-    this.parkedLoaderIds.delete(target.targetRef);
-    await this.debuggerRuntime.detach(target.tabId);
+    if (notifyWorkbench) {
+      this.targets.remove(target.targetRef);
+      this.parkedLoaderIds.delete(target.targetRef);
+    } else if (loaderId && (this.parkedLoaderIds.size === 0 || this.parkedLoaderIds.has(target.targetRef))) {
+      this.parkedLoaderIds.set(target.targetRef, loaderId);
+    } else {
+      throw new Error("BROWSER_TARGET_INVALID");
+    }
+    if (notifyWorkbench) {
+      if (this.attachedTabId === target.tabId) this.attachedTabId = null;
+      await this.debuggerRuntime.detach(target.tabId);
+    }
     if (notifyWorkbench) await this.send("TARGET_REVOKE", { targetRef: target.targetRef });
   }
 
@@ -167,7 +204,6 @@ export class ExtensionTargetAuthority {
     this.activeLoaderId = null;
     this.navigationPublication = null;
     this.parkedLoaderIds.set(target.targetRef, loaderId);
-    await this.debuggerRuntime.detach(target.tabId);
     await this.send("TARGET_REVOKE", { targetRef: target.targetRef });
   }
 
@@ -201,24 +237,35 @@ export class ExtensionTargetAuthority {
     throw new Error("BROWSER_FILE_GRANT_INVALID");
   }
 
-  private async createJobOwnedCandidate(): Promise<ExtensionDebugTarget> {
-    const created = await this.chromeApi.tabs.create({ active: false, url: GPT_WEB_START_URL });
+  private async createProductionCandidate(): Promise<ExtensionDebugTarget> {
+    const created = await this.chromeApi.tabs.create({ active: true, url: GPT_WEB_START_URL });
     if (!Number.isInteger(created.id)) throw new Error("BROWSER_TARGET_INVALID");
     return this.waitForCreatedTarget(created.id!);
   }
 
-  private async reacquireParkedTarget(targetRef: string): Promise<void> {
+  private async reacquireParkedTarget(targetRef: string, resetToStart = false): Promise<void> {
+    const priorLoaderId = this.parkedLoaderIds.get(targetRef) ?? null;
     const parked = this.targets.read(targetRef);
-    const priorLoaderId = this.parkedLoaderIds.get(targetRef);
-    if (!priorLoaderId) throw new Error("BROWSER_TARGET_INVALID");
-    await this.debuggerRuntime.attach(parked.tabId);
+    const attachedHere = this.attachedTabId !== parked.tabId;
+    if (attachedHere) {
+      await this.debuggerRuntime.attach(parked.tabId);
+      this.attachedTabId = parked.tabId;
+    }
     try {
+      await this.debuggerRuntime.send(parked.tabId, "Page.bringToFront");
       await this.debuggerRuntime.send(parked.tabId, "Page.enable");
-      const mainFrame = await this.readMainFrame(parked.tabId);
+      let mainFrame = await this.readMainFrame(parked.tabId);
       requireGptWebPolicyForUrl(mainFrame.url);
-      const target = mainFrame.loaderId === priorLoaderId
-        ? parked
-        : this.targets.advanceDocument(targetRef);
+      if (resetToStart && new URL(mainFrame.url).href !== GPT_WEB_START_URL) {
+        const response = asRecord(await this.debuggerRuntime.send(
+          parked.tabId, "Page.navigate", { url: GPT_WEB_START_URL },
+        ));
+        mainFrame = typeof response?.loaderId === "string"
+          ? { loaderId: response.loaderId, url: GPT_WEB_START_URL }
+          : await this.readMainFrame(parked.tabId);
+      }
+      const target = priorLoaderId === null || mainFrame.loaderId === priorLoaderId
+        ? parked : this.targets.advanceDocument(targetRef);
       this.activeTarget = target;
       this.activeLoaderId = mainFrame.loaderId;
       this.parkedLoaderIds.delete(targetRef);
@@ -227,11 +274,20 @@ export class ExtensionTargetAuthority {
         title: "",
       }));
     } catch (error) {
-      await this.debuggerRuntime.detach(parked.tabId).catch(() => undefined);
+      if (attachedHere) {
+        if (this.attachedTabId === parked.tabId) this.attachedTabId = null;
+        await this.debuggerRuntime.detach(parked.tabId).catch(() => undefined);
+      }
       this.activeTarget = null;
       this.activeLoaderId = null;
       throw error;
     }
+  }
+
+  private singleParkedTargetRef(): string | null {
+    if (this.parkedLoaderIds.size === 0) return null;
+    if (this.parkedLoaderIds.size !== 1) throw new Error("BROWSER_TARGET_INVALID");
+    return this.parkedLoaderIds.keys().next().value as string;
   }
 
   private waitForCreatedTarget(tabId: number): Promise<ExtensionDebugTarget> {
@@ -287,6 +343,7 @@ export class ExtensionTargetAuthority {
     if (this.activeTarget?.tabId === tabId) {
       await this.releaseActiveTarget().catch((error) => { cleanupErrors.push(error); });
     } else {
+      if (this.attachedTabId === tabId) this.attachedTabId = null;
       await this.debuggerRuntime.detach(tabId).catch((error) => { cleanupErrors.push(error); });
     }
     await this.chromeApi.tabs.remove(tabId).catch((error) => { cleanupErrors.push(error); });

@@ -8,7 +8,11 @@ import {
   type RuntimeSpanTerminalEvent,
 } from "../../runtime-logs/index.js";
 import { typedExecutionFailure } from "../../typed-failure.js";
-import { checkpointProductionTask, releaseProductionLease } from "./cloud-client.js";
+import {
+  checkpointProductionTask,
+  releaseProductionLease,
+  type ProductionLeaseRelease,
+} from "./cloud-client.js";
 import { hashCanonical, type ProductionHash } from "./contracts.js";
 import type { ClaimedProductionTask } from "./transport-protocol.js";
 import {
@@ -75,8 +79,9 @@ export const checkpointWithLog = async (
   job: ClaimedProductionTask,
   parentSpanId: string,
   checkpointKind: Parameters<typeof checkpointProductionTask>[3],
-  attemptFailure: Parameters<typeof checkpointProductionTask>[4] = null,
-): Promise<ProductionHash> => {
+  checkpointSeq: Parameters<typeof checkpointProductionTask>[4],
+  attemptFailure: Parameters<typeof checkpointProductionTask>[5] = null,
+): ReturnType<typeof checkpointProductionTask> => {
   const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
     traceId: job.job_id, parentSpanId, owner: "production-runtime", component: "production-checkpoint",
     operation: "job.checkpoint", typedIdentity: {
@@ -85,10 +90,10 @@ export const checkpointWithLog = async (
   }));
   try {
     const receipt = await checkpointProductionTask(
-      state.session, state.store, job, checkpointKind, attemptFailure,
+      state.session, state.store, job, checkpointKind, checkpointSeq, attemptFailure,
     );
     const authority = state.store.recordCheckpoint(
-      checkpointAuthority(job, "persisted", checkpointKind, receipt),
+      checkpointAuthority(job, "persisted", checkpointKind, receipt.checkpointHash),
     );
     requireRuntimeLogWrite(span.terminal({
       outcome: "succeeded", authorityRef: `production-checkpoint:${job.job_id}`,
@@ -111,7 +116,7 @@ export const releaseLeaseWithLog = async (
   state: RuntimeState,
   job: ClaimedProductionTask,
   parentSpanId: string,
-  reason: Parameters<typeof releaseProductionLease>[2],
+  release: ProductionLeaseRelease,
   causedByEventId: string,
 ): Promise<void> => {
   const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
@@ -119,7 +124,7 @@ export const releaseLeaseWithLog = async (
     operation: "job.lease-release", typedIdentity: jobIdentity(job),
   }));
   try {
-    await releaseProductionLease(state.session, job, reason);
+    await releaseProductionLease(state.session, job, release);
     requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
   } catch (error) {
     const terminal = requireRuntimeLogWrite(span.terminal({

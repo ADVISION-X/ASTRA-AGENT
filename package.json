@@ -5,7 +5,7 @@
   "description": "GrassEye phase-five final-delivery debugging local workbench",
   "type": "module",
   "engines": {
-    "node": ">=22.23.2 <23"
+    "node": ">=24"
   },
   "scripts": {
     "browser:verify": "node --import tsx scripts/acceptance/browser-extension-build.acceptance.ts",

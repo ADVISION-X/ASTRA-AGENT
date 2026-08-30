@@ -170,6 +170,21 @@ const verifySingleLocalEnvironmentInjection = async (): Promise<void> => {
   );
 };
 
+const verifyNodeRuntimeContract = async (): Promise<void> => {
+  const packageJson = JSON.parse(await readFile("package.json", "utf8")) as {
+    engines?: { node?: string };
+  };
+  assert.equal(packageJson.engines?.node, ">=24",
+    "Node 24 is the minimum runtime, while later Node releases remain supported");
+  await assert.rejects(readFile(".nvmrc", "utf8"), /ENOENT/u,
+    "the repository must not pin or downshift the system-managed Node release");
+  const dependencyCheck = await readFile("scripts/startup/lib/dependency-check.mjs", "utf8");
+  assert.match(dependencyCheck, /parseMinimumVersion\(packageMetadata\.engines\?\.node/u,
+    "startup must derive its Node minimum from package.json");
+  assert.doesNotMatch(dependencyCheck, /maximumNodeVersion|NODE_MAJOR/u,
+    "startup must not reject a newer Node major");
+};
+
 const createBrokenCredentialFixture = async (): Promise<Readonly<{
   credentialFile: string;
   dataDir: string;
@@ -315,6 +330,7 @@ const verifyStartupFailureClosesExactSteps = async (): Promise<void> => {
 };
 
 export async function runStartupInitializationHealthAcceptance(): Promise<void> {
+  await verifyNodeRuntimeContract();
   await verifySingleLocalEnvironmentInjection();
   await verifyInitializationHealth();
   await verifyDiagnosticShellSurvivesExecutionDependencyFailure();

@@ -87,7 +87,7 @@ const ExecutionGrantSchema = z.object({
   expected_catalog_hash: hash,
   expected_plugin_id: z.string().min(1),
   expected_plugin_version: z.number().int().positive(),
-  accepted_attempt_count: z.number().int().min(0).max(3),
+  accepted_attempt_count: z.number().int().min(0),
   max_provider_turns: z.number().int().positive(),
 }).extend({
   attempt_id: z.string().min(1),

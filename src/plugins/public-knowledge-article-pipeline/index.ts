@@ -9,6 +9,11 @@ import {
 } from "../../capabilities/gpt/index.js";
 import { hashCanonical, type ProductionHash, type WebsiteAgentTask } from "../../lib/local-runtime/production/contracts.js";
 import {
+  executionFailure,
+  failureCode,
+  postCheckpointReceiverFault,
+} from "../../lib/typed-failure.js";
+import {
   readProductSkill,
   type ExactGptCallFacts,
   type GeneratedImageArtifact,
@@ -21,7 +26,9 @@ import {
   parsePublicKnowledgeArticle,
   parsePublicKnowledgeResearch,
   parseRouteResult,
+  publicKnowledgeReceptionOf,
   publicKnowledgeTurnContract,
+  type PublicKnowledgeReceptionReceipt,
 } from "./result-contract.js";
 
 const skill = readProductSkill(import.meta.url);
@@ -42,8 +49,12 @@ const SEO_CHILD_HANDOFF_DELAY_MS = 2_000;
 type SeoChild = ProductGptTools["execute"];
 type SeoCall = Parameters<SeoChild>[0];
 type SeoTurnCheckpoint = Readonly<{
-  rawText: string;
-  rawHash: ProductionHash;
+  assistantTurnId: string;
+  rawDomHtml: string;
+  rawDomHash: ProductionHash;
+  semanticText: string;
+  semanticTextHash: ProductionHash;
+  artifactRef: string;
   canonicalConversationUrl: string;
   turnMarker: string;
 }>;
@@ -51,23 +62,84 @@ type SeoUploadedAttachment = Readonly<Record<string, unknown>> & Readonly<{
   providerDisplayName: string;
 }>;
 
+function fail(code: string): never { throw executionFailure("failed", code); }
+
 const objectValue = (value: unknown, code: string): Record<string, unknown> => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(code);
+  if (!value || typeof value !== "object" || Array.isArray(value)) fail(code);
   return value as Record<string, unknown>;
 };
 const textValue = (value: unknown, code: string): string => {
-  if (typeof value !== "string" || !value.trim()) throw new Error(code);
+  if (typeof value !== "string" || !value.trim()) fail(code);
   return value;
 };
 const hashValue = (value: unknown, code: string): ProductionHash => {
-  if (typeof value !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(value)) throw new Error(code);
+  if (typeof value !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(value)) fail(code);
   return value as ProductionHash;
 };
+const singleArtifactRef = (value: readonly string[], code: string): string => {
+  if (value.length !== 1 || typeof value[0] !== "string" || !value[0]) fail(code);
+  return value[0];
+};
+const receptionReceipt = (
+  task: WebsiteAgentTask,
+  attemptId: string,
+  checkpoint: SeoTurnCheckpoint,
+): PublicKnowledgeReceptionReceipt => Object.freeze({
+  jobId: task.job_id,
+  attemptId,
+  turnMarker: checkpoint.turnMarker,
+  assistantTurnId: checkpoint.assistantTurnId,
+  artifactRef: checkpoint.artifactRef,
+  rawDomHash: checkpoint.rawDomHash,
+  semanticTextHash: checkpoint.semanticTextHash,
+});
+const receiveResearch = (
+  task: WebsiteAgentTask,
+  attemptId: string,
+  checkpoint: SeoTurnCheckpoint,
+): Readonly<Record<string, unknown>> => {
+  try {
+    return parsePublicKnowledgeResearch(
+      checkpoint.semanticText, receptionReceipt(task, attemptId, checkpoint),
+    );
+  } catch (error) {
+    throw postCheckpointReceiverFault(failureCode(error, "PUBLIC_KNOWLEDGE_RESEARCH_RECEIVER_FAILED"), {
+      artifactRef: checkpoint.artifactRef,
+      rawDomHash: checkpoint.rawDomHash,
+      semanticTextHash: checkpoint.semanticTextHash,
+    });
+  }
+};
+const receiveArticle = (
+  task: WebsiteAgentTask,
+  attemptId: string,
+  checkpoint: SeoTurnCheckpoint,
+): Readonly<Record<string, unknown>> => {
+  try {
+    return parsePublicKnowledgeArticle(
+      checkpoint.semanticText, receptionReceipt(task, attemptId, checkpoint),
+    );
+  } catch (error) {
+    throw postCheckpointReceiverFault(failureCode(error, "PUBLIC_KNOWLEDGE_ARTICLE_RECEIVER_FAILED"), {
+      artifactRef: checkpoint.artifactRef,
+      rawDomHash: checkpoint.rawDomHash,
+      semanticTextHash: checkpoint.semanticTextHash,
+    });
+  }
+};
+const receptionSidecar = (
+  research: Readonly<Record<string, unknown>>,
+  article: Readonly<Record<string, unknown>> | null,
+) => Object.freeze({
+  schema_version: "agent-public-knowledge-reception.v1",
+  research: publicKnowledgeReceptionOf(research),
+  article: article ? publicKnowledgeReceptionOf(article) : null,
+});
 const textHash = (value: string): ProductionHash =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 const uploadedAttachmentFiles = (value: unknown, code: string): readonly SeoUploadedAttachment[] => {
   const files = objectValue(value, code).files;
-  if (!Array.isArray(files) || files.length === 0) throw new Error(code);
+  if (!Array.isArray(files) || files.length === 0) fail(code);
   return files.map((file) => {
     const attachment = objectValue(file, code);
     return Object.freeze({
@@ -87,7 +159,7 @@ const providerValue = (value: unknown): GptProviderContinuation => {
 };
 const laneValue = (value: unknown): GptContinuationLane => {
   const lane = objectValue(value, "SEO_CONTINUATION_LANE_INVALID");
-  if (!Number.isSafeInteger(lane.lane_version)) throw new Error("SEO_CONTINUATION_LANE_INVALID");
+  if (!Number.isSafeInteger(lane.lane_version)) fail("SEO_CONTINUATION_LANE_INVALID");
   return Object.freeze({
     continuation_ref: textValue(lane.continuation_ref, "SEO_CONTINUATION_LANE_INVALID"),
     lane_version: Number(lane.lane_version),
@@ -189,7 +261,7 @@ const createSeoExecutor = (task: WebsiteAgentTask, context: SharedExecutionConte
   let priorChildCompleted = false;
   const recordEvidence = (actionOrdinal: number, evidenceRef: string): void => {
     const current = evidenceByOrdinal.get(actionOrdinal);
-    if (current && current !== evidenceRef) throw new Error("SEO_EVIDENCE_SEQUENCE_CONFLICT");
+    if (current && current !== evidenceRef) fail("SEO_EVIDENCE_SEQUENCE_CONFLICT");
     evidenceByOrdinal.set(actionOrdinal, evidenceRef);
   };
   const facts = async (input: Omit<SeoCall, "sessionKey">): Promise<ExactGptCallFacts> => {
@@ -208,7 +280,7 @@ const createSeoExecutor = (task: WebsiteAgentTask, context: SharedExecutionConte
     if (contract.requiredTargetKind === "chatgpt"
       && browserEvidenceSteps.has(input.productStepId)
       && !anchoredSteps.has(input.productStepId)) {
-      throw new Error("SEO_EXACT_TARGET_REHYDRATION_UNAVAILABLE");
+      fail("SEO_EXACT_TARGET_REHYDRATION_UNAVAILABLE");
     }
     if (priorChildCompleted) {
       await new Promise<void>((resolve) => setTimeout(resolve, SEO_CHILD_HANDOFF_DELAY_MS));
@@ -220,7 +292,7 @@ const createSeoExecutor = (task: WebsiteAgentTask, context: SharedExecutionConte
   };
   const requireEvidence = async (input: Omit<SeoCall, "sessionKey">): Promise<void> => {
     const current = await facts(input);
-    if (!current.evidence) throw new Error("SEO_PROGRESSIVE_PREFIX_EVIDENCE_MISSING");
+    if (!current.evidence) fail("SEO_PROGRESSIVE_PREFIX_EVIDENCE_MISSING");
   };
   const evidenceRefs = (): readonly string[] => Object.freeze(
     [...evidenceByOrdinal.entries()].sort((left, right) => left[0] - right[0]).map((entry) => entry[1]),
@@ -261,6 +333,7 @@ const submitTextTurn = async (input: Readonly<{
   marker: string;
   files: readonly Readonly<Record<string, unknown>>[];
   ordinals: readonly [number, number, number, number, number, number];
+  recoveryProvider?: GptProviderContinuation;
 }>): Promise<SeoTurnCheckpoint> => {
   const promptHash = textHash(input.prompt);
   const promptWrite = { productStepId: input.stepId, callId: "prompt-write", child: "write_exact_gpt_prompt", actionOrdinal: input.ordinals[0], input: { prompt: input.prompt } } as const;
@@ -277,22 +350,58 @@ const submitTextTurn = async (input: Readonly<{
   await input.flow.execute({ sessionKey: "", ...turnSubmit });
   const confirmedSubmit = await input.flow.facts(turnSubmit);
   if (confirmedSubmit.mutation?.outcome !== "CONFIRMED" || !confirmedSubmit.mutation.terminalAt) {
-    throw new Error("SEO_PROVIDER_EFFECT_TERMINAL_FACT_MISSING");
+    fail("SEO_PROVIDER_EFFECT_TERMINAL_FACT_MISSING");
   }
   const absoluteDeadline = new Date(
     Date.parse(confirmedSubmit.mutation.terminalAt) + WAIT_TIMEOUT_MS,
   ).toISOString();
-  const submitted = await input.flow.execute({ sessionKey: "", productStepId: input.stepId, callId: "submission-reconcile", child: "reconcile_gpt_turn_submission", actionOrdinal: input.ordinals[3], input: { timeoutMs: 60_000, turnMarker: input.marker } });
-  const canonicalConversationUrl = textValue(objectValue(submitted.value, "SEO_SUBMISSION_INVALID").canonicalConversationUrl, "SEO_SUBMISSION_INVALID");
-  const stable = await input.flow.execute({ sessionKey: "", productStepId: input.stepId, callId: "text-wait", child: "wait_for_stable_gpt_text", actionOrdinal: input.ordinals[4], input: { absoluteDeadline, turnMarker: input.marker } });
+  const submissionReconcile = {
+    productStepId: input.stepId, callId: "submission-reconcile",
+    child: "reconcile_gpt_turn_submission", actionOrdinal: input.ordinals[3],
+    input: { timeoutMs: 60_000, turnMarker: input.marker },
+  } as const;
+  let canonicalConversationUrl: string;
+  if (input.recoveryProvider) {
+    await input.flow.requireEvidence(submissionReconcile);
+    canonicalConversationUrl = input.recoveryProvider.provider_page_url;
+  } else {
+    const submitted = await input.flow.execute({ sessionKey: "", ...submissionReconcile });
+    canonicalConversationUrl = textValue(
+      objectValue(submitted.value, "SEO_SUBMISSION_INVALID").canonicalConversationUrl,
+      "SEO_SUBMISSION_INVALID",
+    );
+  }
+  const stable = await input.flow.execute({
+    sessionKey: "", productStepId: input.stepId, callId: "text-wait",
+    child: "wait_for_stable_gpt_text", actionOrdinal: input.ordinals[4],
+    input: { absoluteDeadline, canonicalConversationUrl, expectedPromptHash: promptHash, turnMarker: input.marker },
+  });
   const stableValue = objectValue(stable.value, "SEO_TEXT_RESPONSE_INVALID");
   const assistantTurnId = textValue(stableValue.assistantTurnId, "SEO_TEXT_RESPONSE_INVALID");
   const responseHash = hashValue(stableValue.responseHash, "SEO_TEXT_RESPONSE_INVALID");
-  const checkpoint = await input.flow.execute({ sessionKey: "", productStepId: input.stepId, callId: "text-checkpoint", child: "checkpoint_gpt_text_response", actionOrdinal: input.ordinals[5], input: { assistantTurnId, expectedResponseHash: responseHash } });
+  if (input.recoveryProvider && responseHash !== input.recoveryProvider.prior_raw_output_hash) {
+    fail("SEO_RECOVERED_RESPONSE_HASH_MISMATCH");
+  }
+  const checkpointCall = {
+    productStepId: input.stepId, callId: "text-checkpoint",
+    child: "checkpoint_gpt_text_response", actionOrdinal: input.ordinals[5],
+    input: {
+      assistantTurnId, canonicalConversationUrl, expectedPromptHash: promptHash,
+      expectedResponseHash: responseHash, turnMarker: input.marker,
+    },
+  } as const;
+  const checkpoint = await input.flow.execute({ sessionKey: "", ...checkpointCall });
+  const checkpointFacts = await input.flow.facts(checkpointCall);
   const checkpointValue = objectValue(checkpoint.value, "SEO_TEXT_CHECKPOINT_INVALID");
   return Object.freeze({
-    rawText: textValue(checkpointValue.rawText, "SEO_TEXT_CHECKPOINT_INVALID"),
-    rawHash: hashValue(checkpointValue.rawHash, "SEO_TEXT_CHECKPOINT_INVALID"),
+    assistantTurnId,
+    rawDomHtml: textValue(checkpointValue.rawDomHtml, "SEO_TEXT_CHECKPOINT_INVALID"),
+    rawDomHash: hashValue(checkpointValue.rawDomHash, "SEO_TEXT_CHECKPOINT_INVALID"),
+    semanticText: textValue(checkpointValue.semanticText, "SEO_TEXT_CHECKPOINT_INVALID"),
+    semanticTextHash: hashValue(checkpointValue.semanticTextHash, "SEO_TEXT_CHECKPOINT_INVALID"),
+    artifactRef: singleArtifactRef(
+      checkpointFacts.evidence?.artifactRefs ?? [], "SEO_TEXT_ARTIFACT_RECEIPT_INVALID",
+    ),
     canonicalConversationUrl,
     turnMarker: input.marker,
   });
@@ -327,18 +436,22 @@ const focusContinuation = async (
   } else {
     const acquired = laneValue((await flow.execute({ sessionKey: "", ...acquireCall })).value);
     if (JSON.stringify(acquired) !== JSON.stringify(lane)) {
-      throw new Error("SEO_CONTINUATION_LANE_DRIFT");
+      fail("SEO_CONTINUATION_LANE_DRIFT");
     }
   }
   const focusCall = { productStepId: stepId, callId: "conversation-focus", child: "focus_exact_gpt_conversation", actionOrdinal: ordinals[1], input: { canonicalConversationUrl: lane.provider.provider_page_url } } as const;
-  const verifyCall = { productStepId: stepId, callId: "conversation-verify", child: "verify_gpt_conversation_identity", actionOrdinal: ordinals[2], input: { canonicalConversationUrl: lane.provider.provider_page_url, timeoutMs: 60_000, turnMarker: lane.provider.prior_turn_marker } } as const;
-  if (recoverOnly) {
-    await flow.requireEvidence(focusCall);
-    await flow.requireEvidence(verifyCall);
-  } else {
-    await flow.execute({ sessionKey: "", ...focusCall });
-    await flow.execute({ sessionKey: "", ...verifyCall });
-  }
+  const verifyCall = {
+    productStepId: stepId, callId: "conversation-verify",
+    child: "verify_gpt_conversation_identity", actionOrdinal: ordinals[2],
+    input: {
+      canonicalConversationUrl: lane.provider.provider_page_url,
+      expectedResponseHash: lane.provider.prior_raw_output_hash,
+      timeoutMs: 60_000,
+      turnMarker: lane.provider.prior_turn_marker,
+    },
+  } as const;
+  await flow.execute({ sessionKey: "", ...focusCall });
+  await flow.execute({ sessionKey: "", ...verifyCall });
   return lane;
 };
 
@@ -351,7 +464,7 @@ const advanceLane = async (
   task: WebsiteAgentTask,
   stepId: string,
   lane: GptContinuationLane,
-  checkpoint: Pick<SeoTurnCheckpoint, "canonicalConversationUrl" | "rawHash" | "turnMarker">,
+  checkpoint: Pick<SeoTurnCheckpoint, "canonicalConversationUrl" | "semanticTextHash" | "turnMarker">,
   actionOrdinal: number,
 ): Promise<void> => {
   await execute({
@@ -362,7 +475,7 @@ const advanceLane = async (
       provider: {
         provider_page_url: checkpoint.canonicalConversationUrl,
         prior_task_id: task.job_id,
-        prior_raw_output_hash: checkpoint.rawHash,
+        prior_raw_output_hash: checkpoint.semanticTextHash,
         prior_turn_marker: checkpoint.turnMarker,
       },
     },
@@ -402,21 +515,32 @@ const generateImage = async (input: Readonly<{
     await input.flow.execute({ sessionKey: "", ...turnSubmit });
     const confirmedSubmit = await input.flow.facts(turnSubmit);
     if (confirmedSubmit.mutation?.outcome !== "CONFIRMED" || !confirmedSubmit.mutation.terminalAt) {
-      throw new Error("SEO_PROVIDER_EFFECT_TERMINAL_FACT_MISSING");
+      fail("SEO_PROVIDER_EFFECT_TERMINAL_FACT_MISSING");
     }
     const absoluteDeadline = new Date(
       Date.parse(confirmedSubmit.mutation.terminalAt) + WAIT_TIMEOUT_MS,
     ).toISOString();
     const submitted = await input.flow.execute({ sessionKey: "", productStepId: input.stepId, callId: "submission-reconcile", child: "reconcile_gpt_turn_submission", actionOrdinal: 43, input: { timeoutMs: 60_000, turnMarker: input.marker } });
     const canonicalConversationUrl = textValue(objectValue(submitted.value, "SEO_IMAGE_SUBMISSION_INVALID").canonicalConversationUrl, "SEO_IMAGE_SUBMISSION_INVALID");
-    const stable = await input.flow.execute({ sessionKey: "", productStepId: input.stepId, callId: "image-wait", child: "wait_for_stable_gpt_image", actionOrdinal: 44, input: { absoluteDeadline, turnMarker: input.marker } });
+    const stable = await input.flow.execute({
+      sessionKey: "", productStepId: input.stepId, callId: "image-wait",
+      child: "wait_for_stable_gpt_image", actionOrdinal: 44,
+      input: { absoluteDeadline, canonicalConversationUrl, expectedPromptHash: promptHash, turnMarker: input.marker },
+    });
     const stableValue = objectValue(stable.value, "SEO_IMAGE_RESPONSE_INVALID");
     const assistantTurnId = textValue(stableValue.assistantTurnId, "SEO_IMAGE_RESPONSE_INVALID");
     const responseHash = hashValue(stableValue.responseHash, "SEO_IMAGE_RESPONSE_INVALID");
-    const checkpoint = await input.flow.execute({ sessionKey: "", productStepId: input.stepId, callId: "image-checkpoint", child: "checkpoint_gpt_generated_image", actionOrdinal: 45, input: { assistantTurnId } });
+    const checkpoint = await input.flow.execute({
+      sessionKey: "", productStepId: input.stepId, callId: "image-checkpoint",
+      child: "checkpoint_gpt_generated_image", actionOrdinal: 45,
+      input: {
+        assistantTurnId, canonicalConversationUrl, expectedPromptHash: promptHash,
+        expectedResponseHash: responseHash, turnMarker: input.marker,
+      },
+    });
     const artifact = objectValue(checkpoint.value, "SEO_IMAGE_ARTIFACT_INVALID");
     if (artifact.mediaType !== "image/webp" || artifact.width !== 1200 || artifact.height !== 630
-      || !Number.isSafeInteger(artifact.bytes) || Number(artifact.bytes) < 1) throw new Error("SEO_IMAGE_ARTIFACT_INVALID");
+      || !Number.isSafeInteger(artifact.bytes) || Number(artifact.bytes) < 1) fail("SEO_IMAGE_ARTIFACT_INVALID");
     const generated: GeneratedImageArtifact = Object.freeze({
       artifact_id: textValue(artifact.artifactId, "SEO_IMAGE_ARTIFACT_INVALID"),
       local_path: textValue(artifact.localPath, "SEO_IMAGE_ARTIFACT_INVALID"),
@@ -426,7 +550,7 @@ const generateImage = async (input: Readonly<{
       bytes: Number(artifact.bytes), media_type: "image/webp", width: 1200, height: 630,
     });
     await advanceLane(input.flow.execute, input.task, input.stepId, lane, {
-      canonicalConversationUrl, rawHash: responseHash, turnMarker: input.marker,
+      canonicalConversationUrl, semanticTextHash: responseHash, turnMarker: input.marker,
     }, 46);
     advanced = true;
     return generated;
@@ -461,7 +585,7 @@ const prepareAttachedTurnPrefix = async (input: Readonly<{
   const reconciled = await input.flow.execute({ sessionKey: "", ...attachmentsReconcile });
   const actual = uploadedAttachmentFiles(reconciled.value, "SEO_ATTACHMENT_RECONCILIATION_INVALID");
   if (JSON.stringify(actual) !== JSON.stringify(input.uploadedFiles)) {
-    throw new Error("SEO_ATTACHMENT_RECONCILIATION_INVALID");
+    fail("SEO_ATTACHMENT_RECONCILIATION_INVALID");
   }
 };
 
@@ -476,6 +600,10 @@ const executeArticleProduction = async (task: WebsiteAgentTask, context: SharedE
   );
   const researchSubmit = { productStepId: researchStep, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 12, input: { promptHash: textHash(researchPromptValue), turnMarker: researchMarker } } as const;
   const researchSubmitFacts = await flow.facts(researchSubmit);
+  const recoveredResearchProvider = context.gpt.readContinuationForTurn(researchMarker)?.provider;
+  const recoveryProvider = recoveredResearchProvider?.prior_task_id === task.job_id
+    && recoveredResearchProvider.prior_turn_marker === researchMarker
+    ? recoveredResearchProvider : undefined;
   await prepareAttachedTurnPrefix({
     flow, stepId: researchStep, files, uploadedFiles,
     recoverOnly: Boolean(researchSubmitFacts.mutation || researchSubmitFacts.evidence),
@@ -483,11 +611,12 @@ const executeArticleProduction = async (task: WebsiteAgentTask, context: SharedE
   const researchCheckpoint = await submitTextTurn({
     flow, stepId: researchStep, prompt: researchPromptValue,
     marker: researchMarker, files: uploadedFiles, ordinals: [10, 11, 12, 13, 14, 15],
+    ...(recoveryProvider ? { recoveryProvider } : {}),
   });
   const researchProvider: GptProviderContinuation = Object.freeze({
     provider_page_url: researchCheckpoint.canonicalConversationUrl,
     prior_task_id: task.job_id,
-    prior_raw_output_hash: researchCheckpoint.rawHash,
+    prior_raw_output_hash: researchCheckpoint.semanticTextHash,
     prior_turn_marker: researchCheckpoint.turnMarker,
   });
   const persisted = await flow.execute({
@@ -500,10 +629,14 @@ const executeArticleProduction = async (task: WebsiteAgentTask, context: SharedE
     },
   });
   const continuationRef = textValue(objectValue(persisted.value, "SEO_CONTINUATION_PERSIST_INVALID").continuationRef, "SEO_CONTINUATION_PERSIST_INVALID");
-  const research = parsePublicKnowledgeResearch(researchCheckpoint.rawText);
+  const research = receiveResearch(task, context.gpt.attemptId, researchCheckpoint);
   if (research.decision === "decline") {
     return context.complete({
-      payload: { schema_version: "public-knowledge-article-package.v1", research, article: null, image: null },
+      payload: {
+        schema_version: "public-knowledge-article-package.v1",
+        research, article: null, image: null,
+        _agent_reception: receptionSidecar(research, null),
+      },
       evidence_refs: flow.evidenceRefs(),
     });
   }
@@ -528,7 +661,7 @@ const executeArticleProduction = async (task: WebsiteAgentTask, context: SharedE
       files: [], ordinals: [25, 26, 27, 28, 29, 30],
     });
     articleCheckpoint = checkpoint;
-    article = parsePublicKnowledgeArticle(checkpoint.rawText);
+    article = receiveArticle(task, context.gpt.attemptId, checkpoint);
     await advanceLane(flow.execute, task, articleStep, articleLane, checkpoint, 31);
     articleAdvanced = true;
   } finally {
@@ -541,12 +674,16 @@ const executeArticleProduction = async (task: WebsiteAgentTask, context: SharedE
     expectedProvider: Object.freeze({
       provider_page_url: articleCheckpoint.canonicalConversationUrl,
       prior_task_id: task.job_id,
-      prior_raw_output_hash: articleCheckpoint.rawHash,
+      prior_raw_output_hash: articleCheckpoint.semanticTextHash,
       prior_turn_marker: articleCheckpoint.turnMarker,
     }),
   });
   return context.complete({
-    payload: { schema_version: "public-knowledge-article-package.v1", research, article, image: null },
+    payload: {
+      schema_version: "public-knowledge-article-package.v1",
+      research, article, image: null,
+      _agent_reception: receptionSidecar(research, article),
+    },
     evidence_refs: flow.evidenceRefs(),
     generated_image: image,
   });
@@ -569,7 +706,7 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
     flow, stepId, prompt, marker, files: uploadedFiles,
     ordinals: [10, 11, 12, 13, 14, 15],
   });
-  const payload = parseRouteResult(task, checkpoint.rawText);
+  const payload = parseRouteResult(task, checkpoint.semanticText);
   return context.complete({ payload, evidence_refs: flow.evidenceRefs() });
 };
 

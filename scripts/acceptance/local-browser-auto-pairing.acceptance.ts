@@ -176,13 +176,15 @@ const rejectedBootstrap = new PairingAutoBootstrap(
 await rejectedBootstrap.attempt();
 assert.equal(rejectedBootstrap.currentFailureCode(), "BROWSER_PAIRING_ORIGIN_REJECTED");
 
-let createdTab: Readonly<{ active: false; url: string }> | null = null;
+let createdTab: Readonly<{ active: true; url: string }> | null = null;
 let debuggerEvent: Parameters<ExtensionChromeApi["debugger"]["onEvent"]["addListener"]>[0] | null = null;
 let targetTabUpdated: TabUpdatedListener = () => { throw new Error("target tab listener was not installed"); };
 let nextCreatedTabId = 3;
 let getTargetsCalls = 0;
 let attachFailureTabId: number | null = null;
 const attachedTabs: number[] = [];
+const detachedTabs: number[] = [];
+const debuggerMethods: string[] = [];
 const removedTabs: number[] = [];
 const mainFrameUrlByTab = new Map<number, string>();
 const targetFrames: Array<Readonly<{ kind: "TARGET_CLAIM" | "TARGET_REVOKE"; body: Record<string, unknown> }>> = [];
@@ -193,11 +195,14 @@ const targetChromeApi: ExtensionChromeApi = {
       if (tabId === attachFailureTabId) throw new Error("another debugger owns the new task tab");
       attachedTabs.push(tabId);
     },
-    detach: async () => undefined,
+    detach: async ({ tabId }) => { detachedTabs.push(tabId); },
     getTargets: async () => { getTargetsCalls += 1; return []; },
-    sendCommand: async ({ tabId }, method) => method === "Page.getFrameTree"
-      ? { frameTree: { frame: { loaderId: `loader-${tabId}`, url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/" } } }
-      : {},
+    sendCommand: async ({ tabId }, method) => {
+      debuggerMethods.push(method);
+      return method === "Page.getFrameTree"
+        ? { frameTree: { frame: { loaderId: `loader-${tabId}`, url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/" } } }
+        : {};
+    },
     onDetach: { addListener: () => undefined },
     onEvent: { addListener: (listener) => { debuggerEvent = listener; } },
   },
@@ -224,18 +229,22 @@ targetTabUpdated(3, { status: "complete" }, { id: 3, url: "https://chatgpt.com/"
 await firstAcquisition;
 assert.deepEqual(attachedTabs, [3]);
 assert.equal(getTargetsCalls, 0, "job acquisition must not enumerate or reuse operator ChatGPT tabs");
-assert.deepEqual(createdTab, { active: false, url: "https://chatgpt.com/" });
+assert.deepEqual(createdTab, { active: true, url: "https://chatgpt.com/" });
 assert.equal(targetFrames[0]?.kind, "TARGET_CLAIM");
 assert.equal(targetFrames[0]?.body.url, "https://chatgpt.com/");
 const firstTargetRef = String(targetFrames[0]?.body.targetRef);
 await targetAuthority.parkActiveTarget();
 assert.equal(targetFrames.at(-1)?.kind, "TARGET_REVOKE");
+assert.deepEqual(detachedTabs, [], "logical park must keep the one debugger session alive across local restarts");
 await targetAuthority.acquireJobBoundChatGptTarget(firstTargetRef);
-assert.deepEqual(attachedTabs, [3, 3],
-  "same-job recovery must reattach the exact parked Target without creating or guessing another tab");
+assert.deepEqual(attachedTabs, [3],
+  "same-job recovery must retain the extension-owned debugger session on the exact production Tab");
 assert.equal(nextCreatedTabId, 4);
 assert.equal(targetFrames.at(-1)?.body.targetRef, firstTargetRef);
+assert.equal(debuggerMethods.filter((method) => method === "Page.bringToFront").length, 2,
+  "initial claim and exact reacquire must both physically foreground the single production Tab");
 await targetAuthority.releaseActiveTarget(false);
+assert.deepEqual(detachedTabs, [], "socket suspension must preserve the one production debugger session");
 
 let delayedComposerQueries = 0;
 const delayedComposerRuntime = {
@@ -398,28 +407,30 @@ assert.deepEqual(fillKeyEvents, [
 
 const secondAcquisition = targetAuthority.acquireJobBoundChatGptTarget();
 await Promise.resolve();
-targetTabUpdated(4, { status: "complete" }, { id: 4, title: "ChatGPT" });
 await secondAcquisition;
-assert.equal(attachedTabs.at(-1), 4, "every turn must create and attach its own new task tab");
+assert.equal(attachedTabs.at(-1), 3, "every turn must reuse the one visible production tab");
+assert.equal(nextCreatedTabId, 4, "single-Tab reuse must not create a second physical page");
+assert.equal(targetFrames.at(-1)?.body.targetRef, firstTargetRef,
+  "single-Tab reuse must preserve physical target identity");
 assert.equal(targetFrames.at(-1)?.body.url, "https://chatgpt.com/",
   "the debugger-owned main frame must prove the exact origin when Chrome redacts tab.url without tabs permission");
-await targetAuthority.releaseActiveTarget(false);
+await targetAuthority.releaseActiveTarget();
 
 const rejectedOrigin = targetAuthority.acquireJobBoundChatGptTarget();
 await Promise.resolve();
-mainFrameUrlByTab.set(5, "https://example.com/");
-targetTabUpdated(5, { status: "complete" }, { id: 5, url: "https://example.com/", title: "Wrong Origin" });
+mainFrameUrlByTab.set(4, "https://example.com/");
+targetTabUpdated(4, { status: "complete" }, { id: 4, url: "https://example.com/", title: "Wrong Origin" });
 await assert.rejects(rejectedOrigin, /BROWSER_ORIGIN_REJECTED/u);
-assert.equal(Number(attachedTabs.at(-1)), 5, "origin verification may attach only to the exact tab just created for this job");
-assert.ok(removedTabs.includes(5), "a rejected task-owned page must be removed");
+assert.equal(Number(attachedTabs.at(-1)), 4, "origin verification may attach only to the exact tab just created for this job");
+assert.ok(removedTabs.includes(4), "a rejected task-owned page must be removed");
 
-attachFailureTabId = 6;
+attachFailureTabId = 5;
 const debuggerConflict = targetAuthority.acquireJobBoundChatGptTarget();
 await Promise.resolve();
-targetTabUpdated(6, { status: "complete" }, { id: 6, url: "https://chatgpt.com/", title: "ChatGPT" });
+targetTabUpdated(5, { status: "complete" }, { id: 5, url: "https://chatgpt.com/", title: "ChatGPT" });
 await assert.rejects(debuggerConflict, /BROWSER_DEVTOOLS_CONFLICT/u,
   "debugger conflict on the new task-owned tab must fail without touching another page");
-assert.ok(removedTabs.includes(6), "a conflicted task-owned page must be removed");
+assert.ok(removedTabs.includes(5), "a conflicted task-owned page must be removed");
 attachFailureTabId = null;
 assert.ok(debuggerEvent, "the exact target owner must observe main-frame navigation");
 
@@ -458,11 +469,11 @@ emitQualityProofObservation({
 emitQualityProofObservation({
   passed: true,
   findings: [],
-  lawId: "LAW-LOCAL-BROWSER-SESSION-003-V14",
+  lawId: "LAW-LOCAL-BROWSER-SESSION-003-V15",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:1", "forbidden:13", "forbidden:2", "forbidden:3", "summary"],
   locator: "acceptance:local-browser-terminal:job-target-golden",
-  observedValue: "each accepted acquisition creates one background ChatGPT page, tolerates Chrome-redacted tab metadata, verifies the debugger-owned main-frame exact origin before claim, never enumerates operator tabs, and removes rejected or conflicted task pages",
+  observedValue: "the production authority creates one visible ChatGPT system Tab, physically foregrounds and reuses that exact Tab without enumerating operator pages, preserves its debugger session across normal park, verifies the debugger-owned main-frame origin, and removes rejected or conflicted candidates",
 });
 emitQualityProofObservation({
   passed: true,

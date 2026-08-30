@@ -44,14 +44,14 @@ test('typed high-impact detector covers all twelve machine-owned categories', ()
 });
 
 test('normative law edits require a successor major', () => {
-  const prior = loadLaws().find((law) => law.lawId === 'LAW-GPT-001-V8');
+  const prior = loadLaws().find((law) => law.lawId === 'LAW-GPT-001-V9');
   assert.ok(prior);
   const sameMajorMutation = { ...prior, summary: `${prior.summary} changed` };
   assert.throws(
     () => assertLawMajorVersionChanges([prior], [sameMajorMutation]),
     (error: unknown) => error instanceof GovernanceError && error.code === 'LAW_MAJOR_CHANGE_UNENFORCED',
   );
-  const successor = { ...sameMajorMutation, lawId: 'LAW-GPT-001-V9', supersedesLawId: prior.lawId };
+  const successor = { ...sameMajorMutation, lawId: 'LAW-GPT-001-V10', supersedesLawId: prior.lawId };
   assert.doesNotThrow(() => assertLawMajorVersionChanges([prior], [successor]));
   assert.doesNotThrow(() => assertLawMajorVersionChanges([prior], []));
 });
@@ -61,11 +61,11 @@ test('law corpus permits an empty source but rejects two active majors for one l
   const headingAt = baseSource.indexOf('# 基础法案');
   assert(headingAt >= 0);
   assert.deepEqual(parseLawSource(`${baseSource.slice(0, headingAt)}# 基础法案\n`, 'empty-base.md', 'base-law', 100), []);
-  const active = loadLaws().find((law) => law.lawId === 'LAW-GPT-001-V8');
+  const active = loadLaws().find((law) => law.lawId === 'LAW-GPT-001-V9');
   assert.ok(active);
   assert.throws(
     () => assertOneActiveMajorPerLawKey([active, {
-      ...active, lawId: 'LAW-GPT-001-V9', supersedesLawId: active.lawId,
+      ...active, lawId: 'LAW-GPT-001-V10', supersedesLawId: active.lawId,
     }]),
     (error: unknown) => error instanceof GovernanceError && error.code === 'SOURCE_PARSE_FAILED',
   );
@@ -293,7 +293,7 @@ test('quality CHANGE rejects malformed touched law, Manifest, blueprint, and spe
     { path: 'docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md',
       mutate: (source) => source.replace('  "schemaVersion": 1,', '  "schemaVersion": 1,\n  "unexpected": true,') },
     { path: 'docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md',
-      mutate: (source) => source.replace('"blueprintId": "local-browser-auto-pairing-and-exact-chatgpt-claim-v2"', '"blueprintId": "<stable-id>"') },
+      mutate: (source) => source.replace(/"blueprintId": "[^"]+"/u, '"blueprintId": "<stable-id>"') },
     { path: 'docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md',
       mutate: (source) => source.replace(/"LAW-LOCAL-BROWSER-SESSION-[^"]+"/u, '"LAW-LOCAL-BROWSER-SESSION-999-V1"') },
     { path: 'docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json', mutate: (source) => {

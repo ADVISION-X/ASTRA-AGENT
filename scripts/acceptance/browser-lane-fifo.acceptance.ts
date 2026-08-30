@@ -37,9 +37,10 @@ const binding = (jobId: string, productStepId = "fixture-step"): BrowserExecutio
 const fixtureLease = (
   entry: BrowserExecutionBinding,
   close: BrowserTargetLease["close"],
+  identity?: Readonly<{ targetRef: string; documentRef: string }>,
 ): BrowserTargetLease => {
-  const targetRef = entry.jobId === "job:historic" ? "target:historic" : `target:${entry.jobId}`;
-  const documentRef = entry.jobId === "job:historic" ? "document:historic" : `document:${entry.jobId}`;
+  const targetRef = identity?.targetRef ?? (entry.jobId === "job:historic" ? "target:historic" : `target:${entry.jobId}`);
+  const documentRef = identity?.documentRef ?? (entry.jobId === "job:historic" ? "document:historic" : `document:${entry.jobId}`);
   return ({
   leaseRef: `lease:${entry.jobId}`,
   authorityRef: "authority:fixture",
@@ -89,7 +90,7 @@ try {
     ownerPluginId: "plugin",
     pluginVersion: 1,
     jobId: "job:historic",
-    attemptId: "attempt:historic",
+    attemptId: "attempt:job:historic",
     leaseVersion: 1,
     executionFenceHash: HASH,
     productStepId: "historic-step",
@@ -107,6 +108,30 @@ try {
   });
   mutationStore.markDispatched("historic-dispatched-command");
   mutationStore.markReceiptMissing("historic-dispatched-command");
+  mutationStore.prepare({
+    commandId: "historic-confirmed-command",
+    exactCallIdentityHash: `sha256:${"c".repeat(64)}`,
+    ownerPluginId: "plugin",
+    pluginVersion: 1,
+    jobId: "job:confirmed",
+    attemptId: "attempt:job:confirmed",
+    leaseVersion: 1,
+    executionFenceHash: HASH,
+    productStepId: "confirmed-step",
+    childCapabilityId: "submit_exact_gpt_turn_once",
+    callId: "confirmed-submit",
+    effectScope: "provider_effect",
+    actionOrdinal: 1,
+    targetRef: "target:confirmed",
+    documentRef: "document:confirmed:1",
+    actionId: "browser.dom.click.v1",
+    positivePostconditionHash: HASH,
+    negativePostconditionHash: `sha256:${"d".repeat(64)}`,
+    requestHash: HASH,
+    payloadHash: HASH,
+  });
+  mutationStore.markDispatched("historic-confirmed-command");
+  mutationStore.markConfirmed("historic-confirmed-command", HASH);
   mutationStore.close();
   supervisor = new BrowserInfrastructureSupervisor({
     dataDir: temporary,
@@ -144,6 +169,7 @@ try {
     "historic-dispatched-command",
   );
   const acquisitions: string[] = [];
+  const leaseIdentities = new Map<string, Readonly<{ targetRef: string; documentRef: string }>>();
   const broker = {
     currentOperatorTargetStatus: () => "claimed" as const,
     revokeOperatorTargetClaim: () => {},
@@ -159,7 +185,7 @@ try {
               { mutationOutcome: "no" },
             );
           }
-        });
+        }, leaseIdentities.get(entry.jobId));
     },
   };
   assert.equal(Reflect.set(supervisor, "broker", broker), true);
@@ -173,6 +199,68 @@ try {
   assert.deepEqual([recovered.target.targetRef, recovered.document.documentRef],
     ["target:historic", "document:historic"]);
   await recovered.park({ reason: "recovery-scope-proven", mode: "recovery" });
+
+  leaseIdentities.set("job:historic", {
+    targetRef: "target:historic", documentRef: "document:historic:changed",
+  });
+  await assert.rejects(
+    supervisor.acquireJobBoundTargetLease(
+      binding("job:historic", "historic-step"), "owner:historic:wrong-document",
+      { signal: openSignal.signal, remainingMs: () => 60_000 },
+    ),
+    (error) => {
+      const failure = typedExecutionFailure(error);
+      assert.equal(failure?.code, "BROWSER_DOCUMENT_INVALID");
+      assert.equal(failure?.mutationOutcome, "dispatched");
+      return true;
+    },
+    "DISPATCHED recovery must retain the original Target and Document",
+  );
+  leaseIdentities.set("job:historic", {
+    targetRef: "target:historic:changed", documentRef: "document:historic",
+  });
+  await assert.rejects(
+    supervisor.acquireJobBoundTargetLease(
+      binding("job:historic", "historic-step"), "owner:historic:wrong-target",
+      { signal: openSignal.signal, remainingMs: () => 60_000 },
+    ),
+    /BROWSER_DOCUMENT_INVALID/u,
+  );
+  leaseIdentities.delete("job:historic");
+
+  leaseIdentities.set("job:confirmed", {
+    targetRef: "target:confirmed", documentRef: "document:confirmed:2",
+  });
+  const confirmedNewDocument = await supervisor.acquireJobBoundTargetLease(
+    binding("job:confirmed", "confirmed-step"),
+    "owner:confirmed:new-document",
+    { signal: openSignal.signal, remainingMs: () => 60_000 },
+  );
+  assert.deepEqual(
+    [confirmedNewDocument.target.targetRef, confirmedNewDocument.document.documentRef],
+    ["target:confirmed", "document:confirmed:2"],
+    "CONFIRMED recovery may advance Document while retaining the exact Target",
+  );
+  await confirmedNewDocument.park({ reason: "confirmed-document-advanced", mode: "normal-provider-wait" });
+  leaseIdentities.set("job:confirmed", {
+    targetRef: "target:confirmed:changed", documentRef: "document:confirmed:3",
+  });
+  await assert.rejects(
+    supervisor.acquireJobBoundTargetLease(
+      binding("job:confirmed", "confirmed-step"),
+      "owner:confirmed:wrong-target",
+      { signal: openSignal.signal, remainingMs: () => 60_000 },
+    ),
+    (error) => {
+      const failure = typedExecutionFailure(error);
+      assert.equal(failure?.code, "BROWSER_DOCUMENT_INVALID");
+      assert.equal(failure?.mutationOutcome, "no");
+      return true;
+    },
+    "CONFIRMED recovery may change Document but never the physical Target",
+  );
+  leaseIdentities.delete("job:confirmed");
+  acquisitions.length = 0;
   const first = await supervisor.acquireJobBoundTargetLease(
     binding("job:1"),
     "owner:1",
@@ -190,11 +278,11 @@ try {
     });
   await Promise.resolve();
   assert.equal(secondResolved, false);
-  assert.deepEqual(acquisitions, ["job:historic", "job:1"]);
+  assert.deepEqual(acquisitions, ["job:1"]);
   assert.equal(supervisor.readBrowserLaneWaiterCount(), 1);
   await first.close({ reason: "settled" });
   const second = await secondPromise;
-  assert.deepEqual(acquisitions, ["job:historic", "job:1", "job:2"]);
+  assert.deepEqual(acquisitions, ["job:1", "job:2"]);
   await second.close({ reason: "settled" });
   assert.equal(supervisor.readBrowserLaneState(), "idle");
 

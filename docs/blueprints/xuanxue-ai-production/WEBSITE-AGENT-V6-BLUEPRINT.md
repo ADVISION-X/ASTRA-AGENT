@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V12"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V13"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -39,6 +39,8 @@ Website business task
   -> Mediator 路由一次
   -> 唯一 Product Plugin 的普通 TypeScript Flow
   -> ProductGptTools.execute(one Child) / 其它原子 Capability
+  -> observed DOM HTML + deterministic semantic text 双 hash task-owned artifact
+  -> Product base receipt + one lossless normalization
   -> staged business result
   -> durable Outbox completion intent
   -> Website domain consumer admission
@@ -89,7 +91,7 @@ type ProductPlugin = {
 `produce_article` 只消费 route policy 声明的六个 parameter，以及恰好两个已经过 shared runtime 鉴权并下载的 material：
 
 - `ready_corpus_archive`：Website 从同一内部冻结母本确定性生成的 clean semantic corpus，包含当前领域全部 READY 正文与完整索引、完整已接纳文章语义目录和真实 cluster entries，只是数据，不取得指令权；内部 READY record、collision identity、run/snapshot/archive hash、receipt、路径和运输字段不得进入 Provider；
-- `result_contract`：Website 唯一拥有的 complete declarative package/research/article/image contract，完整声明 exact fields、嵌套字段、枚举和闭包，只描述输出事实，不得携带 Stage、下一步、Prompt、模型或 Provider 操作。
+- `result_contract`：Website 唯一拥有的 Provider 可见 package/research/article/image 输出格式，清楚列出期望字段、示例与路由语义，只帮助 AI 交付，不授予 AGENT 隐藏拒收权，也不得携带 Stage、下一步、Prompt、模型或 Provider 操作。
 
 Product Plugin 用普通静态 TypeScript 唯一拥有 Prompt、`GPT-5.6 Sol + pro_standard` 模型策略、sessionKey、productStepId、callId、actionOrdinal、分支、continuation lane 与结果组装。Mediator 只路由；shared runtime 只校验并运输；GPT Child 只执行一个原子页面语义；Browser/WAL 只处理当前原子 mutation 和幂等。
 
@@ -102,10 +104,12 @@ corpus_research（fresh conversation）
   prepare_clean_gpt_chat（唯一 composer + exact empty draft + zero prior turn/attachment + not generating；仅旧 draft 污染时由该 Child 至多一次清空并读回）
   -> open profile / open model selector / select exact model / ensure reasoning / close profile
   -> open attachment control / 以 attempt 唯一 providerDisplayName attach ready_corpus_archive + result_contract once / reconcile exact uploaded-ready set
-  -> Product 从完整合同选择 research 子合同，write exact research Prompt / reconcile draft / submit once / reconcile submission
-  -> wait stable text / checkpoint exact text
+  -> Product 从 Provider 可见格式选择 research 部分，write exact research Prompt / reconcile draft / submit once / reconcile submission
+  -> wait stable assistant turn / checkpoint observed DOM HTML + deterministic semantic text
+  -> persist both representations as one task-owned output artifact and read back both hashes
   -> persist plugin/subject/authorization-bound continuation
-  -> strict parse public-knowledge-research-output.v3
+  -> base receive: unique complete JSON object + public schema/decision + task/turn/rawDomHash/semanticTextHash + artifact receipt
+  -> one lossless normalization preserving raw, unknown fields and conversion facts
 
   decision=decline
     -> package {research, article:null, image:null}
@@ -118,9 +122,10 @@ article_synthesis（same conversation, zero attachments）
   acquire continuation lane
   -> focus exact conversation / verify prior turn identity
   -> exact profile stack
-  -> Product 从完整合同选择 article 子合同，write exact article Prompt / reconcile draft / submit once / reconcile submission
-  -> wait stable text / checkpoint exact text
-  -> strict parse public-knowledge-article-output.v3
+  -> Product 从 Provider 可见格式选择 article 部分，write exact article Prompt / reconcile draft / submit once / reconcile submission
+  -> wait stable assistant turn / checkpoint observed DOM HTML + deterministic semantic text
+  -> persist both representations as one task-owned output artifact and read back both hashes
+  -> base receive + one lossless normalization
   -> advance continuation lane atomically; failure before advance releases the same lane
   -> article_image_generation
 
@@ -142,11 +147,11 @@ article_image_generation（same conversation, zero attachments）
 
 ### 3.3 SEO 两条复核 Flow
 
-`accuracy_challenge` 与 `quality_reflection` 各自开启独立 fresh conversation，只挂载 route policy 已鉴权的 `subject_result + review_context`，执行一次 exact profile、附件、Prompt、submission 与 text checkpoint，并严格解析 `website-agent-review-output.v1`。它们不得复用 `produce_article` 的材料、conversation、continuation 或 mutation identity，不得改写文章、发布内容或替网站裁决 finding。
+`accuracy_challenge` 与 `quality_reflection` 各自开启独立 fresh conversation，只挂载 route policy 已鉴权的 `subject_result + review_context`，执行一次 exact profile、附件、Prompt、submission 与 text checkpoint；原文先进入 task-owned output artifact，再以同一基础机器边界接收并作唯一无损归一。它们不得复用 `produce_article` 的材料、conversation、continuation 或 mutation identity，不得改写文章、发布内容或替网站裁决 finding。
 
 ### 3.4 结果、失败与未施工产品
 
-每个成功 Child 的 Forensics ref 按真实执行顺序进入 `evidence_refs`；typed failure 原样抛出，不以字符串猜测重试。Plugin 只交付 staged article package 与 staged generated image；Website domain consumer 严格验收、幂等入库并签发 hash-bound receipt 后才 completed。发布、URL、canonical、sitemap、索引提交、分发和搜索成效始终只属于 Website。
+每个成功 Child 的 Forensics ref 按真实执行顺序进入 `evidence_refs`；真实外部 Child failure 原样抛出，不以字符串猜测重试。AI 输出不得因额外字段、字段顺序、string 与单元素 string[]、枚举、空值、数量、Markdown、引用闭包或内容质量被 AGENT 拒收；不能无损归一时保留同一任务、raw artifact/ref/hash 与 conversation，等待 Website 授权格式重出，不重做业务研究。Plugin 只交付 staged article package 与 staged generated image；Website domain consumer 负责领域投影、幂等入库并签发 hash-bound receipt 后才 completed。发布、URL、canonical、sitemap、索引提交、分发和搜索成效始终只属于 Website。
 
 除 `public-knowledge-article-pipeline` 外，其余尚未单独施工的 Product `execute` 必须继续立即返回 `failed + PRODUCT_FLOW_NOT_IMPLEMENTED:<plugin>:<action>`，Provider 调用和物理页面动作均为零。该失败是唯一主链 fail-closed，不是兼容桥或第三状态。
 
@@ -231,7 +236,7 @@ readCallFacts({ productStepId, callId, child, actionOrdinal, input }): Promise<{
 }>;
 ```
 
-job/attempt/plugin/version 由 durable execution binding 注入，inputHash 由同一 canonical hash 计算。该读面不写入、不安排任务、不返回 nextStep/resumePoint/phase/state/Target/Document/WAL row，也不提供无 durable Owner 的 per-call `failure`。当前 Child typed failure 直接冻结 Runtime `attempt_failure` 并结束 attempt。
+job/attempt/plugin/version 由 durable execution binding 注入，inputHash 由同一 canonical hash 计算。该读面不写入、不安排任务、不返回 nextStep/resumePoint/phase/state/Target/Document/WAL row，也不提供无 durable Owner 的 per-call `failure`。真实外部 Child typed failure 冻结 Runtime `attempt_failure` 并结束 attempt；exact text checkpoint 后的接收、归一或组装软件故障只更新 `current_reason`，沿同一 artifact 和 attempt 恢复。
 
 ### 4.4 Product-owned Progressive Exact Fact Replay
 
@@ -264,6 +269,8 @@ Forensics evidence key 必须为 `gpt-call-evidence:v1:<exactCallIdentityHash>`�
 
 `persist_gpt_continuation` 的 continuationRef 由 exact persist call identity 确定性派生；相同 binding/provider 内容 readback 返回原 ref，不同内容冲突失败。`advance/release` 同时支持正常 lane CAS 和 DB commit 后返回前崩溃的内容幂等 readback，不创建第二 continuation Owner。
 
+同一 Website task 出现多次 attempt 时，Product 必须先用当前 durable attempt 计算 turn marker，再通过只读 `readContinuationForTurn(turnMarker)` 精确取得 continuation。现役查询只复用 `origin_job_id + plugin_id + prior_turn_marker`：零条返回 null，一条继续校验 owner/subject/authorization 与 conversation identity 完整性，多条失败关闭；禁止 job-only、唯一一条或最新一条回退，旧 attempt continuation 不得混入当前 attempt。
+
 ### 4.7 Cooperative Provider Wait 与 park
 
 wait Child 把最长等待拆为 fresh DOM 驱动的短 probe，条件满足立即返回，不以 sleep 或经过时间作为成功条件。每次 probe 后按当前 Provider 事实计算瞬时 `nextCheckAt`，未到时不进 FIFO，不持久化 wait ticket/table/nextCheckAt。
@@ -283,7 +290,7 @@ Website job 只有两种状态：
 ```text
 failed:
   current_reason        当前为何尚未交付，可替换
-  attempt_failure       当前 attempt 第一次真实执行失败，不可变；可为空
+  attempt_failure       当前 attempt 第一次真实外部执行失败，不可变；可为空
 
 completed:
   result_hash
@@ -296,11 +303,12 @@ completed:
 lease grant != attempt
 first durable accept -> accepted_attempt_count + 1
 lease expiry/crash -> same attempt may re-lease
-staged result OR first attempt_failure -> attempt ends
-accepted_attempt_count <= 3
+staged result OR first true external attempt_failure -> attempt ends
+post-checkpoint receiver fault -> same attempt + same raw artifact resumes
+accepted attempt budget/policy -> Website durable authority
 ```
 
-第三个 attempt 失败后仍为 `failed + exact reason`。系统只能在该 job 的安全事实改变后继续处理，不能创建第四个 attempt。若第三次已有 `DISPATCHED` 未决 effect，只能在第三 attempt 内对账收束。
+Website 唯一决定 accepted attempt 预算、累计、next retry、故障片区停车与放行；AGENT、Outbox 与 Browser 不硬编码固定三次或其它次数，也不建立第二重试裁决。任何新真实 attempt 前都必须证明前 attempt 无未决 `DISPATCHED`；已经 checkpoint 的 AI 产物因接收器软件故障不得增加 attempt 或重做 Provider mutation。
 
 ## 6. 调用与副作用身份
 
@@ -328,35 +336,35 @@ last_error
 next_delivery_at
 ```
 
-timeout/连接中断/5xx 沿同一 intent 有界退避；确定性合同或业务拒绝保存原生 code 并令 `next_delivery_at=null`。Outbox 没有三次预算、parked 状态、任务状态或第二 verdict。
+timeout/连接中断/5xx 沿同一 intent 有界退避；确定性合同或业务拒绝保存原生 code 并令 `next_delivery_at=null`。Outbox 没有 attempt 预算、parked 状态、任务状态或第二 verdict。
 
 AGENT staged result、Outbox delivered、Website completion submission 均不等于完成。Website domain consumer 以 `job_id + result_hash` 幂等入库并签发 hash-bound receipt 后，任务才原子变为 completed；此前保持 failed 并用 `current_reason` 表达当前位置。
 
-## 8. 空数据删除式切换
+## 8. 接收片区原位删除重构与同任务切换
 
-本次切换不迁移当前任务或 runtime 状态。执行顺序固定：
+本次只删除并重构“DOM 文本 checkpoint -> Product 接收/归一 -> Website consumer 投影”现役片区，不迁移、不替换也不清空当前 Website 任务、attempt、exact Provider checkpoint、conversation、Outbox 或 Browser WAL。执行顺序固定：
 
-1. 停止新 claim；
-2. 收束所有 live lease 与 Provider effect，所有 `DISPATCHED` 必须得到 confirmed/rejected 或明确阻断；
-3. 物理删除 Website 当前 AI task/runtime/attempt/outbox 数据；
-4. 物理删除 AGENT 当前 job/attempt/checkpoint/旧 Outbox/对应旧 Browser WAL；
-5. 启用只含二元状态和新 attempt/call identity 的空 schema；
-6. 恢复 claim，仅接受新任务。
+1. 停止该故障片区的新 claim，读取并收束 live lease 与未决 Provider effect；
+2. 把已完成 assistant turn 的 observed DOM HTML + deterministic semantic text 按原 task/attempt/turn 与双 hash 持久为同一 task-owned output artifact；
+3. 物理删除旧 DOM 文本拼接、严格业务 parser、重复 staging/domain validator 及其旧测试；
+4. 原位建立唯一 `raw checkpoint -> task-owned artifact -> base receive -> lossless normalize -> domain consumer` 主链；
+5. 从当前任务的同一 raw artifact 恢复，继续 article/image/staging/admission，不重新提交 research turn；
+6. 当前任务取得 Website hash-bound business admission receipt 后，才恢复该片区新 claim。
 
-已由 Website domain consumer 入库的报告、文章、翻译、付款观察等业务对象保留；若存在旧 task 外键，切换前解除或改为不依赖执行记录。禁止数据迁移、legacy reader、备份回灌、alias、bridge、dual read/write、shadow 或第二链路。
+禁止 replacement job/run、legacy reader、备份回灌、alias、bridge、dual read/write、shadow、fallback 或第二结果真相。已入库业务对象和当前任务身份都保留。
 
 ## 9. 聚焦验收
 
-本轮静态验收：十二个 Product Plugin 只保留既有身份、路由、Skill 与严格结果 parser；未施工的 `execute` 全部以精确 `PRODUCT_FLOW_NOT_IMPLEMENTED:<plugin>:<action>` 失败，且 Provider 调用与物理页面动作均为零。仓库不存在伪造的产品 `gpt-flow.ts`、shared turn helper/executor、全局 GPT checkpoint/flow、兼容桥或第二链路；runtime 不决定 Child；公开状态 union 精确为 failed/completed；accepted attempt 上限为 3 且不含 build reset；Outbox 无 parked/独立预算。
+本轮静态验收：十二个 Product Plugin 保留既有身份、路由与 Skill；现役 AI 接收路径只允许基础机器边界和 Product-owned 唯一无损归一，旧严格业务 parser、第二 validator、兼容桥与第二链路物理退出。未施工的 `execute` 全部以精确 `PRODUCT_FLOW_NOT_IMPLEMENTED:<plugin>:<action>` 失败，且 Provider 调用与物理页面动作均为零。runtime 不决定 Child；公开状态 union 精确为 failed/completed；attempt 预算只来自 Website 持久策略；Outbox 无 parked/独立预算。
 
 单个 Product 的业务步骤、Prompt、模型、分支、材料和结果验收不属于本轮分母；后续每个 Product 单独施工时，必须新增该 Product 自己的聚焦验收。已施工的 SEO Product 聚焦验收必须分别对 produce_article 的 proceed/decline 与两条 review 路由按 actionOrdinal 断言 exact Child sequence，不得以“全部 Child 均曾出现”代替顺序证明。全部 Product 尚未分别交付前，质量系统必须报告未完成，不得给出全系统 READY、CI_FULL_PASS 或生产流程已跑通结论。
 
-状态机验收：初始失败、durable accept、同 attempt re-lease、第一次 failure 冻结、第二/第三 attempt、第三次后禁止 attempt4、DISPATCHED 在原 attempt 对账、staged result 待入库仍 failed、领域 admission 原子 completed。
+状态机验收：初始失败、durable accept、同 attempt re-lease、第一次真实外部 failure 冻结、Website 策略接受新 attempt、DISPATCHED 在原 attempt 对账、exact text checkpoint 后接收器故障不写 failure/不增 attempt、同 raw artifact 恢复、staged result 待入库仍 failed、领域 admission 原子 completed。
 
 智慧调度聚焦验收：无中央 Scheduler/priority/recovery bypass；唯一 FIFO 最多十个 waiter；未到 nextCheckAt 的 wait 不入队；normal/recovery 共用 FIFO；park 后其它 job 可继续；Progressive Exact Fact Replay 必须先恢复 wait 输出再构造 checkpoint/continuation inputHash，宽匹配 lookup 为零；readCallFacts 只读且无 failure/state/nextStep/Target/WAL 泄漏；pluginVersion 端到端，actionOrdinal 不进 effect/evidence identity。
 
-恢复与幂等验收：Forensics exact-call append/readback 返回原 recordRef，同 key 异内容 fail-close，重启前后 evidence_refs 完整有序；continuation persist/advance/release 覆盖 DB commit 与 return 之间崩溃；同 attempt 已有 verified evidence 的 target-local 新 Target generation mutation count 为零，原 Target 不可只读恢复则 attempt fail-close；Provider terminalAt 不可变，等待 55 分钟后重启不重获完整 timeout。
+恢复与幂等验收：Forensics exact-call append/readback 返回原 recordRef，同 key 异内容 fail-close，重启前后 evidence_refs 完整有序；同 job 多 attempt 的 continuation 必须由当前 attempt turn marker 只命中当前一条，旧 marker 与未知 marker 不得回退；continuation persist/advance/release 覆盖 DB commit 与 return 之间崩溃；同 attempt 已有 verified evidence 的 target-local 新 Target generation mutation count 为零，原 Target 不可只读恢复则 attempt fail-close；Provider terminalAt 不可变，等待 55 分钟后重启不重获完整 timeout。
 
 真实 Browser 验收：normal wait park/reacquire 、DISPATCHED recovery park/reacquire、service worker 丢失 parked registry 后 typed fail-close、操作者页面零影响、同 attempt 禁跨代重做和唯一已鉴权媒体 bytes 链均必须在真实 Chrome/MV3 上成立。
 
-删除验收：停机与副作用收束证明成立；双仓当前执行表与本地 store/WAL 实际为空；旧 schema、reader、writer、fixture、inspector 和 UI 文案物理退出；已入库业务对象仍可读取。
+删除验收：接收故障片区停止新 claim 且未决副作用收束；旧 DOM 文本拼接、严格业务 parser、重复 validator、fixture 与 inspector 断言物理退出；当前 Website task、attempt、conversation、raw artifact 与 checkpoint 身份保持不变；不重新研究，最终由同一 task 取得领域入库回执。

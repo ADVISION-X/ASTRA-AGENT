@@ -1,4 +1,4 @@
-export type BrowserDomField = "id" | "testId" | "dataTurn" | "tagName" | "type" | "role" | "ariaLabel" | "ariaExpanded" | "ariaChecked" | "text" | "value" | "accept" | "multiple" | "connected" | "visible" | "disabled" | "bounds";
+export type BrowserDomField = "id" | "testId" | "dataTurn" | "tagName" | "type" | "role" | "ariaLabel" | "ariaExpanded" | "ariaChecked" | "text" | "outerHtml" | "semanticText" | "value" | "accept" | "multiple" | "connected" | "visible" | "disabled" | "bounds";
 
 export type BrowserDomReadScope = Readonly<{
   selector: string;

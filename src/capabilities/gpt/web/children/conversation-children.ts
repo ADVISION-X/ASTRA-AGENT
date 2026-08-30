@@ -9,7 +9,7 @@ import {
   stringInput,
   success,
 } from "../child-handler.js";
-import { findCount, readExactAttribute, readExactText, readGptDocument } from "../gpt-dom-observation.js";
+import { findCount, readExactAttribute, readExactSemanticText, readExactText, readGptDocument } from "../gpt-dom-observation.js";
 import { GPT_GENERATING_STOP_SELECTOR, GPT_USER_TURN_SELECTOR } from "../contracts/conversation.contract.js";
 import { canonicalGptConversationUrl } from "../contracts/target-document.contract.js";
 import { GPT_ATTACHMENT_REGION_SELECTOR } from "../contracts/attachment.contract.js";
@@ -25,6 +25,16 @@ const canonicalOrNull = (value: string): string | null => {
   try { return canonicalGptConversationUrl(value); }
   catch { return null; }
 };
+
+const turnOrdinal = (testId: string): number => {
+  const match = /^conversation-turn-([1-9][0-9]*)$/u.exec(testId);
+  const ordinal = match ? Number(match[1]) : Number.NaN;
+  if (!Number.isSafeInteger(ordinal)) throw executionFailure("failed", "GPT_TURN_ID_INVALID");
+  return ordinal;
+};
+
+const assistantSelector = (assistantTurnId: string): string =>
+  `[data-testid=${JSON.stringify(assistantTurnId)}][data-turn='assistant'] [data-message-author-role='assistant']`;
 
 const waitSlice = async (browser: ReturnType<typeof requireBrowser>, deadline: number): Promise<void> => {
   const remaining = deadline - Date.now();
@@ -102,8 +112,12 @@ export const conversationChildHandlers = {
   },
 
   async verify_gpt_conversation_identity(intent, context) {
-    requireExactInputKeys(intent, ["canonicalConversationUrl", "timeoutMs", "turnMarker"]);
+    requireExactInputKeys(intent, ["canonicalConversationUrl", "expectedResponseHash", "timeoutMs", "turnMarker"]);
     const expected = canonicalGptConversationUrl(stringInput(intent, "canonicalConversationUrl"));
+    const expectedResponseHash = stringInput(intent, "expectedResponseHash");
+    if (!/^sha256:[a-f0-9]{64}$/u.test(expectedResponseHash)) {
+      throw executionFailure("failed", "GPT_RESPONSE_CHECKPOINT_MISMATCH");
+    }
     const marker = stringInput(intent, "turnMarker");
     const browser = requireBrowser(context);
     const deadline = Date.now() + boundedTimeout(intent);
@@ -117,15 +131,31 @@ export const conversationChildHandlers = {
       });
       if (observed === expected && composerCount === 1 && markerCount === 1) {
         const userTurnId = await readExactAttribute(browser, GPT_USER_TURN_SELECTOR, "data-testid", marker);
+        const assistantTurnId = `conversation-turn-${turnOrdinal(userTurnId) + 1}`;
+        const assistantCount = await findCount(browser, { selector: assistantSelector(assistantTurnId), maxMatches: 2 });
+        if (assistantCount !== 1) {
+          await waitSlice(browser, deadline);
+          continue;
+        }
+        const semanticText = await readExactSemanticText(browser, assistantSelector(assistantTurnId));
+        const responseHash = hash(semanticText);
+        if (responseHash !== expectedResponseHash) {
+          throw executionFailure("failed", "GPT_RESPONSE_CHECKPOINT_MISMATCH");
+        }
         return success({
           value: {
             canonicalConversationUrl: observed,
             turnMarker: marker,
             userTurnId,
-            conversationHash: hash(`${observed}\n${marker}\n${userTurnId}`),
+            assistantTurnId,
+            semanticText,
+            responseHash,
+            conversationHash: hash(`${observed}\n${marker}\n${userTurnId}\n${responseHash}`),
           },
           candidateCount: markerCount,
-          observedSemantics: ["permanent canonical URL", "hydrated composer", "one exact turn marker"],
+          observedSemantics: [
+            "permanent canonical URL", "hydrated composer", "one exact turn marker", "exact assistant response hash",
+          ],
           committedMutation: "no",
         });
       }

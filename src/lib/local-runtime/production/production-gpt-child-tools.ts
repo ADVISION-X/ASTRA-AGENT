@@ -4,13 +4,12 @@ import {
   GPT_CHILD_CAPABILITY_CONTRACTS,
   gptContinuationIdentityHash,
   gptExactCallIdentityHash,
+  type GptContinuationLane,
   type GptAbilityGroup,
   type GptChildCapabilityIntent,
-  type GptChildCapabilityProof,
   type GptChildCapabilityResult,
 } from "../../../capabilities/gpt/index.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../../capabilities/forensics-persistence/index.js";
-import type { BrowserTargetLease } from "../../browser/browser-authority-api.js";
 import {
   RuntimeFailureImpact,
   requireRuntimeLogWrite,
@@ -35,6 +34,11 @@ import {
   persistGptChildEvidence,
   persistedEvidenceRefs,
 } from "./gpt-evidence-writer.js";
+import {
+  ProductionGptBrowserLifecycle,
+  recoveredGptChildResult,
+  type ProductionGptBrowserCall,
+} from "./production-gpt-browser-lifecycle.js";
 
 type ExecutionInput = Readonly<{
   task: WebsiteAgentTask;
@@ -44,20 +48,11 @@ type ExecutionInput = Readonly<{
   parentSpanId: string;
 }>;
 
-type ActiveBrowserCall = {
-  sessionKey: string;
-  browser: BrowserTargetLease;
-  facade: BrowserTargetLease;
-};
-
 export type ProductGptExecution = Readonly<{
   tools: ProductGptTools;
   continuationRef(): string | null;
   settle(error: unknown | null): Promise<void>;
 }>;
-
-const hashText = (value: string): ProductionHash =>
-  `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
 const objectRecord = (value: unknown): Readonly<Record<string, unknown>> | null =>
   value && typeof value === "object" && !Array.isArray(value)
@@ -77,60 +72,6 @@ const throwChildFailure = (result: GptChildCapabilityResult): never => {
   throw causeEventId ? withRuntimeLogCause(error, causeEventId) : error;
 };
 
-const recoveredProof = (input: Readonly<{
-  intent: GptChildCapabilityIntent;
-  browser: BrowserTargetLease;
-  readback: GptChildCapabilityResult | null;
-  authorityRef: string;
-  state: "confirmed" | "rejected";
-}>): GptChildCapabilityProof => {
-  const timestamp = new Date().toISOString();
-  const unsigned = {
-    schemaVersion: "gpt-child-capability-proof.v2" as const,
-    childCapabilityId: input.intent.childCapabilityId,
-    executionId: input.intent.executionId,
-    jobId: input.intent.jobId,
-    attemptId: input.intent.attemptId,
-    pluginId: input.intent.pluginId,
-    pluginVersion: input.intent.pluginVersion,
-    productStepId: input.intent.productStepId,
-    callId: input.intent.callId,
-    inputHash: input.intent.inputHash,
-    actionOrdinal: input.intent.actionOrdinal,
-    targetRefHash: hashText(input.browser.target.targetRef),
-    beforeDocumentRefHash: hashText(input.browser.document.documentRef),
-    afterDocumentRefHash: hashText(input.browser.document.documentRef),
-    candidateCount: input.readback?.proof.candidateCount ?? null,
-    observedSemantics: Object.freeze([
-      ...(input.readback?.proof.observedSemantics ?? []),
-      `browser-wal-${input.state}`,
-    ]),
-    committedMutation: "confirmed" as const,
-    postconditionResult: input.state === "confirmed" ? "passed" as const : "failed" as const,
-    startedAt: input.readback?.proof.startedAt ?? timestamp,
-    endedAt: input.readback?.proof.endedAt ?? timestamp,
-  };
-  const evidenceHash = hashText(JSON.stringify(unsigned));
-  return Object.freeze({
-    ...unsigned,
-    evidenceRef: input.authorityRef,
-    evidenceHash,
-  });
-};
-
-const recoveredResult = (input: Readonly<{
-  intent: GptChildCapabilityIntent;
-  browser: BrowserTargetLease;
-  readback: GptChildCapabilityResult | null;
-  authorityRef: string;
-  state: "confirmed" | "rejected";
-}>): GptChildCapabilityResult => Object.freeze({
-  status: input.state === "confirmed" ? "success" : "failed",
-  value: input.state === "confirmed" ? input.readback?.value ?? null : null,
-  proof: recoveredProof(input),
-  failureCode: input.state === "confirmed" ? null : "BROWSER_POSTCONDITION_FAILED",
-});
-
 export class ProductionGptChildTools {
   public constructor(
     private readonly dataDir: string,
@@ -143,7 +84,12 @@ export class ProductionGptChildTools {
   ) {}
 
   public createExecution(input: ExecutionInput): ProductGptExecution {
-    const browsers = new Map<string, ActiveBrowserCall>();
+    const browsers = new ProductionGptBrowserLifecycle(
+      this.browserAuthority,
+      this.runtimeLogger,
+      this.sourceHash,
+      input,
+    );
     let continuationRef: string | null = input.task.continuation_ref ?? null;
     const execute = async (call: Parameters<ProductGptTools["execute"]>[0]): Promise<ProductGptChildResult> => {
       const result = await this.executeOne(input, browsers, call);
@@ -160,12 +106,43 @@ export class ProductionGptChildTools {
     return Object.freeze({
       tools: Object.freeze({
         attemptId: input.lease.attempt_id,
+        readContinuationForTurn: (turnMarker: string) =>
+          this.continuationForTurn(input, turnMarker),
         execute,
         readCallFacts: (call: Parameters<ProductGptTools["readCallFacts"]>[0]) =>
           this.readCallFacts(input, call),
       }),
       continuationRef: () => continuationRef,
-      settle: (error) => this.settleBrowsers(browsers, error),
+      settle: (error) => browsers.settle(error),
+    });
+  }
+
+  private continuationForTurn(input: ExecutionInput, turnMarker: string): GptContinuationLane | null {
+    if (!turnMarker) throw executionFailure("failed", "GPT_CONTINUATION_TURN_MARKER_INVALID");
+    const stored = input.task.continuation_ref
+      ? this.store.readGptContinuation(input.task.continuation_ref)
+      : this.store.readGptContinuationForOriginJob(input.task.job_id, input.pluginId, turnMarker);
+    if (stored && stored.provider.prior_turn_marker !== turnMarker) return null;
+    return this.verifiedContinuationLane(stored, input);
+  }
+
+  private verifiedContinuationLane(
+    stored: ReturnType<ProductionRuntimeStore["readGptContinuation"]>,
+    input: ExecutionInput,
+  ): GptContinuationLane | null {
+    if (!stored) return null;
+    if (stored.origin_job_id !== input.task.job_id
+      || stored.plugin_id !== input.pluginId
+      || stored.owner_ref !== input.task.business_identity.owner_ref
+      || stored.subject_ref !== input.task.business_identity.subject_ref
+      || stored.authorization_ref !== input.task.business_identity.authorization_ref
+      || stored.conversation_identity_hash !== gptContinuationIdentityHash(stored.provider)) {
+      throw executionFailure("failed", "GPT_CONTINUATION_IDENTITY_INVALID");
+    }
+    return Object.freeze({
+      continuation_ref: stored.continuation_ref,
+      lane_version: stored.lane_version,
+      provider: stored.provider,
     });
   }
 
@@ -196,11 +173,10 @@ export class ProductionGptChildTools {
     execution: ExecutionInput,
     call: ProductGptCallInput,
   ): Promise<ExactGptCallFacts> {
-    return this.readIntentFacts(execution, this.intentFor(execution, call));
+    return this.readIntentFacts(this.intentFor(execution, call));
   }
 
   private async readIntentFacts(
-    execution: ExecutionInput,
     intent: GptChildCapabilityIntent,
   ): Promise<ExactGptCallFacts> {
     const exactCallIdentityHash = gptExactCallIdentityHash(intent);
@@ -212,57 +188,8 @@ export class ProductionGptChildTools {
       exactCallIdentityHash,
       actionOrdinal: intent.actionOrdinal,
     });
-    const storedEvidence = await this.evidenceStore.readExactCallEvidence({
-      missionId: intent.jobId,
-      runId: intent.attemptId,
-      exactCallIdentityHash,
-    });
-    let evidence: ExactGptCallFacts["evidence"] = null;
-    if (storedEvidence) {
-      const record = storedEvidence.record;
-      const payload = objectRecord(record.payload);
-      const artifactRefs = stringArray(record.artifactRefs ?? []);
-      const evidenceHash = payload?.source_evidence_hash;
-      if (record.missionId !== intent.jobId
-        || record.runId !== intent.attemptId
-        || record.stepId !== intent.productStepId
-        || record.sourceAbilityGroupId !== "gpt"
-        || record.sourceChildCapabilityId !== intent.childCapabilityId
-        || record.idempotencyKey !== `gpt-call-evidence:v1:${exactCallIdentityHash}`
-        || payload?.exact_call_identity_hash !== exactCallIdentityHash
-        || payload?.action_ordinal !== intent.actionOrdinal
-        || payload?.plugin_version !== intent.pluginVersion
-        || typeof evidenceHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(evidenceHash)
-        || artifactRefs === null) {
-        throw executionFailure("failed", "FORENSICS_EXACT_CALL_EVIDENCE_INVALID");
-      }
-      evidence = Object.freeze({
-        owner: "forensics-persistence",
-        evidenceRef: storedEvidence.recordRef,
-        evidenceHash: evidenceHash as ProductionHash,
-        readbackVerified: true,
-        artifactRefs,
-      });
-    }
-    const continuationRef = intent.childCapabilityId === "persist_gpt_continuation"
-      ? `gpt-continuation:${exactCallIdentityHash.slice(7)}`
-      : this.continuationRefFromInput(intent.input);
-    let continuation: ExactGptCallFacts["continuation"] = null;
-    if (continuationRef) {
-      const stored = this.store.readGptContinuation(continuationRef);
-      if (stored) {
-        if (stored.conversation_identity_hash !== gptContinuationIdentityHash(stored.provider)) {
-          throw executionFailure("failed", "GPT_CONTINUATION_IDENTITY_INVALID");
-        }
-        continuation = Object.freeze({
-          owner: "gpt-session-controller",
-          continuationRef,
-          conversationIdentityHash: stored.conversation_identity_hash,
-          laneVersion: stored.lane_version,
-          contentReadbackVerified: true,
-        });
-      }
-    }
+    const evidence = await this.readVerifiedEvidence(intent, exactCallIdentityHash);
+    const continuation = this.readVerifiedContinuation(intent, exactCallIdentityHash);
     return Object.freeze({
       exactCallIdentityHash,
       mutation: mutation ? Object.freeze({
@@ -273,6 +200,64 @@ export class ProductionGptChildTools {
       }) : null,
       evidence,
       continuation,
+    });
+  }
+
+  private async readVerifiedEvidence(
+    intent: GptChildCapabilityIntent,
+    exactCallIdentityHash: `sha256:${string}`,
+  ): Promise<ExactGptCallFacts["evidence"]> {
+    const storedEvidence = await this.evidenceStore.readExactCallEvidence({
+      missionId: intent.jobId,
+      runId: intent.attemptId,
+      exactCallIdentityHash,
+    });
+    if (!storedEvidence) return null;
+    const record = storedEvidence.record;
+    const payload = objectRecord(record.payload);
+    const artifactRefs = stringArray(record.artifactRefs ?? []);
+    const evidenceHash = payload?.source_evidence_hash;
+    if (record.missionId !== intent.jobId
+      || record.runId !== intent.attemptId
+      || record.stepId !== intent.productStepId
+      || record.sourceAbilityGroupId !== "gpt"
+      || record.sourceChildCapabilityId !== intent.childCapabilityId
+      || record.idempotencyKey !== `gpt-call-evidence:v1:${exactCallIdentityHash}`
+      || payload?.exact_call_identity_hash !== exactCallIdentityHash
+      || payload?.action_ordinal !== intent.actionOrdinal
+      || payload?.plugin_version !== intent.pluginVersion
+      || typeof evidenceHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(evidenceHash)
+      || artifactRefs === null) {
+      throw executionFailure("failed", "FORENSICS_EXACT_CALL_EVIDENCE_INVALID");
+    }
+    return Object.freeze({
+      owner: "forensics-persistence",
+      evidenceRef: storedEvidence.recordRef,
+      evidenceHash: evidenceHash as ProductionHash,
+      readbackVerified: true,
+      artifactRefs,
+    });
+  }
+
+  private readVerifiedContinuation(
+    intent: GptChildCapabilityIntent,
+    exactCallIdentityHash: `sha256:${string}`,
+  ): ExactGptCallFacts["continuation"] {
+    const continuationRef = intent.childCapabilityId === "persist_gpt_continuation"
+      ? `gpt-continuation:${exactCallIdentityHash.slice(7)}`
+      : this.continuationRefFromInput(intent.input);
+    if (!continuationRef) return null;
+    const stored = this.store.readGptContinuation(continuationRef);
+    if (!stored) return null;
+    if (stored.conversation_identity_hash !== gptContinuationIdentityHash(stored.provider)) {
+      throw executionFailure("failed", "GPT_CONTINUATION_IDENTITY_INVALID");
+    }
+    return Object.freeze({
+      owner: "gpt-session-controller",
+      continuationRef,
+      conversationIdentityHash: stored.conversation_identity_hash,
+      laneVersion: stored.lane_version,
+      contentReadbackVerified: true,
     });
   }
 
@@ -335,25 +320,19 @@ export class ProductionGptChildTools {
         impact: RuntimeFailureImpact.BLOCKING,
       }),
     }));
-    throw withRuntimeLogCause(failure, terminal.eventId);
+    const propagated = error instanceof AggregateError && error.cause !== undefined
+      ? error : failure;
+    throw withRuntimeLogCause(propagated, terminal.eventId);
   }
 
-  private async executeOne(
-    execution: ExecutionInput,
-    browsers: Map<string, ActiveBrowserCall>,
-    call: Parameters<ProductGptTools["execute"]>[0],
-  ): Promise<ProductGptChildResult> {
-    const intent = this.intentFor(execution, call);
-    const facts = await this.readIntentFacts(execution, intent);
-    const contract = GPT_CHILD_CAPABILITY_CONTRACTS[call.child];
-    const span = this.childSpan(execution, intent);
-    if (facts.mutation?.outcome === "REJECTED") {
-      return this.terminalizeError(span, executionFailure("failed", "BROWSER_POSTCONDITION_FAILED", {
-        evidenceRef: facts.evidence?.evidenceRef ?? null,
-        evidenceHash: facts.evidence?.evidenceHash ?? null,
-      }));
-    }
-    if (facts.evidence && call.child === "persist_gpt_continuation") {
+  private async completedResultFromFacts(
+    call: ProductGptCallInput,
+    facts: ExactGptCallFacts,
+    span: RuntimeSpanHandle,
+    browserMutation: boolean,
+  ): Promise<ProductGptChildResult | null> {
+    if (!facts.evidence) return null;
+    if (call.child === "persist_gpt_continuation") {
       if (!facts.continuation) {
         return this.terminalizeError(span, executionFailure("failed", "GPT_CONTINUATION_IDENTITY_INVALID"));
       }
@@ -364,8 +343,8 @@ export class ProductionGptChildTools {
         evidenceHash: facts.evidence.evidenceHash,
       });
     }
-    if (facts.evidence && (call.child === "advance_gpt_continuation_lane"
-      || call.child === "release_gpt_continuation_lane")) {
+    if (call.child === "advance_gpt_continuation_lane"
+      || call.child === "release_gpt_continuation_lane") {
       requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
       return Object.freeze({
         value: call.child === "advance_gpt_continuation_lane" ? { advanced: true } : { released: true },
@@ -373,40 +352,124 @@ export class ProductionGptChildTools {
         evidenceHash: facts.evidence.evidenceHash,
       });
     }
-    const browserMutation = contract.requiredTargetKind === "chatgpt"
-      && contract.oneObservationOrMutation === "at-most-one-mutation";
-    if (facts.evidence && browserMutation && facts.mutation?.outcome !== "DISPATCHED") {
+    if (call.child === "checkpoint_gpt_text_response") {
+      if (facts.evidence.artifactRefs.length !== 1) {
+        return this.terminalizeError(span, executionFailure("failed", "GPT_TEXT_TASK_ARTIFACT_MISSING"));
+      }
+      const value = await this.readTextCheckpointArtifact(facts.evidence.artifactRefs[0]!);
       requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
       return Object.freeze({
-        value: null,
+        value,
         evidenceRef: facts.evidence.evidenceRef,
         evidenceHash: facts.evidence.evidenceHash,
       });
     }
-    const browserCall = contract.requiredTargetKind === "chatgpt"
-      ? await this.browserFor(execution, browsers, call.sessionKey, call.productStepId, call.callId)
-      : undefined;
-    const browser = browserCall?.facade;
-    if (call.child === "submit_exact_gpt_turn_once"
-      && facts.mutation === null && facts.evidence === null
-      && this.browserAuthority.countProviderTurnDispatches(
-        execution.task.job_id,
-        execution.lease.attempt_id,
-      ) >= execution.lease.max_provider_turns) {
+    if (!browserMutation || facts.mutation?.outcome === "DISPATCHED") return null;
+    requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
+    return Object.freeze({
+      value: null,
+      evidenceRef: facts.evidence.evidenceRef,
+      evidenceHash: facts.evidence.evidenceHash,
+    });
+  }
+
+  private async readTextCheckpointArtifact(artifactRef: string): Promise<Readonly<Record<string, unknown>>> {
+    const readback = await this.evidenceStore.readArtifactRef({
+      childCapabilityId: "read-artifact-ref", artifactRef,
+    });
+    if (readback.status !== "success" || !readback.artifact?.content
+      || readback.artifact.mimeType !== "application/json") {
+      throw executionFailure("failed", "GPT_TEXT_TASK_ARTIFACT_READBACK_FAILED");
+    }
+    let value: unknown;
+    try { value = JSON.parse(new TextDecoder().decode(readback.artifact.content)) as unknown; }
+    catch { throw executionFailure("failed", "GPT_TEXT_TASK_ARTIFACT_INVALID"); }
+    const row = objectRecord(value);
+    const rawDomHtml = row?.rawDomHtml;
+    const rawDomHash = row?.rawDomHash;
+    const semanticText = row?.semanticText;
+    const semanticTextHash = row?.semanticTextHash;
+    const rawHash = (content: string): string =>
+      `sha256:${createHash("sha256").update(content).digest("hex")}`;
+    if (row?.schemaVersion !== "agent-observed-response-artifact.v1"
+      || typeof row.assistantTurnId !== "string" || !row.assistantTurnId
+      || typeof rawDomHtml !== "string" || !rawDomHtml
+      || typeof rawDomHash !== "string" || rawHash(rawDomHtml) !== rawDomHash
+      || typeof semanticText !== "string" || !semanticText.trim()
+      || typeof semanticTextHash !== "string" || rawHash(semanticText) !== semanticTextHash) {
+      throw executionFailure("failed", "GPT_TEXT_TASK_ARTIFACT_INVALID");
+    }
+    return Object.freeze({
+      assistantTurnId: row.assistantTurnId,
+      rawDomHtml,
+      rawDomHash,
+      semanticText,
+      semanticTextHash,
+    });
+  }
+
+  private assertProviderTurnBudget(
+    execution: ExecutionInput,
+    call: ProductGptCallInput,
+    facts: ExactGptCallFacts,
+  ): void {
+    if (call.child !== "submit_exact_gpt_turn_once"
+      || facts.mutation !== null || facts.evidence !== null) return;
+    const dispatched = this.browserAuthority.countProviderTurnDispatches(
+      execution.task.job_id,
+      execution.lease.attempt_id,
+    );
+    if (dispatched >= execution.lease.max_provider_turns) {
       throw executionFailure("failed", "PROVIDER_TURN_BUDGET_EXHAUSTED");
     }
+  }
+
+  private async executeOne(
+    execution: ExecutionInput,
+    browsers: ProductionGptBrowserLifecycle,
+    call: Parameters<ProductGptTools["execute"]>[0],
+  ): Promise<ProductGptChildResult> {
+    const intent = this.intentFor(execution, call);
+    const facts = await this.readIntentFacts(intent);
+    const contract = GPT_CHILD_CAPABILITY_CONTRACTS[call.child];
+    const span = this.childSpan(execution, intent);
+    if (facts.mutation?.outcome === "REJECTED") {
+      return this.terminalizeError(span, executionFailure("failed", "BROWSER_POSTCONDITION_FAILED", {
+        evidenceRef: facts.evidence?.evidenceRef ?? null,
+        evidenceHash: facts.evidence?.evidenceHash ?? null,
+      }));
+    }
+    const browserMutation = contract.requiredTargetKind === "chatgpt"
+      && contract.oneObservationOrMutation === "at-most-one-mutation";
+    const completed = await this.completedResultFromFacts(call, facts, span, browserMutation);
+    if (completed) return completed;
+    const browserCall = contract.requiredTargetKind === "chatgpt"
+      ? await browsers.browserFor(call.sessionKey, call.productStepId, call.callId)
+      : undefined;
+    const browser = browserCall?.facade;
+    this.assertProviderTurnBudget(execution, call, facts);
     let result: GptChildCapabilityResult;
     let evidenceRef: string;
     let resolveDispatched = false;
     try {
-      const atomic = await this.runAtomic(execution, intent, browserCall, execution.lease.abort_signal);
+      const atomic = await this.runAtomic(
+        browsers,
+        intent,
+        browserCall,
+        execution.lease.abort_signal,
+      );
       result = atomic.result;
       resolveDispatched = atomic.resolveDispatched;
-      evidenceRef = facts.evidence?.evidenceRef ?? await persistGptChildEvidence({
-        result, intent, evidenceStore: this.evidenceStore,
-        jobId: execution.task.job_id, attemptId: execution.lease.attempt_id,
-        stepId: call.productStepId, exactCallIdentityHash: facts.exactCallIdentityHash,
-      });
+      if (facts.evidence) {
+        evidenceRef = facts.evidence.evidenceRef;
+      } else {
+        const persisted = await persistGptChildEvidence({
+          result, intent, evidenceStore: this.evidenceStore,
+          jobId: execution.task.job_id, attemptId: execution.lease.attempt_id,
+          stepId: call.productStepId, exactCallIdentityHash: facts.exactCallIdentityHash,
+        });
+        evidenceRef = persisted.evidenceRef;
+      }
       if (resolveDispatched && browser && result.status === "success") {
         await browser.resolvePendingMutation({
           schemaVersion: "grasseye.browser.outcome-resolution.v1",
@@ -431,9 +494,9 @@ export class ProductionGptChildTools {
   }
 
   private async runAtomic(
-    execution: ExecutionInput,
+    browsers: ProductionGptBrowserLifecycle,
     intent: GptChildCapabilityIntent,
-    browserCall: ActiveBrowserCall | undefined,
+    browserCall: ProductionGptBrowserCall | undefined,
     signal: AbortSignal,
   ): Promise<Readonly<{ result: GptChildCapabilityResult; resolveDispatched: boolean }>> {
     const browser = browserCall?.facade;
@@ -443,8 +506,9 @@ export class ProductionGptChildTools {
       signal,
       continuationStore: this.store,
       ...(browserCall ? {
-        yieldForProviderWait: (durationMs: number) => this.yieldForProviderWait(
-          execution, browserCall, intent.productStepId, intent.callId, durationMs,
+        yieldForProviderWait: (durationMs: number) => browsers.yieldForProviderWait(
+          browserCall, intent.productStepId, intent.callId,
+          intent.childCapabilityId, durationMs,
         ),
       } : {}),
     };
@@ -469,7 +533,7 @@ export class ProductionGptChildTools {
     }
     if (recovery.state === "rejected") {
       return {
-        result: recoveredResult({
+        result: recoveredGptChildResult({
           intent,
           browser,
           readback: null,
@@ -485,7 +549,7 @@ export class ProductionGptChildTools {
     );
     if (readback.status !== "success") return { result: readback, resolveDispatched: false };
     return {
-      result: recoveredResult({
+      result: recoveredGptChildResult({
         intent,
         browser,
         readback,
@@ -496,147 +560,4 @@ export class ProductionGptChildTools {
     };
   }
 
-  private async browserFor(
-    input: ExecutionInput,
-    browsers: Map<string, ActiveBrowserCall>,
-    sessionKey: string,
-    productStepId: string,
-    callId: string,
-  ): Promise<ActiveBrowserCall> {
-    if (!sessionKey) throw executionFailure("failed", "GPT_SESSION_KEY_REQUIRED");
-    const current = browsers.get(sessionKey);
-    if (current) return current;
-    const browser = await this.acquireBrowserLease(input, productStepId, callId);
-    const active = {
-      sessionKey,
-      browser,
-      facade: null as unknown as BrowserTargetLease,
-    };
-    active.facade = new Proxy({} as BrowserTargetLease, {
-      get: (_target, property) => {
-        const value = Reflect.get(active.browser, property, active.browser) as unknown;
-        return typeof value === "function" ? value.bind(active.browser) : value;
-      },
-    });
-    browsers.set(sessionKey, active);
-    return active;
-  }
-
-  private async acquireBrowserLease(
-    input: ExecutionInput,
-    productStepId: string,
-    callId: string,
-  ): Promise<BrowserTargetLease> {
-    const remaining = Math.floor(input.lease.expires_at_monotonic - performance.now());
-    const commandTtlMs = Math.min(input.lease.command_ttl_ms, remaining);
-    if (commandTtlMs < 1) throw executionFailure("failed", "V6_DEADLINE_BUDGET_EXHAUSTED");
-    const executionRef = [
-      input.task.job_id,
-      input.lease.attempt_id,
-      input.pluginId,
-      input.pluginVersion,
-      productStepId,
-      callId,
-    ].join(":");
-    const browser = await this.browserAuthority.acquireJobBoundTargetLease({
-      kind: "production",
-      ownerPluginId: input.pluginId,
-      pluginVersion: input.pluginVersion,
-      jobId: input.task.job_id,
-      productStepId,
-      attemptId: input.lease.attempt_id,
-      deviceId: input.lease.device_id,
-      leaseVersion: input.lease.lease_version,
-      localOrderId: input.task.job_id,
-      contractManifestHash: input.lease.control_manifest_hash,
-      executionRef,
-      jobRefHash: hashText(input.task.job_id),
-      executionRefHash: hashText(executionRef),
-      writerLeaseEpoch: input.lease.lease_version,
-      writerFenceHash: input.lease.execution_fence_hash,
-      candidateHash: this.sourceHash,
-      commandTtlMs,
-    }, `${input.pluginId}:${input.task.job_id}:${callId}`, {
-      signal: input.lease.abort_signal,
-      remainingMs: () => Math.floor(input.lease.expires_at_monotonic - performance.now()),
-    });
-    return browser;
-  }
-
-  private async yieldForProviderWait(
-    input: ExecutionInput,
-    active: ActiveBrowserCall,
-    productStepId: string,
-    callId: string,
-    durationMs: number,
-  ): Promise<void> {
-    if (!Number.isInteger(durationMs) || durationMs < 25 || durationMs > 5_000) {
-      throw executionFailure("failed", "GPT_PROVIDER_WAIT_SLICE_INVALID");
-    }
-    if (active.browser.pendingMutationCount() > 0 || active.browser.requiresMutationRecovery()) {
-      throw executionFailure("failed", "BROWSER_NORMAL_PROVIDER_WAIT_WITH_PENDING_MUTATION");
-    }
-    const targetRef = active.browser.target.targetRef;
-    await active.browser.park({
-      reason: "gpt-normal-provider-wait-yield",
-      mode: "normal-provider-wait",
-    });
-    await this.waitForDelay(input.lease.abort_signal, input.lease.expires_at_monotonic, durationMs);
-    const reacquired = await this.acquireBrowserLease(input, productStepId, callId);
-    if (reacquired.target.targetRef !== targetRef) {
-      await reacquired.close({ reason: "gpt-exact-target-reacquire-mismatch" }).catch(() => undefined);
-      throw executionFailure("failed", "BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
-    }
-    active.browser = reacquired;
-  }
-
-  private async waitForDelay(
-    signal: AbortSignal,
-    expiresAtMonotonic: number,
-    durationMs: number,
-  ): Promise<void> {
-    const remaining = Math.floor(expiresAtMonotonic - performance.now());
-    if (remaining < 1) throw executionFailure("failed", "V6_DEADLINE_BUDGET_EXHAUSTED");
-    const delay = Math.min(durationMs, remaining);
-    await new Promise<void>((resolve, reject) => {
-      let settled = false;
-      const finish = (action: () => void): void => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
-        signal.removeEventListener("abort", onAbort);
-        action();
-      };
-      const onAbort = () => finish(() => reject(executionFailure("failed", "GPT_RESPONSE_WAIT_ABORTED")));
-      const timer = setTimeout(() => finish(resolve), delay);
-      signal.addEventListener("abort", onAbort, { once: true });
-      if (signal.aborted) onAbort();
-    });
-    if (delay < durationMs) throw executionFailure("failed", "V6_DEADLINE_BUDGET_EXHAUSTED");
-  }
-
-  private async settleBrowsers(
-    browsers: Map<string, ActiveBrowserCall>,
-    error: unknown | null,
-  ): Promise<void> {
-    const failures: unknown[] = [];
-    for (const [key, call] of browsers) {
-      try {
-        const unresolved = call.browser.pendingMutationCount() > 0
-          || call.browser.requiresMutationRecovery();
-        if (unresolved) await call.browser.park({
-          reason: "gpt-mutation-reconciliation-required",
-          mode: "recovery",
-        });
-        else await call.browser.close({ reason: error ? "gpt-product-call-failed" : "gpt-product-call-settled" });
-      } catch (closeError) {
-        failures.push(closeError);
-      } finally {
-        browsers.delete(key);
-      }
-    }
-    if (failures.length > 0) {
-      throw new AggregateError(error ? [error, ...failures] : failures, "GPT_BROWSER_LIFECYCLE_FAILED");
-    }
-  }
 }

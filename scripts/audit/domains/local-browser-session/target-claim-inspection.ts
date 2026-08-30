@@ -46,8 +46,8 @@ const inspectBrokerClaimMonotonicity = (brokerText: string, findings: InspectorF
 
 const inspectJobBoundClaimAcceptance = (combined: string, findings: InspectorFinding[], lawId: string): void => {
   for (const required of [
-    "BROWSER_DEVTOOLS_CONFLICT", "getTargetsCalls", "active: false", "Page.getFrameTree",
-    "every turn must create", "removedTabs.includes",
+    "BROWSER_DEVTOOLS_CONFLICT", "getTargetsCalls", "active: true", "Page.getFrameTree",
+    "Page.bringToFront", "single-Tab reuse", "removedTabs.includes",
   ]) {
     if (combined.includes(required)) continue;
     findings.push(createLocalFinding({
@@ -101,8 +101,8 @@ const inspectJobBoundClaimPolicy = (
   requireIdentifiers(targetAuthority, [
     "acquireJobBoundChatGptTarget", "create", "remove", "GPT_WEB_START_URL",
     "requireGptWebPolicyForUrl", "waitForCreatedTarget", "navigationPublication",
-    "parkActiveTarget", "parkedLoaderIds",
-  ], findings, lawId, "The fixed extension must create, validate and own exactly one new task Target for each GPT turn.");
+    "parkActiveTarget", "parkedLoaderIds", "attachedTabId", "singleParkedTargetRef",
+  ], findings, lawId, "The fixed extension must create, validate and retain exactly one visible system Target for all GPT turns.");
   requireIdentifiers(supervisor, [
     "requireGptWebPolicyForUrl", "establishClaimBoundWorkspace", "pendingJobBoundTargetAcquisition",
     "acquireJobBoundTargetLease", "requestPreauthorizedTargetAcquisition",

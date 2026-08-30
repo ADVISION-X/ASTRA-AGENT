@@ -8,8 +8,14 @@ export type SerializedExecutionFailure = Readonly<{
   cause: Readonly<{ name: string; code: string | null }> | null;
 }>;
 
+export type PostCheckpointReceiverReceipt = Readonly<{
+  artifactRef: string;
+  rawDomHash: `sha256:${string}`;
+  semanticTextHash: `sha256:${string}`;
+}>;
+
 export class TypedExecutionFailure extends Error {
-  public override readonly name = "TypedExecutionFailure";
+  public override readonly name: string = "TypedExecutionFailure";
 
   public constructor(
     public readonly status: ExecutionFailureStatus,
@@ -23,6 +29,36 @@ export class TypedExecutionFailure extends Error {
     super(code, cause === undefined ? undefined : { cause });
   }
 }
+
+export class PostCheckpointReceiverFault extends TypedExecutionFailure {
+  public override readonly name = "PostCheckpointReceiverFault";
+
+  public constructor(
+    code: string,
+    public readonly checkpointReceipt: PostCheckpointReceiverReceipt,
+  ) {
+    super("failed", `POST_CHECKPOINT_RECEIVER_FAULT:${code}`, "no",
+      checkpointReceipt.artifactRef, checkpointReceipt.semanticTextHash);
+  }
+}
+
+export const postCheckpointReceiverFault = (
+  code: string,
+  checkpointReceipt: PostCheckpointReceiverReceipt,
+): PostCheckpointReceiverFault => new PostCheckpointReceiverFault(code, checkpointReceipt);
+
+export const postCheckpointReceiverReceipt = (
+  error: unknown,
+): PostCheckpointReceiverReceipt | null => {
+  let current = error;
+  const seen = new Set<object>();
+  while (current && typeof current === "object" && !seen.has(current)) {
+    seen.add(current);
+    if (current instanceof PostCheckpointReceiverFault) return current.checkpointReceipt;
+    current = current instanceof Error ? current.cause : undefined;
+  }
+  return null;
+};
 
 export const executionFailure = (
   status: ExecutionFailureStatus,

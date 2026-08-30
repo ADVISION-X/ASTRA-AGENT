@@ -10,6 +10,7 @@
   "ownedPaths": [
     "docs/blueprints/runtime-log-spine/RUNTIME-LOG-SPINE-V2-BLUEPRINT.md",
     "docs/specs/runtime-log-spine/**",
+    "docs/项目方案/日志迭代方案.md",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
     "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
     "scripts/acceptance/runtime-log-spine-failure-matrix.acceptance.ts",

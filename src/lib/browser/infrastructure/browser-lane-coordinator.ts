@@ -152,7 +152,7 @@ export class BrowserLaneCoordinator {
       ));
       const lease = await this.resolveBroker().acquireOperatorClaimedTargetLease(waiter.binding, waiter.ownerId);
       if (recovery && (lease.target.targetRef !== recovery.targetRef
-        || lease.document.documentRef !== recovery.documentRef)) {
+        || (recovery.state === "DISPATCHED" && lease.document.documentRef !== recovery.documentRef))) {
         throw new Error("BROWSER_DOCUMENT_INVALID");
       }
       waiter.resolve(this.withLifecycle(lease));

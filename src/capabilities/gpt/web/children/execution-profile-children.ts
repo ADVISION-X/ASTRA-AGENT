@@ -79,10 +79,11 @@ const requireUniqueProfilePopup = async (browser: BrowserTargetLease): Promise<v
 const openProfilePopup = async (browser: BrowserTargetLease) => {
   const popupCount = await findCount(browser, { selector: GPT_PROFILE_POPUP_SELECTOR, maxMatches: 2 });
   if (popupCount === 1) {
+    await requireActiveReasoningProfile(browser);
     return success({
       value: { state: "profile-popup-open" },
       candidateCount: 1,
-      observedSemantics: ["one current execution-profile popup"],
+      observedSemantics: ["one current execution-profile popup", "one active reasoning panel"],
       committedMutation: "no",
     });
   }
@@ -101,7 +102,7 @@ const openProfilePopup = async (browser: BrowserTargetLease) => {
     kind: "click",
     selector: GPT_PROFILE_TRIGGER_SELECTOR,
     expectedMatches: 1,
-    postClickAttribute: { name: "aria-expanded", equals: "true", timeoutMs: 5_000 },
+    postClickMatch: { selector: GPT_PROFILE_POPUP_SELECTOR, expectedMatches: 1, timeoutMs: 5_000 },
   });
   await requireUniqueProfilePopup(browser);
   await requireActiveReasoningProfile(browser);

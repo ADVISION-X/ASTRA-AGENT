@@ -25,7 +25,7 @@ export class ExtensionExactTargetRegistry {
   public claimOperatorTarget(tabId: number): ExtensionExactTarget {
     if (!Number.isInteger(tabId) || tabId < 0) throw new Error("BROWSER_TARGET_INVALID");
     const target: ExtensionExactTarget = {
-      targetRef: `target-${newRef()}`,
+      targetRef: `target-tab-${tabId}`,
       documentRef: `document-${newRef()}`,
       tabId,
       navigationEpoch: 0,

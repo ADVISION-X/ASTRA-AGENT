@@ -127,7 +127,8 @@ export class ProductionStoreLedger extends ProductionStoreOutbox {
 
   public pendingOutboxCount(): number {
     return Number((this.database.prepare(
-      "select count(*) as count from production_outbox where sent_at is null",
+      `select count(*) as count from production_outbox where sent_at is null
+        and (last_error is null or next_delivery_at is not null)`,
     ).get() as { count: number }).count);
   }
 
@@ -174,7 +175,7 @@ export class ProductionStoreLedger extends ProductionStoreOutbox {
     for (const [jobId, task] of tasks) {
       const terminal = projection.terminalByJob.get(jobId);
       const jobOutbox = outbox.filter((authority) => authority.jobId === jobId);
-      if (task.status === "completed" && jobOutbox.some((authority) => authority.state !== "delivered")) return false;
+      if (task.status === "completed" && jobOutbox.some((authority) => authority.state === "pending")) return false;
       if (!this.terminalTaskConsistent(task, terminal)) return false;
       const admissionPending = task.status === "failed" && task.staged_result !== null;
       if ((task.status === "completed" || admissionPending)

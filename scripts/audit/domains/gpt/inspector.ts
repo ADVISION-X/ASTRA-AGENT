@@ -20,7 +20,7 @@ import {
 } from "../../shared/static-inspection-contract.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 
-const LAW_ID = "LAW-GPT-001-V8";
+const LAW_ID = "LAW-GPT-001-V9";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 12, 15),
   "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14),
@@ -429,7 +429,11 @@ const inspectIntelligentExecutionContracts = (context: InspectorContext, finding
 
   const response = sourceFor(context, RESPONSE_HANDLER_PATH)?.getFullText() ?? "";
   for (const required of [
-    'requireExactInputKeys(intent, ["absoluteDeadline", "turnMarker"])',
+    'requireExactInputKeys(intent, ["absoluteDeadline", "canonicalConversationUrl", "expectedPromptHash", "turnMarker"])',
+    "ensurePollingConversation", "canonicalGptConversationUrl", "pollingUserTurnId",
+    "GPT_USER_TURN_HASH_MISMATCH", "expectedResponseHash", "turnOrdinal",
+    "`conversation-turn-${turnOrdinal(userTurnId) + 1}` !== assistantTurnId",
+    "semanticTextHash !== expectedResponseHash",
     "Date.parse", "yieldForProviderWait", "Math.min(5_000",
   ]) if (!response.includes(required)) findings.push(finding(
     "gpt/absolute-deadline-dynamic-backoff", RESPONSE_HANDLER_PATH,

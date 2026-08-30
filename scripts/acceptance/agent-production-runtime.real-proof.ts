@@ -29,10 +29,10 @@ const dynamicClaimContract = (/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_BEGIN */
   "routes": {
     "LAW-LOCAL-BROWSER-SESSION-001-V4:dynamic.browser": {"claims": {"forbidden:6": [{"path": "/facts/extension_worker_count", "operator": "equals", "expected": 1}, {"path": "/facts/authority_present", "operator": "equals", "expected": true}]}},
     "LAW-LOCAL-BROWSER-SESSION-002-V6:dynamic.browser": {"claims": {"forbidden:8": [{"path": "/facts/release_build_matches_record", "operator": "equals", "expected": true}]}},
-    "LAW-LOCAL-BROWSER-SESSION-003-V14:dynamic.browser": {"claims": {"forbidden:14": [{"path": "/facts/target_claimed_observed", "operator": "equals", "expected": true}, {"path": "/facts/task_owned_chatgpt_page_observed", "operator": "equals", "expected": true}, {"path": "/facts/final_target_absent", "operator": "equals", "expected": true}, {"path": "/facts/operator_page_unchanged", "operator": "equals", "expected": true}]}},
+    "LAW-LOCAL-BROWSER-SESSION-003-V15:dynamic.browser": {"claims": {"forbidden:14": [{"path": "/facts/target_claimed_observed", "operator": "equals", "expected": true}, {"path": "/facts/system_chatgpt_page_observed", "operator": "equals", "expected": true}, {"path": "/facts/settled_system_chatgpt_tab_count", "operator": "equals", "expected": 1}, {"path": "/facts/unique_system_target_ref_count", "operator": "equals", "expected": 1}, {"path": "/facts/final_active_claim_absent", "operator": "equals", "expected": true}, {"path": "/facts/operator_page_unchanged", "operator": "equals", "expected": true}]}},
     "LAW-LOCAL-BROWSER-SESSION-004-V13:dynamic.storage": {"claims": {"forbidden:11": [{"path": "/facts/mutation_rows_complete", "operator": "equals", "expected": true}, {"path": "/facts/sqlite_wal_mode", "operator": "equals", "expected": true}]}},
     "LAW-LOCAL-BROWSER-SESSION-005-V6:dynamic.browser": {"claims": {"forbidden:5": [{"path": "/facts/release_build_matches_record", "operator": "equals", "expected": true}]}},
-    "LAW-LOCAL-BROWSER-SESSION-006-V6:dynamic.browser": {"claims": {"forbidden:0": [{"path": "/facts/persisted_sensitive_value_count", "operator": "equals", "expected": 0}]}},
+    "LAW-LOCAL-BROWSER-SESSION-006-V7:dynamic.browser": {"claims": {"forbidden:0": [{"path": "/facts/persisted_sensitive_value_count", "operator": "equals", "expected": 0}]}},
     "LAW-RUNTIME-LOG-SPINE-001-V5:dynamic.browser": {"claims": {"summary": [{"path": "/facts/runtime_log_browser_span_count", "operator": "gte", "expected": 39}]}},
     "LAW-RUNTIME-LOG-SPINE-001-V5:dynamic.service": {"claims": {"summary": [{"path": "/facts/runtime_log_event_count", "operator": "gte", "expected": 39}, {"path": "/facts/runtime_log_integrity_valid", "operator": "equals", "expected": true}]}},
     "LAW-RUNTIME-LOG-SPINE-001-V5:dynamic.storage": {"claims": {"forbidden:3": [{"path": "/facts/runtime_log_authority_hash_count", "operator": "gte", "expected": 39}, {"path": "/facts/runtime_log_forbidden_task_state_field_count", "operator": "equals", "expected": 0}]}},
@@ -43,17 +43,17 @@ const dynamicClaimContract = (/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_BEGIN */
     "LAW-RUNTIME-LOG-SPINE-003-V6:dynamic.service": {"claims": {"forbidden:3": [{"path": "/facts/runtime_log_integrity_valid", "operator": "equals", "expected": true}, {"path": "/facts/runtime_log_open_span_count", "operator": "equals", "expected": 0}, {"path": "/facts/runtime_log_producer_count", "operator": "equals", "expected": 1}, {"path": "/facts/runtime_log_sealed", "operator": "equals", "expected": true}]}},
     "LAW-RUNTIME-LOG-SPINE-003-V6:dynamic.storage": {"claims": {"forbidden:4": [{"path": "/facts/runtime_log_authority_hash_count", "operator": "gte", "expected": 39}, {"path": "/facts/runtime_log_forbidden_task_state_field_count", "operator": "equals", "expected": 0}]}},
     "LAW-RUNTIME-LOG-SPINE-003-V6:dynamic.recovery": {"claims": {"summary": [{"path": "/facts/runtime_log_forbidden_task_state_field_count", "operator": "equals", "expected": 0}]}},
-    "LAW-GPT-001-V8:dynamic.browser": {"claims": {"forbidden:5": [{"path": "/facts/exact_target_document_binding_count", "operator": "gte", "expected": 39}, {"path": "/facts/operator_page_unchanged", "operator": "equals", "expected": true}]}},
-    "LAW-GPT-001-V8:dynamic.provider": {"claims": {"forbidden:1": [{"path": "/facts/provider_count", "operator": "equals", "expected": 1}]}},
-    "LAW-GPT-001-V8:dynamic.authorization": {"claims": {"forbidden:2": [{"path": "/facts/exact_target_document_binding_count", "operator": "gte", "expected": 39}]}},
-    "LAW-GPT-001-V8:dynamic.recovery": {"claims": {"forbidden:6": [{"path": "/facts/failed_observed", "operator": "equals", "expected": true}, {"path": "/facts/completed_observed", "operator": "equals", "expected": true}, {"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V12:dynamic.browser": {"claims": {"forbidden:17": [{"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V12:dynamic.service": {"claims": {"forbidden:17": [{"path": "/facts/browser_context_closed", "operator": "equals", "expected": true}, {"path": "/facts/cleanup_verified", "operator": "equals", "expected": true}, {"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}, {"path": "/facts/workbench_stopped", "operator": "equals", "expected": true}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V12:dynamic.database": {"claims": {"forbidden:8": [{"path": "/facts/frozen_identity_count", "operator": "equals", "expected": 39}, {"path": "/facts/frozen_identity_invalid_count", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V12:dynamic.storage": {"claims": {"forbidden:10": [{"path": "/unresolvedCount", "operator": "equals", "expected": 0}, {"path": "/facts/confirmed_row_invalid_count", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V12:dynamic.provider": {"claims": {"forbidden:0": [{"path": "/facts/catalog_plugin_count", "operator": "equals", "expected": 12}, {"path": "/facts/executed_route_count", "operator": "equals", "expected": 39}, {"path": "/facts/primary_route_count", "operator": "equals", "expected": 13}, {"path": "/facts/review_route_count", "operator": "equals", "expected": 26}, {"path": "/facts/route_denominator_complete", "operator": "equals", "expected": true}, {"path": "/terminalReceiptCount", "operator": "equals", "expected": 39}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V12:dynamic.authorization": {"claims": {"forbidden:3": [{"path": "/facts/lease_fence_bound_job_count", "operator": "equals", "expected": 39}, {"path": "/facts/unbound_lease_fence_job_count", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V12:dynamic.recovery": {"claims": {"forbidden:9": [{"path": "/facts/failed_observed", "operator": "equals", "expected": true}, {"path": "/facts/completed_observed", "operator": "equals", "expected": true}, {"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}}
+    "LAW-GPT-001-V9:dynamic.browser": {"claims": {"forbidden:5": [{"path": "/facts/exact_target_document_binding_count", "operator": "gte", "expected": 39}, {"path": "/facts/operator_page_unchanged", "operator": "equals", "expected": true}]}},
+    "LAW-GPT-001-V9:dynamic.provider": {"claims": {"forbidden:1": [{"path": "/facts/provider_count", "operator": "equals", "expected": 1}]}},
+    "LAW-GPT-001-V9:dynamic.authorization": {"claims": {"forbidden:2": [{"path": "/facts/exact_target_document_binding_count", "operator": "gte", "expected": 39}]}},
+    "LAW-GPT-001-V9:dynamic.recovery": {"claims": {"forbidden:6": [{"path": "/facts/failed_observed", "operator": "equals", "expected": true}, {"path": "/facts/completed_observed", "operator": "equals", "expected": true}, {"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V13:dynamic.browser": {"claims": {"forbidden:19": [{"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V13:dynamic.service": {"claims": {"forbidden:19": [{"path": "/facts/browser_context_closed", "operator": "equals", "expected": true}, {"path": "/facts/cleanup_verified", "operator": "equals", "expected": true}, {"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}, {"path": "/facts/workbench_stopped", "operator": "equals", "expected": true}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V13:dynamic.database": {"claims": {"forbidden:9": [{"path": "/facts/frozen_identity_count", "operator": "equals", "expected": 39}, {"path": "/facts/frozen_identity_invalid_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V13:dynamic.storage": {"claims": {"forbidden:11": [{"path": "/unresolvedCount", "operator": "equals", "expected": 0}, {"path": "/facts/confirmed_row_invalid_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V13:dynamic.provider": {"claims": {"forbidden:0": [{"path": "/facts/catalog_plugin_count", "operator": "equals", "expected": 12}, {"path": "/facts/executed_route_count", "operator": "equals", "expected": 39}, {"path": "/facts/primary_route_count", "operator": "equals", "expected": 13}, {"path": "/facts/review_route_count", "operator": "equals", "expected": 26}, {"path": "/facts/route_denominator_complete", "operator": "equals", "expected": true}, {"path": "/terminalReceiptCount", "operator": "equals", "expected": 39}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V13:dynamic.authorization": {"claims": {"forbidden:4": [{"path": "/facts/lease_fence_bound_job_count", "operator": "equals", "expected": 39}, {"path": "/facts/unbound_lease_fence_job_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V13:dynamic.recovery": {"claims": {"forbidden:10": [{"path": "/facts/process_restart_observed", "operator": "equals", "expected": true}, {"path": "/facts/accepted_seq1_before_restart", "operator": "equals", "expected": true}, {"path": "/facts/progress_seq2_before_restart", "operator": "equals", "expected": true}, {"path": "/facts/progress_seq3_after_restart", "operator": "equals", "expected": true}, {"path": "/facts/same_attempt_after_restart", "operator": "equals", "expected": true}, {"path": "/facts/failed_observed", "operator": "equals", "expected": true}, {"path": "/facts/completed_observed", "operator": "equals", "expected": true}, {"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}}
   }
 }
 /* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_END */) as const;
@@ -153,6 +153,35 @@ const stopWorkbench = async (handle: GrassEyeWorkbenchHandle, server: Server): P
   await new Promise<void>((done) => server.close(() => done()));
 };
 
+const sentCheckpointPrefix = (jobId: string): Readonly<{
+  attemptId: string | null;
+  acceptedSeq1: boolean;
+  progressSeq2: boolean;
+  progressSeq3: boolean;
+}> => {
+  if (!existsSync(productionDatabasePath)) {
+    return { attemptId: null, acceptedSeq1: false, progressSeq2: false, progressSeq3: false };
+  }
+  const database = openReadOnly(productionDatabasePath);
+  try {
+    const rows = database.prepare(`select body_blob,sent_at from production_outbox
+      where kind='checkpoint' and path like ? order by created_at,idempotency_key`
+    ).all(`%/jobs/${encodeURIComponent(jobId)}/%`) as Array<{ body_blob: Buffer; sent_at: string | null }>;
+    const sent = rows.filter((row) => row.sent_at).map((row) =>
+      JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>);
+    const attempts = [...new Set(sent.map((row) => String(row.attempt_id ?? "")).filter(Boolean))];
+    const attemptId = attempts.length === 1 ? attempts[0]! : null;
+    const has = (seq: number, kind: string): boolean => sent.some((row) =>
+      row.attempt_id === attemptId && row.checkpoint_seq === seq && row.checkpoint_kind === kind);
+    return {
+      attemptId,
+      acceptedSeq1: has(1, "accepted"),
+      progressSeq2: has(2, "progress"),
+      progressSeq3: has(3, "progress"),
+    };
+  } finally { database.close(); }
+};
+
 type DirectRuntimeObservation = Readonly<{
   browser: Readonly<Record<string, unknown>>;
   service: Readonly<Record<string, unknown>>;
@@ -166,7 +195,8 @@ type DirectRuntimeObservation = Readonly<{
 const taskHistory = new Map(jobIds.map((jobId) => [jobId, new Set<string>()]));
 type HealthReport = Awaited<ReturnType<GrassEyeWorkbenchHandle["getHealthReport"]>>;
 let targetClaimedObserved = false;
-let taskOwnedChatgptPageObserved = false;
+let systemChatgptPageObserved = false;
+let settledSystemChatgptTabCount = 0;
 let finalHealth: HealthReport | null = null;
 let browserVersion = "";
 let extensionWorkerCount = 0;
@@ -177,6 +207,12 @@ let context: BrowserContext | null = null;
 let operatorPage: Page | null = null;
 let running: Awaited<ReturnType<typeof startWorkbench>> | null = null;
 let cleanupObservation: ProductionProofCleanupObservation | null = null;
+let processRestartObserved = false;
+let restartAttemptId: string | null = null;
+let acceptedSeq1BeforeRestart = false;
+let progressSeq2BeforeRestart = false;
+let progressSeq3AfterRestart = false;
+let sameAttemptAfterRestart = false;
 
 try {
   context = await launchChrome();
@@ -192,7 +228,7 @@ try {
   context.on("page", (page) => {
     page.on("framenavigated", (frame) => {
       if (frame === page.mainFrame() && page !== operatorPage && frame.url().startsWith("https://chatgpt.com/")) {
-        taskOwnedChatgptPageObserved = true;
+        systemChatgptPageObserved = true;
       }
     });
   });
@@ -201,12 +237,34 @@ try {
   const workbenchPage = await context.newPage();
   await workbenchPage.goto(BASE_URL, { waitUntil: "domcontentloaded" });
   await waitFor("browser-authority", () => running!.handle.readBrowserAuthorityPairingState().authority === "present");
+  await waitFor("recovery-checkpoint-seq2", () => {
+    const prefix = sentCheckpointPrefix(recoveryJobId);
+    if (!prefix.attemptId || !prefix.acceptedSeq1 || !prefix.progressSeq2 || prefix.progressSeq3) return false;
+    restartAttemptId = prefix.attemptId;
+    acceptedSeq1BeforeRestart = true;
+    progressSeq2BeforeRestart = true;
+    return true;
+  });
+  const beforeRestart = running;
+  await stopWorkbench(beforeRestart.handle, beforeRestart.server);
+  running = null;
+  processRestartObserved = true;
+  running = await startWorkbench();
+  await workbenchPage.reload({ waitUntil: "domcontentloaded" });
+  await waitFor("browser-authority-after-restart", () =>
+    running!.handle.readBrowserAuthorityPairingState().authority === "present");
+  await waitFor("recovery-checkpoint-seq3", () => {
+    const prefix = sentCheckpointPrefix(recoveryJobId);
+    progressSeq3AfterRestart = prefix.progressSeq3;
+    sameAttemptAfterRestart = prefix.attemptId === restartAttemptId;
+    return progressSeq3AfterRestart && sameAttemptAfterRestart;
+  });
   await waitFor("thirty-nine-real-routes", async () => {
     finalHealth = await running!.handle.getHealthReport();
     const browser = finalHealth.components.find((component) => component.name === "productionRuntimeBrowser");
     if (browser?.detail?.includes("target=claimed")) targetClaimedObserved = true;
     for (const page of context!.pages()) {
-      if (page !== operatorPage && page.url().startsWith("https://chatgpt.com/")) taskOwnedChatgptPageObserved = true;
+      if (page !== operatorPage && page.url().startsWith("https://chatgpt.com/")) systemChatgptPageObserved = true;
     }
     const tasks = jobIds.map((jobId) => running!.handle.readProductionTaskStatus(jobId));
     tasks.forEach((task, index) => { if (task) taskHistory.get(jobIds[index]!)!.add(task.status); });
@@ -219,6 +277,10 @@ try {
     return browser?.detail?.includes("target=absent") === true
       && execution?.detail?.includes("active=0") === true;
   });
+  settledSystemChatgptTabCount = context.pages().filter((page) =>
+    page !== operatorPage && page.url().startsWith("https://chatgpt.com/")).length;
+  assert.equal(settledSystemChatgptTabCount, 1,
+    "normal settle must retain exactly one system-owned ChatGPT production Tab");
   assert.equal(operatorPage.isClosed(), false, "the pre-existing operator page must remain open");
   operatorAfter = { url: operatorPage.url(), title: await operatorPage.title() };
   assert.deepEqual(operatorAfter, operatorBefore, "production tasks must not navigate or close the operator page");
@@ -242,7 +304,7 @@ try {
 assert(finalHealth && operatorBefore && operatorAfter && finalPairingState && cleanupObservation);
 assert.equal(cleanupObservation.cleanupVerified, true, "production proof cleanup was not observed");
 assert.equal(targetClaimedObserved, true, "a job-owned exact Target claim was not observed");
-assert.equal(taskOwnedChatgptPageObserved, true, "a task-owned real ChatGPT page was not observed");
+assert.equal(systemChatgptPageObserved, true, "the one system-owned real ChatGPT page was not observed");
 assert.equal(taskHistory.get(recoveryJobId)?.has("failed"), true,
   "the named real job must remain failed before completing with the same identity");
 
@@ -352,6 +414,9 @@ assert.equal(mutationJournalMode.toLowerCase(), "wal", "Browser mutations must r
 const exactTargetDocumentBindingCount = jobIds.filter((jobId) => completedBrowserEvents.some((event) =>
   event.typedIdentity.kind === "browser-command" && event.typedIdentity.jobId === jobId)
   && mutationRows.some((row) => row.job_id === jobId && Boolean(row.target_ref && row.document_ref))).length;
+const uniqueSystemTargetRefCount = new Set(mutationRows.map((row) => row.target_ref)).size;
+assert.equal(uniqueSystemTargetRefCount, 1,
+  "all production jobs must time-slice the one physical system Target");
 const leaseFenceBoundJobCount = jobIds.filter((jobId) => mutationRows.some((row) => row.job_id === jobId
   && row.lease_version > 0 && Boolean(row.attempt_id && row.execution_fence_hash))).length;
 const readinessNames = observedHealth.components.map((item) => item.name);
@@ -365,7 +430,7 @@ const observation: DirectRuntimeObservation = Object.freeze({
       authority_present: finalPairingState.authority === "present",
       exact_target_document_binding_count: exactTargetDocumentBindingCount,
       extension_worker_count: extensionWorkerCount,
-      final_target_absent: component("productionRuntimeBrowser")?.detail?.includes("target=absent") === true,
+      final_active_claim_absent: component("productionRuntimeBrowser")?.detail?.includes("target=absent") === true,
       operator_page_unchanged: JSON.stringify(operatorAfter) === JSON.stringify(operatorBefore),
       persisted_sensitive_value_count: persistedSensitiveValueCount,
       readiness_dimension_count: new Set(readinessNames).size,
@@ -375,13 +440,15 @@ const observation: DirectRuntimeObservation = Object.freeze({
       runtime_log_mutation_event_count: runtimeLogFacts.mutationEventCount,
       runtime_log_forbidden_task_state_field_count: runtimeLogFacts.forbiddenTaskStateFieldCount,
       target_claimed_observed: targetClaimedObserved,
-      task_owned_chatgpt_page_observed: taskOwnedChatgptPageObserved,
+      system_chatgpt_page_observed: systemChatgptPageObserved,
+      settled_system_chatgpt_tab_count: settledSystemChatgptTabCount,
+      unique_system_target_ref_count: uniqueSystemTargetRefCount,
     },
     sessionFacts: {
       authorityState: finalPairingState.authority, pairingSecretCleared: finalPairingState.pairingSecret === null,
       releaseBuildId: finalPairingState.releaseBuildId, extensionId: GRASSEYE_UNPACKED_EXTENSION_ID,
-      targetClaimedObserved, taskOwnedChatgptPageObserved,
-      finalTargetAbsent: component("productionRuntimeBrowser")?.detail?.includes("target=absent") === true,
+      targetClaimedObserved, systemChatgptPageObserved, settledSystemChatgptTabCount,
+      finalActiveClaimAbsent: component("productionRuntimeBrowser")?.detail?.includes("target=absent") === true,
       operatorPageUnchanged: JSON.stringify(operatorAfter) === JSON.stringify(operatorBefore),
       transportCount: 1, persistedRawOperatorPageCount: runtimeLogProof.source.includes(operatorBefore.url) ? 1 : 0,
     },
@@ -441,6 +508,11 @@ const observation: DirectRuntimeObservation = Object.freeze({
   },
   recovery: {
     facts: {
+      process_restart_observed: processRestartObserved,
+      accepted_seq1_before_restart: acceptedSeq1BeforeRestart,
+      progress_seq2_before_restart: progressSeq2BeforeRestart,
+      progress_seq3_after_restart: progressSeq3AfterRestart,
+      same_attempt_after_restart: sameAttemptAfterRestart,
       completed_observed: taskHistory.get(recoveryJobId)!.has("completed"),
       failed_observed: taskHistory.get(recoveryJobId)!.has("failed"),
     },

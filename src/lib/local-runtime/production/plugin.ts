@@ -9,8 +9,10 @@ import type {
   WebsiteAgentTask,
 } from "./contracts.js";
 import { sha256 } from "./contracts.js";
+import { executionFailure } from "../../typed-failure.js";
 import type {
   GptChildCapabilityId,
+  GptContinuationLane,
   GptProviderContinuation,
 } from "../../../capabilities/gpt/index.js";
 
@@ -73,6 +75,7 @@ export type ExactGptCallFacts = Readonly<{
 
 export interface ProductGptTools {
   readonly attemptId: string;
+  readContinuationForTurn(turnMarker: string): GptContinuationLane | null;
   execute(input: ProductGptCallInput & Readonly<{ sessionKey: string }>): Promise<ProductGptChildResult>;
   readCallFacts(input: ProductGptCallInput): Promise<ExactGptCallFacts>;
 }
@@ -113,20 +116,51 @@ export const readProductSkill = (pluginModuleUrl: string): Readonly<{
 };
 
 export function parsePluginJsonObject(raw: string, code: string): Readonly<Record<string, unknown>> {
-  const normalized = raw.trim().replace(/^```(?:json)?\s*/iu, "").replace(/\s*```$/u, "");
-  let value: unknown;
-  try { value = JSON.parse(normalized) as unknown; }
-  catch { throw new Error(`${code}_JSON_INVALID`); }
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`${code}_OBJECT_REQUIRED`);
+  const completeObjects: Array<Readonly<{ start: number; end: number; value: Record<string, unknown> }>> = [];
+  for (let start = 0; start < raw.length; start += 1) {
+    if (raw[start] !== "{") continue;
+    let depth = 0;
+    let quoted = false;
+    let escaped = false;
+    for (let cursor = start; cursor < raw.length; cursor += 1) {
+      const character = raw[cursor]!;
+      if (quoted) {
+        if (escaped) escaped = false;
+        else if (character === "\\") escaped = true;
+        else if (character === "\"") quoted = false;
+        continue;
+      }
+      if (character === "\"") {
+        quoted = true;
+        continue;
+      }
+      if (character === "{") depth += 1;
+      if (character === "}") depth -= 1;
+      if (depth < 0) break;
+      if (depth !== 0) continue;
+      let value: unknown;
+      try { value = JSON.parse(raw.slice(start, cursor + 1)) as unknown; }
+      catch { break; }
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        completeObjects.push({ start, end: cursor + 1, value: value as Record<string, unknown> });
+      }
+      break;
+    }
   }
-  return Object.freeze(value as Record<string, unknown>);
+  const outermost = completeObjects.filter((candidate) => !completeObjects.some((other) =>
+    other !== candidate && other.start <= candidate.start && other.end >= candidate.end
+      && (other.start < candidate.start || other.end > candidate.end)));
+  if (outermost.length !== 1) {
+    return resultFailure(outermost.length === 0 ? `${code}_JSON_INVALID` : `${code}_JSON_AMBIGUOUS`);
+  }
+  return Object.freeze(outermost[0]!.value);
 }
 
 const RESULT_HASH = /^sha256:[a-f0-9]{64}$/u;
+const resultFailure = (code: string): never => { throw executionFailure("failed", code); };
 
 const resultObject = (value: unknown, code: string): Record<string, unknown> => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(code);
+  if (!value || typeof value !== "object" || Array.isArray(value)) return resultFailure(code);
   return value as Record<string, unknown>;
 };
 
@@ -134,23 +168,23 @@ const resultExact = (value: Record<string, unknown>, keys: readonly string[], co
   const actual = Object.keys(value).sort();
   const expected = [...keys].sort();
   if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) {
-    throw new Error(code);
+    resultFailure(code);
   }
 };
 
 const resultText = (value: unknown, code: string): string => {
-  if (typeof value !== "string" || !value.trim() || value.includes("\uFFFD")) throw new Error(code);
+  if (typeof value !== "string" || !value.trim() || value.includes("\uFFFD")) return resultFailure(code);
   return value;
 };
 
 const resultArray = (value: unknown, code: string, nonempty = false): readonly unknown[] => {
-  if (!Array.isArray(value) || (nonempty && value.length === 0)) throw new Error(code);
+  if (!Array.isArray(value) || (nonempty && value.length === 0)) return resultFailure(code);
   return value;
 };
 
 const resultStringArray = (value: unknown, code: string, nonempty = false): readonly string[] => {
   const items = resultArray(value, code, nonempty);
-  if (items.some((item) => typeof item !== "string" || !item.trim())) throw new Error(code);
+  if (items.some((item) => typeof item !== "string" || !item.trim())) return resultFailure(code);
   return items as readonly string[];
 };
 
@@ -162,7 +196,7 @@ const resultDual = (value: unknown, code: string): void => {
 };
 
 const resultHash = (value: unknown, code: string): void => {
-  if (typeof value !== "string" || !RESULT_HASH.test(value)) throw new Error(code);
+  if (typeof value !== "string" || !RESULT_HASH.test(value)) resultFailure(code);
 };
 
 const commonReport = (output: Record<string, unknown>, summary: string, blocks: string): void => {
@@ -176,7 +210,7 @@ const commonReport = (output: Record<string, unknown>, summary: string, blocks: 
 
 const assertLocked = (output: Record<string, unknown>, task: WebsiteAgentTask, fields: readonly string[]): void => {
   for (const field of fields) {
-    if (output[field] !== task.parameters[field]) throw new Error(`AGENT_RESULT_LOCKED_IDENTITY_INVALID:${field}`);
+    if (output[field] !== task.parameters[field]) resultFailure(`AGENT_RESULT_LOCKED_IDENTITY_INVALID:${field}`);
   }
 };
 
@@ -187,7 +221,7 @@ const parseReview = (raw: string): Readonly<Record<string, unknown>> => {
   if ((output.decision === "no_issue" && issues.length !== 0)
     || (output.decision === "issues" && (issues.length < 1 || issues.length > 50))
     || (output.decision !== "no_issue" && output.decision !== "issues")) {
-    throw new Error("AGENT_REVIEW_DECISION_INVALID");
+    resultFailure("AGENT_REVIEW_DECISION_INVALID");
   }
   const categories = new Set([
     "source_text_possible_error", "index_navigation_friction", "missing_condition_or_exception",
@@ -200,7 +234,7 @@ const parseReview = (raw: string): Readonly<Record<string, unknown>> => {
     resultExact(issue, ["category", "target_type", "target_ref", "observation", "evidence_refs", "impact", "confidence", "suggested_inspection"], "AGENT_REVIEW_ISSUE_FIELDS_INVALID");
     if (!categories.has(resultText(issue.category, "AGENT_REVIEW_CATEGORY_INVALID"))
       || !["low", "medium", "high"].includes(String(issue.confidence))) {
-      throw new Error("AGENT_REVIEW_ISSUE_INVALID");
+      resultFailure("AGENT_REVIEW_ISSUE_INVALID");
     }
     for (const field of ["target_type", "target_ref", "observation", "impact", "suggested_inspection"] as const) {
       resultText(issue[field], "AGENT_REVIEW_ISSUE_INVALID");
@@ -216,6 +250,7 @@ export const productResultValidation = Object.freeze({
   commonReport,
   dual: resultDual,
   exact: resultExact,
+  fail: resultFailure,
   hash: resultHash,
   locked: assertLocked,
   object: resultObject,

@@ -128,21 +128,28 @@ export async function downloadProductionMaterials(
 }
 
 export async function checkpointProductionTask(
-  session: ProductionWorkerSession,
+  session: Pick<ProductionWorkerSession, "request" | "workerSessionEpoch" | "workerSessionId">,
   store: ProductionRuntimeStore,
   job: ClaimedProductionTask,
   checkpointKind: "accepted" | "progress" | "attempt_failure" | "handover_acknowledgement",
+  checkpointSeq: number,
   attemptFailure: SerializedExecutionFailure | null = null,
-): Promise<ProductionHash> {
-  const previous = store.readCheckpoint(job.job_id);
-  const checkpointSeq = previous?.attemptId !== job.grant.attempt_id ? 1
-    : previous.checkpointId === "accepted" ? 2
-      : previous.checkpointId === "progress" ? 3 : 1;
+): Promise<Readonly<{ checkpointHash: ProductionHash; checkpointSeq: number; requestId: string }>> {
+  if (!Number.isInteger(checkpointSeq) || checkpointSeq < 1) {
+    throw executionFailure("failed", "V6_CHECKPOINT_SEQUENCE_INVALID");
+  }
+  const rejected = store.rejectedCheckpointIntent({
+    jobId: job.job_id, attemptId: job.grant.attempt_id, checkpointSeq,
+    checkpointKind, attemptFailure,
+  });
+  if (rejected) throw executionFailure("failed", rejected);
   const requestId = `aipcheckpoint_${hashCanonical({
     job_id: job.job_id,
     attempt_id: job.grant.attempt_id,
     lease_version: job.grant.lease_version,
+    checkpoint_seq: checkpointSeq,
     checkpoint_kind: checkpointKind,
+    attempt_failure: attemptFailure,
   }).slice(7, 47)}`;
   const body = {
     schema_version: "xuanxue-ai-checkpoint.v6",
@@ -173,12 +180,18 @@ export async function checkpointProductionTask(
     const received = await session.request(pathname, {
       method: "POST", headers: fenceHeaders(job), body: JSON.stringify(body),
     }) as Record<string, unknown>;
-    if (typeof received.checkpoint_hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(received.checkpoint_hash)) {
+    if (received.job_id !== job.job_id || received.checkpoint_seq !== checkpointSeq
+      || typeof received.checkpoint_hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(received.checkpoint_hash)
+      || received.checkpoint_hash !== hashCanonical(body)) {
       throw executionFailure("failed", "V6_CHECKPOINT_RECEIPT_INVALID");
     }
     return received;
   });
-  return response.checkpoint_hash as ProductionHash;
+  return Object.freeze({
+    checkpointHash: response.checkpoint_hash as ProductionHash,
+    checkpointSeq,
+    requestId,
+  });
 }
 
 export async function renewProductionLease(
@@ -209,13 +222,32 @@ export async function renewProductionLease(
   ));
 }
 
+export type ProductionLeaseRelease =
+  | Readonly<{
+    reasonCode: "CAPABILITY_CHANGED_BEFORE_ACCEPT" | "LEASE_SAFETY_BUDGET_EXHAUSTED" | "LOCAL_CAPACITY_CHANGED";
+    receiverCheckpoint: null;
+  }>
+  | Readonly<{
+    reasonCode: "POST_CHECKPOINT_RECEIVER_FAULT";
+    receiverCheckpoint: Readonly<{
+      artifact_ref: string;
+      raw_dom_hash: ProductionHash;
+      semantic_text_hash: ProductionHash;
+    }>;
+  }>;
+
 export async function releaseProductionLease(
   session: ProductionWorkerSession,
   job: ClaimedProductionTask,
-  reason: "CAPABILITY_CHANGED_BEFORE_ACCEPT" | "LEASE_SAFETY_BUDGET_EXHAUSTED" | "LOCAL_CAPACITY_CHANGED",
+  release: ProductionLeaseRelease,
 ): Promise<void> {
   const requestId = `aiprelease_${randomUUID()}`;
-  const payload = { reason_code: reason, job_id: job.job_id, fence_hash: job.grant.execution_fence.fence_hash };
+  const payload = {
+    reason_code: release.reasonCode,
+    receiver_checkpoint: release.receiverCheckpoint,
+    job_id: job.job_id,
+    fence_hash: job.grant.execution_fence.fence_hash,
+  };
   await session.request(`/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/lease-release`, {
     method: "POST",
     headers: fenceHeaders(job),
@@ -231,7 +263,8 @@ export async function releaseProductionLease(
       lease_version: job.grant.lease_version,
       fence_hash: job.grant.execution_fence.fence_hash,
       payload_hash: hashCanonical(payload),
-      reason_code: reason,
+      reason_code: release.reasonCode,
+      receiver_checkpoint: release.receiverCheckpoint,
     }),
   });
 }

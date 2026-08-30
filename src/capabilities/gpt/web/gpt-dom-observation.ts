@@ -71,6 +71,38 @@ export const readExactText = async (
   return value;
 };
 
+export const readExactSemanticText = async (
+  browser: Pick<BrowserTargetLease, "executeDomIntent">,
+  selector: string,
+): Promise<string> => {
+  const value = record(await browser.executeDomIntent({
+    kind: "inspect",
+    selector,
+    fields: ["semanticText", "visible", "connected"],
+  }));
+  if (value.visible !== true || value.connected !== true || typeof value.semanticText !== "string") {
+    throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
+  }
+  return value.semanticText;
+};
+
+export const readExactObservedResponse = async (
+  browser: Pick<BrowserTargetLease, "executeDomIntent">,
+  selector: string,
+): Promise<Readonly<{ rawDomHtml: string; semanticText: string }>> => {
+  const value = record(await browser.executeDomIntent({
+    kind: "inspect",
+    selector,
+    fields: ["outerHtml", "semanticText", "visible", "connected"],
+  }));
+  if (value.visible !== true || value.connected !== true
+    || typeof value.outerHtml !== "string" || !value.outerHtml
+    || typeof value.semanticText !== "string") {
+    throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
+  }
+  return Object.freeze({ rawDomHtml: value.outerHtml, semanticText: value.semanticText });
+};
+
 export const readExactAttribute = async (
   browser: Pick<BrowserTargetLease, "executeDomIntent">,
   selector: string,

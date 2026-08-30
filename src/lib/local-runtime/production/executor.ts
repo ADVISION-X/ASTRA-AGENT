@@ -106,7 +106,11 @@ export class ProductionExecutor {
     }));
   }
 
-  private terminalizePluginFailure(span: RuntimeSpanHandle, error: unknown): never {
+  private terminalizePluginFailure(
+    span: RuntimeSpanHandle,
+    error: unknown,
+    identity?: Readonly<{ attemptId: string; pluginId: string }>,
+  ): never {
     const failure = typedExecutionFailure(error) ?? executionFailure(
       "failed", failureCode(error, "PLUGIN_EXECUTION_FAILED"), { cause: error },
     );
@@ -114,11 +118,40 @@ export class ProductionExecutor {
     const terminal = requireRuntimeLogWrite(span.terminal({
       outcome: "failed",
       failure: runtimeFailureFromError({
-        error: failure, code: "PLUGIN_EXECUTION_FAILED", responsibleOwner: "product-plugin",
+        error: failure,
+        code: causedByEventId ? "PLUGIN_EXECUTION_FAILED" : failure.code,
+        responsibleOwner: "product-plugin",
         impact: causedByEventId ? RuntimeFailureImpact.CONSEQUENTIAL : RuntimeFailureImpact.BLOCKING,
         ...(causedByEventId ? { causedByEventId } : {}),
       }),
     }));
+    if (error instanceof AggregateError
+      && error.message === "GPT_BROWSER_LIFECYCLE_FAILED"
+      && error.cause !== undefined) {
+      if (!identity) throw executionFailure("failed", "PLUGIN_LIFECYCLE_IDENTITY_MISSING");
+      for (const cleanupError of error.errors) {
+        requireRuntimeLogWrite(this.runtimeLogger.emitError({
+          traceId: span.traceId,
+          owner: "browser-session",
+          component: "gpt-browser-lifecycle",
+          operation: "browser.infrastructure",
+          typedIdentity: {
+            kind: "plugin-step",
+            jobId: span.traceId,
+            attemptId: identity.attemptId,
+            pluginId: identity.pluginId,
+            stepId: "browser.settle",
+          },
+          failure: runtimeFailureFromError({
+            error: cleanupError,
+            code: failureCode(cleanupError, "GPT_BROWSER_LIFECYCLE_FAILED"),
+            responsibleOwner: "browser-session",
+            impact: RuntimeFailureImpact.CLEANUP,
+            causedByEventId: terminal.eventId,
+          }),
+        }));
+      }
+    }
     throw withRuntimeLogCause(failure, terminal.eventId);
   }
 
@@ -164,7 +197,11 @@ export class ProductionExecutor {
         if (gptLifecycle.settle) await gptLifecycle.settle(primaryError);
       } catch (settleError) {
         if (primaryError === null) throw settleError;
-        throw new AggregateError([primaryError, settleError], "GPT_BROWSER_LIFECYCLE_FAILED");
+        const combined = new AggregateError(
+          [settleError], "GPT_BROWSER_LIFECYCLE_FAILED", { cause: primaryError },
+        );
+        const causedByEventId = runtimeLogCauseEventId(primaryError);
+        throw causedByEventId ? withRuntimeLogCause(combined, causedByEventId) : combined;
       }
     }
     if (!completed) throw new Error("PLUGIN_RESULT_NOT_COMPLETED");
@@ -191,7 +228,10 @@ export class ProductionExecutor {
       requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
       return { record: this.store.readTask(task.job_id)!, result };
     } catch (error) {
-      return this.terminalizePluginFailure(span, error);
+      return this.terminalizePluginFailure(span, error, {
+        attemptId: lease.attempt_id,
+        pluginId: accepted.identity.plugin_id,
+      });
     }
   }
 }

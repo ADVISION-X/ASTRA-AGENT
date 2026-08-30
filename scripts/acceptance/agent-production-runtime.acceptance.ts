@@ -11,8 +11,10 @@ import { typedExecutionFailure } from "../../src/lib/typed-failure.js";
 import { assertProductionTaskRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../src/mediator/agent-production-route.js";
 import { HASH_A, HASH_B, claimTask, task } from "./agent-production-runtime-fixtures.js";
+import "./agent-production-gpt-browser-lifecycle.acceptance.js";
 import "./agent-production-runtime-ledger.acceptance.js";
 import "./agent-production-runtime-continuation.acceptance.js";
+import "./agent-production-provider-recovery.acceptance.js";
 import "./agent-production-runtime-startup.acceptance.js";
 
 assert.equal(productionPluginCatalog.length, 12);

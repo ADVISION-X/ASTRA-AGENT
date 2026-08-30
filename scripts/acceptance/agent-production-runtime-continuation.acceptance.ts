@@ -111,6 +111,48 @@ try {
   assert.equal(advanced.status, "success", advanced.failureCode ?? "advance continuation failed");
   const advancedReadback = await execute("advance_gpt_continuation_lane", advanceInput);
   assert.equal(advancedReadback.status, "success", advancedReadback.failureCode ?? "advance readback failed");
+
+  const currentProvider = {
+    ...provider,
+    provider_page_url: "https://chatgpt.com/c/current-attempt",
+    prior_turn_marker: "turn:current-attempt",
+  } as const;
+  const currentPersisted = await execute("persist_gpt_continuation", {
+    ...persistInput,
+    provider: currentProvider,
+  });
+  const currentContinuationRef = Reflect.get(currentPersisted.value ?? {}, "continuationRef");
+  assert.equal(typeof currentContinuationRef, "string");
+  assert.equal(
+    store.readGptContinuationForOriginJob(
+      sourceTask.job_id, identity.plugin_id, "turn:advanced",
+    )?.continuation_ref,
+    continuationRef,
+    "an older attempt marker must select only its exact continuation",
+  );
+  assert.equal(
+    store.readGptContinuationForOriginJob(
+      sourceTask.job_id, identity.plugin_id, "turn:current-attempt",
+    )?.continuation_ref,
+    currentContinuationRef,
+    "the current attempt marker must not collide with an older continuation for the same job",
+  );
+  assert.equal(
+    store.readGptContinuationForOriginJob(sourceTask.job_id, identity.plugin_id, "turn:missing"),
+    null,
+  );
+
+  const duplicateMarkerProvider = {
+    ...currentProvider,
+    provider_page_url: "https://chatgpt.com/c/current-attempt-conflict",
+  } as const;
+  await execute("persist_gpt_continuation", { ...persistInput, provider: duplicateMarkerProvider });
+  assert.throws(
+    () => store.readGptContinuationForOriginJob(
+      sourceTask.job_id, identity.plugin_id, "turn:current-attempt",
+    ),
+    /GPT_CONTINUATION_IDENTITY_AMBIGUOUS/u,
+  );
   store.close();
 } finally {
   await rm(temporary, { recursive: true, force: true });

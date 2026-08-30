@@ -8,6 +8,7 @@ export const GPT_TRANSPORT = "gpt-web" as const;
 export const GPT_MODEL_SELECTION_VERSION = "gpt-model-selection.v2" as const;
 
 const PAGE_OBSERVATIONS = [
+  "focus_exact_gpt_conversation",
   "verify_gpt_conversation_identity",
   "reconcile_gpt_attachment_set",
   "reconcile_gpt_draft",
@@ -20,7 +21,6 @@ const PAGE_OBSERVATIONS = [
 
 const PAGE_MUTATIONS = [
   "prepare_clean_gpt_chat",
-  "focus_exact_gpt_conversation",
   "open_gpt_execution_profile",
   "open_gpt_model_selector_v2",
   "select_exact_gpt_model_v2",
@@ -66,6 +66,10 @@ const transitionIds = new Set<GptChildCapabilityId>([
   "focus_exact_gpt_conversation",
   "submit_exact_gpt_turn_once",
   "reconcile_gpt_turn_submission",
+  "wait_for_stable_gpt_text",
+  "checkpoint_gpt_text_response",
+  "wait_for_stable_gpt_image",
+  "checkpoint_gpt_generated_image",
 ]);
 const sessionIds = new Set<GptChildCapabilityId>(SESSION_MUTATIONS);
 const mutationIds = new Set<GptChildCapabilityId>([...PAGE_MUTATIONS, ...SESSION_MUTATIONS]);

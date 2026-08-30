@@ -4,7 +4,8 @@ import {
   type StoredGptContinuation,
 } from "../../../capabilities/gpt/index.js";
 import type { DurablePluginIdentity, WebsiteAgentResult, WebsiteAgentTask } from "./contracts.js";
-import { hashCanonical, WebsiteAgentResultSchema, type ProductionHash } from "./contracts.js";
+import { WebsiteAgentResultSchema, type ProductionHash } from "./contracts.js";
+import { isRejectedCheckpointSequenceFailure } from "./store-outbox-recovery-proof.js";
 import {
   ProductionStoreFoundation,
   isSerializedTerminalFailure,
@@ -115,6 +116,23 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     return row ? { ...row, provider: JSON.parse(row.provider_json) as GptProviderContinuation } : null;
   }
 
+  public readGptContinuationForOriginJob(
+    jobId: string,
+    pluginId: string,
+    turnMarker: string,
+  ): StoredGptContinuation | null {
+    const rows = this.database.prepare(`select continuation_ref,origin_job_id,plugin_id,owner_ref,subject_ref,
+      authorization_ref,conversation_identity_hash,provider_json,lane_version,lane_owner_job_id
+      from production_continuations where origin_job_id=? and plugin_id=?
+        and json_extract(provider_json,'$.prior_turn_marker')=?
+      order by continuation_ref limit 2`).all(jobId, pluginId, turnMarker) as Array<
+        Omit<StoredGptContinuation, "provider"> & { provider_json: string }
+      >;
+    if (rows.length > 1) throw executionFailure("failed", "GPT_CONTINUATION_IDENTITY_AMBIGUOUS");
+    const row = rows[0];
+    return row ? { ...row, provider: JSON.parse(row.provider_json) as GptProviderContinuation } : null;
+  }
+
   public acquireGptContinuationLane(continuationRef: string, ownerJobId: string): StoredGptContinuation {
     const changed = this.database.prepare(`update production_continuations
       set lane_owner_job_id=?,lane_version=case when lane_owner_job_id is null then lane_version+1 else lane_version end
@@ -207,16 +225,41 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     }
     const serialized = json(failure);
     const first = this.database.prepare(`select failure_json from production_attempt_failures
-      where job_id=? and attempt_id=?`).get(jobId, attemptId) as { failure_json: string } | undefined;
+      where job_id=? and attempt_id=?`
+    ).get(jobId, attemptId) as { failure_json: string } | undefined;
     if (first && first.failure_json !== serialized) {
       throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_IMMUTABLE");
     }
     this.database.transaction(() => {
       this.database.prepare(`insert into production_attempt_failures(job_id,attempt_id,failure_json,created_at)
-        values(?,?,?,?) on conflict(job_id,attempt_id) do nothing`).run(jobId, attemptId, serialized, now());
+        values(?,?,?,?) on conflict(job_id,attempt_id) do nothing`).run(
+        jobId, attemptId, serialized, now(),
+      );
       this.database.prepare(`update production_tasks set current_reason=?,updated_at=?
         where job_id=? and status='failed'`).run(failure.code.slice(0, 1_000), now(), jobId);
     })();
+  }
+
+  protected removeRejectedCheckpointFalseFailure(input: Readonly<{
+    jobId: string;
+    attemptId: string;
+    failure: SerializedExecutionFailure;
+  }>): void {
+    if (!isRejectedCheckpointSequenceFailure(input.failure)) {
+      throw executionFailure("failed", "PRODUCTION_RECOVERY_FAILURE_SHAPE_MISMATCH");
+    }
+    const task = this.database.prepare(`select current_attempt_id from production_tasks
+      where job_id=? and status='failed'`).get(input.jobId) as { current_attempt_id: string } | undefined;
+    if (!task || task.current_attempt_id !== input.attemptId) {
+      throw executionFailure("failed", "PRODUCTION_ATTEMPT_AUTHORITY_CONFLICT");
+    }
+    const changed = this.database.prepare(`delete from production_attempt_failures
+      where job_id=? and attempt_id=? and failure_json=?`).run(
+      input.jobId, input.attemptId, json(input.failure),
+    );
+    if (changed.changes !== 1) throw executionFailure("failed", "PRODUCTION_ATTEMPT_AUTHORITY_CONFLICT");
+    this.database.prepare(`update production_tasks set current_reason='REMOTE_CHECKPOINT_PREFIX_RECONCILED',
+      updated_at=? where job_id=? and status='failed'`).run(now(), input.jobId);
   }
 
   public recordCheckpoint(authority: ProductionCheckpointAuthority): ProductionCheckpointAuthority {

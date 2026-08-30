@@ -132,6 +132,7 @@ const exerciseSeoFlow = async (
     ],
     gpt: {
       attemptId: "attempt-1",
+      readContinuationForTurn: () => null,
       readCallFacts: async (input: Parameters<SharedExecutionContext["gpt"]["readCallFacts"]>[0]) => {
         const stored = factsByCall.get(factKey(input));
         return {
@@ -147,7 +148,8 @@ const exerciseSeoFlow = async (
             evidenceRef: stored.evidenceRef,
             evidenceHash: HASH,
             readbackVerified: true as const,
-            artifactRefs: [],
+            artifactRefs: input.child === "checkpoint_gpt_text_response"
+              ? ["artifact:checkpoint"] : [],
           } : null,
           continuation: null,
         };
@@ -170,7 +172,13 @@ const exerciseSeoFlow = async (
           write_exact_gpt_prompt: { hash: HASH },
           reconcile_gpt_turn_submission: { canonicalConversationUrl: "https://chatgpt.com/c/example" },
           wait_for_stable_gpt_text: { assistantTurnId: "conversation-turn-2", responseHash: HASH, responseText: text },
-          checkpoint_gpt_text_response: { assistantTurnId: "conversation-turn-2", rawText: text, rawHash: HASH },
+          checkpoint_gpt_text_response: {
+            assistantTurnId: "conversation-turn-2",
+            rawDomHtml: `<div data-message-author-role="assistant">${text}</div>`,
+            rawDomHash: HASH,
+            semanticText: text,
+            semanticTextHash: HASH,
+          },
           persist_gpt_continuation: { continuationRef: "gpt-continuation:test" },
           acquire_gpt_continuation_lane: {
             continuation_ref: "gpt-continuation:test",
@@ -265,15 +273,16 @@ assert.equal(hashCanonical(agentPluginCapabilityManifest.plugins), agentPluginCa
 assert.equal(existsSync(resolve(ROOT, "src/plugins/product-gpt-call.ts")), false);
 assert.equal(existsSync(resolve(ROOT, "src/lib/local-runtime/production/production-gpt-executor.ts")), false);
 assert.equal(existsSync(resolve(ROOT, "src/lib/local-runtime/production/production-gpt-turn-flow.ts")), false);
-assert.throws(() => parsePublicKnowledgeResearch(JSON.stringify({
+assert.equal(parsePublicKnowledgeResearch(JSON.stringify({
   ...researchOutput("proceed"), topic_manifest: { primary_question: "incomplete" },
-})), /PUBLIC_KNOWLEDGE_TOPIC_MANIFEST_INVALID/u);
-assert.throws(() => parsePublicKnowledgeResearch(JSON.stringify({
+})).schema_version, "public-knowledge-research-output.v3",
+"transport parsing must preserve a URL/hash-authenticated AI object without policing nested shape");
+assert.equal(parsePublicKnowledgeResearch(JSON.stringify({
   ...researchOutput("proceed"), citations: [{ citation_id: "bad", book_id: "book", locator: "one" }],
-})), /PUBLIC_KNOWLEDGE_RESEARCH_CITATIONS_INVALID/u);
-assert.throws(() => parsePublicKnowledgeArticle(JSON.stringify({
+})).schema_version, "public-knowledge-research-output.v3");
+assert.equal(parsePublicKnowledgeArticle(JSON.stringify({
   ...articleOutput, claim_coverage: [{ claim_id: "CL1", status: "addressed", reason_if_omitted: "must-be-null" }],
-})), /PUBLIC_KNOWLEDGE_CLAIM_COVERAGE_INVALID/u);
+})).schema_version, "public-knowledge-article-output.v3");
 
 const routeKeys = new Set<string>();
 const productIds = new Set<string>();
@@ -305,6 +314,8 @@ for (const plugin of productionPluginCatalog) {
   if (plugin.pluginId === "public-knowledge-article-pipeline") {
     assert.equal(plugin.pluginVersion, 14);
     assert.doesNotMatch(source, /PRODUCT_FLOW_NOT_IMPLEMENTED:/u);
+    assert.doesNotMatch(source, /throw new Error/u,
+      "SEO Product-owned failures must remain typed through the runtime boundary");
     assert.match(source, /corpus_research/u);
     assert.match(source, /article_synthesis/u);
     assert.match(source, /article_image_generation/u);

@@ -65,6 +65,7 @@ for (const active of [
   "../../src/capabilities/gpt/contract.ts",
   "../../src/capabilities/gpt/ability-group.ts",
   "../../src/lib/local-runtime/production/production-gpt-child-tools.ts",
+  "../../src/lib/local-runtime/production/production-gpt-browser-lifecycle.ts",
   "../../src/lib/local-runtime/production/plugin.ts",
 ]) {
   const source = readFileSync(new URL(active, import.meta.url), "utf8");
@@ -109,6 +110,47 @@ const profile = buildGptExecutionProfile({
   acceptanceRef: "acceptance:gpt-exact-target",
   acceptanceVersion: "v1",
 });
+
+let profileOpen = false;
+const profileOpenFixture = fakeBrowser((intent) => {
+  if (intent.kind === "find") {
+    if (intent.selector === GPT_PROFILE_TRIGGER_SELECTOR) return { count: 1 };
+    if ([
+      GPT_PROFILE_POPUP_SELECTOR,
+      GPT_PROFILE_SIMPLE_PANEL_SELECTOR,
+      GPT_PROFILE_REASONING_CONTROL_SELECTOR,
+      GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR,
+      GPT_PROFILE_REASONING_VALUE_SELECTOR,
+    ].includes(String(intent.selector))) return { count: profileOpen ? 1 : 0 };
+  }
+  if (intent.kind === "click" && intent.selector === GPT_PROFILE_TRIGGER_SELECTOR) {
+    assert.deepEqual(intent.postClickMatch, {
+      selector: GPT_PROFILE_POPUP_SELECTOR,
+      expectedMatches: 1,
+      timeoutMs: 5_000,
+    });
+    assert.equal(intent.postClickAttribute, undefined);
+    profileOpen = true;
+    return { postconditionVerified: true };
+  }
+  throw new Error(`UNEXPECTED_PROFILE_OPEN_INTENT:${intent.kind}`);
+});
+const openedProfile = await execute("open_gpt_execution_profile", profileOpenFixture.browser, { profile });
+assert.equal(openedProfile.status, "success", openedProfile.failureCode ?? "profile open failed");
+assert.equal(profileOpenFixture.physicalMutations(), 1);
+
+const incompleteOpenProfileFixture = fakeBrowser((intent) => {
+  if (intent.kind === "find" && intent.selector === GPT_PROFILE_POPUP_SELECTOR) return { count: 1 };
+  if (intent.kind === "find") return { count: 0 };
+  throw new Error(`UNEXPECTED_INCOMPLETE_PROFILE_INTENT:${intent.kind}`);
+});
+const incompleteOpenProfile = await execute(
+  "open_gpt_execution_profile", incompleteOpenProfileFixture.browser, { profile },
+);
+assert.equal(incompleteOpenProfile.status, "failed");
+assert.match(incompleteOpenProfile.failureCode ?? "", /^GPT_EXECUTION_PROFILE_POPUP_INVALID:/u);
+assert.equal(incompleteOpenProfileFixture.physicalMutations(), 0,
+  "an existing popup without its active topology must fail without another click");
 
 const modelCount = (selector: string, open: boolean): number => {
   if (selector === GPT_PROFILE_POPUP_SELECTOR || selector === GPT_MODEL_SELECTION_V2_ENTRY_SELECTOR) return 1;
@@ -335,6 +377,7 @@ assert.equal(uploadTimeoutFixture.physicalMutations(), 0, "timed-out reconciliat
 const promptMarker = `[GRASSEYE:${"a".repeat(24)}]`;
 const prompt = `approved prompt\n${promptMarker}`;
 const promptHash = `sha256:${createHash("sha256").update(prompt).digest("hex")}`;
+const canonicalConversationUrl = "https://chatgpt.com/c/gpt-exact-target";
 const clearedPromptFixture = fakeBrowser((intent) => {
   if (intent.kind === "find" && intent.selector === GPT_USER_TURN_SELECTOR) return { count: 0 };
   if (intent.kind === "readText" && intent.selector === GPT_COMPOSER_SELECTOR) return "";
@@ -363,7 +406,127 @@ const retainedBeforeSubmit = await execute("submit_exact_gpt_turn_once", retaine
 assert.equal(retainedBeforeSubmit.status, "success", retainedBeforeSubmit.failureCode ?? "retained prompt submit failed");
 assert.equal(retainedPromptFixture.physicalMutations(), 1, "retained exact prompt may dispatch send exactly once");
 
+const assistantText = '{"schema_version":"public-knowledge-research-output.v3"}';
+const assistantHash = `sha256:${createHash("sha256").update(assistantText).digest("hex")}`;
+const assistantCheckpointFixture = fakeBrowser((intent) => {
+  if (intent.kind === "document") return { url: canonicalConversationUrl, title: "ChatGPT" };
+  if (intent.kind === "find" && intent.selector === GPT_USER_TURN_SELECTOR) return { count: 1 };
+  if (intent.kind === "readAttribute" && intent.selector === GPT_USER_TURN_SELECTOR) return "conversation-turn-1";
+  if (intent.kind === "readText"
+    && intent.selector === `[data-testid="conversation-turn-1"][data-turn='user'] [data-message-author-role='user']`) {
+    return prompt;
+  }
+  if (intent.kind === "inspect") {
+    assert.equal(
+      intent.selector,
+      `[data-testid="conversation-turn-2"][data-turn='assistant'] [data-message-author-role='assistant']`,
+    );
+    return {
+      outerHtml: `<div data-message-author-role="assistant">${assistantText}</div>`,
+      semanticText: assistantText,
+      visible: true,
+      connected: true,
+    };
+  }
+  throw new Error(`UNEXPECTED_ASSISTANT_CHECKPOINT_INTENT:${intent.kind}`);
+});
+const assistantCheckpoint = await execute(
+  "checkpoint_gpt_text_response",
+  assistantCheckpointFixture.browser,
+  {
+    assistantTurnId: "conversation-turn-2", canonicalConversationUrl,
+    expectedPromptHash: promptHash, expectedResponseHash: assistantHash, turnMarker: promptMarker,
+  },
+);
+assert.equal(assistantCheckpoint.status, "success", assistantCheckpoint.failureCode ?? "assistant checkpoint failed");
+assert.equal(
+  (assistantCheckpoint.value as Readonly<Record<string, unknown>>).semanticText,
+  assistantText,
+  "checkpoint must read only the assistant message body, excluding turn headings and action controls",
+);
+
+const nonAdjacentAssistant = await execute(
+  "checkpoint_gpt_text_response",
+  assistantCheckpointFixture.browser,
+  {
+    assistantTurnId: "conversation-turn-3", canonicalConversationUrl,
+    expectedPromptHash: promptHash, expectedResponseHash: assistantHash, turnMarker: promptMarker,
+  },
+);
+assert.equal(nonAdjacentAssistant.status, "failed");
+assert.equal(nonAdjacentAssistant.failureCode, "GPT_RESPONSE_CHECKPOINT_MISMATCH");
+
+const responseHashDrift = await execute(
+  "checkpoint_gpt_text_response",
+  assistantCheckpointFixture.browser,
+  {
+    assistantTurnId: "conversation-turn-2", canonicalConversationUrl,
+    expectedPromptHash: promptHash, expectedResponseHash: `sha256:${"f".repeat(64)}`,
+    turnMarker: promptMarker,
+  },
+);
+assert.equal(responseHashDrift.status, "failed");
+assert.equal(responseHashDrift.failureCode, "GPT_RESPONSE_CHECKPOINT_MISMATCH");
+
+let driftDocumentReads = 0;
+const urlDriftFixture = fakeBrowser((intent) => {
+  if (intent.kind === "document") {
+    driftDocumentReads += 1;
+    return {
+      url: driftDocumentReads === 1 ? "https://chatgpt.com/" : canonicalConversationUrl,
+      title: "ChatGPT",
+    };
+  }
+  if (intent.kind === "find" && intent.selector === GPT_USER_TURN_SELECTOR) return { count: 1 };
+  if (intent.kind === "readAttribute" && intent.selector === GPT_USER_TURN_SELECTOR) {
+    return "conversation-turn-1";
+  }
+  if (intent.kind === "readText"
+    && intent.selector === `[data-testid="conversation-turn-1"][data-turn='user'] [data-message-author-role='user']`) {
+    return prompt;
+  }
+  if (intent.kind === "find"
+    && intent.selector === `[data-testid="conversation-turn-2"][data-turn='assistant'] [data-message-author-role='assistant']`) {
+    return { count: 1 };
+  }
+  if (intent.kind === "inspect") return { semanticText: assistantText, visible: true, connected: true };
+  if (intent.kind === "find" && intent.selector === GPT_GENERATING_STOP_SELECTOR) return { count: 0 };
+  throw new Error(`UNEXPECTED_URL_DRIFT_INTENT:${intent.kind}`);
+}, { initialUrl: "https://chatgpt.com/" });
+const urlDriftRecovered = await execute("wait_for_stable_gpt_text", urlDriftFixture.browser, {
+  absoluteDeadline: new Date(Date.now() - 60_000).toISOString(),
+  canonicalConversationUrl,
+  expectedPromptHash: promptHash,
+  turnMarker: promptMarker,
+});
+assert.equal(urlDriftRecovered.status, "success", urlDriftRecovered.failureCode ?? "URL drift recovery failed");
+assert.equal(urlDriftFixture.physicalMutations(), 1,
+  "polling URL drift must navigate the same exact Target once and never create or guess another Tab");
+assert.deepEqual(urlDriftFixture.waitDurations(), [250],
+  "URL recovery uses one bounded hydration wait before URL + hash readback");
+
+const wrongPromptHashFixture = fakeBrowser((intent) => {
+  if (intent.kind === "document") return { url: canonicalConversationUrl, title: "ChatGPT" };
+  if (intent.kind === "find" && intent.selector === GPT_USER_TURN_SELECTOR) return { count: 1 };
+  if (intent.kind === "readAttribute" && intent.selector === GPT_USER_TURN_SELECTOR) {
+    return "conversation-turn-1";
+  }
+  if (intent.kind === "readText") return `${prompt}\nprovider-mutated`;
+  throw new Error(`UNEXPECTED_WRONG_PROMPT_HASH_INTENT:${intent.kind}`);
+});
+const wrongPromptHash = await execute("wait_for_stable_gpt_text", wrongPromptHashFixture.browser, {
+  absoluteDeadline: new Date(Date.now() - 60_000).toISOString(),
+  canonicalConversationUrl,
+  expectedPromptHash: promptHash,
+  turnMarker: promptMarker,
+});
+assert.equal(wrongPromptHash.status, "failed");
+assert.equal(wrongPromptHash.failureCode, "GPT_USER_TURN_HASH_MISMATCH");
+assert.equal(wrongPromptHashFixture.physicalMutations(), 0,
+  "matching URL and marker must never accept a different prompt hash");
+
 const providerWaitFixture = fakeBrowser((intent) => {
+  if (intent.kind === "document") return { url: canonicalConversationUrl, title: "ChatGPT" };
   if (intent.kind === "find" && intent.selector === GPT_USER_TURN_SELECTOR) return { count: 0 };
   throw new Error(`UNEXPECTED_PROVIDER_WAIT_INTENT:${intent.kind}`);
 });
@@ -371,6 +534,8 @@ const yielded: number[] = [];
 const providerWaitDeadline = new Date(Date.now() + 75).toISOString();
 const providerWaitResult = await execute("wait_for_stable_gpt_text", providerWaitFixture.browser, {
   absoluteDeadline: providerWaitDeadline,
+  canonicalConversationUrl,
+  expectedPromptHash: promptHash,
   turnMarker: promptMarker,
 }, undefined, {
   yieldForProviderWait: async (durationMs) => {
@@ -384,8 +549,45 @@ assert.equal(yielded.length >= 1, true, "Provider wait must cooperatively yield 
 assert.equal(yielded.every((duration) => duration >= 25 && duration <= 5_000), true);
 assert.deepEqual(providerWaitFixture.waitDurations(), [], "cooperative Provider wait must not hold Browser.wait");
 
+const overdueTextFixture = fakeBrowser((intent) => {
+  if (intent.kind === "document") return { url: canonicalConversationUrl, title: "ChatGPT" };
+  if (intent.kind === "find" && intent.selector === GPT_USER_TURN_SELECTOR) return { count: 1 };
+  if (intent.kind === "readAttribute" && intent.selector === GPT_USER_TURN_SELECTOR) {
+    assert.equal(intent.textContains, promptMarker,
+      "the exact turn marker must scope user-turn identity in a multi-turn conversation");
+    return "conversation-turn-1";
+  }
+  if (intent.kind === "readText"
+    && intent.selector === `[data-testid="conversation-turn-1"][data-turn='user'] [data-message-author-role='user']`) {
+    return prompt;
+  }
+  if (intent.kind === "find"
+    && intent.selector === `[data-testid="conversation-turn-2"][data-turn='assistant'] [data-message-author-role='assistant']`) {
+    return { count: 1 };
+  }
+  if (intent.kind === "inspect") return { semanticText: assistantText, visible: true, connected: true };
+  if (intent.kind === "find" && intent.selector === GPT_GENERATING_STOP_SELECTOR) return { count: 0 };
+  throw new Error(`UNEXPECTED_OVERDUE_TEXT_INTENT:${intent.kind}`);
+});
+const overdueText = await execute("wait_for_stable_gpt_text", overdueTextFixture.browser, {
+  absoluteDeadline: new Date(Date.now() - 60_000).toISOString(),
+  canonicalConversationUrl,
+  expectedPromptHash: promptHash,
+  turnMarker: promptMarker,
+});
+assert.equal(overdueText.status, "success", overdueText.failureCode ?? "overdue text readback failed");
+assert.equal(
+  (overdueText.value as Readonly<Record<string, unknown>>).responseHash,
+  assistantHash,
+  "an overdue confirmed Provider turn must read back its terminal response without replaying submit",
+);
+assert.equal(overdueTextFixture.physicalMutations(), 0);
+assert.deepEqual(overdueTextFixture.waitDurations(), []);
+
 const invalidDeadline = await execute("wait_for_stable_gpt_text", providerWaitFixture.browser, {
   absoluteDeadline: new Date(Date.now() + 3_700_000).toISOString(),
+  canonicalConversationUrl,
+  expectedPromptHash: promptHash,
   turnMarker: promptMarker,
 });
 assert.equal(invalidDeadline.status, "failed");

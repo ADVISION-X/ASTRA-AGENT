@@ -196,10 +196,12 @@ const currentSchemaPresent = (database: Database.Database): boolean => {
   const tasks = tableColumns(database, "production_tasks");
   const outbox = tableColumns(database, "production_outbox");
   const failures = tableColumns(database, "production_attempt_failures");
+  const failureColumns = ["job_id", "attempt_id", "failure_json", "created_at"] as const;
   return tasks.has("current_attempt_id") && tasks.has("current_reason")
     && tableColumns(database, "production_steps").size === 0
     && !tasks.has("failure_json") && !tasks.has("failure_reason")
-    && failures.has("attempt_id") && failures.has("failure_json")
+    && failures.size === failureColumns.length
+    && failureColumns.every((column) => failures.has(column))
     && outbox.has("last_error") && outbox.has("next_delivery_at")
     && !outbox.has("delivery_build_hash") && !outbox.has("delivery_attempt_count")
     && !outbox.has("delivery_parked_at");

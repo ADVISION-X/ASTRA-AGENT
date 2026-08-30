@@ -8,14 +8,20 @@ import { recordStaticCheck } from "../../shared/static-inspection-contract.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
 
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V12";
+const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V13";
 const PLUGIN_ROOT = "src/plugins";
 const CATALOG_PATH = "src/lib/local-runtime/production/catalog.ts";
 const CONTRACT_PATH = "src/lib/local-runtime/production/contracts.ts";
 const PLUGIN_CONTRACT_PATH = "src/lib/local-runtime/production/plugin.ts";
 const EXECUTOR_PATH = "src/lib/local-runtime/production/executor.ts";
 const CHILD_TOOLS_PATH = "src/lib/local-runtime/production/production-gpt-child-tools.ts";
+const CHILD_BROWSER_LIFECYCLE_PATH =
+  "src/lib/local-runtime/production/production-gpt-browser-lifecycle.ts";
 const STORE_FOUNDATION_PATH = "src/lib/local-runtime/production/store-foundation.ts";
+const STORE_TASK_STATE_PATH = "src/lib/local-runtime/production/store-task-state.ts";
+const CLOUD_RECONCILIATION_PATH =
+  "src/lib/local-runtime/production/cloud-reconciliation-client.ts";
+const TRANSPORT_PROTOCOL_PATH = "src/lib/local-runtime/production/transport-protocol.ts";
 
 const retiredPaths = [
   "src/capabilities/gpt/gpt-turn-executor.ts",
@@ -50,9 +56,13 @@ const pluginIds = (context: InspectorContext): string[] => {
 const inspectAgentProductionRuntime = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const executor = read(context, EXECUTOR_PATH);
   const childTools = read(context, CHILD_TOOLS_PATH);
+  const childRuntime = `${childTools}\n${read(context, CHILD_BROWSER_LIFECYCLE_PATH)}`;
   const store = read(context, STORE_FOUNDATION_PATH);
+  const taskStateStore = read(context, STORE_TASK_STATE_PATH);
+  const cloudReconciliation = read(context, CLOUD_RECONCILIATION_PATH);
+  const transportProtocol = read(context, TRANSPORT_PROTOCOL_PATH);
   for (const token of ["runTurn", "GptTurnExecutor", "GPT_TURN_FLOW", "resumePoint", "reconcileOnly"])
-    if (`${executor}\n${childTools}`.includes(token)) findings.push(finding(
+    if (`${executor}\n${childRuntime}`.includes(token)) findings.push(finding(
       "agent-production-runtime/central-turn-owner-retired", EXECUTOR_PATH,
       `Shared runtime retains retired GPT turn token ${token}.`,
     ));
@@ -60,8 +70,9 @@ const inspectAgentProductionRuntime = (context: InspectorContext, findings: Insp
     "ProductionGptChildTools", "this.gpt.execute(intent", "runAtomicStep(",
     'mutationMode: "readback"', "sessionKey", "productStepId", "callId", "childCapabilityId", "inputHash",
     "readCallFacts", "gptExactCallIdentityHash", "readExactCallMutationFact", "readExactCallEvidence",
-    "exactCallIdentityHash", "yieldForProviderWait", 'mode: "normal-provider-wait"', 'mode: "recovery"',
-  ]) if (!childTools.includes(required)) findings.push(finding(
+    "exactCallIdentityHash", "readContinuationForTurn", "prior_turn_marker",
+    "yieldForProviderWait", 'mode: "normal-provider-wait"', 'mode: "recovery"',
+  ]) if (!childRuntime.includes(required)) findings.push(finding(
     "agent-production-runtime/one-child-transport", CHILD_TOOLS_PATH,
     `Child transport is missing ${required}.`,
   ));
@@ -82,6 +93,21 @@ const inspectAgentProductionRuntime = (context: InspectorContext, findings: Insp
       "agent-production-runtime/global-gpt-checkpoint-retired", STORE_FOUNDATION_PATH,
       `Production store retains retired global GPT checkpoint token ${forbidden}.`,
     ));
+  if (/accepted_attempt_limit\s*===\s*3|accepted_attempt_count[\s\S]{0,80}<=\s*3/u
+    .test(cloudReconciliation) || /accepted_attempt_count[\s\S]{0,80}\.max\(3\)/u.test(transportProtocol)) {
+    findings.push(finding(
+      "agent-production-runtime/website-owned-attempt-budget",
+      CLOUD_RECONCILIATION_PATH,
+      "AGENT must validate attempt-count machine shape without hard-coding Website retry policy.",
+    ));
+  }
+  for (const required of [
+    "readGptContinuationForOriginJob", "turnMarker", "json_extract(provider_json,'$.prior_turn_marker')=?",
+  ]) if (!taskStateStore.includes(required)) findings.push(finding(
+    "agent-production-runtime/attempt-bound-continuation-read",
+    STORE_TASK_STATE_PATH,
+    `Continuation recovery must use the Product's exact current-attempt marker; missing ${required}.`,
+  ));
   for (const pluginId of pluginIds(context)) {
     const path = `${PLUGIN_ROOT}/${pluginId}/index.ts`;
     const source = read(context, path);
@@ -120,11 +146,10 @@ const inspectAgentProductionRuntime = (context: InspectorContext, findings: Insp
           "SEO Prompt leaks internal parameters or duplicates Website-forbidden image creative rules.",
         ));
       for (const required of [
-        "route.result_contract", "contractFields(contract", "decision_values", "novelty_basis_values",
-        "reader_level_values", "claim_kind_values", "relation_kind_values", "status_values",
+        "route.result_contract", "result.parseJsonObject", "decision_values", "Object.freeze(output)",
       ]) if (!resultContract.includes(required)) findings.push(finding(
         "agent-production-runtime/seo-result-contract-projection", `${PLUGIN_ROOT}/${pluginId}/result-contract.ts`,
-        `SEO parser does not consume Website contract token ${required}.`,
+        `SEO receiver is missing basic machine-format or lossless receipt token ${required}.`,
       ));
       for (const required of [
         "public-knowledge-article-package-contract.v1", '"package"', '"research"', '"article"', '"image"',
@@ -190,9 +215,11 @@ const inspectAgentTypes = (context: InspectorContext, findings: InspectorFinding
   ));
   const toolFields = productGptTools?.getMembers().flatMap((member) =>
     Node.isPropertySignature(member) || Node.isMethodSignature(member) ? [member.getName()] : []).sort() ?? [];
-  if (JSON.stringify(toolFields) !== JSON.stringify(["attemptId", "execute", "readCallFacts"].sort())) findings.push(finding(
+  if (JSON.stringify(toolFields) !== JSON.stringify([
+    "attemptId", "execute", "readCallFacts", "readContinuationForTurn",
+  ].sort())) findings.push(finding(
     "agent-production-runtime/product-gpt-tools-type", PLUGIN_CONTRACT_PATH,
-    `ProductGptTools may expose only attemptId, execute and readCallFacts; found ${toolFields.join(",")}.`, "static.types",
+    `ProductGptTools may expose only attemptId, execute, readCallFacts and readContinuationForTurn; found ${toolFields.join(",")}.`, "static.types",
   ));
   const execute = productGptTools?.getMethod("execute")?.getText() ?? "";
   for (const required of ["sessionKey", "productStepId", "callId", "child", "actionOrdinal", "input"])

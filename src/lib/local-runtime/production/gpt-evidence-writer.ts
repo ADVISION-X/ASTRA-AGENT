@@ -56,12 +56,49 @@ const generatedImageArtifacts = async (value: unknown): Promise<EvidenceArtifact
   ];
 };
 
+const observedResponseArtifact = (value: unknown): EvidenceArtifact => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw executionFailure("failed", "GPT_TEXT_TASK_ARTIFACT_MISSING");
+  }
+  const row = value as Record<string, unknown>;
+  const assistantTurnId = row.assistantTurnId;
+  const rawDomHtml = row.rawDomHtml;
+  const rawDomHash = row.rawDomHash;
+  const semanticText = row.semanticText;
+  const semanticTextHash = row.semanticTextHash;
+  if (typeof assistantTurnId !== "string" || !assistantTurnId
+    || typeof rawDomHtml !== "string" || !rawDomHtml
+    || typeof rawDomHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(rawDomHash)
+    || typeof semanticText !== "string" || !semanticText.trim()
+    || typeof semanticTextHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(semanticTextHash)
+    || hash(rawDomHtml) !== rawDomHash || hash(semanticText) !== semanticTextHash) {
+    throw executionFailure("failed", "GPT_TEXT_TASK_ARTIFACT_INVALID");
+  }
+  const content = new TextEncoder().encode(JSON.stringify({
+    schemaVersion: "agent-observed-response-artifact.v1",
+    assistantTurnId,
+    rawDomHtml,
+    rawDomHash,
+    semanticText,
+    semanticTextHash,
+  }));
+  return {
+    suffix: "observed-response",
+    artifactType: "ai_raw_output",
+    mimeType: "application/json",
+    content,
+  };
+};
+
 const evidenceArtifacts = async (
   result: GptChildCapabilityResult,
   intent: Parameters<GptAbilityGroup["execute"]>[0],
 ): Promise<EvidenceArtifact[]> => {
   if (result.status !== "success") return [];
   if (intent.childCapabilityId === "checkpoint_gpt_generated_image") return generatedImageArtifacts(result.value);
+  if (intent.childCapabilityId === "checkpoint_gpt_text_response") {
+    return [observedResponseArtifact(result.value)];
+  }
   return [];
 };
 
@@ -101,7 +138,7 @@ export const persistGptChildEvidence = async (input: Readonly<{
   attemptId: string;
   stepId: string;
   exactCallIdentityHash: `sha256:${string}`;
-}>): Promise<string> => {
+}>): Promise<Readonly<{ evidenceRef: string; artifactRefs: readonly string[] }>> => {
   const artifactRefs: string[] = [];
   for (const artifact of await evidenceArtifacts(input.result, input.intent)) {
     artifactRefs.push(await appendVerifiedArtifact({
@@ -128,5 +165,5 @@ export const persistGptChildEvidence = async (input: Readonly<{
     throw executionFailure("failed", "EVIDENCE_READBACK_FAILED");
   }
   persistedEvidenceRefs.set(input.result, appended.recordRef);
-  return appended.recordRef;
+  return Object.freeze({ evidenceRef: appended.recordRef, artifactRefs: Object.freeze(artifactRefs) });
 };

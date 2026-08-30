@@ -114,12 +114,81 @@ export const accessibilityValue = async (runtime: ExtensionDebuggerRuntime, tabI
 };
 
 export const nodeText = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number): Promise<string> => {
-  const described = record(await runtime.send(tabId, "DOM.describeNode", { nodeId, depth: -1, pierce: true }));
-  const node = record(described.node);
+  const node = await describeNodeTree(runtime, tabId, nodeId);
   return attribute(node, "contenteditable") === "true"
     ? collectContentEditableText(node)
     : collectNodeText(node);
 };
+
+const describeNodeTree = async (
+  runtime: ExtensionDebuggerRuntime,
+  tabId: number,
+  nodeId: number,
+): Promise<DevToolsRecord> => record(record(await runtime.send(
+  tabId, "DOM.describeNode", { nodeId, depth: -1, pierce: true },
+)).node);
+
+const codeBlocks = (node: DevToolsRecord, insidePre = false): readonly DevToolsRecord[] => {
+  const name = typeof node.nodeName === "string" ? node.nodeName.toUpperCase() : "";
+  const nestedPre = insidePre || name === "PRE";
+  const own = name === "CODE" && nestedPre ? [node] : [];
+  const children = Array.isArray(node.children)
+    ? node.children.flatMap((child) => codeBlocks(record(child), nestedPre)) : [];
+  return [...own, ...children];
+};
+
+const semanticChildren = (node: DevToolsRecord): string => Array.isArray(node.children)
+  ? node.children.map((child) => semanticNode(record(child), node)).join("") : "";
+
+const inlineCode = (value: string): string => {
+  const longestRun = Math.max(0, ...[...value.matchAll(/`+/gu)].map((match) => match[0].length));
+  const fence = "`".repeat(longestRun + 1);
+  return `${fence}${value}${fence}`;
+};
+
+const BLOCK_NODE_NAMES = new Set([
+  "ADDRESS", "ARTICLE", "ASIDE", "BLOCKQUOTE", "DD", "DIV", "DL", "DT", "FIGCAPTION",
+  "FIGURE", "FOOTER", "FORM", "H1", "H2", "H3", "H4", "H5", "H6", "HEADER", "HR",
+  "MAIN", "NAV", "OL", "P", "PRE", "SECTION", "TABLE", "TBODY", "TD", "TFOOT", "TH",
+  "THEAD", "TR", "UL",
+]);
+
+const semanticNode = (node: DevToolsRecord, parent?: DevToolsRecord): string => {
+  const name = typeof node.nodeName === "string" ? node.nodeName.toUpperCase() : "";
+  if (name === "#TEXT") return typeof node.nodeValue === "string" ? node.nodeValue : "";
+  if (["#COMMENT", "SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE", "SVG", "PATH"].includes(name)
+    || attribute(node, "hidden") !== undefined || attribute(node, "aria-hidden") === "true") return "";
+  if (name === "BR") return "\n";
+  const body = semanticChildren(node);
+  if (name === "STRONG" || name === "B") return `**${body}**`;
+  if (name === "EM" || name === "I") return `*${body}*`;
+  if (name === "CODE") return inlineCode(body);
+  if (name === "LI") {
+    const parentName = typeof parent?.nodeName === "string" ? parent.nodeName.toUpperCase() : "";
+    return `${parentName === "OL" ? "1. " : "- "}${body}\n`;
+  }
+  return BLOCK_NODE_NAMES.has(name) ? `${body}\n` : body;
+};
+
+export const nodeSemanticText = async (
+  runtime: ExtensionDebuggerRuntime,
+  tabId: number,
+  nodeId: number,
+): Promise<string> => semanticTextFromTree(await describeNodeTree(runtime, tabId, nodeId));
+
+const semanticTextFromTree = (node: DevToolsRecord): string => {
+  const candidates = codeBlocks(node);
+  return candidates.length === 1 ? collectNodeText(candidates[0]!) : semanticChildren(node);
+};
+
+export const nodeOuterHtml = async (
+  runtime: ExtensionDebuggerRuntime,
+  tabId: number,
+  nodeId: number,
+): Promise<string> => stringValue(
+  record(await runtime.send(tabId, "DOM.getOuterHTML", { nodeId })).outerHTML,
+  "BROWSER_TARGET_INVALID",
+);
 
 const collectContentEditableText = (node: DevToolsRecord): string => {
   const children = Array.isArray(node.children) ? node.children.map(record) : [];
@@ -165,9 +234,26 @@ const staticFieldReaders: Readonly<Record<string, (node: DevToolsRecord) => unkn
 export const inspectNode = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number, fields: readonly string[]): Promise<Readonly<Record<string, unknown>>> => {
   const node = await describeNode(runtime, tabId, nodeId);
   const result: Record<string, unknown> = {};
+  let stableOuterHtml: string | undefined;
+  let semanticText: string | undefined;
+  if (fields.includes("outerHtml") && fields.includes("semanticText")) {
+    const before = await nodeOuterHtml(runtime, tabId, nodeId);
+    semanticText = await nodeSemanticText(runtime, tabId, nodeId);
+    const after = await nodeOuterHtml(runtime, tabId, nodeId);
+    if (before !== after) throw new Error("BROWSER_DOM_OBSERVATION_DRIFT");
+    stableOuterHtml = before;
+  }
   for (const field of fields) {
     if (field === "text") {
       result.text = await nodeText(runtime, tabId, nodeId);
+      continue;
+    }
+    if (field === "outerHtml") {
+      result.outerHtml = stableOuterHtml ?? await nodeOuterHtml(runtime, tabId, nodeId);
+      continue;
+    }
+    if (field === "semanticText") {
+      result.semanticText = semanticText ?? await nodeSemanticText(runtime, tabId, nodeId);
       continue;
     }
     const reader = staticFieldReaders[field];

@@ -3,17 +3,22 @@
   "capabilityDomain": "agent-production-runtime",
   "status": "active",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V12"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V13"
   ],
   "ownedPaths": [
     "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
     "docs/specs/agent-production-runtime/**",
     "docs/项目方案/AGNET迭代会议记录.md",
     "docs/项目方案/智慧调度方案.md",
+    "docs/项目方案/本地化技能实现方案.md",
     "scripts/acceptance/agent-product-skills.acceptance.ts",
+    "scripts/acceptance/agent-production-gpt-browser-lifecycle.acceptance.ts",
+    "scripts/acceptance/agent-production-provider-recovery.acceptance.ts",
     "scripts/acceptance/agent-production-runtime-continuation.acceptance.ts",
     "scripts/acceptance/agent-production-runtime-fixtures.ts",
     "scripts/acceptance/agent-production-runtime-ledger.acceptance.ts",
+    "scripts/acceptance/agent-production-runtime-recovery-contract.acceptance.ts",
+    "scripts/acceptance/agent-production-runtime-recovery-resume.acceptance.ts",
     "scripts/acceptance/agent-production-runtime-startup.acceptance.ts",
     "scripts/acceptance/agent-production-runtime.acceptance.ts",
     "scripts/acceptance/agent-production-runtime.real-proof-support.ts",

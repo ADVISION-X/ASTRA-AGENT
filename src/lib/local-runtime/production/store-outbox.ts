@@ -1,5 +1,14 @@
 import { executionFailure, failureCode, typedExecutionFailure } from "../../typed-failure.js";
 import { hashCanonical, parseTerminalReceipt, parseTerminalReceiptExpectation, type ProductionHash } from "./contracts.js";
+import {
+  assertReceiptIdentity,
+  isRejectedCheckpointSequenceFailure,
+  proveRecoveryCheckpointPrefix,
+  type LocalReceiptIntent,
+  type RecoveryCheckpointPrefix,
+  type RecoveryOutboxRow,
+  type RemoteReceipt,
+} from "./store-outbox-recovery-proof.js";
 import { ProductionStoreTaskState } from "./store-task-state.js";
 import {
   json,
@@ -7,22 +16,6 @@ import {
   type ProductionOutboxAuthority,
   type ProductionOutboxWrite,
 } from "./store-foundation.js";
-
-type RemoteReceipt = Readonly<{
-  request_id: string;
-  write_kind: string;
-  payload_hash: ProductionHash;
-  response_json: Record<string, unknown>;
-}>;
-
-type LocalReceiptIntent = Readonly<{
-  kind: ProductionOutboxWrite["kind"];
-  path: string;
-  headers_json: string;
-  body_blob: Buffer;
-  response_json: string | null;
-  response_hash: ProductionHash | null;
-}>;
 
 const OUTBOX_RETRY_DELAY_MS = 5_000;
 const OUTBOX_STALE_RETIRE_CODES = new Set([
@@ -34,22 +27,6 @@ const OUTBOX_STALE_RETIRE_CODES = new Set([
 const receiptHashOf = (response: Record<string, unknown>): ProductionHash | null =>
   typeof response.receipt_hash === "string" && /^sha256:[a-f0-9]{64}$/u.test(response.receipt_hash)
     ? response.receipt_hash as ProductionHash : null;
-
-const payloadHashOf = (local: LocalReceiptIntent): ProductionHash => {
-  const headers = JSON.parse(local.headers_json) as Record<string, string>;
-  return local.kind === "artifact" ? headers["x-ai-content-sha256"] as ProductionHash
-    : hashCanonical(JSON.parse(local.body_blob.toString("utf8")) as unknown);
-};
-
-const assertReceiptIdentity = (jobId: string, local: LocalReceiptIntent, receipt: RemoteReceipt): void => {
-  const pathJobId = /\/jobs\/([^/]+)\//u.exec(local.path)?.[1];
-  if (!pathJobId || decodeURIComponent(pathJobId) !== jobId || local.kind !== receipt.write_kind) {
-    throw executionFailure("failed", "PRODUCTION_REMOTE_RECEIPT_IDENTITY_MISMATCH");
-  }
-  if (payloadHashOf(local) !== receipt.payload_hash) {
-    throw executionFailure("failed", "PRODUCTION_REMOTE_RECEIPT_PAYLOAD_MISMATCH");
-  }
-};
 
 const assertTerminalReceipt = (local: LocalReceiptIntent, response: Record<string, unknown>): void => {
   if (local.kind !== "terminal") return;
@@ -150,7 +127,33 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
 
   public hasUnsentOutbox(jobId: string): boolean {
     return Boolean(this.database.prepare(`select 1 from production_outbox
-      where path like ? and sent_at is null limit 1`).get(`%/jobs/${encodeURIComponent(jobId)}/%`));
+      where path like ? and sent_at is null
+        and (last_error is null or next_delivery_at is not null) limit 1`
+    ).get(`%/jobs/${encodeURIComponent(jobId)}/%`));
+  }
+
+  public rejectedCheckpointIntent(input: Readonly<{
+    jobId: string;
+    attemptId: string;
+    checkpointSeq: number;
+    checkpointKind: string;
+    attemptFailure: unknown;
+  }>): string | null {
+    const rows = this.database.prepare(`select body_blob,last_error from production_outbox
+      where kind='checkpoint' and path like ? and sent_at is null and response_hash is null
+        and last_error is not null and next_delivery_at is null order by created_at,idempotency_key`
+    ).all(`%/jobs/${encodeURIComponent(input.jobId)}/%`) as Array<{
+      body_blob: Buffer; last_error: string;
+    }>;
+    for (const row of rows) {
+      if (row.last_error === "CLOUD_TRANSPORT_UNAVAILABLE"
+        || row.last_error.startsWith("STALE_LEASE_OUTBOX_RETIRED:")) continue;
+      const body = JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>;
+      if (body.job_id === input.jobId && body.attempt_id === input.attemptId
+        && body.checkpoint_seq === input.checkpointSeq && body.checkpoint_kind === input.checkpointKind
+        && json(body.attempt_failure) === json(input.attemptFailure)) return row.last_error;
+    }
+    return null;
   }
 
   private hydrateOne(jobId: string, receipt: RemoteReceipt): boolean {
@@ -160,8 +163,14 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
     assertReceiptIdentity(jobId, local, receipt);
     const responseJson = json(receipt.response_json);
     const responseHash = hashCanonical(receipt.response_json);
-    if (local.response_hash) {
-      if (local.response_hash !== responseHash || local.response_json !== responseJson) {
+    if (Boolean(local.response_json) !== Boolean(local.response_hash)) {
+      throw executionFailure("failed", "PRODUCTION_OUTBOX_RESPONSE_CONFLICT");
+    }
+    if (local.response_hash && local.response_json) {
+      let localResponse: unknown;
+      try { localResponse = JSON.parse(local.response_json) as unknown; }
+      catch { throw executionFailure("failed", "PRODUCTION_OUTBOX_RESPONSE_CONFLICT"); }
+      if (hashCanonical(localResponse) !== local.response_hash || local.response_hash !== responseHash) {
         throw executionFailure("failed", "PRODUCTION_OUTBOX_RESPONSE_CONFLICT");
       }
       return false;
@@ -188,6 +197,49 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
       return hydrated;
     });
     return transaction();
+  }
+
+  public recoverCheckpointPrefix(input: Readonly<{
+    jobId: string;
+    attemptId: string;
+    acceptedAttemptCount: number;
+    receipts: readonly RemoteReceipt[];
+  }>): RecoveryCheckpointPrefix {
+    this.hydrateRemoteOutboxReceipts(input.jobId, input.receipts);
+    return this.database.transaction(() => {
+      const task = this.readTask(input.jobId);
+      if (!task || task.status !== "failed" || task.current_attempt_id !== input.attemptId
+        || task.staged_result !== null) {
+        throw executionFailure("failed", "PRODUCTION_RECOVERY_TASK_AUTHORITY_CONFLICT");
+      }
+      const activeRejectedFailure = task.attempt_failure !== null
+        && isRejectedCheckpointSequenceFailure(task.attempt_failure);
+      if (task.attempt_failure && !activeRejectedFailure) {
+        throw executionFailure("failed", "PRODUCTION_RECOVERY_FAILURE_SHAPE_MISMATCH");
+      }
+      const rows = this.database.prepare(`select idempotency_key,kind,path,headers_json,body_blob,
+        sent_at,last_error,response_json,response_hash,next_delivery_at
+        from production_outbox where path like ? order by created_at,idempotency_key`
+      ).all(`%/jobs/${encodeURIComponent(input.jobId)}/%`) as RecoveryOutboxRow[];
+      if (rows.length === 0 || rows.some((row) => row.kind !== "checkpoint")) {
+        throw executionFailure("failed", "PRODUCTION_RECOVERY_RESULT_WRITE_PRESENT");
+      }
+      const prefix = proveRecoveryCheckpointPrefix({
+        ...input,
+        rows,
+      });
+      if (activeRejectedFailure) {
+        if (!prefix.rejectedIncident) {
+          throw executionFailure("failed", "PRODUCTION_RECOVERY_REJECTED_INCIDENT_MISSING");
+        }
+        this.removeRejectedCheckpointFalseFailure({
+          jobId: input.jobId,
+          attemptId: input.attemptId,
+          failure: task.attempt_failure!,
+        });
+      }
+      return Object.freeze({ checkpointSeq: prefix.checkpointSeq, checkpointHash: prefix.checkpointHash });
+    })();
   }
 
   private recordDeliveryFailure(
