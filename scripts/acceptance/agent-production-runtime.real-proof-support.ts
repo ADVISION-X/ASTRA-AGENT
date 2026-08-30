@@ -1,12 +1,91 @@
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import Database from "better-sqlite3";
+import { chromium, type BrowserContext } from "playwright";
 
 import {
   runtimeEventIntegrityValid,
   runtimeLogEventShapeValid,
   type RuntimeLogEventV2,
 } from "../../src/lib/runtime-logs/index.js";
+import { GRASSEYE_UNPACKED_EXTENSION_ID } from "../../src/lib/browser/release/unpacked-extension-release-identity.js";
+import type { BrowserProfileConfig } from "../../src/lib/browser/profile/browser-profile-config.js";
+
+export const waitForProductionProof = async (
+  label: string,
+  predicate: () => boolean | Promise<boolean>,
+  timeoutMs: number,
+): Promise<void> => {
+  const deadline = Date.now() + Math.max(1, timeoutMs - 30_000);
+  while (Date.now() < deadline) {
+    if (await predicate()) return;
+    await new Promise((done) => setTimeout(done, 500));
+  }
+  throw new Error(`PRODUCTION_DYNAMIC_PROOF_TIMEOUT:${label}`);
+};
+
+export const productionProofChromeOptions = (
+  browserProfile: BrowserProfileConfig,
+): Parameters<typeof chromium.launchPersistentContext>[1] => {
+  assert.equal(browserProfile.extensionId, GRASSEYE_UNPACKED_EXTENSION_ID);
+  assert.equal(existsSync(browserProfile.unpackedExtensionDirectory), true,
+    "the governed unpacked extension build is required");
+  return {
+    executablePath: chromium.executablePath(), headless: false,
+    args: [
+      `--disable-extensions-except=${browserProfile.unpackedExtensionDirectory}`,
+      `--load-extension=${browserProfile.unpackedExtensionDirectory}`,
+      "--no-first-run", "--no-default-browser-check", "--disable-component-update",
+      "--disable-search-engine-choice-screen",
+    ],
+  };
+};
+
+export const requireProductionProofExtensionWorker = async (context: BrowserContext): Promise<void> => {
+  const prefix = `chrome-extension://${GRASSEYE_UNPACKED_EXTENSION_ID}/`;
+  if (!context.serviceWorkers().some((worker) => worker.url().startsWith(prefix))) {
+    const worker = await context.waitForEvent("serviceworker");
+    assert.equal(worker.url().startsWith(prefix), true);
+  }
+};
+
+export const sentProductionCheckpointPrefix = (
+  productionDatabasePath: string,
+  jobId: string,
+): Readonly<{ attemptId: string | null; acceptedSeq1: boolean; progressSeq2: boolean; progressSeq3: boolean }> => {
+  if (!existsSync(productionDatabasePath)) {
+    return { attemptId: null, acceptedSeq1: false, progressSeq2: false, progressSeq3: false };
+  }
+  const database = new Database(productionDatabasePath, { readonly: true, fileMustExist: true });
+  try {
+    const rows = database.prepare(`select body_blob,sent_at from production_outbox
+      where kind='checkpoint' and path like ? order by created_at,idempotency_key`
+    ).all(`%/jobs/${encodeURIComponent(jobId)}/%`) as Array<{ body_blob: Buffer; sent_at: string | null }>;
+    const sent = rows.filter((row) => row.sent_at).map((row) =>
+      JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>);
+    const attempts = [...new Set(sent.map((row) => String(row.attempt_id ?? "")).filter(Boolean))];
+    const attemptId = attempts.length === 1 ? attempts[0]! : null;
+    const has = (seq: number, kind: string): boolean => sent.some((row) =>
+      row.attempt_id === attemptId && row.checkpoint_seq === seq && row.checkpoint_kind === kind);
+    return { attemptId, acceptedSeq1: has(1, "accepted"), progressSeq2: has(2, "progress"),
+      progressSeq3: has(3, "progress") };
+  } finally { database.close(); }
+};
+
+export const assertProductionProofJobsAreNew = (
+  productionDatabasePath: string,
+  jobIds: readonly string[],
+): void => {
+  if (!existsSync(productionDatabasePath)) return;
+  const database = new Database(productionDatabasePath, { readonly: true, fileMustExist: true });
+  try {
+    const placeholders = jobIds.map(() => "?").join(",");
+    const row = database.prepare(`select count(*) as count from production_tasks where job_id in (${placeholders})`)
+      .get(...jobIds) as { count: number };
+    assert.equal(row.count, 0, "historical local tasks cannot be reused as Dynamic Proof");
+  } finally { database.close(); }
+};
 
 export type ProductionProofCleanupObservation = Readonly<{
   browserContextClosed: boolean;

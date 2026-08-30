@@ -44,7 +44,7 @@ const identity = (
   payloadHash: hash,
 });
 
-const permit = (commandId: string): BrowserCommandPermit => ({
+const permitAuthority = (commandId: string) => ({
   permitRef: `permit:${commandId}`,
   authorityRef: "authority-1",
   authorityEpoch: 1,
@@ -54,6 +54,9 @@ const permit = (commandId: string): BrowserCommandPermit => ({
   writerFenceHash: hash,
   candidateHash: hash,
   contractManifestHash: hash,
+});
+
+const permitExecution = (commandId: string) => ({
   ownerPluginId: "fixture-product-plugin",
   pluginVersion: 1,
   jobId: `job:${commandId}`,
@@ -68,16 +71,21 @@ const permit = (commandId: string): BrowserCommandPermit => ({
   childCapabilityId: "open_gpt_model_selector_v2",
   callId: "gpt-turn-flow.v3",
   inputHash: hash,
-  replayPolicy: "target-local-per-generation",
+  replayPolicy: "target-local-per-generation" as const,
   actionOrdinal: 1,
-  capabilityId: "browser.dom.click.v1",
+  capabilityId: "browser.dom.click.v1" as const,
   commandId,
   sequence: 1,
-  mutationClass: "mutation",
+  mutationClass: "mutation" as const,
   workspaceRef: "workspace-1",
   commandTtlMs: 5_000,
   replyChannelToken: `reply:${commandId}`,
   commandFrameMac: hash,
+});
+
+const permit = (commandId: string): BrowserCommandPermit => ({
+  ...permitAuthority(commandId),
+  ...permitExecution(commandId),
 });
 
 const clickCommand = {

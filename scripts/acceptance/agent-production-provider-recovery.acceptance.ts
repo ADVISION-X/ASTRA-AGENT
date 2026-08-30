@@ -10,7 +10,6 @@ import {
   type GptAbilityGroup,
   type GptChildCapabilityIntent,
   type GptChildCapabilityResult,
-  type GptExecutionContext,
 } from "../../src/capabilities/gpt/index.js";
 import {
   createForensicsPersistenceAbilityGroupFromStorage,
@@ -34,6 +33,7 @@ import { typedExecutionFailure } from "../../src/lib/typed-failure.js";
 import { HASH_A, HASH_B, identityFor, task } from "./agent-production-runtime-fixtures.js";
 
 type ProviderOutcome = "CONFIRMED" | "DISPATCHED";
+type GptExecutionContext = Parameters<GptAbilityGroup["execute"]>[1];
 type ProviderCounters = {
   dispatches: number;
   readbacks: number;
@@ -151,7 +151,7 @@ const walIdentity = (input: Readonly<{
   payloadHash: input.atomic.inputHash,
 });
 
-const walBackedBrowser = (input: Readonly<{
+type WalBrowserInput = Readonly<{
   wal: () => BrowserMutationStore;
   jobId: string;
   attemptId: string;
@@ -160,20 +160,40 @@ const walBackedBrowser = (input: Readonly<{
   documentRef: string;
   exactCallIdentityHash: `sha256:${string}`;
   counters: ProviderCounters;
-}>): BrowserTargetLease => {
-  const recovery = (atomic: Parameters<BrowserTargetLease["runAtomicStep"]>[0]) =>
-    input.wal().atomicStepRecovery({
-      jobId: input.jobId,
-      attemptId: input.attemptId,
-      ownerPluginId: "public-knowledge-article-pipeline",
-      pluginVersion: 14,
-      exactCallIdentityHash: input.exactCallIdentityHash,
-      actionOrdinal: atomic.actionOrdinal,
-      targetRef: input.targetRef,
-      effectScope: "provider_effect",
-    });
-  return {
-    leaseRef: `lease:${input.jobId}`,
+}>;
+
+const readWalRecovery = (
+  input: WalBrowserInput,
+  atomic: Parameters<BrowserTargetLease["runAtomicStep"]>[0],
+) => input.wal().atomicStepRecovery({
+  jobId: input.jobId,
+  attemptId: input.attemptId,
+  ownerPluginId: "public-knowledge-article-pipeline",
+  pluginVersion: 14,
+  exactCallIdentityHash: input.exactCallIdentityHash,
+  actionOrdinal: atomic.actionOrdinal,
+  targetRef: input.targetRef,
+  effectScope: "provider_effect",
+});
+
+const runWalStep = async <T>(
+  input: WalBrowserInput,
+  atomic: Parameters<BrowserTargetLease["runAtomicStep"]>[0],
+  action: () => Promise<T>,
+): Promise<T> => {
+  if (readWalRecovery(input, atomic)) return action();
+  input.wal().prepare(walIdentity({ ...input, atomic }));
+  input.wal().markDispatched(input.commandId);
+  const result = await action();
+  const childResult = result as GptChildCapabilityResult;
+  if (childResult.proof.committedMutation === "confirmed") {
+    input.wal().markConfirmed(input.commandId, childResult.proof.evidenceHash);
+  }
+  return result;
+};
+
+const walBackedBrowser = (input: WalBrowserInput): BrowserTargetLease => ({
+  leaseRef: `lease:${input.jobId}`,
     authorityRef: `authority:${input.jobId}`,
     authorityEpoch: 1,
     executionBindingHash: HASH_A,
@@ -184,21 +204,8 @@ const walBackedBrowser = (input: Readonly<{
     writerFenceHash: HASH_A,
     target: { targetRef: input.targetRef, authorityEpoch: 1, executionBindingHash: HASH_A },
     document: { documentRef: input.documentRef, targetRef: input.targetRef, navigationEpoch: 1 },
-    readAtomicStepRecovery: recovery,
-    runAtomicStep: async <T>(
-      atomic: Parameters<BrowserTargetLease["runAtomicStep"]>[0],
-      action: () => Promise<T>,
-    ): Promise<T> => {
-      if (recovery(atomic)) return action();
-      input.wal().prepare(walIdentity({ ...input, atomic }));
-      input.wal().markDispatched(input.commandId);
-      const result = await action();
-      const childResult = result as GptChildCapabilityResult;
-      if (childResult.proof.committedMutation === "confirmed") {
-        input.wal().markConfirmed(input.commandId, childResult.proof.evidenceHash);
-      }
-      return result;
-    },
+    readAtomicStepRecovery: (atomic) => readWalRecovery(input, atomic),
+    runAtomicStep: (atomic, action) => runWalStep(input, atomic, action),
     navigate: async () => { throw new Error("UNEXPECTED_PROVIDER_BROWSER_NAVIGATE"); },
     executeDomIntent: async () => { throw new Error("UNEXPECTED_PROVIDER_BROWSER_DOM"); },
     observeCapability: async () => { throw new Error("UNEXPECTED_PROVIDER_BROWSER_OBSERVE"); },
@@ -241,8 +248,7 @@ const walBackedBrowser = (input: Readonly<{
       jobId: input.jobId,
       ownerPluginId: "public-knowledge-article-pipeline",
     }).length, 0),
-  };
-};
+});
 
 const providerAuthority = (input: Readonly<{
   wal: () => BrowserMutationStore;
@@ -365,6 +371,58 @@ const exerciseProviderEffectRecovery = async (initial: ProviderOutcome): Promise
 await exerciseProviderEffectRecovery("CONFIRMED");
 await exerciseProviderEffectRecovery("DISPATCHED");
 
+const continuationAuthority = (): WorkbenchBrowserAuthority => Object.assign(
+  Object.create(null) as WorkbenchBrowserAuthority,
+  {
+    readExactCallMutationFact: () => null,
+    countProviderTurnDispatches: () => 0,
+    acquireJobBoundTargetLease: async () => {
+      throw new Error("UNEXPECTED_CONTINUATION_BROWSER");
+    },
+  },
+);
+
+const continuationExecution = (input: Readonly<{
+  root: string;
+  evidence: ForensicsPersistenceAbilityGroup;
+  authority: WorkbenchBrowserAuthority;
+  store: ProductionRuntimeStore;
+  providerTask: WebsiteAgentTask;
+  attemptId: string;
+  leaseVersion: number;
+}>): ProductGptExecution => new ProductionGptChildTools(
+  input.root,
+  HASH_A,
+  createGptAbilityGroup(),
+  input.evidence,
+  input.authority,
+  input.store,
+  createRuntimeLogger({
+    producer: "agent-continuation-rebuild",
+    owner: "production-runtime",
+    component: "gpt-child",
+    terminalEnabled: false,
+    fileSink: { directoryPath: path.join(input.root, "runtime-logs") },
+  }),
+).createExecution({
+  task: input.providerTask,
+  pluginId: "public-knowledge-article-pipeline",
+  pluginVersion: 14,
+  lease: {
+    attempt_id: input.attemptId,
+    device_id: "device:continuation-rebuild",
+    lease_version: input.leaseVersion,
+    execution_fence_hash: input.leaseVersion === 1 ? HASH_A : HASH_B,
+    control_manifest_hash: HASH_A,
+    max_provider_turns: 2,
+    provider_turns_used: 0,
+    expires_at_monotonic: performance.now() + 10_000,
+    command_ttl_ms: 1_000,
+    abort_signal: new AbortController().signal,
+  },
+  parentSpanId: `span:continuation-rebuild:${input.leaseVersion}`,
+});
+
 const exerciseContinuationRebuild = async (): Promise<void> => {
   const root = await mkdtemp(path.join(tmpdir(), "agent-continuation-rebuild-"));
   const providerTask = task({
@@ -377,42 +435,9 @@ const exerciseContinuationRebuild = async (): Promise<void> => {
   try {
     store.acceptTask(providerTask, identityFor(providerTask), attemptId);
     const evidence = createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(root));
-    const authority = {
-      readExactCallMutationFact: () => null,
-      countProviderTurnDispatches: () => 0,
-      acquireJobBoundTargetLease: async () => { throw new Error("UNEXPECTED_CONTINUATION_BROWSER"); },
-    } as unknown as WorkbenchBrowserAuthority;
-    const execution = (leaseVersion: number) => new ProductionGptChildTools(
-      root,
-      HASH_A,
-      createGptAbilityGroup(),
-      evidence,
-      authority,
-      store,
-      createRuntimeLogger({
-        producer: "agent-continuation-rebuild",
-        owner: "production-runtime",
-        component: "gpt-child",
-        terminalEnabled: false,
-        fileSink: { directoryPath: path.join(root, "runtime-logs") },
-      }),
-    ).createExecution({
-      task: providerTask,
-      pluginId: "public-knowledge-article-pipeline",
-      pluginVersion: 14,
-      lease: {
-        attempt_id: attemptId,
-        device_id: "device:continuation-rebuild",
-        lease_version: leaseVersion,
-        execution_fence_hash: leaseVersion === 1 ? HASH_A : HASH_B,
-        control_manifest_hash: HASH_A,
-        max_provider_turns: 2,
-        provider_turns_used: 0,
-        expires_at_monotonic: performance.now() + 10_000,
-        command_ttl_ms: 1_000,
-        abort_signal: new AbortController().signal,
-      },
-      parentSpanId: `span:continuation-rebuild:${leaseVersion}`,
+    const authority = continuationAuthority();
+    const execution = (leaseVersion: number) => continuationExecution({
+      root, evidence, authority, store, providerTask, attemptId, leaseVersion,
     });
     const call = Object.freeze({
       sessionKey: "session:continuation-rebuild",

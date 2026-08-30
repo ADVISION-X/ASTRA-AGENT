@@ -48,14 +48,6 @@ export const stringInput = (intent: GptChildCapabilityIntent, key: string): stri
   return value;
 };
 
-export const booleanInput = (intent: GptChildCapabilityIntent, key: string): boolean => {
-  const value = intent.input[key];
-  if (typeof value !== "boolean") {
-    throw executionFailure("failed", `GPT_CHILD_INPUT_INVALID:${intent.childCapabilityId}:${key}`);
-  }
-  return value;
-};
-
 export const numberInput = (intent: GptChildCapabilityIntent, key: string): number => {
   const value = intent.input[key];
   if (typeof value !== "number" || !Number.isFinite(value)) {

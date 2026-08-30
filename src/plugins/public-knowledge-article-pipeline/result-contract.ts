@@ -73,8 +73,6 @@ const ARTICLE_STRING_PATHS = new Set([
 const contractObject = (value: unknown, code: string): ContractObject => result.object(value, code);
 const contractText = (contract: ContractObject, key: string, code: string): string =>
   result.text(contract[key], code);
-const contractFields = (contract: ContractObject, code: string): readonly string[] =>
-  result.stringArray(contract.exact_fields, code, true);
 const contractValues = (contract: ContractObject, key: string, code: string): readonly string[] =>
   result.stringArray(contract[key], code, true);
 const contractSection = (contract: ContractObject, key: string, code: string): ContractObject =>

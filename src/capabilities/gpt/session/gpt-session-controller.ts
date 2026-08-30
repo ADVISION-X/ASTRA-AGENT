@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
 import { executionFailure } from "../../../lib/typed-failure.js";
+import { gptContinuationIdentityHash } from "../schema.js";
 
 import type {
   GptContinuationStorePort,
@@ -13,22 +13,6 @@ export interface GptContinuationLane {
   readonly provider: GptProviderContinuation;
 }
 
-export const gptContinuationIdentityHash = (
-  provider: GptProviderContinuation,
-): `sha256:${string}` => {
-  if (!/^sha256:[a-f0-9]{64}$/u.test(provider.prior_prompt_hash)
-    || !/^sha256:[a-f0-9]{64}$/u.test(provider.prior_raw_output_hash)) {
-    throw executionFailure("failed", "GPT_CONTINUATION_PROVIDER_INVALID");
-  }
-  return `sha256:${createHash("sha256").update(JSON.stringify({
-    prior_raw_output_hash: provider.prior_raw_output_hash,
-    prior_prompt_hash: provider.prior_prompt_hash,
-    prior_task_id: provider.prior_task_id,
-    prior_turn_marker: provider.prior_turn_marker,
-    provider_page_url: provider.provider_page_url,
-  })).digest("hex")}`;
-};
-
 const sameProvider = (left: GptProviderContinuation, right: GptProviderContinuation): boolean =>
   gptContinuationIdentityHash(left) === gptContinuationIdentityHash(right)
   && left.provider_page_url === right.provider_page_url
@@ -36,6 +20,31 @@ const sameProvider = (left: GptProviderContinuation, right: GptProviderContinuat
   && left.prior_prompt_hash === right.prior_prompt_hash
   && left.prior_raw_output_hash === right.prior_raw_output_hash
   && left.prior_turn_marker === right.prior_turn_marker;
+
+type AdvanceInput = Readonly<{
+  lane: GptContinuationLane;
+  jobId: string;
+  pluginId: string;
+  provider: GptProviderContinuation;
+}>;
+
+const isSettledAdvance = (
+  stored: StoredGptContinuation | null,
+  input: AdvanceInput,
+  desiredIdentity: string,
+): boolean => Boolean(stored
+  && stored.plugin_id === input.pluginId
+  && stored.lane_owner_job_id === null
+  && stored.lane_version === input.lane.lane_version
+  && stored.conversation_identity_hash === desiredIdentity
+  && sameProvider(stored.provider, input.provider));
+
+const isAcquiredAdvance = (stored: StoredGptContinuation | null, input: AdvanceInput): boolean => Boolean(stored
+  && stored.plugin_id === input.pluginId
+  && stored.lane_owner_job_id === input.jobId
+  && stored.lane_version === input.lane.lane_version
+  && stored.conversation_identity_hash === gptContinuationIdentityHash(input.lane.provider)
+  && sameProvider(stored.provider, input.lane.provider));
 
 export class GptSessionController {
   public constructor(private readonly store: GptContinuationStorePort) {}
@@ -111,26 +120,11 @@ export class GptSessionController {
     });
   }
 
-  public advance(input: Readonly<{
-    lane: GptContinuationLane;
-    jobId: string;
-    pluginId: string;
-    provider: GptProviderContinuation;
-  }>): void {
+  public advance(input: AdvanceInput): void {
     const desiredIdentity = gptContinuationIdentityHash(input.provider);
     const before = this.store.readGptContinuation(input.lane.continuation_ref);
-    if (before
-      && before.plugin_id === input.pluginId
-      && before.lane_owner_job_id === null
-      && before.lane_version === input.lane.lane_version
-      && before.conversation_identity_hash === desiredIdentity
-      && sameProvider(before.provider, input.provider)) return;
-    if (!before
-      || before.plugin_id !== input.pluginId
-      || before.lane_owner_job_id !== input.jobId
-      || before.lane_version !== input.lane.lane_version
-      || before.conversation_identity_hash !== gptContinuationIdentityHash(input.lane.provider)
-      || !sameProvider(before.provider, input.lane.provider)) {
+    if (isSettledAdvance(before, input, desiredIdentity)) return;
+    if (!isAcquiredAdvance(before, input)) {
       throw executionFailure("failed", "GPT_CONTINUATION_ADVANCE_CAS_FAILED");
     }
     try {
@@ -145,12 +139,7 @@ export class GptSessionController {
       return;
     } catch (error) {
       const current = this.store.readGptContinuation(input.lane.continuation_ref);
-      if (current
-        && current.plugin_id === input.pluginId
-        && current.lane_owner_job_id === null
-        && current.lane_version === input.lane.lane_version
-        && current.conversation_identity_hash === desiredIdentity
-        && sameProvider(current.provider, input.provider)) return;
+      if (isSettledAdvance(current, input, desiredIdentity)) return;
       throw error;
     }
   }

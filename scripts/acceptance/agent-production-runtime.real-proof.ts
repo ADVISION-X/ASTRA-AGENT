@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, readFileSync, writeFileSync } from "node:fs";
+import { lstatSync, readFileSync, writeFileSync } from "node:fs";
 import type { Server } from "node:http";
 import { dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import Database from "better-sqlite3";
-import { chromium, type BrowserContext, type Page, type Worker } from "playwright";
+import { chromium, type BrowserContext, type Page } from "playwright";
 import { createWorkbenchServer } from "../../src/app/create-workbench-server.js";
 import {
   GRASSEYE_UNPACKED_EXTENSION_ID,
@@ -19,8 +19,13 @@ import { emitQualityProofObservation } from "../audit/shared/proof-observation.j
 import { buildStartupSourceFingerprint } from "../startup/lib/source-fingerprint.mjs";
 import {
   assertProductionProofRouteCoverage,
+  assertProductionProofJobsAreNew,
   observeProductionProofCleanup,
   observeProductionProofRuntimeLogs,
+  productionProofChromeOptions,
+  requireProductionProofExtensionWorker,
+  sentProductionCheckpointPrefix,
+  waitForProductionProof,
   type ProductionProofCleanupObservation,
 } from "./agent-production-runtime.real-proof-support.js";
 const dynamicClaimContract = (/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_BEGIN */
@@ -81,54 +86,14 @@ const jobIds = (process.env.GRASSEYE_PRODUCTION_PROOF_JOB_IDS ?? "")
 assert.equal(jobIds.length, 39, "GRASSEYE_PRODUCTION_PROOF_JOB_IDS must name all thirty-nine new website jobs");
 assert.equal(new Set(jobIds).size, 39, "production proof job IDs must be unique");
 assert.equal(jobIds.includes(recoveryJobId), true, "the recovery job must be one of the thirty-nine new website jobs");
-
 const productionDatabasePath = join(dataDir, "production-runtime.sqlite");
 const mutationDatabasePath = join(dataDir, "browser", "browser-mutations.sqlite");
 const runtimeLogDirectory = join(dataDir, "runtime-logs");
 const placeholders = jobIds.map(() => "?").join(",");
 const openReadOnly = (file: string): Database.Database => new Database(file, { readonly: true, fileMustExist: true });
-const assertJobsAreNew = (): void => {
-  if (!existsSync(productionDatabasePath)) return;
-  const database = openReadOnly(productionDatabasePath);
-  try {
-    const row = database.prepare(`select count(*) as count from production_tasks where job_id in (${placeholders})`)
-      .get(...jobIds) as { count: number };
-    assert.equal(row.count, 0, "historical local tasks cannot be reused as Dynamic Proof");
-  } finally { database.close(); }
-};
-assertJobsAreNew();
-const delay = (milliseconds: number): Promise<void> => new Promise((done) => setTimeout(done, milliseconds));
+assertProductionProofJobsAreNew(productionDatabasePath, jobIds);
 const waitFor = async (label: string, predicate: () => boolean | Promise<boolean>): Promise<void> => {
-  const timeout = Number(process.env.GOVERNANCE_PROOF_TIMEOUT_MS ?? "0");
-  const deadline = Date.now() + Math.max(1, timeout - 30_000);
-  while (Date.now() < deadline) {
-    if (await predicate()) return;
-    await delay(500);
-  }
-  throw new Error(`PRODUCTION_DYNAMIC_PROOF_TIMEOUT:${label}`);
-};
-
-const launchChrome = async (): Promise<BrowserContext> => {
-  assert.equal(browserProfile.extensionId, GRASSEYE_UNPACKED_EXTENSION_ID);
-  assert.equal(existsSync(browserProfile.unpackedExtensionDirectory), true, "the governed unpacked extension build is required");
-  return chromium.launchPersistentContext(browserProfile.profileDir, {
-    executablePath: chromium.executablePath(), headless: false,
-    args: [
-      `--disable-extensions-except=${browserProfile.unpackedExtensionDirectory}`,
-      `--load-extension=${browserProfile.unpackedExtensionDirectory}`,
-      "--no-first-run", "--no-default-browser-check", "--disable-component-update",
-      "--disable-search-engine-choice-screen",
-    ],
-  });
-};
-
-const extensionWorker = async (context: BrowserContext): Promise<Worker> => {
-  const prefix = `chrome-extension://${GRASSEYE_UNPACKED_EXTENSION_ID}/`;
-  const current = context.serviceWorkers().find((worker) => worker.url().startsWith(prefix));
-  if (current) return current;
-  const worker = await context.waitForEvent("serviceworker");
-  assert.equal(worker.url().startsWith(prefix), true);
-  return worker;
+  await waitForProductionProof(label, predicate, Number(process.env.GOVERNANCE_PROOF_TIMEOUT_MS ?? "0"));
 };
 
 const startWorkbench = async (): Promise<Readonly<{ handle: GrassEyeWorkbenchHandle; server: Server }>> => {
@@ -153,34 +118,7 @@ const stopWorkbench = async (handle: GrassEyeWorkbenchHandle, server: Server): P
   await new Promise<void>((done) => server.close(() => done()));
 };
 
-const sentCheckpointPrefix = (jobId: string): Readonly<{
-  attemptId: string | null;
-  acceptedSeq1: boolean;
-  progressSeq2: boolean;
-  progressSeq3: boolean;
-}> => {
-  if (!existsSync(productionDatabasePath)) {
-    return { attemptId: null, acceptedSeq1: false, progressSeq2: false, progressSeq3: false };
-  }
-  const database = openReadOnly(productionDatabasePath);
-  try {
-    const rows = database.prepare(`select body_blob,sent_at from production_outbox
-      where kind='checkpoint' and path like ? order by created_at,idempotency_key`
-    ).all(`%/jobs/${encodeURIComponent(jobId)}/%`) as Array<{ body_blob: Buffer; sent_at: string | null }>;
-    const sent = rows.filter((row) => row.sent_at).map((row) =>
-      JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>);
-    const attempts = [...new Set(sent.map((row) => String(row.attempt_id ?? "")).filter(Boolean))];
-    const attemptId = attempts.length === 1 ? attempts[0]! : null;
-    const has = (seq: number, kind: string): boolean => sent.some((row) =>
-      row.attempt_id === attemptId && row.checkpoint_seq === seq && row.checkpoint_kind === kind);
-    return {
-      attemptId,
-      acceptedSeq1: has(1, "accepted"),
-      progressSeq2: has(2, "progress"),
-      progressSeq3: has(3, "progress"),
-    };
-  } finally { database.close(); }
-};
+const sentCheckpointPrefix = (jobId: string) => sentProductionCheckpointPrefix(productionDatabasePath, jobId);
 
 type DirectRuntimeObservation = Readonly<{
   browser: Readonly<Record<string, unknown>>;
@@ -215,9 +153,10 @@ let progressSeq3AfterRestart = false;
 let sameAttemptAfterRestart = false;
 
 try {
-  context = await launchChrome();
+  context = await chromium.launchPersistentContext(browserProfile.profileDir,
+    productionProofChromeOptions(browserProfile));
   browserVersion = context.browser()?.version() ?? "unknown";
-  await extensionWorker(context);
+  await requireProductionProofExtensionWorker(context);
   extensionWorkerCount = context.serviceWorkers().filter((worker) =>
     worker.url().startsWith(`chrome-extension://${GRASSEYE_UNPACKED_EXTENSION_ID}/`)).length;
   assert.equal(extensionWorkerCount, 1, "exactly one governed extension worker must own Browser transport");

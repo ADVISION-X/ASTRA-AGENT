@@ -54,6 +54,7 @@ export const conversationChildHandlers = {
     const browser = requireBrowser(context);
     const deadline = Date.now() + boundedTimeout(intent);
     let observed = { composer: 0, turns: 0, attachments: 0, generating: 0, draftEmpty: null as boolean | null };
+    let staleDraftReadyToClear = false;
     while (Date.now() < deadline) {
       observed = {
         composer: await findCount(browser, { selector: GPT_COMPOSER_SELECTOR, maxMatches: 2 }),
@@ -67,24 +68,8 @@ export const conversationChildHandlers = {
         const draft = await readExactText(browser, GPT_COMPOSER_SELECTOR, 65_536);
         observed = { ...observed, draftEmpty: draft === "" };
         if (!observed.draftEmpty) {
-          if (context.mutationMode === "readback") {
-            throw executionFailure("failed", "GPT_CHAT_DRAFT_CLEAR_PENDING");
-          }
-          await browser.executeDomIntent({
-            kind: "fill",
-            selector: GPT_COMPOSER_SELECTOR,
-            approvedText: "",
-            clearBeforeType: true,
-            expectedMatches: 1,
-          });
-          const clearedDraft = await readExactText(browser, GPT_COMPOSER_SELECTOR, 65_536);
-          if (clearedDraft !== "") throw executionFailure("failed", "GPT_CHAT_DRAFT_CLEAR_FAILED");
-          observed = { ...observed, draftEmpty: true };
-          return success({
-            value: { ...observed, staleDraftCleared: true }, candidateCount: 1,
-            observedSemantics: ["hydrated fresh composer", "one stale draft cleared", "exact empty draft", "zero prior turns", "zero attachments", "not generating"],
-            committedMutation: "confirmed",
-          });
+          staleDraftReadyToClear = true;
+          break;
         }
         return success({
           value: { ...observed, staleDraftCleared: false }, candidateCount: 1,
@@ -93,6 +78,23 @@ export const conversationChildHandlers = {
         });
       }
       await waitSlice(browser, deadline);
+    }
+    if (staleDraftReadyToClear) {
+      if (context.mutationMode === "readback") {
+        throw executionFailure("failed", "GPT_CHAT_DRAFT_CLEAR_PENDING");
+      }
+      await browser.executeDomIntent({
+        kind: "fill", selector: GPT_COMPOSER_SELECTOR, approvedText: "", clearBeforeType: true,
+        expectedMatches: 1,
+      });
+      const clearedDraft = await readExactText(browser, GPT_COMPOSER_SELECTOR, 65_536);
+      if (clearedDraft !== "") throw executionFailure("failed", "GPT_CHAT_DRAFT_CLEAR_FAILED");
+      observed = { ...observed, draftEmpty: true };
+      return success({
+        value: { ...observed, staleDraftCleared: true }, candidateCount: 1,
+        observedSemantics: ["hydrated fresh composer", "one stale draft cleared", "exact empty draft", "zero prior turns", "zero attachments", "not generating"],
+        committedMutation: "confirmed",
+      });
     }
     throw executionFailure("failed", `GPT_CHAT_HYDRATION_PENDING:composer=${observed.composer}:turns=${observed.turns}:attachments=${observed.attachments}:generating=${observed.generating}:draftEmpty=${observed.draftEmpty ?? "unread"}`);
   },

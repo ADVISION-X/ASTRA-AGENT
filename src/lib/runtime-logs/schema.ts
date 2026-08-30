@@ -82,6 +82,12 @@ const identityValid = (value: unknown): value is RuntimeTypedIdentity => {
   return Object.entries(value).every(([key, item]) => identityEntryValid({ key, item, numberKeys: numbers }));
 };
 
+const failureOwnerValid = (value: Readonly<Record<string, unknown>>): boolean =>
+  token(value.responsibleOwner) && OWNER_VALUES.has(value.responsibleOwner as RuntimeLogOwner);
+
+const failureImpactValid = (value: Readonly<Record<string, unknown>>): boolean =>
+  value.impact === "BLOCKING" || value.impact === "CONSEQUENTIAL" || value.impact === "CLEANUP";
+
 const failureValid = (value: unknown): value is RuntimeFailure => {
   if (!record(value) || !exactKeys(value,
     ["kind", "code", "responsibleOwner", "impact"],
@@ -91,9 +97,8 @@ const failureValid = (value: unknown): value is RuntimeFailure => {
     : token(value.causedByEventId);
   return Object.values(RuntimeFailureKind).includes(value.kind as RuntimeFailure["kind"])
     && machineCode(value.code)
-    && token(value.responsibleOwner)
-    && OWNER_VALUES.has(value.responsibleOwner as RuntimeLogOwner)
-    && (value.impact === "BLOCKING" || value.impact === "CONSEQUENTIAL" || value.impact === "CLEANUP")
+    && failureOwnerValid(value)
+    && failureImpactValid(value)
     && (!Object.hasOwn(value, "nativeCause") || machineCode(value.nativeCause))
     && causedByValid
     && (!Object.hasOwn(value, "httpStatus")
@@ -106,18 +111,24 @@ const COMMON_KEYS = [
 ] as const;
 const REFERENCE_KEYS = ["authorityRef", "authorityHash", "evidenceRef", "evidenceHash"] as const;
 
-const commonValid = (value: Readonly<Record<string, unknown>>): boolean => value.schemaVersion === 2
-  && token(value.eventId) && isoDate(value.emittedAt)
-  && token(value.producer) && token(value.producerRunId)
+const commonProducerValid = (value: Readonly<Record<string, unknown>>): boolean =>
+  token(value.producer) && token(value.producerRunId)
   && Number.isInteger(value.producerSeq) && Number(value.producerSeq) > 0
   && (value.previousEventHash === null || hash(value.previousEventHash))
-  && hash(value.eventHash)
-  && (value.kind === "event" || value.kind === "span.started" || value.kind === "span.terminal" || value.kind === "error")
+  && hash(value.eventHash);
+
+const commonClassificationValid = (value: Readonly<Record<string, unknown>>): boolean =>
+  (value.kind === "event" || value.kind === "span.started" || value.kind === "span.terminal" || value.kind === "error")
   && token(value.traceId)
   && token(value.owner) && OWNER_VALUES.has(value.owner as RuntimeLogOwner)
   && token(value.component)
   && token(value.operation) && OPERATION_VALUES.has(value.operation as RuntimeOperation)
   && (value.visibility === "FLOW" || value.visibility === "DEBUG" || value.visibility === "TRACE");
+
+const commonValid = (value: Readonly<Record<string, unknown>>): boolean => value.schemaVersion === 2
+  && token(value.eventId) && isoDate(value.emittedAt)
+  && commonProducerValid(value)
+  && commonClassificationValid(value);
 
 const observedEventValid = (value: Readonly<Record<string, unknown>>): boolean =>
   exactKeys(value, [...COMMON_KEYS, "code", "typedIdentity"], REFERENCE_KEYS)

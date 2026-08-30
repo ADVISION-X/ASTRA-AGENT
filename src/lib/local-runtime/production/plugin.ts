@@ -117,37 +117,41 @@ export const readProductSkill = (pluginModuleUrl: string): Readonly<{
   return Object.freeze({ path, text, hash: sha256(text) });
 };
 
+type ParsedPluginObject = Readonly<{ start: number; end: number; value: Record<string, unknown> }>;
+
+const pluginObjectAt = (raw: string, start: number): ParsedPluginObject | null => {
+  let depth = 0;
+  let quoted = false;
+  let escaped = false;
+  for (let cursor = start; cursor < raw.length; cursor += 1) {
+    const character = raw[cursor]!;
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (character === "\\") escaped = true;
+      else if (character === "\"") quoted = false;
+      continue;
+    }
+    if (character === "\"") { quoted = true; continue; }
+    if (character === "{") depth += 1;
+    if (character === "}") depth -= 1;
+    if (depth < 0) return null;
+    if (depth !== 0) continue;
+    try {
+      const value = JSON.parse(raw.slice(start, cursor + 1)) as unknown;
+      return value && typeof value === "object" && !Array.isArray(value)
+        ? { start, end: cursor + 1, value: value as Record<string, unknown> }
+        : null;
+    } catch { return null; }
+  }
+  return null;
+};
+
 export function parsePluginJsonObject(raw: string, code: string): Readonly<Record<string, unknown>> {
-  const completeObjects: Array<Readonly<{ start: number; end: number; value: Record<string, unknown> }>> = [];
+  const completeObjects: ParsedPluginObject[] = [];
   for (let start = 0; start < raw.length; start += 1) {
     if (raw[start] !== "{") continue;
-    let depth = 0;
-    let quoted = false;
-    let escaped = false;
-    for (let cursor = start; cursor < raw.length; cursor += 1) {
-      const character = raw[cursor]!;
-      if (quoted) {
-        if (escaped) escaped = false;
-        else if (character === "\\") escaped = true;
-        else if (character === "\"") quoted = false;
-        continue;
-      }
-      if (character === "\"") {
-        quoted = true;
-        continue;
-      }
-      if (character === "{") depth += 1;
-      if (character === "}") depth -= 1;
-      if (depth < 0) break;
-      if (depth !== 0) continue;
-      let value: unknown;
-      try { value = JSON.parse(raw.slice(start, cursor + 1)) as unknown; }
-      catch { break; }
-      if (value && typeof value === "object" && !Array.isArray(value)) {
-        completeObjects.push({ start, end: cursor + 1, value: value as Record<string, unknown> });
-      }
-      break;
-    }
+    const parsed = pluginObjectAt(raw, start);
+    if (parsed) completeObjects.push(parsed);
   }
   const outermost = completeObjects.filter((candidate) => !completeObjects.some((other) =>
     other !== candidate && other.start <= candidate.start && other.end >= candidate.end

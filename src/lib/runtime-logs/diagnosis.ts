@@ -56,6 +56,17 @@ const atomicPostcondition = (
   return mutation ? "not_reached" : "not_applicable";
 };
 
+const mutationStage = (
+  mutations: readonly RuntimeObservedEvent[],
+  isMutation: boolean,
+  outcome: "PREPARED" | "DISPATCHED",
+): "passed" | "failed" | "dispatched" | "not_dispatched" | "not_applicable" => {
+  if (!isMutation) return "not_applicable";
+  const observed = mutations.some((event) => mutationOutcome(event) === outcome);
+  if (outcome === "PREPARED") return observed ? "passed" : "failed";
+  return observed ? "dispatched" : "not_dispatched";
+};
+
 const atomicBrowserStep = (
   started: RuntimeSpanStartedEvent,
   events: readonly RuntimeLogEventV2[],
@@ -75,12 +86,8 @@ const atomicBrowserStep = (
     actionOrdinal: identity.actionOrdinal,
     commandId: identity.commandId,
     capabilityId,
-    precondition: isMutation
-      ? (mutations.some((event) => mutationOutcome(event) === "PREPARED") ? "passed" : "failed")
-      : "not_applicable",
-    dispatch: isMutation
-      ? (mutations.some((event) => mutationOutcome(event) === "DISPATCHED") ? "dispatched" : "not_dispatched")
-      : "not_applicable",
+    precondition: mutationStage(mutations, isMutation, "PREPARED") as "passed" | "failed" | "not_applicable",
+    dispatch: mutationStage(mutations, isMutation, "DISPATCHED") as "dispatched" | "not_dispatched" | "not_applicable",
     postcondition: atomicPostcondition(observedOutcome, isMutation),
     observedOutcome,
     failureCode: terminal?.failure?.code ?? null,

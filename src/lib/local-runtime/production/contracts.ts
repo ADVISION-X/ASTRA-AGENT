@@ -13,16 +13,6 @@ const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u)
   .transform((value): `sha256:${string}` => value as `sha256:${string}`);
 
 const TerminalStatusSchema = z.literal("completed");
-export const SerializedExecutionFailureSchema = z.object({
-  code: z.string().min(1).max(240),
-  mutation_outcome: z.enum(["no", "dispatched", "confirmed"]),
-  evidence_ref: z.string().min(1).max(1_000).nullable(),
-  evidence_hash: hashSchema.nullable(),
-  cause: z.object({
-    name: z.string().min(1).max(240),
-    code: z.string().min(1).max(240).nullable(),
-  }).strict().nullable(),
-}).strict();
 
 const TerminalReceiptSchema = z.object({
   schema_version: z.literal("xuanxue-ai-terminal-receipt.v6"),

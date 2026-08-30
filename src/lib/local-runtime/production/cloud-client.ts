@@ -32,26 +32,7 @@ import { resolveProductionPlugin } from "./catalog.js";
 import { routeProducesGeneratedImage } from "./route-policy.js";
 import { executionFailure, type SerializedExecutionFailure } from "../../typed-failure.js";
 import { productionCloudFetch } from "./cloud-transport.js";
-
-const generatedImageTemporaryRoot = (dataDir: string): string => path.resolve(dataDir, "generated-images");
-
-export const cleanupGeneratedImageTemporaryFiles = async (dataDir: string): Promise<void> => {
-  await rm(generatedImageTemporaryRoot(dataDir), { recursive: true, force: true });
-};
-
-const generatedImageTemporaryDirectory = (dataDir: string, image: GeneratedImageArtifact): string => {
-  const root = generatedImageTemporaryRoot(dataDir);
-  const localPath = path.resolve(image.local_path);
-  const originalPath = path.resolve(image.original_local_path);
-  const directory = path.dirname(localPath);
-  if (!directory.startsWith(`${root}${path.sep}`)
-    || path.dirname(originalPath) !== directory
-    || path.basename(localPath) !== `${image.sha256.slice("sha256:".length)}.webp`
-    || path.basename(originalPath) !== `${image.original_sha256.slice("sha256:".length)}.original`) {
-    throw executionFailure("failed", "GENERATED_IMAGE_TEMPORARY_PATH_INVALID");
-  }
-  return directory;
-};
+import { generatedImageTemporaryDirectory } from "./generated-image-temporary-files.js";
 
 const fenceHeaders = (job: ClaimedProductionTask): Record<string, string> => ({
   "x-ai-execution-fence-hash": job.grant.execution_fence.fence_hash,

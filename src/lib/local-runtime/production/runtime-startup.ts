@@ -14,7 +14,7 @@ import {
   type RuntimeSpanHandle,
 } from "../../runtime-logs/index.js";
 import { failureCode } from "../../typed-failure.js";
-import { cleanupGeneratedImageTemporaryFiles } from "./cloud-client.js";
+import { cleanupGeneratedImageTemporaryFiles } from "./generated-image-temporary-files.js";
 import { productionCatalogHash } from "./catalog.js";
 import type { ProductionHash } from "./contracts.js";
 import { readProductionCredential } from "./credential.js";

@@ -79,6 +79,18 @@ export type WorkbenchBrowserAuthority = Readonly<{
   shutdown(): Promise<void>;
 }>;
 
+const assertReleaseIdentity = async (
+  profileConfig: ReturnType<typeof resolveProductionBrowserProfileConfig>,
+  releaseIdentity: Awaited<ReturnType<typeof readUnpackedExtensionReleaseIdentity>>,
+): Promise<`sha256:${string}`> => {
+  const extensionTreeHash = await hashExtensionDirectoryV1(profileConfig.unpackedExtensionDirectory);
+  if (releaseIdentity.extensionId !== profileConfig.extensionId
+    || releaseIdentity.extensionDirectoryHashV1 !== extensionTreeHash) {
+    throw new Error("BROWSER_UNPACKED_RELEASE_IDENTITY_INVALID");
+  }
+  return extensionTreeHash;
+};
+
 export const createWorkbenchBrowserAuthority = async (
   dataDir: string,
   runtimeLogger: RuntimeLogger,
@@ -92,15 +104,7 @@ export const createWorkbenchBrowserAuthority = async (
       "release-record.json",
     ),
   );
-  const extensionTreeHash = await hashExtensionDirectoryV1(
-    profileConfig.unpackedExtensionDirectory,
-  );
-  if (
-    releaseIdentity.extensionId !== profileConfig.extensionId ||
-    releaseIdentity.extensionDirectoryHashV1 !== extensionTreeHash
-  ) {
-    throw new Error("BROWSER_UNPACKED_RELEASE_IDENTITY_INVALID");
-  }
+  const extensionTreeHash = await assertReleaseIdentity(profileConfig, releaseIdentity);
   const policyReadback = attestManagedPolicyReadback(
     createDedicatedProfilePolicy(profileConfig),
   );

@@ -56,7 +56,41 @@ const pluginIds = (context: InspectorContext): string[] => {
     .map((entry) => entry.name).sort() : [];
 };
 
-const inspectAgentProductionRuntime = (context: InspectorContext, findings: InspectorFinding[]): void => {
+const pluginSource = (context: InspectorContext, pluginId: string): string => {
+  const root = resolve(context.sealedRoot, PLUGIN_ROOT, pluginId);
+  return readdirSync(root, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".ts"))
+    .map((entry) => read(context, `${PLUGIN_ROOT}/${pluginId}/${entry.name}`))
+    .join("\n");
+};
+
+const inspectTaskStoreContract = (
+  store: string,
+  taskStateStore: string,
+  findings: InspectorFinding[],
+): void => {
+  for (const required of [
+    'ProductionTaskStatus = "failed" | "completed"',
+    "status text not null check(status in ('failed','completed'))",
+    "PRODUCTION_EMPTY_CUTOVER_REQUIRED",
+  ]) if (!store.includes(required)) findings.push(finding(
+    "agent-production-runtime/binary-task-store", STORE_FOUNDATION_PATH,
+    `Binary task store is missing ${required}.`,
+  ));
+  for (const forbidden of ["create table production_steps", "writeGptTurnCheckpoint", "readGptTurnCheckpoint"])
+    if (store.includes(forbidden)) findings.push(finding(
+      "agent-production-runtime/global-gpt-checkpoint-retired", STORE_FOUNDATION_PATH,
+      `Production store retains retired global GPT checkpoint token ${forbidden}.`,
+    ));
+  for (const required of [
+    "readGptContinuationForOriginJob", "turnMarker", "json_extract(provider_json,'$.prior_turn_marker')=?",
+  ]) if (!taskStateStore.includes(required)) findings.push(finding(
+    "agent-production-runtime/attempt-bound-continuation-read", STORE_TASK_STATE_PATH,
+    `Continuation recovery must use the Product's exact current-attempt marker; missing ${required}.`,
+  ));
+};
+
+const inspectSharedProductionRuntime = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const executor = read(context, EXECUTOR_PATH);
   const childTools = read(context, CHILD_TOOLS_PATH);
   const childRuntime = `${childTools}\n${read(context, CHILD_BROWSER_LIFECYCLE_PATH)}`;
@@ -93,19 +127,7 @@ const inspectAgentProductionRuntime = (context: InspectorContext, findings: Insp
     "agent-production-runtime/product-child-interface", EXECUTOR_PATH,
     "Executor must inject only ProductGptTools, never a shared turn runner.",
   ));
-  for (const required of [
-    'ProductionTaskStatus = "failed" | "completed"',
-    "status text not null check(status in ('failed','completed'))",
-    "PRODUCTION_EMPTY_CUTOVER_REQUIRED",
-  ]) if (!store.includes(required)) findings.push(finding(
-    "agent-production-runtime/binary-task-store", STORE_FOUNDATION_PATH,
-    `Binary task store is missing ${required}.`,
-  ));
-  for (const forbidden of ["create table production_steps", "writeGptTurnCheckpoint", "readGptTurnCheckpoint"])
-    if (store.includes(forbidden)) findings.push(finding(
-      "agent-production-runtime/global-gpt-checkpoint-retired", STORE_FOUNDATION_PATH,
-      `Production store retains retired global GPT checkpoint token ${forbidden}.`,
-    ));
+  inspectTaskStoreContract(store, taskStateStore, findings);
   if (/accepted_attempt_limit\s*===\s*3|accepted_attempt_count[\s\S]{0,80}<=\s*3/u
     .test(cloudReconciliation) || /accepted_attempt_count[\s\S]{0,80}\.max\(3\)/u.test(transportProtocol)) {
     findings.push(finding(
@@ -114,64 +136,61 @@ const inspectAgentProductionRuntime = (context: InspectorContext, findings: Insp
       "AGENT must validate attempt-count machine shape without hard-coding Website retry policy.",
     ));
   }
+};
+
+const inspectSeoPlugin = (context: InspectorContext, source: string, path: string, findings: InspectorFinding[]): void => {
+  const pluginId = "public-knowledge-article-pipeline";
+  const resultContract = read(context, `${PLUGIN_ROOT}/${pluginId}/result-contract.ts`);
+  const routePolicy = read(context, "src/lib/local-runtime/production/website-agent-route-policies.v1.json");
   for (const required of [
-    "readGptContinuationForOriginJob", "turnMarker", "json_extract(provider_json,'$.prior_turn_marker')=?",
-  ]) if (!taskStateStore.includes(required)) findings.push(finding(
-    "agent-production-runtime/attempt-bound-continuation-read",
-    STORE_TASK_STATE_PATH,
-    `Continuation recovery must use the Product's exact current-attempt marker; missing ${required}.`,
+    "context.gpt.execute", "corpus_research", "article_synthesis", "article_image_generation",
+    "accuracy_challenge", "quality_reflection", "GPT-5.6 Sol", 'reasoningTier: "pro_standard"',
+    "acquire_gpt_continuation_lane", "advance_gpt_continuation_lane", "release_gpt_continuation_lane",
+    "SEO_CHILD_HANDOFF_DELAY_MS = 2_000", "setTimeout(resolve, SEO_CHILD_HANDOFF_DELAY_MS)",
+    'publicKnowledgeTurnContract("research")', 'publicKnowledgeTurnContract("article")',
+    "readCallFacts", "requireEvidence", "absoluteDeadline", "prior_prompt_hash",
+    "expectedPromptHash", "preservePostSubmitReadback",
+  ]) if (!source.includes(required)) findings.push(finding(
+    "agent-production-runtime/seo-product-flow", path, `SEO Product Flow is missing ${required}.`,
   ));
+  if (source.includes("PRODUCT_FLOW_NOT_IMPLEMENTED:")) findings.push(finding(
+    "agent-production-runtime/seo-product-flow-stub-retired", path,
+    "SEO Product Flow still contains its retired fail-closed stub.",
+  ));
+  for (const forbidden of [
+    "CHILD_SETTLE_DELAY_MS", "seoProductExecutionTail", "runSeoProductExecutionExclusive",
+    "++actionOrdinal", "actionOrdinal: 0",
+  ]) if (source.includes(forbidden)) findings.push(finding(
+    "agent-production-runtime/seo-product-second-scheduler-retired", path,
+    `SEO Product Flow retains forbidden pacing or scheduling token ${forbidden}.`,
+  ));
+  if (source.includes("JSON.stringify(task.parameters)") || /无文字|无印章|不冒充古籍原页/u.test(source)) {
+    findings.push(finding("agent-production-runtime/seo-provider-input-leak", path,
+      "SEO Prompt leaks internal parameters or duplicates Website-forbidden image creative rules."));
+  }
+  for (const required of ["route.result_contract", "result.parseJsonObject", "decision_values", "Object.freeze(output)"])
+    if (!resultContract.includes(required)) findings.push(finding(
+      "agent-production-runtime/seo-result-contract-projection", `${PLUGIN_ROOT}/${pluginId}/result-contract.ts`,
+      `SEO receiver is missing basic machine-format or lossless receipt token ${required}.`,
+    ));
+  for (const required of ["public-knowledge-article-package-contract.v1", '"package"', '"research"', '"article"', '"image"'])
+    if (!routePolicy.includes(required)) findings.push(finding(
+      "agent-production-runtime/seo-result-contract-projection",
+      "src/lib/local-runtime/production/website-agent-route-policies.v1.json",
+      `Website route projection is missing ${required}.`, "static.contract",
+    ));
+};
+
+const inspectProductPlugins = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const pluginId of pluginIds(context)) {
     const path = `${PLUGIN_ROOT}/${pluginId}/index.ts`;
-    const source = read(context, path);
+    const source = pluginSource(context, pluginId);
     if (source.includes("runTurn") || source.includes("executeProductGptCall")) findings.push(finding(
       "agent-production-runtime/product-old-turn-api-retired", path,
       `${pluginId} still calls a retired shared turn API.`,
     ));
     if (pluginId === "public-knowledge-article-pipeline") {
-      const resultContract = read(context, `${PLUGIN_ROOT}/${pluginId}/result-contract.ts`);
-      const routePolicy = read(context, "src/lib/local-runtime/production/website-agent-route-policies.v1.json");
-      for (const required of [
-        "context.gpt.execute", "corpus_research", "article_synthesis", "article_image_generation",
-        "accuracy_challenge", "quality_reflection", "GPT-5.6 Sol", 'reasoningTier: "pro_standard"',
-        "acquire_gpt_continuation_lane", "advance_gpt_continuation_lane", "release_gpt_continuation_lane",
-        "SEO_CHILD_HANDOFF_DELAY_MS = 2_000", "setTimeout(resolve, SEO_CHILD_HANDOFF_DELAY_MS)",
-        'publicKnowledgeTurnContract("research")', 'publicKnowledgeTurnContract("article")',
-        "readCallFacts", "requireEvidence", "absoluteDeadline", "prior_prompt_hash",
-        "expectedPromptHash", "preservePostSubmitReadback",
-      ]) if (!source.includes(required)) findings.push(finding(
-        "agent-production-runtime/seo-product-flow", path,
-        `SEO Product Flow is missing ${required}.`,
-      ));
-      if (source.includes("PRODUCT_FLOW_NOT_IMPLEMENTED:")) findings.push(finding(
-        "agent-production-runtime/seo-product-flow-stub-retired", path,
-        "SEO Product Flow still contains its retired fail-closed stub.",
-      ));
-      for (const forbidden of [
-        "CHILD_SETTLE_DELAY_MS", "seoProductExecutionTail", "runSeoProductExecutionExclusive",
-        "++actionOrdinal", "actionOrdinal: 0",
-      ]) if (source.includes(forbidden)) findings.push(finding(
-        "agent-production-runtime/seo-product-second-scheduler-retired", path,
-        `SEO Product Flow retains forbidden pacing or scheduling token ${forbidden}.`,
-      ));
-      if (source.includes("JSON.stringify(task.parameters)")
-        || /无文字|无印章|不冒充古籍原页/u.test(source)) findings.push(finding(
-          "agent-production-runtime/seo-provider-input-leak", path,
-          "SEO Prompt leaks internal parameters or duplicates Website-forbidden image creative rules.",
-        ));
-      for (const required of [
-        "route.result_contract", "result.parseJsonObject", "decision_values", "Object.freeze(output)",
-      ]) if (!resultContract.includes(required)) findings.push(finding(
-        "agent-production-runtime/seo-result-contract-projection", `${PLUGIN_ROOT}/${pluginId}/result-contract.ts`,
-        `SEO receiver is missing basic machine-format or lossless receipt token ${required}.`,
-      ));
-      for (const required of [
-        "public-knowledge-article-package-contract.v1", '"package"', '"research"', '"article"', '"image"',
-      ]) if (!routePolicy.includes(required)) findings.push(finding(
-        "agent-production-runtime/seo-result-contract-projection",
-        "src/lib/local-runtime/production/website-agent-route-policies.v1.json",
-        `Website route projection is missing ${required}.`, "static.contract",
-      ));
+      inspectSeoPlugin(context, source, path, findings);
     } else {
       if (!source.includes(`PRODUCT_FLOW_NOT_IMPLEMENTED:${pluginId}:`)) findings.push(finding(
         "agent-production-runtime/unimplemented-product-fail-closed", path,
@@ -183,6 +202,11 @@ const inspectAgentProductionRuntime = (context: InspectorContext, findings: Insp
       ));
     }
   }
+};
+
+const inspectAgentProductionRuntime = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  inspectSharedProductionRuntime(context, findings);
+  inspectProductPlugins(context, findings);
 };
 
 const inspectAgentFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
@@ -235,9 +259,10 @@ const inspectAgentTypes = (context: InspectorContext, findings: InspectorFinding
     "agent-production-runtime/product-gpt-tools-type", PLUGIN_CONTRACT_PATH,
     `ProductGptTools may expose only attemptId, execute, readCallFacts and readContinuationForTurn; found ${toolFields.join(",")}.`, "static.types",
   ));
-  const execute = productGptTools?.getMethod("execute")?.getText() ?? "";
+  const executeFields = productGptTools?.getMethod("execute")?.getParameters()[0]
+    ?.getType().getProperties().map((property) => property.getName()) ?? [];
   for (const required of ["sessionKey", "productStepId", "callId", "child", "actionOrdinal", "input"])
-    if (!execute.includes(required)) findings.push(finding(
+    if (!executeFields.includes(required)) findings.push(finding(
       "agent-production-runtime/product-gpt-call-identity", PLUGIN_CONTRACT_PATH,
       `ProductGptTools.execute is missing ${required}.`, "static.types",
     ));

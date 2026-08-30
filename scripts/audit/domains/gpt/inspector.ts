@@ -19,6 +19,7 @@ import {
   validateStaticInspection,
 } from "../../shared/static-inspection-contract.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
+import { inspectGptContractDenominator } from "./gpt-contract-inspection.js";
 
 const LAW_ID = "LAW-GPT-001-V10";
 const MODE_CLAUSES = {
@@ -49,7 +50,6 @@ const EXECUTION_PROFILE_HANDLER_PATH = `${ROOT}/web/children/execution-profile-c
 const EXECUTION_PROFILE_CONTRACT_PATH = `${ROOT}/web/contracts/execution-profile.contract.ts`;
 const ATTACHMENT_HANDLER_PATH = `${ROOT}/web/children/attachment-children.ts`;
 const ATTACHMENT_CONTRACT_PATH = `${ROOT}/web/contracts/attachment.contract.ts`;
-const CHILD_ID_SOURCES = ["PAGE_OBSERVATIONS", "PAGE_MUTATIONS", "SESSION_MUTATIONS"] as const;
 
 const finding = (checkId: string, filePath: string, message: string, line?: number): InspectorFinding =>
   createFinding({
@@ -67,133 +67,6 @@ const sourceFor = (context: InspectorContext, path: string): SourceFile | undefi
 
 const repoPath = (context: InspectorContext, source: SourceFile): string =>
   source.getFilePath().slice(resolve(context.sealedRoot).length + 1).split("\\").join("/");
-
-const childIdsFromContract = (contract: SourceFile): string[] => CHILD_ID_SOURCES.flatMap((name) => {
-  const initializer = contract.getVariableDeclaration(name)?.getInitializer();
-  const array = initializer && Node.isArrayLiteralExpression(initializer)
-    ? initializer
-    : initializer?.getFirstDescendantByKind(SyntaxKind.ArrayLiteralExpression);
-  if (!array) return [];
-  return array.getElements().flatMap((element) =>
-    Node.isStringLiteral(element) || Node.isNoSubstitutionTemplateLiteral(element)
-      ? [element.getLiteralValue()]
-      : []);
-}).sort();
-
-const handlerIds = (context: InspectorContext): string[] => context.project.getSourceFiles()
-  .filter((source) => {
-    const path = repoPath(context, source);
-    return path.startsWith(`${ROOT}/web/children/`) || path === `${ROOT}/session/session-children.ts`;
-  })
-  .flatMap((source) => source.getVariableDeclarations())
-  .filter((declaration) => declaration.getName().endsWith("ChildHandlers"))
-  .flatMap((declaration) => {
-    const initializer = declaration.getInitializer();
-    const object = initializer && Node.isObjectLiteralExpression(initializer)
-      ? initializer
-      : initializer?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
-    return object
-      ? object.getProperties().flatMap((property) => {
-        if (Node.isMethodDeclaration(property) || Node.isPropertyAssignment(property)) return [property.getName()];
-        return [];
-      })
-      : [];
-  })
-  .sort();
-
-const inspectDenominatorAndContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const contract = sourceFor(context, CONTRACT_PATH);
-  if (!contract) {
-    findings.push(finding("gpt/contract-present", CONTRACT_PATH, "The unique GPT public contract is missing."));
-    return;
-  }
-  const ids = childIdsFromContract(contract);
-  if (ids.length !== 23 || new Set(ids).size !== 23) findings.push(finding(
-    "gpt/exact-child-denominator", CONTRACT_PATH,
-    `GPT_CHILD_CAPABILITY_IDS must derive exactly 23 unique child ids; found ${ids.length}/${new Set(ids).size}.`,
-  ));
-  for (const requiredV2 of ["open_gpt_model_selector_v2", "select_exact_gpt_model_v2"]) {
-    if (!ids.includes(requiredV2)) findings.push(finding(
-      "gpt/model-selection-v2-required", CONTRACT_PATH,
-      `The public denominator is missing ${requiredV2}.`,
-    ));
-  }
-  if (ids.includes("ensure_exact_gpt_model")) findings.push(finding(
-    "gpt/model-selection-v1-retired", CONTRACT_PATH,
-    "V1 ensure_exact_gpt_model must not remain production-reachable.",
-  ));
-  const modelV2Contract = sourceFor(context, MODEL_SELECTION_V2_CONTRACT_PATH)?.getFullText() ?? "";
-  for (const required of [
-    "GPT_MODEL_SELECTION_V2_ENTRY_SELECTOR",
-    "GPT_PROFILE_POPUP_SELECTOR",
-    "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR",
-    "[data-active='true']:not([inert])",
-    "GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR",
-  ]) if (!modelV2Contract.includes(required)) findings.push(finding(
-    "gpt/model-selection-v2-visible-contract", MODEL_SELECTION_V2_CONTRACT_PATH,
-    `Model selection V2 contract is missing ${required}.`,
-  ));
-  if (modelV2Contract.includes("GPT_PROFILE_SIMPLE_PANEL_SELECTOR")) findings.push(finding(
-    "gpt/model-selection-v2-entry-owner", MODEL_SELECTION_V2_CONTRACT_PATH,
-    "The exact model entry belongs to the active profile menu and must not be scoped under the sibling reasoning panel.",
-  ));
-  const modelV2Handler = sourceFor(context, MODEL_SELECTION_V2_HANDLER_PATH)?.getFullText() ?? "";
-  for (const required of [
-    "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
-    "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR", "GPT_PROFILE_SIMPLE_PANEL_SELECTOR",
-    "GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR",
-    "isAlreadyOpen", "isOpenable", "ALREADY_OPEN", "OPENABLE",
-  ]) if (!modelV2Handler.includes(required)) findings.push(finding(
-    "gpt/model-selection-v2-handler", MODEL_SELECTION_V2_HANDLER_PATH,
-    `Model selection V2 handler is missing ${required}.`,
-  ));
-  const reasoningContract = sourceFor(context, EXECUTION_PROFILE_CONTRACT_PATH)?.getFullText() ?? "";
-  for (const required of [
-    "[role='menuitem'][aria-label='能力']",
-    "[data-model-reasoning-effort-slider] [role='slider']",
-    'fast: 0', 'medium: 1', 'high: 2', 'extra_high: 3', 'pro_standard: 4',
-  ]) if (!reasoningContract.includes(required)) findings.push(finding(
-    "gpt/reasoning-five-value-contract", EXECUTION_PROFILE_CONTRACT_PATH,
-    `Reasoning contract is missing ${required}.`,
-  ));
-  const reasoningHandler = sourceFor(context, EXECUTION_PROFILE_HANDLER_PATH)?.getFullText() ?? "";
-  for (const required of ["aria-valuemin", "aria-valuemax", "aria-valuenow", "minimum !== 0", "maximum !== 4"])
-    if (!reasoningHandler.includes(required)) findings.push(finding(
-      "gpt/reasoning-numeric-readback", EXECUTION_PROFILE_HANDLER_PATH,
-      `Reasoning handler is missing numeric readback guard ${required}.`,
-    ));
-  const denominator = contract.getVariableDeclaration("GPT_CHILD_CAPABILITY_IDS")?.getInitializer()?.getText() ?? "";
-  for (const sourceName of CHILD_ID_SOURCES) if (!denominator.includes(`...${sourceName}`)) findings.push(finding(
-    "gpt/denominator-derived-once", CONTRACT_PATH,
-    `GPT_CHILD_CAPABILITY_IDS must derive from ${sourceName}.`,
-  ));
-  const implemented = handlerIds(context);
-  if (JSON.stringify(ids) !== JSON.stringify(implemented)) findings.push(finding(
-    "gpt/one-handler-per-child", CONTRACT_PATH,
-    `Handler denominator differs from contract: contract=${ids.join(",")}; handlers=${implemented.join(",")}.`,
-  ));
-  const childContract = contract.getInterface("ChildCapabilityContract");
-  const actualFields = childContract?.getMembers().flatMap((member) =>
-    Node.isPropertySignature(member) ? [member.getName()] : []).sort() ?? [];
-  const requiredFields = [
-    "allowedDocumentTransition", "childCapabilityId", "contractVersion", "evidenceSchema",
-    "failureClassification", "inputSchema", "oneObservationOrMutation", "postcondition",
-    "precondition", "replayPolicy", "requiredTargetKind",
-  ].sort();
-  if (JSON.stringify(actualFields) !== JSON.stringify(requiredFields)) findings.push(finding(
-    "gpt/child-contract-exact-shape", CONTRACT_PATH,
-    `ChildCapabilityContract fields must remain exact; found ${actualFields.join(",")}.`,
-  ));
-  for (const proofField of [
-    "childCapabilityId", "executionId", "jobId", "attemptId", "pluginId", "pluginVersion",
-    "productStepId", "callId", "inputHash", "actionOrdinal", "targetRefHash",
-    "beforeDocumentRefHash", "afterDocumentRefHash",
-    "candidateCount", "observedSemantics",
-    "committedMutation", "postconditionResult", "startedAt", "endedAt", "evidenceRef", "evidenceHash",
-  ]) if (!contract.getInterface("GptChildCapabilityProof")?.getProperty(proofField)) findings.push(finding(
-    "gpt/proof-field-required", CONTRACT_PATH, `GptChildCapabilityProof is missing ${proofField}.`,
-  ));
-};
 
 const inspectImportOwnership = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const source of context.project.getSourceFiles()) {
@@ -393,7 +266,7 @@ const inspectUniqueRuntimeChain = (context: InspectorContext, findings: Inspecto
   }
 };
 
-const inspectIntelligentExecutionContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {
+const inspectExactCallContract = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const contract = sourceFor(context, CONTRACT_PATH);
   const identity = contract?.getVariableDeclaration("gptExactCallIdentityHash")?.getFullText() ?? "";
   for (const required of [
@@ -410,7 +283,9 @@ const inspectIntelligentExecutionContracts = (context: InspectorContext, finding
     "gpt/cooperative-provider-yield-contract", CONTRACT_PATH,
     "GptExecutionContext must expose the Product-neutral cooperative Provider wait yield hook.",
   ));
+};
 
+const inspectContinuationContract = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const sessionChildren = sourceFor(context, SESSION_CHILDREN_PATH)?.getFullText() ?? "";
   for (const required of ["gptExactCallIdentityHash", "gpt-continuation:", "prior_prompt_hash"]) if (!sessionChildren.includes(required)) findings.push(finding(
     "gpt/deterministic-continuation-ref", SESSION_CHILDREN_PATH,
@@ -426,9 +301,11 @@ const inspectIntelligentExecutionContracts = (context: InspectorContext, finding
     "GPT_CONTINUATION_ADVANCE_CAS_FAILED", "GPT_CONTINUATION_RELEASE_CAS_FAILED",
   ]) if (!controller.includes(required)) findings.push(finding(
     "gpt/continuation-content-idempotency", SESSION_PATH,
-    `Continuation persist/advance/release readback is missing ${required}.`,
-  ));
+      `Continuation persist/advance/release readback is missing ${required}.`,
+    ));
+};
 
+const inspectProviderWaitContract = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const response = sourceFor(context, RESPONSE_HANDLER_PATH)?.getFullText() ?? "";
   const responseUserSelector = sourceFor(context, RESPONSE_HANDLER_PATH)
     ?.getVariableDeclaration("userSelector")?.getFullText() ?? "";
@@ -456,12 +333,18 @@ const inspectIntelligentExecutionContracts = (context: InspectorContext, finding
     "Date.parse", "yieldForProviderWait", "Math.min(5_000",
   ]) if (!response.includes(required)) findings.push(finding(
     "gpt/absolute-deadline-dynamic-backoff", RESPONSE_HANDLER_PATH,
-    `Stable Provider wait is missing ${required}.`,
-  ));
+      `Stable Provider wait is missing ${required}.`,
+    ));
+};
+
+const inspectIntelligentExecutionContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  inspectExactCallContract(context, findings);
+  inspectContinuationContract(context, findings);
+  inspectProviderWaitContract(context, findings);
 };
 
 const inspectGptContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  inspectDenominatorAndContracts(context, findings);
+  inspectGptContractDenominator(context, findings, finding);
   inspectFacadeAndOwnership(context, findings);
   inspectAttachmentDomContract(context, findings);
   inspectUniqueRuntimeChain(context, findings);

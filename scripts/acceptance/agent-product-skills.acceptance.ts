@@ -9,20 +9,22 @@ import {
   productionPluginCatalog,
   resolveProductionPlugin,
 } from "../../src/lib/local-runtime/production/catalog.js";
-import { gptAttachmentProviderDisplayName } from "../../src/capabilities/gpt/index.js";
 import { ProductionProductIdSchema, hashCanonical, type WebsiteAgentTask } from "../../src/lib/local-runtime/production/contracts.js";
-import type { ProductPluginOutput, SharedExecutionContext } from "../../src/lib/local-runtime/production/plugin.js";
+import type { SharedExecutionContext } from "../../src/lib/local-runtime/production/plugin.js";
 import {
-  executionFailure,
   postSubmitReadbackReceipt,
   typedExecutionFailure,
 } from "../../src/lib/typed-failure.js";
 import { productionRoutePolicies } from "../../src/lib/local-runtime/production/route-policy.js";
 import { parsePublicKnowledgeArticle, parsePublicKnowledgeResearch } from "../../src/plugins/public-knowledge-article-pipeline/result-contract.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
+import {
+  articleOutput,
+  exerciseSeoFlow,
+  researchOutput,
+} from "./agent-product-skills-flow-support.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const HASH = `sha256:${"1".repeat(64)}` as const;
 const hashText = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 const PROFILE_SEQUENCE = [
@@ -73,245 +75,6 @@ const CONTINUATION_IMAGE_SEQUENCE = [
   "advance_gpt_continuation_lane",
 ] as const;
 
-const researchOutput = (decision: "proceed" | "decline") => ({
-  schema_version: "public-knowledge-research-output.v3", decision,
-  topic_manifest: {
-    primary_question: "旺衰判断为何不能只数五行？", answer_scope: "解释判断条件",
-    excluded_scope: "不做个人命盘", primary_cluster_id: "bazi-strength-balance",
-    secondary_cluster_ids: [], reader_level: "introductory", concept_keys: ["旺衰"],
-    relation_keys: ["条件"], method_scope: ["古籍解释"],
-  },
-  editorial_intent: "说明判断边界", catalog_comparison_note: "独立问题",
-  research_markdown: "研究工件", citations: [], uncertainties: [], research_claim_units: [],
-  closest_existing_article_ids: [], relation_assertions: [], novelty_basis: "independent_question",
-});
-const articleOutput = {
-  schema_version: "public-knowledge-article-output.v3", title: "旺衰判断的条件",
-  editor_note: "说明边界", article_markdown: "## 判断边界\n不能机械计数。",
-  citations: [], claim_coverage: [], safety_notes: [],
-};
-
-const seoTask = (actionId: WebsiteAgentTask["action_id"]): WebsiteAgentTask => ({
-  job_id: `job-${actionId}`, action_id: actionId, product_id: "public_knowledge_article_pipeline",
-  parameters: { domain_id: "bazi", locale: "zh-CN", ready_corpus_snapshot_hash: HASH },
-  business_identity: { owner_ref: "owner", subject_ref: "subject", authorization_ref: "authorization" },
-  ...(actionId === "produce_article" ? {} : {
-    subject_task_ref: "subject-task", subject_result_ref: "subject-result",
-    subject_result_hash: HASH, review_policy: "strict",
-  }),
-} as unknown as WebsiteAgentTask);
-
-const exerciseSeoFlow = async (
-  plugin: (typeof productionPluginCatalog)[number],
-  actionId: "produce_article" | "accuracy_challenge" | "quality_reflection",
-  decision: "proceed" | "decline" = "proceed",
-  failureAt?: Readonly<{ child: string; code: string; productStepId?: string }>,
-  recoverAfterFault = false,
-) => {
-  const calls: Array<Parameters<SharedExecutionContext["gpt"]["execute"]>[0]> = [];
-  const factsByCall = new Map<string, Readonly<{
-    evidenceRef: string;
-    mutation: boolean;
-    terminalAt: string | null;
-  }>>();
-  const handoffDelays: number[] = [];
-  let completed: ProductPluginOutput | null = null;
-  let continuationProvider: Readonly<Record<string, unknown>> | null = null;
-  let continuationLaneVersion = 0;
-  let continuationLaneOwned = false;
-  let remainingFailures = failureAt ? 1 : 0;
-  let physicalSubmitDispatches = 0;
-  const acquiredLaneVersions: number[] = [];
-  const providerNames = [
-    gptAttachmentProviderDisplayName("one.json", "attempt-1", "m0"),
-    gptAttachmentProviderDisplayName("two.json", "attempt-1", "m1"),
-  ] as const;
-  const factKey = (input: Readonly<{
-    productStepId: string;
-    callId: string;
-    child: string;
-    actionOrdinal: number;
-    input: Readonly<Record<string, unknown>>;
-  }>): string => hashCanonical({
-    productStepId: input.productStepId,
-    callId: input.callId,
-    child: input.child,
-    actionOrdinal: input.actionOrdinal,
-    input: input.input,
-  });
-  const context = {
-    materials: [
-      { material_id: "m0", ordinal: 0, display_name: "one.json", local_path: "/tmp/one.json", sha256: HASH, bytes: 1 },
-      { material_id: "m1", ordinal: 1, display_name: "two.json", local_path: "/tmp/two.json", sha256: HASH, bytes: 1 },
-    ],
-    gpt: {
-      attemptId: "attempt-1",
-      readContinuationForTurn: (marker: string) => continuationProvider
-        && continuationProvider.prior_turn_marker === marker
-        ? {
-          continuation_ref: "gpt-continuation:test",
-          lane_version: continuationLaneVersion,
-          provider: continuationProvider,
-        }
-        : null,
-      readCallFacts: async (input: Parameters<SharedExecutionContext["gpt"]["readCallFacts"]>[0]) => {
-        const stored = factsByCall.get(factKey(input));
-        return {
-          exactCallIdentityHash: HASH,
-          mutation: stored?.mutation ? {
-            owner: "browser" as const,
-            effectScope: "provider_effect" as const,
-            outcome: "CONFIRMED" as const,
-            terminalAt: stored.terminalAt,
-          } : null,
-          evidence: stored ? {
-            owner: "forensics-persistence" as const,
-            evidenceRef: stored.evidenceRef,
-            evidenceHash: HASH,
-            readbackVerified: true as const,
-            artifactRefs: input.child === "checkpoint_gpt_text_response"
-              ? ["artifact:checkpoint"] : [],
-          } : null,
-          continuation: null,
-        };
-      },
-      execute: async (input: Parameters<SharedExecutionContext["gpt"]["execute"]>[0]) => {
-        calls.push(input);
-        if (remainingFailures > 0 && input.child === failureAt?.child
-          && (!failureAt.productStepId || input.productStepId === failureAt.productStepId)) {
-          remainingFailures -= 1;
-          throw executionFailure("failed", failureAt.code);
-        }
-        const marker = `[GRASSEYE:${"a".repeat(24)}]`;
-        const text = input.productStepId === "corpus_research"
-          ? JSON.stringify(researchOutput(decision))
-          : input.productStepId === "article_synthesis"
-            ? JSON.stringify(articleOutput)
-            : JSON.stringify({ decision: "no_issue", issues: [] });
-        const values: Partial<Record<typeof input.child, unknown>> = {
-          reconcile_gpt_attachment_set: {
-            files: [
-              { artifactRef: "m0", displayName: "one.json", providerDisplayName: providerNames[0], sha256: HASH, bytes: 1 },
-              { artifactRef: "m1", displayName: "two.json", providerDisplayName: providerNames[1], sha256: HASH, bytes: 1 },
-            ],
-          },
-          write_exact_gpt_prompt: { hash: HASH },
-          reconcile_gpt_turn_submission: { canonicalConversationUrl: "https://chatgpt.com/c/example" },
-          wait_for_stable_gpt_text: { assistantTurnId: "conversation-turn-2", responseHash: HASH, responseText: text },
-          checkpoint_gpt_text_response: {
-            assistantTurnId: "conversation-turn-2",
-            rawDomHtml: `<div data-message-author-role="assistant">${text}</div>`,
-            rawDomHash: HASH,
-            semanticText: text,
-            semanticTextHash: HASH,
-          },
-          persist_gpt_continuation: { continuationRef: "gpt-continuation:test" },
-          wait_for_stable_gpt_image: { assistantTurnId: "conversation-turn-6", responseHash: HASH },
-          checkpoint_gpt_generated_image: {
-            artifactId: "image-1", localPath: "/tmp/image.webp", originalLocalPath: "/tmp/image.original",
-            sha256: HASH, originalSha256: HASH, bytes: 42, mediaType: "image/webp", width: 1200, height: 630,
-          },
-        };
-        if (input.child === "persist_gpt_continuation") {
-          continuationProvider ??= input.input.provider as Readonly<Record<string, unknown>>;
-        }
-        let value: unknown = values[input.child] ?? {};
-        if (input.child === "acquire_gpt_continuation_lane") {
-          assert.equal(continuationLaneOwned, false, "released continuation must be reacquired physically");
-          continuationLaneVersion += 1;
-          acquiredLaneVersions.push(continuationLaneVersion);
-          continuationLaneOwned = true;
-          value = {
-            continuation_ref: "gpt-continuation:test",
-            lane_version: continuationLaneVersion,
-            provider: continuationProvider,
-          };
-        }
-        if (input.child === "advance_gpt_continuation_lane") {
-          assert.equal(continuationLaneOwned, true);
-          assert.equal(
-            (input.input.lane as Readonly<Record<string, unknown>>).lane_version,
-            continuationLaneVersion,
-          );
-          continuationProvider = input.input.provider as Readonly<Record<string, unknown>>;
-          continuationLaneOwned = false;
-        }
-        if (input.child === "release_gpt_continuation_lane") {
-          assert.equal(
-            (input.input.lane as Readonly<Record<string, unknown>>).lane_version,
-            continuationLaneVersion,
-          );
-          continuationLaneOwned = false;
-        }
-        const priorFact = factsByCall.get(factKey(input));
-        if (input.child === "submit_exact_gpt_turn_once" && !priorFact) {
-          physicalSubmitDispatches += 1;
-        }
-        const evidenceRef = priorFact?.evidenceRef ?? `evidence:${calls.length}`;
-        factsByCall.set(factKey(input), {
-          evidenceRef,
-          mutation: input.child === "submit_exact_gpt_turn_once",
-          terminalAt: input.child === "submit_exact_gpt_turn_once" ? "2020-01-01T00:00:00.000Z" : null,
-        });
-        return { value, evidenceRef, evidenceHash: HASH };
-      },
-    },
-    complete: async (output: ProductPluginOutput) => {
-      completed = output;
-      return {} as Awaited<ReturnType<SharedExecutionContext["complete"]>>;
-    },
-  } as unknown as SharedExecutionContext;
-  const nativeSetTimeout = globalThis.setTimeout;
-  const acceleratedSetTimeout = ((
-    handler: (...args: unknown[]) => void,
-    timeout?: number,
-    ...args: unknown[]
-  ) => {
-    handoffDelays.push(timeout ?? 0);
-    return nativeSetTimeout(() => handler(...args), 0);
-  }) as typeof setTimeout;
-  globalThis.setTimeout = acceleratedSetTimeout;
-  let firstFailure: unknown = null;
-  try {
-    try {
-      await plugin.execute(seoTask(actionId), context);
-    } catch (error) {
-      if (!recoverAfterFault) throw error;
-      firstFailure = error;
-    }
-    if (recoverAfterFault) await plugin.execute(seoTask(actionId), context);
-  } finally {
-    globalThis.setTimeout = nativeSetTimeout;
-  }
-  const output = completed as ProductPluginOutput | null;
-  assert(output);
-  if (!recoverAfterFault) {
-    assert.deepEqual(calls.map((call) => call.actionOrdinal), calls.map((_call, index) => index + 1));
-  }
-  assert.equal(new Set(calls.map((call) => call.sessionKey)).size, 1);
-  assert.ok(calls.every((call) => call.sessionKey.includes("attempt-1")));
-  if (!recoverAfterFault) {
-    assert.deepEqual(output.evidence_refs, calls.map((_call, index) => `evidence:${index + 1}`));
-  }
-  if (!recoverAfterFault) assert.equal(handoffDelays.length, Math.max(0, calls.length - 1));
-  assert.ok(handoffDelays.every((delay) => delay === 2_000), "every adjacent SEO Child must retain a 2s handoff floor");
-  const firstPrompt = calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt;
-  assert.equal(typeof firstPrompt, "string");
-  assert.match(firstPrompt as string, new RegExp(`${providerNames[0]} 与 ${providerNames[1]}`, "u"));
-  if (actionId === "produce_article") {
-    assert.match(firstPrompt as string, /public-knowledge-research-output\.v3/u);
-    assert.match(firstPrompt as string, /本回合不得返回 article package/u);
-    assert.doesNotMatch(firstPrompt as string, /ready_corpus_snapshot_hash|sha256:/u);
-  }
-  const firstDraftFiles = calls.find((call) => call.child === "reconcile_gpt_draft")?.input.files;
-  assert.deepEqual(
-    Array.isArray(firstDraftFiles)
-      ? firstDraftFiles.map((file) => (file as { providerDisplayName?: unknown }).providerDisplayName)
-      : null,
-    providerNames,
-  );
-  return { calls, completed: output, firstFailure, physicalSubmitDispatches, acquiredLaneVersions };
-};
 
 const inspectSkill = (productIds: readonly string[], text: string): readonly string[] => {
   const findings: string[] = [];

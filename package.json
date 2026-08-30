@@ -17,7 +17,7 @@
     "acceptance:local-browser-terminal": "node --import tsx scripts/acceptance/local-browser-terminal-contract.acceptance.ts && node --import tsx scripts/acceptance/local-browser-property-model.acceptance.ts && node --import tsx scripts/acceptance/local-browser-rule-mutants.acceptance.ts && node --import tsx scripts/acceptance/local-runtime-browser-authority.acceptance.ts && node --import tsx scripts/acceptance/local-browser-auto-pairing.acceptance.ts",
     "acceptance:local-browser-release-identity": "node --import tsx scripts/acceptance/browser-extension-release-identity.acceptance.ts",
     "acceptance:browser-extension-build": "node --import tsx scripts/acceptance/browser-extension-build.acceptance.ts",
-    "acceptance:gpt": "node --import tsx scripts/acceptance/gpt-exact-target.acceptance.ts",
+    "acceptance:gpt": "node --import tsx src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts",
     "internal:app-server": "node dist/src/app/server.js",
     "grasseye:start": "node --import tsx --env-file-if-exists=.env.local scripts/startup/launch-grasseye.mjs",
     "logs:inspect": "node --import tsx scripts/runtime-logs/inspect.ts",

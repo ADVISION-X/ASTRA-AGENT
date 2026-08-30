@@ -267,6 +267,22 @@ const waitForInteractionAttribute = async (
   return false;
 };
 
+const clearFocusedInput = async (
+  debuggerRuntime: ExtensionDebuggerRuntime,
+  tabId: number,
+): Promise<void> => {
+  await debuggerRuntime.send(tabId, "Input.dispatchKeyEvent", {
+    type: "rawKeyDown", key: "a", code: "KeyA", commands: ["selectAll"],
+  });
+  await debuggerRuntime.send(tabId, "Input.dispatchKeyEvent", { type: "keyUp", key: "a", code: "KeyA" });
+  await debuggerRuntime.send(tabId, "Input.dispatchKeyEvent", {
+    type: "rawKeyDown", key: "Backspace", code: "Backspace",
+  });
+  await debuggerRuntime.send(tabId, "Input.dispatchKeyEvent", {
+    type: "keyUp", key: "Backspace", code: "Backspace",
+  });
+};
+
 const executeValueIntent = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
@@ -279,14 +295,7 @@ const executeValueIntent = async (
   if (intent.kind === "readText") return truncate(await nodeText(debuggerRuntime, target.tabId, nodeId), intent.maxChars);
   if (intent.kind === "readAttribute") return truncate(attribute(await describeNode(debuggerRuntime, target.tabId, nodeId), intent.name) ?? "", intent.maxChars);
   await debuggerRuntime.send(target.tabId, "DOM.focus", { nodeId });
-  if (intent.clearBeforeType) {
-    await debuggerRuntime.send(target.tabId, "Input.dispatchKeyEvent", {
-      type: "rawKeyDown", key: "a", code: "KeyA", commands: ["selectAll"],
-    });
-    await debuggerRuntime.send(target.tabId, "Input.dispatchKeyEvent", { type: "keyUp", key: "a", code: "KeyA" });
-    await debuggerRuntime.send(target.tabId, "Input.dispatchKeyEvent", { type: "rawKeyDown", key: "Backspace", code: "Backspace" });
-    await debuggerRuntime.send(target.tabId, "Input.dispatchKeyEvent", { type: "keyUp", key: "Backspace", code: "Backspace" });
-  }
+  if (intent.clearBeforeType) await clearFocusedInput(debuggerRuntime, target.tabId);
   await debuggerRuntime.send(target.tabId, "Input.insertText", { text: intent.approvedText });
   const retainedValue = await nodeText(debuggerRuntime, target.tabId, nodeId);
   const postconditionVerified = retainedValue === intent.approvedText;

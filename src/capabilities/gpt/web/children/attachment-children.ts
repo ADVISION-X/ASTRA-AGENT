@@ -1,12 +1,13 @@
 import { createHash } from "node:crypto";
 import { copyFile, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, parse } from "node:path";
+import { join } from "node:path";
 
 import type { BrowserFileArtifactGrantV1 } from "../../../../lib/browser/browser-authority-api.js";
 import { executionFailure } from "../../../../lib/typed-failure.js";
 
 import type { GptChildCapabilityIntent } from "../../contract.js";
+import { gptAttachmentProviderDisplayName } from "../../schema.js";
 import type { GptChildHandlerMap } from "../child-handler.js";
 import {
   arrayInput,
@@ -45,18 +46,6 @@ type AttachmentSetState = Readonly<{
 
 const digest = (bytes: Buffer): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
-
-export const gptAttachmentProviderDisplayName = (displayName: string, attemptId: string, artifactRef: string): string => {
-  const parsed = parse(displayName);
-  if (parsed.base !== displayName || !parsed.name) {
-    throw executionFailure("failed", "GPT_ATTACHMENT_DISPLAY_NAME_INVALID");
-  }
-  const attemptToken = createHash("sha256")
-    .update(`${attemptId}\u0000${artifactRef}`)
-    .digest("hex")
-    .slice(0, 12);
-  return `${parsed.name}-${attemptToken}${parsed.ext}`.normalize("NFC");
-};
 
 const filesFromIntent = (intent: GptChildCapabilityIntent): readonly ApprovedFile[] => {
   const files = arrayInput(intent, "files").map((value): ApprovedFile => {

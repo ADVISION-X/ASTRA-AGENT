@@ -15,6 +15,3 @@ export const parseProductResult = (task: WebsiteAgentTask, value: unknown): Read
   result.locked(output, task, ["source_resource_id", "source_version", "source_sha256", "target_locale"]);
   return Object.freeze(output);
 };
-
-export const parseRouteResult = (task: WebsiteAgentTask, raw: string): Readonly<Record<string, unknown>> =>
-  parseProductResult(task, result.parseJsonObject(raw, "AGENT_ROUTE_RESULT"));

@@ -1,4 +1,4 @@
-import type { BrowserDomIntent, BrowserTargetLease } from "../../src/lib/browser/browser-authority-api.js";
+import type { BrowserDomIntent, BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 
 export const EXPECTED_GPT_CHILD_IDS = Object.freeze([
   "acquire_gpt_continuation_lane", "advance_gpt_continuation_lane",

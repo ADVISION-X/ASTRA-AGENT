@@ -68,9 +68,13 @@ export class BrowserInfrastructureSupervisor {
       pairingSecret: process.env.GRASSEYE_BROWSER_PAIRING_SECRET ?? null,
       onPairingStarted: () => {},
       onHeartbeat: () => {},
-      onAuthenticated: (input) => this.onAuthenticated(input),
+      onAuthenticated: (authentication) => commitBrowserAuthentication({
+        authentication, state: this.state, transport: this.transport, issuer: this.issuer,
+        profileConfig: this.options.profileConfig, enrolledProfile: this.options.enrolledProfile,
+        releaseIdentity: this.options.releaseIdentity,
+      }),
       onTargetClaim: (input) => this.onTargetClaim(input),
-      onTargetRevoke: (targetRef) => this.onTargetRevoke(targetRef),
+      onTargetRevoke: (targetRef) => this.broker.revokeOperatorTargetClaim(targetRef),
       onDiagnostic: (reasonCode, refs) => this.onDiagnostic(reasonCode, refs),
       onRevoked: (reasonCode, refs) => this.onRevoked(reasonCode, refs),
     };
@@ -85,17 +89,6 @@ export class BrowserInfrastructureSupervisor {
     this.lane = new BrowserLaneCoordinator(() => this.broker, this.websocket, this.issuer, this.state);
   }
 
-  private onAuthenticated(
-    authentication: Parameters<BrowserAuthorityWebSocketOptions["onAuthenticated"]>[0],
-  ): BrowserAuthorityReady {
-    const ready = commitBrowserAuthentication({
-      authentication, state: this.state, transport: this.transport, issuer: this.issuer,
-      profileConfig: this.options.profileConfig, enrolledProfile: this.options.enrolledProfile,
-      releaseIdentity: this.options.releaseIdentity,
-    });
-    return ready;
-  }
-
   private onTargetClaim(input: BrowserAuthorityTargetClaim): void {
     requireGptWebPolicyForUrl(input.url);
     const initialClaim = this.broker.currentOperatorTargetStatus() === "absent";
@@ -108,10 +101,6 @@ export class BrowserInfrastructureSupervisor {
   private onDiagnostic(reasonCode: string, refs: Readonly<Record<string, string>>): void {
     if (refs.runtimeEventType === "job-bound-target-acquisition") this.lane.rejectPending(reasonCode);
     this.logs.failure(reasonCode, refs.runtimeEventType ?? "extension-diagnostic");
-  }
-
-  private onTargetRevoke(targetRef: string): void {
-    this.broker.revokeOperatorTargetClaim(targetRef);
   }
 
   private onRevoked(reasonCode: string, refs?: Readonly<Record<string, string>>): void {
@@ -251,17 +240,14 @@ export class BrowserInfrastructureSupervisor {
         this.issuer.assertCurrentCommandPermit(permit);
       },
     };
+    const mutationState = this.state.mutationState;
+    if (!mutationState) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
     return new BrowserTargetLeaseManager(
       current.authority, binding,
-      new BrowserCommandActor(new BrowserCommandAdmissionBudget(), this.websocket, this.mutationStore(),
+      new BrowserCommandActor(new BrowserCommandAdmissionBudget(), this.websocket, mutationState,
         guard, this.options.runtimeLogger),
       this.issuer, this.state.workspace, resolveCurrentTarget, resolveGrantPaths,
     );
-  }
-
-  private mutationStore(): BrowserMutationStore {
-    if (!this.state.mutationState) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
-    return this.state.mutationState;
   }
 
   private disconnectTransport(reasonCode: Parameters<BrowserTransportActor["disconnect"]>[0]): void {

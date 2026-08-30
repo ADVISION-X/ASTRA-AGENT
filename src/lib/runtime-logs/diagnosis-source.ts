@@ -58,10 +58,6 @@ export const parseRuntimeLogSource = (source: string, findings: string[]): Reado
   return { events, status: { source, available: files.length > 0, files: files.length, events: events.length } };
 };
 
-export const orderedRuntimeEventsByProducer = (events: readonly RuntimeLogEventV2[]): RuntimeLogEventV2[] =>
-  [...events].sort((left, right) => left.producerRunId.localeCompare(right.producerRunId)
-    || left.producerSeq - right.producerSeq);
-
 const verifyProducerRun = (runId: string, runEvents: readonly RuntimeLogEventV2[], findings: string[]): void => {
   const ordered = [...runEvents].sort((left, right) => left.producerSeq - right.producerSeq);
   let previous: RuntimeLogEventV2 | null = null;

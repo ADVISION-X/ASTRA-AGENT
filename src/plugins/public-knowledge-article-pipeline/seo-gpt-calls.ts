@@ -31,7 +31,6 @@ import {
   type SeoTurnCheckpoint,
   type SeoUploadedAttachment,
 } from "./seo-turn-contract.js";
-
 const MODEL_PROFILE = buildGptExecutionProfile({
   profileRef: `${PLUGIN_ID}:gpt-5.6-sol-pro-standard`,
   accountCapabilityRef: "openai-chatgpt:gpt-5.6-sol",

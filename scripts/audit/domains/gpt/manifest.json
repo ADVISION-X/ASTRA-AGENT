@@ -7,8 +7,6 @@
   ],
   "ownedPaths": [
     "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-    "scripts/acceptance/gpt-exact-target-browser-fixture.ts",
-    "scripts/acceptance/gpt-exact-target.acceptance.ts",
     "scripts/audit/domains/gpt/**",
     "src/capabilities/gpt/**"
   ],

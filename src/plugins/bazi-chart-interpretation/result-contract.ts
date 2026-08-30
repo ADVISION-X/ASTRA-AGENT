@@ -19,6 +19,3 @@ export const parseProductResult = (
   result.stringArray(output.covered_semantic_anchor_refs, "BAZI_CHART_COVERAGE_INVALID", true);
   return Object.freeze(output);
 };
-
-export const parseRouteResult = (task: WebsiteAgentTask, raw: string): Readonly<Record<string, unknown>> =>
-  parseProductResult(task, result.parseJsonObject(raw, "AGENT_ROUTE_RESULT"), "final");

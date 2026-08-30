@@ -180,6 +180,16 @@ const failedExecution = async (input: Readonly<{
   });
 };
 
+const assertExecutionIdentity = (intent: GptChildCapabilityIntent): void => {
+  if (!intent.executionId || !intent.jobId || !intent.attemptId || !intent.pluginId
+    || !Number.isSafeInteger(intent.pluginVersion) || intent.pluginVersion < 1
+    || !intent.productStepId || !intent.callId
+    || !Number.isSafeInteger(intent.actionOrdinal) || intent.actionOrdinal < 1
+    || !/^sha256:[a-f0-9]{64}$/u.test(intent.inputHash)) {
+    throw executionFailure("failed", "GPT_CHILD_EXECUTION_IDENTITY_INVALID");
+  }
+};
+
 const executeOne = async (
   intent: GptChildCapabilityIntent,
   context: GptExecutionContext,
@@ -189,13 +199,7 @@ const executeOne = async (
   const before = currentDocument(context);
   let observation: GptChildObservation | undefined;
   try {
-    if (!intent.executionId || !intent.jobId || !intent.attemptId || !intent.pluginId
-      || !Number.isSafeInteger(intent.pluginVersion) || intent.pluginVersion < 1
-      || !intent.productStepId || !intent.callId
-      || !Number.isSafeInteger(intent.actionOrdinal) || intent.actionOrdinal < 1
-      || !/^sha256:[a-f0-9]{64}$/u.test(intent.inputHash)) {
-      throw executionFailure("failed", "GPT_CHILD_EXECUTION_IDENTITY_INVALID");
-    }
+    assertExecutionIdentity(intent);
     if (!handler) throw executionFailure("failed", `GPT_CHILD_NOT_REGISTERED:${intent.childCapabilityId}`);
     if (context.signal?.aborted) throw executionFailure("failed", "GPT_EXECUTION_ABORTED");
     if ((context.browser?.pendingMutationCount() ?? 0) !== 0 && context.mutationMode !== "readback") {
@@ -209,7 +213,7 @@ const executeOne = async (
   }
 };
 
-export { GPT_MODEL_SELECTION_VERSION } from "./contract.js";
+export { GPT_CHILD_CAPABILITY_CONTRACTS, gptExactCallIdentityHash } from "./contract.js";
 
 export const createGptAbilityGroup = (): GptAbilityGroup => Object.freeze({
   abilityGroupId: GPT_ABILITY_GROUP_ID,

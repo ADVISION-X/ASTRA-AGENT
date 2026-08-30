@@ -78,7 +78,7 @@ const hasRequiredPermitReferences = (permit: ExtensionCommandPermit): boolean =>
   permit.localOrderId,
 ].every(Boolean);
 
-const hasValidPermitMetadata = (permit: ExtensionCommandPermit): boolean => permit.authorityEpoch >= 1
+const hasValidPermitNumbers = (permit: ExtensionCommandPermit): boolean => permit.authorityEpoch >= 1
   && Number.isInteger(permit.sequence)
   && permit.sequence >= 1
   && Number.isInteger(permit.actionOrdinal)
@@ -89,8 +89,9 @@ const hasValidPermitMetadata = (permit: ExtensionCommandPermit): boolean => perm
   && permit.pluginVersion >= 1
   && Number.isInteger(permit.commandTtlMs)
   && permit.commandTtlMs >= 1
-  && permit.commandTtlMs <= 3_600_000
-  && isHash(permit.certificateHash)
+  && permit.commandTtlMs <= 3_600_000;
+
+const hasValidPermitHashes = (permit: ExtensionCommandPermit): boolean => isHash(permit.certificateHash)
   && isHash(permit.channelSessionHash)
   && isHash(permit.executionBindingHash)
   && isHash(permit.writerFenceHash)
@@ -98,6 +99,9 @@ const hasValidPermitMetadata = (permit: ExtensionCommandPermit): boolean => perm
   && isHash(permit.contractManifestHash)
   && isHash(permit.inputHash)
   && isHash(permit.commandFrameMac);
+
+const hasValidPermitMetadata = (permit: ExtensionCommandPermit): boolean => hasValidPermitNumbers(permit)
+  && hasValidPermitHashes(permit);
 
 const hasValidPermitShape = (permit: ExtensionCommandPermit): boolean => hasRequiredPermitReferences(permit)
   && hasValidPermitMetadata(permit);

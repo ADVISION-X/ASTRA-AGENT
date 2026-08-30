@@ -39,6 +39,7 @@ import {
   recoveredGptChildResult,
   type ProductionGptBrowserCall,
 } from "./production-gpt-browser-lifecycle.js";
+import { readProductionGptCallFacts } from "./production-gpt-call-facts.js";
 
 type ExecutionInput = Readonly<{
   task: WebsiteAgentTask;
@@ -57,10 +58,6 @@ export type ProductGptExecution = Readonly<{
 const objectRecord = (value: unknown): Readonly<Record<string, unknown>> | null =>
   value && typeof value === "object" && !Array.isArray(value)
     ? value as Readonly<Record<string, unknown>> : null;
-
-const stringArray = (value: unknown): readonly string[] | null =>
-  Array.isArray(value) && value.every((item) => typeof item === "string" && item.length > 0)
-    ? Object.freeze([...value]) as readonly string[] : null;
 
 const throwChildFailure = (result: GptChildCapabilityResult): never => {
   const error = executionFailure("failed", result.failureCode ?? "GPT_CHILD_FAILED", {
@@ -179,97 +176,11 @@ export class ProductionGptChildTools {
   private async readIntentFacts(
     intent: GptChildCapabilityIntent,
   ): Promise<ExactGptCallFacts> {
-    const exactCallIdentityHash = gptExactCallIdentityHash(intent);
-    const mutation = this.browserAuthority.readExactCallMutationFact({
-      jobId: intent.jobId,
-      attemptId: intent.attemptId,
-      ownerPluginId: intent.pluginId,
-      pluginVersion: intent.pluginVersion,
-      exactCallIdentityHash,
-      actionOrdinal: intent.actionOrdinal,
-    });
-    const evidence = await this.readVerifiedEvidence(intent, exactCallIdentityHash);
-    const continuation = this.readVerifiedContinuation(intent, exactCallIdentityHash);
-    return Object.freeze({
-      exactCallIdentityHash,
-      mutation: mutation ? Object.freeze({
-        owner: "browser",
-        effectScope: mutation.effectScope,
-        outcome: mutation.outcome,
-        terminalAt: mutation.terminalAt,
-      }) : null,
-      evidence,
-      continuation,
-    });
-  }
-
-  private async readVerifiedEvidence(
-    intent: GptChildCapabilityIntent,
-    exactCallIdentityHash: `sha256:${string}`,
-  ): Promise<ExactGptCallFacts["evidence"]> {
-    const storedEvidence = await this.evidenceStore.readExactCallEvidence({
-      missionId: intent.jobId,
-      runId: intent.attemptId,
-      exactCallIdentityHash,
-    });
-    if (!storedEvidence) return null;
-    const record = storedEvidence.record;
-    const payload = objectRecord(record.payload);
-    const artifactRefs = stringArray(record.artifactRefs ?? []);
-    const evidenceHash = payload?.source_evidence_hash;
-    if (record.missionId !== intent.jobId
-      || record.runId !== intent.attemptId
-      || record.stepId !== intent.productStepId
-      || record.sourceAbilityGroupId !== "gpt"
-      || record.sourceChildCapabilityId !== intent.childCapabilityId
-      || record.idempotencyKey !== `gpt-call-evidence:v1:${exactCallIdentityHash}`
-      || payload?.exact_call_identity_hash !== exactCallIdentityHash
-      || payload?.action_ordinal !== intent.actionOrdinal
-      || payload?.plugin_version !== intent.pluginVersion
-      || typeof evidenceHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(evidenceHash)
-      || artifactRefs === null) {
-      throw executionFailure("failed", "FORENSICS_EXACT_CALL_EVIDENCE_INVALID");
-    }
-    return Object.freeze({
-      owner: "forensics-persistence",
-      evidenceRef: storedEvidence.recordRef,
-      evidenceHash: evidenceHash as ProductionHash,
-      readbackVerified: true,
-      artifactRefs,
-    });
-  }
-
-  private readVerifiedContinuation(
-    intent: GptChildCapabilityIntent,
-    exactCallIdentityHash: `sha256:${string}`,
-  ): ExactGptCallFacts["continuation"] {
-    const continuationRef = intent.childCapabilityId === "persist_gpt_continuation"
-      ? `gpt-continuation:${exactCallIdentityHash.slice(7)}`
-      : this.continuationRefFromInput(intent.input);
-    if (!continuationRef) return null;
-    const stored = this.store.readGptContinuation(continuationRef);
-    if (!stored) return null;
-    if (stored.conversation_identity_hash !== gptContinuationIdentityHash(stored.provider)) {
-      throw executionFailure("failed", "GPT_CONTINUATION_IDENTITY_INVALID");
-    }
-    return Object.freeze({
-      owner: "gpt-session-controller",
-      continuationRef,
-      conversationIdentityHash: stored.conversation_identity_hash,
-      laneVersion: stored.lane_version,
-      priorPromptHash: stored.provider.prior_prompt_hash,
-      priorResponseHash: stored.provider.prior_raw_output_hash,
-      contentReadbackVerified: true,
-    });
-  }
-
-  private continuationRefFromInput(input: Readonly<Record<string, unknown>>): string | null {
-    if (typeof input.continuationRef === "string" && input.continuationRef.length > 0) {
-      return input.continuationRef;
-    }
-    const lane = objectRecord(input.lane);
-    return typeof lane?.continuation_ref === "string" && lane.continuation_ref.length > 0
-      ? lane.continuation_ref : null;
+    return readProductionGptCallFacts({
+      browserAuthority: this.browserAuthority,
+      evidenceStore: this.evidenceStore,
+      store: this.store,
+    }, intent);
   }
 
   private childSpan(input: ExecutionInput, intent: GptChildCapabilityIntent): RuntimeSpanHandle {

@@ -1,18 +1,9 @@
 import { createHash } from "node:crypto";
+import { parse } from "node:path";
 
 import { z } from "zod";
-
-const GptTaskLabelKeySchema = z.enum([
-  "seo_research",
-  "seo_article",
-  "hehun_analysis",
-  "bazi_analysis",
-  "qimen_analysis",
-  "naming_analysis",
-  "full_corpus_analysis",
-  "system_acceptance",
-  "generic_ai",
-]);
+import { executionFailure } from "../../lib/typed-failure.js";
+import type { GptProviderContinuation } from "./session/gpt-continuation-store-port.js";
 
 export const GptReasoningTierSchema = z.enum([
   "fast",
@@ -39,12 +30,43 @@ export const GptExecutionProfileSchema = z.object({
   acceptanceVersion: z.string().min(1).max(120),
 }).strict();
 
-export type GptTaskLabelKey = z.infer<typeof GptTaskLabelKeySchema>;
 export type GptReasoningTier = z.infer<typeof GptReasoningTierSchema>;
 export type GptExecutionProfile = z.infer<typeof GptExecutionProfileSchema>;
 
 const hashProfile = (profile: Omit<GptExecutionProfile, "profileHash">): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(JSON.stringify(profile)).digest("hex")}`;
+
+export const gptContinuationIdentityHash = (
+  provider: GptProviderContinuation,
+): `sha256:${string}` => {
+  if (!/^sha256:[a-f0-9]{64}$/u.test(provider.prior_prompt_hash)
+    || !/^sha256:[a-f0-9]{64}$/u.test(provider.prior_raw_output_hash)) {
+    throw executionFailure("failed", "GPT_CONTINUATION_PROVIDER_INVALID");
+  }
+  return `sha256:${createHash("sha256").update(JSON.stringify({
+    prior_raw_output_hash: provider.prior_raw_output_hash,
+    prior_prompt_hash: provider.prior_prompt_hash,
+    prior_task_id: provider.prior_task_id,
+    prior_turn_marker: provider.prior_turn_marker,
+    provider_page_url: provider.provider_page_url,
+  })).digest("hex")}`;
+};
+
+export const gptAttachmentProviderDisplayName = (
+  displayName: string,
+  attemptId: string,
+  artifactRef: string,
+): string => {
+  const parsed = parse(displayName);
+  if (parsed.base !== displayName || !parsed.name) {
+    throw executionFailure("failed", "GPT_ATTACHMENT_DISPLAY_NAME_INVALID");
+  }
+  const attemptToken = createHash("sha256")
+    .update(`${attemptId}\u0000${artifactRef}`)
+    .digest("hex")
+    .slice(0, 12);
+  return `${parsed.name}-${attemptToken}${parsed.ext}`.normalize("NFC");
+};
 
 export const buildGptExecutionProfile = (input: Readonly<{
   profileRef: string;

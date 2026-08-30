@@ -363,7 +363,7 @@ export class BrowserTargetLeaseManager {
     const commandId = randomUUID();
     const replyChannelToken = randomUUID();
     const certificateHash = hashBrowserAuthorityCertificate(this.certificate);
-    const unsigned: BrowserUnsignedCommandPermit = {
+    const authorityPermit = {
       permitRef: randomUUID(),
       authorityRef: this.certificate.authorityRef,
       authorityEpoch: this.certificate.authorityEpoch,
@@ -373,6 +373,8 @@ export class BrowserTargetLeaseManager {
       writerFenceHash: this.executionBinding.writerFenceHash,
       candidateHash: this.executionBinding.candidateHash,
       contractManifestHash: this.executionBinding.contractManifestHash,
+    };
+    const executionPermit = {
       ownerPluginId: this.executionBinding.ownerPluginId,
       pluginVersion: this.executionBinding.pluginVersion,
       jobId: this.executionBinding.jobId,
@@ -397,6 +399,7 @@ export class BrowserTargetLeaseManager {
       commandTtlMs: this.executionBinding.commandTtlMs,
       replyChannelToken,
     };
+    const unsigned: BrowserUnsignedCommandPermit = { ...authorityPermit, ...executionPermit };
     return {
       ...unsigned,
       commandFrameMac: this.permitSigner.signCurrentCommandPermit(unsigned),

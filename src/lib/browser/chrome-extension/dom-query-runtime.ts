@@ -103,16 +103,6 @@ export const documentState = async (runtime: ExtensionDebuggerRuntime, tabId: nu
 export const describeNode = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number): Promise<DevToolsRecord> =>
   record(record(await runtime.send(tabId, "DOM.describeNode", { nodeId, depth: 0 })).node);
 
-export const accessibilityValue = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number): Promise<string> => {
-  const node = await describeNode(runtime, tabId, nodeId);
-  const backendNodeId = numberValue(node.backendNodeId, "BROWSER_TARGET_INVALID");
-  const tree = record(await runtime.send(tabId, "Accessibility.getPartialAXTree", { backendNodeId, fetchRelatives: false }));
-  const target = (Array.isArray(tree.nodes) ? tree.nodes.map(record) : [])
-    .find((candidate) => candidate.backendDOMNodeId === backendNodeId);
-  const value = target && typeof target.value === "object" && target.value !== null ? record(target.value) : null;
-  return value && typeof value.value === "string" ? value.value : "";
-};
-
 export const nodeText = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number): Promise<string> => {
   const node = await describeNodeTree(runtime, tabId, nodeId);
   return attribute(node, "contenteditable") === "true"
@@ -153,16 +143,26 @@ const BLOCK_NODE_NAMES = new Set([
   "THEAD", "TR", "UL",
 ]);
 
-const semanticNode = (node: DevToolsRecord, parent?: DevToolsRecord): string => {
-  const name = typeof node.nodeName === "string" ? node.nodeName.toUpperCase() : "";
-  if (name === "#TEXT") return typeof node.nodeValue === "string" ? node.nodeValue : "";
-  if (["#COMMENT", "SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE", "SVG", "PATH"].includes(name)
-    || attribute(node, "hidden") !== undefined || attribute(node, "aria-hidden") === "true") return "";
-  if (name === "BR") return "\n";
-  const body = semanticChildren(node);
+const isHiddenSemanticNode = (node: DevToolsRecord, name: string): boolean =>
+  ["#COMMENT", "SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE", "SVG", "PATH"].includes(name)
+  || attribute(node, "hidden") !== undefined
+  || attribute(node, "aria-hidden") === "true";
+
+const semanticInline = (name: string, body: string): string | null => {
   if (name === "STRONG" || name === "B") return `**${body}**`;
   if (name === "EM" || name === "I") return `*${body}*`;
   if (name === "CODE") return inlineCode(body);
+  return null;
+};
+
+const semanticNode = (node: DevToolsRecord, parent?: DevToolsRecord): string => {
+  const name = typeof node.nodeName === "string" ? node.nodeName.toUpperCase() : "";
+  if (name === "#TEXT") return typeof node.nodeValue === "string" ? node.nodeValue : "";
+  if (isHiddenSemanticNode(node, name)) return "";
+  if (name === "BR") return "\n";
+  const body = semanticChildren(node);
+  const inline = semanticInline(name, body);
+  if (inline !== null) return inline;
   if (name === "LI") {
     const parentName = typeof parent?.nodeName === "string" ? parent.nodeName.toUpperCase() : "";
     return `${parentName === "OL" ? "1. " : "- "}${body}\n`;
