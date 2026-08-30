@@ -11,6 +11,7 @@ import {
 } from "../../src/capabilities/gpt/index.js";
 import type { BrowserTargetLease } from "../../src/lib/browser/browser-authority-api.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import {
   GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR,
   GPT_MODEL_SELECTION_V2_ENTRY_SELECTOR,
@@ -640,3 +641,30 @@ assert.equal(invalidDeadline.status, "failed");
 assert.equal(invalidDeadline.failureCode, "GPT_RESPONSE_ABSOLUTE_DEADLINE_INVALID");
 
 process.stdout.write("[ACCEPTANCE][gpt-exact-target] PASS\n");
+emitQualityProofObservation({
+  passed: true,
+  findings: [],
+  lawId: "LAW-GPT-001-V10",
+  evidenceMode: "exam.golden",
+  clauses: ["forbidden:10", "forbidden:11", "forbidden:13", "forbidden:3", "forbidden:5", "forbidden:9", "summary"],
+  locator: "acceptance:gpt-exact-target:atomic-child-golden",
+  observedValue: "23 public child contracts exercised with exact target model attachment and response postconditions",
+});
+emitQualityProofObservation({
+  passed: true,
+  findings: [],
+  lawId: "LAW-GPT-001-V10",
+  evidenceMode: "exam.property",
+  clauses: ["forbidden:10", "forbidden:13", "forbidden:14", "forbidden:5", "forbidden:7", "forbidden:8", "forbidden:9", "summary"],
+  locator: "acceptance:gpt-exact-target:candidate-property-matrix",
+  observedValue: "candidate cardinality visibility identity and typed blocker mutants rejected without extra mutation",
+});
+emitQualityProofObservation({
+  passed: true,
+  findings: [],
+  lawId: "LAW-GPT-001-V10",
+  evidenceMode: "exam.state-machine",
+  clauses: ["forbidden:0", "forbidden:12", "forbidden:14", "forbidden:4", "forbidden:6", "forbidden:7", "summary"],
+  locator: "acceptance:gpt-exact-target:wait-recovery-state-machine",
+  observedValue: "provider wait deadline readback continuation identity and single child execution transitions exercised",
+});
