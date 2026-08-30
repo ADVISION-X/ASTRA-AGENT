@@ -15,6 +15,7 @@ import {
   runtimeFailureFromError,
 } from "../../src/lib/runtime-logs/index.js";
 import type { RuntimeLogEventV2 } from "../../src/lib/runtime-logs/runtime-event-contract.js";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 const digest = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -210,3 +211,6 @@ if (!capacityWrite.ok) assert.equal(capacityWrite.code, "RUNTIME_LOG_CAPACITY_BL
 assert.equal(capacityLogger.isWritable(), false);
 
 process.stdout.write("runtime log spine V2 acceptance: PASS\n");
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-RUNTIME-LOG-SPINE-001-V5", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:5","forbidden:6","forbidden:7","summary"], locator: "acceptance:runtime-log:single-spine-golden", observedValue: "single structured spine recorded atomic lifecycle diagnosis authority and capacity facts" });
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-RUNTIME-LOG-SPINE-001-V5", evidenceMode: "exam.property", clauses: ["forbidden:0","forbidden:1","forbidden:5","forbidden:6","forbidden:7","summary"], locator: "acceptance:runtime-log:lifecycle-property-matrix", observedValue: "integrity redaction writer capacity and authority readability variants rejected unsafe states" });
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-RUNTIME-LOG-SPINE-001-V5", evidenceMode: "exam.state-machine", clauses: ["forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","summary"], locator: "acceptance:runtime-log:diagnosis-state-machine", observedValue: "started terminal consequential cleanup stale and incomplete diagnosis transitions exercised" });
