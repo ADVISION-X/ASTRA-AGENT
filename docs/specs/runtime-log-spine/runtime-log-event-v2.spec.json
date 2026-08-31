@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "specId": "runtime-log-spine.runtime-log-event-v2",
   "status": "active",
-  "version": 2,
+  "version": 3,
   "owner": "runtime-log-spine",
   "lawIds": [
-    "LAW-RUNTIME-LOG-SPINE-001-V5",
+    "LAW-RUNTIME-LOG-SPINE-001-V6",
     "LAW-RUNTIME-LOG-SPINE-002-V4",
     "LAW-RUNTIME-LOG-SPINE-003-V6"
   ],
@@ -21,7 +21,8 @@
       "event": "kind=event;code;typedIdentity;authorityRef?;authorityHash?;evidenceRef?;evidenceHash?;additionalProperties=false",
       "error": "kind=error;failure;typedIdentity;authorityRef?;authorityHash?;evidenceRef?;evidenceHash?;additionalProperties=false",
       "spanStarted": "kind=span.started;spanId;parentSpanId?;boundaryId?;typedIdentity;additionalProperties=false",
-      "spanTerminal": "kind=span.terminal;spanId;outcome=succeeded|failed|interrupted;durationMs;authorityRef?;authorityHash?;evidenceRef?;evidenceHash?;succeeded-forbids-failure;failed-or-interrupted-requires-failure;additionalProperties=false",
+      "spanTerminal": "kind=span.terminal;spanId;outcome=succeeded|failed|interrupted;durationMs;authorityRef?;authorityHash?;evidenceRef?;evidenceHash?;claimDiagnostics?;succeeded-forbids-failure;failed-or-interrupted-requires-failure;additionalProperties=false",
+      "claimDiagnostics": "only-operation=cloud.claim-and-only-after-valid-Website-receipt;required-when-receipt-exists;fields-exactly=outcome,claimed_count,reason_codes;outcome=LEASE_GRANTED|NO_ELIGIBLE_JOB|CAPACITY_ZERO|CLAIM_BLOCKED|DRAINING;claimed_count=integer-0..10;LEASE_GRANTED-iff-claimed_count>0;reason_codes=array-0..32-of-machine-codes;additionalProperties=false;diagnostic-only-no-task-state-no-recovery-decision",
       "diagnosis": "read-only events, span structure, failure roots, authority references and atomic Browser evidence only;no task state, flow position, recovery decision, replay or persisted projection",
       "typedIdentity": "producer|request|job|job-attempt|lease|plugin-step|gpt-call|browser-command|browser-mutation|checkpoint|outbox;closed-discriminated-union;additionalProperties=false",
       "writeResult": "ok=true,event | ok=false,code,emergencyProjected;no-void;no-silent-catch"

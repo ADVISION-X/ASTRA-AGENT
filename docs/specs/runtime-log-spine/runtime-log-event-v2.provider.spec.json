@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "specId": "runtime-log-spine.runtime-log-event-v2-provider",
   "status": "active",
-  "version": 2,
+  "version": 3,
   "owner": "runtime-log-spine",
   "lawIds": [
-    "LAW-RUNTIME-LOG-SPINE-001-V5",
+    "LAW-RUNTIME-LOG-SPINE-001-V6",
     "LAW-RUNTIME-LOG-SPINE-002-V4",
     "LAW-RUNTIME-LOG-SPINE-003-V6"
   ],
@@ -18,6 +18,6 @@
     "contractId": "runtime-log-spine.runtime-log-event-v2",
     "providerDomain": "runtime-log-spine",
     "providerRepo": "ADVISION-X/AGENT",
-    "version": 2
+    "version": 3
   }
 }

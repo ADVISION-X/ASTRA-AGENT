@@ -1,13 +1,13 @@
-# GPT 能力组 V3 施工图
+# GPT 能力组 V4 施工图
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "gpt-capability-group-v3",
+  "blueprintId": "gpt-capability-group-v4",
   "status": "active",
   "owner": "gpt",
   "lawIds": [
-    "LAW-GPT-001-V11"
+    "LAW-GPT-001-V12"
   ],
   "contractRefs": [],
   "dependencyEdges": [
@@ -83,9 +83,9 @@ Product Plugin 不得提供 Target、Document、selector、WAL、lease、fence�
 | Prompt | `reconcile_gpt_draft` | 证明 exact draft 或返回冲突 |
 | 提交 | `submit_exact_gpt_turn_once` | 至多一次提交 exact turn |
 | 提交 | `reconcile_gpt_turn_submission` | 只读证明 exact user turn 与永久 conversation |
-| 文本 | `wait_for_stable_gpt_text` | 等待精确 assistant turn 稳定 |
+| 文本 | `wait_for_stable_gpt_text` | 等待精确 assistant turn 稳定；仅在精确 conversation-history 频繁提示遮挡时至多一次确认后继续原 probe |
 | 文本 | `checkpoint_gpt_text_response` | 保存唯一 assistant turn 的完整 observed DOM HTML 与确定性语义文本，返回双 hash、marker 与 proof |
-| 图片 | `wait_for_stable_gpt_image` | 等待精确 assistant turn 的唯一语义主图 |
+| 图片 | `wait_for_stable_gpt_image` | 等待精确 assistant turn 的唯一语义主图；仅在精确 conversation-history 频繁提示遮挡时至多一次确认后继续原 probe |
 | 图片 | `checkpoint_gpt_generated_image` | 经当前已鉴权页面取得原始 bytes 与 proof |
 | Continuation | `persist_gpt_continuation` | 保存永久 URL、turn marker、prior prompt/response hash、conversation identity 与主体绑定 |
 | Continuation | `acquire_gpt_continuation_lane` | 对精确 continuation 获取 lane CAS |
@@ -143,10 +143,12 @@ success := ALREADY_OPEN OR (OPENABLE -> click once -> ALREADY_OPEN)
 
 `attach_approved_gpt_files_once` 只负责一次获准 file-input batch。由于 Provider 会对跨会话重复文件名自动追加 `(n)`，该 Child 必须在不改变获准 bytes、sha256、artifactRef 与业务 display name 的前提下，为每个 attempt + artifact 派生唯一且确定的 `providerDisplayName`，以该精确名称构造临时上传文件并通过 Browser grant 发送；后续 Prompt 只能引用 Child 返回的 `providerDisplayName`，不得继续引用会被 Provider 改写的业务 display name。附件卡片与文件名出现不能证明 Provider 上传完成。`reconcile_gpt_attachment_set` 必须在 Product 给定的 `timeoutMs` 内重复读取 fresh DOM：attachment region 唯一、卡片数量与 NFC `providerDisplayName` 集合全部且仅有批准项，每个精确卡片的 `svg[data-testid='library-file-icon']` 都具有 Browser 可见盒子，并且 `svg[class*='animate-spin']` 可见数为零，才可成功。选择器必须直接落到待判定 SVG，不得用 `:has(...)` 让可见外层卡片掩盖不可见子节点。条件满足即提前返回；集合冲突立即失败；直到上限仍存在上传进度、错误或其他未完成卡片时以 `GPT_ATTACHMENT_UPLOAD_TIMEOUT` 失败。该 Child 成功前 Product 不得写 Prompt 或提交；`submit_exact_gpt_turn_once` dispatch 前必须重新读取 composer，证明 exact prompt hash 与 turnMarker 仍在，否则以 `GPT_PROMPT_CHANGED_BEFORE_SUBMIT` 零 mutation 失败。
 
+`wait_for_stable_gpt_text` 与 `wait_for_stable_gpt_image` 共用 GPT Owner 内唯一的 conversation-history 提示合同。每次 fresh probe 先只读检查可见 `[data-testid='modal-conversation-history-rate-limit']`：零个继续原 probe；恰好一个时必须同时证明其内恰好一个 `[role='dialog']`、唯一 `h2` 精确文本为“请求过于频繁”、唯一可见启用 `button` 精确文本为“明白了”。只有全部成立且本次 wait 尚未确认过该提示，才通过当前 exact wait call 的 Browser WAL 至多点击一次，并直接证明 root 变为零后重新执行原 conversation URL + marker + prompt hash 前置。多 root、结构/文本漂移、按钮多义或不可用、同次 wait 第二次出现都必须 typed fail 且不得再点击。该动作只关闭遮挡，绝不证明限制解除、回答稳定或允许 submit；不新增 Child、Product 分支、限流表、计时器或第二恢复状态。
+
 ## 5. 失败、证据与验收
 
-Child 只返回 `success` 或 `failed + typed reason`。真实页面/Provider failure 必须包含 `code`、`mutationOutcome=no|dispatched|confirmed`、`evidenceRef/evidenceHash` 和存在时的原生 cause，并终止当前 attempt；Child 不返回 `review_required`、`recovery_pending`、流程位置、重试决策或可供 Product 继续编排的历史 per-call failure。exact submit 已 CONFIRMED 后，只读 wait、reacquire 或 conversation readback 的软件故障在 `mutationOutcome=no` 且不存在 Provider terminal negative/deadline expiry 时，不得冒充新的外部失败或授权再次 submit；Runtime 引用原 submit exact fact，以现役 lease release 的 `POST_SUBMIT_READBACK_FAULT` 与 `current_reason` 释放 lease，同一 attempt 重领后由 Product 的 Progressive Exact Fact Replay 跳过 submit 并继续读回。当前 fresh Document 命中经真实 Chrome 实证唯一的 Provider 操作频繁/额度阻断机器身份时，只返回专属 typed blocker、零 mutation，并交由 Website 现役 retry/parking 策略裁决，不新增限流状态或调度器。`checkpoint_gpt_text_response` 成功后的接收、归一或组装软件故障同样由 Product 引用同一 raw artifact/ref/hash 沿原 attempt 恢复。
+Child 只返回 `success` 或 `failed + typed reason`。真实页面/Provider failure 必须包含 `code`、`mutationOutcome=no|dispatched|confirmed`、`evidenceRef/evidenceHash` 和存在时的原生 cause，并终止当前 attempt；Child 不返回 `review_required`、`recovery_pending`、流程位置、重试决策或可供 Product 继续编排的历史 per-call failure。exact submit 已 CONFIRMED 后，只有施工图冻结的瞬时 Browser/channel 软件故障、`mutationOutcome=no`、不存在 Provider terminal negative，且仍早于原 immutable absoluteDeadline 时，Runtime 才可引用原 submit exact fact，以现役 lease release 的 `POST_SUBMIT_READBACK_FAULT` 与 `current_reason` 释放 lease；同一 attempt 重领后由 Product 的 Progressive Exact Fact Replay 跳过 submit 并继续读回。`BROWSER_EXACT_TARGET_UNAVAILABLE`、`BROWSER_DOCUMENT_INVALID`、Provider terminal negative 与 deadline expiry 不得进入该恢复分支，必须结束当前 attempt。conversation-history 提示只按上一节在现役 wait Child 内至多一次确认；其它真实操作频繁/额度阻断机器身份只返回专属 typed blocker、零 mutation，并交由 Website 现役 retry/parking 策略裁决，不新增限流状态或调度器。`checkpoint_gpt_text_response` 成功后的接收、归一或组装软件故障同样由 Product 引用同一 raw artifact/ref/hash 沿原 attempt 恢复。
 
 固定 5 秒等待被删除。等待只允许是单个 Child 为 fresh DOM、hydration 或直接 postcondition 使用的有界实现，并由真实条件提前结束。Provider text/image wait 必须分解为 fresh DOM 驱动的短 probe，每次 probe 后根据实际 Provider 状态计算瞬时 nextCheckAt，未到时不进 Browser FIFO；每次重领都重新完成 canonical URL + marker + prompt hash + 相邻 assistant + response hash 链，总生命期以 exact submit 首次 CONFIRMED 的 immutable terminalAt + Product timeoutMs 为 absoluteDeadline，重启不刷新。不得新增 wait table/ticket/durable nextCheckAt。`close_gpt_execution_profile` 只能使用当前 profile Owner 内经实证唯一的收束动作并直接证明 popup 缺席，不得假定点击 composer 必然收束 profile。
 
-聚焦验收必须证明：23 个 Child 精确；公共面无 turn API；产品能显式调用任意 Child 序列；每个已开始 Child span 在 Browser lease 获取、park、reacquire 或原子能力任一失败点都恰好产生一个 typed terminal；readCallFacts 只读、无流程决策与无 failure/state/Target/WAL 泄漏；模型面板支持 ALREADY_OPEN/OPENABLE；五个推理数值往返；同一业务文件在不同 attempt 获得不同但确定的精确 `providerDisplayName`；附件名称已出现但上传未完成时不得成功且不得产生 mutation，全部完成后立即成功，持续未完成时 typed timeout；Prompt 在提交前被页面清空或改写时不得点击；marker 外层 user 容器即使混入附件卡片、文件名与展开/收起文字，canonical rendered-prompt hash 仍等于原 composer prompt，inline code 反引号与正文尾换行被保留且只删除一个投影根分隔换行，正文自身漂移则失败；submission reconcile artifact 必须按 exact identity 幂等写读并在单 Tab 已切换到其它会话、进程重启后仍返回原 canonical URL/marker/user turn/prompt hash/identity，且 submit mutation count 不增加；URL 漂移后只能在同一 Target 精确复位，marker 正确但 prompt hash 错误、assistant 非紧邻或 response hash 漂移均失败；exact submit 已 CONFIRMED 后的只读软件故障保持同 attempt 且再次 submit mutation count 为零；文本 checkpoint 对 code block、`<br>`、块级节点、列表、strong/em/code、转义和 Unicode 形成确定性语义文本，DOM HTML hash、语义文本 hash 与 task-owned artifact readback 一致，零/多完整候选失败，且不得把投影称为原始 Markdown bytes；候选 0 或多于 1 时无物理点击；`DISPATCHED` 不重放；同 attempt 已有 evidence 的 target-local call 跨 Target generation mutation count 为 0；原 Target 不可只读恢复时 attempt fail-close；wait 重启不刷新 absoluteDeadline；continuation 必须持有 prior prompt/response hash 且 persist/advance/release 在 DB commit/return 边界幂等；失败只返回当前原因和证据。
+聚焦验收必须证明：23 个 Child 精确；公共面无 turn API；产品能显式调用任意 Child 序列；每个已开始 Child span 在 Browser lease 获取、park、reacquire 或原子能力任一失败点都恰好产生一个 typed terminal；readCallFacts 只读、无流程决策与无 failure/state/Target/WAL 泄漏；模型面板支持 ALREADY_OPEN/OPENABLE；五个推理数值往返；同一业务文件在不同 attempt 获得不同但确定的精确 `providerDisplayName`；附件名称已出现但上传未完成时不得成功且不得产生 mutation，全部完成后立即成功，持续未完成时 typed timeout；Prompt 在提交前被页面清空或改写时不得点击；marker 外层 user 容器即使混入附件卡片、文件名与展开/收起文字，canonical rendered-prompt hash 仍等于原 composer prompt，inline code 反引号与正文尾换行被保留且只删除一个投影根分隔换行，正文自身漂移则失败；conversation-history 提示覆盖缺席、唯一、重复、多 root、标题/按钮漂移和按钮禁用，缺席零点击、唯一一次点击且 root 消失、其余全部零点击失败，关闭后必须重新验证原 wait 前置；submission reconcile artifact 必须按 exact identity 幂等写读并在单 Tab 已切换到其它会话、进程重启后仍返回原 canonical URL/marker/user turn/prompt hash/identity，且 submit mutation count 不增加；URL 漂移后只能在同一 Target 精确复位，marker 正确但 prompt hash 错误、assistant 非紧邻或 response hash 漂移均失败；exact submit 已 CONFIRMED 后的瞬时只读软件故障在 immutable deadline 前保持同 attempt 且再次 submit mutation count 为零，永久 Target/Document 错误与超时结束 attempt；文本 checkpoint 对 code block、`<br>`、块级节点、列表、strong/em/code、转义和 Unicode 形成确定性语义文本，DOM HTML hash、语义文本 hash 与 task-owned artifact readback 一致，零/多完整候选失败，且不得把投影称为原始 Markdown bytes；候选 0 或多于 1 时无物理点击；`DISPATCHED` 不重放；同 attempt 已有 evidence 的 target-local call 跨 Target generation mutation count 为 0；原 Target 不可只读恢复时 attempt fail-close；wait 重启不刷新 absoluteDeadline；continuation 必须持有 prior prompt/response hash 且 persist/advance/release 在 DB commit/return 边界幂等；失败只返回当前原因和证据。

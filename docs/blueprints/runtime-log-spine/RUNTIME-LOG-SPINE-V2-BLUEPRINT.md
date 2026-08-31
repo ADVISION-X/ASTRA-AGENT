@@ -1,13 +1,13 @@
-# Runtime Log Spine V2 施工图
+# Runtime Log Spine V3 施工图
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "runtime-log-spine-v2",
+  "blueprintId": "runtime-log-spine-v3",
   "status": "active",
   "owner": "runtime-log-spine",
   "lawIds": [
-    "LAW-RUNTIME-LOG-SPINE-001-V5",
+    "LAW-RUNTIME-LOG-SPINE-001-V6",
     "LAW-RUNTIME-LOG-SPINE-002-V4",
     "LAW-RUNTIME-LOG-SPINE-003-V6"
   ],
@@ -22,9 +22,9 @@
     {"contractRef":"docs/specs/runtime-log-spine/runtime-log-event-v2.spec.json","from":{"domain":"local-browser-session","repo":"local"},"to":{"domain":"runtime-log-spine","repo":"local"}}
   ],
   "prohibitedDependencyEdges": [
-    {"from":{"domain":"runtime-log-spine","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-RUNTIME-LOG-SPINE-001-V5"},
-    {"from":{"domain":"runtime-log-spine","repo":"local"},"to":{"domain":"gpt","repo":"local"},"lawId":"LAW-RUNTIME-LOG-SPINE-001-V5"},
-    {"from":{"domain":"runtime-log-spine","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"},"lawId":"LAW-RUNTIME-LOG-SPINE-001-V5"}
+    {"from":{"domain":"runtime-log-spine","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-RUNTIME-LOG-SPINE-001-V6"},
+    {"from":{"domain":"runtime-log-spine","repo":"local"},"to":{"domain":"gpt","repo":"local"},"lawId":"LAW-RUNTIME-LOG-SPINE-001-V6"},
+    {"from":{"domain":"runtime-log-spine","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"},"lawId":"LAW-RUNTIME-LOG-SPINE-001-V6"}
   ]
 }
 ```
@@ -72,7 +72,9 @@ evidenceRef?
 causedByEventId?
 ```
 
-`span.terminal` 只允许 `succeeded|failed|interrupted`；同一 span 至多一个 terminal。failure 必须保存稳定 code、responsible owner、impact、存在时的原生 cause 和可读 authority/evidence ref。不得保存 `retryable` 布尔、任意 recovery 字符串、task state 或通用 payload bag。
+`span.terminal` 只允许 `succeeded|failed|interrupted`；同一 span 至多一个 terminal。failure 必须保存稳定 code、responsible owner、impact、存在时的 allowlisted 原生 cause 和可读 authority/evidence ref。Browser、GPT 与跨仓 HTTP 外层不得把原生原因统一覆盖成 `BROWSER_INFRASTRUCTURE_FAILED` 或其它通用码。不得保存 `retryable` 布尔、任意 recovery 字符串、task state 或通用 payload bag。
+
+`cloud.claim` terminal 必须使用 `RuntimeLogEventV2` 合同 V3 唯一新增的封闭 `claimDiagnostics` 记录 Website 已返回的 `outcome + claimed_count + reason_codes`。该对象只允许三个字段：outcome 取 `LEASE_GRANTED|NO_ELIGIBLE_JOB|CAPACITY_ZERO|CLAIM_BLOCKED|DRAINING`，claimed_count 为 0..10 整数且 `LEASE_GRANTED` 当且仅当大于零，reason_codes 为最多 32 个 machine code；只有 `operation=cloud.claim` 且已经取得有效 Website receipt 时才允许并必须存在。零任务仍是成功终态，但不得丢失 Website 给出的安全原因；请求在取得 receipt 前失败时不得伪造该对象。它只解释本次 claim，不得成为任务状态、恢复裁决或通用 payload bag。
 
 ## 3. 隐私与完整性
 
@@ -99,4 +101,4 @@ Browser mutation 事件必须在 WAL durable write 之后产生，并绑定 `pro
 
 必须物理删除 Runtime Log 中的 `STATE` schema、state reducer、state replay、state projection、startup history reconstruction、`recovery_pending`、`review_required`、`parked`、`delivery_pending`、`flowVersion`、`stepIndex`、`resumePoint` 和 `reconcileOnly` 消费。
 
-保留并聚焦验证：唯一 logger、写前脱敏、单写者顺序、hash integrity、span 原子性、cause chain、WAL-before-log、sink failure 行为和普通人读投影。日志测试不得构造或断言第三任务状态。
+保留并聚焦验证：唯一 logger、写前脱敏、单写者顺序、hash integrity、span 原子性、cause chain、WAL-before-log、sink failure 行为和普通人读投影。必须增加 Browser 原生 code 不被外层覆盖、跨仓 HTTP Owner/code 保留，以及 `cloud.claim` 的零任务 outcome/count/reason 可见验收；日志测试不得构造或断言第三任务状态。

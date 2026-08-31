@@ -1,4 +1,4 @@
-# GrassEye 单生产 Tab、精确恢复与唯一 Browser FIFO V4 施工图
+# GrassEye 单生产 Tab、精确恢复与唯一 Browser FIFO V5 施工图
 
 状态：active final-state blueprint
 Owner：`local-browser-session`
@@ -6,15 +6,15 @@ Owner：`local-browser-session`
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "local-browser-auto-pairing-and-exact-chatgpt-claim-v4",
+  "blueprintId": "local-browser-auto-pairing-and-exact-chatgpt-claim-v5",
   "status": "active",
   "owner": "local-browser-session",
   "lawIds": [
     "LAW-LOCAL-BROWSER-SESSION-002-V6",
-    "LAW-LOCAL-BROWSER-SESSION-003-V15",
+    "LAW-LOCAL-BROWSER-SESSION-003-V16",
     "LAW-LOCAL-BROWSER-SESSION-004-V13",
     "LAW-LOCAL-BROWSER-SESSION-005-V6",
-    "LAW-LOCAL-BROWSER-SESSION-006-V7"
+    "LAW-LOCAL-BROWSER-SESSION-006-V8"
   ],
   "contractRefs": [],
   "dependencyEdges": [
@@ -65,6 +65,7 @@ system-owned Target；后续 acquisition 只复用它。扩展不枚举、不复
 - fresh job 在取得 claim 前固定复位 start URL；continuation/poll job 由 GPT Child 导航 exact canonical conversation URL，并校验 marker、prompt hash、紧邻 assistant 与 response hash。
 - 存在未收束 DISPATCHED 时保留原 Target/Document 和冻结判据；CONFIRMED 后同一 Target 可产生新 Document。所有 park 都撤销 active claim/Workspace 并立即释放 FIFO，其他 job 继续按智慧指挥 FIFO 在同一 system Target 时间片执行。
 - Provider effect 的 logical identity 只在同一业务 attempt/call 内跨 lease、process、Target、build 稳定且至多一次；新 attempt 必须使用包含新 attempt_id 的新 identity，但创建前必须证明前一 attempt 没有未收束 DISPATCHED。Target-local Browser mutation identity 另绑定 target generation，但同 attempt 的 exact call 已有 verified evidence 或 DISPATCHED/CONFIRMED/REJECTED Browser fact 后，禁止在新 Target generation 重做物理 mutation；只有新 attempt 才能用新 exact call identity 重新生产。
+- MV3 actor/Service Worker 重建且内存 registry 为空时，只有 Browser WAL 恢复事实给出的确定 `target-tab-<tabId>` 才能触发精确重建：`chrome.debugger.getTargets()` 必须只命中一个同 tabId、`type=page`、`attached=true`、gpt-web Origin 的 Target，当前扩展必须在不调用 `attach` 的前提下成功执行 `Page.bringToFront` 与 `Page.getFrameTree`，然后以同一 targetRef 和当前主 frame 登记一个新 Document。零个、多于一个、未 attached、Origin 不符或当前扩展不能发送 Page 命令都立即返回 `BROWSER_EXACT_TARGET_UNAVAILABLE`，不得建新 Tab、重新 attach 或猜操作者页面。
 
 不增加设置页、授权台账、extension storage、宽 host permission、新 API、新 WebSocket、新 mutation store
 或第二 registry；只在现有认证协议增加唯一无业务载荷的 `TARGET_ACQUIRE` 帧，复用现有
@@ -78,7 +79,7 @@ system-owned Target；后续 acquisition 只复用它。扩展不枚举、不复
 注册、SQLite/WAL compact claim receipt 持久化并返回现有 ACK 后，扩展和服务端才可报告 Target PRESENT 与 Session Workspace 已建立。
 
 同 Origin 主 frame 导航复用现有 claim 更新 Document lease；停放只撤销 active claim/Workspace并保留扩展内存 Target registry 与同一 debugger session，
-精确重领必须验证同一 tab、主 frame Origin 与 targetRef，随后由 GPT 的 canonical URL + prompt/response hash 重证当前 Document 的业务语义。DISPATCHED 仍必须匹配原 Document，CONFIRMED 可接受同 Target 的新 Document。跨 Origin、Target 关闭或异常 debugger detach 走现有 revoke 路径；socket 断开只把 active claim 转为 parked，不 detach system Tab。正常 turn settle 不关闭 system Target；
+精确重领必须验证同一 tab、主 frame Origin 与 targetRef，随后由 GPT 的 canonical URL + prompt/response hash 重证当前 Document 的业务语义。内存 registry 存在时沿现役 parked 路径；registry 因 actor 重建丢失时只沿上一节精确 debugger-owned tab 路径重建同一 targetRef，不持久化 registry。DISPATCHED 仍必须匹配原 Document，重建产生的新 Document 不得满足其恢复；CONFIRMED 可接受同 Target 的新 Document。跨 Origin、Target 关闭或异常 debugger detach 走现有 revoke 路径；socket 断开只把 active claim 转为 parked，不 detach system Tab。正常 turn settle 不关闭 system Target；
 异常 detach 或关闭后不得在同一 turn 争抢式重建。同 attempt 中，只有 Browser Owner 能证明当前 exact call 从未发生物理 dispatch 且无 verified evidence 时，新 Target generation 才能执行该 call 的首次 mutation；否则只能精确重领原 Target 只读 rehydrate，无法恢复则当前 attempt typed fail-close。
 
 ### 3.1 Target-local evidence 与 WAL 事实
@@ -144,11 +145,11 @@ fallback 或第二 claim path。
 2. 确定性测试覆盖 Authority READY 与空闲期间不创建/认领、首个 job-bound acquisition 后忽略既存操作者页面并只创建一个
    active visible Target、加载完成前不 attach、精确 Origin 复核、每次 claim/reacquire 的 Page.bringToFront、debugger 冲突、服务端拒绝、ACK 超时、同 Origin
    Document 更新、跨 Origin revoke、正常 settle/断线不 close/detach、park/revoke/FIFO release、跨 job 同 Target 时间片复用、
-   Provider effect 跨 Target 禁重放、同 attempt 已有 verified evidence 的 Target-local call 跨 Target generation 物理 mutation count 为零、原 Target 不可只读恢复时 attempt fail-close，以及一个 job 的恢复现场不阻断后续 job，
+   整体销毁并重建 `ExtensionTargetAuthority` 后从仍由本扩展 debugger 持有的精确 tabId 恢复同一 targetRef 且不调用 attach/create、attached=false/Origin 错误/多义时立即 `BROWSER_EXACT_TARGET_UNAVAILABLE`，DISPATCHED 原 Document 不因新 Document 被误放行，Provider effect 跨 Target 禁重放、同 attempt 已有 verified evidence 的 Target-local call 跨 Target generation 物理 mutation count 为零、原 Target 不可只读恢复时 attempt fail-close，以及一个 job 的恢复现场不阻断后续 job，
    以及精确 assistant turn 单一语义媒体、重复 raw 节点、跨 turn/Document 拒绝、已鉴权原始 bytes hash/尺寸 receipt。
 3. 服务端测试证明非 `gpt-web` Origin、未 revoke 的不同 `targetRef` 覆盖和未确认 Workspace 全部失败。
 4. 真实 Chrome 证明：启动 AGENT 后固定扩展自动配对且 Target absent；无需复制密码或点击 popup；首个 exact job
-   durable 接受后才创建唯一 visible system ChatGPT Target，且操作者既存页面完全不受影响；三个并发业务任务始终只有该一个 tabId/targetRef，不人工点击也能执行。每个 normal wait 短 probe 必须依次产生同一 targetRef 的 park/reacquire，park 只撤销 active claim/Workspace并释放全局 FIFO，扩展保留同一 debugger session、tabId 与 parked registry；reacquire 必须 `Page.bringToFront` 后才重建 Workspace，禁止 `BROWSER_CAPABILITY_REJECTED`、`BROWSER_TARGET_INVALID`、新建 Tab 或未终态 Browser 调用。normal wait/recovery park 后其它 job 在同一 Tab 时间片执行；原 job 重领时物理前台化并以 canonical URL + marker + 请求正文 prompt hash + response hash 回到正确回合，外层 user turn 的附件卡片与控制文字不得改变 prompt hash。AGENT 重启后不新建 Tab、不重发已 CONFIRMED submit，并继续 SEO 下一步；Provider terminalAt 不变。turn settle 后 system Tab parked 而非关闭，后续 fresh job 复位根页并复用同一 Target。
+   durable 接受后才创建唯一 visible system ChatGPT Target，且操作者既存页面完全不受影响；三个并发业务任务始终只有该一个 tabId/targetRef，不人工点击也能执行。每个 normal wait 短 probe 必须依次产生同一 targetRef 的 park/reacquire，park 只撤销 active claim/Workspace并释放全局 FIFO，扩展保留同一 debugger session、tabId 与 parked registry；随后真实重启 MV3 actor，在不点击页面、不创建 Tab、不重新 attach 的情况下从同一 debugger-owned tabId 恢复同一 targetRef 与新 Document。reacquire 必须 `Page.bringToFront` 后才重建 Workspace，禁止 `BROWSER_CAPABILITY_REJECTED`、`BROWSER_TARGET_INVALID`、新建 Tab 或未终态 Browser 调用。normal wait/recovery park 后其它 job 在同一 Tab 时间片执行；原 job 重领时物理前台化并以 canonical URL + marker + 请求正文 prompt hash + response hash 回到正确回合，外层 user turn 的附件卡片与控制文字不得改变 prompt hash。AGENT 重启后不新建 Tab、不重发已 CONFIRMED submit，并继续 SEO 下一步；Provider terminalAt 不变。turn settle 后 system Tab parked 而非关闭，后续 fresh job 复位根页并复用同一 Target。
 5. 启动器检查证明 scripts/startup 与 `grasseye:start` 不使用 Chrome Target API、不打开 ChatGPT、不发送
    `TARGET_CLAIM`、不创建或认领任务。
 
