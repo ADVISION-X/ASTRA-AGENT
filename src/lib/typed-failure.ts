@@ -17,10 +17,27 @@ export type PostCheckpointReceiverReceipt = Readonly<{
 export type PostSubmitReadbackReceipt = Readonly<{
   causeCode: string;
   exactCallIdentityHash: `sha256:${string}`;
+  outcome: "CONFIRMED";
   terminalAt: string;
+  readbackDeadlineAt: string;
+  readbackMutationOutcome: "no";
   evidenceRef: string;
   evidenceHash: `sha256:${string}`;
 }>;
+
+type PostSubmitReadbackReceiptInput = Omit<
+  PostSubmitReadbackReceipt,
+  "outcome" | "readbackMutationOutcome"
+>;
+
+const POST_SUBMIT_READBACK_TRANSIENT_CODES = new Set([
+  "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE",
+  "BROWSER_LIVENESS_EXPIRED",
+  "BROWSER_PAIRING_IN_PROGRESS",
+  "BROWSER_AUTHENTICATION_INCOMPLETE",
+  "BROWSER_BACKPRESSURE",
+  "BROWSER_WAIT_ABORTED",
+]);
 
 export class TypedExecutionFailure extends Error {
   public override readonly name: string = "TypedExecutionFailure";
@@ -82,8 +99,28 @@ export class PostSubmitReadbackFault extends TypedExecutionFailure {
 
 export const postSubmitReadbackFault = (
   code: string,
-  submitReceipt: PostSubmitReadbackReceipt,
-): PostSubmitReadbackFault => new PostSubmitReadbackFault(code, submitReceipt);
+  input: PostSubmitReadbackReceiptInput,
+): TypedExecutionFailure => {
+  const terminalAt = Date.parse(input.terminalAt);
+  const readbackDeadlineAt = Date.parse(input.readbackDeadlineAt);
+  if (input.causeCode !== code
+    || !POST_SUBMIT_READBACK_TRANSIENT_CODES.has(code)
+    || !Number.isFinite(terminalAt)
+    || !Number.isFinite(readbackDeadlineAt)
+    || readbackDeadlineAt <= terminalAt
+    || Date.now() >= readbackDeadlineAt) {
+    return executionFailure("failed", code, {
+      mutationOutcome: "no",
+      evidenceRef: input.evidenceRef,
+      evidenceHash: input.evidenceHash,
+    });
+  }
+  return new PostSubmitReadbackFault(code, Object.freeze({
+    ...input,
+    outcome: "CONFIRMED",
+    readbackMutationOutcome: "no",
+  }));
+};
 
 export const postSubmitReadbackReceipt = (
   error: unknown,

@@ -21,7 +21,7 @@ import {
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 import { inspectGptContractDenominator } from "./gpt-contract-inspection.js";
 
-const LAW_ID = "LAW-GPT-001-V11";
+const LAW_ID = "LAW-GPT-001-V13";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 12, 15),
   "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14),
@@ -145,6 +145,14 @@ const inspectAttachmentDomContract = (context: InspectorContext, findings: Inspe
   }
 
   const handler = sourceFor(context, ATTACHMENT_HANDLER_PATH);
+  const handlerText = handler?.getFullText() ?? "";
+  if (!handlerText.includes('Math.max(1_000, numberInput(intent, "timeoutMs"))')
+    || /Math\.min\([^\n]*timeoutMs[^\n]*(?:60_000|60000)|Math\.min\([^\n]*numberInput\([^\n]*(?:60_000|60000)/u.test(handlerText)) {
+    findings.push(finding(
+      "gpt/attachment-product-timeout-preserved", ATTACHMENT_HANDLER_PATH,
+      "Attachment reconciliation must preserve the Product timeout instead of applying a public 60-second ceiling.",
+    ));
+  }
   const calls = handler?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
   const entryObservation = calls.find((call) => call.getExpression().getText() === "requireOneCandidate"
     && call.getText().includes("GPT_ATTACHMENT_CONTROL_SELECTOR"));

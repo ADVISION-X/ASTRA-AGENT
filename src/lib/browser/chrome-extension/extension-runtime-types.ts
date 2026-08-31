@@ -34,7 +34,7 @@ export type ExtensionChromeApi = Readonly<{
     }>;
   }>;
   tabs: Readonly<{
-    create(createProperties: Readonly<{ active: true; url: string }>): Promise<Readonly<{ id?: number }>>;
+    create(createProperties: Readonly<{ active: false; url: string }>): Promise<Readonly<{ id?: number }>>;
     remove(tabId: number): Promise<void>;
     onRemoved?: Readonly<{ addListener(listener: (tabId: number) => void): void }>;
     onUpdated: Readonly<{

@@ -10,7 +10,11 @@ import type { RuntimeState } from "../../src/lib/local-runtime/production/runtim
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import type { ProductionWorkerSession } from "../../src/lib/local-runtime/production/worker-session.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
-import { executionFailure, postSubmitReadbackFault } from "../../src/lib/typed-failure.js";
+import {
+  executionFailure,
+  postSubmitReadbackFault,
+  postSubmitReadbackReceipt,
+} from "../../src/lib/typed-failure.js";
 import {
   HASH_A,
   HASH_B,
@@ -183,10 +187,12 @@ try {
       postSubmitOriginalJob, [], postSubmitCheckpointBodies, postSubmitReleaseBodies,
     ),
     execute: async () => {
-      throw postSubmitReadbackFault("GPT_USER_TURN_HASH_MISMATCH", {
-        causeCode: "GPT_USER_TURN_HASH_MISMATCH",
+      const terminalAt = new Date(Date.now() - 1_000).toISOString();
+      throw postSubmitReadbackFault("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", {
+        causeCode: "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE",
         exactCallIdentityHash: HASH_A,
-        terminalAt: "2026-08-30T00:00:00.000Z",
+        terminalAt,
+        readbackDeadlineAt: new Date(Date.parse(terminalAt) + 3_600_000).toISOString(),
         evidenceRef: "gpt-call-evidence:submit",
         evidenceHash: HASH_B,
       });
@@ -202,8 +208,22 @@ try {
     (postSubmitReleaseBodies[0]?.confirmed_submit as Record<string, unknown>)?.outcome,
     "CONFIRMED",
   );
+  assert.equal(
+    (postSubmitReleaseBodies[0]?.confirmed_submit as Record<string, unknown>)?.readback_mutation_outcome,
+    "no",
+  );
   assert.equal(store.readTask(postSubmitTask.job_id)?.attempt_failure, null,
     "a confirmed-submit readback fault must release the lease without freezing attempt_failure");
+  const permanentTargetFailure = postSubmitReadbackFault("BROWSER_TARGET_INVALID", {
+    causeCode: "BROWSER_TARGET_INVALID",
+    exactCallIdentityHash: HASH_A,
+    terminalAt: new Date(Date.now() - 1_000).toISOString(),
+    readbackDeadlineAt: new Date(Date.now() + 3_599_000).toISOString(),
+    evidenceRef: "gpt-call-evidence:permanent-target",
+    evidenceHash: HASH_B,
+  });
+  assert.equal(postSubmitReadbackReceipt(permanentTargetFailure), null,
+    "a permanent exact-Target failure must end the attempt instead of entering readback recovery");
   const postSubmitReceipts = postSubmitCheckpointBodies.map((body) => checkpointReceipt(
     body as ReturnType<typeof recoveryCheckpointBody>, 1,
   ));

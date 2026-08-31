@@ -150,7 +150,7 @@ for (const plugin of productionPluginCatalog) {
   const firstRoute = plugin.accepts[0]!;
   assert.equal(resolveProductionPlugin(firstRoute.productId, firstRoute.actionId).plugin, plugin);
   if (plugin.pluginId === "public-knowledge-article-pipeline") {
-    assert.equal(plugin.pluginVersion, 14);
+    assert.equal(plugin.pluginVersion, 15);
     assert.doesNotMatch(source, /PRODUCT_FLOW_NOT_IMPLEMENTED:/u);
     assert.doesNotMatch(source, /throw new Error/u,
       "SEO Product-owned failures must remain typed through the runtime boundary");
@@ -195,13 +195,13 @@ for (const plugin of productionPluginCatalog) {
     assert.ok(proceed.completed.generated_image);
     const recovered = await exerciseSeoFlow(
       plugin, "produce_article", "proceed",
-      { child: "checkpoint_gpt_text_response", code: "GPT_CHECKPOINT_SOFTWARE_FAULT", productStepId: "article_synthesis" },
+      { child: "checkpoint_gpt_text_response", code: "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", productStepId: "article_synthesis" },
       true,
     );
     assert.equal(
       postSubmitReadbackReceipt(recovered.firstFailure)?.causeCode,
-      "GPT_CHECKPOINT_SOFTWARE_FAULT",
-      "article readback software fault must release and retain the same attempt",
+      "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE",
+      "a transient Browser channel loss must release and retain the same attempt",
     );
     assert.equal(recovered.physicalSubmitDispatches, 3,
       "restart must not physically dispatch research or article submit again");
@@ -210,10 +210,19 @@ for (const plugin of productionPluginCatalog) {
     assert.ok(recovered.completed.generated_image);
     await assert.rejects(
       () => exerciseSeoFlow(plugin, "accuracy_challenge", "proceed", {
+        child: "checkpoint_gpt_text_response", code: "GPT_CHECKPOINT_SOFTWARE_FAULT",
+      }),
+      (error: unknown) => typedExecutionFailure(error)?.code === "GPT_CHECKPOINT_SOFTWARE_FAULT"
+        && postSubmitReadbackReceipt(error) === null,
+      "a permanent checkpoint software fault must end the attempt instead of entering a hot recovery loop",
+    );
+    await assert.rejects(
+      () => exerciseSeoFlow(plugin, "accuracy_challenge", "proceed", {
         child: "wait_for_stable_gpt_text", code: "GPT_USER_TURN_HASH_MISMATCH",
       }),
-      (error: unknown) => postSubmitReadbackReceipt(error)?.causeCode === "GPT_USER_TURN_HASH_MISMATCH",
-      "confirmed submit followed by a no-mutation readback software fault must preserve the same attempt",
+      (error: unknown) => typedExecutionFailure(error)?.code === "GPT_USER_TURN_HASH_MISMATCH"
+        && postSubmitReadbackReceipt(error) === null,
+      "a permanent turn identity mismatch must end the attempt instead of entering a hot recovery loop",
     );
     await assert.rejects(
       () => exerciseSeoFlow(plugin, "accuracy_challenge", "proceed", {
@@ -270,7 +279,7 @@ process.stdout.write("[ACCEPTANCE][agent-product-skills] PASS\n");
 emitQualityProofObservation({
   passed: true,
   findings: [],
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V15",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V19",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:1", "forbidden:15", "forbidden:16", "forbidden:2", "forbidden:21", "forbidden:22", "forbidden:29", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:product-flow-golden",

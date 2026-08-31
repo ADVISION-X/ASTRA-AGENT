@@ -46,6 +46,10 @@ const assistantSelector = (assistantTurnId: string): string =>
 const userSelector = (userTurnId: string): string =>
   `[data-testid=${JSON.stringify(userTurnId)}][data-turn='user'] [data-message-author-role='user'] ${GPT_USER_PROMPT_BODY_SELECTOR}`;
 
+const GPT_RATE_LIMIT_DIALOG_SELECTOR = "[role='dialog']";
+const GPT_RATE_LIMIT_DIALOG_TEXT = "请求过于频繁";
+const GPT_RATE_LIMIT_ACK_TEXT = "明白了";
+
 const inputHash = (value: string): `sha256:${string}` => {
   if (!/^sha256:[a-f0-9]{64}$/u.test(value)) {
     throw executionFailure("failed", "GPT_TURN_HASH_INVALID");
@@ -99,6 +103,59 @@ const providerWait = (
 ): Promise<void> => context.yieldForProviderWait
   ? context.yieldForProviderWait(Math.max(25, Math.min(5_000, Math.floor(durationMs))))
   : browser.wait({ durationMs: Math.max(25, Math.min(5_000, Math.floor(durationMs))) });
+
+const acknowledgeRateLimitDialog = async (
+  browser: BrowserTargetLease,
+  alreadyAcknowledged: boolean,
+): Promise<boolean> => {
+  const dialogCount = await findCount(browser, {
+    selector: GPT_RATE_LIMIT_DIALOG_SELECTOR,
+    textContains: GPT_RATE_LIMIT_DIALOG_TEXT,
+    maxMatches: 2,
+  });
+  if (dialogCount === 0) return alreadyAcknowledged;
+  if (dialogCount !== 1) {
+    throw executionFailure("failed", `GPT_PROVIDER_RATE_LIMIT_DIALOG_COUNT_${dialogCount}`);
+  }
+  if (alreadyAcknowledged) {
+    throw executionFailure("failed", "GPT_PROVIDER_RATE_LIMIT_DIALOG_REPEATED");
+  }
+  const buttonCount = await findCount(browser, {
+    selector: "button",
+    scopeSelector: GPT_RATE_LIMIT_DIALOG_SELECTOR,
+    textEquals: GPT_RATE_LIMIT_ACK_TEXT,
+    maxMatches: 2,
+  });
+  if (buttonCount !== 1) {
+    throw executionFailure("failed", `GPT_PROVIDER_RATE_LIMIT_ACK_COUNT_${buttonCount}`);
+  }
+  await browser.executeDomIntent({
+    kind: "click",
+    selector: "button",
+    scope: { selector: GPT_RATE_LIMIT_DIALOG_SELECTOR },
+    expectedTextEquals: GPT_RATE_LIMIT_ACK_TEXT,
+    expectedMatches: 1,
+    postClickMatch: {
+      selector: GPT_RATE_LIMIT_DIALOG_SELECTOR,
+      textContains: GPT_RATE_LIMIT_DIALOG_TEXT,
+      expectedMatches: 0,
+      timeoutMs: 5_000,
+    },
+  });
+  return true;
+};
+
+const withRateLimitAcknowledgement = (
+  observation: GptChildObservation,
+  acknowledged: boolean,
+): GptChildObservation => acknowledged ? Object.freeze({
+  ...observation,
+  committedMutation: "confirmed" as const,
+  observedSemantics: Object.freeze([
+    ...observation.observedSemantics,
+    "one exact provider rate-limit acknowledgement",
+  ]),
+}) : observation;
 
 const readAssistantText = async (
   browser: BrowserTargetLease,
@@ -275,13 +332,24 @@ export const responseChildHandlers = {
     const overdueRecoveryProbe = Date.now() >= deadline;
     const state: StableTextState = { assistantTurnId: null, priorHash: null, stableSince: 0 };
     let probeDelayMs = 250;
+    let rateLimitAcknowledged = false;
     do {
       if (context.signal?.aborted) throw executionFailure("failed", "GPT_RESPONSE_WAIT_ABORTED");
       await ensurePollingConversation(browser, canonicalConversationUrl);
       const observation = await observeStableText(
         browser, marker, expectedPromptHash, state, overdueRecoveryProbe,
       );
-      if (observation) return observation;
+      if (observation) return withRateLimitAcknowledgement(observation, rateLimitAcknowledged);
+      const acknowledgedBeforeProbe = rateLimitAcknowledged;
+      rateLimitAcknowledged = await acknowledgeRateLimitDialog(browser, rateLimitAcknowledged);
+      if (!acknowledgedBeforeProbe && rateLimitAcknowledged) {
+        const postAcknowledgement = await observeStableText(
+          browser, marker, expectedPromptHash, state, overdueRecoveryProbe,
+        );
+        if (postAcknowledgement) {
+          return withRateLimitAcknowledgement(postAcknowledgement, true);
+        }
+      }
       if (overdueRecoveryProbe) break;
       const remainingMs = deadline - Date.now();
       if (remainingMs >= 25) {
@@ -385,13 +453,24 @@ export const responseChildHandlers = {
     const overdueRecoveryProbe = Date.now() >= deadline;
     const state: StableImageState = { assistantTurnId: null, stableSince: 0 };
     let probeDelayMs = 250;
+    let rateLimitAcknowledged = false;
     do {
       if (context.signal?.aborted) throw executionFailure("failed", "GPT_IMAGE_WAIT_ABORTED");
       await ensurePollingConversation(browser, canonicalConversationUrl);
       const observation = await observeStableImage(
         browser, marker, expectedPromptHash, state, overdueRecoveryProbe,
       );
-      if (observation) return observation;
+      if (observation) return withRateLimitAcknowledgement(observation, rateLimitAcknowledged);
+      const acknowledgedBeforeProbe = rateLimitAcknowledged;
+      rateLimitAcknowledged = await acknowledgeRateLimitDialog(browser, rateLimitAcknowledged);
+      if (!acknowledgedBeforeProbe && rateLimitAcknowledged) {
+        const postAcknowledgement = await observeStableImage(
+          browser, marker, expectedPromptHash, state, overdueRecoveryProbe,
+        );
+        if (postAcknowledgement) {
+          return withRateLimitAcknowledgement(postAcknowledgement, true);
+        }
+      }
       if (overdueRecoveryProbe) break;
       const remaining = deadline - Date.now();
       if (remaining >= 25) {

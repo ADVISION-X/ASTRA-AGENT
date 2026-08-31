@@ -164,7 +164,10 @@ export class ProductionExecutor {
   }>): Promise<WebsiteAgentResult> {
     let completed = false;
     let gptExecution: ProductGptExecution | null = null;
-    const gptLifecycle: { settle: ((error: unknown | null) => Promise<void>) | null } = { settle: null };
+    const gptLifecycle: {
+      reconcilePermanentCancellation: (() => Promise<void>) | null;
+      settle: ((error: unknown | null) => Promise<void>) | null;
+    } = { reconcilePermanentCancellation: null, settle: null };
     let primaryError: unknown = null;
     let result: WebsiteAgentResult;
     try {
@@ -176,11 +179,16 @@ export class ProductionExecutor {
           lease: input.lease,
           parentSpanId: input.span.spanId,
         });
+        gptLifecycle.reconcilePermanentCancellation = gptExecution.reconcilePermanentCancellation;
         gptLifecycle.settle = gptExecution.settle;
         return {
           materials: input.materials,
           gpt: gptExecution.tools,
           complete: async (output) => {
+            if (input.lease.abort_signal.aborted) {
+              throw executionFailure("failed", typeof input.lease.abort_signal.reason === "string"
+                ? input.lease.abort_signal.reason : "PRODUCTION_EXECUTION_ABORTED");
+            }
             if (completed) throw new Error("PLUGIN_RESULT_ALREADY_COMPLETED");
             authorized.plugin.parseResult(authorized.task, output.payload, "draft");
             const envelope = await input.complete(output, gptExecution!.continuationRef());
@@ -194,6 +202,12 @@ export class ProductionExecutor {
       throw error;
     } finally {
       try {
+        const cancellationReason = typeof input.lease.abort_signal.reason === "string"
+          ? input.lease.abort_signal.reason : "";
+        if (cancellationReason === "CONTROL_INTENT:cancel_requested:PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED"
+          && gptLifecycle.reconcilePermanentCancellation) {
+          await gptLifecycle.reconcilePermanentCancellation();
+        }
         if (gptLifecycle.settle) await gptLifecycle.settle(primaryError);
       } catch (settleError) {
         if (primaryError === null) throw settleError;

@@ -219,24 +219,45 @@ export type ProductionLeaseRelease =
     confirmedSubmit: null;
   }>
   | Readonly<{
-    reasonCode: "POST_SUBMIT_READBACK_FAULT";
+      reasonCode: "POST_SUBMIT_READBACK_FAULT";
     receiverCheckpoint: null;
     confirmedSubmit: Readonly<{
       cause_code: string;
       exact_call_identity_hash: ProductionHash;
       outcome: "CONFIRMED";
       terminal_at: string;
+      readback_deadline_at: string;
+      readback_mutation_outcome: "no";
       evidence_ref: string;
       evidence_hash: ProductionHash;
+      }>;
+    }>
+  | Readonly<{
+      reasonCode: "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED";
+      receiverCheckpoint: Readonly<{
+        artifact_ref: string;
+        raw_dom_hash: ProductionHash;
+        semantic_text_hash: ProductionHash;
+      }> | null;
+      confirmedSubmit: Readonly<{
+        cause_code: string;
+        exact_call_identity_hash: ProductionHash;
+        outcome: "CONFIRMED";
+        terminal_at: string;
+        readback_deadline_at: string;
+        readback_mutation_outcome: "no";
+        evidence_ref: string;
+        evidence_hash: ProductionHash;
+      }> | null;
     }>;
-  }>;
 
 export async function releaseProductionLease(
   session: ProductionWorkerSession,
   job: ClaimedProductionTask,
   release: ProductionLeaseRelease,
-): Promise<void> {
-  const requestId = `aiprelease_${randomUUID()}`;
+  stableRequestId?: string,
+): Promise<string> {
+  const requestId = stableRequestId ?? `aiprelease_${randomUUID()}`;
   const payload = {
     reason_code: release.reasonCode,
     receiver_checkpoint: release.receiverCheckpoint,
@@ -264,6 +285,7 @@ export async function releaseProductionLease(
       confirmed_submit: release.confirmedSubmit,
     }),
   });
+  return requestId;
 }
 
 async function uploadJsonObject(

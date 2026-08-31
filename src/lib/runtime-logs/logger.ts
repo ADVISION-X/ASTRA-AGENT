@@ -271,6 +271,7 @@ class RuntimeLoggerOwner implements RuntimeLogger {
           spanId,
           outcome: terminalInput.outcome,
           durationMs: Math.max(0, performance.now() - startedAt),
+          ...optional("claimDiagnostics", terminalInput.claimDiagnostics),
           ...referenceFields(terminalInput),
           ...(terminalInput.outcome === "succeeded" ? {} : { failure: terminalInput.failure }),
         } as WithoutEventHash<RuntimeSpanTerminalEvent>) as RuntimeLogWriteResult<RuntimeSpanTerminalEvent>;

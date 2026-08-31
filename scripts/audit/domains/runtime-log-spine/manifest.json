@@ -3,7 +3,7 @@
   "capabilityDomain": "runtime-log-spine",
   "status": "active",
   "lawIds": [
-    "LAW-RUNTIME-LOG-SPINE-001-V5",
+    "LAW-RUNTIME-LOG-SPINE-001-V6",
     "LAW-RUNTIME-LOG-SPINE-002-V4",
     "LAW-RUNTIME-LOG-SPINE-003-V6"
   ],

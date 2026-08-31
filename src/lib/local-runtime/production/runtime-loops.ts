@@ -109,15 +109,21 @@ const requestClaimBatch = async (state: RuntimeState, available: number) => {
   }));
   try {
     const batch = await claimProductionTasks(state.session, available, boundaryId);
+    const claimDiagnostics = {
+      outcome: batch.outcome,
+      claimed_count: batch.jobs.length,
+      reason_codes: batch.reason_codes,
+    } as const;
     if (batch.outcome === "CLAIM_BLOCKED") {
       requireRuntimeLogWrite(span.terminal({
+        claimDiagnostics,
         outcome: "failed", failure: runtimeFailureFromError({
           error: new Error(`CLAIM_BLOCKED:${batch.reason_codes.join(",") || "unspecified"}`),
           code: "CLAIM_BLOCKED", responsibleOwner: "website",
           impact: RuntimeFailureImpact.BLOCKING,
         }),
       }));
-    } else requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
+    } else requireRuntimeLogWrite(span.terminal({ outcome: "succeeded", claimDiagnostics }));
     return batch;
   } catch (error) {
     const terminal = terminalSpanFailure(

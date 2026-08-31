@@ -119,7 +119,6 @@ export class ExtensionTargetAuthority {
       throw new Error("BROWSER_DEVTOOLS_CONFLICT", { cause: error });
     }
     try {
-      await this.debuggerRuntime.send(candidate.tabId, "Page.bringToFront");
       await this.debuggerRuntime.send(candidate.tabId, "Page.enable");
       const mainFrame = await this.readMainFrame(candidate.tabId);
       requireGptWebPolicyForUrl(mainFrame.url);
@@ -204,21 +203,20 @@ export class ExtensionTargetAuthority {
   }
 
   private async createProductionCandidate(): Promise<ExtensionDebugTarget> {
-    const created = await this.chromeApi.tabs.create({ active: true, url: GPT_WEB_START_URL });
+    const created = await this.chromeApi.tabs.create({ active: false, url: GPT_WEB_START_URL });
     if (!Number.isInteger(created.id)) throw new Error("BROWSER_TARGET_INVALID");
     return this.waitForCreatedTarget(created.id!);
   }
 
   private async reacquireParkedTarget(targetRef: string, resetToStart = false): Promise<void> {
     const priorLoaderId = this.parkedLoaderIds.get(targetRef) ?? null;
-    const parked = this.targets.read(targetRef);
+    const parked = await this.readOrRecoverExactTarget(targetRef);
     const attachedHere = this.attachedTabId !== parked.tabId;
     if (attachedHere) {
       await this.debuggerRuntime.attach(parked.tabId);
       this.attachedTabId = parked.tabId;
     }
     try {
-      await this.debuggerRuntime.send(parked.tabId, "Page.bringToFront");
       await this.debuggerRuntime.send(parked.tabId, "Page.enable");
       let mainFrame = await this.readMainFrame(parked.tabId);
       requireGptWebPolicyForUrl(mainFrame.url);
@@ -251,6 +249,43 @@ export class ExtensionTargetAuthority {
       this.activeTarget = null;
       this.activeLoaderId = null;
       throw error;
+    }
+  }
+
+  private async readOrRecoverExactTarget(targetRef: string): Promise<ExtensionExactTarget> {
+    try {
+      return this.targets.read(targetRef);
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== "BROWSER_TARGET_INVALID") throw error;
+    }
+    const match = /^target-tab-(0|[1-9][0-9]*)$/u.exec(targetRef);
+    const tabId = match ? Number(match[1]) : Number.NaN;
+    if (!Number.isSafeInteger(tabId)) throw new Error("BROWSER_EXACT_TARGET_UNAVAILABLE");
+    let candidates: readonly ExtensionDebugTarget[];
+    try {
+      candidates = (await this.chromeApi.debugger.getTargets()).filter((candidate) =>
+        candidate.tabId === tabId && candidate.type === "page" && candidate.attached === true);
+    } catch (error) {
+      throw new Error("BROWSER_EXACT_TARGET_UNAVAILABLE", { cause: error });
+    }
+    if (candidates.length !== 1) throw new Error("BROWSER_EXACT_TARGET_UNAVAILABLE");
+    try {
+      requireGptWebPolicyForUrl(candidates[0]!.url);
+      this.debuggerRuntime.adoptAttached(tabId);
+      const mainFrame = await this.readMainFrame(tabId);
+      requireGptWebPolicyForUrl(mainFrame.url);
+      const recovered = this.targets.claimOperatorTarget(tabId);
+      if (recovered.targetRef !== targetRef) throw new Error("BROWSER_EXACT_TARGET_UNAVAILABLE");
+      this.attachedTabId = tabId;
+      this.parkedLoaderIds.set(targetRef, mainFrame.loaderId);
+      return recovered;
+    } catch (error) {
+      this.debuggerRuntime.forgetAttached(tabId);
+      this.attachedTabId = null;
+      this.parkedLoaderIds.delete(targetRef);
+      this.targets.remove(targetRef);
+      if (error instanceof Error && error.message === "BROWSER_EXACT_TARGET_UNAVAILABLE") throw error;
+      throw new Error("BROWSER_EXACT_TARGET_UNAVAILABLE", { cause: error });
     }
   }
 

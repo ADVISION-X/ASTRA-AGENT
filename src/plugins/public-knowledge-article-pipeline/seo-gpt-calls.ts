@@ -1,6 +1,5 @@
 import {
   buildGptExecutionProfile,
-  GPT_CHILD_CAPABILITY_CONTRACTS,
   type GptContinuationLane,
   type GptProviderContinuation,
 } from "../../capabilities/gpt/index.js";
@@ -64,6 +63,7 @@ const preservePostSubmitReadback = (error: unknown, submit: ExactGptCallFacts): 
     causeCode: code,
     exactCallIdentityHash: submit.exactCallIdentityHash,
     terminalAt: submit.mutation.terminalAt,
+    readbackDeadlineAt: confirmedDeadline(submit),
     evidenceRef: submit.evidence.evidenceRef,
     evidenceHash: submit.evidence.evidenceHash,
   });
@@ -105,8 +105,6 @@ const laneValue = (value: unknown): GptContinuationLane => {
 export const createSeoExecutor = (task: WebsiteAgentTask, context: SharedExecutionContext) => {
   const sessionKey = `${PLUGIN_ID}:${task.job_id}:${context.gpt.attemptId}`;
   const evidenceByOrdinal = new Map<number, string>();
-  const browserEvidenceSteps = new Set<string>();
-  const anchoredSteps = new Set<string>();
   let priorChildCompleted = false;
   const recordEvidence = (actionOrdinal: number, evidenceRef: string): void => {
     const current = evidenceByOrdinal.get(actionOrdinal);
@@ -115,20 +113,11 @@ export const createSeoExecutor = (task: WebsiteAgentTask, context: SharedExecuti
   };
   const facts = async (input: Omit<SeoCall, "sessionKey">): Promise<ExactGptCallFacts> => {
     const result = await context.gpt.readCallFacts(input);
-    const contract = GPT_CHILD_CAPABILITY_CONTRACTS[input.child];
-    if (contract.requiredTargetKind === "chatgpt" && result.evidence) {
-      browserEvidenceSteps.add(input.productStepId);
-    }
-    if (result.mutation) anchoredSteps.add(input.productStepId);
     if (result.evidence) recordEvidence(input.actionOrdinal, result.evidence.evidenceRef);
     return result;
   };
   const execute: SeoChild = async (input) => {
     await facts(input);
-    const contract = GPT_CHILD_CAPABILITY_CONTRACTS[input.child];
-    if (contract.requiredTargetKind === "chatgpt"
-      && browserEvidenceSteps.has(input.productStepId)
-      && !anchoredSteps.has(input.productStepId)) fail("SEO_EXACT_TARGET_REHYDRATION_UNAVAILABLE");
     if (priorChildCompleted) {
       await new Promise<void>((resolve) => setTimeout(resolve, SEO_CHILD_HANDOFF_DELAY_MS));
     }
@@ -477,7 +466,7 @@ export const prepareAttachedTurnPrefix = async (input: Readonly<{
   const freshChat = { productStepId: input.stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;
   const attachmentOpen = { productStepId: input.stepId, callId: "attachment-control-open", child: "open_gpt_attachment_control", actionOrdinal: 7, input: {} } as const;
   const attachmentsAttach = { productStepId: input.stepId, callId: "attachments-attach", child: "attach_approved_gpt_files_once", actionOrdinal: 8, input: { files: input.files } } as const;
-  const attachmentsReconcile = { productStepId: input.stepId, callId: "attachments-reconcile", child: "reconcile_gpt_attachment_set", actionOrdinal: 9, input: { files: input.files, timeoutMs: 60_000 } } as const;
+  const attachmentsReconcile = { productStepId: input.stepId, callId: "attachments-reconcile", child: "reconcile_gpt_attachment_set", actionOrdinal: 9, input: { files: input.files, timeoutMs: 600_000 } } as const;
   if (input.recoverOnly) {
     await input.flow.requireEvidence(freshChat);
     await requireExactProfileEvidence(input.flow, input.stepId, [2, 3, 4, 5, 6]);

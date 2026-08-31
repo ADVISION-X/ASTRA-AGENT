@@ -60,7 +60,7 @@ const browserIdentity = (commandId: string, actionOrdinal: number) => ({
   leaseVersion: 1,
   fenceHash: digest("fence"),
   pluginId: "public-knowledge-article-pipeline",
-  pluginVersion: 14,
+  pluginVersion: 15,
   commandId,
   capabilityCallId: "browser.dom.click.v1",
   pluginStepId: "article.compose",

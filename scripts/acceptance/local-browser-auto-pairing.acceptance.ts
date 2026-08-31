@@ -12,7 +12,7 @@ import {
 import { ExtensionTargetAuthority } from "../../src/lib/browser/chrome-extension/extension-target-authority.js";
 import { executeRegisteredDomIntent } from "../../src/lib/browser/chrome-extension/dom-intent-runtime.js";
 import type { ExtensionDebuggerRuntime } from "../../src/lib/browser/chrome-extension/debugger-runtime.js";
-import type { ExtensionChromeApi } from "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
+import type { ExtensionChromeApi, ExtensionDebugTarget } from "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
 import { GPT_WEB_START_URL, requireGptWebPolicyForUrl } from "../../src/lib/browser/exact-target/browser-site-policy-registry.js";
 import { BrowserAuthorityBroker } from "../../src/lib/browser/infrastructure/browser-authority-broker.js";
 import { BrowserAuthorityIssuer } from "../../src/lib/browser/infrastructure/browser-authority-issuer.js";
@@ -176,11 +176,12 @@ const rejectedBootstrap = new PairingAutoBootstrap(
 await rejectedBootstrap.attempt();
 assert.equal(rejectedBootstrap.currentFailureCode(), "BROWSER_PAIRING_ORIGIN_REJECTED");
 
-let createdTab: Readonly<{ active: true; url: string }> | null = null;
+let createdTab: Readonly<{ active: false; url: string }> | null = null;
 let debuggerEvent: Parameters<ExtensionChromeApi["debugger"]["onEvent"]["addListener"]>[0] | null = null;
 let targetTabUpdated: TabUpdatedListener = () => { throw new Error("target tab listener was not installed"); };
 let nextCreatedTabId = 3;
 let getTargetsCalls = 0;
+let debuggerTargets: readonly ExtensionDebugTarget[] = [];
 let attachFailureTabId: number | null = null;
 const attachedTabs: number[] = [];
 const detachedTabs: number[] = [];
@@ -196,7 +197,7 @@ const targetChromeApi: ExtensionChromeApi = {
       attachedTabs.push(tabId);
     },
     detach: async ({ tabId }) => { detachedTabs.push(tabId); },
-    getTargets: async () => { getTargetsCalls += 1; return []; },
+    getTargets: async () => { getTargetsCalls += 1; return debuggerTargets; },
     sendCommand: async ({ tabId }, method) => {
       debuggerMethods.push(method);
       return method === "Page.getFrameTree"
@@ -229,7 +230,7 @@ targetTabUpdated(3, { status: "complete" }, { id: 3, url: "https://chatgpt.com/"
 await firstAcquisition;
 assert.deepEqual(attachedTabs, [3]);
 assert.equal(getTargetsCalls, 0, "job acquisition must not enumerate or reuse operator ChatGPT tabs");
-assert.deepEqual(createdTab, { active: true, url: "https://chatgpt.com/" });
+assert.deepEqual(createdTab, { active: false, url: "https://chatgpt.com/" });
 assert.equal(targetFrames[0]?.kind, "TARGET_CLAIM");
 assert.equal(targetFrames[0]?.body.url, "https://chatgpt.com/");
 const firstTargetRef = String(targetFrames[0]?.body.targetRef);
@@ -241,10 +242,37 @@ assert.deepEqual(attachedTabs, [3],
   "same-job recovery must retain the extension-owned debugger session on the exact production Tab");
 assert.equal(nextCreatedTabId, 4);
 assert.equal(targetFrames.at(-1)?.body.targetRef, firstTargetRef);
-assert.equal(debuggerMethods.filter((method) => method === "Page.bringToFront").length, 2,
-  "initial claim and exact reacquire must both physically foreground the single production Tab");
+assert.equal(debuggerMethods.filter((method) => method === "Page.bringToFront").length, 0,
+  "initial claim and exact reacquire must never foreground the single production Tab");
 await targetAuthority.releaseActiveTarget(false);
 assert.deepEqual(detachedTabs, [], "socket suspension must preserve the one production debugger session");
+
+debuggerTargets = [{
+  attached: true,
+  id: "debug-target-3",
+  tabId: 3,
+  title: "ChatGPT",
+  type: "page",
+  url: "https://chatgpt.com/c/exact-recovery",
+}];
+mainFrameUrlByTab.set(3, "https://chatgpt.com/c/exact-recovery");
+const recoveredFrames: typeof targetFrames = [];
+const rebuiltAuthority = new ExtensionTargetAuthority(
+  targetChromeApi,
+  async (kind, body) => { recoveredFrames.push({ kind, body }); },
+  () => undefined,
+);
+await rebuiltAuthority.acquireJobBoundChatGptTarget(firstTargetRef);
+assert.equal(getTargetsCalls, 1, "a rebuilt MV3 actor must inspect debugger ownership once for the exact prior tabId");
+assert.deepEqual(attachedTabs, [3], "a rebuilt MV3 actor must adopt the still-attached exact Target without reattaching");
+assert.equal(recoveredFrames.at(-1)?.body.targetRef, firstTargetRef,
+  "a rebuilt MV3 actor must restore the same deterministic targetRef");
+assert.notEqual(recoveredFrames.at(-1)?.body.documentRef, targetFrames[0]?.body.documentRef,
+  "a rebuilt MV3 actor must publish the current page as a new Document");
+assert.equal(debuggerMethods.filter((method) => method === "Page.bringToFront").length, 0,
+  "MV3 recovery must not foreground the exact Target");
+await rebuiltAuthority.releaseActiveTarget(false);
+mainFrameUrlByTab.delete(3);
 
 let delayedComposerQueries = 0;
 const delayedComposerRuntime = {

@@ -8,7 +8,7 @@ import { recordStaticCheck } from "../../shared/static-inspection-contract.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
 
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V15";
+const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V19";
 const PLUGIN_ROOT = "src/plugins";
 const CATALOG_PATH = "src/lib/local-runtime/production/catalog.ts";
 const CONTRACT_PATH = "src/lib/local-runtime/production/contracts.ts";
@@ -170,6 +170,7 @@ const inspectSeoPlugin = (context: InspectorContext, source: string, path: strin
     "acquire_gpt_continuation_lane", "advance_gpt_continuation_lane", "release_gpt_continuation_lane",
     "SEO_CHILD_HANDOFF_DELAY_MS = 2_000", "setTimeout(resolve, SEO_CHILD_HANDOFF_DELAY_MS)",
     'publicKnowledgeTurnContract("research")', 'publicKnowledgeTurnContract("article")',
+    "解压并读取本轮唯一 ZIP 附件", "原文.md 与索引.json", "timeoutMs: 600_000",
     "readCallFacts", "requireEvidence", "absoluteDeadline", "prior_prompt_hash",
     "expectedPromptHash", "preservePostSubmitReadback",
   ]) if (!source.includes(required)) findings.push(finding(
@@ -195,7 +196,7 @@ const inspectSeoPlugin = (context: InspectorContext, source: string, path: strin
       "agent-production-runtime/seo-result-contract-projection", `${PLUGIN_ROOT}/${pluginId}/result-contract.ts`,
       `SEO receiver is missing basic machine-format or lossless receipt token ${required}.`,
     ));
-  for (const required of ["public-knowledge-article-package-contract.v1", '"package"', '"research"', '"article"', '"image"'])
+  for (const required of ["public-knowledge-article-package-contract.v1", '"package"', '"research"', '"article"', '"image"', '"ready_corpus_archive"', '"application/zip"'])
     if (!routePolicy.includes(required)) findings.push(finding(
       "agent-production-runtime/seo-result-contract-projection",
       "src/lib/local-runtime/production/website-agent-route-policies.v1.json",

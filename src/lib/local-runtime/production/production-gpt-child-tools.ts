@@ -54,6 +54,7 @@ type ExecutionInput = Readonly<{
 export type ProductGptExecution = Readonly<{
   tools: ProductGptTools;
   continuationRef(): string | null;
+  reconcilePermanentCancellation(): Promise<void>;
   settle(error: unknown | null): Promise<void>;
 }>;
 
@@ -86,7 +87,13 @@ export class ProductionGptChildTools {
       input,
     );
     let continuationRef: string | null = input.task.continuation_ref ?? null;
+    const observedCalls = new Map<string, ProductGptCallInput & Readonly<{ sessionKey: string }>>();
     const execute = async (call: Parameters<ProductGptTools["execute"]>[0]): Promise<ProductGptChildResult> => {
+      if (input.lease.abort_signal.aborted) {
+        throw executionFailure("failed", typeof input.lease.abort_signal.reason === "string"
+          ? input.lease.abort_signal.reason : "PRODUCTION_EXECUTION_ABORTED");
+      }
+      observedCalls.set(hashCanonical(call), call);
       const result = await this.executeOne(input, browsers, call);
       if (call.child === "persist_gpt_continuation" && result.value
         && typeof result.value === "object" && !Array.isArray(result.value)) {
@@ -108,6 +115,20 @@ export class ProductionGptChildTools {
           this.readCallFacts(input, call),
       }),
       continuationRef: () => continuationRef,
+      reconcilePermanentCancellation: async () => {
+        for (const call of observedCalls.values()) {
+          const facts = await this.readCallFacts(input, call);
+          if (facts.mutation?.outcome !== "DISPATCHED") continue;
+          const remaining = Math.floor(input.lease.expires_at_monotonic - performance.now());
+          if (remaining < 1) throw executionFailure("failed", "V6_DEADLINE_BUDGET_EXHAUSTED");
+          await this.executeOne(
+            input,
+            browsers,
+            call,
+            AbortSignal.timeout(Math.min(20_000, remaining)),
+          );
+        }
+      },
       settle: (error) => browsers.settle(error),
     });
   }
@@ -314,6 +335,7 @@ export class ProductionGptChildTools {
     execution: ExecutionInput,
     browsers: ProductionGptBrowserLifecycle,
     call: Parameters<ProductGptTools["execute"]>[0],
+    signal: AbortSignal = execution.lease.abort_signal,
   ): Promise<ProductGptChildResult> {
     const intent = this.intentFor(execution, call);
     const facts = await this.readIntentFacts(intent);
@@ -342,7 +364,7 @@ export class ProductionGptChildTools {
         browsers,
         intent,
         browserCall,
-        execution.lease.abort_signal,
+        signal,
       );
       result = atomic.result;
       resolveDispatched = atomic.resolveDispatched;

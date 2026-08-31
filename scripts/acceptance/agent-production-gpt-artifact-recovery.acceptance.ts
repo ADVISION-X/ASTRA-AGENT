@@ -50,7 +50,7 @@ const identity = Object.freeze({
   jobId: providerTask.job_id,
   attemptId,
   pluginId: "public-knowledge-article-pipeline",
-  pluginVersion: 14,
+  pluginVersion: 15,
   productStepId: checkpointCall.productStepId,
   callId: checkpointCall.callId,
   childCapabilityId: checkpointCall.child,
@@ -121,7 +121,7 @@ const artifactReadbackExecution = (input: Readonly<{
   ).createExecution({
     task: providerTask,
     pluginId: "public-knowledge-article-pipeline",
-    pluginVersion: 14,
+    pluginVersion: 15,
     lease: {
       attempt_id: attemptId,
       device_id: "device:artifact-readback-terminal",

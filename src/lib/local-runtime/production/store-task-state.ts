@@ -167,6 +167,13 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     ).run(continuationRef, ownerJobId, laneVersion);
   }
 
+  public releaseGptContinuationLanesForJob(ownerJobId: string): number {
+    const released = this.database.prepare(
+      "update production_continuations set lane_owner_job_id=null where lane_owner_job_id=?",
+    ).run(ownerJobId);
+    return released.changes;
+  }
+
   public stageResult(jobId: string, result: WebsiteAgentResult): void {
     WebsiteAgentResultSchema.parse(result);
     const accepted = this.readTask(jobId);

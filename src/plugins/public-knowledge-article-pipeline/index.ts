@@ -198,7 +198,7 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
 
 export const publicKnowledgeArticlePipelinePlugin: ProductPlugin = {
   pluginId: PLUGIN_ID,
-  pluginVersion: 14,
+  pluginVersion: 15,
   skillHash: productSkillHash,
   checkpointSchemaVersion: 2,
   parseResult: parseProductResult,

@@ -17,6 +17,7 @@ import { executionFailure } from "../../src/lib/typed-failure.js";
 import { task } from "./agent-production-runtime-fixtures.js";
 
 const HASH = `sha256:${"1".repeat(64)}` as const;
+const CONFIRMED_AT = new Date(Date.now() - 1_000).toISOString();
 
 export const researchOutput = (decision: "proceed" | "decline") => ({
   schema_version: "public-knowledge-research-output.v3", decision,
@@ -51,7 +52,8 @@ type SeoHarness = {
   remainingFailures: number;
   physicalSubmitDispatches: number;
   acquiredLaneVersions: number[];
-  providerNames: readonly [string, string];
+  materials: SharedExecutionContext["materials"];
+  providerNames: readonly string[];
 };
 
 const seoTask = (actionId: SeoAction): WebsiteAgentTask => task({
@@ -67,22 +69,41 @@ const seoTask = (actionId: SeoAction): WebsiteAgentTask => task({
   },
 });
 
-const createHarness = (failureAt?: SeoFailure): SeoHarness => ({
-  calls: [],
-  factsByCall: new Map(),
-  handoffDelays: [],
-  completed: null,
-  continuationProvider: null,
-  continuationLaneVersion: 0,
-  continuationLaneOwned: false,
-  remainingFailures: failureAt ? 1 : 0,
-  physicalSubmitDispatches: 0,
-  acquiredLaneVersions: [],
-  providerNames: [
-    gptAttachmentProviderDisplayName("one.json", "attempt-1", "m0"),
-    gptAttachmentProviderDisplayName("two.json", "attempt-1", "m1"),
-  ],
-});
+const fixtureMaterials = (actionId: SeoAction): SharedExecutionContext["materials"] => actionId === "produce_article"
+  ? [{ material_id: "m0", ordinal: 0, role: "ready_corpus_archive", display_name: "public-knowledge-materials.zip",
+    object_ref: "object:m0", local_path: "/tmp/public-knowledge-materials.zip", sha256: HASH, bytes: 1,
+    media_type: "application/zip", storage_class: "shared_static", owner_scope_hash: null,
+    trust_class: "classical_source_data", may_issue_instruction: false }]
+  : [
+    { material_id: "m0", ordinal: 0, role: "subject_result", display_name: "one.json",
+      object_ref: "object:m0", local_path: "/tmp/one.json", sha256: HASH, bytes: 1,
+      media_type: "application/json", storage_class: "shared_static", owner_scope_hash: null,
+      trust_class: "locked_fact", may_issue_instruction: false },
+    { material_id: "m1", ordinal: 1, role: "review_contract", display_name: "two.json",
+      object_ref: "object:m1", local_path: "/tmp/two.json", sha256: HASH, bytes: 1,
+      media_type: "application/json", storage_class: "shared_static", owner_scope_hash: null,
+      trust_class: "locked_fact", may_issue_instruction: false },
+  ];
+
+const createHarness = (actionId: SeoAction, failureAt?: SeoFailure): SeoHarness => {
+  const materials = fixtureMaterials(actionId);
+  return {
+    calls: [],
+    factsByCall: new Map(),
+    handoffDelays: [],
+    completed: null,
+    continuationProvider: null,
+    continuationLaneVersion: 0,
+    continuationLaneOwned: false,
+    remainingFailures: failureAt ? 1 : 0,
+    physicalSubmitDispatches: 0,
+    acquiredLaneVersions: [],
+    materials,
+    providerNames: materials.map((material) => gptAttachmentProviderDisplayName(
+      material.display_name, "attempt-1", material.material_id,
+    )),
+  };
+};
 
 const factKey = (input: Pick<SeoCall, "productStepId" | "callId" | "child" | "actionOrdinal" | "input">): string =>
   hashCanonical({
@@ -99,10 +120,13 @@ const outputForCall = (state: SeoHarness, input: SeoCall, decision: "proceed" | 
       : JSON.stringify({ decision: "no_issue", issues: [] });
   const values: Partial<Record<SeoCall["child"], unknown>> = {
     reconcile_gpt_attachment_set: {
-      files: [
-        { artifactRef: "m0", displayName: "one.json", providerDisplayName: state.providerNames[0], sha256: HASH, bytes: 1 },
-        { artifactRef: "m1", displayName: "two.json", providerDisplayName: state.providerNames[1], sha256: HASH, bytes: 1 },
-      ],
+      files: state.materials.map((material, index) => ({
+        artifactRef: material.material_id,
+        displayName: material.display_name,
+        providerDisplayName: state.providerNames[index],
+        sha256: HASH,
+        bytes: 1,
+      })),
     },
     write_exact_gpt_prompt: { hash: HASH },
     reconcile_gpt_turn_submission: { canonicalConversationUrl: "https://chatgpt.com/c/example" },
@@ -171,7 +195,7 @@ const executeCall = async (
   state.factsByCall.set(factKey(input), {
     evidenceRef,
     mutation: input.child === "submit_exact_gpt_turn_once",
-    terminalAt: input.child === "submit_exact_gpt_turn_once" ? "2020-01-01T00:00:00.000Z" : null,
+    terminalAt: input.child === "submit_exact_gpt_turn_once" ? CONFIRMED_AT : null,
   });
   return { value, evidenceRef, evidenceHash: HASH };
 };
@@ -181,16 +205,7 @@ const createContext = (
   decision: "proceed" | "decline",
   failureAt?: SeoFailure,
 ): SharedExecutionContext => ({
-  materials: [
-    { material_id: "m0", ordinal: 0, role: "ready_corpus_archive", display_name: "one.json",
-      object_ref: "object:m0", local_path: "/tmp/one.json", sha256: HASH, bytes: 1,
-      media_type: "application/json", storage_class: "shared_static", owner_scope_hash: null,
-      trust_class: "locked_fact", may_issue_instruction: false },
-    { material_id: "m1", ordinal: 1, role: "result_contract", display_name: "two.json",
-      object_ref: "object:m1", local_path: "/tmp/two.json", sha256: HASH, bytes: 1,
-      media_type: "application/json", storage_class: "shared_static", owner_scope_hash: null,
-      trust_class: "locked_fact", may_issue_instruction: false },
-  ],
+  materials: state.materials,
   gpt: {
     attemptId: "attempt-1",
     readContinuationForTurn: (marker) => state.continuationProvider
@@ -263,11 +278,16 @@ const assertHarness = (state: SeoHarness, actionId: SeoAction, recoverAfterFault
     "every adjacent SEO Child must retain a 2s handoff floor");
   const firstPrompt = state.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt;
   assert.equal(typeof firstPrompt, "string");
-  assert.match(firstPrompt as string, new RegExp(`${state.providerNames[0]} 与 ${state.providerNames[1]}`, "u"));
   if (actionId === "produce_article") {
+    assert.equal(state.providerNames.length, 1);
+    assert.match(firstPrompt as string, new RegExp(state.providerNames[0]!, "u"));
+    assert.match(firstPrompt as string, /解压并读取本轮唯一 ZIP 附件/u);
+    assert.match(firstPrompt as string, /原文\.md 与索引\.json/u);
     assert.match(firstPrompt as string, /public-knowledge-research-output\.v3/u);
     assert.match(firstPrompt as string, /本回合不得返回 article package/u);
     assert.doesNotMatch(firstPrompt as string, /ready_corpus_snapshot_hash|sha256:/u);
+  } else {
+    assert.match(firstPrompt as string, new RegExp(`${state.providerNames[0]} 与 ${state.providerNames[1]}`, "u"));
   }
   const files = state.calls.find((call) => call.child === "reconcile_gpt_draft")?.input.files;
   assert.deepEqual(Array.isArray(files)
@@ -283,7 +303,7 @@ export const exerciseSeoFlow = async (
   failureAt?: SeoFailure,
   recoverAfterFault = false,
 ) => {
-  const state = createHarness(failureAt);
+  const state = createHarness(actionId, failureAt);
   const firstFailure = await runPlugin(
     plugin, seoTask(actionId), createContext(state, decision, failureAt), state, recoverAfterFault,
   );

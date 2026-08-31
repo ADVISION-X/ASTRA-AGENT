@@ -213,6 +213,7 @@ const preservePostSubmitReadback = (error: unknown, submit: ExactGptCallFacts): 
     causeCode: code,
     exactCallIdentityHash: submit.exactCallIdentityHash,
     terminalAt: submit.mutation.terminalAt,
+    readbackDeadlineAt: confirmedDeadline(submit),
     evidenceRef: submit.evidence.evidenceRef,
     evidenceHash: submit.evidence.evidenceHash,
   });

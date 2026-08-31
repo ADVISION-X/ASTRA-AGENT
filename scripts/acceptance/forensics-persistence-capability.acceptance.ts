@@ -137,7 +137,7 @@ try {
   const locatorIntent = {
     childCapabilityId: "reconcile_gpt_turn_submission", executionId: "gpt-call:submission-locator",
     jobId: "mission-locator", attemptId: "run-locator", pluginId: "public-knowledge-article-pipeline",
-    pluginVersion: 14, productStepId: "corpus_research", callId: "submission-reconcile",
+    pluginVersion: 15, productStepId: "corpus_research", callId: "submission-reconcile",
     inputHash: `sha256:${"b".repeat(64)}` as const, actionOrdinal: 13,
     input: { expectedPromptHash: promptHash, timeoutMs: 60_000, turnMarker: locatorMarker },
   } as const;

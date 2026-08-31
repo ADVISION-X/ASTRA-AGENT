@@ -113,6 +113,12 @@ export const heartbeatWhileRunning = async <T>(input: Readonly<{
       await Promise.allSettled([tracker.promise]);
       throw new ProductionRuntimeBoundaryError(withRuntimeLogCause(error, terminal.eventId));
     }
+    if (receipt.control_intent.intent !== "none") {
+      input.abort.abort(
+        `CONTROL_INTENT:${receipt.control_intent.intent}:${receipt.control_intent.reason_code ?? "none"}`,
+      );
+      continue;
+    }
     const relative = Date.parse(receipt.lease_expires_at) - Date.parse(receipt.server_now);
     if (!Number.isFinite(relative) || relative < 30_000) {
       input.abort.abort("V6_RENEW_BUDGET_INVALID");
@@ -121,11 +127,6 @@ export const heartbeatWhileRunning = async <T>(input: Readonly<{
     }
     input.budget.expires_at_monotonic = performance.now() + relative - 10_000;
     input.budget.command_ttl_ms = Math.min(20_000, relative - 10_000);
-    if (receipt.control_intent.intent !== "none") {
-      input.abort.abort(
-        `CONTROL_INTENT:${receipt.control_intent.intent}:${receipt.control_intent.reason_code ?? "none"}`,
-      );
-    }
   }
   return settleTrackedExecution(tracker, input.abort.signal);
 };

@@ -300,6 +300,7 @@ assert.equal(wrongPromptHashFixture.physicalMutations(), 0,
 const providerWaitFixture = fakeBrowser((intent) => {
   if (intent.kind === "document") return { url: canonicalConversationUrl, title: "ChatGPT" };
   if (intent.kind === "find" && intent.selector === GPT_USER_TURN_SELECTOR) return { count: 0 };
+  if (intent.kind === "find" && intent.selector === "[role='dialog']") return { count: 0 };
   throw new Error(`UNEXPECTED_PROVIDER_WAIT_INTENT:${intent.kind}`);
 });
 const yielded: number[] = [];
@@ -320,6 +321,52 @@ assert.equal(providerWaitResult.failureCode, "GPT_RESPONSE_STABILITY_TIMEOUT");
 assert.equal(yielded.length >= 1, true, "Provider wait must cooperatively yield its Browser lane");
 assert.equal(yielded.every((duration) => duration >= 25 && duration <= 5_000), true);
 assert.deepEqual(providerWaitFixture.waitDurations(), [], "cooperative Provider wait must not hold Browser.wait");
+
+let rateLimitAcknowledged = false;
+const rateLimitFixture = fakeBrowser((intent) => {
+  if (intent.kind === "document") return { url: canonicalConversationUrl, title: "ChatGPT" };
+  if (intent.kind === "find" && intent.selector === GPT_USER_TURN_SELECTOR) {
+    return { count: rateLimitAcknowledged ? 1 : 0 };
+  }
+  if (intent.kind === "find" && intent.selector === "[role='dialog']") {
+    assert.equal(intent.textContains, "请求过于频繁");
+    return { count: rateLimitAcknowledged ? 0 : 1 };
+  }
+  if (intent.kind === "find" && intent.selector === "button") {
+    assert.deepEqual(intent.scope, { selector: "[role='dialog']" });
+    assert.equal(intent.textEquals, "明白了");
+    return { count: 1 };
+  }
+  if (intent.kind === "click" && intent.selector === "button") {
+    assert.equal(intent.expectedTextEquals, "明白了");
+    assert.deepEqual(intent.scope, { selector: "[role='dialog']" });
+    rateLimitAcknowledged = true;
+    return { postconditionVerified: true };
+  }
+  if (intent.kind === "readAttribute" && intent.selector === GPT_USER_TURN_SELECTOR) {
+    return "conversation-turn-1";
+  }
+  if (intent.kind === "inspect" && intent.selector === promptBodySelector) {
+    return { semanticText: `${prompt}\n`, visible: true, connected: true };
+  }
+  if (intent.kind === "find"
+    && intent.selector === `[data-testid="conversation-turn-2"][data-turn='assistant'] [data-message-author-role='assistant']`) {
+    return { count: 1 };
+  }
+  if (intent.kind === "inspect") return { semanticText: assistantText, visible: true, connected: true };
+  if (intent.kind === "find" && intent.selector === GPT_GENERATING_STOP_SELECTOR) return { count: 0 };
+  throw new Error(`UNEXPECTED_RATE_LIMIT_INTENT:${intent.kind}`);
+});
+const rateLimitRecovered = await execute("wait_for_stable_gpt_text", rateLimitFixture.browser, {
+  absoluteDeadline: new Date(Date.now() - 60_000).toISOString(),
+  canonicalConversationUrl,
+  expectedPromptHash: promptHash,
+  turnMarker: promptMarker,
+});
+assert.equal(rateLimitRecovered.status, "success", rateLimitRecovered.failureCode ?? "rate-limit acknowledgement failed");
+assert.equal(rateLimitFixture.physicalMutations(), 1,
+  "the shared GPT wait must acknowledge the unique known provider dialog exactly once");
+assert.equal(rateLimitRecovered.proof.committedMutation, "confirmed");
 
 const overdueTextFixture = fakeBrowser((intent) => {
   if (intent.kind === "document") return { url: canonicalConversationUrl, title: "ChatGPT" };

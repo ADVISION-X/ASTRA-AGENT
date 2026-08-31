@@ -46,8 +46,8 @@ const inspectBrokerClaimMonotonicity = (brokerText: string, findings: InspectorF
 
 const inspectJobBoundClaimAcceptance = (combined: string, findings: InspectorFinding[], lawId: string): void => {
   for (const required of [
-    "BROWSER_DEVTOOLS_CONFLICT", "getTargetsCalls", "active: true", "Page.getFrameTree",
-    "Page.bringToFront", "single-Tab reuse", "removedTabs.includes",
+    "BROWSER_DEVTOOLS_CONFLICT", "getTargetsCalls", "active: false", "Page.getFrameTree",
+    "BROWSER_EXACT_TARGET_UNAVAILABLE", "single-Tab reuse", "removedTabs.includes",
   ]) {
     if (combined.includes(required)) continue;
     findings.push(createLocalFinding({
@@ -114,9 +114,15 @@ const inspectJobBoundClaimPolicy = (
   inspectServerClaimOrder(supervisor.getClass("BrowserInfrastructureSupervisor")?.getMethod("onTargetClaim")?.getText() ?? "", findings, lawId);
   inspectBrokerClaimMonotonicity(broker.getFullText(), findings, lawId);
   inspectJobBoundClaimAcceptance(`${targetAuthority.getFullText()}\n${acceptance.getFullText()}`, findings, lawId);
-  if (targetAuthority.getFullText().includes(".getTargets(")) findings.push(createLocalFinding({
+  const targetAuthorityText = targetAuthority.getFullText();
+  if (!targetAuthorityText.includes("chromeApi.debugger.getTargets()")
+    || !targetAuthorityText.includes("candidate.tabId === tabId")
+    || !targetAuthorityText.includes('candidate.type === "page"')
+    || !targetAuthorityText.includes("candidate.attached === true")
+    || targetAuthorityText.includes("tabs.query")
+    || targetAuthorityText.includes("Page.bringToFront")) findings.push(createLocalFinding({
     checkId: "browser-authority/job-bound-target-claim", lawId, filePath: targetAuthorityPath,
-    message: "A GPT turn must not enumerate or reuse an operator-owned browser Target.",
+    message: "MV3 recovery may inspect only the exact prior attached tabId and must never scan candidates or foreground a Tab.",
   }));
   inspectDispatchedMutationReleaseGuard(leaseManager, findings, lawId);
   inspectExactChatGptPolicy(sitePolicy, findings, lawId);

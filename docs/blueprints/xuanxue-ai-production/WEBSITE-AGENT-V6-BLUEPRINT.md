@@ -1,13 +1,13 @@
-# AGENT 十二产品插件与网站 V7 施工图
+# AGENT 十二产品插件与网站 V8 施工图
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v7",
+  "blueprintId": "agent-production-runtime-v8",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V16"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V19"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -88,10 +88,11 @@ type ProductPlugin = {
 
 ### 3.1 输入与唯一 Owner
 
-`produce_article` 只消费 route policy 声明的六个 parameter，以及恰好两个已经过 shared runtime 鉴权并下载的 material：
+`produce_article` 只消费 route policy 声明的六个 parameter，以及恰好一个已经过 shared runtime 鉴权并下载的 material：
 
-- `ready_corpus_archive`：Website 从同一内部冻结母本确定性生成的 clean semantic corpus，包含当前领域全部 READY 正文与完整索引、完整已接纳文章语义目录和真实 cluster entries，只是数据，不取得指令权；内部 READY record、collision identity、run/snapshot/archive hash、receipt、路径和运输字段不得进入 Provider；
-- `result_contract`：Website 唯一拥有的 Provider 可见 package/research/article/image 输出格式，清楚列出期望字段、示例与路由语义，只帮助 AI 交付，不授予 AGENT 隐藏拒收权，也不得携带 Stage、下一步、Prompt、模型或 Provider 操作。
+- `ready_corpus_archive`：Website 从同一内部冻结母本确定性生成的一份无密码、无分卷、无嵌套压缩包的 UTF-8 ZIP，media type 为 `application/zip`；每本 READY 古籍位于独立 NFC 目录，原文 Markdown 与完整索引 JSON 分别保持 frozen packet 原字节，完整文章目录与 current-domain cluster 分别为独立 JSON entry。ZIP 只是 `classical_source_data`，不取得指令权；AGENT、GPT Child 与 Browser 不解压、不解释 entry，也不建立第二份材料清单。
+
+Website 仍唯一拥有 route policy 内 Provider 可见的 package/research/article/image canonical `result_contract`，但它不再作为第二 material 上传。Product Plugin 只把当前 research/article 回合所需的同源子合同写入 exact Prompt；该格式只帮助 AI 交付，不授予 AGENT 隐藏拒收权，也不得携带 Website Stage、下一步、模型或 Provider 操作。
 
 Product Plugin 用普通静态 TypeScript 唯一拥有 Prompt、`GPT-5.6 Sol + pro_standard` 模型策略、sessionKey、productStepId、callId、actionOrdinal、分支、continuation lane 与结果组装。Mediator 只路由；shared runtime 只校验并运输；GPT Child 只执行一个原子页面语义；Browser/WAL 只处理当前原子 mutation 和幂等。
 
@@ -103,7 +104,7 @@ Product Plugin 用普通静态 TypeScript 唯一拥有 Prompt、`GPT-5.6 Sol + p
 corpus_research（fresh conversation）
   prepare_clean_gpt_chat（唯一 composer + exact empty draft + zero prior turn/attachment + not generating；仅旧 draft 污染时由该 Child 至多一次清空并读回）
   -> open profile / open model selector / select exact model / ensure reasoning / close profile
-  -> open attachment control / 以 attempt 唯一 providerDisplayName attach ready_corpus_archive + result_contract once / reconcile exact uploaded-ready set
+  -> open attachment control / 以 attempt 唯一 providerDisplayName attach 唯一 ready_corpus_archive ZIP once / reconcile exact uploaded-ready set（本 Product 固定 timeoutMs=600000；条件满足立即返回，重启不延长）
   -> Product 从 Provider 可见格式选择 research 部分，write exact research Prompt / reconcile draft / submit once / reconcile submission
   -> wait stable assistant turn / checkpoint observed DOM HTML + deterministic semantic text
   -> persist both representations as one task-owned output artifact and read back both hashes
@@ -238,7 +239,7 @@ readCallFacts({ productStepId, callId, child, actionOrdinal, input }): Promise<{
 }>;
 ```
 
-job/attempt/plugin/version 由 durable execution binding 注入，inputHash 由同一 canonical hash 计算。该读面不写入、不安排任务、不返回 nextStep/resumePoint/phase/state/Target/Document/WAL row，也不提供无 durable Owner 的 per-call `failure`。真实外部 Child typed failure 冻结 Runtime `attempt_failure` 并结束 attempt；但 exact submit 已 CONFIRMED 后，只有下列六个且仅下列六个瞬时原生码、mutationOutcome=no、不存在 Provider terminal negative 且当前时刻仍早于 submit immutable terminalAt + Product timeoutMs 时，才通过现役 lease release 写入 `release_reason=POST_SUBMIT_READBACK_FAULT` 与 `current_reason`：`BROWSER_EXTENSION_CHANNEL_UNAVAILABLE`、`BROWSER_LIVENESS_EXPIRED`、`BROWSER_PAIRING_IN_PROGRESS`、`BROWSER_BACKPRESSURE`、`BROWSER_TARGET_LIFECYCLE_UNSETTLED`、`BROWSER_WAIT_ABORTED`。同一 attempt 重领后从 submit exact fact 继续，不写 `attempt_failure`、不接受新 attempt、不再次 submit。任何其它 code，包括 `BROWSER_EXACT_TARGET_UNAVAILABLE`、`BROWSER_TARGET_INVALID`、`BROWSER_DOCUMENT_INVALID`、`BROWSER_CAPABILITY_REJECTED`、Provider terminal negative 与 deadline expiry，必须结束当前 attempt。exact text checkpoint 后的接收、归一或组装软件故障同样沿同一 artifact 和 attempt 恢复。
+job/attempt/plugin/version 由 durable execution binding 注入，inputHash 由同一 canonical hash 计算。该读面不写入、不安排任务、不返回 nextStep/resumePoint/phase/state/Target/Document/WAL row，也不提供无 durable Owner 的 per-call `failure`。真实外部 Child typed failure 冻结 Runtime `attempt_failure` 并结束 attempt；但 exact submit 已 CONFIRMED 后，只有下列六个且仅下列六个瞬时最内层原生码、mutationOutcome=no、不存在 Provider terminal negative 且当前时刻仍早于 submit immutable terminalAt + Product timeoutMs 时，才通过现役 lease release 写入 `release_reason=POST_SUBMIT_READBACK_FAULT` 与 `current_reason`：`BROWSER_EXTENSION_CHANNEL_UNAVAILABLE`、`BROWSER_LIVENESS_EXPIRED`、`BROWSER_PAIRING_IN_PROGRESS`、`BROWSER_AUTHENTICATION_INCOMPLETE`、`BROWSER_BACKPRESSURE`、`BROWSER_WAIT_ABORTED`。`BROWSER_TARGET_LIFECYCLE_UNSETTLED` 等外层包装码自身永不构成放行；只有其最内层原生 cause 位于上述闭合 allowlist 时才合法。同一 attempt 重领后从 submit exact fact 继续，不写 `attempt_failure`、不接受新 attempt、不再次 submit。任何其它 code，包括 `BROWSER_EXACT_TARGET_UNAVAILABLE`、`BROWSER_TARGET_INVALID`、`BROWSER_DOCUMENT_INVALID`、`BROWSER_CAPABILITY_REJECTED`、Provider terminal negative 与 deadline expiry，必须结束当前 attempt。exact text checkpoint 后的接收、归一或组装软件故障同样沿同一 artifact 和 attempt 恢复。
 
 ### 4.4 Product-owned Progressive Exact Fact Replay
 
@@ -311,9 +312,15 @@ post-submit readback software fault -> same attempt + confirmed submit fact resu
 accepted attempt budget/policy -> Website durable authority
 ```
 
-Website 唯一决定 accepted attempt 预算、累计、next retry、故障片区停车与放行；AGENT、Outbox 与 Browser 不硬编码固定三次或其它次数，也不建立第二重试裁决。任何新真实 attempt 前都必须证明前 attempt 无未决 `DISPATCHED`；exact submit 已 CONFIRMED 后，Website 只对上一节穷尽列出的六个瞬时原生码并在同一 immutable absoluteDeadline 前保留原 accepted attempt，使用现役 lease release/current_reason 与 AGENT 本地 exact call facts 恢复，release reason 固定为 `POST_SUBMIT_READBACK_FAULT`，不新增状态、表、调度器或第二账本。永久 Target/Document 错误、Provider terminal negative 与 deadline expiry 必须清除 accepted lease binding并结束 attempt，不得因 `accepted_at is not null` 永久绕过预算；已经 checkpoint 的 AI 产物因接收器软件故障不得增加 attempt 或重做 Provider mutation。跨仓合同 `ai-acceptance.xuanxue-ai-production-v6` V10 必须冻结同一六码 allowlist、immutable deadline 及永久错误结束 attempt 的 release/claim 语义，AGENT dependency 与 Website provider 不得各写一份不同规则。
+Website 唯一决定 accepted attempt 预算、累计、next retry、故障片区停车与放行；AGENT、Outbox 与 Browser 不硬编码固定三次或其它次数，也不建立第二重试裁决。任何新真实 attempt 前都必须证明前 attempt 无未决 `DISPATCHED`；exact submit 已 CONFIRMED 后，Website 只对上一节穷尽列出的六个瞬时最内层原生码并在同一 immutable absoluteDeadline 前保留原 accepted attempt，使用现役 lease release/current_reason 与 AGENT 本地 exact call facts 恢复，release reason 固定为 `POST_SUBMIT_READBACK_FAULT`，不新增状态、表、调度器或第二账本。永久 Target/Document 错误、非 allowlisted 包装码、Provider terminal negative 与 deadline expiry 必须清除 accepted lease binding并结束 attempt，不得因 `accepted_at is not null` 永久绕过预算；已经 checkpoint 的 AI 产物因接收器软件故障不得增加 attempt 或重做 Provider mutation。跨仓合同 `ai-acceptance.xuanxue-ai-production-v6` V11 必须同时冻结六码 readback allowlist 与 `cancel_requested + PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED` 永久撤权语义，AGENT dependency 与 Website provider 不得各写一份不同规则。
 
 Website 的现役 `accepted_attempt_limit` 只是故障保险丝，不是任务终态。一次 attempt 以真实外部失败结束且 `accepted_attempt_count >= accepted_attempt_limit` 时，Website 仍保持 `status=failed`，只把现役 `current_reason.code` 原子替换为 `RECOVERY_PARKED` 并保留原 failure code；claim 暂停领取该 job，但 public run 不得继续显示为正在执行。唯一放行动作是现役 SEO Work Order 的系统级 `run` 事务：它只批量重新武装该 Work Order 下 `RECOVERY_PARKED + accepted_at=null + attempt_id=null + terminal_status=null` 的原 job，保留累计 `accepted_attempt_count`，只把 `accepted_attempt_limit` 原子提升到 `accepted_attempt_count + 1`，并写入现役事件/审计后等待一个新 attempt。不得提供单文章人工 retry，不得创建 replacement run/job、第三任务状态、第二 API、第二队列或第二停车表。
+
+### 5.1 SEO Work Order 永久撤权响应
+
+Website 在现役 control intent 中返回 `cancel_requested` 且 `current_reason.code=PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED` 时，AGENT 将它解释为永久业务授权撤销，不是普通 pause 或可恢复 cancel。renew/readback 观察到该事实后，Runtime 设置本 attempt 的 abort signal，禁止开始任何新 Product Child、Browser/Provider/cloud mutation、checkpoint、artifact 或 terminal intent，并立即释放尚未取得的容量。若 Browser WAL 有未决 `DISPATCHED`，只允许用冻结的原 Target/Document 与后置判据作只读对账；不得重放、换 Target 或新建 attempt。对账收束后使用现役 lease release 回传删除确认与安全 evidence ref/hash，保留本地 WAL、task-owned checkpoint/artifact 和 receipts，但不写 `attempt_failure`、不 reclaim、不进入正常恢复。
+
+Website 已确认的 accept/progress/checkpoint/completion receipt 只允许用原幂等键 readback；删除观察后不得产生新业务 mutation。已取得的真实活动 lease 在取消 lease-release 回执提交成功前仍占用该任务的业务槽，若 AGENT 离线则由 Website 在 lease 到期后释放；Runtime 不得提前报告该业务槽可用。取消回执成功后只释放该任务占用的业务槽、fence、Target、GPT continuation lane 与 Browser lane，其他任务继续。不得新增 cancellation store、delete queue、第三状态、replacement task/job、删除 worker 或第二协议；Website 仍唯一拥有 Work Order tombstone、领域成果和最终入库判断。
 
 ## 6. 调用与副作用身份
 
@@ -363,16 +370,16 @@ AGENT staged result、Outbox delivered、Website completion submission 均不等
 
 ## 9. 聚焦验收
 
-本轮静态验收：十二个 Product Plugin 保留既有身份、路由、Skill 与现有 actionOrdinal；GPT wait/checkpoint 只使用唯一请求正文节点的 canonical semantic prompt，text/image wait 对唯一 conversation-history 提示在同一 exact call 内至多确认一次，submission reconcile 在单 Tab 让出前写读同 exact-call locator artifact。confirmed-submit 后只有瞬时 allowlist 原因在 immutable deadline 前沿现役 lease release/current_reason 保持同 attempt，永久 Target/Document 错误结束 attempt；continuation 仍只有唯一 provider/store。每个已开始 GPT Child span 即使在 Browser lease 获取、park 或 reacquire 失败也必须恰好产生一个 typed terminal，禁止悬空 span。runtime 不决定 Child；公开状态 union 精确为 failed/completed；attempt 预算只来自 Website 持久策略；Outbox 无 parked/独立预算；Browser/claim 原生原因在唯一 Runtime Log Spine 可见但不成为状态；本轮不修改 AI 产物解析与接收链。
+本轮静态验收：十二个 Product Plugin 保留既有身份、路由、Skill 与现有 actionOrdinal；GPT wait/checkpoint 只使用唯一请求正文节点的 canonical semantic prompt，text/image wait 对唯一 conversation-history 提示在同一 exact call 内至多确认一次，submission reconcile 在单 Tab 让出前写读同 exact-call locator artifact。confirmed-submit 后只有瞬时 allowlist 原因在 immutable deadline 前沿现役 lease release/current_reason 保持同 attempt，永久 Target/Document 错误结束 attempt；SEO Work Order 删除观察后零新 Product Child/Browser/Provider/cloud mutation，DISPATCHED 只读收束，现役 lease release 确认且 WAL/checkpoint/receipt 保留，无 attempt_failure/reclaim/recovery/replacement；continuation 仍只有唯一 provider/store。每个已开始 GPT Child span 即使在 Browser lease 获取、park 或 reacquire 失败也必须恰好产生一个 typed terminal，禁止悬空 span。runtime 不决定 Child；公开状态 union 精确为 failed/completed；attempt 预算只来自 Website 持久策略；Outbox 无 parked/独立预算；Browser/claim 原生原因在唯一 Runtime Log Spine 可见但不成为状态；本轮不修改 AI 产物解析与接收链。
 
 单个 Product 的业务步骤、Prompt、模型、分支、材料和结果验收不属于本轮分母；后续每个 Product 单独施工时，必须新增该 Product 自己的聚焦验收。已施工的 SEO Product 聚焦验收必须分别对 produce_article 的 proceed/decline 与两条 review 路由按 actionOrdinal 断言 exact Child sequence，不得以“全部 Child 均曾出现”代替顺序证明。全部 Product 尚未分别交付前，质量系统必须报告未完成，不得给出全系统 READY、CI_FULL_PASS 或生产流程已跑通结论。
 
-状态机验收：初始失败、durable accept、同 attempt re-lease、第一次真实外部 failure 冻结、Website 策略接受新 attempt、DISPATCHED 在原 attempt 对账、exact submit CONFIRMED 后瞬时 allowlist 软件故障仅在 immutable deadline 前以 `POST_SUBMIT_READBACK_FAULT` 释放且不写 failure/不增 attempt、永久 Target/Document 错误与 deadline expiry 结束 attempt、重领不再次 submit、exact text checkpoint 后接收器故障不写 failure/不增 attempt、同 raw artifact 恢复、staged result 待入库仍 failed、领域 admission 原子 completed。进度验收必须证明 accepted/progress seq2 只显示 attempt 已启动，Provider submit、checkpoint、article_synthesis 与领域入库分层显示且各自来自对应现役 Owner。
+状态机验收：初始失败、durable accept、同 attempt re-lease、第一次真实外部 failure 冻结、Website 策略接受新 attempt、DISPATCHED 在原 attempt 对账、exact submit CONFIRMED 后瞬时 allowlist 软件故障仅在 immutable deadline 前以 `POST_SUBMIT_READBACK_FAULT` 释放且不写 failure/不增 attempt、永久 Target/Document 错误与 deadline expiry 结束 attempt、Work Order delete-before-dispatch 零外部动作、delete-during-run 在 renew 后停止并对 DISPATCHED 只读收束、delete-after-receipt 仅幂等 readback、删除取消不写 attempt_failure 且释放任务局部容量、重领不再次 submit、exact text checkpoint 后接收器故障不写 failure/不增 attempt、同 raw artifact 恢复、staged result 待入库仍 failed、领域 admission 原子 completed。进度验收必须证明 accepted/progress seq2 只显示 attempt 已启动，Provider submit、checkpoint、article_synthesis 与领域入库分层显示且各自来自对应现役 Owner。
 
 智慧调度聚焦验收：无中央 Scheduler/priority/recovery bypass；唯一 FIFO 最多十个 waiter；未到 nextCheckAt 的 wait 不入队；normal/recovery 共用 FIFO；park 后其它 job 可继续；Progressive Exact Fact Replay 必须先恢复 wait 输出再构造 checkpoint/continuation inputHash，宽匹配 lookup 为零；readCallFacts 只读且无 failure/state/nextStep/Target/WAL 泄漏；pluginVersion 端到端，actionOrdinal 不进 effect/evidence identity。
 
 恢复与幂等验收：Forensics exact-call append/readback 返回原 recordRef，同 key 异内容 fail-close，submission-locator 在单 Tab 已切换会话和进程重启后仍按 exact identity 返回原 URL/marker/user turn/prompt hash/identity 且 submit mutation count 不增加，重启前后 evidence_refs 完整有序；同 job 多 attempt 的 continuation 必须由当前 attempt turn marker 只命中当前一条，并以 URL + marker + prior prompt/response hash 复核，旧 marker、缺失 prior prompt hash 与未知 marker 不得回退；continuation persist/advance/release 覆盖 DB commit 与 return 之间崩溃；同 attempt 已有 verified evidence 的 target-local 新 Target generation mutation count 为零，原 Target 不可只读恢复则 attempt fail-close；Provider terminalAt 不可变，等待 55 分钟后重启不重获完整 timeout。
 
-真实 Browser 验收：normal wait 每个短 probe 都必须完成 `同一 targetRef park -> 释放 FIFO -> 同一 targetRef reacquire -> Page.bringToFront -> fresh DOM probe`，扩展不得 close/detach 唯一 system Tab，不得出现 `BROWSER_CAPABILITY_REJECTED`、`BROWSER_TARGET_INVALID` 或悬空 Child span；至少三个并发业务任务在无人点击时仍只使用一个 system tabId/targetRef，并按 URL + marker + prompt/response hash 回到各自会话。真实重建 MV3 actor 后必须从仍 debugger-attached 的同 tabId 恢复同一 targetRef、新 Document且零 create/attach；exact tab 不存在时立即 `BROWSER_EXACT_TARGET_UNAVAILABLE`。conversation-history 提示出现时只点击一次“明白了”，消失后重新验证原 wait 前置。DISPATCHED recovery 保持原 Document、操作者页面零影响、同 attempt 禁跨代重做和唯一已鉴权媒体 bytes 链均必须成立；SEO 实测必须在不新增 submit WAL 的情况下继续出现 `corpus_research -> article_synthesis`，不能用第一步有效回答或静态测试替代第二步证据。
+真实 Browser 验收：normal wait 每个短 probe 都必须完成 `同一 targetRef park -> 释放 FIFO -> 同一 targetRef 无聚焦 reacquire -> fresh DOM probe`，扩展不得 close/detach 唯一 system Tab，不得出现 `BROWSER_CAPABILITY_REJECTED`、`BROWSER_TARGET_INVALID` 或悬空 Child span；首次 acquisition 必须 `tabs.create({active:false})`，至少三个并发业务任务在无人点击时仍只使用一个 system tabId/targetRef，并按 URL + marker + prompt/response hash 回到各自会话。操作者切换到其它应用与其它 Chrome Tab 的两组实测均必须证明上传、submit、最长一小时轮询、checkpoint 和下一 Product 步骤继续，且全程 `tabs.create active=true/Page.bringToFront/windows.update focused=true/tabs.update active=true` 计数为零，操作者当前 Tab 与前台应用不变。真实重建 MV3 actor 后必须从仍 debugger-attached 的同 tabId 恢复同一 targetRef、新 Document且零 create/attach/前台化；exact tab 不存在时立即 `BROWSER_EXACT_TARGET_UNAVAILABLE`。conversation-history 提示出现时只点击一次“明白了”，消失后重新验证原 wait 前置。DISPATCHED recovery 保持原 Document、操作者页面零影响、同 attempt 禁跨代重做和唯一已鉴权媒体 bytes 链均必须成立；SEO 实测必须在不新增 submit WAL 的情况下继续出现 `corpus_research -> article_synthesis`，不能用第一步有效回答或静态测试替代第二步证据。
 
 删除验收：施工前 Browser WAL 没有 unresolved `PREPARED/DISPATCHED`；旧 Extension actor 空 registry 直接返回 `BROWSER_TARGET_INVALID`、永久错误继续 `POST_SUBMIT_READBACK_FAULT` 热循环、Browser 原因统一覆盖、claim 零任务原因丢失、SEO step-level evidence/anchor 粗门及其 fixture/inspector 断言必须物理退出。十二个 Product 的既有 Child identity/actionOrdinal、当前 Website task、attempt、conversation、artifact/checkpoint、Outbox 与 Browser WAL 身份保持不变；不重新提交已确认第一步，最终由同一 task 继续 `article_synthesis` 并取得领域入库回执。

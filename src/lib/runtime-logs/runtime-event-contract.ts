@@ -31,6 +31,12 @@ type RuntimeAuthorityReference = Readonly<{
   evidenceHash?: `sha256:${string}`;
 }>;
 
+export type RuntimeClaimDiagnostics = Readonly<{
+  outcome: "LEASE_GRANTED" | "NO_ELIGIBLE_JOB" | "CAPACITY_ZERO" | "CLAIM_BLOCKED" | "DRAINING";
+  claimed_count: number;
+  reason_codes: readonly string[];
+}>;
+
 export type RuntimeObservedEvent = RuntimeEventCommon & RuntimeAuthorityReference & Readonly<{
   kind: "event";
   code: string;
@@ -55,6 +61,7 @@ type RuntimeSpanTerminalCommon = RuntimeEventCommon & RuntimeAuthorityReference 
   kind: "span.terminal";
   spanId: string;
   durationMs: number;
+  claimDiagnostics?: RuntimeClaimDiagnostics;
 }>;
 
 export type RuntimeSpanSuccessEvent = RuntimeSpanTerminalCommon & Readonly<{
@@ -88,10 +95,14 @@ export type RuntimeSpanStartInput = RuntimeWriteInputCommon & Readonly<{
   boundaryId?: string;
 }>;
 
-export type RuntimeSuccessfulTerminalInput = RuntimeAuthorityReference & Readonly<{ outcome: "succeeded" }>;
+export type RuntimeSuccessfulTerminalInput = RuntimeAuthorityReference & Readonly<{
+  outcome: "succeeded";
+  claimDiagnostics?: RuntimeClaimDiagnostics;
+}>;
 export type RuntimeFailedTerminalInput = RuntimeAuthorityReference & Readonly<{
   outcome: Exclude<RuntimeSpanOutcome, "succeeded">;
   failure: RuntimeFailure;
+  claimDiagnostics?: RuntimeClaimDiagnostics;
 }>;
 export type RuntimeSpanTerminalInput = RuntimeSuccessfulTerminalInput | RuntimeFailedTerminalInput;
 

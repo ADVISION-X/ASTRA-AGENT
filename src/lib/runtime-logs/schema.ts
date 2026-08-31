@@ -144,14 +144,31 @@ const startedSpanValid = (value: Readonly<Record<string, unknown>>): boolean =>
   && (!Object.hasOwn(value, "parentSpanId") || token(value.parentSpanId))
   && (!Object.hasOwn(value, "boundaryId") || token(value.boundaryId));
 
+const claimDiagnosticsValid = (value: unknown): boolean => {
+  if (!record(value)
+    || !exactKeys(value, ["outcome", "claimed_count", "reason_codes"], [])) return false;
+  const outcomes = new Set([
+    "LEASE_GRANTED", "NO_ELIGIBLE_JOB", "CAPACITY_ZERO", "CLAIM_BLOCKED", "DRAINING",
+  ]);
+  const count = Number(value.claimed_count);
+  return outcomes.has(String(value.outcome))
+    && Number.isInteger(count) && count >= 0 && count <= 10
+    && ((value.outcome === "LEASE_GRANTED") === (count > 0))
+    && Array.isArray(value.reason_codes) && value.reason_codes.length <= 32
+    && value.reason_codes.every(machineCode);
+};
+
 const terminalSpanValid = (value: Readonly<Record<string, unknown>>): boolean => {
   if (!exactKeys(value,
     [...COMMON_KEYS, "spanId", "outcome", "durationMs"],
-    [...REFERENCE_KEYS, "failure"])) return false;
+    [...REFERENCE_KEYS, "failure", "claimDiagnostics"])) return false;
   const outcomeValid = value.outcome === "succeeded" || value.outcome === "failed" || value.outcome === "interrupted";
+  const diagnosticsValid = !Object.hasOwn(value, "claimDiagnostics")
+    || (value.operation === "cloud.claim" && claimDiagnosticsValid(value.claimDiagnostics));
   return token(value.spanId)
     && outcomeValid
     && typeof value.durationMs === "number" && Number.isFinite(value.durationMs) && value.durationMs >= 0
+    && diagnosticsValid
     && referencePairsValid(value)
     && (value.outcome === "succeeded" ? !Object.hasOwn(value, "failure") : failureValid(value.failure));
 };

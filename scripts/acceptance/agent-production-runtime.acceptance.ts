@@ -88,6 +88,9 @@ assert.equal(claimed.grant.accepted_attempt_count, 1);
 const runtimeSource = await readFile(new URL("../../src/lib/local-runtime/production/runtime-claim.ts", import.meta.url), "utf8");
 const executorSource = await readFile(new URL("../../src/lib/local-runtime/production/executor.ts", import.meta.url), "utf8");
 const childToolsSource = await readFile(new URL("../../src/lib/local-runtime/production/production-gpt-child-tools.ts", import.meta.url), "utf8");
+const heartbeatSource = await readFile(new URL("../../src/lib/local-runtime/production/runtime-execution-heartbeat.ts", import.meta.url), "utf8");
+const cloudSource = await readFile(new URL("../../src/lib/local-runtime/production/cloud-client.ts", import.meta.url), "utf8");
+const storeSource = await readFile(new URL("../../src/lib/local-runtime/production/store-task-state.ts", import.meta.url), "utf8");
 assert.equal(existsSync(new URL("../../src/lib/local-runtime/production/production-gpt-executor.ts", import.meta.url)), false);
 assert.equal(existsSync(new URL("../../src/lib/local-runtime/production/production-gpt-turn-flow.ts", import.meta.url)), false);
 assert.doesNotMatch(runtimeSource, /emitState|stateKey:|currentStates|reconciledFromAuthority/u);
@@ -96,6 +99,30 @@ assert.match(executorSource, /gpt: gptExecution\.tools/u);
 assert.match(childToolsSource, /this\.gpt\.execute\(intent/u);
 assert.match(childToolsSource, /mutationMode: "readback"/u);
 assert.doesNotMatch(childToolsSource, /stepIndex|flowVersion|resumePoint|reconcileOnly/u);
+
+const deletionSettlement = runtimeSource.slice(
+  runtimeSource.indexOf("const settlePermanentAuthorizationRevocation"),
+  runtimeSource.indexOf("const readClaimRecoveryStatus"),
+);
+assert.match(deletionSettlement, /releaseGptContinuationLanesForJob\(job\.job_id\)/u);
+assert.match(deletionSettlement, /readBrowserReconciliationScope/u);
+assert.match(deletionSettlement, /PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED:READ_ONLY_RECONCILIATION_REQUIRED/u);
+assert.match(deletionSettlement, /const stableRequestId = `aiprelease_/u);
+assert.match(deletionSettlement, /readProductionDeviceJobStatus/u);
+assert.match(deletionSettlement, /receipt\.request_id === stableRequestId/u);
+assert.doesNotMatch(deletionSettlement, /persistAttemptFailure|claimProductionTasks|dispatchWebsiteAgentTask/u);
+assert.match(executorSource, /abort_signal\.aborted[\s\S]{0,220}PRODUCTION_EXECUTION_ABORTED/u);
+assert.match(executorSource, /reconcilePermanentCancellation/u);
+assert.match(childToolsSource, /facts\.mutation\?\.outcome !== "DISPATCHED"/u);
+assert.match(childToolsSource, /AbortSignal\.timeout/u);
+assert.match(childToolsSource, /mutationMode: "readback"/u);
+const deletionControlIndex = heartbeatSource.indexOf('if (receipt.control_intent.intent !== "none")');
+const renewalBudgetIndex = heartbeatSource.indexOf("const relative = Date.parse(receipt.lease_expires_at)");
+assert.ok(deletionControlIndex >= 0 && renewalBudgetIndex > deletionControlIndex,
+  "permanent control must stop execution before a non-extended lease is treated as an invalid renewal budget");
+assert.match(cloudSource, /PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED/u);
+assert.match(cloudSource, /stableRequestId/u);
+assert.match(storeSource, /releaseGptContinuationLanesForJob/u);
 
 assert.throws(() => parseJsonEnvelope({
   ok: false, error: { code: "HTTP_401_UNAUTHORIZED", message: "unauthorized" },

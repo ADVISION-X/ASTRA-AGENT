@@ -363,6 +363,32 @@ assert.equal(uploadObservations, 3, "attachment name alone must not complete rec
 assert.equal(uploadingFixture.waitDurations().length, 2, "pending upload must wait only between fresh observations");
 assert.equal(uploadingFixture.physicalMutations(), 0, "attachment reconciliation must remain read-only");
 
+let simulatedNow = 0;
+const delayedUploadFixture = fakeBrowser((intent) => {
+  if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_REGION_SELECTOR) return { count: 1 };
+  if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_ITEM_SELECTOR) {
+    return { count: 1, matches: [{ ariaLabel: providerAttachmentName("甲.pdf", "artifact:1") }] };
+  }
+  if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_READY_ICON_SELECTOR) {
+    return { count: simulatedNow >= 61_000 ? 1 : 0 };
+  }
+  if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_UPLOAD_SPINNER_SELECTOR) {
+    return { count: simulatedNow >= 61_000 ? 0 : 1 };
+  }
+  throw new Error(`UNEXPECTED_DELAYED_ATTACHMENT_INTENT:${intent.kind}`);
+}, { onWait: (durationMs) => { simulatedNow += durationMs; } });
+const nativeDateNow = Date.now;
+Date.now = () => simulatedNow;
+try {
+  const delayedUpload = await execute("reconcile_gpt_attachment_set", delayedUploadFixture.browser, {
+    files: [approvedAttachment], timeoutMs: 70_000,
+  });
+  assert.equal(delayedUpload.status, "success", delayedUpload.failureCode ?? "delayed attachment upload failed");
+  assert.ok(simulatedNow >= 61_000, "upload completion must be observed after the retired 60s ceiling");
+} finally {
+  Date.now = nativeDateNow;
+}
+
 const uploadTimeoutFixture = fakeBrowser((intent) => {
   if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_REGION_SELECTOR) return { count: 1 };
   if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_ITEM_SELECTOR) {
@@ -382,7 +408,7 @@ assert.equal(uploadTimeoutFixture.physicalMutations(), 0, "timed-out reconciliat
 emitQualityProofObservation({
   passed: true,
   findings: [],
-  lawId: "LAW-GPT-001-V11",
+  lawId: "LAW-GPT-001-V13",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:10", "forbidden:11", "forbidden:13", "forbidden:3", "forbidden:5", "forbidden:9", "summary"],
   locator: "acceptance:gpt-exact-target:atomic-child-golden",
@@ -391,7 +417,7 @@ emitQualityProofObservation({
 emitQualityProofObservation({
   passed: true,
   findings: [],
-  lawId: "LAW-GPT-001-V11",
+  lawId: "LAW-GPT-001-V13",
   evidenceMode: "exam.property",
   clauses: ["forbidden:10", "forbidden:13", "forbidden:14", "forbidden:5", "forbidden:7", "forbidden:8", "forbidden:9", "summary"],
   locator: "acceptance:gpt-exact-target:candidate-property-matrix",
@@ -400,7 +426,7 @@ emitQualityProofObservation({
 emitQualityProofObservation({
   passed: true,
   findings: [],
-  lawId: "LAW-GPT-001-V11",
+  lawId: "LAW-GPT-001-V13",
   evidenceMode: "exam.state-machine",
   clauses: ["forbidden:0", "forbidden:12", "forbidden:14", "forbidden:4", "forbidden:6", "forbidden:7", "summary"],
   locator: "acceptance:gpt-exact-target:wait-recovery-state-machine",

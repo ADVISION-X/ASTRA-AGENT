@@ -314,7 +314,7 @@ export const attachmentChildHandlers = {
     requireExactInputKeys(intent, ["files", "timeoutMs"]);
     const files = filesFromIntent(intent);
     const browser = requireBrowser(context);
-    const timeoutMs = Math.max(1_000, Math.min(numberInput(intent, "timeoutMs"), 60_000));
+    const timeoutMs = Math.max(1_000, numberInput(intent, "timeoutMs"));
     return waitForUploadedAttachmentSet(browser, files, timeoutMs, context.signal);
   },
 } satisfies GptChildHandlerMap;

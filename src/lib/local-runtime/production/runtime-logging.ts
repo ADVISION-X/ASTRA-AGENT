@@ -120,14 +120,16 @@ export const releaseLeaseWithLog = async (
   parentSpanId: string,
   release: ProductionLeaseRelease,
   causedByEventId: string,
-): Promise<void> => {
+  stableRequestId?: string,
+): Promise<string> => {
   const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
     traceId: job.job_id, parentSpanId, owner: "production-runtime", component: "production-lease",
     operation: "job.lease-release", typedIdentity: jobIdentity(job),
   }));
   try {
-    await releaseProductionLease(state.session, job, release);
+    const requestId = await releaseProductionLease(state.session, job, release, stableRequestId);
     requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
+    return requestId;
   } catch (error) {
     const terminal = requireRuntimeLogWrite(span.terminal({
       outcome: "failed", failure: runtimeFailureFromError({

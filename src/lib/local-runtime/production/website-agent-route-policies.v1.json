@@ -417,17 +417,7 @@
           "trust_class": "classical_source_data",
           "may_issue_instruction": false,
           "media_types": [
-            "application/json"
-          ],
-          "storage_class": "shared_static",
-          "owner_scope_policy": "forbidden"
-        },
-        {
-          "role": "result_contract",
-          "trust_class": "instruction",
-          "may_issue_instruction": true,
-          "media_types": [
-            "application/json"
+            "application/zip"
           ],
           "storage_class": "shared_static",
           "owner_scope_policy": "forbidden"

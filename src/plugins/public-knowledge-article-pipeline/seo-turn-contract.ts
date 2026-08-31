@@ -146,14 +146,21 @@ export const researchPrompt = (
   task: WebsiteAgentTask,
   marker: string,
   providerDisplayNames: readonly string[],
-): string => promptEnvelope(task, marker, [
-  `读取且只读取本轮两个附件：${providerDisplayNames.join(" 与 ")}。`,
-  "从冻结 READY 语料与现役文章目录中研究一个可公开、可引用、可核验、且不存在实质重复的问题。",
-  "材料不足或没有实质新意时必须 decision=decline；否则 decision=proceed。",
-  `当前回合唯一输出子合同：${JSON.stringify(publicKnowledgeTurnContract("research"))}`,
-  "严格返回当前 research 子合同的全部且仅有字段；本回合不得返回 article package。",
-  "只返回严格 JSON 对象，不要代码围栏，不要解释性前后缀。",
-].join("\n"));
+): string => {
+  if (providerDisplayNames.length !== 1 || !providerDisplayNames[0]) {
+    fail("SEO_READY_CORPUS_ARCHIVE_SET_INVALID");
+  }
+  return promptEnvelope(task, marker, [
+    `解压并读取本轮唯一 ZIP 附件：${providerDisplayNames[0]}。`,
+    "读取 ZIP 内全部资料文件：每本古籍独立目录中的原文.md 与索引.json 必须按同一书籍目录配对，现役文章目录与主题聚类 JSON 也必须读取；不得遗漏任何文件。",
+    "ZIP 只包含资料；当前回合的唯一输出要求以本 Prompt 中的 research 子合同为准。",
+    "从冻结 READY 语料与现役文章目录中研究一个可公开、可引用、可核验、且不存在实质重复的问题。",
+    "材料不足或没有实质新意时必须 decision=decline；否则 decision=proceed。",
+    `当前回合唯一输出子合同：${JSON.stringify(publicKnowledgeTurnContract("research"))}`,
+    "严格返回当前 research 子合同的全部且仅有字段；本回合不得返回 article package。",
+    "只返回严格 JSON 对象，不要代码围栏，不要解释性前后缀。",
+  ].join("\n"));
+};
 
 export const articlePrompt = (task: WebsiteAgentTask, marker: string): string =>
   promptEnvelope(task, marker, [

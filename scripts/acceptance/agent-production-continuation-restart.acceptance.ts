@@ -56,7 +56,7 @@ const continuationExecution = (input: Readonly<{
 ).createExecution({
   task: input.providerTask,
   pluginId: "public-knowledge-article-pipeline",
-  pluginVersion: 14,
+  pluginVersion: 15,
   lease: {
     attempt_id: input.attemptId,
     device_id: "device:continuation-rebuild",
@@ -93,7 +93,7 @@ const submissionLocatorScenario = () => {
     jobId: providerTask.job_id,
     attemptId,
     pluginId: "public-knowledge-article-pipeline",
-    pluginVersion: 14,
+    pluginVersion: 15,
     productStepId: locatorCall.productStepId,
     callId: locatorCall.callId,
     childCapabilityId: locatorCall.child,

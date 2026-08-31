@@ -19,6 +19,7 @@ type FakeBrowserOptions = Readonly<{
   initialPending?: number;
   initialUrl?: string;
   authenticatedMedia?: Awaited<ReturnType<BrowserTargetLease["downloadAuthenticatedMedia"]>>;
+  onWait?: (durationMs: number) => void;
 }>;
 type FakeBrowserState = {
   pending: number;
@@ -81,7 +82,10 @@ const createFakeBrowserLease = (
   },
   async registerFileArtifact() {},
   async issueFileArtifactGrant() { throw new Error("UNUSED"); },
-  async wait(input) { state.waitDurations.push(input.durationMs); },
+  async wait(input) {
+    state.waitDurations.push(input.durationMs);
+    options.onWait?.(input.durationMs);
+  },
   async park() { state.physicalMutations += 1; },
   async close() { state.physicalMutations += 1; },
   async resolvePendingMutation() {

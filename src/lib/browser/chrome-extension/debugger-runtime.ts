@@ -12,6 +12,14 @@ export class ExtensionDebuggerRuntime {
     this.attached.add(tabId);
   }
 
+  public adoptAttached(tabId: number): void {
+    this.attached.add(tabId);
+  }
+
+  public forgetAttached(tabId: number): void {
+    this.attached.delete(tabId);
+  }
+
   public async detach(tabId: number): Promise<void> {
     if (!this.attached.has(tabId)) return;
     await this.chromeApi.debugger.detach({ tabId });

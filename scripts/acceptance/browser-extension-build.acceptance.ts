@@ -56,9 +56,9 @@ assert.match(worker, /releaseBuildId/u, "Automatic reload must compare the AGENT
 assert.match(worker, /TARGET_ACQUIRE/u, "The authenticated channel must retain the sole job-bound target acquisition frame.");
 assert.match(worker, /acquireJobBoundChatGptTarget/u, "The job-bound frame must trigger the fixed extension's exact ChatGPT claim.");
 assert.match(worker, /tabs\.create/u, "The fixed extension must create the one governed production Tab without activeTab permission.");
-assert.match(worker, /active:\s*true/u, "The one governed production Tab must be created visible and active.");
-assert.match(worker, /Page\.bringToFront/u, "Initial claim and every exact reacquisition must physically foreground the production Tab.");
-assert.doesNotMatch(worker, /debugger\.getTargets/u, "The fixed extension must not enumerate or reuse operator-owned targets.");
+assert.match(worker, /active:\s*false/u, "The one governed production Tab must be created without changing the operator's active Tab.");
+assert.doesNotMatch(worker, /Page\.bringToFront/u, "The production extension must never foreground its system Tab.");
+assert.match(worker, /debugger\.getTargets/u, "MV3 recovery must verify the exact prior debugger-owned tabId.");
 assert.match(worker, /https:\/\/chatgpt\.com\//u, "Zero matching targets must use the one fixed ChatGPT start URL.");
 assert.doesNotMatch(worker, /tabs\.query|GRASSEYE_CLAIM_ACTIVE_TARGET/u, "The retired active-tab claim path must be physically absent.");
 
