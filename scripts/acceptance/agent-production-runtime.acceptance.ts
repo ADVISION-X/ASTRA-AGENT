@@ -105,13 +105,15 @@ await assert.rejects(
   () => dispatchWebsiteAgentTask(productionTask, () => { throw new Error("CONTEXT_MUST_NOT_BE_CREATED"); }),
   /CONTEXT_MUST_NOT_BE_CREATED/u,
 );
-await assert.rejects(
-  () => productionPluginCatalog[0]!.execute(
-    { action_id: productionPluginCatalog[0]!.accepts[0]!.actionId } as never,
-    {} as never,
-  ),
-  (error: unknown) => typedExecutionFailure(error)?.code.startsWith("PRODUCT_FLOW_NOT_IMPLEMENTED:") === true,
-);
+for (const plugin of productionPluginCatalog) {
+  if (plugin.pluginId === "public-knowledge-article-pipeline") continue;
+  const productSource = await readFile(
+    new URL(`../../src/plugins/${plugin.pluginId}/flow.ts`, import.meta.url), "utf8",
+  );
+  assert.doesNotMatch(productSource, /PRODUCT_FLOW_NOT_IMPLEMENTED:/u);
+  assert.match(productSource, /context\.gpt\.execute/u);
+  assert.match(productSource, /readCallFacts/u);
+}
 
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({

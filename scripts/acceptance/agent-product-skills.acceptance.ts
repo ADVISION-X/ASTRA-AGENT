@@ -9,8 +9,7 @@ import {
   productionPluginCatalog,
   resolveProductionPlugin,
 } from "../../src/lib/local-runtime/production/catalog.js";
-import { ProductionProductIdSchema, hashCanonical, type WebsiteAgentTask } from "../../src/lib/local-runtime/production/contracts.js";
-import type { SharedExecutionContext } from "../../src/lib/local-runtime/production/plugin.js";
+import { ProductionProductIdSchema, hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import {
   postSubmitReadbackReceipt,
   typedExecutionFailure,
@@ -23,6 +22,7 @@ import {
   exerciseSeoFlow,
   researchOutput,
 } from "./agent-product-skills-flow-support.js";
+import { exerciseProductOwnedFlow } from "./agent-product-owned-flow-support.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const hashText = (value: string): `sha256:${string}` =>
@@ -58,6 +58,15 @@ const CONTINUATION_TEXT_SEQUENCE = [
   "focus_exact_gpt_conversation",
   "verify_gpt_conversation_identity",
   ...PROFILE_SEQUENCE,
+  ...TEXT_TURN_SEQUENCE,
+  "advance_gpt_continuation_lane",
+] as const;
+const PRODUCT_CONTINUATION_TEXT_SEQUENCE = [
+  "acquire_gpt_continuation_lane",
+  "focus_exact_gpt_conversation",
+  "verify_gpt_conversation_identity",
+  ...PROFILE_SEQUENCE,
+  ...ATTACHMENT_SEQUENCE,
   ...TEXT_TURN_SEQUENCE,
   "advance_gpt_continuation_lane",
 ] as const;
@@ -221,16 +230,37 @@ for (const plugin of productionPluginCatalog) {
       assert.equal(review.calls.some((call) => call.child.includes("continuation")), false);
     }
   } else {
-    assert.doesNotMatch(source, /context\.gpt\.execute/u);
-    assert.match(source, new RegExp(`PRODUCT_FLOW_NOT_IMPLEMENTED:${plugin.pluginId}:`, "u"));
-    await assert.rejects(
-      () => plugin.execute(
-        { action_id: firstRoute.actionId } as WebsiteAgentTask,
-        {} as SharedExecutionContext,
-      ),
-      (error: unknown) => typedExecutionFailure(error)?.code
-        === `PRODUCT_FLOW_NOT_IMPLEMENTED:${plugin.pluginId}:${firstRoute.actionId}`,
-    );
+    const flowSource = readFileSync(resolve(directory, "flow.ts"), "utf8");
+    assert.doesNotMatch(`${source}\n${flowSource}`, /PRODUCT_FLOW_NOT_IMPLEMENTED:/u);
+    assert.match(source, /execute: executeOwnedFlow/u);
+    assert.match(flowSource, /context\.gpt\.execute/u);
+    assert.match(flowSource, /readCallFacts/u);
+    assert.match(flowSource, /GPT-5\.6 Sol/u);
+    assert.match(flowSource, /reasoningTier: "pro_standard"/u);
+    assert.match(flowSource, /preservePostSubmitReadback/u);
+    for (const accepted of plugin.accepts) {
+      const route = productionRoutePolicies.find((candidate) =>
+        candidate.product_id === accepted.productId && candidate.action_id === accepted.actionId);
+      assert(route, `missing route policy for ${accepted.productId}:${accepted.actionId}`);
+      const run = await exerciseProductOwnedFlow(plugin, route);
+      const children = run.calls.map((call) => call.child);
+      if (route.relation_kind === "review") {
+        assert.deepEqual(children, INITIAL_TEXT_SEQUENCE);
+        assert.equal(children.some((child) => child.includes("continuation")), false);
+      } else if (route.relation_kind === "continuation") {
+        assert.deepEqual(children, PRODUCT_CONTINUATION_TEXT_SEQUENCE);
+        const acquire = run.calls.find((call) => call.child === "acquire_gpt_continuation_lane");
+        assert.deepEqual(acquire?.input.continuationRef, run.task.continuation_ref);
+      } else {
+        const persists = [
+          "bazi-ai-full-analysis", "bazi-chart-interpretation",
+          "qimen-professional-answer", "hehun-ai-analysis",
+        ].includes(plugin.pluginId);
+        assert.deepEqual(children, persists
+          ? [...INITIAL_TEXT_SEQUENCE, "persist_gpt_continuation"]
+          : INITIAL_TEXT_SEQUENCE);
+      }
+    }
   }
 }
 
@@ -244,5 +274,5 @@ emitQualityProofObservation({
   evidenceMode: "exam.golden",
   clauses: ["forbidden:1", "forbidden:15", "forbidden:16", "forbidden:2", "forbidden:21", "forbidden:22", "forbidden:29", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:product-flow-golden",
-  observedValue: "12 product plugins and one owned SEO flow exercised with exact child sequence and recovery branches",
+  observedValue: "12 product plugins and all 39 routes exercised with Product-owned exact child sequences",
 });

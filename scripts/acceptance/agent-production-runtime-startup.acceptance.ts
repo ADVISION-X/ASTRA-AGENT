@@ -164,7 +164,14 @@ try {
   const gptChildTools = Reflect.get(executor, "gptChildTools") as Record<string, unknown>;
   let settleCalls = 0;
   Reflect.set(gptChildTools, "createExecution", () => ({
-    tools: {},
+    tools: {
+      attemptId: dispatchAttemptId,
+      readContinuationForTurn: () => null,
+      readCallFacts: async () => {
+        throw executionFailure("failed", "PAYMENT_OBSERVATION_PROVIDER_FAILED");
+      },
+      execute: async () => { throw new Error("UNREACHABLE_GPT_CHILD_EXECUTION"); },
+    },
     continuationRef: () => null,
     settle: async () => {
       settleCalls += 1;
@@ -193,7 +200,7 @@ try {
     (error: unknown) => {
       assert.equal(
         typedExecutionFailure(error)?.code,
-        "PRODUCT_FLOW_NOT_IMPLEMENTED:payment-screenshot-observation:observe",
+        "PAYMENT_OBSERVATION_PROVIDER_FAILED",
       );
       return true;
     },
@@ -211,7 +218,7 @@ try {
   }), [
     ["PUBLIC_KNOWLEDGE_TOPIC_MANIFEST_INVALID", RuntimeFailureImpact.BLOCKING, null],
     ["PLUGIN_EXECUTION_FAILED", RuntimeFailureImpact.CONSEQUENTIAL, childTerminal.eventId],
-    ["PRODUCT_FLOW_NOT_IMPLEMENTED", RuntimeFailureImpact.BLOCKING, null],
+    ["PAYMENT_OBSERVATION_PROVIDER_FAILED", RuntimeFailureImpact.BLOCKING, null],
   ]);
   const cleanupEvents = pluginLogEvents.filter((event) => {
     const failure = event.failure as Readonly<Record<string, unknown>> | undefined;

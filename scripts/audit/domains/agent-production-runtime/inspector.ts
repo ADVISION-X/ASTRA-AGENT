@@ -31,6 +31,13 @@ const TRANSPORT_PROTOCOL_PATH = "src/lib/local-runtime/production/transport-prot
 const RUNTIME_CLAIM_PATH = "src/lib/local-runtime/production/runtime-claim.ts";
 const CLOUD_CLIENT_PATH = "src/lib/local-runtime/production/cloud-client.ts";
 const TYPED_FAILURE_PATH = "src/lib/typed-failure.ts";
+const CONTINUATION_PRODUCT_PLUGINS = new Set([
+  "bazi-report-followup", "qimen-report-followup", "hehun-report-followup",
+]);
+const CONTINUATION_PRODUCER_PLUGINS = new Set([
+  "bazi-ai-full-analysis", "bazi-chart-interpretation",
+  "qimen-professional-answer", "hehun-ai-analysis",
+]);
 
 const retiredPaths = [
   "src/capabilities/gpt/gpt-turn-executor.ts",
@@ -196,6 +203,83 @@ const inspectSeoPlugin = (context: InspectorContext, source: string, path: strin
     ));
 };
 
+const inspectOwnedProductBase = (
+  pluginId: string,
+  source: string,
+  path: string,
+  findings: InspectorFinding[],
+): void => {
+  if (source.includes("PRODUCT_FLOW_NOT_IMPLEMENTED:")) findings.push(finding(
+    "agent-production-runtime/product-flow-stub-retired", path,
+    `${pluginId} still contains a retired fail-closed construction stub.`,
+  ));
+  for (const required of [
+    "execute: executeOwnedFlow", "context.gpt.execute", "readCallFacts", "requireEvidence",
+    "readProductSkill", "skill.text", "GPT-5.6 Sol", 'reasoningTier: "pro_standard"',
+    "prepare_clean_gpt_chat", "open_gpt_execution_profile", "open_gpt_model_selector_v2",
+    "select_exact_gpt_model_v2", "ensure_exact_gpt_reasoning_tier",
+    "close_gpt_execution_profile", "open_gpt_attachment_control",
+    "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set",
+    "write_exact_gpt_prompt", "reconcile_gpt_draft", "submit_exact_gpt_turn_once",
+    "reconcile_gpt_turn_submission", "wait_for_stable_gpt_text",
+    "checkpoint_gpt_text_response", "preservePostSubmitReadback",
+    "postCheckpointReceiverFault", "parseProductResult", "context.complete",
+  ]) if (!source.includes(required)) findings.push(finding(
+    "agent-production-runtime/product-owned-flow", path,
+    `${pluginId} Product-owned Flow is missing ${required}.`,
+  ));
+  for (const forbidden of [
+    "++actionOrdinal", "actionOrdinal: 0", "const calls =", "runTurn",
+    "executeProductGptCall", "production-gpt-executor", "production-gpt-turn-flow",
+  ]) if (source.includes(forbidden)) findings.push(finding(
+    "agent-production-runtime/product-second-scheduler-retired", path,
+    `${pluginId} retains forbidden shared or dynamic scheduling token ${forbidden}.`,
+  ));
+};
+
+const inspectOwnedProductContinuation = (
+  pluginId: string,
+  source: string,
+  path: string,
+  findings: InspectorFinding[],
+): void => {
+  if (CONTINUATION_PRODUCT_PLUGINS.has(pluginId)) {
+    for (const required of [
+      "acquire_gpt_continuation_lane", "focus_exact_gpt_conversation",
+      "verify_gpt_conversation_identity", "advance_gpt_continuation_lane",
+      "release_gpt_continuation_lane", "allowedSourcePluginIds",
+    ]) if (!source.includes(required)) findings.push(finding(
+      "agent-production-runtime/product-followup-continuation", path,
+      `${pluginId} continuation Flow is missing ${required}.`,
+    ));
+    if (source.includes("persist_gpt_continuation")) findings.push(finding(
+      "agent-production-runtime/product-followup-no-second-continuation", path,
+      `${pluginId} must advance its acquired lane, not create a second continuation.`,
+    ));
+    return;
+  }
+  if (CONTINUATION_PRODUCER_PLUGINS.has(pluginId)) {
+    if (!source.includes("persist_gpt_continuation")) findings.push(finding(
+      "agent-production-runtime/product-primary-continuation", path,
+      `${pluginId} must persist the primary report conversation for authorized followup.`,
+    ));
+    for (const forbidden of [
+      "acquire_gpt_continuation_lane", "advance_gpt_continuation_lane", "release_gpt_continuation_lane",
+    ]) if (source.includes(forbidden)) findings.push(finding(
+      "agent-production-runtime/product-primary-no-acquired-lane", path,
+      `${pluginId} primary Flow must not acquire or mutate another Product's continuation.`,
+    ));
+    return;
+  }
+  for (const forbidden of [
+    "persist_gpt_continuation", "acquire_gpt_continuation_lane",
+    "advance_gpt_continuation_lane", "release_gpt_continuation_lane",
+  ]) if (source.includes(forbidden)) findings.push(finding(
+    "agent-production-runtime/product-no-unused-continuation", path,
+    `${pluginId} has no authorized continuation consumer but retains ${forbidden}.`,
+  ));
+};
+
 const inspectProductPlugins = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const pluginId of pluginIds(context)) {
     const path = `${PLUGIN_ROOT}/${pluginId}/index.ts`;
@@ -206,16 +290,10 @@ const inspectProductPlugins = (context: InspectorContext, findings: InspectorFin
     ));
     if (pluginId === "public-knowledge-article-pipeline") {
       inspectSeoPlugin(context, source, path, findings);
-    } else {
-      if (!source.includes(`PRODUCT_FLOW_NOT_IMPLEMENTED:${pluginId}:`)) findings.push(finding(
-        "agent-production-runtime/unimplemented-product-fail-closed", path,
-        `${pluginId} must remain precisely fail-closed until separately constructed.`,
-      ));
-      if (source.includes("context.gpt.execute")) findings.push(finding(
-        "agent-production-runtime/unimplemented-product-provider-call", path,
-        `${pluginId} must not call a Provider before its Product Flow is constructed.`,
-      ));
+      continue;
     }
+    inspectOwnedProductBase(pluginId, source, path, findings);
+    inspectOwnedProductContinuation(pluginId, source, path, findings);
   }
 };
 
@@ -241,6 +319,11 @@ const inspectAgentFilesystem = (context: InspectorContext, findings: InspectorFi
     if (files.some((entry) => entry.isFile() && entry.name === "gpt-flow.ts")) findings.push(finding(
       "agent-production-runtime/fabricated-product-flow-retired", `${PLUGIN_ROOT}/${pluginId}/gpt-flow.ts`,
       "Copied generic Product flow must be physically absent.", "static.filesystem",
+    ));
+    if (pluginId !== "public-knowledge-article-pipeline"
+      && !files.some((entry) => entry.isFile() && entry.name === "flow.ts")) findings.push(finding(
+      "agent-production-runtime/product-owned-flow-present", `${PLUGIN_ROOT}/${pluginId}/flow.ts`,
+      `${pluginId} must contain its separately owned static Product Flow.`, "static.filesystem",
     ));
   }
   for (const path of retiredPaths) if (existsSync(resolve(context.sealedRoot, path))) findings.push(finding(
