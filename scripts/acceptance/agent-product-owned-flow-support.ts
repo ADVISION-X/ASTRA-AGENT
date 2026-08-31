@@ -210,6 +210,41 @@ const initialProvider = (): GptProviderContinuation => Object.freeze({
   prior_turn_marker: `[GRASSEYE:${"b".repeat(24)}]`,
 });
 
+const valueForCall = (
+  state: Harness,
+  task: WebsiteAgentTask,
+  expected: Readonly<Record<string, unknown>>,
+  uploaded: readonly Readonly<Record<string, unknown>>[],
+  call: ProductCall,
+): unknown => {
+  if (call.child === "reconcile_gpt_attachment_set") return { files: uploaded };
+  if (call.child === "reconcile_gpt_turn_submission") {
+    return { canonicalConversationUrl: "https://chatgpt.com/c/current" };
+  }
+  if (call.child === "wait_for_stable_gpt_text") {
+    return { assistantTurnId: "assistant:1", responseHash: HASH };
+  }
+  if (call.child === "checkpoint_gpt_text_response") {
+    return { rawDomHash: HASH, semanticText: JSON.stringify(expected), semanticTextHash: HASH };
+  }
+  if (call.child === "persist_gpt_continuation") {
+    state.provider = call.input.provider as GptProviderContinuation;
+    return { continuationRef: "continuation:created" };
+  }
+  if (call.child === "acquire_gpt_continuation_lane") {
+    assert.equal(state.laneOwned, false);
+    state.laneOwned = true;
+    return { continuation_ref: task.continuation_ref, lane_version: 1, provider: state.provider };
+  }
+  if (call.child === "advance_gpt_continuation_lane") {
+    assert.equal(state.laneOwned, true);
+    state.provider = call.input.provider as GptProviderContinuation;
+    state.laneOwned = false;
+  }
+  if (call.child === "release_gpt_continuation_lane") state.laneOwned = false;
+  return {};
+};
+
 const contextFor = (
   state: Harness,
   task: WebsiteAgentTask,
@@ -225,34 +260,6 @@ const contextFor = (
     sha256: material.sha256,
     bytes: material.bytes,
   }));
-  const valueFor = (call: ProductCall): unknown => {
-    if (call.child === "reconcile_gpt_attachment_set") return { files: uploaded };
-    if (call.child === "reconcile_gpt_turn_submission") {
-      return { canonicalConversationUrl: "https://chatgpt.com/c/current" };
-    }
-    if (call.child === "wait_for_stable_gpt_text") {
-      return { assistantTurnId: "assistant:1", responseHash: HASH };
-    }
-    if (call.child === "checkpoint_gpt_text_response") {
-      return { rawDomHash: HASH, semanticText: JSON.stringify(expected), semanticTextHash: HASH };
-    }
-    if (call.child === "persist_gpt_continuation") {
-      state.provider = call.input.provider as GptProviderContinuation;
-      return { continuationRef: "continuation:created" };
-    }
-    if (call.child === "acquire_gpt_continuation_lane") {
-      assert.equal(state.laneOwned, false);
-      state.laneOwned = true;
-      return { continuation_ref: task.continuation_ref, lane_version: 1, provider: state.provider };
-    }
-    if (call.child === "advance_gpt_continuation_lane") {
-      assert.equal(state.laneOwned, true);
-      state.provider = call.input.provider as GptProviderContinuation;
-      state.laneOwned = false;
-    }
-    if (call.child === "release_gpt_continuation_lane") state.laneOwned = false;
-    return {};
-  };
   return {
     materials: task.material_refs.map((material) => ({
       ...material, local_path: `/tmp/${material.display_name}`,
@@ -283,7 +290,7 @@ const contextFor = (
         if (call.child === "submit_exact_gpt_turn_once" && !prior) state.physicalSubmitDispatches += 1;
         const evidenceRef = prior?.evidenceRef ?? `evidence:${state.calls.length}`;
         state.facts.set(key, { evidenceRef, mutation: call.child === "submit_exact_gpt_turn_once" });
-        return { value: valueFor(call), evidenceRef, evidenceHash: HASH };
+        return { value: valueForCall(state, task, expected, uploaded, call), evidenceRef, evidenceHash: HASH };
       },
     },
     complete: async (output) => {
