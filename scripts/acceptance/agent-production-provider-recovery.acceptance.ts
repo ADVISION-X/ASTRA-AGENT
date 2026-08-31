@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
@@ -25,11 +26,12 @@ import {
   ProductionGptChildTools,
   type ProductGptExecution,
 } from "../../src/lib/local-runtime/production/production-gpt-child-tools.js";
+import { persistGptChildEvidence } from "../../src/lib/local-runtime/production/gpt-evidence-writer.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import type { WorkbenchBrowserAuthority } from "../../src/lib/local-runtime/workbench-browser-authority-support.js";
-import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
+import { createRuntimeLogger, type RuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
-import { typedExecutionFailure } from "../../src/lib/typed-failure.js";
+import { executionFailure, typedExecutionFailure } from "../../src/lib/typed-failure.js";
 import { HASH_A, HASH_B, identityFor, task } from "./agent-production-runtime-fixtures.js";
 
 type ProviderOutcome = "CONFIRMED" | "DISPATCHED";
@@ -274,6 +276,7 @@ const providerExecution = (input: Readonly<{
   providerTask: WebsiteAgentTask;
   attemptId: string;
   leaseVersion: number;
+  runtimeLogger?: RuntimeLogger;
 }>): ProductGptExecution => new ProductionGptChildTools(
   input.root,
   HASH_A,
@@ -281,7 +284,7 @@ const providerExecution = (input: Readonly<{
   input.evidence,
   input.authority as WorkbenchBrowserAuthority,
   input.store,
-  createRuntimeLogger({
+  input.runtimeLogger ?? createRuntimeLogger({
     producer: `agent-provider-effect-${input.initial.toLowerCase()}`,
     owner: "production-runtime",
     component: "gpt-child",
@@ -306,6 +309,175 @@ const providerExecution = (input: Readonly<{
   },
   parentSpanId: `span:provider-effect:${input.leaseVersion}`,
 });
+
+const exerciseBrowserAcquisitionTerminal = async (): Promise<void> => {
+  const root = await mkdtemp(path.join(tmpdir(), "agent-browser-acquisition-terminal-"));
+  const providerTask = task({
+    jobId: "job:browser-acquisition-terminal",
+    productId: "public_knowledge_article_pipeline",
+    actionId: "produce_article",
+  });
+  const attemptId = "attempt:browser-acquisition-terminal";
+  const counters: ProviderCounters = { dispatches: 0, readbacks: 0, acquisitions: 0,
+    resolutions: 0, parks: 0, closes: 0 };
+  const store = new ProductionRuntimeStore(root);
+  try {
+    store.acceptTask(providerTask, identityFor(providerTask), attemptId);
+    const runtimeLogger = createRuntimeLogger({
+      producer: "agent-browser-acquisition-terminal",
+      owner: "production-runtime",
+      component: "gpt-child",
+      terminalEnabled: false,
+      fileSink: { directoryPath: path.join(root, "runtime-logs") },
+    });
+    const authority: ProviderBrowserAuthority = {
+      readExactCallMutationFact: () => null,
+      countProviderTurnDispatches: () => 0,
+      acquireJobBoundTargetLease: async () => {
+        counters.acquisitions += 1;
+        throw executionFailure("failed", "BROWSER_CAPABILITY_REJECTED");
+      },
+    };
+    const execution = providerExecution({
+      root,
+      initial: "CONFIRMED",
+      counters,
+      evidence: createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(root)),
+      authority,
+      store,
+      providerTask,
+      attemptId,
+      leaseVersion: 1,
+      runtimeLogger,
+    });
+    let observed: unknown = null;
+    try { await execution.tools.execute(providerCall); } catch (error) { observed = error; }
+    assert.equal(typedExecutionFailure(observed)?.code, "BROWSER_CAPABILITY_REJECTED");
+    assert.equal(counters.acquisitions, 1);
+    const events = (await readFile(runtimeLogger.currentSegmentPath()!, "utf8")).trim().split("\n")
+      .map((line) => JSON.parse(line) as Readonly<Record<string, unknown>>)
+      .filter((event) => event.operation === "gpt.child" && event.traceId === providerTask.job_id);
+    const started = events.filter((event) => event.kind === "span.started");
+    const terminals = events.filter((event) => event.kind === "span.terminal");
+    assert.equal(started.length, 1);
+    assert.equal(terminals.length, 1, "Browser acquisition failure must terminalize the started GPT Child span");
+    assert.equal(terminals[0]?.spanId, started[0]?.spanId);
+    await execution.settle(observed);
+  } finally {
+    store.close();
+    await rm(root, { recursive: true, force: true });
+  }
+};
+
+const exerciseArtifactReadbackTerminal = async (): Promise<void> => {
+  const root = await mkdtemp(path.join(tmpdir(), "agent-artifact-readback-terminal-"));
+  const providerTask = task({
+    jobId: "job:artifact-readback-terminal",
+    productId: "public_knowledge_article_pipeline",
+    actionId: "produce_article",
+  });
+  const attemptId = "attempt:artifact-readback-terminal";
+  const semanticText = '{"schema_version":"public-knowledge-research-output.v3"}';
+  const rawDomHtml = `<div>${semanticText}</div>`;
+  const digest = (value: string): `sha256:${string}` =>
+    `sha256:${createHash("sha256").update(value).digest("hex")}`;
+  const checkpointCall = Object.freeze({
+    sessionKey: "session:artifact-readback-terminal",
+    productStepId: "corpus_research",
+    callId: "response-checkpoint",
+    child: "checkpoint_gpt_text_response" as const,
+    actionOrdinal: 15,
+    input: Object.freeze({
+      assistantTurnId: "conversation-turn-2",
+      canonicalConversationUrl: "https://chatgpt.com/c/artifact-readback-terminal",
+      expectedPromptHash: HASH_A,
+      expectedResponseHash: digest(semanticText),
+      turnMarker: "[GRASSEYE:artifact-readback-terminal]",
+    }),
+  });
+  const identity = {
+    jobId: providerTask.job_id,
+    attemptId,
+    pluginId: "public-knowledge-article-pipeline",
+    pluginVersion: 14,
+    productStepId: checkpointCall.productStepId,
+    callId: checkpointCall.callId,
+    childCapabilityId: checkpointCall.child,
+    inputHash: hashCanonical(checkpointCall.input),
+  } as const;
+  const exactCallIdentityHash = gptExactCallIdentityHash(identity);
+  const intent = {
+    ...identity,
+    executionId: `gpt-call:${exactCallIdentityHash.slice(7)}`,
+    actionOrdinal: checkpointCall.actionOrdinal,
+    input: checkpointCall.input,
+  } as const;
+  const timestamp = new Date().toISOString();
+  const counters: ProviderCounters = { dispatches: 0, readbacks: 0, acquisitions: 0,
+    resolutions: 0, parks: 0, closes: 0 };
+  const store = new ProductionRuntimeStore(root);
+  try {
+    store.acceptTask(providerTask, identityFor(providerTask), attemptId);
+    const persistedEvidence = createForensicsPersistenceAbilityGroupFromStorage(
+      createGrassEyeFileStorage(root),
+    );
+    const result = providerResult(intent, "confirmed");
+    await persistGptChildEvidence({
+      intent,
+      evidenceStore: persistedEvidence,
+      jobId: providerTask.job_id,
+      attemptId,
+      stepId: checkpointCall.productStepId,
+      exactCallIdentityHash,
+      result: {
+        ...result,
+        value: {
+          assistantTurnId: "conversation-turn-2",
+          rawDomHtml,
+          rawDomHash: digest(rawDomHtml),
+          semanticText,
+          semanticTextHash: digest(semanticText),
+        },
+        proof: { ...result.proof, committedMutation: "no", startedAt: timestamp, endedAt: timestamp },
+      },
+    });
+    const failingEvidence: ForensicsPersistenceAbilityGroup = {
+      ...persistedEvidence,
+      readArtifactRef: async () => ({ status: "failed", failureReason: "forced-readback-failure" }),
+    };
+    const runtimeLogger = createRuntimeLogger({
+      producer: "agent-artifact-readback-terminal",
+      owner: "production-runtime",
+      component: "gpt-child",
+      terminalEnabled: false,
+      fileSink: { directoryPath: path.join(root, "runtime-logs") },
+    });
+    const execution = providerExecution({
+      root, initial: "CONFIRMED", counters, evidence: failingEvidence,
+      authority: {
+        readExactCallMutationFact: () => null,
+        countProviderTurnDispatches: () => 0,
+        acquireJobBoundTargetLease: async () => { throw new Error("UNEXPECTED_ARTIFACT_BROWSER"); },
+      },
+      store, providerTask, attemptId, leaseVersion: 1, runtimeLogger,
+    });
+    let observed: unknown = null;
+    try { await execution.tools.execute(checkpointCall); } catch (error) { observed = error; }
+    assert.equal(typedExecutionFailure(observed)?.code, "GPT_TEXT_TASK_ARTIFACT_READBACK_FAILED");
+    const events = (await readFile(runtimeLogger.currentSegmentPath()!, "utf8")).trim().split("\n")
+      .map((line) => JSON.parse(line) as Readonly<Record<string, unknown>>)
+      .filter((event) => event.operation === "gpt.child" && event.traceId === providerTask.job_id);
+    const started = events.filter((event) => event.kind === "span.started");
+    const terminals = events.filter((event) => event.kind === "span.terminal");
+    assert.equal(started.length, 1);
+    assert.equal(terminals.length, 1, "Artifact readback failure must terminalize the started GPT Child span");
+    assert.equal(terminals[0]?.spanId, started[0]?.spanId);
+    await execution.settle(observed);
+  } finally {
+    store.close();
+    await rm(root, { recursive: true, force: true });
+  }
+};
 
 const exerciseProviderEffectRecovery = async (initial: ProviderOutcome): Promise<void> => {
   const root = await mkdtemp(path.join(tmpdir(), `agent-provider-effect-${initial.toLowerCase()}-`));
@@ -370,6 +542,116 @@ const exerciseProviderEffectRecovery = async (initial: ProviderOutcome): Promise
 
 await exerciseProviderEffectRecovery("CONFIRMED");
 await exerciseProviderEffectRecovery("DISPATCHED");
+await exerciseBrowserAcquisitionTerminal();
+await exerciseArtifactReadbackTerminal();
+
+const exerciseSubmissionLocatorRestart = async (): Promise<void> => {
+  const root = await mkdtemp(path.join(tmpdir(), "agent-submission-locator-restart-"));
+  const providerTask = task({
+    jobId: "job:submission-locator-restart",
+    productId: "public_knowledge_article_pipeline",
+    actionId: "produce_article",
+  });
+  const attemptId = "attempt:submission-locator-restart";
+  const promptHash = HASH_A;
+  const turnMarker = "[GRASSEYE:submission-locator-restart]";
+  const locatorCall = Object.freeze({
+    sessionKey: "",
+    productStepId: "corpus_research",
+    callId: "submission-reconcile",
+    child: "reconcile_gpt_turn_submission" as const,
+    actionOrdinal: 13,
+    input: Object.freeze({ expectedPromptHash: promptHash, timeoutMs: 60_000, turnMarker }),
+  });
+  const inputHash = hashCanonical(locatorCall.input);
+  const identity = {
+    jobId: providerTask.job_id,
+    attemptId,
+    pluginId: "public-knowledge-article-pipeline",
+    pluginVersion: 14,
+    productStepId: locatorCall.productStepId,
+    callId: locatorCall.callId,
+    childCapabilityId: locatorCall.child,
+    inputHash,
+  } as const;
+  const exactCallIdentityHash = gptExactCallIdentityHash(identity);
+  const locatorUrl = "https://chatgpt.com/c/submission-locator-restart";
+  const userTurnId = "conversation-turn-3";
+  const conversationIdentityHash = `sha256:${createHash("sha256")
+    .update(`${locatorUrl}\n${turnMarker}\n${userTurnId}\n${promptHash}`).digest("hex")}` as const;
+  const timestamp = new Date().toISOString();
+  let store = new ProductionRuntimeStore(root);
+  try {
+    store.acceptTask(providerTask, identityFor(providerTask), attemptId);
+    let evidence = createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(root));
+    await persistGptChildEvidence({
+      intent: {
+        ...identity,
+        executionId: `gpt-call:${exactCallIdentityHash.slice(7)}`,
+        actionOrdinal: locatorCall.actionOrdinal,
+        input: locatorCall.input,
+      },
+      evidenceStore: evidence,
+      jobId: providerTask.job_id,
+      attemptId,
+      stepId: locatorCall.productStepId,
+      exactCallIdentityHash,
+      result: {
+        status: "success",
+        failureCode: null,
+        value: { canonicalConversationUrl: locatorUrl, turnMarker, userTurnId,
+          promptHash, conversationIdentityHash },
+        proof: {
+          schemaVersion: "gpt-child-capability-proof.v2",
+          ...identity,
+          executionId: `gpt-call:${exactCallIdentityHash.slice(7)}`,
+          actionOrdinal: locatorCall.actionOrdinal,
+          targetRefHash: HASH_A,
+          beforeDocumentRefHash: HASH_A,
+          afterDocumentRefHash: HASH_B,
+          candidateCount: 1,
+          observedSemantics: ["submission locator"],
+          committedMutation: "no",
+          postconditionResult: "passed",
+          startedAt: timestamp,
+          endedAt: timestamp,
+          evidenceRef: "browser:submission-locator-restart",
+          evidenceHash: HASH_B,
+        },
+      },
+    });
+    store.close();
+    store = new ProductionRuntimeStore(root);
+    evidence = createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(root));
+    let browserAcquisitions = 0;
+    let providerDispatchReads = 0;
+    const authority = Object.assign(Object.create(null) as WorkbenchBrowserAuthority, {
+      readExactCallMutationFact: () => null,
+      countProviderTurnDispatches: () => { providerDispatchReads += 1; return 0; },
+      acquireJobBoundTargetLease: async () => {
+        browserAcquisitions += 1;
+        throw new Error("UNEXPECTED_SUBMISSION_LOCATOR_BROWSER");
+      },
+    });
+    const execution = continuationExecution({
+      root, evidence, authority, store, providerTask, attemptId, leaseVersion: 2,
+    });
+    const replayed = await execution.tools.execute(locatorCall);
+    assert.deepEqual(replayed.value, {
+      canonicalConversationUrl: locatorUrl,
+      turnMarker,
+      userTurnId,
+      promptHash,
+      conversationIdentityHash,
+    });
+    assert.equal(browserAcquisitions, 0, "restart replay must read the locator before Browser acquisition");
+    assert.equal(providerDispatchReads, 0, "restart replay must not enter submit budget or mutation logic");
+    await execution.settle(null);
+  } finally {
+    store.close();
+    await rm(root, { recursive: true, force: true });
+  }
+};
 
 const continuationAuthority = (): WorkbenchBrowserAuthority => Object.assign(
   Object.create(null) as WorkbenchBrowserAuthority,
@@ -422,6 +704,8 @@ const continuationExecution = (input: Readonly<{
   },
   parentSpanId: `span:continuation-rebuild:${input.leaseVersion}`,
 });
+
+await exerciseSubmissionLocatorRestart();
 
 const exerciseContinuationRebuild = async (): Promise<void> => {
   const root = await mkdtemp(path.join(tmpdir(), "agent-continuation-rebuild-"));

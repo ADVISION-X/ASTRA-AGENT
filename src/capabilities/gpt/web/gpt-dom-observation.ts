@@ -86,6 +86,14 @@ export const readExactSemanticText = async (
   return value.semanticText;
 };
 
+export const readExactCanonicalPromptText = async (
+  browser: Pick<BrowserTargetLease, "executeDomIntent">,
+  selector: string,
+): Promise<string> => {
+  const projected = await readExactSemanticText(browser, selector);
+  return projected.endsWith("\n") ? projected.slice(0, -1) : projected;
+};
+
 export const readExactObservedResponse = async (
   browser: Pick<BrowserTargetLease, "executeDomIntent">,
   selector: string,

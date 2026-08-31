@@ -13,12 +13,13 @@ import {
 import {
   findCount,
   readExactAttribute,
+  readExactCanonicalPromptText,
   readExactText,
   readGptDocument,
 } from "../gpt-dom-observation.js";
 import { GPT_COMPOSER_SELECTOR } from "../contracts/composer.contract.js";
 import { GPT_SEND_SELECTOR } from "../contracts/submission.contract.js";
-import { GPT_USER_TURN_SELECTOR } from "../contracts/conversation.contract.js";
+import { GPT_USER_PROMPT_BODY_SELECTOR, GPT_USER_TURN_SELECTOR } from "../contracts/conversation.contract.js";
 import { canonicalGptConversationUrl } from "../contracts/target-document.contract.js";
 
 const hash = (value: string): `sha256:${string}` =>
@@ -38,6 +39,9 @@ const canonicalConversationOrNull = (value: string): string | null => {
     return null;
   }
 };
+
+const submittedPromptSelector = (userTurnId: string): string =>
+  `[data-testid=${JSON.stringify(userTurnId)}][data-turn='user'] [data-message-author-role='user'] ${GPT_USER_PROMPT_BODY_SELECTOR}`;
 
 export const composerSubmissionChildHandlers = {
   async write_exact_gpt_prompt(intent, context) {
@@ -148,8 +152,12 @@ export const composerSubmissionChildHandlers = {
   },
 
   async reconcile_gpt_turn_submission(intent, context) {
-    requireExactInputKeys(intent, ["timeoutMs", "turnMarker"]);
+    requireExactInputKeys(intent, ["expectedPromptHash", "timeoutMs", "turnMarker"]);
     const marker = stringInput(intent, "turnMarker");
+    const expectedPromptHash = stringInput(intent, "expectedPromptHash");
+    if (!/^sha256:[a-f0-9]{64}$/u.test(expectedPromptHash)) {
+      throw executionFailure("failed", "GPT_TURN_HASH_INVALID");
+    }
     const browser = requireBrowser(context);
     const timeoutMs = Math.max(1_000, Math.min(numberInput(intent, "timeoutMs"), 60_000));
     const deadline = Date.now() + timeoutMs;
@@ -163,15 +171,24 @@ export const composerSubmissionChildHandlers = {
         const canonicalConversationUrl = canonicalConversationOrNull((await readGptDocument(browser)).url);
         if (composerText.trim().length === 0 && canonicalConversationUrl) {
           const userTurnId = await readExactAttribute(browser, GPT_USER_TURN_SELECTOR, "data-testid", marker);
+          const promptText = await readExactCanonicalPromptText(browser, submittedPromptSelector(userTurnId));
+          const promptHash = hash(promptText);
+          if (promptHash !== expectedPromptHash) {
+            throw executionFailure("failed", "GPT_USER_TURN_HASH_MISMATCH");
+          }
           return success({
             value: {
               turnMarker: marker,
               userTurnId,
               canonicalConversationUrl,
-              conversationIdentityHash: hash(`${canonicalConversationUrl}\n${marker}\n${userTurnId}`),
+              promptHash,
+              conversationIdentityHash: hash(`${canonicalConversationUrl}\n${marker}\n${userTurnId}\n${promptHash}`),
             },
             candidateCount: count,
-            observedSemantics: ["one exact user turn", "composer cleared", "permanent canonical conversation URL"],
+            observedSemantics: [
+              "one exact user turn", "canonical rendered prompt hash",
+              "composer cleared", "permanent canonical conversation URL",
+            ],
             committedMutation: "no",
           });
         }

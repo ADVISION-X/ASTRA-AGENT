@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -7,6 +8,8 @@ import { emitQualityProofObservation } from "../audit/shared/proof-observation.j
 import { createForensicsPersistenceAbilityGroupFromStorage } from "../../src/capabilities/forensics-persistence/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import { createArtifactRef } from "../../src/lib/storage/refs.js";
+import { persistGptChildEvidence } from "../../src/lib/local-runtime/production/gpt-evidence-writer.js";
+import { readSubmissionLocatorArtifact } from "../../src/lib/local-runtime/production/gpt-artifact-reader.js";
 
 const tempRoot = await mkdtemp(join(tmpdir(), "grasseye-forensics-acceptance-"));
 
@@ -124,6 +127,44 @@ try {
   });
   assert.deepEqual(Buffer.from(recoveredReadback.artifact!.content), crashBytes);
 
+  const promptHash = `sha256:${"a".repeat(64)}` as const;
+  const locatorUrl = "https://chatgpt.com/c/submission-locator";
+  const locatorMarker = "[GRASSEYE:submission-locator]";
+  const locatorTurn = "conversation-turn-7";
+  const locatorIdentity = `sha256:${createHash("sha256")
+    .update(`${locatorUrl}\n${locatorMarker}\n${locatorTurn}\n${promptHash}`).digest("hex")}` as const;
+  const timestamp = new Date().toISOString();
+  const locatorIntent = {
+    childCapabilityId: "reconcile_gpt_turn_submission", executionId: "gpt-call:submission-locator",
+    jobId: "mission-locator", attemptId: "run-locator", pluginId: "public-knowledge-article-pipeline",
+    pluginVersion: 14, productStepId: "corpus_research", callId: "submission-reconcile",
+    inputHash: `sha256:${"b".repeat(64)}` as const, actionOrdinal: 13,
+    input: { expectedPromptHash: promptHash, timeoutMs: 60_000, turnMarker: locatorMarker },
+  } as const;
+  const locatorPersisted = await persistGptChildEvidence({
+    intent: locatorIntent, evidenceStore: group, jobId: locatorIntent.jobId,
+    attemptId: locatorIntent.attemptId, stepId: locatorIntent.productStepId,
+    exactCallIdentityHash: `sha256:${"c".repeat(64)}`,
+    result: {
+      status: "success", failureCode: null,
+      value: { canonicalConversationUrl: locatorUrl, turnMarker: locatorMarker,
+        userTurnId: locatorTurn, promptHash, conversationIdentityHash: locatorIdentity },
+      proof: { schemaVersion: "gpt-child-capability-proof.v2", ...locatorIntent,
+        targetRefHash: `sha256:${"d".repeat(64)}`, beforeDocumentRefHash: `sha256:${"e".repeat(64)}`,
+        afterDocumentRefHash: `sha256:${"f".repeat(64)}`, candidateCount: 1,
+        observedSemantics: ["submission locator"], committedMutation: "no",
+        postconditionResult: "passed", startedAt: timestamp, endedAt: timestamp,
+        evidenceRef: "browser:submission-locator", evidenceHash: `sha256:${"1".repeat(64)}` },
+    },
+  });
+  assert.equal(locatorPersisted.artifactRefs.length, 1);
+  assert.deepEqual(
+    await readSubmissionLocatorArtifact(group, locatorPersisted.artifactRefs[0]!),
+    { canonicalConversationUrl: locatorUrl, turnMarker: locatorMarker,
+      userTurnId: locatorTurn, promptHash, conversationIdentityHash: locatorIdentity },
+    "the exact-call locator must survive durable artifact readback without the current Tab",
+  );
+
   const recordLog = await readFile(join(tempRoot, "forensics", "records-run_1.ndjson"), "utf8");
   const artifactLog = await readFile(join(tempRoot, "forensics", "artifacts.ndjson"), "utf8");
   assert.match(recordLog, /"integrityHash"/);
@@ -134,7 +175,8 @@ try {
     "private-body",
   );
   assert.equal(recordLog.trim().split("\n").length, 1, "idempotent record append must not duplicate the WAL row");
-  assert.equal(artifactLog.trim().split("\n").length, 2, "idempotent append and crash recovery must each own one index row");
+  assert.equal(artifactLog.trim().split("\n").length, 3,
+    "idempotent append, crash recovery, and the exact submission locator each own one index row");
 
   const evidenceWriterSource = await readFile(
     new URL("../../src/lib/local-runtime/production/gpt-evidence-writer.ts", import.meta.url),
@@ -147,6 +189,13 @@ try {
     "binary Provider artifacts must be persisted and byte-readback verified before their safe proof record is admitted");
   assert.match(evidenceWriterSource, /artifactRefs/u,
     "the safe proof record must bind the ordered binary artifact refs");
+  const childToolsSource = await readFile(
+    new URL("../../src/lib/local-runtime/production/production-gpt-child-tools.ts", import.meta.url),
+    "utf8",
+  );
+  assert(childToolsSource.indexOf('call.child === "reconcile_gpt_turn_submission"')
+    < childToolsSource.indexOf("browsers.browserFor"),
+  "replayed submission locator evidence must be returned before Browser acquisition or live Tab inspection");
 } finally {
   await rm(tempRoot, { recursive: true, force: true });
 }

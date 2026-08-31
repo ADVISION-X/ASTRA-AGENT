@@ -16,6 +16,7 @@ import {
 } from "../web/contracts/conversation.contract.js";
 import { GPT_SEND_SELECTOR } from "../web/contracts/submission.contract.js";
 import { fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
+import { nodeSemanticText } from "../../../lib/browser/chrome-extension/dom-query-runtime.js";
 
 const gpt = createGptAbilityGroup();
 type GptExecutionContext = Parameters<GptAbilityGroup["execute"]>[1];
@@ -83,14 +84,61 @@ const retainedBeforeSubmit = await execute("submit_exact_gpt_turn_once", retaine
 assert.equal(retainedBeforeSubmit.status, "success", retainedBeforeSubmit.failureCode ?? "retained prompt submit failed");
 assert.equal(retainedPromptFixture.physicalMutations(), 1, "retained exact prompt may dispatch send exactly once");
 
+const renderedMarkdownPrompt = `preserve \`one\`, \`two\`, and \`three\`\n${promptMarker}\n`;
+const renderedMarkdownPromptHash = `sha256:${createHash("sha256").update(renderedMarkdownPrompt).digest("hex")}`;
+const semanticTreeRuntime = {
+  send: async () => ({
+    node: {
+      nodeName: "DIV",
+      children: [
+        { nodeName: "P", children: [
+          { nodeName: "#text", nodeValue: "preserve " },
+          { nodeName: "CODE", children: [{ nodeName: "#text", nodeValue: "one" }] },
+          { nodeName: "#text", nodeValue: ", " },
+          { nodeName: "CODE", children: [{ nodeName: "#text", nodeValue: "two" }] },
+          { nodeName: "#text", nodeValue: ", and " },
+          { nodeName: "CODE", children: [{ nodeName: "#text", nodeValue: "three" }] },
+        ] },
+        { nodeName: "P", children: [{ nodeName: "#text", nodeValue: promptMarker }] },
+        { nodeName: "DIV", children: [] },
+      ],
+    },
+  }),
+} as unknown as Parameters<typeof nodeSemanticText>[0];
+assert.equal(
+  await nodeSemanticText(semanticTreeRuntime, 1, 1),
+  `${renderedMarkdownPrompt}\n`,
+  "the DevTools semantic tree must restore all three inline-code pairs and expose one root delimiter",
+);
+const submissionLocatorFixture = fakeBrowser((intent) => {
+  if (intent.kind === "find" && intent.selector === GPT_USER_TURN_SELECTOR) return { count: 1 };
+  if (intent.kind === "readText" && intent.selector === GPT_COMPOSER_SELECTOR) return "";
+  if (intent.kind === "document") return { url: canonicalConversationUrl, title: "ChatGPT" };
+  if (intent.kind === "readAttribute" && intent.selector === GPT_USER_TURN_SELECTOR) return "conversation-turn-1";
+  if (intent.kind === "inspect" && intent.selector === promptBodySelector) {
+    return { semanticText: `${renderedMarkdownPrompt}\n`, visible: true, connected: true };
+  }
+  throw new Error(`UNEXPECTED_SUBMISSION_LOCATOR_INTENT:${intent.kind}`);
+});
+const submissionLocator = await execute(
+  "reconcile_gpt_turn_submission",
+  submissionLocatorFixture.browser,
+  { expectedPromptHash: renderedMarkdownPromptHash, timeoutMs: 1_000, turnMarker: promptMarker },
+);
+assert.equal(submissionLocator.status, "success", submissionLocator.failureCode ?? "submission locator failed");
+const submissionLocatorValue = submissionLocator.value as Readonly<Record<string, unknown>>;
+assert.equal(submissionLocatorValue.promptHash, renderedMarkdownPromptHash,
+  "semantic prompt projection must preserve inline-code backticks and the prompt's own trailing newline");
+assert.equal(submissionLocatorFixture.physicalMutations(), 0);
+
 const assistantText = '{"schema_version":"public-knowledge-research-output.v3"}';
 const assistantHash = `sha256:${createHash("sha256").update(assistantText).digest("hex")}`;
 const assistantCheckpointFixture = fakeBrowser((intent) => {
   if (intent.kind === "document") return { url: canonicalConversationUrl, title: "ChatGPT" };
   if (intent.kind === "find" && intent.selector === GPT_USER_TURN_SELECTOR) return { count: 1 };
   if (intent.kind === "readAttribute" && intent.selector === GPT_USER_TURN_SELECTOR) return "conversation-turn-1";
-  if (intent.kind === "readText" && intent.selector === promptBodySelector) {
-    return prompt;
+  if (intent.kind === "inspect" && intent.selector === promptBodySelector) {
+    return { semanticText: `${prompt}\n`, visible: true, connected: true };
   }
   if (intent.kind === "inspect") {
     assert.equal(
@@ -128,7 +176,9 @@ const continuationIdentityFixture = fakeBrowser((intent) => {
   if (intent.kind === "readAttribute" && intent.selector === GPT_USER_TURN_SELECTOR) {
     return "conversation-turn-1";
   }
-  if (intent.kind === "readText" && intent.selector === promptBodySelector) return prompt;
+  if (intent.kind === "inspect" && intent.selector === promptBodySelector) {
+    return { semanticText: `${prompt}\n`, visible: true, connected: true };
+  }
   if (intent.kind === "find"
     && intent.selector === `[data-testid="conversation-turn-2"][data-turn='assistant'] [data-message-author-role='assistant']`) {
     return { count: 1 };
@@ -198,8 +248,8 @@ const urlDriftFixture = fakeBrowser((intent) => {
   if (intent.kind === "readAttribute" && intent.selector === GPT_USER_TURN_SELECTOR) {
     return "conversation-turn-1";
   }
-  if (intent.kind === "readText" && intent.selector === promptBodySelector) {
-    return prompt;
+  if (intent.kind === "inspect" && intent.selector === promptBodySelector) {
+    return { semanticText: `${prompt}\n`, visible: true, connected: true };
   }
   if (intent.kind === "find"
     && intent.selector === `[data-testid="conversation-turn-2"][data-turn='assistant'] [data-message-author-role='assistant']`) {
@@ -227,8 +277,8 @@ const wrongPromptHashFixture = fakeBrowser((intent) => {
   if (intent.kind === "readAttribute" && intent.selector === GPT_USER_TURN_SELECTOR) {
     return "conversation-turn-1";
   }
-  if (intent.kind === "readText" && intent.selector === promptBodySelector) {
-    return `${prompt}\nprovider-mutated`;
+  if (intent.kind === "inspect" && intent.selector === promptBodySelector) {
+    return { semanticText: `${prompt}\nprovider-mutated\n`, visible: true, connected: true };
   }
   throw new Error(`UNEXPECTED_WRONG_PROMPT_HASH_INTENT:${intent.kind}`);
 });
@@ -275,8 +325,8 @@ const overdueTextFixture = fakeBrowser((intent) => {
       "the exact turn marker must scope user-turn identity in a multi-turn conversation");
     return "conversation-turn-1";
   }
-  if (intent.kind === "readText" && intent.selector === promptBodySelector) {
-    return prompt;
+  if (intent.kind === "inspect" && intent.selector === promptBodySelector) {
+    return { semanticText: `${prompt}\n`, visible: true, connected: true };
   }
   if (intent.kind === "find"
     && intent.selector === `[data-testid="conversation-turn-2"][data-turn='assistant'] [data-message-author-role='assistant']`) {
@@ -309,5 +359,3 @@ const invalidDeadline = await execute("wait_for_stable_gpt_text", providerWaitFi
 });
 assert.equal(invalidDeadline.status, "failed");
 assert.equal(invalidDeadline.failureCode, "GPT_RESPONSE_ABSOLUTE_DEADLINE_INVALID");
-
-

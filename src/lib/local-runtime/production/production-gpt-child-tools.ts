@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 import {
   GPT_CHILD_CAPABILITY_CONTRACTS,
   gptContinuationIdentityHash,
@@ -35,6 +33,10 @@ import {
   persistedEvidenceRefs,
 } from "./gpt-evidence-writer.js";
 import {
+  readSubmissionLocatorArtifact,
+  readTextCheckpointArtifact,
+} from "./gpt-artifact-reader.js";
+import {
   ProductionGptBrowserLifecycle,
   recoveredGptChildResult,
   type ProductionGptBrowserCall,
@@ -54,10 +56,6 @@ export type ProductGptExecution = Readonly<{
   continuationRef(): string | null;
   settle(error: unknown | null): Promise<void>;
 }>;
-
-const objectRecord = (value: unknown): Readonly<Record<string, unknown>> | null =>
-  value && typeof value === "object" && !Array.isArray(value)
-    ? value as Readonly<Record<string, unknown>> : null;
 
 const throwChildFailure = (result: GptChildCapabilityResult): never => {
   const error = executionFailure("failed", result.failureCode ?? "GPT_CHILD_FAILED", {
@@ -265,9 +263,21 @@ export class ProductionGptChildTools {
     }
     if (call.child === "checkpoint_gpt_text_response") {
       if (facts.evidence.artifactRefs.length !== 1) {
-        return this.terminalizeError(span, executionFailure("failed", "GPT_TEXT_TASK_ARTIFACT_MISSING"));
+        throw executionFailure("failed", "GPT_TEXT_TASK_ARTIFACT_MISSING");
       }
-      const value = await this.readTextCheckpointArtifact(facts.evidence.artifactRefs[0]!);
+      const value = await readTextCheckpointArtifact(this.evidenceStore, facts.evidence.artifactRefs[0]!);
+      requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
+      return Object.freeze({
+        value,
+        evidenceRef: facts.evidence.evidenceRef,
+        evidenceHash: facts.evidence.evidenceHash,
+      });
+    }
+    if (call.child === "reconcile_gpt_turn_submission") {
+      if (facts.evidence.artifactRefs.length !== 1) {
+        throw executionFailure("failed", "GPT_SUBMISSION_LOCATOR_TASK_ARTIFACT_MISSING");
+      }
+      const value = await readSubmissionLocatorArtifact(this.evidenceStore, facts.evidence.artifactRefs[0]!);
       requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
       return Object.freeze({
         value,
@@ -281,41 +291,6 @@ export class ProductionGptChildTools {
       value: null,
       evidenceRef: facts.evidence.evidenceRef,
       evidenceHash: facts.evidence.evidenceHash,
-    });
-  }
-
-  private async readTextCheckpointArtifact(artifactRef: string): Promise<Readonly<Record<string, unknown>>> {
-    const readback = await this.evidenceStore.readArtifactRef({
-      childCapabilityId: "read-artifact-ref", artifactRef,
-    });
-    if (readback.status !== "success" || !readback.artifact?.content
-      || readback.artifact.mimeType !== "application/json") {
-      throw executionFailure("failed", "GPT_TEXT_TASK_ARTIFACT_READBACK_FAILED");
-    }
-    let value: unknown;
-    try { value = JSON.parse(new TextDecoder().decode(readback.artifact.content)) as unknown; }
-    catch { throw executionFailure("failed", "GPT_TEXT_TASK_ARTIFACT_INVALID"); }
-    const row = objectRecord(value);
-    const rawDomHtml = row?.rawDomHtml;
-    const rawDomHash = row?.rawDomHash;
-    const semanticText = row?.semanticText;
-    const semanticTextHash = row?.semanticTextHash;
-    const rawHash = (content: string): string =>
-      `sha256:${createHash("sha256").update(content).digest("hex")}`;
-    if (row?.schemaVersion !== "agent-observed-response-artifact.v1"
-      || typeof row.assistantTurnId !== "string" || !row.assistantTurnId
-      || typeof rawDomHtml !== "string" || !rawDomHtml
-      || typeof rawDomHash !== "string" || rawHash(rawDomHtml) !== rawDomHash
-      || typeof semanticText !== "string" || !semanticText.trim()
-      || typeof semanticTextHash !== "string" || rawHash(semanticText) !== semanticTextHash) {
-      throw executionFailure("failed", "GPT_TEXT_TASK_ARTIFACT_INVALID");
-    }
-    return Object.freeze({
-      assistantTurnId: row.assistantTurnId,
-      rawDomHtml,
-      rawDomHash,
-      semanticText,
-      semanticTextHash,
     });
   }
 
@@ -344,25 +319,25 @@ export class ProductionGptChildTools {
     const facts = await this.readIntentFacts(intent);
     const contract = GPT_CHILD_CAPABILITY_CONTRACTS[call.child];
     const span = this.childSpan(execution, intent);
-    if (facts.mutation?.outcome === "REJECTED") {
-      return this.terminalizeError(span, executionFailure("failed", "BROWSER_POSTCONDITION_FAILED", {
-        evidenceRef: facts.evidence?.evidenceRef ?? null,
-        evidenceHash: facts.evidence?.evidenceHash ?? null,
-      }));
-    }
-    const browserMutation = contract.requiredTargetKind === "chatgpt"
-      && contract.oneObservationOrMutation === "at-most-one-mutation";
-    const completed = await this.completedResultFromFacts(call, facts, span, browserMutation);
-    if (completed) return completed;
-    const browserCall = contract.requiredTargetKind === "chatgpt"
-      ? await browsers.browserFor(call.sessionKey, call.productStepId, call.callId)
-      : undefined;
-    const browser = browserCall?.facade;
-    this.assertProviderTurnBudget(execution, call, facts);
     let result: GptChildCapabilityResult;
     let evidenceRef: string;
     let resolveDispatched = false;
     try {
+      if (facts.mutation?.outcome === "REJECTED") {
+        throw executionFailure("failed", "BROWSER_POSTCONDITION_FAILED", {
+          evidenceRef: facts.evidence?.evidenceRef ?? null,
+          evidenceHash: facts.evidence?.evidenceHash ?? null,
+        });
+      }
+      const browserMutation = contract.requiredTargetKind === "chatgpt"
+        && contract.oneObservationOrMutation === "at-most-one-mutation";
+      const completed = await this.completedResultFromFacts(call, facts, span, browserMutation);
+      if (completed) return completed;
+      const browserCall = contract.requiredTargetKind === "chatgpt"
+        ? await browsers.browserFor(call.sessionKey, call.productStepId, call.callId)
+        : undefined;
+      const browser = browserCall?.facade;
+      this.assertProviderTurnBudget(execution, call, facts);
       const atomic = await this.runAtomic(
         browsers,
         intent,

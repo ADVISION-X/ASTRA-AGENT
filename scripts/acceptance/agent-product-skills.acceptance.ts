@@ -97,6 +97,11 @@ assert.equal(hashCanonical(agentPluginCapabilityManifest.plugins), agentPluginCa
 assert.equal(existsSync(resolve(ROOT, "src/plugins/product-gpt-call.ts")), false);
 assert.equal(existsSync(resolve(ROOT, "src/lib/local-runtime/production/production-gpt-executor.ts")), false);
 assert.equal(existsSync(resolve(ROOT, "src/lib/local-runtime/production/production-gpt-turn-flow.ts")), false);
+assert.doesNotMatch(
+  readFileSync(resolve(ROOT, "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts"), "utf8"),
+  /return input\.recoveryProvider\.provider_page_url/u,
+  "recovery must execute the exact reconcile call so Runtime reads the durable locator artifact",
+);
 assert.equal(parsePublicKnowledgeResearch(JSON.stringify({
   ...researchOutput("proceed"), topic_manifest: { primary_question: "incomplete" },
 })).schema_version, "public-knowledge-research-output.v3",
@@ -235,7 +240,7 @@ process.stdout.write("[ACCEPTANCE][agent-product-skills] PASS\n");
 emitQualityProofObservation({
   passed: true,
   findings: [],
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V14",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V15",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:1", "forbidden:15", "forbidden:16", "forbidden:2", "forbidden:21", "forbidden:22", "forbidden:29", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:product-flow-golden",

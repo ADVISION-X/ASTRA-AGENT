@@ -8,7 +8,7 @@ import { recordStaticCheck } from "../../shared/static-inspection-contract.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
 
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V14";
+const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V15";
 const PLUGIN_ROOT = "src/plugins";
 const CATALOG_PATH = "src/lib/local-runtime/production/catalog.ts";
 const CONTRACT_PATH = "src/lib/local-runtime/production/contracts.ts";
@@ -19,6 +19,10 @@ const CHILD_BROWSER_LIFECYCLE_PATH =
   "src/lib/local-runtime/production/production-gpt-browser-lifecycle.ts";
 const CHILD_CALL_FACTS_PATH =
   "src/lib/local-runtime/production/production-gpt-call-facts.ts";
+const GPT_EVIDENCE_WRITER_PATH =
+  "src/lib/local-runtime/production/gpt-evidence-writer.ts";
+const GPT_ARTIFACT_READER_PATH =
+  "src/lib/local-runtime/production/gpt-artifact-reader.ts";
 const STORE_FOUNDATION_PATH = "src/lib/local-runtime/production/store-foundation.ts";
 const STORE_TASK_STATE_PATH = "src/lib/local-runtime/production/store-task-state.ts";
 const CLOUD_RECONCILIATION_PATH =
@@ -96,7 +100,8 @@ const inspectSharedProductionRuntime = (context: InspectorContext, findings: Ins
   const executor = read(context, EXECUTOR_PATH);
   const childTools = read(context, CHILD_TOOLS_PATH);
   const childRuntime = [childTools, read(context, CHILD_BROWSER_LIFECYCLE_PATH),
-    read(context, CHILD_CALL_FACTS_PATH)].join("\n");
+    read(context, CHILD_CALL_FACTS_PATH), read(context, GPT_EVIDENCE_WRITER_PATH),
+    read(context, GPT_ARTIFACT_READER_PATH)].join("\n");
   const store = read(context, STORE_FOUNDATION_PATH);
   const taskStateStore = read(context, STORE_TASK_STATE_PATH);
   const cloudReconciliation = read(context, CLOUD_RECONCILIATION_PATH);
@@ -104,6 +109,13 @@ const inspectSharedProductionRuntime = (context: InspectorContext, findings: Ins
   const runtimeClaim = read(context, RUNTIME_CLAIM_PATH);
   const cloudClient = read(context, CLOUD_CLIENT_PATH);
   const typedFailure = read(context, TYPED_FAILURE_PATH);
+  for (const required of [
+    "submission-locator", "agent-gpt-submission-locator.v1",
+    "readSubmissionLocatorArtifact", 'call.child === "reconcile_gpt_turn_submission"',
+  ]) if (!childRuntime.includes(required)) findings.push(finding(
+    "agent-production-runtime/submission-locator-replay", CHILD_TOOLS_PATH,
+    `Exact-call submission locator recovery is missing ${required}.`,
+  ));
   for (const token of ["runTurn", "GptTurnExecutor", "GPT_TURN_FLOW", "resumePoint", "reconcileOnly"])
     if (`${executor}\n${childRuntime}`.includes(token)) findings.push(finding(
       "agent-production-runtime/central-turn-owner-retired", EXECUTOR_PATH,
@@ -162,7 +174,7 @@ const inspectSeoPlugin = (context: InspectorContext, source: string, path: strin
   ));
   for (const forbidden of [
     "CHILD_SETTLE_DELAY_MS", "seoProductExecutionTail", "runSeoProductExecutionExclusive",
-    "++actionOrdinal", "actionOrdinal: 0",
+    "++actionOrdinal", "actionOrdinal: 0", "return input.recoveryProvider.provider_page_url",
   ]) if (source.includes(forbidden)) findings.push(finding(
     "agent-production-runtime/seo-product-second-scheduler-retired", path,
     `SEO Product Flow retains forbidden pacing or scheduling token ${forbidden}.`,

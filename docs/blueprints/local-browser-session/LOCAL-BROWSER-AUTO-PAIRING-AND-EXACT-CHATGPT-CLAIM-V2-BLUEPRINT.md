@@ -49,7 +49,7 @@ AGENT 启动
 durable 接受后的第一个 Browser 原子动作触发，固定扩展单独拥有物理认领。
 
 Browser Authority 不决定 fresh 或 continuation，只提供全系统唯一的物理 production Target。Product Plugin 决定
-会话意图；GPT Child 在同一 Target 上验证干净根页面或按 URL + marker + prompt/response hash 聚焦精确历史 conversation，其中 prompt hash 只绑定 marker 所在 user turn 的请求正文机器节点，不绑定附件卡片或页面控制文字。建 tab 不另立为 GPT DOM
+会话意图；GPT Child 在同一 Target 上验证干净根页面或按 URL + marker + prompt/response hash 聚焦精确历史 conversation，其中 prompt hash 只绑定 marker 所在 user turn 的请求正文机器节点，并由 GPT Owner 使用 Browser 返回的 deterministic semantic tree 形成 canonical rendered-prompt hash；Browser 不解释 Prompt，也不绑定附件卡片或页面控制文字。建 tab 不另立为 GPT DOM
 Child，也不允许 Product Plugin 直接接触 Chrome 资源。
 
 ## 2. 唯一认领策略
@@ -148,7 +148,7 @@ fallback 或第二 claim path。
    以及精确 assistant turn 单一语义媒体、重复 raw 节点、跨 turn/Document 拒绝、已鉴权原始 bytes hash/尺寸 receipt。
 3. 服务端测试证明非 `gpt-web` Origin、未 revoke 的不同 `targetRef` 覆盖和未确认 Workspace 全部失败。
 4. 真实 Chrome 证明：启动 AGENT 后固定扩展自动配对且 Target absent；无需复制密码或点击 popup；首个 exact job
-   durable 接受后才创建唯一 visible system ChatGPT Target，且操作者既存页面完全不受影响；三个并发业务任务始终只有该一个 tabId/targetRef，不人工点击也能执行。normal wait/recovery park 都释放全局 FIFO，其它 job 在同一 Tab 时间片执行；原 job 重领时物理前台化并以 canonical URL + marker + 请求正文 prompt hash + response hash 回到正确回合，外层 user turn 的附件卡片与控制文字不得改变 prompt hash。AGENT 重启后不新建 Tab、不重发已 CONFIRMED submit，并继续 SEO 下一步；Provider terminalAt 不变。turn settle 后 system Tab parked 而非关闭，后续 fresh job 复位根页并复用同一 Target。
+   durable 接受后才创建唯一 visible system ChatGPT Target，且操作者既存页面完全不受影响；三个并发业务任务始终只有该一个 tabId/targetRef，不人工点击也能执行。每个 normal wait 短 probe 必须依次产生同一 targetRef 的 park/reacquire，park 只撤销 active claim/Workspace并释放全局 FIFO，扩展保留同一 debugger session、tabId 与 parked registry；reacquire 必须 `Page.bringToFront` 后才重建 Workspace，禁止 `BROWSER_CAPABILITY_REJECTED`、`BROWSER_TARGET_INVALID`、新建 Tab 或未终态 Browser 调用。normal wait/recovery park 后其它 job 在同一 Tab 时间片执行；原 job 重领时物理前台化并以 canonical URL + marker + 请求正文 prompt hash + response hash 回到正确回合，外层 user turn 的附件卡片与控制文字不得改变 prompt hash。AGENT 重启后不新建 Tab、不重发已 CONFIRMED submit，并继续 SEO 下一步；Provider terminalAt 不变。turn settle 后 system Tab parked 而非关闭，后续 fresh job 复位根页并复用同一 Target。
 5. 启动器检查证明 scripts/startup 与 `grasseye:start` 不使用 Chrome Target API、不打开 ChatGPT、不发送
    `TARGET_CLAIM`、不创建或认领任务。
 

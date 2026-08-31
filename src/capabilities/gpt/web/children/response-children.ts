@@ -17,9 +17,9 @@ import {
 import {
   findCount,
   readExactAttribute,
+  readExactCanonicalPromptText,
   readExactObservedResponse,
   readExactSemanticText,
-  readExactText,
   readGptDocument,
 } from "../gpt-dom-observation.js";
 import {
@@ -85,7 +85,7 @@ const pollingUserTurnId = async (
   const userTurnId = await readExactAttribute(
     browser, GPT_USER_TURN_SELECTOR, "data-testid", marker,
   );
-  const userText = await readExactText(browser, userSelector(userTurnId));
+  const userText = await readExactCanonicalPromptText(browser, userSelector(userTurnId));
   if (hash(userText) !== expectedPromptHash) {
     throw executionFailure("failed", "GPT_USER_TURN_HASH_MISMATCH");
   }

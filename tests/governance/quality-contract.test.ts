@@ -333,12 +333,12 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
   } as const;
   const routes = {
     browser: { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", clauses: ["forbidden:6"] },
-    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V14", clauses: ["forbidden:19"] },
-    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V14", clauses: ["forbidden:9"] },
-    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V14", clauses: ["forbidden:11"] },
-    provider: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V14", clauses: ["forbidden:0"] },
-    authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V14", clauses: ["forbidden:4"] },
-    recovery: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V14", clauses: ["forbidden:10"] },
+    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V15", clauses: ["forbidden:19"] },
+    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V15", clauses: ["forbidden:9"] },
+    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V15", clauses: ["forbidden:11"] },
+    provider: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V15", clauses: ["forbidden:0"] },
+    authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V15", clauses: ["forbidden:4"] },
+    recovery: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V15", clauses: ["forbidden:10"] },
   } as const;
   for (const [kind, observation] of Object.entries(observations)) {
     const evidenceMode = `dynamic.${kind}`;
@@ -977,7 +977,7 @@ test("provider contracts reject malformed payloads before identity matching", ()
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json", "utf8",
   )) as unknown;
   assert.doesNotThrow(() => validateProviderContractSpec(current, "ADVISION-X/AGENT",
-    new Map([["LAW-AGENT-PRODUCTION-RUNTIME-001-V14", "agent-production-runtime"]]),
+    new Map([["LAW-AGENT-PRODUCTION-RUNTIME-001-V15", "agent-production-runtime"]]),
     (path) => path === "src/lib/local-runtime/production/catalog.ts"));
 });
 
@@ -1233,7 +1233,7 @@ test("every active law scope is deterministic, owned, unique, and includes all c
 
 test("active mutation inspectors use one DISPATCHED chain inside each law scope", () => {
   const registry = buildRegistry();
-  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V14");
+  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V15");
   assert.ok(agentLaw);
   const agentTargets = computeTargetPaths(agentLaw, registry);
   const crossOwnerPaths = [

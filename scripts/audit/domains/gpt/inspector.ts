@@ -21,7 +21,7 @@ import {
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 import { inspectGptContractDenominator } from "./gpt-contract-inspection.js";
 
-const LAW_ID = "LAW-GPT-001-V10";
+const LAW_ID = "LAW-GPT-001-V11";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 12, 15),
   "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14),
@@ -42,6 +42,7 @@ const SESSION_PATH = `${ROOT}/session/gpt-session-controller.ts`;
 const SESSION_CHILDREN_PATH = `${ROOT}/session/session-children.ts`;
 const RESPONSE_HANDLER_PATH = `${ROOT}/web/children/response-children.ts`;
 const CONVERSATION_HANDLER_PATH = `${ROOT}/web/children/conversation-children.ts`;
+const SUBMISSION_HANDLER_PATH = `${ROOT}/web/children/composer-submission-children.ts`;
 const CONVERSATION_CONTRACT_PATH = `${ROOT}/web/contracts/conversation.contract.ts`;
 const TURN_EXECUTOR_PATH = `${ROOT}/gpt-turn-executor.ts`;
 const MODEL_SELECTION_V2_HANDLER_PATH = `${ROOT}/web/children/model-selection-v2-children.ts`;
@@ -310,6 +311,7 @@ const inspectProviderWaitContract = (context: InspectorContext, findings: Inspec
   const responseUserSelector = sourceFor(context, RESPONSE_HANDLER_PATH)
     ?.getVariableDeclaration("userSelector")?.getFullText() ?? "";
   const conversation = sourceFor(context, CONVERSATION_HANDLER_PATH)?.getFullText() ?? "";
+  const submission = sourceFor(context, SUBMISSION_HANDLER_PATH)?.getFullText() ?? "";
   const conversationContract = sourceFor(context, CONVERSATION_CONTRACT_PATH)?.getFullText() ?? "";
   if (!conversationContract.includes(
     `GPT_USER_PROMPT_BODY_SELECTOR = "[data-testid='collapsible-user-message-content']"`,
@@ -318,7 +320,7 @@ const inspectProviderWaitContract = (context: InspectorContext, findings: Inspec
     "Prompt hash must read only the one proven user-turn prompt body selector.",
   ));
   for (const required of [
-    '"expectedPromptHash"', "userPromptBodySelector", "readExactText", "GPT_USER_TURN_HASH_MISMATCH",
+    '"expectedPromptHash"', "userPromptBodySelector", "readExactCanonicalPromptText", "GPT_USER_TURN_HASH_MISMATCH",
     "promptHash", "expectedResponseHash",
   ]) if (!conversation.includes(required)) findings.push(finding(
     "gpt/continuation-four-part-identity", CONVERSATION_HANDLER_PATH,
@@ -335,6 +337,14 @@ const inspectProviderWaitContract = (context: InspectorContext, findings: Inspec
     "gpt/absolute-deadline-dynamic-backoff", RESPONSE_HANDLER_PATH,
       `Stable Provider wait is missing ${required}.`,
     ));
+  for (const required of [
+    'requireExactInputKeys(intent, ["expectedPromptHash", "timeoutMs", "turnMarker"])',
+    "readExactCanonicalPromptText", "promptHash", "conversationIdentityHash",
+    "GPT_USER_TURN_HASH_MISMATCH",
+  ]) if (!submission.includes(required)) findings.push(finding(
+    "gpt/submission-locator-identity", SUBMISSION_HANDLER_PATH,
+    `Submission reconciliation is missing ${required}.`,
+  ));
 };
 
 const inspectIntelligentExecutionContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {

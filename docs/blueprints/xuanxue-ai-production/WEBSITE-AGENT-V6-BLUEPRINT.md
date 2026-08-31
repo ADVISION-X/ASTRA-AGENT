@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V14"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V15"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -267,7 +267,7 @@ Target-local Browser mutation identity 另绑定 target generation，但 Forensi
 
 ### 4.6 Forensics 与 Continuation 幂等
 
-Forensics evidence key 必须为 `gpt-call-evidence:v1:<exactCallIdentityHash>`，artifact key 只在该 identity 后追加 `original/webp` 等受控 suffix。`proof.evidenceHash` 只证明 proof 内容，不充当 logical call identity。同 key 异内容、多记录或完整性损坏必须失败关闭。Product 按固定 actionOrdinal 恢复并组装完整 evidence_refs。
+Forensics evidence key 必须为 `gpt-call-evidence:v1:<exactCallIdentityHash>`，artifact key 只在该 identity 后追加 `submission-locator/observed-response/original/webp` 等受控 suffix。`proof.evidenceHash` 只证明 proof 内容，不充当 logical call identity。同 key 异内容、多记录或完整性损坏必须失败关闭。`reconcile_gpt_turn_submission` 成功后、单一生产 Tab 让出时间片前，唯一 evidence writer 必须把 canonical URL + marker + user turn id + canonical rendered-prompt hash + conversation identity 写入并读回同 exact identity 的 task-owned submission-locator artifact；同 identity 重放先从该 artifact 返回原定位事实，不依赖当前 Tab 所在会话、不再次 submit，也不创建第二 locator store。Product 按固定 actionOrdinal 恢复并组装完整 evidence_refs。
 
 `persist_gpt_continuation` 的 continuationRef 由 exact persist call identity 确定性派生；provider 内容必须包含 canonical conversation URL、turn marker、prior prompt hash、prior response hash 与 conversation identity。相同 binding/provider 内容 readback 返回原 ref，不同内容冲突失败。`advance/release` 同时支持正常 lane CAS 和 DB commit 后返回前崩溃的内容幂等 readback，不创建第二 continuation Owner。
 
@@ -352,9 +352,9 @@ AGENT staged result、Outbox delivered、Website completion submission 均不等
 本次只删除并重构四个现役故障片区：GPT wait/checkpoint 的 user-turn 正文识别、Runtime/Website 的 confirmed-submit 后 lease 收束、现役 continuation provider/verify 的 prior prompt identity，以及 Website commercial migration 准入与 accepted-attempt 停车/放行。AI 产物解析与接收片区由其独立施工保持，不在本次改写；当前 Website task、attempt、conversation、Outbox、Browser WAL 与已完成 Provider effect 均不得迁移、替换或清空。执行顺序固定：
 
 1. 停止 SEO 故障片区新 claim，读取并收束 live lease 与未决 Provider effect；
-2. 物理删除 wait/checkpoint 中对整个 user turn 聚合文本做 prompt hash 的旧实现及伪造 `readText=prompt` 的旧测试，在同一 Child 原位改为 marker 下唯一正文机器节点；
+2. 物理删除 wait/checkpoint 中对整个 user turn 聚合文本或正文 `textContent` 做 prompt hash 的旧实现及伪造 `readText=prompt` 的旧测试，在同一 Child 原位改为 marker 下唯一正文机器节点的 deterministic semantic tree，并只删除投影算法额外加入的一个根终止分隔换行；
 3. 物理删除 confirmed submit 之后仍把只读软件故障写成 `attempt_failure` 并清除 attempt 的旧分支，在现役 lease release/current_reason 合同原位加入 `POST_SUBMIT_READBACK_FAULT`，由同一 attempt 重领并通过 exact call facts 跳过 submit；
-4. 在唯一 continuation provider 与现役 verify Child 原位加入 prior prompt hash，统一验证 canonical URL + marker + prior prompt/response hash，不建第二 store；
+4. 在 submission reconcile 原位绑定 expected prompt hash，并把 canonical URL + marker + user turn id + canonical rendered-prompt hash + conversation identity 写入同 exact-call 的 task-owned submission-locator artifact；同 identity 恢复先读该 artifact。在唯一 continuation provider 与现役 verify Child 原位保留 prior prompt hash，统一验证 canonical URL + marker + prior prompt/response hash，不建第二 store；
 5. 在 Website 启动前原位复用 commercial migration registry verify；在 attempt failure 与现役 SEO Work Order `run` 事务原位完成 `RECOVERY_PARKED` 与原 job 批量放行，并把 control-room 的同一 PostgreSQL client 查询改为串行；不得新增迁移器、恢复 API、表或状态；
 6. 删除与上述旧行为绑定的 fixture/inspector 断言，原位建立真实 DOM 污染、同 attempt 重领零重发、continuation 四元身份、migration head 失配拒绝启动和 exhausted job 原 identity 放行的聚焦验收；
 7. 显式应用 0097、聚焦静态与真实 Chrome 证据通过后，才恢复该故障片区新 claim并验证 SEO 第二步与最终入库。
@@ -363,7 +363,7 @@ AGENT staged result、Outbox delivered、Website completion submission 均不等
 
 ## 9. 聚焦验收
 
-本轮静态验收：十二个 Product Plugin 保留既有身份、路由与 Skill；GPT wait/checkpoint 只使用唯一请求正文节点，confirmed-submit 后只沿现役 lease release/current_reason 保持同 attempt，continuation 仍只有唯一 provider/store 并补齐 prior prompt hash。未施工的 `execute` 继续以精确 `PRODUCT_FLOW_NOT_IMPLEMENTED:<plugin>:<action>` 失败，且 Provider 调用与物理页面动作均为零。runtime 不决定 Child；公开状态 union 精确为 failed/completed；attempt 预算只来自 Website 持久策略；`RECOVERY_PARKED` 只允许是 Website `current_reason`，现役 Work Order `run` 只批量放行原 job；Outbox 无 parked/独立预算；启动前 migration head/hash 必须闭合，control-room 单 client 无并发 query，Website HTTP failure 不丢失 Owner；本轮不修改 AI 产物解析与接收链。
+本轮静态验收：十二个 Product Plugin 保留既有身份、路由与 Skill；GPT wait/checkpoint 只使用唯一请求正文节点的 canonical semantic prompt，submission reconcile 在单 Tab 让出前写读同 exact-call locator artifact，confirmed-submit 后只沿现役 lease release/current_reason 保持同 attempt，continuation 仍只有唯一 provider/store 并补齐 prior prompt hash。每个已开始 GPT Child span 即使在 Browser lease 获取、park 或 reacquire 失败也必须恰好产生一个 typed terminal，禁止悬空 span。未施工的 `execute` 继续以精确 `PRODUCT_FLOW_NOT_IMPLEMENTED:<plugin>:<action>` 失败，且 Provider 调用与物理页面动作均为零。runtime 不决定 Child；公开状态 union 精确为 failed/completed；attempt 预算只来自 Website 持久策略；`RECOVERY_PARKED` 只允许是 Website `current_reason`，现役 Work Order `run` 只批量放行原 job；Outbox 无 parked/独立预算；启动前 migration head/hash 必须闭合，control-room 单 client 无并发 query，Website HTTP failure 不丢失 Owner；本轮不修改 AI 产物解析与接收链。
 
 单个 Product 的业务步骤、Prompt、模型、分支、材料和结果验收不属于本轮分母；后续每个 Product 单独施工时，必须新增该 Product 自己的聚焦验收。已施工的 SEO Product 聚焦验收必须分别对 produce_article 的 proceed/decline 与两条 review 路由按 actionOrdinal 断言 exact Child sequence，不得以“全部 Child 均曾出现”代替顺序证明。全部 Product 尚未分别交付前，质量系统必须报告未完成，不得给出全系统 READY、CI_FULL_PASS 或生产流程已跑通结论。
 
@@ -371,8 +371,8 @@ AGENT staged result、Outbox delivered、Website completion submission 均不等
 
 智慧调度聚焦验收：无中央 Scheduler/priority/recovery bypass；唯一 FIFO 最多十个 waiter；未到 nextCheckAt 的 wait 不入队；normal/recovery 共用 FIFO；park 后其它 job 可继续；Progressive Exact Fact Replay 必须先恢复 wait 输出再构造 checkpoint/continuation inputHash，宽匹配 lookup 为零；readCallFacts 只读且无 failure/state/nextStep/Target/WAL 泄漏；pluginVersion 端到端，actionOrdinal 不进 effect/evidence identity。
 
-恢复与幂等验收：Forensics exact-call append/readback 返回原 recordRef，同 key 异内容 fail-close，重启前后 evidence_refs 完整有序；同 job 多 attempt 的 continuation 必须由当前 attempt turn marker 只命中当前一条，并以 URL + marker + prior prompt/response hash 复核，旧 marker、缺失 prior prompt hash 与未知 marker 不得回退；continuation persist/advance/release 覆盖 DB commit 与 return 之间崩溃；同 attempt 已有 verified evidence 的 target-local 新 Target generation mutation count 为零，原 Target 不可只读恢复则 attempt fail-close；Provider terminalAt 不可变，等待 55 分钟后重启不重获完整 timeout。
+恢复与幂等验收：Forensics exact-call append/readback 返回原 recordRef，同 key 异内容 fail-close，submission-locator 在单 Tab 已切换会话和进程重启后仍按 exact identity 返回原 URL/marker/user turn/prompt hash/identity 且 submit mutation count 不增加，重启前后 evidence_refs 完整有序；同 job 多 attempt 的 continuation 必须由当前 attempt turn marker 只命中当前一条，并以 URL + marker + prior prompt/response hash 复核，旧 marker、缺失 prior prompt hash 与未知 marker 不得回退；continuation persist/advance/release 覆盖 DB commit 与 return 之间崩溃；同 attempt 已有 verified evidence 的 target-local 新 Target generation mutation count 为零，原 Target 不可只读恢复则 attempt fail-close；Provider terminalAt 不可变，等待 55 分钟后重启不重获完整 timeout。
 
-真实 Browser 验收：normal wait park/reacquire 、DISPATCHED recovery park/reacquire、service worker 丢失 parked registry 后 typed fail-close、操作者页面零影响、同 attempt 禁跨代重做和唯一已鉴权媒体 bytes 链均必须在真实 Chrome/MV3 上成立。
+真实 Browser 验收：normal wait 每个短 probe 都必须完成 `同一 targetRef park -> 释放 FIFO -> 同一 targetRef reacquire -> Page.bringToFront -> fresh DOM probe`，扩展不得 close/detach 唯一 system Tab，不得出现 `BROWSER_CAPABILITY_REJECTED`、`BROWSER_TARGET_INVALID` 或悬空 Child span；至少三个并发业务任务在无人点击时仍只使用一个 system tabId/targetRef，并按 URL + marker + prompt/response hash 回到各自会话。DISPATCHED recovery park/reacquire、service worker 丢失 parked registry 后 typed fail-close、操作者页面零影响、同 attempt 禁跨代重做和唯一已鉴权媒体 bytes 链均必须在真实 Chrome/MV3 上成立；SEO 实测必须继续出现 `corpus_research -> article_synthesis`，不能用第一步有效回答或静态测试替代第二步证据。
 
-删除验收：SEO 故障片区停止新 claim 且未决副作用收束；旧 user-turn 聚合正文哈希、post-submit 软件故障结束 attempt、缺少 prior prompt hash 的 continuation 以及对应 fixture/inspector 断言物理退出；当前 Website task、attempt、conversation、artifact/checkpoint、Outbox 与 Browser WAL 身份保持不变；不重新研究，最终由同一 task 取得领域入库回执。
+删除验收：SEO 故障片区停止新 claim 且未决副作用收束；旧 user-turn 聚合正文/textContent 哈希、未持久 submission locator、post-submit 软件故障结束 attempt、缺少 prior prompt hash 的 continuation 以及对应 fixture/inspector 断言物理退出；当前 Website task、attempt、conversation、artifact/checkpoint、Outbox 与 Browser WAL 身份保持不变；不重新研究，最终由同一 task 取得领域入库回执。

@@ -9,7 +9,7 @@ import {
   stringInput,
   success,
 } from "../child-handler.js";
-import { findCount, readExactAttribute, readExactSemanticText, readExactText, readGptDocument } from "../gpt-dom-observation.js";
+import { findCount, readExactAttribute, readExactCanonicalPromptText, readExactSemanticText, readExactText, readGptDocument } from "../gpt-dom-observation.js";
 import {
   GPT_GENERATING_STOP_SELECTOR,
   GPT_USER_PROMPT_BODY_SELECTOR,
@@ -144,7 +144,7 @@ export const conversationChildHandlers = {
       });
       if (observed === expected && composerCount === 1 && markerCount === 1) {
         const userTurnId = await readExactAttribute(browser, GPT_USER_TURN_SELECTOR, "data-testid", marker);
-        const promptText = await readExactText(browser, userPromptBodySelector(userTurnId));
+        const promptText = await readExactCanonicalPromptText(browser, userPromptBodySelector(userTurnId));
         const promptHash = hash(promptText);
         if (promptHash !== expectedPromptHash) {
           throw executionFailure("failed", "GPT_USER_TURN_HASH_MISMATCH");

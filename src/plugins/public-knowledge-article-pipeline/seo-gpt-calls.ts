@@ -192,16 +192,15 @@ const confirmedDeadline = (submit: ExactGptCallFacts): string => {
   return new Date(confirmedAt + WAIT_TIMEOUT_MS).toISOString();
 };
 
-const submittedConversationUrl = async (input: TextTurnInput): Promise<string> => {
+const submittedConversationUrl = async (
+  input: TextTurnInput,
+  promptHash: `sha256:${string}`,
+): Promise<string> => {
   const call = {
     productStepId: input.stepId, callId: "submission-reconcile",
     child: "reconcile_gpt_turn_submission", actionOrdinal: input.ordinals[3],
-    input: { timeoutMs: 60_000, turnMarker: input.marker },
+    input: { expectedPromptHash: promptHash, timeoutMs: 60_000, turnMarker: input.marker },
   } as const;
-  if (input.recoveryProvider) {
-    await input.flow.requireEvidence(call);
-    return input.recoveryProvider.provider_page_url;
-  }
   const submitted = await input.flow.execute({ sessionKey: "", ...call });
   return textValue(
     objectValue(submitted.value, "SEO_SUBMISSION_INVALID").canonicalConversationUrl,
@@ -215,7 +214,7 @@ const checkpointSubmittedTextTurn = async (
   confirmedSubmit: ExactGptCallFacts,
 ): Promise<SeoTurnCheckpoint> => {
   try {
-    const canonicalConversationUrl = await submittedConversationUrl(input);
+    const canonicalConversationUrl = await submittedConversationUrl(input, promptHash);
     const stable = await input.flow.execute({
       sessionKey: "", productStepId: input.stepId, callId: "text-wait",
       child: "wait_for_stable_gpt_text", actionOrdinal: input.ordinals[4],
@@ -408,7 +407,7 @@ const checkpointSubmittedImage = async (
   generated: GeneratedImageArtifact;
 }>> => {
   try {
-    const submitted = await input.flow.execute({ sessionKey: "", productStepId: input.stepId, callId: "submission-reconcile", child: "reconcile_gpt_turn_submission", actionOrdinal: 43, input: { timeoutMs: 60_000, turnMarker: input.marker } });
+    const submitted = await input.flow.execute({ sessionKey: "", productStepId: input.stepId, callId: "submission-reconcile", child: "reconcile_gpt_turn_submission", actionOrdinal: 43, input: { expectedPromptHash: promptHash, timeoutMs: 60_000, turnMarker: input.marker } });
     const canonicalConversationUrl = textValue(
       objectValue(submitted.value, "SEO_IMAGE_SUBMISSION_INVALID").canonicalConversationUrl,
       "SEO_IMAGE_SUBMISSION_INVALID",
