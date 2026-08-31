@@ -26,6 +26,8 @@
         "docs/项目方案/本地化技能实现方案.md",
         "scripts/acceptance/agent-product-skills-flow-support.ts",
         "scripts/acceptance/agent-product-skills.acceptance.ts",
+        "scripts/acceptance/agent-production-continuation-restart.acceptance.ts",
+        "scripts/acceptance/agent-production-gpt-artifact-recovery.acceptance.ts",
         "scripts/acceptance/agent-production-gpt-browser-lifecycle.acceptance.ts",
         "scripts/acceptance/agent-production-provider-recovery.acceptance.ts",
         "scripts/acceptance/agent-production-runtime-continuation.acceptance.ts",

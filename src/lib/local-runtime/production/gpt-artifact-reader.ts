@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import type { ForensicsPersistenceAbilityGroup } from "../../../capabilities/forensics-persistence/index.js";
 import { executionFailure } from "../../typed-failure.js";
+import { gptSubmissionLocatorArtifact } from "./gpt-artifact-contract.js";
 
 const objectRecord = (value: unknown): Readonly<Record<string, unknown>> | null =>
   value && typeof value === "object" && !Array.isArray(value)
@@ -23,11 +24,12 @@ const readJsonArtifact = async (
     || readback.artifact.mimeType !== "application/json") {
     throw executionFailure("failed", readbackCode);
   }
-  try {
-    const value = objectRecord(JSON.parse(new TextDecoder().decode(readback.artifact.content)) as unknown);
-    if (value) return value;
-  } catch { /* normalized below */ }
-  throw executionFailure("failed", invalidCode);
+  let parsed: unknown;
+  try { parsed = JSON.parse(new TextDecoder().decode(readback.artifact.content)) as unknown; }
+  catch (cause) { throw executionFailure("failed", invalidCode, { cause }); }
+  const value = objectRecord(parsed);
+  if (!value) throw executionFailure("failed", invalidCode);
+  return value;
 };
 
 export const readTextCheckpointArtifact = async (
@@ -64,25 +66,9 @@ export const readSubmissionLocatorArtifact = async (
     "GPT_SUBMISSION_LOCATOR_TASK_ARTIFACT_READBACK_FAILED",
     "GPT_SUBMISSION_LOCATOR_TASK_ARTIFACT_INVALID",
   );
-  const canonicalConversationUrl = row.canonicalConversationUrl;
-  const turnMarker = row.turnMarker;
-  const userTurnId = row.userTurnId;
-  const promptHash = row.promptHash;
-  const conversationIdentityHash = row.conversationIdentityHash;
-  let canonicalUrl = false;
-  try {
-    const parsed = new URL(String(canonicalConversationUrl));
-    canonicalUrl = parsed.origin === "https://chatgpt.com"
-      && /^\/c\/[A-Za-z0-9_-]+$/u.test(parsed.pathname)
-      && !parsed.search && !parsed.hash && parsed.toString() === canonicalConversationUrl;
-  } catch { canonicalUrl = false; }
-  if (row.schemaVersion !== "agent-gpt-submission-locator.v1" || !canonicalUrl
-    || typeof turnMarker !== "string" || !turnMarker
-    || typeof userTurnId !== "string" || !/^conversation-turn-[1-9][0-9]*$/u.test(userTurnId)
-    || typeof promptHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(promptHash)
-    || typeof conversationIdentityHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(conversationIdentityHash)
-    || hash(`${canonicalConversationUrl}\n${turnMarker}\n${userTurnId}\n${promptHash}`) !== conversationIdentityHash) {
+  const locator = gptSubmissionLocatorArtifact(row, hash);
+  if (!locator) {
     throw executionFailure("failed", "GPT_SUBMISSION_LOCATOR_TASK_ARTIFACT_INVALID");
   }
-  return Object.freeze({ canonicalConversationUrl, turnMarker, userTurnId, promptHash, conversationIdentityHash });
+  return locator;
 };

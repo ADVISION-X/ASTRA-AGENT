@@ -13,6 +13,8 @@ import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../src/m
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { HASH_A, HASH_B, claimTask, task } from "./agent-production-runtime-fixtures.js";
 import "./agent-production-gpt-browser-lifecycle.acceptance.js";
+import "./agent-production-gpt-artifact-recovery.acceptance.js";
+import "./agent-production-continuation-restart.acceptance.js";
 import "./agent-production-runtime-ledger.acceptance.js";
 import "./agent-production-runtime-continuation.acceptance.js";
 import "./agent-production-provider-recovery.acceptance.js";

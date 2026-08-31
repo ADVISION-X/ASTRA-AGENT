@@ -9,6 +9,7 @@ import type {
 import type { ForensicsPersistenceAbilityGroup } from "../../../capabilities/forensics-persistence/index.js";
 import { executionFailure } from "../../typed-failure.js";
 import { stableJsonHash } from "../../storage/hash.js";
+import { gptSubmissionLocatorArtifact } from "./gpt-artifact-contract.js";
 
 type EvidenceArtifact = Readonly<{
   suffix: string;
@@ -94,24 +95,8 @@ const submissionLocatorArtifact = (value: unknown): EvidenceArtifact => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw executionFailure("failed", "GPT_SUBMISSION_LOCATOR_TASK_ARTIFACT_MISSING");
   }
-  const row = value as Record<string, unknown>;
-  const canonicalConversationUrl = row.canonicalConversationUrl;
-  const turnMarker = row.turnMarker;
-  const userTurnId = row.userTurnId;
-  const promptHash = row.promptHash;
-  const conversationIdentityHash = row.conversationIdentityHash;
-  let canonicalUrl = false;
-  try {
-    const parsed = new URL(String(canonicalConversationUrl));
-    canonicalUrl = parsed.origin === "https://chatgpt.com"
-      && /^\/c\/[A-Za-z0-9_-]+$/u.test(parsed.pathname)
-      && !parsed.search && !parsed.hash && parsed.toString() === canonicalConversationUrl;
-  } catch { canonicalUrl = false; }
-  if (!canonicalUrl || typeof turnMarker !== "string" || !turnMarker
-    || typeof userTurnId !== "string" || !/^conversation-turn-[1-9][0-9]*$/u.test(userTurnId)
-    || typeof promptHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(promptHash)
-    || typeof conversationIdentityHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(conversationIdentityHash)
-    || hash(`${canonicalConversationUrl}\n${turnMarker}\n${userTurnId}\n${promptHash}`) !== conversationIdentityHash) {
+  const locator = gptSubmissionLocatorArtifact({ schemaVersion: "agent-gpt-submission-locator.v1", ...value }, hash);
+  if (!locator) {
     throw executionFailure("failed", "GPT_SUBMISSION_LOCATOR_TASK_ARTIFACT_INVALID");
   }
   return {
@@ -120,11 +105,7 @@ const submissionLocatorArtifact = (value: unknown): EvidenceArtifact => {
     mimeType: "application/json",
     content: new TextEncoder().encode(JSON.stringify({
       schemaVersion: "agent-gpt-submission-locator.v1",
-      canonicalConversationUrl,
-      turnMarker,
-      userTurnId,
-      promptHash,
-      conversationIdentityHash,
+      ...locator,
     })),
   };
 };

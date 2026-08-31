@@ -17,6 +17,7 @@ import {
 import { GPT_SEND_SELECTOR } from "../web/contracts/submission.contract.js";
 import { fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
 import { nodeSemanticText } from "../../../lib/browser/chrome-extension/dom-query-runtime.js";
+import { ExtensionDebuggerRuntime } from "../../../lib/browser/chrome-extension/debugger-runtime.js";
 
 const gpt = createGptAbilityGroup();
 type GptExecutionContext = Parameters<GptAbilityGroup["execute"]>[1];
@@ -86,7 +87,9 @@ assert.equal(retainedPromptFixture.physicalMutations(), 1, "retained exact promp
 
 const renderedMarkdownPrompt = `preserve \`one\`, \`two\`, and \`three\`\n${promptMarker}\n`;
 const renderedMarkdownPromptHash = `sha256:${createHash("sha256").update(renderedMarkdownPrompt).digest("hex")}`;
-const semanticTreeRuntime = {
+const semanticTreeRuntime = Object.assign(
+  Object.create(ExtensionDebuggerRuntime.prototype) as ExtensionDebuggerRuntime,
+  {
   send: async () => ({
     node: {
       nodeName: "DIV",
@@ -104,7 +107,8 @@ const semanticTreeRuntime = {
       ],
     },
   }),
-} as unknown as Parameters<typeof nodeSemanticText>[0];
+  },
+);
 assert.equal(
   await nodeSemanticText(semanticTreeRuntime, 1, 1),
   `${renderedMarkdownPrompt}\n`,
