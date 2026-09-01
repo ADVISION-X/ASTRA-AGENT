@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+import assert from "../audit/shared/governance-exam-assert.js";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import Database from "better-sqlite3";

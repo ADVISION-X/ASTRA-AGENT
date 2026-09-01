@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+import assert from "../audit/shared/governance-exam-assert.js";
 
 import {
   GRASSEYE_AUTO_PAIRING_ALARM,

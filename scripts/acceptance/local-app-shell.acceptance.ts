@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+import assert from "../audit/shared/governance-exam-assert.js";
 import { readFileSync } from "node:fs";
 import { Project, SyntaxKind, Node } from "ts-morph";
 
@@ -69,6 +69,6 @@ assert.deepEqual(inspectLocalAppShellProject(fixture()), [], "the current owner 
 }
 
 console.log("local-app-shell-acceptance-ok");
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-001-V6", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:5","forbidden:6","summary"], locator: "acceptance:local-shell:single-owned-shell", observedValue: "single repository-owned Shell health boundary verified" });
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-002-V3", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","summary"], locator: "acceptance:local-shell:boundary-mutants", observedValue: "foreign and duplicate Shell boundary mutants rejected" });
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-003-V3", evidenceMode: "exam.golden", clauses: ["forbidden:2","summary"], locator: "acceptance:local-shell:degraded-readiness", observedValue: "execution dependency failure keeps diagnostic Shell ready" });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-001-V6", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:5","forbidden:6","summary"], locator: "acceptance:local-shell:single-owned-shell", observedValue: "single repository-owned Shell health boundary verified" });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-002-V3", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","summary"], locator: "acceptance:local-shell:boundary-mutants", observedValue: "foreign and duplicate Shell boundary mutants rejected" });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-003-V3", evidenceMode: "exam.golden", clauses: ["forbidden:2","summary"], locator: "acceptance:local-shell:degraded-readiness", observedValue: "execution dependency failure keeps diagnostic Shell ready" });

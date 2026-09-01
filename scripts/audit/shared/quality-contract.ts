@@ -113,10 +113,11 @@ const parseEvidenceRef = (value: string): ParsedEvidenceRef | null => {
   const match = /^([a-z]+):([^#@]+)#([^#@]+)(?:@((?:sha256:)?[a-f0-9]{64}))?$/u.exec(value);
   if (!match || !evidenceKinds.has(match[1]!) || /[\0-\x1f\x7f]/u.test(value)) return null;
   const selector = canonicalPercentEncoded(match[3]!);
-  const dynamicLocator = match[1] === "dynamic" ? canonicalPercentEncoded(match[2]!) : match[2]!;
-  if (selector === null || /[#:@]/u.test(match[3]!) || dynamicLocator === null
-    || (match[1] !== "dynamic" && match[2]!.includes(":"))) return null;
-  return { kind: match[1]!, locator: dynamicLocator, selector, ...(match[4] ? { receipt: match[4] } : {}) };
+  const nativeLocator = ["dynamic", "exam"].includes(match[1]!)
+    ? canonicalPercentEncoded(match[2]!) : match[2]!;
+  if (selector === null || /[#:@]/u.test(match[3]!) || nativeLocator === null
+    || (!["dynamic", "exam"].includes(match[1]!) && match[2]!.includes(":"))) return null;
+  return { kind: match[1]!, locator: nativeLocator, selector, ...(match[4] ? { receipt: match[4] } : {}) };
 };
 const validRepositoryLocator = (locator: string): boolean => !locator.startsWith("/")
   && !locator.startsWith("\\") && !locator.includes("%")
@@ -130,7 +131,7 @@ const repositoryObjectExists = (locator: string): boolean => {
   return escaped !== ".." && !escaped.startsWith("../") && lstatSync(absolute).isFile();
 };
 const validEvidenceObject = (reference: ParsedEvidenceRef): boolean => {
-  if (reference.kind === "dynamic") return Boolean(reference.receipt)
+  if (["dynamic", "exam"].includes(reference.kind)) return Boolean(reference.receipt)
     && /^\//u.test(reference.locator);
   if (reference.receipt !== undefined) return false;
   if (reference.kind !== "scope") return repositoryObjectExists(reference.locator);

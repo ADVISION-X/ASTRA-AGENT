@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+import assert from "../audit/shared/governance-exam-assert.js";
 
 import type { ProductionHash, WebsiteAgentTask } from "../../src/lib/local-runtime/production/contracts.js";
 import { resolveProductionPlugin } from "../../src/lib/local-runtime/production/catalog.js";
@@ -275,8 +275,6 @@ assert.throws(() => assertRouteResultPayload(reviewTask, {
 
 process.stdout.write("[ACCEPTANCE][agent-route-contract] PASS 39/39\n");
 emitQualityProofObservation({
-  passed: true,
-  findings: [],
   lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V25",
   evidenceMode: "exam.property",
   clauses: ["forbidden:0", "forbidden:14", "forbidden:17", "forbidden:18", "forbidden:20", "forbidden:27", "forbidden:28", "forbidden:3", "forbidden:4", "forbidden:6", "forbidden:7", "forbidden:8", "summary"],

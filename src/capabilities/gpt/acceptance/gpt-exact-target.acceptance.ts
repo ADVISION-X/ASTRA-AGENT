@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+import assert from "../../../../scripts/audit/shared/governance-exam-assert.js";
 import { createHash } from "node:crypto";
 import sharp from "sharp";
 
@@ -471,8 +471,6 @@ assert.equal(uploadTimedOut.failureCode, "GPT_ATTACHMENT_UPLOAD_TIMEOUT:ready=0:
 assert.equal(uploadTimeoutFixture.physicalMutations(), 0, "timed-out reconciliation must never mutate the page");
 
 emitQualityProofObservation({
-  passed: true,
-  findings: [],
   lawId: "LAW-GPT-001-V16",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:10", "forbidden:11", "forbidden:13", "forbidden:3", "forbidden:5", "forbidden:9", "summary"],
@@ -480,8 +478,6 @@ emitQualityProofObservation({
   observedValue: "23 public child contracts exercised with exact target model attachment and response postconditions",
 });
 emitQualityProofObservation({
-  passed: true,
-  findings: [],
   lawId: "LAW-GPT-001-V16",
   evidenceMode: "exam.property",
   clauses: ["forbidden:10", "forbidden:13", "forbidden:14", "forbidden:5", "forbidden:7", "forbidden:8", "forbidden:9", "summary"],
@@ -489,8 +485,6 @@ emitQualityProofObservation({
   observedValue: "candidate cardinality visibility identity and typed blocker mutants rejected without extra mutation",
 });
 emitQualityProofObservation({
-  passed: true,
-  findings: [],
   lawId: "LAW-GPT-001-V16",
   evidenceMode: "exam.state-machine",
   clauses: ["forbidden:0", "forbidden:12", "forbidden:14", "forbidden:4", "forbidden:6", "forbidden:7", "summary"],

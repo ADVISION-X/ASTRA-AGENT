@@ -11,7 +11,7 @@ import { ROOT, fail, repositoryPaths, sha } from "../governance-runtime.js";
 import { buildQualityReport, type LawExecutionResult, type QualityAssertion, type QualityFinding, type QualityParticipant } from "./quality-contract.js";
 import { runInspectionWorker } from "./quality-inspector-worker.js";
 import type { InspectorFinding, InspectorLawResult, SessionInspectorOutput } from "./inspector-contracts.js";
-import { dynamicReceiptFileValid, parseQualityProofObservations, producerClaimRoutesMatch, type QualityProofObservation, type QualityProofRequest } from "./proof-observation.js";
+import { dynamicReceiptFileValid, examReceiptFileValid, parseQualityProofObservations, producerClaimRoutesMatch, type QualityProofObservation, type QualityProofRequest } from "./proof-observation.js";
 import { dynamicScriptFor, examScriptFor } from "./quality-routes.js";
 import { validateProviderContractSpec, type ProviderContract } from "./provider-contract-authority.js";
 export { dynamicScriptFor } from "./quality-routes.js";
@@ -299,28 +299,39 @@ const observationAuthenticatesRequest = (
 ): boolean => {
   if (observation.proofRunId !== request.proofRunId || observation.candidate !== request.candidate
     || observation.proofKind !== request.proofKind || observation.proofKind !== kind) return false;
-  if (kind === "exam") return nativeReceiptDirectory === null;
   if (nativeReceiptDirectory === null || observation.refs.length !== 1) return false;
   return observation.refs.every((reference) => {
-    const match = /^dynamic:([^#@]+)#([^#@]+)@([a-f0-9]{64})$/u.exec(reference);
+    const match = new RegExp(`^${kind}:([^#@]+)#([^#@]+)@([a-f0-9]{64})$`, "u").exec(reference);
     if (!match) return false;
     let locator: string;
     let selector: string;
     try { locator = decodeURIComponent(match[1]!); selector = decodeURIComponent(match[2]!); } catch { return false; }
     const identity = `lawId=${request.lawId};mode=${request.evidenceMode};command=npm run ${script};`;
     const execution = `;run=${request.proofRunId};candidate=${request.candidate};`;
+    const caseMarker = "case=";
+    const runMarker = ";run=";
+    const caseIndex = selector.indexOf(caseMarker);
+    const runIndex = selector.indexOf(runMarker);
+    const caseLocator = caseIndex >= 0 && runIndex > caseIndex
+      ? selector.slice(caseIndex + caseMarker.length, runIndex) : "";
     const observedValueMarker = ";observedValue=";
     const observedValueIndex = selector.indexOf(observedValueMarker);
     const observedValue = observedValueIndex >= 0
       ? selector.slice(observedValueIndex + observedValueMarker.length) : "";
     return selector.startsWith(identity) && selector.includes(execution)
-      && observedValue.length > 0
+      && caseLocator.length > 0 && observedValue.length > 0
       && nativeReceiptMatches(locator, match[3]!, nativeReceiptDirectory)
-      && dynamicReceiptFileValid(locator, {
-        lawId: observation.lawId, evidenceMode: observation.evidenceMode, clauses: observation.clauses,
-        observedValue, proofRunId: observation.proofRunId, candidate: observation.candidate,
-        producerScript: script,
-      });
+      && (kind === "dynamic"
+        ? dynamicReceiptFileValid(locator, {
+          lawId: observation.lawId, evidenceMode: observation.evidenceMode, clauses: observation.clauses,
+          observedValue, proofRunId: observation.proofRunId, candidate: observation.candidate,
+          producerScript: script,
+        })
+        : examReceiptFileValid(locator, {
+          lawId: observation.lawId, evidenceMode: observation.evidenceMode, clauses: observation.clauses,
+          observedValue, caseLocator, proofRunId: observation.proofRunId, candidate: observation.candidate,
+          producerScript: script,
+        }));
   });
 };
 
@@ -337,7 +348,7 @@ export const bindNativeProofObservations = (
   let observations: QualityProofObservation[];
   try { observations = parseQualityProofObservations(stdout); }
   catch { return fail("LAW_EVIDENCE_MISSING", "invalid native proof observation"); }
-  const dynamicLocators = new Set<string>();
+  const nativeLocators = new Set<string>();
   for (const observation of observations) {
     const key = `${observation.lawId}\0${observation.evidenceMode}`;
     if (!index.expected.has(key)) fail("LAW_EVIDENCE_UNEXPECTED", key.replace("\0", ":"));
@@ -346,13 +357,13 @@ export const bindNativeProofObservations = (
     if (!observationAuthenticatesRequest(observation, request, kind, nativeReceiptDirectory, script)) {
       fail("LAW_EVIDENCE_MISSING", `native-receipt-binding:${key.replace("\0", ":")}`);
     }
-    if (kind === "dynamic") {
-      const locator = /^dynamic:([^#@]+)#/u.exec(observation.refs[0]!)?.[1];
+    {
+      const locator = /^(?:dynamic|exam):([^#@]+)#/u.exec(observation.refs[0]!)?.[1];
       if (!locator) return fail("LAW_EVIDENCE_MISSING", `native-receipt-locator:${key.replace("\0", ":")}`);
       let decoded: string;
       try { decoded = decodeURIComponent(locator); } catch { return fail("LAW_EVIDENCE_MISSING", "native-receipt-locator"); }
-      if (dynamicLocators.has(decoded)) fail("LAW_EVIDENCE_DUPLICATE", `native-receipt-locator:${decoded}`);
-      dynamicLocators.add(decoded);
+      if (nativeLocators.has(decoded)) fail("LAW_EVIDENCE_DUPLICATE", `native-receipt-locator:${decoded}`);
+      nativeLocators.add(decoded);
     }
     bound.set(key, observation);
   }
@@ -398,7 +409,7 @@ const executeProofCommand = (
   writeFileSync(stderrPath, execution.stderr ?? "", { mode: 0o600 });
   const observations = bindNativeProofObservations(
     execution.stdout ?? "", routes, requests, script, kind,
-    kind === "dynamic" ? nativeReceiptDirectory : null,
+    nativeReceiptDirectory,
   );
   const executionPassed = execution.status === 0 && execution.signal === null;
   if (!executionPassed || observations.size !== routes.length) process.stderr.write(execution.stderr || execution.stdout || `${script} failed\n`);

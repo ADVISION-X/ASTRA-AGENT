@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+import assert from "../audit/shared/governance-exam-assert.js";
 import { createHash } from "node:crypto";
 import { lstatSync, readFileSync, writeFileSync } from "node:fs";
 import type { Server } from "node:http";

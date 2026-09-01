@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+import assert from "../audit/shared/governance-exam-assert.js";
 import { createHash, webcrypto } from "node:crypto";
 import { runInNewContext } from "node:vm";
 

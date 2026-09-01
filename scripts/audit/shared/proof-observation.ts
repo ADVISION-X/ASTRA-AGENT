@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 export type QualityProofObservation = Readonly<{
@@ -18,8 +18,8 @@ type QualityProofObservationInput = Readonly<{
   lawId: string;
   evidenceMode: string;
   clauses: string[];
-  passed: boolean;
-  findings: Array<{ code: string; evidenceRefs: string[] }>;
+  passed?: boolean;
+  findings?: Array<{ code: string; evidenceRefs: string[] }>;
   locator: string;
   observedValue: string;
   receipt?: string;
@@ -40,6 +40,16 @@ export type DynamicReceiptBinding = Readonly<{
   evidenceMode: string;
   clauses: readonly string[];
   observedValue: string;
+  proofRunId: string;
+  candidate: string;
+  producerScript: string;
+}>;
+export type ExamReceiptBinding = Readonly<{
+  lawId: string;
+  evidenceMode: string;
+  clauses: readonly string[];
+  observedValue: string;
+  caseLocator: string;
   proofRunId: string;
   candidate: string;
   producerScript: string;
@@ -254,6 +264,126 @@ export const dynamicReceiptFileValid = (file: string, binding: DynamicReceiptBin
   catch { return false; }
 };
 
+type ExamAssertionTrace = Readonly<{
+  schema_version: "governance-exam-assertion.v1";
+  proof_run_id: string;
+  candidate: string;
+  producer_script: string;
+  process_id: number;
+  sequence: number;
+  method: string;
+  source_path: string;
+  source_line: number;
+  source_column: number;
+  source_digest: string;
+  source_line_digest: string;
+  argument_digest: string;
+}>;
+const examTraceKeys = [
+  "argument_digest", "candidate", "method", "process_id", "producer_script", "proof_run_id", "schema_version",
+  "sequence", "source_column", "source_digest", "source_line", "source_line_digest", "source_path",
+];
+const examAssertionMethods = new Set([
+  "deepEqual", "deepStrictEqual", "doesNotMatch", "doesNotReject", "doesNotThrow", "equal", "ifError", "match",
+  "notDeepEqual", "notDeepStrictEqual", "notEqual", "notStrictEqual", "ok", "partialDeepStrictEqual", "rejects",
+  "strictEqual", "throws",
+]);
+const examAssertionSourceValid = (trace: ExamAssertionTrace): boolean => {
+  const root = resolve();
+  const sourcePath = resolve(trace.source_path);
+  if (sourcePath !== trace.source_path || !sourcePath.startsWith(`${root}/`)
+    || !/(?:\/scripts\/acceptance\/|\/src\/[^/]+(?:\/[^/]+)*\/acceptance\/)/u.test(sourcePath)
+    || !existsSync(sourcePath)) return false;
+  const stat = lstatSync(sourcePath);
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 4 * 1024 * 1024) return false;
+  const source = readFileSync(sourcePath, "utf8");
+  const line = source.split("\n")[trace.source_line - 1] ?? "";
+  const compact = line.replace(/\s+/gu, "");
+  return trace.source_digest === createHash("sha256").update(source).digest("hex")
+    && trace.source_line_digest === createHash("sha256").update(line).digest("hex")
+    && /\bassert(?:\.[A-Za-z]+)?\s*\(/u.test(line)
+    && !/assert(?:\.ok)?\(true(?:[,\)])|assert\.(?:equal|strictEqual|deepEqual|deepStrictEqual)\(([^,()]+),\1[,\)]/u.test(compact);
+};
+const examTraceValid = (value: unknown, binding: ExamReceiptBinding): value is ExamAssertionTrace => {
+  if (!plainObject(value) || !exactKeys(value, examTraceKeys)
+    || value.schema_version !== "governance-exam-assertion.v1"
+    || value.proof_run_id !== binding.proofRunId || value.candidate !== binding.candidate
+    || value.producer_script !== binding.producerScript || !examAssertionMethods.has(String(value.method))
+    || !Number.isSafeInteger(value.process_id) || Number(value.process_id) <= 0
+    || !Number.isSafeInteger(value.sequence) || Number(value.sequence) <= 0
+    || !Number.isSafeInteger(value.source_line) || Number(value.source_line) <= 0
+    || !Number.isSafeInteger(value.source_column) || Number(value.source_column) <= 0
+    || typeof value.source_path !== "string" || !digest(value.source_digest)
+    || !digest(value.source_line_digest) || !digest(value.argument_digest)) return false;
+  return examAssertionSourceValid(value as ExamAssertionTrace);
+};
+const examAssertionTraces = (root: string, binding: ExamReceiptBinding): ExamAssertionTrace[] => {
+  const traces: ExamAssertionTrace[] = [];
+  const names = readdirSync(root).filter((entry) => /^exam-assertions-[1-9][0-9]*\.jsonl$/u.test(entry)).sort();
+  for (const name of names) {
+    const file = resolve(root, name);
+    const stat = lstatSync(file);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 16 * 1024 * 1024) {
+      throw new Error("QUALITY_EXAM_ASSERTION_TRACE_INVALID");
+    }
+    for (const line of readFileSync(file, "utf8").split("\n").filter(Boolean)) {
+      const trace: unknown = JSON.parse(line);
+      if (!examTraceValid(trace, binding)) throw new Error("QUALITY_EXAM_ASSERTION_TRACE_INVALID");
+      traces.push(trace);
+    }
+  }
+  const unique = new Set(traces.map((trace) => createHash("sha256").update(JSON.stringify(trace)).digest("hex")));
+  if (!traces.length || unique.size !== traces.length) throw new Error("QUALITY_EXAM_ASSERTION_TRACE_INVALID");
+  return traces;
+};
+export const validateExamReceiptPayload = (payload: unknown, binding: ExamReceiptBinding): boolean => {
+  if (!plainObject(payload) || !exactKeys(payload, [
+    "assertion_traces", "candidate", "captured_at", "case_locator", "clauses", "evidenceMode", "lawId",
+    "observed_value", "producer_script", "proof_run_id", "schema_version",
+  ]) || payload.schema_version !== "governance-exam-observation.v1"
+    || payload.proof_run_id !== binding.proofRunId || payload.candidate !== binding.candidate
+    || payload.lawId !== binding.lawId || payload.evidenceMode !== binding.evidenceMode
+    || payload.case_locator !== binding.caseLocator || payload.observed_value !== binding.observedValue
+    || payload.producer_script !== binding.producerScript || !dynamicReceiptTimestampValid(payload.captured_at)
+    || !clausesValid(payload.clauses) || JSON.stringify(payload.clauses) !== JSON.stringify(binding.clauses)
+    || !Array.isArray(payload.assertion_traces) || !payload.assertion_traces.length) return false;
+  return payload.assertion_traces.every((trace) => examTraceValid(trace, binding));
+};
+export const examReceiptFileValid = (file: string, binding: ExamReceiptBinding): boolean => {
+  try { return validateExamReceiptPayload(JSON.parse(readFileSync(file, "utf8")), binding); }
+  catch { return false; }
+};
+const createExamReceipt = (
+  observation: QualityProofObservationInput, context: EmissionContext,
+): Readonly<{ locator: string; digest: string }> => {
+  const configuredRoot = process.env.GOVERNANCE_PROOF_RECEIPT_DIR?.trim();
+  if (!configuredRoot) throw new Error("QUALITY_EXAM_RECEIPT_ROOT_MISSING");
+  const root = resolve(configuredRoot);
+  const binding: ExamReceiptBinding = {
+    lawId: observation.lawId, evidenceMode: observation.evidenceMode, clauses: observation.clauses,
+    observedValue: observation.observedValue, caseLocator: observation.locator,
+    proofRunId: context.proofRunId, candidate: context.candidate, producerScript: context.script,
+  };
+  const payload = {
+    schema_version: "governance-exam-observation.v1",
+    proof_run_id: binding.proofRunId,
+    candidate: binding.candidate,
+    lawId: binding.lawId,
+    evidenceMode: binding.evidenceMode,
+    clauses: [...binding.clauses],
+    case_locator: binding.caseLocator,
+    observed_value: binding.observedValue,
+    producer_script: binding.producerScript,
+    captured_at: new Date().toISOString(),
+    assertion_traces: examAssertionTraces(root, binding),
+  };
+  if (!validateExamReceiptPayload(payload, binding)) throw new Error("QUALITY_EXAM_RECEIPT_INVALID");
+  const token = createHash("sha256").update(`${binding.lawId}\0${binding.evidenceMode}`).digest("hex").slice(0, 24);
+  const locator = resolve(root, `exam-${token}.json`);
+  writeFileSync(locator, `${JSON.stringify(payload)}\n`, { encoding: "utf8", flag: "wx", mode: 0o600 });
+  return { locator, digest: createHash("sha256").update(readFileSync(locator)).digest("hex") };
+};
+
 const nativeReceiptValid = (locator: string, receipt: string | undefined,
   observation: QualityProofObservationInput, context: EmissionContext): boolean => {
   const configuredRoot = process.env.GOVERNANCE_PROOF_RECEIPT_DIR?.trim();
@@ -282,7 +412,8 @@ const observationValid = (
   && digest(context.proofRunId) && candidateValid(context.candidate)
   && context.proofKind === (dynamic ? "dynamic" : "exam");
 
-const proofRef = (observation: QualityProofObservationInput, context: EmissionContext): string => {
+const proofRef = (observation: QualityProofObservationInput, context: EmissionContext,
+  examReceipt: Readonly<{ locator: string; digest: string }> | null): string => {
   const dynamic = observation.evidenceMode.startsWith("dynamic.");
   const selector = encodeURIComponent([
     `lawId=${observation.lawId}`, `mode=${observation.evidenceMode}`, `command=npm run ${context.script}`,
@@ -291,7 +422,7 @@ const proofRef = (observation: QualityProofObservationInput, context: EmissionCo
   ].join(";"));
   return dynamic
     ? `dynamic:${encodeURIComponent(observation.locator)}#${selector}@${observation.receipt}`
-    : `exam:package.json#${selector}`;
+    : `exam:${encodeURIComponent(examReceipt!.locator)}#${selector}@${examReceipt!.digest}`;
 };
 
 export const emitQualityProofObservation = (observation: QualityProofObservationInput): void => {
@@ -300,14 +431,17 @@ export const emitQualityProofObservation = (observation: QualityProofObservation
   const dynamic = observation.evidenceMode.startsWith("dynamic.");
   if (!locatorValid(dynamic, observation.locator) || !observation.observedValue.trim()
     || !receiptValid(dynamic, observation.receipt) || !context.script
+    || (dynamic && (typeof observation.passed !== "boolean" || !Array.isArray(observation.findings)))
+    || (!dynamic && (observation.passed !== undefined || observation.findings !== undefined))
     || (dynamic && !nativeReceiptValid(observation.locator, observation.receipt, observation, context))
     || !Number.isSafeInteger(context.timeoutMs) || context.timeoutMs < 1) {
     throw new Error("QUALITY_PROOF_OBSERVATION_INVALID");
   }
+  const examReceipt = dynamic ? null : createExamReceipt(observation, context);
   const emitted: QualityProofObservation = {
     lawId: observation.lawId, evidenceMode: observation.evidenceMode,
-    clauses: observation.clauses, passed: observation.passed,
-    refs: [proofRef(observation, context)], findings: observation.findings,
+    clauses: observation.clauses, passed: dynamic ? observation.passed! : true,
+    refs: [proofRef(observation, context, examReceipt)], findings: dynamic ? observation.findings! : [],
     proofRunId: context.proofRunId, candidate: context.candidate, proofKind: context.proofKind,
   };
   if (!observationValid(emitted, context, dynamic)) throw new Error("QUALITY_PROOF_OBSERVATION_INVALID");

@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+import assert from "../audit/shared/governance-exam-assert.js";
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { extname } from "node:path";
@@ -42,8 +42,6 @@ for (const path of repositoryPaths().filter(governedPath)) {
 
 process.stdout.write("[ACCEPTANCE][app-shell-retired-authority-absence] PASS\n");
 emitQualityProofObservation({
-  passed: true,
-  findings: [],
   lawId: "LAW-APP-SHELL-UI-003-V3",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],

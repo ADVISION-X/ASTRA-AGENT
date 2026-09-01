@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+import assert from "../audit/shared/governance-exam-assert.js";
 import { readFile } from "node:fs/promises";
 import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
@@ -342,5 +342,5 @@ export async function runStartupInitializationHealthAcceptance(): Promise<void> 
 
 await runStartupInitializationHealthAcceptance();
 process.stdout.write("startup initialization health acceptance: PASS\n");
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:10","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"], locator: "acceptance:startup:shell-survives-dependency-failure", observedValue: "diagnostic Shell remains ready while execution dependency is blocked" });
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-STARTUP-ENTRYPOINT-002-V4", evidenceMode: "exam.golden", clauses: ["forbidden:3","forbidden:4","forbidden:5","forbidden:6","summary"], locator: "acceptance:startup:local-port-and-artifact-boundary", observedValue: "current-source artifact sync, unpacked preflight and repository-owned listener cleanup verified" });
+emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:10","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"], locator: "acceptance:startup:shell-survives-dependency-failure", observedValue: "diagnostic Shell remains ready while execution dependency is blocked" });
+emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V4", evidenceMode: "exam.golden", clauses: ["forbidden:3","forbidden:4","forbidden:5","forbidden:6","summary"], locator: "acceptance:startup:local-port-and-artifact-boundary", observedValue: "current-source artifact sync, unpacked preflight and repository-owned listener cleanup verified" });

@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+import assert from "../audit/shared/governance-exam-assert.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -73,5 +73,5 @@ try {
 }
 
 process.stdout.write("[ACCEPTANCE] runtime-log-redaction PASS\n");
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-RUNTIME-LOG-SPINE-002-V4", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","summary"], locator: "acceptance:runtime-log:redaction", observedValue: "cookie authorization API key image and full URL content redacted before sinks" });
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-RUNTIME-LOG-SPINE-002-V4", evidenceMode: "exam.property", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","summary"], locator: "acceptance:runtime-log:redaction-property-matrix", observedValue: "nested secret unsafe path data URL and query fragment variants reduced to safe projections" });
+emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-002-V4", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","summary"], locator: "acceptance:runtime-log:redaction", observedValue: "cookie authorization API key image and full URL content redacted before sinks" });
+emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-002-V4", evidenceMode: "exam.property", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","summary"], locator: "acceptance:runtime-log:redaction-property-matrix", observedValue: "nested secret unsafe path data URL and query fragment variants reduced to safe projections" });

@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+import assert from "../audit/shared/governance-exam-assert.js";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Project } from "ts-morph";
@@ -78,7 +78,7 @@ const blueprintWithoutAcceptanceEvidence = blueprintSource.replace(/验收|pass|
 assert.equal(blueprintMarkdownBodyValid(blueprintWithoutAcceptanceEvidence), false);
 
 console.log("capability-governance-acceptance-ok");
-emitQualityProofObservation({ passed: true, findings: [],
+emitQualityProofObservation({
   lawId: "LAW-CAPABILITY-GOVERNANCE-001-V4", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","summary"],
   locator: "acceptance:capability-governance:mutant-matrix",
   observedValue: "seven capability-governance clause mutants rejected by the capability-governance inspector",

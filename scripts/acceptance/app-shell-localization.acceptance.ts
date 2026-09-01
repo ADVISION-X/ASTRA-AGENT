@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+import assert from "../audit/shared/governance-exam-assert.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 import { renderAppShell } from "../../src/app/app-shell/app-shell.js";
@@ -66,4 +66,4 @@ for (const [english, chinese] of Object.entries(zhCopy)) {
 }
 
 process.stdout.write("[ACCEPTANCE][app-shell-localization] PASS\n");
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-APP-SHELL-UI-002-V1", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","summary"], locator: "acceptance:app-shell-ui:localization-completeness", observedValue: "all translatable static Shell copy has non-empty Chinese mapping" });
+emitQualityProofObservation({ lawId: "LAW-APP-SHELL-UI-002-V1", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","summary"], locator: "acceptance:app-shell-ui:localization-completeness", observedValue: "all translatable static Shell copy has non-empty Chinese mapping" });

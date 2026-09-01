@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+import assert from "../audit/shared/governance-exam-assert.js";
 import { cpSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
@@ -150,4 +150,4 @@ for (const [caseName, expected] of forbidden) assert.equal(hasFinding(caseName, 
 assert.ok(runCase("zombie-to-zombie-chain").filter((finding) => finding.checkId === "code-purity/zombie-file").length >= 3);
 rmSync(RUNTIME_ROOT, { force: true, recursive: true });
 console.log("code-purity-zombie-deep-acceptance-ok");
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-CODE-PURITY-003-V2", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","summary"], locator: "acceptance:code-purity:zombie-mutant-matrix", observedValue: "required zombie mutants rejected and allowed ownership cases retained" });
+emitQualityProofObservation({ lawId: "LAW-CODE-PURITY-003-V2", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","summary"], locator: "acceptance:code-purity:zombie-mutant-matrix", observedValue: "required zombie mutants rejected and allowed ownership cases retained" });

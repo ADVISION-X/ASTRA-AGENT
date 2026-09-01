@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+import assert from "../audit/shared/governance-exam-assert.js";
 
 import type { ProductPlugin } from "../../src/lib/local-runtime/production/plugin.js";
 import {

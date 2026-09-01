@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+import assert from "../audit/shared/governance-exam-assert.js";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -300,8 +300,6 @@ try {
 }
 
 emitQualityProofObservation({
-  passed: true,
-  findings: [],
   lawId: "LAW-LOCAL-BROWSER-SESSION-004-V14",
   evidenceMode: "exam.golden",
   clauses: [

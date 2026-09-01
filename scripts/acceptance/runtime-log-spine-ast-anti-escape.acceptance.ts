@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+import assert from "../audit/shared/governance-exam-assert.js";
 import { directOutputViolations } from "../audit/domains/runtime-log-spine/inspector.js";
 
 assert.deepEqual(directOutputViolations("const escaped = console.error; escaped('secret');\n", "src/alias-mutant.ts"), [1]);

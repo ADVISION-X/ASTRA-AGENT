@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+import assert from "../audit/shared/governance-exam-assert.js";
 import { createHash } from "node:crypto";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -168,6 +168,6 @@ assert.equal("mutationState" in walDiagnosis, false);
 assert.equal("recoveries" in walDiagnosis, false);
 
 process.stdout.write("runtime log spine failure matrix acceptance: PASS\n");
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-RUNTIME-LOG-SPINE-003-V6", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:3","forbidden:4","forbidden:5","forbidden:7","summary"], locator: "acceptance:runtime-log:failure-matrix-golden", observedValue: "typed event span terminal causal failure and browser mutation identities diagnosed through one event grammar" });
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-RUNTIME-LOG-SPINE-003-V6", evidenceMode: "exam.property", clauses: ["forbidden:0","forbidden:1","forbidden:3","forbidden:4","forbidden:6","forbidden:7","summary"], locator: "acceptance:runtime-log:failure-matrix-properties", observedValue: "owner operation identity hash chain capacity and WAL authority variants fail closed" });
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-RUNTIME-LOG-SPINE-003-V6", evidenceMode: "exam.state-machine", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","summary"], locator: "acceptance:runtime-log:producer-state-machine", observedValue: "producer sequence span causality stale interruption shutdown and dispatched mutation transitions exercised" });
+emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-003-V6", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:3","forbidden:4","forbidden:5","forbidden:7","summary"], locator: "acceptance:runtime-log:failure-matrix-golden", observedValue: "typed event span terminal causal failure and browser mutation identities diagnosed through one event grammar" });
+emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-003-V6", evidenceMode: "exam.property", clauses: ["forbidden:0","forbidden:1","forbidden:3","forbidden:4","forbidden:6","forbidden:7","summary"], locator: "acceptance:runtime-log:failure-matrix-properties", observedValue: "owner operation identity hash chain capacity and WAL authority variants fail closed" });
+emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-003-V6", evidenceMode: "exam.state-machine", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","summary"], locator: "acceptance:runtime-log:producer-state-machine", observedValue: "producer sequence span causality stale interruption shutdown and dispatched mutation transitions exercised" });

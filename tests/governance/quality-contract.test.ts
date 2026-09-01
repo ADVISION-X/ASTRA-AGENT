@@ -32,7 +32,7 @@ import {
 import { assertCandidateStable, assertExactProviderContract, assertParticipantCommitIdentity, bindNativeProofObservations, computeTargetPaths, dynamicScriptFor, parseInspectorOutput } from "../../scripts/audit/shared/quality-runner.js";
 import { validateProviderContractSpec } from "../../scripts/audit/shared/provider-contract-authority.js";
 import type { InspectorContext } from "../../scripts/audit/shared/inspector-contracts.js";
-import { producerClaimRoutesFor, proofObservationPrefix, validateDynamicReceiptPayload } from "../../scripts/audit/shared/proof-observation.js";
+import { producerClaimRoutesFor, proofObservationPrefix, validateDynamicReceiptPayload, validateExamReceiptPayload } from "../../scripts/audit/shared/proof-observation.js";
 import type { QualityProofRequest } from "../../scripts/audit/shared/proof-observation.js";
 import { retiredAuthorityExamContractViolations } from "../../scripts/audit/domains/app-shell-ui/inspector-retired-authority-absence.js";
 import { relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
@@ -81,8 +81,7 @@ const staticReceipt = (lawId: string, check: string, passed = true) => [{
   nativeObservation: `typechecker:${sha(Buffer.from(`typechecker:${check}`))}`, passed,
 }];
 const externalFixtureRef = (kind: "exam" | "dynamic", selector: string): string =>
-  kind === "exam" ? `exam:package.json#${encodeURIComponent(selector)}`
-    : `dynamic:${encodeURIComponent(fixtureEvidencePath)}#${encodeURIComponent(selector)}@${fixtureEvidenceDigest}`;
+  `${kind}:${encodeURIComponent(fixtureEvidencePath)}#${encodeURIComponent(selector)}@${fixtureEvidenceDigest}`;
 const resultFor = (law: Law): LawExecutionResult => {
   const required = requiredModes(law, "READY");
   const denominator = [...law.forbidden.map((_, index) => `forbidden:${index}`), "summary"].sort();
@@ -256,7 +255,7 @@ test("quality report rejects empty and fixed-PASS evidence references", () => {
   );
 });
 
-test("Exam uses a Git-bound replay locator and Dynamic requires a native receipt", () => {
+test("Exam and Dynamic evidence both require native current-run receipt locators", () => {
   const law = fixtureLaw();
   const missingExamLocator = resultFor(law);
   missingExamLocator.assertions.find((assertion) => assertion.evidenceMode.startsWith("exam."))!.refs = ["exam:fixture#script%3Dfixture"];
@@ -264,7 +263,7 @@ test("Exam uses a Git-bound replay locator and Dynamic requires a native receipt
     () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [missingExamLocator] }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
   );
-  assert.equal(validEvidenceRef("exam:package.json#script%3Dfixture"), true);
+  assert.equal(validEvidenceRef("exam:package.json#script%3Dfixture"), false);
   assert.equal(validEvidenceRef(`dynamic:${encodeURIComponent(fixtureEvidencePath)}#script%3Dfixture`), false);
   assert.equal(validEvidenceRef(`dynamic:${encodeURIComponent(fixtureEvidencePath)}#script%3Dfixture@${"a".repeat(64)}`), true);
   assert.equal(validEvidenceRef(externalFixtureRef("exam", "script=fixture")), true);
@@ -283,7 +282,7 @@ const proofRequests = (
   lawId: law.lawId, evidenceMode: mode, proofRunId: "a".repeat(64), candidate: "b".repeat(40),
   proofKind,
 }));
-const examRef = (selector: string): string => `exam:package.json#${encodeURIComponent(selector)}`;
+const examRef = (selector: string): string => `exam:${encodeURIComponent(fixtureEvidencePath)}#${encodeURIComponent(selector)}@${fixtureEvidenceDigest}`;
 const dynamicRef = (
   request: QualityProofRequest, locator: string, receipt: string, script: string,
 ): string => `dynamic:${encodeURIComponent(locator)}#${encodeURIComponent([
@@ -393,6 +392,36 @@ test("a generic service object cannot authenticate a factually unrelated startup
     proofRunId: payload.proof_run_id, candidate: payload.candidate, producerScript }), false);
 });
 
+test("Exam receipts bind executed semantic assertion callsites and reject fixed or drifted traces", () => {
+  const sourcePath = resolve("scripts/acceptance/system-security.acceptance.ts");
+  const source = readFileSync(sourcePath, "utf8");
+  const sourceLines = source.split("\n");
+  const sourceLineIndex = sourceLines.findIndex((line) => /\bassert(?:\.[A-Za-z]+)?\s*\(/u.test(line));
+  assert.notEqual(sourceLineIndex, -1);
+  const binding = {
+    lawId: "LAW-SYSTEM-SECURITY-001-V5", evidenceMode: "exam.golden",
+    clauses: ["forbidden:0", "summary"], observedValue: "semantic-mutants-rejected",
+    caseLocator: "acceptance:system-security:attack-mutants", proofRunId: "a".repeat(64),
+    candidate: "b".repeat(40), producerScript: "acceptance:system-security",
+  };
+  const trace = {
+    schema_version: "governance-exam-assertion.v1", proof_run_id: binding.proofRunId,
+    candidate: binding.candidate, producer_script: binding.producerScript, process_id: 4173, sequence: 1,
+    method: "equal", source_path: sourcePath, source_line: sourceLineIndex + 1, source_column: 1,
+    source_digest: sha(source), source_line_digest: sha(sourceLines[sourceLineIndex]!), argument_digest: "c".repeat(64),
+  };
+  const payload = {
+    schema_version: "governance-exam-observation.v1", proof_run_id: binding.proofRunId,
+    candidate: binding.candidate, lawId: binding.lawId, evidenceMode: binding.evidenceMode,
+    clauses: binding.clauses, case_locator: binding.caseLocator, observed_value: binding.observedValue,
+    producer_script: binding.producerScript, captured_at: "2026-09-02T00:00:00.000Z", assertion_traces: [trace],
+  };
+  assert.equal(validateExamReceiptPayload(payload, binding), true);
+  assert.equal(validateExamReceiptPayload({ ...payload, assertion_traces: [] }, binding), false);
+  assert.equal(validateExamReceiptPayload({ ...payload,
+    assertion_traces: [{ ...trace, source_line_digest: "d".repeat(64) }] }, binding), false);
+});
+
 test("a fixed or unauthenticated stdout marker cannot mint evidence for unexecuted law routes", () => {
   const first = { ...fixtureLaw(), lawId: "LAW-GPT-001-V2", capabilityDomain: "gpt" };
   const routes = [{ law: first, mode: "exam.golden" }];
@@ -404,7 +433,11 @@ test("a fixed or unauthenticated stdout marker cannot mint evidence for unexecut
       "lawId=LAW-GPT-001-V2;mode=exam.golden;case=provider-boundary",
     )]),
   })}\n`;
-  assert.equal(bindNativeProofObservations(oneNativeObservation, routes, requests, script, "exam").size, 1);
+  assert.throws(
+    () => bindNativeProofObservations(oneNativeObservation, routes, requests, script, "exam"),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
+    "an Exam stdout claim without an executed assertion receipt must fail closed",
+  );
   const missingProducerClauses = `${proofObservationPrefix}${JSON.stringify({
     ...requests[0], passed: true, refs: [examRef("case=missing-clauses")], findings: [],
   })}\n`;
@@ -422,7 +455,7 @@ test("a fixed or unauthenticated stdout marker cannot mint evidence for unexecut
   );
 });
 
-test("native proof observations reject one locator reused across law routes", () => {
+test("Exam observations reject duplicate self-attested stdout before route binding", () => {
   const law = { ...fixtureLaw(), lawId: "LAW-GPT-001-V2", capabilityDomain: "gpt" };
   const routes = [{ law, mode: "exam.golden" }];
   const requests = proofRequests(routes);
@@ -433,7 +466,7 @@ test("native proof observations reject one locator reused across law routes", ()
   })}`;
   assert.throws(
     () => bindNativeProofObservations(`${line}\n${line}`, routes, requests, "acceptance:gpt", "exam"),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_DUPLICATE",
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
   );
   assert.throws(
     () => bindNativeProofObservations(`${proofObservationPrefix}{not-json}`, routes, requests, "acceptance:gpt", "exam"),
