@@ -66,8 +66,7 @@ const readOutbox = (
   if (!match?.[1]) return null;
   return {
     idempotencyKey: row.idempotency_key, jobId: decodeURIComponent(match[1]), kind: row.kind,
-    state: row.sent_at && row.response_hash ? "delivered"
-      : row.last_error && row.next_delivery_at === null ? "failed" : "pending",
+    state: row.sent_at && row.response_hash ? "delivered" : "pending",
     nextDeliveryAt: row.next_delivery_at, lastError: row.last_error,
     responseHash: row.response_hash, receiptHash: row.receipt_hash,
   };

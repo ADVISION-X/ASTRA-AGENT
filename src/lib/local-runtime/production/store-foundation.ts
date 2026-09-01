@@ -62,7 +62,7 @@ export type ProductionOutboxAuthority = Readonly<{
   idempotencyKey: string;
   jobId: string;
   kind: ProductionOutboxWrite["kind"];
-  state: "pending" | "delivered" | "failed";
+  state: "pending" | "delivered";
   nextDeliveryAt: string | null;
   lastError: string | null;
   responseHash: ProductionHash | null;
@@ -240,6 +240,14 @@ const migrateContinuationFrontierSchema = (database: Database.Database): void =>
     production_continuations_frontier_ref_unique on production_continuations(frontier_ref)`);
 };
 
+const restoreOutboxDeliverySchedule = (database: Database.Database): void => {
+  if (!currentCoreSchemaPresent(database)) return;
+  database.prepare(`update production_outbox set next_delivery_at=?
+    where sent_at is null and response_hash is null
+      and last_error is not null and next_delivery_at is null`
+  ).run(new Date(Date.now() + 3_600_000).toISOString());
+};
+
 const replaceEmptyExecutionSchema = (database: Database.Database): void => {
   if (currentSchemaPresent(database)) return;
   const existing = executionTables.filter((table) => tableColumns(database, table).size > 0);
@@ -266,8 +274,8 @@ export abstract class ProductionStoreFoundation implements GptContinuationStoreP
     this.database.pragma("foreign_keys = ON");
     migrateContinuationFrontierSchema(this.database);
     replaceEmptyExecutionSchema(this.database);
-    if (currentSchemaPresent(this.database)) return;
-    createProductionTables(this.database);
+    if (!currentSchemaPresent(this.database)) createProductionTables(this.database);
+    restoreOutboxDeliverySchedule(this.database);
   }
 
   public setOutboxObserver(observer: ProductionOutboxObserver): void { this.outboxObserver = observer; }

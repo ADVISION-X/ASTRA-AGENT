@@ -17,12 +17,8 @@ import {
   type ProductionOutboxWrite,
 } from "./store-foundation.js";
 
-const OUTBOX_RETRY_DELAY_MS = 5_000;
-const OUTBOX_STALE_RETIRE_CODES = new Set([
-  "AI_LEASE_FENCE_STALE",
-  "AI_V6_LEASE_RACE",
-  "AI_V6_JOB_NOT_FOUND",
-]);
+const OUTBOX_TRANSIENT_RETRY_DELAY_MS = 5_000;
+const OUTBOX_LOW_FREQUENCY_RETRY_DELAY_MS = 3_600_000;
 
 const receiptHashOf = (response: Record<string, unknown>): ProductionHash | null =>
   typeof response.receipt_hash === "string" && /^sha256:[a-f0-9]{64}$/u.test(response.receipt_hash)
@@ -115,11 +111,11 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
     return row?.response_json ? JSON.parse(row.response_json) as unknown : null;
   }
 
-  public unreconciledOutboxJobIds(): readonly string[] {
+  public unreconciledOutboxJobIds(observedAt = now()): readonly string[] {
     const rows = this.database.prepare(`select path from production_outbox
       where sent_at is null and response_hash is null
-        and (last_error is null or last_error='CLOUD_TRANSPORT_UNAVAILABLE' or next_delivery_at is not null)
-      order by created_at,idempotency_key`).all() as Array<{ path: string }>;
+        and (last_error is null or (next_delivery_at is not null and next_delivery_at<=?))
+      order by created_at,idempotency_key`).all(observedAt) as Array<{ path: string }>;
     const jobIds = rows.map((row) => /\/jobs\/([^/]+)\//u.exec(row.path)?.[1])
       .filter((jobId): jobId is string => Boolean(jobId)).map(decodeURIComponent);
     return Object.freeze([...new Set(jobIds)]);
@@ -132,7 +128,7 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
     ).get(`%/jobs/${encodeURIComponent(jobId)}/%`));
   }
 
-  public rejectedCheckpointIntent(input: Readonly<{
+  public scheduledCheckpointFailure(input: Readonly<{
     jobId: string;
     attemptId: string;
     checkpointSeq: number;
@@ -141,13 +137,11 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
   }>): string | null {
     const rows = this.database.prepare(`select body_blob,last_error from production_outbox
       where kind='checkpoint' and path like ? and sent_at is null and response_hash is null
-        and last_error is not null and next_delivery_at is null order by created_at,idempotency_key`
+        and last_error is not null and next_delivery_at is not null order by created_at,idempotency_key`
     ).all(`%/jobs/${encodeURIComponent(input.jobId)}/%`) as Array<{
       body_blob: Buffer; last_error: string;
     }>;
     for (const row of rows) {
-      if (row.last_error === "CLOUD_TRANSPORT_UNAVAILABLE"
-        || row.last_error.startsWith("STALE_LEASE_OUTBOX_RETIRED:")) continue;
       const body = JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>;
       if (body.job_id === input.jobId && body.attempt_id === input.attemptId
         && body.checkpoint_seq === input.checkpointSeq && body.checkpoint_kind === input.checkpointKind
@@ -188,12 +182,6 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
     const transaction = this.database.transaction(() => {
       let hydrated = 0;
       for (const receipt of receipts) if (this.hydrateOne(jobId, receipt)) hydrated += 1;
-      this.database.prepare(`update production_outbox set next_delivery_at=?
-        where path like ? and sent_at is null and last_error='CLOUD_TRANSPORT_UNAVAILABLE'
-          and next_delivery_at is null`).run(
-        new Date(Date.now() + OUTBOX_RETRY_DELAY_MS).toISOString(),
-        `%/jobs/${encodeURIComponent(jobId)}/%`,
-      );
       return hydrated;
     });
     return transaction();
@@ -249,10 +237,11 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
     const timestamp = now();
     const typed = typedExecutionFailure(error);
     const code = failureCode(error, "OUTBOX_DELIVERY_FAILED");
-    const retryableResponse = typed?.httpStatus !== null && typed?.httpStatus !== undefined
-      && typed.httpStatus >= 500 && typed.httpStatus <= 599;
-    const nextDeliveryAt = retryableResponse
-      ? new Date(Date.parse(timestamp) + OUTBOX_RETRY_DELAY_MS).toISOString() : null;
+    const deterministicResponse = typed?.httpStatus !== null && typed?.httpStatus !== undefined
+      && typed.httpStatus >= 400 && typed.httpStatus <= 499;
+    const delay = deterministicResponse
+      ? OUTBOX_LOW_FREQUENCY_RETRY_DELAY_MS : OUTBOX_TRANSIENT_RETRY_DELAY_MS;
+    const nextDeliveryAt = new Date(Date.parse(timestamp) + delay).toISOString();
     const changed = this.database.prepare(`update production_outbox
       set last_error=?,next_delivery_at=? where idempotency_key=? and sent_at is null`
     ).run(code, nextDeliveryAt, idempotencyKey);
@@ -270,9 +259,6 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
       const authority = this.readOutboxAuthority(idempotencyKey);
       if (!authority) throw new Error("PRODUCTION_OUTBOX_INTENT_MISSING");
       if (authority.state === "delivered") return this.readOutboxResponse(idempotencyKey) as T;
-      if (authority.state === "failed") {
-        throw executionFailure("failed", authority.lastError ?? "PRODUCTION_OUTBOX_DELIVERY_STOPPED");
-      }
       if (authority.nextDeliveryAt && authority.nextDeliveryAt > now()) {
         throw executionFailure("failed", "PRODUCTION_OUTBOX_DELIVERY_BACKOFF_ACTIVE");
       }
@@ -281,23 +267,13 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
         this.markOutboxSent(idempotencyKey, response);
         return response;
       } catch (error) {
-        const code = failureCode(error, "OUTBOX_DELIVERY_FAILED");
-        if (OUTBOX_STALE_RETIRE_CODES.has(code)) this.retireStaleOutbox(idempotencyKey, code);
-        else this.recordDeliveryFailure(idempotencyKey, error);
+        this.recordDeliveryFailure(idempotencyKey, error);
         throw error;
       }
     };
     const result = this.outboxDeliveryTail.then(operation, operation);
     this.outboxDeliveryTail = result.then(() => undefined, () => undefined);
     return result;
-  }
-
-  private retireStaleOutbox(idempotencyKey: string, remoteCode: string): void {
-    this.database.prepare(`update production_outbox
-      set last_error=?,next_delivery_at=null
-      where idempotency_key=? and response_hash is null`
-    ).run(`STALE_LEASE_OUTBOX_RETIRED:${remoteCode}`.slice(0, 240), idempotencyKey);
-    this.notifyOutbox(this.readOutboxAuthority(idempotencyKey));
   }
 
   public readOutboxAuthority(idempotencyKey: string): ProductionOutboxAuthority | null {
@@ -313,8 +289,7 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
     if (!match?.[1]) throw new Error("PRODUCTION_OUTBOX_JOB_ID_MISSING");
     return Object.freeze({
       idempotencyKey: row.idempotency_key, jobId: decodeURIComponent(match[1]), kind: row.kind,
-      state: row.sent_at && row.response_hash ? "delivered"
-        : row.last_error && row.next_delivery_at === null ? "failed" : "pending",
+      state: row.sent_at && row.response_hash ? "delivered" : "pending",
       nextDeliveryAt: row.next_delivery_at, lastError: row.last_error,
       responseHash: row.response_hash, receiptHash: row.receipt_hash,
     });

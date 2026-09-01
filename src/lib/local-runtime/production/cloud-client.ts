@@ -121,11 +121,11 @@ export async function checkpointProductionTask(
   if (!Number.isInteger(checkpointSeq) || checkpointSeq < 1) {
     throw executionFailure("failed", "V6_CHECKPOINT_SEQUENCE_INVALID");
   }
-  const rejected = store.rejectedCheckpointIntent({
+  const scheduledFailure = store.scheduledCheckpointFailure({
     jobId: job.job_id, attemptId: job.grant.attempt_id, checkpointSeq,
     checkpointKind, attemptFailure,
   });
-  if (rejected) throw executionFailure("failed", rejected);
+  if (scheduledFailure) throw executionFailure("failed", scheduledFailure);
   const requestId = `aipcheckpoint_${hashCanonical({
     job_id: job.job_id,
     attempt_id: job.grant.attempt_id,

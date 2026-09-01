@@ -28,6 +28,9 @@ const STORE_TASK_STATE_PATH = "src/lib/local-runtime/production/store-task-state
 const CLOUD_RECONCILIATION_PATH =
   "src/lib/local-runtime/production/cloud-reconciliation-client.ts";
 const TRANSPORT_PROTOCOL_PATH = "src/lib/local-runtime/production/transport-protocol.ts";
+const STORE_OUTBOX_PATH = "src/lib/local-runtime/production/store-outbox.ts";
+const V6_DEPENDENCY_PATH =
+  "docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json";
 const RUNTIME_CLAIM_PATH = "src/lib/local-runtime/production/runtime-claim.ts";
 const CLOUD_CLIENT_PATH = "src/lib/local-runtime/production/cloud-client.ts";
 const TYPED_FAILURE_PATH = "src/lib/typed-failure.ts";
@@ -124,6 +127,7 @@ const inspectSharedProductionRuntime = (context: InspectorContext, findings: Ins
   const transportProtocol = read(context, TRANSPORT_PROTOCOL_PATH);
   const runtimeClaim = read(context, RUNTIME_CLAIM_PATH);
   const cloudClient = read(context, CLOUD_CLIENT_PATH);
+  const storeOutbox = read(context, STORE_OUTBOX_PATH);
   const typedFailure = read(context, TYPED_FAILURE_PATH);
   for (const required of [
     "submission-locator", "agent-gpt-submission-locator.v1",
@@ -178,14 +182,43 @@ const inspectSharedProductionRuntime = (context: InspectorContext, findings: Ins
     "Executor must inject only ProductGptTools, never a shared turn runner.",
   ));
   inspectTaskStoreContract(store, taskStateStore, findings);
-  if (/accepted_attempt_limit\s*===\s*3|accepted_attempt_count[\s\S]{0,80}<=\s*3/u
-    .test(cloudReconciliation) || /accepted_attempt_count[\s\S]{0,80}\.max\(3\)/u.test(transportProtocol)) {
+  const websiteAttemptFacts = `${cloudReconciliation}\n${transportProtocol}\n${runtimeClaim}`;
+  for (const forbidden of ["accepted_attempt_limit", "RECOVERY_PARKED", "rearm_eligible", "retry_not_before"])
+    if (websiteAttemptFacts.includes(forbidden)) findings.push(finding(
+      "agent-production-runtime/website-attempt-policy-not-consumed",
+      TRANSPORT_PROTOCOL_PATH,
+      `AGENT consumes forbidden Website retry-policy field ${forbidden}.`, "static.contract",
+    ));
+  if (/accepted_attempt_count\s*[<>]=?\s*\d/u.test(websiteAttemptFacts)
+    || /accepted_attempt_count[\s\S]{0,80}\.max\(\d+\)/u.test(websiteAttemptFacts)) {
     findings.push(finding(
       "agent-production-runtime/website-owned-attempt-budget",
       CLOUD_RECONCILIATION_PATH,
-      "AGENT must validate attempt-count machine shape without hard-coding Website retry policy.",
+      "AGENT may consume accepted_attempt_count only as a nonnegative fact, never as a claim, retry or parking gate.",
     ));
   }
+  for (const required of [
+    "OUTBOX_TRANSIENT_RETRY_DELAY_MS = 5_000",
+    "OUTBOX_LOW_FREQUENCY_RETRY_DELAY_MS = 3_600_000",
+    "const nextDeliveryAt = new Date(Date.parse(timestamp) + delay).toISOString()",
+  ]) if (!storeOutbox.includes(required)) findings.push(finding(
+    "agent-production-runtime/outbox-finite-redelivery",
+    STORE_OUTBOX_PATH,
+    `Outbox same-intent finite redelivery is missing ${required}.`,
+  ));
+  for (const forbidden of [
+    "OUTBOX_STALE_RETIRE_CODES", "retireStaleOutbox", "set last_error=?,next_delivery_at=null",
+  ]) if (storeOutbox.includes(forbidden)) findings.push(finding(
+    "agent-production-runtime/outbox-no-local-terminal-rejection",
+    STORE_OUTBOX_PATH,
+    `Outbox retains a local terminal-delivery branch ${forbidden}.`,
+  ));
+  if (!store.includes('state: "pending" | "delivered"')
+    || !store.includes("restoreOutboxDeliverySchedule")) findings.push(finding(
+    "agent-production-runtime/outbox-unfinished-liveness",
+    STORE_FOUNDATION_PATH,
+    "Every undelivered Outbox intent must remain pending with a finite delivery schedule.",
+  ));
 };
 
 const inspectSeoPlugin = (context: InspectorContext, source: string, path: string, findings: InspectorFinding[]): void => {
@@ -481,6 +514,9 @@ const inspectAgentTypes = (context: InspectorContext, findings: InspectorFinding
 
 const inspectAgentContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const contracts = read(context, CONTRACT_PATH);
+  const transport = read(context, TRANSPORT_PROTOCOL_PATH);
+  const dependency = JSON.parse(read(context, V6_DEPENDENCY_PATH)) as Record<string, unknown>;
+  const dependencyContract = dependency.contract as Record<string, unknown> | undefined;
   for (const required of [
     "WebsiteAgentTaskSchema", "WebsiteAgentResultSchema", "AgentPluginCapabilityManifestSchema",
     "catalog_hash", "plugin_id", "plugin_version", "request_hash", "owner_scope_hash", "trust_class",
@@ -494,6 +530,22 @@ const inspectAgentContracts = (context: InspectorContext, findings: InspectorFin
       "agent-production-runtime/contract-state-inflation", CONTRACT_PATH,
       `Production contract retains forbidden state token ${forbidden}.`, "static.contract",
     ));
+  if (dependency.version !== 13 || dependencyContract?.version !== 13
+    || dependencyContract.contractId !== "ai-acceptance.xuanxue-ai-production-v6"
+    || dependency.lawIds === undefined
+    || JSON.stringify(dependency.lawIds) !== JSON.stringify([LAW_ID])) findings.push(finding(
+    "agent-production-runtime/v13-website-dependency",
+    V6_DEPENDENCY_PATH,
+    "AGENT must consume the single Website V13 contract under the existing V23 law identity.",
+    "static.contract",
+  ));
+  if (!transport.includes(
+    '"sha256:48897aa27ec03420a7241e1f4f2b6cf3c0c4ddda7b4b656be54f88979ae4c5d3" as const',
+  )) findings.push(finding(
+    "agent-production-runtime/v13-manifest-pin",
+    TRANSPORT_PROTOCOL_PATH,
+    "AGENT transport must pin the exact Website V13 manifest hash.", "static.contract",
+  ));
 };
 
 const inspectAgentDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {

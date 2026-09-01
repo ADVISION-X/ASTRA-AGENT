@@ -103,7 +103,7 @@ const parseRemoteWriteReceipt = (receipt: unknown): RemoteProductionWriteReceipt
 
 const deviceStatusIdentityValid = (row: Record<string, unknown>, jobId: string): boolean =>
   row.schema_version === "xuanxue-ai-device-job-status.v6"
-  && row.job_id === jobId && typeof row.status === "string";
+  && row.job_id === jobId && ["failed", "completed"].includes(row.status as string);
 
 const deviceStatusAuthorityFieldsValid = (row: Record<string, unknown>): boolean =>
   [null, "completed"].includes(row.terminal_status as null | string)
@@ -135,9 +135,12 @@ export async function readProductionDeviceJobStatus(
   if (terminalPayloadHash !== null && !/^sha256:[a-f0-9]{64}$/u.test(terminalPayloadHash)) {
     throw executionFailure("failed", "V6_DEVICE_JOB_TERMINAL_AUTHORITY_INVALID");
   }
+  if ((terminalStatus === "completed") !== (terminalPayloadHash !== null)) {
+    throw executionFailure("failed", "V6_DEVICE_JOB_TERMINAL_AUTHORITY_INVALID");
+  }
   const admission = parseBusinessAdmissionReceipt(jobId, row.business_admission_receipt);
-  if ((admission !== null) !== (terminalStatus === "completed")
-    || (admission !== null && terminalPayloadHash === null)) {
+  if ((row.status === "completed") !== (admission !== null)
+    || (admission !== null && terminalStatus !== "completed")) {
     throw executionFailure("failed", "V6_BUSINESS_ADMISSION_AUTHORITY_INVALID");
   }
   return Object.freeze({

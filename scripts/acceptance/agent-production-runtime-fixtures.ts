@@ -118,7 +118,6 @@ export const recoveryRemoteStatus = (writeReceipts: readonly unknown[] = []) => 
   current_reason: { code: "LEASE_GRANTED" },
   attempt_failure: null,
   accepted_attempt_count: 7,
-  accepted_attempt_limit: 11,
   terminal_status: null,
   terminal_payload_hash: null,
   terminal_failure: null,

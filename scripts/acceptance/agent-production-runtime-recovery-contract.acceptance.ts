@@ -25,8 +25,37 @@ const parsed = await readProductionDeviceJobStatus({
   request: async () => remoteStatus(),
 }, "job:recovery-parser");
 assert.equal(parsed.accepted_attempt_count, 7);
+assert.equal("accepted_attempt_limit" in remoteStatus(), false,
+  "the V13 Website fixture must not expose an accepted-attempt limit");
+assert.equal("accepted_attempt_limit" in parsed, false,
+  "the AGENT consumes attempt count as a fact without importing Website retry policy");
 assert.equal("attempt_authority" in parsed, false,
   "the AGENT must not depend on an undeclared Website attempt projection");
+
+const admissionPending = await readProductionDeviceJobStatus({
+  request: async () => ({
+    ...remoteStatus(), status: "failed", terminal_status: "completed", terminal_payload_hash: HASH_A,
+    current_reason: { code: "PUBLIC_KNOWLEDGE_ADMISSION_WRITE_FAILED" },
+    business_consumer_error: "PUBLIC_KNOWLEDGE_ADMISSION_WRITE_FAILED",
+  }),
+}, "job:recovery-parser");
+assert.equal(admissionPending.terminal_status, "completed");
+assert.equal(admissionPending.business_admission_receipt, null,
+  "a staged terminal result without a Website admission receipt remains legally unfinished");
+
+await assert.rejects(() => readProductionDeviceJobStatus({
+  request: async () => ({
+    ...remoteStatus(), status: "completed", terminal_status: "completed", terminal_payload_hash: HASH_A,
+  }),
+}, "job:recovery-parser"), /V6_BUSINESS_ADMISSION_AUTHORITY_INVALID/u,
+"Website completed without its business admission receipt must fail closed");
+
+await assert.rejects(() => readProductionDeviceJobStatus({
+  request: async () => ({
+    ...remoteStatus(), terminal_status: "completed", terminal_payload_hash: null,
+  }),
+}, "job:recovery-parser"), /V6_DEVICE_JOB_TERMINAL_AUTHORITY_INVALID/u,
+"a terminal result without its payload hash must fail closed");
 
 await assert.rejects(() => readProductionDeviceJobStatus({
   request: async () => ({ ...remoteStatus(), accepted_attempt_count: -1 }),
@@ -371,17 +400,15 @@ try {
     receipts: rejectedHigher.receipts,
   }), /PRODUCTION_RECOVERY_LOCAL_PREFIX_INVALID/u);
 
-  const retryableRejected = await seedRecoveryIncident(store, "retryable-rejected");
-  database.prepare("update production_outbox set next_delivery_at=? where idempotency_key=?").run(
-    "2026-08-30T00:00:00.000Z", "retryable-rejected:rejected:accepted:1",
-  );
-  assert.throws(() => store.recoverCheckpointPrefix({
-    jobId: retryableRejected.accepted.job_id,
-    attemptId: retryableRejected.attemptId,
+  const scheduledRejected = await seedRecoveryIncident(store, "scheduled-rejected");
+  assert.ok(store.readOutboxAuthority("scheduled-rejected:rejected:accepted:1")?.nextDeliveryAt);
+  assert.equal(store.recoverCheckpointPrefix({
+    jobId: scheduledRejected.accepted.job_id,
+    attemptId: scheduledRejected.attemptId,
     acceptedAttemptCount: 1,
-    receipts: retryableRejected.receipts,
-  }), /PRODUCTION_RECOVERY_LOCAL_PREFIX_INVALID/u,
-  "a retry-scheduled rejection is not deterministic proof for false-failure removal");
+    receipts: scheduledRejected.receipts,
+  }).checkpointSeq, 2,
+  "a retry-scheduled deterministic rejection remains exact proof while the same intent stays pending");
   store.close();
 } finally {
   await rm(recoveryTemporary, { recursive: true, force: true });

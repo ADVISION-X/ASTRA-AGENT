@@ -215,7 +215,8 @@ export const isDeterministicallyRejectedSequenceRow = (row: Readonly<{
   next_delivery_at: string | null;
 }>): boolean => row.sent_at === null
   && row.response_hash === null && row.response_json === null
-  && row.last_error === "AI_V6_CHECKPOINT_SEQUENCE_INVALID" && row.next_delivery_at === null;
+  && row.last_error === "AI_V6_CHECKPOINT_SEQUENCE_INVALID"
+  && row.next_delivery_at !== null && Number.isFinite(Date.parse(row.next_delivery_at));
 
 export const isRejectedCheckpointSequenceFailure = (
   value: unknown,

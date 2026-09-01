@@ -192,6 +192,7 @@ try {
   assert.equal(store.acceptTask(binaryTask, identity, thirdAttempt).attempt_failure, null);
 
   const outboxPath = `/internal/ai-production/v6/jobs/${encodeURIComponent(binaryTask.job_id)}/checkpoints`;
+  const pendingBeforeDeterministic = store.pendingOutboxCount();
   store.enqueue({
     idempotency_key: "checkpoint:deterministic", kind: "checkpoint", path: outboxPath,
     method: "POST", headers: {}, body: "{}",
@@ -205,18 +206,29 @@ try {
     idempotencyKey: "checkpoint:deterministic",
     jobId: binaryTask.job_id,
     kind: "checkpoint",
-    state: "failed",
-    nextDeliveryAt: null,
+    state: "pending",
+    nextDeliveryAt: store.readOutboxAuthority("checkpoint:deterministic")?.nextDeliveryAt,
     lastError: "REMOTE_CHECKPOINT_REJECTED",
     responseHash: null,
     receiptHash: null,
   });
+  assert.ok(store.readOutboxAuthority("checkpoint:deterministic")?.nextDeliveryAt);
   await assert.rejects(
     store.deliverOutbox("checkpoint:deterministic", async () => { deterministicCalls += 1; return {}; }),
-    /REMOTE_CHECKPOINT_REJECTED/u,
+    /PRODUCTION_OUTBOX_DELIVERY_BACKOFF_ACTIVE/u,
   );
-  assert.equal(deterministicCalls, 1, "deterministic rejection must stop the same intent without a local budget");
-  assert.equal(store.pendingOutboxCount(), 0, "deterministic rejected rows are diagnostic, not pending work");
+  assert.equal(deterministicCalls, 1, "deterministic rejection must preserve the same intent during bounded backoff");
+  assert.equal(store.pendingOutboxCount(), pendingBeforeDeterministic + 1,
+    "deterministic rejection remains pending delivery work");
+  database.prepare("update production_outbox set next_delivery_at=? where idempotency_key=?")
+    .run("2000-01-01T00:00:00.000Z", "checkpoint:deterministic");
+  await store.deliverOutbox("checkpoint:deterministic", async () => {
+    deterministicCalls += 1;
+    return { checkpoint_hash: HASH_A };
+  });
+  assert.equal(deterministicCalls, 2, "the same deterministic intent must resume after finite backoff");
+  assert.equal(store.readOutboxAuthority("checkpoint:deterministic")?.state, "delivered");
+  assert.equal(store.pendingOutboxCount(), pendingBeforeDeterministic);
 
   store.enqueue({
     idempotency_key: "checkpoint:network-unknown", kind: "checkpoint", path: outboxPath,
@@ -225,9 +237,6 @@ try {
   await assert.rejects(store.deliverOutbox("checkpoint:network-unknown", async () => {
     throw executionFailure("failed", "CLOUD_TRANSPORT_UNAVAILABLE");
   }), /CLOUD_TRANSPORT_UNAVAILABLE/u);
-  assert.equal(store.readOutboxAuthority("checkpoint:network-unknown")?.state, "failed");
-  assert.equal(store.readOutboxAuthority("checkpoint:network-unknown")?.nextDeliveryAt, null);
-  store.hydrateRemoteOutboxReceipts(binaryTask.job_id, []);
   assert.equal(store.readOutboxAuthority("checkpoint:network-unknown")?.state, "pending");
   assert.ok(store.readOutboxAuthority("checkpoint:network-unknown")?.nextDeliveryAt);
 
@@ -271,10 +280,18 @@ try {
     { status: store.readTask(binaryTask.job_id)?.status, reason: store.readTask(binaryTask.job_id)?.current_reason },
     { status: "completed", reason: null },
   );
+  store.enqueue({
+    idempotency_key: "checkpoint:legacy-null-schedule", kind: "checkpoint", path: outboxPath,
+    method: "POST", headers: {}, body: '{"legacy":true}',
+  });
+  database.prepare(`update production_outbox set last_error=?,next_delivery_at=null
+    where idempotency_key=?`).run("REMOTE_CHECKPOINT_REJECTED", "checkpoint:legacy-null-schedule");
   store.close();
 
   store = new ProductionRuntimeStore(dataDirectory);
   assert.equal(store.readTask(binaryTask.job_id)?.status, "completed");
+  assert.ok(store.readOutboxAuthority("checkpoint:legacy-null-schedule")?.nextDeliveryAt,
+    "opening the canonical store must restore a finite schedule for an old unfinished intent");
   assert.equal(columns(Reflect.get(store, "database") as Database.Database, "production_outbox").includes("delivery_parked_at"), false);
   store.close();
 
