@@ -1,13 +1,13 @@
-# AGENT 十二产品插件与网站 V14 施工图
+# AGENT 十二产品插件与网站 V15 施工图
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v11",
+  "blueprintId": "agent-production-runtime-v12",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V25"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V26"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -160,7 +160,60 @@ Product Skill 只保留跨回合共同成立的产品目的、冻结来源边界
 
 当前 attempt 每个成功 Child 的 Forensics ref 按真实执行顺序进入 `evidence_refs`；跨 attempt 已恢复完成段只纳入逐项重验后的 terminal checkpoint evidenceRef，不伪造旧 attempt 的中间前缀。真实外部 Child failure 原样抛出，不以字符串猜测重试。AI 输出不得因额外字段、字段顺序、string 与单元素 string[]、枚举、空值、数量、Markdown、引用闭包、文本缺席于图片 turn 或内容质量被 AGENT 拒收；不能无损归一时保留同一任务、raw artifact/ref/hash 与 conversation，等待 Website 授权格式重出，不重做业务研究。corpus_research frontier 一经首绑就成为同一 Website task 的单调事实：后续真实 Child failure 可以诚实结束当前 attempt，但下一安全 attempt 进入同一 Product execute 时必须先按 exact frontier_ref 验证并读回 immutable origin 与 current provider/checkpoint。Product 先从已验证 origin research artifact 恢复 decision：`decline` 零 Provider mutation直接组装 `{research,article:null,image:null}`；只有 `proceed` 才以最远 current checkpoint 机械恢复 article 或 generated image artifact，再由自己的静态 TypeScript 进入下一未完成段。fresh research、decline，以及已完成 article/image 的 attach/write/submit 计数必须为零。Plugin 只交付 staged article package 与 staged generated image；Website domain consumer 负责领域投影、幂等入库并签发 hash-bound receipt 后才 completed。发布、URL、canonical、sitemap、索引提交、分发和搜索成效始终只属于 Website。
 
-除 `public-knowledge-article-pipeline` 外，其余尚未单独施工的 Product `execute` 必须继续立即返回 `failed + PRODUCT_FLOW_NOT_IMPLEMENTED:<plugin>:<action>`，Provider 调用和物理页面动作均为零。该失败是唯一主链 fail-closed，不是兼容桥或第三状态。
+除 `public-knowledge-article-pipeline` 与下一节已接纳、但仍须按切换步骤原位重构完成的三个 Bazi Product 外，其余尚未单独施工的 Product `execute` 必须继续立即返回 `failed + PRODUCT_FLOW_NOT_IMPLEMENTED:<plugin>:<action>`，Provider 调用和物理页面动作均为零。三个 Bazi Product 的既有候选 Flow 在下述全部合同、原子能力、consumer 与验收同时闭合前也必须在首个 Provider 动作前失败关闭；施工时直接删除候选片区并建立唯一终态，不使用 feature flag、兼容桥或第二链。
+
+## 3.5 八字三个 Product 的唯一 Flow
+
+### 3.5.1 产品、材料和本地权威
+
+`bazi-chart-interpretation`（BZ05）、`bazi-ai-full-analysis`（BZ03）、`bazi-report-followup`（BZ04）各自直接拥有一份 Product Skill、formal/review Profile、Prompt 组合、静态 Child 顺序、恢复裁决和结果组装。BZ05/BZ03 还分别在自己的目录直接拥有一份 `private-base-turn-contract`；两份 base Prompt、base Profile、turn marker 和 `bazi-base-interpretation-output-v2` 组合必须由构建门证明 exact bytes/hash 等值，但两 Product 零互相 import、re-export 或调用。Skill 不进入 private-base turn，也不包含 Flow、Schema、Profile、checkpoint、fork、重试或业务完成算法。
+
+Website 对 BZ05/BZ03 primary 只发布三份角色互斥的 Provider-visible 材料：
+
+1. `bazi_private_base_input`：完整锁定命盘/候选、全部 derived/final-decision/luck/rule facts、全部 READY books/indexes、owner/privacy subject、稳定 base authorization、base contract 与 Website 对全部 base-only 字段计算的 `reusable_base_semantic_digest`；物理排除 question、experience、order/payment；
+2. `bazi_formal_input`：当前 Product、当前付费 task/authorization、formal question/experience presence or absence、base artifact/ref/hash 与 source-to-child relation；
+3. `result_contract`：Website canonical formal 输出合同，以及投影在 route policy 中、不作为第四 material 的 exact `result_contract.private_base` v2 子合同。
+
+reusable-base identity 只由 `owner_scope_hash + privacy_subject_ref + reusable_base_semantic_digest + base output contract version + equality-accepted base Profile hash + equality-accepted private-base turn-contract hash` 组成。task、product、order/payment、question/experience、formal output 与全任务 bundle hash 不得进入或替代该 identity；任一 Provider-visible base-only 字段、READY/rule lineage、mode 或上述合同 bytes 变化都必须形成不同 identity。
+
+### 3.5.2 BZ05/BZ03 primary
+
+两个 Product 都直接写以下唯一静态序列，shared runtime、GPT Session Controller 与 Browser 不得解释步骤或决定下一步：
+
+```text
+local base-contract equality gate
+-> read exact reusable-origin facts
+-> reserve_exact_gpt_continuation_once(reusable-origin)
+-> winner: prepare clean chat -> base Profile -> attach base-only material
+           -> exact base Prompt -> submit once -> raw DOM + semantic text checkpoint
+           -> exact base-v2 semantic admission receipt
+   existing complete row: 上述 Provider mutation 全部为零，只读同一 artifact/grant
+-> complete_exact_gpt_continuation_reservation_once(reusable-origin)
+-> reserve_exact_gpt_continuation_once(derived source checkpoint for current paid task)
+-> complete_exact_gpt_continuation_reservation_once(derived source)
+-> acquire_gpt_continuation_lane(complete exact row)
+-> fork_exact_gpt_conversation_at_checkpoint(exact private base)
+-> focus/verify unique child -> formal Profile
+-> attach formal input + exact formal result contract -> exact Prompt -> submit once
+-> raw DOM + semantic text checkpoint -> base receive + one lossless normalization
+-> advance lane with formal artifact/source-child relation -> staged result
+```
+
+reservation、completion、acquire、fork 是四个独立调用；每个 mutation Child 恰好一个 CAS 或一个 Provider effect。reusable reservation 的 zero 才能由 creator lane/fence 首次进入 fresh base；reservation incomplete 时只允许原 creator task/effect 恢复，不能被另一 paid task 或另一 Product 偷取。base semantic invalid 时 raw/evidence 保留、row 不 complete、零 grant/fork；只有 Website 授权的同 creator task 新 accepted attempt 可在原 reservation/fence 继续。complete row 被 BZ05/BZ03 以 exact grant 复用时，base clean/profile/attach/prompt/submit/checkpoint/complete mutation 增量全部为零。
+
+private base 是私有、非 canonical、非报告、非业务结果且不具约束力。formal child 必须重新读取完整锁定 facts、完整 READY 与标为 `nonbinding_private_prior` 的原始 base，并可明确纠正或拒绝它。BZ05 formal 证明 question/experience 缺席且结果不含 chart PDF；BZ03 formal 绑定用户原问题/经历且结果包含 chart PDF。两者 receipt 都绑定 exact `base_artifact_hash + source checkpoint + child conversation/continuation relation`。
+
+### 3.5.3 BZ04 primary 与六条 review
+
+BZ04 先由 Website 分别证明当前 BZ04 paid entitlement 和 approved parent BZ05/BZ03 Delivery Manifest、parent product、owner、subject、parent authorization、result/hash、continuation。Website 签发的 opaque parent-lane grant 必须精确绑定 `current job/current authorization + parent continuation/parent authorization + owner/subject + parent manifest id/hash`。Product 只能凭该 grant 调用现役 `acquire_gpt_continuation_lane`，聚焦并验证 parent formal conversation 后执行一次 followup turn；禁止 BZ04 self-parent、fresh fallback、用 current authorization 冒充 parent authorization，或用 parent authorization冒充本单付费资格。所有出口都在同一 try/finally advance 或 release lane。
+
+每个 Product 的 `accuracy_challenge` 与 `quality_reflection` 都是 fresh single-turn：clean chat、该 Product review Profile、恰好 `subject_result + review_context`、一次 exact Prompt/submit/checkpoint、base receive 与无损归一。`review_context` 冻结原材料、Skill/Profile/turn-contract、private-base raw/semantic artifact 与 formal/followup artifact/receipt；其中 Prompt、Skill 与 private prior 均是 `may_issue_instruction=false` 的被审证据。六条 review 全部零 reusable-base create、零 fork、零 continuation、零原报告/Delivery Manifest mutation。challenge 只提交 challenge hash/count receipt；reflection 只提交 finding rows 与原 plan completed receipt；二者不能互相冒充或产生新报告。
+
+### 3.5.4 接收、完成与失败
+
+三个 Product 的每个文本 turn 都先持久完整 observed DOM HTML + deterministic semantic text 双 hash task-owned artifact，再由 Product 只从 semantic text 做基础机器接收与一次保留 raw、unknown、转换事实的无损归一。Website staging 只验证 route/task/plugin/version/subject/parent/review 身份、artifact/evidence 和可交付性；Bazi domain consumer 是唯一专业内容门。
+
+primary 完成顺序唯一为 `Bazi domain admission receipt -> exact Commercial Delivery Manifest readback -> business-result coordinator atomic completed`。BZ05 manifest 只含 canonical report/HTML/PDF/JSON，不含 chart PDF；BZ03 含 canonical report/HTML/PDF/JSON 与 chart PDF；BZ04 含 followup report/HTML/PDF/JSON并绑定 approved parent manifest。review 不走 Commercial Manifest，只在对应 challenge 或 reflection receipt 入库后 completed。manifest 未就绪、consumer failure 或任一 receipt/hash 不闭合时任务保持 `failed + current_reason` 并沿同一 job/result intent 自动恢复；不得 replacement task/job、第二 receipt store、第三 V6 状态或提前 completed。
 
 ## 4. shared runtime 的窄职责
 

@@ -1,4 +1,4 @@
-# GrassEye 单生产 Tab、无聚焦精确恢复与唯一 Browser FIFO V8 施工图
+# GrassEye 单生产 Tab、无聚焦精确恢复与唯一 Browser FIFO V9 施工图
 
 状态：active final-state blueprint
 Owner：`local-browser-session`
@@ -6,15 +6,15 @@ Owner：`local-browser-session`
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "local-browser-auto-pairing-and-exact-chatgpt-claim-v8",
+  "blueprintId": "local-browser-auto-pairing-and-exact-chatgpt-claim-v9",
   "status": "active",
   "owner": "local-browser-session",
   "lawIds": [
     "LAW-LOCAL-BROWSER-SESSION-002-V6",
-    "LAW-LOCAL-BROWSER-SESSION-003-V18",
-    "LAW-LOCAL-BROWSER-SESSION-004-V14",
+    "LAW-LOCAL-BROWSER-SESSION-003-V19",
+    "LAW-LOCAL-BROWSER-SESSION-004-V15",
     "LAW-LOCAL-BROWSER-SESSION-005-V6",
-    "LAW-LOCAL-BROWSER-SESSION-006-V10"
+    "LAW-LOCAL-BROWSER-SESSION-006-V11"
   ],
   "contractRefs": [],
   "dependencyEdges": [
@@ -114,6 +114,8 @@ box/visibility 或 CDP payload 形态无效     -> BROWSER_DOM_READ_INVALID
 `BROWSER_TARGET_INVALID` 不得再作为 query count、node missing、box model、visibility、record/number/string decode 的通用兜底。Browser 只报告原子 observation 事实，不决定 GPT Child 是否在自己的 timeout 内 fresh retry。fresh retry 必须重新 query 当前 Document，不能复用 nodeId，不进入 mutation WAL，也不能改变此前 submit 的 `CONFIRMED`、immutable terminalAt、evidence identity 或 Target ownership。真正 Target/Document lifecycle failure 原样返回，由上层现役 confirmed-submit readback 合同保留成果事实；Browser 不解释 Product 步骤、attempt 预算或业务终态。
 
 恢复查询取得的旧 `CONFIRMED` mutation 只证明原 submit effect 与原 Target/Document 锚点，不得覆盖当前 observation 的动作类别或结果。当前 locator 获取、DOM 读取、导航后核验等只读动作失败时必须保持自己的 `mutationOutcome=no` 与原生 typed cause；Browser lane/coordinator 只能把旧 receipt 作为独立的 `confirmed_submit` 事实随结果携带，禁止把旧 `CONFIRMED` 贴成当前只读失败的 mutation outcome。
+
+Browser terminal fact 的跨层安全投影固定同时携带 `child_capability_id + effect_scope + browser_outcome + mutation_outcome + evidence_ref/hash`。`effect_scope` 只能是 `provider_effect | target_local`，`browser_outcome` 只能是 `DISPATCHED | CONFIRMED | REJECTED`，并且直接来自同一 compact WAL row 的终态，不得从通用 `mutationOutcome`、error code 或 Product 语义猜测。只有 `child_capability_id=submit_exact_gpt_turn_once + effect_scope=provider_effect + browser_outcome=CONFIRMED` 与独立 confirmed-submit receipt、exact effect/evidence 唯一闭合时，才构成跨 Target 的 post-submit readback 恢复授权；`target_local + REJECTED` 是当前 attempt 的普通真实失败，不能冒充 confirmed submit。Browser 只报告这些原子事实，不裁决 attempt、Product Flow 或业务完成。
 
 ### 3.2 唯一 FIFO、Provider wait 与两种 park
 
