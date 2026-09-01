@@ -18,7 +18,7 @@ export class BrowserRuntimeLogEmitter {
     requireRuntimeLogWrite(span.terminal({
       outcome: "failed",
       failure: runtimeFailureFromError({
-        error: new Error(reasonCode), code: "BROWSER_INFRASTRUCTURE_FAILED",
+        error: new Error(reasonCode), code: reasonCode,
         responsibleOwner: "browser-session",
         impact: RuntimeFailureImpact.BLOCKING,
       }),

@@ -144,8 +144,13 @@ export function createForensicsPersistenceAbilityGroup(
       return executeReadArtifactRef(input, storage);
     },
 
-    readExactCallEvidence(input) {
-      return storage.readRecordByIdentity({
+    async readExactCallEvidence(input) {
+      const terminal = await storage.readRecordByIdentity({
+        missionId: input.missionId,
+        runId: input.runId,
+        idempotencyKey: `gpt-call-terminal-evidence:v1:${input.exactCallIdentityHash}`,
+      });
+      return terminal ?? storage.readRecordByIdentity({
         missionId: input.missionId,
         runId: input.runId,
         idempotencyKey: `gpt-call-evidence:v1:${input.exactCallIdentityHash}`,

@@ -164,6 +164,24 @@ export const inspectAtomicIfAndThenBoundary = (
     filePath: "src/lib/browser/chrome-extension/dom-query-runtime.ts",
     message: "The effective exact-text matcher must use normalized strict equality and cannot be replaced by substring containment or an unreachable decoy.",
   }));
+  const domFailureText = `${domRuntime.getFullText()}\n${domQueryRuntime.getFullText()}`;
+  for (const code of [
+    "BROWSER_DOM_CANDIDATE_MISSING",
+    "BROWSER_DOM_CANDIDATE_AMBIGUOUS",
+    "BROWSER_DOM_NODE_STALE",
+    "BROWSER_DOM_READ_INVALID",
+  ]) if (!domFailureText.includes(code)) findings.push(createLocalFinding({
+    checkId: "browser-authority/dom-failure-classification",
+    lawId,
+    filePath: "src/lib/browser/chrome-extension/dom-query-runtime.ts",
+    message: `Browser DOM observations must preserve the exact ${code} cause.`,
+  }));
+  if (domFailureText.includes('throw new Error("BROWSER_TARGET_INVALID")')) findings.push(createLocalFinding({
+    checkId: "browser-authority/dom-failure-classification",
+    lawId,
+    filePath: "src/lib/browser/chrome-extension/dom-query-runtime.ts",
+    message: "DOM candidate, node and payload failures must not be collapsed into BROWSER_TARGET_INVALID.",
+  }));
   requireIdentifiers(domRuntime, ["postconditionVerified"], findings, lawId,
     "The DOM executor must retain same-command postcondition evidence.");
   requireIdentifiers(commandActor, ["postconditionVerified", "retainedValueVerified"], findings, lawId,
@@ -365,12 +383,45 @@ export const inspectJobScopedMutationRecovery = (
   lawId: string,
 ): void => {
   const lanePath = "src/lib/browser/infrastructure/browser-lane-coordinator.ts";
+  const laneAcceptancePath = "scripts/acceptance/browser-lane-fifo.acceptance.ts";
   const lane = requireSource(context, findings, lawId, lanePath);
+  const laneAcceptance = requireSource(context, findings, lawId, laneAcceptancePath);
   const actor = requireSource(context, findings, lawId, sourcePaths[6]);
-  if (!lane || !actor) return;
+  if (!lane || !laneAcceptance || !actor) return;
   requireIdentifiers(lane, ["callRecoveryScope", "recovery", "park", "pump"], findings, lawId,
     "Browser recovery must be job-scoped, exact-target and capacity releasing.");
   const laneText = lane.getFullText();
+  for (const required of [
+    "permitsConfirmedProviderTargetReplacement",
+    'recovery?.state === "CONFIRMED"',
+    'recovery.effectScope === "provider_effect"',
+    "BROWSER_EXACT_TARGET_UNAVAILABLE",
+    "confirmedProviderTargetReplaced",
+    "recoveryMutationOutcome",
+  ]) {
+    if (laneText.includes(required)) continue;
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/confirmed-provider-target-replacement",
+      lawId,
+      filePath: lanePath,
+      message: `Confirmed Provider readback recovery must retain ${required}.`,
+    }));
+  }
+  const laneAcceptanceText = laneAcceptance.getFullText();
+  for (const required of [
+    '["target:confirmed", null]',
+    "a CONFIRMED target-local action must not authorize a replacement physical Target",
+    "a claimed but mismatched Target is not proof that the original physical Target was lost",
+    'failure?.mutationOutcome, "confirmed"',
+  ]) {
+    if (laneAcceptanceText.includes(required)) continue;
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/confirmed-provider-target-replacement-acceptance",
+      lawId,
+      filePath: laneAcceptancePath,
+      message: `Browser lane acceptance must prove ${required}.`,
+    }));
+  }
   for (const retired of ["private unsettled", "acquireReconciliation", "reconciliationAllowed"]) {
     if (!laneText.includes(retired)) continue;
     findings.push(createLocalFinding({

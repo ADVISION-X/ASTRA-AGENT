@@ -132,6 +132,30 @@ try {
   });
   mutationStore.markDispatched("historic-confirmed-command");
   mutationStore.markConfirmed("historic-confirmed-command", HASH);
+  mutationStore.prepare({
+    commandId: "historic-confirmed-target-local-command",
+    exactCallIdentityHash: `sha256:${"e".repeat(64)}`,
+    ownerPluginId: "plugin",
+    pluginVersion: 1,
+    jobId: "job:confirmed-target-local",
+    attemptId: "attempt:job:confirmed-target-local",
+    leaseVersion: 1,
+    executionFenceHash: HASH,
+    productStepId: "confirmed-target-local-step",
+    childCapabilityId: "open_gpt_model_selector_v2",
+    callId: "confirmed-target-local",
+    effectScope: "target_local",
+    actionOrdinal: 1,
+    targetRef: "target:confirmed-target-local",
+    documentRef: "document:confirmed-target-local",
+    actionId: "browser.dom.click.v1",
+    positivePostconditionHash: HASH,
+    negativePostconditionHash: `sha256:${"f".repeat(64)}`,
+    requestHash: HASH,
+    payloadHash: HASH,
+  });
+  mutationStore.markDispatched("historic-confirmed-target-local-command");
+  mutationStore.markConfirmed("historic-confirmed-target-local-command", HASH);
   mutationStore.close();
   supervisor = new BrowserInfrastructureSupervisor({
     dataDir: temporary,
@@ -170,8 +194,9 @@ try {
   );
   const acquisitions: string[] = [];
   const leaseIdentities = new Map<string, Readonly<{ targetRef: string; documentRef: string }>>();
+  let brokerTargetStatus: "absent" | "claimed" = "claimed";
   const broker = {
-    currentOperatorTargetStatus: () => "claimed" as const,
+    currentOperatorTargetStatus: () => brokerTargetStatus,
     revokeOperatorTargetClaim: () => {},
     acquireOperatorClaimedTargetLease: async (
       entry: BrowserExecutionBinding,
@@ -189,6 +214,16 @@ try {
     },
   };
   assert.equal(Reflect.set(supervisor, "broker", broker), true);
+  const lane = Reflect.get(supervisor, "lane") as object;
+  const targetAcquisitionRequests: Array<string | null> = [];
+  assert.equal(Reflect.set(lane, "acquireJobBoundTarget", async (
+    _commandTtlMs: number,
+    targetRef: string | null,
+  ): Promise<void> => {
+    targetAcquisitionRequests.push(targetRef);
+    if (targetRef !== null) throw new Error("BROWSER_EXACT_TARGET_UNAVAILABLE");
+    brokerTargetStatus = "claimed";
+  }), true);
 
   const openSignal = new AbortController();
   const recovered = await supervisor.acquireJobBoundTargetLease(
@@ -254,11 +289,52 @@ try {
     (error) => {
       const failure = typedExecutionFailure(error);
       assert.equal(failure?.code, "BROWSER_DOCUMENT_INVALID");
-      assert.equal(failure?.mutationOutcome, "no");
+      assert.equal(failure?.mutationOutcome, "confirmed");
       return true;
     },
-    "CONFIRMED recovery may change Document but never the physical Target",
+    "a claimed but mismatched Target is not proof that the original physical Target was lost",
   );
+  brokerTargetStatus = "absent";
+  targetAcquisitionRequests.length = 0;
+  const confirmedReplacement = await supervisor.acquireJobBoundTargetLease(
+    binding("job:confirmed", "confirmed-step"),
+    "owner:confirmed:physical-replacement",
+    { signal: openSignal.signal, remainingMs: () => 60_000 },
+  );
+  assert.deepEqual(
+    targetAcquisitionRequests,
+    ["target:confirmed", null],
+    "CONFIRMED provider recovery must prove the old Target unavailable before one inactive replacement",
+  );
+  assert.deepEqual(
+    [confirmedReplacement.target.targetRef, confirmedReplacement.document.documentRef],
+    ["target:confirmed:changed", "document:confirmed:3"],
+  );
+  await confirmedReplacement.park({ reason: "confirmed-provider-target-replaced", mode: "recovery" });
+
+  brokerTargetStatus = "absent";
+  targetAcquisitionRequests.length = 0;
+  leaseIdentities.set("job:confirmed-target-local", {
+    targetRef: "target:confirmed-target-local:changed",
+    documentRef: "document:confirmed-target-local:changed",
+  });
+  await assert.rejects(
+    supervisor.acquireJobBoundTargetLease(
+      binding("job:confirmed-target-local", "confirmed-target-local-step"),
+      "owner:confirmed-target-local:no-replacement",
+      { signal: openSignal.signal, remainingMs: () => 60_000 },
+    ),
+    (error) => {
+      const failure = typedExecutionFailure(error);
+      assert.equal(failure?.code, "BROWSER_EXACT_TARGET_UNAVAILABLE");
+      assert.equal(failure?.mutationOutcome, "confirmed");
+      return true;
+    },
+    "a CONFIRMED target-local action must not authorize a replacement physical Target",
+  );
+  assert.deepEqual(targetAcquisitionRequests, ["target:confirmed-target-local"]);
+  brokerTargetStatus = "claimed";
+  leaseIdentities.delete("job:confirmed-target-local");
   leaseIdentities.delete("job:confirmed");
   acquisitions.length = 0;
   const first = await supervisor.acquireJobBoundTargetLease(

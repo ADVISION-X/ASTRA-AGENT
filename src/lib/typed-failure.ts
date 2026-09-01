@@ -30,14 +30,7 @@ type PostSubmitReadbackReceiptInput = Omit<
   "outcome" | "readbackMutationOutcome"
 >;
 
-const POST_SUBMIT_READBACK_TRANSIENT_CODES = new Set([
-  "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE",
-  "BROWSER_LIVENESS_EXPIRED",
-  "BROWSER_PAIRING_IN_PROGRESS",
-  "BROWSER_AUTHENTICATION_INCOMPLETE",
-  "BROWSER_BACKPRESSURE",
-  "BROWSER_WAIT_ABORTED",
-]);
+const SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 
 export class TypedExecutionFailure extends Error {
   public override readonly name: string = "TypedExecutionFailure";
@@ -104,11 +97,12 @@ export const postSubmitReadbackFault = (
   const terminalAt = Date.parse(input.terminalAt);
   const readbackDeadlineAt = Date.parse(input.readbackDeadlineAt);
   if (input.causeCode !== code
-    || !POST_SUBMIT_READBACK_TRANSIENT_CODES.has(code)
     || !Number.isFinite(terminalAt)
     || !Number.isFinite(readbackDeadlineAt)
     || readbackDeadlineAt <= terminalAt
-    || Date.now() >= readbackDeadlineAt) {
+    || !SHA256_PATTERN.test(input.exactCallIdentityHash)
+    || input.evidenceRef.trim().length === 0
+    || !SHA256_PATTERN.test(input.evidenceHash)) {
     return executionFailure("failed", code, {
       mutationOutcome: "no",
       evidenceRef: input.evidenceRef,
@@ -170,11 +164,23 @@ export const typedExecutionFailure = (error: unknown): TypedExecutionFailure | n
 export const failureCode = (error: unknown, fallback = "UNKNOWN_FAILURE"): string =>
   typedExecutionFailure(error)?.code ?? fallback;
 
+const innermostError = (value: unknown): Error | null => {
+  let current = value;
+  let deepest: Error | null = null;
+  const seen = new Set<object>();
+  while (current && typeof current === "object" && !seen.has(current)) {
+    seen.add(current);
+    if (current instanceof Error) deepest = current;
+    current = current instanceof Error ? current.cause : undefined;
+  }
+  return deepest;
+};
+
 export const serializeTerminalFailure = (
   error: unknown,
 ): SerializedExecutionFailure => {
   const typed = typedExecutionFailure(error);
-  const cause = typed?.cause ?? (typed ? undefined : error);
+  const cause = innermostError(typed?.cause ?? (typed ? undefined : error));
   const causeCode = cause && typeof cause === "object" && "code" in cause
     && typeof (cause as { code?: unknown }).code === "string"
     ? (cause as { code: string }).code : null;

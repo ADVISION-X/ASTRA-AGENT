@@ -12,6 +12,7 @@ export const PRODUCTION_V6_MANIFEST_HASH =
 
 const hash = z.string().regex(/^sha256:[a-f0-9]{64}$/u)
   .transform((value): `sha256:${string}` => value as `sha256:${string}`);
+const reasonCode = z.string().min(1).max(512);
 
 export const DeviceCredentialSchema = z.object({
   protocol_version: z.literal("xuanxue-ai-production-v6"),
@@ -52,7 +53,7 @@ export const RuntimeAttestationReceiptSchema = z.object({
   issued_at: z.string().datetime(),
   expires_at: z.string().datetime(),
   claim_eligible: z.boolean(),
-  reason_codes: z.array(z.string()),
+  reason_codes: z.array(reasonCode).max(32),
 }).strict();
 
 export type RuntimeAttestationReceipt = z.infer<typeof RuntimeAttestationReceiptSchema>;
@@ -153,7 +154,7 @@ export const ClaimBatchReceiptSchema = z.object({
   server_now: z.string().datetime(),
   next_claim_after_ms: z.number().int().min(1_000).max(30_000),
   queue_epoch: z.number().int().nonnegative(),
-  reason_codes: z.array(z.string()),
+  reason_codes: z.array(reasonCode).max(32),
 }).strict();
 
 export const LeaseRenewReceiptSchema = z.object({

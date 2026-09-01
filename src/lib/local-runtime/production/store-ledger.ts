@@ -164,7 +164,7 @@ export class ProductionStoreLedger extends ProductionStoreOutbox {
       && (!terminal || terminal.terminal_status === "completed");
   }
 
-  public isLedgerConsistent(activeJobIds: ReadonlySet<string>): boolean {
+  public isLedgerConsistent(_activeJobIds: ReadonlySet<string>): boolean {
     const tasks = new Map(this.taskAuthorities().map((record) => [record.task.job_id, record] as const));
     const outbox = this.outboxAuthorities();
     if (outbox.some((authority) => authority.state === "delivered"
@@ -181,8 +181,6 @@ export class ProductionStoreLedger extends ProductionStoreOutbox {
       if ((task.status === "completed" || admissionPending)
         && !completionPayloadConsistent(task, terminal!, projection)) return false;
     }
-    const lanes = this.database.prepare(`select lane_owner_job_id from production_continuations
-      where lane_owner_job_id is not null`).all() as Array<{ lane_owner_job_id: string }>;
-    return lanes.every((row) => activeJobIds.has(row.lane_owner_job_id));
+    return true;
   }
 }

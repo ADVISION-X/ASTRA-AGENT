@@ -1,8 +1,6 @@
 import {
   GPT_CHILD_CAPABILITY_CONTRACTS,
-  gptContinuationIdentityHash,
   gptExactCallIdentityHash,
-  type GptContinuationLane,
   type GptAbilityGroup,
   type GptChildCapabilityIntent,
   type GptChildCapabilityResult,
@@ -21,7 +19,9 @@ import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-s
 import { hashCanonical, type ProductionHash, type WebsiteAgentTask } from "./contracts.js";
 import type {
   ExactGptCallFacts,
+  ExactGptContinuationQuery,
   ProductGptCallInput,
+  ProductGptFactQuery,
   ProductGptChildResult,
   ProductGptTools,
 } from "./plugin.js";
@@ -33,16 +33,16 @@ import {
   persistedEvidenceRefs,
 } from "./gpt-evidence-writer.js";
 import {
-  readSubmissionLocatorArtifact,
-  readTextCheckpointArtifact,
-} from "./gpt-artifact-reader.js";
-import {
   ProductionGptBrowserLifecycle,
   recoveredGptChildResult,
   type ProductionGptBrowserCall,
 } from "./production-gpt-browser-lifecycle.js";
-import { readProductionGptCallFacts } from "./production-gpt-call-facts.js";
-
+import {
+  isPendingExactEvidence,
+  readProductionGptCallFacts,
+} from "./production-gpt-call-facts.js";
+import { ProductionGptContinuationReadback } from "./production-gpt-continuation-readback.js";
+import { readCompletedGptChildResult } from "./production-gpt-completed-result.js";
 type ExecutionInput = Readonly<{
   task: WebsiteAgentTask;
   pluginId: string;
@@ -50,25 +50,29 @@ type ExecutionInput = Readonly<{
   lease: ProductionExecutionLease;
   parentSpanId: string;
 }>;
-
 export type ProductGptExecution = Readonly<{
   tools: ProductGptTools;
   continuationRef(): string | null;
   reconcilePermanentCancellation(): Promise<void>;
   settle(error: unknown | null): Promise<void>;
 }>;
-
 const throwChildFailure = (result: GptChildCapabilityResult): never => {
+  const native = result.failureCause ? Object.assign(new Error(result.failureCause.name), {
+    name: result.failureCause.name,
+    ...(result.failureCause.code ? { code: result.failureCause.code } : {}),
+  }) : undefined;
   const error = executionFailure("failed", result.failureCode ?? "GPT_CHILD_FAILED", {
     mutationOutcome: result.proof.committedMutation,
     evidenceRef: persistedEvidenceRefs.get(result) ?? null,
     evidenceHash: result.proof.evidenceHash,
+    ...(native ? { cause: native } : {}),
   });
   const causeEventId = childFailureEventIds.get(result);
   throw causeEventId ? withRuntimeLogCause(error, causeEventId) : error;
 };
-
 export class ProductionGptChildTools {
+  private readonly continuationReadback: ProductionGptContinuationReadback;
+
   public constructor(
     private readonly dataDir: string,
     private readonly sourceHash: ProductionHash,
@@ -77,8 +81,9 @@ export class ProductionGptChildTools {
     private readonly browserAuthority: WorkbenchBrowserAuthority,
     private readonly store: ProductionRuntimeStore,
     private readonly runtimeLogger: RuntimeLogger,
-  ) {}
-
+  ) {
+    this.continuationReadback = new ProductionGptContinuationReadback(evidenceStore, store);
+  }
   public createExecution(input: ExecutionInput): ProductGptExecution {
     const browsers = new ProductionGptBrowserLifecycle(
       this.browserAuthority,
@@ -108,8 +113,8 @@ export class ProductionGptChildTools {
     return Object.freeze({
       tools: Object.freeze({
         attemptId: input.lease.attempt_id,
-        readContinuationForTurn: (turnMarker: string) =>
-          this.continuationForTurn(input, turnMarker),
+        readContinuationExact: (query: ExactGptContinuationQuery) =>
+          this.continuationReadback.readExact(input, query),
         execute,
         readCallFacts: (call: Parameters<ProductGptTools["readCallFacts"]>[0]) =>
           this.readCallFacts(input, call),
@@ -132,44 +137,15 @@ export class ProductionGptChildTools {
       settle: (error) => browsers.settle(error),
     });
   }
-
-  private continuationForTurn(input: ExecutionInput, turnMarker: string): GptContinuationLane | null {
-    if (!turnMarker) throw executionFailure("failed", "GPT_CONTINUATION_TURN_MARKER_INVALID");
-    const stored = input.task.continuation_ref
-      ? this.store.readGptContinuation(input.task.continuation_ref)
-      : this.store.readGptContinuationForOriginJob(input.task.job_id, input.pluginId, turnMarker);
-    if (stored && stored.provider.prior_turn_marker !== turnMarker) return null;
-    return this.verifiedContinuationLane(stored, input);
-  }
-
-  private verifiedContinuationLane(
-    stored: ReturnType<ProductionRuntimeStore["readGptContinuation"]>,
-    input: ExecutionInput,
-  ): GptContinuationLane | null {
-    if (!stored) return null;
-    if (stored.origin_job_id !== input.task.job_id
-      || stored.plugin_id !== input.pluginId
-      || stored.owner_ref !== input.task.business_identity.owner_ref
-      || stored.subject_ref !== input.task.business_identity.subject_ref
-      || stored.authorization_ref !== input.task.business_identity.authorization_ref
-      || stored.conversation_identity_hash !== gptContinuationIdentityHash(stored.provider)) {
-      throw executionFailure("failed", "GPT_CONTINUATION_IDENTITY_INVALID");
-    }
-    return Object.freeze({
-      continuation_ref: stored.continuation_ref,
-      lane_version: stored.lane_version,
-      provider: stored.provider,
-    });
-  }
-
-  private intentFor(
+  private intentForAttempt(
     execution: ExecutionInput,
     call: ProductGptCallInput,
+    attemptId: string,
   ): GptChildCapabilityIntent {
     const inputHash = hashCanonical(call.input);
     const identity = {
       jobId: execution.task.job_id,
-      attemptId: execution.lease.attempt_id,
+      attemptId,
       pluginId: execution.pluginId,
       pluginVersion: execution.pluginVersion,
       productStepId: call.productStepId,
@@ -184,14 +160,38 @@ export class ProductionGptChildTools {
       input: call.input,
     });
   }
-
+  private intentFor(execution: ExecutionInput, call: ProductGptCallInput): GptChildCapabilityIntent {
+    return this.intentForAttempt(execution, call, execution.lease.attempt_id);
+  }
   private async readCallFacts(
     execution: ExecutionInput,
-    call: ProductGptCallInput,
+    query: ProductGptFactQuery,
   ): Promise<ExactGptCallFacts> {
-    return this.readIntentFacts(this.intentFor(execution, call));
+    const { lookupKind = "current_attempt", ...call } = query;
+    if (lookupKind === "current_attempt") {
+      return this.readIntentFacts(this.intentFor(execution, call));
+    }
+    if (call.child !== "submit_exact_gpt_turn_once") {
+      throw executionFailure("failed", "GPT_TASK_EXACT_EFFECT_CHILD_INVALID");
+    }
+    const currentFacts = await this.readIntentFacts(this.intentFor(execution, call));
+    if (currentFacts.mutation || currentFacts.evidence) {
+      throw executionFailure("failed", "GPT_TASK_EXACT_EFFECT_CURRENT_ATTEMPT_PRESENT");
+    }
+    const candidates: ExactGptCallFacts[] = [];
+    for (const attemptId of this.store.attemptIdsForTask(execution.task.job_id)) {
+      if (attemptId === execution.lease.attempt_id) continue;
+      const facts = await this.readIntentFacts(this.intentForAttempt(execution, call, attemptId));
+      if (isPendingExactEvidence(facts.evidence)) {
+        throw executionFailure("failed", "GPT_TASK_EXACT_EFFECT_PENDING");
+      }
+      if (facts.mutation || facts.evidence) candidates.push(facts);
+    }
+    if (candidates.length > 1) {
+      throw executionFailure("failed", "GPT_TASK_EXACT_EFFECT_AMBIGUOUS");
+    }
+    return candidates[0] ?? currentFacts;
   }
-
   private async readIntentFacts(
     intent: GptChildCapabilityIntent,
   ): Promise<ExactGptCallFacts> {
@@ -223,12 +223,19 @@ export class ProductionGptChildTools {
   }
 
   private terminalize(span: RuntimeSpanHandle, result: GptChildCapabilityResult): void {
+    const native = result.failureCause ? Object.assign(new Error(result.failureCause.name), {
+      name: result.failureCause.name,
+      ...(result.failureCause.code ? { code: result.failureCause.code } : {}),
+    }) : undefined;
+    const failure = executionFailure("failed", result.failureCode ?? "GPT_CHILD_FAILED", {
+      ...(native ? { cause: native } : {}),
+    });
     const terminal = result.status === "success"
       ? requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }))
       : requireRuntimeLogWrite(span.terminal({
         outcome: "failed",
         failure: runtimeFailureFromError({
-          error: new Error(result.failureCode ?? "GPT_CHILD_FAILED"),
+          error: failure,
           code: result.failureCode ?? "GPT_CHILD_FAILED",
           responsibleOwner: "gpt",
           impact: RuntimeFailureImpact.BLOCKING,
@@ -247,7 +254,7 @@ export class ProductionGptChildTools {
       outcome: "failed",
       failure: runtimeFailureFromError({
         error: failure,
-        code: "GPT_CHILD_RUNTIME_FAILED",
+        code: failureCode(failure, "GPT_CHILD_RUNTIME_FAILED"),
         responsibleOwner: "gpt",
         impact: RuntimeFailureImpact.BLOCKING,
       }),
@@ -255,64 +262,6 @@ export class ProductionGptChildTools {
     const propagated = error instanceof AggregateError && error.cause !== undefined
       ? error : failure;
     throw withRuntimeLogCause(propagated, terminal.eventId);
-  }
-
-  private async completedResultFromFacts(
-    call: ProductGptCallInput,
-    facts: ExactGptCallFacts,
-    span: RuntimeSpanHandle,
-    browserMutation: boolean,
-  ): Promise<ProductGptChildResult | null> {
-    if (!facts.evidence) return null;
-    if (call.child === "persist_gpt_continuation") {
-      if (!facts.continuation) return null;
-      requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
-      return Object.freeze({
-        value: { continuationRef: facts.continuation.continuationRef },
-        evidenceRef: facts.evidence.evidenceRef,
-        evidenceHash: facts.evidence.evidenceHash,
-      });
-    }
-    if (call.child === "advance_gpt_continuation_lane"
-      || call.child === "release_gpt_continuation_lane") {
-      requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
-      return Object.freeze({
-        value: call.child === "advance_gpt_continuation_lane" ? { advanced: true } : { released: true },
-        evidenceRef: facts.evidence.evidenceRef,
-        evidenceHash: facts.evidence.evidenceHash,
-      });
-    }
-    if (call.child === "checkpoint_gpt_text_response") {
-      if (facts.evidence.artifactRefs.length !== 1) {
-        throw executionFailure("failed", "GPT_TEXT_TASK_ARTIFACT_MISSING");
-      }
-      const value = await readTextCheckpointArtifact(this.evidenceStore, facts.evidence.artifactRefs[0]!);
-      requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
-      return Object.freeze({
-        value,
-        evidenceRef: facts.evidence.evidenceRef,
-        evidenceHash: facts.evidence.evidenceHash,
-      });
-    }
-    if (call.child === "reconcile_gpt_turn_submission") {
-      if (facts.evidence.artifactRefs.length !== 1) {
-        throw executionFailure("failed", "GPT_SUBMISSION_LOCATOR_TASK_ARTIFACT_MISSING");
-      }
-      const value = await readSubmissionLocatorArtifact(this.evidenceStore, facts.evidence.artifactRefs[0]!);
-      requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
-      return Object.freeze({
-        value,
-        evidenceRef: facts.evidence.evidenceRef,
-        evidenceHash: facts.evidence.evidenceHash,
-      });
-    }
-    if (!browserMutation || facts.mutation?.outcome === "DISPATCHED") return null;
-    requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
-    return Object.freeze({
-      value: null,
-      evidenceRef: facts.evidence.evidenceRef,
-      evidenceHash: facts.evidence.evidenceHash,
-    });
   }
 
   private assertProviderTurnBudget(
@@ -343,6 +292,7 @@ export class ProductionGptChildTools {
     const span = this.childSpan(execution, intent);
     let result: GptChildCapabilityResult;
     let evidenceRef: string;
+    let evidenceHash: ProductionHash;
     let resolveDispatched = false;
     try {
       if (facts.mutation?.outcome === "REJECTED") {
@@ -353,7 +303,8 @@ export class ProductionGptChildTools {
       }
       const browserMutation = contract.requiredTargetKind === "chatgpt"
         && contract.oneObservationOrMutation === "at-most-one-mutation";
-      const completed = await this.completedResultFromFacts(call, facts, span, browserMutation);
+      const completed = await readCompletedGptChildResult({ call, facts, span, browserMutation,
+        evidenceStore: this.evidenceStore });
       if (completed) return completed;
       const browserCall = contract.requiredTargetKind === "chatgpt"
         ? await browsers.browserFor(call.sessionKey, call.productStepId, call.callId)
@@ -368,15 +319,19 @@ export class ProductionGptChildTools {
       );
       result = atomic.result;
       resolveDispatched = atomic.resolveDispatched;
-      if (facts.evidence) {
+      const pendingEvidence = isPendingExactEvidence(facts.evidence);
+      if (facts.evidence && (!pendingEvidence || result.proof.postconditionResult === "pending")) {
         evidenceRef = facts.evidence.evidenceRef;
+        evidenceHash = facts.evidence.evidenceHash;
       } else {
         const persisted = await persistGptChildEvidence({
           result, intent, evidenceStore: this.evidenceStore,
           jobId: execution.task.job_id, attemptId: execution.lease.attempt_id,
           stepId: call.productStepId, exactCallIdentityHash: facts.exactCallIdentityHash,
+          settlesPendingEvidence: pendingEvidence,
         });
         evidenceRef = persisted.evidenceRef;
+        evidenceHash = result.proof.evidenceHash;
       }
       if (resolveDispatched && browser && result.status === "success") {
         await browser.resolvePendingMutation({
@@ -397,7 +352,7 @@ export class ProductionGptChildTools {
     return Object.freeze({
       value: result.value,
       evidenceRef,
-      evidenceHash: facts.evidence?.evidenceHash ?? result.proof.evidenceHash,
+      evidenceHash,
     });
   }
 

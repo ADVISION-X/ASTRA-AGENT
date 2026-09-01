@@ -11,6 +11,7 @@ import {
   type WebsiteAgentTask,
 } from "../../lib/local-runtime/production/contracts.js";
 import {
+  gptTextContinuationCheckpointInput,
   productResultValidation,
   readProductSkill,
   type ExactGptCallFacts,
@@ -46,6 +47,7 @@ const MODEL_PROFILE = buildGptExecutionProfile({
 
 type FlowCall = Omit<Parameters<SharedExecutionContext["gpt"]["execute"]>[0], "sessionKey">;
 type Checkpoint = Readonly<{
+  assistantTurnId: string;
   artifactRef: string;
   canonicalConversationUrl: string;
   promptHash: ProductionHash;
@@ -53,6 +55,8 @@ type Checkpoint = Readonly<{
   semanticText: string;
   semanticTextHash: ProductionHash;
   turnMarker: string;
+  evidenceRef: string;
+  evidenceHash: ProductionHash;
 }>;
 type OwnedExecution = ReturnType<typeof createOwnedExecution>;
 
@@ -258,15 +262,17 @@ const checkpointSubmittedTurn = async (
       },
     } as const;
     const checkpoint = objectValue((await flow.execute(checkpointCall)).value, "PRODUCT_TEXT_CHECKPOINT_INVALID");
-    const refs = (await flow.facts(checkpointCall)).evidence?.artifactRefs ?? [];
+    const checkpointEvidence = (await flow.facts(checkpointCall)).evidence;
+    const refs = checkpointEvidence?.artifactRefs ?? [];
     const artifactRef = refs[0];
-    if (refs.length !== 1 || !artifactRef) fail("PRODUCT_TEXT_ARTIFACT_RECEIPT_INVALID");
+    if (!checkpointEvidence || refs.length !== 1 || !artifactRef) fail("PRODUCT_TEXT_ARTIFACT_RECEIPT_INVALID");
     return Object.freeze({
-      artifactRef: artifactRef as string, canonicalConversationUrl, promptHash,
+      assistantTurnId, artifactRef: artifactRef as string, canonicalConversationUrl, promptHash,
       rawDomHash: hashValue(checkpoint.rawDomHash, "PRODUCT_TEXT_CHECKPOINT_INVALID"),
       semanticText: textValue(checkpoint.semanticText, "PRODUCT_TEXT_CHECKPOINT_INVALID"),
       semanticTextHash: hashValue(checkpoint.semanticTextHash, "PRODUCT_TEXT_CHECKPOINT_INVALID"),
-      turnMarker: marker,
+      turnMarker: marker, evidenceRef: checkpointEvidence.evidenceRef,
+      evidenceHash: checkpointEvidence.evidenceHash,
     });
   } catch (error) {
     return preservePostSubmitReadback(error, submit);
@@ -354,22 +360,28 @@ const acquireContinuation = async (
       subjectRef: task.business_identity.subject_ref,
     },
   })).value);
-  if (lane.continuation_ref !== task.continuation_ref) fail("PRODUCT_CONTINUATION_LANE_DRIFT");
-  await flow.execute({
-    productStepId: stepId, callId: "conversation-focus", child: "focus_exact_gpt_conversation",
-    actionOrdinal: 2, input: { canonicalConversationUrl: lane.provider.provider_page_url },
-  });
-  await flow.execute({
-    productStepId: stepId, callId: "conversation-verify", child: "verify_gpt_conversation_identity",
-    actionOrdinal: 3, input: {
-      canonicalConversationUrl: lane.provider.provider_page_url,
-      expectedPromptHash: lane.provider.prior_prompt_hash,
-      expectedResponseHash: lane.provider.prior_raw_output_hash,
-      timeoutMs: 60_000,
-      turnMarker: lane.provider.prior_turn_marker,
-    },
-  });
-  return lane;
+  let handedOff = false;
+  try {
+    if (lane.continuation_ref !== task.continuation_ref) fail("PRODUCT_CONTINUATION_LANE_DRIFT");
+    await flow.execute({
+      productStepId: stepId, callId: "conversation-focus", child: "focus_exact_gpt_conversation",
+      actionOrdinal: 2, input: { canonicalConversationUrl: lane.provider.provider_page_url },
+    });
+    await flow.execute({
+      productStepId: stepId, callId: "conversation-verify", child: "verify_gpt_conversation_identity",
+      actionOrdinal: 3, input: {
+        canonicalConversationUrl: lane.provider.provider_page_url,
+        expectedPromptHash: lane.provider.prior_prompt_hash,
+        expectedResponseHash: lane.provider.prior_raw_output_hash,
+        timeoutMs: 60_000,
+        turnMarker: lane.provider.prior_turn_marker,
+      },
+    });
+    handedOff = true;
+    return lane;
+  } finally {
+    if (!handedOff) await releaseContinuation(task, flow, lane);
+  }
 };
 
 const runContinuationTurn = async (
@@ -417,10 +429,12 @@ const advanceContinuation = async (
   flow: OwnedExecution,
   lane: GptContinuationLane,
   checkpoint: Checkpoint,
+  sourceAttemptId: string,
 ): Promise<void> => {
   await flow.execute({
     productStepId: task.action_id, callId: "continuation-advance", child: "advance_gpt_continuation_lane",
     actionOrdinal: 18, input: {
+      currentCheckpoint: gptTextContinuationCheckpointInput(sourceAttemptId, checkpoint),
       jobId: task.job_id, lane, pluginId: PLUGIN_ID, provider: providerFor(task, checkpoint),
     },
   });
@@ -450,7 +464,7 @@ export const executeOwnedFlow = async (
     try {
       const checkpoint = await runContinuationTurn(task, context, flow, prompt, marker);
       const payload = receive(task, checkpoint);
-      await advanceContinuation(task, flow, lane, checkpoint);
+      await advanceContinuation(task, flow, lane, checkpoint, context.gpt.attemptId);
       advanced = true;
       return context.complete({ payload, evidence_refs: flow.evidenceRefs() });
     } finally {

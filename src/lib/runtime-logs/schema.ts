@@ -155,7 +155,7 @@ const claimDiagnosticsValid = (value: unknown): boolean => {
     && Number.isInteger(count) && count >= 0 && count <= 10
     && ((value.outcome === "LEASE_GRANTED") === (count > 0))
     && Array.isArray(value.reason_codes) && value.reason_codes.length <= 32
-    && value.reason_codes.every(machineCode);
+    && value.reason_codes.every((item) => machineCode(item) || item === "[REDACTED_UNSAFE]");
 };
 
 const terminalSpanValid = (value: Readonly<Record<string, unknown>>): boolean => {

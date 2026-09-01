@@ -344,7 +344,7 @@ export class BrowserCommandActor {
     const failureEvent = failBrowserCommandSpan({
       span: commandSpan, permit,
       proofHash: mutation && state.prepared ? this.mutations.authorityHash(permit.commandId) : hashValue(code),
-      failureCode: code, pendingReceipt: mutation && state.dispatched,
+      failureCode: code, error, pendingReceipt: mutation && state.dispatched,
     });
     throw withRuntimeLogCause(new Error(code, { cause: error }), failureEvent.eventId);
   }

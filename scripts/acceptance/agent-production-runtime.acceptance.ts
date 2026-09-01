@@ -14,6 +14,7 @@ import { emitQualityProofObservation } from "../audit/shared/proof-observation.j
 import { HASH_A, HASH_B, claimTask, task } from "./agent-production-runtime-fixtures.js";
 import "./agent-production-gpt-browser-lifecycle.acceptance.js";
 import "./agent-production-gpt-artifact-recovery.acceptance.js";
+import "./agent-production-frontier-cutover.acceptance.js";
 import "./agent-production-continuation-restart.acceptance.js";
 import "./agent-production-runtime-ledger.acceptance.js";
 import "./agent-production-runtime-continuation.acceptance.js";
@@ -86,10 +87,18 @@ assert.equal(claimed.status, "failed");
 assert.equal(claimed.grant.accepted_attempt_count, 1);
 
 const runtimeSource = await readFile(new URL("../../src/lib/local-runtime/production/runtime-claim.ts", import.meta.url), "utf8");
+const permanentRevocationSource = await readFile(
+  new URL("../../src/lib/local-runtime/production/runtime-permanent-revocation.ts", import.meta.url),
+  "utf8",
+);
 const executorSource = await readFile(new URL("../../src/lib/local-runtime/production/executor.ts", import.meta.url), "utf8");
 const childToolsSource = await readFile(new URL("../../src/lib/local-runtime/production/production-gpt-child-tools.ts", import.meta.url), "utf8");
 const heartbeatSource = await readFile(new URL("../../src/lib/local-runtime/production/runtime-execution-heartbeat.ts", import.meta.url), "utf8");
 const cloudSource = await readFile(new URL("../../src/lib/local-runtime/production/cloud-client.ts", import.meta.url), "utf8");
+const leaseReleaseContractSource = await readFile(
+  new URL("../../src/lib/local-runtime/production/lease-release-contract.ts", import.meta.url),
+  "utf8",
+);
 const storeSource = await readFile(new URL("../../src/lib/local-runtime/production/store-task-state.ts", import.meta.url), "utf8");
 assert.equal(existsSync(new URL("../../src/lib/local-runtime/production/production-gpt-executor.ts", import.meta.url)), false);
 assert.equal(existsSync(new URL("../../src/lib/local-runtime/production/production-gpt-turn-flow.ts", import.meta.url)), false);
@@ -100,10 +109,7 @@ assert.match(childToolsSource, /this\.gpt\.execute\(intent/u);
 assert.match(childToolsSource, /mutationMode: "readback"/u);
 assert.doesNotMatch(childToolsSource, /stepIndex|flowVersion|resumePoint|reconcileOnly/u);
 
-const deletionSettlement = runtimeSource.slice(
-  runtimeSource.indexOf("const settlePermanentAuthorizationRevocation"),
-  runtimeSource.indexOf("const readClaimRecoveryStatus"),
-);
+const deletionSettlement = permanentRevocationSource;
 assert.match(deletionSettlement, /releaseGptContinuationLanesForJob\(job\.job_id\)/u);
 assert.match(deletionSettlement, /readBrowserReconciliationScope/u);
 assert.match(deletionSettlement, /PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED:READ_ONLY_RECONCILIATION_REQUIRED/u);
@@ -120,7 +126,7 @@ const deletionControlIndex = heartbeatSource.indexOf('if (receipt.control_intent
 const renewalBudgetIndex = heartbeatSource.indexOf("const relative = Date.parse(receipt.lease_expires_at)");
 assert.ok(deletionControlIndex >= 0 && renewalBudgetIndex > deletionControlIndex,
   "permanent control must stop execution before a non-extended lease is treated as an invalid renewal budget");
-assert.match(cloudSource, /PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED/u);
+assert.match(leaseReleaseContractSource, /PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED/u);
 assert.match(cloudSource, /stableRequestId/u);
 assert.match(storeSource, /releaseGptContinuationLanesForJob/u);
 
@@ -146,7 +152,7 @@ process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({
   passed: true,
   findings: [],
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V15",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V23",
   evidenceMode: "exam.state-machine",
   clauses: ["forbidden:10", "forbidden:11", "forbidden:12", "forbidden:13", "forbidden:19", "forbidden:23", "forbidden:24", "forbidden:25", "forbidden:26", "forbidden:29", "forbidden:9", "summary"],
   locator: "acceptance:agent-production-runtime:attempt-recovery-state-machine",

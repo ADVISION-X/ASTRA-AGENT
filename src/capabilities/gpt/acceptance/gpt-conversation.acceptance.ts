@@ -8,6 +8,7 @@ import {
 } from "../index.js";
 import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import { hashCanonical } from "../../../lib/local-runtime/production/contracts.js";
+import { executionFailure } from "../../../lib/typed-failure.js";
 import { GPT_COMPOSER_SELECTOR } from "../web/contracts/composer.contract.js";
 import {
   GPT_GENERATING_STOP_SELECTOR,
@@ -134,6 +135,62 @@ const submissionLocatorValue = submissionLocator.value as Readonly<Record<string
 assert.equal(submissionLocatorValue.promptHash, renderedMarkdownPromptHash,
   "semantic prompt projection must preserve inline-code backticks and the prompt's own trailing newline");
 assert.equal(submissionLocatorFixture.physicalMutations(), 0);
+
+for (const transientCode of [
+  "BROWSER_DOM_CANDIDATE_MISSING",
+  "BROWSER_DOM_CANDIDATE_AMBIGUOUS",
+  "BROWSER_DOM_NODE_STALE",
+  "BROWSER_DOM_READ_INVALID",
+] as const) {
+  let injected = false;
+  let fullPrefixReads = 0;
+  const transientSubmissionFixture = fakeBrowser((intent) => {
+    if (intent.kind === "find" && intent.selector === GPT_USER_TURN_SELECTOR) {
+      fullPrefixReads += 1;
+      return { count: 1 };
+    }
+    if (intent.kind === "readText" && intent.selector === GPT_COMPOSER_SELECTOR) return "";
+    if (intent.kind === "document") return { url: canonicalConversationUrl, title: "ChatGPT" };
+    if (intent.kind === "readAttribute" && intent.selector === GPT_USER_TURN_SELECTOR) {
+      if (!injected) {
+        injected = true;
+        throw executionFailure("failed", transientCode);
+      }
+      return "conversation-turn-1";
+    }
+    if (intent.kind === "inspect" && intent.selector === promptBodySelector) {
+      return { semanticText: `${renderedMarkdownPrompt}\n`, visible: true, connected: true };
+    }
+    throw new Error(`UNEXPECTED_TRANSIENT_SUBMISSION_INTENT:${intent.kind}`);
+  });
+  const recoveredSubmission = await execute(
+    "reconcile_gpt_turn_submission",
+    transientSubmissionFixture.browser,
+    { expectedPromptHash: renderedMarkdownPromptHash, timeoutMs: 1_000, turnMarker: promptMarker },
+  );
+  assert.equal(recoveredSubmission.status, "success", `${transientCode} must recover inside action43`);
+  assert.equal(fullPrefixReads, 2,
+    `${transientCode} must restart from user-turn count instead of retaining a stale node`);
+  assert.equal(transientSubmissionFixture.physicalMutations(), 0,
+    `${transientCode} recovery must remain read-only and never resubmit`);
+}
+
+const targetLossSubmissionFixture = fakeBrowser((intent) => {
+  if (intent.kind === "find" && intent.selector === GPT_USER_TURN_SELECTOR) return { count: 1 };
+  if (intent.kind === "readText" && intent.selector === GPT_COMPOSER_SELECTOR) return "";
+  if (intent.kind === "document") throw executionFailure("failed", "BROWSER_TARGET_INVALID");
+  throw new Error(`UNEXPECTED_TARGET_LOSS_SUBMISSION_INTENT:${intent.kind}`);
+});
+const targetLossSubmission = await execute(
+  "reconcile_gpt_turn_submission",
+  targetLossSubmissionFixture.browser,
+  { expectedPromptHash: renderedMarkdownPromptHash, timeoutMs: 1_000, turnMarker: promptMarker },
+);
+assert.equal(targetLossSubmission.status, "failed");
+assert.equal(targetLossSubmission.failureCode, "BROWSER_TARGET_INVALID",
+  "action43 must not hide or retry a true Target lifecycle failure");
+assert.deepEqual(targetLossSubmissionFixture.waitDurations(), [],
+  "true Target lifecycle failure must leave action43 immediately for same-attempt release/reclaim");
 
 const assistantText = '{"schema_version":"public-knowledge-research-output.v3"}';
 const assistantHash = `sha256:${createHash("sha256").update(assistantText).digest("hex")}`;

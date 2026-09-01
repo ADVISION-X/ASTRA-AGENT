@@ -10,6 +10,7 @@ import {
   type WebsiteAgentTask,
 } from "../../lib/local-runtime/production/contracts.js";
 import {
+  gptTextContinuationCheckpointInput,
   productResultValidation,
   readProductSkill,
   type ExactGptCallFacts,
@@ -42,6 +43,7 @@ const MODEL_PROFILE = buildGptExecutionProfile({
 
 type FlowCall = Omit<Parameters<SharedExecutionContext["gpt"]["execute"]>[0], "sessionKey">;
 type Checkpoint = Readonly<{
+  assistantTurnId: string;
   artifactRef: string;
   canonicalConversationUrl: string;
   promptHash: ProductionHash;
@@ -49,6 +51,8 @@ type Checkpoint = Readonly<{
   semanticText: string;
   semanticTextHash: ProductionHash;
   turnMarker: string;
+  evidenceRef: string;
+  evidenceHash: ProductionHash;
 }>;
 type OwnedExecution = ReturnType<typeof createOwnedExecution>;
 
@@ -254,15 +258,17 @@ const checkpointSubmittedTurn = async (
       },
     } as const;
     const checkpoint = objectValue((await flow.execute(checkpointCall)).value, "PRODUCT_TEXT_CHECKPOINT_INVALID");
-    const refs = (await flow.facts(checkpointCall)).evidence?.artifactRefs ?? [];
+    const checkpointEvidence = (await flow.facts(checkpointCall)).evidence;
+    const refs = checkpointEvidence?.artifactRefs ?? [];
     const artifactRef = refs[0];
-    if (refs.length !== 1 || !artifactRef) fail("PRODUCT_TEXT_ARTIFACT_RECEIPT_INVALID");
+    if (!checkpointEvidence || refs.length !== 1 || !artifactRef) fail("PRODUCT_TEXT_ARTIFACT_RECEIPT_INVALID");
     return Object.freeze({
-      artifactRef: artifactRef as string, canonicalConversationUrl, promptHash,
+      assistantTurnId, artifactRef: artifactRef as string, canonicalConversationUrl, promptHash,
       rawDomHash: hashValue(checkpoint.rawDomHash, "PRODUCT_TEXT_CHECKPOINT_INVALID"),
       semanticText: textValue(checkpoint.semanticText, "PRODUCT_TEXT_CHECKPOINT_INVALID"),
       semanticTextHash: hashValue(checkpoint.semanticTextHash, "PRODUCT_TEXT_CHECKPOINT_INVALID"),
-      turnMarker: marker,
+      turnMarker: marker, evidenceRef: checkpointEvidence.evidenceRef,
+      evidenceHash: checkpointEvidence.evidenceHash,
     });
   } catch (error) {
     return preservePostSubmitReadback(error, submit);
@@ -343,6 +349,7 @@ const persistContinuation = async (
   task: WebsiteAgentTask,
   flow: OwnedExecution,
   checkpoint: Checkpoint,
+  sourceAttemptId: string,
 ): Promise<void> => {
   await flow.execute({
     productStepId: task.action_id, callId: "continuation-persist", child: "persist_gpt_continuation",
@@ -353,6 +360,7 @@ const persistContinuation = async (
       pluginId: PLUGIN_ID,
       subjectRef: task.business_identity.subject_ref,
       provider: providerFor(task, checkpoint),
+      currentCheckpoint: gptTextContinuationCheckpointInput(sourceAttemptId, checkpoint),
     },
   });
 };
@@ -367,6 +375,6 @@ export const executeOwnedFlow = async (
   const checkpoint = await runFreshTurn(task, context, flow, prompt, marker);
   const payload = receive(task, checkpoint);
   const review = task.action_id === "accuracy_challenge" || task.action_id === "quality_reflection";
-  if (!review) await persistContinuation(task, flow, checkpoint);
+  if (!review) await persistContinuation(task, flow, checkpoint, context.gpt.attemptId);
   return context.complete({ payload, evidence_refs: flow.evidenceRefs() });
 };

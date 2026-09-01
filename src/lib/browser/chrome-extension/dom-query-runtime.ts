@@ -3,6 +3,38 @@ import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 
 type DevToolsRecord = Record<string, unknown>;
 
+const DOM_CANDIDATE_MISSING = "BROWSER_DOM_CANDIDATE_MISSING";
+const DOM_CANDIDATE_AMBIGUOUS = "BROWSER_DOM_CANDIDATE_AMBIGUOUS";
+const DOM_NODE_STALE = "BROWSER_DOM_NODE_STALE";
+const DOM_READ_INVALID = "BROWSER_DOM_READ_INVALID";
+
+const machineCode = (value: string): boolean => /^[A-Z][A-Z0-9_]+$/u.test(value);
+const staleNodeError = (error: unknown): boolean => error instanceof Error
+  && /(?:could not find node|no node with given id|node.*(?:detached|does not exist|not found)|backend node.*not found)/iu.test(error.message);
+const invisibleBoxError = (error: unknown): boolean => error instanceof Error
+  && /could not compute box model/iu.test(error.message);
+
+const domReadError = (error: unknown): Error => {
+  if (error instanceof Error && machineCode(error.message)) return error;
+  return new Error(staleNodeError(error) ? DOM_NODE_STALE : DOM_READ_INVALID, { cause: error });
+};
+
+const read = async <T>(operation: () => Promise<T>): Promise<T> => {
+  try {
+    return await operation();
+  } catch (error) {
+    throw domReadError(error);
+  }
+};
+
+export const requireExactCandidateCount = (
+  nodes: readonly number[],
+  expectedMatches: number,
+): void => {
+  if (nodes.length < expectedMatches) throw new Error(DOM_CANDIDATE_MISSING);
+  if (nodes.length > expectedMatches) throw new Error(DOM_CANDIDATE_AMBIGUOUS);
+};
+
 export const queryAll = async (
   runtime: ExtensionDebuggerRuntime,
   tabId: number,
@@ -17,19 +49,20 @@ const queryNodeIds = async (
   selector: string,
   scope?: Readonly<{ selector: string }>,
 ): Promise<readonly number[]> => {
-  const root = record(await runtime.send(tabId, "DOM.getDocument", { depth: 1, pierce: true }));
+  const root = record(await read(() => runtime.send(tabId, "DOM.getDocument", { depth: 1, pierce: true })));
   const rootNode = record(root.root);
-  let queryRootId = numberValue(rootNode.nodeId, "BROWSER_TARGET_INVALID");
+  let queryRootId = numberValue(rootNode.nodeId, DOM_READ_INVALID);
   if (scope) {
-    const scopeResult = record(await runtime.send(tabId, "DOM.querySelectorAll", { nodeId: queryRootId, selector: scope.selector }));
-    const scopeIds = Array.isArray(scopeResult.nodeIds) ? scopeResult.nodeIds.map((value) => numberValue(value, "BROWSER_TARGET_INVALID")) : [];
+    const scopeResult = record(await read(() => runtime.send(tabId, "DOM.querySelectorAll", { nodeId: queryRootId, selector: scope.selector })));
+    if (!Array.isArray(scopeResult.nodeIds)) throw new Error(DOM_READ_INVALID);
+    const scopeIds = scopeResult.nodeIds.map((value) => numberValue(value, DOM_READ_INVALID));
     const visibleScopes = await visibleNodes(runtime, tabId, scopeIds);
-    if (visibleScopes.length !== 1) throw new Error("BROWSER_TARGET_INVALID");
+    requireExactCandidateCount(visibleScopes, 1);
     queryRootId = visibleScopes[0]!;
   }
-  const result = record(await runtime.send(tabId, "DOM.querySelectorAll", { nodeId: queryRootId, selector }));
-  const values = Array.isArray(result.nodeIds) ? result.nodeIds : [];
-  return values.map((value) => numberValue(value, "BROWSER_TARGET_INVALID"));
+  const result = record(await read(() => runtime.send(tabId, "DOM.querySelectorAll", { nodeId: queryRootId, selector })));
+  if (!Array.isArray(result.nodeIds)) throw new Error(DOM_READ_INVALID);
+  return result.nodeIds.map((value) => numberValue(value, DOM_READ_INVALID));
 };
 
 const visibleNodes = async (
@@ -40,7 +73,7 @@ const visibleNodes = async (
 ): Promise<readonly number[]> => {
   const visible: number[] = [];
   for (const nodeId of nodeIds) {
-    if (await boxCenter(runtime, tabId, nodeId).then(() => true).catch(() => false)) visible.push(nodeId);
+    if (await optionalBoxCenter(runtime, tabId, nodeId)) visible.push(nodeId);
     if (visible.length >= limit) break;
   }
   return visible;
@@ -69,9 +102,9 @@ export const queryVisibleTextMatches = async (
 
 export const nodeForSelector = async (runtime: ExtensionDebuggerRuntime, tabId: number, selector: string, expectedMatches: number, scope?: Readonly<{ selector: string }>): Promise<number> => {
   const nodes = await queryAll(runtime, tabId, selector, expectedMatches + 1, scope);
-  if (nodes.length !== expectedMatches) throw new Error("BROWSER_TARGET_INVALID");
+  requireExactCandidateCount(nodes, expectedMatches);
   const nodeId = nodes[0];
-  if (nodeId === undefined) throw new Error("BROWSER_TARGET_INVALID");
+  if (nodeId === undefined) throw new Error(DOM_CANDIDATE_MISSING);
   return nodeId;
 };
 
@@ -84,24 +117,25 @@ export const nodeForRead = async (
   const nodes = intent.kind === "readAttribute" && intent.textContains !== undefined
     ? await queryVisibleTextMatches(runtime, tabId, intent.selector, intent.textContains, false, maximum + 1, intent.scope)
     : await queryAll(runtime, tabId, intent.selector, maximum + 1, intent.scope);
-  if (intent.expectedMatches !== undefined ? nodes.length !== intent.expectedMatches : nodes.length > maximum) throw new Error("BROWSER_TARGET_INVALID");
+  if (intent.expectedMatches !== undefined) requireExactCandidateCount(nodes, intent.expectedMatches);
+  else if (nodes.length > maximum) throw new Error(DOM_CANDIDATE_AMBIGUOUS);
   const nodeId = nodes[intent.matchIndex ?? 0];
-  if (nodeId === undefined) throw new Error("BROWSER_TARGET_INVALID");
+  if (nodeId === undefined) throw new Error(DOM_CANDIDATE_MISSING);
   return nodeId;
 };
 
 export const documentState = async (runtime: ExtensionDebuggerRuntime, tabId: number): Promise<Readonly<{ url: string; title: string }>> => {
-  const history = record(await runtime.send(tabId, "Page.getNavigationHistory"));
-  const entries = Array.isArray(history.entries) ? history.entries : [];
-  const entry = record(entries[numberValue(history.currentIndex, "BROWSER_TARGET_INVALID")]);
-  const url = stringValue(entry.url, "BROWSER_TARGET_INVALID");
-  const title = stringValue(entry.title, "BROWSER_TARGET_INVALID");
+  const history = record(await read(() => runtime.send(tabId, "Page.getNavigationHistory")));
+  if (!Array.isArray(history.entries)) throw new Error(DOM_READ_INVALID);
+  const entry = record(history.entries[numberValue(history.currentIndex, DOM_READ_INVALID)]);
+  const url = stringValue(entry.url, DOM_READ_INVALID);
+  const title = stringValue(entry.title, DOM_READ_INVALID);
   if (!url.startsWith("https://")) throw new Error("BROWSER_ORIGIN_REJECTED");
   return { url, title };
 };
 
 export const describeNode = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number): Promise<DevToolsRecord> =>
-  record(record(await runtime.send(tabId, "DOM.describeNode", { nodeId, depth: 0 })).node);
+  record(record(await read(() => runtime.send(tabId, "DOM.describeNode", { nodeId, depth: 0 }))).node);
 
 export const nodeText = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number): Promise<string> => {
   const node = await describeNodeTree(runtime, tabId, nodeId);
@@ -114,9 +148,9 @@ const describeNodeTree = async (
   runtime: ExtensionDebuggerRuntime,
   tabId: number,
   nodeId: number,
-): Promise<DevToolsRecord> => record(record(await runtime.send(
+): Promise<DevToolsRecord> => record(record(await read(() => runtime.send(
   tabId, "DOM.describeNode", { nodeId, depth: -1, pierce: true },
-)).node);
+))).node);
 
 const codeBlocks = (node: DevToolsRecord, insidePre = false): readonly DevToolsRecord[] => {
   const name = typeof node.nodeName === "string" ? node.nodeName.toUpperCase() : "";
@@ -186,8 +220,8 @@ export const nodeOuterHtml = async (
   tabId: number,
   nodeId: number,
 ): Promise<string> => stringValue(
-  record(await runtime.send(tabId, "DOM.getOuterHTML", { nodeId })).outerHTML,
-  "BROWSER_TARGET_INVALID",
+  record(await read(() => runtime.send(tabId, "DOM.getOuterHTML", { nodeId }))).outerHTML,
+  DOM_READ_INVALID,
 );
 
 const collectContentEditableText = (node: DevToolsRecord): string => {
@@ -218,7 +252,7 @@ const staticFieldReaders: Readonly<Record<string, (node: DevToolsRecord) => unkn
   id: (node) => attribute(node, "id") ?? "",
   testId: (node) => attribute(node, "data-testid") ?? "",
   dataTurn: (node) => attribute(node, "data-turn") ?? "",
-  tagName: (node) => stringValue(node.nodeName, "BROWSER_TARGET_INVALID"),
+  tagName: (node) => stringValue(node.nodeName, DOM_READ_INVALID),
   type: (node) => attribute(node, "type") ?? "",
   role: (node) => attribute(node, "role") ?? "",
   ariaLabel: (node) => attribute(node, "aria-label") ?? "",
@@ -240,7 +274,7 @@ export const inspectNode = async (runtime: ExtensionDebuggerRuntime, tabId: numb
     const before = await nodeOuterHtml(runtime, tabId, nodeId);
     semanticText = await nodeSemanticText(runtime, tabId, nodeId);
     const after = await nodeOuterHtml(runtime, tabId, nodeId);
-    if (before !== after) throw new Error("BROWSER_DOM_OBSERVATION_DRIFT");
+    if (before !== after) throw new Error(DOM_NODE_STALE);
     stableOuterHtml = before;
   }
   for (const field of fields) {
@@ -262,7 +296,7 @@ export const inspectNode = async (runtime: ExtensionDebuggerRuntime, tabId: numb
       continue;
     }
     if (field !== "visible" && field !== "bounds") continue;
-    const box = await boxCenter(runtime, tabId, nodeId).catch(() => null);
+    const box = await optionalBoxCenter(runtime, tabId, nodeId);
     if (field === "visible") result.visible = box !== null;
     if (field === "bounds") result.bounds = box;
   }
@@ -270,11 +304,24 @@ export const inspectNode = async (runtime: ExtensionDebuggerRuntime, tabId: numb
 };
 
 export const boxCenter = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number): Promise<Readonly<{ x: number; y: number }>> => {
-  const model = record(record(await runtime.send(tabId, "DOM.getBoxModel", { nodeId })).model);
+  const box = await optionalBoxCenter(runtime, tabId, nodeId);
+  if (!box) throw new Error(DOM_CANDIDATE_MISSING);
+  return box;
+};
+
+const optionalBoxCenter = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number): Promise<Readonly<{ x: number; y: number }> | null> => {
+  let raw: unknown;
+  try {
+    raw = await runtime.send(tabId, "DOM.getBoxModel", { nodeId });
+  } catch (error) {
+    if (invisibleBoxError(error)) return null;
+    throw domReadError(error);
+  }
+  const model = record(record(raw).model);
   const content = Array.isArray(model.content) ? model.content : [];
-  if (content.length < 8) throw new Error("BROWSER_TARGET_INVALID");
-  const x = (numberValue(content[0], "BROWSER_TARGET_INVALID") + numberValue(content[2], "BROWSER_TARGET_INVALID")) / 2;
-  const y = (numberValue(content[1], "BROWSER_TARGET_INVALID") + numberValue(content[5], "BROWSER_TARGET_INVALID")) / 2;
+  if (content.length < 8) throw new Error(DOM_READ_INVALID);
+  const x = (numberValue(content[0], DOM_READ_INVALID) + numberValue(content[2], DOM_READ_INVALID)) / 2;
+  const y = (numberValue(content[1], DOM_READ_INVALID) + numberValue(content[5], DOM_READ_INVALID)) / 2;
   return { x, y };
 };
 
@@ -285,12 +332,12 @@ export const selectorForLocator = (locator: Readonly<{ role?: string; name?: str
     locator.label ? `[aria-label="${escapeSelectorValue(locator.label)}"]` : "",
     locator.name ? `[name="${escapeSelectorValue(locator.name)}"]` : "",
   ].filter((value) => value.length > 0);
-  if (clauses.length === 0) throw new Error("BROWSER_TARGET_INVALID");
+  if (clauses.length === 0) throw new Error("BROWSER_CAPABILITY_REJECTED");
   return clauses.join("");
 };
 
 const escapeSelectorValue = (value: string): string => {
-  if (value.length === 0 || value.length > 512 || /[\u0000-\u001f"\\\\]/u.test(value)) throw new Error("BROWSER_TARGET_INVALID");
+  if (value.length === 0 || value.length > 512 || /[\u0000-\u001f"\\\\]/u.test(value)) throw new Error("BROWSER_CAPABILITY_REJECTED");
   return value;
 };
 
@@ -304,7 +351,7 @@ export const attribute = (node: DevToolsRecord, name: string): string | undefine
 
 export const truncate = (value: string, maxChars: number): string => value.slice(0, maxChars);
 const record = (value: unknown): DevToolsRecord => {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error("BROWSER_TARGET_INVALID");
+  if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error(DOM_READ_INVALID);
   return value as DevToolsRecord;
 };
 const numberValue = (value: unknown, errorCode: string): number => {

@@ -80,6 +80,7 @@ const providerResult = (
       evidenceHash,
     }),
     failureCode: succeeded ? null : "TEST_PROVIDER_RESULT_UNKNOWN",
+    failureCause: succeeded ? null : Object.freeze({ name: "Error", code: null }),
   });
 };
 
@@ -110,7 +111,7 @@ const exactCallHash = (jobId: string, attemptId: string) => gptExactCallIdentity
   jobId,
   attemptId,
   pluginId: "public-knowledge-article-pipeline",
-  pluginVersion: 15,
+  pluginVersion: 16,
   productStepId: providerCall.productStepId,
   callId: providerCall.callId,
   childCapabilityId: providerCall.child,
@@ -130,7 +131,7 @@ const walIdentity = (input: Readonly<{
   logicalMutationId: input.exactCallIdentityHash,
   exactCallIdentityHash: input.exactCallIdentityHash,
   ownerPluginId: "public-knowledge-article-pipeline",
-  pluginVersion: 15,
+  pluginVersion: 16,
   jobId: input.jobId,
   attemptId: input.attemptId,
   leaseVersion: 1,
@@ -167,7 +168,7 @@ const readWalRecovery = (
   jobId: input.jobId,
   attemptId: input.attemptId,
   ownerPluginId: "public-knowledge-article-pipeline",
-  pluginVersion: 15,
+  pluginVersion: 16,
   exactCallIdentityHash: input.exactCallIdentityHash,
   actionOrdinal: atomic.actionOrdinal,
   targetRef: input.targetRef,
@@ -290,7 +291,7 @@ const providerExecution = (input: Readonly<{
 ).createExecution({
   task: input.providerTask,
   pluginId: "public-knowledge-article-pipeline",
-    pluginVersion: 15,
+    pluginVersion: 16,
   lease: {
     attempt_id: input.attemptId,
     device_id: "device:provider-effect",
@@ -406,7 +407,18 @@ const exerciseProviderEffectRecovery = async (initial: ProviderOutcome): Promise
     assert.equal(wal.readState(commandId), initial);
 
     const recovered = execution(2);
-    await recovered.tools.execute(providerCall);
+    const recoveredResult = await recovered.tools.execute(providerCall);
+    const recoveredEvidence = await evidence.readExactCallEvidence({
+      missionId: jobId,
+      runId: attemptId,
+      exactCallIdentityHash: exactHash,
+    });
+    assert.equal(recoveredEvidence?.recordRef, recoveredResult.evidenceRef);
+    assert.equal(
+      (recoveredEvidence?.record.payload as Readonly<Record<string, unknown>> | undefined)?.source_evidence_hash,
+      recoveredResult.evidenceHash,
+      "terminal settlement ref and hash must describe the same exact evidence",
+    );
     await recovered.settle(null);
     const acquisitionsAfterRecovery = counters.acquisitions;
     await recovered.tools.execute(providerCall);

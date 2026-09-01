@@ -48,6 +48,7 @@ const inspectJobBoundClaimAcceptance = (combined: string, findings: InspectorFin
   for (const required of [
     "BROWSER_DEVTOOLS_CONFLICT", "getTargetsCalls", "active: false", "Page.getFrameTree",
     "BROWSER_EXACT_TARGET_UNAVAILABLE", "single-Tab reuse", "removedTabs.includes",
+    "targetTabRemoved", "replacement production Tab", "target-tab-4",
   ]) {
     if (combined.includes(required)) continue;
     findings.push(createLocalFinding({

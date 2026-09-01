@@ -28,6 +28,7 @@ type FakeBrowserState = {
   url: string;
   domCalls: number;
   physicalMutations: number;
+  authenticatedMediaDownloads: number;
   waitDurations: number[];
 };
 
@@ -77,6 +78,7 @@ const createFakeBrowserLease = (
   async captureScreenshot() { return { artifactRef: "screenshot:1", contentHash: `sha256:${"e".repeat(64)}` }; },
   async attachFile() { state.physicalMutations += 1; },
   async downloadAuthenticatedMedia() {
+    state.authenticatedMediaDownloads += 1;
     if (!options.authenticatedMedia) throw new Error("FIXTURE_AUTHENTICATED_MEDIA_MISSING");
     return options.authenticatedMedia;
   },
@@ -107,11 +109,13 @@ export const fakeBrowser = (responder: DomResponder, input: FakeBrowserOptions =
     url: input.initialUrl ?? "https://chatgpt.com/",
     domCalls: 0,
     physicalMutations: 0,
+    authenticatedMediaDownloads: 0,
     waitDurations: [],
   };
   return {
     browser: createFakeBrowserLease(responder, state, input),
     physicalMutations: () => state.physicalMutations,
+    authenticatedMediaDownloads: () => state.authenticatedMediaDownloads,
     documentCalls: () => state.domCalls,
     waitDurations: () => [...state.waitDurations],
   };

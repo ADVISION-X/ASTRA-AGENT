@@ -22,6 +22,12 @@ import {
   exerciseSeoFlow,
   researchOutput,
 } from "./agent-product-skills-flow-support.js";
+import {
+  exerciseSeoArticleFrontierResume,
+  exerciseSeoConfirmedImageSubmitResume,
+  exerciseSeoFrontierResume,
+  exerciseSeoImageFrontierResume,
+} from "./agent-product-skills-frontier-support.js";
 import { exerciseProductOwnedFlow } from "./agent-product-owned-flow-support.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -150,7 +156,7 @@ for (const plugin of productionPluginCatalog) {
   const firstRoute = plugin.accepts[0]!;
   assert.equal(resolveProductionPlugin(firstRoute.productId, firstRoute.actionId).plugin, plugin);
   if (plugin.pluginId === "public-knowledge-article-pipeline") {
-    assert.equal(plugin.pluginVersion, 15);
+    assert.equal(plugin.pluginVersion, 16);
     assert.doesNotMatch(source, /PRODUCT_FLOW_NOT_IMPLEMENTED:/u);
     assert.doesNotMatch(source, /throw new Error/u,
       "SEO Product-owned failures must remain typed through the runtime boundary");
@@ -208,29 +214,73 @@ for (const plugin of productionPluginCatalog) {
     assert.deepEqual(recovered.acquiredLaneVersions, [1, 2, 3],
       "released article lane must be physically reacquired before advance");
     assert.ok(recovered.completed.generated_image);
+    const frontierResume = await exerciseSeoFrontierResume(plugin);
+    assert.equal(
+      typedExecutionFailure(frontierResume.firstFailure)?.code,
+      "BROWSER_POSTCONDITION_FAILED",
+      "the original article model-selection failure must remain truthful",
+    );
+    assert.equal(frontierResume.resumeCalls.some((call) => call.child === "attach_approved_gpt_files_once"), false);
+    assert.equal(frontierResume.resumeCalls.some((call) => call.child === "write_exact_gpt_prompt"
+      && call.productStepId === "corpus_research"), false);
+    const articleFrontierResume = await exerciseSeoArticleFrontierResume(plugin);
+    assert.equal(
+      typedExecutionFailure(articleFrontierResume.firstFailure)?.code,
+      "BROWSER_POSTCONDITION_FAILED",
+      "the image-step model-selection failure must remain truthful after article checkpoint",
+    );
+    assert.equal(articleFrontierResume.resumeCalls.some((call) =>
+      call.productStepId === "article_synthesis"), false);
+    for (const readbackCode of [
+      "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE",
+      "BROWSER_TARGET_INVALID",
+      "BROWSER_DOCUMENT_INVALID",
+      "BROWSER_DOM_CANDIDATE_MISSING",
+      "GPT_RESPONSE_STABILITY_TIMEOUT",
+      "GPT_RESPONSE_WAIT_ABORTED",
+      "GPT_RATE_LIMIT_ACTIVE",
+    ]) {
+      const confirmedImageSubmitResume = await exerciseSeoConfirmedImageSubmitResume(plugin, readbackCode);
+      assert.equal(
+        typedExecutionFailure(confirmedImageSubmitResume.firstFailure)?.code,
+        `POST_SUBMIT_READBACK_FAULT:${readbackCode}`,
+        "the original post-submit readback failure must remain truthful",
+      );
+      assert.equal(confirmedImageSubmitResume.resumeCalls.some((call) =>
+        call.child === "submit_exact_gpt_turn_once"), false);
+    }
+    const imageFrontierResume = await exerciseSeoImageFrontierResume(plugin);
+    assert.equal(
+      typedExecutionFailure(imageFrontierResume.firstFailure)?.code,
+      "WEBSITE_COMPLETION_TEST_FAULT",
+      "the post-image receiver fault must not erase the image frontier",
+    );
+    assert.equal(imageFrontierResume.resumeCalls.length, 0);
     await assert.rejects(
       () => exerciseSeoFlow(plugin, "accuracy_challenge", "proceed", {
         child: "checkpoint_gpt_text_response", code: "GPT_CHECKPOINT_SOFTWARE_FAULT",
       }),
-      (error: unknown) => typedExecutionFailure(error)?.code === "GPT_CHECKPOINT_SOFTWARE_FAULT"
-        && postSubmitReadbackReceipt(error) === null,
-      "a permanent checkpoint software fault must end the attempt instead of entering a hot recovery loop",
+      (error: unknown) => typedExecutionFailure(error)?.code
+          === "POST_SUBMIT_READBACK_FAULT:GPT_CHECKPOINT_SOFTWARE_FAULT"
+        && postSubmitReadbackReceipt(error)?.causeCode === "GPT_CHECKPOINT_SOFTWARE_FAULT",
+      "a post-submit checkpoint software fault must preserve the confirmed Provider effect",
     );
     await assert.rejects(
       () => exerciseSeoFlow(plugin, "accuracy_challenge", "proceed", {
         child: "wait_for_stable_gpt_text", code: "GPT_USER_TURN_HASH_MISMATCH",
       }),
-      (error: unknown) => typedExecutionFailure(error)?.code === "GPT_USER_TURN_HASH_MISMATCH"
-        && postSubmitReadbackReceipt(error) === null,
-      "a permanent turn identity mismatch must end the attempt instead of entering a hot recovery loop",
+      (error: unknown) => typedExecutionFailure(error)?.code
+          === "POST_SUBMIT_READBACK_FAULT:GPT_USER_TURN_HASH_MISMATCH"
+        && postSubmitReadbackReceipt(error)?.causeCode === "GPT_USER_TURN_HASH_MISMATCH",
+      "a post-submit turn identity mismatch must preserve the confirmed Provider effect",
     );
     await assert.rejects(
       () => exerciseSeoFlow(plugin, "accuracy_challenge", "proceed", {
-        child: "wait_for_stable_gpt_text", code: "GPT_RESPONSE_STABILITY_TIMEOUT",
+        child: "wait_for_stable_gpt_text", code: "GPT_PROVIDER_TERMINAL_DECLINED",
       }),
-      (error: unknown) => typedExecutionFailure(error)?.code === "GPT_RESPONSE_STABILITY_TIMEOUT"
+      (error: unknown) => typedExecutionFailure(error)?.code === "GPT_PROVIDER_TERMINAL_DECLINED"
         && postSubmitReadbackReceipt(error) === null,
-      "a terminal Provider wait deadline must end the attempt instead of entering same-attempt recovery",
+      "an explicit Provider terminal negative must not enter same-attempt readback recovery",
     );
     for (const actionId of ["accuracy_challenge", "quality_reflection"] as const) {
       const review = await exerciseSeoFlow(plugin, actionId);
@@ -279,9 +329,9 @@ process.stdout.write("[ACCEPTANCE][agent-product-skills] PASS\n");
 emitQualityProofObservation({
   passed: true,
   findings: [],
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V19",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V23",
   evidenceMode: "exam.golden",
-  clauses: ["forbidden:1", "forbidden:15", "forbidden:16", "forbidden:2", "forbidden:21", "forbidden:22", "forbidden:29", "forbidden:5", "summary"],
+  clauses: ["forbidden:0", "forbidden:1", "forbidden:15", "forbidden:16", "forbidden:2", "forbidden:21", "forbidden:22", "forbidden:29", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:product-flow-golden",
-  observedValue: "12 product plugins and all 39 routes exercised with Product-owned exact child sequences",
+  observedValue: "12 product plugins and all 39 routes exercised; confirmed image submit survives Target Document DOM channel timeout wait-abort and rate-limit readback faults with zero repeated submit, while Provider terminal negative does not recover",
 });

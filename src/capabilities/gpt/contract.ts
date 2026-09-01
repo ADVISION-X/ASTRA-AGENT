@@ -152,6 +152,7 @@ export type GptChildCapabilityResult = Readonly<{
   value: unknown;
   proof: GptChildCapabilityProof;
   failureCode: string | null;
+  failureCause: Readonly<{ name: string; code: string | null }> | null;
 }>;
 
 export type GptExecutionContext = Readonly<{

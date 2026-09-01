@@ -57,7 +57,14 @@ const authenticatedMediaBytesValid = (value: Readonly<Record<string, unknown>>):
   && value.sizeBytes <= 25 * 1024 * 1024;
 
 const authenticatedMediaShapeValid = (value: Readonly<Record<string, unknown>>): boolean =>
-  typeof value.mediaType === "string"
+  typeof value.authorityTargetHash === "string"
+  && /^sha256:[a-f0-9]{64}$/u.test(value.authorityTargetHash)
+  && typeof value.authorityDocumentHash === "string"
+  && /^sha256:[a-f0-9]{64}$/u.test(value.authorityDocumentHash)
+  && typeof value.assistantTurnId === "string"
+  && /^conversation-turn-[1-9][0-9]*$/u.test(value.assistantTurnId)
+  && value.semanticMediaId === "gpt-generated-image-main"
+  && typeof value.mediaType === "string"
   && /^image\/[a-z0-9.+-]+$/u.test(value.mediaType)
   && typeof value.width === "number"
   && Number.isSafeInteger(value.width)
@@ -223,7 +230,7 @@ export class BrowserTargetLeaseManager {
       observeCapability: async ({ capabilityId }) => command(capabilityId, { kind: "observe", capabilityId }),
       captureScreenshot: ({ regionLabel }) => this.captureScreenshot(command, regionLabel),
       attachFile: ({ selector, grants }) => this.attachFile(command, selector, grants),
-      downloadAuthenticatedMedia: (media) => this.downloadAuthenticatedMedia(command, media),
+      downloadAuthenticatedMedia: (media) => this.downloadAuthenticatedMedia(state, command, media),
       registerFileArtifact: async () => {
         throw new Error("BROWSER_FILE_GRANT_INVALID");
       },
@@ -307,9 +314,14 @@ export class BrowserTargetLeaseManager {
   }
 
   private async downloadAuthenticatedMedia(
+    state: LeaseState,
     command: LeaseCommand,
     input: Readonly<{ assistantTurnId: string; semanticMediaId: "gpt-generated-image-main" }>,
   ): Promise<Readonly<{
+    authorityTargetHash: `sha256:${string}`;
+    authorityDocumentHash: `sha256:${string}`;
+    assistantTurnId: string;
+    semanticMediaId: "gpt-generated-image-main";
     bytesBase64: string;
     sha256: `sha256:${string}`;
     sizeBytes: number;
@@ -326,6 +338,12 @@ export class BrowserTargetLeaseManager {
       semanticMediaId: input.semanticMediaId,
     });
     const value = parseAuthenticatedMedia(raw);
+    if (value.assistantTurnId !== input.assistantTurnId
+      || value.semanticMediaId !== input.semanticMediaId
+      || value.authorityTargetHash !== hashText(state.current.target.targetRef)
+      || value.authorityDocumentHash !== hashText(state.current.document.documentRef)) {
+      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    }
     const bytes = Buffer.from(value.bytesBase64, "base64");
     const digest = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
     if (bytes.byteLength !== value.sizeBytes || digest !== value.sha256) {

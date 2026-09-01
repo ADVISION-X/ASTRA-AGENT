@@ -10,6 +10,7 @@ import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser
 import { BrowserCommandAdmissionBudget } from "../../src/lib/browser/transport/browser-command-admission-budget.js";
 import type { BrowserCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
+import { serializeTerminalFailure } from "../../src/lib/typed-failure.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { verifyBrowserArtifactAndLockContracts } from "./local-browser-artifact-and-lock.acceptance-support.js";
 
@@ -255,15 +256,18 @@ try {
 
   let dispatchCount = 0;
   const receiptMissingPermit = permit("actor-receipt-missing");
+  const nativeSocketFailure = Object.assign(new Error("socket reset"), { code: "ECONNRESET" });
   const receiptMissingActor = actorFor(async (_candidate, _command, onDispatched) => {
     onDispatched?.();
     dispatchCount += 1;
-    throw new Error("SOCKET_CLOSED_AFTER_SEND");
+    throw new Error("SOCKET_CLOSED_AFTER_SEND", { cause: nativeSocketFailure });
   });
-  await assert.rejects(
-    receiptMissingActor.execute(receiptMissingPermit, clickCommand),
-    /BROWSER_COMMAND_RECEIPT_MISSING/u,
-  );
+  let wrappedBrowserFailure: unknown = null;
+  try { await receiptMissingActor.execute(receiptMissingPermit, clickCommand); }
+  catch (error) { wrappedBrowserFailure = error; }
+  assert.match(String(wrappedBrowserFailure), /BROWSER_COMMAND_RECEIPT_MISSING/u);
+  assert.equal(serializeTerminalFailure(wrappedBrowserFailure).cause?.code, "ECONNRESET",
+    "the real Browser command wrapper must preserve the innermost native cause");
   assert.equal(dispatchCount, 1);
   assert.equal(actorStore.readState(receiptMissingPermit.commandId), "DISPATCHED");
   assert.equal(receiptMissingActor.hasDispatchedMutation(receiptMissingPermit.commandId), true);
@@ -298,7 +302,7 @@ try {
 emitQualityProofObservation({
   passed: true,
   findings: [],
-  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V13",
+  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V14",
   evidenceMode: "exam.golden",
   clauses: [
     "forbidden:0",

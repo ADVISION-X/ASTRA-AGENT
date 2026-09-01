@@ -9,6 +9,8 @@ import {
   type WebsiteAgentTask,
 } from "../../src/lib/local-runtime/production/contracts.js";
 import type {
+  ExactGptGeneratedImageCheckpointReadback,
+  ExactGptTextCheckpointReadback,
   ProductPluginOutput,
   ProductPlugin,
   SharedExecutionContext,
@@ -39,14 +41,26 @@ export const articleOutput = () => ({
 
 type SeoAction = "produce_article" | "accuracy_challenge" | "quality_reflection";
 type SeoCall = Parameters<SharedExecutionContext["gpt"]["execute"]>[0];
-type SeoFailure = Readonly<{ child: string; code: string; productStepId?: string }>;
-type SeoFact = Readonly<{ evidenceRef: string; mutation: boolean; terminalAt: string | null }>;
-type SeoHarness = {
+type SeoFactQuery = Parameters<SharedExecutionContext["gpt"]["readCallFacts"]>[0];
+export type SeoFailure = Readonly<{ child: string; code: string; productStepId?: string }>;
+type SeoFact = Readonly<{
+  attemptId: string;
+  callIdentityHash: string;
+  evidenceRef: string;
+  mutation: boolean;
+  terminalAt: string | null;
+}>;
+export type SeoHarness = {
   calls: SeoCall[];
   factsByCall: Map<string, SeoFact>;
   handoffDelays: number[];
   completed: ProductPluginOutput | null;
   continuationProvider: GptProviderContinuation | null;
+  originProvider: GptProviderContinuation | null;
+  frontierRef: `sha256:${string}` | null;
+  frontierOriginCheckpoint: Readonly<Record<string, unknown>> | null;
+  currentCheckpoint: Readonly<Record<string, unknown>> | null;
+  completionFailuresRemaining: number;
   continuationLaneVersion: number;
   continuationLaneOwned: boolean;
   remainingFailures: number;
@@ -56,7 +70,7 @@ type SeoHarness = {
   providerNames: readonly string[];
 };
 
-const seoTask = (actionId: SeoAction): WebsiteAgentTask => task({
+export const seoTask = (actionId: SeoAction): WebsiteAgentTask => task({
   jobId: `job-${actionId}`,
   productId: "public_knowledge_article_pipeline",
   actionId,
@@ -85,7 +99,7 @@ const fixtureMaterials = (actionId: SeoAction): SharedExecutionContext["material
       trust_class: "locked_fact", may_issue_instruction: false },
   ];
 
-const createHarness = (actionId: SeoAction, failureAt?: SeoFailure): SeoHarness => {
+export const createHarness = (actionId: SeoAction, failureAt?: SeoFailure): SeoHarness => {
   const materials = fixtureMaterials(actionId);
   return {
     calls: [],
@@ -93,6 +107,11 @@ const createHarness = (actionId: SeoAction, failureAt?: SeoFailure): SeoHarness 
     handoffDelays: [],
     completed: null,
     continuationProvider: null,
+    originProvider: null,
+    frontierRef: null,
+    frontierOriginCheckpoint: null,
+    currentCheckpoint: null,
+    completionFailuresRemaining: 0,
     continuationLaneVersion: 0,
     continuationLaneOwned: false,
     remainingFailures: failureAt ? 1 : 0,
@@ -105,11 +124,71 @@ const createHarness = (actionId: SeoAction, failureAt?: SeoFailure): SeoHarness 
   };
 };
 
-const factKey = (input: Pick<SeoCall, "productStepId" | "callId" | "child" | "actionOrdinal" | "input">): string =>
+const callIdentityHash = (input: Pick<SeoFactQuery, "productStepId" | "callId" | "child" | "actionOrdinal" | "input">): string =>
   hashCanonical({
     productStepId: input.productStepId, callId: input.callId, child: input.child,
     actionOrdinal: input.actionOrdinal, input: input.input,
   });
+const factKey = (attemptId: string, input: SeoFactQuery): string =>
+  hashCanonical({ attemptId, callIdentityHash: callIdentityHash(input) });
+
+const textCheckpointReadback = (
+  checkpoint: Readonly<Record<string, unknown>>,
+  semanticText: string,
+): ExactGptTextCheckpointReadback => ({
+  checkpointKind: "text",
+  sourceAttemptId: String(checkpoint.sourceAttemptId),
+  assistantTurnId: String(checkpoint.assistantTurnId),
+  artifactRef: String(checkpoint.artifactRef),
+  rawDomHtml: `<div data-message-author-role="assistant">${semanticText}</div>`,
+  rawDomHash: checkpoint.rawDomHash as `sha256:${string}`,
+  semanticText,
+  semanticTextHash: checkpoint.semanticTextHash as `sha256:${string}`,
+  canonicalConversationUrl: String(checkpoint.canonicalConversationUrl),
+  promptHash: checkpoint.promptHash as `sha256:${string}`,
+  turnMarker: String(checkpoint.turnMarker),
+  evidenceRef: String(checkpoint.evidenceRef),
+  evidenceHash: checkpoint.evidenceHash as `sha256:${string}`,
+});
+
+const currentCheckpointReadback = (
+  state: SeoHarness,
+  decision: "proceed" | "decline",
+): ExactGptTextCheckpointReadback | ExactGptGeneratedImageCheckpointReadback => {
+  const checkpoint = state.currentCheckpoint!;
+  if (checkpoint.checkpointKind !== "generated_image") {
+    const originMarker = String(state.frontierOriginCheckpoint?.turnMarker);
+    const semanticText = String(checkpoint.turnMarker) === originMarker
+      ? JSON.stringify(researchOutput(decision))
+      : JSON.stringify(articleOutput());
+    return textCheckpointReadback(checkpoint, semanticText);
+  }
+  const predecessor = checkpoint.predecessorTextCheckpoint as Readonly<Record<string, unknown>>;
+  return {
+    checkpointKind: "generated_image",
+    sourceAttemptId: String(checkpoint.sourceAttemptId),
+    assistantTurnId: String(checkpoint.assistantTurnId),
+    canonicalConversationUrl: String(checkpoint.canonicalConversationUrl),
+    promptHash: checkpoint.promptHash as `sha256:${string}`,
+    mediaHash: checkpoint.mediaHash as `sha256:${string}`,
+    turnMarker: String(checkpoint.turnMarker),
+    originalArtifactRef: String(checkpoint.originalArtifactRef),
+    originalSha256: checkpoint.originalSha256 as `sha256:${string}`,
+    originalBytes: new Uint8Array([1]),
+    originalMediaType: String(checkpoint.originalMediaType) as `image/${string}`,
+    originalWidth: Number(checkpoint.originalWidth),
+    originalHeight: Number(checkpoint.originalHeight),
+    webpArtifactRef: String(checkpoint.webpArtifactRef),
+    webpSha256: checkpoint.webpSha256 as `sha256:${string}`,
+    webpBytes: new Uint8Array([1]),
+    mediaType: "image/webp",
+    width: 1200,
+    height: 630,
+    evidenceRef: String(checkpoint.evidenceRef),
+    evidenceHash: checkpoint.evidenceHash as `sha256:${string}`,
+    predecessorTextCheckpoint: textCheckpointReadback(predecessor, JSON.stringify(articleOutput())),
+  };
+};
 
 const outputForCall = (state: SeoHarness, input: SeoCall, decision: "proceed" | "decline"): unknown => {
   const marker = `[GRASSEYE:${"a".repeat(24)}]`;
@@ -137,10 +216,11 @@ const outputForCall = (state: SeoHarness, input: SeoCall, decision: "proceed" | 
       rawDomHash: HASH, semanticText: text, semanticTextHash: HASH,
     },
     persist_gpt_continuation: { continuationRef: "gpt-continuation:test" },
-    wait_for_stable_gpt_image: { assistantTurnId: "conversation-turn-6", responseHash: HASH },
+    wait_for_stable_gpt_image: { assistantTurnId: "conversation-turn-6", mediaHash: HASH },
     checkpoint_gpt_generated_image: {
-      artifactId: "image-1", localPath: "/tmp/image.webp", originalLocalPath: "/tmp/image.original",
-      sha256: HASH, originalSha256: HASH, bytes: 42, mediaType: "image/webp", width: 1200, height: 630,
+      artifactId: "image-1", originalBytes: new Uint8Array([1]), webpBytes: new Uint8Array([1]),
+      originalSizeBytes: 1, originalMediaType: "image/png", originalWidth: 1200, originalHeight: 630,
+      sha256: HASH, originalSha256: HASH, bytes: 1, mediaType: "image/webp", width: 1200, height: 630,
     },
   };
   return values[input.child] ?? {};
@@ -149,6 +229,13 @@ const outputForCall = (state: SeoHarness, input: SeoCall, decision: "proceed" | 
 const applyContinuationCall = (state: SeoHarness, input: SeoCall, initial: unknown): unknown => {
   if (input.child === "persist_gpt_continuation") {
     state.continuationProvider ??= input.input.provider as GptProviderContinuation;
+    state.originProvider ??= input.input.provider as GptProviderContinuation;
+    state.currentCheckpoint ??= input.input.currentCheckpoint as Readonly<Record<string, unknown>>;
+    const frontier = input.input.frontier as Readonly<Record<string, unknown>> | undefined;
+    if (frontier) {
+      state.frontierRef = frontier.frontierRef as `sha256:${string}`;
+      state.frontierOriginCheckpoint = frontier.originCheckpoint as Readonly<Record<string, unknown>>;
+    }
   }
   if (input.child === "acquire_gpt_continuation_lane") {
     assert.equal(state.continuationLaneOwned, false, "released continuation must be reacquired physically");
@@ -166,6 +253,7 @@ const applyContinuationCall = (state: SeoHarness, input: SeoCall, initial: unkno
     assert.equal((input.input.lane as Readonly<Record<string, unknown>>).lane_version,
       state.continuationLaneVersion);
     state.continuationProvider = input.input.provider as GptProviderContinuation;
+    state.currentCheckpoint = input.input.currentCheckpoint as Readonly<Record<string, unknown>>;
     state.continuationLaneOwned = false;
   }
   if (input.child === "release_gpt_continuation_lane") {
@@ -181,6 +269,7 @@ const executeCall = async (
   input: SeoCall,
   decision: "proceed" | "decline",
   failureAt?: SeoFailure,
+  attemptId = "attempt-1",
 ) => {
   state.calls.push(input);
   if (state.remainingFailures > 0 && input.child === failureAt?.child
@@ -189,10 +278,12 @@ const executeCall = async (
     throw executionFailure("failed", failureAt.code);
   }
   const value = applyContinuationCall(state, input, outputForCall(state, input, decision));
-  const priorFact = state.factsByCall.get(factKey(input));
+  const priorFact = state.factsByCall.get(factKey(attemptId, input));
   if (input.child === "submit_exact_gpt_turn_once" && !priorFact) state.physicalSubmitDispatches += 1;
   const evidenceRef = priorFact?.evidenceRef ?? `evidence:${state.calls.length}`;
-  state.factsByCall.set(factKey(input), {
+  state.factsByCall.set(factKey(attemptId, input), {
+    attemptId,
+    callIdentityHash: callIdentityHash(input),
     evidenceRef,
     mutation: input.child === "submit_exact_gpt_turn_once",
     terminalAt: input.child === "submit_exact_gpt_turn_once" ? CONFIRMED_AT : null,
@@ -200,22 +291,48 @@ const executeCall = async (
   return { value, evidenceRef, evidenceHash: HASH };
 };
 
-const createContext = (
+export const createContext = (
   state: SeoHarness,
   decision: "proceed" | "decline",
   failureAt?: SeoFailure,
+  attemptId = "attempt-1",
 ): SharedExecutionContext => ({
   materials: state.materials,
   gpt: {
-    attemptId: "attempt-1",
-    readContinuationForTurn: (marker) => state.continuationProvider
-      && state.continuationProvider.prior_turn_marker === marker ? {
-        continuation_ref: "gpt-continuation:test",
-        lane_version: state.continuationLaneVersion,
-        provider: state.continuationProvider,
-      } : null,
+    attemptId,
+    readContinuationExact: async (query) => {
+      if (query.lookupKind === "turn_marker") {
+        return state.continuationProvider
+          && state.continuationProvider.prior_turn_marker === query.turnMarker ? {
+            lookupKind: "turn_marker" as const,
+            lane: {
+              continuation_ref: "gpt-continuation:test",
+              lane_version: state.continuationLaneVersion,
+              provider: state.continuationProvider,
+            },
+          } : null;
+      }
+      if (query.frontierRef !== state.frontierRef || !state.originProvider
+        || !state.frontierOriginCheckpoint || !state.continuationProvider
+        || !state.currentCheckpoint) return null;
+      const checkpoint = state.frontierOriginCheckpoint;
+      return {
+        lookupKind: "frontier_ref" as const,
+        continuationRef: "gpt-continuation:test",
+        originProvider: state.originProvider,
+        originCheckpoint: textCheckpointReadback(
+          checkpoint, JSON.stringify(researchOutput(decision)),
+        ),
+        currentProvider: state.continuationProvider,
+        currentCheckpoint: currentCheckpointReadback(state, decision),
+      };
+    },
     readCallFacts: async (input) => {
-      const stored = state.factsByCall.get(factKey(input));
+      const lookupKind = input.lookupKind ?? "current_attempt";
+      const stored = lookupKind === "current_attempt"
+        ? state.factsByCall.get(factKey(attemptId, input))
+        : [...state.factsByCall.values()].filter((fact) =>
+          fact.attemptId !== attemptId && fact.callIdentityHash === callIdentityHash(input))[0];
       return {
         exactCallIdentityHash: HASH,
         mutation: stored?.mutation ? {
@@ -224,18 +341,39 @@ const createContext = (
         evidence: stored ? {
           owner: "forensics-persistence", evidenceRef: stored.evidenceRef, evidenceHash: HASH,
           readbackVerified: true,
-          artifactRefs: input.child === "checkpoint_gpt_text_response" ? ["artifact:checkpoint"] : [],
+          artifactRefs: input.child === "checkpoint_gpt_text_response"
+            ? [`artifact:${input.productStepId}`]
+            : input.child === "checkpoint_gpt_generated_image"
+              ? ["artifact:image-original", "artifact:image-webp", "artifact:image-receipt"]
+              : [],
         } : null,
         continuation: null,
       };
     },
-    execute: (input) => executeCall(state, input, decision, failureAt),
+    execute: (input) => executeCall(state, input, decision, failureAt, attemptId),
   },
   complete: async (output) => {
+    if (state.completionFailuresRemaining > 0) {
+      state.completionFailuresRemaining -= 1;
+      throw executionFailure("failed", "WEBSITE_COMPLETION_TEST_FAULT");
+    }
     state.completed = output;
     return {} as Awaited<ReturnType<SharedExecutionContext["complete"]>>;
   },
 });
+
+export const withFastHandoffs = async <T>(state: SeoHarness, run: () => Promise<T>): Promise<T> => {
+  const nativeSetTimeout = globalThis.setTimeout;
+  globalThis.setTimeout = ((handler: (...args: unknown[]) => void, timeout?: number, ...args: unknown[]) => {
+    state.handoffDelays.push(timeout ?? 0);
+    return nativeSetTimeout(() => handler(...args), 0);
+  }) as typeof setTimeout;
+  try {
+    return await run();
+  } finally {
+    globalThis.setTimeout = nativeSetTimeout;
+  }
+};
 
 const runPlugin = async (
   plugin: ProductPlugin,
@@ -244,13 +382,8 @@ const runPlugin = async (
   state: SeoHarness,
   recoverAfterFault: boolean,
 ): Promise<unknown> => {
-  const nativeSetTimeout = globalThis.setTimeout;
-  globalThis.setTimeout = ((handler: (...args: unknown[]) => void, timeout?: number, ...args: unknown[]) => {
-    state.handoffDelays.push(timeout ?? 0);
-    return nativeSetTimeout(() => handler(...args), 0);
-  }) as typeof setTimeout;
-  let firstFailure: unknown = null;
-  try {
+  return withFastHandoffs(state, async () => {
+    let firstFailure: unknown = null;
     try { await plugin.execute(taskInput, context); }
     catch (error) {
       if (!recoverAfterFault) throw error;
@@ -258,9 +391,7 @@ const runPlugin = async (
     }
     if (recoverAfterFault) await plugin.execute(taskInput, context);
     return firstFailure;
-  } finally {
-    globalThis.setTimeout = nativeSetTimeout;
-  }
+  });
 };
 
 const assertHarness = (state: SeoHarness, actionId: SeoAction, recoverAfterFault: boolean): ProductPluginOutput => {

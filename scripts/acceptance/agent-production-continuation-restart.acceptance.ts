@@ -56,7 +56,7 @@ const continuationExecution = (input: Readonly<{
 ).createExecution({
   task: input.providerTask,
   pluginId: "public-knowledge-article-pipeline",
-  pluginVersion: 15,
+  pluginVersion: 16,
   lease: {
     attempt_id: input.attemptId,
     device_id: "device:continuation-rebuild",
@@ -93,7 +93,7 @@ const submissionLocatorScenario = () => {
     jobId: providerTask.job_id,
     attemptId,
     pluginId: "public-knowledge-article-pipeline",
-    pluginVersion: 15,
+    pluginVersion: 16,
     productStepId: locatorCall.productStepId,
     callId: locatorCall.callId,
     childCapabilityId: locatorCall.child,
@@ -127,6 +127,7 @@ const persistSubmissionLocator = async (
     result: {
       status: "success",
       failureCode: null,
+      failureCause: null,
       value: {
         canonicalConversationUrl: scenario.locatorUrl,
         turnMarker: scenario.turnMarker,
@@ -227,6 +228,19 @@ const continuationPersistCall = (providerTask: WebsiteAgentTask) => Object.freez
       prior_prompt_hash: HASH_A,
       prior_raw_output_hash: HASH_B,
       prior_turn_marker: "[GRASSEYE:continuation-rebuild]",
+    }),
+    currentCheckpoint: Object.freeze({
+      checkpointKind: "text" as const,
+      sourceAttemptId: "attempt:continuation-rebuild",
+      assistantTurnId: "conversation-turn-2",
+      artifactRef: "artifact:continuation-rebuild",
+      rawDomHash: HASH_B,
+      semanticTextHash: HASH_B,
+      canonicalConversationUrl: "https://chatgpt.com/c/continuation-rebuild",
+      promptHash: HASH_A,
+      turnMarker: "[GRASSEYE:continuation-rebuild]",
+      evidenceRef: "evidence:continuation-rebuild",
+      evidenceHash: HASH_B,
     }),
   }),
 });

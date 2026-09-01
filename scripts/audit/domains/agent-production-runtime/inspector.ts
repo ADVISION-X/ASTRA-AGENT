@@ -8,7 +8,7 @@ import { recordStaticCheck } from "../../shared/static-inspection-contract.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
 
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V19";
+const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V23";
 const PLUGIN_ROOT = "src/plugins";
 const CATALOG_PATH = "src/lib/local-runtime/production/catalog.ts";
 const CONTRACT_PATH = "src/lib/local-runtime/production/contracts.ts";
@@ -97,9 +97,18 @@ const inspectTaskStoreContract = (
     ));
   for (const required of [
     "readGptContinuationForOriginJob", "turnMarker", "json_extract(provider_json,'$.prior_turn_marker')=?",
+    "readGptContinuationForFrontier", "frontier_ref=?", "origin_provider_json",
+    "origin_checkpoint_json", "continuationFromRow",
   ]) if (!taskStateStore.includes(required)) findings.push(finding(
     "agent-production-runtime/attempt-bound-continuation-read", STORE_TASK_STATE_PATH,
     `Continuation recovery must use the Product's exact current-attempt marker; missing ${required}.`,
+  ));
+  for (const required of [
+    "migrateContinuationFrontierSchema", "alter table production_continuations add column frontier_ref",
+    "production_continuations_frontier_ref_unique", "origin_provider_json=provider_json",
+  ]) if (!store.includes(required)) findings.push(finding(
+    "agent-production-runtime/frontier-in-place-migration", STORE_FOUNDATION_PATH,
+    `Continuation frontier migration is missing ${required}.`,
   ));
 };
 
@@ -132,11 +141,16 @@ const inspectSharedProductionRuntime = (context: InspectorContext, findings: Ins
     "ProductionGptChildTools", "this.gpt.execute(intent", "runAtomicStep(",
     'mutationMode: "readback"', "sessionKey", "productStepId", "callId", "childCapabilityId", "inputHash",
     "readCallFacts", "gptExactCallIdentityHash", "readExactCallMutationFact", "readExactCallEvidence",
-    "exactCallIdentityHash", "readContinuationForTurn", "prior_turn_marker",
+    "exactCallIdentityHash", "readContinuationExact", "lookupKind", "prior_turn_marker",
+    "readGptContinuationForFrontier", "readTextCheckpointArtifact", "readRecordRef",
     "yieldForProviderWait", 'mode: "normal-provider-wait"', 'mode: "recovery"',
   ]) if (!childRuntime.includes(required)) findings.push(finding(
     "agent-production-runtime/one-child-transport", CHILD_TOOLS_PATH,
     `Child transport is missing ${required}.`,
+  ));
+  if (childRuntime.includes("readContinuationForTurn")) findings.push(finding(
+    "agent-production-runtime/old-continuation-read-retired", CHILD_TOOLS_PATH,
+    "The old turn-only continuation read surface must be physically absent.",
   ));
   for (const required of [
     "PostSubmitReadbackFault", "postSubmitReadbackReceipt",
@@ -145,6 +159,20 @@ const inspectSharedProductionRuntime = (context: InspectorContext, findings: Ins
     "agent-production-runtime/post-submit-same-attempt-release", RUNTIME_CLAIM_PATH,
     `Confirmed-submit readback recovery is missing ${required}.`,
   ));
+  for (const required of [
+    "input.causeCode !== code", "Number.isFinite(terminalAt)",
+    "Number.isFinite(readbackDeadlineAt)", "readbackDeadlineAt <= terminalAt",
+    "SHA256_PATTERN.test(input.exactCallIdentityHash)", "input.evidenceRef.trim().length === 0",
+    "SHA256_PATTERN.test(input.evidenceHash)",
+  ]) if (!typedFailure.includes(required)) findings.push(finding(
+    "agent-production-runtime/post-submit-receipt-closure", TYPED_FAILURE_PATH,
+    `Confirmed-submit receipt closure is missing ${required}.`,
+  ));
+  for (const forbidden of ["POST_SUBMIT_READBACK_TRANSIENT_CODES", "Date.now() >= readbackDeadlineAt"])
+    if (typedFailure.includes(forbidden)) findings.push(finding(
+      "agent-production-runtime/post-submit-no-eligibility-gate", TYPED_FAILURE_PATH,
+      `Confirmed-submit recovery retains forbidden eligibility gate ${forbidden}.`,
+    ));
   if (!executor.includes("gpt: gptExecution.tools") || executor.includes("runTurn:")) findings.push(finding(
     "agent-production-runtime/product-child-interface", EXECUTOR_PATH,
     "Executor must inject only ProductGptTools, never a shared turn runner.",
@@ -172,7 +200,9 @@ const inspectSeoPlugin = (context: InspectorContext, source: string, path: strin
     'publicKnowledgeTurnContract("research")', 'publicKnowledgeTurnContract("article")',
     "解压并读取本轮唯一 ZIP 附件", "原文.md 与索引.json", "timeoutMs: 600_000",
     "readCallFacts", "requireEvidence", "absoluteDeadline", "prior_prompt_hash",
-    "expectedPromptHash", "preservePostSubmitReadback",
+    "expectedPromptHash", "preservePostSubmitReadback", "researchFrontierRef",
+    "recoverResearchTurn", 'lookupKind: "frontier_ref"', "originCheckpoint",
+    "?? await produceResearchTurn", "recordRecoveredEvidence",
   ]) if (!source.includes(required)) findings.push(finding(
     "agent-production-runtime/seo-product-flow", path, `SEO Product Flow is missing ${required}.`,
   ));
@@ -187,6 +217,18 @@ const inspectSeoPlugin = (context: InspectorContext, source: string, path: strin
     "agent-production-runtime/seo-product-second-scheduler-retired", path,
     `SEO Product Flow retains forbidden pacing or scheduling token ${forbidden}.`,
   ));
+  if (!source.includes('code.startsWith("GPT_PROVIDER_TERMINAL_")')) findings.push(finding(
+    "agent-production-runtime/seo-confirmed-submit-terminal-negative", path,
+    "SEO confirmed-submit recovery must reserve termination for an explicit Provider terminal negative.",
+  ));
+  for (const forbidden of [
+    'code === "GPT_RESPONSE_STABILITY_TIMEOUT"', 'code === "GPT_IMAGE_STABILITY_TIMEOUT"',
+    'code === "GPT_RESPONSE_WAIT_ABORTED"', 'code === "GPT_IMAGE_WAIT_ABORTED"',
+    'code.startsWith("GPT_RATE_LIMIT_")',
+  ]) if (source.includes(forbidden)) findings.push(finding(
+    "agent-production-runtime/seo-confirmed-submit-no-readback-code-gate", path,
+    `SEO confirmed-submit recovery retains forbidden readback-code gate ${forbidden}.`,
+  ));
   if (source.includes("JSON.stringify(task.parameters)") || /无文字|无印章|不冒充古籍原页/u.test(source)) {
     findings.push(finding("agent-production-runtime/seo-provider-input-leak", path,
       "SEO Prompt leaks internal parameters or duplicates Website-forbidden image creative rules."));
@@ -196,6 +238,13 @@ const inspectSeoPlugin = (context: InspectorContext, source: string, path: strin
       "agent-production-runtime/seo-result-contract-projection", `${PLUGIN_ROOT}/${pluginId}/result-contract.ts`,
       `SEO receiver is missing basic machine-format or lossless receipt token ${required}.`,
     ));
+  if (resultContract.includes("result.exact(output") || resultContract.includes("result.exact(research")) {
+    findings.push(finding(
+      "agent-production-runtime/seo-no-unpublished-content-gate",
+      `${PLUGIN_ROOT}/${pluginId}/result-contract.ts`,
+      "SEO reception must not enforce an unpublished exact AI-output field set.",
+    ));
+  }
   for (const required of ["public-knowledge-article-package-contract.v1", '"package"', '"research"', '"article"', '"image"', '"ready_corpus_archive"', '"application/zip"'])
     if (!routePolicy.includes(required)) findings.push(finding(
       "agent-production-runtime/seo-result-contract-projection",
@@ -281,6 +330,45 @@ const inspectOwnedProductContinuation = (
   ));
 };
 
+const inspectLocalizationProductBoundary = (
+  context: InspectorContext,
+  source: string,
+  path: string,
+  findings: InspectorFinding[],
+): void => {
+  const index = read(context, `${PLUGIN_ROOT}/localization-production/index.ts`);
+  const skillPath = `${PLUGIN_ROOT}/localization-production/SKILL.md`;
+  const skill = read(context, skillPath);
+  const accepts = [...index.matchAll(/\{ productId: "([^"]+)", actionId: "([^"]+)" \}/gu)]
+    .map((match) => `${match[1]}/${match[2]}`);
+  const expected = [
+    "localization_report_translation/report_translation",
+    "localization_report_translation/accuracy_challenge",
+    "localization_report_translation/quality_reflection",
+    "localization_article_translation/article_translation",
+    "localization_article_translation/accuracy_challenge",
+    "localization_article_translation/quality_reflection",
+  ];
+  if (JSON.stringify(accepts) !== JSON.stringify(expected)) findings.push(finding(
+    "agent-production-runtime/localization-six-routes", path,
+    `Localization Product routes drifted: ${accepts.join(",")}.`,
+  ));
+  for (const required of [
+    "const checkpoint = await runFreshTurn(task, context, flow, prompt, marker)",
+    "await flow.execute(submit)",
+    "不得改写结果或替 Website 裁决",
+    "不得生成第二份正式结果",
+  ]) if (!source.includes(required)) findings.push(finding(
+    "agent-production-runtime/localization-single-stage-review-only", path,
+    `Localization single-stage or review-only boundary is missing ${required}.`,
+  ));
+  if (skill.includes("候选检查与确定性选择只是本 Skill 内部")) findings.push(finding(
+    "agent-production-runtime/localization-dynamic-candidate-flow-retired",
+    skillPath,
+    "Dynamic localization still declares a candidate/selection round.",
+  ));
+};
+
 const inspectProductPlugins = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const pluginId of pluginIds(context)) {
     const path = `${PLUGIN_ROOT}/${pluginId}/index.ts`;
@@ -295,6 +383,9 @@ const inspectProductPlugins = (context: InspectorContext, findings: InspectorFin
     }
     inspectOwnedProductBase(pluginId, source, path, findings);
     inspectOwnedProductContinuation(pluginId, source, path, findings);
+    if (pluginId === "localization-production") {
+      inspectLocalizationProductBoundary(context, source, path, findings);
+    }
   }
 };
 
@@ -353,10 +444,10 @@ const inspectAgentTypes = (context: InspectorContext, findings: InspectorFinding
   const toolFields = productGptTools?.getMembers().flatMap((member) =>
     Node.isPropertySignature(member) || Node.isMethodSignature(member) ? [member.getName()] : []).sort() ?? [];
   if (JSON.stringify(toolFields) !== JSON.stringify([
-    "attemptId", "execute", "readCallFacts", "readContinuationForTurn",
+    "attemptId", "execute", "readCallFacts", "readContinuationExact",
   ].sort())) findings.push(finding(
     "agent-production-runtime/product-gpt-tools-type", PLUGIN_CONTRACT_PATH,
-    `ProductGptTools may expose only attemptId, execute, readCallFacts and readContinuationForTurn; found ${toolFields.join(",")}.`, "static.types",
+    `ProductGptTools may expose only attemptId, execute, readCallFacts and readContinuationExact; found ${toolFields.join(",")}.`, "static.types",
   ));
   const executeFields = productGptTools?.getMethod("execute")?.getParameters()[0]
     ?.getType().getProperties().map((property) => property.getName()) ?? [];
@@ -373,6 +464,14 @@ const inspectAgentTypes = (context: InspectorContext, findings: InspectorFinding
   ]) if (!facts.includes(required)) findings.push(finding(
     "agent-production-runtime/exact-call-facts", PLUGIN_CONTRACT_PATH,
     `ExactGptCallFacts is missing ${required}.`, "static.types",
+  ));
+  const continuationReadback = source?.getTypeAlias("ExactGptContinuationReadback")?.getFullText() ?? "";
+  for (const required of [
+    'lookupKind: "turn_marker"', 'lookupKind: "frontier_ref"', "originProvider", "originCheckpoint",
+    "rawDomHtml", "semanticText", "evidenceRef", "evidenceHash",
+  ]) if (!continuationReadback.includes(required)) findings.push(finding(
+    "agent-production-runtime/exact-continuation-readback", PLUGIN_CONTRACT_PATH,
+    `Exact continuation readback is missing ${required}.`, "static.types",
   ));
   for (const forbidden of ["failure", "resumePoint", "nextStep", "phase"]) if (facts.includes(forbidden)) findings.push(finding(
     "agent-production-runtime/exact-call-facts-no-second-state", PLUGIN_CONTRACT_PATH,

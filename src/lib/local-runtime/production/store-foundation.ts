@@ -160,7 +160,8 @@ const createProductionTables = (database: Database.Database): void => {
     origin_job_id text not null references production_tasks(job_id) on delete restrict,
     plugin_id text not null, owner_ref text not null, subject_ref text not null,
     authorization_ref text not null, conversation_identity_hash text not null,
-    provider_json text not null, lane_version integer not null,
+    frontier_ref text unique, origin_provider_json text not null, origin_checkpoint_json text,
+    provider_json text not null, current_checkpoint_json text, lane_version integer not null,
     lane_owner_job_id text, created_at text not null
   );
   create table production_outbox(
@@ -192,10 +193,11 @@ const executionTables = [
   "production_checkpoints", "production_leases", "production_tasks",
 ] as const;
 
-const currentSchemaPresent = (database: Database.Database): boolean => {
+const currentCoreSchemaPresent = (database: Database.Database): boolean => {
   const tasks = tableColumns(database, "production_tasks");
   const outbox = tableColumns(database, "production_outbox");
   const failures = tableColumns(database, "production_attempt_failures");
+  const continuations = tableColumns(database, "production_continuations");
   const failureColumns = ["job_id", "attempt_id", "failure_json", "created_at"] as const;
   return tasks.has("current_attempt_id") && tasks.has("current_reason")
     && tableColumns(database, "production_steps").size === 0
@@ -203,8 +205,39 @@ const currentSchemaPresent = (database: Database.Database): boolean => {
     && failures.size === failureColumns.length
     && failureColumns.every((column) => failures.has(column))
     && outbox.has("last_error") && outbox.has("next_delivery_at")
+    && continuations.has("continuation_ref") && continuations.has("provider_json")
     && !outbox.has("delivery_build_hash") && !outbox.has("delivery_attempt_count")
     && !outbox.has("delivery_parked_at");
+};
+
+const currentSchemaPresent = (database: Database.Database): boolean => {
+  const continuations = tableColumns(database, "production_continuations");
+  return currentCoreSchemaPresent(database)
+    && continuations.has("frontier_ref")
+    && continuations.has("origin_provider_json")
+    && continuations.has("origin_checkpoint_json")
+    && continuations.has("current_checkpoint_json");
+};
+
+const migrateContinuationFrontierSchema = (database: Database.Database): void => {
+  if (!currentCoreSchemaPresent(database)) return;
+  const columns = tableColumns(database, "production_continuations");
+  if (!columns.has("frontier_ref")) {
+    database.exec("alter table production_continuations add column frontier_ref text");
+  }
+  if (!columns.has("origin_provider_json")) {
+    database.exec("alter table production_continuations add column origin_provider_json text");
+  }
+  if (!columns.has("origin_checkpoint_json")) {
+    database.exec("alter table production_continuations add column origin_checkpoint_json text");
+  }
+  if (!columns.has("current_checkpoint_json")) {
+    database.exec("alter table production_continuations add column current_checkpoint_json text");
+  }
+  database.prepare(`update production_continuations
+    set origin_provider_json=provider_json where origin_provider_json is null`).run();
+  database.exec(`create unique index if not exists
+    production_continuations_frontier_ref_unique on production_continuations(frontier_ref)`);
 };
 
 const replaceEmptyExecutionSchema = (database: Database.Database): void => {
@@ -231,6 +264,7 @@ export abstract class ProductionStoreFoundation implements GptContinuationStoreP
     this.database.pragma("journal_mode = WAL");
     this.database.pragma("synchronous = FULL");
     this.database.pragma("foreign_keys = ON");
+    migrateContinuationFrontierSchema(this.database);
     replaceEmptyExecutionSchema(this.database);
     if (currentSchemaPresent(this.database)) return;
     createProductionTables(this.database);
@@ -244,6 +278,9 @@ export abstract class ProductionStoreFoundation implements GptContinuationStoreP
 
   public abstract createGptContinuation(continuation: Parameters<GptContinuationStorePort["createGptContinuation"]>[0]): void;
   public abstract readGptContinuation(ref: string): ReturnType<GptContinuationStorePort["readGptContinuation"]>;
+  public abstract readGptContinuationForFrontier(
+    frontierRef: Parameters<GptContinuationStorePort["readGptContinuationForFrontier"]>[0],
+  ): ReturnType<GptContinuationStorePort["readGptContinuationForFrontier"]>;
   public abstract acquireGptContinuationLane(ref: string, jobId: string): ReturnType<GptContinuationStorePort["acquireGptContinuationLane"]>;
   public abstract advanceGptContinuationLane(input: Parameters<GptContinuationStorePort["advanceGptContinuationLane"]>[0]): void;
   public abstract releaseGptContinuationLane(ref: string, jobId: string, version: number): void;

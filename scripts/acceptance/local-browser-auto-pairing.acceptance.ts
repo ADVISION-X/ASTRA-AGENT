@@ -16,7 +16,8 @@ import type { ExtensionChromeApi, ExtensionDebugTarget } from "../../src/lib/bro
 import { GPT_WEB_START_URL, requireGptWebPolicyForUrl } from "../../src/lib/browser/exact-target/browser-site-policy-registry.js";
 import { BrowserAuthorityBroker } from "../../src/lib/browser/infrastructure/browser-authority-broker.js";
 import { BrowserAuthorityIssuer } from "../../src/lib/browser/infrastructure/browser-authority-issuer.js";
-import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
+import { exerciseAuthenticatedMedia } from "./local-browser-authenticated-media-support.js";
+import { emitLocalBrowserAutoPairingProofs } from "./local-browser-proof-support.js";
 
 const secret = "a".repeat(64);
 const currentBuild = "build-00000000-0000-4000-8000-000000000001";
@@ -65,6 +66,9 @@ await assert.rejects(
 
 type RuntimeStartupListener = () => void;
 type TabUpdatedListener = Parameters<ExtensionChromeApi["tabs"]["onUpdated"]["addListener"]>[0];
+type TabRemovedListener = NonNullable<ExtensionChromeApi["tabs"]["onRemoved"]>["addListener"] extends (
+  listener: infer T,
+) => void ? T : never;
 type AlarmListener = Parameters<ExtensionChromeApi["alarms"]["onAlarm"]["addListener"]>[0];
 
 const listeners: {
@@ -179,10 +183,12 @@ assert.equal(rejectedBootstrap.currentFailureCode(), "BROWSER_PAIRING_ORIGIN_REJ
 let createdTab: Readonly<{ active: false; url: string }> | null = null;
 let debuggerEvent: Parameters<ExtensionChromeApi["debugger"]["onEvent"]["addListener"]>[0] | null = null;
 let targetTabUpdated: TabUpdatedListener = () => { throw new Error("target tab listener was not installed"); };
+let targetTabRemoved: TabRemovedListener = () => { throw new Error("target tab removal listener was not installed"); };
 let nextCreatedTabId = 3;
 let getTargetsCalls = 0;
 let debuggerTargets: readonly ExtensionDebugTarget[] = [];
 let attachFailureTabId: number | null = null;
+let evaluateRuntime: ((expression: string) => Promise<unknown>) | null = null;
 const attachedTabs: number[] = [];
 const detachedTabs: number[] = [];
 const debuggerMethods: string[] = [];
@@ -198,8 +204,11 @@ const targetChromeApi: ExtensionChromeApi = {
     },
     detach: async ({ tabId }) => { detachedTabs.push(tabId); },
     getTargets: async () => { getTargetsCalls += 1; return debuggerTargets; },
-    sendCommand: async ({ tabId }, method) => {
+    sendCommand: async ({ tabId }, method, parameters) => {
       debuggerMethods.push(method);
+      if (method === "Runtime.evaluate" && evaluateRuntime) {
+        return { result: { value: await evaluateRuntime(String(parameters?.expression)) } };
+      }
       return method === "Page.getFrameTree"
         ? { frameTree: { frame: { loaderId: `loader-${tabId}`, url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/" } } }
         : {};
@@ -214,6 +223,7 @@ const targetChromeApi: ExtensionChromeApi = {
     },
     remove: async (tabId) => { removedTabs.push(tabId); },
     onUpdated: { addListener: (listener) => { targetTabUpdated = listener; } },
+    onRemoved: { addListener: (listener) => { targetTabRemoved = listener; } },
   },
   alarms: chromeApi.alarms,
 };
@@ -234,6 +244,13 @@ assert.deepEqual(createdTab, { active: false, url: "https://chatgpt.com/" });
 assert.equal(targetFrames[0]?.kind, "TARGET_CLAIM");
 assert.equal(targetFrames[0]?.body.url, "https://chatgpt.com/");
 const firstTargetRef = String(targetFrames[0]?.body.targetRef);
+const firstDocumentRef = String(targetFrames[0]?.body.documentRef);
+await exerciseAuthenticatedMedia({
+  authority: targetAuthority,
+  targetRef: firstTargetRef,
+  documentRef: firstDocumentRef,
+  setRuntime: (runtime) => { evaluateRuntime = runtime; },
+});
 await targetAuthority.parkActiveTarget();
 assert.equal(targetFrames.at(-1)?.kind, "TARGET_REVOKE");
 assert.deepEqual(detachedTabs, [], "logical park must keep the one debugger session alive across local restarts");
@@ -307,6 +324,41 @@ const missingComposer = await executeRegisteredDomIntent(
   { kind: "find", selector: "#prompt-textarea", maxMatches: 2, waitFor: { minimumMatches: 1, timeoutMs: 1 } },
 ) as Readonly<{ count: number }>;
 assert.equal(missingComposer.count, 0, "bounded readiness timeout must preserve a zero-candidate fail-closed result");
+
+const domFailureRuntime = (failure: "missing" | "ambiguous" | "stale" | "invalid" | "target") => ({
+  async send(_tabId: number, method: string) {
+    if (method === "DOM.getDocument") {
+      if (failure === "target") throw new Error("BROWSER_TARGET_INVALID");
+      return { root: { nodeId: 1 } };
+    }
+    if (method === "DOM.querySelectorAll") {
+      if (failure === "invalid") return { nodeIds: "not-an-array" };
+      if (failure === "missing") return { nodeIds: [] };
+      if (failure === "ambiguous") return { nodeIds: [7, 8] };
+      return { nodeIds: [7] };
+    }
+    if (method === "DOM.getBoxModel") {
+      if (failure === "stale") throw new Error("Could not find node with given id");
+      return { model: { content: [0, 0, 10, 0, 10, 10, 0, 10] } };
+    }
+    throw new Error(`UNEXPECTED_DOM_FAILURE_METHOD:${method}`);
+  },
+}) as ExtensionDebuggerRuntime;
+for (const [failure, code] of [
+  ["missing", "BROWSER_DOM_CANDIDATE_MISSING"],
+  ["ambiguous", "BROWSER_DOM_CANDIDATE_AMBIGUOUS"],
+  ["stale", "BROWSER_DOM_NODE_STALE"],
+  ["invalid", "BROWSER_DOM_READ_INVALID"],
+  ["target", "BROWSER_TARGET_INVALID"],
+] as const) {
+  await assert.rejects(
+    executeRegisteredDomIntent(domFailureRuntime(failure), { tabId: 100 } as never, {
+      kind: "readText", selector: "[data-turn='user']", expectedMatches: 1, maxChars: 100,
+    }),
+    new RegExp(code, "u"),
+    `${failure} must retain its exact Browser DOM/Target cause`,
+  );
+}
 
 let lateTextDescribeCalls = 0;
 const lateTextRuntime = {
@@ -443,22 +495,34 @@ assert.equal(targetFrames.at(-1)?.body.targetRef, firstTargetRef,
 assert.equal(targetFrames.at(-1)?.body.url, "https://chatgpt.com/",
   "the debugger-owned main frame must prove the exact origin when Chrome redacts tab.url without tabs permission");
 await targetAuthority.releaseActiveTarget();
+targetTabRemoved(3);
+const replacementAcquisition = targetAuthority.acquireJobBoundChatGptTarget();
+await Promise.resolve();
+targetTabUpdated(4, { status: "complete" }, { id: 4, url: "https://chatgpt.com/", title: "ChatGPT" });
+await replacementAcquisition;
+assert.equal(targetFrames.at(-1)?.body.targetRef, "target-tab-4",
+  "after authoritative physical loss, the existing acquisition path must create one replacement Target");
+assert.deepEqual(createdTab, { active: false, url: "https://chatgpt.com/" },
+  "replacement acquisition must remain inactive and must not touch an operator tab");
+assert.equal(nextCreatedTabId, 5, "physical loss must create exactly one replacement production Tab");
+await targetAuthority.releaseActiveTarget();
+targetTabRemoved(4);
 
 const rejectedOrigin = targetAuthority.acquireJobBoundChatGptTarget();
 await Promise.resolve();
-mainFrameUrlByTab.set(4, "https://example.com/");
-targetTabUpdated(4, { status: "complete" }, { id: 4, url: "https://example.com/", title: "Wrong Origin" });
+mainFrameUrlByTab.set(5, "https://example.com/");
+targetTabUpdated(5, { status: "complete" }, { id: 5, url: "https://example.com/", title: "Wrong Origin" });
 await assert.rejects(rejectedOrigin, /BROWSER_ORIGIN_REJECTED/u);
-assert.equal(Number(attachedTabs.at(-1)), 4, "origin verification may attach only to the exact tab just created for this job");
-assert.ok(removedTabs.includes(4), "a rejected task-owned page must be removed");
+assert.equal(Number(attachedTabs.at(-1)), 5, "origin verification may attach only to the exact tab just created for this job");
+assert.ok(removedTabs.includes(5), "a rejected task-owned page must be removed");
 
-attachFailureTabId = 5;
+attachFailureTabId = 6;
 const debuggerConflict = targetAuthority.acquireJobBoundChatGptTarget();
 await Promise.resolve();
-targetTabUpdated(5, { status: "complete" }, { id: 5, url: "https://chatgpt.com/", title: "ChatGPT" });
+targetTabUpdated(6, { status: "complete" }, { id: 6, url: "https://chatgpt.com/", title: "ChatGPT" });
 await assert.rejects(debuggerConflict, /BROWSER_DEVTOOLS_CONFLICT/u,
   "debugger conflict on the new task-owned tab must fail without touching another page");
-assert.ok(removedTabs.includes(5), "a conflicted task-owned page must be removed");
+assert.ok(removedTabs.includes(6), "a conflicted task-owned page must be removed");
 attachFailureTabId = null;
 assert.ok(debuggerEvent, "the exact target owner must observe main-frame navigation");
 
@@ -485,30 +549,4 @@ assert.throws(() => broker.registerOperatorTargetClaim({ ...initialClaim, docume
   "Document claims must advance by exactly one navigation epoch");
 
 process.stdout.write("LOCAL_BROWSER_AUTO_PAIRING_AND_EXACT_CHATGPT_CLAIM_ACCEPTANCE_PASS\n");
-emitQualityProofObservation({
-  passed: true,
-  findings: [],
-  lawId: "LAW-LOCAL-BROWSER-SESSION-002-V6",
-  evidenceMode: "exam.golden",
-  clauses: ["forbidden:0", "forbidden:6", "forbidden:7", "forbidden:8", "summary"],
-  locator: "acceptance:local-browser-terminal:auto-pairing-golden",
-  observedValue: "fixed extension retrieves one in-memory pairing secret only from the exact loopback route, rejects invalid origin responses, stays single-flight, and reloads before pairing when releaseBuildId differs",
-});
-emitQualityProofObservation({
-  passed: true,
-  findings: [],
-  lawId: "LAW-LOCAL-BROWSER-SESSION-003-V15",
-  evidenceMode: "exam.golden",
-  clauses: ["forbidden:1", "forbidden:13", "forbidden:2", "forbidden:3", "summary"],
-  locator: "acceptance:local-browser-terminal:job-target-golden",
-  observedValue: "the production authority creates one visible ChatGPT system Tab, physically foregrounds and reuses that exact Tab without enumerating operator pages, preserves its debugger session across normal park, verifies the debugger-owned main-frame origin, and removes rejected or conflicted candidates",
-});
-emitQualityProofObservation({
-  passed: true,
-  findings: [],
-  lawId: "LAW-LOCAL-BROWSER-SESSION-005-V6",
-  evidenceMode: "exam.golden",
-  clauses: ["forbidden:5", "summary"],
-  locator: "acceptance:local-browser-terminal:release-reload-golden",
-  observedValue: "the fixed unpacked extension compares the exact governed releaseBuildId and performs one self-reload before any pairing attempt when the build differs",
-});
+emitLocalBrowserAutoPairingProofs();

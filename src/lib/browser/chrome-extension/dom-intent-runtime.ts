@@ -12,6 +12,7 @@ import {
   nodeText,
   queryAll,
   queryVisibleTextMatches,
+  requireExactCandidateCount,
   selectorForLocator,
   truncate,
 } from "./dom-query-runtime.js";
@@ -43,7 +44,7 @@ const executeFindIntent = async (
     if (intent.waitFor === undefined || nodes.length >= intent.waitFor.minimumMatches || Date.now() >= deadline!) break;
     await waitForNextBoundedObservation(deadline!);
   } while (Date.now() <= deadline!);
-  if (nodes.length > intent.maxMatches) throw new Error("BROWSER_TARGET_INVALID");
+  if (nodes.length > intent.maxMatches) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
   const matches = intent.fields === undefined
     ? undefined
     : await Promise.all(nodes.map((nodeId) => inspectNode(
@@ -72,9 +73,9 @@ const executeClickIntent = async (
     : intent.expectedText !== undefined
       ? await queryVisibleTextMatches(debuggerRuntime, target.tabId, intent.selector, intent.expectedText, false, expectedMatches + 1, intent.scope)
       : await queryAll(debuggerRuntime, target.tabId, intent.selector, expectedMatches + 1, intent.scope);
-  if (matchingNodes.length !== expectedMatches) throw new Error("BROWSER_TARGET_INVALID");
+  requireExactCandidateCount(matchingNodes, expectedMatches);
   const nodeId = matchingNodes[0];
-  if (nodeId === undefined) throw new Error("BROWSER_TARGET_INVALID");
+  if (nodeId === undefined) throw new Error("BROWSER_DOM_CANDIDATE_MISSING");
   const box = await boxCenter(debuggerRuntime, target.tabId, nodeId);
   await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", { type: "mousePressed", x: box.x, y: box.y, button: "left", clickCount: 1 });
   await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", { type: "mouseReleased", x: box.x, y: box.y, button: "left", clickCount: 1 });
@@ -102,9 +103,9 @@ const executeDoubleClickIntent = async (
   const matchingNodes = await queryAll(
     debuggerRuntime, target.tabId, intent.selector, expectedMatches + 1, intent.scope,
   );
-  if (matchingNodes.length !== expectedMatches) throw new Error("BROWSER_TARGET_INVALID");
+  requireExactCandidateCount(matchingNodes, expectedMatches);
   const nodeId = matchingNodes[0];
-  if (nodeId === undefined) throw new Error("BROWSER_TARGET_INVALID");
+  if (nodeId === undefined) throw new Error("BROWSER_DOM_CANDIDATE_MISSING");
   const box = await boxCenter(debuggerRuntime, target.tabId, nodeId);
   for (const clickCount of [1, 2] as const) {
     await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", {
@@ -173,9 +174,9 @@ const executeHoverIntent = async (
     : intent.expectedText !== undefined
       ? await queryVisibleTextMatches(debuggerRuntime, target.tabId, intent.selector, intent.expectedText, false, expectedMatches + 1, intent.scope)
       : await queryAll(debuggerRuntime, target.tabId, intent.selector, expectedMatches + 1, intent.scope);
-  if (matchingNodes.length !== expectedMatches) throw new Error("BROWSER_TARGET_INVALID");
+  requireExactCandidateCount(matchingNodes, expectedMatches);
   const nodeId = matchingNodes[0];
-  if (nodeId === undefined) throw new Error("BROWSER_TARGET_INVALID");
+  if (nodeId === undefined) throw new Error("BROWSER_DOM_CANDIDATE_MISSING");
   const box = await boxCenter(debuggerRuntime, target.tabId, nodeId);
   await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", { type: "mouseMoved", x: box.x, y: box.y });
   const postconditionVerified = await waitForInteractionAttribute(

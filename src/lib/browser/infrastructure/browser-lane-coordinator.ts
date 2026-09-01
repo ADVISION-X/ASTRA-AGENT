@@ -23,6 +23,18 @@ type LaneWaiter = Readonly<{
 
 type LaneState = ReturnType<typeof createBrowserInfrastructureState>;
 
+const permitsConfirmedProviderTargetReplacement = (
+  recovery: ReturnType<NonNullable<LaneState["mutationState"]>["callRecoveryScope"]>,
+): boolean => recovery?.state === "CONFIRMED" && recovery.effectScope === "provider_effect";
+
+const recoveryMutationOutcome = (
+  recovery: ReturnType<NonNullable<LaneState["mutationState"]>["callRecoveryScope"]>,
+): "no" | "dispatched" | "confirmed" => recovery?.state === "DISPATCHED"
+  ? "dispatched"
+  : recovery?.state === "CONFIRMED"
+    ? "confirmed"
+    : "no";
+
 export class BrowserLaneCoordinator {
   private readonly queue: LaneWaiter[] = [];
   private active = false;
@@ -140,24 +152,35 @@ export class BrowserLaneCoordinator {
       pluginVersion: waiter.binding.pluginVersion,
       productStepId: waiter.binding.productStepId,
     }) ?? null;
+    let confirmedProviderTargetReplaced = false;
     try {
       if (this.resolveBroker().currentOperatorTargetStatus() === "absent") {
-        await this.acquireJobBoundTarget(
-          Math.min(waiter.binding.commandTtlMs, waiter.remainingMs()),
-          recovery?.targetRef ?? null,
-        );
+        const acquisitionTtlMs = Math.min(waiter.binding.commandTtlMs, waiter.remainingMs());
+        try {
+          await this.acquireJobBoundTarget(acquisitionTtlMs, recovery?.targetRef ?? null);
+        } catch (error) {
+          if (!permitsConfirmedProviderTargetReplacement(recovery)
+            || !(error instanceof Error)
+            || error.message !== "BROWSER_EXACT_TARGET_UNAVAILABLE") throw error;
+          await this.acquireJobBoundTarget(
+            Math.min(waiter.binding.commandTtlMs, waiter.remainingMs()),
+            null,
+          );
+          confirmedProviderTargetReplaced = true;
+        }
       }
       if (waiter.signal.aborted || waiter.remainingMs() < 1) throw browserExecutionFailure(new Error(
         waiter.signal.aborted ? "BROWSER_WAIT_ABORTED" : "V6_DEADLINE_BUDGET_EXHAUSTED",
       ));
       const lease = await this.resolveBroker().acquireOperatorClaimedTargetLease(waiter.binding, waiter.ownerId);
-      if (recovery && (lease.target.targetRef !== recovery.targetRef
+      const targetMismatch = recovery && lease.target.targetRef !== recovery.targetRef;
+      if (recovery && ((targetMismatch && !confirmedProviderTargetReplaced)
         || (recovery.state === "DISPATCHED" && lease.document.documentRef !== recovery.documentRef))) {
         throw new Error("BROWSER_DOCUMENT_INVALID");
       }
       waiter.resolve(this.withLifecycle(lease));
     } catch (error) {
-      const failure = browserExecutionFailure(error, recovery?.state === "DISPATCHED" ? "dispatched" : "no");
+      const failure = browserExecutionFailure(error, recoveryMutationOutcome(recovery));
       this.active = false;
       void this.pump();
       waiter.reject(failure);

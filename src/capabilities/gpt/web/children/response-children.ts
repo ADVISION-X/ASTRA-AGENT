@@ -1,11 +1,9 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
 import sharp from "sharp";
-import { executionFailure } from "../../../../lib/typed-failure.js";
+import { executionFailure, failureCode } from "../../../../lib/typed-failure.js";
 
 import type { BrowserTargetLease } from "../../../../lib/browser/browser-authority-api.js";
-import type { GptChildCapabilityIntent, GptExecutionContext } from "../../contract.js";
+import type { GptExecutionContext } from "../../contract.js";
 
 import type { GptChildHandlerMap, GptChildObservation } from "../child-handler.js";
 import {
@@ -40,7 +38,10 @@ const turnOrdinal = (testId: string): number => {
   return ordinal;
 };
 
-const assistantSelector = (assistantTurnId: string): string =>
+const assistantTurnSelector = (assistantTurnId: string): string =>
+  `[data-testid=${JSON.stringify(assistantTurnId)}][data-turn='assistant']`;
+
+const assistantTextSelector = (assistantTurnId: string): string =>
   `[data-testid=${JSON.stringify(assistantTurnId)}][data-turn='assistant'] [data-message-author-role='assistant']`;
 
 const userSelector = (userTurnId: string): string =>
@@ -160,13 +161,13 @@ const withRateLimitAcknowledgement = (
 const readAssistantText = async (
   browser: BrowserTargetLease,
   assistantTurnId: string,
-): Promise<string> => readExactSemanticText(browser, assistantSelector(assistantTurnId));
+): Promise<string> => readExactSemanticText(browser, assistantTextSelector(assistantTurnId));
 
 const readAssistantCheckpoint = async (
   browser: BrowserTargetLease,
   assistantTurnId: string,
 ): Promise<Readonly<{ rawDomHtml: string; semanticText: string }>> =>
-  readExactObservedResponse(browser, assistantSelector(assistantTurnId));
+  readExactObservedResponse(browser, assistantTextSelector(assistantTurnId));
 
 type StableTextState = {
   assistantTurnId: string | null;
@@ -185,7 +186,7 @@ const observeStableText = async (
   if (!userTurnId) return null;
   const assistantTurnId = `conversation-turn-${turnOrdinal(userTurnId) + 1}`;
   const assistantCount = await findCount(browser, {
-    selector: assistantSelector(assistantTurnId), maxMatches: 2,
+    selector: assistantTextSelector(assistantTurnId), maxMatches: 2,
   });
   if (assistantCount !== 1) return null;
   const text = await readAssistantText(browser, assistantTurnId);
@@ -217,7 +218,11 @@ const observeStableText = async (
   });
 };
 
-type StableImageState = { assistantTurnId: string | null; stableSince: number };
+type StableImageState = {
+  assistantTurnId: string | null;
+  mediaHash: `sha256:${string}` | null;
+  stableSince: number;
+};
 
 const observeStableImage = async (
   browser: BrowserTargetLease,
@@ -229,48 +234,43 @@ const observeStableImage = async (
   const userTurnId = await pollingUserTurnId(browser, marker, expectedPromptHash);
   if (!userTurnId) return null;
   const assistantTurnId = `conversation-turn-${turnOrdinal(userTurnId) + 1}`;
-  const assistantCount = await findCount(browser, { selector: assistantSelector(assistantTurnId), maxMatches: 2 });
-  const imageCount = assistantCount === 1
-    ? await findCount(browser, { selector: `${assistantSelector(assistantTurnId)} img[alt]`, maxMatches: 2 })
-    : 0;
+  const assistantCount = await findCount(browser, { selector: assistantTurnSelector(assistantTurnId), maxMatches: 2 });
   const generating = await findCount(browser, { selector: GPT_GENERATING_STOP_SELECTOR, maxMatches: 2 });
-  if (imageCount > 1) throw executionFailure("failed", `GPT_GENERATED_IMAGE_COUNT_${imageCount}`);
-  if (assistantCount !== 1 || imageCount !== 1 || generating !== 0) return null;
+  if (assistantCount !== 1 || generating !== 0) return null;
+  let media: Awaited<ReturnType<BrowserTargetLease["downloadAuthenticatedMedia"]>>;
+  try {
+    media = await browser.downloadAuthenticatedMedia({
+      assistantTurnId, semanticMediaId: "gpt-generated-image-main",
+    });
+  } catch (error) {
+    if (failureCode(error) === "BROWSER_AUTHENTICATED_MEDIA_ABSENT") return null;
+    throw error;
+  }
   if (overdueRecoveryProbe) {
-    const responseText = await readAssistantText(browser, assistantTurnId);
-    if (!responseText.trim()) throw executionFailure("failed", "GPT_IMAGE_RESPONSE_TEXT_PENDING");
     return success({
-      value: {
-        assistantTurnId,
-        semanticMediaId: "gpt-generated-image-main",
-        responseText,
-        responseHash: hash(responseText),
-      },
+      value: { assistantTurnId, semanticMediaId: "gpt-generated-image-main", mediaHash: media.sha256 },
       candidateCount: 1,
       observedSemantics: [
-        "one directly following assistant turn", "one semantic image", "generation control absent",
-        "terminal readback after immutable deadline",
+        "one directly following assistant turn", "one authenticated semantic image",
+        "generation control absent", "terminal readback after immutable deadline",
       ],
       committedMutation: "no",
     });
   }
-  if (state.assistantTurnId !== assistantTurnId) {
+  if (state.assistantTurnId !== assistantTurnId || state.mediaHash !== media.sha256) {
     state.assistantTurnId = assistantTurnId;
+    state.mediaHash = media.sha256;
     state.stableSince = Date.now();
     return null;
   }
   if (Date.now() - state.stableSince < 3_000) return null;
-  const responseText = await readAssistantText(browser, assistantTurnId);
-  if (!responseText.trim()) throw executionFailure("failed", "GPT_IMAGE_RESPONSE_TEXT_PENDING");
   return success({
-    value: {
-      assistantTurnId,
-      semanticMediaId: "gpt-generated-image-main",
-      responseText,
-      responseHash: hash(responseText),
-    },
+    value: { assistantTurnId, semanticMediaId: "gpt-generated-image-main", mediaHash: media.sha256 },
     candidateCount: 1,
-    observedSemantics: ["one directly following assistant turn", "one semantic image", "generation control absent", "stable bounded interval"],
+    observedSemantics: [
+      "one directly following assistant turn", "one authenticated semantic image",
+      "generation control absent", "stable bounded interval",
+    ],
     committedMutation: "no",
   });
 };
@@ -285,37 +285,6 @@ const renderGeneratedImage = async (original: Buffer): Promise<Buffer> => {
     throw executionFailure("failed", "GPT_GENERATED_IMAGE_MECHANICAL_IDENTITY_INVALID");
   }
   return webp;
-};
-
-const writeGeneratedImageFile = async (filePath: string, bytes: Buffer, expectedHash: string): Promise<void> => {
-  try {
-    await writeFile(filePath, bytes, { flag: "wx", mode: 0o600 });
-  } catch (cause) {
-    const existing = await readFile(filePath).catch(() => null);
-    if (!existing || hash(existing) !== expectedHash) throw cause;
-  }
-};
-
-const persistGeneratedImage = async (input: Readonly<{
-  context: GptExecutionContext;
-  intent: GptChildCapabilityIntent;
-  original: Buffer;
-  webp: Buffer;
-}>): Promise<Readonly<{ originalHash: `sha256:${string}`; imageHash: `sha256:${string}`; originalLocalPath: string; localPath: string }>> => {
-  const originalHash = hash(input.original);
-  const imageHash = hash(input.webp);
-  const directory = join(input.context.dataDir, "generated-images", hash(input.intent.executionId).slice(7, 39));
-  const originalLocalPath = join(directory, `${originalHash.slice(7)}.original`);
-  const localPath = join(directory, `${imageHash.slice(7)}.webp`);
-  await mkdir(directory, { recursive: true, mode: 0o700 });
-  await writeGeneratedImageFile(originalLocalPath, input.original, originalHash);
-  await writeGeneratedImageFile(localPath, input.webp, imageHash);
-  const [originalReadback, readback] = await Promise.all([readFile(originalLocalPath), readFile(localPath)]);
-  if (hash(originalReadback) !== originalHash || originalReadback.byteLength !== input.original.byteLength
-    || hash(readback) !== imageHash || readback.byteLength !== input.webp.byteLength) {
-    throw executionFailure("failed", "GPT_GENERATED_IMAGE_READBACK_INVALID");
-  }
-  return { originalHash, imageHash, originalLocalPath, localPath };
 };
 
 export const responseChildHandlers = {
@@ -399,7 +368,7 @@ export const responseChildHandlers = {
 
   async checkpoint_gpt_generated_image(intent, context) {
     requireExactInputKeys(intent, [
-      "assistantTurnId", "canonicalConversationUrl", "expectedPromptHash", "expectedResponseHash", "turnMarker",
+      "assistantTurnId", "canonicalConversationUrl", "expectedMediaHash", "expectedPromptHash", "turnMarker",
     ]);
     const assistantTurnId = stringInput(intent, "assistantTurnId");
     const browser = requireBrowser(context);
@@ -407,9 +376,8 @@ export const responseChildHandlers = {
     const userTurnId = await pollingUserTurnId(
       browser, stringInput(intent, "turnMarker"), inputHash(stringInput(intent, "expectedPromptHash")),
     );
-    const responseText = await readAssistantText(browser, assistantTurnId);
     if (!userTurnId || `conversation-turn-${turnOrdinal(userTurnId) + 1}` !== assistantTurnId
-      || hash(responseText) !== inputHash(stringInput(intent, "expectedResponseHash"))) {
+      || await findCount(browser, { selector: assistantTurnSelector(assistantTurnId), maxMatches: 2 }) !== 1) {
       throw executionFailure("failed", "GPT_RESPONSE_CHECKPOINT_MISMATCH");
     }
     const media = await browser.downloadAuthenticatedMedia({
@@ -420,22 +388,40 @@ export const responseChildHandlers = {
     if (hash(original) !== media.sha256 || original.byteLength !== media.sizeBytes) {
       throw executionFailure("failed", "GPT_GENERATED_IMAGE_AUTHENTICATED_BYTES_INVALID");
     }
+    if (media.sha256 !== inputHash(stringInput(intent, "expectedMediaHash"))) {
+      throw executionFailure("failed", "GPT_GENERATED_IMAGE_IDENTITY_DRIFT");
+    }
     const webp = await renderGeneratedImage(original);
-    const persisted = await persistGeneratedImage({ context, intent, original, webp });
+    const originalHash = hash(original);
+    const imageHash = hash(webp);
     return success({
       value: {
-        artifactId: `airesult_${persisted.imageHash.slice(7, 39)}`,
-        localPath: persisted.localPath,
-        originalLocalPath: persisted.originalLocalPath,
-        sha256: persisted.imageHash,
-        originalSha256: persisted.originalHash,
+        assistantTurnId,
+        semanticMediaId: "gpt-generated-image-main",
+        mediaHash: media.sha256,
+        authorityTargetHash: media.authorityTargetHash,
+        authorityDocumentHash: media.authorityDocumentHash,
+        canonicalConversationUrl: stringInput(intent, "canonicalConversationUrl"),
+        promptHash: inputHash(stringInput(intent, "expectedPromptHash")),
+        turnMarker: stringInput(intent, "turnMarker"),
+        artifactId: `airesult_${imageHash.slice(7, 39)}`,
+        originalBytes: new Uint8Array(original),
+        webpBytes: new Uint8Array(webp),
+        sha256: imageHash,
+        originalSha256: originalHash,
+        originalSizeBytes: original.byteLength,
+        originalMediaType: media.mediaType,
+        originalWidth: media.width,
+        originalHeight: media.height,
         bytes: webp.byteLength,
         mediaType: "image/webp",
         width: 1200,
         height: 630,
       },
       candidateCount: 1,
-      observedSemantics: ["one exact authenticated generated image", media.sha256, persisted.imageHash, "metadata-free webp 1200x630"],
+      observedSemantics: [
+        "one exact authenticated generated image", media.sha256, imageHash, "metadata-free webp 1200x630",
+      ],
       committedMutation: "no",
     });
   },
@@ -451,7 +437,7 @@ export const responseChildHandlers = {
     }
     const browser = requireBrowser(context);
     const overdueRecoveryProbe = Date.now() >= deadline;
-    const state: StableImageState = { assistantTurnId: null, stableSince: 0 };
+    const state: StableImageState = { assistantTurnId: null, mediaHash: null, stableSince: 0 };
     let probeDelayMs = 250;
     let rateLimitAcknowledged = false;
     do {

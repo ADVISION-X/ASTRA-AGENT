@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto";
-import { executionFailure, failureCode, typedExecutionFailure } from "../../lib/typed-failure.js";
+import {
+  executionFailure,
+  failureCode,
+  serializeTerminalFailure,
+  typedExecutionFailure,
+} from "../../lib/typed-failure.js";
 
 import {
   GPT_ABILITY_GROUP_ID,
@@ -145,7 +150,9 @@ const successfulExecution = async (input: Readonly<{
     observation: input.observation,
   });
   await input.context.onProof?.(proof);
-  return Object.freeze({ status: "success", value: input.observation.value, proof, failureCode: null });
+  return Object.freeze({
+    status: "success", value: input.observation.value, proof, failureCode: null, failureCause: null,
+  });
 };
 
 const failedExecution = async (input: Readonly<{
@@ -158,6 +165,7 @@ const failedExecution = async (input: Readonly<{
 }>): Promise<GptChildCapabilityResult> => {
   const after = currentDocument(input.context);
   const failure = classify(input.error);
+  const serialized = serializeTerminalFailure(input.error);
   const contract = GPT_CHILD_CAPABILITY_CONTRACTS[input.intent.childCapabilityId];
   const browserFailureOutcome = typedExecutionFailure(input.error)?.mutationOutcome ?? "no";
   const browserDispatched = (input.context.browser?.pendingMutationCount() ?? 0) > 0 && !input.observation;
@@ -175,8 +183,8 @@ const failedExecution = async (input: Readonly<{
   });
   await input.context.onProof?.(proof);
   return Object.freeze({
-    status: failure.status,
-    value: null, proof, failureCode: failure.code,
+    status: failure.status, value: null, proof, failureCode: failure.code,
+    failureCause: serialized.cause,
   });
 };
 

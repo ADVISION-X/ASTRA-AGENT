@@ -2,10 +2,10 @@ import type { BrowserGovernedCommand } from "../exact-target/browser-command-act
 import { GPT_WEB_START_URL, requireGptWebPolicyForUrl } from "../exact-target/browser-site-policy-registry.js";
 import { BROWSER_COMMAND_DEFAULT_DEADLINE_MS } from "../protocol/generated/browser-protocol.generated.js";
 import { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
+import { executeAuthenticatedMedia } from "./authenticated-media-runtime.js";
 import { executeRegisteredDomIntent } from "./dom-intent-runtime.js";
 import { ExtensionExactTargetRegistry, type ExtensionExactTarget } from "./exact-target-runtime.js";
 import type { ExtensionChromeApi, ExtensionDebugTarget } from "./extension-runtime-types.js";
-import { parseAuthenticatedMediaValue, type AuthenticatedMediaValue } from "./authenticated-media-value.js";
 
 type TargetFrameSender = (
   kind: "TARGET_CLAIM" | "TARGET_REVOKE",
@@ -31,6 +31,7 @@ const asRecord = (value: unknown): Record<string, unknown> | null =>
   typeof value === "object" && value !== null && !Array.isArray(value)
     ? value as Record<string, unknown>
     : null;
+
 
 export class ExtensionTargetAuthority {
   private readonly targets = new ExtensionExactTargetRegistry();
@@ -197,7 +198,9 @@ export class ExtensionTargetAuthority {
       return this.executeFileInput(target, command.selector, command.grantRefs, command.resolvedFilePaths);
     }
     if (command.kind === "authenticated-media") {
-      return this.executeAuthenticatedMedia(target, command.assistantTurnId, command.semanticMediaId);
+      return executeAuthenticatedMedia(
+        this.debuggerRuntime, target, command.assistantTurnId, command.semanticMediaId,
+      );
     }
     throw new Error("BROWSER_FILE_GRANT_INVALID");
   }
@@ -459,62 +462,4 @@ export class ExtensionTargetAuthority {
     };
   }
 
-  private async executeAuthenticatedMedia(
-    target: ExtensionExactTarget,
-    assistantTurnId: string,
-    semanticMediaId: "gpt-generated-image-main",
-  ): Promise<Readonly<{
-    bytesBase64: string;
-    sha256: `sha256:${string}`;
-    sizeBytes: number;
-    mediaType: `image/${string}`;
-    width: number;
-    height: number;
-  }>> {
-    if (!/^conversation-turn-[1-9][0-9]*$/u.test(assistantTurnId)
-      || semanticMediaId !== "gpt-generated-image-main") {
-      throw new Error("BROWSER_TARGET_INVALID");
-    }
-    const expression = `
-      (async () => {
-        const turn = document.querySelector(${JSON.stringify(`[data-testid=${JSON.stringify(assistantTurnId)}][data-turn='assistant']`)});
-        if (!(turn instanceof HTMLElement) || !turn.isConnected) throw new Error("GPT_ASSISTANT_TURN_INVALID");
-        const images = [...turn.querySelectorAll("img[alt]")].filter((node) => {
-          if (!(node instanceof HTMLImageElement) || !node.isConnected || !node.complete) return false;
-          const bounds = node.getBoundingClientRect();
-          return node.alt.trim().length > 0 && node.naturalWidth >= 128 && node.naturalHeight >= 128
-            && bounds.width > 0 && bounds.height > 0;
-        });
-        if (images.length !== 1) throw new Error("GPT_GENERATED_IMAGE_COUNT_" + images.length);
-        const image = images[0];
-        const response = await fetch(image.currentSrc || image.src, { credentials: "include", redirect: "follow" });
-        if (!response.ok) throw new Error("GPT_GENERATED_IMAGE_FETCH_" + response.status);
-        const blob = await response.blob();
-        if (!blob.type.startsWith("image/") || blob.size < 1 || blob.size > 25 * 1024 * 1024) {
-          throw new Error("GPT_GENERATED_IMAGE_BYTE_COUNT_INVALID");
-        }
-        const buffer = await blob.arrayBuffer();
-        const digest = [...new Uint8Array(await crypto.subtle.digest("SHA-256", buffer))]
-          .map((value) => value.toString(16).padStart(2, "0")).join("");
-        const bytes = new Uint8Array(buffer);
-        let binary = "";
-        for (let offset = 0; offset < bytes.length; offset += 0x8000) {
-          binary += String.fromCharCode(...bytes.subarray(offset, Math.min(offset + 0x8000, bytes.length)));
-        }
-        return {
-          bytesBase64: btoa(binary), sha256: "sha256:" + digest, sizeBytes: bytes.byteLength,
-          mediaType: blob.type, width: image.naturalWidth, height: image.naturalHeight,
-        };
-      })()
-    `;
-    const evaluated = asRecord(await this.debuggerRuntime.send(target.tabId, "Runtime.evaluate", {
-      expression,
-      awaitPromise: true,
-      returnByValue: true,
-      userGesture: false,
-    }));
-    if (evaluated?.exceptionDetails) throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
-    const result = asRecord(evaluated?.result);
-    return parseAuthenticatedMediaValue(result?.value);
-  }
 }

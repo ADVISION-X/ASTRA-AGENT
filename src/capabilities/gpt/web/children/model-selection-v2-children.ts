@@ -17,6 +17,7 @@ import {
   GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR,
   GPT_MODEL_SELECTION_V2_OPEN_STATE_SELECTOR,
   GPT_MODEL_SELECTION_V2_PANEL_SELECTOR,
+  GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR,
 } from "../contracts/model-selection-v2.contract.js";
 import {
   GPT_PROFILE_POPUP_SELECTOR,
@@ -158,38 +159,8 @@ export const modelSelectionV2ChildHandlers = {
         `GPT_MODEL_SELECTION_V2_CANDIDATE_INVALID:count=${candidate.count}:checked=${candidate.ariaChecked ?? "missing"}`,
       );
     }
-    if (candidate.ariaChecked === "true") {
-      if (context.mutationMode === "readback") {
-        throw executionFailure("failed", "GPT_MODEL_SELECTION_V2_PROFILE_RESTORE_PENDING");
-      }
-      await browser.executeDomIntent({
-        kind: "click",
-        selector: GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR,
-        expectedMatches: 1,
-        postClickMatch: {
-          selector: GPT_PROFILE_SIMPLE_PANEL_SELECTOR,
-          expectedMatches: 1,
-          timeoutMs: 5_000,
-        },
-      });
-      return success({
-        value: {
-          modelDisplayName: profile.modelDisplayName,
-          previousChecked: candidate.ariaChecked,
-          selectionVersion: GPT_MODEL_SELECTION_VERSION,
-          state: "exact-model-already-selected-profile-restored",
-        },
-        candidateCount: 1,
-        observedSemantics: [
-          "one exact selected model in the active non-inert v2 panel",
-          "one exact expanded model entry click",
-          "active execution profile restored",
-        ],
-        committedMutation: "confirmed",
-      });
-    }
     if (context.mutationMode === "readback") {
-      throw executionFailure("failed", "GPT_MODEL_SELECTION_V2_SELECTION_PENDING");
+      throw executionFailure("failed", "GPT_MODEL_SELECTION_V2_PROFILE_RESTORE_PENDING");
     }
     await browser.executeDomIntent({
       kind: "click",
@@ -197,23 +168,30 @@ export const modelSelectionV2ChildHandlers = {
       expectedTextEquals: profile.modelDisplayName,
       expectedMatches: 1,
       postClickMatch: {
-        selector: GPT_PROFILE_SIMPLE_PANEL_SELECTOR,
+        selector: GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR,
         expectedMatches: 1,
         timeoutMs: 5_000,
       },
     });
+    const restored = await readModelSelectorTopology(browser);
+    if (!isOpenable(restored)) {
+      throw executionFailure(
+        "failed",
+        `GPT_MODEL_SELECTION_V2_PROFILE_RESTORE_INVALID:${topologyCode(restored)}`,
+      );
+    }
     return success({
       value: {
         modelDisplayName: profile.modelDisplayName,
         previousChecked: candidate.ariaChecked,
         selectionVersion: GPT_MODEL_SELECTION_VERSION,
-        state: "exact-model-selected",
+        state: "exact-model-selected-profile-restored",
       },
       candidateCount: 1,
       observedSemantics: [
-        "one exact model in the active non-inert v2 panel",
-        "one exact model click",
-        "active execution profile restored",
+        "one exact model radio in the active non-inert v2 panel",
+        "one exact model radio click",
+        "profile popup retained with collapsed entry and active non-inert simple panel",
       ],
       committedMutation: "confirmed",
     });

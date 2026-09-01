@@ -19,7 +19,12 @@ export {
   type GptContinuationLane,
 } from "./session/gpt-session-controller.js";
 export type {
+  GptContinuationFrontierBinding,
+  GptContinuationCheckpoint,
+  GptContinuationGeneratedImageCheckpoint,
+  GptContinuationOriginCheckpoint,
   GptContinuationStorePort,
+  GptContinuationTextCheckpoint,
   GptProviderContinuation,
   StoredGptContinuation,
 } from "./session/gpt-continuation-store-port.js";

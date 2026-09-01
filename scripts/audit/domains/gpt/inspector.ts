@@ -21,7 +21,7 @@ import {
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 import { inspectGptContractDenominator } from "./gpt-contract-inspection.js";
 
-const LAW_ID = "LAW-GPT-001-V13";
+const LAW_ID = "LAW-GPT-001-V16";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 12, 15),
   "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14),
@@ -308,10 +308,37 @@ const inspectContinuationContract = (context: InspectorContext, findings: Inspec
   for (const required of [
     "readGptContinuation", "sameProvider", "GPT_CONTINUATION_IDEMPOTENCY_CONFLICT",
     "GPT_CONTINUATION_ADVANCE_CAS_FAILED", "GPT_CONTINUATION_RELEASE_CAS_FAILED",
+    "readGptContinuationForFrontier", "GPT_CONTINUATION_FRONTIER_CONFLICT",
+    "origin_provider", "origin_checkpoint", "frontier_ref",
   ]) if (!controller.includes(required)) findings.push(finding(
     "gpt/continuation-content-idempotency", SESSION_PATH,
       `Continuation persist/advance/release readback is missing ${required}.`,
     ));
+};
+
+const inspectModelSelectionContract = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const handler = sourceFor(context, MODEL_SELECTION_V2_HANDLER_PATH)?.getFullText() ?? "";
+  const contract = sourceFor(context, MODEL_SELECTION_V2_CONTRACT_PATH)?.getFullText() ?? "";
+  for (const required of [
+    "selector: GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR",
+    "expectedTextEquals: profile.modelDisplayName",
+    "selector: GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR",
+    "readModelSelectorTopology", "isOpenable(restored)",
+  ]) if (!handler.includes(required)) findings.push(finding(
+    "gpt/model-selection-exact-radio", MODEL_SELECTION_V2_HANDLER_PATH,
+    `Exact model selection is missing ${required}.`,
+  ));
+  if (/kind:\s*"click",\s*selector:\s*GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR/u.test(handler)) findings.push(finding(
+    "gpt/model-selection-expanded-entry-retired", MODEL_SELECTION_V2_HANDLER_PATH,
+    "The expanded model entry must never be clicked to restore the simple profile panel.",
+  ));
+  for (const required of [
+    "GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR", "[aria-expanded='false'][aria-hidden='false']",
+    "GPT_PROFILE_SIMPLE_PANEL_SELECTOR", ":not(:has(${GPT_MODEL_SELECTION_V2_PANEL_SELECTOR}))",
+  ]) if (!contract.includes(required)) findings.push(finding(
+    "gpt/model-selection-direct-postcondition", MODEL_SELECTION_V2_CONTRACT_PATH,
+    `The direct restored-state selector is missing ${required}.`,
+  ));
 };
 
 const inspectProviderWaitContract = (context: InspectorContext, findings: InspectorFinding[]): void => {
@@ -367,6 +394,7 @@ const inspectGptContracts = (context: InspectorContext, findings: InspectorFindi
   inspectAttachmentDomContract(context, findings);
   inspectUniqueRuntimeChain(context, findings);
   inspectIntelligentExecutionContracts(context, findings);
+  inspectModelSelectionContract(context, findings);
 };
 
 const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {

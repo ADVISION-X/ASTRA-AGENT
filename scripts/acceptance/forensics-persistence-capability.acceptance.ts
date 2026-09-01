@@ -146,7 +146,7 @@ try {
     attemptId: locatorIntent.attemptId, stepId: locatorIntent.productStepId,
     exactCallIdentityHash: `sha256:${"c".repeat(64)}`,
     result: {
-      status: "success", failureCode: null,
+      status: "success", failureCode: null, failureCause: null,
       value: { canonicalConversationUrl: locatorUrl, turnMarker: locatorMarker,
         userTurnId: locatorTurn, promptHash, conversationIdentityHash: locatorIdentity },
       proof: { schemaVersion: "gpt-child-capability-proof.v2", ...locatorIntent,

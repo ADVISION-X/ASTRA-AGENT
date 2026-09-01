@@ -1,4 +1,8 @@
 export type AuthenticatedMediaValue = Readonly<{
+  authorityTargetHash: `sha256:${string}`;
+  authorityDocumentHash: `sha256:${string}`;
+  assistantTurnId: string;
+  semanticMediaId: "gpt-generated-image-main";
   bytesBase64: string;
   sha256: `sha256:${string}`;
   sizeBytes: number;
@@ -29,8 +33,17 @@ const dimensionsValid = (value: Readonly<Record<string, unknown>>): boolean =>
   && Number.isSafeInteger(value.height)
   && value.height >= 1;
 
+const authorityValid = (value: Readonly<Record<string, unknown>>): boolean =>
+  typeof value.authorityTargetHash === "string"
+  && /^sha256:[a-f0-9]{64}$/u.test(value.authorityTargetHash)
+  && typeof value.authorityDocumentHash === "string"
+  && /^sha256:[a-f0-9]{64}$/u.test(value.authorityDocumentHash)
+  && typeof value.assistantTurnId === "string"
+  && /^conversation-turn-[1-9][0-9]*$/u.test(value.assistantTurnId)
+  && value.semanticMediaId === "gpt-generated-image-main";
+
 export const parseAuthenticatedMediaValue = (value: unknown): AuthenticatedMediaValue => {
-  if (!record(value) || !bytesValid(value) || !dimensionsValid(value)) {
+  if (!record(value) || !authorityValid(value) || !bytesValid(value) || !dimensionsValid(value)) {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
   return value as AuthenticatedMediaValue;

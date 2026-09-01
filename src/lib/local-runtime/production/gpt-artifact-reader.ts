@@ -3,6 +3,10 @@ import { createHash } from "node:crypto";
 import type { ForensicsPersistenceAbilityGroup } from "../../../capabilities/forensics-persistence/index.js";
 import { executionFailure } from "../../typed-failure.js";
 import { gptSubmissionLocatorArtifact } from "./gpt-artifact-contract.js";
+import {
+  readGeneratedImageArtifacts,
+  type GeneratedImageCheckpointArtifacts,
+} from "./gpt-generated-image-artifact-reader.js";
 
 const objectRecord = (value: unknown): Readonly<Record<string, unknown>> | null =>
   value && typeof value === "object" && !Array.isArray(value)
@@ -72,3 +76,15 @@ export const readSubmissionLocatorArtifact = async (
   }
   return locator;
 };
+
+export const readGeneratedImageCheckpointArtifacts = async (
+  evidenceStore: ForensicsPersistenceAbilityGroup,
+  artifactRefs: readonly [string, string, string],
+): Promise<GeneratedImageCheckpointArtifacts> => readGeneratedImageArtifacts({
+  evidenceStore,
+  artifactRefs,
+  receipt: await readJsonArtifact(
+    evidenceStore, artifactRefs[2],
+    "GPT_GENERATED_IMAGE_RECEIPT_READBACK_FAILED", "GPT_GENERATED_IMAGE_RECEIPT_INVALID",
+  ),
+});

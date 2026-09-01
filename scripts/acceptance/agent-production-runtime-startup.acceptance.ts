@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -48,7 +48,8 @@ try {
       terminalEnabled: false, fileSink: { directoryPath: path.join(temporary, "runtime-logs") },
     }),
   });
-  await assert.rejects(access(crashOrphanDirectory), { code: "ENOENT" });
+  assert.equal(await readFile(path.join(crashOrphanDirectory, "orphan.original"), "utf8"), "orphan",
+    "startup must not erase a potentially recoverable generated-image artifact");
   assert.equal(blocked.readHealth().shellState, "ready");
   assert.equal(blocked.readHealth().cloudState, "contract_blocked");
   assert.equal(blocked.readHealth().executionState, "blocked");
@@ -166,7 +167,7 @@ try {
   Reflect.set(gptChildTools, "createExecution", () => ({
     tools: {
       attemptId: dispatchAttemptId,
-      readContinuationForTurn: () => null,
+      readContinuationExact: async () => null,
       readCallFacts: async () => {
         throw executionFailure("failed", "PAYMENT_OBSERVATION_PROVIDER_FAILED");
       },

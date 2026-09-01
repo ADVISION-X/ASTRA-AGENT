@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { executionFailure } from "../../../../lib/typed-failure.js";
+import { executionFailure, failureCode } from "../../../../lib/typed-failure.js";
 
 import type { GptChildHandlerMap } from "../child-handler.js";
 import {
@@ -42,6 +42,13 @@ const canonicalConversationOrNull = (value: string): string | null => {
 
 const submittedPromptSelector = (userTurnId: string): string =>
   `[data-testid=${JSON.stringify(userTurnId)}][data-turn='user'] [data-message-author-role='user'] ${GPT_USER_PROMPT_BODY_SELECTOR}`;
+
+const TRANSIENT_SUBMISSION_READ_CODES = new Set([
+  "BROWSER_DOM_CANDIDATE_MISSING",
+  "BROWSER_DOM_CANDIDATE_AMBIGUOUS",
+  "BROWSER_DOM_NODE_STALE",
+  "BROWSER_DOM_READ_INVALID",
+]);
 
 export const composerSubmissionChildHandlers = {
   async write_exact_gpt_prompt(intent, context) {
@@ -161,41 +168,49 @@ export const composerSubmissionChildHandlers = {
     const browser = requireBrowser(context);
     const timeoutMs = Math.max(1_000, Math.min(numberInput(intent, "timeoutMs"), 60_000));
     const deadline = Date.now() + timeoutMs;
+    let lastTransientRead: unknown = null;
     while (Date.now() < deadline) {
-      const count = await findCount(browser, {
-        selector: GPT_USER_TURN_SELECTOR, textContains: marker, maxMatches: 20,
-      });
-      if (count > 1) throw executionFailure("failed", `GPT_SUBMITTED_TURN_COUNT_${count}`);
-      if (count === 1) {
-        const composerText = await readExactText(browser, GPT_COMPOSER_SELECTOR, 65_536);
-        const canonicalConversationUrl = canonicalConversationOrNull((await readGptDocument(browser)).url);
-        if (composerText.trim().length === 0 && canonicalConversationUrl) {
-          const userTurnId = await readExactAttribute(browser, GPT_USER_TURN_SELECTOR, "data-testid", marker);
-          const promptText = await readExactCanonicalPromptText(browser, submittedPromptSelector(userTurnId));
-          const promptHash = hash(promptText);
-          if (promptHash !== expectedPromptHash) {
-            throw executionFailure("failed", "GPT_USER_TURN_HASH_MISMATCH");
+      try {
+        const count = await findCount(browser, {
+          selector: GPT_USER_TURN_SELECTOR, textContains: marker, maxMatches: 20,
+        });
+        if (count > 1) throw executionFailure("failed", `GPT_SUBMITTED_TURN_COUNT_${count}`);
+        if (count === 1) {
+          const composerText = await readExactText(browser, GPT_COMPOSER_SELECTOR, 65_536);
+          const canonicalConversationUrl = canonicalConversationOrNull((await readGptDocument(browser)).url);
+          if (composerText.trim().length === 0 && canonicalConversationUrl) {
+            const userTurnId = await readExactAttribute(browser, GPT_USER_TURN_SELECTOR, "data-testid", marker);
+            const promptText = await readExactCanonicalPromptText(browser, submittedPromptSelector(userTurnId));
+            const promptHash = hash(promptText);
+            if (promptHash !== expectedPromptHash) {
+              throw executionFailure("failed", "GPT_USER_TURN_HASH_MISMATCH");
+            }
+            return success({
+              value: {
+                turnMarker: marker,
+                userTurnId,
+                canonicalConversationUrl,
+                promptHash,
+                conversationIdentityHash: hash(`${canonicalConversationUrl}\n${marker}\n${userTurnId}\n${promptHash}`),
+              },
+              candidateCount: count,
+              observedSemantics: [
+                "one exact user turn", "canonical rendered prompt hash",
+                "composer cleared", "permanent canonical conversation URL",
+              ],
+              committedMutation: "no",
+            });
           }
-          return success({
-            value: {
-              turnMarker: marker,
-              userTurnId,
-              canonicalConversationUrl,
-              promptHash,
-              conversationIdentityHash: hash(`${canonicalConversationUrl}\n${marker}\n${userTurnId}\n${promptHash}`),
-            },
-            candidateCount: count,
-            observedSemantics: [
-              "one exact user turn", "canonical rendered prompt hash",
-              "composer cleared", "permanent canonical conversation URL",
-            ],
-            committedMutation: "no",
-          });
         }
+        lastTransientRead = null;
+      } catch (error) {
+        if (!TRANSIENT_SUBMISSION_READ_CODES.has(failureCode(error))) throw error;
+        lastTransientRead = error;
       }
       const remaining = deadline - Date.now();
       if (remaining > 0) await browser.wait({ durationMs: Math.max(25, Math.min(500, Math.ceil(remaining / 20))) });
     }
+    if (lastTransientRead) throw lastTransientRead;
     throw executionFailure("failed", "GPT_TURN_SUBMISSION_RECONCILIATION_PENDING");
   },
 } satisfies GptChildHandlerMap;

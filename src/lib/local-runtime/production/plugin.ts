@@ -18,8 +18,8 @@ import type {
 
 export interface GeneratedImageArtifact {
   readonly artifact_id: string;
-  readonly local_path: string;
-  readonly original_local_path: string;
+  readonly webp_bytes: Uint8Array;
+  readonly original_bytes: Uint8Array;
   readonly sha256: ProductionHash;
   readonly original_sha256: ProductionHash;
   readonly bytes: number;
@@ -27,6 +27,33 @@ export interface GeneratedImageArtifact {
   readonly width: 1200;
   readonly height: 630;
 }
+
+export const gptTextContinuationCheckpointInput = (
+  sourceAttemptId: string,
+  checkpoint: Readonly<{
+    assistantTurnId: string;
+    artifactRef: string;
+    rawDomHash: ProductionHash;
+    semanticTextHash: ProductionHash;
+    canonicalConversationUrl: string;
+    promptHash: ProductionHash;
+    turnMarker: string;
+    evidenceRef: string;
+    evidenceHash: ProductionHash;
+  }>,
+) => Object.freeze({
+  checkpointKind: "text" as const,
+  sourceAttemptId,
+  assistantTurnId: checkpoint.assistantTurnId,
+  artifactRef: checkpoint.artifactRef,
+  rawDomHash: checkpoint.rawDomHash,
+  semanticTextHash: checkpoint.semanticTextHash,
+  canonicalConversationUrl: checkpoint.canonicalConversationUrl,
+  promptHash: checkpoint.promptHash,
+  turnMarker: checkpoint.turnMarker,
+  evidenceRef: checkpoint.evidenceRef,
+  evidenceHash: checkpoint.evidenceHash,
+});
 
 export interface SharedExecutionContext {
   readonly materials: readonly LocalProductionMaterial[];
@@ -47,6 +74,10 @@ export type ProductGptCallInput = Readonly<{
   child: GptChildCapabilityId;
   actionOrdinal: number;
   input: Readonly<Record<string, unknown>>;
+}>;
+
+export type ProductGptFactQuery = ProductGptCallInput & Readonly<{
+  lookupKind?: "current_attempt" | "task_exact_effect";
 }>;
 
 export type ExactGptCallFacts = Readonly<{
@@ -75,11 +106,69 @@ export type ExactGptCallFacts = Readonly<{
   }> | null;
 }>;
 
+export type ExactGptContinuationQuery = Readonly<
+  | { lookupKind: "turn_marker"; turnMarker: string }
+  | { lookupKind: "frontier_ref"; frontierRef: ProductionHash }
+>;
+
+export type ExactGptTextCheckpointReadback = Readonly<{
+  checkpointKind: "text";
+  sourceAttemptId: string;
+  assistantTurnId: string;
+  artifactRef: string;
+  rawDomHtml: string;
+  rawDomHash: ProductionHash;
+  semanticText: string;
+  semanticTextHash: ProductionHash;
+  canonicalConversationUrl: string;
+  promptHash: ProductionHash;
+  turnMarker: string;
+  evidenceRef: string;
+  evidenceHash: ProductionHash;
+}>;
+
+export type ExactGptGeneratedImageCheckpointReadback = Readonly<{
+  checkpointKind: "generated_image";
+  sourceAttemptId: string;
+  assistantTurnId: string;
+  canonicalConversationUrl: string;
+  promptHash: ProductionHash;
+  mediaHash: ProductionHash;
+  turnMarker: string;
+  originalArtifactRef: string;
+  originalSha256: ProductionHash;
+  originalBytes: Uint8Array;
+  originalMediaType: `image/${string}`;
+  originalWidth: number;
+  originalHeight: number;
+  webpArtifactRef: string;
+  webpSha256: ProductionHash;
+  webpBytes: Uint8Array;
+  mediaType: "image/webp";
+  width: 1200;
+  height: 630;
+  evidenceRef: string;
+  evidenceHash: ProductionHash;
+  predecessorTextCheckpoint: ExactGptTextCheckpointReadback;
+}>;
+
+export type ExactGptContinuationReadback = Readonly<
+  | { lookupKind: "turn_marker"; lane: GptContinuationLane }
+  | {
+    lookupKind: "frontier_ref";
+    continuationRef: string;
+    originProvider: GptProviderContinuation;
+    originCheckpoint: ExactGptTextCheckpointReadback;
+    currentProvider: GptProviderContinuation;
+    currentCheckpoint: ExactGptTextCheckpointReadback | ExactGptGeneratedImageCheckpointReadback;
+  }
+>;
+
 export interface ProductGptTools {
   readonly attemptId: string;
-  readContinuationForTurn(turnMarker: string): GptContinuationLane | null;
+  readContinuationExact(query: ExactGptContinuationQuery): Promise<ExactGptContinuationReadback | null>;
   execute(input: ProductGptCallInput & Readonly<{ sessionKey: string }>): Promise<ProductGptChildResult>;
-  readCallFacts(input: ProductGptCallInput): Promise<ExactGptCallFacts>;
+  readCallFacts(input: ProductGptFactQuery): Promise<ExactGptCallFacts>;
 }
 
 export interface ProductPluginOutput {

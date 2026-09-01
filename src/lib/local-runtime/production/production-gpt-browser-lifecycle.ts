@@ -77,6 +77,7 @@ export const recoveredGptChildResult = (input: Readonly<{
   value: input.state === "confirmed" ? input.readback?.value ?? null : null,
   proof: recoveredProof(input),
   failureCode: input.state === "confirmed" ? null : "BROWSER_POSTCONDITION_FAILED",
+  failureCause: input.state === "confirmed" ? null : Object.freeze({ name: "Error", code: null }),
 });
 
 export class ProductionGptBrowserLifecycle {

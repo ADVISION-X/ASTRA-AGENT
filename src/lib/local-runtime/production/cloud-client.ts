@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, open, readFile, rename, rm } from "node:fs/promises";
+import { mkdir, open, rename, rm } from "node:fs/promises";
 import path from "node:path";
 
 import {
@@ -32,7 +32,9 @@ import { resolveProductionPlugin } from "./catalog.js";
 import { routeProducesGeneratedImage } from "./route-policy.js";
 import { executionFailure, type SerializedExecutionFailure } from "../../typed-failure.js";
 import { productionCloudFetch } from "./cloud-transport.js";
-import { generatedImageTemporaryDirectory } from "./generated-image-temporary-files.js";
+import type { ProductionLeaseRelease } from "./lease-release-contract.js";
+
+export type { ProductionLeaseRelease } from "./lease-release-contract.js";
 
 const fenceHeaders = (job: ClaimedProductionTask): Record<string, string> => ({
   "x-ai-execution-fence-hash": job.grant.execution_fence.fence_hash,
@@ -203,54 +205,6 @@ export async function renewProductionLease(
   ));
 }
 
-export type ProductionLeaseRelease =
-  | Readonly<{
-    reasonCode: "CAPABILITY_CHANGED_BEFORE_ACCEPT" | "LEASE_SAFETY_BUDGET_EXHAUSTED" | "LOCAL_CAPACITY_CHANGED";
-    receiverCheckpoint: null;
-    confirmedSubmit: null;
-  }>
-  | Readonly<{
-    reasonCode: "POST_CHECKPOINT_RECEIVER_FAULT";
-    receiverCheckpoint: Readonly<{
-      artifact_ref: string;
-      raw_dom_hash: ProductionHash;
-      semantic_text_hash: ProductionHash;
-    }>;
-    confirmedSubmit: null;
-  }>
-  | Readonly<{
-      reasonCode: "POST_SUBMIT_READBACK_FAULT";
-    receiverCheckpoint: null;
-    confirmedSubmit: Readonly<{
-      cause_code: string;
-      exact_call_identity_hash: ProductionHash;
-      outcome: "CONFIRMED";
-      terminal_at: string;
-      readback_deadline_at: string;
-      readback_mutation_outcome: "no";
-      evidence_ref: string;
-      evidence_hash: ProductionHash;
-      }>;
-    }>
-  | Readonly<{
-      reasonCode: "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED";
-      receiverCheckpoint: Readonly<{
-        artifact_ref: string;
-        raw_dom_hash: ProductionHash;
-        semantic_text_hash: ProductionHash;
-      }> | null;
-      confirmedSubmit: Readonly<{
-        cause_code: string;
-        exact_call_identity_hash: ProductionHash;
-        outcome: "CONFIRMED";
-        terminal_at: string;
-        readback_deadline_at: string;
-        readback_mutation_outcome: "no";
-        evidence_ref: string;
-        evidence_hash: ProductionHash;
-      }> | null;
-    }>;
-
 export async function releaseProductionLease(
   session: ProductionWorkerSession,
   job: ClaimedProductionTask,
@@ -333,8 +287,9 @@ async function uploadGeneratedImage(
   if (delivered?.state === "delivered") {
     return UploadedResultReceiptSchema.parse(store.readOutboxResponse(requestId));
   }
-  const bytes = await readFile(image.local_path);
+  const bytes = Buffer.from(image.webp_bytes);
   if (bytes.byteLength !== image.bytes || sha256(bytes) !== image.sha256
+    || image.original_bytes.byteLength < 1 || sha256(image.original_bytes) !== image.original_sha256
     || image.media_type !== "image/webp" || image.width !== 1200 || image.height !== 630) {
     throw executionFailure("failed", "GENERATED_IMAGE_LOCAL_IDENTITY_MISMATCH");
   }
@@ -368,7 +323,6 @@ type ProductionResultUploadInput = Readonly<{
     generated_image?: GeneratedImageArtifact;
   }>;
   continuationRef: string | null;
-  dataDir: string;
 }>;
 
 const uploadGeneratedImagePayload = async (input: ProductionResultUploadInput): Promise<Readonly<{
@@ -441,30 +395,24 @@ export async function uploadProductionResult(input: ProductionResultUploadInput)
   envelope_receipt: UploadedResultReceipt;
   artifact_receipts: readonly UploadedResultReceipt[];
 }>> {
-  const temporaryDirectory = input.output.generated_image
-    ? generatedImageTemporaryDirectory(input.dataDir, input.output.generated_image) : null;
-  try {
-    const prepared = await uploadGeneratedImagePayload(input);
-    resolveProductionPlugin(input.job.product_id, input.job.action_id)
-      .plugin.parseResult(input.job, prepared.payload, "final");
-    const payloadReceipt = await uploadJsonObject(
-      input.session, input.store, input.job, "result_payload", prepared.payload,
-    );
-    const envelope = buildProductionResultEnvelope(input, payloadReceipt);
-    const envelopeReceipt = await uploadJsonObject(
-      input.session, input.store, input.job, "result_envelope", envelope,
-    );
-    return {
-      envelope,
-      payload_receipt: payloadReceipt,
-      envelope_receipt: envelopeReceipt,
-      artifact_receipts: Object.freeze([
-        ...(prepared.imageReceipt ? [prepared.imageReceipt] : []), payloadReceipt, envelopeReceipt,
-      ]),
-    };
-  } finally {
-    if (temporaryDirectory) await rm(temporaryDirectory, { recursive: true, force: true });
-  }
+  const prepared = await uploadGeneratedImagePayload(input);
+  resolveProductionPlugin(input.job.product_id, input.job.action_id)
+    .plugin.parseResult(input.job, prepared.payload, "final");
+  const payloadReceipt = await uploadJsonObject(
+    input.session, input.store, input.job, "result_payload", prepared.payload,
+  );
+  const envelope = buildProductionResultEnvelope(input, payloadReceipt);
+  const envelopeReceipt = await uploadJsonObject(
+    input.session, input.store, input.job, "result_envelope", envelope,
+  );
+  return {
+    envelope,
+    payload_receipt: payloadReceipt,
+    envelope_receipt: envelopeReceipt,
+    artifact_receipts: Object.freeze([
+      ...(prepared.imageReceipt ? [prepared.imageReceipt] : []), payloadReceipt, envelopeReceipt,
+    ]),
+  };
 }
 
 export async function terminalProductionTask(

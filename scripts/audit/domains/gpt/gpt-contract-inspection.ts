@@ -94,22 +94,23 @@ const inspectProfileContracts = (
   for (const required of [
     "GPT_MODEL_SELECTION_V2_ENTRY_SELECTOR", "GPT_PROFILE_POPUP_SELECTOR",
     "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR", "[data-active='true']:not([inert])",
-    "GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR",
+    "GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR", "GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR",
+    "GPT_PROFILE_SIMPLE_PANEL_SELECTOR", "[aria-expanded='false'][aria-hidden='false']",
   ]) if (!modelContract.includes(required)) findings.push(finding(
     "gpt/model-selection-v2-visible-contract", MODEL_CONTRACT_PATH,
     `Model selection V2 contract is missing ${required}.`,
-  ));
-  if (modelContract.includes("GPT_PROFILE_SIMPLE_PANEL_SELECTOR")) findings.push(finding(
-    "gpt/model-selection-v2-entry-owner", MODEL_CONTRACT_PATH,
-    "The exact model entry belongs to the active profile menu and must not be scoped under the sibling reasoning panel.",
   ));
   const modelHandler = sourceFor(context, MODEL_HANDLER_PATH)?.getFullText() ?? "";
   for (const required of [
     "open_gpt_model_selector_v2", "select_exact_gpt_model_v2", "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR",
     "GPT_PROFILE_SIMPLE_PANEL_SELECTOR", "GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR",
-    "isAlreadyOpen", "isOpenable", "ALREADY_OPEN", "OPENABLE",
+    "GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR", "isAlreadyOpen", "isOpenable", "ALREADY_OPEN", "OPENABLE",
   ]) if (!modelHandler.includes(required)) findings.push(finding(
     "gpt/model-selection-v2-handler", MODEL_HANDLER_PATH, `Model selection V2 handler is missing ${required}.`,
+  ));
+  if (/kind:\s*"click",\s*selector:\s*GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR/u.test(modelHandler)) findings.push(finding(
+    "gpt/model-selection-v2-expanded-click-retired", MODEL_HANDLER_PATH,
+    "The expanded model entry closes the popup and must never be used as the restore action.",
   ));
   const reasoningContract = sourceFor(context, PROFILE_CONTRACT_PATH)?.getFullText() ?? "";
   for (const required of [

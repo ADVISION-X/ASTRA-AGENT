@@ -83,6 +83,7 @@ export const failBrowserCommandSpan = (input: Readonly<{
   span: RuntimeSpanHandle;
   permit: Pick<BrowserCommandPermit, "commandId" | "jobId" | "mutationClass">;
   failureCode: string;
+  error?: unknown;
   pendingReceipt: boolean;
   proofHash: `sha256:${string}`;
 }>): RuntimeSpanTerminalEvent =>
@@ -93,7 +94,7 @@ export const failBrowserCommandSpan = (input: Readonly<{
       authorityHash: input.proofHash,
     } : {}),
     failure: runtimeFailureFromError({
-      error: new Error(input.failureCode),
+      error: input.error ?? new Error(input.failureCode),
       code: input.failureCode,
       responsibleOwner: "browser-session",
       impact: RuntimeFailureImpact.BLOCKING,

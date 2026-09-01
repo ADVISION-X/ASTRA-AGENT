@@ -1,13 +1,13 @@
-# GPT 能力组 V4 施工图
+# GPT 能力组 V8 施工图
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "gpt-capability-group-v5",
+  "blueprintId": "gpt-capability-group-v8",
   "status": "active",
   "owner": "gpt",
   "lawIds": [
-    "LAW-GPT-001-V13"
+    "LAW-GPT-001-V16"
   ],
   "contractRefs": [],
   "dependencyEdges": [
@@ -51,18 +51,24 @@ interface ProductGptTools {
   }>;
 
   readCallFacts<K extends GptChildId>(call: {
+    lookupKind?: "current_attempt" | "task_exact_effect";
     productStepId: string;
     callId: string;
     child: K;
     actionOrdinal: number;
     input: GptChildInputMap[K];
   }): Promise<ExactGptCallFacts>;
+
+  readContinuationExact(query:
+    | { lookupKind: "turn_marker"; turnMarker: string }
+    | { lookupKind: "frontier_ref"; frontierRef: `sha256:${string}` }
+  ): Promise<null | ExactGptContinuationReadback>;
 }
 ```
 
 Product Plugin 不得提供 Target、Document、selector、WAL、lease、fence、mutation identity 或恢复指令。`sessionKey` 是产品定义的不透明逻辑会话槽；Browser Authority 唯一解析真实 Target 与 generation。
 
-`readCallFacts` 不是第二 GPT Child 入口。它由 production execution binding 注入 job/attempt/plugin/version，以完整 input 计算 exact call identity，只组合 Browser mutation、Forensics evidence/artifact 和 GPT continuation 的安全只读事实。它不调用 Child、不写入、不决定下一步，且禁止返回 target/document、WAL row、state/phase/resumePoint/nextStep 或 per-call failure history。
+`readCallFacts` 与 product-neutral `readContinuationExact` 都不是第二 GPT Child 入口。前者默认由 production execution binding 注入 current job/attempt/plugin/version，以完整 input 计算 exact call identity，只组合 Browser mutation、Forensics evidence/artifact 和 GPT continuation 的安全只读事实；只有 Product 已从 verified current checkpoint 冻结了 successor Provider effect 的完整 step/call/child/input 时，才可显式使用 `task_exact_effect`，由同一读面在同 job/plugin/version 的 durable accepted attempt 分母内逐 attempt 重算完整 exact identity，并要求存在事实的候选为零或唯一。该模式不返回 attempt 列表、不按 latest/created_at 选择、不扫描近似 step/call、不供 `execute` 隐式使用；零条返回 current-attempt 空事实，多条或 mutation/evidence 身份不闭合失败关闭，是否跳过或继续仍只由 Product 静态 Flow 决定。后者只接受互斥的 exact `turn_marker` 或 exact `frontier_ref` 查询，严禁互相 fallback；frontier 模式只按调用 Product 提供的确定性 `frontierRef` 命中现役 `production_continuations` 唯一 row，复核 job/plugin/owner/subject/authorization 后一次返回 immutable origin provider/checkpoint 与 current provider/checkpoint。text checkpoint 必须从现役 task-owned artifact 读回 raw DOM + semantic text 并重算双 hash；generated-image checkpoint 必须从同一 Owner 读回 original/webp artifacts 并重算 content hash，同时读回并验证同一 receipt 内绑定的同 conversation 直接前驱 text checkpoint，使调用 Product 不必猜测或重做已完成成文；bytes 只在调用期返回，不存入 row、proof 或日志。两种查询均零条返回 null，多条、类型不符、hash 漂移、provider/checkpoint 不配对或权限不等失败关闭。二者都不调用 Child、不写入、不决定下一步，且禁止新增 SEO 专用公共读面、job-only/latest 查询、target/document、WAL row、state/phase/resumePoint/nextStep 或 per-call failure history。
 
 ## 2. 公开 Child 分母
 
@@ -85,11 +91,11 @@ Product Plugin 不得提供 Target、Document、selector、WAL、lease、fence�
 | 提交 | `reconcile_gpt_turn_submission` | 只读证明 exact user turn 与永久 conversation |
 | 文本 | `wait_for_stable_gpt_text` | 等待精确 assistant turn 稳定；仅在精确 conversation-history 频繁提示遮挡时至多一次确认后继续原 probe |
 | 文本 | `checkpoint_gpt_text_response` | 保存唯一 assistant turn 的完整 observed DOM HTML 与确定性语义文本，返回双 hash、marker 与 proof |
-| 图片 | `wait_for_stable_gpt_image` | 等待精确 assistant turn 的唯一语义主图；仅在精确 conversation-history 频繁提示遮挡时至多一次确认后继续原 probe |
-| 图片 | `checkpoint_gpt_generated_image` | 经当前已鉴权页面取得原始 bytes 与 proof |
+| 图片 | `wait_for_stable_gpt_image` | 等待紧邻请求的 exact assistant section 生成停止且唯一语义主图稳定；不要求内层 assistant-role 节点或文本 |
+| 图片 | `checkpoint_gpt_generated_image` | 以同一 assistant section + semanticMediaId 经当前已鉴权页面取得原始 bytes 与 proof |
 | Continuation | `persist_gpt_continuation` | 保存永久 URL、turn marker、prior prompt/response hash、conversation identity 与主体绑定 |
 | Continuation | `acquire_gpt_continuation_lane` | 对精确 continuation 获取 lane CAS |
-| Continuation | `advance_gpt_continuation_lane` | 在已证明 turn 上推进 marker |
+| Continuation | `advance_gpt_continuation_lane` | 在一个 lane CAS 内原子推进 provider + checkpoint receipt 并释放 lane |
 | Continuation | `release_gpt_continuation_lane` | settle 后释放精确 lane |
 
 Browser Target/Document 绑定、mutation WAL 与 mutation outcome 对账属于 Browser Authority，不是 GPT Child。find/read/click、DOM 候选过滤和 selector 属于对应 Child 的私有实现，不再拆公共能力。
@@ -100,6 +106,8 @@ Browser Target/Document 绑定、mutation WAL 与 mutation outcome 对账属于 
 
 `checkpoint_gpt_text_response` 的 DOM 责任是完整取回 Provider 当前实际呈现的产物，不是解释 JSON 或业务内容。它必须锁定精确 assistant turn，并保存该节点完整 `outerHTML`；唯一 JSON code block 时读取 code `textContent`，没有 code block 时遍历完整 semantic tree，把 `<br>`、块级边界、列表以及 `<strong>/<em>/<code>` 等标签确定性投影为显式 canonical 标记，保留转义、Unicode 与全部可见字符。canonical text 是 observed DOM 的可追溯语义投影，不冒充 Provider 原始 Markdown/source bytes；原 DOM HTML 与投影文本及各自 hash 一起进入同一 task-owned output artifact。禁止散落 text-node 拼接、`innerText` 布局副作用、预设业务字段选择器或正则截断；零个或多个完整 assistant 候选必须 typed fail-close。Forensics 与 Runtime Logs 只保存 artifact ref/hash，不保存 DOM 或正文。
 
+`wait_for_stable_gpt_image` 与 `checkpoint_gpt_generated_image` 的 turn Owner 是紧邻已验证 user turn 的唯一外层 `conversation-turn-*[data-turn='assistant']` section，而不是其内可选的 `[data-message-author-role='assistant']` 文本节点。每次 fresh probe 必须证明该 section 唯一、Provider stop/generating 控件缺席。Browser 已鉴权媒体原子命令必须在同一 current Document 再证明该 section 恰好一个，并把其中 raw `<img>` 机械投影为语义候选：只有 connected、`complete=true`、natural width/height 均大于零、非零布局、computed display/visibility/opacity 非隐藏且 NFC `alt` 非空的节点进入集合；禁止像素阈值和首节点选择。物理节点先按页面内资源 identity 收敛，再在当前登录会话内取得原始 bytes并按 content hash 去重；同 bytes 的重复 URL/节点只算一个，最终 content identity 零个继续等待、多个立即 typed fail。集合恰好一个时，wait 返回 assistantTurnId、semanticMediaId 与 mediaHash；Browser reply 同时返回 target/document hash 与原始 bytes receipt。该 assistant section 可以没有可见文本。checkpoint 必须用相同 assistantTurnId + semanticMediaId + mediaHash 重新取得并证明同一媒体，task-owned receipt 再绑定 canonical conversation、turn marker、prompt hash、原图/变换 content identity 与直接前驱 text receipt；禁止 responseText/responseHash/expectedResponseHash 文本门槛、inner assistant-role 门槛、选择第一个 raw img、截图、DOM URL、页面外 fetch 或第二 downloader。
+
 每次调用身份固定为：
 
 ```text
@@ -107,13 +115,13 @@ job_id + attempt_id + plugin_id + plugin_version
 + product_step_id + call_id + child_id + input_hash
 ```
 
-同一业务 attempt 跨 lease、进程、Target 和 build 保持同一 Provider effect identity；新业务 attempt 取得新 identity。Target-local Browser mutation 另加 `target_generation`，但 exact GPT call evidence identity 不加 target generation。同 attempt 已有 verified evidence 或 DISPATCHED/CONFIRMED/REJECTED Browser fact 的 target-local call 禁止在新 Target generation 重做物理 mutation；原 Target 可恢复时只读 rehydrate，否则当前 attempt typed fail-close。创建下一 attempt 前必须证明前一 attempt 没有未收束 `DISPATCHED`。
+同一业务 attempt 跨 lease、进程、Target 和 build 保持同一 Provider effect identity；新业务 attempt 取得新 identity。Target-local Browser mutation 另加 `target_generation`，但 exact GPT call evidence identity 不加 target generation。同 attempt 已有 verified evidence 或 DISPATCHED/CONFIRMED/REJECTED Browser fact 的 target-local call 禁止在新 Target generation 重做物理 mutation；原 Target 可恢复时只读 rehydrate。原 Target 不可恢复时，未确认或 DISPATCHED effect 继续 typed fail-close；唯一例外是 exact Provider submit 已有唯一 Browser WAL + Forensics `CONFIRMED + passed` receipt，此时 Runtime 保留同一 accepted attempt，Browser 通过现役 acquisition 建立新的合法 system Target/Document，GPT 使用 task-owned submission-locator 的 canonical conversation URL + marker + prompt hash + conversation identity 只读重证原 turn，所有 Provider mutation 增量为零。创建下一 attempt 前必须证明前一 attempt 没有未收束 `DISPATCHED`。
 
-Provider effect 一次性只在同一业务 attempt/call 内成立；新 attempt 可在安全前提满足后重新执行。`DISPATCHED` 永远先读 WAL 与当前页面后置判据，禁止盲重放。
+Provider effect 一次性只在同一业务 attempt/call 内成立；不存在 verified confirmed effect 时，新 attempt 才可在安全前提满足后首次执行未完成 effect。已有 `CONFIRMED + passed` receipt 的 effect 不因 Target/Document 丢失而获得重新执行资格，只允许同 accepted attempt 跨合法 system Target/Document 只读回证。`DISPATCHED` 永远先读 WAL 与当前页面后置判据，禁止盲重放。
 
 ## 4. 当前 Document 前置
 
-所有 Child 每次都读取当前 Target + 当前 Document。过去调用成功、产品步骤位置或任何 checkpoint 都不能证明瞬态弹面仍存在。模型或推理操作前，若 execution profile 不存在，Product Plugin 必须先调用 `open_gpt_execution_profile`；Child 自身仍须重新验证当前 DOM。Provider text/image wait 与 checkpoint 每次 probe 都在同一 system Target 上先复核 canonical conversation URL；URL 漂移时只在该 Target 导航复位并作一次有界 hydration，再以 turn marker 找到唯一 user turn。prompt hash 只对该 turn 内唯一请求正文机器节点计算：读取现役 deterministic semantic tree，恢复 strong/em/code 等显式标记，只移除投影算法为根块额外加入的一个终止分隔换行，并保留正文自身全部字符与尾换行。当前生产长消息的实证节点固定为 `[data-testid='collapsible-user-message-content']`，外层 `[data-message-author-role='user']` 的附件卡片、文件名与展开/收起控制文字不属于 Prompt；禁止 textContent 丢 Markdown 结构，也禁止 trim、删反引号或其它内容启发式。正文节点零个、多于一个或 canonical rendered-prompt hash 不等都零 mutation 失败关闭；随后只接受紧邻 assistant turn，并用 response hash 锁定稳定结果与 checkpoint。URL、marker、prompt hash、相邻 assistant 或 response hash 任一不成立都不得接收。
+所有 Child 每次都读取当前 Target + 当前 Document。过去调用成功、产品步骤位置或任何 checkpoint 都不能证明瞬态弹面仍存在。模型或推理操作前，若 execution profile 不存在，Product Plugin 必须先调用 `open_gpt_execution_profile`；Child 自身仍须重新验证当前 DOM。Provider text/image wait 与 checkpoint 每次 probe 都在当前合法 system Target 上先复核 canonical conversation URL；URL 漂移时只在该 Target 导航复位并作一次有界 hydration，再以 turn marker 找到唯一 user turn。prompt hash 只对该 turn 内唯一请求正文机器节点计算：读取现役 deterministic semantic tree，恢复 strong/em/code 等显式标记，只移除投影算法为根块额外加入的一个终止分隔换行，并保留正文自身全部字符与尾换行。当前生产长消息的实证节点固定为 `[data-testid='collapsible-user-message-content']`，外层 `[data-message-author-role='user']` 的附件卡片、文件名与展开/收起控制文字不属于 Prompt；禁止 textContent 丢 Markdown 结构，也禁止 trim、删反引号或其它内容启发式。正文节点零个、多于一个或 canonical rendered-prompt hash 不等都零 mutation 失败关闭；随后只接受紧邻 assistant turn。文本 wait/checkpoint 用 canonical response hash 锁定稳定语义文本；图片 wait/checkpoint 只用 assistantTurnId + semanticMediaId + mediaHash/content identity 锁定媒体，禁止 responseText/responseHash 门槛。URL、marker、prompt hash、相邻 assistant 及当前结果类型对应的 text response hash 或 image media/content identity 任一不成立都不得接收。
 
 `reconcile_gpt_turn_submission` 的输入同时绑定 `turnMarker + expectedPromptHash`，成功值固定包含 canonical conversation URL、turn marker、user turn id、canonical rendered-prompt hash 与 conversation identity。唯一 Runtime/Forensics evidence writer 必须在该成功返回后、单一生产 Tab 让出时间片前，以同一 exact call identity 的受控 `submission-locator` suffix 写入并读回 task-owned artifact；同 identity 重放先读该 artifact并返回原成功值，再由后续 wait/checkpoint 导航 URL 作 live 验证。该 artifact 不写 proof 正文/Runtime Logs，不成为 continuation、恢复状态机或第二 locator store。
 
@@ -135,7 +143,7 @@ OPENABLE :=
 success := ALREADY_OPEN OR (OPENABLE -> click once -> ALREADY_OPEN)
 ```
 
-状态是等于或 OR 关系；两者均不成立、同时成立或任一候选不唯一都返回 `failed + reason`，不得点击。`select_exact_gpt_model_v2` 只在唯一 active、non-inert advanced panel 中读取 visible `[role='menuitemradio']`；目标 radio 未选中时点击该 radio，已经选中时点击唯一 expanded 模型入口，两条分支均只允许一次 mutation，并必须直接证明 active simple panel 已恢复后才成功。
+状态是等于或 OR 关系；两者均不成立、同时成立或任一候选不唯一都返回 `failed + reason`，不得点击。`select_exact_gpt_model_v2` 只在唯一 active、non-inert advanced panel 中读取 visible `[role='menuitemradio']`；无论唯一目标 radio 当前 `aria-checked=true` 或 `false`，都点击这个精确 radio 一次，严禁点击 expanded 模型入口。成功后必须一次性直接证明：同一 profile popup 仍唯一存在、唯一模型入口为 `aria-expanded=false`、active non-inert simple panel 恰好一个、advanced panel 为零；任何一项不成立都返回 typed failure。
 
 推理的可操作节点固定为唯一 `[role='menuitem'][aria-label='能力']`；状态只从 `[data-model-reasoning-effort-slider] [role='slider']` 读取，必须满足 `aria-valuemin=0`、`aria-valuemax=4`、`aria-valuenow in 0..4`。映射为 `0=极速、1=中、2=高、3=极高、4=Pro`。等于目标时零 mutation，否则只向唯一能力 menuitem 发送有界方向键并回读等于目标；不可直接操作 `aria-hidden` slider。
 
@@ -147,8 +155,14 @@ success := ALREADY_OPEN OR (OPENABLE -> click once -> ALREADY_OPEN)
 
 ## 5. 失败、证据与验收
 
-Child 只返回 `success` 或 `failed + typed reason`。真实页面/Provider failure 必须包含 `code`、`mutationOutcome=no|dispatched|confirmed`、`evidenceRef/evidenceHash` 和存在时的原生 cause，并终止当前 attempt；Child 不返回 `review_required`、`recovery_pending`、流程位置、重试决策或可供 Product 继续编排的历史 per-call failure。exact submit 已 CONFIRMED 后，只有施工图冻结的瞬时 Browser/channel 软件故障、`mutationOutcome=no`、不存在 Provider terminal negative，且仍早于原 immutable absoluteDeadline 时，Runtime 才可引用原 submit exact fact，以现役 lease release 的 `POST_SUBMIT_READBACK_FAULT` 与 `current_reason` 释放 lease；同一 attempt 重领后由 Product 的 Progressive Exact Fact Replay 跳过 submit 并继续读回。`BROWSER_EXACT_TARGET_UNAVAILABLE`、`BROWSER_DOCUMENT_INVALID`、Provider terminal negative 与 deadline expiry 不得进入该恢复分支，必须结束当前 attempt。conversation-history 提示只按上一节在现役 wait Child 内至多一次确认；其它真实操作频繁/额度阻断机器身份只返回专属 typed blocker、零 mutation，并交由 Website 现役 retry/parking 策略裁决，不新增限流状态或调度器。`checkpoint_gpt_text_response` 成功后的接收、归一或组装软件故障同样由 Product 引用同一 raw artifact/ref/hash 沿原 attempt 恢复。
+`pending` evidence 失败关闭只表示未决事实绝不能进入 completed-result replay。同一 exact identity 的 Browser WAL 或 session CAS 仍为 `DISPATCHED` 时，仅允许原 attempt 沿原 Target/Document 或原 session CAS 做只读/幂等对账；若对账取得 `passed` 或 `failed`，唯一 evidence writer 以 `gpt-call-terminal-evidence:v1:<exactCallIdentityHash>` append-only 写一次终态结算，唯一读面优先 terminal、缺失时才读 initial pending。再次得到 pending 不写结算；禁止覆盖 initial、刷新 identity、由新 attempt 对账，或增加第二 writer、table、verdict。
 
-固定 5 秒等待被删除。等待只允许是单个 Child 为 fresh DOM、hydration 或直接 postcondition 使用的有界实现，并由真实条件提前结束。Provider text/image wait 必须分解为 fresh DOM 驱动的短 probe，每次 probe 后根据实际 Provider 状态计算瞬时 nextCheckAt，未到时不进 Browser FIFO；每次重领都重新完成 canonical URL + marker + prompt hash + 相邻 assistant + response hash 链，总生命期以 exact submit 首次 CONFIRMED 的 immutable terminalAt + Product timeoutMs 为 absoluteDeadline，重启不刷新。不得新增 wait table/ticket/durable nextCheckAt。`close_gpt_execution_profile` 只能使用当前 profile Owner 内经实证唯一的收束动作并直接证明 popup 缺席，不得假定点击 composer 必然收束 profile。
+Child 只返回 `success` 或 `failed + typed reason`。真实页面/Provider failure 必须包含 `code`、`mutationOutcome=no|dispatched|confirmed`、`evidenceRef/evidenceHash` 和存在时的最内层原生 cause；debugger detach/channel 原因不得被统一 `BROWSER_INFRASTRUCTURE_FAILED` 覆盖。Browser DOM candidate missing/ambiguous、rerender stale node、可见性/box 读取和 CDP payload 形态错误必须分别保留稳定 typed cause，`BROWSER_TARGET_INVALID` 只表达 exact Target identity 本身无效。`reconcile_gpt_turn_submission` 在自己的既有 timeout 内遇到瞬时 DOM candidate/stale cause 时，必须重新取得 fresh node 并从 user-turn count/composer/document 开始重做完整只读前置；它不得捕获真正 Target/Document 失效，也绝不得重发 submit。
 
-聚焦验收必须证明：23 个 Child 精确；公共面无 turn API；产品能显式调用任意 Child 序列；每个已开始 Child span 在 Browser lease 获取、park、reacquire 或原子能力任一失败点都恰好产生一个 typed terminal；readCallFacts 只读、无流程决策与无 failure/state/Target/WAL 泄漏；模型面板支持 ALREADY_OPEN/OPENABLE；五个推理数值往返；同一业务文件在不同 attempt 获得不同但确定的精确 `providerDisplayName`；一个 UTF-8 ZIP 仍只产生一次 file-input mutation，GPT Child 不读取其 entry；附件名称已出现但上传未完成时不得成功且不得产生 mutation，Product timeout 超过 60 秒时不得被公共 Child 截短，全部完成后立即成功，持续未完成时 typed timeout；Prompt 在提交前被页面清空或改写时不得点击；marker 外层 user 容器即使混入附件卡片、文件名与展开/收起文字，canonical rendered-prompt hash 仍等于原 composer prompt，inline code 反引号与正文尾换行被保留且只删除一个投影根分隔换行，正文自身漂移则失败；conversation-history 提示覆盖缺席、唯一、重复、多 root、标题/按钮漂移和按钮禁用，缺席零点击、唯一一次点击且 root 消失、其余全部零点击失败，关闭后必须重新验证原 wait 前置；submission reconcile artifact 必须按 exact identity 幂等写读并在单 Tab 已切换到其它会话、进程重启后仍返回原 canonical URL/marker/user turn/prompt hash/identity，且 submit mutation count 不增加；URL 漂移后只能在同一 Target 精确复位，marker 正确但 prompt hash 错误、assistant 非紧邻或 response hash 漂移均失败；exact submit 已 CONFIRMED 后的瞬时只读软件故障在 immutable deadline 前保持同 attempt 且再次 submit mutation count 为零，永久 Target/Document 错误与超时结束 attempt；文本 checkpoint 对 code block、`<br>`、块级节点、列表、strong/em/code、转义和 Unicode 形成确定性语义文本，DOM HTML hash、语义文本 hash 与 task-owned artifact readback 一致，零/多完整候选失败，且不得把投影称为原始 Markdown bytes；候选 0 或多于 1 时无物理点击；`DISPATCHED` 不重放；同 attempt 已有 evidence 的 target-local call 跨 Target generation mutation count 为 0；原 Target 不可只读恢复时 attempt fail-close；wait 重启不刷新 absoluteDeadline；continuation 必须持有 prior prompt/response hash 且 persist/advance/release 在 DB commit/return 边界幂等；失败只返回当前原因和证据。
+safe evidence projection 必须分开保存原 submit 与当前 readback Child。exact submit 的 Browser WAL mutation 与 Forensics evidence 已共同读回 `CONFIRMED + passed` 后，原 Provider effect 永远保持 confirmed；后续 reconcile/wait/checkpoint 的 `mutationOutcome=no` 只描述该只读 Child。只要不存在 Provider 明确 terminal negative、Website 永久业务撤权、submit evidence 损坏或多义，Runtime 必须引用原 exact fact 构造现役 `POST_SUBMIT_READBACK_FAULT + confirmed_submit` lease release，同一 accepted attempt 重领后由 Product Progressive Exact Fact Replay 跳过 submit 并继续读回。cause code、Target/Document read failure、wait absoluteDeadline、进程重启和普通 attempt cap 都不得充当恢复 allowlist 或成果存亡门；deadline 只结束一次 wait/probe，Website 用现役 `retry_not_before` 退避。Child 不返回 `review_required`、`recovery_pending`、流程位置、重试决策或历史 per-call failure。exact text/image checkpoint 成功后的接收、归一或组装软件故障同样引用原 artifact/ref/hash 沿原 attempt 恢复；任何已完成 frontier turn 均不得重新提交。
+
+Continuation lane 的结构边界固定为：首次 persist 必须先验证 origin provider/checkpoint 成对、current=origin、prior_task_id=jobId，再原子写入；advance 必须先验证 current provider 与 text semantic hash 或 image media hash、URL、Prompt、marker 成对，再以同一 lane/version CAS 原子写 current provider/checkpoint 并清空 owner；release 只清空同一 owner/version，同 lane/version 已 owner=null 说明 advance/release 已结算，旧 provider lane 的 finally release 必须幂等 no-op而不得覆盖原 evidence 故障。generated-image current receipt 必须在自身内部绑定经 artifact readback 验证的同 conversation 直接前驱 text receipt；它仍是一份 current receipt，不形成历史链或第二状态。调用 Product 在 acquire 成功的下一语句立即进入 try/finally，expected provider compare、conversation focus/verify 或任一后续调用抛错时都必须 release；只有 advance 已成功或 DB commit 后幂等 readback证明成功时才设置 settled。合法 task-local busy lane 不是 ledger corruption；异常遗留 lane 只影响所属 job，并由同一 job 下一 accepted attempt 的现役接收事务释放，不得阻断其它 job、增加 cleanup worker 或建立第二 ledger。既有 frontier row 的一次性 cutover 不得在 schema migration 阶段盲写 current：evidenceStore 可用后，current provider=origin provider 时仍须读回 origin text artifact/evidence/hash 再复制；current provider 已推进时，现役部署只允许从同 job/plugin 的 task-owned exact-call artifact 唯一重建与 current provider 的 URL/marker/prompt/response hash 全等的 article text receipt。旧 generated-image provider 没有持久直接前驱 text receipt，不能伪造新 receipt，必须只让所属 task以精确 cutover code fail-close且禁止重做 Provider turn；零条、多条或不等同样 task-local fail-close，不得回退 provider、保留 nullable/legacy reader或阻断其它 task。
+
+固定 5 秒等待被删除。等待只允许是单个 Child 为 fresh DOM、hydration 或直接 postcondition 使用的有界实现，并由真实条件提前结束。Provider text/image wait 必须分解为 fresh DOM 驱动的短 probe，每次 probe 后根据实际 Provider 状态计算瞬时 nextCheckAt，未到时不进 Browser FIFO；每次重领都重新完成 canonical URL + marker + prompt hash + 相邻 assistant，并按类型重证文本 response hash 或图片 media/content identity，总生命期以 exact submit 首次 CONFIRMED 的 immutable terminalAt + Product timeoutMs 为 absoluteDeadline，重启不刷新。不得新增 wait table/ticket/durable nextCheckAt。`close_gpt_execution_profile` 只能使用当前 profile Owner 内经实证唯一的收束动作并直接证明 popup 缺席，不得假定点击 composer 必然收束 profile。
+
+聚焦验收必须证明：23 个 Child 精确；公共面无 turn API；产品能显式调用任意 Child 序列；每个已开始 Child span 在 Browser lease 获取、park、reacquire 或原子能力任一失败点都恰好产生一个 typed terminal；readCallFacts 与 readContinuationExact 都只读、无流程决策与无 failure/state/Target/WAL 泄漏，turn-marker/frontier-ref 查询互斥且互相 fallback 为零；模型面板支持 ALREADY_OPEN/OPENABLE，已选中和未选中两种真实页面状态都只点击唯一 radio 一次，expanded entry 点击计数为零，popup 保留、entry collapsed、simple active、advanced absent；五个推理数值往返；同一业务文件在不同 attempt 获得不同但确定的精确 `providerDisplayName`；一个 UTF-8 ZIP 仍只产生一次 file-input mutation，GPT Child 不读取其 entry；附件名称已出现但上传未完成时不得成功且不得产生 mutation，Product timeout 超过 60 秒时不得被公共 Child 截短，全部完成后立即成功，持续未完成时 typed timeout；Prompt 在提交前被页面清空或改写时不得点击；marker 外层 user 容器即使混入附件卡片、文件名与展开/收起文字，canonical rendered-prompt hash 仍等于原 composer prompt，inline code 反引号与正文尾换行被保留且只删除一个投影根分隔换行，正文自身漂移则失败；conversation-history 提示覆盖缺席、唯一、重复、多 root、标题/按钮漂移和按钮禁用；submission reconcile 必须覆盖 DOM candidate missing/ambiguous/stale 后 fresh read 成功、真正 Target/Document 失效原样失败、且两者 submit mutation 增量均为零；submission-locator artifact 按 exact identity 幂等写读并在切换会话、进程重启后仍返回原定位事实；exact submit CONFIRMED 后分别注入 DOM typed cause、BROWSER_TARGET_INVALID、BROWSER_DOCUMENT_INVALID、channel fault、wait timeout、进程重启与 attempt cap 已满，全部保持同一 accepted attempt 和原 confirmed submit、再次 submit 为零，只有 Provider terminal negative/业务撤权/evidence 损坏或多义结束恢复资格；文本/image checkpoint、frontier origin/current、lane release、DISPATCHED 不重放、跨 Target generation mutation 禁重做、absoluteDeadline 不刷新及原生 cause 保真仍按前述合同证明。

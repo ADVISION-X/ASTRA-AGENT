@@ -214,16 +214,32 @@ try {
   );
   assert.equal(store.readTask(postSubmitTask.job_id)?.attempt_failure, null,
     "a confirmed-submit readback fault must release the lease without freezing attempt_failure");
-  const permanentTargetFailure = postSubmitReadbackFault("BROWSER_TARGET_INVALID", {
-    causeCode: "BROWSER_TARGET_INVALID",
-    exactCallIdentityHash: HASH_A,
-    terminalAt: new Date(Date.now() - 1_000).toISOString(),
-    readbackDeadlineAt: new Date(Date.now() + 3_599_000).toISOString(),
-    evidenceRef: "gpt-call-evidence:permanent-target",
-    evidenceHash: HASH_B,
-  });
-  assert.equal(postSubmitReadbackReceipt(permanentTargetFailure), null,
-    "a permanent exact-Target failure must end the attempt instead of entering readback recovery");
+  const expiredTerminalAt = new Date(Date.now() - 7_200_000).toISOString();
+  for (const [code, terminalAt, readbackDeadlineAt] of [
+    ["BROWSER_TARGET_INVALID", expiredTerminalAt,
+      new Date(Date.parse(expiredTerminalAt) + 3_600_000).toISOString()],
+    ["BROWSER_DOCUMENT_INVALID", new Date(Date.now() - 1_000).toISOString(),
+      new Date(Date.now() + 3_599_000).toISOString()],
+    ["BROWSER_DOM_CANDIDATE_MISSING", new Date(Date.now() - 1_000).toISOString(),
+      new Date(Date.now() + 3_599_000).toISOString()],
+    ["GPT_RESPONSE_STABILITY_TIMEOUT", new Date(Date.now() - 1_000).toISOString(),
+      new Date(Date.now() + 3_599_000).toISOString()],
+    ["GPT_RESPONSE_WAIT_ABORTED", new Date(Date.now() - 1_000).toISOString(),
+      new Date(Date.now() + 3_599_000).toISOString()],
+    ["GPT_RATE_LIMIT_ACTIVE", new Date(Date.now() - 1_000).toISOString(),
+      new Date(Date.now() + 3_599_000).toISOString()],
+  ] as const) {
+    const preservedFailure = postSubmitReadbackFault(code, {
+      causeCode: code,
+      exactCallIdentityHash: HASH_A,
+      terminalAt,
+      readbackDeadlineAt,
+      evidenceRef: `gpt-call-evidence:${code}`,
+      evidenceHash: HASH_B,
+    });
+    assert.equal(postSubmitReadbackReceipt(preservedFailure)?.causeCode, code,
+      `${code} must preserve the closed confirmed-submit receipt regardless of deadline age`);
+  }
   const postSubmitReceipts = postSubmitCheckpointBodies.map((body) => checkpointReceipt(
     body as ReturnType<typeof recoveryCheckpointBody>, 1,
   ));

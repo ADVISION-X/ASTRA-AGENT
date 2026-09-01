@@ -17,6 +17,8 @@ const ALLOWED_STRING_KEYS = new Set([
   "causedByEventId",
 ]);
 
+const MACHINE_REASON_CODE = /^[A-Z][A-Z0-9_]*(?:\.[A-Z0-9_]+)*$/u;
+
 export const redactUrlForLog = (value: string): string => {
   try {
     const parsed = new URL(value);
@@ -28,6 +30,7 @@ export const redactUrlForLog = (value: string): string => {
 
 const redactString = (key: string, value: string): string => {
   if (SECRET_KEYS.test(key) || INLINE_SECRET.test(value) || BASE64.test(value)) return REDACTED;
+  if (key === "reason_codes") return MACHINE_REASON_CODE.test(value) ? value : REDACTED_UNSAFE;
   if (!ALLOWED_STRING_KEYS.has(key)) return REDACTED_UNSAFE;
   if (ABSOLUTE_PATH.test(value)) return REDACTED_UNSAFE;
   if (/^https?:\/\//iu.test(value)) return redactUrlForLog(value);

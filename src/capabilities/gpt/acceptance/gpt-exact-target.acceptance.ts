@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import sharp from "sharp";
 
 import {
   createGptAbilityGroup,
@@ -18,6 +18,7 @@ import {
   GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR,
   GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR,
   GPT_MODEL_SELECTION_V2_PANEL_SELECTOR,
+  GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR,
 } from "../web/contracts/model-selection-v2.contract.js";
 import {
   GPT_PROFILE_POPUP_SELECTOR,
@@ -41,6 +42,10 @@ import {
   GPT_USER_TURN_SELECTOR,
 } from "../web/contracts/conversation.contract.js";
 import { EXPECTED_GPT_CHILD_IDS, fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
+import {
+  assertGptExactTargetSourceShape,
+  providerAttachmentName,
+} from "./gpt-exact-target-source-support.js";
 import "./gpt-conversation.acceptance.js";
 
 const gpt = createGptAbilityGroup();
@@ -48,34 +53,7 @@ type GptExecutionContext = Parameters<GptAbilityGroup["execute"]>[1];
 assert.deepEqual(gpt.listChildCapabilityIds(), EXPECTED_GPT_CHILD_IDS);
 assert.equal(Object.keys(GPT_CHILD_CAPABILITY_CONTRACTS).length, 23);
 
-const providerAttachmentName = (displayName: string, artifactRef: string): string => {
-  const dot = displayName.lastIndexOf(".");
-  const stem = dot > 0 ? displayName.slice(0, dot) : displayName;
-  const extension = dot > 0 ? displayName.slice(dot) : "";
-  const token = createHash("sha256")
-    .update(`attempt:gpt-exact-target\u0000${artifactRef}`)
-    .digest("hex")
-    .slice(0, 12);
-  return `${stem}-${token}${extension}`;
-};
-
-for (const retired of [
-  "../gpt-turn-executor.ts",
-  "../../../lib/local-runtime/production/gpt-turn-state.ts",
-  "../../../lib/local-runtime/production/production-gpt-executor.ts",
-  "../../../lib/local-runtime/production/production-gpt-turn-flow.ts",
-]) assert.equal(existsSync(new URL(retired, import.meta.url)), false, `${retired} must be physically absent`);
-
-for (const active of [
-  "../contract.ts",
-  "../ability-group.ts",
-  "../../../lib/local-runtime/production/production-gpt-child-tools.ts",
-  "../../../lib/local-runtime/production/production-gpt-browser-lifecycle.ts",
-  "../../../lib/local-runtime/production/plugin.ts",
-]) {
-  const source = readFileSync(new URL(active, import.meta.url), "utf8");
-  assert.doesNotMatch(source, /GptTurnExecutor|GPT_TURN_FLOW|runTurn|stepIndex|flowVersion|resumePoint|reconcileOnly/u);
-}
+assertGptExactTargetSourceShape(import.meta.url);
 
 let ordinal = 0;
 const execute = (
@@ -206,14 +184,13 @@ for (const alreadySelected of [true, false]) {
       }
       return { count: modelCount(String(intent.selector), open) };
     }
-    if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR) {
-      assert.equal(alreadySelected, true);
-      open = false;
-      return { postconditionVerified: true };
-    }
     if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR) {
-      assert.equal(alreadySelected, false);
       assert.equal(intent.expectedTextEquals, profile.modelDisplayName);
+      assert.deepEqual(intent.postClickMatch, {
+        selector: GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR,
+        expectedMatches: 1,
+        timeoutMs: 5_000,
+      });
       open = false;
       return { postconditionVerified: true };
     }
@@ -221,10 +198,99 @@ for (const alreadySelected of [true, false]) {
   });
   const result = await execute("select_exact_gpt_model_v2", fixture.browser, { profile });
   assert.equal(result.status, "success", result.failureCode ?? "exact model selection failed");
-  assert.equal(open, false, "exact model selection must restore the active simple profile panel");
+  assert.equal(open, false, "exact radio selection must retain the popup and restore the simple panel");
+  assert.equal(Reflect.get(result.value ?? {}, "previousChecked"), alreadySelected ? "true" : "false");
   assert.equal(fixture.physicalMutations(), 1,
-    "selected and unselected exact-model branches must each use one bounded mutation to restore the simple panel");
+    "selected and unselected model states must each click the exact radio once");
 }
+
+const imageMarker = "[GRASSEYE:image-without-inner-assistant-text]";
+const imagePromptHash = `sha256:${createHash("sha256").update(imageMarker).digest("hex")}` as const;
+const originalImage = await sharp({
+  create: { width: 1200, height: 630, channels: 3, background: { r: 12, g: 34, b: 56 } },
+}).png().toBuffer();
+const originalImageHash = `sha256:${createHash("sha256").update(originalImage).digest("hex")}` as const;
+let innerAssistantSelectorReads = 0;
+const imageFixture = fakeBrowser((intent) => {
+  if (intent.kind === "document") {
+    return { url: "https://chatgpt.com/c/image-without-text", title: "Image conversation" };
+  }
+  if (intent.kind === "find") {
+    if (String(intent.selector).includes("[data-message-author-role='assistant']")) {
+      innerAssistantSelectorReads += 1;
+      return { count: 0 };
+    }
+    if (intent.selector === GPT_USER_TURN_SELECTOR) return { count: 1 };
+    if (intent.selector === GPT_GENERATING_STOP_SELECTOR) return { count: 0 };
+    if (String(intent.selector).includes("conversation-turn-2")
+      && String(intent.selector).includes("[data-turn='assistant']")) return { count: 1 };
+    return { count: 0 };
+  }
+  if (intent.kind === "readAttribute" && intent.selector === GPT_USER_TURN_SELECTOR) {
+    return "conversation-turn-1";
+  }
+  if (intent.kind === "inspect" && String(intent.selector).includes("conversation-turn-1")) {
+    return { semanticText: `${imageMarker}\n`, visible: true, connected: true };
+  }
+  throw new Error(`UNEXPECTED_IMAGE_INTENT:${intent.kind}:${String(Reflect.get(intent, "selector") ?? "")}`);
+}, {
+  initialUrl: "https://chatgpt.com/c/image-without-text",
+  authenticatedMedia: {
+    authorityTargetHash: `sha256:${"1".repeat(64)}`,
+    authorityDocumentHash: `sha256:${"2".repeat(64)}`,
+    assistantTurnId: "conversation-turn-2",
+    semanticMediaId: "gpt-generated-image-main",
+    bytesBase64: originalImage.toString("base64"),
+    sha256: originalImageHash,
+    sizeBytes: originalImage.byteLength,
+    mediaType: "image/png",
+    width: 1200,
+    height: 630,
+  },
+});
+const stableImage = await execute("wait_for_stable_gpt_image", imageFixture.browser, {
+  absoluteDeadline: new Date(Date.now() - 1).toISOString(),
+  canonicalConversationUrl: "https://chatgpt.com/c/image-without-text",
+  expectedPromptHash: imagePromptHash,
+  turnMarker: imageMarker,
+});
+assert.equal(stableImage.status, "success", stableImage.failureCode ?? "image wait failed");
+assert.equal(Reflect.get(stableImage.value ?? {}, "mediaHash"), originalImageHash);
+const checkpointImage = await execute("checkpoint_gpt_generated_image", imageFixture.browser, {
+  assistantTurnId: "conversation-turn-2",
+  canonicalConversationUrl: "https://chatgpt.com/c/image-without-text",
+  expectedMediaHash: originalImageHash,
+  expectedPromptHash: imagePromptHash,
+  turnMarker: imageMarker,
+});
+assert.equal(checkpointImage.status, "success", checkpointImage.failureCode ?? "image checkpoint failed");
+assert.equal(Reflect.get(checkpointImage.value ?? {}, "originalSha256"), originalImageHash);
+assert.equal(Reflect.get(checkpointImage.value ?? {}, "authorityTargetHash"), `sha256:${"1".repeat(64)}`);
+assert.equal(Reflect.get(checkpointImage.value ?? {}, "authorityDocumentHash"), `sha256:${"2".repeat(64)}`);
+assert.equal(Reflect.get(checkpointImage.value ?? {}, "canonicalConversationUrl"),
+  "https://chatgpt.com/c/image-without-text");
+assert.equal(Reflect.get(checkpointImage.value ?? {}, "promptHash"), imagePromptHash);
+assert.equal(Reflect.get(checkpointImage.value ?? {}, "turnMarker"), imageMarker);
+assert.ok(Reflect.get(checkpointImage.value ?? {}, "originalBytes") instanceof Uint8Array);
+assert.ok(Reflect.get(checkpointImage.value ?? {}, "webpBytes") instanceof Uint8Array);
+assert.equal(imageFixture.authenticatedMediaDownloads(), 2,
+  "wait and checkpoint must each read the same authenticated semantic media exactly once");
+assert.equal(innerAssistantSelectorReads, 0,
+  "image acceptance must never require an inner assistant-role or text node");
+const nativeMediaError = Object.assign(new Error("authenticated media socket reset"), { code: "ECONNRESET" });
+const nativeCauseBrowser = {
+  ...imageFixture.browser,
+  downloadAuthenticatedMedia: async () => { throw nativeMediaError; },
+};
+const nativeCauseFailure = await execute("wait_for_stable_gpt_image", nativeCauseBrowser, {
+  absoluteDeadline: new Date(Date.now() - 1).toISOString(),
+  canonicalConversationUrl: "https://chatgpt.com/c/image-without-text",
+  expectedPromptHash: imagePromptHash,
+  turnMarker: imageMarker,
+});
+assert.equal(nativeCauseFailure.status, "failed");
+assert.equal(nativeCauseFailure.failureCause?.code, "ECONNRESET",
+  "the Browser native cause must cross the GPT result boundary without being replaced");
 
 assert.deepEqual(reasoningTierUiValue, {
   fast: 0, medium: 1, high: 2, extra_high: 3, pro_standard: 4, pro_extended: 4,
@@ -408,7 +474,7 @@ assert.equal(uploadTimeoutFixture.physicalMutations(), 0, "timed-out reconciliat
 emitQualityProofObservation({
   passed: true,
   findings: [],
-  lawId: "LAW-GPT-001-V13",
+  lawId: "LAW-GPT-001-V16",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:10", "forbidden:11", "forbidden:13", "forbidden:3", "forbidden:5", "forbidden:9", "summary"],
   locator: "acceptance:gpt-exact-target:atomic-child-golden",
@@ -417,7 +483,7 @@ emitQualityProofObservation({
 emitQualityProofObservation({
   passed: true,
   findings: [],
-  lawId: "LAW-GPT-001-V13",
+  lawId: "LAW-GPT-001-V16",
   evidenceMode: "exam.property",
   clauses: ["forbidden:10", "forbidden:13", "forbidden:14", "forbidden:5", "forbidden:7", "forbidden:8", "forbidden:9", "summary"],
   locator: "acceptance:gpt-exact-target:candidate-property-matrix",
@@ -426,7 +492,7 @@ emitQualityProofObservation({
 emitQualityProofObservation({
   passed: true,
   findings: [],
-  lawId: "LAW-GPT-001-V13",
+  lawId: "LAW-GPT-001-V16",
   evidenceMode: "exam.state-machine",
   clauses: ["forbidden:0", "forbidden:12", "forbidden:14", "forbidden:4", "forbidden:6", "forbidden:7", "summary"],
   locator: "acceptance:gpt-exact-target:wait-recovery-state-machine",

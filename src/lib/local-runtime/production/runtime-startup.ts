@@ -14,7 +14,6 @@ import {
   type RuntimeSpanHandle,
 } from "../../runtime-logs/index.js";
 import { failureCode } from "../../typed-failure.js";
-import { cleanupGeneratedImageTemporaryFiles } from "./generated-image-temporary-files.js";
 import { productionCatalogHash } from "./catalog.js";
 import type { ProductionHash } from "./contracts.js";
 import { readProductionCredential } from "./credential.js";
@@ -23,6 +22,7 @@ import { ProductionRuntimeStore, type StoredProductionTask } from "./store.js";
 import { PRODUCTION_V6_MANIFEST_HASH } from "./transport-protocol.js";
 import { ProductionWorkerSession } from "./worker-session.js";
 import type { ProductionRuntimeHandle, ProductionRuntimeHealth } from "./runtime-contract.js";
+import { reconstructPublicKnowledgeLegacyCurrentCheckpoint } from "../../../plugins/public-knowledge-article-pipeline/frontier-cutover.js";
 import {
   flushOutboxWithLog,
   readHealth,
@@ -118,7 +118,6 @@ const initializeStore = async (
 ): Promise<ProductionRuntimeStore> => {
   try {
     await mkdir(input.dataDir, { recursive: true });
-    await cleanupGeneratedImageTemporaryFiles(input.dataDir);
     return new ProductionRuntimeStore(input.dataDir);
   } catch (error) {
     terminalSpanFailure(
@@ -151,7 +150,7 @@ const createRuntimeState = (
   return state;
 };
 
-const reconcileTaskRecord = (
+export const reconcileTaskRecord = (
   state: RuntimeState,
   persisted: StoredProductionTask,
 ): boolean => {
@@ -161,8 +160,12 @@ const reconcileTaskRecord = (
     ? state.store.recordLease({ ...storedLease, state: "stale", expiresAt: null }) : storedLease;
   const checkpoint = state.store.readCheckpoint(persisted.task.job_id);
   const remoteRedeliveryPending = state.store.hasUnsentOutbox(persisted.task.job_id);
-  if (nonterminal && lease?.state === "stale" && checkpoint && !persisted.staged_result) {
+  if (nonterminal && lease?.state === "stale" && checkpoint && !persisted.staged_result
+    && !persisted.current_reason?.startsWith("GPT_CONTINUATION_CUTOVER_")) {
     state.store.setCurrentReason(persisted.task.job_id, "AGENT_PROCESS_RESTARTED");
+  }
+  if (nonterminal && persisted.current_reason?.startsWith("GPT_CONTINUATION_CUTOVER_")) {
+    return true;
   }
   let complete = true;
   if (lease) {
@@ -188,6 +191,33 @@ const reconcileEvidence = async (
     }
   }
   return complete;
+};
+
+const reconcileContinuationCutover = async (
+  input: ProductionRuntimeStartInput,
+  store: ProductionRuntimeStore,
+): Promise<void> => {
+  for (const continuation of store.frontierContinuationsMissingCurrentCheckpoint()) {
+    const task = store.readTask(continuation.origin_job_id);
+    if (!task) continue;
+    try {
+      const checkpoint = await reconstructPublicKnowledgeLegacyCurrentCheckpoint({
+        continuation,
+        task: task.task,
+        pluginVersion: task.identity.plugin_version,
+        candidateAttemptIds: store.attemptIdsForTask(continuation.origin_job_id),
+        evidenceStore: input.evidenceStore,
+      });
+      store.migrateFrontierCurrentCheckpoint(
+        continuation.continuation_ref, continuation.provider, checkpoint,
+      );
+    } catch (error) {
+      store.setCurrentReason(
+        continuation.origin_job_id,
+        failureCode(error, "GPT_CONTINUATION_CUTOVER_ARTIFACT_UNRESOLVED"),
+      );
+    }
+  }
 };
 
 const reconcileLocalState = async (
@@ -304,6 +334,7 @@ export const startProductionRuntime = async (
     typedIdentity: { kind: "producer", producerId: input.runtimeLogger.producerRunId },
   }));
   const store = await initializeStore(input, startSpan);
+  await reconcileContinuationCutover(input, store);
   let credential: Awaited<ReturnType<typeof readProductionCredential>>;
   try { credential = await readProductionCredential(input.dataDir); }
   catch (error) {

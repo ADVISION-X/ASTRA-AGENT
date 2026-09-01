@@ -1,5 +1,7 @@
 import { executionFailure, type SerializedExecutionFailure } from "../../typed-failure.js";
 import {
+  type GptContinuationCheckpoint,
+  type GptContinuationOriginCheckpoint,
   type GptProviderContinuation,
   type StoredGptContinuation,
 } from "../../../capabilities/gpt/index.js";
@@ -37,6 +39,29 @@ const sameCompletion = (
   result: WebsiteAgentResult,
 ): boolean => Boolean(existing?.status === "completed" && json(existing.result) === json(result));
 
+type GptContinuationRow = Omit<
+  StoredGptContinuation,
+  "current_checkpoint" | "origin_checkpoint" | "origin_provider" | "provider"
+> & Readonly<{
+  current_checkpoint_json: string | null;
+  origin_checkpoint_json: string | null;
+  origin_provider_json: string;
+  provider_json: string;
+}>;
+
+const continuationFromRow = (row: GptContinuationRow): StoredGptContinuation => {
+  const { current_checkpoint_json, origin_checkpoint_json, origin_provider_json, provider_json, ...stored } = row;
+  return {
+    ...stored,
+    origin_checkpoint: origin_checkpoint_json
+      ? JSON.parse(origin_checkpoint_json) as GptContinuationOriginCheckpoint : null,
+    origin_provider: JSON.parse(origin_provider_json) as GptProviderContinuation,
+    provider: JSON.parse(provider_json) as GptProviderContinuation,
+    current_checkpoint: current_checkpoint_json
+      ? JSON.parse(current_checkpoint_json) as GptContinuationCheckpoint : null,
+  };
+};
+
 export abstract class ProductionStoreTaskState extends ProductionStoreFoundation {
   public acceptTask(
     task: WebsiteAgentTask,
@@ -53,9 +78,14 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
       }
       if (existing.status === "failed" && existing.current_attempt_id !== attemptId) {
         if (existing.staged_result) throw executionFailure("failed", "PRODUCTION_NEW_ATTEMPT_AFTER_STAGED_RESULT");
-        this.database.prepare(`update production_tasks
-          set current_attempt_id=?,current_reason='LEASE_GRANTED',updated_at=?
-          where job_id=? and status='failed'`).run(attemptId, now(), task.job_id);
+        this.database.transaction(() => {
+          this.database.prepare(
+            "update production_continuations set lane_owner_job_id=null where lane_owner_job_id=?",
+          ).run(task.job_id);
+          this.database.prepare(`update production_tasks
+            set current_attempt_id=?,current_reason='LEASE_GRANTED',updated_at=?
+            where job_id=? and status='failed'`).run(attemptId, now(), task.job_id);
+        })();
         return this.readTask(task.job_id)!;
       }
       return existing;
@@ -80,6 +110,13 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     return row ? storedTaskFromRow(row) : null;
   }
 
+  public attemptIdsForTask(jobId: string): readonly string[] {
+    const rows = this.database.prepare(`select attempt_id from production_attempt_failures where job_id=?
+      union select current_attempt_id as attempt_id from production_tasks where job_id=?
+      order by attempt_id`).all(jobId, jobId) as Array<{ attempt_id: string }>;
+    return Object.freeze(rows.map((row) => row.attempt_id));
+  }
+
   public taskAuthorities(): readonly StoredProductionTask[] {
     const rows = this.database.prepare(
       `select t.task_json,t.identity_json,t.status,t.result_json,t.staged_result_json,t.current_attempt_id,
@@ -99,21 +136,26 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
   public createGptContinuation(continuation: StoredGptContinuation): void {
     this.database.prepare(`insert into production_continuations(
       continuation_ref,origin_job_id,plugin_id,owner_ref,subject_ref,authorization_ref,
-      conversation_identity_hash,provider_json,lane_version,lane_owner_job_id,created_at
-    ) values(?,?,?,?,?,?,?,?,?,?,?)`).run(
+      conversation_identity_hash,frontier_ref,origin_provider_json,origin_checkpoint_json,
+      provider_json,current_checkpoint_json,lane_version,lane_owner_job_id,created_at
+    ) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
       continuation.continuation_ref, continuation.origin_job_id, continuation.plugin_id,
       continuation.owner_ref, continuation.subject_ref, continuation.authorization_ref,
-      continuation.conversation_identity_hash, json(continuation.provider), continuation.lane_version,
-      continuation.lane_owner_job_id, now(),
+      continuation.conversation_identity_hash, continuation.frontier_ref,
+      json(continuation.origin_provider), continuation.origin_checkpoint
+        ? json(continuation.origin_checkpoint) : null,
+      json(continuation.provider), continuation.current_checkpoint ? json(continuation.current_checkpoint) : null,
+      continuation.lane_version, continuation.lane_owner_job_id, now(),
     );
   }
 
   public readGptContinuation(continuationRef: string): StoredGptContinuation | null {
     const row = this.database.prepare(`select continuation_ref,origin_job_id,plugin_id,owner_ref,subject_ref,
-      authorization_ref,conversation_identity_hash,provider_json,lane_version,lane_owner_job_id
+      authorization_ref,conversation_identity_hash,frontier_ref,origin_provider_json,
+      origin_checkpoint_json,provider_json,current_checkpoint_json,lane_version,lane_owner_job_id
       from production_continuations where continuation_ref=?`).get(continuationRef) as
-      | (Omit<StoredGptContinuation, "provider"> & { provider_json: string }) | undefined;
-    return row ? { ...row, provider: JSON.parse(row.provider_json) as GptProviderContinuation } : null;
+      | GptContinuationRow | undefined;
+    return row ? continuationFromRow(row) : null;
   }
 
   public readGptContinuationForOriginJob(
@@ -122,15 +164,51 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     turnMarker: string,
   ): StoredGptContinuation | null {
     const rows = this.database.prepare(`select continuation_ref,origin_job_id,plugin_id,owner_ref,subject_ref,
-      authorization_ref,conversation_identity_hash,provider_json,lane_version,lane_owner_job_id
+      authorization_ref,conversation_identity_hash,frontier_ref,origin_provider_json,
+      origin_checkpoint_json,provider_json,current_checkpoint_json,lane_version,lane_owner_job_id
       from production_continuations where origin_job_id=? and plugin_id=?
         and json_extract(provider_json,'$.prior_turn_marker')=?
-      order by continuation_ref limit 2`).all(jobId, pluginId, turnMarker) as Array<
-        Omit<StoredGptContinuation, "provider"> & { provider_json: string }
-      >;
+      order by continuation_ref limit 2`).all(jobId, pluginId, turnMarker) as GptContinuationRow[];
     if (rows.length > 1) throw executionFailure("failed", "GPT_CONTINUATION_IDENTITY_AMBIGUOUS");
     const row = rows[0];
-    return row ? { ...row, provider: JSON.parse(row.provider_json) as GptProviderContinuation } : null;
+    return row ? continuationFromRow(row) : null;
+  }
+
+  public readGptContinuationForFrontier(
+    frontierRef: `sha256:${string}`,
+  ): StoredGptContinuation | null {
+    const rows = this.database.prepare(`select continuation_ref,origin_job_id,plugin_id,owner_ref,subject_ref,
+      authorization_ref,conversation_identity_hash,frontier_ref,origin_provider_json,
+      origin_checkpoint_json,provider_json,current_checkpoint_json,lane_version,lane_owner_job_id
+      from production_continuations where frontier_ref=? limit 2`).all(frontierRef) as GptContinuationRow[];
+    if (rows.length > 1) throw executionFailure("failed", "GPT_CONTINUATION_FRONTIER_AMBIGUOUS");
+    const row = rows[0];
+    return row ? continuationFromRow(row) : null;
+  }
+
+  public frontierContinuationsMissingCurrentCheckpoint(): readonly StoredGptContinuation[] {
+    const rows = this.database.prepare(`select continuation_ref,origin_job_id,plugin_id,owner_ref,subject_ref,
+      authorization_ref,conversation_identity_hash,frontier_ref,origin_provider_json,
+      origin_checkpoint_json,provider_json,current_checkpoint_json,lane_version,lane_owner_job_id
+      from production_continuations
+      where frontier_ref is not null and current_checkpoint_json is null
+      order by continuation_ref`).all() as GptContinuationRow[];
+    return Object.freeze(rows.map(continuationFromRow));
+  }
+
+  public migrateFrontierCurrentCheckpoint(
+    continuationRef: string,
+    expectedProvider: GptProviderContinuation,
+    checkpoint: GptContinuationCheckpoint,
+  ): void {
+    const changed = this.database.prepare(`update production_continuations
+      set current_checkpoint_json=?
+      where continuation_ref=? and current_checkpoint_json is null and provider_json=?`).run(
+      json(checkpoint), continuationRef, json(expectedProvider),
+    );
+    if (changed.changes !== 1) {
+      throw executionFailure("failed", "GPT_CONTINUATION_CUTOVER_CAS_FAILED");
+    }
   }
 
   public acquireGptContinuationLane(continuationRef: string, ownerJobId: string): StoredGptContinuation {
@@ -148,12 +226,13 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     laneVersion: number;
     pluginId: string;
     provider: GptProviderContinuation;
+    currentCheckpoint: GptContinuationCheckpoint;
     conversationIdentityHash: ProductionHash;
   }>): void {
     const changed = this.database.prepare(`update production_continuations
-      set plugin_id=?,conversation_identity_hash=?,provider_json=?,lane_owner_job_id=null
+      set plugin_id=?,conversation_identity_hash=?,provider_json=?,current_checkpoint_json=?,lane_owner_job_id=null
       where continuation_ref=? and lane_owner_job_id=? and lane_version=?`).run(
-      input.pluginId, input.conversationIdentityHash, json(input.provider), input.continuationRef,
+      input.pluginId, input.conversationIdentityHash, json(input.provider), json(input.currentCheckpoint), input.continuationRef,
       input.ownerJobId, input.laneVersion,
     );
     if (changed.changes !== 1) {

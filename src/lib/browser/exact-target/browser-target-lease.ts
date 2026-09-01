@@ -48,6 +48,10 @@ export type BrowserTargetLease = Readonly<{
     assistantTurnId: string;
     semanticMediaId: "gpt-generated-image-main";
   }>): Promise<Readonly<{
+    authorityTargetHash: `sha256:${string}`;
+    authorityDocumentHash: `sha256:${string}`;
+    assistantTurnId: string;
+    semanticMediaId: "gpt-generated-image-main";
     bytesBase64: string;
     sha256: `sha256:${string}`;
     sizeBytes: number;

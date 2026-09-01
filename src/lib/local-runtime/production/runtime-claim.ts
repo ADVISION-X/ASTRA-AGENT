@@ -4,8 +4,6 @@ import path from "node:path";
 import {
   executionFailure,
   failureCode,
-  postCheckpointReceiverReceipt,
-  postSubmitReadbackReceipt,
   serializeTerminalFailure,
   typedExecutionFailure,
 } from "../../typed-failure.js";
@@ -45,13 +43,16 @@ import {
   leaseAuthority,
   leaseBudget,
   safeReason,
-  wait,
   type RuntimeState,
 } from "./runtime-state.js";
 import {
   preservePostCheckpointReceiverFault,
   preservePostSubmitReadbackFault,
 } from "./runtime-claim-fault-preservation.js";
+import {
+  permanentAuthorizationRevoked,
+  settlePermanentAuthorizationRevocation,
+} from "./runtime-permanent-revocation.js";
 
 const isResultTransportBoundary = (error: unknown): boolean => {
   const typed = typedExecutionFailure(error);
@@ -100,98 +101,6 @@ const persistAttemptFailure = async (
     state.lastErrorCode = failureCode(checkpointError, "CHECKPOINT_STORAGE_FAILED");
     state.lastErrorReason = safeReason(checkpointError);
   }
-};
-
-const permanentAuthorizationRevoked = (error: unknown, signal: AbortSignal): boolean => {
-  const reason = typeof signal.reason === "string" ? signal.reason : "";
-  return reason === "CONTROL_INTENT:cancel_requested:PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED"
-    || failureCode(error) === "AI_PERMANENT_AUTHORIZATION_REVOKED"
-    || failureCode(error).includes("CONTROL_INTENT:cancel_requested:PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
-};
-
-const deletionLeaseDeadline = (job: ClaimedProductionTask): number => {
-  const remaining = Date.parse(job.grant.lease_expires_at) - Date.parse(job.grant.server_now);
-  return performance.now() + Math.max(0, Number.isFinite(remaining) ? remaining : 0);
-};
-
-const settlePermanentAuthorizationRevocation = async (
-  state: RuntimeState,
-  job: ClaimedProductionTask,
-  error: unknown,
-  jobSpan: RuntimeSpanHandle,
-): Promise<void> => {
-  const failureEvent = terminalSpanFailure(
-    jobSpan,
-    executionFailure("failed", "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED", { cause: error }),
-    runtimeLogCauseEventId(error),
-    "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED",
-  );
-  state.store.setCurrentReason(job.job_id, "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
-  state.store.releaseGptContinuationLanesForJob(job.job_id);
-  const task = websiteAgentTaskFromClaim(job);
-  const plugin = resolveProductionPlugin(task.product_id, task.action_id).plugin;
-  const unresolved = state.browserAuthority.readBrowserReconciliationScope({
-    jobId: job.job_id,
-    ownerPluginId: plugin.pluginId,
-  });
-  if (unresolved) {
-    state.store.recordLease(leaseAuthority(job, "stale", null));
-    state.store.setCurrentReason(job.job_id, "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED:READ_ONLY_RECONCILIATION_REQUIRED");
-    await wait(Math.max(0, deletionLeaseDeadline(job) - performance.now()), state.abort.signal);
-    return;
-  }
-  const receiver = postCheckpointReceiverReceipt(error);
-  const confirmed = postSubmitReadbackReceipt(error);
-  const release = {
-    reasonCode: "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED" as const,
-    receiverCheckpoint: receiver ? {
-      artifact_ref: receiver.artifactRef,
-      raw_dom_hash: receiver.rawDomHash,
-      semantic_text_hash: receiver.semanticTextHash,
-    } : null,
-    confirmedSubmit: confirmed ? {
-      cause_code: confirmed.causeCode,
-      exact_call_identity_hash: confirmed.exactCallIdentityHash,
-      outcome: confirmed.outcome,
-      terminal_at: confirmed.terminalAt,
-      readback_deadline_at: confirmed.readbackDeadlineAt,
-      readback_mutation_outcome: confirmed.readbackMutationOutcome,
-      evidence_ref: confirmed.evidenceRef,
-      evidence_hash: confirmed.evidenceHash,
-    } : null,
-  };
-  const stableRequestId = `aiprelease_${hashCanonical({
-    job_id: job.job_id,
-    attempt_id: job.grant.attempt_id,
-    lease_version: job.grant.lease_version,
-    reason_code: release.reasonCode,
-  }).slice(7, 47)}`;
-  const deadline = deletionLeaseDeadline(job);
-  while (performance.now() < deadline && !state.abort.signal.aborted) {
-    try {
-      await releaseLeaseWithLog(
-        state, job, jobSpan.spanId, release, failureEvent.eventId, stableRequestId,
-      );
-      state.store.recordLease(leaseAuthority(job, "absent", null));
-      return;
-    } catch (releaseError) {
-      try {
-        const remote = await readProductionDeviceJobStatus(state.session, job.job_id);
-        if (remote.write_receipts.some((receipt) => receipt.request_id === stableRequestId
-          && receipt.write_kind === "lease_release")) {
-          state.store.recordLease(leaseAuthority(job, "absent", null));
-          return;
-        }
-      } catch {
-        // The same deterministic request remains authoritative for the next bounded retry.
-      }
-      state.store.recordLease(leaseAuthority(job, "stale", null));
-      state.lastErrorCode = failureCode(releaseError, "LEASE_RELEASE_FAILED");
-      state.lastErrorReason = safeReason(releaseError);
-      await wait(Math.min(1_000, Math.max(0, deadline - performance.now())), state.abort.signal);
-    }
-  }
-  state.store.setCurrentReason(job.job_id, "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED:LEASE_EXPIRED");
 };
 
 const readClaimRecoveryStatus = async (
@@ -366,7 +275,7 @@ const executeAndUpload = async (input: Readonly<{
           uploaded = await runRuntimeSpan({
             span, failureCode: "RESULT_UPLOAD_FAILED", action: () => uploadProductionResult({
               session: input.state.session, store: input.state.store, job: input.job,
-              identity: input.identity, output, continuationRef, dataDir: input.state.dataDir,
+              identity: input.identity, output, continuationRef,
             }),
           });
         } catch (error) {
