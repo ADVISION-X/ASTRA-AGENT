@@ -62,6 +62,37 @@ const replacementKey = (binding: Extract<BrowserExecutionBinding, {
   binding.confirmedProviderReadback.evidenceHash,
 ].join(":");
 
+type ReconciliationBinding = Extract<BrowserExecutionBinding, { kind: "production-reconciliation" }>;
+type TargetAcquisition = Readonly<{
+  replacementBinding: ReconciliationBinding | null;
+  confirmedProviderTargetReplaced: boolean;
+}>;
+
+const confirmedReadbackMatches = (
+  binding: ReconciliationBinding,
+  fact: BrowserExactCallMutationFact | null,
+): fact is BrowserExactCallMutationFact => Boolean(fact) && [
+  binding.confirmedProviderReadback.schemaVersion === "browser-confirmed-provider-readback.v1",
+  binding.confirmedProviderReadback.sourceProductStepId === binding.productStepId,
+  binding.confirmedProviderReadback.sourceChildCapabilityId === "submit_exact_gpt_turn_once",
+  fact?.effectScope === "provider_effect", fact?.outcome === "CONFIRMED",
+  fact?.terminalAt === binding.confirmedProviderReadback.sourceTerminalAt,
+  fact?.targetRef === binding.confirmedProviderReadback.sourceTargetRef,
+  fact?.documentRef === binding.confirmedProviderReadback.sourceDocumentRef,
+  fact?.productStepId === binding.confirmedProviderReadback.sourceProductStepId,
+  fact?.callId === binding.confirmedProviderReadback.sourceCallId,
+  fact?.childCapabilityId === binding.confirmedProviderReadback.sourceChildCapabilityId,
+  fact?.actionOrdinal === binding.confirmedProviderReadback.sourceActionOrdinal,
+  hash(binding.confirmedProviderReadback.sourceExactCallIdentityHash),
+  hash(binding.confirmedProviderReadback.evidenceHash),
+  hash(binding.confirmedProviderReadback.conversationIdentityHash),
+  hash(binding.confirmedProviderReadback.promptHash),
+  Boolean(binding.confirmedProviderReadback.evidenceRef),
+  Boolean(binding.confirmedProviderReadback.turnMarker),
+  Number.isFinite(Date.parse(binding.confirmedProviderReadback.sourceTerminalAt)),
+  exactCanonicalConversationUrl(binding.confirmedProviderReadback.canonicalConversationUrl),
+].every(Boolean);
+
 export class BrowserLaneCoordinator {
   private readonly queue: LaneWaiter[] = [];
   private readonly confirmedReadbackReplacementTargets = new Map<string, string>();
@@ -175,62 +206,15 @@ export class BrowserLaneCoordinator {
     waiter.stopWaitingMonitor();
     this.active = true;
     let recovery: LaneRecovery | null = null;
-    let confirmedProviderTargetReplaced = false;
     try {
       recovery = this.recoveryFor(waiter.binding);
-      const replacementBinding = waiter.binding.kind === "production-reconciliation"
-        ? waiter.binding : null;
-      const knownReplacementTarget = replacementBinding
-        ? this.confirmedReadbackReplacementTargets.get(replacementKey(replacementBinding)) ?? null
-        : null;
-      if (this.resolveBroker().currentOperatorTargetStatus() === "absent") {
-        const acquisitionTtlMs = Math.min(waiter.binding.commandTtlMs, waiter.remainingMs());
-        try {
-          await this.acquireJobBoundTarget(
-            acquisitionTtlMs,
-            knownReplacementTarget ?? recovery?.targetRef ?? null,
-          );
-        } catch (error) {
-          if (!replacementBinding
-            || recovery?.state !== "CONFIRMED"
-            || recovery.effectScope !== "provider_effect"
-            || !(error instanceof Error)
-            || error.message !== "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT") throw error;
-          await this.acquireJobBoundTarget(
-            Math.min(waiter.binding.commandTtlMs, waiter.remainingMs()),
-            null,
-          );
-          confirmedProviderTargetReplaced = true;
-        }
-      }
+      const acquisition = await this.ensureAvailableTarget(waiter, recovery);
       if (waiter.signal.aborted || waiter.remainingMs() < 1) throw browserExecutionFailure(new Error(
         waiter.signal.aborted ? "BROWSER_WAIT_ABORTED" : "V6_DEADLINE_BUDGET_EXHAUSTED",
       ));
       const lease = await this.resolveBroker().acquireOperatorClaimedTargetLease(waiter.binding, waiter.ownerId);
-      const targetMismatch = recovery && lease.target.targetRef !== recovery.targetRef;
-      let restrictedReplacement = false;
-      let currentReplacementKey: string | null = null;
-      if (targetMismatch && replacementBinding) {
-        currentReplacementKey = replacementKey(replacementBinding);
-        const known = this.confirmedReadbackReplacementTargets.get(currentReplacementKey);
-        if (!confirmedProviderTargetReplaced && known !== lease.target.targetRef) {
-          throw new Error("BROWSER_DOCUMENT_INVALID");
-        }
-        if (this.confirmedReadbackReplacementTargets.size >= 100 && !known) {
-          const oldest = this.confirmedReadbackReplacementTargets.keys().next().value as string | undefined;
-          if (oldest) this.confirmedReadbackReplacementTargets.delete(oldest);
-        }
-        this.confirmedReadbackReplacementTargets.set(currentReplacementKey, lease.target.targetRef);
-        restrictedReplacement = true;
-      }
-      if (recovery && ((targetMismatch && !restrictedReplacement)
-        || (recovery.state === "DISPATCHED" && lease.document.documentRef !== recovery.documentRef))) {
-        throw new Error("BROWSER_DOCUMENT_INVALID");
-      }
-      const governedLease = restrictedReplacement && replacementBinding
-        ? this.confirmedReadbackLease(lease, replacementBinding)
-        : lease;
-      waiter.resolve(this.withLifecycle(governedLease, currentReplacementKey));
+      const admitted = this.admitRecoveredLease(lease, recovery, acquisition);
+      waiter.resolve(this.withLifecycle(admitted.lease, admitted.replacementKey));
     } catch (error) {
       const failure = browserExecutionFailure(
         error,
@@ -240,6 +224,60 @@ export class BrowserLaneCoordinator {
       void this.pump();
       waiter.reject(failure);
     }
+  }
+
+  private async ensureAvailableTarget(waiter: LaneWaiter, recovery: LaneRecovery | null): Promise<TargetAcquisition> {
+    const replacementBinding = waiter.binding.kind === "production-reconciliation" ? waiter.binding : null;
+    if (this.resolveBroker().currentOperatorTargetStatus() !== "absent") {
+      return { replacementBinding, confirmedProviderTargetReplaced: false };
+    }
+    const knownTarget = replacementBinding
+      ? this.confirmedReadbackReplacementTargets.get(replacementKey(replacementBinding)) ?? null : null;
+    const ttl = Math.min(waiter.binding.commandTtlMs, waiter.remainingMs());
+    try {
+      await this.acquireJobBoundTarget(ttl, knownTarget ?? recovery?.targetRef ?? null);
+      return { replacementBinding, confirmedProviderTargetReplaced: false };
+    } catch (error) {
+      const replaceable = replacementBinding && recovery?.state === "CONFIRMED"
+        && recovery.effectScope === "provider_effect" && error instanceof Error
+        && error.message === "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT";
+      if (!replaceable) throw error;
+      await this.acquireJobBoundTarget(Math.min(waiter.binding.commandTtlMs, waiter.remainingMs()), null);
+      return { replacementBinding, confirmedProviderTargetReplaced: true };
+    }
+  }
+
+  private recordReplacementTarget(binding: ReconciliationBinding, targetRef: string, replaced: boolean): string {
+    const key = replacementKey(binding);
+    const known = this.confirmedReadbackReplacementTargets.get(key);
+    if (!replaced && known !== targetRef) throw new Error("BROWSER_DOCUMENT_INVALID");
+    if (this.confirmedReadbackReplacementTargets.size >= 100 && !known) {
+      const oldest = this.confirmedReadbackReplacementTargets.keys().next().value as string | undefined;
+      if (oldest) this.confirmedReadbackReplacementTargets.delete(oldest);
+    }
+    this.confirmedReadbackReplacementTargets.set(key, targetRef);
+    return key;
+  }
+
+  private admitRecoveredLease(
+    lease: BrowserTargetLease,
+    recovery: LaneRecovery | null,
+    acquisition: TargetAcquisition,
+  ): Readonly<{ lease: BrowserTargetLease; replacementKey: string | null }> {
+    const targetMismatch = Boolean(recovery) && lease.target.targetRef !== recovery?.targetRef;
+    const replacementKeyToClear = targetMismatch && acquisition.replacementBinding
+      ? this.recordReplacementTarget(
+        acquisition.replacementBinding, lease.target.targetRef, acquisition.confirmedProviderTargetReplaced,
+      ) : null;
+    if (recovery && ((targetMismatch && !replacementKeyToClear)
+      || (recovery.state === "DISPATCHED" && lease.document.documentRef !== recovery.documentRef))) {
+      throw new Error("BROWSER_DOCUMENT_INVALID");
+    }
+    return {
+      lease: replacementKeyToClear && acquisition.replacementBinding
+        ? this.confirmedReadbackLease(lease, acquisition.replacementBinding) : lease,
+      replacementKey: replacementKeyToClear,
+    };
   }
 
   private recoveryFor(binding: BrowserExecutionBinding): LaneRecovery | null {
@@ -263,27 +301,7 @@ export class BrowserLaneCoordinator {
       exactCallIdentityHash: authorization.sourceExactCallIdentityHash,
       actionOrdinal: authorization.sourceActionOrdinal,
     });
-    if (!fact
-      || authorization.schemaVersion !== "browser-confirmed-provider-readback.v1"
-      || authorization.sourceProductStepId !== binding.productStepId
-      || authorization.sourceChildCapabilityId !== "submit_exact_gpt_turn_once"
-      || fact.effectScope !== "provider_effect"
-      || fact.outcome !== "CONFIRMED"
-      || fact.terminalAt !== authorization.sourceTerminalAt
-      || fact.targetRef !== authorization.sourceTargetRef
-      || fact.documentRef !== authorization.sourceDocumentRef
-      || fact.productStepId !== authorization.sourceProductStepId
-      || fact.callId !== authorization.sourceCallId
-      || fact.childCapabilityId !== authorization.sourceChildCapabilityId
-      || fact.actionOrdinal !== authorization.sourceActionOrdinal
-      || !hash(authorization.sourceExactCallIdentityHash)
-      || !hash(authorization.evidenceHash)
-      || !hash(authorization.conversationIdentityHash)
-      || !hash(authorization.promptHash)
-      || !authorization.evidenceRef
-      || !authorization.turnMarker
-      || !Number.isFinite(Date.parse(authorization.sourceTerminalAt))
-      || !exactCanonicalConversationUrl(authorization.canonicalConversationUrl)) {
+    if (!confirmedReadbackMatches(binding, fact)) {
       throw new Error("BROWSER_RECONCILIATION_SCOPE_INVALID");
     }
     return Object.freeze({

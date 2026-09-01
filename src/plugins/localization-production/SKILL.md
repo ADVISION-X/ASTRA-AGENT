@@ -22,7 +22,7 @@
 
 `localization_article_translation / article_translation` 保持标题层级、正文主张、引文边界、链接、来源标记和公开知识与个人分析的界线；不堆砌关键词，不执行发布或搜索提交。
 
-候选检查与确定性选择只是本 Skill 内部的垂直校验步骤，不是公开 Product/Action，也不得产生可认领的第二链路；检查失败直接阻断当前翻译结果。
+唯一翻译结果只在当前 Product Flow 内做垂直校验；校验失败直接阻断，不得产生候选、选择轮次、第二正式结果或可认领的第二链路。
 
 `accuracy_challenge` 与 `quality_reflection` 是原产品结果的复核动作，不产生独立产品。复核必须绑定任务给出的 subject task/result/hash、当前授权与 `review_policy`，只输出可核验 finding；不得替网站保存 review 台账、作发布裁决或改写源内容。
 

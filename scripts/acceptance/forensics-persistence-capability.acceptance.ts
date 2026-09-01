@@ -182,10 +182,16 @@ try {
     new URL("../../src/lib/local-runtime/production/gpt-evidence-writer.ts", import.meta.url),
     "utf8",
   );
-  const artifactAppendAt = evidenceWriterSource.indexOf("input.evidenceStore.appendArtifact");
-  const artifactReadbackAt = evidenceWriterSource.indexOf("input.evidenceStore.readArtifactRef", artifactAppendAt);
-  const recordAppendAt = evidenceWriterSource.indexOf("input.evidenceStore.appendRecord", artifactReadbackAt);
-  assert(artifactAppendAt >= 0 && artifactReadbackAt > artifactAppendAt && recordAppendAt > artifactReadbackAt,
+  const evidenceArtifactsSource = await readFile(
+    new URL("../../src/lib/local-runtime/production/gpt-evidence-artifacts.ts", import.meta.url),
+    "utf8",
+  );
+  const artifactAppendAt = evidenceArtifactsSource.indexOf("input.evidenceStore.appendArtifact");
+  const artifactReadbackAt = evidenceArtifactsSource.indexOf("input.evidenceStore.readArtifactRef", artifactAppendAt);
+  const artifactPipelineAt = evidenceWriterSource.indexOf("persistGptEvidenceArtifacts(input)");
+  const recordAppendAt = evidenceWriterSource.indexOf("input.evidenceStore.appendRecord", artifactPipelineAt);
+  assert(artifactAppendAt >= 0 && artifactReadbackAt > artifactAppendAt
+    && artifactPipelineAt >= 0 && recordAppendAt > artifactPipelineAt,
     "binary Provider artifacts must be persisted and byte-readback verified before their safe proof record is admitted");
   assert.match(evidenceWriterSource, /artifactRefs/u,
     "the safe proof record must bind the ordered binary artifact refs");

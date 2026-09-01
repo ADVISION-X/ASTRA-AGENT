@@ -79,12 +79,20 @@ export const readSubmissionLocatorArtifact = async (
 
 export const readGeneratedImageCheckpointArtifacts = async (
   evidenceStore: ForensicsPersistenceAbilityGroup,
-  artifactRefs: readonly [string, string, string],
-): Promise<GeneratedImageCheckpointArtifacts> => readGeneratedImageArtifacts({
-  evidenceStore,
-  artifactRefs,
-  receipt: await readJsonArtifact(
-    evidenceStore, artifactRefs[2],
-    "GPT_GENERATED_IMAGE_RECEIPT_READBACK_FAILED", "GPT_GENERATED_IMAGE_RECEIPT_INVALID",
-  ),
-});
+  artifactRefs: readonly string[],
+): Promise<GeneratedImageCheckpointArtifacts> => {
+  if (artifactRefs.length !== 3) {
+    throw executionFailure("failed", "GPT_GENERATED_IMAGE_TASK_ARTIFACT_MISSING");
+  }
+  const exactArtifactRefs: readonly [string, string, string] = [
+    artifactRefs[0]!, artifactRefs[1]!, artifactRefs[2]!,
+  ];
+  return readGeneratedImageArtifacts({
+    evidenceStore,
+    artifactRefs: exactArtifactRefs,
+    receipt: await readJsonArtifact(
+      evidenceStore, exactArtifactRefs[2],
+      "GPT_GENERATED_IMAGE_RECEIPT_READBACK_FAILED", "GPT_GENERATED_IMAGE_RECEIPT_INVALID",
+    ),
+  });
+};

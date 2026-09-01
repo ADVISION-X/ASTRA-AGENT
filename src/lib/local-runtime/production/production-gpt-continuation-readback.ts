@@ -143,9 +143,7 @@ export class ProductionGptContinuationReadback {
       expectedArtifactRefPrefix: [checkpoint.original_artifact_ref, checkpoint.webp_artifact_ref],
       expectedArtifactCount: 3,
     });
-    const artifacts = await readGeneratedImageCheckpointArtifacts(
-      this.evidenceStore, artifactRefs as unknown as readonly [string, string, string],
-    );
+    const artifacts = await readGeneratedImageCheckpointArtifacts(this.evidenceStore, artifactRefs);
     if (!imageArtifactMatches(artifacts, checkpoint)) {
       throw executionFailure("failed", "GPT_CONTINUATION_FRONTIER_ARTIFACT_INVALID");
     }

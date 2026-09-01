@@ -14,7 +14,10 @@ import {
   type RuntimeSpanHandle,
 } from "../../runtime-logs/index.js";
 import { failureCode } from "../../typed-failure.js";
-import { productionCatalogHash } from "./catalog.js";
+import {
+  productionCatalogHash,
+  reconstructPublicKnowledgeLegacyCurrentCheckpoint,
+} from "./catalog.js";
 import type { ProductionHash } from "./contracts.js";
 import { readProductionCredential } from "./credential.js";
 import { ProductionExecutor } from "./executor.js";
@@ -22,7 +25,6 @@ import { ProductionRuntimeStore, type StoredProductionTask } from "./store.js";
 import { PRODUCTION_V6_MANIFEST_HASH } from "./transport-protocol.js";
 import { ProductionWorkerSession } from "./worker-session.js";
 import type { ProductionRuntimeHandle, ProductionRuntimeHealth } from "./runtime-contract.js";
-import { reconstructPublicKnowledgeLegacyCurrentCheckpoint } from "../../../plugins/public-knowledge-article-pipeline/frontier-cutover.js";
 import {
   flushOutboxWithLog,
   readHealth,

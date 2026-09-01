@@ -97,7 +97,6 @@ const lawForbiddenValid = (raw: ParsedLaw): boolean => isStringArray(raw.forbidd
   && raw.forbidden.length === new Set(raw.forbidden).size
   && raw.forbidden.every((value) => cleanString(value) && /^(不得|禁止)/u.test(value))
   && raw.forbidden.map(normalizedForbidden).length === new Set(raw.forbidden.map(normalizedForbidden)).size;
-
 function validateLaw(raw: ParsedLaw, headingId: string, domain: string, path: string, documentType: 'base-law' | 'functional-law'): void {
   if (!lawSchemaValid(raw, headingId, domain)) fail('SOURCE_PARSE_FAILED', `${path}:${headingId}:schema`);
   if (!LAW_ID_PATTERN.test(raw.lawId) || !DOMAIN_PATTERN.test(domain) || FORBIDDEN_DOMAINS.has(domain) || !['P0', 'P1', 'P2'].includes(raw.tier)) fail('SOURCE_PARSE_FAILED', `${path}:${headingId}:identity`);
@@ -110,7 +109,6 @@ function validateLaw(raw: ParsedLaw, headingId: string, domain: string, path: st
   if (!lawListsValid(raw, documentType)) fail('SOURCE_PARSE_FAILED', `${raw.lawId}:scope`);
   if (!lawForbiddenValid(raw)) fail('SOURCE_PARSE_FAILED', `${raw.lawId}:forbidden`);
 }
-
 const applyDomainHeading = (
   match: RegExpExecArray,
   state: LawParserState,
@@ -135,7 +133,6 @@ const applyLawHeading = (match: RegExpExecArray, state: LawParserState, line: nu
   state.headingId = match[1]!;
   state.headingLine = line;
 };
-
 const parseLawBlock = (lines: string[], index: number, state: LawParserState, laws: Law[], path: string, documentType: 'base-law' | 'functional-law'): number => {
   if (!state.headingId) fail('SOURCE_PARSE_FAILED', `${path}:orphan law-record`);
   let end = index + 1;
@@ -151,7 +148,6 @@ const parseLawBlock = (lines: string[], index: number, state: LawParserState, la
   state.headingLine = 0;
   return end;
 };
-
 const applyLawContentLine = (input: {
   documentType: 'base-law' | 'functional-law'; index: number; laws: Law[]; lines: string[]; path: string; state: LawParserState;
 }): number => {
@@ -164,7 +160,6 @@ const applyLawContentLine = (input: {
   if (line === '```law-record') return parseLawBlock(input.lines, input.index, input.state, input.laws, input.path, input.documentType);
   return fail('SOURCE_PARSE_FAILED', `${input.path}:unexpected content at line ${input.index + 1}`);
 };
-
 export function parseLawSource(source: string, path: string, documentType: 'base-law' | 'functional-law', authorityLevel: 100 | 90): Law[] {
   const lines = source.split('\n');
   const laws: Law[] = [];
@@ -179,14 +174,11 @@ export function parseLawSource(source: string, path: string, documentType: 'base
 function loadLawFile(path: string, documentType: 'base-law' | 'functional-law', authorityLevel: 100 | 90): Law[] {
   return parseLawSource(text(path), path, documentType, authorityLevel);
 }
-
 const lawKey = (lawId: string): string => lawId.replace(/-V[1-9][0-9]*$/u, '');
-
 export const assertOneActiveMajorPerLawKey = (laws: readonly Law[]): void => {
   const keys = laws.map((law) => lawKey(law.lawId));
   if (keys.length !== new Set(keys).size) fail('SOURCE_PARSE_FAILED', 'multiple active major versions for one lawKey');
 };
-
 export function loadLaws(): Law[] {
   const laws = [...loadLawFile(BASE, 'base-law', 100), ...loadLawFile(FUNCTIONAL, 'functional-law', 90)].sort((left, right) => byteCompare(left.lawId, right.lawId));
   const ids = laws.map((law) => law.lawId);

@@ -2,14 +2,11 @@ import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { createGptAbilityGroup, gptExactCallIdentityHash } from "../../src/capabilities/gpt/index.js";
+import { gptExactCallIdentityHash } from "../../src/capabilities/gpt/index.js";
 import { createForensicsPersistenceAbilityGroupFromStorage } from "../../src/capabilities/forensics-persistence/index.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
-import { ProductionGptChildTools, type ProductGptExecution } from "../../src/lib/local-runtime/production/production-gpt-child-tools.js";
 import { persistGptChildEvidence } from "../../src/lib/local-runtime/production/gpt-evidence-writer.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
-import type { WorkbenchBrowserAuthority } from "../../src/lib/local-runtime/workbench-browser-authority-support.js";
-import type { BrowserExecutionBinding } from "../../src/lib/browser/browser-authority-api.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import { typedExecutionFailure } from "../../src/lib/typed-failure.js";
@@ -17,6 +14,7 @@ import { HASH_A, HASH_B, identityFor, task } from "./agent-production-runtime-fi
 import { artifactReadbackExecution, attemptId, checkpointCall, digest, digestBytes, exerciseArtifactReadbackFailure, identity,
   persistCheckpointArtifact, providerTask, rawDomHtml, semanticText,
 } from "./agent-production-gpt-artifact-readback-support.js";
+import { exerciseTaskExactEffectRecovery } from "./agent-production-task-exact-effect-support.js";
 const root = await mkdtemp(path.join(tmpdir(), "agent-artifact-readback-terminal-"));
 const store = new ProductionRuntimeStore(root);
 try {
@@ -421,172 +419,10 @@ try {
     "a failed exact-call evidence fact must replay the original failure and native cause, never success",
   );
 
-  const imageSubmitCall = Object.freeze({
-    productStepId: "article_image_generation",
-    callId: "turn-submit",
-    child: "submit_exact_gpt_turn_once" as const,
-    actionOrdinal: 42,
-    input: Object.freeze({ promptHash: HASH_A, turnMarker: "[GRASSEYE:frozen-article-source]" }),
+  await exerciseTaskExactEffectRecovery({
+    root, evidenceStore, store, runtimeLogger: frontierRuntimeLogger, normalExecution,
+    providerTask, attemptId, continuationRef: continuationRef as string,
   });
-  const priorSubmitIdentity = {
-    jobId: providerTask.job_id, attemptId, pluginId: "public-knowledge-article-pipeline",
-    pluginVersion: 16, productStepId: imageSubmitCall.productStepId, callId: imageSubmitCall.callId,
-    childCapabilityId: imageSubmitCall.child, inputHash: hashCanonical(imageSubmitCall.input),
-  } as const;
-  const priorSubmitHash = gptExactCallIdentityHash(priorSubmitIdentity);
-  const submittedAt = new Date().toISOString();
-  await persistGptChildEvidence({
-    intent: {
-      ...priorSubmitIdentity, executionId: `gpt-call:${priorSubmitHash.slice(7)}`,
-      actionOrdinal: imageSubmitCall.actionOrdinal, input: imageSubmitCall.input,
-    },
-    evidenceStore, jobId: providerTask.job_id, attemptId,
-    stepId: imageSubmitCall.productStepId, exactCallIdentityHash: priorSubmitHash,
-    result: {
-      status: "success", value: null, failureCode: null, failureCause: null,
-      proof: {
-        schemaVersion: "gpt-child-capability-proof.v2",
-        ...priorSubmitIdentity, executionId: `gpt-call:${priorSubmitHash.slice(7)}`,
-        actionOrdinal: imageSubmitCall.actionOrdinal,
-        targetRefHash: HASH_A, beforeDocumentRefHash: HASH_A, afterDocumentRefHash: HASH_A,
-        candidateCount: 1, observedSemantics: ["confirmed prior image submit"],
-        committedMutation: "confirmed", postconditionResult: "passed",
-        startedAt: submittedAt, endedAt: submittedAt,
-        evidenceRef: "browser:prior-image-submit", evidenceHash: HASH_B,
-      },
-    },
-  });
-  store.recordAttemptFailure(providerTask.job_id, attemptId, {
-    code: "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", mutation_outcome: "no",
-    evidence_ref: null, evidence_hash: null, cause: null,
-  });
-  const nextAttemptId = "attempt:artifact-readback-terminal:2";
-  const recoveryTask = providerTask;
-  store.acceptTask(recoveryTask, identityFor(recoveryTask), nextAttemptId);
-  const storedContinuation = store.readGptContinuation(continuationRef as string);
-  assert(storedContinuation);
-  const locatorCall = Object.freeze({
-    sessionKey: "session:task-exact-effect-locator",
-    productStepId: imageSubmitCall.productStepId,
-    callId: "submission-reconcile",
-    child: "reconcile_gpt_turn_submission" as const,
-    actionOrdinal: 43,
-    input: Object.freeze({
-      expectedPromptHash: imageSubmitCall.input.promptHash,
-      timeoutMs: 60_000,
-      turnMarker: imageSubmitCall.input.turnMarker,
-    }),
-  });
-  const locatorIdentity = {
-    jobId: providerTask.job_id, attemptId: nextAttemptId,
-    pluginId: "public-knowledge-article-pipeline", pluginVersion: 16,
-    productStepId: locatorCall.productStepId, callId: locatorCall.callId,
-    childCapabilityId: locatorCall.child, inputHash: hashCanonical(locatorCall.input),
-  } as const;
-  const locatorExactHash = gptExactCallIdentityHash(locatorIdentity);
-  const locatorUserTurnId = "conversation-turn-4";
-  const locatorConversationIdentityHash = digest(
-    `${storedContinuation.provider.provider_page_url}\n${imageSubmitCall.input.turnMarker}\n${locatorUserTurnId}\n${imageSubmitCall.input.promptHash}`,
-  );
-  await persistGptChildEvidence({
-    intent: {
-      ...locatorIdentity, executionId: `gpt-call:${locatorExactHash.slice(7)}`,
-      actionOrdinal: locatorCall.actionOrdinal, input: locatorCall.input,
-    },
-    evidenceStore, jobId: providerTask.job_id, attemptId: nextAttemptId,
-    stepId: locatorCall.productStepId, exactCallIdentityHash: locatorExactHash,
-    result: {
-      status: "success", failureCode: null, failureCause: null,
-      value: {
-        canonicalConversationUrl: storedContinuation.provider.provider_page_url,
-        turnMarker: imageSubmitCall.input.turnMarker,
-        userTurnId: locatorUserTurnId,
-        promptHash: imageSubmitCall.input.promptHash,
-        conversationIdentityHash: locatorConversationIdentityHash,
-      },
-      proof: {
-        schemaVersion: "gpt-child-capability-proof.v2",
-        ...locatorIdentity, executionId: `gpt-call:${locatorExactHash.slice(7)}`,
-        actionOrdinal: locatorCall.actionOrdinal,
-        targetRefHash: HASH_A, beforeDocumentRefHash: HASH_A, afterDocumentRefHash: HASH_A,
-        candidateCount: 1, observedSemantics: ["durable submission locator"],
-        committedMutation: "no", postconditionResult: "passed",
-        startedAt: submittedAt, endedAt: submittedAt,
-        evidenceRef: "browser:prior-image-submission-locator", evidenceHash: HASH_B,
-      },
-    },
-  });
-  const capturedRecoveryBinding = { value: null as BrowserExecutionBinding | null };
-  const exactEffectAuthority = Object.assign(Object.create(null) as WorkbenchBrowserAuthority, {
-    readExactCallMutationFact: (query: Readonly<{
-      attemptId: string; exactCallIdentityHash: `sha256:${string}`;
-    }>) => query.attemptId === attemptId && query.exactCallIdentityHash === priorSubmitHash
-      ? {
-        effectScope: "provider_effect" as const,
-        outcome: "CONFIRMED" as const,
-        terminalAt: submittedAt,
-        targetRef: "target:prior-image-submit",
-        documentRef: "document:prior-image-submit",
-        productStepId: imageSubmitCall.productStepId,
-        callId: imageSubmitCall.callId,
-        childCapabilityId: imageSubmitCall.child,
-        actionOrdinal: imageSubmitCall.actionOrdinal,
-      }
-      : null,
-    countProviderTurnDispatches: () => 0,
-    acquireJobBoundTargetLease: async (binding: BrowserExecutionBinding) => {
-      capturedRecoveryBinding.value = binding;
-      throw new Error("CAPTURED_TASK_EXACT_EFFECT_BROWSER_BINDING");
-    },
-  });
-  const nextExecution = new ProductionGptChildTools(
-    root, HASH_A, createGptAbilityGroup(), evidenceStore, exactEffectAuthority, store,
-    frontierRuntimeLogger,
-  ).createExecution({
-    task: recoveryTask, pluginId: "public-knowledge-article-pipeline", pluginVersion: 16,
-    lease: {
-      attempt_id: nextAttemptId, device_id: "device:task-exact-effect", lease_version: 2,
-      execution_fence_hash: HASH_A, control_manifest_hash: HASH_A, max_provider_turns: 2,
-      provider_turns_used: 0, expires_at_monotonic: performance.now() + 10_000,
-      command_ttl_ms: 1_000, abort_signal: new AbortController().signal,
-    },
-    parentSpanId: "span:task-exact-effect",
-  });
-  const currentFacts = await nextExecution.tools.readCallFacts(imageSubmitCall);
-  assert.equal(currentFacts.mutation, null, "current-attempt lookup must not widen to an older attempt");
-  const taskFacts = await nextExecution.tools.readCallFacts({
-    ...imageSubmitCall, lookupKind: "task_exact_effect",
-  });
-  assert.equal(taskFacts.exactCallIdentityHash, priorSubmitHash);
-  assert.equal(taskFacts.mutation?.outcome, "CONFIRMED");
-  assert.equal(taskFacts.evidence?.readbackVerified, true);
-  await nextExecution.tools.execute(locatorCall);
-  await assert.rejects(
-    nextExecution.tools.execute({
-      sessionKey: "session:task-exact-effect-readback",
-      productStepId: imageSubmitCall.productStepId,
-      callId: "focus-recovered-conversation",
-      child: "focus_exact_gpt_conversation",
-      actionOrdinal: 43,
-      input: { canonicalConversationUrl: storedContinuation.provider.provider_page_url },
-    }),
-    (error) => error instanceof Error && error.cause instanceof Error
-      && error.cause.message === "CAPTURED_TASK_EXACT_EFFECT_BROWSER_BINDING",
-  );
-  assert.equal(capturedRecoveryBinding.value?.kind, "production-reconciliation",
-    "only the unique Browser CONFIRMED plus Forensics passed fact may project a reconciliation binding");
-  const captured = capturedRecoveryBinding.value;
-  if (captured?.kind !== "production-reconciliation") {
-    throw new Error("CONFIRMED_PROVIDER_READBACK_BINDING_MISSING");
-  }
-  assert.equal(captured.confirmedProviderReadback.sourceExactCallIdentityHash, priorSubmitHash);
-  assert.equal(captured.confirmedProviderReadback.evidenceRef, taskFacts.evidence?.evidenceRef);
-  assert.equal(captured.confirmedProviderReadback.canonicalConversationUrl,
-    storedContinuation.provider.provider_page_url);
-  assert.equal(captured.confirmedProviderReadback.promptHash, imageSubmitCall.input.promptHash);
-  assert.equal(captured.confirmedProviderReadback.turnMarker, imageSubmitCall.input.turnMarker);
-  await nextExecution.settle(null);
-  await normalExecution.settle(null);
 
   await exerciseArtifactReadbackFailure({ root, evidenceStore, store, runtimeLogger, frontierRef });
 } finally {

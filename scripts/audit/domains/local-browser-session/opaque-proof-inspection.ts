@@ -2,6 +2,8 @@ import { type InspectorContext, type InspectorFinding } from "../../shared/inspe
 import { createLocalFinding, identifiers, requireIdentifiers, requireSource, sourcePaths, targetAuthorityPath } from "./inspector-support.js";
 
 type RequiredSource = NonNullable<ReturnType<typeof requireSource>>;
+const authenticatedMediaRuntimePath =
+  "src/lib/browser/chrome-extension/authenticated-media-runtime.ts";
 
 const inspectOpaqueRawFields = (
   sources: readonly (readonly [string, RequiredSource])[],
@@ -25,12 +27,13 @@ const inspectOpaqueRawFields = (
 
 const inspectAuthenticatedMediaBoundary = (
   targetAuthority: RequiredSource,
+  authenticatedMediaRuntime: RequiredSource,
   leaseManager: RequiredSource,
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  const targetMethod = targetAuthority.getClass("ExtensionTargetAuthority")
-    ?.getMethod("executeAuthenticatedMedia")?.getText() ?? "";
+  const targetMethod = `${targetAuthority.getClass("ExtensionTargetAuthority")
+    ?.getMethod("executeRegisteredCommand")?.getText() ?? ""}\n${authenticatedMediaRuntime.getFullText()}`;
   const leaseMethod = leaseManager.getClass("BrowserTargetLeaseManager")
     ?.getMethod("downloadAuthenticatedMedia")?.getText() ?? "";
   for (const required of [
@@ -70,8 +73,12 @@ export const inspectOpaqueAuthorityBoundary = (
   const broker = requireSource(context, findings, lawId, sourcePaths[18]);
   const supervisor = requireSource(context, findings, lawId, sourcePaths[3]);
   const targetAuthority = requireSource(context, findings, lawId, targetAuthorityPath);
+  const authenticatedMediaRuntime = requireSource(
+    context, findings, lawId, authenticatedMediaRuntimePath,
+  );
   const leaseManager = requireSource(context, findings, lawId, sourcePaths[5]);
-  if (!transport || !journal || !broker || !supervisor || !targetAuthority || !leaseManager) return;
+  if (!transport || !journal || !broker || !supervisor || !targetAuthority
+    || !authenticatedMediaRuntime || !leaseManager) return;
   requireIdentifiers(broker, ["authorityRefHash", "certificateHash", "channelSessionHash", "artifactRef", "contentHash"], findings, lawId,
     "Public Browser authority and artifact status must expose opaque references and hashes.");
   requireIdentifiers(journal, ["payloadHash", "proofHash", "targetRef", "documentRef"], findings, lawId,
@@ -81,5 +88,7 @@ export const inspectOpaqueAuthorityBoundary = (
     [sourcePaths[7], journal],
     [sourcePaths[3], supervisor],
   ], findings, lawId);
-  inspectAuthenticatedMediaBoundary(targetAuthority, leaseManager, findings, lawId);
+  inspectAuthenticatedMediaBoundary(
+    targetAuthority, authenticatedMediaRuntime, leaseManager, findings, lawId,
+  );
 };

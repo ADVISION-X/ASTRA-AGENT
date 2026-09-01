@@ -10,13 +10,12 @@ import {
   type WorkbenchPairingState,
 } from "../../src/lib/browser/chrome-extension/pairing-auto-bootstrap.js";
 import { ExtensionTargetAuthority } from "../../src/lib/browser/chrome-extension/extension-target-authority.js";
-import { executeRegisteredDomIntent } from "../../src/lib/browser/chrome-extension/dom-intent-runtime.js";
-import type { ExtensionDebuggerRuntime } from "../../src/lib/browser/chrome-extension/debugger-runtime.js";
 import type { ExtensionChromeApi, ExtensionDebugTarget } from "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
 import { GPT_WEB_START_URL, requireGptWebPolicyForUrl } from "../../src/lib/browser/exact-target/browser-site-policy-registry.js";
 import { BrowserAuthorityBroker } from "../../src/lib/browser/infrastructure/browser-authority-broker.js";
 import { BrowserAuthorityIssuer } from "../../src/lib/browser/infrastructure/browser-authority-issuer.js";
 import { exerciseAuthenticatedMedia } from "./local-browser-authenticated-media-support.js";
+import { exerciseLocalBrowserDomIntent } from "./local-browser-dom-intent-support.js";
 import { emitLocalBrowserAutoPairingProofs } from "./local-browser-proof-support.js";
 
 const secret = "a".repeat(64);
@@ -218,6 +217,10 @@ const targetChromeApi: ExtensionChromeApi = {
       if (method === "Page.getFrameTree" && tabId === frameTreeFailureTabId) {
         throw new Error("temporary frame tree read failure");
       }
+      if (method === "Page.navigate" && typeof parameters?.url === "string") {
+        mainFrameUrlByTab.set(tabId, parameters.url);
+        return { loaderId: `loader-${tabId}-navigate` };
+      }
       return method === "Page.getFrameTree"
         ? { frameTree: { frame: { loaderId: `loader-${tabId}`, url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/" } } }
         : {};
@@ -353,201 +356,7 @@ debuggerTargets = [{
   url: "https://chatgpt.com/c/exact-recovery",
 }];
 
-let delayedComposerQueries = 0;
-const delayedComposerRuntime = {
-  async send(_tabId: number, method: string) {
-    if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
-    if (method === "DOM.querySelectorAll") {
-      delayedComposerQueries += 1;
-      return { nodeIds: delayedComposerQueries < 3 ? [] : [7] };
-    }
-    if (method === "DOM.getBoxModel") return { model: { content: [0, 0, 10, 0, 10, 10, 0, 10] } };
-    throw new Error(`UNEXPECTED_DELAYED_COMPOSER_METHOD:${method}`);
-  },
-} as ExtensionDebuggerRuntime;
-const delayedComposer = await executeRegisteredDomIntent(
-  delayedComposerRuntime,
-  { tabId: 99 } as never,
-  { kind: "find", selector: "#prompt-textarea", maxMatches: 2, waitFor: { minimumMatches: 1, timeoutMs: 500 } },
-) as Readonly<{ count: number }>;
-assert.equal(delayedComposer.count, 1, "one bounded find command must observe a composer that appears after ChatGPT hydration");
-assert.equal(delayedComposerQueries, 3, "bounded readiness must stop immediately after its predicate is satisfied");
-
-const missingComposerRuntime = {
-  async send(_tabId: number, method: string) {
-    if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
-    if (method === "DOM.querySelectorAll") return { nodeIds: [] };
-    throw new Error(`UNEXPECTED_MISSING_COMPOSER_METHOD:${method}`);
-  },
-} as ExtensionDebuggerRuntime;
-const missingComposer = await executeRegisteredDomIntent(
-  missingComposerRuntime,
-  { tabId: 100 } as never,
-  { kind: "find", selector: "#prompt-textarea", maxMatches: 2, waitFor: { minimumMatches: 1, timeoutMs: 1 } },
-) as Readonly<{ count: number }>;
-assert.equal(missingComposer.count, 0, "bounded readiness timeout must preserve a zero-candidate fail-closed result");
-
-const domFailureRuntime = (failure: "missing" | "ambiguous" | "stale" | "box" | "invalid" | "target") => ({
-  async send(_tabId: number, method: string) {
-    if (method === "DOM.getDocument") {
-      if (failure === "target") throw new Error("BROWSER_TARGET_INVALID");
-      return { root: { nodeId: 1 } };
-    }
-    if (method === "DOM.querySelectorAll") {
-      if (failure === "invalid") return { nodeIds: "not-an-array" };
-      if (failure === "missing") return { nodeIds: [] };
-      if (failure === "ambiguous") return { nodeIds: [7, 8] };
-      return { nodeIds: [7] };
-    }
-    if (method === "DOM.getBoxModel") {
-      if (failure === "stale") throw new Error("Could not find node with given id");
-      if (failure === "box") throw new Error("Could not compute box model");
-      return { model: { content: [0, 0, 10, 0, 10, 10, 0, 10] } };
-    }
-    throw new Error(`UNEXPECTED_DOM_FAILURE_METHOD:${method}`);
-  },
-}) as ExtensionDebuggerRuntime;
-for (const [failure, code] of [
-  ["missing", "BROWSER_DOM_CANDIDATE_MISSING"],
-  ["ambiguous", "BROWSER_DOM_CANDIDATE_AMBIGUOUS"],
-  ["stale", "BROWSER_DOM_NODE_STALE"],
-  ["box", "BROWSER_DOM_READ_INVALID"],
-  ["invalid", "BROWSER_DOM_READ_INVALID"],
-  ["target", "BROWSER_TARGET_INVALID"],
-] as const) {
-  await assert.rejects(
-    executeRegisteredDomIntent(domFailureRuntime(failure), { tabId: 100 } as never, {
-      kind: "readText", selector: "[data-turn='user']", expectedMatches: 1, maxChars: 100,
-    }),
-    new RegExp(code, "u"),
-    `${failure} must retain its exact Browser DOM/Target cause`,
-  );
-}
-
-let lateTextDescribeCalls = 0;
-const lateTextRuntime = {
-  async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
-    if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
-    if (method === "DOM.querySelectorAll") return { nodeIds: Array.from({ length: 25 }, (_, index) => index + 2) };
-    if (method === "DOM.describeNode") {
-      lateTextDescribeCalls += 1;
-      const nodeId = Number(parameters?.nodeId);
-      return { node: {
-        nodeId,
-        backendNodeId: nodeId + 100,
-        nodeName: "BUTTON",
-        attributes: [],
-        children: [{ nodeValue: nodeId === 26 ? "GPT-5.6" : `unrelated-${nodeId}` }],
-      } };
-    }
-    if (method === "DOM.getBoxModel") return { model: { content: [0, 0, 10, 0, 10, 10, 0, 10] } };
-    throw new Error(`UNEXPECTED_LATE_TEXT_METHOD:${method}`);
-  },
-} as ExtensionDebuggerRuntime;
-const lateTextMatch = await executeRegisteredDomIntent(
-  lateTextRuntime,
-  { tabId: 101 } as never,
-  { kind: "find", selector: "button", textContains: "GPT", maxMatches: 2, fields: ["text"] },
-) as Readonly<{ count: number; matches: readonly Readonly<{ text: string }>[] }>;
-assert.deepEqual(lateTextMatch, { count: 1, matches: [{ text: "GPT-5.6" }] },
-  "text identity must be filtered before the output cardinality bound so later exact controls are not hidden by unrelated DOM order");
-assert.ok(lateTextDescribeCalls > 20, "the regression fixture must place the exact control beyond the old pre-filter cutoff");
-
-for (const [key, virtualKeyCode, repeat] of [["ArrowLeft", 37, 1], ["ArrowRight", 39, 4]] as const) {
-  const dispatchedKeyEvents: Readonly<Record<string, unknown>>[] = [];
-  const reasoningSliderRuntime = {
-    async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
-      if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
-      if (method === "DOM.querySelectorAll") return { nodeIds: [7] };
-      if (method === "DOM.getBoxModel") return { model: { content: [0, 0, 10, 0, 10, 10, 0, 10] } };
-      if (method === "DOM.focus") return {};
-      if (method === "Input.dispatchKeyEvent") {
-        dispatchedKeyEvents.push(parameters ?? {});
-        return {};
-      }
-      throw new Error(`UNEXPECTED_REASONING_SLIDER_METHOD:${method}`);
-    },
-  } as ExtensionDebuggerRuntime;
-  const keypressResult = await executeRegisteredDomIntent(
-    reasoningSliderRuntime,
-    { tabId: 102 } as never,
-    {
-      kind: "keypress",
-      selector: "[role='slider']",
-      key,
-      repeat,
-      expectedMatches: 1,
-      postKeypressMatch: { selector: "[role='slider'][aria-valuenow='4']", expectedMatches: 1, timeoutMs: 5_000 },
-    },
-  ) as Readonly<{ postconditionVerified: boolean }>;
-  assert.equal(keypressResult.postconditionVerified, true);
-  const expectedKeyEvents = Array.from({ length: repeat }, () => [
-    { type: "rawKeyDown", key, code: key, windowsVirtualKeyCode: virtualKeyCode, nativeVirtualKeyCode: virtualKeyCode },
-    { type: "keyUp", key, code: key, windowsVirtualKeyCode: virtualKeyCode, nativeVirtualKeyCode: virtualKeyCode },
-  ]).flat();
-  assert.deepEqual(dispatchedKeyEvents.map((event) => ({
-    type: event.type,
-    key: event.key,
-    code: event.code,
-    windowsVirtualKeyCode: event.windowsVirtualKeyCode,
-    nativeVirtualKeyCode: event.nativeVirtualKeyCode,
-  })), expectedKeyEvents);
-}
-
-let composerText = "stale SEO prompt";
-const fillKeyEvents: Readonly<Record<string, unknown>>[] = [];
-const contentEditableFillRuntime = {
-  async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
-    if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
-    if (method === "DOM.querySelectorAll") return { nodeIds: [7] };
-    if (method === "DOM.getBoxModel") return { model: { content: [0, 0, 10, 0, 10, 10, 0, 10] } };
-    if (method === "DOM.focus") return {};
-    if (method === "Input.dispatchKeyEvent") {
-      fillKeyEvents.push(parameters ?? {});
-      if (parameters?.type === "rawKeyDown" && parameters.key === "Backspace") composerText = "";
-      return {};
-    }
-    if (method === "Input.insertText") {
-      composerText += String(parameters?.text ?? "");
-      return {};
-    }
-    if (method === "DOM.describeNode") return {
-      node: {
-        nodeId: 7,
-        backendNodeId: 107,
-        nodeName: "DIV",
-        attributes: ["contenteditable", "true"],
-        children: composerText.length === 0 ? [] : [{ nodeName: "P", nodeValue: composerText }],
-      },
-    };
-    throw new Error(`UNEXPECTED_CONTENTEDITABLE_FILL_METHOD:${method}`);
-  },
-} as ExtensionDebuggerRuntime;
-const clearedComposer = await executeRegisteredDomIntent(
-  contentEditableFillRuntime,
-  { tabId: 103 } as never,
-  {
-    kind: "fill",
-    selector: "#prompt-textarea",
-    approvedText: "",
-    clearBeforeType: true,
-    expectedMatches: 1,
-  },
-) as Readonly<{ retainedValueVerified: boolean; postconditionVerified: boolean }>;
-assert.deepEqual(clearedComposer, {
-  filled: true,
-  candidateCount: 1,
-  identityRevalidated: true,
-  mutationCount: 1,
-  retainedValueVerified: true,
-  postconditionVerified: true,
-});
-assert.deepEqual(fillKeyEvents, [
-  { type: "rawKeyDown", key: "a", code: "KeyA", commands: ["selectAll"] },
-  { type: "keyUp", key: "a", code: "KeyA" },
-  { type: "rawKeyDown", key: "Backspace", code: "Backspace" },
-  { type: "keyUp", key: "Backspace", code: "Backspace" },
-], "fill clear must use the platform-independent Blink selectAll command before deleting stale content");
+await exerciseLocalBrowserDomIntent();
 
 const secondAcquisition = targetAuthority.acquireJobBoundChatGptTarget();
 await Promise.resolve();

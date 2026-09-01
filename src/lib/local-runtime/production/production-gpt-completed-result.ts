@@ -38,10 +38,7 @@ const textCheckpoint = async (input: ReplayInput): Promise<ProductGptChildResult
 const imageCheckpoint = async (input: ReplayInput): Promise<ProductGptChildResult> => {
   const refs = input.facts.evidence!.artifactRefs;
   if (refs.length !== 3) throw executionFailure("failed", "GPT_GENERATED_IMAGE_TASK_ARTIFACT_MISSING");
-  const artifacts = await readGeneratedImageCheckpointArtifacts(
-    input.evidenceStore,
-    refs as unknown as readonly [string, string, string],
-  );
+  const artifacts = await readGeneratedImageCheckpointArtifacts(input.evidenceStore, refs);
   return success(input, {
     ...artifacts,
     artifactId: `airesult_${artifacts.sha256.slice(7, 39)}`,

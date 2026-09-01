@@ -18,9 +18,7 @@ export {
 export {
   type GptContinuationLane,
 } from "./session/gpt-session-controller.js";
-export { canonicalGptConversationUrl } from "./web/contracts/target-document.contract.js";
 export type {
-  GptContinuationFrontierBinding,
   GptContinuationCheckpoint,
   GptContinuationGeneratedImageCheckpoint,
   GptContinuationOriginCheckpoint,

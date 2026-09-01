@@ -47,7 +47,6 @@ import {
   providerAttachmentName,
 } from "./gpt-exact-target-source-support.js";
 import "./gpt-conversation.acceptance.js";
-
 const gpt = createGptAbilityGroup();
 type GptExecutionContext = Parameters<GptAbilityGroup["execute"]>[1];
 assert.deepEqual(gpt.listChildCapabilityIds(), EXPECTED_GPT_CHILD_IDS);

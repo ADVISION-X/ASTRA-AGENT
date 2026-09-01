@@ -21,6 +21,7 @@ import type { WorkbenchBrowserAuthority } from "../../src/lib/local-runtime/work
 import type { BrowserExecutionBinding } from "../../src/lib/browser/browser-authority-api.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
+import { freshConfirmedAuthority } from "./agent-production-fresh-confirmed-authority-support.js";
 import { HASH_A, HASH_B, identityFor, task } from "./agent-production-runtime-fixtures.js";
 
 const continuationAuthority = (): WorkbenchBrowserAuthority => Object.assign(
@@ -288,30 +289,10 @@ const exerciseFreshConfirmedSubmitLocatorRestart = async (): Promise<void> => {
     const captured = { value: null as BrowserExecutionBinding | null };
     let providerDispatchReads = 0;
     let browserAcquisitions = 0;
-    const authority = Object.assign(Object.create(null) as WorkbenchBrowserAuthority, {
-      readExactCallMutationFact: (query: Readonly<{
-        attemptId: string;
-        exactCallIdentityHash: `sha256:${string}`;
-      }>) => query.attemptId === scenario.attemptId
-        && query.exactCallIdentityHash === scenario.submitExactCallIdentityHash
-        ? {
-          effectScope: "provider_effect" as const,
-          outcome: "CONFIRMED" as const,
-          terminalAt: new Date().toISOString(),
-          targetRef: "target:fresh-confirmed-submit",
-          documentRef: "document:fresh-confirmed-submit",
-          productStepId: scenario.submitCall.productStepId,
-          callId: scenario.submitCall.callId,
-          childCapabilityId: scenario.submitCall.child,
-          actionOrdinal: scenario.submitCall.actionOrdinal,
-        }
-        : null,
-      countProviderTurnDispatches: () => { providerDispatchReads += 1; return 0; },
-      acquireJobBoundTargetLease: async (binding: BrowserExecutionBinding) => {
-        browserAcquisitions += 1;
-        captured.value = binding;
-        throw new Error("CAPTURED_FRESH_CONFIRMED_READBACK_BINDING");
-      },
+    const authority = freshConfirmedAuthority({
+      scenario, captured,
+      onDispatchRead: () => { providerDispatchReads += 1; },
+      onBrowserAcquisition: () => { browserAcquisitions += 1; },
     });
     const execution = continuationExecution({
       root, evidence, authority, store,

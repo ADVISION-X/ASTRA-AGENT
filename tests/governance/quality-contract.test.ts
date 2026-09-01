@@ -333,12 +333,12 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
   } as const;
   const routes = {
     browser: { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", clauses: ["forbidden:6"] },
-    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V15", clauses: ["forbidden:19"] },
-    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V15", clauses: ["forbidden:9"] },
-    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V15", clauses: ["forbidden:11"] },
-    provider: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V15", clauses: ["forbidden:0"] },
-    authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V15", clauses: ["forbidden:4"] },
-    recovery: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V15", clauses: ["forbidden:10"] },
+    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V24", clauses: ["forbidden:19"] },
+    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V24", clauses: ["forbidden:9"] },
+    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V24", clauses: ["forbidden:11"] },
+    provider: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V24", clauses: ["forbidden:0"] },
+    authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V24", clauses: ["forbidden:4"] },
+    recovery: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V24", clauses: ["forbidden:10"] },
   } as const;
   for (const [kind, observation] of Object.entries(observations)) {
     const evidenceMode = `dynamic.${kind}`;
@@ -977,7 +977,7 @@ test("provider contracts reject malformed payloads before identity matching", ()
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json", "utf8",
   )) as unknown;
   assert.doesNotThrow(() => validateProviderContractSpec(current, "ADVISION-X/AGENT",
-    new Map([["LAW-AGENT-PRODUCTION-RUNTIME-001-V15", "agent-production-runtime"]]),
+    new Map([["LAW-AGENT-PRODUCTION-RUNTIME-001-V24", "agent-production-runtime"]]),
     (path) => path === "src/lib/local-runtime/production/catalog.ts"));
 });
 
@@ -1233,7 +1233,7 @@ test("every active law scope is deterministic, owned, unique, and includes all c
 
 test("active mutation inspectors use one DISPATCHED chain inside each law scope", () => {
   const registry = buildRegistry();
-  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V15");
+  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V24");
   assert.ok(agentLaw);
   const agentTargets = computeTargetPaths(agentLaw, registry);
   const crossOwnerPaths = [
@@ -1242,7 +1242,10 @@ test("active mutation inspectors use one DISPATCHED chain inside each law scope"
   ];
   for (const path of crossOwnerPaths) assert.equal(agentTargets.includes(path), false, path);
 
-  const agentInspector = readFileSync("scripts/audit/domains/agent-production-runtime/inspector.ts", "utf8");
+  const agentInspector = [
+    "scripts/audit/domains/agent-production-runtime/inspector.ts",
+    "scripts/audit/domains/agent-production-runtime/runtime-inspection.ts",
+  ].map((path) => readFileSync(path, "utf8")).join("\n");
   for (const path of crossOwnerPaths) assert.equal(agentInspector.includes(path), false, path);
   for (const token of [
     "ProductionGptChildTools", "this.gpt.execute(intent", "runAtomicStep(",
@@ -1330,7 +1333,7 @@ test("every declared Dynamic mode has one exact producer claim route", () => {
 
 test("a law-authorized summary-only Dynamic claim validates against its exact producer fact", () => {
   const binding = {
-    lawId: "LAW-RUNTIME-LOG-SPINE-001-V5", evidenceMode: "dynamic.browser", clauses: ["summary"],
+    lawId: "LAW-RUNTIME-LOG-SPINE-001-V6", evidenceMode: "dynamic.browser", clauses: ["summary"],
     observedValue: "native-runtime-log", proofRunId: "a".repeat(64), candidate: "b".repeat(40),
     producerScript: "acceptance:agent-production-runtime:real-proof",
   };

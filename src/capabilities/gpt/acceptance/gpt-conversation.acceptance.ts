@@ -7,6 +7,7 @@ import {
   type GptChildCapabilityId,
 } from "../index.js";
 import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
+import type { BrowserDomIntent } from "../../../lib/browser/browser-authority-api.js";
 import { hashCanonical } from "../../../lib/local-runtime/production/contracts.js";
 import { executionFailure } from "../../../lib/typed-failure.js";
 import { GPT_COMPOSER_SELECTOR } from "../web/contracts/composer.contract.js";
@@ -398,38 +399,39 @@ assert.equal(yielded.every((duration) => duration >= 25 && duration <= 5_000), t
 assert.deepEqual(providerWaitFixture.waitDurations(), [], "cooperative Provider wait must not hold Browser.wait");
 
 let rateLimitAcknowledged = false;
-const rateLimitFixture = fakeBrowser((intent) => {
-  if (intent.kind === "document") return { url: canonicalConversationUrl, title: "ChatGPT" };
-  if (intent.kind === "find" && intent.selector === GPT_USER_TURN_SELECTOR) {
-    return { count: rateLimitAcknowledged ? 1 : 0 };
-  }
-  if (intent.kind === "find" && intent.selector === "[role='dialog']") {
+const rateLimitFind = (intent: Extract<BrowserDomIntent, { kind: "find" }>) => {
+  if (intent.selector === GPT_USER_TURN_SELECTOR) return { count: rateLimitAcknowledged ? 1 : 0 };
+  if (intent.selector === "[role='dialog']") {
     assert.equal(intent.textContains, "请求过于频繁");
     return { count: rateLimitAcknowledged ? 0 : 1 };
   }
-  if (intent.kind === "find" && intent.selector === "button") {
-    assert.deepEqual(intent.scope, { selector: "[role='dialog']" });
-    assert.equal(intent.textEquals, "明白了");
+  if (intent.selector === `[data-testid="conversation-turn-2"][data-turn='assistant'] [data-message-author-role='assistant']`) {
     return { count: 1 };
   }
-  if (intent.kind === "click" && intent.selector === "button") {
-    assert.equal(intent.expectedTextEquals, "明白了");
-    assert.deepEqual(intent.scope, { selector: "[role='dialog']" });
-    rateLimitAcknowledged = true;
-    return { postconditionVerified: true };
-  }
+  if (intent.selector === GPT_GENERATING_STOP_SELECTOR) return { count: 0 };
+  assert.equal(intent.selector, "button");
+  assert.deepEqual(intent.scope, { selector: "[role='dialog']" });
+  assert.equal(intent.textEquals, "明白了");
+  return { count: 1 };
+};
+const rateLimitClick = (intent: Extract<BrowserDomIntent, { kind: "click" }>) => {
+  assert.equal(intent.selector, "button");
+  assert.equal(intent.expectedTextEquals, "明白了");
+  assert.deepEqual(intent.scope, { selector: "[role='dialog']" });
+  rateLimitAcknowledged = true;
+  return { postconditionVerified: true };
+};
+const rateLimitFixture = fakeBrowser((intent) => {
+  if (intent.kind === "document") return { url: canonicalConversationUrl, title: "ChatGPT" };
+  if (intent.kind === "find") return rateLimitFind(intent);
+  if (intent.kind === "click") return rateLimitClick(intent);
   if (intent.kind === "readAttribute" && intent.selector === GPT_USER_TURN_SELECTOR) {
     return "conversation-turn-1";
   }
   if (intent.kind === "inspect" && intent.selector === promptBodySelector) {
     return { semanticText: `${prompt}\n`, visible: true, connected: true };
   }
-  if (intent.kind === "find"
-    && intent.selector === `[data-testid="conversation-turn-2"][data-turn='assistant'] [data-message-author-role='assistant']`) {
-    return { count: 1 };
-  }
   if (intent.kind === "inspect") return { semanticText: assistantText, visible: true, connected: true };
-  if (intent.kind === "find" && intent.selector === GPT_GENERATING_STOP_SELECTOR) return { count: 0 };
   throw new Error(`UNEXPECTED_RATE_LIMIT_INTENT:${intent.kind}`);
 });
 const rateLimitRecovered = await execute("wait_for_stable_gpt_text", rateLimitFixture.browser, {
