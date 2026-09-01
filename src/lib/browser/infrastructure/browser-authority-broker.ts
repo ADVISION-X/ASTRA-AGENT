@@ -12,6 +12,7 @@ type BrowserExecutionBindingCore = Readonly<{
   pluginVersion: number;
   jobId: string;
   productStepId: string;
+  callId: string;
   attemptId: string;
   deviceId: string;
   leaseVersion: number;

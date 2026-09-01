@@ -134,8 +134,17 @@ const specEnvelopeValid = (raw: Spec): boolean => exactKeys(raw, SPEC_KEYS)
 
 const dependencySpecValid = (raw: Spec): boolean => {
   const contract = raw.contract as Record<string, unknown>;
-  return exactKeys(contract, ['contractId', 'providerRepo', 'version']) && concreteString(contract.contractId)
+  const baseValid = concreteString(contract.contractId)
     && REPO.test(String(contract.providerRepo)) && contract.version === raw.version;
+  if (!('manifestHash' in contract)) {
+    return exactKeys(contract, ['contractId', 'providerRepo', 'version']) && baseValid;
+  }
+  return exactKeys(contract, ['authorityArtifact', 'contractId', 'generatedBy', 'hashAlgorithm',
+    'manifestHash', 'providerRepo', 'version']) && baseValid
+    && typeof contract.authorityArtifact === 'string' && pathPatternValid(contract.authorityArtifact)
+    && typeof contract.generatedBy === 'string' && pathPatternValid(contract.generatedBy)
+    && contract.hashAlgorithm === 'JCS-SHA-256'
+    && typeof contract.manifestHash === 'string' && /^sha256:[a-f0-9]{64}$/u.test(contract.manifestHash);
 };
 
 const providerSpecValid = (raw: Spec): boolean => {

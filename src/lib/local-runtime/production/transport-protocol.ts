@@ -6,9 +6,9 @@ import {
   WebsiteAgentTaskSchema,
   type WebsiteAgentTask,
 } from "./contracts.js";
+import { PRODUCTION_V6_MANIFEST_HASH } from "./v6-manifest-projection.js";
 
-export const PRODUCTION_V6_MANIFEST_HASH =
-  "sha256:48897aa27ec03420a7241e1f4f2b6cf3c0c4ddda7b4b656be54f88979ae4c5d3" as const;
+export { PRODUCTION_V6_MANIFEST_HASH } from "./v6-manifest-projection.js";
 
 const hash = z.string().regex(/^sha256:[a-f0-9]{64}$/u)
   .transform((value): `sha256:${string}` => value as `sha256:${string}`);
@@ -22,7 +22,6 @@ export const DeviceCredentialSchema = z.object({
   device_id: z.string().min(1),
   device_epoch: z.number().int().positive(),
   credential: z.string().regex(/^aidc_v6_[A-Za-z0-9_-]{32,}$/u),
-  control_manifest_hash: z.literal(PRODUCTION_V6_MANIFEST_HASH),
   enrolled_at: z.string().datetime(),
 }).strict();
 

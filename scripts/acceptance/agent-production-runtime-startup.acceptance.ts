@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { createGptAbilityGroup } from "../../src/capabilities/gpt/index.js";
 import { createForensicsPersistenceAbilityGroupFromStorage } from "../../src/capabilities/forensics-persistence/index.js";
@@ -9,6 +11,10 @@ import { ProductionExecutor } from "../../src/lib/local-runtime/production/execu
 import { terminalSpanFailure } from "../../src/lib/local-runtime/production/runtime-logging.js";
 import { startProductionRuntime } from "../../src/lib/local-runtime/production/runtime.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
+import {
+  DeviceCredentialSchema,
+  PRODUCTION_V6_MANIFEST_HASH,
+} from "../../src/lib/local-runtime/production/transport-protocol.js";
 import {
   RuntimeFailureImpact,
   createRuntimeLogger,
@@ -19,9 +25,86 @@ import {
 } from "../../src/lib/runtime-logs/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import { executionFailure, typedExecutionFailure } from "../../src/lib/typed-failure.js";
+import { verifyProductionContractProjection } from "../startup/lib/production-contract-preflight.js";
 import { HASH_A, HASH_B, task } from "./agent-production-runtime-fixtures.js";
 import "./agent-production-runtime-recovery-contract.acceptance.js";
 import "./agent-production-runtime-recovery-resume.acceptance.js";
+
+const projectionTemporary = await mkdtemp(path.join(tmpdir(), "agent-production-projection-"));
+try {
+  const projection = JSON.parse(await readFile(new URL(
+    "../../docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json",
+    import.meta.url,
+  ), "utf8")) as Record<string, unknown>;
+  const manifest = JSON.parse(await readFile(new URL(
+    "../../../xuanxue-web/packages/ai-contracts/src/production-control/xuanxue-ai-production-v6.manifest.json",
+    import.meta.url,
+  ), "utf8")) as Record<string, unknown>;
+  const projectionPath = path.join(projectionTemporary, "projection.json");
+  const manifestPath = path.join(projectionTemporary, "manifest.json");
+  await Promise.all([
+    writeFile(projectionPath, JSON.stringify(projection), { mode: 0o600 }),
+    writeFile(manifestPath, JSON.stringify(manifest), { mode: 0o600 }),
+  ]);
+  assert.deepEqual(await verifyProductionContractProjection({
+    agentProjectionPath: projectionPath,
+    websiteManifestPath: manifestPath,
+  }), { status: "READY", manifestHash: PRODUCTION_V6_MANIFEST_HASH });
+
+  await writeFile(manifestPath, JSON.stringify({ ...manifest, lease_seconds: 91 }), { mode: 0o600 });
+  await assert.rejects(
+    verifyProductionContractProjection({
+      agentProjectionPath: projectionPath,
+      websiteManifestPath: manifestPath,
+    }),
+    /AI_PRODUCTION_MANIFEST_PROJECTION_MISMATCH/u,
+  );
+
+  const agentRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+  const websiteRoot = path.join(projectionTemporary, "website");
+  const canonicalManifestPath = path.join(
+    websiteRoot,
+    "packages/ai-contracts/src/production-control/xuanxue-ai-production-v6.manifest.json",
+  );
+  await mkdir(path.dirname(canonicalManifestPath), { recursive: true });
+  await writeFile(canonicalManifestPath, JSON.stringify({ ...manifest, lease_seconds: 91 }), { mode: 0o600 });
+  const enrollment = spawnSync(
+    process.execPath,
+    ["--import", "tsx", fileURLToPath(new URL("../startup/production-runtime-cloud-enroll.ts", import.meta.url))],
+    {
+      cwd: agentRoot,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        XUANSHU_WEBSITE_REPOSITORY_ROOT: websiteRoot,
+        AGENT_PRODUCTION_CLOUD_BASE_URL: "",
+        AGENT_PRODUCTION_ENROLLMENT_TOKEN: "",
+      },
+    },
+  );
+  const enrollmentOutput = `${enrollment.stdout}\n${enrollment.stderr}`;
+  assert.notEqual(enrollment.status, 0);
+  assert.match(enrollmentOutput, /AI_PRODUCTION_MANIFEST_PROJECTION_MISMATCH/u);
+  assert.doesNotMatch(enrollmentOutput, /PRODUCTION_ENROLLMENT_REQUIRED|PRODUCTION_ENROLLMENT_FAILED/u);
+
+  const device = {
+    protocol_version: "xuanxue-ai-production-v6",
+    server_base_url: "http://127.0.0.1:4322",
+    environment_id: "production",
+    origin: "http://127.0.0.1:4173",
+    device_id: "device:projection-owner-test",
+    device_epoch: 7,
+    credential: `aidc_v6_${"a".repeat(32)}`,
+    enrolled_at: new Date().toISOString(),
+  } as const;
+  assert.equal(DeviceCredentialSchema.parse(device).device_epoch, 7);
+  assert.throws(() => DeviceCredentialSchema.parse({
+    ...device,
+    control_manifest_hash: PRODUCTION_V6_MANIFEST_HASH,
+  }));
+} finally {
+  await rm(projectionTemporary, { recursive: true, force: true });
+}
 
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-production-startup-"));
 const previousCredentialPath = process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;

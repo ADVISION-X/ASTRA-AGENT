@@ -26,17 +26,19 @@ type LaneState = ReturnType<typeof createBrowserInfrastructureState>;
 type LaneRecovery = Readonly<{
   state: "DISPATCHED" | "CONFIRMED" | "REJECTED";
   effectScope: "target_local" | "provider_effect";
+  callId: string;
   targetRef: string;
   documentRef: string;
 }>;
 
 const recoveryMutationOutcome = (
   recovery: LaneRecovery | null,
-): "no" | "dispatched" | "confirmed" => recovery?.state === "DISPATCHED"
-  ? "dispatched"
-  : recovery?.state === "CONFIRMED"
-    ? "confirmed"
-    : "no";
+  currentCallId: string,
+): "no" | "dispatched" | "confirmed" => {
+  if (!recovery || recovery.callId !== currentCallId) return "no";
+  if (recovery.state === "DISPATCHED") return "dispatched";
+  return recovery.state === "CONFIRMED" ? "confirmed" : "no";
+};
 
 const hash = (value: string): boolean => /^sha256:[a-f0-9]{64}$/u.test(value);
 
@@ -230,7 +232,10 @@ export class BrowserLaneCoordinator {
         : lease;
       waiter.resolve(this.withLifecycle(governedLease, currentReplacementKey));
     } catch (error) {
-      const failure = browserExecutionFailure(error, recoveryMutationOutcome(recovery));
+      const failure = browserExecutionFailure(
+        error,
+        recoveryMutationOutcome(recovery, waiter.binding.callId),
+      );
       this.active = false;
       void this.pump();
       waiter.reject(failure);
@@ -284,6 +289,7 @@ export class BrowserLaneCoordinator {
     return Object.freeze({
       state: fact.outcome,
       effectScope: fact.effectScope,
+      callId: fact.callId,
       targetRef: fact.targetRef,
       documentRef: fact.documentRef,
     });

@@ -15,6 +15,10 @@ import { ensureCurrentBrowserRuntimeArtifact } from "./lib/browser-runtime-artif
 import { handleStartupBootstrapFailure } from "./lib/startup-failure-handler.mjs";
 import { createStartupLogHelpers } from "./lib/startup-log-helpers.mjs";
 import { parseFlags, registerSignalHandlers } from "./lib/startup-main-support.mjs";
+import {
+  productionContractProjectionPaths,
+  verifyProductionContractProjection,
+} from "./lib/production-contract-preflight.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
@@ -24,6 +28,9 @@ const baseUrl = `http://${host}:${port}`;
 const expectedSourceFingerprint = buildStartupSourceFingerprint(rootDir);
 const startupRunId = new Date().toISOString();
 const startupDataDir = process.env.GRASSEYE_DATA_DIR ?? path.join(rootDir, ".grasseye-local");
+const websiteRootDir = path.resolve(
+  process.env.XUANSHU_WEBSITE_REPOSITORY_ROOT?.trim() || path.join(rootDir, "..", "xuanxue-web"),
+);
 const {
   toFailureReason,
   startStartupStep,
@@ -50,6 +57,15 @@ async function ensureDependencies(root) {
   }
 
   completeStartupStep("dependency_check");
+}
+
+async function verifyProductionContract(root) {
+  startStartupStep("production_contract_preflight");
+  await verifyProductionContractProjection(productionContractProjectionPaths({
+    agentRoot: root,
+    websiteRoot: websiteRootDir,
+  }));
+  completeStartupStep("production_contract_preflight");
 }
 
 async function runUpdatePreflight(root, flags) {
@@ -162,6 +178,7 @@ function classifyServiceExit(exit, shuttingDown) {
 }
 
 async function performLaunch(flags, root, onServiceStarted) {
+  await verifyProductionContract(root);
   await ensureDependencies(root);
   await runUpdatePreflight(root, flags);
   await clearWorkbenchPort();

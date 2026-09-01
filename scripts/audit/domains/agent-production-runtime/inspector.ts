@@ -8,7 +8,7 @@ import { recordStaticCheck } from "../../shared/static-inspection-contract.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
 
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V23";
+const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V24";
 const PLUGIN_ROOT = "src/plugins";
 const CATALOG_PATH = "src/lib/local-runtime/production/catalog.ts";
 const CONTRACT_PATH = "src/lib/local-runtime/production/contracts.ts";
@@ -28,6 +28,9 @@ const STORE_TASK_STATE_PATH = "src/lib/local-runtime/production/store-task-state
 const CLOUD_RECONCILIATION_PATH =
   "src/lib/local-runtime/production/cloud-reconciliation-client.ts";
 const TRANSPORT_PROTOCOL_PATH = "src/lib/local-runtime/production/transport-protocol.ts";
+const MANIFEST_PROJECTION_PATH = "src/lib/local-runtime/production/v6-manifest-projection.ts";
+const WORKER_SESSION_PATH = "src/lib/local-runtime/production/worker-session.ts";
+const CLOUD_ENROLL_PATH = "scripts/startup/production-runtime-cloud-enroll.ts";
 const STORE_OUTBOX_PATH = "src/lib/local-runtime/production/store-outbox.ts";
 const V6_DEPENDENCY_PATH =
   "docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json";
@@ -515,6 +518,9 @@ const inspectAgentTypes = (context: InspectorContext, findings: InspectorFinding
 const inspectAgentContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const contracts = read(context, CONTRACT_PATH);
   const transport = read(context, TRANSPORT_PROTOCOL_PATH);
+  const projectionSource = read(context, MANIFEST_PROJECTION_PATH);
+  const workerSession = read(context, WORKER_SESSION_PATH);
+  const cloudEnroll = read(context, CLOUD_ENROLL_PATH);
   const dependency = JSON.parse(read(context, V6_DEPENDENCY_PATH)) as Record<string, unknown>;
   const dependencyContract = dependency.contract as Record<string, unknown> | undefined;
   for (const required of [
@@ -532,20 +538,54 @@ const inspectAgentContracts = (context: InspectorContext, findings: InspectorFin
     ));
   if (dependency.version !== 13 || dependencyContract?.version !== 13
     || dependencyContract.contractId !== "ai-acceptance.xuanxue-ai-production-v6"
+    || dependencyContract.authorityArtifact !== "packages/ai-contracts/src/production-control/xuanxue-ai-production-v6.manifest.json"
+    || dependencyContract.generatedBy !== "scripts/generate/sync-xuanxue-ai-production-v6-agent-projection.ts"
+    || dependencyContract.hashAlgorithm !== "JCS-SHA-256"
+    || typeof dependencyContract.manifestHash !== "string"
+    || !/^sha256:[a-f0-9]{64}$/u.test(dependencyContract.manifestHash)
+    || dependencyContract.providerRepo !== "ADVISION-X/xuanxue-web"
     || dependency.lawIds === undefined
     || JSON.stringify(dependency.lawIds) !== JSON.stringify([LAW_ID])) findings.push(finding(
     "agent-production-runtime/v13-website-dependency",
     V6_DEPENDENCY_PATH,
-    "AGENT must consume the single Website V13 contract under the existing V23 law identity.",
+    "AGENT must consume the generated projection of the single Website V13 contract under V24.",
     "static.contract",
   ));
-  if (!transport.includes(
-    '"sha256:48897aa27ec03420a7241e1f4f2b6cf3c0c4ddda7b4b656be54f88979ae4c5d3" as const',
-  )) findings.push(finding(
-    "agent-production-runtime/v13-manifest-pin",
-    TRANSPORT_PROTOCOL_PATH,
-    "AGENT transport must pin the exact Website V13 manifest hash.", "static.contract",
-  ));
+  if (!transport.includes('from "./v6-manifest-projection.js"')
+    || !projectionSource.includes("xuanxue-ai-production-v6.dependency.spec.json")
+    || !projectionSource.includes("export const PRODUCTION_V6_MANIFEST_HASH")
+    || /sha256:[a-f0-9]{64}/u.test(transport)
+    || transport.includes("control_manifest_hash: z.literal(PRODUCTION_V6_MANIFEST_HASH),\n  enrolled_at")) {
+    findings.push(finding(
+      "agent-production-runtime/generated-manifest-projection",
+      TRANSPORT_PROTOCOL_PATH,
+      "AGENT transport must consume the generated Website projection and device credentials must not own a manifest hash.",
+      "static.contract",
+    ));
+  }
+  const enrollmentPreflight = cloudEnroll.indexOf("await verifyProductionContractProjection(");
+  const enrollmentMutation = cloudEnroll.indexOf("await enrollProductionDevice()");
+  if (enrollmentPreflight < 0 || enrollmentMutation < 0 || enrollmentPreflight >= enrollmentMutation
+    || cloudEnroll.includes("projectionVerified")) {
+    findings.push(finding(
+      "agent-production-runtime/enrollment-contract-preflight",
+      CLOUD_ENROLL_PATH,
+      "Cloud enrollment must verify the Website manifest projection before the first enrollment action and expose no bypass.",
+      "static.contract",
+    ));
+  }
+  const heartbeat = workerSession.slice(
+    workerSession.indexOf("private async performHeartbeat"),
+    workerSession.indexOf("public async ensureFreshAttestation"),
+  );
+  if (heartbeat.includes("control_manifest_hash")) {
+    findings.push(finding(
+      "agent-production-runtime/heartbeat-inherits-session-contract",
+      WORKER_SESSION_PATH,
+      "Heartbeat must inherit the authenticated session contract and must not redeclare a manifest hash.",
+      "static.contract",
+    ));
+  }
 };
 
 const inspectAgentDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {

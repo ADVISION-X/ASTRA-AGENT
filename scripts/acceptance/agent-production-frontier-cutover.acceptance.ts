@@ -277,7 +277,7 @@ try {
     provider: originCopyProvider, current_checkpoint: null,
     lane_version: 0, lane_owner_job_id: null,
   });
-  store.setCurrentReason(unresolvedTask.job_id, "GPT_CONTINUATION_CUTOVER_ARTIFACT_UNRESOLVED");
+  store.setCurrentReason(unresolvedTask.job_id, "POST_SUBMIT_READBACK_FAULT");
   store.recordLease({
     jobId: unresolvedTask.job_id, attemptId: unresolvedAttemptId, leaseVersion: 1,
     fenceHash: HASH_A, state: "active", expiresAt: new Date(Date.now() + 60_000).toISOString(),
@@ -285,6 +285,17 @@ try {
   store.recordCheckpoint({
     jobId: unresolvedTask.job_id, attemptId: unresolvedAttemptId,
     checkpointId: "checkpoint:stale-cutover", checkpointHash: HASH_B, state: "persisted",
+  });
+  assert.equal(reconcileTaskRecord({ store } as never, store.readTask(unresolvedTask.job_id)!), true);
+  assert.equal(
+    store.readTask(unresolvedTask.job_id)?.current_reason,
+    "POST_SUBMIT_READBACK_FAULT",
+    "startup must preserve the exact post-submit readback reason instead of replacing it with a restart label",
+  );
+  store.setCurrentReason(unresolvedTask.job_id, "GPT_CONTINUATION_CUTOVER_ARTIFACT_UNRESOLVED");
+  store.recordLease({
+    jobId: unresolvedTask.job_id, attemptId: unresolvedAttemptId, leaseVersion: 1,
+    fenceHash: HASH_A, state: "active", expiresAt: new Date(Date.now() + 60_000).toISOString(),
   });
   assert.equal(reconcileTaskRecord({ store } as never, store.readTask(unresolvedTask.job_id)!), true,
     "a task-local cutover failure must not invalidate the global reconciliation baseline");

@@ -461,9 +461,62 @@ try {
     evidence_ref: null, evidence_hash: null, cause: null,
   });
   const nextAttemptId = "attempt:artifact-readback-terminal:2";
-  const recoveryTask = Object.freeze({ ...providerTask, continuation_ref: continuationRef as string });
+  const recoveryTask = providerTask;
   store.acceptTask(recoveryTask, identityFor(recoveryTask), nextAttemptId);
-  let capturedRecoveryBinding: BrowserExecutionBinding | null = null;
+  const storedContinuation = store.readGptContinuation(continuationRef as string);
+  assert(storedContinuation);
+  const locatorCall = Object.freeze({
+    sessionKey: "session:task-exact-effect-locator",
+    productStepId: imageSubmitCall.productStepId,
+    callId: "submission-reconcile",
+    child: "reconcile_gpt_turn_submission" as const,
+    actionOrdinal: 43,
+    input: Object.freeze({
+      expectedPromptHash: imageSubmitCall.input.promptHash,
+      timeoutMs: 60_000,
+      turnMarker: imageSubmitCall.input.turnMarker,
+    }),
+  });
+  const locatorIdentity = {
+    jobId: providerTask.job_id, attemptId: nextAttemptId,
+    pluginId: "public-knowledge-article-pipeline", pluginVersion: 16,
+    productStepId: locatorCall.productStepId, callId: locatorCall.callId,
+    childCapabilityId: locatorCall.child, inputHash: hashCanonical(locatorCall.input),
+  } as const;
+  const locatorExactHash = gptExactCallIdentityHash(locatorIdentity);
+  const locatorUserTurnId = "conversation-turn-4";
+  const locatorConversationIdentityHash = digest(
+    `${storedContinuation.provider.provider_page_url}\n${imageSubmitCall.input.turnMarker}\n${locatorUserTurnId}\n${imageSubmitCall.input.promptHash}`,
+  );
+  await persistGptChildEvidence({
+    intent: {
+      ...locatorIdentity, executionId: `gpt-call:${locatorExactHash.slice(7)}`,
+      actionOrdinal: locatorCall.actionOrdinal, input: locatorCall.input,
+    },
+    evidenceStore, jobId: providerTask.job_id, attemptId: nextAttemptId,
+    stepId: locatorCall.productStepId, exactCallIdentityHash: locatorExactHash,
+    result: {
+      status: "success", failureCode: null, failureCause: null,
+      value: {
+        canonicalConversationUrl: storedContinuation.provider.provider_page_url,
+        turnMarker: imageSubmitCall.input.turnMarker,
+        userTurnId: locatorUserTurnId,
+        promptHash: imageSubmitCall.input.promptHash,
+        conversationIdentityHash: locatorConversationIdentityHash,
+      },
+      proof: {
+        schemaVersion: "gpt-child-capability-proof.v2",
+        ...locatorIdentity, executionId: `gpt-call:${locatorExactHash.slice(7)}`,
+        actionOrdinal: locatorCall.actionOrdinal,
+        targetRefHash: HASH_A, beforeDocumentRefHash: HASH_A, afterDocumentRefHash: HASH_A,
+        candidateCount: 1, observedSemantics: ["durable submission locator"],
+        committedMutation: "no", postconditionResult: "passed",
+        startedAt: submittedAt, endedAt: submittedAt,
+        evidenceRef: "browser:prior-image-submission-locator", evidenceHash: HASH_B,
+      },
+    },
+  });
+  const capturedRecoveryBinding = { value: null as BrowserExecutionBinding | null };
   const exactEffectAuthority = Object.assign(Object.create(null) as WorkbenchBrowserAuthority, {
     readExactCallMutationFact: (query: Readonly<{
       attemptId: string; exactCallIdentityHash: `sha256:${string}`;
@@ -482,7 +535,7 @@ try {
       : null,
     countProviderTurnDispatches: () => 0,
     acquireJobBoundTargetLease: async (binding: BrowserExecutionBinding) => {
-      capturedRecoveryBinding = binding;
+      capturedRecoveryBinding.value = binding;
       throw new Error("CAPTURED_TASK_EXACT_EFFECT_BROWSER_BINDING");
     },
   });
@@ -507,8 +560,7 @@ try {
   assert.equal(taskFacts.exactCallIdentityHash, priorSubmitHash);
   assert.equal(taskFacts.mutation?.outcome, "CONFIRMED");
   assert.equal(taskFacts.evidence?.readbackVerified, true);
-  const storedContinuation = store.readGptContinuation(continuationRef as string);
-  assert(storedContinuation);
+  await nextExecution.tools.execute(locatorCall);
   await assert.rejects(
     nextExecution.tools.execute({
       sessionKey: "session:task-exact-effect-readback",
@@ -518,19 +570,21 @@ try {
       actionOrdinal: 43,
       input: { canonicalConversationUrl: storedContinuation.provider.provider_page_url },
     }),
-    /CAPTURED_TASK_EXACT_EFFECT_BROWSER_BINDING/u,
+    (error) => error instanceof Error && error.cause instanceof Error
+      && error.cause.message === "CAPTURED_TASK_EXACT_EFFECT_BROWSER_BINDING",
   );
-  assert.equal(capturedRecoveryBinding?.kind, "production-reconciliation",
+  assert.equal(capturedRecoveryBinding.value?.kind, "production-reconciliation",
     "only the unique Browser CONFIRMED plus Forensics passed fact may project a reconciliation binding");
-  if (capturedRecoveryBinding?.kind !== "production-reconciliation") {
+  const captured = capturedRecoveryBinding.value;
+  if (captured?.kind !== "production-reconciliation") {
     throw new Error("CONFIRMED_PROVIDER_READBACK_BINDING_MISSING");
   }
-  assert.equal(capturedRecoveryBinding.confirmedProviderReadback.sourceExactCallIdentityHash, priorSubmitHash);
-  assert.equal(capturedRecoveryBinding.confirmedProviderReadback.evidenceRef, taskFacts.evidence?.evidenceRef);
-  assert.equal(capturedRecoveryBinding.confirmedProviderReadback.canonicalConversationUrl,
+  assert.equal(captured.confirmedProviderReadback.sourceExactCallIdentityHash, priorSubmitHash);
+  assert.equal(captured.confirmedProviderReadback.evidenceRef, taskFacts.evidence?.evidenceRef);
+  assert.equal(captured.confirmedProviderReadback.canonicalConversationUrl,
     storedContinuation.provider.provider_page_url);
-  assert.equal(capturedRecoveryBinding.confirmedProviderReadback.promptHash, imageSubmitCall.input.promptHash);
-  assert.equal(capturedRecoveryBinding.confirmedProviderReadback.turnMarker, imageSubmitCall.input.turnMarker);
+  assert.equal(captured.confirmedProviderReadback.promptHash, imageSubmitCall.input.promptHash);
+  assert.equal(captured.confirmedProviderReadback.turnMarker, imageSubmitCall.input.turnMarker);
   await nextExecution.settle(null);
   await normalExecution.settle(null);
 

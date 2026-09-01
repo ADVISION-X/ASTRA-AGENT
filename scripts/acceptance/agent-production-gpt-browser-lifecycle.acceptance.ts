@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { ProductionGptBrowserLifecycle } from "../../src/lib/local-runtime/production/production-gpt-browser-lifecycle.js";
+import type { BrowserExecutionBinding } from "../../src/lib/browser/browser-authority-api.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { typedExecutionFailure } from "../../src/lib/typed-failure.js";
 import { HASH_A, HASH_B, task } from "./agent-production-runtime-fixtures.js";
@@ -112,6 +113,78 @@ try {
     ["gpt.child", "gpt-call", "corpus_research", "text-wait:wait_for_stable_gpt_text"],
     ["gpt.child", "gpt-call", "corpus_research", "image-wait:wait_for_stable_gpt_image"],
   ]);
+
+  const readbackBindings: BrowserExecutionBinding[] = [];
+  const readbackParks: Array<Readonly<{ reason: string; mode: string }>> = [];
+  let readbackAcquisitions = 0;
+  const readbackLifecycle = new ProductionGptBrowserLifecycle(
+    {
+      acquireJobBoundTargetLease: async (binding: BrowserExecutionBinding) => {
+        readbackBindings.push(binding);
+        readbackAcquisitions += 1;
+        return {
+          target: { targetRef: `target:confirmed-readback:${readbackAcquisitions}` },
+          document: { documentRef: `document:confirmed-readback:${readbackAcquisitions}` },
+          pendingMutationCount: () => 0,
+          requiresMutationRecovery: () => false,
+          park: async (input: Readonly<{ reason: string; mode: string }>) => {
+            readbackParks.push(input);
+          },
+          close: async () => undefined,
+        };
+      },
+    } as never,
+    runtimeLogger,
+    HASH_A,
+    {
+      task: waitTask,
+      pluginId: "payment-screenshot-observation",
+      pluginVersion: 1,
+      lease: {
+        attempt_id: "attempt:confirmed-readback-scope",
+        device_id: "device:1",
+        lease_version: 1,
+        execution_fence_hash: HASH_A,
+        control_manifest_hash: HASH_B,
+        max_provider_turns: 2,
+        provider_turns_used: 1,
+        expires_at_monotonic: performance.now() + 10_000,
+        command_ttl_ms: 1_000,
+        abort_signal: new AbortController().signal,
+      },
+    },
+  );
+  readbackLifecycle.authorizeConfirmedProviderReadback({
+    schemaVersion: "browser-confirmed-provider-readback.v1",
+    sourceAttemptId: "attempt:confirmed-readback-scope",
+    sourceExactCallIdentityHash: HASH_A,
+    sourceActionOrdinal: 12,
+    sourceProductStepId: "corpus_research",
+    sourceCallId: "turn-submit",
+    sourceChildCapabilityId: "submit_exact_gpt_turn_once",
+    sourceTargetRef: "target:confirmed-readback:source",
+    sourceDocumentRef: "document:confirmed-readback:source",
+    sourceTerminalAt: new Date().toISOString(),
+    evidenceRef: "evidence:confirmed-readback",
+    evidenceHash: HASH_B,
+    canonicalConversationUrl: "https://chatgpt.com/c/confirmed-readback-scope",
+    conversationIdentityHash: HASH_A,
+    promptHash: HASH_A,
+    turnMarker: "[GRASSEYE:confirmed-readback-scope]",
+  });
+  await readbackLifecycle.browserFor(
+    "session:confirmed-readback", "corpus_research", "text-wait",
+  );
+  await readbackLifecycle.browserFor(
+    "session:next-product-step", "article_draft", "draft-submit",
+  );
+  assert.deepEqual(readbackBindings.map((binding) => binding.kind), [
+    "production-reconciliation", "production",
+  ], "confirmed-readback authority must end before the next Product step");
+  assert.deepEqual(readbackParks, [{
+    reason: "gpt-confirmed-provider-readback-complete", mode: "normal-provider-wait",
+  }]);
+  await readbackLifecycle.settle(null);
 
   const cleanupError = new Error("TEST_REACQUIRED_TARGET_CLOSE_FAILED");
   const originalBrowser = {

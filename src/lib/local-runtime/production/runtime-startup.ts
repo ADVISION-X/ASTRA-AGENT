@@ -160,10 +160,6 @@ export const reconcileTaskRecord = (
     ? state.store.recordLease({ ...storedLease, state: "stale", expiresAt: null }) : storedLease;
   const checkpoint = state.store.readCheckpoint(persisted.task.job_id);
   const remoteRedeliveryPending = state.store.hasUnsentOutbox(persisted.task.job_id);
-  if (nonterminal && lease?.state === "stale" && checkpoint && !persisted.staged_result
-    && !persisted.current_reason?.startsWith("GPT_CONTINUATION_CUTOVER_")) {
-    state.store.setCurrentReason(persisted.task.job_id, "AGENT_PROCESS_RESTARTED");
-  }
   if (nonterminal && persisted.current_reason?.startsWith("GPT_CONTINUATION_CUTOVER_")) {
     return true;
   }

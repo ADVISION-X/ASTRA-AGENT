@@ -18,6 +18,7 @@ import {
 import { persistGptChildEvidence } from "../../src/lib/local-runtime/production/gpt-evidence-writer.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import type { WorkbenchBrowserAuthority } from "../../src/lib/local-runtime/workbench-browser-authority-support.js";
+import type { BrowserExecutionBinding } from "../../src/lib/browser/browser-authority-api.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import { HASH_A, HASH_B, identityFor, task } from "./agent-production-runtime-fixtures.js";
@@ -81,6 +82,24 @@ const submissionLocatorScenario = () => {
   const attemptId = "attempt:submission-locator-restart";
   const promptHash = HASH_A;
   const turnMarker = "[GRASSEYE:submission-locator-restart]";
+  const submitCall = Object.freeze({
+    productStepId: "corpus_research",
+    callId: "turn-submit",
+    child: "submit_exact_gpt_turn_once" as const,
+    actionOrdinal: 12,
+    input: Object.freeze({ promptHash, turnMarker }),
+  });
+  const submitIdentity = Object.freeze({
+    jobId: providerTask.job_id,
+    attemptId,
+    pluginId: "public-knowledge-article-pipeline",
+    pluginVersion: 16,
+    productStepId: submitCall.productStepId,
+    callId: submitCall.callId,
+    childCapabilityId: submitCall.child,
+    inputHash: hashCanonical(submitCall.input),
+  });
+  const submitExactCallIdentityHash = gptExactCallIdentityHash(submitIdentity);
   const locatorCall = Object.freeze({
     sessionKey: "",
     productStepId: "corpus_research",
@@ -104,8 +123,9 @@ const submissionLocatorScenario = () => {
   const userTurnId = "conversation-turn-3";
   const conversationIdentityHash = `sha256:${createHash("sha256")
     .update(`${locatorUrl}\n${turnMarker}\n${userTurnId}\n${promptHash}`).digest("hex")}` as const;
-  return { providerTask, attemptId, promptHash, turnMarker, locatorCall, identity,
-    exactCallIdentityHash, locatorUrl, userTurnId, conversationIdentityHash };
+  return { providerTask, attemptId, promptHash, turnMarker, submitCall, submitIdentity,
+    submitExactCallIdentityHash, locatorCall, identity, exactCallIdentityHash,
+    locatorUrl, userTurnId, conversationIdentityHash };
 };
 
 type SubmissionScenario = ReturnType<typeof submissionLocatorScenario>;
@@ -156,6 +176,51 @@ const persistSubmissionLocator = async (
   });
 };
 
+const persistConfirmedSubmit = async (
+  evidence: ForensicsPersistenceAbilityGroup,
+  scenario: SubmissionScenario,
+): Promise<string> => {
+  const timestamp = new Date().toISOString();
+  const executionId = `gpt-call:${scenario.submitExactCallIdentityHash.slice(7)}`;
+  const persisted = await persistGptChildEvidence({
+    intent: {
+      ...scenario.submitIdentity,
+      executionId,
+      actionOrdinal: scenario.submitCall.actionOrdinal,
+      input: scenario.submitCall.input,
+    },
+    evidenceStore: evidence,
+    jobId: scenario.providerTask.job_id,
+    attemptId: scenario.attemptId,
+    stepId: scenario.submitCall.productStepId,
+    exactCallIdentityHash: scenario.submitExactCallIdentityHash,
+    result: {
+      status: "success",
+      failureCode: null,
+      failureCause: null,
+      value: null,
+      proof: {
+        schemaVersion: "gpt-child-capability-proof.v2",
+        ...scenario.submitIdentity,
+        executionId,
+        actionOrdinal: scenario.submitCall.actionOrdinal,
+        targetRefHash: HASH_A,
+        beforeDocumentRefHash: HASH_A,
+        afterDocumentRefHash: HASH_A,
+        candidateCount: 1,
+        observedSemantics: ["confirmed submit"],
+        committedMutation: "confirmed",
+        postconditionResult: "passed",
+        startedAt: timestamp,
+        endedAt: timestamp,
+        evidenceRef: "browser:confirmed-submit",
+        evidenceHash: HASH_B,
+      },
+    },
+  });
+  return persisted.evidenceRef;
+};
+
 const replaySubmissionLocator = async (input: Readonly<{
   root: string;
   evidence: ForensicsPersistenceAbilityGroup;
@@ -204,6 +269,156 @@ const exerciseSubmissionLocatorRestart = async (): Promise<void> => {
       root, store, scenario,
       evidence: createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(root)),
     });
+  } finally {
+    store.close();
+    await rm(root, { recursive: true, force: true });
+  }
+};
+
+const exerciseFreshConfirmedSubmitLocatorRestart = async (): Promise<void> => {
+  const root = await mkdtemp(path.join(tmpdir(), "agent-fresh-confirmed-submit-restart-"));
+  const scenario = submissionLocatorScenario();
+  const store = new ProductionRuntimeStore(root);
+  try {
+    assert.equal(scenario.providerTask.continuation_ref ?? null, null);
+    store.acceptTask(scenario.providerTask, identityFor(scenario.providerTask), scenario.attemptId);
+    const evidence = createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(root));
+    const evidenceRef = await persistConfirmedSubmit(evidence, scenario);
+    await persistSubmissionLocator(evidence, scenario);
+    const captured = { value: null as BrowserExecutionBinding | null };
+    let providerDispatchReads = 0;
+    let browserAcquisitions = 0;
+    const authority = Object.assign(Object.create(null) as WorkbenchBrowserAuthority, {
+      readExactCallMutationFact: (query: Readonly<{
+        attemptId: string;
+        exactCallIdentityHash: `sha256:${string}`;
+      }>) => query.attemptId === scenario.attemptId
+        && query.exactCallIdentityHash === scenario.submitExactCallIdentityHash
+        ? {
+          effectScope: "provider_effect" as const,
+          outcome: "CONFIRMED" as const,
+          terminalAt: new Date().toISOString(),
+          targetRef: "target:fresh-confirmed-submit",
+          documentRef: "document:fresh-confirmed-submit",
+          productStepId: scenario.submitCall.productStepId,
+          callId: scenario.submitCall.callId,
+          childCapabilityId: scenario.submitCall.child,
+          actionOrdinal: scenario.submitCall.actionOrdinal,
+        }
+        : null,
+      countProviderTurnDispatches: () => { providerDispatchReads += 1; return 0; },
+      acquireJobBoundTargetLease: async (binding: BrowserExecutionBinding) => {
+        browserAcquisitions += 1;
+        captured.value = binding;
+        throw new Error("CAPTURED_FRESH_CONFIRMED_READBACK_BINDING");
+      },
+    });
+    const execution = continuationExecution({
+      root, evidence, authority, store,
+      providerTask: scenario.providerTask,
+      attemptId: scenario.attemptId,
+      leaseVersion: 2,
+    });
+    const submitFacts = await execution.tools.readCallFacts(scenario.submitCall);
+    assert.equal(submitFacts.mutation?.outcome, "CONFIRMED");
+    assert.equal(submitFacts.evidence?.evidenceRef, evidenceRef);
+    assert.equal(submitFacts.evidence?.readbackVerified, true);
+    await execution.tools.execute(scenario.locatorCall);
+    assert.equal(browserAcquisitions, 0, "durable locator replay must happen before Browser acquisition");
+    await assert.rejects(
+      execution.tools.execute({
+        sessionKey: "session:fresh-confirmed-readback",
+        productStepId: scenario.submitCall.productStepId,
+        callId: "text-wait",
+        child: "wait_for_stable_gpt_text",
+        actionOrdinal: 14,
+        input: {
+          absoluteDeadline: new Date(Date.now() + 60_000).toISOString(),
+          canonicalConversationUrl: scenario.locatorUrl,
+          expectedPromptHash: scenario.promptHash,
+          turnMarker: scenario.turnMarker,
+        },
+      }),
+      (error) => error instanceof Error && error.cause instanceof Error
+        && error.cause.message === "CAPTURED_FRESH_CONFIRMED_READBACK_BINDING",
+    );
+    const binding = captured.value;
+    assert.equal(binding?.kind, "production-reconciliation");
+    if (binding?.kind !== "production-reconciliation") {
+      throw new Error("FRESH_CONFIRMED_PROVIDER_READBACK_BINDING_MISSING");
+    }
+    assert.equal(binding.attemptId, scenario.attemptId);
+    assert.equal(binding.callId, "text-wait");
+    assert.equal(binding.confirmedProviderReadback.sourceExactCallIdentityHash,
+      scenario.submitExactCallIdentityHash);
+    assert.equal(binding.confirmedProviderReadback.canonicalConversationUrl, scenario.locatorUrl);
+    assert.equal(binding.confirmedProviderReadback.conversationIdentityHash,
+      scenario.conversationIdentityHash);
+    assert.equal(providerDispatchReads, 0, "readback resume must not enter submit budget or dispatch");
+    await execution.settle(null);
+  } finally {
+    store.close();
+    await rm(root, { recursive: true, force: true });
+  }
+};
+
+const exerciseFreshConfirmedSubmitMissingLocator = async (): Promise<void> => {
+  const root = await mkdtemp(path.join(tmpdir(), "agent-fresh-confirmed-submit-missing-locator-"));
+  const scenario = submissionLocatorScenario();
+  const store = new ProductionRuntimeStore(root);
+  try {
+    store.acceptTask(scenario.providerTask, identityFor(scenario.providerTask), scenario.attemptId);
+    const evidence = createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(root));
+    await persistConfirmedSubmit(evidence, scenario);
+    const captured = { value: null as BrowserExecutionBinding | null };
+    let providerDispatchReads = 0;
+    const terminalAt = new Date().toISOString();
+    const authority = Object.assign(Object.create(null) as WorkbenchBrowserAuthority, {
+      readExactCallMutationFact: (query: Readonly<{
+        attemptId: string;
+        exactCallIdentityHash: `sha256:${string}`;
+      }>) => query.attemptId === scenario.attemptId
+        && query.exactCallIdentityHash === scenario.submitExactCallIdentityHash
+        ? {
+          effectScope: "provider_effect" as const,
+          outcome: "CONFIRMED" as const,
+          terminalAt,
+          targetRef: "target:fresh-confirmed-submit",
+          documentRef: "document:fresh-confirmed-submit",
+          productStepId: scenario.submitCall.productStepId,
+          callId: scenario.submitCall.callId,
+          childCapabilityId: scenario.submitCall.child,
+          actionOrdinal: scenario.submitCall.actionOrdinal,
+        }
+        : null,
+      countProviderTurnDispatches: () => { providerDispatchReads += 1; return 0; },
+      acquireJobBoundTargetLease: async (binding: BrowserExecutionBinding) => {
+        captured.value = binding;
+        throw new Error("MISSING_LOCATOR_READBACK_BLOCKED");
+      },
+    });
+    const execution = continuationExecution({
+      root, evidence, authority, store,
+      providerTask: scenario.providerTask,
+      attemptId: scenario.attemptId,
+      leaseVersion: 2,
+    });
+    assert.equal((await execution.tools.readCallFacts(scenario.submitCall)).mutation?.outcome,
+      "CONFIRMED");
+    await assert.rejects(
+      execution.tools.execute({
+        ...scenario.locatorCall,
+        sessionKey: "session:missing-submission-locator",
+      }),
+      (error) => error instanceof Error && error.cause instanceof Error
+        && error.cause.message === "MISSING_LOCATOR_READBACK_BLOCKED",
+    );
+    assert.equal(captured.value?.kind, "production",
+      "without a durable locator Runtime must not grant confirmed-provider replacement authority");
+    assert.equal(captured.value?.callId, "submission-reconcile");
+    assert.equal(providerDispatchReads, 0,
+      "a missing locator must fail closed without entering submit budget or repeating submit");
+    await execution.settle(null);
   } finally {
     store.close();
     await rm(root, { recursive: true, force: true });
@@ -287,4 +502,6 @@ const exerciseContinuationRebuild = async (): Promise<void> => {
 };
 
 await exerciseSubmissionLocatorRestart();
+await exerciseFreshConfirmedSubmitLocatorRestart();
+await exerciseFreshConfirmedSubmitMissingLocator();
 await exerciseContinuationRebuild();

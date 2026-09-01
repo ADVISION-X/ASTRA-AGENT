@@ -1,7 +1,5 @@
 import {
   GPT_CHILD_CAPABILITY_CONTRACTS,
-  canonicalGptConversationUrl,
-  gptContinuationIdentityHash,
   gptExactCallIdentityHash,
   type GptAbilityGroup,
   type GptChildCapabilityIntent,
@@ -19,7 +17,7 @@ import {
 import { executionFailure, failureCode, typedExecutionFailure } from "../../typed-failure.js";
 import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-support.js";
 import type { BrowserConfirmedProviderReadbackAuthorization } from "../../browser/browser-authority-api.js";
-import { hashCanonical, type ProductionHash, type WebsiteAgentTask } from "./contracts.js";
+import { hashCanonical, sha256, type ProductionHash, type WebsiteAgentTask } from "./contracts.js";
 import type {
   ExactGptCallFacts,
   ExactGptContinuationQuery,
@@ -46,12 +44,27 @@ import {
 } from "./production-gpt-call-facts.js";
 import { ProductionGptContinuationReadback } from "./production-gpt-continuation-readback.js";
 import { readCompletedGptChildResult } from "./production-gpt-completed-result.js";
+import { gptSubmissionLocatorArtifact } from "./gpt-artifact-contract.js";
 type ExecutionInput = Readonly<{
   task: WebsiteAgentTask;
   pluginId: string;
   pluginVersion: number;
   lease: ProductionExecutionLease;
   parentSpanId: string;
+}>;
+type ConfirmedProviderSubmitReceipt = Readonly<{
+  sourceAttemptId: string;
+  sourceExactCallIdentityHash: ProductionHash;
+  sourceActionOrdinal: number;
+  sourceProductStepId: string;
+  sourceCallId: string;
+  sourceTargetRef: string;
+  sourceDocumentRef: string;
+  sourceTerminalAt: string;
+  evidenceRef: string;
+  evidenceHash: ProductionHash;
+  promptHash: ProductionHash;
+  turnMarker: string;
 }>;
 export type ProductGptExecution = Readonly<{
   tools: ProductGptTools;
@@ -95,7 +108,21 @@ export class ProductionGptChildTools {
       input,
     );
     let continuationRef: string | null = input.task.continuation_ref ?? null;
+    let confirmedProviderSubmit: ConfirmedProviderSubmitReceipt | null = null;
     const observedCalls = new Map<string, ProductGptCallInput & Readonly<{ sessionKey: string }>>();
+    const readCallFacts = async (call: ProductGptFactQuery): Promise<ExactGptCallFacts> => {
+      const facts = await this.readCallFacts(input, call);
+      const receipt = this.confirmedProviderSubmitReceipt(call, facts);
+      if (receipt) {
+        if (confirmedProviderSubmit
+          && confirmedProviderSubmit.sourceProductStepId === receipt.sourceProductStepId
+          && hashCanonical(confirmedProviderSubmit) !== hashCanonical(receipt)) {
+          throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
+        }
+        confirmedProviderSubmit = receipt;
+      }
+      return facts;
+    };
     const execute = async (call: Parameters<ProductGptTools["execute"]>[0]): Promise<ProductGptChildResult> => {
       if (input.lease.abort_signal.aborted) {
         throw executionFailure("failed", typeof input.lease.abort_signal.reason === "string"
@@ -103,6 +130,12 @@ export class ProductionGptChildTools {
       }
       observedCalls.set(hashCanonical(call), call);
       const result = await this.executeOne(input, browsers, call);
+      this.authorizeConfirmedProviderReadback(
+        browsers,
+        call,
+        result,
+        confirmedProviderSubmit,
+      );
       if (call.child === "persist_gpt_continuation" && result.value
         && typeof result.value === "object" && !Array.isArray(result.value)) {
         const value = Reflect.get(result.value, "continuationRef");
@@ -119,13 +152,12 @@ export class ProductionGptChildTools {
         readContinuationExact: (query: ExactGptContinuationQuery) =>
           this.continuationReadback.readExact(input, query),
         execute,
-        readCallFacts: (call: Parameters<ProductGptTools["readCallFacts"]>[0]) =>
-          this.readCallFacts(input, browsers, call),
+        readCallFacts,
       }),
       continuationRef: () => continuationRef,
       reconcilePermanentCancellation: async () => {
         for (const call of observedCalls.values()) {
-          const facts = await this.readCallFacts(input, browsers, call);
+          const facts = await readCallFacts(call);
           if (facts.mutation?.outcome !== "DISPATCHED") continue;
           const remaining = Math.floor(input.lease.expires_at_monotonic - performance.now());
           if (remaining < 1) throw executionFailure("failed", "V6_DEADLINE_BUDGET_EXHAUSTED");
@@ -168,14 +200,11 @@ export class ProductionGptChildTools {
   }
   private async readCallFacts(
     execution: ExecutionInput,
-    browsers: ProductionGptBrowserLifecycle,
     query: ProductGptFactQuery,
   ): Promise<ExactGptCallFacts> {
     const { lookupKind = "current_attempt", ...call } = query;
     if (lookupKind === "current_attempt") {
-      const facts = await this.readIntentFacts(this.intentFor(execution, call));
-      this.maybeAuthorizeConfirmedProviderReadback(execution, browsers, call, facts);
-      return facts;
+      return this.readIntentFacts(this.intentFor(execution, call));
     }
     if (call.child !== "submit_exact_gpt_turn_once") {
       throw executionFailure("failed", "GPT_TASK_EXACT_EFFECT_CHILD_INVALID");
@@ -197,50 +226,24 @@ export class ProductionGptChildTools {
       throw executionFailure("failed", "GPT_TASK_EXACT_EFFECT_AMBIGUOUS");
     }
     const facts = candidates[0] ?? currentFacts;
-    this.maybeAuthorizeConfirmedProviderReadback(execution, browsers, call, facts);
     return facts;
   }
 
-  private maybeAuthorizeConfirmedProviderReadback(
-    execution: ExecutionInput,
-    browsers: ProductionGptBrowserLifecycle,
+  private confirmedProviderSubmitReceipt(
     call: ProductGptCallInput,
     facts: ExactGptCallFacts,
-  ): void {
-    if (call.child !== "submit_exact_gpt_turn_once") return;
+  ): ConfirmedProviderSubmitReceipt | null {
+    if (call.child !== "submit_exact_gpt_turn_once") return null;
     const mutation = facts.mutation;
     const evidence = facts.evidence;
     if (mutation?.effectScope !== "provider_effect"
       || mutation.outcome !== "CONFIRMED"
       || !mutation.terminalAt
-      || evidence?.readbackVerified !== true) return;
+      || evidence?.readbackVerified !== true) return null;
     if (mutation.productStepId !== call.productStepId
       || mutation.callId !== call.callId
       || mutation.childCapabilityId !== call.child
       || mutation.actionOrdinal !== call.actionOrdinal) {
-      throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
-    }
-    const continuationRef = execution.task.continuation_ref;
-    if (!continuationRef) return;
-    const continuation = this.store.readGptContinuation(continuationRef);
-    if (!continuation
-      || continuation.origin_job_id !== execution.task.job_id
-      || continuation.plugin_id !== execution.pluginId
-      || continuation.owner_ref !== execution.task.business_identity.owner_ref
-      || continuation.subject_ref !== execution.task.business_identity.subject_ref
-      || continuation.authorization_ref !== execution.task.business_identity.authorization_ref
-      || continuation.provider.prior_task_id !== execution.task.job_id
-      || continuation.conversation_identity_hash !== gptContinuationIdentityHash(continuation.provider)
-      || (continuation.lane_owner_job_id !== null
-        && continuation.lane_owner_job_id !== execution.task.job_id)
-      || !continuation.current_checkpoint) {
-      throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
-    }
-    const canonicalConversationUrl = canonicalGptConversationUrl(
-      continuation.provider.provider_page_url,
-    );
-    if (canonicalGptConversationUrl(continuation.current_checkpoint.canonical_conversation_url)
-      !== canonicalConversationUrl) {
       throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
     }
     const promptHash = call.input.promptHash;
@@ -249,8 +252,7 @@ export class ProductionGptChildTools {
       || typeof turnMarker !== "string" || !turnMarker) {
       throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
     }
-    const authorization: BrowserConfirmedProviderReadbackAuthorization = Object.freeze({
-      schemaVersion: "browser-confirmed-provider-readback.v1",
+    return Object.freeze({
       sourceAttemptId: mutation.sourceAttemptId,
       sourceExactCallIdentityHash: facts.exactCallIdentityHash,
       sourceActionOrdinal: mutation.actionOrdinal,
@@ -262,13 +264,37 @@ export class ProductionGptChildTools {
       sourceTerminalAt: mutation.terminalAt,
       evidenceRef: evidence.evidenceRef,
       evidenceHash: evidence.evidenceHash,
-      canonicalConversationUrl,
-      conversationIdentityHash: continuation.conversation_identity_hash,
       promptHash: promptHash as ProductionHash,
       turnMarker,
     });
-    // Only Runtime may project the unique Browser WAL + Forensics + task continuation facts.
-    // Product code receives the facts but never receives a second browser authorization API.
+  }
+
+  private authorizeConfirmedProviderReadback(
+    browsers: ProductionGptBrowserLifecycle,
+    call: ProductGptCallInput,
+    result: ProductGptChildResult,
+    receipt: ConfirmedProviderSubmitReceipt | null,
+  ): void {
+    if (!receipt || call.child !== "reconcile_gpt_turn_submission"
+      || call.productStepId !== receipt.sourceProductStepId) return;
+    const locatorValue = result.value && typeof result.value === "object"
+      && !Array.isArray(result.value)
+      ? { ...result.value, schemaVersion: "agent-gpt-submission-locator.v1" }
+      : result.value;
+    const locator = gptSubmissionLocatorArtifact(locatorValue, sha256);
+    if (!locator
+      || locator.promptHash !== receipt.promptHash
+      || locator.turnMarker !== receipt.turnMarker) {
+      throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
+    }
+    const authorization: BrowserConfirmedProviderReadbackAuthorization = Object.freeze({
+      schemaVersion: "browser-confirmed-provider-readback.v1",
+      ...receipt,
+      sourceChildCapabilityId: "submit_exact_gpt_turn_once",
+      canonicalConversationUrl: locator.canonicalConversationUrl,
+      conversationIdentityHash: locator.conversationIdentityHash,
+    });
+    // Runtime alone combines the confirmed Browser/Forensics receipt with the durable locator.
     browsers.authorizeConfirmedProviderReadback(authorization);
   }
   private async readIntentFacts(

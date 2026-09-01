@@ -11,6 +11,7 @@ import {
   type RuntimeAttestationReceipt,
   type WorkerSessionCredential,
 } from "./transport-protocol.js";
+import { PRODUCTION_V6_MANIFEST_HASH } from "./v6-manifest-projection.js";
 
 export interface ProductionRuntimeState {
   readonly business_in_flight: number;
@@ -65,7 +66,7 @@ export class ProductionWorkerSession {
       device_epoch: this.device.device_epoch,
       worker_instance_id: this.workerInstanceId,
       agent_build_hash: this.agentBuildHash,
-      control_manifest_hash: this.device.control_manifest_hash,
+      control_manifest_hash: PRODUCTION_V6_MANIFEST_HASH,
     });
     const response = data as { session?: Record<string, unknown>; session_credential?: unknown };
     const credential = OpenResponseSchema.parse(response.session_credential);
@@ -94,7 +95,6 @@ export class ProductionWorkerSession {
         attestation_seq: next,
         worker_session_id: this.workerSessionId,
         worker_session_epoch: this.workerSessionEpoch,
-        control_manifest_hash: this.device.control_manifest_hash,
         business_capacity_total: 10,
         business_in_flight: state.business_in_flight,
         browser_action_capacity_total: 1,

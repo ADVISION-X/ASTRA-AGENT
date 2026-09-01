@@ -5,7 +5,6 @@ import { z } from "zod";
 
 import {
   DeviceCredentialSchema,
-  PRODUCTION_V6_MANIFEST_HASH,
   type DeviceCredential,
 } from "./transport-protocol.js";
 
@@ -41,7 +40,6 @@ const EnrollmentEnvelopeSchema = z.object({
       device_epoch: z.number().int().positive(),
       status: z.literal("active"),
       origin_allowlist: z.array(z.string().url()).min(1),
-      control_contract_manifest_hash: z.literal(PRODUCTION_V6_MANIFEST_HASH),
     }).passthrough(),
     device_credential: z.string().regex(/^aidc_v6_[A-Za-z0-9_-]{32,}$/u),
   }).strict().optional(),
@@ -148,7 +146,6 @@ export async function enrollProductionDevice(input?: Readonly<{
     device_id: device.device_id,
     device_epoch: device.device_epoch,
     credential: credentialValue,
-    control_manifest_hash: device.control_contract_manifest_hash,
     enrolled_at: new Date().toISOString(),
   };
   const credentialPath = await writeProductionCredential(dataDir, credential);

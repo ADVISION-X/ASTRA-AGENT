@@ -5,12 +5,16 @@
   "version": 13,
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V23"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V24"
   ],
   "specKind": "cross-repo-dependency",
   "contract": {
+    "authorityArtifact": "packages/ai-contracts/src/production-control/xuanxue-ai-production-v6.manifest.json",
     "contractId": "ai-acceptance.xuanxue-ai-production-v6",
-    "version": 13,
-    "providerRepo": "ADVISION-X/xuanxue-web"
+    "generatedBy": "scripts/generate/sync-xuanxue-ai-production-v6-agent-projection.ts",
+    "hashAlgorithm": "JCS-SHA-256",
+    "manifestHash": "sha256:fe28f10208de003338cf5d8891268eb5ae904310987bdb765d6b5fdc37261672",
+    "providerRepo": "ADVISION-X/xuanxue-web",
+    "version": 13
   }
 }

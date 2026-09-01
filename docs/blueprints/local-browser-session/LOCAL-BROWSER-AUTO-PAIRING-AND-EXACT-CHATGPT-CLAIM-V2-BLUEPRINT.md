@@ -113,6 +113,8 @@ box/visibility 或 CDP payload 形态无效     -> BROWSER_DOM_READ_INVALID
 
 `BROWSER_TARGET_INVALID` 不得再作为 query count、node missing、box model、visibility、record/number/string decode 的通用兜底。Browser 只报告原子 observation 事实，不决定 GPT Child 是否在自己的 timeout 内 fresh retry。fresh retry 必须重新 query 当前 Document，不能复用 nodeId，不进入 mutation WAL，也不能改变此前 submit 的 `CONFIRMED`、immutable terminalAt、evidence identity 或 Target ownership。真正 Target/Document lifecycle failure 原样返回，由上层现役 confirmed-submit readback 合同保留成果事实；Browser 不解释 Product 步骤、attempt 预算或业务终态。
 
+恢复查询取得的旧 `CONFIRMED` mutation 只证明原 submit effect 与原 Target/Document 锚点，不得覆盖当前 observation 的动作类别或结果。当前 locator 获取、DOM 读取、导航后核验等只读动作失败时必须保持自己的 `mutationOutcome=no` 与原生 typed cause；Browser lane/coordinator 只能把旧 receipt 作为独立的 `confirmed_submit` 事实随结果携带，禁止把旧 `CONFIRMED` 贴成当前只读失败的 mutation outcome。
+
 ### 3.2 唯一 FIFO、Provider wait 与两种 park
 
 Browser 只保留一条最多十个 waiter 的有界严格 FIFO。normal、inspection、recovery 使用相同 acquire 入口，无 priority、抢占、aging、保留槽或 recovery bypass。Provider wait 的 `nextCheckAt` 是 coroutine 瞬时事实，未到时不进 FIFO且不持久化。

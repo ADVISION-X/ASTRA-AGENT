@@ -48,6 +48,7 @@ export type BrowserMutationReconciliationScope = Readonly<{
 
 export type BrowserCallRecoveryScope = BrowserMutationReconciliationScope & Readonly<{
   productStepId: string;
+  callId: string;
   state: "DISPATCHED" | "CONFIRMED" | "REJECTED";
   effectScope: "target_local" | "provider_effect";
 }>;
@@ -324,14 +325,14 @@ export class BrowserMutationStore {
     jobId: string; attemptId: string; ownerPluginId: string; pluginVersion: number; productStepId: string;
   }>): BrowserCallRecoveryScope | null {
     const rows = this.database.prepare(
-      `select command_id,owner_plugin_id,job_id,product_step_id,target_ref,document_ref,payload_hash,state,effect_scope
+      `select command_id,owner_plugin_id,job_id,product_step_id,call_id,target_ref,document_ref,payload_hash,state,effect_scope
        from browser_mutations
        where job_id=? and attempt_id=? and owner_plugin_id=? and plugin_version=? and product_step_id=?
          and state in ('DISPATCHED','CONFIRMED','REJECTED')
        order by case when terminal_at is null then updated_at else terminal_at end desc,command_id desc`,
     ).all(input.jobId, input.attemptId, input.ownerPluginId, input.pluginVersion,
       input.productStepId) as ReadonlyArray<{
-      command_id: string; owner_plugin_id: string; job_id: string; product_step_id: string;
+      command_id: string; owner_plugin_id: string; job_id: string; product_step_id: string; call_id: string;
       target_ref: string; document_ref: string; payload_hash: `sha256:${string}`;
       state: "DISPATCHED" | "CONFIRMED" | "REJECTED";
       effect_scope: "target_local" | "provider_effect";
@@ -342,7 +343,8 @@ export class BrowserMutationStore {
     const row = rows[0]!;
     return Object.freeze({
       commandId: row.command_id, ownerPluginId: row.owner_plugin_id, jobId: row.job_id,
-      productStepId: row.product_step_id, targetRef: row.target_ref, documentRef: row.document_ref,
+      productStepId: row.product_step_id, callId: row.call_id,
+      targetRef: row.target_ref, documentRef: row.document_ref,
       payloadHash: row.payload_hash, state: row.state, effectScope: row.effect_scope,
     });
   }

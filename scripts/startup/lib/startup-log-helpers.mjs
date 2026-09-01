@@ -10,6 +10,7 @@ import {
 import { writeTerminalSink } from "../../../src/lib/runtime-logs/sinks.ts";
 
 const STARTUP_STEPS = new Set([
+  "production_contract_preflight",
   "dependency_check", "dependency_runtime", "update_preflight_check", "dependency_update",
   "port_clear", "port_clear_detail", "browser_runtime_preflight", "browser_artifact_sync",
   "app_server", "health_check", "service_shutdown", "service_exit", "open_workbench",

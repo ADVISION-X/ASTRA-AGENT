@@ -110,6 +110,17 @@ export class ProductionGptBrowserLifecycle {
     callId: string,
   ): Promise<ProductionGptBrowserCall> {
     if (!sessionKey) throw executionFailure("failed", "GPT_SESSION_KEY_REQUIRED");
+    if (this.confirmedProviderReadback
+      && this.confirmedProviderReadback.sourceProductStepId !== productStepId) {
+      for (const [key, active] of this.browsers) {
+        await active.browser.park({
+          reason: "gpt-confirmed-provider-readback-complete",
+          mode: "normal-provider-wait",
+        });
+        this.browsers.delete(key);
+      }
+      this.confirmedProviderReadback = null;
+    }
     const current = this.browsers.get(sessionKey);
     if (current) return current;
     const browser = await this.acquireBrowserLease(productStepId, callId);
@@ -235,6 +246,7 @@ export class ProductionGptBrowserLifecycle {
       pluginVersion: this.execution.pluginVersion,
       jobId: this.execution.task.job_id,
       productStepId,
+      callId,
       attemptId: this.execution.lease.attempt_id,
       deviceId: this.execution.lease.device_id,
       leaseVersion: this.execution.lease.lease_version,

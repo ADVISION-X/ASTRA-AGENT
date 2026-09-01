@@ -15,12 +15,17 @@ import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 
 const HASH = `sha256:${"a".repeat(64)}` as const;
 const CONFIRMED_EXACT_HASH = `sha256:${"c".repeat(64)}` as const;
-const binding = (jobId: string, productStepId = "fixture-step"): BrowserExecutionBinding => ({
+const binding = (
+  jobId: string,
+  productStepId = "fixture-step",
+  callId = "fixture-call",
+): BrowserExecutionBinding => ({
   kind: "production",
   ownerPluginId: "plugin",
   pluginVersion: 1,
   jobId,
   productStepId,
+  callId,
   attemptId: `attempt:${jobId}`,
   deviceId: "device:1",
   leaseVersion: 1,
@@ -188,7 +193,7 @@ try {
   });
   assert(confirmedFact?.terminalAt);
   const confirmedBinding = (): BrowserExecutionBinding => ({
-    ...binding("job:confirmed", "confirmed-step"),
+    ...binding("job:confirmed", "confirmed-step", "image-readback"),
     kind: "production-reconciliation",
     confirmedProviderReadback: {
       schemaVersion: "browser-confirmed-provider-readback.v1",
@@ -270,7 +275,7 @@ try {
 
   const openSignal = new AbortController();
   const recovered = await supervisor.acquireJobBoundTargetLease(
-    binding("job:historic", "historic-step"),
+    binding("job:historic", "historic-step", "gpt-turn-flow.v3"),
     "owner:historic",
     { signal: openSignal.signal, remainingMs: () => 60_000 },
   );
@@ -283,7 +288,7 @@ try {
   });
   await assert.rejects(
     supervisor.acquireJobBoundTargetLease(
-      binding("job:historic", "historic-step"), "owner:historic:wrong-document",
+      binding("job:historic", "historic-step", "gpt-turn-flow.v3"), "owner:historic:wrong-document",
       { signal: openSignal.signal, remainingMs: () => 60_000 },
     ),
     (error) => {
@@ -299,7 +304,7 @@ try {
   });
   await assert.rejects(
     supervisor.acquireJobBoundTargetLease(
-      binding("job:historic", "historic-step"), "owner:historic:wrong-target",
+      binding("job:historic", "historic-step", "gpt-turn-flow.v3"), "owner:historic:wrong-target",
       { signal: openSignal.signal, remainingMs: () => 60_000 },
     ),
     /BROWSER_DOCUMENT_INVALID/u,
@@ -310,7 +315,7 @@ try {
     targetRef: "target:confirmed", documentRef: "document:confirmed:2",
   });
   const confirmedNewDocument = await supervisor.acquireJobBoundTargetLease(
-    binding("job:confirmed", "confirmed-step"),
+    binding("job:confirmed", "confirmed-step", "confirmed-submit"),
     "owner:confirmed:new-document",
     { signal: openSignal.signal, remainingMs: () => 60_000 },
   );
@@ -325,7 +330,7 @@ try {
   });
   await assert.rejects(
     supervisor.acquireJobBoundTargetLease(
-      binding("job:confirmed", "confirmed-step"),
+      binding("job:confirmed", "confirmed-step", "confirmed-submit"),
       "owner:confirmed:wrong-target",
       { signal: openSignal.signal, remainingMs: () => 60_000 },
     ),
@@ -337,11 +342,25 @@ try {
     },
     "a claimed but mismatched Target is not proof that the original physical Target was lost",
   );
+  await assert.rejects(
+    supervisor.acquireJobBoundTargetLease(
+      binding("job:confirmed", "confirmed-step", "submission-reconcile"),
+      "owner:confirmed:later-readback",
+      { signal: openSignal.signal, remainingMs: () => 60_000 },
+    ),
+    (error) => {
+      const failure = typedExecutionFailure(error);
+      assert.equal(failure?.code, "BROWSER_DOCUMENT_INVALID");
+      assert.equal(failure?.mutationOutcome, "no");
+      return true;
+    },
+    "a prior confirmed submit must not relabel a later read-only call failure as confirmed",
+  );
   brokerTargetStatus = "absent";
   targetAcquisitionRequests.length = 0;
   await assert.rejects(
     supervisor.acquireJobBoundTargetLease(
-      binding("job:confirmed", "confirmed-step"),
+      binding("job:confirmed", "confirmed-step", "confirmed-submit"),
       "owner:confirmed:wal-only",
       { signal: openSignal.signal, remainingMs: () => 60_000 },
     ),
@@ -404,7 +423,7 @@ try {
   });
   await assert.rejects(
     supervisor.acquireJobBoundTargetLease(
-      binding("job:confirmed-target-local", "confirmed-target-local-step"),
+      binding("job:confirmed-target-local", "confirmed-target-local-step", "confirmed-target-local"),
       "owner:confirmed-target-local:no-replacement",
       { signal: openSignal.signal, remainingMs: () => 60_000 },
     ),
