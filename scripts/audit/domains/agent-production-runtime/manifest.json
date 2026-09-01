@@ -23,6 +23,7 @@
     "scripts/acceptance/agent-production-gpt-artifact-readback-support.ts",
     "scripts/acceptance/agent-production-gpt-artifact-recovery.acceptance.ts",
     "scripts/acceptance/agent-production-gpt-browser-lifecycle.acceptance.ts",
+    "scripts/acceptance/agent-production-permanent-revocation-support.ts",
     "scripts/acceptance/agent-production-provider-recovery.acceptance.ts",
     "scripts/acceptance/agent-production-runtime-continuation.acceptance.ts",
     "scripts/acceptance/agent-production-runtime-fixtures.ts",

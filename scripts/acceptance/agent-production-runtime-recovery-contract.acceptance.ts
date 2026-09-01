@@ -9,6 +9,7 @@ import { readProductionDeviceJobStatus } from "../../src/lib/local-runtime/produ
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { executionFailure } from "../../src/lib/typed-failure.js";
+import { assertPermanentRevocationSettlement } from "./agent-production-permanent-revocation-support.js";
 import {
   HASH_A,
   HASH_B,
@@ -441,64 +442,4 @@ try {
   await rm(recoveryTemporary, { recursive: true, force: true });
 }
 
-const revocationTemporary = await mkdtemp(path.join(tmpdir(), "agent-production-revocation-"));
-const revokedJobId = "job:permanently-revoked";
-const revokedOutboxIds = ["revoked:checkpoint:1", "revoked:checkpoint:2"] as const;
-try {
-  const store = new ProductionRuntimeStore(revocationTemporary);
-  const accepted = task({
-    jobId: revokedJobId, productId: "payment_screenshot_observation", actionId: "observe",
-  });
-  store.acceptTask(accepted, identityFor(accepted), `attempt:${revokedJobId}`);
-  for (const [index, idempotencyKey] of revokedOutboxIds.entries()) {
-    store.enqueue({
-      idempotency_key: idempotencyKey,
-      kind: "checkpoint",
-      path: `/internal/ai-production/v6/jobs/${encodeURIComponent(revokedJobId)}/checkpoints`,
-      method: "POST",
-      headers: {},
-      body: JSON.stringify({ job_id: revokedJobId, checkpoint_seq: index + 1 }),
-    });
-  }
-  const beforeBodies = (Reflect.get(store, "database") as Database.Database).prepare(
-    "select idempotency_key,hex(body_blob) as body from production_outbox order by idempotency_key",
-  ).all() as Array<{ idempotency_key: string; body: string }>;
-  assert.equal(store.settlePermanentlyRevokedJob(
-    revokedJobId, "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED",
-  ), 2);
-  assert.equal(store.readTask(revokedJobId)?.current_reason, "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
-  assert.equal(store.pendingOutbox().length, 0,
-    "a Website-proven permanent revocation must stop local delivery without deleting evidence");
-  assert.equal(store.outboxAuthorities().length, 2, "revocation must preserve every Outbox intent");
-  for (const idempotencyKey of revokedOutboxIds) {
-    assert.deepEqual(store.readOutboxAuthority(idempotencyKey), {
-      idempotencyKey,
-      jobId: revokedJobId,
-      kind: "checkpoint",
-      state: "pending",
-      nextDeliveryAt: null,
-      lastError: "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED",
-      responseHash: null,
-      receiptHash: null,
-    });
-  }
-  assert.deepEqual((Reflect.get(store, "database") as Database.Database).prepare(
-    "select idempotency_key,hex(body_blob) as body from production_outbox order by idempotency_key",
-  ).all(), beforeBodies, "revocation must not rewrite or discard the original intent payloads");
-  store.close();
-
-  const reopened = new ProductionRuntimeStore(revocationTemporary);
-  assert.equal(reopened.pendingOutbox().length, 0,
-    "startup must not restore a delivery schedule for an exactly revoked job");
-  assert.equal(reopened.outboxAuthorities().length, 2,
-    "startup must preserve the revoked job's complete Outbox evidence");
-  for (const idempotencyKey of revokedOutboxIds) {
-    const authority = reopened.readOutboxAuthority(idempotencyKey)!;
-    assert.equal(authority.lastError, "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
-    assert.equal(authority.nextDeliveryAt, null);
-    assert.equal(authority.state, "pending");
-  }
-  reopened.close();
-} finally {
-  await rm(revocationTemporary, { recursive: true, force: true });
-}
+await assertPermanentRevocationSettlement();

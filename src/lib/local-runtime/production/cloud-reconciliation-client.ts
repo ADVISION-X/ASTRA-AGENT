@@ -120,6 +120,52 @@ const deviceStatusAuthorityFieldsValid = (row: Record<string, unknown>): boolean
 const deviceStatusAttemptAuthorityValid = (row: Record<string, unknown>): boolean =>
   Number.isSafeInteger(row.accepted_attempt_count) && Number(row.accepted_attempt_count) >= 0;
 
+const parseDeviceTerminalAuthority = (row: Record<string, unknown>): Readonly<{
+  terminalStatus: "completed" | null;
+  terminalPayloadHash: ProductionHash | null;
+}> => {
+  const terminalStatus = row.terminal_status as "completed" | null;
+  const terminalPayloadHash = row.terminal_payload_hash as ProductionHash | null;
+  if (terminalPayloadHash !== null && !/^sha256:[a-f0-9]{64}$/u.test(terminalPayloadHash)) {
+    throw executionFailure("failed", "V6_DEVICE_JOB_TERMINAL_AUTHORITY_INVALID");
+  }
+  if ((terminalStatus === "completed") !== (terminalPayloadHash !== null)) {
+    throw executionFailure("failed", "V6_DEVICE_JOB_TERMINAL_AUTHORITY_INVALID");
+  }
+  return { terminalStatus, terminalPayloadHash };
+};
+
+const assertBusinessAdmissionAuthority = (
+  row: Record<string, unknown>,
+  admission: RemoteProductionDeviceJobStatus["business_admission_receipt"],
+  terminalStatus: "completed" | null,
+): void => {
+  if ((row.status === "completed") !== (admission !== null)
+    || (admission !== null && terminalStatus !== "completed")) {
+    throw executionFailure("failed", "V6_BUSINESS_ADMISSION_AUTHORITY_INVALID");
+  }
+};
+
+const parseDeviceControlAuthority = (
+  row: Record<string, unknown>,
+  jobId: string,
+): Readonly<{
+  controlIntent: ControlIntent;
+  currentReason: Readonly<Record<string, unknown>> | null;
+}> => {
+  const parsed = ControlIntentSchema.safeParse(row.control_intent);
+  if (!parsed.success) throw executionFailure("failed", "V6_DEVICE_JOB_CONTROL_AUTHORITY_INVALID");
+  const controlIntent = parsed.data;
+  const currentReason = row.current_reason as Readonly<Record<string, unknown>> | null;
+  const deletionAuthorized = controlIntent.intent === "cancel_requested"
+    && controlIntent.reason_code === "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED";
+  if (controlIntent.job_id !== jobId
+    || deletionAuthorized !== (currentReason?.code === "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED")) {
+    throw executionFailure("failed", "V6_DEVICE_JOB_CONTROL_AUTHORITY_INVALID");
+  }
+  return { controlIntent, currentReason };
+};
+
 export async function readProductionDeviceJobStatus(
   session: Pick<ProductionWorkerSession, "request">,
   jobId: string,
@@ -136,31 +182,10 @@ export async function readProductionDeviceJobStatus(
     || !deviceStatusAttemptAuthorityValid(row)) {
     throw executionFailure("failed", "V6_DEVICE_JOB_STATUS_INVALID");
   }
-  const terminalStatus = row.terminal_status as "completed" | null;
-  const terminalPayloadHash = row.terminal_payload_hash as ProductionHash | null;
-  if (terminalPayloadHash !== null && !/^sha256:[a-f0-9]{64}$/u.test(terminalPayloadHash)) {
-    throw executionFailure("failed", "V6_DEVICE_JOB_TERMINAL_AUTHORITY_INVALID");
-  }
-  if ((terminalStatus === "completed") !== (terminalPayloadHash !== null)) {
-    throw executionFailure("failed", "V6_DEVICE_JOB_TERMINAL_AUTHORITY_INVALID");
-  }
+  const { terminalStatus, terminalPayloadHash } = parseDeviceTerminalAuthority(row);
   const admission = parseBusinessAdmissionReceipt(jobId, row.business_admission_receipt);
-  if ((row.status === "completed") !== (admission !== null)
-    || (admission !== null && terminalStatus !== "completed")) {
-    throw executionFailure("failed", "V6_BUSINESS_ADMISSION_AUTHORITY_INVALID");
-  }
-  const parsedControlIntent = ControlIntentSchema.safeParse(row.control_intent);
-  if (!parsedControlIntent.success) {
-    throw executionFailure("failed", "V6_DEVICE_JOB_CONTROL_AUTHORITY_INVALID");
-  }
-  const controlIntent = parsedControlIntent.data;
-  const currentReason = row.current_reason as Readonly<Record<string, unknown>> | null;
-  if (controlIntent.job_id !== jobId
-    || (controlIntent.intent === "cancel_requested"
-      && controlIntent.reason_code === "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED")
-      !== (currentReason?.code === "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED")) {
-    throw executionFailure("failed", "V6_DEVICE_JOB_CONTROL_AUTHORITY_INVALID");
-  }
+  assertBusinessAdmissionAuthority(row, admission, terminalStatus);
+  const { controlIntent, currentReason } = parseDeviceControlAuthority(row, jobId);
   return Object.freeze({
     job_id: jobId,
     status: row.status as string,
