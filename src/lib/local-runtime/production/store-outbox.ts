@@ -19,6 +19,14 @@ import {
 
 const OUTBOX_TRANSIENT_RETRY_DELAY_MS = 5_000;
 const OUTBOX_LOW_FREQUENCY_RETRY_DELAY_MS = 3_600_000;
+const PERMANENT_REVOCATION_REASON = "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED";
+
+const retryDelay = (error: unknown): number => {
+  const typed = typedExecutionFailure(error);
+  return typed?.httpStatus !== null && typed?.httpStatus !== undefined
+    && typed.httpStatus >= 400 && typed.httpStatus <= 499
+    ? OUTBOX_LOW_FREQUENCY_RETRY_DELAY_MS : OUTBOX_TRANSIENT_RETRY_DELAY_MS;
+};
 
 const receiptHashOf = (response: Record<string, unknown>): ProductionHash | null =>
   typeof response.receipt_hash === "string" && /^sha256:[a-f0-9]{64}$/u.test(response.receipt_hash)
@@ -235,13 +243,8 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
     error: unknown,
   ): void {
     const timestamp = now();
-    const typed = typedExecutionFailure(error);
     const code = failureCode(error, "OUTBOX_DELIVERY_FAILED");
-    const deterministicResponse = typed?.httpStatus !== null && typed?.httpStatus !== undefined
-      && typed.httpStatus >= 400 && typed.httpStatus <= 499;
-    const delay = deterministicResponse
-      ? OUTBOX_LOW_FREQUENCY_RETRY_DELAY_MS : OUTBOX_TRANSIENT_RETRY_DELAY_MS;
-    const nextDeliveryAt = new Date(Date.parse(timestamp) + delay).toISOString();
+    const nextDeliveryAt = new Date(Date.parse(timestamp) + retryDelay(error)).toISOString();
     const changed = this.database.prepare(`update production_outbox
       set last_error=?,next_delivery_at=? where idempotency_key=? and sent_at is null`
     ).run(code, nextDeliveryAt, idempotencyKey);
@@ -249,6 +252,39 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
       throw new Error("PRODUCTION_OUTBOX_INTENT_MISSING");
     }
     this.notifyOutbox(this.readOutboxAuthority(idempotencyKey));
+  }
+
+  public deferOutboxReconciliation(jobId: string, error: unknown): number {
+    const nextDeliveryAt = new Date(Date.now() + retryDelay(error)).toISOString();
+    const changed = this.database.prepare(`update production_outbox
+      set last_error=?,next_delivery_at=? where path like ?
+        and sent_at is null and response_hash is null`
+    ).run(failureCode(error, "OUTBOX_RECONCILIATION_FAILED"), nextDeliveryAt,
+      `%/jobs/${encodeURIComponent(jobId)}/%`);
+    this.notifyOutbox(this.outboxAuthorities().find((row) => row.jobId === jobId) ?? null);
+    return changed.changes;
+  }
+
+  public settlePermanentlyRevokedJob(jobId: string, currentReason: string): number {
+    const transaction = this.database.transaction(() => {
+      const task = this.readTask(jobId);
+      if (!task || task.status !== "failed") {
+        throw executionFailure("failed", "PRODUCTION_REVOCATION_TASK_AUTHORITY_INVALID");
+      }
+      const changed = this.database.prepare(`update production_outbox
+        set last_error=?,next_delivery_at=null where path like ?
+          and sent_at is null and response_hash is null`
+      ).run(PERMANENT_REVOCATION_REASON, `%/jobs/${encodeURIComponent(jobId)}/%`);
+      this.database.prepare(`update production_tasks set current_reason=?,updated_at=?
+        where job_id=? and status='failed'`).run(currentReason, now(), jobId);
+      this.database.prepare(
+        "update production_continuations set lane_owner_job_id=null where lane_owner_job_id=?",
+      ).run(jobId);
+      return changed.changes;
+    });
+    const changed = transaction();
+    this.notifyOutbox(this.outboxAuthorities().find((row) => row.jobId === jobId) ?? null);
+    return changed;
   }
 
   public deliverOutbox<T>(

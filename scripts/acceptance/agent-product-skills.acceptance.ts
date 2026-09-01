@@ -329,7 +329,7 @@ process.stdout.write("[ACCEPTANCE][agent-product-skills] PASS\n");
 emitQualityProofObservation({
   passed: true,
   findings: [],
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V24",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V25",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:15", "forbidden:16", "forbidden:2", "forbidden:21", "forbidden:22", "forbidden:29", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:product-flow-golden",

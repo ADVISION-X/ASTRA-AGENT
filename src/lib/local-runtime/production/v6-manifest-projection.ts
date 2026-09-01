@@ -21,7 +21,7 @@ if (JSON.stringify(actualKeys) !== JSON.stringify(expectedKeys)
   || contract.hashAlgorithm !== "JCS-SHA-256"
   || !HASH.test(contract.manifestHash)
   || contract.providerRepo !== "ADVISION-X/xuanxue-web"
-  || contract.version !== 13) {
+  || contract.version !== 14) {
   throw new Error("AI_PRODUCTION_MANIFEST_PROJECTION_INVALID");
 }
 

@@ -24,14 +24,14 @@ const projectionMatches = (
   projection.schemaVersion === 1,
   projection.specKind === "cross-repo-dependency",
   projection.status === "active",
-  projection.version === 13,
+  projection.version === 14,
   contract.authorityArtifact === "packages/ai-contracts/src/production-control/xuanxue-ai-production-v6.manifest.json",
   contract.contractId === "ai-acceptance.xuanxue-ai-production-v6",
   contract.generatedBy === "scripts/generate/sync-xuanxue-ai-production-v6-agent-projection.ts",
   contract.hashAlgorithm === "JCS-SHA-256",
   typeof contract.manifestHash === "string" && HASH.test(contract.manifestHash),
   contract.providerRepo === "ADVISION-X/xuanxue-web",
-  contract.version === 13,
+  contract.version === 14,
 ].every(Boolean);
 
 const manifestMatches = (

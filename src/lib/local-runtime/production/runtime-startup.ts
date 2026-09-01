@@ -165,6 +165,9 @@ export const reconcileTaskRecord = (
   if (nonterminal && persisted.current_reason?.startsWith("GPT_CONTINUATION_CUTOVER_")) {
     return true;
   }
+  if (nonterminal && persisted.current_reason?.startsWith("PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED")) {
+    return true;
+  }
   let complete = true;
   if (lease) {
     if (nonterminal && !remoteRedeliveryPending

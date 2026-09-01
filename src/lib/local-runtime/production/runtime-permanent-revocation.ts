@@ -6,7 +6,10 @@ import {
 } from "../../typed-failure.js";
 import { runtimeLogCauseEventId, type RuntimeSpanHandle } from "../../runtime-logs/index.js";
 import { resolveProductionPlugin } from "./catalog.js";
-import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
+import {
+  readProductionDeviceJobStatus,
+  type RemoteProductionDeviceJobStatus,
+} from "./cloud-reconciliation-client.js";
 import { hashCanonical } from "./contracts.js";
 import { releaseLeaseWithLog, terminalSpanFailure } from "./runtime-logging.js";
 import { leaseAuthority, safeReason, wait, type RuntimeState } from "./runtime-state.js";
@@ -17,6 +20,35 @@ export const permanentAuthorizationRevoked = (error: unknown, signal: AbortSigna
   return reason === "CONTROL_INTENT:cancel_requested:PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED"
     || failureCode(error) === "AI_PERMANENT_AUTHORIZATION_REVOKED"
     || failureCode(error).includes("CONTROL_INTENT:cancel_requested:PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
+};
+
+export const remotePermanentAuthorizationRevoked = (
+  remote: RemoteProductionDeviceJobStatus,
+): boolean => remote.control_intent.intent === "cancel_requested"
+  && remote.control_intent.reason_code === "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED"
+  && remote.current_reason?.code === "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED";
+
+export const settleInactivePermanentAuthorizationRevocation = (
+  state: RuntimeState,
+  jobId: string,
+  remote: RemoteProductionDeviceJobStatus,
+): boolean => {
+  if (!remotePermanentAuthorizationRevoked(remote)) return false;
+  const activeAbort = state.activeAbort.get(jobId);
+  if (activeAbort) {
+    activeAbort.abort("CONTROL_INTENT:cancel_requested:PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
+    return true;
+  }
+  const task = state.store.readTask(jobId);
+  if (!task) throw executionFailure("failed", "PRODUCTION_REVOCATION_TASK_AUTHORITY_INVALID");
+  const unresolved = state.browserAuthority.readBrowserReconciliationScope({
+    jobId,
+    ownerPluginId: task.identity.plugin_id,
+  });
+  state.store.settlePermanentlyRevokedJob(jobId, unresolved
+    ? "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED:READ_ONLY_RECONCILIATION_REQUIRED"
+    : "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
+  return true;
 };
 
 const deletionLeaseDeadline = (job: ClaimedProductionTask): number => {

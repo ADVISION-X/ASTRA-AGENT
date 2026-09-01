@@ -1,6 +1,8 @@
 import {
+  ControlIntentSchema,
   UploadedResultReceiptSchema,
   parseJsonEnvelope,
+  type ControlIntent,
 } from "./transport-protocol.js";
 import {
   hashCanonical,
@@ -30,6 +32,8 @@ export type RemoteProductionWriteReceipt = Readonly<{
 export type RemoteProductionDeviceJobStatus = Readonly<{
   job_id: string;
   status: string;
+  current_reason: Readonly<Record<string, unknown>> | null;
+  control_intent: ControlIntent;
   terminal_status: "completed" | null;
   terminal_payload_hash: ProductionHash | null;
   business_admission_receipt: Readonly<{
@@ -108,6 +112,8 @@ const deviceStatusIdentityValid = (row: Record<string, unknown>, jobId: string):
 const deviceStatusAuthorityFieldsValid = (row: Record<string, unknown>): boolean =>
   [null, "completed"].includes(row.terminal_status as null | string)
   && (row.terminal_payload_hash === null || typeof row.terminal_payload_hash === "string")
+  && (row.current_reason === null || (typeof row.current_reason === "object"
+    && !Array.isArray(row.current_reason)))
   && (row.business_consumer_error === null || typeof row.business_consumer_error === "string")
   && Array.isArray(row.write_receipts);
 
@@ -143,9 +149,23 @@ export async function readProductionDeviceJobStatus(
     || (admission !== null && terminalStatus !== "completed")) {
     throw executionFailure("failed", "V6_BUSINESS_ADMISSION_AUTHORITY_INVALID");
   }
+  const parsedControlIntent = ControlIntentSchema.safeParse(row.control_intent);
+  if (!parsedControlIntent.success) {
+    throw executionFailure("failed", "V6_DEVICE_JOB_CONTROL_AUTHORITY_INVALID");
+  }
+  const controlIntent = parsedControlIntent.data;
+  const currentReason = row.current_reason as Readonly<Record<string, unknown>> | null;
+  if (controlIntent.job_id !== jobId
+    || (controlIntent.intent === "cancel_requested"
+      && controlIntent.reason_code === "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED")
+      !== (currentReason?.code === "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED")) {
+    throw executionFailure("failed", "V6_DEVICE_JOB_CONTROL_AUTHORITY_INVALID");
+  }
   return Object.freeze({
     job_id: jobId,
     status: row.status as string,
+    current_reason: currentReason ? Object.freeze({ ...currentReason }) : null,
+    control_intent: controlIntent,
     terminal_status: terminalStatus,
     terminal_payload_hash: terminalPayloadHash,
     business_admission_receipt: admission,

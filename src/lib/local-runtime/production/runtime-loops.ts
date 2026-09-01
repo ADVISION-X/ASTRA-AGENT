@@ -15,6 +15,7 @@ import { hashCanonical } from "./contracts.js";
 import type { ProductionRuntimeHealth } from "./runtime-contract.js";
 import { executeClaim, reconcileBusinessAdmission } from "./runtime-claim.js";
 import { terminalSpanFailure } from "./runtime-logging.js";
+import { settleInactivePermanentAuthorizationRevocation } from "./runtime-permanent-revocation.js";
 import {
   refreshLedgerReconciled,
   safeReason,
@@ -67,13 +68,37 @@ export const readHealth = (state: RuntimeState): ProductionRuntimeHealth => {
   };
 };
 
-export const flushOutboxWithLog = async (state: RuntimeState): Promise<void> => {
-  for (const jobId of state.store.unreconciledOutboxJobIds()) {
+const reconcileOutboxJobStatus = async (state: RuntimeState, jobId: string): Promise<boolean> => {
+  const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
+    traceId: jobId, owner: "production-runtime", component: "production-outbox",
+    operation: "website.v6-request",
+    typedIdentity: { kind: "job", jobId },
+  }));
+  try {
     const remote = await readProductionDeviceJobStatus(state.session, jobId);
     state.store.hydrateRemoteOutboxReceipts(jobId, remote.write_receipts);
+    const revoked = settleInactivePermanentAuthorizationRevocation(state, jobId, remote);
+    requireRuntimeLogWrite(span.terminal({
+      outcome: "succeeded", authorityRef: `website-device-job:${jobId}`,
+      authorityHash: hashCanonical(remote),
+    }));
+    return !revoked;
+  } catch (error) {
+    state.store.deferOutboxReconciliation(jobId, error);
+    terminalSpanFailure(span, error, runtimeLogCauseEventId(error),
+      "DEVICE_JOB_STATUS_RECONCILIATION_FAILED", undefined, "website");
+    return false;
+  }
+};
+
+export const flushOutboxWithLog = async (state: RuntimeState): Promise<void> => {
+  const blockedJobIds = new Set<string>();
+  for (const jobId of state.store.unreconciledOutboxJobIds()) {
+    if (!await reconcileOutboxJobStatus(state, jobId)) blockedJobIds.add(jobId);
   }
   for (const write of state.store.pendingOutbox()) {
     const authority = state.store.readOutboxAuthority(write.idempotency_key)!;
+    if (blockedJobIds.has(authority.jobId)) continue;
     const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
       traceId: authority.jobId, owner: "outbox", component: "production-outbox", operation: "outbox.flush",
       typedIdentity: { kind: "outbox", jobId: authority.jobId, outboxId: authority.idempotencyKey },

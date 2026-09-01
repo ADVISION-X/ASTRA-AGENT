@@ -116,6 +116,13 @@ export const recoveryRemoteStatus = (writeReceipts: readonly unknown[] = []) => 
   job_id: "job:recovery-parser",
   status: "failed",
   current_reason: { code: "LEASE_GRANTED" },
+  control_intent: {
+    schema_version: "xuanxue-ai-control-intent.v6",
+    job_id: "job:recovery-parser",
+    intent: "none",
+    control_epoch: 0,
+    reason_code: null,
+  },
   attempt_failure: null,
   accepted_attempt_count: 7,
   terminal_status: null,

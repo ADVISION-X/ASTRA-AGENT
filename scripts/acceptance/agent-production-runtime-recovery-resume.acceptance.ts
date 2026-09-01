@@ -43,6 +43,7 @@ const recoverySession = (
       return {
         ...remoteStatus(receipts),
         job_id: job.job_id,
+        control_intent: { ...remoteStatus().control_intent, job_id: job.job_id },
         accepted_attempt_count: job.grant.accepted_attempt_count,
       };
     }

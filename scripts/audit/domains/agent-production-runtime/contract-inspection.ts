@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V24";
+const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V25";
 const PATHS = {
   contracts: "src/lib/local-runtime/production/contracts.ts",
   transport: "src/lib/local-runtime/production/transport-protocol.ts",
@@ -34,7 +34,7 @@ const inspectContractFields = (source: string, findings: InspectorFinding[]): vo
 const inspectDependency = (source: string, findings: InspectorFinding[]): void => {
   const dependency = JSON.parse(source) as Record<string, unknown>;
   const contract = dependency.contract as Record<string, unknown> | undefined;
-  const matches = contract && [dependency.version === 13, contract.version === 13,
+  const matches = contract && [dependency.version === 14, contract.version === 14,
     contract.contractId === "ai-acceptance.xuanxue-ai-production-v6",
     contract.authorityArtifact === "packages/ai-contracts/src/production-control/xuanxue-ai-production-v6.manifest.json",
     contract.generatedBy === "scripts/generate/sync-xuanxue-ai-production-v6-agent-projection.ts",
@@ -42,8 +42,8 @@ const inspectDependency = (source: string, findings: InspectorFinding[]): void =
     typeof contract.manifestHash === "string" && /^sha256:[a-f0-9]{64}$/u.test(contract.manifestHash),
     contract.providerRepo === "ADVISION-X/xuanxue-web",
     JSON.stringify(dependency.lawIds) === JSON.stringify([LAW_ID])].every(Boolean);
-  if (!matches) findings.push(finding("agent-production-runtime/v13-website-dependency", PATHS.dependency,
-    "AGENT must consume the generated projection of the single Website V13 contract under V24."));
+  if (!matches) findings.push(finding("agent-production-runtime/v14-website-dependency", PATHS.dependency,
+    "AGENT must consume the generated projection of the single Website V14 contract under V25."));
 };
 
 const inspectManifestProjection = (

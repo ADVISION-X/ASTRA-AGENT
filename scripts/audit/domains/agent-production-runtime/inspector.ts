@@ -12,7 +12,7 @@ import { inspectSharedProductionRuntime } from "./runtime-inspection.js";
 import { inspectSeoPlugin } from "./seo-product-inspection.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
 
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V24";
+const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V25";
 const PLUGIN_ROOT = "src/plugins";
 const CATALOG_PATH = "src/lib/local-runtime/production/catalog.ts";
 const PLUGIN_CONTRACT_PATH = "src/lib/local-runtime/production/plugin.ts";

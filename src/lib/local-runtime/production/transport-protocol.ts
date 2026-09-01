@@ -156,27 +156,31 @@ export const ClaimBatchReceiptSchema = z.object({
   reason_codes: z.array(reasonCode).max(32),
 }).strict();
 
+export const ControlIntentSchema = z.object({
+  schema_version: z.literal("xuanxue-ai-control-intent.v6"),
+  job_id: z.string().min(1),
+  intent: z.enum(["none", "pause_requested", "cancel_requested", "handover_requested"]),
+  control_epoch: z.number().int().nonnegative(),
+  reason_code: z.string().nullable(),
+}).strict().superRefine((controlIntent, context) => {
+  if (controlIntent.control_epoch === 0 && controlIntent.intent !== "none") {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "AI_V6_CONTROL_INTENT_INITIAL_EPOCH_INVALID",
+      path: ["control_epoch"],
+    });
+  }
+});
+
+export type ControlIntent = z.infer<typeof ControlIntentSchema>;
+
 export const LeaseRenewReceiptSchema = z.object({
   schema_version: z.literal("xuanxue-ai-lease-renew-receipt.v6"),
   job_id: z.string().min(1),
   server_now: z.string().datetime(),
   lease_expires_at: z.string().datetime(),
   renew_after_ms: z.literal(20_000),
-  control_intent: z.object({
-    schema_version: z.literal("xuanxue-ai-control-intent.v6"),
-    job_id: z.string().min(1),
-    intent: z.enum(["none", "pause_requested", "cancel_requested", "handover_requested"]),
-    control_epoch: z.number().int().nonnegative(),
-    reason_code: z.string().nullable(),
-  }).strict().superRefine((controlIntent, context) => {
-    if (controlIntent.control_epoch === 0 && controlIntent.intent !== "none") {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "AI_V6_CONTROL_INTENT_INITIAL_EPOCH_INVALID",
-        path: ["control_epoch"],
-      });
-    }
-  }),
+  control_intent: ControlIntentSchema,
 }).strict();
 
 export const UploadedResultReceiptSchema = z.object({

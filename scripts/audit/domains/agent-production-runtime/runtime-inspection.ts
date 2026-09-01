@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V24";
+const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V25";
 const PATHS = {
   executor: "src/lib/local-runtime/production/executor.ts",
   childTools: "src/lib/local-runtime/production/production-gpt-child-tools.ts",
@@ -23,6 +23,8 @@ const PATHS = {
   faultPreservation: "src/lib/local-runtime/production/runtime-claim-fault-preservation.ts",
   cloudClient: "src/lib/local-runtime/production/cloud-client.ts",
   outbox: "src/lib/local-runtime/production/store-outbox.ts",
+  runtimeLoops: "src/lib/local-runtime/production/runtime-loops.ts",
+  permanentRevocation: "src/lib/local-runtime/production/runtime-permanent-revocation.ts",
   typedFailure: "src/lib/typed-failure.ts",
 } as const;
 
@@ -112,19 +114,42 @@ const inspectWebsiteAttemptPolicy = (source: string, findings: InspectorFinding[
     "AGENT may consume accepted_attempt_count only as a nonnegative fact, never as a claim, retry or parking gate."));
 };
 
-const inspectOutbox = (store: string, outbox: string, findings: InspectorFinding[]): void => {
+const inspectOutbox = (sources: Readonly<{
+  store: string; outbox: string; runtimeLoops: string; permanentRevocation: string;
+}>, findings: InspectorFinding[]): void => {
+  const { store, outbox, runtimeLoops, permanentRevocation } = sources;
   for (const required of ["OUTBOX_TRANSIENT_RETRY_DELAY_MS = 5_000",
     "OUTBOX_LOW_FREQUENCY_RETRY_DELAY_MS = 3_600_000",
-    "const nextDeliveryAt = new Date(Date.parse(timestamp) + delay).toISOString()"])
+    "const retryDelay =", "const nextDeliveryAt = new Date(Date.parse(timestamp) + retryDelay(error)).toISOString()"])
     if (!outbox.includes(required)) findings.push(finding("agent-production-runtime/outbox-finite-redelivery",
       PATHS.outbox, `Outbox same-intent finite redelivery is missing ${required}.`));
-  for (const forbidden of ["OUTBOX_STALE_RETIRE_CODES", "retireStaleOutbox",
-    "set last_error=?,next_delivery_at=null"])
+  for (const forbidden of ["OUTBOX_STALE_RETIRE_CODES", "retireStaleOutbox", "delete from production_outbox"])
     if (outbox.includes(forbidden)) findings.push(finding("agent-production-runtime/outbox-no-local-terminal-rejection",
       PATHS.outbox, `Outbox retains a local terminal-delivery branch ${forbidden}.`));
+  for (const required of ["PERMANENT_REVOCATION_REASON", "settlePermanentlyRevokedJob",
+    "set last_error=?,next_delivery_at=null where path like ?"])
+    if (!outbox.includes(required)) findings.push(finding("agent-production-runtime/exact-revocation-outbox-settlement",
+      PATHS.outbox, `Exact Website revocation settlement is missing ${required}.`));
+  for (const required of ["deferOutboxReconciliation", "blockedJobIds",
+    "settleInactivePermanentAuthorizationRevocation"])
+    if (!runtimeLoops.includes(required)) findings.push(finding("agent-production-runtime/job-local-status-reconciliation",
+      PATHS.runtimeLoops, `Job-local status reconciliation is missing ${required}.`));
+  for (const required of ['remote.current_reason?.code === "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED"',
+    "readBrowserReconciliationScope", "settlePermanentlyRevokedJob"])
+    if (!permanentRevocation.includes(required)) findings.push(finding(
+      "agent-production-runtime/website-proven-revocation-only", PATHS.permanentRevocation,
+      `Permanent revocation proof is missing ${required}.`));
+  const settlement = outbox.slice(outbox.indexOf("public settlePermanentlyRevokedJob"),
+    outbox.indexOf("public deliverOutbox"));
+  if (settlement.includes("sent_at=")) findings.push(finding(
+    "agent-production-runtime/revocation-no-fake-delivery", PATHS.outbox,
+    "Permanent revocation must not fabricate Outbox delivery or receipt evidence."));
   if (!store.includes('state: "pending" | "delivered"') || !store.includes("restoreOutboxDeliverySchedule"))
     findings.push(finding("agent-production-runtime/outbox-unfinished-liveness", PATHS.store,
-      "Every undelivered Outbox intent must remain pending with a finite delivery schedule."));
+      "Every non-revoked undelivered Outbox intent must remain pending with a finite delivery schedule."));
+  if (!store.includes("last_error<>'PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED'")) findings.push(finding(
+    "agent-production-runtime/revocation-survives-restart", PATHS.store,
+    "Startup must not restore delivery for an exactly revoked Outbox intent."));
 };
 
 export const inspectSharedProductionRuntime = (
@@ -142,5 +167,7 @@ export const inspectSharedProductionRuntime = (
   inspectTaskStore(store, read(context, PATHS.taskState), findings);
   inspectWebsiteAttemptPolicy([read(context, PATHS.cloudReconciliation),
     read(context, PATHS.transport), runtimeClaim].join("\n"), findings);
-  inspectOutbox(store, read(context, PATHS.outbox), findings);
+  inspectOutbox({ store, outbox: read(context, PATHS.outbox),
+    runtimeLoops: read(context, PATHS.runtimeLoops),
+    permanentRevocation: read(context, PATHS.permanentRevocation) }, findings);
 };

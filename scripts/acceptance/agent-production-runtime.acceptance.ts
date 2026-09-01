@@ -91,6 +91,18 @@ const permanentRevocationSource = await readFile(
   new URL("../../src/lib/local-runtime/production/runtime-permanent-revocation.ts", import.meta.url),
   "utf8",
 );
+const runtimeLoopsSource = await readFile(
+  new URL("../../src/lib/local-runtime/production/runtime-loops.ts", import.meta.url), "utf8",
+);
+const outboxSource = await readFile(
+  new URL("../../src/lib/local-runtime/production/store-outbox.ts", import.meta.url), "utf8",
+);
+const storeFoundationSource = await readFile(
+  new URL("../../src/lib/local-runtime/production/store-foundation.ts", import.meta.url), "utf8",
+);
+const reconciliationSource = await readFile(
+  new URL("../../src/lib/local-runtime/production/cloud-reconciliation-client.ts", import.meta.url), "utf8",
+);
 const executorSource = await readFile(new URL("../../src/lib/local-runtime/production/executor.ts", import.meta.url), "utf8");
 const childToolsSource = await readFile(new URL("../../src/lib/local-runtime/production/production-gpt-child-tools.ts", import.meta.url), "utf8");
 const heartbeatSource = await readFile(new URL("../../src/lib/local-runtime/production/runtime-execution-heartbeat.ts", import.meta.url), "utf8");
@@ -129,6 +141,20 @@ assert.ok(deletionControlIndex >= 0 && renewalBudgetIndex > deletionControlIndex
 assert.match(leaseReleaseContractSource, /PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED/u);
 assert.match(cloudSource, /stableRequestId/u);
 assert.match(storeSource, /releaseGptContinuationLanesForJob/u);
+assert.match(reconciliationSource, /V6_DEVICE_JOB_CONTROL_AUTHORITY_INVALID/u);
+assert.match(reconciliationSource, /currentReason\?\.code === "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED"/u);
+assert.match(runtimeLoopsSource, /settleInactivePermanentAuthorizationRevocation/u);
+assert.match(runtimeLoopsSource, /deferOutboxReconciliation/u);
+assert.match(runtimeLoopsSource, /blockedJobIds/u);
+assert.match(outboxSource, /settlePermanentlyRevokedJob/u);
+assert.match(outboxSource, /set last_error=\?,next_delivery_at=null where path like \?/u);
+assert.doesNotMatch(outboxSource, /delete from production_outbox/u);
+const revocationSettlementSource = outboxSource.slice(
+  outboxSource.indexOf("public settlePermanentlyRevokedJob"),
+  outboxSource.indexOf("public deliverOutbox"),
+);
+assert.doesNotMatch(revocationSettlementSource, /sent_at\s*=/u);
+assert.match(storeFoundationSource, /last_error<>'PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED'/u);
 
 assert.throws(() => parseJsonEnvelope({
   ok: false, error: { code: "HTTP_401_UNAUTHORIZED", message: "unauthorized" },
@@ -152,7 +178,7 @@ process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({
   passed: true,
   findings: [],
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V24",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V25",
   evidenceMode: "exam.state-machine",
   clauses: ["forbidden:10", "forbidden:11", "forbidden:12", "forbidden:13", "forbidden:19", "forbidden:23", "forbidden:24", "forbidden:25", "forbidden:26", "forbidden:29", "forbidden:9", "summary"],
   locator: "acceptance:agent-production-runtime:attempt-recovery-state-machine",

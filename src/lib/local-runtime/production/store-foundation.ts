@@ -244,7 +244,8 @@ const restoreOutboxDeliverySchedule = (database: Database.Database): void => {
   if (!currentCoreSchemaPresent(database)) return;
   database.prepare(`update production_outbox set next_delivery_at=?
     where sent_at is null and response_hash is null
-      and last_error is not null and next_delivery_at is null`
+      and last_error is not null and next_delivery_at is null
+      and last_error<>'PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED'`
   ).run(new Date(Date.now() + 3_600_000).toISOString());
 };
 

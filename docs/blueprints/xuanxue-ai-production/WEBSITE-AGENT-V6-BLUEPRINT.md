@@ -1,4 +1,4 @@
-# AGENT 十二产品插件与网站 V13 施工图
+# AGENT 十二产品插件与网站 V14 施工图
 
 ```blueprint-record
 {
@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V24"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V25"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -174,7 +174,7 @@ shared runtime 只负责以下运输、安全与恢复边界：
 - staged result 和 durable Outbox；
 - typed failure 透传与容量释放。
 
-V6 合同身份只有一条链：Website `ai-acceptance` 的 canonical manifest 是唯一母本，Website 的 `scripts/generate/sync-xuanxue-ai-production-v6-agent-projection.ts` 只从该母本确定性生成 AGENT `docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json`；projection 必须同时冻结 providerRepo、authorityArtifact、generator、hash algorithm、contract id、数字 `version` 与 exact `manifestHash`。AGENT 的 runtime、测试与 audit 全部读取该同一 projection，源码和质检不得各写一份 hash。`version=13` 只表示人类可读的合同修订号，精确运行兼容性只由 projection 内的 manifest hash 表达，两者不得分别演变成两套版本真相；projection 不是手工登记簿，除 Website generator 外任何写者都必须失败关闭。
+V6 合同身份只有一条链：Website `ai-acceptance` 的 canonical manifest 是唯一母本，Website 的 `scripts/generate/sync-xuanxue-ai-production-v6-agent-projection.ts` 只从该母本确定性生成 AGENT `docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json`；projection 必须同时冻结 providerRepo、authorityArtifact、generator、hash algorithm、contract id、数字 `version` 与 exact `manifestHash`。AGENT 的 runtime、测试与 audit 全部读取该同一 projection，源码和质检不得各写一份 hash。`version=14` 只表示人类可读的合同修订号，精确运行兼容性只由 projection 内的 manifest hash 表达，两者不得分别演变成两套版本真相；projection 不是手工登记簿，除 Website generator 外任何写者都必须失败关闭。
 
 device credential 只保存既有设备身份、鉴权材料和 epoch，不保存 manifest hash；设备行与 control protocol state 也不拥有合同版本。Website 只在短期 worker session 建立时把 AGENT projection hash 与当前 canonical hash 精确比较并把相等值绑定到 session，后续 attestation、heartbeat、claim 和 fence 只继承该 session 事实。旧 session 在母本变化后立即失去资格，但同一设备身份和 secret 保持不变，不重新 enrollment，不创建 replacement device。
 
@@ -421,6 +421,8 @@ Website 在现役 control intent 中返回 `cancel_requested` 且 `current_reaso
 
 Website 已确认的 accept/progress/checkpoint/completion receipt 只允许用原幂等键 readback；删除观察后不得产生新业务 mutation。已取得的真实活动 lease 在取消 lease-release 回执提交成功前仍占用该任务的业务槽，若 AGENT 离线则由 Website 在 lease 到期后释放；Runtime 不得提前报告该业务槽可用。取消回执成功后只释放该任务占用的业务槽、fence、Target、GPT continuation lane 与 Browser lane，其他任务继续。不得新增 cancellation store、delete queue、第三状态、replacement task/job、删除 worker 或第二协议；Website 仍唯一拥有 Work Order tombstone、领域成果和最终入库判断。
 
+删除后即使原 lease/session 已清空，Website 的现役 device-job status 仍须通过既有 append-only lease event 与 worker session 证明，让曾领取该 job 的同一历史 device 在新 session 下只读取得 exact `control_intent + current_reason`；foreign device 继续不可见。404 只表示 job 不存在或当前设备无权查看，AGENT 不得据此推断删除。cold-start Runtime 取得 exact 删除事实后，若该 job 没有活动执行，则在同一 SQLite 事务内保留原 task/attempt/Outbox row/intent/idempotency/payload/hash，把 `last_error` 更新为 exact 删除 reason 并清空未回执 Outbox 的 `next_delivery_at`、释放遗留 continuation lane 并禁止启动时重排；不得写 `sent_at`、伪造 receipt 或删除 WAL。若 Browser WAL 仍有 PREPARED/DISPATCHED，只留下该 job 的只读对账现场，其他 job 继续 claim。
+
 ## 6. 调用与副作用身份
 
 每个 GPT 调用由以下事实稳定标识：
@@ -449,11 +451,15 @@ next_delivery_at
 
 timeout/连接中断/5xx 与确定性合同或业务拒绝都保存原生 code，并沿同一 intent 使用有限 `next_delivery_at` 幂等退避/低频复核；它们不重做 Provider effect，也不得因次数或时钟丢失尚未入库的交付责任。只有 Website 已持久化明确业务授权撤销时才停止新发送。Outbox 没有 attempt 预算、parked 状态、任务状态或第二 verdict。
 
+永久撤权是上述有限重排的唯一例外：仅在 device-job status 返回 `cancel_requested + PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED` 后，把同 job 未回执 row 的 `last_error` 固定为该 reason 并把 `next_delivery_at` 置空；row 及原 payload/hash 保留，启动恢复不得重新排期。该动作不是“已送达”，不写 response、receipt 或 sent_at。
+
 Website 启动和 claim 的数据库前置只使用现役 commercial migration registry。普通 `start.sh` 不执行 migration，只在创建 Core 前以现役只读 verify 路径机械证明仓库 migration head、数据库 registry 与每个 migration hash 一致；部署操作才可显式执行 canonical `db:migrate:commercial`。已经登记的 0101、0102 历史字节与 registry hash 永久不改。当前唯一前向 schema cutover 只用于物理删除 control protocol state 与 active device 上的重复 manifest hash 列、在无 live lease 时 supersede 旧 worker session，并保留 device identity/secret/epoch、任务、attempt、failure、checkpoint、artifact 与 receipt；它之所以是 migration，是因为真实删除 schema 和转换持久数据，不是因为 hash 改值。此后单纯 canonical manifest hash 变化只生成新 AGENT projection 并令旧 session 失效，不再建 migration、更新设备或改 control row。迁移前必须先通过跨仓只读 preflight，提交后只读闭合 registry name/hash、重复列已删除、旧 session 已 superseded、设备身份未变与 unfinished-job liveness；不一致必须输出精确 `COMMERCIAL_MIGRATION_*` 原因并停止 Core Ready、control-room 与 claim，不得半切换、手工改数据库或把 Website 失败改写为 production-runtime Owner。
 
 AGENT staged result、Outbox delivered、Website completion submission 均不等于完成。Website domain consumer 以 `job_id + result_hash` 幂等入库并签发 hash-bound receipt 后，任务才原子变为 completed；此前保持 failed 并用 `current_reason` 表达当前位置。
 
 ## 8. 当前故障片区原位删除重构
+
+本轮在既有四个片区上只增加一个直接故障片区：已删除 Work Order 的历史 Outbox 因 device-job status 404 被不断重排并阻断新 claim。修复只在 Website 现役 status readback 与 AGENT 现役 Outbox reconciliation 内垂直完成，不新增 endpoint、schema、migration、store、worker 或第二删除协议。
 
 本次在同一唯一主链继续原位删除并重构四个已由真实 Chrome/日志证明的故障片区：图片 Child 把媒体-only assistant section 误判为空回答；continuation 只推进 provider 却没有同步推进 checkpoint；acquire 后 provider compare/focus/verify 失败绕过 release；任务局部 orphan lane 被全局 ledger 粗门放大成全部 claim 阻断。上一轮模型 radio 与 research frontier 的原位修复继续作为当前候选的一部分，不得回退。既有 MV3 actor、Provider wait、Browser 已鉴权原图链、Forensics、Outbox 与 Website 二元任务合同保持现役；当前 Website task、conversation、task-owned artifact、Browser WAL 与已完成 Provider effect 均不得迁移、替换或清空。本次为恢复同一已接受 task，`public-knowledge-article-pipeline` 的 pluginVersion=16、checkpointSchemaVersion=2 与 `SKILL.md` bytes/hash 固定不变；共同 Skill 只在 fresh research 或独立 review conversation 的首个 Prompt 组合一次，article/image 续接回合只组合各自 turn contract，禁止以版本升级或 Skill 改写制造 durable identity 冲突。执行顺序固定：
 
@@ -472,6 +478,8 @@ AGENT staged result、Outbox delivered、Website completion submission 均不等
 禁止 replacement job/run、legacy reader、旧 continuation 猜选、备份回灌、alias、bridge、dual read/write、shadow、fallback、第二恢复链或第二结果真相。现有任务身份、失败史、Provider effect 与业务对象都保留；既有无 frontier 的历史 continuation 不自动取得新权威。已有 frontier row 的 current checkpoint 只能通过上述一次性精确 cutover 形成：provider 未推进才复制 origin，provider 已推进则必须唯一匹配现役 task-owned exact-call artifact，迁移完成后物理不存在 nullable/旧读路径。
 
 ## 9. 聚焦验收
+
+删除同步聚焦验收：删除时已有活动 lease 与 cold-start 无 lease 均须让同一历史 device 的新 session 读回 exact 撤权，foreign device 仍为 404；cold-start 未回执 Outbox 保留原 payload/hash 但 `next_delivery_at=null`、零重发、零伪 receipt，重启后不得重排。单 job 的 404、临时 status 失败或撤权不得退出整轮 worker或阻断其他 job claim；未决 Browser mutation 只保留 job-local 只读现场。
 
 本轮静态验收：十二个 Product Plugin 保留既有身份、路由与 Skill；Skill 共同内核只组合一次，research/article/image 差异只在 `seo-turn-contract.ts`，三份实际 Prompt 不再重复整份 Skill。SEO fresh 路径保留现有 actionOrdinal；frontier decision=decline 跳过 1-46 且零 Provider mutation直接组装，decision=proceed 时 current=research 跳过 1-16 而从 17 开始、current=article 跳过 1-31 而从 32 开始、current=image 跳过 1-46 并直接组装同一 artifact。GPT 模型选择的 checked true/false 两种分支都只点击唯一 radio，expanded entry 零点击，并直接证明 popup 保留、entry collapsed、simple active、advanced absent。GPT wait/checkpoint 只使用唯一请求正文节点的 canonical semantic prompt；image wait/checkpoint 直接使用 exact assistant section + semantic media，不依赖内层 assistant role/text；text/image wait 对唯一 conversation-history 提示在同一 exact call 内至多确认一次，submission reconcile 在单 Tab 让出前写读同 exact-call locator artifact。confirmed-submit 后任一非 Provider terminal-negative 的 readback failure 都沿现役 lease release/current_reason 保持同一 accepted attempt，错误码、deadline 或 Target/Document 不得降格 submit、写 failure 或重复 mutation；continuation 仍只有唯一 row/store，frontier、origin/current provider 与 checkpoint 都在该 row 原子维护。每个 acquire 后失败出口 lane_owner_job_id 都归零，每个已开始 GPT Child span 即使在 Browser lease 获取、park 或 reacquire 失败也必须恰好产生一个保留原生 cause 的 typed terminal。runtime 不决定 Child；公开状态 union 精确为 failed/completed；accepted attempt 次数只来自 Website 持久事实且只作遥测/退避，不得阻断未撤权任务自动推进；Outbox 无 parked/独立预算；AI 产物接收仍只作机械完整性与身份检查，不增加内容门槛。
 
