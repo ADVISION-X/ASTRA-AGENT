@@ -3,7 +3,10 @@ import {
   type GptChildCapabilityProof,
   type GptChildCapabilityResult,
 } from "../../../capabilities/gpt/index.js";
-import type { BrowserTargetLease } from "../../browser/browser-authority-api.js";
+import type {
+  BrowserConfirmedProviderReadbackAuthorization,
+  BrowserTargetLease,
+} from "../../browser/browser-authority-api.js";
 import { requireRuntimeLogWrite, type RuntimeLogger } from "../../runtime-logs/index.js";
 import { executionFailure } from "../../typed-failure.js";
 import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-support.js";
@@ -82,6 +85,7 @@ export const recoveredGptChildResult = (input: Readonly<{
 
 export class ProductionGptBrowserLifecycle {
   private readonly browsers = new Map<string, ProductionGptBrowserCall>();
+  private confirmedProviderReadback: BrowserConfirmedProviderReadbackAuthorization | null = null;
 
   public constructor(
     private readonly browserAuthority: WorkbenchBrowserAuthority,
@@ -89,6 +93,16 @@ export class ProductionGptBrowserLifecycle {
     private readonly sourceHash: ProductionHash,
     private readonly execution: BrowserExecutionInput,
   ) {}
+
+  public authorizeConfirmedProviderReadback(
+    authorization: BrowserConfirmedProviderReadbackAuthorization,
+  ): void {
+    const existing = this.confirmedProviderReadback;
+    if (existing && sha256(JSON.stringify(existing)) !== sha256(JSON.stringify(authorization))) {
+      throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
+    }
+    this.confirmedProviderReadback = Object.freeze({ ...authorization });
+  }
 
   public async browserFor(
     sessionKey: string,
@@ -202,6 +216,7 @@ export class ProductionGptBrowserLifecycle {
     const remaining = Math.floor(this.execution.lease.expires_at_monotonic - performance.now());
     const commandTtlMs = Math.min(this.execution.lease.command_ttl_ms, remaining);
     if (commandTtlMs < 1) throw executionFailure("failed", "V6_DEADLINE_BUDGET_EXHAUSTED");
+    const confirmedProviderReadback = this.confirmedProviderReadback;
     const executionRef = [
       this.execution.task.job_id,
       this.execution.lease.attempt_id,
@@ -209,9 +224,13 @@ export class ProductionGptBrowserLifecycle {
       this.execution.pluginVersion,
       productStepId,
       callId,
+      confirmedProviderReadback?.sourceExactCallIdentityHash ?? "normal",
     ].join(":");
-    return this.browserAuthority.acquireJobBoundTargetLease({
-      kind: "production",
+    const binding = {
+      ...(confirmedProviderReadback ? {
+        kind: "production-reconciliation" as const,
+        confirmedProviderReadback,
+      } : { kind: "production" as const }),
       ownerPluginId: this.execution.pluginId,
       pluginVersion: this.execution.pluginVersion,
       jobId: this.execution.task.job_id,
@@ -228,7 +247,9 @@ export class ProductionGptBrowserLifecycle {
       writerFenceHash: this.execution.lease.execution_fence_hash,
       candidateHash: this.sourceHash,
       commandTtlMs,
-    }, `${this.execution.pluginId}:${this.execution.task.job_id}:${callId}`, {
+    };
+    return this.browserAuthority.acquireJobBoundTargetLease(binding,
+    `${this.execution.pluginId}:${this.execution.task.job_id}:${callId}`, {
       signal: this.execution.lease.abort_signal,
       remainingMs: () => Math.floor(
         this.execution.lease.expires_at_monotonic - performance.now(),

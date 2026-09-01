@@ -66,8 +66,19 @@ export const readProductionGptCallFacts = async (
   });
   return Object.freeze({
     exactCallIdentityHash,
-    mutation: mutation ? Object.freeze({ owner: "browser", effectScope: mutation.effectScope,
-      outcome: mutation.outcome, terminalAt: mutation.terminalAt }) : null,
+    mutation: mutation ? Object.freeze({
+      owner: "browser",
+      sourceAttemptId: intent.attemptId,
+      effectScope: mutation.effectScope,
+      outcome: mutation.outcome,
+      terminalAt: mutation.terminalAt,
+      targetRef: mutation.targetRef,
+      documentRef: mutation.documentRef,
+      productStepId: mutation.productStepId,
+      callId: mutation.callId,
+      childCapabilityId: mutation.childCapabilityId,
+      actionOrdinal: mutation.actionOrdinal,
+    }) : null,
     evidence: await readExactGptEvidenceFact({
       evidenceStore: reader.evidenceStore, intent, exactCallIdentityHash,
     }),

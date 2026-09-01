@@ -1,5 +1,7 @@
 import {
   GPT_CHILD_CAPABILITY_CONTRACTS,
+  canonicalGptConversationUrl,
+  gptContinuationIdentityHash,
   gptExactCallIdentityHash,
   type GptAbilityGroup,
   type GptChildCapabilityIntent,
@@ -16,6 +18,7 @@ import {
 } from "../../runtime-logs/index.js";
 import { executionFailure, failureCode, typedExecutionFailure } from "../../typed-failure.js";
 import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-support.js";
+import type { BrowserConfirmedProviderReadbackAuthorization } from "../../browser/browser-authority-api.js";
 import { hashCanonical, type ProductionHash, type WebsiteAgentTask } from "./contracts.js";
 import type {
   ExactGptCallFacts,
@@ -117,12 +120,12 @@ export class ProductionGptChildTools {
           this.continuationReadback.readExact(input, query),
         execute,
         readCallFacts: (call: Parameters<ProductGptTools["readCallFacts"]>[0]) =>
-          this.readCallFacts(input, call),
+          this.readCallFacts(input, browsers, call),
       }),
       continuationRef: () => continuationRef,
       reconcilePermanentCancellation: async () => {
         for (const call of observedCalls.values()) {
-          const facts = await this.readCallFacts(input, call);
+          const facts = await this.readCallFacts(input, browsers, call);
           if (facts.mutation?.outcome !== "DISPATCHED") continue;
           const remaining = Math.floor(input.lease.expires_at_monotonic - performance.now());
           if (remaining < 1) throw executionFailure("failed", "V6_DEADLINE_BUDGET_EXHAUSTED");
@@ -165,11 +168,14 @@ export class ProductionGptChildTools {
   }
   private async readCallFacts(
     execution: ExecutionInput,
+    browsers: ProductionGptBrowserLifecycle,
     query: ProductGptFactQuery,
   ): Promise<ExactGptCallFacts> {
     const { lookupKind = "current_attempt", ...call } = query;
     if (lookupKind === "current_attempt") {
-      return this.readIntentFacts(this.intentFor(execution, call));
+      const facts = await this.readIntentFacts(this.intentFor(execution, call));
+      this.maybeAuthorizeConfirmedProviderReadback(execution, browsers, call, facts);
+      return facts;
     }
     if (call.child !== "submit_exact_gpt_turn_once") {
       throw executionFailure("failed", "GPT_TASK_EXACT_EFFECT_CHILD_INVALID");
@@ -190,7 +196,80 @@ export class ProductionGptChildTools {
     if (candidates.length > 1) {
       throw executionFailure("failed", "GPT_TASK_EXACT_EFFECT_AMBIGUOUS");
     }
-    return candidates[0] ?? currentFacts;
+    const facts = candidates[0] ?? currentFacts;
+    this.maybeAuthorizeConfirmedProviderReadback(execution, browsers, call, facts);
+    return facts;
+  }
+
+  private maybeAuthorizeConfirmedProviderReadback(
+    execution: ExecutionInput,
+    browsers: ProductionGptBrowserLifecycle,
+    call: ProductGptCallInput,
+    facts: ExactGptCallFacts,
+  ): void {
+    if (call.child !== "submit_exact_gpt_turn_once") return;
+    const mutation = facts.mutation;
+    const evidence = facts.evidence;
+    if (mutation?.effectScope !== "provider_effect"
+      || mutation.outcome !== "CONFIRMED"
+      || !mutation.terminalAt
+      || evidence?.readbackVerified !== true) return;
+    if (mutation.productStepId !== call.productStepId
+      || mutation.callId !== call.callId
+      || mutation.childCapabilityId !== call.child
+      || mutation.actionOrdinal !== call.actionOrdinal) {
+      throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
+    }
+    const continuationRef = execution.task.continuation_ref;
+    if (!continuationRef) return;
+    const continuation = this.store.readGptContinuation(continuationRef);
+    if (!continuation
+      || continuation.origin_job_id !== execution.task.job_id
+      || continuation.plugin_id !== execution.pluginId
+      || continuation.owner_ref !== execution.task.business_identity.owner_ref
+      || continuation.subject_ref !== execution.task.business_identity.subject_ref
+      || continuation.authorization_ref !== execution.task.business_identity.authorization_ref
+      || continuation.provider.prior_task_id !== execution.task.job_id
+      || continuation.conversation_identity_hash !== gptContinuationIdentityHash(continuation.provider)
+      || (continuation.lane_owner_job_id !== null
+        && continuation.lane_owner_job_id !== execution.task.job_id)
+      || !continuation.current_checkpoint) {
+      throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
+    }
+    const canonicalConversationUrl = canonicalGptConversationUrl(
+      continuation.provider.provider_page_url,
+    );
+    if (canonicalGptConversationUrl(continuation.current_checkpoint.canonical_conversation_url)
+      !== canonicalConversationUrl) {
+      throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
+    }
+    const promptHash = call.input.promptHash;
+    const turnMarker = call.input.turnMarker;
+    if (typeof promptHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(promptHash)
+      || typeof turnMarker !== "string" || !turnMarker) {
+      throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
+    }
+    const authorization: BrowserConfirmedProviderReadbackAuthorization = Object.freeze({
+      schemaVersion: "browser-confirmed-provider-readback.v1",
+      sourceAttemptId: mutation.sourceAttemptId,
+      sourceExactCallIdentityHash: facts.exactCallIdentityHash,
+      sourceActionOrdinal: mutation.actionOrdinal,
+      sourceProductStepId: mutation.productStepId,
+      sourceCallId: mutation.callId,
+      sourceChildCapabilityId: "submit_exact_gpt_turn_once",
+      sourceTargetRef: mutation.targetRef,
+      sourceDocumentRef: mutation.documentRef,
+      sourceTerminalAt: mutation.terminalAt,
+      evidenceRef: evidence.evidenceRef,
+      evidenceHash: evidence.evidenceHash,
+      canonicalConversationUrl,
+      conversationIdentityHash: continuation.conversation_identity_hash,
+      promptHash: promptHash as ProductionHash,
+      turnMarker,
+    });
+    // Only Runtime may project the unique Browser WAL + Forensics + task continuation facts.
+    // Product code receives the facts but never receives a second browser authorization API.
+    browsers.authorizeConfirmedProviderReadback(authorization);
   }
   private async readIntentFacts(
     intent: GptChildCapabilityIntent,

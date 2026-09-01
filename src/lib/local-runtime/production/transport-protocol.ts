@@ -8,7 +8,7 @@ import {
 } from "./contracts.js";
 
 export const PRODUCTION_V6_MANIFEST_HASH =
-  "sha256:20c108e6370d08ac22c7c6d8267bbf7e05706ce3c7babe3bf45bf718f304958b" as const;
+  "sha256:cff5a8aa0ef7a66976286373c5dd3654af28acc16dd039b6e18c81e8863482d5" as const;
 
 const hash = z.string().regex(/^sha256:[a-f0-9]{64}$/u)
   .transform((value): `sha256:${string}` => value as `sha256:${string}`);

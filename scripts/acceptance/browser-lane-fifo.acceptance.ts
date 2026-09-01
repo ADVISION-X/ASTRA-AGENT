@@ -14,6 +14,7 @@ import {
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 
 const HASH = `sha256:${"a".repeat(64)}` as const;
+const CONFIRMED_EXACT_HASH = `sha256:${"c".repeat(64)}` as const;
 const binding = (jobId: string, productStepId = "fixture-step"): BrowserExecutionBinding => ({
   kind: "production",
   ownerPluginId: "plugin",
@@ -41,6 +42,7 @@ const fixtureLease = (
 ): BrowserTargetLease => {
   const targetRef = identity?.targetRef ?? (entry.jobId === "job:historic" ? "target:historic" : `target:${entry.jobId}`);
   const documentRef = identity?.documentRef ?? (entry.jobId === "job:historic" ? "document:historic" : `document:${entry.jobId}`);
+  const document = { documentRef, targetRef, navigationEpoch: 1 } as const;
   return ({
   leaseRef: `lease:${entry.jobId}`,
   authorityRef: "authority:fixture",
@@ -52,22 +54,32 @@ const fixtureLease = (
   writerLeaseEpoch: 1,
   writerFenceHash: HASH,
   target: { targetRef, authorityEpoch: 1, executionBindingHash: HASH },
-  document: { documentRef, targetRef, navigationEpoch: 1 },
+  document,
   async runAtomicStep(_identity, action) { return action(); },
   readAtomicStepRecovery: () => null,
   requiresMutationRecovery: () => false,
-  async navigate() { throw new Error("FIXTURE_NAVIGATION_FORBIDDEN"); },
-  async executeDomIntent() { throw new Error("FIXTURE_DOM_INTENT_FORBIDDEN"); },
-  async observeCapability() { throw new Error("FIXTURE_CAPABILITY_FORBIDDEN"); },
-  async captureScreenshot() { throw new Error("FIXTURE_SCREENSHOT_FORBIDDEN"); },
-  async attachFile() { throw new Error("FIXTURE_ATTACHMENT_FORBIDDEN"); },
-  async downloadAuthenticatedMedia() { throw new Error("FIXTURE_AUTHENTICATED_MEDIA_FORBIDDEN"); },
-  async registerFileArtifact() { throw new Error("FIXTURE_ARTIFACT_FORBIDDEN"); },
-  async issueFileArtifactGrant() { throw new Error("FIXTURE_ARTIFACT_GRANT_FORBIDDEN"); },
-  async wait() { throw new Error("FIXTURE_WAIT_FORBIDDEN"); },
+  async navigate() { return document; },
+  async executeDomIntent() { return { observed: true }; },
+  async observeCapability() { return { observed: true }; },
+  async captureScreenshot() { return { artifactRef: "screenshot:fixture", contentHash: HASH }; },
+  async attachFile() {},
+  async downloadAuthenticatedMedia(input) { return {
+    authorityTargetHash: HASH, authorityDocumentHash: HASH,
+    assistantTurnId: input.assistantTurnId, semanticMediaId: input.semanticMediaId,
+    bytesBase64: "AQ==", sha256: HASH, sizeBytes: 1, mediaType: "image/png",
+    width: 1, height: 1,
+  }; },
+  async registerFileArtifact() {},
+  async issueFileArtifactGrant() { return {
+    schemaVersion: "browser-file-artifact-grant-v1",
+    grantRef: "grant:fixture", authorityEpoch: 1, executionBindingHash: HASH,
+    artifactRef: "artifact:fixture", contentHash: HASH, maxBytes: 1,
+    expiresAt: new Date(Date.now() + 1_000).toISOString(),
+  }; },
+  async wait() {},
   async park() {},
   close,
-  async resolvePendingMutation() { throw new Error("FIXTURE_MUTATION_RESOLUTION_FORBIDDEN"); },
+  async resolvePendingMutation() { return 0; },
   pendingMutationCount: () => 0,
   assertNoPendingMutations() {},
   });
@@ -166,6 +178,37 @@ try {
     runtimeLogger: logger,
   });
   await supervisor.start();
+  const confirmedFact = supervisor.readExactCallMutationFact({
+    jobId: "job:confirmed",
+    attemptId: "attempt:job:confirmed",
+    ownerPluginId: "plugin",
+    pluginVersion: 1,
+    exactCallIdentityHash: CONFIRMED_EXACT_HASH,
+    actionOrdinal: 1,
+  });
+  assert(confirmedFact?.terminalAt);
+  const confirmedBinding = (): BrowserExecutionBinding => ({
+    ...binding("job:confirmed", "confirmed-step"),
+    kind: "production-reconciliation",
+    confirmedProviderReadback: {
+      schemaVersion: "browser-confirmed-provider-readback.v1",
+      sourceAttemptId: "attempt:job:confirmed",
+      sourceExactCallIdentityHash: CONFIRMED_EXACT_HASH,
+      sourceActionOrdinal: 1,
+      sourceProductStepId: "confirmed-step",
+      sourceCallId: "confirmed-submit",
+      sourceChildCapabilityId: "submit_exact_gpt_turn_once",
+      sourceTargetRef: "target:confirmed",
+      sourceDocumentRef: "document:confirmed:1",
+      sourceTerminalAt: confirmedFact.terminalAt!,
+      evidenceRef: "forensics:confirmed-submit",
+      evidenceHash: HASH,
+      canonicalConversationUrl: "https://chatgpt.com/c/confirmed-readback",
+      conversationIdentityHash: HASH,
+      promptHash: HASH,
+      turnMarker: "[GRASSEYE:confirmed-readback]",
+    },
+  });
   assert.equal(
     supervisor.readBrowserLaneState(),
     "idle",
@@ -221,7 +264,7 @@ try {
     targetRef: string | null,
   ): Promise<void> => {
     targetAcquisitionRequests.push(targetRef);
-    if (targetRef !== null) throw new Error("BROWSER_EXACT_TARGET_UNAVAILABLE");
+    if (targetRef !== null) throw new Error("BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT");
     brokerTargetStatus = "claimed";
   }), true);
 
@@ -296,8 +339,20 @@ try {
   );
   brokerTargetStatus = "absent";
   targetAcquisitionRequests.length = 0;
+  await assert.rejects(
+    supervisor.acquireJobBoundTargetLease(
+      binding("job:confirmed", "confirmed-step"),
+      "owner:confirmed:wal-only",
+      { signal: openSignal.signal, remainingMs: () => 60_000 },
+    ),
+    /BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT/u,
+    "Browser WAL CONFIRMED by itself must not authorize a replacement Target",
+  );
+  assert.deepEqual(targetAcquisitionRequests, ["target:confirmed"],
+    "without Runtime-projected Forensics and task locator proof Browser must not request a new Target");
+  targetAcquisitionRequests.length = 0;
   const confirmedReplacement = await supervisor.acquireJobBoundTargetLease(
-    binding("job:confirmed", "confirmed-step"),
+    confirmedBinding(),
     "owner:confirmed:physical-replacement",
     { signal: openSignal.signal, remainingMs: () => 60_000 },
   );
@@ -310,6 +365,35 @@ try {
     [confirmedReplacement.target.targetRef, confirmedReplacement.document.documentRef],
     ["target:confirmed:changed", "document:confirmed:3"],
   );
+  const observation = await confirmedReplacement.runAtomicStep({
+    productStepId: "confirmed-step", callId: "image-readback",
+    childCapabilityId: "wait_for_stable_gpt_image", inputHash: HASH,
+    actionOrdinal: 44, replayPolicy: "observation-only",
+  }, () => confirmedReplacement.executeDomIntent({ kind: "document" }));
+  assert.deepEqual(observation, { observed: true });
+  await confirmedReplacement.navigate({
+    url: "https://chatgpt.com/c/confirmed-readback", title: "exact readback",
+  });
+  await confirmedReplacement.downloadAuthenticatedMedia({
+    assistantTurnId: "conversation-turn-2", semanticMediaId: "gpt-generated-image-main",
+  });
+  await assert.rejects(
+    confirmedReplacement.runAtomicStep({
+      productStepId: "confirmed-step", callId: "forbidden-submit",
+      childCapabilityId: "submit_exact_gpt_turn_once", inputHash: HASH,
+      actionOrdinal: 45, replayPolicy: "provider-effect-once",
+    }, async () => null),
+    /BROWSER_RECONCILIATION_SCOPE_INVALID/u,
+  );
+  await assert.rejects(confirmedReplacement.executeDomIntent({
+    kind: "fill", selector: "#prompt-textarea", approvedText: "forbidden",
+    clearBeforeType: true, expectedMatches: 1,
+  }), /BROWSER_RECONCILIATION_SCOPE_INVALID/u);
+  await assert.rejects(confirmedReplacement.navigate({
+    url: "https://chatgpt.com/", title: "wrong page",
+  }), /BROWSER_RECONCILIATION_SCOPE_INVALID/u);
+  await assert.rejects(confirmedReplacement.attachFile({ selector: "input", grants: [] }),
+    /BROWSER_RECONCILIATION_SCOPE_INVALID/u);
   await confirmedReplacement.park({ reason: "confirmed-provider-target-replaced", mode: "recovery" });
 
   brokerTargetStatus = "absent";
@@ -326,7 +410,7 @@ try {
     ),
     (error) => {
       const failure = typedExecutionFailure(error);
-      assert.equal(failure?.code, "BROWSER_EXACT_TARGET_UNAVAILABLE");
+      assert.equal(failure?.code, "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT");
       assert.equal(failure?.mutationOutcome, "confirmed");
       return true;
     },

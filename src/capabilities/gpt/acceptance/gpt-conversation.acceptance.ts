@@ -192,6 +192,24 @@ assert.equal(targetLossSubmission.failureCode, "BROWSER_TARGET_INVALID",
 assert.deepEqual(targetLossSubmissionFixture.waitDurations(), [],
   "true Target lifecycle failure must leave action43 immediately for same-attempt release/reclaim");
 
+const documentLossSubmissionFixture = fakeBrowser((intent) => {
+  if (intent.kind === "find" && intent.selector === GPT_USER_TURN_SELECTOR) return { count: 1 };
+  if (intent.kind === "readText" && intent.selector === GPT_COMPOSER_SELECTOR) return "";
+  if (intent.kind === "document") throw executionFailure("failed", "BROWSER_DOCUMENT_INVALID");
+  throw new Error(`UNEXPECTED_DOCUMENT_LOSS_SUBMISSION_INTENT:${intent.kind}`);
+});
+const documentLossSubmission = await execute(
+  "reconcile_gpt_turn_submission",
+  documentLossSubmissionFixture.browser,
+  { expectedPromptHash: renderedMarkdownPromptHash, timeoutMs: 1_000, turnMarker: promptMarker },
+);
+assert.equal(documentLossSubmission.status, "failed");
+assert.equal(documentLossSubmission.failureCode, "BROWSER_DOCUMENT_INVALID",
+  "action43 must not retry a stale Document as a transient DOM repaint");
+assert.deepEqual(documentLossSubmissionFixture.waitDurations(), [],
+  "Document lifecycle failure must leave action43 immediately without any mutation or retry");
+assert.equal(documentLossSubmissionFixture.physicalMutations(), 0);
+
 const assistantText = '{"schema_version":"public-knowledge-research-output.v3"}';
 const assistantHash = `sha256:${createHash("sha256").update(assistantText).digest("hex")}`;
 const assistantCheckpointFixture = fakeBrowser((intent) => {

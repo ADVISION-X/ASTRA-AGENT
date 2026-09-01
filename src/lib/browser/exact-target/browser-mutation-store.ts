@@ -56,6 +56,12 @@ export type BrowserExactCallMutationFact = Readonly<{
   effectScope: "target_local" | "provider_effect";
   outcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
   terminalAt: string | null;
+  targetRef: string;
+  documentRef: string;
+  productStepId: string;
+  callId: string;
+  childCapabilityId: string;
+  actionOrdinal: number;
 }>;
 
 export type BrowserAtomicStepRecovery = Readonly<{
@@ -393,7 +399,8 @@ export class BrowserMutationStore {
     actionOrdinal: number;
   }>): BrowserExactCallMutationFact | null {
     const rows = this.database.prepare(
-      `select effect_scope,state,terminal_at,action_ordinal
+      `select effect_scope,state,terminal_at,target_ref,document_ref,product_step_id,call_id,
+              child_capability_id,action_ordinal
        from browser_mutations
        where job_id=? and attempt_id=? and owner_plugin_id=? and plugin_version=?
          and exact_call_identity_hash=? and state in ('DISPATCHED','CONFIRMED','REJECTED')
@@ -403,6 +410,11 @@ export class BrowserMutationStore {
       effect_scope: "target_local" | "provider_effect";
       state: "DISPATCHED" | "CONFIRMED" | "REJECTED";
       terminal_at: string | null;
+      target_ref: string;
+      document_ref: string;
+      product_step_id: string;
+      call_id: string;
+      child_capability_id: string;
       action_ordinal: number;
     }>;
     if (rows.length === 0) return null;
@@ -417,6 +429,12 @@ export class BrowserMutationStore {
       effectScope: row.effect_scope,
       outcome: row.state,
       terminalAt: row.terminal_at,
+      targetRef: row.target_ref,
+      documentRef: row.document_ref,
+      productStepId: row.product_step_id,
+      callId: row.call_id,
+      childCapabilityId: row.child_capability_id,
+      actionOrdinal: row.action_ordinal,
     });
   }
 

@@ -7,8 +7,7 @@ import type { BrowserFileArtifactGrantV1 } from "../exact-target/browser-file-ar
 import type { BrowserAuthorityIssuer } from "./browser-authority-issuer.js";
 import type { BrowserControlledTarget, BrowserHash } from "../exact-target/browser-target-ref.js";
 
-export type BrowserExecutionBinding = Readonly<{
-  kind: "local" | "production" | "production-reconciliation";
+type BrowserExecutionBindingCore = Readonly<{
   ownerPluginId: string;
   pluginVersion: number;
   jobId: string;
@@ -26,6 +25,33 @@ export type BrowserExecutionBinding = Readonly<{
   candidateHash: BrowserHash;
   commandTtlMs: number;
 }>;
+
+export type BrowserConfirmedProviderReadbackAuthorization = Readonly<{
+  schemaVersion: "browser-confirmed-provider-readback.v1";
+  sourceAttemptId: string;
+  sourceExactCallIdentityHash: BrowserHash;
+  sourceActionOrdinal: number;
+  sourceProductStepId: string;
+  sourceCallId: string;
+  sourceChildCapabilityId: "submit_exact_gpt_turn_once";
+  sourceTargetRef: string;
+  sourceDocumentRef: string;
+  sourceTerminalAt: string;
+  evidenceRef: string;
+  evidenceHash: BrowserHash;
+  canonicalConversationUrl: string;
+  conversationIdentityHash: BrowserHash;
+  promptHash: BrowserHash;
+  turnMarker: string;
+}>;
+
+export type BrowserExecutionBinding = BrowserExecutionBindingCore & Readonly<
+  | { kind: "local" | "production" }
+  | {
+    kind: "production-reconciliation";
+    confirmedProviderReadback: BrowserConfirmedProviderReadbackAuthorization;
+  }
+>;
 
 export type BrowserAuthorityStatus =
   | Readonly<{ kind: "UNAVAILABLE"; reasonCode: string }>

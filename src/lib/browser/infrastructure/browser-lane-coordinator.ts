@@ -23,20 +23,46 @@ type LaneWaiter = Readonly<{
 
 type LaneState = ReturnType<typeof createBrowserInfrastructureState>;
 
-const permitsConfirmedProviderTargetReplacement = (
-  recovery: ReturnType<NonNullable<LaneState["mutationState"]>["callRecoveryScope"]>,
-): boolean => recovery?.state === "CONFIRMED" && recovery.effectScope === "provider_effect";
+type LaneRecovery = Readonly<{
+  state: "DISPATCHED" | "CONFIRMED" | "REJECTED";
+  effectScope: "target_local" | "provider_effect";
+  targetRef: string;
+  documentRef: string;
+}>;
 
 const recoveryMutationOutcome = (
-  recovery: ReturnType<NonNullable<LaneState["mutationState"]>["callRecoveryScope"]>,
+  recovery: LaneRecovery | null,
 ): "no" | "dispatched" | "confirmed" => recovery?.state === "DISPATCHED"
   ? "dispatched"
   : recovery?.state === "CONFIRMED"
     ? "confirmed"
     : "no";
 
+const hash = (value: string): boolean => /^sha256:[a-f0-9]{64}$/u.test(value);
+
+const exactCanonicalConversationUrl = (value: string): boolean => {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && url.host === "chatgpt.com"
+      && /^\/c\/[^/]+$/u.test(url.pathname)
+      && value === `${url.origin}${url.pathname}`;
+  } catch {
+    return false;
+  }
+};
+
+const replacementKey = (binding: Extract<BrowserExecutionBinding, {
+  kind: "production-reconciliation";
+}>): string => [
+  binding.jobId,
+  binding.confirmedProviderReadback.sourceAttemptId,
+  binding.confirmedProviderReadback.sourceExactCallIdentityHash,
+  binding.confirmedProviderReadback.evidenceHash,
+].join(":");
+
 export class BrowserLaneCoordinator {
   private readonly queue: LaneWaiter[] = [];
+  private readonly confirmedReadbackReplacementTargets = new Map<string, string>();
   private active = false;
 
   public constructor(
@@ -92,6 +118,7 @@ export class BrowserLaneCoordinator {
       this.rejectPending(reasonCode);
       for (const waiter of this.queue.splice(0)) waiter.reject(browserExecutionFailure(new Error(reasonCode)));
     }
+    this.confirmedReadbackReplacementTargets.clear();
     this.active = false;
     void this.pump();
   }
@@ -145,23 +172,28 @@ export class BrowserLaneCoordinator {
     if (!waiter) return;
     waiter.stopWaitingMonitor();
     this.active = true;
-    const recovery = this.infrastructure.mutationState?.callRecoveryScope({
-      jobId: waiter.binding.jobId,
-      attemptId: waiter.binding.attemptId,
-      ownerPluginId: waiter.binding.ownerPluginId,
-      pluginVersion: waiter.binding.pluginVersion,
-      productStepId: waiter.binding.productStepId,
-    }) ?? null;
+    let recovery: LaneRecovery | null = null;
     let confirmedProviderTargetReplaced = false;
     try {
+      recovery = this.recoveryFor(waiter.binding);
+      const replacementBinding = waiter.binding.kind === "production-reconciliation"
+        ? waiter.binding : null;
+      const knownReplacementTarget = replacementBinding
+        ? this.confirmedReadbackReplacementTargets.get(replacementKey(replacementBinding)) ?? null
+        : null;
       if (this.resolveBroker().currentOperatorTargetStatus() === "absent") {
         const acquisitionTtlMs = Math.min(waiter.binding.commandTtlMs, waiter.remainingMs());
         try {
-          await this.acquireJobBoundTarget(acquisitionTtlMs, recovery?.targetRef ?? null);
+          await this.acquireJobBoundTarget(
+            acquisitionTtlMs,
+            knownReplacementTarget ?? recovery?.targetRef ?? null,
+          );
         } catch (error) {
-          if (!permitsConfirmedProviderTargetReplacement(recovery)
+          if (!replacementBinding
+            || recovery?.state !== "CONFIRMED"
+            || recovery.effectScope !== "provider_effect"
             || !(error instanceof Error)
-            || error.message !== "BROWSER_EXACT_TARGET_UNAVAILABLE") throw error;
+            || error.message !== "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT") throw error;
           await this.acquireJobBoundTarget(
             Math.min(waiter.binding.commandTtlMs, waiter.remainingMs()),
             null,
@@ -174,11 +206,29 @@ export class BrowserLaneCoordinator {
       ));
       const lease = await this.resolveBroker().acquireOperatorClaimedTargetLease(waiter.binding, waiter.ownerId);
       const targetMismatch = recovery && lease.target.targetRef !== recovery.targetRef;
-      if (recovery && ((targetMismatch && !confirmedProviderTargetReplaced)
+      let restrictedReplacement = false;
+      let currentReplacementKey: string | null = null;
+      if (targetMismatch && replacementBinding) {
+        currentReplacementKey = replacementKey(replacementBinding);
+        const known = this.confirmedReadbackReplacementTargets.get(currentReplacementKey);
+        if (!confirmedProviderTargetReplaced && known !== lease.target.targetRef) {
+          throw new Error("BROWSER_DOCUMENT_INVALID");
+        }
+        if (this.confirmedReadbackReplacementTargets.size >= 100 && !known) {
+          const oldest = this.confirmedReadbackReplacementTargets.keys().next().value as string | undefined;
+          if (oldest) this.confirmedReadbackReplacementTargets.delete(oldest);
+        }
+        this.confirmedReadbackReplacementTargets.set(currentReplacementKey, lease.target.targetRef);
+        restrictedReplacement = true;
+      }
+      if (recovery && ((targetMismatch && !restrictedReplacement)
         || (recovery.state === "DISPATCHED" && lease.document.documentRef !== recovery.documentRef))) {
         throw new Error("BROWSER_DOCUMENT_INVALID");
       }
-      waiter.resolve(this.withLifecycle(lease));
+      const governedLease = restrictedReplacement && replacementBinding
+        ? this.confirmedReadbackLease(lease, replacementBinding)
+        : lease;
+      waiter.resolve(this.withLifecycle(governedLease, currentReplacementKey));
     } catch (error) {
       const failure = browserExecutionFailure(error, recoveryMutationOutcome(recovery));
       this.active = false;
@@ -187,7 +237,88 @@ export class BrowserLaneCoordinator {
     }
   }
 
-  private withLifecycle(lease: BrowserTargetLease): BrowserTargetLease {
+  private recoveryFor(binding: BrowserExecutionBinding): LaneRecovery | null {
+    const mutationState = this.infrastructure.mutationState;
+    if (!mutationState) return null;
+    if (binding.kind !== "production-reconciliation") {
+      return mutationState.callRecoveryScope({
+        jobId: binding.jobId,
+        attemptId: binding.attemptId,
+        ownerPluginId: binding.ownerPluginId,
+        pluginVersion: binding.pluginVersion,
+        productStepId: binding.productStepId,
+      });
+    }
+    const authorization = binding.confirmedProviderReadback;
+    const fact = mutationState.readExactCallMutationFact({
+      jobId: binding.jobId,
+      attemptId: authorization.sourceAttemptId,
+      ownerPluginId: binding.ownerPluginId,
+      pluginVersion: binding.pluginVersion,
+      exactCallIdentityHash: authorization.sourceExactCallIdentityHash,
+      actionOrdinal: authorization.sourceActionOrdinal,
+    });
+    if (!fact
+      || authorization.schemaVersion !== "browser-confirmed-provider-readback.v1"
+      || authorization.sourceProductStepId !== binding.productStepId
+      || authorization.sourceChildCapabilityId !== "submit_exact_gpt_turn_once"
+      || fact.effectScope !== "provider_effect"
+      || fact.outcome !== "CONFIRMED"
+      || fact.terminalAt !== authorization.sourceTerminalAt
+      || fact.targetRef !== authorization.sourceTargetRef
+      || fact.documentRef !== authorization.sourceDocumentRef
+      || fact.productStepId !== authorization.sourceProductStepId
+      || fact.callId !== authorization.sourceCallId
+      || fact.childCapabilityId !== authorization.sourceChildCapabilityId
+      || fact.actionOrdinal !== authorization.sourceActionOrdinal
+      || !hash(authorization.sourceExactCallIdentityHash)
+      || !hash(authorization.evidenceHash)
+      || !hash(authorization.conversationIdentityHash)
+      || !hash(authorization.promptHash)
+      || !authorization.evidenceRef
+      || !authorization.turnMarker
+      || !Number.isFinite(Date.parse(authorization.sourceTerminalAt))
+      || !exactCanonicalConversationUrl(authorization.canonicalConversationUrl)) {
+      throw new Error("BROWSER_RECONCILIATION_SCOPE_INVALID");
+    }
+    return Object.freeze({
+      state: fact.outcome,
+      effectScope: fact.effectScope,
+      targetRef: fact.targetRef,
+      documentRef: fact.documentRef,
+    });
+  }
+
+  private confirmedReadbackLease(
+    lease: BrowserTargetLease,
+    binding: Extract<BrowserExecutionBinding, { kind: "production-reconciliation" }>,
+  ): BrowserTargetLease {
+    const reject = async (): Promise<never> => {
+      throw new Error("BROWSER_RECONCILIATION_SCOPE_INVALID");
+    };
+    const readKinds = new Set(["document", "inspect", "find", "readText", "readAttribute"]);
+    return {
+      ...lease,
+      runAtomicStep: (identity, action) => identity.replayPolicy === "observation-only"
+        ? lease.runAtomicStep(identity, action) : reject(),
+      navigate: (input) => input.url === binding.confirmedProviderReadback.canonicalConversationUrl
+        ? lease.navigate(input) : reject(),
+      executeDomIntent: (intent) => readKinds.has(intent.kind)
+        ? lease.executeDomIntent(intent) : reject(),
+      observeCapability: (input) => lease.observeCapability(input),
+      captureScreenshot: reject,
+      attachFile: reject,
+      downloadAuthenticatedMedia: (input) => lease.downloadAuthenticatedMedia(input),
+      registerFileArtifact: reject,
+      issueFileArtifactGrant: reject,
+      wait: (input) => lease.wait(input),
+      park: (input) => lease.park(input),
+      close: (input) => lease.close(input),
+      resolvePendingMutation: reject,
+    };
+  }
+
+  private withLifecycle(lease: BrowserTargetLease, replacementKeyToClear: string | null): BrowserTargetLease {
     const finish = async (action: () => Promise<void>): Promise<void> => {
       try {
         await action();
@@ -202,7 +333,12 @@ export class BrowserLaneCoordinator {
     return {
       ...lease,
       park: (input) => finish(() => lease.park(input)),
-      close: (input) => finish(() => lease.close(input)),
+      close: (input) => finish(async () => {
+        try { await lease.close(input); }
+        finally {
+          if (replacementKeyToClear) this.confirmedReadbackReplacementTargets.delete(replacementKeyToClear);
+        }
+      }),
     };
   }
 

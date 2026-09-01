@@ -9,6 +9,7 @@ import { ProductionGptChildTools, type ProductGptExecution } from "../../src/lib
 import { persistGptChildEvidence } from "../../src/lib/local-runtime/production/gpt-evidence-writer.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import type { WorkbenchBrowserAuthority } from "../../src/lib/local-runtime/workbench-browser-authority-support.js";
+import type { BrowserExecutionBinding } from "../../src/lib/browser/browser-authority-api.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import { typedExecutionFailure } from "../../src/lib/typed-failure.js";
@@ -105,7 +106,8 @@ try {
       },
     },
   });
-  assert.equal(typeof Reflect.get(persisted.value ?? {}, "continuationRef"), "string");
+  const continuationRef = Reflect.get(persisted.value ?? {}, "continuationRef");
+  assert.equal(typeof continuationRef, "string");
   const frontier = await normalExecution.tools.readContinuationExact({
     lookupKind: "frontier_ref", frontierRef,
   });
@@ -459,21 +461,36 @@ try {
     evidence_ref: null, evidence_hash: null, cause: null,
   });
   const nextAttemptId = "attempt:artifact-readback-terminal:2";
-  store.acceptTask(providerTask, identityFor(providerTask), nextAttemptId);
+  const recoveryTask = Object.freeze({ ...providerTask, continuation_ref: continuationRef as string });
+  store.acceptTask(recoveryTask, identityFor(recoveryTask), nextAttemptId);
+  let capturedRecoveryBinding: BrowserExecutionBinding | null = null;
   const exactEffectAuthority = Object.assign(Object.create(null) as WorkbenchBrowserAuthority, {
     readExactCallMutationFact: (query: Readonly<{
       attemptId: string; exactCallIdentityHash: `sha256:${string}`;
     }>) => query.attemptId === attemptId && query.exactCallIdentityHash === priorSubmitHash
-      ? { effectScope: "provider_effect" as const, outcome: "CONFIRMED" as const, terminalAt: submittedAt }
+      ? {
+        effectScope: "provider_effect" as const,
+        outcome: "CONFIRMED" as const,
+        terminalAt: submittedAt,
+        targetRef: "target:prior-image-submit",
+        documentRef: "document:prior-image-submit",
+        productStepId: imageSubmitCall.productStepId,
+        callId: imageSubmitCall.callId,
+        childCapabilityId: imageSubmitCall.child,
+        actionOrdinal: imageSubmitCall.actionOrdinal,
+      }
       : null,
     countProviderTurnDispatches: () => 0,
-    acquireJobBoundTargetLease: async () => { throw new Error("UNEXPECTED_TASK_EXACT_EFFECT_BROWSER"); },
+    acquireJobBoundTargetLease: async (binding: BrowserExecutionBinding) => {
+      capturedRecoveryBinding = binding;
+      throw new Error("CAPTURED_TASK_EXACT_EFFECT_BROWSER_BINDING");
+    },
   });
   const nextExecution = new ProductionGptChildTools(
     root, HASH_A, createGptAbilityGroup(), evidenceStore, exactEffectAuthority, store,
     frontierRuntimeLogger,
   ).createExecution({
-    task: providerTask, pluginId: "public-knowledge-article-pipeline", pluginVersion: 16,
+    task: recoveryTask, pluginId: "public-knowledge-article-pipeline", pluginVersion: 16,
     lease: {
       attempt_id: nextAttemptId, device_id: "device:task-exact-effect", lease_version: 2,
       execution_fence_hash: HASH_A, control_manifest_hash: HASH_A, max_provider_turns: 2,
@@ -490,6 +507,30 @@ try {
   assert.equal(taskFacts.exactCallIdentityHash, priorSubmitHash);
   assert.equal(taskFacts.mutation?.outcome, "CONFIRMED");
   assert.equal(taskFacts.evidence?.readbackVerified, true);
+  const storedContinuation = store.readGptContinuation(continuationRef as string);
+  assert(storedContinuation);
+  await assert.rejects(
+    nextExecution.tools.execute({
+      sessionKey: "session:task-exact-effect-readback",
+      productStepId: imageSubmitCall.productStepId,
+      callId: "focus-recovered-conversation",
+      child: "focus_exact_gpt_conversation",
+      actionOrdinal: 43,
+      input: { canonicalConversationUrl: storedContinuation.provider.provider_page_url },
+    }),
+    /CAPTURED_TASK_EXACT_EFFECT_BROWSER_BINDING/u,
+  );
+  assert.equal(capturedRecoveryBinding?.kind, "production-reconciliation",
+    "only the unique Browser CONFIRMED plus Forensics passed fact may project a reconciliation binding");
+  if (capturedRecoveryBinding?.kind !== "production-reconciliation") {
+    throw new Error("CONFIRMED_PROVIDER_READBACK_BINDING_MISSING");
+  }
+  assert.equal(capturedRecoveryBinding.confirmedProviderReadback.sourceExactCallIdentityHash, priorSubmitHash);
+  assert.equal(capturedRecoveryBinding.confirmedProviderReadback.evidenceRef, taskFacts.evidence?.evidenceRef);
+  assert.equal(capturedRecoveryBinding.confirmedProviderReadback.canonicalConversationUrl,
+    storedContinuation.provider.provider_page_url);
+  assert.equal(capturedRecoveryBinding.confirmedProviderReadback.promptHash, imageSubmitCall.input.promptHash);
+  assert.equal(capturedRecoveryBinding.confirmedProviderReadback.turnMarker, imageSubmitCall.input.turnMarker);
   await nextExecution.settle(null);
   await normalExecution.settle(null);
 

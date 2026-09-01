@@ -84,9 +84,16 @@ export type ExactGptCallFacts = Readonly<{
   exactCallIdentityHash: ProductionHash;
   mutation: Readonly<{
     owner: "browser";
+    sourceAttemptId: string;
     effectScope: "target_local" | "provider_effect";
     outcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
     terminalAt: string | null;
+    targetRef: string;
+    documentRef: string;
+    productStepId: string;
+    callId: string;
+    childCapabilityId: string;
+    actionOrdinal: number;
   }> | null;
   evidence: Readonly<{
     owner: "forensics-persistence";

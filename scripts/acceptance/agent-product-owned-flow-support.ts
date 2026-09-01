@@ -272,8 +272,12 @@ const contextFor = (
         return {
           exactCallIdentityHash: HASH,
           mutation: fact?.mutation ? {
-            owner: "browser" as const, effectScope: "provider_effect" as const,
+            owner: "browser" as const, sourceAttemptId: "attempt-1",
+            effectScope: "provider_effect" as const,
             outcome: "CONFIRMED" as const, terminalAt: "2020-01-01T00:00:00.000Z",
+            targetRef: "target:fixture", documentRef: "document:fixture",
+            productStepId: call.productStepId, callId: call.callId,
+            childCapabilityId: call.child, actionOrdinal: call.actionOrdinal,
           } : null,
           evidence: fact ? {
             owner: "forensics-persistence" as const, evidenceRef: fact.evidenceRef,

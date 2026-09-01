@@ -336,7 +336,11 @@ export const createContext = (
       return {
         exactCallIdentityHash: HASH,
         mutation: stored?.mutation ? {
-          owner: "browser", effectScope: "provider_effect", outcome: "CONFIRMED", terminalAt: stored.terminalAt,
+          owner: "browser", sourceAttemptId: stored.attemptId,
+          effectScope: "provider_effect", outcome: "CONFIRMED", terminalAt: stored.terminalAt,
+          targetRef: "target:fixture", documentRef: "document:fixture",
+          productStepId: input.productStepId, callId: input.callId,
+          childCapabilityId: input.child, actionOrdinal: input.actionOrdinal,
         } : null,
         evidence: stored ? {
           owner: "forensics-persistence", evidenceRef: stored.evidenceRef, evidenceHash: HASH,

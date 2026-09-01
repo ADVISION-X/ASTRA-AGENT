@@ -187,6 +187,8 @@ let targetTabRemoved: TabRemovedListener = () => { throw new Error("target tab r
 let nextCreatedTabId = 3;
 let getTargetsCalls = 0;
 let debuggerTargets: readonly ExtensionDebugTarget[] = [];
+let getTargetsFailure: Error | null = null;
+let frameTreeFailureTabId: number | null = null;
 let attachFailureTabId: number | null = null;
 let evaluateRuntime: ((expression: string) => Promise<unknown>) | null = null;
 const attachedTabs: number[] = [];
@@ -203,11 +205,18 @@ const targetChromeApi: ExtensionChromeApi = {
       attachedTabs.push(tabId);
     },
     detach: async ({ tabId }) => { detachedTabs.push(tabId); },
-    getTargets: async () => { getTargetsCalls += 1; return debuggerTargets; },
+    getTargets: async () => {
+      getTargetsCalls += 1;
+      if (getTargetsFailure) throw getTargetsFailure;
+      return debuggerTargets;
+    },
     sendCommand: async ({ tabId }, method, parameters) => {
       debuggerMethods.push(method);
       if (method === "Runtime.evaluate" && evaluateRuntime) {
         return { result: { value: await evaluateRuntime(String(parameters?.expression)) } };
+      }
+      if (method === "Page.getFrameTree" && tabId === frameTreeFailureTabId) {
+        throw new Error("temporary frame tree read failure");
       }
       return method === "Page.getFrameTree"
         ? { frameTree: { frame: { loaderId: `loader-${tabId}`, url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/" } } }
@@ -291,6 +300,59 @@ assert.equal(debuggerMethods.filter((method) => method === "Page.bringToFront").
 await rebuiltAuthority.releaseActiveTarget(false);
 mainFrameUrlByTab.delete(3);
 
+const discoveryFailureAuthority = new ExtensionTargetAuthority(
+  targetChromeApi, async () => undefined, () => undefined,
+);
+getTargetsFailure = new Error("temporary target discovery failure");
+await assert.rejects(
+  discoveryFailureAuthority.acquireJobBoundChatGptTarget(firstTargetRef),
+  /BROWSER_TARGET_DISCOVERY_UNAVAILABLE/u,
+  "a transient getTargets failure must not be promoted to physical Target loss",
+);
+getTargetsFailure = null;
+assert.equal(nextCreatedTabId, 4, "target discovery failure must not create a replacement tab");
+
+const frameFailureAuthority = new ExtensionTargetAuthority(
+  targetChromeApi, async () => undefined, () => undefined,
+);
+frameTreeFailureTabId = 3;
+await assert.rejects(
+  frameFailureAuthority.acquireJobBoundChatGptTarget(firstTargetRef),
+  /BROWSER_EXACT_TARGET_UNAVAILABLE/u,
+  "a transient frame read failure must preserve exact-target unavailability without physical-loss authority",
+);
+frameTreeFailureTabId = null;
+assert.equal(nextCreatedTabId, 4, "frame read failure must not create a replacement tab");
+await frameFailureAuthority.acquireJobBoundChatGptTarget(firstTargetRef);
+await frameFailureAuthority.releaseActiveTarget(false);
+
+const originFailureAuthority = new ExtensionTargetAuthority(
+  targetChromeApi, async () => undefined, () => undefined,
+);
+mainFrameUrlByTab.set(3, "https://example.com/");
+await assert.rejects(
+  originFailureAuthority.acquireJobBoundChatGptTarget(firstTargetRef),
+  /BROWSER_ORIGIN_REJECTED/u,
+  "an origin mismatch must remain an origin failure and must never authorize Target replacement",
+);
+mainFrameUrlByTab.set(3, "https://chatgpt.com/c/exact-recovery");
+assert.equal(nextCreatedTabId, 4, "origin failure must not create a replacement tab");
+
+debuggerTargets = [];
+const physicallyAbsentAuthority = new ExtensionTargetAuthority(
+  targetChromeApi, async () => undefined, () => undefined,
+);
+await assert.rejects(
+  physicallyAbsentAuthority.acquireJobBoundChatGptTarget(firstTargetRef),
+  /BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT/u,
+  "only a successful target enumeration with zero exact tab candidates proves physical absence",
+);
+assert.equal(nextCreatedTabId, 4, "physical absence proof itself must not create a replacement tab");
+debuggerTargets = [{
+  attached: true, id: "debug-target-3", tabId: 3, title: "ChatGPT", type: "page",
+  url: "https://chatgpt.com/c/exact-recovery",
+}];
+
 let delayedComposerQueries = 0;
 const delayedComposerRuntime = {
   async send(_tabId: number, method: string) {
@@ -325,7 +387,7 @@ const missingComposer = await executeRegisteredDomIntent(
 ) as Readonly<{ count: number }>;
 assert.equal(missingComposer.count, 0, "bounded readiness timeout must preserve a zero-candidate fail-closed result");
 
-const domFailureRuntime = (failure: "missing" | "ambiguous" | "stale" | "invalid" | "target") => ({
+const domFailureRuntime = (failure: "missing" | "ambiguous" | "stale" | "box" | "invalid" | "target") => ({
   async send(_tabId: number, method: string) {
     if (method === "DOM.getDocument") {
       if (failure === "target") throw new Error("BROWSER_TARGET_INVALID");
@@ -339,6 +401,7 @@ const domFailureRuntime = (failure: "missing" | "ambiguous" | "stale" | "invalid
     }
     if (method === "DOM.getBoxModel") {
       if (failure === "stale") throw new Error("Could not find node with given id");
+      if (failure === "box") throw new Error("Could not compute box model");
       return { model: { content: [0, 0, 10, 0, 10, 10, 0, 10] } };
     }
     throw new Error(`UNEXPECTED_DOM_FAILURE_METHOD:${method}`);
@@ -348,6 +411,7 @@ for (const [failure, code] of [
   ["missing", "BROWSER_DOM_CANDIDATE_MISSING"],
   ["ambiguous", "BROWSER_DOM_CANDIDATE_AMBIGUOUS"],
   ["stale", "BROWSER_DOM_NODE_STALE"],
+  ["box", "BROWSER_DOM_READ_INVALID"],
   ["invalid", "BROWSER_DOM_READ_INVALID"],
   ["target", "BROWSER_TARGET_INVALID"],
 ] as const) {

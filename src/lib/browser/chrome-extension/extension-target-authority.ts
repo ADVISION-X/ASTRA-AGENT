@@ -267,11 +267,16 @@ export class ExtensionTargetAuthority {
     let candidates: readonly ExtensionDebugTarget[];
     try {
       candidates = (await this.chromeApi.debugger.getTargets()).filter((candidate) =>
-        candidate.tabId === tabId && candidate.type === "page" && candidate.attached === true);
+        candidate.tabId === tabId);
     } catch (error) {
-      throw new Error("BROWSER_EXACT_TARGET_UNAVAILABLE", { cause: error });
+      throw new Error("BROWSER_TARGET_DISCOVERY_UNAVAILABLE", { cause: error });
     }
-    if (candidates.length !== 1) throw new Error("BROWSER_EXACT_TARGET_UNAVAILABLE");
+    if (candidates.length === 0) throw new Error("BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT");
+    if (candidates.length !== 1
+      || candidates[0]!.type !== "page"
+      || candidates[0]!.attached !== true) {
+      throw new Error("BROWSER_EXACT_TARGET_UNAVAILABLE");
+    }
     try {
       requireGptWebPolicyForUrl(candidates[0]!.url);
       this.debuggerRuntime.adoptAttached(tabId);
@@ -285,9 +290,8 @@ export class ExtensionTargetAuthority {
     } catch (error) {
       this.debuggerRuntime.forgetAttached(tabId);
       this.attachedTabId = null;
-      this.parkedLoaderIds.delete(targetRef);
-      this.targets.remove(targetRef);
-      if (error instanceof Error && error.message === "BROWSER_EXACT_TARGET_UNAVAILABLE") throw error;
+      if (error instanceof Error && (error.message === "BROWSER_EXACT_TARGET_UNAVAILABLE"
+        || error.message === "BROWSER_ORIGIN_REJECTED")) throw error;
       throw new Error("BROWSER_EXACT_TARGET_UNAVAILABLE", { cause: error });
     }
   }

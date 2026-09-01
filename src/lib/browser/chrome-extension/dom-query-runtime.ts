@@ -11,9 +11,6 @@ const DOM_READ_INVALID = "BROWSER_DOM_READ_INVALID";
 const machineCode = (value: string): boolean => /^[A-Z][A-Z0-9_]+$/u.test(value);
 const staleNodeError = (error: unknown): boolean => error instanceof Error
   && /(?:could not find node|no node with given id|node.*(?:detached|does not exist|not found)|backend node.*not found)/iu.test(error.message);
-const invisibleBoxError = (error: unknown): boolean => error instanceof Error
-  && /could not compute box model/iu.test(error.message);
-
 const domReadError = (error: unknown): Error => {
   if (error instanceof Error && machineCode(error.message)) return error;
   return new Error(staleNodeError(error) ? DOM_NODE_STALE : DOM_READ_INVALID, { cause: error });
@@ -93,7 +90,7 @@ export const queryVisibleTextMatches = async (
   for (const nodeId of await queryNodeIds(runtime, tabId, selector, scope)) {
     const actual = await nodeText(runtime, tabId, nodeId);
     if (exact ? actual.trim() !== expected : !actual.includes(expected)) continue;
-    if (!await boxCenter(runtime, tabId, nodeId).then(() => true).catch(() => false)) continue;
+    await boxCenter(runtime, tabId, nodeId);
     matches.push(nodeId);
     if (matches.length >= limit) break;
   }
@@ -314,7 +311,6 @@ const optionalBoxCenter = async (runtime: ExtensionDebuggerRuntime, tabId: numbe
   try {
     raw = await runtime.send(tabId, "DOM.getBoxModel", { nodeId });
   } catch (error) {
-    if (invisibleBoxError(error)) return null;
     throw domReadError(error);
   }
   const model = record(record(raw).model);
