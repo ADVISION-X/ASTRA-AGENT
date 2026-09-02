@@ -32,6 +32,7 @@ const parameterValue = (key: string, route: ProductionRoutePolicy): unknown => {
     target_locale: "en-US", locale: "zh-CN", thread_ref: "continuation:1",
   };
   if (key === "result_schema_version") return route.result_schema_version;
+  if (key === "reusable_base_candidate") return null;
   if (Object.hasOwn(fixed, key)) return fixed[key];
   if (key === "resource_kind") return route.product_id === "localization_report_translation" ? "report" : "article";
   if (key === "reusable_base_semantic_digest") return HASH;

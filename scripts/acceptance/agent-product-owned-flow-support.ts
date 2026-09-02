@@ -41,6 +41,7 @@ const parameterValue = (key: string, route: ProductionRoutePolicy): unknown => {
     target_locale: "en-US", locale: "zh-CN", thread_ref: "continuation:1",
   };
   if (key === "result_schema_version") return route.result_schema_version;
+  if (key === "reusable_base_candidate") return null;
   if (Object.hasOwn(fixed, key)) return fixed[key];
   if (key === "resource_kind") {
     return route.product_id === "localization_report_translation" ? "report" : "article";
@@ -125,16 +126,14 @@ const prepareMaterialFiles = (
     };
     const digest = hashCanonical(providerVisible);
     (task.parameters as Record<string, unknown>).reusable_base_semantic_digest = digest;
+    (task.parameters as Record<string, unknown>).reusable_base_candidate = reusableBase ? {
+      reusable_identity_hash: reusableBase.reusableIdentityHash,
+      source_job_id: reusableBase.sourceJobId,
+      opaque_read_grant_hash: reusableBase.opaqueReadGrantHash,
+    } : null;
     privateBaseInput = {
       ...providerVisible,
       reusable_base_semantic_digest: digest,
-      ...(reusableBase ? {
-        reusable_base_candidate: {
-          reusable_identity_hash: reusableBase.reusableIdentityHash,
-          source_job_id: reusableBase.sourceJobId,
-          opaque_read_grant_hash: reusableBase.opaqueReadGrantHash,
-        },
-      } : {}),
     };
   }
   if (task.product_id === "bazi_report_followup" && route.relation_kind === "continuation") {
@@ -339,6 +338,7 @@ const valueForCall = (
       laneVersion: call.input.laneVersion,
       reservationFenceHash: call.input.reservationFenceHash,
       complete: false,
+      opaqueReadGrantHash: null,
     };
   }
   if (call.child === "complete_exact_gpt_continuation_reservation_once") {
@@ -464,9 +464,12 @@ export const exerciseProductOwnedFlow = async (
   assert.equal(state.laneOwned, false);
   assert.equal(new Set(state.calls.map((call) => call.sessionKey)).size, 1);
   assert.ok(state.calls.every((call) => call.sessionKey.includes(plugin.pluginId)));
-  const firstActionOrdinal = reusableBase ? 18 : 1;
-  assert.deepEqual(state.calls.map((call) => call.actionOrdinal),
-    state.calls.map((_call, index) => index + firstActionOrdinal));
+  const firstActionOrdinal = reusableBase ? 34 : 1;
+  const expectedActionOrdinals = baziTwoTurn && !reusableBase
+    ? [...Array.from({ length: 16 }, (_value, index) => index + 1),
+      ...Array.from({ length: 24 }, (_value, index) => index + 33)]
+    : state.calls.map((_call, index) => index + firstActionOrdinal);
+  assert.deepEqual(state.calls.map((call) => call.actionOrdinal), expectedActionOrdinals);
   const prompt = state.calls.filter((call) => call.child === "write_exact_gpt_prompt").at(-1)?.input.prompt;
   assert.equal(typeof prompt, "string");
   assert.match(String(prompt), new RegExp(`当前 Product Plugin：${plugin.pluginId}`, "u"));

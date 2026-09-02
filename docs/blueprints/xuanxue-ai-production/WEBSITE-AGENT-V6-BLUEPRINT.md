@@ -229,7 +229,7 @@ shared runtime 只负责以下运输、安全与恢复边界：
 - staged result 和 durable Outbox；
 - typed failure 透传与容量释放。
 
-V6 合同身份只有一条跨仓声明链：Website `ai-acceptance` 的 canonical provider contract/manifest 是唯一母本；AGENT `docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json` 只能精确保存 `contractId/version/providerRepo` 三字段，拒绝 `authorityArtifact`、generator、provider commit 与任何合同 hash。Website generator 只把 provider spec 的这三个发布身份投影到 consumer dependency；AGENT CHANGE/READY 只校验本仓 dependency 的 schema、唯一性与实际消费，RELEASE 才按冻结手册从绑定 participant commit 唯一核对 provider contract。
+V6 合同身份只有一条跨仓声明链：Website `ai-acceptance` 的 canonical provider contract/manifest 是唯一母本；AGENT `docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json` 只能精确保存 `contractId/version/providerRepo` 三字段，拒绝 `authorityArtifact`、generator、仓库修订与内容指纹字段。Website generator 只把 provider spec 的这三个发布身份投影到 consumer dependency；AGENT CHANGE/READY 只校验本仓 dependency 的 schema、唯一性与实际消费，RELEASE 才按冻结手册从绑定 participant commit 唯一核对 provider contract。
 
 运行时精确 manifest 身份不从 dependency 推导。Website enrollment 响应把当前 canonical control manifest hash 作为已鉴权运行事实交给 AGENT；device credential 与 session 只保存该值及设备身份、鉴权材料、epoch，不保存 provider 内容、仓库路径、commit 或 Product 合同。session open 必须由 Website 与当前 canonical 值比较，AGENT 随后逐项验证 session、claim、grant 与 fence 同值；旧值失败关闭并要求重新取得 Website 当前授权事实，不设 fallback、双读或第二 manifest Owner。
 
