@@ -2,21 +2,71 @@ import type { BrowserDomIntent } from "../exact-target/browser-dom-intent.js";
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 
 type DevToolsRecord = Record<string, unknown>;
+type BrowserBounds = Readonly<{ x: number; y: number; width: number; height: number }>;
+type BrowserMechanicalFacts = Readonly<{
+  connected: boolean; layout: boolean; visible: boolean;
+  computedDisplay: string; computedVisibility: string; computedOpacity: string;
+  hidden: boolean; ariaHidden: boolean; inert: boolean; disabled: boolean; ariaDisabled: boolean;
+  role: string; name: string; testId: string; label: string; value: string;
+  checked: boolean | null;
+  type: string;
+  bounds: BrowserBounds | null;
+  viewport: boolean; hitTest: boolean;
+  nativeCauseCode: "NO_LAYOUT_BOX" | null;
+  nativeStage: "runtime-call-function-on";
+}>;
+export type BrowserDomCandidateSet = Readonly<{
+  rawCount: number; eligibleCount: number;
+  eligibleNodeIds: readonly number[];
+  nativeCauseCode: "NO_LAYOUT_BOX" | null;
+  nativeCauseCount: number;
+  nativeStage: "runtime-call-function-on";
+}>;
 
 const DOM_CANDIDATE_MISSING = "BROWSER_DOM_CANDIDATE_MISSING";
 const DOM_CANDIDATE_AMBIGUOUS = "BROWSER_DOM_CANDIDATE_AMBIGUOUS";
 const DOM_NODE_STALE = "BROWSER_DOM_NODE_STALE";
 const DOM_READ_INVALID = "BROWSER_DOM_READ_INVALID";
+export const BROWSER_MECHANICAL_FACTS_READER_SOURCE = `const browserMechanicalFacts = (element) => {
+  if (!(element instanceof Element)) return null;
+  const style = globalThis.getComputedStyle(element);
+  const rect = element.getBoundingClientRect();
+  const layout = element.getClientRects().length > 0 && rect.width > 0 && rect.height > 0;
+  const connected = element.isConnected === true; const hidden = element.closest("[hidden]") !== null;
+  const ariaHidden = element.closest("[aria-hidden='true']") !== null; const inert = element.closest("[inert]") !== null;
+  const disabled = element.hasAttribute("disabled") || element.matches(":disabled"); const ariaDisabled = element.closest("[aria-disabled='true']") !== null;
+  const opacityNumber = Number.parseFloat(style.opacity);
+  const visible = connected && layout && style.display !== "none"
+    && style.visibility !== "hidden" && style.visibility !== "collapse"
+    && Number.isFinite(opacityNumber) && opacityNumber > 0 && !hidden && !ariaHidden && !inert;
+  const viewport = layout && rect.bottom > 0 && rect.right > 0
+    && rect.top < globalThis.innerHeight && rect.left < globalThis.innerWidth;
+  const centerX = rect.left + rect.width / 2; const centerY = rect.top + rect.height / 2;
+  const top = visible && viewport && style.pointerEvents !== "none"
+    ? document.elementFromPoint(centerX, centerY) : null;
+  const labels = "labels" in element && element.labels
+    ? Array.from(element.labels).map((label) => label.textContent || "").join(" ").trim() : "";
+  return {
+    connected, layout, visible, computedDisplay: style.display, computedVisibility: style.visibility,
+    computedOpacity: style.opacity, hidden, ariaHidden, inert, disabled, ariaDisabled,
+    role: element.getAttribute("role") || "", name: element.getAttribute("name") || "", testId: element.getAttribute("data-testid") || "",
+    label: element.getAttribute("aria-label") || labels,
+    value: "value" in element && typeof element.value === "string" ? element.value : "",
+    checked: "checked" in element && typeof element.checked === "boolean" ? element.checked : null,
+    type: element.getAttribute("type") || "",
+    bounds: layout ? { x: rect.left, y: rect.top, width: rect.width, height: rect.height } : null,
+    viewport, hitTest: top !== null && (top === element || element.contains(top)), nativeCauseCode: layout ? null : "NO_LAYOUT_BOX",
+    nativeStage: "runtime-call-function-on"
+  };
+};`;
+const MECHANICAL_FACTS_FUNCTION = `function () {
+  ${BROWSER_MECHANICAL_FACTS_READER_SOURCE}
+  return browserMechanicalFacts(this);
+}`;
 
 const machineCode = (value: string): boolean => /^[A-Z][A-Z0-9_]+$/u.test(value);
 const staleNodeError = (error: unknown): boolean => error instanceof Error
   && /(?:could not find node|no node with given id|node.*(?:detached|does not exist|not found)|backend node.*not found)/iu.test(error.message);
-const noLayoutBoxError = (error: unknown): boolean => {
-  if (!(error instanceof Error)) return false;
-  const message = error.message.trim().replace(/\.$/u, "");
-  return message === "Could not compute box model"
-    || message === "Node does not have a layout object";
-};
 const domReadError = (error: unknown): Error => {
   if (error instanceof Error && machineCode(error.message)) return error;
   return new Error(staleNodeError(error) ? DOM_NODE_STALE : DOM_READ_INVALID, { cause: error });
@@ -44,7 +94,39 @@ export const queryAll = async (
   selector: string,
   limit: number,
   scope?: Readonly<{ selector: string }>,
-): Promise<readonly number[]> => visibleNodes(runtime, tabId, await queryNodeIds(runtime, tabId, selector, scope), limit);
+): Promise<readonly number[]> => (await queryCandidateSet(runtime, tabId, selector, limit, scope)).eligibleNodeIds;
+
+export const queryCandidateSet = async (
+  runtime: ExtensionDebuggerRuntime,
+  tabId: number,
+  selector: string,
+  limit: number,
+  scope?: Readonly<{ selector: string }>,
+  text?: Readonly<{ value: string; exact: boolean }>,
+): Promise<BrowserDomCandidateSet> => {
+  const rawNodeIds = await queryNodeIds(runtime, tabId, selector, scope);
+  const eligibleNodeIds: number[] = [];
+  let eligibleCount = 0;
+  let noLayoutCount = 0;
+  for (const nodeId of rawNodeIds) {
+    const facts = await readMechanicalFacts(runtime, tabId, nodeId);
+    if (facts.nativeCauseCode === "NO_LAYOUT_BOX") noLayoutCount += 1;
+    if (!facts.visible) continue;
+    if (text) {
+      const actual = await nodeText(runtime, tabId, nodeId);
+      const matched = text.exact ? actual.trim() === text.value.trim() : actual.includes(text.value);
+      if (!matched) continue;
+    }
+    eligibleCount += 1;
+    if (eligibleNodeIds.length < limit) eligibleNodeIds.push(nodeId);
+  }
+  return Object.freeze({
+    rawCount: rawNodeIds.length, eligibleCount, eligibleNodeIds,
+    nativeCauseCode: noLayoutCount > 0 ? "NO_LAYOUT_BOX" : null,
+    nativeCauseCount: noLayoutCount,
+    nativeStage: "runtime-call-function-on",
+  });
+};
 
 const queryNodeIds = async (
   runtime: ExtensionDebuggerRuntime,
@@ -59,27 +141,84 @@ const queryNodeIds = async (
     const scopeResult = record(await read(() => runtime.send(tabId, "DOM.querySelectorAll", { nodeId: queryRootId, selector: scope.selector })));
     if (!Array.isArray(scopeResult.nodeIds)) throw new Error(DOM_READ_INVALID);
     const scopeIds = scopeResult.nodeIds.map((value) => numberValue(value, DOM_READ_INVALID));
-    const visibleScopes = await visibleNodes(runtime, tabId, scopeIds);
-    requireExactCandidateCount(visibleScopes, 1);
-    queryRootId = visibleScopes[0]!;
+    const eligibleScopes: number[] = [];
+    for (const scopeId of scopeIds) {
+      if ((await readMechanicalFacts(runtime, tabId, scopeId)).visible) eligibleScopes.push(scopeId);
+    }
+    requireExactCandidateCount(eligibleScopes, 1);
+    queryRootId = eligibleScopes[0]!;
   }
   const result = record(await read(() => runtime.send(tabId, "DOM.querySelectorAll", { nodeId: queryRootId, selector })));
   if (!Array.isArray(result.nodeIds)) throw new Error(DOM_READ_INVALID);
   return result.nodeIds.map((value) => numberValue(value, DOM_READ_INVALID));
 };
 
-const visibleNodes = async (
+const booleanField = (value: unknown): boolean => {
+  if (typeof value !== "boolean") throw new Error(DOM_READ_INVALID);
+  return value;
+};
+
+const boundsField = (value: unknown): BrowserBounds | null => {
+  if (value === null) return null;
+  const bounds = record(value);
+  return Object.freeze({
+    x: numberValue(bounds.x, DOM_READ_INVALID),
+    y: numberValue(bounds.y, DOM_READ_INVALID),
+    width: numberValue(bounds.width, DOM_READ_INVALID),
+    height: numberValue(bounds.height, DOM_READ_INVALID),
+  });
+};
+
+const decodeMechanicalFacts = (value: unknown): BrowserMechanicalFacts => {
+  const facts = record(value);
+  const checked = facts.checked === null ? null : booleanField(facts.checked);
+  const nativeCauseCode = facts.nativeCauseCode === null ? null
+    : facts.nativeCauseCode === "NO_LAYOUT_BOX" ? "NO_LAYOUT_BOX" : (() => { throw new Error(DOM_READ_INVALID); })();
+  if (facts.nativeStage !== "runtime-call-function-on") throw new Error(DOM_READ_INVALID);
+  return Object.freeze({
+    connected: booleanField(facts.connected), layout: booleanField(facts.layout),
+    visible: booleanField(facts.visible), computedDisplay: stringValue(facts.computedDisplay, DOM_READ_INVALID),
+    computedVisibility: stringValue(facts.computedVisibility, DOM_READ_INVALID),
+    computedOpacity: stringValue(facts.computedOpacity, DOM_READ_INVALID),
+    hidden: booleanField(facts.hidden), ariaHidden: booleanField(facts.ariaHidden),
+    inert: booleanField(facts.inert), disabled: booleanField(facts.disabled),
+    ariaDisabled: booleanField(facts.ariaDisabled), role: stringValue(facts.role, DOM_READ_INVALID),
+    name: stringValue(facts.name, DOM_READ_INVALID), testId: stringValue(facts.testId, DOM_READ_INVALID),
+    label: stringValue(facts.label, DOM_READ_INVALID), value: stringValue(facts.value, DOM_READ_INVALID),
+    checked, type: stringValue(facts.type, DOM_READ_INVALID), bounds: boundsField(facts.bounds),
+    viewport: booleanField(facts.viewport), hitTest: booleanField(facts.hitTest),
+    nativeCauseCode, nativeStage: facts.nativeStage,
+  });
+};
+
+const readMechanicalFacts = async (
   runtime: ExtensionDebuggerRuntime,
   tabId: number,
-  nodeIds: readonly number[],
-  limit = nodeIds.length,
-): Promise<readonly number[]> => {
-  const visible: number[] = [];
-  for (const nodeId of nodeIds) {
-    if (await optionalBoxCenter(runtime, tabId, nodeId)) visible.push(nodeId);
-    if (visible.length >= limit) break;
+  nodeId: number,
+): Promise<BrowserMechanicalFacts> => {
+  const resolved = record(await read(() => runtime.send(tabId, "DOM.resolveNode", { nodeId })));
+  const objectId = stringValue(record(resolved.object).objectId, DOM_READ_INVALID);
+  let primaryFailure: unknown = null;
+  try {
+    const call = record(await read(() => runtime.send(tabId, "Runtime.callFunctionOn", {
+      objectId,
+      functionDeclaration: MECHANICAL_FACTS_FUNCTION,
+      returnByValue: true,
+      awaitPromise: false,
+      silent: true,
+    })));
+    if (call.exceptionDetails !== undefined) throw new Error(DOM_READ_INVALID);
+    return decodeMechanicalFacts(record(call.result).value);
+  } catch (error) {
+    primaryFailure = error;
+    throw error;
+  } finally {
+    try {
+      await read(() => runtime.send(tabId, "Runtime.releaseObject", { objectId }));
+    } catch (error) {
+      if (primaryFailure === null) throw error;
+    }
   }
-  return visible;
 };
 
 export const queryVisibleTextMatches = async (
@@ -91,16 +230,10 @@ export const queryVisibleTextMatches = async (
   limit: number,
   scope?: Readonly<{ selector: string }>,
 ): Promise<readonly number[]> => {
-  const expected = exact ? expectedText.trim() : expectedText;
-  const matches: number[] = [];
-  for (const nodeId of await queryNodeIds(runtime, tabId, selector, scope)) {
-    const actual = await nodeText(runtime, tabId, nodeId);
-    if (exact ? actual.trim() !== expected : !actual.includes(expected)) continue;
-    await boxCenter(runtime, tabId, nodeId);
-    matches.push(nodeId);
-    if (matches.length >= limit) break;
-  }
-  return matches;
+  const candidates = await queryCandidateSet(
+    runtime, tabId, selector, limit, scope, { value: expectedText, exact },
+  );
+  return candidates.eligibleNodeIds;
 };
 
 export const nodeForSelector = async (runtime: ExtensionDebuggerRuntime, tabId: number, selector: string, expectedMatches: number, scope?: Readonly<{ selector: string }>): Promise<number> => {
@@ -253,24 +386,26 @@ const collectNodeText = (node: DevToolsRecord): string => {
 
 const staticFieldReaders: Readonly<Record<string, (node: DevToolsRecord) => unknown>> = {
   id: (node) => attribute(node, "id") ?? "",
-  testId: (node) => attribute(node, "data-testid") ?? "",
   dataTurn: (node) => attribute(node, "data-turn") ?? "",
   tagName: (node) => stringValue(node.nodeName, DOM_READ_INVALID),
-  type: (node) => attribute(node, "type") ?? "",
-  role: (node) => attribute(node, "role") ?? "",
   ariaLabel: (node) => attribute(node, "aria-label") ?? "",
   ariaExpanded: (node) => attribute(node, "aria-expanded") ?? "",
   ariaChecked: (node) => attribute(node, "aria-checked") ?? "",
-  value: (node) => attribute(node, "value") ?? "",
   accept: (node) => attribute(node, "accept") ?? "",
   multiple: (node) => attribute(node, "multiple") !== undefined,
-  connected: () => true,
-  disabled: (node) => attribute(node, "disabled") !== undefined,
 };
+
+const mechanicalFieldNames = new Set([
+  "testId", "type", "role", "name", "label", "value", "checked", "connected", "layout",
+  "visible", "computedDisplay", "computedVisibility", "computedOpacity", "hidden", "ariaHidden",
+  "inert", "disabled", "ariaDisabled", "bounds", "viewport", "hitTest",
+]);
 
 export const inspectNode = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number, fields: readonly string[]): Promise<Readonly<Record<string, unknown>>> => {
   const node = await describeNode(runtime, tabId, nodeId);
   const result: Record<string, unknown> = {};
+  const mechanicalFacts = fields.some((field) => mechanicalFieldNames.has(field))
+    ? await readMechanicalFacts(runtime, tabId, nodeId) : null;
   let stableOuterHtml: string | undefined;
   let semanticText: string | undefined;
   if (fields.includes("outerHtml") && fields.includes("semanticText")) {
@@ -293,15 +428,19 @@ export const inspectNode = async (runtime: ExtensionDebuggerRuntime, tabId: numb
       result.semanticText = semanticText ?? await nodeSemanticText(runtime, tabId, nodeId);
       continue;
     }
+    if (mechanicalFacts && mechanicalFieldNames.has(field)) {
+      result[field] = mechanicalFacts[field as keyof BrowserMechanicalFacts];
+      continue;
+    }
     const reader = staticFieldReaders[field];
     if (reader) {
       result[field] = reader(node);
       continue;
     }
-    if (field !== "visible" && field !== "bounds") continue;
-    const box = await optionalBoxCenter(runtime, tabId, nodeId);
-    if (field === "visible") result.visible = box !== null;
-    if (field === "bounds") result.bounds = box;
+  }
+  if (mechanicalFacts) {
+    result.nativeCauseCode = mechanicalFacts.nativeCauseCode;
+    result.nativeStage = mechanicalFacts.nativeStage;
   }
   return result;
 };
@@ -313,19 +452,12 @@ export const boxCenter = async (runtime: ExtensionDebuggerRuntime, tabId: number
 };
 
 const optionalBoxCenter = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number): Promise<Readonly<{ x: number; y: number }> | null> => {
-  let raw: unknown;
-  try {
-    raw = await runtime.send(tabId, "DOM.getBoxModel", { nodeId });
-  } catch (error) {
-    if (noLayoutBoxError(error)) return null;
-    throw domReadError(error);
-  }
-  const model = record(record(raw).model);
-  const content = Array.isArray(model.content) ? model.content : [];
-  if (content.length < 8) throw new Error(DOM_READ_INVALID);
-  const x = (numberValue(content[0], DOM_READ_INVALID) + numberValue(content[2], DOM_READ_INVALID)) / 2;
-  const y = (numberValue(content[1], DOM_READ_INVALID) + numberValue(content[5], DOM_READ_INVALID)) / 2;
-  return { x, y };
+  const facts = await readMechanicalFacts(runtime, tabId, nodeId);
+  if (!facts.visible || !facts.viewport || !facts.hitTest || !facts.bounds) return null;
+  return {
+    x: facts.bounds.x + facts.bounds.width / 2,
+    y: facts.bounds.y + facts.bounds.height / 2,
+  };
 };
 
 export const selectorForLocator = (locator: Readonly<{ role?: string; name?: string; testId?: string; label?: string }>): string => {

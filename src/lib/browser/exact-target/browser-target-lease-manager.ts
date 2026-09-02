@@ -440,6 +440,7 @@ export class BrowserTargetLeaseManager {
   private capabilityForIntent(intent: BrowserDomIntent): BrowserCapabilityId {
     const capabilities: Readonly<Record<BrowserDomIntent["kind"], BrowserCapabilityId>> = {
       document: "browser.dom.inspect.v1",
+      observe: "browser.dom.inspect.v1",
       inspect: "browser.dom.inspect.v1",
       find: "browser.dom.find.v1",
       readText: "browser.dom.read-text.v1",

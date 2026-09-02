@@ -10,6 +10,7 @@ import { browserExecutionFailure } from "../../src/lib/browser/browser-failure.j
 import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
 import { BrowserCommandAdmissionBudget } from "../../src/lib/browser/transport/browser-command-admission-budget.js";
 import type { BrowserCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
+import { canonicalizeBrowserAuthorityValue } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { serializeTerminalFailure } from "../../src/lib/typed-failure.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
@@ -19,6 +20,7 @@ const hash = `sha256:${"a".repeat(64)}` as const;
 const negativeHash = `sha256:${"b".repeat(64)}` as const;
 const exactHash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
+const valueHash = (value: unknown): `sha256:${string}` => exactHash(JSON.stringify(value));
 const identity = (
   commandId: string,
   jobId = "job-1",
@@ -233,6 +235,33 @@ try {
     };
   }).execute(confirmedPermit, clickCommand);
   assert.equal(actorStore.readState(confirmedPermit.commandId), "CONFIRMED");
+
+  const observationPermit: BrowserCommandPermit = {
+    ...permit("actor-observation"), capabilityId: "browser.dom.inspect.v1",
+    mutationClass: "observation", replayPolicy: "observation-only",
+  };
+  const observationCommand = { kind: "dom-intent" as const, intent: { kind: "observe" as const,
+    queries: [{ queryId: "model", selector: "button", maxMatches: 1, fields: ["visible" as const] }] } };
+  const observedAt = "2026-09-02T12:34:56.789Z";
+  const observationQueries = [{ queryId: "model", scopeRawCount: 1, scopeEligibleCount: 1,
+    rawCount: 1, eligibleCount: 1, matches: [{ visible: true }], nativeCauseCode: null,
+    nativeCauseCount: 0, nativeStage: "runtime-call-function-on" }];
+  const targetRefHash = exactHash(observationPermit.targetRef);
+  const documentRefHash = exactHash(observationPermit.documentRef);
+  const observationRevisionHash = exactHash(canonicalizeBrowserAuthorityValue({
+    targetRefHash, documentRefHash, observedAt, queries: observationQueries,
+  }));
+  const observationResult = await actorFor(async (candidate) => ({
+    replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+    permitSequence: candidate.sequence, result: { schemaVersion: "grasseye.browser.dom-observation.v1",
+      targetRefHash, documentRefHash, observationRevisionHash, observedAt, queries: observationQueries },
+  })).execute(observationPermit, observationCommand) as Readonly<Record<string, unknown>>;
+  assert.equal(observationResult.exactCallIdentityHash, valueHash([
+    observationPermit.jobId, observationPermit.attemptId, observationPermit.ownerPluginId,
+    observationPermit.pluginVersion, observationPermit.productStepId, observationPermit.callId,
+    observationPermit.childCapabilityId, observationPermit.inputHash,
+  ]));
+  assert.equal(actorStore.readState(observationPermit.commandId), null);
 
   const rejectedPermit = permit("actor-rejected");
   const rejectedActor = actorFor(async (candidate, _command, onDispatched) => {

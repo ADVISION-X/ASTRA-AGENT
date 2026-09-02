@@ -1,4 +1,43 @@
-export type BrowserDomField = "id" | "testId" | "dataTurn" | "tagName" | "type" | "role" | "ariaLabel" | "ariaExpanded" | "ariaChecked" | "text" | "outerHtml" | "semanticText" | "value" | "accept" | "multiple" | "connected" | "visible" | "disabled" | "bounds";
+const BROWSER_DOM_FIELD_VALUES = [
+  "id", "testId", "dataTurn", "tagName", "type", "role", "name", "label",
+  "ariaLabel", "ariaExpanded", "ariaChecked", "text", "outerHtml", "semanticText",
+  "value", "checked", "accept", "multiple", "connected", "layout", "visible",
+  "computedDisplay", "computedVisibility", "computedOpacity", "hidden", "ariaHidden",
+  "inert", "disabled", "ariaDisabled", "bounds", "viewport", "hitTest",
+] as const;
+
+export type BrowserDomField = typeof BROWSER_DOM_FIELD_VALUES[number];
+export type BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText">;
+
+export type BrowserDomObservationQuery = Readonly<{
+  queryId: string;
+  selector: string;
+  maxMatches: number;
+  fields: readonly BrowserDomObservationField[];
+  scope?: BrowserDomReadScope;
+  textContains?: string;
+  textEquals?: string;
+}>;
+
+export type BrowserDomObservationPacket = Readonly<{
+  schemaVersion: "grasseye.browser.dom-observation.v1";
+  exactCallIdentityHash: `sha256:${string}`;
+  targetRefHash: `sha256:${string}`;
+  documentRefHash: `sha256:${string}`;
+  observationRevisionHash: `sha256:${string}`;
+  observedAt: string;
+  queries: readonly Readonly<{
+    queryId: string;
+    scopeRawCount: number;
+    scopeEligibleCount: number;
+    rawCount: number;
+    eligibleCount: number;
+    matches: readonly Readonly<Record<string, unknown>>[];
+    nativeCauseCode: "NO_LAYOUT_BOX" | null;
+    nativeCauseCount: number;
+    nativeStage: "runtime-call-function-on";
+  }>[];
+}>;
 
 export type BrowserDomReadScope = Readonly<{
   selector: string;
@@ -13,6 +52,7 @@ export type BrowserSemanticLocator = Readonly<{
 
 export type BrowserDomIntent =
   | Readonly<{ kind: "document" }>
+  | Readonly<{ kind: "observe"; queries: readonly BrowserDomObservationQuery[] }>
   | Readonly<{ kind: "inspect"; selector: string; fields: readonly BrowserDomField[]; scope?: BrowserDomReadScope }>
   | Readonly<{
     kind: "find";
@@ -104,8 +144,61 @@ export const assertBrowserDomIntent = (intent: BrowserDomIntent): BrowserDomInte
 };
 
 const assertObservationIntent = (intent: BrowserDomIntent): void => {
-  if (intent.kind === "find") assertFindIntent(intent);
+  if (intent.kind === "observe") assertObserveIntent(intent);
+  if (intent.kind === "inspect") assertDomFields(intent.fields);
+  if (intent.kind === "find") {
+    assertFindIntent(intent);
+    if (intent.fields) assertDomFields(intent.fields);
+  }
   if (intent.kind === "readText" || intent.kind === "readAttribute") assertReadIntent(intent);
+};
+
+const OBSERVATION_QUERY_KEYS = new Set([
+  "queryId", "selector", "maxMatches", "fields", "scope", "textContains", "textEquals",
+]);
+
+const assertObserveIntent = (intent: Extract<BrowserDomIntent, { kind: "observe" }>): void => {
+  if (!Array.isArray(intent.queries) || intent.queries.length < 1 || intent.queries.length > 20) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  }
+  const queryIds = new Set<string>();
+  for (const query of intent.queries) {
+    if (!query || typeof query !== "object" || Array.isArray(query)
+      || Object.keys(query).some((key) => !OBSERVATION_QUERY_KEYS.has(key))
+      || !isBoundedText(query.queryId, 128) || queryIds.has(query.queryId)
+      || !isBoundedText(query.selector, 2_048)
+      || !Number.isInteger(query.maxMatches) || query.maxMatches < 1 || query.maxMatches > 20) {
+      throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+    }
+    queryIds.add(query.queryId);
+    assertReadScope(query.scope);
+    assertObservationText(query);
+    assertObservationFields(query.fields);
+  }
+};
+
+const assertObservationText = (query: BrowserDomObservationQuery): void => {
+  if ((query.textContains !== undefined && !isBoundedText(query.textContains, 1_024))
+    || (query.textEquals !== undefined && !isBoundedText(query.textEquals, 1_024))
+    || (query.textContains !== undefined && query.textEquals !== undefined)) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  }
+};
+
+const assertObservationFields = (fields: readonly BrowserDomObservationField[]): void => {
+  assertDomFields(fields);
+  if (fields.includes("outerHtml" as BrowserDomObservationField)
+    || fields.includes("semanticText" as BrowserDomObservationField)) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  }
+};
+
+const assertDomFields = (fields: readonly BrowserDomField[]): void => {
+  const allowed = new Set<string>(BROWSER_DOM_FIELD_VALUES);
+  if (!Array.isArray(fields) || fields.length > BROWSER_DOM_FIELD_VALUES.length || new Set(fields).size !== fields.length
+    || fields.some((field) => !allowed.has(field))) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  }
 };
 
 const assertMutationIntent = (intent: BrowserDomIntent): void => {
@@ -262,5 +355,6 @@ const assertOptionalRange = (value: number | undefined, minimum: number, maximum
   if (value !== undefined && (value < minimum || value > maximum)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
 };
 
-const isBoundedText = (value: string, limit: number): boolean =>
-  value.trim().length > 0 && value.length <= limit && !/[\u0000-\u001f]/u.test(value);
+const isBoundedText = (value: unknown, limit: number): value is string =>
+  typeof value === "string" && value.trim().length > 0 && value.length <= limit
+  && !/[\u0000-\u001f]/u.test(value);

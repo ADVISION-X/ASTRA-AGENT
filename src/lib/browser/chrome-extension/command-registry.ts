@@ -45,6 +45,7 @@ const fixedCapabilityByKind: Partial<Record<ExtensionCommandKind, ExtensionComma
 type DomIntentKind = Extract<BrowserGovernedCommand, { kind: "dom-intent" }>["intent"]["kind"];
 const domCapabilityByIntent: Record<DomIntentKind, ExtensionCommandPermit["capabilityId"]> = {
   document: "browser.dom.inspect.v1",
+  observe: "browser.dom.inspect.v1",
   inspect: "browser.dom.inspect.v1",
   find: "browser.dom.find.v1",
   readText: "browser.dom.read-text.v1",
