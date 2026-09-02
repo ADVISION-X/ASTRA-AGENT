@@ -32,6 +32,66 @@ export const basePrompt = (marker: string): string => [
   `把此不可变标记原样保留在本次用户消息中，不要写入 JSON 结果：${marker}`,
 ].join("\n");
 
+const assertCitations = (citations: unknown[]): void => {
+  for (const citation of citations) {
+    const row = objectValue(citation, "BAZI_PRIVATE_BASE_CITATION_INVALID");
+    textValue(row.book_id, "BAZI_PRIVATE_BASE_CITATION_INVALID");
+    textValue(row.locator, "BAZI_PRIVATE_BASE_CITATION_INVALID");
+  }
+};
+
+const assertUncertainties = (uncertainties: unknown[], fields: string[]): void => {
+  for (const uncertainty of uncertainties) {
+    const row = objectValue(uncertainty, "BAZI_PRIVATE_BASE_UNCERTAINTY_INVALID");
+    for (const field of fields) {
+      textValue(row[field], "BAZI_PRIVATE_BASE_UNCERTAINTY_INVALID");
+    }
+  }
+};
+
+const assertIndexReviews = (reviews: unknown[], readyBooks: unknown[]): void => {
+  if (reviews.length !== readyBooks.length) {
+    fail("BAZI_PRIVATE_BASE_INDEX_REVIEW_INVALID");
+  }
+  const expectedById = new Map(readyBooks.map((entry) => {
+    const row = objectValue(entry, "BAZI_PRIVATE_BASE_READY_BOOK_INVALID");
+    return [textValue(row.book_id, "BAZI_PRIVATE_BASE_READY_BOOK_INVALID"), row] as const;
+  }));
+  const seen = new Set<string>();
+  for (const review of reviews) {
+    const row = objectValue(review, "BAZI_PRIVATE_BASE_INDEX_REVIEW_INVALID");
+    const bookId = textValue(row.book_id, "BAZI_PRIVATE_BASE_INDEX_REVIEW_INVALID");
+    const expected = expectedById.get(bookId);
+    if (!expected || seen.has(bookId) || row.index_hash !== expected.index_hash
+      || row.review_status !== "complete" || !Number.isSafeInteger(row.macro_entry_count)
+      || !Number.isSafeInteger(row.navigation_node_count) || !Number.isSafeInteger(row.semantic_entry_count)
+      || !textValue(row.applicability_note, "BAZI_PRIVATE_BASE_INDEX_REVIEW_INVALID")) {
+      fail("BAZI_PRIVATE_BASE_INDEX_REVIEW_INVALID");
+    }
+    seen.add(bookId);
+  }
+};
+
+const assertBaseOutputCollections = (
+  value: Record<string, unknown>,
+  contract: Record<string, unknown>,
+  baseInput: Record<string, unknown>,
+): void => {
+  const citationFields = contract.exact_citation_fields;
+  const uncertaintyFields = contract.exact_uncertainty_fields;
+  const reviewFields = contract.exact_index_review_fields;
+  const readyBooks = baseInput.ready_book_manifest;
+  if (!Array.isArray(citationFields) || !Array.isArray(uncertaintyFields) || !Array.isArray(reviewFields)
+    || !Array.isArray(value.citations) || !Array.isArray(value.uncertainties)
+    || !Array.isArray(value.index_review_receipts)) {
+    fail("BAZI_PRIVATE_BASE_OUTPUT_INVALID");
+  }
+  if (!Array.isArray(readyBooks)) fail("BAZI_PRIVATE_BASE_INDEX_REVIEW_INVALID");
+  assertCitations(value.citations);
+  assertUncertainties(value.uncertainties, uncertaintyFields as string[]);
+  assertIndexReviews(value.index_review_receipts, readyBooks);
+};
+
 export const validateBaseOutput = (
   checkpoint: Readonly<{ semanticText: string; semanticTextHash: ProductionHash; artifactRef: string }>,
   baseInput: Record<string, unknown>,
@@ -71,42 +131,7 @@ export const validateBaseOutput = (
     || typeof value.interpretation_markdown !== "string" || !value.interpretation_markdown.trim()) {
     fail("BAZI_PRIVATE_BASE_OUTPUT_INVALID");
   }
-  const citationFields = contract.exact_citation_fields as unknown;
-  const uncertaintyFields = contract.exact_uncertainty_fields as unknown;
-  const reviewFields = contract.exact_index_review_fields as unknown;
-  if (!Array.isArray(citationFields) || !Array.isArray(uncertaintyFields) || !Array.isArray(reviewFields)
-    || !Array.isArray(value.citations) || !Array.isArray(value.uncertainties)
-    || !Array.isArray(value.index_review_receipts)) fail("BAZI_PRIVATE_BASE_OUTPUT_INVALID");
-  for (const citation of value.citations) {
-    const row = objectValue(citation, "BAZI_PRIVATE_BASE_CITATION_INVALID");
-    textValue(row.book_id, "BAZI_PRIVATE_BASE_CITATION_INVALID");
-    textValue(row.locator, "BAZI_PRIVATE_BASE_CITATION_INVALID");
-  }
-  for (const uncertainty of value.uncertainties) {
-    const row = objectValue(uncertainty, "BAZI_PRIVATE_BASE_UNCERTAINTY_INVALID");
-    for (const field of uncertaintyFields as string[]) textValue(row[field], "BAZI_PRIVATE_BASE_UNCERTAINTY_INVALID");
-  }
-  const readyBooks = baseInput.ready_book_manifest;
-  if (!Array.isArray(readyBooks) || value.index_review_receipts.length !== readyBooks.length) {
-    fail("BAZI_PRIVATE_BASE_INDEX_REVIEW_INVALID");
-  }
-  const expectedById = new Map(readyBooks.map((entry) => {
-    const row = objectValue(entry, "BAZI_PRIVATE_BASE_READY_BOOK_INVALID");
-    return [textValue(row.book_id, "BAZI_PRIVATE_BASE_READY_BOOK_INVALID"), row] as const;
-  }));
-  const seen = new Set<string>();
-  for (const review of value.index_review_receipts) {
-    const row = objectValue(review, "BAZI_PRIVATE_BASE_INDEX_REVIEW_INVALID");
-    const bookId = textValue(row.book_id, "BAZI_PRIVATE_BASE_INDEX_REVIEW_INVALID");
-    const expected = expectedById.get(bookId);
-    if (!expected || seen.has(bookId) || row.index_hash !== expected.index_hash
-      || row.review_status !== "complete" || !Number.isSafeInteger(row.macro_entry_count)
-      || !Number.isSafeInteger(row.navigation_node_count) || !Number.isSafeInteger(row.semantic_entry_count)
-      || !textValue(row.applicability_note, "BAZI_PRIVATE_BASE_INDEX_REVIEW_INVALID")) {
-      fail("BAZI_PRIVATE_BASE_INDEX_REVIEW_INVALID");
-    }
-    seen.add(bookId);
-  }
+  assertBaseOutputCollections(value, contract, baseInput);
   const receipt = Object.freeze({
     schema_version: "exact-semantic-admission-receipt.v1" as const,
     artifact_ref: checkpoint.artifactRef,
@@ -276,5 +301,3 @@ export const baseFactsFromReadback = (
     opaqueReadGrantHash: computed.opaqueReadGrantHash,
   });
 };
-
-

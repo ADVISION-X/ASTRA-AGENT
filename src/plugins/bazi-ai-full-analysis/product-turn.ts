@@ -427,5 +427,3 @@ export const checkpointRecord = (checkpoint: Readonly<{
   evidence_ref: checkpoint.evidenceRef,
   evidence_hash: checkpoint.evidenceHash,
 });
-
-

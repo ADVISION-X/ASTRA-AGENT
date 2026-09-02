@@ -105,6 +105,10 @@ const reconciliationSource = await readFile(
 );
 const executorSource = await readFile(new URL("../../src/lib/local-runtime/production/executor.ts", import.meta.url), "utf8");
 const childToolsSource = await readFile(new URL("../../src/lib/local-runtime/production/production-gpt-child-tools.ts", import.meta.url), "utf8");
+const atomicGptCallSource = await readFile(
+  new URL("../../src/lib/local-runtime/production/production-gpt-atomic-call.ts", import.meta.url),
+  "utf8",
+);
 const heartbeatSource = await readFile(new URL("../../src/lib/local-runtime/production/runtime-execution-heartbeat.ts", import.meta.url), "utf8");
 const cloudSource = await readFile(new URL("../../src/lib/local-runtime/production/cloud-client.ts", import.meta.url), "utf8");
 const leaseReleaseContractSource = await readFile(
@@ -112,13 +116,18 @@ const leaseReleaseContractSource = await readFile(
   "utf8",
 );
 const storeSource = await readFile(new URL("../../src/lib/local-runtime/production/store-task-state.ts", import.meta.url), "utf8");
+const continuationStoreSource = await readFile(
+  new URL("../../src/lib/local-runtime/production/store-continuation-state.ts", import.meta.url),
+  "utf8",
+);
 assert.equal(existsSync(new URL("../../src/lib/local-runtime/production/production-gpt-executor.ts", import.meta.url)), false);
 assert.equal(existsSync(new URL("../../src/lib/local-runtime/production/production-gpt-turn-flow.ts", import.meta.url)), false);
 assert.doesNotMatch(runtimeSource, /emitState|stateKey:|currentStates|reconciledFromAuthority/u);
 assert.doesNotMatch(executorSource, /runTurn|ProductionGptExecutor|GPT_TURN_FLOW/u);
 assert.match(executorSource, /gpt: gptExecution\.tools/u);
-assert.match(childToolsSource, /this\.gpt\.execute\(intent/u);
-assert.match(childToolsSource, /mutationMode: "readback"/u);
+assert.match(childToolsSource, /executeProductionGptAtomicCall\(/u);
+assert.match(atomicGptCallSource, /gpt\.execute\(intent/u);
+assert.match(atomicGptCallSource, /mutationMode: "readback"/u);
 assert.doesNotMatch(childToolsSource, /stepIndex|flowVersion|resumePoint|reconcileOnly/u);
 
 const deletionSettlement = permanentRevocationSource;
@@ -133,14 +142,15 @@ assert.match(executorSource, /abort_signal\.aborted[\s\S]{0,220}PRODUCTION_EXECU
 assert.match(executorSource, /reconcilePermanentCancellation/u);
 assert.match(childToolsSource, /facts\.mutation\?\.outcome !== "DISPATCHED"/u);
 assert.match(childToolsSource, /AbortSignal\.timeout/u);
-assert.match(childToolsSource, /mutationMode: "readback"/u);
+assert.match(atomicGptCallSource, /mutationMode: "readback"/u);
 const deletionControlIndex = heartbeatSource.indexOf('if (receipt.control_intent.intent !== "none")');
 const renewalBudgetIndex = heartbeatSource.indexOf("const relative = Date.parse(receipt.lease_expires_at)");
 assert.ok(deletionControlIndex >= 0 && renewalBudgetIndex > deletionControlIndex,
   "permanent control must stop execution before a non-extended lease is treated as an invalid renewal budget");
 assert.match(leaseReleaseContractSource, /PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED/u);
 assert.match(cloudSource, /stableRequestId/u);
-assert.match(storeSource, /releaseGptContinuationLanesForJob/u);
+assert.match(storeSource, /extends ProductionStoreContinuationState/u);
+assert.match(continuationStoreSource, /releaseGptContinuationLanesForJob/u);
 assert.match(reconciliationSource, /V6_DEVICE_JOB_CONTROL_AUTHORITY_INVALID/u);
 assert.match(reconciliationSource, /currentReason\?\.code === "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED"/u);
 assert.match(runtimeLoopsSource, /settleInactivePermanentAuthorizationRevocation/u);
@@ -164,14 +174,24 @@ await assert.rejects(
   () => dispatchWebsiteAgentTask(productionTask, () => { throw new Error("CONTEXT_MUST_NOT_BE_CREATED"); }),
   /CONTEXT_MUST_NOT_BE_CREATED/u,
 );
+const splitProductTurnPlugins = new Set([
+  "bazi-ai-full-analysis",
+  "bazi-chart-interpretation",
+  "bazi-report-followup",
+]);
 for (const plugin of productionPluginCatalog) {
   if (plugin.pluginId === "public-knowledge-article-pipeline") continue;
   const productSource = await readFile(
     new URL(`../../src/plugins/${plugin.pluginId}/flow.ts`, import.meta.url), "utf8",
   );
+  const productExecutionSource = splitProductTurnPlugins.has(plugin.pluginId)
+    ? `${productSource}\n${await readFile(
+      new URL(`../../src/plugins/${plugin.pluginId}/product-turn.ts`, import.meta.url), "utf8",
+    )}`
+    : productSource;
   assert.doesNotMatch(productSource, /PRODUCT_FLOW_NOT_IMPLEMENTED:/u);
-  assert.match(productSource, /context\.gpt\.execute/u);
-  assert.match(productSource, /readCallFacts/u);
+  assert.match(productExecutionSource, /context\.gpt\.execute/u);
+  assert.match(productExecutionSource, /readCallFacts/u);
 }
 
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");

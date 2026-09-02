@@ -272,4 +272,3 @@ export abstract class ProductionStoreTaskState extends ProductionStoreContinuati
     }) : null;
   }
 }
-

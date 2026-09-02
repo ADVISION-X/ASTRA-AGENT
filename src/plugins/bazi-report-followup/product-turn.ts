@@ -327,5 +327,3 @@ export const runFreshTurn = async (
   await applyAttachments(flow, context, stepId, [7, 8, 9], recoverOnly);
   return submitTurn(flow, stepId, prompt, marker, uploadedFiles(context), [10, 11, 12, 13, 14, 15]);
 };
-
-

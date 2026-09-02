@@ -16,7 +16,10 @@ import {
 } from "../../runtime-logs/index.js";
 import { executionFailure, failureCode, typedExecutionFailure } from "../../typed-failure.js";
 import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-support.js";
-import type { BrowserConfirmedProviderReadbackAuthorization } from "../../browser/browser-authority-api.js";
+import type {
+  BrowserConfirmedProviderReadbackAuthorization,
+  BrowserTargetLease,
+} from "../../browser/browser-authority-api.js";
 import { hashCanonical, sha256, type ProductionHash, type WebsiteAgentTask } from "./contracts.js";
 import type {
   ExactGptCallFacts,
@@ -68,10 +71,7 @@ export class ProductionGptChildTools {
   }
   public createExecution(input: ExecutionInput): ProductGptExecution {
     const browsers = new ProductionGptBrowserLifecycle(
-      this.browserAuthority,
-      this.runtimeLogger,
-      this.sourceHash,
-      input,
+      this.browserAuthority, this.runtimeLogger, this.sourceHash, input,
     );
     let continuationRef: string | null = input.task.continuation_ref ?? null;
     let confirmedProviderSubmit: ConfirmedProviderSubmitReceipt | null = null;
@@ -90,10 +90,7 @@ export class ProductionGptChildTools {
       return productSafeExactGptCallFacts(facts);
     };
     const execute = async (call: Parameters<ProductGptTools["execute"]>[0]): Promise<ProductGptChildResult> => {
-      if (input.lease.abort_signal.aborted) {
-        throw executionFailure("failed", typeof input.lease.abort_signal.reason === "string"
-          ? input.lease.abort_signal.reason : "PRODUCTION_EXECUTION_ABORTED");
-      }
+      this.assertExecutionActive(input);
       observedCalls.set(hashCanonical(call), call);
       if (call.effectLookupKind === "task_exact_effect") {
         const current = await readCallFacts(call);
@@ -137,22 +134,33 @@ export class ProductionGptChildTools {
         readCallFacts,
       }),
       continuationRef: () => continuationRef,
-      reconcilePermanentCancellation: async () => {
-        for (const call of observedCalls.values()) {
-          const facts = await readCallFacts(call);
-          if (facts.mutation?.outcome !== "DISPATCHED") continue;
-          const remaining = Math.floor(input.lease.expires_at_monotonic - performance.now());
-          if (remaining < 1) throw executionFailure("failed", "V6_DEADLINE_BUDGET_EXHAUSTED");
-          await this.executeOne(
-            input,
-            browsers,
-            call,
-            AbortSignal.timeout(Math.min(20_000, remaining)),
-          );
-        }
-      },
+      reconcilePermanentCancellation: () => this.reconcileObservedCalls(
+        input, browsers, observedCalls, readCallFacts,
+      ),
       settle: (error) => browsers.settle(error),
     });
+  }
+  private assertExecutionActive(input: ExecutionInput): void {
+    if (!input.lease.abort_signal.aborted) return;
+    throw executionFailure("failed", typeof input.lease.abort_signal.reason === "string"
+      ? input.lease.abort_signal.reason : "PRODUCTION_EXECUTION_ABORTED");
+  }
+
+  private async reconcileObservedCalls(
+    input: ExecutionInput,
+    browsers: ProductionGptBrowserLifecycle,
+    observedCalls: ReadonlyMap<string, ProductGptCallInput & Readonly<{ sessionKey: string }>>,
+    readCallFacts: (call: ProductGptFactQuery) => Promise<ExactGptCallFacts>,
+  ): Promise<void> {
+    for (const call of observedCalls.values()) {
+      const facts = await readCallFacts(call);
+      if (facts.mutation?.outcome !== "DISPATCHED") continue;
+      const remaining = Math.floor(input.lease.expires_at_monotonic - performance.now());
+      if (remaining < 1) throw executionFailure("failed", "V6_DEADLINE_BUDGET_EXHAUSTED");
+      await this.executeOne(
+        input, browsers, call, AbortSignal.timeout(Math.min(20_000, remaining)),
+      );
+    }
   }
   private intentForAttempt(
     execution: ExecutionInput,
@@ -424,17 +432,9 @@ export class ProductionGptChildTools {
         evidenceRef = persisted.evidenceRef;
         evidenceHash = result.proof.evidenceHash;
       }
-      if (resolveDispatched && browser && result.status === "success") {
-        await browser.resolvePendingMutation({
-          schemaVersion: "grasseye.browser.outcome-resolution.v1",
-          ownerPluginId: execution.pluginId,
-          outcome: "TERMINAL_SUCCESS",
-          positiveEvidenceRef: `${evidenceRef}#positive-postcondition`,
-          negativeEvidenceRef: `${evidenceRef}#negative-postcondition-absent`,
-          uniqueTargetRef: browser.target.targetRef,
-          boundedAt: new Date().toISOString(),
-        });
-      }
+      await this.resolveDispatchedMutation({
+        execution, browser, result, evidenceRef, resolveDispatched,
+      });
     } catch (error) {
       return this.terminalizeError(span, error);
     }
@@ -444,6 +444,25 @@ export class ProductionGptChildTools {
       value: result.value,
       evidenceRef,
       evidenceHash,
+    });
+  }
+
+  private async resolveDispatchedMutation(input: Readonly<{
+    execution: ExecutionInput;
+    browser: BrowserTargetLease | undefined;
+    result: GptChildCapabilityResult;
+    evidenceRef: string;
+    resolveDispatched: boolean;
+  }>): Promise<void> {
+    if (!input.resolveDispatched || !input.browser || input.result.status !== "success") return;
+    await input.browser.resolvePendingMutation({
+      schemaVersion: "grasseye.browser.outcome-resolution.v1",
+      ownerPluginId: input.execution.pluginId,
+      outcome: "TERMINAL_SUCCESS",
+      positiveEvidenceRef: `${input.evidenceRef}#positive-postcondition`,
+      negativeEvidenceRef: `${input.evidenceRef}#negative-postcondition-absent`,
+      uniqueTargetRef: input.browser.target.targetRef,
+      boundedAt: new Date().toISOString(),
     });
   }
 

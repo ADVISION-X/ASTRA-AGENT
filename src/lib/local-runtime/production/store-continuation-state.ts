@@ -104,7 +104,7 @@ const sameReusableBoundary = (
   && stored.semantic_contract_hash === reservation.semantic_contract_hash
   && stored.lane_version === reservation.lane_version;
 
-const sameReservationCompletion = (
+const sameCompletionIdentity = (
   stored: GptContinuationRecord,
   input: GptContinuationCompletionInput,
 ): boolean => stored.continuation_ref === input.continuation_ref
@@ -114,8 +114,12 @@ const sameReservationCompletion = (
   && stored.reservation_fence_hash === input.reservation_fence_hash
   && stored.conversation_identity_hash === gptContinuationIdentityHash(input.provider)
   && json(stored.origin_provider) === json(input.provider)
-  && json(stored.provider) === json(input.provider)
-  && json(stored.origin_checkpoint) === json(input.checkpoint)
+  && json(stored.provider) === json(input.provider);
+
+const sameCompletionEvidence = (
+  stored: GptContinuationRecord,
+  input: GptContinuationCompletionInput,
+): boolean => json(stored.origin_checkpoint) === json(input.checkpoint)
   && json(stored.current_checkpoint) === json(input.checkpoint)
   && stored.artifact_ref === input.artifact_ref
   && stored.artifact_hash === input.artifact_hash
@@ -125,6 +129,65 @@ const sameReservationCompletion = (
   && stored.opaque_read_grant_hash === input.opaque_read_grant_hash
   && stored.completion_receipt_hash === input.completion_receipt_hash
   && stored.lane_owner_job_id === null;
+
+const sameReservationCompletion = (
+  stored: GptContinuationRecord,
+  input: GptContinuationCompletionInput,
+): boolean => sameCompletionIdentity(stored, input) && sameCompletionEvidence(stored, input);
+
+const assertCompletionReceipts = (
+  before: GptContinuationRecord,
+  input: GptContinuationCompletionInput,
+): void => {
+  const semanticReceipt = input.semantic_admission_receipt;
+  const semanticReceiptHash = hashCanonical(semanticReceipt);
+  const expectedEvaluationHash = hashCanonical({
+    kind: "exact-nested-result-contract-evaluation.v1",
+    artifact_hash: input.artifact_hash,
+    contract_hash: semanticReceipt.contract_hash,
+    outcome: "accepted",
+  });
+  if (semanticReceipt.schema_version !== "exact-semantic-admission-receipt.v1"
+    || semanticReceipt.artifact_ref !== input.artifact_ref
+    || semanticReceipt.artifact_hash !== input.artifact_hash
+    || semanticReceipt.contract_hash !== before.semantic_contract_hash
+    || semanticReceipt.contract_evaluation_hash !== expectedEvaluationHash
+    || semanticReceipt.outcome !== "accepted"
+    || input.semantic_admission_receipt_ref !== `semantic-admission:${semanticReceiptHash.slice(7)}`
+    || input.semantic_admission_receipt_hash !== semanticReceiptHash) {
+    throw executionFailure("failed", "GPT_CONTINUATION_SEMANTIC_ADMISSION_INVALID");
+  }
+  const expectedReadGrantHash = hashCanonical({
+    kind: "current_artifact_read_grant.v1",
+    owner_ref: before.owner_ref,
+    subject_ref: before.subject_ref,
+    source_artifact_ref: input.artifact_ref,
+    source_artifact_hash: input.artifact_hash,
+    source_checkpoint_hash: before.source_checkpoint_hash ?? hashCanonical(input.checkpoint),
+    semantic_admission_receipt_ref: input.semantic_admission_receipt_ref,
+    semantic_admission_receipt_hash: input.semantic_admission_receipt_hash,
+  });
+  const expectedCompletionReceiptHash = hashCanonical({
+    kind: "gpt-continuation-completion.v1",
+    reservation_identity_hash: input.reservation_identity_hash,
+    continuation_ref: input.continuation_ref,
+    lane_version: input.lane_version,
+    reservation_fence_hash: input.reservation_fence_hash,
+    conversation_identity_hash: gptContinuationIdentityHash(input.provider),
+    checkpoint_hash: hashCanonical(input.checkpoint),
+    artifact_ref: input.artifact_ref,
+    artifact_hash: input.artifact_hash,
+    semantic_admission_receipt_ref: input.semantic_admission_receipt_ref,
+    semantic_admission_receipt_hash: input.semantic_admission_receipt_hash,
+    opaque_read_grant_hash: input.opaque_read_grant_hash,
+  });
+  if (input.artifact_ref !== input.checkpoint.artifact_ref
+    || input.artifact_hash !== input.checkpoint.semantic_text_hash
+    || input.opaque_read_grant_hash !== expectedReadGrantHash
+    || input.completion_receipt_hash !== expectedCompletionReceiptHash) {
+    throw executionFailure("failed", "GPT_CONTINUATION_COMPLETION_RECEIPT_INVALID");
+  }
+};
 
 
 export abstract class ProductionStoreContinuationState extends ProductionStoreFoundation {
@@ -225,56 +288,8 @@ export abstract class ProductionStoreContinuationState extends ProductionStoreFo
   public completeExactGptContinuationReservation(input: GptContinuationCompletionInput): StoredGptContinuation {
     const before = this.readGptContinuationRecordForReservation(input.reservation_identity_hash);
     if (!before) throw executionFailure("failed", "GPT_CONTINUATION_RESERVATION_MISSING");
-    const semanticReceipt = input.semantic_admission_receipt;
-    const expectedEvaluationHash = hashCanonical({
-      kind: "exact-nested-result-contract-evaluation.v1",
-      artifact_hash: input.artifact_hash,
-      contract_hash: semanticReceipt.contract_hash,
-      outcome: "accepted",
-    });
-    const semanticReceiptHash = hashCanonical(semanticReceipt);
-    const expectedSemanticReceiptRef = `semantic-admission:${semanticReceiptHash.slice(7)}`;
-    if (semanticReceipt.schema_version !== "exact-semantic-admission-receipt.v1"
-      || semanticReceipt.artifact_ref !== input.artifact_ref
-      || semanticReceipt.artifact_hash !== input.artifact_hash
-      || semanticReceipt.contract_hash !== before.semantic_contract_hash
-      || semanticReceipt.contract_evaluation_hash !== expectedEvaluationHash
-      || semanticReceipt.outcome !== "accepted"
-      || input.semantic_admission_receipt_ref !== expectedSemanticReceiptRef
-      || input.semantic_admission_receipt_hash !== semanticReceiptHash) {
-      throw executionFailure("failed", "GPT_CONTINUATION_SEMANTIC_ADMISSION_INVALID");
-    }
-    const expectedReadGrantHash = hashCanonical({
-      kind: "current_artifact_read_grant.v1",
-      owner_ref: before.owner_ref,
-      subject_ref: before.subject_ref,
-      source_artifact_ref: input.artifact_ref,
-      source_artifact_hash: input.artifact_hash,
-      source_checkpoint_hash: before.source_checkpoint_hash ?? hashCanonical(input.checkpoint),
-      semantic_admission_receipt_ref: input.semantic_admission_receipt_ref,
-      semantic_admission_receipt_hash: input.semantic_admission_receipt_hash,
-    });
-    const expectedCompletionReceiptHash = hashCanonical({
-      kind: "gpt-continuation-completion.v1",
-      reservation_identity_hash: input.reservation_identity_hash,
-      continuation_ref: input.continuation_ref,
-      lane_version: input.lane_version,
-      reservation_fence_hash: input.reservation_fence_hash,
-      conversation_identity_hash: gptContinuationIdentityHash(input.provider),
-      checkpoint_hash: hashCanonical(input.checkpoint),
-      artifact_ref: input.artifact_ref,
-      artifact_hash: input.artifact_hash,
-      semantic_admission_receipt_ref: input.semantic_admission_receipt_ref,
-      semantic_admission_receipt_hash: input.semantic_admission_receipt_hash,
-      opaque_read_grant_hash: input.opaque_read_grant_hash,
-    });
-    if (input.artifact_ref !== input.checkpoint.artifact_ref
-      || input.artifact_hash !== input.checkpoint.semantic_text_hash
-      || input.opaque_read_grant_hash !== expectedReadGrantHash
-      || input.completion_receipt_hash !== expectedCompletionReceiptHash) {
-      throw executionFailure("failed", "GPT_CONTINUATION_COMPLETION_RECEIPT_INVALID");
-    }
-    if (before && sameReservationCompletion(before, input)) {
+    assertCompletionReceipts(before, input);
+    if (sameReservationCompletion(before, input)) {
       const settled = usableContinuationFromRecord(before);
       if (settled) return settled;
     }
@@ -404,4 +419,3 @@ export abstract class ProductionStoreContinuationState extends ProductionStoreFo
   }
 
 }
-

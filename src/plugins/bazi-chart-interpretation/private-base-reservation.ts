@@ -36,34 +36,53 @@ import {
   type BaseFacts,
 } from "./private-base-admission.js";
 
-export const createOrReadBase = async (
+type ReusableReservation = ReturnType<typeof reservationValue>;
+type BaseAdmission = ReturnType<typeof validateBaseOutput>;
+
+const reusableCandidateGrant = (
   task: WebsiteAgentTask,
-  context: SharedExecutionContext,
-  flow: OwnedExecution,
-  baseInput: Record<string, unknown>,
   identity: ProductionHash,
-): Promise<BaseFacts> => {
+): ProductionHash | null => {
   const candidate = task.parameters.reusable_base_candidate === null
     ? null : objectValue(task.parameters.reusable_base_candidate, "BAZI_REUSABLE_BASE_CANDIDATE_INVALID");
   if (candidate && (candidate.reusable_identity_hash !== identity
     || typeof candidate.source_job_id !== "string" || !candidate.source_job_id)) {
     fail("BAZI_REUSABLE_BASE_CANDIDATE_INVALID");
   }
-  const candidateGrant = candidate
+  return candidate
     ? hashValue(candidate.opaque_read_grant_hash, "BAZI_REUSABLE_BASE_CANDIDATE_INVALID") : null;
-  const existing = await context.gpt.readContinuationExact({
+};
+
+const readReusableBase = async (input: Readonly<{
+  task: WebsiteAgentTask;
+  context: SharedExecutionContext;
+  identity: ProductionHash;
+  baseInput: Record<string, unknown>;
+  grant: ProductionHash | null;
+}>): Promise<BaseFacts | null> => {
+  const existing = await input.context.gpt.readContinuationExact({
     lookupKind: "frontier_ref",
-    frontierRef: identity,
-    authorization: candidateGrant ? {
+    frontierRef: input.identity,
+    authorization: input.grant ? {
       kind: "current_artifact_read_grant",
-      currentAuthorizationRef: task.business_identity.authorization_ref,
-      opaqueReadGrantHash: candidateGrant,
+      currentAuthorizationRef: input.task.business_identity.authorization_ref,
+      opaqueReadGrantHash: input.grant,
     } : {
       kind: "origin_authorization",
-      originAuthorizationRef: task.business_identity.authorization_ref,
+      originAuthorizationRef: input.task.business_identity.authorization_ref,
     },
   });
-  if (existing) return baseFactsFromReadback(task, identity, baseInput, existing, candidateGrant);
+  return existing
+    ? baseFactsFromReadback(input.task, input.identity, input.baseInput, existing, input.grant)
+    : null;
+};
+
+const reserveReusableBase = async (
+  task: WebsiteAgentTask,
+  flow: OwnedExecution,
+  baseInput: Record<string, unknown>,
+  identity: ProductionHash,
+): Promise<Readonly<{ reserve: ReusableReservation; fenceHash: ProductionHash }>> => {
   const fenceHash = hashCanonical({ kind: "bazi-reusable-base-reservation-fence.v1", identity });
   const reserve = reservationValue((await flow.execute({
     productStepId: "private-base", callId: "reserve-reusable-origin",
@@ -86,19 +105,36 @@ export const createOrReadBase = async (
   if (reserve.reservationIdentityHash !== identity || reserve.reservationFenceHash !== fenceHash) {
     fail("BAZI_REUSABLE_BASE_RESERVATION_DRIFT");
   }
-  if (reserve.complete) {
-    const completedGrant = candidateGrant ?? reserve.opaqueReadGrantHash;
-    const recovered = await context.gpt.readContinuationExact({
-      lookupKind: "frontier_ref", frontierRef: identity,
-      authorization: completedGrant ? {
-        kind: "current_artifact_read_grant",
-        currentAuthorizationRef: task.business_identity.authorization_ref,
-        opaqueReadGrantHash: completedGrant,
-      } : { kind: "origin_authorization", originAuthorizationRef: task.business_identity.authorization_ref },
-    });
-    if (!recovered) fail("BAZI_REUSABLE_BASE_READBACK_MISSING");
-    return baseFactsFromReadback(task, identity, baseInput, recovered, completedGrant);
-  }
+  return Object.freeze({ reserve, fenceHash });
+};
+
+const prepareBaseConversation = async (
+  flow: OwnedExecution,
+  context: SharedExecutionContext,
+  input: Readonly<{
+    suffix?: string;
+    freshOrdinal: number;
+    profileOrdinals: readonly [number, number, number, number, number];
+    attachmentOrdinals: readonly [number, number, number];
+  }>,
+): Promise<void> => {
+  await flow.execute({
+    productStepId: "private-base", callId: input.suffix ? `fresh-chat:${input.suffix}` : "fresh-chat",
+    child: "prepare_clean_gpt_chat", actionOrdinal: input.freshOrdinal, input: { timeoutMs: 60_000 },
+  });
+  await applyProfile(flow, "private-base", localBaziPrivateBaseTurn.profile, input.profileOrdinals, false);
+  await applyAttachments(
+    flow, context, "private-base", ["bazi_private_base_input"], input.attachmentOrdinals, false,
+  );
+};
+
+const createBaseCheckpoint = async (input: Readonly<{
+  context: SharedExecutionContext;
+  flow: OwnedExecution;
+  identity: ProductionHash;
+  baseInput: Record<string, unknown>;
+}>): Promise<Readonly<{ checkpoint: BaseFacts["checkpoint"]; admission: BaseAdmission }>> => {
+  const { context, flow, identity, baseInput } = input;
   const marker = `${localBaziPrivateBaseTurn.markerNamespace}:${identity.slice(7, 31)}`;
   const prompt = basePrompt(marker);
   const baseSubmit = {
@@ -110,12 +146,9 @@ export const createOrReadBase = async (
   const priorSubmit = !currentSubmit.mutation && !currentSubmit.evidence
     ? await flow.taskExactFacts(baseSubmit) : null;
   if (!currentSubmit.mutation && !currentSubmit.evidence && !priorSubmit?.mutation && !priorSubmit?.evidence) {
-    await flow.execute({
-      productStepId: "private-base", callId: "fresh-chat", child: "prepare_clean_gpt_chat",
-      actionOrdinal: 2, input: { timeoutMs: 60_000 },
+    await prepareBaseConversation(flow, context, {
+      freshOrdinal: 2, profileOrdinals: [3, 4, 5, 6, 7], attachmentOrdinals: [8, 9, 10],
     });
-    await applyProfile(flow, "private-base", localBaziPrivateBaseTurn.profile, [3, 4, 5, 6, 7], false);
-    await applyAttachments(flow, context, "private-base", ["bazi_private_base_input"], [8, 9, 10], false);
   }
   let checkpoint = await submitTurn(
     flow, "private-base", prompt, marker,
@@ -130,18 +163,29 @@ export const createOrReadBase = async (
       throw error;
     }
     const retrySuffix = `semantic-retry-${context.gpt.attemptId}`;
-    await flow.execute({
-      productStepId: "private-base", callId: `fresh-chat:${retrySuffix}`,
-      child: "prepare_clean_gpt_chat", actionOrdinal: 18, input: { timeoutMs: 60_000 },
+    await prepareBaseConversation(flow, context, {
+      suffix: retrySuffix, freshOrdinal: 18,
+      profileOrdinals: [19, 20, 21, 22, 23], attachmentOrdinals: [24, 25, 26],
     });
-    await applyProfile(flow, "private-base", localBaziPrivateBaseTurn.profile, [19, 20, 21, 22, 23], false);
-    await applyAttachments(flow, context, "private-base", ["bazi_private_base_input"], [24, 25, 26], false);
     checkpoint = await submitTurn(
       flow, "private-base", prompt, marker,
       uploadedFilesForRoles(context, ["bazi_private_base_input"]), [27, 28, 29, 30, 31, 32], retrySuffix,
     );
     admission = validateBaseOutput(checkpoint, baseInput);
   }
+  return Object.freeze({ checkpoint, admission });
+};
+
+const completeReusableBase = async (input: Readonly<{
+  task: WebsiteAgentTask;
+  flow: OwnedExecution;
+  identity: ProductionHash;
+  reserve: ReusableReservation;
+  fenceHash: ProductionHash;
+  checkpoint: BaseFacts["checkpoint"];
+  admission: BaseAdmission;
+}>): Promise<BaseFacts> => {
+  const { task, flow, identity, reserve, fenceHash, checkpoint, admission } = input;
   const provider = providerFor(task, checkpoint);
   const completion = completionHashes({
     identity, continuationRef: reserve.continuationRef, laneVersion: reserve.laneVersion,
@@ -182,6 +226,26 @@ export const createOrReadBase = async (
   });
 };
 
+export const createOrReadBase = async (
+  task: WebsiteAgentTask,
+  context: SharedExecutionContext,
+  flow: OwnedExecution,
+  baseInput: Record<string, unknown>,
+  identity: ProductionHash,
+): Promise<BaseFacts> => {
+  const candidateGrant = reusableCandidateGrant(task, identity);
+  const existing = await readReusableBase({ task, context, identity, baseInput, grant: candidateGrant });
+  if (existing) return existing;
+  const { reserve, fenceHash } = await reserveReusableBase(task, flow, baseInput, identity);
+  if (reserve.complete) {
+    const grant = candidateGrant ?? reserve.opaqueReadGrantHash;
+    const recovered = await readReusableBase({ task, context, identity, baseInput, grant });
+    if (!recovered) fail("BAZI_REUSABLE_BASE_READBACK_MISSING");
+    return recovered;
+  }
+  const { checkpoint, admission } = await createBaseCheckpoint({ context, flow, identity, baseInput });
+  return completeReusableBase({ task, flow, identity, reserve, fenceHash, checkpoint, admission });
+};
 const laneValue = (value: unknown): GptContinuationLane => {
   const row = objectValue(value, "BAZI_DERIVED_LANE_INVALID");
   const provider = objectValue(row.provider, "BAZI_DERIVED_LANE_INVALID");
@@ -244,14 +308,7 @@ export const reserveCompleteAndAcquireDerived = async (
     input: {
       reservationIdentityHash: identity, laneVersion: reservation.laneVersion,
       reservationFenceHash: fenceHash, provider: base.provider,
-      checkpoint: {
-        checkpointKind: "text", sourceAttemptId: base.checkpoint.sourceAttemptId,
-        assistantTurnId: base.checkpoint.assistantTurnId, artifactRef: base.checkpoint.artifactRef,
-        rawDomHash: base.checkpoint.rawDomHash, semanticTextHash: base.checkpoint.semanticTextHash,
-        canonicalConversationUrl: base.checkpoint.canonicalConversationUrl,
-        promptHash: base.checkpoint.promptHash, turnMarker: base.checkpoint.turnMarker,
-        evidenceRef: base.checkpoint.evidenceRef, evidenceHash: base.checkpoint.evidenceHash,
-      },
+      checkpoint: gptTextContinuationCheckpointInput(base.checkpoint.sourceAttemptId, base.checkpoint),
       artifactRef: base.checkpoint.artifactRef, artifactHash: base.checkpoint.semanticTextHash,
       semanticAdmissionReceiptRef: base.semanticAdmissionReceiptRef,
       semanticAdmissionReceiptHash: base.semanticAdmissionReceiptHash,
@@ -274,4 +331,3 @@ export const reserveCompleteAndAcquireDerived = async (
     },
   })).value);
 };
-
