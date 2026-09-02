@@ -1,13 +1,13 @@
-# GPT 能力组 V9 施工图
+# GPT 能力组 V10 施工图
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "gpt-capability-group-v9",
+  "blueprintId": "gpt-capability-group-v10",
   "status": "active",
   "owner": "gpt",
   "lawIds": [
-    "LAW-GPT-001-V17"
+    "LAW-GPT-001-V18"
   ],
   "contractRefs": [],
   "dependencyEdges": [
@@ -21,7 +21,7 @@
 
 ## 1. 唯一 Owner 与调用方向
 
-`gpt` 只拥有 GPT Provider 的 26 个原子 Child、对应 DOM 合同、Browser Authority 调用、直接后置证明和 typed result：二十个 Provider 页面语义 Child、六个 continuation 状态 Child。十二个 Product Plugin 各自直接拥有 Child 顺序、分支、重复、跳过、Prompt 语义、模型策略和结果组装。
+`gpt` 只拥有 GPT Provider 的 27 个原子 Child、对应局部合同、Browser Authority 调用、直接后置证明和 typed result：二十一个 Provider 页面语义 Child、六个 continuation transaction Child。十二个 Product Plugin 各自直接拥有 Child 顺序、分支、重复、跳过、Prompt 语义、模型策略和结果组装。
 
 ```text
 Product Plugin 的普通 TypeScript Flow
@@ -137,7 +137,8 @@ Product Plugin 不得提供 Target、Document、selector、WAL、lease、fence�
 | 文本 | `checkpoint_gpt_text_response` | 保存唯一 assistant turn 的完整 observed DOM HTML 与确定性语义文本，返回双 hash、marker 与 proof |
 | 图片 | `wait_for_stable_gpt_image` | 等待紧邻请求的 exact assistant section 生成停止且唯一语义主图稳定；不要求内层 assistant-role 节点或文本 |
 | 图片 | `checkpoint_gpt_generated_image` | 以同一 assistant section + semanticMediaId 经当前已鉴权页面取得原始 bytes 与 proof |
-| 会话 | `fork_exact_gpt_conversation_at_checkpoint` | 从 Product 指定的 exact source checkpoint 至多一次 fork，并读回唯一 child relation |
+| 会话 | `open_gpt_checkpoint_actions_menu` | 对 Product 指定的 exact source checkpoint 打开或确认唯一操作菜单，并证明唯一“打开新分支”叶子；不得创建 child relation |
+| 会话 | `fork_exact_gpt_conversation_at_checkpoint` | 在已证明的 exact source-bound 操作菜单内至多一次 fork，并读回唯一 child relation；不得再次打开菜单 |
 | Continuation | `persist_gpt_continuation` | 保存永久 URL、turn marker、prior prompt/response hash、conversation identity 与主体绑定 |
 | Continuation | `reserve_exact_gpt_continuation_once` | 在现役 continuation row/store 以 opaque reusable-origin 或 derived-source identity 作一次 reservation CAS |
 | Continuation | `complete_exact_gpt_continuation_reservation_once` | 在同 reservation/lane/fence 一次写齐 provider、artifact、semantic-admission 与 read-grant receipt 并释放 reservation lane |
@@ -153,9 +154,24 @@ Browser Target/Document 绑定、mutation WAL 与 mutation outcome 对账属于 
 
 ## 3. 原子 Child 合同
 
-每个 Child 声明 `childId`、版本、输入/输出类型、所需 Target kind、允许的 Document transition、前置、唯一 observation 或至多一次 mutation、互斥且完备的正负后置判据、evidence schema 和 typed failure code。
+每个 Child 必须在现役唯一 contract map 中显式声明八项内容：`childId + contractVersion`、原子语义意图、唯一 Owner/读写边界、exact call 输入、唯一能力画像与 bounded-wait 资格、DONE/ACT/WAIT/FAIL_CLOSED 的局部事实和裁决、零或一次 mutation 加完整正反后置、最小安全证据。任何字段都不得由通用默认模板、自由 `observedSemantics`、调用顺序或历史成功推导。
 
-`fork_exact_gpt_conversation_at_checkpoint` 只接受 Product 已冻结的 exact source provider/checkpoint、canonical conversation URL、turn marker、prior prompt/response identity 与 exact call identity。GPT 在 current legal Target/Document 复核 source 后，只让 Browser Authority dispatch 一次 exact fork；后置必须唯一读回 child conversation identity、child URL/marker 与 source-to-child relation。fork 是 provider-effect-once：WAL/Forensics 必须产生 DISPATCHED/CONFIRMED/REJECTED，`readCallFacts(task_exact_effect)` 按同 task/plugin/version/call/input/source checkpoint 重算完整 identity并只返回 Product-safe 的零或唯一 fact。commit-before-return 后只读原 child，禁止第二次 fork。若真实 Provider 没有唯一机器后置，直接 typed fail-close，不允许 latest source、same-conversation fallback 或第二 Browser capability。
+画像分母固定为：
+
+| Profile | Child |
+|---|---|
+| `DOM_OBSERVATION`（6） | `verify_gpt_conversation_identity`、`reconcile_gpt_attachment_set`、`reconcile_gpt_draft`、`reconcile_gpt_turn_submission`、`checkpoint_gpt_text_response`、`checkpoint_gpt_generated_image` |
+| `TARGET_LOCAL_MUTATION`（12） | `prepare_clean_gpt_chat`、`focus_exact_gpt_conversation`、`open_gpt_execution_profile`、`open_gpt_model_selector_v2`、`select_exact_gpt_model_v2`、`ensure_exact_gpt_reasoning_tier`、`close_gpt_execution_profile`、`open_gpt_attachment_control`、`write_exact_gpt_prompt`、`wait_for_stable_gpt_text`、`wait_for_stable_gpt_image`、`open_gpt_checkpoint_actions_menu` |
+| `PROVIDER_EFFECT_ONCE`（3） | `attach_approved_gpt_files_once`、`submit_exact_gpt_turn_once`、`fork_exact_gpt_conversation_at_checkpoint` |
+| `CONTINUATION_TRANSACTION`（6） | `persist_gpt_continuation`、`reserve_exact_gpt_continuation_once`、`complete_exact_gpt_continuation_reservation_once`、`acquire_gpt_continuation_lane`、`advance_gpt_continuation_lane`、`release_gpt_continuation_lane` |
+
+bounded-wait 只是画像附加特征：`reconcile_gpt_attachment_set`、`reconcile_gpt_turn_submission`、`wait_for_stable_gpt_text`、`wait_for_stable_gpt_image` 只能在各自合同的正面瞬时事实与调用既有 deadline 内 fresh observe。公开 terminal 始终只有 `success(value,evidence)` 或 `failed(typedReason,evidence)`；四个局部裁决不持久化、不进入 Product 状态。
+
+所有页面 Child 的一次裁决只能消费 Browser 在同一 typed observation 内原子采集、或由 Browser 机械证明 revision 未变化的 coherent packet。packet 固定绑定 exact call、Target、current Document、observation revision、observedAt、该 Child 最少充分的稀疏事实和 native cause；整包 stale、Document/revision 改变或未完整返回时整包作废，禁止 Child 拼接独立查询、持久 snapshot、读取 raw WAL 或把 Browser terminal 当成 GPT 语义。
+
+真实页面的分支入口是两个独立状态变化，Product 必须显式排列两个调用。`open_gpt_checkpoint_actions_menu` 只接受 Product 已冻结的 exact source provider/checkpoint、canonical conversation URL、turn marker、prior prompt/response identity 与自己的 exact call identity；若同一 source-bound active menu 和唯一“打开新分支”叶子已经成立则零动作成功，否则只点击该 source turn 的唯一更多操作入口一次，并以 fresh coherent packet 直接证明菜单与叶子。它是 target-local mutation，不得创建 child relation或点击 fork 叶子。
+
+`fork_exact_gpt_conversation_at_checkpoint` 使用独立 exact call identity，只接受已经由自身 fresh 前置重新证明的同一 source-bound active menu 与唯一 fork 叶子；Browser Authority 至多 dispatch 一次 fork 叶子动作，后置必须唯一读回 child conversation identity、child URL/marker 与 source-to-child relation，不得再次打开菜单。fork 是 provider-effect-once：WAL/Forensics 必须产生 DISPATCHED/CONFIRMED/REJECTED，`readCallFacts(task_exact_effect)` 按同 task/plugin/version/call/input/source checkpoint 重算完整 identity并只返回 Product-safe 的零或唯一 fact。commit-before-return 后只读原 child，禁止第二次 fork。任一步 missing、ambiguous、stale 后不能 fresh 闭合或关系多义都以自身 typed reason 零额外动作失败，不允许循环点击、latest source、same-conversation fallback 或第二 Browser capability。
 
 `checkpoint_gpt_text_response` 的 DOM 责任是完整取回 Provider 当前实际呈现的产物，不是解释 JSON 或业务内容。它必须锁定精确 assistant turn，并保存该节点完整 `outerHTML`；唯一 JSON code block 时读取 code `textContent`，没有 code block 时遍历完整 semantic tree，把 `<br>`、块级边界、列表以及 `<strong>/<em>/<code>` 等标签确定性投影为显式 canonical 标记，保留转义、Unicode 与全部可见字符。canonical text 是 observed DOM 的可追溯语义投影，不冒充 Provider 原始 Markdown/source bytes；原 DOM HTML 与投影文本及各自 hash 一起进入同一 task-owned output artifact。禁止散落 text-node 拼接、`innerText` 布局副作用、预设业务字段选择器或正则截断；零个或多个完整 assistant 候选必须 typed fail-close。Forensics 与 Runtime Logs 只保存 artifact ref/hash，不保存 DOM 或正文。
 
@@ -222,4 +238,4 @@ Continuation lane 的结构边界固定为：首次 persist 必须先验证 orig
 
 授权验收必须额外证明：`current_artifact_read_grant` 零 manifest/child-relation 要求且只在 current authorization、owner/subject、source artifact/checkpoint、semantic-admission receipt/read-grant 全闭合时读回；`continuation_lane_use_grant` 则只在 current/origin authorization、owner/subject、manifest/continuation relation 全闭合时允许现役 acquire 一次跨 entitlement CAS。两种 grant 不得互换、合并或补默认值。
 
-聚焦验收必须证明：26 个 Child 精确；reserve/complete/acquire 三调用互不合并且每个 mutation count 恰为一，reservation 与 completion 的 commit-before-return 都只读回原 receipt，未 complete row 不能 acquire，非 creator 不能偷取未完成 reservation；opaque grant 的 current/origin authorization、owner/subject、source checkpoint、manifest/continuation 任一错配都在 artifact read 前失败。fork 的 CONFIRMED-before-return 只读回同一 child且 mutation 增量为零，source 错配、零/多 child 或 relation 多义均失败关闭。公共面无 turn API；产品能显式调用任意 Child 序列；每个已开始 Child span 在 Browser lease 获取、park、reacquire 或原子能力任一失败点都恰好产生一个 typed terminal；readCallFacts 与 readContinuationExact 都只读、无流程决策与无 failure/state/Target/WAL 泄漏，turn-marker/frontier-ref 查询互斥且互相 fallback 为零；模型面板支持 ALREADY_OPEN/OPENABLE，已选中和未选中两种真实页面状态都只点击唯一 radio 一次，expanded entry 点击计数为零，popup 保留、entry collapsed、simple active、advanced absent；五个推理数值往返；同一业务文件在不同 attempt 获得不同但确定的精确 `providerDisplayName`；一个 UTF-8 ZIP 仍只产生一次 file-input mutation，GPT Child 不读取其 entry；附件名称已出现但上传未完成时不得成功且不得产生 mutation，ready SVG 的已识别 no-layout/no-box 只作为当轮不可见候选继续 fresh query，stale 丢弃旧 nodeId 后完整重查，畸形 CDP payload 才返回 `BROWSER_DOM_READ_INVALID`，Product timeout 超过 60 秒时不得被公共 Child 截短，全部完成后立即成功，持续未完成时 typed timeout；真实 Chrome 中 ready 后必须实际进入 `write_exact_gpt_prompt`，且 file-input mutation 仍恰为一次。Prompt 在提交前被页面清空或改写时不得点击；marker 外层 user 容器即使混入附件卡片、文件名与展开/收起文字，canonical rendered-prompt hash 仍等于原 composer prompt，inline code 反引号与正文尾换行被保留且只删除一个投影根分隔换行，正文自身漂移则失败；conversation-history 提示覆盖缺席、唯一、重复、多 root、标题/按钮漂移和按钮禁用；submission reconcile 必须覆盖 DOM candidate missing/ambiguous/stale 后 fresh read成功、真正 Target/Document 失效原样失败、且两者 submit mutation 增量均为零；submission-locator artifact 按 exact identity 幂等写读并在切换会话、进程重启后仍返回原定位事实；fresh 首轮在 continuation 与 checkpoint 均缺失时，必须用同一 accepted attempt 的 `current_attempt` exact submit receipt + 唯一 locator 恢复原 URL 且再次 submit 为零，缺失、损坏或多义 locator 必须失败关闭且再次 submit 仍为零；exact submit CONFIRMED 后分别注入 DOM typed cause、BROWSER_TARGET_INVALID、BROWSER_DOCUMENT_INVALID、channel fault、wait timeout、进程重启与 attempt cap 已满，全部保持同一 accepted attempt 和原 confirmed submit、再次 submit 为零，只有 Provider terminal negative/业务撤权/evidence 损坏或多义结束恢复资格；文本/image checkpoint、frontier origin/current、lane release、DISPATCHED 不重放、跨 Target generation mutation 禁重做、absoluteDeadline 不刷新及原生 cause 保真仍按前述合同证明。
+聚焦验收必须证明：27 个 Child 精确且画像数量为 6/12/3/6；27 行均具八项显式合同、共同硬门及画像附加门，页面 Child 只消费 coherent Browser packet，六个 continuation 不调用 Browser；reserve/complete/acquire 三调用互不合并且每个 mutation count 恰为一，reservation 与 completion 的 commit-before-return 都只读回原 receipt，未 complete row 不能 acquire，非 creator 不能偷取未完成 reservation；opaque grant 的 current/origin authorization、owner/subject、source checkpoint、manifest/continuation 任一错配都在 artifact read 前失败。Product 对 fork 必须显式调用 `open_gpt_checkpoint_actions_menu` 后再调用 `fork_exact_gpt_conversation_at_checkpoint`：前者只打开或确认唯一 source-bound 菜单且 mutation 为零或一，后者只点击唯一 fork 叶子一次；菜单已经打开、菜单 missing/ambiguous、两动作间 redraw、fork DISPATCHED 后崩溃、CONFIRMED-before-return、source 错配、零/多 child 与 relation 多义都必须逐项证明，任何路径不得循环点击或把两 action 合并。公共面无 turn API；产品能显式调用任意 Child 序列；每个已开始 Child span 在 Browser lease 获取、park、reacquire 或原子能力任一失败点都恰好产生一个 typed terminal；readCallFacts 与 readContinuationExact 都只读、无流程决策与无 failure/state/Target/WAL 泄漏，turn-marker/frontier-ref 查询互斥且互相 fallback 为零；模型面板支持 ALREADY_OPEN/OPENABLE，已选中和未选中两种真实页面状态都只点击唯一 radio 一次，expanded entry 点击计数为零，popup 保留、entry collapsed、simple active、advanced absent；五个推理数值往返；同一业务文件在不同 attempt 获得不同但确定的精确 `providerDisplayName`；一个 UTF-8 ZIP 仍只产生一次 file-input mutation，GPT Child 不读取其 entry；附件名称已出现但上传未完成时不得成功且不得产生 mutation，ready SVG 的已识别 no-layout/no-box 只作为当轮不可见候选继续 fresh query，stale 丢弃旧 nodeId 后完整重查，畸形 CDP payload 才返回 `BROWSER_DOM_READ_INVALID`，Product timeout 超过 60 秒时不得被公共 Child 截短，全部完成后立即成功，持续未完成时 typed timeout；真实 Chrome 中 ready 后必须实际进入 `write_exact_gpt_prompt`，且 file-input mutation 仍恰为一次。Prompt 在提交前被页面清空或改写时不得点击；marker 外层 user 容器即使混入附件卡片、文件名与展开/收起文字，canonical rendered-prompt hash 仍等于原 composer prompt，inline code 反引号与正文尾换行被保留且只删除一个投影根分隔换行，正文自身漂移则失败；conversation-history 提示覆盖缺席、唯一、重复、多 root、标题/按钮漂移和按钮禁用；submission reconcile 必须覆盖 DOM candidate missing/ambiguous/stale 后 fresh read成功、真正 Target/Document 失效原样失败、且两者 submit mutation 增量均为零；submission-locator artifact 按 exact identity 幂等写读并在切换会话、进程重启后仍返回原定位事实；fresh 首轮在 continuation 与 checkpoint 均缺失时，必须用同一 accepted attempt 的 `current_attempt` exact submit receipt + 唯一 locator 恢复原 URL 且再次 submit 为零，缺失、损坏或多义 locator 必须失败关闭且再次 submit 仍为零；exact submit CONFIRMED 后分别注入 DOM typed cause、BROWSER_TARGET_INVALID、BROWSER_DOCUMENT_INVALID、channel fault、wait timeout、进程重启与 attempt cap 已满，全部保持同一 accepted attempt 和原 confirmed submit、再次 submit 为零，只有 Provider terminal negative/业务撤权/evidence 损坏或多义结束恢复资格；文本/image checkpoint、frontier origin/current、lane release、DISPATCHED 不重放、跨 Target generation mutation 禁重做、absoluteDeadline 不刷新及原生 cause 保真仍按前述合同证明。

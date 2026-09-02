@@ -57,7 +57,7 @@ assert.ok(findingIds({
 const sourceOfTruth = loadCapabilitySourceOfTruth();
 const sourceTruthFindings: Array<{ checkId: string }> = [];
 pushCapabilitySourceOfTruthFindings({
-  admissionLawId: "LAW-CAPABILITY-GOVERNANCE-001-V4",
+  admissionLawId: "LAW-CAPABILITY-GOVERNANCE-001-V5",
   actualCapabilityRoots: new Set([...sourceOfTruth.lawActiveCapabilityRoots, "src/capabilities/amazon-legacy"]),
   pushFinding: (finding) => sourceTruthFindings.push(finding),
 });
@@ -79,7 +79,7 @@ assert.equal(blueprintMarkdownBodyValid(blueprintWithoutAcceptanceEvidence), fal
 
 console.log("capability-governance-acceptance-ok");
 emitQualityProofObservation({
-  lawId: "LAW-CAPABILITY-GOVERNANCE-001-V4", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","summary"],
+  lawId: "LAW-CAPABILITY-GOVERNANCE-001-V5", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","forbidden:10","summary"],
   locator: "acceptance:capability-governance:mutant-matrix",
   observedValue: "seven capability-governance clause mutants rejected by the capability-governance inspector",
 });

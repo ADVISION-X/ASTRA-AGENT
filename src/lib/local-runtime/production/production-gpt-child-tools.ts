@@ -33,9 +33,8 @@ import {
 } from "./gpt-evidence-writer.js";
 import {
   ProductionGptBrowserLifecycle,
-  recoveredGptChildResult,
-  type ProductionGptBrowserCall,
 } from "./production-gpt-browser-lifecycle.js";
+import { executeProductionGptAtomicCall } from "./production-gpt-atomic-call.js";
 import {
   isPendingExactEvidence,
   productSafeExactGptCallFacts,
@@ -400,12 +399,15 @@ export class ProductionGptChildTools {
         : undefined;
       const browser = browserCall?.facade;
       this.assertProviderTurnBudget(execution, call, facts);
-      const atomic = await this.runAtomic(
+      const atomic = await executeProductionGptAtomicCall({
+        dataDir: this.dataDir,
+        gpt: this.gpt,
+        store: this.store,
         browsers,
         intent,
         browserCall,
         signal,
-      );
+      });
       result = atomic.result;
       resolveDispatched = atomic.resolveDispatched;
       const pendingEvidence = isPendingExactEvidence(facts.evidence);
@@ -443,73 +445,6 @@ export class ProductionGptChildTools {
       evidenceRef,
       evidenceHash,
     });
-  }
-
-  private async runAtomic(
-    browsers: ProductionGptBrowserLifecycle,
-    intent: GptChildCapabilityIntent,
-    browserCall: ProductionGptBrowserCall | undefined,
-    signal: AbortSignal,
-  ): Promise<Readonly<{ result: GptChildCapabilityResult; resolveDispatched: boolean }>> {
-    const browser = browserCall?.facade;
-    const context = {
-      dataDir: this.dataDir,
-      ...(browser ? { browser } : {}),
-      signal,
-      continuationStore: this.store,
-      ...(browserCall ? {
-        yieldForProviderWait: (durationMs: number) => browsers.yieldForProviderWait(
-          browserCall, intent.productStepId, intent.callId,
-          intent.childCapabilityId, durationMs,
-        ),
-      } : {}),
-    };
-    if (!browser) return { result: await this.gpt.execute(intent, context), resolveDispatched: false };
-    const atomicIdentity = {
-      productStepId: intent.productStepId,
-      callId: intent.callId,
-      childCapabilityId: intent.childCapabilityId,
-      inputHash: intent.inputHash,
-      actionOrdinal: intent.actionOrdinal,
-      replayPolicy: GPT_CHILD_CAPABILITY_CONTRACTS[intent.childCapabilityId].replayPolicy,
-    } as const;
-    const recovery = browser.readAtomicStepRecovery(atomicIdentity);
-    if (!recovery) {
-      return {
-        result: await browser.runAtomicStep(
-          atomicIdentity,
-          () => this.gpt.execute(intent, context),
-        ),
-        resolveDispatched: false,
-      };
-    }
-    if (recovery.state === "rejected") {
-      return {
-        result: recoveredGptChildResult({
-          intent,
-          browser,
-          readback: null,
-          authorityRef: recovery.authorityRef,
-          state: "rejected",
-        }),
-        resolveDispatched: false,
-      };
-    }
-    const readback = await browser.runAtomicStep(
-      atomicIdentity,
-      () => this.gpt.execute(intent, { ...context, mutationMode: "readback" }),
-    );
-    if (readback.status !== "success") return { result: readback, resolveDispatched: false };
-    return {
-      result: recoveredGptChildResult({
-        intent,
-        browser,
-        readback,
-        authorityRef: recovery.authorityRef,
-        state: "confirmed",
-      }),
-      resolveDispatched: recovery.state === "dispatched",
-    };
   }
 
 }

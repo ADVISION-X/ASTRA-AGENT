@@ -292,14 +292,18 @@ for (const plugin of productionPluginCatalog) {
       assert.equal(review.calls.some((call) => call.child.includes("continuation")), false);
     }
   } else {
-    const flowSource = readFileSync(resolve(directory, "flow.ts"), "utf8");
-    assert.doesNotMatch(`${source}\n${flowSource}`, /PRODUCT_FLOW_NOT_IMPLEMENTED:/u);
+    const ownedSource = readdirSync(directory)
+      .filter((entry) => entry.endsWith(".ts"))
+      .sort()
+      .map((entry) => readFileSync(resolve(directory, entry), "utf8"))
+      .join("\n");
+    assert.doesNotMatch(ownedSource, /PRODUCT_FLOW_NOT_IMPLEMENTED:/u);
     assert.match(source, /execute: executeOwnedFlow/u);
-    assert.match(flowSource, /context\.gpt\.execute/u);
-    assert.match(flowSource, /readCallFacts/u);
-    assert.match(flowSource, /GPT-5\.6 Sol/u);
-    assert.match(flowSource, /reasoningTier: "pro_standard"/u);
-    assert.match(flowSource, /preservePostSubmitReadback/u);
+    assert.match(ownedSource, /context\.gpt\.execute/u);
+    assert.match(ownedSource, /readCallFacts/u);
+    assert.match(ownedSource, /GPT-5\.6 Sol/u);
+    assert.match(ownedSource, /reasoningTier: "pro_standard"/u);
+    assert.match(ownedSource, /preservePostSubmitReadback/u);
     for (const accepted of plugin.accepts) {
       const route = productionRoutePolicies.find((candidate) =>
         candidate.product_id === accepted.productId && candidate.action_id === accepted.actionId);
@@ -355,7 +359,7 @@ assert.equal(routeKeys.size, 39);
 assert.deepEqual([...productIds].sort(), [...ProductionProductIdSchema.options].sort());
 process.stdout.write("[ACCEPTANCE][agent-product-skills] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V28",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V29",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:15", "forbidden:16", "forbidden:2", "forbidden:21", "forbidden:22", "forbidden:29", "forbidden:3", "forbidden:30", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:product-flow-golden",

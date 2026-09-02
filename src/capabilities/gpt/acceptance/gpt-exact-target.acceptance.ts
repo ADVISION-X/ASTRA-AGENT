@@ -494,23 +494,23 @@ assert.equal(uploadTimedOut.failureCode, "GPT_ATTACHMENT_UPLOAD_TIMEOUT:ready=0:
 assert.equal(uploadTimeoutFixture.physicalMutations(), 0, "timed-out reconciliation must never mutate the page");
 
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V17",
+  lawId: "LAW-GPT-001-V18",
   evidenceMode: "exam.golden",
-  clauses: ["forbidden:10", "forbidden:11", "forbidden:13", "forbidden:3", "forbidden:5", "forbidden:9", "summary"],
+  clauses: ["forbidden:10", "forbidden:11", "forbidden:13", "forbidden:15", "forbidden:16", "forbidden:17", "forbidden:18", "forbidden:3", "forbidden:4", "forbidden:5", "forbidden:9", "summary"],
   locator: "acceptance:gpt-exact-target:atomic-child-golden",
-  observedValue: "26 public child contracts include atomic reservation completion fork target model attachment and response postconditions",
+  observedValue: "27 public child contracts include explicit atomic profiles reservation completion menu-open fork target model attachment and response postconditions",
 });
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V17",
+  lawId: "LAW-GPT-001-V18",
   evidenceMode: "exam.property",
-  clauses: ["forbidden:10", "forbidden:13", "forbidden:14", "forbidden:5", "forbidden:7", "forbidden:8", "forbidden:9", "summary"],
+  clauses: ["forbidden:10", "forbidden:13", "forbidden:14", "forbidden:15", "forbidden:16", "forbidden:17", "forbidden:5", "forbidden:6", "forbidden:7", "forbidden:8", "forbidden:9", "summary"],
   locator: "acceptance:gpt-exact-target:candidate-property-matrix",
   observedValue: "candidate cardinality visibility identity and typed blocker mutants rejected without extra mutation",
 });
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V17",
+  lawId: "LAW-GPT-001-V18",
   evidenceMode: "exam.state-machine",
-  clauses: ["forbidden:0", "forbidden:12", "forbidden:14", "forbidden:4", "forbidden:6", "forbidden:7", "summary"],
+  clauses: ["forbidden:0", "forbidden:12", "forbidden:14", "forbidden:15", "forbidden:16", "forbidden:17", "forbidden:4", "forbidden:5", "forbidden:6", "forbidden:7", "forbidden:8", "summary"],
   locator: "acceptance:gpt-exact-target:wait-recovery-state-machine",
   observedValue: "provider wait deadline readback continuation identity and single child execution transitions exercised",
 });

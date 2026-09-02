@@ -1,13 +1,13 @@
-# AGENT 十二产品插件与网站 V16 施工图
+# AGENT 十二产品插件与网站 V17 施工图
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v13",
+  "blueprintId": "agent-production-runtime-v14",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V28"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V29"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -192,6 +192,7 @@ local base-contract equality gate
 -> reserve_exact_gpt_continuation_once(derived source checkpoint for current paid task)
 -> complete_exact_gpt_continuation_reservation_once(derived source)
 -> acquire_gpt_continuation_lane(complete exact row)
+-> open_gpt_checkpoint_actions_menu(exact private base)
 -> fork_exact_gpt_conversation_at_checkpoint(exact private base)
 -> focus/verify unique child -> formal Profile
 -> attach formal input + exact formal result contract -> exact Prompt -> submit once
@@ -567,7 +568,7 @@ AGENT staged result、Outbox delivered、Website completion submission 均不等
 
 删除同步聚焦验收：删除时已有活动 lease 与 cold-start 无 lease 均须让同一历史 device 的新 session 读回 exact 撤权，foreign device 仍为 404；cold-start 未回执 Outbox 保留原 payload/hash 但 `next_delivery_at=null`、零重发、零伪 receipt，重启后不得重排。单 job 的 404、临时 status 失败或撤权不得退出整轮 worker或阻断其他 job claim；未决 Browser mutation 只保留 job-local 只读现场。
 
-本轮静态验收：十二个 Product Plugin 保留既有身份、路由与 Skill；Skill 共同内核只组合一次，research/article/image 差异只在 `seo-turn-contract.ts`，三份实际 Prompt 不再重复整份 Skill。SEO fresh 路径保留现有 actionOrdinal；frontier decision=decline 跳过 1-46 且零 Provider mutation直接组装，decision=proceed 时 current=research 跳过 1-16 而从 17 开始、current=article 跳过 1-31 而从 32 开始、current=image 跳过 1-46 并直接组装同一 artifact。GPT 模型选择的 checked true/false 两种分支都只点击唯一 radio，expanded entry 零点击，并直接证明 popup 保留、entry collapsed、simple active、advanced absent。GPT wait/checkpoint 只使用唯一请求正文节点的 canonical semantic prompt；image wait/checkpoint 直接使用 exact assistant section + semantic media，不依赖内层 assistant role/text；text/image wait 对唯一 conversation-history 提示在同一 exact call 内至多确认一次，submission reconcile 在单 Tab 让出前写读同 exact-call locator artifact。confirmed-submit 后任一非 Provider terminal-negative 的 readback failure 都沿现役 lease release/current_reason 保持同一 accepted attempt，错误码、deadline 或 Target/Document 不得降格 submit、写 failure 或重复 mutation；continuation 仍只有唯一 row/store，frontier、origin/current provider 与 checkpoint 都在该 row 原子维护。每个 acquire 后失败出口 lane_owner_job_id 都归零，每个已开始 GPT Child span 即使在 Browser lease 获取、park 或 reacquire 失败也必须恰好产生一个保留原生 cause 的 typed terminal。runtime 不决定 Child；公开状态 union 精确为 failed/completed；accepted attempt 次数只来自 Website 持久事实且只作遥测/退避，不得阻断未撤权任务自动推进；Outbox 无 parked/独立预算；AI 产物接收仍只作机械完整性与身份检查，不增加内容门槛。
+本轮静态验收：十二个 Product Plugin 保留既有身份、路由与 Skill；Skill 共同内核只组合一次，research/article/image 差异只在 `seo-turn-contract.ts`，三份实际 Prompt 不再重复整份 Skill。SEO fresh 路径保留现有 actionOrdinal；frontier decision=decline 跳过 1-46 且零 Provider mutation直接组装，decision=proceed 时 current=research 跳过 1-16 而从 17 开始、current=article 跳过 1-31 而从 32 开始、current=image 跳过 1-46 并直接组装同一 artifact。任何需要从 exact checkpoint 建立 child conversation 的 Product Flow 都必须显式先调用 `open_gpt_checkpoint_actions_menu`，成功后再调用 `fork_exact_gpt_conversation_at_checkpoint`；前者只拥有菜单打开，后者只拥有一次 Provider fork，两个 actionOrdinal/callId/evidence 独立且不得由 shared runtime、Facade 或 Browser 合并。GPT 模型选择的 checked true/false 两种分支都只点击唯一 radio，expanded entry 零点击，并直接证明 popup 保留、entry collapsed、simple active、advanced absent。GPT wait/checkpoint 只使用唯一请求正文节点的 canonical semantic prompt；image wait/checkpoint 直接使用 exact assistant section + semantic media，不依赖内层 assistant role/text；text/image wait 对唯一 conversation-history 提示在同一 exact call 内至多确认一次，submission reconcile 在单 Tab 让出前写读同 exact-call locator artifact。confirmed-submit 后任一非 Provider terminal-negative 的 readback failure 都沿现役 lease release/current_reason 保持同一 accepted attempt，错误码、deadline 或 Target/Document 不得降格 submit、写 failure 或重复 mutation；continuation 仍只有唯一 row/store，frontier、origin/current provider 与 checkpoint 都在该 row 原子维护。每个 acquire 后失败出口 lane_owner_job_id 都归零，每个已开始 GPT Child span 即使在 Browser lease 获取、park 或 reacquire 失败也必须恰好产生一个保留原生 cause 的 typed terminal。runtime 不决定 Child；公开状态 union 精确为 failed/completed；accepted attempt 次数只来自 Website 持久事实且只作遥测/退避，不得阻断未撤权任务自动推进；Outbox 无 parked/独立预算；AI 产物接收仍只作机械完整性与身份检查，不增加内容门槛。
 
 本轮只把已施工 SEO Product 的模型选择与 task frontier 纳入业务分母；其它 Product 的业务步骤、Prompt、模型、分支、材料和结果验收仍不属于本轮分母。SEO 聚焦验收必须分别对 produce_article fresh proceed/decline、frontier-resume 与两条 review 路由按 actionOrdinal 断言 exact Child sequence，不得以“全部 Child 均曾出现”代替顺序证明。全部 Product 尚未分别交付前，质量系统必须报告未完成，不得给出全系统生产流程已跑通结论。
 
