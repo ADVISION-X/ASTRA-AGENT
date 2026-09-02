@@ -3,6 +3,7 @@ import { requireRuntimeLogWrite, type RuntimeSpanHandle } from "../../runtime-lo
 import { executionFailure } from "../../typed-failure.js";
 import {
   readGeneratedImageCheckpointArtifacts,
+  readForkRelationArtifact,
   readSubmissionLocatorArtifact,
   readTextCheckpointArtifact,
 } from "./gpt-artifact-reader.js";
@@ -53,6 +54,12 @@ const submissionLocator = async (input: ReplayInput): Promise<ProductGptChildRes
   return success(input, await readSubmissionLocatorArtifact(input.evidenceStore, refs[0]!));
 };
 
+const forkRelation = async (input: ReplayInput): Promise<ProductGptChildResult> => {
+  const refs = input.facts.evidence!.artifactRefs;
+  if (refs.length !== 1) throw executionFailure("failed", "GPT_FORK_RELATION_TASK_ARTIFACT_MISSING");
+  return success(input, await readForkRelationArtifact(input.evidenceStore, refs[0]!));
+};
+
 export const readCompletedGptChildResult = async (
   input: ReplayInput,
 ): Promise<ProductGptChildResult | null> => {
@@ -60,6 +67,7 @@ export const readCompletedGptChildResult = async (
   if (input.call.child === "checkpoint_gpt_text_response") return textCheckpoint(input);
   if (input.call.child === "checkpoint_gpt_generated_image") return imageCheckpoint(input);
   if (input.call.child === "reconcile_gpt_turn_submission") return submissionLocator(input);
+  if (input.call.child === "fork_exact_gpt_conversation_at_checkpoint") return forkRelation(input);
   if (!input.browserMutation || input.facts.mutation?.outcome === "DISPATCHED") return null;
   return success(input, null);
 };

@@ -34,6 +34,7 @@ const parameterValue = (key: string, route: ProductionRoutePolicy): unknown => {
   if (key === "result_schema_version") return route.result_schema_version;
   if (Object.hasOwn(fixed, key)) return fixed[key];
   if (key === "resource_kind") return route.product_id === "localization_report_translation" ? "report" : "article";
+  if (key === "reusable_base_semantic_digest") return HASH;
   if (key.endsWith("_hash") || key.endsWith("_sha256")) return HASH;
   return `${key}:1`;
 };
@@ -267,15 +268,16 @@ assert.throws(() => assertRouteResultPayload(publicTask, {
 
 const reviewRoute = productionRoutePolicies.find((route) => route.action_id === "accuracy_challenge")!;
 const reviewTask = taskFor(reviewRoute);
-assert.throws(() => assertRouteResultPayload(reviewTask, {
+assert.doesNotThrow(() => assertRouteResultPayload(reviewTask, {
   decision: "issues",
   issues: [{ category: "missing_input", target_type: "task", target_ref: "task:1", observation: "missing",
     evidence_refs: [], impact: "high", confidence: "high", suggested_inspection: "inspect" }],
-}), /AGENT_REVIEW_EVIDENCE_REQUIRED/u);
+}));
+assert.throws(() => assertRouteResultPayload(reviewTask, { issues: [] }), /AGENT_REVIEW_OUTPUT_INCOMPLETE/u);
 
 process.stdout.write("[ACCEPTANCE][agent-route-contract] PASS 39/39\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V25",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V28",
   evidenceMode: "exam.property",
   clauses: ["forbidden:0", "forbidden:14", "forbidden:17", "forbidden:18", "forbidden:20", "forbidden:27", "forbidden:28", "forbidden:3", "forbidden:4", "forbidden:6", "forbidden:7", "forbidden:8", "summary"],
   locator: "acceptance:agent-production-runtime:route-contract-property",

@@ -358,13 +358,18 @@ debuggerTargets = [{
 
 await exerciseLocalBrowserDomIntent();
 
+const navigateBeforeFreshReuse = debuggerMethods.filter((method) => method === "Page.navigate").length;
 const secondAcquisition = targetAuthority.acquireJobBoundChatGptTarget();
 await Promise.resolve();
 await secondAcquisition;
+assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length, navigateBeforeFreshReuse + 1,
+  "a fresh job must navigate the fixed root even when the parked target is already on that URL");
 assert.equal(attachedTabs.at(-1), 3, "every turn must reuse the one visible production tab");
 assert.equal(nextCreatedTabId, 4, "single-Tab reuse must not create a second physical page");
 assert.equal(targetFrames.at(-1)?.body.targetRef, firstTargetRef,
   "single-Tab reuse must preserve physical target identity");
+assert.notEqual(targetFrames.at(-1)?.body.documentRef, firstDocumentRef,
+  "a fresh job must publish a new Document instead of inheriting residual composer attachments");
 assert.equal(targetFrames.at(-1)?.body.url, "https://chatgpt.com/",
   "the debugger-owned main frame must prove the exact origin when Chrome redacts tab.url without tabs permission");
 await targetAuthority.releaseActiveTarget();

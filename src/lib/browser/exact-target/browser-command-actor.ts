@@ -360,6 +360,11 @@ export class BrowserCommandActor {
     return "no";
   }
 
+  public browserOutcome(commandId: string): "DISPATCHED" | "CONFIRMED" | "REJECTED" | null {
+    const state = this.mutations.readState(commandId);
+    return state === "DISPATCHED" || state === "CONFIRMED" || state === "REJECTED" ? state : null;
+  }
+
   public async resolveDispatchedMutation(receipt: BrowserOutcomeResolutionReceipt): Promise<void> {
     const entry = this.mutations.readDispatched(receipt.commandId);
     if (!entry) throw new Error("BROWSER_MUTATION_UNSETTLED");

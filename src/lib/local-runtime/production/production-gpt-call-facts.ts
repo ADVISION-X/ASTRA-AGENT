@@ -14,6 +14,29 @@ import {
 
 export { isPendingExactEvidence } from "./production-gpt-evidence-fact.js";
 
+export type RuntimeExactGptCallFacts = Omit<ExactGptCallFacts, "mutation"> & Readonly<{
+  mutation: (NonNullable<ExactGptCallFacts["mutation"]> & Readonly<{
+    targetRef: string;
+    documentRef: string;
+  }>) | null;
+}>;
+
+export const productSafeExactGptCallFacts = (facts: RuntimeExactGptCallFacts): ExactGptCallFacts =>
+  Object.freeze({
+    ...facts,
+    mutation: facts.mutation ? Object.freeze({
+      owner: facts.mutation.owner,
+      sourceAttemptId: facts.mutation.sourceAttemptId,
+      effectScope: facts.mutation.effectScope,
+      outcome: facts.mutation.outcome,
+      terminalAt: facts.mutation.terminalAt,
+      productStepId: facts.mutation.productStepId,
+      callId: facts.mutation.callId,
+      childCapabilityId: facts.mutation.childCapabilityId,
+      actionOrdinal: facts.mutation.actionOrdinal,
+    }) : null,
+  });
+
 type FactReader = Readonly<{
   browserAuthority: WorkbenchBrowserAuthority;
   evidenceStore: Parameters<typeof readExactGptEvidenceFact>[0]["evidenceStore"];
@@ -58,7 +81,7 @@ const readContinuation = (
 export const readProductionGptCallFacts = async (
   reader: FactReader,
   intent: GptChildCapabilityIntent,
-): Promise<ExactGptCallFacts> => {
+): Promise<RuntimeExactGptCallFacts> => {
   const exactCallIdentityHash = gptExactCallIdentityHash(intent);
   const mutation = reader.browserAuthority.readExactCallMutationFact({
     jobId: intent.jobId, attemptId: intent.attemptId, ownerPluginId: intent.pluginId,

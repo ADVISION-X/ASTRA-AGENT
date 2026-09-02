@@ -3,7 +3,7 @@ import { executeOwnedFlow, productSkillHash } from "./flow.js";
 import { parseProductResult } from "./result-contract.js";
 
 export const baziChartInterpretationPlugin: ProductPlugin = {
-  pluginId: "bazi-chart-interpretation", pluginVersion: 7, skillHash: productSkillHash, checkpointSchemaVersion: 2,
+  pluginId: "bazi-chart-interpretation", pluginVersion: 8, skillHash: productSkillHash, checkpointSchemaVersion: 2,
   parseResult: parseProductResult,
   accepts: [
     { productId: "bazi_chart_interpretation", actionId: "produce" },

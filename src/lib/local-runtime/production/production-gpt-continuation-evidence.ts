@@ -1,6 +1,5 @@
 import type { ForensicsPersistenceAbilityGroup } from "../../../capabilities/forensics-persistence/index.js";
 import { executionFailure } from "../../typed-failure.js";
-import type { WebsiteAgentTask } from "./contracts.js";
 
 type CheckpointEvidenceIdentity = Readonly<{
   source_attempt_id: string;
@@ -14,12 +13,12 @@ const record = (value: unknown): Readonly<Record<string, unknown>> | null =>
 
 const storedIdentityValid = (input: Readonly<{
   stored: NonNullable<Awaited<ReturnType<ForensicsPersistenceAbilityGroup["readRecordRef"]>>["record"]>;
-  task: WebsiteAgentTask;
+  evidenceJobId: string;
   checkpoint: CheckpointEvidenceIdentity;
   childCapabilityId: "checkpoint_gpt_text_response" | "checkpoint_gpt_generated_image";
   initialKey: string;
   terminalKey: string;
-}>): boolean => input.stored.missionId === input.task.job_id
+}>): boolean => input.stored.missionId === input.evidenceJobId
   && input.stored.runId === input.checkpoint.source_attempt_id
   && Boolean(input.stored.stepId)
   && input.stored.sourceAbilityGroupId === "gpt"
@@ -50,7 +49,7 @@ const artifactRefsValid = (
 
 export const readContinuationCheckpointEvidence = async (input: Readonly<{
   evidenceStore: ForensicsPersistenceAbilityGroup;
-  task: WebsiteAgentTask;
+  evidenceJobId: string;
   pluginVersion: number;
   checkpoint: CheckpointEvidenceIdentity;
   childCapabilityId: "checkpoint_gpt_text_response" | "checkpoint_gpt_generated_image";

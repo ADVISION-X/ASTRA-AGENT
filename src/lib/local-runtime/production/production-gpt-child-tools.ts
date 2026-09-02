@@ -38,7 +38,9 @@ import {
 } from "./production-gpt-browser-lifecycle.js";
 import {
   isPendingExactEvidence,
+  productSafeExactGptCallFacts,
   readProductionGptCallFacts,
+  type RuntimeExactGptCallFacts,
 } from "./production-gpt-call-facts.js";
 import { ProductionGptContinuationReadback } from "./production-gpt-continuation-readback.js";
 import { readCompletedGptChildResult } from "./production-gpt-completed-result.js";
@@ -86,7 +88,7 @@ export class ProductionGptChildTools {
         }
         confirmedProviderSubmit = receipt;
       }
-      return facts;
+      return productSafeExactGptCallFacts(facts);
     };
     const execute = async (call: Parameters<ProductGptTools["execute"]>[0]): Promise<ProductGptChildResult> => {
       if (input.lease.abort_signal.aborted) {
@@ -94,6 +96,21 @@ export class ProductionGptChildTools {
           ? input.lease.abort_signal.reason : "PRODUCTION_EXECUTION_ABORTED");
       }
       observedCalls.set(hashCanonical(call), call);
+      if (call.effectLookupKind === "task_exact_effect") {
+        const current = await readCallFacts(call);
+        if (!current.mutation && !current.evidence) {
+          const prior = await readCallFacts({ ...call, lookupKind: "task_exact_effect" });
+          if (prior.mutation || prior.evidence) {
+            const span = this.childSpan(input, this.intentFor(input, call));
+            const completed = await readCompletedGptChildResult({
+              call, facts: prior, span,
+              browserMutation: true, evidenceStore: this.evidenceStore,
+            });
+            if (!completed) throw executionFailure("failed", "GPT_TASK_EXACT_EFFECT_READBACK_MISSING");
+            return completed;
+          }
+        }
+      }
       const result = await this.executeOne(input, browsers, call);
       this.authorizeConfirmedProviderReadback(
         browsers,
@@ -101,7 +118,8 @@ export class ProductionGptChildTools {
         result,
         confirmedProviderSubmit,
       );
-      if (call.child === "persist_gpt_continuation" && result.value
+      if ((call.child === "persist_gpt_continuation"
+        || call.child === "complete_exact_gpt_continuation_reservation_once") && result.value
         && typeof result.value === "object" && !Array.isArray(result.value)) {
         const value = Reflect.get(result.value, "continuationRef");
         if (value !== null && (typeof value !== "string" || value.length === 0)) {
@@ -166,19 +184,20 @@ export class ProductionGptChildTools {
   private async readCallFacts(
     execution: ExecutionInput,
     query: ProductGptFactQuery,
-  ): Promise<ExactGptCallFacts> {
+  ): Promise<RuntimeExactGptCallFacts> {
     const { lookupKind = "current_attempt", ...call } = query;
     if (lookupKind === "current_attempt") {
       return this.readIntentFacts(this.intentFor(execution, call));
     }
-    if (call.child !== "submit_exact_gpt_turn_once") {
+    if (call.child !== "submit_exact_gpt_turn_once"
+      && call.child !== "fork_exact_gpt_conversation_at_checkpoint") {
       throw executionFailure("failed", "GPT_TASK_EXACT_EFFECT_CHILD_INVALID");
     }
     const currentFacts = await this.readIntentFacts(this.intentFor(execution, call));
     if (currentFacts.mutation || currentFacts.evidence) {
       throw executionFailure("failed", "GPT_TASK_EXACT_EFFECT_CURRENT_ATTEMPT_PRESENT");
     }
-    const candidates: ExactGptCallFacts[] = [];
+    const candidates: RuntimeExactGptCallFacts[] = [];
     for (const attemptId of this.store.attemptIdsForTask(execution.task.job_id)) {
       if (attemptId === execution.lease.attempt_id) continue;
       const facts = await this.readIntentFacts(this.intentForAttempt(execution, call, attemptId));
@@ -196,7 +215,7 @@ export class ProductionGptChildTools {
 
   private confirmedProviderSubmitReceipt(
     call: ProductGptCallInput,
-    facts: ExactGptCallFacts,
+    facts: RuntimeExactGptCallFacts,
   ): ConfirmedProviderSubmitReceipt | null {
     if (call.child !== "submit_exact_gpt_turn_once") return null;
     const mutation = facts.mutation;
@@ -264,7 +283,7 @@ export class ProductionGptChildTools {
   }
   private async readIntentFacts(
     intent: GptChildCapabilityIntent,
-  ): Promise<ExactGptCallFacts> {
+  ): Promise<RuntimeExactGptCallFacts> {
     return readProductionGptCallFacts({
       browserAuthority: this.browserAuthority,
       evidenceStore: this.evidenceStore,

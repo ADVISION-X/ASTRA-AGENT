@@ -5,7 +5,10 @@
   "parameter_types": {
     "admitted_identity_catalog_hash": "sha256",
     "analysis_kind": "bazi_analysis_kind",
+    "current_authorization_ref": "non_empty_string",
     "article_package_contract_version": "public_knowledge_package_version",
+    "bazi_pdf_semantic_manifest_hash": "sha256",
+    "bazi_pdf_semantic_manifest_ref": "non_empty_string",
     "case_manifest_hash": "sha256",
     "case_manifest_ref": "non_empty_string",
     "challenge_id": "non_empty_string",
@@ -24,10 +27,18 @@
     "observation_schema_version": "payment_observation_version",
     "output_contract_ref": "non_empty_string",
     "parent_raw_output_hash": "sha256",
+    "owner_scope_hash": "sha256",
+    "parent_authorization_ref": "non_empty_string",
+    "parent_delivery_manifest_hash": "sha256",
+    "parent_delivery_manifest_id": "non_empty_string",
+    "parent_lane_use_grant_hash": "sha256",
+    "parent_product_id": "non_empty_string",
     "parent_report_ref": "non_empty_string",
     "policy_version": "non_empty_string",
     "project_ref": "non_empty_string",
     "question_snapshot": "non_empty_string",
+    "question_snapshot_hash": "sha256",
+    "question_snapshot_ref": "non_empty_string",
     "question_text": "non_empty_string",
     "ready_corpus_snapshot_hash": "sha256",
     "reflection_contract_version": "quality_reflection_version",
@@ -37,10 +48,13 @@
     "requirement_manifest_ref": "non_empty_string",
     "resource_kind": "localization_resource_kind",
     "result_schema_version": "route_result_schema_version",
+    "reusable_base_semantic_digest": "sha256",
+    "reusable_base_candidate": "bazi_reusable_base_candidate",
     "source_resource_id": "non_empty_string",
     "source_sha256": "sha256",
     "source_version": "non_empty_string",
     "target_locale": "target_locale",
+    "stable_base_authorization_ref": "non_empty_string",
     "thread_ref": "non_empty_string",
     "topic_cluster_registry_version": "non_empty_string",
     "user_question": "non_empty_string"
@@ -54,11 +68,28 @@
         "result_schema_version",
         "chart_ref",
         "chart_version",
-        "chart_hash"
+        "chart_hash",
+        "current_authorization_ref",
+        "owner_scope_hash",
+        "stable_base_authorization_ref",
+        "reusable_base_semantic_digest",
+        "reusable_base_candidate",
+        "bazi_pdf_semantic_manifest_ref",
+        "bazi_pdf_semantic_manifest_hash"
       ],
       "material_roles": [
         {
-          "role": "bazi_input_bundle",
+          "role": "bazi_private_base_input",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "bazi_formal_input",
           "trust_class": "locked_fact",
           "may_issue_instruction": false,
           "media_types": [
@@ -79,6 +110,29 @@
         }
       ],
       "result_schema_version": "bazi-chart-interpretation-output.v4",
+      "result_contract": {
+        "schema_version": "bazi-primary-result-contract.v1",
+        "private_base": {
+          "schema_version": "bazi-base-interpretation-contract-v3",
+          "output_schema_version": "bazi-base-interpretation-output-v2",
+          "exact_top_level_fields": ["schema_version", "interpretation_markdown", "citations", "uncertainties", "index_review_receipts"],
+          "exact_citation_fields": ["book_id", "locator"],
+          "exact_uncertainty_fields": ["topic", "status", "detail", "impact"],
+          "exact_index_review_fields": ["book_id", "index_hash", "macro_entry_count", "navigation_node_count", "semantic_entry_count", "review_status", "applicability_note"],
+          "forbidden_inputs_and_outputs": ["user_question", "subject_events", "question_specific_answer", "user_deliverable_report"]
+        },
+        "formal": {
+          "schema_version": "bazi-chart-interpretation-contract.v4",
+          "output_schema_version": "bazi-chart-interpretation-output.v4",
+          "exact_top_level_fields": ["schema_version", "chart_ref", "chart_version", "chart_hash", "bazi_pdf_semantic_manifest_ref", "manifest_hash", "report_summary", "interpretation_blocks", "citations", "uncertainties", "limitations", "safety_notes", "covered_semantic_anchor_refs"],
+          "exact_dual_layer_fields": ["professional_markdown", "reader_explanation_markdown"],
+          "exact_interpretation_block_fields": ["block_id", "semantic_anchor_refs", "candidate_scope", "evidence_refs", "citation_ids", "professional_markdown", "reader_explanation_markdown"],
+          "exact_citation_fields": ["citation_id", "source_kind", "source_ref", "locator", "candidate_refs"],
+          "denominator_kind": "bazi_pdf_semantic_manifest"
+        },
+        "locked_identity_source": "bazi_formal_input",
+        "coverage_denominator_source": "bazi_formal_input.ordered_semantic_anchors"
+      },
       "relation_kind": "primary"
     },
     {
@@ -90,11 +144,28 @@
         "chart_ref",
         "chart_version",
         "chart_hash",
-        "user_question"
+        "user_question",
+        "current_authorization_ref",
+        "owner_scope_hash",
+        "stable_base_authorization_ref",
+        "reusable_base_semantic_digest",
+        "reusable_base_candidate",
+        "question_snapshot_ref",
+        "question_snapshot_hash"
       ],
       "material_roles": [
         {
-          "role": "bazi_input_bundle",
+          "role": "bazi_private_base_input",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "bazi_formal_input",
           "trust_class": "locked_fact",
           "may_issue_instruction": false,
           "media_types": [
@@ -115,6 +186,30 @@
         }
       ],
       "result_schema_version": "bazi-initial-question-answer-output.v1",
+      "result_contract": {
+        "schema_version": "bazi-primary-result-contract.v1",
+        "private_base": {
+          "schema_version": "bazi-base-interpretation-contract-v3",
+          "output_schema_version": "bazi-base-interpretation-output-v2",
+          "exact_top_level_fields": ["schema_version", "interpretation_markdown", "citations", "uncertainties", "index_review_receipts"],
+          "exact_citation_fields": ["book_id", "locator"],
+          "exact_uncertainty_fields": ["topic", "status", "detail", "impact"],
+          "exact_index_review_fields": ["book_id", "index_hash", "macro_entry_count", "navigation_node_count", "semantic_entry_count", "review_status", "applicability_note"],
+          "forbidden_inputs_and_outputs": ["user_question", "subject_events", "question_specific_answer", "user_deliverable_report"]
+        },
+        "formal": {
+          "schema_version": "bazi-initial-question-answer-contract.v1",
+          "output_schema_version": "bazi-initial-question-answer-output.v1",
+          "exact_top_level_fields": ["schema_version", "question_snapshot", "answer_summary", "answer_blocks", "citations", "uncertainties", "limitations", "safety_notes", "covered_question_unit_refs"],
+          "exact_dual_layer_fields": ["professional_markdown", "reader_explanation_markdown"],
+          "exact_question_snapshot_fields": ["question_ref", "original_text", "unit_refs"],
+          "exact_answer_block_fields": ["block_id", "question_unit_refs", "timing_or_conditions", "evidence_refs", "citation_ids", "professional_markdown", "reader_explanation_markdown"],
+          "exact_citation_fields": ["citation_id", "source_kind", "source_ref", "locator", "candidate_refs"],
+          "denominator_kind": "frozen_question_units"
+        },
+        "locked_identity_source": "bazi_formal_input",
+        "coverage_denominator_source": "bazi_formal_input.ordered_question_units"
+      },
       "relation_kind": "primary"
     },
     {
@@ -129,7 +224,16 @@
         "user_question",
         "thread_ref",
         "parent_report_ref",
-        "parent_raw_output_hash"
+        "parent_raw_output_hash",
+        "current_authorization_ref",
+        "owner_scope_hash",
+        "parent_authorization_ref",
+        "parent_delivery_manifest_id",
+        "parent_delivery_manifest_hash",
+        "parent_product_id",
+        "parent_lane_use_grant_hash",
+        "question_snapshot_ref",
+        "question_snapshot_hash"
       ],
       "material_roles": [
         {
@@ -154,6 +258,21 @@
         }
       ],
       "result_schema_version": "bazi-report-followup-answer-output.v1",
+      "result_contract": {
+        "schema_version": "bazi-followup-result-contract.v1",
+        "formal": {
+          "schema_version": "bazi-report-followup-answer-contract.v1",
+          "output_schema_version": "bazi-report-followup-answer-output.v1",
+          "exact_top_level_fields": ["schema_version", "thread_ref", "parent_report_ref", "parent_raw_output_hash", "new_question_snapshot", "answer_summary", "answer_blocks", "citations", "uncertainties", "limitations", "safety_notes", "covered_question_unit_refs"],
+          "exact_dual_layer_fields": ["professional_markdown", "reader_explanation_markdown"],
+          "exact_question_snapshot_fields": ["question_ref", "original_text", "unit_refs"],
+          "exact_answer_block_fields": ["block_id", "question_unit_refs", "timing_or_conditions", "evidence_refs", "citation_ids", "professional_markdown", "reader_explanation_markdown"],
+          "exact_citation_fields": ["citation_id", "source_kind", "source_ref", "locator", "candidate_refs"],
+          "denominator_kind": "new_frozen_question_units"
+        },
+        "locked_identity_source": "bazi_input_bundle",
+        "coverage_denominator_source": "bazi_input_bundle.ordered_question_units"
+      },
       "relation_kind": "continuation"
     },
     {
@@ -773,6 +892,16 @@
         }
       ],
       "result_schema_version": "website-agent-review-output.v1",
+      "result_contract": {
+        "schema_version": "website-agent-review-output-contract.v1",
+        "output_schema_version": "website-agent-review-output.v1",
+        "exact_top_level_fields": ["decision", "issues"],
+        "decision_values": ["no_issue", "issues"],
+        "exact_issue_fields": ["category", "target_type", "target_ref", "observation", "evidence_refs", "impact", "confidence", "suggested_inspection"],
+        "category_values": ["source_text_possible_error", "index_navigation_friction", "missing_condition_or_exception", "citation_locator_problem", "prompt_ambiguity", "missing_input", "output_contract_friction", "reasoning_depth_gap", "safety_boundary_conflict", "conversation_context_loss", "provider_or_tooling_issue"],
+        "confidence_values": ["low", "medium", "high"],
+        "invariants": ["no_issue_requires_zero_issues", "issues_requires_1_to_50_issues", "every_issue_requires_at_least_one_evidence_ref"]
+      },
       "relation_kind": "review"
     },
     {
@@ -806,6 +935,16 @@
         }
       ],
       "result_schema_version": "website-agent-review-output.v1",
+      "result_contract": {
+        "schema_version": "website-agent-review-output-contract.v1",
+        "output_schema_version": "website-agent-review-output.v1",
+        "exact_top_level_fields": ["decision", "issues"],
+        "decision_values": ["no_issue", "issues"],
+        "exact_issue_fields": ["category", "target_type", "target_ref", "observation", "evidence_refs", "impact", "confidence", "suggested_inspection"],
+        "category_values": ["source_text_possible_error", "index_navigation_friction", "missing_condition_or_exception", "citation_locator_problem", "prompt_ambiguity", "missing_input", "output_contract_friction", "reasoning_depth_gap", "safety_boundary_conflict", "conversation_context_loss", "provider_or_tooling_issue"],
+        "confidence_values": ["low", "medium", "high"],
+        "invariants": ["no_issue_requires_zero_issues", "issues_requires_1_to_50_issues", "every_issue_requires_at_least_one_evidence_ref"]
+      },
       "relation_kind": "review"
     },
     {
@@ -838,6 +977,16 @@
         }
       ],
       "result_schema_version": "website-agent-review-output.v1",
+      "result_contract": {
+        "schema_version": "website-agent-review-output-contract.v1",
+        "output_schema_version": "website-agent-review-output.v1",
+        "exact_top_level_fields": ["decision", "issues"],
+        "decision_values": ["no_issue", "issues"],
+        "exact_issue_fields": ["category", "target_type", "target_ref", "observation", "evidence_refs", "impact", "confidence", "suggested_inspection"],
+        "category_values": ["source_text_possible_error", "index_navigation_friction", "missing_condition_or_exception", "citation_locator_problem", "prompt_ambiguity", "missing_input", "output_contract_friction", "reasoning_depth_gap", "safety_boundary_conflict", "conversation_context_loss", "provider_or_tooling_issue"],
+        "confidence_values": ["low", "medium", "high"],
+        "invariants": ["no_issue_requires_zero_issues", "issues_requires_1_to_50_issues", "every_issue_requires_at_least_one_evidence_ref"]
+      },
       "relation_kind": "review"
     },
     {
@@ -871,6 +1020,16 @@
         }
       ],
       "result_schema_version": "website-agent-review-output.v1",
+      "result_contract": {
+        "schema_version": "website-agent-review-output-contract.v1",
+        "output_schema_version": "website-agent-review-output.v1",
+        "exact_top_level_fields": ["decision", "issues"],
+        "decision_values": ["no_issue", "issues"],
+        "exact_issue_fields": ["category", "target_type", "target_ref", "observation", "evidence_refs", "impact", "confidence", "suggested_inspection"],
+        "category_values": ["source_text_possible_error", "index_navigation_friction", "missing_condition_or_exception", "citation_locator_problem", "prompt_ambiguity", "missing_input", "output_contract_friction", "reasoning_depth_gap", "safety_boundary_conflict", "conversation_context_loss", "provider_or_tooling_issue"],
+        "confidence_values": ["low", "medium", "high"],
+        "invariants": ["no_issue_requires_zero_issues", "issues_requires_1_to_50_issues", "every_issue_requires_at_least_one_evidence_ref"]
+      },
       "relation_kind": "review"
     },
     {
@@ -903,6 +1062,16 @@
         }
       ],
       "result_schema_version": "website-agent-review-output.v1",
+      "result_contract": {
+        "schema_version": "website-agent-review-output-contract.v1",
+        "output_schema_version": "website-agent-review-output.v1",
+        "exact_top_level_fields": ["decision", "issues"],
+        "decision_values": ["no_issue", "issues"],
+        "exact_issue_fields": ["category", "target_type", "target_ref", "observation", "evidence_refs", "impact", "confidence", "suggested_inspection"],
+        "category_values": ["source_text_possible_error", "index_navigation_friction", "missing_condition_or_exception", "citation_locator_problem", "prompt_ambiguity", "missing_input", "output_contract_friction", "reasoning_depth_gap", "safety_boundary_conflict", "conversation_context_loss", "provider_or_tooling_issue"],
+        "confidence_values": ["low", "medium", "high"],
+        "invariants": ["no_issue_requires_zero_issues", "issues_requires_1_to_50_issues", "every_issue_requires_at_least_one_evidence_ref"]
+      },
       "relation_kind": "review"
     },
     {
@@ -936,6 +1105,16 @@
         }
       ],
       "result_schema_version": "website-agent-review-output.v1",
+      "result_contract": {
+        "schema_version": "website-agent-review-output-contract.v1",
+        "output_schema_version": "website-agent-review-output.v1",
+        "exact_top_level_fields": ["decision", "issues"],
+        "decision_values": ["no_issue", "issues"],
+        "exact_issue_fields": ["category", "target_type", "target_ref", "observation", "evidence_refs", "impact", "confidence", "suggested_inspection"],
+        "category_values": ["source_text_possible_error", "index_navigation_friction", "missing_condition_or_exception", "citation_locator_problem", "prompt_ambiguity", "missing_input", "output_contract_friction", "reasoning_depth_gap", "safety_boundary_conflict", "conversation_context_loss", "provider_or_tooling_issue"],
+        "confidence_values": ["low", "medium", "high"],
+        "invariants": ["no_issue_requires_zero_issues", "issues_requires_1_to_50_issues", "every_issue_requires_at_least_one_evidence_ref"]
+      },
       "relation_kind": "review"
     },
     {

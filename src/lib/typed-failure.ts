@@ -1,8 +1,16 @@
 export type ExecutionFailureStatus = "failed";
 export type MutationOutcome = "no" | "dispatched" | "confirmed";
+export type BrowserEffectFailureFacts = Readonly<{
+  effectScope: "target_local" | "provider_effect";
+  childCapabilityId: string;
+  browserOutcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
+}>;
 export type SerializedExecutionFailure = Readonly<{
   code: string;
   mutation_outcome: MutationOutcome;
+  effect_scope: BrowserEffectFailureFacts["effectScope"] | null;
+  child_capability_id: string | null;
+  browser_outcome: BrowserEffectFailureFacts["browserOutcome"] | null;
   evidence_ref: string | null;
   evidence_hash: `sha256:${string}` | null;
   cause: Readonly<{ name: string; code: string | null }> | null;
@@ -42,6 +50,7 @@ export class TypedExecutionFailure extends Error {
     public readonly evidenceRef: string | null = null,
     public readonly evidenceHash: `sha256:${string}` | null = null,
     public readonly httpStatus: number | null = null,
+    public readonly browserEffect: BrowserEffectFailureFacts | null = null,
     cause?: unknown,
   ) {
     super(code, cause === undefined ? undefined : { cause });
@@ -137,6 +146,7 @@ export const executionFailure = (
     evidenceRef?: string | null;
     evidenceHash?: `sha256:${string}` | null;
     httpStatus?: number | null;
+    browserEffect?: BrowserEffectFailureFacts | null;
     cause?: unknown;
   }> = {},
 ): TypedExecutionFailure => new TypedExecutionFailure(
@@ -146,6 +156,7 @@ export const executionFailure = (
   input.evidenceRef ?? null,
   input.evidenceHash ?? null,
   input.httpStatus ?? null,
+  input.browserEffect ?? null,
   input.cause,
 );
 
@@ -187,6 +198,9 @@ export const serializeTerminalFailure = (
   return Object.freeze({
     code: failureCode(error),
     mutation_outcome: typed?.mutationOutcome ?? "no",
+    effect_scope: typed?.browserEffect?.effectScope ?? null,
+    child_capability_id: typed?.browserEffect?.childCapabilityId ?? null,
+    browser_outcome: typed?.browserEffect?.browserOutcome ?? null,
     evidence_ref: typed?.evidenceRef ?? null,
     evidence_hash: typed?.evidenceHash ?? null,
     cause: cause instanceof Error ? Object.freeze({ name: cause.name || "Error", code: causeCode }) : null,

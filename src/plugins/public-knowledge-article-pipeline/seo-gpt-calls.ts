@@ -282,9 +282,11 @@ export const focusContinuation = async (
     productStepId: stepId, callId: "continuation-acquire",
     child: "acquire_gpt_continuation_lane", actionOrdinal: ordinals[0],
     input: {
-      allowedSourcePluginIds: [PLUGIN_ID], authorizationRef: task.business_identity.authorization_ref,
-      continuationRef, jobId: task.job_id, ownerRef: task.business_identity.owner_ref,
-      pluginId: PLUGIN_ID, subjectRef: task.business_identity.subject_ref,
+      authorization: {
+        kind: "row_authorization", currentAuthorizationRef: task.business_identity.authorization_ref,
+      },
+      continuationRef, ownerRef: task.business_identity.owner_ref,
+      subjectRef: task.business_identity.subject_ref,
     },
   } as const;
   const lane = laneValue((await flow.execute({ sessionKey: "", ...acquireCall })).value);

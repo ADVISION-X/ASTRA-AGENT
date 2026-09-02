@@ -20,7 +20,7 @@ type AiProductionHealthSnapshot = {
   readonly browserAuthorityState: "present" | "absent";
   readonly browserTargetState: "claimed" | "absent";
   readonly browserLaneState: "idle" | "busy" | "blocked";
-  readonly contractManifestHash: string;
+  readonly contractManifestHash: string | null;
   readonly activeCount: number;
   readonly lastSuccessfulHeartbeatAt: string | null;
   readonly lastErrorCode: string | null;
@@ -67,7 +67,7 @@ const readAiProductionComponents = (
     {
       name: "agentCloudWorker",
       ok: health.cloudState === "ready",
-      detail: `AGENT Cloud Worker state=${health.cloudState}; manifest=${health.contractManifestHash}; last_heartbeat=${health.lastSuccessfulHeartbeatAt ?? "none"}; error=${health.lastErrorCode ?? "none"}.`,
+      detail: `AGENT Cloud Worker state=${health.cloudState}; manifest=${health.contractManifestHash ?? "none"}; last_heartbeat=${health.lastSuccessfulHeartbeatAt ?? "none"}; error=${health.lastErrorCode ?? "none"}.`,
       actionableMessage: health.cloudState === "ready" ? null
         : health.cloudState === "contract_blocked"
           ? "Deploy the website task/result contract and AGENT Capability Manifest with the exact same V6 manifest."

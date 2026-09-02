@@ -31,6 +31,18 @@ if (artifact.schema_version !== "website-agent-route-policies.v1"
 }
 const identities = new Set<string>();
 const usedParameters = new Set<string>();
+const resultContractRoutes = new Set([
+  "public_knowledge_article_pipeline\0produce_article",
+  "bazi_chart_interpretation\0produce",
+  "bazi_chart_interpretation\0accuracy_challenge",
+  "bazi_chart_interpretation\0quality_reflection",
+  "bazi_ai_full_analysis\0produce",
+  "bazi_ai_full_analysis\0accuracy_challenge",
+  "bazi_ai_full_analysis\0quality_reflection",
+  "bazi_report_followup\0followup",
+  "bazi_report_followup\0accuracy_challenge",
+  "bazi_report_followup\0quality_reflection",
+]);
 for (const route of artifact.routes) {
   const routeKeys = ["product_id", "action_id", "required_parameter_keys",
     "material_roles", "result_schema_version", "relation_kind",
@@ -41,7 +53,7 @@ for (const route of artifact.routes) {
     || !Array.isArray(route.required_parameter_keys) || !Array.isArray(route.material_roles)
     || route.material_roles.length < 1) throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_INVALID");
   const identity = `${route.product_id}\0${route.action_id}`;
-  if ((identity === "public_knowledge_article_pipeline\0produce_article") !== isRecord(route.result_contract)) {
+  if (resultContractRoutes.has(identity) !== isRecord(route.result_contract)) {
     throw new Error("WEBSITE_AGENT_ROUTE_POLICY_RESULT_CONTRACT_INVALID");
   }
   if (identities.has(identity)) throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_DUPLICATE");

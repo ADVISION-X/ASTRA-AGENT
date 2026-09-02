@@ -74,6 +74,7 @@ export type ProductGptCallInput = Readonly<{
   child: GptChildCapabilityId;
   actionOrdinal: number;
   input: Readonly<Record<string, unknown>>;
+  effectLookupKind?: "task_exact_effect";
 }>;
 
 export type ProductGptFactQuery = ProductGptCallInput & Readonly<{
@@ -88,8 +89,6 @@ export type ExactGptCallFacts = Readonly<{
     effectScope: "target_local" | "provider_effect";
     outcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
     terminalAt: string | null;
-    targetRef: string;
-    documentRef: string;
     productStepId: string;
     callId: string;
     childCapabilityId: string;
@@ -115,7 +114,17 @@ export type ExactGptCallFacts = Readonly<{
 
 export type ExactGptContinuationQuery = Readonly<
   | { lookupKind: "turn_marker"; turnMarker: string }
-  | { lookupKind: "frontier_ref"; frontierRef: ProductionHash }
+  | {
+    lookupKind: "frontier_ref";
+    frontierRef: ProductionHash;
+    authorization:
+      | Readonly<{ kind: "origin_authorization"; originAuthorizationRef: string }>
+      | Readonly<{
+          kind: "current_artifact_read_grant";
+          currentAuthorizationRef: string;
+          opaqueReadGrantHash: ProductionHash;
+        }>;
+  }
 >;
 
 export type ExactGptTextCheckpointReadback = Readonly<{
@@ -164,6 +173,19 @@ export type ExactGptContinuationReadback = Readonly<
   | {
     lookupKind: "frontier_ref";
     continuationRef: string;
+    authorizationReadback:
+      | Readonly<{ kind: "origin_authorization"; originAuthorizationRef: string }>
+      | Readonly<{
+          kind: "current_artifact_read_grant";
+          currentAuthorizationRef: string;
+          ownerScopeHash: ProductionHash;
+          subjectRef: string;
+          sourceArtifactRef: string;
+          sourceCheckpointRef: string;
+          semanticAdmissionReceiptRef: string;
+          semanticAdmissionReceiptHash: ProductionHash;
+          opaqueReadGrantHash: ProductionHash;
+        }>;
     originProvider: GptProviderContinuation;
     originCheckpoint: ExactGptTextCheckpointReadback;
     currentProvider: GptProviderContinuation;
@@ -181,6 +203,7 @@ export interface ProductGptTools {
 export interface ProductPluginOutput {
   readonly payload: unknown;
   readonly evidence_refs: readonly string[];
+  readonly execution_context?: unknown;
   readonly continuation?: GptProviderContinuation | null;
   readonly generated_image?: GeneratedImageArtifact;
 }

@@ -3,7 +3,7 @@ import { executeOwnedFlow, productSkillHash } from "./flow.js";
 import { parseProductResult } from "./result-contract.js";
 
 export const baziReportFollowupPlugin: ProductPlugin = {
-  pluginId: "bazi-report-followup", pluginVersion: 7, skillHash: productSkillHash, checkpointSchemaVersion: 2,
+  pluginId: "bazi-report-followup", pluginVersion: 8, skillHash: productSkillHash, checkpointSchemaVersion: 2,
   parseResult: parseProductResult,
   accepts: [
     { productId: "bazi_report_followup", actionId: "followup" },

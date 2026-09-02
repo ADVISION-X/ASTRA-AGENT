@@ -12,7 +12,7 @@ export interface ProductionRuntimeHealth {
   readonly browserAuthorityState: "present" | "absent";
   readonly browserTargetState: "claimed" | "absent";
   readonly browserLaneState: "idle" | "busy" | "blocked";
-  readonly contractManifestHash: ProductionHash;
+  readonly contractManifestHash: ProductionHash | null;
   readonly catalogHash: ProductionHash;
   readonly activeCount: number;
   readonly pendingOutboxCount: number;

@@ -11,8 +11,6 @@ import {
   type RuntimeAttestationReceipt,
   type WorkerSessionCredential,
 } from "./transport-protocol.js";
-import { PRODUCTION_V6_MANIFEST_HASH } from "./v6-manifest-projection.js";
-
 export interface ProductionRuntimeState {
   readonly business_in_flight: number;
   readonly browser_action_in_flight: 0 | 1;
@@ -66,13 +64,14 @@ export class ProductionWorkerSession {
       device_epoch: this.device.device_epoch,
       worker_instance_id: this.workerInstanceId,
       agent_build_hash: this.agentBuildHash,
-      control_manifest_hash: PRODUCTION_V6_MANIFEST_HASH,
+      control_manifest_hash: this.device.control_manifest_hash,
     });
     const response = data as { session?: Record<string, unknown>; session_credential?: unknown };
     const credential = OpenResponseSchema.parse(response.session_credential);
     if (response.session?.device_id !== this.device.device_id
       || response.session.worker_session_id !== credential.worker_session_id
-      || response.session.worker_session_epoch !== credential.worker_session_epoch) {
+      || response.session.worker_session_epoch !== credential.worker_session_epoch
+      || response.session.control_contract_manifest_hash !== this.device.control_manifest_hash) {
       throw executionFailure("failed", "PRODUCTION_SESSION_BINDING_INVALID");
     }
     this.credential = credential;

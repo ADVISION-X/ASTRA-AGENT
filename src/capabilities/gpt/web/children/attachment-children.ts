@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import type { BrowserFileArtifactGrantV1 } from "../../../../lib/browser/browser-authority-api.js";
-import { executionFailure } from "../../../../lib/typed-failure.js";
+import { executionFailure, failureCode } from "../../../../lib/typed-failure.js";
 
 import type { GptChildCapabilityIntent } from "../../contract.js";
 import { gptAttachmentProviderDisplayName } from "../../schema.js";
@@ -213,7 +213,17 @@ const waitForUploadedAttachmentSet = async (
   });
   while (true) {
     if (signal?.aborted) throw executionFailure("failed", "GPT_EXECUTION_ABORTED");
-    last = await attachmentSetState(browser);
+    try {
+      last = await attachmentSetState(browser);
+    } catch (error) {
+      if (failureCode(error) !== "BROWSER_DOM_NODE_STALE") throw error;
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        throw executionFailure("failed", `GPT_ATTACHMENT_UPLOAD_TIMEOUT:ready=${last.readyCount}:uploading=${last.uploadingCount}:expected=${files.length}`);
+      }
+      await browser.wait({ durationMs: Math.max(25, Math.min(500, Math.ceil(remaining / 20))) });
+      continue;
+    }
     const { expectedLabels, missing, unexpected } = attachmentSetDifference(files, last.observedLabels);
     if (unexpected.length > 0 || last.observedLabels.length > expectedLabels.length) {
       throw executionFailure("failed", `GPT_ATTACHMENT_SET_MISMATCH:${[...missing, ...unexpected].join("|")}`);

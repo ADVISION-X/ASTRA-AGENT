@@ -152,6 +152,7 @@ const successfulExecution = async (input: Readonly<{
   await input.context.onProof?.(proof);
   return Object.freeze({
     status: "success", value: input.observation.value, proof, failureCode: null, failureCause: null,
+    failureBrowserEffect: null,
   });
 };
 
@@ -185,6 +186,11 @@ const failedExecution = async (input: Readonly<{
   return Object.freeze({
     status: failure.status, value: null, proof, failureCode: failure.code,
     failureCause: serialized.cause,
+    failureBrowserEffect: serialized.browser_outcome === null ? null : Object.freeze({
+      effectScope: serialized.effect_scope!,
+      childCapabilityId: serialized.child_capability_id!,
+      browserOutcome: serialized.browser_outcome,
+    }),
   });
 };
 

@@ -22,7 +22,6 @@ import type { ProductionHash } from "./contracts.js";
 import { readProductionCredential } from "./credential.js";
 import { ProductionExecutor } from "./executor.js";
 import { ProductionRuntimeStore, type StoredProductionTask } from "./store.js";
-import { PRODUCTION_V6_MANIFEST_HASH } from "./transport-protocol.js";
 import { ProductionWorkerSession } from "./worker-session.js";
 import type { ProductionRuntimeHandle, ProductionRuntimeHealth } from "./runtime-contract.js";
 import {
@@ -63,7 +62,7 @@ const blockedHealth = (
     logSinkState: input.runtimeLogger.getSinkState(), browserAuthorityState: browser.browserAuthorityState,
     browserTargetState: browser.browserTargetState,
     browserLaneState: browser.browserAuthorityState === "present" ? "idle" : "blocked",
-    contractManifestHash: PRODUCTION_V6_MANIFEST_HASH, catalogHash: productionCatalogHash,
+    contractManifestHash: null, catalogHash: productionCatalogHash,
     activeCount: 0, pendingOutboxCount: store.pendingOutboxCount(),
     lastSuccessfulHeartbeatAt: null,
     lastErrorCode: reason.split(":")[0] ?? "PRODUCTION_CREDENTIAL_INVALID",

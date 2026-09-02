@@ -28,9 +28,6 @@ import { parseProductResult } from "./result-contract.js";
 
 const PLUGIN_ID = "hehun-report-followup";
 const PRODUCT_INSTRUCTION = "在双方授权仍成立的原合婚会话中回答新的冻结问题，保持双人案卷、隐私、父报告、证据与会话 lineage。";
-const CONTINUATION_SOURCE_PLUGIN_IDS = [
-  "hehun-ai-analysis", "hehun-report-followup",
-] as const;
 const WAIT_TIMEOUT_MS = 3_600_000;
 const skill = readProductSkill(import.meta.url);
 export const productSkillHash = skill.hash;
@@ -351,12 +348,11 @@ const acquireContinuation = async (
   const lane = laneValue((await flow.execute({
     productStepId: stepId, callId: "continuation-acquire", child: "acquire_gpt_continuation_lane",
     actionOrdinal: 1, input: {
-      allowedSourcePluginIds: CONTINUATION_SOURCE_PLUGIN_IDS,
-      authorizationRef: task.business_identity.authorization_ref,
+      authorization: {
+        kind: "row_authorization", currentAuthorizationRef: task.business_identity.authorization_ref,
+      },
       continuationRef: task.continuation_ref,
-      jobId: task.job_id,
       ownerRef: task.business_identity.owner_ref,
-      pluginId: PLUGIN_ID,
       subjectRef: task.business_identity.subject_ref,
     },
   })).value);

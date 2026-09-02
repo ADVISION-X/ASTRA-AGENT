@@ -233,14 +233,7 @@ const validateDependencyContract = (raw: GovernanceSpec, file: string): void => 
   const baseValid = concreteString(contract.contractId) && Number.isInteger(contract.version)
     && contract.version === raw.version && typeof contract.providerRepo === 'string'
     && REPO_PATTERN.test(contract.providerRepo);
-  const valid = 'manifestHash' in contract
-    ? exactKeys(contract, ['authorityArtifact', 'contractId', 'generatedBy', 'hashAlgorithm',
-      'manifestHash', 'providerRepo', 'version']) && baseValid
-      && typeof contract.authorityArtifact === 'string' && pathPatternValid(contract.authorityArtifact)
-      && typeof contract.generatedBy === 'string' && pathPatternValid(contract.generatedBy)
-      && contract.hashAlgorithm === 'JCS-SHA-256'
-      && typeof contract.manifestHash === 'string' && /^sha256:[a-f0-9]{64}$/u.test(contract.manifestHash)
-    : exactKeys(contract, ['contractId', 'providerRepo', 'version']) && baseValid;
+  const valid = exactKeys(contract, ['contractId', 'providerRepo', 'version']) && baseValid;
   if (!valid) fail('SOURCE_PARSE_FAILED', `${file}:cross-repo-dependency`);
 };
 

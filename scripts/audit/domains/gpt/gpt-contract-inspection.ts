@@ -61,11 +61,15 @@ const inspectChildDenominator = (
   finding: FindingFactory,
 ): string[] => {
   const ids = childIdsFromContract(contract);
-  if (ids.length !== 23 || new Set(ids).size !== 23) findings.push(finding(
+  if (ids.length !== 26 || new Set(ids).size !== 26) findings.push(finding(
     "gpt/exact-child-denominator", CONTRACT_PATH,
-    `GPT_CHILD_CAPABILITY_IDS must derive exactly 23 unique child ids; found ${ids.length}/${new Set(ids).size}.`,
+    `GPT_CHILD_CAPABILITY_IDS must derive exactly 26 unique child ids; found ${ids.length}/${new Set(ids).size}.`,
   ));
-  for (const required of ["open_gpt_model_selector_v2", "select_exact_gpt_model_v2"])
+  for (const required of [
+    "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
+    "reserve_exact_gpt_continuation_once", "complete_exact_gpt_continuation_reservation_once",
+    "fork_exact_gpt_conversation_at_checkpoint",
+  ])
     if (!ids.includes(required)) findings.push(finding(
       "gpt/model-selection-v2-required", CONTRACT_PATH, `The public denominator is missing ${required}.`,
     ));

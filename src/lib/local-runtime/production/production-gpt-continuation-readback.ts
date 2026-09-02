@@ -1,5 +1,6 @@
 import {
   gptContinuationIdentityHash,
+  gptContinuationUsable,
   type GptContinuationGeneratedImageCheckpoint,
   type GptContinuationLane,
   type GptContinuationOriginCheckpoint,
@@ -7,7 +8,7 @@ import {
 } from "../../../capabilities/gpt/index.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../../capabilities/forensics-persistence/index.js";
 import { executionFailure } from "../../typed-failure.js";
-import type { WebsiteAgentTask } from "./contracts.js";
+import { hashCanonical, type WebsiteAgentTask } from "./contracts.js";
 import {
   readGeneratedImageCheckpointArtifacts,
   readTextCheckpointArtifact,
@@ -51,10 +52,9 @@ const predecessorMatches = (
 
 const originBindingMatches = (
   stored: NonNullable<ReturnType<ProductionRuntimeStore["readGptContinuationForFrontier"]>>,
-  input: ReadbackExecution,
 ): boolean => Boolean(stored.origin_checkpoint)
   && Boolean(stored.current_checkpoint)
-  && stored.origin_provider.prior_task_id === input.task.job_id
+  && stored.origin_provider.prior_task_id === stored.origin_job_id
   && stored.origin_provider.provider_page_url === stored.origin_checkpoint!.canonical_conversation_url
   && stored.origin_provider.prior_prompt_hash === stored.origin_checkpoint!.prompt_hash
   && stored.origin_provider.prior_raw_output_hash === stored.origin_checkpoint!.semantic_text_hash
@@ -65,8 +65,7 @@ const currentBindingMatches = (
 ): boolean => {
   const current = stored.current_checkpoint!;
   const currentHash = current.checkpoint_kind === "text" ? current.semantic_text_hash : current.media_hash;
-  return stored.provider.prior_task_id === stored.origin_job_id
-    && stored.provider.provider_page_url === current.canonical_conversation_url
+  return stored.provider.provider_page_url === current.canonical_conversation_url
     && stored.provider.prior_prompt_hash === current.prompt_hash
     && stored.provider.prior_raw_output_hash === currentHash
     && stored.provider.prior_turn_marker === current.turn_marker;
@@ -108,8 +107,9 @@ export class ProductionGptContinuationReadback {
   }
 
   private async readTextCheckpoint(
-    input: ReadbackExecution,
     checkpoint: GptContinuationOriginCheckpoint | GptContinuationTextCheckpoint,
+    evidenceJobId: string,
+    pluginVersion: number,
   ): Promise<ExactGptTextCheckpointReadback> {
     const artifact = await readTextCheckpointArtifact(this.evidenceStore, checkpoint.artifact_ref);
     if (artifact.assistantTurnId !== checkpoint.assistant_turn_id
@@ -118,7 +118,7 @@ export class ProductionGptContinuationReadback {
       throw executionFailure("failed", "GPT_CONTINUATION_FRONTIER_ARTIFACT_INVALID");
     }
     await readContinuationCheckpointEvidence({
-      evidenceStore: this.evidenceStore, task: input.task, pluginVersion: input.pluginVersion,
+      evidenceStore: this.evidenceStore, evidenceJobId, pluginVersion,
       checkpoint, childCapabilityId: "checkpoint_gpt_text_response",
       expectedArtifactRefPrefix: [checkpoint.artifact_ref], expectedArtifactCount: 1,
     });
@@ -134,11 +134,12 @@ export class ProductionGptContinuationReadback {
   }
 
   private async readImageCheckpoint(
-    input: ReadbackExecution,
     checkpoint: GptContinuationGeneratedImageCheckpoint,
+    evidenceJobId: string,
+    pluginVersion: number,
   ): Promise<Extract<ExactGptContinuationReadback, { lookupKind: "frontier_ref" }>["currentCheckpoint"]> {
     const artifactRefs = await readContinuationCheckpointEvidence({
-      evidenceStore: this.evidenceStore, task: input.task, pluginVersion: input.pluginVersion,
+      evidenceStore: this.evidenceStore, evidenceJobId, pluginVersion,
       checkpoint, childCapabilityId: "checkpoint_gpt_generated_image",
       expectedArtifactRefPrefix: [checkpoint.original_artifact_ref, checkpoint.webp_artifact_ref],
       expectedArtifactCount: 3,
@@ -147,7 +148,9 @@ export class ProductionGptContinuationReadback {
     if (!imageArtifactMatches(artifacts, checkpoint)) {
       throw executionFailure("failed", "GPT_CONTINUATION_FRONTIER_ARTIFACT_INVALID");
     }
-    const predecessor = await this.readTextCheckpoint(input, checkpoint.predecessor_text_checkpoint);
+    const predecessor = await this.readTextCheckpoint(
+      checkpoint.predecessor_text_checkpoint, evidenceJobId, pluginVersion,
+    );
     if (!predecessorMatches(predecessor, checkpoint)) {
       throw executionFailure("failed", "GPT_CONTINUATION_PREDECESSOR_INVALID");
     }
@@ -179,24 +182,76 @@ export class ProductionGptContinuationReadback {
     }
     const stored = this.store.readGptContinuationForFrontier(query.frontierRef);
     if (!stored) return null;
-    this.verifiedLane(stored, input);
+    if (!gptContinuationUsable(stored)
+      || stored.owner_ref !== input.task.business_identity.owner_ref
+      || stored.subject_ref !== input.task.business_identity.subject_ref) {
+      throw executionFailure("failed", "GPT_CONTINUATION_FRONTIER_IDENTITY_INVALID");
+    }
     const origin = stored.origin_checkpoint;
     const current = stored.current_checkpoint;
     gptContinuationIdentityHash(stored.origin_provider);
-    if (stored.frontier_ref !== query.frontierRef || !originBindingMatches(stored, input)) {
+    if (stored.frontier_ref !== query.frontierRef || !originBindingMatches(stored)) {
       throw executionFailure("failed", "GPT_CONTINUATION_FRONTIER_IDENTITY_INVALID");
     }
     const verifiedOrigin = origin!;
     const verifiedCurrent = current!;
-    const originCheckpoint = await this.readTextCheckpoint(input, verifiedOrigin);
+    const originTask = this.store.readTask(stored.origin_provider.prior_task_id);
+    const currentTask = this.store.readTask(stored.provider.prior_task_id);
+    if (!originTask || !currentTask
+      || originTask.identity.plugin_version !== stored.origin_plugin_version) {
+      throw executionFailure("failed", "GPT_CONTINUATION_FRONTIER_IDENTITY_INVALID");
+    }
+    let authorizationReadback: Extract<ExactGptContinuationReadback, { lookupKind: "frontier_ref" }>["authorizationReadback"];
+    if (query.authorization.kind === "origin_authorization") {
+      if (query.authorization.originAuthorizationRef !== stored.authorization_ref
+        || stored.origin_job_id !== input.task.job_id
+        || stored.plugin_id !== input.pluginId
+        || stored.origin_plugin_version !== input.pluginVersion
+        || stored.authorization_ref !== input.task.business_identity.authorization_ref) {
+        throw executionFailure("failed", "GPT_CONTINUATION_FRONTIER_AUTHORIZATION_INVALID");
+      }
+      authorizationReadback = Object.freeze({
+        kind: "origin_authorization",
+        originAuthorizationRef: stored.authorization_ref,
+      });
+    } else {
+      const sourceCheckpointRef = stored.source_checkpoint_hash ?? hashCanonical(verifiedOrigin);
+      if (query.authorization.currentAuthorizationRef !== input.task.business_identity.authorization_ref
+        || query.authorization.opaqueReadGrantHash !== stored.opaque_read_grant_hash
+        || !stored.artifact_ref || !stored.artifact_hash
+        || stored.artifact_ref !== verifiedOrigin.artifact_ref
+        || stored.artifact_hash !== verifiedOrigin.semantic_text_hash
+        || !stored.semantic_admission_receipt_ref || !stored.semantic_admission_receipt_hash) {
+        throw executionFailure("failed", "GPT_CONTINUATION_ARTIFACT_READ_GRANT_INVALID");
+      }
+      authorizationReadback = Object.freeze({
+        kind: "current_artifact_read_grant",
+        currentAuthorizationRef: query.authorization.currentAuthorizationRef,
+        ownerScopeHash: hashCanonical({ kind: "gpt-owner-scope.v1", owner_ref: stored.owner_ref }),
+        subjectRef: stored.subject_ref,
+        sourceArtifactRef: stored.artifact_ref,
+        sourceCheckpointRef,
+        semanticAdmissionReceiptRef: stored.semantic_admission_receipt_ref,
+        semanticAdmissionReceiptHash: stored.semantic_admission_receipt_hash,
+        opaqueReadGrantHash: stored.opaque_read_grant_hash,
+      });
+    }
+    const originCheckpoint = await this.readTextCheckpoint(
+      verifiedOrigin, stored.origin_provider.prior_task_id, originTask.identity.plugin_version,
+    );
     const currentCheckpoint = verifiedCurrent.checkpoint_kind === "text"
-      ? await this.readTextCheckpoint(input, verifiedCurrent)
-      : await this.readImageCheckpoint(input, verifiedCurrent);
+      ? await this.readTextCheckpoint(
+        verifiedCurrent, stored.provider.prior_task_id, currentTask.identity.plugin_version,
+      )
+      : await this.readImageCheckpoint(
+        verifiedCurrent, stored.provider.prior_task_id, currentTask.identity.plugin_version,
+      );
     if (!currentBindingMatches(stored)) {
       throw executionFailure("failed", "GPT_CONTINUATION_FRONTIER_IDENTITY_INVALID");
     }
     return Object.freeze({
       lookupKind: "frontier_ref", continuationRef: stored.continuation_ref,
+      authorizationReadback,
       originProvider: stored.origin_provider, originCheckpoint,
       currentProvider: stored.provider, currentCheckpoint,
     });

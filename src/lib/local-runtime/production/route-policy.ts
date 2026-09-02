@@ -1,4 +1,5 @@
-import type { ProductionActionId, ProductionProductId, WebsiteAgentTask } from "./contracts.js";
+import { hashCanonical, type ProductionActionId, type ProductionHash, type ProductionProductId,
+  type WebsiteAgentTask } from "./contracts.js";
 import routePolicyArtifact from "./website-agent-route-policies.v1.json" with { type: "json" };
 
 export interface ProductionRoutePolicy {
@@ -23,7 +24,7 @@ type ProductionParameterType =
   | "bazi_analysis_kind" | "public_knowledge_package_version"
   | "payment_observation_version" | "quality_reflection_version"
   | "route_result_schema_version" | "target_locale" | "locale"
-  | "localization_resource_kind";
+  | "localization_resource_kind" | "bazi_reusable_base_candidate";
 
 type RoutePolicyProjection = Readonly<{
   schema_version: "website-agent-route-policies.v1";
@@ -38,7 +39,7 @@ if (projection.schema_version !== "website-agent-route-policies.v1"
   || projection.contract_id !== "ai-acceptance.website-agent-task-result"
   || projection.contract_version !== 1
   || !projection.parameter_types
-  || Object.keys(projection.parameter_types).length !== 41
+  || Object.keys(projection.parameter_types).length !== 55
   || projection.routes.length !== 39) {
   throw new Error("PRODUCTION_ROUTE_POLICY_PROJECTION_INVALID");
 }
@@ -65,6 +66,17 @@ const parameterValidators: Readonly<Record<ProductionParameterType, ParameterVal
   sha256: (value) => typeof value === "string" && /^sha256:[a-f0-9]{64}$/u.test(value),
   non_empty_string_array: (value) => Array.isArray(value) && value.length > 0 && value.every(nonEmptyString),
   bazi_analysis_kind: (value) => value === "chart_interpretation" || value === "question_analysis",
+  bazi_reusable_base_candidate: (value) => value === null || (
+    typeof value === "object" && value !== null && !Array.isArray(value)
+    && Object.keys(value).sort().join("\0") === [
+      "opaque_read_grant_hash", "reusable_identity_hash", "source_job_id",
+    ].join("\0")
+    && typeof (value as Record<string, unknown>).opaque_read_grant_hash === "string"
+    && /^sha256:[a-f0-9]{64}$/u.test(String((value as Record<string, unknown>).opaque_read_grant_hash))
+    && typeof (value as Record<string, unknown>).reusable_identity_hash === "string"
+    && /^sha256:[a-f0-9]{64}$/u.test(String((value as Record<string, unknown>).reusable_identity_hash))
+    && nonEmptyString((value as Record<string, unknown>).source_job_id)
+  ),
   public_knowledge_package_version: (value) => value === "public-knowledge-article-package.v1",
   payment_observation_version: (value) => value === "payment-screenshot-observation-v1",
   quality_reflection_version: (value) => value === "scheduled-quality-reflection.v1",
@@ -89,6 +101,50 @@ export function productionRoutePolicy(
   const resolved = productionRoutePolicyMap.get(`${productId}\0${actionId}`);
   if (!resolved) throw new Error(`PRODUCTION_ROUTE_POLICY_MISSING:${productId}:${actionId}`);
   return resolved;
+}
+
+export function evaluateExactNestedResultContract(input: Readonly<{
+  artifactHash: ProductionHash;
+  value: Readonly<Record<string, unknown>>;
+  contract: Readonly<Record<string, unknown>>;
+  topLevelFieldsKey: string;
+  nestedArrayFields: Readonly<Record<string, string>>;
+}>): Readonly<{
+  artifact_hash: ProductionHash;
+  contract_hash: ProductionHash;
+  outcome: "accepted";
+  evaluation_hash: ProductionHash;
+}> {
+  const expectedTop = input.contract[input.topLevelFieldsKey];
+  if (!Array.isArray(expectedTop) || !expectedTop.every((field) => typeof field === "string")
+    || Object.keys(input.value).sort().join("\0") !== [...expectedTop].sort().join("\0")) {
+    throw new Error("EXACT_NESTED_RESULT_CONTRACT_TOP_LEVEL_INVALID");
+  }
+  for (const [valueKey, contractKey] of Object.entries(input.nestedArrayFields)) {
+    const expectedFields = input.contract[contractKey];
+    const values = input.value[valueKey];
+    if (!Array.isArray(expectedFields) || !expectedFields.every((field) => typeof field === "string")
+      || !Array.isArray(values)) throw new Error("EXACT_NESTED_RESULT_CONTRACT_ARRAY_INVALID");
+    for (const child of values) {
+      if (!child || typeof child !== "object" || Array.isArray(child)
+        || Object.keys(child).sort().join("\0") !== [...expectedFields].sort().join("\0")) {
+        throw new Error("EXACT_NESTED_RESULT_CONTRACT_CHILD_INVALID");
+      }
+    }
+  }
+  const contractHash = hashCanonical(input.contract);
+  const evaluationStable = {
+    kind: "exact-nested-result-contract-evaluation.v1",
+    artifact_hash: input.artifactHash,
+    contract_hash: contractHash,
+    outcome: "accepted" as const,
+  };
+  return Object.freeze({
+    artifact_hash: input.artifactHash,
+    contract_hash: contractHash,
+    outcome: "accepted",
+    evaluation_hash: hashCanonical(evaluationStable),
+  });
 }
 
 export const routeProducesGeneratedImage = (task: Pick<WebsiteAgentTask, "product_id" | "action_id">): boolean =>

@@ -223,13 +223,16 @@ export class ExtensionTargetAuthority {
       await this.debuggerRuntime.send(parked.tabId, "Page.enable");
       let mainFrame = await this.readMainFrame(parked.tabId);
       requireGptWebPolicyForUrl(mainFrame.url);
-      if (resetToStart && new URL(mainFrame.url).href !== GPT_WEB_START_URL) {
+      if (resetToStart) {
         const response = asRecord(await this.debuggerRuntime.send(
           parked.tabId, "Page.navigate", { url: GPT_WEB_START_URL },
         ));
         mainFrame = typeof response?.loaderId === "string"
           ? { loaderId: response.loaderId, url: GPT_WEB_START_URL }
           : await this.readMainFrame(parked.tabId);
+        if (priorLoaderId === null || mainFrame.loaderId === priorLoaderId) {
+          throw new Error("BROWSER_DOCUMENT_INVALID");
+        }
       }
       const target = priorLoaderId === null || mainFrame.loaderId === priorLoaderId
         ? parked : this.targets.advanceDocument(targetRef);

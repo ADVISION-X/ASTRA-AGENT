@@ -69,7 +69,8 @@ export async function claimProductionTasks(
   const jobs = receipt.jobs.map((raw) => ClaimedProductionTaskSchema.parse(raw));
   if ((receipt.outcome === "LEASE_GRANTED") !== (jobs.length > 0)
     || jobs.some((job) => job.grant.worker_session_id !== session.workerSessionId
-      || job.grant.worker_session_epoch !== session.workerSessionEpoch)) {
+      || job.grant.worker_session_epoch !== session.workerSessionEpoch
+      || job.grant.control_contract_manifest_hash !== session.device.control_manifest_hash)) {
     throw executionFailure("failed", "V6_CLAIM_BATCH_INVALID");
   }
   return {
@@ -246,7 +247,7 @@ async function uploadJsonObject(
   session: ProductionWorkerSession,
   store: ProductionRuntimeStore,
   job: ClaimedProductionTask,
-  role: "result_payload" | "result_envelope",
+  role: "result_payload" | "result_envelope" | "execution_context",
   value: unknown,
 ): Promise<UploadedResultReceipt> {
   const bytes = Buffer.from(JSON.stringify(value), "utf8");
@@ -320,6 +321,7 @@ type ProductionResultUploadInput = Readonly<{
   output: Readonly<{
     payload: unknown;
     evidence_refs: readonly string[];
+    execution_context?: unknown;
     generated_image?: GeneratedImageArtifact;
   }>;
   continuationRef: string | null;
@@ -357,6 +359,7 @@ const uploadGeneratedImagePayload = async (input: ProductionResultUploadInput): 
 const buildProductionResultEnvelope = (
   input: ProductionResultUploadInput,
   payloadReceipt: UploadedResultReceipt,
+  executionContextReceipt: UploadedResultReceipt | null,
 ): WebsiteAgentResult => WebsiteAgentResultSchema.parse({
   schema_version: "website-agent-result.v1",
   job_id: input.job.job_id,
@@ -378,12 +381,20 @@ const buildProductionResultEnvelope = (
     media_type: payloadReceipt.media_type,
     receipt_hash: payloadReceipt.receipt_hash,
   },
+  ...(executionContextReceipt ? { execution_context_object_receipt: {
+    object_ref: executionContextReceipt.object_ref,
+    sha256: executionContextReceipt.sha256,
+    bytes: executionContextReceipt.byte_length,
+    media_type: "application/json",
+    receipt_hash: executionContextReceipt.receipt_hash,
+  } } : {}),
   evidence_refs: input.output.evidence_refs,
   execution_receipt_hash: hashCanonical({
     job_id: input.job.job_id,
     attempt_id: input.job.grant.attempt_id,
     durable_identity: input.identity,
     payload_hash: payloadReceipt.sha256,
+    execution_context_receipt_hash: executionContextReceipt?.receipt_hash ?? null,
     evidence_refs: input.output.evidence_refs,
   }),
   ...(input.continuationRef ? { continuation_ref: input.continuationRef } : {}),
@@ -401,7 +412,11 @@ export async function uploadProductionResult(input: ProductionResultUploadInput)
   const payloadReceipt = await uploadJsonObject(
     input.session, input.store, input.job, "result_payload", prepared.payload,
   );
-  const envelope = buildProductionResultEnvelope(input, payloadReceipt);
+  const executionContextReceipt = input.output.execution_context === undefined ? null
+    : await uploadJsonObject(
+      input.session, input.store, input.job, "execution_context", input.output.execution_context,
+    );
+  const envelope = buildProductionResultEnvelope(input, payloadReceipt, executionContextReceipt);
   const envelopeReceipt = await uploadJsonObject(
     input.session, input.store, input.job, "result_envelope", envelope,
   );
@@ -410,7 +425,9 @@ export async function uploadProductionResult(input: ProductionResultUploadInput)
     payload_receipt: payloadReceipt,
     envelope_receipt: envelopeReceipt,
     artifact_receipts: Object.freeze([
-      ...(prepared.imageReceipt ? [prepared.imageReceipt] : []), payloadReceipt, envelopeReceipt,
+      ...(prepared.imageReceipt ? [prepared.imageReceipt] : []),
+      ...(executionContextReceipt ? [executionContextReceipt] : []),
+      payloadReceipt, envelopeReceipt,
     ]),
   };
 }

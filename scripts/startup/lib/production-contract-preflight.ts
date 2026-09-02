@@ -1,13 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { hashCanonical } from "../../../src/lib/local-runtime/production/contracts.js";
-
-const CONTRACT_KEYS = [
-  "authorityArtifact", "contractId", "generatedBy", "hashAlgorithm",
-  "manifestHash", "providerRepo", "version",
-] as const;
-const HASH = /^sha256:[a-f0-9]{64}$/u;
+const CONTRACT_KEYS = ["contractId", "providerRepo", "version"] as const;
 
 const readJson = async (filePath: string): Promise<Record<string, unknown>> =>
   JSON.parse(await readFile(filePath, "utf8")) as Record<string, unknown>;
@@ -16,59 +10,33 @@ const record = (value: unknown): Record<string, unknown> | null =>
   value !== null && typeof value === "object" && !Array.isArray(value)
     ? value as Record<string, unknown> : null;
 
-const projectionMatches = (
-  projection: Record<string, unknown>,
+const dependencyMatches = (
+  dependency: Record<string, unknown>,
   contract: Record<string, unknown>,
 ): boolean => [
   JSON.stringify(Object.keys(contract).sort()) === JSON.stringify([...CONTRACT_KEYS].sort()),
-  projection.schemaVersion === 1,
-  projection.specKind === "cross-repo-dependency",
-  projection.status === "active",
-  projection.version === 14,
-  contract.authorityArtifact === "packages/ai-contracts/src/production-control/xuanxue-ai-production-v6.manifest.json",
+  dependency.schemaVersion === 1,
+  dependency.specKind === "cross-repo-dependency",
+  dependency.status === "active",
+  dependency.version === 14,
   contract.contractId === "ai-acceptance.xuanxue-ai-production-v6",
-  contract.generatedBy === "scripts/generate/sync-xuanxue-ai-production-v6-agent-projection.ts",
-  contract.hashAlgorithm === "JCS-SHA-256",
-  typeof contract.manifestHash === "string" && HASH.test(contract.manifestHash),
   contract.providerRepo === "ADVISION-X/xuanxue-web",
   contract.version === 14,
 ].every(Boolean);
 
-const manifestMatches = (
-  manifest: Record<string, unknown>,
-  contract: Record<string, unknown>,
-  expectedHash: `sha256:${string}`,
-): boolean => [
-  manifest.schema_version === "xuanxue-ai-production-contract-manifest.v6",
-  manifest.protocol_version === "xuanxue-ai-production-v6",
-  contract.manifestHash === expectedHash,
-].every(Boolean);
-
-export async function verifyProductionContractProjection(input: {
-  readonly agentProjectionPath: string;
-  readonly websiteManifestPath: string;
-}): Promise<Readonly<{ status: "READY"; manifestHash: `sha256:${string}` }>> {
-  const [projection, manifest] = await Promise.all([
-    readJson(input.agentProjectionPath),
-    readJson(input.websiteManifestPath),
-  ]);
-  const contract = record(projection.contract);
-  const expectedHash = hashCanonical(manifest);
-  if (!contract || !projectionMatches(projection, contract)
-    || !manifestMatches(manifest, contract, expectedHash)) {
-    throw new Error("AI_PRODUCTION_MANIFEST_PROJECTION_MISMATCH");
+export async function verifyProductionDependency(input: {
+  readonly agentDependencyPath: string;
+}): Promise<Readonly<{ status: "READY"; version: 14 }>> {
+  const dependency = await readJson(input.agentDependencyPath);
+  const contract = record(dependency.contract);
+  if (!contract || !dependencyMatches(dependency, contract)) {
+    throw new Error("AI_PRODUCTION_DEPENDENCY_INVALID");
   }
-  return Object.freeze({ status: "READY", manifestHash: expectedHash });
+  return Object.freeze({ status: "READY", version: 14 });
 }
 
-export const productionContractProjectionPaths = (input: {
+export const productionDependencyPath = (input: {
   readonly agentRoot: string;
-  readonly websiteRoot: string;
-}): Readonly<{ agentProjectionPath: string; websiteManifestPath: string }> => ({
-  agentProjectionPath: path.resolve(
+}): string => path.resolve(
     input.agentRoot, "docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json",
-  ),
-  websiteManifestPath: path.resolve(
-    input.websiteRoot, "packages/ai-contracts/src/production-control/xuanxue-ai-production-v6.manifest.json",
-  ),
-});
+  );

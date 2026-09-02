@@ -35,7 +35,7 @@ const exerciseComposerReadiness = async (): Promise<void> => {
 };
 
 const exerciseDomFailures = async (): Promise<void> => {
-  const runtime = (failure: "missing" | "ambiguous" | "stale" | "box" | "invalid" | "target") => ({
+  const runtime = (failure: "missing" | "ambiguous" | "stale" | "box" | "malformed-box" | "invalid" | "target") => ({
     async send(_tabId: number, method: string) {
       if (method === "DOM.getDocument") {
         if (failure === "target") throw new Error("BROWSER_TARGET_INVALID");
@@ -50,14 +50,19 @@ const exerciseDomFailures = async (): Promise<void> => {
       if (method === "DOM.getBoxModel") {
         if (failure === "stale") throw new Error("Could not find node with given id");
         if (failure === "box") throw new Error("Could not compute box model");
+        if (failure === "malformed-box") return { model: { content: [0, "invalid"] } };
         return { model: { content: [0, 0, 10, 0, 10, 10, 0, 10] } };
       }
       throw new Error(`UNEXPECTED_DOM_FAILURE_METHOD:${method}`);
     },
   }) as ExtensionDebuggerRuntime;
+  const noBox = await executeRegisteredDomIntent(runtime("box"), { tabId: 100 } as never, {
+    kind: "find", selector: "[data-turn='user']", maxMatches: 1, fields: [],
+  }) as Readonly<{ count: number }>;
+  assert.equal(noBox.count, 0, "a recognized no-layout box is an invisible candidate, not a DOM read failure");
   for (const [failure, code] of [
     ["missing", "BROWSER_DOM_CANDIDATE_MISSING"], ["ambiguous", "BROWSER_DOM_CANDIDATE_AMBIGUOUS"],
-    ["stale", "BROWSER_DOM_NODE_STALE"], ["box", "BROWSER_DOM_READ_INVALID"],
+    ["stale", "BROWSER_DOM_NODE_STALE"], ["malformed-box", "BROWSER_DOM_READ_INVALID"],
     ["invalid", "BROWSER_DOM_READ_INVALID"], ["target", "BROWSER_TARGET_INVALID"],
   ] as const) await assert.rejects(executeRegisteredDomIntent(runtime(failure), { tabId: 100 } as never, {
     kind: "readText", selector: "[data-turn='user']", expectedMatches: 1, maxChars: 100,

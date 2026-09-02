@@ -89,14 +89,23 @@ const validSerializedCause = (cause: unknown): boolean => cause === null || (
 export const isSerializedTerminalFailure = (value: unknown): value is SerializedExecutionFailure => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const row = value as Record<string, unknown>;
-  const keys = ["cause", "code", "evidence_hash", "evidence_ref", "mutation_outcome"];
+  const keys = ["browser_outcome", "cause", "child_capability_id", "code", "effect_scope",
+    "evidence_hash", "evidence_ref", "mutation_outcome"];
   const validRef = row.evidence_ref === null || (typeof row.evidence_ref === "string" && row.evidence_ref.length > 0);
   const validHash = row.evidence_hash === null || (
     typeof row.evidence_hash === "string" && /^sha256:[a-f0-9]{64}$/u.test(row.evidence_hash)
   );
+  const browserFactsAbsent = row.effect_scope === null
+    && row.child_capability_id === null && row.browser_outcome === null;
+  const browserFactsValid = ["target_local", "provider_effect"].includes(String(row.effect_scope))
+    && typeof row.child_capability_id === "string" && row.child_capability_id.length > 0
+    && ["DISPATCHED", "CONFIRMED", "REJECTED"].includes(String(row.browser_outcome))
+    && (row.browser_outcome === "DISPATCHED"
+      ? row.mutation_outcome === "dispatched" : row.mutation_outcome === "confirmed");
   return JSON.stringify(Object.keys(row).sort()) === JSON.stringify(keys)
     && typeof row.code === "string" && row.code.length > 0
     && ["no", "dispatched", "confirmed"].includes(String(row.mutation_outcome))
+    && (browserFactsAbsent || browserFactsValid)
     && validRef && validHash && validSerializedCause(row.cause);
 };
 
@@ -157,11 +166,21 @@ const createProductionTables = (database: Database.Database): void => {
   );
   create table production_continuations(
     continuation_ref text primary key,
+    reservation_kind text not null check(reservation_kind in ('persisted','reusable_origin','derived_continuation')),
+    reservation_identity_hash text not null unique,
     origin_job_id text not null references production_tasks(job_id) on delete restrict,
+    origin_plugin_version integer not null,
     plugin_id text not null, owner_ref text not null, subject_ref text not null,
-    authorization_ref text not null, conversation_identity_hash text not null,
-    frontier_ref text unique, origin_provider_json text not null, origin_checkpoint_json text,
-    provider_json text not null, current_checkpoint_json text, lane_version integer not null,
+    authorization_ref text not null, conversation_identity_hash text,
+    frontier_ref text unique, source_checkpoint_hash text,
+    reservation_fence_hash text, reservation_effect_hash text, origin_provenance_hash text,
+    semantic_contract_hash text,
+    artifact_ref text, artifact_hash text,
+    semantic_admission_receipt_ref text, semantic_admission_receipt_hash text,
+    semantic_admission_receipt_json text,
+    opaque_read_grant_hash text, completion_receipt_hash text,
+    origin_provider_json text, origin_checkpoint_json text,
+    provider_json text, current_checkpoint_json text, lane_version integer not null,
     lane_owner_job_id text, created_at text not null
   );
   create table production_outbox(
@@ -212,11 +231,19 @@ const currentCoreSchemaPresent = (database: Database.Database): boolean => {
 
 const currentSchemaPresent = (database: Database.Database): boolean => {
   const continuations = tableColumns(database, "production_continuations");
+  const reservationColumns = [
+    "reservation_kind", "reservation_identity_hash", "origin_plugin_version", "source_checkpoint_hash",
+    "reservation_fence_hash", "reservation_effect_hash", "origin_provenance_hash", "artifact_ref",
+    "artifact_hash", "semantic_admission_receipt_ref", "semantic_admission_receipt_hash",
+    "semantic_contract_hash", "semantic_admission_receipt_json",
+    "opaque_read_grant_hash", "completion_receipt_hash",
+  ] as const;
   return currentCoreSchemaPresent(database)
     && continuations.has("frontier_ref")
     && continuations.has("origin_provider_json")
     && continuations.has("origin_checkpoint_json")
-    && continuations.has("current_checkpoint_json");
+    && continuations.has("current_checkpoint_json")
+    && reservationColumns.every((column) => continuations.has(column));
 };
 
 const migrateContinuationFrontierSchema = (database: Database.Database): void => {
@@ -238,6 +265,100 @@ const migrateContinuationFrontierSchema = (database: Database.Database): void =>
     set origin_provider_json=provider_json where origin_provider_json is null`).run();
   database.exec(`create unique index if not exists
     production_continuations_frontier_ref_unique on production_continuations(frontier_ref)`);
+};
+
+const migrateContinuationSemanticReceiptSchema = (database: Database.Database): void => {
+  if (!currentCoreSchemaPresent(database)) return;
+  const columns = tableColumns(database, "production_continuations");
+  if (!columns.has("semantic_contract_hash")) {
+    database.exec("alter table production_continuations add column semantic_contract_hash text");
+  }
+  if (!columns.has("semantic_admission_receipt_json")) {
+    database.exec("alter table production_continuations add column semantic_admission_receipt_json text");
+  }
+};
+
+type LegacyContinuationRow = Readonly<{
+  continuation_ref: string;
+  origin_job_id: string;
+  plugin_id: string;
+  owner_ref: string;
+  subject_ref: string;
+  authorization_ref: string;
+  conversation_identity_hash: string;
+  frontier_ref: string | null;
+  origin_provider_json: string;
+  origin_checkpoint_json: string | null;
+  provider_json: string;
+  current_checkpoint_json: string | null;
+  lane_version: number;
+  lane_owner_job_id: string | null;
+  created_at: string;
+}>;
+
+const migrateContinuationReservationSchema = (database: Database.Database): void => {
+  if (!currentCoreSchemaPresent(database)) return;
+  const columns = tableColumns(database, "production_continuations");
+  if (columns.has("reservation_kind")) return;
+  if (tableColumns(database, "production_continuations_v2_migration").size > 0) {
+    throw executionFailure("failed", "GPT_CONTINUATION_MIGRATION_TEMP_TABLE_PRESENT");
+  }
+  const rows = database.prepare(`select continuation_ref,origin_job_id,plugin_id,owner_ref,subject_ref,
+    authorization_ref,conversation_identity_hash,frontier_ref,origin_provider_json,origin_checkpoint_json,
+    provider_json,current_checkpoint_json,lane_version,lane_owner_job_id,created_at
+    from production_continuations order by continuation_ref`).all() as LegacyContinuationRow[];
+  database.transaction(() => {
+    database.exec(`create table production_continuations_v2_migration(
+      continuation_ref text primary key,
+      reservation_kind text not null check(reservation_kind in ('persisted','reusable_origin','derived_continuation')),
+      reservation_identity_hash text not null unique,
+      origin_job_id text not null references production_tasks(job_id) on delete restrict,
+      origin_plugin_version integer not null,
+      plugin_id text not null, owner_ref text not null, subject_ref text not null,
+      authorization_ref text not null, conversation_identity_hash text,
+      frontier_ref text unique, source_checkpoint_hash text,
+      reservation_fence_hash text, reservation_effect_hash text, origin_provenance_hash text,
+      semantic_contract_hash text,
+      artifact_ref text, artifact_hash text,
+      semantic_admission_receipt_ref text, semantic_admission_receipt_hash text,
+      semantic_admission_receipt_json text,
+      opaque_read_grant_hash text, completion_receipt_hash text,
+      origin_provider_json text, origin_checkpoint_json text,
+      provider_json text, current_checkpoint_json text, lane_version integer not null,
+      lane_owner_job_id text, created_at text not null
+    )`);
+    const insert = database.prepare(`insert into production_continuations_v2_migration(
+      continuation_ref,reservation_kind,reservation_identity_hash,origin_job_id,origin_plugin_version,
+      plugin_id,owner_ref,subject_ref,authorization_ref,conversation_identity_hash,frontier_ref,
+      source_checkpoint_hash,reservation_fence_hash,reservation_effect_hash,origin_provenance_hash,
+      semantic_contract_hash,artifact_ref,artifact_hash,semantic_admission_receipt_ref,semantic_admission_receipt_hash,
+      semantic_admission_receipt_json,opaque_read_grant_hash,completion_receipt_hash,origin_provider_json,origin_checkpoint_json,
+      provider_json,current_checkpoint_json,lane_version,lane_owner_job_id,created_at
+    ) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+    const identity = database.prepare("select identity_json from production_tasks where job_id=?");
+    for (const row of rows) {
+      const task = identity.get(row.origin_job_id) as { identity_json: string } | undefined;
+      const pluginVersion = task
+        ? Number((JSON.parse(task.identity_json) as { plugin_version?: unknown }).plugin_version)
+        : Number.NaN;
+      if (!Number.isInteger(pluginVersion) || pluginVersion < 1) {
+        throw executionFailure("failed", "GPT_CONTINUATION_ORIGIN_PLUGIN_VERSION_MISSING");
+      }
+      insert.run(
+        row.continuation_ref, "persisted",
+        row.frontier_ref ?? hashCanonical({ identity_type: "persisted-gpt-continuation.v1", continuation_ref: row.continuation_ref }),
+        row.origin_job_id, pluginVersion, row.plugin_id, row.owner_ref, row.subject_ref,
+        row.authorization_ref, row.conversation_identity_hash, row.frontier_ref,
+        null, null, null, null, null, null, null, null, null, null, null, null,
+        row.origin_provider_json, row.origin_checkpoint_json, row.provider_json,
+        row.current_checkpoint_json, row.lane_version, row.lane_owner_job_id, row.created_at,
+      );
+    }
+    database.exec(`drop table production_continuations;
+      alter table production_continuations_v2_migration rename to production_continuations;
+      create unique index if not exists production_continuations_frontier_ref_unique
+        on production_continuations(frontier_ref)`);
+  })();
 };
 
 const restoreOutboxDeliverySchedule = (database: Database.Database): void => {
@@ -274,6 +395,8 @@ export abstract class ProductionStoreFoundation implements GptContinuationStoreP
     this.database.pragma("synchronous = FULL");
     this.database.pragma("foreign_keys = ON");
     migrateContinuationFrontierSchema(this.database);
+    migrateContinuationReservationSchema(this.database);
+    migrateContinuationSemanticReceiptSchema(this.database);
     replaceEmptyExecutionSchema(this.database);
     if (!currentSchemaPresent(this.database)) createProductionTables(this.database);
     restoreOutboxDeliverySchedule(this.database);
@@ -286,6 +409,15 @@ export abstract class ProductionStoreFoundation implements GptContinuationStoreP
   public close(): void { this.database.close(); }
 
   public abstract createGptContinuation(continuation: Parameters<GptContinuationStorePort["createGptContinuation"]>[0]): void;
+  public abstract readGptContinuationExecutionBinding(
+    jobId: string,
+  ): ReturnType<GptContinuationStorePort["readGptContinuationExecutionBinding"]>;
+  public abstract reserveExactGptContinuation(
+    reservation: Parameters<GptContinuationStorePort["reserveExactGptContinuation"]>[0],
+  ): ReturnType<GptContinuationStorePort["reserveExactGptContinuation"]>;
+  public abstract completeExactGptContinuationReservation(
+    input: Parameters<GptContinuationStorePort["completeExactGptContinuationReservation"]>[0],
+  ): ReturnType<GptContinuationStorePort["completeExactGptContinuationReservation"]>;
   public abstract readGptContinuation(ref: string): ReturnType<GptContinuationStorePort["readGptContinuation"]>;
   public abstract readGptContinuationForFrontier(
     frontierRef: Parameters<GptContinuationStorePort["readGptContinuationForFrontier"]>[0],

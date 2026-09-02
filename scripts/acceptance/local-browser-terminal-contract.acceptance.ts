@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { BrowserCommandActor } from "../../src/lib/browser/exact-target/browser-command-actor.js";
+import { browserExecutionFailure } from "../../src/lib/browser/browser-failure.js";
 import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
 import { BrowserCommandAdmissionBudget } from "../../src/lib/browser/transport/browser-command-admission-budget.js";
 import type { BrowserCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
@@ -234,25 +235,50 @@ try {
   assert.equal(actorStore.readState(confirmedPermit.commandId), "CONFIRMED");
 
   const rejectedPermit = permit("actor-rejected");
+  const rejectedActor = actorFor(async (candidate, _command, onDispatched) => {
+    onDispatched?.();
+    return {
+      replyChannelToken: candidate.replyChannelToken,
+      transportSequence: 2,
+      permitSequence: candidate.sequence,
+      result: {
+        candidateCount: 1,
+        identityRevalidated: true,
+        mutationCount: 1,
+        postconditionVerified: false,
+        failureCode: "BROWSER_POSTCONDITION_FAILED",
+      },
+    };
+  });
   await assert.rejects(
-    actorFor(async (candidate, _command, onDispatched) => {
-      onDispatched?.();
-      return {
-        replyChannelToken: candidate.replyChannelToken,
-        transportSequence: 2,
-        permitSequence: candidate.sequence,
-        result: {
-          candidateCount: 1,
-          identityRevalidated: true,
-          mutationCount: 1,
-          postconditionVerified: false,
-          failureCode: "BROWSER_POSTCONDITION_FAILED",
-        },
-      };
-    }).execute(rejectedPermit, clickCommand),
+    rejectedActor.execute(rejectedPermit, clickCommand),
     /BROWSER_POSTCONDITION_FAILED/u,
   );
   assert.equal(actorStore.readState(rejectedPermit.commandId), "REJECTED");
+  assert.equal(rejectedActor.mutationOutcome(rejectedPermit.commandId), "confirmed");
+  assert.equal(rejectedActor.browserOutcome(rejectedPermit.commandId), "REJECTED");
+  assert.deepEqual(
+    serializeTerminalFailure(browserExecutionFailure(
+      new Error("BROWSER_POSTCONDITION_FAILED"),
+      rejectedActor.mutationOutcome(rejectedPermit.commandId),
+      {
+        effectScope: rejectedPermit.replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local",
+        childCapabilityId: rejectedPermit.childCapabilityId,
+        browserOutcome: rejectedActor.browserOutcome(rejectedPermit.commandId)!,
+      },
+    )),
+    {
+      code: "BROWSER_POSTCONDITION_FAILED",
+      mutation_outcome: "confirmed",
+      effect_scope: "target_local",
+      child_capability_id: "open_gpt_model_selector_v2",
+      browser_outcome: "REJECTED",
+      evidence_ref: null,
+      evidence_hash: null,
+      cause: { name: "Error", code: null },
+    },
+    "Browser terminal facts must survive typed-failure serialization without promoting REJECTED to CONFIRMED",
+  );
 
   let dispatchCount = 0;
   const receiptMissingPermit = permit("actor-receipt-missing");
@@ -272,6 +298,7 @@ try {
   assert.equal(actorStore.readState(receiptMissingPermit.commandId), "DISPATCHED");
   assert.equal(receiptMissingActor.hasDispatchedMutation(receiptMissingPermit.commandId), true);
   assert.equal(receiptMissingActor.mutationOutcome(receiptMissingPermit.commandId), "dispatched");
+  assert.equal(receiptMissingActor.browserOutcome(receiptMissingPermit.commandId), "DISPATCHED");
   actorStore.close();
 
   const supervisor = readFileSync(

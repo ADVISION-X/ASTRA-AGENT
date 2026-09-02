@@ -81,6 +81,11 @@ const providerResult = (
     }),
     failureCode: succeeded ? null : "TEST_PROVIDER_RESULT_UNKNOWN",
     failureCause: succeeded ? null : Object.freeze({ name: "Error", code: null }),
+    failureBrowserEffect: succeeded ? null : Object.freeze({
+      effectScope: "provider_effect" as const,
+      childCapabilityId: intent.childCapabilityId,
+      browserOutcome: "DISPATCHED" as const,
+    }),
   });
 };
 

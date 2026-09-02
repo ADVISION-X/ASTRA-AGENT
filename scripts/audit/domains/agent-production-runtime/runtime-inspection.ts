@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V25";
+const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V28";
 const PATHS = {
   executor: "src/lib/local-runtime/production/executor.ts",
   childTools: "src/lib/local-runtime/production/production-gpt-child-tools.ts",

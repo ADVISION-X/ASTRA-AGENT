@@ -18,7 +18,6 @@ import {
 import { productionCatalogHash, resolveProductionPlugin } from "../../src/lib/local-runtime/production/catalog.js";
 import {
   ClaimedProductionTaskSchema,
-  PRODUCTION_V6_MANIFEST_HASH,
   type ClaimedProductionTask,
 } from "../../src/lib/local-runtime/production/transport-protocol.js";
 import { authorizeWebsiteAgentTask } from "../../src/mediator/agent-production-route.js";
@@ -91,12 +90,12 @@ const executionGrant = (
     worker_session_id: "worker:1", worker_session_epoch: 1, lease_token: `lease:${base.job_id}`,
     lease_version: 1, server_now: "2030-01-01T00:00:00.000Z", accept_by: "2030-01-01T00:01:00.000Z",
     lease_expires_at: "2030-01-01T00:05:00.000Z", renew_after_ms: 20_000,
-    control_contract_manifest_hash: PRODUCTION_V6_MANIFEST_HASH,
+    control_contract_manifest_hash: HASH_A,
     execution_fence: {
       schema_version: "xuanxue-ai-execution-fence.v6", environment_id: "production", device_id: "device:1",
       device_epoch: 1, worker_session_id: "worker:1", worker_session_epoch: 1, job_id: base.job_id,
       attempt_id: `attempt:${base.job_id}`, lease_version: 1, lease_token_hash: HASH_A,
-      control_contract_manifest_hash: PRODUCTION_V6_MANIFEST_HASH, fence_hash: HASH_B,
+      control_contract_manifest_hash: HASH_A, fence_hash: HASH_B,
     },
   } as const;
 };

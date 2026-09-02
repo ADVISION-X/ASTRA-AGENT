@@ -42,6 +42,7 @@ const EnrollmentEnvelopeSchema = z.object({
       origin_allowlist: z.array(z.string().url()).min(1),
     }).passthrough(),
     device_credential: z.string().regex(/^aidc_v6_[A-Za-z0-9_-]{32,}$/u),
+    control_manifest_hash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
   }).strict().optional(),
   error: z.object({
     code: z.string().optional(),
@@ -133,8 +134,9 @@ export async function enrollProductionDevice(input?: Readonly<{
   const envelope = EnrollmentEnvelopeSchema.parse(await response.json() as unknown);
   const device = envelope.data?.device;
   const credentialValue = envelope.data?.device_credential;
+  const controlManifestHash = envelope.data?.control_manifest_hash;
   if (!response.ok || envelope.ok !== true || !device || !credentialValue
-    || !device.origin_allowlist.includes(origin)) {
+    || !controlManifestHash || !device.origin_allowlist.includes(origin)) {
     throw new Error(`PRODUCTION_ENROLLMENT_FAILED:${envelope.error?.code ?? response.status}`);
   }
   const dataDir = path.resolve(input?.dataDir ?? process.env.GRASSEYE_DATA_DIR ?? path.join(process.cwd(), ".grasseye-local"));
@@ -145,6 +147,7 @@ export async function enrollProductionDevice(input?: Readonly<{
     origin,
     device_id: device.device_id,
     device_epoch: device.device_epoch,
+    control_manifest_hash: controlManifestHash as `sha256:${string}`,
     credential: credentialValue,
     enrolled_at: new Date().toISOString(),
   };

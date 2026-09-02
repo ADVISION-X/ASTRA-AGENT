@@ -1,13 +1,13 @@
-# AGENT 十二产品插件与网站 V15 施工图
+# AGENT 十二产品插件与网站 V16 施工图
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v12",
+  "blueprintId": "agent-production-runtime-v13",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V26"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V28"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -171,7 +171,7 @@ Product Skill 只保留跨回合共同成立的产品目的、冻结来源边界
 Website 对 BZ05/BZ03 primary 只发布三份角色互斥的 Provider-visible 材料：
 
 1. `bazi_private_base_input`：完整锁定命盘/候选、全部 derived/final-decision/luck/rule facts、全部 READY books/indexes、owner/privacy subject、稳定 base authorization、base contract 与 Website 对全部 base-only 字段计算的 `reusable_base_semantic_digest`；物理排除 question、experience、order/payment；
-2. `bazi_formal_input`：当前 Product、当前付费 task/authorization、formal question/experience presence or absence、base artifact/ref/hash 与 source-to-child relation；
+2. `bazi_formal_input`：当前 Product、当前付费 task/authorization；BZ05 精确冻结 Website canonical `BaziPdfSemanticManifest` ref/hash/ordered anchors 与 question/experience absence proof，BZ03 精确冻结 question snapshot ref/hash、ordered unit refs/text 与 authorized evidence snapshot；它在 private-base Provider 动作前即由 Website 冻结，物理不包含此时尚不存在的 base artifact/ref/hash、source checkpoint、child conversation/continuation relation；
 3. `result_contract`：Website canonical formal 输出合同，以及投影在 route policy 中、不作为第四 material 的 exact `result_contract.private_base` v2 子合同。
 
 reusable-base identity 只由 `owner_scope_hash + privacy_subject_ref + reusable_base_semantic_digest + base output contract version + equality-accepted base Profile hash + equality-accepted private-base turn-contract hash` 组成。task、product、order/payment、question/experience、formal output 与全任务 bundle hash 不得进入或替代该 identity；任一 Provider-visible base-only 字段、READY/rule lineage、mode 或上述合同 bytes 变化都必须形成不同 identity。
@@ -199,15 +199,17 @@ local base-contract equality gate
 -> advance lane with formal artifact/source-child relation -> staged result
 ```
 
-reservation、completion、acquire、fork 是四个独立调用；每个 mutation Child 恰好一个 CAS 或一个 Provider effect。reusable reservation 的 zero 才能由 creator lane/fence 首次进入 fresh base；reservation incomplete 时只允许原 creator task/effect 恢复，不能被另一 paid task 或另一 Product 偷取。base semantic invalid 时 raw/evidence 保留、row 不 complete、零 grant/fork；只有 Website 授权的同 creator task 新 accepted attempt 可在原 reservation/fence 继续。complete row 被 BZ05/BZ03 以 exact grant 复用时，base clean/profile/attach/prompt/submit/checkpoint/complete mutation 增量全部为零。
+reusable reserve、reusable complete、derived reserve、derived complete、acquire、fork 是六次独立调用；每个 mutation Child 恰好一个 CAS 或一个 Provider effect。reusable reservation 的 zero 才能由 creator lane/fence 首次进入 fresh base；reservation incomplete 时只允许原 creator task/effect 恢复，不能被另一 paid task 或另一 Product 偷取。base semantic invalid 时 raw/evidence 保留、row 不 complete、零 grant/fork；只有 Website 授权的同 creator task 新 accepted attempt 可在原 reservation/fence 继续。complete row 被 BZ05/BZ03 以 exact grant 复用时，base clean/profile/attach/prompt/submit/checkpoint/complete mutation 增量全部为零。
 
 private base 是私有、非 canonical、非报告、非业务结果且不具约束力。formal child 必须重新读取完整锁定 facts、完整 READY 与标为 `nonbinding_private_prior` 的原始 base，并可明确纠正或拒绝它。BZ05 formal 证明 question/experience 缺席且结果不含 chart PDF；BZ03 formal 绑定用户原问题/经历且结果包含 chart PDF。两者 receipt 都绑定 exact `base_artifact_hash + source checkpoint + child conversation/continuation relation`。
+
+上述 base artifact、checkpoint 与 source-to-child relation 是 Product 在 semantic admission、completion 与 exact fork 之后从 opaque read grant/Provider readback 得到的运行时事实；Product 只在 formal Prompt 上下文和 formal receipt 中把它们与 Website 预先冻结的 `bazi_formal_input` 绑定。Website 不预造、不回填材料，也不成为 continuation/fork 事实 Owner。
 
 ### 3.5.3 BZ04 primary 与六条 review
 
 BZ04 先由 Website 分别证明当前 BZ04 paid entitlement 和 approved parent BZ05/BZ03 Delivery Manifest、parent product、owner、subject、parent authorization、result/hash、continuation。Website 签发的 opaque parent-lane grant 必须精确绑定 `current job/current authorization + parent continuation/parent authorization + owner/subject + parent manifest id/hash`。Product 只能凭该 grant 调用现役 `acquire_gpt_continuation_lane`，聚焦并验证 parent formal conversation 后执行一次 followup turn；禁止 BZ04 self-parent、fresh fallback、用 current authorization 冒充 parent authorization，或用 parent authorization冒充本单付费资格。所有出口都在同一 try/finally advance 或 release lane。
 
-每个 Product 的 `accuracy_challenge` 与 `quality_reflection` 都是 fresh single-turn：clean chat、该 Product review Profile、恰好 `subject_result + review_context`、一次 exact Prompt/submit/checkpoint、base receive 与无损归一。`review_context` 冻结原材料、Skill/Profile/turn-contract、private-base raw/semantic artifact 与 formal/followup artifact/receipt；其中 Prompt、Skill 与 private prior 均是 `may_issue_instruction=false` 的被审证据。六条 review 全部零 reusable-base create、零 fork、零 continuation、零原报告/Delivery Manifest mutation。challenge 只提交 challenge hash/count receipt；reflection 只提交 finding rows 与原 plan completed receipt；二者不能互相冒充或产生新报告。
+每个 Product 的 `accuracy_challenge` 与 `quality_reflection` 都是 fresh single-turn：clean chat、该 Product review Profile、恰好 `subject_result + review_context`、一次 exact Prompt/submit/checkpoint、base receive 与无损归一。`review_context` 冻结原材料、Skill/Profile/turn-contract、private-base raw/semantic artifact 与 formal/followup artifact/receipt；其中 Prompt、Skill 与 private prior 均是 `may_issue_instruction=false` 的被审证据。Website canonical route provider 唯一拥有 `website-agent-review-output.v1`，并把完整 Provider-visible 子合同投影到 route policy/result_contract：`decision: no_issue | issues`、`issues[]`，每条 issue 的 `category/target_type/target_ref/observation/evidence_refs/impact/confidence/suggested_inspection`、category/confidence 枚举、evidence 非空条件和 decision/issues 一致性。Product 只把该 projection 写入 review Prompt，不另存或猜 schema。六条 review 全部零 reusable-base create、零 fork、零 continuation、零原报告/Delivery Manifest mutation。challenge 只提交 challenge hash/count receipt；reflection 只提交 finding rows 与原 plan completed receipt；二者不能互相冒充或产生新报告。
 
 ### 3.5.4 接收、完成与失败
 
@@ -227,11 +229,11 @@ shared runtime 只负责以下运输、安全与恢复边界：
 - staged result 和 durable Outbox；
 - typed failure 透传与容量释放。
 
-V6 合同身份只有一条链：Website `ai-acceptance` 的 canonical manifest 是唯一母本，Website 的 `scripts/generate/sync-xuanxue-ai-production-v6-agent-projection.ts` 只从该母本确定性生成 AGENT `docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json`；projection 必须同时冻结 providerRepo、authorityArtifact、generator、hash algorithm、contract id、数字 `version` 与 exact `manifestHash`。AGENT 的 runtime、测试与 audit 全部读取该同一 projection，源码和质检不得各写一份 hash。`version=14` 只表示人类可读的合同修订号，精确运行兼容性只由 projection 内的 manifest hash 表达，两者不得分别演变成两套版本真相；projection 不是手工登记簿，除 Website generator 外任何写者都必须失败关闭。
+V6 合同身份只有一条跨仓声明链：Website `ai-acceptance` 的 canonical provider contract/manifest 是唯一母本；AGENT `docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json` 只能精确保存 `contractId/version/providerRepo` 三字段，拒绝 `authorityArtifact`、generator、provider commit 与任何合同 hash。Website generator 只把 provider spec 的这三个发布身份投影到 consumer dependency；AGENT CHANGE/READY 只校验本仓 dependency 的 schema、唯一性与实际消费，RELEASE 才按冻结手册从绑定 participant commit 唯一核对 provider contract。
 
-device credential 只保存既有设备身份、鉴权材料和 epoch，不保存 manifest hash；设备行与 control protocol state 也不拥有合同版本。Website 只在短期 worker session 建立时把 AGENT projection hash 与当前 canonical hash 精确比较并把相等值绑定到 session，后续 attestation、heartbeat、claim 和 fence 只继承该 session 事实。旧 session 在母本变化后立即失去资格，但同一设备身份和 secret 保持不变，不重新 enrollment，不创建 replacement device。
+运行时精确 manifest 身份不从 dependency 推导。Website enrollment 响应把当前 canonical control manifest hash 作为已鉴权运行事实交给 AGENT；device credential 与 session 只保存该值及设备身份、鉴权材料、epoch，不保存 provider 内容、仓库路径、commit 或 Product 合同。session open 必须由 Website 与当前 canonical 值比较，AGENT 随后逐项验证 session、claim、grant 与 fence 同值；旧值失败关闭并要求重新取得 Website 当前授权事实，不设 fallback、双读或第二 manifest Owner。
 
-跨仓只读 preflight 是启动与迁移的共同前门：它接收 Website canonical 产物和 AGENT dependency projection 两个显式输入，在 worker session 创建或任何 mutating migration 前比较 contract id、revision 与 exact hash；任一不等必须以唯一 typed mismatch 停止，数据库写入、session、claim 和 Provider mutation 均为零。该 preflight 属于生成/质检/启动边界，不把仓库路径、Git provenance 或第二 manifest Owner 带入 Product Flow。
+普通 AGENT 启动只读校验本仓最小 dependency，不读取未绑定的 Website 工作树；Website mutating migration 只校验 Website 自身 provider contract 与现役 migration registry，不反向依赖 consumer checkout。精确运行兼容性在 enrollment/session open 由 Website 当前 canonical manifest 与 AGENT 持有的 Website-issued 值比较；任一不等必须在 session、claim 与 Provider mutation 前失败关闭。跨仓 Git participant 只属于 RELEASE 证据，绝不进入 Product Flow。
 
 Mediator 只解析 `product_id + action_id + contract version` 并路由一次。Catalog 只列出静态 Plugin 与 route，不执行 Flow。
 
@@ -281,8 +283,10 @@ readCallFacts({ lookupKind?: "current_attempt" | "task_exact_effect", productSte
   exactCallIdentityHash: `sha256:${string}`;
   mutation: null | {
     owner: "browser";
+    childCapabilityId: GptChildId;
     effectScope: "target_local" | "provider_effect";
-    outcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
+    browserOutcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
+    mutationOutcome: "no" | "dispatched" | "confirmed";
     terminalAt: string | null;
   };
   evidence: null | {
@@ -305,12 +309,39 @@ readCallFacts({ lookupKind?: "current_attempt" | "task_exact_effect", productSte
 
 readContinuationExact(query:
   | { lookupKind: "turn_marker"; turnMarker: string }
-  | { lookupKind: "frontier_ref"; frontierRef: `sha256:${string}` }
+  | {
+      lookupKind: "frontier_ref";
+      frontierRef: `sha256:${string}`;
+      authorization: {
+        kind: "origin_authorization";
+        originAuthorizationRef: string;
+      } | {
+        kind: "current_artifact_read_grant";
+        currentAuthorizationRef: string;
+        opaqueReadGrantHash: `sha256:${string}`;
+      };
+    }
 ): Promise<null
   | { lookupKind: "turn_marker"; lane: GptContinuationLane }
   | {
       lookupKind: "frontier_ref";
       continuationRef: string;
+      authorizationReadback:
+        | {
+            kind: "origin_authorization";
+            originAuthorizationRef: string;
+          }
+        | {
+            kind: "current_artifact_read_grant";
+            currentAuthorizationRef: string;
+            ownerScopeHash: `sha256:${string}`;
+            subjectRef: string;
+            sourceArtifactRef: string;
+            sourceCheckpointRef: string;
+            semanticAdmissionReceiptRef: string;
+            semanticAdmissionReceiptHash: `sha256:${string}`;
+            opaqueReadGrantHash: `sha256:${string}`;
+          };
       originProvider: GptProviderContinuation;
       originCheckpoint: {
         sourceAttemptId: string;
@@ -381,7 +412,7 @@ readContinuationExact(query:
 >;
 ```
 
-job/plugin/version 由 durable execution binding 注入，inputHash 由同一 canonical hash 计算；默认 `current_attempt` 还注入当前 attempt。`task_exact_effect` 只允许 Product 在已验证 current checkpoint 后，为其可完整构造且 marker/prompt hash 均由该 checkpoint 的 source attempt 冻结的 successor Provider effect 使用：同一读面从 Store 的同 job durable accepted attempt 分母逐一重算完整 exact identity，只接受零或唯一 mutation/evidence 闭合候选，零条返回 current-attempt 空事实，多条失败；禁止返回 attempt 列表、latest/created_at 选择、近似 step/call 搜索或让 shared runtime 决定是否继续。`readCallFacts` 不写入、不安排任务、不返回 nextStep/resumePoint/phase/state/Target/Document/WAL row，也不提供无 durable Owner 的 per-call `failure`。product-neutral `readContinuationExact` 只接受互斥的 exact turn-marker/frontier-ref query 且严禁互相 fallback；frontier 模式必须用当前 job/plugin/owner/subject/authorization 复核唯一 continuation row，并从 task-owned artifact 实体无损读回 immutable origin 与 current checkpoint，分别重算文本双 hash或 original/webp content hash 后，与各自 provider/conversation identity 一次返回。`originalBytes/webpBytes` 是现役 task-owned artifact 的调用期 readback，不进入 continuation row、日志或 proof；Product 只可用它恢复同一 generated image artifact，现役 completion/outbox 直接验证并持久化这些 bytes，禁止重新物化临时路径、启动后清空可恢复成果或新增 materialize 能力。禁止只返回 hash/ref 或已推进 provider 后让 Product 猜测已完成段，也禁止新增 SEO 专用公共读面、job-only/latest/created_at 选择、跨主体复用或 frontier 覆盖。
+job/plugin/version 由 durable execution binding 注入，inputHash 由同一 canonical hash 计算；默认 `current_attempt` 还注入当前 attempt。跨仓 `attempt_failure` transport 必须把上述 Browser 原子事实逐字段投影为 `child_capability_id + effect_scope + browser_outcome + mutation_outcome`，不得从通用 mutation outcome 或错误码重新猜测 Browser 终态。只有 `submit_exact_gpt_turn_once + provider_effect + CONFIRMED` 与独立 `confirmed_submit` receipt、exact effect/evidence 唯一闭合时，Website 才能进入 post-submit readback；`target_local + REJECTED` 必须作为本 attempt 的普通真实失败被 Website 接受，不能因 `mutation_outcome=confirmed` 被误报为 Provider submit。`task_exact_effect` 只允许 Product 在已验证 current checkpoint 后，为其可完整构造且 marker/prompt hash 均由该 checkpoint 的 source attempt 冻结的 successor Provider effect 使用：同一读面从 Store 的同 job durable accepted attempt 分母逐一重算完整 exact identity，只接受零或唯一 mutation/evidence 闭合候选，零条返回 current-attempt 空事实，多条失败；禁止返回 attempt 列表、latest/created_at 选择、近似 step/call 搜索或让 shared runtime 决定是否继续。`readCallFacts` 不写入、不安排任务、不返回 nextStep/resumePoint/phase/state/Target/Document/WAL row，也不提供无 durable Owner 的 per-call `failure`。product-neutral `readContinuationExact` 只接受互斥的 exact turn-marker/frontier-ref query 且严禁互相 fallback；frontier 模式必须用当前 job/plugin/owner/subject/authorization 复核唯一 continuation row，并从 task-owned artifact 实体无损读回 immutable origin 与 current checkpoint，分别重算文本双 hash或 original/webp content hash 后，与各自 provider/conversation identity 一次返回。`originalBytes/webpBytes` 是现役 task-owned artifact 的调用期 readback，不进入 continuation row、日志或 proof；Product 只可用它恢复同一 generated image artifact，现役 completion/outbox 直接验证并持久化这些 bytes，禁止重新物化临时路径、启动后清空可恢复成果或新增 materialize 能力。禁止只返回 hash/ref 或已推进 provider 后让 Product 猜测已完成段，也禁止新增 SEO 专用公共读面、job-only/latest/created_at 选择、跨主体复用或 frontier 覆盖。
 
 真实外部 Child typed failure 通常冻结 Runtime `attempt_failure` 并结束 attempt；唯一不可被该规则覆盖的是已经闭合的 Provider submit 事实。exact submit 的 Browser WAL mutation 与 Forensics evidence 已共同读回 `CONFIRMED + passed` 后，后续 `reconcile_gpt_turn_submission`、Provider wait 或 checkpoint 的失败必须同时携带两层正交事实：原 `confirmed_submit` receipt 永久保持 `outcome=CONFIRMED`，当前只读 Child 保持自己的 `code + mutationOutcome=no`。只要不存在 Provider 明确 terminal negative、Website 永久业务撤权、submit evidence 损坏或多义，Runtime 就必须通过现役 lease release 写入 `release_reason=POST_SUBMIT_READBACK_FAULT` 与 `current_reason`，保留同一 accepted attempt、原 exact call identity、terminalAt、conversation/frontier 和恢复资格；cause code、Target/Document 故障、wait absoluteDeadline 或进程重启只能决定诊断、一次 probe 的停止与 `retry_not_before`，绝不能把已确认提交降格成整体 mutation_outcome=no、写 attempt_failure、消耗新 attempt 或清空原任务的下一恢复动作。重领后 Product 对 fresh 首轮用默认 `current_attempt` 读面取得同一 accepted attempt 的 exact submit fact，并与 task-owned submission locator 闭合；只有已由 verified current checkpoint 冻结的跨 attempt successor Provider effect 才使用 `task_exact_effect`。历史故障现场必须先恢复原 confirmed submit attempt 为 Website 当前权威 accepted attempt，禁止扩大查询面。唯一 CONFIRMED 时跳过 profile、附件、Prompt、draft 与 submit，直接执行 submission locator、原 turn wait/checkpoint 与成果入库；DISPATCHED/REJECTED/多义仍失败关闭，只有零 submit fact 且无 locator/effect 事实才允许首次提交。全链复用现役 receipt/current_reason/lease release/readCallFacts，不增加恢复状态、表、队列、scheduler 或第二结果真相。
 
@@ -506,7 +537,7 @@ timeout/连接中断/5xx 与确定性合同或业务拒绝都保存原生 code�
 
 永久撤权是上述有限重排的唯一例外：仅在 device-job status 返回 `cancel_requested + PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED` 后，把同 job 未回执 row 的 `last_error` 固定为该 reason 并把 `next_delivery_at` 置空；row 及原 payload/hash 保留，启动恢复不得重新排期。该动作不是“已送达”，不写 response、receipt 或 sent_at。
 
-Website 启动和 claim 的数据库前置只使用现役 commercial migration registry。普通 `start.sh` 不执行 migration，只在创建 Core 前以现役只读 verify 路径机械证明仓库 migration head、数据库 registry 与每个 migration hash 一致；部署操作才可显式执行 canonical `db:migrate:commercial`。已经登记的 0101、0102 历史字节与 registry hash 永久不改。当前唯一前向 schema cutover 只用于物理删除 control protocol state 与 active device 上的重复 manifest hash 列、在无 live lease 时 supersede 旧 worker session，并保留 device identity/secret/epoch、任务、attempt、failure、checkpoint、artifact 与 receipt；它之所以是 migration，是因为真实删除 schema 和转换持久数据，不是因为 hash 改值。此后单纯 canonical manifest hash 变化只生成新 AGENT projection 并令旧 session 失效，不再建 migration、更新设备或改 control row。迁移前必须先通过跨仓只读 preflight，提交后只读闭合 registry name/hash、重复列已删除、旧 session 已 superseded、设备身份未变与 unfinished-job liveness；不一致必须输出精确 `COMMERCIAL_MIGRATION_*` 原因并停止 Core Ready、control-room 与 claim，不得半切换、手工改数据库或把 Website 失败改写为 production-runtime Owner。
+Website 启动和 claim 的数据库前置只使用现役 commercial migration registry。普通 `start.sh` 不执行 migration，只在创建 Core 前以现役只读 verify 路径机械证明仓库 migration head、数据库 registry 与每个 migration hash 一致；部署操作才可显式执行 canonical `db:migrate:commercial`。已经登记的 0101、0102 历史字节与 registry hash 永久不改。当前唯一前向 schema cutover 只用于物理删除 control protocol state 与 active device row 上的重复 manifest hash 列、在无 live lease 时 supersede 旧 worker session，并保留任务、attempt、failure、checkpoint、artifact 与 receipt；它之所以是 migration，是因为真实删除 schema 和转换持久数据，不是因为 hash 改值。此后单纯 canonical manifest hash 变化不再建 migration或改 control row；consumer dependency 仍只发布版本三元组，运行期由 Website-issued credential fact 与当前 session 完成精确比较。迁移提交后只读闭合 registry name/hash、重复列已删除、旧 session 已 superseded与 unfinished-job liveness；不一致必须输出精确 `COMMERCIAL_MIGRATION_*` 原因并停止 Core Ready、control-room 与 claim，不得半切换、手工改数据库或把 Website 失败改写为 production-runtime Owner。
 
 AGENT staged result、Outbox delivered、Website completion submission 均不等于完成。Website domain consumer 以 `job_id + result_hash` 幂等入库并签发 hash-bound receipt 后，任务才原子变为 completed；此前保持 failed 并用 `current_reason` 表达当前位置。
 
@@ -515,6 +546,8 @@ AGENT staged result、Outbox delivered、Website completion submission 均不等
 本轮在既有四个片区上只增加一个直接故障片区：已删除 Work Order 的历史 Outbox 因 device-job status 404 被不断重排并阻断新 claim。修复只在 Website 现役 status readback 与 AGENT 现役 Outbox reconciliation 内垂直完成，不新增 endpoint、schema、migration、store、worker 或第二删除协议。
 
 本次在同一唯一主链继续原位删除并重构四个已由真实 Chrome/日志证明的故障片区：图片 Child 把媒体-only assistant section 误判为空回答；continuation 只推进 provider 却没有同步推进 checkpoint；acquire 后 provider compare/focus/verify 失败绕过 release；任务局部 orphan lane 被全局 ledger 粗门放大成全部 claim 阻断。上一轮模型 radio 与 research frontier 的原位修复继续作为当前候选的一部分，不得回退。既有 MV3 actor、Provider wait、Browser 已鉴权原图链、Forensics、Outbox 与 Website 二元任务合同保持现役；当前 Website task、conversation、task-owned artifact、Browser WAL 与已完成 Provider effect 均不得迁移、替换或清空。本次为恢复同一已接受 task，`public-knowledge-article-pipeline` 的 pluginVersion=16、checkpointSchemaVersion=2 与 `SKILL.md` bytes/hash 固定不变；共同 Skill 只在 fresh research 或独立 review conversation 的首个 Prompt 组合一次，article/image 续接回合只组合各自 turn contract，禁止以版本升级或 Skill 改写制造 durable identity 冲突。执行顺序固定：
+
+本轮附件故障在同一片区垂直合并：Browser DOM 读取把已识别 no-layout/no-box 改为当轮不可见候选、stale 只触发 fresh-node 重查、畸形 CDP payload 才失败关闭；每个 fresh job 即使已停在根 URL 仍在同一 Target 强制导航并取得新 loaderId/Document；跨仓 failure 保留 Child/effect/browser terminal 三项原子身份。只删除旧错误分类、同 URL 跳过导航和通用 confirmed 映射，不新增 selector、附件移除 Child、第二 Tab、第二 transport、兼容桥、表或数据库列。
 
 1. 先读取 Browser WAL 并确认没有 unresolved `PREPARED/DISPATCHED`，不得为施工盲重放或清理历史；
 2. 在 `select_exact_gpt_model_v2` 片区物理删除已选中时点击 expanded entry 的分支；true/false 两种 `aria-checked` 都只点击唯一精确 radio，并以 popup + collapsed entry + active simple + zero advanced 形成一个直接后置合同；
@@ -526,7 +559,7 @@ AGENT staged result、Outbox delivered、Website completion submission 均不等
 8. public-knowledge Product 在任何 fresh research Child 前查询 frontier；零条时沿现役路径首绑，命中时先恢复 origin research decision：decision=decline 时全部 Provider mutation为零并直接组装 `{research,article:null,image:null}`；只有 decision=proceed 才机械检查 current checkpoint，current=research 执行 article，current=article 直接恢复文章并用 article source attempt 冻结 image marker/prompt hash，再以 `task_exact_effect` 读取零或唯一既有图片 submit：唯一 CONFIRMED 时跳过全部 image profile/prompt/draft/submit 并只读原 turn，零条才首次提交，DISPATCHED/REJECTED/多义失败关闭；current=image 直接恢复同一图片 artifact并组装 staged result；两条 review 路由不使用 frontier；
 9. ledger 对 orphan continuation lane 的判断改为 task-local：它只阻断所属 job 的 mutation，不能把全局 `ledger_reconciled` 置假；同一 job 获得新 accepted attempt 时继续复用现役 `releaseGptContinuationLanesForJob` 后再执行，不增加清理 worker、第二 ledger 或旁路 claim；
 10. Runtime Log Spine 保留最内层 debugger detach/channel 原生 code + cause，claim 的安全 reason_codes 投影在脱敏后仍必须是机器允许的 code，禁止因脱敏值二次触发 `CLAIM_REQUEST_FAILED`，也禁止用 `BROWSER_INFRASTRUCTURE_FAILED` 覆盖原生原因；
-11. 原位重建确定性验收和真实 Chrome 验收：真实图片 turn 为外层 assistant section、内层 assistant-role 节点为零、raw img 为三而唯一语义主图为一时，wait/checkpoint 必须成功并取得同一原始 bytes；同 task article 已 checkpoint 且上一 attempt 已 CONFIRMED image submit 后的新 attempt 通过唯一 `task_exact_effect` 直接只读原 image turn，research/article/image 的 attach/profile/prompt/draft/submit 增量均为零；零既有 image submit 时才允许当前 attempt 首次提交；每个 acquire 失败注入点 lane_owner 都回到 null，其它 job 仍可 claim。
+11. 原位重建确定性验收和真实 Chrome 验收：真实附件卡片出现且 ready SVG 短暂无 layout box 时继续 fresh query，ready 后 `write_exact_gpt_prompt` 实际开始、file-input mutation 恰为一次；残留附件的新 fresh job 即使已停根 URL 也必须取得新 loaderId/Document 并证明 attachment=0，附件 X/第二 Tab mutation 均为零。真实图片 turn 为外层 assistant section、内层 assistant-role 节点为零、raw img 为三而唯一语义主图为一时，wait/checkpoint 必须成功并取得同一原始 bytes；同 task article 已 checkpoint 且上一 attempt 已 CONFIRMED image submit 后的新 attempt 通过唯一 `task_exact_effect` 直接只读原 image turn，research/article/image 的 attach/profile/prompt/draft/submit 增量均为零；零既有 image submit 时才允许当前 attempt 首次提交；`target_local + REJECTED` failure 必须被 Website 正常接收，真实 confirmed submit 的后置读回故障必须保留同一 attempt 且再次 submit 为零；每个 acquire 失败注入点 lane_owner 都回到 null，其它 job 仍可 claim。
 
 禁止 replacement job/run、legacy reader、旧 continuation 猜选、备份回灌、alias、bridge、dual read/write、shadow、fallback、第二恢复链或第二结果真相。现有任务身份、失败史、Provider effect 与业务对象都保留；既有无 frontier 的历史 continuation 不自动取得新权威。已有 frontier row 的 current checkpoint 只能通过上述一次性精确 cutover 形成：provider 未推进才复制 origin，provider 已推进则必须唯一匹配现役 task-owned exact-call artifact，迁移完成后物理不存在 nullable/旧读路径。
 

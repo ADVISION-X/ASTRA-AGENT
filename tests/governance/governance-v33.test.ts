@@ -430,7 +430,7 @@ test('consumer cross-repo specs bind dependency identity and authorized projecti
     ['docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json',
       ['contractId', 'providerRepo', 'version']],
     ['docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json',
-      ['authorityArtifact', 'contractId', 'generatedBy', 'hashAlgorithm', 'manifestHash', 'providerRepo', 'version']],
+      ['contractId', 'providerRepo', 'version']],
   ]);
   for (const [path, contractKeys] of expectedContractKeys) {
     const spec = JSON.parse(readFileSync(path, 'utf8')) as { specKind: string; contract: Record<string, unknown> };

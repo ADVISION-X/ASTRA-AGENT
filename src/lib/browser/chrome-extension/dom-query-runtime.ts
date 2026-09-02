@@ -11,6 +11,12 @@ const DOM_READ_INVALID = "BROWSER_DOM_READ_INVALID";
 const machineCode = (value: string): boolean => /^[A-Z][A-Z0-9_]+$/u.test(value);
 const staleNodeError = (error: unknown): boolean => error instanceof Error
   && /(?:could not find node|no node with given id|node.*(?:detached|does not exist|not found)|backend node.*not found)/iu.test(error.message);
+const noLayoutBoxError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) return false;
+  const message = error.message.trim().replace(/\.$/u, "");
+  return message === "Could not compute box model"
+    || message === "Node does not have a layout object";
+};
 const domReadError = (error: unknown): Error => {
   if (error instanceof Error && machineCode(error.message)) return error;
   return new Error(staleNodeError(error) ? DOM_NODE_STALE : DOM_READ_INVALID, { cause: error });
@@ -311,6 +317,7 @@ const optionalBoxCenter = async (runtime: ExtensionDebuggerRuntime, tabId: numbe
   try {
     raw = await runtime.send(tabId, "DOM.getBoxModel", { nodeId });
   } catch (error) {
+    if (noLayoutBoxError(error)) return null;
     throw domReadError(error);
   }
   const model = record(record(raw).model);

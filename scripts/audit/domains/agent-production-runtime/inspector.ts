@@ -12,7 +12,7 @@ import { inspectSharedProductionRuntime } from "./runtime-inspection.js";
 import { inspectSeoPlugin } from "./seo-product-inspection.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
 
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V25";
+const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V28";
 const PLUGIN_ROOT = "src/plugins";
 const CATALOG_PATH = "src/lib/local-runtime/production/catalog.ts";
 const PLUGIN_CONTRACT_PATH = "src/lib/local-runtime/production/plugin.ts";
@@ -21,8 +21,10 @@ const CONTINUATION_PRODUCT_PLUGINS = new Set([
   "bazi-report-followup", "qimen-report-followup", "hehun-report-followup",
 ]);
 const CONTINUATION_PRODUCER_PLUGINS = new Set([
-  "bazi-ai-full-analysis", "bazi-chart-interpretation",
   "qimen-professional-answer", "hehun-ai-analysis",
+]);
+const BAZI_PRIVATE_BASE_PLUGINS = new Set([
+  "bazi-ai-full-analysis", "bazi-chart-interpretation",
 ]);
 const retiredPaths = [
   "src/capabilities/gpt/gpt-turn-executor.ts",
@@ -84,6 +86,35 @@ const inspectOwnedProductBase = (
 const inspectOwnedProductContinuation = (
   pluginId: string, source: string, path: string, findings: InspectorFinding[],
 ): void => {
+  if (BAZI_PRIVATE_BASE_PLUGINS.has(pluginId)) {
+    const requiredInOrder = [
+      'reservationKind: "reusable_origin"',
+      'callId: "complete-reusable-origin"',
+      'reservationKind: "derived_continuation"',
+      'callId: "complete-derived-continuation"',
+      'child: "acquire_gpt_continuation_lane"',
+      'child: "fork_exact_gpt_conversation_at_checkpoint"',
+      'child: "advance_gpt_continuation_lane"',
+    ];
+    let cursor = -1;
+    for (const token of requiredInOrder) {
+      const next = source.indexOf(token, cursor + 1);
+      if (next < 0) findings.push(finding("agent-production-runtime/bazi-six-atomic-continuation-calls",
+        path, `${pluginId} Bazi continuation Flow is missing ordered token ${token}.`));
+      else cursor = next;
+    }
+    for (const required of [
+      'kind: "current_artifact_read_grant"', '"bazi_private_base_input"',
+      '"bazi_formal_input"', '"result_contract"', 'raw_dom_bytes_utf8',
+      'semantic_admission_receipt_ref', 'sourceToChildRelationHash',
+    ]) if (!source.includes(required)) findings.push(finding(
+      "agent-production-runtime/bazi-private-base-isolated-formal-flow", path,
+      `${pluginId} Bazi private-base/formal Flow is missing ${required}.`));
+    if (source.includes("persist_gpt_continuation")) findings.push(finding(
+      "agent-production-runtime/bazi-no-legacy-continuation-writer", path,
+      `${pluginId} retains the legacy continuation writer beside reserve/complete.`));
+    return;
+  }
   if (CONTINUATION_PRODUCT_PLUGINS.has(pluginId)) {
     for (const required of ["acquire_gpt_continuation_lane", "focus_exact_gpt_conversation",
       "verify_gpt_conversation_identity", "advance_gpt_continuation_lane",
@@ -150,6 +181,23 @@ const inspectProductPlugins = (context: InspectorContext, findings: InspectorFin
     inspectOwnedProductContinuation(pluginId, source, path, findings);
     if (pluginId === "localization-production") inspectLocalizationProductBoundary(context, source, path, findings);
   }
+  const chartContractPath = `${PLUGIN_ROOT}/bazi-chart-interpretation/private-base-turn-contract.ts`;
+  const fullContractPath = `${PLUGIN_ROOT}/bazi-ai-full-analysis/private-base-turn-contract.ts`;
+  const chartContract = read(context, chartContractPath);
+  const fullContract = read(context, fullContractPath);
+  if (chartContract !== fullContract) findings.push(finding(
+    "agent-production-runtime/bazi-local-base-contract-byte-equality", chartContractPath,
+    "BZ05 and BZ03 local private-base contracts are not exact-byte equal.", "static.dependency"));
+  for (const [pluginId, contract] of [["bazi-chart-interpretation", chartContract],
+    ["bazi-ai-full-analysis", fullContract]] as const) {
+    for (const required of ["bazi-private-base-turn-contract.v1", "private-base", "GPT-5.6 Sol",
+      'reasoningTier: "pro_standard"', "物理上不得接收问题、经历、订单、支付或 Product Skill。",
+      "EXPECTED_PRIVATE_BASE_TURN_HASH"])
+      if (!contract.includes(required)) findings.push(finding(
+        "agent-production-runtime/bazi-local-base-contract-denominator",
+        `${PLUGIN_ROOT}/${pluginId}/private-base-turn-contract.ts`,
+        `${pluginId} local base contract is missing ${required}.`, "static.dependency"));
+  }
 };
 const inspectAgentProductionRuntime = (context: InspectorContext, findings: InspectorFinding[]): void => {
   inspectSharedProductionRuntime(context, findings);
@@ -174,6 +222,10 @@ const inspectAgentFilesystem = (context: InspectorContext, findings: InspectorFi
       && !files.some((entry) => entry.isFile() && entry.name === "flow.ts")) findings.push(finding(
       "agent-production-runtime/product-owned-flow-present", `${PLUGIN_ROOT}/${pluginId}/flow.ts`,
       `${pluginId} must contain its separately owned static Product Flow.`, "static.filesystem"));
+    if (BAZI_PRIVATE_BASE_PLUGINS.has(pluginId)
+      && !files.some((entry) => entry.isFile() && entry.name === "private-base-turn-contract.ts")) findings.push(finding(
+        "agent-production-runtime/bazi-local-base-contract-present", `${PLUGIN_ROOT}/${pluginId}`,
+        `${pluginId} must directly own its local private-base turn contract.`, "static.filesystem"));
   }
   for (const path of retiredPaths) if (existsSync(resolve(context.sealedRoot, path))) findings.push(finding(
     "agent-production-runtime/retired-path-absent", path,
@@ -246,6 +298,13 @@ const inspectAgentDependencies = (context: InspectorContext, findings: Inspector
       if (root && root !== pluginId && plugins.includes(root)) findings.push(finding(
         "agent-production-runtime/cross-product-import", path,
         `${pluginId} imports ${root}.`, "static.dependency", declaration.getStartLineNumber()));
+    }
+    if (BAZI_PRIVATE_BASE_PLUGINS.has(pluginId)) {
+      const flow = read(context, `${PLUGIN_ROOT}/${pluginId}/flow.ts`);
+      const other = pluginId === "bazi-chart-interpretation" ? "bazi-ai-full-analysis" : "bazi-chart-interpretation";
+      if (flow.includes(other)) findings.push(finding(
+        "agent-production-runtime/bazi-no-cross-product-base-contract-import",
+        `${PLUGIN_ROOT}/${pluginId}/flow.ts`, `${pluginId} references ${other}.`, "static.dependency"));
     }
   }
 };

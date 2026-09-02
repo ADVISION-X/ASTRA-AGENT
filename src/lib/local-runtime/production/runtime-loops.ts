@@ -22,7 +22,6 @@ import {
   wait,
   type RuntimeState,
 } from "./runtime-state.js";
-import { PRODUCTION_V6_MANIFEST_HASH } from "./v6-manifest-projection.js";
 
 export const runtimeState = async (state: RuntimeState) => {
   refreshLedgerReconciled(state);
@@ -60,7 +59,7 @@ export const readHealth = (state: RuntimeState): ProductionRuntimeHealth => {
     browserTargetState: browser.browserTargetState,
     browserLaneState: browser.browserAuthorityState !== "present"
       ? "blocked" : browserLane,
-    contractManifestHash: PRODUCTION_V6_MANIFEST_HASH,
+    contractManifestHash: state.session.device.control_manifest_hash,
     catalogHash: productionCatalogHash, activeCount: state.active.size,
     pendingOutboxCount: state.store.pendingOutboxCount(),
     lastSuccessfulHeartbeatAt: state.lastHeartbeat,

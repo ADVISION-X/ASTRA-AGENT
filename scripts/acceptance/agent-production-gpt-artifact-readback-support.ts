@@ -64,7 +64,7 @@ export const persistCheckpointArtifact = async (
     evidenceStore, jobId: providerTask.job_id, attemptId, stepId: checkpointCall.productStepId,
     exactCallIdentityHash,
     result: {
-      status: "success", failureCode: null, failureCause: null,
+      status: "success", failureCode: null, failureCause: null, failureBrowserEffect: null,
       value: {
         assistantTurnId: "conversation-turn-2", rawDomHtml, rawDomHash: digest(rawDomHtml),
         semanticText, semanticTextHash: digest(semanticText),
@@ -133,7 +133,13 @@ export const exerciseArtifactReadbackFailure = async (input: Readonly<{
 }>): Promise<void> => {
   const execution = artifactReadbackExecution({ ...input, failArtifactReadback: true });
   await assert.rejects(
-    () => execution.tools.readContinuationExact({ lookupKind: "frontier_ref", frontierRef: input.frontierRef }),
+    () => execution.tools.readContinuationExact({
+      lookupKind: "frontier_ref", frontierRef: input.frontierRef,
+      authorization: {
+        kind: "origin_authorization",
+        originAuthorizationRef: providerTask.business_identity.authorization_ref,
+      },
+    }),
     (error: unknown) => typedExecutionFailure(error)?.code === "GPT_TEXT_TASK_ARTIFACT_READBACK_FAILED",
   );
   let observed: unknown = null;

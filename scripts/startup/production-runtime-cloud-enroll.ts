@@ -3,16 +3,15 @@ import { fileURLToPath } from "node:url";
 
 import { enrollProductionDevice } from "../../src/lib/local-runtime/production/credential.js";
 import {
-  productionContractProjectionPaths,
-  verifyProductionContractProjection,
+  productionDependencyPath,
+  verifyProductionDependency,
 } from "./lib/production-contract-preflight.js";
 import { buildStartupSourceFingerprint } from "./lib/source-fingerprint.mjs";
 
 const agentRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const websiteRoot = path.resolve(
-  process.env.XUANSHU_WEBSITE_REPOSITORY_ROOT?.trim() || path.join(agentRoot, "..", "xuanxue-web"),
-);
-await verifyProductionContractProjection(productionContractProjectionPaths({ agentRoot, websiteRoot }));
+await verifyProductionDependency({
+  agentDependencyPath: productionDependencyPath({ agentRoot }),
+});
 
 const computedSourceFingerprint = buildStartupSourceFingerprint(agentRoot);
 const providedSourceFingerprint = process.env.GRASSEYE_SOURCE_FINGERPRINT?.trim();

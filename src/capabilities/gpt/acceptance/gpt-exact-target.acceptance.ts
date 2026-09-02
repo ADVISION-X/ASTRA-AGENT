@@ -10,6 +10,7 @@ import {
   type GptChildCapabilityId,
 } from "../index.js";
 import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
+import { executionFailure } from "../../../lib/typed-failure.js";
 import { hashCanonical } from "../../../lib/local-runtime/production/contracts.js";
 import { emitQualityProofObservation } from "../../../../scripts/audit/shared/proof-observation.js";
 import {
@@ -50,7 +51,7 @@ import "./gpt-conversation.acceptance.js";
 const gpt = createGptAbilityGroup();
 type GptExecutionContext = Parameters<GptAbilityGroup["execute"]>[1];
 assert.deepEqual(gpt.listChildCapabilityIds(), EXPECTED_GPT_CHILD_IDS);
-assert.equal(Object.keys(GPT_CHILD_CAPABILITY_CONTRACTS).length, 23);
+assert.equal(Object.keys(GPT_CHILD_CAPABILITY_CONTRACTS).length, 26);
 
 assertGptExactTargetSourceShape(import.meta.url);
 
@@ -428,6 +429,28 @@ assert.equal(uploadObservations, 3, "attachment name alone must not complete rec
 assert.equal(uploadingFixture.waitDurations().length, 2, "pending upload must wait only between fresh observations");
 assert.equal(uploadingFixture.physicalMutations(), 0, "attachment reconciliation must remain read-only");
 
+let staleReadyReads = 0;
+const staleAttachmentFixture = fakeBrowser((intent) => {
+  if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_REGION_SELECTOR) return { count: 1 };
+  if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_ITEM_SELECTOR) {
+    return { count: 1, matches: [{ ariaLabel: providerAttachmentName("甲.pdf", "artifact:1") }] };
+  }
+  if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_READY_ICON_SELECTOR) {
+    staleReadyReads += 1;
+    if (staleReadyReads === 1) throw executionFailure("failed", "BROWSER_DOM_NODE_STALE");
+    return { count: 1 };
+  }
+  if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_UPLOAD_SPINNER_SELECTOR) return { count: 0 };
+  throw new Error(`UNEXPECTED_STALE_ATTACHMENT_INTENT:${intent.kind}`);
+});
+const recoveredStaleAttachment = await execute("reconcile_gpt_attachment_set", staleAttachmentFixture.browser, {
+  files: [approvedAttachment], timeoutMs: 2_000,
+});
+assert.equal(recoveredStaleAttachment.status, "success",
+  recoveredStaleAttachment.failureCode ?? "stale attachment observation did not recover");
+assert.equal(staleReadyReads, 2, "stale attachment nodes must be discarded and queried fresh");
+assert.equal(staleAttachmentFixture.physicalMutations(), 0, "stale attachment recovery must remain read-only");
+
 let simulatedNow = 0;
 const delayedUploadFixture = fakeBrowser((intent) => {
   if (intent.kind === "find" && intent.selector === GPT_ATTACHMENT_REGION_SELECTOR) return { count: 1 };
@@ -471,21 +494,21 @@ assert.equal(uploadTimedOut.failureCode, "GPT_ATTACHMENT_UPLOAD_TIMEOUT:ready=0:
 assert.equal(uploadTimeoutFixture.physicalMutations(), 0, "timed-out reconciliation must never mutate the page");
 
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V16",
+  lawId: "LAW-GPT-001-V17",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:10", "forbidden:11", "forbidden:13", "forbidden:3", "forbidden:5", "forbidden:9", "summary"],
   locator: "acceptance:gpt-exact-target:atomic-child-golden",
-  observedValue: "23 public child contracts exercised with exact target model attachment and response postconditions",
+  observedValue: "26 public child contracts include atomic reservation completion fork target model attachment and response postconditions",
 });
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V16",
+  lawId: "LAW-GPT-001-V17",
   evidenceMode: "exam.property",
   clauses: ["forbidden:10", "forbidden:13", "forbidden:14", "forbidden:5", "forbidden:7", "forbidden:8", "forbidden:9", "summary"],
   locator: "acceptance:gpt-exact-target:candidate-property-matrix",
   observedValue: "candidate cardinality visibility identity and typed blocker mutants rejected without extra mutation",
 });
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V16",
+  lawId: "LAW-GPT-001-V17",
   evidenceMode: "exam.state-machine",
   clauses: ["forbidden:0", "forbidden:12", "forbidden:14", "forbidden:4", "forbidden:6", "forbidden:7", "summary"],
   locator: "acceptance:gpt-exact-target:wait-recovery-state-machine",

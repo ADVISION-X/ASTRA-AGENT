@@ -2,7 +2,6 @@ import { gptExactCallIdentityHash, type GptChildCapabilityIntent } from "../cont
 import { executionFailure } from "../../../lib/typed-failure.js";
 import type { GptChildHandlerMap } from "../web/child-handler.js";
 import {
-  arrayInput,
   recordInput,
   requireExactInputKeys,
   stringInput,
@@ -217,23 +216,164 @@ export const sessionChildHandlers = {
     });
   },
 
-  async acquire_gpt_continuation_lane(intent, context) {
-    requireExactInputKeys(intent, [
-      "allowedSourcePluginIds", "authorizationRef", "continuationRef", "jobId",
-      "ownerRef", "pluginId", "subjectRef",
-    ]);
-    const allowed = arrayInput(intent, "allowedSourcePluginIds");
-    if (!allowed.every((value): value is string => typeof value === "string" && value.length > 0)) {
-      throw executionFailure("failed", "GPT_CONTINUATION_SOURCE_PLUGIN_IDS_INVALID");
+  async reserve_exact_gpt_continuation_once(intent, context) {
+    const reservationKind = stringInput(intent, "reservationKind");
+    const derived = reservationKind === "derived_continuation";
+    if (reservationKind !== "reusable_origin" && !derived) {
+      throw executionFailure("failed", "GPT_CONTINUATION_RESERVATION_KIND_INVALID");
     }
-    const lane = controller(context).acquire({
+    requireExactInputKeys(intent, [
+      "authorizationRef", "laneVersion", "originProvenanceHash", "ownerRef",
+      "reservationEffectHash", "reservationFenceHash", "reservationIdentityHash",
+      "reservationKind", "semanticContractHash", ...(derived ? ["sourceCheckpointHash"] : []), "subjectRef",
+    ]);
+    const reservationIdentityHash = hashField(
+      intent.input.reservationIdentityHash, "GPT_CONTINUATION_RESERVATION_INVALID",
+    );
+    const readback = controller(context).reserve({
+      continuation_ref: `gpt-continuation:${reservationIdentityHash.slice(7)}`,
+      reservation_kind: reservationKind,
+      reservation_identity_hash: reservationIdentityHash,
+      creator_job_id: intent.jobId,
+      creator_plugin_id: intent.pluginId,
+      creator_plugin_version: intent.pluginVersion,
+      owner_ref: stringInput(intent, "ownerRef"),
+      subject_ref: stringInput(intent, "subjectRef"),
+      authorization_ref: stringInput(intent, "authorizationRef"),
+      source_checkpoint_hash: derived
+        ? hashField(intent.input.sourceCheckpointHash, "GPT_CONTINUATION_RESERVATION_INVALID") : null,
+      reservation_fence_hash: hashField(
+        intent.input.reservationFenceHash, "GPT_CONTINUATION_RESERVATION_INVALID",
+      ),
+      reservation_effect_hash: hashField(
+        intent.input.reservationEffectHash, "GPT_CONTINUATION_RESERVATION_INVALID",
+      ),
+      origin_provenance_hash: hashField(
+        intent.input.originProvenanceHash, "GPT_CONTINUATION_RESERVATION_INVALID",
+      ),
+      semantic_contract_hash: hashField(
+        intent.input.semanticContractHash, "GPT_CONTINUATION_RESERVATION_INVALID",
+      ),
+      lane_version: positiveIntegerField(intent.input.laneVersion, "GPT_CONTINUATION_RESERVATION_INVALID"),
+    });
+    return success({
+      value: {
+        continuationRef: readback.continuation_ref,
+        reservationIdentityHash: readback.reservation_identity_hash,
+        laneVersion: readback.lane_version,
+        reservationFenceHash: readback.reservation_fence_hash,
+        complete: readback.complete,
+        opaqueReadGrantHash: readback.opaque_read_grant_hash,
+      },
+      candidateCount: null,
+      observedSemantics: ["one reservation identity", "same continuation store", "reservation CAS read back"],
+      committedMutation: "confirmed",
+    });
+  },
+
+  async complete_exact_gpt_continuation_reservation_once(intent, context) {
+    requireExactInputKeys(intent, [
+      "artifactHash", "artifactRef", "checkpoint", "completionReceiptHash", "laneVersion",
+      "opaqueReadGrantHash", "provider", "reservationFenceHash", "reservationIdentityHash",
+      "semanticAdmissionReceipt", "semanticAdmissionReceiptHash", "semanticAdmissionReceiptRef",
+    ]);
+    const reservationIdentityHash = hashField(
+      intent.input.reservationIdentityHash, "GPT_CONTINUATION_COMPLETION_INVALID",
+    );
+    const semanticReceipt = recordInput(intent, "semanticAdmissionReceipt");
+    exactRecordKeys(semanticReceipt, [
+      "artifact_hash", "artifact_ref", "contract_evaluation_hash", "contract_hash", "outcome", "schema_version",
+    ], "GPT_CONTINUATION_COMPLETION_INVALID");
+    const stored = controller(context).complete({
+      continuation_ref: `gpt-continuation:${reservationIdentityHash.slice(7)}`,
+      reservation_identity_hash: reservationIdentityHash,
+      creator_job_id: intent.jobId,
+      lane_version: positiveIntegerField(intent.input.laneVersion, "GPT_CONTINUATION_COMPLETION_INVALID"),
+      reservation_fence_hash: hashField(
+        intent.input.reservationFenceHash, "GPT_CONTINUATION_COMPLETION_INVALID",
+      ),
+      provider: providerFrom(intent),
+      checkpoint: textCheckpointFromRecord(recordInput(intent, "checkpoint"), "GPT_CONTINUATION_COMPLETION_INVALID"),
+      artifact_ref: stringInput(intent, "artifactRef"),
+      artifact_hash: hashField(intent.input.artifactHash, "GPT_CONTINUATION_COMPLETION_INVALID"),
+      semantic_admission_receipt_ref: stringInput(intent, "semanticAdmissionReceiptRef"),
+      semantic_admission_receipt_hash: hashField(
+        intent.input.semanticAdmissionReceiptHash, "GPT_CONTINUATION_COMPLETION_INVALID",
+      ),
+      semantic_admission_receipt: Object.freeze({
+        schema_version: semanticReceipt.schema_version === "exact-semantic-admission-receipt.v1"
+          ? semanticReceipt.schema_version : (() => { throw executionFailure("failed", "GPT_CONTINUATION_COMPLETION_INVALID"); })(),
+        artifact_ref: textField(semanticReceipt.artifact_ref, "GPT_CONTINUATION_COMPLETION_INVALID"),
+        artifact_hash: hashField(semanticReceipt.artifact_hash, "GPT_CONTINUATION_COMPLETION_INVALID"),
+        contract_hash: hashField(semanticReceipt.contract_hash, "GPT_CONTINUATION_COMPLETION_INVALID"),
+        contract_evaluation_hash: hashField(
+          semanticReceipt.contract_evaluation_hash, "GPT_CONTINUATION_COMPLETION_INVALID",
+        ),
+        outcome: semanticReceipt.outcome === "accepted"
+          ? semanticReceipt.outcome : (() => { throw executionFailure("failed", "GPT_CONTINUATION_COMPLETION_INVALID"); })(),
+      }),
+      opaque_read_grant_hash: hashField(intent.input.opaqueReadGrantHash, "GPT_CONTINUATION_COMPLETION_INVALID"),
+      completion_receipt_hash: hashField(
+        intent.input.completionReceiptHash, "GPT_CONTINUATION_COMPLETION_INVALID",
+      ),
+    });
+    return success({
+      value: {
+        continuationRef: stored.continuation_ref,
+        reservationIdentityHash: stored.reservation_identity_hash,
+        laneVersion: stored.lane_version,
+        completionReceiptHash: stored.completion_receipt_hash,
+      },
+      candidateCount: null,
+      observedSemantics: ["same reservation", "completion receipt committed", "reservation lane released"],
+      committedMutation: "confirmed",
+    });
+  },
+
+  async acquire_gpt_continuation_lane(intent, context) {
+    const authorization = recordInput(intent, "authorization");
+    const grant = authorization.kind === "continuation_lane_use_grant";
+    requireExactInputKeys(intent, [
+      "authorization", "continuationRef", ...(grant ? ["parentManifestHash", "parentManifestId"] : []),
+      "ownerRef", "subjectRef",
+    ]);
+    exactRecordKeys(authorization, grant
+      ? ["currentAuthorizationRef", "currentJobId", "kind", "opaqueLaneUseGrantHash"]
+      : ["currentAuthorizationRef", "kind"], "GPT_CONTINUATION_AUTHORIZATION_INVALID");
+    if (authorization.kind !== "row_authorization" && !grant) {
+      throw executionFailure("failed", "GPT_CONTINUATION_AUTHORIZATION_INVALID");
+    }
+    const common = {
       continuationRef: stringInput(intent, "continuationRef"),
-      jobId: stringInput(intent, "jobId"),
-      pluginId: stringInput(intent, "pluginId"),
-      allowedSourcePluginIds: allowed,
+      jobId: intent.jobId,
+      pluginId: intent.pluginId,
       ownerRef: stringInput(intent, "ownerRef"),
       subjectRef: stringInput(intent, "subjectRef"),
-      authorizationRef: stringInput(intent, "authorizationRef"),
+    } as const;
+    const lane = controller(context).acquire(grant ? {
+      ...common,
+      authorization: {
+        kind: "continuation_lane_use_grant",
+        currentJobId: textField(authorization.currentJobId, "GPT_CONTINUATION_AUTHORIZATION_INVALID"),
+        currentAuthorizationRef: textField(
+          authorization.currentAuthorizationRef, "GPT_CONTINUATION_AUTHORIZATION_INVALID",
+        ),
+        opaqueLaneUseGrantHash: hashField(
+          authorization.opaqueLaneUseGrantHash, "GPT_CONTINUATION_AUTHORIZATION_INVALID",
+        ),
+      },
+      parentManifestId: stringInput(intent, "parentManifestId"),
+      parentManifestHash: hashField(
+        intent.input.parentManifestHash, "GPT_CONTINUATION_AUTHORIZATION_INVALID",
+      ),
+    } : {
+      ...common,
+      authorization: {
+        kind: "row_authorization",
+        currentAuthorizationRef: textField(
+          authorization.currentAuthorizationRef, "GPT_CONTINUATION_AUTHORIZATION_INVALID",
+        ),
+      },
     });
     return success({
       value: lane, candidateCount: null,

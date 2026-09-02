@@ -8,6 +8,8 @@
 
 ## 材料与事实
 
+- 必须逐项读取并核对全部锁定命盘材料、完整 READY 语料身份，以及 Website canonical Bazi PDF semantic manifest 的全部 ordered anchors；本产品只读取该 semantic manifest，不接收或复制 BZ02 chart PDF。
+- private base 只是同一 owner/subject 下可复用的非 canonical、非约束先验。formal 必须在隔离 child 中重新独立核对全部锁定事实、READY 语料与 anchors；允许 formal 与 private base 有证据地分歧，不得把 private base 升格为事实或报告结论。
 - 严格区分锁定盘面事实、系统类型化基线、古籍原文、既往 AI 内容、当前解释和现实外部事实。
 - 系统给出的身强弱、格局、用神、喜忌等基线可以被解释、限定或提出有证据的异议，但不得被当前回答改写成新的系统事实。
 - 面对有界候选集，分别说明跨候选稳定结论、候选专属结论、差异和仍无法确认的事项；不得把最佳拟合意见冒充已确认时辰。

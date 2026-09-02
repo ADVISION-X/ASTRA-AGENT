@@ -108,6 +108,10 @@ try {
   assert.equal(typeof continuationRef, "string");
   const frontier = await normalExecution.tools.readContinuationExact({
     lookupKind: "frontier_ref", frontierRef,
+    authorization: {
+      kind: "origin_authorization",
+      originAuthorizationRef: providerTask.business_identity.authorization_ref,
+    },
   });
   assert.equal(frontier?.lookupKind, "frontier_ref");
   if (frontier?.lookupKind !== "frontier_ref") throw new Error("FRONTIER_READBACK_MISSING");
@@ -153,6 +157,7 @@ try {
       status: "success",
       failureCode: null,
       failureCause: null,
+      failureBrowserEffect: null,
       value: {
         assistantTurnId: articleInput.assistantTurnId,
         rawDomHtml: articleRawDom,
@@ -228,6 +233,7 @@ try {
       status: "success",
       failureCode: null,
       failureCause: null,
+      failureBrowserEffect: null,
       value: {
         assistantTurnId: imageInput.assistantTurnId,
         semanticMediaId: "gpt-generated-image-main",
@@ -288,12 +294,12 @@ try {
     actionOrdinal: 32,
     input: {
       continuationRef: frontier.continuationRef,
-      jobId: providerTask.job_id,
-      pluginId: "public-knowledge-article-pipeline",
-      allowedSourcePluginIds: ["public-knowledge-article-pipeline"],
       ownerRef: providerTask.business_identity.owner_ref,
       subjectRef: providerTask.business_identity.subject_ref,
-      authorizationRef: providerTask.business_identity.authorization_ref,
+      authorization: {
+        kind: "row_authorization",
+        currentAuthorizationRef: providerTask.business_identity.authorization_ref,
+      },
     },
   });
   const imageProvider = {
@@ -354,6 +360,10 @@ try {
   });
   const imageFrontier = await normalExecution.tools.readContinuationExact({
     lookupKind: "frontier_ref", frontierRef,
+    authorization: {
+      kind: "origin_authorization",
+      originAuthorizationRef: providerTask.business_identity.authorization_ref,
+    },
   });
   assert.equal(imageFrontier?.lookupKind, "frontier_ref");
   if (imageFrontier?.lookupKind !== "frontier_ref") throw new Error("IMAGE_FRONTIER_READBACK_MISSING");
@@ -397,6 +407,7 @@ try {
       value: null,
       failureCode: "GPT_CONTINUATION_RELEASE_TEST_FAILURE",
       failureCause: { name: "Error", code: "ECONNRESET" },
+      failureBrowserEffect: null,
       proof: {
         schemaVersion: "gpt-child-capability-proof.v2",
         ...failedIdentity, executionId: `gpt-call:${failedExactHash.slice(7)}`,

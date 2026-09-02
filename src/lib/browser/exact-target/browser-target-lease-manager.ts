@@ -181,8 +181,13 @@ export class BrowserTargetLeaseManager {
         return result;
       } catch (error) {
         const mutationOutcome = this.commandActor.mutationOutcome(permit.commandId);
+        const browserOutcome = this.commandActor.browserOutcome(permit.commandId);
         if (mutationOutcome === "dispatched") state.pendingMutationCommandIds.push(permit.commandId);
-        throw browserExecutionFailure(error, mutationOutcome);
+        throw browserExecutionFailure(error, mutationOutcome, browserOutcome ? {
+          effectScope: permit.replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local",
+          childCapabilityId: permit.childCapabilityId,
+          browserOutcome,
+        } : null);
       } finally {
         state.commandInFlight = false;
       }

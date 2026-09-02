@@ -108,12 +108,12 @@ try {
 
   const acquired = await execute("acquire_gpt_continuation_lane", {
     continuationRef,
-    jobId: sourceTask.job_id,
-    pluginId: identity.plugin_id,
-    allowedSourcePluginIds: [identity.plugin_id],
     ownerRef: sourceTask.business_identity.owner_ref,
     subjectRef: sourceTask.business_identity.subject_ref,
-    authorizationRef: sourceTask.business_identity.authorization_ref,
+    authorization: {
+      kind: "row_authorization",
+      currentAuthorizationRef: sourceTask.business_identity.authorization_ref,
+    },
   });
   assert.equal(acquired.status, "success", acquired.failureCode ?? "acquire continuation failed");
   const released = await execute("release_gpt_continuation_lane", {
@@ -129,12 +129,12 @@ try {
 
   const reacquired = await execute("acquire_gpt_continuation_lane", {
     continuationRef,
-    jobId: sourceTask.job_id,
-    pluginId: identity.plugin_id,
-    allowedSourcePluginIds: [identity.plugin_id],
     ownerRef: sourceTask.business_identity.owner_ref,
     subjectRef: sourceTask.business_identity.subject_ref,
-    authorizationRef: sourceTask.business_identity.authorization_ref,
+    authorization: {
+      kind: "row_authorization",
+      currentAuthorizationRef: sourceTask.business_identity.authorization_ref,
+    },
   });
   assert.equal(reacquired.status, "success", reacquired.failureCode ?? "reacquire continuation failed");
   const advancedProvider = { ...provider, prior_turn_marker: "turn:advanced" } as const;

@@ -1,14 +1,39 @@
 import { executionFailure } from "../../../lib/typed-failure.js";
+import { createHash } from "node:crypto";
 import { gptContinuationIdentityHash } from "../schema.js";
 
 import type {
   GptContinuationStorePort,
   GptContinuationCheckpoint,
   GptContinuationFrontierBinding,
+  GptContinuationCompletionInput,
   GptContinuationOriginCheckpoint,
+  GptContinuationReservation,
+  GptContinuationReservationReadback,
   GptProviderContinuation,
   StoredGptContinuation,
 } from "./gpt-continuation-store-port.js";
+import { gptContinuationUsable } from "./gpt-continuation-store-port.js";
+
+export type AcquireGptContinuationLaneAuthorization =
+  | Readonly<{ kind: "row_authorization"; currentAuthorizationRef: string }>
+  | Readonly<{
+      kind: "continuation_lane_use_grant";
+      currentJobId: string;
+      currentAuthorizationRef: string;
+      opaqueLaneUseGrantHash: `sha256:${string}`;
+    }>;
+
+const canonicalValue = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(canonicalValue);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(Object.entries(value as Readonly<Record<string, unknown>>)
+    .sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)
+    .map(([key, child]) => [key, canonicalValue(child)]));
+};
+
+const hashCanonical = (value: unknown): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(JSON.stringify(canonicalValue(value))).digest("hex")}`;
 
 export interface GptContinuationLane {
   readonly continuation_ref: string;
@@ -140,6 +165,27 @@ const isAcquiredAdvance = (stored: StoredGptContinuation | null, input: AdvanceI
 export class GptSessionController {
   public constructor(private readonly store: GptContinuationStorePort) {}
 
+  public reserve(input: GptContinuationReservation): GptContinuationReservationReadback {
+    const binding = this.store.readGptContinuationExecutionBinding(input.creator_job_id);
+    if (input.creator_plugin_version < 1 || input.lane_version < 1) {
+      throw executionFailure("failed", "GPT_CONTINUATION_RESERVATION_INVALID");
+    }
+    if (!binding
+      || binding.plugin_id !== input.creator_plugin_id
+      || binding.plugin_version !== input.creator_plugin_version
+      || binding.owner_ref !== input.owner_ref
+      || binding.subject_ref !== input.subject_ref
+      || binding.authorization_ref !== input.authorization_ref) {
+      throw executionFailure("failed", "GPT_CONTINUATION_RESERVATION_AUTHORIZATION_INVALID");
+    }
+    return this.store.reserveExactGptContinuation(input);
+  }
+
+  public complete(input: GptContinuationCompletionInput): StoredGptContinuation {
+    assertProviderCheckpointPair(input.provider, input.checkpoint, input.provider.prior_task_id);
+    return this.store.completeExactGptContinuationReservation(input);
+  }
+
   public persist(input: Readonly<{
     continuationRef: string;
     jobId: string;
@@ -202,20 +248,48 @@ export class GptSessionController {
     continuationRef: string;
     jobId: string;
     pluginId: string;
-    allowedSourcePluginIds: readonly string[];
     ownerRef: string;
     subjectRef: string;
-    authorizationRef: string;
+    authorization: AcquireGptContinuationLaneAuthorization;
+    parentManifestId?: string;
+    parentManifestHash?: `sha256:${string}`;
   }>): GptContinuationLane {
+    const binding = this.store.readGptContinuationExecutionBinding(input.jobId);
     const current = this.store.readGptContinuation(input.continuationRef);
-    if (!current
-      || input.allowedSourcePluginIds.length === 0
-      || !input.allowedSourcePluginIds.includes(current.plugin_id)
+    if (!binding
+      || binding.plugin_id !== input.pluginId
+      || binding.owner_ref !== input.ownerRef
+      || binding.subject_ref !== input.subjectRef
+      || !current
+      || !gptContinuationUsable(current)
       || current.owner_ref !== input.ownerRef
       || current.subject_ref !== input.subjectRef
-      || current.authorization_ref !== input.authorizationRef
       || current.conversation_identity_hash !== gptContinuationIdentityHash(current.provider)) {
       throw executionFailure("failed", "GPT_CONTINUATION_NOT_AUTHORIZED");
+    }
+    if (input.authorization.kind === "row_authorization") {
+      if (input.authorization.currentAuthorizationRef !== binding.authorization_ref
+        || input.authorization.currentAuthorizationRef !== current.authorization_ref
+        || input.parentManifestId !== undefined || input.parentManifestHash !== undefined) {
+        throw executionFailure("failed", "GPT_CONTINUATION_NOT_AUTHORIZED");
+      }
+    } else {
+      if (input.authorization.currentJobId !== input.jobId
+        || input.authorization.currentAuthorizationRef !== binding.authorization_ref
+        || !input.parentManifestId || !input.parentManifestHash
+        || input.authorization.opaqueLaneUseGrantHash !== hashCanonical({
+          kind: "continuation_lane_use_grant.v1",
+          current_job_id: input.jobId,
+          current_authorization_ref: input.authorization.currentAuthorizationRef,
+          parent_authorization_ref: current.authorization_ref,
+          owner_ref: current.owner_ref,
+          subject_ref: current.subject_ref,
+          parent_manifest_id: input.parentManifestId,
+          parent_manifest_hash: input.parentManifestHash,
+          continuation_ref: current.continuation_ref,
+        })) {
+        throw executionFailure("failed", "GPT_CONTINUATION_LANE_USE_GRANT_INVALID");
+      }
     }
     const acquired = this.store.acquireGptContinuationLane(input.continuationRef, input.jobId);
     if (acquired.plugin_id !== current.plugin_id

@@ -37,6 +37,39 @@ Product Plugin 的普通 TypeScript Flow
 公开面采用静态类型映射：
 
 ```ts
+type ExactGptContinuationReadback =
+  | ExactGptTurnMarkerReadback
+  | (ExactGptFrontierReadback & {
+      authorizationReadback:
+        | {
+            kind: "origin_authorization";
+            originAuthorizationRef: string;
+          }
+        | {
+            kind: "current_artifact_read_grant";
+            currentAuthorizationRef: string;
+            ownerScopeHash: `sha256:${string}`;
+            subjectRef: string;
+            sourceArtifactRef: string;
+            sourceCheckpointRef: string;
+            semanticAdmissionReceiptRef: string;
+            semanticAdmissionReceiptHash: `sha256:${string}`;
+            opaqueReadGrantHash: `sha256:${string}`;
+          };
+    });
+
+type AcquireGptContinuationLaneAuthorization =
+  | {
+      kind: "row_authorization";
+      currentAuthorizationRef: string;
+    }
+  | {
+      kind: "continuation_lane_use_grant";
+      currentJobId: string;
+      currentAuthorizationRef: string;
+      opaqueLaneUseGrantHash: `sha256:${string}`;
+    };
+
 interface ProductGptTools {
   execute<K extends GptChildId>(call: {
     sessionKey: string;
@@ -61,7 +94,18 @@ interface ProductGptTools {
 
   readContinuationExact(query:
     | { lookupKind: "turn_marker"; turnMarker: string }
-    | { lookupKind: "frontier_ref"; frontierRef: `sha256:${string}` }
+    | {
+        lookupKind: "frontier_ref";
+        frontierRef: `sha256:${string}`;
+        authorization: {
+          kind: "origin_authorization";
+          originAuthorizationRef: string;
+        } | {
+          kind: "current_artifact_read_grant";
+          currentAuthorizationRef: string;
+          opaqueReadGrantHash: `sha256:${string}`;
+        };
+      }
   ): Promise<null | ExactGptContinuationReadback>;
 }
 ```
@@ -103,9 +147,9 @@ Product Plugin 不得提供 Target、Document、selector、WAL、lease、fence�
 
 Browser Target/Document 绑定、mutation WAL 与 mutation outcome 对账属于 Browser Authority，不是 GPT Child。find/read/click、DOM 候选过滤和 selector 属于对应 Child 的私有实现，不再拆公共能力。
 
-`reserve_exact_gpt_continuation_once`、`complete_exact_gpt_continuation_reservation_once` 与现役 `acquire_gpt_continuation_lane` 必须始终由 Product 作为三次独立 `execute` 显式排列。reserve 的 typed union 只区分无 source checkpoint 的 reusable-origin 与绑定 exact source checkpoint 的 derived-continuation；两者都只在唯一 `production_continuations` row/store 写一次 reservation 或按完全相同内容幂等读回，冻结 creator job、lane/fence、effect identity 与 origin provenance。complete 只在同 reservation identity/lane/fence 上一次写齐 provider、task-owned artifact、Website exact semantic-admission receipt 与 opaque read-grant 必需字段，然后释放 reservation lane；必需字段未齐时 row 不 complete，现役 acquire 必须拒绝。DB commit 后 return 前崩溃只允许同内容 readback。其它 task 不得偷取未完成 reservation 或重做 origin effect；共享层不得出现 Bazi、private base、Product id、Prompt、nextStep、phase 或业务 status。
+`reserve_exact_gpt_continuation_once`、`complete_exact_gpt_continuation_reservation_once` 与现役 `acquire_gpt_continuation_lane` 必须始终由 Product 作为三次独立 `execute` 显式排列。reserve 的 typed union 只区分无 source checkpoint 的 reusable-origin 与绑定 exact source checkpoint 的 derived-continuation；两者都只在唯一 `production_continuations` row/store 写一次 reservation 或按完全相同内容幂等读回，冻结 creator job、lane/fence、effect identity 与 origin provenance。complete 只在同 reservation identity/lane/fence 上一次写齐 provider、task-owned artifact、Website exact semantic-admission receipt 与 opaque read-grant 必需字段，然后释放 reservation lane；必需字段未齐时 row 不 complete，现役 acquire 必须拒绝。acquire 默认只接受 `row_authorization`，current authorization 必须等于 row authorization；只有 typed `continuation_lane_use_grant` 将 current job/current authorization、row origin authorization、owner/subject、exact manifest 与 continuation relation 全部绑定并验证后，才允许同一 acquire Child 做一次跨 entitlement lane CAS。DB commit 后 return 前崩溃只允许同内容 readback。其它 task 不得偷取未完成 reservation 或重做 origin effect；共享层不得出现 Bazi、private base、Product id、Prompt、nextStep、phase 或业务 status。
 
-`readContinuationExact({lookupKind:"frontier_ref"})` 仍是唯一 product-neutral exact continuation 读面。普通读法严格复核 origin authorization；只有调用 Product 同时提供 Website 签发且 hash-bound 的 current authorization 与 opaque read grant 时，才可机械复核 owner/subject、origin/current authorization、source checkpoint、manifest/continuation relation 后读取同一 complete row 的 origin artifact。该能力不新增 query kind、API 或 store，零条返回 null，多条或任一绑定不等失败关闭。
+`readContinuationExact({lookupKind:"frontier_ref"})` 仍是唯一 product-neutral exact continuation 读面。`origin_authorization` 严格复核 origin authorization；`current_artifact_read_grant` 机械复核 current authorization、owner/subject、exact source artifact/checkpoint、semantic-admission receipt 与 opaque read-grant 后读取同一 complete row 的 origin artifact，不要求尚未存在的 manifest 或 child relation。返回型必须同时读回已验证 authorization kind/current authorization、semantic-admission receipt 与 opaque read-grant hash，让 Product 不需自创字段。`continuation_lane_use_grant` 不在该 read variant 混用，它只是现役 acquire 的 typed authorization。该能力不新增 query kind、API 或 store，零条返回 null，多条或当前 typed variant 任一绑定不等失败关闭。
 
 ## 3. 原子 Child 合同
 
@@ -160,7 +204,7 @@ success := ALREADY_OPEN OR (OPENABLE -> click once -> ALREADY_OPEN)
 
 附件入口固定为 `button#composer-plus-btn[data-testid='composer-plus-btn'][aria-haspopup='menu']`。允许为 hydration 有界等待；展开后必须在唯一 `div.__menu-item[tabindex='0']` 中由唯一叶子精确匹配“从电脑上传”。隐藏 `#upload-files` 只由 Browser Authority 在 dispatch 前校验，不作为上层可见候选。
 
-`attach_approved_gpt_files_once` 只负责一次获准 file-input batch。由于 Provider 会对跨会话重复文件名自动追加 `(n)`，该 Child 必须在不改变获准 bytes、sha256、artifactRef 与业务 display name 的前提下，为每个 attempt + artifact 派生唯一且确定的 `providerDisplayName`，以该精确名称构造临时上传文件并通过 Browser grant 发送；后续 Prompt 只能引用 Child 返回的 `providerDisplayName`，不得继续引用会被 Provider 改写的业务 display name。ZIP 与其它附件对 GPT Child 都是不透明 bytes；Child 不得解压、解释 entry、验证 Product 内部目录或另建材料清单。附件卡片与文件名出现不能证明 Provider 上传完成。`reconcile_gpt_attachment_set` 必须完整采用 Product 给定的有界 `timeoutMs`，不得以 60 秒或其它公共常量缩短，在该期限内重复读取 fresh DOM：attachment region 唯一、卡片数量与 NFC `providerDisplayName` 集合全部且仅有批准项，每个精确卡片的 `svg[data-testid='library-file-icon']` 都具有 Browser 可见盒子，并且 `svg[class*='animate-spin']` 可见数为零，才可成功。选择器必须直接落到待判定 SVG，不得用 `:has(...)` 让可见外层卡片掩盖不可见子节点。条件满足即提前返回；集合冲突立即失败；仅 spinner 或未完成卡片持续存在时等待到 Product 上限并以 `GPT_ATTACHMENT_UPLOAD_TIMEOUT` 失败。只有真实 Chrome 已实证并冻结唯一机器身份的明确 Provider 上传错误才可立即返回对应原生 typed failure；当前没有该身份时不得虚构通用错误 selector、文本规则或提前失败。该 Child 成功前 Product 不得写 Prompt 或提交；`submit_exact_gpt_turn_once` dispatch 前必须重新读取 composer，证明 exact prompt hash 与 turnMarker 仍在，否则以 `GPT_PROMPT_CHANGED_BEFORE_SUBMIT` 零 mutation 失败。
+`attach_approved_gpt_files_once` 只负责一次获准 file-input batch。由于 Provider 会对跨会话重复文件名自动追加 `(n)`，该 Child 必须在不改变获准 bytes、sha256、artifactRef 与业务 display name 的前提下，为每个 attempt + artifact 派生唯一且确定的 `providerDisplayName`，以该精确名称构造临时上传文件并通过 Browser grant 发送；后续 Prompt 只能引用 Child 返回的 `providerDisplayName`，不得继续引用会被 Provider 改写的业务 display name。ZIP 与其它附件对 GPT Child 都是不透明 bytes；Child 不得解压、解释 entry、验证 Product 内部目录或另建材料清单。附件卡片与文件名出现不能证明 Provider 上传完成。`reconcile_gpt_attachment_set` 必须完整采用 Product 给定的有界 `timeoutMs`，不得以 60 秒或其它公共常量缩短，在该期限内重复读取 fresh DOM：attachment region 唯一、卡片数量与 NFC `providerDisplayName` 集合全部且仅有批准项，每个精确卡片的 `svg[data-testid='library-file-icon']` 都具有 Browser 可见盒子，并且 `svg[class*='animate-spin']` 可见数为零，才可成功。选择器必须直接落到待判定 SVG，不得用 `:has(...)` 让可见外层卡片掩盖不可见子节点。Browser 将已识别的 DevTools no-layout/no-box 结果投影为当轮不可见候选时，Child 必须继续同一 `timeoutMs`；遇到 `BROWSER_DOM_NODE_STALE` 时必须丢弃旧 nodeId，并从 attachment region、exact labels、ready icons 与 spinners 开始重做完整 fresh Document 只读核验。两种情况都不得产生 mutation；只有 CDP record/number/coordinate payload 真实畸形的 `BROWSER_DOM_READ_INVALID` 才立即失败关闭。条件满足即提前返回；集合冲突立即失败；仅 spinner 或未完成卡片持续存在时等待到 Product 上限并以 `GPT_ATTACHMENT_UPLOAD_TIMEOUT` 失败。只有真实 Chrome 已实证并冻结唯一机器身份的明确 Provider 上传错误才可立即返回对应原生 typed failure；当前没有该身份时不得虚构通用错误 selector、文本规则、selector fallback、第二 DOM 读取链或第二上传路径。该 Child 成功前 Product 不得写 Prompt 或提交；`submit_exact_gpt_turn_once` dispatch 前必须重新读取 composer，证明 exact prompt hash 与 turnMarker 仍在，否则以 `GPT_PROMPT_CHANGED_BEFORE_SUBMIT` 零 mutation 失败。
 
 `wait_for_stable_gpt_text` 与 `wait_for_stable_gpt_image` 共用 GPT Owner 内唯一的 conversation-history 提示合同。每次 fresh probe 先只读检查可见 `[data-testid='modal-conversation-history-rate-limit']`：零个继续原 probe；恰好一个时必须同时证明其内恰好一个 `[role='dialog']`、唯一 `h2` 精确文本为“请求过于频繁”、唯一可见启用 `button` 精确文本为“明白了”。只有全部成立且本次 wait 尚未确认过该提示，才通过当前 exact wait call 的 Browser WAL 至多点击一次，并直接证明 root 变为零后重新执行原 conversation URL + marker + prompt hash 前置。多 root、结构/文本漂移、按钮多义或不可用、同次 wait 第二次出现都必须 typed fail 且不得再点击。该动作只关闭遮挡，绝不证明限制解除、回答稳定或允许 submit；不新增 Child、Product 分支、限流表、计时器或第二恢复状态。
 
@@ -176,4 +220,6 @@ Continuation lane 的结构边界固定为：首次 persist 必须先验证 orig
 
 固定 5 秒等待被删除。等待只允许是单个 Child 为 fresh DOM、hydration 或直接 postcondition 使用的有界实现，并由真实条件提前结束。Provider text/image wait 必须分解为 fresh DOM 驱动的短 probe，每次 probe 后根据实际 Provider 状态计算瞬时 nextCheckAt，未到时不进 Browser FIFO；每次重领都重新完成 canonical URL + marker + prompt hash + 相邻 assistant，并按类型重证文本 response hash 或图片 media/content identity，总生命期以 exact submit 首次 CONFIRMED 的 immutable terminalAt + Product timeoutMs 为 absoluteDeadline，重启不刷新。不得新增 wait table/ticket/durable nextCheckAt。`close_gpt_execution_profile` 只能使用当前 profile Owner 内经实证唯一的收束动作并直接证明 popup 缺席，不得假定点击 composer 必然收束 profile。
 
-聚焦验收必须证明：26 个 Child 精确；reserve/complete/acquire 三调用互不合并且每个 mutation count 恰为一，reservation 与 completion 的 commit-before-return 都只读回原 receipt，未 complete row 不能 acquire，非 creator 不能偷取未完成 reservation；opaque grant 的 current/origin authorization、owner/subject、source checkpoint、manifest/continuation 任一错配都在 artifact read 前失败。fork 的 CONFIRMED-before-return 只读回同一 child且 mutation 增量为零，source 错配、零/多 child 或 relation 多义均失败关闭。公共面无 turn API；产品能显式调用任意 Child 序列；每个已开始 Child span 在 Browser lease 获取、park、reacquire 或原子能力任一失败点都恰好产生一个 typed terminal；readCallFacts 与 readContinuationExact 都只读、无流程决策与无 failure/state/Target/WAL 泄漏，turn-marker/frontier-ref 查询互斥且互相 fallback 为零；模型面板支持 ALREADY_OPEN/OPENABLE，已选中和未选中两种真实页面状态都只点击唯一 radio 一次，expanded entry 点击计数为零，popup 保留、entry collapsed、simple active、advanced absent；五个推理数值往返；同一业务文件在不同 attempt 获得不同但确定的精确 `providerDisplayName`；一个 UTF-8 ZIP 仍只产生一次 file-input mutation，GPT Child 不读取其 entry；附件名称已出现但上传未完成时不得成功且不得产生 mutation，Product timeout 超过 60 秒时不得被公共 Child 截短，全部完成后立即成功，持续未完成时 typed timeout；Prompt 在提交前被页面清空或改写时不得点击；marker 外层 user 容器即使混入附件卡片、文件名与展开/收起文字，canonical rendered-prompt hash 仍等于原 composer prompt，inline code 反引号与正文尾换行被保留且只删除一个投影根分隔换行，正文自身漂移则失败；conversation-history 提示覆盖缺席、唯一、重复、多 root、标题/按钮漂移和按钮禁用；submission reconcile 必须覆盖 DOM candidate missing/ambiguous/stale 后 fresh read成功、真正 Target/Document 失效原样失败、且两者 submit mutation 增量均为零；submission-locator artifact 按 exact identity 幂等写读并在切换会话、进程重启后仍返回原定位事实；fresh 首轮在 continuation 与 checkpoint 均缺失时，必须用同一 accepted attempt 的 `current_attempt` exact submit receipt + 唯一 locator 恢复原 URL 且再次 submit 为零，缺失、损坏或多义 locator 必须失败关闭且再次 submit 仍为零；exact submit CONFIRMED 后分别注入 DOM typed cause、BROWSER_TARGET_INVALID、BROWSER_DOCUMENT_INVALID、channel fault、wait timeout、进程重启与 attempt cap 已满，全部保持同一 accepted attempt 和原 confirmed submit、再次 submit 为零，只有 Provider terminal negative/业务撤权/evidence 损坏或多义结束恢复资格；文本/image checkpoint、frontier origin/current、lane release、DISPATCHED 不重放、跨 Target generation mutation 禁重做、absoluteDeadline 不刷新及原生 cause 保真仍按前述合同证明。
+授权验收必须额外证明：`current_artifact_read_grant` 零 manifest/child-relation 要求且只在 current authorization、owner/subject、source artifact/checkpoint、semantic-admission receipt/read-grant 全闭合时读回；`continuation_lane_use_grant` 则只在 current/origin authorization、owner/subject、manifest/continuation relation 全闭合时允许现役 acquire 一次跨 entitlement CAS。两种 grant 不得互换、合并或补默认值。
+
+聚焦验收必须证明：26 个 Child 精确；reserve/complete/acquire 三调用互不合并且每个 mutation count 恰为一，reservation 与 completion 的 commit-before-return 都只读回原 receipt，未 complete row 不能 acquire，非 creator 不能偷取未完成 reservation；opaque grant 的 current/origin authorization、owner/subject、source checkpoint、manifest/continuation 任一错配都在 artifact read 前失败。fork 的 CONFIRMED-before-return 只读回同一 child且 mutation 增量为零，source 错配、零/多 child 或 relation 多义均失败关闭。公共面无 turn API；产品能显式调用任意 Child 序列；每个已开始 Child span 在 Browser lease 获取、park、reacquire 或原子能力任一失败点都恰好产生一个 typed terminal；readCallFacts 与 readContinuationExact 都只读、无流程决策与无 failure/state/Target/WAL 泄漏，turn-marker/frontier-ref 查询互斥且互相 fallback 为零；模型面板支持 ALREADY_OPEN/OPENABLE，已选中和未选中两种真实页面状态都只点击唯一 radio 一次，expanded entry 点击计数为零，popup 保留、entry collapsed、simple active、advanced absent；五个推理数值往返；同一业务文件在不同 attempt 获得不同但确定的精确 `providerDisplayName`；一个 UTF-8 ZIP 仍只产生一次 file-input mutation，GPT Child 不读取其 entry；附件名称已出现但上传未完成时不得成功且不得产生 mutation，ready SVG 的已识别 no-layout/no-box 只作为当轮不可见候选继续 fresh query，stale 丢弃旧 nodeId 后完整重查，畸形 CDP payload 才返回 `BROWSER_DOM_READ_INVALID`，Product timeout 超过 60 秒时不得被公共 Child 截短，全部完成后立即成功，持续未完成时 typed timeout；真实 Chrome 中 ready 后必须实际进入 `write_exact_gpt_prompt`，且 file-input mutation 仍恰为一次。Prompt 在提交前被页面清空或改写时不得点击；marker 外层 user 容器即使混入附件卡片、文件名与展开/收起文字，canonical rendered-prompt hash 仍等于原 composer prompt，inline code 反引号与正文尾换行被保留且只删除一个投影根分隔换行，正文自身漂移则失败；conversation-history 提示覆盖缺席、唯一、重复、多 root、标题/按钮漂移和按钮禁用；submission reconcile 必须覆盖 DOM candidate missing/ambiguous/stale 后 fresh read成功、真正 Target/Document 失效原样失败、且两者 submit mutation 增量均为零；submission-locator artifact 按 exact identity 幂等写读并在切换会话、进程重启后仍返回原定位事实；fresh 首轮在 continuation 与 checkpoint 均缺失时，必须用同一 accepted attempt 的 `current_attempt` exact submit receipt + 唯一 locator 恢复原 URL 且再次 submit 为零，缺失、损坏或多义 locator 必须失败关闭且再次 submit 仍为零；exact submit CONFIRMED 后分别注入 DOM typed cause、BROWSER_TARGET_INVALID、BROWSER_DOCUMENT_INVALID、channel fault、wait timeout、进程重启与 attempt cap 已满，全部保持同一 accepted attempt 和原 confirmed submit、再次 submit 为零，只有 Provider terminal negative/业务撤权/evidence 损坏或多义结束恢复资格；文本/image checkpoint、frontier origin/current、lane release、DISPATCHED 不重放、跨 Target generation mutation 禁重做、absoluteDeadline 不刷新及原生 cause 保真仍按前述合同证明。

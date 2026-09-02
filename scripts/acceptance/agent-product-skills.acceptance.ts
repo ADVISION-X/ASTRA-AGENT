@@ -28,7 +28,10 @@ import {
   exerciseSeoFrontierResume,
   exerciseSeoImageFrontierResume,
 } from "./agent-product-skills-frontier-support.js";
-import { exerciseProductOwnedFlow } from "./agent-product-owned-flow-support.js";
+import {
+  exerciseBaziReusableBasePair,
+  exerciseProductOwnedFlow,
+} from "./agent-product-owned-flow-support.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const hashText = (value: string): `sha256:${string}` =>
@@ -311,25 +314,50 @@ for (const plugin of productionPluginCatalog) {
         const acquire = run.calls.find((call) => call.child === "acquire_gpt_continuation_lane");
         assert.deepEqual(acquire?.input.continuationRef, run.task.continuation_ref);
       } else {
-        const persists = [
-          "bazi-ai-full-analysis", "bazi-chart-interpretation",
-          "qimen-professional-answer", "hehun-ai-analysis",
-        ].includes(plugin.pluginId);
-        assert.deepEqual(children, persists
-          ? [...INITIAL_TEXT_SEQUENCE, "persist_gpt_continuation"]
-          : INITIAL_TEXT_SEQUENCE);
+        if (plugin.pluginId === "bazi-ai-full-analysis" || plugin.pluginId === "bazi-chart-interpretation") {
+          assert.equal(children.filter((child) => child === "reserve_exact_gpt_continuation_once").length, 2);
+          assert.equal(children.filter((child) =>
+            child === "complete_exact_gpt_continuation_reservation_once").length, 2);
+          assert.equal(children.filter((child) => child === "acquire_gpt_continuation_lane").length, 1);
+          assert.equal(children.filter((child) =>
+            child === "fork_exact_gpt_conversation_at_checkpoint").length, 1);
+          assert.equal(children.filter((child) => child === "submit_exact_gpt_turn_once").length, 2);
+          assert.equal(children.at(-1), "advance_gpt_continuation_lane");
+          assert.equal(children.includes("persist_gpt_continuation"), false);
+        } else {
+          const persists = ["qimen-professional-answer", "hehun-ai-analysis"].includes(plugin.pluginId);
+          assert.deepEqual(children, persists
+            ? [...INITIAL_TEXT_SEQUENCE, "persist_gpt_continuation"]
+            : INITIAL_TEXT_SEQUENCE);
+        }
       }
     }
   }
 }
 
+const baziChart = resolveProductionPlugin("bazi_chart_interpretation", "produce").plugin;
+const baziAnalysis = resolveProductionPlugin("bazi_ai_full_analysis", "produce").plugin;
+const baziChartRoute = productionRoutePolicies.find((route) =>
+  route.product_id === "bazi_chart_interpretation" && route.action_id === "produce");
+const baziAnalysisRoute = productionRoutePolicies.find((route) =>
+  route.product_id === "bazi_ai_full_analysis" && route.action_id === "produce");
+assert(baziChartRoute && baziAnalysisRoute);
+const analysisThenChart = await exerciseBaziReusableBasePair(
+  baziAnalysis, baziAnalysisRoute, baziChart, baziChartRoute,
+);
+const chartThenAnalysis = await exerciseBaziReusableBasePair(
+  baziChart, baziChartRoute, baziAnalysis, baziAnalysisRoute,
+);
+assert.equal(analysisThenChart.reusableIdentityHash, chartThenAnalysis.reusableIdentityHash,
+  "BZ03 and BZ05 must derive the same reusable base identity in both execution orders");
+
 assert.equal(routeKeys.size, 39);
 assert.deepEqual([...productIds].sort(), [...ProductionProductIdSchema.options].sort());
 process.stdout.write("[ACCEPTANCE][agent-product-skills] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V25",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V28",
   evidenceMode: "exam.golden",
-  clauses: ["forbidden:0", "forbidden:1", "forbidden:15", "forbidden:16", "forbidden:2", "forbidden:21", "forbidden:22", "forbidden:29", "forbidden:5", "summary"],
+  clauses: ["forbidden:0", "forbidden:1", "forbidden:15", "forbidden:16", "forbidden:2", "forbidden:21", "forbidden:22", "forbidden:29", "forbidden:3", "forbidden:30", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:product-flow-golden",
-  observedValue: "12 product plugins and all 39 routes exercised; confirmed image submit survives Target Document DOM channel timeout wait-abort and rate-limit readback faults with zero repeated submit, while Provider terminal negative does not recover",
+  observedValue: "12 product plugins and all 39 routes exercised; BZ03 and BZ05 reuse the same admitted private base in both orders with zero repeated base Provider turn; confirmed image submit survives Target Document DOM channel timeout wait-abort and rate-limit readback faults with zero repeated submit, while Provider terminal negative does not recover",
 });

@@ -77,6 +77,29 @@ export const readSubmissionLocatorArtifact = async (
   return locator;
 };
 
+export const readForkRelationArtifact = async (
+  evidenceStore: ForensicsPersistenceAbilityGroup,
+  artifactRef: string,
+): Promise<Readonly<Record<string, unknown>>> => {
+  const row = await readJsonArtifact(
+    evidenceStore, artifactRef,
+    "GPT_FORK_RELATION_TASK_ARTIFACT_READBACK_FAILED",
+    "GPT_FORK_RELATION_TASK_ARTIFACT_INVALID",
+  );
+  if (row.schemaVersion !== "agent-gpt-fork-relation-artifact.v1"
+    || typeof row.sourceCanonicalConversationUrl !== "string"
+    || typeof row.childCanonicalConversationUrl !== "string"
+    || row.sourceCanonicalConversationUrl === row.childCanonicalConversationUrl
+    || typeof row.sourceAssistantTurnId !== "string"
+    || !/^conversation-turn-[1-9][0-9]*$/u.test(row.sourceAssistantTurnId)
+    || typeof row.sourceToChildRelationHash !== "string"
+    || !/^sha256:[a-f0-9]{64}$/u.test(row.sourceToChildRelationHash)) {
+    throw executionFailure("failed", "GPT_FORK_RELATION_TASK_ARTIFACT_INVALID");
+  }
+  const { schemaVersion: _schemaVersion, ...relation } = row;
+  return Object.freeze(relation);
+};
+
 export const readGeneratedImageCheckpointArtifacts = async (
   evidenceStore: ForensicsPersistenceAbilityGroup,
   artifactRefs: readonly string[],

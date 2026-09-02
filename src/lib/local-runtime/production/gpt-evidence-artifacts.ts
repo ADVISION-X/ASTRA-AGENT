@@ -135,6 +135,34 @@ const submissionLocator = (value: unknown): EvidenceArtifact => {
   };
 };
 
+const forkRelation = (value: unknown): EvidenceArtifact => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw executionFailure("failed", "GPT_FORK_RELATION_TASK_ARTIFACT_MISSING");
+  }
+  const row = value as Record<string, unknown>;
+  const fields = [
+    "sourceCanonicalConversationUrl", "sourceAssistantTurnId",
+    "childCanonicalConversationUrl", "sourceToChildRelationHash",
+  ] as const;
+  if (Object.keys(row).sort().join("\0") !== [...fields].sort().join("\0")
+    || typeof row.sourceCanonicalConversationUrl !== "string"
+    || typeof row.childCanonicalConversationUrl !== "string"
+    || row.sourceCanonicalConversationUrl === row.childCanonicalConversationUrl
+    || typeof row.sourceAssistantTurnId !== "string"
+    || !/^conversation-turn-[1-9][0-9]*$/u.test(row.sourceAssistantTurnId)
+    || typeof row.sourceToChildRelationHash !== "string"
+    || !/^sha256:[a-f0-9]{64}$/u.test(row.sourceToChildRelationHash)) {
+    throw executionFailure("failed", "GPT_FORK_RELATION_TASK_ARTIFACT_INVALID");
+  }
+  return {
+    suffix: "fork-relation", artifactType: "other", mimeType: "application/json",
+    content: new TextEncoder().encode(JSON.stringify({
+      schemaVersion: "agent-gpt-fork-relation-artifact.v1",
+      ...row,
+    })),
+  };
+};
+
 const artifactsFor = (
   result: GptChildCapabilityResult,
   intent: Parameters<GptAbilityGroup["execute"]>[0],
@@ -143,6 +171,7 @@ const artifactsFor = (
   if (intent.childCapabilityId === "checkpoint_gpt_generated_image") return generatedImageArtifacts(result.value);
   if (intent.childCapabilityId === "checkpoint_gpt_text_response") return [observedResponseArtifact(result.value)];
   if (intent.childCapabilityId === "reconcile_gpt_turn_submission") return [submissionLocator(result.value)];
+  if (intent.childCapabilityId === "fork_exact_gpt_conversation_at_checkpoint") return [forkRelation(result.value)];
   return [];
 };
 

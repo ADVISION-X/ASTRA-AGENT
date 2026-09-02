@@ -175,6 +175,7 @@ try {
       status: "success",
       failureCode: null,
       failureCause: null,
+      failureBrowserEffect: null,
       value: {
         assistantTurnId: checkpointInput.assistantTurnId,
         rawDomHtml: articleRawDom,
@@ -231,7 +232,7 @@ try {
     evidenceStore, jobId: originCopyTask.job_id, attemptId: originCopyAttemptId,
     stepId: "corpus_research", exactCallIdentityHash: originCopyExactHash,
     result: {
-      status: "success", failureCode: null, failureCause: null,
+      status: "success", failureCode: null, failureCause: null, failureBrowserEffect: null,
       value: {
         assistantTurnId: originCopyInput.assistantTurnId, rawDomHtml: articleRawDom,
         rawDomHash: digest(articleRawDom), semanticText: articleText,

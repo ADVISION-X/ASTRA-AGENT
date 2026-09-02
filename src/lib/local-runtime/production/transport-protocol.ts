@@ -6,10 +6,6 @@ import {
   WebsiteAgentTaskSchema,
   type WebsiteAgentTask,
 } from "./contracts.js";
-import { PRODUCTION_V6_MANIFEST_HASH } from "./v6-manifest-projection.js";
-
-export { PRODUCTION_V6_MANIFEST_HASH } from "./v6-manifest-projection.js";
-
 const hash = z.string().regex(/^sha256:[a-f0-9]{64}$/u)
   .transform((value): `sha256:${string}` => value as `sha256:${string}`);
 const reasonCode = z.string().min(1).max(512);
@@ -21,6 +17,7 @@ export const DeviceCredentialSchema = z.object({
   origin: z.string().url(),
   device_id: z.string().min(1),
   device_epoch: z.number().int().positive(),
+  control_manifest_hash: hash,
   credential: z.string().regex(/^aidc_v6_[A-Za-z0-9_-]{32,}$/u),
   enrolled_at: z.string().datetime(),
 }).strict();
@@ -68,7 +65,7 @@ const ExecutionFenceSchema = z.object({
   attempt_id: z.string().min(1),
   lease_version: z.number().int().positive(),
   lease_token_hash: hash,
-  control_contract_manifest_hash: z.literal(PRODUCTION_V6_MANIFEST_HASH),
+  control_contract_manifest_hash: hash,
   fence_hash: hash,
 }).strict();
 
@@ -101,7 +98,7 @@ const ExecutionGrantSchema = z.object({
   accept_by: z.string().datetime(),
   lease_expires_at: z.string().datetime(),
   renew_after_ms: z.literal(20_000),
-  control_contract_manifest_hash: z.literal(PRODUCTION_V6_MANIFEST_HASH),
+  control_contract_manifest_hash: hash,
   execution_fence: ExecutionFenceSchema,
 }).strict();
 
@@ -133,6 +130,7 @@ export const ClaimedProductionTaskSchema = WebsiteAgentTaskBaseSchema.extend({
     || grant.execution_fence.job_id !== task.job_id
     || grant.execution_fence.attempt_id !== grant.attempt_id
     || grant.execution_fence.lease_version !== grant.lease_version
+    || grant.execution_fence.control_contract_manifest_hash !== grant.control_contract_manifest_hash
     || grant.expected_catalog_hash !== grant.capability_manifest_hash) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "V6_CLAIM_TASK_GRANT_MISMATCH" });
   }

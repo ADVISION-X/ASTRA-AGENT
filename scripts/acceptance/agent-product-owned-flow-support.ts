@@ -1,4 +1,5 @@
 import assert from "../audit/shared/governance-exam-assert.js";
+import { writeFileSync } from "node:fs";
 
 import {
   gptAttachmentProviderDisplayName,
@@ -10,6 +11,8 @@ import {
   type WebsiteAgentTask,
 } from "../../src/lib/local-runtime/production/contracts.js";
 import type {
+  ExactGptContinuationQuery,
+  ExactGptContinuationReadback,
   ProductPlugin,
   ProductPluginOutput,
   SharedExecutionContext,
@@ -21,6 +24,13 @@ const HASH_B = `sha256:${"b".repeat(64)}` as ProductionHash;
 const dual = Object.freeze({ professional_markdown: "专业层", reader_explanation_markdown: "读者层" });
 const common = Object.freeze({ citations: [], uncertainties: [], limitations: [], safety_notes: [] });
 type ProductCall = Parameters<SharedExecutionContext["gpt"]["execute"]>[0];
+
+type ReusableBaseFixture = Readonly<{
+  reusableIdentityHash: ProductionHash;
+  sourceJobId: string;
+  opaqueReadGrantHash: ProductionHash;
+  readback: Extract<ExactGptContinuationReadback, { lookupKind: "frontier_ref" }>;
+}>;
 
 const parameterValue = (key: string, route: ProductionRoutePolicy): unknown => {
   const fixed: Readonly<Record<string, unknown>> = {
@@ -87,6 +97,65 @@ const taskFor = (route: ProductionRoutePolicy): WebsiteAgentTask => ({
       : "scheduled-quality-reflection.v1" as const,
   } : {}),
 });
+
+const prepareMaterialFiles = (
+  task: WebsiteAgentTask,
+  route: ProductionRoutePolicy,
+  reusableBase: ReusableBaseFixture | null,
+): void => {
+  let privateBaseInput: Record<string, unknown> | null = null;
+  if ((task.product_id === "bazi_chart_interpretation" || task.product_id === "bazi_ai_full_analysis")
+    && route.relation_kind === "primary") {
+    (task as WebsiteAgentTask & { privacy_subject_ref?: string }).privacy_subject_ref = "privacy-subject:1";
+    const baseContract = route.result_contract?.private_base;
+    assert(baseContract && typeof baseContract === "object" && !Array.isArray(baseContract));
+    const providerVisible = {
+      schema_version: "bazi-private-base-input.v1",
+      owner_scope_hash: task.parameters.owner_scope_hash,
+      privacy_subject_ref: task.privacy_subject_ref,
+      stable_base_authorization_ref: task.parameters.stable_base_authorization_ref,
+      interpretive_mode: "deep",
+      chart_snapshot: { snapshot_hash: HASH },
+      preflight: { verdict: "READY", ready_book_set_hash: HASH },
+      material_lineage: { lineage_hash: HASH, rule_catalog_hash: HASH },
+      chart_field_manifest: [{ field_path: "chart.day_master", value_hash: HASH }],
+      ready_books: [{ book_id: "book:1" }],
+      ready_book_manifest: [{ book_id: "book:1", index_hash: HASH }],
+      base_output_contract: baseContract,
+    };
+    const digest = hashCanonical(providerVisible);
+    (task.parameters as Record<string, unknown>).reusable_base_semantic_digest = digest;
+    privateBaseInput = {
+      ...providerVisible,
+      reusable_base_semantic_digest: digest,
+      ...(reusableBase ? {
+        reusable_base_candidate: {
+          reusable_identity_hash: reusableBase.reusableIdentityHash,
+          source_job_id: reusableBase.sourceJobId,
+          opaque_read_grant_hash: reusableBase.opaqueReadGrantHash,
+        },
+      } : {}),
+    };
+  }
+  if (task.product_id === "bazi_report_followup" && route.relation_kind === "continuation") {
+    Object.assign(task.parameters as Record<string, unknown>, {
+      thread_ref: task.continuation_ref,
+      current_authorization_ref: task.business_identity.authorization_ref,
+      parent_raw_output_hash: task.parent_result_hash,
+      parent_product_id: "bazi_chart_interpretation",
+      parent_authorization_ref: "authorization:parent",
+      parent_delivery_manifest_id: "manifest:parent",
+      parent_delivery_manifest_hash: HASH,
+      parent_lane_use_grant_hash: HASH,
+    });
+  }
+  for (const material of task.material_refs) {
+    const value = material.role === "bazi_private_base_input" ? privateBaseInput
+      : material.role === "result_contract" ? (route.result_contract ?? { schema_version: "fixture.v1" })
+        : { schema_version: `${material.role}.fixture.v1` };
+    writeFileSync(`/tmp/${material.display_name}`, JSON.stringify(value), "utf8");
+  }
+};
 
 const report = (schema_version: string, summary: string, blocks: string): Record<string, unknown> => ({
   schema_version, [summary]: dual, [blocks]: [{ section: "one" }], ...common,
@@ -190,6 +259,7 @@ const outputFor = (task: WebsiteAgentTask, route: ProductionRoutePolicy): Record
 
 type Harness = {
   calls: ProductCall[];
+  continuationReads: ExactGptContinuationQuery[];
   completed: ProductPluginOutput | null;
   facts: Map<string, Readonly<{ evidenceRef: string; mutation: boolean }>>;
   provider: GptProviderContinuation | null;
@@ -210,6 +280,18 @@ const initialProvider = (): GptProviderContinuation => Object.freeze({
   prior_turn_marker: `[GRASSEYE:${"b".repeat(24)}]`,
 });
 
+const privateBaseOutput = () => ({
+  schema_version: "bazi-base-interpretation-output-v2",
+  interpretation_markdown: "私有基础判断",
+  citations: [{ book_id: "book:1", locator: "macro:1" }],
+  uncertainties: [{ topic: "候选", status: "open", detail: "待复核", impact: "有限" }],
+  index_review_receipts: [{
+    book_id: "book:1", index_hash: HASH, macro_entry_count: 1,
+    navigation_node_count: 1, semantic_entry_count: 1,
+    review_status: "complete", applicability_note: "已复核",
+  }],
+});
+
 const valueForCall = (
   state: Harness,
   task: WebsiteAgentTask,
@@ -217,7 +299,24 @@ const valueForCall = (
   uploaded: readonly Readonly<Record<string, unknown>>[],
   call: ProductCall,
 ): unknown => {
-  if (call.child === "reconcile_gpt_attachment_set") return { files: uploaded };
+  if (call.child === "reconcile_gpt_attachment_set") {
+    const files = Array.isArray(call.input.files) ? call.input.files : [];
+    return {
+      files: files.map((file) => {
+        assert(file && typeof file === "object" && !Array.isArray(file));
+        const material = file as Readonly<Record<string, unknown>>;
+        return {
+          artifactRef: material.artifactRef,
+          displayName: material.displayName,
+          providerDisplayName: gptAttachmentProviderDisplayName(
+            String(material.displayName), "attempt-1", String(material.artifactRef),
+          ),
+          sha256: material.sha256,
+          bytes: material.bytes,
+        };
+      }),
+    };
+  }
   if (call.child === "reconcile_gpt_turn_submission") {
     return { canonicalConversationUrl: "https://chatgpt.com/c/current" };
   }
@@ -225,7 +324,34 @@ const valueForCall = (
     return { assistantTurnId: "assistant:1", responseHash: HASH };
   }
   if (call.child === "checkpoint_gpt_text_response") {
-    return { rawDomHash: HASH, semanticText: JSON.stringify(expected), semanticTextHash: HASH };
+    const output = call.productStepId === "private-base" ? privateBaseOutput() : expected;
+    return {
+      rawDomHtml: `<article>${JSON.stringify(output)}</article>`,
+      rawDomHash: HASH,
+      semanticText: JSON.stringify(output),
+      semanticTextHash: HASH,
+    };
+  }
+  if (call.child === "reserve_exact_gpt_continuation_once") {
+    return {
+      continuationRef: `gpt-continuation:${String(call.input.reservationIdentityHash).slice(7)}`,
+      reservationIdentityHash: call.input.reservationIdentityHash,
+      laneVersion: call.input.laneVersion,
+      reservationFenceHash: call.input.reservationFenceHash,
+      complete: false,
+    };
+  }
+  if (call.child === "complete_exact_gpt_continuation_reservation_once") {
+    state.provider = call.input.provider as GptProviderContinuation;
+    return { completionReceiptHash: call.input.completionReceiptHash };
+  }
+  if (call.child === "fork_exact_gpt_conversation_at_checkpoint") {
+    return {
+      sourceAssistantTurnId: call.input.sourceAssistantTurnId,
+      sourceCanonicalConversationUrl: call.input.sourceCanonicalConversationUrl,
+      childCanonicalConversationUrl: "https://chatgpt.com/c/formal-child",
+      sourceToChildRelationHash: HASH,
+    };
   }
   if (call.child === "persist_gpt_continuation") {
     state.provider = call.input.provider as GptProviderContinuation;
@@ -234,7 +360,7 @@ const valueForCall = (
   if (call.child === "acquire_gpt_continuation_lane") {
     assert.equal(state.laneOwned, false);
     state.laneOwned = true;
-    return { continuation_ref: task.continuation_ref, lane_version: 1, provider: state.provider };
+    return { continuation_ref: call.input.continuationRef, lane_version: 1, provider: state.provider };
   }
   if (call.child === "advance_gpt_continuation_lane") {
     assert.equal(state.laneOwned, true);
@@ -249,6 +375,7 @@ const contextFor = (
   state: Harness,
   task: WebsiteAgentTask,
   route: ProductionRoutePolicy,
+  reusableBase: ReusableBaseFixture | null,
 ): SharedExecutionContext => {
   const expected = outputFor(task, route);
   const uploaded = task.material_refs.map((material) => ({
@@ -266,7 +393,19 @@ const contextFor = (
     })),
     gpt: {
       attemptId: "attempt-1",
-      readContinuationExact: async () => null,
+      readContinuationExact: async (query) => {
+        state.continuationReads.push(query);
+        if (!reusableBase) return null;
+        assert.equal(query.lookupKind, "frontier_ref");
+        if (query.lookupKind !== "frontier_ref") return null;
+        assert.equal(query.frontierRef, reusableBase.reusableIdentityHash);
+        assert.equal(query.authorization.kind, "current_artifact_read_grant");
+        if (query.authorization.kind !== "current_artifact_read_grant") return null;
+        assert.equal(query.authorization.currentAuthorizationRef,
+          task.business_identity.authorization_ref);
+        assert.equal(query.authorization.opaqueReadGrantHash, reusableBase.opaqueReadGrantHash);
+        return reusableBase.readback;
+      },
       readCallFacts: async (call) => {
         const fact = state.facts.get(callKey(call));
         return {
@@ -307,28 +446,115 @@ const contextFor = (
 export const exerciseProductOwnedFlow = async (
   plugin: ProductPlugin,
   route: ProductionRoutePolicy,
+  options: Readonly<{ reusableBase?: ReusableBaseFixture }> = {},
 ) => {
   const task = taskFor(route);
+  const reusableBase = options.reusableBase ?? null;
+  prepareMaterialFiles(task, route, reusableBase);
   const state: Harness = {
-    calls: [], completed: null, facts: new Map(),
+    calls: [], continuationReads: [], completed: null, facts: new Map(),
     provider: route.relation_kind === "continuation" ? initialProvider() : null,
     laneOwned: false, physicalSubmitDispatches: 0,
   };
-  await plugin.execute(task, contextFor(state, task, route));
+  await plugin.execute(task, contextFor(state, task, route, reusableBase));
   assert(state.completed);
-  assert.equal(state.physicalSubmitDispatches, 1);
+  const baziTwoTurn = route.relation_kind === "primary"
+    && (plugin.pluginId === "bazi-chart-interpretation" || plugin.pluginId === "bazi-ai-full-analysis");
+  assert.equal(state.physicalSubmitDispatches, baziTwoTurn && !reusableBase ? 2 : 1);
   assert.equal(state.laneOwned, false);
   assert.equal(new Set(state.calls.map((call) => call.sessionKey)).size, 1);
   assert.ok(state.calls.every((call) => call.sessionKey.includes(plugin.pluginId)));
+  const firstActionOrdinal = reusableBase ? 18 : 1;
   assert.deepEqual(state.calls.map((call) => call.actionOrdinal),
-    state.calls.map((_call, index) => index + 1));
-  const prompt = state.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt;
+    state.calls.map((_call, index) => index + firstActionOrdinal));
+  const prompt = state.calls.filter((call) => call.child === "write_exact_gpt_prompt").at(-1)?.input.prompt;
   assert.equal(typeof prompt, "string");
   assert.match(String(prompt), new RegExp(`当前 Product Plugin：${plugin.pluginId}`, "u"));
-  for (const material of task.material_refs) {
+  for (const material of baziTwoTurn ? [] : task.material_refs) {
     assert.match(String(prompt), new RegExp(gptAttachmentProviderDisplayName(
       material.display_name, "attempt-1", material.material_id,
     ).replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"));
   }
-  return { calls: state.calls, completed: state.completed, task };
+  return { calls: state.calls, continuationReads: state.continuationReads,
+    completed: state.completed, task };
+};
+
+const reusableBaseFixtureFrom = (
+  run: Awaited<ReturnType<typeof exerciseProductOwnedFlow>>,
+): ReusableBaseFixture => {
+  const reserve = run.calls.find((call) => call.child === "reserve_exact_gpt_continuation_once"
+    && call.input.reservationKind === "reusable_origin");
+  const complete = run.calls.find((call) =>
+    call.child === "complete_exact_gpt_continuation_reservation_once"
+    && call.productStepId === "private-base");
+  assert(reserve && complete, "fresh Bazi primary must durably reserve and complete the reusable base");
+  const identity = reserve.input.reservationIdentityHash as ProductionHash;
+  const provider = complete.input.provider as GptProviderContinuation;
+  const stored = complete.input.checkpoint as Readonly<Record<string, unknown>>;
+  const semanticText = JSON.stringify(privateBaseOutput());
+  const checkpoint = Object.freeze({
+    checkpointKind: "text" as const,
+    sourceAttemptId: String(stored.sourceAttemptId),
+    assistantTurnId: String(stored.assistantTurnId),
+    artifactRef: String(stored.artifactRef),
+    rawDomHtml: `<article>${semanticText}</article>`,
+    rawDomHash: stored.rawDomHash as ProductionHash,
+    semanticText,
+    semanticTextHash: stored.semanticTextHash as ProductionHash,
+    canonicalConversationUrl: String(stored.canonicalConversationUrl),
+    promptHash: stored.promptHash as ProductionHash,
+    turnMarker: String(stored.turnMarker),
+    evidenceRef: String(stored.evidenceRef),
+    evidenceHash: stored.evidenceHash as ProductionHash,
+  });
+  const opaqueReadGrantHash = complete.input.opaqueReadGrantHash as ProductionHash;
+  return Object.freeze({
+    reusableIdentityHash: identity,
+    sourceJobId: run.task.job_id,
+    opaqueReadGrantHash,
+    readback: Object.freeze({
+      lookupKind: "frontier_ref" as const,
+      continuationRef: `gpt-continuation:${identity.slice(7)}`,
+      authorizationReadback: Object.freeze({
+        kind: "current_artifact_read_grant" as const,
+        currentAuthorizationRef: "authorization:1",
+        ownerScopeHash: hashCanonical({ kind: "gpt-owner-scope.v1", owner_ref: "owner:1" }),
+        subjectRef: "subject:1",
+        sourceArtifactRef: checkpoint.artifactRef,
+        sourceCheckpointRef: HASH,
+        semanticAdmissionReceiptRef: String(complete.input.semanticAdmissionReceiptRef),
+        semanticAdmissionReceiptHash: complete.input.semanticAdmissionReceiptHash as ProductionHash,
+        opaqueReadGrantHash,
+      }),
+      originProvider: provider,
+      originCheckpoint: checkpoint,
+      currentProvider: provider,
+      currentCheckpoint: checkpoint,
+    }),
+  });
+};
+
+export const exerciseBaziReusableBasePair = async (
+  originPlugin: ProductPlugin,
+  originRoute: ProductionRoutePolicy,
+  reusePlugin: ProductPlugin,
+  reuseRoute: ProductionRoutePolicy,
+) => {
+  const origin = await exerciseProductOwnedFlow(originPlugin, originRoute);
+  const reusableBase = reusableBaseFixtureFrom(origin);
+  const reuse = await exerciseProductOwnedFlow(reusePlugin, reuseRoute, { reusableBase });
+  assert.equal(reuse.calls.some((call) => call.productStepId === "private-base"), false,
+    "a completed exact base must cause zero private-base Provider or persistence actions");
+  assert.equal(reuse.calls.filter((call) => call.child === "submit_exact_gpt_turn_once").length, 1,
+    "a completed exact base must leave only the formal Provider turn");
+  assert.deepEqual(reuse.continuationReads, [{
+    lookupKind: "frontier_ref",
+    frontierRef: reusableBase.reusableIdentityHash,
+    authorization: {
+      kind: "current_artifact_read_grant",
+      currentAuthorizationRef: reuse.task.business_identity.authorization_ref,
+      opaqueReadGrantHash: reusableBase.opaqueReadGrantHash,
+    },
+  }]);
+  return { origin, reuse, reusableIdentityHash: reusableBase.reusableIdentityHash };
 };

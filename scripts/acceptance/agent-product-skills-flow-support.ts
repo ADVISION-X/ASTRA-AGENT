@@ -319,6 +319,20 @@ export const createContext = (
       return {
         lookupKind: "frontier_ref" as const,
         continuationRef: "gpt-continuation:test",
+        authorizationReadback: query.authorization.kind === "origin_authorization" ? {
+          kind: "origin_authorization" as const,
+          originAuthorizationRef: query.authorization.originAuthorizationRef,
+        } : {
+          kind: "current_artifact_read_grant" as const,
+          currentAuthorizationRef: query.authorization.currentAuthorizationRef,
+          ownerScopeHash: HASH,
+          subjectRef: "subject:test",
+          sourceArtifactRef: String(checkpoint.artifact_ref),
+          sourceCheckpointRef: HASH,
+          semanticAdmissionReceiptRef: "receipt:semantic",
+          semanticAdmissionReceiptHash: HASH,
+          opaqueReadGrantHash: query.authorization.opaqueReadGrantHash,
+        },
         originProvider: state.originProvider,
         originCheckpoint: textCheckpointReadback(
           checkpoint, JSON.stringify(researchOutput(decision)),
@@ -338,7 +352,6 @@ export const createContext = (
         mutation: stored?.mutation ? {
           owner: "browser", sourceAttemptId: stored.attemptId,
           effectScope: "provider_effect", outcome: "CONFIRMED", terminalAt: stored.terminalAt,
-          targetRef: "target:fixture", documentRef: "document:fixture",
           productStepId: input.productStepId, callId: input.callId,
           childCapabilityId: input.child, actionOrdinal: input.actionOrdinal,
         } : null,

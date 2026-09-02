@@ -45,6 +45,7 @@ export const throwGptChildFailure = (result: GptChildCapabilityResult): never =>
     mutationOutcome: result.proof.committedMutation,
     evidenceRef: persistedEvidenceRefs.get(result) ?? null,
     evidenceHash: result.proof.evidenceHash,
+    browserEffect: result.failureBrowserEffect,
     ...(native ? { cause: native } : {}),
   });
   const causeEventId = childFailureEventIds.get(result);

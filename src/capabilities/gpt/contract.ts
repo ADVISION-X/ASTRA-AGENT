@@ -28,12 +28,15 @@ const PAGE_MUTATIONS = [
   "close_gpt_execution_profile",
   "open_gpt_attachment_control",
   "attach_approved_gpt_files_once",
+  "fork_exact_gpt_conversation_at_checkpoint",
   "write_exact_gpt_prompt",
   "submit_exact_gpt_turn_once",
 ] as const;
 
 const SESSION_MUTATIONS = [
   "persist_gpt_continuation",
+  "reserve_exact_gpt_continuation_once",
+  "complete_exact_gpt_continuation_reservation_once",
   "acquire_gpt_continuation_lane",
   "advance_gpt_continuation_lane",
   "release_gpt_continuation_lane",
@@ -70,11 +73,13 @@ const transitionIds = new Set<GptChildCapabilityId>([
   "checkpoint_gpt_text_response",
   "wait_for_stable_gpt_image",
   "checkpoint_gpt_generated_image",
+  "fork_exact_gpt_conversation_at_checkpoint",
 ]);
 const sessionIds = new Set<GptChildCapabilityId>(SESSION_MUTATIONS);
 const mutationIds = new Set<GptChildCapabilityId>([...PAGE_MUTATIONS, ...SESSION_MUTATIONS]);
 const providerEffectIds = new Set<GptChildCapabilityId>([
   "attach_approved_gpt_files_once",
+  "fork_exact_gpt_conversation_at_checkpoint",
   "submit_exact_gpt_turn_once",
 ]);
 
@@ -153,6 +158,11 @@ export type GptChildCapabilityResult = Readonly<{
   proof: GptChildCapabilityProof;
   failureCode: string | null;
   failureCause: Readonly<{ name: string; code: string | null }> | null;
+  failureBrowserEffect: Readonly<{
+    effectScope: "target_local" | "provider_effect";
+    childCapabilityId: string;
+    browserOutcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
+  }> | null;
 }>;
 
 export type GptExecutionContext = Readonly<{

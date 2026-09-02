@@ -223,6 +223,7 @@ export const isRejectedCheckpointSequenceFailure = (
 ): value is SerializedExecutionFailure =>
   isSerializedTerminalFailure(value) && value.code === "AI_V6_CHECKPOINT_SEQUENCE_INVALID"
   && value.mutation_outcome === "no" && value.evidence_ref === null && value.evidence_hash === null
+  && value.effect_scope === null && value.child_capability_id === null && value.browser_outcome === null
   && value.cause?.name === "Error" && value.cause.code === null;
 
 const allowedRejectedIncidentRow = (row: RecoveryOutboxRow, body: Record<string, unknown>): boolean => {

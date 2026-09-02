@@ -209,6 +209,13 @@ export interface WebsiteAgentResult {
     media_type: string;
     receipt_hash: ProductionHash;
   }>;
+  readonly execution_context_object_receipt?: Readonly<{
+    object_ref: string;
+    sha256: ProductionHash;
+    bytes: number;
+    media_type: "application/json";
+    receipt_hash: ProductionHash;
+  }>;
   readonly evidence_refs: readonly string[];
   readonly execution_receipt_hash: ProductionHash;
   readonly continuation_ref?: string;
@@ -235,6 +242,13 @@ export const WebsiteAgentResultSchema = z.object({
     media_type: z.string().min(1).max(160),
     receipt_hash: hashSchema,
   }).strict(),
+  execution_context_object_receipt: z.object({
+    object_ref: z.string().min(1).max(1_000),
+    sha256: hashSchema,
+    bytes: z.number().int().nonnegative(),
+    media_type: z.literal("application/json"),
+    receipt_hash: hashSchema,
+  }).strict().optional(),
   evidence_refs: z.array(z.string().min(1).max(1_000)),
   execution_receipt_hash: hashSchema,
   continuation_ref: z.string().min(1).max(1_000).optional(),

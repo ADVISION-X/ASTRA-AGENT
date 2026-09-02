@@ -48,7 +48,8 @@ const persistPriorSubmit = async (input: ExactEffectInput) => {
     evidenceStore: input.evidenceStore, jobId: input.providerTask.job_id,
     attemptId: input.attemptId, stepId: imageSubmitCall.productStepId,
     exactCallIdentityHash: priorSubmitHash,
-    result: { status: "success", value: null, failureCode: null, failureCause: null, proof: {
+    result: { status: "success", value: null, failureCode: null, failureCause: null,
+      failureBrowserEffect: null, proof: {
       schemaVersion: "gpt-child-capability-proof.v2", ...identity,
       executionId: `gpt-call:${priorSubmitHash.slice(7)}`, actionOrdinal: imageSubmitCall.actionOrdinal,
       targetRefHash: HASH_A, beforeDocumentRefHash: HASH_A, afterDocumentRefHash: HASH_A,
@@ -60,6 +61,7 @@ const persistPriorSubmit = async (input: ExactEffectInput) => {
   });
   input.store.recordAttemptFailure(input.providerTask.job_id, input.attemptId, {
     code: "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", mutation_outcome: "no",
+    effect_scope: null, child_capability_id: null, browser_outcome: null,
     evidence_ref: null, evidence_hash: null, cause: null,
   });
   const nextAttemptId = "attempt:artifact-readback-terminal:2";
@@ -95,7 +97,8 @@ const persistSubmissionLocator = async (input: ExactEffectInput, prior: PriorSub
     evidenceStore: input.evidenceStore, jobId: input.providerTask.job_id,
     attemptId: prior.nextAttemptId, stepId: locatorCall.productStepId,
     exactCallIdentityHash: exactHash,
-    result: { status: "success", failureCode: null, failureCause: null, value: {
+    result: { status: "success", failureCode: null, failureCause: null,
+      failureBrowserEffect: null, value: {
       canonicalConversationUrl: prior.storedContinuation.provider.provider_page_url,
       turnMarker: prior.imageSubmitCall.input.turnMarker, userTurnId,
       promptHash: prior.imageSubmitCall.input.promptHash, conversationIdentityHash,

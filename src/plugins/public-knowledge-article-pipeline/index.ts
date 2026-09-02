@@ -174,6 +174,10 @@ const recoverResearchTurn = async (
 ): Promise<ResearchTurn | null> => {
   const readback = await context.gpt.readContinuationExact({
     lookupKind: "frontier_ref", frontierRef,
+    authorization: {
+      kind: "origin_authorization",
+      originAuthorizationRef: task.business_identity.authorization_ref,
+    },
   });
   if (!readback) return null;
   if (readback.lookupKind !== "frontier_ref") fail("SEO_RESEARCH_FRONTIER_READBACK_INVALID");

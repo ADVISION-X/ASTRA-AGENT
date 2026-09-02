@@ -43,6 +43,9 @@ const assistantSelector = (assistantTurnId: string): string =>
 const userPromptBodySelector = (userTurnId: string): string =>
   `[data-testid=${JSON.stringify(userTurnId)}][data-turn='user'] [data-message-author-role='user'] ${GPT_USER_PROMPT_BODY_SELECTOR}`;
 
+const forkButtonSelector = (assistantTurnId: string): string =>
+  `[data-testid=${JSON.stringify(assistantTurnId)}][data-turn='assistant'] button[data-testid='branch-conversation-button']`;
+
 const waitSlice = async (browser: ReturnType<typeof requireBrowser>, deadline: number): Promise<void> => {
   const remaining = deadline - Date.now();
   if (remaining > 0) await browser.wait({ durationMs: Math.max(25, Math.min(500, Math.ceil(remaining / 20))) });
@@ -182,5 +185,80 @@ export const conversationChildHandlers = {
       await waitSlice(browser, deadline);
     }
     throw executionFailure("failed", `GPT_CONVERSATION_HYDRATION_PENDING:marker=${markerCount}:composer=${composerCount}`);
+  },
+
+  async fork_exact_gpt_conversation_at_checkpoint(intent, context) {
+    requireExactInputKeys(intent, [
+      "sourceAssistantTurnId", "sourceCanonicalConversationUrl", "sourcePromptHash",
+      "sourceResponseHash", "sourceTurnMarker", "timeoutMs",
+    ]);
+    const sourceUrl = canonicalGptConversationUrl(stringInput(intent, "sourceCanonicalConversationUrl"));
+    const assistantTurnId = stringInput(intent, "sourceAssistantTurnId");
+    const marker = stringInput(intent, "sourceTurnMarker");
+    const promptHash = stringInput(intent, "sourcePromptHash");
+    const responseHash = stringInput(intent, "sourceResponseHash");
+    if (!/^conversation-turn-[1-9][0-9]*$/u.test(assistantTurnId)
+      || !/^sha256:[a-f0-9]{64}$/u.test(promptHash)
+      || !/^sha256:[a-f0-9]{64}$/u.test(responseHash)) {
+      throw executionFailure("failed", "GPT_FORK_SOURCE_INVALID");
+    }
+    const userTurnId = `conversation-turn-${turnOrdinal(assistantTurnId) - 1}`;
+    const browser = requireBrowser(context);
+    const verifySource = async (): Promise<void> => {
+      const markerCount = await findCount(browser, {
+        selector: `[data-testid=${JSON.stringify(userTurnId)}][data-turn='user']`,
+        textContains: marker,
+        maxMatches: 2,
+      });
+      const assistantCount = await findCount(browser, { selector: assistantSelector(assistantTurnId), maxMatches: 2 });
+      if (markerCount !== 1 || assistantCount !== 1
+        || hash(await readExactCanonicalPromptText(browser, userPromptBodySelector(userTurnId))) !== promptHash
+        || hash(await readExactSemanticText(browser, assistantSelector(assistantTurnId))) !== responseHash) {
+        throw executionFailure("failed", "GPT_FORK_SOURCE_CHECKPOINT_MISMATCH");
+      }
+    };
+    const before = canonicalOrNull((await readGptDocument(browser)).url);
+    if (context.mutationMode === "readback") {
+      if (!before || before === sourceUrl) throw executionFailure("failed", "GPT_FORK_CHILD_NOT_CONFIRMED");
+      await verifySource();
+      return success({
+        value: {
+          sourceCanonicalConversationUrl: sourceUrl,
+          sourceAssistantTurnId: assistantTurnId,
+          childCanonicalConversationUrl: before,
+          sourceToChildRelationHash: hash(`${sourceUrl}\n${assistantTurnId}\n${responseHash}\n${before}`),
+        },
+        candidateCount: 1,
+        observedSemantics: ["exact source checkpoint", "unique fork child", "source-to-child relation"],
+        committedMutation: "no",
+      });
+    }
+    if (before !== sourceUrl) throw executionFailure("failed", "GPT_FORK_SOURCE_CONVERSATION_MISMATCH");
+    await verifySource();
+    const selector = forkButtonSelector(assistantTurnId);
+    if (await findCount(browser, { selector, maxMatches: 2 }) !== 1) {
+      throw executionFailure("failed", "GPT_FORK_ACTION_NOT_UNIQUE");
+    }
+    await browser.executeDomIntent({ kind: "click", selector, expectedMatches: 1 });
+    const deadline = Date.now() + boundedTimeout(intent);
+    let childUrl: string | null = null;
+    while (Date.now() < deadline) {
+      childUrl = canonicalOrNull((await readGptDocument(browser)).url);
+      if (childUrl && childUrl !== sourceUrl) break;
+      await waitSlice(browser, deadline);
+    }
+    if (!childUrl || childUrl === sourceUrl) throw executionFailure("failed", "GPT_FORK_CHILD_NOT_CONFIRMED");
+    await verifySource();
+    return success({
+      value: {
+        sourceCanonicalConversationUrl: sourceUrl,
+        sourceAssistantTurnId: assistantTurnId,
+        childCanonicalConversationUrl: childUrl,
+        sourceToChildRelationHash: hash(`${sourceUrl}\n${assistantTurnId}\n${responseHash}\n${childUrl}`),
+      },
+      candidateCount: 1,
+      observedSemantics: ["exact source checkpoint", "one fork mutation", "unique child readback"],
+      committedMutation: "confirmed",
+    });
   },
 } satisfies GptChildHandlerMap;

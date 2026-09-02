@@ -1,4 +1,5 @@
 import {
+  GPT_CHILD_CAPABILITY_CONTRACTS,
   type GptChildCapabilityIntent,
   type GptChildCapabilityProof,
   type GptChildCapabilityResult,
@@ -81,6 +82,13 @@ export const recoveredGptChildResult = (input: Readonly<{
   proof: recoveredProof(input),
   failureCode: input.state === "confirmed" ? null : "BROWSER_POSTCONDITION_FAILED",
   failureCause: input.state === "confirmed" ? null : Object.freeze({ name: "Error", code: null }),
+  failureBrowserEffect: input.state === "confirmed" ? null : Object.freeze({
+    effectScope: GPT_CHILD_CAPABILITY_CONTRACTS[input.intent.childCapabilityId].replayPolicy === "provider-effect-once"
+      ? "provider_effect" as const
+      : "target_local" as const,
+    childCapabilityId: input.intent.childCapabilityId,
+    browserOutcome: "REJECTED" as const,
+  }),
 });
 
 export class ProductionGptBrowserLifecycle {
