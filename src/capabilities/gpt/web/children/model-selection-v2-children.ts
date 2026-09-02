@@ -9,7 +9,7 @@ import {
   requireExactInputKeys,
   success,
 } from "../child-handler.js";
-import { findCount } from "../gpt-dom-observation.js";
+import { readCoherentObservation } from "../gpt-dom-observation.js";
 import {
   GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR,
   GPT_MODEL_SELECTION_V2_ENTRY_SELECTOR,
@@ -39,22 +39,36 @@ type ModelSelectorTopology = Readonly<{
   openableEntry: number;
   simplePanel: number;
   advancedPanel: number;
+  modelChoice?: Readonly<{ count: number; ariaChecked: string | null }>;
 }>;
 
-const readModelSelectorTopology = async (browser: BrowserTargetLease): Promise<ModelSelectorTopology> => {
-  const popup = await findCount(browser, { selector: GPT_PROFILE_POPUP_SELECTOR, maxMatches: 2 });
-  const entry = await findCount(browser, { selector: GPT_MODEL_SELECTION_V2_ENTRY_SELECTOR, maxMatches: 2 });
-  const expandedEntry = await findCount(browser, {
-    selector: GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR,
-    maxMatches: 2,
+const readModelSelectorTopology = async (
+  browser: BrowserTargetLease,
+  modelDisplayName?: string,
+): Promise<ModelSelectorTopology> => {
+  const specs = [
+    { queryId: "popup", selector: GPT_PROFILE_POPUP_SELECTOR, maxMatches: 2, fields: [] },
+    { queryId: "entry", selector: GPT_MODEL_SELECTION_V2_ENTRY_SELECTOR, maxMatches: 2, fields: [] },
+    { queryId: "expanded-entry", selector: GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR, maxMatches: 2, fields: [] },
+    { queryId: "openable-entry", selector: GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR, maxMatches: 2, fields: [] },
+    { queryId: "simple-panel", selector: GPT_PROFILE_SIMPLE_PANEL_SELECTOR, maxMatches: 2, fields: [] },
+    { queryId: "advanced-panel", selector: GPT_MODEL_SELECTION_V2_PANEL_SELECTOR, maxMatches: 2, fields: [] },
+    ...(modelDisplayName === undefined ? [] : [{
+      queryId: "model-choice", selector: GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR,
+      textEquals: modelDisplayName, maxMatches: 2, fields: ["ariaChecked" as const],
+    }]),
+  ] as const;
+  const rows = await readCoherentObservation(browser, specs);
+  const count = (queryId: string): number => rows.find((row) => row.queryId === queryId)!.eligibleCount;
+  const choice = rows.find((row) => row.queryId === "model-choice");
+  const firstChoice = choice?.matches[0];
+  const ariaChecked = typeof firstChoice?.ariaChecked === "string" ? firstChoice.ariaChecked : null;
+  return Object.freeze({
+    popup: count("popup"), entry: count("entry"), expandedEntry: count("expanded-entry"),
+    openableEntry: count("openable-entry"), simplePanel: count("simple-panel"),
+    advancedPanel: count("advanced-panel"),
+    ...(choice === undefined ? {} : { modelChoice: Object.freeze({ count: choice.eligibleCount, ariaChecked }) }),
   });
-  const openableEntry = await findCount(browser, {
-    selector: GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR,
-    maxMatches: 2,
-  });
-  const simplePanel = await findCount(browser, { selector: GPT_PROFILE_SIMPLE_PANEL_SELECTOR, maxMatches: 2 });
-  const advancedPanel = await findCount(browser, { selector: GPT_MODEL_SELECTION_V2_PANEL_SELECTOR, maxMatches: 2 });
-  return { popup, entry, expandedEntry, openableEntry, simplePanel, advancedPanel };
 };
 
 const topologyCode = (value: ModelSelectorTopology): string => [
@@ -74,46 +88,20 @@ const isOpenable = (value: ModelSelectorTopology): boolean => value.popup === 1
   && value.entry === 1 && value.expandedEntry === 0 && value.openableEntry === 1
   && value.simplePanel === 1 && value.advancedPanel === 0;
 
-const requireAlreadyOpen = async (browser: BrowserTargetLease): Promise<void> => {
-  const observed = await readModelSelectorTopology(browser);
+const requireAlreadyOpen = async (browser: BrowserTargetLease, modelDisplayName?: string): Promise<ModelSelectorTopology> => {
+  const observed = await readModelSelectorTopology(browser, modelDisplayName);
   if (!isAlreadyOpen(observed)) {
     throw executionFailure("failed", `GPT_MODEL_SELECTION_V2_STATE_INVALID:${topologyCode(observed)}`);
   }
-};
-
-const exactVisibleModelState = async (
-  browser: BrowserTargetLease,
-  modelDisplayName: string,
-): Promise<Readonly<{ count: number; ariaChecked: string | null }>> => {
-  const result = await browser.executeDomIntent({
-    kind: "find",
-    selector: GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR,
-    textEquals: modelDisplayName,
-    maxMatches: 2,
-    waitFor: { minimumMatches: 1, timeoutMs: 5_000 },
-    fields: ["ariaChecked"],
-  });
-  if (!result || typeof result !== "object" || Array.isArray(result)) {
-    throw executionFailure("failed", "GPT_MODEL_SELECTION_V2_READBACK_INVALID");
-  }
-  const value = result as { count?: unknown; matches?: unknown };
-  if (!Number.isInteger(value.count) || !Array.isArray(value.matches)) {
-    throw executionFailure("failed", "GPT_MODEL_SELECTION_V2_READBACK_INVALID");
-  }
-  const first = value.matches[0];
-  const ariaChecked = first && typeof first === "object" && !Array.isArray(first)
-    && typeof (first as { ariaChecked?: unknown }).ariaChecked === "string"
-    ? (first as { ariaChecked: string }).ariaChecked
-    : null;
-  return { count: value.count as number, ariaChecked };
+  return observed;
 };
 
 export const modelSelectionV2ChildHandlers = {
   async open_gpt_model_selector_v2(intent, context) {
     requireExactInputKeys(intent, ["profile"]);
-    profileFromIntent(intent);
+    const profile = profileFromIntent(intent);
     const browser = requireBrowser(context);
-    const observed = await readModelSelectorTopology(browser);
+    const observed = await readModelSelectorTopology(browser, profile.modelDisplayName);
     if (isAlreadyOpen(observed)) {
       return success({
         value: { selectionVersion: GPT_MODEL_SELECTION_VERSION, state: "model-selector-open" },
@@ -138,7 +126,7 @@ export const modelSelectionV2ChildHandlers = {
         timeoutMs: 5_000,
       },
     });
-    await requireAlreadyOpen(browser);
+    await requireAlreadyOpen(browser, profile.modelDisplayName);
     return success({
       value: { selectionVersion: GPT_MODEL_SELECTION_VERSION, state: "model-selector-opened" },
       candidateCount: 1,
@@ -151,8 +139,9 @@ export const modelSelectionV2ChildHandlers = {
     requireExactInputKeys(intent, ["profile"]);
     const profile = profileFromIntent(intent);
     const browser = requireBrowser(context);
-    await requireAlreadyOpen(browser);
-    const candidate = await exactVisibleModelState(browser, profile.modelDisplayName);
+    const observed = await requireAlreadyOpen(browser, profile.modelDisplayName);
+    const candidate = observed.modelChoice
+      ?? Object.freeze({ count: 0, ariaChecked: null });
     if (candidate.count !== 1 || (candidate.ariaChecked !== "true" && candidate.ariaChecked !== "false")) {
       throw executionFailure(
         "failed",
@@ -173,7 +162,7 @@ export const modelSelectionV2ChildHandlers = {
         timeoutMs: 5_000,
       },
     });
-    const restored = await readModelSelectorTopology(browser);
+    const restored = await readModelSelectorTopology(browser, profile.modelDisplayName);
     if (!isOpenable(restored)) {
       throw executionFailure(
         "failed",

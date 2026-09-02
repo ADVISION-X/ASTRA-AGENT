@@ -1,4 +1,5 @@
 import assert from "../audit/shared/governance-exam-assert.js";
+import Database from "better-sqlite3";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -8,6 +9,7 @@ import { join } from "node:path";
 import { BrowserCommandActor } from "../../src/lib/browser/exact-target/browser-command-actor.js";
 import { browserExecutionFailure } from "../../src/lib/browser/browser-failure.js";
 import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
+import { identityColumns, mutationAuthorityHash } from "../../src/lib/browser/exact-target/browser-mutation-schema.js";
 import { BrowserCommandAdmissionBudget } from "../../src/lib/browser/transport/browser-command-admission-budget.js";
 import type { BrowserCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
 import { canonicalizeBrowserAuthorityValue } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
@@ -170,16 +172,22 @@ try {
     ownerPluginId: "fixture-product-plugin",
     targetRef: "target-1",
     state: "REJECTED",
+    mutationOutcome: "dispatched",
     proofHash: hash,
   });
+  assert.equal(restarted.readMutationOutcome("second-dispatched-command"), "dispatched",
+    "owning-plugin reconciliation must not invent proof that a physical input occurred");
   assert.equal(restarted.readDispatched("prepared-command"), null);
   restarted.resolve({
     commandId: "dispatched-command",
     ownerPluginId: "fixture-product-plugin",
     targetRef: "target-1",
     state: "CONFIRMED",
+    mutationOutcome: "dispatched",
     proofHash: hash,
   });
+  assert.equal(restarted.readMutationOutcome("dispatched-command"), "dispatched",
+    "semantic terminal readback must not invent a physical-input fact after a lost reply");
   assert.deepEqual(
     restarted.dispatchedForBinding({
       jobId: "job-1",
@@ -204,6 +212,42 @@ try {
     ],
   );
   terminalRestart.close();
+
+  const legacyRoot = join(root, "legacy-nonempty");
+  const legacy = new BrowserMutationStore(legacyRoot);
+  legacy.prepare(identity("legacy-rejected-command", "legacy-job"));
+  legacy.markDispatched("legacy-rejected-command");
+  legacy.markRejected("legacy-rejected-command", hash);
+  legacy.close();
+  const legacyFile = join(legacyRoot, "browser", "browser-mutations.sqlite");
+  const legacyDatabase = new Database(legacyFile);
+  const identityBefore = legacyDatabase.prepare(
+    "select command_id,exact_call_identity_hash,state,terminal_at from browser_mutations",
+  ).get();
+  legacyDatabase.exec("alter table browser_mutations drop column mutation_outcome");
+  const legacyAuthorityHash = mutationAuthorityHash(legacyDatabase.prepare(
+    `select ${identityColumns},proof_hash,state,reason,terminal_at,updated_at from browser_mutations`,
+  ).get());
+  legacyDatabase.close();
+  const migratedLegacy = new BrowserMutationStore(legacyRoot);
+  assert.equal(migratedLegacy.authorityHash("legacy-rejected-command"), legacyAuthorityHash,
+    "adding mutation_outcome must not invalidate an already-issued legacy Browser authority hash");
+  assert.deepEqual(migratedLegacy.readExactCallMutationFact({
+    jobId: "legacy-job", attemptId: "attempt-1", ownerPluginId: "fixture-product-plugin",
+    pluginVersion: 1, exactCallIdentityHash: exactHash("legacy-rejected-command"), actionOrdinal: 1,
+  }), {
+    effectScope: "target_local", outcome: "REJECTED", mutationOutcome: "confirmed",
+    terminalAt: (identityBefore as { terminal_at: string }).terminal_at,
+    targetRef: "target-1", documentRef: "document-1",
+    productStepId: "report_translation:candidate_a", callId: "gpt-turn-flow.v3",
+    childCapabilityId: "open_gpt_model_selector_v2", actionOrdinal: 1,
+  });
+  const migratedDatabase = new Database(legacyFile, { readonly: true });
+  assert.deepEqual(migratedDatabase.prepare(
+    "select command_id,exact_call_identity_hash,state,terminal_at from browser_mutations",
+  ).get(), identityBefore, "the forward ALTER migration must preserve every legacy identity and terminal byte");
+  migratedDatabase.close();
+  migratedLegacy.close();
 
   const actorRoot = join(root, "actor");
   const actorStore = new BrowserMutationStore(actorRoot);
@@ -235,6 +279,30 @@ try {
     };
   }).execute(confirmedPermit, clickCommand);
   assert.equal(actorStore.readState(confirmedPermit.commandId), "CONFIRMED");
+  assert.equal(actorStore.readMutationOutcome(confirmedPermit.commandId), "confirmed");
+
+  const zeroActionPermit = permit("actor-zero-action");
+  await actorFor(async (candidate, _command, onDispatched) => {
+    onDispatched?.();
+    return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+      permitSequence: candidate.sequence, result: { candidateCount: 1, identityRevalidated: true,
+        mutationCount: 0, postconditionVerified: true, zeroActionSatisfied: true } };
+  }).execute(zeroActionPermit, clickCommand);
+  assert.equal(actorStore.readState(zeroActionPermit.commandId), "CONFIRMED");
+  assert.equal(actorStore.readMutationOutcome(zeroActionPermit.commandId), "no");
+
+  const qualificationPermit = permit("actor-qualification-rejected");
+  const qualificationActor = actorFor(async (candidate, _command, onDispatched) => {
+    onDispatched?.();
+    return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+      permitSequence: candidate.sequence, result: { candidateCount: 0, identityRevalidated: false,
+        mutationCount: 0, postconditionVerified: false, qualificationRejected: true,
+        failureCode: "BROWSER_DOM_CANDIDATE_MISSING" } };
+  });
+  await assert.rejects(qualificationActor.execute(qualificationPermit, clickCommand),
+    /BROWSER_DOM_CANDIDATE_MISSING/u);
+  assert.equal(actorStore.readState(qualificationPermit.commandId), "REJECTED");
+  assert.equal(qualificationActor.mutationOutcome(qualificationPermit.commandId), "no");
 
   const observationPermit: BrowserCommandPermit = {
     ...permit("actor-observation"), capabilityId: "browser.dom.inspect.v1",
@@ -356,7 +424,7 @@ try {
 }
 
 emitQualityProofObservation({
-  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V16",
+  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V17",
   evidenceMode: "exam.golden",
   clauses: [
     "forbidden:0",

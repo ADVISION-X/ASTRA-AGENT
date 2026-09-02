@@ -39,13 +39,17 @@ export const executeProductionGptAtomicCall = async (
     } : {}),
   };
   if (!browser) return { result: await gpt.execute(intent, context), resolveDispatched: false };
+  const replayPolicy = GPT_CHILD_CAPABILITY_CONTRACTS[intent.childCapabilityId].replayPolicy;
+  if (replayPolicy === "transaction-identical-readback") {
+    throw new Error("GPT_TRANSACTION_CHILD_CANNOT_ACQUIRE_BROWSER");
+  }
   const atomicIdentity = {
     productStepId: intent.productStepId,
     callId: intent.callId,
     childCapabilityId: intent.childCapabilityId,
     inputHash: intent.inputHash,
     actionOrdinal: intent.actionOrdinal,
-    replayPolicy: GPT_CHILD_CAPABILITY_CONTRACTS[intent.childCapabilityId].replayPolicy,
+    replayPolicy,
   } as const;
   const recovery = browser.readAtomicStepRecovery(atomicIdentity);
   if (!recovery) {
@@ -63,7 +67,7 @@ export const executeProductionGptAtomicCall = async (
         intent,
         browser,
         readback: null,
-        authorityRef: recovery.authorityRef,
+        recovery,
         state: "rejected",
       }),
       resolveDispatched: false,
@@ -79,7 +83,7 @@ export const executeProductionGptAtomicCall = async (
       intent,
       browser,
       readback,
-      authorityRef: recovery.authorityRef,
+      recovery,
       state: "confirmed",
     }),
     resolveDispatched: recovery.state === "dispatched",

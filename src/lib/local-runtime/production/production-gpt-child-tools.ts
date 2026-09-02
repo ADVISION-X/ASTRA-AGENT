@@ -459,6 +459,7 @@ export class ProductionGptChildTools {
       schemaVersion: "grasseye.browser.outcome-resolution.v1",
       ownerPluginId: input.execution.pluginId,
       outcome: "TERMINAL_SUCCESS",
+      mutationOutcome: "dispatched",
       positiveEvidenceRef: `${input.evidenceRef}#positive-postcondition`,
       negativeEvidenceRef: `${input.evidenceRef}#negative-postcondition-absent`,
       uniqueTargetRef: input.browser.target.targetRef,

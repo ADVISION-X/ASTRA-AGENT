@@ -11,6 +11,8 @@ import {
 } from "../child-handler.js";
 import { findCount, readExactAttribute, readExactCanonicalPromptText, readExactSemanticText, readExactText, readGptDocument } from "../gpt-dom-observation.js";
 import {
+  GPT_ACTIVE_ACTIONS_MENU_SELECTOR,
+  GPT_FORK_ACTION_SELECTOR,
   GPT_GENERATING_STOP_SELECTOR,
   GPT_USER_PROMPT_BODY_SELECTOR,
   GPT_USER_TURN_SELECTOR,
@@ -43,8 +45,8 @@ const assistantSelector = (assistantTurnId: string): string =>
 const userPromptBodySelector = (userTurnId: string): string =>
   `[data-testid=${JSON.stringify(userTurnId)}][data-turn='user'] [data-message-author-role='user'] ${GPT_USER_PROMPT_BODY_SELECTOR}`;
 
-const forkButtonSelector = (assistantTurnId: string): string =>
-  `[data-testid=${JSON.stringify(assistantTurnId)}][data-turn='assistant'] button[data-testid='branch-conversation-button']`;
+const moreActionsButtonSelector = (assistantTurnId: string): string =>
+  `[data-testid=${JSON.stringify(assistantTurnId)}][data-turn='assistant'] button[data-testid='more-turn-action-button']`;
 
 const waitSlice = async (browser: ReturnType<typeof requireBrowser>, deadline: number): Promise<void> => {
   const remaining = deadline - Date.now();
@@ -187,6 +189,70 @@ export const conversationChildHandlers = {
     throw executionFailure("failed", `GPT_CONVERSATION_HYDRATION_PENDING:marker=${markerCount}:composer=${composerCount}`);
   },
 
+  async open_gpt_checkpoint_actions_menu(intent, context) {
+    requireExactInputKeys(intent, [
+      "sourceAssistantTurnId", "sourceCanonicalConversationUrl", "sourcePromptHash",
+      "sourceResponseHash", "sourceTurnMarker", "timeoutMs",
+    ]);
+    const sourceUrl = canonicalGptConversationUrl(stringInput(intent, "sourceCanonicalConversationUrl"));
+    const assistantTurnId = stringInput(intent, "sourceAssistantTurnId");
+    const marker = stringInput(intent, "sourceTurnMarker");
+    const promptHash = stringInput(intent, "sourcePromptHash");
+    const responseHash = stringInput(intent, "sourceResponseHash");
+    if (!/^conversation-turn-[1-9][0-9]*$/u.test(assistantTurnId)
+      || !/^sha256:[a-f0-9]{64}$/u.test(promptHash)
+      || !/^sha256:[a-f0-9]{64}$/u.test(responseHash)) {
+      throw executionFailure("failed", "GPT_FORK_SOURCE_INVALID");
+    }
+    const userTurnId = `conversation-turn-${turnOrdinal(assistantTurnId) - 1}`;
+    const browser = requireBrowser(context);
+    if (canonicalOrNull((await readGptDocument(browser)).url) !== sourceUrl) {
+      throw executionFailure("failed", "GPT_FORK_SOURCE_CONVERSATION_MISMATCH");
+    }
+    const markerCount = await findCount(browser, {
+      selector: `[data-testid=${JSON.stringify(userTurnId)}][data-turn='user']`, textContains: marker, maxMatches: 2,
+    });
+    const assistantCount = await findCount(browser, { selector: assistantSelector(assistantTurnId), maxMatches: 2 });
+    if (markerCount !== 1 || assistantCount !== 1
+      || hash(await readExactCanonicalPromptText(browser, userPromptBodySelector(userTurnId))) !== promptHash
+      || hash(await readExactSemanticText(browser, assistantSelector(assistantTurnId))) !== responseHash) {
+      throw executionFailure("failed", "GPT_FORK_SOURCE_CHECKPOINT_MISMATCH");
+    }
+    const trigger = moreActionsButtonSelector(assistantTurnId);
+    const triggerCount = await findCount(browser, { selector: trigger, maxMatches: 2 });
+    if (triggerCount !== 1) throw executionFailure("failed", "GPT_CHECKPOINT_ACTIONS_TRIGGER_NOT_UNIQUE");
+    const activeMenuCount = await findCount(browser, { selector: GPT_ACTIVE_ACTIONS_MENU_SELECTOR, maxMatches: 2 });
+    const forkLeafCount = await findCount(browser, { selector: GPT_FORK_ACTION_SELECTOR, maxMatches: 2 });
+    if (activeMenuCount === 1 && forkLeafCount === 1
+      && await readExactAttribute(browser, trigger, "aria-expanded") === "true") {
+      return success({
+        value: { sourceAssistantTurnId: assistantTurnId, state: "already-open" }, candidateCount: 1,
+        observedSemantics: ["exact source checkpoint", "one source actions menu", "one fork leaf"],
+        committedMutation: "no",
+      });
+    }
+    if (activeMenuCount !== 0 || forkLeafCount !== 0) {
+      throw executionFailure("failed", "GPT_CHECKPOINT_ACTIONS_MENU_AMBIGUOUS");
+    }
+    if (context.mutationMode === "readback") {
+      throw executionFailure("failed", "GPT_CHECKPOINT_ACTIONS_MENU_NOT_CONFIRMED");
+    }
+    await browser.executeDomIntent({
+      kind: "click", selector: trigger, expectedMatches: 1,
+      postClickMatch: { selector: GPT_FORK_ACTION_SELECTOR, expectedMatches: 1, timeoutMs: boundedTimeout(intent) },
+    });
+    if (await findCount(browser, { selector: GPT_ACTIVE_ACTIONS_MENU_SELECTOR, maxMatches: 2 }) !== 1
+      || await findCount(browser, { selector: GPT_FORK_ACTION_SELECTOR, maxMatches: 2 }) !== 1
+      || await readExactAttribute(browser, trigger, "aria-expanded") !== "true") {
+      throw executionFailure("failed", "GPT_CHECKPOINT_ACTIONS_MENU_NOT_CONFIRMED");
+    }
+    return success({
+      value: { sourceAssistantTurnId: assistantTurnId, state: "opened" }, candidateCount: 1,
+      observedSemantics: ["exact source checkpoint", "one source actions menu", "one fork leaf"],
+      committedMutation: "confirmed",
+    });
+  },
+
   async fork_exact_gpt_conversation_at_checkpoint(intent, context) {
     requireExactInputKeys(intent, [
       "sourceAssistantTurnId", "sourceCanonicalConversationUrl", "sourcePromptHash",
@@ -235,18 +301,17 @@ export const conversationChildHandlers = {
     }
     if (before !== sourceUrl) throw executionFailure("failed", "GPT_FORK_SOURCE_CONVERSATION_MISMATCH");
     await verifySource();
-    const selector = forkButtonSelector(assistantTurnId);
-    if (await findCount(browser, { selector, maxMatches: 2 }) !== 1) {
+    const trigger = moreActionsButtonSelector(assistantTurnId);
+    if (await findCount(browser, { selector: GPT_ACTIVE_ACTIONS_MENU_SELECTOR, maxMatches: 2 }) !== 1
+      || await findCount(browser, { selector: GPT_FORK_ACTION_SELECTOR, maxMatches: 2 }) !== 1
+      || await readExactAttribute(browser, trigger, "aria-expanded") !== "true") {
       throw executionFailure("failed", "GPT_FORK_ACTION_NOT_UNIQUE");
     }
-    await browser.executeDomIntent({ kind: "click", selector, expectedMatches: 1 });
-    const deadline = Date.now() + boundedTimeout(intent);
-    let childUrl: string | null = null;
-    while (Date.now() < deadline) {
-      childUrl = canonicalOrNull((await readGptDocument(browser)).url);
-      if (childUrl && childUrl !== sourceUrl) break;
-      await waitSlice(browser, deadline);
-    }
+    await browser.executeDomIntent({
+      kind: "click", selector: GPT_FORK_ACTION_SELECTOR, expectedMatches: 1,
+      postClickUrl: { notEquals: sourceUrl, timeoutMs: boundedTimeout(intent) },
+    });
+    const childUrl = canonicalOrNull((await readGptDocument(browser)).url);
     if (!childUrl || childUrl === sourceUrl) throw executionFailure("failed", "GPT_FORK_CHILD_NOT_CONFIRMED");
     await verifySource();
     return success({

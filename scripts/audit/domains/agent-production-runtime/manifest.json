@@ -3,7 +3,7 @@
   "capabilityDomain": "agent-production-runtime",
   "status": "active",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V29"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V30"
   ],
   "ownedPaths": [
     "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",

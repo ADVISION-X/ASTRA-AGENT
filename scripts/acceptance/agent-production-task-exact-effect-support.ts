@@ -15,7 +15,7 @@ import type { WorkbenchBrowserAuthority } from
   "../../src/lib/local-runtime/workbench-browser-authority-support.js";
 import type { RuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { digest } from "./agent-production-gpt-artifact-readback-support.js";
-import { HASH_A, HASH_B, identityFor } from "./agent-production-runtime-fixtures.js";
+import { gptProofEnvelope, HASH_A, HASH_B, identityFor } from "./agent-production-runtime-fixtures.js";
 
 type ExactEffectInput = Readonly<{
   root: string;
@@ -51,9 +51,11 @@ const persistPriorSubmit = async (input: ExactEffectInput) => {
     result: { status: "success", value: null, failureCode: null, failureCause: null,
       failureBrowserEffect: null, proof: {
       schemaVersion: "gpt-child-capability-proof.v2", ...identity,
+      ...gptProofEnvelope({ childCapabilityId: identity.childCapabilityId,
+        exactCallIdentityHash: priorSubmitHash, status: "success", decision: "ACT", candidateCount: 1,
+        authorityRefHashes: [HASH_A] }),
       executionId: `gpt-call:${priorSubmitHash.slice(7)}`, actionOrdinal: imageSubmitCall.actionOrdinal,
       targetRefHash: HASH_A, beforeDocumentRefHash: HASH_A, afterDocumentRefHash: HASH_A,
-      candidateCount: 1, observedSemantics: ["confirmed prior image submit"],
       committedMutation: "confirmed", postconditionResult: "passed",
       startedAt: submittedAt, endedAt: submittedAt,
       evidenceRef: "browser:prior-image-submit", evidenceHash: HASH_B,
@@ -103,9 +105,11 @@ const persistSubmissionLocator = async (input: ExactEffectInput, prior: PriorSub
       turnMarker: prior.imageSubmitCall.input.turnMarker, userTurnId,
       promptHash: prior.imageSubmitCall.input.promptHash, conversationIdentityHash,
     }, proof: { schemaVersion: "gpt-child-capability-proof.v2", ...identity,
+      ...gptProofEnvelope({ childCapabilityId: identity.childCapabilityId,
+        exactCallIdentityHash: exactHash, status: "success", decision: "DONE", candidateCount: 1,
+        authorityRefHashes: [HASH_A] }),
       executionId: `gpt-call:${exactHash.slice(7)}`, actionOrdinal: locatorCall.actionOrdinal,
       targetRefHash: HASH_A, beforeDocumentRefHash: HASH_A, afterDocumentRefHash: HASH_A,
-      candidateCount: 1, observedSemantics: ["durable submission locator"],
       committedMutation: "no", postconditionResult: "passed",
       startedAt: prior.submittedAt, endedAt: prior.submittedAt,
       evidenceRef: "browser:prior-image-submission-locator", evidenceHash: HASH_B,

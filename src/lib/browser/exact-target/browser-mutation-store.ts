@@ -1,11 +1,15 @@
 import Database from "better-sqlite3";
-import { createHash } from "node:crypto";
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { mutationIdentity, type MutationRow } from "./browser-mutation-row.js";
+import { ensureCurrentSchema, identityColumns, mutationAuthorityHash } from "./browser-mutation-schema.js";
 
 export type BrowserMutationState =
   "PREPARED" | "DISPATCHED" | "CONFIRMED" | "REJECTED" | "FAILED";
+export type BrowserMutationOutcome = "no" | "dispatched" | "confirmed";
+const legacyMutationOutcome = (state: BrowserMutationState): BrowserMutationOutcome =>
+  state === "DISPATCHED" ? "dispatched"
+    : state === "CONFIRMED" || state === "REJECTED" ? "confirmed" : "no";
 
 export type BrowserMutationIdentity = Readonly<{
   commandId: string;
@@ -56,6 +60,7 @@ export type BrowserCallRecoveryScope = BrowserMutationReconciliationScope & Read
 export type BrowserExactCallMutationFact = Readonly<{
   effectScope: "target_local" | "provider_effect";
   outcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
+  mutationOutcome: BrowserMutationOutcome;
   terminalAt: string | null;
   targetRef: string;
   documentRef: string;
@@ -67,87 +72,13 @@ export type BrowserExactCallMutationFact = Readonly<{
 
 export type BrowserAtomicStepRecovery = Readonly<{
   state: "dispatched" | "confirmed" | "rejected";
+  mutationOutcome: BrowserMutationOutcome;
+  terminalAt: string | null;
   authorityRef: string;
   authorityHash: `sha256:${string}`;
   targetRef: string;
   documentRef: string;
 }>;
-
-const identityColumns = `command_id,logical_mutation_id,exact_call_identity_hash,owner_plugin_id,plugin_version,job_id,attempt_id,
-  lease_version,execution_fence_hash,product_step_id,call_id,child_capability_id,effect_scope,action_ordinal,
-  target_ref,document_ref,action_id,positive_postcondition_hash,negative_postcondition_hash,
-  request_hash,payload_hash`;
-
-const mutationAuthorityHash = (row: unknown): `sha256:${string}` =>
-  `sha256:${createHash("sha256").update(JSON.stringify(row)).digest("hex")}`;
-
-const currentTableSql = `
-  create table browser_mutations (
-    command_id text primary key,
-    logical_mutation_id text,
-    exact_call_identity_hash text not null,
-    owner_plugin_id text not null,
-    plugin_version integer not null check(plugin_version >= 1),
-    job_id text not null,
-    attempt_id text not null,
-    lease_version integer not null,
-    execution_fence_hash text not null,
-    product_step_id text not null,
-    call_id text not null,
-    child_capability_id text not null,
-    effect_scope text not null check(effect_scope in ('target_local','provider_effect')),
-    action_ordinal integer not null check(action_ordinal >= 1),
-    target_ref text not null,
-    document_ref text not null,
-    action_id text not null,
-    positive_postcondition_hash text not null,
-    negative_postcondition_hash text not null,
-    request_hash text not null,
-    payload_hash text not null,
-    proof_hash text,
-    state text not null check(state in ('PREPARED','DISPATCHED','CONFIRMED','REJECTED','FAILED')),
-    reason text,
-    terminal_at text,
-    updated_at text not null
-  )`;
-
-const createIndexes = (database: Database.Database): void => {
-  database.exec(`
-    create index if not exists browser_mutations_unresolved
-      on browser_mutations(job_id,attempt_id,lease_version,execution_fence_hash,state);
-    create index if not exists browser_mutations_logical_identity
-      on browser_mutations(job_id,logical_mutation_id,state);
-    create index if not exists browser_mutations_exact_call_identity
-      on browser_mutations(job_id,attempt_id,owner_plugin_id,plugin_version,exact_call_identity_hash,state);
-  `);
-};
-
-const ensureCurrentSchema = (database: Database.Database): void => {
-  const table = database.prepare(
-    "select sql from sqlite_master where type='table' and name='browser_mutations'",
-  ).get() as { sql?: string } | undefined;
-  if (!table) {
-    database.exec(currentTableSql);
-    createIndexes(database);
-    return;
-  }
-  const columns = new Set((database.prepare("pragma table_info(browser_mutations)").all() as Array<{ name: string }>)
-    .map((column) => column.name));
-  const currentIdentityColumns = ["exact_call_identity_hash", "plugin_version", "product_step_id", "call_id",
-    "child_capability_id", "effect_scope", "action_ordinal", "positive_postcondition_hash",
-    "negative_postcondition_hash", "terminal_at"];
-  if (currentIdentityColumns.every((column) => columns.has(column))) {
-    createIndexes(database);
-    return;
-  }
-  const row = database.prepare("select count(*) as count from browser_mutations").get() as { count: number };
-  if (row.count !== 0) throw new Error("BROWSER_MUTATION_SCHEMA_REBUILD_REQUIRES_EMPTY_STORE");
-  database.transaction(() => {
-    database.exec("drop table browser_mutations");
-    database.exec(currentTableSql);
-    createIndexes(database);
-  })();
-};
 
 export const resolveStoredBrowserMutationAuthority = (
   dataDir: string,
@@ -162,7 +93,7 @@ export const resolveStoredBrowserMutationAuthority = (
   try {
     database = new Database(file, { readonly: true, fileMustExist: true });
     const row = database.prepare(
-      `select ${identityColumns},proof_hash,state,reason,terminal_at,updated_at
+      `select ${identityColumns},proof_hash,state,mutation_outcome,reason,terminal_at,updated_at
        from browser_mutations where command_id=?`,
     ).get(commandId);
     if (!row) return "missing";
@@ -216,8 +147,8 @@ export class BrowserMutationStore {
       }
       this.database.prepare(
         `insert into browser_mutations(
-          ${identityColumns},state,terminal_at,updated_at
-        ) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'PREPARED',null,?)`,
+          ${identityColumns},state,mutation_outcome,terminal_at,updated_at
+        ) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'PREPARED','no',null,?)`,
       ).run(
         input.commandId, input.logicalMutationId ?? null, input.exactCallIdentityHash,
         input.ownerPluginId, input.pluginVersion, input.jobId, input.attemptId,
@@ -231,7 +162,7 @@ export class BrowserMutationStore {
   }
 
   public markDispatched(commandId: string): void {
-    this.transition(commandId, "PREPARED", "DISPATCHED", null, null);
+    this.transition(commandId, "PREPARED", "DISPATCHED", "dispatched", null, null);
   }
 
   public markReceiptMissing(commandId: string, proofHash: `sha256:${string}` | null = null): void {
@@ -242,16 +173,16 @@ export class BrowserMutationStore {
     if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
   }
 
-  public markConfirmed(commandId: string, proofHash: `sha256:${string}`): void {
-    this.transition(commandId, "DISPATCHED", "CONFIRMED", "direct-postcondition-passed", proofHash);
+  public markConfirmed(commandId: string, proofHash: `sha256:${string}`, mutationOutcome: "no" | "confirmed" = "confirmed"): void {
+    this.transition(commandId, "DISPATCHED", "CONFIRMED", mutationOutcome, "direct-postcondition-passed", proofHash);
   }
 
-  public markRejected(commandId: string, proofHash: `sha256:${string}`): void {
-    this.transition(commandId, "DISPATCHED", "REJECTED", "BROWSER_POSTCONDITION_FAILED", proofHash);
+  public markRejected(commandId: string, proofHash: `sha256:${string}`, mutationOutcome: "no" | "confirmed" = "confirmed"): void {
+    this.transition(commandId, "DISPATCHED", "REJECTED", mutationOutcome, "BROWSER_POSTCONDITION_FAILED", proofHash);
   }
 
   public markFailedBeforeDispatch(commandId: string, reason: string): void {
-    this.transition(commandId, "PREPARED", "FAILED", reason, null);
+    this.transition(commandId, "PREPARED", "FAILED", "no", reason, null);
   }
 
   public resolve(input: Readonly<{
@@ -259,13 +190,14 @@ export class BrowserMutationStore {
     ownerPluginId: string;
     targetRef: string;
     state: "CONFIRMED" | "REJECTED";
+    mutationOutcome: "dispatched";
     proofHash: `sha256:${string}`;
   }>): void {
     const terminalAt = new Date().toISOString();
     const result = this.database.prepare(
-      `update browser_mutations set state=?,proof_hash=?,reason=?,terminal_at=coalesce(terminal_at,?),updated_at=?
+      `update browser_mutations set state=?,mutation_outcome=?,proof_hash=?,reason=?,terminal_at=coalesce(terminal_at,?),updated_at=?
        where command_id=? and owner_plugin_id=? and target_ref=? and state='DISPATCHED'`,
-    ).run(input.state, input.proofHash, `owning-plugin:${input.ownerPluginId}`,
+    ).run(input.state, input.mutationOutcome, input.proofHash, `owning-plugin:${input.ownerPluginId}`,
       terminalAt, terminalAt, input.commandId, input.ownerPluginId, input.targetRef);
     if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
   }
@@ -366,7 +298,7 @@ export class BrowserMutationStore {
       ...(input.effectScope === "target_local" ? [input.targetRef] : []),
     ];
     const rows = this.database.prepare(
-      `select command_id,target_ref,document_ref,state,action_ordinal
+      `select command_id,target_ref,document_ref,state,mutation_outcome,terminal_at,action_ordinal
        from browser_mutations
        where job_id=? and attempt_id=? and owner_plugin_id=? and plugin_version=?
          and exact_call_identity_hash=? and effect_scope=?
@@ -377,14 +309,22 @@ export class BrowserMutationStore {
       target_ref: string;
       document_ref: string;
       state: "DISPATCHED" | "CONFIRMED" | "REJECTED";
+      mutation_outcome: BrowserMutationOutcome | null;
+      terminal_at: string | null;
       action_ordinal: number;
     }>;
     if (rows.length === 0) return null;
     if (rows.length !== 1) throw new Error("BROWSER_RECONCILIATION_SCOPE_AMBIGUOUS");
     const row = rows[0]!;
     if (row.action_ordinal !== input.actionOrdinal) throw new Error("BROWSER_ACTION_SEQUENCE_DRIFT");
+    if (row.state === "DISPATCHED" && row.terminal_at !== null) throw new Error("BROWSER_TERMINAL_AT_INVALID");
+    if (row.state !== "DISPATCHED" && (!row.terminal_at || !Number.isFinite(Date.parse(row.terminal_at)))) {
+      throw new Error("BROWSER_TERMINAL_AT_INVALID");
+    }
     return Object.freeze({
       state: row.state.toLowerCase() as BrowserAtomicStepRecovery["state"],
+      mutationOutcome: row.mutation_outcome ?? legacyMutationOutcome(row.state),
+      terminalAt: row.terminal_at,
       authorityRef: `browser-mutation:${row.command_id}`,
       authorityHash: this.authorityHash(row.command_id),
       targetRef: row.target_ref,
@@ -401,7 +341,7 @@ export class BrowserMutationStore {
     actionOrdinal: number;
   }>): BrowserExactCallMutationFact | null {
     const rows = this.database.prepare(
-      `select effect_scope,state,terminal_at,target_ref,document_ref,product_step_id,call_id,
+      `select effect_scope,state,mutation_outcome,terminal_at,target_ref,document_ref,product_step_id,call_id,
               child_capability_id,action_ordinal
        from browser_mutations
        where job_id=? and attempt_id=? and owner_plugin_id=? and plugin_version=?
@@ -411,6 +351,7 @@ export class BrowserMutationStore {
       input.exactCallIdentityHash) as ReadonlyArray<{
       effect_scope: "target_local" | "provider_effect";
       state: "DISPATCHED" | "CONFIRMED" | "REJECTED";
+      mutation_outcome: BrowserMutationOutcome | null;
       terminal_at: string | null;
       target_ref: string;
       document_ref: string;
@@ -430,6 +371,7 @@ export class BrowserMutationStore {
     return Object.freeze({
       effectScope: row.effect_scope,
       outcome: row.state,
+      mutationOutcome: row.mutation_outcome ?? legacyMutationOutcome(row.state),
       terminalAt: row.terminal_at,
       targetRef: row.target_ref,
       documentRef: row.document_ref,
@@ -454,9 +396,16 @@ export class BrowserMutationStore {
     return row?.state ?? null;
   }
 
+  public readMutationOutcome(commandId: string): BrowserMutationOutcome {
+    const row = this.database.prepare(
+      "select state,mutation_outcome from browser_mutations where command_id=?",
+    ).get(commandId) as { state: BrowserMutationState; mutation_outcome: BrowserMutationOutcome | null } | undefined;
+    return row ? row.mutation_outcome ?? legacyMutationOutcome(row.state) : "no";
+  }
+
   public authorityHash(commandId: string): `sha256:${string}` {
     const row = this.database.prepare(
-      `select ${identityColumns},proof_hash,state,reason,terminal_at,updated_at
+      `select ${identityColumns},proof_hash,state,mutation_outcome,reason,terminal_at,updated_at
        from browser_mutations where command_id=?`,
     ).get(commandId);
     if (!row) throw new Error("BROWSER_MUTATION_RECORD_MISSING");
@@ -475,14 +424,14 @@ export class BrowserMutationStore {
   public close(): void { this.database.close(); }
 
   private transition(commandId: string, from: BrowserMutationState, to: BrowserMutationState,
-    reason: string | null, proofHash: `sha256:${string}` | null): void {
+    mutationOutcome: BrowserMutationOutcome, reason: string | null, proofHash: `sha256:${string}` | null): void {
     const timestamp = new Date().toISOString();
     const result = this.database.prepare(
-      `update browser_mutations set state=?,reason=?,proof_hash=?,
+      `update browser_mutations set state=?,mutation_outcome=?,reason=?,proof_hash=?,
        terminal_at=case when ? in ('CONFIRMED','REJECTED') then coalesce(terminal_at,?) else terminal_at end,
        updated_at=?
        where command_id=? and state=?`,
-    ).run(to, reason, proofHash, to, timestamp, timestamp, commandId, from);
+    ).run(to, mutationOutcome, reason, proofHash, to, timestamp, timestamp, commandId, from);
     if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
   }
 }

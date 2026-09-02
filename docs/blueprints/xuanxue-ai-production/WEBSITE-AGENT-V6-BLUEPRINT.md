@@ -1,13 +1,13 @@
-# AGENT 十二产品插件与网站 V17 施工图
+# AGENT 十二产品插件与网站 V18 施工图
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v14",
+  "blueprintId": "agent-production-runtime-v15",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V29"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V30"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -48,6 +48,8 @@ Website business task
 ```
 
 网站是业务任务、公开状态、结果合同和领域入库的唯一 Owner。AGENT Product Plugin 是产品内部 Flow 的唯一 Owner。shared runtime 只拥有 transport 与副作用安全，不得决定下一个 GPT Child。
+
+shared runtime 继续只复用现役 Browser Authority 加密通道，不取得 DOM、Prompt、附件路径或 canonical URL 的业务所有权。四类完成 typed Browser command 必需的精确原文只可在一次 invocation 内按 Browser V12 闭集瞬时通过并绑定 exact call/Target/current Document/payload hash；Runtime Log、Outbox、Browser WAL、quality proof 与 Website payload 禁止复制 Prompt、路径、DOM/HTML、cookie、token 或 raw browser identity。text checkpoint 原文仍只进入 task-owned artifact，路径只由 Browser grant resolver 在内存解析，URL 只进入 task-owned locator/continuation；禁止第二 transport、第二 resolver、第二 store 或 shared runtime 内容裁决。
 
 ## 2. 十二个 Product Plugin
 

@@ -72,7 +72,7 @@ try {
     actionId: "browser.dom.click.v1", positivePostconditionHash: hash,
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
   });
-  assert.throws(() => store.resolve({ commandId: "command-1", ownerPluginId: "fixture-product-plugin", targetRef: "target-1", state: "CONFIRMED", proofHash: hash }), /BROWSER_MUTATION_STATE_CONFLICT/u);
+  assert.throws(() => store.resolve({ commandId: "command-1", ownerPluginId: "fixture-product-plugin", targetRef: "target-1", state: "CONFIRMED", mutationOutcome: "dispatched", proofHash: hash }), /BROWSER_MUTATION_STATE_CONFLICT/u);
   store.markDispatched("command-1");
   store.markReceiptMissing("command-1");
   assert.throws(() => store.prepare({
@@ -85,8 +85,8 @@ try {
     actionId: "browser.dom.click.v1", positivePostconditionHash: hash,
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
   }), /BROWSER_LOGICAL_MUTATION_REPLAY_FORBIDDEN/u);
-  assert.throws(() => store.resolve({ commandId: "command-1", ownerPluginId: "foreign-owner", targetRef: "target-1", state: "CONFIRMED", proofHash: hash }), /BROWSER_MUTATION_STATE_CONFLICT/u);
-  assert.throws(() => store.resolve({ commandId: "command-1", ownerPluginId: "fixture-product-plugin", targetRef: "target-2", state: "CONFIRMED", proofHash: hash }), /BROWSER_MUTATION_STATE_CONFLICT/u);
+  assert.throws(() => store.resolve({ commandId: "command-1", ownerPluginId: "foreign-owner", targetRef: "target-1", state: "CONFIRMED", mutationOutcome: "dispatched", proofHash: hash }), /BROWSER_MUTATION_STATE_CONFLICT/u);
+  assert.throws(() => store.resolve({ commandId: "command-1", ownerPluginId: "fixture-product-plugin", targetRef: "target-2", state: "CONFIRMED", mutationOutcome: "dispatched", proofHash: hash }), /BROWSER_MUTATION_STATE_CONFLICT/u);
   assert.equal(store.readDispatched("command-1")?.childCapabilityId, "open_gpt_model_selector_v2");
   assert.equal(store.atomicStepRecovery({
     jobId: "job-1", attemptId: "attempt-1", ownerPluginId: "fixture-product-plugin",
@@ -98,7 +98,7 @@ try {
     pluginVersion: 1, exactCallIdentityHash,
     actionOrdinal: 1, targetRef: "target-2", effectScope: "target_local",
   }), null, "target-local recovery identity must not cross Target generations");
-  store.resolve({ commandId: "command-1", ownerPluginId: "fixture-product-plugin", targetRef: "target-1", state: "REJECTED", proofHash: hash });
+  store.resolve({ commandId: "command-1", ownerPluginId: "fixture-product-plugin", targetRef: "target-1", state: "REJECTED", mutationOutcome: "dispatched", proofHash: hash });
   const rejectedFact = store.readExactCallMutationFact({
     jobId: "job-1", attemptId: "attempt-1", ownerPluginId: "fixture-product-plugin",
     pluginVersion: 1, exactCallIdentityHash, actionOrdinal: 1,

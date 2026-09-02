@@ -28,7 +28,7 @@ import type { WorkbenchBrowserAuthority } from "../../src/lib/local-runtime/work
 import { createRuntimeLogger, type RuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import { executionFailure, typedExecutionFailure } from "../../src/lib/typed-failure.js";
-import { HASH_A, HASH_B, identityFor, task } from "./agent-production-runtime-fixtures.js";
+import { gptProofEnvelope, HASH_A, HASH_B, identityFor, task } from "./agent-production-runtime-fixtures.js";
 
 type ProviderOutcome = "CONFIRMED" | "DISPATCHED";
 type GptExecutionContext = Parameters<GptAbilityGroup["execute"]>[1];
@@ -58,6 +58,14 @@ const providerResult = (
     proof: Object.freeze({
       schemaVersion: "gpt-child-capability-proof.v2",
       childCapabilityId: intent.childCapabilityId,
+      ...gptProofEnvelope({
+        childCapabilityId: intent.childCapabilityId,
+        exactCallIdentityHash: gptExactCallIdentityHash(intent),
+        status: succeeded ? "success" : "failed",
+        decision: succeeded ? "ACT" : "FAIL_CLOSED",
+        candidateCount: 1,
+        authorityRefHashes: [HASH_A, HASH_B],
+      }),
       executionId: intent.executionId,
       jobId: intent.jobId,
       attemptId: intent.attemptId,
@@ -70,8 +78,6 @@ const providerResult = (
       targetRefHash: HASH_A,
       beforeDocumentRefHash: HASH_A,
       afterDocumentRefHash: HASH_B,
-      candidateCount: 1,
-      observedSemantics: Object.freeze([`provider-submit-${outcome}`]),
       committedMutation: outcome,
       postconditionResult: succeeded ? "passed" : "pending",
       startedAt: timestamp,
@@ -219,13 +225,14 @@ const walBackedBrowser = (input: WalBrowserInput): BrowserTargetLease => ({
     registerFileArtifact: async () => { throw new Error("UNEXPECTED_PROVIDER_BROWSER_ARTIFACT"); },
     issueFileArtifactGrant: async () => { throw new Error("UNEXPECTED_PROVIDER_BROWSER_GRANT"); },
     wait: async () => { throw new Error("UNEXPECTED_PROVIDER_BROWSER_WAIT"); },
-    resolvePendingMutation: async () => {
+    resolvePendingMutation: async (receipt) => {
       input.counters.resolutions += 1;
       input.wal().resolve({
         commandId: input.commandId,
         ownerPluginId: "public-knowledge-article-pipeline",
         targetRef: input.targetRef,
         state: "CONFIRMED",
+        mutationOutcome: receipt.mutationOutcome,
         proofHash: HASH_A,
       });
       return 1;

@@ -26,7 +26,7 @@ import type { BrowserExecutionBinding } from "../../src/lib/browser/browser-auth
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import { freshConfirmedAuthority } from "./agent-production-fresh-confirmed-authority-support.js";
-import { HASH_A, HASH_B, identityFor, task } from "./agent-production-runtime-fixtures.js";
+import { gptProofEnvelope, HASH_A, HASH_B, identityFor, task } from "./agent-production-runtime-fixtures.js";
 import { typedExecutionFailure } from "../../src/lib/typed-failure.js";
 
 const continuationAuthority = (): WorkbenchBrowserAuthority => Object.assign(
@@ -164,14 +164,18 @@ const persistSubmissionLocator = async (
       },
       proof: {
         schemaVersion: "gpt-child-capability-proof.v2",
+        ...gptProofEnvelope({
+          childCapabilityId: scenario.identity.childCapabilityId,
+          exactCallIdentityHash: scenario.exactCallIdentityHash,
+          status: "success", decision: "DONE", candidateCount: 1,
+          authorityRefHashes: [HASH_A, HASH_B],
+        }),
         ...scenario.identity,
         executionId,
         actionOrdinal: scenario.locatorCall.actionOrdinal,
         targetRefHash: HASH_A,
         beforeDocumentRefHash: HASH_A,
         afterDocumentRefHash: HASH_B,
-        candidateCount: 1,
-        observedSemantics: ["submission locator"],
         committedMutation: "no",
         postconditionResult: "passed",
         startedAt: timestamp,
@@ -209,14 +213,18 @@ const persistConfirmedSubmit = async (
       value: null,
       proof: {
         schemaVersion: "gpt-child-capability-proof.v2",
+        ...gptProofEnvelope({
+          childCapabilityId: scenario.submitIdentity.childCapabilityId,
+          exactCallIdentityHash: scenario.submitExactCallIdentityHash,
+          status: "success", decision: "ACT", candidateCount: 1,
+          authorityRefHashes: [HASH_A],
+        }),
         ...scenario.submitIdentity,
         executionId,
         actionOrdinal: scenario.submitCall.actionOrdinal,
         targetRefHash: HASH_A,
         beforeDocumentRefHash: HASH_A,
         afterDocumentRefHash: HASH_A,
-        candidateCount: 1,
-        observedSemantics: ["confirmed submit"],
         committedMutation: "confirmed",
         postconditionResult: "passed",
         startedAt: timestamp,

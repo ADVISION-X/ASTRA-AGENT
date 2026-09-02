@@ -10,7 +10,7 @@ import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/s
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import { typedExecutionFailure } from "../../src/lib/typed-failure.js";
-import { HASH_A, HASH_B, identityFor, task } from "./agent-production-runtime-fixtures.js";
+import { gptProofEnvelope, HASH_A, HASH_B, identityFor, task } from "./agent-production-runtime-fixtures.js";
 import { artifactReadbackExecution, attemptId, checkpointCall, digest, digestBytes, exerciseArtifactReadbackFailure, identity,
   persistCheckpointArtifact, providerTask, rawDomHtml, semanticText,
 } from "./agent-production-gpt-artifact-readback-support.js";
@@ -167,14 +167,15 @@ try {
       },
       proof: {
         schemaVersion: "gpt-child-capability-proof.v2",
+        ...gptProofEnvelope({ childCapabilityId: articleIdentity.childCapabilityId,
+          exactCallIdentityHash: articleExactHash, status: "success", decision: "DONE", candidateCount: 1,
+          authorityRefHashes: [HASH_A, HASH_B] }),
         ...articleIdentity,
         executionId: `gpt-call:${articleExactHash.slice(7)}`,
         actionOrdinal: 30,
         targetRefHash: HASH_A,
         beforeDocumentRefHash: HASH_A,
         afterDocumentRefHash: HASH_B,
-        candidateCount: 1,
-        observedSemantics: ["article checkpoint"],
         committedMutation: "no",
         postconditionResult: "passed",
         startedAt: articleTimestamp,
@@ -259,14 +260,15 @@ try {
       },
       proof: {
         schemaVersion: "gpt-child-capability-proof.v2",
+        ...gptProofEnvelope({ childCapabilityId: imageIdentity.childCapabilityId,
+          exactCallIdentityHash: imageExactHash, status: "success", decision: "DONE", candidateCount: 1,
+          authorityRefHashes: [HASH_A, HASH_B] }),
         ...imageIdentity,
         executionId: `gpt-call:${imageExactHash.slice(7)}`,
         actionOrdinal: 45,
         targetRefHash: HASH_A,
         beforeDocumentRefHash: HASH_A,
         afterDocumentRefHash: HASH_B,
-        candidateCount: 1,
-        observedSemantics: ["image checkpoint"],
         committedMutation: "no",
         postconditionResult: "passed",
         startedAt: imageTimestamp,
@@ -410,10 +412,13 @@ try {
       failureBrowserEffect: null,
       proof: {
         schemaVersion: "gpt-child-capability-proof.v2",
+        ...gptProofEnvelope({ childCapabilityId: failedIdentity.childCapabilityId,
+          exactCallIdentityHash: failedExactHash, status: "failed", decision: "FAIL_CLOSED",
+          candidateCount: null, nativeFailureCode: "ECONNRESET" }),
         ...failedIdentity, executionId: `gpt-call:${failedExactHash.slice(7)}`,
         actionOrdinal: failedCall.actionOrdinal,
         targetRefHash: null, beforeDocumentRefHash: null, afterDocumentRefHash: null,
-        candidateCount: null, observedSemantics: ["failed exact fact"], committedMutation: "no",
+        committedMutation: "no",
         postconditionResult: "failed", startedAt: failedAt, endedAt: failedAt,
         evidenceRef: "gpt:test-failed-fact", evidenceHash: HASH_B,
       },

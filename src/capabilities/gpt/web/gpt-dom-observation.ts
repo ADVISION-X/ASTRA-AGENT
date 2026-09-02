@@ -1,4 +1,7 @@
-import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
+import type {
+  BrowserDomObservationQuery,
+  BrowserTargetLease,
+} from "../../../lib/browser/browser-authority-api.js";
 import { executionFailure } from "../../../lib/typed-failure.js";
 
 import { assertGptUrl } from "./contracts/target-document.contract.js";
@@ -8,6 +11,74 @@ const record = (value: unknown): Record<string, unknown> => {
     throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
   }
   return value as Record<string, unknown>;
+};
+
+export type GptCoherentObservationRow = Readonly<{
+  queryId: string;
+  scopeRawCount: number;
+  scopeEligibleCount: number;
+  rawCount: number;
+  eligibleCount: number;
+  matches: readonly Readonly<Record<string, unknown>>[];
+  nativeCauseCode: "NO_LAYOUT_BOX" | null;
+  nativeCauseCount: number;
+  nativeStage: "runtime-call-function-on";
+}>;
+
+const nonNegativeInteger = (value: unknown): value is number =>
+  Number.isSafeInteger(value) && (value as number) >= 0;
+
+/**
+ * Reads one Browser-owned coherent packet. The returned rows all describe the
+ * same exact call, Target, Document and observation revision.
+ */
+export const readCoherentObservation = async (
+  browser: Pick<BrowserTargetLease, "executeDomIntent">,
+  queries: readonly BrowserDomObservationQuery[],
+): Promise<readonly GptCoherentObservationRow[]> => {
+  const packet = record(await browser.executeDomIntent({ kind: "observe", queries }));
+  if (packet.schemaVersion !== "grasseye.browser.dom-observation.v1"
+    || typeof packet.exactCallIdentityHash !== "string"
+    || typeof packet.targetRefHash !== "string"
+    || typeof packet.documentRefHash !== "string"
+    || typeof packet.observationRevisionHash !== "string"
+    || ![packet.exactCallIdentityHash, packet.targetRefHash, packet.documentRefHash,
+      packet.observationRevisionHash].every((value) => /^sha256:[a-f0-9]{64}$/u.test(value as string))
+    || typeof packet.observedAt !== "string"
+    || Number.isNaN(Date.parse(packet.observedAt))
+    || !Array.isArray(packet.queries)
+    || packet.queries.length !== queries.length) {
+    throw executionFailure("failed", "GPT_DOM_COHERENT_PACKET_INVALID");
+  }
+  return Object.freeze(packet.queries.map((value, index): GptCoherentObservationRow => {
+    const row = record(value);
+    const spec = queries[index]!;
+    if (row.queryId !== spec.queryId
+      || !nonNegativeInteger(row.scopeRawCount)
+      || !nonNegativeInteger(row.scopeEligibleCount)
+      || !nonNegativeInteger(row.rawCount)
+      || !nonNegativeInteger(row.eligibleCount)
+      || !nonNegativeInteger(row.nativeCauseCount)
+      || (row.scopeEligibleCount as number) > (row.scopeRawCount as number)
+      || (row.eligibleCount as number) > (row.rawCount as number)
+      || (row.nativeCauseCount as number) > (row.rawCount as number)
+      || !Array.isArray(row.matches)
+      || row.nativeStage !== "runtime-call-function-on"
+      || !(row.nativeCauseCode === null || row.nativeCauseCode === "NO_LAYOUT_BOX")) {
+      throw executionFailure("failed", "GPT_DOM_COHERENT_PACKET_INVALID");
+    }
+    return Object.freeze({
+      queryId: row.queryId as string,
+      scopeRawCount: row.scopeRawCount as number,
+      scopeEligibleCount: row.scopeEligibleCount as number,
+      rawCount: row.rawCount as number,
+      eligibleCount: row.eligibleCount as number,
+      matches: Object.freeze(row.matches.map((match) => Object.freeze({ ...record(match) }))),
+      nativeCauseCode: row.nativeCauseCode as "NO_LAYOUT_BOX" | null,
+      nativeCauseCount: row.nativeCauseCount as number,
+      nativeStage: "runtime-call-function-on",
+    });
+  }));
 };
 
 export const readGptDocument = async (

@@ -14,7 +14,7 @@ import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/s
 import type { WorkbenchBrowserAuthority } from "../../src/lib/local-runtime/workbench-browser-authority-support.js";
 import type { RuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { typedExecutionFailure } from "../../src/lib/typed-failure.js";
-import { HASH_A, HASH_B, task } from "./agent-production-runtime-fixtures.js";
+import { gptProofEnvelope, HASH_A, HASH_B, task } from "./agent-production-runtime-fixtures.js";
 
 export const digest = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -70,10 +70,13 @@ export const persistCheckpointArtifact = async (
         semanticText, semanticTextHash: digest(semanticText),
       },
       proof: {
-        schemaVersion: "gpt-child-capability-proof.v2", ...identity, executionId,
+        schemaVersion: "gpt-child-capability-proof.v2",
+        ...gptProofEnvelope({ childCapabilityId: identity.childCapabilityId,
+          exactCallIdentityHash, status: "success", decision: "DONE", candidateCount: 1,
+          authorityRefHashes: [HASH_A, HASH_B] }),
+        ...identity, executionId,
         actionOrdinal: checkpointCall.actionOrdinal, targetRefHash: HASH_A,
-        beforeDocumentRefHash: HASH_A, afterDocumentRefHash: HASH_B, candidateCount: 1,
-        observedSemantics: ["artifact readback terminal"], committedMutation: "no",
+        beforeDocumentRefHash: HASH_A, afterDocumentRefHash: HASH_B, committedMutation: "no",
         postconditionResult: "passed", startedAt: timestamp, endedAt: timestamp,
         evidenceRef: "browser:artifact-readback-terminal", evidenceHash: HASH_B,
       },

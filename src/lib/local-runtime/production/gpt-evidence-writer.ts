@@ -25,7 +25,7 @@ const safeProjection = (
   plugin_version: result.proof.pluginVersion,
   action_ordinal: result.proof.actionOrdinal,
   execution_identity_hash: hash(result.proof.executionId),
-  candidate_count: result.proof.candidateCount,
+  candidate_cardinality: result.proof.candidateCardinality,
   committed_mutation: result.proof.committedMutation,
   postcondition_result: result.proof.postconditionResult,
   result_status: result.status,

@@ -23,6 +23,7 @@ export type MutationRow = Readonly<{
   request_hash: `sha256:${string}`;
   payload_hash: `sha256:${string}`;
   state: BrowserMutationState;
+  mutation_outcome: "no" | "dispatched" | "confirmed" | null;
   terminal_at: string | null;
 }>;
 

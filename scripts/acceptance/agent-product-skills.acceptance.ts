@@ -359,7 +359,7 @@ assert.equal(routeKeys.size, 39);
 assert.deepEqual([...productIds].sort(), [...ProductionProductIdSchema.options].sort());
 process.stdout.write("[ACCEPTANCE][agent-product-skills] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V29",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V30",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:15", "forbidden:16", "forbidden:2", "forbidden:21", "forbidden:22", "forbidden:29", "forbidden:3", "forbidden:30", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:product-flow-golden",

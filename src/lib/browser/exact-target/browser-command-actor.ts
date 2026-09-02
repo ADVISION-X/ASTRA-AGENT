@@ -220,24 +220,46 @@ const causalBrowserFailureCode = (error: unknown): string =>
 const mutationReceipt = (
   command: BrowserGovernedCommand,
   result: unknown,
-  replayPolicy: BrowserCommandPermit["replayPolicy"],
-): "confirmed" | "rejected" | "unresolved" => {
+): Readonly<{
+  terminal: "confirmed" | "rejected";
+  mutationOutcome: "no" | "confirmed";
+  failureCode: string | null;
+}> => {
   const value = result && typeof result === "object" ? result as Record<string, unknown> : {};
-  if (value.candidateCount !== 1 || value.identityRevalidated !== true || value.mutationCount !== 1
-    || typeof value.postconditionVerified !== "boolean") {
+  const mutationCount = value.mutationCount;
+  const zeroActionSatisfied = value.zeroActionSatisfied === true;
+  const qualificationRejected = value.qualificationRejected === true;
+  if ((mutationCount !== 0 && mutationCount !== 1) || typeof value.postconditionVerified !== "boolean"
+    || (zeroActionSatisfied && qualificationRejected)) {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
-  if (value.postconditionVerified === false) {
-    if (value.failureCode !== "BROWSER_POSTCONDITION_FAILED") {
-      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  if (mutationCount === 0) {
+    if (zeroActionSatisfied && value.candidateCount === 1 && value.identityRevalidated === true
+      && value.postconditionVerified === true && value.failureCode === undefined) {
+      return Object.freeze({ terminal: "confirmed", mutationOutcome: "no", failureCode: null });
     }
-    return replayPolicy === "provider-effect-once" ? "unresolved" : "rejected";
+    if (qualificationRejected && Number.isSafeInteger(value.candidateCount)
+      && (value.candidateCount as number) >= 0 && value.identityRevalidated === false
+      && value.postconditionVerified === false && typeof value.failureCode === "string"
+      && /^BROWSER_[A-Z_]+$/u.test(value.failureCode)) {
+      return Object.freeze({ terminal: "rejected", mutationOutcome: "no", failureCode: value.failureCode });
+    }
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  if (value.candidateCount !== 1 || value.identityRevalidated !== true
+    || zeroActionSatisfied || qualificationRejected) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  if (value.postconditionVerified === false && value.failureCode !== "BROWSER_POSTCONDITION_FAILED") {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
   if (command.kind === "dom-intent" && command.intent.kind === "fill"
-    && value.retainedValueVerified !== true) {
+    && value.postconditionVerified === true && value.retainedValueVerified !== true) {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
-  return "confirmed";
+  return Object.freeze({
+    terminal: value.postconditionVerified ? "confirmed" : "rejected",
+    mutationOutcome: "confirmed",
+    failureCode: value.postconditionVerified ? null : "BROWSER_POSTCONDITION_FAILED",
+  });
 };
 
 export class BrowserCommandActor {
@@ -351,23 +373,23 @@ export class BrowserCommandActor {
     state: BrowserCommandExecutionState,
   ): void {
     if (!state.dispatched) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-    const result = mutationReceipt(command, reply.result, permit.replayPolicy);
-    if (result === "unresolved") throw new Error("BROWSER_COMMAND_RECEIPT_MISSING");
+    const result = mutationReceipt(command, reply.result);
     const replyHash = hashValue(reply.result);
-    if (result === "rejected") this.mutations.markRejected(permit.commandId, replyHash);
-    else this.mutations.markConfirmed(permit.commandId, replyHash);
+    if (result.terminal === "rejected") this.mutations.markRejected(permit.commandId, replyHash, result.mutationOutcome);
+    else this.mutations.markConfirmed(permit.commandId, replyHash, result.mutationOutcome);
     emitBrowserMutationEvent({
       runtimeLogger: this.runtimeLogger, mutation: permit,
-      outcome: result === "rejected" ? "REJECTED" : "CONFIRMED",
+      outcome: result.terminal === "rejected" ? "REJECTED" : "CONFIRMED",
       authorityHash: this.mutations.authorityHash(permit.commandId),
     });
-    if (result !== "rejected") return;
+    if (result.terminal !== "rejected") return;
+    const failureCode = result.failureCode ?? "BROWSER_POSTCONDITION_FAILED";
     const failureEvent = failBrowserCommandSpan({
       span: commandSpan, permit, proofHash: this.mutations.authorityHash(permit.commandId),
-      failureCode: "BROWSER_POSTCONDITION_FAILED", pendingReceipt: false,
+      failureCode, pendingReceipt: false,
     });
     state.terminalized = true;
-    throw withRuntimeLogCause(new Error("BROWSER_POSTCONDITION_FAILED"), failureEvent.eventId);
+    throw withRuntimeLogCause(new Error(failureCode), failureEvent.eventId);
   }
 
   private failExecution(
@@ -401,10 +423,7 @@ export class BrowserCommandActor {
   }
 
   public mutationOutcome(commandId: string): "no" | "dispatched" | "confirmed" {
-    const state = this.mutations.readState(commandId);
-    if (state === "DISPATCHED") return "dispatched";
-    if (state === "CONFIRMED" || state === "REJECTED") return "confirmed";
-    return "no";
+    return this.mutations.readMutationOutcome(commandId);
   }
 
   public browserOutcome(commandId: string): "DISPATCHED" | "CONFIRMED" | "REJECTED" | null {
@@ -423,6 +442,7 @@ export class BrowserCommandActor {
       ownerPluginId: receipt.ownerPluginId,
       targetRef: receipt.uniqueTargetRef,
       state,
+      mutationOutcome: receipt.mutationOutcome,
       proofHash: hashValue(receipt),
     });
     emitBrowserMutationEvent({

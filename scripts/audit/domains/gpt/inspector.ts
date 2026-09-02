@@ -21,7 +21,7 @@ import {
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 import { inspectGptContractDenominator } from "./gpt-contract-inspection.js";
 
-const LAW_ID = "LAW-GPT-001-V18";
+const LAW_ID = "LAW-GPT-001-V19";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 12, 15),
   "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14),

@@ -2,12 +2,12 @@ const BROWSER_DOM_FIELD_VALUES = [
   "id", "testId", "dataTurn", "tagName", "type", "role", "name", "label",
   "ariaLabel", "ariaExpanded", "ariaChecked", "text", "outerHtml", "semanticText",
   "value", "checked", "accept", "multiple", "connected", "layout", "visible",
-  "computedDisplay", "computedVisibility", "computedOpacity", "hidden", "ariaHidden",
+  "computedDisplay", "computedVisibility", "computedOpacity", "effectiveOpacity", "hidden", "ariaHidden",
   "inert", "disabled", "ariaDisabled", "bounds", "viewport", "hitTest",
 ] as const;
 
 export type BrowserDomField = typeof BROWSER_DOM_FIELD_VALUES[number];
-export type BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText">;
+export type BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">;
 
 export type BrowserDomObservationQuery = Readonly<{
   queryId: string;
@@ -91,7 +91,8 @@ export type BrowserDomIntent =
       timeoutMs?: number;
     }>;
     postClickUrl?: Readonly<{
-      equals: string;
+      equals?: string;
+      notEquals?: string;
       timeoutMs?: number;
     }>;
   }>
@@ -162,6 +163,7 @@ const assertObserveIntent = (intent: Extract<BrowserDomIntent, { kind: "observe"
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
   const queryIds = new Set<string>();
+  let observationCells = 0;
   for (const query of intent.queries) {
     if (!query || typeof query !== "object" || Array.isArray(query)
       || Object.keys(query).some((key) => !OBSERVATION_QUERY_KEYS.has(key))
@@ -174,7 +176,9 @@ const assertObserveIntent = (intent: Extract<BrowserDomIntent, { kind: "observe"
     assertReadScope(query.scope);
     assertObservationText(query);
     assertObservationFields(query.fields);
+    observationCells += (query.maxMatches + 1) * query.fields.length;
   }
+  if (observationCells > 256) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
 };
 
 const assertObservationText = (query: BrowserDomObservationQuery): void => {
@@ -188,7 +192,8 @@ const assertObservationText = (query: BrowserDomObservationQuery): void => {
 const assertObservationFields = (fields: readonly BrowserDomObservationField[]): void => {
   assertDomFields(fields);
   if (fields.includes("outerHtml" as BrowserDomObservationField)
-    || fields.includes("semanticText" as BrowserDomObservationField)) {
+    || fields.includes("semanticText" as BrowserDomObservationField)
+    || fields.includes("text" as BrowserDomObservationField)) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
 };
@@ -203,7 +208,11 @@ const assertDomFields = (fields: readonly BrowserDomField[]): void => {
 
 const assertMutationIntent = (intent: BrowserDomIntent): void => {
   if (intent.kind === "click" || intent.kind === "hover" || intent.kind === "doubleClick"
-    || intent.kind === "keypress" || intent.kind === "fill") assertOptionalExpectedMatches(intent.expectedMatches);
+    || intent.kind === "keypress" || intent.kind === "fill") {
+    if (intent.expectedMatches !== undefined && intent.expectedMatches !== 1) {
+      throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+    }
+  }
   if (intent.kind === "click") assertClickIntent(intent);
   if (intent.kind === "hover") assertHoverIntent(intent);
   if (intent.kind === "doubleClick") assertBoundedPostMatch(intent.postDoubleClickMatch);
@@ -273,7 +282,11 @@ const assertClickMatch = (
 };
 
 const assertClickUrl = (url: Extract<BrowserDomIntent, { kind: "click" }>["postClickUrl"]): void => {
-  if (url && (!isBoundedText(url.equals, 2_048) || timeoutInvalid(url.timeoutMs))) {
+  if (!url) return;
+  const expectations = [url.equals, url.notEquals].filter((value) => value !== undefined);
+  if (expectations.length !== 1
+    || !isBoundedText(expectations[0], 2_048)
+    || timeoutInvalid(url.timeoutMs)) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
 };

@@ -16,7 +16,7 @@ import {
   requireExactInputKeys,
   success,
 } from "../child-handler.js";
-import { findCount, requireOneCandidate } from "../gpt-dom-observation.js";
+import { findCount, readCoherentObservation, requireOneCandidate } from "../gpt-dom-observation.js";
 import {
   GPT_ATTACHMENT_CONTROL_SELECTOR,
   GPT_ATTACHMENT_ITEM_SELECTOR,
@@ -113,51 +113,34 @@ const issueGrants = async (
   return grants;
 };
 
-const attachmentLabels = async (
-  browser: ReturnType<typeof requireBrowser>,
-): Promise<readonly string[]> => {
-  const result = await browser.executeDomIntent({
-    kind: "find",
-    selector: GPT_ATTACHMENT_ITEM_SELECTOR,
-    maxMatches: 20,
-    fields: ["ariaLabel"],
-  });
-  if (!result || typeof result !== "object" || Array.isArray(result)) {
-    throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
-  }
-  const observation = result as Record<string, unknown>;
-  if (!Array.isArray(observation.matches)
-    || !Number.isInteger(observation.count)
-    || observation.count !== observation.matches.length) {
-    throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
-  }
-  return observation.matches.map((match) => {
-    if (!match || typeof match !== "object" || Array.isArray(match)
-      || typeof (match as Record<string, unknown>).ariaLabel !== "string") {
-      throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
-    }
-    return (match as Record<string, unknown>).ariaLabel as string;
-  });
-};
-
 const attachmentSetState = async (
   browser: ReturnType<typeof requireBrowser>,
   includeReady = true,
 ): Promise<AttachmentSetState> => {
-  const regionCount = await findCount(browser, { selector: GPT_ATTACHMENT_REGION_SELECTOR, maxMatches: 2 });
+  const specs = [
+    { queryId: "attachment-region", selector: GPT_ATTACHMENT_REGION_SELECTOR, maxMatches: 2, fields: [] },
+    { queryId: "attachment-items", selector: GPT_ATTACHMENT_ITEM_SELECTOR, maxMatches: 20, fields: ["ariaLabel" as const] },
+    ...(includeReady ? [
+      { queryId: "attachment-ready", selector: GPT_ATTACHMENT_READY_ICON_SELECTOR, maxMatches: 20, fields: [] },
+      { queryId: "attachment-uploading", selector: GPT_ATTACHMENT_UPLOAD_SPINNER_SELECTOR, maxMatches: 20, fields: [] },
+    ] : []),
+  ] as const;
+  const rows = await readCoherentObservation(browser, specs);
+  const row = (queryId: string) => rows.find((candidate) => candidate.queryId === queryId)!;
+  const regionCount = row("attachment-region").eligibleCount;
   if (regionCount === 0) return Object.freeze({
     regionCount, observedLabels: [], readyCount: 0, uploadingCount: 0,
   });
   if (regionCount !== 1) throw executionFailure("failed", `GPT_ATTACHMENT_REGION_COUNT_${regionCount}`);
+  const observedLabels = row("attachment-items").matches.map((match) => {
+    if (typeof match.ariaLabel !== "string") throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
+    return match.ariaLabel.normalize("NFC");
+  });
   return Object.freeze({
     regionCount,
-    observedLabels: await attachmentLabels(browser),
-    readyCount: includeReady
-      ? await findCount(browser, { selector: GPT_ATTACHMENT_READY_ICON_SELECTOR, maxMatches: 20 })
-      : 0,
-    uploadingCount: includeReady
-      ? await findCount(browser, { selector: GPT_ATTACHMENT_UPLOAD_SPINNER_SELECTOR, maxMatches: 20 })
-      : 0,
+    observedLabels,
+    readyCount: includeReady ? row("attachment-ready").eligibleCount : 0,
+    uploadingCount: includeReady ? row("attachment-uploading").eligibleCount : 0,
   });
 };
 

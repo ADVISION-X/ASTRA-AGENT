@@ -1,9 +1,11 @@
 import {
   GPT_CHILD_CAPABILITY_CONTRACTS,
+  gptExactCallIdentityHash,
   type GptChildCapabilityIntent,
   type GptChildCapabilityProof,
   type GptChildCapabilityResult,
 } from "../../../capabilities/gpt/index.js";
+import type { BrowserAtomicStepRecovery } from "../../browser/exact-target/browser-target-lease.js";
 import type {
   BrowserConfirmedProviderReadbackAuthorization,
   BrowserTargetLease,
@@ -33,13 +35,23 @@ const recoveredProof = (input: Readonly<{
   intent: GptChildCapabilityIntent;
   browser: BrowserTargetLease;
   readback: GptChildCapabilityResult | null;
-  authorityRef: string;
+  recovery: BrowserAtomicStepRecovery;
   state: "confirmed" | "rejected";
 }>): GptChildCapabilityProof => {
   const timestamp = new Date().toISOString();
+  const exactCallIdentityHash = gptExactCallIdentityHash(input.intent);
+  const targetRefHash = sha256(input.browser.target.targetRef);
+  const documentRefHash = sha256(input.browser.document.documentRef);
+  const effectScope = GPT_CHILD_CAPABILITY_CONTRACTS[input.intent.childCapabilityId].replayPolicy
+    === "provider-effect-once" ? "provider_effect" as const : "target_local" as const;
   const unsigned = {
     schemaVersion: "gpt-child-capability-proof.v2" as const,
     childCapabilityId: input.intent.childCapabilityId,
+    childContractVersion: GPT_CHILD_CAPABILITY_CONTRACTS[input.intent.childCapabilityId].contractVersion,
+    childStatus: input.state === "confirmed" ? "success" as const : "failed" as const,
+    childReasonCode: input.state === "confirmed" ? "GPT_CHILD_SUCCESS" : "BROWSER_POSTCONDITION_FAILED",
+    exactCallIdentityHash,
+    internalDecisionCode: input.state === "confirmed" ? "DONE" as const : "FAIL_CLOSED" as const,
     executionId: input.intent.executionId,
     jobId: input.intent.jobId,
     attemptId: input.intent.attemptId,
@@ -49,23 +61,33 @@ const recoveredProof = (input: Readonly<{
     callId: input.intent.callId,
     inputHash: input.intent.inputHash,
     actionOrdinal: input.intent.actionOrdinal,
-    targetRefHash: sha256(input.browser.target.targetRef),
-    beforeDocumentRefHash: sha256(input.browser.document.documentRef),
-    afterDocumentRefHash: sha256(input.browser.document.documentRef),
-    candidateCount: input.readback?.proof.candidateCount ?? null,
-    observedSemantics: Object.freeze([
-      ...(input.readback?.proof.observedSemantics ?? []),
-      `browser-wal-${input.state}`,
-    ]),
-    committedMutation: "confirmed" as const,
+    targetRefHash,
+    beforeDocumentRefHash: documentRefHash,
+    afterDocumentRefHash: documentRefHash,
+    authorityRefHashes: Object.freeze([targetRefHash, documentRefHash]),
+    factResultIds: Object.freeze([`gpt-fact-result:${input.recovery.authorityHash.slice(7)}`]),
+    candidateCardinality: input.readback?.proof.candidateCardinality
+      ?? Object.freeze({ raw: null, eligible: null }),
+    committedMutation: input.recovery.mutationOutcome,
     postconditionResult: input.state === "confirmed" ? "passed" as const : "failed" as const,
+    browserFact: Object.freeze({
+      exactCallIdentityHash,
+      childCapabilityId: input.intent.childCapabilityId,
+      effectScope,
+      browserOutcome: input.state.toUpperCase() as "CONFIRMED" | "REJECTED",
+      mutationOutcome: input.recovery.mutationOutcome,
+      terminalAt: input.recovery.terminalAt,
+      evidenceRef: input.recovery.authorityRef,
+      evidenceHash: input.recovery.authorityHash,
+    }),
+    nativeFailureCode: null,
     startedAt: input.readback?.proof.startedAt ?? timestamp,
     endedAt: input.readback?.proof.endedAt ?? timestamp,
   };
   const evidenceHash = sha256(JSON.stringify(unsigned));
   return Object.freeze({
     ...unsigned,
-    evidenceRef: input.authorityRef,
+    evidenceRef: input.recovery.authorityRef,
     evidenceHash,
   });
 };
@@ -74,7 +96,7 @@ export const recoveredGptChildResult = (input: Readonly<{
   intent: GptChildCapabilityIntent;
   browser: BrowserTargetLease;
   readback: GptChildCapabilityResult | null;
-  authorityRef: string;
+  recovery: BrowserAtomicStepRecovery;
   state: "confirmed" | "rejected";
 }>): GptChildCapabilityResult => Object.freeze({
   status: input.state === "confirmed" ? "success" : "failed",

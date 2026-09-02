@@ -5,6 +5,7 @@ import { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import { executeAuthenticatedMedia } from "./authenticated-media-runtime.js";
 import { executeRegisteredDomIntent } from "./dom-intent-runtime.js";
 import { ExtensionExactTargetRegistry, type ExtensionExactTarget } from "./exact-target-runtime.js";
+import { executeExtensionFileInput } from "./extension-file-input-runtime.js";
 import type { ExtensionChromeApi, ExtensionDebugTarget } from "./extension-runtime-types.js";
 
 type TargetFrameSender = (
@@ -178,10 +179,14 @@ export class ExtensionTargetAuthority {
     target: ExtensionExactTarget,
   ): Promise<unknown> {
     if (command.kind === "dom-intent") {
-      return executeRegisteredDomIntent(this.debuggerRuntime, target, command.intent);
+      const result = await executeRegisteredDomIntent(this.debuggerRuntime, target, command.intent);
+      this.targets.resolve(target.targetRef, target.documentRef);
+      return result;
     }
     if (command.kind === "observe") {
-      return executeRegisteredDomIntent(this.debuggerRuntime, target, { kind: "document" });
+      const result = await executeRegisteredDomIntent(this.debuggerRuntime, target, { kind: "document" });
+      this.targets.resolve(target.targetRef, target.documentRef);
+      return result;
     }
     if (command.kind === "wait") return this.executeWait(command.durationMs);
     if (command.kind === "navigate") return this.executeNavigation(target, command.url, command.title);
@@ -195,7 +200,14 @@ export class ExtensionTargetAuthority {
       return { closed: true };
     }
     if (command.kind === "file-input") {
-      return this.executeFileInput(target, command.selector, command.grantRefs, command.resolvedFilePaths);
+      return executeExtensionFileInput({
+        runtime: this.debuggerRuntime,
+        target,
+        assertCurrent: (targetRef, documentRef) => { this.targets.resolve(targetRef, documentRef); },
+        selector: command.selector,
+        grantRefs: command.grantRefs,
+        resolvedFilePaths: command.resolvedFilePaths,
+      });
     }
     if (command.kind === "authenticated-media") {
       return executeAuthenticatedMedia(
@@ -421,52 +433,6 @@ export class ExtensionTargetAuthority {
       if (this.navigationPublication?.promise === promise) this.navigationPublication = null;
     }
     return next;
-  }
-
-  private async executeFileInput(
-    target: ExtensionExactTarget,
-    selector: string,
-    grantRefs: readonly string[],
-    resolvedFilePaths: readonly string[],
-  ): Promise<Readonly<{
-    selectedFileCount: number;
-    candidateCount: 1;
-    identityRevalidated: true;
-    mutationCount: 1;
-    postconditionVerified: true;
-  }>> {
-    if (selector !== "#upload-files" || grantRefs.length < 1 || grantRefs.length > 20
-      || resolvedFilePaths.length !== grantRefs.length || new Set(grantRefs).size !== grantRefs.length
-      || resolvedFilePaths.some((filePath) => !filePath.startsWith("/"))) {
-      throw new Error("BROWSER_FILE_GRANT_INVALID");
-    }
-    const document = asRecord(await this.debuggerRuntime.send(
-      target.tabId,
-      "DOM.getDocument",
-      { depth: -1, pierce: false },
-    ));
-    const root = asRecord(document?.root);
-    if (!root || typeof root.nodeId !== "number") throw new Error("BROWSER_TARGET_INVALID");
-    const selection = asRecord(await this.debuggerRuntime.send(
-      target.tabId,
-      "DOM.querySelectorAll",
-      { nodeId: root.nodeId, selector: "#upload-files" },
-    ));
-    const nodeIds = Array.isArray(selection?.nodeIds)
-      ? selection.nodeIds.filter((value): value is number => typeof value === "number")
-      : [];
-    if (nodeIds.length !== 1) throw new Error("BROWSER_TARGET_INVALID");
-    await this.debuggerRuntime.send(target.tabId, "DOM.setFileInputFiles", {
-      nodeId: nodeIds[0],
-      files: [...resolvedFilePaths],
-    });
-    return {
-      selectedFileCount: resolvedFilePaths.length,
-      candidateCount: 1,
-      identityRevalidated: true,
-      mutationCount: 1,
-      postconditionVerified: true,
-    };
   }
 
 }

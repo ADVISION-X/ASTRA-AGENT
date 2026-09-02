@@ -1,4 +1,4 @@
-# GrassEye 单生产 Tab、可信 DOM 事实与唯一 Browser FIFO V10 施工图
+# GrassEye 单生产 Tab、可信 DOM 事实与唯一 Browser FIFO V11 施工图
 
 状态：active final-state blueprint
 Owner：`local-browser-session`
@@ -6,15 +6,15 @@ Owner：`local-browser-session`
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "local-browser-auto-pairing-and-exact-chatgpt-claim-v10",
+  "blueprintId": "local-browser-auto-pairing-and-exact-chatgpt-claim-v11",
   "status": "active",
   "owner": "local-browser-session",
   "lawIds": [
     "LAW-LOCAL-BROWSER-SESSION-002-V6",
     "LAW-LOCAL-BROWSER-SESSION-003-V19",
-    "LAW-LOCAL-BROWSER-SESSION-004-V16",
+    "LAW-LOCAL-BROWSER-SESSION-004-V17",
     "LAW-LOCAL-BROWSER-SESSION-005-V6",
-    "LAW-LOCAL-BROWSER-SESSION-006-V11"
+    "LAW-LOCAL-BROWSER-SESSION-006-V12"
   ],
   "contractRefs": [],
   "dependencyEdges": [
@@ -138,6 +138,12 @@ Browser Extension 必须在一条 typed observation 的同一次同步采集内�
 `TFacts` 只能包含真实消费者最少充分的机械事实：raw/eligible cardinality、真实 `isConnected`、layout、computed display/visibility/opacity、HTML hidden、aria-hidden、inert、HTML disabled、aria-disabled，以及当前 typed command 必需的 role/name/testId/label/value/checked/type。屏幕外只读历史 turn 不因 viewport 排除；viewport 与中心点 hit-test 只在真实物理指针动作需要时采集。隐藏 file input 不走普通可见性规则，只在专门 typed command 内证明 exact input、`type=file`、connected、current Document 与授权文件集合。
 
 Browser 不解释模型、附件、Prompt、菜单或 fork 业务语义。GPT Child 源码冻结的私有 scope/query spec 只能通过认证 permit 进入对应固定 typed command；public caller 不能提供 selector、JavaScript、strategy、坐标或循环动作。日志和 proof 只投影稳定 hash、计数、stage、typed cause 与 evidence ref，不写 selector、DOM、Prompt、正文或路径。
+
+### 3.1.2.1 现役加密 wire 的精确原文边界
+
+Browser Authority 不建立“原文总线”，但物理完成四类固定 typed command 必须看到对应的精确值。因此只有下列闭集可以在现役认证且 AES-GCM 加密的 WebSocket 中随单次调用瞬时通过：批准 Prompt/用户文本的 fill 请求；exact assistant turn 的 `outerHTML + deterministic semanticText` 回复；Browser grant resolver 在内存中解析出的批准本地路径的一次 file-input 请求；固定 start URL 或已验证 canonical conversation URL 的 navigation 请求。现役 authenticated-media 的原始 bytes 回复保持不变。
+
+每项都必须同时绑定 exact call identity、Target、current Document、typed capability、一次性 permit/sequence 与 payload hash；请求或回复结束即释放。Prompt 和路径不得出现在 reply，DOM 原文只能交给调用 task 的现役 artifact Owner，canonical URL 只能交给调用 task 的 locator/continuation Owner。Browser WAL、日志、proof、诊断、错误、配对与 claim 帧一律只允许 hash、长度、数量、ref、stage 和 typed cause。cookie、token、credential、raw browser identity、任意资源 URL、通用 opaque payload 继续绝对禁止；禁止第二 WebSocket、Native Messaging、第二路径 resolver、第二 artifact store、字段改名规避或 Browser 解释业务语义。
 
 ### 3.1.3 跨进程 mutation 单向门
 

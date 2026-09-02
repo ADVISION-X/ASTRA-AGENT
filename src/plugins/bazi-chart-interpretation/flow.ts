@@ -53,7 +53,7 @@ export { productSkillHash } from "./product-turn.js";
 const releaseLane = async (task: WebsiteAgentTask, flow: OwnedExecution, lane: GptContinuationLane) => {
   await flow.execute({
     productStepId: "formal", callId: "release-derived-continuation",
-    child: "release_gpt_continuation_lane", actionOrdinal: 57,
+    child: "release_gpt_continuation_lane", actionOrdinal: 58,
     input: { jobId: task.job_id, lane },
   });
 };
@@ -171,7 +171,7 @@ const forkBaseCheckpoint = async (
 ): Promise<Readonly<{ fork: Record<string, unknown>; childUrl: string }>> => {
   const forkCall = {
     productStepId: "formal", callId: "fork-base-checkpoint",
-    child: "fork_exact_gpt_conversation_at_checkpoint", actionOrdinal: 39,
+    child: "fork_exact_gpt_conversation_at_checkpoint", actionOrdinal: 40,
     input: {
       sourceAssistantTurnId: base.checkpoint.assistantTurnId,
       sourceCanonicalConversationUrl: base.checkpoint.canonicalConversationUrl,
@@ -202,6 +202,18 @@ const forkBaseCheckpoint = async (
         turnMarker: base.checkpoint.turnMarker,
       },
     });
+    await flow.execute({
+      productStepId: "formal", callId: "open-base-checkpoint-actions",
+      child: "open_gpt_checkpoint_actions_menu", actionOrdinal: 39,
+      input: {
+        sourceAssistantTurnId: base.checkpoint.assistantTurnId,
+        sourceCanonicalConversationUrl: base.checkpoint.canonicalConversationUrl,
+        sourcePromptHash: base.checkpoint.promptHash,
+        sourceResponseHash: base.checkpoint.semanticTextHash,
+        sourceTurnMarker: base.checkpoint.turnMarker,
+        timeoutMs: 60_000,
+      },
+    });
   }
   const fork = objectValue((await flow.execute(forkCall)).value, "BAZI_FORMAL_FORK_INVALID");
   const childUrl = textValue(fork.childCanonicalConversationUrl, "BAZI_FORMAL_FORK_INVALID");
@@ -220,12 +232,12 @@ const prepareFormalChild = async (
 ): Promise<void> => {
   const focusChild = {
     productStepId: "formal", callId: "focus-formal-child",
-    child: "focus_exact_gpt_conversation", actionOrdinal: 40,
+    child: "focus_exact_gpt_conversation", actionOrdinal: 41,
     input: { canonicalConversationUrl: childUrl },
   } as const;
   const verifyChild = {
     productStepId: "formal", callId: "verify-formal-child-source",
-    child: "verify_gpt_conversation_identity", actionOrdinal: 41,
+    child: "verify_gpt_conversation_identity", actionOrdinal: 42,
     input: {
       canonicalConversationUrl: childUrl,
       expectedPromptHash: base.checkpoint.promptHash,
@@ -241,9 +253,9 @@ const prepareFormalChild = async (
     await flow.execute(focusChild);
     await flow.execute(verifyChild);
   }
-  await applyProfile(flow, "formal", MODEL_PROFILE, [42, 43, 44, 45, 46], recoverOnly);
+  await applyProfile(flow, "formal", MODEL_PROFILE, [43, 44, 45, 46, 47], recoverOnly);
   await applyAttachments(
-    flow, context, "formal", ["bazi_formal_input", "result_contract"], [47, 48, 49], recoverOnly,
+    flow, context, "formal", ["bazi_formal_input", "result_contract"], [48, 49, 50], recoverOnly,
   );
 };
 
@@ -276,7 +288,7 @@ const runFormalTurn = async (
   const formalPrompt = formalPromptFor(task, base, fork, marker);
   const formalSubmit = {
     productStepId: "formal", callId: "turn-submit", child: "submit_exact_gpt_turn_once",
-    actionOrdinal: 52, input: { promptHash: sha256(formalPrompt), turnMarker: marker },
+    actionOrdinal: 53, input: { promptHash: sha256(formalPrompt), turnMarker: marker },
     effectLookupKind: "task_exact_effect" as const,
   } as const;
   const currentFormalSubmit = await flow.facts(formalSubmit);
@@ -289,7 +301,7 @@ const runFormalTurn = async (
   const checkpoint = await submitTurn(
     flow, "formal", formalPrompt, marker,
     uploadedFilesForRoles(context, ["bazi_formal_input", "result_contract"]),
-    [50, 51, 52, 53, 54, 55],
+    [51, 52, 53, 54, 55, 56],
   );
   return Object.freeze({ checkpoint, formalPrompt });
 };
@@ -314,7 +326,7 @@ const runPrimary = async (
     const payload = receive(task, checkpoint);
     await flow.execute({
       productStepId: "formal", callId: "advance-derived-continuation",
-      child: "advance_gpt_continuation_lane", actionOrdinal: 56,
+      child: "advance_gpt_continuation_lane", actionOrdinal: 57,
       input: {
         currentCheckpoint: gptTextContinuationCheckpointInput(checkpoint.sourceAttemptId, checkpoint),
         jobId: task.job_id, lane, pluginId: PLUGIN_ID, provider: providerFor(task, checkpoint),

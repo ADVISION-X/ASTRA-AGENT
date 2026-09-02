@@ -15,6 +15,8 @@ export type BrowserAtomicStepIdentity = Readonly<{
 
 export type BrowserAtomicStepRecovery = Readonly<{
   state: "dispatched" | "confirmed" | "rejected";
+  mutationOutcome: "no" | "dispatched" | "confirmed";
+  terminalAt: string | null;
   authorityRef: string;
   authorityHash: `sha256:${string}`;
   targetRef: string;

@@ -1,13 +1,13 @@
-# GPT 能力组 V10 施工图
+# GPT 能力组 V11 施工图
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "gpt-capability-group-v10",
+  "blueprintId": "gpt-capability-group-v11",
   "status": "active",
   "owner": "gpt",
   "lawIds": [
-    "LAW-GPT-001-V18"
+    "LAW-GPT-001-V19"
   ],
   "contractRefs": [],
   "dependencyEdges": [
@@ -33,6 +33,8 @@ Product Plugin 的普通 TypeScript Flow
 ```
 
 必须物理不存在 `GPT_TURN_FLOW`、`GptTurnExecutor`、`executeTurn`、`runTurn`、全局 `stepIndex`、`resumePoint`、`flowVersion`、`reconcileOnly`、全局 GPT checkpoint 和固定 Child 间节拍。公共面不是 registry、bus、DSL、workflow engine 或第二调度器。
+
+页面 Child 调用 Browser Authority 时，只有完成本次 typed command 必需的精确原文可以在现役认证且 AES-GCM 加密的 WebSocket 内瞬时通过：`write_exact_gpt_prompt` 的批准文本、text checkpoint 的 exact assistant `outerHTML + semanticText`、一次批量 file-input 的 Browser 已解析批准路径、以及固定 start URL 或已验证 canonical conversation URL。它们必须同时绑定 exact call、Target、current Document 和 payload hash；Prompt 与路径只进请求，DOM 正文只进 task-owned artifact，canonical URL 只进 task-owned locator/continuation。Browser 日志、WAL、proof、诊断和错误回包只能保存 hash、长度、数量、ref、stage 与 typed cause，禁止复制原文。cookie、token、credential、任意页面身份和通用 opaque payload 仍绝对禁止进入 wire；不得增加第二 transport、第二 resolver、字段改名旁路或 Browser 业务解释。
 
 公开面采用静态类型映射：
 

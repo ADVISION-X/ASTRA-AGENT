@@ -19,7 +19,7 @@ import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/s
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import { turnMarker } from "../../src/plugins/public-knowledge-article-pipeline/seo-turn-contract.js";
-import { HASH_A, HASH_B, identityFor, task } from "./agent-production-runtime-fixtures.js";
+import { gptProofEnvelope, HASH_A, HASH_B, identityFor, task } from "./agent-production-runtime-fixtures.js";
 
 const digest = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -185,14 +185,15 @@ try {
       },
       proof: {
         schemaVersion: "gpt-child-capability-proof.v2",
+        ...gptProofEnvelope({ childCapabilityId: exactIdentity.childCapabilityId,
+          exactCallIdentityHash, status: "success", decision: "DONE", candidateCount: 1,
+          authorityRefHashes: [HASH_A, HASH_B] }),
         ...exactIdentity,
         executionId: `gpt-call:${exactCallIdentityHash.slice(7)}`,
         actionOrdinal: 30,
         targetRefHash: HASH_A,
         beforeDocumentRefHash: HASH_A,
         afterDocumentRefHash: HASH_B,
-        candidateCount: 1,
-        observedSemantics: ["legacy article checkpoint"],
         committedMutation: "no",
         postconditionResult: "passed",
         startedAt: timestamp,
@@ -239,10 +240,13 @@ try {
         semanticTextHash: articleOutputHash,
       },
       proof: {
-        schemaVersion: "gpt-child-capability-proof.v2", ...originCopyIdentity,
+        schemaVersion: "gpt-child-capability-proof.v2",
+        ...gptProofEnvelope({ childCapabilityId: originCopyIdentity.childCapabilityId,
+          exactCallIdentityHash: originCopyExactHash, status: "success", decision: "DONE", candidateCount: 1,
+          authorityRefHashes: [HASH_A, HASH_B] }),
+        ...originCopyIdentity,
         executionId: `gpt-call:${originCopyExactHash.slice(7)}`, actionOrdinal: 15,
         targetRefHash: HASH_A, beforeDocumentRefHash: HASH_A, afterDocumentRefHash: HASH_B,
-        candidateCount: 1, observedSemantics: ["verified origin checkpoint"],
         committedMutation: "no", postconditionResult: "passed",
         startedAt: timestamp, endedAt: timestamp,
         evidenceRef: "browser:verified-origin-checkpoint", evidenceHash: HASH_B,
