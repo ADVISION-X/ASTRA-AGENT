@@ -1,6 +1,4 @@
-import { ProductionStoreLedger } from "./store-ledger.js";
-
-export class ProductionRuntimeStore extends ProductionStoreLedger {}
+export { ProductionRuntimeStore } from "./store-ledger.js";
 
 export { resolveStoredProductionAuthority } from "./store-authority-reader.js";
 export type {

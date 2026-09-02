@@ -230,7 +230,7 @@ export class BrowserTargetLeaseManager {
         this.commandActor.readAtomicStepRecovery(this.executionBinding, input.target.target.targetRef, identity),
       requiresMutationRecovery: () =>
         this.commandActor.requiresMutationRecovery(this.executionBinding, input.target.target.targetRef),
-      navigate: ({ url, title }) => this.navigate(input, state, command, url, title),
+      navigate: ({ url }) => this.navigate(input, state, command, url),
       executeDomIntent: async (intent: BrowserDomIntent) => command(this.capabilityForIntent(intent), { kind: "dom-intent", intent }),
       observeCapability: async ({ capabilityId }) => command(capabilityId, { kind: "observe", capabilityId }),
       captureScreenshot: ({ regionLabel }) => this.captureScreenshot(command, regionLabel),
@@ -271,9 +271,8 @@ export class BrowserTargetLeaseManager {
     state: LeaseState,
     command: LeaseCommand,
     url: string,
-    title: string,
   ): Promise<BrowserDocumentRef> {
-    const result = await command("browser.navigate.v1", { kind: "navigate", url, title });
+    const result = await command("browser.navigate.v1", { kind: "navigate", url });
     const document = result as BrowserDocumentRef;
     if (!document || typeof document.documentRef !== "string"
       || document.targetRef !== input.target.target.targetRef
@@ -281,7 +280,7 @@ export class BrowserTargetLeaseManager {
       || document.navigationEpoch <= state.current.document.navigationEpoch) {
       throw new Error("BROWSER_DOCUMENT_INVALID");
     }
-    state.current = { ...state.current, document, url, title };
+    state.current = { ...state.current, document, url };
     return document;
   }
 
@@ -313,7 +312,11 @@ export class BrowserTargetLeaseManager {
     await command("browser.file-input.v1", {
       kind: "file-input",
       selector,
-      grantRefs: grants.map((grant) => grant.grantRef),
+      approvedFiles: grants.map(({ grantRef, contentHash, maxBytes }) => ({
+        grantRef,
+        contentHash,
+        maxBytes,
+      })),
       resolvedFilePaths,
     });
   }

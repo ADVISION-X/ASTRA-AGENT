@@ -10,7 +10,10 @@ export const inspectAuthenticatedChannelGuards = (
   const actor = requireSource(context, findings, lawId, sourcePaths[1]);
   const crypto = requireSource(context, findings, lawId, sourcePaths[20]);
   const heartbeat = requireSource(context, findings, lawId, sourcePaths[22]);
-  if (!channel || !actor || !crypto || !heartbeat) return;
+  const diagnostic = requireSource(
+    context, findings, lawId, "src/lib/browser/transport/browser-authority-diagnostic.ts",
+  );
+  if (!channel || !actor || !crypto || !heartbeat || !diagnostic) return;
 
   requireIdentifiers(crypto, ["aad", "protocolVersion", "kind", "epoch", "sequence", "deadline"], findings, lawId,
     "Extension AES-GCM AAD must be reconstructed from the five authenticated header fields.");
@@ -22,7 +25,7 @@ export const inspectAuthenticatedChannelGuards = (
     "The MV3 socket owner must release stale debugger state after disconnect and expose every programmatic close reason.");
   requireIdentifiers(actor, ["extensionCommandDiagnostic", "commandStage", "commandKind", "commandIntentKind", "capabilityId"], findings, lawId,
     "Every authenticated command failure must emit a non-fatal redacted diagnostic with command-stage and capability identity.");
-  requireIdentifiers(channel, ["commandStage", "commandKind", "commandIntentKind", "capabilityId"], findings, lawId,
+  requireIdentifiers(diagnostic, ["commandStage", "commandKind", "commandIntentKind", "capabilityId"], findings, lawId,
     "The Workbench authority socket must retain the redacted authenticated-command diagnostic fields.");
   if (!stringLiterals(actor).includes("HEARTBEAT")) findings.push(createLocalFinding({
     checkId: "browser-authority/terminal-authority", lawId, filePath: sourcePaths[1],

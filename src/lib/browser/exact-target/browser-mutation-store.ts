@@ -177,8 +177,13 @@ export class BrowserMutationStore {
     this.transition(commandId, "DISPATCHED", "CONFIRMED", mutationOutcome, "direct-postcondition-passed", proofHash);
   }
 
-  public markRejected(commandId: string, proofHash: `sha256:${string}`, mutationOutcome: "no" | "confirmed" = "confirmed"): void {
-    this.transition(commandId, "DISPATCHED", "REJECTED", mutationOutcome, "BROWSER_POSTCONDITION_FAILED", proofHash);
+  public markRejected(
+    commandId: string,
+    proofHash: `sha256:${string}`,
+    mutationOutcome: "no" | "confirmed" = "confirmed",
+    reason = "BROWSER_POSTCONDITION_FAILED",
+  ): void {
+    this.transition(commandId, "DISPATCHED", "REJECTED", mutationOutcome, reason, proofHash);
   }
 
   public markFailedBeforeDispatch(commandId: string, reason: string): void {

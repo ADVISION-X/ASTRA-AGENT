@@ -4,12 +4,18 @@ import { executionFailure } from "../../../../lib/typed-failure.js";
 import { GPT_MODEL_SELECTION_VERSION } from "../../contract.js";
 import type { GptChildHandlerMap } from "../child-handler.js";
 import {
+  declaredFacts,
   recordInput,
   requireBrowser,
+  requireConfirmedBrowserFact,
   requireExactInputKeys,
   success,
 } from "../child-handler.js";
-import { readCoherentObservation } from "../gpt-dom-observation.js";
+import {
+  projectCoherentObservation,
+  readCoherentObservation,
+  type GptCoherentFactProjection,
+} from "../gpt-dom-observation.js";
 import {
   GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR,
   GPT_MODEL_SELECTION_V2_ENTRY_SELECTOR,
@@ -40,6 +46,7 @@ type ModelSelectorTopology = Readonly<{
   simplePanel: number;
   advancedPanel: number;
   modelChoice?: Readonly<{ count: number; ariaChecked: string | null }>;
+  facts: GptCoherentFactProjection;
 }>;
 
 const readModelSelectorTopology = async (
@@ -58,9 +65,10 @@ const readModelSelectorTopology = async (
       textEquals: modelDisplayName, maxMatches: 2, fields: ["ariaChecked" as const],
     }]),
   ] as const;
-  const rows = await readCoherentObservation(browser, specs);
-  const count = (queryId: string): number => rows.find((row) => row.queryId === queryId)!.eligibleCount;
-  const choice = rows.find((row) => row.queryId === "model-choice");
+  const observation = await readCoherentObservation(browser, specs);
+  const count = (queryId: string): number =>
+    observation.rows.find((row) => row.queryId === queryId)!.eligibleCount;
+  const choice = observation.rows.find((row) => row.queryId === "model-choice");
   const firstChoice = choice?.matches[0];
   const ariaChecked = typeof firstChoice?.ariaChecked === "string" ? firstChoice.ariaChecked : null;
   return Object.freeze({
@@ -68,6 +76,7 @@ const readModelSelectorTopology = async (
     openableEntry: count("openable-entry"), simplePanel: count("simple-panel"),
     advancedPanel: count("advanced-panel"),
     ...(choice === undefined ? {} : { modelChoice: Object.freeze({ count: choice.eligibleCount, ariaChecked }) }),
+    facts: projectCoherentObservation(observation, "entry"),
   });
 };
 
@@ -105,9 +114,10 @@ export const modelSelectionV2ChildHandlers = {
     if (isAlreadyOpen(observed)) {
       return success({
         value: { selectionVersion: GPT_MODEL_SELECTION_VERSION, state: "model-selector-open" },
-        candidateCount: 1,
-        observedSemantics: ["ALREADY_OPEN", "one expanded model entry", "one active non-inert advanced panel"],
-        committedMutation: "no",
+        ...declaredFacts({
+          ...observed.facts, decision: "DONE", mutationOutcome: "no",
+          browserFact: null, nativeFailureCode: null,
+        }),
       });
     }
     if (!isOpenable(observed)) {
@@ -126,12 +136,17 @@ export const modelSelectionV2ChildHandlers = {
         timeoutMs: 5_000,
       },
     });
-    await requireAlreadyOpen(browser, profile.modelDisplayName);
+    const readback = await requireAlreadyOpen(browser, profile.modelDisplayName);
+    const browserFact = requireConfirmedBrowserFact(intent, browser);
     return success({
       value: { selectionVersion: GPT_MODEL_SELECTION_VERSION, state: "model-selector-opened" },
-      candidateCount: 1,
-      observedSemantics: ["OPENABLE", "one exact model entry click", "ALREADY_OPEN"],
-      committedMutation: "confirmed",
+      ...declaredFacts({
+        ...readback.facts,
+        decision: "ACT",
+        factResultIds: Object.freeze([...readback.facts.factResultIds, browserFact.evidenceRef]),
+        authorityRefHashes: Object.freeze([...readback.facts.authorityRefHashes, browserFact.evidenceHash]),
+        mutationOutcome: "confirmed", browserFact, nativeFailureCode: null,
+      }),
     });
   },
 
@@ -169,6 +184,7 @@ export const modelSelectionV2ChildHandlers = {
         `GPT_MODEL_SELECTION_V2_PROFILE_RESTORE_INVALID:${topologyCode(restored)}`,
       );
     }
+    const browserFact = requireConfirmedBrowserFact(intent, browser);
     return success({
       value: {
         modelDisplayName: profile.modelDisplayName,
@@ -176,13 +192,13 @@ export const modelSelectionV2ChildHandlers = {
         selectionVersion: GPT_MODEL_SELECTION_VERSION,
         state: "exact-model-selected-profile-restored",
       },
-      candidateCount: 1,
-      observedSemantics: [
-        "one exact model radio in the active non-inert v2 panel",
-        "one exact model radio click",
-        "profile popup retained with collapsed entry and active non-inert simple panel",
-      ],
-      committedMutation: "confirmed",
+      ...declaredFacts({
+        ...restored.facts,
+        decision: "ACT",
+        factResultIds: Object.freeze([...restored.facts.factResultIds, browserFact.evidenceRef]),
+        authorityRefHashes: Object.freeze([...restored.facts.authorityRefHashes, browserFact.evidenceHash]),
+        mutationOutcome: "confirmed", browserFact, nativeFailureCode: null,
+      }),
     });
   },
 } satisfies GptChildHandlerMap;

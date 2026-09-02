@@ -11,9 +11,6 @@ export const extensionFrameDiagnostic = (
   failedFrameSequence: frame?.sequence ?? 0,
   diagnosticSource: "extension-frame",
   runtimeEventType: "message-handler",
-  errorName: error instanceof Error && /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/u.test(error.name)
-    ? error.name
-    : error instanceof Error ? "InvalidErrorName" : "NonErrorThrown",
   encodedByteLength: typeof data === "string" ? encodeText(data).byteLength : 0,
 });
 
@@ -27,8 +24,5 @@ export const extensionRuntimeDiagnostic = (
   failedFrameSequence,
   diagnosticSource: "extension-runtime",
   runtimeEventType,
-  errorName: error instanceof Error && /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/u.test(error.name)
-    ? error.name
-    : error instanceof Error ? "InvalidErrorName" : "NonErrorThrown",
   encodedByteLength: 0,
 });

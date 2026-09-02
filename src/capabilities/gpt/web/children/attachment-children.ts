@@ -1,36 +1,35 @@
-import { createHash } from "node:crypto";
-import { copyFile, mkdtemp, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-
-import type { BrowserFileArtifactGrantV1 } from "../../../../lib/browser/browser-authority-api.js";
 import { executionFailure, failureCode } from "../../../../lib/typed-failure.js";
 
-import type { GptChildCapabilityIntent } from "../../contract.js";
+import type { GptAnyChildCapabilityIntent } from "../../contract.js";
 import { gptAttachmentProviderDisplayName } from "../../schema.js";
 import type { GptChildHandlerMap } from "../child-handler.js";
 import {
   arrayInput,
+  declaredFacts,
   numberInput,
   requireBrowser,
+  requireConfirmedBrowserFact,
   requireExactInputKeys,
   success,
 } from "../child-handler.js";
-import { findCount, readCoherentObservation, requireOneCandidate } from "../gpt-dom-observation.js";
+import {
+  projectCoherentObservation,
+  readCoherentObservation,
+  type GptCoherentFactProjection,
+} from "../gpt-dom-observation.js";
 import {
   GPT_ATTACHMENT_CONTROL_SELECTOR,
   GPT_ATTACHMENT_ITEM_SELECTOR,
   GPT_ATTACHMENT_READY_ICON_SELECTOR,
   GPT_ATTACHMENT_REGION_SELECTOR,
   GPT_ATTACHMENT_UPLOAD_SPINNER_SELECTOR,
-  GPT_FILE_INPUT_SELECTOR,
+  GPT_COMPOSER_FORM_SELECTOR,
   GPT_UPLOAD_FROM_COMPUTER_LABEL,
   GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
 } from "../contracts/attachment.contract.js";
 
 type ApprovedFile = Readonly<{
   artifactRef: string;
-  filePath: string;
   displayName: string;
   providerDisplayName: string;
   sha256: `sha256:${string}`;
@@ -42,19 +41,49 @@ type AttachmentSetState = Readonly<{
   observedLabels: readonly string[];
   readyCount: number;
   uploadingCount: number;
+  facts: GptCoherentFactProjection;
 }>;
 
-const digest = (bytes: Buffer): `sha256:${string}` =>
-  `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+type AttachmentControlState = Readonly<{
+  controlRaw: number;
+  controlEligible: number;
+  choiceRaw: number;
+  choiceEligible: number;
+  facts: GptCoherentFactProjection;
+}>;
 
-const filesFromIntent = (intent: GptChildCapabilityIntent): readonly ApprovedFile[] => {
+const attachmentControlState = async (
+  browser: ReturnType<typeof requireBrowser>,
+): Promise<AttachmentControlState> => {
+  const observation = await readCoherentObservation(browser, [
+    {
+      queryId: "attachment-control", selector: GPT_ATTACHMENT_CONTROL_SELECTOR,
+      scope: { selector: GPT_COMPOSER_FORM_SELECTOR }, maxMatches: 2, fields: ["disabled", "ariaDisabled"],
+    },
+    {
+      queryId: "upload-choice", selector: GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
+      textEquals: GPT_UPLOAD_FROM_COMPUTER_LABEL, maxMatches: 2, fields: [],
+    },
+  ]);
+  const control = observation.rows.find((row) => row.queryId === "attachment-control")!;
+  const choice = observation.rows.find((row) => row.queryId === "upload-choice")!;
+  return Object.freeze({
+    controlRaw: control.rawCount,
+    controlEligible: control.eligibleCount,
+    choiceRaw: choice.rawCount,
+    choiceEligible: choice.eligibleCount,
+    facts: projectCoherentObservation(observation, "attachment-control"),
+  });
+};
+
+const filesFromIntent = (intent: GptAnyChildCapabilityIntent): readonly ApprovedFile[] => {
   const files = arrayInput(intent, "files").map((value): ApprovedFile => {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
       throw executionFailure("failed", "GPT_ATTACHMENT_INPUT_INVALID");
     }
     const item = value as Record<string, unknown>;
-    if (typeof item.artifactRef !== "string" || item.artifactRef.length === 0
-      || typeof item.filePath !== "string" || item.filePath.length === 0
+    if (Object.keys(item).sort().join("|") !== "artifactRef|bytes|displayName|sha256"
+      || typeof item.artifactRef !== "string" || item.artifactRef.length === 0
       || typeof item.displayName !== "string" || item.displayName.length === 0
       || typeof item.sha256 !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(item.sha256)
       || typeof item.bytes !== "number" || !Number.isSafeInteger(item.bytes) || item.bytes < 0) {
@@ -63,7 +92,6 @@ const filesFromIntent = (intent: GptChildCapabilityIntent): readonly ApprovedFil
     const displayName = item.displayName.normalize("NFC");
     return {
       artifactRef: item.artifactRef,
-      filePath: item.filePath,
       displayName,
       providerDisplayName: gptAttachmentProviderDisplayName(displayName, intent.attemptId, item.artifactRef),
       sha256: item.sha256 as `sha256:${string}`,
@@ -73,44 +101,6 @@ const filesFromIntent = (intent: GptChildCapabilityIntent): readonly ApprovedFil
   const names = files.map((file) => file.displayName);
   if (new Set(names).size !== names.length) throw executionFailure("failed", "GPT_ATTACHMENT_DISPLAY_NAME_DUPLICATE");
   return files;
-};
-
-const verifyFiles = async (files: readonly ApprovedFile[]): Promise<void> => {
-  for (const file of files) {
-    const bytes = await readFile(file.filePath);
-    if (bytes.byteLength !== file.bytes || digest(bytes) !== file.sha256) {
-      throw executionFailure("failed", `GPT_ATTACHMENT_SOURCE_CHANGED:${file.artifactRef}`);
-    }
-  }
-};
-
-const issueGrants = async (
-  browser: ReturnType<typeof requireBrowser>,
-  files: readonly ApprovedFile[],
-): Promise<readonly BrowserFileArtifactGrantV1[]> => {
-  await verifyFiles(files);
-  const grants: BrowserFileArtifactGrantV1[] = [];
-  const stagingDirectory = await mkdtemp(join(tmpdir(), "grasseye-gpt-upload-"));
-  try {
-    for (const file of files) {
-      const stagedPath = join(stagingDirectory, file.providerDisplayName);
-      await copyFile(file.filePath, stagedPath);
-      await browser.registerFileArtifact({
-        artifactRef: file.artifactRef,
-        filePath: stagedPath,
-        contentHash: file.sha256,
-        sizeBytes: file.bytes,
-      });
-      grants.push(await browser.issueFileArtifactGrant({
-        artifactRef: file.artifactRef,
-        expectedSha256: file.sha256,
-        maxBytes: file.bytes,
-      }));
-    }
-  } finally {
-    await rm(stagingDirectory, { force: true, recursive: true });
-  }
-  return grants;
 };
 
 const attachmentSetState = async (
@@ -125,11 +115,12 @@ const attachmentSetState = async (
       { queryId: "attachment-uploading", selector: GPT_ATTACHMENT_UPLOAD_SPINNER_SELECTOR, maxMatches: 20, fields: [] },
     ] : []),
   ] as const;
-  const rows = await readCoherentObservation(browser, specs);
-  const row = (queryId: string) => rows.find((candidate) => candidate.queryId === queryId)!;
+  const observation = await readCoherentObservation(browser, specs);
+  const row = (queryId: string) => observation.rows.find((candidate) => candidate.queryId === queryId)!;
   const regionCount = row("attachment-region").eligibleCount;
+  const facts = projectCoherentObservation(observation, "attachment-region");
   if (regionCount === 0) return Object.freeze({
-    regionCount, observedLabels: [], readyCount: 0, uploadingCount: 0,
+    regionCount, observedLabels: [], readyCount: 0, uploadingCount: 0, facts,
   });
   if (regionCount !== 1) throw executionFailure("failed", `GPT_ATTACHMENT_REGION_COUNT_${regionCount}`);
   const observedLabels = row("attachment-items").matches.map((match) => {
@@ -141,6 +132,7 @@ const attachmentSetState = async (
     observedLabels,
     readyCount: includeReady ? row("attachment-ready").eligibleCount : 0,
     uploadingCount: includeReady ? row("attachment-uploading").eligibleCount : 0,
+    facts,
   });
 };
 
@@ -168,8 +160,11 @@ const observeExactAttachmentSet = async (
   if (files.length === 0) {
     if (observed.regionCount !== 0) throw executionFailure("failed", `GPT_ATTACHMENT_REGION_COUNT_${observed.regionCount}`);
     return success({
-      value: { files: [] }, candidateCount: 0,
-      observedSemantics: ["zero approved attachments", "zero visible attachment regions"], committedMutation: "no",
+      value: { files: [] },
+      ...declaredFacts({
+        ...observed.facts, decision: "DONE", mutationOutcome: "no",
+        browserFact: null, nativeFailureCode: null,
+      }),
     });
   }
   const { expectedLabels, missing, unexpected } = attachmentSetDifference(files, observed.observedLabels);
@@ -177,9 +172,11 @@ const observeExactAttachmentSet = async (
     throw executionFailure("failed", `GPT_ATTACHMENT_SET_MISMATCH:${[...missing, ...unexpected].join("|")}`);
   }
   return success({
-    value: attachmentValue(files), candidateCount: observed.regionCount,
-    observedSemantics: ["one exact attachment region", "all and only attempt-unique provider display names mounted"],
-    committedMutation: "no",
+    value: attachmentValue(files),
+    ...declaredFacts({
+      ...observed.facts, decision: "DONE", mutationOutcome: "no",
+      browserFact: null, nativeFailureCode: null,
+    }),
   });
 };
 
@@ -193,6 +190,10 @@ const waitForUploadedAttachmentSet = async (
   const deadline = Date.now() + timeoutMs;
   let last: AttachmentSetState = Object.freeze({
     regionCount: 0, observedLabels: [], readyCount: 0, uploadingCount: 0,
+    facts: Object.freeze({
+      factResultIds: [], candidateCardinality: { raw: 0, eligible: 0 },
+      authorityRefHashes: [], observationRevisionHash: `sha256:${"0".repeat(64)}`,
+    }),
   });
   while (true) {
     if (signal?.aborted) throw executionFailure("failed", "GPT_EXECUTION_ABORTED");
@@ -219,14 +220,11 @@ const waitForUploadedAttachmentSet = async (
     }
     if (exactSet && last.readyCount === expectedLabels.length && last.uploadingCount === 0) {
       return success({
-        value: attachmentValue(files), candidateCount: last.regionCount,
-        observedSemantics: [
-          "one exact attachment region",
-          "all and only attempt-unique provider display names",
-          "every exact attachment has visible provider file icon",
-          "zero visible upload spinners",
-        ],
-        committedMutation: "no",
+        value: attachmentValue(files),
+        ...declaredFacts({
+          ...last.facts, decision: "DONE", mutationOutcome: "no",
+          browserFact: null, nativeFailureCode: null,
+        }),
       });
     }
     const remaining = deadline - Date.now();
@@ -241,24 +239,27 @@ export const attachmentChildHandlers = {
   async open_gpt_attachment_control(intent, context) {
     requireExactInputKeys(intent, []);
     const browser = requireBrowser(context);
-    const visibleChoiceCount = await findCount(browser, {
-      selector: GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
-      textEquals: GPT_UPLOAD_FROM_COMPUTER_LABEL,
-      maxMatches: 2,
+    const observed = await attachmentControlState(browser);
+    if (observed.choiceRaw === 1 && observed.choiceEligible === 1) return success({
+      value: { state: "upload-choice-ready" },
+      ...declaredFacts({
+        ...observed.facts, decision: "DONE", mutationOutcome: "no",
+        browserFact: null, nativeFailureCode: null,
+      }),
     });
-    if (visibleChoiceCount === 1) return success({
-      value: { state: "upload-choice-ready" }, candidateCount: 1,
-      observedSemantics: ["one visible upload-from-computer choice"], committedMutation: "no",
-    });
-    if (visibleChoiceCount > 1) {
-      throw executionFailure("failed", `GPT_UPLOAD_CHOICE_COUNT_${visibleChoiceCount}`);
+    if (observed.choiceRaw !== 0 || observed.choiceEligible !== 0) {
+      throw executionFailure(
+        "failed",
+        `GPT_UPLOAD_CHOICE_INVALID:raw=${observed.choiceRaw}:eligible=${observed.choiceEligible}`,
+      );
     }
     if (context.mutationMode === "readback") throw executionFailure("failed", "GPT_ATTACHMENT_CONTROL_OPEN_PENDING");
-    await requireOneCandidate(browser, {
-      selector: GPT_ATTACHMENT_CONTROL_SELECTOR,
-      maxMatches: 2,
-      waitFor: { minimumMatches: 1, timeoutMs: 5_000 },
-    });
+    if (observed.controlRaw !== 1 || observed.controlEligible !== 1) {
+      throw executionFailure(
+        "failed",
+        `GPT_ATTACHMENT_CONTROL_INVALID:raw=${observed.controlRaw}:eligible=${observed.controlEligible}`,
+      );
+    }
     await browser.executeDomIntent({
       kind: "click", selector: GPT_ATTACHMENT_CONTROL_SELECTOR, expectedMatches: 1,
       postClickMatch: {
@@ -268,39 +269,29 @@ export const attachmentChildHandlers = {
         timeoutMs: 5_000,
       },
     });
+    const readback = await attachmentControlState(browser);
+    if (readback.choiceRaw !== 1 || readback.choiceEligible !== 1) {
+      throw executionFailure("failed", "GPT_ATTACHMENT_CONTROL_OPEN_PENDING");
+    }
+    const browserFact = requireConfirmedBrowserFact(intent, browser);
     return success({
-      value: { state: "upload-choice-ready" }, candidateCount: 1,
-      observedSemantics: ["one attachment control", "one visible upload-from-computer choice"], committedMutation: "confirmed",
+      value: { state: "upload-choice-ready" },
+      ...declaredFacts({
+        ...readback.facts, decision: "ACT",
+        factResultIds: Object.freeze([...readback.facts.factResultIds, browserFact.evidenceRef]),
+        authorityRefHashes: Object.freeze([...readback.facts.authorityRefHashes, browserFact.evidenceHash]),
+        mutationOutcome: "confirmed", browserFact, nativeFailureCode: null,
+      }),
     });
   },
 
   async attach_approved_gpt_files_once(intent, context) {
     requireExactInputKeys(intent, ["files"]);
     const files = filesFromIntent(intent);
-    if (files.length === 0) return success({
-      value: { files: [], mutationSent: false }, candidateCount: 0,
-      observedSemantics: ["approved attachment set empty"], committedMutation: "no",
-    });
     const browser = requireBrowser(context);
-    if (context.mutationMode === "readback") return observeExactAttachmentSet(browser, files);
-    await requireOneCandidate(browser, {
-      selector: GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
-      textEquals: GPT_UPLOAD_FROM_COMPUTER_LABEL,
-      maxMatches: 2,
-    });
-    const grants = await issueGrants(browser, files);
-    await browser.attachFile({ selector: GPT_FILE_INPUT_SELECTOR, grants });
-    return success({
-      value: {
-        files: files.map(({ artifactRef, displayName, providerDisplayName, sha256, bytes }) => ({
-          artifactRef, displayName, providerDisplayName, sha256, bytes,
-        })),
-        mutationSent: true,
-      },
-      candidateCount: 1,
-      observedSemantics: ["one visible upload-from-computer choice", "one approved file-input batch", `${files.length} immutable grants`],
-      committedMutation: "confirmed",
-    });
+    if (files.length > 0) throw executionFailure("failed", "GPT_ATTACHMENT_BROWSER_ARTIFACT_GRANT_REQUIRED");
+    const readback = await observeExactAttachmentSet(browser, files);
+    return success({ ...readback, value: { files: [], mutationSent: false } });
   },
 
   async reconcile_gpt_attachment_set(intent, context) {

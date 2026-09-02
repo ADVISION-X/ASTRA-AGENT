@@ -16,6 +16,9 @@ export type BrowserMechanicalFacts = Readonly<{
   computedVisibility: string;
   computedOpacity: string;
   effectiveOpacity: string;
+  displayHidden: boolean;
+  visibilityHidden: boolean;
+  opacityHidden: boolean;
   hidden: boolean;
   ariaHidden: boolean;
   inert: boolean;
@@ -38,52 +41,57 @@ export type BrowserMechanicalFacts = Readonly<{
 const DOM_NODE_STALE = "BROWSER_DOM_NODE_STALE";
 const DOM_READ_INVALID = "BROWSER_DOM_READ_INVALID";
 
-export const BROWSER_MECHANICAL_FACTS_READER_SOURCE = `const browserMechanicalFacts = (element) => {
+export const BROWSER_MECHANICAL_FACTS_READER_SOURCE = `const browserMechanicalFacts = (element, includePointerFacts = false) => {
   if (!(element instanceof Element)) return null;
   const style = globalThis.getComputedStyle(element);
   const rect = element.getBoundingClientRect();
   const connected = element.isConnected === true;
   const layout = element.getClientRects().length > 0 && rect.width > 0 && rect.height > 0;
-  let ancestorRendered = true; let effectiveOpacityNumber = 1;
+  let displayHidden = false; let visibilityHidden = false;
+  let opacityHidden = false; let effectiveOpacityNumber = 1;
   for (let current = element; current instanceof Element; current = current.parentElement) {
     const currentStyle = globalThis.getComputedStyle(current);
     const currentOpacity = Number.parseFloat(currentStyle.opacity);
-    if (currentStyle.display === "none" || currentStyle.visibility === "hidden"
-      || currentStyle.visibility === "collapse" || !Number.isFinite(currentOpacity)) ancestorRendered = false;
+    if (currentStyle.display === "none") displayHidden = true;
+    if (currentStyle.visibility === "hidden" || currentStyle.visibility === "collapse") visibilityHidden = true;
+    if (!Number.isFinite(currentOpacity)) opacityHidden = true;
     else effectiveOpacityNumber *= currentOpacity;
   }
+  opacityHidden = opacityHidden || effectiveOpacityNumber <= 0;
   const hidden = element.closest("[hidden]") !== null;
   const ariaHidden = element.closest("[aria-hidden='true']") !== null;
   const inert = element.closest("[inert]") !== null;
   const disabled = element.hasAttribute("disabled") || element.matches(":disabled");
   const ariaDisabled = element.closest("[aria-disabled='true']") !== null;
-  const visible = connected && layout && ancestorRendered && effectiveOpacityNumber > 0 && !hidden;
-  const viewport = layout && rect.bottom > 0 && rect.right > 0
+  const visible = connected && layout && !displayHidden && !visibilityHidden && !opacityHidden && !hidden;
+  const viewport = includePointerFacts && layout && rect.bottom > 0 && rect.right > 0
     && rect.top < globalThis.innerHeight && rect.left < globalThis.innerWidth;
   const centerX = rect.left + rect.width / 2; const centerY = rect.top + rect.height / 2;
   const pointerQualified = visible && !ariaHidden && !inert && !disabled && !ariaDisabled
     && viewport && style.pointerEvents !== "none";
-  const top = pointerQualified ? document.elementFromPoint(centerX, centerY) : null;
+  const top = includePointerFacts && pointerQualified ? document.elementFromPoint(centerX, centerY) : null;
   const labels = "labels" in element && element.labels
     ? Array.from(element.labels).map((label) => label.textContent || "").join(" ").trim() : "";
   return {
     connected, layout, visible, computedDisplay: style.display, computedVisibility: style.visibility,
-    computedOpacity: style.opacity, effectiveOpacity: String(effectiveOpacityNumber), hidden, ariaHidden,
+    computedOpacity: style.opacity, effectiveOpacity: String(effectiveOpacityNumber),
+    displayHidden, visibilityHidden, opacityHidden, hidden, ariaHidden,
     inert, disabled, ariaDisabled, role: element.getAttribute("role") || "",
     name: element.getAttribute("name") || "", testId: element.getAttribute("data-testid") || "",
     label: element.getAttribute("aria-label") || labels,
     value: "value" in element && typeof element.value === "string" ? element.value : "",
     checked: "checked" in element && typeof element.checked === "boolean" ? element.checked : null,
     type: element.getAttribute("type") || "",
-    bounds: layout ? { x: rect.left, y: rect.top, width: rect.width, height: rect.height } : null,
+    bounds: includePointerFacts && layout
+      ? { x: rect.left, y: rect.top, width: rect.width, height: rect.height } : null,
     viewport, hitTest: top !== null && (top === element || element.contains(top)),
     nativeCauseCode: layout ? null : "NO_LAYOUT_BOX", nativeStage: "runtime-call-function-on"
   };
 };`;
 
-const MECHANICAL_FACTS_FUNCTION = `function () {
+const MECHANICAL_FACTS_FUNCTION = `function (includePointerFacts) {
   ${BROWSER_MECHANICAL_FACTS_READER_SOURCE}
-  return browserMechanicalFacts(this);
+  return browserMechanicalFacts(this, includePointerFacts === true);
 }`;
 
 const record = (value: unknown): DevToolsRecord => {
@@ -131,6 +139,9 @@ const decodeMechanicalFacts = (value: unknown): BrowserMechanicalFacts => {
     computedVisibility: stringField(facts.computedVisibility),
     computedOpacity: stringField(facts.computedOpacity),
     effectiveOpacity: stringField(facts.effectiveOpacity),
+    displayHidden: booleanField(facts.displayHidden),
+    visibilityHidden: booleanField(facts.visibilityHidden),
+    opacityHidden: booleanField(facts.opacityHidden),
     hidden: booleanField(facts.hidden),
     ariaHidden: booleanField(facts.ariaHidden),
     inert: booleanField(facts.inert),
@@ -167,6 +178,7 @@ export const readMechanicalFacts = async (
   runtime: ExtensionDebuggerRuntime,
   tabId: number,
   nodeId: number,
+  includePointerFacts = false,
 ): Promise<BrowserMechanicalFacts> => {
   const resolved = record(await safeRead(() => runtime.send(tabId, "DOM.resolveNode", { nodeId })));
   const objectId = stringField(record(resolved.object).objectId);
@@ -175,6 +187,7 @@ export const readMechanicalFacts = async (
     const call = record(await safeRead(() => runtime.send(tabId, "Runtime.callFunctionOn", {
       objectId,
       functionDeclaration: MECHANICAL_FACTS_FUNCTION,
+      arguments: [{ value: includePointerFacts }],
       returnByValue: true,
       awaitPromise: false,
       silent: true,

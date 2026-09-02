@@ -28,6 +28,7 @@ import {
   BROWSER_MISSED_HEARTBEAT_TOLERANCE_MS,
   BROWSER_PROTOCOL_REVISION,
 } from "../protocol/generated/browser-protocol.generated.js";
+import { parseBrowserAuthorityDiagnostic } from "./browser-authority-diagnostic.js";
 
 export type BrowserAuthoritySocket = Readonly<{
   send(frame: string): void;
@@ -64,7 +65,6 @@ export type BrowserAuthorityTargetClaim = Readonly<{
   documentRef: string;
   navigationEpoch: number;
   url: string;
-  title: string;
 }>;
 
 type AwaitingReply = Readonly<{
@@ -172,8 +172,8 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       });
       this.active = { ...active, nextServerSequence: sequence + 1, replies };
       try {
-        active.socket.send(encodeBrowserAuthorityFrame(frame));
         onDispatched?.();
+        active.socket.send(encodeBrowserAuthorityFrame(frame));
       } catch (error) {
         const reasonCode = error instanceof Error && /^BROWSER_[A-Z_]+$/u.test(error.message)
           ? error.message
@@ -319,12 +319,12 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       return true;
     }
     if (frame.kind === "DIAGNOSTIC") {
-      const diagnostic = parseExtensionDiagnostic(body);
+      const diagnostic = parseBrowserAuthorityDiagnostic(body);
       this.options.onDiagnostic(diagnostic.reasonCode, diagnostic.refs);
       return true;
     }
     if (frame.kind === "REVOKE") {
-      const diagnostic = parseExtensionDiagnostic(body);
+      const diagnostic = parseBrowserAuthorityDiagnostic(body);
       this.clearActive(diagnostic.reasonCode, diagnostic.refs);
       try { socket.close(1008); } catch { this.options.onDiagnostic("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", { failedOperation: "socket-close" }); }
       return true;
@@ -439,43 +439,6 @@ const stringField = (body: Readonly<Record<string, unknown>>, name: string): str
   return value;
 };
 
-const browserReasonCodeField = (body: Readonly<Record<string, unknown>>, name: string): string => {
-  const value = stringField(body, name);
-  if (!/^BROWSER_[A-Z_]+$/u.test(value)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  return value;
-};
-
-const optionalExtensionDiagnosticRefs = (
-  body: Readonly<Record<string, unknown>>,
-): Readonly<Record<string, unknown>> => ({
-  diagnosticSource: body.diagnosticSource,
-  runtimeEventType: body.runtimeEventType,
-  errorName: body.errorName,
-  commandStage: body.commandStage,
-  commandKind: body.commandKind,
-  commandIntentKind: body.commandIntentKind,
-  capabilityId: body.capabilityId,
-});
-
-const parseExtensionDiagnostic = (body: Readonly<Record<string, unknown>>): Readonly<{
-  reasonCode: string;
-  refs: Readonly<Record<string, string>>;
-}> => {
-  const reasonCode = browserReasonCodeField(body, "reasonCode");
-  const refs: Record<string, string> = {
-    failedFrameKind: stringField(body, "failedFrameKind"),
-    failedFrameSequence: String(nonNegativeIntegerField(body, "failedFrameSequence")),
-  };
-  for (const [name, value] of Object.entries(optionalExtensionDiagnosticRefs(body))) {
-    if (typeof value === "string" && value.length > 0) refs[name] = value.slice(0, 64);
-  }
-  if (typeof body.targetRef === "string" && body.targetRef.length > 0) refs.targetRef = body.targetRef.slice(0, 128);
-  if (typeof body.encodedByteLength === "number" && Number.isSafeInteger(body.encodedByteLength) && body.encodedByteLength >= 0) {
-    refs.encodedByteLength = String(body.encodedByteLength);
-  }
-  return { reasonCode, refs };
-};
-
 const integerField = (body: Readonly<Record<string, unknown>>, name: string): number => {
   const value = body[name];
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 1) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
@@ -493,7 +456,10 @@ export const parseBrowserAuthorityTargetClaim = (body: Readonly<Record<string, u
   const documentRef = stringField(body, "documentRef");
   const navigationEpoch = nonNegativeIntegerField(body, "navigationEpoch");
   const url = stringField(body, "url");
-  const title = typeof body.title === "string" ? body.title.slice(0, 512) : "";
+  if (Object.keys(body).length !== 4
+    || Object.keys(body).some((key) => !["targetRef", "documentRef", "navigationEpoch", "url"].includes(key))) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
   if (!url.startsWith("https://")) throw new Error("BROWSER_ORIGIN_REJECTED");
-  return { targetRef, documentRef, navigationEpoch, url, title };
+  return { targetRef, documentRef, navigationEpoch, url };
 };

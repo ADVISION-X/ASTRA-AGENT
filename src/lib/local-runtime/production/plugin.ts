@@ -12,6 +12,8 @@ import { sha256 } from "./contracts.js";
 import { executionFailure } from "../../typed-failure.js";
 import type {
   GptChildCapabilityId,
+  GptChildInputMap,
+  GptChildOutputMap,
   GptContinuationLane,
   GptProviderContinuation,
 } from "../../../capabilities/gpt/index.js";
@@ -61,25 +63,31 @@ export interface SharedExecutionContext {
   readonly complete: (output: ProductPluginOutput) => Promise<WebsiteAgentResult>;
 }
 
-export type ProductGptChildResult = Readonly<{
-  value: unknown;
-  evidenceRef: string;
-  evidenceHash: ProductionHash;
-}>;
+export type ProductGptChildResult<K extends GptChildCapabilityId = GptChildCapabilityId> =
+  Readonly<{
+    value: GptChildOutputMap[K];
+    evidenceRef: string;
+    evidenceHash: ProductionHash;
+  }>;
 
-export type ProductGptCallInput = Readonly<{
+type ProductGptCallCommon = Readonly<{
   sessionKey?: string;
   productStepId: string;
   callId: string;
-  child: GptChildCapabilityId;
   actionOrdinal: number;
-  input: Readonly<Record<string, unknown>>;
   effectLookupKind?: "task_exact_effect";
 }>;
 
-export type ProductGptFactQuery = ProductGptCallInput & Readonly<{
-  lookupKind?: "current_attempt" | "task_exact_effect";
-}>;
+export type ProductGptCallInput<K extends GptChildCapabilityId = GptChildCapabilityId> =
+  ProductGptCallCommon & Readonly<{
+    child: K;
+    input: GptChildInputMap[K];
+  }>;
+
+export type ProductGptFactQuery<K extends GptChildCapabilityId = GptChildCapabilityId> =
+  ProductGptCallInput<K> & Readonly<{
+    lookupKind?: "current_attempt" | "task_exact_effect";
+  }>;
 
 export type ExactGptCallFacts = Readonly<{
   exactCallIdentityHash: ProductionHash;
@@ -196,7 +204,9 @@ export type ExactGptContinuationReadback = Readonly<
 export interface ProductGptTools {
   readonly attemptId: string;
   readContinuationExact(query: ExactGptContinuationQuery): Promise<ExactGptContinuationReadback | null>;
-  execute(input: ProductGptCallInput & Readonly<{ sessionKey: string }>): Promise<ProductGptChildResult>;
+  execute<K extends GptChildCapabilityId>(
+    input: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
+  ): Promise<ProductGptChildResult<K>>;
   readCallFacts(input: ProductGptFactQuery): Promise<ExactGptCallFacts>;
 }
 

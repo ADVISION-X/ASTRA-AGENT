@@ -2,10 +2,11 @@ import { Node, SyntaxKind, type ClassDeclaration, type Node as MorphNode, type S
 
 import { astExpressionPath, astIdentifierName } from "../../shared/ast-node-identity.js";
 import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
-import { createLocalFinding, identifiers, requireIdentifiers, requireSource, sourcePaths, stringLiterals, targetAuthorityPath } from "./inspector-support.js";
+import { createLocalFinding, extensionFileInputPath, identifiers, requireIdentifiers, requireSource,
+  sourcePaths, stringLiterals, targetAuthorityPath } from "./inspector-support.js";
 
 type RegistryMutationSources = Readonly<Record<
-  "actor" | "broker" | "commandActor" | "domRuntime" | "manager" | "mutationStore" | "registry" | "targetAuthority",
+  "actor" | "broker" | "commandActor" | "domRuntime" | "fileInput" | "manager" | "mutationStore" | "registry" | "targetAuthority",
   SourceFile
 >>;
 
@@ -14,23 +15,25 @@ const requireRegistryMutationSources = (
   findings: InspectorFinding[],
   lawId: string,
 ): RegistryMutationSources | null => {
-  const paths = [sourcePaths[1], targetAuthorityPath, sourcePaths[8], sourcePaths[6], sourcePaths[7], sourcePaths[5], sourcePaths[18], sourcePaths[19]];
+  const paths = [sourcePaths[1], targetAuthorityPath, extensionFileInputPath, sourcePaths[8], sourcePaths[6], sourcePaths[7], sourcePaths[5], sourcePaths[18], sourcePaths[19]];
   const sources = paths.map((path) => requireSource(context, findings, lawId, path));
   if (sources.some((source) => source === null)) return null;
-  const [actor, targetAuthority, registry, commandActor, mutationStore, manager, broker, domRuntime] = sources.map((source) => source!) as [SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile];
-  return { actor, targetAuthority, registry, commandActor, mutationStore, manager, broker, domRuntime };
+  const [actor, targetAuthority, fileInput, registry, commandActor, mutationStore, manager, broker, domRuntime] = sources.map((source) => source!) as [SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile];
+  return { actor, targetAuthority, fileInput, registry, commandActor, mutationStore, manager, broker, domRuntime };
 };
 const inspectExtensionExecutionBoundary = (
   sources: RegistryMutationSources,
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  const actorStrings = new Set([...stringLiterals(sources.actor), ...stringLiterals(sources.targetAuthority)]);
+  const actorStrings = new Set([
+    ...stringLiterals(sources.actor), ...stringLiterals(sources.targetAuthority), ...stringLiterals(sources.fileInput),
+  ]);
   if (!actorStrings.has("DOM.setFileInputFiles") || !actorStrings.has("#upload-files")) {
     findings.push(createLocalFinding({
       checkId: "browser-authority/terminal-authority",
       lawId,
-      filePath: sourcePaths[1],
+      filePath: extensionFileInputPath,
       message: "The extension file-input command must use one observed #upload-files target and DOM.setFileInputFiles.",
     }));
   }
@@ -146,7 +149,11 @@ export const inspectAtomicIfAndThenBoundary = (
     lawId,
     "src/lib/browser/exact-target/browser-target-lease.ts",
   );
-  if (!manager || !commandActor || !domRuntime || !domQueryRuntime || !leaseContract) return;
+  const mutationReceipt = requireSource(
+    context, findings, lawId, "src/lib/browser/exact-target/browser-mutation-receipt.ts",
+  );
+  if (!manager || !commandActor || !domRuntime || !domQueryRuntime || !leaseContract
+    || !mutationReceipt) return;
   const contractIdentifiers = identifiers(leaseContract);
   if (!browserMutationLedgerIsAtomic(manager)
     || !contractIdentifiers.has("resolvePendingMutation")
@@ -168,6 +175,7 @@ export const inspectAtomicIfAndThenBoundary = (
   for (const code of [
     "BROWSER_DOM_CANDIDATE_MISSING",
     "BROWSER_DOM_CANDIDATE_AMBIGUOUS",
+    "BROWSER_DOM_ACTION_NOT_QUALIFIED",
     "BROWSER_DOM_NODE_STALE",
     "BROWSER_DOM_READ_INVALID",
   ]) if (!domFailureText.includes(code)) findings.push(createLocalFinding({
@@ -184,7 +192,7 @@ export const inspectAtomicIfAndThenBoundary = (
   }));
   requireIdentifiers(domRuntime, ["postconditionVerified"], findings, lawId,
     "The DOM executor must retain same-command postcondition evidence.");
-  requireIdentifiers(commandActor, ["postconditionVerified", "retainedValueVerified"], findings, lawId,
+  requireIdentifiers(mutationReceipt, ["postconditionVerified", "retainedValueVerified"], findings, lawId,
     "The Browser transcript must reject mutation replies that omit their declared atomic postcondition.");
 };
 
@@ -282,53 +290,51 @@ export const browserMutationLedgerIsAtomic = (manager: SourceFile): boolean => {
     && newMutationGuardIsExact(managerClass);
 };
 
-const isTrimCall = (node: MorphNode, ownerName: string): boolean => {
+const isMethodCall = (node: MorphNode, ownerPath: string, method: string): boolean => {
   if (!Node.isCallExpression(node) || node.getArguments().length !== 0) return false;
   const expression = node.getExpression();
   return Node.isPropertyAccessExpression(expression)
-    && expression.getName() === "trim"
-    && astIdentifierName(expression.getExpression()) === ownerName;
-};
-
-const normalizedExpectedIsExact = (matcher: MorphNode): boolean => {
-  const expected = matcher.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
-    .find((declaration) => declaration.getName() === "expected")?.getInitializer();
-  return Node.isConditionalExpression(expected)
-    && astIdentifierName(expected.getCondition()) === "exact"
-    && isTrimCall(expected.getWhenTrue(), "expectedText")
-    && astIdentifierName(expected.getWhenFalse()) === "expectedText";
+    && expression.getName() === method
+    && astExpressionPath(expression.getExpression()) === ownerPath;
 };
 
 const exactComparisonIsStrict = (matcher: MorphNode): boolean => {
-  const loops = matcher.getDescendantsOfKind(SyntaxKind.ForOfStatement);
-  if (loops.length !== 1) return false;
-  const body = loops[0]!.getStatement();
-  if (!Node.isBlock(body)) return false;
-  const [actualStatement, comparison] = body.getStatements();
-  if (!Node.isVariableStatement(actualStatement) || !Node.isIfStatement(comparison)
-    || !Node.isContinueStatement(comparison.getThenStatement())) return false;
-  const actual = actualStatement.getDeclarations()[0];
-  const observed = actual?.getInitializer();
-  if (actual?.getName() !== "actual" || !Node.isAwaitExpression(observed)) return false;
-  const nodeTextCall = observed.getExpression();
+  const loop = matcher.getDescendantsOfKind(SyntaxKind.ForOfStatement)
+    .find((statement) => astIdentifierName(statement.getExpression()) === "rawNodeIds");
+  const loopBody = loop?.getStatement();
+  if (!Node.isBlock(loopBody)) return false;
+  const textGuard = loopBody.getStatements().find((statement) =>
+    Node.isIfStatement(statement) && astIdentifierName(statement.getExpression()) === "text");
+  const textBody = Node.isIfStatement(textGuard) ? textGuard.getThenStatement() : undefined;
+  if (!Node.isBlock(textBody)) return false;
+  const actual = textBody.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
+    .find((declaration) => declaration.getName() === "actual")?.getInitializer();
+  if (!Node.isAwaitExpression(actual)) return false;
+  const nodeTextCall = actual.getExpression();
   if (!Node.isCallExpression(nodeTextCall)
     || astExpressionPath(nodeTextCall.getExpression()) !== "nodeText"
     || astIdentifierName(nodeTextCall.getArguments()[2]) !== "nodeId") return false;
-  const condition = comparison.getExpression();
-  if (!Node.isConditionalExpression(condition)
-    || astIdentifierName(condition.getCondition()) !== "exact") return false;
-  const exactMismatch = condition.getWhenTrue();
-  return Node.isBinaryExpression(exactMismatch)
-    && exactMismatch.getOperatorToken().getKind() === SyntaxKind.ExclamationEqualsEqualsToken
-    && isTrimCall(exactMismatch.getLeft(), "actual")
-    && astIdentifierName(exactMismatch.getRight()) === "expected";
+  const matched = textBody.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
+    .find((declaration) => declaration.getName() === "matched")?.getInitializer();
+  if (!Node.isConditionalExpression(matched)
+    || astExpressionPath(matched.getCondition()) !== "text.exact") return false;
+  const exactMatch = matched.getWhenTrue();
+  const containsMatch = matched.getWhenFalse();
+  if (!Node.isBinaryExpression(exactMatch)
+    || exactMatch.getOperatorToken().getKind() !== SyntaxKind.EqualsEqualsEqualsToken
+    || !isMethodCall(exactMatch.getLeft(), "actual", "trim")
+    || !isMethodCall(exactMatch.getRight(), "text.value", "trim")
+    || !Node.isCallExpression(containsMatch)
+    || astExpressionPath(containsMatch.getExpression()) !== "actual.includes"
+    || astExpressionPath(containsMatch.getArguments()[0]!) !== "text.value") return false;
+  return textBody.getDescendantsOfKind(SyntaxKind.IfStatement).some((statement) =>
+    statement.getExpression().getText() === "!matched"
+    && Node.isContinueStatement(statement.getThenStatement()));
 };
 
 export const exactTextMatcherIsStrict = (domRuntime: SourceFile): boolean => {
-  const matcher = domRuntime.getVariableDeclaration("queryVisibleTextMatches")?.getInitializer();
-  return matcher !== undefined
-    && normalizedExpectedIsExact(matcher)
-    && exactComparisonIsStrict(matcher);
+  const matcher = domRuntime.getVariableDeclaration("queryCandidateSet")?.getInitializer();
+  return matcher !== undefined && exactComparisonIsStrict(matcher);
 };
 
 export const inspectCompactMutationRecoveryBoundary = (
@@ -392,10 +398,10 @@ export const inspectJobScopedMutationRecovery = (
     "Browser recovery must be job-scoped, exact-target and capacity releasing.");
   const laneText = lane.getFullText();
   for (const required of [
-    "permitsConfirmedProviderTargetReplacement",
+    "confirmedReadbackMatches",
     'recovery?.state === "CONFIRMED"',
     'recovery.effectScope === "provider_effect"',
-    "BROWSER_EXACT_TARGET_UNAVAILABLE",
+    'error.message === "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT"',
     "confirmedProviderTargetReplaced",
     "recoveryMutationOutcome",
   ]) {

@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { executionFailure } from "../../../../lib/typed-failure.js";
 
 import type { GptChildHandlerMap } from "../child-handler.js";
@@ -7,186 +6,69 @@ import {
   requireBrowser,
   requireExactInputKeys,
   stringInput,
-  success,
 } from "../child-handler.js";
-import { findCount, readExactAttribute, readExactCanonicalPromptText, readExactSemanticText, readExactText, readGptDocument } from "../gpt-dom-observation.js";
-import {
-  GPT_ACTIVE_ACTIONS_MENU_SELECTOR,
-  GPT_FORK_ACTION_SELECTOR,
-  GPT_GENERATING_STOP_SELECTOR,
-  GPT_USER_PROMPT_BODY_SELECTOR,
-  GPT_USER_TURN_SELECTOR,
-} from "../contracts/conversation.contract.js";
 import { canonicalGptConversationUrl } from "../contracts/target-document.contract.js";
-import { GPT_ATTACHMENT_REGION_SELECTOR } from "../contracts/attachment.contract.js";
-import { GPT_COMPOSER_SELECTOR } from "../contracts/composer.contract.js";
 
-const hash = (value: string): `sha256:${string}` =>
-  `sha256:${createHash("sha256").update(value).digest("hex")}`;
+const HASH = /^sha256:[a-f0-9]{64}$/u;
+const TURN = /^conversation-turn-[1-9][0-9]*$/u;
 
-const boundedTimeout = (intent: Parameters<NonNullable<GptChildHandlerMap[keyof GptChildHandlerMap]>>[0]): number =>
-  Math.max(1_000, Math.min(numberInput(intent, "timeoutMs"), 60_000));
+type AnyHandler = NonNullable<GptChildHandlerMap[keyof GptChildHandlerMap]>;
+type AnyIntent = Parameters<AnyHandler>[0];
+type AnyContext = Parameters<AnyHandler>[1];
 
-const canonicalOrNull = (value: string): string | null => {
-  try { return canonicalGptConversationUrl(value); }
-  catch { return null; }
+const hashInput = (intent: AnyIntent, key: string): string => {
+  const value = stringInput(intent, key);
+  if (!HASH.test(value)) throw executionFailure("failed", `GPT_CHILD_INPUT_INVALID:${intent.childCapabilityId}:${key}`);
+  return value;
 };
 
-const turnOrdinal = (testId: string): number => {
-  const match = /^conversation-turn-([1-9][0-9]*)$/u.exec(testId);
-  const ordinal = match ? Number(match[1]) : Number.NaN;
-  if (!Number.isSafeInteger(ordinal)) throw executionFailure("failed", "GPT_TURN_ID_INVALID");
-  return ordinal;
+const timeoutInput = (intent: AnyIntent): number => {
+  const value = numberInput(intent, "timeoutMs");
+  if (!Number.isSafeInteger(value) || value < 1 || value > 60_000) {
+    throw executionFailure("failed", `GPT_CHILD_INPUT_INVALID:${intent.childCapabilityId}:timeoutMs`);
+  }
+  return value;
 };
 
-const assistantSelector = (assistantTurnId: string): string =>
-  `[data-testid=${JSON.stringify(assistantTurnId)}][data-turn='assistant'] [data-message-author-role='assistant']`;
+const sourceCheckpointInput = (intent: AnyIntent): void => {
+  if (!TURN.test(stringInput(intent, "sourceAssistantTurnId"))) {
+    throw executionFailure("failed", `GPT_CHILD_INPUT_INVALID:${intent.childCapabilityId}:sourceAssistantTurnId`);
+  }
+  canonicalGptConversationUrl(stringInput(intent, "sourceCanonicalConversationUrl"));
+  hashInput(intent, "sourcePromptHash");
+  hashInput(intent, "sourceResponseHash");
+  stringInput(intent, "sourceTurnMarker");
+  timeoutInput(intent);
+};
 
-const userPromptBodySelector = (userTurnId: string): string =>
-  `[data-testid=${JSON.stringify(userTurnId)}][data-turn='user'] [data-message-author-role='user'] ${GPT_USER_PROMPT_BODY_SELECTOR}`;
-
-const moreActionsButtonSelector = (assistantTurnId: string): string =>
-  `[data-testid=${JSON.stringify(assistantTurnId)}][data-turn='assistant'] button[data-testid='more-turn-action-button']`;
-
-const waitSlice = async (browser: ReturnType<typeof requireBrowser>, deadline: number): Promise<void> => {
-  const remaining = deadline - Date.now();
-  if (remaining > 0) await browser.wait({ durationMs: Math.max(25, Math.min(500, Math.ceil(remaining / 20))) });
+const coherentPageHandoffRequired = (context: AnyContext): never => {
+  requireBrowser(context);
+  throw executionFailure("failed", "GPT_BROWSER_COHERENT_PAGE_HANDOFF_REQUIRED");
 };
 
 export const conversationChildHandlers = {
   async prepare_clean_gpt_chat(intent, context) {
     requireExactInputKeys(intent, ["timeoutMs"]);
-    const browser = requireBrowser(context);
-    const deadline = Date.now() + boundedTimeout(intent);
-    let observed = { composer: 0, turns: 0, attachments: 0, generating: 0, draftEmpty: null as boolean | null };
-    let staleDraftReadyToClear = false;
-    while (Date.now() < deadline) {
-      observed = {
-        composer: await findCount(browser, { selector: GPT_COMPOSER_SELECTOR, maxMatches: 2 }),
-        turns: await findCount(browser, { selector: GPT_USER_TURN_SELECTOR, maxMatches: 20 }),
-        attachments: await findCount(browser, { selector: GPT_ATTACHMENT_REGION_SELECTOR, maxMatches: 2 }),
-        generating: await findCount(browser, { selector: GPT_GENERATING_STOP_SELECTOR, maxMatches: 2 }),
-        draftEmpty: null,
-      };
-      if (observed.composer === 1 && observed.turns === 0
-        && observed.attachments === 0 && observed.generating === 0) {
-        const draft = await readExactText(browser, GPT_COMPOSER_SELECTOR, 65_536);
-        observed = { ...observed, draftEmpty: draft === "" };
-        if (!observed.draftEmpty) {
-          staleDraftReadyToClear = true;
-          break;
-        }
-        return success({
-          value: { ...observed, staleDraftCleared: false }, candidateCount: 1,
-          observedSemantics: ["hydrated fresh composer", "exact empty draft", "zero prior turns", "zero attachments", "not generating"],
-          committedMutation: "no",
-        });
-      }
-      await waitSlice(browser, deadline);
-    }
-    if (staleDraftReadyToClear) {
-      if (context.mutationMode === "readback") {
-        throw executionFailure("failed", "GPT_CHAT_DRAFT_CLEAR_PENDING");
-      }
-      await browser.executeDomIntent({
-        kind: "fill", selector: GPT_COMPOSER_SELECTOR, approvedText: "", clearBeforeType: true,
-        expectedMatches: 1,
-      });
-      const clearedDraft = await readExactText(browser, GPT_COMPOSER_SELECTOR, 65_536);
-      if (clearedDraft !== "") throw executionFailure("failed", "GPT_CHAT_DRAFT_CLEAR_FAILED");
-      observed = { ...observed, draftEmpty: true };
-      return success({
-        value: { ...observed, staleDraftCleared: true }, candidateCount: 1,
-        observedSemantics: ["hydrated fresh composer", "one stale draft cleared", "exact empty draft", "zero prior turns", "zero attachments", "not generating"],
-        committedMutation: "confirmed",
-      });
-    }
-    throw executionFailure("failed", `GPT_CHAT_HYDRATION_PENDING:composer=${observed.composer}:turns=${observed.turns}:attachments=${observed.attachments}:generating=${observed.generating}:draftEmpty=${observed.draftEmpty ?? "unread"}`);
+    timeoutInput(intent);
+    return coherentPageHandoffRequired(context);
   },
 
   async focus_exact_gpt_conversation(intent, context) {
     requireExactInputKeys(intent, ["canonicalConversationUrl"]);
-    const expected = canonicalGptConversationUrl(stringInput(intent, "canonicalConversationUrl"));
-    const browser = requireBrowser(context);
-    const before = canonicalOrNull((await readGptDocument(browser)).url);
-    if (before === expected) return success({
-      value: { url: expected, state: "already-focused" }, candidateCount: 1,
-      observedSemantics: ["exact permanent conversation already focused"], committedMutation: "no",
-    });
-    if (context.mutationMode === "readback") {
-      throw executionFailure("failed", "GPT_CONVERSATION_NAVIGATION_NOT_YET_CONFIRMED");
-    }
-    await browser.navigate({ url: expected, title: "focus exact GPT conversation" });
-    const after = canonicalOrNull((await readGptDocument(browser)).url);
-    if (after !== expected) throw executionFailure("failed", "GPT_CONVERSATION_NAVIGATION_NOT_YET_CONFIRMED");
-    return success({
-      value: { url: after }, candidateCount: 1,
-      observedSemantics: ["exact permanent conversation URL"], committedMutation: "confirmed",
-    });
+    canonicalGptConversationUrl(stringInput(intent, "canonicalConversationUrl"));
+    return coherentPageHandoffRequired(context);
   },
 
   async verify_gpt_conversation_identity(intent, context) {
     requireExactInputKeys(intent, [
       "canonicalConversationUrl", "expectedPromptHash", "expectedResponseHash", "timeoutMs", "turnMarker",
     ]);
-    const expected = canonicalGptConversationUrl(stringInput(intent, "canonicalConversationUrl"));
-    const expectedPromptHash = stringInput(intent, "expectedPromptHash");
-    const expectedResponseHash = stringInput(intent, "expectedResponseHash");
-    if (!/^sha256:[a-f0-9]{64}$/u.test(expectedPromptHash)
-      || !/^sha256:[a-f0-9]{64}$/u.test(expectedResponseHash)) {
-      throw executionFailure("failed", "GPT_RESPONSE_CHECKPOINT_MISMATCH");
-    }
-    const marker = stringInput(intent, "turnMarker");
-    const browser = requireBrowser(context);
-    const deadline = Date.now() + boundedTimeout(intent);
-    let markerCount = 0;
-    let composerCount = 0;
-    while (Date.now() < deadline) {
-      const observed = canonicalOrNull((await readGptDocument(browser)).url);
-      composerCount = await findCount(browser, { selector: GPT_COMPOSER_SELECTOR, maxMatches: 2 });
-      markerCount = await findCount(browser, {
-        selector: GPT_USER_TURN_SELECTOR, textContains: marker, maxMatches: 20,
-      });
-      if (observed === expected && composerCount === 1 && markerCount === 1) {
-        const userTurnId = await readExactAttribute(browser, GPT_USER_TURN_SELECTOR, "data-testid", marker);
-        const promptText = await readExactCanonicalPromptText(browser, userPromptBodySelector(userTurnId));
-        const promptHash = hash(promptText);
-        if (promptHash !== expectedPromptHash) {
-          throw executionFailure("failed", "GPT_USER_TURN_HASH_MISMATCH");
-        }
-        const assistantTurnId = `conversation-turn-${turnOrdinal(userTurnId) + 1}`;
-        const assistantCount = await findCount(browser, { selector: assistantSelector(assistantTurnId), maxMatches: 2 });
-        if (assistantCount !== 1) {
-          await waitSlice(browser, deadline);
-          continue;
-        }
-        const semanticText = await readExactSemanticText(browser, assistantSelector(assistantTurnId));
-        const responseHash = hash(semanticText);
-        if (responseHash !== expectedResponseHash) {
-          throw executionFailure("failed", "GPT_RESPONSE_CHECKPOINT_MISMATCH");
-        }
-        return success({
-          value: {
-            canonicalConversationUrl: observed,
-            turnMarker: marker,
-            userTurnId,
-            assistantTurnId,
-            semanticText,
-            promptHash,
-            responseHash,
-            conversationHash: hash(`${observed}\n${marker}\n${userTurnId}\n${promptHash}\n${responseHash}`),
-          },
-          candidateCount: markerCount,
-          observedSemantics: [
-            "permanent canonical URL", "hydrated composer", "one exact turn marker",
-            "exact prompt body hash", "exact assistant response hash",
-          ],
-          committedMutation: "no",
-        });
-      }
-      await waitSlice(browser, deadline);
-    }
-    throw executionFailure("failed", `GPT_CONVERSATION_HYDRATION_PENDING:marker=${markerCount}:composer=${composerCount}`);
+    canonicalGptConversationUrl(stringInput(intent, "canonicalConversationUrl"));
+    hashInput(intent, "expectedPromptHash");
+    hashInput(intent, "expectedResponseHash");
+    timeoutInput(intent);
+    stringInput(intent, "turnMarker");
+    return coherentPageHandoffRequired(context);
   },
 
   async open_gpt_checkpoint_actions_menu(intent, context) {
@@ -194,63 +76,8 @@ export const conversationChildHandlers = {
       "sourceAssistantTurnId", "sourceCanonicalConversationUrl", "sourcePromptHash",
       "sourceResponseHash", "sourceTurnMarker", "timeoutMs",
     ]);
-    const sourceUrl = canonicalGptConversationUrl(stringInput(intent, "sourceCanonicalConversationUrl"));
-    const assistantTurnId = stringInput(intent, "sourceAssistantTurnId");
-    const marker = stringInput(intent, "sourceTurnMarker");
-    const promptHash = stringInput(intent, "sourcePromptHash");
-    const responseHash = stringInput(intent, "sourceResponseHash");
-    if (!/^conversation-turn-[1-9][0-9]*$/u.test(assistantTurnId)
-      || !/^sha256:[a-f0-9]{64}$/u.test(promptHash)
-      || !/^sha256:[a-f0-9]{64}$/u.test(responseHash)) {
-      throw executionFailure("failed", "GPT_FORK_SOURCE_INVALID");
-    }
-    const userTurnId = `conversation-turn-${turnOrdinal(assistantTurnId) - 1}`;
-    const browser = requireBrowser(context);
-    if (canonicalOrNull((await readGptDocument(browser)).url) !== sourceUrl) {
-      throw executionFailure("failed", "GPT_FORK_SOURCE_CONVERSATION_MISMATCH");
-    }
-    const markerCount = await findCount(browser, {
-      selector: `[data-testid=${JSON.stringify(userTurnId)}][data-turn='user']`, textContains: marker, maxMatches: 2,
-    });
-    const assistantCount = await findCount(browser, { selector: assistantSelector(assistantTurnId), maxMatches: 2 });
-    if (markerCount !== 1 || assistantCount !== 1
-      || hash(await readExactCanonicalPromptText(browser, userPromptBodySelector(userTurnId))) !== promptHash
-      || hash(await readExactSemanticText(browser, assistantSelector(assistantTurnId))) !== responseHash) {
-      throw executionFailure("failed", "GPT_FORK_SOURCE_CHECKPOINT_MISMATCH");
-    }
-    const trigger = moreActionsButtonSelector(assistantTurnId);
-    const triggerCount = await findCount(browser, { selector: trigger, maxMatches: 2 });
-    if (triggerCount !== 1) throw executionFailure("failed", "GPT_CHECKPOINT_ACTIONS_TRIGGER_NOT_UNIQUE");
-    const activeMenuCount = await findCount(browser, { selector: GPT_ACTIVE_ACTIONS_MENU_SELECTOR, maxMatches: 2 });
-    const forkLeafCount = await findCount(browser, { selector: GPT_FORK_ACTION_SELECTOR, maxMatches: 2 });
-    if (activeMenuCount === 1 && forkLeafCount === 1
-      && await readExactAttribute(browser, trigger, "aria-expanded") === "true") {
-      return success({
-        value: { sourceAssistantTurnId: assistantTurnId, state: "already-open" }, candidateCount: 1,
-        observedSemantics: ["exact source checkpoint", "one source actions menu", "one fork leaf"],
-        committedMutation: "no",
-      });
-    }
-    if (activeMenuCount !== 0 || forkLeafCount !== 0) {
-      throw executionFailure("failed", "GPT_CHECKPOINT_ACTIONS_MENU_AMBIGUOUS");
-    }
-    if (context.mutationMode === "readback") {
-      throw executionFailure("failed", "GPT_CHECKPOINT_ACTIONS_MENU_NOT_CONFIRMED");
-    }
-    await browser.executeDomIntent({
-      kind: "click", selector: trigger, expectedMatches: 1,
-      postClickMatch: { selector: GPT_FORK_ACTION_SELECTOR, expectedMatches: 1, timeoutMs: boundedTimeout(intent) },
-    });
-    if (await findCount(browser, { selector: GPT_ACTIVE_ACTIONS_MENU_SELECTOR, maxMatches: 2 }) !== 1
-      || await findCount(browser, { selector: GPT_FORK_ACTION_SELECTOR, maxMatches: 2 }) !== 1
-      || await readExactAttribute(browser, trigger, "aria-expanded") !== "true") {
-      throw executionFailure("failed", "GPT_CHECKPOINT_ACTIONS_MENU_NOT_CONFIRMED");
-    }
-    return success({
-      value: { sourceAssistantTurnId: assistantTurnId, state: "opened" }, candidateCount: 1,
-      observedSemantics: ["exact source checkpoint", "one source actions menu", "one fork leaf"],
-      committedMutation: "confirmed",
-    });
+    sourceCheckpointInput(intent);
+    return coherentPageHandoffRequired(context);
   },
 
   async fork_exact_gpt_conversation_at_checkpoint(intent, context) {
@@ -258,72 +85,7 @@ export const conversationChildHandlers = {
       "sourceAssistantTurnId", "sourceCanonicalConversationUrl", "sourcePromptHash",
       "sourceResponseHash", "sourceTurnMarker", "timeoutMs",
     ]);
-    const sourceUrl = canonicalGptConversationUrl(stringInput(intent, "sourceCanonicalConversationUrl"));
-    const assistantTurnId = stringInput(intent, "sourceAssistantTurnId");
-    const marker = stringInput(intent, "sourceTurnMarker");
-    const promptHash = stringInput(intent, "sourcePromptHash");
-    const responseHash = stringInput(intent, "sourceResponseHash");
-    if (!/^conversation-turn-[1-9][0-9]*$/u.test(assistantTurnId)
-      || !/^sha256:[a-f0-9]{64}$/u.test(promptHash)
-      || !/^sha256:[a-f0-9]{64}$/u.test(responseHash)) {
-      throw executionFailure("failed", "GPT_FORK_SOURCE_INVALID");
-    }
-    const userTurnId = `conversation-turn-${turnOrdinal(assistantTurnId) - 1}`;
-    const browser = requireBrowser(context);
-    const verifySource = async (): Promise<void> => {
-      const markerCount = await findCount(browser, {
-        selector: `[data-testid=${JSON.stringify(userTurnId)}][data-turn='user']`,
-        textContains: marker,
-        maxMatches: 2,
-      });
-      const assistantCount = await findCount(browser, { selector: assistantSelector(assistantTurnId), maxMatches: 2 });
-      if (markerCount !== 1 || assistantCount !== 1
-        || hash(await readExactCanonicalPromptText(browser, userPromptBodySelector(userTurnId))) !== promptHash
-        || hash(await readExactSemanticText(browser, assistantSelector(assistantTurnId))) !== responseHash) {
-        throw executionFailure("failed", "GPT_FORK_SOURCE_CHECKPOINT_MISMATCH");
-      }
-    };
-    const before = canonicalOrNull((await readGptDocument(browser)).url);
-    if (context.mutationMode === "readback") {
-      if (!before || before === sourceUrl) throw executionFailure("failed", "GPT_FORK_CHILD_NOT_CONFIRMED");
-      await verifySource();
-      return success({
-        value: {
-          sourceCanonicalConversationUrl: sourceUrl,
-          sourceAssistantTurnId: assistantTurnId,
-          childCanonicalConversationUrl: before,
-          sourceToChildRelationHash: hash(`${sourceUrl}\n${assistantTurnId}\n${responseHash}\n${before}`),
-        },
-        candidateCount: 1,
-        observedSemantics: ["exact source checkpoint", "unique fork child", "source-to-child relation"],
-        committedMutation: "no",
-      });
-    }
-    if (before !== sourceUrl) throw executionFailure("failed", "GPT_FORK_SOURCE_CONVERSATION_MISMATCH");
-    await verifySource();
-    const trigger = moreActionsButtonSelector(assistantTurnId);
-    if (await findCount(browser, { selector: GPT_ACTIVE_ACTIONS_MENU_SELECTOR, maxMatches: 2 }) !== 1
-      || await findCount(browser, { selector: GPT_FORK_ACTION_SELECTOR, maxMatches: 2 }) !== 1
-      || await readExactAttribute(browser, trigger, "aria-expanded") !== "true") {
-      throw executionFailure("failed", "GPT_FORK_ACTION_NOT_UNIQUE");
-    }
-    await browser.executeDomIntent({
-      kind: "click", selector: GPT_FORK_ACTION_SELECTOR, expectedMatches: 1,
-      postClickUrl: { notEquals: sourceUrl, timeoutMs: boundedTimeout(intent) },
-    });
-    const childUrl = canonicalOrNull((await readGptDocument(browser)).url);
-    if (!childUrl || childUrl === sourceUrl) throw executionFailure("failed", "GPT_FORK_CHILD_NOT_CONFIRMED");
-    await verifySource();
-    return success({
-      value: {
-        sourceCanonicalConversationUrl: sourceUrl,
-        sourceAssistantTurnId: assistantTurnId,
-        childCanonicalConversationUrl: childUrl,
-        sourceToChildRelationHash: hash(`${sourceUrl}\n${assistantTurnId}\n${responseHash}\n${childUrl}`),
-      },
-      candidateCount: 1,
-      observedSemantics: ["exact source checkpoint", "one fork mutation", "unique child readback"],
-      committedMutation: "confirmed",
-    });
+    sourceCheckpointInput(intent);
+    return coherentPageHandoffRequired(context);
   },
 } satisfies GptChildHandlerMap;

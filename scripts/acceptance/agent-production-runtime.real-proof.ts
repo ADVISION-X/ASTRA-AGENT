@@ -54,17 +54,14 @@ const dynamicClaimContract = (/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_BEGIN */
     "LAW-GPT-001-V19:dynamic.provider": {"claims": {"forbidden:1": [{"path": "/facts/provider_count", "operator": "equals", "expected": 1}]}},
     "LAW-GPT-001-V19:dynamic.authorization": {"claims": {"forbidden:2": [{"path": "/facts/exact_target_document_binding_count", "operator": "gte", "expected": 39}]}},
     "LAW-GPT-001-V19:dynamic.recovery": {"claims": {"forbidden:15": [{"path": "/facts/failed_observed", "operator": "equals", "expected": true}, {"path": "/facts/completed_observed", "operator": "equals", "expected": true}, {"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V30:dynamic.browser": {"claims": {"forbidden:19": [{"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V30:dynamic.service": {"claims": {"forbidden:19": [{"path": "/facts/browser_context_closed", "operator": "equals", "expected": true}, {"path": "/facts/cleanup_verified", "operator": "equals", "expected": true}, {"path": "/facts/readiness_dimension_count", "operator": "gte", "expected": 4}, {"path": "/facts/readiness_dimensions_distinct", "operator": "equals", "expected": true}, {"path": "/facts/workbench_stopped", "operator": "equals", "expected": true}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V30:dynamic.database": {"claims": {"forbidden:9": [{"path": "/facts/frozen_identity_count", "operator": "equals", "expected": 39}, {"path": "/facts/frozen_identity_invalid_count", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V30:dynamic.storage": {"claims": {"forbidden:11": [{"path": "/unresolvedCount", "operator": "equals", "expected": 0}, {"path": "/facts/confirmed_row_invalid_count", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V30:dynamic.provider": {"claims": {"forbidden:0": [{"path": "/facts/catalog_plugin_count", "operator": "equals", "expected": 12}, {"path": "/facts/executed_route_count", "operator": "equals", "expected": 39}, {"path": "/facts/primary_route_count", "operator": "equals", "expected": 13}, {"path": "/facts/review_route_count", "operator": "equals", "expected": 26}, {"path": "/facts/route_denominator_complete", "operator": "equals", "expected": true}, {"path": "/terminalReceiptCount", "operator": "equals", "expected": 39}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V30:dynamic.authorization": {"claims": {"forbidden:4": [{"path": "/facts/lease_fence_bound_job_count", "operator": "equals", "expected": 39}, {"path": "/facts/unbound_lease_fence_job_count", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V30:dynamic.recovery": {"claims": {"forbidden:10": [{"path": "/facts/process_restart_observed", "operator": "equals", "expected": true}, {"path": "/facts/accepted_seq1_before_restart", "operator": "equals", "expected": true}, {"path": "/facts/progress_seq2_before_restart", "operator": "equals", "expected": true}, {"path": "/facts/progress_seq3_after_restart", "operator": "equals", "expected": true}, {"path": "/facts/same_attempt_after_restart", "operator": "equals", "expected": true}, {"path": "/facts/failed_observed", "operator": "equals", "expected": true}, {"path": "/facts/completed_observed", "operator": "equals", "expected": true}, {"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}}
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V31:dynamic.service": {"claims": {"summary": [{"path": "/facts/cleanup_verified", "operator": "equals", "expected": true}, {"path": "/facts/workbench_stopped", "operator": "equals", "expected": true}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V31:dynamic.database": {"claims": {"forbidden:7": [{"path": "/facts/incomplete_frontier_count", "operator": "equals", "expected": 0}, {"path": "/facts/required_runtime_schema_column_count", "operator": "equals", "expected": 2}, {"path": "/facts/unscheduled_outbox_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V31:dynamic.storage": {"claims": {"forbidden:15": [{"path": "/facts/proof_job_pending_outbox_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V31:dynamic.authorization": {"claims": {"forbidden:5": [{"path": "/facts/unbound_lease_fence_job_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V31:dynamic.recovery": {"claims": {"forbidden:12": [{"path": "/facts/process_restart_observed", "operator": "equals", "expected": true}, {"path": "/facts/same_attempt_after_restart", "operator": "equals", "expected": true}, {"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}}
   }
 }
 /* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_END */) as const;
-
 const HOST = "127.0.0.1";
 const PORT = 4173;
 const BASE_URL = `http://${HOST}:${PORT}`;
@@ -97,7 +94,6 @@ assertProductionProofJobsAreNew(productionDatabasePath, jobIds);
 const waitFor = async (label: string, predicate: () => boolean | Promise<boolean>): Promise<void> => {
   await waitForProductionProof(label, predicate, Number(process.env.GOVERNANCE_PROOF_TIMEOUT_MS ?? "0"));
 };
-
 const startWorkbench = async (): Promise<Readonly<{ handle: GrassEyeWorkbenchHandle; server: Server }>> => {
   process.env.GRASSEYE_SOURCE_FINGERPRINT = buildStartupSourceFingerprint(root);
   const handle = createGrassEyeWorkbenchHandle({
@@ -112,16 +108,13 @@ const startWorkbench = async (): Promise<Readonly<{ handle: GrassEyeWorkbenchHan
   });
   return { handle, server };
 };
-
 const stopWorkbench = async (handle: GrassEyeWorkbenchHandle, server: Server): Promise<void> => {
   await handle.shutdown();
   server.closeAllConnections();
   server.closeIdleConnections();
   await new Promise<void>((done) => server.close(() => done()));
 };
-
 const sentCheckpointPrefix = (jobId: string) => sentProductionCheckpointPrefix(productionDatabasePath, jobId);
-
 type DirectRuntimeObservation = Readonly<{
   browser: Readonly<Record<string, unknown>>;
   service: Readonly<Record<string, unknown>>;
@@ -131,7 +124,6 @@ type DirectRuntimeObservation = Readonly<{
   authorization: Readonly<Record<string, unknown>>;
   recovery: Readonly<Record<string, unknown>>;
 }>;
-
 const taskHistory = new Map(jobIds.map((jobId) => [jobId, new Set<string>()]));
 type HealthReport = Awaited<ReturnType<GrassEyeWorkbenchHandle["getHealthReport"]>>;
 let targetClaimedObserved = false;
@@ -153,7 +145,6 @@ let acceptedSeq1BeforeRestart = false;
 let progressSeq2BeforeRestart = false;
 let progressSeq3AfterRestart = false;
 let sameAttemptAfterRestart = false;
-
 try {
   context = await chromium.launchPersistentContext(browserProfile.profileDir,
     productionProofChromeOptions(browserProfile));
@@ -173,7 +164,6 @@ try {
       }
     });
   });
-
   running = await startWorkbench();
   const workbenchPage = await context.newPage();
   await workbenchPage.goto(BASE_URL, { waitUntil: "domcontentloaded" });
@@ -241,14 +231,12 @@ try {
     },
   );
 }
-
 assert(finalHealth && operatorBefore && operatorAfter && finalPairingState && cleanupObservation);
 assert.equal(cleanupObservation.cleanupVerified, true, "production proof cleanup was not observed");
 assert.equal(targetClaimedObserved, true, "a job-owned exact Target claim was not observed");
 assert.equal(systemChatgptPageObserved, true, "the one system-owned real ChatGPT page was not observed");
 assert.equal(taskHistory.get(recoveryJobId)?.has("failed"), true,
   "the named real job must remain failed before completing with the same identity");
-
 type TaskRow = { created_at: string; identity_json: string; job_id: string; request_hash: string;
   result_json: string; status: string; task_json: string; updated_at: string };
 type OutboxRow = { kind: string; path: string; body_blob: Buffer; sent_at: string | null };
@@ -258,13 +246,12 @@ type MutationRow = { command_id: string; owner_plugin_id: string; job_id: string
   action_ordinal: number; action_id: string;
   positive_postcondition_hash: string; negative_postcondition_hash: string;
   request_hash: string; payload_hash: string; proof_hash: string | null; state: string };
-
-const production = openReadOnly(productionDatabasePath);
-const mutations = openReadOnly(mutationDatabasePath);
+const production = openReadOnly(productionDatabasePath); const mutations = openReadOnly(mutationDatabasePath);
 let taskRows: TaskRow[];
 let outboxRows: OutboxRow[];
 let mutationRows: MutationRow[];
 let continuationRows: Array<{ continuation_ref: string; origin_job_id: string; lane_owner_job_id: string | null }>;
+let incompleteFrontierCount = 0; let requiredRuntimeSchemaColumnCount = 0; let unscheduledOutboxCount = 0;
 let mutationJournalMode = "";
 try {
   taskRows = production.prepare(`select created_at,identity_json,job_id,request_hash,result_json,status,task_json,updated_at from production_tasks
@@ -273,6 +260,15 @@ try {
     .all() as OutboxRow[];
   continuationRows = production.prepare(`select continuation_ref,origin_job_id,lane_owner_job_id from production_continuations
     where origin_job_id in (${placeholders}) order by continuation_ref`).all(...jobIds) as typeof continuationRows;
+  incompleteFrontierCount = Number((production.prepare(`select count(*) as count from production_continuations
+    where reservation_kind='persisted' and frontier_ref is not null and current_checkpoint_json is null`
+  ).get() as { count: number }).count);
+  requiredRuntimeSchemaColumnCount = Number((production.prepare(`select count(*) as count
+    from pragma_table_info('production_continuations') where name in
+      ('semantic_contract_hash','semantic_admission_receipt_json')`).get() as { count: number }).count);
+  unscheduledOutboxCount = Number((production.prepare(`select count(*) as count from production_outbox
+    where sent_at is null and response_hash is null and last_error is not null and next_delivery_at is null
+      and last_error<>'PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED'`).get() as { count: number }).count);
   mutationRows = mutations.prepare(`select command_id,owner_plugin_id,job_id,attempt_id,lease_version,
     execution_fence_hash,product_step_id,call_id,child_capability_id,effect_scope,action_ordinal,target_ref,document_ref,action_id,
     positive_postcondition_hash,negative_postcondition_hash,request_hash,payload_hash,proof_hash,state
@@ -280,7 +276,6 @@ try {
     .all(...jobIds) as MutationRow[];
   mutationJournalMode = String(mutations.pragma("journal_mode", { simple: true }));
 } finally { production.close(); mutations.close(); }
-
 assert.equal(taskRows.length, 39);
 assert.equal(taskRows.every((row) => row.status === "completed" && Boolean(row.result_json)), true);
 const routeCoverage = assertProductionProofRouteCoverage(taskRows, agentPluginCapabilityManifest);
@@ -302,7 +297,6 @@ assert.equal(mutationRows.filter((row) => row.state === "CONFIRMED").every((row)
     && row.action_ordinal >= 1
     && row.positive_postcondition_hash && row.negative_postcondition_hash
     && row.request_hash && row.payload_hash)), true);
-
 const runtimeLogProof = observeProductionProofRuntimeLogs({
   directory: runtimeLogDirectory, jobIds, startedAt,
 });
@@ -316,7 +310,6 @@ for (const capability of [
 ]) assert.equal(completedBrowserEvents.some((event) => event.typedIdentity.kind === "browser-command"
   && event.typedIdentity.childCapabilityId === capability), true,
   `missing real GPT child ${capability}`);
-
 const requireHealth = (value: HealthReport | null): HealthReport => {
   if (value === null) throw new Error("PRODUCTION_DYNAMIC_PROOF_HEALTH_MISSING");
   return value;
@@ -326,6 +319,8 @@ const component = (name: string) => observedHealth.components.find((item) => ite
 const unresolvedMutationCount = mutationRows.filter((row) => ["PREPARED", "DISPATCHED"].includes(row.state)).length;
 const terminalReceiptCount = jobIds.filter((jobId) => outboxRows.some((row) => row.kind === "terminal" && row.sent_at
   && row.path.includes(encodeURIComponent(jobId)) && row.body_blob.toString("utf8").includes(jobId))).length;
+const proofJobPendingOutboxCount = outboxRows.filter((row) => !row.sent_at
+  && jobIds.some((jobId) => row.path.includes(encodeURIComponent(jobId)))).length;
 const releaseIdentity = await readUnpackedExtensionReleaseIdentity(
   resolve(root, ".grasseye-local", "browser-release", "release-record.json"),
 );
@@ -415,7 +410,10 @@ const observation: DirectRuntimeObservation = Object.freeze({
   },
   database: {
     databaseEngine: "sqlite", databasePath: productionDatabasePath, identitySet: jobIds,
-    facts: { frozen_identity_count: taskRows.length, frozen_identity_invalid_count: frozenIdentityInvalidCount },
+    facts: { frozen_identity_count: taskRows.length, frozen_identity_invalid_count: frozenIdentityInvalidCount,
+      incomplete_frontier_count: incompleteFrontierCount,
+      required_runtime_schema_column_count: requiredRuntimeSchemaColumnCount,
+      unscheduled_outbox_count: unscheduledOutboxCount },
     recordCounts: { tasks: taskRows.length, continuations: continuationRows.length },
   },
   storage: {
@@ -423,6 +421,7 @@ const observation: DirectRuntimeObservation = Object.freeze({
     facts: {
       confirmed_row_invalid_count: confirmedRowInvalidCount,
       mutation_rows_complete: confirmedRowInvalidCount === 0,
+      proof_job_pending_outbox_count: proofJobPendingOutboxCount,
       runtime_log_authority_hash_count: runtimeLogFacts.authorityHashCount,
       runtime_log_sensitive_value_count: runtimeLogFacts.sensitiveValueCount,
       runtime_log_forbidden_task_state_field_count: runtimeLogFacts.forbiddenTaskStateFieldCount,
@@ -461,7 +460,6 @@ const observation: DirectRuntimeObservation = Object.freeze({
     recoveryJobId, unresolvedCount: unresolvedMutationCount,
   },
 });
-
 type DynamicMode = `dynamic.${keyof DirectRuntimeObservation}`;
 const orderedClauses = (values: readonly string[]): string[] => [...values].sort((left, right) =>
   Buffer.compare(Buffer.from(left), Buffer.from(right)));
@@ -488,14 +486,14 @@ const emit = (lawId: string, evidenceMode: DynamicMode, observedValue: string): 
   emitQualityProofObservation({ passed: true, findings: [], lawId, evidenceMode,
     clauses, locator: receipt.path, receipt: receipt.digest, observedValue });
 };
-
 for (const route of Object.keys(dynamicClaimContract.routes).sort()) {
   const separator = route.indexOf(":");
   const lawId = route.slice(0, separator);
   const evidenceMode = route.slice(separator + 1) as DynamicMode;
   assert.equal(separator > 0 && Object.hasOwn(observation, evidenceMode.slice("dynamic.".length)), true,
     `invalid dynamic producer route ${route}`);
-  emit(lawId, evidenceMode, `${evidenceMode};realChrome=${browserVersion};plugins=12;jobs=39;routes=39`);
+  emit(lawId, evidenceMode, lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V31"
+    ? `${evidenceMode};runtime-boundary-only`
+    : `${evidenceMode};realChrome=${browserVersion};plugins=12;jobs=39;routes=39`);
 }
-
 process.stdout.write(`[ACCEPTANCE][agent-production-runtime][direct-real-proof] PASS run=${proofRunId}\n`);

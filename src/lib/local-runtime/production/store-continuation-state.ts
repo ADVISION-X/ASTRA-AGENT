@@ -64,6 +64,11 @@ const usableContinuationFromRecord = (record: GptContinuationRecord): StoredGptC
   record.conversation_identity_hash && record.origin_provider && record.provider
     ? record as StoredGptContinuation : null;
 
+type FrontierInvariantFailure = Readonly<{
+  origin_job_id: string;
+  reason: "GPT_CONTINUATION_CURRENT_CHECKPOINT_MISSING" | "GPT_CONTINUATION_FRONTIER_INVALID";
+}>;
+
 const GPT_CONTINUATION_SELECT = `continuation_ref,reservation_kind,reservation_identity_hash,
   origin_job_id,origin_plugin_version,plugin_id,owner_ref,subject_ref,authorization_ref,
   conversation_identity_hash,frontier_ref,source_checkpoint_hash,reservation_fence_hash,
@@ -344,32 +349,35 @@ export abstract class ProductionStoreContinuationState extends ProductionStoreFo
       from production_continuations where frontier_ref=? limit 2`).all(frontierRef) as GptContinuationRow[];
     if (rows.length > 1) throw executionFailure("failed", "GPT_CONTINUATION_FRONTIER_AMBIGUOUS");
     const row = rows[0];
-    return row ? usableContinuationFromRecord(continuationRecordFromRow(row)) : null;
+    if (!row) return null;
+    const record = continuationRecordFromRow(row);
+    const stored = usableContinuationFromRecord(record);
+    if (!stored || !stored.origin_checkpoint || !stored.current_checkpoint
+      || stored.conversation_identity_hash !== gptContinuationIdentityHash(stored.provider)) {
+      throw executionFailure("failed", "GPT_CONTINUATION_FRONTIER_INVALID");
+    }
+    return stored;
   }
 
-  public frontierContinuationsMissingCurrentCheckpoint(): readonly StoredGptContinuation[] {
+  public frontierContinuationInvariantFailures(): readonly FrontierInvariantFailure[] {
     const rows = this.database.prepare(`select ${GPT_CONTINUATION_SELECT}
       from production_continuations
-      where reservation_kind='persisted' and frontier_ref is not null and current_checkpoint_json is null
+      where reservation_kind='persisted' and frontier_ref is not null
       order by continuation_ref`).all() as GptContinuationRow[];
-    return Object.freeze(rows.map(continuationRecordFromRow).map(usableContinuationFromRecord).filter(
-      (row): row is StoredGptContinuation => row !== null,
-    ));
-  }
-
-  public migrateFrontierCurrentCheckpoint(
-    continuationRef: string,
-    expectedProvider: GptProviderContinuation,
-    checkpoint: GptContinuationCheckpoint,
-  ): void {
-    const changed = this.database.prepare(`update production_continuations
-      set current_checkpoint_json=?
-      where continuation_ref=? and current_checkpoint_json is null and provider_json=?`).run(
-      json(checkpoint), continuationRef, json(expectedProvider),
-    );
-    if (changed.changes !== 1) {
-      throw executionFailure("failed", "GPT_CONTINUATION_CUTOVER_CAS_FAILED");
-    }
+    return Object.freeze(rows.flatMap((row): FrontierInvariantFailure[] => {
+      if (row.current_checkpoint_json === null) return [{
+        origin_job_id: row.origin_job_id, reason: "GPT_CONTINUATION_CURRENT_CHECKPOINT_MISSING",
+      }];
+      try {
+        const record = continuationRecordFromRow(row);
+        const stored = usableContinuationFromRecord(record);
+        return stored && stored.origin_checkpoint
+          && stored.conversation_identity_hash === gptContinuationIdentityHash(stored.provider)
+          ? [] : [{ origin_job_id: row.origin_job_id, reason: "GPT_CONTINUATION_FRONTIER_INVALID" }];
+      } catch {
+        return [{ origin_job_id: row.origin_job_id, reason: "GPT_CONTINUATION_FRONTIER_INVALID" }];
+      }
+    }));
   }
 
   public acquireGptContinuationLane(continuationRef: string, ownerJobId: string): StoredGptContinuation {

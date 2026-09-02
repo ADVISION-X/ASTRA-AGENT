@@ -17,6 +17,8 @@ import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { serializeTerminalFailure } from "../../src/lib/typed-failure.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { verifyBrowserArtifactAndLockContracts } from "./local-browser-artifact-and-lock.acceptance-support.js";
+import { exerciseStrictMutationReceipts } from "./local-browser-mutation-receipt-support.js";
+import { exerciseBrowserDiagnosticContract } from "./local-browser-diagnostic-contract-support.js";
 
 const hash = `sha256:${"a".repeat(64)}` as const;
 const negativeHash = `sha256:${"b".repeat(64)}` as const;
@@ -275,7 +277,8 @@ try {
       replyChannelToken: candidate.replyChannelToken,
       transportSequence: 1,
       permitSequence: candidate.sequence,
-      result: { candidateCount: 1, identityRevalidated: true, mutationCount: 1, postconditionVerified: true },
+      result: { clicked: true, candidateCount: 1, identityRevalidated: true,
+        mutationCount: 1, postconditionVerified: true },
     };
   }).execute(confirmedPermit, clickCommand);
   assert.equal(actorStore.readState(confirmedPermit.commandId), "CONFIRMED");
@@ -295,14 +298,20 @@ try {
   const qualificationActor = actorFor(async (candidate, _command, onDispatched) => {
     onDispatched?.();
     return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
-      permitSequence: candidate.sequence, result: { candidateCount: 0, identityRevalidated: false,
+      permitSequence: candidate.sequence, result: { candidateCount: 1, identityRevalidated: false,
         mutationCount: 0, postconditionVerified: false, qualificationRejected: true,
-        failureCode: "BROWSER_DOM_CANDIDATE_MISSING" } };
+        qualificationStage: "actionability",
+        failureCode: "BROWSER_DOM_ACTION_NOT_QUALIFIED" } };
   });
   await assert.rejects(qualificationActor.execute(qualificationPermit, clickCommand),
-    /BROWSER_DOM_CANDIDATE_MISSING/u);
+    /BROWSER_DOM_ACTION_NOT_QUALIFIED/u);
   assert.equal(actorStore.readState(qualificationPermit.commandId), "REJECTED");
   assert.equal(qualificationActor.mutationOutcome(qualificationPermit.commandId), "no");
+  const actorDatabase = new Database(join(actorRoot, "browser", "browser-mutations.sqlite"), { readonly: true });
+  assert.equal((actorDatabase.prepare("select reason from browser_mutations where command_id=?")
+    .get(qualificationPermit.commandId) as { reason: string }).reason, "BROWSER_DOM_ACTION_NOT_QUALIFIED",
+  "the unique mutation WAL must retain the exact validated qualification cause");
+  actorDatabase.close();
 
   const observationPermit: BrowserCommandPermit = {
     ...permit("actor-observation"), capabilityId: "browser.dom.inspect.v1",
@@ -311,9 +320,13 @@ try {
   const observationCommand = { kind: "dom-intent" as const, intent: { kind: "observe" as const,
     queries: [{ queryId: "model", selector: "button", maxMatches: 1, fields: ["visible" as const] }] } };
   const observedAt = "2026-09-02T12:34:56.789Z";
+  const observationIdentityHash = exactHash(canonicalizeBrowserAuthorityValue({
+    targetRefHash: exactHash(observationPermit.targetRef),
+    documentRefHash: exactHash(observationPermit.documentRef), observedAt, queryId: "model", candidateIndex: 0,
+  }));
   const observationQueries = [{ queryId: "model", scopeRawCount: 1, scopeEligibleCount: 1,
-    rawCount: 1, eligibleCount: 1, matches: [{ visible: true }], nativeCauseCode: null,
-    nativeCauseCount: 0, nativeStage: "runtime-call-function-on" }];
+    rawCount: 1, eligibleCount: 1, matches: [{ candidateIndex: 0, observationIdentityHash, visible: true }], nativeCauseCode: null,
+    nativeCauseCount: 0, nativeStage: "runtime-call-function-on", scopeRejections: [], rejections: [] }];
   const targetRefHash = exactHash(observationPermit.targetRef);
   const documentRefHash = exactHash(observationPermit.documentRef);
   const observationRevisionHash = exactHash(canonicalizeBrowserAuthorityValue({
@@ -331,6 +344,34 @@ try {
   ]));
   assert.equal(actorStore.readState(observationPermit.commandId), null);
 
+  const fileCommand = { kind: "file-input" as const, selector: "#upload-files",
+    approvedFiles: [{ grantRef: "grant-one", contentHash: hash, maxBytes: 64 }],
+    resolvedFilePaths: ["/approved/one.txt"] };
+  const forgedFilePermit: BrowserCommandPermit = {
+    ...permit("actor-file-forged-success"), capabilityId: "browser.file-input.v1",
+  };
+  await assert.rejects(actorFor(async (candidate, _command, onDispatched) => {
+    onDispatched?.();
+    return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+      permitSequence: candidate.sequence, result: { candidateCount: 1, identityRevalidated: true,
+        mutationCount: 1, postconditionVerified: true } };
+  }).execute(forgedFilePermit, fileCommand), /BROWSER_COMMAND_RECEIPT_MISSING/u,
+  "file-input may not be confirmed without exact selected-count, approved-set, and accept readback");
+  assert.equal(actorStore.readState(forgedFilePermit.commandId), "DISPATCHED",
+    "a malformed after-dispatch file receipt must remain unknown rather than inventing success");
+
+  const confirmedFilePermit: BrowserCommandPermit = {
+    ...permit("actor-file-confirmed"), capabilityId: "browser.file-input.v1",
+  };
+  await actorFor(async (candidate, _command, onDispatched) => {
+    onDispatched?.();
+    return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+      permitSequence: candidate.sequence, result: { candidateCount: 1, identityRevalidated: true,
+        mutationCount: 1, selectedFileCount: 1, approvedSetVerified: true, acceptVerified: true,
+        postconditionVerified: true } };
+  }).execute(confirmedFilePermit, fileCommand);
+  assert.equal(actorStore.readState(confirmedFilePermit.commandId), "CONFIRMED");
+
   const rejectedPermit = permit("actor-rejected");
   const rejectedActor = actorFor(async (candidate, _command, onDispatched) => {
     onDispatched?.();
@@ -339,6 +380,7 @@ try {
       transportSequence: 2,
       permitSequence: candidate.sequence,
       result: {
+        clicked: true,
         candidateCount: 1,
         identityRevalidated: true,
         mutationCount: 1,
@@ -353,6 +395,8 @@ try {
   );
   assert.equal(actorStore.readState(rejectedPermit.commandId), "REJECTED");
   assert.equal(rejectedActor.mutationOutcome(rejectedPermit.commandId), "confirmed");
+  exerciseStrictMutationReceipts();
+  exerciseBrowserDiagnosticContract();
   assert.equal(rejectedActor.browserOutcome(rejectedPermit.commandId), "REJECTED");
   assert.deepEqual(
     serializeTerminalFailure(browserExecutionFailure(

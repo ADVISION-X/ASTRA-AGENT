@@ -16,5 +16,4 @@ export type BrowserControlledTarget = Readonly<{
   target: BrowserTargetRef;
   document: BrowserDocumentRef;
   url: string;
-  title: string;
 }>;

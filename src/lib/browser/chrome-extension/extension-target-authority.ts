@@ -15,7 +15,6 @@ type TargetFrameSender = (
 
 type TargetFailureReporter = (input: Readonly<{
   targetRef: string;
-  reason: string;
   runtimeEventType: "debugger-detach" | "tab-remove";
 }>) => void;
 
@@ -53,7 +52,7 @@ export class ExtensionTargetAuthority {
   }
 
   public start(): void {
-    this.chromeApi.debugger.onDetach.addListener((target, reason) => {
+    this.chromeApi.debugger.onDetach.addListener((target) => {
       const deterministicTargetRef = `target-tab-${target.tabId}`;
       const targetRef = this.activeTarget?.tabId === target.tabId
         ? this.activeTarget.targetRef
@@ -67,7 +66,7 @@ export class ExtensionTargetAuthority {
       this.activeLoaderId = null;
       this.attachedTabId = null;
       this.navigationPublication = null;
-      this.reportTargetFailure({ targetRef, reason, runtimeEventType: "debugger-detach" });
+      this.reportTargetFailure({ targetRef, runtimeEventType: "debugger-detach" });
       void this.send("TARGET_REVOKE", { targetRef });
     });
     this.chromeApi.debugger.onEvent.addListener((target, method, parameters) => {
@@ -75,7 +74,7 @@ export class ExtensionTargetAuthority {
       const frame = asRecord(asRecord(parameters)?.frame);
       if (!frame || typeof frame.parentId === "string"
         || typeof frame.url !== "string" || typeof frame.loaderId !== "string") return;
-      void this.publishMainFrameNavigation(frame.url, "", frame.loaderId);
+      void this.publishMainFrameNavigation(frame.url, frame.loaderId);
     });
     this.chromeApi.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
       if (changeInfo.status === "complete" && this.pendingCreatedTarget?.tabId === tabId) {
@@ -94,7 +93,7 @@ export class ExtensionTargetAuthority {
         this.navigationPublication = null;
       }
       if (this.attachedTabId === tabId) this.attachedTabId = null;
-      this.reportTargetFailure({ targetRef, reason: "tab-removed", runtimeEventType: "tab-remove" });
+      this.reportTargetFailure({ targetRef, runtimeEventType: "tab-remove" });
       void this.send("TARGET_REVOKE", { targetRef });
     });
   }
@@ -129,7 +128,6 @@ export class ExtensionTargetAuthority {
       this.activeLoaderId = mainFrame.loaderId;
       await this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(target, {
         url: mainFrame.url,
-        title: candidate.title,
       }));
     } catch (error) {
       try { await this.discardJobOwnedTarget(candidate.tabId); }
@@ -179,17 +177,25 @@ export class ExtensionTargetAuthority {
     target: ExtensionExactTarget,
   ): Promise<unknown> {
     if (command.kind === "dom-intent") {
-      const result = await executeRegisteredDomIntent(this.debuggerRuntime, target, command.intent);
+      const assertCurrent = (): void => { this.targets.resolve(target.targetRef, target.documentRef); };
+      const result = await executeRegisteredDomIntent(
+        this.debuggerRuntime, target, command.intent, assertCurrent,
+      );
       this.targets.resolve(target.targetRef, target.documentRef);
       return result;
     }
     if (command.kind === "observe") {
-      const result = await executeRegisteredDomIntent(this.debuggerRuntime, target, { kind: "document" });
+      const result = await executeRegisteredDomIntent(
+        this.debuggerRuntime,
+        target,
+        { kind: "document" },
+        () => { this.targets.resolve(target.targetRef, target.documentRef); },
+      );
       this.targets.resolve(target.targetRef, target.documentRef);
       return result;
     }
     if (command.kind === "wait") return this.executeWait(command.durationMs);
-    if (command.kind === "navigate") return this.executeNavigation(target, command.url, command.title);
+    if (command.kind === "navigate") return this.executeNavigation(target, command.url);
     if (command.kind === "park-target") {
       await this.parkActiveTarget();
       return { parked: true };
@@ -205,7 +211,7 @@ export class ExtensionTargetAuthority {
         target,
         assertCurrent: (targetRef, documentRef) => { this.targets.resolve(targetRef, documentRef); },
         selector: command.selector,
-        grantRefs: command.grantRefs,
+        approvedFiles: command.approvedFiles,
         resolvedFilePaths: command.resolvedFilePaths,
       });
     }
@@ -253,7 +259,6 @@ export class ExtensionTargetAuthority {
       this.parkedLoaderIds.delete(targetRef);
       await this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(target, {
         url: mainFrame.url,
-        title: "",
       }));
     } catch (error) {
       if (attachedHere) {
@@ -355,10 +360,9 @@ export class ExtensionTargetAuthority {
     if (!pending) return;
     this.pendingCreatedTarget = null;
     globalThis.clearTimeout(pending.timeout);
-    void this.chromeApi.tabs.remove(pending.tabId).catch((error: unknown) => {
+    void this.chromeApi.tabs.remove(pending.tabId).catch(() => {
       this.reportTargetFailure({
         targetRef: `job-owned-tab:${pending.tabId}`,
-        reason: error instanceof Error ? error.name : "TabRemoveError",
         runtimeEventType: "tab-remove",
       });
     });
@@ -395,11 +399,12 @@ export class ExtensionTargetAuthority {
     return { waitedMs: durationMs };
   }
 
-  private async executeNavigation(target: ExtensionExactTarget, url: string, title: string): Promise<Record<string, unknown>> {
+  private async executeNavigation(target: ExtensionExactTarget, url: string): Promise<Record<string, unknown>> {
     const current = await executeRegisteredDomIntent(
       this.debuggerRuntime,
       target,
       { kind: "document" },
+      () => { this.targets.resolve(target.targetRef, target.documentRef); },
     ) as Readonly<{ url: string }>;
     const destination = new URL(url);
     if (destination.protocol !== "https:" || destination.origin !== new URL(current.url).origin) {
@@ -407,11 +412,11 @@ export class ExtensionTargetAuthority {
     }
     const response = asRecord(await this.debuggerRuntime.send(target.tabId, "Page.navigate", { url }));
     const observed = typeof response?.loaderId === "string" ? { loaderId: response.loaderId, url: destination.href } : await this.readMainFrame(target.tabId);
-    const next = await this.publishMainFrameNavigation(observed.url, title, observed.loaderId);
+    const next = await this.publishMainFrameNavigation(observed.url, observed.loaderId);
     return { targetRef: next.targetRef, documentRef: next.documentRef, navigationEpoch: next.navigationEpoch };
   }
 
-  private async publishMainFrameNavigation(url: string, title: string, loaderId: string): Promise<ExtensionExactTarget> {
+  private async publishMainFrameNavigation(url: string, loaderId: string): Promise<ExtensionExactTarget> {
     const current = this.activeTarget;
     if (!current) throw new Error("BROWSER_TARGET_INVALID");
     if (loaderId === this.activeLoaderId) {
@@ -427,7 +432,7 @@ export class ExtensionTargetAuthority {
     const next = this.targets.advanceDocument(current.targetRef);
     this.activeTarget = next;
     this.activeLoaderId = loaderId;
-    const promise = this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(next, { url, title }));
+    const promise = this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(next, { url }));
     this.navigationPublication = { loaderId, promise };
     try { await promise; } finally {
       if (this.navigationPublication?.promise === promise) this.navigationPublication = null;

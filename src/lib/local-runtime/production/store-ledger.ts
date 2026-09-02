@@ -93,7 +93,7 @@ const completionPayloadConsistent = (
       === [...(projection.artifactReceiptsByJob.get(jobId) ?? [])].sort().join("\0");
 };
 
-export class ProductionStoreLedger extends ProductionStoreOutbox {
+export class ProductionRuntimeStore extends ProductionStoreOutbox {
   private reconcileTerminalRow(row: TerminalRow): boolean {
     const request = JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>;
     const rawReceipt = parsePersistedReceipt(row.response_json);

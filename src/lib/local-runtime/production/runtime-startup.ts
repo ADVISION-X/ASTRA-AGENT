@@ -14,10 +14,7 @@ import {
   type RuntimeSpanHandle,
 } from "../../runtime-logs/index.js";
 import { failureCode } from "../../typed-failure.js";
-import {
-  productionCatalogHash,
-  reconstructPublicKnowledgeLegacyCurrentCheckpoint,
-} from "./catalog.js";
+import { productionCatalogHash } from "./catalog.js";
 import type { ProductionHash } from "./contracts.js";
 import { readProductionCredential } from "./credential.js";
 import { ProductionExecutor } from "./executor.js";
@@ -161,9 +158,10 @@ export const reconcileTaskRecord = (
     ? state.store.recordLease({ ...storedLease, state: "stale", expiresAt: null }) : storedLease;
   const checkpoint = state.store.readCheckpoint(persisted.task.job_id);
   const remoteRedeliveryPending = state.store.hasUnsentOutbox(persisted.task.job_id);
-  if (nonterminal && persisted.current_reason?.startsWith("GPT_CONTINUATION_CUTOVER_")) {
+  if (nonterminal && persisted.current_reason === "GPT_CONTINUATION_CURRENT_CHECKPOINT_MISSING") {
     return true;
   }
+  if (nonterminal && persisted.current_reason === "GPT_CONTINUATION_FRONTIER_INVALID") return true;
   if (nonterminal && persisted.current_reason?.startsWith("PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED")) {
     return true;
   }
@@ -193,30 +191,13 @@ const reconcileEvidence = async (
   return complete;
 };
 
-const reconcileContinuationCutover = async (
-  input: ProductionRuntimeStartInput,
+export const failClosedInvalidContinuationFrontiers = (
   store: ProductionRuntimeStore,
-): Promise<void> => {
-  for (const continuation of store.frontierContinuationsMissingCurrentCheckpoint()) {
-    const task = store.readTask(continuation.origin_job_id);
-    if (!task) continue;
-    try {
-      const checkpoint = await reconstructPublicKnowledgeLegacyCurrentCheckpoint({
-        continuation,
-        task: task.task,
-        pluginVersion: task.identity.plugin_version,
-        candidateAttemptIds: store.attemptIdsForTask(continuation.origin_job_id),
-        evidenceStore: input.evidenceStore,
-      });
-      store.migrateFrontierCurrentCheckpoint(
-        continuation.continuation_ref, continuation.provider, checkpoint,
-      );
-    } catch (error) {
-      store.setCurrentReason(
-        continuation.origin_job_id,
-        failureCode(error, "GPT_CONTINUATION_CUTOVER_ARTIFACT_UNRESOLVED"),
-      );
-    }
+): void => {
+  for (const failure of store.frontierContinuationInvariantFailures()) {
+    const task = store.readTask(failure.origin_job_id);
+    if (task?.current_reason?.startsWith("PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED")) continue;
+    store.setCurrentReason(failure.origin_job_id, failure.reason);
   }
 };
 
@@ -334,7 +315,7 @@ export const startProductionRuntime = async (
     typedIdentity: { kind: "producer", producerId: input.runtimeLogger.producerRunId },
   }));
   const store = await initializeStore(input, startSpan);
-  await reconcileContinuationCutover(input, store);
+  failClosedInvalidContinuationFrontiers(store);
   let credential: Awaited<ReturnType<typeof readProductionCredential>>;
   try { credential = await readProductionCredential(input.dataDir); }
   catch (error) {

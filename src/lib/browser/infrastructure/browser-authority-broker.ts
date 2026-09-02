@@ -145,13 +145,13 @@ export type BrowserOperatorTargetClaim = Readonly<{
   documentRef: string;
   navigationEpoch: number;
   url: string;
-  title: string;
 }>;
 
 type GrantedPathEntry = Readonly<{
   path: string;
   expiresAt: string;
   contentHash: BrowserHash;
+  maxBytes: number;
 }>;
 
 const controlledTargetForClaim = (
@@ -169,7 +169,6 @@ const controlledTargetForClaim = (
     navigationEpoch: claim.navigationEpoch,
   },
   url: claim.url,
-  title: claim.title,
 });
 
 const resolveGrantedPaths = async (
@@ -180,6 +179,7 @@ const resolveGrantedPaths = async (
   if (!registered
     || registered.expiresAt !== grant.expiresAt
     || registered.contentHash !== grant.contentHash
+    || registered.maxBytes !== grant.maxBytes
     || Date.parse(registered.expiresAt) <= Date.now()) {
     throw new Error("BROWSER_FILE_GRANT_INVALID");
   }
@@ -301,7 +301,7 @@ export class BrowserAuthorityBroker {
       },
       issueFileArtifactGrant: async ({ artifactRef, expectedSha256, maxBytes }) => {
         assertLive();
-        if (maxBytes < 1) throw new Error("BROWSER_FILE_GRANT_INVALID");
+        if (!Number.isSafeInteger(maxBytes) || maxBytes < 1) throw new Error("BROWSER_FILE_GRANT_INVALID");
         const artifact = await this.artifactResolver.resolveArtifact(artifactRef);
         if (artifact.contentHash !== expectedSha256 || artifact.sizeBytes > maxBytes) throw new Error("BROWSER_FILE_GRANT_INVALID");
         const grant = {
@@ -318,6 +318,7 @@ export class BrowserAuthorityBroker {
           path: artifact.canonicalPath,
           expiresAt: grant.expiresAt,
           contentHash: grant.contentHash,
+          maxBytes: grant.maxBytes,
         });
         return grant;
       },

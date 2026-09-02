@@ -2,18 +2,27 @@ import assert from "../audit/shared/governance-exam-assert.js";
 
 import type { ExtensionDebuggerRuntime } from
   "../../src/lib/browser/chrome-extension/debugger-runtime.js";
-import { executeRegisteredDomIntent } from
+import { executeRegisteredDomIntent as executeDomIntent } from
   "../../src/lib/browser/chrome-extension/dom-intent-runtime.js";
 import { BROWSER_MECHANICAL_FACTS_READER_SOURCE } from
   "../../src/lib/browser/chrome-extension/dom-mechanical-facts.js";
-import { executeExtensionFileInput } from
-  "../../src/lib/browser/chrome-extension/extension-file-input-runtime.js";
 import { assertBrowserDomIntent } from
   "../../src/lib/browser/exact-target/browser-dom-intent.js";
+import { exerciseDomMutations } from "./local-browser-dom-mutation-support.js";
+import { exerciseFileInput } from "./local-browser-file-input-support.js";
+import { exerciseCapturedObservationFunction } from "./local-browser-dom-function-support.js";
+
+const executeRegisteredDomIntent = (
+  runtime: ExtensionDebuggerRuntime,
+  target: Parameters<typeof executeDomIntent>[1],
+  intent: Parameters<typeof executeDomIntent>[2],
+  assertCurrent: () => void = () => undefined,
+): Promise<unknown> => executeDomIntent(runtime, target, intent, assertCurrent);
 
 const mechanicalFacts = (overrides: Readonly<Record<string, unknown>> = {}) => ({
   connected: true, layout: true, visible: true,
   computedDisplay: "block", computedVisibility: "visible", computedOpacity: "1", effectiveOpacity: "1",
+  displayHidden: false, visibilityHidden: false, opacityHidden: false,
   hidden: false, ariaHidden: false, inert: false, disabled: false, ariaDisabled: false,
   role: "", name: "", testId: "", label: "", value: "", checked: null, type: "",
   bounds: { x: 0, y: 0, width: 10, height: 10 }, viewport: true, hitTest: true,
@@ -24,9 +33,27 @@ const mechanicalFacts = (overrides: Readonly<Record<string, unknown>> = {}) => (
 const mechanicalReply = (
   method: string,
   overrides: Readonly<Record<string, unknown>> = {},
+  parameters?: Readonly<Record<string, unknown>>,
 ): unknown | undefined => {
   if (method === "DOM.resolveNode") return { object: { objectId: "node-object" } };
-  if (method === "Runtime.callFunctionOn") return { result: { value: mechanicalFacts(overrides) } };
+  if (method === "Runtime.callFunctionOn" && parameters?.returnByValue !== false) {
+    return { result: { value: mechanicalFacts(overrides) } };
+  }
+  if (method === "Runtime.releaseObject") return {};
+  return undefined;
+};
+
+const coherentCandidateReply = (
+  method: string,
+  parameters?: Readonly<Record<string, unknown>>,
+): unknown | undefined => {
+  if (method === "Page.getFrameTree") return { frameTree: { frame: { loaderId: "loader-current" } } };
+  if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
+  if (method === "DOM.resolveNode") return { object: { objectId: "candidate-root" } };
+  if (method === "Runtime.callFunctionOn" && parameters?.returnByValue === false) {
+    return { result: { type: "object", subtype: "node", objectId: "candidate-node" } };
+  }
+  if (method === "DOM.requestNode") return { nodeId: 7 };
   if (method === "Runtime.releaseObject") return {};
   return undefined;
 };
@@ -54,7 +81,7 @@ const failureQueryReply = (failure: DomFailure): unknown => {
 const exerciseComposerReadiness = async (): Promise<void> => {
   let delayedQueries = 0;
   const delayed = { async send(_tabId: number, method: string) {
-    const mechanical = mechanicalReply(method);
+    const mechanical = mechanicalReply(method, {}, undefined);
     if (mechanical !== undefined) return mechanical;
     if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
     if (method === "DOM.querySelectorAll") {
@@ -70,7 +97,7 @@ const exerciseComposerReadiness = async (): Promise<void> => {
   assert.equal(found.count, 1);
   assert.equal(delayedQueries, 3);
   const missing = { async send(_tabId: number, method: string) {
-    const mechanical = mechanicalReply(method);
+    const mechanical = mechanicalReply(method, {}, undefined);
     if (mechanical !== undefined) return mechanical;
     if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
     if (method === "DOM.querySelectorAll") return { nodeIds: [] };
@@ -126,7 +153,7 @@ const exerciseDomFailures = async (): Promise<void> => {
 const exerciseLateTextMatch = async (): Promise<void> => {
   let describeCalls = 0;
   const runtime = { async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
-    const mechanical = mechanicalReply(method);
+    const mechanical = mechanicalReply(method, {}, parameters);
     if (mechanical !== undefined) return mechanical;
     if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
     if (method === "DOM.querySelectorAll") return { nodeIds: Array.from({ length: 25 }, (_, index) => index + 2) };
@@ -146,6 +173,23 @@ const exerciseLateTextMatch = async (): Promise<void> => {
     nativeCauseCount: 0, nativeStage: "runtime-call-function-on", matches: [{ text: "GPT-5.6" }],
   });
   assert.ok(describeCalls > 20);
+};
+
+const exerciseUntruncatedRead = async (): Promise<void> => {
+  const completeText = `prefix-${"x".repeat(2_048)}-suffix`;
+  const runtime = { async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
+    const mechanical = mechanicalReply(method, {}, parameters);
+    if (mechanical !== undefined) return mechanical;
+    if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
+    if (method === "DOM.querySelectorAll") return { nodeIds: [7] };
+    if (method === "DOM.describeNode") return { node: { nodeId: 7, nodeName: "DIV", attributes: [],
+      children: [{ nodeName: "#text", nodeValue: completeText }] } };
+    throw new Error(`UNEXPECTED_COMPLETE_READ_METHOD:${method}`);
+  } } as ExtensionDebuggerRuntime;
+  const result = await executeRegisteredDomIntent(runtime, { tabId: 110 } as never, {
+    kind: "readText", selector: "article", expectedMatches: 1, maxChars: 8,
+  });
+  assert.equal(result, completeText, "maxChars must never silently truncate authenticated DOM content");
 };
 
 const exerciseMechanicalFacts = async (): Promise<void> => {
@@ -177,8 +221,7 @@ const exerciseMechanicalFacts = async (): Promise<void> => {
     fields: [
       "connected", "layout", "visible", "computedDisplay", "computedVisibility",
       "computedOpacity", "effectiveOpacity", "hidden", "ariaHidden", "inert", "disabled", "ariaDisabled",
-      "role", "name", "testId", "label", "value", "checked", "type", "bounds",
-      "viewport", "hitTest",
+      "role", "name", "testId", "label", "value", "checked", "type",
     ],
   }) as Readonly<{
     count: number;
@@ -195,7 +238,6 @@ const exerciseMechanicalFacts = async (): Promise<void> => {
     hidden: false, ariaHidden: false, inert: false, disabled: false, ariaDisabled: true,
     role: "button", name: "model", testId: "model-button", label: "Model",
     value: "gpt-5.6", checked: true, type: "button",
-    bounds: { x: 0, y: 0, width: 10, height: 10 }, viewport: true, hitTest: true,
     nativeCauseCode: null, nativeStage: "runtime-call-function-on",
   });
 };
@@ -209,7 +251,9 @@ const exerciseSeparatedMechanicalEligibility = async (): Promise<void> => {
 
   const runtimeFor = (overrides: Readonly<Record<string, unknown>>) => ({
     async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
-      const mechanical = mechanicalReply(method, overrides);
+      const coherent = coherentCandidateReply(method, parameters);
+      if (coherent !== undefined) return coherent;
+      const mechanical = mechanicalReply(method, overrides, parameters);
       if (mechanical !== undefined) return mechanical;
       if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
       if (method === "DOM.querySelectorAll") return { nodeIds: parameters?.selector === "done" ? [] : [7] };
@@ -233,58 +277,19 @@ const exerciseSeparatedMechanicalEligibility = async (): Promise<void> => {
       : { kind, selector: "button", key: "Enter", expectedMatches: 1,
         postKeypressMatch: { selector: "done", expectedMatches: 1 } } as const;
     const rejected = await executeRegisteredDomIntent(runtimeFor(facts), { tabId: 107 } as never, intent);
-    assert.deepEqual(rejected, { candidateCount: 1, identityRevalidated: false, mutationCount: 0,
+    assert.deepEqual(rejected, { candidateCount: 1, qualificationStage: "actionability",
+      identityRevalidated: false, mutationCount: 0,
       postconditionVerified: false, qualificationRejected: true,
-      failureCode: "BROWSER_DOM_CANDIDATE_MISSING" });
+      failureCode: "BROWSER_DOM_ACTION_NOT_QUALIFIED" });
   }
 };
 
-const exerciseCoherentObservation = async (): Promise<void> => {
-  const observedAt = "2026-09-02T12:34:56.789Z";
-  const queries = [
-    { queryId: "model-entry", selector: "button", maxMatches: 1, fields: ["role", "visible"] as const },
-    { queryId: "attachments", selector: "[data-file]", maxMatches: 2,
-      fields: ["label", "disabled"] as const, scope: { selector: "main" } },
-  ] as const;
-  const rows = [
-    { queryId: "model-entry", scopeRawCount: 1, scopeEligibleCount: 1, rawCount: 1,
-      eligibleCount: 1, matches: [{ role: "button", visible: true }], nativeCauseCode: null,
-      nativeCauseCount: 0, nativeStage: "runtime-call-function-on" },
-    { queryId: "attachments", scopeRawCount: 1, scopeEligibleCount: 1, rawCount: 2,
-      eligibleCount: 2, matches: [{ label: "a.pdf", disabled: false }, { label: "b.pdf", disabled: false }],
-      nativeCauseCode: null, nativeCauseCount: 0, nativeStage: "runtime-call-function-on" },
-  ] as const;
-  let coherentCalls = 0;
-  let releases = 0;
-  let loaderReads = 0;
-  const runtime = { async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
-    if (method === "Page.getFrameTree") { loaderReads += 1; return { frameTree: { frame: { loaderId: "loader-a" } } }; }
-    if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
-    if (method === "DOM.resolveNode") return { object: { objectId: "document-object" } };
-    if (method === "Runtime.releaseObject") { releases += 1; return {}; }
-    if (method === "Runtime.callFunctionOn") {
-      coherentCalls += 1;
-      assert.equal(parameters?.objectId, "document-object");
-      assert.deepEqual((parameters?.arguments as readonly Readonly<{ value: unknown }>[])?.[0]?.value, queries);
-      assert.match(String(parameters?.functionDeclaration), /^function \(specs\)/u);
-      assert.match(String(parameters?.functionDeclaration), /facts\.visible && !facts\.ariaHidden && !facts\.inert/u,
-        "coherent observation eligibility must exclude semantic-hidden and inert nodes");
-      return { result: { value: { observedAt, queries: rows } } };
-    }
-    throw new Error(`UNEXPECTED_COHERENT_OBSERVATION_METHOD:${method}`);
-  } } as ExtensionDebuggerRuntime;
-  const packet = await executeRegisteredDomIntent(runtime, {
-    tabId: 105, targetRef: "target-105", documentRef: "document-9", navigationEpoch: 9,
-  }, { kind: "observe", queries }) as Readonly<Record<string, unknown>>;
-  assert.equal(coherentCalls, 1, "all query specs must execute in one Runtime.callFunctionOn");
-  assert.equal(loaderReads, 2, "the exact main-frame loader must remain unchanged around the one DOM call");
-  assert.equal(releases, 1);
-  assert.equal(packet.schemaVersion, "grasseye.browser.dom-observation.v1");
-  assert.equal(packet.observedAt, observedAt);
-  assert.deepEqual(packet.queries, rows);
-  for (const key of ["targetRefHash", "documentRefHash", "observationRevisionHash"]) {
-    assert.match(String(packet[key]), /^sha256:[a-f0-9]{64}$/u);
-  }
+const exerciseCoherentObservationFailures = async (
+  runtime: ExtensionDebuggerRuntime,
+  command: Extract<Parameters<typeof executeRegisteredDomIntent>[2], { kind: "observe" }>,
+  observedAt: string,
+  rows: readonly Readonly<Record<string, unknown>>[],
+): Promise<void> => {
   assert.throws(() => assertBrowserDomIntent({ kind: "observe", queries: [{
     queryId: "forged", selector: "button", maxMatches: 1, fields: ["visible"], callerScript: "return true",
   } as never] }), /BROWSER_COMMAND_PERMIT_INVALID/u);
@@ -303,7 +308,49 @@ const exerciseCoherentObservation = async (): Promise<void> => {
   } } as ExtensionDebuggerRuntime;
   await assert.rejects(executeRegisteredDomIntent(malformed, {
     tabId: 105, targetRef: "target-105", documentRef: "document-9", navigationEpoch: 9,
-  }, { kind: "observe", queries }), /BROWSER_DOM_READ_INVALID/u);
+  }, command), /BROWSER_DOM_READ_INVALID/u);
+  const missingReasons = { ...runtime, async send(tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
+    if (method === "Runtime.callFunctionOn") return { result: { value: {
+      observedAt, queries: [rows[0], { ...rows[1], rejections: [] }],
+    } } };
+    return runtime.send(tabId, method, parameters);
+  } } as ExtensionDebuggerRuntime;
+  await assert.rejects(executeRegisteredDomIntent(missingReasons, {
+    tabId: 105, targetRef: "target-105", documentRef: "document-9", navigationEpoch: 9,
+  }, command), /BROWSER_DOM_READ_INVALID/u);
+  const overBudgetScopes = Array.from({ length: 251 }, (_, index) => ({
+    index: index + 1, reasons: ["NO_LAYOUT_BOX"] as const,
+  }));
+  const overBudget = { ...runtime, async send(tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
+    if (method === "Runtime.callFunctionOn") return { result: { value: {
+      observedAt, queries: [{ ...rows[0], scopeRawCount: 252, scopeRejections: overBudgetScopes }, rows[1]],
+    } } };
+    return runtime.send(tabId, method, parameters);
+  } } as ExtensionDebuggerRuntime;
+  await assert.rejects(executeRegisteredDomIntent(overBudget, {
+    tabId: 105, targetRef: "target-105", documentRef: "document-9", navigationEpoch: 9,
+  }, command), /BROWSER_DOM_READ_INVALID/u,
+  "the receiver must independently reject an observation whose whole-call candidate budget exceeds 256");
+  for (const invalidMatches of [
+    [{ candidateIndex: 4, role: "button", visible: true },
+      { candidateIndex: 4, role: "button", visible: true }],
+    [{ candidateIndex: 0, role: "button", visible: true }],
+  ]) {
+    const invalidIdentity = {
+      ...runtime,
+      async send(tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
+        if (method === "Runtime.callFunctionOn") return { result: { value: {
+          observedAt,
+          queries: [{ ...rows[0], eligibleCount: invalidMatches.length, matches: invalidMatches }, rows[1]],
+        } } };
+        return runtime.send(tabId, method, parameters);
+      },
+    } as ExtensionDebuggerRuntime;
+    await assert.rejects(executeRegisteredDomIntent(invalidIdentity, {
+      tabId: 105, targetRef: "target-105", documentRef: "document-9", navigationEpoch: 9,
+    }, command), /BROWSER_DOM_READ_INVALID/u,
+    "duplicate or eligible/rejected candidate indices must fail the whole observation");
+  }
   let changedLoaderReads = 0;
   const changedDocument = { async send(_tabId: number, method: string) {
     if (method === "Page.getFrameTree") {
@@ -318,160 +365,88 @@ const exerciseCoherentObservation = async (): Promise<void> => {
   } } as unknown as ExtensionDebuggerRuntime;
   await assert.rejects(executeRegisteredDomIntent(changedDocument, {
     tabId: 105, targetRef: "target-105", documentRef: "document-10", navigationEpoch: 10,
-  }, { kind: "observe", queries }), /BROWSER_DOCUMENT_INVALID/u);
+  }, command), /BROWSER_DOCUMENT_INVALID/u);
 };
 
-const exerciseReasoningSlider = async (): Promise<void> => {
-  for (const [key, virtualKeyCode, repeat] of [["ArrowLeft", 37, 1], ["ArrowRight", 39, 4]] as const) {
-    const events: Readonly<Record<string, unknown>>[] = [];
-    const runtime = { async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
-      const mechanical = mechanicalReply(method);
-      if (mechanical !== undefined) return mechanical;
-      if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
-      if (method === "DOM.querySelectorAll") {
-        const selector = String(parameters?.selector ?? "");
-        return { nodeIds: selector.includes("aria-valuenow") && events.length === 0 ? [] : [7] };
-      }
-      if (method === "DOM.focus") return {};
-      if (method === "Input.dispatchKeyEvent") { events.push(parameters ?? {}); return {}; }
-      throw new Error(`UNEXPECTED_REASONING_SLIDER_METHOD:${method}`);
-    } } as ExtensionDebuggerRuntime;
-    const result = await executeRegisteredDomIntent(runtime, { tabId: 102 } as never, {
-      kind: "keypress", selector: "[role='slider']", key, repeat, expectedMatches: 1,
-      postKeypressMatch: { selector: "[role='slider'][aria-valuenow='4']", expectedMatches: 1, timeoutMs: 5_000 },
-    }) as Readonly<{ postconditionVerified: boolean }>;
-    assert.equal(result.postconditionVerified, true);
-    const expected = Array.from({ length: repeat }, () => [
-      { type: "rawKeyDown", key, code: key, windowsVirtualKeyCode: virtualKeyCode, nativeVirtualKeyCode: virtualKeyCode },
-      { type: "keyUp", key, code: key, windowsVirtualKeyCode: virtualKeyCode, nativeVirtualKeyCode: virtualKeyCode },
-    ]).flat();
-    assert.deepEqual(events.map((event) => ({ type: event.type, key: event.key, code: event.code,
-      windowsVirtualKeyCode: event.windowsVirtualKeyCode, nativeVirtualKeyCode: event.nativeVirtualKeyCode })), expected);
-  }
-};
-
-const exerciseContentEditableFill = async (): Promise<void> => {
-  let text = "stale SEO prompt";
-  const events: Readonly<Record<string, unknown>>[] = [];
+const exerciseCoherentObservation = async (): Promise<void> => {
+  const observedAt = "2026-09-02T12:34:56.789Z";
+  const queries = [
+    { queryId: "model-entry", selector: "button", maxMatches: 1, fields: ["role", "visible"] as const },
+    { queryId: "attachments", selector: "[data-file]", maxMatches: 2,
+      fields: ["label", "disabled"] as const, scope: { selector: "main" } },
+  ] as const;
+  const rows = [
+    { queryId: "model-entry", scopeRawCount: 1, scopeEligibleCount: 1, rawCount: 5,
+      eligibleCount: 1, matches: [{ candidateIndex: 4, role: "button", visible: true }], nativeCauseCode: null,
+      nativeCauseCount: 0, nativeStage: "runtime-call-function-on", scopeRejections: [], rejections: [
+        { index: 0, reasons: ["DISPLAY_HIDDEN"] }, { index: 1, reasons: ["VISIBILITY_HIDDEN"] },
+        { index: 2, reasons: ["OPACITY_HIDDEN"] }, { index: 3, reasons: ["INERT"] },
+      ] },
+    { queryId: "attachments", scopeRawCount: 1, scopeEligibleCount: 1, rawCount: 3,
+      eligibleCount: 2, matches: [{ candidateIndex: 0, label: "a.pdf", disabled: false },
+        { candidateIndex: 1, label: "b.pdf", disabled: false }],
+      nativeCauseCode: "NO_LAYOUT_BOX", nativeCauseCount: 1, nativeStage: "runtime-call-function-on",
+      scopeRejections: [], rejections: [{ index: 2, reasons: ["NO_LAYOUT_BOX", "ARIA_HIDDEN"] }] },
+  ] as const;
+  let coherentCalls = 0;
+  let releases = 0;
+  let loaderReads = 0;
+  let observationSource = "";
   const runtime = { async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
-    const mechanical = mechanicalReply(method);
-    if (mechanical !== undefined) return mechanical;
+    if (method === "Page.getFrameTree") { loaderReads += 1; return { frameTree: { frame: { loaderId: "loader-a" } } }; }
     if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
-    if (method === "DOM.querySelectorAll") return { nodeIds: [7] };
-    if (method === "DOM.focus") return {};
-    if (method === "Input.dispatchKeyEvent") {
-      events.push(parameters ?? {});
-      if (parameters?.type === "rawKeyDown" && parameters.key === "Backspace") text = "";
-      return {};
+    if (method === "DOM.resolveNode") return { object: { objectId: "document-object" } };
+    if (method === "Runtime.releaseObject") { releases += 1; return {}; }
+    if (method === "Runtime.callFunctionOn") {
+      coherentCalls += 1;
+      observationSource = String(parameters?.functionDeclaration ?? "");
+      assert.equal(parameters?.objectId, "document-object");
+      assert.deepEqual((parameters?.arguments as readonly Readonly<{ value: unknown }>[])?.[0]?.value, queries);
+      assert.match(String(parameters?.functionDeclaration), /^function \(specs\)/u);
+      assert.match(String(parameters?.functionDeclaration), /eligibilityReasons\(node, facts, spec, true\)\.length === 0/u,
+        "coherent observation eligibility must be derived from the same bounded rejection reasons");
+      for (const reason of ["DISCONNECTED", "NO_LAYOUT_BOX", "DISPLAY_HIDDEN", "VISIBILITY_HIDDEN",
+        "OPACITY_HIDDEN", "HTML_HIDDEN", "ARIA_HIDDEN", "INERT", "TEXT_MISMATCH"]) {
+        assert.match(String(parameters?.functionDeclaration), new RegExp(reason, "u"),
+          `coherent observation must preserve the bounded ${reason} rejection reason`);
+      }
+      return { result: { value: { observedAt, queries: rows } } };
     }
-    if (method === "Input.insertText") { text += String(parameters?.text ?? ""); return {}; }
-    if (method === "DOM.describeNode") return { node: { nodeId: 7, backendNodeId: 107,
-      nodeName: "DIV", attributes: ["contenteditable", "true"],
-      children: text.length === 0 ? [] : [{ nodeName: "P", nodeValue: text }] } };
-    throw new Error(`UNEXPECTED_CONTENTEDITABLE_FILL_METHOD:${method}`);
+    throw new Error(`UNEXPECTED_COHERENT_OBSERVATION_METHOD:${method}`);
   } } as ExtensionDebuggerRuntime;
-  const cleared = await executeRegisteredDomIntent(runtime, { tabId: 103 } as never, {
-    kind: "fill", selector: "#prompt-textarea", approvedText: "", clearBeforeType: true, expectedMatches: 1,
-  });
-  assert.deepEqual(cleared, { filled: true, candidateCount: 1, identityRevalidated: true,
-    mutationCount: 1, retainedValueVerified: true, postconditionVerified: true });
-  assert.deepEqual(events, [
-    { type: "rawKeyDown", key: "a", code: "KeyA", commands: ["selectAll"] },
-    { type: "keyUp", key: "a", code: "KeyA" },
-    { type: "rawKeyDown", key: "Backspace", code: "Backspace" },
-    { type: "keyUp", key: "Backspace", code: "Backspace" },
-  ]);
-};
-
-const exerciseFileInput = async (): Promise<void> => {
-  const run = async (input: Readonly<{
-    nodeIds: readonly number[];
-    facts?: Readonly<Record<string, unknown>>;
-    selectedCount?: number;
-    driftBeforeDispatch?: boolean;
-    failReadback?: boolean;
-  }>) => {
-    let fileInputs = 0;
-    let queries = 0;
-    let targetChecks = 0;
-    const runtime = { async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
-      if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
-      if (method === "DOM.querySelectorAll") {
-        queries += 1;
-        if (input.failReadback && queries > 1) throw new Error("Could not find node with given id");
-        return { nodeIds: [...input.nodeIds] };
-      }
-      if (method === "DOM.describeNode") {
-        const attributes = ["type", "file", "accept", String(input.facts?.accept ?? "")];
-        if (input.facts?.multiple !== false) attributes.push("multiple", "");
-        return { node: { nodeId: parameters?.nodeId, nodeName: "INPUT", attributes } };
-      }
-      if (method === "DOM.resolveNode") return { object: { objectId: `file-node-${parameters?.nodeId}` } };
-      if (method === "Runtime.releaseObject") return {};
-      if (method === "Runtime.callFunctionOn") {
-        if (String(parameters?.functionDeclaration).includes("this.files.length")) {
-          return { result: { value: input.selectedCount ?? 2 } };
-        }
-        return { result: { value: mechanicalFacts({
-          tagName: "INPUT", type: "file", multiple: true, accept: "", ...(input.facts ?? {}),
-        }) } };
-      }
-      if (method === "DOM.setFileInputFiles") { fileInputs += 1; return {}; }
-      throw new Error(`UNEXPECTED_FILE_INPUT_METHOD:${method}`);
-    } } as ExtensionDebuggerRuntime;
-    const result = await executeExtensionFileInput({
-      runtime,
-      target: { tabId: 108, targetRef: "target-108", documentRef: "document-8", navigationEpoch: 8 },
-      assertCurrent: () => {
-        targetChecks += 1;
-        if (input.driftBeforeDispatch && targetChecks === 3) throw new Error("BROWSER_DOCUMENT_INVALID");
-      },
-      selector: "#upload-files",
-      grantRefs: ["grant-a", "grant-b"],
-      resolvedFilePaths: ["/approved/a.pdf", "/approved/b.pdf"],
-    });
-    return { result, fileInputs, targetChecks };
-  };
-
-  const success = await run({ nodeIds: [7], selectedCount: 2 });
-  assert.deepEqual(success.result, {
-    selectedFileCount: 2, candidateCount: 1, identityRevalidated: true,
-    mutationCount: 1, postconditionVerified: true,
-  });
-  assert.equal(success.fileInputs, 1, "the complete approved set must use one physical file-input command");
-  assert.ok(success.targetChecks >= 6, "Target and Document must be rebound before and after the physical input");
-
-  for (const [scenario, expectedCount, expectedCode] of [
-    [{ nodeIds: [] }, 0, "BROWSER_DOM_CANDIDATE_MISSING"],
-    [{ nodeIds: [7, 8] }, 2, "BROWSER_DOM_CANDIDATE_AMBIGUOUS"],
-    [{ nodeIds: [7], facts: { disabled: true } }, 1, "BROWSER_FILE_INPUT_NOT_QUALIFIED"],
-    [{ nodeIds: [7], facts: { multiple: false } }, 1, "BROWSER_FILE_INPUT_NOT_QUALIFIED"],
-  ] as const) {
-    const rejected = await run(scenario);
-    assert.deepEqual(rejected.result, {
-      candidateCount: expectedCount, identityRevalidated: false, mutationCount: 0,
-      postconditionVerified: false, qualificationRejected: true, failureCode: expectedCode,
-    });
-    assert.equal(rejected.fileInputs, 0);
+  const command = { kind: "observe" as const, queries };
+  const packet = await executeRegisteredDomIntent(runtime, {
+    tabId: 105, targetRef: "target-105", documentRef: "document-9", navigationEpoch: 9,
+  }, command) as Readonly<Record<string, unknown>>;
+  assert.equal(coherentCalls, 1, "all query specs must execute in one Runtime.callFunctionOn");
+  exerciseCapturedObservationFunction(observationSource);
+  assert.equal(loaderReads, 2, "the exact main-frame loader must remain unchanged around the one DOM call");
+  assert.equal(releases, 1);
+  assert.equal(packet.schemaVersion, "grasseye.browser.dom-observation.v1");
+  assert.equal(packet.observedAt, observedAt);
+  const packetQueries = packet.queries as readonly Readonly<Record<string, unknown>>[];
+  assert.equal((packetQueries[0]?.matches as readonly unknown[]).length, 1);
+  for (const query of packetQueries) for (const match of query.matches as readonly Readonly<Record<string, unknown>>[]) {
+    assert.match(String(match.observationIdentityHash), /^sha256:[a-f0-9]{64}$/u);
   }
-
-  await assert.rejects(run({ nodeIds: [7], driftBeforeDispatch: true }), /BROWSER_DOCUMENT_INVALID/u);
-  const failedReadback = await run({ nodeIds: [7], failReadback: true });
-  assert.equal(failedReadback.fileInputs, 1);
-  assert.deepEqual(failedReadback.result, {
-    candidateCount: 1, identityRevalidated: true, mutationCount: 1,
-    postconditionVerified: false, failureCode: "BROWSER_POSTCONDITION_FAILED",
-  });
+  assert.deepEqual(packetQueries[1]?.rejections,
+    [{ index: 2, reasons: ["NO_LAYOUT_BOX", "ARIA_HIDDEN"] }]);
+  assert.equal((packetQueries[0]?.rejections as readonly unknown[]).length, 4,
+    "all rejection reasons must survive even when they exceed maxMatches + 1");
+  for (const key of ["targetRefHash", "documentRefHash", "observationRevisionHash"]) {
+    assert.match(String(packet[key]), /^sha256:[a-f0-9]{64}$/u);
+  }
+  await exerciseCoherentObservationFailures(runtime, command, observedAt, rows);
 };
 
 export const exerciseLocalBrowserDomIntent = async (): Promise<void> => {
   await exerciseComposerReadiness();
   await exerciseDomFailures();
   await exerciseLateTextMatch();
+  await exerciseUntruncatedRead();
   await exerciseMechanicalFacts();
   await exerciseSeparatedMechanicalEligibility();
   await exerciseCoherentObservation();
-  await exerciseReasoningSlider();
-  await exerciseContentEditableFill();
+  await exerciseDomMutations();
   await exerciseFileInput();
 };

@@ -246,138 +246,29 @@ const currentSchemaPresent = (database: Database.Database): boolean => {
     && reservationColumns.every((column) => continuations.has(column));
 };
 
-const migrateContinuationFrontierSchema = (database: Database.Database): void => {
-  if (!currentCoreSchemaPresent(database)) return;
-  const columns = tableColumns(database, "production_continuations");
-  if (!columns.has("frontier_ref")) {
-    database.exec("alter table production_continuations add column frontier_ref text");
+const initializeOrAssertCurrentSchema = (database: Database.Database): void => {
+  const productionTables = (database.prepare(`select name from sqlite_master
+    where type='table' and name like 'production_%' order by name`).all() as Array<{ name: string }>)
+    .map((row) => row.name);
+  if (productionTables.length === 0) {
+    const journalMode = String(database.pragma("journal_mode = WAL", { simple: true })).toLowerCase();
+    if (journalMode !== "wal") throw executionFailure("failed", "PRODUCTION_SCHEMA_INITIALIZATION_FAILED");
+    createProductionTables(database);
+    return;
   }
-  if (!columns.has("origin_provider_json")) {
-    database.exec("alter table production_continuations add column origin_provider_json text");
+  const expectedTables = executionTables.filter((table) => table !== "production_steps").sort();
+  if (String(database.pragma("journal_mode", { simple: true })).toLowerCase() !== "wal"
+    || !currentSchemaPresent(database)
+    || JSON.stringify(productionTables) !== JSON.stringify(expectedTables)) {
+    throw executionFailure("failed", "PRODUCTION_SCHEMA_MIGRATION_REQUIRED");
   }
-  if (!columns.has("origin_checkpoint_json")) {
-    database.exec("alter table production_continuations add column origin_checkpoint_json text");
+  const unscheduled = database.prepare(`select count(*) as count from production_outbox
+    where sent_at is null and response_hash is null and last_error is not null
+      and next_delivery_at is null and last_error<>'PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED'`
+  ).get() as { count: number };
+  if (Number(unscheduled.count) !== 0) {
+    throw executionFailure("failed", "PRODUCTION_DATA_MIGRATION_REQUIRED");
   }
-  if (!columns.has("current_checkpoint_json")) {
-    database.exec("alter table production_continuations add column current_checkpoint_json text");
-  }
-  database.prepare(`update production_continuations
-    set origin_provider_json=provider_json where origin_provider_json is null`).run();
-  database.exec(`create unique index if not exists
-    production_continuations_frontier_ref_unique on production_continuations(frontier_ref)`);
-};
-
-const migrateContinuationSemanticReceiptSchema = (database: Database.Database): void => {
-  if (!currentCoreSchemaPresent(database)) return;
-  const columns = tableColumns(database, "production_continuations");
-  if (!columns.has("semantic_contract_hash")) {
-    database.exec("alter table production_continuations add column semantic_contract_hash text");
-  }
-  if (!columns.has("semantic_admission_receipt_json")) {
-    database.exec("alter table production_continuations add column semantic_admission_receipt_json text");
-  }
-};
-
-type LegacyContinuationRow = Readonly<{
-  continuation_ref: string;
-  origin_job_id: string;
-  plugin_id: string;
-  owner_ref: string;
-  subject_ref: string;
-  authorization_ref: string;
-  conversation_identity_hash: string;
-  frontier_ref: string | null;
-  origin_provider_json: string;
-  origin_checkpoint_json: string | null;
-  provider_json: string;
-  current_checkpoint_json: string | null;
-  lane_version: number;
-  lane_owner_job_id: string | null;
-  created_at: string;
-}>;
-
-const migrateContinuationReservationSchema = (database: Database.Database): void => {
-  if (!currentCoreSchemaPresent(database)) return;
-  const columns = tableColumns(database, "production_continuations");
-  if (columns.has("reservation_kind")) return;
-  if (tableColumns(database, "production_continuations_v2_migration").size > 0) {
-    throw executionFailure("failed", "GPT_CONTINUATION_MIGRATION_TEMP_TABLE_PRESENT");
-  }
-  const rows = database.prepare(`select continuation_ref,origin_job_id,plugin_id,owner_ref,subject_ref,
-    authorization_ref,conversation_identity_hash,frontier_ref,origin_provider_json,origin_checkpoint_json,
-    provider_json,current_checkpoint_json,lane_version,lane_owner_job_id,created_at
-    from production_continuations order by continuation_ref`).all() as LegacyContinuationRow[];
-  database.transaction(() => {
-    database.exec(`create table production_continuations_v2_migration(
-      continuation_ref text primary key,
-      reservation_kind text not null check(reservation_kind in ('persisted','reusable_origin','derived_continuation')),
-      reservation_identity_hash text not null unique,
-      origin_job_id text not null references production_tasks(job_id) on delete restrict,
-      origin_plugin_version integer not null,
-      plugin_id text not null, owner_ref text not null, subject_ref text not null,
-      authorization_ref text not null, conversation_identity_hash text,
-      frontier_ref text unique, source_checkpoint_hash text,
-      reservation_fence_hash text, reservation_effect_hash text, origin_provenance_hash text,
-      semantic_contract_hash text,
-      artifact_ref text, artifact_hash text,
-      semantic_admission_receipt_ref text, semantic_admission_receipt_hash text,
-      semantic_admission_receipt_json text,
-      opaque_read_grant_hash text, completion_receipt_hash text,
-      origin_provider_json text, origin_checkpoint_json text,
-      provider_json text, current_checkpoint_json text, lane_version integer not null,
-      lane_owner_job_id text, created_at text not null
-    )`);
-    const insert = database.prepare(`insert into production_continuations_v2_migration(
-      continuation_ref,reservation_kind,reservation_identity_hash,origin_job_id,origin_plugin_version,
-      plugin_id,owner_ref,subject_ref,authorization_ref,conversation_identity_hash,frontier_ref,
-      source_checkpoint_hash,reservation_fence_hash,reservation_effect_hash,origin_provenance_hash,
-      semantic_contract_hash,artifact_ref,artifact_hash,semantic_admission_receipt_ref,semantic_admission_receipt_hash,
-      semantic_admission_receipt_json,opaque_read_grant_hash,completion_receipt_hash,origin_provider_json,origin_checkpoint_json,
-      provider_json,current_checkpoint_json,lane_version,lane_owner_job_id,created_at
-    ) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
-    const identity = database.prepare("select identity_json from production_tasks where job_id=?");
-    for (const row of rows) {
-      const task = identity.get(row.origin_job_id) as { identity_json: string } | undefined;
-      const pluginVersion = task
-        ? Number((JSON.parse(task.identity_json) as { plugin_version?: unknown }).plugin_version)
-        : Number.NaN;
-      if (!Number.isInteger(pluginVersion) || pluginVersion < 1) {
-        throw executionFailure("failed", "GPT_CONTINUATION_ORIGIN_PLUGIN_VERSION_MISSING");
-      }
-      insert.run(
-        row.continuation_ref, "persisted",
-        row.frontier_ref ?? hashCanonical({ identity_type: "persisted-gpt-continuation.v1", continuation_ref: row.continuation_ref }),
-        row.origin_job_id, pluginVersion, row.plugin_id, row.owner_ref, row.subject_ref,
-        row.authorization_ref, row.conversation_identity_hash, row.frontier_ref,
-        null, null, null, null, null, null, null, null, null, null, null, null,
-        row.origin_provider_json, row.origin_checkpoint_json, row.provider_json,
-        row.current_checkpoint_json, row.lane_version, row.lane_owner_job_id, row.created_at,
-      );
-    }
-    database.exec(`drop table production_continuations;
-      alter table production_continuations_v2_migration rename to production_continuations;
-      create unique index if not exists production_continuations_frontier_ref_unique
-        on production_continuations(frontier_ref)`);
-  })();
-};
-
-const restoreOutboxDeliverySchedule = (database: Database.Database): void => {
-  if (!currentCoreSchemaPresent(database)) return;
-  database.prepare(`update production_outbox set next_delivery_at=?
-    where sent_at is null and response_hash is null
-      and last_error is not null and next_delivery_at is null
-      and last_error<>'PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED'`
-  ).run(new Date(Date.now() + 3_600_000).toISOString());
-};
-
-const replaceEmptyExecutionSchema = (database: Database.Database): void => {
-  if (currentSchemaPresent(database)) return;
-  const existing = executionTables.filter((table) => tableColumns(database, table).size > 0);
-  for (const table of existing) {
-    const count = Number((database.prepare(`select count(*) as count from ${table}`).get() as { count: number }).count);
-    if (count !== 0) throw executionFailure("failed", "PRODUCTION_EMPTY_CUTOVER_REQUIRED");
-  }
-  database.exec(`${executionTables.map((table) => `drop table if exists ${table};`).join("\n")}`);
 };
 
 type ProductionOutboxObserver = (authority: ProductionOutboxAuthority) => void;
@@ -391,15 +282,14 @@ export abstract class ProductionStoreFoundation implements GptContinuationStoreP
   public constructor(dataDir: string) {
     this.dataDir = dataDir;
     this.database = new Database(path.join(dataDir, "production-runtime.sqlite"));
-    this.database.pragma("journal_mode = WAL");
     this.database.pragma("synchronous = FULL");
     this.database.pragma("foreign_keys = ON");
-    migrateContinuationFrontierSchema(this.database);
-    migrateContinuationReservationSchema(this.database);
-    migrateContinuationSemanticReceiptSchema(this.database);
-    replaceEmptyExecutionSchema(this.database);
-    if (!currentSchemaPresent(this.database)) createProductionTables(this.database);
-    restoreOutboxDeliverySchedule(this.database);
+    try {
+      initializeOrAssertCurrentSchema(this.database);
+    } catch (error) {
+      this.database.close();
+      throw error;
+    }
   }
 
   public setOutboxObserver(observer: ProductionOutboxObserver): void { this.outboxObserver = observer; }

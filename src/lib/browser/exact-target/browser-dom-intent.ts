@@ -3,11 +3,27 @@ const BROWSER_DOM_FIELD_VALUES = [
   "ariaLabel", "ariaExpanded", "ariaChecked", "text", "outerHtml", "semanticText",
   "value", "checked", "accept", "multiple", "connected", "layout", "visible",
   "computedDisplay", "computedVisibility", "computedOpacity", "effectiveOpacity", "hidden", "ariaHidden",
-  "inert", "disabled", "ariaDisabled", "bounds", "viewport", "hitTest",
+  "inert", "disabled", "ariaDisabled",
 ] as const;
 
 export type BrowserDomField = typeof BROWSER_DOM_FIELD_VALUES[number];
 export type BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">;
+
+export type BrowserDomIneligibleReason =
+  | "DISCONNECTED"
+  | "NO_LAYOUT_BOX"
+  | "DISPLAY_HIDDEN"
+  | "VISIBILITY_HIDDEN"
+  | "OPACITY_HIDDEN"
+  | "HTML_HIDDEN"
+  | "ARIA_HIDDEN"
+  | "INERT"
+  | "TEXT_MISMATCH";
+
+export type BrowserDomIneligibleCandidate = Readonly<{
+  index: number;
+  reasons: readonly BrowserDomIneligibleReason[];
+}>;
 
 export type BrowserDomObservationQuery = Readonly<{
   queryId: string;
@@ -32,7 +48,12 @@ export type BrowserDomObservationPacket = Readonly<{
     scopeEligibleCount: number;
     rawCount: number;
     eligibleCount: number;
-    matches: readonly Readonly<Record<string, unknown>>[];
+    matches: readonly (Readonly<Record<string, unknown>> & Readonly<{
+      candidateIndex: number;
+      observationIdentityHash: `sha256:${string}`;
+    }>)[];
+    scopeRejections: readonly BrowserDomIneligibleCandidate[];
+    rejections: readonly BrowserDomIneligibleCandidate[];
     nativeCauseCode: "NO_LAYOUT_BOX" | null;
     nativeCauseCount: number;
     nativeStage: "runtime-call-function-on";
@@ -68,8 +89,8 @@ export type BrowserDomIntent =
     fields?: readonly BrowserDomField[];
     scope?: BrowserDomReadScope;
   }>
-  | Readonly<{ kind: "readText"; selector: string; maxChars: number; maxMatches?: number; expectedMatches?: number; matchIndex?: number; scope?: BrowserDomReadScope }>
-  | Readonly<{ kind: "readAttribute"; selector: string; name: string; maxChars: number; maxMatches?: number; expectedMatches?: number; matchIndex?: number; textContains?: string; scope?: BrowserDomReadScope }>
+  | Readonly<{ kind: "readText"; selector: string; /** Caller capacity hint; Browser never truncates. */ maxChars: number; maxMatches?: number; expectedMatches?: number; matchIndex?: number; scope?: BrowserDomReadScope }>
+  | Readonly<{ kind: "readAttribute"; selector: string; name: string; /** Caller capacity hint; Browser never truncates. */ maxChars: number; maxMatches?: number; expectedMatches?: number; matchIndex?: number; textContains?: string; scope?: BrowserDomReadScope }>
   | Readonly<{
     kind: "click";
     selector: string;
@@ -342,7 +363,9 @@ const assertFindIntent = (intent: Extract<BrowserDomIntent, { kind: "find" }>): 
 };
 
 const assertReadIntent = (intent: Extract<BrowserDomIntent, { kind: "readText" | "readAttribute" }>): void => {
-  if (intent.maxChars < 1 || intent.maxChars > 65536) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  if (!Number.isSafeInteger(intent.maxChars) || intent.maxChars < 1) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  }
   assertOptionalRange(intent.maxMatches, 1, 100);
   assertReadScope(intent.scope);
   assertOptionalExpectedMatches(intent.expectedMatches);

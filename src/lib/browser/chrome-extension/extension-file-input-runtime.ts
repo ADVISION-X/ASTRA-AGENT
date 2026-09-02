@@ -8,6 +8,16 @@ type Candidate = Readonly<{
   nodeId: number | null;
   facts: Readonly<Record<string, unknown>> | null;
 }>;
+type ApprovedFile = Readonly<{
+  grantRef: string;
+  contentHash: `sha256:${string}`;
+  maxBytes: number;
+}>;
+type SelectionProof = Readonly<{
+  selectedFileCount: number;
+  approvedSetVerified: boolean;
+  acceptVerified: boolean;
+}>;
 
 const record = (value: unknown): Record<string, unknown> => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -26,9 +36,14 @@ const safeRead = async <T>(operation: () => Promise<T>): Promise<T> => {
   }
 };
 
-const reject = (candidateCount: number, failureCode: string): Readonly<Record<string, unknown>> =>
+const reject = (
+  candidateCount: number,
+  failureCode: string,
+  qualificationStage: "candidate-set" | "actionability",
+): Readonly<Record<string, unknown>> =>
   Object.freeze({
     candidateCount,
+    qualificationStage,
     identityRevalidated: false,
     mutationCount: 0,
     postconditionVerified: false,
@@ -66,33 +81,85 @@ const readExactFileInput = async (
   return Object.freeze({ candidateCount: 1, nodeId: exactNodeId, facts });
 };
 
-const readSelectionCount = async (
+const SELECTION_PROOF_FUNCTION = `async function (approvedFiles) {
+  if (!(this instanceof HTMLInputElement) || this.type !== "file" || !this.files) return null;
+  const acceptTokens = this.accept.split(",").map((token) => token.trim().toLowerCase()).filter(Boolean);
+  const accepts = (file) => acceptTokens.length === 0 || acceptTokens.some((token) => {
+    if (token.startsWith(".")) return file.name.toLowerCase().endsWith(token);
+    if (token.endsWith("/*")) return file.type.toLowerCase().startsWith(token.slice(0, -1));
+    return file.type.toLowerCase() === token;
+  });
+  const selected = [];
+  for (const file of Array.from(this.files)) {
+    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", await file.arrayBuffer()));
+    const contentHash = "sha256:" + Array.from(digest)
+      .map((byte) => byte.toString(16).padStart(2, "0")).join("");
+    selected.push({ contentHash, sizeBytes: file.size, acceptMatched: accepts(file) });
+  }
+  const remaining = approvedFiles.map((file) => ({ ...file }));
+  const approvedSetVerified = selected.length === approvedFiles.length && selected.every((file) => {
+    const index = remaining.findIndex((approved) => approved.contentHash === file.contentHash
+      && file.sizeBytes <= approved.maxBytes);
+    if (index < 0) return false;
+    remaining.splice(index, 1);
+    return true;
+  }) && remaining.length === 0;
+  return {
+    selectedFileCount: selected.length,
+    approvedSetVerified,
+    acceptVerified: selected.every((file) => file.acceptMatched),
+  };
+}`;
+
+const selectionProof = (value: unknown): SelectionProof => {
+  const proof = record(value);
+  if (!Number.isSafeInteger(proof.selectedFileCount) || (proof.selectedFileCount as number) < 0
+    || typeof proof.approvedSetVerified !== "boolean" || typeof proof.acceptVerified !== "boolean") {
+    throw new Error("BROWSER_DOM_READ_INVALID");
+  }
+  return Object.freeze({
+    selectedFileCount: proof.selectedFileCount as number,
+    approvedSetVerified: proof.approvedSetVerified,
+    acceptVerified: proof.acceptVerified,
+  });
+};
+
+const readSelectionProof = async (
   runtime: ExtensionDebuggerRuntime,
   tabId: number,
   nodeId: number,
-): Promise<number> => {
-  const objectId = record(record(await runtime.send(tabId, "DOM.resolveNode", { nodeId })).object).objectId;
+  approvedFiles: readonly ApprovedFile[],
+): Promise<SelectionProof> => {
+  const objectId = record(record(await safeRead(() => runtime.send(
+    tabId, "DOM.resolveNode", { nodeId },
+  ))).object).objectId;
   if (typeof objectId !== "string" || objectId.length === 0) throw new Error("BROWSER_DOM_READ_INVALID");
   let primaryFailure: unknown = null;
   try {
-    const call = record(await runtime.send(tabId, "Runtime.callFunctionOn", {
+    const call = record(await safeRead(() => runtime.send(tabId, "Runtime.callFunctionOn", {
       objectId,
-      functionDeclaration: "function () { return this instanceof HTMLInputElement && this.type === 'file' && this.files ? this.files.length : -1; }",
+      functionDeclaration: SELECTION_PROOF_FUNCTION,
+      arguments: [{ value: approvedFiles.map(({ contentHash, maxBytes }) => ({ contentHash, maxBytes })) }],
       returnByValue: true,
-      awaitPromise: false,
+      awaitPromise: true,
       silent: true,
-    }));
-    const value = record(call.result).value;
-    if (!Number.isSafeInteger(value) || (value as number) < 0) throw new Error("BROWSER_DOM_READ_INVALID");
-    return value as number;
+    })));
+    return selectionProof(record(call.result).value);
   } catch (error) {
     primaryFailure = error;
     throw error;
   } finally {
-    try { await runtime.send(tabId, "Runtime.releaseObject", { objectId }); }
+    try { await safeRead(() => runtime.send(tabId, "Runtime.releaseObject", { objectId })); }
     catch (error) { if (primaryFailure === null) throw new Error("BROWSER_DOM_READ_INVALID", { cause: error }); }
   }
 };
+
+const acceptPolicyValid = (value: unknown): boolean => typeof value === "string"
+  && (value.trim().length === 0 || value.split(",").every((token) => {
+    const normalized = token.trim().toLowerCase();
+    return /^\.[a-z0-9]+$/u.test(normalized)
+      || /^[a-z0-9][a-z0-9.+-]*\/(?:\*|[a-z0-9][a-z0-9.+-]*)$/u.test(normalized);
+  }));
 
 const qualificationFailure = (error: unknown): string | null => {
   const code = error instanceof Error ? error.message : "";
@@ -100,16 +167,15 @@ const qualificationFailure = (error: unknown): string | null => {
 };
 
 export const executeExtensionFileInput = async (input: Readonly<{
-  runtime: ExtensionDebuggerRuntime;
-  target: ExtensionExactTarget;
-  assertCurrent: CurrentTargetAssertion;
-  selector: string;
-  grantRefs: readonly string[];
-  resolvedFilePaths: readonly string[];
+  runtime: ExtensionDebuggerRuntime; target: ExtensionExactTarget;
+  assertCurrent: CurrentTargetAssertion; selector: string;
+  approvedFiles: readonly ApprovedFile[]; resolvedFilePaths: readonly string[];
 }>): Promise<Readonly<Record<string, unknown>>> => {
-  if (input.selector !== "#upload-files" || input.grantRefs.length < 1 || input.grantRefs.length > 20
-    || input.resolvedFilePaths.length !== input.grantRefs.length
-    || new Set(input.grantRefs).size !== input.grantRefs.length
+  if (input.selector !== "#upload-files" || input.approvedFiles.length < 1 || input.approvedFiles.length > 20
+    || input.resolvedFilePaths.length !== input.approvedFiles.length
+    || new Set(input.approvedFiles.map((file) => file.grantRef)).size !== input.approvedFiles.length
+    || input.approvedFiles.some((file) => !file.grantRef || !/^sha256:[a-f0-9]{64}$/u.test(file.contentHash)
+      || !Number.isSafeInteger(file.maxBytes) || file.maxBytes < 1)
     || input.resolvedFilePaths.some((filePath) => !filePath.startsWith("/"))) {
     throw new Error("BROWSER_FILE_GRANT_INVALID");
   }
@@ -118,45 +184,41 @@ export const executeExtensionFileInput = async (input: Readonly<{
     candidate = await readExactFileInput(input.runtime, input.target, input.assertCurrent, input.selector);
   } catch (error) {
     const code = qualificationFailure(error);
-    if (code) return reject(0, code);
+    if (code) return reject(0, code, "candidate-set");
     throw error;
   }
   if (candidate.candidateCount !== 1 || candidate.nodeId === null || candidate.facts === null) {
     return reject(candidate.candidateCount, candidate.candidateCount === 0
-      ? "BROWSER_DOM_CANDIDATE_MISSING" : "BROWSER_DOM_CANDIDATE_AMBIGUOUS");
+      ? "BROWSER_DOM_CANDIDATE_MISSING" : "BROWSER_DOM_CANDIDATE_AMBIGUOUS", "candidate-set");
   }
   const qualified = candidate.facts.tagName === "INPUT" && candidate.facts.type === "file"
     && candidate.facts.connected === true && candidate.facts.disabled === false
     && candidate.facts.ariaDisabled === false
     && (input.resolvedFilePaths.length === 1 || candidate.facts.multiple === true)
-    && typeof candidate.facts.accept === "string";
-  if (!qualified) return reject(1, "BROWSER_FILE_INPUT_NOT_QUALIFIED");
+    && acceptPolicyValid(candidate.facts.accept);
+  if (!qualified) return reject(1, "BROWSER_FILE_INPUT_NOT_QUALIFIED", "actionability");
   input.assertCurrent(input.target.targetRef, input.target.documentRef);
   await input.runtime.send(input.target.tabId, "DOM.setFileInputFiles", {
     nodeId: candidate.nodeId,
     files: [...input.resolvedFilePaths],
   });
   input.assertCurrent(input.target.targetRef, input.target.documentRef);
-  let readback: Candidate;
-  try {
-    readback = await readExactFileInput(input.runtime, input.target, input.assertCurrent, input.selector);
-  } catch (error) {
-    const code = qualificationFailure(error);
-    if (!code) throw error;
-    return Object.freeze({
-      candidateCount: 1, identityRevalidated: true, mutationCount: 1,
-      postconditionVerified: false, failureCode: "BROWSER_POSTCONDITION_FAILED",
-    });
-  }
-  const selectedFileCount = readback.nodeId === null
-    ? -1 : await readSelectionCount(input.runtime, input.target.tabId, readback.nodeId);
+  const readback = await readExactFileInput(
+    input.runtime, input.target, input.assertCurrent, input.selector,
+  );
+  const proof = readback.nodeId === null ? null : await readSelectionProof(
+    input.runtime, input.target.tabId, readback.nodeId, input.approvedFiles,
+  );
   input.assertCurrent(input.target.targetRef, input.target.documentRef);
   const postconditionVerified = readback.candidateCount === 1 && readback.facts?.tagName === "INPUT"
     && readback.facts.type === "file" && readback.facts.connected === true
     && readback.facts.disabled === false && readback.facts.ariaDisabled === false
-    && selectedFileCount === input.resolvedFilePaths.length;
+    && proof?.selectedFileCount === input.approvedFiles.length
+    && proof.approvedSetVerified && proof.acceptVerified;
   return Object.freeze({
-    selectedFileCount,
+    selectedFileCount: proof?.selectedFileCount ?? 0,
+    approvedSetVerified: proof?.approvedSetVerified ?? false,
+    acceptVerified: proof?.acceptVerified ?? false,
     candidateCount: 1,
     identityRevalidated: true,
     mutationCount: 1,

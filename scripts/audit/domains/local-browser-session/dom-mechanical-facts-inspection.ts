@@ -7,6 +7,7 @@ import { createLocalFinding, domCoherentObservationPath, domMechanicalFactsPath,
 const QUERY_RUNTIME_PATH = "src/lib/browser/chrome-extension/dom-query-runtime.ts";
 const INTENT_RUNTIME_PATH = "src/lib/browser/chrome-extension/dom-intent-runtime.ts";
 const INTENT_CONTRACT_PATH = "src/lib/browser/exact-target/browser-dom-intent.ts";
+const COHERENT_CANDIDATE_PATH = "src/lib/browser/chrome-extension/dom-coherent-candidate.ts";
 
 const finding = (
   findings: InspectorFinding[],
@@ -32,7 +33,8 @@ export const inspectDomMechanicalFacts = (
   const runtime = requireSource(context, findings, lawId, INTENT_RUNTIME_PATH);
   const observation = requireSource(context, findings, lawId, domCoherentObservationPath);
   const contract = requireSource(context, findings, lawId, INTENT_CONTRACT_PATH);
-  if (!facts || !query || !runtime || !observation || !contract) return;
+  const candidate = requireSource(context, findings, lawId, COHERENT_CANDIDATE_PATH);
+  if (!facts || !query || !runtime || !observation || !contract || !candidate) return;
 
   const readerInitializer = facts.getVariableDeclaration("BROWSER_MECHANICAL_FACTS_READER_SOURCE")?.getInitializer();
   const reader = readerInitializer && Node.isNoSubstitutionTemplateLiteral(readerInitializer)
@@ -40,8 +42,10 @@ export const inspectDomMechanicalFacts = (
   for (const required of [
     "element.isConnected === true", "element.getClientRects().length > 0", "current = current.parentElement",
     "globalThis.getComputedStyle(current)", "effectiveOpacityNumber *= currentOpacity", "element.closest(\"[hidden]\")",
+    "displayHidden = true", "visibilityHidden = true", "opacityHidden = opacityHidden || effectiveOpacityNumber <= 0",
     "element.closest(\"[aria-hidden='true']\")", "element.closest(\"[inert]\")", "element.matches(\":disabled\")",
-    "element.closest(\"[aria-disabled='true']\")", "document.elementFromPoint", "nativeCauseCode: layout ? null : \"NO_LAYOUT_BOX\"",
+    "element.closest(\"[aria-disabled='true']\")", "includePointerFacts && pointerQualified ? document.elementFromPoint",
+    "nativeCauseCode: layout ? null : \"NO_LAYOUT_BOX\"",
   ]) if (!reader.includes(required)) finding(findings, lawId, domMechanicalFactsPath,
     `The canonical Browser mechanical reader is missing ${required}.`);
 
@@ -61,16 +65,31 @@ export const inspectDomMechanicalFacts = (
     if (!queryText.includes(required)) finding(findings, lawId, QUERY_RUNTIME_PATH,
       `The canonical DOM query/action path is not consuming ${required}.`);
   }
-  const runtimeText = `${runtime.getFullText()}\n${observation.getFullText()}`;
+  const runtimeText = `${runtime.getFullText()}\n${observation.getFullText()}\n${candidate.getFullText()}`;
   for (const required of ["COHERENT_OBSERVATION_FUNCTION", "arguments: [{ value: specs }]",
     "canonicalizeBrowserAuthorityValue", "observationRevisionHash", "mainFrameLoaderId",
-    "requireKeyboardActionTarget", "facts.visible && !facts.ariaHidden && !facts.inert"]) {
+    "resolveCoherentMutationCandidate", "requireKeyboardActionTarget", "eligibilityReasons",
+    "scopeRejections", "rejections", "observedCandidateCount", "candidateIndex",
+    "observationIdentityHash", "browserMechanicalFacts(node, false)",
+    "DISCONNECTED", "DISPLAY_HIDDEN", "VISIBILITY_HIDDEN", "OPACITY_HIDDEN", "HTML_HIDDEN",
+    "ARIA_HIDDEN", "INERT", "TEXT_MISMATCH"]) {
     if (!runtimeText.includes(required)) finding(findings, lawId, domCoherentObservationPath,
       `The one-command DOM observation/action path is missing ${required}.`);
   }
   const contractText = contract.getFullText();
-  for (const required of ["rawCount", "eligibleCount", "effectiveOpacity", "nativeCauseCode", "nativeStage"]) {
+  for (const required of ["rawCount", "eligibleCount", "effectiveOpacity", "scopeRejections", "rejections",
+    "nativeCauseCode", "nativeStage", "candidateIndex", "observationIdentityHash"]) {
     if (!contractText.includes(required)) finding(findings, lawId, INTENT_CONTRACT_PATH,
       `The bounded Browser DOM contract is missing ${required}.`);
+  }
+  if (observation.getFullText().includes(".slice(0, 1024)")
+    || query.getFullText().includes("value.slice(0, maxChars)")
+    || contractText.includes("intent.maxChars > 65536")) {
+    finding(findings, lawId, domCoherentObservationPath,
+      "Browser DOM payloads must fail closed or return complete values; silent prefix truncation is forbidden.");
+  }
+  if (["\"bounds\"", "\"viewport\"", "\"hitTest\""].some((token) => contractText.includes(token))) {
+    finding(findings, lawId, INTENT_CONTRACT_PATH,
+      "Pointer-only facts must not remain caller-requestable observation fields.");
   }
 };

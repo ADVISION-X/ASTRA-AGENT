@@ -1,24 +1,55 @@
-import type {
-  GptChildCapabilityId,
-  GptChildCapabilityIntent,
-  GptExecutionContext,
+import {
+  GPT_CHILD_CAPABILITY_CONTRACTS,
+  gptExactCallIdentityHash,
+  type GptChildBrowserFact,
+  type GptChildCapabilityId,
+  type GptChildCapabilityIntent,
+  type GptChildOutputMap,
+  type GptExecutionContext,
 } from "../contract.js";
+import type {
+  BrowserTargetLease,
+} from "../../../lib/browser/browser-authority-api.js";
 import { executionFailure } from "../../../lib/typed-failure.js";
 
-export type GptChildObservation = Readonly<{
-  value: unknown;
-  candidateCount: number | null;
-  observedSemantics: readonly string[];
-  committedMutation: "no" | "confirmed";
+type GptChildObservationValue<T> = Readonly<{
+  value: T;
+  decision: "DONE" | "ACT";
+  factResultIds: readonly string[];
+  candidateCardinality: Readonly<{ raw: number | null; eligible: number | null }>;
+  authorityRefHashes: readonly `sha256:${string}`[];
+  observationRevisionHash: `sha256:${string}` | null;
+  mutationOutcome: "no" | "confirmed";
   postconditionResult: "passed";
+  browserFact: GptChildBrowserFact | null;
+  nativeFailureCode: string | null;
 }>;
 
-export type GptChildHandler = (
-  intent: GptChildCapabilityIntent,
-  context: GptExecutionContext,
-) => Promise<GptChildObservation>;
+type GptChildFactDeclaration = Omit<GptChildObservationValue<never>, "value" | "postconditionResult">;
 
-export type GptChildHandlerMap = Partial<Record<GptChildCapabilityId, GptChildHandler>>;
+export type GptChildObservation<K extends GptChildCapabilityId = GptChildCapabilityId> =
+  GptChildObservationValue<GptChildOutputMap[K]>;
+
+export type GptChildHandler<K extends GptChildCapabilityId> = (
+  intent: GptChildCapabilityIntent<K>,
+  context: GptExecutionContext,
+) => Promise<GptChildObservation<K>>;
+
+export type GptChildHandlerMap = {
+  readonly [K in GptChildCapabilityId]?: GptChildHandler<K>;
+};
+
+type GptInputDecoderIntent = Readonly<{
+  childCapabilityId: GptChildCapabilityId;
+  input: object;
+}>;
+
+const decodedInput = (intent: GptInputDecoderIntent): Readonly<Record<string, unknown>> => {
+  if (!intent.input || typeof intent.input !== "object" || Array.isArray(intent.input)) {
+    throw executionFailure("failed", `GPT_CHILD_INPUT_INVALID:${intent.childCapabilityId}:input`);
+  }
+  return intent.input as Readonly<Record<string, unknown>>;
+};
 
 export const requireBrowser = (context: GptExecutionContext) => {
   if (!context.browser) throw executionFailure("failed", "GPT_BROWSER_TARGET_REQUIRED");
@@ -26,51 +57,97 @@ export const requireBrowser = (context: GptExecutionContext) => {
   return context.browser;
 };
 
+export const requireConfirmedBrowserFact = <K extends GptChildCapabilityId>(
+  intent: GptChildCapabilityIntent<K>,
+  browser: Pick<BrowserTargetLease, "readAtomicStepRecovery">,
+): GptChildBrowserFact => {
+  const contract = GPT_CHILD_CAPABILITY_CONTRACTS[intent.childCapabilityId];
+  if (contract.replayPolicy === "observation-only"
+    || contract.replayPolicy === "transaction-identical-readback") {
+    throw executionFailure("failed", "GPT_BROWSER_TERMINAL_FACT_NOT_APPLICABLE");
+  }
+  const recovery = browser.readAtomicStepRecovery({
+    productStepId: intent.productStepId,
+    callId: intent.callId,
+    childCapabilityId: intent.childCapabilityId,
+    inputHash: intent.inputHash,
+    actionOrdinal: intent.actionOrdinal,
+    replayPolicy: contract.replayPolicy,
+  });
+  if (!recovery || recovery.state !== "confirmed" || recovery.mutationOutcome !== "confirmed") {
+    throw executionFailure("failed", "GPT_BROWSER_TERMINAL_FACT_REQUIRED", {
+      mutationOutcome: recovery?.mutationOutcome ?? "no",
+    });
+  }
+  return Object.freeze({
+    exactCallIdentityHash: gptExactCallIdentityHash(intent),
+    childCapabilityId: intent.childCapabilityId,
+    effectScope: contract.replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local",
+    browserOutcome: "CONFIRMED",
+    mutationOutcome: recovery.mutationOutcome,
+    terminalAt: recovery.terminalAt,
+    evidenceRef: recovery.authorityRef,
+    evidenceHash: recovery.authorityHash,
+  });
+};
+
 export const requireExactInputKeys = (
-  intent: GptChildCapabilityIntent,
+  intent: GptInputDecoderIntent,
   required: readonly string[],
   optional: readonly string[] = [],
 ): void => {
-  const keys = Object.keys(intent.input).sort();
+  const input = decodedInput(intent);
+  const keys = Object.keys(input).sort();
   const allowed = new Set([...required, ...optional]);
-  const missing = required.filter((key) => !(key in intent.input));
+  const missing = required.filter((key) => !(key in input));
   const extra = keys.filter((key) => !allowed.has(key));
   if (missing.length || extra.length) {
     throw executionFailure("failed", `GPT_CHILD_INPUT_INVALID:${intent.childCapabilityId}:missing=${missing.join(",")}:extra=${extra.join(",")}`);
   }
 };
 
-export const stringInput = (intent: GptChildCapabilityIntent, key: string): string => {
-  const value = intent.input[key];
+export const stringInput = (intent: GptInputDecoderIntent, key: string): string => {
+  const value = decodedInput(intent)[key];
   if (typeof value !== "string" || value.length === 0) {
     throw executionFailure("failed", `GPT_CHILD_INPUT_INVALID:${intent.childCapabilityId}:${key}`);
   }
   return value;
 };
 
-export const numberInput = (intent: GptChildCapabilityIntent, key: string): number => {
-  const value = intent.input[key];
+export const numberInput = (intent: GptInputDecoderIntent, key: string): number => {
+  const value = decodedInput(intent)[key];
   if (typeof value !== "number" || !Number.isFinite(value)) {
     throw executionFailure("failed", `GPT_CHILD_INPUT_INVALID:${intent.childCapabilityId}:${key}`);
   }
   return value;
 };
 
-export const recordInput = (intent: GptChildCapabilityIntent, key: string): Readonly<Record<string, unknown>> => {
-  const value = intent.input[key];
+export const recordInput = (intent: GptInputDecoderIntent, key: string): Readonly<Record<string, unknown>> => {
+  const value = decodedInput(intent)[key];
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw executionFailure("failed", `GPT_CHILD_INPUT_INVALID:${intent.childCapabilityId}:${key}`);
   }
   return value as Readonly<Record<string, unknown>>;
 };
 
-export const arrayInput = (intent: GptChildCapabilityIntent, key: string): readonly unknown[] => {
-  const value = intent.input[key];
+export const arrayInput = (intent: GptInputDecoderIntent, key: string): readonly unknown[] => {
+  const value = decodedInput(intent)[key];
   if (!Array.isArray(value)) {
     throw executionFailure("failed", `GPT_CHILD_INPUT_INVALID:${intent.childCapabilityId}:${key}`);
   }
   return value;
 };
 
-export const success = (input: Omit<GptChildObservation, "postconditionResult">): GptChildObservation =>
+export const success = <T>(
+  input: Omit<GptChildObservationValue<T>, "postconditionResult">,
+): GptChildObservationValue<T> =>
   Object.freeze({ ...input, postconditionResult: "passed" });
+
+export const declaredFacts = (
+  input: GptChildFactDeclaration,
+): GptChildFactDeclaration => Object.freeze({
+  ...input,
+  factResultIds: Object.freeze([...input.factResultIds]),
+  candidateCardinality: Object.freeze({ ...input.candidateCardinality }),
+  authorityRefHashes: Object.freeze([...input.authorityRefHashes]),
+});

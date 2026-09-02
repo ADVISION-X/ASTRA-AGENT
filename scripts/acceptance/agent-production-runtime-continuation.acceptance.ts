@@ -11,6 +11,7 @@ import {
   type GptProviderContinuation,
 } from "../../src/capabilities/gpt/index.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
+import { failClosedInvalidContinuationFrontiers } from "../../src/lib/local-runtime/production/runtime-startup.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { HASH_A, HASH_B, HASH_C, identityFor, task } from "./agent-production-runtime-fixtures.js";
 
@@ -270,56 +271,51 @@ try {
     "a legacy/null frontier continuation must never be guessed as task frontier");
   store.close();
 
-  const legacyDatabase = new Database(path.join(temporary, "production-runtime.sqlite"));
-  legacyDatabase.pragma("foreign_keys = OFF");
-  const legacyCount = Number((legacyDatabase.prepare(
-    "select count(*) as count from production_continuations",
-  ).get() as { count: number }).count);
-  legacyDatabase.exec(`begin;
-    alter table production_continuations rename to production_continuations_frontier_source;
-    create table production_continuations(
-      continuation_ref text primary key,
-      origin_job_id text not null references production_tasks(job_id) on delete restrict,
-      plugin_id text not null, owner_ref text not null, subject_ref text not null,
-      authorization_ref text not null, conversation_identity_hash text not null,
-      provider_json text not null, lane_version integer not null,
-      lane_owner_job_id text, created_at text not null
-    );
-    insert into production_continuations(
-      continuation_ref,origin_job_id,plugin_id,owner_ref,subject_ref,authorization_ref,
-      conversation_identity_hash,provider_json,lane_version,lane_owner_job_id,created_at
-    ) select continuation_ref,origin_job_id,plugin_id,owner_ref,subject_ref,authorization_ref,
-      conversation_identity_hash,provider_json,lane_version,lane_owner_job_id,created_at
-      from production_continuations_frontier_source;
-    drop table production_continuations_frontier_source;
-    commit;`);
-  legacyDatabase.close();
+  const incompleteDatabase = new Database(path.join(temporary, "production-runtime.sqlite"));
+  incompleteDatabase.prepare(`update production_continuations set current_checkpoint_json=null
+    where continuation_ref=?`).run(frontierContinuationRef);
+  incompleteDatabase.close();
+  const incompleteStore = new ProductionRuntimeStore(temporary);
+  assert.equal(incompleteStore.frontierContinuationInvariantFailures().length, 1);
+  failClosedInvalidContinuationFrontiers(incompleteStore);
+  assert.equal(
+    incompleteStore.readTask(sourceTask.job_id)?.current_reason,
+    "GPT_CONTINUATION_CURRENT_CHECKPOINT_MISSING",
+    "startup must fail only the exact task instead of reconstructing Product checkpoint semantics",
+  );
+  assert.equal(
+    incompleteStore.readGptContinuation(frontierContinuationRef as string)?.current_checkpoint,
+    null,
+    "Runtime startup must never write or guess a Product checkpoint",
+  );
+  incompleteStore.close();
 
-  const migratedStore = new ProductionRuntimeStore(temporary);
-  const migratedDatabase = new Database(path.join(temporary, "production-runtime.sqlite"), { readonly: true });
-  const migratedColumns = new Set((migratedDatabase.prepare(
-    "pragma table_info(production_continuations)",
-  ).all() as Array<{ name: string }>).map((column) => column.name));
-  const migratedCount = Number((migratedDatabase.prepare(
-    "select count(*) as count from production_continuations",
-  ).get() as { count: number }).count);
-  migratedDatabase.close();
-  assert.equal(migratedCount, legacyCount, "nonempty in-place migration must preserve every continuation row");
-  assert.deepEqual([...migratedColumns].filter((column) => [
-    "current_checkpoint_json", "frontier_ref", "origin_provider_json", "origin_checkpoint_json",
-  ].includes(column)).sort(), [
-    "current_checkpoint_json", "frontier_ref", "origin_checkpoint_json", "origin_provider_json",
-  ]);
-  assert.equal(migratedStore.readGptContinuationForFrontier(frontierRef), null,
-    "pre-frontier rows must remain null and must not be auto-promoted during migration");
-  const migratedLegacy = migratedStore.readGptContinuation(frontierContinuationRef as string);
-  assert(migratedLegacy);
-  assert.equal(migratedLegacy.frontier_ref, null);
-  assert.deepEqual(migratedLegacy.origin_provider, migratedLegacy.provider,
-    "migration may preserve the old provider as origin but must not invent a task frontier");
-  assert.equal(migratedLegacy.current_checkpoint, null,
-    "a legacy continuation without a verified checkpoint must remain task-locally fail-closed");
-  migratedStore.close();
+  const invalidDatabase = new Database(path.join(temporary, "production-runtime.sqlite"));
+  invalidDatabase.prepare(`update production_continuations
+    set current_checkpoint_json=origin_checkpoint_json,conversation_identity_hash=null
+    where continuation_ref=?`).run(frontierContinuationRef);
+  invalidDatabase.close();
+  const invalidStore = new ProductionRuntimeStore(temporary);
+  assert.deepEqual(invalidStore.frontierContinuationInvariantFailures(), [{
+    origin_job_id: sourceTask.job_id,
+    reason: "GPT_CONTINUATION_FRONTIER_INVALID",
+  }]);
+  failClosedInvalidContinuationFrontiers(invalidStore);
+  assert.equal(invalidStore.readTask(sourceTask.job_id)?.current_reason, "GPT_CONTINUATION_FRONTIER_INVALID");
+  invalidStore.setCurrentReason(sourceTask.job_id, "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
+  failClosedInvalidContinuationFrontiers(invalidStore);
+  assert.equal(
+    invalidStore.readTask(sourceTask.job_id)?.current_reason,
+    "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED",
+    "a frontier invariant failure must not overwrite Website's permanent authorization revocation",
+  );
+  assert.throws(
+    () => invalidStore.readGptContinuationForFrontier(frontierRef),
+    /GPT_CONTINUATION_FRONTIER_INVALID/u,
+    "a present but unusable frontier must fail before Product can treat it as a fresh task",
+  );
+  invalidStore.close();
+
 } finally {
   await rm(temporary, { recursive: true, force: true });
 }

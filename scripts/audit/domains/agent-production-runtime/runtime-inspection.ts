@@ -4,10 +4,11 @@ import { resolve } from "node:path";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V30";
+const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V31";
 const PATHS = {
   executor: "src/lib/local-runtime/production/executor.ts",
   childTools: "src/lib/local-runtime/production/production-gpt-child-tools.ts",
+  atomicCall: "src/lib/local-runtime/production/production-gpt-atomic-call.ts",
   childBrowser: "src/lib/local-runtime/production/production-gpt-browser-lifecycle.ts",
   childFacts: "src/lib/local-runtime/production/production-gpt-call-facts.ts",
   evidenceWriter: "src/lib/local-runtime/production/gpt-evidence-writer.ts",
@@ -16,7 +17,7 @@ const PATHS = {
   completedResult: "src/lib/local-runtime/production/production-gpt-completed-result.ts",
   continuationReadback: "src/lib/local-runtime/production/production-gpt-continuation-readback.ts",
   store: "src/lib/local-runtime/production/store-foundation.ts",
-  taskState: "src/lib/local-runtime/production/store-task-state.ts",
+  continuationState: "src/lib/local-runtime/production/store-continuation-state.ts",
   cloudReconciliation: "src/lib/local-runtime/production/cloud-reconciliation-client.ts",
   transport: "src/lib/local-runtime/production/transport-protocol.ts",
   runtimeClaim: "src/lib/local-runtime/production/runtime-claim.ts",
@@ -36,9 +37,10 @@ const finding = (checkId: string, filePath: string, message: string,
 const read = (context: InspectorContext, path: string): string =>
   readFileSync(resolve(context.sealedRoot, path), "utf8");
 
-const inspectTaskStore = (store: string, taskState: string, findings: InspectorFinding[]): void => {
+const inspectTaskStore = (store: string, continuationState: string, findings: InspectorFinding[]): void => {
   for (const required of ['ProductionTaskStatus = "failed" | "completed"',
-    "status text not null check(status in ('failed','completed'))", "PRODUCTION_EMPTY_CUTOVER_REQUIRED"])
+    "status text not null check(status in ('failed','completed'))", "initializeOrAssertCurrentSchema",
+    "PRODUCTION_SCHEMA_MIGRATION_REQUIRED", "PRODUCTION_DATA_MIGRATION_REQUIRED"])
     if (!store.includes(required)) findings.push(finding("agent-production-runtime/binary-task-store",
       PATHS.store, `Binary task store is missing ${required}.`));
   for (const forbidden of ["create table production_steps", "writeGptTurnCheckpoint", "readGptTurnCheckpoint"])
@@ -46,14 +48,16 @@ const inspectTaskStore = (store: string, taskState: string, findings: InspectorF
       PATHS.store, `Production store retains retired global GPT checkpoint token ${forbidden}.`));
   for (const required of ["readGptContinuationForOriginJob", "turnMarker",
     "json_extract(provider_json,'$.prior_turn_marker')=?", "readGptContinuationForFrontier",
-    "frontier_ref=?", "origin_provider_json", "origin_checkpoint_json", "continuationFromRow"])
-    if (!taskState.includes(required)) findings.push(finding("agent-production-runtime/attempt-bound-continuation-read",
-      PATHS.taskState, `Continuation recovery must use the Product's exact current-attempt marker; missing ${required}.`));
-  for (const required of ["migrateContinuationFrontierSchema",
-    "alter table production_continuations add column frontier_ref",
-    "production_continuations_frontier_ref_unique", "origin_provider_json=provider_json"])
-    if (!store.includes(required)) findings.push(finding("agent-production-runtime/frontier-in-place-migration",
-      PATHS.store, `Continuation frontier migration is missing ${required}.`));
+    "frontier_ref=?", "origin_provider_json", "origin_checkpoint_json", "continuationRecordFromRow",
+    "frontierContinuationInvariantFailures", "GPT_CONTINUATION_FRONTIER_INVALID"])
+    if (!continuationState.includes(required)) findings.push(finding("agent-production-runtime/attempt-bound-continuation-read",
+      PATHS.continuationState, `Continuation recovery must use the Product's exact current-attempt marker; missing ${required}.`));
+  for (const forbidden of ["migrateContinuationFrontierSchema", "migrateContinuationReservationSchema",
+    "migrateContinuationSemanticReceiptSchema", "restoreOutboxDeliverySchedule", "replaceEmptyExecutionSchema",
+    "alter table production_continuations", "production_continuations_v2_migration",
+    "PRODUCTION_EMPTY_CUTOVER_REQUIRED"])
+    if (store.includes(forbidden)) findings.push(finding("agent-production-runtime/startup-migration-retired",
+      PATHS.store, `Runtime startup retains retired migration token ${forbidden}.`));
 };
 
 const inspectChildRuntime = (
@@ -67,7 +71,7 @@ const inspectChildRuntime = (
     if (`${executor}\n${childRuntime}`.includes(token)) findings.push(finding(
       "agent-production-runtime/central-turn-owner-retired", PATHS.executor,
       `Shared runtime retains retired GPT turn token ${token}.`));
-  for (const required of ["ProductionGptChildTools", "this.gpt.execute(intent", "runAtomicStep(",
+  for (const required of ["ProductionGptChildTools", "gpt.execute(intent", "runAtomicStep(",
     'mutationMode: "readback"', "sessionKey", "productStepId", "callId", "childCapabilityId", "inputHash",
     "readCallFacts", "gptExactCallIdentityHash", "readExactCallMutationFact", "readExactCallEvidence",
     "exactCallIdentityHash", "readContinuationExact", "lookupKind", "prior_turn_marker",
@@ -144,9 +148,9 @@ const inspectOutbox = (sources: Readonly<{
   if (settlement.includes("sent_at=")) findings.push(finding(
     "agent-production-runtime/revocation-no-fake-delivery", PATHS.outbox,
     "Permanent revocation must not fabricate Outbox delivery or receipt evidence."));
-  if (!store.includes('state: "pending" | "delivered"') || !store.includes("restoreOutboxDeliverySchedule"))
+  if (!store.includes('state: "pending" | "delivered"') || !store.includes("PRODUCTION_DATA_MIGRATION_REQUIRED"))
     findings.push(finding("agent-production-runtime/outbox-unfinished-liveness", PATHS.store,
-      "Every non-revoked undelivered Outbox intent must remain pending with a finite delivery schedule."));
+      "Every non-revoked undelivered Outbox intent must already have a finite schedule or fail before startup."));
   if (!store.includes("last_error<>'PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED'")) findings.push(finding(
     "agent-production-runtime/revocation-survives-restart", PATHS.store,
     "Startup must not restore delivery for an exactly revoked Outbox intent."));
@@ -156,7 +160,7 @@ export const inspectSharedProductionRuntime = (
   context: InspectorContext, findings: InspectorFinding[],
 ): void => {
   const executor = read(context, PATHS.executor);
-  const childRuntime = [PATHS.childTools, PATHS.childBrowser, PATHS.childFacts, PATHS.evidenceWriter,
+  const childRuntime = [PATHS.childTools, PATHS.atomicCall, PATHS.childBrowser, PATHS.childFacts, PATHS.evidenceWriter,
     PATHS.artifactReader, PATHS.evidenceFact, PATHS.completedResult, PATHS.continuationReadback]
     .map((path) => read(context, path)).join("\n");
   const store = read(context, PATHS.store);
@@ -164,7 +168,7 @@ export const inspectSharedProductionRuntime = (
   inspectChildRuntime(executor, childRuntime, findings);
   inspectPostSubmit({ typedFailure: read(context, PATHS.typedFailure), runtimeClaim,
     faultPreservation: read(context, PATHS.faultPreservation), cloudClient: read(context, PATHS.cloudClient) }, findings);
-  inspectTaskStore(store, read(context, PATHS.taskState), findings);
+  inspectTaskStore(store, read(context, PATHS.continuationState), findings);
   inspectWebsiteAttemptPolicy([read(context, PATHS.cloudReconciliation),
     read(context, PATHS.transport), runtimeClaim].join("\n"), findings);
   inspectOutbox({ store, outbox: read(context, PATHS.outbox),

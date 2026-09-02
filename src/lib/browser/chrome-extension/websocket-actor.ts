@@ -62,6 +62,10 @@ const commandFrom = (value: unknown): BrowserGovernedCommand => {
   if (![
     "navigate", "dom-intent", "observe", "screenshot", "file-input", "authenticated-media", "wait", "park-target", "close-target",
   ].includes(command.kind)) throw new Error("BROWSER_CAPABILITY_REJECTED");
+  if (command.kind === "navigate"
+    && (Object.keys(command).length !== 2 || typeof command.url !== "string")) {
+    throw new Error("BROWSER_CAPABILITY_REJECTED");
+  }
   return command as BrowserGovernedCommand;
 };
 
@@ -421,7 +425,6 @@ export class ExtensionWebSocketActor {
 
   private reportTargetFailure(input: Readonly<{
     targetRef: string;
-    reason: string;
     runtimeEventType: "debugger-detach" | "tab-remove";
   }>): void {
     const body = {
@@ -430,7 +433,6 @@ export class ExtensionWebSocketActor {
       failedFrameSequence: this.session?.nextClientSequence ?? 0,
       diagnosticSource: "extension-runtime",
       runtimeEventType: input.runtimeEventType,
-      errorName: /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/u.test(input.reason) ? input.reason : "UnknownDetachReason",
       targetRef: input.targetRef,
       encodedByteLength: 0,
     };

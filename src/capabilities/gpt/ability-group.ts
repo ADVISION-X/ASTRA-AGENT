@@ -37,7 +37,7 @@ const handlers = Object.freeze({
   ...composerSubmissionChildHandlers,
   ...responseChildHandlers,
   ...sessionChildHandlers,
-} satisfies Record<GptChildCapabilityId, GptChildHandler>);
+} satisfies { readonly [K in GptChildCapabilityId]: GptChildHandler<K> });
 
 const hash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -53,8 +53,8 @@ const classify = (error: unknown): Readonly<{
 const documentRefHash = (value: string | null): `sha256:${string}` | null =>
   value === null ? null : hash(value);
 
-const proofFor = (input: Readonly<{
-  intent: GptChildCapabilityIntent;
+type ProofInput<K extends GptChildCapabilityId> = Readonly<{
+  intent: GptChildCapabilityIntent<K>;
   context: GptExecutionContext;
   startedAt: string;
   endedAt: string;
@@ -62,27 +62,33 @@ const proofFor = (input: Readonly<{
   afterUrl: string | null;
   beforeDocumentRef: string | null;
   afterDocumentRef: string | null;
-  observation?: GptChildObservation;
+  observation?: GptChildObservation<K>;
   failureCode?: string;
   nativeFailureCode?: string | null;
   committedMutation?: "no" | "dispatched" | "confirmed";
   postconditionResult?: "passed" | "failed" | "pending";
-}>): GptChildCapabilityProof => {
-  const contract = GPT_CHILD_CAPABILITY_CONTRACTS[input.intent.childCapabilityId];
-  const childStatus = input.failureCode ? "failed" as const : "success" as const;
-  const committedMutation = input.committedMutation ?? input.observation?.committedMutation ?? "no" as const;
-  const postconditionResult = input.postconditionResult ?? input.observation?.postconditionResult ?? "failed" as const;
+}>;
+
+const proofAuthorities = <K extends GptChildCapabilityId>(input: ProofInput<K>) => {
   const targetRefHash = input.context.browser ? hash(input.context.browser.target.targetRef) : null;
   const beforeDocumentRefHash = documentRefHash(input.beforeDocumentRef);
   const afterDocumentRefHash = documentRefHash(input.afterDocumentRef);
   const authorityRefHashes = Object.freeze(
-    [targetRefHash, beforeDocumentRefHash, afterDocumentRefHash]
-      .filter((value, index, values): value is `sha256:${string}` => value !== null && values.indexOf(value) === index),
+    [targetRefHash, beforeDocumentRefHash, afterDocumentRefHash, ...(input.observation?.authorityRefHashes ?? [])]
+      .filter((value, index, values): value is `sha256:${string}` =>
+        value !== null && values.indexOf(value) === index),
   );
-  const candidateCardinality = Object.freeze({
-    raw: input.observation?.candidateCount ?? null,
-    eligible: input.observation?.candidateCount ?? null,
-  });
+  return Object.freeze({ targetRefHash, beforeDocumentRefHash, afterDocumentRefHash, authorityRefHashes });
+};
+
+const proofFor = <K extends GptChildCapabilityId>(input: ProofInput<K>): GptChildCapabilityProof => {
+  const contract = GPT_CHILD_CAPABILITY_CONTRACTS[input.intent.childCapabilityId];
+  const childStatus = input.failureCode ? "failed" as const : "success" as const;
+  const committedMutation = input.committedMutation ?? input.observation?.mutationOutcome ?? "no" as const;
+  const postconditionResult = input.postconditionResult ?? input.observation?.postconditionResult ?? "failed" as const;
+  const { targetRefHash, beforeDocumentRefHash, afterDocumentRefHash, authorityRefHashes } = proofAuthorities(input);
+  const candidateCardinality = input.observation?.candidateCardinality
+    ?? Object.freeze({ raw: null, eligible: null });
   const unsigned = {
     schemaVersion: "gpt-child-capability-proof.v2" as const,
     childCapabilityId: input.intent.childCapabilityId,
@@ -91,7 +97,7 @@ const proofFor = (input: Readonly<{
     childReasonCode: input.failureCode ?? "GPT_CHILD_SUCCESS",
     exactCallIdentityHash: gptExactCallIdentityHash(input.intent),
     internalDecisionCode: childStatus === "failed" ? "FAIL_CLOSED" as const
-      : committedMutation === "confirmed" ? "ACT" as const : "DONE" as const,
+      : input.observation!.decision,
     executionId: input.intent.executionId,
     jobId: input.intent.jobId,
     attemptId: input.intent.attemptId,
@@ -105,22 +111,27 @@ const proofFor = (input: Readonly<{
     beforeDocumentRefHash,
     afterDocumentRefHash,
     authorityRefHashes,
-    factResultIds: Object.freeze([`gpt-fact-result:${hash(JSON.stringify({
-      childCapabilityId: input.intent.childCapabilityId,
-      candidateCardinality,
-      committedMutation,
-      postconditionResult,
-      valueHash: input.observation ? hash(JSON.stringify(input.observation.value)) : null,
-    })).slice(7)}`]),
+    factResultIds: input.observation?.factResultIds ?? Object.freeze([
+      `gpt-fact-result:${hash(JSON.stringify({
+        childCapabilityId: input.intent.childCapabilityId,
+        failureCode: input.failureCode ?? null,
+        nativeFailureCode: input.nativeFailureCode ?? null,
+      })).slice(7)}`,
+    ]),
     candidateCardinality,
+    observationRevisionHash: input.observation?.observationRevisionHash ?? null,
     committedMutation,
     postconditionResult,
-    browserFact: null,
-    nativeFailureCode: input.nativeFailureCode ?? null,
+    browserFact: input.observation?.browserFact ?? null,
+    nativeFailureCode: input.nativeFailureCode ?? input.observation?.nativeFailureCode ?? null,
     startedAt: input.startedAt,
     endedAt: input.endedAt,
   };
-  const evidenceHash = hash(JSON.stringify(unsigned));
+  const evidenceHash = hash(JSON.stringify({
+    ...unsigned,
+    startedAt: null,
+    endedAt: null,
+  }));
   return Object.freeze({
     ...unsigned,
     evidenceRef: `gpt-child-proof:${input.intent.executionId}:${evidenceHash.slice(7, 23)}`,
@@ -147,7 +158,7 @@ const documentTransitionAllowed = (
 };
 
 const assertObservationIsAtomic = (
-  intent: GptChildCapabilityIntent,
+  intent: Readonly<{ childCapabilityId: GptChildCapabilityId }>,
   context: GptExecutionContext,
   before: Readonly<{ ref: string | null; url: string | null }>,
   observation: GptChildObservation,
@@ -156,23 +167,23 @@ const assertObservationIsAtomic = (
     throw executionFailure("failed", `GPT_DOCUMENT_TRANSITION_FORBIDDEN:${intent.childCapabilityId}`);
   }
   const pendingMutationCount = context.browser?.pendingMutationCount() ?? 0;
-  if (observation.committedMutation === "confirmed" && pendingMutationCount > 1) {
+  if (observation.mutationOutcome === "confirmed" && pendingMutationCount > 1) {
     throw executionFailure("failed", `GPT_MUTATION_OUTCOME_NOT_UNIQUE:${intent.childCapabilityId}`);
   }
-  if (observation.committedMutation === "no" && pendingMutationCount !== 0) {
+  if (observation.mutationOutcome === "no" && pendingMutationCount !== 0) {
     if (context.mutationMode !== "readback" || pendingMutationCount !== 1) {
       throw executionFailure("failed", `GPT_UNDECLARED_MUTATION:${intent.childCapabilityId}`);
     }
   }
 };
 
-const successfulExecution = async (input: Readonly<{
-  intent: GptChildCapabilityIntent;
+const successfulExecution = async <K extends GptChildCapabilityId>(input: Readonly<{
+  intent: GptChildCapabilityIntent<K>;
   context: GptExecutionContext;
   startedAt: string;
   before: Readonly<{ ref: string | null; url: string | null }>;
-  observation: GptChildObservation;
-}>): Promise<GptChildCapabilityResult> => {
+  observation: GptChildObservation<K>;
+}>): Promise<GptChildCapabilityResult<K>> => {
   const after = currentDocument(input.context);
   const proof = proofFor({
     intent: input.intent, context: input.context, startedAt: input.startedAt, endedAt: new Date().toISOString(),
@@ -184,17 +195,17 @@ const successfulExecution = async (input: Readonly<{
   return Object.freeze({
     status: "success", value: input.observation.value, proof, failureCode: null, failureCause: null,
     failureBrowserEffect: null,
-  });
+  }) as GptChildCapabilityResult<K>;
 };
 
-const failedExecution = async (input: Readonly<{
-  intent: GptChildCapabilityIntent;
+const failedExecution = async <K extends GptChildCapabilityId>(input: Readonly<{
+  intent: GptChildCapabilityIntent<K>;
   context: GptExecutionContext;
   startedAt: string;
   before: Readonly<{ ref: string | null; url: string | null }>;
-  observation?: GptChildObservation;
+  observation?: GptChildObservation<K>;
   error: unknown;
-}>): Promise<GptChildCapabilityResult> => {
+}>): Promise<GptChildCapabilityResult<K>> => {
   const after = currentDocument(input.context);
   const failure = classify(input.error);
   const serialized = serializeTerminalFailure(input.error);
@@ -202,8 +213,9 @@ const failedExecution = async (input: Readonly<{
   const browserFailureOutcome = typedExecutionFailure(input.error)?.mutationOutcome ?? "no";
   const browserDispatched = (input.context.browser?.pendingMutationCount() ?? 0) > 0 && !input.observation;
   const sessionDispatched = !input.observation && contract?.requiredTargetKind === "none"
-    && contract.oneObservationOrMutation === "at-most-one-mutation";
-  const committedMutation = input.observation?.committedMutation
+    && contract.oneObservationOrMutation === "at-most-one-mutation"
+    && !failure.code.startsWith("GPT_CHILD_INPUT_INVALID:");
+  const committedMutation = input.observation?.mutationOutcome
     ?? (browserFailureOutcome !== "no" ? browserFailureOutcome
       : browserDispatched || sessionDispatched ? "dispatched" : "no");
   const proof = proofFor({
@@ -223,10 +235,20 @@ const failedExecution = async (input: Readonly<{
       childCapabilityId: serialized.child_capability_id!,
       browserOutcome: serialized.browser_outcome,
     }),
-  });
+  }) as GptChildCapabilityResult<K>;
 };
 
-const assertExecutionIdentity = (intent: GptChildCapabilityIntent): void => {
+const assertExecutionIdentity = (intent: Readonly<{
+  executionId: string;
+  jobId: string;
+  attemptId: string;
+  pluginId: string;
+  pluginVersion: number;
+  productStepId: string;
+  callId: string;
+  inputHash: `sha256:${string}`;
+  actionOrdinal: number;
+}>): void => {
   if (!intent.executionId || !intent.jobId || !intent.attemptId || !intent.pluginId
     || !Number.isSafeInteger(intent.pluginVersion) || intent.pluginVersion < 1
     || !intent.productStepId || !intent.callId
@@ -236,14 +258,14 @@ const assertExecutionIdentity = (intent: GptChildCapabilityIntent): void => {
   }
 };
 
-const executeOne = async (
-  intent: GptChildCapabilityIntent,
+const executeOne = async <K extends GptChildCapabilityId>(
+  intent: GptChildCapabilityIntent<K>,
   context: GptExecutionContext,
-): Promise<GptChildCapabilityResult> => {
+): Promise<GptChildCapabilityResult<K>> => {
   const startedAt = new Date().toISOString();
-  const handler = handlers[intent.childCapabilityId];
+  const handler = handlers[intent.childCapabilityId] as GptChildHandler<K>;
   const before = currentDocument(context);
-  let observation: GptChildObservation | undefined;
+  let observation: GptChildObservation<K> | undefined;
   try {
     assertExecutionIdentity(intent);
     if (!handler) throw executionFailure("failed", `GPT_CHILD_NOT_REGISTERED:${intent.childCapabilityId}`);

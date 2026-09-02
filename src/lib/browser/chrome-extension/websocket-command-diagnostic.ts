@@ -20,10 +20,6 @@ export const extensionCommandDiagnostic = (input: Readonly<{
   failedFrameSequence: input.failedFrameSequence,
   diagnosticSource: "extension-runtime",
   runtimeEventType: "command-handler",
-  errorName: input.error instanceof Error
-    && /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/u.test(input.error.name)
-    ? input.error.name
-    : input.error instanceof Error ? "InvalidErrorName" : "NonErrorThrown",
   commandStage: input.commandStage,
   ...(input.commandKind ? { commandKind: input.commandKind } : {}),
   ...(input.commandIntentKind ? { commandIntentKind: input.commandIntentKind } : {}),

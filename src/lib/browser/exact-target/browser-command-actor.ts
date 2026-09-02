@@ -20,13 +20,23 @@ import {
 } from "./browser-mutation-store.js";
 import type { BrowserAtomicStepIdentity } from "./browser-target-lease.js";
 import { assertPluginOutcomeResolution, type BrowserOutcomeResolutionReceipt } from "./browser-outcome-resolver.js";
+import { decodeBrowserMutationReceipt } from "./browser-mutation-receipt.js";
 
 export type BrowserGovernedCommand =
-  | Readonly<{ kind: "navigate"; url: string; title: string }>
+  | Readonly<{ kind: "navigate"; url: string }>
   | Readonly<{ kind: "dom-intent"; intent: BrowserDomIntent }>
   | Readonly<{ kind: "observe"; capabilityId: import("../protocol/generated/browser-protocol.generated.js").BrowserCapabilityId }>
   | Readonly<{ kind: "screenshot"; regionLabel: string }>
-  | Readonly<{ kind: "file-input"; selector: string; grantRefs: readonly string[]; resolvedFilePaths: readonly string[] }>
+  | Readonly<{
+    kind: "file-input";
+    selector: string;
+    approvedFiles: readonly Readonly<{
+      grantRef: string;
+      contentHash: `sha256:${string}`;
+      maxBytes: number;
+    }>[];
+    resolvedFilePaths: readonly string[];
+  }>
   | Readonly<{
     kind: "authenticated-media";
     assistantTurnId: string;
@@ -94,7 +104,12 @@ const postconditionPair = (command: BrowserGovernedCommand): Readonly<{
 }> => {
   if (!isMutation(command)) throw new Error("BROWSER_ATOMIC_POSTCONDITION_REQUIRED");
   if (command.kind === "file-input") {
-    const positive = { kind: "file-input", selector: command.selector, grantRefs: command.grantRefs, attached: true };
+    const positive = {
+      kind: "file-input",
+      selector: command.selector,
+      approvedFiles: command.approvedFiles,
+      attached: true,
+    };
     return Object.freeze({
       positive: hashValue({ ...positive, result: "passed" }),
       negative: hashValue({ ...positive, result: "failed" }),
@@ -217,51 +232,6 @@ const causalBrowserFailureCode = (error: unknown): string =>
   error instanceof Error && /^BROWSER_[A-Z_]+$/u.test(error.message)
     ? error.message : "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE";
 
-const mutationReceipt = (
-  command: BrowserGovernedCommand,
-  result: unknown,
-): Readonly<{
-  terminal: "confirmed" | "rejected";
-  mutationOutcome: "no" | "confirmed";
-  failureCode: string | null;
-}> => {
-  const value = result && typeof result === "object" ? result as Record<string, unknown> : {};
-  const mutationCount = value.mutationCount;
-  const zeroActionSatisfied = value.zeroActionSatisfied === true;
-  const qualificationRejected = value.qualificationRejected === true;
-  if ((mutationCount !== 0 && mutationCount !== 1) || typeof value.postconditionVerified !== "boolean"
-    || (zeroActionSatisfied && qualificationRejected)) {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
-  if (mutationCount === 0) {
-    if (zeroActionSatisfied && value.candidateCount === 1 && value.identityRevalidated === true
-      && value.postconditionVerified === true && value.failureCode === undefined) {
-      return Object.freeze({ terminal: "confirmed", mutationOutcome: "no", failureCode: null });
-    }
-    if (qualificationRejected && Number.isSafeInteger(value.candidateCount)
-      && (value.candidateCount as number) >= 0 && value.identityRevalidated === false
-      && value.postconditionVerified === false && typeof value.failureCode === "string"
-      && /^BROWSER_[A-Z_]+$/u.test(value.failureCode)) {
-      return Object.freeze({ terminal: "rejected", mutationOutcome: "no", failureCode: value.failureCode });
-    }
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
-  if (value.candidateCount !== 1 || value.identityRevalidated !== true
-    || zeroActionSatisfied || qualificationRejected) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  if (value.postconditionVerified === false && value.failureCode !== "BROWSER_POSTCONDITION_FAILED") {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
-  if (command.kind === "dom-intent" && command.intent.kind === "fill"
-    && value.postconditionVerified === true && value.retainedValueVerified !== true) {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
-  return Object.freeze({
-    terminal: value.postconditionVerified ? "confirmed" : "rejected",
-    mutationOutcome: "confirmed",
-    failureCode: value.postconditionVerified ? null : "BROWSER_POSTCONDITION_FAILED",
-  });
-};
-
 export class BrowserCommandActor {
 
   public constructor(
@@ -373,9 +343,16 @@ export class BrowserCommandActor {
     state: BrowserCommandExecutionState,
   ): void {
     if (!state.dispatched) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-    const result = mutationReceipt(command, reply.result);
+    const result = decodeBrowserMutationReceipt(command, reply.result);
     const replyHash = hashValue(reply.result);
-    if (result.terminal === "rejected") this.mutations.markRejected(permit.commandId, replyHash, result.mutationOutcome);
+    if (result.terminal === "rejected") {
+      this.mutations.markRejected(
+        permit.commandId,
+        replyHash,
+        result.mutationOutcome,
+        result.failureCode ?? "BROWSER_POSTCONDITION_FAILED",
+      );
+    }
     else this.mutations.markConfirmed(permit.commandId, replyHash, result.mutationOutcome);
     emitBrowserMutationEvent({
       runtimeLogger: this.runtimeLogger, mutation: permit,

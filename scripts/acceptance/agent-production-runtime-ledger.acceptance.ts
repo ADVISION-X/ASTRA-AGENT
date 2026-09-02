@@ -288,23 +288,42 @@ try {
     where idempotency_key=?`).run("REMOTE_CHECKPOINT_REJECTED", "checkpoint:legacy-null-schedule");
   store.close();
 
-  store = new ProductionRuntimeStore(dataDirectory);
-  assert.equal(store.readTask(binaryTask.job_id)?.status, "completed");
-  assert.ok(store.readOutboxAuthority("checkpoint:legacy-null-schedule")?.nextDeliveryAt,
-    "opening the canonical store must restore a finite schedule for an old unfinished intent");
-  assert.equal(columns(Reflect.get(store, "database") as Database.Database, "production_outbox").includes("delivery_parked_at"), false);
-  store.close();
+  assert.throws(
+    () => new ProductionRuntimeStore(dataDirectory),
+    /PRODUCTION_DATA_MIGRATION_REQUIRED/u,
+    "ordinary startup must reject legacy data instead of silently rewriting it",
+  );
+  const unchangedData = new Database(path.join(dataDirectory, "production-runtime.sqlite"), { readonly: true });
+  assert.equal((unchangedData.prepare(`select next_delivery_at from production_outbox
+    where idempotency_key=?`).get("checkpoint:legacy-null-schedule") as { next_delivery_at: string | null })
+    .next_delivery_at, null, "schema validation must not repair historical data");
+  unchangedData.close();
 
   const emptyLegacyDirectory = path.join(temporary, "empty-legacy");
   await mkdir(emptyLegacyDirectory);
   const emptyLegacy = new Database(path.join(emptyLegacyDirectory, "production-runtime.sqlite"));
   emptyLegacy.exec("create table production_tasks(job_id text primary key,status text not null,failure_reason text)");
   emptyLegacy.close();
-  const cutover = new ProductionRuntimeStore(emptyLegacyDirectory);
-  const cutoverDatabase = Reflect.get(cutover, "database") as Database.Database;
-  assert.equal(columns(cutoverDatabase, "production_tasks").includes("current_reason"), true);
-  assert.equal(columns(cutoverDatabase, "production_tasks").includes("failure_reason"), false);
-  cutover.close();
+  assert.throws(
+    () => new ProductionRuntimeStore(emptyLegacyDirectory),
+    /PRODUCTION_SCHEMA_MIGRATION_REQUIRED/u,
+    "even an empty legacy schema requires an explicit maintenance migration",
+  );
+  const unchangedLegacy = new Database(path.join(emptyLegacyDirectory, "production-runtime.sqlite"), { readonly: true });
+  assert.equal(columns(unchangedLegacy, "production_tasks").includes("failure_reason"), true);
+  assert.equal(columns(unchangedLegacy, "production_tasks").includes("current_reason"), false);
+  unchangedLegacy.close();
+
+  const tempOnlyLegacyDirectory = path.join(temporary, "temp-only-legacy");
+  await mkdir(tempOnlyLegacyDirectory);
+  const tempOnlyLegacy = new Database(path.join(tempOnlyLegacyDirectory, "production-runtime.sqlite"));
+  tempOnlyLegacy.exec("create table production_continuations_v2_migration(continuation_ref text primary key)");
+  tempOnlyLegacy.close();
+  assert.throws(
+    () => new ProductionRuntimeStore(tempOnlyLegacyDirectory),
+    /PRODUCTION_SCHEMA_MIGRATION_REQUIRED/u,
+    "a leftover migration table must never be mistaken for a new database",
+  );
 
   const nonemptyLegacyDirectory = path.join(temporary, "nonempty-legacy");
   await mkdir(nonemptyLegacyDirectory);
@@ -313,7 +332,7 @@ try {
   nonemptyLegacy.prepare("insert into production_tasks(job_id,status,failure_reason) values(?,?,?)")
     .run("job:must-be-cleared", "recovery_pending", "legacy");
   nonemptyLegacy.close();
-  assert.throws(() => new ProductionRuntimeStore(nonemptyLegacyDirectory), /PRODUCTION_EMPTY_CUTOVER_REQUIRED/u);
+  assert.throws(() => new ProductionRuntimeStore(nonemptyLegacyDirectory), /PRODUCTION_SCHEMA_MIGRATION_REQUIRED/u);
 } finally {
   await rm(temporary, { recursive: true, force: true });
 }

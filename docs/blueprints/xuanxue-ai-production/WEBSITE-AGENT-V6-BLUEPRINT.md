@@ -3,11 +3,11 @@
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v15",
+  "blueprintId": "agent-production-runtime-v16",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V30"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V31"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -231,6 +231,20 @@ shared runtime 只负责以下运输、安全与恢复边界：
 - Browser/Provider dispatch budget 与 WAL 协调；
 - staged result 和 durable Outbox；
 - typed failure 透传与容量释放。
+
+这七项是 Runtime 的完整生产责任，不是“最低责任”。Runtime 不取得第八项“业务流程编排”责任：三十九条公开 route 只进入 Catalog 的静态注册与唯一路由分母，不进入 Runtime 的 Product 接纳、Provider 执行或业务完成分母。尚未被各 Product 权威单独接纳的 route 继续按现役法案在首个 Provider 动作前失败关闭；Runtime 不把“路由存在”升级成“车间已经投产”。
+
+### Runtime 单一专属收敛面
+
+| 对象 | Runtime 唯一拥有 | Runtime 明确不拥有 |
+|---|---|---|
+| 接单 | claim、lease、grant、fence、durable accept、attempt binding | Website 业务准入、Product 是否应执行 |
+| 执行安全 | dispatch budget、exact effect binding、任务局部恢复、typed failure 透传 | Prompt、模型、Child 顺序、业务恢复分支 |
+| 交付 | staged result 运输、单一 Outbox、Website receipt 的 hash/readback | 结果内容质量、Website 领域入库裁决 |
+| 启动与数据 | 通用 schema/invariant 校验、已完成迁移的只读前置检查 | Product 专属 legacy checkpoint 重建或 frontier 语义解释 |
+| 质检 | 上述 Runtime 责任的静态、状态机、数据库与恢复证据 | 39 route Provider 全跑、真实 GPT/Browser 业务证明、全系统 READY/RELEASE 裁决 |
+
+本轮 Runtime 施工只允许垂直修改这张表第一列的现役实现及其直接质检消费者。删除越界旧路径时，不新建 adapter、migration bridge、兼容 flag、第二 store、第二 proof 或第二 quality verdict。相邻 Owner 的 typed receipt 只作为 Runtime 接口输入做 hash/identity/readback 校验，证明正文仍留在相邻 Owner。
 
 V6 合同身份只有一条跨仓声明链：Website `ai-acceptance` 的 canonical provider contract/manifest 是唯一母本；AGENT `docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json` 只能精确保存 `contractId/version/providerRepo` 三字段，拒绝 `authorityArtifact`、generator、仓库修订与内容指纹字段。Website generator 只把 provider spec 的这三个发布身份投影到 consumer dependency；AGENT CHANGE/READY 只校验本仓 dependency 的 schema、唯一性与实际消费，RELEASE 才按冻结手册从绑定 participant commit 唯一核对 provider contract。
 
@@ -554,7 +568,7 @@ AGENT staged result、Outbox delivered、Website completion submission 均不等
 
 1. 先读取 Browser WAL 并确认没有 unresolved `PREPARED/DISPATCHED`，不得为施工盲重放或清理历史；
 2. 在 `select_exact_gpt_model_v2` 片区物理删除已选中时点击 expanded entry 的分支；true/false 两种 `aria-checked` 都只点击唯一精确 radio，并以 popup + collapsed entry + active simple + zero advanced 形成一个直接后置合同；
-3. 保留现役 `production_continuations` row 的 nullable unique frontier_ref 与 immutable origin provider/checkpoint receipt，在同一 row 垂直增加非空 current checkpoint receipt；新 row 首次 persist 时先证明 provider/checkpoint 成对且 current=origin。schema migration 只加列，禁止盲写 current；evidenceStore 可用后才对既有 frontier row 执行一次性 cutover：current provider 与 origin provider 完全相等也须读回 origin text artifact/evidence/hash 后复制；二者不等时，现役部署只允许在同 job/plugin 的 task-owned exact-call artifacts 中恰好找到一份 canonical URL、turn marker、prompt hash、response hash 与 current provider 全等的 article text checkpoint receipt后写入。旧 generated-image provider 因历史证据未持久直接前驱 text receipt不得伪造新 image receipt，只以精确 cutover code 阻断所属 task；零条、多条、hash 不等或 artifact 不可读同样 task-local fail-close，禁止从 origin 错配回填、回退 current provider、重做 Provider turn、保留 nullable/legacy reader或阻断其它 task；
+3. `production_continuations` 的一次性 frontier cutover 是进入 v16 目标态之前的部署维护动作，不是普通 Runtime 启动职责：只有所属 Product 数据语义 Owner 能用 task-owned exact-call artifact 解释历史 current provider；Runtime 只能验证通用 schema 以及所有带 frontier 的 row 已具有可读 current checkpoint receipt。切换读回闭合后，Runtime Startup 与 Catalog 中的 Product 专属重建 import、re-export、调用和验收入口必须物理删除。后续异常旧 row 只阻断所属 task 并给出精确原因，不得启动隐式迁移、从 origin 猜 current、重做 Provider turn、保留 nullable/legacy reader或阻断其它 task；
 4. 将 lane advance 物理重建为一个 CAS：同时写 current provider + current checkpoint receipt + lane_owner_job_id=null；text checkpoint receipt 绑定 observed-response artifact，generated-image checkpoint receipt 绑定 original/webp 两个 task-owned artifact并内嵌其同 conversation 直接前驱 text receipt，row 不保存正文或 bytes；
 5. 在 `focusContinuation` 片区把 try/finally 边界前移到 acquire 成功的下一行，覆盖 expected provider compare、conversation focus、identity verify、Profile、Prompt、wait、checkpoint 与 advance；删除 compare 失败位于 finally 之外的旧结构，只有 advance 的 CAS/readback 已确认才不得 release；
 6. 物理删除图片 wait/checkpoint 对 `[data-message-author-role='assistant']` 内层节点和非空 responseText 的依赖；以紧邻 user turn 的 exact `conversation-turn-*[data-turn='assistant']` section 为 turn Owner，只接受生成停止且恰好一个完整、可见、非空 alt 的语义主图，再把同一 semanticMediaId 交给现役 Browser 已鉴权 bytes 能力；
@@ -564,9 +578,15 @@ AGENT staged result、Outbox delivered、Website completion submission 均不等
 10. Runtime Log Spine 保留最内层 debugger detach/channel 原生 code + cause，claim 的安全 reason_codes 投影在脱敏后仍必须是机器允许的 code，禁止因脱敏值二次触发 `CLAIM_REQUEST_FAILED`，也禁止用 `BROWSER_INFRASTRUCTURE_FAILED` 覆盖原生原因；
 11. 原位重建确定性验收和真实 Chrome 验收：真实附件卡片出现且 ready SVG 短暂无 layout box 时继续 fresh query，ready 后 `write_exact_gpt_prompt` 实际开始、file-input mutation 恰为一次；残留附件的新 fresh job 即使已停根 URL 也必须取得新 loaderId/Document 并证明 attachment=0，附件 X/第二 Tab mutation 均为零。真实图片 turn 为外层 assistant section、内层 assistant-role 节点为零、raw img 为三而唯一语义主图为一时，wait/checkpoint 必须成功并取得同一原始 bytes；同 task article 已 checkpoint 且上一 attempt 已 CONFIRMED image submit 后的新 attempt 通过唯一 `task_exact_effect` 直接只读原 image turn，research/article/image 的 attach/profile/prompt/draft/submit 增量均为零；零既有 image submit 时才允许当前 attempt 首次提交；`target_local + REJECTED` failure 必须被 Website 正常接收，真实 confirmed submit 的后置读回故障必须保留同一 attempt 且再次 submit 为零；每个 acquire 失败注入点 lane_owner 都回到 null，其它 job 仍可 claim。
 
-禁止 replacement job/run、legacy reader、旧 continuation 猜选、备份回灌、alias、bridge、dual read/write、shadow、fallback、第二恢复链或第二结果真相。现有任务身份、失败史、Provider effect 与业务对象都保留；既有无 frontier 的历史 continuation 不自动取得新权威。已有 frontier row 的 current checkpoint 只能通过上述一次性精确 cutover 形成：provider 未推进才复制 origin，provider 已推进则必须唯一匹配现役 task-owned exact-call artifact，迁移完成后物理不存在 nullable/旧读路径。
+禁止 replacement job/run、legacy reader、旧 continuation 猜选、备份回灌、alias、bridge、dual read/write、shadow、fallback、第二恢复链或第二结果真相。现有任务身份、失败史、Provider effect 与业务对象都保留；既有无 frontier 的历史 continuation 不自动取得新权威。v16 只允许零张 `production_*` 表的首次安装直接建立当前 schema 并设置 WAL；已有任一 `production_*` 表即视为现役或历史库，只能读取验证 WAL、表/列与数据不变量。旧 schema、遗留临时表或需要修补的 Outbox 历史 row 必须给出 `PRODUCTION_SCHEMA_MIGRATION_REQUIRED` / `PRODUCTION_DATA_MIGRATION_REQUIRED` 并停止，绝不在构造器或启动循环中 `ALTER`、重建表、回填、恢复旧调度或解释 Product checkpoint。
 
 ## 9. 聚焦验收
+
+Runtime 专属 CHANGE 分母只覆盖第 4 节的单一收敛面：V6 claim 身份与授权、durable accept/attempt、lease/fence、exact effect 安全、任务局部恢复、Outbox、typed failure 透传、通用 schema/invariant 读回以及 Website admission receipt 到来前后 `failed/completed` 的原子变化。Catalog 可静态证明 39 route 唯一且合同相等，但该检查不得触发任一 Product、GPT 或 Browser 动作。Runtime 验收不得要求非 SEO Product 出现 `context.gpt.execute`，不得把 `PRODUCT_FLOW_NOT_IMPLEMENTED` 当成 Runtime 缺陷，也不得用 39 route Provider 执行、真实 Chrome 或 Website 领域入库全量结果给 Runtime 签发第二份 PASS。相邻 Owner 的真实证明仍各自执行；Runtime 只核对它消费的 typed receipt 与 hash/identity 是否原样闭合。
+
+Runtime 的 v16 删除验收必须证明：`runtime-startup.ts` 与 `catalog.ts` 不再引用任何 Product 专属 frontier cutover/reconstruction；普通启动不写历史 Product checkpoint；全仓不存在从 Runtime 到该旧执行器的可达 import。本轮显式维护只为本地现役 Runtime continuation schema 一次性补齐 `semantic_contract_hash` 与 `semantic_admission_receipt_json` 两个 nullable 列，没有改写 continuation、task、Outbox 或 Product checkpoint；维护后 `integrity_check=ok`、十五条 continuation 保持不变、所有非空 `frontier_ref` 行均已有非空 `current_checkpoint_json`。随后删除全部启动期 schema/data 迁移执行器，第二次打开只验不改；该本地读回只证明当前部署迁移已闭合，不冒充其它部署或 Product 的业务完成证据。
+
+本节下方既有的 Product、GPT、Browser 与 Website 验收条款继续作为各 Owner 汇入 RELEASE 的跨边界集成证据，不进入 Runtime 专属 CHANGE verdict，也不得由 Runtime manifest 收编成全系统第二裁决。
 
 删除同步聚焦验收：删除时已有活动 lease 与 cold-start 无 lease 均须让同一历史 device 的新 session 读回 exact 撤权，foreign device 仍为 404；cold-start 未回执 Outbox 保留原 payload/hash 但 `next_delivery_at=null`、零重发、零伪 receipt，重启后不得重排。单 job 的 404、临时 status 失败或撤权不得退出整轮 worker或阻断其他 job claim；未决 Browser mutation 只保留 job-local 只读现场。
 
@@ -576,7 +596,7 @@ AGENT staged result、Outbox delivered、Website completion submission 均不等
 
 状态机验收：初始失败、durable accept、同 attempt re-lease、第一次真实外部 failure 冻结、Website 自动接受后续 attempt、连续 4/10/100 次失败后原 job 仍有有限 retry 并在到期后可 claim、DISPATCHED 在原 attempt 对账、exact submit CONFIRMED 后分别注入 DOM candidate missing/ambiguous/stale、BROWSER_TARGET_INVALID、BROWSER_DOCUMENT_INVALID、channel fault、wait timeout 与进程重启，全部必须保存原 confirmed_submit、以 `POST_SUBMIT_READBACK_FAULT` 释放、保持同一 accepted attempt 可 claim、再次 submit mutation count 为零；Provider 明确 terminal negative、submit evidence 损坏/多义只允许结束当前 effect/attempt 恢复，不得结束未撤权 Website task，只有业务永久撤权可停止。其余继续覆盖 research frontier 首绑/冲突、decline 零 mutation、current checkpoint 单调推进、acquire 后逐点 release、新执行恢复最远 text/image artifact、exact checkpoint 后接收器故障、任务局部隔离、staged result 待入库仍 failed、领域 admission 原子 completed。进度验收必须证明 accepted/progress seq2 只显示 attempt 已启动，Provider submit、checkpoint、article_synthesis、image 与领域入库分层显示且各自来自对应现役 Owner。
 
-既有数据迁移验收必须构造 `origin provider/checkpoint=research + current provider=article + current_checkpoint=null` 的真实旧 row，并提供同 job/plugin 下唯一匹配 article current provider 四项身份/hash 的 task-owned exact-call artifact；cutover 后 current checkpoint 必须等于该 article receipt，下一 attempt 直接从 image ordinal 32 开始，research/article attach/write/submit 增量均为零。current provider 等于 origin 时必须先把 origin artifact/evidence/hash 读回验证再复制；旧 generated-image provider 缺直接前驱 receipt、唯一 artifact 缺失、多义或 hash 漂移时只阻断所属 task，provider/origin 均不得改变，其它 job claim 成功。正常 credential + stale lease 启动不得把精确 `GPT_CONTINUATION_CUTOVER_*` 原因覆盖成 `AGENT_PROCESS_RESTARTED`。
+历史 Product frontier cutover 的构造型验收不再属于 Runtime v16 的现役验收，也不得由普通启动复放。Runtime 聚焦验收只构造旧 schema、遗留表和需修补历史 row，证明打开时精确失败、原表/原 row 不变；再对已经显式维护完成的现役库做只读 `integrity_check`、列/表集合、frontier current checkpoint 与 Outbox schedule 不变量读回，证明第二次启动的 schema/data 写入增量为零。Product Owner 若仍需保留历史迁移证据，必须在其独立施工与 RELEASE 分母内完成，不能回挂 Runtime manifest 或 Runtime PASS。
 
 claim 日志验收必须证明 Website 返回合法安全 `reason_codes` 时，Runtime Log Spine 保存同一 allowlisted 机器码、claim span 只有一个真实 terminal，且 `CLAIM_REQUEST_FAILED` 事件增量为零；不安全自由文本仍在写前脱敏，但脱敏结果不得重新进入机器码校验并伪造第二失败。
 

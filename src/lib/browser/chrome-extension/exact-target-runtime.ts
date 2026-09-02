@@ -11,7 +11,6 @@ export type ExtensionOperatorTargetClaim = Readonly<{
   documentRef: string;
   navigationEpoch: number;
   url: string;
-  title: string;
 }>;
 
 export const assertExactTarget = (target: ExtensionExactTarget): void => {
@@ -36,7 +35,7 @@ export class ExtensionExactTargetRegistry {
 
   public describeOperatorClaim(
     target: ExtensionExactTarget,
-    input: Readonly<{ url?: string; title?: string }>,
+    input: Readonly<{ url?: string }>,
   ): ExtensionOperatorTargetClaim {
     assertExactTarget(target);
     if (typeof input.url !== "string" || !isHttpsUrl(input.url)) {
@@ -47,7 +46,6 @@ export class ExtensionExactTargetRegistry {
       documentRef: target.documentRef,
       navigationEpoch: target.navigationEpoch,
       url: input.url,
-      title: typeof input.title === "string" ? input.title.slice(0, 512) : "",
     };
   }
 

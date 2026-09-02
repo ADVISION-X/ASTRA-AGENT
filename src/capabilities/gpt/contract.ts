@@ -1,7 +1,25 @@
 import { createHash } from "node:crypto";
 
 import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
+import type {
+  GptChildCapabilityId,
+  GptChildInputMap,
+  GptChildOutputMap,
+} from "./child-types.js";
 import type { GptContinuationStorePort } from "./session/gpt-continuation-store-port.js";
+
+export type {
+  GptApprovedFile,
+  GptApprovedFileInput,
+  GptChildCall,
+  GptChildCapabilityId,
+  GptChildInputMap,
+  GptChildOutputMap,
+  GptChildSuccess,
+  GptGeneratedImageCheckpointInput,
+  GptHash,
+  GptTextCheckpointInput,
+} from "./child-types.js";
 
 export const GPT_ABILITY_GROUP_ID = "gpt" as const;
 export const GPT_TRANSPORT = "gpt-web" as const;
@@ -11,6 +29,17 @@ export type GptFailureClassification = "failed";
 export type GptChildProfile = "DOM_OBSERVATION" | "TARGET_LOCAL_MUTATION"
   | "PROVIDER_EFFECT_ONCE" | "CONTINUATION_TRANSACTION";
 export type GptChildDecision = "DONE" | "ACT" | "WAIT" | "FAIL_CLOSED";
+
+export type GptChildBrowserFact = Readonly<{
+  exactCallIdentityHash: `sha256:${string}`;
+  childCapabilityId: GptChildCapabilityId;
+  effectScope: "target_local" | "provider_effect";
+  browserOutcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
+  mutationOutcome: "no" | "dispatched" | "confirmed";
+  terminalAt: string | null;
+  evidenceRef: string;
+  evidenceHash: `sha256:${string}`;
+}>;
 
 export interface ChildCapabilityContract {
   readonly childCapabilityId: string;
@@ -64,17 +93,17 @@ const GPT_CHILD_CONTRACTS = {
   acquire_gpt_continuation_lane: { childCapabilityId: "acquire_gpt_continuation_lane", contractVersion: 2, semanticIntent: "acquire the exact complete continuation lane", owner: "gpt", inputSchema: "gpt.acquire_gpt_continuation_lane.input.v1", requiredTargetKind: "none", allowedDocumentTransition: "not-applicable", profile: "CONTINUATION_TRANSACTION", boundedWait: false, decisions: ["DONE", "ACT", "FAIL_CLOSED"], precondition: "complete row expected version and one mutually exclusive typed authorization", actionQualification: "lane is free or identically owned", mutationBudget: "zero-or-one-transaction", oneObservationOrMutation: "at-most-one-mutation", positivePostcondition: "lane owner and new version read back exactly", negativePostcondition: "incomplete row variant mix owner subject authorization or version conflict fails closed", evidenceSchema: "gpt-child-capability-proof.v2", evidenceBoundary: "hashes-refs-counts-typed-causes-only", failureClassification: ["failed"], replayPolicy: "transaction-identical-readback" },
   advance_gpt_continuation_lane: { childCapabilityId: "advance_gpt_continuation_lane", contractVersion: 2, semanticIntent: "advance the exact continuation frontier and release the lane", owner: "gpt", inputSchema: "gpt.advance_gpt_continuation_lane.input.v1", requiredTargetKind: "none", allowedDocumentTransition: "not-applicable", profile: "CONTINUATION_TRANSACTION", boundedWait: false, decisions: ["DONE", "ACT", "FAIL_CLOSED"], precondition: "same lane owner version and exact new provider checkpoint pair", actionQualification: "current pair differs and CAS version matches", mutationBudget: "zero-or-one-transaction", oneObservationOrMutation: "at-most-one-mutation", positivePostcondition: "provider checkpoint advance atomically and lane owner is null", negativePostcondition: "owner version pair or content conflict fails closed", evidenceSchema: "gpt-child-capability-proof.v2", evidenceBoundary: "hashes-refs-counts-typed-causes-only", failureClassification: ["failed"], replayPolicy: "transaction-identical-readback" },
   release_gpt_continuation_lane: { childCapabilityId: "release_gpt_continuation_lane", contractVersion: 2, semanticIntent: "release the exact continuation lane without advancing", owner: "gpt", inputSchema: "gpt.release_gpt_continuation_lane.input.v1", requiredTargetKind: "none", allowedDocumentTransition: "not-applicable", profile: "CONTINUATION_TRANSACTION", boundedWait: false, decisions: ["DONE", "ACT", "FAIL_CLOSED"], precondition: "same exact lane owner and version", actionQualification: "lane is currently owned by this exact job", mutationBudget: "zero-or-one-transaction", oneObservationOrMutation: "at-most-one-mutation", positivePostcondition: "lane owner is null and release version reads back exactly", negativePostcondition: "foreign owner version conflict or simultaneous advance fails closed", evidenceSchema: "gpt-child-capability-proof.v2", evidenceBoundary: "hashes-refs-counts-typed-causes-only", failureClassification: ["failed"], replayPolicy: "transaction-identical-readback" },
-} as const satisfies Readonly<Record<string, ChildCapabilityContract>>;
+} as const satisfies Readonly<{
+  [K in GptChildCapabilityId]: ChildCapabilityContract & Readonly<{ childCapabilityId: K }>;
+}>;
 
-export type GptChildCapabilityId = keyof typeof GPT_CHILD_CONTRACTS;
 export const GPT_CHILD_CAPABILITY_IDS = Object.freeze(
   (Object.keys(GPT_CHILD_CONTRACTS) as GptChildCapabilityId[]).sort((left, right) => left.localeCompare(right)),
 );
 export const GPT_CHILD_CAPABILITY_CONTRACTS: Readonly<Record<GptChildCapabilityId, ChildCapabilityContract>> =
   Object.freeze(GPT_CHILD_CONTRACTS);
 
-export type GptChildCapabilityIntent = Readonly<{
-  childCapabilityId: GptChildCapabilityId;
+type GptChildExecutionIdentity = Readonly<{
   executionId: string;
   jobId: string;
   attemptId: string;
@@ -84,8 +113,22 @@ export type GptChildCapabilityIntent = Readonly<{
   callId: string;
   inputHash: `sha256:${string}`;
   actionOrdinal: number;
-  input: Readonly<Record<string, unknown>>;
 }>;
+
+type GptChildCapabilityIntentMap = {
+  readonly [K in GptChildCapabilityId]: GptChildExecutionIdentity & Readonly<{
+    childCapabilityId: K;
+    input: GptChildInputMap[K];
+  }>;
+};
+
+export type GptAnyChildCapabilityIntent = GptChildCapabilityIntentMap[GptChildCapabilityId];
+
+export type GptChildCapabilityIntent<K extends GptChildCapabilityId> =
+  GptChildExecutionIdentity & Readonly<{
+    childCapabilityId: K;
+    input: GptChildInputMap[K];
+  }>;
 
 export interface GptChildCapabilityProof {
   readonly schemaVersion: "gpt-child-capability-proof.v2";
@@ -110,18 +153,10 @@ export interface GptChildCapabilityProof {
   readonly authorityRefHashes: readonly `sha256:${string}`[];
   readonly factResultIds: readonly string[];
   readonly candidateCardinality: Readonly<{ raw: number | null; eligible: number | null }>;
+  readonly observationRevisionHash: `sha256:${string}` | null;
   readonly committedMutation: "no" | "dispatched" | "confirmed";
   readonly postconditionResult: "passed" | "failed" | "pending";
-  readonly browserFact: Readonly<{
-    exactCallIdentityHash: `sha256:${string}`;
-    childCapabilityId: GptChildCapabilityId;
-    effectScope: "target_local" | "provider_effect";
-    browserOutcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
-    mutationOutcome: "no" | "dispatched" | "confirmed";
-    terminalAt: string | null;
-    evidenceRef: string;
-    evidenceHash: `sha256:${string}`;
-  }> | null;
+  readonly browserFact: GptChildBrowserFact | null;
   readonly nativeFailureCode: string | null;
   readonly startedAt: string;
   readonly endedAt: string;
@@ -129,11 +164,8 @@ export interface GptChildCapabilityProof {
   readonly evidenceHash: `sha256:${string}`;
 }
 
-export type GptChildCapabilityResult = Readonly<{
-  status: "success" | GptFailureClassification;
-  value: unknown;
+type GptChildResultCommon = Readonly<{
   proof: GptChildCapabilityProof;
-  failureCode: string | null;
   failureCause: Readonly<{ name: string; code: string | null }> | null;
   failureBrowserEffect: Readonly<{
     effectScope: "target_local" | "provider_effect";
@@ -141,6 +173,20 @@ export type GptChildCapabilityResult = Readonly<{
     browserOutcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
   }> | null;
 }>;
+
+export type GptChildCapabilityResult<K extends GptChildCapabilityId = GptChildCapabilityId> =
+  | GptChildResultCommon & Readonly<{
+      status: "success";
+      value: GptChildOutputMap[K];
+      failureCode: null;
+      failureCause: null;
+      failureBrowserEffect: null;
+    }>
+  | GptChildResultCommon & Readonly<{
+      status: GptFailureClassification;
+      value: null;
+      failureCode: string;
+    }>;
 
 export type GptExecutionContext = Readonly<{
   dataDir: string;
@@ -153,8 +199,16 @@ export type GptExecutionContext = Readonly<{
 }>;
 
 export const gptExactCallIdentityHash = (
-  intent: Pick<GptChildCapabilityIntent,
-    "jobId" | "attemptId" | "pluginId" | "pluginVersion" | "productStepId" | "callId" | "childCapabilityId" | "inputHash">,
+  intent: Readonly<{
+    jobId: string;
+    attemptId: string;
+    pluginId: string;
+    pluginVersion: number;
+    productStepId: string;
+    callId: string;
+    childCapabilityId: GptChildCapabilityId;
+    inputHash: `sha256:${string}`;
+  }>,
 ): `sha256:${string}` => `sha256:${createHash("sha256").update(JSON.stringify([
   intent.jobId,
   intent.attemptId,
@@ -170,5 +224,8 @@ export interface GptAbilityGroup {
   readonly abilityGroupId: typeof GPT_ABILITY_GROUP_ID;
   readonly transport: typeof GPT_TRANSPORT;
   listChildCapabilityIds(): readonly GptChildCapabilityId[];
-  execute(intent: GptChildCapabilityIntent, context: GptExecutionContext): Promise<GptChildCapabilityResult>;
+  execute<K extends GptChildCapabilityId>(
+    intent: GptChildCapabilityIntent<K>,
+    context: GptExecutionContext,
+  ): Promise<GptChildCapabilityResult<K>>;
 }

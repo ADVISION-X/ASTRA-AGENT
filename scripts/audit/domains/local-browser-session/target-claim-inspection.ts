@@ -6,6 +6,7 @@ import { brokerPath, createLocalFinding, requireIdentifiers, requireSource, sour
 const targetClaimAwaiterPath = "src/lib/browser/chrome-extension/websocket-target-claim-awaiter.ts";
 const sitePolicyPath = "src/lib/browser/exact-target/browser-site-policy-registry.ts";
 const targetLeaseManagerPath = "src/lib/browser/exact-target/browser-target-lease-manager.ts";
+const laneCoordinatorPath = "src/lib/browser/infrastructure/browser-lane-coordinator.ts";
 const jobBoundClaimAcceptancePath = "scripts/acceptance/local-browser-auto-pairing.acceptance.ts";
 
 const inspectJobBoundClaimOrder = (actor: ReturnType<typeof requireSource>, findings: InspectorFinding[], lawId: string): void => {
@@ -98,7 +99,9 @@ const inspectJobBoundClaimPolicy = (
   const broker = requireSource(context, findings, lawId, brokerPath);
   const acceptance = requireSource(context, findings, lawId, jobBoundClaimAcceptancePath);
   const leaseManager = requireSource(context, findings, lawId, targetLeaseManagerPath);
-  if (!targetAuthority || !sitePolicy || !actor || !supervisor || !broker || !acceptance || !leaseManager) return;
+  const lane = requireSource(context, findings, lawId, laneCoordinatorPath);
+  if (!targetAuthority || !sitePolicy || !actor || !supervisor || !broker || !acceptance
+    || !leaseManager || !lane) return;
   requireIdentifiers(targetAuthority, [
     "acquireJobBoundChatGptTarget", "create", "remove", "GPT_WEB_START_URL",
     "requireGptWebPolicyForUrl", "waitForCreatedTarget", "navigationPublication",
@@ -106,9 +109,11 @@ const inspectJobBoundClaimPolicy = (
   ], findings, lawId, "The fixed extension must create, validate and retain exactly one visible system Target for all GPT turns.");
   requireIdentifiers(supervisor, [
     "requireGptWebPolicyForUrl", "establishClaimBoundWorkspace", "pendingJobBoundTargetAcquisition",
-    "acquireJobBoundTargetLease", "requestPreauthorizedTargetAcquisition",
+    "acquireJobBoundTargetLease",
   ], findings, lawId,
   "The server must bind initial Target acquisition to one current job request before establishing Session Workspace.");
+  requireIdentifiers(lane, ["requestPreauthorizedTargetAcquisition", "pendingJobBoundTargetAcquisition"],
+    findings, lawId, "The sole Browser lane must bind target acquisition to the current queued job.");
   requireIdentifiers(broker, ["current", "targetRef", "navigationEpoch"], findings, lawId,
     "The sole Broker must reject target replacement and non-monotonic Document claims.");
   inspectJobBoundClaimOrder(actor, findings, lawId);
@@ -118,8 +123,10 @@ const inspectJobBoundClaimPolicy = (
   const targetAuthorityText = targetAuthority.getFullText();
   if (!targetAuthorityText.includes("chromeApi.debugger.getTargets()")
     || !targetAuthorityText.includes("candidate.tabId === tabId")
-    || !targetAuthorityText.includes('candidate.type === "page"')
-    || !targetAuthorityText.includes("candidate.attached === true")
+    || !(targetAuthorityText.includes('candidate.type === "page"')
+      || targetAuthorityText.includes('candidates[0]!.type !== "page"'))
+    || !(targetAuthorityText.includes("candidate.attached === true")
+      || targetAuthorityText.includes("candidates[0]!.attached !== true"))
     || targetAuthorityText.includes("tabs.query")
     || targetAuthorityText.includes("Page.bringToFront")) findings.push(createLocalFinding({
     checkId: "browser-authority/job-bound-target-claim", lawId, filePath: targetAuthorityPath,

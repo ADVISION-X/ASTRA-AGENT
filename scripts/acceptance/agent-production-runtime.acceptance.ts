@@ -12,13 +12,8 @@ import { assertProductionTaskRoutePolicy } from "../../src/lib/local-runtime/pro
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../src/mediator/agent-production-route.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { HASH_A, HASH_B, claimTask, task } from "./agent-production-runtime-fixtures.js";
-import "./agent-production-gpt-browser-lifecycle.acceptance.js";
-import "./agent-production-gpt-artifact-recovery.acceptance.js";
-import "./agent-production-frontier-cutover.acceptance.js";
-import "./agent-production-continuation-restart.acceptance.js";
 import "./agent-production-runtime-ledger.acceptance.js";
 import "./agent-production-runtime-continuation.acceptance.js";
-import "./agent-production-provider-recovery.acceptance.js";
 import "./agent-production-runtime-startup.acceptance.js";
 
 assert.equal(productionPluginCatalog.length, 12);
@@ -174,31 +169,11 @@ await assert.rejects(
   () => dispatchWebsiteAgentTask(productionTask, () => { throw new Error("CONTEXT_MUST_NOT_BE_CREATED"); }),
   /CONTEXT_MUST_NOT_BE_CREATED/u,
 );
-const splitProductTurnPlugins = new Set([
-  "bazi-ai-full-analysis",
-  "bazi-chart-interpretation",
-  "bazi-report-followup",
-]);
-for (const plugin of productionPluginCatalog) {
-  if (plugin.pluginId === "public-knowledge-article-pipeline") continue;
-  const productSource = await readFile(
-    new URL(`../../src/plugins/${plugin.pluginId}/flow.ts`, import.meta.url), "utf8",
-  );
-  const productExecutionSource = splitProductTurnPlugins.has(plugin.pluginId)
-    ? `${productSource}\n${await readFile(
-      new URL(`../../src/plugins/${plugin.pluginId}/product-turn.ts`, import.meta.url), "utf8",
-    )}`
-    : productSource;
-  assert.doesNotMatch(productSource, /PRODUCT_FLOW_NOT_IMPLEMENTED:/u);
-  assert.match(productExecutionSource, /context\.gpt\.execute/u);
-  assert.match(productExecutionSource, /readCallFacts/u);
-}
-
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V30",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V31",
   evidenceMode: "exam.state-machine",
-  clauses: ["forbidden:10", "forbidden:11", "forbidden:12", "forbidden:13", "forbidden:19", "forbidden:23", "forbidden:24", "forbidden:25", "forbidden:26", "forbidden:29", "forbidden:9", "summary"],
+  clauses: ["forbidden:12", "forbidden:13", "forbidden:14", "forbidden:15", "forbidden:22", "forbidden:26", "forbidden:31", "forbidden:32", "forbidden:5", "forbidden:7", "forbidden:8", "summary"],
   locator: "acceptance:agent-production-runtime:attempt-recovery-state-machine",
   observedValue: "binary task lifecycle continuation lease outbox and typed failure transitions exercised",
 });

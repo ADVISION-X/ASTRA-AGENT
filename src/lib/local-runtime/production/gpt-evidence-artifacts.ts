@@ -58,12 +58,38 @@ const assertImageFormat = (row: Readonly<Record<string, unknown>>): void => {
     || row.mediaType !== "image/webp" || row.width !== 1200 || row.height !== 630) invalidImage();
 };
 
+const predecessorTextCheckpoint = (
+  row: Readonly<Record<string, unknown>>,
+): Readonly<Record<string, unknown>> => {
+  const value = row.predecessorTextCheckpoint;
+  if (!value || typeof value !== "object" || Array.isArray(value)) invalidImage();
+  const checkpoint = value as Readonly<Record<string, unknown>>;
+  const expectedKeys = [
+    "artifactRef", "assistantTurnId", "canonicalConversationUrl", "checkpointKind",
+    "evidenceHash", "evidenceRef", "promptHash", "rawDomHash", "semanticTextHash",
+    "sourceAttemptId", "turnMarker",
+  ].sort();
+  if (Object.keys(checkpoint).sort().join("\0") !== expectedKeys.join("\0")
+    || checkpoint.checkpointKind !== "text"
+    || typeof checkpoint.sourceAttemptId !== "string" || !checkpoint.sourceAttemptId
+    || typeof checkpoint.assistantTurnId !== "string" || !checkpoint.assistantTurnId
+    || typeof checkpoint.artifactRef !== "string" || !checkpoint.artifactRef
+    || typeof checkpoint.canonicalConversationUrl !== "string" || !checkpoint.canonicalConversationUrl
+    || typeof checkpoint.turnMarker !== "string" || !checkpoint.turnMarker
+    || typeof checkpoint.evidenceRef !== "string" || !checkpoint.evidenceRef
+    || !["rawDomHash", "semanticTextHash", "promptHash", "evidenceHash"].every(
+      (key) => typeof checkpoint[key] === "string" && /^sha256:[a-f0-9]{64}$/u.test(checkpoint[key] as string),
+    )) invalidImage();
+  return checkpoint;
+};
+
 const generatedImageArtifacts = (value: unknown): EvidenceArtifact[] => {
   const row = imageRecord(value);
   const bytes = imageBytes(row);
   assertImageIdentity(row);
   assertImageAuthority(row);
   assertImageFormat(row);
+  const predecessor = predecessorTextCheckpoint(row);
   const receipt = new TextEncoder().encode(JSON.stringify({
     schemaVersion: "agent-generated-image-receipt.v1",
     assistantTurnId: row.assistantTurnId,
@@ -84,6 +110,7 @@ const generatedImageArtifacts = (value: unknown): EvidenceArtifact[] => {
     mediaType: "image/webp",
     width: 1200,
     height: 630,
+    predecessorTextCheckpoint: predecessor,
   }));
   return [
     { suffix: "original", artifactType: "other", mimeType: "application/octet-stream",

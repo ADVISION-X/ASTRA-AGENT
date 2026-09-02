@@ -283,7 +283,7 @@ const staticFieldReaders: Readonly<Record<string, (node: DevToolsRecord) => unkn
 const mechanicalFieldNames = new Set([
   "testId", "type", "role", "name", "label", "value", "checked", "connected", "layout",
   "visible", "computedDisplay", "computedVisibility", "computedOpacity", "effectiveOpacity", "hidden", "ariaHidden",
-  "inert", "disabled", "ariaDisabled", "bounds", "viewport", "hitTest",
+  "inert", "disabled", "ariaDisabled",
 ]);
 
 export const inspectNode = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number, fields: readonly string[]): Promise<Readonly<Record<string, unknown>>> => {
@@ -337,7 +337,7 @@ export const boxCenter = async (runtime: ExtensionDebuggerRuntime, tabId: number
 };
 
 const optionalBoxCenter = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number): Promise<Readonly<{ x: number; y: number }> | null> => {
-  const facts = await readMechanicalFacts(runtime, tabId, nodeId);
+  const facts = await readMechanicalFacts(runtime, tabId, nodeId, true);
   const bounds = facts.bounds;
   if (!pointerActionEligible(facts) || bounds === null) return null;
   return {
@@ -380,7 +380,6 @@ export const attribute = (node: DevToolsRecord, name: string): string | undefine
   return undefined;
 };
 
-export const truncate = (value: string, maxChars: number): string => value.slice(0, maxChars);
 const record = (value: unknown): DevToolsRecord => {
   if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error(DOM_READ_INVALID);
   return value as DevToolsRecord;

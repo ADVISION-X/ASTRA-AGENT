@@ -5,10 +5,20 @@ export {
 } from "./ability-group.js";
 export {
   type GptAbilityGroup,
+  type GptApprovedFile,
+  type GptApprovedFileInput,
+  type GptChildCall,
+  type GptChildBrowserFact,
   type GptChildCapabilityId,
   type GptChildCapabilityIntent,
   type GptChildCapabilityProof,
   type GptChildCapabilityResult,
+  type GptChildInputMap,
+  type GptChildOutputMap,
+  type GptChildSuccess,
+  type GptGeneratedImageCheckpointInput,
+  type GptHash,
+  type GptTextCheckpointInput,
 } from "./contract.js";
 export {
   buildGptExecutionProfile,

@@ -1,11 +1,12 @@
 import type { BrowserDomIntent } from "../exact-target/browser-dom-intent.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
+import { resolveCoherentMutationCandidate } from "./dom-coherent-candidate.js";
 import { executeCoherentObservation } from "./dom-coherent-observation.js";
 import { attribute, boxCenter, describeNode,
   documentState, inspectNode, nodeForRead, nodeForSelector, nodeText, queryAll,
   queryCandidateSet, queryVisibleTextMatches, requireKeyboardActionTarget,
-  selectorForLocator, truncate } from "./dom-query-runtime.js";
+  selectorForLocator } from "./dom-query-runtime.js";
 type FindIntent = Extract<BrowserDomIntent, { kind: "find" }>;
 type ClickIntent = Extract<BrowserDomIntent, { kind: "click" }>;
 type HoverIntent = Extract<BrowserDomIntent, { kind: "hover" }>;
@@ -14,6 +15,7 @@ type KeypressIntent = Extract<BrowserDomIntent, { kind: "keypress" }>;
 type ValueIntent = Exclude<BrowserDomIntent, {
   kind: "document" | "observe" | "find" | "click" | "hover" | "doubleClick" | "keypress";
 }>;
+type CurrentDocumentAssertion = () => void;
 /** Executes the finite declarative DOM intent set without a script/eval surface. */
 const executeFindIntent = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
@@ -65,6 +67,7 @@ const waitForNextBoundedObservation = async (deadline: number): Promise<void> =>
 
 type QualificationReceipt = Readonly<{
   candidateCount: number;
+  qualificationStage: "candidate-set" | "actionability";
   identityRevalidated: false;
   mutationCount: 0;
   postconditionVerified: false;
@@ -72,25 +75,44 @@ type QualificationReceipt = Readonly<{
   failureCode: string;
 }>;
 
-const qualificationReceipt = (candidateCount: number, failureCode: string): QualificationReceipt =>
-  Object.freeze({ candidateCount, identityRevalidated: false, mutationCount: 0,
-    postconditionVerified: false, qualificationRejected: true, failureCode });
+const qualificationReceipt = (
+  candidateCount: number,
+  failureCode: string,
+  qualificationStage: QualificationReceipt["qualificationStage"],
+): QualificationReceipt =>
+  Object.freeze({ candidateCount, qualificationStage, identityRevalidated: false, mutationCount: 0,
+    postconditionVerified: false, qualificationRejected: true,
+    failureCode: qualificationStage === "actionability" ? "BROWSER_DOM_ACTION_NOT_QUALIFIED" : failureCode });
 
 const qualifiedNode = async (
-  readNodes: () => Promise<readonly number[]>,
+  readNode: () => Promise<number>,
 ): Promise<Readonly<{ nodeId: number }> | Readonly<{ receipt: QualificationReceipt }>> => {
-  let nodes: readonly number[];
-  try { nodes = await readNodes(); }
+  let nodeId: number;
+  try { nodeId = await readNode(); }
   catch (error) {
     const code = error instanceof Error ? error.message : "";
     if (!/^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|NODE_STALE|READ_INVALID)$/u.test(code)) throw error;
-    return { receipt: qualificationReceipt(code === "BROWSER_DOM_CANDIDATE_AMBIGUOUS" ? 2 : 0, code) };
+    return { receipt: qualificationReceipt(
+      code === "BROWSER_DOM_CANDIDATE_AMBIGUOUS" ? 2 : 0, code, "candidate-set",
+    ) };
   }
-  if (nodes.length !== 1) return { receipt: qualificationReceipt(
-    nodes.length, nodes.length === 0 ? "BROWSER_DOM_CANDIDATE_MISSING" : "BROWSER_DOM_CANDIDATE_AMBIGUOUS",
-  ) };
-  return { nodeId: nodes[0]! };
+  return { nodeId };
 };
+
+const mutationCandidate = (
+  runtime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  intent: ClickIntent | HoverIntent | DoubleClickIntent | KeypressIntent | Extract<ValueIntent, { kind: "fill" }>,
+): Promise<number> => resolveCoherentMutationCandidate(runtime, target, {
+  selector: intent.selector,
+  ...(intent.scope === undefined ? {} : { scope: intent.scope }),
+  ...(intent.kind === "click" || intent.kind === "hover"
+    ? intent.expectedTextEquals !== undefined
+      ? { text: { value: intent.expectedTextEquals, exact: true } }
+      : intent.expectedText !== undefined
+        ? { text: { value: intent.expectedText, exact: false } } : {}
+    : {}),
+});
 
 const actionBox = async (
   runtime: ExtensionDebuggerRuntime,
@@ -101,31 +123,32 @@ const actionBox = async (
   catch (error) {
     const code = error instanceof Error ? error.message : "";
     if (!/^BROWSER_DOM_(?:CANDIDATE_MISSING|NODE_STALE|READ_INVALID)$/u.test(code)) throw error;
-    return qualificationReceipt(1, code);
+    return qualificationReceipt(1, code, "actionability");
   }
 };
 
-const zeroActionReceipt = (): Readonly<Record<string, unknown>> => Object.freeze({
-  candidateCount: 1, identityRevalidated: true, mutationCount: 0,
-  postconditionVerified: true, zeroActionSatisfied: true,
-});
+const zeroActionReceipt = (assertCurrent: CurrentDocumentAssertion): Readonly<Record<string, unknown>> => {
+  assertCurrent();
+  return Object.freeze({ candidateCount: 1, identityRevalidated: true, mutationCount: 0,
+    postconditionVerified: true, zeroActionSatisfied: true });
+};
 
 const executeClickIntent = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
   intent: ClickIntent,
+  assertCurrent: CurrentDocumentAssertion,
 ): Promise<unknown> => {
-  const node = await qualifiedNode(() => intent.expectedTextEquals !== undefined
-    ? queryVisibleTextMatches(debuggerRuntime, target.tabId, intent.selector, intent.expectedTextEquals, true, 2, intent.scope)
-    : intent.expectedText !== undefined
-      ? queryVisibleTextMatches(debuggerRuntime, target.tabId, intent.selector, intent.expectedText, false, 2, intent.scope)
-      : queryAll(debuggerRuntime, target.tabId, intent.selector, 2, intent.scope));
+  const node = await qualifiedNode(() => mutationCandidate(debuggerRuntime, target, intent));
   if ("receipt" in node) return node.receipt;
-  if (await verifyClickPostcondition(debuggerRuntime, target, intent, 0)) return zeroActionReceipt();
+  if (await verifyClickPostcondition(debuggerRuntime, target, intent, 0)) return zeroActionReceipt(assertCurrent);
   const box = await actionBox(debuggerRuntime, target, node.nodeId);
   if ("failureCode" in box) return box;
+  assertCurrent();
   await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", { type: "mousePressed", x: box.x, y: box.y, button: "left", clickCount: 1 });
+  assertCurrent();
   await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", { type: "mouseReleased", x: box.x, y: box.y, button: "left", clickCount: 1 });
+  assertCurrent();
   const postconditionVerified = await verifyClickPostcondition(debuggerRuntime, target, intent);
   return {
     clicked: true,
@@ -141,22 +164,25 @@ const executeDoubleClickIntent = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
   intent: DoubleClickIntent,
+  assertCurrent: CurrentDocumentAssertion,
 ): Promise<unknown> => {
-  const node = await qualifiedNode(() => queryAll(
-    debuggerRuntime, target.tabId, intent.selector, 2, intent.scope,
-  ));
+  const node = await qualifiedNode(() => mutationCandidate(debuggerRuntime, target, intent));
   if ("receipt" in node) return node.receipt;
-  if (await waitForMatch(debuggerRuntime, target, intent.postDoubleClickMatch, 0)) return zeroActionReceipt();
+  if (await waitForMatch(debuggerRuntime, target, intent.postDoubleClickMatch, 0)) return zeroActionReceipt(assertCurrent);
   const box = await actionBox(debuggerRuntime, target, node.nodeId);
   if ("failureCode" in box) return box;
+  assertCurrent();
   for (const clickCount of [1, 2] as const) {
+    assertCurrent();
     await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", {
       type: "mousePressed", x: box.x, y: box.y, button: "left", clickCount,
     });
+    assertCurrent();
     await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", {
       type: "mouseReleased", x: box.x, y: box.y, button: "left", clickCount,
     });
   }
+  assertCurrent();
   const postconditionVerified = await waitForMatch(
     debuggerRuntime, target, intent.postDoubleClickMatch,
   );
@@ -174,16 +200,18 @@ const executeKeypressIntent = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
   intent: KeypressIntent,
+  assertCurrent: CurrentDocumentAssertion,
 ): Promise<unknown> => {
-  const node = await qualifiedNode(() => queryAll(debuggerRuntime, target.tabId, intent.selector, 2, intent.scope));
+  const node = await qualifiedNode(() => mutationCandidate(debuggerRuntime, target, intent));
   if ("receipt" in node) return node.receipt;
-  if (await waitForMatch(debuggerRuntime, target, intent.postKeypressMatch, 0)) return zeroActionReceipt();
+  if (await waitForMatch(debuggerRuntime, target, intent.postKeypressMatch, 0)) return zeroActionReceipt(assertCurrent);
   try { await requireKeyboardActionTarget(debuggerRuntime, target.tabId, node.nodeId); }
   catch (error) {
     const code = error instanceof Error ? error.message : "";
     if (!/^BROWSER_DOM_(?:CANDIDATE_MISSING|NODE_STALE|READ_INVALID)$/u.test(code)) throw error;
-    return qualificationReceipt(1, code);
+    return qualificationReceipt(1, code, "actionability");
   }
+  assertCurrent();
   await debuggerRuntime.send(target.tabId, "DOM.focus", { nodeId: node.nodeId });
   const virtualKeyCode = intent.key === "Enter" ? 13 : intent.key === "ArrowLeft" ? 37 : 39;
   const keyEvent = {
@@ -192,10 +220,14 @@ const executeKeypressIntent = async (
     windowsVirtualKeyCode: virtualKeyCode,
     nativeVirtualKeyCode: virtualKeyCode,
   } as const;
+  assertCurrent();
   for (let index = 0; index < (intent.repeat ?? 1); index += 1) {
+    assertCurrent();
     await debuggerRuntime.send(target.tabId, "Input.dispatchKeyEvent", { type: "rawKeyDown", ...keyEvent });
+    assertCurrent();
     await debuggerRuntime.send(target.tabId, "Input.dispatchKeyEvent", { type: "keyUp", ...keyEvent });
   }
+  assertCurrent();
   const postconditionVerified = await waitForMatch(
     debuggerRuntime, target, intent.postKeypressMatch,
   );
@@ -214,19 +246,18 @@ const executeHoverIntent = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
   intent: HoverIntent,
+  assertCurrent: CurrentDocumentAssertion,
 ): Promise<unknown> => {
-  const node = await qualifiedNode(() => intent.expectedTextEquals !== undefined
-    ? queryVisibleTextMatches(debuggerRuntime, target.tabId, intent.selector, intent.expectedTextEquals, true, 2, intent.scope)
-    : intent.expectedText !== undefined
-      ? queryVisibleTextMatches(debuggerRuntime, target.tabId, intent.selector, intent.expectedText, false, 2, intent.scope)
-      : queryAll(debuggerRuntime, target.tabId, intent.selector, 2, intent.scope));
+  const node = await qualifiedNode(() => mutationCandidate(debuggerRuntime, target, intent));
   if ("receipt" in node) return node.receipt;
   if (await waitForInteractionAttribute(debuggerRuntime, target, intent, 1, intent.postHoverAttribute, 0)) {
-    return zeroActionReceipt();
+    return zeroActionReceipt(assertCurrent);
   }
   const box = await actionBox(debuggerRuntime, target, node.nodeId);
   if ("failureCode" in box) return box;
+  assertCurrent();
   await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", { type: "mouseMoved", x: box.x, y: box.y });
+  assertCurrent();
   const postconditionVerified = await waitForInteractionAttribute(
     debuggerRuntime, target, intent, 1, intent.postHoverAttribute,
   );
@@ -335,14 +366,19 @@ const waitForInteractionAttribute = async (
 const clearFocusedInput = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
   tabId: number,
+  assertCurrent: CurrentDocumentAssertion,
 ): Promise<void> => {
+  assertCurrent();
   await debuggerRuntime.send(tabId, "Input.dispatchKeyEvent", {
     type: "rawKeyDown", key: "a", code: "KeyA", commands: ["selectAll"],
   });
+  assertCurrent();
   await debuggerRuntime.send(tabId, "Input.dispatchKeyEvent", { type: "keyUp", key: "a", code: "KeyA" });
+  assertCurrent();
   await debuggerRuntime.send(tabId, "Input.dispatchKeyEvent", {
     type: "rawKeyDown", key: "Backspace", code: "Backspace",
   });
+  assertCurrent();
   await debuggerRuntime.send(tabId, "Input.dispatchKeyEvent", {
     type: "keyUp", key: "Backspace", code: "Backspace",
   });
@@ -352,27 +388,33 @@ const executeValueIntent = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
   intent: ValueIntent,
+  assertCurrent: CurrentDocumentAssertion,
 ): Promise<unknown> => {
   if (intent.kind !== "fill") {
     const nodeId = intent.kind === "readText" || intent.kind === "readAttribute"
       ? await nodeForRead(debuggerRuntime, target.tabId, intent)
       : await nodeForSelector(debuggerRuntime, target.tabId, intent.selector, 1, intent.scope);
     if (intent.kind === "inspect") return inspectNode(debuggerRuntime, target.tabId, nodeId, intent.fields);
-    if (intent.kind === "readText") return truncate(await nodeText(debuggerRuntime, target.tabId, nodeId), intent.maxChars);
-    return truncate(attribute(await describeNode(debuggerRuntime, target.tabId, nodeId), intent.name) ?? "", intent.maxChars);
+    if (intent.kind === "readText") return nodeText(debuggerRuntime, target.tabId, nodeId);
+    return attribute(await describeNode(debuggerRuntime, target.tabId, nodeId), intent.name) ?? "";
   }
-  const node = await qualifiedNode(() => queryAll(debuggerRuntime, target.tabId, intent.selector, 2, intent.scope));
+  const node = await qualifiedNode(() => mutationCandidate(debuggerRuntime, target, intent));
   if ("receipt" in node) return node.receipt;
-  if (await nodeText(debuggerRuntime, target.tabId, node.nodeId) === intent.approvedText) return zeroActionReceipt();
+  if (await nodeText(debuggerRuntime, target.tabId, node.nodeId) === intent.approvedText) {
+    return zeroActionReceipt(assertCurrent);
+  }
   try { await requireKeyboardActionTarget(debuggerRuntime, target.tabId, node.nodeId); }
   catch (error) {
     const code = error instanceof Error ? error.message : "";
     if (!/^BROWSER_DOM_(?:CANDIDATE_MISSING|NODE_STALE|READ_INVALID)$/u.test(code)) throw error;
-    return qualificationReceipt(1, code);
+    return qualificationReceipt(1, code, "actionability");
   }
+  assertCurrent();
   await debuggerRuntime.send(target.tabId, "DOM.focus", { nodeId: node.nodeId });
-  if (intent.clearBeforeType) await clearFocusedInput(debuggerRuntime, target.tabId);
+  if (intent.clearBeforeType) await clearFocusedInput(debuggerRuntime, target.tabId, assertCurrent);
+  assertCurrent();
   await debuggerRuntime.send(target.tabId, "Input.insertText", { text: intent.approvedText });
+  assertCurrent();
   const retainedValue = await nodeText(debuggerRuntime, target.tabId, node.nodeId);
   const postconditionVerified = retainedValue === intent.approvedText;
   return {
@@ -390,13 +432,15 @@ export const executeRegisteredDomIntent = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
   intent: BrowserDomIntent,
+  assertCurrent: CurrentDocumentAssertion,
 ): Promise<unknown> => {
+  assertCurrent();
   if (intent.kind === "document") return documentState(debuggerRuntime, target.tabId);
   if (intent.kind === "observe") return executeCoherentObservation(debuggerRuntime, target, intent.queries);
   if (intent.kind === "find") return executeFindIntent(debuggerRuntime, target, intent);
-  if (intent.kind === "click") return executeClickIntent(debuggerRuntime, target, intent);
-  if (intent.kind === "hover") return executeHoverIntent(debuggerRuntime, target, intent);
-  if (intent.kind === "doubleClick") return executeDoubleClickIntent(debuggerRuntime, target, intent);
-  if (intent.kind === "keypress") return executeKeypressIntent(debuggerRuntime, target, intent);
-  return executeValueIntent(debuggerRuntime, target, intent);
+  if (intent.kind === "click") return executeClickIntent(debuggerRuntime, target, intent, assertCurrent);
+  if (intent.kind === "hover") return executeHoverIntent(debuggerRuntime, target, intent, assertCurrent);
+  if (intent.kind === "doubleClick") return executeDoubleClickIntent(debuggerRuntime, target, intent, assertCurrent);
+  if (intent.kind === "keypress") return executeKeypressIntent(debuggerRuntime, target, intent, assertCurrent);
+  return executeValueIntent(debuggerRuntime, target, intent, assertCurrent);
 };

@@ -19,7 +19,10 @@ import {
   validateStaticInspection,
 } from "../../shared/static-inspection-contract.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
-import { inspectGptContractDenominator } from "./gpt-contract-inspection.js";
+import {
+  inspectGptAttachmentContract,
+  inspectGptContractDenominator,
+} from "./gpt-contract-inspection.js";
 
 const LAW_ID = "LAW-GPT-001-V19";
 const MODE_CLAUSES = {
@@ -41,6 +44,10 @@ const GROUP_PATH = `${ROOT}/ability-group.ts`;
 const SESSION_PATH = `${ROOT}/session/gpt-session-controller.ts`;
 const SESSION_CHILDREN_PATH = `${ROOT}/session/session-children.ts`;
 const RESPONSE_HANDLER_PATH = `${ROOT}/web/children/response-children.ts`;
+const TEXT_RESPONSE_HANDLER_PATH = `${ROOT}/web/children/text-response-children.ts`;
+const IMAGE_RESPONSE_HANDLER_PATH = `${ROOT}/web/children/image-response-children.ts`;
+const RETIRED_RESPONSE_SUPPORT_PATH = `${ROOT}/web/children/response-child-support.ts`;
+const RETIRED_RATE_DIALOG_PATH = `${ROOT}/web/children/rate-limit-dialog.ts`;
 const CONVERSATION_HANDLER_PATH = `${ROOT}/web/children/conversation-children.ts`;
 const SUBMISSION_HANDLER_PATH = `${ROOT}/web/children/composer-submission-children.ts`;
 const CONVERSATION_CONTRACT_PATH = `${ROOT}/web/contracts/conversation.contract.ts`;
@@ -51,6 +58,7 @@ const EXECUTION_PROFILE_HANDLER_PATH = `${ROOT}/web/children/execution-profile-c
 const EXECUTION_PROFILE_CONTRACT_PATH = `${ROOT}/web/contracts/execution-profile.contract.ts`;
 const ATTACHMENT_HANDLER_PATH = `${ROOT}/web/children/attachment-children.ts`;
 const ATTACHMENT_CONTRACT_PATH = `${ROOT}/web/contracts/attachment.contract.ts`;
+const BROWSER_DOM_INTENT_PATH = "src/lib/browser/exact-target/browser-dom-intent.ts";
 
 const finding = (checkId: string, filePath: string, message: string, line?: number): InspectorFinding =>
   createFinding({
@@ -74,7 +82,8 @@ const inspectImportOwnership = (context: InspectorContext, findings: InspectorFi
     const path = repoPath(context, source);
     for (const declaration of source.getImportDeclarations()) {
       const target = declaration.getModuleSpecifierValue();
-      if (path.startsWith(`${ROOT}/`) && (target.includes("/plugins/") || target.includes("local-runtime/production"))) {
+      if (path.startsWith(`${ROOT}/`) && !path.includes("/acceptance/")
+        && (target.includes("/plugins/") || target.includes("local-runtime/production"))) {
         findings.push(finding("gpt/no-product-authority-import", path,
           `GPT owner imports forbidden product/runtime authority ${target}.`, declaration.getStartLineNumber()));
       }
@@ -115,71 +124,6 @@ const inspectFacadeAndOwnership = (context: InspectorContext, findings: Inspecto
 
 };
 
-const inspectAttachmentDomContract = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const contract = sourceFor(context, ATTACHMENT_CONTRACT_PATH);
-  const literal = (name: string): string | null => {
-    const initializer = contract?.getVariableDeclaration(name)?.getInitializer();
-    return initializer && (Node.isStringLiteral(initializer) || Node.isNoSubstitutionTemplateLiteral(initializer))
-      ? initializer.getLiteralValue()
-      : null;
-  };
-  const expected = {
-    GPT_ATTACHMENT_CONTROL_SELECTOR:
-      "button#composer-plus-btn[data-testid='composer-plus-btn'][aria-haspopup='menu']",
-    GPT_UPLOAD_FROM_COMPUTER_SELECTOR: "div.__menu-item[tabindex='0'] span",
-    GPT_UPLOAD_FROM_COMPUTER_LABEL: "从电脑上传",
-    GPT_FILE_INPUT_SELECTOR: "#upload-files",
-  } as const;
-  for (const [name, value] of Object.entries(expected)) {
-    if (literal(name) !== value) findings.push(finding(
-      "gpt/chrome-proven-attachment-dom", ATTACHMENT_CONTRACT_PATH,
-      `${name} must equal the current Chrome-proven value ${value}.`,
-    ));
-  }
-  const contractText = contract?.getFullText() ?? "";
-  for (const stale of ['button[aria-label="添加文件和更多内容"]', "[role='menuitem']"]) {
-    if (contractText.includes(stale)) findings.push(finding(
-      "gpt/stale-attachment-dom-absent", ATTACHMENT_CONTRACT_PATH,
-      `Attachment DOM contract retains stale selector ${stale}.`,
-    ));
-  }
-
-  const handler = sourceFor(context, ATTACHMENT_HANDLER_PATH);
-  const handlerText = handler?.getFullText() ?? "";
-  if (!handlerText.includes('Math.max(1_000, numberInput(intent, "timeoutMs"))')
-    || /Math\.min\([^\n]*timeoutMs[^\n]*(?:60_000|60000)|Math\.min\([^\n]*numberInput\([^\n]*(?:60_000|60000)/u.test(handlerText)) {
-    findings.push(finding(
-      "gpt/attachment-product-timeout-preserved", ATTACHMENT_HANDLER_PATH,
-      "Attachment reconciliation must preserve the Product timeout instead of applying a public 60-second ceiling.",
-    ));
-  }
-  const calls = handler?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
-  const entryObservation = calls.find((call) => call.getExpression().getText() === "requireOneCandidate"
-    && call.getText().includes("GPT_ATTACHMENT_CONTROL_SELECTOR"));
-  if (!entryObservation?.getText().includes("waitFor: { minimumMatches: 1, timeoutMs: 5_000 }")) findings.push(finding(
-    "gpt/attachment-entry-bounded-hydration", ATTACHMENT_HANDLER_PATH,
-    "Attachment entry must use one bounded five-second hydration observation before clicking.",
-  ));
-  const postcondition = calls.find((call) => call.getExpression().getText().endsWith(".executeDomIntent")
-    && call.getText().includes("GPT_ATTACHMENT_CONTROL_SELECTOR"));
-  if (!postcondition || !postcondition.getText().includes("GPT_UPLOAD_FROM_COMPUTER_SELECTOR")
-    || !postcondition.getText().includes("GPT_UPLOAD_FROM_COMPUTER_LABEL")) findings.push(finding(
-    "gpt/attachment-entry-direct-postcondition", ATTACHMENT_HANDLER_PATH,
-    "Attachment entry click must prove the Chrome-observed upload action selector and exact label.",
-  ));
-  if (calls.some((call) => call.getExpression().getText() === "requireOneCandidate"
-    && call.getText().includes("GPT_FILE_INPUT_SELECTOR"))) findings.push(finding(
-    "gpt/hidden-file-input-not-visible-permit", ATTACHMENT_HANDLER_PATH,
-    "The hidden #upload-files input must not be treated as a visible find permit.",
-  ));
-  const authorityUpload = calls.find((call) => call.getExpression().getText().endsWith(".attachFile")
-    && call.getText().includes("GPT_FILE_INPUT_SELECTOR"));
-  if (!authorityUpload) findings.push(finding(
-    "gpt/browser-authority-file-input-owner", ATTACHMENT_HANDLER_PATH,
-    "Approved file attachment must remain owned by Browser Authority attachFile on #upload-files.",
-  ));
-};
-
 const inspectAtomicSafety = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const sources = context.project.getSourceFiles().filter((source) => repoPath(context, source).startsWith(`${ROOT}/`));
   for (const forbidden of [
@@ -192,11 +136,14 @@ const inspectAtomicSafety = (context: InspectorContext, findings: InspectorFindi
   }
   for (const source of sources) {
     const path = repoPath(context, source);
-    const siblingImports = source.getImportDeclarations().filter((declaration) =>
-      path.includes("/children/") && declaration.getModuleSpecifierValue().includes("/children/"));
+    const siblingImports = source.getImportDeclarations().filter((declaration) => {
+      if (!path.includes("/children/") || path.endsWith("/response-children.ts")) return false;
+      const target = declaration.getModuleSpecifierSourceFile();
+      return target?.getVariableDeclarations().some((variable) => variable.getName().endsWith("ChildHandlers")) === true;
+    });
     for (const declaration of siblingImports) findings.push(finding(
       "gpt/child-cannot-call-child", path,
-      `Child implementation imports sibling child module ${declaration.getModuleSpecifierValue()}.`,
+      `Child implementation imports executable sibling Child handlers ${declaration.getModuleSpecifierValue()}.`,
       declaration.getStartLineNumber(),
     ));
     for (const concurrent of source.getDescendantsOfKind(SyntaxKind.CallExpression)
@@ -221,7 +168,49 @@ const inspectAtomicSafety = (context: InspectorContext, findings: InspectorFindi
   }
 };
 
-const READ_ONLY_DOM_INTENTS = new Set(["document", "find", "inspect", "readAttribute", "readText"]);
+const inspectCurrentPageProofs = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const pageHandlers = context.project.getSourceFiles().filter((source) => {
+    const path = repoPath(context, source);
+    return path.startsWith(`${ROOT}/web/children/`)
+      && source.getVariableDeclarations().some((declaration) => declaration.getName().endsWith("ChildHandlers"));
+  });
+  const legacyFactReaders = new Set([
+    "findCount", "readExactAttribute", "readExactCanonicalPromptText", "readExactObservedResponse",
+    "readExactSemanticText", "readExactText",
+  ]);
+  for (const source of pageHandlers) {
+    const path = repoPath(context, source);
+    const nullRevision = source.getDescendantsOfKind(SyntaxKind.PropertyAssignment).find((property) =>
+      property.getName() === "observationRevisionHash" && property.getInitializer()?.getText() === "null");
+    if (nullRevision) findings.push(finding(
+      "gpt/page-proof-current-revision", path,
+      "Production-reachable page Child success still permits a null Browser observation revision.",
+      nullRevision.getStartLineNumber(),
+    ));
+    const legacyCall = source.getDescendantsOfKind(SyntaxKind.CallExpression).find((call) =>
+      legacyFactReaders.has(call.getExpression().getText()));
+    if (legacyCall) findings.push(finding(
+      "gpt/page-proof-coherent-packet", path,
+      `Page Child still constructs qualification or success from legacy reader ${legacyCall.getExpression().getText()}.`,
+      legacyCall.getStartLineNumber(),
+    ));
+  }
+  const browserDomContract = sourceFor(context, BROWSER_DOM_INTENT_PATH)?.getFullText() ?? "";
+  const observationPacket = sourceFor(context, BROWSER_DOM_INTENT_PATH)
+    ?.getTypeAlias("BrowserDomObservationPacket")?.getFullText() ?? "";
+  if (!observationPacket.includes("currentUrl")) findings.push(finding(
+    "gpt/browser-coherent-document-url-handoff", BROWSER_DOM_INTENT_PATH,
+    "Browser coherent observation does not yet bind the current canonical URL with its DOM revision.",
+  ));
+  if (browserDomContract.includes(
+    'BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">',
+  )) findings.push(finding(
+    "gpt/browser-coherent-semantic-handoff", BROWSER_DOM_INTENT_PATH,
+    "Browser coherent observation contract does not yet carry text, semanticText, or outerHtml for GPT response proofs.",
+  ));
+};
+
+const READ_ONLY_DOM_INTENTS = new Set(["document", "observe", "find", "inspect", "readAttribute", "readText"]);
 
 const isPageMutationCall = (call: import("ts-morph").CallExpression): boolean => {
   const expression = call.getExpression().getText();
@@ -342,44 +331,45 @@ const inspectModelSelectionContract = (context: InspectorContext, findings: Insp
 };
 
 const inspectProviderWaitContract = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const response = sourceFor(context, RESPONSE_HANDLER_PATH)?.getFullText() ?? "";
-  const responseUserSelector = sourceFor(context, RESPONSE_HANDLER_PATH)
-    ?.getVariableDeclaration("userSelector")?.getFullText() ?? "";
+  const textResponse = sourceFor(context, TEXT_RESPONSE_HANDLER_PATH)?.getFullText() ?? "";
+  const imageResponse = sourceFor(context, IMAGE_RESPONSE_HANDLER_PATH)?.getFullText() ?? "";
   const conversation = sourceFor(context, CONVERSATION_HANDLER_PATH)?.getFullText() ?? "";
   const submission = sourceFor(context, SUBMISSION_HANDLER_PATH)?.getFullText() ?? "";
   const conversationContract = sourceFor(context, CONVERSATION_CONTRACT_PATH)?.getFullText() ?? "";
   if (!conversationContract.includes(
     `GPT_USER_PROMPT_BODY_SELECTOR = "[data-testid='collapsible-user-message-content']"`,
-  ) || !responseUserSelector.includes("GPT_USER_PROMPT_BODY_SELECTOR")) findings.push(finding(
-    "gpt/exact-user-prompt-body", RESPONSE_HANDLER_PATH,
-    "Prompt hash must read only the one proven user-turn prompt body selector.",
+  )) findings.push(finding(
+    "gpt/exact-user-prompt-body", CONVERSATION_CONTRACT_PATH,
+    "The exact user-turn prompt body selector contract is missing.",
   ));
-  for (const required of [
-    '"expectedPromptHash"', "userPromptBodySelector", "readExactCanonicalPromptText", "GPT_USER_TURN_HASH_MISMATCH",
-    "promptHash", "expectedResponseHash",
-  ]) if (!conversation.includes(required)) findings.push(finding(
-    "gpt/continuation-four-part-identity", CONVERSATION_HANDLER_PATH,
-    `Continuation verification is missing ${required}.`,
-  ));
-  for (const required of [
-    'requireExactInputKeys(intent, ["absoluteDeadline", "canonicalConversationUrl", "expectedPromptHash", "turnMarker"])',
-    "ensurePollingConversation", "canonicalGptConversationUrl", "pollingUserTurnId",
-    "GPT_USER_TURN_HASH_MISMATCH", "expectedResponseHash", "turnOrdinal",
-    "`conversation-turn-${turnOrdinal(userTurnId) + 1}` !== assistantTurnId",
-    "semanticTextHash !== expectedResponseHash",
-    "Date.parse", "yieldForProviderWait", "Math.min(5_000",
-  ]) if (!response.includes(required)) findings.push(finding(
-    "gpt/absolute-deadline-dynamic-backoff", RESPONSE_HANDLER_PATH,
-      `Stable Provider wait is missing ${required}.`,
+  const blockedFiles = [
+    [CONVERSATION_HANDLER_PATH, conversation, "GPT_BROWSER_COHERENT_PAGE_HANDOFF_REQUIRED", [
+      "prepare_clean_gpt_chat", "focus_exact_gpt_conversation", "verify_gpt_conversation_identity",
+      "open_gpt_checkpoint_actions_menu", "fork_exact_gpt_conversation_at_checkpoint",
+    ]],
+    [SUBMISSION_HANDLER_PATH, submission, "GPT_BROWSER_COHERENT_PAGE_HANDOFF_REQUIRED", [
+      "write_exact_gpt_prompt", "reconcile_gpt_draft", "submit_exact_gpt_turn_once",
+      "reconcile_gpt_turn_submission",
+    ]],
+    [TEXT_RESPONSE_HANDLER_PATH, textResponse, "GPT_BROWSER_COHERENT_SEMANTIC_HANDOFF_REQUIRED", [
+      "wait_for_stable_gpt_text", "checkpoint_gpt_text_response",
+    ]],
+    [IMAGE_RESPONSE_HANDLER_PATH, imageResponse, "GPT_BROWSER_COHERENT_SEMANTIC_HANDOFF_REQUIRED", [
+      "wait_for_stable_gpt_image", "checkpoint_gpt_generated_image",
+    ]],
+  ] as const;
+  for (const [path, source, blocker, childIds] of blockedFiles) {
+    for (const required of [blocker, "requireBrowser(context)", "requireExactInputKeys", ...childIds]) {
+      if (!source.includes(required)) findings.push(finding(
+        "gpt/explicit-browser-handoff-block", path,
+        `Blocked page Child slice is missing ${required}.`,
+      ));
+    }
+    if (source.includes("executeDomIntent") || source.includes("readCoherentObservation")) findings.push(finding(
+      "gpt/blocked-slice-zero-browser-use", path,
+      "A Browser-handoff-blocked Child slice must not retain a DOM read, fallback, or mutation path.",
     ));
-  for (const required of [
-    'requireExactInputKeys(intent, ["expectedPromptHash", "timeoutMs", "turnMarker"])',
-    "readExactCanonicalPromptText", "promptHash", "conversationIdentityHash",
-    "GPT_USER_TURN_HASH_MISMATCH",
-  ]) if (!submission.includes(required)) findings.push(finding(
-    "gpt/submission-locator-identity", SUBMISSION_HANDLER_PATH,
-    `Submission reconciliation is missing ${required}.`,
-  ));
+  }
 };
 
 const inspectIntelligentExecutionContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {
@@ -391,7 +381,7 @@ const inspectIntelligentExecutionContracts = (context: InspectorContext, finding
 const inspectGptContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {
   inspectGptContractDenominator(context, findings, finding);
   inspectFacadeAndOwnership(context, findings);
-  inspectAttachmentDomContract(context, findings);
+  inspectGptAttachmentContract(context, findings, finding);
   inspectUniqueRuntimeChain(context, findings);
   inspectIntelligentExecutionContracts(context, findings);
   inspectModelSelectionContract(context, findings);
@@ -400,6 +390,7 @@ const inspectGptContracts = (context: InspectorContext, findings: InspectorFindi
 const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const path of [
     CONTRACT_PATH, FACADE_PATH, GROUP_PATH, SESSION_PATH, SESSION_CHILDREN_PATH, RESPONSE_HANDLER_PATH,
+    TEXT_RESPONSE_HANDLER_PATH, IMAGE_RESPONSE_HANDLER_PATH,
     CONVERSATION_HANDLER_PATH, CONVERSATION_CONTRACT_PATH,
     MODEL_SELECTION_V2_HANDLER_PATH, MODEL_SELECTION_V2_CONTRACT_PATH,
     EXECUTION_PROFILE_HANDLER_PATH, EXECUTION_PROFILE_CONTRACT_PATH,
@@ -407,6 +398,12 @@ const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFind
   ])
     if (!existsSync(resolve(context.sealedRoot, path))) findings.push(finding(
       "gpt/filesystem-required-owner-file", path, `${path} is missing.`));
+  for (const retired of [RETIRED_RESPONSE_SUPPORT_PATH, RETIRED_RATE_DIALOG_PATH]) {
+    if (existsSync(resolve(context.sealedRoot, retired))) findings.push(finding(
+      "gpt/filesystem-retired-fallback-file", retired,
+      `${retired} must be physically absent while the Browser handoff is blocked.`,
+    ));
+  }
   const controllers = readdirSync(resolve(context.sealedRoot, ROOT, "session"))
     .filter((name) => name.endsWith("session-controller.ts"));
   if (JSON.stringify(controllers) !== JSON.stringify(["gpt-session-controller.ts"])) findings.push(finding(
@@ -421,8 +418,7 @@ const inspectGptTypes = (context: InspectorContext, findings: InspectorFinding[]
   const contract = sourceFor(context, CONTRACT_PATH);
   const group = contract?.getInterface("GptAbilityGroup");
   const proof = contract?.getInterface("GptChildCapabilityProof");
-  const checks = [[group, "execute", (value: string) => value.startsWith("Promise<")
-    && value.includes("GptFailureClassification") && value.includes("GptChildCapabilityProof")],
+  const checks = [[group, "execute", (value: string) => value === "Promise<GptChildCapabilityResult<K>>"],
     [group, "listChildCapabilityIds", (value: string) => value.startsWith("readonly (")
       && value.includes('"prepare_clean_gpt_chat"') && value.includes('"release_gpt_continuation_lane"')
       && !value.includes('"recover_gpt_response_checkpoint"')],
@@ -436,8 +432,10 @@ const inspectGptTypes = (context: InspectorContext, findings: InspectorFinding[]
   }
 };
 
-const inspectGptAst = (context: InspectorContext, findings: InspectorFinding[]): void =>
+const inspectGptAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
   inspectAtomicSafety(context, findings);
+  inspectCurrentPageProofs(context, findings);
+};
 const inspectGptDependencies = (context: InspectorContext, findings: InspectorFinding[]): void =>
   inspectImportOwnership(context, findings);
 

@@ -1,4 +1,40 @@
 import type { BrowserDomIntent, BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
+import type {
+  BrowserAtomicStepIdentity,
+  BrowserAtomicStepRecovery,
+} from "../../../lib/browser/exact-target/browser-target-lease.js";
+
+export const coherentObservationPacket = (
+  intent: Extract<BrowserDomIntent, { kind: "observe" }>,
+  facts: Readonly<Record<string, Readonly<{
+    rawCount: number;
+    eligibleCount: number;
+    matches?: readonly Readonly<Record<string, unknown>>[];
+  }>>>,
+) => Object.freeze({
+  schemaVersion: "grasseye.browser.dom-observation.v1" as const,
+  exactCallIdentityHash: `sha256:${"1".repeat(64)}` as `sha256:${string}`,
+  targetRefHash: `sha256:${"2".repeat(64)}` as `sha256:${string}`,
+  documentRefHash: `sha256:${"3".repeat(64)}` as `sha256:${string}`,
+  observationRevisionHash: `sha256:${"4".repeat(64)}` as `sha256:${string}`,
+  observedAt: "2026-09-02T00:00:00.000Z",
+  queries: intent.queries.map((query) => {
+    const fact = facts[query.queryId] ?? { rawCount: 0, eligibleCount: 0 };
+    return Object.freeze({
+      queryId: query.queryId,
+      scopeRawCount: query.scope ? 1 : 0,
+      scopeEligibleCount: query.scope ? 1 : 0,
+      rawCount: fact.rawCount,
+      eligibleCount: fact.eligibleCount,
+      matches: Object.freeze([...(fact.matches ?? [])]),
+      scopeRejections: Object.freeze([]),
+      rejections: Object.freeze([]),
+      nativeCauseCode: null,
+      nativeCauseCount: 0,
+      nativeStage: "runtime-call-function-on" as const,
+    });
+  }),
+});
 
 export const EXPECTED_GPT_CHILD_IDS = Object.freeze([
   "acquire_gpt_continuation_lane", "advance_gpt_continuation_lane",
@@ -7,6 +43,7 @@ export const EXPECTED_GPT_CHILD_IDS = Object.freeze([
   "checkpoint_gpt_text_response", "close_gpt_execution_profile",
   "ensure_exact_gpt_reasoning_tier",
   "focus_exact_gpt_conversation", "fork_exact_gpt_conversation_at_checkpoint", "open_gpt_attachment_control",
+  "open_gpt_checkpoint_actions_menu",
   "open_gpt_execution_profile", "open_gpt_model_selector_v2",
   "persist_gpt_continuation", "prepare_clean_gpt_chat", "reserve_exact_gpt_continuation_once",
   "reconcile_gpt_attachment_set", "reconcile_gpt_draft", "reconcile_gpt_turn_submission",
@@ -31,6 +68,21 @@ type FakeBrowserState = {
   physicalMutations: number;
   authenticatedMediaDownloads: number;
   waitDurations: number[];
+  atomicIdentity: BrowserAtomicStepIdentity | null;
+  recovery: BrowserAtomicStepRecovery | null;
+};
+
+const markConfirmedMutation = (state: FakeBrowserState): void => {
+  if (!state.atomicIdentity) return;
+  state.recovery = Object.freeze({
+    state: "confirmed",
+    mutationOutcome: "confirmed",
+    terminalAt: "2026-09-02T00:00:01.000Z",
+    authorityRef: `browser-mutation:${state.atomicIdentity.callId}`,
+    authorityHash: `sha256:${"9".repeat(64)}`,
+    targetRef: "target:1",
+    documentRef: state.documentRef,
+  });
 };
 
 const createFakeBrowserLease = (
@@ -51,20 +103,27 @@ const createFakeBrowserLease = (
   get document() {
     return { documentRef: state.documentRef, targetRef: "target:1", navigationEpoch: state.navigationEpoch };
   },
-  async runAtomicStep(_identity, action) { return action(); },
-  readAtomicStepRecovery: () => null,
+  async runAtomicStep(identity, action) {
+    state.atomicIdentity = identity;
+    try { return await action(); } finally { state.atomicIdentity = null; }
+  },
+  readAtomicStepRecovery: () => state.recovery,
   requiresMutationRecovery: () => state.pending > 0,
   async navigate(navigation: Readonly<{ url: string }>) {
     state.physicalMutations += 1;
     state.url = navigation.url;
     state.navigationEpoch += 1;
     state.documentRef = `document:${state.navigationEpoch}`;
+    markConfirmedMutation(state);
     return { documentRef: state.documentRef, targetRef: "target:1", navigationEpoch: state.navigationEpoch };
   },
   async executeDomIntent(intent: BrowserDomIntent) {
     state.domCalls += 1;
     if (["click", "hover", "doubleClick", "keypress", "fill"].includes(intent.kind)) state.physicalMutations += 1;
     const value = await responder(intent, state.domCalls);
+    if (["click", "hover", "doubleClick", "keypress", "fill"].includes(intent.kind)) {
+      markConfirmedMutation(state);
+    }
     if (intent.kind === "document" && value && typeof value === "object" && !Array.isArray(value)) {
       const nextUrl = Reflect.get(value, "url");
       if (typeof nextUrl === "string" && nextUrl !== state.url) {
@@ -77,7 +136,7 @@ const createFakeBrowserLease = (
   },
   async observeCapability() { return {}; },
   async captureScreenshot() { return { artifactRef: "screenshot:1", contentHash: `sha256:${"e".repeat(64)}` }; },
-  async attachFile() { state.physicalMutations += 1; },
+  async attachFile() { state.physicalMutations += 1; markConfirmedMutation(state); },
   async downloadAuthenticatedMedia() {
     state.authenticatedMediaDownloads += 1;
     if (!options.authenticatedMedia) throw new Error("FIXTURE_AUTHENTICATED_MEDIA_MISSING");
@@ -112,6 +171,8 @@ export const fakeBrowser = (responder: DomResponder, input: FakeBrowserOptions =
     physicalMutations: 0,
     authenticatedMediaDownloads: 0,
     waitDurations: [],
+    atomicIdentity: null,
+    recovery: null,
   };
   return {
     browser: createFakeBrowserLease(responder, state, input),

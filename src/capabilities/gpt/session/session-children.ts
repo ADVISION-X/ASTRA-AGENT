@@ -1,7 +1,8 @@
-import { gptExactCallIdentityHash, type GptChildCapabilityIntent } from "../contract.js";
+import { gptExactCallIdentityHash, type GptAnyChildCapabilityIntent } from "../contract.js";
 import { executionFailure } from "../../../lib/typed-failure.js";
 import type { GptChildHandlerMap } from "../web/child-handler.js";
 import {
+  declaredFacts,
   recordInput,
   requireExactInputKeys,
   stringInput,
@@ -13,18 +14,25 @@ import type {
   GptContinuationFrontierBinding,
   GptContinuationTextCheckpoint,
   GptProviderContinuation,
+  GptContinuationStorePort,
 } from "./gpt-continuation-store-port.js";
+import { gptContinuationReservationComplete } from "./gpt-continuation-store-port.js";
 
 const controller = (context: Parameters<NonNullable<GptChildHandlerMap[keyof GptChildHandlerMap]>>[1]) => {
   if (!context.continuationStore) throw executionFailure("failed", "GPT_CONTINUATION_STORE_REQUIRED");
   return new GptSessionController(context.continuationStore);
 };
 
-const providerFrom = (
-  intent: GptChildCapabilityIntent,
-  key = "provider",
+const continuationStore = (
+  context: Parameters<NonNullable<GptChildHandlerMap[keyof GptChildHandlerMap]>>[1],
+): GptContinuationStorePort => {
+  if (!context.continuationStore) throw executionFailure("failed", "GPT_CONTINUATION_STORE_REQUIRED");
+  return context.continuationStore;
+};
+
+const providerFromRecord = (
+  value: Readonly<Record<string, unknown>>,
 ): GptProviderContinuation => {
-  const value = recordInput(intent, key);
   if (typeof value.provider_page_url !== "string"
     || typeof value.prior_task_id !== "string"
     || typeof value.prior_prompt_hash !== "string"
@@ -43,7 +51,12 @@ const providerFrom = (
   };
 };
 
-const laneFrom = (intent: GptChildCapabilityIntent): GptContinuationLane => {
+const providerFrom = (
+  intent: GptAnyChildCapabilityIntent,
+  key = "provider",
+): GptProviderContinuation => providerFromRecord(recordInput(intent, key));
+
+const laneFrom = (intent: GptAnyChildCapabilityIntent): GptContinuationLane => {
   const value = recordInput(intent, "lane");
   if (typeof value.continuation_ref !== "string"
     || typeof value.lane_version !== "number" || !Number.isSafeInteger(value.lane_version)
@@ -53,7 +66,7 @@ const laneFrom = (intent: GptChildCapabilityIntent): GptContinuationLane => {
   return {
     continuation_ref: value.continuation_ref,
     lane_version: value.lane_version,
-    provider: providerFrom({ ...intent, input: { provider: value.provider } }),
+    provider: providerFromRecord(value.provider as Readonly<Record<string, unknown>>),
   };
 };
 
@@ -114,7 +127,7 @@ const textCheckpointFromRecord = (
 };
 
 const checkpointFrom = (
-  intent: GptChildCapabilityIntent,
+  intent: GptAnyChildCapabilityIntent,
   key = "currentCheckpoint",
 ): GptContinuationCheckpoint => {
   const checkpoint = recordInput(intent, key);
@@ -161,7 +174,7 @@ const checkpointFrom = (
   });
 };
 
-const frontierFrom = (intent: GptChildCapabilityIntent): GptContinuationFrontierBinding => {
+const frontierFrom = (intent: GptAnyChildCapabilityIntent): GptContinuationFrontierBinding => {
   const frontier = recordInput(intent, "frontier");
   exactRecordKeys(frontier, ["frontierRef", "originCheckpoint"], "GPT_CONTINUATION_FRONTIER_INVALID");
   const checkpointValue = frontier.originCheckpoint;
@@ -194,12 +207,15 @@ const frontierFrom = (intent: GptChildCapabilityIntent): GptContinuationFrontier
 
 export const sessionChildHandlers = {
   async persist_gpt_continuation(intent, context) {
-    const hasFrontier = Object.prototype.hasOwnProperty.call(intent.input, "frontier");
+    const hasFrontier = Boolean(intent.input && typeof intent.input === "object"
+      && !Array.isArray(intent.input) && Object.prototype.hasOwnProperty.call(intent.input, "frontier"));
     requireExactInputKeys(intent, hasFrontier ? [
       "authorizationRef", "currentCheckpoint", "frontier", "jobId", "ownerRef", "pluginId", "provider", "subjectRef",
     ] : ["authorizationRef", "currentCheckpoint", "jobId", "ownerRef", "pluginId", "provider", "subjectRef"]);
+    const continuationRef = `gpt-continuation:${gptExactCallIdentityHash(intent).slice(7)}`;
+    const decision = continuationStore(context).readGptContinuation(continuationRef) ? "DONE" as const : "ACT" as const;
     const ref = controller(context).persist({
-      continuationRef: `gpt-continuation:${gptExactCallIdentityHash(intent).slice(7)}`,
+      continuationRef,
       jobId: stringInput(intent, "jobId"),
       pluginId: stringInput(intent, "pluginId"),
       ownerRef: stringInput(intent, "ownerRef"),
@@ -209,10 +225,15 @@ export const sessionChildHandlers = {
       currentCheckpoint: checkpointFrom(intent),
       frontier: hasFrontier ? frontierFrom(intent) : null,
     });
+    if (!ref) throw executionFailure("failed", "GPT_CONTINUATION_PERSIST_READBACK_MISSING");
     return success({
-      value: { continuationRef: ref }, candidateCount: null,
-      observedSemantics: ["opaque GPT continuation", "plugin/subject/authorization bound"],
-      committedMutation: "confirmed",
+      value: { continuationRef: ref },
+      ...declaredFacts({
+        decision, factResultIds: [`gpt-transaction:${gptExactCallIdentityHash(intent).slice(7)}`],
+        candidateCardinality: { raw: null, eligible: null }, authorityRefHashes: [],
+        observationRevisionHash: null, mutationOutcome: decision === "ACT" ? "confirmed" : "no",
+        browserFact: null, nativeFailureCode: null,
+      }),
     });
   },
 
@@ -240,7 +261,7 @@ export const sessionChildHandlers = {
       owner_ref: stringInput(intent, "ownerRef"),
       subject_ref: stringInput(intent, "subjectRef"),
       authorization_ref: stringInput(intent, "authorizationRef"),
-      source_checkpoint_hash: derived
+      source_checkpoint_hash: derived && "sourceCheckpointHash" in intent.input
         ? hashField(intent.input.sourceCheckpointHash, "GPT_CONTINUATION_RESERVATION_INVALID") : null,
       reservation_fence_hash: hashField(
         intent.input.reservationFenceHash, "GPT_CONTINUATION_RESERVATION_INVALID",
@@ -256,6 +277,7 @@ export const sessionChildHandlers = {
       ),
       lane_version: positiveIntegerField(intent.input.laneVersion, "GPT_CONTINUATION_RESERVATION_INVALID"),
     });
+    const decision = readback.complete ? "DONE" as const : "ACT" as const;
     return success({
       value: {
         continuationRef: readback.continuation_ref,
@@ -265,9 +287,12 @@ export const sessionChildHandlers = {
         complete: readback.complete,
         opaqueReadGrantHash: readback.opaque_read_grant_hash,
       },
-      candidateCount: null,
-      observedSemantics: ["one reservation identity", "same continuation store", "reservation CAS read back"],
-      committedMutation: "confirmed",
+      ...declaredFacts({
+        decision, factResultIds: [`gpt-transaction:${readback.reservation_identity_hash.slice(7)}`],
+        candidateCardinality: { raw: null, eligible: null },
+        authorityRefHashes: [readback.reservation_fence_hash], observationRevisionHash: null,
+        mutationOutcome: decision === "ACT" ? "confirmed" : "no", browserFact: null, nativeFailureCode: null,
+      }),
     });
   },
 
@@ -284,8 +309,11 @@ export const sessionChildHandlers = {
     exactRecordKeys(semanticReceipt, [
       "artifact_hash", "artifact_ref", "contract_evaluation_hash", "contract_hash", "outcome", "schema_version",
     ], "GPT_CONTINUATION_COMPLETION_INVALID");
+    const continuationRef = `gpt-continuation:${reservationIdentityHash.slice(7)}`;
+    const existing = continuationStore(context).readGptContinuation(continuationRef);
+    const decision = existing && gptContinuationReservationComplete(existing) ? "DONE" as const : "ACT" as const;
     const stored = controller(context).complete({
-      continuation_ref: `gpt-continuation:${reservationIdentityHash.slice(7)}`,
+      continuation_ref: continuationRef,
       reservation_identity_hash: reservationIdentityHash,
       creator_job_id: intent.jobId,
       lane_version: positiveIntegerField(intent.input.laneVersion, "GPT_CONTINUATION_COMPLETION_INVALID"),
@@ -317,6 +345,9 @@ export const sessionChildHandlers = {
         intent.input.completionReceiptHash, "GPT_CONTINUATION_COMPLETION_INVALID",
       ),
     });
+    if (!stored.completion_receipt_hash) {
+      throw executionFailure("failed", "GPT_CONTINUATION_COMPLETION_READBACK_MISSING");
+    }
     return success({
       value: {
         continuationRef: stored.continuation_ref,
@@ -324,9 +355,12 @@ export const sessionChildHandlers = {
         laneVersion: stored.lane_version,
         completionReceiptHash: stored.completion_receipt_hash,
       },
-      candidateCount: null,
-      observedSemantics: ["same reservation", "completion receipt committed", "reservation lane released"],
-      committedMutation: "confirmed",
+      ...declaredFacts({
+        decision, factResultIds: [`gpt-transaction:${stored.completion_receipt_hash.slice(7)}`],
+        candidateCardinality: { raw: null, eligible: null },
+        authorityRefHashes: [stored.completion_receipt_hash], observationRevisionHash: null,
+        mutationOutcome: decision === "ACT" ? "confirmed" : "no", browserFact: null, nativeFailureCode: null,
+      }),
     });
   },
 
@@ -350,6 +384,8 @@ export const sessionChildHandlers = {
       ownerRef: stringInput(intent, "ownerRef"),
       subjectRef: stringInput(intent, "subjectRef"),
     } as const;
+    const before = continuationStore(context).readGptContinuation(common.continuationRef);
+    const decision = before?.lane_owner_job_id === intent.jobId ? "DONE" as const : "ACT" as const;
     const lane = controller(context).acquire(grant ? {
       ...common,
       authorization: {
@@ -364,7 +400,8 @@ export const sessionChildHandlers = {
       },
       parentManifestId: stringInput(intent, "parentManifestId"),
       parentManifestHash: hashField(
-        intent.input.parentManifestHash, "GPT_CONTINUATION_AUTHORIZATION_INVALID",
+        "parentManifestHash" in intent.input ? intent.input.parentManifestHash : null,
+        "GPT_CONTINUATION_AUTHORIZATION_INVALID",
       ),
     } : {
       ...common,
@@ -376,34 +413,59 @@ export const sessionChildHandlers = {
       },
     });
     return success({
-      value: lane, candidateCount: null,
-      observedSemantics: ["one continuation", "lane CAS acquired", `lane-version:${lane.lane_version}`],
-      committedMutation: "confirmed",
+      value: lane,
+      ...declaredFacts({
+        decision, factResultIds: [`gpt-transaction:${gptExactCallIdentityHash(intent).slice(7)}`],
+        candidateCardinality: { raw: null, eligible: null }, authorityRefHashes: [],
+        observationRevisionHash: null, mutationOutcome: decision === "ACT" ? "confirmed" : "no",
+        browserFact: null, nativeFailureCode: null,
+      }),
     });
   },
 
   async advance_gpt_continuation_lane(intent, context) {
     requireExactInputKeys(intent, ["currentCheckpoint", "jobId", "lane", "pluginId", "provider"]);
+    const lane = laneFrom(intent);
+    const provider = providerFrom(intent);
+    const currentCheckpoint = checkpointFrom(intent);
+    const before = continuationStore(context).readGptContinuation(lane.continuation_ref);
+    const decision = before?.lane_owner_job_id === null
+      && before.lane_version === lane.lane_version
+      && JSON.stringify(before.provider) === JSON.stringify(provider)
+      && JSON.stringify(before.current_checkpoint) === JSON.stringify(currentCheckpoint)
+      ? "DONE" as const : "ACT" as const;
     controller(context).advance({
-      lane: laneFrom(intent),
+      lane,
       jobId: stringInput(intent, "jobId"),
       pluginId: stringInput(intent, "pluginId"),
-      provider: providerFrom(intent),
-      currentCheckpoint: checkpointFrom(intent),
+      provider,
+      currentCheckpoint,
     });
     return success({
-      value: { advanced: true }, candidateCount: null,
-      observedSemantics: ["lane version matched", "new turn identity persisted", "lane released"],
-      committedMutation: "confirmed",
+      value: { advanced: true },
+      ...declaredFacts({
+        decision, factResultIds: [`gpt-transaction:${gptExactCallIdentityHash(intent).slice(7)}`],
+        candidateCardinality: { raw: null, eligible: null }, authorityRefHashes: [],
+        observationRevisionHash: null, mutationOutcome: decision === "ACT" ? "confirmed" : "no",
+        browserFact: null, nativeFailureCode: null,
+      }),
     });
   },
 
   async release_gpt_continuation_lane(intent, context) {
     requireExactInputKeys(intent, ["jobId", "lane"]);
-    controller(context).release(laneFrom(intent), stringInput(intent, "jobId"));
+    const lane = laneFrom(intent);
+    const before = continuationStore(context).readGptContinuation(lane.continuation_ref);
+    const decision = before?.lane_owner_job_id === null ? "DONE" as const : "ACT" as const;
+    controller(context).release(lane, stringInput(intent, "jobId"));
     return success({
-      value: { released: true }, candidateCount: null,
-      observedSemantics: ["same lane owner", "lane released"], committedMutation: "confirmed",
+      value: { released: true },
+      ...declaredFacts({
+        decision, factResultIds: [`gpt-transaction:${gptExactCallIdentityHash(intent).slice(7)}`],
+        candidateCardinality: { raw: null, eligible: null }, authorityRefHashes: [],
+        observationRevisionHash: null, mutationOutcome: decision === "ACT" ? "confirmed" : "no",
+        browserFact: null, nativeFailureCode: null,
+      }),
     });
   },
 

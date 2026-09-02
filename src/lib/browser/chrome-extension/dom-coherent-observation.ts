@@ -1,4 +1,9 @@
-import { type BrowserDomObservationField, type BrowserDomObservationQuery } from "../exact-target/browser-dom-intent.js";
+import {
+  type BrowserDomIneligibleCandidate,
+  type BrowserDomIneligibleReason,
+  type BrowserDomObservationField,
+  type BrowserDomObservationQuery,
+} from "../exact-target/browser-dom-intent.js";
 import { canonicalizeBrowserAuthorityValue } from "../transport/browser-authority-frame-codec.js";
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import { BROWSER_MECHANICAL_FACTS_READER_SOURCE } from "./dom-mechanical-facts.js";
@@ -16,40 +21,70 @@ type CoherentObservationResult = Readonly<{
 
 const COHERENT_OBSERVATION_FUNCTION = `function (specs) {
   ${BROWSER_MECHANICAL_FACTS_READER_SOURCE}
-  const bounded = (value) => typeof value === "string" ? value.slice(0, 1024) : value;
   const fieldValue = (node, facts, field) => {
-    if (field === "id") return bounded(node.getAttribute("id") || "");
-    if (field === "dataTurn") return bounded(node.getAttribute("data-turn") || "");
+    if (field === "id") return node.getAttribute("id") || "";
+    if (field === "dataTurn") return node.getAttribute("data-turn") || "";
     if (field === "tagName") return node.tagName;
-    if (field === "ariaLabel") return bounded(node.getAttribute("aria-label") || "");
+    if (field === "ariaLabel") return node.getAttribute("aria-label") || "";
     if (field === "ariaExpanded") return node.getAttribute("aria-expanded") || "";
     if (field === "ariaChecked") return node.getAttribute("aria-checked") || "";
-    if (field === "accept") return bounded(node.getAttribute("accept") || "");
+    if (field === "accept") return node.getAttribute("accept") || "";
     if (field === "multiple") return node.hasAttribute("multiple");
-    return bounded(facts[field]);
+    return facts[field];
+  };
+  const eligibilityReasons = (node, facts, spec, checkText) => {
+    const reasons = [];
+    if (!facts.connected) reasons.push("DISCONNECTED");
+    if (!facts.layout) reasons.push("NO_LAYOUT_BOX");
+    if (facts.displayHidden) reasons.push("DISPLAY_HIDDEN");
+    if (facts.visibilityHidden) reasons.push("VISIBILITY_HIDDEN");
+    if (facts.opacityHidden) reasons.push("OPACITY_HIDDEN");
+    if (facts.hidden) reasons.push("HTML_HIDDEN");
+    if (facts.ariaHidden) reasons.push("ARIA_HIDDEN");
+    if (facts.inert) reasons.push("INERT");
+    if (checkText && ((spec.textContains !== undefined && !(node.textContent || "").includes(spec.textContains))
+      || (spec.textEquals !== undefined && (node.textContent || "").trim() !== spec.textEquals.trim()))) {
+      reasons.push("TEXT_MISMATCH");
+    }
+    return reasons;
+  };
+  const rejected = (observed, spec, checkText) => observed
+    .map(({ node, facts, candidateIndex }) => ({
+      index: candidateIndex, reasons: eligibilityReasons(node, facts, spec, checkText)
+    }))
+    .filter(({ reasons }) => reasons.length > 0);
+  let observedCandidateCount = 0;
+  const observeNodes = (nodes) => {
+    observedCandidateCount += nodes.length;
+    if (observedCandidateCount > 256) throw new Error("BROWSER_DOM_READ_INVALID");
+    return nodes.map((node, candidateIndex) => ({
+      node, candidateIndex, facts: browserMechanicalFacts(node, false)
+    }));
   };
   const observeQuery = (spec) => {
     const scopeRaw = spec.scope ? Array.from(document.querySelectorAll(spec.scope.selector)) : [document.documentElement];
-    const scopeEligible = spec.scope ? scopeRaw.filter((node) => {
-      const facts = browserMechanicalFacts(node);
-      return facts.visible && !facts.ariaHidden && !facts.inert;
-    }) : scopeRaw;
+    const scopeObserved = observeNodes(scopeRaw);
+    const scopeRejections = spec.scope ? rejected(scopeObserved, spec, false) : [];
+    const scopeEligible = spec.scope
+      ? scopeObserved.filter(({ node, facts }) => eligibilityReasons(node, facts, spec, false).length === 0)
+      : scopeObserved;
     if (scopeEligible.length !== 1) return {
       queryId: spec.queryId, scopeRawCount: scopeRaw.length, scopeEligibleCount: scopeEligible.length,
-      rawCount: 0, eligibleCount: 0, matches: [], nativeCauseCode: null,
+      rawCount: 0, eligibleCount: 0, matches: [], scopeRejections, rejections: [], nativeCauseCode: null,
       nativeCauseCount: 0, nativeStage: "runtime-call-function-on"
     };
-    const raw = Array.from(scopeEligible[0].querySelectorAll(spec.selector));
-    const observed = raw.map((node) => ({ node, facts: browserMechanicalFacts(node) }));
-    const eligible = observed.filter(({ node, facts }) => facts.visible && !facts.ariaHidden && !facts.inert
-      && (spec.textContains === undefined || (node.textContent || "").includes(spec.textContains))
-      && (spec.textEquals === undefined || (node.textContent || "").trim() === spec.textEquals.trim()));
+    const raw = Array.from(scopeEligible[0].node.querySelectorAll(spec.selector));
+    const observed = observeNodes(raw);
+    const eligible = observed.filter(({ node, facts }) => eligibilityReasons(node, facts, spec, true).length === 0);
     const noLayoutCount = observed.filter(({ facts }) => facts.nativeCauseCode === "NO_LAYOUT_BOX").length;
     return {
       queryId: spec.queryId, scopeRawCount: scopeRaw.length, scopeEligibleCount: scopeEligible.length,
       rawCount: raw.length, eligibleCount: eligible.length,
-      matches: eligible.slice(0, spec.maxMatches + 1).map(({ node, facts }) =>
-        Object.fromEntries(spec.fields.map((field) => [field, fieldValue(node, facts, field)]))),
+      matches: eligible.slice(0, spec.maxMatches + 1).map(({ node, facts, candidateIndex }) => ({
+        candidateIndex,
+        ...Object.fromEntries(spec.fields.map((field) => [field, fieldValue(node, facts, field)]))
+      })),
+      scopeRejections, rejections: rejected(observed, spec, true),
       nativeCauseCode: noLayoutCount > 0 ? "NO_LAYOUT_BOX" : null,
       nativeCauseCount: noLayoutCount, nativeStage: "runtime-call-function-on"
     };
@@ -79,22 +114,51 @@ const stringObservationFields = new Set<BrowserDomObservationField>([
 ]);
 const booleanObservationFields = new Set<BrowserDomObservationField>([
   "multiple", "connected", "layout", "visible", "hidden", "ariaHidden", "inert", "disabled",
-  "ariaDisabled", "viewport", "hitTest",
+  "ariaDisabled",
 ]);
 
 const observationFieldValid = (field: BrowserDomObservationField, value: unknown): boolean => {
   if (stringObservationFields.has(field)) return typeof value === "string";
   if (booleanObservationFields.has(field)) return typeof value === "boolean";
   if (field === "checked") return value === null || typeof value === "boolean";
-  if (field !== "bounds") return false;
-  if (value === null) return true;
-  const bounds = observationRecord(value);
-  return [bounds.x, bounds.y, bounds.width, bounds.height]
-    .every((coordinate) => typeof coordinate === "number" && Number.isFinite(coordinate));
+  return false;
 };
 
 const OBSERVATION_ROW_KEYS = new Set(["queryId", "scopeRawCount", "scopeEligibleCount", "rawCount",
-  "eligibleCount", "matches", "nativeCauseCode", "nativeCauseCount", "nativeStage"]);
+  "eligibleCount", "matches", "scopeRejections", "rejections", "nativeCauseCode",
+  "nativeCauseCount", "nativeStage"]);
+
+const INELIGIBLE_REASONS = new Set<BrowserDomIneligibleReason>([
+  "DISCONNECTED", "NO_LAYOUT_BOX", "DISPLAY_HIDDEN", "VISIBILITY_HIDDEN", "OPACITY_HIDDEN",
+  "HTML_HIDDEN", "ARIA_HIDDEN", "INERT", "TEXT_MISMATCH",
+]);
+
+const decodeRejections = (
+  value: unknown,
+  rawCount: number,
+  eligibleCount: number,
+): readonly BrowserDomIneligibleCandidate[] => {
+  if (!Array.isArray(value) || value.length !== rawCount - eligibleCount) {
+    throw new Error("BROWSER_DOM_READ_INVALID");
+  }
+  const indices = new Set<number>();
+  return Object.freeze(value.map((entryValue) => {
+    const entry = observationRecord(entryValue);
+    if (Object.keys(entry).length !== 2 || !Number.isSafeInteger(entry.index)
+      || (entry.index as number) < 0 || (entry.index as number) >= rawCount
+      || indices.has(entry.index as number) || !Array.isArray(entry.reasons)
+      || entry.reasons.length < 1 || new Set(entry.reasons).size !== entry.reasons.length
+      || entry.reasons.some((reason) => typeof reason !== "string"
+        || !INELIGIBLE_REASONS.has(reason as BrowserDomIneligibleReason))) {
+      throw new Error("BROWSER_DOM_READ_INVALID");
+    }
+    indices.add(entry.index as number);
+    return Object.freeze({
+      index: entry.index as number,
+      reasons: Object.freeze([...(entry.reasons as BrowserDomIneligibleReason[])]),
+    });
+  }));
+};
 
 const decodeObservationRow = (
   value: unknown,
@@ -117,17 +181,27 @@ const decodeObservationRow = (
     || row.matches.length !== Math.min(eligible, spec.maxMatches + 1)) {
     throw new Error("BROWSER_DOM_READ_INVALID");
   }
+  const matchIndices = new Set<number>();
   const matches = row.matches.map((matchValue) => {
     const match = observationRecord(matchValue);
     const keys = Object.keys(match);
-    if (keys.length !== spec.fields.length
-      || keys.some((field) => !spec.fields.includes(field as BrowserDomObservationField))
+    if (keys.length !== spec.fields.length + 1 || !Number.isSafeInteger(match.candidateIndex)
+      || (match.candidateIndex as number) < 0 || (match.candidateIndex as number) >= raw
+      || matchIndices.has(match.candidateIndex as number)
+      || keys.some((field) => field !== "candidateIndex"
+        && !spec.fields.includes(field as BrowserDomObservationField))
       || spec.fields.some((field) => !observationFieldValid(field, match[field]))) {
       throw new Error("BROWSER_DOM_READ_INVALID");
     }
+    matchIndices.add(match.candidateIndex as number);
     return Object.freeze({ ...match });
   });
-  return Object.freeze({ ...row, matches });
+  const scopeRejections = decodeRejections(row.scopeRejections, scopeRaw, scopeEligible);
+  const rejections = decodeRejections(row.rejections, raw, eligible);
+  if (rejections.some((rejection) => matchIndices.has(rejection.index))) {
+    throw new Error("BROWSER_DOM_READ_INVALID");
+  }
+  return Object.freeze({ ...row, matches, scopeRejections, rejections });
 };
 
 const decodeObservationCall = (
@@ -140,9 +214,13 @@ const decodeObservationCall = (
     || new Date(packet.observedAt).toISOString() !== packet.observedAt) {
     throw new Error("BROWSER_DOM_READ_INVALID");
   }
+  const queries = packet.queries.map((query, index) => decodeObservationRow(query, specs[index]!));
+  const observedCandidateCount = queries.reduce((count, query) =>
+    count + (query.scopeRawCount as number) + (query.rawCount as number), 0);
+  if (observedCandidateCount > 256) throw new Error("BROWSER_DOM_READ_INVALID");
   return Object.freeze({
     observedAt: packet.observedAt,
-    queries: packet.queries.map((query, index) => decodeObservationRow(query, specs[index]!)),
+    queries,
   });
 };
 
@@ -152,6 +230,22 @@ const mainFrameLoaderId = async (runtime: ExtensionDebuggerRuntime, tabId: numbe
   if (typeof frame.loaderId !== "string" || frame.loaderId.length === 0) throw new Error("BROWSER_DOCUMENT_INVALID");
   return frame.loaderId;
 };
+
+const bindObservationIdentities = async (
+  queries: readonly Readonly<Record<string, unknown>>[],
+  targetRefHash: `sha256:${string}`,
+  documentRefHash: `sha256:${string}`,
+  observedAt: string,
+): Promise<readonly Readonly<Record<string, unknown>>[]> => Promise.all(queries.map(async (query) => {
+  const matches = query.matches as readonly Readonly<Record<string, unknown>>[];
+  return Object.freeze({ ...query, matches: await Promise.all(matches.map(async (match) => Object.freeze({
+    ...match,
+    observationIdentityHash: await sha256Text(canonicalizeBrowserAuthorityValue({
+      targetRefHash, documentRefHash, observedAt, queryId: query.queryId,
+      candidateIndex: match.candidateIndex,
+    })),
+  }))) });
+}));
 
 export const executeCoherentObservation = async (
   runtime: ExtensionDebuggerRuntime,
@@ -177,11 +271,14 @@ export const executeCoherentObservation = async (
     const observed = decodeObservationCall(observationRecord(call.result).value, specs);
     const targetRefHash = await sha256Text(target.targetRef);
     const documentRefHash = await sha256Text(target.documentRef);
+    const queries = await bindObservationIdentities(
+      observed.queries, targetRefHash, documentRefHash, observed.observedAt,
+    );
     const observationRevisionHash = await sha256Text(canonicalizeBrowserAuthorityValue({
-      targetRefHash, documentRefHash, observedAt: observed.observedAt, queries: observed.queries,
+      targetRefHash, documentRefHash, observedAt: observed.observedAt, queries,
     }));
     return Object.freeze({ schemaVersion: "grasseye.browser.dom-observation.v1", targetRefHash,
-      documentRefHash, observationRevisionHash, observedAt: observed.observedAt, queries: observed.queries });
+      documentRefHash, observationRevisionHash, observedAt: observed.observedAt, queries });
   } catch (error) {
     primaryFailure = error;
     if (error instanceof Error && /^BROWSER_[A-Z_]+$/u.test(error.message)) throw error;

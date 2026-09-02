@@ -4,6 +4,12 @@ import { createLocalFinding, identifiers, requireIdentifiers, requireSource, sou
 type RequiredSource = NonNullable<ReturnType<typeof requireSource>>;
 const authenticatedMediaRuntimePath =
   "src/lib/browser/chrome-extension/authenticated-media-runtime.ts";
+const extensionActorPath = "src/lib/browser/chrome-extension/websocket-actor.ts";
+const extensionCryptoPath = "src/lib/browser/chrome-extension/websocket-actor-crypto.ts";
+const commandLoggingPath = "src/lib/browser/exact-target/browser-command-runtime-logging.ts";
+const commandDiagnosticPath = "src/lib/browser/chrome-extension/websocket-command-diagnostic.ts";
+const frameDiagnosticPath = "src/lib/browser/chrome-extension/websocket-actor-diagnostics.ts";
+const payloadPropertyPath = "scripts/acceptance/local-browser-property-model.acceptance.ts";
 
 const inspectOpaqueRawFields = (
   sources: readonly (readonly [string, RequiredSource])[],
@@ -32,14 +38,24 @@ const inspectAuthenticatedMediaBoundary = (
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  const targetMethod = `${targetAuthority.getClass("ExtensionTargetAuthority")
-    ?.getMethod("executeRegisteredCommand")?.getText() ?? ""}\n${authenticatedMediaRuntime.getFullText()}`;
+  const registeredCommandMethod = targetAuthority.getClass("ExtensionTargetAuthority")
+    ?.getMethod("executeRegisteredCommand")?.getText() ?? "";
+  const mediaRuntimeText = authenticatedMediaRuntime.getFullText();
   const leaseMethod = leaseManager.getClass("BrowserTargetLeaseManager")
     ?.getMethod("downloadAuthenticatedMedia")?.getText() ?? "";
+  for (const required of ["command.kind === \"authenticated-media\"", "executeAuthenticatedMedia("]) {
+    if (registeredCommandMethod.includes(required)) continue;
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/authenticated-media-boundary",
+      lawId,
+      filePath: targetAuthorityPath,
+      message: `The fixed authenticated media command dispatch is missing ${required}.`,
+    }));
+  }
   for (const required of [
     "Runtime.evaluate", "credentials: \"include\"", "crypto.subtle.digest", "bytesBase64",
     "gpt-generated-image-main", "assistantTurnId",
-  ]) if (!targetMethod.includes(required)) findings.push(createLocalFinding({
+  ]) if (!mediaRuntimeText.includes(required)) findings.push(createLocalFinding({
     checkId: "browser-authority/authenticated-media-boundary",
     lawId,
     filePath: targetAuthorityPath,
@@ -54,11 +70,80 @@ const inspectAuthenticatedMediaBoundary = (
     message: `The task-owned authenticated media receiver is missing ${required}.`,
   }));
   for (const forbidden of ["resourceUrl", "sourceUrl", "cookie", "token", "selector:"]) {
-    if (targetMethod.includes(forbidden) || leaseMethod.includes(forbidden)) findings.push(createLocalFinding({
+    if (mediaRuntimeText.includes(forbidden) || leaseMethod.includes(forbidden)) findings.push(createLocalFinding({
       checkId: "browser-authority/authenticated-media-boundary",
       lawId,
       filePath: targetAuthorityPath,
       message: `Authenticated media retrieval exposes forbidden caller control ${forbidden}.`,
+    }));
+  }
+};
+
+const inspectClosedInvocationPayloadBoundary = (
+  transport: RequiredSource,
+  extensionActor: RequiredSource,
+  extensionCrypto: RequiredSource,
+  journal: RequiredSource,
+  commandLogging: RequiredSource,
+  commandDiagnostic: RequiredSource,
+  frameDiagnostic: RequiredSource,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const requiredByFile = [
+    [sourcePaths[0], transport.getFullText(), [
+      "encryptedFrame(active, \"COMMAND\"", "{ permit, command }",
+      "encryptBrowserAuthorityFrame", "canonicalBrowserAuthorityPlaintext(body)",
+    ]],
+    [extensionActorPath, extensionActor.getFullText(), [
+      "decrypt(session.serverToClientKey, \"server-to-client\", frame)",
+      "commandFrom(payload.command)", "admitExtensionCommand({ command, permit })",
+      "executeRegisteredCommand(command, target)", "this.sendEncrypted(socket, \"REPLY\"",
+    ]],
+    [extensionCryptoPath, extensionCrypto.getFullText(), [
+      "name: \"AES-GCM\"", "additionalData", "canonicalizeBrowserAuthorityValue(body)",
+    ]],
+  ] as const;
+  for (const [filePath, text, required] of requiredByFile) {
+    for (const token of required) {
+      if (text.includes(token)) continue;
+      findings.push(createLocalFinding({
+        checkId: "browser-authority/closed-invocation-payload",
+        lawId,
+        filePath,
+        message: `The sole invocation-time encrypted payload chain is missing ${token}.`,
+      }));
+    }
+  }
+
+  const forbiddenDurableIdentifiers = new Set([
+    "approvedText", "resolvedFilePaths", "outerHtml", "semanticText", "pageContent",
+    "canonicalConversationUrl", "resourceUrl", "sourceUrl", "cookie", "token", "credentials",
+  ]);
+  for (const [filePath, source] of [
+    [sourcePaths[7], journal],
+    [commandLoggingPath, commandLogging],
+    [commandDiagnosticPath, commandDiagnostic],
+    [frameDiagnosticPath, frameDiagnostic],
+  ] as const) {
+    const leaked = [...identifiers(source)].find((name) => forbiddenDurableIdentifiers.has(name));
+    if (!leaked) continue;
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/closed-invocation-payload",
+      lawId,
+      filePath,
+      message: `Browser durable state or diagnostics retain forbidden invocation payload field ${leaked}.`,
+    }));
+  }
+
+  const diagnosticText = `${commandDiagnostic.getFullText()}\n${frameDiagnostic.getFullText()}`;
+  for (const forbidden of ["UnknownError", "JSON.stringify(input.error)", "String(input.error)", "error.message"]) {
+    if (!diagnosticText.includes(forbidden)) continue;
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/closed-invocation-payload",
+      lawId,
+      filePath: commandDiagnosticPath,
+      message: `Browser diagnostics retain forbidden unclassified or raw error material ${forbidden}.`,
     }));
   }
 };
@@ -77,8 +162,15 @@ export const inspectOpaqueAuthorityBoundary = (
     context, findings, lawId, authenticatedMediaRuntimePath,
   );
   const leaseManager = requireSource(context, findings, lawId, sourcePaths[5]);
+  const extensionActor = requireSource(context, findings, lawId, extensionActorPath);
+  const extensionCrypto = requireSource(context, findings, lawId, extensionCryptoPath);
+  const commandLogging = requireSource(context, findings, lawId, commandLoggingPath);
+  const commandDiagnostic = requireSource(context, findings, lawId, commandDiagnosticPath);
+  const frameDiagnostic = requireSource(context, findings, lawId, frameDiagnosticPath);
+  const payloadProperty = requireSource(context, findings, lawId, payloadPropertyPath);
   if (!transport || !journal || !broker || !supervisor || !targetAuthority
-    || !authenticatedMediaRuntime || !leaseManager) return;
+    || !authenticatedMediaRuntime || !leaseManager || !extensionActor || !extensionCrypto
+    || !commandLogging || !commandDiagnostic || !frameDiagnostic || !payloadProperty) return;
   requireIdentifiers(broker, ["authorityRefHash", "certificateHash", "channelSessionHash", "artifactRef", "contentHash"], findings, lawId,
     "Public Browser authority and artifact status must expose opaque references and hashes.");
   requireIdentifiers(journal, ["payloadHash", "proofHash", "targetRef", "documentRef"], findings, lawId,
@@ -91,4 +183,20 @@ export const inspectOpaqueAuthorityBoundary = (
   inspectAuthenticatedMediaBoundary(
     targetAuthority, authenticatedMediaRuntime, leaseManager, findings, lawId,
   );
+  inspectClosedInvocationPayloadBoundary(
+    transport, extensionActor, extensionCrypto, journal, commandLogging,
+    commandDiagnostic, frameDiagnostic, findings, lawId,
+  );
+  for (const required of [
+    "invocationPayloads", "rawPayloadFragments", "encryptedFrameBody",
+    "modified invocation payload bytes must fail authenticated decryption",
+    "new BrowserAuthorityWebSocket", "extensionDecrypt", "extensionEncrypt",
+    "server-to-client", "client-to-server", "wireCases",
+    "the production socket must observe DISPATCHED before sending a mutation",
+  ]) if (!payloadProperty.getFullText().includes(required)) findings.push(createLocalFinding({
+    checkId: "browser-authority/closed-invocation-payload",
+    lawId,
+    filePath: payloadPropertyPath,
+    message: `The closed payload property proof is missing ${required}.`,
+  }));
 };

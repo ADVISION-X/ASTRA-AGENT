@@ -3,7 +3,7 @@
   "capabilityDomain": "agent-production-runtime",
   "status": "active",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V30"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V31"
   ],
   "ownedPaths": [
     "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
@@ -17,9 +17,7 @@
     "scripts/acceptance/agent-product-skills-flow-support.ts",
     "scripts/acceptance/agent-product-skills-frontier-support.ts",
     "scripts/acceptance/agent-product-skills.acceptance.ts",
-    "scripts/acceptance/agent-production-continuation-restart.acceptance.ts",
     "scripts/acceptance/agent-production-fresh-confirmed-authority-support.ts",
-    "scripts/acceptance/agent-production-frontier-cutover.acceptance.ts",
     "scripts/acceptance/agent-production-gpt-artifact-readback-support.ts",
     "scripts/acceptance/agent-production-gpt-artifact-recovery.acceptance.ts",
     "scripts/acceptance/agent-production-gpt-browser-lifecycle.acceptance.ts",

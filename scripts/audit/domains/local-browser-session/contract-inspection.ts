@@ -59,7 +59,7 @@ export const inspectTargetClaimContract = (
 ): void => {
   requireExactType({ context, findings, lawId,
     filePath: "src/lib/browser/transport/browser-authority-websocket.ts", typeName: "BrowserAuthorityTargetClaim",
-    expected: ["documentRef", "navigationEpoch", "targetRef", "title", "url"] });
+    expected: ["documentRef", "navigationEpoch", "targetRef", "url"] });
   requireExactType({ context, findings, lawId,
     filePath: "src/lib/browser/exact-target/browser-session-workspace.ts", typeName: "SessionWorkspaceBindingV6",
     expected: ["authorityEpoch", "authorityRef", "connectionGeneration", "directoryHash", "establishedAt",

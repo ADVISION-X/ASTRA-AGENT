@@ -1,5 +1,4 @@
-import { createHash } from "node:crypto";
-import { executionFailure, failureCode } from "../../../../lib/typed-failure.js";
+import { executionFailure } from "../../../../lib/typed-failure.js";
 
 import type { GptChildHandlerMap } from "../child-handler.js";
 import {
@@ -8,209 +7,80 @@ import {
   requireBrowser,
   requireExactInputKeys,
   stringInput,
-  success,
 } from "../child-handler.js";
-import {
-  findCount,
-  readExactAttribute,
-  readExactCanonicalPromptText,
-  readExactText,
-  readGptDocument,
-} from "../gpt-dom-observation.js";
-import { GPT_COMPOSER_SELECTOR } from "../contracts/composer.contract.js";
-import { GPT_SEND_SELECTOR } from "../contracts/submission.contract.js";
-import { GPT_USER_PROMPT_BODY_SELECTOR, GPT_USER_TURN_SELECTOR } from "../contracts/conversation.contract.js";
-import { canonicalGptConversationUrl } from "../contracts/target-document.contract.js";
 
-const hash = (value: string): `sha256:${string}` =>
-  `sha256:${createHash("sha256").update(value).digest("hex")}`;
+const HASH = /^sha256:[a-f0-9]{64}$/u;
+type AnyHandler = NonNullable<GptChildHandlerMap[keyof GptChildHandlerMap]>;
+type AnyIntent = Parameters<AnyHandler>[0];
+type AnyContext = Parameters<AnyHandler>[1];
 
-const promptIdentity = (text: string) => ({
-  length: text.length,
-  prefix: text.slice(0, 80),
-  suffix: text.slice(-80),
-  hash: hash(text),
-});
-
-const canonicalConversationOrNull = (value: string): string | null => {
-  try {
-    return canonicalGptConversationUrl(value);
-  } catch {
-    return null;
-  }
+const hashInput = (intent: AnyIntent, key: string): string => {
+  const value = stringInput(intent, key);
+  if (!HASH.test(value)) throw executionFailure("failed", `GPT_CHILD_INPUT_INVALID:${intent.childCapabilityId}:${key}`);
+  return value;
 };
 
-const submittedPromptSelector = (userTurnId: string): string =>
-  `[data-testid=${JSON.stringify(userTurnId)}][data-turn='user'] [data-message-author-role='user'] ${GPT_USER_PROMPT_BODY_SELECTOR}`;
+const filesInput = (intent: AnyIntent): readonly unknown[] => {
+  const files = arrayInput(intent, "files");
+  for (const file of files) {
+    if (!file || typeof file !== "object" || Array.isArray(file)) {
+      throw executionFailure("failed", `GPT_CHILD_INPUT_INVALID:${intent.childCapabilityId}:files`);
+    }
+    const value = file as Readonly<Record<string, unknown>>;
+    if (Object.keys(value).sort().join("|") !== "artifactRef|bytes|displayName|providerDisplayName|sha256"
+      || typeof value.artifactRef !== "string" || value.artifactRef.length === 0
+      || typeof value.displayName !== "string" || value.displayName.length === 0
+      || typeof value.providerDisplayName !== "string" || value.providerDisplayName.length === 0
+      || typeof value.sha256 !== "string" || !HASH.test(value.sha256)
+      || typeof value.bytes !== "number" || !Number.isSafeInteger(value.bytes) || value.bytes < 0) {
+      throw executionFailure("failed", `GPT_CHILD_INPUT_INVALID:${intent.childCapabilityId}:files`);
+    }
+  }
+  return files;
+};
 
-const TRANSIENT_SUBMISSION_READ_CODES = new Set([
-  "BROWSER_DOM_CANDIDATE_MISSING",
-  "BROWSER_DOM_CANDIDATE_AMBIGUOUS",
-  "BROWSER_DOM_NODE_STALE",
-  "BROWSER_DOM_READ_INVALID",
-]);
+const timeoutInput = (intent: AnyIntent): number => {
+  const value = numberInput(intent, "timeoutMs");
+  if (!Number.isSafeInteger(value) || value < 1 || value > 60_000) {
+    throw executionFailure("failed", `GPT_CHILD_INPUT_INVALID:${intent.childCapabilityId}:timeoutMs`);
+  }
+  return value;
+};
+
+const coherentPageHandoffRequired = (context: AnyContext): never => {
+  requireBrowser(context);
+  throw executionFailure("failed", "GPT_BROWSER_COHERENT_PAGE_HANDOFF_REQUIRED");
+};
 
 export const composerSubmissionChildHandlers = {
   async write_exact_gpt_prompt(intent, context) {
     requireExactInputKeys(intent, ["prompt"]);
-    const prompt = stringInput(intent, "prompt");
-    const browser = requireBrowser(context);
-    const composerCount = await findCount(browser, { selector: GPT_COMPOSER_SELECTOR, maxMatches: 2 });
-    if (composerCount !== 1) throw executionFailure("failed", `GPT_COMPOSER_COUNT_${composerCount}`);
-    const existing = await readExactText(browser, GPT_COMPOSER_SELECTOR, 65_536);
-    if (existing === prompt) return success({
-      value: promptIdentity(prompt), candidateCount: 1,
-      observedSemantics: ["exact prompt already retained"], committedMutation: "no",
-    });
-    if (context.mutationMode === "readback") throw executionFailure("failed", "GPT_PROMPT_WRITE_PENDING");
-    const value = await browser.executeDomIntent({
-      kind: "fill", selector: GPT_COMPOSER_SELECTOR,
-      approvedText: prompt, clearBeforeType: true, expectedMatches: 1,
-    });
-    if (!value || typeof value !== "object" || Array.isArray(value)
-      || (value as { retainedValueVerified?: unknown }).retainedValueVerified !== true) {
-      throw executionFailure("failed", "GPT_PROMPT_WRITE_UNCONFIRMED");
-    }
-    return success({
-      value: promptIdentity(prompt), candidateCount: 1,
-      observedSemantics: ["one composer", "approved prompt retained", "no local prompt ceiling"],
-      committedMutation: "confirmed",
-    });
+    stringInput(intent, "prompt");
+    return coherentPageHandoffRequired(context);
   },
 
   async reconcile_gpt_draft(intent, context) {
     requireExactInputKeys(intent, ["files", "prompt", "turnMarker"]);
+    filesInput(intent);
     const prompt = stringInput(intent, "prompt");
     const marker = stringInput(intent, "turnMarker");
-    const expectedNames = arrayInput(intent, "files").map((file) => {
-      if (!file || typeof file !== "object" || Array.isArray(file)
-        || typeof (file as { providerDisplayName?: unknown }).providerDisplayName !== "string") {
-        throw executionFailure("failed", "GPT_ATTACHMENT_INPUT_INVALID");
-      }
-      return (file as { providerDisplayName: string }).providerDisplayName.normalize("NFC");
-    });
     if (!prompt.includes(marker)) throw executionFailure("failed", "GPT_PROMPT_MARKER_MISSING");
-    const browser = requireBrowser(context);
-    const observed = await readExactText(browser, GPT_COMPOSER_SELECTOR, 65_536);
-    if (observed !== prompt) throw executionFailure("failed", "GPT_PROMPT_READBACK_MISMATCH");
-    const sendCount = await findCount(browser, { selector: GPT_SEND_SELECTOR, maxMatches: 2 });
-    if (sendCount !== 1) throw executionFailure("failed", `GPT_SEND_CONTROL_COUNT_${sendCount}`);
-    const send = await browser.executeDomIntent({
-      kind: "inspect", selector: GPT_SEND_SELECTOR, fields: ["visible", "disabled"],
-    });
-    if (!send || typeof send !== "object" || Array.isArray(send)
-      || (send as { visible?: unknown }).visible !== true || (send as { disabled?: unknown }).disabled === true) {
-      throw executionFailure("failed", "GPT_SEND_CONTROL_NOT_READY");
-    }
-    return success({
-      value: { ...promptIdentity(observed), attachmentDisplayNames: expectedNames }, candidateCount: 1,
-      observedSemantics: ["exact prompt bytes", "immutable turn marker", "approved attachment identity", "one enabled send control"],
-      committedMutation: "no",
-    });
+    return coherentPageHandoffRequired(context);
   },
 
   async submit_exact_gpt_turn_once(intent, context) {
-    requireExactInputKeys(intent, ["promptHash", "turnMarker"]);
-    const promptHash = stringInput(intent, "promptHash");
-    const turnMarker = stringInput(intent, "turnMarker");
-    if (!/^sha256:[a-f0-9]{64}$/u.test(promptHash)) throw executionFailure("failed", "GPT_PROMPT_HASH_INVALID");
-    const browser = requireBrowser(context);
-    const submitted = await findCount(browser, {
-      selector: GPT_USER_TURN_SELECTOR, textContains: turnMarker, maxMatches: 20,
-    });
-    if (submitted === 1) return success({
-      value: { promptHash, mutationSent: false }, candidateCount: 1,
-      observedSemantics: ["one exact user turn already submitted", promptHash], committedMutation: "no",
-    });
-    if (submitted > 1) throw executionFailure("failed", `GPT_SUBMITTED_TURN_COUNT_${submitted}`);
-    if (context.mutationMode === "readback") throw executionFailure("failed", "GPT_TURN_SUBMISSION_PENDING");
-    const currentPrompt = await readExactText(browser, GPT_COMPOSER_SELECTOR, 65_536);
-    if (hash(currentPrompt) !== promptHash || !currentPrompt.includes(turnMarker)) {
-      throw executionFailure("failed", "GPT_PROMPT_CHANGED_BEFORE_SUBMIT");
-    }
-    const sendCount = await findCount(browser, { selector: GPT_SEND_SELECTOR, maxMatches: 2 });
-    if (sendCount !== 1) throw executionFailure("failed", `GPT_SEND_CONTROL_COUNT_${sendCount}`);
-    const inspected = await browser.executeDomIntent({
-      kind: "inspect", selector: GPT_SEND_SELECTOR,
-      fields: ["tagName", "visible", "disabled"],
-    });
-    if (!inspected || typeof inspected !== "object" || Array.isArray(inspected)) {
-      throw executionFailure("failed", "GPT_SEND_CONTROL_INVALID");
-    }
-    const state = inspected as Record<string, unknown>;
-    if (state.tagName !== "BUTTON" || state.visible !== true || state.disabled === true) {
-      throw executionFailure("failed", "GPT_SEND_CONTROL_INVALID");
-    }
-    await browser.executeDomIntent({
-      kind: "click",
-      selector: GPT_SEND_SELECTOR,
-      expectedMatches: 1,
-      postClickMatch: {
-        selector: GPT_USER_TURN_SELECTOR,
-        expectedMatches: 1,
-        textContains: turnMarker,
-        timeoutMs: 5_000,
-      },
-    });
-    return success({
-      value: { promptHash, mutationSent: true }, candidateCount: 1,
-      observedSemantics: ["exact prompt retained before dispatch", "one enabled send control", promptHash, "one exact user turn"], committedMutation: "confirmed",
-    });
+    requireExactInputKeys(intent, ["files", "promptHash", "turnMarker"]);
+    filesInput(intent);
+    hashInput(intent, "promptHash");
+    stringInput(intent, "turnMarker");
+    return coherentPageHandoffRequired(context);
   },
 
   async reconcile_gpt_turn_submission(intent, context) {
     requireExactInputKeys(intent, ["expectedPromptHash", "timeoutMs", "turnMarker"]);
-    const marker = stringInput(intent, "turnMarker");
-    const expectedPromptHash = stringInput(intent, "expectedPromptHash");
-    if (!/^sha256:[a-f0-9]{64}$/u.test(expectedPromptHash)) {
-      throw executionFailure("failed", "GPT_TURN_HASH_INVALID");
-    }
-    const browser = requireBrowser(context);
-    const timeoutMs = Math.max(1_000, Math.min(numberInput(intent, "timeoutMs"), 60_000));
-    const deadline = Date.now() + timeoutMs;
-    let lastTransientRead: unknown = null;
-    while (Date.now() < deadline) {
-      try {
-        const count = await findCount(browser, {
-          selector: GPT_USER_TURN_SELECTOR, textContains: marker, maxMatches: 20,
-        });
-        if (count > 1) throw executionFailure("failed", `GPT_SUBMITTED_TURN_COUNT_${count}`);
-        if (count === 1) {
-          const composerText = await readExactText(browser, GPT_COMPOSER_SELECTOR, 65_536);
-          const canonicalConversationUrl = canonicalConversationOrNull((await readGptDocument(browser)).url);
-          if (composerText.trim().length === 0 && canonicalConversationUrl) {
-            const userTurnId = await readExactAttribute(browser, GPT_USER_TURN_SELECTOR, "data-testid", marker);
-            const promptText = await readExactCanonicalPromptText(browser, submittedPromptSelector(userTurnId));
-            const promptHash = hash(promptText);
-            if (promptHash !== expectedPromptHash) {
-              throw executionFailure("failed", "GPT_USER_TURN_HASH_MISMATCH");
-            }
-            return success({
-              value: {
-                turnMarker: marker,
-                userTurnId,
-                canonicalConversationUrl,
-                promptHash,
-                conversationIdentityHash: hash(`${canonicalConversationUrl}\n${marker}\n${userTurnId}\n${promptHash}`),
-              },
-              candidateCount: count,
-              observedSemantics: [
-                "one exact user turn", "canonical rendered prompt hash",
-                "composer cleared", "permanent canonical conversation URL",
-              ],
-              committedMutation: "no",
-            });
-          }
-        }
-        lastTransientRead = null;
-      } catch (error) {
-        if (!TRANSIENT_SUBMISSION_READ_CODES.has(failureCode(error))) throw error;
-        lastTransientRead = error;
-      }
-      const remaining = deadline - Date.now();
-      if (remaining > 0) await browser.wait({ durationMs: Math.max(25, Math.min(500, Math.ceil(remaining / 20))) });
-    }
-    if (lastTransientRead) throw lastTransientRead;
-    throw executionFailure("failed", "GPT_TURN_SUBMISSION_RECONCILIATION_PENDING");
+    hashInput(intent, "expectedPromptHash");
+    timeoutInput(intent);
+    stringInput(intent, "turnMarker");
+    return coherentPageHandoffRequired(context);
   },
 } satisfies GptChildHandlerMap;

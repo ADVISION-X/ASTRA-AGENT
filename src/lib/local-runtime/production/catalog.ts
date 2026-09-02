@@ -23,9 +23,6 @@ import type { ProductPlugin } from "./plugin.js";
 import { readProductSkill } from "./plugin.js";
 import { productionRoutePolicyMap } from "./route-policy.js";
 
-export { reconstructPublicKnowledgeLegacyCurrentCheckpoint } from
-  "../../../plugins/public-knowledge-article-pipeline/frontier-cutover.js";
-
 export const productionPluginCatalog = Object.freeze([
   baziChartInterpretationPlugin,
   baziAiFullAnalysisPlugin,
