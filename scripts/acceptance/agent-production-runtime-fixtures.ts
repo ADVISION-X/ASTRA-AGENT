@@ -44,7 +44,7 @@ export const gptProofEnvelope = (input: Readonly<{
 }>): Pick<GptChildCapabilityProof,
   "childContractVersion" | "childStatus" | "childReasonCode" | "exactCallIdentityHash"
   | "internalDecisionCode" | "authorityRefHashes" | "factResultIds" | "candidateCardinality"
-  | "browserFact" | "nativeFailureCode"> => Object.freeze({
+  | "observationRevisionHash" | "browserFact" | "nativeFailureCode"> => Object.freeze({
     childContractVersion: 2,
     childStatus: input.status,
     childReasonCode: input.status === "success" ? "GPT_CHILD_SUCCESS" : "GPT_CHILD_TEST_FAILURE",
@@ -53,6 +53,7 @@ export const gptProofEnvelope = (input: Readonly<{
     authorityRefHashes: Object.freeze([...(input.authorityRefHashes ?? [])]),
     factResultIds: Object.freeze([`gpt-fact-result:${input.exactCallIdentityHash.slice(7)}`]),
     candidateCardinality: Object.freeze({ raw: input.candidateCount, eligible: input.candidateCount }),
+    observationRevisionHash: null,
     browserFact: input.browserFact ?? null,
     nativeFailureCode: input.nativeFailureCode ?? null,
   });

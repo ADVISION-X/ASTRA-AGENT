@@ -1,5 +1,6 @@
 import {
   buildGptExecutionProfile,
+  type GptContinuationCheckpointInput,
   type GptContinuationLane,
   type GptProviderContinuation,
 } from "../../capabilities/gpt/index.js";
@@ -67,9 +68,13 @@ const uploadedAttachmentFiles = (value: unknown, code: string): readonly SeoUplo
   if (!Array.isArray(files) || files.length === 0) fail(code);
   return files.map((file) => {
     const attachment = objectValue(file, code);
+    if (!Number.isSafeInteger(attachment.bytes) || Number(attachment.bytes) < 0) fail(code);
     return Object.freeze({
-      ...attachment,
+      artifactRef: textValue(attachment.artifactRef, code),
+      displayName: textValue(attachment.displayName, code),
       providerDisplayName: textValue(attachment.providerDisplayName, code),
+      sha256: hashValue(attachment.sha256, code),
+      bytes: Number(attachment.bytes),
     });
   });
 };
@@ -105,7 +110,7 @@ export const createSeoExecutor = (task: WebsiteAgentTask, context: SharedExecuti
     evidenceByOrdinal.set(actionOrdinal, evidenceRef);
   };
   const facts = async (
-    input: Omit<SeoCall, "sessionKey">,
+    input: SeoCall,
     lookupKind: NonNullable<ProductGptFactQuery["lookupKind"]> = "current_attempt",
   ): Promise<ExactGptCallFacts> => {
     const result = await context.gpt.readCallFacts({ ...input, lookupKind });
@@ -113,7 +118,7 @@ export const createSeoExecutor = (task: WebsiteAgentTask, context: SharedExecuti
     return result;
   };
   const execute: SeoChild = async (input) => {
-    await facts(input);
+    await facts(input as SeoCall);
     if (priorChildCompleted) {
       await new Promise<void>((resolve) => setTimeout(resolve, SEO_CHILD_HANDOFF_DELAY_MS));
     }
@@ -122,7 +127,7 @@ export const createSeoExecutor = (task: WebsiteAgentTask, context: SharedExecuti
     recordEvidence(input.actionOrdinal, result.evidenceRef);
     return result;
   };
-  const requireEvidence = async (input: Omit<SeoCall, "sessionKey">): Promise<void> => {
+  const requireEvidence = async (input: SeoCall): Promise<void> => {
     const current = await facts(input);
     if (!current.evidence) fail("SEO_PROGRESSIVE_PREFIX_EVIDENCE_MISSING");
   };
@@ -169,7 +174,7 @@ type TextTurnInput = Readonly<{
   stepId: string;
   prompt: string;
   marker: string;
-  files: readonly Readonly<Record<string, unknown>>[];
+  files: readonly SeoUploadedAttachment[];
   ordinals: readonly [number, number, number, number, number, number];
   recoveryProvider?: GptProviderContinuation;
 }>;
@@ -254,7 +259,7 @@ export const submitTextTurn = async (input: TextTurnInput): Promise<SeoTurnCheck
   const promptHash = textHash(input.prompt);
   const promptWrite = { productStepId: input.stepId, callId: "prompt-write", child: "write_exact_gpt_prompt", actionOrdinal: input.ordinals[0], input: { prompt: input.prompt } } as const;
   const draftReconcile = { productStepId: input.stepId, callId: "draft-reconcile", child: "reconcile_gpt_draft", actionOrdinal: input.ordinals[1], input: { files: input.files, prompt: input.prompt, turnMarker: input.marker } } as const;
-  const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: input.ordinals[2], input: { promptHash, turnMarker: input.marker } } as const;
+  const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: input.ordinals[2], input: { files: input.files, promptHash, turnMarker: input.marker } } as const;
   const beforeSubmit = await input.flow.facts(turnSubmit);
   if (beforeSubmit.mutation || beforeSubmit.evidence) {
     await input.flow.requireEvidence(promptWrite);
@@ -340,7 +345,7 @@ export const advanceLane = async (
     rawOutputHash: ProductionHash;
     turnMarker: string;
   }>,
-  currentCheckpoint: Readonly<Record<string, unknown>>,
+  currentCheckpoint: GptContinuationCheckpointInput,
   actionOrdinal: number,
 ): Promise<void> => {
   await execute({
@@ -368,8 +373,8 @@ export const prepareAttachedTurnPrefix = async (input: Readonly<{
 }>): Promise<void> => {
   const freshChat = { productStepId: input.stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;
   const attachmentOpen = { productStepId: input.stepId, callId: "attachment-control-open", child: "open_gpt_attachment_control", actionOrdinal: 7, input: {} } as const;
-  const attachmentsAttach = { productStepId: input.stepId, callId: "attachments-attach", child: "attach_approved_gpt_files_once", actionOrdinal: 8, input: { files: input.files } } as const;
-  const attachmentsReconcile = { productStepId: input.stepId, callId: "attachments-reconcile", child: "reconcile_gpt_attachment_set", actionOrdinal: 9, input: { files: input.files, timeoutMs: 600_000 } } as const;
+  const attachmentsAttach = { productStepId: input.stepId, callId: "attachments-attach", child: "attach_approved_gpt_files_once", actionOrdinal: 8, input: { files: input.uploadedFiles } } as const;
+  const attachmentsReconcile = { productStepId: input.stepId, callId: "attachments-reconcile", child: "reconcile_gpt_attachment_set", actionOrdinal: 9, input: { files: input.uploadedFiles, timeoutMs: 600_000 } } as const;
   if (input.recoverOnly) {
     await input.flow.requireEvidence(freshChat);
     await requireExactProfileEvidence(input.flow, input.stepId, [2, 3, 4, 5, 6]);

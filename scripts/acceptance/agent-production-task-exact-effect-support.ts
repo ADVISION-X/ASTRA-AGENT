@@ -32,7 +32,7 @@ const persistPriorSubmit = async (input: ExactEffectInput) => {
   const imageSubmitCall = Object.freeze({
     productStepId: "article_image_generation", callId: "turn-submit",
     child: "submit_exact_gpt_turn_once" as const, actionOrdinal: 42,
-    input: Object.freeze({ promptHash: HASH_A, turnMarker: "[GRASSEYE:frozen-article-source]" }),
+    input: Object.freeze({ files: [], promptHash: HASH_A, turnMarker: "[GRASSEYE:frozen-article-source]" }),
   });
   const identity = {
     jobId: input.providerTask.job_id, attemptId: input.attemptId,
@@ -48,7 +48,9 @@ const persistPriorSubmit = async (input: ExactEffectInput) => {
     evidenceStore: input.evidenceStore, jobId: input.providerTask.job_id,
     attemptId: input.attemptId, stepId: imageSubmitCall.productStepId,
     exactCallIdentityHash: priorSubmitHash,
-    result: { status: "success", value: null, failureCode: null, failureCause: null,
+    result: { status: "success",
+      value: { promptHash: imageSubmitCall.input.promptHash, mutationSent: true },
+      failureCode: null, failureCause: null,
       failureBrowserEffect: null, proof: {
       schemaVersion: "gpt-child-capability-proof.v2", ...identity,
       ...gptProofEnvelope({ childCapabilityId: identity.childCapabilityId,

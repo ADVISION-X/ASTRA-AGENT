@@ -5,6 +5,7 @@ export {
 } from "./ability-group.js";
 export {
   type GptAbilityGroup,
+  type GptAnyChildCapabilityIntent,
   type GptApprovedFile,
   type GptApprovedFileInput,
   type GptChildCall,
@@ -16,6 +17,7 @@ export {
   type GptChildInputMap,
   type GptChildOutputMap,
   type GptChildSuccess,
+  type GptContinuationCheckpointInput,
   type GptGeneratedImageCheckpointInput,
   type GptHash,
   type GptTextCheckpointInput,

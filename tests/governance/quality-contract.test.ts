@@ -304,40 +304,34 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
     browser: { browserVersion: "Chromium 1", endpoint: "https://example.test/", pageTitle: "Fixture",
       facts: { authority_present: true, extension_worker_count: 1 }, sessionFacts: { exactTarget: true } },
     service: { cleanupVerified: true, components: ["fixture"], endpoint: "http://127.0.0.1:4173",
-      facts: { browser_context_closed: true, cleanup_verified: true,
-        readiness_dimension_count: 4, readiness_dimensions_distinct: true, workbench_stopped: true },
+      facts: { cleanup_verified: true, workbench_stopped: true },
       processId: 4173, serviceName: "fixture", sourceFingerprint: "sha256:fixture", status: "healthy" },
     database: { databaseEngine: "sqlite", databasePath: "/tmp/fixture.sqlite",
-      facts: { frozen_identity_count: 39, frozen_identity_invalid_count: 0 },
+      facts: { incomplete_frontier_count: 0, required_runtime_schema_column_count: 2,
+        unscheduled_outbox_count: 0 },
       identitySet: ["job-1"], recordCounts: { tasks: 1 } },
     storage: { confirmedCount: 1, mutationCount: 1, storageEngine: "sqlite-wal",
-      facts: { confirmed_row_invalid_count: 0 }, storagePath: "/tmp/fixture.sqlite", unresolvedCount: 0 },
+      facts: { proof_job_pending_outbox_count: 0 }, storagePath: "/tmp/fixture.sqlite", unresolvedCount: 0 },
     provider: { catalogHash: "sha256:fixture", pluginIds: ["fixture-plugin"],
-      facts: { catalog_plugin_count: 12, executed_route_count: 39, primary_route_count: 13,
-        review_route_count: 26, route_denominator_complete: true },
+      facts: { provider_count: 1 },
       providerName: "ChatGPT", terminalReceiptCount: 39 },
     authorization: { authorityState: "present", fenceHashes: ["sha256:fixture"],
-      facts: { lease_fence_bound_job_count: 39, unbound_lease_fence_job_count: 0 },
+      facts: { unbound_lease_fence_job_count: 0 },
       grantCount: 1, principalIds: ["fixture-plugin"] },
     recovery: { finalState: "completed", observedStates: ["failed", "completed"],
       facts: {
-        accepted_seq1_before_restart: true,
-        completed_observed: true,
-        failed_observed: true,
         process_restart_observed: true,
-        progress_seq2_before_restart: true,
-        progress_seq3_after_restart: true,
         same_attempt_after_restart: true,
       }, recoveryJobId: "job-1", unresolvedCount: 0 },
   } as const;
   const routes = {
     browser: { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", clauses: ["forbidden:6"] },
-    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V25", clauses: ["forbidden:19"] },
-    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V25", clauses: ["forbidden:9"] },
-    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V25", clauses: ["forbidden:11"] },
-    provider: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V25", clauses: ["forbidden:0"] },
-    authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V25", clauses: ["forbidden:4"] },
-    recovery: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V25", clauses: ["forbidden:10"] },
+    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V31", clauses: ["summary"] },
+    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V31", clauses: ["forbidden:7"] },
+    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V31", clauses: ["forbidden:15"] },
+    provider: { lawId: "LAW-GPT-001-V19", clauses: ["forbidden:1"] },
+    authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V31", clauses: ["forbidden:5"] },
+    recovery: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V31", clauses: ["forbidden:12"] },
   } as const;
   for (const [kind, observation] of Object.entries(observations)) {
     const evidenceMode = `dynamic.${kind}`;
@@ -357,7 +351,8 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
     `${kind}:clause-fact-mismatch`);
     assert.equal(validateDynamicReceiptPayload({ ...payload, observation_kind: kind === "browser" ? "service" : "browser" }, binding), false,
       `${kind}:mode-mismatch`);
-    assert.equal(validateDynamicReceiptPayload({ ...payload, clauses: ["forbidden:1"] }, binding), false,
+    const mismatchedClauses = route.clauses[0] === "forbidden:1" ? ["forbidden:2"] : ["forbidden:1"];
+    assert.equal(validateDynamicReceiptPayload({ ...payload, clauses: mismatchedClauses }, binding), false,
       `${kind}:clause-mismatch`);
     assert.equal(validateDynamicReceiptPayload({ ...payload, observed_value: "wrong" }, binding), false,
       `${kind}:value-mismatch`);
@@ -1010,7 +1005,7 @@ test("provider contracts reject malformed payloads before identity matching", ()
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json", "utf8",
   )) as unknown;
   assert.doesNotThrow(() => validateProviderContractSpec(current, "ADVISION-X/AGENT",
-    new Map([["LAW-AGENT-PRODUCTION-RUNTIME-001-V25", "agent-production-runtime"]]),
+    new Map([["LAW-AGENT-PRODUCTION-RUNTIME-001-V31", "agent-production-runtime"]]),
     (path) => path === "src/lib/local-runtime/production/catalog.ts"));
 });
 
@@ -1266,7 +1261,7 @@ test("every active law scope is deterministic, owned, unique, and includes all c
 
 test("active mutation inspectors use one DISPATCHED chain inside each law scope", () => {
   const registry = buildRegistry();
-  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V25");
+  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V31");
   assert.ok(agentLaw);
   const agentTargets = computeTargetPaths(agentLaw, registry);
   const crossOwnerPaths = [
@@ -1281,7 +1276,7 @@ test("active mutation inspectors use one DISPATCHED chain inside each law scope"
   ].map((path) => readFileSync(path, "utf8")).join("\n");
   for (const path of crossOwnerPaths) assert.equal(agentInspector.includes(path), false, path);
   for (const token of [
-    "ProductionGptChildTools", "this.gpt.execute(intent", "runAtomicStep(",
+    "ProductionGptChildTools", "gpt.execute(intent", "runAtomicStep(",
     'mutationMode: "readback"', "childCapabilityId", "inputHash",
   ]) assert.equal(agentInspector.includes(token), true, token);
 
@@ -1320,10 +1315,9 @@ test("active Browser and Runtime Log inspectors reject semantic decoys", () => {
   const dom = readFileSync(domPath, "utf8");
   assert.equal(exactTextMatcherIsStrict(inspectSource(domPath, dom)), true);
   for (const mutant of [
-    dom.replace("exact ? expectedText.trim() : expectedText", "exact ? expectedText : expectedText"),
-    dom.replace("exact ? actual.trim() !== expected : !actual.includes(expected)",
-      "exact ? !actual.includes(expected) : !actual.includes(expected)"),
-    dom.replace("actual.trim() !== expected", "actual.trim() != expected"),
+    dom.replace("actual.trim() === text.value.trim()", "actual === text.value"),
+    dom.replace("actual.trim() === text.value.trim()", "actual.includes(text.value)"),
+    dom.replace("actual.trim() === text.value.trim()", "actual.trim() != text.value.trim()"),
   ]) assert.equal(exactTextMatcherIsStrict(inspectSource(domPath, mutant)), false);
 
   const loggerPath = "src/lib/runtime-logs/logger.ts";

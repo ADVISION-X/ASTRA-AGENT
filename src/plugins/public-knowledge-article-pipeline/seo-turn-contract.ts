@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import {
+  type GptApprovedFile,
   type GptProviderContinuation,
 } from "../../capabilities/gpt/index.js";
 import {
@@ -10,6 +11,7 @@ import {
 } from "../../lib/local-runtime/production/contracts.js";
 import {
   gptTextContinuationCheckpointInput,
+  type ProductGptAnyCallInput,
   type ProductGptTools,
 } from "../../lib/local-runtime/production/plugin.js";
 import {
@@ -27,7 +29,7 @@ import {
 export const PLUGIN_ID = "public-knowledge-article-pipeline";
 
 export type SeoChild = ProductGptTools["execute"];
-export type SeoCall = Parameters<SeoChild>[0];
+export type SeoCall = ProductGptAnyCallInput;
 export type SeoTurnCheckpoint = Readonly<{
   assistantTurnId: string;
   rawDomHtml: string;
@@ -41,9 +43,7 @@ export type SeoTurnCheckpoint = Readonly<{
   promptHash: ProductionHash;
   turnMarker: string;
 }>;
-export type SeoUploadedAttachment = Readonly<Record<string, unknown>> & Readonly<{
-  providerDisplayName: string;
-}>;
+export type SeoUploadedAttachment = GptApprovedFile;
 
 export function fail(code: string): never { throw executionFailure("failed", code); }
 

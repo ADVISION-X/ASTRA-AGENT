@@ -1,7 +1,7 @@
 import {
   GPT_CHILD_CAPABILITY_CONTRACTS,
   type GptAbilityGroup,
-  type GptChildCapabilityIntent,
+  type GptAnyChildCapabilityIntent,
   type GptChildCapabilityResult,
 } from "../../../capabilities/gpt/index.js";
 import { ProductionGptBrowserLifecycle } from "./production-gpt-browser-lifecycle.js";
@@ -16,7 +16,7 @@ type AtomicGptCallInput = Readonly<{
   gpt: GptAbilityGroup;
   store: ProductionRuntimeStore;
   browsers: ProductionGptBrowserLifecycle;
-  intent: GptChildCapabilityIntent;
+  intent: GptAnyChildCapabilityIntent;
   browserCall: ProductionGptBrowserCall | undefined;
   signal: AbortSignal;
 }>;

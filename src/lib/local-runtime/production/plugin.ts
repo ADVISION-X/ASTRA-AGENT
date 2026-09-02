@@ -78,6 +78,15 @@ type ProductGptCallCommon = Readonly<{
   effectLookupKind?: "task_exact_effect";
 }>;
 
+type ProductGptAnyCallInputMap = {
+  readonly [K in GptChildCapabilityId]: ProductGptCallCommon & Readonly<{
+    child: K;
+    input: GptChildInputMap[K];
+  }>;
+};
+
+export type ProductGptAnyCallInput = ProductGptAnyCallInputMap[GptChildCapabilityId];
+
 export type ProductGptCallInput<K extends GptChildCapabilityId = GptChildCapabilityId> =
   ProductGptCallCommon & Readonly<{
     child: K;

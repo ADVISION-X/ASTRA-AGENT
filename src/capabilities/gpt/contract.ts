@@ -16,6 +16,7 @@ export type {
   GptChildInputMap,
   GptChildOutputMap,
   GptChildSuccess,
+  GptContinuationCheckpointInput,
   GptGeneratedImageCheckpointInput,
   GptHash,
   GptTextCheckpointInput,
@@ -124,7 +125,7 @@ type GptChildCapabilityIntentMap = {
 
 export type GptAnyChildCapabilityIntent = GptChildCapabilityIntentMap[GptChildCapabilityId];
 
-export type GptChildCapabilityIntent<K extends GptChildCapabilityId> =
+export type GptChildCapabilityIntent<K extends GptChildCapabilityId = GptChildCapabilityId> =
   GptChildExecutionIdentity & Readonly<{
     childCapabilityId: K;
     input: GptChildInputMap[K];

@@ -2,6 +2,8 @@ import {
   GPT_CHILD_CAPABILITY_CONTRACTS,
   gptExactCallIdentityHash,
   type GptAbilityGroup,
+  type GptAnyChildCapabilityIntent,
+  type GptChildCapabilityId,
   type GptChildCapabilityIntent,
   type GptChildCapabilityResult,
 } from "../../../capabilities/gpt/index.js";
@@ -89,7 +91,9 @@ export class ProductionGptChildTools {
       }
       return productSafeExactGptCallFacts(facts);
     };
-    const execute = async (call: Parameters<ProductGptTools["execute"]>[0]): Promise<ProductGptChildResult> => {
+    const execute = async <K extends GptChildCapabilityId>(
+      call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
+    ): Promise<ProductGptChildResult<K>> => {
       this.assertExecutionActive(input);
       observedCalls.set(hashCanonical(call), call);
       if (call.effectLookupKind === "task_exact_effect") {
@@ -103,7 +107,7 @@ export class ProductionGptChildTools {
               browserMutation: true, evidenceStore: this.evidenceStore,
             });
             if (!completed) throw executionFailure("failed", "GPT_TASK_EXACT_EFFECT_READBACK_MISSING");
-            return completed;
+            return completed as ProductGptChildResult<K>;
           }
         }
       }
@@ -123,7 +127,7 @@ export class ProductionGptChildTools {
         }
         continuationRef = value as string | null;
       }
-      return result;
+      return result as ProductGptChildResult<K>;
     };
     return Object.freeze({
       tools: Object.freeze({
@@ -162,11 +166,11 @@ export class ProductionGptChildTools {
       );
     }
   }
-  private intentForAttempt(
+  private intentForAttempt<K extends GptChildCapabilityId>(
     execution: ExecutionInput,
-    call: ProductGptCallInput,
+    call: ProductGptCallInput<K>,
     attemptId: string,
-  ): GptChildCapabilityIntent {
+  ): GptChildCapabilityIntent<K> {
     const inputHash = hashCanonical(call.input);
     const identity = {
       jobId: execution.task.job_id,
@@ -185,7 +189,10 @@ export class ProductionGptChildTools {
       input: call.input,
     });
   }
-  private intentFor(execution: ExecutionInput, call: ProductGptCallInput): GptChildCapabilityIntent {
+  private intentFor<K extends GptChildCapabilityId>(
+    execution: ExecutionInput,
+    call: ProductGptCallInput<K>,
+  ): GptChildCapabilityIntent<K> {
     return this.intentForAttempt(execution, call, execution.lease.attempt_id);
   }
   private async readCallFacts(
@@ -225,6 +232,7 @@ export class ProductionGptChildTools {
     facts: RuntimeExactGptCallFacts,
   ): ConfirmedProviderSubmitReceipt | null {
     if (call.child !== "submit_exact_gpt_turn_once") return null;
+    const submitCall = call as ProductGptCallInput<"submit_exact_gpt_turn_once">;
     const mutation = facts.mutation;
     const evidence = facts.evidence;
     if (mutation?.effectScope !== "provider_effect"
@@ -237,8 +245,8 @@ export class ProductionGptChildTools {
       || mutation.actionOrdinal !== call.actionOrdinal) {
       throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
     }
-    const promptHash = call.input.promptHash;
-    const turnMarker = call.input.turnMarker;
+    const promptHash = submitCall.input.promptHash;
+    const turnMarker = submitCall.input.turnMarker;
     if (typeof promptHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(promptHash)
       || typeof turnMarker !== "string" || !turnMarker) {
       throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
@@ -295,7 +303,7 @@ export class ProductionGptChildTools {
       browserAuthority: this.browserAuthority,
       evidenceStore: this.evidenceStore,
       store: this.store,
-    }, intent);
+    }, intent as GptAnyChildCapabilityIntent);
   }
 
   private childSpan(input: ExecutionInput, intent: GptChildCapabilityIntent): RuntimeSpanHandle {
@@ -376,12 +384,12 @@ export class ProductionGptChildTools {
     }
   }
 
-  private async executeOne(
+  private async executeOne<K extends GptChildCapabilityId>(
     execution: ExecutionInput,
     browsers: ProductionGptBrowserLifecycle,
-    call: Parameters<ProductGptTools["execute"]>[0],
+    call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
     signal: AbortSignal = execution.lease.abort_signal,
-  ): Promise<ProductGptChildResult> {
+  ): Promise<ProductGptChildResult<K>> {
     const intent = this.intentFor(execution, call);
     const facts = await this.readIntentFacts(intent);
     const contract = GPT_CHILD_CAPABILITY_CONTRACTS[call.child];
@@ -401,7 +409,7 @@ export class ProductionGptChildTools {
         && contract.oneObservationOrMutation === "at-most-one-mutation";
       const completed = await readCompletedGptChildResult({ call, facts, span, browserMutation,
         evidenceStore: this.evidenceStore });
-      if (completed) return completed;
+      if (completed) return completed as ProductGptChildResult<K>;
       const browserCall = contract.requiredTargetKind === "chatgpt"
         ? await browsers.browserFor(call.sessionKey, call.productStepId, call.callId)
         : undefined;
@@ -412,7 +420,7 @@ export class ProductionGptChildTools {
         gpt: this.gpt,
         store: this.store,
         browsers,
-        intent,
+        intent: intent as GptAnyChildCapabilityIntent,
         browserCall,
         signal,
       });
@@ -441,7 +449,7 @@ export class ProductionGptChildTools {
     this.terminalize(span, result);
     if (result.status !== "success") throwGptChildFailure(result);
     return Object.freeze({
-      value: result.value,
+      value: result.value as ProductGptChildResult<K>["value"],
       evidenceRef,
       evidenceHash,
     });

@@ -288,7 +288,10 @@ const runFormalTurn = async (
   const formalPrompt = formalPromptFor(task, base, fork, marker);
   const formalSubmit = {
     productStepId: "formal", callId: "turn-submit", child: "submit_exact_gpt_turn_once",
-    actionOrdinal: 53, input: { promptHash: sha256(formalPrompt), turnMarker: marker },
+    actionOrdinal: 53, input: {
+      files: uploadedFilesForRoles(context, ["bazi_formal_input", "result_contract"]),
+      promptHash: sha256(formalPrompt), turnMarker: marker,
+    },
     effectLookupKind: "task_exact_effect" as const,
   } as const;
   const currentFormalSubmit = await flow.facts(formalSubmit);

@@ -92,7 +92,11 @@ export const providerDisplayNames = (
 export const expectedUploadedFiles = (
   files: readonly Readonly<Record<string, unknown>>[],
   attemptId: string,
-): readonly SeoUploadedAttachment[] => files.map((file) => Object.freeze({
+): readonly SeoUploadedAttachment[] => files.map((file) => {
+  if (!Number.isSafeInteger(file.bytes) || Number(file.bytes) < 0) {
+    fail("SEO_ATTACHMENT_BYTES_INVALID");
+  }
+  return Object.freeze({
   artifactRef: textValue(file.artifactRef, "SEO_ATTACHMENT_ARTIFACT_REF_INVALID"),
   displayName: textValue(file.displayName, "SEO_ATTACHMENT_DISPLAY_NAME_INVALID"),
   providerDisplayName: gptAttachmentProviderDisplayName(
@@ -101,5 +105,6 @@ export const expectedUploadedFiles = (
     textValue(file.artifactRef, "SEO_ATTACHMENT_ARTIFACT_REF_INVALID"),
   ),
   sha256: hashValue(file.sha256, "SEO_ATTACHMENT_HASH_INVALID"),
-  bytes: file.bytes,
-}));
+  bytes: Number(file.bytes),
+  });
+});

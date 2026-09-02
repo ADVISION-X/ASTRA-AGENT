@@ -230,4 +230,3 @@ for (const [index, wireCase] of wireCases.entries()) {
 }
 console.log("LOCAL_BROWSER_PROPERTY_MODEL_ACCEPTANCE_PASS");
 emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V17", evidenceMode: "exam.property", clauses: ["forbidden:1","forbidden:3","forbidden:4","summary"], locator: "acceptance:browser-terminal:frame-property-model", observedValue: "64 authenticated frame sequences round-trip exactly" });
-emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-006-V12", evidenceMode: "exam.property", clauses: ["forbidden:0", "summary"], locator: "acceptance:browser-terminal:closed-invocation-payload-property", observedValue: "all five permitted payload shapes traverse the production socket and extension crypto in the correct authenticated direction, remain complete without wire plaintext, reject the opposite direction, and reject byte corruption" });

@@ -103,7 +103,7 @@ const produceResearchTurn = async (
   const stepId = "corpus_research";
   const marker = turnMarker(task, context.gpt.attemptId, stepId);
   const prompt = researchPrompt(task, marker, providerDisplayNames(files, context.gpt.attemptId));
-  const submitCall = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 12, input: { promptHash: textHash(prompt), turnMarker: marker } } as const;
+  const submitCall = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 12, input: { files: uploadedFiles, promptHash: textHash(prompt), turnMarker: marker } } as const;
   const submitFacts = await flow.facts(submitCall);
   const recoveredReadback = await context.gpt.readContinuationExact({
     lookupKind: "turn_marker", turnMarker: marker,
@@ -203,7 +203,7 @@ const produceArticleTurn = async (
   const stepId = "article_synthesis";
   const marker = turnMarker(task, context.gpt.attemptId, stepId);
   const prompt = articlePrompt(task, marker);
-  const submitCall = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 27, input: { promptHash: textHash(prompt), turnMarker: marker } } as const;
+  const submitCall = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 27, input: { files: [], promptHash: textHash(prompt), turnMarker: marker } } as const;
   const submitFacts = await flow.facts(submitCall);
   const recovering = Boolean(submitFacts.mutation || submitFacts.evidence);
   const lane = await focusContinuation(
@@ -319,7 +319,7 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
   const files = attachmentFiles(context);
   const uploadedFiles = expectedUploadedFiles(files, context.gpt.attemptId);
   const prompt = reviewPrompt(task, marker, providerDisplayNames(files, context.gpt.attemptId));
-  const submitCall = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 12, input: { promptHash: textHash(prompt), turnMarker: marker } } as const;
+  const submitCall = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 12, input: { files: uploadedFiles, promptHash: textHash(prompt), turnMarker: marker } } as const;
   const submitFacts = await flow.facts(submitCall);
   await prepareAttachedTurnPrefix({
     flow, stepId, files, uploadedFiles,

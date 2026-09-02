@@ -67,7 +67,7 @@ active law + Manifest + active blueprint/spec
 3. **模式虚标退役**：物理删除 `entire-governed-object`、`static.types -> ast` 替代、summary-only assertion 和 law-wide 共用 `passed`；每个 mode 独立观察、独立 refs、独立 passed/finding。
 4. **结构红线内联深化**：`local-browser-session/inspector.ts` 按现有六个风险面在原 Owner 内拆分；`websocket-actor.ts` 只把 target-claim awaiter 与 diagnostics 移入同 Owner 精确模块。不新增 domain、Owner、protocol、state、facade、wrapper 或 bridge。
 5. **高影响差异检测垂直深化**：现有 CHANGE 门内的唯一 typed detector 精确识别 API、CLI、事件、队列、表、列、环境变量、依赖、监听器、外连主机、浏览器权限和跨仓合同，输出 category/path/selector；它不读取用户原始请求，不裁决授权。
-6. **唯一 READY 门**：在本地高配置、具备真实浏览器发布身份的 clean commit 上，只执行现有 `npm run quality:check -- READY`；不新增云端 workflow、第二 CI 入口或第二 verdict，自动事件不运行 RELEASE。
+6. **唯一 READY 门**：在本地 clean commit 上，只执行现有 `npm run quality:check -- READY`；READY 不要求真实浏览器发布身份，`dynamic.*` 只列为 deferred；不新增云端 workflow、第二 CI 入口或第二 verdict，自动事件不运行 RELEASE。
 
 RELEASE participant 路径只能从现有通用 `GRASSEYE_PROVIDER_REPOSITORIES` canonical repo 映射取得；不得在 spec、registry、report、代码默认值或专用 env 中保留个人机器路径。任何中间候选不得合并到 main；只有同一 clean commit 的 READY 通过后，才可以显式 provider 映射运行 RELEASE。
 

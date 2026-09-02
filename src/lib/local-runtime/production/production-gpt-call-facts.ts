@@ -1,7 +1,7 @@
 import {
   gptContinuationIdentityHash,
   gptExactCallIdentityHash,
-  type GptChildCapabilityIntent,
+  type GptAnyChildCapabilityIntent,
 } from "../../../capabilities/gpt/index.js";
 import { executionFailure } from "../../typed-failure.js";
 import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-support.js";
@@ -47,21 +47,22 @@ const record = (value: unknown): Readonly<Record<string, unknown>> | null =>
   value && typeof value === "object" && !Array.isArray(value)
     ? value as Readonly<Record<string, unknown>> : null;
 
-const continuationRefFromIntent = (intent: GptChildCapabilityIntent): string | null => {
+const continuationRefFromIntent = (intent: GptAnyChildCapabilityIntent): string | null => {
   if (intent.childCapabilityId === "persist_gpt_continuation") {
     return `gpt-continuation:${gptExactCallIdentityHash(intent).slice(7)}`;
   }
-  if (typeof intent.input.continuationRef === "string" && intent.input.continuationRef.length > 0) {
+  if ("continuationRef" in intent.input
+    && typeof intent.input.continuationRef === "string" && intent.input.continuationRef.length > 0) {
     return intent.input.continuationRef;
   }
-  const lane = record(intent.input.lane);
+  const lane = record("lane" in intent.input ? intent.input.lane : null);
   return typeof lane?.continuation_ref === "string" && lane.continuation_ref.length > 0
     ? lane.continuation_ref : null;
 };
 
 const readContinuation = (
   reader: FactReader,
-  intent: GptChildCapabilityIntent,
+  intent: GptAnyChildCapabilityIntent,
 ): ExactGptCallFacts["continuation"] => {
   const continuationRef = continuationRefFromIntent(intent);
   if (!continuationRef) return null;
@@ -80,7 +81,7 @@ const readContinuation = (
 
 export const readProductionGptCallFacts = async (
   reader: FactReader,
-  intent: GptChildCapabilityIntent,
+  intent: GptAnyChildCapabilityIntent,
 ): Promise<RuntimeExactGptCallFacts> => {
   const exactCallIdentityHash = gptExactCallIdentityHash(intent);
   const mutation = reader.browserAuthority.readExactCallMutationFact({

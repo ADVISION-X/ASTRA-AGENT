@@ -199,11 +199,25 @@ try {
   const webpBytes = new Uint8Array([5, 6, 7]);
   const mediaHash = digestBytes(originalBytes);
   const webpHash = digestBytes(webpBytes);
+  const predecessorTextCheckpoint = {
+    checkpointKind: "text" as const,
+    sourceAttemptId: attemptId,
+    assistantTurnId: articleInput.assistantTurnId,
+    artifactRef: articleArtifactRefs[0]!,
+    rawDomHash: digest(articleRawDom),
+    semanticTextHash: digest(articleText),
+    canonicalConversationUrl: articleInput.canonicalConversationUrl,
+    promptHash: articleInput.expectedPromptHash,
+    turnMarker: articleInput.turnMarker,
+    evidenceRef: articleEvidence.recordRef,
+    evidenceHash: articlePayload.source_evidence_hash as `sha256:${string}`,
+  };
   const imageInput = {
     assistantTurnId: "conversation-turn-6",
     canonicalConversationUrl: checkpointCall.input.canonicalConversationUrl,
     expectedMediaHash: mediaHash,
     expectedPromptHash: HASH_A,
+    predecessorTextCheckpoint,
     turnMarker: "[GRASSEYE:artifact-readback-image]",
   } as const;
   const imageIdentity = {
@@ -320,7 +334,7 @@ try {
     input: {
       jobId: providerTask.job_id,
       pluginId: "public-knowledge-article-pipeline",
-      lane: lane.value as Readonly<Record<string, unknown>>,
+      lane: lane.value,
       provider: imageProvider,
       currentCheckpoint: {
         checkpointKind: "generated_image",
@@ -344,19 +358,7 @@ try {
         height: 630,
         evidenceRef: imageEvidence.recordRef,
         evidenceHash: imagePayload.source_evidence_hash as `sha256:${string}`,
-        predecessorTextCheckpoint: {
-          checkpointKind: "text",
-          sourceAttemptId: attemptId,
-          assistantTurnId: articleInput.assistantTurnId,
-          artifactRef: articleArtifactRefs[0]!,
-          rawDomHash: digest(articleRawDom),
-          semanticTextHash: digest(articleText),
-          canonicalConversationUrl: articleInput.canonicalConversationUrl,
-          promptHash: articleInput.expectedPromptHash,
-          turnMarker: articleInput.turnMarker,
-          evidenceRef: articleEvidence.recordRef,
-          evidenceHash: articlePayload.source_evidence_hash as `sha256:${string}`,
-        },
+        predecessorTextCheckpoint,
       },
     },
   });
@@ -383,7 +385,10 @@ try {
     callId: "failed-release-replay",
     child: "release_gpt_continuation_lane" as const,
     actionOrdinal: 47,
-    input: Object.freeze({ jobId: providerTask.job_id, lane: { continuation_ref: "missing" } }),
+    input: Object.freeze({
+      jobId: providerTask.job_id,
+      lane: { continuation_ref: "missing", lane_version: 1, provider: imageProvider },
+    }),
   });
   const failedIdentity = {
     jobId: providerTask.job_id,

@@ -10,6 +10,7 @@ import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import { createArtifactRef } from "../../src/lib/storage/refs.js";
 import { persistGptChildEvidence } from "../../src/lib/local-runtime/production/gpt-evidence-writer.js";
 import { readSubmissionLocatorArtifact } from "../../src/lib/local-runtime/production/gpt-artifact-reader.js";
+import { gptProofEnvelope } from "./agent-production-runtime-fixtures.js";
 
 const tempRoot = await mkdtemp(join(tmpdir(), "grasseye-forensics-acceptance-"));
 
@@ -150,9 +151,19 @@ try {
       value: { canonicalConversationUrl: locatorUrl, turnMarker: locatorMarker,
         userTurnId: locatorTurn, promptHash, conversationIdentityHash: locatorIdentity },
       proof: { schemaVersion: "gpt-child-capability-proof.v2", ...locatorIntent,
+        ...gptProofEnvelope({
+          childCapabilityId: locatorIntent.childCapabilityId,
+          exactCallIdentityHash: `sha256:${"c".repeat(64)}`,
+          status: "success", decision: "DONE", candidateCount: 1,
+          authorityRefHashes: [
+            `sha256:${"d".repeat(64)}`,
+            `sha256:${"e".repeat(64)}`,
+            `sha256:${"f".repeat(64)}`,
+          ],
+        }),
         targetRefHash: `sha256:${"d".repeat(64)}`, beforeDocumentRefHash: `sha256:${"e".repeat(64)}`,
-        afterDocumentRefHash: `sha256:${"f".repeat(64)}`, candidateCount: 1,
-        observedSemantics: ["submission locator"], committedMutation: "no",
+        afterDocumentRefHash: `sha256:${"f".repeat(64)}`,
+        committedMutation: "no",
         postconditionResult: "passed", startedAt: timestamp, endedAt: timestamp,
         evidenceRef: "browser:submission-locator", evidenceHash: `sha256:${"1".repeat(64)}` },
     },

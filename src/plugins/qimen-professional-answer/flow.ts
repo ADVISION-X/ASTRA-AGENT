@@ -1,6 +1,7 @@
 import {
   buildGptExecutionProfile,
   gptAttachmentProviderDisplayName,
+  type GptApprovedFile,
   type GptProviderContinuation,
 } from "../../capabilities/gpt/index.js";
 import {
@@ -14,6 +15,7 @@ import {
   productResultValidation,
   readProductSkill,
   type ExactGptCallFacts,
+  type ProductGptAnyCallInput,
   type SharedExecutionContext,
 } from "../../lib/local-runtime/production/plugin.js";
 import {
@@ -41,7 +43,7 @@ const MODEL_PROFILE = buildGptExecutionProfile({
   acceptanceVersion: "v1",
 });
 
-type FlowCall = Omit<Parameters<SharedExecutionContext["gpt"]["execute"]>[0], "sessionKey">;
+type FlowCall = ProductGptAnyCallInput;
 type Checkpoint = Readonly<{
   assistantTurnId: string;
   artifactRef: string;
@@ -280,13 +282,13 @@ const submitTurn = async (
   stepId: string,
   prompt: string,
   marker: string,
-  files: readonly Readonly<Record<string, unknown>>[],
+  files: readonly GptApprovedFile[],
   ordinals: readonly [number, number, number, number, number, number],
 ): Promise<Checkpoint> => {
   const promptHash = sha256(prompt);
   const write = { productStepId: stepId, callId: "prompt-write", child: "write_exact_gpt_prompt", actionOrdinal: ordinals[0], input: { prompt } } as const;
   const draft = { productStepId: stepId, callId: "draft-reconcile", child: "reconcile_gpt_draft", actionOrdinal: ordinals[1], input: { files, prompt, turnMarker: marker } } as const;
-  const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: ordinals[2], input: { promptHash, turnMarker: marker } } as const;
+  const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: ordinals[2], input: { files, promptHash, turnMarker: marker } } as const;
   const existing = await flow.facts(submit);
   if (existing.mutation || existing.evidence) {
     await flow.requireEvidence(write);
@@ -310,7 +312,7 @@ const runFreshTurn = async (
   marker: string,
 ): Promise<Checkpoint> => {
   const stepId = task.action_id;
-  const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 12, input: { promptHash: sha256(prompt), turnMarker: marker } } as const;
+  const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 12, input: { files: uploadedFiles(context), promptHash: sha256(prompt), turnMarker: marker } } as const;
   const existing = await flow.facts(submit);
   const recoverOnly = Boolean(existing.mutation || existing.evidence);
   const fresh = { productStepId: stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;

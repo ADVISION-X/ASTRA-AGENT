@@ -135,7 +135,7 @@ export const runContinuationTurn = async (
   marker: string,
 ): Promise<Checkpoint> => {
   const stepId = task.action_id;
-  const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 14, input: { promptHash: sha256(prompt), turnMarker: marker } } as const;
+  const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 14, input: { files: uploadedFiles(context), promptHash: sha256(prompt), turnMarker: marker } } as const;
   const existing = await flow.facts(submit);
   const recoverOnly = Boolean(existing.mutation || existing.evidence);
   await applyProfile(flow, stepId, [4, 5, 6, 7, 8], recoverOnly);

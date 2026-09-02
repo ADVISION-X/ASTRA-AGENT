@@ -8,6 +8,7 @@ import {
   createGptAbilityGroup,
   gptContinuationIdentityHash,
   type GptChildCapabilityId,
+  type GptChildInputMap,
   type GptProviderContinuation,
 } from "../../src/capabilities/gpt/index.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
@@ -30,9 +31,9 @@ try {
 
   const gpt = createGptAbilityGroup();
   let ordinal = 0;
-  const executeAt = (
-    childCapabilityId: GptChildCapabilityId,
-    input: Readonly<Record<string, unknown>>,
+  const executeAt = <K extends GptChildCapabilityId>(
+    childCapabilityId: K,
+    input: GptChildInputMap[K],
     actionOrdinal: number,
   ) => {
     return gpt.execute({
@@ -49,7 +50,7 @@ try {
       input,
     }, { dataDir: temporary, continuationStore: store });
   };
-  const execute = (childCapabilityId: GptChildCapabilityId, input: Readonly<Record<string, unknown>>) => {
+  const execute = <K extends GptChildCapabilityId>(childCapabilityId: K, input: GptChildInputMap[K]) => {
     ordinal += 1;
     return executeAt(childCapabilityId, input, ordinal);
   };
@@ -117,14 +118,15 @@ try {
     },
   });
   assert.equal(acquired.status, "success", acquired.failureCode ?? "acquire continuation failed");
+  if (acquired.status !== "success") throw new Error("ACQUIRE_CONTINUATION_FAILED");
   const released = await execute("release_gpt_continuation_lane", {
     jobId: sourceTask.job_id,
-    lane: acquired.value as Readonly<Record<string, unknown>>,
+    lane: acquired.value,
   });
   assert.equal(released.status, "success", released.failureCode ?? "release continuation failed");
   const releasedReadback = await execute("release_gpt_continuation_lane", {
     jobId: sourceTask.job_id,
-    lane: acquired.value as Readonly<Record<string, unknown>>,
+    lane: acquired.value,
   });
   assert.equal(releasedReadback.status, "success", releasedReadback.failureCode ?? "release readback failed");
 
@@ -138,11 +140,12 @@ try {
     },
   });
   assert.equal(reacquired.status, "success", reacquired.failureCode ?? "reacquire continuation failed");
+  if (reacquired.status !== "success") throw new Error("REACQUIRE_CONTINUATION_FAILED");
   const advancedProvider = { ...provider, prior_turn_marker: "turn:advanced" } as const;
   const advanceInput = {
     jobId: sourceTask.job_id,
     pluginId: identity.plugin_id,
-    lane: reacquired.value as Readonly<Record<string, unknown>>,
+    lane: reacquired.value,
     provider: advancedProvider,
     currentCheckpoint: textCheckpoint(advancedProvider, "advanced"),
   } as const;
@@ -152,7 +155,7 @@ try {
   assert.equal(advancedReadback.status, "success", advancedReadback.failureCode ?? "advance readback failed");
   const settledOldLaneRelease = await execute("release_gpt_continuation_lane", {
     jobId: sourceTask.job_id,
-    lane: reacquired.value as Readonly<Record<string, unknown>>,
+    lane: reacquired.value,
   });
   assert.equal(settledOldLaneRelease.status, "success",
     "a committed advance must make the old same-version lane release an idempotent no-op");

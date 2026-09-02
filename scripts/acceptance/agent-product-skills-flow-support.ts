@@ -2,7 +2,10 @@ import assert from "../audit/shared/governance-exam-assert.js";
 
 import {
   gptAttachmentProviderDisplayName,
+  type GptChildCapabilityId,
+  type GptContinuationCheckpointInput,
   type GptProviderContinuation,
+  type GptTextCheckpointInput,
 } from "../../src/capabilities/gpt/index.js";
 import {
   hashCanonical,
@@ -11,6 +14,9 @@ import {
 import type {
   ExactGptGeneratedImageCheckpointReadback,
   ExactGptTextCheckpointReadback,
+  ProductGptAnyCallInput,
+  ProductGptCallInput,
+  ProductGptChildResult,
   ProductPluginOutput,
   ProductPlugin,
   SharedExecutionContext,
@@ -40,7 +46,7 @@ export const articleOutput = () => ({
 });
 
 type SeoAction = "produce_article" | "accuracy_challenge" | "quality_reflection";
-type SeoCall = Parameters<SharedExecutionContext["gpt"]["execute"]>[0];
+type SeoCall = ProductGptAnyCallInput & Readonly<{ sessionKey: string }>;
 type SeoFactQuery = Parameters<SharedExecutionContext["gpt"]["readCallFacts"]>[0];
 export type SeoFailure = Readonly<{ child: string; code: string; productStepId?: string }>;
 type SeoFact = Readonly<{
@@ -58,8 +64,8 @@ export type SeoHarness = {
   continuationProvider: GptProviderContinuation | null;
   originProvider: GptProviderContinuation | null;
   frontierRef: `sha256:${string}` | null;
-  frontierOriginCheckpoint: Readonly<Record<string, unknown>> | null;
-  currentCheckpoint: Readonly<Record<string, unknown>> | null;
+  frontierOriginCheckpoint: Omit<GptTextCheckpointInput, "checkpointKind"> | null;
+  currentCheckpoint: GptContinuationCheckpointInput | null;
   completionFailuresRemaining: number;
   continuationLaneVersion: number;
   continuationLaneOwned: boolean;
@@ -133,7 +139,7 @@ const factKey = (attemptId: string, input: SeoFactQuery): string =>
   hashCanonical({ attemptId, callIdentityHash: callIdentityHash(input) });
 
 const textCheckpointReadback = (
-  checkpoint: Readonly<Record<string, unknown>>,
+  checkpoint: Omit<GptTextCheckpointInput, "checkpointKind">,
   semanticText: string,
 ): ExactGptTextCheckpointReadback => ({
   checkpointKind: "text",
@@ -163,7 +169,7 @@ const currentCheckpointReadback = (
       : JSON.stringify(articleOutput());
     return textCheckpointReadback(checkpoint, semanticText);
   }
-  const predecessor = checkpoint.predecessorTextCheckpoint as Readonly<Record<string, unknown>>;
+  const predecessor = checkpoint.predecessorTextCheckpoint;
   return {
     checkpointKind: "generated_image",
     sourceAttemptId: String(checkpoint.sourceAttemptId),
@@ -230,11 +236,11 @@ const applyContinuationCall = (state: SeoHarness, input: SeoCall, initial: unkno
   if (input.child === "persist_gpt_continuation") {
     state.continuationProvider ??= input.input.provider as GptProviderContinuation;
     state.originProvider ??= input.input.provider as GptProviderContinuation;
-    state.currentCheckpoint ??= input.input.currentCheckpoint as Readonly<Record<string, unknown>>;
-    const frontier = input.input.frontier as Readonly<Record<string, unknown>> | undefined;
+    state.currentCheckpoint ??= input.input.currentCheckpoint;
+    const frontier = input.input.frontier;
     if (frontier) {
       state.frontierRef = frontier.frontierRef as `sha256:${string}`;
-      state.frontierOriginCheckpoint = frontier.originCheckpoint as Readonly<Record<string, unknown>>;
+      state.frontierOriginCheckpoint = frontier.originCheckpoint;
     }
   }
   if (input.child === "acquire_gpt_continuation_lane") {
@@ -250,14 +256,14 @@ const applyContinuationCall = (state: SeoHarness, input: SeoCall, initial: unkno
   }
   if (input.child === "advance_gpt_continuation_lane") {
     assert.equal(state.continuationLaneOwned, true);
-    assert.equal((input.input.lane as Readonly<Record<string, unknown>>).lane_version,
+    assert.equal(input.input.lane.lane_version,
       state.continuationLaneVersion);
     state.continuationProvider = input.input.provider as GptProviderContinuation;
-    state.currentCheckpoint = input.input.currentCheckpoint as Readonly<Record<string, unknown>>;
+    state.currentCheckpoint = input.input.currentCheckpoint;
     state.continuationLaneOwned = false;
   }
   if (input.child === "release_gpt_continuation_lane") {
-    assert.equal((input.input.lane as Readonly<Record<string, unknown>>).lane_version,
+    assert.equal(input.input.lane.lane_version,
       state.continuationLaneVersion);
     state.continuationLaneOwned = false;
   }
@@ -327,7 +333,7 @@ export const createContext = (
           currentAuthorizationRef: query.authorization.currentAuthorizationRef,
           ownerScopeHash: HASH,
           subjectRef: "subject:test",
-          sourceArtifactRef: String(checkpoint.artifact_ref),
+          sourceArtifactRef: checkpoint.artifactRef,
           sourceCheckpointRef: HASH,
           semanticAdmissionReceiptRef: "receipt:semantic",
           semanticAdmissionReceiptHash: HASH,
@@ -367,7 +373,15 @@ export const createContext = (
         continuation: null,
       };
     },
-    execute: (input) => executeCall(state, input, decision, failureAt, attemptId),
+    execute: async <K extends GptChildCapabilityId>(
+      input: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
+    ): Promise<ProductGptChildResult<K>> => {
+      const result = await executeCall(state, input as SeoCall, decision, failureAt, attemptId);
+      return {
+        ...result,
+        value: result.value as ProductGptChildResult<K>["value"],
+      };
+    },
   },
   complete: async (output) => {
     if (state.completionFailuresRemaining > 0) {

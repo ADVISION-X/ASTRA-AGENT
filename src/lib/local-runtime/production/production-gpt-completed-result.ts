@@ -24,7 +24,7 @@ const success = (
 ): ProductGptChildResult => {
   requireRuntimeLogWrite(input.span.terminal({ outcome: "succeeded" }));
   return Object.freeze({
-    value,
+    value: value as ProductGptChildResult["value"],
     evidenceRef: input.facts.evidence!.evidenceRef,
     evidenceHash: input.facts.evidence!.evidenceHash,
   });
@@ -68,6 +68,9 @@ export const readCompletedGptChildResult = async (
   if (input.call.child === "checkpoint_gpt_generated_image") return imageCheckpoint(input);
   if (input.call.child === "reconcile_gpt_turn_submission") return submissionLocator(input);
   if (input.call.child === "fork_exact_gpt_conversation_at_checkpoint") return forkRelation(input);
-  if (!input.browserMutation || input.facts.mutation?.outcome === "DISPATCHED") return null;
-  return success(input, null);
+  if (input.call.child === "submit_exact_gpt_turn_once") {
+    const submit = input.call as ProductGptCallInput<"submit_exact_gpt_turn_once">;
+    return success(input, { promptHash: submit.input.promptHash, mutationSent: false });
+  }
+  return null;
 };

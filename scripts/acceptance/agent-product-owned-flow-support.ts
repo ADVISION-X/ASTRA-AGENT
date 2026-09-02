@@ -3,6 +3,7 @@ import { writeFileSync } from "node:fs";
 
 import {
   gptAttachmentProviderDisplayName,
+  type GptChildCapabilityId,
   type GptProviderContinuation,
 } from "../../src/capabilities/gpt/index.js";
 import {
@@ -13,6 +14,9 @@ import {
 import type {
   ExactGptContinuationQuery,
   ExactGptContinuationReadback,
+  ProductGptAnyCallInput,
+  ProductGptCallInput,
+  ProductGptChildResult,
   ProductPlugin,
   ProductPluginOutput,
   SharedExecutionContext,
@@ -23,7 +27,7 @@ const HASH = `sha256:${"a".repeat(64)}` as ProductionHash;
 const HASH_B = `sha256:${"b".repeat(64)}` as ProductionHash;
 const dual = Object.freeze({ professional_markdown: "专业层", reader_explanation_markdown: "读者层" });
 const common = Object.freeze({ citations: [], uncertainties: [], limitations: [], safety_notes: [] });
-type ProductCall = Parameters<SharedExecutionContext["gpt"]["execute"]>[0];
+type ProductCall = ProductGptAnyCallInput & Readonly<{ sessionKey: string }>;
 
 type ReusableBaseFixture = Readonly<{
   reusableIdentityHash: ProductionHash;
@@ -426,14 +430,21 @@ const contextFor = (
           continuation: null,
         };
       },
-      execute: async (call) => {
-        state.calls.push(call);
-        const key = callKey(call);
+      execute: async <K extends GptChildCapabilityId>(
+        call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
+      ): Promise<ProductGptChildResult<K>> => {
+        const productCall = call as ProductCall;
+        state.calls.push(productCall);
+        const key = callKey(productCall);
         const prior = state.facts.get(key);
-        if (call.child === "submit_exact_gpt_turn_once" && !prior) state.physicalSubmitDispatches += 1;
+        if (productCall.child === "submit_exact_gpt_turn_once" && !prior) state.physicalSubmitDispatches += 1;
         const evidenceRef = prior?.evidenceRef ?? `evidence:${state.calls.length}`;
-        state.facts.set(key, { evidenceRef, mutation: call.child === "submit_exact_gpt_turn_once" });
-        return { value: valueForCall(state, task, expected, uploaded, call), evidenceRef, evidenceHash: HASH };
+        state.facts.set(key, { evidenceRef, mutation: productCall.child === "submit_exact_gpt_turn_once" });
+        return {
+          value: valueForCall(state, task, expected, uploaded, productCall) as ProductGptChildResult<K>["value"],
+          evidenceRef,
+          evidenceHash: HASH,
+        };
       },
     },
     complete: async (output) => {
@@ -467,7 +478,7 @@ export const exerciseProductOwnedFlow = async (
   const firstActionOrdinal = reusableBase ? 34 : 1;
   const expectedActionOrdinals = baziTwoTurn && !reusableBase
     ? [...Array.from({ length: 16 }, (_value, index) => index + 1),
-      ...Array.from({ length: 24 }, (_value, index) => index + 33)]
+      ...Array.from({ length: 25 }, (_value, index) => index + 33)]
     : state.calls.map((_call, index) => index + firstActionOrdinal);
   assert.deepEqual(state.calls.map((call) => call.actionOrdinal), expectedActionOrdinals);
   const prompt = state.calls.filter((call) => call.child === "write_exact_gpt_prompt").at(-1)?.input.prompt;
@@ -485,10 +496,13 @@ export const exerciseProductOwnedFlow = async (
 const reusableBaseFixtureFrom = (
   run: Awaited<ReturnType<typeof exerciseProductOwnedFlow>>,
 ): ReusableBaseFixture => {
-  const reserve = run.calls.find((call) => call.child === "reserve_exact_gpt_continuation_once"
+  const reserve = run.calls.find((call): call is Extract<ProductCall, {
+    child: "reserve_exact_gpt_continuation_once";
+  }> => call.child === "reserve_exact_gpt_continuation_once"
     && call.input.reservationKind === "reusable_origin");
-  const complete = run.calls.find((call) =>
-    call.child === "complete_exact_gpt_continuation_reservation_once"
+  const complete = run.calls.find((call): call is Extract<ProductCall, {
+    child: "complete_exact_gpt_continuation_reservation_once";
+  }> => call.child === "complete_exact_gpt_continuation_reservation_once"
     && call.productStepId === "private-base");
   assert(reserve && complete, "fresh Bazi primary must durably reserve and complete the reusable base");
   const identity = reserve.input.reservationIdentityHash as ProductionHash;

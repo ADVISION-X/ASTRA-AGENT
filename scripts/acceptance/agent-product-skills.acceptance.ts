@@ -193,14 +193,15 @@ for (const plugin of productionPluginCatalog) {
     assert.match(prompts[2]!, /一张横向文章主图/u);
     assert.doesNotMatch(prompts[2]!, /无文字|无印章|不冒充/u);
     const persistProvider = proceed.calls.find((call) => call.child === "persist_gpt_continuation")
-      ?.input.provider as Readonly<Record<string, unknown>>;
+      ?.input.provider;
+    assert(persistProvider);
     const continuationVerifies = proceed.calls.filter((call) => call.child === "verify_gpt_conversation_identity");
     const continuationAdvances = proceed.calls.filter((call) => call.child === "advance_gpt_continuation_lane");
     assert.equal(persistProvider.prior_prompt_hash, hashText(prompts[0]!));
     assert.equal(continuationVerifies[0]?.input.expectedPromptHash, hashText(prompts[0]!));
-    assert.equal((continuationAdvances[0]?.input.provider as Readonly<Record<string, unknown>>).prior_prompt_hash, hashText(prompts[1]!));
+    assert.equal(continuationAdvances[0]?.input.provider.prior_prompt_hash, hashText(prompts[1]!));
     assert.equal(continuationVerifies[1]?.input.expectedPromptHash, hashText(prompts[1]!));
-    assert.equal((continuationAdvances[1]?.input.provider as Readonly<Record<string, unknown>>).prior_prompt_hash, hashText(prompts[2]!));
+    assert.equal(continuationAdvances[1]?.input.provider.prior_prompt_hash, hashText(prompts[2]!));
     assert.ok(proceed.completed.generated_image);
     const recovered = await exerciseSeoFlow(
       plugin, "produce_article", "proceed",
@@ -359,7 +360,7 @@ assert.equal(routeKeys.size, 39);
 assert.deepEqual([...productIds].sort(), [...ProductionProductIdSchema.options].sort());
 process.stdout.write("[ACCEPTANCE][agent-product-skills] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V30",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V31",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:15", "forbidden:16", "forbidden:2", "forbidden:21", "forbidden:22", "forbidden:29", "forbidden:3", "forbidden:30", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:product-flow-golden",

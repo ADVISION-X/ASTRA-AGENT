@@ -1,7 +1,8 @@
 import {
   GPT_CHILD_CAPABILITY_CONTRACTS,
   gptExactCallIdentityHash,
-  type GptChildCapabilityIntent,
+  type GptAnyChildCapabilityIntent,
+  type GptChildCapabilityId,
   type GptChildCapabilityProof,
   type GptChildCapabilityResult,
 } from "../../../capabilities/gpt/index.js";
@@ -32,7 +33,7 @@ export type ProductionGptBrowserCall = {
 const PROVIDER_WAIT_LOG_INTERVAL_MS = 30_000;
 
 const recoveredProof = (input: Readonly<{
-  intent: GptChildCapabilityIntent;
+  intent: GptAnyChildCapabilityIntent;
   browser: BrowserTargetLease;
   readback: GptChildCapabilityResult | null;
   recovery: BrowserAtomicStepRecovery;
@@ -68,6 +69,7 @@ const recoveredProof = (input: Readonly<{
     factResultIds: Object.freeze([`gpt-fact-result:${input.recovery.authorityHash.slice(7)}`]),
     candidateCardinality: input.readback?.proof.candidateCardinality
       ?? Object.freeze({ raw: null, eligible: null }),
+    observationRevisionHash: input.readback?.proof.observationRevisionHash ?? null,
     committedMutation: input.recovery.mutationOutcome,
     postconditionResult: input.state === "confirmed" ? "passed" as const : "failed" as const,
     browserFact: Object.freeze({
@@ -93,25 +95,41 @@ const recoveredProof = (input: Readonly<{
 };
 
 export const recoveredGptChildResult = (input: Readonly<{
-  intent: GptChildCapabilityIntent;
+  intent: GptAnyChildCapabilityIntent;
   browser: BrowserTargetLease;
   readback: GptChildCapabilityResult | null;
   recovery: BrowserAtomicStepRecovery;
   state: "confirmed" | "rejected";
-}>): GptChildCapabilityResult => Object.freeze({
-  status: input.state === "confirmed" ? "success" : "failed",
-  value: input.state === "confirmed" ? input.readback?.value ?? null : null,
-  proof: recoveredProof(input),
-  failureCode: input.state === "confirmed" ? null : "BROWSER_POSTCONDITION_FAILED",
-  failureCause: input.state === "confirmed" ? null : Object.freeze({ name: "Error", code: null }),
-  failureBrowserEffect: input.state === "confirmed" ? null : Object.freeze({
-    effectScope: GPT_CHILD_CAPABILITY_CONTRACTS[input.intent.childCapabilityId].replayPolicy === "provider-effect-once"
-      ? "provider_effect" as const
-      : "target_local" as const,
-    childCapabilityId: input.intent.childCapabilityId,
-    browserOutcome: "REJECTED" as const,
-  }),
-});
+}>): GptChildCapabilityResult => {
+  const proof = recoveredProof(input);
+  if (input.state === "confirmed") {
+    if (input.readback?.status !== "success") {
+      throw executionFailure("failed", "BROWSER_CONFIRMED_READBACK_MISSING");
+    }
+    return Object.freeze({
+      status: "success",
+      value: input.readback.value,
+      proof,
+      failureCode: null,
+      failureCause: null,
+      failureBrowserEffect: null,
+    });
+  }
+  return Object.freeze({
+    status: "failed",
+    value: null,
+    proof,
+    failureCode: "BROWSER_POSTCONDITION_FAILED",
+    failureCause: Object.freeze({ name: "Error", code: null }),
+    failureBrowserEffect: Object.freeze({
+      effectScope: GPT_CHILD_CAPABILITY_CONTRACTS[input.intent.childCapabilityId].replayPolicy === "provider-effect-once"
+        ? "provider_effect" as const
+        : "target_local" as const,
+      childCapabilityId: input.intent.childCapabilityId,
+      browserOutcome: "REJECTED" as const,
+    }),
+  });
+};
 
 export class ProductionGptBrowserLifecycle {
   private readonly browsers = new Map<string, ProductionGptBrowserCall>();
@@ -173,7 +191,7 @@ export class ProductionGptBrowserLifecycle {
     active: ProductionGptBrowserCall,
     productStepId: string,
     callId: string,
-    childCapabilityId: GptChildCapabilityIntent["childCapabilityId"],
+    childCapabilityId: GptChildCapabilityId,
     durationMs: number,
   ): Promise<void> {
     if (!Number.isInteger(durationMs) || durationMs < 25 || durationMs > 5_000) {

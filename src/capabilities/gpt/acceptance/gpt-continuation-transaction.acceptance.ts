@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
 
+import { emitQualityProofObservation } from "../../../../scripts/audit/shared/proof-observation.js";
 import {
   createGptAbilityGroup,
   gptContinuationIdentityHash,
@@ -340,3 +341,11 @@ try {
   store.close();
   await rm(temporary, { recursive: true, force: true });
 }
+
+emitQualityProofObservation({
+  lawId: "LAW-GPT-001-V19",
+  evidenceMode: "exam.state-machine",
+  clauses: ["forbidden:15", "forbidden:16", "summary"],
+  locator: "acceptance:gpt-continuation-transaction:state-machine",
+  observedValue: "continuation reserve complete acquire advance release and identical readback transitions exercised",
+});

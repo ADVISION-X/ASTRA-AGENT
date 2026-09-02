@@ -6,6 +6,7 @@ import path from "node:path";
 import {
   gptExactCallIdentityHash,
   type GptAbilityGroup,
+  type GptChildCapabilityId,
   type GptChildCapabilityIntent,
   type GptChildCapabilityResult,
 } from "../../src/capabilities/gpt/index.js";
@@ -46,48 +47,61 @@ type ProviderBrowserAuthority = Pick<
 >;
 
 const providerResult = (
-  intent: GptChildCapabilityIntent,
+  intent: GptChildCapabilityIntent<"submit_exact_gpt_turn_once">,
   outcome: "confirmed" | "dispatched",
-): GptChildCapabilityResult => {
+): GptChildCapabilityResult<"submit_exact_gpt_turn_once"> => {
   const timestamp = new Date().toISOString();
   const succeeded = outcome === "confirmed";
   const evidenceHash = hashCanonical({ exactCall: intent.executionId, outcome });
+  const proof = Object.freeze({
+    schemaVersion: "gpt-child-capability-proof.v2" as const,
+    childCapabilityId: intent.childCapabilityId,
+    ...gptProofEnvelope({
+      childCapabilityId: intent.childCapabilityId,
+      exactCallIdentityHash: gptExactCallIdentityHash(intent),
+      status: succeeded ? "success" : "failed",
+      decision: succeeded ? "ACT" : "FAIL_CLOSED",
+      candidateCount: 1,
+      authorityRefHashes: [HASH_A, HASH_B],
+    }),
+    executionId: intent.executionId,
+    jobId: intent.jobId,
+    attemptId: intent.attemptId,
+    pluginId: intent.pluginId,
+    pluginVersion: intent.pluginVersion,
+    productStepId: intent.productStepId,
+    callId: intent.callId,
+    inputHash: intent.inputHash,
+    actionOrdinal: intent.actionOrdinal,
+    targetRefHash: HASH_A,
+    beforeDocumentRefHash: HASH_A,
+    afterDocumentRefHash: HASH_B,
+    committedMutation: outcome,
+    postconditionResult: succeeded ? "passed" as const : "pending" as const,
+    startedAt: timestamp,
+    endedAt: timestamp,
+    evidenceRef: `browser:provider-effect:${intent.jobId}`,
+    evidenceHash,
+  });
+  if (succeeded) return Object.freeze({
+    status: "success",
+    value: { promptHash: intent.input.promptHash, mutationSent: true },
+    proof,
+    failureCode: null,
+    failureCause: null,
+    failureBrowserEffect: null,
+  });
   return Object.freeze({
-    status: succeeded ? "success" : "failed",
+    status: "failed",
     value: null,
     proof: Object.freeze({
-      schemaVersion: "gpt-child-capability-proof.v2",
-      childCapabilityId: intent.childCapabilityId,
-      ...gptProofEnvelope({
-        childCapabilityId: intent.childCapabilityId,
-        exactCallIdentityHash: gptExactCallIdentityHash(intent),
-        status: succeeded ? "success" : "failed",
-        decision: succeeded ? "ACT" : "FAIL_CLOSED",
-        candidateCount: 1,
-        authorityRefHashes: [HASH_A, HASH_B],
-      }),
-      executionId: intent.executionId,
-      jobId: intent.jobId,
-      attemptId: intent.attemptId,
-      pluginId: intent.pluginId,
-      pluginVersion: intent.pluginVersion,
-      productStepId: intent.productStepId,
-      callId: intent.callId,
-      inputHash: intent.inputHash,
-      actionOrdinal: intent.actionOrdinal,
-      targetRefHash: HASH_A,
-      beforeDocumentRefHash: HASH_A,
-      afterDocumentRefHash: HASH_B,
-      committedMutation: outcome,
-      postconditionResult: succeeded ? "passed" : "pending",
-      startedAt: timestamp,
-      endedAt: timestamp,
-      evidenceRef: `browser:provider-effect:${intent.jobId}`,
-      evidenceHash,
+      ...proof,
+      childStatus: "failed" as const,
+      internalDecisionCode: "FAIL_CLOSED" as const,
     }),
-    failureCode: succeeded ? null : "TEST_PROVIDER_RESULT_UNKNOWN",
-    failureCause: succeeded ? null : Object.freeze({ name: "Error", code: null }),
-    failureBrowserEffect: succeeded ? null : Object.freeze({
+    failureCode: "TEST_PROVIDER_RESULT_UNKNOWN",
+    failureCause: Object.freeze({ name: "Error", code: null }),
+    failureBrowserEffect: Object.freeze({
       effectScope: "provider_effect" as const,
       childCapabilityId: intent.childCapabilityId,
       browserOutcome: "DISPATCHED" as const,
@@ -99,13 +113,21 @@ const providerGpt = (initial: ProviderOutcome, counters: ProviderCounters): GptA
   abilityGroupId: "gpt",
   transport: "gpt-web",
   listChildCapabilityIds: () => Object.freeze(["submit_exact_gpt_turn_once"] as const),
-  execute: async (intent: GptChildCapabilityIntent, context: GptExecutionContext) => {
+  execute: async <K extends GptChildCapabilityId>(
+    intent: GptChildCapabilityIntent<K>, context: GptExecutionContext,
+  ): Promise<GptChildCapabilityResult<K>> => {
+    if (intent.childCapabilityId !== "submit_exact_gpt_turn_once") {
+      throw new Error("TEST_PROVIDER_CHILD_INVALID");
+    }
+    const submitIntent = intent as GptChildCapabilityIntent<"submit_exact_gpt_turn_once">;
     if (context.mutationMode === "readback") {
       counters.readbacks += 1;
-      return providerResult(intent, "confirmed");
+      return providerResult(submitIntent, "confirmed") as GptChildCapabilityResult<K>;
     }
     counters.dispatches += 1;
-    return providerResult(intent, initial === "CONFIRMED" ? "confirmed" : "dispatched");
+    return providerResult(
+      submitIntent, initial === "CONFIRMED" ? "confirmed" : "dispatched",
+    ) as GptChildCapabilityResult<K>;
   },
 });
 
@@ -115,7 +137,7 @@ const providerCall = Object.freeze({
   callId: "turn-submit",
   child: "submit_exact_gpt_turn_once" as const,
   actionOrdinal: 12,
-  input: Object.freeze({ promptHash: HASH_A, turnMarker: "[GRASSEYE:provider-effect]" }),
+  input: Object.freeze({ files: [], promptHash: HASH_A, turnMarker: "[GRASSEYE:provider-effect]" }),
 });
 
 const exactCallHash = (jobId: string, attemptId: string) => gptExactCallIdentityHash({

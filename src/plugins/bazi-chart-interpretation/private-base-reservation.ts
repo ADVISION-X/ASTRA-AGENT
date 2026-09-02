@@ -139,7 +139,10 @@ const createBaseCheckpoint = async (input: Readonly<{
   const prompt = basePrompt(marker);
   const baseSubmit = {
     productStepId: "private-base", callId: "turn-submit", child: "submit_exact_gpt_turn_once",
-    actionOrdinal: 13, input: { promptHash: sha256(prompt), turnMarker: marker },
+    actionOrdinal: 13, input: {
+      files: uploadedFilesForRoles(context, ["bazi_private_base_input"]),
+      promptHash: sha256(prompt), turnMarker: marker,
+    },
     effectLookupKind: "task_exact_effect" as const,
   } as const;
   const currentSubmit = await flow.facts(baseSubmit);

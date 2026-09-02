@@ -30,6 +30,7 @@ const examScripts: Readonly<Record<string, string>> = {
 const dynamicScripts: Readonly<Record<string, Readonly<Partial<Record<string, string>>>>> = {
   gpt: {
     "dynamic.browser": "acceptance:agent-production-runtime:real-proof",
+    "dynamic.storage": "acceptance:agent-production-runtime:real-proof",
     "dynamic.provider": "acceptance:agent-production-runtime:real-proof",
     "dynamic.authorization": "acceptance:agent-production-runtime:real-proof",
     "dynamic.recovery": "acceptance:agent-production-runtime:real-proof",
