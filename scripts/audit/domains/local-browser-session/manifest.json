@@ -16,6 +16,7 @@
     "docs/grid-cell-zone-reference.zh.svg",
     "docs/项目方案/Browser DOM 生产级方案-实施工单.md",
     "docs/项目方案/Browser DOM 生产级方案.md",
+    "docs/项目方案/子能力规矩会议记录.md",
     "docs/项目方案/生产级子能力稳定性建设规则.md",
     "scripts/acceptance/browser-extension-build.acceptance.ts",
     "scripts/acceptance/browser-extension-release-identity.acceptance.ts",
