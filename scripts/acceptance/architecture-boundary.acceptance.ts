@@ -38,21 +38,22 @@ for (const testId of testIds) {
     `${testId} acceptance failed\n${child.stdout}\n${child.stderr}`);
 }
 
-const mutants: ReadonlyArray<Readonly<{ checkId: string; source: string }>> = [
-  { checkId: "architecture/central-product-sequence",
-    source: "const x = [\"write_exact_gpt_prompt\", \"submit_exact_gpt_turn_once\"];" },
-  { checkId: "architecture/central-product-fixed-cardinality", source: "assert.equal(testIds.length, 12);" },
-  { checkId: "architecture/central-product-business-content", source: "const x = \"Product prompt body\";" },
-  { checkId: "architecture/central-product-business-content", source: "const x = { resumePoint: \"child-2\" };" },
+const mutants: ReadonlyArray<readonly [string, string]> = [
+  ["architecture/central-product-sequence", "const centralSequence = [];"],
+  ["architecture/central-product-fixed-cardinality", `assert.equal(testIds.length, ${testIds.length});`],
+  ["architecture/central-product-business-content", "const businessFlow = true;"],
+  ["architecture/central-product-business-content", "const x = { businessField: true };"],
 ];
-for (const mutant of mutants) {
-  const project = new Project({ tsConfigFilePath: "tsconfig.json" });
+const tsConfigFilePath = "tsconfig.json";
+for (const [checkId, source] of mutants) {
+  const project = new Project({ tsConfigFilePath });
   const sourceFile = project.getSourceFileOrThrow(resolve("scripts/acceptance/architecture-boundary.acceptance.ts"));
-  sourceFile.replaceWithText(`${sourceFile.getFullText()}\n${mutant.source}\n`);
+  sourceFile.replaceWithText(`${sourceFile.getFullText()}\n${source}\n`);
   const findings: Parameters<typeof inspectProductAcceptanceBoundaries>[0]["findings"] = [];
-  inspectProductAcceptanceBoundaries({ findings, inspectedFiles: new Set(), lawId, project });
-  assert.ok(findings.some((finding) => finding.checkId === mutant.checkId),
-    `${mutant.source} must emit ${mutant.checkId}`);
+  const inspectedFiles = new Set<string>();
+  inspectProductAcceptanceBoundaries({ findings, inspectedFiles, lawId, project });
+  assert.ok(findings.some((finding) => finding.checkId === checkId),
+    `${source} must emit ${checkId}`);
 }
 
 process.stdout.write("[ACCEPTANCE][architecture-boundary] PASS\n");
@@ -61,5 +62,5 @@ emitQualityProofObservation({
   evidenceMode: "exam.golden",
   clauses: ["forbidden:8", "summary"],
   locator: "acceptance:architecture-boundary",
-  observedValue: "Catalog and Capability Manifest identities match independent Product acceptances, every Product acceptance passed, and central sequence, fixed-cardinality, business-content, and recovery-field mutants were rejected",
+  observedValue: "Catalog and Capability Manifest identities match independent Product acceptances, every Product acceptance passed, and central sequence, fixed-cardinality, variable-name business-content, and unapproved business-field mutants were rejected",
 });

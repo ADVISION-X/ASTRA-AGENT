@@ -222,9 +222,9 @@ export const conversationChildHandlers = {
     requireExactInputKeys(intent, ["timeoutMs"]);
     const deadline = Date.now() + timeoutInput(intent);
     const browser = requireBrowser(context);
-    let observed: ConversationState;
+    let draftNeedsClear = false;
     do {
-      observed = await readConversationState(browser);
+      const observed = await readConversationState(browser);
       const freshTopology = freshChatTopology(observed);
       if (freshTopology && observed.composerHash === hash("")) return success({
         value: { composer: 1, turns: 0, attachments: 0, generating: 0,
@@ -233,25 +233,27 @@ export const conversationChildHandlers = {
           browserFact: null, nativeFailureCode: null }),
       });
       if (freshTopology) {
-        if (context.mutationMode === "readback") throw executionFailure("failed", "GPT_CHAT_DRAFT_CLEAR_PENDING");
-        await browser.executeDomIntent({
-          kind: "fill", selector: GPT_COMPOSER_SELECTOR, approvedText: "",
-          clearBeforeType: true, expectedMatches: 1,
-        });
-        const readback = await readConversationState(browser);
-        if (!freshChatTopology(readback) || readback.composerHash !== hash("")) {
-          throw executionFailure("failed", "GPT_CHAT_DRAFT_CLEAR_FAILED");
-        }
-        return success({
-          value: { composer: 1, turns: 0, attachments: 0, generating: 0,
-            draftEmpty: true, staleDraftCleared: true },
-          ...mutationFacts(intent, browser, readback.facts),
-        });
+        draftNeedsClear = true;
+        break;
       }
       const remaining = deadline - Date.now();
       if (remaining > 0) await browser.wait({ durationMs: Math.max(25, Math.min(500, Math.ceil(remaining / 20))) });
     } while (Date.now() < deadline);
-    throw executionFailure("failed", "GPT_CHAT_HYDRATION_PENDING");
+    if (!draftNeedsClear) throw executionFailure("failed", "GPT_CHAT_HYDRATION_PENDING");
+    if (context.mutationMode === "readback") throw executionFailure("failed", "GPT_CHAT_DRAFT_CLEAR_PENDING");
+    await browser.executeDomIntent({
+      kind: "fill", selector: GPT_COMPOSER_SELECTOR, approvedText: "",
+      clearBeforeType: true, expectedMatches: 1,
+    });
+    const readback = await readConversationState(browser);
+    if (!freshChatTopology(readback) || readback.composerHash !== hash("")) {
+      throw executionFailure("failed", "GPT_CHAT_DRAFT_CLEAR_FAILED");
+    }
+    return success({
+      value: { composer: 1, turns: 0, attachments: 0, generating: 0,
+        draftEmpty: true, staleDraftCleared: true },
+      ...mutationFacts(intent, browser, readback.facts),
+    });
   },
 
   async focus_exact_gpt_conversation(intent, context) {

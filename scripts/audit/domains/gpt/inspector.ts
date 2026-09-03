@@ -23,6 +23,7 @@ import {
   inspectGptAttachmentContract,
   inspectGptContractDenominator,
 } from "./gpt-contract-inspection.js";
+import { inspectGptCurrentPageProofs } from "./gpt-page-proof-inspection.js";
 
 const LAW_ID = "LAW-GPT-001-V21";
 const MODE_CLAUSES = {
@@ -57,7 +58,6 @@ const EXECUTION_PROFILE_HANDLER_PATH = `${ROOT}/web/children/execution-profile-c
 const EXECUTION_PROFILE_CONTRACT_PATH = `${ROOT}/web/contracts/execution-profile.contract.ts`;
 const ATTACHMENT_HANDLER_PATH = `${ROOT}/web/children/attachment-children.ts`;
 const ATTACHMENT_CONTRACT_PATH = `${ROOT}/web/contracts/attachment.contract.ts`;
-const BROWSER_DOM_INTENT_PATH = "src/lib/browser/exact-target/browser-dom-intent.ts";
 
 const finding = (checkId: string, filePath: string, message: string, line?: number): InspectorFinding =>
   createFinding({
@@ -165,50 +165,6 @@ const inspectAtomicSafety = (context: InspectorContext, findings: InspectorFindi
       ));
     }
   }
-};
-
-const inspectCurrentPageProofs = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const pageHandlers = context.project.getSourceFiles().filter((source) => {
-    const path = repoPath(context, source);
-    return path.startsWith(`${ROOT}/web/children/`)
-      && source.getVariableDeclarations().some((declaration) => declaration.getName().endsWith("ChildHandlers"));
-  });
-  const legacyFactReaders = new Set([
-    "findCount", "readExactAttribute", "readExactCanonicalPromptText", "readExactObservedResponse",
-    "readExactSemanticText", "readExactText",
-  ]);
-  for (const source of pageHandlers) {
-    const path = repoPath(context, source);
-    const nullRevision = source.getDescendantsOfKind(SyntaxKind.PropertyAssignment).find((property) =>
-      property.getName() === "observationRevisionHash" && property.getInitializer()?.getText() === "null");
-    if (nullRevision) findings.push(finding(
-      "gpt/page-proof-current-revision", path,
-      "Production-reachable page Child success still permits a null Browser observation revision.",
-      nullRevision.getStartLineNumber(),
-    ));
-    const legacyCall = source.getDescendantsOfKind(SyntaxKind.CallExpression).find((call) =>
-      legacyFactReaders.has(call.getExpression().getText()));
-    if (legacyCall) findings.push(finding(
-      "gpt/page-proof-coherent-packet", path,
-      `Page Child still constructs qualification or success from legacy reader ${legacyCall.getExpression().getText()}.`,
-      legacyCall.getStartLineNumber(),
-    ));
-  }
-  const browserDomContract = sourceFor(context, BROWSER_DOM_INTENT_PATH)?.getFullText() ?? "";
-  const observationPacket = sourceFor(context, BROWSER_DOM_INTENT_PATH)
-    ?.getTypeAlias("BrowserDomObservationPacketV2")?.getFullText() ?? "";
-  if (!observationPacket.includes("currentUrl")) findings.push(finding(
-    "gpt/browser-coherent-document-url-handoff", BROWSER_DOM_INTENT_PATH,
-    "Browser coherent observation does not yet bind the current canonical URL with its DOM revision.",
-  ));
-  for (const required of [
-    'BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">',
-    "BrowserExactAssistantTurnReplyV1", 'kind: "readExactAssistantTurn"',
-    "rawDomHtml", "rawDomHash", "semanticText", "semanticTextHash",
-  ]) if (!browserDomContract.includes(required)) findings.push(finding(
-    "gpt/browser-exact-assistant-reply-channel", BROWSER_DOM_INTENT_PATH,
-    `Browser must keep generic coherent raw content closed and expose only the exact assistant reply channel; missing ${required}.`,
-  ));
 };
 
 const READ_ONLY_DOM_INTENTS = new Set([
@@ -436,7 +392,7 @@ const inspectGptTypes = (context: InspectorContext, findings: InspectorFinding[]
 
 const inspectGptAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
   inspectAtomicSafety(context, findings);
-  inspectCurrentPageProofs(context, findings);
+  inspectGptCurrentPageProofs(context, findings);
 };
 const inspectGptDependencies = (context: InspectorContext, findings: InspectorFinding[]): void =>
   inspectImportOwnership(context, findings);
