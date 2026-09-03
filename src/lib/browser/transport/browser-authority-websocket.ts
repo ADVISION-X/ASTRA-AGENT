@@ -89,6 +89,7 @@ type ActiveSocket = Readonly<{
 const MAX_PREAUTH_FRAMES = 3;
 const AUTH_EPOCH = 1;
 const COMMAND_DEADLINE_MS = BROWSER_COMMAND_DEFAULT_DEADLINE_MS;
+const MUTATION_TERMINAL_REPLY_GRACE_MS = 1_000;
 
 const aadForFrame = (frame: Pick<BrowserAuthorityFrame, "protocolVersion" | "kind" | "epoch" | "sequence" | "deadline">): string =>
   canonicalizeBrowserAuthorityValue({
@@ -174,11 +175,13 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     const deadline = new Date(Date.now() + commandDeadlineMs).toISOString();
     const frame = this.encryptedFrame(active, "COMMAND", sequence, deadline, { permit, command });
     return new Promise<BrowserCommandReply>((resolve, reject) => {
+      const replyDeadlineMs = commandDeadlineMs
+        + (onDispatched === undefined ? 0 : MUTATION_TERMINAL_REPLY_GRACE_MS);
       const timeout = setTimeout(() => {
         this.removeReply(sequence);
         this.revoke(active.socket, "BROWSER_COMMAND_RECEIPT_MISSING");
         reject(new Error("BROWSER_COMMAND_RECEIPT_MISSING"));
-      }, commandDeadlineMs);
+      }, replyDeadlineMs);
       const replies = new Map(active.replies);
       replies.set(sequence, {
         targetRef: permit.targetRef,

@@ -1,6 +1,10 @@
 import { createHash } from "node:crypto";
 
-import type { BrowserDomIntent, BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
+import type {
+  BrowserDomIntent,
+  BrowserDomObservationQuery,
+  BrowserTargetLease,
+} from "../../../lib/browser/browser-authority-api.js";
 import { browserExecutionFailure } from "../../../lib/browser/browser-authority-api.js";
 import type {
   BrowserAtomicStepIdentity,
@@ -8,7 +12,7 @@ import type {
 } from "../../../lib/browser/exact-target/browser-target-lease.js";
 
 export const coherentObservationPacket = (
-  intent: Extract<BrowserDomIntent, { kind: "observe" }>,
+  intent: Readonly<{ queries: readonly BrowserDomObservationQuery[] }>,
   facts: Readonly<Record<string, Readonly<{
     rawCount: number;
     eligibleCount: number;

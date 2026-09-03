@@ -2,7 +2,7 @@ import { Node } from "ts-morph";
 
 import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
 import { createLocalFinding, domCoherentObservationPath, domMechanicalFactsPath,
-  requireSource } from "./inspector-support.js";
+  domMutationPostconditionPath, requireSource } from "./inspector-support.js";
 
 const QUERY_RUNTIME_PATH = "src/lib/browser/chrome-extension/dom-query-runtime.ts";
 const INTENT_RUNTIME_PATH = "src/lib/browser/chrome-extension/dom-intent-runtime.ts";
@@ -10,6 +10,7 @@ const INTENT_CONTRACT_PATH = "src/lib/browser/exact-target/browser-dom-intent.ts
 const MUTATION_RECEIPT_PATH = "src/lib/browser/exact-target/browser-mutation-receipt.ts";
 const COHERENT_CANDIDATE_PATH = "src/lib/browser/chrome-extension/dom-coherent-candidate.ts";
 const CANDIDATE_FUNCTION_ACCEPTANCE_PATH = "scripts/acceptance/local-browser-dom-function-support.ts";
+const COHERENT_MUTATION_ACCEPTANCE_PATH = "scripts/acceptance/local-browser-dom-mutation-support.ts";
 
 const finding = (
   findings: InspectorFinding[],
@@ -88,6 +89,37 @@ const inspectCoherentPointerAction = (
   }
 };
 
+const inspectAtomicObservationPointer = (
+  candidateText: string,
+  runtimeText: string,
+  acceptanceText: string,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  requireTokens(candidateText, ["COHERENT_OBSERVATION_POINTER_FUNCTION",
+    "resolveCoherentObservationPointerAction", "postconditionSatisfied",
+    'if (postconditionSatisfied) return { kind: "postcondition", observation }',
+    'return { kind: "pointer", point:', "bindCoherentObservationResult"],
+  findings, lawId, COHERENT_CANDIDATE_PATH,
+  "The atomic observation-or-fresh-pointer preparation is missing");
+  const postconditionIndex = candidateText.indexOf(
+    'if (postconditionSatisfied) return { kind: "postcondition", observation }',
+  );
+  const candidateIndex = candidateText.indexOf("const scopeRaw = request.candidate.scope");
+  if (postconditionIndex < 0 || candidateIndex <= postconditionIndex) finding(
+    findings, lawId, COHERENT_CANDIDATE_PATH,
+    "The same Runtime.callFunctionOn snapshot must choose a satisfied postcondition before qualifying fresh pointer coordinates.",
+  );
+  if (runtimeText.includes("raceReceipt")) finding(
+    findings, lawId, INTENT_RUNTIME_PATH,
+    "A second postcondition read must not be combined with pointer coordinates from an earlier DOM snapshot.",
+  );
+  requireTokens(acceptanceText, ["atomicSource", "raced.pointerEvents()", "postconditionSatisfied",
+    "one Runtime.callFunctionOn snapshot must choose postcondition or a freshly qualified pointer"],
+  findings, lawId, COHERENT_MUTATION_ACCEPTANCE_PATH,
+  "The executed redraw-race regression is missing");
+};
+
 const inspectCoherentRuntime = (runtimeText: string, findings: InspectorFinding[], lawId: string): void => {
   requireTokens(runtimeText, ["COHERENT_OBSERVATION_FUNCTION", "arguments: [{ value: specs }]",
     "canonicalizeBrowserAuthorityValue", "observationRevisionHash", "mainFrameLoaderId",
@@ -161,6 +193,7 @@ export const inspectDomMechanicalFacts = (
   const facts = requireSource(context, findings, lawId, domMechanicalFactsPath);
   const query = requireSource(context, findings, lawId, QUERY_RUNTIME_PATH);
   const runtime = requireSource(context, findings, lawId, INTENT_RUNTIME_PATH);
+  const postcondition = requireSource(context, findings, lawId, domMutationPostconditionPath);
   const observation = requireSource(context, findings, lawId, domCoherentObservationPath);
   const contract = requireSource(context, findings, lawId, INTENT_CONTRACT_PATH);
   const candidate = requireSource(context, findings, lawId, COHERENT_CANDIDATE_PATH);
@@ -168,8 +201,11 @@ export const inspectDomMechanicalFacts = (
   const candidateAcceptance = requireSource(
     context, findings, lawId, CANDIDATE_FUNCTION_ACCEPTANCE_PATH,
   );
-  if (!facts || !query || !runtime || !observation || !contract || !candidate || !candidateAcceptance
-    || !mutationReceipt) return;
+  const coherentMutationAcceptance = requireSource(
+    context, findings, lawId, COHERENT_MUTATION_ACCEPTANCE_PATH,
+  );
+  if (!facts || !query || !runtime || !postcondition || !observation || !contract || !candidate || !candidateAcceptance
+    || !coherentMutationAcceptance || !mutationReceipt) return;
 
   const readerInitializer = facts.getVariableDeclaration("BROWSER_MECHANICAL_FACTS_READER_SOURCE")?.getInitializer();
   const reader = readerInitializer && Node.isNoSubstitutionTemplateLiteral(readerInitializer)
@@ -179,6 +215,9 @@ export const inspectDomMechanicalFacts = (
   const queryText = query.getFullText();
   inspectMechanicalConsumers(factsText, queryText, findings, lawId);
   inspectCoherentPointerAction(candidate.getFullText(), queryText, findings, lawId);
+  inspectAtomicObservationPointer(
+    candidate.getFullText(), runtime.getFullText(), coherentMutationAcceptance.getFullText(), findings, lawId,
+  );
   requireTokens(candidateAcceptance.getFullText(), [
     "exerciseCapturedCandidateFunction", "output: \"pointer\"", "BROWSER_DOM_ACTION_DISABLED",
     "BROWSER_DOM_ACTION_POINTER_EVENTS_NONE", "BROWSER_DOM_ACTION_HIT_TEST_FAILED",
@@ -187,7 +226,7 @@ export const inspectDomMechanicalFacts = (
   "The executed coherent pointer regression is missing");
   const runtimeText = `${runtime.getFullText()}\n${observation.getFullText()}\n${candidate.getFullText()}`;
   inspectCoherentRuntime(runtimeText, findings, lawId);
-  inspectPostconditionEvidence(runtime.getFullText(), mutationReceipt.getFullText(), findings, lawId);
+  inspectPostconditionEvidence(postcondition.getFullText(), mutationReceipt.getFullText(), findings, lawId);
   const contractText = contract.getFullText();
   inspectMechanicalContract(
     contractText,

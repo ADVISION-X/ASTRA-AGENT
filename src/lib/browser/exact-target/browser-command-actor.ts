@@ -6,11 +6,14 @@ import { BrowserCommandAdmissionBudget } from "../transport/browser-command-admi
 import { withRuntimeLogCause, type RuntimeLogger } from "../../runtime-logs/index.js";
 import type {
   BrowserDomIntent,
-  BrowserDomObservationPacketV2,
   BrowserExactAssistantTurnReplyV1,
 } from "./browser-dom-intent.js";
 import { assertBrowserDomIntent } from "./browser-dom-intent.js";
-import { canonicalizeBrowserAuthorityValue } from "../transport/browser-authority-frame-codec.js";
+import {
+  assertBrowserCommandTerminalReplyMargin,
+  bindBrowserCommandObservationPacket,
+  browserExactCallIdentityHash,
+} from "./browser-command-postcondition.js";
 import {
   completeBrowserCommandSpan,
   emitBrowserMutationEvent,
@@ -87,11 +90,6 @@ const hashValue = (value: unknown): `sha256:${string}` => {
 const hashText = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
-const exactCallIdentityHash = (permit: BrowserCommandPermit): `sha256:${string}` => hashValue([
-  permit.jobId, permit.attemptId, permit.ownerPluginId, permit.pluginVersion, permit.productStepId,
-  permit.callId, permit.childCapabilityId, permit.inputHash,
-]);
-
 const assertAcceptedCommand = (permit: BrowserCommandPermit, command: BrowserGovernedCommand): void => {
   assertValidCommandPermit(permit);
   if (command.kind === "dom-intent") assertBrowserDomIntent(command.intent);
@@ -128,7 +126,8 @@ const postconditionPair = (command: BrowserGovernedCommand): Readonly<{
       break;
     case "click":
       positive = { kind: "click", selector: intent.selector,
-        postcondition: intent.postClickAttribute ?? intent.postClickMatch ?? intent.postClickUrl };
+        postcondition: intent.postClickAttribute ?? intent.postClickMatch
+          ?? intent.postClickObservation ?? intent.postClickUrl };
       break;
     case "hover":
       positive = { kind: "hover", selector: intent.selector, postcondition: intent.postHoverAttribute };
@@ -152,7 +151,7 @@ const postconditionPair = (command: BrowserGovernedCommand): Readonly<{
 const mutationIdentity = (permit: BrowserCommandPermit, command: BrowserGovernedCommand): BrowserMutationIdentity => {
   const postconditions = postconditionPair(command);
   const effectScope = permit.replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local";
-  const callIdentityHash = exactCallIdentityHash(permit);
+  const callIdentityHash = browserExactCallIdentityHash(permit);
   const targetScope = effectScope === "target_local" ? [permit.targetRef] : [];
   return {
     commandId: permit.commandId,
@@ -178,54 +177,6 @@ const mutationIdentity = (permit: BrowserCommandPermit, command: BrowserGoverned
     requestHash: permit.inputHash,
     payloadHash: hashValue(command),
   };
-};
-
-const observationHeaderValid = (
-  value: Record<string, unknown>,
-  permit: BrowserCommandPermit,
-): boolean => {
-  const keys = Object.keys(value);
-  const observedAt = value.observedAt;
-  return keys.length === 7 && ["schemaVersion", "targetRefHash", "documentRefHash", "currentUrl",
-    "observationRevisionHash", "observedAt", "queries"].every((key) => keys.includes(key))
-    && value.schemaVersion === "grasseye.browser.dom-observation.v2"
-    && value.targetRefHash === hashText(permit.targetRef)
-    && value.documentRefHash === hashText(permit.documentRef)
-    && typeof value.currentUrl === "string" && value.currentUrl.length > 0
-    && typeof observedAt === "string" && !Number.isNaN(Date.parse(observedAt))
-    && new Date(observedAt).toISOString() === observedAt;
-};
-
-const observationQueriesValid = (
-  value: unknown,
-  specs: Extract<BrowserDomIntent, { kind: "observe" }>["queries"],
-): value is readonly Record<string, unknown>[] => Array.isArray(value) && value.length === specs.length
-  && value.every((query, index) => !!query && typeof query === "object" && !Array.isArray(query)
-    && (query as Record<string, unknown>).queryId === specs[index]?.queryId);
-
-const bindObservationPacket = (
-  permit: BrowserCommandPermit,
-  command: BrowserGovernedCommand,
-  result: unknown,
-): unknown => {
-  if (command.kind !== "dom-intent" || command.intent.kind !== "observe") return result;
-  const specs = command.intent.queries;
-  try {
-    if (!result || typeof result !== "object" || Array.isArray(result)) throw new Error();
-    const value = result as Record<string, unknown>;
-    const queries = value.queries;
-    const observedAt = value.observedAt;
-    if (!observationHeaderValid(value, permit) || !observationQueriesValid(queries, specs)
-      || typeof observedAt !== "string") throw new Error();
-    const expectedRevision = hashText(canonicalizeBrowserAuthorityValue({
-      targetRefHash: value.targetRefHash, documentRefHash: value.documentRefHash,
-      currentUrl: value.currentUrl, observedAt, queries,
-    }));
-    if (value.observationRevisionHash !== expectedRevision) throw new Error();
-    return Object.freeze({ ...value, exactCallIdentityHash: exactCallIdentityHash(permit) }) as BrowserDomObservationPacketV2;
-  } catch {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
 };
 
 const exactAssistantTurnValueValid = (
@@ -261,7 +212,7 @@ const bindExactAssistantTurnReply = (
     if (!exactAssistantTurnValueValid(value, permit, command.intent.assistantTurnId)) throw new Error();
     return Object.freeze({
       ...value,
-      exactCallIdentityHash: exactCallIdentityHash(permit),
+      exactCallIdentityHash: browserExactCallIdentityHash(permit),
     }) as BrowserExactAssistantTurnReplyV1;
   } catch {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
@@ -342,6 +293,7 @@ export class BrowserCommandActor {
     try {
       assertAcceptedCommand(permit, command);
       this.authorityGuard.assertCurrentAuthority(permit);
+      assertBrowserCommandTerminalReplyMargin(permit, command);
       this.budget.enter();
       state.budgetEntered = true;
       if (mutation) this.prepareMutation(permit, command, state);
@@ -355,10 +307,11 @@ export class BrowserCommandActor {
       } : undefined);
       assertMatchingReply(permit, reply);
       this.authorityGuard.assertCurrentAuthority(permit);
-      if (mutation) this.completeMutation(permit, command, reply, commandSpan, state);
       const result = bindExactAssistantTurnReply(
-        permit, command, bindObservationPacket(permit, command, reply.result),
+        permit, command, bindBrowserCommandObservationPacket(permit, command, reply.result),
       );
+      const boundReply = Object.freeze({ ...reply, result });
+      if (mutation) this.completeMutation(permit, command, boundReply, commandSpan, state);
       completeBrowserCommandSpan({ span: commandSpan });
       state.terminalized = true;
       return result;

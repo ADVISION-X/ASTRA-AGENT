@@ -308,7 +308,11 @@ const matchedComparisonIsStrict = (matched: MorphNode | undefined): boolean => {
 
 const exactComparisonIsStrict = (matcher: MorphNode): boolean => {
   const loop = matcher.getDescendantsOfKind(SyntaxKind.ForOfStatement)
-    .find((statement) => astIdentifierName(statement.getExpression()) === "rawNodeIds");
+    .find((statement) => {
+      const expression = statement.getExpression();
+      return Node.isCallExpression(expression) && expression.getArguments().length === 0
+        && astExpressionPath(expression.getExpression()) === "rawNodeIds.entries";
+    });
   const loopBody = loop?.getStatement();
   if (!Node.isBlock(loopBody)) return false;
   const textGuard = loopBody.getStatements().find((statement) =>
@@ -325,9 +329,15 @@ const exactComparisonIsStrict = (matcher: MorphNode): boolean => {
   const matched = textBody.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
     .find((declaration) => declaration.getName() === "matched")?.getInitializer();
   if (!matchedComparisonIsStrict(matched)) return false;
-  return textBody.getDescendantsOfKind(SyntaxKind.IfStatement).some((statement) =>
-    statement.getExpression().getText() === "!matched"
-    && Node.isContinueStatement(statement.getThenStatement()));
+  const mismatchGuard = textBody.getStatements().find((statement) =>
+    Node.isIfStatement(statement) && statement.getExpression().getText() === "!matched");
+  if (!Node.isIfStatement(mismatchGuard)
+    || mismatchGuard.getThenStatement().getText() !== 'reasons.push("TEXT_MISMATCH");') return false;
+  const rejectionGuard = loopBody.getStatements().find((statement) =>
+    Node.isIfStatement(statement) && statement.getExpression().getText() === "reasons.length > 0");
+  const rejectionBody = Node.isIfStatement(rejectionGuard) ? rejectionGuard.getThenStatement() : undefined;
+  return Node.isBlock(rejectionBody)
+    && rejectionBody.getStatements().some((statement) => Node.isContinueStatement(statement));
 };
 
 export const exactTextMatcherIsStrict = (domRuntime: SourceFile): boolean => {

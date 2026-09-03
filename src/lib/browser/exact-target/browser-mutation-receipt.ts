@@ -116,6 +116,10 @@ const hasMatchPostcondition = (command: BrowserGovernedCommand): boolean => comm
   && (command.intent.kind === "doubleClick" || command.intent.kind === "keypress"
     || (command.intent.kind === "click" && command.intent.postClickMatch !== undefined));
 
+const hasObservationPostcondition = (command: BrowserGovernedCommand): boolean =>
+  command.kind === "dom-intent" && command.intent.kind === "click"
+  && command.intent.postClickObservation !== undefined;
+
 const postconditionEvidenceKeys = [
   "postconditionRawCount", "postconditionEligibleCount", "postconditionRejections",
 ] as const;
@@ -163,6 +167,49 @@ const postconditionEvidenceValid = (
   return value.nativeCauseCode === expectedCause;
 };
 
+const observationPostconditionEvidenceValid = (
+  command: BrowserGovernedCommand,
+  value: Readonly<Record<string, unknown>>,
+): boolean => {
+  if (command.kind !== "dom-intent" || command.intent.kind !== "click"
+    || command.intent.postClickObservation === undefined
+    || !value.postconditionObservation || typeof value.postconditionObservation !== "object"
+    || Array.isArray(value.postconditionObservation)) return false;
+  const postcondition = command.intent.postClickObservation;
+  const packet = value.postconditionObservation as Readonly<Record<string, unknown>>;
+  if (!exactKeys(packet, ["schemaVersion", "exactCallIdentityHash", "targetRefHash", "documentRefHash",
+    "currentUrl", "observationRevisionHash", "observedAt", "queries"])
+    || packet.schemaVersion !== "grasseye.browser.dom-observation.v2"
+    || ![packet.exactCallIdentityHash, packet.targetRefHash, packet.documentRefHash,
+      packet.observationRevisionHash].every((hash) => typeof hash === "string"
+      && /^sha256:[a-f0-9]{64}$/u.test(hash))
+    || !Array.isArray(packet.queries)
+    || packet.queries.length !== postcondition.queries.length) return false;
+  let expectedCause: string | null = null;
+  const rowsValid = packet.queries.every((candidate, index) => {
+    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return false;
+    const row = candidate as Readonly<Record<string, unknown>>;
+    const spec = postcondition.queries[index]!;
+    if (row.queryId !== spec.queryId || !Number.isSafeInteger(row.rawCount)
+      || !Number.isSafeInteger(row.eligibleCount) || (row.rawCount as number) < 0
+      || (row.eligibleCount as number) < 0 || (row.eligibleCount as number) > (row.rawCount as number)
+      || !Array.isArray(row.rejections)) return false;
+    if (expectedCause === null && row.eligibleCount !== spec.expectedEligibleCount) {
+      const first = row.rejections[0];
+      const reasons = first && typeof first === "object" && !Array.isArray(first)
+        ? (first as Readonly<Record<string, unknown>>).reasons : undefined;
+      const firstReason = Array.isArray(reasons) && typeof reasons[0] === "string" ? reasons[0] : null;
+      expectedCause = (row.eligibleCount as number) > spec.expectedEligibleCount
+        ? "BROWSER_DOM_CANDIDATE_AMBIGUOUS"
+        : firstReason ?? "BROWSER_DOM_CANDIDATE_MISSING";
+    }
+    return true;
+  });
+  const verified = expectedCause === null;
+  return rowsValid && value.postconditionVerified === verified
+    && (verified ? value.nativeCauseCode === undefined : value.nativeCauseCode === expectedCause);
+};
+
 const actionKeys = (command: BrowserGovernedCommand, failed: boolean): readonly string[] => {
   const common = ["candidateCount", "identityRevalidated", "mutationCount", "postconditionVerified"];
   const specific = command.kind === "file-input"
@@ -170,8 +217,11 @@ const actionKeys = (command: BrowserGovernedCommand, failed: boolean): readonly 
     : command.kind === "dom-intent" ? domActionKeys(command) : [];
   if (specific.length === 0) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   const match = hasMatchPostcondition(command);
+  const observation = hasObservationPostcondition(command);
   return [...common, ...specific, ...(match ? postconditionEvidenceKeys : []),
-    ...(failed ? ["failureCode"] : []), ...(failed && match ? ["nativeCauseCode"] : [])];
+    ...(observation ? ["postconditionObservation"] : []),
+    ...(failed ? ["failureCode"] : []),
+    ...(failed && (match || observation) ? ["nativeCauseCode"] : [])];
 };
 
 const assertFileInputReceipt = (
@@ -214,9 +264,11 @@ const zeroActionReceiptValid = (
   && value.postconditionVerified === true
   && command.kind === "dom-intent"
   && (!hasMatchPostcondition(command) || postconditionEvidenceValid(command, value))
+  && (!hasObservationPostcondition(command) || observationPostconditionEvidenceValid(command, value))
   && exactKeys(value, ["candidateCount", "identityRevalidated", "mutationCount",
     "postconditionVerified", "zeroActionSatisfied",
-    ...(hasMatchPostcondition(command) ? postconditionEvidenceKeys : [])]);
+    ...(hasMatchPostcondition(command) ? postconditionEvidenceKeys : []),
+    ...(hasObservationPostcondition(command) ? ["postconditionObservation"] : [])]);
 
 const qualificationReceiptValid = (
   command: BrowserGovernedCommand,
@@ -260,11 +312,14 @@ const decodeDispatchedMutationReceipt = (
     && value.postconditionVerified === false && value.identityRevalidated === false
     && (value.candidateCount === 0 || value.candidateCount === 1 || value.candidateCount === 2);
   const matchPostconditionRejected = hasMatchPostcondition(command) && value.postconditionVerified === false;
-  const nativeCauseValid = fillReadbackRejected || matchPostconditionRejected
+  const observationPostconditionRejected = hasObservationPostcondition(command)
+    && value.postconditionVerified === false;
+  const nativeCauseValid = fillReadbackRejected || matchPostconditionRejected || observationPostconditionRejected
     ? POSTCONDITION_NATIVE_CAUSES.has(String(value.nativeCauseCode))
     : value.nativeCauseCode === undefined;
   if ((!exactIdentity && !fillReadbackRejected)
     || !nativeCauseValid || (hasMatchPostcondition(command) && !postconditionEvidenceValid(command, value))
+    || (hasObservationPostcondition(command) && !observationPostconditionEvidenceValid(command, value))
     || value.zeroActionSatisfied === true || value.qualificationRejected === true) {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
@@ -285,7 +340,7 @@ const decodeDispatchedMutationReceipt = (
     terminal: value.postconditionVerified ? "confirmed" : "rejected",
     mutationOutcome: "confirmed",
     failureCode: value.postconditionVerified ? null : "BROWSER_POSTCONDITION_FAILED",
-    nativeCauseCode: fillReadbackRejected || matchPostconditionRejected
+    nativeCauseCode: fillReadbackRejected || matchPostconditionRejected || observationPostconditionRejected
       ? String(value.nativeCauseCode) : null,
   });
 };

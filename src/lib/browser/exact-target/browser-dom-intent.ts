@@ -38,6 +38,10 @@ export type BrowserDomObservationQuery = Readonly<{
   textEquals?: string;
 }>;
 
+export type BrowserDomPostconditionQuery = BrowserDomObservationQuery & Readonly<{
+  expectedEligibleCount: number;
+}>;
+
 export type BrowserDomObservationPacketV2 = Readonly<{
   schemaVersion: "grasseye.browser.dom-observation.v2";
   exactCallIdentityHash: `sha256:${string}`;
@@ -130,6 +134,11 @@ export type BrowserDomIntent =
       textEquals?: string;
       timeoutMs?: number;
     }>;
+    /** One coherent mechanical query-set returned by this same click command. */
+    postClickObservation?: Readonly<{
+      queries: readonly BrowserDomPostconditionQuery[];
+      timeoutMs?: number;
+    }>;
     postClickUrl?: Readonly<{
       equals?: string;
       notEquals?: string;
@@ -203,6 +212,7 @@ const assertObservationIntent = (intent: BrowserDomIntent): void => {
 const OBSERVATION_QUERY_KEYS = new Set([
   "queryId", "selector", "maxMatches", "fields", "readEligibility", "scope", "textContains", "textEquals",
 ]);
+const POSTCONDITION_QUERY_KEYS = new Set([...OBSERVATION_QUERY_KEYS, "expectedEligibleCount"]);
 
 const assertReadEligibility = (value: BrowserDomReadEligibility | undefined): void => {
   if (value !== undefined && value !== "non-actionable-aria-state") {
@@ -210,15 +220,18 @@ const assertReadEligibility = (value: BrowserDomReadEligibility | undefined): vo
   }
 };
 
-const assertObserveIntent = (intent: Extract<BrowserDomIntent, { kind: "observe" }>): void => {
-  if (!Array.isArray(intent.queries) || intent.queries.length < 1 || intent.queries.length > 20) {
+const assertObservationQueries = (
+  queries: readonly BrowserDomObservationQuery[],
+  allowedKeys: ReadonlySet<string>,
+): void => {
+  if (!Array.isArray(queries) || queries.length < 1 || queries.length > 20) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
   const queryIds = new Set<string>();
   let observationCells = 0;
-  for (const query of intent.queries) {
+  for (const query of queries) {
     if (!query || typeof query !== "object" || Array.isArray(query)
-      || Object.keys(query).some((key) => !OBSERVATION_QUERY_KEYS.has(key))
+      || Object.keys(query).some((key) => !allowedKeys.has(key))
       || !isBoundedText(query.queryId, 128) || queryIds.has(query.queryId)
       || !isBoundedText(query.selector, 2_048)
       || !Number.isInteger(query.maxMatches) || query.maxMatches < 1 || query.maxMatches > 20) {
@@ -233,6 +246,9 @@ const assertObserveIntent = (intent: Extract<BrowserDomIntent, { kind: "observe"
   }
   if (observationCells > 256) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
 };
+
+const assertObserveIntent = (intent: Extract<BrowserDomIntent, { kind: "observe" }>): void =>
+  assertObservationQueries(intent.queries, OBSERVATION_QUERY_KEYS);
 
 const assertObservationText = (query: BrowserDomObservationQuery): void => {
   if ((query.textContains !== undefined && !isBoundedText(query.textContains, 1_024))
@@ -347,15 +363,33 @@ const assertClickUrl = (url: Extract<BrowserDomIntent, { kind: "click" }>["postC
   }
 };
 
+const assertClickObservation = (
+  observation: Extract<BrowserDomIntent, { kind: "click" }>["postClickObservation"],
+): void => {
+  if (!observation) return;
+  assertObservationQueries(observation.queries, POSTCONDITION_QUERY_KEYS);
+  for (const query of observation.queries) {
+    if (query.fields.length !== 0
+      || !Number.isInteger(query.expectedEligibleCount)
+      || query.expectedEligibleCount < 0 || query.expectedEligibleCount > query.maxMatches) {
+      throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+    }
+  }
+  if (timeoutInvalid(observation.timeoutMs)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+};
+
 const assertClickIntent = (intent: Extract<BrowserDomIntent, { kind: "click" }>): void => {
   assertTargetText(intent);
-  const postconditions = [intent.postClickAttribute, intent.postClickMatch, intent.postClickUrl]
+  const postconditions = [
+    intent.postClickAttribute, intent.postClickMatch, intent.postClickObservation, intent.postClickUrl,
+  ]
     .filter((value) => value !== undefined);
   if (postconditions.length !== 1) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
   assertClickAttribute(intent.postClickAttribute);
   assertClickMatch(intent.postClickMatch);
+  assertClickObservation(intent.postClickObservation);
   assertClickUrl(intent.postClickUrl);
 };
 

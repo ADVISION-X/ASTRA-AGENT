@@ -238,5 +238,29 @@ for (const [index, wireCase] of wireCases.entries()) {
   authority.receive(socket, replyEncoded);
   assert.deepEqual((await replyPromise).result, wireCase.result);
 }
+
+const gracePermit = { ...permitFor(20, "browser.dom.click.v1", "mutation"), commandTtlMs: 50 };
+const graceCommand = { kind: "dom-intent" as const, intent: {
+  kind: "click" as const, selector: "button", expectedMatches: 1,
+  postClickMatch: { selector: "done", expectedMatches: 1 },
+} };
+const graceSentBefore = sentFrames.length;
+let graceDispatches = 0;
+const graceReplyPromise = authority.send(gracePermit, graceCommand, () => { graceDispatches += 1; });
+const graceCommandFrame = decodeBrowserAuthorityFrame(sentFrames[graceSentBefore]!);
+await new Promise<void>((resolve) => setTimeout(resolve, 100));
+assert.ok(Date.parse(graceCommandFrame.deadline) < Date.now(),
+  "the command authorization deadline must remain unchanged during terminal reply grace");
+const graceReplyHeader = { protocolVersion: BROWSER_PROTOCOL_REVISION, kind: "REPLY" as const,
+  epoch: 1, sequence: clientSequence++, deadline: new Date(Date.now() + 20_000).toISOString() };
+authority.receive(socket, encodeBrowserAuthorityFrame({ ...graceReplyHeader, body: {
+  encrypted: await extensionEncrypt(directionalKeys.clientToServerKey, "client-to-server",
+    graceReplyHeader, { requestSequence: graceCommandFrame.sequence, permitSequence: gracePermit.sequence,
+      replyChannelToken: gracePermit.replyChannelToken, result: { postconditionVerified: true } }),
+} }));
+assert.deepEqual((await graceReplyPromise).result, { postconditionVerified: true });
+assert.equal(graceDispatches, 1);
+assert.equal(sentFrames.length, graceSentBefore + 1,
+  "terminal reply grace must not issue a second permit or resend the mutation");
 console.log("LOCAL_BROWSER_PROPERTY_MODEL_ACCEPTANCE_PASS");
 emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V18", evidenceMode: "exam.property", clauses: ["forbidden:1","forbidden:3","forbidden:4","summary"], locator: "acceptance:browser-terminal:frame-property-model", observedValue: "64 authenticated frame sequences round-trip exactly" });

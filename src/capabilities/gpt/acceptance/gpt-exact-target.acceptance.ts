@@ -27,6 +27,7 @@ import {
 } from "./gpt-exact-target-browser-fixture.js";
 import { createGptAcceptanceHarness } from "./gpt-acceptance-harness.js";
 import { assertGptExactTargetSourceShape } from "./gpt-exact-target-source-support.js";
+import { exerciseFailedEvidenceReadback } from "./gpt-failure-evidence-readback.acceptance-support.js";
 
 const { gpt, execute } = createGptAcceptanceHarness("gpt-exact-target");
 assert.deepEqual(gpt.listChildCapabilityIds(), EXPECTED_GPT_CHILD_IDS);
@@ -45,7 +46,7 @@ const profile = buildGptExecutionProfile({
 });
 
 const profileFacts = (
-  intent: Extract<Parameters<typeof coherentObservationPacket>[0], { kind: "observe" }>,
+  intent: Parameters<typeof coherentObservationPacket>[0],
   open: boolean,
   reasoningCurrent = 0,
   reasoningReady = open,
@@ -104,38 +105,103 @@ const closedProfile = await execute("close_gpt_execution_profile", profileFixtur
 assert.equal(closedProfile.status, "success", closedProfile.failureCode ?? "profile close failed");
 assert.equal(profileFixture.physicalMutations(), 2);
 
-const modelFacts = (open: boolean, checked?: "true" | "false") => ({
+type ModelState = "closed" | "transition" | "open" | "broken";
+const modelFacts = (state: ModelState, checked?: "true" | "false") => ({
   popup: { rawCount: 1, eligibleCount: 1 },
-  entry: { rawCount: 1, eligibleCount: 1 },
-  "expanded-entry": { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
-  "openable-entry": { rawCount: open ? 0 : 1, eligibleCount: open ? 0 : 1 },
-  "simple-panel": { rawCount: open ? 0 : 1, eligibleCount: open ? 0 : 1 },
-  "advanced-panel": { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
+  entry: { rawCount: 1,
+    eligibleCount: state === "open" || state === "broken" ? 0 : 1 },
+  "openable-entry": { rawCount: state === "closed" ? 1 : 0,
+    eligibleCount: state === "closed" ? 1 : 0 },
+  "simple-panel": { rawCount: 1,
+    eligibleCount: state === "closed" ? 1 : 0 },
+  "advanced-panel": { rawCount: state === "open" || state === "transition" ? 1 : 0,
+    eligibleCount: state === "open" || state === "transition" ? 1 : 0 },
   ...(checked === undefined ? {} : {
     "model-choice": { rawCount: 1, eligibleCount: 1, matches: [{ ariaChecked: checked }] },
   }),
 });
 
 for (const initiallyOpen of [true, false]) {
-  let open = initiallyOpen;
+  let state: ModelState = initiallyOpen ? "open" : "closed";
   const fixture = fakeBrowser((intent) => {
-    if (intent.kind === "observe") return coherentObservationPacket(intent, modelFacts(open));
+    if (intent.kind === "observe") return coherentObservationPacket(intent, modelFacts(state));
     if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR) {
-      open = true;
-      return { postconditionVerified: true };
+      assert.deepEqual(intent.postClickObservation?.queries.map((query) => [
+        query.queryId, query.expectedEligibleCount,
+      ]), [["popup", 1], ["entry", 0], ["openable-entry", 0], ["simple-panel", 0], ["advanced-panel", 1]],
+      "the one Browser click must mechanically prove the five-part stable topology");
+      assert.equal(intent.postClickObservation?.timeoutMs, 5_000);
+      state = "open";
+      const queries = intent.postClickObservation!.queries
+        .map(({ expectedEligibleCount: _expected, ...query }) => query);
+      return {
+        postconditionVerified: true,
+        postconditionObservation: coherentObservationPacket({ queries }, modelFacts(state)),
+      };
     }
     throw new Error(`UNEXPECTED_MODEL_OPEN_INTENT:${intent.kind}`);
   });
   const result = await execute("open_gpt_model_selector_v2", fixture.browser, { profile });
   assert.equal(result.status, "success", result.failureCode ?? "model selector failed");
-  assert.equal(open, true);
+  assert.equal(state, "open");
   assert.equal(fixture.physicalMutations(), initiallyOpen ? 0 : 1);
 }
 
-for (const checked of ["true", "false"] as const) {
-  let open = true;
+{
   const fixture = fakeBrowser((intent) => {
-    if (intent.kind === "observe") return coherentObservationPacket(intent, modelFacts(open, checked));
+    if (intent.kind === "observe") return coherentObservationPacket(intent, modelFacts("transition"));
+    throw new Error(`TRANSITIONAL_MODEL_TOPOLOGY_MUST_NOT_ACT:${intent.kind}`);
+  });
+  const result = await execute("open_gpt_model_selector_v2", fixture.browser, { profile });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode,
+    "GPT_MODEL_SELECTION_V2_STATE_INVALID:popup=1:entry=1:openableEntry=0:simple=0:advanced=1");
+  assert.equal(result.proof.committedMutation, "no");
+  assert.equal(fixture.physicalMutations(), 0);
+}
+
+{
+  let clicked = false;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      return coherentObservationPacket(intent, modelFacts(clicked ? "broken" : "closed"));
+    }
+    if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR) {
+      clicked = true;
+      const queries = intent.postClickObservation!.queries
+        .map(({ expectedEligibleCount: _expected, ...query }) => query);
+      return {
+        postconditionVerified: true,
+        postconditionObservation: coherentObservationPacket({ queries }, modelFacts("broken")),
+      };
+    }
+    throw new Error(`UNEXPECTED_CONFIRMED_MODEL_DRIFT_INTENT:${intent.kind}`);
+  });
+  const result = await execute("open_gpt_model_selector_v2", fixture.browser, { profile });
+  const failureCode = "GPT_MODEL_SELECTION_V2_STATE_INVALID:popup=1:entry=0:openableEntry=0:simple=0:advanced=0";
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, failureCode);
+  assert.equal(result.proof.committedMutation, "confirmed");
+  assert.equal(result.proof.postconditionResult, "failed");
+  assert.equal(result.proof.browserFact?.browserOutcome, "CONFIRMED");
+  assert.equal(result.proof.browserFact?.mutationOutcome, "confirmed");
+  assert.equal(fixture.physicalMutations(), 1);
+  await exerciseFailedEvidenceReadback(result, Object.freeze({ profile }), {
+    code: failureCode,
+    mutation_outcome: "confirmed",
+    effect_scope: "target_local",
+    child_capability_id: "open_gpt_model_selector_v2",
+    browser_outcome: "CONFIRMED",
+    evidence_ref: "browser-mutation:acceptance-call",
+    evidence_hash: `sha256:${"9".repeat(64)}`,
+    cause: null,
+  });
+}
+
+for (const checked of ["true", "false"] as const) {
+  let state: ModelState = "open";
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, modelFacts(state, checked));
     if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR) {
       assert.equal(intent.expectedTextEquals, profile.modelDisplayName);
       assert.deepEqual(intent.postClickMatch, {
@@ -143,7 +209,7 @@ for (const checked of ["true", "false"] as const) {
         expectedMatches: 1,
         timeoutMs: 5_000,
       });
-      open = false;
+      state = "closed";
       return { postconditionVerified: true };
     }
     throw new Error(`UNEXPECTED_MODEL_SELECT_INTENT:${intent.kind}`);
@@ -198,14 +264,14 @@ assert.equal(GPT_PROFILE_SIMPLE_PANEL_SELECTOR,
   "[data-testid='composer-model-picker-slider-simple-view'][data-active='true']:not([inert])");
 
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V21",
+  lawId: "LAW-GPT-001-V22",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:3", "forbidden:4", "forbidden:5", "forbidden:9", "summary"],
   locator: "acceptance:gpt-exact-target:coherent-ready-subset",
   observedValue: "coherent profile model and numeric reasoning Children prove same-revision DONE or one confirmed mutation",
 });
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V21",
+  lawId: "LAW-GPT-001-V22",
   evidenceMode: "exam.property",
   clauses: ["forbidden:10", "forbidden:13", "forbidden:15", "forbidden:16", "summary"],
   locator: "acceptance:gpt-exact-target:browser-handoff",

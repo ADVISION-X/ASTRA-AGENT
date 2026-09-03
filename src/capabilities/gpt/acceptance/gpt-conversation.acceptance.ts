@@ -205,7 +205,7 @@ const freshHarness = () => createGptAcceptanceHarness("gpt-browser-handoff");
     evidence_hash: `sha256:${"9".repeat(64)}`,
     cause: { name: "Error", code: "GPT_CHAT_ATTACHMENT_PRESENT" },
   });
-  await exerciseFailedEvidenceReadback(result, serialized!);
+  await exerciseFailedEvidenceReadback(result, Object.freeze({ timeoutMs: 1_000 }), serialized!);
 }
 
 await exerciseBrowserRejectedEvidenceReadback();

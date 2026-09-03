@@ -6,6 +6,7 @@ export type {
   BrowserDomObservationField,
   BrowserDomObservationPacketV2,
   BrowserDomObservationQuery,
+  BrowserDomPostconditionQuery,
   BrowserDomReadScope,
   BrowserExactAssistantTurnReplyV1,
   BrowserSemanticLocator,

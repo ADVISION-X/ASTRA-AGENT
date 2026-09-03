@@ -303,9 +303,13 @@ export class ProductionGptBrowserLifecycle {
     productStepId: string,
     callId: string,
   ): Promise<BrowserTargetLease> {
-    const remaining = Math.floor(this.execution.expiresAtMonotonic - performance.now());
-    const commandTtlMs = Math.min(this.execution.commandTtlMs, remaining);
-    if (commandTtlMs < 1) throw executionFailure("failed", "V6_DEADLINE_BUDGET_EXHAUSTED");
+    const currentCommandTtlMs = (): number => {
+      const remaining = Math.floor(this.execution.expiresAtMonotonic - performance.now());
+      const commandTtlMs = Math.min(this.execution.commandTtlMs, remaining);
+      if (commandTtlMs < 1) throw executionFailure("failed", "V6_DEADLINE_BUDGET_EXHAUSTED");
+      return commandTtlMs;
+    };
+    currentCommandTtlMs();
     const confirmedProviderReadback = this.confirmedProviderReadback;
     const executionRef = [
       this.execution.jobId,
@@ -337,7 +341,7 @@ export class ProductionGptBrowserLifecycle {
       writerLeaseEpoch: this.execution.leaseVersion,
       writerFenceHash: this.execution.executionFenceHash,
       candidateHash: this.sourceHash,
-      commandTtlMs,
+      get commandTtlMs() { return currentCommandTtlMs(); },
     };
     return this.browserAuthority.acquireJobBoundTargetLease(binding,
     `${this.execution.pluginId}:${this.execution.jobId}:${callId}`, {

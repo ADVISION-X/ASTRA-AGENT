@@ -25,13 +25,13 @@ import {
 } from "./gpt-contract-inspection.js";
 import { inspectGptCurrentPageProofs } from "./gpt-page-proof-inspection.js";
 
-const LAW_ID = "LAW-GPT-001-V21";
+const LAW_ID = "LAW-GPT-001-V22";
 const MODE_CLAUSES = {
-  "static.filesystem": staticForbiddenClauses(1, 12, 15, 18),
-  "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 16, 17, 18),
-  "static.types": staticForbiddenClauses(3, 4, 14, 16, 17),
-  "static.contract": staticForbiddenClauses(2, 3, 4, 9, 10, 11, 12, 14, 16, 17),
-  "static.dependency": staticForbiddenClauses(0, 1, 2, 5, 15, 16, 17, 18),
+  "static.filesystem": staticForbiddenClauses(1, 12, 15, 19),
+  "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 16, 17, 18, 19),
+  "static.types": staticForbiddenClauses(3, 4, 14, 16, 17, 18),
+  "static.contract": staticForbiddenClauses(2, 3, 4, 9, 10, 11, 12, 14, 16, 17, 18),
+  "static.dependency": staticForbiddenClauses(0, 1, 2, 5, 15, 16, 17, 18, 19),
 } as const;
 const MODE_CHECKS = {
   "static.filesystem": ["inspectGptFilesystem"], "static.ast": ["inspectGptAst"],
@@ -275,17 +275,24 @@ const inspectModelSelectionContract = (context: InspectorContext, findings: Insp
     "expectedTextEquals: profile.modelDisplayName",
     "selector: GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR",
     "readModelSelectorTopology", "isOpenable(restored)",
+    "value.entry === 0", "value.simplePanel === 0", "value.advancedPanel === 1",
+    "postClickObservation: MODEL_SELECTOR_OPEN_POSTCONDITION",
+    "expectedEligibleCount", "decodeCoherentObservationPacket", "scope: { selector: GPT_PROFILE_POPUP_SELECTOR }",
   ]) if (!handler.includes(required)) findings.push(finding(
     "gpt/model-selection-exact-radio", MODEL_SELECTION_V2_HANDLER_PATH,
     `Exact model selection is missing ${required}.`,
   ));
-  if (/kind:\s*"click",\s*selector:\s*GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR/u.test(handler)) findings.push(finding(
-    "gpt/model-selection-expanded-entry-retired", MODEL_SELECTION_V2_HANDLER_PATH,
-    "The expanded model entry must never be clicked to restore the simple profile panel.",
-  ));
+  for (const retired of ["GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR", "expandedEntry"]) {
+    if (handler.includes(retired) || contract.includes(retired)) findings.push(finding(
+      "gpt/model-selection-expanded-entry-retired", MODEL_SELECTION_V2_HANDLER_PATH,
+      `The obsolete expanded-entry state remains reachable through ${retired}.`,
+    ));
+  }
   for (const required of [
-    "GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR", "[aria-expanded='false'][aria-hidden='false']",
-    "GPT_PROFILE_SIMPLE_PANEL_SELECTOR", ":not(:has(${GPT_MODEL_SELECTION_V2_PANEL_SELECTOR}))",
+    "GPT_MODEL_SELECTION_V2_ENTRY_INNER_SELECTOR", "GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_INNER_SELECTOR",
+    "GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR",
+    "[aria-expanded='false'][aria-hidden='false']", "GPT_PROFILE_SIMPLE_PANEL_SELECTOR",
+    ":not(:has(${GPT_MODEL_SELECTION_V2_PANEL_SELECTOR}))",
   ]) if (!contract.includes(required)) findings.push(finding(
     "gpt/model-selection-direct-postcondition", MODEL_SELECTION_V2_CONTRACT_PATH,
     `The direct restored-state selector is missing ${required}.`,
@@ -300,6 +307,12 @@ const inspectExecutionProfileDynamicContract = (
   for (const required of [
     "/facts/profile_trigger_unique_observed", "/facts/profile_trigger_pointer_qualified",
     "/facts/profile_open_mutation_count", "/facts/profile_popup_direct_readback",
+    "/facts/model_open_stable_topology_observed", "/facts/model_open_transitional_topology_rejected",
+    "/facts/model_open_mutation_count", "/facts/exact_model_selection_observed",
+    "/facts/exact_model_selection_mutation_count", "/facts/reasoning_tier_values_observed",
+    "/facts/confirmed_semantic_failure_browser_outcome",
+    "/facts/confirmed_semantic_failure_mutation_outcome",
+    "/facts/confirmed_semantic_failure_postcondition_result",
   ]) if (!proof.includes(required)) findings.push(finding(
     "gpt/profile-open-real-browser-denominator", REAL_PROOF_PATH,
     `The existing GPT dynamic proof contract is missing ${required}.`,
@@ -337,6 +350,7 @@ const inspectBrowserFailureRecoveryContract = (
 ): void => {
   const tools = sourceFor(context, PRODUCTION_CHILD_TOOLS_PATH)?.getFullText() ?? "";
   const lifecycle = sourceFor(context, PRODUCTION_BROWSER_LIFECYCLE_PATH)?.getFullText() ?? "";
+  const group = sourceFor(context, GROUP_PATH)?.getFullText() ?? "";
   for (const required of [
     "facts.mutation.failureCode", "facts.mutation.nativeFailureCode", "cause: nativeCause",
   ]) if (!tools.includes(required)) findings.push(finding(
@@ -347,7 +361,14 @@ const inspectBrowserFailureRecoveryContract = (
     "input.recovery.failureCode", "input.recovery.nativeFailureCode",
   ]) if (!lifecycle.includes(required)) findings.push(finding(
     "gpt/browser-rejected-wal-cause", PRODUCTION_BROWSER_LIFECYCLE_PATH,
-    `The Browser atomic-step recovery path is missing ${required}.`,
+      `The Browser atomic-step recovery path is missing ${required}.`,
+  ));
+  for (const required of [
+    'recovery.state === "confirmed"', '"CONFIRMED" as const',
+    "mutationOutcome: walBrowserFact.mutationOutcome", "browserFact: walBrowserFact",
+  ]) if (!group.includes(required)) findings.push(finding(
+    "gpt/browser-confirmed-semantic-failure-proof", GROUP_PATH,
+    `The GPT failed proof cannot preserve a confirmed Browser fact; missing ${required}.`,
   ));
 };
 

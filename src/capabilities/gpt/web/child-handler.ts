@@ -40,11 +40,18 @@ export type GptChildHandlerMap = {
   readonly [K in GptChildCapabilityId]?: GptChildHandler<K>;
 };
 
+type ZeroActionMutationChild = "prepare_clean_gpt_chat" | "open_gpt_model_selector_v2";
+
+const allowsConfirmedZeroAction = (
+  childCapabilityId: GptChildCapabilityId,
+): childCapabilityId is ZeroActionMutationChild => childCapabilityId === "prepare_clean_gpt_chat"
+  || childCapabilityId === "open_gpt_model_selector_v2";
+
 type ConfirmedGptChildBrowserFact<K extends GptChildCapabilityId> = Omit<
   GptChildBrowserFact, "browserOutcome" | "mutationOutcome"
 > & Readonly<{
   browserOutcome: "CONFIRMED";
-  mutationOutcome: K extends "prepare_clean_gpt_chat" ? "no" | "confirmed" : "confirmed";
+  mutationOutcome: K extends ZeroActionMutationChild ? "no" | "confirmed" : "confirmed";
 }>;
 
 type GptInputDecoderIntent = Readonly<{
@@ -85,7 +92,7 @@ export const requireConfirmedBrowserFact = <K extends GptChildCapabilityId>(
   const mutationOutcome = recovery?.mutationOutcome;
   if (!recovery || recovery.state !== "confirmed"
     || (mutationOutcome !== "confirmed"
-      && (intent.childCapabilityId !== "prepare_clean_gpt_chat" || mutationOutcome !== "no"))) {
+      && (!allowsConfirmedZeroAction(intent.childCapabilityId) || mutationOutcome !== "no"))) {
     throw gptExecutionFailure("GPT_BROWSER_TERMINAL_FACT_REQUIRED", {
       mutationOutcome: recovery?.mutationOutcome ?? "no",
     });

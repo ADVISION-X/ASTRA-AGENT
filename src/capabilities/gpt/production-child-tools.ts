@@ -106,8 +106,8 @@ export class ProductionGptChildTools {
         leaseVersion: input.leaseVersion,
         executionFenceHash: input.executionFenceHash,
         controlManifestHash: input.controlManifestHash,
-        expiresAtMonotonic: input.expiresAtMonotonic,
-        commandTtlMs: input.commandTtlMs,
+        get expiresAtMonotonic() { return input.expiresAtMonotonic; },
+        get commandTtlMs() { return input.commandTtlMs; },
         abortSignal: input.abortSignal,
       },
     );

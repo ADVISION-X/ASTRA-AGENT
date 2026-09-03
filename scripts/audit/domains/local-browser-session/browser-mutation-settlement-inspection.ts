@@ -1,5 +1,7 @@
 import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
-import { browserMutationSchemaPath, createLocalFinding, extensionFileInputPath, requireSource,
+import { browserCommandPostconditionPath, browserMutationSchemaPath, createLocalFinding,
+  domMutationPostconditionPath,
+  extensionFileInputPath, requireSource,
   sourcePaths } from "./inspector-support.js";
 
 const DOM_RUNTIME_PATH = "src/lib/browser/chrome-extension/dom-intent-runtime.ts";
@@ -52,6 +54,7 @@ export const inspectBrowserMutationSettlement = (
   const store = requireSource(context, findings, lawId, sourcePaths[7]);
   const schema = requireSource(context, findings, lawId, browserMutationSchemaPath);
   const runtime = requireSource(context, findings, lawId, DOM_RUNTIME_PATH);
+  const postcondition = requireSource(context, findings, lawId, domMutationPostconditionPath);
   const contract = requireSource(context, findings, lawId, DOM_CONTRACT_PATH);
   const resolver = requireSource(context, findings, lawId, OUTCOME_RESOLVER_PATH);
   const acceptance = requireSource(context, findings, lawId, TERMINAL_ACCEPTANCE_PATH);
@@ -61,8 +64,12 @@ export const inspectBrowserMutationSettlement = (
   const mutationReceipt = requireSource(context, findings, lawId, MUTATION_RECEIPT_PATH);
   const realProof = requireSource(context, findings, lawId, REAL_PROOF_PATH);
   const transport = requireSource(context, findings, lawId, sourcePaths[0]);
-  if (!actor || !store || !schema || !runtime || !contract || !resolver || !acceptance
-    || !fileInput || !domAcceptance || !fileInputAcceptance || !mutationReceipt || !realProof || !transport) return;
+  const commandPostcondition = requireSource(
+    context, findings, lawId, browserCommandPostconditionPath,
+  );
+  if (!actor || !store || !schema || !runtime || !postcondition || !contract || !resolver || !acceptance
+    || !fileInput || !domAcceptance || !fileInputAcceptance || !mutationReceipt || !realProof || !transport
+    || !commandPostcondition) return;
 
   requireText(actor.getFullText(), [
     "readMutationOutcome", "decodeBrowserMutationReceipt", "result.failureCode",
@@ -93,12 +100,12 @@ export const inspectBrowserMutationSettlement = (
     "native_cause_code text", "addNativeCauseWithoutRebuild",
     "alter table browser_mutations add column native_cause_code", "delete normalized.native_cause_code",
   ], findings, lawId, browserMutationSchemaPath);
-  requireText(runtime.getFullText(), [
+  requireText(`${runtime.getFullText()}\n${postcondition.getFullText()}`, [
     "qualificationReceipt", "qualifiedNode", "pointerAction", "resolveCoherentPointerAction",
     "zeroActionReceipt", "verifyClickPostcondition",
     "candidate-set", "actionability",
     "mutationCount: 0", "identityRevalidated: false", "postconditionVerified: false",
-  ], findings, lawId, DOM_RUNTIME_PATH);
+  ], findings, lawId, domMutationPostconditionPath);
   requireText(contract.getFullText(), [
     "intent.expectedMatches !== undefined && intent.expectedMatches !== 1",
   ], findings, lawId, DOM_CONTRACT_PATH);
@@ -107,9 +114,15 @@ export const inspectBrowserMutationSettlement = (
   ], findings, lawId, OUTCOME_RESOLVER_PATH);
   requireText(acceptance.getFullText(), [
     "legacy-nonempty", "drop column mutation_outcome", "forward ALTER migration",
-    "actor-zero-action", "actor-qualification-rejected", "actor-file-forged-success",
+    "actor-zero-action", "actor-qualification-rejected", "actor-coherent-click-qualification-rejected",
+    "a coherent-click qualification terminal must not be misclassified as a missing receipt",
+    "actor-file-forged-success",
     "the unique mutation WAL must retain the outer failure and exact native qualification cause",
   ], findings, lawId, TERMINAL_ACCEPTANCE_PATH);
+  requireText(commandPostcondition.getFullText(), [
+    "value.qualificationRejected === true", "value.postconditionObservation === undefined",
+    "bindOneObservationPacket",
+  ], findings, lawId, browserCommandPostconditionPath);
   requireText(fileInput.getFullText(), [
     "executeExtensionFileInput", "DOM.setFileInputFiles", "approvedFiles", "resolvedFilePaths",
     "candidate.facts.multiple === true", "candidate.facts.disabled === false",

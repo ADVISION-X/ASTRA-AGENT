@@ -207,8 +207,8 @@ export class ProductionExecutor {
           executionFenceHash: input.lease.execution_fence_hash,
           controlManifestHash: input.lease.control_manifest_hash,
           maxProviderTurns: input.lease.max_provider_turns,
-          expiresAtMonotonic: input.lease.expires_at_monotonic,
-          commandTtlMs: input.lease.command_ttl_ms,
+          get expiresAtMonotonic() { return input.lease.expires_at_monotonic; },
+          get commandTtlMs() { return input.lease.command_ttl_ms; },
           abortSignal: input.lease.abort_signal,
           parentSpanId: input.span.spanId,
         });

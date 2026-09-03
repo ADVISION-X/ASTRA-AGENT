@@ -393,6 +393,86 @@ try {
   ]));
   assert.equal(actorStore.readState(observationPermit.commandId), null);
 
+  const coherentClickPermit: BrowserCommandPermit = {
+    ...permit("actor-coherent-click"), commandTtlMs: 10_000,
+  };
+  const coherentClickCommand = { kind: "dom-intent" as const, intent: {
+    kind: "click" as const, selector: "button[aria-label='Model selector']", expectedMatches: 1,
+    postClickObservation: { timeoutMs: 5_000, queries: [{
+      queryId: "model", selector: "button", maxMatches: 1, fields: [] as const,
+      expectedEligibleCount: 1,
+    }] },
+  } };
+  const coherentTargetRefHash = exactHash(coherentClickPermit.targetRef);
+  const coherentDocumentRefHash = exactHash(coherentClickPermit.documentRef);
+  const coherentObservationIdentityHash = exactHash(canonicalizeBrowserAuthorityValue({
+    targetRefHash: coherentTargetRefHash, documentRefHash: coherentDocumentRefHash,
+    observedAt, queryId: "model", candidateIndex: 0,
+  }));
+  const coherentObservationQueries = [{ queryId: "model", scopeRawCount: 1, scopeEligibleCount: 1,
+    rawCount: 1, eligibleCount: 1,
+    matches: [{ candidateIndex: 0, observationIdentityHash: coherentObservationIdentityHash }],
+    nativeCauseCode: null, nativeCauseCount: 0, nativeStage: "runtime-call-function-on",
+    scopeRejections: [], rejections: [] }];
+  const coherentRevisionHash = exactHash(canonicalizeBrowserAuthorityValue({
+    targetRefHash: coherentTargetRefHash, documentRefHash: coherentDocumentRefHash,
+    currentUrl, observedAt, queries: coherentObservationQueries,
+  }));
+  const coherentClickResult = await actorFor(async (candidate, _command, onDispatched) => {
+    onDispatched?.();
+    return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+      permitSequence: candidate.sequence, result: {
+        clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
+        postconditionVerified: true,
+        postconditionObservation: {
+          schemaVersion: "grasseye.browser.dom-observation.v2", targetRefHash: coherentTargetRefHash,
+          documentRefHash: coherentDocumentRefHash, currentUrl, observationRevisionHash: coherentRevisionHash,
+          observedAt, queries: coherentObservationQueries,
+        },
+      } };
+  }).execute(coherentClickPermit, coherentClickCommand) as Readonly<Record<string, unknown>>;
+  assert.equal((coherentClickResult.postconditionObservation as Readonly<Record<string, unknown>>)
+    .exactCallIdentityHash, valueHash([
+    coherentClickPermit.jobId, coherentClickPermit.attemptId, coherentClickPermit.ownerPluginId,
+    coherentClickPermit.pluginVersion, coherentClickPermit.productStepId, coherentClickPermit.callId,
+    coherentClickPermit.childCapabilityId, coherentClickPermit.inputHash,
+  ]), "the post-click coherent packet must be exact-call bound before WAL confirmation and GPT consumption");
+  assert.equal(actorStore.readState(coherentClickPermit.commandId), "CONFIRMED");
+
+  const coherentQualificationPermit: BrowserCommandPermit = {
+    ...permit("actor-coherent-click-qualification-rejected"), commandTtlMs: 10_000,
+  };
+  const coherentQualificationActor = actorFor(async (candidate, _command, onDispatched) => {
+    onDispatched?.();
+    return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+      permitSequence: candidate.sequence, result: {
+        candidateCount: 0, identityRevalidated: false, mutationCount: 0,
+        postconditionVerified: false, qualificationRejected: true,
+        qualificationStage: "candidate-set",
+        failureCode: "BROWSER_DOM_CANDIDATE_MISSING", nativeCauseCode: null,
+      } };
+  });
+  await assert.rejects(
+    coherentQualificationActor.execute(coherentQualificationPermit, coherentClickCommand),
+    /BROWSER_DOM_CANDIDATE_MISSING/u,
+  );
+  assert.equal(actorStore.readState(coherentQualificationPermit.commandId), "REJECTED",
+    "a coherent-click qualification terminal must not be misclassified as a missing receipt");
+  assert.equal(coherentQualificationActor.mutationOutcome(coherentQualificationPermit.commandId), "no");
+
+  let insufficientBudgetSends = 0;
+  const insufficientBudgetPermit: BrowserCommandPermit = {
+    ...permit("actor-insufficient-postcondition-budget"), commandTtlMs: 5_999,
+  };
+  await assert.rejects(actorFor(async () => {
+    insufficientBudgetSends += 1;
+    throw new Error("MUST_NOT_SEND");
+  }).execute(insufficientBudgetPermit, coherentClickCommand), /BROWSER_COMMAND_PERMIT_INVALID/u);
+  assert.equal(insufficientBudgetSends, 0,
+    "a command without postcondition timeout plus terminal-reply margin must fail before send");
+  assert.equal(actorStore.readState(insufficientBudgetPermit.commandId), null,
+    "insufficient reply budget must produce neither PREPARED nor DISPATCHED");
+
   const fileCommand = { kind: "file-input" as const, selector: "#upload-files",
     approvedFiles: [{ grantRef: "grant-one", contentHash: hash, maxBytes: 64 }],
     resolvedFilePaths: ["/approved/one.txt"] };

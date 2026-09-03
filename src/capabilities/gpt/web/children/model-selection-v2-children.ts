@@ -1,4 +1,8 @@
-import type { BrowserTargetLease } from "../../../../lib/browser/browser-authority-api.js";
+import type {
+  BrowserDomObservationQuery,
+  BrowserDomPostconditionQuery,
+  BrowserTargetLease,
+} from "../../../../lib/browser/browser-authority-api.js";
 import { executionFailure } from "../../../../lib/execution-failure.js";
 
 import { GPT_MODEL_SELECTION_VERSION } from "../../contract.js";
@@ -12,16 +16,18 @@ import {
   success,
 } from "../child-handler.js";
 import {
+  decodeCoherentObservationPacket,
   projectCoherentObservation,
   readCoherentObservation,
+  type GptCoherentObservation,
   type GptCoherentFactProjection,
 } from "../gpt-dom-observation.js";
 import {
   GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR,
+  GPT_MODEL_SELECTION_V2_ENTRY_INNER_SELECTOR,
   GPT_MODEL_SELECTION_V2_ENTRY_SELECTOR,
-  GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR,
+  GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_INNER_SELECTOR,
   GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR,
-  GPT_MODEL_SELECTION_V2_OPEN_STATE_SELECTOR,
   GPT_MODEL_SELECTION_V2_PANEL_SELECTOR,
   GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR,
 } from "../contracts/model-selection-v2.contract.js";
@@ -41,7 +47,6 @@ const profileFromIntent = (
 type ModelSelectorTopology = Readonly<{
   popup: number;
   entry: number;
-  expandedEntry: number;
   openableEntry: number;
   simplePanel: number;
   advancedPanel: number;
@@ -49,52 +54,75 @@ type ModelSelectorTopology = Readonly<{
   facts: GptCoherentFactProjection;
 }>;
 
-const readModelSelectorTopology = async (
-  browser: BrowserTargetLease,
+const MODEL_SELECTOR_TOPOLOGY_QUERIES = Object.freeze([
+  { queryId: "popup", selector: GPT_PROFILE_POPUP_SELECTOR, maxMatches: 2, fields: [] },
+  { queryId: "entry", selector: GPT_MODEL_SELECTION_V2_ENTRY_INNER_SELECTOR,
+    maxMatches: 2, fields: [], scope: { selector: GPT_PROFILE_POPUP_SELECTOR } },
+  { queryId: "openable-entry", selector: GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_INNER_SELECTOR,
+    maxMatches: 2, fields: [], scope: { selector: GPT_PROFILE_POPUP_SELECTOR } },
+  { queryId: "simple-panel", selector: GPT_PROFILE_SIMPLE_PANEL_SELECTOR,
+    maxMatches: 2, fields: [], scope: { selector: GPT_PROFILE_POPUP_SELECTOR } },
+  { queryId: "advanced-panel", selector: GPT_MODEL_SELECTION_V2_PANEL_SELECTOR,
+    maxMatches: 2, fields: [], scope: { selector: GPT_PROFILE_POPUP_SELECTOR } },
+] as const satisfies readonly BrowserDomObservationQuery[]);
+
+const MODEL_SELECTOR_OPEN_POSTCONDITION = Object.freeze({
+  queries: Object.freeze(MODEL_SELECTOR_TOPOLOGY_QUERIES.map((query) => Object.freeze({
+    ...query,
+    expectedEligibleCount: query.queryId === "popup" || query.queryId === "advanced-panel" ? 1 : 0,
+  }))) as readonly BrowserDomPostconditionQuery[],
+  timeoutMs: 5_000,
+});
+
+const modelSelectorQueries = (
   modelDisplayName?: string,
-): Promise<ModelSelectorTopology> => {
-  const specs = [
-    { queryId: "popup", selector: GPT_PROFILE_POPUP_SELECTOR, maxMatches: 2, fields: [] },
-    { queryId: "entry", selector: GPT_MODEL_SELECTION_V2_ENTRY_SELECTOR, maxMatches: 2, fields: [] },
-    { queryId: "expanded-entry", selector: GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR, maxMatches: 2, fields: [] },
-    { queryId: "openable-entry", selector: GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR, maxMatches: 2, fields: [] },
-    { queryId: "simple-panel", selector: GPT_PROFILE_SIMPLE_PANEL_SELECTOR, maxMatches: 2, fields: [] },
-    { queryId: "advanced-panel", selector: GPT_MODEL_SELECTION_V2_PANEL_SELECTOR, maxMatches: 2, fields: [] },
-    ...(modelDisplayName === undefined ? [] : [{
-      queryId: "model-choice", selector: GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR,
-      textEquals: modelDisplayName, maxMatches: 2, fields: ["ariaChecked" as const],
-    }]),
-  ] as const;
-  const observation = await readCoherentObservation(browser, specs);
+): readonly BrowserDomObservationQuery[] => Object.freeze([
+  ...MODEL_SELECTOR_TOPOLOGY_QUERIES,
+  ...(modelDisplayName === undefined ? [] : [{
+    queryId: "model-choice", selector: GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR,
+    textEquals: modelDisplayName, maxMatches: 2, fields: ["ariaChecked" as const],
+  }]),
+]);
+
+const projectModelSelectorTopology = (
+  observation: GptCoherentObservation,
+): ModelSelectorTopology => {
   const count = (queryId: string): number =>
     observation.rows.find((row) => row.queryId === queryId)!.eligibleCount;
   const choice = observation.rows.find((row) => row.queryId === "model-choice");
   const firstChoice = choice?.matches[0];
   const ariaChecked = typeof firstChoice?.ariaChecked === "string" ? firstChoice.ariaChecked : null;
   return Object.freeze({
-    popup: count("popup"), entry: count("entry"), expandedEntry: count("expanded-entry"),
-    openableEntry: count("openable-entry"), simplePanel: count("simple-panel"),
-    advancedPanel: count("advanced-panel"),
+    popup: count("popup"), entry: count("entry"), openableEntry: count("openable-entry"),
+    simplePanel: count("simple-panel"), advancedPanel: count("advanced-panel"),
     ...(choice === undefined ? {} : { modelChoice: Object.freeze({ count: choice.eligibleCount, ariaChecked }) }),
     facts: projectCoherentObservation(observation, "entry"),
   });
 };
 
+const readModelSelectorTopology = async (
+  browser: BrowserTargetLease,
+  modelDisplayName?: string,
+): Promise<ModelSelectorTopology> => {
+  const specs = modelSelectorQueries(modelDisplayName);
+  const observation = await readCoherentObservation(browser, specs);
+  return projectModelSelectorTopology(observation);
+};
+
 const topologyCode = (value: ModelSelectorTopology): string => [
   `popup=${value.popup}`,
   `entry=${value.entry}`,
-  `expandedEntry=${value.expandedEntry}`,
   `openableEntry=${value.openableEntry}`,
   `simple=${value.simplePanel}`,
   `advanced=${value.advancedPanel}`,
 ].join(":");
 
 const isAlreadyOpen = (value: ModelSelectorTopology): boolean => value.popup === 1
-  && value.entry === 1 && value.expandedEntry === 1 && value.openableEntry === 0
+  && value.entry === 0 && value.openableEntry === 0
   && value.simplePanel === 0 && value.advancedPanel === 1;
 
 const isOpenable = (value: ModelSelectorTopology): boolean => value.popup === 1
-  && value.entry === 1 && value.expandedEntry === 0 && value.openableEntry === 1
+  && value.entry === 1 && value.openableEntry === 1
   && value.simplePanel === 1 && value.advancedPanel === 0;
 
 const requireAlreadyOpen = async (browser: BrowserTargetLease, modelDisplayName?: string): Promise<ModelSelectorTopology> => {
@@ -126,26 +154,34 @@ export const modelSelectionV2ChildHandlers = {
     if (context.mutationMode === "readback") {
       throw executionFailure("failed", "GPT_MODEL_SELECTION_V2_OPEN_PENDING");
     }
-    await browser.executeDomIntent({
+    const mutation = await browser.executeDomIntent({
       kind: "click",
       selector: GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR,
       expectedMatches: 1,
-      postClickMatch: {
-        selector: GPT_MODEL_SELECTION_V2_OPEN_STATE_SELECTOR,
-        expectedMatches: 1,
-        timeoutMs: 5_000,
-      },
+      postClickObservation: MODEL_SELECTOR_OPEN_POSTCONDITION,
     });
-    const readback = await requireAlreadyOpen(browser, profile.modelDisplayName);
+    const mutationRecord = mutation && typeof mutation === "object" && !Array.isArray(mutation)
+      ? mutation as Readonly<Record<string, unknown>> : {};
+    const readback = projectModelSelectorTopology(decodeCoherentObservationPacket(
+      mutationRecord.postconditionObservation,
+      MODEL_SELECTOR_TOPOLOGY_QUERIES,
+    ));
+    if (!isAlreadyOpen(readback)) {
+      throw executionFailure("failed", `GPT_MODEL_SELECTION_V2_STATE_INVALID:${topologyCode(readback)}`);
+    }
     const browserFact = requireConfirmedBrowserFact(intent, browser);
+    const didMutate = browserFact.mutationOutcome === "confirmed";
     return success({
-      value: { selectionVersion: GPT_MODEL_SELECTION_VERSION, state: "model-selector-opened" },
+      value: {
+        selectionVersion: GPT_MODEL_SELECTION_VERSION,
+        state: didMutate ? "model-selector-opened" : "model-selector-open",
+      },
       ...declaredFacts({
         ...readback.facts,
-        decision: "ACT",
+        decision: didMutate ? "ACT" : "DONE",
         factResultIds: Object.freeze([...readback.facts.factResultIds, browserFact.evidenceRef]),
         authorityRefHashes: Object.freeze([...readback.facts.authorityRefHashes, browserFact.evidenceHash]),
-        mutationOutcome: "confirmed", browserFact, nativeFailureCode: null,
+        mutationOutcome: browserFact.mutationOutcome, browserFact, nativeFailureCode: null,
       }),
     });
   },

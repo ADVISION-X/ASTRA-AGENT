@@ -22,6 +22,30 @@ const fillCommand = { kind: "dom-intent" as const, intent: {
 const visibleMatchEvidence = {
   postconditionRawCount: 1, postconditionEligibleCount: 1, postconditionRejections: [],
 } as const;
+const observationClickCommand = { kind: "dom-intent" as const, intent: {
+  kind: "click" as const, selector: "button", expectedMatches: 1,
+  postClickObservation: { timeoutMs: 5_000, queries: [
+    { queryId: "entry", selector: "[role='menuitem']", maxMatches: 2, fields: [],
+      expectedEligibleCount: 0 },
+    { queryId: "advanced", selector: "[data-active='true']", maxMatches: 2, fields: [],
+      expectedEligibleCount: 1 },
+  ] },
+} };
+const observationPacket = (advancedEligibleCount: number) => ({
+  schemaVersion: "grasseye.browser.dom-observation.v2",
+  exactCallIdentityHash: `sha256:${"1".repeat(64)}`,
+  targetRefHash: `sha256:${"2".repeat(64)}`,
+  documentRefHash: `sha256:${"3".repeat(64)}`,
+  currentUrl: "https://chatgpt.com/",
+  observationRevisionHash: `sha256:${"4".repeat(64)}`,
+  observedAt: "2026-09-04T00:00:00.000Z",
+  queries: [
+    { queryId: "entry", rawCount: 1, eligibleCount: 0,
+      rejections: [{ index: 0, reasons: ["ARIA_HIDDEN"] }] },
+    { queryId: "advanced", rawCount: advancedEligibleCount, eligibleCount: advancedEligibleCount,
+      rejections: [] },
+  ],
+});
 
 export const exerciseStrictMutationReceipts = (): void => {
   const fileSuccess = { candidateCount: 1, identityRevalidated: true, mutationCount: 1,
@@ -87,6 +111,25 @@ export const exerciseStrictMutationReceipts = (): void => {
     clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
     postconditionVerified: true, ...visibleMatchEvidence,
   }), { terminal: "confirmed", mutationOutcome: "confirmed", failureCode: null, nativeCauseCode: null });
+  const coherentSuccess = {
+    clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
+    postconditionVerified: true, postconditionObservation: observationPacket(1),
+  };
+  assert.deepEqual(decodeBrowserMutationReceipt(observationClickCommand, coherentSuccess), {
+    terminal: "confirmed", mutationOutcome: "confirmed", failureCode: null, nativeCauseCode: null,
+  }, "coherent postconditions must compare eligible cardinality without requiring raw DOM absence");
+  const coherentFailure = {
+    ...coherentSuccess, postconditionVerified: false, postconditionObservation: observationPacket(0),
+    failureCode: "BROWSER_POSTCONDITION_FAILED", nativeCauseCode: "BROWSER_DOM_CANDIDATE_MISSING",
+  };
+  assert.deepEqual(decodeBrowserMutationReceipt(observationClickCommand, coherentFailure), {
+    terminal: "rejected", mutationOutcome: "confirmed", failureCode: "BROWSER_POSTCONDITION_FAILED",
+    nativeCauseCode: "BROWSER_DOM_CANDIDATE_MISSING",
+  });
+  assert.throws(() => decodeBrowserMutationReceipt(observationClickCommand, {
+    ...coherentFailure, nativeCauseCode: "BROWSER_DOM_CANDIDATE_AMBIGUOUS",
+  }), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
+  "coherent negative receipts must preserve the mechanical cause of the first mismatched query");
   const ariaHiddenPostconditionFailure = {
     clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
     postconditionVerified: false, postconditionRawCount: 1, postconditionEligibleCount: 0,

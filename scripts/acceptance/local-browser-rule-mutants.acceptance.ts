@@ -34,6 +34,37 @@ try {
     kind: "click", selector: "button", expectedMatches: 1,
   }), /BROWSER_COMMAND_PERMIT_INVALID/u,
   "a click without one direct postcondition must fail before dispatch");
+  const coherentClick = {
+    kind: "click" as const, selector: "button", expectedMatches: 1,
+    postClickObservation: { timeoutMs: 5_000, queries: [{
+      queryId: "advanced", selector: "[data-active='true']", maxMatches: 2, fields: [] as const,
+      expectedEligibleCount: 1,
+    }] },
+  };
+  assert.equal(assertBrowserDomIntent(coherentClick).kind, "click");
+  assert.throws(() => assertBrowserDomIntent({
+    ...coherentClick,
+    postClickObservation: { ...coherentClick.postClickObservation,
+      queries: [{ ...coherentClick.postClickObservation.queries[0]!, expectedEligibleCount: 3 }] },
+  }), /BROWSER_COMMAND_PERMIT_INVALID/u,
+  "a coherent postcondition cannot expect more eligible nodes than its bounded query permits");
+  assert.throws(() => assertBrowserDomIntent({
+    ...coherentClick,
+    postClickObservation: { ...coherentClick.postClickObservation,
+      queries: [{ ...coherentClick.postClickObservation.queries[0]!, semanticState: "open" }] },
+  } as never), /BROWSER_COMMAND_PERMIT_INVALID/u,
+  "Browser admission must reject semantic fields outside the mechanical query contract");
+  assert.throws(() => assertBrowserDomIntent({
+    ...coherentClick,
+    postClickObservation: { ...coherentClick.postClickObservation,
+      queries: [{ ...coherentClick.postClickObservation.queries[0]!, fields: ["ariaExpanded"] }] },
+  }), /BROWSER_COMMAND_PERMIT_INVALID/u,
+  "an atomic click postcondition may compare mechanical counts only and cannot add a field-read phase");
+  assert.throws(() => assertBrowserDomIntent({
+    ...coherentClick,
+    postClickMatch: { selector: "[data-active='true']", expectedMatches: 1 },
+  }), /BROWSER_COMMAND_PERMIT_INVALID/u,
+  "a click cannot carry a second postcondition path beside its coherent packet");
   for (const key of ["ArrowLeft", "ArrowRight"] as const) {
     assert.equal(assertBrowserDomIntent({
       kind: "keypress",

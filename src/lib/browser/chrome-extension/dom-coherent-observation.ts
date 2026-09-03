@@ -22,6 +22,8 @@ type CoherentObservationResult = Readonly<{
   queries: readonly Readonly<Record<string, unknown>>[];
 }>;
 
+export type BrowserCoherentObservationResult = CoherentObservationResult;
+
 const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
   ${BROWSER_MECHANICAL_FACTS_READER_SOURCE}
   const sha256 = async (value) => {
@@ -357,6 +359,26 @@ const bindObservationIdentities = async (
   }))) });
 }));
 
+export const bindCoherentObservationResult = async (
+  value: unknown,
+  target: ExtensionExactTarget,
+  specs: readonly BrowserDomObservationQuery[],
+): Promise<CoherentObservationResult> => {
+  const observed = decodeObservationCall(value, specs);
+  const targetRefHash = await sha256Text(target.targetRef);
+  const documentRefHash = await sha256Text(target.documentRef);
+  const queries = await bindObservationIdentities(
+    observed.queries, targetRefHash, documentRefHash, observed.observedAt,
+  );
+  const observationRevisionHash = await sha256Text(canonicalizeBrowserAuthorityValue({
+    targetRefHash, documentRefHash, currentUrl: observed.currentUrl,
+    observedAt: observed.observedAt, queries,
+  }));
+  return Object.freeze({ schemaVersion: "grasseye.browser.dom-observation.v2", targetRefHash,
+    documentRefHash, currentUrl: observed.currentUrl, observationRevisionHash,
+    observedAt: observed.observedAt, queries });
+};
+
 export const executeCoherentObservation = async (
   runtime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
@@ -381,19 +403,7 @@ export const executeCoherentObservation = async (
     if (loaderAfter !== loaderBefore) {
       throw new Error("BROWSER_DOCUMENT_INVALID");
     }
-    const observed = decodeObservationCall(observationRecord(call.result).value, specs);
-    const targetRefHash = await sha256Text(target.targetRef);
-    const documentRefHash = await sha256Text(target.documentRef);
-    const queries = await bindObservationIdentities(
-      observed.queries, targetRefHash, documentRefHash, observed.observedAt,
-    );
-    const observationRevisionHash = await sha256Text(canonicalizeBrowserAuthorityValue({
-      targetRefHash, documentRefHash, currentUrl: observed.currentUrl,
-      observedAt: observed.observedAt, queries,
-    }));
-    return Object.freeze({ schemaVersion: "grasseye.browser.dom-observation.v2", targetRefHash,
-      documentRefHash, currentUrl: observed.currentUrl, observationRevisionHash,
-      observedAt: observed.observedAt, queries });
+    return bindCoherentObservationResult(observationRecord(call.result).value, target, specs);
   } catch (error) {
     primaryFailure = error;
     if (error instanceof Error && /^BROWSER_[A-Z_]+$/u.test(error.message)) throw error;

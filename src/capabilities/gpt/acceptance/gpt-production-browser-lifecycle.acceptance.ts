@@ -105,6 +105,42 @@ try {
     ["gpt.child", "gpt-call", "corpus_research", "image-wait:wait_for_stable_gpt_image"],
   ]);
 
+  let liveExpiresAt = performance.now() + 10_000;
+  let liveCommandTtl = 1_000;
+  const liveBindings: BrowserExecutionBinding[] = [];
+  const liveBudgetLifecycle = new ProductionGptBrowserLifecycle(
+    {
+      acquireJobBoundTargetLease: async (binding: BrowserExecutionBinding) => {
+        liveBindings.push(binding);
+        return {
+          target: { targetRef: "target:live-budget" }, document: { documentRef: "document:live-budget" },
+          pendingMutationCount: () => 0, requiresMutationRecovery: () => false,
+          park: async () => undefined, close: async () => undefined,
+        };
+      },
+    } as never,
+    runtimeLogger,
+    HASH_A,
+    {
+      jobId: waitTask.job_id, attemptId: "attempt:live-budget",
+      pluginId: "payment-screenshot-observation", pluginVersion: 1,
+      deviceId: "device:1", leaseVersion: 1,
+      executionFenceHash: HASH_A, controlManifestHash: HASH_B,
+      get expiresAtMonotonic() { return liveExpiresAt; },
+      get commandTtlMs() { return liveCommandTtl; },
+      abortSignal: new AbortController().signal,
+    },
+  );
+  await liveBudgetLifecycle.browserFor("session:live-budget", "corpus_research", "live-budget-call");
+  const liveBinding = liveBindings[0];
+  assert.ok(liveBinding);
+  assert.ok(liveBinding.commandTtlMs <= 1_000);
+  liveExpiresAt = performance.now() + 20_000;
+  liveCommandTtl = 7_000;
+  assert.ok(liveBinding.commandTtlMs > 6_000 && liveBinding.commandTtlMs <= 7_000,
+    "the next permit must read the renewed lease budget instead of a stale GPT snapshot");
+  await liveBudgetLifecycle.settle(null);
+
   const readbackBindings: BrowserExecutionBinding[] = [];
   const readbackParks: Array<Readonly<{ reason: string; mode: string }>> = [];
   let readbackAcquisitions = 0;

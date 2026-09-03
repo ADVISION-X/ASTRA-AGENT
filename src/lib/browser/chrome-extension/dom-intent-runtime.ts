@@ -1,17 +1,26 @@
 import type {
-  BrowserDomIneligibleCandidate,
-  BrowserDomIneligibleReason,
   BrowserDomIntent,
 } from "../exact-target/browser-dom-intent.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
-import { resolveCoherentMutationCandidate, resolveCoherentPointerAction,
+import { resolveCoherentMutationCandidate, resolveCoherentObservationPointerAction,
+  resolveCoherentPointerAction,
+  type CoherentObservationPointerPreparation,
   type BrowserPointerAction } from "./dom-coherent-candidate.js";
 import { executeExactAssistantTurnRead } from "./dom-exact-assistant-turn.js";
 import { executeCoherentObservation } from "./dom-coherent-observation.js";
+import {
+  matchReceiptEvidence,
+  observationReceiptEvidence,
+  verifyClickPostcondition,
+  waitForInteractionAttribute,
+  waitForMatch,
+  zeroActionMatchReceipt,
+  zeroActionObservationReceipt,
+} from "./dom-mutation-postcondition.js";
 import { attribute, describeNode,
-  documentState, inspectNode, nodeForRead, nodeForSelector, nodeText, queryAll,
-  queryCandidateSet, queryVisibleTextMatches, requireKeyboardActionTarget,
+  documentState, inspectNode, nodeForRead, nodeForSelector, nodeText,
+  queryCandidateSet, requireKeyboardActionTarget,
   selectorForLocator } from "./dom-query-runtime.js";
 type FindIntent = Extract<BrowserDomIntent, { kind: "find" }>;
 type ClickIntent = Extract<BrowserDomIntent, { kind: "click" }>;
@@ -150,36 +159,35 @@ const pointerAction = async (
   }
 };
 
+const observationPointerAction = async (
+  runtime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  intent: ClickIntent & Readonly<{ postClickObservation: NonNullable<ClickIntent["postClickObservation"]> }>,
+): Promise<CoherentObservationPointerPreparation | QualificationReceipt> => {
+  try {
+    return await resolveCoherentObservationPointerAction(runtime, target, {
+      selector: intent.selector,
+      ...(intent.scope === undefined ? {} : { scope: intent.scope }),
+      ...(intent.expectedTextEquals !== undefined
+        ? { text: { value: intent.expectedTextEquals, exact: true } }
+        : intent.expectedText !== undefined
+          ? { text: { value: intent.expectedText, exact: false } } : {}),
+    }, intent.postClickObservation);
+  }
+  catch (error) {
+    const code = error instanceof Error ? error.message : "";
+    if (/^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|READ_INVALID)$/u.test(code)) {
+      return qualificationReceipt(code === "BROWSER_DOM_CANDIDATE_AMBIGUOUS" ? 2 : 0, code, "candidate-set");
+    }
+    if (!/^BROWSER_DOM_ACTION_[A-Z_]+$/u.test(code)) throw error;
+    return qualificationReceipt(1, code, "actionability");
+  }
+};
+
 const zeroActionReceipt = (assertCurrent: CurrentDocumentAssertion): Readonly<Record<string, unknown>> => {
   assertCurrent();
   return Object.freeze({ candidateCount: 1, identityRevalidated: true, mutationCount: 0,
     postconditionVerified: true, zeroActionSatisfied: true });
-};
-
-type MatchReadback = Readonly<{
-  verified: boolean;
-  rawCount: number;
-  eligibleCount: number;
-  rejections: readonly BrowserDomIneligibleCandidate[];
-  nativeCauseCode: BrowserDomIneligibleReason | "BROWSER_DOM_CANDIDATE_MISSING"
-    | "BROWSER_DOM_CANDIDATE_AMBIGUOUS" | null;
-}>;
-
-const matchReceiptEvidence = (readback: MatchReadback): Readonly<Record<string, unknown>> => ({
-  postconditionRawCount: readback.rawCount,
-  postconditionEligibleCount: readback.eligibleCount,
-  postconditionRejections: readback.rejections,
-  ...(readback.verified || readback.nativeCauseCode === null
-    ? {} : { nativeCauseCode: readback.nativeCauseCode }),
-});
-
-const zeroActionMatchReceipt = (
-  assertCurrent: CurrentDocumentAssertion,
-  readback: MatchReadback,
-): Readonly<Record<string, unknown>> => {
-  assertCurrent();
-  return Object.freeze({ candidateCount: 1, identityRevalidated: true, mutationCount: 0,
-    postconditionVerified: true, zeroActionSatisfied: true, ...matchReceiptEvidence(readback) });
 };
 
 const dispatchPointerClickSequence = async (
@@ -211,10 +219,33 @@ const executeClickIntent = async (
   intent: ClickIntent,
   assertCurrent: CurrentDocumentAssertion,
 ): Promise<unknown> => {
-  const precondition = await verifyClickPostcondition(debuggerRuntime, target, intent, 0);
-  if (precondition.verified) return precondition.match === undefined
-    ? zeroActionReceipt(assertCurrent) : zeroActionMatchReceipt(assertCurrent, precondition.match);
-  const box = await pointerAction(debuggerRuntime, target, intent);
+  const zeroActionIfSatisfied = async (): Promise<Readonly<Record<string, unknown>> | null> => {
+    const readback = await verifyClickPostcondition(debuggerRuntime, target, intent, 0);
+    if (!readback.verified) return null;
+    if (readback.observation !== undefined) {
+      return zeroActionObservationReceipt(assertCurrent, readback.observation);
+    }
+    return readback.match === undefined
+      ? zeroActionReceipt(assertCurrent) : zeroActionMatchReceipt(assertCurrent, readback.match);
+  };
+  let box: BrowserPointerAction | QualificationReceipt;
+  if (intent.postClickObservation !== undefined) {
+    const preparation = await observationPointerAction(
+      debuggerRuntime, target,
+      intent as ClickIntent & Readonly<{ postClickObservation: NonNullable<ClickIntent["postClickObservation"]> }>,
+    );
+    if ("failureCode" in preparation) return preparation;
+    if (preparation.kind === "postcondition") {
+      return zeroActionObservationReceipt(assertCurrent, {
+        verified: true, observation: preparation.observation, nativeCauseCode: null,
+      });
+    }
+    box = preparation.point;
+  } else {
+    const preconditionReceipt = await zeroActionIfSatisfied();
+    if (preconditionReceipt !== null) return preconditionReceipt;
+    box = await pointerAction(debuggerRuntime, target, intent);
+  }
   if ("failureCode" in box) return box;
   await dispatchPointerClickSequence(debuggerRuntime, target, box, [1], assertCurrent);
   assertCurrent();
@@ -226,6 +257,7 @@ const executeClickIntent = async (
     mutationCount: 1,
     postconditionVerified: postcondition.verified,
     ...(postcondition.match === undefined ? {} : matchReceiptEvidence(postcondition.match)),
+    ...(postcondition.observation === undefined ? {} : observationReceiptEvidence(postcondition.observation)),
     ...(postcondition.verified ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }),
   };
 };
@@ -329,110 +361,6 @@ const executeHoverIntent = async (
     postconditionVerified,
     ...(postconditionVerified ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }),
   };
-};
-
-const waitForMatch = async (
-  debuggerRuntime: ExtensionDebuggerRuntime,
-  target: ExtensionExactTarget,
-  match: Readonly<{
-    selector: string;
-    expectedMatches: number;
-    readEligibility?: "non-actionable-aria-state";
-    textContains?: string;
-    textEquals?: string;
-    timeoutMs?: number;
-  }>,
-  timeoutMs?: number,
-): Promise<MatchReadback> => {
-  const deadline = Date.now() + (timeoutMs ?? match.timeoutMs ?? 1);
-  do {
-    const candidates = await queryCandidateSet(
-      debuggerRuntime, target.tabId, match.selector, match.expectedMatches + 1, undefined,
-      match.textEquals !== undefined ? { value: match.textEquals, exact: true }
-        : match.textContains !== undefined ? { value: match.textContains, exact: false } : undefined,
-      match.readEligibility,
-    );
-    const verified = candidates.eligibleCount === match.expectedMatches;
-    const firstRejection = candidates.rejections[0]?.reasons[0];
-    const nativeCauseCode = verified ? null
-      : candidates.eligibleCount > match.expectedMatches ? "BROWSER_DOM_CANDIDATE_AMBIGUOUS" as const
-        : firstRejection ?? "BROWSER_DOM_CANDIDATE_MISSING";
-    const readback = Object.freeze({
-      verified, rawCount: candidates.rawCount, eligibleCount: candidates.eligibleCount,
-      rejections: candidates.rejections, nativeCauseCode,
-    });
-    if (verified || Date.now() >= deadline) return readback;
-    await waitForNextBoundedObservation(deadline);
-  } while (Date.now() <= deadline);
-  throw new Error("BROWSER_DOM_READ_INVALID");
-};
-
-const waitForUrl = async (
-  debuggerRuntime: ExtensionDebuggerRuntime,
-  target: ExtensionExactTarget,
-  postcondition: Readonly<{ equals?: string; notEquals?: string; timeoutMs?: number }>,
-  timeoutMs?: number,
-): Promise<boolean> => {
-  const deadline = Date.now() + (timeoutMs ?? postcondition.timeoutMs ?? 1);
-  do {
-    const document = await documentState(debuggerRuntime, target.tabId) as { url?: unknown };
-    if (postcondition.equals !== undefined && document.url === postcondition.equals) return true;
-    if (postcondition.notEquals !== undefined && document.url !== postcondition.notEquals) return true;
-    if (Date.now() >= deadline) return false;
-    await waitForNextBoundedObservation(deadline);
-  } while (Date.now() <= deadline);
-  return false;
-};
-
-const waitForClickAttribute = async (
-  debuggerRuntime: ExtensionDebuggerRuntime,
-  target: ExtensionExactTarget,
-  intent: ClickIntent,
-  expectedMatches: number,
-  postClickAttribute: NonNullable<ClickIntent["postClickAttribute"]>,
-  timeoutMs?: number,
-): Promise<boolean> => waitForInteractionAttribute(
-  debuggerRuntime, target, intent, expectedMatches, postClickAttribute, timeoutMs,
-);
-
-const verifyClickPostcondition = async (
-  runtime: ExtensionDebuggerRuntime,
-  target: ExtensionExactTarget,
-  intent: ClickIntent,
-  timeoutMs?: number,
-): Promise<Readonly<{ verified: boolean; match?: MatchReadback }>> => intent.postClickAttribute !== undefined
-  ? { verified: await waitForClickAttribute(runtime, target, intent, 1, intent.postClickAttribute, timeoutMs) }
-  : intent.postClickMatch !== undefined
-    ? waitForMatch(runtime, target, intent.postClickMatch, timeoutMs).then((match) => ({
-      verified: match.verified, match,
-    }))
-    : { verified: await waitForUrl(runtime, target, intent.postClickUrl!, timeoutMs) };
-
-const waitForInteractionAttribute = async (
-  debuggerRuntime: ExtensionDebuggerRuntime,
-  target: ExtensionExactTarget,
-  intent: ClickIntent | HoverIntent,
-  expectedMatches: number,
-  postAttribute: NonNullable<ClickIntent["postClickAttribute"]> | HoverIntent["postHoverAttribute"],
-  timeoutMs?: number,
-): Promise<boolean> => {
-  const deadline = Date.now() + (timeoutMs ?? postAttribute.timeoutMs ?? 1);
-  do {
-    const nodes = intent.expectedTextEquals !== undefined
-      ? await queryVisibleTextMatches(debuggerRuntime, target.tabId, intent.selector, intent.expectedTextEquals, true, expectedMatches + 1, intent.scope)
-      : intent.expectedText !== undefined
-        ? await queryVisibleTextMatches(debuggerRuntime, target.tabId, intent.selector, intent.expectedText, false, expectedMatches + 1, intent.scope)
-        : await queryAll(debuggerRuntime, target.tabId, intent.selector, expectedMatches + 1, intent.scope);
-    if (nodes.length === expectedMatches) {
-      const currentNodeId = nodes[0];
-      if (currentNodeId !== undefined
-        && attribute(await describeNode(debuggerRuntime, target.tabId, currentNodeId), postAttribute.name)
-          === postAttribute.equals) return true;
-    }
-    if (Date.now() >= deadline) return false;
-    await waitForNextBoundedObservation(deadline);
-  } while (Date.now() <= deadline);
-  return false;
 };
 
 const clearFocusedInput = async (

@@ -20,10 +20,9 @@ const profile = buildGptExecutionProfile({
 
 const modelFacts = (open: boolean) => ({
   popup: { rawCount: 1, eligibleCount: 1 },
-  entry: { rawCount: 2, eligibleCount: 1 },
-  "expanded-entry": { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
+  entry: { rawCount: 2, eligibleCount: open ? 0 : 1 },
   "openable-entry": { rawCount: open ? 0 : 1, eligibleCount: open ? 0 : 1 },
-  "simple-panel": { rawCount: open ? 0 : 1, eligibleCount: open ? 0 : 1 },
+  "simple-panel": { rawCount: 1, eligibleCount: open ? 0 : 1 },
   "advanced-panel": { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
 });
 
@@ -35,7 +34,8 @@ const doneFixture = fakeBrowser((intent) => {
 const done = await doneHarness.execute("open_gpt_model_selector_v2", doneFixture.browser, { profile });
 assert.equal(done.status, "success", done.failureCode ?? "DONE proof failed");
 assert.equal(done.proof.internalDecisionCode, "DONE");
-assert.deepEqual(done.proof.candidateCardinality, { raw: 2, eligible: 1 });
+assert.deepEqual(done.proof.candidateCardinality, { raw: 2, eligible: 0 },
+  "GPT semantic DONE must not require the retained entry DOM nodes to be physically absent");
 assert.equal(done.proof.observationRevisionHash, `sha256:${"4".repeat(64)}`);
 assert.equal(done.proof.committedMutation, "no");
 assert.equal(done.proof.browserFact, null);
@@ -46,7 +46,10 @@ const actFixture = fakeBrowser((intent) => {
   if (intent.kind === "observe") return coherentObservationPacket(intent, modelFacts(open));
   if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR) {
     open = true;
-    return { postconditionVerified: true };
+    const queries = intent.postClickObservation!.queries
+      .map(({ expectedEligibleCount: _expected, ...query }) => query);
+    return { postconditionVerified: true,
+      postconditionObservation: coherentObservationPacket({ queries }, modelFacts(open)) };
   }
   throw new Error(`UNEXPECTED_ACT_PROOF_INTENT:${intent.kind}`);
 });
@@ -66,15 +69,23 @@ const zeroActionFixture = fakeBrowser((intent) => {
   if (intent.kind === "observe") return coherentObservationPacket(intent, modelFacts(zeroActionOpened));
   if (intent.kind === "click") {
     zeroActionOpened = true;
-    return { mutationCount: 0, postconditionVerified: true, zeroActionSatisfied: true };
+    const queries = intent.postClickObservation!.queries
+      .map(({ expectedEligibleCount: _expected, ...query }) => query);
+    return { mutationCount: 0, postconditionVerified: true, zeroActionSatisfied: true,
+      postconditionObservation: coherentObservationPacket({ queries }, modelFacts(zeroActionOpened)) };
   }
   throw new Error(`UNEXPECTED_ZERO_ACTION_MODEL_INTENT:${intent.kind}`);
 });
 const zeroActionResult = await createGptAcceptanceHarness("gpt-proof-zero-action-scope")
   .execute("open_gpt_model_selector_v2", zeroActionFixture.browser, { profile });
-assert.equal(zeroActionResult.status, "failed");
-assert.equal(zeroActionResult.failureCode, "GPT_BROWSER_TERMINAL_FACT_REQUIRED",
-  "CONFIRMED/no is legal only for prepare_clean_gpt_chat, never for another mutation Child");
+assert.equal(zeroActionResult.status, "success", zeroActionResult.failureCode ?? "zero-action proof failed");
+assert.equal(zeroActionResult.value?.state, "model-selector-open");
+assert.equal(zeroActionResult.proof.internalDecisionCode, "DONE");
+assert.equal(zeroActionResult.proof.committedMutation, "no");
+assert.equal(zeroActionResult.proof.browserFact?.browserOutcome, "CONFIRMED");
+assert.equal(zeroActionResult.proof.browserFact?.mutationOutcome, "no",
+  "the exact model-selector open Child may settle without a click when its direct postcondition already holds");
+assert.equal(zeroActionFixture.physicalMutations(), 0);
 
 const stableHarnessOne = createGptAcceptanceHarness("gpt-proof-stable");
 const stableHarnessTwo = createGptAcceptanceHarness("gpt-proof-stable");

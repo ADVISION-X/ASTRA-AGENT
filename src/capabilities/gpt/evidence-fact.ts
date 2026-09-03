@@ -27,7 +27,7 @@ const stringArray = (value: unknown): readonly string[] | null =>
     ? Object.freeze([...value]) as readonly string[] : null;
 
 const machineCode = (value: unknown): value is string =>
-  typeof value === "string" && /^[A-Z][A-Z0-9_.:-]{0,255}$/u.test(value);
+  typeof value === "string" && /^[A-Z][A-Za-z0-9_.:=-]{0,255}$/u.test(value);
 
 const hashValue = (value: unknown): value is GptHash =>
   typeof value === "string" && /^sha256:[a-f0-9]{64}$/u.test(value);

@@ -130,7 +130,10 @@ const inspectProfileContracts = (
     "GPT_MODEL_SELECTION_V2_ENTRY_SELECTOR", "GPT_PROFILE_POPUP_SELECTOR",
     "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR", "[data-active='true']:not([inert])",
     "GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR", "GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR",
-    "GPT_PROFILE_SIMPLE_PANEL_SELECTOR", "[aria-expanded='false'][aria-hidden='false']",
+    "GPT_MODEL_SELECTION_V2_ENTRY_INNER_SELECTOR", "GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_INNER_SELECTOR",
+    "GPT_PROFILE_SIMPLE_PANEL_SELECTOR",
+    "[aria-expanded='false'][aria-hidden='false']",
+    ":has(${GPT_PROFILE_SIMPLE_PANEL_SELECTOR})", ":not(:has(${GPT_MODEL_SELECTION_V2_PANEL_SELECTOR}))",
   ]) if (!modelContract.includes(required)) findings.push(finding(
     "gpt/model-selection-v2-visible-contract", MODEL_CONTRACT_PATH,
     `Model selection V2 contract is missing ${required}.`,
@@ -138,15 +141,19 @@ const inspectProfileContracts = (
   const modelHandler = sourceFor(context, MODEL_HANDLER_PATH)?.getFullText() ?? "";
   for (const required of [
     "open_gpt_model_selector_v2", "select_exact_gpt_model_v2", "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR",
-    "GPT_PROFILE_SIMPLE_PANEL_SELECTOR", "GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR",
-    "GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR", "isAlreadyOpen", "isOpenable",
+    "GPT_PROFILE_SIMPLE_PANEL_SELECTOR", "GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR",
+    "isAlreadyOpen", "isOpenable", "value.entry === 0", "value.simplePanel === 0",
+    "value.advancedPanel === 1", "postClickObservation: MODEL_SELECTOR_OPEN_POSTCONDITION",
+    "expectedEligibleCount", "decodeCoherentObservationPacket", "scope: { selector: GPT_PROFILE_POPUP_SELECTOR }",
   ]) if (!modelHandler.includes(required)) findings.push(finding(
     "gpt/model-selection-v2-handler", MODEL_HANDLER_PATH, `Model selection V2 handler is missing ${required}.`,
   ));
-  if (/kind:\s*"click",\s*selector:\s*GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR/u.test(modelHandler)) findings.push(finding(
-    "gpt/model-selection-v2-expanded-click-retired", MODEL_HANDLER_PATH,
-    "The expanded model entry closes the popup and must never be used as the restore action.",
-  ));
+  for (const retired of ["GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR", "expandedEntry"]) {
+    if (modelContract.includes(retired) || modelHandler.includes(retired)) findings.push(finding(
+      "gpt/model-selection-v2-expanded-state-retired", MODEL_HANDLER_PATH,
+      `The obsolete expanded-entry topology remains reachable through ${retired}.`,
+    ));
+  }
   const reasoningContract = sourceFor(context, PROFILE_CONTRACT_PATH)?.getFullText() ?? "";
   for (const required of [
     "[role='menuitem'][aria-label='能力']", "[data-model-reasoning-effort-slider] [role='slider']",

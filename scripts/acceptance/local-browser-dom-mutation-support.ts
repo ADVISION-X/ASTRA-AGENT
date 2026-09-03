@@ -253,6 +253,106 @@ const exerciseNativePointerSequences = async (): Promise<void> => {
   [move, press(1), release(1), press(2), release(2)]);
 };
 
+const exerciseCoherentClickPostcondition = async (): Promise<void> => {
+  const queries = [
+    { queryId: "entry", selector: "[role='menuitem']", maxMatches: 2, fields: [],
+      expectedEligibleCount: 0 },
+    { queryId: "advanced", selector: "[data-active='true']", maxMatches: 2, fields: [],
+      expectedEligibleCount: 1 },
+  ] as const;
+  const runtimeFor = (settles: boolean, externallyOpensAtObservation?: number) => {
+    let clicked = false;
+    let coherentCalls = 0;
+    let pointerEvents = 0;
+    let atomicSource = "";
+    const observation = (open: boolean) => ({
+      currentUrl: "https://chatgpt.com/", observedAt: "2026-09-04T00:00:00.000Z",
+      queries: [
+        { queryId: "entry", scopeRawCount: 1, scopeEligibleCount: 1, rawCount: 1,
+          eligibleCount: open ? 0 : 1, matches: open ? [] : [{ candidateIndex: 0 }],
+          scopeRejections: [], rejections: open ? [{ index: 0, reasons: ["ARIA_HIDDEN"] }] : [],
+          nativeCauseCode: null, nativeCauseCount: 0, nativeStage: "runtime-call-function-on" },
+        { queryId: "advanced", scopeRawCount: 1, scopeEligibleCount: 1, rawCount: open ? 1 : 0,
+          eligibleCount: open ? 1 : 0, matches: open ? [{ candidateIndex: 0 }] : [],
+          scopeRejections: [], rejections: [], nativeCauseCode: null, nativeCauseCount: 0,
+          nativeStage: "runtime-call-function-on" },
+      ],
+    });
+    const runtime = { async send(
+      _tabId: number,
+      method: string,
+      parameters?: Readonly<Record<string, unknown>>,
+    ) {
+      const functionDeclaration = String(parameters?.functionDeclaration ?? "");
+      if (method === "Runtime.callFunctionOn"
+        && functionDeclaration.startsWith("function (request)")) {
+        atomicSource = functionDeclaration;
+        coherentCalls += 1;
+        const open = clicked || (externallyOpensAtObservation !== undefined
+          && coherentCalls >= externallyOpensAtObservation);
+        return { result: { value: open
+          ? { kind: "postcondition", observation: observation(true) }
+          : { kind: "pointer", point: { x: 5, y: 5 } } } };
+      }
+      if (method === "Runtime.callFunctionOn"
+        && functionDeclaration.startsWith("async function (specs)")) {
+        coherentCalls += 1;
+        const open = (clicked && settles)
+          || (externallyOpensAtObservation !== undefined && coherentCalls >= externallyOpensAtObservation);
+        return { result: { value: observation(open) } };
+      }
+      const infrastructure = mutationInfrastructureReply(method, parameters);
+      if (infrastructure !== undefined) return infrastructure;
+      if (method === "Input.dispatchMouseEvent") {
+        pointerEvents += 1;
+        if (parameters?.type === "mouseReleased") clicked = true;
+        return {};
+      }
+      throw new Error(`UNEXPECTED_COHERENT_CLICK_METHOD:${method}`);
+    } } as ExtensionDebuggerRuntime;
+    return { runtime, coherentCalls: () => coherentCalls, pointerEvents: () => pointerEvents,
+      atomicSource: () => atomicSource };
+  };
+  const target = {
+    tabId: 125, targetRef: "target-125", documentRef: "document-125", navigationEpoch: 1,
+  } as never;
+  const settled = runtimeFor(true);
+  const success = await executeRegisteredDomIntent(settled.runtime, target, {
+    kind: "click", selector: "button", expectedMatches: 1,
+    postClickObservation: { queries, timeoutMs: 10 },
+  }, () => undefined) as Readonly<Record<string, unknown>>;
+  assert.equal(success.postconditionVerified, true);
+  assert.equal((success.postconditionObservation as Readonly<Record<string, unknown>>)
+    .schemaVersion, "grasseye.browser.dom-observation.v2");
+  assert.equal(((success.postconditionObservation as Readonly<Record<string, unknown>>)
+    .queries as readonly Readonly<Record<string, unknown>>[])[0]?.rawCount, 1,
+  "a retained but mechanically ineligible DOM node must satisfy expected eligible cardinality zero");
+
+  const raced = runtimeFor(true, 1);
+  const zeroAction = await executeRegisteredDomIntent(raced.runtime, target, {
+    kind: "click", selector: "button", expectedMatches: 1,
+    postClickObservation: { queries, timeoutMs: 10 },
+  }, () => undefined) as Readonly<Record<string, unknown>>;
+  assert.equal(zeroAction.mutationCount, 0);
+  assert.equal(zeroAction.zeroActionSatisfied, true);
+  assert.equal(zeroAction.postconditionVerified, true);
+  assert.equal(raced.pointerEvents(), 0,
+    "a postcondition already true in the atomic preparation snapshot must not be clicked");
+  assert.match(raced.atomicSource(), /if \(postconditionSatisfied\) return \{ kind: "postcondition", observation \};[\s\S]*const scopeRaw = request\.candidate\.scope/u,
+    "one Runtime.callFunctionOn snapshot must choose postcondition or a freshly qualified pointer before returning");
+
+  const stuck = runtimeFor(false);
+  const rejected = await executeRegisteredDomIntent(stuck.runtime, target, {
+    kind: "click", selector: "button", expectedMatches: 1,
+    postClickObservation: { queries, timeoutMs: 10 },
+  }, () => undefined) as Readonly<Record<string, unknown>>;
+  assert.equal(rejected.postconditionVerified, false);
+  assert.equal(rejected.failureCode, "BROWSER_POSTCONDITION_FAILED");
+  assert.equal(rejected.nativeCauseCode, "BROWSER_DOM_CANDIDATE_AMBIGUOUS");
+  assert.ok(stuck.coherentCalls() >= 3,
+    "an ordinary deadline miss must return the final coherent negative readback instead of DOM_READ_INVALID");
+};
+
 const guardRuntime = (events: string[], guardState: { current: boolean }): ExtensionDebuggerRuntime => ({
   async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
     if (method.startsWith("Input.") || method === "DOM.focus") {
@@ -313,5 +413,6 @@ export const exerciseDomMutations = async (): Promise<void> => {
   await exerciseFillReadbackRejection();
   await exerciseScopedExactCandidate();
   await exerciseNativePointerSequences();
+  await exerciseCoherentClickPostcondition();
   await exerciseMutationDocumentGuard();
 };

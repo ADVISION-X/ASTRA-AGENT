@@ -169,13 +169,18 @@ const failedBrowserFact = <K extends GptChildCapabilityId>(
     actionOrdinal: intent.actionOrdinal,
     replayPolicy: contract.replayPolicy,
   });
-  if (!recovery || (recovery.state !== "rejected" && recovery.state !== "dispatched")) return null;
-  if ((recovery.state === "dispatched") !== (recovery.mutationOutcome === "dispatched")) return null;
+  if (!recovery) return null;
+  const legalPair = recovery.state === "dispatched"
+    ? recovery.mutationOutcome === "dispatched"
+    : recovery.mutationOutcome === "no" || recovery.mutationOutcome === "confirmed";
+  if (!legalPair) return null;
+  const browserOutcome = recovery.state === "confirmed" ? "CONFIRMED" as const
+    : recovery.state === "rejected" ? "REJECTED" as const : "DISPATCHED" as const;
   return Object.freeze({
     exactCallIdentityHash: gptExactCallIdentityHash(intent),
     childCapabilityId: intent.childCapabilityId,
     effectScope: contract.replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local",
-    browserOutcome: recovery.state === "dispatched" ? "DISPATCHED" : "REJECTED",
+    browserOutcome,
     mutationOutcome: recovery.mutationOutcome,
     terminalAt: recovery.terminalAt,
     evidenceRef: recovery.authorityRef,

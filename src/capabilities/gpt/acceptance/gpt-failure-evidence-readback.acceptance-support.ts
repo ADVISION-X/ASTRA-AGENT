@@ -1,7 +1,12 @@
 import { createHash } from "node:crypto";
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 
-import type { GptChildCapabilityIntent, GptChildCapabilityResult } from "../contract.js";
+import type {
+  GptChildCapabilityId,
+  GptChildCapabilityIntent,
+  GptChildCapabilityResult,
+  GptChildInputMap,
+} from "../contract.js";
 import { isPendingExactEvidence, readExactGptEvidenceFact } from "../evidence-fact.js";
 import { typedGptExecutionFailure } from "../execution-fault.js";
 import { persistGptChildEvidence } from "../evidence-writer.js";
@@ -40,26 +45,28 @@ const evidenceHarness = () => {
   return Object.freeze({ evidenceStore, stored: () => stored });
 };
 
-const intentFor = (
-  result: GptChildCapabilityResult<"prepare_clean_gpt_chat">,
-): GptChildCapabilityIntent<"prepare_clean_gpt_chat"> => {
+const intentFor = <K extends GptChildCapabilityId>(
+  result: GptChildCapabilityResult<K>,
+  input: GptChildInputMap[K],
+): GptChildCapabilityIntent<K> => {
   const proof = result.proof;
   return Object.freeze({
-    childCapabilityId: "prepare_clean_gpt_chat", executionId: proof.executionId,
+    childCapabilityId: proof.childCapabilityId as K, executionId: proof.executionId,
     jobId: proof.jobId, attemptId: proof.attemptId, pluginId: proof.pluginId,
     pluginVersion: proof.pluginVersion, productStepId: proof.productStepId,
     callId: proof.callId, inputHash: proof.inputHash, actionOrdinal: proof.actionOrdinal,
-    input: Object.freeze({ timeoutMs: 1_000 }),
-  }) as GptChildCapabilityIntent<"prepare_clean_gpt_chat">;
+    input,
+  }) as GptChildCapabilityIntent<K>;
 };
 
-export const exerciseFailedEvidenceReadback = async (
-  result: GptChildCapabilityResult<"prepare_clean_gpt_chat">,
+export const exerciseFailedEvidenceReadback = async <K extends GptChildCapabilityId>(
+  result: GptChildCapabilityResult<K>,
+  input: GptChildInputMap[K],
   expectedFailure: ReturnType<typeof serializeTerminalFailure>,
 ): Promise<void> => {
   const { evidenceStore } = evidenceHarness();
   const proof = result.proof;
-  const intent = intentFor(result);
+  const intent = intentFor(result, input);
   await persistGptChildEvidence({
     result, intent, evidenceStore, jobId: proof.jobId, attemptId: proof.attemptId,
     stepId: proof.productStepId, exactCallIdentityHash: proof.exactCallIdentityHash,
@@ -116,7 +123,9 @@ export const exerciseBrowserRejectedEvidenceReadback = async (): Promise<void> =
     evidence_hash: `sha256:${"9".repeat(64)}`,
     cause: { name: "Error", code: "BROWSER_FILL_RETAINED_VALUE_MISMATCH" },
   });
-  const intent = intentFor(result);
+  const intent = intentFor<"prepare_clean_gpt_chat">(
+    result, Object.freeze({ timeoutMs: 1_000 }),
+  );
   const recovered = await executeProductionGptAtomicCall({
     dataDir: "/tmp/gpt-rejected-wal-readback",
     gpt: Object.freeze({
@@ -138,7 +147,7 @@ export const exerciseBrowserRejectedEvidenceReadback = async (): Promise<void> =
   catch (error) { recoveredFailure = error; }
   assert.deepEqual(serializeTerminalFailure(recoveredFailure), serialized,
     "a rejected Browser WAL readback must preserve the exact outer and native failure tuple");
-  await exerciseFailedEvidenceReadback(result, serialized!);
+  await exerciseFailedEvidenceReadback(result, Object.freeze({ timeoutMs: 1_000 }), serialized!);
 };
 
 export const exerciseBrowserDispatchedEvidenceReadback = async (): Promise<void> => {
@@ -159,7 +168,9 @@ export const exerciseBrowserDispatchedEvidenceReadback = async (): Promise<void>
   assert.equal(result.proof.browserFact?.browserOutcome, "DISPATCHED");
   assert.equal(result.proof.browserFact?.mutationOutcome, "dispatched");
   assert.equal(result.proof.browserFact?.evidenceRef, "browser-mutation:acceptance-call");
-  const intent = intentFor(result);
+  const intent = intentFor<"prepare_clean_gpt_chat">(
+    result, Object.freeze({ timeoutMs: 1_000 }),
+  );
   const persistence = evidenceHarness();
   await persistGptChildEvidence({
     result, intent, evidenceStore: persistence.evidenceStore,

@@ -116,11 +116,11 @@ const decodeObservationRow = (
  * Reads one Browser-owned coherent packet. The returned rows all describe the
  * same exact call, Target, Document and observation revision.
  */
-export const readCoherentObservation = async (
-  browser: Pick<BrowserTargetLease, "executeDomIntent">,
+export const decodeCoherentObservationPacket = (
+  value: unknown,
   queries: readonly BrowserDomObservationQuery[],
-): Promise<GptCoherentObservation> => {
-  const packet = record(await browser.executeDomIntent({ kind: "observe", queries }));
+): GptCoherentObservation => {
+  const packet = record(value);
   if (packet.schemaVersion !== "grasseye.browser.dom-observation.v2"
     || typeof packet.exactCallIdentityHash !== "string"
     || typeof packet.targetRefHash !== "string"
@@ -147,6 +147,13 @@ export const readCoherentObservation = async (
     rows,
   });
 };
+
+export const readCoherentObservation = async (
+  browser: Pick<BrowserTargetLease, "executeDomIntent">,
+  queries: readonly BrowserDomObservationQuery[],
+): Promise<GptCoherentObservation> => decodeCoherentObservationPacket(
+  await browser.executeDomIntent({ kind: "observe", queries }), queries,
+);
 
 export const projectCoherentObservation = (
   observation: GptCoherentObservation,

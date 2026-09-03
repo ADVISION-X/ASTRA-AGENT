@@ -16,6 +16,8 @@ export const targetAuthorityPath = "src/lib/browser/chrome-extension/extension-t
 export const brokerPath = "src/lib/browser/infrastructure/browser-authority-broker.ts";
 export const domMechanicalFactsPath = "src/lib/browser/chrome-extension/dom-mechanical-facts.ts";
 export const domCoherentObservationPath = "src/lib/browser/chrome-extension/dom-coherent-observation.ts";
+export const domMutationPostconditionPath = "src/lib/browser/chrome-extension/dom-mutation-postcondition.ts";
+export const browserCommandPostconditionPath = "src/lib/browser/exact-target/browser-command-postcondition.ts";
 export const extensionFileInputPath = "src/lib/browser/chrome-extension/extension-file-input-runtime.ts";
 export const browserMutationSchemaPath = "src/lib/browser/exact-target/browser-mutation-schema.ts";
 
@@ -50,6 +52,8 @@ export const sourcePaths = [
   "src/lib/browser/exact-target/browser-outcome-resolver.ts",
   extensionFileInputPath,
   "scripts/acceptance/local-browser-dom-intent-support.ts",
+  domMutationPostconditionPath,
+  browserCommandPostconditionPath,
 ] as const;
 
 export const retiredPaths = [
