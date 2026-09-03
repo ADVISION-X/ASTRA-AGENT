@@ -481,7 +481,7 @@ assert.match(runtimeSource, /RUNTIME_RECOVERY_REQUIRED:/u);
 
 for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V1",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V2",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:credential:${evidenceMode}`,
@@ -490,7 +490,7 @@ for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
 }
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V1",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V2",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:storage-inventory:${evidenceMode}`,

@@ -20,6 +20,8 @@
     "docs/项目方案/生产级子能力稳定性建设规则.md",
     "scripts/acceptance/browser-extension-build.acceptance.ts",
     "scripts/acceptance/browser-extension-release-identity.acceptance.ts",
+    "scripts/acceptance/browser-lane-fifo-support.ts",
+    "scripts/acceptance/browser-lane-fifo.acceptance.ts",
     "scripts/acceptance/local-browser-artifact-and-lock.acceptance-support.ts",
     "scripts/acceptance/local-browser-authenticated-media-support.ts",
     "scripts/acceptance/local-browser-auto-pairing.acceptance.ts",
@@ -31,15 +33,15 @@
     "scripts/acceptance/local-browser-mutation-receipt-support.ts",
     "scripts/acceptance/local-browser-proof-support.ts",
     "scripts/acceptance/local-browser-property-model.acceptance.ts",
+    "scripts/acceptance/local-browser-provider-effect-recovery.acceptance.ts",
     "scripts/acceptance/local-browser-rule-mutants.acceptance.ts",
     "scripts/acceptance/local-browser-terminal-contract.acceptance.ts",
+    "scripts/acceptance/local-browser.real-proof.ts",
     "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
     "scripts/audit/domains/local-browser-session/**",
     "src/lib/browser/**"
   ],
   "observedPaths": [
-    "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md",
-    "scripts/acceptance/agent-production-runtime.real-proof.ts",
-    "scripts/acceptance/browser-lane-fifo.acceptance.ts"
+    "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md"
   ]
 }

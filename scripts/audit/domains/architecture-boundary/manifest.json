@@ -3,13 +3,24 @@
   "capabilityDomain": "architecture-boundary",
   "status": "active",
   "lawIds": [
-    "LAW-ARCHITECTURE-BOUNDARY-001-V3"
+    "LAW-ARCHITECTURE-BOUNDARY-001-V4"
   ],
   "ownedPaths": [
-    "scripts/acceptance/constitutional-boundary-anti-escape.acceptance.ts",
-    "scripts/audit/domains/architecture-boundary/**"
+    "docs/项目方案/八字栏目技能方案.md",
+    "docs/项目方案/合婚栏目技能方案.md",
+    "docs/项目方案/智慧调度方案.md",
+    "docs/项目方案/本地化技能实现方案-实施工单.md",
+    "docs/项目方案/本地化技能实现方案.md",
+    "scripts/acceptance/architecture-boundary-anti-escape.acceptance.ts",
+    "scripts/acceptance/architecture-boundary.acceptance.ts",
+    "scripts/acceptance/product-plugin-test-runtime.ts",
+    "scripts/acceptance/product-plugins/**",
+    "scripts/audit/domains/architecture-boundary/**",
+    "src/mediator/agent-production-route.ts",
+    "src/plugins/**"
   ],
   "observedPaths": [
+    "package.json",
     "scripts/**",
     "src/**"
   ]

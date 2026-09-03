@@ -147,14 +147,14 @@ assert.equal(GPT_PROFILE_SIMPLE_PANEL_SELECTOR,
   "[data-testid='composer-model-picker-slider-simple-view'][data-active='true']:not([inert])");
 
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V19",
+  lawId: "LAW-GPT-001-V20",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:3", "forbidden:4", "forbidden:5", "forbidden:9", "summary"],
   locator: "acceptance:gpt-exact-target:coherent-ready-subset",
   observedValue: "coherent profile and model Children prove same-revision DONE or one confirmed mutation; missing reasoning handoff fails closed before Browser use",
 });
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V19",
+  lawId: "LAW-GPT-001-V20",
   evidenceMode: "exam.property",
   clauses: ["forbidden:10", "forbidden:13", "forbidden:15", "forbidden:16", "summary"],
   locator: "acceptance:gpt-exact-target:browser-handoff-gate",

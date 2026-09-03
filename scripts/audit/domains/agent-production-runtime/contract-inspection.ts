@@ -7,11 +7,11 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 
 const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V32", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V1",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V1", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V1",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V1", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V1",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V1",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V2",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V33", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V2",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V2", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V2",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V2", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V2",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V2",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V3",
 } as const;
 const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";

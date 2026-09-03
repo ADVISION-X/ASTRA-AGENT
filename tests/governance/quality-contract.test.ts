@@ -20,8 +20,6 @@ import {
   validateRepositoryEntryAt,
   walkAt,
 } from "../../scripts/audit/governance-runtime.js";
-import { assertProductionProofRouteCoverage, observeProductionProofCleanup } from "../../scripts/acceptance/agent-production-runtime.real-proof-support.js";
-import { agentPluginCapabilityManifest } from "../../src/lib/local-runtime/production/catalog.js";
 import {
   buildQualityReport,
   deferredModes,
@@ -298,7 +296,7 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
   const base = {
     schema_version: "governance-dynamic-observation.v2", proof_run_id: "a".repeat(64),
     candidate: "b".repeat(40), captured_at: "2026-08-27T00:00:00.000Z",
-    observed_value: "native-fixture", producer_script: "acceptance:agent-production-runtime:real-proof",
+    observed_value: "native-fixture",
   };
   const observations = {
     browser: { browserVersion: "Chromium 1", endpoint: "https://example.test/", pageTitle: "Fixture",
@@ -325,19 +323,23 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
   } as const;
   const routes = {
     browser: { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", clauses: ["forbidden:6"] },
-    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V32", clauses: ["summary"] },
-    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V32", clauses: ["forbidden:0", "forbidden:2"] },
-    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V32", clauses: ["forbidden:2"] },
-    provider: { lawId: "LAW-GPT-001-V19", clauses: ["forbidden:1"] },
-    authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V1", clauses: ["forbidden:1", "forbidden:2"] },
-    recovery: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V32", clauses: ["forbidden:1", "forbidden:3"] },
+    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V33", clauses: ["summary"] },
+    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V33", clauses: ["forbidden:0", "forbidden:2"] },
+    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V33", clauses: ["forbidden:2"] },
+    provider: { lawId: "LAW-GPT-001-V20", clauses: ["forbidden:1"] },
+    authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V2", clauses: ["forbidden:1", "forbidden:2"] },
+    recovery: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V33", clauses: ["forbidden:1", "forbidden:3"] },
   } as const;
   for (const [kind, observation] of Object.entries(observations)) {
     const evidenceMode = `dynamic.${kind}`;
     const route = routes[kind as keyof typeof routes];
-    const payload = { ...base, ...route, evidenceMode, observation_kind: kind, observation };
+    const producerScript = kind === "browser" ? "acceptance:local-browser:real-proof"
+      : kind === "provider" ? "acceptance:gpt:real-proof"
+        : "acceptance:agent-production-runtime:real-proof";
+    const payload = { ...base, ...route, evidenceMode, observation_kind: kind, observation,
+      producer_script: producerScript };
     const binding = { ...route, evidenceMode, observedValue: base.observed_value,
-      proofRunId: base.proof_run_id, candidate: base.candidate, producerScript: base.producer_script };
+      proofRunId: base.proof_run_id, candidate: base.candidate, producerScript };
     assert.equal(validateDynamicReceiptPayload(payload, binding), true, kind);
     assert.equal(validateDynamicReceiptPayload({ ...payload, observation: {} }, binding), false, `${kind}:empty`);
     const originalFacts = observation.facts as Readonly<Record<string, string | number | boolean>>;
@@ -393,7 +395,7 @@ test("Exam receipts bind executed semantic assertion callsites and reject fixed 
   const sourceLineIndex = sourceLines.findIndex((line) => /\bassert(?:\.[A-Za-z]+)?\s*\(/u.test(line));
   assert.notEqual(sourceLineIndex, -1);
   const binding = {
-    lawId: "LAW-SYSTEM-SECURITY-001-V5", evidenceMode: "exam.golden",
+    lawId: "LAW-SYSTEM-SECURITY-001-V6", evidenceMode: "exam.golden",
     clauses: ["forbidden:0", "summary"], observedValue: "semantic-mutants-rejected",
     caseLocator: "acceptance:system-security:attack-mutants", proofRunId: "a".repeat(64),
     candidate: "b".repeat(40), producerScript: "acceptance:system-security",
@@ -918,7 +920,12 @@ test("the active evidence-ownership blueprint rejects central clauses and mode s
   const agent = readFileSync("scripts/audit/domains/agent-production-runtime/session-output.ts", "utf8");
   const gpt = readFileSync("scripts/audit/domains/gpt/inspector.ts", "utf8");
   const capability = readFileSync("scripts/audit/domains/capability-governance/inspector.ts", "utf8");
-  const directProof = readFileSync("scripts/acceptance/agent-production-runtime.real-proof.ts", "utf8");
+  const directProofs = [
+    "scripts/acceptance/agent-production-runtime.real-proof.ts",
+    "scripts/acceptance/gpt.real-proof.ts",
+    "scripts/acceptance/local-browser.real-proof.ts",
+    "scripts/acceptance/runtime-log-spine.real-proof.ts",
+  ].map((path) => readFileSync(path, "utf8"));
   const uniqueModeChecks = (source: string, expectedCount: number): boolean => {
     const body = /const MODE_CHECKS = \{([\s\S]*?)\} as const;/u.exec(source)?.[1] ?? "";
     const checks = [...body.matchAll(/"static\.[a-z]+": \["([A-Za-z]+)"\]/gu)].map((match) => match[1]!);
@@ -932,9 +939,11 @@ test("the active evidence-ownership blueprint rejects central clauses and mode s
   assert.equal(capability.replace('mode === "static.types" ? ["inspectCapabilityFacadeTypes"]',
     'mode === "static.types" ? ["pushMissingFacadeExportConsumers"]')
     .includes('mode === "static.types" ? ["inspectCapabilityFacadeTypes"]'), false);
-  assert.equal(directProof.includes("observation_kind: evidenceMode.slice"), true);
-  assert.equal(directProof.includes("observation: observationForMode(evidenceMode as DynamicMode)"), true);
-  assert.equal(directProof.includes("lawId, evidenceMode, observation })"), false);
+  for (const directProof of directProofs) {
+    assert.equal(directProof.includes("GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_BEGIN"), true);
+    assert.equal(directProof.includes("OWNER_ISOLATED_RELEASE_PROOF_NOT_ADMITTED"), true);
+    assert.equal(directProof.includes("writeFileSync"), false);
+  }
   assert.equal(proofContract.includes("validateDynamicReceiptPayload"), true);
   assert.equal(proofContract.includes("dynamicReceiptFileValid"), true);
 });
@@ -1005,8 +1014,8 @@ test("provider contracts reject malformed payloads before identity matching", ()
   )) as unknown;
   assert.doesNotThrow(() => validateProviderContractSpec(current, "ADVISION-X/AGENT",
     new Map([
-      ["LAW-AGENT-PRODUCTION-RUNTIME-001-V32", "agent-production-runtime"],
-      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V1", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-001-V33", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V2", "agent-production-runtime"],
     ]),
     (path) => path === "src/lib/local-runtime/production/catalog.ts"));
 });
@@ -1065,22 +1074,6 @@ test("repository path bytes and governance-source walks fail closed", () => {
     () => walkAt(root, "docs/specs"),
     (error: unknown) => error instanceof GovernanceError && error.code === "TARGET_OUTSIDE_DOMAIN_AUTHORITY",
   );
-});
-
-test("production Dynamic Proof cleanup attempts every resource and fails closed", async () => {
-  assert.deepEqual(await observeProductionProofCleanup(async () => true, async () => true), {
-    browserContextClosed: true, cleanupVerified: true, workbenchStopped: true,
-  });
-  const calls: string[] = [];
-  await assert.rejects(
-    observeProductionProofCleanup(
-      async () => { calls.push("workbench"); throw new Error("injected workbench cleanup failure"); },
-      async () => { calls.push("browser"); return true; },
-    ),
-    (error: unknown) => error instanceof AggregateError
-      && error.message === "AGENT_PRODUCTION_DYNAMIC_PROOF_CLEANUP_FAILED",
-  );
-  assert.deepEqual(calls, ["workbench", "browser"]);
 });
 
 test("an untracked high-impact addition is included in CHANGE authorization input", () => {
@@ -1263,7 +1256,7 @@ test("every active law scope is deterministic, owned, unique, and includes all c
 
 test("active mutation inspectors use one DISPATCHED chain inside each law scope", () => {
   const registry = buildRegistry();
-  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V32");
+  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V33");
   assert.ok(agentLaw);
   const agentTargets = computeTargetPaths(agentLaw, registry);
   const crossOwnerPaths = [
@@ -1363,7 +1356,7 @@ test("a law-authorized summary-only Dynamic claim validates against its exact pr
   const binding = {
     lawId: "LAW-RUNTIME-LOG-SPINE-001-V6", evidenceMode: "dynamic.browser", clauses: ["summary"],
     observedValue: "native-runtime-log", proofRunId: "a".repeat(64), candidate: "b".repeat(40),
-    producerScript: "acceptance:agent-production-runtime:real-proof",
+    producerScript: "acceptance:runtime-log-spine:real-proof",
   };
   const payload = {
     schema_version: "governance-dynamic-observation.v2", proof_run_id: binding.proofRunId,
@@ -1376,10 +1369,8 @@ test("a law-authorized summary-only Dynamic claim validates against its exact pr
   assert.equal(validateDynamicReceiptPayload(payload, binding), true);
 });
 
-test("production Dynamic Proof directly observes real Chrome, runtime stores, provider and recovery", () => {
+test("Dynamic Proof routes are separated by native Owner", () => {
   const proof = readFileSync("scripts/acceptance/agent-production-runtime.real-proof.ts", "utf8");
-  const proofSupport = readFileSync("scripts/acceptance/agent-production-runtime.real-proof-support.ts", "utf8");
-  const proofImplementation = `${proof}\n${proofSupport}`;
   assert.equal(proof.includes("proofDurationMs"), false);
   assert.equal(proof.includes('evidenceMode: "dynamic.performance"'), false);
   for (const forbidden of [
@@ -1387,47 +1378,24 @@ test("production Dynamic Proof directly observes real Chrome, runtime stores, pr
     "same_job_id", "zero_replayed_mutations", "checkpoint_before_hash", "candidate_hash",
     ".catch(() => undefined)", "cleanupVerified: true",
   ]) assert.equal(proof.includes(forbidden), false, forbidden);
-  for (const token of [
-    "chromium.launchPersistentContext", "readProductionTaskStatus", "production-runtime.sqlite",
-    "browser-mutations.sqlite", "GOVERNANCE_PROOF_RECEIPT_DIR", "GRASSEYE_PRODUCTION_PROOF_JOB_IDS",
-    "agentPluginCapabilityManifest", "observeProductionProofRuntimeLogs", "Object.keys(dynamicClaimContract.routes).sort()",
-    "assertProductionProofRouteCoverage", "jobIds.length, 39", "task_json", "routes=39",
-    "executed_route_count", "route_denominator_complete", "failed_observed",
-    "target=claimed", "target=absent", 'event.typedIdentity.kind === "browser-command"',
-    "missing real GPT child", "sent provider terminal receipt",
-  ]) assert.ok(proofImplementation.includes(token), token);
-  for (const token of ["runtimeLogEventShapeValid", "runtimeEventIntegrityValid", 'event.operation === "browser.command"',
-    'event.typedIdentity.kind === "browser-command"', 'event.code.startsWith("BROWSER_MUTATION_")',
-    '"stateKey" in record']) assert.ok(proofSupport.includes(token), token);
-  assert.equal(existsSync("scripts/acceptance/local-browser.real-chrome.ts"), false);
-  assert.equal(existsSync("scripts/acceptance/local-browser-real-chrome-auto-pairing.acceptance.ts"), false);
+  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V33", "same_attempt_after_restart",
+    "runtime_schema_exact", "runtime_orphan_directory_count",
+    "AGENT_RUNTIME_OWNER_ISOLATED_RELEASE_PROOF_NOT_ADMITTED"]) assert.ok(proof.includes(token), token);
+  for (const adjacentPrefix of ["LAW-GPT-", "LAW-LOCAL-BROWSER-SESSION-", "LAW-RUNTIME-LOG-SPINE-"]) {
+    assert.equal(proof.includes(adjacentPrefix), false, adjacentPrefix);
+  }
+  for (const [file, sentinel] of [
+    ["scripts/acceptance/gpt.real-proof.ts", "GPT_OWNER_ISOLATED_RELEASE_PROOF_NOT_ADMITTED"],
+    ["scripts/acceptance/local-browser.real-proof.ts", "LOCAL_BROWSER_OWNER_ISOLATED_RELEASE_PROOF_NOT_ADMITTED"],
+    ["scripts/acceptance/runtime-log-spine.real-proof.ts", "RUNTIME_LOG_OWNER_ISOLATED_RELEASE_PROOF_NOT_ADMITTED"],
+  ] as const) assert.ok(readFileSync(file, "utf8").includes(sentinel), file);
+  assert.equal(dynamicScriptFor("gpt", "dynamic.provider"), "acceptance:gpt:real-proof");
   assert.equal(dynamicScriptFor("local-browser-session", "dynamic.browser"),
-    "acceptance:agent-production-runtime:real-proof");
+    "acceptance:local-browser:real-proof");
   assert.equal(dynamicScriptFor("local-browser-session", "dynamic.storage"),
-    "acceptance:agent-production-runtime:real-proof");
-});
-
-test("production Dynamic Proof rejects one missing public route", () => {
-  const routes = agentPluginCapabilityManifest.plugins.flatMap((plugin) => plugin.accepts.map((route) => ({
-    pluginId: plugin.plugin_id, ...route,
-  }))).sort((left, right) => {
-    const rank = (route: typeof left): number => route.pluginId === "localization-production"
-      && !["accuracy_challenge", "quality_reflection"].includes(route.action_id) ? 0 : 1;
-    return rank(left) - rank(right) || left.product_id.localeCompare(right.product_id)
-      || left.action_id.localeCompare(right.action_id);
-  });
-  const rows = routes.map((route, index) => {
-    const jobId = `route-job-${index}`;
-    return { created_at: new Date(Date.UTC(2026, 7, 28, 0, 0, index)).toISOString(), job_id: jobId,
-      identity_json: JSON.stringify({ plugin_id: route.pluginId }),
-      task_json: JSON.stringify({ action_id: route.action_id, job_id: jobId, product_id: route.product_id }) };
-  });
-  assert.deepEqual(assertProductionProofRouteCoverage(rows, agentPluginCapabilityManifest), {
-    pluginIds: agentPluginCapabilityManifest.plugins.map((plugin) => plugin.plugin_id).sort(),
-    primaryCount: 13, reviewCount: 26, routeCount: 39,
-  });
-  assert.throws(() => assertProductionProofRouteCoverage(rows.slice(0, -1), agentPluginCapabilityManifest),
-    /PRODUCTION_DYNAMIC_ROUTE_DENOMINATOR_INVALID:row-count:38/u);
+    "acceptance:local-browser:real-proof");
+  assert.equal(dynamicScriptFor("runtime-log-spine", "dynamic.service"),
+    "acceptance:runtime-log-spine:real-proof");
 });
 
 test("Shell browser and service Dynamic Proof share one current-run runtime route", () => {
@@ -1451,6 +1419,7 @@ test("CHANGE routes an ordinary Exam to every affected domain without running un
   const registry = buildRegistry();
   assert.deepEqual(relevantExamScripts(["src/lib/storage/fixture.ts"], registry), [
     "acceptance:app-shell-ui",
+    "acceptance:architecture-boundary",
     "acceptance:capability-governance",
     "acceptance:code-purity-zombie-deep",
     "acceptance:forensics-persistence-capability",

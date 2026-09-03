@@ -1,5 +1,4 @@
 import assert from "../audit/shared/governance-exam-assert.js";
-import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -231,11 +230,6 @@ const reconciliationSource = await readFile(
   new URL("../../src/lib/local-runtime/production/cloud-reconciliation-client.ts", import.meta.url), "utf8",
 );
 const executorSource = await readFile(new URL("../../src/lib/local-runtime/production/executor.ts", import.meta.url), "utf8");
-const childToolsSource = await readFile(new URL("../../src/lib/local-runtime/production/production-gpt-child-tools.ts", import.meta.url), "utf8");
-const atomicGptCallSource = await readFile(
-  new URL("../../src/lib/local-runtime/production/production-gpt-atomic-call.ts", import.meta.url),
-  "utf8",
-);
 const heartbeatSource = await readFile(new URL("../../src/lib/local-runtime/production/runtime-execution-heartbeat.ts", import.meta.url), "utf8");
 const cloudSource = await readFile(new URL("../../src/lib/local-runtime/production/cloud-client.ts", import.meta.url), "utf8");
 const leaseReleaseContractSource = await readFile(
@@ -247,15 +241,9 @@ const continuationStoreSource = await readFile(
   new URL("../../src/lib/local-runtime/production/store-continuation-state.ts", import.meta.url),
   "utf8",
 );
-assert.equal(existsSync(new URL("../../src/lib/local-runtime/production/production-gpt-executor.ts", import.meta.url)), false);
-assert.equal(existsSync(new URL("../../src/lib/local-runtime/production/production-gpt-turn-flow.ts", import.meta.url)), false);
 assert.doesNotMatch(runtimeSource, /emitState|stateKey:|currentStates|reconciledFromAuthority/u);
 assert.doesNotMatch(executorSource, /runTurn|ProductionGptExecutor|GPT_TURN_FLOW/u);
 assert.match(executorSource, /gpt: gptExecution\.tools/u);
-assert.match(childToolsSource, /executeProductionGptAtomicCall\(/u);
-assert.match(atomicGptCallSource, /gpt\.execute\(intent/u);
-assert.match(atomicGptCallSource, /mutationMode: "readback"/u);
-assert.doesNotMatch(childToolsSource, /stepIndex|flowVersion|resumePoint|reconcileOnly/u);
 
 const deletionSettlement = permanentRevocationSource;
 const noControlAbort = new AbortController();
@@ -275,9 +263,6 @@ assert.match(deletionSettlement, /receipt\.request_id === stableRequestId/u);
 assert.doesNotMatch(deletionSettlement, /persistAttemptFailure|claimProductionTasks|dispatchWebsiteAgentTask/u);
 assert.match(executorSource, /abort_signal\.aborted[\s\S]{0,220}PRODUCTION_EXECUTION_ABORTED/u);
 assert.match(executorSource, /reconcilePermanentCancellation/u);
-assert.match(childToolsSource, /facts\.mutation\?\.outcome !== "DISPATCHED"/u);
-assert.match(childToolsSource, /AbortSignal\.timeout/u);
-assert.match(atomicGptCallSource, /mutationMode: "readback"/u);
 const deletionControlIndex = heartbeatSource.indexOf('if (receipt.control_intent.intent !== "none")');
 const renewalBudgetIndex = heartbeatSource.indexOf("const relative = Date.parse(receipt.lease_expires_at)");
 assert.ok(deletionControlIndex >= 0 && renewalBudgetIndex > deletionControlIndex,
@@ -314,8 +299,12 @@ const runtimeManifest = JSON.parse(await readFile(
   new URL("../audit/domains/agent-production-runtime/manifest.json", import.meta.url), "utf8",
 )) as { ownedPaths: string[] };
 const detectedOwnerDrift = runtimeManifestOwnershipDrift(runtimeManifest.ownedPaths);
-assert(detectedOwnerDrift.includes("src/plugins/**"));
-assert(detectedOwnerDrift.includes("src/mediator/agent-production-route.ts"));
+assert.deepEqual(detectedOwnerDrift, []);
+assert.deepEqual(runtimeManifestOwnershipDrift([
+  ...runtimeManifest.ownedPaths,
+  "src/mediator/agent-production-route.ts",
+  "src/plugins/**",
+]), ["src/mediator/agent-production-route.ts", "src/plugins/**"]);
 assert.deepEqual(runtimeManifestOwnershipDrift([
   "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
   "docs/specs/agent-production-runtime/**",
@@ -325,21 +314,21 @@ assert.deepEqual(runtimeManifestOwnershipDrift([
 ]), []);
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V1",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V2",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"],
   locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",
-  observedValue: "the unique Runtime ownership inspector accepted the Runtime-only gold set and exposed the current adjacent-owner overclaim without deleting or reassigning it",
+  observedValue: "the unique Runtime ownership inspector accepted the current Runtime-only manifest and rejected injected Mediator and Product ownership mutants",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V32",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V33",
   evidenceMode: "exam.state-machine",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "summary"],
   locator: "acceptance:agent-production-runtime:attempt-recovery-state-machine",
   observedValue: "binary task lifecycle durable accept same-attempt recovery lease outbox and typed cross-owner boundaries exercised",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V32",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V33",
   evidenceMode: "exam.property",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "summary"],
   locator: "acceptance:agent-production-runtime:transport-properties",
@@ -347,7 +336,7 @@ emitQualityProofObservation({
 });
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V1",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V2",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "summary"],
     locator: `acceptance:agent-production-runtime:business-admission:${evidenceMode}`,

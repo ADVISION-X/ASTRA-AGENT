@@ -14,6 +14,7 @@ const matches = (pattern: string, path: string): boolean => pattern === "**/*" |
 
 const examScripts: Readonly<Record<string, string>> = {
   "agent-production-runtime": "acceptance:agent-production-runtime",
+  "architecture-boundary": "acceptance:architecture-boundary",
   "app-shell-ui": "acceptance:app-shell-ui",
   "capability-governance": "acceptance:capability-governance",
   "code-purity": "acceptance:code-purity-zombie-deep",
@@ -29,25 +30,25 @@ const examScripts: Readonly<Record<string, string>> = {
 
 const dynamicScripts: Readonly<Record<string, Readonly<Partial<Record<string, string>>>>> = {
   gpt: {
-    "dynamic.browser": "acceptance:agent-production-runtime:real-proof",
-    "dynamic.storage": "acceptance:agent-production-runtime:real-proof",
-    "dynamic.provider": "acceptance:agent-production-runtime:real-proof",
-    "dynamic.authorization": "acceptance:agent-production-runtime:real-proof",
-    "dynamic.recovery": "acceptance:agent-production-runtime:real-proof",
+    "dynamic.browser": "acceptance:gpt:real-proof",
+    "dynamic.storage": "acceptance:gpt:real-proof",
+    "dynamic.provider": "acceptance:gpt:real-proof",
+    "dynamic.authorization": "acceptance:gpt:real-proof",
+    "dynamic.recovery": "acceptance:gpt:real-proof",
   },
   "local-app-shell": {
     "dynamic.browser": "proof:local-shell-current-runtime",
     "dynamic.service": "proof:local-shell-current-runtime",
   },
   "local-browser-session": {
-    "dynamic.browser": "acceptance:agent-production-runtime:real-proof",
-    "dynamic.storage": "acceptance:agent-production-runtime:real-proof",
+    "dynamic.browser": "acceptance:local-browser:real-proof",
+    "dynamic.storage": "acceptance:local-browser:real-proof",
   },
   "runtime-log-spine": {
-    "dynamic.browser": "acceptance:agent-production-runtime:real-proof",
-    "dynamic.service": "acceptance:agent-production-runtime:real-proof",
-    "dynamic.storage": "acceptance:agent-production-runtime:real-proof",
-    "dynamic.recovery": "acceptance:agent-production-runtime:real-proof",
+    "dynamic.browser": "acceptance:runtime-log-spine:real-proof",
+    "dynamic.service": "acceptance:runtime-log-spine:real-proof",
+    "dynamic.storage": "acceptance:runtime-log-spine:real-proof",
+    "dynamic.recovery": "acceptance:runtime-log-spine:real-proof",
   },
   "startup-entrypoint": { "dynamic.service": "proof:local-shell-current-runtime" },
   "agent-production-runtime": {

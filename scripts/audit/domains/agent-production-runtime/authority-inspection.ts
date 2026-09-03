@@ -4,8 +4,8 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 
-const DATABASE_LAW = "LAW-AGENT-PRODUCTION-RUNTIME-005-V1";
-const PROOF_LAW = "LAW-AGENT-PRODUCTION-RUNTIME-008-V2";
+const DATABASE_LAW = "LAW-AGENT-PRODUCTION-RUNTIME-005-V2";
+const PROOF_LAW = "LAW-AGENT-PRODUCTION-RUNTIME-008-V3";
 const ROOT = "src/lib/local-runtime/production";
 const PATHS = {
   authority: `${ROOT}/store-authority-reader.ts`, ledger: `${ROOT}/store-ledger.ts`,

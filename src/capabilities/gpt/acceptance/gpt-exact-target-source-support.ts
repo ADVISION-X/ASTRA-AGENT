@@ -23,7 +23,7 @@ export const assertGptExactTargetSourceShape = (baseUrl: string): void => {
   for (const active of [
     "../contract.ts",
     "../ability-group.ts",
-    "../../../lib/local-runtime/production/production-gpt-child-tools.ts",
+    "../production-child-tools.ts",
     "../production-browser-lifecycle.ts",
     "../../../lib/local-runtime/production/plugin.ts",
   ]) {

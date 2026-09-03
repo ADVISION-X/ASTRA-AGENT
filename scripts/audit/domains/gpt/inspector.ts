@@ -24,13 +24,13 @@ import {
   inspectGptContractDenominator,
 } from "./gpt-contract-inspection.js";
 
-const LAW_ID = "LAW-GPT-001-V19";
+const LAW_ID = "LAW-GPT-001-V20";
 const MODE_CLAUSES = {
-  "static.filesystem": staticForbiddenClauses(1, 12, 15),
-  "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14),
-  "static.types": staticForbiddenClauses(3, 4, 14),
-  "static.contract": staticForbiddenClauses(2, 3, 4, 9, 10, 11, 12, 14),
-  "static.dependency": staticForbiddenClauses(0, 1, 2, 5, 15),
+  "static.filesystem": staticForbiddenClauses(1, 12, 15, 18),
+  "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 16, 17, 18),
+  "static.types": staticForbiddenClauses(3, 4, 14, 16, 17),
+  "static.contract": staticForbiddenClauses(2, 3, 4, 9, 10, 11, 12, 14, 16, 17),
+  "static.dependency": staticForbiddenClauses(0, 1, 2, 5, 15, 16, 17, 18),
 } as const;
 const MODE_CHECKS = {
   "static.filesystem": ["inspectGptFilesystem"], "static.ast": ["inspectGptAst"],
