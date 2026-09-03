@@ -158,6 +158,24 @@ export const inspectTargetClaimGuards = (
   requireIdentifiers(awaiter, ["TargetClaimAwaiter", "begin", "accept", "fail"], findings, lawId,
     "The extension must not report target success before the Workbench acknowledgement.");
   const parseClaim = channel.getVariableDeclaration("parseBrowserAuthorityTargetClaim");
+  const parseClaimText = parseClaim?.getText() ?? "";
+  for (const required of [
+    'stringField(body, "claimOrigin")', "requireGptWebClaimOrigin(claimOrigin)",
+    '["targetRef", "documentRef", "navigationEpoch", "claimOrigin"]',
+  ]) if (!parseClaimText.includes(required)) findings.push(createLocalFinding({
+    checkId: "browser-authority/target-claim-origin-only",
+    lawId,
+    filePath: sourcePaths[0],
+    message: `TARGET_CLAIM must carry exact claimOrigin only; missing ${required}.`,
+  }));
+  if (/stringField\(body,\s*["'](?:url|currentUrl)["']\)/u.test(parseClaimText)) {
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/target-claim-origin-only",
+      lawId,
+      filePath: sourcePaths[0],
+      message: "TARGET_CLAIM must not carry current or canonical conversation URL.",
+    }));
+  }
   const navigationEpoch = parseClaim?.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
     .find((declaration) => declaration.getName() === "navigationEpoch");
   const initializer = navigationEpoch?.getInitializerIfKind(SyntaxKind.CallExpression)?.getExpression();

@@ -67,12 +67,20 @@ const inspectMechanicalConsumers = (
 const inspectCoherentRuntime = (runtimeText: string, findings: InspectorFinding[], lawId: string): void => {
   requireTokens(runtimeText, ["COHERENT_OBSERVATION_FUNCTION", "arguments: [{ value: specs }]",
     "canonicalizeBrowserAuthorityValue", "observationRevisionHash", "mainFrameLoaderId",
+    'schemaVersion: "grasseye.browser.dom-observation.v2"', "location.href",
+    "currentUrl: observed.currentUrl", "return observedUrl.origin + observedUrl.pathname",
+    "sanitizeCurrentUrl", "awaitPromise: true",
     "resolveCoherentMutationCandidate", "requireKeyboardActionTarget", "eligibilityReasons",
     "scopeRejections", "rejections", "observedCandidateCount", "candidateIndex",
     "observationIdentityHash", "browserMechanicalFacts(node, false)",
     "DISCONNECTED", "DISPLAY_HIDDEN", "VISIBILITY_HIDDEN", "OPACITY_HIDDEN", "HTML_HIDDEN",
     "ARIA_HIDDEN", "INERT", "TEXT_MISMATCH"], findings, lawId, domCoherentObservationPath,
   "The one-command DOM observation/action path is missing");
+  if (runtimeText.includes("BrowserDomObservationPacketV1")
+    || runtimeText.includes("grasseye.browser.dom-observation.v1")) {
+    finding(findings, lawId, domCoherentObservationPath,
+      "Observation V1 must be physically absent after the one-time V2 cutover.");
+  }
 };
 
 const inspectMechanicalContract = (
@@ -83,8 +91,14 @@ const inspectMechanicalContract = (
   lawId: string,
 ): void => {
   requireTokens(contractText, ["rawCount", "eligibleCount", "effectiveOpacity", "scopeRejections", "rejections",
-    "nativeCauseCode", "nativeStage", "candidateIndex", "observationIdentityHash"], findings, lawId,
+    "nativeCauseCode", "nativeStage", "candidateIndex", "observationIdentityHash",
+    "BrowserDomObservationPacketV2", "currentUrl", "BrowserExactAssistantTurnReplyV1",
+    'kind: "readExactAssistantTurn"',
+    'BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">'], findings, lawId,
   INTENT_CONTRACT_PATH, "The bounded Browser DOM contract is missing");
+  requireTokens(observationText, ["executeExactAssistantTurnRead", "rawDomHtml", "rawDomHash",
+    "semanticText", "semanticTextHash", "assistantTurnId"], findings, lawId,
+  INTENT_RUNTIME_PATH, "The exact assistant-turn reply-only channel is missing");
   if (observationText.includes(".slice(0, 1024)") || queryText.includes("value.slice(0, maxChars)")
     || contractText.includes("intent.maxChars > 65536")) finding(findings, lawId, domCoherentObservationPath,
     "Browser DOM payloads must fail closed or return complete values; silent prefix truncation is forbidden.");
@@ -117,5 +131,11 @@ export const inspectDomMechanicalFacts = (
   const runtimeText = `${runtime.getFullText()}\n${observation.getFullText()}\n${candidate.getFullText()}`;
   inspectCoherentRuntime(runtimeText, findings, lawId);
   const contractText = contract.getFullText();
-  inspectMechanicalContract(contractText, observation.getFullText(), queryText, findings, lawId);
+  inspectMechanicalContract(
+    contractText,
+    `${observation.getFullText()}\n${runtime.getFullText()}`,
+    queryText,
+    findings,
+    lawId,
+  );
 };
