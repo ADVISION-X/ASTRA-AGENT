@@ -2,7 +2,8 @@ import { isBrowserCapabilityId } from "../protocol/generated/browser-protocol.ge
 
 const ALLOWED_KEYS = new Set([
   "reasonCode", "failedFrameKind", "failedFrameSequence", "diagnosticSource", "runtimeEventType",
-  "commandStage", "commandKind", "commandIntentKind", "capabilityId", "targetRef", "encodedByteLength",
+  "commandStage", "commandKind", "commandIntentKind", "capabilityId", "targetRef", "nativeCauseCode",
+  "encodedByteLength",
 ]);
 const FRAME_KINDS = new Set([
   "PAIR_HELLO", "PAIR_CHALLENGE", "PAIR_PROOF", "AUTHENTICATED", "READY", "HEARTBEAT", "COMMAND",
@@ -18,6 +19,7 @@ const CONTROLLED_VALUES: Readonly<Record<string, ReadonlySet<string>>> = {
     "authenticated-media", "wait", "park-target", "close-target"]),
   commandIntentKind: new Set(["document", "observe", "readExactAssistantTurn", "inspect", "find", "readText",
     "readAttribute", "click", "hover", "doubleClick", "keypress", "fill"]),
+  nativeCauseCode: new Set(["CHROME_DEBUGGER_TARGET_CLOSED", "CHROME_DEBUGGER_CANCELED_BY_USER"]),
 };
 
 const controlledOptional = (

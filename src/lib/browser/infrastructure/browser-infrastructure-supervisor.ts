@@ -102,7 +102,11 @@ export class BrowserInfrastructureSupervisor {
 
   private onDiagnostic(reasonCode: string, refs: Readonly<Record<string, string>>): void {
     if (refs.runtimeEventType === "job-bound-target-acquisition") this.lane.rejectPending(reasonCode);
-    this.logs.failure(reasonCode, refs.runtimeEventType ?? "extension-diagnostic");
+    if ((refs.runtimeEventType === "debugger-detach" || refs.runtimeEventType === "tab-remove")
+      && refs.targetRef) {
+      this.websocket.rejectTargetCommands(refs.targetRef, reasonCode, refs.nativeCauseCode);
+    }
+    this.logs.failure(reasonCode, refs.runtimeEventType ?? "extension-diagnostic", refs.nativeCauseCode);
   }
 
   private onRevoked(reasonCode: string, refs?: Readonly<Record<string, string>>): void {

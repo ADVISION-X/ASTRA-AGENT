@@ -4,6 +4,7 @@ export type BrowserMutationReceipt = Readonly<{
   terminal: "confirmed" | "rejected";
   mutationOutcome: "no" | "confirmed";
   failureCode: string | null;
+  nativeCauseCode: string | null;
 }>;
 
 const DOM_REJECTION_CODES = new Set([
@@ -13,6 +14,59 @@ const DOM_REJECTION_CODES = new Set([
   "BROWSER_DOM_NODE_STALE",
   "BROWSER_DOM_READ_INVALID",
 ]);
+
+const POSTCONDITION_NATIVE_CAUSES = new Set([
+  "BROWSER_DOM_CANDIDATE_MISSING",
+  "BROWSER_DOM_CANDIDATE_AMBIGUOUS",
+  "BROWSER_DOM_NODE_STALE",
+  "BROWSER_DOM_READ_INVALID",
+  "DISCONNECTED",
+  "NO_LAYOUT_BOX",
+  "DISPLAY_HIDDEN",
+  "VISIBILITY_HIDDEN",
+  "OPACITY_HIDDEN",
+  "HTML_HIDDEN",
+  "ARIA_HIDDEN",
+  "INERT",
+  "TEXT_MISMATCH",
+]);
+
+const POSTCONDITION_REJECTION_REASONS = new Set([
+  "DISCONNECTED", "NO_LAYOUT_BOX", "DISPLAY_HIDDEN", "VISIBILITY_HIDDEN", "OPACITY_HIDDEN",
+  "HTML_HIDDEN", "ARIA_HIDDEN", "INERT", "TEXT_MISMATCH",
+]);
+
+const POINTER_ACTIONABILITY_NATIVE_CAUSES = new Set([
+  "BROWSER_DOM_CANDIDATE_MISSING",
+  "BROWSER_DOM_NODE_STALE",
+  "BROWSER_DOM_READ_INVALID",
+  "BROWSER_DOM_ACTION_NODE_DISCONNECTED",
+  "BROWSER_DOM_ACTION_NO_LAYOUT_BOX",
+  "BROWSER_DOM_ACTION_NOT_VISIBLE",
+  "BROWSER_DOM_ACTION_ARIA_HIDDEN",
+  "BROWSER_DOM_ACTION_INERT",
+  "BROWSER_DOM_ACTION_DISABLED",
+  "BROWSER_DOM_ACTION_ARIA_DISABLED",
+  "BROWSER_DOM_ACTION_OUTSIDE_VIEWPORT",
+  "BROWSER_DOM_ACTION_POINTER_EVENTS_NONE",
+  "BROWSER_DOM_ACTION_HIT_TEST_FAILED",
+]);
+const KEYBOARD_ACTIONABILITY_NATIVE_CAUSES = new Set([
+  "BROWSER_DOM_CANDIDATE_MISSING",
+  "BROWSER_DOM_NODE_STALE",
+  "BROWSER_DOM_READ_INVALID",
+]);
+
+const domActionabilityNativeCauseValid = (
+  command: BrowserGovernedCommand,
+  value: unknown,
+): boolean => {
+  if (command.kind !== "dom-intent") return false;
+  const pointer = command.intent.kind === "click" || command.intent.kind === "hover"
+    || command.intent.kind === "doubleClick";
+  return (pointer ? POINTER_ACTIONABILITY_NATIVE_CAUSES : KEYBOARD_ACTIONABILITY_NATIVE_CAUSES)
+    .has(String(value));
+};
 
 const exactKeys = (value: Readonly<Record<string, unknown>>, expected: readonly string[]): boolean => {
   const keys = Object.keys(value);
@@ -58,13 +112,66 @@ const domActionKeys = (
   return [];
 };
 
+const hasMatchPostcondition = (command: BrowserGovernedCommand): boolean => command.kind === "dom-intent"
+  && (command.intent.kind === "doubleClick" || command.intent.kind === "keypress"
+    || (command.intent.kind === "click" && command.intent.postClickMatch !== undefined));
+
+const postconditionEvidenceKeys = [
+  "postconditionRawCount", "postconditionEligibleCount", "postconditionRejections",
+] as const;
+
+const expectedMatchCount = (command: BrowserGovernedCommand): number | null => {
+  if (command.kind !== "dom-intent") return null;
+  if (command.intent.kind === "click") return command.intent.postClickMatch?.expectedMatches ?? null;
+  if (command.intent.kind === "doubleClick") return command.intent.postDoubleClickMatch.expectedMatches;
+  if (command.intent.kind === "keypress") return command.intent.postKeypressMatch.expectedMatches;
+  return null;
+};
+
+const postconditionEvidenceValid = (
+  command: BrowserGovernedCommand,
+  value: Readonly<Record<string, unknown>>,
+): boolean => {
+  const expected = expectedMatchCount(command);
+  if (!Number.isSafeInteger(value.postconditionRawCount) || (value.postconditionRawCount as number) < 0
+    || !Number.isSafeInteger(value.postconditionEligibleCount) || (value.postconditionEligibleCount as number) < 0
+    || (value.postconditionEligibleCount as number) > (value.postconditionRawCount as number)
+    || !Array.isArray(value.postconditionRejections)
+    || value.postconditionRejections.length !== (value.postconditionRawCount as number)
+      - (value.postconditionEligibleCount as number) || expected === null
+    || value.postconditionVerified !== ((value.postconditionEligibleCount as number) === expected)) return false;
+  const indices = new Set<number>();
+  const rejectionsValid = value.postconditionRejections.every((candidate) => {
+    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return false;
+    const record = candidate as Readonly<Record<string, unknown>>;
+    if (!exactKeys(record, ["index", "reasons"]) || !Number.isSafeInteger(record.index)
+      || (record.index as number) < 0 || (record.index as number) >= (value.postconditionRawCount as number)
+      || indices.has(record.index as number) || !Array.isArray(record.reasons) || record.reasons.length < 1
+      || new Set(record.reasons).size !== record.reasons.length
+      || record.reasons.some((reason) => typeof reason !== "string"
+        || !POSTCONDITION_REJECTION_REASONS.has(reason))) return false;
+    indices.add(record.index as number);
+    return true;
+  });
+  if (!rejectionsValid || value.postconditionVerified === true) return rejectionsValid;
+  const firstReason = (value.postconditionRejections[0] as Readonly<Record<string, unknown>> | undefined)
+    ?.reasons as readonly string[] | undefined;
+  const expectedCause = (value.postconditionEligibleCount as number) > expected
+    ? "BROWSER_DOM_CANDIDATE_AMBIGUOUS"
+    : (value.postconditionRawCount as number) === 0
+      ? "BROWSER_DOM_CANDIDATE_MISSING" : firstReason?.[0] ?? "BROWSER_DOM_CANDIDATE_MISSING";
+  return value.nativeCauseCode === expectedCause;
+};
+
 const actionKeys = (command: BrowserGovernedCommand, failed: boolean): readonly string[] => {
   const common = ["candidateCount", "identityRevalidated", "mutationCount", "postconditionVerified"];
   const specific = command.kind === "file-input"
     ? ["selectedFileCount", "approvedSetVerified", "acceptVerified"]
     : command.kind === "dom-intent" ? domActionKeys(command) : [];
   if (specific.length === 0) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  return [...common, ...specific, ...(failed ? ["failureCode"] : [])];
+  const match = hasMatchPostcondition(command);
+  return [...common, ...specific, ...(match ? postconditionEvidenceKeys : []),
+    ...(failed ? ["failureCode"] : []), ...(failed && match ? ["nativeCauseCode"] : [])];
 };
 
 const assertFileInputReceipt = (
@@ -106,8 +213,10 @@ const zeroActionReceiptValid = (
   && value.identityRevalidated === true
   && value.postconditionVerified === true
   && command.kind === "dom-intent"
+  && (!hasMatchPostcondition(command) || postconditionEvidenceValid(command, value))
   && exactKeys(value, ["candidateCount", "identityRevalidated", "mutationCount",
-    "postconditionVerified", "zeroActionSatisfied"]);
+    "postconditionVerified", "zeroActionSatisfied",
+    ...(hasMatchPostcondition(command) ? postconditionEvidenceKeys : [])]);
 
 const qualificationReceiptValid = (
   command: BrowserGovernedCommand,
@@ -117,8 +226,13 @@ const qualificationReceiptValid = (
   && Number.isSafeInteger(value.candidateCount) && (value.candidateCount as number) >= 0
   && value.identityRevalidated === false && value.postconditionVerified === false
   && exactKeys(value, ["candidateCount", "identityRevalidated", "mutationCount",
-    "postconditionVerified", "qualificationRejected", "qualificationStage", "failureCode"])
+    "postconditionVerified", "qualificationRejected", "qualificationStage", "failureCode", "nativeCauseCode"])
   && qualificationFailureValid(command, value.failureCode, value.candidateCount)
+  && (value.qualificationStage !== "actionability"
+    ? value.nativeCauseCode === null
+    : command.kind === "file-input"
+      ? value.nativeCauseCode === null
+      : domActionabilityNativeCauseValid(command, value.nativeCauseCode))
   && qualificationFactsConsistent(value);
 
 const decodeZeroMutationReceipt = (
@@ -126,10 +240,13 @@ const decodeZeroMutationReceipt = (
   value: Readonly<Record<string, unknown>>,
 ): BrowserMutationReceipt => {
   if (zeroActionReceiptValid(command, value)) {
-    return Object.freeze({ terminal: "confirmed", mutationOutcome: "no", failureCode: null });
+    return Object.freeze({ terminal: "confirmed", mutationOutcome: "no", failureCode: null, nativeCauseCode: null });
   }
   if (qualificationReceiptValid(command, value)) {
-    return Object.freeze({ terminal: "rejected", mutationOutcome: "no", failureCode: value.failureCode });
+    return Object.freeze({
+      terminal: "rejected", mutationOutcome: "no", failureCode: value.failureCode,
+      nativeCauseCode: value.nativeCauseCode as string | null,
+    });
   }
   throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
 };
@@ -138,14 +255,27 @@ const decodeDispatchedMutationReceipt = (
   command: BrowserGovernedCommand,
   value: Readonly<Record<string, unknown>>,
 ): BrowserMutationReceipt => {
-  if (value.candidateCount !== 1 || value.identityRevalidated !== true
+  const exactIdentity = value.candidateCount === 1 && value.identityRevalidated === true;
+  const fillReadbackRejected = command.kind === "dom-intent" && command.intent.kind === "fill"
+    && value.postconditionVerified === false && value.identityRevalidated === false
+    && (value.candidateCount === 0 || value.candidateCount === 1 || value.candidateCount === 2);
+  const matchPostconditionRejected = hasMatchPostcondition(command) && value.postconditionVerified === false;
+  const nativeCauseValid = fillReadbackRejected || matchPostconditionRejected
+    ? POSTCONDITION_NATIVE_CAUSES.has(String(value.nativeCauseCode))
+    : value.nativeCauseCode === undefined;
+  if ((!exactIdentity && !fillReadbackRejected)
+    || !nativeCauseValid || (hasMatchPostcondition(command) && !postconditionEvidenceValid(command, value))
     || value.zeroActionSatisfied === true || value.qualificationRejected === true) {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
   if (value.postconditionVerified === false && value.failureCode !== "BROWSER_POSTCONDITION_FAILED") {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
-  if (!exactKeys(value, actionKeys(command, value.postconditionVerified === false))) {
+  const expectedKeys = [
+    ...actionKeys(command, value.postconditionVerified === false),
+    ...(fillReadbackRejected ? ["nativeCauseCode"] : []),
+  ];
+  if (!exactKeys(value, expectedKeys)) {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
   if (command.kind === "file-input") assertFileInputReceipt(command, value);
@@ -155,6 +285,8 @@ const decodeDispatchedMutationReceipt = (
     terminal: value.postconditionVerified ? "confirmed" : "rejected",
     mutationOutcome: "confirmed",
     failureCode: value.postconditionVerified ? null : "BROWSER_POSTCONDITION_FAILED",
+    nativeCauseCode: fillReadbackRejected || matchPostconditionRejected
+      ? String(value.nativeCauseCode) : null,
   });
 };
 

@@ -1,9 +1,15 @@
-import type { BrowserDomIntent } from "../exact-target/browser-dom-intent.js";
+import type {
+  BrowserDomIneligibleCandidate,
+  BrowserDomIneligibleReason,
+  BrowserDomIntent,
+} from "../exact-target/browser-dom-intent.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
-import { resolveCoherentMutationCandidate } from "./dom-coherent-candidate.js";
+import { resolveCoherentMutationCandidate, resolveCoherentPointerAction,
+  type BrowserPointerAction } from "./dom-coherent-candidate.js";
+import { executeExactAssistantTurnRead } from "./dom-exact-assistant-turn.js";
 import { executeCoherentObservation } from "./dom-coherent-observation.js";
-import { attribute, boxCenter, describeNode,
+import { attribute, describeNode,
   documentState, inspectNode, nodeForRead, nodeForSelector, nodeText, queryAll,
   queryCandidateSet, queryVisibleTextMatches, requireKeyboardActionTarget,
   selectorForLocator } from "./dom-query-runtime.js";
@@ -17,45 +23,6 @@ type ValueIntent = Exclude<BrowserDomIntent, {
 }>;
 type CurrentDocumentAssertion = () => void;
 
-const sha256Text = async (value: string): Promise<`sha256:${string}`> => {
-  const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return `sha256:${[...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
-};
-
-const executeExactAssistantTurnRead = async (
-  debuggerRuntime: ExtensionDebuggerRuntime,
-  target: ExtensionExactTarget,
-  assistantTurnId: string,
-  assertCurrent: CurrentDocumentAssertion,
-): Promise<unknown> => {
-  const selector = `[data-testid="${assistantTurnId}"][data-turn="assistant"] [data-message-author-role="assistant"]`;
-  const candidates = await queryCandidateSet(debuggerRuntime, target.tabId, selector, 2);
-  if (candidates.rawCount !== 1 || candidates.eligibleCount !== 1 || candidates.eligibleNodeIds.length !== 1) {
-    throw new Error(candidates.eligibleCount === 0
-      ? "BROWSER_DOM_CANDIDATE_MISSING" : "BROWSER_DOM_CANDIDATE_AMBIGUOUS");
-  }
-  assertCurrent();
-  const observed = await inspectNode(
-    debuggerRuntime, target.tabId, candidates.eligibleNodeIds[0]!, ["outerHtml", "semanticText"],
-  );
-  assertCurrent();
-  const rawDomHtml = observed.outerHtml;
-  const semanticText = observed.semanticText;
-  if (typeof rawDomHtml !== "string" || typeof semanticText !== "string") {
-    throw new Error("BROWSER_DOM_READ_INVALID");
-  }
-  return Object.freeze({
-    schemaVersion: "grasseye.browser.exact-assistant-turn.v1" as const,
-    targetRefHash: await sha256Text(target.targetRef),
-    documentRefHash: await sha256Text(target.documentRef),
-    assistantTurnId,
-    rawDomHtml,
-    rawDomHash: await sha256Text(rawDomHtml),
-    semanticText,
-    semanticTextHash: await sha256Text(semanticText),
-    observedAt: new Date().toISOString(),
-  });
-};
 /** Executes the finite declarative DOM intent set without a script/eval surface. */
 const executeFindIntent = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
@@ -113,6 +80,7 @@ type QualificationReceipt = Readonly<{
   postconditionVerified: false;
   qualificationRejected: true;
   failureCode: string;
+  nativeCauseCode: string | null;
 }>;
 
 const qualificationReceipt = (
@@ -122,7 +90,8 @@ const qualificationReceipt = (
 ): QualificationReceipt =>
   Object.freeze({ candidateCount, qualificationStage, identityRevalidated: false, mutationCount: 0,
     postconditionVerified: false, qualificationRejected: true,
-    failureCode: qualificationStage === "actionability" ? "BROWSER_DOM_ACTION_NOT_QUALIFIED" : failureCode });
+    failureCode: qualificationStage === "actionability" ? "BROWSER_DOM_ACTION_NOT_QUALIFIED" : failureCode,
+    nativeCauseCode: qualificationStage === "actionability" ? failureCode : null });
 
 const qualifiedNode = async (
   readNode: () => Promise<number>,
@@ -154,15 +123,29 @@ const mutationCandidate = (
     : {}),
 });
 
-const actionBox = async (
+const pointerAction = async (
   runtime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
-  nodeId: number,
-): Promise<Readonly<{ x: number; y: number }> | QualificationReceipt> => {
-  try { return await boxCenter(runtime, target.tabId, nodeId); }
+  intent: ClickIntent | HoverIntent | DoubleClickIntent,
+): Promise<BrowserPointerAction | QualificationReceipt> => {
+  try {
+    return await resolveCoherentPointerAction(runtime, target, {
+      selector: intent.selector,
+      ...(intent.scope === undefined ? {} : { scope: intent.scope }),
+      ...(intent.kind === "click" || intent.kind === "hover"
+        ? intent.expectedTextEquals !== undefined
+          ? { text: { value: intent.expectedTextEquals, exact: true } }
+          : intent.expectedText !== undefined
+            ? { text: { value: intent.expectedText, exact: false } } : {}
+        : {}),
+    });
+  }
   catch (error) {
     const code = error instanceof Error ? error.message : "";
-    if (!/^BROWSER_DOM_(?:CANDIDATE_MISSING|NODE_STALE|READ_INVALID)$/u.test(code)) throw error;
+    if (/^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|READ_INVALID)$/u.test(code)) {
+      return qualificationReceipt(code === "BROWSER_DOM_CANDIDATE_AMBIGUOUS" ? 2 : 0, code, "candidate-set");
+    }
+    if (!/^BROWSER_DOM_ACTION_[A-Z_]+$/u.test(code)) throw error;
     return qualificationReceipt(1, code, "actionability");
   }
 };
@@ -173,30 +156,77 @@ const zeroActionReceipt = (assertCurrent: CurrentDocumentAssertion): Readonly<Re
     postconditionVerified: true, zeroActionSatisfied: true });
 };
 
+type MatchReadback = Readonly<{
+  verified: boolean;
+  rawCount: number;
+  eligibleCount: number;
+  rejections: readonly BrowserDomIneligibleCandidate[];
+  nativeCauseCode: BrowserDomIneligibleReason | "BROWSER_DOM_CANDIDATE_MISSING"
+    | "BROWSER_DOM_CANDIDATE_AMBIGUOUS" | null;
+}>;
+
+const matchReceiptEvidence = (readback: MatchReadback): Readonly<Record<string, unknown>> => ({
+  postconditionRawCount: readback.rawCount,
+  postconditionEligibleCount: readback.eligibleCount,
+  postconditionRejections: readback.rejections,
+  ...(readback.verified || readback.nativeCauseCode === null
+    ? {} : { nativeCauseCode: readback.nativeCauseCode }),
+});
+
+const zeroActionMatchReceipt = (
+  assertCurrent: CurrentDocumentAssertion,
+  readback: MatchReadback,
+): Readonly<Record<string, unknown>> => {
+  assertCurrent();
+  return Object.freeze({ candidateCount: 1, identityRevalidated: true, mutationCount: 0,
+    postconditionVerified: true, zeroActionSatisfied: true, ...matchReceiptEvidence(readback) });
+};
+
+const dispatchPointerClickSequence = async (
+  debuggerRuntime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  point: BrowserPointerAction,
+  clickCounts: readonly (1 | 2)[],
+  assertCurrent: CurrentDocumentAssertion,
+): Promise<void> => {
+  assertCurrent();
+  await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", {
+    type: "mouseMoved", x: point.x, y: point.y, button: "none", buttons: 0,
+  });
+  for (const clickCount of clickCounts) {
+    assertCurrent();
+    await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", {
+      type: "mousePressed", x: point.x, y: point.y, button: "left", buttons: 1, clickCount,
+    });
+    assertCurrent();
+    await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", {
+      type: "mouseReleased", x: point.x, y: point.y, button: "left", buttons: 0, clickCount,
+    });
+  }
+};
+
 const executeClickIntent = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
   intent: ClickIntent,
   assertCurrent: CurrentDocumentAssertion,
 ): Promise<unknown> => {
-  const node = await qualifiedNode(() => mutationCandidate(debuggerRuntime, target, intent));
-  if ("receipt" in node) return node.receipt;
-  if (await verifyClickPostcondition(debuggerRuntime, target, intent, 0)) return zeroActionReceipt(assertCurrent);
-  const box = await actionBox(debuggerRuntime, target, node.nodeId);
+  const precondition = await verifyClickPostcondition(debuggerRuntime, target, intent, 0);
+  if (precondition.verified) return precondition.match === undefined
+    ? zeroActionReceipt(assertCurrent) : zeroActionMatchReceipt(assertCurrent, precondition.match);
+  const box = await pointerAction(debuggerRuntime, target, intent);
   if ("failureCode" in box) return box;
+  await dispatchPointerClickSequence(debuggerRuntime, target, box, [1], assertCurrent);
   assertCurrent();
-  await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", { type: "mousePressed", x: box.x, y: box.y, button: "left", clickCount: 1 });
-  assertCurrent();
-  await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", { type: "mouseReleased", x: box.x, y: box.y, button: "left", clickCount: 1 });
-  assertCurrent();
-  const postconditionVerified = await verifyClickPostcondition(debuggerRuntime, target, intent);
+  const postcondition = await verifyClickPostcondition(debuggerRuntime, target, intent);
   return {
     clicked: true,
     candidateCount: 1,
     identityRevalidated: true,
     mutationCount: 1,
-    postconditionVerified,
-    ...(postconditionVerified ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }),
+    postconditionVerified: postcondition.verified,
+    ...(postcondition.match === undefined ? {} : matchReceiptEvidence(postcondition.match)),
+    ...(postcondition.verified ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }),
   };
 };
 
@@ -206,24 +236,13 @@ const executeDoubleClickIntent = async (
   intent: DoubleClickIntent,
   assertCurrent: CurrentDocumentAssertion,
 ): Promise<unknown> => {
-  const node = await qualifiedNode(() => mutationCandidate(debuggerRuntime, target, intent));
-  if ("receipt" in node) return node.receipt;
-  if (await waitForMatch(debuggerRuntime, target, intent.postDoubleClickMatch, 0)) return zeroActionReceipt(assertCurrent);
-  const box = await actionBox(debuggerRuntime, target, node.nodeId);
+  const precondition = await waitForMatch(debuggerRuntime, target, intent.postDoubleClickMatch, 0);
+  if (precondition.verified) return zeroActionMatchReceipt(assertCurrent, precondition);
+  const box = await pointerAction(debuggerRuntime, target, intent);
   if ("failureCode" in box) return box;
+  await dispatchPointerClickSequence(debuggerRuntime, target, box, [1, 2], assertCurrent);
   assertCurrent();
-  for (const clickCount of [1, 2] as const) {
-    assertCurrent();
-    await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", {
-      type: "mousePressed", x: box.x, y: box.y, button: "left", clickCount,
-    });
-    assertCurrent();
-    await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", {
-      type: "mouseReleased", x: box.x, y: box.y, button: "left", clickCount,
-    });
-  }
-  assertCurrent();
-  const postconditionVerified = await waitForMatch(
+  const postcondition = await waitForMatch(
     debuggerRuntime, target, intent.postDoubleClickMatch,
   );
   return {
@@ -231,8 +250,9 @@ const executeDoubleClickIntent = async (
     candidateCount: 1,
     identityRevalidated: true,
     mutationCount: 1,
-    postconditionVerified,
-    ...(postconditionVerified ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }),
+    postconditionVerified: postcondition.verified,
+    ...matchReceiptEvidence(postcondition),
+    ...(postcondition.verified ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }),
   };
 };
 
@@ -244,7 +264,8 @@ const executeKeypressIntent = async (
 ): Promise<unknown> => {
   const node = await qualifiedNode(() => mutationCandidate(debuggerRuntime, target, intent));
   if ("receipt" in node) return node.receipt;
-  if (await waitForMatch(debuggerRuntime, target, intent.postKeypressMatch, 0)) return zeroActionReceipt(assertCurrent);
+  const precondition = await waitForMatch(debuggerRuntime, target, intent.postKeypressMatch, 0);
+  if (precondition.verified) return zeroActionMatchReceipt(assertCurrent, precondition);
   try { await requireKeyboardActionTarget(debuggerRuntime, target.tabId, node.nodeId); }
   catch (error) {
     const code = error instanceof Error ? error.message : "";
@@ -268,7 +289,7 @@ const executeKeypressIntent = async (
     await debuggerRuntime.send(target.tabId, "Input.dispatchKeyEvent", { type: "keyUp", ...keyEvent });
   }
   assertCurrent();
-  const postconditionVerified = await waitForMatch(
+  const postcondition = await waitForMatch(
     debuggerRuntime, target, intent.postKeypressMatch,
   );
   return {
@@ -277,8 +298,9 @@ const executeKeypressIntent = async (
     candidateCount: 1,
     identityRevalidated: true,
     mutationCount: 1,
-    postconditionVerified,
-    ...(postconditionVerified ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }),
+    postconditionVerified: postcondition.verified,
+    ...matchReceiptEvidence(postcondition),
+    ...(postcondition.verified ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }),
   };
 };
 
@@ -288,12 +310,10 @@ const executeHoverIntent = async (
   intent: HoverIntent,
   assertCurrent: CurrentDocumentAssertion,
 ): Promise<unknown> => {
-  const node = await qualifiedNode(() => mutationCandidate(debuggerRuntime, target, intent));
-  if ("receipt" in node) return node.receipt;
   if (await waitForInteractionAttribute(debuggerRuntime, target, intent, 1, intent.postHoverAttribute, 0)) {
     return zeroActionReceipt(assertCurrent);
   }
-  const box = await actionBox(debuggerRuntime, target, node.nodeId);
+  const box = await pointerAction(debuggerRuntime, target, intent);
   if ("failureCode" in box) return box;
   assertCurrent();
   await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", { type: "mouseMoved", x: box.x, y: box.y });
@@ -317,24 +337,34 @@ const waitForMatch = async (
   match: Readonly<{
     selector: string;
     expectedMatches: number;
+    readEligibility?: "non-actionable-aria-state";
     textContains?: string;
     textEquals?: string;
     timeoutMs?: number;
   }>,
   timeoutMs?: number,
-): Promise<boolean> => {
+): Promise<MatchReadback> => {
   const deadline = Date.now() + (timeoutMs ?? match.timeoutMs ?? 1);
   do {
-    const nodes = match.textEquals !== undefined
-      ? await queryVisibleTextMatches(debuggerRuntime, target.tabId, match.selector, match.textEquals, true, match.expectedMatches + 1)
-      : match.textContains !== undefined
-        ? await queryVisibleTextMatches(debuggerRuntime, target.tabId, match.selector, match.textContains, false, match.expectedMatches + 1)
-        : await queryAll(debuggerRuntime, target.tabId, match.selector, match.expectedMatches + 1);
-    if (nodes.length === match.expectedMatches) return true;
-    if (Date.now() >= deadline) return false;
+    const candidates = await queryCandidateSet(
+      debuggerRuntime, target.tabId, match.selector, match.expectedMatches + 1, undefined,
+      match.textEquals !== undefined ? { value: match.textEquals, exact: true }
+        : match.textContains !== undefined ? { value: match.textContains, exact: false } : undefined,
+      match.readEligibility,
+    );
+    const verified = candidates.eligibleCount === match.expectedMatches;
+    const firstRejection = candidates.rejections[0]?.reasons[0];
+    const nativeCauseCode = verified ? null
+      : candidates.eligibleCount > match.expectedMatches ? "BROWSER_DOM_CANDIDATE_AMBIGUOUS" as const
+        : firstRejection ?? "BROWSER_DOM_CANDIDATE_MISSING";
+    const readback = Object.freeze({
+      verified, rawCount: candidates.rawCount, eligibleCount: candidates.eligibleCount,
+      rejections: candidates.rejections, nativeCauseCode,
+    });
+    if (verified || Date.now() >= deadline) return readback;
     await waitForNextBoundedObservation(deadline);
   } while (Date.now() <= deadline);
-  return false;
+  throw new Error("BROWSER_DOM_READ_INVALID");
 };
 
 const waitForUrl = async (
@@ -370,11 +400,13 @@ const verifyClickPostcondition = async (
   target: ExtensionExactTarget,
   intent: ClickIntent,
   timeoutMs?: number,
-): Promise<boolean> => intent.postClickAttribute !== undefined
-  ? waitForClickAttribute(runtime, target, intent, 1, intent.postClickAttribute, timeoutMs)
+): Promise<Readonly<{ verified: boolean; match?: MatchReadback }>> => intent.postClickAttribute !== undefined
+  ? { verified: await waitForClickAttribute(runtime, target, intent, 1, intent.postClickAttribute, timeoutMs) }
   : intent.postClickMatch !== undefined
-    ? waitForMatch(runtime, target, intent.postClickMatch, timeoutMs)
-    : waitForUrl(runtime, target, intent.postClickUrl!, timeoutMs);
+    ? waitForMatch(runtime, target, intent.postClickMatch, timeoutMs).then((match) => ({
+      verified: match.verified, match,
+    }))
+    : { verified: await waitForUrl(runtime, target, intent.postClickUrl!, timeoutMs) };
 
 const waitForInteractionAttribute = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
@@ -455,7 +487,31 @@ const executeValueIntent = async (
   assertCurrent();
   await debuggerRuntime.send(target.tabId, "Input.insertText", { text: intent.approvedText });
   assertCurrent();
-  const retainedValue = await nodeText(debuggerRuntime, target.tabId, node.nodeId);
+  const readbackNode = await qualifiedNode(() => mutationCandidate(debuggerRuntime, target, intent));
+  if ("receipt" in readbackNode) return {
+    filled: true,
+    candidateCount: readbackNode.receipt.candidateCount,
+    identityRevalidated: false,
+    mutationCount: 1,
+    retainedValueVerified: false,
+    postconditionVerified: false,
+    failureCode: "BROWSER_POSTCONDITION_FAILED",
+    nativeCauseCode: readbackNode.receipt.failureCode,
+  };
+  assertCurrent();
+  let retainedValue: string;
+  try { retainedValue = await nodeText(debuggerRuntime, target.tabId, readbackNode.nodeId); }
+  catch (error) {
+    const code = error instanceof Error ? error.message : "";
+    if (!/^BROWSER_DOM_(?:CANDIDATE_MISSING|NODE_STALE|READ_INVALID)$/u.test(code)) throw error;
+    return {
+      filled: true, candidateCount: 1, identityRevalidated: false, mutationCount: 1,
+      retainedValueVerified: false, postconditionVerified: false,
+      failureCode: "BROWSER_POSTCONDITION_FAILED",
+      nativeCauseCode: code,
+    };
+  }
+  assertCurrent();
   const postconditionVerified = retainedValue === intent.approvedText;
   return {
     filled: true,

@@ -351,11 +351,42 @@ export class ProductionGptChildTools {
     let resolveDispatched = false;
     try {
       if (facts.mutation?.outcome === "REJECTED") {
-        throw gptExecutionFailure("BROWSER_POSTCONDITION_FAILED", {
-          evidence: facts.evidence ? Object.freeze({
-            evidenceRef: facts.evidence.evidenceRef,
-            evidenceHash: facts.evidence.evidenceHash,
-          }) : null,
+        const rejectedFailureCode = facts.mutation.failureCode ?? "BROWSER_POSTCONDITION_FAILED";
+        const nativeFailureCode = facts.mutation.nativeFailureCode;
+        const nativeCause = nativeFailureCode
+          ? Object.assign(new Error(nativeFailureCode), { code: nativeFailureCode }) : undefined;
+        const browserFact = Object.freeze({
+          exactCallIdentityHash: facts.exactCallIdentityHash,
+          childCapabilityId: intent.childCapabilityId,
+          effectScope: facts.mutation.effectScope,
+          browserOutcome: "REJECTED" as const,
+          mutationOutcome: facts.mutation.mutationOutcome,
+          terminalAt: facts.mutation.terminalAt,
+          evidenceRef: facts.mutation.authorityRef,
+          evidenceHash: facts.mutation.authorityHash,
+        });
+        throw gptExecutionFailure(rejectedFailureCode, {
+          mutationOutcome: facts.mutation.mutationOutcome,
+          evidence: Object.freeze({
+            evidenceRef: facts.mutation.authorityRef,
+            evidenceHash: facts.mutation.authorityHash,
+          }),
+          browserEffect: Object.freeze({
+            effectScope: facts.mutation.effectScope,
+            childCapabilityId: intent.childCapabilityId,
+            browserOutcome: "REJECTED",
+          }),
+          proofFacts: Object.freeze({
+            decision: "FAIL_CLOSED",
+            factResultIds: Object.freeze([facts.mutation.authorityRef]),
+            candidateCardinality: Object.freeze({ raw: null, eligible: null }),
+            authorityRefHashes: Object.freeze([facts.mutation.authorityHash]),
+            observationRevisionHash: null,
+            mutationOutcome: facts.mutation.mutationOutcome,
+            browserFact,
+            nativeFailureCode,
+          }),
+          cause: nativeCause,
         });
       }
       const completed = await readCompletedGptChildResult({

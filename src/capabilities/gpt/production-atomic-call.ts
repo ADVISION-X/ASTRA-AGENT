@@ -77,7 +77,16 @@ export const executeProductionGptAtomicCall = async (
     atomicIdentity,
     () => gpt.execute(intent, { ...context, mutationMode: "readback" }),
   );
-  if (readback.status !== "success") return { result: readback, resolveDispatched: false };
+  if (readback.status !== "success") return {
+    result: recovery.state === "dispatched" ? recoveredGptChildResult({
+      intent,
+      browser,
+      readback,
+      recovery,
+      state: "dispatched",
+    }) : readback,
+    resolveDispatched: false,
+  };
   return {
     result: recoveredGptChildResult({
       intent,

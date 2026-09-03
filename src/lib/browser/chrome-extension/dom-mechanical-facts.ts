@@ -211,6 +211,3 @@ export const semanticEligible = (facts: BrowserMechanicalFacts): boolean => fact
 
 export const keyboardActionEligible = (facts: BrowserMechanicalFacts): boolean => semanticEligible(facts)
   && !facts.disabled && !facts.ariaDisabled;
-
-export const pointerActionEligible = (facts: BrowserMechanicalFacts): boolean => keyboardActionEligible(facts)
-  && facts.viewport && facts.hitTest && facts.bounds !== null;

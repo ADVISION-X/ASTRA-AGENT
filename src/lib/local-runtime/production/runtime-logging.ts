@@ -16,6 +16,7 @@ import {
 } from "./cloud-client.js";
 import { hashCanonical, type ProductionHash } from "./contracts.js";
 import type { ClaimedProductionTask } from "./transport-protocol.js";
+import { typedRuntimeTransportFailure } from "./transport-failure.js";
 import {
   checkpointAuthority,
   jobIdentity,
@@ -28,13 +29,14 @@ export const terminalSpanFailure = (
   causedByEventId: string | null = runtimeLogCauseEventId(error),
   fallbackCode = "PRODUCTION_ACTION_FAILED",
   authority?: Readonly<{ authorityRef: string; authorityHash: `sha256:${string}` }>,
-  responsibleOwner: RuntimeLogOwner = "production-runtime",
+  responsibleOwner?: RuntimeLogOwner,
 ): RuntimeSpanTerminalEvent => requireRuntimeLogWrite(span.terminal({
   outcome: "failed",
   ...(authority ?? {}),
   failure: runtimeFailureFromError({
     error, code: causedByEventId ? fallbackCode : typedExecutionFailure(error)?.code ?? fallbackCode,
-    responsibleOwner,
+    responsibleOwner: responsibleOwner
+      ?? (typedRuntimeTransportFailure(error) ? "website" : "production-runtime"),
     impact: causedByEventId ? RuntimeFailureImpact.CONSEQUENTIAL : RuntimeFailureImpact.BLOCKING,
     ...(causedByEventId ? { causedByEventId } : {}),
   }),

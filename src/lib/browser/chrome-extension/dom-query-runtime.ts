@@ -1,12 +1,18 @@
-import type { BrowserDomIntent } from "../exact-target/browser-dom-intent.js";
+import type {
+  BrowserDomIneligibleCandidate,
+  BrowserDomIneligibleReason,
+  BrowserDomIntent,
+  BrowserDomReadEligibility,
+} from "../exact-target/browser-dom-intent.js";
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
-import { keyboardActionEligible, pointerActionEligible, readMechanicalFacts, semanticEligible,
+import { keyboardActionEligible, readMechanicalFacts, semanticEligible,
   type BrowserMechanicalFacts } from "./dom-mechanical-facts.js";
 
 type DevToolsRecord = Record<string, unknown>;
 export type BrowserDomCandidateSet = Readonly<{
   rawCount: number; eligibleCount: number;
   eligibleNodeIds: readonly number[];
+  rejections: readonly BrowserDomIneligibleCandidate[];
   nativeCauseCode: "NO_LAYOUT_BOX" | null;
   nativeCauseCount: number;
   nativeStage: "runtime-call-function-on";
@@ -47,7 +53,26 @@ export const queryAll = async (
   selector: string,
   limit: number,
   scope?: Readonly<{ selector: string }>,
-): Promise<readonly number[]> => (await queryCandidateSet(runtime, tabId, selector, limit, scope)).eligibleNodeIds;
+  readEligibility?: BrowserDomReadEligibility,
+): Promise<readonly number[]> => (
+  await queryCandidateSet(runtime, tabId, selector, limit, scope, undefined, readEligibility)
+).eligibleNodeIds;
+
+const eligibilityReasons = (
+  facts: BrowserMechanicalFacts,
+  readEligibility?: BrowserDomReadEligibility,
+): BrowserDomIneligibleReason[] => {
+  const reasons: BrowserDomIneligibleReason[] = [];
+  if (!facts.connected) reasons.push("DISCONNECTED");
+  if (!facts.layout) reasons.push("NO_LAYOUT_BOX");
+  if (facts.displayHidden) reasons.push("DISPLAY_HIDDEN");
+  if (facts.visibilityHidden) reasons.push("VISIBILITY_HIDDEN");
+  if (facts.opacityHidden) reasons.push("OPACITY_HIDDEN");
+  if (facts.hidden) reasons.push("HTML_HIDDEN");
+  if (facts.ariaHidden && readEligibility !== "non-actionable-aria-state") reasons.push("ARIA_HIDDEN");
+  if (facts.inert) reasons.push("INERT");
+  return reasons;
+};
 
 export const queryCandidateSet = async (
   runtime: ExtensionDebuggerRuntime,
@@ -56,25 +81,31 @@ export const queryCandidateSet = async (
   limit: number,
   scope?: Readonly<{ selector: string }>,
   text?: Readonly<{ value: string; exact: boolean }>,
+  readEligibility?: BrowserDomReadEligibility,
 ): Promise<BrowserDomCandidateSet> => {
   const rawNodeIds = await queryNodeIds(runtime, tabId, selector, scope);
   const eligibleNodeIds: number[] = [];
+  const rejections: BrowserDomIneligibleCandidate[] = [];
   let eligibleCount = 0;
   let noLayoutCount = 0;
-  for (const nodeId of rawNodeIds) {
+  for (const [index, nodeId] of rawNodeIds.entries()) {
     const facts = await readMechanicalFacts(runtime, tabId, nodeId);
     if (facts.nativeCauseCode === "NO_LAYOUT_BOX") noLayoutCount += 1;
-    if (!semanticEligible(facts)) continue;
+    const reasons = eligibilityReasons(facts, readEligibility);
     if (text) {
       const actual = await nodeText(runtime, tabId, nodeId);
       const matched = text.exact ? actual.trim() === text.value.trim() : actual.includes(text.value);
-      if (!matched) continue;
+      if (!matched) reasons.push("TEXT_MISMATCH");
+    }
+    if (reasons.length > 0) {
+      rejections.push(Object.freeze({ index, reasons: Object.freeze(reasons) }));
+      continue;
     }
     eligibleCount += 1;
     if (eligibleNodeIds.length < limit) eligibleNodeIds.push(nodeId);
   }
   return Object.freeze({
-    rawCount: rawNodeIds.length, eligibleCount, eligibleNodeIds,
+    rawCount: rawNodeIds.length, eligibleCount, eligibleNodeIds, rejections: Object.freeze(rejections),
     nativeCauseCode: noLayoutCount > 0 ? "NO_LAYOUT_BOX" : null,
     nativeCauseCount: noLayoutCount,
     nativeStage: "runtime-call-function-on",
@@ -114,9 +145,10 @@ export const queryVisibleTextMatches = async (
   exact: boolean,
   limit: number,
   scope?: Readonly<{ selector: string }>,
+  readEligibility?: BrowserDomReadEligibility,
 ): Promise<readonly number[]> => {
   const candidates = await queryCandidateSet(
-    runtime, tabId, selector, limit, scope, { value: expectedText, exact },
+    runtime, tabId, selector, limit, scope, { value: expectedText, exact }, readEligibility,
   );
   return candidates.eligibleNodeIds;
 };
@@ -328,22 +360,6 @@ export const inspectNode = async (runtime: ExtensionDebuggerRuntime, tabId: numb
     result.nativeStage = mechanicalFacts.nativeStage;
   }
   return result;
-};
-
-export const boxCenter = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number): Promise<Readonly<{ x: number; y: number }>> => {
-  const box = await optionalBoxCenter(runtime, tabId, nodeId);
-  if (!box) throw new Error(DOM_CANDIDATE_MISSING);
-  return box;
-};
-
-const optionalBoxCenter = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number): Promise<Readonly<{ x: number; y: number }> | null> => {
-  const facts = await readMechanicalFacts(runtime, tabId, nodeId, true);
-  const bounds = facts.bounds;
-  if (!pointerActionEligible(facts) || bounds === null) return null;
-  return {
-    x: bounds.x + bounds.width / 2,
-    y: bounds.y + bounds.height / 2,
-  };
 };
 
 export const requireKeyboardActionTarget = async (

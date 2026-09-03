@@ -356,6 +356,7 @@ export class ExtensionWebSocketActor {
 
   private async sendTargetFrame(kind: "TARGET_CLAIM" | "TARGET_REVOKE", body: Record<string, unknown>): Promise<void> {
     if (!this.socket || !this.session || this.state !== "CONNECTED" || !this.commandReady) {
+      if (kind === "TARGET_REVOKE") return;
       throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
     }
     if (kind === "TARGET_REVOKE") return this.sendEncrypted(this.socket, kind, body);
@@ -426,21 +427,22 @@ export class ExtensionWebSocketActor {
   private reportTargetFailure(input: Readonly<{
     targetRef: string;
     runtimeEventType: "debugger-detach" | "tab-remove";
-  }>): void {
+    reasonCode: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT" | "BROWSER_DEVTOOLS_CONFLICT";
+    nativeCauseCode?: "CHROME_DEBUGGER_TARGET_CLOSED" | "CHROME_DEBUGGER_CANCELED_BY_USER";
+  }>): Promise<void> {
     const body = {
-      reasonCode: "BROWSER_TARGET_INVALID",
+      reasonCode: input.reasonCode,
       failedFrameKind: "EXTENSION_RUNTIME",
       failedFrameSequence: this.session?.nextClientSequence ?? 0,
       diagnosticSource: "extension-runtime",
       runtimeEventType: input.runtimeEventType,
       targetRef: input.targetRef,
+      ...(input.nativeCauseCode ? { nativeCauseCode: input.nativeCauseCode } : {}),
       encodedByteLength: 0,
     };
-    void (async () => {
-      if (this.state !== "CONNECTED" || !this.session) return;
-      try { await this.sendEncrypted(this.socket, "DIAGNOSTIC", body); }
-      catch (sendError) { this.close(errorCode(sendError)); }
-    })();
+    if (this.state !== "CONNECTED" || !this.session) return Promise.resolve();
+    return this.sendEncrypted(this.socket, "DIAGNOSTIC", body)
+      .catch((sendError) => { this.close(errorCode(sendError)); });
   }
 
 }

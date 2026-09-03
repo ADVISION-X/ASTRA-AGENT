@@ -40,6 +40,13 @@ export type GptChildHandlerMap = {
   readonly [K in GptChildCapabilityId]?: GptChildHandler<K>;
 };
 
+type ConfirmedGptChildBrowserFact<K extends GptChildCapabilityId> = Omit<
+  GptChildBrowserFact, "browserOutcome" | "mutationOutcome"
+> & Readonly<{
+  browserOutcome: "CONFIRMED";
+  mutationOutcome: K extends "prepare_clean_gpt_chat" ? "no" | "confirmed" : "confirmed";
+}>;
+
 type GptInputDecoderIntent = Readonly<{
   childCapabilityId: GptChildCapabilityId;
   input: object;
@@ -61,7 +68,7 @@ export const requireBrowser = (context: GptExecutionContext) => {
 export const requireConfirmedBrowserFact = <K extends GptChildCapabilityId>(
   intent: GptChildCapabilityIntent<K>,
   browser: Pick<BrowserTargetLease, "readAtomicStepRecovery">,
-): GptChildBrowserFact => {
+): ConfirmedGptChildBrowserFact<K> => {
   const contract = GPT_CHILD_CAPABILITY_CONTRACTS[intent.childCapabilityId];
   if (contract.replayPolicy === "observation-only"
     || contract.replayPolicy === "transaction-identical-readback") {
@@ -75,7 +82,10 @@ export const requireConfirmedBrowserFact = <K extends GptChildCapabilityId>(
     actionOrdinal: intent.actionOrdinal,
     replayPolicy: contract.replayPolicy,
   });
-  if (!recovery || recovery.state !== "confirmed" || recovery.mutationOutcome !== "confirmed") {
+  const mutationOutcome = recovery?.mutationOutcome;
+  if (!recovery || recovery.state !== "confirmed"
+    || (mutationOutcome !== "confirmed"
+      && (intent.childCapabilityId !== "prepare_clean_gpt_chat" || mutationOutcome !== "no"))) {
     throw gptExecutionFailure("GPT_BROWSER_TERMINAL_FACT_REQUIRED", {
       mutationOutcome: recovery?.mutationOutcome ?? "no",
     });
@@ -85,11 +95,11 @@ export const requireConfirmedBrowserFact = <K extends GptChildCapabilityId>(
     childCapabilityId: intent.childCapabilityId,
     effectScope: contract.replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local",
     browserOutcome: "CONFIRMED",
-    mutationOutcome: recovery.mutationOutcome,
+    mutationOutcome,
     terminalAt: recovery.terminalAt,
     evidenceRef: recovery.authorityRef,
     evidenceHash: recovery.authorityHash,
-  });
+  }) as ConfirmedGptChildBrowserFact<K>;
 };
 
 export const requireExactInputKeys = (

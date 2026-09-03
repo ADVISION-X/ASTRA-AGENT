@@ -69,6 +69,7 @@ export type BrowserAuthorityTargetClaim = Readonly<{
 }>;
 
 type AwaitingReply = Readonly<{
+  targetRef: string;
   replyChannelToken: string;
   permitSequence: number;
   resolve: (reply: BrowserCommandReply) => void;
@@ -142,6 +143,21 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     }
   }
 
+  public rejectTargetCommands(targetRef: string, reasonCode: string, nativeCauseCode?: string): void {
+    const active = this.active;
+    if (!active) return;
+    const replies = new Map(active.replies);
+    for (const [sequence, reply] of replies) {
+      if (reply.targetRef !== targetRef) continue;
+      clearTimeout(reply.timeout);
+      replies.delete(sequence);
+      const cause = nativeCauseCode
+        ? Object.assign(new Error(nativeCauseCode), { code: nativeCauseCode }) : undefined;
+      reply.reject(new Error(reasonCode, { cause }));
+    }
+    this.active = { ...active, replies };
+  }
+
   public async send(
     permit: BrowserCommandPermit,
     command: BrowserGovernedCommand,
@@ -165,6 +181,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       }, commandDeadlineMs);
       const replies = new Map(active.replies);
       replies.set(sequence, {
+        targetRef: permit.targetRef,
         replyChannelToken: permit.replyChannelToken,
         permitSequence: permit.sequence,
         resolve,

@@ -3,6 +3,13 @@ import { createHash } from "node:crypto";
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 
 import { createGptAcceptanceHarness } from "./gpt-acceptance-harness.js";
+import { throwGptChildFailure } from "../production-child-support.js";
+import { serializeTerminalFailure } from "../../../lib/local-runtime/production/terminal-failure.js";
+import {
+  exerciseBrowserDispatchedEvidenceReadback,
+  exerciseBrowserRejectedEvidenceReadback,
+  exerciseFailedEvidenceReadback,
+} from "./gpt-failure-evidence-readback.acceptance-support.js";
 import {
   coherentObservationPacket,
   exactAssistantTurnReply,
@@ -44,6 +51,7 @@ const conversationFacts = (input: Readonly<{
   composerHash?: string;
   promptHash?: string;
   assistant?: boolean;
+  attachment?: boolean;
   menuOpen?: boolean;
 }> = {}): Readonly<Record<string, Fact>> => ({
   composer: exact([{ semanticTextHash: input.composerHash ?? EMPTY_HASH }]),
@@ -53,7 +61,7 @@ const conversationFacts = (input: Readonly<{
   "assistant-turns": input.assistant
     ? exact([{ testId: "conversation-turn-2", semanticTextHash: responseHash }])
     : absent(),
-  attachments: absent(),
+  attachments: input.attachment ? exact() : absent(),
   generating: absent(),
   "source-trigger": exact([{ ariaExpanded: input.menuOpen ? "true" : "false" }]),
   "active-menu": input.menuOpen ? exact() : absent(),
@@ -132,6 +140,96 @@ const freshHarness = () => createGptAcceptanceHarness("gpt-browser-handoff");
   assert.equal(result.value?.staleDraftCleared, true);
   assert.equal(result.proof.committedMutation, "confirmed");
   assert.equal(fixture.physicalMutations(), 1);
+}
+
+{
+  const { execute } = freshHarness();
+  let reads = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      reads += 1;
+      return coherentObservationPacket(intent, conversationFacts({
+        composerHash: reads === 1 ? hash("stale draft") : EMPTY_HASH,
+      }), "https://chatgpt.com/");
+    }
+    if (intent.kind === "fill") {
+      return { mutationCount: 0, postconditionVerified: true, zeroActionSatisfied: true };
+    }
+    throw new Error(`UNEXPECTED_ZERO_ACTION_CLEAN_CHAT_INTENT:${intent.kind}`);
+  });
+  const result = await execute("prepare_clean_gpt_chat", fixture.browser, { timeoutMs: 1_000 });
+  assert.equal(result.status, "success", result.failureCode ?? "zero-action stale draft reconciliation failed");
+  assert.equal(result.value?.staleDraftCleared, false);
+  assert.equal(result.proof.committedMutation, "no");
+  assert.equal(result.proof.browserFact?.browserOutcome, "CONFIRMED");
+  assert.equal(result.proof.browserFact?.mutationOutcome, "no");
+  assert.equal(fixture.physicalMutations(), 0);
+}
+
+{
+  const { execute } = freshHarness();
+  let reads = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      reads += 1;
+      return coherentObservationPacket(intent, conversationFacts({
+        composerHash: reads === 1 ? hash("stale draft") : EMPTY_HASH,
+        attachment: reads > 1,
+      }), "https://chatgpt.com/");
+    }
+    if (intent.kind === "fill") {
+      return { mutationCount: 0, postconditionVerified: true, zeroActionSatisfied: true };
+    }
+    throw new Error(`UNEXPECTED_FAILED_CLEAN_CHAT_INTENT:${intent.kind}`);
+  });
+  const result = await execute("prepare_clean_gpt_chat", fixture.browser, { timeoutMs: 1_000 });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, "GPT_CHAT_DRAFT_CLEAR_FAILED");
+  assert.equal(result.failureCause?.code, "GPT_CHAT_ATTACHMENT_PRESENT");
+  assert.equal(result.proof.committedMutation, "no");
+  assert.equal(result.proof.browserFact?.browserOutcome, "CONFIRMED");
+  assert.equal(result.proof.browserFact?.mutationOutcome, "no");
+  assert.equal(result.proof.browserFact?.evidenceRef, "browser-mutation:acceptance-call");
+  assert.equal(result.proof.candidateCardinality.raw, 1);
+  assert.equal(fixture.physicalMutations(), 0);
+  let serialized: ReturnType<typeof serializeTerminalFailure> | null = null;
+  try { throwGptChildFailure(result); }
+  catch (error) { serialized = serializeTerminalFailure(error); }
+  assert.deepEqual(serialized, {
+    code: "GPT_CHAT_DRAFT_CLEAR_FAILED",
+    mutation_outcome: "no",
+    effect_scope: "target_local",
+    child_capability_id: "prepare_clean_gpt_chat",
+    browser_outcome: "CONFIRMED",
+    evidence_ref: "browser-mutation:acceptance-call",
+    evidence_hash: `sha256:${"9".repeat(64)}`,
+    cause: { name: "Error", code: "GPT_CHAT_ATTACHMENT_PRESENT" },
+  });
+  await exerciseFailedEvidenceReadback(result, serialized!);
+}
+
+await exerciseBrowserRejectedEvidenceReadback();
+await exerciseBrowserDispatchedEvidenceReadback();
+
+{
+  const { execute } = freshHarness();
+  let reads = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      reads += 1;
+      return coherentObservationPacket(intent, conversationFacts({
+        composerHash: reads === 1 ? hash("stale draft") : EMPTY_HASH,
+        assistant: reads > 1,
+      }), "https://chatgpt.com/");
+    }
+    if (intent.kind === "fill") {
+      return { mutationCount: 0, postconditionVerified: true, zeroActionSatisfied: true };
+    }
+    throw new Error(`UNEXPECTED_ASSISTANT_RESIDUE_INTENT:${intent.kind}`);
+  });
+  const result = await execute("prepare_clean_gpt_chat", fixture.browser, { timeoutMs: 1_000 });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCause?.code, "GPT_CHAT_PRIOR_ASSISTANT_TURN_PRESENT");
 }
 
 {

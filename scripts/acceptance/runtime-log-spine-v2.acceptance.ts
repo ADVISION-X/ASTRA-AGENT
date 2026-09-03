@@ -202,7 +202,7 @@ const browserFailureLogger = createRuntimeLogger({
   fileSink: { directoryPath: browserFailureRoot },
 });
 new BrowserRuntimeLogEmitter(browserFailureLogger, () => 7)
-  .failure("BROWSER_DEVTOOLS_CONFLICT", "extension-runtime");
+  .failure("BROWSER_DEVTOOLS_CONFLICT", "extension-runtime", "CHROME_DEBUGGER_CANCELED_BY_USER");
 const browserFailureEvents = readFileSync(browserFailureLogger.currentSegmentPath()!, "utf8").trim().split("\n")
   .map((line) => JSON.parse(line) as RuntimeLogEventV2);
 const browserFailureTerminal = browserFailureEvents.find((event) => event.kind === "span.terminal");
@@ -211,6 +211,8 @@ assert.equal(browserFailureTerminal?.kind === "span.terminal"
   ? browserFailureTerminal.failure?.code : null, "BROWSER_DEVTOOLS_CONFLICT");
 assert.notEqual(browserFailureTerminal?.kind === "span.terminal"
   ? browserFailureTerminal.failure?.code : null, "BROWSER_INFRASTRUCTURE_FAILED");
+assert.equal(browserFailureTerminal?.kind === "span.terminal"
+  ? browserFailureTerminal.failure?.nativeCause : null, "CHROME_DEBUGGER_CANCELED_BY_USER");
 
 const capacityRoot = mkdtempSync(path.join(tmpdir(), "runtime-log-capacity-"));
 const capacityLogger = createRuntimeLogger({

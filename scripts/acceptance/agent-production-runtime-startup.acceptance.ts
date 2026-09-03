@@ -313,8 +313,6 @@ try {
     runtimeTransportFailure("COLUMN", 500),
     null,
     "CLAIM_REQUEST_FAILED",
-    undefined,
-    "website",
   );
   assert.equal(terminal.failure?.code, "COLUMN");
   assert.equal(terminal.failure?.httpStatus, 500);

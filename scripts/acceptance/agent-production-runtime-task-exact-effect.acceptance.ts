@@ -20,6 +20,7 @@ import type { WorkbenchBrowserAuthority } from
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import { typedExecutionFailure } from "../../src/lib/execution-failure.js";
+import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
 import { HASH_A, HASH_B, identityFor, task } from "./agent-production-runtime-fixtures.js";
 
 const call = Object.freeze({
@@ -118,12 +119,16 @@ try {
     countProviderTurnDispatches: () => 0,
     acquireJobBoundTargetLease: async () => { throw new Error("UNEXPECTED_BROWSER_ACQUISITION"); },
   });
-  const execution = (attemptId: string, leaseVersion: number) => createProductionGptChildTools(
+  const execution = (
+    attemptId: string,
+    leaseVersion: number,
+    browserAuthority: WorkbenchBrowserAuthority = authority,
+  ) => createProductionGptChildTools(
     root,
     HASH_A,
     createGptAbilityGroup(),
     evidenceStore,
-    authority,
+    browserAuthority,
     {
       continuationStore: store,
       continuationReadback: {
@@ -173,6 +178,41 @@ try {
   const current = await secondExecution.tools.readCallFacts(call);
   assert.equal(current.evidence, null);
   assert.equal(current.mutation, null);
+  const rejectedAuthority = Object.assign(Object.create(null) as WorkbenchBrowserAuthority, {
+    readExactCallMutationFact: (input: Parameters<WorkbenchBrowserAuthority["readExactCallMutationFact"]>[0]) => ({
+      effectScope: "provider_effect" as const,
+      outcome: "REJECTED" as const,
+      mutationOutcome: "confirmed" as const,
+      terminalAt: "2026-09-03T00:00:00.000Z",
+      failureCode: "BROWSER_DOM_ACTION_NOT_QUALIFIED",
+      nativeFailureCode: "BROWSER_DOM_ACTION_HIT_TEST_FAILED",
+      authorityRef: "browser-mutation:rejected-submit",
+      authorityHash: HASH_B,
+      targetRef: "target:rejected-submit",
+      documentRef: "document:rejected-submit",
+      productStepId: call.productStepId,
+      callId: call.callId,
+      childCapabilityId: call.child,
+      actionOrdinal: input.actionOrdinal,
+    }),
+    countProviderTurnDispatches: () => 0,
+    acquireJobBoundTargetLease: async () => { throw new Error("UNEXPECTED_BROWSER_ACQUISITION"); },
+  });
+  const rejectedExecution = execution(attempt2, 22, rejectedAuthority);
+  let rejectedError: unknown = null;
+  try { await rejectedExecution.tools.execute({ ...call, sessionKey: "rejected-replay" }); }
+  catch (error) { rejectedError = error; }
+  assert.deepEqual(serializeTerminalFailure(rejectedError), {
+    code: "BROWSER_DOM_ACTION_NOT_QUALIFIED",
+    mutation_outcome: "confirmed",
+    effect_scope: "provider_effect",
+    child_capability_id: "submit_exact_gpt_turn_once",
+    browser_outcome: "REJECTED",
+    evidence_ref: "browser-mutation:rejected-submit",
+    evidence_hash: HASH_B,
+    cause: { name: "Error", code: "BROWSER_DOM_ACTION_HIT_TEST_FAILED" },
+  }, "WAL-only REJECTED replay must preserve the exact Browser terminal and native failure tuple");
+  await rejectedExecution.settle(null);
   const unique = await secondExecution.tools.readCallFacts({ ...call, lookupKind: "task_exact_effect" });
   assert.equal(unique.exactCallIdentityHash, attempt1Hash);
   assert.equal(unique.evidence?.readbackVerified, true);

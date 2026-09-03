@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { executionFailure } from "../../../../lib/execution-failure.js";
+import { gptExecutionFailure } from "../../execution-fault.js";
 import type { BrowserTargetLease } from "../../../../lib/browser/browser-authority-api.js";
 
 import type { GptChildHandlerMap } from "../child-handler.js";
@@ -196,7 +197,7 @@ const mutationFacts = (
     ...facts, decision: "ACT" as const,
     factResultIds: Object.freeze([...facts.factResultIds, browserFact.evidenceRef]),
     authorityRefHashes: Object.freeze([...facts.authorityRefHashes, browserFact.evidenceHash]),
-    mutationOutcome: "confirmed" as const, browserFact, nativeFailureCode: null,
+    mutationOutcome: browserFact.mutationOutcome, browserFact, nativeFailureCode: null,
   });
 };
 
@@ -205,6 +206,19 @@ const freshChatTopology = (state: ConversationState): boolean => state.composerR
   && state.userRaw === 0 && state.assistantRaw === 0
   && state.attachmentsRaw === 0 && state.generatingRaw === 0
   && isGptRootUrl(state.currentUrl);
+
+const freshChatFailureCode = (state: ConversationState): string => {
+  if (!isGptRootUrl(state.currentUrl)) return "GPT_CHAT_ROOT_URL_CHANGED";
+  if (state.composerRaw === 0) return "GPT_CHAT_COMPOSER_MISSING";
+  if (state.composerRaw !== 1) return "GPT_CHAT_COMPOSER_AMBIGUOUS";
+  if (state.composerEligible !== 1) return "GPT_CHAT_COMPOSER_NOT_ACTIONABLE";
+  if (state.composerHash === null) return "GPT_CHAT_DRAFT_HASH_MISSING";
+  if (state.userRaw !== 0) return "GPT_CHAT_PRIOR_USER_TURN_PRESENT";
+  if (state.assistantRaw !== 0) return "GPT_CHAT_PRIOR_ASSISTANT_TURN_PRESENT";
+  if (state.attachmentsRaw !== 0) return "GPT_CHAT_ATTACHMENT_PRESENT";
+  if (state.generatingRaw !== 0) return "GPT_CHAT_GENERATION_PRESENT";
+  return "GPT_CHAT_DRAFT_NOT_EMPTY_AFTER_CLEAR";
+};
 
 const checkpointActionsMenuReady = (state: ConversationState): boolean => state.menuRaw === 1
   && state.menuEligible === 1 && state.forkRaw === 1 && state.forkEligible === 1
@@ -245,14 +259,32 @@ export const conversationChildHandlers = {
       kind: "fill", selector: GPT_COMPOSER_SELECTOR, approvedText: "",
       clearBeforeType: true, expectedMatches: 1,
     });
+    const browserFact = requireConfirmedBrowserFact(intent, browser);
     const readback = await readConversationState(browser);
+    const proofFacts = declaredFacts({
+      ...readback.facts, decision: "ACT", mutationOutcome: browserFact.mutationOutcome,
+      factResultIds: Object.freeze([...readback.facts.factResultIds, browserFact.evidenceRef]),
+      authorityRefHashes: Object.freeze([...readback.facts.authorityRefHashes, browserFact.evidenceHash]),
+      browserFact, nativeFailureCode: null,
+    });
     if (!freshChatTopology(readback) || readback.composerHash !== hash("")) {
-      throw executionFailure("failed", "GPT_CHAT_DRAFT_CLEAR_FAILED");
+      const causeCode = freshChatFailureCode(readback);
+      throw gptExecutionFailure("GPT_CHAT_DRAFT_CLEAR_FAILED", {
+        mutationOutcome: browserFact.mutationOutcome,
+        evidence: { evidenceRef: browserFact.evidenceRef, evidenceHash: browserFact.evidenceHash },
+        browserEffect: {
+          effectScope: browserFact.effectScope,
+          childCapabilityId: browserFact.childCapabilityId,
+          browserOutcome: browserFact.browserOutcome,
+        },
+        proofFacts,
+        cause: Object.assign(new Error(causeCode), { code: causeCode }),
+      });
     }
     return success({
       value: { composer: 1, turns: 0, attachments: 0, generating: 0,
-        draftEmpty: true, staleDraftCleared: true },
-      ...mutationFacts(intent, browser, readback.facts),
+        draftEmpty: true, staleDraftCleared: browserFact.mutationOutcome === "confirmed" },
+      ...proofFacts,
     });
   },
 

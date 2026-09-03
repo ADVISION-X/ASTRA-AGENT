@@ -67,9 +67,7 @@ await assert.rejects(
 
 type RuntimeStartupListener = () => void;
 type TabUpdatedListener = Parameters<ExtensionChromeApi["tabs"]["onUpdated"]["addListener"]>[0];
-type TabRemovedListener = NonNullable<ExtensionChromeApi["tabs"]["onRemoved"]>["addListener"] extends (
-  listener: infer T,
-) => void ? T : never;
+type DebuggerDetachListener = Parameters<ExtensionChromeApi["debugger"]["onDetach"]["addListener"]>[0];
 type AlarmListener = Parameters<ExtensionChromeApi["alarms"]["onAlarm"]["addListener"]>[0];
 
 const listeners: {
@@ -183,8 +181,8 @@ assert.equal(rejectedBootstrap.currentFailureCode(), "BROWSER_PAIRING_ORIGIN_REJ
 
 let createdTab: Readonly<{ active: false; url: string }> | null = null;
 let debuggerEvent: Parameters<ExtensionChromeApi["debugger"]["onEvent"]["addListener"]>[0] | null = null;
+let debuggerDetach: DebuggerDetachListener = () => { throw new Error("debugger detach listener was not installed"); };
 let targetTabUpdated: TabUpdatedListener = () => { throw new Error("target tab listener was not installed"); };
-let targetTabRemoved: TabRemovedListener = () => { throw new Error("target tab removal listener was not installed"); };
 let nextCreatedTabId = 3;
 let getTargetsCalls = 0;
 let debuggerTargets: readonly ExtensionDebugTarget[] = [];
@@ -198,6 +196,8 @@ const debuggerMethods: string[] = [];
 const removedTabs: number[] = [];
 const mainFrameUrlByTab = new Map<number, string>();
 const targetFrames: Array<Readonly<{ kind: "TARGET_CLAIM" | "TARGET_REVOKE"; body: Record<string, unknown> }>> = [];
+const targetFailures: Array<Readonly<Record<string, unknown>>> = [];
+const targetFailureOrder: string[] = [];
 const targetChromeApi: ExtensionChromeApi = {
   runtime: chromeApi.runtime,
   debugger: {
@@ -227,7 +227,7 @@ const targetChromeApi: ExtensionChromeApi = {
         ? { frameTree: { frame: { loaderId: `loader-${tabId}`, url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/" } } }
         : {};
     },
-    onDetach: { addListener: () => undefined },
+    onDetach: { addListener: (listener) => { debuggerDetach = listener; } },
     onEvent: { addListener: (listener) => { debuggerEvent = listener; } },
   },
   tabs: {
@@ -237,14 +237,14 @@ const targetChromeApi: ExtensionChromeApi = {
     },
     remove: async (tabId) => { removedTabs.push(tabId); },
     onUpdated: { addListener: (listener) => { targetTabUpdated = listener; } },
-    onRemoved: { addListener: (listener) => { targetTabRemoved = listener; } },
+    onRemoved: { addListener: () => undefined },
   },
   alarms: chromeApi.alarms,
 };
 const targetAuthority = new ExtensionTargetAuthority(
   targetChromeApi,
-  async (kind, body) => { targetFrames.push({ kind, body }); },
-  () => undefined,
+  async (kind, body) => { targetFrames.push({ kind, body }); if (kind === "TARGET_REVOKE") targetFailureOrder.push(kind); },
+  (failure) => { targetFailures.push(failure); targetFailureOrder.push("DIAGNOSTIC"); },
 );
 targetAuthority.start();
 const firstAcquisition = targetAuthority.acquireJobBoundChatGptTarget();
@@ -377,8 +377,15 @@ assert.notEqual(targetFrames.at(-1)?.body.documentRef, firstDocumentRef,
   "a fresh job must publish a new Document instead of inheriting residual composer attachments");
 assert.equal(targetFrames.at(-1)?.body.claimOrigin, "https://chatgpt.com",
   "the debugger-owned main frame may publish only the exact admitted origin");
-await targetAuthority.releaseActiveTarget();
-targetTabRemoved(3);
+targetFailureOrder.length = 0;
+debuggerDetach({ tabId: 3 }, "target_closed");
+await Promise.resolve();
+assert.deepEqual(targetFailureOrder, ["DIAGNOSTIC", "TARGET_REVOKE"]);
+assert.deepEqual(targetFailures.at(-1), {
+  targetRef: firstTargetRef, runtimeEventType: "debugger-detach",
+  reasonCode: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT",
+  nativeCauseCode: "CHROME_DEBUGGER_TARGET_CLOSED",
+});
 const replacementAcquisition = targetAuthority.acquireJobBoundChatGptTarget();
 await Promise.resolve();
 targetTabUpdated(4, { status: "complete" }, { id: 4, url: "https://chatgpt.com/", title: "ChatGPT" });
@@ -388,8 +395,12 @@ assert.equal(targetFrames.at(-1)?.body.targetRef, "target-tab-4",
 assert.deepEqual(createdTab, { active: false, url: "https://chatgpt.com/" },
   "replacement acquisition must remain inactive and must not touch an operator tab");
 assert.equal(nextCreatedTabId, 5, "physical loss must create exactly one replacement production Tab");
-await targetAuthority.releaseActiveTarget();
-targetTabRemoved(4);
+debuggerDetach({ tabId: 4 }, "canceled_by_user");
+assert.deepEqual(targetFailures.at(-1), {
+  targetRef: "target-tab-4", runtimeEventType: "debugger-detach",
+  reasonCode: "BROWSER_DEVTOOLS_CONFLICT",
+  nativeCauseCode: "CHROME_DEBUGGER_CANCELED_BY_USER",
+});
 
 const rejectedOrigin = targetAuthority.acquireJobBoundChatGptTarget();
 await Promise.resolve();

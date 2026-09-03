@@ -33,12 +33,28 @@ import { executionFailure } from "../../execution-failure.js";
 import type { SerializedExecutionFailure } from "./terminal-failure.js";
 import { productionCloudFetch } from "./cloud-transport.js";
 import type { ProductionLeaseRelease } from "./lease-release-contract.js";
+import {
+  runtimeTransportFailure,
+  typedRuntimeTransportFailure,
+} from "./transport-failure.js";
 
 export type { ProductionLeaseRelease } from "./lease-release-contract.js";
 
 const fenceHeaders = (job: ClaimedProductionTask): Record<string, string> => ({
   "x-ai-execution-fence-hash": job.grant.execution_fence.fence_hash,
 });
+
+const throwMaterialDownloadFailure = async (response: Response): Promise<never> => {
+  try {
+    const envelope = await response.json() as unknown;
+    parseJsonEnvelope(envelope, response.status);
+  } catch (error) {
+    const remoteFailure = typedRuntimeTransportFailure(error);
+    if (remoteFailure) throw remoteFailure;
+    throw runtimeTransportFailure("MATERIAL_DOWNLOAD_RESPONSE_INVALID", response.status, error);
+  }
+  throw runtimeTransportFailure("MATERIAL_DOWNLOAD_RESPONSE_INVALID", response.status);
+};
 
 export async function claimProductionTasks(
   session: ProductionWorkerSession,
@@ -83,7 +99,7 @@ export async function downloadProductionMaterials(
         signal: AbortSignal.timeout(120_000),
       },
     );
-    if (!response.ok) throw executionFailure("failed", `MATERIAL_DOWNLOAD_FAILED:${response.status}:${material.material_id}`);
+    if (!response.ok) await throwMaterialDownloadFailure(response);
     const bytes = new Uint8Array(await response.arrayBuffer());
     if (bytes.byteLength !== material.bytes || sha256(bytes) !== material.sha256) {
       throw executionFailure("failed", `MATERIAL_DOWNLOAD_IDENTITY_MISMATCH:${material.material_id}`);

@@ -11,6 +11,7 @@ export const mutationAuthorityHash = (row: unknown): `sha256:${string}` => {
   if (row && typeof row === "object" && !Array.isArray(row)) {
     const normalized = { ...row as Record<string, unknown> };
     if (normalized.mutation_outcome === null) delete normalized.mutation_outcome;
+    if (normalized.native_cause_code === null) delete normalized.native_cause_code;
     hashInput = normalized;
   }
   return `sha256:${createHash("sha256").update(JSON.stringify(hashInput)).digest("hex")}`;
@@ -43,6 +44,7 @@ const currentTableSql = `
     state text not null check(state in ('PREPARED','DISPATCHED','CONFIRMED','REJECTED','FAILED')),
     mutation_outcome text check(mutation_outcome in ('no','dispatched','confirmed')),
     reason text,
+    native_cause_code text,
     terminal_at text,
     updated_at text not null
   )`;
@@ -61,6 +63,12 @@ const createIndexes = (database: Database.Database): void => {
 const addMutationOutcomeWithoutRebuild = (database: Database.Database): void => {
   database.transaction(() => database.exec(
     "alter table browser_mutations add column mutation_outcome text check(mutation_outcome in ('no','dispatched','confirmed'))",
+  ))();
+};
+
+const addNativeCauseWithoutRebuild = (database: Database.Database): void => {
+  database.transaction(() => database.exec(
+    "alter table browser_mutations add column native_cause_code text",
   ))();
 };
 
@@ -89,5 +97,6 @@ export const ensureCurrentSchema = (database: Database.Database): void => {
     return;
   }
   if (!columns.has("mutation_outcome")) addMutationOutcomeWithoutRebuild(database);
+  if (!columns.has("native_cause_code")) addNativeCauseWithoutRebuild(database);
   createIndexes(database);
 };

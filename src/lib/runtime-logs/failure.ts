@@ -12,7 +12,7 @@ const cleanExplicitCode = (value: string): string => {
 };
 
 const knownNativeCause = (value: unknown): string | undefined => typeof value === "string"
-  ? /\b(ECONNREFUSED|ECONNRESET|ETIMEDOUT|UND_ERR_[A-Z_]+)\b/u.exec(value)?.[1]
+  ? /\b(ECONNREFUSED|ECONNRESET|ETIMEDOUT|UND_ERR_[A-Z_]+|CHROME_DEBUGGER_TARGET_CLOSED|CHROME_DEBUGGER_CANCELED_BY_USER)\b/u.exec(value)?.[1]
   : undefined;
 
 const nativeCause = (error: unknown): string | undefined => {

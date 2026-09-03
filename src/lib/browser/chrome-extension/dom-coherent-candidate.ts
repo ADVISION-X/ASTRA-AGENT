@@ -9,6 +9,7 @@ type CandidateRequest = Readonly<{
   scope?: BrowserDomReadScope;
   text?: Readonly<{ value: string; exact: boolean }>;
 }>;
+export type BrowserPointerAction = Readonly<{ x: number; y: number }>;
 
 const COHERENT_CANDIDATE_FUNCTION = `function (spec) {
   ${BROWSER_MECHANICAL_FACTS_READER_SOURCE}
@@ -33,8 +34,29 @@ const COHERENT_CANDIDATE_FUNCTION = `function (spec) {
   const candidates = raw.filter(targetEligible);
   if (candidates.length !== 1) return candidates.length === 0
     ? "BROWSER_DOM_CANDIDATE_MISSING" : "BROWSER_DOM_CANDIDATE_AMBIGUOUS";
-  return candidates[0];
+  const candidate = candidates[0];
+  if (spec.output !== "pointer") return candidate;
+  const facts = browserMechanicalFacts(candidate, true);
+  if (!facts.connected) return "BROWSER_DOM_ACTION_NODE_DISCONNECTED";
+  if (!facts.layout || facts.bounds === null) return "BROWSER_DOM_ACTION_NO_LAYOUT_BOX";
+  if (!facts.visible) return "BROWSER_DOM_ACTION_NOT_VISIBLE";
+  if (facts.ariaHidden) return "BROWSER_DOM_ACTION_ARIA_HIDDEN";
+  if (facts.inert) return "BROWSER_DOM_ACTION_INERT";
+  if (facts.disabled) return "BROWSER_DOM_ACTION_DISABLED";
+  if (facts.ariaDisabled) return "BROWSER_DOM_ACTION_ARIA_DISABLED";
+  if (!facts.viewport) return "BROWSER_DOM_ACTION_OUTSIDE_VIEWPORT";
+  if (globalThis.getComputedStyle(candidate).pointerEvents === "none") {
+    return "BROWSER_DOM_ACTION_POINTER_EVENTS_NONE";
+  }
+  if (!facts.hitTest) return "BROWSER_DOM_ACTION_HIT_TEST_FAILED";
+  return {
+    x: facts.bounds.x + facts.bounds.width / 2,
+    y: facts.bounds.y + facts.bounds.height / 2
+  };
 }`;
+
+const pointerActionCode = (value: unknown): value is string => typeof value === "string"
+  && /^BROWSER_DOM_ACTION_(?:NODE_DISCONNECTED|NO_LAYOUT_BOX|NOT_VISIBLE|ARIA_HIDDEN|INERT|DISABLED|ARIA_DISABLED|OUTSIDE_VIEWPORT|POINTER_EVENTS_NONE|HIT_TEST_FAILED)$/u.test(value);
 
 const record = (value: unknown): BrowserRecord => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -89,7 +111,8 @@ export const resolveCoherentMutationCandidate = async (
     objectIds.add(rootObjectId);
     const call = record(await read(() => runtime.send(target.tabId, "Runtime.callFunctionOn", {
       objectId: rootObjectId, functionDeclaration: COHERENT_CANDIDATE_FUNCTION,
-      arguments: [{ value: request }], returnByValue: false, awaitPromise: false, silent: true,
+      arguments: [{ value: { ...request, output: "node" } }], returnByValue: false,
+      awaitPromise: false, silent: true,
     })));
     if (call.exceptionDetails !== undefined) throw new Error("BROWSER_DOM_READ_INVALID");
     const result = record(call.result);
@@ -115,6 +138,55 @@ export const resolveCoherentMutationCandidate = async (
   } finally {
     for (const objectId of objectIds) try {
       await read(() => runtime.send(target.tabId, "Runtime.releaseObject", { objectId }));
+    } catch (error) {
+      if (primaryFailure === null) throw machineError(error);
+    }
+  }
+};
+
+export const resolveCoherentPointerAction = async (
+  runtime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  request: CandidateRequest,
+): Promise<BrowserPointerAction> => {
+  let rootObjectId: string | null = null;
+  let primaryFailure: unknown = null;
+  try {
+    const loaderBefore = await mainFrameLoaderId(runtime, target.tabId);
+    const document = record(await read(() => runtime.send(
+      target.tabId, "DOM.getDocument", { depth: 0, pierce: true },
+    )));
+    const nodeId = record(document.root).nodeId;
+    if (!Number.isSafeInteger(nodeId)) throw new Error("BROWSER_DOM_READ_INVALID");
+    const resolved = record(await read(() => runtime.send(target.tabId, "DOM.resolveNode", { nodeId })));
+    rootObjectId = record(resolved.object).objectId as string;
+    if (typeof rootObjectId !== "string" || rootObjectId.length === 0) {
+      throw new Error("BROWSER_DOM_READ_INVALID");
+    }
+    const call = record(await read(() => runtime.send(target.tabId, "Runtime.callFunctionOn", {
+      objectId: rootObjectId, functionDeclaration: COHERENT_CANDIDATE_FUNCTION,
+      arguments: [{ value: { ...request, output: "pointer" } }], returnByValue: true,
+      awaitPromise: false, silent: true,
+    })));
+    if (call.exceptionDetails !== undefined) throw new Error("BROWSER_DOM_READ_INVALID");
+    const value = record(call.result).value;
+    if (typeof value === "string" && (/^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|READ_INVALID)$/u.test(value)
+      || pointerActionCode(value))) throw new Error(value);
+    const point = record(value);
+    if (await mainFrameLoaderId(runtime, target.tabId) !== loaderBefore) {
+      throw new Error("BROWSER_DOCUMENT_INVALID");
+    }
+    if (typeof point.x !== "number" || !Number.isFinite(point.x)
+      || typeof point.y !== "number" || !Number.isFinite(point.y)) {
+      throw new Error("BROWSER_DOM_READ_INVALID");
+    }
+    return Object.freeze({ x: point.x, y: point.y });
+  } catch (error) {
+    primaryFailure = error;
+    throw machineError(error);
+  } finally {
+    if (rootObjectId !== null) try {
+      await read(() => runtime.send(target.tabId, "Runtime.releaseObject", { objectId: rootObjectId }));
     } catch (error) {
       if (primaryFailure === null) throw machineError(error);
     }

@@ -61,6 +61,21 @@ assert.equal(acted.proof.browserFact?.evidenceHash, `sha256:${"9".repeat(64)}`);
 assert.equal(JSON.stringify(acted.proof).includes(profile.modelDisplayName), false,
   "proof must contain only hashes, refs, cardinality and typed facts, never sensitive UI text");
 
+let zeroActionOpened = false;
+const zeroActionFixture = fakeBrowser((intent) => {
+  if (intent.kind === "observe") return coherentObservationPacket(intent, modelFacts(zeroActionOpened));
+  if (intent.kind === "click") {
+    zeroActionOpened = true;
+    return { mutationCount: 0, postconditionVerified: true, zeroActionSatisfied: true };
+  }
+  throw new Error(`UNEXPECTED_ZERO_ACTION_MODEL_INTENT:${intent.kind}`);
+});
+const zeroActionResult = await createGptAcceptanceHarness("gpt-proof-zero-action-scope")
+  .execute("open_gpt_model_selector_v2", zeroActionFixture.browser, { profile });
+assert.equal(zeroActionResult.status, "failed");
+assert.equal(zeroActionResult.failureCode, "GPT_BROWSER_TERMINAL_FACT_REQUIRED",
+  "CONFIRMED/no is legal only for prepare_clean_gpt_chat, never for another mutation Child");
+
 const stableHarnessOne = createGptAcceptanceHarness("gpt-proof-stable");
 const stableHarnessTwo = createGptAcceptanceHarness("gpt-proof-stable");
 const stableFixture = () => fakeBrowser((intent) => {

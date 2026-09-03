@@ -37,28 +37,31 @@ try {
   for (const key of ["ArrowLeft", "ArrowRight"] as const) {
     assert.equal(assertBrowserDomIntent({
       kind: "keypress",
-      selector: "[role='slider']",
+      selector: "[role='menuitem'][aria-label='能力']:not([aria-disabled='true'])",
       key,
       repeat: 4,
       expectedMatches: 1,
-      postKeypressMatch: { selector: "[role='slider'][aria-valuenow='3']", expectedMatches: 1, timeoutMs: 5_000 },
-    }).kind, "keypress", `${key} must be admitted for the governed reasoning slider`);
+      postKeypressMatch: { selector: "[role='slider'][aria-valuenow='3']", expectedMatches: 1,
+        readEligibility: "non-actionable-aria-state", timeoutMs: 5_000 },
+    }).kind, "keypress", `${key} must act on the capability item and only read the governed state slider`);
   }
   assert.throws(() => assertBrowserDomIntent({
     kind: "keypress",
-    selector: "[role='slider']",
+    selector: "[role='menuitem'][aria-label='能力']:not([aria-disabled='true'])",
     key: "ArrowRight",
     repeat: 5,
     expectedMatches: 1,
-    postKeypressMatch: { selector: "[role='slider']", expectedMatches: 1 },
+    postKeypressMatch: { selector: "[role='slider']", expectedMatches: 1,
+      readEligibility: "non-actionable-aria-state" },
   } as never), /BROWSER_COMMAND_PERMIT_INVALID/u,
   "a keypress repeat beyond the complete five-value slider must fail closed");
   assert.throws(() => assertBrowserDomIntent({
     kind: "keypress",
-    selector: "[role='slider']",
+    selector: "[role='menuitem'][aria-label='能力']:not([aria-disabled='true'])",
     key: "Tab",
     expectedMatches: 1,
-    postKeypressMatch: { selector: "[role='slider']", expectedMatches: 1 },
+    postKeypressMatch: { selector: "[role='slider']", expectedMatches: 1,
+      readEligibility: "non-actionable-aria-state" },
   } as never), /BROWSER_COMMAND_PERMIT_INVALID/u,
   "keypress admission must stay closed to unowned keys");
   const store = new BrowserMutationStore(root);
@@ -105,6 +108,10 @@ try {
   });
   assert.equal(rejectedFact?.outcome, "REJECTED");
   assert.equal(typeof rejectedFact?.terminalAt, "string");
+  assert.equal(rejectedFact?.authorityRef, "browser-mutation:command-1");
+  assert.equal(rejectedFact?.failureCode, "BROWSER_POSTCONDITION_FAILED");
+  assert.equal(rejectedFact?.nativeFailureCode, null);
+  assert.match(rejectedFact?.authorityHash ?? "", /^sha256:[a-f0-9]{64}$/u);
   assert.throws(() => store.readExactCallMutationFact({
     jobId: "job-1", attemptId: "attempt-1", ownerPluginId: "fixture-product-plugin",
     pluginVersion: 1, exactCallIdentityHash, actionOrdinal: 2,

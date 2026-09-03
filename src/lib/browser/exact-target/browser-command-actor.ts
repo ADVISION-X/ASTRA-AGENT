@@ -399,6 +399,7 @@ export class BrowserCommandActor {
         replyHash,
         result.mutationOutcome,
         result.failureCode ?? "BROWSER_POSTCONDITION_FAILED",
+        result.nativeCauseCode,
       );
     }
     else this.mutations.markConfirmed(permit.commandId, replyHash, result.mutationOutcome);
@@ -409,12 +410,14 @@ export class BrowserCommandActor {
     });
     if (result.terminal !== "rejected") return;
     const failureCode = result.failureCode ?? "BROWSER_POSTCONDITION_FAILED";
+    const nativeCause = result.nativeCauseCode
+      ? Object.assign(new Error(result.nativeCauseCode), { code: result.nativeCauseCode }) : undefined;
     const failureEvent = failBrowserCommandSpan({
       span: commandSpan, permit, proofHash: this.mutations.authorityHash(permit.commandId),
-      failureCode, pendingReceipt: false,
+      failureCode, error: new Error(failureCode, { cause: nativeCause }), pendingReceipt: false,
     });
     state.terminalized = true;
-    throw withRuntimeLogCause(new Error(failureCode), failureEvent.eventId);
+    throw withRuntimeLogCause(new Error(failureCode, { cause: nativeCause }), failureEvent.eventId);
   }
 
   private failExecution(

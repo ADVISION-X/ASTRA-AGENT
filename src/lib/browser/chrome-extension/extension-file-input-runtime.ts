@@ -49,6 +49,7 @@ const reject = (
     postconditionVerified: false,
     qualificationRejected: true,
     failureCode,
+    nativeCauseCode: null,
   });
 
 const readExactFileInput = async (

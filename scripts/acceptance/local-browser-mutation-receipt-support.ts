@@ -19,13 +19,16 @@ const fillCommand = { kind: "dom-intent" as const, intent: {
   kind: "fill" as const, selector: "#prompt-textarea", approvedText: "approved",
   clearBeforeType: false, expectedMatches: 1,
 } };
+const visibleMatchEvidence = {
+  postconditionRawCount: 1, postconditionEligibleCount: 1, postconditionRejections: [],
+} as const;
 
 export const exerciseStrictMutationReceipts = (): void => {
   const fileSuccess = { candidateCount: 1, identityRevalidated: true, mutationCount: 1,
     selectedFileCount: 1, approvedSetVerified: true, acceptVerified: true,
     postconditionVerified: true };
   assert.deepEqual(decodeBrowserMutationReceipt(fileCommand, fileSuccess), {
-    terminal: "confirmed", mutationOutcome: "confirmed", failureCode: null,
+    terminal: "confirmed", mutationOutcome: "confirmed", failureCode: null, nativeCauseCode: null,
   });
   for (const forged of [
     { ...fileSuccess, resolvedFilePaths: ["/secret.txt"] },
@@ -37,24 +40,67 @@ export const exerciseStrictMutationReceipts = (): void => {
   const crossKindFailure = { candidateCount: 1, qualificationStage: "actionability",
     identityRevalidated: false, mutationCount: 0,
     postconditionVerified: false, qualificationRejected: true,
-    failureCode: "BROWSER_FILE_INPUT_NOT_QUALIFIED" };
+    failureCode: "BROWSER_FILE_INPUT_NOT_QUALIFIED", nativeCauseCode: null };
   assert.throws(() => decodeBrowserMutationReceipt(clickCommand, crossKindFailure),
     /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
     "DOM commands must reject file-input-only qualification causes");
   for (const command of [clickCommand, keypressCommand, fillCommand] as const) {
     const failureCode = "BROWSER_DOM_ACTION_NOT_QUALIFIED" as const;
+    const nativeCauseCode = command.intent.kind === "click"
+      ? "BROWSER_DOM_ACTION_HIT_TEST_FAILED" as const : "BROWSER_DOM_CANDIDATE_MISSING" as const;
     assert.deepEqual(decodeBrowserMutationReceipt(command, {
-    ...crossKindFailure, failureCode,
-  }), { terminal: "rejected", mutationOutcome: "no", failureCode },
+    ...crossKindFailure, failureCode, nativeCauseCode,
+  }), { terminal: "rejected", mutationOutcome: "no", failureCode, nativeCauseCode },
   "pointer, keyboard, and fill actionability may truthfully reject one locked candidate with zero input");
   }
+  for (const command of [keypressCommand, fillCommand] as const) assert.throws(() =>
+    decodeBrowserMutationReceipt(command, {
+      ...crossKindFailure, failureCode: "BROWSER_DOM_ACTION_NOT_QUALIFIED",
+      nativeCauseCode: "BROWSER_DOM_ACTION_HIT_TEST_FAILED",
+    }), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
+  "keyboard actions must reject pointer-only native causes");
   assert.deepEqual(decodeBrowserMutationReceipt(clickCommand, {
     ...crossKindFailure, candidateCount: 0, qualificationStage: "candidate-set",
-    failureCode: "BROWSER_DOM_CANDIDATE_MISSING",
+    failureCode: "BROWSER_DOM_CANDIDATE_MISSING", nativeCauseCode: null,
   }), { terminal: "rejected", mutationOutcome: "no",
-    failureCode: "BROWSER_DOM_CANDIDATE_MISSING" });
+    failureCode: "BROWSER_DOM_CANDIDATE_MISSING", nativeCauseCode: null });
   assert.throws(() => decodeBrowserMutationReceipt(clickCommand, {
     ...crossKindFailure, qualificationStage: "candidate-set", failureCode: "BROWSER_DOM_CANDIDATE_MISSING",
   }), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
   "candidate-set causes and candidate counts must describe the same fact");
+  const fillReadbackFailure = {
+    filled: true, candidateCount: 0, identityRevalidated: false, mutationCount: 1,
+    retainedValueVerified: false, postconditionVerified: false,
+    failureCode: "BROWSER_POSTCONDITION_FAILED", nativeCauseCode: "BROWSER_DOM_CANDIDATE_MISSING",
+  };
+  assert.deepEqual(decodeBrowserMutationReceipt(fillCommand, fillReadbackFailure), {
+    terminal: "rejected", mutationOutcome: "confirmed", failureCode: "BROWSER_POSTCONDITION_FAILED",
+    nativeCauseCode: "BROWSER_DOM_CANDIDATE_MISSING",
+  });
+  for (const forged of [
+    { ...fillReadbackFailure, nativeCauseCode: undefined },
+    { ...fillReadbackFailure, nativeCauseCode: "BROWSER_TARGET_INVALID" },
+  ]) assert.throws(() => decodeBrowserMutationReceipt(fillCommand, forged),
+    /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
+    "a failed fresh fill readback must preserve one admitted DOM cause");
+  assert.deepEqual(decodeBrowserMutationReceipt(clickCommand, {
+    clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
+    postconditionVerified: true, ...visibleMatchEvidence,
+  }), { terminal: "confirmed", mutationOutcome: "confirmed", failureCode: null, nativeCauseCode: null });
+  const ariaHiddenPostconditionFailure = {
+    clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
+    postconditionVerified: false, postconditionRawCount: 1, postconditionEligibleCount: 0,
+    postconditionRejections: [{ index: 0, reasons: ["ARIA_HIDDEN"] }],
+    failureCode: "BROWSER_POSTCONDITION_FAILED", nativeCauseCode: "ARIA_HIDDEN",
+  } as const;
+  assert.deepEqual(decodeBrowserMutationReceipt(clickCommand, ariaHiddenPostconditionFailure), {
+    terminal: "rejected", mutationOutcome: "confirmed",
+    failureCode: "BROWSER_POSTCONDITION_FAILED", nativeCauseCode: "ARIA_HIDDEN",
+  }, "a failed match must retain raw and eligible counts plus the exact ARIA_HIDDEN cause");
+  for (const forged of [
+    { ...ariaHiddenPostconditionFailure, postconditionRejections: [] },
+    { ...ariaHiddenPostconditionFailure, nativeCauseCode: "BROWSER_DOM_CANDIDATE_MISSING" },
+  ]) assert.throws(() => decodeBrowserMutationReceipt(clickCommand, forged),
+    /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
+    "postcondition evidence and native cause must describe the same candidate set");
 };

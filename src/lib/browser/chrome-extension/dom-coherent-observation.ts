@@ -50,7 +50,20 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
     if (name === "LI") return ((parent && String(parent.nodeName).toUpperCase() === "OL") ? "1. " : "- ") + body + "\\n";
     return blockNames.has(name) ? body + "\\n" : body;
   };
+  const exactEmptyComposerMarker = (node) => {
+    if (!(node instanceof Element) || node.getAttribute("id") !== "prompt-textarea"
+      || node.getAttribute("contenteditable") !== "true") return false;
+    const rootChildren = Array.from(node.childNodes || []);
+    if (rootChildren.length !== 1 || !(rootChildren[0] instanceof Element)
+      || rootChildren[0].tagName !== "P"
+      || rootChildren[0].getAttribute("data-empty-paragraph") !== "true") return false;
+    const paragraphChildren = Array.from(rootChildren[0].childNodes || []);
+    return paragraphChildren.length === 1 && paragraphChildren[0] instanceof Element
+      && paragraphChildren[0].tagName === "BR"
+      && paragraphChildren[0].getAttribute("class") === "ProseMirror-trailingBreak";
+  };
   const canonicalSemanticText = (node) => {
+    if (exactEmptyComposerMarker(node)) return "";
     const value = Array.from(node.childNodes || []).map((child) => semanticNode(child, node)).join("");
     return value.endsWith("\\n") ? value.slice(0, -1) : value;
   };
@@ -90,7 +103,9 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
     if (facts.visibilityHidden) reasons.push("VISIBILITY_HIDDEN");
     if (facts.opacityHidden) reasons.push("OPACITY_HIDDEN");
     if (facts.hidden) reasons.push("HTML_HIDDEN");
-    if (facts.ariaHidden) reasons.push("ARIA_HIDDEN");
+    if (facts.ariaHidden && !(checkText && spec.readEligibility === "non-actionable-aria-state")) {
+      reasons.push("ARIA_HIDDEN");
+    }
     if (facts.inert) reasons.push("INERT");
     if (checkText && ((spec.textContains !== undefined && !(node.textContent || "").includes(spec.textContains))
       || (spec.textEquals !== undefined && (node.textContent || "").trim() !== spec.textEquals.trim()))) {

@@ -1,5 +1,9 @@
-import type { GptChildCapabilityIntent } from "./contract.js";
-import { gptExecutionFailure } from "./execution-fault.js";
+import {
+  GPT_CHILD_CAPABILITY_CONTRACTS,
+  type GptChildBrowserFact,
+  type GptChildCapabilityIntent,
+} from "./contract.js";
+import { gptExecutionFailure, type GptFailureProofFacts } from "./execution-fault.js";
 import { executionFailure } from "../../lib/execution-failure.js";
 import type { ExactGptCallFacts } from "./product-api.js";
 import type { GptEvidenceStorePort } from "./production-ports.js";
@@ -25,6 +29,17 @@ const stringArray = (value: unknown): readonly string[] | null =>
 const machineCode = (value: unknown): value is string =>
   typeof value === "string" && /^[A-Z][A-Z0-9_.:-]{0,255}$/u.test(value);
 
+const hashValue = (value: unknown): value is GptHash =>
+  typeof value === "string" && /^sha256:[a-f0-9]{64}$/u.test(value);
+
+const exactKeys = (value: Readonly<Record<string, unknown>>, expected: readonly string[]): boolean => {
+  const keys = Object.keys(value);
+  return keys.length === expected.length && keys.every((key) => expected.includes(key));
+};
+
+const validCount = (value: unknown): value is number | null =>
+  value === null || (Number.isSafeInteger(value) && Number(value) >= 0);
+
 const failureCause = (value: unknown): Error | undefined => {
   if (value === null) return undefined;
   const cause = record(value);
@@ -36,6 +51,81 @@ const failureCause = (value: unknown): Error | undefined => {
   return Object.assign(new Error(String(name)), {
     name: String(name),
     ...(code ? { code: String(code) } : {}),
+  });
+};
+
+const failureBrowserFact = (input: Readonly<{
+  value: unknown;
+  intent: GptChildCapabilityIntent;
+  exactCallIdentityHash: GptHash;
+  mutation: EvidenceState["mutation"];
+}>): GptChildBrowserFact | null => {
+  if (input.value === null) return null;
+  const fact = record(input.value);
+  if (!fact) return invalid();
+  if (!exactKeys(fact, [
+    "exact_call_identity_hash", "child_capability_id", "effect_scope", "browser_outcome",
+    "mutation_outcome", "terminal_at", "evidence_ref", "evidence_hash",
+  ])) return invalid();
+  const outcome = fact.browser_outcome;
+  const mutation = fact.mutation_outcome;
+  const legalPair = outcome === "DISPATCHED" ? mutation === "dispatched"
+    : (outcome === "CONFIRMED" || outcome === "REJECTED")
+      && (mutation === "no" || mutation === "confirmed");
+  const contract = GPT_CHILD_CAPABILITY_CONTRACTS[input.intent.childCapabilityId];
+  const expectedScope = contract.replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local";
+  const terminalAt = fact.terminal_at;
+  if (fact.exact_call_identity_hash !== input.exactCallIdentityHash
+    || fact.child_capability_id !== input.intent.childCapabilityId || fact.effect_scope !== expectedScope
+    || !legalPair || mutation !== input.mutation
+    || !(terminalAt === null || (typeof terminalAt === "string"
+      && !Number.isNaN(Date.parse(terminalAt)) && new Date(terminalAt).toISOString() === terminalAt))
+    || typeof fact.evidence_ref !== "string" || fact.evidence_ref.length === 0
+    || !hashValue(fact.evidence_hash)) return invalid();
+  return Object.freeze({
+    exactCallIdentityHash: input.exactCallIdentityHash,
+    childCapabilityId: input.intent.childCapabilityId,
+    effectScope: expectedScope,
+    browserOutcome: outcome as GptChildBrowserFact["browserOutcome"],
+    mutationOutcome: mutation as GptChildBrowserFact["mutationOutcome"],
+    terminalAt: terminalAt as string | null,
+    evidenceRef: fact.evidence_ref as string,
+    evidenceHash: fact.evidence_hash as GptHash,
+  });
+};
+
+const failureProofFacts = (input: Readonly<{
+  payload: Readonly<Record<string, unknown>>;
+  intent: GptChildCapabilityIntent;
+  exactCallIdentityHash: GptHash;
+  mutation: EvidenceState["mutation"];
+}>): GptFailureProofFacts => {
+  const proof = record(input.payload.failure_proof);
+  const cardinality = record(input.payload.candidate_cardinality);
+  const factResultIds = proof ? stringArray(proof.fact_result_ids) : null;
+  const authorityRefHashes = proof ? stringArray(proof.authority_ref_hashes) : null;
+  const observationRevisionHash = proof?.observation_revision_hash;
+  const nativeFailureCode = proof?.native_failure_code;
+  if (!proof) return invalid();
+  if (!exactKeys(proof, [
+    "internal_decision_code", "fact_result_ids", "authority_ref_hashes", "observation_revision_hash",
+    "browser_fact", "native_failure_code",
+  ]) || proof.internal_decision_code !== "FAIL_CLOSED" || !factResultIds || !authorityRefHashes
+    || !authorityRefHashes.every(hashValue)) return invalid();
+  if (!cardinality || !exactKeys(cardinality, ["raw", "eligible"])
+    || !validCount(cardinality.raw) || !validCount(cardinality.eligible)
+    || !(observationRevisionHash === null || hashValue(observationRevisionHash))
+    || !(nativeFailureCode === null || machineCode(nativeFailureCode))) return invalid();
+  return Object.freeze({
+    decision: "FAIL_CLOSED", factResultIds: factResultIds as readonly string[],
+    candidateCardinality: Object.freeze({
+      raw: cardinality.raw as number | null, eligible: cardinality.eligible as number | null,
+    }),
+    authorityRefHashes: authorityRefHashes as readonly GptHash[],
+    observationRevisionHash: observationRevisionHash as GptHash | null,
+    mutationOutcome: input.mutation,
+    browserFact: failureBrowserFact({ ...input, value: proof.browser_fact }),
+    nativeFailureCode: nativeFailureCode as string | null,
   });
 };
 
@@ -128,9 +218,23 @@ export const readExactGptEvidenceFact = async (input: Readonly<{
   const state = evidenceState(verifiedPayload, terminalKey);
   const cause = failureCause(verifiedPayload.failure_cause);
   if (state.postcondition === "failed") {
+    const proofFacts = failureProofFacts({
+      payload: verifiedPayload, intent: input.intent,
+      exactCallIdentityHash: input.exactCallIdentityHash, mutation: state.mutation,
+    });
+    const browserFact = proofFacts.browserFact;
     throw gptExecutionFailure(state.failureCode!, {
       mutationOutcome: state.mutation,
-      evidence: Object.freeze({ evidenceRef: stored.recordRef, evidenceHash: evidenceHash as GptHash }),
+      evidence: Object.freeze({
+        evidenceRef: browserFact?.evidenceRef ?? stored.recordRef,
+        evidenceHash: browserFact?.evidenceHash ?? evidenceHash as GptHash,
+      }),
+      browserEffect: browserFact ? Object.freeze({
+        effectScope: browserFact.effectScope,
+        childCapabilityId: browserFact.childCapabilityId,
+        browserOutcome: browserFact.browserOutcome,
+      }) : null,
+      proofFacts,
       ...(cause ? { cause } : {}),
     });
   }

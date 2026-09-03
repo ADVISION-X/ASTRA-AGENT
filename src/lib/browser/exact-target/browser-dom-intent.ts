@@ -9,6 +9,7 @@ const BROWSER_DOM_FIELD_VALUES = [
 
 export type BrowserDomField = typeof BROWSER_DOM_FIELD_VALUES[number];
 export type BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">;
+export type BrowserDomReadEligibility = "non-actionable-aria-state";
 
 export type BrowserDomIneligibleReason =
   | "DISCONNECTED"
@@ -31,6 +32,7 @@ export type BrowserDomObservationQuery = Readonly<{
   selector: string;
   maxMatches: number;
   fields: readonly BrowserDomObservationField[];
+  readEligibility?: BrowserDomReadEligibility;
   scope?: BrowserDomReadScope;
   textContains?: string;
   textEquals?: string;
@@ -123,6 +125,7 @@ export type BrowserDomIntent =
     postClickMatch?: Readonly<{
       selector: string;
       expectedMatches: number;
+      readEligibility?: BrowserDomReadEligibility;
       textContains?: string;
       textEquals?: string;
       timeoutMs?: number;
@@ -155,6 +158,7 @@ export type BrowserDomIntent =
     postDoubleClickMatch: Readonly<{
       selector: string;
       expectedMatches: number;
+      readEligibility?: BrowserDomReadEligibility;
       timeoutMs?: number;
     }>;
   }>
@@ -168,6 +172,7 @@ export type BrowserDomIntent =
     postKeypressMatch: Readonly<{
       selector: string;
       expectedMatches: number;
+      readEligibility?: BrowserDomReadEligibility;
       timeoutMs?: number;
     }>;
   }>
@@ -196,8 +201,14 @@ const assertObservationIntent = (intent: BrowserDomIntent): void => {
 };
 
 const OBSERVATION_QUERY_KEYS = new Set([
-  "queryId", "selector", "maxMatches", "fields", "scope", "textContains", "textEquals",
+  "queryId", "selector", "maxMatches", "fields", "readEligibility", "scope", "textContains", "textEquals",
 ]);
+
+const assertReadEligibility = (value: BrowserDomReadEligibility | undefined): void => {
+  if (value !== undefined && value !== "non-actionable-aria-state") {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  }
+};
 
 const assertObserveIntent = (intent: Extract<BrowserDomIntent, { kind: "observe" }>): void => {
   if (!Array.isArray(intent.queries) || intent.queries.length < 1 || intent.queries.length > 20) {
@@ -214,6 +225,7 @@ const assertObserveIntent = (intent: Extract<BrowserDomIntent, { kind: "observe"
       throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
     }
     queryIds.add(query.queryId);
+    assertReadEligibility(query.readEligibility);
     assertReadScope(query.scope);
     assertObservationText(query);
     assertObservationFields(query.fields);
@@ -278,9 +290,11 @@ const assertKeypressIntent = (intent: Extract<BrowserDomIntent, { kind: "keypres
 const assertBoundedPostMatch = (match: Readonly<{
   selector: string;
   expectedMatches: number;
+  readEligibility?: BrowserDomReadEligibility;
   timeoutMs?: number;
 }>): void => {
   if (!isBoundedText(match.selector, 2_048)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  assertReadEligibility(match.readEligibility);
   assertOptionalRange(match.expectedMatches, 0, 20);
   if (match.timeoutMs !== undefined
     && (!Number.isInteger(match.timeoutMs) || match.timeoutMs < 1 || match.timeoutMs > 5_000)) {
@@ -315,6 +329,7 @@ const assertClickMatch = (
 ): void => {
   if (!match) return;
   if (!isBoundedText(match.selector, 2_048)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  assertReadEligibility(match.readEligibility);
   assertOptionalRange(match.expectedMatches, 0, 20);
   if (match.textContains !== undefined && !isBoundedText(match.textContains, 1_024)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   if (match.textEquals !== undefined && !isBoundedText(match.textEquals, 1_024)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");

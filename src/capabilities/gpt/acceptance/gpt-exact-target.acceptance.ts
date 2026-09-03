@@ -44,27 +44,54 @@ const profile = buildGptExecutionProfile({
   acceptanceVersion: "v1",
 });
 
-const profileFacts = (open: boolean, reasoningCurrent = 0) => ({
+const profileFacts = (
+  intent: Extract<Parameters<typeof coherentObservationPacket>[0], { kind: "observe" }>,
+  open: boolean,
+  reasoningCurrent = 0,
+  reasoningReady = open,
+) => {
+  const reasoningQuery = intent.queries.find((query) => query.queryId === "reasoning-value");
+  const reasoningEligible = reasoningReady
+    && reasoningQuery?.readEligibility === "non-actionable-aria-state";
+  return ({
   popup: { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
   "simple-panel": { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
   "reasoning-control": { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
   "enabled-reasoning-control": { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
   "reasoning-value": {
-    rawCount: open ? 1 : 0,
-    eligibleCount: open ? 1 : 0,
-    matches: open ? [{ ariaValueMin: "0", ariaValueMax: "4", ariaValueNow: String(reasoningCurrent) }] : [],
+    rawCount: reasoningReady ? 1 : 0,
+    eligibleCount: reasoningEligible ? 1 : 0,
+    matches: reasoningEligible
+      ? [{ ariaValueMin: "0", ariaValueMax: "4", ariaValueNow: String(reasoningCurrent) }] : [],
+    rejections: reasoningReady && !reasoningEligible ? [{ index: 0, reasons: ["ARIA_HIDDEN"] }] : [],
   },
   trigger: {
     rawCount: 1, eligibleCount: 1,
     matches: [{ ariaExpanded: open ? "true" : "false" }],
   },
-});
+  });
+};
 
 let profileOpen = false;
+let profileHydrated = false;
 const profileFixture = fakeBrowser((intent) => {
-  if (intent.kind === "observe") return coherentObservationPacket(intent, profileFacts(profileOpen));
+  if (intent.kind === "observe") {
+    return coherentObservationPacket(intent, profileFacts(intent, profileOpen, 0, profileHydrated));
+  }
   if (intent.kind === "click" && intent.selector === GPT_PROFILE_TRIGGER_SELECTOR) {
-    profileOpen = intent.postClickMatch?.expectedMatches === 1;
+    if (intent.postClickMatch?.expectedMatches === 1) {
+      profileOpen = true;
+      assert.deepEqual(intent.postClickMatch, {
+        selector: GPT_PROFILE_REASONING_VALUE_SELECTOR,
+        expectedMatches: 1,
+        readEligibility: "non-actionable-aria-state",
+        timeoutMs: 5_000,
+      }, "profile open must wait for the hydrated reasoning slider, not only the popup shell");
+      profileHydrated = true;
+    } else {
+      profileOpen = false;
+      profileHydrated = false;
+    }
     return { postconditionVerified: true };
   }
   throw new Error(`UNEXPECTED_PROFILE_INTENT:${intent.kind}`);
@@ -130,11 +157,14 @@ for (const checked of ["true", "false"] as const) {
 let reasoningCurrent = 1;
 const reasoningFixture = fakeBrowser((intent) => {
   if (intent.kind === "observe") {
-    return coherentObservationPacket(intent, profileFacts(true, reasoningCurrent));
+    return coherentObservationPacket(intent, profileFacts(intent, true, reasoningCurrent));
   }
   if (intent.kind === "keypress") {
+    assert.equal(intent.selector, GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR,
+      "the actionable target must remain the visible enabled capability menu item");
     assert.equal(intent.key, "ArrowRight");
     assert.equal(intent.repeat, 3);
+    assert.equal(intent.postKeypressMatch.readEligibility, "non-actionable-aria-state");
     reasoningCurrent = 4;
     return { postconditionVerified: true };
   }

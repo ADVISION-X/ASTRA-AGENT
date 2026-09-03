@@ -57,6 +57,7 @@ const topology = async (browser: BrowserTargetLease): Promise<ProfileTopology> =
     { queryId: "enabled-reasoning-control", selector: GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR,
       maxMatches: 2, fields: [] },
     { queryId: "reasoning-value", selector: GPT_PROFILE_REASONING_VALUE_SELECTOR, maxMatches: 2,
+      readEligibility: "non-actionable-aria-state",
       fields: ["ariaValueMin", "ariaValueMax", "ariaValueNow"] },
     { queryId: "trigger", selector: GPT_PROFILE_TRIGGER_SELECTOR, maxMatches: 2, fields: ["ariaExpanded"] },
   ]);
@@ -130,7 +131,8 @@ const openProfilePopup = async (
     kind: "click",
     selector: GPT_PROFILE_TRIGGER_SELECTOR,
     expectedMatches: 1,
-    postClickMatch: { selector: GPT_PROFILE_POPUP_SELECTOR, expectedMatches: 1, timeoutMs: 5_000 },
+    postClickMatch: { selector: GPT_PROFILE_REASONING_VALUE_SELECTOR, expectedMatches: 1,
+      readEligibility: "non-actionable-aria-state", timeoutMs: 5_000 },
   });
   const readback = await requireActiveReasoningProfile(browser);
   const browserFact = requireConfirmedBrowserFact(intent, browser);
@@ -233,6 +235,7 @@ export const executionProfileChildHandlers = {
       postKeypressMatch: {
         selector: `${GPT_PROFILE_REASONING_VALUE_SELECTOR}[aria-valuenow='${targetValue}']`,
         expectedMatches: 1,
+        readEligibility: "non-actionable-aria-state",
         timeoutMs: 5_000,
       },
     });

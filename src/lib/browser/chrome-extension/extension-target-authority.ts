@@ -10,7 +10,11 @@ import { executeAuthenticatedMedia } from "./authenticated-media-runtime.js";
 import { executeRegisteredDomIntent } from "./dom-intent-runtime.js";
 import { ExtensionExactTargetRegistry, type ExtensionExactTarget } from "./exact-target-runtime.js";
 import { executeExtensionFileInput } from "./extension-file-input-runtime.js";
-import type { ExtensionChromeApi, ExtensionDebugTarget } from "./extension-runtime-types.js";
+import type {
+  ExtensionChromeApi,
+  ExtensionDebuggerDetachReason,
+  ExtensionDebugTarget,
+} from "./extension-runtime-types.js";
 
 type TargetFrameSender = (
   kind: "TARGET_CLAIM" | "TARGET_REVOKE",
@@ -20,7 +24,23 @@ type TargetFrameSender = (
 type TargetFailureReporter = (input: Readonly<{
   targetRef: string;
   runtimeEventType: "debugger-detach" | "tab-remove";
-}>) => void;
+  reasonCode: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT" | "BROWSER_DEVTOOLS_CONFLICT";
+  nativeCauseCode?: "CHROME_DEBUGGER_TARGET_CLOSED" | "CHROME_DEBUGGER_CANCELED_BY_USER";
+}>) => Promise<void> | void;
+
+const DEBUGGER_DETACH_FAILURE: Readonly<Record<ExtensionDebuggerDetachReason, Readonly<{
+  reasonCode: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT" | "BROWSER_DEVTOOLS_CONFLICT";
+  nativeCauseCode: "CHROME_DEBUGGER_TARGET_CLOSED" | "CHROME_DEBUGGER_CANCELED_BY_USER";
+}>>> = Object.freeze({
+  target_closed: Object.freeze({
+    reasonCode: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT",
+    nativeCauseCode: "CHROME_DEBUGGER_TARGET_CLOSED",
+  }),
+  canceled_by_user: Object.freeze({
+    reasonCode: "BROWSER_DEVTOOLS_CONFLICT",
+    nativeCauseCode: "CHROME_DEBUGGER_CANCELED_BY_USER",
+  }),
+});
 
 type PendingCreatedTarget = Readonly<{
   tabId: number;
@@ -56,7 +76,7 @@ export class ExtensionTargetAuthority {
   }
 
   public start(): void {
-    this.chromeApi.debugger.onDetach.addListener((target) => {
+    this.chromeApi.debugger.onDetach.addListener((target, reason) => {
       const deterministicTargetRef = `target-tab-${target.tabId}`;
       const targetRef = this.activeTarget?.tabId === target.tabId
         ? this.activeTarget.targetRef
@@ -70,8 +90,9 @@ export class ExtensionTargetAuthority {
       this.activeLoaderId = null;
       this.attachedTabId = null;
       this.navigationPublication = null;
-      this.reportTargetFailure({ targetRef, runtimeEventType: "debugger-detach" });
-      void this.send("TARGET_REVOKE", { targetRef });
+      void this.publishTargetFailure({
+        targetRef, runtimeEventType: "debugger-detach", ...DEBUGGER_DETACH_FAILURE[reason],
+      });
     });
     this.chromeApi.debugger.onEvent.addListener((target, method, parameters) => {
       if (method !== "Page.frameNavigated" || this.activeTarget?.tabId !== target.tabId) return;
@@ -97,13 +118,20 @@ export class ExtensionTargetAuthority {
         this.navigationPublication = null;
       }
       if (this.attachedTabId === tabId) this.attachedTabId = null;
-      this.reportTargetFailure({ targetRef, runtimeEventType: "tab-remove" });
-      void this.send("TARGET_REVOKE", { targetRef });
+      void this.publishTargetFailure({
+        targetRef, runtimeEventType: "tab-remove",
+        reasonCode: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT",
+      });
     });
   }
 
   public resolve(targetRef: string, documentRef: string): ExtensionExactTarget {
     return this.targets.resolve(targetRef, documentRef);
+  }
+
+  private async publishTargetFailure(input: Parameters<TargetFailureReporter>[0]): Promise<void> {
+    await this.reportTargetFailure(input);
+    await this.send("TARGET_REVOKE", { targetRef: input.targetRef });
   }
 
   public async acquireJobBoundChatGptTarget(targetRef?: string): Promise<void> {
@@ -368,6 +396,7 @@ export class ExtensionTargetAuthority {
       this.reportTargetFailure({
         targetRef: `job-owned-tab:${pending.tabId}`,
         runtimeEventType: "tab-remove",
+        reasonCode: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT",
       });
     });
     pending.reject(new Error(reasonCode));

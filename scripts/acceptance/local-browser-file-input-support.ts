@@ -89,7 +89,8 @@ export const exerciseFileInput = async (): Promise<void> => {
     const rejected = await runFileInputScenario(scenario);
     assert.deepEqual(rejected.result, { candidateCount: expectedCount, qualificationStage,
       identityRevalidated: false,
-      mutationCount: 0, postconditionVerified: false, qualificationRejected: true, failureCode: expectedCode });
+      mutationCount: 0, postconditionVerified: false, qualificationRejected: true,
+      failureCode: expectedCode, nativeCauseCode: null });
     assert.equal(rejected.fileInputs, 0);
   }
   await assert.rejects(runFileInputScenario({ nodeIds: [7], driftBeforeDispatch: true }), /BROWSER_DOCUMENT_INVALID/u);

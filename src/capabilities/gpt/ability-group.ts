@@ -17,6 +17,7 @@ import {
   type GptChildCapabilityIntent,
   type GptChildCapabilityProof,
   type GptChildCapabilityResult,
+  type GptChildBrowserFact,
   type GptExecutionContext,
   type GptFailureClassification,
 } from "./contract.js";
@@ -29,6 +30,10 @@ import { executionProfileChildHandlers } from "./web/children/execution-profile-
 import { modelSelectionV2ChildHandlers } from "./web/children/model-selection-v2-children.js";
 import { responseChildHandlers } from "./web/children/response-children.js";
 import { ProductionGptChildTools } from "./production-child-tools.js";
+import {
+  typedGptExecutionFailure,
+  type GptFailureProofFacts,
+} from "./execution-fault.js";
 
 const handlers = Object.freeze({
   ...conversationChildHandlers,
@@ -54,6 +59,8 @@ const classify = (error: unknown): Readonly<{
 const documentRefHash = (value: string | null): `sha256:${string}` | null =>
   value === null ? null : hash(value);
 
+type ProofObservation = GptFailureProofFacts & Readonly<{ postconditionResult?: "passed" }>;
+
 type ProofInput<K extends GptChildCapabilityId> = Readonly<{
   intent: GptChildCapabilityIntent<K>;
   context: GptExecutionContext;
@@ -63,7 +70,7 @@ type ProofInput<K extends GptChildCapabilityId> = Readonly<{
   afterUrl: string | null;
   beforeDocumentRef: string | null;
   afterDocumentRef: string | null;
-  observation?: GptChildObservation<K>;
+  observation?: ProofObservation;
   failureCode?: string;
   nativeFailureCode?: string | null;
   committedMutation?: "no" | "dispatched" | "confirmed";
@@ -147,6 +154,35 @@ const currentDocument = (context: GptExecutionContext): Readonly<{
   ? Object.freeze({ ref: context.browser.document.documentRef, url: null })
   : Object.freeze({ ref: null, url: null });
 
+const failedBrowserFact = <K extends GptChildCapabilityId>(
+  intent: GptChildCapabilityIntent<K>,
+  context: GptExecutionContext,
+): GptChildBrowserFact | null => {
+  const contract = GPT_CHILD_CAPABILITY_CONTRACTS[intent.childCapabilityId];
+  if (!context.browser || contract.replayPolicy === "observation-only"
+    || contract.replayPolicy === "transaction-identical-readback") return null;
+  const recovery = context.browser.readAtomicStepRecovery({
+    productStepId: intent.productStepId,
+    callId: intent.callId,
+    childCapabilityId: intent.childCapabilityId,
+    inputHash: intent.inputHash,
+    actionOrdinal: intent.actionOrdinal,
+    replayPolicy: contract.replayPolicy,
+  });
+  if (!recovery || (recovery.state !== "rejected" && recovery.state !== "dispatched")) return null;
+  if ((recovery.state === "dispatched") !== (recovery.mutationOutcome === "dispatched")) return null;
+  return Object.freeze({
+    exactCallIdentityHash: gptExactCallIdentityHash(intent),
+    childCapabilityId: intent.childCapabilityId,
+    effectScope: contract.replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local",
+    browserOutcome: recovery.state === "dispatched" ? "DISPATCHED" : "REJECTED",
+    mutationOutcome: recovery.mutationOutcome,
+    terminalAt: recovery.terminalAt,
+    evidenceRef: recovery.authorityRef,
+    evidenceHash: recovery.authorityHash,
+  });
+};
+
 const documentTransitionAllowed = (
   childCapabilityId: GptChildCapabilityId,
   before: Readonly<{ ref: string | null; url: string | null }>,
@@ -212,19 +248,31 @@ const failedExecution = async <K extends GptChildCapabilityId>(input: Readonly<{
   const nativeCause = executionFailureCause(input.error);
   const contract = GPT_CHILD_CAPABILITY_CONTRACTS[input.intent.childCapabilityId];
   const browser = typedBrowserExecutionFailure(input.error);
-  const browserFailureOutcome = browser?.mutationOutcome ?? "no";
+  const gpt = typedGptExecutionFailure(input.error);
+  const walBrowserFact = failedBrowserFact(input.intent, input.context);
+  const observation = input.observation ?? gpt?.proofFacts ?? (walBrowserFact ? Object.freeze({
+    decision: "FAIL_CLOSED" as const,
+    factResultIds: Object.freeze([walBrowserFact.evidenceRef]),
+    candidateCardinality: Object.freeze({ raw: null, eligible: null }),
+    authorityRefHashes: Object.freeze([walBrowserFact.evidenceHash]),
+    observationRevisionHash: null,
+    mutationOutcome: walBrowserFact.mutationOutcome,
+    browserFact: walBrowserFact,
+    nativeFailureCode: nativeCause?.code ?? null,
+  }) : undefined);
+  const browserFailureOutcome = browser?.mutationOutcome ?? gpt?.mutationOutcome ?? "no";
   const browserDispatched = (input.context.browser?.pendingMutationCount() ?? 0) > 0 && !input.observation;
   const sessionDispatched = !input.observation && contract?.requiredTargetKind === "none"
     && contract.oneObservationOrMutation === "at-most-one-mutation"
     && !failure.code.startsWith("GPT_CHILD_INPUT_INVALID:");
-  const committedMutation = input.observation?.mutationOutcome
+  const committedMutation = observation?.mutationOutcome
     ?? (browserFailureOutcome !== "no" ? browserFailureOutcome
       : browserDispatched || sessionDispatched ? "dispatched" : "no");
   const proof = proofFor({
     intent: input.intent, context: input.context, startedAt: input.startedAt, endedAt: new Date().toISOString(),
     beforeUrl: input.before.url, afterUrl: after.url,
     beforeDocumentRef: input.before.ref, afterDocumentRef: after.ref,
-    ...(input.observation ? { observation: input.observation } : {}), failureCode: failure.code,
+    ...(observation ? { observation } : {}), failureCode: failure.code,
     nativeFailureCode: nativeCause?.code ?? null, committedMutation,
     postconditionResult: committedMutation === "dispatched" ? "pending" : "failed",
   });
@@ -232,10 +280,14 @@ const failedExecution = async <K extends GptChildCapabilityId>(input: Readonly<{
   return Object.freeze({
     status: failure.status, value: null, proof, failureCode: failure.code,
     failureCause: nativeCause,
-    failureBrowserEffect: browser?.browserEffect ? Object.freeze({
-      effectScope: browser.browserEffect.effectScope,
-      childCapabilityId: browser.browserEffect.childCapabilityId,
-      browserOutcome: browser.browserEffect.browserOutcome,
+    failureBrowserEffect: observation?.browserFact ? Object.freeze({
+      effectScope: observation.browserFact.effectScope,
+      childCapabilityId: observation.browserFact.childCapabilityId,
+      browserOutcome: observation.browserFact.browserOutcome,
+    }) : (gpt?.browserEffect ?? browser?.browserEffect) ? Object.freeze({
+      effectScope: (gpt?.browserEffect ?? browser!.browserEffect)!.effectScope,
+      childCapabilityId: (gpt?.browserEffect ?? browser!.browserEffect)!.childCapabilityId,
+      browserOutcome: (gpt?.browserEffect ?? browser!.browserEffect)!.browserOutcome,
     }) : null,
   }) as GptChildCapabilityResult<K>;
 };

@@ -5,7 +5,6 @@ import { readFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-
 import { BrowserCommandActor } from "../../src/lib/browser/exact-target/browser-command-actor.js";
 import { browserExecutionFailure } from "../../src/lib/browser/browser-failure.js";
 import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
@@ -19,7 +18,6 @@ import { emitQualityProofObservation } from "../audit/shared/proof-observation.j
 import { verifyBrowserArtifactAndLockContracts } from "./local-browser-artifact-and-lock.acceptance-support.js";
 import { exerciseStrictMutationReceipts } from "./local-browser-mutation-receipt-support.js";
 import { exerciseBrowserDiagnosticContract } from "./local-browser-diagnostic-contract-support.js";
-
 const hash = `sha256:${"a".repeat(64)}` as const;
 const negativeHash = `sha256:${"b".repeat(64)}` as const;
 const exactHash = (value: string): `sha256:${string}` =>
@@ -51,7 +49,6 @@ const identity = (
   requestHash: hash,
   payloadHash: hash,
 });
-
 const permitAuthority = (commandId: string) => ({
   permitRef: `permit:${commandId}`,
   authorityRef: "authority-1",
@@ -63,7 +60,6 @@ const permitAuthority = (commandId: string) => ({
   candidateHash: hash,
   contractManifestHash: hash,
 });
-
 const permitExecution = (commandId: string) => ({
   ownerPluginId: "fixture-product-plugin",
   pluginVersion: 1,
@@ -90,12 +86,10 @@ const permitExecution = (commandId: string) => ({
   replyChannelToken: `reply:${commandId}`,
   commandFrameMac: hash,
 });
-
 const permit = (commandId: string): BrowserCommandPermit => ({
   ...permitAuthority(commandId),
   ...permitExecution(commandId),
 });
-
 const clickCommand = {
   kind: "dom-intent" as const,
   intent: {
@@ -105,7 +99,15 @@ const clickCommand = {
     postClickAttribute: { name: "aria-expanded" as const, equals: "true" as const, timeoutMs: 1_000 },
   },
 };
-
+const matchClickCommand = {
+  kind: "dom-intent" as const,
+  intent: {
+    kind: "click" as const,
+    selector: "button[aria-label='Model selector']",
+    expectedMatches: 1,
+    postClickMatch: { selector: "[aria-hidden='true']", expectedMatches: 1 },
+  },
+};
 const root = await mkdtemp(join(tmpdir(), "browser-mutation-state-"));
 try {
   const first = new BrowserMutationStore(root);
@@ -114,7 +116,6 @@ try {
   first.markReceiptMissing("dispatched-command");
   first.prepare(identity("prepared-command"));
   first.close();
-
   const restarted = new BrowserMutationStore(root);
   assert.deepEqual(
     restarted
@@ -200,7 +201,6 @@ try {
     [],
   );
   restarted.close();
-
   const terminalRestart = new BrowserMutationStore(root);
   assert.deepEqual(
     terminalRestart
@@ -214,7 +214,6 @@ try {
     ],
   );
   terminalRestart.close();
-
   const legacyRoot = join(root, "legacy-nonempty");
   const legacy = new BrowserMutationStore(legacyRoot);
   legacy.prepare(identity("legacy-rejected-command", "legacy-job"));
@@ -227,19 +226,22 @@ try {
     "select command_id,exact_call_identity_hash,state,terminal_at from browser_mutations",
   ).get();
   legacyDatabase.exec("alter table browser_mutations drop column mutation_outcome");
+  legacyDatabase.exec("alter table browser_mutations drop column native_cause_code");
   const legacyAuthorityHash = mutationAuthorityHash(legacyDatabase.prepare(
     `select ${identityColumns},proof_hash,state,reason,terminal_at,updated_at from browser_mutations`,
   ).get());
   legacyDatabase.close();
   const migratedLegacy = new BrowserMutationStore(legacyRoot);
   assert.equal(migratedLegacy.authorityHash("legacy-rejected-command"), legacyAuthorityHash,
-    "adding mutation_outcome must not invalidate an already-issued legacy Browser authority hash");
+    "adding mutation outcome and native cause must not invalidate an already-issued legacy Browser authority hash");
   assert.deepEqual(migratedLegacy.readExactCallMutationFact({
     jobId: "legacy-job", attemptId: "attempt-1", ownerPluginId: "fixture-product-plugin",
     pluginVersion: 1, exactCallIdentityHash: exactHash("legacy-rejected-command"), actionOrdinal: 1,
   }), {
     effectScope: "target_local", outcome: "REJECTED", mutationOutcome: "confirmed",
     terminalAt: (identityBefore as { terminal_at: string }).terminal_at,
+    failureCode: "BROWSER_POSTCONDITION_FAILED", nativeFailureCode: null,
+    authorityRef: "browser-mutation:legacy-rejected-command", authorityHash: legacyAuthorityHash,
     targetRef: "target-1", documentRef: "document-1",
     productStepId: "report_translation:candidate_a", callId: "gpt-turn-flow.v3",
     childCapabilityId: "open_gpt_model_selector_v2", actionOrdinal: 1,
@@ -250,7 +252,6 @@ try {
   ).get(), identityBefore, "the forward ALTER migration must preserve every legacy identity and terminal byte");
   migratedDatabase.close();
   migratedLegacy.close();
-
   const actorRoot = join(root, "actor");
   const actorStore = new BrowserMutationStore(actorRoot);
   const actorLogger = createRuntimeLogger({
@@ -269,7 +270,6 @@ try {
       { assertCurrentAuthority: () => {} },
       actorLogger,
     );
-
   const confirmedPermit = permit("actor-confirmed");
   await actorFor(async (candidate, _command, onDispatched) => {
     onDispatched?.();
@@ -283,7 +283,6 @@ try {
   }).execute(confirmedPermit, clickCommand);
   assert.equal(actorStore.readState(confirmedPermit.commandId), "CONFIRMED");
   assert.equal(actorStore.readMutationOutcome(confirmedPermit.commandId), "confirmed");
-
   const zeroActionPermit = permit("actor-zero-action");
   await actorFor(async (candidate, _command, onDispatched) => {
     onDispatched?.();
@@ -293,7 +292,32 @@ try {
   }).execute(zeroActionPermit, clickCommand);
   assert.equal(actorStore.readState(zeroActionPermit.commandId), "CONFIRMED");
   assert.equal(actorStore.readMutationOutcome(zeroActionPermit.commandId), "no");
-
+  const fillReadbackPermit: BrowserCommandPermit = {
+    ...permit("actor-fill-readback-rejected"),
+    capabilityId: "browser.dom.fill.v1",
+    childCapabilityId: "prepare_clean_gpt_chat",
+  };
+  const fillCommand = { kind: "dom-intent" as const, intent: {
+    kind: "fill" as const, selector: "#prompt-textarea", approvedText: "",
+    clearBeforeType: true, expectedMatches: 1,
+  } };
+  const fillReadbackActor = actorFor(async (candidate, _command, onDispatched) => {
+    onDispatched?.();
+    return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+      permitSequence: candidate.sequence, result: {
+        filled: true, candidateCount: 0, identityRevalidated: false,
+        mutationCount: 1, retainedValueVerified: false, postconditionVerified: false,
+        failureCode: "BROWSER_POSTCONDITION_FAILED",
+        nativeCauseCode: "BROWSER_DOM_CANDIDATE_MISSING",
+      } };
+  });
+  let fillReadbackError: unknown = null;
+  try { await fillReadbackActor.execute(fillReadbackPermit, fillCommand); }
+  catch (error) { fillReadbackError = error; }
+  assert.match(String(fillReadbackError), /BROWSER_POSTCONDITION_FAILED/u);
+  assert.equal(serializeTerminalFailure(fillReadbackError).cause?.code, "BROWSER_DOM_CANDIDATE_MISSING");
+  assert.equal(actorStore.readState(fillReadbackPermit.commandId), "REJECTED");
+  assert.equal(fillReadbackActor.mutationOutcome(fillReadbackPermit.commandId), "confirmed");
   const qualificationPermit = permit("actor-qualification-rejected");
   const qualificationActor = actorFor(async (candidate, _command, onDispatched) => {
     onDispatched?.();
@@ -301,16 +325,40 @@ try {
       permitSequence: candidate.sequence, result: { candidateCount: 1, identityRevalidated: false,
         mutationCount: 0, postconditionVerified: false, qualificationRejected: true,
         qualificationStage: "actionability",
-        failureCode: "BROWSER_DOM_ACTION_NOT_QUALIFIED" } };
+        failureCode: "BROWSER_DOM_ACTION_NOT_QUALIFIED",
+        nativeCauseCode: "BROWSER_DOM_ACTION_HIT_TEST_FAILED" } };
   });
   await assert.rejects(qualificationActor.execute(qualificationPermit, clickCommand),
     /BROWSER_DOM_ACTION_NOT_QUALIFIED/u);
   assert.equal(actorStore.readState(qualificationPermit.commandId), "REJECTED");
   assert.equal(qualificationActor.mutationOutcome(qualificationPermit.commandId), "no");
   const actorDatabase = new Database(join(actorRoot, "browser", "browser-mutations.sqlite"), { readonly: true });
-  assert.equal((actorDatabase.prepare("select reason from browser_mutations where command_id=?")
-    .get(qualificationPermit.commandId) as { reason: string }).reason, "BROWSER_DOM_ACTION_NOT_QUALIFIED",
-  "the unique mutation WAL must retain the exact validated qualification cause");
+  assert.deepEqual(actorDatabase.prepare(
+    "select reason,native_cause_code from browser_mutations where command_id=?",
+  ).get(qualificationPermit.commandId), {
+    reason: "BROWSER_DOM_ACTION_NOT_QUALIFIED",
+    native_cause_code: "BROWSER_DOM_ACTION_HIT_TEST_FAILED",
+  }, "the unique mutation WAL must retain the outer failure and exact native qualification cause");
+  const storedQualificationIdentity = actorDatabase.prepare(
+    "select exact_call_identity_hash from browser_mutations where command_id=?",
+  ).get(qualificationPermit.commandId) as { exact_call_identity_hash: `sha256:${string}` };
+  const qualificationFact = actorStore.readExactCallMutationFact({
+    jobId: qualificationPermit.jobId, attemptId: qualificationPermit.attemptId,
+    ownerPluginId: qualificationPermit.ownerPluginId, pluginVersion: qualificationPermit.pluginVersion,
+    exactCallIdentityHash: storedQualificationIdentity.exact_call_identity_hash,
+    actionOrdinal: qualificationPermit.actionOrdinal,
+  });
+  assert.equal(qualificationFact?.failureCode, "BROWSER_DOM_ACTION_NOT_QUALIFIED");
+  assert.equal(qualificationFact?.nativeFailureCode, "BROWSER_DOM_ACTION_HIT_TEST_FAILED");
+  const qualificationRecovery = actorStore.atomicStepRecovery({
+    jobId: qualificationPermit.jobId, attemptId: qualificationPermit.attemptId,
+    ownerPluginId: qualificationPermit.ownerPluginId, pluginVersion: qualificationPermit.pluginVersion,
+    exactCallIdentityHash: storedQualificationIdentity.exact_call_identity_hash,
+    actionOrdinal: qualificationPermit.actionOrdinal, targetRef: qualificationPermit.targetRef,
+    effectScope: "target_local",
+  });
+  assert.equal(qualificationRecovery?.failureCode, "BROWSER_DOM_ACTION_NOT_QUALIFIED");
+  assert.equal(qualificationRecovery?.nativeFailureCode, "BROWSER_DOM_ACTION_HIT_TEST_FAILED");
   actorDatabase.close();
 
   const observationPermit: BrowserCommandPermit = {
@@ -386,16 +434,27 @@ try {
         identityRevalidated: true,
         mutationCount: 1,
         postconditionVerified: false,
+        postconditionRawCount: 1,
+        postconditionEligibleCount: 0,
+        postconditionRejections: [{ index: 0, reasons: ["ARIA_HIDDEN"] }],
         failureCode: "BROWSER_POSTCONDITION_FAILED",
+        nativeCauseCode: "ARIA_HIDDEN",
       },
     };
   });
   await assert.rejects(
-    rejectedActor.execute(rejectedPermit, clickCommand),
+    rejectedActor.execute(rejectedPermit, matchClickCommand),
     /BROWSER_POSTCONDITION_FAILED/u,
   );
   assert.equal(actorStore.readState(rejectedPermit.commandId), "REJECTED");
   assert.equal(rejectedActor.mutationOutcome(rejectedPermit.commandId), "confirmed");
+  const rejectedDatabase = new Database(join(actorRoot, "browser", "browser-mutations.sqlite"), { readonly: true });
+  assert.deepEqual(rejectedDatabase.prepare(
+    "select reason,native_cause_code from browser_mutations where command_id=?",
+  ).get(rejectedPermit.commandId), {
+    reason: "BROWSER_POSTCONDITION_FAILED", native_cause_code: "ARIA_HIDDEN",
+  }, "the Browser WAL must retain the exact postcondition rejection cause");
+  rejectedDatabase.close();
   exerciseStrictMutationReceipts();
   exerciseBrowserDiagnosticContract();
   assert.equal(rejectedActor.browserOutcome(rejectedPermit.commandId), "REJECTED");

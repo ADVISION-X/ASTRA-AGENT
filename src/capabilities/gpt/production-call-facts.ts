@@ -17,7 +17,12 @@ import {
 export { isPendingExactEvidence } from "./evidence-fact.js";
 
 export type GptExactCallFactsWithBrowserBinding = Omit<ExactGptCallFacts, "mutation"> & Readonly<{
-  mutation: (NonNullable<ExactGptCallFacts["mutation"]> & Readonly<{
+    mutation: (NonNullable<ExactGptCallFacts["mutation"]> & Readonly<{
+    mutationOutcome: "no" | "dispatched" | "confirmed";
+    failureCode: string | null;
+    nativeFailureCode: string | null;
+    authorityRef: string;
+    authorityHash: `sha256:${string}`;
     targetRef: string;
     documentRef: string;
   }>) | null;
@@ -97,7 +102,12 @@ export const readProductionGptCallFacts = async (
       sourceAttemptId: intent.attemptId,
       effectScope: mutation.effectScope,
       outcome: mutation.outcome,
+      mutationOutcome: mutation.mutationOutcome,
+      failureCode: mutation.failureCode,
+      nativeFailureCode: mutation.nativeFailureCode,
       terminalAt: mutation.terminalAt,
+      authorityRef: mutation.authorityRef,
+      authorityHash: mutation.authorityHash,
       targetRef: mutation.targetRef,
       documentRef: mutation.documentRef,
       productStepId: mutation.productStepId,

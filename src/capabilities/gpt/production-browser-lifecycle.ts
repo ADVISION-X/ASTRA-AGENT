@@ -56,7 +56,7 @@ const recoveredProof = (input: Readonly<{
   browser: BrowserTargetLease;
   readback: GptChildCapabilityResult | null;
   recovery: BrowserAtomicStepRecovery;
-  state: "confirmed" | "rejected";
+  state: "confirmed" | "rejected" | "dispatched";
 }>): GptChildCapabilityProof => {
   const timestamp = new Date().toISOString();
   const exactCallIdentityHash = gptExactCallIdentityHash(input.intent);
@@ -69,7 +69,9 @@ const recoveredProof = (input: Readonly<{
     childCapabilityId: input.intent.childCapabilityId,
     childContractVersion: GPT_CHILD_CAPABILITY_CONTRACTS[input.intent.childCapabilityId].contractVersion,
     childStatus: input.state === "confirmed" ? "success" as const : "failed" as const,
-    childReasonCode: input.state === "confirmed" ? "GPT_CHILD_SUCCESS" : "BROWSER_POSTCONDITION_FAILED",
+    childReasonCode: input.state === "confirmed" ? "GPT_CHILD_SUCCESS"
+      : input.state === "rejected" ? input.recovery.failureCode ?? "BROWSER_POSTCONDITION_FAILED"
+        : input.readback?.failureCode ?? "BROWSER_COMMAND_RECEIPT_MISSING",
     exactCallIdentityHash,
     internalDecisionCode: input.state === "confirmed" ? "DONE" as const : "FAIL_CLOSED" as const,
     executionId: input.intent.executionId,
@@ -84,24 +86,26 @@ const recoveredProof = (input: Readonly<{
     targetRefHash,
     beforeDocumentRefHash: documentRefHash,
     afterDocumentRefHash: documentRefHash,
-    authorityRefHashes: Object.freeze([targetRefHash, documentRefHash]),
-    factResultIds: Object.freeze([`gpt-fact-result:${input.recovery.authorityHash.slice(7)}`]),
+    authorityRefHashes: Object.freeze([targetRefHash, documentRefHash, input.recovery.authorityHash]),
+    factResultIds: Object.freeze([input.recovery.authorityRef]),
     candidateCardinality: input.readback?.proof.candidateCardinality
       ?? Object.freeze({ raw: null, eligible: null }),
     observationRevisionHash: input.readback?.proof.observationRevisionHash ?? null,
     committedMutation: input.recovery.mutationOutcome,
-    postconditionResult: input.state === "confirmed" ? "passed" as const : "failed" as const,
+    postconditionResult: input.state === "confirmed" ? "passed" as const
+      : input.state === "dispatched" ? "pending" as const : "failed" as const,
     browserFact: Object.freeze({
       exactCallIdentityHash,
       childCapabilityId: input.intent.childCapabilityId,
       effectScope,
-      browserOutcome: input.state.toUpperCase() as "CONFIRMED" | "REJECTED",
+      browserOutcome: input.state.toUpperCase() as "DISPATCHED" | "CONFIRMED" | "REJECTED",
       mutationOutcome: input.recovery.mutationOutcome,
       terminalAt: input.recovery.terminalAt,
       evidenceRef: input.recovery.authorityRef,
       evidenceHash: input.recovery.authorityHash,
     }),
-    nativeFailureCode: null,
+    nativeFailureCode: input.state === "rejected"
+      ? input.recovery.nativeFailureCode : input.readback?.proof.nativeFailureCode ?? null,
     startedAt: input.readback?.proof.startedAt ?? timestamp,
     endedAt: input.readback?.proof.endedAt ?? timestamp,
   };
@@ -118,7 +122,7 @@ export const recoveredGptChildResult = (input: Readonly<{
   browser: BrowserTargetLease;
   readback: GptChildCapabilityResult | null;
   recovery: BrowserAtomicStepRecovery;
-  state: "confirmed" | "rejected";
+  state: "confirmed" | "rejected" | "dispatched";
 }>): GptChildCapabilityResult => {
   const proof = recoveredProof(input);
   if (input.state === "confirmed") {
@@ -134,18 +138,26 @@ export const recoveredGptChildResult = (input: Readonly<{
       failureBrowserEffect: null,
     });
   }
+  if (input.state === "dispatched" && input.readback?.status !== "failed") {
+    throw executionFailure("failed", "BROWSER_DISPATCHED_READBACK_FAILURE_REQUIRED");
+  }
+  const failureCode = input.state === "dispatched"
+    ? input.readback?.failureCode : input.recovery.failureCode;
+  if (!failureCode) throw executionFailure("failed", "BROWSER_RECOVERY_FAILURE_CODE_REQUIRED");
   return Object.freeze({
     status: "failed",
     value: null,
     proof,
-    failureCode: "BROWSER_POSTCONDITION_FAILED",
-    failureCause: Object.freeze({ name: "Error", code: null }),
+    failureCode,
+    failureCause: input.state === "dispatched"
+      ? input.readback!.failureCause
+      : Object.freeze({ name: "Error", code: input.recovery.nativeFailureCode }),
     failureBrowserEffect: Object.freeze({
       effectScope: GPT_CHILD_CAPABILITY_CONTRACTS[input.intent.childCapabilityId].replayPolicy === "provider-effect-once"
         ? "provider_effect" as const
         : "target_local" as const,
       childCapabilityId: input.intent.childCapabilityId,
-      browserOutcome: "REJECTED" as const,
+      browserOutcome: input.state === "dispatched" ? "DISPATCHED" as const : "REJECTED" as const,
     }),
   });
 };

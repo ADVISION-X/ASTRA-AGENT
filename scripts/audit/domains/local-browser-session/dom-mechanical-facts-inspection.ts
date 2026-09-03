@@ -7,7 +7,9 @@ import { createLocalFinding, domCoherentObservationPath, domMechanicalFactsPath,
 const QUERY_RUNTIME_PATH = "src/lib/browser/chrome-extension/dom-query-runtime.ts";
 const INTENT_RUNTIME_PATH = "src/lib/browser/chrome-extension/dom-intent-runtime.ts";
 const INTENT_CONTRACT_PATH = "src/lib/browser/exact-target/browser-dom-intent.ts";
+const MUTATION_RECEIPT_PATH = "src/lib/browser/exact-target/browser-mutation-receipt.ts";
 const COHERENT_CANDIDATE_PATH = "src/lib/browser/chrome-extension/dom-coherent-candidate.ts";
+const CANDIDATE_FUNCTION_ACCEPTANCE_PATH = "scripts/acceptance/local-browser-dom-function-support.ts";
 
 const finding = (
   findings: InspectorFinding[],
@@ -58,10 +60,32 @@ const inspectMechanicalConsumers = (
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  requireTokens(factsText, ["semanticEligible", "keyboardActionEligible", "pointerActionEligible"],
+  requireTokens(factsText, ["semanticEligible", "keyboardActionEligible"],
     findings, lawId, domMechanicalFactsPath, "The Browser mechanical eligibility layers are missing");
-  requireTokens(queryText, ["semanticEligible(facts)", "pointerActionEligible(facts)", "requireKeyboardActionTarget"],
+  requireTokens(queryText, ["semanticEligible(facts)", "requireKeyboardActionTarget",
+    'readEligibility !== "non-actionable-aria-state"', "rejections"],
     findings, lawId, QUERY_RUNTIME_PATH, "The canonical DOM query/action path is not consuming");
+};
+
+const inspectCoherentPointerAction = (
+  candidateText: string,
+  queryText: string,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  requireTokens(candidateText, [
+    "resolveCoherentPointerAction", 'spec.output !== "pointer"',
+    "browserMechanicalFacts(candidate, true)", "globalThis.getComputedStyle(candidate).pointerEvents",
+    "facts.hitTest", "x: facts.bounds.x + facts.bounds.width / 2",
+    'arguments: [{ value: { ...request, output: "pointer" } }]', "returnByValue: true",
+    "BROWSER_DOM_ACTION_HIT_TEST_FAILED",
+  ], findings, lawId, COHERENT_CANDIDATE_PATH,
+  "The one synchronous candidate-to-pointer qualification is missing");
+  if (queryText.includes("boxCenter") || queryText.includes("optionalBoxCenter")
+    || queryText.includes("pointerActionEligible")) {
+    finding(findings, lawId, QUERY_RUNTIME_PATH,
+      "A retired second pointer-qualification path remains outside the coherent candidate authority.");
+  }
 };
 
 const inspectCoherentRuntime = (runtimeText: string, findings: InspectorFinding[], lawId: string): void => {
@@ -98,7 +122,8 @@ const inspectMechanicalContract = (
     "nativeCauseCode", "nativeStage", "candidateIndex", "observationIdentityHash",
     "BrowserDomObservationPacketV2", "exactCallIdentityHash", "targetRefHash", "documentRefHash",
     "currentUrl", "observationRevisionHash", "BrowserExactAssistantTurnReplyV1",
-    'kind: "readExactAssistantTurn"',
+    'kind: "readExactAssistantTurn"', 'BrowserDomReadEligibility = "non-actionable-aria-state"',
+    "readEligibility?: BrowserDomReadEligibility",
     'BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">'], findings, lawId,
   INTENT_CONTRACT_PATH, "The bounded Browser DOM contract is missing");
   requireTokens(observationText, ["executeExactAssistantTurnRead", "rawDomHtml", "rawDomHash",
@@ -113,6 +138,21 @@ const inspectMechanicalContract = (
   );
 };
 
+const inspectPostconditionEvidence = (
+  runtimeText: string,
+  receiptText: string,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  requireTokens(runtimeText, ["postconditionRawCount", "postconditionEligibleCount",
+    "postconditionRejections", "nativeCauseCode", "match.readEligibility"], findings, lawId,
+  INTENT_RUNTIME_PATH, "The bounded postcondition readback receipt is missing");
+  requireTokens(receiptText, ["postconditionEvidenceValid", "postconditionRawCount",
+    "postconditionEligibleCount", "postconditionRejections", "POSTCONDITION_REJECTION_REASONS",
+    '"ARIA_HIDDEN"'], findings, lawId, MUTATION_RECEIPT_PATH,
+  "The Browser mutation receipt is not validating exact postcondition rejection evidence");
+};
+
 export const inspectDomMechanicalFacts = (
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -124,7 +164,12 @@ export const inspectDomMechanicalFacts = (
   const observation = requireSource(context, findings, lawId, domCoherentObservationPath);
   const contract = requireSource(context, findings, lawId, INTENT_CONTRACT_PATH);
   const candidate = requireSource(context, findings, lawId, COHERENT_CANDIDATE_PATH);
-  if (!facts || !query || !runtime || !observation || !contract || !candidate) return;
+  const mutationReceipt = requireSource(context, findings, lawId, MUTATION_RECEIPT_PATH);
+  const candidateAcceptance = requireSource(
+    context, findings, lawId, CANDIDATE_FUNCTION_ACCEPTANCE_PATH,
+  );
+  if (!facts || !query || !runtime || !observation || !contract || !candidate || !candidateAcceptance
+    || !mutationReceipt) return;
 
   const readerInitializer = facts.getVariableDeclaration("BROWSER_MECHANICAL_FACTS_READER_SOURCE")?.getInitializer();
   const reader = readerInitializer && Node.isNoSubstitutionTemplateLiteral(readerInitializer)
@@ -133,8 +178,16 @@ export const inspectDomMechanicalFacts = (
   const factsText = facts.getFullText();
   const queryText = query.getFullText();
   inspectMechanicalConsumers(factsText, queryText, findings, lawId);
+  inspectCoherentPointerAction(candidate.getFullText(), queryText, findings, lawId);
+  requireTokens(candidateAcceptance.getFullText(), [
+    "exerciseCapturedCandidateFunction", "output: \"pointer\"", "BROWSER_DOM_ACTION_DISABLED",
+    "BROWSER_DOM_ACTION_POINTER_EVENTS_NONE", "BROWSER_DOM_ACTION_HIT_TEST_FAILED",
+    "non-actionable-aria-state", "ordinary observation must reject an aria-hidden state node",
+  ], findings, lawId, CANDIDATE_FUNCTION_ACCEPTANCE_PATH,
+  "The executed coherent pointer regression is missing");
   const runtimeText = `${runtime.getFullText()}\n${observation.getFullText()}\n${candidate.getFullText()}`;
   inspectCoherentRuntime(runtimeText, findings, lawId);
+  inspectPostconditionEvidence(runtime.getFullText(), mutationReceipt.getFullText(), findings, lawId);
   const contractText = contract.getFullText();
   inspectMechanicalContract(
     contractText,

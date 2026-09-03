@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { BrowserDomIntent, BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
+import { browserExecutionFailure } from "../../../lib/browser/browser-authority-api.js";
 import type {
   BrowserAtomicStepIdentity,
   BrowserAtomicStepRecovery,
@@ -12,6 +13,7 @@ export const coherentObservationPacket = (
     rawCount: number;
     eligibleCount: number;
     matches?: readonly Readonly<Record<string, unknown>>[];
+    rejections?: readonly Readonly<{ index: number; reasons: readonly string[] }>[];
   }>>>,
   currentUrl = "https://chatgpt.com/",
 ) => Object.freeze({
@@ -32,7 +34,7 @@ export const coherentObservationPacket = (
       eligibleCount: fact.eligibleCount,
       matches: Object.freeze([...(fact.matches ?? [])]),
       scopeRejections: Object.freeze([]),
-      rejections: Object.freeze([]),
+      rejections: Object.freeze([...(fact.rejections ?? [])]),
       nativeCauseCode: null,
       nativeCauseCount: 0,
       nativeStage: "runtime-call-function-on" as const,
@@ -97,12 +99,52 @@ type FakeBrowserState = {
   recovery: BrowserAtomicStepRecovery | null;
 };
 
-const markConfirmedMutation = (state: FakeBrowserState): void => {
+const markConfirmedMutation = (
+  state: FakeBrowserState,
+  mutationOutcome: "no" | "confirmed" = "confirmed",
+): void => {
   if (!state.atomicIdentity) return;
   state.recovery = Object.freeze({
     state: "confirmed",
-    mutationOutcome: "confirmed",
+    mutationOutcome,
     terminalAt: "2026-09-02T00:00:01.000Z",
+    failureCode: null,
+    nativeFailureCode: null,
+    authorityRef: `browser-mutation:${state.atomicIdentity.callId}`,
+    authorityHash: `sha256:${"9".repeat(64)}`,
+    targetRef: "target:1",
+    documentRef: state.documentRef,
+  });
+};
+
+const markRejectedMutation = (
+  state: FakeBrowserState,
+  mutationOutcome: "no" | "confirmed",
+  failureCode: string,
+  nativeFailureCode: string | null,
+): void => {
+  if (!state.atomicIdentity) return;
+  state.recovery = Object.freeze({
+    state: "rejected",
+    mutationOutcome,
+    terminalAt: "2026-09-02T00:00:01.000Z",
+    failureCode,
+    nativeFailureCode,
+    authorityRef: `browser-mutation:${state.atomicIdentity.callId}`,
+    authorityHash: `sha256:${"9".repeat(64)}`,
+    targetRef: "target:1",
+    documentRef: state.documentRef,
+  });
+};
+
+const markDispatchedMutation = (state: FakeBrowserState): void => {
+  if (!state.atomicIdentity) return;
+  state.recovery = Object.freeze({
+    state: "dispatched",
+    mutationOutcome: "dispatched",
+    terminalAt: null,
+    failureCode: null,
+    nativeFailureCode: null,
     authorityRef: `browser-mutation:${state.atomicIdentity.callId}`,
     authorityHash: `sha256:${"9".repeat(64)}`,
     targetRef: "target:1",
@@ -117,9 +159,39 @@ const executeFakeDomIntent = async (
 ): Promise<unknown> => {
   state.domCalls += 1;
   const mutates = ["click", "hover", "doubleClick", "keypress", "fill"].includes(intent.kind);
-  if (mutates) state.physicalMutations += 1;
   const value = await responder(intent, state.domCalls);
-  if (mutates) markConfirmedMutation(state);
+  if (mutates) {
+    const result = value && typeof value === "object" && !Array.isArray(value) ? value : null;
+    const declaredMutationCount = result ? Reflect.get(result, "mutationCount") : undefined;
+    const mutationCount = Number.isSafeInteger(declaredMutationCount) ? Number(declaredMutationCount) : 1;
+    state.physicalMutations += mutationCount;
+    const mutationOutcome = mutationCount === 0 ? "no" as const : "confirmed" as const;
+    if (result && Reflect.get(result, "receiptMissing") === true) {
+      markDispatchedMutation(state);
+      throw browserExecutionFailure(new Error("BROWSER_COMMAND_RECEIPT_MISSING"), "dispatched", {
+        effectScope: state.atomicIdentity?.replayPolicy === "provider-effect-once"
+          ? "provider_effect" : "target_local",
+        childCapabilityId: state.atomicIdentity?.childCapabilityId ?? "unknown",
+        browserOutcome: "DISPATCHED",
+      });
+    }
+    if (result && Reflect.get(result, "postconditionVerified") === false) {
+      const failureCode = typeof Reflect.get(result, "failureCode") === "string"
+        ? String(Reflect.get(result, "failureCode")) : "BROWSER_POSTCONDITION_FAILED";
+      const nativeCauseCode = typeof Reflect.get(result, "nativeCauseCode") === "string"
+        ? String(Reflect.get(result, "nativeCauseCode")) : null;
+      markRejectedMutation(state, mutationOutcome, failureCode, nativeCauseCode);
+      const cause = nativeCauseCode
+        ? Object.assign(new Error(nativeCauseCode), { code: nativeCauseCode }) : undefined;
+      throw browserExecutionFailure(new Error(failureCode, { ...(cause ? { cause } : {}) }), mutationOutcome, {
+        effectScope: state.atomicIdentity?.replayPolicy === "provider-effect-once"
+          ? "provider_effect" : "target_local",
+        childCapabilityId: state.atomicIdentity?.childCapabilityId ?? "unknown",
+        browserOutcome: "REJECTED",
+      });
+    }
+    markConfirmedMutation(state, mutationOutcome);
+  }
   if (intent.kind !== "document" || !value || typeof value !== "object" || Array.isArray(value)) return value;
   const nextUrl = Reflect.get(value, "url");
   if (typeof nextUrl === "string" && nextUrl !== state.url) {

@@ -12,6 +12,8 @@ import { serializeTerminalFailure } from "../../src/lib/local-runtime/production
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { HASH_A, HASH_B, identityFor, resultFor, task } from "./agent-production-runtime-fixtures.js";
+import { verifyBrowserFailureStoreContract } from
+  "./agent-production-runtime-browser-failure.acceptance-support.js";
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-production-ledger-"));
 const columns = (database: Database.Database, table: string): string[] =>
   (database.prepare(`pragma table_info(${table})`).all() as Array<{ name: string }>).map((row) => row.name);
@@ -86,6 +88,7 @@ try {
   store.recordAttemptFailure(binaryTask.job_id, firstAttempt, firstFailure);
   store.recordAttemptFailure(binaryTask.job_id, firstAttempt, firstFailure);
   assert.deepEqual(store.readTask(binaryTask.job_id)?.attempt_failure, firstFailure);
+  verifyBrowserFailureStoreContract(store);
   assert.throws(
     () => store.recordAttemptFailure(
       binaryTask.job_id,

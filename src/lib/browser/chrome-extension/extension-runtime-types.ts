@@ -1,4 +1,5 @@
 export type ExtensionDebuggee = Readonly<{ tabId: number }>;
+export type ExtensionDebuggerDetachReason = "target_closed" | "canceled_by_user";
 export type ExtensionDebugTarget = Readonly<{
   attached: boolean;
   id: string;
@@ -28,7 +29,9 @@ export type ExtensionChromeApi = Readonly<{
     detach(target: ExtensionDebuggee): Promise<void>;
     getTargets(): Promise<readonly ExtensionDebugTarget[]>;
     sendCommand(target: ExtensionDebuggee, method: string, parameters?: Readonly<Record<string, unknown>>): Promise<unknown>;
-    onDetach: Readonly<{ addListener(listener: (target: ExtensionDebuggee, reason: string) => void): void }>;
+    onDetach: Readonly<{
+      addListener(listener: (target: ExtensionDebuggee, reason: ExtensionDebuggerDetachReason) => void): void;
+    }>;
     onEvent: Readonly<{
       addListener(listener: (target: ExtensionDebuggee, method: string, parameters?: Readonly<Record<string, unknown>>) => void): void;
     }>;

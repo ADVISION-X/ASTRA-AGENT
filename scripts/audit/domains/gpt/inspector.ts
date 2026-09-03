@@ -58,6 +58,9 @@ const EXECUTION_PROFILE_HANDLER_PATH = `${ROOT}/web/children/execution-profile-c
 const EXECUTION_PROFILE_CONTRACT_PATH = `${ROOT}/web/contracts/execution-profile.contract.ts`;
 const ATTACHMENT_HANDLER_PATH = `${ROOT}/web/children/attachment-children.ts`;
 const ATTACHMENT_CONTRACT_PATH = `${ROOT}/web/contracts/attachment.contract.ts`;
+const REAL_PROOF_PATH = "scripts/acceptance/gpt.real-proof.ts";
+const PRODUCTION_CHILD_TOOLS_PATH = `${ROOT}/production-child-tools.ts`;
+const PRODUCTION_BROWSER_LIFECYCLE_PATH = `${ROOT}/production-browser-lifecycle.ts`;
 
 const finding = (checkId: string, filePath: string, message: string, line?: number): InspectorFinding =>
   createFinding({
@@ -289,6 +292,65 @@ const inspectModelSelectionContract = (context: InspectorContext, findings: Insp
   ));
 };
 
+const inspectExecutionProfileDynamicContract = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+): void => {
+  const proof = sourceFor(context, REAL_PROOF_PATH)?.getFullText() ?? "";
+  for (const required of [
+    "/facts/profile_trigger_unique_observed", "/facts/profile_trigger_pointer_qualified",
+    "/facts/profile_open_mutation_count", "/facts/profile_popup_direct_readback",
+  ]) if (!proof.includes(required)) findings.push(finding(
+    "gpt/profile-open-real-browser-denominator", REAL_PROOF_PATH,
+    `The existing GPT dynamic proof contract is missing ${required}.`,
+  ));
+};
+
+const inspectExecutionProfileStateReadContract = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+): void => {
+  const handler = sourceFor(context, EXECUTION_PROFILE_HANDLER_PATH)?.getFullText() ?? "";
+  for (const required of [
+    "selector: GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR",
+    'readEligibility: "non-actionable-aria-state"',
+    "GPT_PROFILE_REASONING_VALUE_SELECTOR}[aria-valuenow=",
+  ]) if (!handler.includes(required)) findings.push(finding(
+    "gpt/profile-non-actionable-state-read", EXECUTION_PROFILE_HANDLER_PATH,
+    `The execution-profile Child is missing ${required}.`,
+  ));
+  if ((handler.match(/readEligibility:\s*"non-actionable-aria-state"/gu) ?? []).length !== 3) findings.push(finding(
+    "gpt/profile-non-actionable-state-read", EXECUTION_PROFILE_HANDLER_PATH,
+    "The reasoning slider read mode must exist exactly on topology, open postcondition, and reasoning postcondition.",
+  ));
+  if (/kind:\s*"keypress"[\s\S]{0,160}selector:\s*GPT_PROFILE_REASONING_VALUE_SELECTOR\s*,/u.test(handler)) {
+    findings.push(finding(
+      "gpt/profile-hidden-slider-action-forbidden", EXECUTION_PROFILE_HANDLER_PATH,
+      "The aria-hidden reasoning slider must never become the keypress action target.",
+    ));
+  }
+};
+
+const inspectBrowserFailureRecoveryContract = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+): void => {
+  const tools = sourceFor(context, PRODUCTION_CHILD_TOOLS_PATH)?.getFullText() ?? "";
+  const lifecycle = sourceFor(context, PRODUCTION_BROWSER_LIFECYCLE_PATH)?.getFullText() ?? "";
+  for (const required of [
+    "facts.mutation.failureCode", "facts.mutation.nativeFailureCode", "cause: nativeCause",
+  ]) if (!tools.includes(required)) findings.push(finding(
+    "gpt/browser-rejected-wal-cause", PRODUCTION_CHILD_TOOLS_PATH,
+    `The Browser REJECTED fact path is missing ${required}.`,
+  ));
+  for (const required of [
+    "input.recovery.failureCode", "input.recovery.nativeFailureCode",
+  ]) if (!lifecycle.includes(required)) findings.push(finding(
+    "gpt/browser-rejected-wal-cause", PRODUCTION_BROWSER_LIFECYCLE_PATH,
+    `The Browser atomic-step recovery path is missing ${required}.`,
+  ));
+};
+
 const inspectProviderWaitContract = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const textResponse = sourceFor(context, TEXT_RESPONSE_HANDLER_PATH)?.getFullText() ?? "";
   const imageResponse = sourceFor(context, IMAGE_RESPONSE_HANDLER_PATH)?.getFullText() ?? "";
@@ -343,6 +405,9 @@ const inspectGptContracts = (context: InspectorContext, findings: InspectorFindi
   inspectUniqueRuntimeChain(context, findings);
   inspectIntelligentExecutionContracts(context, findings);
   inspectModelSelectionContract(context, findings);
+  inspectExecutionProfileStateReadContract(context, findings);
+  inspectExecutionProfileDynamicContract(context, findings);
+  inspectBrowserFailureRecoveryContract(context, findings);
 };
 
 const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
@@ -353,6 +418,7 @@ const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFind
     MODEL_SELECTION_V2_HANDLER_PATH, MODEL_SELECTION_V2_CONTRACT_PATH,
     EXECUTION_PROFILE_HANDLER_PATH, EXECUTION_PROFILE_CONTRACT_PATH,
     ATTACHMENT_HANDLER_PATH, ATTACHMENT_CONTRACT_PATH,
+    REAL_PROOF_PATH, PRODUCTION_CHILD_TOOLS_PATH, PRODUCTION_BROWSER_LIFECYCLE_PATH,
   ])
     if (!existsSync(resolve(context.sealedRoot, path))) findings.push(finding(
       "gpt/filesystem-required-owner-file", path, `${path} is missing.`));

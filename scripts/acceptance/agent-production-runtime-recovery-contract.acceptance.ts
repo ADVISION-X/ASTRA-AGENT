@@ -4,12 +4,18 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
 
-import { checkpointProductionTask } from "../../src/lib/local-runtime/production/cloud-client.js";
+import {
+  checkpointProductionTask,
+  downloadProductionMaterials,
+} from "../../src/lib/local-runtime/production/cloud-client.js";
 import { readProductionDeviceJobStatus } from "../../src/lib/local-runtime/production/cloud-reconciliation-client.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { executionFailure } from "../../src/lib/execution-failure.js";
-import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
+import {
+  runtimeTransportFailure,
+  typedRuntimeTransportFailure,
+} from "../../src/lib/local-runtime/production/transport-failure.js";
 import { assertPermanentRevocationSettlement } from "./agent-production-runtime-permanent-revocation-support.js";
 import {
   HASH_A,
@@ -34,6 +40,36 @@ assert.equal("accepted_attempt_limit" in parsed, false,
 assert.equal("attempt_authority" in parsed, false,
   "the AGENT must not depend on an undeclared Website attempt projection");
 assert.equal(parsed.control_intent.intent, "none");
+
+const materialFailureTemporary = await mkdtemp(path.join(tmpdir(), "agent-material-failure-"));
+const originalMaterialFetch = globalThis.fetch;
+try {
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    ok: false,
+    error: { code: "AI_PRODUCTION_INPUT_OBJECT_READ_FAILED", message: "Input object is unavailable." },
+  }), { status: 503, headers: { "content-type": "application/problem+json" } })) as typeof globalThis.fetch;
+  const materialJob = claimTask(task({
+    jobId: "job:material-remote-failure",
+    productId: "payment_screenshot_observation",
+    actionId: "observe",
+    materialRefs: [{
+      material_id: "material:remote-failure", ordinal: 0, role: "payment_screenshot",
+      display_name: "payment.png", object_ref: "object:payment", sha256: HASH_A,
+      bytes: 10, media_type: "image/png", storage_class: "private_owner_scoped",
+      owner_scope_hash: HASH_B, trust_class: "user_provided_data", may_issue_instruction: false,
+    }],
+    extra: { parameters: { observation_schema_version: "payment-screenshot-observation-v1" } },
+  }));
+  await assert.rejects(downloadProductionMaterials({
+    device: { server_base_url: "https://website.example" }, authorizationHeaders: async () => ({}),
+  } as never, materialJob, materialFailureTemporary), (error: unknown) => {
+    const failure = typedRuntimeTransportFailure(error);
+    return failure?.code === "AI_PRODUCTION_INPUT_OBJECT_READ_FAILED" && failure.httpStatus === 503;
+  }, "material download must preserve the Website problem code and HTTP status");
+} finally {
+  globalThis.fetch = originalMaterialFetch;
+  await rm(materialFailureTemporary, { recursive: true, force: true });
+}
 
 const revokedStatus = await readProductionDeviceJobStatus({
   request: async () => ({

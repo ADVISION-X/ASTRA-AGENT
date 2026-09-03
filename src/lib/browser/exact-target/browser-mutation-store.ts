@@ -10,6 +10,25 @@ export type BrowserMutationOutcome = "no" | "dispatched" | "confirmed";
 const legacyMutationOutcome = (state: BrowserMutationState): BrowserMutationOutcome =>
   state === "DISPATCHED" ? "dispatched"
     : state === "CONFIRMED" || state === "REJECTED" ? "confirmed" : "no";
+const machineCode = (value: unknown): value is string => typeof value === "string"
+  && /^BROWSER_[A-Z0-9_]+$/u.test(value);
+const terminalFailureFields = (
+  state: "DISPATCHED" | "CONFIRMED" | "REJECTED",
+  reason: string | null,
+  nativeCauseCode: string | null,
+): Readonly<{ failureCode: string | null; nativeFailureCode: string | null }> => {
+  if (state !== "REJECTED") {
+    if (nativeCauseCode !== null) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    return Object.freeze({ failureCode: null, nativeFailureCode: null });
+  }
+  if (nativeCauseCode !== null && !machineCode(nativeCauseCode)) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  return Object.freeze({
+    failureCode: machineCode(reason) ? reason : "BROWSER_POSTCONDITION_FAILED",
+    nativeFailureCode: nativeCauseCode,
+  });
+};
 
 export type BrowserMutationIdentity = Readonly<{
   commandId: string;
@@ -62,6 +81,10 @@ export type BrowserExactCallMutationFact = Readonly<{
   outcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
   mutationOutcome: BrowserMutationOutcome;
   terminalAt: string | null;
+  failureCode: string | null;
+  nativeFailureCode: string | null;
+  authorityRef: string;
+  authorityHash: `sha256:${string}`;
   targetRef: string;
   documentRef: string;
   productStepId: string;
@@ -74,6 +97,8 @@ export type BrowserAtomicStepRecovery = Readonly<{
   state: "dispatched" | "confirmed" | "rejected";
   mutationOutcome: BrowserMutationOutcome;
   terminalAt: string | null;
+  failureCode: string | null;
+  nativeFailureCode: string | null;
   authorityRef: string;
   authorityHash: `sha256:${string}`;
   targetRef: string;
@@ -93,7 +118,7 @@ export const resolveStoredBrowserMutationAuthority = (
   try {
     database = new Database(file, { readonly: true, fileMustExist: true });
     const row = database.prepare(
-      `select ${identityColumns},proof_hash,state,mutation_outcome,reason,terminal_at,updated_at
+      `select ${identityColumns},proof_hash,state,mutation_outcome,reason,native_cause_code,terminal_at,updated_at
        from browser_mutations where command_id=?`,
     ).get(commandId);
     if (!row) return "missing";
@@ -162,7 +187,7 @@ export class BrowserMutationStore {
   }
 
   public markDispatched(commandId: string): void {
-    this.transition(commandId, "PREPARED", "DISPATCHED", "dispatched", null, null);
+    this.transition(commandId, "PREPARED", "DISPATCHED", "dispatched", null, null, null);
   }
 
   public markReceiptMissing(commandId: string, proofHash: `sha256:${string}` | null = null): void {
@@ -174,7 +199,8 @@ export class BrowserMutationStore {
   }
 
   public markConfirmed(commandId: string, proofHash: `sha256:${string}`, mutationOutcome: "no" | "confirmed" = "confirmed"): void {
-    this.transition(commandId, "DISPATCHED", "CONFIRMED", mutationOutcome, "direct-postcondition-passed", proofHash);
+    this.transition(commandId, "DISPATCHED", "CONFIRMED", mutationOutcome,
+      "direct-postcondition-passed", null, proofHash);
   }
 
   public markRejected(
@@ -182,12 +208,14 @@ export class BrowserMutationStore {
     proofHash: `sha256:${string}`,
     mutationOutcome: "no" | "confirmed" = "confirmed",
     reason = "BROWSER_POSTCONDITION_FAILED",
+    nativeCauseCode: string | null = null,
   ): void {
-    this.transition(commandId, "DISPATCHED", "REJECTED", mutationOutcome, reason, proofHash);
+    this.transition(commandId, "DISPATCHED", "REJECTED", mutationOutcome,
+      reason, nativeCauseCode, proofHash);
   }
 
   public markFailedBeforeDispatch(commandId: string, reason: string): void {
-    this.transition(commandId, "PREPARED", "FAILED", "no", reason, null);
+    this.transition(commandId, "PREPARED", "FAILED", "no", reason, null, null);
   }
 
   public resolve(input: Readonly<{
@@ -200,7 +228,8 @@ export class BrowserMutationStore {
   }>): void {
     const terminalAt = new Date().toISOString();
     const result = this.database.prepare(
-      `update browser_mutations set state=?,mutation_outcome=?,proof_hash=?,reason=?,terminal_at=coalesce(terminal_at,?),updated_at=?
+      `update browser_mutations set state=?,mutation_outcome=?,proof_hash=?,reason=?,native_cause_code=null,
+       terminal_at=coalesce(terminal_at,?),updated_at=?
        where command_id=? and owner_plugin_id=? and target_ref=? and state='DISPATCHED'`,
     ).run(input.state, input.mutationOutcome, input.proofHash, `owning-plugin:${input.ownerPluginId}`,
       terminalAt, terminalAt, input.commandId, input.ownerPluginId, input.targetRef);
@@ -303,7 +332,8 @@ export class BrowserMutationStore {
       ...(input.effectScope === "target_local" ? [input.targetRef] : []),
     ];
     const rows = this.database.prepare(
-      `select command_id,target_ref,document_ref,state,mutation_outcome,terminal_at,action_ordinal
+      `select command_id,target_ref,document_ref,state,mutation_outcome,reason,native_cause_code,
+              terminal_at,action_ordinal
        from browser_mutations
        where job_id=? and attempt_id=? and owner_plugin_id=? and plugin_version=?
          and exact_call_identity_hash=? and effect_scope=?
@@ -315,6 +345,8 @@ export class BrowserMutationStore {
       document_ref: string;
       state: "DISPATCHED" | "CONFIRMED" | "REJECTED";
       mutation_outcome: BrowserMutationOutcome | null;
+      reason: string | null;
+      native_cause_code: string | null;
       terminal_at: string | null;
       action_ordinal: number;
     }>;
@@ -326,10 +358,12 @@ export class BrowserMutationStore {
     if (row.state !== "DISPATCHED" && (!row.terminal_at || !Number.isFinite(Date.parse(row.terminal_at)))) {
       throw new Error("BROWSER_TERMINAL_AT_INVALID");
     }
+    const failure = terminalFailureFields(row.state, row.reason, row.native_cause_code);
     return Object.freeze({
       state: row.state.toLowerCase() as BrowserAtomicStepRecovery["state"],
       mutationOutcome: row.mutation_outcome ?? legacyMutationOutcome(row.state),
       terminalAt: row.terminal_at,
+      ...failure,
       authorityRef: `browser-mutation:${row.command_id}`,
       authorityHash: this.authorityHash(row.command_id),
       targetRef: row.target_ref,
@@ -346,7 +380,8 @@ export class BrowserMutationStore {
     actionOrdinal: number;
   }>): BrowserExactCallMutationFact | null {
     const rows = this.database.prepare(
-      `select effect_scope,state,mutation_outcome,terminal_at,target_ref,document_ref,product_step_id,call_id,
+      `select command_id,effect_scope,state,mutation_outcome,reason,native_cause_code,terminal_at,
+              target_ref,document_ref,product_step_id,call_id,
               child_capability_id,action_ordinal
        from browser_mutations
        where job_id=? and attempt_id=? and owner_plugin_id=? and plugin_version=?
@@ -354,9 +389,12 @@ export class BrowserMutationStore {
        order by updated_at desc,command_id desc limit 2`,
     ).all(input.jobId, input.attemptId, input.ownerPluginId, input.pluginVersion,
       input.exactCallIdentityHash) as ReadonlyArray<{
+      command_id: string;
       effect_scope: "target_local" | "provider_effect";
       state: "DISPATCHED" | "CONFIRMED" | "REJECTED";
       mutation_outcome: BrowserMutationOutcome | null;
+      reason: string | null;
+      native_cause_code: string | null;
       terminal_at: string | null;
       target_ref: string;
       document_ref: string;
@@ -373,11 +411,15 @@ export class BrowserMutationStore {
     if (row.state !== "DISPATCHED" && (!row.terminal_at || !Number.isFinite(Date.parse(row.terminal_at)))) {
       throw new Error("BROWSER_TERMINAL_AT_INVALID");
     }
+    const failure = terminalFailureFields(row.state, row.reason, row.native_cause_code);
     return Object.freeze({
       effectScope: row.effect_scope,
       outcome: row.state,
       mutationOutcome: row.mutation_outcome ?? legacyMutationOutcome(row.state),
       terminalAt: row.terminal_at,
+      ...failure,
+      authorityRef: `browser-mutation:${row.command_id}`,
+      authorityHash: this.authorityHash(row.command_id),
       targetRef: row.target_ref,
       documentRef: row.document_ref,
       productStepId: row.product_step_id,
@@ -410,7 +452,7 @@ export class BrowserMutationStore {
 
   public authorityHash(commandId: string): `sha256:${string}` {
     const row = this.database.prepare(
-      `select ${identityColumns},proof_hash,state,mutation_outcome,reason,terminal_at,updated_at
+      `select ${identityColumns},proof_hash,state,mutation_outcome,reason,native_cause_code,terminal_at,updated_at
        from browser_mutations where command_id=?`,
     ).get(commandId);
     if (!row) throw new Error("BROWSER_MUTATION_RECORD_MISSING");
@@ -429,14 +471,16 @@ export class BrowserMutationStore {
   public close(): void { this.database.close(); }
 
   private transition(commandId: string, from: BrowserMutationState, to: BrowserMutationState,
-    mutationOutcome: BrowserMutationOutcome, reason: string | null, proofHash: `sha256:${string}` | null): void {
+    mutationOutcome: BrowserMutationOutcome, reason: string | null, nativeCauseCode: string | null,
+    proofHash: `sha256:${string}` | null): void {
     const timestamp = new Date().toISOString();
     const result = this.database.prepare(
-      `update browser_mutations set state=?,mutation_outcome=?,reason=?,proof_hash=?,
+      `update browser_mutations set state=?,mutation_outcome=?,reason=?,native_cause_code=?,proof_hash=?,
        terminal_at=case when ? in ('CONFIRMED','REJECTED') then coalesce(terminal_at,?) else terminal_at end,
        updated_at=?
        where command_id=? and state=?`,
-    ).run(to, mutationOutcome, reason, proofHash, to, timestamp, timestamp, commandId, from);
+    ).run(to, mutationOutcome, reason, nativeCauseCode, proofHash,
+      to, timestamp, timestamp, commandId, from);
     if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
   }
 }

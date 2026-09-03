@@ -46,12 +46,20 @@ const mechanicalReply = (
 const coherentCandidateReply = (
   method: string,
   parameters?: Readonly<Record<string, unknown>>,
+  overrides: Readonly<Record<string, unknown>> = {},
 ): unknown | undefined => {
   if (method === "Page.getFrameTree") return { frameTree: { frame: { loaderId: "loader-current" } } };
   if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
   if (method === "DOM.resolveNode") return { object: { objectId: "candidate-root" } };
   if (method === "Runtime.callFunctionOn" && parameters?.returnByValue === false) {
     return { result: { type: "object", subtype: "node", objectId: "candidate-node" } };
+  }
+  if (method === "Runtime.callFunctionOn" && parameters?.returnByValue === true
+    && String(parameters.functionDeclaration).includes("spec.output")) {
+    const cause = overrides.disabled === true ? "BROWSER_DOM_ACTION_DISABLED"
+      : overrides.hitTest === false ? "BROWSER_DOM_ACTION_HIT_TEST_FAILED"
+        : overrides.viewport === false ? "BROWSER_DOM_ACTION_OUTSIDE_VIEWPORT" : null;
+    return { result: { value: cause ?? { x: 5, y: 5 } } };
   }
   if (method === "DOM.requestNode") return { nodeId: 7 };
   if (method === "Runtime.releaseObject") return {};
@@ -251,7 +259,7 @@ const exerciseSeparatedMechanicalEligibility = async (): Promise<void> => {
 
   const runtimeFor = (overrides: Readonly<Record<string, unknown>>) => ({
     async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
-      const coherent = coherentCandidateReply(method, parameters);
+      const coherent = coherentCandidateReply(method, parameters, overrides);
       if (coherent !== undefined) return coherent;
       const mechanical = mechanicalReply(method, overrides, parameters);
       if (mechanical !== undefined) return mechanical;
@@ -270,7 +278,7 @@ const exerciseSeparatedMechanicalEligibility = async (): Promise<void> => {
   }
 
   for (const [kind, facts] of [["click", { disabled: true, hitTest: false }],
-    ["keypress", { ariaDisabled: true }]] as const) {
+    ["keypress", { ariaDisabled: true }], ["keypress", { ariaHidden: true }]] as const) {
     const intent = kind === "click"
       ? { kind, selector: "button", expectedMatches: 1,
         postClickMatch: { selector: "done", expectedMatches: 1 } } as const
@@ -280,7 +288,8 @@ const exerciseSeparatedMechanicalEligibility = async (): Promise<void> => {
     assert.deepEqual(rejected, { candidateCount: 1, qualificationStage: "actionability",
       identityRevalidated: false, mutationCount: 0,
       postconditionVerified: false, qualificationRejected: true,
-      failureCode: "BROWSER_DOM_ACTION_NOT_QUALIFIED" });
+      failureCode: "BROWSER_DOM_ACTION_NOT_QUALIFIED",
+      nativeCauseCode: kind === "click" ? "BROWSER_DOM_ACTION_DISABLED" : "BROWSER_DOM_CANDIDATE_MISSING" });
   }
 };
 
@@ -290,6 +299,10 @@ const assertObservationContractRejectsCallerControl = (): void => {
   } as never] }), /BROWSER_COMMAND_PERMIT_INVALID/u);
   assert.throws(() => assertBrowserDomIntent({ kind: "observe", queries: [{
     queryId: "raw-text", selector: "button", maxMatches: 1, fields: ["text"],
+  } as never] }), /BROWSER_COMMAND_PERMIT_INVALID/u);
+  assert.throws(() => assertBrowserDomIntent({ kind: "observe", queries: [{
+    queryId: "forged-eligibility", selector: "button", maxMatches: 1, fields: ["visible"],
+    readEligibility: "actionable-hidden-node",
   } as never] }), /BROWSER_COMMAND_PERMIT_INVALID/u);
   assert.throws(() => assertBrowserDomIntent({ kind: "observe", queries: Array.from({ length: 20 }, (_, index) => ({
     queryId: `oversized-${index}`, selector: "button", maxMatches: 20,

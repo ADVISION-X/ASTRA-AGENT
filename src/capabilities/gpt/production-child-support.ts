@@ -39,9 +39,13 @@ export const throwGptChildFailure = (result: GptChildCapabilityResult): never =>
     ...(result.failureCause.code ? { code: result.failureCause.code } : {}),
   }) : undefined;
   const evidenceRef = persistedGptEvidenceRef(result);
+  const browserFact = result.proof.browserFact;
   const error = gptExecutionFailure(result.failureCode ?? "GPT_CHILD_FAILED", {
     mutationOutcome: result.proof.committedMutation,
-    evidence: evidenceRef ? Object.freeze({
+    evidence: browserFact ? Object.freeze({
+      evidenceRef: browserFact.evidenceRef,
+      evidenceHash: browserFact.evidenceHash,
+    }) : evidenceRef ? Object.freeze({
       evidenceRef,
       evidenceHash: result.proof.evidenceHash,
     }) : null,
