@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 
 import type { GptAbilityGroup, GptChildCapabilityResult } from "./contract.js";
-import type { ForensicsPersistenceAbilityGroup } from "../forensics-persistence/index.js";
 import { executionFailure } from "../../lib/execution-failure.js";
 import { gptSubmissionLocatorArtifact } from "./artifact-contract.js";
+import type { GptEvidenceStorePort } from "./production-ports.js";
 
 type EvidenceArtifact = Readonly<{
   suffix: string;
@@ -212,7 +212,7 @@ const artifactsFor = (
 
 const appendArtifact = async (input: Readonly<{
   artifact: EvidenceArtifact;
-  evidenceStore: ForensicsPersistenceAbilityGroup;
+  evidenceStore: GptEvidenceStorePort;
   jobId: string;
   attemptId: string;
   executionId: string;
@@ -240,7 +240,7 @@ const appendArtifact = async (input: Readonly<{
 export const persistGptEvidenceArtifacts = async (input: Readonly<{
   result: GptChildCapabilityResult;
   intent: Parameters<GptAbilityGroup["execute"]>[0];
-  evidenceStore: ForensicsPersistenceAbilityGroup;
+  evidenceStore: GptEvidenceStorePort;
   jobId: string;
   attemptId: string;
   exactCallIdentityHash: `sha256:${string}`;

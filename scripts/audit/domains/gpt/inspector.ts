@@ -24,7 +24,7 @@ import {
   inspectGptContractDenominator,
 } from "./gpt-contract-inspection.js";
 
-const LAW_ID = "LAW-GPT-001-V20";
+const LAW_ID = "LAW-GPT-001-V21";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 12, 15, 18),
   "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 16, 17, 18),
@@ -50,7 +50,6 @@ const RETIRED_RESPONSE_SUPPORT_PATH = `${ROOT}/web/children/response-child-suppo
 const RETIRED_RATE_DIALOG_PATH = `${ROOT}/web/children/rate-limit-dialog.ts`;
 const CONVERSATION_HANDLER_PATH = `${ROOT}/web/children/conversation-children.ts`;
 const SUBMISSION_HANDLER_PATH = `${ROOT}/web/children/composer-submission-children.ts`;
-const CONVERSATION_CONTRACT_PATH = `${ROOT}/web/contracts/conversation.contract.ts`;
 const TURN_EXECUTOR_PATH = `${ROOT}/gpt-turn-executor.ts`;
 const MODEL_SELECTION_V2_HANDLER_PATH = `${ROOT}/web/children/model-selection-v2-children.ts`;
 const MODEL_SELECTION_V2_CONTRACT_PATH = `${ROOT}/web/contracts/model-selection-v2.contract.ts`;
@@ -197,20 +196,24 @@ const inspectCurrentPageProofs = (context: InspectorContext, findings: Inspector
   }
   const browserDomContract = sourceFor(context, BROWSER_DOM_INTENT_PATH)?.getFullText() ?? "";
   const observationPacket = sourceFor(context, BROWSER_DOM_INTENT_PATH)
-    ?.getTypeAlias("BrowserDomObservationPacket")?.getFullText() ?? "";
+    ?.getTypeAlias("BrowserDomObservationPacketV2")?.getFullText() ?? "";
   if (!observationPacket.includes("currentUrl")) findings.push(finding(
     "gpt/browser-coherent-document-url-handoff", BROWSER_DOM_INTENT_PATH,
     "Browser coherent observation does not yet bind the current canonical URL with its DOM revision.",
   ));
-  if (browserDomContract.includes(
+  for (const required of [
     'BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">',
-  )) findings.push(finding(
-    "gpt/browser-coherent-semantic-handoff", BROWSER_DOM_INTENT_PATH,
-    "Browser coherent observation contract does not yet carry text, semanticText, or outerHtml for GPT response proofs.",
+    "BrowserExactAssistantTurnReplyV1", 'kind: "readExactAssistantTurn"',
+    "rawDomHtml", "rawDomHash", "semanticText", "semanticTextHash",
+  ]) if (!browserDomContract.includes(required)) findings.push(finding(
+    "gpt/browser-exact-assistant-reply-channel", BROWSER_DOM_INTENT_PATH,
+    `Browser must keep generic coherent raw content closed and expose only the exact assistant reply channel; missing ${required}.`,
   ));
 };
 
-const READ_ONLY_DOM_INTENTS = new Set(["document", "observe", "find", "inspect", "readAttribute", "readText"]);
+const READ_ONLY_DOM_INTENTS = new Set([
+  "document", "observe", "readExactAssistantTurn", "find", "inspect", "readAttribute", "readText",
+]);
 
 const isPageMutationCall = (call: import("ts-morph").CallExpression): boolean => {
   const expression = call.getExpression().getText();
@@ -335,39 +338,38 @@ const inspectProviderWaitContract = (context: InspectorContext, findings: Inspec
   const imageResponse = sourceFor(context, IMAGE_RESPONSE_HANDLER_PATH)?.getFullText() ?? "";
   const conversation = sourceFor(context, CONVERSATION_HANDLER_PATH)?.getFullText() ?? "";
   const submission = sourceFor(context, SUBMISSION_HANDLER_PATH)?.getFullText() ?? "";
-  const conversationContract = sourceFor(context, CONVERSATION_CONTRACT_PATH)?.getFullText() ?? "";
-  if (!conversationContract.includes(
-    `GPT_USER_PROMPT_BODY_SELECTOR = "[data-testid='collapsible-user-message-content']"`,
-  )) findings.push(finding(
-    "gpt/exact-user-prompt-body", CONVERSATION_CONTRACT_PATH,
-    "The exact user-turn prompt body selector contract is missing.",
-  ));
-  const blockedFiles = [
-    [CONVERSATION_HANDLER_PATH, conversation, "GPT_BROWSER_COHERENT_PAGE_HANDOFF_REQUIRED", [
+  const implementedFiles = [
+    [CONVERSATION_HANDLER_PATH, conversation, [
       "prepare_clean_gpt_chat", "focus_exact_gpt_conversation", "verify_gpt_conversation_identity",
       "open_gpt_checkpoint_actions_menu", "fork_exact_gpt_conversation_at_checkpoint",
+      "readCoherentObservation", "readExactAssistantTurn",
     ]],
-    [SUBMISSION_HANDLER_PATH, submission, "GPT_BROWSER_COHERENT_PAGE_HANDOFF_REQUIRED", [
+    [SUBMISSION_HANDLER_PATH, submission, [
       "write_exact_gpt_prompt", "reconcile_gpt_draft", "submit_exact_gpt_turn_once",
-      "reconcile_gpt_turn_submission",
+      "reconcile_gpt_turn_submission", "readCoherentObservation", "semanticTextHash",
     ]],
-    [TEXT_RESPONSE_HANDLER_PATH, textResponse, "GPT_BROWSER_COHERENT_SEMANTIC_HANDOFF_REQUIRED", [
+    [TEXT_RESPONSE_HANDLER_PATH, textResponse, [
       "wait_for_stable_gpt_text", "checkpoint_gpt_text_response",
+      "readExactAssistantTurn", "ensureResponseConversation",
     ]],
-    [IMAGE_RESPONSE_HANDLER_PATH, imageResponse, "GPT_BROWSER_COHERENT_SEMANTIC_HANDOFF_REQUIRED", [
+    [IMAGE_RESPONSE_HANDLER_PATH, imageResponse, [
       "wait_for_stable_gpt_image", "checkpoint_gpt_generated_image",
+      "downloadAuthenticatedMedia", "ensureResponseConversation",
     ]],
   ] as const;
-  for (const [path, source, blocker, childIds] of blockedFiles) {
-    for (const required of [blocker, "requireBrowser(context)", "requireExactInputKeys", ...childIds]) {
+  for (const [path, source, requiredTokens] of implementedFiles) {
+    for (const required of ["requireBrowser(context)", "requireExactInputKeys", ...requiredTokens]) {
       if (!source.includes(required)) findings.push(finding(
-        "gpt/explicit-browser-handoff-block", path,
-        `Blocked page Child slice is missing ${required}.`,
+        "gpt/browser-handoff-implemented", path,
+        `Production page Child slice is missing ${required}.`,
       ));
     }
-    if (source.includes("executeDomIntent") || source.includes("readCoherentObservation")) findings.push(finding(
-      "gpt/blocked-slice-zero-browser-use", path,
-      "A Browser-handoff-blocked Child slice must not retain a DOM read, fallback, or mutation path.",
+    for (const retiredBlocker of [
+      "GPT_BROWSER_COHERENT_PAGE_HANDOFF_REQUIRED",
+      "GPT_BROWSER_COHERENT_SEMANTIC_HANDOFF_REQUIRED",
+    ]) if (source.includes(retiredBlocker)) findings.push(finding(
+      "gpt/placeholder-handoff-retired", path,
+      `Production page Child slice retains retired placeholder ${retiredBlocker}.`,
     ));
   }
 };
@@ -391,7 +393,7 @@ const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFind
   for (const path of [
     CONTRACT_PATH, FACADE_PATH, GROUP_PATH, SESSION_PATH, SESSION_CHILDREN_PATH, RESPONSE_HANDLER_PATH,
     TEXT_RESPONSE_HANDLER_PATH, IMAGE_RESPONSE_HANDLER_PATH,
-    CONVERSATION_HANDLER_PATH, CONVERSATION_CONTRACT_PATH,
+    CONVERSATION_HANDLER_PATH,
     MODEL_SELECTION_V2_HANDLER_PATH, MODEL_SELECTION_V2_CONTRACT_PATH,
     EXECUTION_PROFILE_HANDLER_PATH, EXECUTION_PROFILE_CONTRACT_PATH,
     ATTACHMENT_HANDLER_PATH, ATTACHMENT_CONTRACT_PATH,
@@ -401,7 +403,7 @@ const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFind
   for (const retired of [RETIRED_RESPONSE_SUPPORT_PATH, RETIRED_RATE_DIALOG_PATH]) {
     if (existsSync(resolve(context.sealedRoot, retired))) findings.push(finding(
       "gpt/filesystem-retired-fallback-file", retired,
-      `${retired} must be physically absent while the Browser handoff is blocked.`,
+      `${retired} must remain physically absent after the Browser handoff cutover.`,
     ));
   }
   const controllers = readdirSync(resolve(context.sealedRoot, ROOT, "session"))

@@ -173,7 +173,7 @@ const inspectOperationalAst = (context: InspectorContext): InspectorFinding[] =>
       "operation: \"plugin.execute\"", "parentSpanId", "causedByEventId", "requireRuntimeLogWrite",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "executor-boundaries",
-    "src/lib/local-runtime/production/production-gpt-child-tools.ts", [
+    "src/capabilities/gpt/production-child-tools.ts", [
       "operation: \"gpt.child\"", "parentSpanId", "requireRuntimeLogWrite",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "producer-boundaries",
@@ -284,7 +284,7 @@ const inspectStructureAst = (context: InspectorContext): InspectorFinding[] => {
     ["prepareMutation", ["this.mutations.prepare"], "outcome: \"PREPARED\""],
     ["execute", ["this.mutations.markDispatched"], "outcome: \"DISPATCHED\""],
     ["completeMutation", ["this.mutations.markRejected", "this.mutations.markConfirmed"],
-      "outcome: result === \"rejected\" ? \"REJECTED\" : \"CONFIRMED\""],
+      "outcome: result.terminal === \"rejected\" ? \"REJECTED\" : \"CONFIRMED\""],
     ["failExecution", ["this.mutations.markReceiptMissing", "this.mutations.markFailedBeforeDispatch"],
       "outcome: \"FAILED\""],
     ["resolveDispatchedMutation", ["this.mutations.resolve"], "outcome: state"],

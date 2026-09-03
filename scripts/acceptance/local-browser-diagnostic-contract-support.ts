@@ -1,4 +1,4 @@
-import assert from "../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 
 import { parseBrowserAuthorityDiagnostic } from
   "../../src/lib/browser/transport/browser-authority-diagnostic.js";
@@ -8,12 +8,12 @@ import { parseBrowserAuthorityTargetClaim } from
 export const exerciseBrowserDiagnosticContract = (): void => {
   assert.deepEqual(parseBrowserAuthorityTargetClaim({
     targetRef: "target-tab-7", documentRef: "document-7", navigationEpoch: 0,
-    url: "https://chatgpt.com/",
+    claimOrigin: "https://chatgpt.com",
   }), { targetRef: "target-tab-7", documentRef: "document-7", navigationEpoch: 0,
-    url: "https://chatgpt.com/" });
+    claimOrigin: "https://chatgpt.com" });
   assert.throws(() => parseBrowserAuthorityTargetClaim({
     targetRef: "target-tab-7", documentRef: "document-7", navigationEpoch: 0,
-    url: "https://chatgpt.com/", title: "must-not-cross-wire",
+    claimOrigin: "https://chatgpt.com", title: "must-not-cross-wire",
   }), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
   "page title is not an admitted Target claim wire field");
 

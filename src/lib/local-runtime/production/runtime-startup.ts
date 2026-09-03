@@ -149,6 +149,17 @@ const createRuntimeState = (
   return state;
 };
 
+const acceptedBeforeFirstCheckpoint = (
+  persisted: StoredProductionTask,
+  storedLease: ReturnType<ProductionRuntimeStore["readLease"]>,
+  checkpoint: ReturnType<ProductionRuntimeStore["readCheckpoint"]>,
+): boolean => persisted.status === "failed"
+  && persisted.current_reason === "LEASE_GRANTED"
+  && persisted.attempt_failure === null
+  && persisted.staged_result === null
+  && storedLease === null
+  && checkpoint === null;
+
 export const reconcileTaskRecord = (
   state: RuntimeState,
   persisted: StoredProductionTask,
@@ -159,13 +170,7 @@ export const reconcileTaskRecord = (
     ? state.store.recordLease({ ...storedLease, state: "stale", expiresAt: null }) : storedLease;
   const checkpoint = state.store.readCheckpoint(persisted.task.job_id);
   const remoteRedeliveryPending = state.store.hasUnsentOutbox(persisted.task.job_id);
-  const acceptedBeforeFirstCheckpoint = persisted.status === "failed"
-    && persisted.current_reason === "LEASE_GRANTED"
-    && persisted.attempt_failure === null
-    && persisted.staged_result === null
-    && storedLease === null
-    && checkpoint === null;
-  if (acceptedBeforeFirstCheckpoint) return true;
+  if (acceptedBeforeFirstCheckpoint(persisted, storedLease, checkpoint)) return true;
   let complete = true;
   if (lease) {
     if (nonterminal && !remoteRedeliveryPending

@@ -5,7 +5,6 @@ import {
   parseTerminalReceiptExpectation,
   type ProductionHash,
 } from "./contracts.js";
-import { routeProducesGeneratedImage } from "./route-policy.js";
 import { ProductionStoreOutbox } from "./store-outbox.js";
 import {
   json,
@@ -87,7 +86,6 @@ const completionPayloadConsistent = (
     || result.evidence_refs.length === 0
     || result.evidence_refs.some((ref) => !/^rec-[a-f0-9]{64}$/u.test(ref))) return false;
   const generated = projection.generatedImageByJob.has(jobId);
-  if (generated && !routeProducesGeneratedImage(task.task)) return false;
   if (projection.artifactCountByJob.get(jobId) !== (generated ? 3 : 2)) return false;
   const terminalReceipts = terminal.result_object_receipts;
   return Array.isArray(terminalReceipts)

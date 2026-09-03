@@ -1,4 +1,4 @@
-import assert from "../../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
 import { productionPluginCatalog } from "../../../src/lib/local-runtime/production/catalog.js";
 import { productionRoutePolicies } from "../../../src/lib/local-runtime/production/route-policy.js";
 import { buildProductTask, exerciseProductFlow, FIXTURE_HASH, routesForPlugin } from "../product-plugin-test-runtime.js";

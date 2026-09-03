@@ -1,6 +1,5 @@
 import type { BrowserDomIntent } from "./browser-dom-intent.js";
 import type { BrowserDocumentRef, BrowserTargetRef } from "./browser-target-ref.js";
-import type { BrowserFileArtifactGrantV1 } from "./browser-file-artifact-grant.js";
 import type { BrowserCapabilityId } from "../protocol/generated/browser-protocol.generated.js";
 import type { BrowserOutcomeResolutionReceipt } from "./browser-outcome-resolver.js";
 
@@ -21,6 +20,12 @@ export type BrowserAtomicStepRecovery = Readonly<{
   authorityHash: `sha256:${string}`;
   targetRef: string;
   documentRef: string;
+}>;
+
+export type BrowserApprovedArtifactRef = Readonly<{
+  artifactRef: string;
+  expectedSha256: `sha256:${string}`;
+  bytes: number;
 }>;
 
 export type BrowserTargetLease = Readonly<{
@@ -45,7 +50,10 @@ export type BrowserTargetLease = Readonly<{
   executeDomIntent(input: BrowserDomIntent): Promise<unknown>;
   observeCapability(input: Readonly<{ capabilityId: BrowserCapabilityId; timeoutMs?: number }>): Promise<unknown>;
   captureScreenshot(input: Readonly<{ regionLabel: string }>): Promise<Readonly<{ artifactRef: string; contentHash: `sha256:${string}` }>>;
-  attachFile(input: Readonly<{ selector: string; grants: readonly BrowserFileArtifactGrantV1[] }>): Promise<void>;
+  attachFile(input: Readonly<{
+    selector: string;
+    approvedArtifacts: readonly BrowserApprovedArtifactRef[];
+  }>): Promise<void>;
   downloadAuthenticatedMedia(input: Readonly<{
     assistantTurnId: string;
     semanticMediaId: "gpt-generated-image-main";
@@ -61,17 +69,6 @@ export type BrowserTargetLease = Readonly<{
     width: number;
     height: number;
   }>>;
-  registerFileArtifact(input: Readonly<{
-    artifactRef: string;
-    filePath: string;
-    contentHash: `sha256:${string}`;
-    sizeBytes: number;
-  }>): Promise<void>;
-  issueFileArtifactGrant(input: Readonly<{
-    artifactRef: string;
-    expectedSha256: `sha256:${string}`;
-    maxBytes: number;
-  }>): Promise<BrowserFileArtifactGrantV1>;
   wait(input: Readonly<{ durationMs: number }>): Promise<void>;
   park(input: Readonly<{
     reason: string;

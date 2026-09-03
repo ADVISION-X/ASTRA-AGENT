@@ -298,6 +298,19 @@ const isMethodCall = (node: MorphNode, ownerPath: string, method: string): boole
     && astExpressionPath(expression.getExpression()) === ownerPath;
 };
 
+const matchedComparisonIsStrict = (matched: MorphNode | undefined): boolean => {
+  if (!Node.isConditionalExpression(matched) || astExpressionPath(matched.getCondition()) !== "text.exact") return false;
+  const exactMatch = matched.getWhenTrue();
+  const containsMatch = matched.getWhenFalse();
+  return Node.isBinaryExpression(exactMatch)
+    && exactMatch.getOperatorToken().getKind() === SyntaxKind.EqualsEqualsEqualsToken
+    && isMethodCall(exactMatch.getLeft(), "actual", "trim")
+    && isMethodCall(exactMatch.getRight(), "text.value", "trim")
+    && Node.isCallExpression(containsMatch)
+    && astExpressionPath(containsMatch.getExpression()) === "actual.includes"
+    && astExpressionPath(containsMatch.getArguments()[0]!) === "text.value";
+};
+
 const exactComparisonIsStrict = (matcher: MorphNode): boolean => {
   const loop = matcher.getDescendantsOfKind(SyntaxKind.ForOfStatement)
     .find((statement) => astIdentifierName(statement.getExpression()) === "rawNodeIds");
@@ -316,17 +329,7 @@ const exactComparisonIsStrict = (matcher: MorphNode): boolean => {
     || astIdentifierName(nodeTextCall.getArguments()[2]) !== "nodeId") return false;
   const matched = textBody.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
     .find((declaration) => declaration.getName() === "matched")?.getInitializer();
-  if (!Node.isConditionalExpression(matched)
-    || astExpressionPath(matched.getCondition()) !== "text.exact") return false;
-  const exactMatch = matched.getWhenTrue();
-  const containsMatch = matched.getWhenFalse();
-  if (!Node.isBinaryExpression(exactMatch)
-    || exactMatch.getOperatorToken().getKind() !== SyntaxKind.EqualsEqualsEqualsToken
-    || !isMethodCall(exactMatch.getLeft(), "actual", "trim")
-    || !isMethodCall(exactMatch.getRight(), "text.value", "trim")
-    || !Node.isCallExpression(containsMatch)
-    || astExpressionPath(containsMatch.getExpression()) !== "actual.includes"
-    || astExpressionPath(containsMatch.getArguments()[0]!) !== "text.value") return false;
+  if (!matchedComparisonIsStrict(matched)) return false;
   return textBody.getDescendantsOfKind(SyntaxKind.IfStatement).some((statement) =>
     statement.getExpression().getText() === "!matched"
     && Node.isContinueStatement(statement.getThenStatement()));

@@ -1,6 +1,7 @@
 const BROWSER_DOM_FIELD_VALUES = [
   "id", "testId", "dataTurn", "tagName", "type", "role", "name", "label",
-  "ariaLabel", "ariaExpanded", "ariaChecked", "text", "outerHtml", "semanticText",
+  "ariaLabel", "ariaExpanded", "ariaChecked", "ariaValueMin", "ariaValueMax", "ariaValueNow",
+  "text", "outerHtml", "semanticText", "semanticTextHash",
   "value", "checked", "accept", "multiple", "connected", "layout", "visible",
   "computedDisplay", "computedVisibility", "computedOpacity", "effectiveOpacity", "hidden", "ariaHidden",
   "inert", "disabled", "ariaDisabled",
@@ -35,11 +36,12 @@ export type BrowserDomObservationQuery = Readonly<{
   textEquals?: string;
 }>;
 
-export type BrowserDomObservationPacket = Readonly<{
-  schemaVersion: "grasseye.browser.dom-observation.v1";
+export type BrowserDomObservationPacketV2 = Readonly<{
+  schemaVersion: "grasseye.browser.dom-observation.v2";
   exactCallIdentityHash: `sha256:${string}`;
   targetRefHash: `sha256:${string}`;
   documentRefHash: `sha256:${string}`;
+  currentUrl: string;
   observationRevisionHash: `sha256:${string}`;
   observedAt: string;
   queries: readonly Readonly<{
@@ -60,6 +62,19 @@ export type BrowserDomObservationPacket = Readonly<{
   }>[];
 }>;
 
+export type BrowserExactAssistantTurnReplyV1 = Readonly<{
+  schemaVersion: "grasseye.browser.exact-assistant-turn.v1";
+  exactCallIdentityHash: `sha256:${string}`;
+  targetRefHash: `sha256:${string}`;
+  documentRefHash: `sha256:${string}`;
+  assistantTurnId: string;
+  rawDomHtml: string;
+  rawDomHash: `sha256:${string}`;
+  semanticText: string;
+  semanticTextHash: `sha256:${string}`;
+  observedAt: string;
+}>;
+
 export type BrowserDomReadScope = Readonly<{
   selector: string;
 }>;
@@ -74,6 +89,7 @@ export type BrowserSemanticLocator = Readonly<{
 export type BrowserDomIntent =
   | Readonly<{ kind: "document" }>
   | Readonly<{ kind: "observe"; queries: readonly BrowserDomObservationQuery[] }>
+  | Readonly<{ kind: "readExactAssistantTurn"; assistantTurnId: string }>
   | Readonly<{ kind: "inspect"; selector: string; fields: readonly BrowserDomField[]; scope?: BrowserDomReadScope }>
   | Readonly<{
     kind: "find";
@@ -167,6 +183,10 @@ export const assertBrowserDomIntent = (intent: BrowserDomIntent): BrowserDomInte
 
 const assertObservationIntent = (intent: BrowserDomIntent): void => {
   if (intent.kind === "observe") assertObserveIntent(intent);
+  if (intent.kind === "readExactAssistantTurn"
+    && !/^conversation-turn-[1-9][0-9]*$/u.test(intent.assistantTurnId)) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  }
   if (intent.kind === "inspect") assertDomFields(intent.fields);
   if (intent.kind === "find") {
     assertFindIntent(intent);

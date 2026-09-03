@@ -27,9 +27,8 @@ import {
 } from "./contracts.js";
 import { ProductionWorkerSession } from "./worker-session.js";
 import { ProductionRuntimeStore } from "./store.js";
-import type { GeneratedImageArtifact } from "./plugin.js";
+import type { GeneratedImageArtifact, ProductPluginOutput } from "./plugin.js";
 import { resolveProductionPlugin } from "./catalog.js";
-import { routeProducesGeneratedImage } from "./route-policy.js";
 import { executionFailure } from "../../execution-failure.js";
 import type { SerializedExecutionFailure } from "./terminal-failure.js";
 import { productionCloudFetch } from "./cloud-transport.js";
@@ -319,12 +318,7 @@ type ProductionResultUploadInput = Readonly<{
   store: ProductionRuntimeStore;
   job: ClaimedProductionTask;
   identity: DurablePluginIdentity;
-  output: Readonly<{
-    payload: unknown;
-    evidence_refs: readonly string[];
-    execution_context?: unknown;
-    generated_image?: GeneratedImageArtifact;
-  }>;
+  output: ProductPluginOutput;
   continuationRef: string | null;
 }>;
 
@@ -333,27 +327,20 @@ const uploadGeneratedImagePayload = async (input: ProductionResultUploadInput): 
   imageReceipt: UploadedResultReceipt | null;
 }>> => {
   if (!input.output.generated_image) return { payload: input.output.payload, imageReceipt: null };
-  if (!routeProducesGeneratedImage(input.job)) throw new Error("GENERATED_IMAGE_ROUTE_FORBIDDEN");
-  const imageReceipt = await uploadGeneratedImage(input.session, input.store, input.job, input.output.generated_image);
-  const draft = input.output.payload && typeof input.output.payload === "object" && !Array.isArray(input.output.payload)
-    ? input.output.payload as Record<string, unknown> : null;
-  if (!draft || draft.image !== null) throw new Error("PUBLIC_KNOWLEDGE_IMAGE_DRAFT_INVALID");
+  const image = input.output.generated_image;
+  const imageReceipt = await uploadGeneratedImage(input.session, input.store, input.job, image.artifact);
   return {
     imageReceipt,
-    payload: {
-      ...draft,
-      image: {
-        schema_version: "public-knowledge-agent-hero-image.v1",
-        artifact_id: imageReceipt.artifact_id,
-        object_ref: imageReceipt.object_ref,
-        sha256: imageReceipt.sha256,
-        receipt_hash: imageReceipt.receipt_hash,
-        bytes: imageReceipt.byte_length,
-        mime_type: "image/webp",
-        width: 1200,
-        height: 630,
-      },
-    },
+    payload: image.assemblePayload(Object.freeze({
+      artifact_id: imageReceipt.artifact_id,
+      object_ref: imageReceipt.object_ref,
+      sha256: imageReceipt.sha256,
+      receipt_hash: imageReceipt.receipt_hash,
+      bytes: imageReceipt.byte_length,
+      mime_type: image.artifact.media_type,
+      width: image.artifact.width,
+      height: image.artifact.height,
+    })),
   };
 };
 

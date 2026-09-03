@@ -4,9 +4,9 @@ import type {
   GptAbilityGroup,
   GptChildCapabilityResult,
 } from "./contract.js";
-import type { ForensicsPersistenceAbilityGroup } from "../forensics-persistence/index.js";
 import { executionFailure } from "../../lib/execution-failure.js";
 import { persistGptEvidenceArtifacts } from "./evidence-artifacts.js";
+import type { GptEvidenceStorePort } from "./production-ports.js";
 
 const persistedEvidenceRefs = new WeakMap<object, string>();
 export const persistedGptEvidenceRef = (result: GptChildCapabilityResult): string | null =>
@@ -41,7 +41,7 @@ const safeProjection = (
 export const persistGptChildEvidence = async (input: Readonly<{
   result: GptChildCapabilityResult;
   intent: Parameters<GptAbilityGroup["execute"]>[0];
-  evidenceStore: ForensicsPersistenceAbilityGroup;
+  evidenceStore: GptEvidenceStorePort;
   jobId: string;
   attemptId: string;
   stepId: string;

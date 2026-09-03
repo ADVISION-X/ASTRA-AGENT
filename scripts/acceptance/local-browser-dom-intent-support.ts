@@ -1,4 +1,4 @@
-import assert from "../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 
 import type { ExtensionDebuggerRuntime } from
   "../../src/lib/browser/chrome-extension/debugger-runtime.js";
@@ -89,7 +89,7 @@ const exerciseComposerReadiness = async (): Promise<void> => {
       return { nodeIds: delayedQueries < 3 ? [] : [7] };
     }
     throw new Error(`UNEXPECTED_DELAYED_COMPOSER_METHOD:${method}`);
-  } } as unknown as ExtensionDebuggerRuntime;
+  } } as ExtensionDebuggerRuntime;
   const found = await executeRegisteredDomIntent(delayed, { tabId: 99 } as never, {
     kind: "find", selector: "#prompt-textarea", maxMatches: 2,
     waitFor: { minimumMatches: 1, timeoutMs: 500 },
@@ -284,12 +284,7 @@ const exerciseSeparatedMechanicalEligibility = async (): Promise<void> => {
   }
 };
 
-const exerciseCoherentObservationFailures = async (
-  runtime: ExtensionDebuggerRuntime,
-  command: Extract<Parameters<typeof executeRegisteredDomIntent>[2], { kind: "observe" }>,
-  observedAt: string,
-  rows: readonly Readonly<Record<string, unknown>>[],
-): Promise<void> => {
+const assertObservationContractRejectsCallerControl = (): void => {
   assert.throws(() => assertBrowserDomIntent({ kind: "observe", queries: [{
     queryId: "forged", selector: "button", maxMatches: 1, fields: ["visible"], callerScript: "return true",
   } as never] }), /BROWSER_COMMAND_PERMIT_INVALID/u);
@@ -300,6 +295,15 @@ const exerciseCoherentObservationFailures = async (
     queryId: `oversized-${index}`, selector: "button", maxMatches: 20,
     fields: ["connected", "layout", "visible", "role"],
   })) as never }), /BROWSER_COMMAND_PERMIT_INVALID/u);
+};
+
+const exerciseCoherentObservationFailures = async (
+  runtime: ExtensionDebuggerRuntime,
+  command: Extract<Parameters<typeof executeRegisteredDomIntent>[2], { kind: "observe" }>,
+  observedAt: string,
+  rows: readonly Readonly<Record<string, unknown>>[],
+): Promise<void> => {
+  assertObservationContractRejectsCallerControl();
   const malformed = { ...runtime, async send(tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
     if (method === "Runtime.callFunctionOn") return { result: { value: {
       observedAt, queries: [{ ...rows[0], matches: [{ visible: "yes", role: "button" }] }, rows[1]],
@@ -362,7 +366,7 @@ const exerciseCoherentObservationFailures = async (
     if (method === "Runtime.callFunctionOn") return { result: { value: { observedAt, queries: rows } } };
     if (method === "Runtime.releaseObject") return {};
     throw new Error(`UNEXPECTED_CHANGED_DOCUMENT_METHOD:${method}`);
-  } } as unknown as ExtensionDebuggerRuntime;
+  } } as ExtensionDebuggerRuntime;
   await assert.rejects(executeRegisteredDomIntent(changedDocument, {
     tabId: 105, targetRef: "target-105", documentRef: "document-10", navigationEpoch: 10,
   }, command), /BROWSER_DOCUMENT_INVALID/u);
@@ -402,7 +406,8 @@ const exerciseCoherentObservation = async (): Promise<void> => {
       observationSource = String(parameters?.functionDeclaration ?? "");
       assert.equal(parameters?.objectId, "document-object");
       assert.deepEqual((parameters?.arguments as readonly Readonly<{ value: unknown }>[])?.[0]?.value, queries);
-      assert.match(String(parameters?.functionDeclaration), /^function \(specs\)/u);
+      assert.match(String(parameters?.functionDeclaration), /^async function \(specs\)/u);
+      assert.equal(parameters?.awaitPromise, true);
       assert.match(String(parameters?.functionDeclaration), /eligibilityReasons\(node, facts, spec, true\)\.length === 0/u,
         "coherent observation eligibility must be derived from the same bounded rejection reasons");
       for (const reason of ["DISCONNECTED", "NO_LAYOUT_BOX", "DISPLAY_HIDDEN", "VISIBILITY_HIDDEN",
@@ -410,7 +415,7 @@ const exerciseCoherentObservation = async (): Promise<void> => {
         assert.match(String(parameters?.functionDeclaration), new RegExp(reason, "u"),
           `coherent observation must preserve the bounded ${reason} rejection reason`);
       }
-      return { result: { value: { observedAt, queries: rows } } };
+      return { result: { value: { currentUrl: "https://chatgpt.com/", observedAt, queries: rows } } };
     }
     throw new Error(`UNEXPECTED_COHERENT_OBSERVATION_METHOD:${method}`);
   } } as ExtensionDebuggerRuntime;
@@ -419,10 +424,11 @@ const exerciseCoherentObservation = async (): Promise<void> => {
     tabId: 105, targetRef: "target-105", documentRef: "document-9", navigationEpoch: 9,
   }, command) as Readonly<Record<string, unknown>>;
   assert.equal(coherentCalls, 1, "all query specs must execute in one Runtime.callFunctionOn");
-  exerciseCapturedObservationFunction(observationSource);
+  await exerciseCapturedObservationFunction(observationSource);
   assert.equal(loaderReads, 2, "the exact main-frame loader must remain unchanged around the one DOM call");
   assert.equal(releases, 1);
-  assert.equal(packet.schemaVersion, "grasseye.browser.dom-observation.v1");
+  assert.equal(packet.schemaVersion, "grasseye.browser.dom-observation.v2");
+  assert.equal(packet.currentUrl, "https://chatgpt.com/");
   assert.equal(packet.observedAt, observedAt);
   const packetQueries = packet.queries as readonly Readonly<Record<string, unknown>>[];
   assert.equal((packetQueries[0]?.matches as readonly unknown[]).length, 1);

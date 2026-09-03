@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import type { BrowserDomIntent, BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type {
   BrowserAtomicStepIdentity,
@@ -11,11 +13,13 @@ export const coherentObservationPacket = (
     eligibleCount: number;
     matches?: readonly Readonly<Record<string, unknown>>[];
   }>>>,
+  currentUrl = "https://chatgpt.com/",
 ) => Object.freeze({
-  schemaVersion: "grasseye.browser.dom-observation.v1" as const,
+  schemaVersion: "grasseye.browser.dom-observation.v2" as const,
   exactCallIdentityHash: `sha256:${"1".repeat(64)}` as `sha256:${string}`,
   targetRefHash: `sha256:${"2".repeat(64)}` as `sha256:${string}`,
   documentRefHash: `sha256:${"3".repeat(64)}` as `sha256:${string}`,
+  currentUrl,
   observationRevisionHash: `sha256:${"4".repeat(64)}` as `sha256:${string}`,
   observedAt: "2026-09-02T00:00:00.000Z",
   queries: intent.queries.map((query) => {
@@ -34,6 +38,26 @@ export const coherentObservationPacket = (
       nativeStage: "runtime-call-function-on" as const,
     });
   }),
+});
+
+const hashText = (value: string): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(value).digest("hex")}`;
+
+export const exactAssistantTurnReply = (
+  assistantTurnId: string,
+  semanticText: string,
+  rawDomHtml = `<article data-testid="${assistantTurnId}" data-turn="assistant">${semanticText}</article>`,
+) => Object.freeze({
+  schemaVersion: "grasseye.browser.exact-assistant-turn.v1" as const,
+  exactCallIdentityHash: `sha256:${"5".repeat(64)}` as `sha256:${string}`,
+  targetRefHash: `sha256:${"2".repeat(64)}` as `sha256:${string}`,
+  documentRefHash: `sha256:${"3".repeat(64)}` as `sha256:${string}`,
+  assistantTurnId,
+  rawDomHtml,
+  rawDomHash: hashText(rawDomHtml),
+  semanticText,
+  semanticTextHash: hashText(semanticText),
+  observedAt: "2026-09-02T00:00:00.000Z",
 });
 
 export const EXPECTED_GPT_CHILD_IDS = Object.freeze([
@@ -57,6 +81,7 @@ type FakeBrowserOptions = Readonly<{
   initialPending?: number;
   initialUrl?: string;
   authenticatedMedia?: Awaited<ReturnType<BrowserTargetLease["downloadAuthenticatedMedia"]>>;
+  onAttachFile?: (input: Parameters<BrowserTargetLease["attachFile"]>[0]) => void;
   onWait?: (durationMs: number) => void;
 }>;
 type FakeBrowserState = {
@@ -83,6 +108,26 @@ const markConfirmedMutation = (state: FakeBrowserState): void => {
     targetRef: "target:1",
     documentRef: state.documentRef,
   });
+};
+
+const executeFakeDomIntent = async (
+  responder: DomResponder,
+  state: FakeBrowserState,
+  intent: BrowserDomIntent,
+): Promise<unknown> => {
+  state.domCalls += 1;
+  const mutates = ["click", "hover", "doubleClick", "keypress", "fill"].includes(intent.kind);
+  if (mutates) state.physicalMutations += 1;
+  const value = await responder(intent, state.domCalls);
+  if (mutates) markConfirmedMutation(state);
+  if (intent.kind !== "document" || !value || typeof value !== "object" || Array.isArray(value)) return value;
+  const nextUrl = Reflect.get(value, "url");
+  if (typeof nextUrl === "string" && nextUrl !== state.url) {
+    state.url = nextUrl;
+    state.navigationEpoch += 1;
+    state.documentRef = `document:${state.navigationEpoch}`;
+  }
+  return value;
 };
 
 const createFakeBrowserLease = (
@@ -117,33 +162,19 @@ const createFakeBrowserLease = (
     markConfirmedMutation(state);
     return { documentRef: state.documentRef, targetRef: "target:1", navigationEpoch: state.navigationEpoch };
   },
-  async executeDomIntent(intent: BrowserDomIntent) {
-    state.domCalls += 1;
-    if (["click", "hover", "doubleClick", "keypress", "fill"].includes(intent.kind)) state.physicalMutations += 1;
-    const value = await responder(intent, state.domCalls);
-    if (["click", "hover", "doubleClick", "keypress", "fill"].includes(intent.kind)) {
-      markConfirmedMutation(state);
-    }
-    if (intent.kind === "document" && value && typeof value === "object" && !Array.isArray(value)) {
-      const nextUrl = Reflect.get(value, "url");
-      if (typeof nextUrl === "string" && nextUrl !== state.url) {
-        state.url = nextUrl;
-        state.navigationEpoch += 1;
-        state.documentRef = `document:${state.navigationEpoch}`;
-      }
-    }
-    return value;
-  },
+  executeDomIntent: (intent: BrowserDomIntent) => executeFakeDomIntent(responder, state, intent),
   async observeCapability() { return {}; },
   async captureScreenshot() { return { artifactRef: "screenshot:1", contentHash: `sha256:${"e".repeat(64)}` }; },
-  async attachFile() { state.physicalMutations += 1; markConfirmedMutation(state); },
+  async attachFile(input) {
+    options.onAttachFile?.(input);
+    state.physicalMutations += 1;
+    markConfirmedMutation(state);
+  },
   async downloadAuthenticatedMedia() {
     state.authenticatedMediaDownloads += 1;
     if (!options.authenticatedMedia) throw new Error("FIXTURE_AUTHENTICATED_MEDIA_MISSING");
     return options.authenticatedMedia;
   },
-  async registerFileArtifact() {},
-  async issueFileArtifactGrant() { throw new Error("UNUSED"); },
   async wait(input) {
     state.waitDurations.push(input.durationMs);
     options.onWait?.(input.durationMs);

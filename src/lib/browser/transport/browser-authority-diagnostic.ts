@@ -16,8 +16,8 @@ const CONTROLLED_VALUES: Readonly<Record<string, ReadonlySet<string>>> = {
   commandStage: new Set(["payload", "command-shape", "command-admission", "target-resolution", "registered-command"]),
   commandKind: new Set(["navigate", "dom-intent", "observe", "screenshot", "file-input",
     "authenticated-media", "wait", "park-target", "close-target"]),
-  commandIntentKind: new Set(["document", "observe", "inspect", "find", "readText", "readAttribute",
-    "click", "hover", "doubleClick", "keypress", "fill"]),
+  commandIntentKind: new Set(["document", "observe", "readExactAssistantTurn", "inspect", "find", "readText",
+    "readAttribute", "click", "hover", "doubleClick", "keypress", "fill"]),
 };
 
 const controlledOptional = (
@@ -31,20 +31,42 @@ const controlledOptional = (
   return value;
 };
 
+type DiagnosticHeader = Readonly<Record<string, unknown>> & Readonly<{
+  reasonCode: string;
+  failedFrameKind: string;
+  failedFrameSequence: number;
+  encodedByteLength: number;
+}>;
+
+const diagnosticHeaderValid = (body: Readonly<Record<string, unknown>>): body is DiagnosticHeader =>
+  typeof body.reasonCode === "string" && /^BROWSER_[A-Z_]+$/u.test(body.reasonCode)
+  && typeof body.failedFrameKind === "string" && FRAME_KINDS.has(body.failedFrameKind)
+  && Number.isSafeInteger(body.failedFrameSequence) && (body.failedFrameSequence as number) >= 0
+  && Number.isSafeInteger(body.encodedByteLength) && (body.encodedByteLength as number) >= 0;
+
+const addCapabilityAndTargetRefs = (
+  body: Readonly<Record<string, unknown>>,
+  refs: Record<string, string>,
+): void => {
+  if (body.capabilityId !== undefined) {
+    if (typeof body.capabilityId !== "string" || !isBrowserCapabilityId(body.capabilityId)) {
+      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    }
+    refs.capabilityId = body.capabilityId;
+  }
+  if (body.targetRef === undefined) return;
+  if (typeof body.targetRef !== "string" || !/^(?:target-tab-|job-owned-tab:)\d+$/u.test(body.targetRef)) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  refs.targetRef = body.targetRef;
+};
+
 export const parseBrowserAuthorityDiagnostic = (
   body: Readonly<Record<string, unknown>>,
 ): Readonly<{ reasonCode: string; refs: Readonly<Record<string, string>> }> => {
   if (Object.keys(body).some((key) => !ALLOWED_KEYS.has(key))) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  const reasonCode = body.reasonCode;
-  const failedFrameKind = body.failedFrameKind;
-  const sequence = body.failedFrameSequence;
-  const byteLength = body.encodedByteLength;
-  if (typeof reasonCode !== "string" || !/^BROWSER_[A-Z_]+$/u.test(reasonCode)
-    || typeof failedFrameKind !== "string" || !FRAME_KINDS.has(failedFrameKind)
-    || !Number.isSafeInteger(sequence) || (sequence as number) < 0
-    || !Number.isSafeInteger(byteLength) || (byteLength as number) < 0) {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
+  if (!diagnosticHeaderValid(body)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  const { reasonCode, failedFrameKind, failedFrameSequence: sequence, encodedByteLength: byteLength } = body;
   const refs: Record<string, string> = {
     failedFrameKind, failedFrameSequence: String(sequence), encodedByteLength: String(byteLength),
   };
@@ -60,18 +82,6 @@ export const parseBrowserAuthorityDiagnostic = (
     const value = controlledOptional(body, name, allowed);
     if (value !== null) refs[name] = value;
   }
-  if (body.capabilityId !== undefined) {
-    if (typeof body.capabilityId !== "string" || !isBrowserCapabilityId(body.capabilityId)) {
-      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-    }
-    refs.capabilityId = body.capabilityId;
-  }
-  if (body.targetRef !== undefined) {
-    if (typeof body.targetRef !== "string"
-      || !/^(?:target-tab-|job-owned-tab:)\d+$/u.test(body.targetRef)) {
-      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-    }
-    refs.targetRef = body.targetRef;
-  }
+  addCapabilityAndTargetRefs(body, refs);
   return Object.freeze({ reasonCode, refs: Object.freeze(refs) });
 };

@@ -1,11 +1,13 @@
-import assert from "../../../../scripts/audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 
 import {
   createGptAbilityGroup,
-  type GptChildCapabilityId,
-  type GptChildCapabilityIntent,
-  type GptChildCapabilityProof,
 } from "../index.js";
+import type {
+  GptChildCapabilityId,
+  GptChildCapabilityIntent,
+  GptChildCapabilityProof,
+} from "../contract.js";
 import { hashCanonical } from "../../../lib/local-runtime/production/contracts.js";
 import { EXPECTED_GPT_CHILD_IDS } from "./gpt-exact-target-browser-fixture.js";
 
@@ -28,7 +30,7 @@ const invalidResult = async (
     inputHash: hashCanonical(input),
     actionOrdinal: 1,
     input,
-  }) as unknown as GptChildCapabilityIntent<GptChildCapabilityId>;
+  }) as GptChildCapabilityIntent<GptChildCapabilityId>;
   const proofs: GptChildCapabilityProof[] = [];
   const result = await gpt.execute(intent, {
     dataDir: "/tmp/gpt-input-denominator",

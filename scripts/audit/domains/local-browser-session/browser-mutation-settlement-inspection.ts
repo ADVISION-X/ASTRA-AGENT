@@ -28,6 +28,20 @@ const requireText = (
   }
 };
 
+const inspectDispatchPersistence = (
+  transport: NonNullable<ReturnType<typeof requireSource>>,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const sendMethod = transport.getClass("BrowserAuthorityWebSocket")?.getMethod("send")?.getText() ?? "";
+  if (sendMethod.indexOf("onDispatched?.()") >= 0
+    && sendMethod.indexOf("onDispatched?.()") < sendMethod.indexOf("active.socket.send")) return;
+  findings.push(createLocalFinding({
+    checkId: "browser-authority/mutation-settlement", lawId, filePath: sourcePaths[0],
+    message: "The production Browser socket must persist DISPATCHED before the mutation frame leaves Authority.",
+  }));
+};
+
 export const inspectBrowserMutationSettlement = (
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -96,12 +110,5 @@ export const inspectBrowserMutationSettlement = (
     "exerciseFileInput", "BROWSER_DOM_CANDIDATE_MISSING", "BROWSER_DOM_CANDIDATE_AMBIGUOUS",
     "BROWSER_FILE_INPUT_NOT_QUALIFIED", "driftBeforeDispatch", "failReadback",
   ], findings, lawId, FILE_INPUT_ACCEPTANCE_PATH);
-  const sendMethod = transport.getClass("BrowserAuthorityWebSocket")?.getMethod("send")?.getText() ?? "";
-  if (sendMethod.indexOf("onDispatched?.()") < 0
-    || sendMethod.indexOf("onDispatched?.()") > sendMethod.indexOf("active.socket.send")) {
-    findings.push(createLocalFinding({
-      checkId: "browser-authority/mutation-settlement", lawId, filePath: sourcePaths[0],
-      message: "The production Browser socket must persist DISPATCHED before the mutation frame leaves Authority.",
-    }));
-  }
+  inspectDispatchPersistence(transport, findings, lawId);
 };

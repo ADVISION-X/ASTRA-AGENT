@@ -44,12 +44,6 @@ export const fixtureLease = (
       assistantTurnId: input.assistantTurnId, semanticMediaId: input.semanticMediaId,
       bytesBase64: "AQ==", sha256: HASH, sizeBytes: 1, mediaType: "image/png", width: 1, height: 1,
     }; },
-    async registerFileArtifact() {},
-    async issueFileArtifactGrant() { return {
-      schemaVersion: "browser-file-artifact-grant-v1", grantRef: "grant:fixture",
-      authorityEpoch: 1, executionBindingHash: HASH, artifactRef: "artifact:fixture",
-      contentHash: HASH, maxBytes: 1, expiresAt: new Date(Date.now() + 1_000).toISOString(),
-    }; },
     async wait() {}, async park() {}, close,
     async resolvePendingMutation() { return 0; },
     pendingMutationCount: () => 0, assertNoPendingMutations() {},

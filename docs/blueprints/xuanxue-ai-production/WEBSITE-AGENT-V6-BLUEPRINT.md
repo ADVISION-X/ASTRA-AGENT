@@ -3,18 +3,18 @@
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v16",
+  "blueprintId": "agent-production-runtime-v17",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V33",
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V34",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V2",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V2",
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V2",
-    "LAW-AGENT-PRODUCTION-RUNTIME-005-V2",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V2",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V2",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V3"
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V3",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V3",
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V3",
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V3",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V3",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V4"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -34,9 +34,9 @@
     {"contractRef":null,"from":{"domain":"startup-entrypoint","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"}}
   ],
   "prohibitedDependencyEdges": [
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V33","to":{"domain":"app-shell-ui","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V33","to":{"domain":"local-app-shell","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V33","to":{"domain":"startup-entrypoint","repo":"local"}}
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V34","to":{"domain":"app-shell-ui","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V34","to":{"domain":"local-app-shell","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V34","to":{"domain":"startup-entrypoint","repo":"local"}}
   ]
 }
 ```

@@ -166,11 +166,13 @@ const qualificationFailure = (error: unknown): string | null => {
   return /^BROWSER_DOM_(?:NODE_STALE|READ_INVALID)$/u.test(code) ? code : null;
 };
 
-export const executeExtensionFileInput = async (input: Readonly<{
+type ExtensionFileInput = Readonly<{
   runtime: ExtensionDebuggerRuntime; target: ExtensionExactTarget;
   assertCurrent: CurrentTargetAssertion; selector: string;
   approvedFiles: readonly ApprovedFile[]; resolvedFilePaths: readonly string[];
-}>): Promise<Readonly<Record<string, unknown>>> => {
+}>;
+
+const assertFileInputRequest = (input: ExtensionFileInput): void => {
   if (input.selector !== "#upload-files" || input.approvedFiles.length < 1 || input.approvedFiles.length > 20
     || input.resolvedFilePaths.length !== input.approvedFiles.length
     || new Set(input.approvedFiles.map((file) => file.grantRef)).size !== input.approvedFiles.length
@@ -179,6 +181,29 @@ export const executeExtensionFileInput = async (input: Readonly<{
     || input.resolvedFilePaths.some((filePath) => !filePath.startsWith("/"))) {
     throw new Error("BROWSER_FILE_GRANT_INVALID");
   }
+};
+
+const fileInputQualified = (candidate: Candidate, selectedPathCount: number): boolean =>
+  candidate.facts?.tagName === "INPUT" && candidate.facts.type === "file"
+  && candidate.facts.connected === true && candidate.facts.disabled === false
+  && candidate.facts.ariaDisabled === false
+  && (selectedPathCount === 1 || candidate.facts.multiple === true)
+  && acceptPolicyValid(candidate.facts.accept);
+
+const fileInputPostconditionVerified = (
+  readback: Candidate,
+  proof: SelectionProof | null,
+  approvedFileCount: number,
+): boolean => readback.candidateCount === 1 && readback.facts?.tagName === "INPUT"
+  && readback.facts.type === "file" && readback.facts.connected === true
+  && readback.facts.disabled === false && readback.facts.ariaDisabled === false
+  && proof?.selectedFileCount === approvedFileCount
+  && proof.approvedSetVerified && proof.acceptVerified;
+
+export const executeExtensionFileInput = async (
+  input: ExtensionFileInput,
+): Promise<Readonly<Record<string, unknown>>> => {
+  assertFileInputRequest(input);
   let candidate: Candidate;
   try {
     candidate = await readExactFileInput(input.runtime, input.target, input.assertCurrent, input.selector);
@@ -191,12 +216,9 @@ export const executeExtensionFileInput = async (input: Readonly<{
     return reject(candidate.candidateCount, candidate.candidateCount === 0
       ? "BROWSER_DOM_CANDIDATE_MISSING" : "BROWSER_DOM_CANDIDATE_AMBIGUOUS", "candidate-set");
   }
-  const qualified = candidate.facts.tagName === "INPUT" && candidate.facts.type === "file"
-    && candidate.facts.connected === true && candidate.facts.disabled === false
-    && candidate.facts.ariaDisabled === false
-    && (input.resolvedFilePaths.length === 1 || candidate.facts.multiple === true)
-    && acceptPolicyValid(candidate.facts.accept);
-  if (!qualified) return reject(1, "BROWSER_FILE_INPUT_NOT_QUALIFIED", "actionability");
+  if (!fileInputQualified(candidate, input.resolvedFilePaths.length)) {
+    return reject(1, "BROWSER_FILE_INPUT_NOT_QUALIFIED", "actionability");
+  }
   input.assertCurrent(input.target.targetRef, input.target.documentRef);
   await input.runtime.send(input.target.tabId, "DOM.setFileInputFiles", {
     nodeId: candidate.nodeId,
@@ -210,11 +232,7 @@ export const executeExtensionFileInput = async (input: Readonly<{
     input.runtime, input.target.tabId, readback.nodeId, input.approvedFiles,
   );
   input.assertCurrent(input.target.targetRef, input.target.documentRef);
-  const postconditionVerified = readback.candidateCount === 1 && readback.facts?.tagName === "INPUT"
-    && readback.facts.type === "file" && readback.facts.connected === true
-    && readback.facts.disabled === false && readback.facts.ariaDisabled === false
-    && proof?.selectedFileCount === input.approvedFiles.length
-    && proof.approvedSetVerified && proof.acceptVerified;
+  const postconditionVerified = fileInputPostconditionVerified(readback, proof, input.approvedFiles.length);
   return Object.freeze({
     selectedFileCount: proof?.selectedFileCount ?? 0,
     approvedSetVerified: proof?.approvedSetVerified ?? false,

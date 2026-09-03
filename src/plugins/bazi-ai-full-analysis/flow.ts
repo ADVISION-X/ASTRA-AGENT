@@ -17,9 +17,6 @@ import {
   localBaziPrivateBaseTurnHash,
 } from "./private-base-turn-contract.js";
 import {
-  MODEL_PROFILE,
-  PLUGIN_ID,
-  PRODUCT_INSTRUCTION,
   applyAttachments,
   applyProfile,
   createOwnedExecution,
@@ -31,13 +28,13 @@ import {
   promptFor,
   receive,
   runFreshTurn,
-  skill,
   submitTurn,
   textValue,
   uploadedFilesForRoles,
   type Checkpoint,
   type OwnedExecution,
 } from "./product-turn.js";
+import { MODEL_PROFILE, PLUGIN_ID, PRODUCT_INSTRUCTION, skill } from "./product-identity.js";
 import {
   basePrompt,
   reusableIdentity,
@@ -48,7 +45,7 @@ import {
   reserveCompleteAndAcquireDerived,
 } from "./private-base-reservation.js";
 
-export { productSkillHash } from "./product-turn.js";
+export { productSkillHash } from "./product-identity.js";
 
 const releaseLane = async (task: WebsiteAgentTask, flow: OwnedExecution, lane: GptContinuationLane) => {
   await flow.execute({

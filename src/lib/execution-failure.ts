@@ -1,4 +1,14 @@
 export type ExecutionFailureStatus = "failed";
+export type ExecutionMutationOutcome = "no" | "dispatched" | "confirmed";
+export type ExecutionFailureMetadata = Readonly<{
+  mutationOutcome?: ExecutionMutationOutcome;
+  evidence?: Readonly<{ evidenceRef: string; evidenceHash: `sha256:${string}` }> | null;
+  browserEffect?: Readonly<{
+    effectScope: "target_local" | "provider_effect";
+    childCapabilityId: string;
+    browserOutcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
+  }> | null;
+}>;
 
 export class TypedExecutionFailure extends Error {
   public override readonly name: string = "TypedExecutionFailure";
@@ -7,6 +17,7 @@ export class TypedExecutionFailure extends Error {
     public readonly status: ExecutionFailureStatus,
     public readonly code: string,
     cause?: unknown,
+    public readonly metadata: ExecutionFailureMetadata = Object.freeze({}),
   ) {
     super(code, cause === undefined ? undefined : { cause });
   }
@@ -15,8 +26,8 @@ export class TypedExecutionFailure extends Error {
 export const executionFailure = (
   status: ExecutionFailureStatus,
   code: string,
-  input: Readonly<{ cause?: unknown }> = {},
-): TypedExecutionFailure => new TypedExecutionFailure(status, code, input.cause);
+  input: Readonly<{ cause?: unknown; metadata?: ExecutionFailureMetadata }> = {},
+): TypedExecutionFailure => new TypedExecutionFailure(status, code, input.cause, input.metadata);
 
 export const typedExecutionFailure = (error: unknown): TypedExecutionFailure | null => {
   let current = error;
@@ -32,6 +43,19 @@ export const typedExecutionFailure = (error: unknown): TypedExecutionFailure | n
 
 export const failureCode = (error: unknown, fallback = "UNKNOWN_FAILURE"): string =>
   typedExecutionFailure(error)?.code ?? fallback;
+
+export const executionFailureMetadata = (error: unknown): ExecutionFailureMetadata | null => {
+  let current = error;
+  const seen = new Set<object>();
+  while (current && typeof current === "object" && !seen.has(current)) {
+    seen.add(current);
+    if (current instanceof TypedExecutionFailure && Object.keys(current.metadata).length > 0) {
+      return current.metadata;
+    }
+    current = current instanceof Error ? current.cause : undefined;
+  }
+  return null;
+};
 
 export const executionFailureCause = (
   error: unknown,

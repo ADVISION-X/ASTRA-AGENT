@@ -1,4 +1,4 @@
-import assert from "../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { readFile } from "node:fs/promises";
 
 import type { ProductionHash, WebsiteAgentTask } from
@@ -13,27 +13,7 @@ import { emitQualityProofObservation } from "../audit/shared/proof-observation.j
 const HASH = `sha256:${"a".repeat(64)}` as ProductionHash;
 const HASH_B = `sha256:${"b".repeat(64)}` as ProductionHash;
 
-const parameterValue = (key: string, route: ProductionRoutePolicy): unknown => {
-  const fixed: Readonly<Record<string, unknown>> = {
-    evidence_ref_catalog: ["record:1"],
-    analysis_kind: "chart_interpretation",
-    article_package_contract_version: "public-knowledge-article-package.v1",
-    observation_schema_version: "payment-screenshot-observation-v1",
-    reflection_contract_version: "scheduled-quality-reflection.v1",
-    target_locale: "en-US",
-    locale: "zh-CN",
-    thread_ref: "continuation:1",
-  };
-  if (key === "result_schema_version") return route.result_schema_version;
-  if (key === "reusable_base_candidate") return null;
-  if (Object.hasOwn(fixed, key)) return fixed[key];
-  if (key === "resource_kind") {
-    return route.product_id === "localization_report_translation" ? "report" : "article";
-  }
-  if (key === "reusable_base_semantic_digest") return HASH;
-  if (key.endsWith("_hash") || key.endsWith("_sha256")) return HASH;
-  return `${key}:1`;
-};
+const parameterValue = (key: string): unknown => `website-authorized:${key}`;
 
 const taskFor = (route: ProductionRoutePolicy): WebsiteAgentTask => ({
   schema_version: "website-agent-task.v1",
@@ -51,7 +31,7 @@ const taskFor = (route: ProductionRoutePolicy): WebsiteAgentTask => ({
   },
   business_context_ref: "context:1",
   business_context_hash: HASH,
-  parameters: Object.fromEntries(route.required_parameter_keys.map((key) => [key, parameterValue(key, route)])),
+  parameters: Object.fromEntries(route.required_parameter_keys.map((key) => [key, parameterValue(key)])),
   material_refs: route.material_roles.map((material, ordinal) => ({
     material_id: `material:${ordinal}`,
     ordinal,
@@ -78,9 +58,7 @@ const taskFor = (route: ProductionRoutePolicy): WebsiteAgentTask => ({
     subject_task_ref: "task:subject",
     subject_result_ref: "result:subject",
     subject_result_hash: HASH,
-    review_policy: route.action_id === "accuracy_challenge"
-      ? "manual-accuracy-challenge.v1" as const
-      : "scheduled-quality-reflection.v1" as const,
+    review_policy: "website-authorized-review-policy",
   } : {}),
 });
 
@@ -110,12 +88,11 @@ for (const route of productionRoutePolicies) {
   const task = taskFor(route);
   assertProductionTaskRoutePolicy(task);
   const firstParameter = route.required_parameter_keys[0]!;
-  const invalidValue = Array.isArray(task.parameters[firstParameter]) ? []
-    : firstParameter.endsWith("_hash") || firstParameter.endsWith("_sha256") ? "not-a-hash" : "";
-  assert.throws(() => assertProductionTaskRoutePolicy({
+  const websiteAuthorizedValue = null;
+  assert.doesNotThrow(() => assertProductionTaskRoutePolicy({
     ...task,
-    parameters: { ...task.parameters, [firstParameter]: invalidValue },
-  }), /AGENT_ROUTE_PARAMETER_VALUE_INVALID/u);
+    parameters: { ...task.parameters, [firstParameter]: websiteAuthorizedValue },
+  }));
   if (route.relation_kind === "review") {
     assert.throws(() => assertProductionTaskRoutePolicy({
       ...task,
@@ -136,10 +113,10 @@ assert.throws(() => assertProductionTaskRoutePolicy({
 process.stdout.write("[ACCEPTANCE][agent-route-contract] PASS 39/57/30/2\n");
 for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V2",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V3",
     evidenceMode,
-    clauses: ["forbidden:0", "forbidden:1", "summary"],
+    clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:route-contract:${evidenceMode}`,
-    observedValue: "provider-derived route projection accepted exactly 39 routes 57 parameter types 30 result contracts and 2 reservation routes",
+    observedValue: "provider-derived route projection accepted exact route keys materials relations and result contracts without re-adjudicating Website-authorized parameter values",
   });
 }

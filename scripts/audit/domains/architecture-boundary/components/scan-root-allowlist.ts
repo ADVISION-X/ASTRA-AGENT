@@ -6,7 +6,9 @@ import { hasSourceExtension } from "../../../shared/no-regex.js";
 import { resolveFromRepo } from "../../../shared/paths.js";
 
 const allowedSrcRoots = new Set(["app", "mediator", "plugins", "capabilities", "lib", "types"]);
-const allowedScriptRoots = new Set(["acceptance", "audit", "exam", "generate", "runtime-logs", "startup"]);
+const allowedScriptRoots = new Set([
+  "acceptance", "audit", "exam", "generate", "maintenance", "runtime-logs", "startup",
+]);
 const inspectorPath = "scripts/audit/domains/architecture-boundary/components/scan-root-allowlist.ts";
 
 const collectUnexpectedRoots = (rootPath: string, allowedRoots: ReadonlySet<string>): string[] =>

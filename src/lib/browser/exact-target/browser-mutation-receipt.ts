@@ -47,17 +47,22 @@ const qualificationFactsConsistent = (value: Readonly<Record<string, unknown>>):
     && (code === "BROWSER_DOM_ACTION_NOT_QUALIFIED" || code === "BROWSER_FILE_INPUT_NOT_QUALIFIED");
 };
 
+const domActionKeys = (
+  command: Extract<BrowserGovernedCommand, { kind: "dom-intent" }>,
+): readonly string[] => {
+  if (command.intent.kind === "fill") return ["filled", "retainedValueVerified"];
+  if (command.intent.kind === "click") return ["clicked"];
+  if (command.intent.kind === "hover") return ["hovered"];
+  if (command.intent.kind === "doubleClick") return ["doubleClicked"];
+  if (command.intent.kind === "keypress") return ["keyPressed", "keypressCount"];
+  return [];
+};
+
 const actionKeys = (command: BrowserGovernedCommand, failed: boolean): readonly string[] => {
   const common = ["candidateCount", "identityRevalidated", "mutationCount", "postconditionVerified"];
   const specific = command.kind === "file-input"
     ? ["selectedFileCount", "approvedSetVerified", "acceptVerified"]
-    : command.kind === "dom-intent" && command.intent.kind === "fill"
-      ? ["filled", "retainedValueVerified"]
-      : command.kind === "dom-intent" && command.intent.kind === "click" ? ["clicked"]
-        : command.kind === "dom-intent" && command.intent.kind === "hover" ? ["hovered"]
-          : command.kind === "dom-intent" && command.intent.kind === "doubleClick" ? ["doubleClicked"]
-            : command.kind === "dom-intent" && command.intent.kind === "keypress"
-              ? ["keyPressed", "keypressCount"] : [];
+    : command.kind === "dom-intent" ? domActionKeys(command) : [];
   if (specific.length === 0) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   return [...common, ...specific, ...(failed ? ["failureCode"] : [])];
 };
@@ -93,39 +98,50 @@ const assertDomActionReceipt = (
   if (!valid) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
 };
 
-export const decodeBrowserMutationReceipt = (
+const zeroActionReceiptValid = (
   command: BrowserGovernedCommand,
-  result: unknown,
+  value: Readonly<Record<string, unknown>>,
+): boolean => value.zeroActionSatisfied === true
+  && value.candidateCount === 1
+  && value.identityRevalidated === true
+  && value.postconditionVerified === true
+  && command.kind === "dom-intent"
+  && exactKeys(value, ["candidateCount", "identityRevalidated", "mutationCount",
+    "postconditionVerified", "zeroActionSatisfied"]);
+
+const qualificationReceiptValid = (
+  command: BrowserGovernedCommand,
+  value: Readonly<Record<string, unknown>>,
+): value is Readonly<Record<string, unknown>> & { failureCode: string } =>
+  value.qualificationRejected === true
+  && Number.isSafeInteger(value.candidateCount) && (value.candidateCount as number) >= 0
+  && value.identityRevalidated === false && value.postconditionVerified === false
+  && exactKeys(value, ["candidateCount", "identityRevalidated", "mutationCount",
+    "postconditionVerified", "qualificationRejected", "qualificationStage", "failureCode"])
+  && qualificationFailureValid(command, value.failureCode, value.candidateCount)
+  && qualificationFactsConsistent(value);
+
+const decodeZeroMutationReceipt = (
+  command: BrowserGovernedCommand,
+  value: Readonly<Record<string, unknown>>,
 ): BrowserMutationReceipt => {
-  if (!mutationCommandValid(command)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  const value = result && typeof result === "object" ? result as Record<string, unknown> : {};
-  const mutationCount = value.mutationCount;
-  const zeroActionSatisfied = value.zeroActionSatisfied === true;
-  const qualificationRejected = value.qualificationRejected === true;
-  if ((mutationCount !== 0 && mutationCount !== 1) || typeof value.postconditionVerified !== "boolean"
-    || (zeroActionSatisfied && qualificationRejected)) {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  if (zeroActionReceiptValid(command, value)) {
+    return Object.freeze({ terminal: "confirmed", mutationOutcome: "no", failureCode: null });
   }
-  if (mutationCount === 0) {
-    if (zeroActionSatisfied && value.candidateCount === 1 && value.identityRevalidated === true
-      && value.postconditionVerified === true && command.kind === "dom-intent"
-      && exactKeys(value, ["candidateCount", "identityRevalidated", "mutationCount",
-        "postconditionVerified", "zeroActionSatisfied"])) {
-      return Object.freeze({ terminal: "confirmed", mutationOutcome: "no", failureCode: null });
-    }
-    if (qualificationRejected && Number.isSafeInteger(value.candidateCount)
-      && (value.candidateCount as number) >= 0 && value.identityRevalidated === false
-      && value.postconditionVerified === false
-      && exactKeys(value, ["candidateCount", "identityRevalidated", "mutationCount",
-        "postconditionVerified", "qualificationRejected", "qualificationStage", "failureCode"])
-      && qualificationFailureValid(command, value.failureCode, value.candidateCount)
-      && qualificationFactsConsistent(value)) {
-      return Object.freeze({ terminal: "rejected", mutationOutcome: "no", failureCode: value.failureCode });
-    }
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  if (qualificationReceiptValid(command, value)) {
+    return Object.freeze({ terminal: "rejected", mutationOutcome: "no", failureCode: value.failureCode });
   }
+  throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+};
+
+const decodeDispatchedMutationReceipt = (
+  command: BrowserGovernedCommand,
+  value: Readonly<Record<string, unknown>>,
+): BrowserMutationReceipt => {
   if (value.candidateCount !== 1 || value.identityRevalidated !== true
-    || zeroActionSatisfied || qualificationRejected) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    || value.zeroActionSatisfied === true || value.qualificationRejected === true) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
   if (value.postconditionVerified === false && value.failureCode !== "BROWSER_POSTCONDITION_FAILED") {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
@@ -140,4 +156,20 @@ export const decodeBrowserMutationReceipt = (
     mutationOutcome: "confirmed",
     failureCode: value.postconditionVerified ? null : "BROWSER_POSTCONDITION_FAILED",
   });
+};
+
+export const decodeBrowserMutationReceipt = (
+  command: BrowserGovernedCommand,
+  result: unknown,
+): BrowserMutationReceipt => {
+  if (!mutationCommandValid(command)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  const value = result && typeof result === "object" ? result as Record<string, unknown> : {};
+  const mutationCount = value.mutationCount;
+  if ((mutationCount !== 0 && mutationCount !== 1) || typeof value.postconditionVerified !== "boolean"
+    || (value.zeroActionSatisfied === true && value.qualificationRejected === true)) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  return mutationCount === 0
+    ? decodeZeroMutationReceipt(command, value)
+    : decodeDispatchedMutationReceipt(command, value);
 };

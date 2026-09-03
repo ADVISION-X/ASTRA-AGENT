@@ -143,6 +143,35 @@ type AdvanceInput = Readonly<{
   currentCheckpoint: GptContinuationCheckpoint;
 }>;
 
+type AcquireInput = Readonly<{
+  continuationRef: string;
+  jobId: string;
+  pluginId: string;
+  ownerRef: string;
+  subjectRef: string;
+  authorization: AcquireGptContinuationLaneAuthorization;
+  parentManifestId?: string;
+  parentManifestHash?: `sha256:${string}`;
+}>;
+
+const requireAcquirableContinuation = (
+  input: AcquireInput,
+  binding: ReturnType<GptContinuationStorePort["readGptContinuationExecutionBinding"]>,
+  current: StoredGptContinuation | null,
+): Readonly<{
+  binding: NonNullable<ReturnType<GptContinuationStorePort["readGptContinuationExecutionBinding"]>>;
+  current: StoredGptContinuation;
+}> => {
+  if (!binding || binding.plugin_id !== input.pluginId
+    || binding.owner_ref !== input.ownerRef || binding.subject_ref !== input.subjectRef
+    || !current || !gptContinuationUsable(current)
+    || current.owner_ref !== input.ownerRef || current.subject_ref !== input.subjectRef
+    || current.conversation_identity_hash !== gptContinuationIdentityHash(current.provider)) {
+    throw executionFailure("failed", "GPT_CONTINUATION_NOT_AUTHORIZED");
+  }
+  return { binding, current };
+};
+
 const isSettledAdvance = (
   stored: StoredGptContinuation | null,
   input: AdvanceInput,
@@ -244,29 +273,13 @@ export class GptSessionController {
     return continuationRef;
   }
 
-  public acquire(input: Readonly<{
-    continuationRef: string;
-    jobId: string;
-    pluginId: string;
-    ownerRef: string;
-    subjectRef: string;
-    authorization: AcquireGptContinuationLaneAuthorization;
-    parentManifestId?: string;
-    parentManifestHash?: `sha256:${string}`;
-  }>): GptContinuationLane {
-    const binding = this.store.readGptContinuationExecutionBinding(input.jobId);
-    const current = this.store.readGptContinuation(input.continuationRef);
-    if (!binding
-      || binding.plugin_id !== input.pluginId
-      || binding.owner_ref !== input.ownerRef
-      || binding.subject_ref !== input.subjectRef
-      || !current
-      || !gptContinuationUsable(current)
-      || current.owner_ref !== input.ownerRef
-      || current.subject_ref !== input.subjectRef
-      || current.conversation_identity_hash !== gptContinuationIdentityHash(current.provider)) {
-      throw executionFailure("failed", "GPT_CONTINUATION_NOT_AUTHORIZED");
-    }
+  public acquire(input: AcquireInput): GptContinuationLane {
+    const authorized = requireAcquirableContinuation(
+      input,
+      this.store.readGptContinuationExecutionBinding(input.jobId),
+      this.store.readGptContinuation(input.continuationRef),
+    );
+    const { binding, current } = authorized;
     if (input.authorization.kind === "row_authorization") {
       if (input.authorization.currentAuthorizationRef !== binding.authorization_ref
         || input.authorization.currentAuthorizationRef !== current.authorization_ref

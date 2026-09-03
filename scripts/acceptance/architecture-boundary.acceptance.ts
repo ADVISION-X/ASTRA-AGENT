@@ -1,4 +1,4 @@
-import assert from "../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";

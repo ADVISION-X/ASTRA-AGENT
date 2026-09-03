@@ -1,4 +1,4 @@
-import assert from "../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { runInNewContext } from "node:vm";
 
 type Style = Readonly<{ display?: string; visibility?: string; opacity?: string }>;
@@ -30,10 +30,15 @@ class FakeElement {
   public contains(element: FakeElement): boolean { return element === this; }
 }
 
-const execute = (source: string, document: Readonly<Record<string, unknown>>, input: unknown): unknown => {
+const execute = (source: string, document: Readonly<Record<string, unknown>>, input: unknown,
+  href = "https://chatgpt.com/"): unknown => {
   const context = {
     Element: FakeElement,
+    URL,
     document,
+    location: Object.freeze({ href }),
+    crypto: globalThis.crypto,
+    TextEncoder,
     getComputedStyle: (element: FakeElement) => ({
       display: element.style.display ?? "block", visibility: element.style.visibility ?? "visible",
       opacity: element.style.opacity ?? "1", pointerEvents: "auto",
@@ -65,19 +70,31 @@ export const exerciseCapturedCandidateFunction = (source: string): void => {
   }), "BROWSER_DOM_READ_INVALID", "scope plus target candidates must share the 256 budget");
 };
 
-export const exerciseCapturedObservationFunction = (source: string): void => {
+export const exerciseCapturedObservationFunction = async (source: string): Promise<void> => {
   const nodes = [new FakeElement("a", {}, { display: "none" }),
     new FakeElement("b", {}, { visibility: "hidden" }), new FakeElement("c", {}, { opacity: "0" }),
     new FakeElement("d", {}, {}, { inert: "" })];
   const root = new FakeElement("root", { button: nodes });
   for (const node of nodes) node.parentElement = root;
-  const result = execute(source, { documentElement: root, querySelectorAll: () => [],
-    elementFromPoint: () => null }, [{ queryId: "reasons", selector: "button", maxMatches: 1,
-    fields: ["visible"] }]) as Readonly<{ queries: readonly Readonly<{ rejections: readonly unknown[] }>[] }>;
+  const observationDocument = { documentElement: root, querySelectorAll: () => [],
+    elementFromPoint: () => null };
+  const result = await execute(source, observationDocument,
+    [{ queryId: "reasons", selector: "button", maxMatches: 1, fields: ["visible"] }],
+    "https://chatgpt.com/c/exact-conversation?query=discarded#fragment") as Readonly<{
+      currentUrl: string; queries: readonly Readonly<{ rejections: readonly unknown[] }>[];
+    }>;
+  assert.equal(result.currentUrl, "https://chatgpt.com/c/exact-conversation");
+  assert.equal((source.match(/location\.href/gu) ?? []).length, 1,
+    "the coherent function must read location.href exactly once");
   assert.equal(result.queries[0]?.rejections.length, 4,
     "the executed observation function must retain every rejected candidate");
   assert.equal(JSON.stringify(result.queries[0]?.rejections), JSON.stringify([
     { index: 0, reasons: ["DISPLAY_HIDDEN"] }, { index: 1, reasons: ["VISIBILITY_HIDDEN"] },
     { index: 2, reasons: ["OPACITY_HIDDEN"] }, { index: 3, reasons: ["INERT"] },
   ]));
+  const input = [{ queryId: "reasons", selector: "button", maxMatches: 1, fields: ["visible"] }];
+  for (const invalidUrl of ["http://chatgpt.com/", "https://example.com/", "https://user@chatgpt.com/",
+    "https://chatgpt.com/c/", "https://chatgpt.com/c/one/two", `https://chatgpt.com/c/${"x".repeat(257)}`]) {
+    await assert.rejects(async () => execute(source, observationDocument, input, invalidUrl), /BROWSER_DOM_READ_INVALID/u);
+  }
 };

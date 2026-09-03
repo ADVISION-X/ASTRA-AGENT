@@ -1,28 +1,86 @@
-import assert from "../../../../scripts/audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 import { createHash } from "node:crypto";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 
 import {
-  GptContinuationReadback,
   gptContinuationIdentityHash,
+} from "../index.js";
+import {
   gptExactCallIdentityHash,
-  persistGptChildEvidence,
   type GptChildCapabilityIntent,
   type GptChildCapabilityProof,
   type GptChildCapabilityResult,
+} from "../contract.js";
+import {
   type GptContinuationGeneratedImageCheckpoint,
   type GptContinuationOriginCheckpoint,
   type GptContinuationTextCheckpoint,
-  type GptContinuationReadbackPort,
   type StoredGptContinuation,
-} from "../index.js";
-import { createForensicsPersistenceAbilityGroupFromStorage } from "../../forensics-persistence/index.js";
-import { createGrassEyeFileStorage } from "../../../lib/storage/index.js";
+} from "../session/gpt-continuation-store-port.js";
+import {
+  GptContinuationReadback,
+  type GptContinuationReadbackPort,
+} from "../continuation-readback.js";
+import { readSubmissionLocatorArtifact } from "../artifact-reader.js";
+import { persistGptChildEvidence } from "../evidence-writer.js";
+import type { GptEvidenceStorePort } from "../production-ports.js";
 
 const hash = (value: string | Uint8Array): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
+
+class CheckpointEvidenceStore implements GptEvidenceStorePort {
+  private readonly artifacts = new Map<string, Readonly<{ content: Uint8Array<ArrayBuffer>; mimeType: string }>>();
+  private readonly records = new Map<string, Readonly<Record<string, unknown>>>();
+
+  public async appendRecord(input: Parameters<GptEvidenceStorePort["appendRecord"]>[0]) {
+    const recordRef = `record:${hash(input.idempotencyKey).slice(7)}`;
+    const existing = this.records.get(recordRef);
+    if (existing && canonicalHash(existing.payload) !== canonicalHash(input.recordPayload)) {
+      return { status: "failed" as const };
+    }
+    this.records.set(recordRef, Object.freeze({
+      missionId: input.missionId,
+      runId: input.runId,
+      stepId: input.stepId,
+      sourceAbilityGroupId: input.sourceCapabilityId,
+      sourceChildCapabilityId: input.sourceChildCapabilityId,
+      idempotencyKey: input.idempotencyKey,
+      payload: Object.freeze({ ...input.recordPayload }),
+      artifactRefs: Object.freeze([...(input.artifactRefs ?? [])]),
+    }));
+    return { status: "success" as const, recordRef };
+  }
+
+  public async appendArtifact(input: Parameters<GptEvidenceStorePort["appendArtifact"]>[0]) {
+    const artifactRef = `artifact:${hash(input.idempotencyKey).slice(7)}`;
+    const content = typeof input.content === "string"
+      ? new TextEncoder().encode(input.content) : new Uint8Array(input.content ?? []);
+    const existing = this.artifacts.get(artifactRef);
+    if (existing && hash(existing.content) !== hash(content)) return { status: "failed" as const };
+    this.artifacts.set(artifactRef, Object.freeze({ content, mimeType: input.mimeType ?? "application/octet-stream" }));
+    return { status: "success" as const, artifactRef };
+  }
+
+  public async readRecordRef(input: Parameters<GptEvidenceStorePort["readRecordRef"]>[0]) {
+    const record = this.records.get(input.recordRef);
+    return record ? { status: "success" as const, recordRef: input.recordRef, record }
+      : { status: "failed" as const };
+  }
+
+  public async readArtifactRef(input: Parameters<GptEvidenceStorePort["readArtifactRef"]>[0]) {
+    const artifact = this.artifacts.get(input.artifactRef);
+    return artifact ? { status: "success" as const, artifactRef: input.artifactRef,
+      artifact: { ...artifact, integrityHash: hash(artifact.content) } }
+      : { status: "failed" as const };
+  }
+
+  public async readExactCallEvidence(input: Parameters<GptEvidenceStorePort["readExactCallEvidence"]>[0]) {
+    for (const [recordRef, record] of this.records) {
+      const payload = record.payload as Readonly<Record<string, unknown>> | undefined;
+      if (payload?.exact_call_identity_hash === input.exactCallIdentityHash) return { recordRef, record };
+    }
+    return null;
+  }
+}
 const canonicalHash = (value: unknown): `sha256:${string}` => {
   const canonical = (input: unknown): unknown => {
     if (Array.isArray(input)) return input.map(canonical);
@@ -45,17 +103,14 @@ const PLUGIN_VERSION = 16;
 const URL = "https://chatgpt.com/c/gpt-native-checkpoint-readback";
 const FRONTIER = canonicalHash({ kind: "gpt-native-checkpoint-frontier.v1" });
 
-const successProof = <K extends "checkpoint_gpt_text_response" | "checkpoint_gpt_generated_image">(
+const proofCallIdentity = <K extends
+  "checkpoint_gpt_text_response" | "checkpoint_gpt_generated_image" | "reconcile_gpt_turn_submission">(
   intent: GptChildCapabilityIntent<K>,
-  evidenceHash: `sha256:${string}`,
-): GptChildCapabilityProof => Object.freeze({
-  schemaVersion: "gpt-child-capability-proof.v2",
+) => ({
+  schemaVersion: "gpt-child-capability-proof.v2" as const,
   childCapabilityId: intent.childCapabilityId,
-  childContractVersion: 2,
-  childStatus: "success",
-  childReasonCode: "GPT_CHILD_SUCCEEDED",
+  childContractVersion: 2 as const,
   exactCallIdentityHash: gptExactCallIdentityHash(intent),
-  internalDecisionCode: "DONE",
   executionId: intent.executionId,
   jobId: intent.jobId,
   attemptId: intent.attemptId,
@@ -65,6 +120,12 @@ const successProof = <K extends "checkpoint_gpt_text_response" | "checkpoint_gpt
   callId: intent.callId,
   inputHash: intent.inputHash,
   actionOrdinal: intent.actionOrdinal,
+});
+
+const proofOutcome = (callId: string, evidenceHash: `sha256:${string}`) => ({
+  childStatus: "success" as const,
+  childReasonCode: "GPT_CHILD_SUCCEEDED",
+  internalDecisionCode: "DONE" as const,
   targetRefHash: HASH_A,
   beforeDocumentRefHash: HASH_A,
   afterDocumentRefHash: HASH_B,
@@ -72,19 +133,26 @@ const successProof = <K extends "checkpoint_gpt_text_response" | "checkpoint_gpt
   factResultIds: Object.freeze([]),
   candidateCardinality: Object.freeze({ raw: 1, eligible: 1 }),
   observationRevisionHash: HASH_B,
-  committedMutation: "no",
-  postconditionResult: "passed",
+  committedMutation: "no" as const,
+  postconditionResult: "passed" as const,
   browserFact: null,
   nativeFailureCode: null,
   startedAt: "2026-09-03T00:00:00.000Z",
   endedAt: "2026-09-03T00:00:00.001Z",
-  evidenceRef: `browser:${intent.callId}`,
+  evidenceRef: `browser:${callId}`,
   evidenceHash,
 });
 
-const root = await mkdtemp(path.join(tmpdir(), "gpt-native-checkpoint-readback-"));
-try {
-  const evidenceStore = createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(root));
+const successProof = <K extends
+  "checkpoint_gpt_text_response" | "checkpoint_gpt_generated_image" | "reconcile_gpt_turn_submission">(
+  intent: GptChildCapabilityIntent<K>,
+  evidenceHash: `sha256:${string}`,
+): GptChildCapabilityProof => Object.freeze({
+  ...proofCallIdentity(intent),
+  ...proofOutcome(intent.callId, evidenceHash),
+});
+
+const evidenceStore = new CheckpointEvidenceStore();
   let ordinal = 0;
   const persistText = async (input: Readonly<{
     assistantTurnId: string;
@@ -169,6 +237,62 @@ try {
     semanticText: "predecessor semantic text",
     turnMarker: "[GRASSEYE:gpt-native-predecessor]",
   }) as GptContinuationTextCheckpoint;
+
+  ordinal += 1;
+  const locatorInput = Object.freeze({
+    expectedPromptHash: HASH_A,
+    timeoutMs: 60_000,
+    turnMarker: "[GRASSEYE:gpt-native-submission]",
+  });
+  const locatorIdentity = Object.freeze({
+    jobId: JOB_ID,
+    attemptId: ATTEMPT_ID,
+    pluginId: PLUGIN_ID,
+    pluginVersion: PLUGIN_VERSION,
+    productStepId: "checkpoint-readback",
+    callId: "submission-locator",
+    childCapabilityId: "reconcile_gpt_turn_submission" as const,
+    inputHash: canonicalHash(locatorInput),
+  });
+  const locatorIntent: GptChildCapabilityIntent<"reconcile_gpt_turn_submission"> = Object.freeze({
+    ...locatorIdentity,
+    executionId: `gpt-call:${gptExactCallIdentityHash(locatorIdentity).slice(7)}`,
+    actionOrdinal: ordinal,
+    input: locatorInput,
+  });
+  const userTurnId = "conversation-turn-3";
+  const locatorValue = Object.freeze({
+    turnMarker: locatorInput.turnMarker,
+    userTurnId,
+    canonicalConversationUrl: URL,
+    promptHash: locatorInput.expectedPromptHash,
+    conversationIdentityHash: hash(
+      `${URL}\n${locatorInput.turnMarker}\n${userTurnId}\n${locatorInput.expectedPromptHash}`,
+    ),
+  });
+  const locatorResult: GptChildCapabilityResult<"reconcile_gpt_turn_submission"> = Object.freeze({
+    status: "success",
+    value: locatorValue,
+    proof: successProof(locatorIntent, hash("evidence:submission-locator")),
+    failureCode: null,
+    failureCause: null,
+    failureBrowserEffect: null,
+  });
+  const locatorPersisted = await persistGptChildEvidence({
+    result: locatorResult,
+    intent: locatorIntent,
+    evidenceStore,
+    jobId: JOB_ID,
+    attemptId: ATTEMPT_ID,
+    stepId: locatorIdentity.productStepId,
+    exactCallIdentityHash: gptExactCallIdentityHash(locatorIdentity),
+  });
+  assert.equal(locatorPersisted.artifactRefs.length, 1);
+  assert.deepEqual(
+    await readSubmissionLocatorArtifact(evidenceStore, locatorPersisted.artifactRefs[0]!),
+    locatorValue,
+    "the task-owned submission locator must survive verified artifact readback without a live Browser target",
+  );
 
   ordinal += 1;
   const originalBytes = new Uint8Array([1, 3, 5, 7, 9]);
@@ -351,6 +475,3 @@ try {
   assert.equal(readback.currentCheckpoint.webpSha256, hash(webpBytes));
   assert.equal(readback.currentCheckpoint.predecessorTextCheckpoint.assistantTurnId, "conversation-turn-4");
   assert.equal(readback.currentCheckpoint.predecessorTextCheckpoint.semanticText, "predecessor semantic text");
-} finally {
-  await rm(root, { recursive: true, force: true });
-}

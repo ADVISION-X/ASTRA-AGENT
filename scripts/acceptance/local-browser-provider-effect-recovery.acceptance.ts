@@ -1,4 +1,4 @@
-import assert from "../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { createHash } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -12,37 +12,36 @@ import {
 const hash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
+const mutationIdentity = (
+  initial: "DISPATCHED" | "CONFIRMED",
+): BrowserMutationIdentity => Object.freeze({
+  commandId: `command:browser-provider-recovery:${initial.toLowerCase()}`,
+  logicalMutationId: hash(`exact:${initial}`),
+  exactCallIdentityHash: hash(`exact:${initial}`),
+  ownerPluginId: "acceptance-product",
+  pluginVersion: 1,
+  jobId: `job:browser-provider-recovery:${initial.toLowerCase()}`,
+  attemptId: `attempt:browser-provider-recovery:${initial.toLowerCase()}`,
+  leaseVersion: 1,
+  executionFenceHash: hash("execution-fence"),
+  productStepId: "provider-submit",
+  callId: "submit-once",
+  childCapabilityId: "submit_exact_gpt_turn_once",
+  effectScope: "provider_effect",
+  actionOrdinal: 1,
+  targetRef: `target:${initial.toLowerCase()}`,
+  documentRef: `document:${initial.toLowerCase()}`,
+  actionId: "browser.dom.click.v1",
+  positivePostconditionHash: hash("positive"),
+  negativePostconditionHash: hash("negative"),
+  requestHash: hash("request"),
+  payloadHash: hash("payload"),
+});
+
 const exerciseRestart = async (initial: "DISPATCHED" | "CONFIRMED"): Promise<void> => {
   const root = await mkdtemp(path.join(tmpdir(), `browser-provider-recovery-${initial.toLowerCase()}-`));
-  const jobId = `job:browser-provider-recovery:${initial.toLowerCase()}`;
-  const attemptId = `attempt:browser-provider-recovery:${initial.toLowerCase()}`;
-  const commandId = `command:browser-provider-recovery:${initial.toLowerCase()}`;
-  const exactCallIdentityHash = hash(`exact:${initial}`);
-  const targetRef = `target:${initial.toLowerCase()}`;
-  const documentRef = `document:${initial.toLowerCase()}`;
-  const identity: BrowserMutationIdentity = Object.freeze({
-    commandId,
-    logicalMutationId: exactCallIdentityHash,
-    exactCallIdentityHash,
-    ownerPluginId: "acceptance-product",
-    pluginVersion: 1,
-    jobId,
-    attemptId,
-    leaseVersion: 1,
-    executionFenceHash: hash("execution-fence"),
-    productStepId: "provider-submit",
-    callId: "submit-once",
-    childCapabilityId: "submit_exact_gpt_turn_once",
-    effectScope: "provider_effect",
-    actionOrdinal: 1,
-    targetRef,
-    documentRef,
-    actionId: "browser.dom.click.v1",
-    positivePostconditionHash: hash("positive"),
-    negativePostconditionHash: hash("negative"),
-    requestHash: hash("request"),
-    payloadHash: hash("payload"),
-  });
+  const identity = mutationIdentity(initial);
+  const { attemptId, commandId, exactCallIdentityHash, jobId, targetRef } = identity;
   const recoveryQuery = Object.freeze({
     jobId,
     attemptId,
@@ -69,7 +68,7 @@ const exerciseRestart = async (initial: "DISPATCHED" | "CONFIRMED"): Promise<voi
     assert(recovery, "restart must recover the exact provider-effect WAL row");
     assert.equal(recovery.state, initial.toLowerCase());
     assert.equal(recovery.targetRef, targetRef);
-    assert.equal(recovery.documentRef, documentRef);
+    assert.equal(recovery.documentRef, identity.documentRef);
     if (recovery.state === "dispatched") {
       readbacks += 1;
       store.resolve({

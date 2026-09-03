@@ -8,10 +8,19 @@ import { collectResolvedModuleTargets } from "../../../shared/source-module-targ
 
 const catalogPath = "src/lib/local-runtime/production/catalog.ts";
 const architectureAcceptanceScript = "acceptance:architecture-boundary";
+const productAcceptancePrefix = "scripts/acceptance/product-plugins/";
 
 const pluginIdFromSourcePath = (repoPath: string): string | undefined => {
   if (!repoPath.startsWith("src/plugins/")) return undefined;
   return repoPath.split("/")[2];
+};
+
+const ownsProductAcceptance = (repoPath: string, pluginId: string): boolean => {
+  if (!repoPath.startsWith(productAcceptancePrefix)) return false;
+  const name = repoPath.slice(productAcceptancePrefix.length);
+  return name === `${pluginId}.acceptance.ts`
+    || name.startsWith(`${pluginId}.`)
+    || name.startsWith(`${pluginId}-`);
 };
 
 const catalogPluginIds = (
@@ -78,6 +87,7 @@ const inspectDirectPluginImports = (input: {
     for (const target of collectResolvedModuleTargets(file)) {
       const pluginId = pluginIdFromSourcePath(target.targetPath);
       if (!pluginId) continue;
+      if (ownsProductAcceptance(repoPath, pluginId)) continue;
       push({ findings: input.findings, lawId: input.lawId, filePath: repoPath,
         evidence: target.targetPath, checkId: "architecture/plugin-entry-not-authorized",
         message: `${repoPath} imports Product Plugin ${pluginId} outside the unique Catalog.` });

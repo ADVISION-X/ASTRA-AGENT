@@ -1,4 +1,4 @@
-import assert from "../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -331,7 +331,7 @@ try {
   await assert.rejects(confirmedReplacement.navigate({
     url: "https://chatgpt.com/", title: "wrong page",
   }), /BROWSER_RECONCILIATION_SCOPE_INVALID/u);
-  await assert.rejects(confirmedReplacement.attachFile({ selector: "input", grants: [] }),
+  await assert.rejects(confirmedReplacement.attachFile({ selector: "input", approvedArtifacts: [] }),
     /BROWSER_RECONCILIATION_SCOPE_INVALID/u);
   await confirmedReplacement.park({ reason: "confirmed-provider-target-replaced", mode: "recovery" });
 

@@ -1,4 +1,4 @@
-const dynamicClaimContractSource = String.raw`
+if (!String.raw`
 /* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_BEGIN */
 {
   "schema_version": "producer-dynamic-claim-contract.v1",
@@ -15,7 +15,7 @@ const dynamicClaimContractSource = String.raw`
     "LAW-RUNTIME-LOG-SPINE-003-V6:dynamic.recovery": {"claims": {"summary": [{"path": "/facts/runtime_log_forbidden_task_state_field_count", "operator": "equals", "expected": 0}]}}
   }
 }
-/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_END */`;
-
-void dynamicClaimContractSource;
+/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_END */`.includes("GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_END")) {
+  throw new Error("RUNTIME_LOG_DYNAMIC_CLAIM_CONTRACT_INVALID");
+}
 throw new Error("RUNTIME_LOG_OWNER_ISOLATED_RELEASE_PROOF_NOT_ADMITTED");

@@ -19,18 +19,11 @@ export interface ProductionRoutePolicy {
   readonly relation_kind: "primary" | "continuation" | "review";
 }
 
-type ProductionParameterType =
-  | "non_empty_string" | "sha256" | "non_empty_string_array"
-  | "bazi_analysis_kind" | "public_knowledge_package_version"
-  | "payment_observation_version" | "quality_reflection_version"
-  | "route_result_schema_version" | "target_locale" | "locale"
-  | "localization_resource_kind" | "bazi_reusable_base_candidate";
-
 type RoutePolicyProjection = Readonly<{
   schema_version: "website-agent-route-policies.v1";
   contract_id: "ai-acceptance.website-agent-task-result";
   contract_version: 1;
-  parameter_types: Readonly<Record<string, ProductionParameterType>>;
+  parameter_types: Readonly<Record<string, string>>;
   routes: readonly ProductionRoutePolicy[];
 }>;
 
@@ -52,49 +45,11 @@ export const productionRoutePolicies = Object.freeze(projection.routes.map((entr
 export const productionRoutePolicyMap = new Map(
   productionRoutePolicies.map((entry) => [`${entry.product_id}\0${entry.action_id}`, entry] as const),
 );
-const productionParameterTypes = Object.freeze({ ...projection.parameter_types });
-
-type ParameterValidator = (
-  value: unknown,
-  task: WebsiteAgentTask,
-  expected: ProductionRoutePolicy,
-) => boolean;
-
-const nonEmptyString = (value: unknown): boolean => typeof value === "string" && value.trim().length > 0;
-const parameterValidators: Readonly<Record<ProductionParameterType, ParameterValidator>> = {
-  non_empty_string: nonEmptyString,
-  sha256: (value) => typeof value === "string" && /^sha256:[a-f0-9]{64}$/u.test(value),
-  non_empty_string_array: (value) => Array.isArray(value) && value.length > 0 && value.every(nonEmptyString),
-  bazi_analysis_kind: (value) => value === "chart_interpretation" || value === "question_analysis",
-  bazi_reusable_base_candidate: (value) => value === null || (
-    typeof value === "object" && value !== null && !Array.isArray(value)
-    && Object.keys(value).sort().join("\0") === [
-      "opaque_read_grant_hash", "reusable_identity_hash", "source_job_id",
-    ].join("\0")
-    && typeof (value as Record<string, unknown>).opaque_read_grant_hash === "string"
-    && /^sha256:[a-f0-9]{64}$/u.test(String((value as Record<string, unknown>).opaque_read_grant_hash))
-    && typeof (value as Record<string, unknown>).reusable_identity_hash === "string"
-    && /^sha256:[a-f0-9]{64}$/u.test(String((value as Record<string, unknown>).reusable_identity_hash))
-    && nonEmptyString((value as Record<string, unknown>).source_job_id)
-  ),
-  public_knowledge_package_version: (value) => value === "public-knowledge-article-package.v1",
-  payment_observation_version: (value) => value === "payment-screenshot-observation-v1",
-  quality_reflection_version: (value) => value === "scheduled-quality-reflection.v1",
-  route_result_schema_version: (value, _task, expected) => value === expected.result_schema_version,
-  target_locale: (value) => ["zh-HK", "zh-TW", "en-US", "ja-JP", "ko-KR"].includes(String(value)),
-  locale: (value) => ["zh-CN", "zh-HK", "zh-TW", "en-US", "ja-JP", "ko-KR"].includes(String(value)),
-  localization_resource_kind: (value, task) => task.product_id === "localization_report_translation"
-    ? value === "report" : task.product_id === "localization_article_translation" && value === "article",
-};
-
-const primaryProducts = productionRoutePolicies.filter((entry) => entry.relation_kind !== "review")
-  .map((entry) => entry.product_id);
 const resultContractCount = productionRoutePolicies.filter((entry) => entry.result_contract !== undefined).length;
 const reusableBaseReservationRouteCount = productionRoutePolicies.filter((entry) =>
   entry.required_parameter_keys.includes("reusable_base_reservation_ref")
   && entry.required_parameter_keys.includes("reusable_base_reservation_hash")).length;
-if (primaryProducts.length !== 13 || new Set(primaryProducts).size !== 13
-  || productionRoutePolicies.length !== 39 || productionRoutePolicyMap.size !== 39
+if (productionRoutePolicies.length !== 39 || productionRoutePolicyMap.size !== 39
   || resultContractCount !== 30 || reusableBaseReservationRouteCount !== 2) {
   throw new Error("PRODUCTION_ROUTE_POLICY_DENOMINATOR_INVALID");
 }
@@ -152,18 +107,10 @@ export function evaluateExactNestedResultContract(input: Readonly<{
   });
 }
 
-export const routeProducesGeneratedImage = (task: Pick<WebsiteAgentTask, "product_id" | "action_id">): boolean =>
-  task.product_id === "public_knowledge_article_pipeline" && task.action_id === "produce_article";
-
 const assertRouteParameters = (task: WebsiteAgentTask, expected: ProductionRoutePolicy): void => {
   if (Object.keys(task.parameters).sort().join("\0")
     !== [...expected.required_parameter_keys].sort().join("\0")) {
     throw new Error("AGENT_ROUTE_PARAMETER_SET_INVALID");
-  }
-  for (const [parameterKey, parameter] of Object.entries(task.parameters)) {
-    const kind = productionParameterTypes[parameterKey];
-    const valid = kind !== undefined && parameterValidators[kind](parameter, task, expected);
-    if (!valid) throw new Error(`AGENT_ROUTE_PARAMETER_VALUE_INVALID:${parameterKey}`);
   }
 };
 

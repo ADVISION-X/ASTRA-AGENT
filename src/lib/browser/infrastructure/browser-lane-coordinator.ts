@@ -320,7 +320,9 @@ export class BrowserLaneCoordinator {
     const reject = async (): Promise<never> => {
       throw new Error("BROWSER_RECONCILIATION_SCOPE_INVALID");
     };
-    const readKinds = new Set(["document", "inspect", "find", "readText", "readAttribute"]);
+    const readKinds = new Set([
+      "document", "observe", "readExactAssistantTurn", "inspect", "find", "readText", "readAttribute",
+    ]);
     return {
       ...lease,
       runAtomicStep: (identity, action) => identity.replayPolicy === "observation-only"
@@ -333,8 +335,6 @@ export class BrowserLaneCoordinator {
       captureScreenshot: reject,
       attachFile: reject,
       downloadAuthenticatedMedia: (input) => lease.downloadAuthenticatedMedia(input),
-      registerFileArtifact: reject,
-      issueFileArtifactGrant: reject,
       wait: (input) => lease.wait(input),
       park: (input) => lease.park(input),
       close: (input) => lease.close(input),

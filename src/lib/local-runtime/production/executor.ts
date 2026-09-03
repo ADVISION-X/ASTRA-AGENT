@@ -1,7 +1,6 @@
 import {
-  ProductionGptChildTools,
+  createProductionGptChildTools,
   type GptAbilityGroup,
-  type ProductGptExecution,
 } from "../../../capabilities/gpt/index.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../../capabilities/forensics-persistence/index.js";
 import {
@@ -24,6 +23,30 @@ export interface ProductionExecutionResult {
   readonly record: StoredProductionTask;
   readonly result: WebsiteAgentResult;
 }
+
+type ActiveGptExecution = ReturnType<ReturnType<typeof createProductionGptChildTools>["createExecution"]>;
+type GptExecutionLifecycle = {
+  reconcilePermanentCancellation: (() => Promise<void>) | null;
+  settle: ((error: unknown | null) => Promise<void>) | null;
+};
+
+const settleGptExecution = async (
+  lifecycle: GptExecutionLifecycle,
+  abortSignal: AbortSignal,
+  primaryError: unknown,
+): Promise<void> => {
+  try {
+    const cancellationReason = typeof abortSignal.reason === "string" ? abortSignal.reason : "";
+    if (cancellationReason === "CONTROL_INTENT:cancel_requested:PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED"
+      && lifecycle.reconcilePermanentCancellation) await lifecycle.reconcilePermanentCancellation();
+    if (lifecycle.settle) await lifecycle.settle(primaryError);
+  } catch (settleError) {
+    if (primaryError === null) throw settleError;
+    const combined = new AggregateError([settleError], "GPT_BROWSER_LIFECYCLE_FAILED", { cause: primaryError });
+    const causedByEventId = runtimeLogCauseEventId(primaryError);
+    throw causedByEventId ? withRuntimeLogCause(combined, causedByEventId) : combined;
+  }
+};
 
 const durableIdentityValid = (
   accepted: StoredProductionTask,
@@ -52,7 +75,7 @@ const pluginIdentity = (task: WebsiteAgentTask): DurablePluginIdentity => {
 };
 
 export class ProductionExecutor {
-  private readonly gptChildTools: ProductionGptChildTools;
+  private readonly gptChildTools: ReturnType<typeof createProductionGptChildTools>;
 
   public constructor(
     private readonly store: ProductionRuntimeStore,
@@ -65,7 +88,7 @@ export class ProductionExecutor {
       browserAuthority: WorkbenchBrowserAuthority;
     }>,
   ) {
-    this.gptChildTools = new ProductionGptChildTools(
+    this.gptChildTools = createProductionGptChildTools(
       input.dataDir, input.sourceHash, input.gpt, input.evidenceStore,
       input.browserAuthority, {
         continuationStore: store,
@@ -164,11 +187,8 @@ export class ProductionExecutor {
     complete: (output: ProductPluginOutput, continuationRef: string | null) => Promise<WebsiteAgentResult>;
   }>): Promise<WebsiteAgentResult> {
     let completed = false;
-    let gptExecution: ProductGptExecution | null = null;
-    const gptLifecycle: {
-      reconcilePermanentCancellation: (() => Promise<void>) | null;
-      settle: ((error: unknown | null) => Promise<void>) | null;
-    } = { reconcilePermanentCancellation: null, settle: null };
+    let gptExecution: ActiveGptExecution | null = null;
+    const gptLifecycle: GptExecutionLifecycle = { reconcilePermanentCancellation: null, settle: null };
     let primaryError: unknown = null;
     let result: WebsiteAgentResult;
     try {
@@ -214,22 +234,7 @@ export class ProductionExecutor {
       primaryError = error;
       throw error;
     } finally {
-      try {
-        const cancellationReason = typeof input.lease.abort_signal.reason === "string"
-          ? input.lease.abort_signal.reason : "";
-        if (cancellationReason === "CONTROL_INTENT:cancel_requested:PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED"
-          && gptLifecycle.reconcilePermanentCancellation) {
-          await gptLifecycle.reconcilePermanentCancellation();
-        }
-        if (gptLifecycle.settle) await gptLifecycle.settle(primaryError);
-      } catch (settleError) {
-        if (primaryError === null) throw settleError;
-        const combined = new AggregateError(
-          [settleError], "GPT_BROWSER_LIFECYCLE_FAILED", { cause: primaryError },
-        );
-        const causedByEventId = runtimeLogCauseEventId(primaryError);
-        throw causedByEventId ? withRuntimeLogCause(combined, causedByEventId) : combined;
-      }
+      await settleGptExecution(gptLifecycle, input.lease.abort_signal, primaryError);
     }
     if (!completed) throw new Error("PLUGIN_RESULT_NOT_COMPLETED");
     return result;

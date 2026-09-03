@@ -1,4 +1,4 @@
-import assert from "../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 import { renderAppShell } from "../../src/app/app-shell/app-shell.js";

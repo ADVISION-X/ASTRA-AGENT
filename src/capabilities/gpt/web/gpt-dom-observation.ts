@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import type {
   BrowserDomObservationQuery,
   BrowserTargetLease,
@@ -29,6 +31,7 @@ export type GptCoherentObservation = Readonly<{
   exactCallIdentityHash: `sha256:${string}`;
   targetRefHash: `sha256:${string}`;
   documentRefHash: `sha256:${string}`;
+  currentUrl: string;
   observationRevisionHash: `sha256:${string}`;
   observedAt: string;
   rows: readonly GptCoherentObservationRow[];
@@ -41,8 +44,23 @@ export type GptCoherentFactProjection = Readonly<{
   observationRevisionHash: `sha256:${string}`;
 }>;
 
+export type GptExactAssistantTurnObservation = Readonly<{
+  exactCallIdentityHash: `sha256:${string}`;
+  targetRefHash: `sha256:${string}`;
+  documentRefHash: `sha256:${string}`;
+  assistantTurnId: string;
+  rawDomHtml: string;
+  rawDomHash: `sha256:${string}`;
+  semanticText: string;
+  semanticTextHash: `sha256:${string}`;
+  observedAt: string;
+}>;
+
 const nonNegativeInteger = (value: unknown): value is number =>
   Number.isSafeInteger(value) && (value as number) >= 0;
+
+const hashText = (value: string): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
 const decodeRejections = (value: unknown): readonly Readonly<{
   index: number;
@@ -103,10 +121,11 @@ export const readCoherentObservation = async (
   queries: readonly BrowserDomObservationQuery[],
 ): Promise<GptCoherentObservation> => {
   const packet = record(await browser.executeDomIntent({ kind: "observe", queries }));
-  if (packet.schemaVersion !== "grasseye.browser.dom-observation.v1"
+  if (packet.schemaVersion !== "grasseye.browser.dom-observation.v2"
     || typeof packet.exactCallIdentityHash !== "string"
     || typeof packet.targetRefHash !== "string"
     || typeof packet.documentRefHash !== "string"
+    || typeof packet.currentUrl !== "string" || packet.currentUrl.length === 0
     || typeof packet.observationRevisionHash !== "string"
     || ![packet.exactCallIdentityHash, packet.targetRefHash, packet.documentRefHash,
       packet.observationRevisionHash].every((value) => /^sha256:[a-f0-9]{64}$/u.test(value as string))
@@ -122,6 +141,7 @@ export const readCoherentObservation = async (
     exactCallIdentityHash: packet.exactCallIdentityHash as `sha256:${string}`,
     targetRefHash: packet.targetRefHash as `sha256:${string}`,
     documentRefHash: packet.documentRefHash as `sha256:${string}`,
+    currentUrl: packet.currentUrl as string,
     observationRevisionHash: packet.observationRevisionHash as `sha256:${string}`,
     observedAt: packet.observedAt as string,
     rows,
@@ -141,5 +161,38 @@ export const projectCoherentObservation = (
     candidateCardinality: Object.freeze({ raw: primary.rawCount, eligible: primary.eligibleCount }),
     authorityRefHashes: Object.freeze([observation.targetRefHash, observation.documentRefHash]),
     observationRevisionHash: observation.observationRevisionHash,
+  });
+};
+
+export const readExactAssistantTurn = async (
+  browser: Pick<BrowserTargetLease, "executeDomIntent">,
+  assistantTurnId: string,
+): Promise<GptExactAssistantTurnObservation> => {
+  if (!/^conversation-turn-[1-9][0-9]*$/u.test(assistantTurnId)) {
+    throw executionFailure("failed", "GPT_TURN_ID_INVALID");
+  }
+  const value = record(await browser.executeDomIntent({ kind: "readExactAssistantTurn", assistantTurnId }));
+  const hashes = [value.exactCallIdentityHash, value.targetRefHash, value.documentRefHash,
+    value.rawDomHash, value.semanticTextHash];
+  if (value.schemaVersion !== "grasseye.browser.exact-assistant-turn.v1"
+    || value.assistantTurnId !== assistantTurnId
+    || !hashes.every((candidate) => typeof candidate === "string" && /^sha256:[a-f0-9]{64}$/u.test(candidate))
+    || typeof value.rawDomHtml !== "string" || value.rawDomHtml.length === 0
+    || typeof value.semanticText !== "string"
+    || hashText(value.rawDomHtml) !== value.rawDomHash
+    || hashText(value.semanticText) !== value.semanticTextHash
+    || typeof value.observedAt !== "string" || Number.isNaN(Date.parse(value.observedAt))) {
+    throw executionFailure("failed", "GPT_EXACT_ASSISTANT_TURN_RESULT_INVALID");
+  }
+  return Object.freeze({
+    exactCallIdentityHash: value.exactCallIdentityHash as `sha256:${string}`,
+    targetRefHash: value.targetRefHash as `sha256:${string}`,
+    documentRefHash: value.documentRefHash as `sha256:${string}`,
+    assistantTurnId,
+    rawDomHtml: value.rawDomHtml,
+    rawDomHash: value.rawDomHash as `sha256:${string}`,
+    semanticText: value.semanticText,
+    semanticTextHash: value.semanticTextHash as `sha256:${string}`,
+    observedAt: value.observedAt,
   });
 };

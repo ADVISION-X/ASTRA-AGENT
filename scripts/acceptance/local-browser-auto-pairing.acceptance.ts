@@ -1,4 +1,4 @@
-import assert from "../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 
 import {
   GRASSEYE_AUTO_PAIRING_ALARM,
@@ -256,7 +256,10 @@ assert.deepEqual(attachedTabs, [3]);
 assert.equal(getTargetsCalls, 0, "job acquisition must not enumerate or reuse operator ChatGPT tabs");
 assert.deepEqual(createdTab, { active: false, url: "https://chatgpt.com/" });
 assert.equal(targetFrames[0]?.kind, "TARGET_CLAIM");
-assert.equal(targetFrames[0]?.body.url, "https://chatgpt.com/");
+assert.deepEqual(Object.keys(targetFrames[0]?.body ?? {}).sort(),
+  ["claimOrigin", "documentRef", "navigationEpoch", "targetRef"],
+  "the Target claim wire must not contain a full page URL");
+assert.equal(targetFrames[0]?.body.claimOrigin, "https://chatgpt.com");
 const firstTargetRef = String(targetFrames[0]?.body.targetRef);
 const firstDocumentRef = String(targetFrames[0]?.body.documentRef);
 await exerciseAuthenticatedMedia({
@@ -372,8 +375,8 @@ assert.equal(targetFrames.at(-1)?.body.targetRef, firstTargetRef,
   "single-Tab reuse must preserve physical target identity");
 assert.notEqual(targetFrames.at(-1)?.body.documentRef, firstDocumentRef,
   "a fresh job must publish a new Document instead of inheriting residual composer attachments");
-assert.equal(targetFrames.at(-1)?.body.url, "https://chatgpt.com/",
-  "the debugger-owned main frame must prove the exact origin when Chrome redacts tab.url without tabs permission");
+assert.equal(targetFrames.at(-1)?.body.claimOrigin, "https://chatgpt.com",
+  "the debugger-owned main frame may publish only the exact admitted origin");
 await targetAuthority.releaseActiveTarget();
 targetTabRemoved(3);
 const replacementAcquisition = targetAuthority.acquireJobBoundChatGptTarget();
@@ -419,8 +422,8 @@ const broker = new BrowserAuthorityBroker(
 );
 const initialClaim = {
   authorityEpoch: 7, targetRef: "target-1", documentRef: "document-1", navigationEpoch: 0,
-  url: "https://chatgpt.com/",
-};
+  claimOrigin: "https://chatgpt.com",
+} as const;
 broker.registerOperatorTargetClaim(initialClaim);
 broker.registerOperatorTargetClaim({ ...initialClaim, documentRef: "document-2", navigationEpoch: 1 });
 assert.throws(() => broker.registerOperatorTargetClaim({ ...initialClaim, targetRef: "target-2" }), /BROWSER_TARGET_INVALID/u,
@@ -437,7 +440,9 @@ const grantBroker = new BrowserAuthorityBroker(
   () => undefined,
   (_binding, resolveGrantPaths) => {
     grantResolverCapture.current = resolveGrantPaths;
-    return Object.freeze({}) as unknown as BrowserTargetLeaseManager;
+    return Object.freeze({
+      acquire: () => { throw new Error("target lease acquisition is outside this grant-only acceptance"); },
+    });
   },
   {
     registerArtifact: async () => undefined,
@@ -458,7 +463,7 @@ for (const maxBytes of [Number.NaN, Number.POSITIVE_INFINITY, 1.5]) {
   }), /BROWSER_FILE_GRANT_INVALID/u, "file grants must reject non-integer byte bounds before dispatch");
 }
 const fileGrant = await authorityLease.issueFileArtifactGrant({
-  artifactRef: "proof", expectedSha256: grantHash, maxBytes: 64,
+  artifactRef: "proof", expectedSha256: grantHash, maxBytes: 21,
 });
 const capturedGrantResolver = grantResolverCapture.current;
 if (!capturedGrantResolver) throw new Error("BROWSER_FILE_GRANT_INVALID");

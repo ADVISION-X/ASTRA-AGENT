@@ -10,6 +10,7 @@ import {
   type WebsiteAgentTask,
 } from "../../lib/local-runtime/production/contracts.js";
 import {
+  postSubmitReadbackFault,
   readProductSkill,
   type SharedExecutionContext,
 } from "../../lib/local-runtime/production/plugin.js";
@@ -20,12 +21,9 @@ import type {
 import { productionRoutePolicy } from "../../lib/local-runtime/production/route-policy.js";
 import {
   executionFailure,
+  executionFailureMetadata,
   failureCode,
 } from "../../lib/execution-failure.js";
-import {
-  postSubmitReadbackFault,
-  typedGptExecutionFailure,
-} from "../../capabilities/gpt/execution-fault.js";
 
 export const PLUGIN_ID = "bazi-report-followup";
 export const PRODUCT_INSTRUCTION = "在授权成立的原八字正式报告会话中回答新的冻结问题，保持父报告、人物、命盘候选、证据与会话 lineage。";
@@ -217,7 +215,7 @@ const confirmedDeadline = (facts: ExactGptCallFacts): string => {
 };
 
 const preservePostSubmitReadback = (error: unknown, submit: ExactGptCallFacts): never => {
-  const typed = typedGptExecutionFailure(error);
+  const typed = executionFailureMetadata(error);
   const code = failureCode(error);
   if (!typed || typed.mutationOutcome !== "no") throw error;
   if (submit.mutation?.outcome !== "CONFIRMED" || !submit.mutation.terminalAt

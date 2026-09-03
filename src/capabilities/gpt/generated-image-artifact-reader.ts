@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
-import type { ForensicsPersistenceAbilityGroup } from "../forensics-persistence/index.js";
 import { executionFailure } from "../../lib/execution-failure.js";
+import type { GptEvidenceStorePort } from "./production-ports.js";
 
 export type GeneratedImageCheckpointArtifacts = Readonly<{
   assistantTurnId: string;
@@ -63,7 +63,7 @@ const receiptWebpValid = (
   && receipt.mediaType === "image/webp";
 
 export const readGeneratedImageArtifacts = async (input: Readonly<{
-  evidenceStore: ForensicsPersistenceAbilityGroup;
+  evidenceStore: GptEvidenceStorePort;
   artifactRefs: readonly [string, string, string];
   receipt: Readonly<Record<string, unknown>>;
 }>): Promise<GeneratedImageCheckpointArtifacts> => {

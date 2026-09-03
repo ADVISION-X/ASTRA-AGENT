@@ -1,4 +1,4 @@
-import assert from "../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import Database from "better-sqlite3";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -329,13 +329,14 @@ try {
     nativeCauseCount: 0, nativeStage: "runtime-call-function-on", scopeRejections: [], rejections: [] }];
   const targetRefHash = exactHash(observationPermit.targetRef);
   const documentRefHash = exactHash(observationPermit.documentRef);
+  const currentUrl = "https://chatgpt.com/";
   const observationRevisionHash = exactHash(canonicalizeBrowserAuthorityValue({
-    targetRefHash, documentRefHash, observedAt, queries: observationQueries,
+    targetRefHash, documentRefHash, currentUrl, observedAt, queries: observationQueries,
   }));
   const observationResult = await actorFor(async (candidate) => ({
     replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
-    permitSequence: candidate.sequence, result: { schemaVersion: "grasseye.browser.dom-observation.v1",
-      targetRefHash, documentRefHash, observationRevisionHash, observedAt, queries: observationQueries },
+    permitSequence: candidate.sequence, result: { schemaVersion: "grasseye.browser.dom-observation.v2",
+      targetRefHash, documentRefHash, currentUrl, observationRevisionHash, observedAt, queries: observationQueries },
   })).execute(observationPermit, observationCommand) as Readonly<Record<string, unknown>>;
   assert.equal(observationResult.exactCallIdentityHash, valueHash([
     observationPermit.jobId, observationPermit.attemptId, observationPermit.ownerPluginId,
@@ -468,7 +469,7 @@ try {
 }
 
 emitQualityProofObservation({
-  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V17",
+  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V18",
   evidenceMode: "exam.golden",
   clauses: [
     "forbidden:0",

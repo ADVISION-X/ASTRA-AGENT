@@ -15,5 +15,5 @@ export type BrowserDocumentRef = Readonly<{
 export type BrowserControlledTarget = Readonly<{
   target: BrowserTargetRef;
   document: BrowserDocumentRef;
-  url: string;
+  claimOrigin: "https://chatgpt.com";
 }>;

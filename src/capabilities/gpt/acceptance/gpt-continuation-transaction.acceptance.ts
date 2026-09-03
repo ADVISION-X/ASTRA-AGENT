@@ -1,4 +1,4 @@
-import assert from "../../../../scripts/audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -8,10 +8,12 @@ import { emitQualityProofObservation } from "../../../../scripts/audit/shared/pr
 import {
   createGptAbilityGroup,
   gptContinuationIdentityHash,
-  type GptChildCapabilityId,
-  type GptChildCapabilityIntent,
-  type GptChildInputMap,
 } from "../index.js";
+import type {
+  GptChildCapabilityId,
+  GptChildCapabilityIntent,
+  GptChildInputMap,
+} from "../contract.js";
 import { hashCanonical } from "../../../lib/local-runtime/production/contracts.js";
 import { ProductionRuntimeStore } from "../../../lib/local-runtime/production/store.js";
 import {
@@ -343,7 +345,7 @@ try {
 }
 
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V20",
+  lawId: "LAW-GPT-001-V21",
   evidenceMode: "exam.state-machine",
   clauses: ["forbidden:15", "forbidden:16", "summary"],
   locator: "acceptance:gpt-continuation-transaction:state-machine",

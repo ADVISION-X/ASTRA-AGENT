@@ -1,8 +1,8 @@
 import type { GptChildCapabilityIntent } from "./contract.js";
-import type { ForensicsPersistenceAbilityGroup } from "../forensics-persistence/index.js";
 import { gptExecutionFailure } from "./execution-fault.js";
 import { executionFailure } from "../../lib/execution-failure.js";
 import type { ExactGptCallFacts } from "./product-api.js";
+import type { GptEvidenceStorePort } from "./production-ports.js";
 
 type GptHash = `sha256:${string}`;
 
@@ -86,7 +86,7 @@ const evidenceState = (
 const assertIdentity = (input: Readonly<{
   intent: GptChildCapabilityIntent;
   exactCallIdentityHash: `sha256:${string}`;
-  stored: NonNullable<Awaited<ReturnType<ForensicsPersistenceAbilityGroup["readExactCallEvidence"]>>>;
+  stored: NonNullable<Awaited<ReturnType<GptEvidenceStorePort["readExactCallEvidence"]>>>;
   payload: Readonly<Record<string, unknown>>;
   artifactRefs: readonly string[] | null;
 }>): boolean => {
@@ -108,7 +108,7 @@ const assertIdentity = (input: Readonly<{
 };
 
 export const readExactGptEvidenceFact = async (input: Readonly<{
-  evidenceStore: ForensicsPersistenceAbilityGroup;
+  evidenceStore: GptEvidenceStorePort;
   intent: GptChildCapabilityIntent;
   exactCallIdentityHash: `sha256:${string}`;
 }>): Promise<ExactGptCallFacts["evidence"]> => {

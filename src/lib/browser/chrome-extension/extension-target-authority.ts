@@ -1,5 +1,9 @@
 import type { BrowserGovernedCommand } from "../exact-target/browser-command-actor.js";
-import { GPT_WEB_START_URL, requireGptWebPolicyForUrl } from "../exact-target/browser-site-policy-registry.js";
+import {
+  GPT_WEB_START_URL,
+  gptWebClaimOriginForUrl,
+  requireGptWebPolicyForUrl,
+} from "../exact-target/browser-site-policy-registry.js";
 import { BROWSER_COMMAND_DEFAULT_DEADLINE_MS } from "../protocol/generated/browser-protocol.generated.js";
 import { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import { executeAuthenticatedMedia } from "./authenticated-media-runtime.js";
@@ -127,7 +131,7 @@ export class ExtensionTargetAuthority {
       this.activeTarget = target;
       this.activeLoaderId = mainFrame.loaderId;
       await this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(target, {
-        url: mainFrame.url,
+        claimOrigin: gptWebClaimOriginForUrl(mainFrame.url),
       }));
     } catch (error) {
       try { await this.discardJobOwnedTarget(candidate.tabId); }
@@ -258,7 +262,7 @@ export class ExtensionTargetAuthority {
       this.activeLoaderId = mainFrame.loaderId;
       this.parkedLoaderIds.delete(targetRef);
       await this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(target, {
-        url: mainFrame.url,
+        claimOrigin: gptWebClaimOriginForUrl(mainFrame.url),
       }));
     } catch (error) {
       if (attachedHere) {
@@ -432,7 +436,9 @@ export class ExtensionTargetAuthority {
     const next = this.targets.advanceDocument(current.targetRef);
     this.activeTarget = next;
     this.activeLoaderId = loaderId;
-    const promise = this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(next, { url }));
+    const promise = this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(next, {
+      claimOrigin: gptWebClaimOriginForUrl(url),
+    }));
     this.navigationPublication = { loaderId, promise };
     try { await promise; } finally {
       if (this.navigationPublication?.promise === promise) this.navigationPublication = null;

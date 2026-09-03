@@ -1,4 +1,4 @@
-import assert from "../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 
 import type { ExtensionDebuggerRuntime } from
   "../../src/lib/browser/chrome-extension/debugger-runtime.js";

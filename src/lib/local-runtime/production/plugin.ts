@@ -9,7 +9,7 @@ import type {
   WebsiteAgentTask,
 } from "./contracts.js";
 import { sha256 } from "./contracts.js";
-import { executionFailure } from "../../execution-failure.js";
+import { TypedExecutionFailure, executionFailure } from "../../execution-failure.js";
 import type {
   GptProviderContinuation,
   ProductGptTools,
@@ -26,6 +26,88 @@ export interface GeneratedImageArtifact {
   readonly width: 1200;
   readonly height: 630;
 }
+
+export interface GeneratedImageResultReceipt {
+  readonly artifact_id: string;
+  readonly object_ref: string;
+  readonly sha256: ProductionHash;
+  readonly receipt_hash: ProductionHash;
+  readonly bytes: number;
+  readonly mime_type: "image/webp";
+  readonly width: number;
+  readonly height: number;
+}
+
+export type ProductCheckpointReceipt = Readonly<{
+  artifactRef: string;
+  rawDomHash: ProductionHash;
+  semanticTextHash: ProductionHash;
+}>;
+
+export type PostSubmitReadbackReceipt = Readonly<{
+  causeCode: string;
+  exactCallIdentityHash: ProductionHash;
+  outcome: "CONFIRMED";
+  terminalAt: string;
+  readbackDeadlineAt: string;
+  readbackMutationOutcome: "no";
+  evidenceRef: string;
+  evidenceHash: ProductionHash;
+}>;
+
+type PostSubmitReadbackReceiptInput = Omit<PostSubmitReadbackReceipt, "outcome" | "readbackMutationOutcome">;
+
+class ProductRuntimeHandoffFault<Receipt> extends TypedExecutionFailure {
+  public override readonly name = "ProductRuntimeHandoffFault";
+  public constructor(code: string, public readonly receipt: Receipt,
+    evidence: Readonly<{ evidenceRef: string; evidenceHash: ProductionHash }>) {
+    super("failed", code, undefined, Object.freeze({ mutationOutcome: "no", evidence }));
+  }
+}
+
+const handoffReceipt = <Receipt>(error: unknown, prefix: string): Receipt | null => {
+  let current = error;
+  const seen = new Set<object>();
+  while (current && typeof current === "object" && !seen.has(current)) {
+    seen.add(current);
+    if (current instanceof ProductRuntimeHandoffFault && current.code.startsWith(prefix)) {
+      return current.receipt as Receipt;
+    }
+    current = current instanceof Error ? current.cause : undefined;
+  }
+  return null;
+};
+
+export const postCheckpointReceiverFault = (
+  code: string,
+  receipt: ProductCheckpointReceipt,
+): TypedExecutionFailure => new ProductRuntimeHandoffFault(
+  `POST_CHECKPOINT_RECEIVER_FAULT:${code}`,
+  Object.freeze({ ...receipt }),
+  Object.freeze({ evidenceRef: receipt.artifactRef, evidenceHash: receipt.semanticTextHash }),
+);
+
+export const postCheckpointReceiverReceipt = (error: unknown): ProductCheckpointReceipt | null =>
+  handoffReceipt(error, "POST_CHECKPOINT_RECEIVER_FAULT:");
+
+export const postSubmitReadbackFault = (
+  code: string,
+  input: PostSubmitReadbackReceiptInput,
+): TypedExecutionFailure => {
+  const terminalAt = Date.parse(input.terminalAt);
+  const deadlineAt = Date.parse(input.readbackDeadlineAt);
+  if (input.causeCode !== code || !Number.isFinite(terminalAt) || !Number.isFinite(deadlineAt)
+    || deadlineAt <= terminalAt || !RESULT_HASH.test(input.exactCallIdentityHash)
+    || !input.evidenceRef.trim() || !RESULT_HASH.test(input.evidenceHash)) {
+    return executionFailure("failed", code);
+  }
+  const receipt = Object.freeze({ ...input, outcome: "CONFIRMED" as const,
+    readbackMutationOutcome: "no" as const });
+  return new ProductRuntimeHandoffFault(`POST_SUBMIT_READBACK_FAULT:${code}`, receipt, receipt);
+};
+
+export const postSubmitReadbackReceipt = (error: unknown): PostSubmitReadbackReceipt | null =>
+  handoffReceipt(error, "POST_SUBMIT_READBACK_FAULT:");
 
 export const gptTextContinuationCheckpointInput = (
   sourceAttemptId: string,
@@ -65,7 +147,10 @@ export interface ProductPluginOutput {
   readonly evidence_refs: readonly string[];
   readonly execution_context?: unknown;
   readonly continuation?: GptProviderContinuation | null;
-  readonly generated_image?: GeneratedImageArtifact;
+  readonly generated_image?: Readonly<{
+    artifact: GeneratedImageArtifact;
+    assemblePayload: (receipt: GeneratedImageResultReceipt) => unknown;
+  }>;
 }
 
 export interface ProductPlugin {

@@ -28,6 +28,7 @@ import { conversationChildHandlers } from "./web/children/conversation-children.
 import { executionProfileChildHandlers } from "./web/children/execution-profile-children.js";
 import { modelSelectionV2ChildHandlers } from "./web/children/model-selection-v2-children.js";
 import { responseChildHandlers } from "./web/children/response-children.js";
+import { ProductionGptChildTools } from "./production-child-tools.js";
 
 const handlers = Object.freeze({
   ...conversationChildHandlers,
@@ -291,3 +292,7 @@ export const createGptAbilityGroup = (): GptAbilityGroup => Object.freeze({
   listChildCapabilityIds: () => GPT_CHILD_CAPABILITY_IDS,
   execute: executeOne,
 });
+
+export const createProductionGptChildTools = (
+  ...input: ConstructorParameters<typeof ProductionGptChildTools>
+): ProductionGptChildTools => new ProductionGptChildTools(...input);

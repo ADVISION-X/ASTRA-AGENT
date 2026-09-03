@@ -1,9 +1,9 @@
-import assert from "../../../../scripts/audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 
 import {
   buildGptExecutionProfile,
-  GPT_CHILD_CAPABILITY_CONTRACTS,
 } from "../index.js";
+import { GPT_CHILD_CAPABILITY_CONTRACTS } from "../contract.js";
 import { emitQualityProofObservation } from "../../../../scripts/audit/shared/proof-observation.js";
 import {
   GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR,
@@ -44,12 +44,16 @@ const profile = buildGptExecutionProfile({
   acceptanceVersion: "v1",
 });
 
-const profileFacts = (open: boolean) => ({
+const profileFacts = (open: boolean, reasoningCurrent = 0) => ({
   popup: { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
   "simple-panel": { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
   "reasoning-control": { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
   "enabled-reasoning-control": { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
-  "reasoning-value": { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
+  "reasoning-value": {
+    rawCount: open ? 1 : 0,
+    eligibleCount: open ? 1 : 0,
+    matches: open ? [{ ariaValueMin: "0", ariaValueMax: "4", ariaValueNow: String(reasoningCurrent) }] : [],
+  },
   trigger: {
     rawCount: 1, eligibleCount: 1,
     matches: [{ ariaExpanded: open ? "true" : "false" }],
@@ -123,17 +127,34 @@ for (const checked of ["true", "false"] as const) {
   assert.equal(fixture.physicalMutations(), 1);
 }
 
-const blockedReasoningFixture = fakeBrowser(() => {
-  throw new Error("BLOCKED_REASONING_MUST_NOT_TOUCH_BROWSER");
+let reasoningCurrent = 1;
+const reasoningFixture = fakeBrowser((intent) => {
+  if (intent.kind === "observe") {
+    return coherentObservationPacket(intent, profileFacts(true, reasoningCurrent));
+  }
+  if (intent.kind === "keypress") {
+    assert.equal(intent.key, "ArrowRight");
+    assert.equal(intent.repeat, 3);
+    reasoningCurrent = 4;
+    return { postconditionVerified: true };
+  }
+  throw new Error(`UNEXPECTED_REASONING_INTENT:${intent.kind}`);
 });
-const blockedReasoning = await execute(
-  "ensure_exact_gpt_reasoning_tier", blockedReasoningFixture.browser, { profile },
+const selectedReasoning = await execute(
+  "ensure_exact_gpt_reasoning_tier", reasoningFixture.browser, { profile },
 );
-assert.equal(blockedReasoning.status, "failed");
-assert.equal(blockedReasoning.failureCode, "GPT_BROWSER_COHERENT_REASONING_HANDOFF_REQUIRED");
-assert.equal(blockedReasoningFixture.documentCalls(), 0);
-assert.equal(blockedReasoningFixture.physicalMutations(), 0);
-assert.equal(blockedReasoning.proof.internalDecisionCode, "FAIL_CLOSED");
+assert.equal(selectedReasoning.status, "success", selectedReasoning.failureCode ?? "reasoning selection failed");
+assert.equal(selectedReasoning.value?.previousValue, 1);
+assert.equal(selectedReasoning.value?.currentValue, 4);
+assert.equal(selectedReasoning.proof.committedMutation, "confirmed");
+assert.equal(reasoningFixture.physicalMutations(), 1);
+
+const reasoningReadback = await execute(
+  "ensure_exact_gpt_reasoning_tier", reasoningFixture.browser, { profile }, "readback",
+);
+assert.equal(reasoningReadback.status, "success", reasoningReadback.failureCode ?? "reasoning readback failed");
+assert.equal(reasoningReadback.value?.state, "already-selected");
+assert.equal(reasoningFixture.physicalMutations(), 1, "reasoning readback must not mutate again");
 
 assert.deepEqual(reasoningTierUiValue, {
   fast: 0, medium: 1, high: 2, extra_high: 3, pro_standard: 4, pro_extended: 4,
@@ -147,16 +168,16 @@ assert.equal(GPT_PROFILE_SIMPLE_PANEL_SELECTOR,
   "[data-testid='composer-model-picker-slider-simple-view'][data-active='true']:not([inert])");
 
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V20",
+  lawId: "LAW-GPT-001-V21",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:3", "forbidden:4", "forbidden:5", "forbidden:9", "summary"],
   locator: "acceptance:gpt-exact-target:coherent-ready-subset",
-  observedValue: "coherent profile and model Children prove same-revision DONE or one confirmed mutation; missing reasoning handoff fails closed before Browser use",
+  observedValue: "coherent profile model and numeric reasoning Children prove same-revision DONE or one confirmed mutation",
 });
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V20",
+  lawId: "LAW-GPT-001-V21",
   evidenceMode: "exam.property",
   clauses: ["forbidden:10", "forbidden:13", "forbidden:15", "forbidden:16", "summary"],
-  locator: "acceptance:gpt-exact-target:browser-handoff-gate",
-  observedValue: "external Browser dependency gates are typed and produce zero DOM calls and zero physical mutations",
+  locator: "acceptance:gpt-exact-target:browser-handoff",
+  observedValue: "Browser coherent numeric fields drive one exact reasoning mutation followed by zero-mutation readback",
 });

@@ -1,9 +1,8 @@
-import assert from "../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
-
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { resolveStoredProductionAuthority } from
   "../../src/lib/local-runtime/production/store-authority-reader.js";
@@ -13,11 +12,9 @@ import { serializeTerminalFailure } from "../../src/lib/local-runtime/production
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { HASH_A, HASH_B, identityFor, resultFor, task } from "./agent-production-runtime-fixtures.js";
-
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-production-ledger-"));
 const columns = (database: Database.Database, table: string): string[] =>
   (database.prepare(`pragma table_info(${table})`).all() as Array<{ name: string }>).map((row) => row.name);
-
 const recoveryCheckpointBody = (input: Readonly<{
   jobId: string;
   attemptId: string;
@@ -48,7 +45,6 @@ const recoveryCheckpointBody = (input: Readonly<{
   object_receipts: [],
   attempt_failure: input.attemptFailure ?? null,
 });
-
 try {
   const dataDirectory = path.join(temporary, "binary-store");
   await mkdir(dataDirectory);
@@ -71,7 +67,6 @@ try {
   assert.deepEqual(columns(database, "production_attempt_failures"), [
     "job_id", "attempt_id", "failure_json", "created_at",
   ]);
-
   const binaryTask = task({
     jobId: "job:binary", productId: "payment_screenshot_observation", actionId: "observe",
   });
@@ -122,7 +117,6 @@ try {
     () => store.acceptTask(binaryTask, { ...identity, plugin_version: identity.plugin_version + 1 }, secondAttempt),
     /PRODUCTION_TASK_IDENTITY_CONFLICT/u,
   );
-
   const falseCheckpointFailure = serializeTerminalFailure(executionFailure(
     "failed", "AI_V6_CHECKPOINT_SEQUENCE_INVALID", { cause: new Error("sequence") },
   ));
@@ -216,7 +210,6 @@ try {
   assert.equal(resolveStoredProductionAuthority(
     dataDirectory, `production-checkpoint:${binaryTask.job_id}`, hashCanonical(failedCheckpoint),
   ), "verified", "a legal failed checkpoint must remain readable authority");
-
   const wildcardTask = task({ jobId: "job:a_b", productId: "bazi_ai_full_analysis", actionId: "produce" });
   const wildcardNeighbor = task({ jobId: "job:acb", productId: "bazi_ai_full_analysis", actionId: "produce" });
   for (const [candidate, key] of [[wildcardTask, "checkpoint:wildcard-target"],
@@ -234,7 +227,6 @@ try {
   assert.equal(store.hasUnsentOutbox(wildcardNeighbor.job_id), true,
     "a similar job id must retain its independent pending Outbox intent");
   assert.equal(store.readOutboxAuthority("checkpoint:wildcard-neighbor")?.lastError, null);
-
   const outboxPath = `/internal/ai-production/v6/jobs/${encodeURIComponent(binaryTask.job_id)}/checkpoints`;
   const pendingBeforeDeterministic = store.pendingOutboxCount();
   store.enqueue({
@@ -273,7 +265,6 @@ try {
   assert.equal(deterministicCalls, 2, "the same deterministic intent must resume after finite backoff");
   assert.equal(store.readOutboxAuthority("checkpoint:deterministic")?.state, "delivered");
   assert.equal(store.pendingOutboxCount(), pendingBeforeDeterministic);
-
   store.enqueue({
     idempotency_key: "checkpoint:network-unknown", kind: "checkpoint", path: outboxPath,
     method: "POST", headers: {}, body: '{"network":true}',
@@ -283,7 +274,6 @@ try {
   }), /CLOUD_TRANSPORT_UNAVAILABLE/u);
   assert.equal(store.readOutboxAuthority("checkpoint:network-unknown")?.state, "pending");
   assert.ok(store.readOutboxAuthority("checkpoint:network-unknown")?.nextDeliveryAt);
-
   store.enqueue({
     idempotency_key: "checkpoint:server-error", kind: "checkpoint", path: outboxPath,
     method: "POST", headers: {}, body: '{"server":true}',
@@ -297,7 +287,6 @@ try {
     .run("2000-01-01T00:00:00.000Z", "checkpoint:server-error");
   await store.deliverOutbox("checkpoint:server-error", async () => ({ checkpoint_hash: HASH_A }));
   assert.equal(store.readOutboxAuthority("checkpoint:server-error")?.state, "delivered");
-
   store.enqueue({
     idempotency_key: "checkpoint:remote-receipt", kind: "checkpoint", path: outboxPath,
     method: "POST", headers: {}, body: '{"receipt":true}',
@@ -310,7 +299,6 @@ try {
     response_json: receiptBody,
   }]), 1);
   assert.deepEqual(store.readOutboxResponse("checkpoint:remote-receipt"), receiptBody);
-
   assert.equal(store.isLedgerConsistent(new Set()), true,
     "a failed Outbox belongs to its job and must not become a global claim verdict");
   const result = resultFor(binaryTask, identity);
@@ -341,7 +329,6 @@ try {
   database.prepare(`update production_outbox set last_error=?,next_delivery_at=null
     where idempotency_key=?`).run("REMOTE_CHECKPOINT_REJECTED", "checkpoint:legacy-null-schedule");
   store.close();
-
   assert.throws(
     () => new ProductionRuntimeStore(dataDirectory),
     /PRODUCTION_DATA_MIGRATION_REQUIRED/u,
@@ -352,7 +339,6 @@ try {
     where idempotency_key=?`).get("checkpoint:legacy-null-schedule") as { next_delivery_at: string | null })
     .next_delivery_at, null, "schema validation must not repair historical data");
   unchangedData.close();
-
   const emptyLegacyDirectory = path.join(temporary, "empty-legacy");
   await mkdir(emptyLegacyDirectory);
   const emptyLegacy = new Database(path.join(emptyLegacyDirectory, "production-runtime.sqlite"));
@@ -367,7 +353,6 @@ try {
   assert.equal(columns(unchangedLegacy, "production_tasks").includes("failure_reason"), true);
   assert.equal(columns(unchangedLegacy, "production_tasks").includes("current_reason"), false);
   unchangedLegacy.close();
-
   const tempOnlyLegacyDirectory = path.join(temporary, "temp-only-legacy");
   await mkdir(tempOnlyLegacyDirectory);
   const tempOnlyLegacy = new Database(path.join(tempOnlyLegacyDirectory, "production-runtime.sqlite"));
@@ -378,7 +363,6 @@ try {
     /PRODUCTION_SCHEMA_MIGRATION_REQUIRED/u,
     "a leftover migration table must never be mistaken for a new database",
   );
-
   const nonemptyLegacyDirectory = path.join(temporary, "nonempty-legacy");
   await mkdir(nonemptyLegacyDirectory);
   const nonemptyLegacy = new Database(path.join(nonemptyLegacyDirectory, "production-runtime.sqlite"));
@@ -387,7 +371,6 @@ try {
     .run("job:must-be-cleared", "recovery_pending", "legacy");
   nonemptyLegacy.close();
   assert.throws(() => new ProductionRuntimeStore(nonemptyLegacyDirectory), /PRODUCTION_SCHEMA_MIGRATION_REQUIRED/u);
-
   const extraIndexDirectory = path.join(temporary, "extra-index");
   await mkdir(extraIndexDirectory);
   new ProductionRuntimeStore(extraIndexDirectory).close();
@@ -396,7 +379,6 @@ try {
   extraIndex.close();
   assert.throws(() => new ProductionRuntimeStore(extraIndexDirectory), /PRODUCTION_SCHEMA_MIGRATION_REQUIRED/u,
     "an additional index must fail exact schema readback");
-
   const missingAuthorityDirectory = path.join(temporary, "missing-authority");
   await mkdir(missingAuthorityDirectory);
   assert.throws(
@@ -419,7 +401,6 @@ try {
     () => resolveStoredProductionAuthority(corruptAuthorityDirectory, "production-task:job:1", HASH_A),
     (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_AUTHORITY_STORE_CORRUPT",
   );
-
   const malformedDatabaseDirectory = path.join(temporary, "malformed-database");
   await mkdir(malformedDatabaseDirectory);
   await writeFile(path.join(malformedDatabaseDirectory, "production-runtime.sqlite"), "not-a-sqlite-database");
@@ -427,7 +408,6 @@ try {
     () => new ProductionRuntimeStore(malformedDatabaseDirectory),
     (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_SCHEMA_CORRUPT",
   );
-
   const malformedOutboxDirectory = path.join(temporary, "malformed-outbox");
   await mkdir(malformedOutboxDirectory);
   const malformedOutboxStore = new ProductionRuntimeStore(malformedOutboxDirectory);
@@ -449,7 +429,6 @@ try {
     () => resolveStoredProductionAuthority(malformedOutboxDirectory, "production-outbox:outbox:malformed", HASH_A),
     (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_AUTHORITY_STORE_CORRUPT",
   );
-
   const rowIdentityDirectory = path.join(temporary, "row-identity");
   await mkdir(rowIdentityDirectory);
   const rowIdentityStore = new ProductionRuntimeStore(rowIdentityDirectory);
@@ -472,7 +451,6 @@ try {
   assert.throws(() => resolveStoredProductionAuthority(
     rowIdentityDirectory, `production-task:${rowIdentityTask.job_id}`, HASH_A,
   ), (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_AUTHORITY_STORE_CORRUPT");
-
   const invariantDirectory = path.join(temporary, "checkpoint-lease-invariants");
   await mkdir(invariantDirectory);
   const invariantStore = new ProductionRuntimeStore(invariantDirectory);
@@ -503,10 +481,9 @@ try {
 } finally {
   await rm(temporary, { recursive: true, force: true });
 }
-
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V2",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V3",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "summary"],
     locator: `acceptance:agent-production-runtime:sqlite-authority:${evidenceMode}`,

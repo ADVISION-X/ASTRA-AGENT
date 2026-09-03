@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 
 import {
-  buildGptExecutionProfile,
   gptAttachmentProviderDisplayName,
   type GptApprovedFile,
   type GptProviderContinuation,
@@ -13,8 +12,9 @@ import {
   type WebsiteAgentTask,
 } from "../../lib/local-runtime/production/contracts.js";
 import {
+  postCheckpointReceiverFault,
+  postSubmitReadbackFault,
   productResultValidation,
-  readProductSkill,
   type SharedExecutionContext,
 } from "../../lib/local-runtime/production/plugin.js";
 import type {
@@ -24,31 +24,14 @@ import type {
 import { productionRoutePolicy } from "../../lib/local-runtime/production/route-policy.js";
 import {
   executionFailure,
+  executionFailureMetadata,
   failureCode,
   typedExecutionFailure,
 } from "../../lib/execution-failure.js";
-import {
-  postCheckpointReceiverFault,
-  postSubmitReadbackFault,
-  typedGptExecutionFailure,
-} from "../../capabilities/gpt/execution-fault.js";
 import { parseProductResult } from "./result-contract.js";
+import { MODEL_PROFILE, PLUGIN_ID, PRODUCT_INSTRUCTION, skill } from "./product-identity.js";
 
-export const PLUGIN_ID = "bazi-chart-interpretation";
-export const PRODUCT_INSTRUCTION = "围绕锁定命盘完成全盘正式解读，覆盖候选范围、命盘语义对象、古籍证据、条件、反证与现实边界。";
 const WAIT_TIMEOUT_MS = 3_600_000;
-export const skill = readProductSkill(import.meta.url);
-export const productSkillHash = skill.hash;
-export const MODEL_PROFILE = buildGptExecutionProfile({
-  profileRef: `${PLUGIN_ID}:gpt-5.6-sol-pro-standard`,
-  accountCapabilityRef: "openai-chatgpt:gpt-5.6-sol",
-  modelDisplayName: "GPT-5.6 Sol",
-  modelFamily: "gpt-5.6",
-  reasoningTier: "pro_standard",
-  executorIdentityRef: PLUGIN_ID,
-  acceptanceRef: `${PLUGIN_ID}:production`,
-  acceptanceVersion: "v1",
-});
 
 export type FlowCall = ProductGptAnyCallInput;
 export type Checkpoint = Readonly<{
@@ -263,7 +246,7 @@ const confirmedDeadline = (facts: ExactGptCallFacts): string => {
 };
 
 const preservePostSubmitReadback = (error: unknown, submit: ExactGptCallFacts): never => {
-  const typed = typedGptExecutionFailure(error);
+  const typed = executionFailureMetadata(error);
   const code = failureCode(error);
   if (!typed || typed.mutationOutcome !== "no") throw error;
   if (submit.mutation?.outcome !== "CONFIRMED" || !submit.mutation.terminalAt

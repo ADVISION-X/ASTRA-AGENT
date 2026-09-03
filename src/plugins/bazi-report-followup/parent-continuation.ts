@@ -8,11 +8,11 @@ import {
 } from "../../lib/local-runtime/production/contracts.js";
 import {
   gptTextContinuationCheckpointInput,
+  postCheckpointReceiverFault,
   productResultValidation,
   type SharedExecutionContext,
 } from "../../lib/local-runtime/production/plugin.js";
 import { failureCode } from "../../lib/execution-failure.js";
-import { postCheckpointReceiverFault } from "../../capabilities/gpt/execution-fault.js";
 import { parseProductResult } from "./result-contract.js";
 import {
   PLUGIN_ID,

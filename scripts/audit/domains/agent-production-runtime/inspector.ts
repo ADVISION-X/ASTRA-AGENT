@@ -1,6 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import ts from "typescript";
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../shared/finding-utils.js";
@@ -14,14 +13,14 @@ import { inspectAgentContracts } from "./contract-inspection.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
 
 const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V33",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V34",
   credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V2",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V2",
-  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V2",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V2",
-  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V2",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V2",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V3",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V3",
+  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V3",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V3",
+  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V3",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V3",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V4",
 } as const;
 const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
@@ -30,6 +29,7 @@ const PATHS = {
   runtimeState: `${ROOT}/runtime-state.ts`,
   runtimeClaim: `${ROOT}/runtime-claim.ts`,
   credential: `${ROOT}/credential.ts`,
+  contracts: `${ROOT}/contracts.ts`,
   routePolicy: `${ROOT}/route-policy.ts`,
   routeProjection: `${ROOT}/website-agent-route-policies.v1.json`,
   routeGenerator: "scripts/generate/sync-website-agent-route-policy-projection.ts",
@@ -193,6 +193,38 @@ const inspectContractAst = (context: InspectorContext, findings: InspectorFindin
     findings.push(finding(LAWS.route, "static.ast", "agent-production-runtime/provider-derived-route-contract",
       PATHS.routeGenerator, "Route generator retains a route allowlist or misses current provider denominators."));
   }
+  const routePolicy = sourceFor(context, PATHS.routePolicy);
+  const contracts = sourceFor(context, PATHS.contracts);
+  const retiredRuntimeDecisions = ["parameterValidators", "primaryProducts", "routeProducesGeneratedImage"]
+    .filter((name) => routePolicy?.getVariableDeclaration(name) || routePolicy?.getFunction(name));
+  const projectedRoutes = JSON.parse(read(context, PATHS.routeProjection)) as {
+    routes?: Array<{ product_id?: unknown; action_id?: unknown }>;
+  };
+  const productActionValues = new Set((projectedRoutes.routes ?? []).flatMap((route) =>
+    [route.product_id, route.action_id].filter((value): value is string => typeof value === "string")));
+  const hardcodedProductActions = [...stringLiterals(routePolicy)].filter((value) => productActionValues.has(value));
+  const boundedStringSchema = (name: string): boolean => {
+    const initializer = contracts?.getVariableDeclaration(name)?.getInitializer();
+    const calls = [
+      ...(Node.isCallExpression(initializer) ? [initializer] : []),
+      ...(initializer?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? []),
+    ];
+    const callNamed = (name: string): boolean => calls.some((call) => {
+      const expression = call.getExpression();
+      return Node.isPropertyAccessExpression(expression) && expression.getName() === name;
+    });
+    return calls.some((call) => call.getExpression().getText() === "z.string")
+      && callNamed("min") && callNamed("max");
+  };
+  const taskSchema = contracts?.getVariableDeclaration("WebsiteAgentTaskSchema")?.getInitializer();
+  const actionDerivedRelation = taskSchema?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
+    .some((access) => access.getName() === "action_id") ?? false;
+  if (retiredRuntimeDecisions.length || hardcodedProductActions.length
+    || !boundedStringSchema("ProductionProductIdSchema")
+    || !boundedStringSchema("ProductionActionIdSchema") || actionDerivedRelation) {
+    findings.push(finding(LAWS.route, "static.ast", "agent-production-runtime/no-business-route-adjudication",
+      PATHS.routePolicy, "Runtime retains Product/Action tables, parameter-value adjudication or action-derived relation semantics."));
+  }
   const admission = stringLiterals(sourceFor(context, PATHS.admission));
   for (const field of ["bazi_domain_admission_receipt_hash", "delivery_manifest_id",
     "delivery_manifest_hash", "review_receipt_hash"]) if (!admission.has(field)) {
@@ -317,46 +349,21 @@ export function inspectAgentProductionRuntime(
   inspectQualityAst(context, findings);
 }
 
-const diagnosticLaw = (path: string): string => {
-  if (path.includes("credential")) return LAWS.credential;
-  if (path.includes("route-policy") || path.includes("sync-website")) return LAWS.route;
-  if (path.includes("cloud-reconciliation")) return LAWS.admission;
-  if (path.includes("store-") || path.endsWith("/store.ts")) return LAWS.database;
-  if (path.includes("storage")) return LAWS.storage;
-  if (path.includes("/scripts/audit/")) return LAWS.staticQuality;
-  return LAWS.core;
-};
-
 export function inspectAgentTypes(
   context: InspectorContext,
   findings: InspectorFinding[],
 ): void {
-  const configPath = resolve(context.sealedRoot, "tsconfig.json");
-  const config = ts.readConfigFile(configPath, ts.sys.readFile);
-  if (config.error) {
-    findings.push(finding(LAWS.core, "static.types", "agent-production-runtime/tsconfig",
-      "tsconfig.json", ts.flattenDiagnosticMessageText(config.error.messageText, "\n")));
-    return;
-  }
-  const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, context.sealedRoot);
-  const program = ts.createProgram({ rootNames: parsed.fileNames, options: parsed.options });
-  const targetPaths = new Set(context.targetPaths);
-  for (const diagnostic of [...parsed.errors, ...ts.getPreEmitDiagnostics(program)]) {
-    const filePath = diagnostic.file?.fileName;
-    if (!filePath || !filePath.startsWith(context.sealedRoot)) continue;
-    const relative = filePath.slice(context.sealedRoot.length + 1);
-    if (!targetPaths.has(relative)) continue;
-    const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
-    findings.push(finding(diagnosticLaw(relative), "static.types",
-      "agent-production-runtime/type-diagnostic", relative, message));
-  }
-  if (!sourceFor(context, PATHS.admission)?.getTypeAlias("BusinessAdmissionReceipt")) {
+  const admissionReceipt = sourceFor(context, PATHS.admission)
+    ?.getTypeAlias("BusinessAdmissionReceipt");
+  if (!admissionReceipt?.isExported() || admissionReceipt.getType().isAny()) {
     findings.push(finding(LAWS.admission, "static.types", "agent-production-runtime/admission-type",
-      PATHS.admission, "BusinessAdmissionReceipt union is absent."));
+      PATHS.admission, "BusinessAdmissionReceipt is not an exported, resolved type."));
   }
-  if (!sourceFor(context, PATHS.inventory)?.getTypeAlias("ProductionRuntimeStorageInventory")) {
+  const storageInventory = sourceFor(context, PATHS.inventory)
+    ?.getTypeAlias("ProductionRuntimeStorageInventory");
+  if (!storageInventory?.isExported() || storageInventory.getType().isAny()) {
     findings.push(finding(LAWS.storage, "static.types", "agent-production-runtime/storage-type",
-      PATHS.inventory, "ProductionRuntimeStorageInventory is absent."));
+      PATHS.inventory, "ProductionRuntimeStorageInventory is not an exported, resolved type."));
   }
 }
 
@@ -374,7 +381,7 @@ export function inspectAgentDependencies(
   if (forbiddenOwnership.length > 0) findings.push(finding(LAWS.staticQuality, "static.dependency",
     "agent-production-runtime/manifest-owner-drift", PATHS.manifest,
     `Runtime Manifest still owns adjacent paths: ${forbiddenOwnership.join(", ")}.`));
-  const dynamicRoutes = producerClaimRoutesFor("acceptance:agent-production-runtime:real-proof") ?? [];
+  const dynamicRoutes = producerClaimRoutesFor("acceptance:agent-production-runtime:real-proof", PATHS.proof) ?? [];
   const adjacentRoutes = dynamicRoutes.filter((route) =>
     !route.startsWith("LAW-AGENT-PRODUCTION-RUNTIME-"));
   if (adjacentRoutes.length > 0) findings.push(finding(LAWS.dynamicProof, "static.dependency",

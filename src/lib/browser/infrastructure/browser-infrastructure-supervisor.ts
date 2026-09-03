@@ -5,7 +5,7 @@ import { browserExecutionFailure } from "../browser-failure.js";
 import { BrowserCommandActor } from "../exact-target/browser-command-actor.js";
 import { BrowserMutationStore, type BrowserMutationReconciliationScope } from "../exact-target/browser-mutation-store.js";
 import { BrowserSessionWorkspace, type SessionWorkspaceBindingV6 } from "../exact-target/browser-session-workspace.js";
-import { requireGptWebPolicyForUrl } from "../exact-target/browser-site-policy-registry.js";
+import { requireGptWebClaimOrigin } from "../exact-target/browser-site-policy-registry.js";
 import type { BrowserTargetLease } from "../exact-target/browser-target-lease.js";
 import { BrowserTargetLeaseManager, type BrowserExactTargetAcquisition } from "../exact-target/browser-target-lease-manager.js";
 import type { BrowserProfileConfig } from "../profile/browser-profile-config.js";
@@ -81,8 +81,10 @@ export class BrowserInfrastructureSupervisor {
     this.websocket = new BrowserAuthorityWebSocket(callbacks);
     this.broker = new BrowserAuthorityBroker(
       this.issuer, () => this.websocket.assertLive(),
-      (binding, resolveGrantPaths, resolveCurrentTarget) =>
-        this.createTargetLeaseManager(binding, resolveGrantPaths, resolveCurrentTarget),
+      (binding, resolveGrantPaths, resolveCurrentTarget, issueApprovedArtifactGrants) =>
+        this.createTargetLeaseManager(
+          binding, resolveGrantPaths, resolveCurrentTarget, issueApprovedArtifactGrants,
+        ),
       new BrowserArtifactRegistry(join(options.dataDir, "runtime-data", "gpt", "upload-attempts")),
     );
     this.logs = new BrowserRuntimeLogEmitter(options.runtimeLogger, () => this.state.connectionGeneration);
@@ -90,7 +92,7 @@ export class BrowserInfrastructureSupervisor {
   }
 
   private onTargetClaim(input: BrowserAuthorityTargetClaim): void {
-    requireGptWebPolicyForUrl(input.url);
+    requireGptWebClaimOrigin(input.claimOrigin);
     const initialClaim = this.broker.currentOperatorTargetStatus() === "absent";
     if (initialClaim && !this.state.pendingJobBoundTargetAcquisition) throw new Error("BROWSER_TARGET_INVALID");
     this.establishClaimBoundWorkspace();
@@ -229,6 +231,9 @@ export class BrowserInfrastructureSupervisor {
     binding: BrowserExecutionBinding,
     resolveGrantPaths: (grants: readonly import("../exact-target/browser-file-artifact-grant.js").BrowserFileArtifactGrantV1[]) => Promise<readonly string[]>,
     resolveCurrentTarget: () => import("../exact-target/browser-target-ref.js").BrowserControlledTarget | null,
+    issueApprovedArtifactGrants: (
+      artifacts: readonly import("../exact-target/browser-target-lease.js").BrowserApprovedArtifactRef[],
+    ) => Promise<readonly import("../exact-target/browser-file-artifact-grant.js").BrowserFileArtifactGrantV1[]>,
   ): BrowserTargetLeaseManager {
     const current = this.issuer.current();
     if (current.kind === "ABSENT") throw new Error("BROWSER_WORKER_FENCE_INVALID");
@@ -246,7 +251,8 @@ export class BrowserInfrastructureSupervisor {
       current.authority, binding,
       new BrowserCommandActor(new BrowserCommandAdmissionBudget(), this.websocket, mutationState,
         guard, this.options.runtimeLogger),
-      this.issuer, this.state.workspace, resolveCurrentTarget, resolveGrantPaths,
+      this.issuer, this.state.workspace, resolveCurrentTarget,
+      { resolveGrantPaths, issueApprovedArtifactGrants },
     );
   }
 

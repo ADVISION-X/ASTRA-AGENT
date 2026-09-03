@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 
-import type { ForensicsPersistenceAbilityGroup } from "../forensics-persistence/index.js";
 import { executionFailure } from "../../lib/execution-failure.js";
 import { gptSubmissionLocatorArtifact } from "./artifact-contract.js";
+import type { GptEvidenceStorePort } from "./production-ports.js";
 import {
   readGeneratedImageArtifacts,
   type GeneratedImageCheckpointArtifacts,
@@ -16,7 +16,7 @@ const hash = (content: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(content).digest("hex")}`;
 
 const readJsonArtifact = async (
-  evidenceStore: ForensicsPersistenceAbilityGroup,
+  evidenceStore: GptEvidenceStorePort,
   artifactRef: string,
   readbackCode: string,
   invalidCode: string,
@@ -37,7 +37,7 @@ const readJsonArtifact = async (
 };
 
 export const readTextCheckpointArtifact = async (
-  evidenceStore: ForensicsPersistenceAbilityGroup,
+  evidenceStore: GptEvidenceStorePort,
   artifactRef: string,
 ): Promise<Readonly<Record<string, unknown>>> => {
   const row = await readJsonArtifact(
@@ -62,7 +62,7 @@ export const readTextCheckpointArtifact = async (
 };
 
 export const readSubmissionLocatorArtifact = async (
-  evidenceStore: ForensicsPersistenceAbilityGroup,
+  evidenceStore: GptEvidenceStorePort,
   artifactRef: string,
 ): Promise<Readonly<Record<string, unknown>>> => {
   const row = await readJsonArtifact(
@@ -78,7 +78,7 @@ export const readSubmissionLocatorArtifact = async (
 };
 
 export const readForkRelationArtifact = async (
-  evidenceStore: ForensicsPersistenceAbilityGroup,
+  evidenceStore: GptEvidenceStorePort,
   artifactRef: string,
 ): Promise<Readonly<Record<string, unknown>>> => {
   const row = await readJsonArtifact(
@@ -101,7 +101,7 @@ export const readForkRelationArtifact = async (
 };
 
 export const readGeneratedImageCheckpointArtifacts = async (
-  evidenceStore: ForensicsPersistenceAbilityGroup,
+  evidenceStore: GptEvidenceStorePort,
   artifactRefs: readonly string[],
 ): Promise<GeneratedImageCheckpointArtifacts> => {
   if (artifactRefs.length !== 3) {

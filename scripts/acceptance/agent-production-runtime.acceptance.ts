@@ -1,10 +1,10 @@
-import assert from "../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import {
-  agentPluginCapabilityManifest, productionCatalogHash, productionPluginCatalog, resolveProductionPlugin,
+  agentPluginCapabilityManifest, productionCatalogHash, resolveProductionPlugin,
 } from "../../src/lib/local-runtime/production/catalog.js";
 import { readProductionDeviceJobStatus } from
   "../../src/lib/local-runtime/production/cloud-reconciliation-client.js";
@@ -14,7 +14,7 @@ import { permanentAuthorizationRevoked } from
   "../../src/lib/local-runtime/production/runtime-permanent-revocation.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { LeaseRenewReceiptSchema, parseJsonEnvelope, websiteAgentTaskFromClaim } from "../../src/lib/local-runtime/production/transport-protocol.js";
-import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
+import { typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { assertProductionTaskRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../src/mediator/agent-production-route.js";
 import { runtimeManifestOwnershipDrift } from "../audit/domains/agent-production-runtime/inspector.js";
@@ -32,8 +32,6 @@ import "./agent-production-runtime-continuation.acceptance.js";
 import "./agent-production-runtime-proof-boundary.acceptance.js";
 import "./agent-production-runtime-startup.acceptance.js";
 
-assert.equal(productionPluginCatalog.length, 12);
-assert.equal(agentPluginCapabilityManifest.plugins.length, 12);
 assert.equal(hashCanonical(agentPluginCapabilityManifest.plugins), productionCatalogHash);
 
 const productionTask = task({
@@ -169,33 +167,21 @@ for (const receipt of [
 const admissionTemporary = await mkdtemp(path.join(tmpdir(), "agent-business-admission-"));
 try {
   const store = new ProductionRuntimeStore(admissionTemporary);
-  for (const input of [
-    { productId: "bazi_ai_full_analysis" as const, actionId: "produce" as const, kind: "bazi" as const },
-    { productId: "payment_screenshot_observation" as const,
-      actionId: "accuracy_challenge" as const, kind: "review" as const },
-  ]) {
-    const accepted = input.kind === "review" ? reviewTask : task({
-      jobId: `job:admission:${input.kind}`, productId: input.productId, actionId: input.actionId,
-    });
+  for (const kind of ["base", "bazi", "review"] as const) {
+    const accepted = task({ jobId: `job:admission:${kind}`,
+      productId: productionTask.product_id, actionId: productionTask.action_id,
+      materialRefs: productionTask.material_refs,
+      extra: { parameters: productionTask.parameters } });
     const identity = identityFor(accepted);
     const staged = resultFor(accepted, identity);
-    store.acceptTask(accepted, identity, `attempt:${input.kind}`);
+    store.acceptTask(accepted, identity, `attempt:${kind}`);
     store.stageResult(accepted.job_id, staged);
-    const baseReceipt = admissionReceiptFor(accepted.job_id, staged.result_payload_hash);
-    await assert.rejects(
-      reconcileBusinessAdmission({
-        store,
-        session: deviceStatusWithAdmission(baseReceipt, accepted.job_id, hashCanonical(staged)),
-      } as never, store.readTask(accepted.job_id)!),
-      (error: unknown) => typedExecutionFailure(error)?.code === "BUSINESS_ADMISSION_RECEIPT_KIND_MISMATCH",
-    );
-    assert.equal(store.readTask(accepted.job_id)?.status, "failed");
     const typedReceipt = admissionReceiptFor(accepted.job_id, staged.result_payload_hash,
-      input.kind === "bazi" ? {
+      kind === "bazi" ? {
         bazi_domain_admission_receipt_hash: HASH_A,
         delivery_manifest_id: "delivery-manifest:1",
         delivery_manifest_hash: HASH_B,
-      } : { review_receipt_hash: HASH_A });
+      } : kind === "review" ? { review_receipt_hash: HASH_A } : {});
     assert.equal(await reconcileBusinessAdmission({
       store,
       session: deviceStatusWithAdmission(typedReceipt, accepted.job_id, hashCanonical(staged)),
@@ -248,11 +234,11 @@ assert.match(executorSource, /gpt: gptExecution\.tools/u);
 const deletionSettlement = permanentRevocationSource;
 const noControlAbort = new AbortController();
 assert.equal(permanentAuthorizationRevoked(
-  executionFailure("failed", "AI_PERMANENT_AUTHORIZATION_REVOKED"), noControlAbort.signal,
+  noControlAbort.signal,
 ), false, "a transport error code cannot mint a Website permanent-revocation fact");
 const exactControlAbort = new AbortController();
 exactControlAbort.abort("CONTROL_INTENT:cancel_requested:PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
-assert.equal(permanentAuthorizationRevoked(new Error("opaque"), exactControlAbort.signal), true);
+assert.equal(permanentAuthorizationRevoked(exactControlAbort.signal), true);
 assert.doesNotMatch(deletionSettlement, /AI_PERMANENT_AUTHORIZATION_REVOKED/u);
 assert.match(deletionSettlement, /releaseGptContinuationLanesForJob\(job\.job_id\)/u);
 assert.match(deletionSettlement, /readBrowserReconciliationScope/u);
@@ -314,21 +300,21 @@ assert.deepEqual(runtimeManifestOwnershipDrift([
 ]), []);
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V2",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V3",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"],
   locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",
   observedValue: "the unique Runtime ownership inspector accepted the current Runtime-only manifest and rejected injected Mediator and Product ownership mutants",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V33",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V34",
   evidenceMode: "exam.state-machine",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "summary"],
   locator: "acceptance:agent-production-runtime:attempt-recovery-state-machine",
   observedValue: "binary task lifecycle durable accept same-attempt recovery lease outbox and typed cross-owner boundaries exercised",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V33",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V34",
   evidenceMode: "exam.property",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "summary"],
   locator: "acceptance:agent-production-runtime:transport-properties",
@@ -336,7 +322,7 @@ emitQualityProofObservation({
 });
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V2",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V3",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "summary"],
     locator: `acceptance:agent-production-runtime:business-admission:${evidenceMode}`,

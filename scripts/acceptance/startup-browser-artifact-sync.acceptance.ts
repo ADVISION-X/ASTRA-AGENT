@@ -1,4 +1,4 @@
-import assert from "../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 
 import { ensureCurrentBrowserRuntimeArtifact } from "../startup/lib/browser-runtime-artifact.mjs";
 

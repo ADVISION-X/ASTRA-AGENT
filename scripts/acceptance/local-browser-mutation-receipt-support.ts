@@ -1,4 +1,4 @@
-import assert from "../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 
 import { decodeBrowserMutationReceipt } from
   "../../src/lib/browser/exact-target/browser-mutation-receipt.js";

@@ -54,6 +54,35 @@ const handlerIds = (context: InspectorContext): string[] => context.project.getS
   })
   .sort();
 
+const inspectRequiredChildIds = (
+  ids: readonly string[],
+  findings: InspectorFinding[],
+  finding: FindingFactory,
+): void => {
+  for (const required of [
+    "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
+    "reserve_exact_gpt_continuation_once", "complete_exact_gpt_continuation_reservation_once",
+    "fork_exact_gpt_conversation_at_checkpoint",
+  ]) if (!ids.includes(required)) findings.push(finding(
+    "gpt/model-selection-v2-required", CONTRACT_PATH, `The public denominator is missing ${required}.`,
+  ));
+};
+
+const profileDenominator = (contract: SourceFile): Readonly<Record<string, number>> => {
+  const profileCounts = new Map<string, number>();
+  const contracts = contract.getVariableDeclaration("GPT_CHILD_CONTRACTS")?.getInitializer();
+  const contractObject = contracts && Node.isObjectLiteralExpression(contracts)
+    ? contracts : contracts?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
+  for (const property of contractObject?.getProperties() ?? []) {
+    if (!Node.isPropertyAssignment(property)) continue;
+    const profile = property.getInitializerIfKind(SyntaxKind.ObjectLiteralExpression)?.getProperty("profile");
+    const value = Node.isPropertyAssignment(profile)
+      ? profile.getInitializerIfKind(SyntaxKind.StringLiteral)?.getLiteralValue() : undefined;
+    if (value) profileCounts.set(value, (profileCounts.get(value) ?? 0) + 1);
+  }
+  return Object.fromEntries([...profileCounts].sort());
+};
+
 const inspectChildDenominator = (
   context: InspectorContext,
   contract: SourceFile,
@@ -65,14 +94,7 @@ const inspectChildDenominator = (
     "gpt/exact-child-denominator", CONTRACT_PATH,
     `GPT_CHILD_CAPABILITY_IDS must derive exactly 27 unique child ids; found ${ids.length}/${new Set(ids).size}.`,
   ));
-  for (const required of [
-    "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
-    "reserve_exact_gpt_continuation_once", "complete_exact_gpt_continuation_reservation_once",
-    "fork_exact_gpt_conversation_at_checkpoint",
-  ])
-    if (!ids.includes(required)) findings.push(finding(
-      "gpt/model-selection-v2-required", CONTRACT_PATH, `The public denominator is missing ${required}.`,
-    ));
+  inspectRequiredChildIds(ids, findings, finding);
   if (ids.includes("ensure_exact_gpt_model")) findings.push(finding(
     "gpt/model-selection-v1-retired", CONTRACT_PATH,
     "V1 ensure_exact_gpt_model must not remain production-reachable.",
@@ -87,19 +109,7 @@ const inspectChildDenominator = (
     "gpt/one-handler-per-child", CONTRACT_PATH,
     `Handler denominator differs from contract: contract=${ids.join(",")}; handlers=${implemented.join(",")}.`,
   ));
-  const profileCounts = new Map<string, number>();
-  const contracts = contract.getVariableDeclaration("GPT_CHILD_CONTRACTS")?.getInitializer();
-  const contractObject = contracts && Node.isObjectLiteralExpression(contracts)
-    ? contracts : contracts?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
-  for (const property of contractObject?.getProperties() ?? []) {
-    if (!Node.isPropertyAssignment(property)) continue;
-    const profile = property.getInitializerIfKind(SyntaxKind.ObjectLiteralExpression)
-      ?.getProperty("profile");
-    const value = Node.isPropertyAssignment(profile) ? profile.getInitializerIfKind(SyntaxKind.StringLiteral)
-      ?.getLiteralValue() : undefined;
-    if (value) profileCounts.set(value, (profileCounts.get(value) ?? 0) + 1);
-  }
-  const actualProfiles = Object.fromEntries([...profileCounts].sort());
+  const actualProfiles = profileDenominator(contract);
   const expectedProfiles = {
     CONTINUATION_TRANSACTION: 6, DOM_OBSERVATION: 6, PROVIDER_EFFECT_ONCE: 3, TARGET_LOCAL_MUTATION: 12,
   };
@@ -147,10 +157,11 @@ const inspectProfileContracts = (
   const reasoningHandler = sourceFor(context, PROFILE_HANDLER_PATH)?.getFullText() ?? "";
   for (const required of [
     "ensure_exact_gpt_reasoning_tier", "requireExactInputKeys", "profileFromIntent",
-    "requireBrowser(context)", "GPT_BROWSER_COHERENT_REASONING_HANDOFF_REQUIRED",
+    "requireBrowser(context)", "ariaValueMin", "ariaValueMax", "ariaValueNow",
+    "postKeypressMatch", "requireConfirmedBrowserFact",
   ]) if (!reasoningHandler.includes(required)) findings.push(finding(
-    "gpt/reasoning-handoff-block", PROFILE_HANDLER_PATH,
-    `Reasoning Child must fail closed before Browser use while numeric coherent fields are unavailable; missing ${required}.`,
+    "gpt/reasoning-coherent-control", PROFILE_HANDLER_PATH,
+    `Reasoning Child must qualify and read back the Browser-owned numeric control; missing ${required}.`,
   ));
 };
 
@@ -212,7 +223,6 @@ const inspectAttachmentSelectors = (
       "button#composer-plus-btn[data-testid='composer-plus-btn'][aria-haspopup='menu']",
     GPT_UPLOAD_FROM_COMPUTER_SELECTOR: "div.__menu-item[tabindex='0'] span",
     GPT_UPLOAD_FROM_COMPUTER_LABEL: "从电脑上传",
-    GPT_FILE_INPUT_SELECTOR: "#upload-files",
   } as const;
   for (const [name, value] of Object.entries(expected)) if (literal(name) !== value) findings.push(finding(
     "gpt/chrome-proven-attachment-dom", ATTACHMENT_CONTRACT_PATH,
@@ -254,11 +264,6 @@ const inspectAttachmentHandler = (
     "gpt/attachment-entry-direct-postcondition", ATTACHMENT_HANDLER_PATH,
     "Attachment entry click must prove the Chrome-observed upload action selector and exact label.",
   ));
-  if (calls.some((call) => call.getExpression().getText() === "requireOneCandidate"
-    && call.getText().includes("GPT_FILE_INPUT_SELECTOR"))) findings.push(finding(
-    "gpt/hidden-file-input-not-visible-permit", ATTACHMENT_HANDLER_PATH,
-    "The hidden #upload-files input must not be treated as a visible find permit.",
-  ));
   for (const forbidden of ["filePath", "readFile", "registerFileArtifact", "issueFileArtifactGrant"]) {
     if (handlerText.includes(forbidden)) findings.push(finding(
       "gpt/attachment-physical-path-owner", ATTACHMENT_HANDLER_PATH,
@@ -266,7 +271,7 @@ const inspectAttachmentHandler = (
     ));
   }
   for (const required of ["gptAttachmentProviderDisplayName", "artifactRef", "providerDisplayName",
-    "GPT_ATTACHMENT_BROWSER_ARTIFACT_GRANT_REQUIRED", "readCoherentObservation"]) {
+    "approvedArtifacts", "browser.attachFile", "readCoherentObservation"]) {
     if (!handlerText.includes(required)) findings.push(finding(
       "gpt/attachment-artifact-boundary", ATTACHMENT_HANDLER_PATH,
       `GPT attachment artifact boundary is missing ${required}.`,

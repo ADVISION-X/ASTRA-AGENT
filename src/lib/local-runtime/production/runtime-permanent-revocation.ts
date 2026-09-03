@@ -1,7 +1,7 @@
 import {
   postCheckpointReceiverReceipt,
   postSubmitReadbackReceipt,
-} from "../../../capabilities/gpt/execution-fault.js";
+} from "./plugin.js";
 import { executionFailure, failureCode } from "../../execution-failure.js";
 import { runtimeLogCauseEventId, type RuntimeSpanHandle } from "../../runtime-logs/index.js";
 import { resolveProductionPlugin } from "./catalog.js";
@@ -14,9 +14,8 @@ import { releaseLeaseWithLog, terminalSpanFailure } from "./runtime-logging.js";
 import { leaseAuthority, safeReason, wait, type RuntimeState } from "./runtime-state.js";
 import { websiteAgentTaskFromClaim, type ClaimedProductionTask } from "./transport-protocol.js";
 
-export const permanentAuthorizationRevoked = (error: unknown, signal: AbortSignal): boolean => {
+export const permanentAuthorizationRevoked = (signal: AbortSignal): boolean => {
   const reason = typeof signal.reason === "string" ? signal.reason : "";
-  void error;
   return reason === "CONTROL_INTENT:cancel_requested:PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED";
 };
 

@@ -1,4 +1,4 @@
-import assert from "../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { webcrypto } from "node:crypto";
 import { canonicalizeBrowserAuthorityValue, decodeBrowserAuthorityFrame, encodeBrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
 import { canonicalBrowserAuthorityPlaintext, encryptedFrameBody, parseCanonicalPlaintext } from "../../src/lib/browser/transport/browser-authority-frame-payload.js";
@@ -124,8 +124,13 @@ authority.receive(socket, encodeBrowserAuthorityFrame({
 }));
 const challengeFrame = decodeBrowserAuthorityFrame(sentFrames[0]!);
 const challenge = challengeFrame.body as Readonly<Record<string, string>>;
+const signingJwk = challenge.serverSigningPublicJwk;
+if (!signingJwk || typeof signingJwk !== "object" || Array.isArray(signingJwk)
+  || !Object.values(signingJwk).every((value) => typeof value === "string")) {
+  throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+}
 const challengeCore = {
-  serverSigningPublicJwk: challenge.serverSigningPublicJwk as unknown as Readonly<Record<string, string>>,
+  serverSigningPublicJwk: signingJwk as Readonly<Record<string, string>>,
   serverEcdhPublicKey: challenge.serverEcdhPublicKey!,
   challenge: challenge.challenge!,
 };
@@ -150,16 +155,21 @@ const readyBody = await extensionDecrypt(directionalKeys.serverToClientKey, "ser
   decodeBrowserAuthorityFrame(sentFrames[2]!));
 assert.equal(readyBody.commandPermitKey, commandPermitKey);
 
+const permitAuthority = Object.freeze({
+  authorityRef: "authority-wire-proof", authorityEpoch: 1, certificateHash: hash,
+  channelSessionHash: hash, executionBindingHash: hash, writerFenceHash: hash,
+  candidateHash: hash, contractManifestHash: hash, ownerPluginId: "wire-proof", pluginVersion: 1,
+  jobId: "job-wire-proof", attemptId: "attempt-wire-proof", deviceId: "device-wire-proof",
+  leaseVersion: 1, localOrderId: "order-wire-proof", targetLeaseRef: "lease-wire-proof",
+});
+
 const permitFor = (
   sequence: number,
   capabilityId: BrowserCapabilityId,
   mutationClass: BrowserCommandPermit["mutationClass"],
 ): BrowserCommandPermit => ({
-  permitRef: `permit-${sequence}`, authorityRef: "authority-wire-proof", authorityEpoch: 1,
-  certificateHash: hash, channelSessionHash: hash, executionBindingHash: hash, writerFenceHash: hash,
-  candidateHash: hash, contractManifestHash: hash, ownerPluginId: "wire-proof", pluginVersion: 1,
-  jobId: "job-wire-proof", attemptId: "attempt-wire-proof", deviceId: "device-wire-proof",
-  leaseVersion: 1, localOrderId: "order-wire-proof", targetLeaseRef: "lease-wire-proof",
+  ...permitAuthority,
+  permitRef: `permit-${sequence}`,
   targetRef: "target-wire-proof", documentRef: "document-wire-proof", productStepId: "wire-proof",
   callId: `wire-call-${sequence}`, childCapabilityId: `wire-child-${sequence}`, inputHash: hash,
   replayPolicy: mutationClass === "mutation" ? "target-local-per-generation" : "observation-only",
@@ -229,4 +239,4 @@ for (const [index, wireCase] of wireCases.entries()) {
   assert.deepEqual((await replyPromise).result, wireCase.result);
 }
 console.log("LOCAL_BROWSER_PROPERTY_MODEL_ACCEPTANCE_PASS");
-emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V17", evidenceMode: "exam.property", clauses: ["forbidden:1","forbidden:3","forbidden:4","summary"], locator: "acceptance:browser-terminal:frame-property-model", observedValue: "64 authenticated frame sequences round-trip exactly" });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V18", evidenceMode: "exam.property", clauses: ["forbidden:1","forbidden:3","forbidden:4","summary"], locator: "acceptance:browser-terminal:frame-property-model", observedValue: "64 authenticated frame sequences round-trip exactly" });

@@ -1,4 +1,4 @@
-import assert from "../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -7,8 +7,8 @@ import Database from "better-sqlite3";
 import {
   createGptAbilityGroup,
   gptContinuationIdentityHash,
-  type GptChildCapabilityId,
-  type GptChildInputMap,
+  type GptAbilityGroup,
+  type GptContinuationLane,
   type GptProviderContinuation,
 } from "../../src/capabilities/gpt/index.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
@@ -29,13 +29,16 @@ try {
   assert.equal(tables.has("production_steps"), false, "global GPT turn checkpoints must be physically absent");
 
   const gpt = createGptAbilityGroup();
+  type ChildIntent = Parameters<GptAbilityGroup["execute"]>[0];
+  type ChildId = ChildIntent["childCapabilityId"];
+  type ChildInput = ChildIntent["input"];
   let ordinal = 0;
-  const executeAt = <K extends GptChildCapabilityId>(
-    childCapabilityId: K,
-    input: GptChildInputMap[K],
+  const executeAt = (
+    childCapabilityId: ChildId,
+    input: ChildInput,
     actionOrdinal: number,
   ) => {
-    return gpt.execute({
+    const intent = {
       childCapabilityId,
       executionId: `acceptance:${childCapabilityId}:${actionOrdinal}`,
       jobId: sourceTask.job_id,
@@ -47,11 +50,29 @@ try {
       inputHash: hashCanonical(input),
       actionOrdinal,
       input,
-    }, { dataDir: temporary, continuationStore: store });
+    } as ChildIntent;
+    return gpt.execute(intent, { dataDir: temporary, continuationStore: store });
   };
-  const execute = <K extends GptChildCapabilityId>(childCapabilityId: K, input: GptChildInputMap[K]) => {
+  const execute = (childCapabilityId: ChildId, input: ChildInput) => {
     ordinal += 1;
     return executeAt(childCapabilityId, input, ordinal);
+  };
+  const continuationLane = (
+    result: Awaited<ReturnType<GptAbilityGroup["execute"]>>,
+  ): GptContinuationLane => {
+    if (result.status !== "success") throw new Error("GPT_CONTINUATION_LANE_NOT_ACQUIRED");
+    const value = result.value;
+    if (
+      typeof value !== "object"
+      || value === null
+      || typeof Reflect.get(value, "continuation_ref") !== "string"
+      || !Number.isSafeInteger(Reflect.get(value, "lane_version"))
+      || typeof Reflect.get(value, "provider") !== "object"
+      || Reflect.get(value, "provider") === null
+    ) {
+      throw new Error("GPT_CONTINUATION_LANE_INVALID");
+    }
+    return value as GptContinuationLane;
   };
   const provider = {
     provider_page_url: "https://chatgpt.com/c/source",
@@ -117,15 +138,15 @@ try {
     },
   });
   assert.equal(acquired.status, "success", acquired.failureCode ?? "acquire continuation failed");
-  if (acquired.status !== "success") throw new Error("ACQUIRE_CONTINUATION_FAILED");
+  const acquiredLane = continuationLane(acquired);
   const released = await execute("release_gpt_continuation_lane", {
     jobId: sourceTask.job_id,
-    lane: acquired.value,
+    lane: acquiredLane,
   });
   assert.equal(released.status, "success", released.failureCode ?? "release continuation failed");
   const releasedReadback = await execute("release_gpt_continuation_lane", {
     jobId: sourceTask.job_id,
-    lane: acquired.value,
+    lane: acquiredLane,
   });
   assert.equal(releasedReadback.status, "success", releasedReadback.failureCode ?? "release readback failed");
 
@@ -139,12 +160,12 @@ try {
     },
   });
   assert.equal(reacquired.status, "success", reacquired.failureCode ?? "reacquire continuation failed");
-  if (reacquired.status !== "success") throw new Error("REACQUIRE_CONTINUATION_FAILED");
+  const reacquiredLane = continuationLane(reacquired);
   const advancedProvider = { ...provider, prior_turn_marker: "turn:advanced" } as const;
   const advanceInput = {
     jobId: sourceTask.job_id,
     pluginId: identity.plugin_id,
-    lane: reacquired.value,
+    lane: reacquiredLane,
     provider: advancedProvider,
     currentCheckpoint: textCheckpoint(advancedProvider, "advanced"),
   } as const;
@@ -154,7 +175,7 @@ try {
   assert.equal(advancedReadback.status, "success", advancedReadback.failureCode ?? "advance readback failed");
   const settledOldLaneRelease = await execute("release_gpt_continuation_lane", {
     jobId: sourceTask.job_id,
-    lane: reacquired.value,
+    lane: reacquiredLane,
   });
   assert.equal(settledOldLaneRelease.status, "success",
     "a committed advance must make the old same-version lane release an idempotent no-op");

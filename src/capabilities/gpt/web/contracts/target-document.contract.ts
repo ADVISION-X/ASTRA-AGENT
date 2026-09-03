@@ -1,17 +1,23 @@
 import { executionFailure } from "../../../../lib/execution-failure.js";
 
-export const GPT_ORIGIN = "https://chatgpt.com" as const;
+const GPT_ORIGIN = "https://chatgpt.com" as const;
+export const GPT_ROOT_URL = `${GPT_ORIGIN}/` as const;
+export const GPT_CONVERSATION_SEGMENT_MAX_CHARS = 256;
+
 export const canonicalGptConversationUrl = (value: string): string => {
-  const url = new URL(value);
-  if (url.protocol !== "https:" || url.host !== "chatgpt.com"
-    || !/^\/c\/(?!WEB:)[^/]+$/u.test(url.pathname)) {
+  let url: URL;
+  try { url = new URL(value); }
+  catch { throw executionFailure("failed", "GPT_CONVERSATION_URL_INVALID"); }
+  const segments = url.pathname.split("/");
+  const segment = segments.length === 3 && segments[0] === "" && segments[1] === "c"
+    ? segments[2]! : "";
+  if (url.protocol !== "https:" || url.origin !== GPT_ORIGIN
+    || url.username !== "" || url.password !== ""
+    || url.search !== "" || url.hash !== ""
+    || segment.length < 1 || segment.length > GPT_CONVERSATION_SEGMENT_MAX_CHARS) {
     throw executionFailure("failed", "GPT_CONVERSATION_URL_INVALID");
   }
   return `${url.origin}${url.pathname}`;
 };
 
-export const assertGptUrl = (value: string): URL => {
-  const url = new URL(value);
-  if (url.origin !== GPT_ORIGIN) throw executionFailure("failed", "GPT_DOCUMENT_ORIGIN_INVALID");
-  return url;
-};
+export const isGptRootUrl = (value: string): value is typeof GPT_ROOT_URL => value === GPT_ROOT_URL;

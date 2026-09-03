@@ -4,7 +4,11 @@ import type { BrowserExecutionBinding } from "../infrastructure/browser-authorit
 import { assertValidCommandPermit } from "../transport/command-permit.js";
 import { BrowserCommandAdmissionBudget } from "../transport/browser-command-admission-budget.js";
 import { withRuntimeLogCause, type RuntimeLogger } from "../../runtime-logs/index.js";
-import type { BrowserDomIntent, BrowserDomObservationPacket } from "./browser-dom-intent.js";
+import type {
+  BrowserDomIntent,
+  BrowserDomObservationPacketV2,
+  BrowserExactAssistantTurnReplyV1,
+} from "./browser-dom-intent.js";
 import { assertBrowserDomIntent } from "./browser-dom-intent.js";
 import { canonicalizeBrowserAuthorityValue } from "../transport/browser-authority-frame-codec.js";
 import {
@@ -182,11 +186,12 @@ const observationHeaderValid = (
 ): boolean => {
   const keys = Object.keys(value);
   const observedAt = value.observedAt;
-  return keys.length === 6 && ["schemaVersion", "targetRefHash", "documentRefHash",
+  return keys.length === 7 && ["schemaVersion", "targetRefHash", "documentRefHash", "currentUrl",
     "observationRevisionHash", "observedAt", "queries"].every((key) => keys.includes(key))
-    && value.schemaVersion === "grasseye.browser.dom-observation.v1"
+    && value.schemaVersion === "grasseye.browser.dom-observation.v2"
     && value.targetRefHash === hashText(permit.targetRef)
     && value.documentRefHash === hashText(permit.documentRef)
+    && typeof value.currentUrl === "string" && value.currentUrl.length > 0
     && typeof observedAt === "string" && !Number.isNaN(Date.parse(observedAt))
     && new Date(observedAt).toISOString() === observedAt;
 };
@@ -213,10 +218,51 @@ const bindObservationPacket = (
     if (!observationHeaderValid(value, permit) || !observationQueriesValid(queries, specs)
       || typeof observedAt !== "string") throw new Error();
     const expectedRevision = hashText(canonicalizeBrowserAuthorityValue({
-      targetRefHash: value.targetRefHash, documentRefHash: value.documentRefHash, observedAt, queries,
+      targetRefHash: value.targetRefHash, documentRefHash: value.documentRefHash,
+      currentUrl: value.currentUrl, observedAt, queries,
     }));
     if (value.observationRevisionHash !== expectedRevision) throw new Error();
-    return Object.freeze({ ...value, exactCallIdentityHash: exactCallIdentityHash(permit) }) as BrowserDomObservationPacket;
+    return Object.freeze({ ...value, exactCallIdentityHash: exactCallIdentityHash(permit) }) as BrowserDomObservationPacketV2;
+  } catch {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+};
+
+const exactAssistantTurnValueValid = (
+  value: Readonly<Record<string, unknown>>,
+  permit: BrowserCommandPermit,
+  assistantTurnId: string,
+): boolean => {
+  const keys = Object.keys(value);
+  const observedAt = value.observedAt;
+  return keys.length === 9 && [
+    "schemaVersion", "targetRefHash", "documentRefHash", "assistantTurnId", "rawDomHtml",
+    "rawDomHash", "semanticText", "semanticTextHash", "observedAt",
+  ].every((key) => keys.includes(key))
+    && value.schemaVersion === "grasseye.browser.exact-assistant-turn.v1"
+    && value.targetRefHash === hashText(permit.targetRef)
+    && value.documentRefHash === hashText(permit.documentRef)
+    && value.assistantTurnId === assistantTurnId
+    && typeof value.rawDomHtml === "string" && hashText(value.rawDomHtml) === value.rawDomHash
+    && typeof value.semanticText === "string" && hashText(value.semanticText) === value.semanticTextHash
+    && typeof observedAt === "string" && !Number.isNaN(Date.parse(observedAt))
+    && new Date(observedAt).toISOString() === observedAt;
+};
+
+const bindExactAssistantTurnReply = (
+  permit: BrowserCommandPermit,
+  command: BrowserGovernedCommand,
+  result: unknown,
+): unknown => {
+  if (command.kind !== "dom-intent" || command.intent.kind !== "readExactAssistantTurn") return result;
+  try {
+    if (!result || typeof result !== "object" || Array.isArray(result)) throw new Error();
+    const value = result as Record<string, unknown>;
+    if (!exactAssistantTurnValueValid(value, permit, command.intent.assistantTurnId)) throw new Error();
+    return Object.freeze({
+      ...value,
+      exactCallIdentityHash: exactCallIdentityHash(permit),
+    }) as BrowserExactAssistantTurnReplyV1;
   } catch {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
@@ -310,7 +356,9 @@ export class BrowserCommandActor {
       assertMatchingReply(permit, reply);
       this.authorityGuard.assertCurrentAuthority(permit);
       if (mutation) this.completeMutation(permit, command, reply, commandSpan, state);
-      const result = bindObservationPacket(permit, command, reply.result);
+      const result = bindExactAssistantTurnReply(
+        permit, command, bindObservationPacket(permit, command, reply.result),
+      );
       completeBrowserCommandSpan({ span: commandSpan });
       state.terminalized = true;
       return result;

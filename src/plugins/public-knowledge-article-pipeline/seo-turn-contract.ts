@@ -11,6 +11,7 @@ import {
 } from "../../lib/local-runtime/production/contracts.js";
 import {
   gptTextContinuationCheckpointInput,
+  postCheckpointReceiverFault,
 } from "../../lib/local-runtime/production/plugin.js";
 import type {
   ProductGptAnyCallInput,
@@ -20,7 +21,6 @@ import {
   executionFailure,
   failureCode,
 } from "../../lib/execution-failure.js";
-import { postCheckpointReceiverFault } from "../../capabilities/gpt/execution-fault.js";
 import {
   parsePublicKnowledgeArticle,
   parsePublicKnowledgeResearch,

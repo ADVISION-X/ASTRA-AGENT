@@ -1,11 +1,12 @@
-import assert from "../../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
 
 import {
   gptAttachmentProviderDisplayName,
-  type GptChildCapabilityId,
+  type ExactGptContinuationReadback,
   type GptContinuationCheckpointInput,
+  type ProductGptAnyCallInput,
+  type ProductGptTools,
   type GptProviderContinuation,
-  type GptTextCheckpointInput,
 } from "../../../src/capabilities/gpt/index.js";
 import {
   hashCanonical,
@@ -16,15 +17,7 @@ import type {
   ProductPlugin,
   SharedExecutionContext,
 } from "../../../src/lib/local-runtime/production/plugin.js";
-import type {
-  ExactGptGeneratedImageCheckpointReadback,
-  ExactGptTextCheckpointReadback,
-  ProductGptAnyCallInput,
-  ProductGptCallInput,
-  ProductGptChildResult,
-} from "../../../src/capabilities/gpt/index.js";
 import { executionFailure } from "../../../src/lib/execution-failure.js";
-import { gptExecutionFailure } from "../../../src/capabilities/gpt/execution-fault.js";
 import { task } from "../agent-production-runtime-fixtures.js";
 
 const HASH = `sha256:${"1".repeat(64)}` as const;
@@ -50,6 +43,13 @@ export const articleOutput = () => ({
 
 type SeoAction = "produce_article" | "accuracy_challenge" | "quality_reflection";
 type SeoCall = ProductGptAnyCallInput & Readonly<{ sessionKey: string }>;
+type SeoExecuteInput = Parameters<ProductGptTools["execute"]>[0];
+type GptTextCheckpointInput = Extract<GptContinuationCheckpointInput, { checkpointKind: "text" }>;
+type FrontierReadback = Extract<ExactGptContinuationReadback, { lookupKind: "frontier_ref" }>;
+type ExactGptTextCheckpointReadback = FrontierReadback["originCheckpoint"];
+type ExactGptGeneratedImageCheckpointReadback = Extract<
+  FrontierReadback["currentCheckpoint"], { checkpointKind: "generated_image" }
+>;
 type SeoFactQuery = Parameters<SharedExecutionContext["gpt"]["readCallFacts"]>[0];
 export type SeoFailure = Readonly<{ child: string; code: string; productStepId?: string }>;
 type SeoFact = Readonly<{
@@ -284,7 +284,9 @@ const executeCall = async (
   if (state.remainingFailures > 0 && input.child === failureAt?.child
     && (!failureAt.productStepId || input.productStepId === failureAt.productStepId)) {
     state.remainingFailures -= 1;
-    throw gptExecutionFailure(failureAt.code);
+    throw executionFailure("failed", failureAt.code, {
+      metadata: Object.freeze({ mutationOutcome: "no" }),
+    });
   }
   const value = applyContinuationCall(state, input, outputForCall(state, input, decision));
   const priorFact = state.factsByCall.get(factKey(attemptId, input));
@@ -387,14 +389,9 @@ export const createContext = (
     attemptId,
     readContinuationExact: readSeoContinuation(state, decision, attemptId),
     readCallFacts: readSeoCallFacts(state, attemptId),
-    execute: async <K extends GptChildCapabilityId>(
-      input: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
-    ): Promise<ProductGptChildResult<K>> => {
+    execute: async (input: SeoExecuteInput) => {
       const result = await executeCall(state, input as SeoCall, decision, failureAt, attemptId);
-      return {
-        ...result,
-        value: result.value as ProductGptChildResult<K>["value"],
-      };
+      return { ...result, value: result.value } as never;
     },
   },
   complete: completeSeo(state),

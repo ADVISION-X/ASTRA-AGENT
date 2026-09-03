@@ -7,11 +7,11 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 
 const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V33", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V2",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V2", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V2",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V2", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V2",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V2",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V3",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V34", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V2",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V3", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V3",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V3", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V3",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V3",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V4",
 } as const;
 const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
@@ -126,7 +126,7 @@ const inspectDynamicRoutes = (findings: InspectorFinding[]): void => {
     `${LAWS.dynamicProof}:dynamic.database`, `${LAWS.dynamicProof}:dynamic.recovery`,
     `${LAWS.dynamicProof}:dynamic.service`, `${LAWS.dynamicProof}:dynamic.storage`,
   ].sort();
-  const actual = (producerClaimRoutesFor("acceptance:agent-production-runtime:real-proof") ?? [])
+  const actual = (producerClaimRoutesFor("acceptance:agent-production-runtime:real-proof", PATHS.proof) ?? [])
     .filter((route) => route.startsWith("LAW-AGENT-PRODUCTION-RUNTIME-"));
   if (JSON.stringify(actual) !== JSON.stringify(expected)) findings.push(finding(LAWS.dynamicProof,
     "agent-production-runtime/dynamic-routes", PATHS.proof,

@@ -1,5 +1,5 @@
-import type { ForensicsPersistenceAbilityGroup } from "../forensics-persistence/index.js";
 import { executionFailure } from "../../lib/execution-failure.js";
+import type { GptEvidenceStorePort } from "./production-ports.js";
 
 type CheckpointEvidenceIdentity = Readonly<{
   source_attempt_id: string;
@@ -12,7 +12,7 @@ const record = (value: unknown): Readonly<Record<string, unknown>> | null =>
     ? value as Readonly<Record<string, unknown>> : null;
 
 const storedIdentityValid = (input: Readonly<{
-  stored: NonNullable<Awaited<ReturnType<ForensicsPersistenceAbilityGroup["readRecordRef"]>>["record"]>;
+  stored: NonNullable<Awaited<ReturnType<GptEvidenceStorePort["readRecordRef"]>>["record"]>;
   evidenceJobId: string;
   checkpoint: CheckpointEvidenceIdentity;
   childCapabilityId: "checkpoint_gpt_text_response" | "checkpoint_gpt_generated_image";
@@ -48,7 +48,7 @@ const artifactRefsValid = (
   && expectedPrefix.every((value, index) => refs[index] === value);
 
 export const readContinuationCheckpointEvidence = async (input: Readonly<{
-  evidenceStore: ForensicsPersistenceAbilityGroup;
+  evidenceStore: GptEvidenceStorePort;
   evidenceJobId: string;
   pluginVersion: number;
   checkpoint: CheckpointEvidenceIdentity;

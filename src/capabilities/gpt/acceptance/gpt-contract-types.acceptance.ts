@@ -2,11 +2,11 @@ import type {
   GptChildCall,
   GptChildOutputMap,
   GptChildSuccess,
-} from "../index.js";
+} from "../contract.js";
 import type {
   ProductGptCallInput,
   ProductGptChildResult,
-} from "../index.js";
+} from "../product-api.js";
 
 const hash = `sha256:${"a".repeat(64)}` as const;
 

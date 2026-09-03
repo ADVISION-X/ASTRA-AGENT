@@ -124,6 +124,7 @@ const resolveLibOwner = (repoPath: string): string | null => {
 const resolveScriptOwner = (repoPath: string): string | null => {
   return resolveByPrefix(repoPath, [
     ["scripts/generate/", "agent-production-runtime"],
+    ["scripts/maintenance/", "agent-production-runtime"],
     ["scripts/runtime-logs/", "runtime-logs"],
     ["scripts/startup/", "startup"],
     ["scripts/acceptance/", "acceptance"],

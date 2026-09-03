@@ -3,7 +3,11 @@ import { parse } from "node:path";
 
 import { z } from "zod";
 import { executionFailure } from "../../lib/execution-failure.js";
-import type { GptProviderContinuation } from "./session/gpt-continuation-store-port.js";
+import {
+  gptContinuationUsable as continuationUsable,
+  type GptProviderContinuation,
+  type StoredGptContinuation,
+} from "./session/gpt-continuation-store-port.js";
 
 export const GptReasoningTierSchema = z.enum([
   "fast",
@@ -32,6 +36,9 @@ export const GptExecutionProfileSchema = z.object({
 
 export type GptReasoningTier = z.infer<typeof GptReasoningTierSchema>;
 export type GptExecutionProfile = z.infer<typeof GptExecutionProfileSchema>;
+
+export const gptContinuationUsable = (stored: StoredGptContinuation): boolean =>
+  continuationUsable(stored);
 
 const hashProfile = (profile: Omit<GptExecutionProfile, "profileHash">): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(JSON.stringify(profile)).digest("hex")}`;

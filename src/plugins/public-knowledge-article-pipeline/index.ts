@@ -1,14 +1,13 @@
-import type { GptProviderContinuation } from "../../capabilities/gpt/index.js";
+import type {
+  ExactGptContinuationReadback,
+  GptProviderContinuation,
+} from "../../capabilities/gpt/index.js";
 import type { WebsiteAgentTask } from "../../lib/local-runtime/production/contracts.js";
 import type {
   GeneratedImageArtifact,
   ProductPlugin,
   SharedExecutionContext,
 } from "../../lib/local-runtime/production/plugin.js";
-import type {
-  ExactGptGeneratedImageCheckpointReadback,
-  ExactGptTextCheckpointReadback,
-} from "../../capabilities/gpt/index.js";
 import {
   advanceLane,
   applyExactProfile,
@@ -50,6 +49,12 @@ import {
 } from "./result-contract.js";
 
 type SeoFlow = ReturnType<typeof createSeoExecutor>;
+type FrontierReadback = Extract<ExactGptContinuationReadback, { lookupKind: "frontier_ref" }>;
+type ExactGptTextCheckpointReadback = FrontierReadback["originCheckpoint"];
+type ExactGptGeneratedImageCheckpointReadback = Extract<
+  FrontierReadback["currentCheckpoint"],
+  { checkpointKind: "generated_image" }
+>;
 type ResearchTurn = Readonly<{
   checkpoint: SeoTurnCheckpoint;
   continuationRef: string;
@@ -252,15 +257,24 @@ const completeArticlePackage = (
   research: Readonly<Record<string, unknown>>,
   article: Readonly<Record<string, unknown>>,
   image: GeneratedImageArtifact,
-) => context.complete({
-  payload: {
+) => {
+  const draft = Object.freeze({
     schema_version: "public-knowledge-article-package.v1",
     research, article, image: null,
     _agent_reception: receptionSidecar(research, article),
-  },
-  evidence_refs: flow.evidenceRefs(),
-  generated_image: image,
-});
+  });
+  return context.complete({
+    payload: draft,
+    evidence_refs: flow.evidenceRefs(),
+    generated_image: {
+      artifact: image,
+      assemblePayload: (receipt) => Object.freeze({ ...draft, image: Object.freeze({
+        schema_version: "public-knowledge-agent-hero-image.v1",
+        ...receipt,
+      }) }),
+    },
+  });
+};
 
 const completeDeclinedResearch = (
   context: SharedExecutionContext,

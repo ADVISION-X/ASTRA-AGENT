@@ -10,24 +10,74 @@ import { BROWSER_MECHANICAL_FACTS_READER_SOURCE } from "./dom-mechanical-facts.j
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 
 type BrowserRecord = Record<string, unknown>;
+const GPT_ORIGIN = "https://chatgpt.com";
+const GPT_CONVERSATION_SEGMENT_MAX_CHARS = 256;
 type CoherentObservationResult = Readonly<{
-  schemaVersion: "grasseye.browser.dom-observation.v1";
+  schemaVersion: "grasseye.browser.dom-observation.v2";
   targetRefHash: `sha256:${string}`;
   documentRefHash: `sha256:${string}`;
+  currentUrl: string;
   observationRevisionHash: `sha256:${string}`;
   observedAt: string;
   queries: readonly Readonly<Record<string, unknown>>[];
 }>;
 
-const COHERENT_OBSERVATION_FUNCTION = `function (specs) {
+const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
   ${BROWSER_MECHANICAL_FACTS_READER_SOURCE}
-  const fieldValue = (node, facts, field) => {
+  const sha256 = async (value) => {
+    const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+    return "sha256:" + Array.from(new Uint8Array(digest))
+      .map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  };
+  const blockNames = new Set(["ADDRESS", "ARTICLE", "ASIDE", "BLOCKQUOTE", "DD", "DIV", "DL", "DT",
+    "FIGCAPTION", "FIGURE", "FOOTER", "FORM", "H1", "H2", "H3", "H4", "H5", "H6", "HEADER", "HR",
+    "MAIN", "NAV", "OL", "P", "PRE", "SECTION", "TABLE", "TBODY", "TD", "TFOOT", "TH", "THEAD", "TR", "UL"]);
+  const inlineCode = (value) => {
+    const runs = Array.from(value.matchAll(/\x60+/g), (match) => match[0].length);
+    const fence = "\x60".repeat(Math.max(0, ...runs) + 1);
+    return fence + value + fence;
+  };
+  const semanticNode = (node, parent) => {
+    const name = String(node.nodeName || "").toUpperCase();
+    if (node.nodeType === 3 || name === "#TEXT") return typeof node.nodeValue === "string" ? node.nodeValue : "";
+    if (["#COMMENT", "SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE", "SVG", "PATH"].includes(name)
+      || (node instanceof Element && (node.hasAttribute("hidden") || node.getAttribute("aria-hidden") === "true"))) return "";
+    if (name === "BR") return "\\n";
+    const body = Array.from(node.childNodes || []).map((child) => semanticNode(child, node)).join("");
+    if (name === "STRONG" || name === "B") return "**" + body + "**";
+    if (name === "EM" || name === "I") return "*" + body + "*";
+    if (name === "CODE") return inlineCode(body);
+    if (name === "LI") return ((parent && String(parent.nodeName).toUpperCase() === "OL") ? "1. " : "- ") + body + "\\n";
+    return blockNames.has(name) ? body + "\\n" : body;
+  };
+  const canonicalSemanticText = (node) => {
+    const value = Array.from(node.childNodes || []).map((child) => semanticNode(child, node)).join("");
+    return value.endsWith("\\n") ? value.slice(0, -1) : value;
+  };
+  const currentUrlValue = (() => {
+    const observedUrl = new URL(location.href);
+    if (observedUrl.protocol !== "https:" || observedUrl.origin !== "${GPT_ORIGIN}"
+      || observedUrl.username !== "" || observedUrl.password !== "") {
+      throw new Error("BROWSER_DOM_READ_INVALID");
+    }
+    const segments = observedUrl.pathname.split("/");
+    const root = observedUrl.pathname === "/";
+    const conversation = segments.length === 3 && segments[0] === "" && segments[1] === "c"
+      && segments[2].length > 0 && segments[2].length <= ${GPT_CONVERSATION_SEGMENT_MAX_CHARS};
+    if (!root && !conversation) throw new Error("BROWSER_DOM_READ_INVALID");
+    return observedUrl.origin + observedUrl.pathname;
+  })();
+  const fieldValue = async (node, facts, field) => {
     if (field === "id") return node.getAttribute("id") || "";
     if (field === "dataTurn") return node.getAttribute("data-turn") || "";
     if (field === "tagName") return node.tagName;
     if (field === "ariaLabel") return node.getAttribute("aria-label") || "";
     if (field === "ariaExpanded") return node.getAttribute("aria-expanded") || "";
     if (field === "ariaChecked") return node.getAttribute("aria-checked") || "";
+    if (field === "ariaValueMin") return node.getAttribute("aria-valuemin") || "";
+    if (field === "ariaValueMax") return node.getAttribute("aria-valuemax") || "";
+    if (field === "ariaValueNow") return node.getAttribute("aria-valuenow") || "";
+    if (field === "semanticTextHash") return sha256(canonicalSemanticText(node));
     if (field === "accept") return node.getAttribute("accept") || "";
     if (field === "multiple") return node.hasAttribute("multiple");
     return facts[field];
@@ -61,7 +111,7 @@ const COHERENT_OBSERVATION_FUNCTION = `function (specs) {
       node, candidateIndex, facts: browserMechanicalFacts(node, false)
     }));
   };
-  const observeQuery = (spec) => {
+  const observeQuery = async (spec) => {
     const scopeRaw = spec.scope ? Array.from(document.querySelectorAll(spec.scope.selector)) : [document.documentElement];
     const scopeObserved = observeNodes(scopeRaw);
     const scopeRejections = spec.scope ? rejected(scopeObserved, spec, false) : [];
@@ -80,16 +130,16 @@ const COHERENT_OBSERVATION_FUNCTION = `function (specs) {
     return {
       queryId: spec.queryId, scopeRawCount: scopeRaw.length, scopeEligibleCount: scopeEligible.length,
       rawCount: raw.length, eligibleCount: eligible.length,
-      matches: eligible.slice(0, spec.maxMatches + 1).map(({ node, facts, candidateIndex }) => ({
+      matches: await Promise.all(eligible.slice(0, spec.maxMatches + 1).map(async ({ node, facts, candidateIndex }) => ({
         candidateIndex,
-        ...Object.fromEntries(spec.fields.map((field) => [field, fieldValue(node, facts, field)]))
-      })),
+        ...Object.fromEntries(await Promise.all(spec.fields.map(async (field) => [field, await fieldValue(node, facts, field)])))
+      }))),
       scopeRejections, rejections: rejected(observed, spec, true),
       nativeCauseCode: noLayoutCount > 0 ? "NO_LAYOUT_BOX" : null,
       nativeCauseCount: noLayoutCount, nativeStage: "runtime-call-function-on"
     };
   };
-  return { observedAt: new Date().toISOString(), queries: specs.map(observeQuery) };
+  return { currentUrl: currentUrlValue, observedAt: new Date().toISOString(), queries: await Promise.all(specs.map(observeQuery)) };
 }`;
 
 const sha256Text = async (value: string): Promise<`sha256:${string}`> => {
@@ -109,7 +159,8 @@ const observationCount = (value: unknown): number => {
 
 const stringObservationFields = new Set<BrowserDomObservationField>([
   "id", "testId", "dataTurn", "tagName", "type", "role", "name", "label", "ariaLabel",
-  "ariaExpanded", "ariaChecked", "value", "accept", "computedDisplay", "computedVisibility",
+  "ariaExpanded", "ariaChecked", "ariaValueMin", "ariaValueMax", "ariaValueNow", "semanticTextHash",
+  "value", "accept", "computedDisplay", "computedVisibility",
   "computedOpacity", "effectiveOpacity",
 ]);
 const booleanObservationFields = new Set<BrowserDomObservationField>([
@@ -160,6 +211,46 @@ const decodeRejections = (
   }));
 };
 
+const decodeObservationMatch = (
+  value: unknown,
+  spec: BrowserDomObservationQuery,
+  rawCount: number,
+  indices: Set<number>,
+): Readonly<Record<string, unknown>> => {
+  const match = observationRecord(value);
+  const keys = Object.keys(match);
+  if (keys.length !== spec.fields.length + 1 || !Number.isSafeInteger(match.candidateIndex)
+    || (match.candidateIndex as number) < 0 || (match.candidateIndex as number) >= rawCount
+    || indices.has(match.candidateIndex as number)
+    || keys.some((field) => field !== "candidateIndex"
+      && !spec.fields.includes(field as BrowserDomObservationField))
+    || spec.fields.some((field) => !observationFieldValid(field, match[field]))) {
+    throw new Error("BROWSER_DOM_READ_INVALID");
+  }
+  indices.add(match.candidateIndex as number);
+  return Object.freeze({ ...match });
+};
+
+const observationRowIdentityValid = (
+  row: Readonly<Record<string, unknown>>,
+  spec: BrowserDomObservationQuery,
+  nativeCauseCount: number,
+): boolean => Object.keys(row).length === OBSERVATION_ROW_KEYS.size
+  && !Object.keys(row).some((key) => !OBSERVATION_ROW_KEYS.has(key))
+  && row.queryId === spec.queryId
+  && row.nativeStage === "runtime-call-function-on"
+  && ((row.nativeCauseCode === null && nativeCauseCount === 0)
+    || (row.nativeCauseCode === "NO_LAYOUT_BOX" && nativeCauseCount > 0));
+
+const observationRowCountsValid = (
+  scopeRaw: number,
+  scopeEligible: number,
+  raw: number,
+  eligible: number,
+  nativeCause: number,
+): boolean => scopeEligible <= scopeRaw && eligible <= raw && nativeCause <= raw
+  && (scopeEligible === 1 || (raw === 0 && eligible === 0));
+
 const decodeObservationRow = (
   value: unknown,
   spec: BrowserDomObservationQuery,
@@ -170,32 +261,14 @@ const decodeObservationRow = (
   const raw = observationCount(row.rawCount);
   const eligible = observationCount(row.eligibleCount);
   const nativeCause = observationCount(row.nativeCauseCount);
-  const identityValid = Object.keys(row).length === OBSERVATION_ROW_KEYS.size
-    && !Object.keys(row).some((key) => !OBSERVATION_ROW_KEYS.has(key))
-    && row.queryId === spec.queryId && row.nativeStage === "runtime-call-function-on"
-    && ((row.nativeCauseCode === null && nativeCause === 0)
-      || (row.nativeCauseCode === "NO_LAYOUT_BOX" && nativeCause > 0));
-  const countsValid = scopeEligible <= scopeRaw && eligible <= raw && nativeCause <= raw
-    && (scopeEligible === 1 || (raw === 0 && eligible === 0));
-  if (!identityValid || !countsValid || !Array.isArray(row.matches)
+  if (!observationRowIdentityValid(row, spec, nativeCause)
+    || !observationRowCountsValid(scopeRaw, scopeEligible, raw, eligible, nativeCause)
+    || !Array.isArray(row.matches)
     || row.matches.length !== Math.min(eligible, spec.maxMatches + 1)) {
     throw new Error("BROWSER_DOM_READ_INVALID");
   }
   const matchIndices = new Set<number>();
-  const matches = row.matches.map((matchValue) => {
-    const match = observationRecord(matchValue);
-    const keys = Object.keys(match);
-    if (keys.length !== spec.fields.length + 1 || !Number.isSafeInteger(match.candidateIndex)
-      || (match.candidateIndex as number) < 0 || (match.candidateIndex as number) >= raw
-      || matchIndices.has(match.candidateIndex as number)
-      || keys.some((field) => field !== "candidateIndex"
-        && !spec.fields.includes(field as BrowserDomObservationField))
-      || spec.fields.some((field) => !observationFieldValid(field, match[field]))) {
-      throw new Error("BROWSER_DOM_READ_INVALID");
-    }
-    matchIndices.add(match.candidateIndex as number);
-    return Object.freeze({ ...match });
-  });
+  const matches = row.matches.map((matchValue) => decodeObservationMatch(matchValue, spec, raw, matchIndices));
   const scopeRejections = decodeRejections(row.scopeRejections, scopeRaw, scopeEligible);
   const rejections = decodeRejections(row.rejections, raw, eligible);
   if (rejections.some((rejection) => matchIndices.has(rejection.index))) {
@@ -207,10 +280,12 @@ const decodeObservationRow = (
 const decodeObservationCall = (
   value: unknown,
   specs: readonly BrowserDomObservationQuery[],
-): Readonly<{ observedAt: string; queries: readonly Readonly<Record<string, unknown>>[] }> => {
+): Readonly<{ currentUrl: string; observedAt: string;
+  queries: readonly Readonly<Record<string, unknown>>[] }> => {
   const packet = observationRecord(value);
-  if (Object.keys(packet).length !== 2 || !Array.isArray(packet.queries)
+  if (Object.keys(packet).length !== 3 || !Array.isArray(packet.queries)
     || packet.queries.length !== specs.length || typeof packet.observedAt !== "string"
+    || typeof packet.currentUrl !== "string" || sanitizeCurrentUrl(packet.currentUrl) !== packet.currentUrl
     || new Date(packet.observedAt).toISOString() !== packet.observedAt) {
     throw new Error("BROWSER_DOM_READ_INVALID");
   }
@@ -219,15 +294,35 @@ const decodeObservationCall = (
     count + (query.scopeRawCount as number) + (query.rawCount as number), 0);
   if (observedCandidateCount > 256) throw new Error("BROWSER_DOM_READ_INVALID");
   return Object.freeze({
+    currentUrl: packet.currentUrl,
     observedAt: packet.observedAt,
     queries,
   });
 };
 
-const mainFrameLoaderId = async (runtime: ExtensionDebuggerRuntime, tabId: number): Promise<string> => {
+const sanitizeCurrentUrl = (value: string): string => {
+  let url: URL;
+  try { url = new URL(value); } catch { throw new Error("BROWSER_DOM_READ_INVALID"); }
+  const segments = url.pathname.split("/");
+  const root = url.pathname === "/";
+  const conversation = segments.length === 3 && segments[0] === "" && segments[1] === "c"
+    && segments[2]!.length > 0 && segments[2]!.length <= GPT_CONVERSATION_SEGMENT_MAX_CHARS;
+  if (url.protocol !== "https:" || url.origin !== GPT_ORIGIN || url.username !== "" || url.password !== ""
+    || (!root && !conversation) || url.search !== "" || url.hash !== "") {
+    throw new Error("BROWSER_DOM_READ_INVALID");
+  }
+  return `${url.origin}${url.pathname}`;
+};
+
+const mainFrameLoaderId = async (
+  runtime: ExtensionDebuggerRuntime,
+  tabId: number,
+): Promise<string> => {
   const tree = observationRecord(await runtime.send(tabId, "Page.getFrameTree"));
   const frame = observationRecord(observationRecord(tree.frameTree).frame);
-  if (typeof frame.loaderId !== "string" || frame.loaderId.length === 0) throw new Error("BROWSER_DOCUMENT_INVALID");
+  if (typeof frame.loaderId !== "string" || frame.loaderId.length === 0) {
+    throw new Error("BROWSER_DOCUMENT_INVALID");
+  }
   return frame.loaderId;
 };
 
@@ -264,10 +359,13 @@ export const executeCoherentObservation = async (
     if (typeof objectId !== "string" || objectId.length === 0) throw new Error("BROWSER_DOM_READ_INVALID");
     const call = observationRecord(await runtime.send(target.tabId, "Runtime.callFunctionOn", {
       objectId, functionDeclaration: COHERENT_OBSERVATION_FUNCTION, arguments: [{ value: specs }],
-      returnByValue: true, awaitPromise: false, silent: true,
+      returnByValue: true, awaitPromise: true, silent: true,
     }));
     if (call.exceptionDetails !== undefined) throw new Error("BROWSER_DOM_READ_INVALID");
-    if (await mainFrameLoaderId(runtime, target.tabId) !== loaderBefore) throw new Error("BROWSER_DOCUMENT_INVALID");
+    const loaderAfter = await mainFrameLoaderId(runtime, target.tabId);
+    if (loaderAfter !== loaderBefore) {
+      throw new Error("BROWSER_DOCUMENT_INVALID");
+    }
     const observed = decodeObservationCall(observationRecord(call.result).value, specs);
     const targetRefHash = await sha256Text(target.targetRef);
     const documentRefHash = await sha256Text(target.documentRef);
@@ -275,10 +373,12 @@ export const executeCoherentObservation = async (
       observed.queries, targetRefHash, documentRefHash, observed.observedAt,
     );
     const observationRevisionHash = await sha256Text(canonicalizeBrowserAuthorityValue({
-      targetRefHash, documentRefHash, observedAt: observed.observedAt, queries,
+      targetRefHash, documentRefHash, currentUrl: observed.currentUrl,
+      observedAt: observed.observedAt, queries,
     }));
-    return Object.freeze({ schemaVersion: "grasseye.browser.dom-observation.v1", targetRefHash,
-      documentRefHash, observationRevisionHash, observedAt: observed.observedAt, queries });
+    return Object.freeze({ schemaVersion: "grasseye.browser.dom-observation.v2", targetRefHash,
+      documentRefHash, currentUrl: observed.currentUrl, observationRevisionHash,
+      observedAt: observed.observedAt, queries });
   } catch (error) {
     primaryFailure = error;
     if (error instanceof Error && /^BROWSER_[A-Z_]+$/u.test(error.message)) throw error;

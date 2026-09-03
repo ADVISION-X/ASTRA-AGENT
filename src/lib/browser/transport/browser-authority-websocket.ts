@@ -29,6 +29,7 @@ import {
   BROWSER_PROTOCOL_REVISION,
 } from "../protocol/generated/browser-protocol.generated.js";
 import { parseBrowserAuthorityDiagnostic } from "./browser-authority-diagnostic.js";
+import { requireGptWebClaimOrigin } from "../exact-target/browser-site-policy-registry.js";
 
 export type BrowserAuthoritySocket = Readonly<{
   send(frame: string): void;
@@ -64,7 +65,7 @@ export type BrowserAuthorityTargetClaim = Readonly<{
   targetRef: string;
   documentRef: string;
   navigationEpoch: number;
-  url: string;
+  claimOrigin: "https://chatgpt.com";
 }>;
 
 type AwaitingReply = Readonly<{
@@ -455,11 +456,10 @@ export const parseBrowserAuthorityTargetClaim = (body: Readonly<Record<string, u
   const targetRef = stringField(body, "targetRef");
   const documentRef = stringField(body, "documentRef");
   const navigationEpoch = nonNegativeIntegerField(body, "navigationEpoch");
-  const url = stringField(body, "url");
+  const claimOrigin = stringField(body, "claimOrigin");
   if (Object.keys(body).length !== 4
-    || Object.keys(body).some((key) => !["targetRef", "documentRef", "navigationEpoch", "url"].includes(key))) {
+    || Object.keys(body).some((key) => !["targetRef", "documentRef", "navigationEpoch", "claimOrigin"].includes(key))) {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
-  if (!url.startsWith("https://")) throw new Error("BROWSER_ORIGIN_REJECTED");
-  return { targetRef, documentRef, navigationEpoch, url };
+  return { targetRef, documentRef, navigationEpoch, claimOrigin: requireGptWebClaimOrigin(claimOrigin) };
 };

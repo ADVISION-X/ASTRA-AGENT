@@ -1,3 +1,5 @@
+import { requireGptWebClaimOrigin } from "../exact-target/browser-site-policy-registry.js";
+
 export type ExtensionExactTarget = Readonly<{
   targetRef: string;
   documentRef: string;
@@ -10,7 +12,7 @@ export type ExtensionOperatorTargetClaim = Readonly<{
   targetRef: string;
   documentRef: string;
   navigationEpoch: number;
-  url: string;
+  claimOrigin: "https://chatgpt.com";
 }>;
 
 export const assertExactTarget = (target: ExtensionExactTarget): void => {
@@ -35,17 +37,17 @@ export class ExtensionExactTargetRegistry {
 
   public describeOperatorClaim(
     target: ExtensionExactTarget,
-    input: Readonly<{ url?: string }>,
+    input: Readonly<{ claimOrigin?: string }>,
   ): ExtensionOperatorTargetClaim {
     assertExactTarget(target);
-    if (typeof input.url !== "string" || !isHttpsUrl(input.url)) {
+    if (typeof input.claimOrigin !== "string") {
       throw new Error("BROWSER_ORIGIN_REJECTED");
     }
     return {
       targetRef: target.targetRef,
       documentRef: target.documentRef,
       navigationEpoch: target.navigationEpoch,
-      url: input.url,
+      claimOrigin: requireGptWebClaimOrigin(input.claimOrigin),
     };
   }
 
@@ -88,10 +90,3 @@ export class ExtensionExactTargetRegistry {
 }
 
 const newRef = (): string => globalThis.crypto.randomUUID();
-const isHttpsUrl = (value: string): boolean => {
-  try {
-    return new URL(value).protocol === "https:";
-  } catch {
-    return false;
-  }
-};

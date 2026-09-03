@@ -1,4 +1,4 @@
-import assert from "../../../../scripts/audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 
 import { executionFailure } from "../../../lib/execution-failure.js";
 import { createGptAcceptanceHarness } from "./gpt-acceptance-harness.js";
@@ -21,40 +21,49 @@ const attachmentFacts = (ready: boolean) => ({
 });
 
 const attachmentFixture = fakeBrowser((intent) => {
-  if (intent.kind === "observe") return coherentObservationPacket(intent, attachmentFacts(false));
+  if (intent.kind === "observe") return coherentObservationPacket(intent, attachmentFacts(true));
   throw new Error(`UNEXPECTED_ATTACHMENT_READBACK_INTENT:${intent.kind}`);
 });
 const attachmentReadback = await execute("attach_approved_gpt_files_once", attachmentFixture.browser, {
   files: [approvedAttachment],
 }, "readback");
-assert.equal(attachmentReadback.status, "failed");
-assert.equal(attachmentReadback.failureCode, "GPT_ATTACHMENT_BROWSER_ARTIFACT_GRANT_REQUIRED");
-assert.equal(attachmentFixture.documentCalls(), 0,
-  "blocked attachment execution must not infer a valid prior dispatch from DOM state");
+assert.equal(attachmentReadback.status, "success", attachmentReadback.failureCode ?? "attachment readback failed");
+assert.equal(attachmentReadback.value?.mutationSent, false);
+assert.equal(attachmentFixture.documentCalls(), 1,
+  "readback must prove the exact attachment set from one coherent observation");
 assert.equal(attachmentFixture.physicalMutations(), 0,
-  "blocked attachment execution must never dispatch or replay an upload");
+  "readback must never dispatch or replay an upload");
 
-const attachmentMutationBlockedFixture = fakeBrowser((intent) => {
+let attachedArtifacts: unknown = null;
+const attachmentMutationFixture = fakeBrowser((intent) => {
   if (intent.kind === "observe") return coherentObservationPacket(intent, {
     "attachment-control": { rawCount: 1, eligibleCount: 1 },
     "upload-choice": { rawCount: 1, eligibleCount: 1 },
   });
   throw new Error(`UNEXPECTED_ATTACHMENT_MUTATION_INTENT:${intent.kind}`);
+}, {
+  onAttachFile: (input) => { attachedArtifacts = input.approvedArtifacts; },
 });
-const attachmentMutationBlocked = await execute(
+const attachmentMutation = await execute(
   "attach_approved_gpt_files_once",
-  attachmentMutationBlockedFixture.browser,
+  attachmentMutationFixture.browser,
   { files: [approvedAttachment] },
 );
-assert.equal(attachmentMutationBlocked.status, "failed");
-assert.equal(attachmentMutationBlocked.failureCode, "GPT_ATTACHMENT_BROWSER_ARTIFACT_GRANT_REQUIRED");
-assert.equal(attachmentMutationBlockedFixture.documentCalls(), 0);
-assert.equal(attachmentMutationBlockedFixture.physicalMutations(), 0,
-  "GPT must fail closed instead of registering a path or dispatching a Browser upload");
+assert.equal(attachmentMutation.status, "success", attachmentMutation.failureCode ?? "attachment dispatch failed");
+assert.equal(attachmentMutation.value?.mutationSent, true);
+assert.deepEqual(attachedArtifacts, [{
+  artifactRef: approvedAttachment.artifactRef,
+  expectedSha256: approvedAttachment.sha256,
+  bytes: approvedAttachment.bytes,
+}]);
+assert.equal(attachmentMutation.proof.committedMutation, "confirmed");
+assert.equal(attachmentMutationFixture.documentCalls(), 1);
+assert.equal(attachmentMutationFixture.physicalMutations(), 1,
+  "GPT must send one approved artifact-ref batch to Browser Authority");
 
 const extraFieldBlocked = await execute(
   "attach_approved_gpt_files_once",
-  attachmentMutationBlockedFixture.browser,
+  attachmentMutationFixture.browser,
   { files: [{ ...approvedAttachment, filePath: "/forbidden/path" }] } as never,
 );
 assert.equal(extraFieldBlocked.status, "failed");

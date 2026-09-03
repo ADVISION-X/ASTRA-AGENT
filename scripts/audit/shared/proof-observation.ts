@@ -186,9 +186,9 @@ const producerSourceFor = (script: string): string | null => {
     return absolute.startsWith(`${resolve("scripts/acceptance")}/`) ? absolute : null;
   } catch { return null; }
 };
-const producerContractFor = (script: string): Record<string, unknown> | null => {
-  const source = producerSourceFor(script);
-  if (!source || !existsSync(source)) return null;
+const producerContractFor = (script: string, sourcePath?: string): Record<string, unknown> | null => {
+  const source = sourcePath ? resolve(sourcePath) : producerSourceFor(script);
+  if (!source || !source.startsWith(`${resolve("scripts/acceptance")}/`) || !existsSync(source)) return null;
   const text = readFileSync(source, "utf8");
   const begin = text.indexOf(claimContractMarker.begin);
   const end = text.indexOf(claimContractMarker.end);
@@ -199,8 +199,8 @@ const producerContractFor = (script: string): Record<string, unknown> | null => 
     return plainObject(parsed) ? parsed : null;
   } catch { return null; }
 };
-export const producerClaimRoutesFor = (script: string): string[] | null => {
-  const contract = producerContractFor(script);
+export const producerClaimRoutesFor = (script: string, sourcePath?: string): string[] | null => {
+  const contract = producerContractFor(script, sourcePath);
   if (!contract || !exactKeys(contract, ["routes", "schema_version"])
     || contract.schema_version !== "producer-dynamic-claim-contract.v1" || !plainObject(contract.routes)) return null;
   const routes = Object.entries(contract.routes);
@@ -304,17 +304,27 @@ const examAssertionSourceValid = (trace: ExamAssertionTrace): boolean => {
     && /\bassert(?:\.[A-Za-z]+)?\s*\(/u.test(line)
     && !/assert(?:\.ok)?\(true(?:[,\)])|assert\.(?:equal|strictEqual|deepEqual|deepStrictEqual)\(([^,()]+),\1[,\)]/u.test(compact);
 };
+const examTraceBindingValid = (value: Record<string, unknown>, binding: ExamReceiptBinding): boolean =>
+  value.schema_version === "governance-exam-assertion.v1"
+  && value.proof_run_id === binding.proofRunId
+  && value.candidate === binding.candidate
+  && value.producer_script === binding.producerScript
+  && examAssertionMethods.has(String(value.method));
+const examTraceCoordinatesValid = (value: Record<string, unknown>): boolean =>
+  Number.isSafeInteger(value.process_id) && Number(value.process_id) > 0
+  && Number.isSafeInteger(value.sequence) && Number(value.sequence) > 0
+  && Number.isSafeInteger(value.source_line) && Number(value.source_line) > 0
+  && Number.isSafeInteger(value.source_column) && Number(value.source_column) > 0;
+const examTraceSourceFieldsValid = (value: Record<string, unknown>): boolean =>
+  typeof value.source_path === "string"
+  && digest(value.source_digest)
+  && digest(value.source_line_digest)
+  && digest(value.argument_digest);
 const examTraceValid = (value: unknown, binding: ExamReceiptBinding): value is ExamAssertionTrace => {
   if (!plainObject(value) || !exactKeys(value, examTraceKeys)
-    || value.schema_version !== "governance-exam-assertion.v1"
-    || value.proof_run_id !== binding.proofRunId || value.candidate !== binding.candidate
-    || value.producer_script !== binding.producerScript || !examAssertionMethods.has(String(value.method))
-    || !Number.isSafeInteger(value.process_id) || Number(value.process_id) <= 0
-    || !Number.isSafeInteger(value.sequence) || Number(value.sequence) <= 0
-    || !Number.isSafeInteger(value.source_line) || Number(value.source_line) <= 0
-    || !Number.isSafeInteger(value.source_column) || Number(value.source_column) <= 0
-    || typeof value.source_path !== "string" || !digest(value.source_digest)
-    || !digest(value.source_line_digest) || !digest(value.argument_digest)) return false;
+    || !examTraceBindingValid(value, binding)
+    || !examTraceCoordinatesValid(value)
+    || !examTraceSourceFieldsValid(value)) return false;
   return examAssertionSourceValid(value as ExamAssertionTrace);
 };
 const examAssertionTraces = (root: string, binding: ExamReceiptBinding): ExamAssertionTrace[] => {
@@ -425,16 +435,27 @@ const proofRef = (observation: QualityProofObservationInput, context: EmissionCo
     : `exam:${encodeURIComponent(examReceipt!.locator)}#${selector}@${examReceipt!.digest}`;
 };
 
+const emissionContextValid = (context: EmissionContext): boolean => Boolean(context.script)
+  && Number.isSafeInteger(context.timeoutMs) && context.timeoutMs >= 1;
+const emissionShapeValid = (observation: QualityProofObservationInput, dynamic: boolean): boolean =>
+  locatorValid(dynamic, observation.locator)
+  && Boolean(observation.observedValue.trim())
+  && receiptValid(dynamic, observation.receipt)
+  && (dynamic
+    ? typeof observation.passed === "boolean" && Array.isArray(observation.findings)
+    : observation.passed === undefined && observation.findings === undefined);
+const nativeEmissionReceiptValid = (
+  observation: QualityProofObservationInput,
+  context: EmissionContext,
+  dynamic: boolean,
+): boolean => !dynamic || nativeReceiptValid(observation.locator, observation.receipt, observation, context);
+
 export const emitQualityProofObservation = (observation: QualityProofObservationInput): void => {
   const context = contextForEmission();
   if (!context.proofRunId && !context.candidate && context.proofKind === undefined) return;
   const dynamic = observation.evidenceMode.startsWith("dynamic.");
-  if (!locatorValid(dynamic, observation.locator) || !observation.observedValue.trim()
-    || !receiptValid(dynamic, observation.receipt) || !context.script
-    || (dynamic && (typeof observation.passed !== "boolean" || !Array.isArray(observation.findings)))
-    || (!dynamic && (observation.passed !== undefined || observation.findings !== undefined))
-    || (dynamic && !nativeReceiptValid(observation.locator, observation.receipt, observation, context))
-    || !Number.isSafeInteger(context.timeoutMs) || context.timeoutMs < 1) {
+  if (!emissionContextValid(context) || !emissionShapeValid(observation, dynamic)
+    || !nativeEmissionReceiptValid(observation, context, dynamic)) {
     throw new Error("QUALITY_PROOF_OBSERVATION_INVALID");
   }
   const examReceipt = dynamic ? null : createExamReceipt(observation, context);

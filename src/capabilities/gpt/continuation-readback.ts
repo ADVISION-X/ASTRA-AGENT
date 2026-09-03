@@ -14,8 +14,8 @@ import type {
   ExactGptContinuationReadback,
   ExactGptTextCheckpointReadback,
 } from "./product-api.js";
-import type { ForensicsPersistenceAbilityGroup } from "../forensics-persistence/index.js";
 import { executionFailure } from "../../lib/execution-failure.js";
+import type { GptEvidenceStorePort } from "./production-ports.js";
 import {
   readGeneratedImageCheckpointArtifacts,
   readTextCheckpointArtifact,
@@ -113,7 +113,7 @@ const currentBindingMatches = (
 
 export class GptContinuationReadback {
   public constructor(
-    private readonly evidenceStore: ForensicsPersistenceAbilityGroup,
+    private readonly evidenceStore: GptEvidenceStorePort,
     private readonly store: GptContinuationReadbackPort,
   ) {}
 

@@ -10,14 +10,12 @@ import type { GptContinuationStorePort } from "./session/gpt-continuation-store-
 
 export type {
   GptApprovedFile,
-  GptApprovedFileInput,
   GptChildCall,
   GptChildCapabilityId,
   GptChildInputMap,
   GptChildOutputMap,
   GptChildSuccess,
   GptContinuationCheckpointInput,
-  GptGeneratedImageCheckpointInput,
   GptHash,
   GptTextCheckpointInput,
 } from "./child-types.js";
@@ -27,9 +25,9 @@ export const GPT_TRANSPORT = "gpt-web" as const;
 export const GPT_MODEL_SELECTION_VERSION = "gpt-model-selection.v2" as const;
 
 export type GptFailureClassification = "failed";
-export type GptChildProfile = "DOM_OBSERVATION" | "TARGET_LOCAL_MUTATION"
+type GptChildProfile = "DOM_OBSERVATION" | "TARGET_LOCAL_MUTATION"
   | "PROVIDER_EFFECT_ONCE" | "CONTINUATION_TRANSACTION";
-export type GptChildDecision = "DONE" | "ACT" | "WAIT" | "FAIL_CLOSED";
+type GptChildDecision = "DONE" | "ACT" | "WAIT" | "FAIL_CLOSED";
 
 export type GptChildBrowserFact = Readonly<{
   exactCallIdentityHash: `sha256:${string}`;

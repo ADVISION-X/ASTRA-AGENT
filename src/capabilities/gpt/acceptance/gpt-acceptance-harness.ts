@@ -1,11 +1,13 @@
 import {
   createGptAbilityGroup,
-  GPT_CHILD_CAPABILITY_CONTRACTS,
   type GptAbilityGroup,
+} from "../index.js";
+import {
+  GPT_CHILD_CAPABILITY_CONTRACTS,
   type GptChildCapabilityId,
   type GptChildCapabilityIntent,
   type GptChildInputMap,
-} from "../index.js";
+} from "../contract.js";
 import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import { hashCanonical } from "../../../lib/local-runtime/production/contracts.js";
 

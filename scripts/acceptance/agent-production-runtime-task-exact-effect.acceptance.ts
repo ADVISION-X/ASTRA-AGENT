@@ -1,16 +1,11 @@
-import assert from "../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import {
   createGptAbilityGroup,
-  gptExactCallIdentityHash,
-  persistGptChildEvidence,
-  ProductionGptChildTools,
-  type GptChildCapabilityIntent,
-  type GptChildCapabilityProof,
-  type GptChildCapabilityResult,
+  createProductionGptChildTools,
 } from "../../src/capabilities/gpt/index.js";
 import { createForensicsPersistenceAbilityGroupFromStorage } from
   "../../src/capabilities/forensics-persistence/index.js";
@@ -46,50 +41,18 @@ const intentFor = (taskInput: WebsiteAgentTask, attemptId: string) => {
     childCapabilityId: call.child,
     inputHash: hashCanonical(call.input),
   });
-  const exactCallIdentityHash = gptExactCallIdentityHash(identity);
+  const exactCallIdentityHash = hashCanonical([
+    identity.jobId, identity.attemptId, identity.pluginId, identity.pluginVersion,
+    identity.productStepId, identity.callId, identity.childCapabilityId, identity.inputHash,
+  ]);
   return Object.freeze({
     ...identity,
+    exactCallIdentityHash,
     executionId: `gpt-call:${exactCallIdentityHash.slice(7)}`,
     actionOrdinal: call.actionOrdinal,
     input: call.input,
-  }) satisfies GptChildCapabilityIntent<"submit_exact_gpt_turn_once">;
+  });
 };
-
-const proofFor = (
-  intent: GptChildCapabilityIntent<"submit_exact_gpt_turn_once">,
-): GptChildCapabilityProof => Object.freeze({
-  schemaVersion: "gpt-child-capability-proof.v2",
-  childCapabilityId: intent.childCapabilityId,
-  childContractVersion: 2,
-  childStatus: "success",
-  childReasonCode: "GPT_CHILD_SUCCEEDED",
-  exactCallIdentityHash: gptExactCallIdentityHash(intent),
-  internalDecisionCode: "DONE",
-  executionId: intent.executionId,
-  jobId: intent.jobId,
-  attemptId: intent.attemptId,
-  pluginId: intent.pluginId,
-  pluginVersion: intent.pluginVersion,
-  productStepId: intent.productStepId,
-  callId: intent.callId,
-  inputHash: intent.inputHash,
-  actionOrdinal: intent.actionOrdinal,
-  targetRefHash: HASH_A,
-  beforeDocumentRefHash: HASH_A,
-  afterDocumentRefHash: HASH_B,
-  authorityRefHashes: Object.freeze([HASH_A]),
-  factResultIds: Object.freeze([]),
-  candidateCardinality: Object.freeze({ raw: 1, eligible: 1 }),
-  observationRevisionHash: HASH_B,
-  committedMutation: "confirmed",
-  postconditionResult: "passed",
-  browserFact: null,
-  nativeFailureCode: null,
-  startedAt: "2026-09-03T00:00:00.000Z",
-  endedAt: "2026-09-03T00:00:00.001Z",
-  evidenceRef: `browser:${intent.attemptId}`,
-  evidenceHash: hashCanonical({ attemptId: intent.attemptId }),
-});
 
 const root = await mkdtemp(path.join(tmpdir(), "runtime-task-exact-effect-"));
 const store = new ProductionRuntimeStore(root);
@@ -102,20 +65,39 @@ try {
   const evidenceStore = createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(root));
   const persistAttempt = async (attemptId: string): Promise<ProductionHash> => {
     const intent = intentFor(providerTask, attemptId);
-    const proof = proofFor(intent);
-    const result: GptChildCapabilityResult<"submit_exact_gpt_turn_once"> = Object.freeze({
-      status: "success",
-      value: Object.freeze({ promptHash: call.input.promptHash, mutationSent: true }),
-      proof,
-      failureCode: null,
-      failureCause: null,
-      failureBrowserEffect: null,
+    const evidenceHash = hashCanonical({ attemptId });
+    const recordPayload = Object.freeze({
+      schema_version: "agent-gpt-evidence-safe.v1",
+      exact_call_identity_hash: intent.exactCallIdentityHash,
+      child_capability_id: intent.childCapabilityId,
+      plugin_version: intent.pluginVersion,
+      action_ordinal: intent.actionOrdinal,
+      execution_identity_hash: hashCanonical(intent.executionId),
+      candidate_cardinality: Object.freeze({ raw: 1, eligible: 1 }),
+      committed_mutation: "confirmed",
+      postcondition_result: "passed",
+      result_status: "success",
+      failure_code: null,
+      failure_cause: null,
+      started_at: "2026-09-03T00:00:00.000Z",
+      ended_at: "2026-09-03T00:00:00.001Z",
+      source_evidence_hash: evidenceHash,
     });
-    await persistGptChildEvidence({
-      result, intent, evidenceStore, jobId: providerTask.job_id, attemptId,
-      stepId: call.productStepId, exactCallIdentityHash: proof.exactCallIdentityHash,
+    const appended = await evidenceStore.appendRecord({
+      missionId: providerTask.job_id,
+      runId: attemptId,
+      stepId: call.productStepId,
+      sourceCapabilityId: "gpt",
+      sourceChildCapabilityId: call.child,
+      recordType: "evidence",
+      recordPayload,
+      idempotencyKey: `gpt-call-evidence:v1:${intent.exactCallIdentityHash}`,
+      correlationId: intent.executionId,
+      createdAt: recordPayload.ended_at,
     });
-    return proof.exactCallIdentityHash;
+    assert.equal(appended.status, "success");
+    assert.equal(typeof appended.recordRef, "string");
+    return intent.exactCallIdentityHash;
   };
   const failAttempt = (attemptId: string): void => store.recordAttemptFailure(
     providerTask.job_id,
@@ -136,7 +118,7 @@ try {
     countProviderTurnDispatches: () => 0,
     acquireJobBoundTargetLease: async () => { throw new Error("UNEXPECTED_BROWSER_ACQUISITION"); },
   });
-  const execution = (attemptId: string, leaseVersion: number) => new ProductionGptChildTools(
+  const execution = (attemptId: string, leaseVersion: number) => createProductionGptChildTools(
     root,
     HASH_A,
     createGptAbilityGroup(),

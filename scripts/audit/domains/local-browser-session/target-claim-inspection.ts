@@ -87,6 +87,13 @@ const inspectExactChatGptPolicy = (source: ReturnType<typeof requireSource>, fin
   }));
 };
 
+const recoveryInspectionIsExact = (source: string): boolean => source.includes("chromeApi.debugger.getTargets()")
+  && source.includes("candidate.tabId === tabId")
+  && (source.includes('candidate.type === "page"') || source.includes('candidates[0]!.type !== "page"'))
+  && (source.includes("candidate.attached === true") || source.includes("candidates[0]!.attached !== true"))
+  && !source.includes("tabs.query")
+  && !source.includes("Page.bringToFront");
+
 const inspectJobBoundClaimPolicy = (
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -121,14 +128,7 @@ const inspectJobBoundClaimPolicy = (
   inspectBrokerClaimMonotonicity(broker.getFullText(), findings, lawId);
   inspectJobBoundClaimAcceptance(`${targetAuthority.getFullText()}\n${acceptance.getFullText()}`, findings, lawId);
   const targetAuthorityText = targetAuthority.getFullText();
-  if (!targetAuthorityText.includes("chromeApi.debugger.getTargets()")
-    || !targetAuthorityText.includes("candidate.tabId === tabId")
-    || !(targetAuthorityText.includes('candidate.type === "page"')
-      || targetAuthorityText.includes('candidates[0]!.type !== "page"'))
-    || !(targetAuthorityText.includes("candidate.attached === true")
-      || targetAuthorityText.includes("candidates[0]!.attached !== true"))
-    || targetAuthorityText.includes("tabs.query")
-    || targetAuthorityText.includes("Page.bringToFront")) findings.push(createLocalFinding({
+  if (!recoveryInspectionIsExact(targetAuthorityText)) findings.push(createLocalFinding({
     checkId: "browser-authority/job-bound-target-claim", lawId, filePath: targetAuthorityPath,
     message: "MV3 recovery may inspect only the exact prior attached tabId and must never scan candidates or foreground a Tab.",
   }));

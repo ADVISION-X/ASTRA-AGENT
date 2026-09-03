@@ -1,4 +1,4 @@
-import assert from "../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { Project } from "ts-morph";
 
 import { inspectSystemSecurityProject } from "../audit/domains/system-security/inspector.js";

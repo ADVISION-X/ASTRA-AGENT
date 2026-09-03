@@ -82,7 +82,6 @@ const participantPath = (repo: string): string => {
 const gitAt = (path: string, args: string[]): string => execFileSync("git", args, {
   cwd: path, encoding: "utf8", maxBuffer: 64 * 1024 * 1024,
 }).trim();
-
 const providerLawDomains = (path: string, commit: string): Map<string, string> => {
   const laws = [
     ...parseLawSource(gitAt(path, ["show", `${commit}:${BASE}`]), BASE, "base-law", 100),
@@ -92,7 +91,6 @@ const providerLawDomains = (path: string, commit: string): Map<string, string> =
   if (lawDomains.size !== laws.length) fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${commit}:provider-law-identity`);
   return lawDomains;
 };
-
 const providerContracts = (path: string, commit: string, repo: string): ProviderContract[] => {
   const lawDomains = providerLawDomains(path, commit);
   const paths = gitAt(path, ["ls-tree", "-r", "--name-only", commit, "--", "docs/specs"])
@@ -107,7 +105,6 @@ const providerContracts = (path: string, commit: string, repo: string): Provider
     })];
   });
 };
-
 export const assertExactProviderContract = (
   repo: string, dependency: Dependency, available: readonly Dependency[],
 ): void => {
@@ -116,7 +113,6 @@ export const assertExactProviderContract = (
     && contract.contractId === dependency.contractId && contract.version === dependency.version);
   if (matches.length !== 1) fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:${dependency.contractId}:${dependency.version}`);
 };
-
 const bindReleaseParticipants = (): BoundParticipant[] => {
   const grouped = new Map<string, Dependency[]>();
   for (const dependency of consumerDependencies()) grouped.set(dependency.providerRepo, [
@@ -137,17 +133,14 @@ const bindReleaseParticipants = (): BoundParticipant[] => {
     return { path, report: { repo, gitCommit, contracts } };
   });
 };
-
 export const assertParticipantCommitIdentity = (expected: string, actual: string, repo: string): void => {
   if (actual !== expected) fail("RELEASE_PARTICIPANT_DRIFT", repo);
 };
-
 const assertParticipantCommits = (participants: readonly BoundParticipant[]): void => {
   for (const participant of participants) {
     assertParticipantCommitIdentity(participant.report.gitCommit, gitAt(participant.path, ["rev-parse", "HEAD"]), participant.report.repo);
   }
 };
-
 const inspectorPath = (domain: string): string => `scripts/audit/domains/${domain}/inspector.ts`;
 export const computeTargetPaths = (law: Law, registry: Registry): string[] => {
   const manifest = registry.domains.find((domain) => domain.capabilityDomain === law.capabilityDomain)
@@ -162,12 +155,10 @@ export const computeTargetPaths = (law: Law, registry: Registry): string[] => {
   }
   return paths;
 };
-
 const targetSet = (lawId: string, paths: readonly string[]): TargetSet => ({
   queryRef: `scope:${lawId}#appliesTo-minus-excludes`,
   count: paths.length,
 });
-
 const copyTargets = (paths: readonly string[], runDirectory: string, domain: string): string => {
   const root = mkdtempSync(resolve(runDirectory, `${domain}-sealed-`));
   for (const path of paths) {
@@ -177,14 +168,12 @@ const copyTargets = (paths: readonly string[], runDirectory: string, domain: str
   }
   return root;
 };
-
 export const parseInspectorOutput = (stdout: string, domain: string): SessionInspectorOutput => {
   const line = stdout.split("\n").find((current) => current.startsWith("GOVERNANCE_INSPECTOR_RESULT "));
   if (!line) fail("CHECK_EXECUTION_FAILED", `${domain}:missing inspector output`);
   try { return JSON.parse(line!.slice("GOVERNANCE_INSPECTOR_RESULT ".length)) as SessionInspectorOutput; }
   catch { return fail("CHECK_EXECUTION_FAILED", `${domain}:invalid inspector output`); }
 };
-
 const runStaticDomain = (
   domain: string,
   laws: Law[],
@@ -238,7 +227,6 @@ const runStaticDomain = (
   if (unknownFinding) fail("LAW_DENOMINATOR_MISSING", `${domain}:${unknownFinding.lawId}`);
   return output.lawResults.map(staticLawResult);
 };
-
 const findingCode = (finding: InspectorFinding): string => `STATIC_${finding.checkId.replace(/[^A-Za-z0-9]+/gu, "_").toUpperCase()}`.replace(/_+$/u, "");
 const staticLawResult = (result: InspectorLawResult): LawExecutionResult => ({
   lawId: result.lawId,
@@ -248,7 +236,6 @@ const staticLawResult = (result: InspectorLawResult): LawExecutionResult => ({
     evidenceRefs: ordered([`${finding.filePath ? "file:" + finding.filePath : "ast:scripts/audit/shared/quality-inspector-worker.ts"}#${encodeURIComponent(finding.checkId)}`]),
   })),
 });
-
 export const assertCandidateStable = (expected: string, actual: string, label: string): void => {
   if (actual !== expected) fail("CANDIDATE_DRIFT", label);
 };
@@ -271,7 +258,6 @@ const proofResults = (input: ProofResultInput): Map<string, ProofResult> => {
   }
   return results;
 };
-
 const proofRequestIndex = (
   routes: readonly ProofRoute[], requests: readonly QualityProofRequest[],
 ): Readonly<{ expected: ReadonlySet<string>; byRoute: ReadonlyMap<string, QualityProofRequest> }> => {
@@ -281,7 +267,6 @@ const proofRequestIndex = (
     || [...expected].some((key) => !byRoute.has(key))) fail("LAW_EVIDENCE_MISSING", "native proof route request");
   return { expected, byRoute };
 };
-
 const nativeReceiptMatches = (locator: string, receipt: string, nativeReceiptDirectory: string): boolean => {
   const filePath = resolve(locator);
   const receiptRoot = resolve(nativeReceiptDirectory);
@@ -292,7 +277,6 @@ const nativeReceiptMatches = (locator: string, receipt: string, nativeReceiptDir
     && fileStat.isFile() && !fileStat.isSymbolicLink() && fileStat.size <= 16 * 1024 * 1024
     && sha(readFileSync(filePath)) === receipt;
 };
-
 const observationAuthenticatesRequest = (
   observation: QualityProofObservation, request: QualityProofRequest, kind: "exam" | "dynamic",
   nativeReceiptDirectory: string | null, script: string,
@@ -334,7 +318,6 @@ const observationAuthenticatesRequest = (
         }));
   });
 };
-
 export const bindNativeProofObservations = (
   stdout: string,
   routes: readonly ProofRoute[],
@@ -369,7 +352,6 @@ export const bindNativeProofObservations = (
   }
   return bound;
 };
-
 const executeProofCommand = (
   kind: "exam" | "dynamic", script: string, routes: ProofRoute[],
   runDirectory: string, candidate: string,
@@ -419,7 +401,6 @@ const executeProofCommand = (
     routes, observations, executionPassed,
   });
 };
-
 const outputDirectory = (): string => {
   const requested = process.env.GRASSEYE_QUALITY_OUTPUT_DIR?.trim();
   if (requested) {
@@ -430,7 +411,6 @@ const outputDirectory = (): string => {
   }
   return mkdtempSync(resolve(tmpdir(), "grasseye-quality-"));
 };
-
 const addProofs = (resultsByLaw: Map<string, LawExecutionResult>, proofs: ReadonlyMap<string, ProofResult>): void => {
   for (const [lawId, proof] of proofs) {
     const current = resultsByLaw.get(lawId) ?? fail("LAW_DENOMINATOR_MISSING", lawId);
@@ -438,7 +418,6 @@ const addProofs = (resultsByLaw: Map<string, LawExecutionResult>, proofs: Readon
     current.findings.push(...proof.findings);
   }
 };
-
 const staticResults = (context: QualityRunContext): Map<string, LawExecutionResult> => {
   const targets = new Map(context.laws.map((law) => [law.lawId, computeTargetPaths(law, context.registry)]));
   const resultsByLaw = new Map<string, LawExecutionResult>();
@@ -452,7 +431,6 @@ const staticResults = (context: QualityRunContext): Map<string, LawExecutionResu
   }
   return resultsByLaw;
 };
-
 const runExamProofs = (context: QualityRunContext, resultsByLaw: Map<string, LawExecutionResult>): void => {
   for (const domain of context.registry.domains) {
     const routes = context.laws.filter((law) => law.capabilityDomain === domain.capabilityDomain)
@@ -462,7 +440,6 @@ const runExamProofs = (context: QualityRunContext, resultsByLaw: Map<string, Law
     addProofs(resultsByLaw, executeProofCommand("exam", script, routes, context.runDirectory, context.candidate));
   }
 };
-
 const runDynamicProofs = (context: QualityRunContext, resultsByLaw: Map<string, LawExecutionResult>): void => {
   const routesByScript = new Map<string, ProofRoute[]>();
   for (const law of context.laws) for (const mode of law.evidenceModes.filter((current) => current.startsWith("dynamic."))) {
@@ -472,7 +449,6 @@ const runDynamicProofs = (context: QualityRunContext, resultsByLaw: Map<string, 
   for (const [script, routes] of routesByScript) addProofs(resultsByLaw,
     executeProofCommand("dynamic", script, routes, context.runDirectory, context.candidate));
 };
-
 export const runFullQuality = async (level: Level): Promise<{ reportPath: string; outcome: "PASS" | "FAIL" }> => {
   if (level === "CHANGE") fail("ENTRY_CONTRACT_MISMATCH", "full quality requires READY or RELEASE");
   const registry = buildRegistry();

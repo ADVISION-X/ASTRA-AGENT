@@ -1,4 +1,4 @@
-import assert from "../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 
 import {
   RESULT_CONTRACT_ID,
@@ -20,10 +20,6 @@ import {
   ClaimedProductionTaskSchema,
   type ClaimedProductionTask,
 } from "../../src/lib/local-runtime/production/transport-protocol.js";
-import type {
-  GptChildCapabilityId,
-  GptChildCapabilityProof,
-} from "../../src/capabilities/gpt/index.js";
 import { authorizeWebsiteAgentTask } from "../../src/mediator/agent-production-route.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { executionFailure } from "../../src/lib/execution-failure.js";
@@ -33,32 +29,6 @@ import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/
 export const HASH_A = `sha256:${"a".repeat(64)}` as ProductionHash;
 export const HASH_B = `sha256:${"b".repeat(64)}` as ProductionHash;
 export const HASH_C = `sha256:${"c".repeat(64)}` as ProductionHash;
-
-export const gptProofEnvelope = (input: Readonly<{
-  childCapabilityId: GptChildCapabilityId;
-  exactCallIdentityHash: ProductionHash;
-  status: "success" | "failed";
-  decision: "DONE" | "ACT" | "WAIT" | "FAIL_CLOSED" | null;
-  candidateCount: number | null;
-  authorityRefHashes?: readonly ProductionHash[];
-  browserFact?: GptChildCapabilityProof["browserFact"];
-  nativeFailureCode?: string | null;
-}>): Pick<GptChildCapabilityProof,
-  "childContractVersion" | "childStatus" | "childReasonCode" | "exactCallIdentityHash"
-  | "internalDecisionCode" | "authorityRefHashes" | "factResultIds" | "candidateCardinality"
-  | "observationRevisionHash" | "browserFact" | "nativeFailureCode"> => Object.freeze({
-    childContractVersion: 2,
-    childStatus: input.status,
-    childReasonCode: input.status === "success" ? "GPT_CHILD_SUCCESS" : "GPT_CHILD_TEST_FAILURE",
-    exactCallIdentityHash: input.exactCallIdentityHash,
-    internalDecisionCode: input.decision,
-    authorityRefHashes: Object.freeze([...(input.authorityRefHashes ?? [])]),
-    factResultIds: Object.freeze([`gpt-fact-result:${input.exactCallIdentityHash.slice(7)}`]),
-    candidateCardinality: Object.freeze({ raw: input.candidateCount, eligible: input.candidateCount }),
-    observationRevisionHash: null,
-    browserFact: input.browserFact ?? null,
-    nativeFailureCode: input.nativeFailureCode ?? null,
-  });
 
 export const task = (input: Readonly<{
   jobId: string;

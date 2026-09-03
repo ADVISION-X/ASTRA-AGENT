@@ -8,8 +8,7 @@ import {
   type GptChildCapabilityIntent,
   type GptChildCapabilityResult,
 } from "./contract.js";
-import { gptExactCallIdentityHash } from "./ability-group.js";
-import type { ForensicsPersistenceAbilityGroup } from "../forensics-persistence/index.js";
+import { gptExactCallIdentityHash } from "./contract.js";
 import {
   RuntimeFailureImpact,
   requireRuntimeLogWrite,
@@ -51,6 +50,7 @@ import {
 } from "./confirmed-provider-readback.js";
 import { readTaskExactGptCallFacts } from "./task-exact-effect.js";
 import type {
+  GptEvidenceStorePort,
   GptProductionBrowserAuthority,
   GptProductionRuntimePort,
 } from "./production-ports.js";
@@ -85,7 +85,7 @@ export class ProductionGptChildTools {
     private readonly dataDir: string,
     private readonly sourceHash: GptHash,
     private readonly gpt: GptAbilityGroup,
-    private readonly evidenceStore: ForensicsPersistenceAbilityGroup,
+    private readonly evidenceStore: GptEvidenceStorePort,
     private readonly browserAuthority: GptProductionBrowserAuthority,
     private readonly runtime: GptProductionRuntimePort,
     private readonly runtimeLogger: RuntimeLogger,
@@ -127,23 +127,8 @@ export class ProductionGptChildTools {
     ): Promise<ProductGptChildResult<K>> => {
       this.assertExecutionActive(input);
       observedCalls.set(hashCanonical(call), call);
-      if (call.effectLookupKind === "task_exact_effect") {
-        const current = await readCallFacts(call);
-        if (!current.mutation && !current.evidence) {
-          const prior = await readCallFacts({ ...call, lookupKind: "task_exact_effect" });
-          if (prior.mutation || prior.evidence) {
-            const span = this.childSpan(input, this.intentFor(input, call));
-            const completed = await readCompletedGptChildResult({
-              call, facts: prior, evidenceStore: this.evidenceStore,
-              onSuccess: () => {
-                requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
-              },
-            });
-            if (!completed) throw executionFailure("failed", "GPT_TASK_EXACT_EFFECT_READBACK_MISSING");
-            return completed as ProductGptChildResult<K>;
-          }
-        }
-      }
+      const completed = await this.completedTaskExactEffect(input, call, readCallFacts);
+      if (completed) return completed;
       const result = await this.executeOne(input, browsers, call);
       authorizeConfirmedProviderReadback({ browsers, call, result, receipt: confirmedProviderSubmit });
       if ((call.child === "persist_gpt_continuation"
@@ -179,6 +164,25 @@ export class ProductionGptChildTools {
       ),
       settle: (error) => browsers.settle(error),
     });
+  }
+
+  private async completedTaskExactEffect<K extends GptChildCapabilityId>(
+    input: ExecutionInput,
+    call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
+    readCallFacts: (query: ProductGptFactQuery) => Promise<ExactGptCallFacts>,
+  ): Promise<ProductGptChildResult<K> | null> {
+    if (call.effectLookupKind !== "task_exact_effect") return null;
+    const current = await readCallFacts(call);
+    if (current.mutation || current.evidence) return null;
+    const prior = await readCallFacts({ ...call, lookupKind: "task_exact_effect" });
+    if (!prior.mutation && !prior.evidence) return null;
+    const span = this.childSpan(input, this.intentFor(input, call));
+    const completed = await readCompletedGptChildResult({
+      call, facts: prior, evidenceStore: this.evidenceStore,
+      onSuccess: () => { requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" })); },
+    });
+    if (!completed) throw executionFailure("failed", "GPT_TASK_EXACT_EFFECT_READBACK_MISSING");
+    return completed as ProductGptChildResult<K>;
   }
   private assertExecutionActive(input: ExecutionInput): void {
     if (!input.abortSignal.aborted) return;

@@ -4,9 +4,10 @@ export type {
   BrowserDomIntent,
   BrowserDomField,
   BrowserDomObservationField,
-  BrowserDomObservationPacket,
+  BrowserDomObservationPacketV2,
   BrowserDomObservationQuery,
   BrowserDomReadScope,
+  BrowserExactAssistantTurnReplyV1,
   BrowserSemanticLocator,
 } from "./exact-target/browser-dom-intent.js";
 export type { BrowserFileArtifactGrantV1 } from "./exact-target/browser-file-artifact-grant.js";

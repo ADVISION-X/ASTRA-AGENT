@@ -23,6 +23,77 @@ const finding = (
   }));
 };
 
+const requireTokens = (
+  text: string,
+  required: readonly string[],
+  findings: InspectorFinding[],
+  lawId: string,
+  filePath: string,
+  message: string,
+): void => {
+  for (const token of required) if (!text.includes(token)) {
+    finding(findings, lawId, filePath, `${message} ${token}.`);
+  }
+};
+
+const inspectMechanicalReader = (reader: string, findings: InspectorFinding[], lawId: string): void => {
+  requireTokens(reader, [
+    "element.isConnected === true", "element.getClientRects().length > 0", "current = current.parentElement",
+    "globalThis.getComputedStyle(current)", "effectiveOpacityNumber *= currentOpacity", "element.closest(\"[hidden]\")",
+    "displayHidden = true", "visibilityHidden = true", "opacityHidden = opacityHidden || effectiveOpacityNumber <= 0",
+    "element.closest(\"[aria-hidden='true']\")", "element.closest(\"[inert]\")", "element.matches(\":disabled\")",
+    "element.closest(\"[aria-disabled='true']\")", "includePointerFacts && pointerQualified ? document.elementFromPoint",
+    "nativeCauseCode: layout ? null : \"NO_LAYOUT_BOX\"",
+  ], findings, lawId, domMechanicalFactsPath, "The canonical Browser mechanical reader is missing");
+  const visibleExpression = reader.match(/const visible = ([\s\S]*?);/u)?.[1] ?? "";
+  if (visibleExpression.length === 0 || /ariaHidden|inert|disabled|hitTest/u.test(visibleExpression)) {
+    finding(findings, lawId, domMechanicalFactsPath,
+      "Rendered visibility must be mechanically proven and remain separate from semantic and action eligibility.");
+  }
+};
+
+const inspectMechanicalConsumers = (
+  factsText: string,
+  queryText: string,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  requireTokens(factsText, ["semanticEligible", "keyboardActionEligible", "pointerActionEligible"],
+    findings, lawId, domMechanicalFactsPath, "The Browser mechanical eligibility layers are missing");
+  requireTokens(queryText, ["semanticEligible(facts)", "pointerActionEligible(facts)", "requireKeyboardActionTarget"],
+    findings, lawId, QUERY_RUNTIME_PATH, "The canonical DOM query/action path is not consuming");
+};
+
+const inspectCoherentRuntime = (runtimeText: string, findings: InspectorFinding[], lawId: string): void => {
+  requireTokens(runtimeText, ["COHERENT_OBSERVATION_FUNCTION", "arguments: [{ value: specs }]",
+    "canonicalizeBrowserAuthorityValue", "observationRevisionHash", "mainFrameLoaderId",
+    "resolveCoherentMutationCandidate", "requireKeyboardActionTarget", "eligibilityReasons",
+    "scopeRejections", "rejections", "observedCandidateCount", "candidateIndex",
+    "observationIdentityHash", "browserMechanicalFacts(node, false)",
+    "DISCONNECTED", "DISPLAY_HIDDEN", "VISIBILITY_HIDDEN", "OPACITY_HIDDEN", "HTML_HIDDEN",
+    "ARIA_HIDDEN", "INERT", "TEXT_MISMATCH"], findings, lawId, domCoherentObservationPath,
+  "The one-command DOM observation/action path is missing");
+};
+
+const inspectMechanicalContract = (
+  contractText: string,
+  observationText: string,
+  queryText: string,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  requireTokens(contractText, ["rawCount", "eligibleCount", "effectiveOpacity", "scopeRejections", "rejections",
+    "nativeCauseCode", "nativeStage", "candidateIndex", "observationIdentityHash"], findings, lawId,
+  INTENT_CONTRACT_PATH, "The bounded Browser DOM contract is missing");
+  if (observationText.includes(".slice(0, 1024)") || queryText.includes("value.slice(0, maxChars)")
+    || contractText.includes("intent.maxChars > 65536")) finding(findings, lawId, domCoherentObservationPath,
+    "Browser DOM payloads must fail closed or return complete values; silent prefix truncation is forbidden.");
+  if (["\"bounds\"", "\"viewport\"", "\"hitTest\""].some((token) => contractText.includes(token))) finding(
+    findings, lawId, INTENT_CONTRACT_PATH,
+    "Pointer-only facts must not remain caller-requestable observation fields.",
+  );
+};
+
 export const inspectDomMechanicalFacts = (
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -39,57 +110,12 @@ export const inspectDomMechanicalFacts = (
   const readerInitializer = facts.getVariableDeclaration("BROWSER_MECHANICAL_FACTS_READER_SOURCE")?.getInitializer();
   const reader = readerInitializer && Node.isNoSubstitutionTemplateLiteral(readerInitializer)
     ? readerInitializer.getLiteralValue() : "";
-  for (const required of [
-    "element.isConnected === true", "element.getClientRects().length > 0", "current = current.parentElement",
-    "globalThis.getComputedStyle(current)", "effectiveOpacityNumber *= currentOpacity", "element.closest(\"[hidden]\")",
-    "displayHidden = true", "visibilityHidden = true", "opacityHidden = opacityHidden || effectiveOpacityNumber <= 0",
-    "element.closest(\"[aria-hidden='true']\")", "element.closest(\"[inert]\")", "element.matches(\":disabled\")",
-    "element.closest(\"[aria-disabled='true']\")", "includePointerFacts && pointerQualified ? document.elementFromPoint",
-    "nativeCauseCode: layout ? null : \"NO_LAYOUT_BOX\"",
-  ]) if (!reader.includes(required)) finding(findings, lawId, domMechanicalFactsPath,
-    `The canonical Browser mechanical reader is missing ${required}.`);
-
-  const visibleExpression = reader.match(/const visible = ([\s\S]*?);/u)?.[1] ?? "";
-  if (visibleExpression.length === 0 || /ariaHidden|inert|disabled|hitTest/u.test(visibleExpression)) {
-    finding(findings, lawId, domMechanicalFactsPath,
-      "Rendered visibility must be mechanically proven and remain separate from semantic and action eligibility.");
-  }
-
+  inspectMechanicalReader(reader, findings, lawId);
   const factsText = facts.getFullText();
-  for (const required of ["semanticEligible", "keyboardActionEligible", "pointerActionEligible"]) {
-    if (!factsText.includes(required)) finding(findings, lawId, domMechanicalFactsPath,
-      `The Browser mechanical eligibility layers are missing ${required}.`);
-  }
   const queryText = query.getFullText();
-  for (const required of ["semanticEligible(facts)", "pointerActionEligible(facts)", "requireKeyboardActionTarget"]) {
-    if (!queryText.includes(required)) finding(findings, lawId, QUERY_RUNTIME_PATH,
-      `The canonical DOM query/action path is not consuming ${required}.`);
-  }
+  inspectMechanicalConsumers(factsText, queryText, findings, lawId);
   const runtimeText = `${runtime.getFullText()}\n${observation.getFullText()}\n${candidate.getFullText()}`;
-  for (const required of ["COHERENT_OBSERVATION_FUNCTION", "arguments: [{ value: specs }]",
-    "canonicalizeBrowserAuthorityValue", "observationRevisionHash", "mainFrameLoaderId",
-    "resolveCoherentMutationCandidate", "requireKeyboardActionTarget", "eligibilityReasons",
-    "scopeRejections", "rejections", "observedCandidateCount", "candidateIndex",
-    "observationIdentityHash", "browserMechanicalFacts(node, false)",
-    "DISCONNECTED", "DISPLAY_HIDDEN", "VISIBILITY_HIDDEN", "OPACITY_HIDDEN", "HTML_HIDDEN",
-    "ARIA_HIDDEN", "INERT", "TEXT_MISMATCH"]) {
-    if (!runtimeText.includes(required)) finding(findings, lawId, domCoherentObservationPath,
-      `The one-command DOM observation/action path is missing ${required}.`);
-  }
+  inspectCoherentRuntime(runtimeText, findings, lawId);
   const contractText = contract.getFullText();
-  for (const required of ["rawCount", "eligibleCount", "effectiveOpacity", "scopeRejections", "rejections",
-    "nativeCauseCode", "nativeStage", "candidateIndex", "observationIdentityHash"]) {
-    if (!contractText.includes(required)) finding(findings, lawId, INTENT_CONTRACT_PATH,
-      `The bounded Browser DOM contract is missing ${required}.`);
-  }
-  if (observation.getFullText().includes(".slice(0, 1024)")
-    || query.getFullText().includes("value.slice(0, maxChars)")
-    || contractText.includes("intent.maxChars > 65536")) {
-    finding(findings, lawId, domCoherentObservationPath,
-      "Browser DOM payloads must fail closed or return complete values; silent prefix truncation is forbidden.");
-  }
-  if (["\"bounds\"", "\"viewport\"", "\"hitTest\""].some((token) => contractText.includes(token))) {
-    finding(findings, lawId, INTENT_CONTRACT_PATH,
-      "Pointer-only facts must not remain caller-requestable observation fields.");
-  }
+  inspectMechanicalContract(contractText, observation.getFullText(), queryText, findings, lawId);
 };

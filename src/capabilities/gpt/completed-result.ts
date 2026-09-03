@@ -1,5 +1,5 @@
-import type { ForensicsPersistenceAbilityGroup } from "../forensics-persistence/index.js";
 import { executionFailure } from "../../lib/execution-failure.js";
+import type { GptEvidenceStorePort } from "./production-ports.js";
 import {
   readGeneratedImageCheckpointArtifacts,
   readForkRelationArtifact,
@@ -16,7 +16,7 @@ import type {
 type ReplayInput = Readonly<{
   call: ProductGptCallInput;
   facts: ExactGptCallFacts;
-  evidenceStore: ForensicsPersistenceAbilityGroup;
+  evidenceStore: GptEvidenceStorePort;
   onSuccess(): void;
 }>;
 

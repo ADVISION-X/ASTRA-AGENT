@@ -91,7 +91,7 @@ const recordAssertion = (method: string, args: readonly unknown[]): void => {
 };
 
 const wrappedMethods = new Map<PropertyKey, unknown>();
-const governanceAssert: typeof nativeAssert = new Proxy(nativeAssert, {
+export const governanceAssert: typeof nativeAssert = new Proxy(nativeAssert, {
   apply(target, thisArg, args: unknown[]) {
     Reflect.apply(target, thisArg, args);
     recordAssertion("ok", args);
@@ -115,5 +115,3 @@ const governanceAssert: typeof nativeAssert = new Proxy(nativeAssert, {
     return wrapped;
   },
 }) as typeof nativeAssert;
-
-export default governanceAssert;

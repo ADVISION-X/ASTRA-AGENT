@@ -180,8 +180,7 @@ export const gptContinuationReservationComplete = (stored: StoredGptContinuation
 
 export const gptContinuationUsable = (stored: StoredGptContinuation): boolean =>
   stored.reservation_kind === "persisted"
-    ? stored.current_checkpoint !== null
-      && stored.lane_owner_job_id === null
+    ? stored.current_checkpoint !== null && stored.lane_owner_job_id === null
     : gptContinuationReservationComplete(stored);
 
 export interface GptContinuationStorePort {

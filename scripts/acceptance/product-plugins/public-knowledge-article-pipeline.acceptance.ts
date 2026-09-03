@@ -1,10 +1,10 @@
-import assert from "../../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 import { productionPluginCatalog } from "../../../src/lib/local-runtime/production/catalog.js";
 import { typedExecutionFailure } from "../../../src/lib/execution-failure.js";
-import { postSubmitReadbackReceipt } from "../../../src/capabilities/gpt/execution-fault.js";
+import { postSubmitReadbackReceipt } from "../../../src/lib/local-runtime/production/plugin.js";
 import { parsePublicKnowledgeArticle, parsePublicKnowledgeResearch } from "../../../src/plugins/public-knowledge-article-pipeline/result-contract.js";
 import {
   articleOutput,

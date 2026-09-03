@@ -2,6 +2,15 @@ import { type InspectorContext, type InspectorFinding } from "../../shared/inspe
 import { createLocalFinding, identifiers, requireIdentifiers, requireSource, sourcePaths, targetAuthorityPath } from "./inspector-support.js";
 
 type RequiredSource = NonNullable<ReturnType<typeof requireSource>>;
+type InvocationPayloadSources = Readonly<{
+  transport: RequiredSource;
+  extensionActor: RequiredSource;
+  extensionCrypto: RequiredSource;
+  journal: RequiredSource;
+  commandLogging: RequiredSource;
+  commandDiagnostic: RequiredSource;
+  frameDiagnostic: RequiredSource;
+}>;
 const authenticatedMediaRuntimePath =
   "src/lib/browser/chrome-extension/authenticated-media-runtime.ts";
 const extensionActorPath = "src/lib/browser/chrome-extension/websocket-actor.ts";
@@ -80,16 +89,12 @@ const inspectAuthenticatedMediaBoundary = (
 };
 
 const inspectClosedInvocationPayloadBoundary = (
-  transport: RequiredSource,
-  extensionActor: RequiredSource,
-  extensionCrypto: RequiredSource,
-  journal: RequiredSource,
-  commandLogging: RequiredSource,
-  commandDiagnostic: RequiredSource,
-  frameDiagnostic: RequiredSource,
+  sources: InvocationPayloadSources,
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
+  const { transport, extensionActor, extensionCrypto, journal, commandLogging,
+    commandDiagnostic, frameDiagnostic } = sources;
   const requiredByFile = [
     [sourcePaths[0], transport.getFullText(), [
       "encryptedFrame(active, \"COMMAND\"", "{ permit, command }",
@@ -184,8 +189,8 @@ export const inspectOpaqueAuthorityBoundary = (
     targetAuthority, authenticatedMediaRuntime, leaseManager, findings, lawId,
   );
   inspectClosedInvocationPayloadBoundary(
-    transport, extensionActor, extensionCrypto, journal, commandLogging,
-    commandDiagnostic, frameDiagnostic, findings, lawId,
+    { transport, extensionActor, extensionCrypto, journal, commandLogging, commandDiagnostic, frameDiagnostic },
+    findings, lawId,
   );
   for (const required of [
     "invocationPayloads", "rawPayloadFragments", "encryptedFrameBody",

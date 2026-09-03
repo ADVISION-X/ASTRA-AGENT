@@ -31,4 +31,6 @@ interface ForensicsPersistenceAbilityGroup {
   }>): Promise<Readonly<{ recordRef: string; record: Readonly<Record<string, unknown>> }> | null>;
 }
 
-export type { ForensicsPersistenceAbilityGroup };
+export type {
+  ForensicsPersistenceAbilityGroup,
+};

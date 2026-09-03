@@ -56,32 +56,9 @@ const TerminalReceiptExpectationSourceSchema = z.object({
   }
 });
 
-export const ProductionProductIdSchema = z.enum([
-  "bazi_chart_interpretation",
-  "bazi_ai_full_analysis",
-  "bazi_report_followup",
-  "qimen_professional_answer",
-  "qimen_report_followup",
-  "hehun_ai_analysis",
-  "hehun_report_followup",
-  "naming_bazi_analysis_and_naming",
-  "naming_from_existing_bazi_report",
-  "public_knowledge_article_pipeline",
-  "localization_report_translation",
-  "localization_article_translation",
-  "payment_screenshot_observation",
-]);
+export const ProductionProductIdSchema = z.string().min(1).max(160);
 
-const ProductionActionIdSchema = z.enum([
-  "produce",
-  "followup",
-  "produce_article",
-  "report_translation",
-  "article_translation",
-  "observe",
-  "accuracy_challenge",
-  "quality_reflection",
-]);
+const ProductionActionIdSchema = z.string().min(1).max(160);
 
 const ProductionMaterialSchema = z.object({
   material_id: z.string().min(1).max(240),
@@ -162,17 +139,6 @@ export const WebsiteAgentTaskSchema = WebsiteAgentTaskBaseSchema.superRefine((ta
   if (identities.size !== task.material_refs.length || ordinals.size !== task.material_refs.length
     || names.size !== task.material_refs.length) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "AGENT_MATERIAL_IDENTITY_DUPLICATE" });
-  }
-  const review = task.action_id === "accuracy_challenge" || task.action_id === "quality_reflection";
-  const reviewFields = [
-    task.subject_task_ref,
-    task.subject_result_ref,
-    task.subject_result_hash,
-    task.review_policy,
-  ];
-  if ((review && reviewFields.some((value) => value === undefined))
-    || (!review && reviewFields.some((value) => value !== undefined))) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "AGENT_REVIEW_SUBJECT_INVALID" });
   }
   const { request_hash: _requestHash, job_id: _jobId, ...canonical } = task;
   if (hashCanonical(canonical) !== task.request_hash) {

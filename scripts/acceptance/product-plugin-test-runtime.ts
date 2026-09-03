@@ -1,11 +1,12 @@
-import assert from "../audit/shared/governance-exam-assert.js";
+import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
   gptAttachmentProviderDisplayName,
-  type GptChildCapabilityId,
+  type ProductGptAnyCallInput,
+  type ProductGptTools,
   type GptProviderContinuation,
 } from "../../src/capabilities/gpt/index.js";
 import {
@@ -20,9 +21,6 @@ import type {
 } from "../../src/lib/local-runtime/production/plugin.js";
 import type {
   ExactGptContinuationReadback,
-  ProductGptAnyCallInput,
-  ProductGptCallInput,
-  ProductGptChildResult,
 } from "../../src/capabilities/gpt/index.js";
 import type { ProductionRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
 
@@ -30,6 +28,7 @@ export const FIXTURE_HASH = `sha256:${"a".repeat(64)}` as ProductionHash;
 export const FIXTURE_HASH_B = `sha256:${"b".repeat(64)}` as ProductionHash;
 
 type ProductCall = ProductGptAnyCallInput & Readonly<{ sessionKey: string }>;
+type ProductExecuteInput = Parameters<ProductGptTools["execute"]>[0];
 type ProductFact = Readonly<{ evidenceRef: string; mutation: boolean }>;
 
 export type ProductTaskFixture = Readonly<{
@@ -277,9 +276,7 @@ const createGptFixture = (
       continuation: null,
     };
   },
-  execute: async <K extends GptChildCapabilityId>(
-    call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
-  ): Promise<ProductGptChildResult<K>> => {
+  execute: async (call: ProductExecuteInput) => {
     const productCall = call as ProductCall;
     state.calls.push(productCall);
     const key = callKey(productCall);
@@ -292,8 +289,7 @@ const createGptFixture = (
     });
     state.laneOwned = outcome.laneOwned;
     state.provider = outcome.provider;
-    return { value: outcome.value as ProductGptChildResult<K>["value"],
-      evidenceRef, evidenceHash: FIXTURE_HASH };
+    return { value: outcome.value, evidenceRef, evidenceHash: FIXTURE_HASH } as never;
   },
 });
 

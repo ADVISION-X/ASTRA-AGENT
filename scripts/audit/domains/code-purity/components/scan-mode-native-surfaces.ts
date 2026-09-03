@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, globSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { createFinding, selectLawId } from "../../../shared/finding-utils.js";
@@ -92,6 +92,11 @@ const commandSourcePaths = (command: string): string[] => command.split(/\s+/u)
   .map((token) => token.replace(/^["']|["',]$/gu, ""))
   .filter((token) => /^(?:scripts|src)\/.+\.(?:[cm]?js|tsx?)$/u.test(token));
 
+const configuredEntrypointExists = (root: string, repoPath: string): boolean =>
+  repoPath.includes("*")
+    ? globSync(repoPath, { cwd: root }).length > 0
+    : existsSync(resolve(root, repoPath));
+
 export const scanConfiguredEntrypointLiveness = (
   context: InspectorContext, lawIds: readonly string[],
 ): InspectorFinding[] => {
@@ -99,7 +104,7 @@ export const scanConfiguredEntrypointLiveness = (
   return Object.entries(readPackage(context).scripts ?? {}).flatMap(([name, value]) => {
     if (typeof value !== "string") return [finding(lawId, "static.config", "package.json",
       "code-purity/config-entrypoint-type", `Script ${name} has no executable string entrypoint.`)];
-    return commandSourcePaths(value).filter((repoPath) => !existsSync(resolve(context.sealedRoot, repoPath)))
+    return commandSourcePaths(value).filter((repoPath) => !configuredEntrypointExists(context.sealedRoot, repoPath))
       .map((repoPath) => finding(lawId, "static.config", "package.json",
         "code-purity/config-zombie-entrypoint", `Script ${name} points to missing source entrypoint ${repoPath}.`));
   });

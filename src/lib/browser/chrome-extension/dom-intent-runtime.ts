@@ -13,9 +13,49 @@ type HoverIntent = Extract<BrowserDomIntent, { kind: "hover" }>;
 type DoubleClickIntent = Extract<BrowserDomIntent, { kind: "doubleClick" }>;
 type KeypressIntent = Extract<BrowserDomIntent, { kind: "keypress" }>;
 type ValueIntent = Exclude<BrowserDomIntent, {
-  kind: "document" | "observe" | "find" | "click" | "hover" | "doubleClick" | "keypress";
+  kind: "document" | "observe" | "readExactAssistantTurn" | "find" | "click" | "hover" | "doubleClick" | "keypress";
 }>;
 type CurrentDocumentAssertion = () => void;
+
+const sha256Text = async (value: string): Promise<`sha256:${string}`> => {
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return `sha256:${[...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+};
+
+const executeExactAssistantTurnRead = async (
+  debuggerRuntime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  assistantTurnId: string,
+  assertCurrent: CurrentDocumentAssertion,
+): Promise<unknown> => {
+  const selector = `[data-testid="${assistantTurnId}"][data-turn="assistant"] [data-message-author-role="assistant"]`;
+  const candidates = await queryCandidateSet(debuggerRuntime, target.tabId, selector, 2);
+  if (candidates.rawCount !== 1 || candidates.eligibleCount !== 1 || candidates.eligibleNodeIds.length !== 1) {
+    throw new Error(candidates.eligibleCount === 0
+      ? "BROWSER_DOM_CANDIDATE_MISSING" : "BROWSER_DOM_CANDIDATE_AMBIGUOUS");
+  }
+  assertCurrent();
+  const observed = await inspectNode(
+    debuggerRuntime, target.tabId, candidates.eligibleNodeIds[0]!, ["outerHtml", "semanticText"],
+  );
+  assertCurrent();
+  const rawDomHtml = observed.outerHtml;
+  const semanticText = observed.semanticText;
+  if (typeof rawDomHtml !== "string" || typeof semanticText !== "string") {
+    throw new Error("BROWSER_DOM_READ_INVALID");
+  }
+  return Object.freeze({
+    schemaVersion: "grasseye.browser.exact-assistant-turn.v1" as const,
+    targetRefHash: await sha256Text(target.targetRef),
+    documentRefHash: await sha256Text(target.documentRef),
+    assistantTurnId,
+    rawDomHtml,
+    rawDomHash: await sha256Text(rawDomHtml),
+    semanticText,
+    semanticTextHash: await sha256Text(semanticText),
+    observedAt: new Date().toISOString(),
+  });
+};
 /** Executes the finite declarative DOM intent set without a script/eval surface. */
 const executeFindIntent = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
@@ -427,6 +467,13 @@ const executeValueIntent = async (
     ...(postconditionVerified ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }),
   };
 };
+const executeDocumentReadIntent = (
+  debuggerRuntime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  intent: Extract<BrowserDomIntent, { kind: "document" | "observe" }>,
+): Promise<unknown> => intent.kind === "document"
+  ? documentState(debuggerRuntime, target.tabId)
+  : executeCoherentObservation(debuggerRuntime, target, intent.queries);
 
 export const executeRegisteredDomIntent = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
@@ -435,8 +482,14 @@ export const executeRegisteredDomIntent = async (
   assertCurrent: CurrentDocumentAssertion,
 ): Promise<unknown> => {
   assertCurrent();
-  if (intent.kind === "document") return documentState(debuggerRuntime, target.tabId);
-  if (intent.kind === "observe") return executeCoherentObservation(debuggerRuntime, target, intent.queries);
+  if (intent.kind === "document" || intent.kind === "observe") {
+    return executeDocumentReadIntent(debuggerRuntime, target, intent);
+  }
+  if (intent.kind === "readExactAssistantTurn") {
+    return executeExactAssistantTurnRead(
+      debuggerRuntime, target, intent.assistantTurnId, assertCurrent,
+    );
+  }
   if (intent.kind === "find") return executeFindIntent(debuggerRuntime, target, intent);
   if (intent.kind === "click") return executeClickIntent(debuggerRuntime, target, intent, assertCurrent);
   if (intent.kind === "hover") return executeHoverIntent(debuggerRuntime, target, intent, assertCurrent);

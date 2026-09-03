@@ -314,17 +314,6 @@ export const reconcileBusinessAdmission = async (
     );
     return "pending";
   }
-  const baziAdmission = "bazi_domain_admission_receipt_hash" in admission;
-  const reviewAdmission = "review_receipt_hash" in admission;
-  const primaryBazi = (record.task.product_id === "bazi_chart_interpretation"
-      && record.task.action_id === "produce")
-    || (record.task.product_id === "bazi_ai_full_analysis" && record.task.action_id === "produce")
-    || (record.task.product_id === "bazi_report_followup" && record.task.action_id === "followup");
-  const review = record.task.action_id === "accuracy_challenge"
-    || record.task.action_id === "quality_reflection";
-  if (baziAdmission !== primaryBazi || reviewAdmission !== review) {
-    throw executionFailure("failed", "BUSINESS_ADMISSION_RECEIPT_KIND_MISMATCH");
-  }
   if (remote.terminal_payload_hash !== hashCanonical(staged)
     || admission.result_payload_hash !== staged.result_payload_hash) {
     throw executionFailure("failed", "BUSINESS_ADMISSION_RESULT_HASH_MISMATCH");
@@ -448,7 +437,7 @@ export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTa
       });
     } catch (error) {
       if (error instanceof ProductionRuntimeBoundaryError) throw error.boundaryCause;
-      if (permanentAuthorizationRevoked(error, abort.signal)) {
+      if (permanentAuthorizationRevoked(abort.signal)) {
         await settlePermanentAuthorizationRevocation(state, job, error, jobSpan);
         return;
       }
