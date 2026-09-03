@@ -17,9 +17,8 @@ import { websiteAgentTaskFromClaim, type ClaimedProductionTask } from "./transpo
 
 export const permanentAuthorizationRevoked = (error: unknown, signal: AbortSignal): boolean => {
   const reason = typeof signal.reason === "string" ? signal.reason : "";
-  return reason === "CONTROL_INTENT:cancel_requested:PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED"
-    || failureCode(error) === "AI_PERMANENT_AUTHORIZATION_REVOKED"
-    || failureCode(error).includes("CONTROL_INTENT:cancel_requested:PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
+  void error;
+  return reason === "CONTROL_INTENT:cancel_requested:PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED";
 };
 
 export const remotePermanentAuthorizationRevoked = (

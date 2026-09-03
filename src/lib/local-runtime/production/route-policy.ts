@@ -39,7 +39,7 @@ if (projection.schema_version !== "website-agent-route-policies.v1"
   || projection.contract_id !== "ai-acceptance.website-agent-task-result"
   || projection.contract_version !== 1
   || !projection.parameter_types
-  || Object.keys(projection.parameter_types).length !== 55
+  || Object.keys(projection.parameter_types).length !== 57
   || projection.routes.length !== 39) {
   throw new Error("PRODUCTION_ROUTE_POLICY_PROJECTION_INVALID");
 }
@@ -89,8 +89,13 @@ const parameterValidators: Readonly<Record<ProductionParameterType, ParameterVal
 
 const primaryProducts = productionRoutePolicies.filter((entry) => entry.relation_kind !== "review")
   .map((entry) => entry.product_id);
+const resultContractCount = productionRoutePolicies.filter((entry) => entry.result_contract !== undefined).length;
+const reusableBaseReservationRouteCount = productionRoutePolicies.filter((entry) =>
+  entry.required_parameter_keys.includes("reusable_base_reservation_ref")
+  && entry.required_parameter_keys.includes("reusable_base_reservation_hash")).length;
 if (primaryProducts.length !== 13 || new Set(primaryProducts).size !== 13
-  || productionRoutePolicies.length !== 39 || productionRoutePolicyMap.size !== 39) {
+  || productionRoutePolicies.length !== 39 || productionRoutePolicyMap.size !== 39
+  || resultContractCount !== 30 || reusableBaseReservationRouteCount !== 2) {
   throw new Error("PRODUCTION_ROUTE_POLICY_DENOMINATOR_INVALID");
 }
 

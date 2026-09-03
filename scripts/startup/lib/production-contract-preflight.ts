@@ -18,21 +18,21 @@ const dependencyMatches = (
   dependency.schemaVersion === 1,
   dependency.specKind === "cross-repo-dependency",
   dependency.status === "active",
-  dependency.version === 14,
+  dependency.version === 15,
   contract.contractId === "ai-acceptance.xuanxue-ai-production-v6",
   contract.providerRepo === "ADVISION-X/xuanxue-web",
-  contract.version === 14,
+  contract.version === 15,
 ].every(Boolean);
 
 export async function verifyProductionDependency(input: {
   readonly agentDependencyPath: string;
-}): Promise<Readonly<{ status: "READY"; version: 14 }>> {
+}): Promise<Readonly<{ status: "READY"; version: 15 }>> {
   const dependency = await readJson(input.agentDependencyPath);
   const contract = record(dependency.contract);
   if (!contract || !dependencyMatches(dependency, contract)) {
     throw new Error("AI_PRODUCTION_DEPENDENCY_INVALID");
   }
-  return Object.freeze({ status: "READY", version: 14 });
+  return Object.freeze({ status: "READY", version: 15 });
 }
 
 export const productionDependencyPath = (input: {

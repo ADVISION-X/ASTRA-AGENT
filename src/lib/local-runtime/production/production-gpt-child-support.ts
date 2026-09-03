@@ -1,10 +1,9 @@
 import type { GptChildCapabilityResult } from "../../../capabilities/gpt/index.js";
 import { withRuntimeLogCause } from "../../runtime-logs/index.js";
 import { executionFailure } from "../../typed-failure.js";
-import type { ProductionExecutionLease } from "./executor.js";
 import { childFailureEventIds, persistedEvidenceRefs } from "./gpt-evidence-writer.js";
 import type { ProductGptTools } from "./plugin.js";
-import type { ProductionHash, WebsiteAgentTask } from "./contracts.js";
+import type { ProductionExecutionLease, ProductionHash, WebsiteAgentTask } from "./contracts.js";
 
 export type GptChildExecutionInput = Readonly<{
   task: WebsiteAgentTask;

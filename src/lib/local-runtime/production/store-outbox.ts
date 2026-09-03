@@ -10,16 +10,19 @@ import {
   type RemoteReceipt,
 } from "./store-outbox-recovery-proof.js";
 import { ProductionStoreTaskState } from "./store-task-state.js";
+import { productionOutboxAuthorityFromRow } from "./store-authority-validation.js";
 import {
   json,
   now,
   type ProductionOutboxAuthority,
+  type ProductionOutboxAuthorityRow,
   type ProductionOutboxWrite,
 } from "./store-foundation.js";
 
 const OUTBOX_TRANSIENT_RETRY_DELAY_MS = 5_000;
 const OUTBOX_LOW_FREQUENCY_RETRY_DELAY_MS = 3_600_000;
 const PERMANENT_REVOCATION_REASON = "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED";
+const jobPathMarker = (jobId: string): string => `/jobs/${encodeURIComponent(jobId)}/`;
 
 const retryDelay = (error: unknown): number => {
   const typed = typedExecutionFailure(error);
@@ -131,9 +134,9 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
 
   public hasUnsentOutbox(jobId: string): boolean {
     return Boolean(this.database.prepare(`select 1 from production_outbox
-      where path like ? and sent_at is null
+      where instr(path,?)>0 and sent_at is null
         and (last_error is null or next_delivery_at is not null) limit 1`
-    ).get(`%/jobs/${encodeURIComponent(jobId)}/%`));
+    ).get(jobPathMarker(jobId)));
   }
 
   public scheduledCheckpointFailure(input: Readonly<{
@@ -144,9 +147,9 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
     attemptFailure: unknown;
   }>): string | null {
     const rows = this.database.prepare(`select body_blob,last_error from production_outbox
-      where kind='checkpoint' and path like ? and sent_at is null and response_hash is null
+      where kind='checkpoint' and instr(path,?)>0 and sent_at is null and response_hash is null
         and last_error is not null and next_delivery_at is not null order by created_at,idempotency_key`
-    ).all(`%/jobs/${encodeURIComponent(input.jobId)}/%`) as Array<{
+    ).all(jobPathMarker(input.jobId)) as Array<{
       body_blob: Buffer; last_error: string;
     }>;
     for (const row of rows) {
@@ -215,8 +218,8 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
       }
       const rows = this.database.prepare(`select idempotency_key,kind,path,headers_json,body_blob,
         sent_at,last_error,response_json,response_hash,next_delivery_at
-        from production_outbox where path like ? order by created_at,idempotency_key`
-      ).all(`%/jobs/${encodeURIComponent(input.jobId)}/%`) as RecoveryOutboxRow[];
+        from production_outbox where instr(path,?)>0 order by created_at,idempotency_key`
+      ).all(jobPathMarker(input.jobId)) as RecoveryOutboxRow[];
       if (rows.length === 0 || rows.some((row) => row.kind !== "checkpoint")) {
         throw executionFailure("failed", "PRODUCTION_RECOVERY_RESULT_WRITE_PRESENT");
       }
@@ -257,10 +260,10 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
   public deferOutboxReconciliation(jobId: string, error: unknown): number {
     const nextDeliveryAt = new Date(Date.now() + retryDelay(error)).toISOString();
     const changed = this.database.prepare(`update production_outbox
-      set last_error=?,next_delivery_at=? where path like ?
+      set last_error=?,next_delivery_at=? where instr(path,?)>0
         and sent_at is null and response_hash is null`
     ).run(failureCode(error, "OUTBOX_RECONCILIATION_FAILED"), nextDeliveryAt,
-      `%/jobs/${encodeURIComponent(jobId)}/%`);
+      jobPathMarker(jobId));
     this.notifyOutbox(this.outboxAuthorities().find((row) => row.jobId === jobId) ?? null);
     return changed.changes;
   }
@@ -272,9 +275,9 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
         throw executionFailure("failed", "PRODUCTION_REVOCATION_TASK_AUTHORITY_INVALID");
       }
       const changed = this.database.prepare(`update production_outbox
-        set last_error=?,next_delivery_at=null where path like ?
+        set last_error=?,next_delivery_at=null where instr(path,?)>0
           and sent_at is null and response_hash is null`
-      ).run(PERMANENT_REVOCATION_REASON, `%/jobs/${encodeURIComponent(jobId)}/%`);
+      ).run(PERMANENT_REVOCATION_REASON, jobPathMarker(jobId));
       this.database.prepare(`update production_tasks set current_reason=?,updated_at=?
         where job_id=? and status='failed'`).run(currentReason, now(), jobId);
       this.database.prepare(
@@ -313,22 +316,11 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
   }
 
   public readOutboxAuthority(idempotencyKey: string): ProductionOutboxAuthority | null {
-    const row = this.database.prepare(`select idempotency_key,kind,path,sent_at,last_error,response_hash,receipt_hash,
-      next_delivery_at
-      from production_outbox where idempotency_key=?`).get(idempotencyKey) as Readonly<{
-      idempotency_key: string; kind: ProductionOutboxWrite["kind"]; path: string; sent_at: string | null;
-      last_error: string | null; response_hash: ProductionHash | null; receipt_hash: ProductionHash | null;
-      next_delivery_at: string | null;
-    }> | undefined;
+    const row = this.database.prepare(`select idempotency_key,kind,path,method,headers_json,body_blob,created_at,
+      sent_at,last_error,response_json,response_hash,receipt_hash,next_delivery_at
+      from production_outbox where idempotency_key=?`).get(idempotencyKey) as ProductionOutboxAuthorityRow | undefined;
     if (!row) return null;
-    const match = /\/jobs\/([^/]+)\//u.exec(row.path);
-    if (!match?.[1]) throw new Error("PRODUCTION_OUTBOX_JOB_ID_MISSING");
-    return Object.freeze({
-      idempotencyKey: row.idempotency_key, jobId: decodeURIComponent(match[1]), kind: row.kind,
-      state: row.sent_at && row.response_hash ? "delivered" : "pending",
-      nextDeliveryAt: row.next_delivery_at, lastError: row.last_error,
-      responseHash: row.response_hash, receiptHash: row.receipt_hash,
-    });
+    return productionOutboxAuthorityFromRow(row, idempotencyKey);
   }
 
   public outboxAuthorities(): readonly ProductionOutboxAuthority[] {

@@ -10,9 +10,12 @@ import { ProductionStoreOutbox } from "./store-outbox.js";
 import {
   json,
   resolveProductionAuthority,
+  stateInvariantFailureCount,
   type ProductionOutboxWrite,
   type StoredProductionTask,
 } from "./store-foundation.js";
+import { productionTaskAuthorityValid } from "./store-authority-validation.js";
+import type { ProductionRuntimeStorageResponsibilities } from "./runtime-storage-inventory.js";
 
 type TerminalRow = Readonly<{ body_blob: Buffer; response_json: string | null }>;
 type LedgerRow = Readonly<{
@@ -130,6 +133,29 @@ export class ProductionRuntimeStore extends ProductionStoreOutbox {
       `select count(*) as count from production_outbox where sent_at is null
         and (last_error is null or next_delivery_at is not null)`,
     ).get() as { count: number }).count);
+  }
+
+  public assertStartupDataIntegrity(): void {
+    let corrupt = false;
+    try {
+      const tasks = this.taskAuthorities();
+      corrupt = tasks.some((record) => !productionTaskAuthorityValid(record))
+        || stateInvariantFailureCount(this.database) !== 0
+        || this.frontierContinuationInvariantFailures().length > 0
+        || !this.isLedgerConsistent(new Set());
+    } catch { corrupt = true; }
+    if (corrupt) throw executionFailure("failed", "PRODUCTION_RUNTIME_DATA_CORRUPT");
+  }
+
+  public storageResponsibilities(): ProductionRuntimeStorageResponsibilities {
+    const count = (sql: string): number => Number((this.database.prepare(sql).get() as { count: number }).count);
+    return Object.freeze({
+      task_ids: Object.freeze(this.taskAuthorities().map((record) => record.task.job_id)),
+      outbox_responsibility_count: count("select count(*) as count from production_outbox"),
+      pending_outbox_count: count("select count(*) as count from production_outbox where sent_at is null"),
+      continuation_count: count("select count(*) as count from production_continuations"),
+      active_lease_count: count("select count(*) as count from production_leases where state='active'"),
+    });
   }
 
   private buildLedgerProjection(

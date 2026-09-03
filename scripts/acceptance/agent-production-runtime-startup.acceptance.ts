@@ -1,13 +1,23 @@
 import assert from "../audit/shared/governance-exam-assert.js";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import Database from "better-sqlite3";
 
 import { createGptAbilityGroup } from "../../src/capabilities/gpt/index.js";
 import { createForensicsPersistenceAbilityGroupFromStorage } from "../../src/capabilities/forensics-persistence/index.js";
 import { ProductionExecutor } from "../../src/lib/local-runtime/production/executor.js";
+import {
+  productionCredentialPath,
+  readProductionCredential,
+} from "../../src/lib/local-runtime/production/credential.js";
 import { terminalSpanFailure } from "../../src/lib/local-runtime/production/runtime-logging.js";
 import { startProductionRuntime } from "../../src/lib/local-runtime/production/runtime.js";
+import {
+  productionRuntimeTaskRoot,
+  productionRuntimeTaskPath,
+  readProductionRuntimeStorageInventory,
+} from "../../src/lib/local-runtime/production/runtime-storage-inventory.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { DeviceCredentialSchema } from "../../src/lib/local-runtime/production/transport-protocol.js";
 import {
@@ -21,9 +31,22 @@ import {
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import { executionFailure, typedExecutionFailure } from "../../src/lib/typed-failure.js";
 import { verifyProductionDependency } from "../startup/lib/production-contract-preflight.js";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { HASH_A, HASH_B, task } from "./agent-production-runtime-fixtures.js";
 import "./agent-production-runtime-recovery-contract.acceptance.js";
 import "./agent-production-runtime-recovery-resume.acceptance.js";
+
+const validDeviceCredential = {
+  protocol_version: "xuanxue-ai-production-v6",
+  server_base_url: "http://127.0.0.1:4322",
+  environment_id: "production",
+  origin: "http://127.0.0.1:4173",
+  device_id: "device:projection-owner-test",
+  device_epoch: 7,
+  control_manifest_hash: HASH_A,
+  credential: `aidc_v6_${"a".repeat(32)}`,
+  enrolled_at: new Date().toISOString(),
+} as const;
 
 const projectionTemporary = await mkdtemp(path.join(tmpdir(), "agent-production-dependency-"));
 try {
@@ -35,7 +58,7 @@ try {
   await writeFile(dependencyPath, JSON.stringify(dependency), { mode: 0o600 });
   assert.deepEqual(await verifyProductionDependency({
     agentDependencyPath: dependencyPath,
-  }), { status: "READY", version: 14 });
+  }), { status: "READY", version: 15 });
 
   const contract = dependency.contract as Record<string, unknown>;
   await writeFile(dependencyPath, JSON.stringify({
@@ -47,24 +70,137 @@ try {
     /AI_PRODUCTION_DEPENDENCY_INVALID/u,
   );
 
-  const device = {
-    protocol_version: "xuanxue-ai-production-v6",
-    server_base_url: "http://127.0.0.1:4322",
-    environment_id: "production",
-    origin: "http://127.0.0.1:4173",
-    device_id: "device:projection-owner-test",
-    device_epoch: 7,
-    control_manifest_hash: HASH_A,
-    credential: `aidc_v6_${"a".repeat(32)}`,
-    enrolled_at: new Date().toISOString(),
-  } as const;
-  assert.equal(DeviceCredentialSchema.parse(device).device_epoch, 7);
-  const { control_manifest_hash: _manifestHash, ...missingManifest } = device;
+  assert.equal(DeviceCredentialSchema.parse(validDeviceCredential).device_epoch, 7);
+  const { control_manifest_hash: _manifestHash, ...missingManifest } = validDeviceCredential;
   assert.throws(() => DeviceCredentialSchema.parse({
     ...missingManifest,
   }));
 } finally {
   await rm(projectionTemporary, { recursive: true, force: true });
+}
+
+const credentialTemporary = await mkdtemp(path.join(tmpdir(), "agent-production-credential-"));
+const expectCredentialCode = async (dataDir: string, code: string): Promise<void> => {
+  await assert.rejects(readProductionCredential(dataDir),
+    (error: unknown) => typedExecutionFailure(error)?.code === code);
+};
+const writeCredential = async (
+  dataDir: string,
+  value: unknown,
+  mode = 0o600,
+): Promise<string> => {
+  const destination = productionCredentialPath(dataDir);
+  await mkdir(path.dirname(destination), { recursive: true, mode: 0o700 });
+  await chmod(path.dirname(destination), 0o700);
+  await writeFile(destination, typeof value === "string" ? value : JSON.stringify(value), { mode });
+  await chmod(destination, mode);
+  return destination;
+};
+try {
+  await expectCredentialCode(path.join(credentialTemporary, "missing-parent"),
+    "PRODUCTION_CREDENTIAL_PARENT_MISSING");
+  const missingFile = path.join(credentialTemporary, "missing-file");
+  await mkdir(path.dirname(productionCredentialPath(missingFile)), { recursive: true, mode: 0o700 });
+  await expectCredentialCode(missingFile, "PRODUCTION_CREDENTIAL_MISSING");
+
+  const malformed = path.join(credentialTemporary, "malformed");
+  await writeCredential(malformed, "{");
+  await expectCredentialCode(malformed, "PRODUCTION_CREDENTIAL_JSON_INVALID");
+
+  const missingManifest = path.join(credentialTemporary, "missing-manifest");
+  const { control_manifest_hash: _controlManifestHash, ...withoutManifest } = validDeviceCredential;
+  await writeCredential(missingManifest, withoutManifest);
+  await expectCredentialCode(missingManifest, "PRODUCTION_CREDENTIAL_CONTROL_MANIFEST_MISSING");
+
+  const invalidOrigin = path.join(credentialTemporary, "invalid-origin");
+  await writeCredential(invalidOrigin, { ...validDeviceCredential, origin: "ftp://example.com" });
+  await expectCredentialCode(invalidOrigin, "PRODUCTION_CREDENTIAL_ORIGIN_INVALID");
+
+  const permissiveFile = path.join(credentialTemporary, "permissive-file");
+  await writeCredential(permissiveFile, validDeviceCredential, 0o644);
+  await expectCredentialCode(permissiveFile, "PRODUCTION_CREDENTIAL_FILE_PERMISSIONS_INVALID");
+
+  const permissiveParent = path.join(credentialTemporary, "permissive-parent");
+  const permissiveParentFile = await writeCredential(permissiveParent, validDeviceCredential);
+  await chmod(path.dirname(permissiveParentFile), 0o755);
+  await expectCredentialCode(permissiveParent, "PRODUCTION_CREDENTIAL_PARENT_PERMISSIONS_INVALID");
+
+  const linked = path.join(credentialTemporary, "linked");
+  const linkedDestination = productionCredentialPath(linked);
+  await mkdir(path.dirname(linkedDestination), { recursive: true, mode: 0o700 });
+  const linkTarget = path.join(credentialTemporary, "credential-target.json");
+  await writeFile(linkTarget, JSON.stringify(validDeviceCredential), { mode: 0o600 });
+  await symlink(linkTarget, linkedDestination);
+  await expectCredentialCode(linked, "PRODUCTION_CREDENTIAL_SYMLINK_INVALID");
+
+  const valid = path.join(credentialTemporary, "valid");
+  await writeCredential(valid, validDeviceCredential);
+  assert.deepEqual(await readProductionCredential(valid), validDeviceCredential);
+} finally {
+  await rm(credentialTemporary, { recursive: true, force: true });
+}
+
+const inventoryTemporary = await mkdtemp(path.join(tmpdir(), "agent-production-storage-inventory-"));
+const responsibilities = (taskIds: readonly string[]) => ({
+  task_ids: taskIds, outbox_responsibility_count: 0, pending_outbox_count: 0,
+  continuation_count: 0, active_lease_count: 0,
+});
+try {
+  const empty = await readProductionRuntimeStorageInventory(
+    path.join(inventoryTemporary, "empty"), responsibilities([]),
+  );
+  assert.deepEqual({
+    directory_count: empty.directory_count,
+    owned_directory_count: empty.owned_directory_count,
+    orphan_directory_count: empty.orphan_directory_count,
+    orphan_bytes: empty.orphan_bytes,
+    orphan_job_ids: empty.orphan_job_ids,
+  }, { directory_count: 0, owned_directory_count: 0, orphan_directory_count: 0,
+    orphan_bytes: 0, orphan_job_ids: [] });
+  for (const invalidJobId of ["..", "nested/job", "nested\\job", "\0"] as const) {
+    assert.throws(() => productionRuntimeTaskPath(inventoryTemporary, invalidJobId),
+      (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_STORAGE_JOB_ID_INVALID");
+  }
+
+  const dataDir = path.join(inventoryTemporary, "with-directories");
+  const root = productionRuntimeTaskRoot(dataDir);
+  await mkdir(path.join(root, "job:owned", "materials"), { recursive: true });
+  await mkdir(path.join(root, "job:orphan", "materials"), { recursive: true });
+  await writeFile(path.join(root, "job:owned", "materials", "owned.txt"), "owned");
+  await writeFile(path.join(root, "job:orphan", "materials", "orphan.txt"), "orphan");
+  const inventory = await readProductionRuntimeStorageInventory(dataDir, responsibilities(["job:owned"]));
+  assert.equal(inventory.directory_count, 2);
+  assert.equal(inventory.owned_directory_count, 1);
+  assert.equal(inventory.orphan_directory_count, 1);
+  assert.deepEqual(inventory.orphan_job_ids, ["job:orphan"]);
+  assert.ok(inventory.orphan_bytes >= Buffer.byteLength("orphan"));
+
+  const blockedByInventory = await startProductionRuntime({
+    dataDir,
+    sourceHash: HASH_A,
+    gpt: createGptAbilityGroup(),
+    evidenceStore: createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(dataDir)),
+    browserAuthority: { readProductionRuntimeState: () => ({
+      browserAuthorityState: "absent" as const, browserTargetState: "absent" as const,
+    }) } as never,
+    runtimeLogger: createRuntimeLogger({
+      producer: "agent-storage-inventory", owner: "production-runtime", component: "storage-inventory",
+      terminalEnabled: false, fileSink: { directoryPath: path.join(inventoryTemporary, "runtime-logs") },
+    }),
+  });
+  assert.equal(blockedByInventory.readHealth().lastErrorCode,
+    "PRODUCTION_ORPHAN_STORAGE_RECONCILIATION_REQUIRED");
+  await blockedByInventory.close();
+
+  const linkedFile = path.join(inventoryTemporary, "linked-material.txt");
+  await writeFile(linkedFile, "linked");
+  await symlink(linkedFile, path.join(root, "job:owned", "materials", "linked.txt"));
+  await assert.rejects(readProductionRuntimeStorageInventory(
+    dataDir, responsibilities(["job:owned", "job:orphan"]),
+  ),
+    (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_STORAGE_SYMLINK_INVALID");
+} finally {
+  await rm(inventoryTemporary, { recursive: true, force: true });
 }
 
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-production-startup-"));
@@ -77,6 +213,39 @@ try {
       browserTargetState: "absent" as const,
     }),
   };
+  const corruptDataDirectory = path.join(temporary, "corrupt-continuation");
+  await mkdir(corruptDataDirectory, { recursive: true });
+  const corruptStore = new ProductionRuntimeStore(corruptDataDirectory);
+  const corruptTask = task({
+    jobId: "job:corrupt-continuation", productId: "bazi_ai_full_analysis", actionId: "produce",
+  });
+  corruptStore.acceptTask(corruptTask, {
+    catalog_hash: HASH_A, plugin_id: "bazi-ai-full-analysis", plugin_version: 1,
+    skill_hash: HASH_B, checkpoint_schema_version: 1, request_hash: corruptTask.request_hash,
+  }, "attempt:corrupt-continuation");
+  corruptStore.close();
+  const corruptDatabase = new Database(path.join(corruptDataDirectory, "production-runtime.sqlite"));
+  corruptDatabase.prepare(`insert into production_continuations(
+    continuation_ref,reservation_kind,reservation_identity_hash,origin_job_id,origin_plugin_version,
+    plugin_id,owner_ref,subject_ref,authorization_ref,frontier_ref,lane_version,created_at
+  ) values(?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+    "continuation:corrupt", "persisted", HASH_B, corruptTask.job_id, 1,
+    "bazi-ai-full-analysis", "owner:1", "subject:1", "authorization:1", HASH_B, 1,
+    new Date().toISOString(),
+  );
+  corruptDatabase.close();
+  const corruptBlocked = await startProductionRuntime({
+    dataDir: corruptDataDirectory, sourceHash: HASH_A, gpt: createGptAbilityGroup(),
+    evidenceStore: createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(corruptDataDirectory)),
+    browserAuthority: browserAuthority as never,
+    runtimeLogger: createRuntimeLogger({
+      producer: "agent-corrupt-data", owner: "production-runtime", component: "startup-integrity",
+      terminalEnabled: false, fileSink: { directoryPath: path.join(temporary, "runtime-logs") },
+    }),
+  });
+  assert.equal(corruptBlocked.readHealth().lastErrorCode, "PRODUCTION_RUNTIME_DATA_CORRUPT");
+  await corruptBlocked.close();
+
   const blockedShellDirectory = path.join(temporary, "blocked-shell");
   const crashOrphanDirectory = path.join(blockedShellDirectory, "generated-images", "crash-orphan-mutant");
   await mkdir(crashOrphanDirectory, { recursive: true });
@@ -285,3 +454,22 @@ assert.doesNotMatch(runtimeSource, /handleClaimFailure/u);
 assert.match(runtimeSource, /error instanceof ProductionRuntimeBoundaryError/u);
 assert.match(runtimeSource, /material\.checkpointSeq \+ 1/u);
 assert.match(runtimeSource, /RUNTIME_RECOVERY_REQUIRED:/u);
+
+for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
+  emitQualityProofObservation({
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V1",
+    evidenceMode,
+    clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
+    locator: `acceptance:agent-production-runtime:credential:${evidenceMode}`,
+    observedValue: "credential missing parent missing file malformed JSON missing manifest invalid origin unsafe permissions and symlink each failed with one stable typed code while a valid credential read back exactly",
+  });
+}
+for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
+  emitQualityProofObservation({
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V1",
+    evidenceMode,
+    clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
+    locator: `acceptance:agent-production-runtime:storage-inventory:${evidenceMode}`,
+    observedValue: "read-only storage inventory preserved owned data reported exact orphan denominator rejected symlinks and blocked claim before credential without deleting any target",
+  });
+}

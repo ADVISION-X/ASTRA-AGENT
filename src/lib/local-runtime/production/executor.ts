@@ -9,25 +9,13 @@ import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-s
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../../mediator/agent-production-route.js";
 import { productionCatalogHash } from "./catalog.js";
 import type {
-  DurablePluginIdentity, LocalProductionMaterial, ProductionHash, WebsiteAgentResult, WebsiteAgentTask,
+  DurablePluginIdentity, LocalProductionMaterial, ProductionExecutionLease, ProductionHash,
+  WebsiteAgentResult, WebsiteAgentTask,
 } from "./contracts.js";
 import type { ProductPluginOutput } from "./plugin.js";
 import { ProductionGptChildTools, type ProductGptExecution } from "./production-gpt-child-tools.js";
 import { assertProductionTaskRoutePolicy } from "./route-policy.js";
 import { ProductionRuntimeStore, type StoredProductionTask } from "./store.js";
-
-export interface ProductionExecutionLease {
-  readonly attempt_id: string;
-  readonly device_id: string;
-  readonly lease_version: number;
-  readonly execution_fence_hash: ProductionHash;
-  readonly control_manifest_hash: ProductionHash;
-  readonly max_provider_turns: number;
-  provider_turns_used: number;
-  expires_at_monotonic: number;
-  command_ttl_ms: number;
-  readonly abort_signal: AbortSignal;
-}
 
 export interface ProductionExecutionResult {
   readonly record: StoredProductionTask;

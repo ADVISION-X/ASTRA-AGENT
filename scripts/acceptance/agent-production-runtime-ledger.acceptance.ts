@@ -1,13 +1,16 @@
 import assert from "../audit/shared/governance-exam-assert.js";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
 
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
+import { resolveStoredProductionAuthority } from
+  "../../src/lib/local-runtime/production/store-authority-reader.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
-import { executionFailure, serializeTerminalFailure } from "../../src/lib/typed-failure.js";
-import { HASH_A, identityFor, resultFor, task } from "./agent-production-runtime-fixtures.js";
+import { executionFailure, serializeTerminalFailure, typedExecutionFailure } from "../../src/lib/typed-failure.js";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
+import { HASH_A, HASH_B, identityFor, resultFor, task } from "./agent-production-runtime-fixtures.js";
 
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-production-ledger-"));
 const columns = (database: Database.Database, table: string): string[] =>
@@ -190,6 +193,31 @@ try {
     where job_id=? and attempt_id=?`).get(binaryTask.job_id, secondAttempt) as { count: number }).count), 1);
   const thirdAttempt = "attempt:binary:3";
   assert.equal(store.acceptTask(binaryTask, identity, thirdAttempt).attempt_failure, null);
+  const failedCheckpoint = store.recordCheckpoint({
+    jobId: binaryTask.job_id, attemptId: thirdAttempt, checkpointId: "attempt_failure",
+    checkpointHash: null, state: "failed",
+  });
+  assert.equal(resolveStoredProductionAuthority(
+    dataDirectory, `production-checkpoint:${binaryTask.job_id}`, hashCanonical(failedCheckpoint),
+  ), "verified", "a legal failed checkpoint must remain readable authority");
+
+  const wildcardTask = task({ jobId: "job:a_b", productId: "bazi_ai_full_analysis", actionId: "produce" });
+  const wildcardNeighbor = task({ jobId: "job:acb", productId: "bazi_ai_full_analysis", actionId: "produce" });
+  for (const [candidate, key] of [[wildcardTask, "checkpoint:wildcard-target"],
+    [wildcardNeighbor, "checkpoint:wildcard-neighbor"]] as const) {
+    store.acceptTask(candidate, identityFor(candidate), `attempt:${candidate.job_id}`);
+    store.enqueue({
+      idempotency_key: key, kind: "checkpoint",
+      path: `/internal/ai-production/v6/jobs/${encodeURIComponent(candidate.job_id)}/checkpoints`,
+      method: "POST", headers: {}, body: "{}",
+    });
+  }
+  assert.equal(store.settlePermanentlyRevokedJob(wildcardTask.job_id, "AUTHORIZATION_REVOKED"), 1,
+    "permanent revocation must select one literal encoded job path, not a SQL LIKE wildcard");
+  assert.equal(store.hasUnsentOutbox(wildcardTask.job_id), false);
+  assert.equal(store.hasUnsentOutbox(wildcardNeighbor.job_id), true,
+    "a similar job id must retain its independent pending Outbox intent");
+  assert.equal(store.readOutboxAuthority("checkpoint:wildcard-neighbor")?.lastError, null);
 
   const outboxPath = `/internal/ai-production/v6/jobs/${encodeURIComponent(binaryTask.job_id)}/checkpoints`;
   const pendingBeforeDeterministic = store.pendingOutboxCount();
@@ -280,6 +308,16 @@ try {
     { status: store.readTask(binaryTask.job_id)?.status, reason: store.readTask(binaryTask.job_id)?.current_reason },
     { status: "completed", reason: null },
   );
+  const taskAuthority = store.readTask(binaryTask.job_id)!;
+  assert.equal(resolveStoredProductionAuthority(
+    dataDirectory, `production-task:${binaryTask.job_id}`, hashCanonical(taskAuthority),
+  ), "verified");
+  assert.equal(resolveStoredProductionAuthority(
+    dataDirectory, `production-task:${binaryTask.job_id}`, HASH_A,
+  ), "mismatch");
+  assert.equal(resolveStoredProductionAuthority(
+    dataDirectory, "production-task:job:not-present", HASH_A,
+  ), "missing");
   store.enqueue({
     idempotency_key: "checkpoint:legacy-null-schedule", kind: "checkpoint", path: outboxPath,
     method: "POST", headers: {}, body: '{"legacy":true}',
@@ -333,6 +371,129 @@ try {
     .run("job:must-be-cleared", "recovery_pending", "legacy");
   nonemptyLegacy.close();
   assert.throws(() => new ProductionRuntimeStore(nonemptyLegacyDirectory), /PRODUCTION_SCHEMA_MIGRATION_REQUIRED/u);
+
+  const extraIndexDirectory = path.join(temporary, "extra-index");
+  await mkdir(extraIndexDirectory);
+  new ProductionRuntimeStore(extraIndexDirectory).close();
+  const extraIndex = new Database(path.join(extraIndexDirectory, "production-runtime.sqlite"));
+  extraIndex.exec("create index unauthorized_runtime_index on production_tasks(updated_at)");
+  extraIndex.close();
+  assert.throws(() => new ProductionRuntimeStore(extraIndexDirectory), /PRODUCTION_SCHEMA_MIGRATION_REQUIRED/u,
+    "an additional index must fail exact schema readback");
+
+  const missingAuthorityDirectory = path.join(temporary, "missing-authority");
+  await mkdir(missingAuthorityDirectory);
+  assert.throws(
+    () => resolveStoredProductionAuthority(missingAuthorityDirectory, "production-task:job:1", HASH_A),
+    (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_AUTHORITY_STORE_MISSING",
+  );
+  const unreadableAuthorityDirectory = path.join(temporary, "unreadable-authority");
+  await mkdir(path.join(unreadableAuthorityDirectory, "production-runtime.sqlite"), { recursive: true });
+  assert.throws(
+    () => resolveStoredProductionAuthority(unreadableAuthorityDirectory, "production-task:job:1", HASH_A),
+    (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_AUTHORITY_STORE_UNREADABLE",
+  );
+  const corruptAuthorityDirectory = path.join(temporary, "corrupt-authority");
+  await mkdir(corruptAuthorityDirectory);
+  const corruptAuthorityPath = path.join(corruptAuthorityDirectory, "production-runtime.sqlite");
+  const corruptAuthority = new Database(corruptAuthorityPath);
+  corruptAuthority.exec("create table unrelated(value text)");
+  corruptAuthority.close();
+  assert.throws(
+    () => resolveStoredProductionAuthority(corruptAuthorityDirectory, "production-task:job:1", HASH_A),
+    (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_AUTHORITY_STORE_CORRUPT",
+  );
+
+  const malformedDatabaseDirectory = path.join(temporary, "malformed-database");
+  await mkdir(malformedDatabaseDirectory);
+  await writeFile(path.join(malformedDatabaseDirectory, "production-runtime.sqlite"), "not-a-sqlite-database");
+  assert.throws(
+    () => new ProductionRuntimeStore(malformedDatabaseDirectory),
+    (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_SCHEMA_CORRUPT",
+  );
+
+  const malformedOutboxDirectory = path.join(temporary, "malformed-outbox");
+  await mkdir(malformedOutboxDirectory);
+  const malformedOutboxStore = new ProductionRuntimeStore(malformedOutboxDirectory);
+  const malformedTask = task({ jobId: "job:malformed-outbox", productId: "bazi_ai_full_analysis", actionId: "produce" });
+  malformedOutboxStore.acceptTask(malformedTask, identityFor(malformedTask), "attempt:malformed-outbox");
+  malformedOutboxStore.enqueue({
+    idempotency_key: "outbox:malformed", kind: "checkpoint",
+    path: `/internal/ai-production/v6/jobs/${encodeURIComponent(malformedTask.job_id)}/checkpoints`,
+    method: "POST", headers: {}, body: "{}",
+  });
+  malformedOutboxStore.close();
+  const malformedOutboxDatabase = new Database(path.join(malformedOutboxDirectory, "production-runtime.sqlite"));
+  malformedOutboxDatabase.prepare("update production_outbox set kind='bogus',method='DELETE',path='/broken'").run();
+  malformedOutboxDatabase.close();
+  const malformedOutboxReopened = new ProductionRuntimeStore(malformedOutboxDirectory);
+  assert.throws(() => malformedOutboxReopened.assertStartupDataIntegrity(), /PRODUCTION_RUNTIME_DATA_CORRUPT/u);
+  malformedOutboxReopened.close();
+  assert.throws(
+    () => resolveStoredProductionAuthority(malformedOutboxDirectory, "production-outbox:outbox:malformed", HASH_A),
+    (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_AUTHORITY_STORE_CORRUPT",
+  );
+
+  const rowIdentityDirectory = path.join(temporary, "row-identity");
+  await mkdir(rowIdentityDirectory);
+  const rowIdentityStore = new ProductionRuntimeStore(rowIdentityDirectory);
+  const rowIdentityTask = task({ jobId: "job:row-identity", productId: "bazi_ai_full_analysis", actionId: "produce" });
+  rowIdentityStore.acceptTask(rowIdentityTask, identityFor(rowIdentityTask), "attempt:row-identity");
+  rowIdentityStore.recordLease({ jobId: rowIdentityTask.job_id, attemptId: "attempt:row-identity",
+    leaseVersion: 1, fenceHash: HASH_A, state: "active", expiresAt: "2026-09-03T12:00:00.000Z" });
+  rowIdentityStore.close();
+  const rowIdentityDatabase = new Database(path.join(rowIdentityDirectory, "production-runtime.sqlite"));
+  rowIdentityDatabase.prepare("update production_leases set lease_version=0").run();
+  rowIdentityDatabase.close();
+  assert.throws(() => resolveStoredProductionAuthority(
+    rowIdentityDirectory, `production-lease:${rowIdentityTask.job_id}`, HASH_A,
+  ), (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_AUTHORITY_STORE_CORRUPT");
+  const taskIdentityDatabase = new Database(path.join(rowIdentityDirectory, "production-runtime.sqlite"));
+  taskIdentityDatabase.prepare("update production_leases set lease_version=1").run();
+  taskIdentityDatabase.prepare("update production_tasks set request_hash=?").run(HASH_B);
+  taskIdentityDatabase.close();
+  assert.throws(() => new ProductionRuntimeStore(rowIdentityDirectory), /PRODUCTION_DATA_CORRUPT/u);
+  assert.throws(() => resolveStoredProductionAuthority(
+    rowIdentityDirectory, `production-task:${rowIdentityTask.job_id}`, HASH_A,
+  ), (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_AUTHORITY_STORE_CORRUPT");
+
+  const invariantDirectory = path.join(temporary, "checkpoint-lease-invariants");
+  await mkdir(invariantDirectory);
+  const invariantStore = new ProductionRuntimeStore(invariantDirectory);
+  const invariantTask = task({ jobId: "job:checkpoint-lease-invariants",
+    productId: "bazi_ai_full_analysis", actionId: "produce" });
+  invariantStore.acceptTask(invariantTask, identityFor(invariantTask), "attempt:current");
+  invariantStore.recordCheckpoint({
+    jobId: invariantTask.job_id, attemptId: "attempt:current", checkpointId: "attempt_failure",
+    checkpointHash: null, state: "failed",
+  });
+  invariantStore.recordLease({
+    jobId: invariantTask.job_id, attemptId: "attempt:current", leaseVersion: 1,
+    fenceHash: HASH_A, state: "absent", expiresAt: null,
+  });
+  const invariantDatabase = Reflect.get(invariantStore, "database") as Database.Database;
+  invariantDatabase.prepare(`update production_checkpoints
+    set checkpoint_id=null,checkpoint_hash=? where job_id=?`).run(HASH_A, invariantTask.job_id);
+  invariantDatabase.prepare(`update production_leases
+    set attempt_id='attempt:wrong',expires_at=? where job_id=?`
+  ).run("2026-09-03T12:00:00.000Z", invariantTask.job_id);
+  assert.throws(() => invariantStore.readCheckpoint(invariantTask.job_id), /PRODUCTION_AUTHORITY_ROW_CORRUPT/u);
+  assert.throws(() => invariantStore.readLease(invariantTask.job_id), /PRODUCTION_AUTHORITY_ROW_CORRUPT/u);
+  assert.throws(() => invariantStore.assertStartupDataIntegrity(), /PRODUCTION_RUNTIME_DATA_CORRUPT/u,
+    "live startup integrity must reject invalid state shape and wrong-attempt authority");
+  invariantStore.close();
+  assert.throws(() => new ProductionRuntimeStore(invariantDirectory), /PRODUCTION_DATA_CORRUPT/u,
+    "ordinary store startup must reject the same invalid checkpoint and lease rows");
 } finally {
   await rm(temporary, { recursive: true, force: true });
+}
+
+for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
+  emitQualityProofObservation({
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V1",
+    evidenceMode,
+    clauses: ["forbidden:0", "forbidden:1", "summary"],
+    locator: `acceptance:agent-production-runtime:sqlite-authority:${evidenceMode}`,
+    observedValue: "six-table SQLite authority exact schema and data drift failed closed without automatic migration while verified missing mismatch and corrupt authority states remained distinct",
+  });
 }

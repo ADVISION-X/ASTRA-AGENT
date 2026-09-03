@@ -1,7 +1,6 @@
 import path from "node:path";
 
 import type { GptAbilityGroup } from "../../../capabilities/gpt/index.js";
-import { resolveStoredBrowserMutationAuthority } from "../../browser/exact-target/browser-mutation-store.js";
 import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-support.js";
 import { executionFailure } from "../../typed-failure.js";
 import {
@@ -10,7 +9,8 @@ import {
   type RuntimeLogger,
 } from "../../runtime-logs/index.js";
 import type { ProductionHash } from "./contracts.js";
-import type { ProductionExecutionLease, ProductionExecutor } from "./executor.js";
+import type { ProductionExecutionLease } from "./contracts.js";
+import type { ProductionExecutor } from "./executor.js";
 import type {
   ProductionCheckpointAuthority,
   ProductionLeaseAuthority,
@@ -46,11 +46,7 @@ export const diagnoseProductionRuntime = (
 ): RuntimeDiagnosis => diagnoseRuntimeLog({
   sources: [path.join(dataDir, "runtime-logs")],
   traceId: jobId,
-  authorityResolver: (authorityRef, authorityHash) => {
-    const production = store.resolveAuthority(authorityRef, authorityHash);
-    return production !== "missing" ? production
-      : resolveStoredBrowserMutationAuthority(dataDir, authorityRef, authorityHash);
-  },
+  authorityResolver: (authorityRef, authorityHash) => store.resolveAuthority(authorityRef, authorityHash),
 });
 
 export const refreshLedgerReconciled = (state: RuntimeState): void => {

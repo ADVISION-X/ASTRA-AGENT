@@ -6,7 +6,7 @@ import {
 } from "../../runtime-logs/index.js";
 import { renewProductionLease } from "./cloud-client.js";
 import { hashCanonical, type ProductionHash } from "./contracts.js";
-import type { ProductionExecutionLease } from "./executor.js";
+import type { ProductionExecutionLease } from "./contracts.js";
 import { terminalSpanFailure } from "./runtime-logging.js";
 import {
   jobIdentity,

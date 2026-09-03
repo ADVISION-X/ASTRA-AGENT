@@ -29,6 +29,25 @@ export type RemoteProductionWriteReceipt = Readonly<{
   response_json: Record<string, unknown>;
 }>;
 
+type BaseBusinessAdmissionReceipt = Readonly<{
+  schema_version: "xuanxue-ai-business-admission-receipt.v6";
+  job_id: string;
+  result_payload_hash: ProductionHash;
+  consumer_ref: string;
+  outcome: "completed";
+  consumption_hash: ProductionHash;
+  consumed_at: string;
+}>;
+
+export type BusinessAdmissionReceipt =
+  | BaseBusinessAdmissionReceipt
+  | Readonly<BaseBusinessAdmissionReceipt & {
+    bazi_domain_admission_receipt_hash: ProductionHash;
+    delivery_manifest_id: string;
+    delivery_manifest_hash: ProductionHash;
+  }>
+  | Readonly<BaseBusinessAdmissionReceipt & { review_receipt_hash: ProductionHash }>;
+
 export type RemoteProductionDeviceJobStatus = Readonly<{
   job_id: string;
   status: string;
@@ -36,19 +55,81 @@ export type RemoteProductionDeviceJobStatus = Readonly<{
   control_intent: ControlIntent;
   terminal_status: "completed" | null;
   terminal_payload_hash: ProductionHash | null;
-  business_admission_receipt: Readonly<{
-    schema_version: "xuanxue-ai-business-admission-receipt.v6";
-    job_id: string;
-    result_payload_hash: ProductionHash;
-    consumer_ref: string;
-    outcome: "completed";
-    consumption_hash: ProductionHash;
-    consumed_at: string;
-  }> | null;
+  business_admission_receipt: BusinessAdmissionReceipt | null;
   business_consumer_error: string | null;
   accepted_attempt_count: number;
   write_receipts: readonly RemoteProductionWriteReceipt[];
 }>;
+
+const admissionBaseKeys = [
+  "schema_version", "job_id", "result_payload_hash", "consumer_ref",
+  "outcome", "consumption_hash", "consumed_at",
+];
+const admissionBaziKeys = [
+  "bazi_domain_admission_receipt_hash", "delivery_manifest_id", "delivery_manifest_hash",
+];
+const admissionReviewKeys = ["review_receipt_hash"];
+type BusinessAdmissionKind = "base" | "bazi" | "review";
+const exactAdmissionKeys = (row: Record<string, unknown>, extra: readonly string[]): boolean =>
+  JSON.stringify(Object.keys(row).sort()) === JSON.stringify([...admissionBaseKeys, ...extra].sort());
+const admissionKind = (row: Record<string, unknown>): BusinessAdmissionKind | null => {
+  if (exactAdmissionKeys(row, [])) return "base";
+  if (exactAdmissionKeys(row, admissionBaziKeys)) return "bazi";
+  if (exactAdmissionKeys(row, admissionReviewKeys)) return "review";
+  return null;
+};
+const productionHash = (value: unknown): value is ProductionHash =>
+  typeof value === "string" && /^sha256:[a-f0-9]{64}$/u.test(value);
+const admissionBaseValid = (
+  row: Record<string, unknown>,
+  jobId: string,
+  expectedHash: ProductionHash,
+): boolean => row.schema_version === "xuanxue-ai-business-admission-receipt.v6"
+  && row.job_id === jobId && productionHash(row.result_payload_hash)
+  && typeof row.consumer_ref === "string" && row.consumer_ref.length > 0
+  && row.outcome === "completed" && row.consumption_hash === expectedHash
+  && typeof row.consumed_at === "string" && Number.isFinite(Date.parse(row.consumed_at));
+const admissionExtensionValid = (
+  row: Record<string, unknown>,
+  kind: BusinessAdmissionKind,
+): boolean => kind === "base"
+  || (kind === "bazi" && productionHash(row.bazi_domain_admission_receipt_hash)
+    && typeof row.delivery_manifest_id === "string" && row.delivery_manifest_id.length > 0
+    && productionHash(row.delivery_manifest_hash))
+  || (kind === "review" && productionHash(row.review_receipt_hash));
+const admissionHash = (
+  row: Record<string, unknown>,
+  kind: BusinessAdmissionKind,
+): ProductionHash => hashCanonical({
+  job_id: row.job_id,
+  result_payload_hash: row.result_payload_hash,
+  ...(kind === "bazi" ? {
+    bazi_domain_admission_receipt_hash: row.bazi_domain_admission_receipt_hash,
+    delivery_manifest_id: row.delivery_manifest_id,
+    delivery_manifest_hash: row.delivery_manifest_hash,
+  } : {}),
+  ...(kind === "review" ? { review_receipt_hash: row.review_receipt_hash } : {}),
+  consumer_ref: row.consumer_ref,
+  outcome: row.outcome,
+});
+const freezeAdmission = (
+  row: Record<string, unknown>,
+  kind: BusinessAdmissionKind,
+): BusinessAdmissionReceipt => Object.freeze({
+  schema_version: "xuanxue-ai-business-admission-receipt.v6",
+  job_id: row.job_id as string,
+  result_payload_hash: row.result_payload_hash as ProductionHash,
+  ...(kind === "bazi" ? {
+    bazi_domain_admission_receipt_hash: row.bazi_domain_admission_receipt_hash as ProductionHash,
+    delivery_manifest_id: row.delivery_manifest_id as string,
+    delivery_manifest_hash: row.delivery_manifest_hash as ProductionHash,
+  } : {}),
+  ...(kind === "review" ? { review_receipt_hash: row.review_receipt_hash as ProductionHash } : {}),
+  consumer_ref: row.consumer_ref as string,
+  outcome: "completed",
+  consumption_hash: row.consumption_hash as ProductionHash,
+  consumed_at: row.consumed_at as string,
+}) as BusinessAdmissionReceipt;
 
 const parseBusinessAdmissionReceipt = (
   jobId: string,
@@ -59,30 +140,12 @@ const parseBusinessAdmissionReceipt = (
     throw executionFailure("failed", "V6_BUSINESS_ADMISSION_RECEIPT_INVALID");
   }
   const row = value as Record<string, unknown>;
-  const expectedHash = hashCanonical({
-    job_id: row.job_id,
-    result_payload_hash: row.result_payload_hash,
-    consumer_ref: row.consumer_ref,
-    outcome: row.outcome,
-  });
-  if (row.schema_version !== "xuanxue-ai-business-admission-receipt.v6"
-    || row.job_id !== jobId
-    || typeof row.result_payload_hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(row.result_payload_hash)
-    || typeof row.consumer_ref !== "string" || !row.consumer_ref
-    || row.outcome !== "completed"
-    || typeof row.consumption_hash !== "string" || row.consumption_hash !== expectedHash
-    || typeof row.consumed_at !== "string" || !Number.isFinite(Date.parse(row.consumed_at))) {
+  const kind = admissionKind(row);
+  if (!kind || !admissionBaseValid(row, jobId, admissionHash(row, kind))
+    || !admissionExtensionValid(row, kind)) {
     throw executionFailure("failed", "V6_BUSINESS_ADMISSION_RECEIPT_INVALID");
   }
-  return Object.freeze({
-    schema_version: row.schema_version,
-    job_id: jobId,
-    result_payload_hash: row.result_payload_hash as ProductionHash,
-    consumer_ref: row.consumer_ref,
-    outcome: "completed",
-    consumption_hash: row.consumption_hash as ProductionHash,
-    consumed_at: row.consumed_at,
-  });
+  return freezeAdmission(row, kind);
 };
 
 const parseRemoteWriteReceipt = (receipt: unknown): RemoteProductionWriteReceipt => {

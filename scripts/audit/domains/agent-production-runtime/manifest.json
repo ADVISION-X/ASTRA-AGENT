@@ -3,7 +3,14 @@
   "capabilityDomain": "agent-production-runtime",
   "status": "active",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V31"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V32",
+    "LAW-AGENT-PRODUCTION-RUNTIME-002-V1",
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V1",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V1",
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V1",
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V1",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V1",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V2"
   ],
   "ownedPaths": [
     "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
@@ -39,6 +46,7 @@
     "scripts/acceptance/browser-lane-fifo.acceptance.ts",
     "scripts/audit/domains/agent-production-runtime/**",
     "scripts/generate/sync-website-agent-route-policy-projection.ts",
+    "scripts/maintenance/production-runtime-storage-reconcile.ts",
     "src/lib/local-runtime/production/**",
     "src/lib/typed-failure.ts",
     "src/mediator/agent-production-route.ts",

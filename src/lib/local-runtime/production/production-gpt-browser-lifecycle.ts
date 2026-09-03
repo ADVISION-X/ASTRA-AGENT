@@ -14,8 +14,12 @@ import type {
 import { requireRuntimeLogWrite, type RuntimeLogger } from "../../runtime-logs/index.js";
 import { executionFailure } from "../../typed-failure.js";
 import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-support.js";
-import { sha256, type ProductionHash, type WebsiteAgentTask } from "./contracts.js";
-import type { ProductionExecutionLease } from "./executor.js";
+import {
+  sha256,
+  type ProductionExecutionLease,
+  type ProductionHash,
+  type WebsiteAgentTask,
+} from "./contracts.js";
 
 type BrowserExecutionInput = Readonly<{
   task: WebsiteAgentTask;

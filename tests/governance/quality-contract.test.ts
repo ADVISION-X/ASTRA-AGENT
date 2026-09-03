@@ -307,8 +307,7 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
       facts: { cleanup_verified: true, workbench_stopped: true },
       processId: 4173, serviceName: "fixture", sourceFingerprint: "sha256:fixture", status: "healthy" },
     database: { databaseEngine: "sqlite", databasePath: "/tmp/fixture.sqlite",
-      facts: { incomplete_frontier_count: 0, required_runtime_schema_column_count: 2,
-        unscheduled_outbox_count: 0 },
+      facts: { frozen_identity_invalid_count: 0, unscheduled_outbox_count: 0 },
       identitySet: ["job-1"], recordCounts: { tasks: 1 } },
     storage: { confirmedCount: 1, mutationCount: 1, storageEngine: "sqlite-wal",
       facts: { proof_job_pending_outbox_count: 0 }, storagePath: "/tmp/fixture.sqlite", unresolvedCount: 0 },
@@ -320,18 +319,18 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
       grantCount: 1, principalIds: ["fixture-plugin"] },
     recovery: { finalState: "completed", observedStates: ["failed", "completed"],
       facts: {
-        process_restart_observed: true,
         same_attempt_after_restart: true,
+        process_restart_observed: true,
       }, recoveryJobId: "job-1", unresolvedCount: 0 },
   } as const;
   const routes = {
     browser: { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", clauses: ["forbidden:6"] },
-    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V31", clauses: ["summary"] },
-    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V31", clauses: ["forbidden:7"] },
-    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V31", clauses: ["forbidden:15"] },
+    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V32", clauses: ["summary"] },
+    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V32", clauses: ["forbidden:0", "forbidden:2"] },
+    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V32", clauses: ["forbidden:2"] },
     provider: { lawId: "LAW-GPT-001-V19", clauses: ["forbidden:1"] },
-    authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V31", clauses: ["forbidden:5"] },
-    recovery: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V31", clauses: ["forbidden:12"] },
+    authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V1", clauses: ["forbidden:1", "forbidden:2"] },
+    recovery: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V32", clauses: ["forbidden:1", "forbidden:3"] },
   } as const;
   for (const [kind, observation] of Object.entries(observations)) {
     const evidenceMode = `dynamic.${kind}`;
@@ -920,15 +919,15 @@ test("the active evidence-ownership blueprint rejects central clauses and mode s
   const gpt = readFileSync("scripts/audit/domains/gpt/inspector.ts", "utf8");
   const capability = readFileSync("scripts/audit/domains/capability-governance/inspector.ts", "utf8");
   const directProof = readFileSync("scripts/acceptance/agent-production-runtime.real-proof.ts", "utf8");
-  const uniqueModeChecks = (source: string): boolean => {
+  const uniqueModeChecks = (source: string, expectedCount: number): boolean => {
     const body = /const MODE_CHECKS = \{([\s\S]*?)\} as const;/u.exec(source)?.[1] ?? "";
     const checks = [...body.matchAll(/"static\.[a-z]+": \["([A-Za-z]+)"\]/gu)].map((match) => match[1]!);
-    return checks.length === 5 && new Set(checks).size === 5;
+    return checks.length === expectedCount && new Set(checks).size === expectedCount;
   };
-  assert.equal(uniqueModeChecks(agent), true);
-  assert.equal(uniqueModeChecks(gpt), true);
+  assert.equal(uniqueModeChecks(agent, 6), true);
+  assert.equal(uniqueModeChecks(gpt, 5), true);
   assert.equal(uniqueModeChecks(agent.replace('"static.types": ["inspectAgentTypes"]',
-    '"static.types": ["inspectAgentProductionRuntime"]')), false);
+    '"static.types": ["inspectAgentProductionRuntime"]'), 6), false);
   assert.equal(capability.includes('mode === "static.types" ? ["inspectCapabilityFacadeTypes"]'), true);
   assert.equal(capability.replace('mode === "static.types" ? ["inspectCapabilityFacadeTypes"]',
     'mode === "static.types" ? ["pushMissingFacadeExportConsumers"]')
@@ -1005,7 +1004,10 @@ test("provider contracts reject malformed payloads before identity matching", ()
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json", "utf8",
   )) as unknown;
   assert.doesNotThrow(() => validateProviderContractSpec(current, "ADVISION-X/AGENT",
-    new Map([["LAW-AGENT-PRODUCTION-RUNTIME-001-V31", "agent-production-runtime"]]),
+    new Map([
+      ["LAW-AGENT-PRODUCTION-RUNTIME-001-V32", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V1", "agent-production-runtime"],
+    ]),
     (path) => path === "src/lib/local-runtime/production/catalog.ts"));
 });
 
@@ -1261,7 +1263,7 @@ test("every active law scope is deterministic, owned, unique, and includes all c
 
 test("active mutation inspectors use one DISPATCHED chain inside each law scope", () => {
   const registry = buildRegistry();
-  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V31");
+  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V32");
   assert.ok(agentLaw);
   const agentTargets = computeTargetPaths(agentLaw, registry);
   const crossOwnerPaths = [
@@ -1270,15 +1272,14 @@ test("active mutation inspectors use one DISPATCHED chain inside each law scope"
   ];
   for (const path of crossOwnerPaths) assert.equal(agentTargets.includes(path), false, path);
 
-  const agentInspector = [
-    "scripts/audit/domains/agent-production-runtime/inspector.ts",
-    "scripts/audit/domains/agent-production-runtime/runtime-inspection.ts",
-  ].map((path) => readFileSync(path, "utf8")).join("\n");
+  const agentInspector = readFileSync(
+    "scripts/audit/domains/agent-production-runtime/inspector.ts", "utf8",
+  );
   for (const path of crossOwnerPaths) assert.equal(agentInspector.includes(path), false, path);
   for (const token of [
     "ProductionGptChildTools", "gpt.execute(intent", "runAtomicStep(",
     'mutationMode: "readback"', "childCapabilityId", "inputHash",
-  ]) assert.equal(agentInspector.includes(token), true, token);
+  ]) assert.equal(agentInspector.includes(token), false, token);
 
   const browserInspector = readFileSync(
     "scripts/audit/domains/local-browser-session/mutation-atomicity-inspection.ts", "utf8",
@@ -1378,6 +1379,7 @@ test("a law-authorized summary-only Dynamic claim validates against its exact pr
 test("production Dynamic Proof directly observes real Chrome, runtime stores, provider and recovery", () => {
   const proof = readFileSync("scripts/acceptance/agent-production-runtime.real-proof.ts", "utf8");
   const proofSupport = readFileSync("scripts/acceptance/agent-production-runtime.real-proof-support.ts", "utf8");
+  const proofImplementation = `${proof}\n${proofSupport}`;
   assert.equal(proof.includes("proofDurationMs"), false);
   assert.equal(proof.includes('evidenceMode: "dynamic.performance"'), false);
   for (const forbidden of [
@@ -1393,7 +1395,7 @@ test("production Dynamic Proof directly observes real Chrome, runtime stores, pr
     "executed_route_count", "route_denominator_complete", "failed_observed",
     "target=claimed", "target=absent", 'event.typedIdentity.kind === "browser-command"',
     "missing real GPT child", "sent provider terminal receipt",
-  ]) assert.ok(proof.includes(token), token);
+  ]) assert.ok(proofImplementation.includes(token), token);
   for (const token of ["runtimeLogEventShapeValid", "runtimeEventIntegrityValid", 'event.operation === "browser.command"',
     'event.typedIdentity.kind === "browser-command"', 'event.code.startsWith("BROWSER_MUTATION_")',
     '"stateKey" in record']) assert.ok(proofSupport.includes(token), token);

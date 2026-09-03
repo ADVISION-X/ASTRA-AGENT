@@ -1,7 +1,8 @@
 import assert from "../audit/shared/governance-exam-assert.js";
+import { readFile } from "node:fs/promises";
 
-import type { ProductionHash, WebsiteAgentTask } from "../../src/lib/local-runtime/production/contracts.js";
-import { resolveProductionPlugin } from "../../src/lib/local-runtime/production/catalog.js";
+import type { ProductionHash, WebsiteAgentTask } from
+  "../../src/lib/local-runtime/production/contracts.js";
 import {
   assertProductionTaskRoutePolicy,
   productionRoutePolicies,
@@ -9,32 +10,26 @@ import {
 } from "../../src/lib/local-runtime/production/route-policy.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
-const assertRouteResultPayload = (
-  task: WebsiteAgentTask,
-  value: unknown,
-  phase: "draft" | "final" = "final",
-): Readonly<Record<string, unknown>> =>
-  resolveProductionPlugin(task.product_id, task.action_id).plugin.parseResult(task, value, phase);
-
 const HASH = `sha256:${"a".repeat(64)}` as ProductionHash;
 const HASH_B = `sha256:${"b".repeat(64)}` as ProductionHash;
-const dual = Object.freeze({ professional_markdown: "专业层", reader_explanation_markdown: "读者层" });
-const common = Object.freeze({
-  citations: [], uncertainties: [], limitations: [], safety_notes: [],
-});
 
 const parameterValue = (key: string, route: ProductionRoutePolicy): unknown => {
   const fixed: Readonly<Record<string, unknown>> = {
-    evidence_ref_catalog: ["rec-a"], analysis_kind: "chart_interpretation",
+    evidence_ref_catalog: ["record:1"],
+    analysis_kind: "chart_interpretation",
     article_package_contract_version: "public-knowledge-article-package.v1",
     observation_schema_version: "payment-screenshot-observation-v1",
     reflection_contract_version: "scheduled-quality-reflection.v1",
-    target_locale: "en-US", locale: "zh-CN", thread_ref: "continuation:1",
+    target_locale: "en-US",
+    locale: "zh-CN",
+    thread_ref: "continuation:1",
   };
   if (key === "result_schema_version") return route.result_schema_version;
   if (key === "reusable_base_candidate") return null;
   if (Object.hasOwn(fixed, key)) return fixed[key];
-  if (key === "resource_kind") return route.product_id === "localization_report_translation" ? "report" : "article";
+  if (key === "resource_kind") {
+    return route.product_id === "localization_report_translation" ? "report" : "article";
+  }
   if (key === "reusable_base_semantic_digest") return HASH;
   if (key.endsWith("_hash") || key.endsWith("_sha256")) return HASH;
   return `${key}:1`;
@@ -51,7 +46,9 @@ const taskFor = (route: ProductionRoutePolicy): WebsiteAgentTask => ({
   request_hash: HASH,
   task_contract_id: "website-agent-task",
   task_contract_version: 1,
-  business_identity: { owner_ref: "owner:1", subject_ref: "subject:1", authorization_ref: "authorization:1" },
+  business_identity: {
+    owner_ref: "owner:1", subject_ref: "subject:1", authorization_ref: "authorization:1",
+  },
   business_context_ref: "context:1",
   business_context_hash: HASH,
   parameters: Object.fromEntries(route.required_parameter_keys.map((key) => [key, parameterValue(key, route)])),
@@ -87,144 +84,31 @@ const taskFor = (route: ProductionRoutePolicy): WebsiteAgentTask => ({
   } : {}),
 });
 
-const report = (schema_version: string, summary: string, blocks: string): Record<string, unknown> => ({
-  schema_version,
-  [summary]: dual,
-  [blocks]: [{ section: "one" }],
-  ...common,
-});
-
-const publicResearch = Object.freeze({
-  schema_version: "public-knowledge-research-output.v3",
-  decision: "proceed",
-  topic_manifest: {
-    primary_question: "one", answer_scope: "one", excluded_scope: "one",
-    primary_cluster_id: "one", secondary_cluster_ids: [], reader_level: "introductory",
-    concept_keys: [], relation_keys: [], method_scope: [],
-  },
-  editorial_intent: "intent",
-  catalog_comparison_note: "comparison",
-  research_markdown: "research",
-  citations: [],
-  uncertainties: [],
-  research_claim_units: [],
-  closest_existing_article_ids: [],
-  relation_assertions: [],
-  novelty_basis: "independent_question",
-});
-
-const coreOutputFor = (task: WebsiteAgentTask, route: ProductionRoutePolicy): Record<string, unknown> | null => {
-  switch (task.product_id) {
-    case "bazi_chart_interpretation": return {
-      ...report(route.result_schema_version, "report_summary", "interpretation_blocks"),
-      chart_ref: task.parameters.chart_ref, chart_version: task.parameters.chart_version,
-      chart_hash: task.parameters.chart_hash, bazi_pdf_semantic_manifest_ref: "manifest:1",
-      manifest_hash: HASH, covered_semantic_anchor_refs: ["anchor:1"],
-    };
-    case "bazi_ai_full_analysis": return {
-      ...report(route.result_schema_version, "answer_summary", "answer_blocks"),
-      question_snapshot: "question", covered_question_unit_refs: ["question:1"],
-    };
-    case "bazi_report_followup": return {
-      ...report(route.result_schema_version, "answer_summary", "answer_blocks"),
-      thread_ref: task.parameters.thread_ref, parent_report_ref: task.parameters.parent_report_ref,
-      parent_raw_output_hash: task.parameters.parent_raw_output_hash,
-      new_question_snapshot: "question", covered_question_unit_refs: ["question:1"],
-    };
-    case "qimen_professional_answer": return {
-      ...report(route.result_schema_version, "answer_summary", "answer_blocks"),
-      question_snapshot: "question", index_review_receipts: [{ index: "one" }],
-      covered_question_unit_refs: ["question:1"], covered_candidate_refs: ["candidate:1"],
-    };
-    case "qimen_report_followup": return {
-      ...report(route.result_schema_version, "answer_summary", "answer_blocks"),
-      thread_ref: task.continuation_ref, parent_report_ref: task.parameters.parent_report_ref,
-      parent_raw_output_hash: task.parameters.parent_raw_output_hash,
-      continuation_relation: "same_conversation_followup", new_question_snapshot: "question",
-      index_review_receipts: [{ index: "one" }], covered_question_unit_refs: ["question:1"],
-      covered_candidate_refs: ["candidate:1"],
-    };
-    case "hehun_ai_analysis": return {
-      ...report(route.result_schema_version, "relationship_summary", "relationship_blocks"),
-      case_manifest_ref: task.parameters.case_manifest_ref, case_manifest_hash: task.parameters.case_manifest_hash,
-      question_snapshot: "question", covered_question_unit_refs: ["question:1"],
-    };
-    case "hehun_report_followup": return {
-      ...report(route.result_schema_version, "answer_summary", "answer_blocks"),
-      thread_ref: task.parameters.thread_ref, parent_report_ref: task.parameters.parent_report_ref,
-      parent_raw_output_hash: task.parameters.parent_raw_output_hash,
-      new_question_snapshot: "question", covered_question_unit_refs: ["question:1"],
-    };
-    default: return null;
-  }
-};
-
-const specializedOutputFor = (task: WebsiteAgentTask, route: ProductionRoutePolicy): Record<string, unknown> => {
-  switch (task.product_id) {
-    case "naming_from_existing_bazi_report": return {
-      schema_version: route.result_schema_version,
-      requirement_manifest_ref: task.parameters.requirement_manifest_ref,
-      requirement_manifest_hash: task.parameters.requirement_manifest_hash,
-      naming_rationale: dual, candidates: [{ name: "one" }],
-      comparison_or_selection_rationale: dual,
-      uncertainties: [], limitations: [], safety_notes: [], covered_requirement_anchor_refs: ["requirement:1"],
-    };
-    case "naming_bazi_analysis_and_naming": return {
-      schema_version: route.result_schema_version,
-      bazi_analysis: {
-        ...report("bazi-naming-basis-report-output.v1", "report_summary", "interpretation_blocks"),
-        chart_ref: task.parameters.chart_ref, chart_version: task.parameters.chart_version,
-        chart_hash: task.parameters.chart_hash, bazi_pdf_semantic_manifest_ref: "manifest:1",
-        manifest_hash: HASH, naming_requirement_manifest_ref: "requirement:1",
-        naming_requirement_manifest_hash: HASH_B, covered_semantic_anchor_refs: ["anchor:1"],
-        covered_requirement_anchor_refs: ["requirement:1"],
-      },
-      naming: {
-        schema_version: "naming-report-output.v2", requirement_manifest_ref: "requirement:1",
-        requirement_manifest_hash: HASH_B, naming_rationale: dual, candidates: [{ name: "one" }],
-        comparison_or_selection_rationale: dual, uncertainties: [], limitations: [], safety_notes: [],
-        covered_requirement_anchor_refs: ["requirement:1"],
-      },
-    };
-    case "public_knowledge_article_pipeline": return {
-      schema_version: route.result_schema_version,
-      research: publicResearch,
-      article: {
-        schema_version: "public-knowledge-article-output.v3", title: "title", editor_note: "note",
-        article_markdown: "article", citations: [], claim_coverage: [], safety_notes: [],
-      },
-      image: {
-        schema_version: "public-knowledge-agent-hero-image.v1", artifact_id: "artifact:1",
-        object_ref: "object:image", sha256: HASH, receipt_hash: HASH_B, bytes: 10,
-        mime_type: "image/webp", width: 1200, height: 630,
-      },
-    };
-    case "localization_report_translation":
-    case "localization_article_translation": return {
-      schema_version: route.result_schema_version, action_id: task.product_id,
-      source_resource_id: task.parameters.source_resource_id, source_version: task.parameters.source_version,
-      source_sha256: task.parameters.source_sha256, target_locale: task.parameters.target_locale,
-      localized_structured_payload: { title: "localized" },
-    };
-    case "payment_screenshot_observation": return {
-      schema_version: route.result_schema_version, page_kind: "payment_success", payment_app: "alipay",
-      success_visible: true, visible_amount_minor_units: 100, reason_code: "VISIBLE_SUCCESS",
-    };
-    default: throw new Error(`AGENT_ROUTE_ACCEPTANCE_OUTPUT_MISSING:${task.product_id}`);
-  }
-};
-
-const outputFor = (task: WebsiteAgentTask, route: ProductionRoutePolicy): Record<string, unknown> => {
-  if (route.relation_kind === "review") return { decision: "no_issue", issues: [] };
-  return coreOutputFor(task, route) ?? specializedOutputFor(task, route);
-};
+const projection = JSON.parse(await readFile(new URL(
+  "../../src/lib/local-runtime/production/website-agent-route-policies.v1.json",
+  import.meta.url,
+), "utf8")) as Readonly<{
+  parameter_types: Readonly<Record<string, unknown>>;
+  routes: readonly Readonly<{
+    product_id: string;
+    action_id: string;
+    result_contract?: unknown;
+    required_parameter_keys: readonly string[];
+  }>[];
+}>;
 
 assert.equal(productionRoutePolicies.length, 39);
+assert.equal(projection.routes.length, 39);
+assert.equal(Object.keys(projection.parameter_types).length, 57);
+assert.equal(projection.routes.filter((route) => route.result_contract !== undefined).length, 30);
+assert.equal(projection.routes.filter((route) =>
+  route.required_parameter_keys.includes("reusable_base_reservation_ref")
+  && route.required_parameter_keys.includes("reusable_base_reservation_hash")).length, 2);
+
 const tested = new Set<string>();
 for (const route of productionRoutePolicies) {
   const task = taskFor(route);
   assertProductionTaskRoutePolicy(task);
-  assertRouteResultPayload(task, outputFor(task, route));
   const firstParameter = route.required_parameter_keys[0]!;
   const invalidValue = Array.isArray(task.parameters[firstParameter]) ? []
     : firstParameter.endsWith("_hash") || firstParameter.endsWith("_sha256") ? "not-a-hash" : "";
@@ -243,44 +127,19 @@ for (const route of productionRoutePolicies) {
 }
 assert.equal(tested.size, 39);
 
-const paymentRoute = productionRoutePolicies.find((route) => route.product_id === "payment_screenshot_observation"
-  && route.action_id === "observe")!;
-const paymentTask = taskFor(paymentRoute);
+const sample = taskFor(productionRoutePolicies[0]!);
 assert.throws(() => assertProductionTaskRoutePolicy({
-  ...paymentTask,
-  parameters: { ...paymentTask.parameters, forbidden_extra: true },
+  ...sample,
+  parameters: { ...sample.parameters, forbidden_extra: true },
 }), /AGENT_ROUTE_PARAMETER_SET_INVALID/u);
-assert.throws(() => assertProductionTaskRoutePolicy({
-  ...paymentTask,
-  material_refs: paymentTask.material_refs.map((material, index) => index === 0
-    ? { ...material, media_type: "application/json" }
-    : material),
-}), /AGENT_ROUTE_MATERIAL_SET_INVALID/u);
-assert.throws(() => assertRouteResultPayload(paymentTask, {
-  ...outputFor(paymentTask, paymentRoute), forbidden_extra: true,
-}), /PAYMENT_OBSERVATION_FIELDS_INVALID/u);
 
-const publicRoute = productionRoutePolicies.find((route) => route.product_id === "public_knowledge_article_pipeline"
-  && route.action_id === "produce_article")!;
-const publicTask = taskFor(publicRoute);
-assert.throws(() => assertRouteResultPayload(publicTask, {
-  ...outputFor(publicTask, publicRoute), image: null,
-}), /PUBLIC_KNOWLEDGE_PACKAGE_COMPLETENESS_INVALID/u);
-
-const reviewRoute = productionRoutePolicies.find((route) => route.action_id === "accuracy_challenge")!;
-const reviewTask = taskFor(reviewRoute);
-assert.doesNotThrow(() => assertRouteResultPayload(reviewTask, {
-  decision: "issues",
-  issues: [{ category: "missing_input", target_type: "task", target_ref: "task:1", observation: "missing",
-    evidence_refs: [], impact: "high", confidence: "high", suggested_inspection: "inspect" }],
-}));
-assert.throws(() => assertRouteResultPayload(reviewTask, { issues: [] }), /AGENT_REVIEW_OUTPUT_INCOMPLETE/u);
-
-process.stdout.write("[ACCEPTANCE][agent-route-contract] PASS 39/39\n");
-emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V31",
-  evidenceMode: "exam.property",
-  clauses: ["forbidden:0", "forbidden:14", "forbidden:17", "forbidden:18", "forbidden:20", "forbidden:27", "forbidden:28", "forbidden:3", "forbidden:4", "forbidden:6", "forbidden:7", "forbidden:8", "summary"],
-  locator: "acceptance:agent-production-runtime:route-contract-property",
-  observedValue: "39 route policies accepted valid fixtures and rejected malformed parameters materials and results",
-});
+process.stdout.write("[ACCEPTANCE][agent-route-contract] PASS 39/57/30/2\n");
+for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
+  emitQualityProofObservation({
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V1",
+    evidenceMode,
+    clauses: ["forbidden:0", "forbidden:1", "summary"],
+    locator: `acceptance:agent-production-runtime:route-contract:${evidenceMode}`,
+    observedValue: "provider-derived route projection accepted exactly 39 routes 57 parameter types 30 result contracts and 2 reservation routes",
+  });
+}

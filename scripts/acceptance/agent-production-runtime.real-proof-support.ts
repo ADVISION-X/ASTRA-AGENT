@@ -11,6 +11,8 @@ import {
 } from "../../src/lib/runtime-logs/index.js";
 import { GRASSEYE_UNPACKED_EXTENSION_ID } from "../../src/lib/browser/release/unpacked-extension-release-identity.js";
 import type { BrowserProfileConfig } from "../../src/lib/browser/profile/browser-profile-config.js";
+import { readProductionRuntimeStorageInventory } from
+  "../../src/lib/local-runtime/production/runtime-storage-inventory.js";
 
 export const waitForProductionProof = async (
   label: string,
@@ -59,9 +61,10 @@ export const sentProductionCheckpointPrefix = (
   }
   const database = new Database(productionDatabasePath, { readonly: true, fileMustExist: true });
   try {
+    const jobPathMarker = `/jobs/${encodeURIComponent(jobId)}/`;
     const rows = database.prepare(`select body_blob,sent_at from production_outbox
-      where kind='checkpoint' and path like ? order by created_at,idempotency_key`
-    ).all(`%/jobs/${encodeURIComponent(jobId)}/%`) as Array<{ body_blob: Buffer; sent_at: string | null }>;
+      where kind='checkpoint' and instr(path,?)>0 order by created_at,idempotency_key`
+    ).all(jobPathMarker) as Array<{ body_blob: Buffer; sent_at: string | null }>;
     const sent = rows.filter((row) => row.sent_at).map((row) =>
       JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>);
     const attempts = [...new Set(sent.map((row) => String(row.attempt_id ?? "")).filter(Boolean))];
@@ -84,6 +87,58 @@ export const assertProductionProofJobsAreNew = (
     const row = database.prepare(`select count(*) as count from production_tasks where job_id in (${placeholders})`)
       .get(...jobIds) as { count: number };
     assert.equal(row.count, 0, "historical local tasks cannot be reused as Dynamic Proof");
+  } finally { database.close(); }
+};
+
+export type ProductionProofTaskRow = Readonly<{
+  created_at: string; identity_json: string; job_id: string; request_hash: string;
+  result_json: string; status: string; task_json: string; updated_at: string;
+}>;
+export type ProductionProofOutboxRow = Readonly<{
+  kind: string; path: string; body_blob: Buffer; sent_at: string | null;
+}>;
+export const observeProductionRuntimeDatabase = async (input: Readonly<{
+  dataDir: string; databasePath: string; jobIds: readonly string[];
+}>) => {
+  const database = new Database(input.databasePath, { readonly: true, fileMustExist: true });
+  const placeholders = input.jobIds.map(() => "?").join(",");
+  try {
+    const taskRows = database.prepare(`select created_at,identity_json,job_id,request_hash,result_json,status,
+      task_json,updated_at from production_tasks where job_id in (${placeholders}) order by job_id`
+    ).all(...input.jobIds) as ProductionProofTaskRow[];
+    const outboxRows = database.prepare(`select kind,path,body_blob,sent_at from production_outbox
+      order by created_at,idempotency_key`).all() as ProductionProofOutboxRow[];
+    const continuationRows = database.prepare(`select continuation_ref,origin_job_id,lane_owner_job_id
+      from production_continuations where origin_job_id in (${placeholders}) order by continuation_ref`
+    ).all(...input.jobIds) as Array<{
+      continuation_ref: string; origin_job_id: string; lane_owner_job_id: string | null;
+    }>;
+    const count = (sql: string): number => Number((database.prepare(sql).get() as { count: number }).count);
+    const incompleteFrontierCount = count(`select count(*) as count from production_continuations
+      where reservation_kind='persisted' and frontier_ref is not null and current_checkpoint_json is null`);
+    const requiredRuntimeSchemaColumnCount = count(`select count(*) as count
+      from pragma_table_info('production_continuations') where name in
+      ('semantic_contract_hash','semantic_admission_receipt_json')`);
+    const unscheduledOutboxCount = count(`select count(*) as count from production_outbox where sent_at is null
+      and response_hash is null and last_error is not null and next_delivery_at is null
+      and last_error<>'PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED'`);
+    const tables = (database.prepare(`select name from sqlite_master where type='table'
+      and name like 'production_%' order by name`).all() as Array<{ name: string }>).map((row) => row.name);
+    const runtimeSchemaExact = JSON.stringify(tables) === JSON.stringify([
+      "production_attempt_failures", "production_checkpoints", "production_continuations",
+      "production_leases", "production_outbox", "production_tasks",
+    ]) && String(database.pragma("integrity_check", { simple: true })).toLowerCase() === "ok"
+      && (database.pragma("foreign_key_check") as unknown[]).length === 0
+      && String(database.pragma("journal_mode", { simple: true })).toLowerCase() === "wal";
+    const storageInventory = await readProductionRuntimeStorageInventory(input.dataDir, {
+      task_ids: taskRows.map((row) => row.job_id),
+      outbox_responsibility_count: count("select count(*) as count from production_outbox"),
+      pending_outbox_count: count("select count(*) as count from production_outbox where sent_at is null"),
+      continuation_count: count("select count(*) as count from production_continuations"),
+      active_lease_count: count("select count(*) as count from production_leases where state='active'"),
+    });
+    return Object.freeze({ taskRows, outboxRows, continuationRows, incompleteFrontierCount,
+      requiredRuntimeSchemaColumnCount, unscheduledOutboxCount, runtimeSchemaExact, storageInventory });
   } finally { database.close(); }
 };
 

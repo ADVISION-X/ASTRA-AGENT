@@ -13,7 +13,7 @@ import {
   type RuntimeLogger,
   type RuntimeSpanHandle,
 } from "../../runtime-logs/index.js";
-import { failureCode } from "../../typed-failure.js";
+import { executionFailure, failureCode } from "../../typed-failure.js";
 import { productionCatalogHash } from "./catalog.js";
 import type { ProductionHash } from "./contracts.js";
 import { readProductionCredential } from "./credential.js";
@@ -29,6 +29,7 @@ import {
   workerLoop,
 } from "./runtime-loops.js";
 import { terminalSpanFailure } from "./runtime-logging.js";
+import { readProductionRuntimeStorageInventory } from "./runtime-storage-inventory.js";
 import {
   diagnoseProductionRuntime,
   refreshLedgerReconciled,
@@ -48,10 +49,11 @@ export type ProductionRuntimeStartInput = Readonly<{
 const blockedHealth = (
   input: ProductionRuntimeStartInput,
   store: ProductionRuntimeStore,
-  reason: string,
+  error: unknown,
   stopped: boolean,
 ): ProductionRuntimeHealth => {
   const browser = input.browserAuthority.readProductionRuntimeState();
+  const reason = safeReason(error);
   return {
     shellState: "ready", cloudState: stopped ? "stopped" : "contract_blocked",
     browserState: browser.browserAuthorityState === "present" ? "ready" : "blocked",
@@ -62,7 +64,7 @@ const blockedHealth = (
     contractManifestHash: null, catalogHash: productionCatalogHash,
     activeCount: 0, pendingOutboxCount: store.pendingOutboxCount(),
     lastSuccessfulHeartbeatAt: null,
-    lastErrorCode: reason.split(":")[0] ?? "PRODUCTION_CREDENTIAL_INVALID",
+    lastErrorCode: failureCode(error, "PRODUCTION_RUNTIME_START_BLOCKED"),
     lastErrorReason: reason, checkedAt: new Date().toISOString(),
   };
 };
@@ -95,11 +97,10 @@ const blockedRuntimeHandle = (
   store: ProductionRuntimeStore,
   error: unknown,
 ): ProductionRuntimeHandle => {
-  const reason = safeReason(error);
   const traceId = `producer:${input.runtimeLogger.producerRunId}`;
   let stopped = false;
   return {
-    readHealth: () => blockedHealth(input, store, reason, stopped),
+    readHealth: () => blockedHealth(input, store, error, stopped),
     readTask: (jobId) => store.readTask(jobId),
     diagnose: (jobId) => diagnoseProductionRuntime(input.dataDir, store, jobId),
     close: async () => {
@@ -158,13 +159,6 @@ export const reconcileTaskRecord = (
     ? state.store.recordLease({ ...storedLease, state: "stale", expiresAt: null }) : storedLease;
   const checkpoint = state.store.readCheckpoint(persisted.task.job_id);
   const remoteRedeliveryPending = state.store.hasUnsentOutbox(persisted.task.job_id);
-  if (nonterminal && persisted.current_reason === "GPT_CONTINUATION_CURRENT_CHECKPOINT_MISSING") {
-    return true;
-  }
-  if (nonterminal && persisted.current_reason === "GPT_CONTINUATION_FRONTIER_INVALID") return true;
-  if (nonterminal && persisted.current_reason?.startsWith("PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED")) {
-    return true;
-  }
   let complete = true;
   if (lease) {
     if (nonterminal && !remoteRedeliveryPending
@@ -189,16 +183,6 @@ const reconcileEvidence = async (
     }
   }
   return complete;
-};
-
-export const failClosedInvalidContinuationFrontiers = (
-  store: ProductionRuntimeStore,
-): void => {
-  for (const failure of store.frontierContinuationInvariantFailures()) {
-    const task = store.readTask(failure.origin_job_id);
-    if (task?.current_reason?.startsWith("PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED")) continue;
-    store.setCurrentReason(failure.origin_job_id, failure.reason);
-  }
 };
 
 const reconcileLocalState = async (
@@ -315,7 +299,18 @@ export const startProductionRuntime = async (
     typedIdentity: { kind: "producer", producerId: input.runtimeLogger.producerRunId },
   }));
   const store = await initializeStore(input, startSpan);
-  failClosedInvalidContinuationFrontiers(store);
+  try {
+    store.assertStartupDataIntegrity();
+    const inventory = await readProductionRuntimeStorageInventory(
+      input.dataDir, store.storageResponsibilities(),
+    );
+    if (inventory.orphan_directory_count > 0) {
+      throw executionFailure("failed", "PRODUCTION_ORPHAN_STORAGE_RECONCILIATION_REQUIRED");
+    }
+  } catch (error) {
+    terminalSpanFailure(startSpan, error, runtimeLogCauseEventId(error), "RUNTIME_START_FAILED");
+    return blockedRuntimeHandle(input, store, error);
+  }
   let credential: Awaited<ReturnType<typeof readProductionCredential>>;
   try { credential = await readProductionCredential(input.dataDir); }
   catch (error) {

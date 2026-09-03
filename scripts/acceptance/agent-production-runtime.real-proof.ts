@@ -21,6 +21,7 @@ import {
   assertProductionProofRouteCoverage,
   assertProductionProofJobsAreNew,
   observeProductionProofCleanup,
+  observeProductionRuntimeDatabase,
   observeProductionProofRuntimeLogs,
   productionProofChromeOptions,
   requireProductionProofExtensionWorker,
@@ -28,7 +29,8 @@ import {
   waitForProductionProof,
   type ProductionProofCleanupObservation,
 } from "./agent-production-runtime.real-proof-support.js";
-const dynamicClaimContract = (/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_BEGIN */
+const dynamicClaimContractSource = String.raw`
+/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_BEGIN */
 {
   "schema_version": "producer-dynamic-claim-contract.v1",
   "routes": {
@@ -54,14 +56,20 @@ const dynamicClaimContract = (/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_BEGIN */
     "LAW-GPT-001-V19:dynamic.provider": {"claims": {"forbidden:1": [{"path": "/facts/provider_count", "operator": "equals", "expected": 1}]}},
     "LAW-GPT-001-V19:dynamic.authorization": {"claims": {"forbidden:2": [{"path": "/facts/exact_target_document_binding_count", "operator": "gte", "expected": 39}]}},
     "LAW-GPT-001-V19:dynamic.recovery": {"claims": {"forbidden:15": [{"path": "/facts/failed_observed", "operator": "equals", "expected": true}, {"path": "/facts/completed_observed", "operator": "equals", "expected": true}, {"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V31:dynamic.service": {"claims": {"summary": [{"path": "/facts/cleanup_verified", "operator": "equals", "expected": true}, {"path": "/facts/workbench_stopped", "operator": "equals", "expected": true}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V31:dynamic.database": {"claims": {"forbidden:7": [{"path": "/facts/incomplete_frontier_count", "operator": "equals", "expected": 0}, {"path": "/facts/required_runtime_schema_column_count", "operator": "equals", "expected": 2}, {"path": "/facts/unscheduled_outbox_count", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V31:dynamic.storage": {"claims": {"forbidden:15": [{"path": "/facts/proof_job_pending_outbox_count", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V31:dynamic.authorization": {"claims": {"forbidden:5": [{"path": "/facts/unbound_lease_fence_job_count", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V31:dynamic.recovery": {"claims": {"forbidden:12": [{"path": "/facts/process_restart_observed", "operator": "equals", "expected": true}, {"path": "/facts/same_attempt_after_restart", "operator": "equals", "expected": true}, {"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}}
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V32:dynamic.service": {"claims": {"summary": [{"path": "/facts/cleanup_verified", "operator": "equals", "expected": true}, {"path": "/facts/workbench_stopped", "operator": "equals", "expected": true}]}}, "LAW-AGENT-PRODUCTION-RUNTIME-001-V32:dynamic.database": {"claims": {"forbidden:0": [{"path": "/facts/frozen_identity_invalid_count", "operator": "equals", "expected": 0}], "forbidden:2": [{"path": "/facts/unscheduled_outbox_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V32:dynamic.storage": {"claims": {"forbidden:2": [{"path": "/facts/proof_job_pending_outbox_count", "operator": "equals", "expected": 0}]}}, "LAW-AGENT-PRODUCTION-RUNTIME-001-V32:dynamic.recovery": {"claims": {"forbidden:1": [{"path": "/facts/same_attempt_after_restart", "operator": "equals", "expected": true}], "forbidden:3": [{"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-002-V1:dynamic.service": {"claims": {"forbidden:0": [{"path": "/facts/contract_manifest_hash_present", "operator": "equals", "expected": true}], "summary": [{"path": "/facts/cleanup_verified", "operator": "equals", "expected": true}]}}, "LAW-AGENT-PRODUCTION-RUNTIME-002-V1:dynamic.authorization": {"claims": {"forbidden:1": [{"path": "/facts/unbound_lease_fence_job_count", "operator": "equals", "expected": 0}], "forbidden:2": [{"path": "/authorityState", "operator": "equals", "expected": "present"}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V1:dynamic.service": {"claims": {"forbidden:0": [{"path": "/facts/business_admission_completed_count", "operator": "equals", "expected": 39}], "forbidden:1": [{"path": "/facts/business_admission_completed_count", "operator": "equals", "expected": 39}], "summary": [{"path": "/facts/business_admission_completed_count", "operator": "equals", "expected": 39}]}}, "LAW-AGENT-PRODUCTION-RUNTIME-005-V1:dynamic.database": {"claims": {"forbidden:0": [{"path": "/facts/runtime_schema_exact", "operator": "equals", "expected": true}], "summary": [{"path": "/facts/runtime_schema_exact", "operator": "equals", "expected": true}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V1:dynamic.recovery": {"claims": {"forbidden:1": [{"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}}, "LAW-AGENT-PRODUCTION-RUNTIME-006-V1:dynamic.storage": {"claims": {"forbidden:0": [{"path": "/facts/runtime_orphan_directory_count", "operator": "equals", "expected": 0}], "forbidden:1": [{"path": "/facts/proof_job_pending_outbox_count", "operator": "equals", "expected": 0}], "summary": [{"path": "/facts/runtime_orphan_directory_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V1:dynamic.recovery": {"claims": {"forbidden:2": [{"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}}, "LAW-AGENT-PRODUCTION-RUNTIME-008-V2:dynamic.service": {"claims": {"forbidden:0": [{"path": "/facts/runtime_claims_business_completion", "operator": "equals", "expected": false}], "summary": [{"path": "/facts/cleanup_verified", "operator": "equals", "expected": true}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V2:dynamic.database": {"claims": {"forbidden:0": [{"path": "/facts/runtime_schema_exact", "operator": "equals", "expected": true}]}}, "LAW-AGENT-PRODUCTION-RUNTIME-008-V2:dynamic.storage": {"claims": {"forbidden:0": [{"path": "/facts/runtime_orphan_directory_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V2:dynamic.authorization": {"claims": {"forbidden:1": [{"path": "/facts/unbound_lease_fence_job_count", "operator": "equals", "expected": 0}]}}, "LAW-AGENT-PRODUCTION-RUNTIME-008-V2:dynamic.recovery": {"claims": {"forbidden:2": [{"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}}
   }
 }
-/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_END */) as const;
+/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_END */`;
+const dynamicClaimContract = JSON.parse(dynamicClaimContractSource.slice(
+  dynamicClaimContractSource.indexOf("{"), dynamicClaimContractSource.lastIndexOf("}") + 1,
+)) as Readonly<{ routes: Readonly<Record<string, Readonly<{ claims: Readonly<Record<string, unknown>> }>>> }>;
 const HOST = "127.0.0.1";
 const PORT = 4173;
 const BASE_URL = `http://${HOST}:${PORT}`;
@@ -237,47 +245,31 @@ assert.equal(targetClaimedObserved, true, "a job-owned exact Target claim was no
 assert.equal(systemChatgptPageObserved, true, "the one system-owned real ChatGPT page was not observed");
 assert.equal(taskHistory.get(recoveryJobId)?.has("failed"), true,
   "the named real job must remain failed before completing with the same identity");
-type TaskRow = { created_at: string; identity_json: string; job_id: string; request_hash: string;
-  result_json: string; status: string; task_json: string; updated_at: string };
-type OutboxRow = { kind: string; path: string; body_blob: Buffer; sent_at: string | null };
 type MutationRow = { command_id: string; owner_plugin_id: string; job_id: string; attempt_id: string;
   lease_version: number; execution_fence_hash: string; target_ref: string; document_ref: string;
   product_step_id: string; call_id: string; child_capability_id: string; effect_scope: string;
   action_ordinal: number; action_id: string;
   positive_postcondition_hash: string; negative_postcondition_hash: string;
   request_hash: string; payload_hash: string; proof_hash: string | null; state: string };
-const production = openReadOnly(productionDatabasePath); const mutations = openReadOnly(mutationDatabasePath);
-let taskRows: TaskRow[];
-let outboxRows: OutboxRow[];
+const runtimeDatabase = await observeProductionRuntimeDatabase({ dataDir, databasePath: productionDatabasePath, jobIds });
+const { taskRows, outboxRows, continuationRows, incompleteFrontierCount, requiredRuntimeSchemaColumnCount,
+  unscheduledOutboxCount, runtimeSchemaExact, storageInventory: runtimeStorageInventory } = runtimeDatabase;
+const mutations = openReadOnly(mutationDatabasePath);
 let mutationRows: MutationRow[];
-let continuationRows: Array<{ continuation_ref: string; origin_job_id: string; lane_owner_job_id: string | null }>;
-let incompleteFrontierCount = 0; let requiredRuntimeSchemaColumnCount = 0; let unscheduledOutboxCount = 0;
 let mutationJournalMode = "";
 try {
-  taskRows = production.prepare(`select created_at,identity_json,job_id,request_hash,result_json,status,task_json,updated_at from production_tasks
-    where job_id in (${placeholders}) order by job_id`).all(...jobIds) as TaskRow[];
-  outboxRows = production.prepare("select kind,path,body_blob,sent_at from production_outbox order by created_at,idempotency_key")
-    .all() as OutboxRow[];
-  continuationRows = production.prepare(`select continuation_ref,origin_job_id,lane_owner_job_id from production_continuations
-    where origin_job_id in (${placeholders}) order by continuation_ref`).all(...jobIds) as typeof continuationRows;
-  incompleteFrontierCount = Number((production.prepare(`select count(*) as count from production_continuations
-    where reservation_kind='persisted' and frontier_ref is not null and current_checkpoint_json is null`
-  ).get() as { count: number }).count);
-  requiredRuntimeSchemaColumnCount = Number((production.prepare(`select count(*) as count
-    from pragma_table_info('production_continuations') where name in
-      ('semantic_contract_hash','semantic_admission_receipt_json')`).get() as { count: number }).count);
-  unscheduledOutboxCount = Number((production.prepare(`select count(*) as count from production_outbox
-    where sent_at is null and response_hash is null and last_error is not null and next_delivery_at is null
-      and last_error<>'PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED'`).get() as { count: number }).count);
   mutationRows = mutations.prepare(`select command_id,owner_plugin_id,job_id,attempt_id,lease_version,
     execution_fence_hash,product_step_id,call_id,child_capability_id,effect_scope,action_ordinal,target_ref,document_ref,action_id,
     positive_postcondition_hash,negative_postcondition_hash,request_hash,payload_hash,proof_hash,state
     from browser_mutations where job_id in (${placeholders}) order by job_id,updated_at,command_id`)
     .all(...jobIds) as MutationRow[];
   mutationJournalMode = String(mutations.pragma("journal_mode", { simple: true }));
-} finally { production.close(); mutations.close(); }
+} finally { mutations.close(); }
 assert.equal(taskRows.length, 39);
 assert.equal(taskRows.every((row) => row.status === "completed" && Boolean(row.result_json)), true);
+assert.equal(runtimeSchemaExact, true, "Runtime SQLite schema and integrity must be exact");
+assert.equal(runtimeStorageInventory.orphan_directory_count, 0,
+  "Runtime proof data must not contain orphan task storage");
 const routeCoverage = assertProductionProofRouteCoverage(taskRows, agentPluginCapabilityManifest);
 const observedPlugins = [...routeCoverage.pluginIds];
 const catalogPlugins = agentPluginCapabilityManifest.plugins.map((plugin) => plugin.plugin_id).sort();
@@ -394,7 +386,10 @@ const observation: DirectRuntimeObservation = Object.freeze({
     components: observedHealth.components.map((item) => item.name), endpoint: BASE_URL, processId: process.pid,
     facts: {
       browser_context_closed: cleanupObservation.browserContextClosed,
+      business_admission_completed_count: taskRows.length,
       cleanup_verified: cleanupObservation.cleanupVerified,
+      contract_manifest_hash_present: /manifest=sha256:[a-f0-9]{64}/u
+        .test(component("agentCloudWorker")?.detail ?? ""),
       readiness_dimension_count: new Set(readinessNames).size,
       readiness_dimensions_distinct: new Set(readinessNames).size === readinessNames.length,
       runtime_log_event_count: runtimeLogFacts.eventCount,
@@ -403,6 +398,7 @@ const observation: DirectRuntimeObservation = Object.freeze({
       runtime_log_producer_count: runtimeLogFacts.producerCount,
       runtime_log_sealed: runtimeLogFacts.sealed,
       runtime_log_forbidden_task_state_field_count: runtimeLogFacts.forbiddenTaskStateFieldCount,
+      runtime_claims_business_completion: false,
       workbench_stopped: cleanupObservation.workbenchStopped,
     },
     serviceName: "agent-production-runtime", sourceFingerprint: observedHealth.sourceFingerprint,
@@ -413,6 +409,7 @@ const observation: DirectRuntimeObservation = Object.freeze({
     facts: { frozen_identity_count: taskRows.length, frozen_identity_invalid_count: frozenIdentityInvalidCount,
       incomplete_frontier_count: incompleteFrontierCount,
       required_runtime_schema_column_count: requiredRuntimeSchemaColumnCount,
+      runtime_schema_exact: runtimeSchemaExact,
       unscheduled_outbox_count: unscheduledOutboxCount },
     recordCounts: { tasks: taskRows.length, continuations: continuationRows.length },
   },
@@ -422,6 +419,7 @@ const observation: DirectRuntimeObservation = Object.freeze({
       confirmed_row_invalid_count: confirmedRowInvalidCount,
       mutation_rows_complete: confirmedRowInvalidCount === 0,
       proof_job_pending_outbox_count: proofJobPendingOutboxCount,
+      runtime_orphan_directory_count: runtimeStorageInventory.orphan_directory_count,
       runtime_log_authority_hash_count: runtimeLogFacts.authorityHashCount,
       runtime_log_sensitive_value_count: runtimeLogFacts.sensitiveValueCount,
       runtime_log_forbidden_task_state_field_count: runtimeLogFacts.forbiddenTaskStateFieldCount,
@@ -492,7 +490,7 @@ for (const route of Object.keys(dynamicClaimContract.routes).sort()) {
   const evidenceMode = route.slice(separator + 1) as DynamicMode;
   assert.equal(separator > 0 && Object.hasOwn(observation, evidenceMode.slice("dynamic.".length)), true,
     `invalid dynamic producer route ${route}`);
-  emit(lawId, evidenceMode, lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V31"
+  emit(lawId, evidenceMode, lawId.startsWith("LAW-AGENT-PRODUCTION-RUNTIME-")
     ? `${evidenceMode};runtime-boundary-only`
     : `${evidenceMode};realChrome=${browserVersion};plugins=12;jobs=39;routes=39`);
 }

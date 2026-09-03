@@ -22,6 +22,15 @@ import type {
 import { ProductionRuntimeStore } from "./store.js";
 
 type ReadbackExecution = Readonly<{ task: WebsiteAgentTask; pluginId: string; pluginVersion: number }>;
+type FrontierQuery = Extract<ExactGptContinuationQuery, { lookupKind: "frontier_ref" }>;
+type FrontierReadback = Extract<ExactGptContinuationReadback, { lookupKind: "frontier_ref" }>;
+type StoredFrontier = NonNullable<ReturnType<ProductionRuntimeStore["readGptContinuationForFrontier"]>>;
+type StoredTask = NonNullable<ReturnType<ProductionRuntimeStore["readTask"]>>;
+type FrontierContext = Readonly<{
+  stored: StoredFrontier;
+  originTask: StoredTask;
+  currentTask: StoredTask;
+}>;
 
 const imageArtifactMatches = (
   artifacts: Awaited<ReturnType<typeof readGeneratedImageCheckpointArtifacts>>,
@@ -169,14 +178,7 @@ export class ProductionGptContinuationReadback {
     });
   }
 
-  public async readExact(
-    input: ReadbackExecution,
-    query: ExactGptContinuationQuery,
-  ): Promise<ExactGptContinuationReadback | null> {
-    if (query.lookupKind === "turn_marker") {
-      const lane = this.continuationForTurn(input, query.turnMarker);
-      return lane ? Object.freeze({ lookupKind: "turn_marker", lane }) : null;
-    }
+  private frontierContext(input: ReadbackExecution, query: FrontierQuery): FrontierContext | null {
     if (!/^sha256:[a-f0-9]{64}$/u.test(query.frontierRef)) {
       throw executionFailure("failed", "GPT_CONTINUATION_FRONTIER_INVALID");
     }
@@ -184,24 +186,25 @@ export class ProductionGptContinuationReadback {
     if (!stored) return null;
     if (!gptContinuationUsable(stored)
       || stored.owner_ref !== input.task.business_identity.owner_ref
-      || stored.subject_ref !== input.task.business_identity.subject_ref) {
+      || stored.subject_ref !== input.task.business_identity.subject_ref
+      || stored.frontier_ref !== query.frontierRef
+      || !originBindingMatches(stored)) {
       throw executionFailure("failed", "GPT_CONTINUATION_FRONTIER_IDENTITY_INVALID");
     }
-    const origin = stored.origin_checkpoint;
-    const current = stored.current_checkpoint;
     gptContinuationIdentityHash(stored.origin_provider);
-    if (stored.frontier_ref !== query.frontierRef || !originBindingMatches(stored)) {
-      throw executionFailure("failed", "GPT_CONTINUATION_FRONTIER_IDENTITY_INVALID");
-    }
-    const verifiedOrigin = origin!;
-    const verifiedCurrent = current!;
     const originTask = this.store.readTask(stored.origin_provider.prior_task_id);
     const currentTask = this.store.readTask(stored.provider.prior_task_id);
-    if (!originTask || !currentTask
-      || originTask.identity.plugin_version !== stored.origin_plugin_version) {
+    if (!originTask || !currentTask || originTask.identity.plugin_version !== stored.origin_plugin_version) {
       throw executionFailure("failed", "GPT_CONTINUATION_FRONTIER_IDENTITY_INVALID");
     }
-    let authorizationReadback: Extract<ExactGptContinuationReadback, { lookupKind: "frontier_ref" }>["authorizationReadback"];
+    return { stored, originTask, currentTask };
+  }
+
+  private authorizationReadback(
+    input: ReadbackExecution,
+    query: FrontierQuery,
+    stored: StoredFrontier,
+  ): FrontierReadback["authorizationReadback"] {
     if (query.authorization.kind === "origin_authorization") {
       if (query.authorization.originAuthorizationRef !== stored.authorization_ref
         || stored.origin_job_id !== input.task.job_id
@@ -210,50 +213,73 @@ export class ProductionGptContinuationReadback {
         || stored.authorization_ref !== input.task.business_identity.authorization_ref) {
         throw executionFailure("failed", "GPT_CONTINUATION_FRONTIER_AUTHORIZATION_INVALID");
       }
-      authorizationReadback = Object.freeze({
+      return Object.freeze({
         kind: "origin_authorization",
         originAuthorizationRef: stored.authorization_ref,
       });
-    } else {
-      const sourceCheckpointRef = stored.source_checkpoint_hash ?? hashCanonical(verifiedOrigin);
-      if (query.authorization.currentAuthorizationRef !== input.task.business_identity.authorization_ref
-        || query.authorization.opaqueReadGrantHash !== stored.opaque_read_grant_hash
-        || !stored.artifact_ref || !stored.artifact_hash
-        || stored.artifact_ref !== verifiedOrigin.artifact_ref
-        || stored.artifact_hash !== verifiedOrigin.semantic_text_hash
-        || !stored.semantic_admission_receipt_ref || !stored.semantic_admission_receipt_hash) {
-        throw executionFailure("failed", "GPT_CONTINUATION_ARTIFACT_READ_GRANT_INVALID");
-      }
-      authorizationReadback = Object.freeze({
-        kind: "current_artifact_read_grant",
-        currentAuthorizationRef: query.authorization.currentAuthorizationRef,
-        ownerScopeHash: hashCanonical({ kind: "gpt-owner-scope.v1", owner_ref: stored.owner_ref }),
-        subjectRef: stored.subject_ref,
-        sourceArtifactRef: stored.artifact_ref,
-        sourceCheckpointRef,
-        semanticAdmissionReceiptRef: stored.semantic_admission_receipt_ref,
-        semanticAdmissionReceiptHash: stored.semantic_admission_receipt_hash,
-        opaqueReadGrantHash: stored.opaque_read_grant_hash,
-      });
     }
-    const originCheckpoint = await this.readTextCheckpoint(
-      verifiedOrigin, stored.origin_provider.prior_task_id, originTask.identity.plugin_version,
-    );
-    const currentCheckpoint = verifiedCurrent.checkpoint_kind === "text"
-      ? await this.readTextCheckpoint(
-        verifiedCurrent, stored.provider.prior_task_id, currentTask.identity.plugin_version,
-      )
-      : await this.readImageCheckpoint(
-        verifiedCurrent, stored.provider.prior_task_id, currentTask.identity.plugin_version,
-      );
-    if (!currentBindingMatches(stored)) {
-      throw executionFailure("failed", "GPT_CONTINUATION_FRONTIER_IDENTITY_INVALID");
+    const origin = stored.origin_checkpoint!;
+    const sourceCheckpointRef = stored.source_checkpoint_hash ?? hashCanonical(origin);
+    if (query.authorization.currentAuthorizationRef !== input.task.business_identity.authorization_ref
+      || query.authorization.opaqueReadGrantHash !== stored.opaque_read_grant_hash
+      || !stored.artifact_ref || !stored.artifact_hash
+      || stored.artifact_ref !== origin.artifact_ref
+      || stored.artifact_hash !== origin.semantic_text_hash
+      || !stored.semantic_admission_receipt_ref || !stored.semantic_admission_receipt_hash) {
+      throw executionFailure("failed", "GPT_CONTINUATION_ARTIFACT_READ_GRANT_INVALID");
     }
     return Object.freeze({
-      lookupKind: "frontier_ref", continuationRef: stored.continuation_ref,
+      kind: "current_artifact_read_grant",
+      currentAuthorizationRef: query.authorization.currentAuthorizationRef,
+      ownerScopeHash: hashCanonical({ kind: "gpt-owner-scope.v1", owner_ref: stored.owner_ref }),
+      subjectRef: stored.subject_ref,
+      sourceArtifactRef: stored.artifact_ref,
+      sourceCheckpointRef,
+      semanticAdmissionReceiptRef: stored.semantic_admission_receipt_ref,
+      semanticAdmissionReceiptHash: stored.semantic_admission_receipt_hash,
+      opaqueReadGrantHash: stored.opaque_read_grant_hash,
+    });
+  }
+
+  private async checkpointReadback(context: FrontierContext): Promise<Readonly<{
+    originCheckpoint: FrontierReadback["originCheckpoint"];
+    currentCheckpoint: FrontierReadback["currentCheckpoint"];
+  }>> {
+    const origin = context.stored.origin_checkpoint!;
+    const current = context.stored.current_checkpoint!;
+    const originCheckpoint = await this.readTextCheckpoint(
+      origin, context.stored.origin_provider.prior_task_id, context.originTask.identity.plugin_version,
+    );
+    const currentCheckpoint = current.checkpoint_kind === "text"
+      ? await this.readTextCheckpoint(
+        current, context.stored.provider.prior_task_id, context.currentTask.identity.plugin_version,
+      )
+      : await this.readImageCheckpoint(
+        current, context.stored.provider.prior_task_id, context.currentTask.identity.plugin_version,
+      );
+    if (!currentBindingMatches(context.stored)) {
+      throw executionFailure("failed", "GPT_CONTINUATION_FRONTIER_IDENTITY_INVALID");
+    }
+    return { originCheckpoint, currentCheckpoint };
+  }
+
+  public async readExact(
+    input: ReadbackExecution,
+    query: ExactGptContinuationQuery,
+  ): Promise<ExactGptContinuationReadback | null> {
+    if (query.lookupKind === "turn_marker") {
+      const lane = this.continuationForTurn(input, query.turnMarker);
+      return lane ? Object.freeze({ lookupKind: "turn_marker", lane }) : null;
+    }
+    const context = this.frontierContext(input, query);
+    if (!context) return null;
+    const authorizationReadback = this.authorizationReadback(input, query, context.stored);
+    const { originCheckpoint, currentCheckpoint } = await this.checkpointReadback(context);
+    return Object.freeze({
+      lookupKind: "frontier_ref", continuationRef: context.stored.continuation_ref,
       authorizationReadback,
-      originProvider: stored.origin_provider, originCheckpoint,
-      currentProvider: stored.provider, currentCheckpoint,
+      originProvider: context.stored.origin_provider, originCheckpoint,
+      currentProvider: context.stored.provider, currentCheckpoint,
     });
   }
 }

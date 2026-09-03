@@ -186,6 +186,19 @@ export type ProductionActionId = z.infer<typeof ProductionActionIdSchema>;
 type ProductionMaterial = z.infer<typeof ProductionMaterialSchema>;
 export type ProductionHash = `sha256:${string}`;
 
+export interface ProductionExecutionLease {
+  readonly attempt_id: string;
+  readonly device_id: string;
+  readonly lease_version: number;
+  readonly execution_fence_hash: ProductionHash;
+  readonly control_manifest_hash: ProductionHash;
+  readonly max_provider_turns: number;
+  provider_turns_used: number;
+  expires_at_monotonic: number;
+  command_ttl_ms: number;
+  readonly abort_signal: AbortSignal;
+}
+
 export type LocalProductionMaterial = ProductionMaterial & Readonly<{ local_path: string }>;
 
 export interface WebsiteAgentResult {

@@ -1,5 +1,4 @@
-import { rm } from "node:fs/promises";
-import path from "node:path";
+import { join } from "node:path";
 
 import {
   executionFailure,
@@ -24,7 +23,7 @@ import {
 } from "./cloud-reconciliation-client.js";
 import { productionCatalogHash, resolveProductionPlugin } from "./catalog.js";
 import { hashCanonical, type ProductionHash, type WebsiteAgentTask } from "./contracts.js";
-import type { ProductionExecutionLease } from "./executor.js";
+import type { ProductionExecutionLease } from "./contracts.js";
 import {
   heartbeatWhileRunning,
   ProductionRuntimeBoundaryError,
@@ -53,6 +52,7 @@ import {
   permanentAuthorizationRevoked,
   settlePermanentAuthorizationRevocation,
 } from "./runtime-permanent-revocation.js";
+import { productionRuntimeTaskPath } from "./runtime-storage-inventory.js";
 
 const isResultTransportBoundary = (error: unknown): boolean => {
   const typed = typedExecutionFailure(error);
@@ -279,9 +279,6 @@ const executeAndUpload = async (input: Readonly<{
             }),
           });
         } catch (error) {
-          if (failureCode(error) === "AI_PERMANENT_AUTHORIZATION_REVOKED") {
-            input.abort.abort("CONTROL_INTENT:cancel_requested:PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
-          }
           if (isResultTransportBoundary(error)) uploadBoundaryFailure = error;
           throw error;
         }
@@ -316,14 +313,22 @@ export const reconcileBusinessAdmission = async (
     );
     return "pending";
   }
+  const baziAdmission = "bazi_domain_admission_receipt_hash" in admission;
+  const reviewAdmission = "review_receipt_hash" in admission;
+  const primaryBazi = (record.task.product_id === "bazi_chart_interpretation"
+      && record.task.action_id === "produce")
+    || (record.task.product_id === "bazi_ai_full_analysis" && record.task.action_id === "produce")
+    || (record.task.product_id === "bazi_report_followup" && record.task.action_id === "followup");
+  const review = record.task.action_id === "accuracy_challenge"
+    || record.task.action_id === "quality_reflection";
+  if (baziAdmission !== primaryBazi || reviewAdmission !== review) {
+    throw executionFailure("failed", "BUSINESS_ADMISSION_RECEIPT_KIND_MISMATCH");
+  }
   if (remote.terminal_payload_hash !== hashCanonical(staged)
     || admission.result_payload_hash !== staged.result_payload_hash) {
     throw executionFailure("failed", "BUSINESS_ADMISSION_RESULT_HASH_MISMATCH");
   }
   state.store.completeTask(record.task.job_id, staged);
-  await rm(path.join(state.dataDir, "plugin-tasks", "production-runtime", record.task.job_id, "materials"), {
-    recursive: true, force: true,
-  });
   return "completed";
 };
 
@@ -415,7 +420,7 @@ const haltForClaimAuthority = async (input: Readonly<{
 export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTask): Promise<void> => {
   const abort = state.activeAbort.get(job.job_id)!;
   const acceptance: { durable: "unknown" | "unaccepted" | "accepted" } = { durable: "unknown" };
-  const materialDir = path.join(state.dataDir, "plugin-tasks", "production-runtime", job.job_id, "materials");
+  const materialDir = join(productionRuntimeTaskPath(state.dataDir, job.job_id), "materials");
   const jobSpan = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
     traceId: job.job_id, boundaryId: job.grant.claim_batch_id, owner: "production-runtime",
     component: "production-runtime", operation: "job.execute", typedIdentity: jobIdentity(job),

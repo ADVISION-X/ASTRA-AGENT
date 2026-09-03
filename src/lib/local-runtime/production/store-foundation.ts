@@ -2,7 +2,7 @@ import path from "node:path";
 import Database from "better-sqlite3";
 
 import type { GptContinuationStorePort } from "../../../capabilities/gpt/index.js";
-import { executionFailure, type SerializedExecutionFailure } from "../../typed-failure.js";
+import { executionFailure, typedExecutionFailure, type SerializedExecutionFailure } from "../../typed-failure.js";
 import type { DurablePluginIdentity, WebsiteAgentResult, WebsiteAgentTask } from "./contracts.js";
 import { hashCanonical, type ProductionHash } from "./contracts.js";
 
@@ -21,6 +21,8 @@ export interface StoredProductionTask {
 }
 
 export type TaskRow = {
+  job_id: string;
+  request_hash: string;
   task_json: string;
   identity_json: string;
   status: ProductionTaskStatus;
@@ -76,6 +78,12 @@ export type ProductionAuthorityReader = Readonly<{
   readOutboxAuthority: (idempotencyKey: string) => ProductionOutboxAuthority | null;
 }>;
 
+export type ProductionOutboxAuthorityRow = Readonly<{
+  idempotency_key: string; kind: string; path: string; method: string; headers_json: string; body_blob: Buffer;
+  created_at: string; sent_at: string | null; last_error: string | null; response_json: string | null;
+  response_hash: string | null; receipt_hash: string | null; next_delivery_at: string | null;
+}>;
+
 export const now = (): string => new Date().toISOString();
 export const json = (value: unknown): string => JSON.stringify(value);
 
@@ -86,27 +94,35 @@ const validSerializedCause = (cause: unknown): boolean => cause === null || (
   && ((cause as Record<string, unknown>).code === null || typeof (cause as Record<string, unknown>).code === "string")
 );
 
+const serializedFailureKeys = ["browser_outcome", "cause", "child_capability_id", "code", "effect_scope",
+  "evidence_hash", "evidence_ref", "mutation_outcome"];
+const serializedEvidenceValid = (row: Record<string, unknown>): boolean => {
+  const refValid = row.evidence_ref === null
+    || (typeof row.evidence_ref === "string" && row.evidence_ref.length > 0);
+  const hashValid = row.evidence_hash === null
+    || (typeof row.evidence_hash === "string" && /^sha256:[a-f0-9]{64}$/u.test(row.evidence_hash));
+  return refValid && hashValid;
+};
+const browserFailureFactsAbsent = (row: Record<string, unknown>): boolean =>
+  row.effect_scope === null && row.child_capability_id === null && row.browser_outcome === null;
+const browserFailureFactsValid = (row: Record<string, unknown>): boolean => {
+  const outcome = String(row.browser_outcome);
+  const outcomeMatchesMutation = outcome === "DISPATCHED"
+    ? row.mutation_outcome === "dispatched" : row.mutation_outcome === "confirmed";
+  return ["target_local", "provider_effect"].includes(String(row.effect_scope))
+    && typeof row.child_capability_id === "string" && row.child_capability_id.length > 0
+    && ["DISPATCHED", "CONFIRMED", "REJECTED"].includes(outcome)
+    && outcomeMatchesMutation;
+};
+
 export const isSerializedTerminalFailure = (value: unknown): value is SerializedExecutionFailure => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const row = value as Record<string, unknown>;
-  const keys = ["browser_outcome", "cause", "child_capability_id", "code", "effect_scope",
-    "evidence_hash", "evidence_ref", "mutation_outcome"];
-  const validRef = row.evidence_ref === null || (typeof row.evidence_ref === "string" && row.evidence_ref.length > 0);
-  const validHash = row.evidence_hash === null || (
-    typeof row.evidence_hash === "string" && /^sha256:[a-f0-9]{64}$/u.test(row.evidence_hash)
-  );
-  const browserFactsAbsent = row.effect_scope === null
-    && row.child_capability_id === null && row.browser_outcome === null;
-  const browserFactsValid = ["target_local", "provider_effect"].includes(String(row.effect_scope))
-    && typeof row.child_capability_id === "string" && row.child_capability_id.length > 0
-    && ["DISPATCHED", "CONFIRMED", "REJECTED"].includes(String(row.browser_outcome))
-    && (row.browser_outcome === "DISPATCHED"
-      ? row.mutation_outcome === "dispatched" : row.mutation_outcome === "confirmed");
-  return JSON.stringify(Object.keys(row).sort()) === JSON.stringify(keys)
+  return JSON.stringify(Object.keys(row).sort()) === JSON.stringify(serializedFailureKeys)
     && typeof row.code === "string" && row.code.length > 0
     && ["no", "dispatched", "confirmed"].includes(String(row.mutation_outcome))
-    && (browserFactsAbsent || browserFactsValid)
-    && validRef && validHash && validSerializedCause(row.cause);
+    && (browserFailureFactsAbsent(row) || browserFailureFactsValid(row))
+    && serializedEvidenceValid(row) && validSerializedCause(row.cause);
 };
 
 export const storedTaskFromRow = (row: TaskRow): StoredProductionTask => ({
@@ -150,8 +166,7 @@ export const resolveProductionAuthority = (
   return record ? verify(record) : "missing";
 };
 
-const createProductionTables = (database: Database.Database): void => {
-  database.exec(`create table production_tasks(
+const productionSchemaSql = `create table production_tasks(
     job_id text primary key, request_hash text not null, task_json text not null,
     identity_json text not null, status text not null check(status in ('failed','completed')),
     result_json text, staged_result_json text, current_attempt_id text not null, current_reason text,
@@ -200,50 +215,136 @@ const createProductionTables = (database: Database.Database): void => {
     attempt_id text not null, lease_version integer not null, fence_hash text not null,
     state text not null check(state in ('absent','active','stale','lost')),
     expires_at text, updated_at text not null
-  );`);
-};
+  );`;
 
-const tableColumns = (database: Database.Database, table: string): ReadonlySet<string> => new Set(
-  (database.prepare(`pragma table_info(${table})`).all() as Array<{ name: string }>).map((column) => column.name),
-);
+const createProductionTables = (database: Database.Database): void => { database.exec(productionSchemaSql); };
+
+const canonicalSql = (value: string): string => value.toLowerCase().replace(/\s+/gu, " ")
+  .replace(/\s*([(),=])\s*/gu, "$1").replace(/;+$/u, "").trim();
+const expectedTableSql = new Map(productionSchemaSql.split(/;\s*(?=create table)/gu).map((statement) => {
+  const name = /^create table (production_[a-z_]+)/u.exec(statement.trim())?.[1];
+  if (!name) throw new Error("PRODUCTION_SCHEMA_SOURCE_INVALID");
+  return [name, canonicalSql(statement)] as const;
+}));
 
 const executionTables = [
   "production_steps", "production_attempt_failures", "production_continuations", "production_outbox",
   "production_checkpoints", "production_leases", "production_tasks",
 ] as const;
 
-const currentCoreSchemaPresent = (database: Database.Database): boolean => {
-  const tasks = tableColumns(database, "production_tasks");
-  const outbox = tableColumns(database, "production_outbox");
-  const failures = tableColumns(database, "production_attempt_failures");
-  const continuations = tableColumns(database, "production_continuations");
-  const failureColumns = ["job_id", "attempt_id", "failure_json", "created_at"] as const;
-  return tasks.has("current_attempt_id") && tasks.has("current_reason")
-    && tableColumns(database, "production_steps").size === 0
-    && !tasks.has("failure_json") && !tasks.has("failure_reason")
-    && failures.size === failureColumns.length
-    && failureColumns.every((column) => failures.has(column))
-    && outbox.has("last_error") && outbox.has("next_delivery_at")
-    && continuations.has("continuation_ref") && continuations.has("provider_json")
-    && !outbox.has("delivery_build_hash") && !outbox.has("delivery_attempt_count")
-    && !outbox.has("delivery_parked_at");
+const tableShapes = {
+  production_tasks: ["job_id:TEXT:0:1", "request_hash:TEXT:1:0", "task_json:TEXT:1:0",
+    "identity_json:TEXT:1:0", "status:TEXT:1:0", "result_json:TEXT:0:0", "staged_result_json:TEXT:0:0",
+    "current_attempt_id:TEXT:1:0", "current_reason:TEXT:0:0", "created_at:TEXT:1:0", "updated_at:TEXT:1:0"],
+  production_attempt_failures: ["job_id:TEXT:1:1", "attempt_id:TEXT:1:2", "failure_json:TEXT:1:0",
+    "created_at:TEXT:1:0"],
+  production_continuations: ["continuation_ref:TEXT:0:1", "reservation_kind:TEXT:1:0",
+    "reservation_identity_hash:TEXT:1:0", "origin_job_id:TEXT:1:0", "origin_plugin_version:INTEGER:1:0",
+    "plugin_id:TEXT:1:0", "owner_ref:TEXT:1:0", "subject_ref:TEXT:1:0", "authorization_ref:TEXT:1:0",
+    "conversation_identity_hash:TEXT:0:0", "frontier_ref:TEXT:0:0", "source_checkpoint_hash:TEXT:0:0",
+    "reservation_fence_hash:TEXT:0:0", "reservation_effect_hash:TEXT:0:0", "origin_provenance_hash:TEXT:0:0",
+    "semantic_contract_hash:TEXT:0:0", "artifact_ref:TEXT:0:0", "artifact_hash:TEXT:0:0",
+    "semantic_admission_receipt_ref:TEXT:0:0", "semantic_admission_receipt_hash:TEXT:0:0",
+    "semantic_admission_receipt_json:TEXT:0:0", "opaque_read_grant_hash:TEXT:0:0",
+    "completion_receipt_hash:TEXT:0:0", "origin_provider_json:TEXT:0:0", "origin_checkpoint_json:TEXT:0:0",
+    "provider_json:TEXT:0:0", "current_checkpoint_json:TEXT:0:0", "lane_version:INTEGER:1:0",
+    "lane_owner_job_id:TEXT:0:0", "created_at:TEXT:1:0"],
+  production_outbox: ["idempotency_key:TEXT:0:1", "kind:TEXT:1:0", "path:TEXT:1:0", "method:TEXT:1:0",
+    "headers_json:TEXT:1:0", "body_blob:BLOB:1:0", "created_at:TEXT:1:0", "sent_at:TEXT:0:0",
+    "last_error:TEXT:0:0", "response_json:TEXT:0:0", "response_hash:TEXT:0:0", "receipt_hash:TEXT:0:0",
+    "next_delivery_at:TEXT:0:0"],
+  production_checkpoints: ["job_id:TEXT:0:1", "attempt_id:TEXT:1:0", "checkpoint_id:TEXT:0:0",
+    "checkpoint_hash:TEXT:0:0", "state:TEXT:1:0", "updated_at:TEXT:1:0"],
+  production_leases: ["job_id:TEXT:0:1", "attempt_id:TEXT:1:0", "lease_version:INTEGER:1:0",
+    "fence_hash:TEXT:1:0", "state:TEXT:1:0", "expires_at:TEXT:0:0", "updated_at:TEXT:1:0"],
+} as const;
+
+const expectedIndexes: Readonly<Record<keyof typeof tableShapes, readonly string[]>> = {
+  production_tasks: ["1:pk:0:job_id"],
+  production_attempt_failures: ["1:pk:0:job_id,attempt_id"],
+  production_continuations: ["1:pk:0:continuation_ref", "1:u:0:frontier_ref", "1:u:0:reservation_identity_hash"],
+  production_outbox: ["1:pk:0:idempotency_key"],
+  production_checkpoints: ["1:pk:0:job_id"],
+  production_leases: ["1:pk:0:job_id"],
 };
 
-const currentSchemaPresent = (database: Database.Database): boolean => {
-  const continuations = tableColumns(database, "production_continuations");
-  const reservationColumns = [
-    "reservation_kind", "reservation_identity_hash", "origin_plugin_version", "source_checkpoint_hash",
-    "reservation_fence_hash", "reservation_effect_hash", "origin_provenance_hash", "artifact_ref",
-    "artifact_hash", "semantic_admission_receipt_ref", "semantic_admission_receipt_hash",
-    "semantic_contract_hash", "semantic_admission_receipt_json",
-    "opaque_read_grant_hash", "completion_receipt_hash",
-  ] as const;
-  return currentCoreSchemaPresent(database)
-    && continuations.has("frontier_ref")
-    && continuations.has("origin_provider_json")
-    && continuations.has("origin_checkpoint_json")
-    && continuations.has("current_checkpoint_json")
-    && reservationColumns.every((column) => continuations.has(column));
+const expectedForeignKeys: Readonly<Record<keyof typeof tableShapes, readonly string[]>> = {
+  production_tasks: [], production_outbox: [],
+  production_attempt_failures: ["production_tasks:job_id:job_id:NO ACTION:RESTRICT:NONE"],
+  production_continuations: ["production_tasks:origin_job_id:job_id:NO ACTION:RESTRICT:NONE"],
+  production_checkpoints: ["production_tasks:job_id:job_id:NO ACTION:RESTRICT:NONE"],
+  production_leases: ["production_tasks:job_id:job_id:NO ACTION:RESTRICT:NONE"],
+};
+
+const exactTableShape = (database: Database.Database, table: keyof typeof tableShapes): boolean => {
+  const declared = database.prepare("select sql from sqlite_master where type='table' and name=?")
+    .get(table) as { sql: string } | undefined;
+  if (!declared || canonicalSql(declared.sql) !== expectedTableSql.get(table)) return false;
+  const columns = (database.prepare(`pragma table_info(${table})`).all() as Array<{
+    name: string; type: string; notnull: number; pk: number; dflt_value: unknown;
+  }>);
+  if (columns.some((column) => column.dflt_value !== null)) return false;
+  const columnShape = columns.map((column) => `${column.name}:${column.type}:${column.notnull}:${column.pk}`);
+  if (JSON.stringify(columnShape) !== JSON.stringify(tableShapes[table])) return false;
+  const indexes = (database.prepare(`pragma index_list(${table})`).all() as Array<{
+    name: string; unique: number; origin: string; partial: number;
+  }>).map((index) => {
+    const name = index.name.replaceAll('"', '""');
+    const names = (database.prepare(`pragma index_info("${name}")`).all() as Array<{ name: string }> )
+      .map((column) => column.name).join(",");
+    return `${index.unique}:${index.origin}:${index.partial}:${names}`;
+  }).sort();
+  const foreignKeys = (database.prepare(`pragma foreign_key_list(${table})`).all() as Array<{
+    table: string; from: string; to: string; on_update: string; on_delete: string; match: string;
+  }>).map((foreign) => `${foreign.table}:${foreign.from}:${foreign.to}:${foreign.on_update}:`
+    + `${foreign.on_delete}:${foreign.match}`).sort();
+  return JSON.stringify(indexes) === JSON.stringify(expectedIndexes[table])
+    && JSON.stringify(foreignKeys) === JSON.stringify(expectedForeignKeys[table]);
+};
+
+const currentSchemaPresent = (database: Database.Database): boolean =>
+  (Object.keys(tableShapes) as Array<keyof typeof tableShapes>).every((table) => exactTableShape(database, table))
+  && String(database.pragma("integrity_check", { simple: true })).toLowerCase() === "ok"
+  && (database.pragma("foreign_key_check") as unknown[]).length === 0;
+
+const invalidJsonCount = (database: Database.Database): number => Number((database.prepare(`select
+  (select count(*) from production_tasks where not json_valid(task_json) or not json_valid(identity_json)
+    or (result_json is not null and not json_valid(result_json))
+    or (staged_result_json is not null and not json_valid(staged_result_json)))
+  +(select count(*) from production_attempt_failures where not json_valid(failure_json))
+  +(select count(*) from production_continuations where
+    (origin_provider_json is not null and not json_valid(origin_provider_json))
+    or (origin_checkpoint_json is not null and not json_valid(origin_checkpoint_json))
+    or (provider_json is not null and not json_valid(provider_json))
+    or (current_checkpoint_json is not null and not json_valid(current_checkpoint_json))
+    or (semantic_admission_receipt_json is not null and not json_valid(semantic_admission_receipt_json)))
+  +(select count(*) from production_outbox where not json_valid(headers_json)
+    or (kind!='artifact' and not json_valid(cast(body_blob as text)))
+    or (response_json is not null and not json_valid(response_json))) as count`).get() as { count: number }).count);
+
+export const stateInvariantFailureCount = (database: Database.Database): number => {
+  const row = database.prepare(`select
+    (select count(*) from production_tasks where job_id!=json_extract(task_json,'$.job_id')
+      or request_hash!=json_extract(task_json,'$.request_hash')
+      or request_hash!=json_extract(identity_json,'$.request_hash') or current_attempt_id='')
+    +(select count(*) from production_outbox where (response_json is null)!=(response_hash is null)
+      or (response_hash is not null and sent_at is null))
+    +(select count(*) from production_checkpoints c where c.attempt_id=''
+      or not exists(select 1 from production_tasks t
+        where t.job_id=c.job_id and t.current_attempt_id=c.attempt_id)
+      or (state='none' and (checkpoint_id is not null or checkpoint_hash is not null))
+      or (state='persisted' and (checkpoint_id is null or checkpoint_id='' or checkpoint_hash is null
+        or length(checkpoint_hash)!=71 or substr(checkpoint_hash,1,7)!='sha256:'
+        or substr(checkpoint_hash,8) glob '*[^0-9a-f]*'))
+      or (state='failed' and (checkpoint_id is null or checkpoint_id='' or checkpoint_hash is not null)))
+    +(select count(*) from production_leases l where typeof(l.lease_version)!='integer' or l.lease_version<1
+      or l.attempt_id='' or length(l.fence_hash)!=71 or substr(l.fence_hash,1,7)!='sha256:'
+      or substr(l.fence_hash,8) glob '*[^0-9a-f]*'
+      or not exists(select 1 from production_tasks t
+        where t.job_id=l.job_id and t.current_attempt_id=l.attempt_id)
+      or (l.state='active' and l.expires_at is null)
+      or (l.state!='active' and l.expires_at is not null)) as count`).get() as { count: number };
+  return Number(row.count);
 };
 
 const initializeOrAssertCurrentSchema = (database: Database.Database): void => {
@@ -254,6 +355,9 @@ const initializeOrAssertCurrentSchema = (database: Database.Database): void => {
     const journalMode = String(database.pragma("journal_mode = WAL", { simple: true })).toLowerCase();
     if (journalMode !== "wal") throw executionFailure("failed", "PRODUCTION_SCHEMA_INITIALIZATION_FAILED");
     createProductionTables(database);
+    if (!currentSchemaPresent(database)) {
+      throw executionFailure("failed", "PRODUCTION_SCHEMA_INITIALIZATION_FAILED");
+    }
     return;
   }
   const expectedTables = executionTables.filter((table) => table !== "production_steps").sort();
@@ -269,6 +373,9 @@ const initializeOrAssertCurrentSchema = (database: Database.Database): void => {
   if (Number(unscheduled.count) !== 0) {
     throw executionFailure("failed", "PRODUCTION_DATA_MIGRATION_REQUIRED");
   }
+  if (invalidJsonCount(database) !== 0 || stateInvariantFailureCount(database) !== 0) {
+    throw executionFailure("failed", "PRODUCTION_DATA_CORRUPT");
+  }
 };
 
 type ProductionOutboxObserver = (authority: ProductionOutboxAuthority) => void;
@@ -281,15 +388,21 @@ export abstract class ProductionStoreFoundation implements GptContinuationStoreP
 
   public constructor(dataDir: string) {
     this.dataDir = dataDir;
-    this.database = new Database(path.join(dataDir, "production-runtime.sqlite"));
-    this.database.pragma("synchronous = FULL");
-    this.database.pragma("foreign_keys = ON");
+    let database: Database.Database | null = null;
     try {
-      initializeOrAssertCurrentSchema(this.database);
+      database = new Database(path.join(dataDir, "production-runtime.sqlite"));
+      database.pragma("synchronous = FULL");
+      database.pragma("foreign_keys = ON");
+      initializeOrAssertCurrentSchema(database);
     } catch (error) {
-      this.database.close();
-      throw error;
+      database?.close();
+      if (typedExecutionFailure(error)) throw error;
+      const code = error && typeof error === "object" && "code" in error && typeof error.code === "string"
+        ? error.code : "";
+      throw executionFailure("failed", ["SQLITE_CORRUPT", "SQLITE_NOTADB", "SQLITE_SCHEMA"].includes(code)
+        ? "PRODUCTION_SCHEMA_CORRUPT" : "PRODUCTION_SCHEMA_UNREADABLE", { cause: error });
     }
+    this.database = database;
   }
 
   public setOutboxObserver(observer: ProductionOutboxObserver): void { this.outboxObserver = observer; }

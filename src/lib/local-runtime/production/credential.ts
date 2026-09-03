@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { lstat, mkdir, open, readFile, rename, unlink } from "node:fs/promises";
+import { constants, type Stats } from "node:fs";
+import { lstat, mkdir, open, rename, unlink } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 
@@ -7,28 +8,111 @@ import {
   DeviceCredentialSchema,
   type DeviceCredential,
 } from "./transport-protocol.js";
+import { executionFailure } from "../../typed-failure.js";
 
 export const productionCredentialPath = (dataDir: string): string =>
   process.env.AGENT_PRODUCTION_CREDENTIAL_FILE?.trim()
   || path.join(dataDir, "runtime-data", "production-runtime", "device-credential.json");
 
+const errno = (error: unknown): string | null =>
+  error && typeof error === "object" && "code" in error && typeof error.code === "string"
+    ? error.code : null;
+
+const credentialFailure = (code: string, cause?: unknown): never => {
+  throw executionFailure("failed", code, cause === undefined ? {} : { cause });
+};
+
+const credentialMetadata = async (
+  filePath: string,
+  missingCode: string,
+  unreadableCode: string,
+): Promise<Stats> => {
+  try { return await lstat(filePath); }
+  catch (error) {
+    return credentialFailure(errno(error) === "ENOENT" ? missingCode : unreadableCode, error);
+  }
+};
+
+const parseCredentialJson = (source: string): unknown => {
+  try { return JSON.parse(source) as unknown; }
+  catch (error) { return credentialFailure("PRODUCTION_CREDENTIAL_JSON_INVALID", error); }
+};
+
+const parseCredentialUrl = (value: string): URL => {
+  try { return new URL(value); }
+  catch (error) { return credentialFailure("PRODUCTION_CREDENTIAL_ORIGIN_INVALID", error); }
+};
+
+const readCredentialFile = async (filePath: string, expected: Stats): Promise<string> => {
+  let handle: Awaited<ReturnType<typeof open>>;
+  try { handle = await open(filePath, constants.O_RDONLY | constants.O_NOFOLLOW); }
+  catch (error) {
+    return credentialFailure(errno(error) === "ELOOP"
+      ? "PRODUCTION_CREDENTIAL_SYMLINK_INVALID" : "PRODUCTION_CREDENTIAL_FILE_UNREADABLE", error);
+  }
+  try {
+    const opened = await handle.stat();
+    const uid = process.getuid?.();
+    if (!opened.isFile() || opened.dev !== expected.dev || opened.ino !== expected.ino
+      || (opened.mode & 0o077) !== 0 || (uid !== undefined && opened.uid !== uid)) {
+      credentialFailure("PRODUCTION_CREDENTIAL_FILE_PERMISSIONS_INVALID");
+    }
+    return await handle.readFile("utf8");
+  } catch (error) {
+    if (error instanceof Error && error.name === "TypedExecutionFailure") throw error;
+    return credentialFailure("PRODUCTION_CREDENTIAL_FILE_UNREADABLE", error);
+  } finally {
+    await handle.close();
+  }
+};
+
+const assertCredentialMetadata = (parent: Stats, file: Stats): void => {
+  const uid = process.getuid?.();
+  if (parent.isSymbolicLink() || file.isSymbolicLink()) {
+    credentialFailure("PRODUCTION_CREDENTIAL_SYMLINK_INVALID");
+  }
+  if (!parent.isDirectory() || (parent.mode & 0o077) !== 0
+    || (uid !== undefined && parent.uid !== uid)) {
+    credentialFailure("PRODUCTION_CREDENTIAL_PARENT_PERMISSIONS_INVALID");
+  }
+  if (!file.isFile() || (file.mode & 0o077) !== 0 || (uid !== undefined && file.uid !== uid)) {
+    credentialFailure("PRODUCTION_CREDENTIAL_FILE_PERMISSIONS_INVALID");
+  }
+};
+
+const parseProductionCredential = (source: string): DeviceCredential => {
+  const value = parseCredentialJson(source);
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return credentialFailure("PRODUCTION_CREDENTIAL_SCHEMA_INVALID");
+  }
+  if (!("control_manifest_hash" in value)) {
+    credentialFailure("PRODUCTION_CREDENTIAL_CONTROL_MANIFEST_MISSING");
+  }
+  const result = DeviceCredentialSchema.safeParse(value);
+  return result.success ? result.data : credentialFailure("PRODUCTION_CREDENTIAL_SCHEMA_INVALID");
+};
+
+const assertCredentialOrigins = (credential: DeviceCredential): void => {
+  const server = parseCredentialUrl(credential.server_base_url);
+  const origin = parseCredentialUrl(credential.origin);
+  const serverValid = server.protocol === "https:"
+    || (server.protocol === "http:" && server.hostname === "127.0.0.1");
+  const originValid = origin.protocol === "https:"
+    || (origin.protocol === "http:" && origin.hostname === "127.0.0.1");
+  if (!serverValid || !originValid) credentialFailure("PRODUCTION_CREDENTIAL_ORIGIN_INVALID");
+};
+
 export async function readProductionCredential(dataDir: string): Promise<DeviceCredential> {
   const filePath = productionCredentialPath(dataDir);
-  const [file, parent] = await Promise.all([lstat(filePath), lstat(path.dirname(filePath))]);
-  const uid = process.getuid?.();
-  if (!file.isFile() || file.isSymbolicLink() || (file.mode & 0o077) !== 0
-    || !parent.isDirectory() || parent.isSymbolicLink() || (parent.mode & 0o077) !== 0
-    || (uid !== undefined && (file.uid !== uid || parent.uid !== uid))) {
-    throw new Error("PRODUCTION_CREDENTIAL_PERMISSIONS_INVALID");
-  }
-  const parsed = DeviceCredentialSchema.parse(JSON.parse(await readFile(filePath, "utf8")));
-  const server = new URL(parsed.server_base_url);
-  const origin = new URL(parsed.origin);
-  if (!((server.protocol === "https:") || (server.protocol === "http:" && server.hostname === "127.0.0.1"))
-    || !((origin.protocol === "https:") || (origin.protocol === "http:" && origin.hostname === "127.0.0.1"))) {
-    throw new Error("PRODUCTION_ORIGIN_INVALID");
-  }
-  return parsed;
+  const parent = await credentialMetadata(path.dirname(filePath),
+    "PRODUCTION_CREDENTIAL_PARENT_MISSING", "PRODUCTION_CREDENTIAL_PARENT_UNREADABLE");
+  const file = await credentialMetadata(filePath,
+    "PRODUCTION_CREDENTIAL_MISSING", "PRODUCTION_CREDENTIAL_FILE_UNREADABLE");
+  assertCredentialMetadata(parent, file);
+  const source = await readCredentialFile(filePath, file);
+  const credential = parseProductionCredential(source);
+  assertCredentialOrigins(credential);
+  return credential;
 }
 
 const EnrollmentEnvelopeSchema = z.object({

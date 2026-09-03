@@ -12,7 +12,6 @@ import {
   type GptProviderContinuation,
 } from "../../src/capabilities/gpt/index.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
-import { failClosedInvalidContinuationFrontiers } from "../../src/lib/local-runtime/production/runtime-startup.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { HASH_A, HASH_B, HASH_C, identityFor, task } from "./agent-production-runtime-fixtures.js";
 
@@ -272,6 +271,7 @@ try {
   assert.equal(frontierConflict.failureCode, "GPT_CONTINUATION_FRONTIER_CONFLICT");
   assert.equal(store.readGptContinuationForFrontier(HASH_C), null,
     "a legacy/null frontier continuation must never be guessed as task frontier");
+  const currentReasonBeforeCorruption = store.readTask(sourceTask.job_id)?.current_reason;
   store.close();
 
   const incompleteDatabase = new Database(path.join(temporary, "production-runtime.sqlite"));
@@ -280,11 +280,10 @@ try {
   incompleteDatabase.close();
   const incompleteStore = new ProductionRuntimeStore(temporary);
   assert.equal(incompleteStore.frontierContinuationInvariantFailures().length, 1);
-  failClosedInvalidContinuationFrontiers(incompleteStore);
   assert.equal(
     incompleteStore.readTask(sourceTask.job_id)?.current_reason,
-    "GPT_CONTINUATION_CURRENT_CHECKPOINT_MISSING",
-    "startup must fail only the exact task instead of reconstructing Product checkpoint semantics",
+    currentReasonBeforeCorruption,
+    "Runtime startup must not interpret or rewrite Product checkpoint semantics",
   );
   assert.equal(
     incompleteStore.readGptContinuation(frontierContinuationRef as string)?.current_checkpoint,
@@ -303,10 +302,8 @@ try {
     origin_job_id: sourceTask.job_id,
     reason: "GPT_CONTINUATION_FRONTIER_INVALID",
   }]);
-  failClosedInvalidContinuationFrontiers(invalidStore);
-  assert.equal(invalidStore.readTask(sourceTask.job_id)?.current_reason, "GPT_CONTINUATION_FRONTIER_INVALID");
+  assert.equal(invalidStore.readTask(sourceTask.job_id)?.current_reason, currentReasonBeforeCorruption);
   invalidStore.setCurrentReason(sourceTask.job_id, "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
-  failClosedInvalidContinuationFrontiers(invalidStore);
   assert.equal(
     invalidStore.readTask(sourceTask.job_id)?.current_reason,
     "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED",

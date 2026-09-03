@@ -4,6 +4,13 @@ import { WebsiteAgentResultSchema, type ProductionHash } from "./contracts.js";
 import { isRejectedCheckpointSequenceFailure } from "./store-outbox-recovery-proof.js";
 import { ProductionStoreContinuationState } from "./store-continuation-state.js";
 import {
+  productionCheckpointAuthorityFromRow,
+  productionLeaseAuthorityFromRow,
+  productionTaskRowValid,
+  type ProductionCheckpointAuthorityRow,
+  type ProductionLeaseAuthorityRow,
+} from "./store-authority-validation.js";
+import {
   isSerializedTerminalFailure,
   json,
   now,
@@ -32,6 +39,13 @@ const sameCompletion = (
   existing: StoredProductionTask | null,
   result: WebsiteAgentResult,
 ): boolean => Boolean(existing?.status === "completed" && json(existing.result) === json(result));
+const taskAuthorityFromRow = (row: TaskRow): StoredProductionTask => {
+  const record = storedTaskFromRow(row);
+  if (!productionTaskRowValid(row, record)) {
+    throw executionFailure("failed", "PRODUCTION_TASK_AUTHORITY_CORRUPT");
+  }
+  return record;
+};
 
 export abstract class ProductionStoreTaskState extends ProductionStoreContinuationState {
   public acceptTask(
@@ -73,12 +87,12 @@ export abstract class ProductionStoreTaskState extends ProductionStoreContinuati
 
   public readTask(jobId: string): StoredProductionTask | null {
     const row = this.database.prepare(
-      `select t.task_json,t.identity_json,t.status,t.result_json,t.staged_result_json,t.current_attempt_id,
+      `select t.job_id,t.request_hash,t.task_json,t.identity_json,t.status,t.result_json,t.staged_result_json,t.current_attempt_id,
         t.current_reason,t.updated_at,(select f.failure_json from production_attempt_failures f
           where f.job_id=t.job_id and f.attempt_id=t.current_attempt_id) as attempt_failure_json
        from production_tasks t where t.job_id=?`,
     ).get(jobId) as TaskRow | undefined;
-    return row ? storedTaskFromRow(row) : null;
+    return row ? taskAuthorityFromRow(row) : null;
   }
 
   public readGptContinuationExecutionBinding(jobId: string) {
@@ -102,12 +116,12 @@ export abstract class ProductionStoreTaskState extends ProductionStoreContinuati
 
   public taskAuthorities(): readonly StoredProductionTask[] {
     const rows = this.database.prepare(
-      `select t.task_json,t.identity_json,t.status,t.result_json,t.staged_result_json,t.current_attempt_id,
+      `select t.job_id,t.request_hash,t.task_json,t.identity_json,t.status,t.result_json,t.staged_result_json,t.current_attempt_id,
         t.current_reason,t.updated_at,(select f.failure_json from production_attempt_failures f
           where f.job_id=t.job_id and f.attempt_id=t.current_attempt_id) as attempt_failure_json
        from production_tasks t order by t.updated_at,t.job_id`,
     ).all() as TaskRow[];
-    return rows.map(storedTaskFromRow);
+    return rows.map(taskAuthorityFromRow);
   }
 
   public markExecuting(jobId: string): void {
@@ -149,12 +163,12 @@ export abstract class ProductionStoreTaskState extends ProductionStoreContinuati
   }
 
   public pendingBusinessAdmissions(): readonly StoredProductionTask[] {
-    const rows = this.database.prepare(`select task_json,identity_json,status,result_json,staged_result_json,
+    const rows = this.database.prepare(`select job_id,request_hash,task_json,identity_json,status,result_json,staged_result_json,
       current_attempt_id,current_reason,updated_at,(select f.failure_json from production_attempt_failures f
         where f.job_id=production_tasks.job_id and f.attempt_id=production_tasks.current_attempt_id)
         as attempt_failure_json from production_tasks
       where status='failed' and staged_result_json is not null order by updated_at,job_id`).all() as TaskRow[];
-    return rows.map(storedTaskFromRow);
+    return rows.map(taskAuthorityFromRow);
   }
 
   public setCurrentReason(jobId: string, reason: string): void {
@@ -228,15 +242,11 @@ export abstract class ProductionStoreTaskState extends ProductionStoreContinuati
   }
 
   public readCheckpoint(jobId: string): ProductionCheckpointAuthority | null {
-    const row = this.database.prepare(`select job_id,attempt_id,checkpoint_id,checkpoint_hash,state
-      from production_checkpoints where job_id=?`).get(jobId) as Readonly<{
-      job_id: string; attempt_id: string; checkpoint_id: string | null;
-      checkpoint_hash: ProductionHash | null; state: ProductionCheckpointAuthority["state"];
-    }> | undefined;
-    return row ? Object.freeze({
-      jobId: row.job_id, attemptId: row.attempt_id, checkpointId: row.checkpoint_id,
-      checkpointHash: row.checkpoint_hash, state: row.state,
-    }) : null;
+    const row = this.database.prepare(`select c.job_id,c.attempt_id,c.checkpoint_id,c.checkpoint_hash,c.state,
+      c.updated_at,t.current_attempt_id as task_attempt_id from production_checkpoints c
+      join production_tasks t on t.job_id=c.job_id where c.job_id=?`).get(jobId) as
+      ProductionCheckpointAuthorityRow | undefined;
+    return row ? productionCheckpointAuthorityFromRow(row, jobId) : null;
   }
 
   public recordLease(authority: ProductionLeaseAuthority): ProductionLeaseAuthority {
@@ -261,14 +271,10 @@ export abstract class ProductionStoreTaskState extends ProductionStoreContinuati
   }
 
   public readLease(jobId: string): ProductionLeaseAuthority | null {
-    const row = this.database.prepare(`select job_id,attempt_id,lease_version,fence_hash,state,expires_at
-      from production_leases where job_id=?`).get(jobId) as Readonly<{
-      job_id: string; attempt_id: string; lease_version: number; fence_hash: ProductionHash;
-      state: ProductionLeaseAuthority["state"]; expires_at: string | null;
-    }> | undefined;
-    return row ? Object.freeze({
-      jobId: row.job_id, attemptId: row.attempt_id, leaseVersion: row.lease_version,
-      fenceHash: row.fence_hash, state: row.state, expiresAt: row.expires_at,
-    }) : null;
+    const row = this.database.prepare(`select l.job_id,l.attempt_id,l.lease_version,l.fence_hash,l.state,l.expires_at,
+      l.updated_at,t.current_attempt_id as task_attempt_id from production_leases l
+      join production_tasks t on t.job_id=l.job_id where l.job_id=?`).get(jobId) as
+      ProductionLeaseAuthorityRow | undefined;
+    return row ? productionLeaseAuthorityFromRow(row, jobId) : null;
   }
 }

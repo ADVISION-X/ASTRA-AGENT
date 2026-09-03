@@ -31,18 +31,8 @@ if (artifact.schema_version !== "website-agent-route-policies.v1"
 }
 const identities = new Set<string>();
 const usedParameters = new Set<string>();
-const resultContractRoutes = new Set([
-  "public_knowledge_article_pipeline\0produce_article",
-  "bazi_chart_interpretation\0produce",
-  "bazi_chart_interpretation\0accuracy_challenge",
-  "bazi_chart_interpretation\0quality_reflection",
-  "bazi_ai_full_analysis\0produce",
-  "bazi_ai_full_analysis\0accuracy_challenge",
-  "bazi_ai_full_analysis\0quality_reflection",
-  "bazi_report_followup\0followup",
-  "bazi_report_followup\0accuracy_challenge",
-  "bazi_report_followup\0quality_reflection",
-]);
+let resultContractCount = 0;
+let reusableBaseReservationRouteCount = 0;
 for (const route of artifact.routes) {
   const routeKeys = ["product_id", "action_id", "required_parameter_keys",
     "material_roles", "result_schema_version", "relation_kind",
@@ -53,9 +43,10 @@ for (const route of artifact.routes) {
     || !Array.isArray(route.required_parameter_keys) || !Array.isArray(route.material_roles)
     || route.material_roles.length < 1) throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_INVALID");
   const identity = `${route.product_id}\0${route.action_id}`;
-  if (resultContractRoutes.has(identity) !== isRecord(route.result_contract)) {
+  if (route.result_contract !== undefined && !isRecord(route.result_contract)) {
     throw new Error("WEBSITE_AGENT_ROUTE_POLICY_RESULT_CONTRACT_INVALID");
   }
+  if (isRecord(route.result_contract)) resultContractCount += 1;
   if (identities.has(identity)) throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_DUPLICATE");
   identities.add(identity);
   for (const key of route.required_parameter_keys) {
@@ -64,6 +55,12 @@ for (const route of artifact.routes) {
     }
     usedParameters.add(key);
   }
+  const hasReservationRef = route.required_parameter_keys.includes("reusable_base_reservation_ref");
+  const hasReservationHash = route.required_parameter_keys.includes("reusable_base_reservation_hash");
+  if (hasReservationRef !== hasReservationHash) {
+    throw new Error("WEBSITE_AGENT_ROUTE_POLICY_RESERVATION_CONTRACT_INVALID");
+  }
+  if (hasReservationRef) reusableBaseReservationRouteCount += 1;
   for (const material of route.material_roles) {
     if (!isRecord(material) || !exactKeys(material, ["role", "trust_class", "may_issue_instruction",
       "media_types", "storage_class", "owner_scope_policy"])) {
@@ -71,11 +68,12 @@ for (const route of artifact.routes) {
     }
   }
 }
-if (identities.size !== 39
+if (identities.size !== 39 || Object.keys(artifact.parameter_types).length !== 57
+  || resultContractCount !== 30 || reusableBaseReservationRouteCount !== 2
   || JSON.stringify([...usedParameters].sort()) !== JSON.stringify(Object.keys(artifact.parameter_types).sort())) {
   throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_DENOMINATOR_INVALID");
 }
 const temporary = `${destination}.tmp-${process.pid}`;
 await writeFile(temporary, source, { mode: 0o644 });
 await rename(temporary, destination);
-process.stdout.write("WEBSITE_AGENT_ROUTE_POLICY_PROJECTION_SYNCED 39/39\n");
+process.stdout.write("WEBSITE_AGENT_ROUTE_POLICY_PROJECTION_SYNCED 39/57/30/2\n");

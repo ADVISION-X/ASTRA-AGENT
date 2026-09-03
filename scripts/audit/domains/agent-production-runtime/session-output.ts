@@ -11,41 +11,112 @@ import {
   validateStaticInspection,
 } from "../../shared/static-inspection-contract.js";
 
-const LAW_ID = "LAW-AGENT-PRODUCTION-RUNTIME-001-V31";
-const MODE_CLAUSES = {
-  "static.filesystem": staticForbiddenClauses(0, 7, 8, 21, 30, 32),
-  "static.ast": staticClauses(5, 7, 8, 11, 12, 13, 15, 16, 21, 22, 26, 27, 29, 30, 31, 32),
-  "static.types": staticForbiddenClauses(5, 10, 13, 14),
-  "static.contract": staticForbiddenClauses(5, 6, 9, 10, 14, 15, 17, 23, 28),
-  "static.dependency": staticForbiddenClauses(0, 6, 7, 8, 10, 11, 21, 32),
-} as const;
 const MODE_CHECKS = {
-  "static.filesystem": ["inspectAgentFilesystem"],
   "static.ast": ["inspectAgentProductionRuntime"],
-  "static.types": ["inspectAgentTypes"],
   "static.contract": ["inspectAgentContracts"],
   "static.dependency": ["inspectAgentDependencies"],
+  "static.filesystem": ["inspectAgentFilesystem"],
+  "static.sql": ["inspectAgentSql"],
+  "static.types": ["inspectAgentTypes"],
 } as const;
-type EvidenceMode = keyof typeof MODE_CLAUSES;
+
+type EvidenceMode = keyof typeof MODE_CHECKS;
+const LAW_MODE_CLAUSES: Readonly<Record<string, Readonly<Partial<Record<EvidenceMode, readonly string[]>>>>> = {
+  "LAW-AGENT-PRODUCTION-RUNTIME-001-V32": {
+    "static.ast": staticForbiddenClauses(0, 3),
+    "static.types": staticForbiddenClauses(0),
+    "static.contract": staticForbiddenClauses(0, 1, 2),
+    "static.dependency": staticClauses(3),
+  },
+  "LAW-AGENT-PRODUCTION-RUNTIME-002-V1": {
+    "static.filesystem": staticForbiddenClauses(0),
+    "static.ast": staticForbiddenClauses(0, 2),
+    "static.types": staticForbiddenClauses(0),
+    "static.contract": staticClauses(1),
+  },
+  "LAW-AGENT-PRODUCTION-RUNTIME-003-V1": {
+    "static.ast": staticForbiddenClauses(1),
+    "static.types": staticForbiddenClauses(1),
+    "static.contract": staticForbiddenClauses(0, 1),
+    "static.dependency": staticClauses(0),
+  },
+  "LAW-AGENT-PRODUCTION-RUNTIME-004-V1": {
+    "static.ast": staticForbiddenClauses(0),
+    "static.types": staticForbiddenClauses(0),
+    "static.contract": staticClauses(0, 1),
+  },
+  "LAW-AGENT-PRODUCTION-RUNTIME-005-V1": {
+    "static.ast": staticForbiddenClauses(1),
+    "static.types": staticForbiddenClauses(1),
+    "static.sql": staticClauses(0),
+  },
+  "LAW-AGENT-PRODUCTION-RUNTIME-006-V1": {
+    "static.filesystem": staticForbiddenClauses(0),
+    "static.ast": staticForbiddenClauses(0, 1, 2),
+    "static.types": staticForbiddenClauses(0),
+    "static.contract": staticClauses(0),
+  },
+  "LAW-AGENT-PRODUCTION-RUNTIME-007-V1": {
+    "static.filesystem": staticForbiddenClauses(0),
+    "static.ast": staticForbiddenClauses(1),
+    "static.types": staticForbiddenClauses(1),
+    "static.contract": staticForbiddenClauses(1),
+    "static.dependency": staticClauses(0),
+  },
+  "LAW-AGENT-PRODUCTION-RUNTIME-008-V2": {
+    "static.filesystem": staticForbiddenClauses(0),
+    "static.ast": staticForbiddenClauses(0),
+    "static.contract": staticForbiddenClauses(0, 1, 2),
+    "static.dependency": staticClauses(0, 1),
+  },
+};
+
+const evidenceChecks = (lawId: string, mode: string): readonly string[] => {
+  if (!(mode in MODE_CHECKS)) {
+    throw new Error(`AGENT_PRODUCTION_RUNTIME_STATIC_MODE_UNMAPPED:${lawId}:${mode}`);
+  }
+  return MODE_CHECKS[mode as EvidenceMode];
+};
+const clausesFor = (
+  requirement: InspectorContext["lawRequirements"][number],
+  evidenceMode: string,
+): string[] => {
+  if (!(evidenceMode in MODE_CHECKS)) {
+    throw new Error(`AGENT_PRODUCTION_RUNTIME_STATIC_MODE_UNMAPPED:${requirement.lawId}:${evidenceMode}`);
+  }
+  const routes = LAW_MODE_CLAUSES[requirement.lawId];
+  const clauses = routes?.[evidenceMode as EvidenceMode];
+  const routedDenominator = [...new Set(requirement.requiredStaticModes.flatMap((mode) =>
+    mode in MODE_CHECKS ? routes?.[mode as EvidenceMode] ?? [] : []))].sort();
+  const expectedDenominator = staticClauses(...Array.from(
+    { length: requirement.forbiddenCount }, (_, index) => index,
+  ));
+  if (!clauses || JSON.stringify(routedDenominator) !== JSON.stringify(expectedDenominator)) {
+    throw new Error(`AGENT_PRODUCTION_RUNTIME_STATIC_CLAUSE_UNMAPPED:${requirement.lawId}:${evidenceMode}`);
+  }
+  return [...clauses];
+};
 
 export const buildAgentProductionSessionOutput = (
   context: InspectorContext,
   evaluation: InspectorEvaluation,
-): SessionInspectorOutput => {
-  const modes = Object.keys(MODE_CLAUSES) as EvidenceMode[];
-  const assertions = modes.map((evidenceMode) => {
-    const checks = MODE_CHECKS[evidenceMode];
-    return {
-      clauses: [...MODE_CLAUSES[evidenceMode]], evidenceMode,
-      passed: producerModePassed(evaluation.staticCheckReceipts, LAW_ID, checks),
-      refs: staticEvidenceRefs(context, LAW_ID, evidenceMode, MODE_CLAUSES[evidenceMode],
-        evaluation.staticCheckReceipts, checks),
-    };
-  });
-  return validateStaticInspection(context, {
-    capabilityDomain: evaluation.capabilityDomain,
-    reportedLawIds: evaluation.reportedLawIds,
-    lawResults: [{ lawId: LAW_ID, assertions, findings: evaluation.findings }],
-    inspectedFiles: evaluation.inspectedFiles,
-  });
-};
+): SessionInspectorOutput => validateStaticInspection(context, {
+  capabilityDomain: evaluation.capabilityDomain,
+  reportedLawIds: evaluation.reportedLawIds,
+  lawResults: context.lawRequirements.map((requirement) => ({
+    lawId: requirement.lawId,
+    assertions: requirement.requiredStaticModes.map((evidenceMode) => {
+      const checks = evidenceChecks(requirement.lawId, evidenceMode);
+      const clauses = clausesFor(requirement, evidenceMode);
+      return {
+        clauses,
+        evidenceMode,
+        passed: producerModePassed(evaluation.staticCheckReceipts, requirement.lawId, checks),
+        refs: staticEvidenceRefs(context, requirement.lawId, evidenceMode, clauses,
+          evaluation.staticCheckReceipts, checks),
+      };
+    }),
+    findings: evaluation.findings.filter((finding) => finding.lawId === requirement.lawId),
+  })),
+  inspectedFiles: evaluation.inspectedFiles,
+});
