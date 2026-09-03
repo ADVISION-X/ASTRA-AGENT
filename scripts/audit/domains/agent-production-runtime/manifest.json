@@ -35,7 +35,6 @@
     "src/lib/local-runtime/production/**"
   ],
   "observedPaths": [
-    "package.json",
     "scripts/startup/launch-grasseye.mjs",
     "scripts/startup/lib/production-contract-preflight.ts",
     "scripts/startup/lib/startup-log-helpers.mjs",

@@ -14,7 +14,6 @@
       ],
       "manifestPath": "scripts/audit/domains/agent-production-runtime/manifest.json",
       "observedPaths": [
-        "package.json",
         "scripts/startup/launch-grasseye.mjs",
         "scripts/startup/lib/production-contract-preflight.ts",
         "scripts/startup/lib/startup-log-helpers.mjs",

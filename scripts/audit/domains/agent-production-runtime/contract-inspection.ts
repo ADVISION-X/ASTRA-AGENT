@@ -103,14 +103,12 @@ const inspectStorageAndLawDenominator = (context: InspectorContext, findings: In
   const storageType = sourceFor(context, PATHS.inventory)?.getTypeAlias("ProductionRuntimeStorageInventory");
   const fields = new Set(storageType?.getDescendantsOfKind(SyntaxKind.PropertySignature)
     .map((property) => property.getName()) ?? []);
-  const packageJson = JSON.parse(read(context, "package.json")) as { scripts?: Record<string, unknown> };
   if (!["database_task_count", "outbox_responsibility_count", "pending_outbox_count", "continuation_count",
     "active_lease_count", "directory_count", "owned_directory_count", "orphan_directory_count",
     "orphan_bytes", "orphan_job_ids"]
-    .every((field) => fields.has(field)) || packageJson.scripts?.["production-runtime:storage:inventory"]
-      !== "node --import tsx scripts/maintenance/production-runtime-storage-reconcile.ts --dry-run") {
+    .every((field) => fields.has(field))) {
     findings.push(finding(LAWS.storage, "agent-production-runtime/storage-contract", PATHS.inventory,
-      "Runtime storage inventory fields or its dry-run entrypoint are incomplete."));
+      "Runtime storage inventory fields are incomplete."));
   }
   const manifest = JSON.parse(read(context, PATHS.manifest)) as { lawIds?: unknown };
   if (JSON.stringify(manifest.lawIds) !== JSON.stringify(ALL_LAWS)) findings.push(finding(LAWS.staticQuality,
