@@ -11,7 +11,6 @@
     "docs/项目方案/智慧调度方案.md",
     "docs/项目方案/本地化技能实现方案-实施工单.md",
     "docs/项目方案/本地化技能实现方案.md",
-    "scripts/acceptance/architecture-boundary-anti-escape.acceptance.ts",
     "scripts/acceptance/architecture-boundary.acceptance.ts",
     "scripts/acceptance/product-plugin-test-runtime.ts",
     "scripts/acceptance/product-plugins/**",

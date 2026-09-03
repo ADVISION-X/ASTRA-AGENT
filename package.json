@@ -27,7 +27,7 @@
     "internal:app-server:dev": "tsx src/app/server.ts",
     "acceptance:runtime-log-spine": "node --import tsx scripts/acceptance/runtime-log-redaction.acceptance.ts && node --import tsx scripts/acceptance/runtime-log-spine-v2.acceptance.ts && node --import tsx scripts/acceptance/runtime-log-spine-failure-matrix.acceptance.ts && node --import tsx scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
     "acceptance:runtime-log-spine:real-proof": "node --import tsx scripts/acceptance/runtime-log-spine.real-proof.ts",
-    "acceptance:architecture-boundary": "node --import tsx scripts/acceptance/architecture-boundary.acceptance.ts && node --import tsx scripts/acceptance/architecture-boundary-anti-escape.acceptance.ts",
+    "acceptance:architecture-boundary": "node --import tsx scripts/acceptance/architecture-boundary.acceptance.ts",
     "acceptance:capability-governance": "node --import tsx scripts/acceptance/capability-governance.acceptance.ts",
     "acceptance:forensics-persistence-capability": "node --import tsx scripts/acceptance/forensics-persistence-capability.acceptance.ts",
     "audit:build": "node --import tsx scripts/audit/governance.ts build",

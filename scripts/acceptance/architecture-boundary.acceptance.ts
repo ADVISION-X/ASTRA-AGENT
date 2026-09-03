@@ -3,10 +3,13 @@ import { readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
+import { Project } from "ts-morph";
+
 import {
   agentPluginCapabilityManifest,
   productionPluginCatalog,
 } from "../../src/lib/local-runtime/production/catalog.js";
+import { inspectProductAcceptanceBoundaries } from "../audit/domains/architecture-boundary/components/scan-product-acceptance-boundaries.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V4";
@@ -35,11 +38,28 @@ for (const testId of testIds) {
     `${testId} acceptance failed\n${child.stdout}\n${child.stderr}`);
 }
 
+const mutants: ReadonlyArray<Readonly<{ checkId: string; source: string }>> = [
+  { checkId: "architecture/central-product-sequence",
+    source: "const x = [\"write_exact_gpt_prompt\", \"submit_exact_gpt_turn_once\"];" },
+  { checkId: "architecture/central-product-fixed-cardinality", source: "assert.equal(testIds.length, 12);" },
+  { checkId: "architecture/central-product-business-content", source: "const x = \"Product prompt body\";" },
+  { checkId: "architecture/central-product-business-content", source: "const x = { resumePoint: \"child-2\" };" },
+];
+for (const mutant of mutants) {
+  const project = new Project({ tsConfigFilePath: "tsconfig.json" });
+  const sourceFile = project.getSourceFileOrThrow(resolve("scripts/acceptance/architecture-boundary.acceptance.ts"));
+  sourceFile.replaceWithText(`${sourceFile.getFullText()}\n${mutant.source}\n`);
+  const findings: Parameters<typeof inspectProductAcceptanceBoundaries>[0]["findings"] = [];
+  inspectProductAcceptanceBoundaries({ findings, inspectedFiles: new Set(), lawId, project });
+  assert.ok(findings.some((finding) => finding.checkId === mutant.checkId),
+    `${mutant.source} must emit ${mutant.checkId}`);
+}
+
 process.stdout.write("[ACCEPTANCE][architecture-boundary] PASS\n");
 emitQualityProofObservation({
   lawId,
   evidenceMode: "exam.golden",
-  clauses: ["summary"],
+  clauses: ["forbidden:8", "summary"],
   locator: "acceptance:architecture-boundary",
-  observedValue: "Catalog and Capability Manifest Plugin identities bijectively match independently discovered Product acceptance files; every Product-owned acceptance passed",
+  observedValue: "Catalog and Capability Manifest identities match independent Product acceptances, every Product acceptance passed, and central sequence, fixed-cardinality, business-content, and recovery-field mutants were rejected",
 });
