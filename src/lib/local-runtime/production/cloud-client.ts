@@ -51,21 +51,8 @@ export async function claimProductionTasks(
   reason_codes: readonly string[];
 }>> {
   if (!Number.isInteger(limit) || limit < 1 || limit > 10) throw new Error("V6_CLAIM_LIMIT_INVALID");
-  const attestation = await session.ensureFreshAttestation();
-  const request = {
-    schema_version: "xuanxue-ai-claim-request.v6",
-    control_protocol_version: "xuanxue-ai-production-v6",
-    request_id: requestId,
-    worker_session_id: session.workerSessionId,
-    worker_session_epoch: session.workerSessionEpoch,
-    requested_limit: limit,
-    runtime_attestation_receipt_hash: attestation.receipt_hash,
-  } as const;
-  const receipt = ClaimBatchReceiptSchema.parse(await session.request(
-    "/internal/ai-production/v6/jobs/claim",
-    { method: "POST", body: JSON.stringify(request) },
-  ));
-  if (receipt.request_id !== request.request_id) throw executionFailure("failed", "V6_CLAIM_RECEIPT_MISMATCH");
+  const receipt = ClaimBatchReceiptSchema.parse(await session.requestClaim(requestId, limit));
+  if (receipt.request_id !== requestId) throw executionFailure("failed", "V6_CLAIM_RECEIPT_MISMATCH");
   const jobs = receipt.jobs.map((raw) => ClaimedProductionTaskSchema.parse(raw));
   if ((receipt.outcome === "LEASE_GRANTED") !== (jobs.length > 0)
     || jobs.some((job) => job.grant.worker_session_id !== session.workerSessionId

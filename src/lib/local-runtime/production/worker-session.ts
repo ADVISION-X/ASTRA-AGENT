@@ -22,12 +22,15 @@ export interface ProductionRuntimeState {
 }
 
 const OpenResponseSchema = WorkerSessionCredentialSchema.transform((value) => value);
+const CLOUD_REQUEST_TIMEOUT_MS = 30_000;
+const CLAIM_ATTESTATION_MIN_VALIDITY_MS = CLOUD_REQUEST_TIMEOUT_MS + 5_000;
 
 export class ProductionWorkerSession {
   private credential: WorkerSessionCredential | null = null;
   private attestation: RuntimeAttestationReceipt | null = null;
   private sequence = 0;
   private activeHeartbeat: Promise<RuntimeAttestationReceipt> | null = null;
+  private sessionAuthorityTail: Promise<void> = Promise.resolve();
 
   public constructor(
     public readonly device: DeviceCredential,
@@ -78,8 +81,17 @@ export class ProductionWorkerSession {
   }
 
   public async heartbeat(): Promise<RuntimeAttestationReceipt> {
-    this.activeHeartbeat ??= this.performHeartbeat().finally(() => { this.activeHeartbeat = null; });
+    this.activeHeartbeat ??= this.runSessionAuthorityTurn(() => this.performHeartbeat())
+      .finally(() => { this.activeHeartbeat = null; });
     return this.activeHeartbeat;
+  }
+
+  private async runSessionAuthorityTurn<T>(operation: () => Promise<T>): Promise<T> {
+    const predecessor = this.sessionAuthorityTail;
+    let release: (() => void) | undefined;
+    this.sessionAuthorityTail = new Promise<void>((resolve) => { release = resolve; });
+    await predecessor;
+    try { return await operation(); } finally { release!(); }
   }
 
   private async performHeartbeat(): Promise<RuntimeAttestationReceipt> {
@@ -120,10 +132,32 @@ export class ProductionWorkerSession {
   }
 
   public async ensureFreshAttestation(): Promise<RuntimeAttestationReceipt> {
-    if (!this.attestation || Date.parse(this.attestation.expires_at) - Date.now() < 10_000) {
-      return this.heartbeat();
-    }
-    return this.attestation;
+    if (this.activeHeartbeat) return this.activeHeartbeat;
+    return this.runSessionAuthorityTurn(() => this.freshAttestationInTurn());
+  }
+
+  private async freshAttestationInTurn(minValidityMs = 10_000): Promise<RuntimeAttestationReceipt> {
+    return !this.attestation || Date.parse(this.attestation.expires_at) - Date.now() < minValidityMs
+      ? this.performHeartbeat()
+      : this.attestation;
+  }
+
+  public async requestClaim(requestId: string, requestedLimit: number): Promise<unknown> {
+    return this.runSessionAuthorityTurn(async () => {
+      const attestation = await this.freshAttestationInTurn(CLAIM_ATTESTATION_MIN_VALIDITY_MS);
+      return this.request("/internal/ai-production/v6/jobs/claim", {
+        method: "POST",
+        body: JSON.stringify({
+          schema_version: "xuanxue-ai-claim-request.v6",
+          control_protocol_version: "xuanxue-ai-production-v6",
+          request_id: requestId,
+          worker_session_id: this.workerSessionId,
+          worker_session_epoch: this.workerSessionEpoch,
+          requested_limit: requestedLimit,
+          runtime_attestation_receipt_hash: attestation.receipt_hash,
+        }),
+      });
+    });
   }
 
   public async authorizationHeaders(extra: Readonly<Record<string, string>> = {}): Promise<Record<string, string>> {
@@ -146,7 +180,7 @@ export class ProductionWorkerSession {
           ...(await this.authorizationHeaders({ "content-type": "application/json" })),
           ...(init.headers ?? {}),
         },
-        signal: init.signal ?? AbortSignal.timeout(30_000),
+        signal: init.signal ?? AbortSignal.timeout(CLOUD_REQUEST_TIMEOUT_MS),
       });
     } catch (cause) {
       throw executionFailure("failed", "CLOUD_TRANSPORT_UNAVAILABLE", { cause });
@@ -179,7 +213,7 @@ export class ProductionWorkerSession {
           "content-type": "application/json",
         },
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(30_000),
+        signal: AbortSignal.timeout(CLOUD_REQUEST_TIMEOUT_MS),
       });
     } catch (cause) {
       throw executionFailure("failed", "CLOUD_TRANSPORT_UNAVAILABLE", { cause });

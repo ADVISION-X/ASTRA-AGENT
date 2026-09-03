@@ -6,6 +6,7 @@ import path from "node:path";
 import {
   agentPluginCapabilityManifest, productionCatalogHash, resolveProductionPlugin,
 } from "../../src/lib/local-runtime/production/catalog.js";
+import { claimProductionTasks } from "../../src/lib/local-runtime/production/cloud-client.js";
 import { readProductionDeviceJobStatus } from
   "../../src/lib/local-runtime/production/cloud-reconciliation-client.js";
 import { WebsiteAgentTaskSchema, hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
@@ -13,7 +14,10 @@ import { reconcileBusinessAdmission } from "../../src/lib/local-runtime/producti
 import { permanentAuthorizationRevoked } from
   "../../src/lib/local-runtime/production/runtime-permanent-revocation.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
-import { LeaseRenewReceiptSchema, parseJsonEnvelope, websiteAgentTaskFromClaim } from "../../src/lib/local-runtime/production/transport-protocol.js";
+import {
+  DeviceCredentialSchema, LeaseRenewReceiptSchema, parseJsonEnvelope, websiteAgentTaskFromClaim,
+} from "../../src/lib/local-runtime/production/transport-protocol.js";
+import { ProductionWorkerSession } from "../../src/lib/local-runtime/production/worker-session.js";
 import { typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { assertProductionTaskRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../src/mediator/agent-production-route.js";
@@ -22,6 +26,7 @@ import { emitQualityProofObservation } from "../audit/shared/proof-observation.j
 import {
   HASH_A,
   HASH_B,
+  HASH_C,
   claimTask,
   identityFor,
   resultFor,
@@ -31,6 +36,41 @@ import "./agent-production-runtime-ledger.acceptance.js";
 import "./agent-production-runtime-continuation.acceptance.js";
 import "./agent-production-runtime-proof-boundary.acceptance.js";
 import "./agent-production-runtime-startup.acceptance.js";
+
+const deferred = () => {
+  let release: (() => void) | undefined;
+  const promise = new Promise<void>((resolve) => { release = resolve; });
+  return { promise, release: (): void => release!() };
+};
+const nextEventLoopTurn = (): Promise<void> => new Promise((resolve) => { setImmediate(resolve); });
+const credentialFor = (generation: number) => ({
+  schema_version: "xuanxue-ai-worker-session-credential.v6" as const,
+  worker_session_id: "worker-session:atomic-claim",
+  worker_session_epoch: 1,
+  token: `aisc_v6_${String(generation).repeat(40)}`,
+  token_generation: generation,
+  issued_at: "2026-09-03T00:00:00.000Z",
+  expires_at: "2099-09-03T00:00:00.000Z",
+  previous_generation_valid_until: null,
+});
+const attestationFor = (sequence: number, receiptHash: string, expiresAt = "2099-09-03T00:00:00.000Z") => ({
+  schema_version: "xuanxue-ai-runtime-attestation-receipt.v6" as const,
+  receipt_id: `attestation:${sequence}`,
+  receipt_hash: receiptHash,
+  worker_session_id: "worker-session:atomic-claim",
+  worker_session_epoch: 1,
+  attestation_seq: sequence,
+  payload_hash: HASH_A,
+  server_signature: HASH_C,
+  issued_at: "2026-09-03T00:00:00.000Z",
+  expires_at: expiresAt,
+  claim_eligible: true,
+  reason_codes: [],
+});
+const successfulJsonResponse = (data: unknown): Response => new Response(
+  JSON.stringify({ ok: true, data }),
+  { status: 200, headers: { "content-type": "application/json" } },
+);
 
 assert.equal(hashCanonical(agentPluginCapabilityManifest.plugins), productionCatalogHash);
 
@@ -281,6 +321,134 @@ await assert.rejects(
   () => dispatchWebsiteAgentTask(productionTask, () => { throw new Error("CONTEXT_MUST_NOT_BE_CREATED"); }),
   /CONTEXT_MUST_NOT_BE_CREATED/u,
 );
+
+const heartbeatRotationEntered = deferred();
+const heartbeatRotationRelease = deferred();
+const delayedClaimEntered = deferred();
+const delayedClaimRelease = deferred();
+const claimTwoEntered = deferred();
+const claimTwoRelease = deferred();
+const observedClaimHashes: string[] = [];
+const observedClaimTokens: string[] = [];
+let heartbeatCount = 0;
+let claimCount = 0;
+const originalFetch = globalThis.fetch;
+const originalDateNow = Date.now;
+Date.now = () => Date.parse("2026-09-03T00:00:00.000Z");
+const sessionFetch = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+  const url = String(input);
+  if (url.endsWith("/internal/ai-production/v6/sessions/open")) {
+    return successfulJsonResponse({
+      session: {
+        device_id: "device:atomic-claim",
+        worker_session_id: "worker-session:atomic-claim",
+        worker_session_epoch: 1,
+        control_contract_manifest_hash: HASH_A,
+      },
+      session_credential: credentialFor(1),
+    });
+  }
+  if (url.endsWith("/heartbeat")) {
+    const heartbeatNumber = ++heartbeatCount;
+    if (heartbeatNumber === 3) {
+      heartbeatRotationEntered.release();
+      await heartbeatRotationRelease.promise;
+    }
+    const receiptHash = [HASH_A, HASH_B, HASH_C, HASH_A][heartbeatNumber - 1];
+    if (!receiptHash) throw new Error("UNEXPECTED_HEARTBEAT_COUNT");
+    return successfulJsonResponse({
+      attestation_receipt: attestationFor(heartbeatNumber, receiptHash,
+        heartbeatNumber === 1 ? new Date(Date.now() + 34_999).toISOString() : undefined),
+      session_credential: credentialFor(heartbeatNumber + 1),
+    });
+  }
+  if (url.endsWith("/internal/ai-production/v6/jobs/claim")) {
+    const claimNumber = ++claimCount;
+    if (typeof init?.body !== "string") throw new Error("CLAIM_BODY_MISSING");
+    const body = JSON.parse(init.body) as Record<string, unknown>;
+    if (typeof body.runtime_attestation_receipt_hash !== "string") throw new Error("CLAIM_HASH_MISSING");
+    observedClaimHashes.push(body.runtime_attestation_receipt_hash);
+    observedClaimTokens.push(new Headers(init.headers).get("authorization") ?? "");
+    if (claimNumber === 1) {
+      delayedClaimEntered.release();
+      await delayedClaimRelease.promise;
+    }
+    if (claimNumber === 3) {
+      claimTwoEntered.release();
+      await claimTwoRelease.promise;
+    }
+    return successfulJsonResponse({
+      schema_version: "xuanxue-ai-claim-batch-receipt.v6",
+      claim_batch_id: `claim-batch:${claimNumber}`,
+      request_id: body.request_id,
+      request_payload_hash: HASH_A,
+      outcome: "NO_ELIGIBLE_JOB",
+      jobs: [],
+      server_now: "2026-09-03T00:00:00.000Z",
+      next_claim_after_ms: 3_000,
+      queue_epoch: claimNumber,
+      reason_codes: ["GLOBAL_QUEUE_EMPTY_OR_INELIGIBLE"],
+    });
+  }
+  throw new Error(`UNEXPECTED_SESSION_URL:${url}`);
+};
+globalThis.fetch = sessionFetch as typeof globalThis.fetch;
+try {
+  const device = DeviceCredentialSchema.parse({
+    protocol_version: "xuanxue-ai-production-v6",
+    server_base_url: "http://127.0.0.1:3000",
+    environment_id: "production",
+    origin: "http://localhost:3000",
+    device_id: "device:atomic-claim",
+    device_epoch: 1,
+    control_manifest_hash: HASH_A,
+    credential: `aidc_v6_${"d".repeat(40)}`,
+    enrolled_at: "2026-09-03T00:00:00.000Z",
+  });
+  const session = new ProductionWorkerSession(device, async () => ({
+    business_in_flight: 0,
+    browser_action_in_flight: 0,
+    browser_authority_state: "present",
+    browser_target_state: "absent",
+    browser_lane_state: "idle",
+    drain_state: "open",
+    ledger_reconciled: true,
+  }), HASH_B, "worker-instance:atomic-claim");
+
+  await session.heartbeat();
+  const delayedNearExpiryClaim = claimProductionTasks(session, 1, "claim:near-expiry");
+  await delayedClaimEntered.promise;
+  assert.equal(heartbeatCount, 2, "claim must refresh an attestation that cannot cover its transport timeout");
+  assert.equal(observedClaimHashes[0], HASH_B);
+  assert.equal(observedClaimTokens[0], `Bearer ${credentialFor(3).token}`);
+  delayedClaimRelease.release();
+  await delayedNearExpiryClaim;
+  const rotatingHeartbeat = session.heartbeat();
+  await heartbeatRotationEntered.promise;
+  const claimAfterRotation = claimProductionTasks(session, 1, "claim:after-rotation");
+  await nextEventLoopTurn();
+  assert.equal(claimCount, 1, "claim must wait while Website has rotated authority but AGENT lacks the response");
+  heartbeatRotationRelease.release();
+  await rotatingHeartbeat;
+  assert.equal((await claimAfterRotation).outcome, "NO_ELIGIBLE_JOB");
+  assert.equal(observedClaimHashes[1], HASH_C);
+  assert.equal(observedClaimTokens[1], `Bearer ${credentialFor(4).token}`);
+
+  const inFlightClaim = claimProductionTasks(session, 1, "claim:before-rotation");
+  await claimTwoEntered.promise;
+  const heartbeatAfterClaim = session.heartbeat();
+  await nextEventLoopTurn();
+  assert.equal(heartbeatCount, 3, "heartbeat must not rotate authority before an in-flight claim settles");
+  claimTwoRelease.release();
+  assert.equal((await inFlightClaim).outcome, "NO_ELIGIBLE_JOB");
+  await heartbeatAfterClaim;
+  assert.equal(heartbeatCount, 4);
+  assert.deepEqual(observedClaimHashes, [HASH_B, HASH_C, HASH_C]);
+} finally {
+  Date.now = originalDateNow;
+  globalThis.fetch = originalFetch;
+}
+
 const runtimeManifest = JSON.parse(await readFile(
   new URL("../audit/domains/agent-production-runtime/manifest.json", import.meta.url), "utf8",
 )) as { ownedPaths: string[] };

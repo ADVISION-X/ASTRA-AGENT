@@ -17,6 +17,7 @@ const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
 const PATHS = {
   admission: `${ROOT}/cloud-reconciliation-client.ts`, inventory: `${ROOT}/runtime-storage-inventory.ts`,
+  cloudClient: `${ROOT}/cloud-client.ts`, workerSession: `${ROOT}/worker-session.ts`,
   manifest: "scripts/audit/domains/agent-production-runtime/manifest.json",
   proof: "scripts/acceptance/agent-production-runtime.real-proof.ts",
   routeProjection: `${ROOT}/website-agent-route-policies.v1.json`, store: `${ROOT}/store-foundation.ts`,
@@ -99,6 +100,30 @@ const inspectCredentialAndDurableTypes = (context: InspectorContext, findings: I
   }
 };
 
+const inspectSessionClaimAtomicity = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const sessionClass = sourceFor(context, PATHS.workerSession)?.getClass("ProductionWorkerSession");
+  const serializedClosure = (methodName: string): Node | undefined => sessionClass?.getMethod(methodName)
+    ?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .find((call) => call.getExpression().getText() === "this.runSessionAuthorityTurn")
+    ?.getArguments()[0];
+  const called = (node: Node | undefined): Set<string> => new Set(
+    node?.getDescendantsOfKind(SyntaxKind.CallExpression).map((call) => call.getExpression().getText()) ?? [],
+  );
+  const heartbeatCalls = called(serializedClosure("heartbeat"));
+  const claimCalls = called(serializedClosure("requestClaim"));
+  const cloudClaim = sourceFor(context, PATHS.cloudClient)?.getFunction("claimProductionTasks");
+  const cloudCalls = called(cloudClaim);
+  const sessionOwnsAtomicClaim = heartbeatCalls.has("this.performHeartbeat")
+    && claimCalls.has("this.freshAttestationInTurn")
+    && claimCalls.has("this.request")
+    && cloudCalls.has("session.requestClaim")
+    && !cloudCalls.has("session.ensureFreshAttestation")
+    && !cloudCalls.has("session.request");
+  if (!sessionOwnsAtomicClaim) findings.push(finding(LAWS.core,
+    "agent-production-runtime/session-claim-atomicity", PATHS.workerSession,
+    "Heartbeat rotation and claim are not closed by the one ProductionWorkerSession authority turn."));
+};
+
 const inspectStorageAndLawDenominator = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const storageType = sourceFor(context, PATHS.inventory)?.getTypeAlias("ProductionRuntimeStorageInventory");
   const fields = new Set(storageType?.getDescendantsOfKind(SyntaxKind.PropertySignature)
@@ -138,6 +163,7 @@ export const inspectAgentContracts = (context: InspectorContext, findings: Inspe
   inspectRouteProjection(context, findings);
   inspectAdmissionHash(context, findings);
   inspectCredentialAndDurableTypes(context, findings);
+  inspectSessionClaimAtomicity(context, findings);
   inspectStorageAndLawDenominator(context, findings);
   inspectDynamicRoutes(findings);
 };
