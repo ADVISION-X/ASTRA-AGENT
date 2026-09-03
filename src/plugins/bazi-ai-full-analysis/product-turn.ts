@@ -15,18 +15,23 @@ import {
 import {
   productResultValidation,
   readProductSkill,
-  type ExactGptCallFacts,
-  type ProductGptAnyCallInput,
   type SharedExecutionContext,
 } from "../../lib/local-runtime/production/plugin.js";
+import type {
+  ExactGptCallFacts,
+  ProductGptAnyCallInput,
+} from "../../capabilities/gpt/index.js";
 import { productionRoutePolicy } from "../../lib/local-runtime/production/route-policy.js";
 import {
   executionFailure,
   failureCode,
+  typedExecutionFailure,
+} from "../../lib/execution-failure.js";
+import {
   postCheckpointReceiverFault,
   postSubmitReadbackFault,
-  typedExecutionFailure,
-} from "../../lib/typed-failure.js";
+  typedGptExecutionFailure,
+} from "../../capabilities/gpt/execution-fault.js";
 import { parseProductResult } from "./result-contract.js";
 
 export const PLUGIN_ID = "bazi-ai-full-analysis";
@@ -257,7 +262,7 @@ const confirmedDeadline = (facts: ExactGptCallFacts): string => {
 };
 
 const preservePostSubmitReadback = (error: unknown, submit: ExactGptCallFacts): never => {
-  const typed = typedExecutionFailure(error);
+  const typed = typedGptExecutionFailure(error);
   const code = failureCode(error);
   if (!typed || typed.mutationOutcome !== "no") throw error;
   if (submit.mutation?.outcome !== "CONFIRMED" || !submit.mutation.terminalAt

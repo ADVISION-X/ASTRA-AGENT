@@ -12,7 +12,7 @@ import {
 } from "./contracts.js";
 import { ProductionWorkerSession } from "./worker-session.js";
 import type { ProductionOutboxWrite } from "./store.js";
-import { executionFailure } from "../../typed-failure.js";
+import { executionFailure } from "../../execution-failure.js";
 import { productionCloudFetch } from "./cloud-transport.js";
 
 type RemoteProductionWriteKind =

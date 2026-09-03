@@ -2,7 +2,7 @@ import { lstatSync } from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
 
-import { executionFailure } from "../../typed-failure.js";
+import { executionFailure } from "../../execution-failure.js";
 import type { ProductionHash } from "./contracts.js";
 import {
   productionCheckpointAuthorityFromRow,

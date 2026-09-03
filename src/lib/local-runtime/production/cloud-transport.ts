@@ -1,4 +1,4 @@
-import { executionFailure } from "../../typed-failure.js";
+import { executionFailure } from "../../execution-failure.js";
 
 export const productionCloudFetch = async (url: string, init: RequestInit): Promise<Response> => {
   try {

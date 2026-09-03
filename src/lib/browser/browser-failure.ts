@@ -1,30 +1,55 @@
-import {
-  executionFailure,
-  typedExecutionFailure,
-  type BrowserEffectFailureFacts,
-  type MutationOutcome,
-  type TypedExecutionFailure,
-} from "../typed-failure.js";
+import { TypedExecutionFailure, typedExecutionFailure } from "../execution-failure.js";
+
+export type MutationOutcome = "no" | "dispatched" | "confirmed";
+export type BrowserEffectFailureFacts = Readonly<{
+  effectScope: "target_local" | "provider_effect";
+  childCapabilityId: string;
+  browserOutcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
+}>;
+
+export class BrowserExecutionFailure extends TypedExecutionFailure {
+  public override readonly name = "BrowserExecutionFailure";
+
+  public constructor(
+    code: string,
+    public readonly mutationOutcome: MutationOutcome,
+    public readonly browserEffect: BrowserEffectFailureFacts | null,
+    cause?: unknown,
+  ) {
+    super("failed", code, cause);
+  }
+}
+
+export const typedBrowserExecutionFailure = (error: unknown): BrowserExecutionFailure | null => {
+  let current = error;
+  const seen = new Set<object>();
+  while (current && typeof current === "object" && !seen.has(current)) {
+    seen.add(current);
+    if (current instanceof BrowserExecutionFailure) return current;
+    current = current instanceof Error ? current.cause : undefined;
+  }
+  return null;
+};
 
 export const browserExecutionFailure = (
   error: unknown,
   mutationOutcome?: MutationOutcome,
   browserEffect?: BrowserEffectFailureFacts | null,
-): TypedExecutionFailure => {
+): BrowserExecutionFailure => {
+  const browser = typedBrowserExecutionFailure(error);
+  if (browser && (!browserEffect || browser.browserEffect)) return browser;
+  if (browser) return new BrowserExecutionFailure(
+    browser.code,
+    browser.mutationOutcome,
+    browserEffect ?? null,
+    browser.cause,
+  );
   const existing = typedExecutionFailure(error);
-  if (existing && (!browserEffect || existing.browserEffect)) return existing;
-  if (existing) return executionFailure(existing.status, existing.code, {
-    mutationOutcome: existing.mutationOutcome,
-    evidenceRef: existing.evidenceRef,
-    evidenceHash: existing.evidenceHash,
-    httpStatus: existing.httpStatus,
-    browserEffect: browserEffect ?? null,
-    cause: existing.cause,
-  });
   const code = error instanceof Error && error.message ? error.message : "BROWSER_FAILURE_UNCLASSIFIED";
-  return executionFailure("failed", code, {
-    mutationOutcome: mutationOutcome ?? (code === "BROWSER_COMMAND_RECEIPT_MISSING" ? "dispatched" : "no"),
-    browserEffect: browserEffect ?? null,
-    cause: error,
-  });
+  return new BrowserExecutionFailure(
+    existing?.code ?? code,
+    mutationOutcome ?? (code === "BROWSER_COMMAND_RECEIPT_MISSING" ? "dispatched" : "no"),
+    browserEffect ?? null,
+    existing?.cause ?? error,
+  );
 };

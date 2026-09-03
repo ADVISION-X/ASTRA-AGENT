@@ -1,4 +1,5 @@
-import { executionFailure, type SerializedExecutionFailure } from "../../typed-failure.js";
+import { executionFailure } from "../../execution-failure.js";
+import type { SerializedExecutionFailure } from "./terminal-failure.js";
 import type { DurablePluginIdentity, WebsiteAgentResult, WebsiteAgentTask } from "./contracts.js";
 import { WebsiteAgentResultSchema, type ProductionHash } from "./contracts.js";
 import { isRejectedCheckpointSequenceFailure } from "./store-outbox-recovery-proof.js";
@@ -63,10 +64,14 @@ export abstract class ProductionStoreTaskState extends ProductionStoreContinuati
       }
       if (existing.status === "failed" && existing.current_attempt_id !== attemptId) {
         if (existing.staged_result) throw executionFailure("failed", "PRODUCTION_NEW_ATTEMPT_AFTER_STAGED_RESULT");
+        this.readCheckpoint(task.job_id);
+        this.readLease(task.job_id);
         this.database.transaction(() => {
           this.database.prepare(
             "update production_continuations set lane_owner_job_id=null where lane_owner_job_id=?",
           ).run(task.job_id);
+          this.database.prepare("delete from production_checkpoints where job_id=?").run(task.job_id);
+          this.database.prepare("delete from production_leases where job_id=?").run(task.job_id);
           this.database.prepare(`update production_tasks
             set current_attempt_id=?,current_reason='LEASE_GRANTED',updated_at=?
             where job_id=? and status='failed'`).run(attemptId, now(), task.job_id);

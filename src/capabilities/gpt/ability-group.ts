@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
 import {
+  executionFailureCause,
   executionFailure,
   failureCode,
-  serializeTerminalFailure,
-  typedExecutionFailure,
-} from "../../lib/typed-failure.js";
+} from "../../lib/execution-failure.js";
+import { typedBrowserExecutionFailure } from "../../lib/browser/browser-failure.js";
 
 import {
   GPT_ABILITY_GROUP_ID,
@@ -208,9 +208,10 @@ const failedExecution = async <K extends GptChildCapabilityId>(input: Readonly<{
 }>): Promise<GptChildCapabilityResult<K>> => {
   const after = currentDocument(input.context);
   const failure = classify(input.error);
-  const serialized = serializeTerminalFailure(input.error);
+  const nativeCause = executionFailureCause(input.error);
   const contract = GPT_CHILD_CAPABILITY_CONTRACTS[input.intent.childCapabilityId];
-  const browserFailureOutcome = typedExecutionFailure(input.error)?.mutationOutcome ?? "no";
+  const browser = typedBrowserExecutionFailure(input.error);
+  const browserFailureOutcome = browser?.mutationOutcome ?? "no";
   const browserDispatched = (input.context.browser?.pendingMutationCount() ?? 0) > 0 && !input.observation;
   const sessionDispatched = !input.observation && contract?.requiredTargetKind === "none"
     && contract.oneObservationOrMutation === "at-most-one-mutation"
@@ -223,18 +224,18 @@ const failedExecution = async <K extends GptChildCapabilityId>(input: Readonly<{
     beforeUrl: input.before.url, afterUrl: after.url,
     beforeDocumentRef: input.before.ref, afterDocumentRef: after.ref,
     ...(input.observation ? { observation: input.observation } : {}), failureCode: failure.code,
-    nativeFailureCode: serialized.cause?.code ?? null, committedMutation,
+    nativeFailureCode: nativeCause?.code ?? null, committedMutation,
     postconditionResult: committedMutation === "dispatched" ? "pending" : "failed",
   });
   await input.context.onProof?.(proof);
   return Object.freeze({
     status: failure.status, value: null, proof, failureCode: failure.code,
-    failureCause: serialized.cause,
-    failureBrowserEffect: serialized.browser_outcome === null ? null : Object.freeze({
-      effectScope: serialized.effect_scope!,
-      childCapabilityId: serialized.child_capability_id!,
-      browserOutcome: serialized.browser_outcome,
-    }),
+    failureCause: nativeCause,
+    failureBrowserEffect: browser?.browserEffect ? Object.freeze({
+      effectScope: browser.browserEffect.effectScope,
+      childCapabilityId: browser.browserEffect.childCapabilityId,
+      browserOutcome: browser.browserEffect.browserOutcome,
+    }) : null,
   }) as GptChildCapabilityResult<K>;
 };
 

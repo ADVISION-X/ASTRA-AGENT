@@ -4,8 +4,8 @@ import {
 } from "../../capabilities/gpt/index.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../capabilities/forensics-persistence/index.js";
 import { type WebsiteAgentTask } from "../../lib/local-runtime/production/contracts.js";
-import { readTextCheckpointArtifact } from "../../lib/local-runtime/production/gpt-artifact-reader.js";
-import { executionFailure } from "../../lib/typed-failure.js";
+import { readTextCheckpointArtifact } from "../../capabilities/gpt/index.js";
+import { executionFailure } from "../../lib/execution-failure.js";
 import { PLUGIN_ID, turnMarker } from "./seo-turn-contract.js";
 import { readCutoverTextEvidence } from "./frontier-cutover-evidence.js";
 

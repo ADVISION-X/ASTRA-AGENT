@@ -8,8 +8,10 @@ import { emitQualityProofObservation } from "../audit/shared/proof-observation.j
 import { createForensicsPersistenceAbilityGroupFromStorage } from "../../src/capabilities/forensics-persistence/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import { createArtifactRef } from "../../src/lib/storage/refs.js";
-import { persistGptChildEvidence } from "../../src/lib/local-runtime/production/gpt-evidence-writer.js";
-import { readSubmissionLocatorArtifact } from "../../src/lib/local-runtime/production/gpt-artifact-reader.js";
+import {
+  persistGptChildEvidence,
+  readSubmissionLocatorArtifact,
+} from "../../src/capabilities/gpt/index.js";
 import { gptProofEnvelope } from "./agent-production-runtime-fixtures.js";
 
 const tempRoot = await mkdtemp(join(tmpdir(), "grasseye-forensics-acceptance-"));
@@ -190,11 +192,11 @@ try {
     "idempotent append, crash recovery, and the exact submission locator each own one index row");
 
   const evidenceWriterSource = await readFile(
-    new URL("../../src/lib/local-runtime/production/gpt-evidence-writer.ts", import.meta.url),
+    new URL("../../src/capabilities/gpt/evidence-writer.ts", import.meta.url),
     "utf8",
   );
   const evidenceArtifactsSource = await readFile(
-    new URL("../../src/lib/local-runtime/production/gpt-evidence-artifacts.ts", import.meta.url),
+    new URL("../../src/capabilities/gpt/evidence-artifacts.ts", import.meta.url),
     "utf8",
   );
   const artifactAppendAt = evidenceArtifactsSource.indexOf("input.evidenceStore.appendArtifact");

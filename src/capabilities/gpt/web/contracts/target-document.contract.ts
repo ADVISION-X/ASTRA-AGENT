@@ -1,4 +1,4 @@
-import { executionFailure } from "../../../../lib/typed-failure.js";
+import { executionFailure } from "../../../../lib/execution-failure.js";
 
 export const GPT_ORIGIN = "https://chatgpt.com" as const;
 export const canonicalGptConversationUrl = (value: string): string => {

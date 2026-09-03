@@ -2,7 +2,7 @@ import type {
   BrowserDomObservationQuery,
   BrowserTargetLease,
 } from "../../../lib/browser/browser-authority-api.js";
-import { executionFailure } from "../../../lib/typed-failure.js";
+import { executionFailure } from "../../../lib/execution-failure.js";
 
 const record = (value: unknown): Record<string, unknown> => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {

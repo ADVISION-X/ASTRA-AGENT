@@ -8,7 +8,9 @@ import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.
 import { resolveStoredProductionAuthority } from
   "../../src/lib/local-runtime/production/store-authority-reader.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
-import { executionFailure, serializeTerminalFailure, typedExecutionFailure } from "../../src/lib/typed-failure.js";
+import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
+import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
+import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { HASH_A, HASH_B, identityFor, resultFor, task } from "./agent-production-runtime-fixtures.js";
 
@@ -97,11 +99,25 @@ try {
     ),
     /PRODUCTION_ATTEMPT_FAILURE_IMMUTABLE/u,
   );
+  store.recordCheckpoint({
+    jobId: binaryTask.job_id, attemptId: firstAttempt, checkpointId: "attempt_failure",
+    checkpointHash: HASH_A, state: "persisted",
+  });
+  store.recordLease({
+    jobId: binaryTask.job_id, attemptId: firstAttempt, leaseVersion: 1,
+    fenceHash: HASH_A, state: "stale", expiresAt: null,
+  });
   const secondAttempt = "attempt:binary:2";
   const second = store.acceptTask(binaryTask, identity, secondAttempt);
   assert.equal(second.current_attempt_id, secondAttempt);
   assert.equal(second.attempt_failure, null);
   assert.equal(second.current_reason, "LEASE_GRANTED");
+  assert.equal(store.readCheckpoint(binaryTask.job_id), null,
+    "a new attempt must retire the prior attempt's current checkpoint authority atomically");
+  assert.equal(store.readLease(binaryTask.job_id), null,
+    "a new attempt must retire the prior attempt's current lease authority atomically");
+  assert.deepEqual(store.attemptIdsForTask(binaryTask.job_id), [firstAttempt, secondAttempt],
+    "attempt rotation must preserve immutable prior failure history");
   assert.throws(
     () => store.acceptTask(binaryTask, { ...identity, plugin_version: identity.plugin_version + 1 }, secondAttempt),
     /PRODUCTION_TASK_IDENTITY_CONFLICT/u,
@@ -158,7 +174,7 @@ try {
       method: "POST", headers: {}, body: JSON.stringify(body),
     });
     await assert.rejects(store.deliverOutbox(body.request_id, async () => {
-      throw executionFailure("failed", "AI_V6_CHECKPOINT_SEQUENCE_INVALID", { httpStatus: 409 });
+      throw runtimeTransportFailure("AI_V6_CHECKPOINT_SEQUENCE_INVALID", 409);
     }), /AI_V6_CHECKPOINT_SEQUENCE_INVALID/u);
   }
   const failureRowsBefore = Number((database.prepare(`select count(*) as count
@@ -228,7 +244,7 @@ try {
   let deterministicCalls = 0;
   await assert.rejects(store.deliverOutbox("checkpoint:deterministic", async () => {
     deterministicCalls += 1;
-    throw executionFailure("failed", "REMOTE_CHECKPOINT_REJECTED", { httpStatus: 409 });
+    throw runtimeTransportFailure("REMOTE_CHECKPOINT_REJECTED", 409);
   }), /REMOTE_CHECKPOINT_REJECTED/u);
   assert.deepEqual(store.readOutboxAuthority("checkpoint:deterministic"), {
     idempotencyKey: "checkpoint:deterministic",
@@ -273,7 +289,7 @@ try {
     method: "POST", headers: {}, body: '{"server":true}',
   });
   await assert.rejects(store.deliverOutbox("checkpoint:server-error", async () => {
-    throw executionFailure("failed", "REMOTE_TEMPORARILY_UNAVAILABLE", { httpStatus: 503 });
+    throw runtimeTransportFailure("REMOTE_TEMPORARILY_UNAVAILABLE", 503);
   }), /REMOTE_TEMPORARILY_UNAVAILABLE/u);
   assert.equal(store.readOutboxAuthority("checkpoint:server-error")?.state, "pending");
   assert.ok(store.readOutboxAuthority("checkpoint:server-error")?.nextDeliveryAt);

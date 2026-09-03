@@ -1,4 +1,4 @@
-import { executionFailure, failureCode } from "../../../../lib/typed-failure.js";
+import { executionFailure, failureCode } from "../../../../lib/execution-failure.js";
 
 import type { GptAnyChildCapabilityIntent } from "../../contract.js";
 import { gptAttachmentProviderDisplayName } from "../../schema.js";

@@ -1,9 +1,8 @@
 import {
-  executionFailure,
-  failureCode,
   postCheckpointReceiverReceipt,
   postSubmitReadbackReceipt,
-} from "../../typed-failure.js";
+} from "../../../capabilities/gpt/execution-fault.js";
+import { executionFailure, failureCode } from "../../execution-failure.js";
 import { runtimeLogCauseEventId, type RuntimeSpanHandle } from "../../runtime-logs/index.js";
 import { resolveProductionPlugin } from "./catalog.js";
 import {

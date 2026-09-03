@@ -2,6 +2,7 @@ import { createFinding } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveArchitectureLawIds } from "./components/architecture-boundary-shared.js";
 import { inspectActivePluginGate } from "./components/scan-active-plugin-gate.js";
+import { inspectProductAcceptanceBoundaries } from "./components/scan-product-acceptance-boundaries.js";
 import { inspectProjectSources } from "./components/scan-project-sources.js";
 import { inspectRootAllowlist } from "./components/scan-root-allowlist.js";
 import { inspectTypesContractRelations, inspectTypesContractRoot } from "./components/scan-types-contract-root.js";
@@ -33,6 +34,13 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
     findings.push(...result.findings);
     return result;
   });
+  run("inspectProductAcceptanceBoundaries", inspectProductAcceptanceBoundaries, () =>
+    inspectProductAcceptanceBoundaries({
+      findings,
+      inspectedFiles,
+      lawId,
+      project: context.project,
+    }));
   run("inspectTypesContractRoot", inspectTypesContractRoot, () => inspectTypesContractRoot({
         findings,
         inspectedFiles,
@@ -69,7 +77,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     capabilityDomain: evaluation.capabilityDomain,
     reportedLawIds: evaluation.reportedLawIds,
     lawResults: [{ lawId, assertions: [
-      { clauses: staticClauses(0, 1, 2, 3, 4, 5, 6), evidenceMode: "static.ast", ...refs("static.ast", staticClauses(0, 1, 2, 3, 4, 5, 6), ["inspectProjectSources", "inspectTypesContractRoot"]) },
+      { clauses: staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8), evidenceMode: "static.ast", ...refs("static.ast", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8), ["inspectProjectSources", "inspectProductAcceptanceBoundaries", "inspectTypesContractRoot"]) },
       { clauses: staticClauses(0), evidenceMode: "static.dependency", ...refs("static.dependency", staticClauses(0), ["inspectActivePluginGate"]) },
       { clauses: staticClauses(0), evidenceMode: "static.filesystem", ...refs("static.filesystem", staticClauses(0), ["inspectRootAllowlist"]) },
       { clauses: staticClauses(0), evidenceMode: "static.types", ...refs("static.types", staticClauses(0), ["inspectTypesContractRelations"]) },

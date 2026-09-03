@@ -1,12 +1,14 @@
 import type { GptProviderContinuation } from "../../capabilities/gpt/index.js";
 import type { WebsiteAgentTask } from "../../lib/local-runtime/production/contracts.js";
 import type {
-  ExactGptGeneratedImageCheckpointReadback,
-  ExactGptTextCheckpointReadback,
   GeneratedImageArtifact,
   ProductPlugin,
   SharedExecutionContext,
 } from "../../lib/local-runtime/production/plugin.js";
+import type {
+  ExactGptGeneratedImageCheckpointReadback,
+  ExactGptTextCheckpointReadback,
+} from "../../capabilities/gpt/index.js";
 import {
   advanceLane,
   applyExactProfile,

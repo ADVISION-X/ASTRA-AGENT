@@ -30,7 +30,8 @@ import { ProductionRuntimeStore } from "./store.js";
 import type { GeneratedImageArtifact } from "./plugin.js";
 import { resolveProductionPlugin } from "./catalog.js";
 import { routeProducesGeneratedImage } from "./route-policy.js";
-import { executionFailure, type SerializedExecutionFailure } from "../../typed-failure.js";
+import { executionFailure } from "../../execution-failure.js";
+import type { SerializedExecutionFailure } from "./terminal-failure.js";
 import { productionCloudFetch } from "./cloud-transport.js";
 import type { ProductionLeaseRelease } from "./lease-release-contract.js";
 

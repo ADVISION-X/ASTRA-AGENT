@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
 
-import { executionFailure } from "../../typed-failure.js";
+import { executionFailure } from "../../execution-failure.js";
 
 const WEBSITE_AGENT_PROTOCOL_VERSION = "xuanxue-ai-production-v6" as const;
 export const TASK_CONTRACT_ID = "website-agent-task" as const;

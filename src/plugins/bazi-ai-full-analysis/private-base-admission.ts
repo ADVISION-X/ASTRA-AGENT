@@ -10,8 +10,10 @@ import {
 } from "../../lib/local-runtime/production/contracts.js";
 import {
   productResultValidation,
-  type ExactGptContinuationReadback,
 } from "../../lib/local-runtime/production/plugin.js";
+import type {
+  ExactGptContinuationReadback,
+} from "../../capabilities/gpt/index.js";
 import { evaluateExactNestedResultContract } from "../../lib/local-runtime/production/route-policy.js";
 import {
   localBaziPrivateBaseTurn,

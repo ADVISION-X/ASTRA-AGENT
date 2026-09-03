@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "gpt",
   "lawIds": [
-    "LAW-GPT-001-V19"
+    "LAW-GPT-001-V20"
   ],
   "contractRefs": [],
   "dependencyEdges": [

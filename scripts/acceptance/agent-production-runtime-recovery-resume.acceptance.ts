@@ -12,9 +12,11 @@ import type { ProductionWorkerSession } from "../../src/lib/local-runtime/produc
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import {
   executionFailure,
+} from "../../src/lib/execution-failure.js";
+import {
   postSubmitReadbackFault,
   postSubmitReadbackReceipt,
-} from "../../src/lib/typed-failure.js";
+} from "../../src/capabilities/gpt/execution-fault.js";
 import {
   HASH_A,
   HASH_B,

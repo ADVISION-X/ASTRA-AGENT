@@ -14,7 +14,7 @@ import { BrowserCommandAdmissionBudget } from "../../src/lib/browser/transport/b
 import type { BrowserCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
 import { canonicalizeBrowserAuthorityValue } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
-import { serializeTerminalFailure } from "../../src/lib/typed-failure.js";
+import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { verifyBrowserArtifactAndLockContracts } from "./local-browser-artifact-and-lock.acceptance-support.js";
 import { exerciseStrictMutationReceipts } from "./local-browser-mutation-receipt-support.js";

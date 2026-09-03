@@ -1,4 +1,4 @@
-import { executionFailure } from "../../typed-failure.js";
+import { executionFailure } from "../../execution-failure.js";
 import {
   gptContinuationIdentityHash,
   gptContinuationUsable,

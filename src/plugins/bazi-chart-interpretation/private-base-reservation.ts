@@ -11,7 +11,7 @@ import {
   gptTextContinuationCheckpointInput,
   type SharedExecutionContext,
 } from "../../lib/local-runtime/production/plugin.js";
-import { failureCode } from "../../lib/typed-failure.js";
+import { failureCode } from "../../lib/execution-failure.js";
 import { localBaziPrivateBaseTurn } from "./private-base-turn-contract.js";
 import {
   applyAttachments,

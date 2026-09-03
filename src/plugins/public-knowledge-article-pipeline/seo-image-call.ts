@@ -7,9 +7,11 @@ import type {
   WebsiteAgentTask,
 } from "../../lib/local-runtime/production/contracts.js";
 import type {
-  ExactGptCallFacts,
   GeneratedImageArtifact,
 } from "../../lib/local-runtime/production/plugin.js";
+import type {
+  ExactGptCallFacts,
+} from "../../capabilities/gpt/index.js";
 import {
   continuationTextCheckpoint,
   fail,

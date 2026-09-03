@@ -8,9 +8,9 @@ import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser
 import type { BrowserExecutionBinding } from "../../src/lib/browser/infrastructure/browser-authority-broker.js";
 import { BrowserInfrastructureSupervisor } from "../../src/lib/browser/infrastructure/browser-infrastructure-supervisor.js";
 import {
-  executionFailure,
-  typedExecutionFailure,
-} from "../../src/lib/typed-failure.js";
+  browserExecutionFailure,
+  typedBrowserExecutionFailure,
+} from "../../src/lib/browser/browser-failure.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { binding, CONFIRMED_EXACT_HASH, fixtureLease, HASH } from "./browser-lane-fifo-support.js";
 
@@ -176,11 +176,7 @@ try {
       acquisitions.push(entry.jobId);
       return fixtureLease(entry, async () => {
           if (entry.jobId === "job:unsettled") {
-            throw executionFailure(
-              "failed",
-              "BROWSER_TARGET_LIFECYCLE_UNSETTLED",
-              { mutationOutcome: "no" },
-            );
+            throw browserExecutionFailure(new Error("BROWSER_TARGET_LIFECYCLE_UNSETTLED"), "no");
           }
         }, leaseIdentities.get(entry.jobId));
     },
@@ -216,7 +212,7 @@ try {
       { signal: openSignal.signal, remainingMs: () => 60_000 },
     ),
     (error) => {
-      const failure = typedExecutionFailure(error);
+      const failure = typedBrowserExecutionFailure(error);
       assert.equal(failure?.code, "BROWSER_DOCUMENT_INVALID");
       assert.equal(failure?.mutationOutcome, "dispatched");
       return true;
@@ -259,7 +255,7 @@ try {
       { signal: openSignal.signal, remainingMs: () => 60_000 },
     ),
     (error) => {
-      const failure = typedExecutionFailure(error);
+      const failure = typedBrowserExecutionFailure(error);
       assert.equal(failure?.code, "BROWSER_DOCUMENT_INVALID");
       assert.equal(failure?.mutationOutcome, "confirmed");
       return true;
@@ -273,7 +269,7 @@ try {
       { signal: openSignal.signal, remainingMs: () => 60_000 },
     ),
     (error) => {
-      const failure = typedExecutionFailure(error);
+      const failure = typedBrowserExecutionFailure(error);
       assert.equal(failure?.code, "BROWSER_DOCUMENT_INVALID");
       assert.equal(failure?.mutationOutcome, "no");
       return true;
@@ -352,7 +348,7 @@ try {
       { signal: openSignal.signal, remainingMs: () => 60_000 },
     ),
     (error) => {
-      const failure = typedExecutionFailure(error);
+      const failure = typedBrowserExecutionFailure(error);
       assert.equal(failure?.code, "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT");
       assert.equal(failure?.mutationOutcome, "confirmed");
       return true;
@@ -437,7 +433,7 @@ try {
       { signal: openSignal.signal, remainingMs: () => 60_000 },
     ),
     (error) => {
-      const failure = typedExecutionFailure(error);
+      const failure = typedBrowserExecutionFailure(error);
       assert.equal(failure?.status, "failed");
       assert.equal(failure?.code, "BROWSER_BACKPRESSURE");
       assert.equal(failure?.mutationOutcome, "no");

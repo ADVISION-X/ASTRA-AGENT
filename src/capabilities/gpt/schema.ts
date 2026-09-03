@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { parse } from "node:path";
 
 import { z } from "zod";
-import { executionFailure } from "../../lib/typed-failure.js";
+import { executionFailure } from "../../lib/execution-failure.js";
 import type { GptProviderContinuation } from "./session/gpt-continuation-store-port.js";
 
 export const GptReasoningTierSchema = z.enum([

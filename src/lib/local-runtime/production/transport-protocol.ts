@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { executionFailure } from "../../typed-failure.js";
+import { executionFailure } from "../../execution-failure.js";
+import { runtimeTransportFailure } from "./transport-failure.js";
 
 import {
   WebsiteAgentTaskBaseSchema,
@@ -203,10 +204,10 @@ export const parseJsonEnvelope = (value: unknown, httpStatus?: number): unknown 
   }).passthrough().parse(value);
   if (!envelope.ok || envelope.data === undefined) {
     const code = envelope.error?.code ?? "PRODUCTION_CLOUD_API_UNKNOWN_FAILURE";
-    throw executionFailure("failed", code, {
-      ...(httpStatus === undefined ? {} : { httpStatus }),
-      cause: new Error(envelope.error?.message ?? "Production cloud API rejected the request."),
-    });
+    const cause = new Error(envelope.error?.message ?? "Production cloud API rejected the request.");
+    throw httpStatus === undefined
+      ? executionFailure("failed", code, { cause })
+      : runtimeTransportFailure(code, httpStatus, cause);
   }
   return envelope.data;
 };

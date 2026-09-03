@@ -6,7 +6,7 @@ import type {
 import type {
   ProductGptCallInput,
   ProductGptChildResult,
-} from "../../../lib/local-runtime/production/plugin.js";
+} from "../index.js";
 
 const hash = `sha256:${"a".repeat(64)}` as const;
 

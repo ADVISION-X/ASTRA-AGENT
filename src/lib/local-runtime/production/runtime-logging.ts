@@ -8,7 +8,7 @@ import {
   type RuntimeSpanHandle,
   type RuntimeSpanTerminalEvent,
 } from "../../runtime-logs/index.js";
-import { typedExecutionFailure } from "../../typed-failure.js";
+import { typedExecutionFailure } from "../../execution-failure.js";
 import {
   checkpointProductionTask,
   releaseProductionLease,

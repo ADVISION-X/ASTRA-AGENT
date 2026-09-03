@@ -1,6 +1,6 @@
 import assert from "../../../../scripts/audit/shared/governance-exam-assert.js";
 
-import { executionFailure } from "../../../lib/typed-failure.js";
+import { executionFailure } from "../../../lib/execution-failure.js";
 import { createGptAcceptanceHarness } from "./gpt-acceptance-harness.js";
 import { coherentObservationPacket, fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
 import { providerAttachmentName } from "./gpt-exact-target-source-support.js";

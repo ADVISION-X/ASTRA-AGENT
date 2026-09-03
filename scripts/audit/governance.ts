@@ -118,7 +118,7 @@ function projectChecks(): void {
   if (!tests.length) fail('LAW_EVIDENCE_MISSING', 'governance tests');
   run(process.execPath, ['--import', 'tsx', '--test', ...tests]);
   run('npm', ['run', 'acceptance:capability-governance']);
-  run('npm', ['run', 'acceptance:constitutional-boundary-anti-escape']);
+  run('npm', ['run', 'acceptance:architecture-boundary']);
   run('npm', ['run', 'acceptance:code-purity-zombie-deep']);
 }
 

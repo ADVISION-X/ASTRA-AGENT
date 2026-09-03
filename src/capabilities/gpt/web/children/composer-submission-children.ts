@@ -1,4 +1,4 @@
-import { executionFailure } from "../../../../lib/typed-failure.js";
+import { executionFailure } from "../../../../lib/execution-failure.js";
 
 import type { GptChildHandlerMap } from "../child-handler.js";
 import {

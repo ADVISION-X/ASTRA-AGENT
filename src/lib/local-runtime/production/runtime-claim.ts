@@ -3,9 +3,9 @@ import { join } from "node:path";
 import {
   executionFailure,
   failureCode,
-  serializeTerminalFailure,
   typedExecutionFailure,
-} from "../../typed-failure.js";
+} from "../../execution-failure.js";
+import { serializeTerminalFailure, terminalFailureHttpStatus } from "./terminal-failure.js";
 import {
   RuntimeFailureImpact,
   requireRuntimeLogWrite,
@@ -56,6 +56,7 @@ import { productionRuntimeTaskPath } from "./runtime-storage-inventory.js";
 
 const isResultTransportBoundary = (error: unknown): boolean => {
   const typed = typedExecutionFailure(error);
+  const httpStatus = terminalFailureHttpStatus(error);
   const code = typed?.code ?? "";
   return code === "CLOUD_TRANSPORT_UNAVAILABLE"
     || code === "PRODUCTION_OUTBOX_DELIVERY_BACKOFF_ACTIVE"
@@ -63,7 +64,7 @@ const isResultTransportBoundary = (error: unknown): boolean => {
     || code === "AI_V6_JOB_NOT_FOUND"
     || code.startsWith("PRODUCTION_REMOTE_RECEIPT_")
     || code.startsWith("PRODUCTION_OUTBOX_")
-    || (typed?.httpStatus !== null && typed?.httpStatus !== undefined && typed.httpStatus >= 500);
+    || (httpStatus !== null && httpStatus >= 500);
 };
 
 
@@ -175,7 +176,7 @@ const acceptClaim = (
     });
     record = state.store.readTask(job.job_id)!;
     cursor = {
-      accepted: true,
+      accepted: prefix.checkpointSeq > 0,
       checkpointSeq: prefix.checkpointSeq,
       checkpointHash: prefix.checkpointHash,
       recoveredCheckpointPrefix: true,

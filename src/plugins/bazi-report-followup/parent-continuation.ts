@@ -11,10 +11,8 @@ import {
   productResultValidation,
   type SharedExecutionContext,
 } from "../../lib/local-runtime/production/plugin.js";
-import {
-  failureCode,
-  postCheckpointReceiverFault,
-} from "../../lib/typed-failure.js";
+import { failureCode } from "../../lib/execution-failure.js";
+import { postCheckpointReceiverFault } from "../../capabilities/gpt/execution-fault.js";
 import { parseProductResult } from "./result-contract.js";
 import {
   PLUGIN_ID,

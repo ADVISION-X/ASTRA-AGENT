@@ -1,4 +1,5 @@
-import { executionFailure, failureCode, typedExecutionFailure } from "../../typed-failure.js";
+import { executionFailure, failureCode, typedExecutionFailure } from "../../execution-failure.js";
+import { terminalFailureHttpStatus } from "./terminal-failure.js";
 import { hashCanonical, parseTerminalReceipt, parseTerminalReceiptExpectation, type ProductionHash } from "./contracts.js";
 import {
   assertReceiptIdentity,
@@ -25,9 +26,8 @@ const PERMANENT_REVOCATION_REASON = "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED";
 const jobPathMarker = (jobId: string): string => `/jobs/${encodeURIComponent(jobId)}/`;
 
 const retryDelay = (error: unknown): number => {
-  const typed = typedExecutionFailure(error);
-  return typed?.httpStatus !== null && typed?.httpStatus !== undefined
-    && typed.httpStatus >= 400 && typed.httpStatus <= 499
+  const httpStatus = terminalFailureHttpStatus(error);
+  return httpStatus !== null && httpStatus >= 400 && httpStatus <= 499
     ? OUTBOX_LOW_FREQUENCY_RETRY_DELAY_MS : OUTBOX_TRANSIENT_RETRY_DELAY_MS;
 };
 
@@ -220,7 +220,7 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
         sent_at,last_error,response_json,response_hash,next_delivery_at
         from production_outbox where instr(path,?)>0 order by created_at,idempotency_key`
       ).all(jobPathMarker(input.jobId)) as RecoveryOutboxRow[];
-      if (rows.length === 0 || rows.some((row) => row.kind !== "checkpoint")) {
+      if (rows.some((row) => row.kind !== "checkpoint")) {
         throw executionFailure("failed", "PRODUCTION_RECOVERY_RESULT_WRITE_PRESENT");
       }
       const prefix = proveRecoveryCheckpointPrefix({

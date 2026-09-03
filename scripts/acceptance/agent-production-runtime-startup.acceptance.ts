@@ -13,6 +13,7 @@ import {
 } from "../../src/lib/local-runtime/production/credential.js";
 import { terminalSpanFailure } from "../../src/lib/local-runtime/production/runtime-logging.js";
 import { startProductionRuntime } from "../../src/lib/local-runtime/production/runtime.js";
+import { reconcileTaskRecord } from "../../src/lib/local-runtime/production/runtime-startup.js";
 import {
   productionRuntimeTaskRoot,
   productionRuntimeTaskPath,
@@ -29,7 +30,8 @@ import {
   type RuntimeSpanHandle,
 } from "../../src/lib/runtime-logs/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
-import { executionFailure, typedExecutionFailure } from "../../src/lib/typed-failure.js";
+import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
+import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 import { verifyProductionDependency } from "../startup/lib/production-contract-preflight.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { HASH_A, HASH_B, task } from "./agent-production-runtime-fixtures.js";
@@ -203,6 +205,28 @@ try {
   await rm(inventoryTemporary, { recursive: true, force: true });
 }
 
+const firstCheckpointCrashTemporary = await mkdtemp(
+  path.join(tmpdir(), "agent-production-first-checkpoint-crash-"),
+);
+try {
+  const store = new ProductionRuntimeStore(firstCheckpointCrashTemporary);
+  const acceptedTask = task({
+    jobId: "job:first-checkpoint-crash", productId: "bazi_ai_full_analysis", actionId: "produce",
+  });
+  store.acceptTask(acceptedTask, {
+    catalog_hash: HASH_A, plugin_id: "bazi-ai-full-analysis", plugin_version: 1,
+    skill_hash: HASH_B, checkpoint_schema_version: 1, request_hash: acceptedTask.request_hash,
+  }, "attempt:first-checkpoint-crash");
+  assert.equal(reconcileTaskRecord({ store } as never, store.readTask(acceptedTask.job_id)!), true,
+    "a durable accept before the first checkpoint must remain task-locally recoverable");
+  store.markExecuting(acceptedTask.job_id);
+  assert.equal(reconcileTaskRecord({ store } as never, store.readTask(acceptedTask.job_id)!), false,
+    "a missing execution checkpoint outside the accept crash window must block reconciliation");
+  store.close();
+} finally {
+  await rm(firstCheckpointCrashTemporary, { recursive: true, force: true });
+}
+
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-production-startup-"));
 const previousCredentialPath = process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
 process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = path.join(temporary, "missing-credential.json");
@@ -286,7 +310,7 @@ try {
   }));
   const terminal = terminalSpanFailure(
     span,
-    executionFailure("failed", "COLUMN", { httpStatus: 500 }),
+    runtimeTransportFailure("COLUMN", 500),
     null,
     "CLAIM_REQUEST_FAILED",
     undefined,

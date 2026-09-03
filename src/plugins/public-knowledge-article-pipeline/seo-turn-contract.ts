@@ -11,14 +11,16 @@ import {
 } from "../../lib/local-runtime/production/contracts.js";
 import {
   gptTextContinuationCheckpointInput,
-  type ProductGptAnyCallInput,
-  type ProductGptTools,
 } from "../../lib/local-runtime/production/plugin.js";
+import type {
+  ProductGptAnyCallInput,
+  ProductGptTools,
+} from "../../capabilities/gpt/index.js";
 import {
   executionFailure,
   failureCode,
-  postCheckpointReceiverFault,
-} from "../../lib/typed-failure.js";
+} from "../../lib/execution-failure.js";
+import { postCheckpointReceiverFault } from "../../capabilities/gpt/execution-fault.js";
 import {
   parsePublicKnowledgeArticle,
   parsePublicKnowledgeResearch,

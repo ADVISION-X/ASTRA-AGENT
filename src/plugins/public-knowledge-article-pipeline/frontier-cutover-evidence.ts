@@ -1,7 +1,7 @@
 import { gptExactCallIdentityHash } from "../../capabilities/gpt/index.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../capabilities/forensics-persistence/index.js";
 import { hashCanonical, type WebsiteAgentTask } from "../../lib/local-runtime/production/contracts.js";
-import { executionFailure } from "../../lib/typed-failure.js";
+import { executionFailure } from "../../lib/execution-failure.js";
 import { PLUGIN_ID } from "./seo-turn-contract.js";
 
 type TextCheckpointInput = Readonly<{

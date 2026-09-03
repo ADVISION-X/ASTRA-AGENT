@@ -2,7 +2,7 @@ import type { Dirent, Stats } from "node:fs";
 import { lstat, readdir } from "node:fs/promises";
 import path from "node:path";
 
-import { executionFailure } from "../../typed-failure.js";
+import { executionFailure } from "../../execution-failure.js";
 
 export type ProductionRuntimeStorageInventory = Readonly<{
   root: string;

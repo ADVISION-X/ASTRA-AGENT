@@ -1,4 +1,5 @@
-import { executionFailure, type SerializedExecutionFailure } from "../../typed-failure.js";
+import { executionFailure } from "../../execution-failure.js";
+import type { SerializedExecutionFailure } from "./terminal-failure.js";
 import { hashCanonical, type ProductionHash } from "./contracts.js";
 import { isSerializedTerminalFailure, type ProductionOutboxWrite } from "./store-foundation.js";
 
@@ -27,7 +28,7 @@ export type RecoveryOutboxRow = LocalReceiptIntent & Readonly<{
 
 export type RecoveryCheckpointPrefix = Readonly<{
   checkpointSeq: number;
-  checkpointHash: ProductionHash;
+  checkpointHash: ProductionHash | null;
 }>;
 
 type RecoveryCheckpointProof = RecoveryCheckpointPrefix & Readonly<{ rejectedIncident: boolean }>;
@@ -305,6 +306,13 @@ export const proveRecoveryCheckpointPrefix = (input: Readonly<{
   receipts: readonly RemoteReceipt[];
 }>): RecoveryCheckpointProof => {
   const remoteByRequest = validateRecoveryReceipts(input);
+  const currentAttemptRows = input.rows.filter((row) => {
+    const body = JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>;
+    return body.attempt_id === input.attemptId;
+  });
+  if (currentAttemptRows.length === 0) {
+    return Object.freeze({ checkpointSeq: 0, checkpointHash: null, rejectedIncident: false });
+  }
   const current = currentRecoveryPrefix({ ...input, remoteByRequest });
   const cursor = current.delivered.at(-1)!;
   return Object.freeze({

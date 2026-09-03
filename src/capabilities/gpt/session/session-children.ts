@@ -1,5 +1,5 @@
 import { gptExactCallIdentityHash, type GptAnyChildCapabilityIntent } from "../contract.js";
-import { executionFailure } from "../../../lib/typed-failure.js";
+import { executionFailure } from "../../../lib/execution-failure.js";
 import type { GptChildHandlerMap } from "../web/child-handler.js";
 import {
   declaredFacts,

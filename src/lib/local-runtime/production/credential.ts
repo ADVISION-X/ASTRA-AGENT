@@ -8,7 +8,7 @@ import {
   DeviceCredentialSchema,
   type DeviceCredential,
 } from "./transport-protocol.js";
-import { executionFailure } from "../../typed-failure.js";
+import { executionFailure } from "../../execution-failure.js";
 
 export const productionCredentialPath = (dataDir: string): string =>
   process.env.AGENT_PRODUCTION_CREDENTIAL_FILE?.trim()

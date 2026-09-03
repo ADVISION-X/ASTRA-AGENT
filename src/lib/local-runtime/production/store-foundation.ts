@@ -2,7 +2,8 @@ import path from "node:path";
 import Database from "better-sqlite3";
 
 import type { GptContinuationStorePort } from "../../../capabilities/gpt/index.js";
-import { executionFailure, typedExecutionFailure, type SerializedExecutionFailure } from "../../typed-failure.js";
+import { executionFailure, typedExecutionFailure } from "../../execution-failure.js";
+import type { SerializedExecutionFailure } from "./terminal-failure.js";
 import type { DurablePluginIdentity, WebsiteAgentResult, WebsiteAgentTask } from "./contracts.js";
 import { hashCanonical, type ProductionHash } from "./contracts.js";
 

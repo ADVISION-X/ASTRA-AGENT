@@ -13,7 +13,7 @@ import {
   type RuntimeLogger,
   type RuntimeSpanHandle,
 } from "../../runtime-logs/index.js";
-import { executionFailure, failureCode } from "../../typed-failure.js";
+import { executionFailure, failureCode } from "../../execution-failure.js";
 import { productionCatalogHash } from "./catalog.js";
 import type { ProductionHash } from "./contracts.js";
 import { readProductionCredential } from "./credential.js";
@@ -159,6 +159,13 @@ export const reconcileTaskRecord = (
     ? state.store.recordLease({ ...storedLease, state: "stale", expiresAt: null }) : storedLease;
   const checkpoint = state.store.readCheckpoint(persisted.task.job_id);
   const remoteRedeliveryPending = state.store.hasUnsentOutbox(persisted.task.job_id);
+  const acceptedBeforeFirstCheckpoint = persisted.status === "failed"
+    && persisted.current_reason === "LEASE_GRANTED"
+    && persisted.attempt_failure === null
+    && persisted.staged_result === null
+    && storedLease === null
+    && checkpoint === null;
+  if (acceptedBeforeFirstCheckpoint) return true;
   let complete = true;
   if (lease) {
     if (nonterminal && !remoteRedeliveryPending

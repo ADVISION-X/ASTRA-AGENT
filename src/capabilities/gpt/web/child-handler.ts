@@ -10,7 +10,8 @@ import {
 import type {
   BrowserTargetLease,
 } from "../../../lib/browser/browser-authority-api.js";
-import { executionFailure } from "../../../lib/typed-failure.js";
+import { gptExecutionFailure } from "../execution-fault.js";
+import { executionFailure } from "../../../lib/execution-failure.js";
 
 type GptChildObservationValue<T> = Readonly<{
   value: T;
@@ -75,7 +76,7 @@ export const requireConfirmedBrowserFact = <K extends GptChildCapabilityId>(
     replayPolicy: contract.replayPolicy,
   });
   if (!recovery || recovery.state !== "confirmed" || recovery.mutationOutcome !== "confirmed") {
-    throw executionFailure("failed", "GPT_BROWSER_TERMINAL_FACT_REQUIRED", {
+    throw gptExecutionFailure("GPT_BROWSER_TERMINAL_FACT_REQUIRED", {
       mutationOutcome: recovery?.mutationOutcome ?? "no",
     });
   }

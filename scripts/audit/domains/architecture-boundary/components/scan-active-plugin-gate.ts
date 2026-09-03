@@ -1,173 +1,86 @@
-import { existsSync, readFileSync } from "node:fs";
-
-import { SyntaxKind } from "ts-morph";
+import { readFileSync } from "node:fs";
 
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
-import { pathSegments } from "../../../shared/no-regex.js";
 import { resolveFromRepo } from "../../../shared/paths.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../../shared/source-files.js";
 import { collectResolvedModuleTargets } from "../../../shared/source-module-targets.js";
 
-export type ActivePluginContract = Readonly<{
-  pluginId: string;
-  status: "active";
-  owner: string;
-  phase: string;
-  mediatorRoute: string;
-  mediatorBindings: readonly Readonly<{
-    routeExport: string;
-    schemaExport: string;
-    taskExport: string;
-  }>[];
-  allowedEntrypoints: readonly string[];
-  allowedAcceptanceTests: readonly string[];
-  allowedNpmScripts: readonly string[];
-  exposureTokens: readonly string[];
-  lawSourceRefs: readonly string[];
-}>;
+const catalogPath = "src/lib/local-runtime/production/catalog.ts";
+const architectureAcceptanceScript = "acceptance:architecture-boundary";
 
-type PluginExposureSummary = {
-  actualPluginIds: string[];
-  governedAcceptanceScripts: string[];
-  exposureFilesByPluginId: Record<string, string[]>;
-  findings: InspectorFinding[];
-  activeContracts: ActivePluginContract[];
+const pluginIdFromSourcePath = (repoPath: string): string | undefined => {
+  if (!repoPath.startsWith("src/plugins/")) return undefined;
+  return repoPath.split("/")[2];
 };
 
-const catalogPath = "src/lib/local-runtime/production/catalog.ts";
-const mediatorPath = "src/mediator/agent-production-route.ts";
-
-const activePluginContracts = (project: Parameters<typeof listActiveSourceFiles>[0]): ActivePluginContract[] => {
-  const catalog = project.getSourceFiles().find((sourceFile) => getRepoSourcePath(sourceFile) === catalogPath);
-  const pluginIds = catalog?.getImportDeclarations()
+const catalogPluginIds = (
+  project: Parameters<typeof listActiveSourceFiles>[0],
+): readonly string[] => {
+  const catalog = project.getSourceFiles().find((file) => getRepoSourcePath(file) === catalogPath);
+  return [...new Set(catalog?.getImportDeclarations()
     .map((declaration) => declaration.getModuleSpecifierValue())
     .filter((specifier) => specifier.startsWith("../../../plugins/"))
     .map((specifier) => specifier.slice("../../../plugins/".length).split("/")[0])
-    .filter((pluginId): pluginId is string => Boolean(pluginId)) ?? [];
-  return [...new Set(pluginIds)].sort().map((pluginId) => ({
-    pluginId,
-    status: "active" as const,
-    owner: pluginId,
-    phase: "production",
-    mediatorRoute: mediatorPath,
-    mediatorBindings: [],
-    allowedEntrypoints: [catalogPath],
-    allowedAcceptanceTests: ["acceptance:agent-production-runtime"],
-    allowedNpmScripts: [],
-    exposureTokens: [pluginId],
-    lawSourceRefs: [],
+    .filter((pluginId): pluginId is string => Boolean(pluginId)) ?? [])].sort();
+};
+
+const sourcePluginIds = (
+  project: Parameters<typeof listActiveSourceFiles>[0],
+): readonly string[] => [...new Set(listActiveSourceFiles(project)
+  .map((file) => pluginIdFromSourcePath(getRepoSourcePath(file)))
+  .filter((pluginId): pluginId is string => Boolean(pluginId)))].sort();
+
+const push = (input: {
+  checkId: string;
+  evidence?: string;
+  filePath: string;
+  findings: InspectorFinding[];
+  lawId: string;
+  message: string;
+}): void => {
+  input.findings.push(createFinding({
+    evidenceMode: "static.dependency",
+    checkId: input.checkId,
+    lawId: input.lawId,
+    filePath: input.filePath,
+    evidence: input.evidence,
+    message: input.message,
   }));
 };
 
-const isRouteExposurePath = (repoPath: string): boolean => {
-  const segments = pathSegments(repoPath);
-  return segments[0] === "src" && segments[1] === "app" && (segments.at(-1)?.endsWith("-routes.ts") ?? false);
-};
-
-const resolvePluginIdFromRepoPath = (repoPath: string): string | undefined => {
-  if (!repoPath.startsWith("src/plugins/")) return undefined;
-  const segments = repoPath.split("/");
-  return segments.length >= 3 ? segments[2] : undefined;
-};
-
-const readPackageScripts = (): Record<string, string> => {
-  const parsed = JSON.parse(readFileSync(resolveFromRepo("package.json"), "utf8")) as {
-    scripts?: Record<string, string>;
-  };
-  return parsed.scripts ?? {};
-};
-
-const collectActualPluginIds = (project: Parameters<typeof listActiveSourceFiles>[0]): string[] => {
-  const pluginIds = new Set<string>();
-  for (const sourceFile of listActiveSourceFiles(project)) {
-    const pluginId = resolvePluginIdFromRepoPath(getRepoSourcePath(sourceFile));
-    if (pluginId) pluginIds.add(pluginId);
-  }
-  return [...pluginIds].sort();
-};
-
-const collectExposureFilesByPluginId = (
-  project: Parameters<typeof listActiveSourceFiles>[0],
-  entries: readonly ActivePluginContract[],
-): Record<string, string[]> => {
-  const exposures = new Map(entries.map((entry) => [entry.pluginId, new Set<string>()]));
-  for (const sourceFile of listActiveSourceFiles(project)) {
-    const repoPath = getRepoSourcePath(sourceFile);
-    if (repoPath.startsWith("src/app/")
-      || repoPath.startsWith("src/lib/local-runtime/")
-      || repoPath.startsWith("src/mediator/")) {
-      for (const target of collectResolvedModuleTargets(sourceFile)) {
-        const pluginId = resolvePluginIdFromRepoPath(target.targetPath);
-        if (pluginId) exposures.get(pluginId)?.add(repoPath);
-      }
-    }
-    if (!isRouteExposurePath(repoPath)) continue;
-    const literals = [
-      ...sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).map((literal) => literal.getLiteralValue()),
-      ...sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((literal) => literal.getLiteralValue()),
-    ];
-    for (const entry of entries) {
-      if (entry.exposureTokens.some((token) => literals.some((value) => value.includes(token)))) {
-        exposures.get(entry.pluginId)?.add(repoPath);
-      }
-    }
-  }
-  return Object.fromEntries(
-    [...exposures.entries()].map(([pluginId, files]) => [pluginId, [...files].sort()]),
-  );
-};
-
-const pushFinding = (
-  findings: InspectorFinding[],
-  lawId: string,
-  filePath: string,
-  checkId: string,
-  message: string,
-  evidence?: string,
-): void => {
-  findings.push(createFinding({ evidenceMode: "static.ast", checkId, lawId, filePath, evidence, message }));
-};
-
-const inspectActiveContracts = (input: {
-  actualPluginIds: readonly string[];
-  entries: readonly ActivePluginContract[];
-  exposureFilesByPluginId: Readonly<Record<string, string[]>>;
+const inspectCatalogBijection = (input: {
+  catalogIds: readonly string[];
   findings: InspectorFinding[];
-  inspectedFiles: Set<string>;
   lawId: string;
-  packageScripts: Readonly<Record<string, string>> | null;
+  sourceIds: readonly string[];
 }): void => {
-  const expectedIds = new Set(input.entries.map((entry) => entry.pluginId));
-  for (const pluginId of input.actualPluginIds) {
-    if (expectedIds.has(pluginId)) continue;
-    pushFinding(input.findings, input.lawId, `src/plugins/${pluginId}`, "architecture/second-active-plugin",
-      `Only Product Plugins imported by the unique Catalog may remain active; found ${pluginId}.`, pluginId);
+  for (const pluginId of input.sourceIds.filter((id) => !input.catalogIds.includes(id))) {
+    push({ findings: input.findings, lawId: input.lawId, filePath: `src/plugins/${pluginId}`,
+      evidence: pluginId, checkId: "architecture/second-active-plugin",
+      message: `Product Plugin ${pluginId} exists outside the unique Catalog.` });
   }
-  for (const entry of input.entries) {
-    for (const lawSourceRef of entry.lawSourceRefs) {
-      input.inspectedFiles.add(lawSourceRef);
-      if (!existsSync(resolveFromRepo(lawSourceRef))) {
-        pushFinding(input.findings, input.lawId, lawSourceRef, "architecture/plugin-law-source-missing",
-          `Active plugin ${entry.pluginId} references missing law source ${lawSourceRef}.`);
-      }
-    }
-    if (!input.actualPluginIds.includes(entry.pluginId)) {
-      pushFinding(input.findings, input.lawId, `src/plugins/${entry.pluginId}`, "architecture/active-plugin-root-missing",
-        `Catalog-declared Product Plugin ${entry.pluginId} is missing.`);
-    }
-    for (const npmScript of input.packageScripts ? [...entry.allowedAcceptanceTests, ...entry.allowedNpmScripts] : []) {
-      if (input.packageScripts?.[npmScript] === undefined) {
-        pushFinding(input.findings, input.lawId, "package.json", "architecture/plugin-script-missing",
-          `Active plugin ${entry.pluginId} requires npm script ${npmScript}.`, npmScript);
-      }
-    }
-    for (const exposureFile of input.exposureFilesByPluginId[entry.pluginId] ?? []) {
-      input.inspectedFiles.add(exposureFile);
-      if (!entry.allowedEntrypoints.includes(exposureFile)) {
-        pushFinding(input.findings, input.lawId, exposureFile, "architecture/plugin-entry-not-authorized",
-          `${exposureFile} exposes ${entry.pluginId} outside its current single-line architecture.`, entry.pluginId);
-      }
+  for (const pluginId of input.catalogIds.filter((id) => !input.sourceIds.includes(id))) {
+    push({ findings: input.findings, lawId: input.lawId, filePath: `src/plugins/${pluginId}`,
+      evidence: pluginId, checkId: "architecture/active-plugin-root-missing",
+      message: `Catalog-declared Product Plugin ${pluginId} has no source root.` });
+  }
+};
+
+const inspectDirectPluginImports = (input: {
+  findings: InspectorFinding[];
+  lawId: string;
+  project: Parameters<typeof listActiveSourceFiles>[0];
+}): void => {
+  for (const file of listActiveSourceFiles(input.project)) {
+    const repoPath = getRepoSourcePath(file);
+    if (repoPath === catalogPath || repoPath.startsWith("src/plugins/")) continue;
+    for (const target of collectResolvedModuleTargets(file)) {
+      const pluginId = pluginIdFromSourcePath(target.targetPath);
+      if (!pluginId) continue;
+      push({ findings: input.findings, lawId: input.lawId, filePath: repoPath,
+        evidence: target.targetPath, checkId: "architecture/plugin-entry-not-authorized",
+        message: `${repoPath} imports Product Plugin ${pluginId} outside the unique Catalog.` });
     }
   }
 };
@@ -177,30 +90,22 @@ export const inspectActivePluginGate = (input: {
   project: Parameters<typeof listActiveSourceFiles>[0];
   inspectedFiles: Set<string>;
   targetPaths: readonly string[];
-}): PluginExposureSummary => {
+}): Readonly<{ findings: InspectorFinding[] }> => {
   const findings: InspectorFinding[] = [];
-  const entries = activePluginContracts(input.project);
-  const packageScripts = input.targetPaths.includes("package.json") ? readPackageScripts() : null;
-  if(packageScripts)input.inspectedFiles.add("package.json");
-  const actualPluginIds = collectActualPluginIds(input.project);
-  const exposureFilesByPluginId = collectExposureFilesByPluginId(input.project, entries);
-  inspectActiveContracts({
-    actualPluginIds,
-    entries,
-    exposureFilesByPluginId,
-    findings,
-    inspectedFiles: input.inspectedFiles,
-    lawId: input.lawId,
-    packageScripts,
-  });
-  const governedAcceptanceScripts = entries.flatMap((entry) => entry.allowedAcceptanceTests)
-    .filter((scriptName) => packageScripts?.[scriptName] !== undefined)
-    .sort();
-  return {
-    actualPluginIds,
-    governedAcceptanceScripts,
-    exposureFilesByPluginId,
-    findings,
-    activeContracts: entries,
-  };
+  const catalogIds = catalogPluginIds(input.project);
+  inspectCatalogBijection({ catalogIds, sourceIds: sourcePluginIds(input.project), findings, lawId: input.lawId });
+  inspectDirectPluginImports({ project: input.project, findings, lawId: input.lawId });
+  input.inspectedFiles.add(catalogPath);
+  if (input.targetPaths.includes("package.json")) {
+    input.inspectedFiles.add("package.json");
+    const scripts = (JSON.parse(readFileSync(resolveFromRepo("package.json"), "utf8")) as {
+      scripts?: Readonly<Record<string, string>>;
+    }).scripts ?? {};
+    if (!scripts[architectureAcceptanceScript]) {
+      push({ findings, lawId: input.lawId, filePath: "package.json",
+        evidence: architectureAcceptanceScript, checkId: "architecture/plugin-script-missing",
+        message: `The native Architecture acceptance command ${architectureAcceptanceScript} is missing.` });
+    }
+  }
+  return { findings };
 };

@@ -26,7 +26,9 @@ import type {
 } from "../../src/capabilities/gpt/index.js";
 import { authorizeWebsiteAgentTask } from "../../src/mediator/agent-production-route.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
-import { executionFailure, serializeTerminalFailure } from "../../src/lib/typed-failure.js";
+import { executionFailure } from "../../src/lib/execution-failure.js";
+import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
+import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 
 export const HASH_A = `sha256:${"a".repeat(64)}` as ProductionHash;
 export const HASH_B = `sha256:${"b".repeat(64)}` as ProductionHash;
@@ -267,7 +269,7 @@ export const seedRecoveryIncident = async (
         method: "POST", headers: {}, body: JSON.stringify(body),
       });
       await assert.rejects(store.deliverOutbox(body.request_id, async () => {
-        throw executionFailure("failed", "AI_V6_CHECKPOINT_SEQUENCE_INVALID", { httpStatus: 409 });
+        throw runtimeTransportFailure("AI_V6_CHECKPOINT_SEQUENCE_INVALID", 409);
       }), /AI_V6_CHECKPOINT_SEQUENCE_INVALID/u);
     }
   }

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { executionFailure } from "../../typed-failure.js";
+import { executionFailure } from "../../execution-failure.js";
 
 import { agentPluginCapabilityManifest } from "./catalog.js";
 import type { ProductionHash } from "./contracts.js";

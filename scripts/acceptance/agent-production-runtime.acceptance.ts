@@ -15,7 +15,7 @@ import { permanentAuthorizationRevoked } from
   "../../src/lib/local-runtime/production/runtime-permanent-revocation.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { LeaseRenewReceiptSchema, parseJsonEnvelope, websiteAgentTaskFromClaim } from "../../src/lib/local-runtime/production/transport-protocol.js";
-import { executionFailure, typedExecutionFailure } from "../../src/lib/typed-failure.js";
+import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { assertProductionTaskRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../src/mediator/agent-production-route.js";
 import { runtimeManifestOwnershipDrift } from "../audit/domains/agent-production-runtime/inspector.js";

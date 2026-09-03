@@ -4,6 +4,18 @@ export {
   gptExactCallIdentityHash,
 } from "./ability-group.js";
 export {
+  GptExecutionFailure,
+  PostCheckpointReceiverFault,
+  PostSubmitReadbackFault,
+  gptExecutionFailure,
+  postCheckpointReceiverFault,
+  postCheckpointReceiverReceipt,
+  postSubmitReadbackFault,
+  postSubmitReadbackReceipt,
+  typedGptExecutionFailure,
+  type PostSubmitReadbackReceipt,
+} from "./execution-fault.js";
+export {
   type GptAbilityGroup,
   type GptAnyChildCapabilityIntent,
   type GptApprovedFile,
@@ -27,6 +39,18 @@ export {
   gptAttachmentProviderDisplayName,
   gptContinuationIdentityHash,
 } from "./schema.js";
+export type {
+  ExactGptCallFacts,
+  ExactGptContinuationQuery,
+  ExactGptContinuationReadback,
+  ExactGptGeneratedImageCheckpointReadback,
+  ExactGptTextCheckpointReadback,
+  ProductGptAnyCallInput,
+  ProductGptCallInput,
+  ProductGptChildResult,
+  ProductGptFactQuery,
+  ProductGptTools,
+} from "./product-api.js";
 export { gptContinuationReservationComplete, gptContinuationUsable } from "./session/gpt-continuation-store-port.js";
 export {
   type GptContinuationLane,
@@ -46,3 +70,33 @@ export type {
   NewStoredGptContinuation,
   StoredGptContinuation,
 } from "./session/gpt-continuation-store-port.js";
+export { gptSubmissionLocatorArtifact } from "./artifact-contract.js";
+export {
+  readForkRelationArtifact,
+  readGeneratedImageCheckpointArtifacts,
+  readSubmissionLocatorArtifact,
+  readTextCheckpointArtifact,
+} from "./artifact-reader.js";
+export { readCompletedGptChildResult } from "./completed-result.js";
+export {
+  isPendingExactEvidence,
+  readExactGptEvidenceFact,
+} from "./evidence-fact.js";
+export {
+  persistGptChildEvidence,
+  persistedGptEvidenceRef,
+} from "./evidence-writer.js";
+export {
+  GptContinuationReadback,
+  type GptContinuationReadbackExecution,
+  type GptContinuationReadbackPort,
+} from "./continuation-readback.js";
+export {
+  ProductionGptChildTools,
+  type ProductGptExecution,
+} from "./production-child-tools.js";
+export type { GptProductionExecutionInput } from "./production-child-support.js";
+export type {
+  GptProductionBrowserAuthority,
+  GptProductionRuntimePort,
+} from "./production-ports.js";

@@ -1,5 +1,5 @@
 import type { BrowserTargetLease } from "../../../../lib/browser/browser-authority-api.js";
-import { executionFailure } from "../../../../lib/typed-failure.js";
+import { executionFailure } from "../../../../lib/execution-failure.js";
 
 import type { GptChildHandlerMap } from "../child-handler.js";
 import type { GptChildObservation } from "../child-handler.js";

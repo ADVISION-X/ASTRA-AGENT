@@ -9,13 +9,10 @@ import type {
   WebsiteAgentTask,
 } from "./contracts.js";
 import { sha256 } from "./contracts.js";
-import { executionFailure } from "../../typed-failure.js";
+import { executionFailure } from "../../execution-failure.js";
 import type {
-  GptChildCapabilityId,
-  GptChildInputMap,
-  GptChildOutputMap,
-  GptContinuationLane,
   GptProviderContinuation,
+  ProductGptTools,
 } from "../../../capabilities/gpt/index.js";
 
 export interface GeneratedImageArtifact {
@@ -61,162 +58,6 @@ export interface SharedExecutionContext {
   readonly materials: readonly LocalProductionMaterial[];
   readonly gpt: ProductGptTools;
   readonly complete: (output: ProductPluginOutput) => Promise<WebsiteAgentResult>;
-}
-
-export type ProductGptChildResult<K extends GptChildCapabilityId = GptChildCapabilityId> =
-  Readonly<{
-    value: GptChildOutputMap[K];
-    evidenceRef: string;
-    evidenceHash: ProductionHash;
-  }>;
-
-type ProductGptCallCommon = Readonly<{
-  sessionKey?: string;
-  productStepId: string;
-  callId: string;
-  actionOrdinal: number;
-  effectLookupKind?: "task_exact_effect";
-}>;
-
-type ProductGptAnyCallInputMap = {
-  readonly [K in GptChildCapabilityId]: ProductGptCallCommon & Readonly<{
-    child: K;
-    input: GptChildInputMap[K];
-  }>;
-};
-
-export type ProductGptAnyCallInput = ProductGptAnyCallInputMap[GptChildCapabilityId];
-
-export type ProductGptCallInput<K extends GptChildCapabilityId = GptChildCapabilityId> =
-  ProductGptCallCommon & Readonly<{
-    child: K;
-    input: GptChildInputMap[K];
-  }>;
-
-export type ProductGptFactQuery<K extends GptChildCapabilityId = GptChildCapabilityId> =
-  ProductGptCallInput<K> & Readonly<{
-    lookupKind?: "current_attempt" | "task_exact_effect";
-  }>;
-
-export type ExactGptCallFacts = Readonly<{
-  exactCallIdentityHash: ProductionHash;
-  mutation: Readonly<{
-    owner: "browser";
-    sourceAttemptId: string;
-    effectScope: "target_local" | "provider_effect";
-    outcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
-    terminalAt: string | null;
-    productStepId: string;
-    callId: string;
-    childCapabilityId: string;
-    actionOrdinal: number;
-  }> | null;
-  evidence: Readonly<{
-    owner: "forensics-persistence";
-    evidenceRef: string;
-    evidenceHash: ProductionHash;
-    readbackVerified: true;
-    artifactRefs: readonly string[];
-  }> | null;
-  continuation: Readonly<{
-    owner: "gpt-session-controller";
-    continuationRef: string;
-    conversationIdentityHash: ProductionHash;
-    laneVersion: number;
-    priorPromptHash: ProductionHash;
-    priorResponseHash: ProductionHash;
-    contentReadbackVerified: true;
-  }> | null;
-}>;
-
-export type ExactGptContinuationQuery = Readonly<
-  | { lookupKind: "turn_marker"; turnMarker: string }
-  | {
-    lookupKind: "frontier_ref";
-    frontierRef: ProductionHash;
-    authorization:
-      | Readonly<{ kind: "origin_authorization"; originAuthorizationRef: string }>
-      | Readonly<{
-          kind: "current_artifact_read_grant";
-          currentAuthorizationRef: string;
-          opaqueReadGrantHash: ProductionHash;
-        }>;
-  }
->;
-
-export type ExactGptTextCheckpointReadback = Readonly<{
-  checkpointKind: "text";
-  sourceAttemptId: string;
-  assistantTurnId: string;
-  artifactRef: string;
-  rawDomHtml: string;
-  rawDomHash: ProductionHash;
-  semanticText: string;
-  semanticTextHash: ProductionHash;
-  canonicalConversationUrl: string;
-  promptHash: ProductionHash;
-  turnMarker: string;
-  evidenceRef: string;
-  evidenceHash: ProductionHash;
-}>;
-
-export type ExactGptGeneratedImageCheckpointReadback = Readonly<{
-  checkpointKind: "generated_image";
-  sourceAttemptId: string;
-  assistantTurnId: string;
-  canonicalConversationUrl: string;
-  promptHash: ProductionHash;
-  mediaHash: ProductionHash;
-  turnMarker: string;
-  originalArtifactRef: string;
-  originalSha256: ProductionHash;
-  originalBytes: Uint8Array;
-  originalMediaType: `image/${string}`;
-  originalWidth: number;
-  originalHeight: number;
-  webpArtifactRef: string;
-  webpSha256: ProductionHash;
-  webpBytes: Uint8Array;
-  mediaType: "image/webp";
-  width: 1200;
-  height: 630;
-  evidenceRef: string;
-  evidenceHash: ProductionHash;
-  predecessorTextCheckpoint: ExactGptTextCheckpointReadback;
-}>;
-
-export type ExactGptContinuationReadback = Readonly<
-  | { lookupKind: "turn_marker"; lane: GptContinuationLane }
-  | {
-    lookupKind: "frontier_ref";
-    continuationRef: string;
-    authorizationReadback:
-      | Readonly<{ kind: "origin_authorization"; originAuthorizationRef: string }>
-      | Readonly<{
-          kind: "current_artifact_read_grant";
-          currentAuthorizationRef: string;
-          ownerScopeHash: ProductionHash;
-          subjectRef: string;
-          sourceArtifactRef: string;
-          sourceCheckpointRef: string;
-          semanticAdmissionReceiptRef: string;
-          semanticAdmissionReceiptHash: ProductionHash;
-          opaqueReadGrantHash: ProductionHash;
-        }>;
-    originProvider: GptProviderContinuation;
-    originCheckpoint: ExactGptTextCheckpointReadback;
-    currentProvider: GptProviderContinuation;
-    currentCheckpoint: ExactGptTextCheckpointReadback | ExactGptGeneratedImageCheckpointReadback;
-  }
->;
-
-export interface ProductGptTools {
-  readonly attemptId: string;
-  readContinuationExact(query: ExactGptContinuationQuery): Promise<ExactGptContinuationReadback | null>;
-  execute<K extends GptChildCapabilityId>(
-    input: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
-  ): Promise<ProductGptChildResult<K>>;
-  readCallFacts(input: ProductGptFactQuery): Promise<ExactGptCallFacts>;
 }
 
 export interface ProductPluginOutput {

@@ -2,7 +2,7 @@ import path from "node:path";
 
 import type { GptAbilityGroup } from "../../../capabilities/gpt/index.js";
 import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-support.js";
-import { executionFailure } from "../../typed-failure.js";
+import { executionFailure } from "../../execution-failure.js";
 import {
   diagnoseRuntimeLog,
   type RuntimeDiagnosis,

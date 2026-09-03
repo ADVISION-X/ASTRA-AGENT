@@ -8,8 +8,9 @@ import { checkpointProductionTask } from "../../src/lib/local-runtime/production
 import { readProductionDeviceJobStatus } from "../../src/lib/local-runtime/production/cloud-reconciliation-client.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
-import { executionFailure } from "../../src/lib/typed-failure.js";
-import { assertPermanentRevocationSettlement } from "./agent-production-permanent-revocation-support.js";
+import { executionFailure } from "../../src/lib/execution-failure.js";
+import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
+import { assertPermanentRevocationSettlement } from "./agent-production-runtime-permanent-revocation-support.js";
 import {
   HASH_A,
   HASH_B,
@@ -135,7 +136,7 @@ try {
     workerSessionEpoch: job.grant.worker_session_epoch,
     request: async () => {
       rejectedCalls += 1;
-      throw executionFailure("failed", "AI_V6_CHECKPOINT_SEQUENCE_INVALID", { httpStatus: 409 });
+      throw runtimeTransportFailure("AI_V6_CHECKPOINT_SEQUENCE_INVALID", 409);
     },
   };
   await assert.rejects(
@@ -189,6 +190,23 @@ try {
     from production_attempt_failures where job_id=? and attempt_id=?`
   ).get(positive.accepted.job_id, positive.attemptId) as { count: number }).count), 0,
   "the exact false-failure row must be physically deleted after remote rejection and Outbox proof");
+
+  const emptyPrefixBase = await seedRecoveryIncident(store, "empty-prefix");
+  store.recoverCheckpointPrefix({
+    jobId: emptyPrefixBase.accepted.job_id,
+    attemptId: emptyPrefixBase.attemptId,
+    acceptedAttemptCount: 1,
+    receipts: emptyPrefixBase.receipts,
+  });
+  const nextAttemptId = "attempt:empty-prefix:2";
+  store.acceptTask(emptyPrefixBase.accepted, identityFor(emptyPrefixBase.accepted), nextAttemptId);
+  assert.deepEqual(store.recoverCheckpointPrefix({
+    jobId: emptyPrefixBase.accepted.job_id,
+    attemptId: nextAttemptId,
+    acceptedAttemptCount: 2,
+    receipts: emptyPrefixBase.receipts,
+  }), { checkpointSeq: 0, checkpointHash: null },
+  "a durably accepted new attempt with no checkpoint intent must resume from the empty prefix");
 
   const noRejectedIncident = await seedRecoveryIncident(store, "no-rejected-incident");
   database.prepare(`delete from production_outbox where path like ? and sent_at is null`).run(
@@ -278,7 +296,7 @@ try {
       method: "POST", headers: {}, body: JSON.stringify(body),
     });
     await assert.rejects(store.deliverOutbox(body.request_id, async () => {
-      throw executionFailure("failed", "AI_V6_CHECKPOINT_SEQUENCE_INVALID", { httpStatus: 409 });
+      throw runtimeTransportFailure("AI_V6_CHECKPOINT_SEQUENCE_INVALID", 409);
     }), /AI_V6_CHECKPOINT_SEQUENCE_INVALID/u);
   }
   assert.equal(store.recoverCheckpointPrefix({
@@ -421,7 +439,7 @@ try {
     method: "POST", headers: {}, body: JSON.stringify(rejectedHigherBody),
   });
   await assert.rejects(store.deliverOutbox(rejectedHigherBody.request_id, async () => {
-    throw executionFailure("failed", "AI_V6_CHECKPOINT_SEQUENCE_INVALID", { httpStatus: 409 });
+    throw runtimeTransportFailure("AI_V6_CHECKPOINT_SEQUENCE_INVALID", 409);
   }), /AI_V6_CHECKPOINT_SEQUENCE_INVALID/u);
   assert.throws(() => store.recoverCheckpointPrefix({
     jobId: rejectedHigher.accepted.job_id, attemptId: rejectedHigher.attemptId, acceptedAttemptCount: 1,

@@ -15,17 +15,21 @@ import {
   gptTextContinuationCheckpointInput,
   productResultValidation,
   readProductSkill,
-  type ExactGptCallFacts,
-  type ProductGptAnyCallInput,
   type SharedExecutionContext,
 } from "../../lib/local-runtime/production/plugin.js";
+import type {
+  ExactGptCallFacts,
+  ProductGptAnyCallInput,
+} from "../../capabilities/gpt/index.js";
 import {
   executionFailure,
   failureCode,
+} from "../../lib/execution-failure.js";
+import {
   postCheckpointReceiverFault,
   postSubmitReadbackFault,
-  typedExecutionFailure,
-} from "../../lib/typed-failure.js";
+  typedGptExecutionFailure,
+} from "../../capabilities/gpt/execution-fault.js";
 import { parseProductResult } from "./result-contract.js";
 
 const PLUGIN_ID = "hehun-report-followup";
@@ -210,7 +214,7 @@ const confirmedDeadline = (facts: ExactGptCallFacts): string => {
 };
 
 const preservePostSubmitReadback = (error: unknown, submit: ExactGptCallFacts): never => {
-  const typed = typedExecutionFailure(error);
+  const typed = typedGptExecutionFailure(error);
   const code = failureCode(error);
   const terminal = code === "GPT_RESPONSE_STABILITY_TIMEOUT" || code === "GPT_RESPONSE_WAIT_ABORTED"
     || code.startsWith("GPT_PROVIDER_TERMINAL_") || code.startsWith("GPT_RATE_LIMIT_");

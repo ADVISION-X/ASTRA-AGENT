@@ -1,10 +1,14 @@
-import type { GptAbilityGroup } from "../../../capabilities/gpt/index.js";
+import {
+  ProductionGptChildTools,
+  type GptAbilityGroup,
+  type ProductGptExecution,
+} from "../../../capabilities/gpt/index.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../../capabilities/forensics-persistence/index.js";
 import {
   RuntimeFailureImpact, requireRuntimeLogWrite, runtimeFailureFromError,
   runtimeLogCauseEventId, withRuntimeLogCause, type RuntimeLogger, type RuntimeSpanHandle,
 } from "../../runtime-logs/index.js";
-import { executionFailure, failureCode, typedExecutionFailure } from "../../typed-failure.js";
+import { executionFailure, failureCode, typedExecutionFailure } from "../../execution-failure.js";
 import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-support.js";
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../../mediator/agent-production-route.js";
 import { productionCatalogHash } from "./catalog.js";
@@ -13,7 +17,6 @@ import type {
   WebsiteAgentResult, WebsiteAgentTask,
 } from "./contracts.js";
 import type { ProductPluginOutput } from "./plugin.js";
-import { ProductionGptChildTools, type ProductGptExecution } from "./production-gpt-child-tools.js";
 import { assertProductionTaskRoutePolicy } from "./route-policy.js";
 import { ProductionRuntimeStore, type StoredProductionTask } from "./store.js";
 
@@ -64,7 +67,17 @@ export class ProductionExecutor {
   ) {
     this.gptChildTools = new ProductionGptChildTools(
       input.dataDir, input.sourceHash, input.gpt, input.evidenceStore,
-      input.browserAuthority, store, runtimeLogger,
+      input.browserAuthority, {
+        continuationStore: store,
+        continuationReadback: {
+          readGptContinuation: (continuationRef) => store.readGptContinuation(continuationRef),
+          readGptContinuationForOriginJob: (jobId, pluginId, turnMarker) =>
+            store.readGptContinuationForOriginJob(jobId, pluginId, turnMarker),
+          readGptContinuationForFrontier: (frontierRef) => store.readGptContinuationForFrontier(frontierRef),
+          readTaskPluginVersion: (jobId) => store.readTask(jobId)?.identity.plugin_version ?? null,
+        },
+        attemptIdsForTask: (jobId) => store.attemptIdsForTask(jobId),
+      }, runtimeLogger,
     );
     this.runtimeLogger = runtimeLogger;
   }
@@ -161,10 +174,22 @@ export class ProductionExecutor {
     try {
       result = await dispatchWebsiteAgentTask(input.task, (authorized) => {
         gptExecution = this.gptChildTools.createExecution({
-          task: authorized.task,
+          jobId: authorized.task.job_id,
+          continuationRef: authorized.task.continuation_ref ?? null,
+          ownerRef: authorized.task.business_identity.owner_ref,
+          subjectRef: authorized.task.business_identity.subject_ref,
+          authorizationRef: authorized.task.business_identity.authorization_ref,
           pluginId: authorized.plugin.pluginId,
           pluginVersion: authorized.plugin.pluginVersion,
-          lease: input.lease,
+          attemptId: input.lease.attempt_id,
+          deviceId: input.lease.device_id,
+          leaseVersion: input.lease.lease_version,
+          executionFenceHash: input.lease.execution_fence_hash,
+          controlManifestHash: input.lease.control_manifest_hash,
+          maxProviderTurns: input.lease.max_provider_turns,
+          expiresAtMonotonic: input.lease.expires_at_monotonic,
+          commandTtlMs: input.lease.command_ttl_ms,
+          abortSignal: input.lease.abort_signal,
           parentSpanId: input.span.spanId,
         });
         gptLifecycle.reconcilePermanentCancellation = gptExecution.reconcilePermanentCancellation;

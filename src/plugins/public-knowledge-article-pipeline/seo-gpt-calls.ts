@@ -9,15 +9,19 @@ import type {
   WebsiteAgentTask,
 } from "../../lib/local-runtime/production/contracts.js";
 import type {
-  ExactGptCallFacts,
-  ProductGptFactQuery,
   SharedExecutionContext,
 } from "../../lib/local-runtime/production/plugin.js";
+import type {
+  ExactGptCallFacts,
+  ProductGptFactQuery,
+} from "../../capabilities/gpt/index.js";
 import {
   failureCode,
+} from "../../lib/execution-failure.js";
+import {
   postSubmitReadbackFault,
-  typedExecutionFailure,
-} from "../../lib/typed-failure.js";
+  typedGptExecutionFailure,
+} from "../../capabilities/gpt/execution-fault.js";
 import {
   PLUGIN_ID,
   fail,
@@ -44,7 +48,7 @@ const WAIT_TIMEOUT_MS = 3_600_000;
 const SEO_CHILD_HANDOFF_DELAY_MS = 2_000;
 
 export const preservePostSubmitReadback = (error: unknown, submit: ExactGptCallFacts): never => {
-  const typed = typedExecutionFailure(error);
+  const typed = typedGptExecutionFailure(error);
   const code = failureCode(error);
   if (!typed || typed.mutationOutcome !== "no" || code.startsWith("GPT_PROVIDER_TERMINAL_")) throw error;
   if (submit.mutation?.owner !== "browser"

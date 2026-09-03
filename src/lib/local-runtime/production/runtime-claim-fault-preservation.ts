@@ -1,8 +1,8 @@
+import { failureCode } from "../../execution-failure.js";
 import {
-  failureCode,
   postCheckpointReceiverReceipt,
   postSubmitReadbackReceipt,
-} from "../../typed-failure.js";
+} from "../../../capabilities/gpt/execution-fault.js";
 import { releaseLeaseWithLog } from "./runtime-logging.js";
 import { leaseAuthority, safeReason, type RuntimeState } from "./runtime-state.js";
 import type { ClaimedProductionTask } from "./transport-protocol.js";

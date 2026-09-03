@@ -7,7 +7,7 @@ import {
   runtimeLogCauseEventId,
   withRuntimeLogCause,
 } from "../../runtime-logs/index.js";
-import { failureCode } from "../../typed-failure.js";
+import { failureCode } from "../../execution-failure.js";
 import { claimProductionTasks } from "./cloud-client.js";
 import { readProductionDeviceJobStatus, sendProductionOutboxWrite } from "./cloud-reconciliation-client.js";
 import { productionCatalogHash } from "./catalog.js";
