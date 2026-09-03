@@ -69,6 +69,10 @@ const inspectCoherentRuntime = (runtimeText: string, findings: InspectorFinding[
     "canonicalizeBrowserAuthorityValue", "observationRevisionHash", "mainFrameLoaderId",
     'schemaVersion: "grasseye.browser.dom-observation.v2"', "location.href",
     "currentUrl: observed.currentUrl", "return observedUrl.origin + observedUrl.pathname",
+    'observedUrl.protocol !== "https:"', 'observedUrl.origin !== "${GPT_ORIGIN}"',
+    'observedUrl.username !== ""', 'observedUrl.password !== ""',
+    'segments.length === 3', 'segments[1] === "c"', "GPT_CONVERSATION_SEGMENT_MAX_CHARS",
+    'url.search !== ""', 'url.hash !== ""',
     "sanitizeCurrentUrl", "awaitPromise: true",
     "resolveCoherentMutationCandidate", "requireKeyboardActionTarget", "eligibilityReasons",
     "scopeRejections", "rejections", "observedCandidateCount", "candidateIndex",
@@ -92,7 +96,8 @@ const inspectMechanicalContract = (
 ): void => {
   requireTokens(contractText, ["rawCount", "eligibleCount", "effectiveOpacity", "scopeRejections", "rejections",
     "nativeCauseCode", "nativeStage", "candidateIndex", "observationIdentityHash",
-    "BrowserDomObservationPacketV2", "currentUrl", "BrowserExactAssistantTurnReplyV1",
+    "BrowserDomObservationPacketV2", "exactCallIdentityHash", "targetRefHash", "documentRefHash",
+    "currentUrl", "observationRevisionHash", "BrowserExactAssistantTurnReplyV1",
     'kind: "readExactAssistantTurn"',
     'BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">'], findings, lawId,
   INTENT_CONTRACT_PATH, "The bounded Browser DOM contract is missing");

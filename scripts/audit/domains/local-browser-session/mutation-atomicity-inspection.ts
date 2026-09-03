@@ -101,7 +101,7 @@ export const inspectRegistryAndMutationBoundary = (
     "DISPATCHED",
     "REJECTED",
     "BrowserArtifactRegistry",
-    "registerFileArtifact",
+    "registerArtifact",
     "issueFileArtifactGrant",
     "resolveGrantPaths",
     "resolvedFilePaths",
@@ -258,15 +258,10 @@ const resolveOneMutationGuardIsExact = (managerClass: ClassDeclaration): boolean
 };
 
 const newMutationGuardIsExact = (managerClass: ClassDeclaration): boolean => {
-  const createMethod = managerClass?.getMethod("createLeaseCommand");
-  const createBody = createMethod?.getBody();
-  const returnStatement = Node.isBlock(createBody)
-    ? createBody.getStatements().find(Node.isReturnStatement) : undefined;
-  const worker = returnStatement?.getExpression();
-  if (!Node.isArrowFunction(worker)) return false;
-  const workerBody = worker.getBody();
-  if (!Node.isBlock(workerBody)) return false;
-  const mutationGuard = workerBody.getStatements().find((statement): statement is import("ts-morph").IfStatement =>
+  const admissionMethod = managerClass.getMethod("assertCommandAdmission");
+  const admissionBody = admissionMethod?.getBody();
+  if (!Node.isBlock(admissionBody)) return false;
+  const mutationGuard = admissionBody.getStatements().find((statement): statement is import("ts-morph").IfStatement =>
     Node.isIfStatement(statement)
     && statement.getExpression().getText().includes("state.pendingMutationCommandIds.length"));
   if (!Node.isIfStatement(mutationGuard)) return false;

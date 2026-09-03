@@ -34,12 +34,14 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   run("inspectRegistryAndMutationBoundary", [mutationLawId], inspectRegistryAndMutationBoundary, () => inspectRegistryAndMutationBoundary(context, findings, mutationLawId));
   run("inspectAtomicIfAndThenBoundary", [mutationLawId], inspectAtomicIfAndThenBoundary, () => inspectAtomicIfAndThenBoundary(context, findings, mutationLawId));
   run("inspectDomMechanicalFacts", [mutationLawId], inspectDomMechanicalFacts, () => inspectDomMechanicalFacts(context, findings, mutationLawId));
+  run("inspectDomMechanicalFacts", [opaqueLawId], inspectDomMechanicalFacts, () => inspectDomMechanicalFacts(context, findings, opaqueLawId));
   run("inspectBrowserMutationSettlement", [mutationLawId], inspectBrowserMutationSettlement, () => inspectBrowserMutationSettlement(context, findings, mutationLawId));
   run("inspectCompactMutationRecoveryBoundary", [mutationLawId], inspectCompactMutationRecoveryBoundary, () => inspectCompactMutationRecoveryBoundary(context, findings, mutationLawId));
   run("inspectJobScopedMutationRecovery", [mutationLawId], inspectJobScopedMutationRecovery, () => inspectJobScopedMutationRecovery(context, findings, mutationLawId));
   run("inspectAuthenticatedChannelGuards", [channelLawId], inspectAuthenticatedChannelGuards, () => inspectAuthenticatedChannelGuards(context, findings, channelLawId));
   run("inspectAutomaticPairingAndReload", [channelLawId, claimLawId, releaseLawId], inspectAutomaticPairingAndReload, () => inspectAutomaticPairingAndReload(context, findings, channelLawId, claimLawId, releaseLawId));
   run("inspectTargetClaimGuards", [claimLawId], inspectTargetClaimGuards, () => inspectTargetClaimGuards(context, findings, claimLawId));
+  run("inspectTargetClaimGuards", [opaqueLawId], inspectTargetClaimGuards, () => inspectTargetClaimGuards(context, findings, opaqueLawId));
   run("inspectReleaseAndRetiredPaths", [releaseLawId], inspectReleaseAndRetiredPaths, () => inspectReleaseAndRetiredPaths(findings, releaseLawId));
   run("inspectOpaqueAuthorityBoundary", [opaqueLawId], inspectOpaqueAuthorityBoundary, () => inspectOpaqueAuthorityBoundary(context, findings, opaqueLawId));
   run("inspectSessionCoreContract", [lawId], inspectSessionCoreContract, () => inspectSessionCoreContract(context, findings, lawId));
@@ -65,7 +67,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     "LAW-LOCAL-BROWSER-SESSION-003-V19": ["inspectAutomaticPairingAndReload", "inspectTargetClaimGuards"],
     "LAW-LOCAL-BROWSER-SESSION-004-V18": ["inspectAtomicIfAndThenBoundary", "inspectDomMechanicalFacts", "inspectBrowserMutationSettlement", "inspectCompactMutationRecoveryBoundary", "inspectJobScopedMutationRecovery", "inspectRegistryAndMutationBoundary"],
     "LAW-LOCAL-BROWSER-SESSION-005-V6": ["inspectAutomaticPairingAndReload", "inspectReleaseAndRetiredPaths"],
-    "LAW-LOCAL-BROWSER-SESSION-006-V13": ["inspectOpaqueAuthorityBoundary"],
+    "LAW-LOCAL-BROWSER-SESSION-006-V13": ["inspectDomMechanicalFacts", "inspectOpaqueAuthorityBoundary", "inspectTargetClaimGuards"],
   } as Readonly<Record<string, string[]>>)[lawId] ?? [];
   const contractChecks = (lawId: string): string[] => ({
     "LAW-LOCAL-BROWSER-SESSION-001-V4": ["inspectSessionCoreContract"],
@@ -102,7 +104,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
       lawResult("LAW-LOCAL-BROWSER-SESSION-003-V19", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)),
       lawResult("LAW-LOCAL-BROWSER-SESSION-004-V18", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16), false),
       lawResult("LAW-LOCAL-BROWSER-SESSION-005-V6", staticClauses(0, 1, 2, 3, 4, 5, 6)),
-      lawResult("LAW-LOCAL-BROWSER-SESSION-006-V13", staticClauses(0)),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-006-V13", staticClauses(0, 1, 2, 3)),
     ], inspectedFiles: evaluation.inspectedFiles,
   });
 };
