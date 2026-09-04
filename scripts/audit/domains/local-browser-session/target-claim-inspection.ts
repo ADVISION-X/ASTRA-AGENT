@@ -66,7 +66,7 @@ const inspectDispatchedMutationReleaseGuard = (
 
 const inspectExactChatGptPolicy = (source: ReturnType<typeof requireSource>, findings: InspectorFinding[], lawId: string): void => {
   const text = source?.getFullText() ?? "";
-  const claimOrigin = source?.getFunction("requireGptWebClaimOrigin")?.getText() ?? "";
+  const claimOrigin = source?.getVariableDeclaration("requireGptWebClaimOrigin")?.getText() ?? "";
   if (text.includes('export const GPT_WEB_ORIGIN = "https://chatgpt.com" as const')
     && text.includes('export const GPT_WEB_START_URL = "https://chatgpt.com/" as const')
     && /siteId: "gpt-web",\s*allowedOrigins: \[GPT_WEB_ORIGIN\]/u.test(text)

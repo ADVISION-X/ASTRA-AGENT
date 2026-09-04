@@ -270,6 +270,8 @@ export const inspectCompactMutationRecoveryBoundary = (
 const inspectLaneRecoveryContract = (
   lane: SourceFile,
   lanePath: string,
+  targetAcquirer: SourceFile,
+  targetAcquirerPath: string,
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
@@ -280,9 +282,6 @@ const inspectLaneRecoveryContract = (
   const laneText = lane.getFullText();
   for (const required of [
     "confirmedReadbackMatches",
-    'recovery?.state === "CONFIRMED"',
-    'recovery.effectScope === "provider_effect"',
-    'error.message === "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT"',
     "confirmedProviderTargetReplaced",
     "recoveryMutationOutcome",
     'this.quarantine ? "blocked" : "idle"',
@@ -297,6 +296,16 @@ const inspectLaneRecoveryContract = (
       message: `Confirmed Provider readback recovery must retain ${required}.`,
     }));
   }
+  const targetAcquirerText = targetAcquirer.getFullText();
+  for (const required of [
+    'recovery?.state === "CONFIRMED"', 'recovery.effectScope === "provider_effect"',
+    'error.message === "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT"',
+  ]) if (!targetAcquirerText.includes(required)) findings.push(createLocalFinding({
+    checkId: "browser-authority/confirmed-provider-target-replacement",
+    lawId,
+    filePath: targetAcquirerPath,
+    message: `The target acquirer must retain ${required}.`,
+  }));
   for (const retired of ["private unsettled", "acquireReconciliation", "reconciliationAllowed"]) {
     if (!laneText.includes(retired)) continue;
     findings.push(createLocalFinding({
@@ -334,9 +343,11 @@ export const inspectJobScopedMutationRecovery = (
   lawId: string,
 ): void => {
   const lanePath = "src/lib/browser/infrastructure/browser-lane-coordinator.ts";
+  const targetAcquirerPath = "src/lib/browser/infrastructure/browser-target-acquirer.ts";
   const lane = requireSource(context, findings, lawId, lanePath);
+  const targetAcquirer = requireSource(context, findings, lawId, targetAcquirerPath);
   const actor = requireSource(context, findings, lawId, sourcePaths[6]);
-  if (!lane || !actor) return;
-  inspectLaneRecoveryContract(lane, lanePath, findings, lawId);
+  if (!lane || !targetAcquirer || !actor) return;
+  inspectLaneRecoveryContract(lane, lanePath, targetAcquirer, targetAcquirerPath, findings, lawId);
   inspectActorEffectScope(actor, findings, lawId);
 };

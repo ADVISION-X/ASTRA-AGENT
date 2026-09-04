@@ -1305,15 +1305,19 @@ test("active mutation inspectors use one DISPATCHED chain inside each law scope"
   }
   const browserStaticInspectors = [
     "browser-mutation-settlement-inspection.ts", "dom-mechanical-facts-inspection.ts",
-    "mutation-atomicity-inspection.ts", "opaque-proof-inspection.ts", "target-claim-inspection.ts",
+    "mutation-atomicity-inspection.ts", "mutation-registry-inspection.ts",
+    "opaque-proof-inspection.ts", "target-claim-inspection.ts",
   ].map((name) => readFileSync(`scripts/audit/domains/local-browser-session/${name}`, "utf8"));
   for (const source of browserStaticInspectors) {
     assert.equal(source.includes("scripts/acceptance"), false);
     assert.equal(source.includes("real-proof"), false);
+    assert.equal(source.includes("src/lib/local-runtime"), false);
   }
-  assert.equal(browserStaticInspectors.at(-1)!.includes(
-    'src/lib/browser/infrastructure/browser-target-acquirer.ts',
-  ), true);
+  const browserStaticSource = browserStaticInspectors.join("\n");
+  for (const currentOwner of [
+    "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts",
+    "src/lib/browser/infrastructure/browser-target-acquirer.ts",
+  ]) assert.equal(browserStaticSource.includes(currentOwner), true, currentOwner);
 });
 
 test("local Browser static source lookup fails closed outside the law target set", () => {

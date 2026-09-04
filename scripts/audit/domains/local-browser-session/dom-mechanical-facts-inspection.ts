@@ -9,6 +9,7 @@ const INTENT_RUNTIME_PATH = "src/lib/browser/chrome-extension/dom-intent-runtime
 const INTENT_CONTRACT_PATH = "src/lib/browser/exact-target/browser-dom-intent.ts";
 const MUTATION_RECEIPT_PATH = "src/lib/browser/exact-target/browser-mutation-receipt.ts";
 const COHERENT_CANDIDATE_PATH = "src/lib/browser/chrome-extension/dom-coherent-candidate.ts";
+const EXACT_ASSISTANT_TURN_PATH = "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts";
 
 const finding = (
   findings: InspectorFinding[],
@@ -61,7 +62,8 @@ const inspectMechanicalConsumers = (
 ): void => {
   requireTokens(factsText, ["semanticEligible", "keyboardActionEligible"],
     findings, lawId, domMechanicalFactsPath, "The Browser mechanical eligibility layers are missing");
-  requireTokens(queryText, ["semanticEligible(facts)", "requireKeyboardActionTarget",
+  requireTokens(queryText, ["semanticEligible(await readMechanicalFacts", "eligibilityReasons(facts, readEligibility)",
+    "requireKeyboardActionTarget",
     'readEligibility !== "non-actionable-aria-state"', "rejections"],
     findings, lawId, QUERY_RUNTIME_PATH, "The canonical DOM query/action path is not consuming");
 };
@@ -116,6 +118,7 @@ const inspectAtomicObservationPointer = (
 const inspectCoherentRuntime = (runtimeText: string, findings: InspectorFinding[], lawId: string): void => {
   requireTokens(runtimeText, ["COHERENT_OBSERVATION_FUNCTION", "arguments: [{ value: specs }]",
     "canonicalizeBrowserAuthorityValue", "observationRevisionHash", "mainFrameLoaderId",
+    "executeExactAssistantTurnRead",
     'schemaVersion: "grasseye.browser.dom-observation.v2"', "location.href",
     "currentUrl: observed.currentUrl", "return observedUrl.origin + observedUrl.pathname",
     'observedUrl.protocol !== "https:"', 'observedUrl.origin !== "${GPT_ORIGIN}"',
@@ -138,7 +141,7 @@ const inspectCoherentRuntime = (runtimeText: string, findings: InspectorFinding[
 
 const inspectMechanicalContract = (
   contractText: string,
-  observationText: string,
+  exactAssistantTurnText: string,
   queryText: string,
   findings: InspectorFinding[],
   lawId: string,
@@ -151,10 +154,10 @@ const inspectMechanicalContract = (
     "readEligibility?: BrowserDomReadEligibility",
     'BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">'], findings, lawId,
   INTENT_CONTRACT_PATH, "The bounded Browser DOM contract is missing");
-  requireTokens(observationText, ["executeExactAssistantTurnRead", "rawDomHtml", "rawDomHash",
+  requireTokens(exactAssistantTurnText, ["executeExactAssistantTurnRead", "rawDomHtml", "rawDomHash",
     "semanticText", "semanticTextHash", "assistantTurnId"], findings, lawId,
-  INTENT_RUNTIME_PATH, "The exact assistant-turn reply-only channel is missing");
-  if (observationText.includes(".slice(0, 1024)") || queryText.includes("value.slice(0, maxChars)")
+  EXACT_ASSISTANT_TURN_PATH, "The exact assistant-turn reply-only channel is missing");
+  if (exactAssistantTurnText.includes(".slice(0, 1024)") || queryText.includes("value.slice(0, maxChars)")
     || contractText.includes("intent.maxChars > 65536")) finding(findings, lawId, domCoherentObservationPath,
     "Browser DOM payloads must fail closed or return complete values; silent prefix truncation is forbidden.");
   if (["\"bounds\"", "\"viewport\"", "\"hitTest\""].some((token) => contractText.includes(token))) finding(
@@ -190,9 +193,10 @@ export const inspectDomMechanicalFacts = (
   const observation = requireSource(context, findings, lawId, domCoherentObservationPath);
   const contract = requireSource(context, findings, lawId, INTENT_CONTRACT_PATH);
   const candidate = requireSource(context, findings, lawId, COHERENT_CANDIDATE_PATH);
+  const exactAssistantTurn = requireSource(context, findings, lawId, EXACT_ASSISTANT_TURN_PATH);
   const mutationReceipt = requireSource(context, findings, lawId, MUTATION_RECEIPT_PATH);
   if (!facts || !query || !runtime || !postcondition || !observation || !contract || !candidate
-    || !mutationReceipt) return;
+    || !exactAssistantTurn || !mutationReceipt) return;
 
   const readerInitializer = facts.getVariableDeclaration("BROWSER_MECHANICAL_FACTS_READER_SOURCE")?.getInitializer();
   const reader = readerInitializer && Node.isNoSubstitutionTemplateLiteral(readerInitializer)
@@ -211,7 +215,7 @@ export const inspectDomMechanicalFacts = (
   const contractText = contract.getFullText();
   inspectMechanicalContract(
     contractText,
-    `${observation.getFullText()}\n${runtime.getFullText()}`,
+    exactAssistantTurn.getFullText(),
     queryText,
     findings,
     lawId,

@@ -6,7 +6,7 @@ import { createLocalFinding, extensionFileInputPath, identifiers, requireSource,
   sourcePaths, stringLiterals, targetAuthorityPath } from "./inspector-support.js";
 
 type RegistryMutationSources = Readonly<Record<
-  "actor" | "broker" | "commandActor" | "domRuntime" | "fileInput" | "manager" | "mutationStore" | "registry" | "runtimeExecutor" | "targetAuthority",
+  "actor" | "broker" | "commandActor" | "domRuntime" | "fileInput" | "manager" | "mutationStore" | "registry" | "targetAuthority",
   SourceFile
 >>;
 
@@ -16,17 +16,16 @@ const requireRegistryMutationSources = (
   lawId: string,
 ): RegistryMutationSources | null => {
   const paths = [sourcePaths[1], targetAuthorityPath, extensionFileInputPath, sourcePaths[8],
-    sourcePaths[6], sourcePaths[7], sourcePaths[5], sourcePaths[18], sourcePaths[19],
-    "src/lib/local-runtime/production/executor.ts"];
+    sourcePaths[6], sourcePaths[7], sourcePaths[5], sourcePaths[18], sourcePaths[19]];
   const sources = paths.map((path) => requireSource(context, findings, lawId, path));
   if (sources.some((source) => source === null)) return null;
   const [actor, targetAuthority, fileInput, registry, commandActor, mutationStore, manager, broker,
-    domRuntime, runtimeExecutor] = sources.map((source) => source!) as [
+    domRuntime] = sources.map((source) => source!) as [
       SourceFile, SourceFile, SourceFile, SourceFile, SourceFile,
-      SourceFile, SourceFile, SourceFile, SourceFile, SourceFile,
+      SourceFile, SourceFile, SourceFile, SourceFile,
     ];
   return { actor, targetAuthority, fileInput, registry, commandActor, mutationStore, manager,
-    broker, domRuntime, runtimeExecutor };
+    broker, domRuntime };
 };
 
 const inspectExtensionExecutionBoundary = (
@@ -77,7 +76,6 @@ const registryMutationIdentifiers = (sources: RegistryMutationSources): Set<stri
   ...identifiers(sources.mutationStore),
   ...identifiers(sources.manager),
   ...identifiers(sources.broker),
-  ...identifiers(sources.runtimeExecutor),
 ]);
 
 const inspectRegistryRequirements = (
@@ -112,15 +110,6 @@ const inspectArtifactBindingBoundary = (
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  const runtimeBindingConsumer = sources.runtimeExecutor.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .some((call) => call.getExpression().getText() === "this.browserAuthority.bindExecutionArtifacts"
-      && call.getText().includes("localPath: material.local_path"));
-  if (!runtimeBindingConsumer) findings.push(createLocalFinding({
-    checkId: "browser-authority/execution-artifact-binding",
-    lawId,
-    filePath: "src/lib/local-runtime/production/executor.ts",
-    message: "Runtime production execution must bind each task-local material through the Browser public execution-scoped facade.",
-  }));
   const brokerIdentifiers = identifiers(sources.broker);
   for (const forbidden of ["BrowserArtifactRegistry", "copyFile", "rename"]) {
     if (!brokerIdentifiers.has(forbidden)) continue;
