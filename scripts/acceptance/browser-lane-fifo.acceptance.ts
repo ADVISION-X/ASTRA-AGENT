@@ -206,6 +206,10 @@ try {
   await recovered.park({ reason: "recovery-scope-proven", mode: "recovery" });
   assert.equal(supervisor.readBrowserLaneState(), "blocked",
     "recovery park must retain Browser-lane quarantine while releasing the upper execution");
+  assert.deepEqual(supervisor.readCurrentTargetLocalReconciliationCandidate(), { jobId: "job:historic" },
+    "Browser must derive the oldest target-local quarantine identity from its own WAL");
+  assert.equal(await supervisor.reconcilePermanentlyRevokedTargetLocal({ jobId: "job:historic" }), "retained",
+    "a still-claimed original Target/Document must remain DISPATCHED");
 
   let unrelatedResolved = false;
   const unrelatedWhileQuarantined = supervisor.acquireJobBoundTargetLease(
@@ -221,27 +225,11 @@ try {
   assert.deepEqual(acquisitions, ["job:historic"],
     "an unrelated Browser job must perform zero acquisition/navigation while DISPATCHED is unresolved");
 
-  leaseIdentities.set("job:historic", {
-    targetRef: "target:historic", documentRef: "document:historic:changed",
-  });
-  await assert.rejects(
-    supervisor.acquireJobBoundTargetLease(
-      binding("job:historic", "historic-step", "gpt-turn-flow.v3"), "owner:historic:wrong-document",
-      { signal: openSignal.signal, remainingMs: () => 60_000 },
-    ),
-    (error) => {
-      const failure = typedBrowserExecutionFailure(error);
-      assert.equal(failure?.code, "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT");
-      assert.equal(failure?.mutationOutcome, "dispatched");
-      assert.deepEqual(failure?.browserEffect, {
-        effectScope: "target_local",
-        childCapabilityId: "open_gpt_model_selector_v2",
-        browserOutcome: "REJECTED",
-      });
-      return true;
-    },
-    "Browser must terminalize target-local DISPATCHED when its original Document is authoritatively absent",
-  );
+  brokerTargetStatus = "absent";
+  assert.equal(await supervisor.reconcilePermanentlyRevokedTargetLocal({ jobId: "job:historic" }), "settled",
+    "an exact physical-absence result must terminalize the target-local DISPATCHED row without replay");
+  assert.equal(targetAcquisitionRequests[0], "target:historic",
+    "background reconciliation must probe only the exact WAL-owned Target identity");
   assert.equal(supervisor.readBrowserReconciliationScope({
     jobId: "job:historic", ownerPluginId: "plugin",
   }), null);
@@ -312,6 +300,51 @@ try {
       && event.typedIdentity?.commandId === "claim-proven-lost-command");
   assert.equal(rejectedMutationEvents.length, 1,
     "target-local lost-document settlement must project exactly one BROWSER_MUTATION_REJECTED Runtime Log event");
+
+  liveMutationStore.prepare({
+    commandId: "log-failure-after-terminal-command",
+    exactCallIdentityHash: `sha256:${"7".repeat(64)}`,
+    ownerPluginId: "plugin",
+    pluginVersion: 1,
+    jobId: "job:log-failure-after-terminal",
+    attemptId: "attempt:job:log-failure-after-terminal",
+    leaseVersion: 1,
+    executionFenceHash: HASH,
+    productStepId: "log-failure-step",
+    childCapabilityId: "open_gpt_model_selector_v2",
+    callId: "log-failure-call",
+    effectScope: "target_local",
+    actionOrdinal: 1,
+    targetRef: "target:log-failure",
+    documentRef: "document:log-failure",
+    actionId: "browser.dom.click.v1",
+    positivePostconditionHash: HASH,
+    negativePostconditionHash: `sha256:${"6".repeat(64)}`,
+    requestHash: HASH,
+    payloadHash: HASH,
+  });
+  liveMutationStore.markDispatched("log-failure-after-terminal-command");
+  laneControl.reset();
+  brokerTargetStatus = "absent";
+  assert.equal(Reflect.set(lane, "runtimeLogger", {
+    emitEvent: () => ({
+      ok: false, code: "RUNTIME_LOG_SINK_WRITE_FAILED", emergencyProjected: false,
+    }),
+  }), true);
+  await assert.rejects(
+    supervisor.reconcilePermanentlyRevokedTargetLocal({ jobId: "job:log-failure-after-terminal" }),
+    /RUNTIME_LOG_SINK_WRITE_FAILED/u,
+  );
+  assert.equal(supervisor.readBrowserLaneState(), "idle",
+    "a post-WAL Runtime Log failure must not preserve a stale in-memory quarantine");
+  assert.equal(supervisor.readBrowserReconciliationScope({
+    jobId: "job:log-failure-after-terminal", ownerPluginId: "plugin",
+  }), null);
+  assert.equal(await supervisor.reconcilePermanentlyRevokedTargetLocal({
+    jobId: "job:log-failure-after-terminal",
+  }), "settled", "the terminal WAL row must never be transitioned a second time");
+  assert.equal(Reflect.set(lane, "runtimeLogger", logger), true);
+  brokerTargetStatus = "claimed";
 
   leaseIdentities.set("job:confirmed", {
     targetRef: "target:confirmed", documentRef: "document:confirmed:2",

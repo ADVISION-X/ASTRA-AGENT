@@ -125,6 +125,37 @@ export const flushOutboxWithLog = async (state: RuntimeState): Promise<void> => 
   }
 };
 
+export const reconcilePermanentlyRevokedBrowserQuarantine = async (
+  state: RuntimeState,
+): Promise<void> => {
+  const candidate = state.browserAuthority.readCurrentTargetLocalReconciliationCandidate();
+  if (!candidate) return;
+  const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
+    traceId: candidate.jobId, owner: "production-runtime", component: "production-runtime",
+    operation: "website.v6-request",
+    typedIdentity: { kind: "job", jobId: candidate.jobId },
+  }));
+  try {
+    const remote = await readProductionDeviceJobStatus(state.session, candidate.jobId);
+    state.store.hydrateRemoteOutboxReceipts(candidate.jobId, remote.write_receipts);
+    const revoked = settleInactivePermanentAuthorizationRevocation(state, candidate.jobId, remote);
+    if (revoked && !state.activeAbort.has(candidate.jobId)) {
+      try {
+        await state.browserAuthority.reconcilePermanentlyRevokedTargetLocal(candidate);
+      } finally {
+        settleInactivePermanentAuthorizationRevocation(state, candidate.jobId, remote);
+      }
+    }
+    requireRuntimeLogWrite(span.terminal({
+      outcome: "succeeded", authorityRef: `website-device-job:${candidate.jobId}`,
+      authorityHash: hashCanonical(remote),
+    }));
+  } catch (error) {
+    terminalSpanFailure(span, error, runtimeLogCauseEventId(error),
+      "BROWSER_REVOCATION_RECONCILIATION_FAILED", undefined, "browser-session");
+  }
+};
+
 const requestClaimBatch = async (state: RuntimeState, available: number) => {
   const boundaryId = `aipclaim_${randomUUID()}`;
   const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
@@ -216,15 +247,20 @@ const workerIteration = async (state: RuntimeState): Promise<number> => {
   await flushOutboxWithLog(state);
   await reconcilePendingBusinessAdmissions(state);
   refreshLedgerReconciled(state);
-  const attestation = await state.session.ensureFreshAttestation();
-  state.lastHeartbeat = attestation.issued_at;
-  const available = Math.min(10 - state.active.size, state.executor.availableCapacity());
-  const eligible = available > 0 && attestation.claim_eligible && state.ledgerReconciled
-    && !state.draining && state.runtimeLogger.isWritable();
-  if (!eligible) return 1_000;
-  const batch = await requestClaimBatch(state, available);
-  launchClaimJobs(state, batch.jobs);
-  return batch.outcome === "LEASE_GRANTED" ? 1_000 : batch.next_claim_after_ms;
+  const browserReconciliation = reconcilePermanentlyRevokedBrowserQuarantine(state);
+  try {
+    const attestation = await state.session.ensureFreshAttestation();
+    state.lastHeartbeat = attestation.issued_at;
+    const available = Math.min(10 - state.active.size, state.executor.availableCapacity());
+    const eligible = available > 0 && attestation.claim_eligible && state.ledgerReconciled
+      && !state.draining && state.runtimeLogger.isWritable();
+    if (!eligible) return 1_000;
+    const batch = await requestClaimBatch(state, available);
+    launchClaimJobs(state, batch.jobs);
+    return batch.outcome === "LEASE_GRANTED" ? 1_000 : batch.next_claim_after_ms;
+  } finally {
+    await browserReconciliation;
+  }
 };
 
 export const workerLoop = async (state: RuntimeState): Promise<void> => {

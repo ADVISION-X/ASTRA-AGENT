@@ -172,7 +172,6 @@ export class BrowserLaneCoordinator {
     ) ?? false;
   }
 
-
   public hasMutationForJob(jobId: string): boolean {
     return this.infrastructure.mutationState?.hasMutationForJob(jobId) ?? false;
   }
@@ -185,6 +184,27 @@ export class BrowserLaneCoordinator {
     input: Readonly<{ jobId: string; ownerPluginId: string }>,
   ): BrowserMutationReconciliationScope | null {
     return this.infrastructure.mutationState?.reconciliationScope(input) ?? null;
+  }
+  public readCurrentTargetLocalReconciliationCandidate(): Readonly<{ jobId: string }> | null {
+    const recovery = this.quarantine;
+    return recovery?.state === "DISPATCHED" && recovery.effectScope === "target_local"
+      ? Object.freeze({ jobId: recovery.jobId }) : null;
+  }
+
+  public async reconcilePermanentlyRevokedTargetLocal(input: Readonly<{ jobId: string }>): Promise<"retained" | "settled"> {
+    const recovery = this.quarantine;
+    if (!recovery || recovery.state !== "DISPATCHED" || recovery.effectScope !== "target_local"
+      || recovery.jobId !== input.jobId) return "settled";
+    if (this.active || this.resolveBroker().currentOperatorTargetStatus() !== "absent") return "retained";
+    this.active = true;
+    try {
+      await this.targetAcquirer.probeExactExistingTarget(recovery.targetRef);
+      return this.quarantine?.commandId === recovery.commandId ? "retained" : "settled";
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT") throw error;
+      this.settleLostTargetLocalDocument(recovery);
+      return "settled";
+    } finally { this.active = false; void this.pump(); }
   }
 
   public observeCurrentTargetClaim(input: Readonly<{ targetRef: string; documentRef: string }>): void {
@@ -460,13 +480,14 @@ export class BrowserLaneCoordinator {
       documentRef: recovery.documentRef,
       proofHash,
     });
-    emitBrowserMutationEvent({
-      runtimeLogger: this.runtimeLogger,
-      mutation,
-      outcome: "REJECTED",
-      authorityHash: mutationState.authorityHash(recovery.commandId),
-    });
-    this.refreshQuarantine();
+    try {
+      emitBrowserMutationEvent({
+        runtimeLogger: this.runtimeLogger,
+        mutation,
+        outcome: "REJECTED",
+        authorityHash: mutationState.authorityHash(recovery.commandId),
+      });
+    } finally { this.refreshQuarantine(); }
   }
 
   public resolvePending(targetRef: string): void {

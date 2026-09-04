@@ -212,6 +212,14 @@ export class BrowserInfrastructureSupervisor {
 
   public readBrowserLaneState(): "idle" | "busy" | "blocked" { return this.lane.readState(); }
   public readBrowserLaneWaiterCount(): number { return this.lane.waiterCount(); }
+  public readCurrentTargetLocalReconciliationCandidate(): Readonly<{ jobId: string }> | null {
+    return this.lane.readCurrentTargetLocalReconciliationCandidate();
+  }
+  public reconcilePermanentlyRevokedTargetLocal(
+    input: Readonly<{ jobId: string }>,
+  ): Promise<"retained" | "settled"> {
+    return this.lane.reconcilePermanentlyRevokedTargetLocal(input);
+  }
   public hasUnresolvedBrowserMutation(): boolean { return this.lane.hasUnresolvedMutation(); }
   public hasBrowserMutationForJob(jobId: string): boolean { return this.lane.hasMutationForJob(jobId); }
   public countProviderTurnDispatches(jobId: string, attemptId: string): number {

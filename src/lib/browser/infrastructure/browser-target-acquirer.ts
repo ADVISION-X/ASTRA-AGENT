@@ -41,6 +41,10 @@ export class BrowserTargetAcquirer {
 
   public reset(): void { this.confirmedReadbackReplacementTargets.clear(); }
 
+  public probeExactExistingTarget(targetRef: string): Promise<void> {
+    return this.acquireJobBoundTarget(BROWSER_COMMAND_DEFAULT_DEADLINE_MS, targetRef);
+  }
+
   public async ensureAvailableTarget(
     waiter: TargetWaiter,
     recovery: TargetRecovery | null,

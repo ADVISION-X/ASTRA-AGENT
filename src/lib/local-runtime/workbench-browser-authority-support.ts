@@ -43,6 +43,10 @@ export type WorkbenchBrowserAuthority = Readonly<{
   }>;
   readBrowserLaneState(): "idle" | "busy" | "blocked";
   readBrowserLaneWaiterCount(): number;
+  readCurrentTargetLocalReconciliationCandidate(): Readonly<{ jobId: string }> | null;
+  reconcilePermanentlyRevokedTargetLocal(
+    input: Readonly<{ jobId: string }>,
+  ): Promise<"retained" | "settled">;
   bindExecutionArtifacts(input: Readonly<{
     binding: BrowserExecutionArtifactBinding;
     artifacts: readonly BrowserExecutionArtifact[];
@@ -143,6 +147,10 @@ export const createWorkbenchBrowserAuthority = async (
     }),
     readBrowserLaneState: () => supervisor.readBrowserLaneState(),
     readBrowserLaneWaiterCount: () => supervisor.readBrowserLaneWaiterCount(),
+    readCurrentTargetLocalReconciliationCandidate: () =>
+      supervisor.readCurrentTargetLocalReconciliationCandidate(),
+    reconcilePermanentlyRevokedTargetLocal: (input) =>
+      supervisor.reconcilePermanentlyRevokedTargetLocal(input),
     bindExecutionArtifacts: (input) => supervisor.bindExecutionArtifacts(input),
     hasUnresolvedBrowserMutation: () =>
       supervisor.hasUnresolvedBrowserMutation(),
