@@ -183,13 +183,13 @@ export const hashCanonical = (value: unknown): ProductionHash => {
   return sha256(JSON.stringify(canonical(value)));
 };
 
-export type ProductCheckpointReceipt = Readonly<{
+type ProductCheckpointReceipt = Readonly<{
   artifactRef: string;
   rawDomHash: ProductionHash;
   semanticTextHash: ProductionHash;
 }>;
 
-export type PostSubmitReadbackReceipt = Readonly<{
+type PostSubmitReadbackReceipt = Readonly<{
   causeCode: string;
   exactCallIdentityHash: ProductionHash;
   outcome: "CONFIRMED";
@@ -313,7 +313,7 @@ const pluginObjectAt = (raw: string, start: number): ParsedPluginObject | null =
   return null;
 };
 
-export function parsePluginJsonObject(raw: string, code: string): Readonly<Record<string, unknown>> {
+function parsePluginJsonObject(raw: string, code: string): Readonly<Record<string, unknown>> {
   const completeObjects: ParsedPluginObject[] = [];
   for (let start = 0; start < raw.length; start += 1) {
     if (raw[start] !== "{") continue;

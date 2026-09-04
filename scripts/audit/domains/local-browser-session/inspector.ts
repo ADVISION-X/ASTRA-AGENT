@@ -4,7 +4,8 @@ import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRef
 import { inspectAuthenticatedChannelGuards } from "./authenticated-channel-inspection.js";
 import { inspectBrowserMutationSettlement } from "./browser-mutation-settlement-inspection.js";
 import { inspectDomMechanicalFacts } from "./dom-mechanical-facts-inspection.js";
-import { inspectAtomicIfAndThenBoundary, inspectCompactMutationRecoveryBoundary, inspectJobScopedMutationRecovery, inspectRegistryAndMutationBoundary } from "./mutation-atomicity-inspection.js";
+import { inspectAtomicIfAndThenBoundary, inspectCompactMutationRecoveryBoundary, inspectJobScopedMutationRecovery } from "./mutation-atomicity-inspection.js";
+import { inspectRegistryAndMutationBoundary } from "./mutation-registry-inspection.js";
 import { inspectOpaqueAuthorityBoundary } from "./opaque-proof-inspection.js";
 import { inspectAutomaticPairingAndReload, inspectReleaseAndRetiredPaths } from "./release-boundary-inspection.js";
 import { inspectSessionCore } from "./session-core-inspection.js";

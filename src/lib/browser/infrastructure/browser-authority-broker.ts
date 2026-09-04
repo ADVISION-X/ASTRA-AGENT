@@ -95,6 +95,11 @@ type BoundBrowserArtifact = Readonly<{
 
 type BrowserArtifactScope = ReadonlyMap<string, BoundBrowserArtifact>;
 
+type ArtifactBindingInput = Readonly<{
+  binding: BrowserExecutionArtifactBinding;
+  artifacts: readonly BrowserExecutionArtifact[];
+}>;
+
 const MAX_BOUND_BROWSER_EXECUTIONS = 10;
 const MAX_EXECUTION_ARTIFACTS = 64;
 
@@ -117,6 +122,16 @@ const executionArtifactBinding = (binding: BrowserExecutionBinding): BrowserExec
   leaseVersion: binding.leaseVersion,
   writerFenceHash: binding.writerFenceHash,
 });
+
+const assertArtifactBindingInput = (input: ArtifactBindingInput): void => {
+  if (!input.binding.ownerPluginId || !Number.isInteger(input.binding.pluginVersion)
+    || input.binding.pluginVersion < 1 || !input.binding.jobId || !input.binding.attemptId
+    || !input.binding.deviceId || !Number.isInteger(input.binding.leaseVersion)
+    || input.binding.leaseVersion < 1 || !/^sha256:[a-f0-9]{64}$/u.test(input.binding.writerFenceHash)
+    || input.artifacts.length > MAX_EXECUTION_ARTIFACTS) {
+    throw new Error("BROWSER_FILE_GRANT_INVALID");
+  }
+};
 
 const resolveBoundArtifact = async (artifact: BoundBrowserArtifact): Promise<BoundBrowserArtifact> => {
   const canonicalPath = await realpath(artifact.canonicalPath);
@@ -217,13 +232,7 @@ export class BrowserAuthorityBroker {
     binding: BrowserExecutionArtifactBinding;
     artifacts: readonly BrowserExecutionArtifact[];
   }>): Promise<BrowserExecutionArtifactLease> {
-    if (!input.binding.ownerPluginId || !Number.isInteger(input.binding.pluginVersion)
-      || input.binding.pluginVersion < 1 || !input.binding.jobId || !input.binding.attemptId
-      || !input.binding.deviceId || !Number.isInteger(input.binding.leaseVersion)
-      || input.binding.leaseVersion < 1 || !/^sha256:[a-f0-9]{64}$/u.test(input.binding.writerFenceHash)
-      || input.artifacts.length > MAX_EXECUTION_ARTIFACTS) {
-      throw new Error("BROWSER_FILE_GRANT_INVALID");
-    }
+    assertArtifactBindingInput(input);
     const key = artifactBindingKey(input.binding);
     if (this.executionArtifacts.has(key) || this.executionArtifacts.size >= MAX_BOUND_BROWSER_EXECUTIONS) {
       throw new Error("BROWSER_BACKPRESSURE");
@@ -281,6 +290,14 @@ export class BrowserAuthorityBroker {
     if (targetRef === undefined || this.operatorTargetClaim?.targetRef === targetRef) {
       this.operatorTargetClaim = null;
     }
+  }
+
+  private controlledTargetForCurrentClaim(
+    authorityEpoch: number,
+    binding: BrowserExecutionBinding,
+  ): BrowserControlledTarget | null {
+    const claim = this.operatorTargetClaim;
+    return claim && claim.authorityEpoch === authorityEpoch ? controlledTargetForClaim(claim, binding) : null;
   }
 
   public async acquireOperatorClaimedTargetLease(
@@ -362,11 +379,7 @@ export class BrowserAuthorityBroker {
         if (!artifact) throw new Error("BROWSER_FILE_GRANT_INVALID");
         return resolveBoundArtifact(artifact);
       }),
-      () => {
-        const currentClaim = this.operatorTargetClaim;
-        if (!currentClaim || currentClaim.authorityEpoch !== slot.authority.authorityEpoch) return null;
-        return controlledTargetForClaim(currentClaim, binding);
-      },
+      () => this.controlledTargetForCurrentClaim(slot.authority.authorityEpoch, binding),
       (artifacts) => Promise.all(artifacts.map((artifact) => issueFileArtifactGrant({
         artifactRef: artifact.artifactRef,
         expectedSha256: artifact.expectedSha256,

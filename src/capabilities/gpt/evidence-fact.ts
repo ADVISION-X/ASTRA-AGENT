@@ -54,6 +54,33 @@ const failureCause = (value: unknown): Error | undefined => {
   });
 };
 
+const browserOutcomeMatchesMutation = (
+  outcome: unknown,
+  mutation: unknown,
+  expected: EvidenceState["mutation"],
+): boolean => mutation === expected && (
+  (outcome === "DISPATCHED" && mutation === "dispatched")
+  || (outcome === "CONFIRMED" && (mutation === "no" || mutation === "confirmed"))
+  || (outcome === "REJECTED" && (mutation === "no" || mutation === "confirmed" || mutation === "dispatched"))
+);
+
+const browserFactIdentityValid = (input: Readonly<{
+  fact: Readonly<Record<string, unknown>>;
+  intent: GptChildCapabilityIntent;
+  exactCallIdentityHash: GptHash;
+  expectedScope: "provider_effect" | "target_local";
+}>): boolean => input.fact.exact_call_identity_hash === input.exactCallIdentityHash
+  && input.fact.child_capability_id === input.intent.childCapabilityId
+  && input.fact.effect_scope === input.expectedScope;
+
+const browserFactEvidenceValid = (fact: Readonly<Record<string, unknown>>): boolean => {
+  const terminalAt = fact.terminal_at;
+  const terminalValid = terminalAt === null || (typeof terminalAt === "string"
+    && !Number.isNaN(Date.parse(terminalAt)) && new Date(terminalAt).toISOString() === terminalAt);
+  return terminalValid && typeof fact.evidence_ref === "string" && fact.evidence_ref.length > 0
+    && hashValue(fact.evidence_hash);
+};
+
 const failureBrowserFact = (input: Readonly<{
   value: unknown;
   intent: GptChildCapabilityIntent;
@@ -69,20 +96,13 @@ const failureBrowserFact = (input: Readonly<{
   ])) return invalid();
   const outcome = fact.browser_outcome;
   const mutation = fact.mutation_outcome;
-  const legalPair = outcome === "DISPATCHED" ? mutation === "dispatched"
-    : outcome === "CONFIRMED" ? mutation === "no" || mutation === "confirmed"
-      : outcome === "REJECTED"
-        && (mutation === "no" || mutation === "confirmed" || mutation === "dispatched");
   const contract = GPT_CHILD_CAPABILITY_CONTRACTS[input.intent.childCapabilityId];
   const expectedScope = contract.replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local";
   const terminalAt = fact.terminal_at;
-  if (fact.exact_call_identity_hash !== input.exactCallIdentityHash
-    || fact.child_capability_id !== input.intent.childCapabilityId || fact.effect_scope !== expectedScope
-    || !legalPair || mutation !== input.mutation
-    || !(terminalAt === null || (typeof terminalAt === "string"
-      && !Number.isNaN(Date.parse(terminalAt)) && new Date(terminalAt).toISOString() === terminalAt))
-    || typeof fact.evidence_ref !== "string" || fact.evidence_ref.length === 0
-    || !hashValue(fact.evidence_hash)) return invalid();
+  if (!browserFactIdentityValid({ fact, intent: input.intent,
+    exactCallIdentityHash: input.exactCallIdentityHash, expectedScope })
+    || !browserOutcomeMatchesMutation(outcome, mutation, input.mutation)
+    || !browserFactEvidenceValid(fact)) return invalid();
   return Object.freeze({
     exactCallIdentityHash: input.exactCallIdentityHash,
     childCapabilityId: input.intent.childCapabilityId,
@@ -94,6 +114,25 @@ const failureBrowserFact = (input: Readonly<{
     evidenceHash: fact.evidence_hash as GptHash,
   });
 };
+
+const failureProofHeaderValid = (
+  proof: Readonly<Record<string, unknown>>,
+  factResultIds: readonly string[] | null,
+  authorityRefHashes: readonly string[] | null,
+): boolean => exactKeys(proof, [
+  "internal_decision_code", "fact_result_ids", "authority_ref_hashes", "observation_revision_hash",
+  "browser_fact", "native_failure_code",
+]) && proof.internal_decision_code === "FAIL_CLOSED" && factResultIds !== null
+  && authorityRefHashes !== null && authorityRefHashes.every(hashValue);
+
+const failureProofDetailsValid = (
+  cardinality: Readonly<Record<string, unknown>> | null,
+  observationRevisionHash: unknown,
+  nativeFailureCode: unknown,
+): boolean => cardinality !== null && exactKeys(cardinality, ["raw", "eligible"])
+  && validCount(cardinality.raw) && validCount(cardinality.eligible)
+  && (observationRevisionHash === null || hashValue(observationRevisionHash))
+  && (nativeFailureCode === null || machineCode(nativeFailureCode));
 
 const failureProofFacts = (input: Readonly<{
   payload: Readonly<Record<string, unknown>>;
@@ -108,19 +147,13 @@ const failureProofFacts = (input: Readonly<{
   const observationRevisionHash = proof?.observation_revision_hash;
   const nativeFailureCode = proof?.native_failure_code;
   if (!proof) return invalid();
-  if (!exactKeys(proof, [
-    "internal_decision_code", "fact_result_ids", "authority_ref_hashes", "observation_revision_hash",
-    "browser_fact", "native_failure_code",
-  ]) || proof.internal_decision_code !== "FAIL_CLOSED" || !factResultIds || !authorityRefHashes
-    || !authorityRefHashes.every(hashValue)) return invalid();
-  if (!cardinality || !exactKeys(cardinality, ["raw", "eligible"])
-    || !validCount(cardinality.raw) || !validCount(cardinality.eligible)
-    || !(observationRevisionHash === null || hashValue(observationRevisionHash))
-    || !(nativeFailureCode === null || machineCode(nativeFailureCode))) return invalid();
+  if (!failureProofHeaderValid(proof, factResultIds, authorityRefHashes)
+    || !failureProofDetailsValid(cardinality, observationRevisionHash, nativeFailureCode)) return invalid();
+  const exactCardinality = cardinality!;
   return Object.freeze({
     decision: "FAIL_CLOSED", factResultIds: factResultIds as readonly string[],
     candidateCardinality: Object.freeze({
-      raw: cardinality.raw as number | null, eligible: cardinality.eligible as number | null,
+      raw: exactCardinality.raw as number | null, eligible: exactCardinality.eligible as number | null,
     }),
     authorityRefHashes: authorityRefHashes as readonly GptHash[],
     observationRevisionHash: observationRevisionHash as GptHash | null,

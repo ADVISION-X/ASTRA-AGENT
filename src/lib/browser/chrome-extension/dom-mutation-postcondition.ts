@@ -159,9 +159,13 @@ export const waitForInteractionAttribute = async (
   const deadline = Date.now() + (timeoutMs ?? postAttribute.timeoutMs ?? 1);
   do {
     const nodes = intent.expectedTextEquals !== undefined
-      ? await queryVisibleTextMatches(debuggerRuntime, target.tabId, intent.selector, intent.expectedTextEquals, true, expectedMatches + 1, intent.scope)
+      ? await queryVisibleTextMatches({ runtime: debuggerRuntime, tabId: target.tabId,
+        selector: intent.selector, expectedText: intent.expectedTextEquals,
+        exact: true, limit: expectedMatches + 1, ...(intent.scope ? { scope: intent.scope } : {}) })
       : intent.expectedText !== undefined
-        ? await queryVisibleTextMatches(debuggerRuntime, target.tabId, intent.selector, intent.expectedText, false, expectedMatches + 1, intent.scope)
+        ? await queryVisibleTextMatches({ runtime: debuggerRuntime, tabId: target.tabId,
+          selector: intent.selector, expectedText: intent.expectedText,
+          exact: false, limit: expectedMatches + 1, ...(intent.scope ? { scope: intent.scope } : {}) })
         : await queryAll(debuggerRuntime, target.tabId, intent.selector, expectedMatches + 1, intent.scope);
     if (nodes.length === expectedMatches) {
       const currentNodeId = nodes[0];

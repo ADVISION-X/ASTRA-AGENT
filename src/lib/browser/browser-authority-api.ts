@@ -9,28 +9,22 @@ export type {
 } from "./exact-target/browser-mutation-store.js";
 export type {
   BrowserDomIntent,
-  BrowserDomField,
   BrowserDomObservationField,
   BrowserDomObservationPacketV2,
   BrowserDomObservationQuery,
   BrowserDomPostconditionQuery,
-  BrowserDomReadScope,
   BrowserExactAssistantTurnReplyV1,
-  BrowserSemanticLocator,
 } from "./exact-target/browser-dom-intent.js";
 export type { BrowserFileArtifactGrantV1 } from "./exact-target/browser-file-artifact-grant.js";
 export type {
   BrowserExecutionBinding,
   BrowserConfirmedProviderReadbackAuthorization,
-  BrowserAuthorityStatus,
-  AuthenticatedBrowserAuthorityLease,
   BrowserExecutionArtifact,
   BrowserExecutionArtifactBinding,
   BrowserExecutionArtifactLease,
 } from "./infrastructure/browser-authority-broker.js";
 export { BrowserAuthorityBroker } from "./infrastructure/browser-authority-broker.js";
 export {
-  BrowserExecutionFailure,
   browserExecutionFailure,
   typedBrowserExecutionFailure,
 } from "./browser-failure.js";

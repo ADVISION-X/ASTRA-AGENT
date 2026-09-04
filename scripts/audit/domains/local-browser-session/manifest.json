@@ -31,6 +31,7 @@
     "scripts/acceptance/local-browser-dom-mutation-support.ts",
     "scripts/acceptance/local-browser-file-input-support.ts",
     "scripts/acceptance/local-browser-mutation-receipt-support.ts",
+    "scripts/acceptance/local-browser-mutation-store-support.ts",
     "scripts/acceptance/local-browser-proof-support.ts",
     "scripts/acceptance/local-browser-property-model.acceptance.ts",
     "scripts/acceptance/local-browser-provider-effect-recovery.acceptance.ts",

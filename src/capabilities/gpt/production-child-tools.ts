@@ -78,6 +78,53 @@ const hashCanonical = (value: unknown): GptHash => {
   return sha256(JSON.stringify(canonical(value)));
 };
 
+const throwRejectedMutation = (
+  facts: GptExactCallFactsWithBrowserBinding,
+  intent: GptChildCapabilityIntent,
+): never => {
+  const mutation = facts.mutation;
+  if (!mutation || mutation.outcome !== "REJECTED") {
+    throw executionFailure("failed", "BROWSER_MUTATION_REJECTION_INVALID");
+  }
+  const rejectedFailureCode = mutation.failureCode ?? "BROWSER_POSTCONDITION_FAILED";
+  const nativeFailureCode = mutation.nativeFailureCode;
+  const nativeCause = nativeFailureCode
+    ? Object.assign(new Error(nativeFailureCode), { code: nativeFailureCode }) : undefined;
+  const browserFact = Object.freeze({
+    exactCallIdentityHash: facts.exactCallIdentityHash,
+    childCapabilityId: intent.childCapabilityId,
+    effectScope: mutation.effectScope,
+    browserOutcome: "REJECTED" as const,
+    mutationOutcome: mutation.mutationOutcome,
+    terminalAt: mutation.terminalAt,
+    evidenceRef: mutation.authorityRef,
+    evidenceHash: mutation.authorityHash,
+  });
+  throw gptExecutionFailure(rejectedFailureCode, {
+    mutationOutcome: mutation.mutationOutcome,
+    evidence: Object.freeze({
+      evidenceRef: mutation.authorityRef,
+      evidenceHash: mutation.authorityHash,
+    }),
+    browserEffect: Object.freeze({
+      effectScope: mutation.effectScope,
+      childCapabilityId: intent.childCapabilityId,
+      browserOutcome: "REJECTED",
+    }),
+    proofFacts: Object.freeze({
+      decision: "FAIL_CLOSED",
+      factResultIds: Object.freeze([mutation.authorityRef]),
+      candidateCardinality: Object.freeze({ raw: null, eligible: null }),
+      authorityRefHashes: Object.freeze([mutation.authorityHash]),
+      observationRevisionHash: null,
+      mutationOutcome: mutation.mutationOutcome,
+      browserFact,
+      nativeFailureCode,
+    }),
+    cause: nativeCause,
+  });
+};
+
 export class ProductionGptChildTools {
   private readonly continuationReadback: GptContinuationReadback;
 
@@ -350,45 +397,7 @@ export class ProductionGptChildTools {
     let evidenceHash: GptHash;
     let resolveDispatched = false;
     try {
-      if (facts.mutation?.outcome === "REJECTED") {
-        const rejectedFailureCode = facts.mutation.failureCode ?? "BROWSER_POSTCONDITION_FAILED";
-        const nativeFailureCode = facts.mutation.nativeFailureCode;
-        const nativeCause = nativeFailureCode
-          ? Object.assign(new Error(nativeFailureCode), { code: nativeFailureCode }) : undefined;
-        const browserFact = Object.freeze({
-          exactCallIdentityHash: facts.exactCallIdentityHash,
-          childCapabilityId: intent.childCapabilityId,
-          effectScope: facts.mutation.effectScope,
-          browserOutcome: "REJECTED" as const,
-          mutationOutcome: facts.mutation.mutationOutcome,
-          terminalAt: facts.mutation.terminalAt,
-          evidenceRef: facts.mutation.authorityRef,
-          evidenceHash: facts.mutation.authorityHash,
-        });
-        throw gptExecutionFailure(rejectedFailureCode, {
-          mutationOutcome: facts.mutation.mutationOutcome,
-          evidence: Object.freeze({
-            evidenceRef: facts.mutation.authorityRef,
-            evidenceHash: facts.mutation.authorityHash,
-          }),
-          browserEffect: Object.freeze({
-            effectScope: facts.mutation.effectScope,
-            childCapabilityId: intent.childCapabilityId,
-            browserOutcome: "REJECTED",
-          }),
-          proofFacts: Object.freeze({
-            decision: "FAIL_CLOSED",
-            factResultIds: Object.freeze([facts.mutation.authorityRef]),
-            candidateCardinality: Object.freeze({ raw: null, eligible: null }),
-            authorityRefHashes: Object.freeze([facts.mutation.authorityHash]),
-            observationRevisionHash: null,
-            mutationOutcome: facts.mutation.mutationOutcome,
-            browserFact,
-            nativeFailureCode,
-          }),
-          cause: nativeCause,
-        });
-      }
+      if (facts.mutation?.outcome === "REJECTED") throwRejectedMutation(facts, intent);
       const completed = await readCompletedGptChildResult({
         call, facts, evidenceStore: this.evidenceStore,
         onSuccess: () => {

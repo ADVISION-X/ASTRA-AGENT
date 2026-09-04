@@ -384,20 +384,26 @@ const clearFocusedInput = async (
   });
 };
 
+const executeReadValueIntent = async (
+  debuggerRuntime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  intent: Exclude<ValueIntent, { kind: "fill" }>,
+): Promise<unknown> => {
+  const nodeId = intent.kind === "readText" || intent.kind === "readAttribute"
+    ? await nodeForRead(debuggerRuntime, target.tabId, intent)
+    : await nodeForSelector(debuggerRuntime, target.tabId, intent.selector, 1, intent.scope);
+  if (intent.kind === "inspect") return inspectNode(debuggerRuntime, target.tabId, nodeId, intent.fields);
+  if (intent.kind === "readText") return nodeText(debuggerRuntime, target.tabId, nodeId);
+  return attribute(await describeNode(debuggerRuntime, target.tabId, nodeId), intent.name) ?? "";
+};
+
 const executeValueIntent = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
   intent: ValueIntent,
   assertCurrent: CurrentDocumentAssertion,
 ): Promise<unknown> => {
-  if (intent.kind !== "fill") {
-    const nodeId = intent.kind === "readText" || intent.kind === "readAttribute"
-      ? await nodeForRead(debuggerRuntime, target.tabId, intent)
-      : await nodeForSelector(debuggerRuntime, target.tabId, intent.selector, 1, intent.scope);
-    if (intent.kind === "inspect") return inspectNode(debuggerRuntime, target.tabId, nodeId, intent.fields);
-    if (intent.kind === "readText") return nodeText(debuggerRuntime, target.tabId, nodeId);
-    return attribute(await describeNode(debuggerRuntime, target.tabId, nodeId), intent.name) ?? "";
-  }
+  if (intent.kind !== "fill") return executeReadValueIntent(debuggerRuntime, target, intent);
   const node = await qualifiedNode(() => mutationCandidate(debuggerRuntime, target, intent));
   if ("receipt" in node) return node.receipt;
   if (await nodeText(debuggerRuntime, target.tabId, node.nodeId) === intent.approvedText) {

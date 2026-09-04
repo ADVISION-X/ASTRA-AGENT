@@ -34,21 +34,9 @@ import { executionFailure, typedExecutionFailure } from "../../src/lib/execution
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 import { verifyProductionDependency } from "../startup/lib/production-contract-preflight.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
-import { HASH_A, HASH_B, task } from "./agent-production-runtime-fixtures.js";
+import { HASH_A, HASH_B, task, validDeviceCredential } from "./agent-production-runtime-fixtures.js";
 import "./agent-production-runtime-recovery-contract.acceptance.js";
 import "./agent-production-runtime-recovery-resume.acceptance.js";
-
-const validDeviceCredential = {
-  protocol_version: "xuanxue-ai-production-v6",
-  server_base_url: "http://127.0.0.1:4322",
-  environment_id: "production",
-  origin: "http://127.0.0.1:4173",
-  device_id: "device:projection-owner-test",
-  device_epoch: 7,
-  control_manifest_hash: HASH_A,
-  credential: `aidc_v6_${"a".repeat(32)}`,
-  enrolled_at: new Date().toISOString(),
-} as const;
 
 const projectionTemporary = await mkdtemp(path.join(tmpdir(), "agent-production-dependency-"));
 try {

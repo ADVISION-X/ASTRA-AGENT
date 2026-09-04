@@ -227,6 +227,51 @@ const mainFrameLoaderId = async (
   return frame.loaderId;
 };
 
+const pointerFromValue = (value: unknown): BrowserPointerAction => {
+  if (typeof value === "string" && (/^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|READ_INVALID)$/u.test(value)
+    || pointerActionCode(value))) throw new Error(value);
+  const point = record(value);
+  if (typeof point.x !== "number" || !Number.isFinite(point.x)
+    || typeof point.y !== "number" || !Number.isFinite(point.y)) {
+    throw new Error("BROWSER_DOM_READ_INVALID");
+  }
+  return Object.freeze({ x: point.x, y: point.y });
+};
+
+const bindSatisfiedObservation = async (
+  value: unknown,
+  target: ExtensionExactTarget,
+  postcondition: Readonly<{ queries: readonly BrowserDomPostconditionQuery[] }>,
+): Promise<BrowserCoherentObservationResult> => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("BROWSER_DOM_READ_INVALID");
+  }
+  const specs = postcondition.queries.map(({ expectedEligibleCount: _expected, ...query }) => query);
+  const observation = await bindCoherentObservationResult(value, target, specs);
+  const satisfied = observation.queries.every((query, index) =>
+    query.eligibleCount === postcondition.queries[index]!.expectedEligibleCount);
+  if (!satisfied) throw new Error("BROWSER_DOM_READ_INVALID");
+  return observation;
+};
+
+const decodeObservationPointerPreparation = async (
+  value: unknown,
+  target: ExtensionExactTarget,
+  postcondition: Readonly<{ queries: readonly BrowserDomPostconditionQuery[] }>,
+): Promise<CoherentObservationPointerPreparation> => {
+  if (typeof value === "string" && (/^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|READ_INVALID)$/u.test(value)
+    || pointerActionCode(value))) throw new Error(value);
+  const reply = record(value);
+  if ((reply.kind !== "postcondition" && reply.kind !== "pointer") || Object.keys(reply).length !== 2) {
+    throw new Error("BROWSER_DOM_READ_INVALID");
+  }
+  if (reply.kind === "postcondition") return Object.freeze({
+    kind: "postcondition",
+    observation: await bindSatisfiedObservation(reply.observation, target, postcondition),
+  });
+  return Object.freeze({ kind: "pointer", point: pointerFromValue(reply.point) });
+};
+
 export const resolveCoherentMutationCandidate = async (
   runtime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
@@ -307,18 +352,11 @@ export const resolveCoherentPointerAction = async (
       awaitPromise: false, silent: true,
     })));
     if (call.exceptionDetails !== undefined) throw new Error("BROWSER_DOM_READ_INVALID");
-    const value = record(call.result).value;
-    if (typeof value === "string" && (/^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|READ_INVALID)$/u.test(value)
-      || pointerActionCode(value))) throw new Error(value);
-    const point = record(value);
+    const point = pointerFromValue(record(call.result).value);
     if (await mainFrameLoaderId(runtime, target.tabId) !== loaderBefore) {
       throw new Error("BROWSER_DOCUMENT_INVALID");
     }
-    if (typeof point.x !== "number" || !Number.isFinite(point.x)
-      || typeof point.y !== "number" || !Number.isFinite(point.y)) {
-      throw new Error("BROWSER_DOM_READ_INVALID");
-    }
-    return Object.freeze({ x: point.x, y: point.y });
+    return point;
   } catch (error) {
     primaryFailure = error;
     throw machineError(error);
@@ -360,30 +398,7 @@ export const resolveCoherentObservationPointerAction = async (
     if (await mainFrameLoaderId(runtime, target.tabId) !== loaderBefore) {
       throw new Error("BROWSER_DOCUMENT_INVALID");
     }
-    const value = record(call.result).value;
-    if (typeof value === "string" && (/^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|READ_INVALID)$/u.test(value)
-      || pointerActionCode(value))) throw new Error(value);
-    const reply = record(value);
-    if (reply.kind !== "postcondition" && reply.kind !== "pointer") {
-      throw new Error("BROWSER_DOM_READ_INVALID");
-    }
-    if (reply.kind === "postcondition") {
-      if (!reply.observation || typeof reply.observation !== "object" || Array.isArray(reply.observation)
-        || Object.keys(reply).length !== 2) throw new Error("BROWSER_DOM_READ_INVALID");
-      const specs = postcondition.queries.map(({ expectedEligibleCount: _expected, ...query }) => query);
-      const observation = await bindCoherentObservationResult(reply.observation, target, specs);
-      const satisfied = observation.queries.every((query, index) =>
-        query.eligibleCount === postcondition.queries[index]!.expectedEligibleCount);
-      if (!satisfied) throw new Error("BROWSER_DOM_READ_INVALID");
-      return Object.freeze({ kind: "postcondition", observation });
-    }
-    if (Object.keys(reply).length !== 2) throw new Error("BROWSER_DOM_READ_INVALID");
-    const point = record(reply.point);
-    if (typeof point.x !== "number" || !Number.isFinite(point.x)
-      || typeof point.y !== "number" || !Number.isFinite(point.y)) {
-      throw new Error("BROWSER_DOM_READ_INVALID");
-    }
-    return Object.freeze({ kind: "pointer", point: Object.freeze({ x: point.x, y: point.y }) });
+    return await decodeObservationPointerPreparation(record(call.result).value, target, postcondition);
   } catch (error) {
     primaryFailure = error;
     throw machineError(error);

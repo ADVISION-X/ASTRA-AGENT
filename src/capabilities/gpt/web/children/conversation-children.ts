@@ -208,16 +208,18 @@ const freshChatTopology = (state: ConversationState): boolean => state.composerR
   && isGptRootUrl(state.currentUrl);
 
 const freshChatFailureCode = (state: ConversationState): string => {
-  if (!isGptRootUrl(state.currentUrl)) return "GPT_CHAT_ROOT_URL_CHANGED";
-  if (state.composerRaw === 0) return "GPT_CHAT_COMPOSER_MISSING";
-  if (state.composerRaw !== 1) return "GPT_CHAT_COMPOSER_AMBIGUOUS";
-  if (state.composerEligible !== 1) return "GPT_CHAT_COMPOSER_NOT_ACTIONABLE";
-  if (state.composerHash === null) return "GPT_CHAT_DRAFT_HASH_MISSING";
-  if (state.userRaw !== 0) return "GPT_CHAT_PRIOR_USER_TURN_PRESENT";
-  if (state.assistantRaw !== 0) return "GPT_CHAT_PRIOR_ASSISTANT_TURN_PRESENT";
-  if (state.attachmentsRaw !== 0) return "GPT_CHAT_ATTACHMENT_PRESENT";
-  if (state.generatingRaw !== 0) return "GPT_CHAT_GENERATION_PRESENT";
-  return "GPT_CHAT_DRAFT_NOT_EMPTY_AFTER_CLEAR";
+  const failure = [
+    [!isGptRootUrl(state.currentUrl), "GPT_CHAT_ROOT_URL_CHANGED"],
+    [state.composerRaw === 0, "GPT_CHAT_COMPOSER_MISSING"],
+    [state.composerRaw !== 1, "GPT_CHAT_COMPOSER_AMBIGUOUS"],
+    [state.composerEligible !== 1, "GPT_CHAT_COMPOSER_NOT_ACTIONABLE"],
+    [state.composerHash === null, "GPT_CHAT_DRAFT_HASH_MISSING"],
+    [state.userRaw !== 0, "GPT_CHAT_PRIOR_USER_TURN_PRESENT"],
+    [state.assistantRaw !== 0, "GPT_CHAT_PRIOR_ASSISTANT_TURN_PRESENT"],
+    [state.attachmentsRaw !== 0, "GPT_CHAT_ATTACHMENT_PRESENT"],
+    [state.generatingRaw !== 0, "GPT_CHAT_GENERATION_PRESENT"],
+  ] as const;
+  return failure.find(([matches]) => matches)?.[1] ?? "GPT_CHAT_DRAFT_NOT_EMPTY_AFTER_CLEAR";
 };
 
 const checkpointActionsMenuReady = (state: ConversationState): boolean => state.menuRaw === 1

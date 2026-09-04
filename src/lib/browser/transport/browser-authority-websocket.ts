@@ -1,5 +1,4 @@
 import { randomBytes } from "node:crypto";
-
 import {
   canonicalizeBrowserAuthorityValue,
   decodeBrowserAuthorityFrame,
@@ -35,7 +34,6 @@ import {
 } from "../protocol/generated/browser-protocol.generated.js";
 import { parseBrowserAuthorityDiagnostic } from "./browser-authority-diagnostic.js";
 import { requireGptWebClaimOrigin } from "../exact-target/browser-site-policy-registry.js";
-
 export type BrowserAuthoritySocket = Readonly<{
   send(frame: string): void;
   close(code?: number): void;
@@ -81,7 +79,6 @@ type AwaitingReply = Readonly<{
   reject: (error: Error) => void;
   timeout: ReturnType<typeof setTimeout>;
 }>;
-
 type ActiveSocket = Readonly<{
   socket: BrowserAuthoritySocket;
   keys: BrowserAuthorityDirectionalKeys;
@@ -95,7 +92,6 @@ const MAX_PREAUTH_FRAMES = 3;
 const AUTH_EPOCH = 1;
 const COMMAND_DEADLINE_MS = BROWSER_COMMAND_DEFAULT_DEADLINE_MS;
 const MUTATION_TERMINAL_REPLY_GRACE_MS = 1_000;
-
 const aadForFrame = (frame: Pick<BrowserAuthorityFrame, "protocolVersion" | "kind" | "epoch" | "sequence" | "deadline">): string =>
   canonicalizeBrowserAuthorityValue({
     protocolVersion: frame.protocolVersion,

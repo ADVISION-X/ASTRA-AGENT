@@ -21,6 +21,7 @@ import {
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 import {
   inspectGptAttachmentContract,
+  inspectGptBrowserFailureRecoveryContract,
   inspectGptContractDenominator,
 } from "./gpt-contract-inspection.js";
 import { inspectGptCurrentPageProofs } from "./gpt-page-proof-inspection.js";
@@ -58,7 +59,6 @@ const EXECUTION_PROFILE_HANDLER_PATH = `${ROOT}/web/children/execution-profile-c
 const EXECUTION_PROFILE_CONTRACT_PATH = `${ROOT}/web/contracts/execution-profile.contract.ts`;
 const ATTACHMENT_HANDLER_PATH = `${ROOT}/web/children/attachment-children.ts`;
 const ATTACHMENT_CONTRACT_PATH = `${ROOT}/web/contracts/attachment.contract.ts`;
-const REAL_PROOF_PATH = "scripts/acceptance/gpt.real-proof.ts";
 const PRODUCTION_CHILD_TOOLS_PATH = `${ROOT}/production-child-tools.ts`;
 const PRODUCTION_BROWSER_LIFECYCLE_PATH = `${ROOT}/production-browser-lifecycle.ts`;
 
@@ -300,36 +300,6 @@ const inspectModelSelectionContract = (context: InspectorContext, findings: Insp
   ));
 };
 
-const inspectExecutionProfileDynamicContract = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-): void => {
-  const proof = sourceFor(context, REAL_PROOF_PATH)?.getFullText() ?? "";
-  for (const required of [
-    "/facts/profile_trigger_unique_observed", "/facts/profile_trigger_pointer_qualified",
-    "/facts/profile_open_mutation_count", "/facts/profile_popup_direct_readback",
-    "/facts/profile_entry_hydration_observed", "/facts/profile_partial_conflict_rejected",
-    "/facts/profile_candidate_evidence_complete", "/facts/profile_open_same_packet_postcondition",
-    "/facts/profile_open_followup_observation_count",
-    "/facts/model_open_stable_topology_observed", "/facts/model_open_transitional_topology_rejected",
-    "/facts/model_open_mutation_count", "/facts/exact_model_selection_observed",
-    "/facts/exact_model_selection_mutation_count", "/facts/reasoning_tier_values_observed",
-    "/facts/exact_model_selection_same_packet_postcondition",
-    "/facts/exact_model_selection_followup_observation_count",
-    "/facts/profile_reopen_after_model_observed",
-    "/facts/confirmed_semantic_failure_browser_outcome",
-    "/facts/confirmed_semantic_failure_mutation_outcome",
-    "/facts/confirmed_semantic_failure_postcondition_result",
-    "/facts/attachment_control_hydration_observed", "/facts/attachment_active_scope_unique",
-    "/facts/attachment_global_hidden_nodes_excluded", "/facts/upload_choice_exact_leaf_unique",
-    "/facts/attachment_open_mutation_count", "/facts/attachment_open_same_packet_postcondition",
-    "/facts/attachment_open_followup_observation_count", "/facts/prompt_child_started_after_attachment_ready",
-  ]) if (!proof.includes(required)) findings.push(finding(
-    "gpt/profile-open-real-browser-denominator", REAL_PROOF_PATH,
-    `The existing GPT dynamic proof contract is missing ${required}.`,
-  ));
-};
-
 const inspectExecutionProfileStateReadContract = (
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -353,34 +323,6 @@ const inspectExecutionProfileStateReadContract = (
       "The aria-hidden reasoning slider must never become the keypress action target.",
     ));
   }
-};
-
-const inspectBrowserFailureRecoveryContract = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-): void => {
-  const tools = sourceFor(context, PRODUCTION_CHILD_TOOLS_PATH)?.getFullText() ?? "";
-  const lifecycle = sourceFor(context, PRODUCTION_BROWSER_LIFECYCLE_PATH)?.getFullText() ?? "";
-  const group = sourceFor(context, GROUP_PATH)?.getFullText() ?? "";
-  for (const required of [
-    "facts.mutation.failureCode", "facts.mutation.nativeFailureCode", "cause: nativeCause",
-  ]) if (!tools.includes(required)) findings.push(finding(
-    "gpt/browser-rejected-wal-cause", PRODUCTION_CHILD_TOOLS_PATH,
-    `The Browser REJECTED fact path is missing ${required}.`,
-  ));
-  for (const required of [
-    "input.recovery.failureCode", "input.recovery.nativeFailureCode",
-  ]) if (!lifecycle.includes(required)) findings.push(finding(
-    "gpt/browser-rejected-wal-cause", PRODUCTION_BROWSER_LIFECYCLE_PATH,
-      `The Browser atomic-step recovery path is missing ${required}.`,
-  ));
-  for (const required of [
-    'recovery.state === "confirmed"', '"CONFIRMED" as const',
-    "mutationOutcome: walBrowserFact.mutationOutcome", "browserFact: walBrowserFact",
-  ]) if (!group.includes(required)) findings.push(finding(
-    "gpt/browser-confirmed-semantic-failure-proof", GROUP_PATH,
-    `The GPT failed proof cannot preserve a confirmed Browser fact; missing ${required}.`,
-  ));
 };
 
 const inspectProviderWaitContract = (context: InspectorContext, findings: InspectorFinding[]): void => {
@@ -438,8 +380,7 @@ const inspectGptContracts = (context: InspectorContext, findings: InspectorFindi
   inspectIntelligentExecutionContracts(context, findings);
   inspectModelSelectionContract(context, findings);
   inspectExecutionProfileStateReadContract(context, findings);
-  inspectExecutionProfileDynamicContract(context, findings);
-  inspectBrowserFailureRecoveryContract(context, findings);
+  inspectGptBrowserFailureRecoveryContract(context, findings, finding);
 };
 
 const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
@@ -450,7 +391,7 @@ const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFind
     MODEL_SELECTION_V2_HANDLER_PATH, MODEL_SELECTION_V2_CONTRACT_PATH,
     EXECUTION_PROFILE_HANDLER_PATH, EXECUTION_PROFILE_CONTRACT_PATH,
     ATTACHMENT_HANDLER_PATH, ATTACHMENT_CONTRACT_PATH,
-    REAL_PROOF_PATH, PRODUCTION_CHILD_TOOLS_PATH, PRODUCTION_BROWSER_LIFECYCLE_PATH,
+    PRODUCTION_CHILD_TOOLS_PATH, PRODUCTION_BROWSER_LIFECYCLE_PATH,
   ])
     if (!existsSync(resolve(context.sealedRoot, path))) findings.push(finding(
       "gpt/filesystem-required-owner-file", path, `${path} is missing.`));

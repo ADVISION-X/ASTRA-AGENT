@@ -1,5 +1,4 @@
-import { hashCanonical, type ProductionActionId, type ProductionHash, type ProductionProductId,
-  type WebsiteAgentTask } from "./contracts.js";
+import { type ProductionActionId, type ProductionProductId, type WebsiteAgentTask } from "./contracts.js";
 import type { ProductionRoutePolicy } from "../../../mediator/product-plugin-contract.js";
 import routePolicyArtifact from "./website-agent-route-policies.v1.json" with { type: "json" };
 
@@ -47,50 +46,6 @@ export function productionRoutePolicy(
   const resolved = productionRoutePolicyMap.get(`${productId}\0${actionId}`);
   if (!resolved) throw new Error(`PRODUCTION_ROUTE_POLICY_MISSING:${productId}:${actionId}`);
   return resolved;
-}
-
-export function evaluateExactNestedResultContract(input: Readonly<{
-  artifactHash: ProductionHash;
-  value: Readonly<Record<string, unknown>>;
-  contract: Readonly<Record<string, unknown>>;
-  topLevelFieldsKey: string;
-  nestedArrayFields: Readonly<Record<string, string>>;
-}>): Readonly<{
-  artifact_hash: ProductionHash;
-  contract_hash: ProductionHash;
-  outcome: "accepted";
-  evaluation_hash: ProductionHash;
-}> {
-  const expectedTop = input.contract[input.topLevelFieldsKey];
-  if (!Array.isArray(expectedTop) || !expectedTop.every((field) => typeof field === "string")
-    || Object.keys(input.value).sort().join("\0") !== [...expectedTop].sort().join("\0")) {
-    throw new Error("EXACT_NESTED_RESULT_CONTRACT_TOP_LEVEL_INVALID");
-  }
-  for (const [valueKey, contractKey] of Object.entries(input.nestedArrayFields)) {
-    const expectedFields = input.contract[contractKey];
-    const values = input.value[valueKey];
-    if (!Array.isArray(expectedFields) || !expectedFields.every((field) => typeof field === "string")
-      || !Array.isArray(values)) throw new Error("EXACT_NESTED_RESULT_CONTRACT_ARRAY_INVALID");
-    for (const child of values) {
-      if (!child || typeof child !== "object" || Array.isArray(child)
-        || Object.keys(child).sort().join("\0") !== [...expectedFields].sort().join("\0")) {
-        throw new Error("EXACT_NESTED_RESULT_CONTRACT_CHILD_INVALID");
-      }
-    }
-  }
-  const contractHash = hashCanonical(input.contract);
-  const evaluationStable = {
-    kind: "exact-nested-result-contract-evaluation.v1",
-    artifact_hash: input.artifactHash,
-    contract_hash: contractHash,
-    outcome: "accepted" as const,
-  };
-  return Object.freeze({
-    artifact_hash: input.artifactHash,
-    contract_hash: contractHash,
-    outcome: "accepted",
-    evaluation_hash: hashCanonical(evaluationStable),
-  });
 }
 
 const assertRouteParameters = (task: WebsiteAgentTask, expected: ProductionRoutePolicy): void => {

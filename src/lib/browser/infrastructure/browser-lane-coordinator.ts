@@ -12,7 +12,10 @@ import { BrowserAuthorityWebSocket } from "../transport/browser-authority-websoc
 import { browserExecutionFailure } from "../browser-failure.js";
 import { emitBrowserMutationEvent } from "../exact-target/browser-command-runtime-logging.js";
 import type { RuntimeLogger } from "../../runtime-logs/index.js";
-import { BROWSER_COMMAND_DEFAULT_DEADLINE_MS } from "../protocol/generated/browser-protocol.generated.js";
+import {
+  BrowserTargetAcquirer,
+  type BrowserTargetAcquisition,
+} from "./browser-target-acquirer.js";
 
 type LaneWaiter = Readonly<{
   binding: BrowserExecutionBinding;
@@ -63,20 +66,7 @@ const exactCanonicalConversationUrl = (value: string): boolean => {
   }
 };
 
-const replacementKey = (binding: Extract<BrowserExecutionBinding, {
-  kind: "production-reconciliation";
-}>): string => [
-  binding.jobId,
-  binding.confirmedProviderReadback.sourceAttemptId,
-  binding.confirmedProviderReadback.sourceExactCallIdentityHash,
-  binding.confirmedProviderReadback.evidenceHash,
-].join(":");
-
 type ReconciliationBinding = Extract<BrowserExecutionBinding, { kind: "production-reconciliation" }>;
-type TargetAcquisition = Readonly<{
-  replacementBinding: ReconciliationBinding | null;
-  confirmedProviderTargetReplaced: boolean;
-}>;
 
 const confirmedReadbackMatches = (
   binding: ReconciliationBinding,
@@ -105,17 +95,21 @@ const confirmedReadbackMatches = (
 
 export class BrowserLaneCoordinator {
   private readonly queue: LaneWaiter[] = [];
-  private readonly confirmedReadbackReplacementTargets = new Map<string, string>();
+  private readonly targetAcquirer: BrowserTargetAcquirer;
   private quarantine: LaneRecovery | null = null;
   private active = false;
 
   public constructor(
     private readonly resolveBroker: () => BrowserAuthorityBroker,
-    private readonly websocket: BrowserAuthorityWebSocket,
-    private readonly issuer: BrowserAuthorityIssuer,
+    websocket: BrowserAuthorityWebSocket,
+    issuer: BrowserAuthorityIssuer,
     private readonly infrastructure: LaneState,
     private readonly runtimeLogger: RuntimeLogger,
-  ) {}
+  ) {
+    this.targetAcquirer = new BrowserTargetAcquirer(
+      resolveBroker, websocket, issuer, infrastructure,
+    );
+  }
 
   public acquire(
     binding: BrowserExecutionBinding,
@@ -165,7 +159,7 @@ export class BrowserLaneCoordinator {
       this.rejectPending(reasonCode);
       for (const waiter of this.queue.splice(0)) waiter.reject(browserExecutionFailure(new Error(reasonCode)));
     }
-    this.confirmedReadbackReplacementTargets.clear();
+    this.targetAcquirer.reset();
     this.quarantine = null;
     if (!reasonCode) this.refreshQuarantine();
     this.active = false;
@@ -239,7 +233,9 @@ export class BrowserLaneCoordinator {
     try {
       recovery = this.quarantine && this.bindingMatchesRecovery(waiter.binding, this.quarantine)
         ? this.quarantine : this.recoveryFor(waiter.binding);
-      const acquisition = await this.ensureAvailableTarget(waiter, recovery);
+      const acquisition = await this.targetAcquirer.ensureAvailableTarget(
+        waiter, recovery, () => this.rejectLostTargetLocalDocument(recovery!),
+      );
       if (waiter.signal.aborted || waiter.remainingMs() < 1) throw browserExecutionFailure(new Error(
         waiter.signal.aborted ? "BROWSER_WAIT_ABORTED" : "V6_DEADLINE_BUDGET_EXHAUSTED",
       ));
@@ -271,47 +267,10 @@ export class BrowserLaneCoordinator {
     }
   }
 
-  private async ensureAvailableTarget(waiter: LaneWaiter, recovery: LaneRecovery | null): Promise<TargetAcquisition> {
-    const replacementBinding = waiter.binding.kind === "production-reconciliation" ? waiter.binding : null;
-    if (this.resolveBroker().currentOperatorTargetStatus() !== "absent") {
-      return { replacementBinding, confirmedProviderTargetReplaced: false };
-    }
-    const knownTarget = replacementBinding
-      ? this.confirmedReadbackReplacementTargets.get(replacementKey(replacementBinding)) ?? null : null;
-    const ttl = Math.min(waiter.binding.commandTtlMs, waiter.remainingMs());
-    try {
-      await this.acquireJobBoundTarget(ttl, knownTarget ?? recovery?.targetRef ?? null);
-      return { replacementBinding, confirmedProviderTargetReplaced: false };
-    } catch (error) {
-      const targetLocalDocumentLost = recovery?.state === "DISPATCHED"
-        && recovery.effectScope === "target_local" && error instanceof Error
-        && error.message === "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT";
-      if (targetLocalDocumentLost) this.rejectLostTargetLocalDocument(recovery);
-      const replaceable = replacementBinding && recovery?.state === "CONFIRMED"
-        && recovery.effectScope === "provider_effect" && error instanceof Error
-        && error.message === "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT";
-      if (!replaceable) throw error;
-      await this.acquireJobBoundTarget(Math.min(waiter.binding.commandTtlMs, waiter.remainingMs()), null);
-      return { replacementBinding, confirmedProviderTargetReplaced: true };
-    }
-  }
-
-  private recordReplacementTarget(binding: ReconciliationBinding, targetRef: string, replaced: boolean): string {
-    const key = replacementKey(binding);
-    const known = this.confirmedReadbackReplacementTargets.get(key);
-    if (!replaced && known !== targetRef) throw new Error("BROWSER_DOCUMENT_INVALID");
-    if (this.confirmedReadbackReplacementTargets.size >= 100 && !known) {
-      const oldest = this.confirmedReadbackReplacementTargets.keys().next().value as string | undefined;
-      if (oldest) this.confirmedReadbackReplacementTargets.delete(oldest);
-    }
-    this.confirmedReadbackReplacementTargets.set(key, targetRef);
-    return key;
-  }
-
   private admitRecoveredLease(
     lease: BrowserTargetLease,
     recovery: LaneRecovery | null,
-    acquisition: TargetAcquisition,
+    acquisition: BrowserTargetAcquisition,
   ): Readonly<{ lease: BrowserTargetLease; replacementKey: string | null }> {
     const targetMismatch = Boolean(recovery) && lease.target.targetRef !== recovery?.targetRef;
     const documentMismatch = Boolean(recovery) && lease.document.documentRef !== recovery?.documentRef;
@@ -320,7 +279,7 @@ export class BrowserLaneCoordinator {
       this.rejectLostTargetLocalDocument(recovery);
     }
     const replacementKeyToClear = targetMismatch && acquisition.replacementBinding
-      ? this.recordReplacementTarget(
+      ? this.targetAcquirer.recordReplacementTarget(
         acquisition.replacementBinding, lease.target.targetRef, acquisition.confirmedProviderTargetReplaced,
       ) : null;
     if (recovery && ((targetMismatch && !replacementKeyToClear)
@@ -428,7 +387,7 @@ export class BrowserLaneCoordinator {
       close: (input) => finish(async () => {
         try { await lease.close(input); }
         finally {
-          if (replacementKeyToClear) this.confirmedReadbackReplacementTargets.delete(replacementKeyToClear);
+          if (replacementKeyToClear) this.targetAcquirer.clearReplacementTarget(replacementKeyToClear);
         }
       }),
     };
@@ -510,47 +469,11 @@ export class BrowserLaneCoordinator {
     this.refreshQuarantine();
   }
 
-  private async acquireJobBoundTarget(commandTtlMs: number, targetRef: string | null = null): Promise<void> {
-    const current = this.issuer.current();
-    if (current.kind === "ABSENT") throw new Error(current.reasonCode);
-    if (!Number.isInteger(commandTtlMs) || commandTtlMs < 1 || commandTtlMs > 3_600_000) {
-      throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-    }
-    if (this.infrastructure.pendingJobBoundTargetAcquisition) throw new Error("BROWSER_BACKPRESSURE");
-    const deadlineMs = Math.min(commandTtlMs, BROWSER_COMMAND_DEFAULT_DEADLINE_MS);
-    await new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        if (this.infrastructure.pendingJobBoundTargetAcquisition?.authorityEpoch !== current.authority.authorityEpoch) return;
-        this.infrastructure.pendingJobBoundTargetAcquisition = null;
-        reject(new Error("BROWSER_TARGET_ACQUISITION_TIMEOUT"));
-      }, deadlineMs);
-      this.infrastructure.pendingJobBoundTargetAcquisition = {
-        authorityEpoch: current.authority.authorityEpoch, expectedTargetRef: targetRef, resolve, reject, timeout,
-      };
-      try { this.websocket.requestPreauthorizedTargetAcquisition(targetRef ?? undefined); }
-      catch (error) {
-        this.rejectPending(error instanceof Error ? error.message : "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
-      }
-    });
-  }
-
   public resolvePending(targetRef: string): void {
-    const pending = this.infrastructure.pendingJobBoundTargetAcquisition;
-    if (!pending) return;
-    if (pending.expectedTargetRef !== null && pending.expectedTargetRef !== targetRef) {
-      this.rejectPending("BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
-      return;
-    }
-    this.infrastructure.pendingJobBoundTargetAcquisition = null;
-    clearTimeout(pending.timeout);
-    pending.resolve();
+    this.targetAcquirer.resolvePending(targetRef);
   }
 
   public rejectPending(reasonCode: string): void {
-    const pending = this.infrastructure.pendingJobBoundTargetAcquisition;
-    if (!pending) return;
-    this.infrastructure.pendingJobBoundTargetAcquisition = null;
-    clearTimeout(pending.timeout);
-    pending.reject(new Error(reasonCode));
+    this.targetAcquirer.rejectPending(reasonCode);
   }
 }

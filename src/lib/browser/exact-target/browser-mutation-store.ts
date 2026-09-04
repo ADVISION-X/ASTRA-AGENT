@@ -3,7 +3,6 @@ import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { mutationIdentity, type MutationRow } from "./browser-mutation-row.js";
 import { ensureCurrentSchema, identityColumns, mutationAuthorityHash } from "./browser-mutation-schema.js";
-
 export type BrowserMutationState =
   "PREPARED" | "DISPATCHED" | "CONFIRMED" | "REJECTED" | "FAILED";
 export type BrowserMutationOutcome = "no" | "dispatched" | "confirmed";
@@ -29,7 +28,6 @@ const terminalFailureFields = (
     nativeFailureCode: nativeCauseCode,
   });
 };
-
 export type BrowserMutationIdentity = Readonly<{
   commandId: string;
   logicalMutationId?: `sha256:${string}` | null;
@@ -53,13 +51,11 @@ export type BrowserMutationIdentity = Readonly<{
   requestHash: `sha256:${string}`;
   payloadHash: `sha256:${string}`;
 }>;
-
 export type BrowserMutationRecoveryState = Readonly<{
   mutation: BrowserMutationIdentity;
   current: BrowserMutationState;
   authorityHash: `sha256:${string}`;
 }>;
-
 export type BrowserMutationReconciliationScope = Readonly<{
   commandId: string;
   ownerPluginId: string;

@@ -138,17 +138,20 @@ const queryNodeIds = async (
 };
 
 export const queryVisibleTextMatches = async (
-  runtime: ExtensionDebuggerRuntime,
-  tabId: number,
-  selector: string,
-  expectedText: string,
-  exact: boolean,
-  limit: number,
-  scope?: Readonly<{ selector: string }>,
-  readEligibility?: BrowserDomReadEligibility,
+  input: Readonly<{
+    runtime: ExtensionDebuggerRuntime;
+    tabId: number;
+    selector: string;
+    expectedText: string;
+    exact: boolean;
+    limit: number;
+    scope?: Readonly<{ selector: string }>;
+    readEligibility?: BrowserDomReadEligibility;
+  }>,
 ): Promise<readonly number[]> => {
   const candidates = await queryCandidateSet(
-    runtime, tabId, selector, limit, scope, { value: expectedText, exact }, readEligibility,
+    input.runtime, input.tabId, input.selector, input.limit, input.scope,
+    { value: input.expectedText, exact: input.exact }, input.readEligibility,
   );
   return candidates.eligibleNodeIds;
 };
@@ -168,7 +171,9 @@ export const nodeForRead = async (
 ): Promise<number> => {
   const maximum = intent.expectedMatches ?? intent.maxMatches ?? 1;
   const nodes = intent.kind === "readAttribute" && intent.textContains !== undefined
-    ? await queryVisibleTextMatches(runtime, tabId, intent.selector, intent.textContains, false, maximum + 1, intent.scope)
+    ? await queryVisibleTextMatches({ runtime, tabId, selector: intent.selector,
+      expectedText: intent.textContains, exact: false, limit: maximum + 1,
+      ...(intent.scope ? { scope: intent.scope } : {}) })
     : await queryAll(runtime, tabId, intent.selector, maximum + 1, intent.scope);
   if (intent.expectedMatches !== undefined) requireExactCandidateCount(nodes, intent.expectedMatches);
   else if (nodes.length > maximum) throw new Error(DOM_CANDIDATE_AMBIGUOUS);

@@ -13,6 +13,9 @@ const PROFILE_HANDLER_PATH = `${ROOT}/web/children/execution-profile-children.ts
 const PROFILE_CONTRACT_PATH = `${ROOT}/web/contracts/execution-profile.contract.ts`;
 const ATTACHMENT_HANDLER_PATH = `${ROOT}/web/children/attachment-children.ts`;
 const ATTACHMENT_CONTRACT_PATH = `${ROOT}/web/contracts/attachment.contract.ts`;
+const GROUP_PATH = `${ROOT}/ability-group.ts`;
+const PRODUCTION_CHILD_TOOLS_PATH = `${ROOT}/production-child-tools.ts`;
+const PRODUCTION_BROWSER_LIFECYCLE_PATH = `${ROOT}/production-browser-lifecycle.ts`;
 const BROWSER_TARGET_LEASE_PATH = "src/lib/browser/exact-target/browser-target-lease.ts";
 
 type FindingFactory = (
@@ -21,6 +24,20 @@ type FindingFactory = (
   message: string,
   line?: number,
 ) => InspectorFinding;
+
+const inspectMissingTokens = (input: Readonly<{
+  source: string;
+  required: readonly string[];
+  checkId: string;
+  filePath: string;
+  findings: InspectorFinding[];
+  finding: FindingFactory;
+  message(required: string): string;
+}>): void => {
+  for (const required of input.required) if (!input.source.includes(required)) {
+    input.findings.push(input.finding(input.checkId, input.filePath, input.message(required)));
+  }
+};
 
 const sourceFor = (context: InspectorContext, path: string): SourceFile | undefined =>
   context.project.getSourceFile(resolve(context.sealedRoot, path));
@@ -126,27 +143,23 @@ const inspectProfileContracts = (
   finding: FindingFactory,
 ): void => {
   const modelContract = sourceFor(context, MODEL_CONTRACT_PATH)?.getFullText() ?? "";
-  for (const required of [
-    "GPT_MODEL_SELECTION_V2_ENTRY_SELECTOR", "GPT_PROFILE_POPUP_SELECTOR",
-    "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR", "[data-active='true']:not([inert])",
-    "GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR",
+  inspectMissingTokens({ source: modelContract, required: [
+    "GPT_PROFILE_POPUP_SELECTOR", "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR",
+    "[data-active='true']:not([inert])", "GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR",
     "GPT_MODEL_SELECTION_V2_ENTRY_INNER_SELECTOR", "GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_INNER_SELECTOR",
     "[aria-expanded='false'][aria-hidden='false']",
-  ]) if (!modelContract.includes(required)) findings.push(finding(
-    "gpt/model-selection-v2-visible-contract", MODEL_CONTRACT_PATH,
-    `Model selection V2 contract is missing ${required}.`,
-  ));
+  ], checkId: "gpt/model-selection-v2-visible-contract", filePath: MODEL_CONTRACT_PATH,
+  findings, finding, message: (required) => `Model selection V2 contract is missing ${required}.` });
   const modelHandler = sourceFor(context, MODEL_HANDLER_PATH)?.getFullText() ?? "";
-  for (const required of [
+  inspectMissingTokens({ source: modelHandler, required: [
     "open_gpt_model_selector_v2", "select_exact_gpt_model_v2", "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR",
     "GPT_PROFILE_SIMPLE_PANEL_SELECTOR", "MODEL_SELECTION_POSTCONDITION",
     "isAlreadyOpen", "isOpenable", "value.entry === 0", "value.simplePanel === 0",
     "value.advancedPanel === 1", "postClickObservation: MODEL_SELECTOR_OPEN_POSTCONDITION",
     "postClickObservation: MODEL_SELECTION_POSTCONDITION", "mutationRecord.postconditionObservation",
     "expectedEligibleCount", "decodeCoherentObservationPacket", "scope: { selector: GPT_PROFILE_POPUP_SELECTOR }",
-  ]) if (!modelHandler.includes(required)) findings.push(finding(
-    "gpt/model-selection-v2-handler", MODEL_HANDLER_PATH, `Model selection V2 handler is missing ${required}.`,
-  ));
+  ], checkId: "gpt/model-selection-v2-handler", filePath: MODEL_HANDLER_PATH,
+  findings, finding, message: (required) => `Model selection V2 handler is missing ${required}.` });
   for (const retired of [
     "GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR", "expandedEntry",
     "GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR", "postClickMatch: {",
@@ -157,14 +170,13 @@ const inspectProfileContracts = (
     ));
   }
   const reasoningContract = sourceFor(context, PROFILE_CONTRACT_PATH)?.getFullText() ?? "";
-  for (const required of [
+  inspectMissingTokens({ source: reasoningContract, required: [
     "[role='menuitem'][aria-label='能力']", "[data-model-reasoning-effort-slider] [role='slider']",
     "fast: 0", "medium: 1", "high: 2", "extra_high: 3", "pro_standard: 4",
-  ]) if (!reasoningContract.includes(required)) findings.push(finding(
-    "gpt/reasoning-five-value-contract", PROFILE_CONTRACT_PATH, `Reasoning contract is missing ${required}.`,
-  ));
+  ], checkId: "gpt/reasoning-five-value-contract", filePath: PROFILE_CONTRACT_PATH,
+  findings, finding, message: (required) => `Reasoning contract is missing ${required}.` });
   const reasoningHandler = sourceFor(context, PROFILE_HANDLER_PATH)?.getFullText() ?? "";
-  for (const required of [
+  inspectMissingTokens({ source: reasoningHandler, required: [
     "ensure_exact_gpt_reasoning_tier", "requireExactInputKeys", "profileFromIntent",
     "requireBrowser(context)", "ariaValueMin", "ariaValueMax", "ariaValueNow",
     "postKeypressMatch", "requireConfirmedBrowserFact", "PROFILE_HYDRATION_TIMEOUT_MS",
@@ -173,10 +185,9 @@ const inspectProfileContracts = (
     "GPT_EXECUTION_PROFILE_HYDRATION_DOCUMENT_CHANGED",
     "postClickObservation: PROFILE_OPEN_POSTCONDITION", "mutationRecord.postconditionObservation",
     "decodeCoherentObservationPacket", "scopeRejections", "observationRevisionHash",
-  ]) if (!reasoningHandler.includes(required)) findings.push(finding(
-    "gpt/reasoning-coherent-control", PROFILE_HANDLER_PATH,
-    `Reasoning Child must qualify and read back the Browser-owned numeric control; missing ${required}.`,
-  ));
+  ], checkId: "gpt/reasoning-coherent-control", filePath: PROFILE_HANDLER_PATH,
+  findings, finding,
+  message: (required) => `Reasoning Child must qualify and read back the Browser-owned numeric control; missing ${required}.` });
   if (reasoningHandler.includes("postClickMatch: { selector: GPT_PROFILE_REASONING_VALUE_SELECTOR")) {
     findings.push(finding(
       "gpt/profile-open-second-readback-retired", PROFILE_HANDLER_PATH,
@@ -271,22 +282,16 @@ const inspectAttachmentHandler = (
       "Attachment reconciliation must preserve the Product timeout instead of applying a public 60-second ceiling.",
     ));
   }
+  inspectMissingTokens({ source: handlerText, required: [
+    "attachmentControlState", "readCoherentObservation", 'queryId: "attachment-control"',
+    'queryId: "upload-choice"', "scope: { selector: GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR }",
+    "waitForAttachmentControlHydration", "attachmentControlFullyAbsent", "attachmentControlOpenable",
+    "attachmentControlReady", "GPT_ATTACHMENT_CONTROL_HYDRATION_TIMEOUT",
+    "GPT_ATTACHMENT_CONTROL_HYDRATION_DOCUMENT_CHANGED", "scopeRejections", "observationRevisionHash",
+  ], checkId: "gpt/attachment-entry-coherent-facts", filePath: ATTACHMENT_HANDLER_PATH,
+  findings, finding,
+  message: () => "Attachment control and upload leaf must be qualified by one coherent Browser packet." });
   const calls = handler?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
-  if (!(handlerText.includes("attachmentControlState") && handlerText.includes("readCoherentObservation")
-    && handlerText.includes('queryId: "attachment-control"')
-    && handlerText.includes('queryId: "upload-choice"')
-    && handlerText.includes("scope: { selector: GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR }")
-    && handlerText.includes("waitForAttachmentControlHydration")
-    && handlerText.includes("attachmentControlFullyAbsent")
-    && handlerText.includes("attachmentControlOpenable")
-    && handlerText.includes("attachmentControlReady")
-    && handlerText.includes("GPT_ATTACHMENT_CONTROL_HYDRATION_TIMEOUT")
-    && handlerText.includes("GPT_ATTACHMENT_CONTROL_HYDRATION_DOCUMENT_CHANGED")
-    && handlerText.includes("scopeRejections")
-    && handlerText.includes("observationRevisionHash"))) findings.push(finding(
-    "gpt/attachment-entry-coherent-facts", ATTACHMENT_HANDLER_PATH,
-    "Attachment control and upload leaf must be qualified by one coherent Browser packet.",
-  ));
   const postcondition = calls.find((call) => call.getExpression().getText().endsWith(".executeDomIntent")
     && call.getText().includes("GPT_ATTACHMENT_CONTROL_SELECTOR"));
   if (!postcondition || !postcondition.getText().includes("ATTACHMENT_CONTROL_OPEN_POSTCONDITION")
@@ -310,13 +315,11 @@ const inspectAttachmentHandler = (
       `GPT attachment Child must not own Browser physical-path operation ${forbidden}.`,
     ));
   }
-  for (const required of ["gptAttachmentProviderDisplayName", "artifactRef", "providerDisplayName",
-    "approvedArtifacts", "browser.attachFile", "readCoherentObservation"]) {
-    if (!handlerText.includes(required)) findings.push(finding(
-      "gpt/attachment-artifact-boundary", ATTACHMENT_HANDLER_PATH,
-      `GPT attachment artifact boundary is missing ${required}.`,
-    ));
-  }
+  inspectMissingTokens({ source: handlerText,
+    required: ["gptAttachmentProviderDisplayName", "artifactRef", "providerDisplayName",
+      "approvedArtifacts", "browser.attachFile", "readCoherentObservation"],
+    checkId: "gpt/attachment-artifact-boundary", filePath: ATTACHMENT_HANDLER_PATH,
+    findings, finding, message: (required) => `GPT attachment artifact boundary is missing ${required}.` });
 };
 
 export const inspectGptAttachmentContract = (
@@ -334,6 +337,30 @@ export const inspectGptAttachmentContract = (
       "Browser public attachment contract still requires a physical-path registration/grant step outside GPT artifactRef input.",
     ));
   }
+};
+
+export const inspectGptBrowserFailureRecoveryContract = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  finding: FindingFactory,
+): void => {
+  const tools = sourceFor(context, PRODUCTION_CHILD_TOOLS_PATH)?.getFullText() ?? "";
+  const lifecycle = sourceFor(context, PRODUCTION_BROWSER_LIFECYCLE_PATH)?.getFullText() ?? "";
+  const group = sourceFor(context, GROUP_PATH)?.getFullText() ?? "";
+  inspectMissingTokens({ source: tools,
+    required: ["facts.mutation.failureCode", "facts.mutation.nativeFailureCode", "cause: nativeCause"],
+    checkId: "gpt/browser-rejected-wal-cause", filePath: PRODUCTION_CHILD_TOOLS_PATH,
+    findings, finding, message: (required) => `The Browser REJECTED fact path is missing ${required}.` });
+  inspectMissingTokens({ source: lifecycle,
+    required: ["input.recovery.failureCode", "input.recovery.nativeFailureCode"],
+    checkId: "gpt/browser-rejected-wal-cause", filePath: PRODUCTION_BROWSER_LIFECYCLE_PATH,
+    findings, finding, message: (required) => `The Browser atomic-step recovery path is missing ${required}.` });
+  inspectMissingTokens({ source: group, required: [
+    'recovery.state === "confirmed"', '"CONFIRMED" as const',
+    "mutationOutcome: walBrowserFact.mutationOutcome", "browserFact: walBrowserFact",
+  ], checkId: "gpt/browser-confirmed-semantic-failure-proof", filePath: GROUP_PATH,
+  findings, finding,
+  message: (required) => `The GPT failed proof cannot preserve a confirmed Browser fact; missing ${required}.` });
 };
 
 export const inspectGptContractDenominator = (

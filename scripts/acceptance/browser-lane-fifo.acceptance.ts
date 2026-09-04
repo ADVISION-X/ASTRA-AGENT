@@ -12,7 +12,8 @@ import {
   typedBrowserExecutionFailure,
 } from "../../src/lib/browser/browser-failure.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
-import { binding, CONFIRMED_EXACT_HASH, fixtureLease, HASH } from "./browser-lane-fifo-support.js";
+import { binding, CONFIRMED_EXACT_HASH, exerciseBrowserLaneScheduling, fixtureLease, HASH } from
+  "./browser-lane-fifo-support.js";
 
 const temporary = await mkdtemp(join(tmpdir(), "browser-lane-fifo-"));
 let supervisor: BrowserInfrastructureSupervisor | null = null;
@@ -183,8 +184,9 @@ try {
   };
   assert.equal(Reflect.set(supervisor, "broker", broker), true);
   const lane = Reflect.get(supervisor, "lane") as object;
+  const targetAcquirer = Reflect.get(lane, "targetAcquirer") as object;
   const targetAcquisitionRequests: Array<string | null> = [];
-  assert.equal(Reflect.set(lane, "acquireJobBoundTarget", async (
+  assert.equal(Reflect.set(targetAcquirer, "acquireJobBoundTarget", async (
     _commandTtlMs: number,
     targetRef: string | null,
   ): Promise<void> => {
@@ -440,110 +442,7 @@ try {
   leaseIdentities.delete("job:confirmed-target-local");
   leaseIdentities.delete("job:confirmed");
   acquisitions.length = 0;
-  const first = await supervisor.acquireJobBoundTargetLease(
-    binding("job:1"),
-    "owner:1",
-    { signal: openSignal.signal, remainingMs: () => 60_000 },
-  );
-  let secondResolved = false;
-  const secondPromise = supervisor
-    .acquireJobBoundTargetLease(binding("job:2"), "owner:2", {
-      signal: openSignal.signal,
-      remainingMs: () => 60_000,
-    })
-    .then((lease) => {
-      secondResolved = true;
-      return lease;
-    });
-  await Promise.resolve();
-  assert.equal(secondResolved, false);
-  assert.deepEqual(acquisitions, ["job:1"]);
-  assert.equal(supervisor.readBrowserLaneWaiterCount(), 1);
-  await first.close({ reason: "settled" });
-  const second = await secondPromise;
-  assert.deepEqual(acquisitions, ["job:1", "job:2"]);
-  await second.close({ reason: "settled" });
-  assert.equal(supervisor.readBrowserLaneState(), "idle");
-
-  const active = await supervisor.acquireJobBoundTargetLease(
-    binding("job:active"),
-    "owner:active",
-    { signal: openSignal.signal, remainingMs: () => 60_000 },
-  );
-  const aborted = new AbortController();
-  const abortedPromise = supervisor.acquireJobBoundTargetLease(
-    binding("job:aborted"),
-    "owner:aborted",
-    { signal: aborted.signal, remainingMs: () => 60_000 },
-  );
-  aborted.abort();
-  await assert.rejects(abortedPromise, /BROWSER_WAIT_ABORTED/u);
-  let remaining = 60_000;
-  const expiredPromise = supervisor.acquireJobBoundTargetLease(
-    binding("job:expired"),
-    "owner:expired",
-    { signal: openSignal.signal, remainingMs: () => remaining },
-  );
-  remaining = 0;
-  await assert.rejects(expiredPromise, /V6_DEADLINE_BUDGET_EXHAUSTED/u);
-  await active.close({ reason: "settled" });
-
-  const boundedActive = await supervisor.acquireJobBoundTargetLease(
-    binding("job:bounded-active"),
-    "owner:bounded-active",
-    { signal: openSignal.signal, remainingMs: () => 60_000 },
-  );
-  const waitingControllers = Array.from(
-    { length: 10 },
-    () => new AbortController(),
-  );
-  const laneSupervisor = supervisor;
-  const waiting = waitingControllers.map((controller, index) =>
-    laneSupervisor.acquireJobBoundTargetLease(
-      binding(`job:waiting-${index}`),
-      `owner:waiting-${index}`,
-      { signal: controller.signal, remainingMs: () => 60_000 },
-    ),
-  );
-  assert.equal(supervisor.readBrowserLaneWaiterCount(), 10);
-  await assert.rejects(
-    supervisor.acquireJobBoundTargetLease(
-      binding("job:overflow"),
-      "owner:overflow",
-      { signal: openSignal.signal, remainingMs: () => 60_000 },
-    ),
-    (error) => {
-      const failure = typedBrowserExecutionFailure(error);
-      assert.equal(failure?.status, "failed");
-      assert.equal(failure?.code, "BROWSER_BACKPRESSURE");
-      assert.equal(failure?.mutationOutcome, "no");
-      return true;
-    },
-  );
-  waitingControllers.forEach((controller) => controller.abort());
-  const waitingOutcomes = await Promise.allSettled(waiting);
-  assert(waitingOutcomes.every((outcome) => outcome.status === "rejected"));
-  await boundedActive.close({ reason: "settled" });
-
-  const unsettled = await supervisor.acquireJobBoundTargetLease(
-    binding("job:unsettled"),
-    "owner:unsettled",
-    { signal: openSignal.signal, remainingMs: () => 60_000 },
-  );
-  await assert.rejects(
-    unsettled.close({ reason: "unsettled" }),
-    /BROWSER_TARGET_LIFECYCLE_UNSETTLED/u,
-  );
-  assert.equal(supervisor.readBrowserLaneState(), "idle");
-  const afterLifecycleFault = await supervisor.acquireJobBoundTargetLease(
-    binding("job:after-lifecycle-fault"),
-    "owner:after-lifecycle-fault",
-    { signal: openSignal.signal, remainingMs: () => 60_000 },
-  );
-  await afterLifecycleFault.close({ reason: "settled" });
-  assert.equal(supervisor.readBrowserLaneState(), "idle",
-    "one job's lifecycle fault must be reported without permanently freezing the global FIFO lane");
-  assert.equal(supervisor.readBrowserLaneWaiterCount(), 0);
+  await exerciseBrowserLaneScheduling(supervisor, acquisitions);
 } finally {
   await supervisor?.stop();
   await rm(temporary, { recursive: true, force: true });

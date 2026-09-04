@@ -191,21 +191,13 @@ export const applyProfile = async (
   const reopen = { productStepId: stepId, callId: "profile-open-after-model", child: "open_gpt_execution_profile", actionOrdinal: ordinals[3], input: { profile } } as const;
   const reasoning = { productStepId: stepId, callId: "reasoning-select", child: "ensure_exact_gpt_reasoning_tier", actionOrdinal: ordinals[4], input: { profile } } as const;
   const close = { productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[5], input: { profile } } as const;
-  if (recoverOnly) {
-    await flow.requireEvidence(open);
-    await flow.requireEvidence(selector);
-    await flow.requireEvidence(model);
-    await flow.requireEvidence(reopen);
-    await flow.requireEvidence(reasoning);
-    await flow.requireEvidence(close);
-    return;
-  }
-  await flow.execute(open);
-  await flow.execute(selector);
-  await flow.execute(model);
-  await flow.execute(reopen);
-  await flow.execute(reasoning);
-  await flow.execute(close);
+  const apply = recoverOnly ? flow.requireEvidence : flow.execute;
+  await apply(open);
+  await apply(selector);
+  await apply(model);
+  await apply(reopen);
+  await apply(reasoning);
+  await apply(close);
 };
 
 export const applyAttachments = async (

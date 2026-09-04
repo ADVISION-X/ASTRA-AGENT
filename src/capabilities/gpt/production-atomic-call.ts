@@ -3,6 +3,7 @@ import {
   type GptAbilityGroup,
   type GptAnyChildCapabilityIntent,
   type GptChildCapabilityResult,
+  type GptExecutionContext,
 } from "./contract.js";
 import { ProductionGptBrowserLifecycle } from "./production-browser-lifecycle.js";
 import {
@@ -21,23 +22,28 @@ type AtomicGptCallInput = Readonly<{
   signal: AbortSignal;
 }>;
 
+const executionContext = (
+  input: AtomicGptCallInput,
+  browser: ProductionGptBrowserCall["facade"] | undefined,
+): GptExecutionContext => ({
+  dataDir: input.dataDir,
+  ...(browser ? { browser } : {}),
+  signal: input.signal,
+  continuationStore: input.store,
+  ...(input.browserCall ? {
+    yieldForProviderWait: (durationMs: number) => input.browsers.yieldForProviderWait(
+      input.browserCall!, input.intent.productStepId, input.intent.callId,
+      input.intent.childCapabilityId, durationMs,
+    ),
+  } : {}),
+});
+
 export const executeProductionGptAtomicCall = async (
   input: AtomicGptCallInput,
 ): Promise<Readonly<{ result: GptChildCapabilityResult; resolveDispatched: boolean }>> => {
   const { dataDir, gpt, store, browsers, intent, browserCall, signal } = input;
   const browser = browserCall?.facade;
-  const context = {
-    dataDir,
-    ...(browser ? { browser } : {}),
-    signal,
-    continuationStore: store,
-    ...(browserCall ? {
-      yieldForProviderWait: (durationMs: number) => browsers.yieldForProviderWait(
-        browserCall, intent.productStepId, intent.callId,
-        intent.childCapabilityId, durationMs,
-      ),
-    } : {}),
-  };
+  const context = executionContext(input, browser);
   if (!browser) return { result: await gpt.execute(intent, context), resolveDispatched: false };
   const replayPolicy = GPT_CHILD_CAPABILITY_CONTRACTS[intent.childCapabilityId].replayPolicy;
   if (replayPolicy === "transaction-identical-readback") {

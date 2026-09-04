@@ -2,156 +2,8 @@ import { Node, SyntaxKind, type ClassDeclaration, type Node as MorphNode, type S
 
 import { astExpressionPath, astIdentifierName } from "../../shared/ast-node-identity.js";
 import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
-import { createLocalFinding, extensionFileInputPath, identifiers, requireIdentifiers, requireSource,
-  sourcePaths, stringLiterals, targetAuthorityPath } from "./inspector-support.js";
-
-type RegistryMutationSources = Readonly<Record<
-  "actor" | "broker" | "commandActor" | "domRuntime" | "fileInput" | "manager" | "mutationStore" | "registry" | "runtimeExecutor" | "targetAuthority",
-  SourceFile
->>;
-
-const requireRegistryMutationSources = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  lawId: string,
-): RegistryMutationSources | null => {
-  const paths = [sourcePaths[1], targetAuthorityPath, extensionFileInputPath, sourcePaths[8], sourcePaths[6], sourcePaths[7], sourcePaths[5], sourcePaths[18], sourcePaths[19], "src/lib/local-runtime/production/executor.ts"];
-  const sources = paths.map((path) => requireSource(context, findings, lawId, path));
-  if (sources.some((source) => source === null)) return null;
-  const [actor, targetAuthority, fileInput, registry, commandActor, mutationStore, manager, broker, domRuntime, runtimeExecutor] = sources.map((source) => source!) as [SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile];
-  return { actor, targetAuthority, fileInput, registry, commandActor, mutationStore, manager, broker, domRuntime, runtimeExecutor };
-};
-const inspectExtensionExecutionBoundary = (
-  sources: RegistryMutationSources,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  const actorStrings = new Set([
-    ...stringLiterals(sources.actor), ...stringLiterals(sources.targetAuthority), ...stringLiterals(sources.fileInput),
-  ]);
-  if (!actorStrings.has("DOM.setFileInputFiles") || !actorStrings.has("#upload-files")) {
-    findings.push(createLocalFinding({
-      checkId: "browser-authority/terminal-authority",
-      lawId,
-      filePath: extensionFileInputPath,
-      message: "The extension file-input command must use one observed #upload-files target and DOM.setFileInputFiles.",
-    }));
-  }
-  if (identifiers(sources.domRuntime).has("DOMParser")) {
-    findings.push(createLocalFinding({
-      checkId: "browser-authority/terminal-authority",
-      lawId,
-      filePath: sourcePaths[19],
-      message: "The DOM intent executor must use the deterministic CDP node tree and cannot retain DOMParser.",
-    }));
-  }
-  const forbiddenExecutors = new Set(["eval", "Function", "executeScript"]);
-  const forbidden = sources.actor.getDescendantsOfKind(SyntaxKind.CallExpression).find((call) => {
-    const expression = call.getExpression();
-    const name = Node.isIdentifier(expression) ? astIdentifierName(expression) : undefined;
-    return name !== undefined && forbiddenExecutors.has(name);
-  });
-  if (forbidden) findings.push(createLocalFinding({
-    checkId: "browser-authority/terminal-authority",
-    lawId,
-    filePath: sourcePaths[1],
-    line: forbidden.getStartLineNumber(),
-    message: "The fixed extension command actor must not execute arbitrary code.",
-  }));
-};
-
-export const inspectRegistryAndMutationBoundary = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  const sources = requireRegistryMutationSources(context, findings, lawId);
-  if (!sources) return;
-  const allIdentifiers = new Set([
-    ...identifiers(sources.actor),
-    ...identifiers(sources.targetAuthority),
-    ...identifiers(sources.registry),
-    ...identifiers(sources.commandActor),
-    ...identifiers(sources.mutationStore),
-    ...identifiers(sources.manager),
-    ...identifiers(sources.broker),
-    ...identifiers(sources.runtimeExecutor),
-  ]);
-  const mutationLiterals = stringLiterals(sources.mutationStore);
-  for (const required of [
-    "admitExtensionCommand",
-    "executeRegisteredCommand",
-    "BrowserMutationStore",
-    "requestHash",
-    "payloadHash",
-    "proofHash",
-    "exactCallIdentityHash",
-    "pluginVersion",
-    "terminalAt",
-    "readExactCallMutationFact",
-    "logicalMutationId",
-    "productStepId",
-    "callId",
-    "childCapabilityId",
-    "inputHash",
-    "effectScope",
-    "actionOrdinal",
-    "positivePostconditionHash",
-    "negativePostconditionHash",
-    "PREPARED",
-    "DISPATCHED",
-    "REJECTED",
-    "BrowserExecutionArtifactBinding",
-    "bindExecutionArtifacts",
-    "resolveBoundArtifact",
-    "hashBrowserAuthorityCertificate",
-    "authorityRefHash",
-    "certificateHash",
-    "issueFileArtifactGrant",
-    "resolveGrantPaths",
-    "resolvedFilePaths",
-  ]) {
-    if (!allIdentifiers.has(required) && !mutationLiterals.includes(required)) {
-      findings.push(createLocalFinding({
-        checkId: "browser-authority/terminal-authority",
-        lawId,
-        filePath: sourcePaths[7],
-        message: `The registry/mutation chain must contain ${required}.`,
-      }));
-    }
-  }
-  const runtimeBindingConsumer = sources.runtimeExecutor.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .some((call) => call.getExpression().getText() === "this.browserAuthority.bindExecutionArtifacts"
-      && call.getText().includes("localPath: material.local_path"));
-  if (!runtimeBindingConsumer) findings.push(createLocalFinding({
-    checkId: "browser-authority/execution-artifact-binding",
-    lawId,
-    filePath: "src/lib/local-runtime/production/executor.ts",
-    message: "Runtime production execution must bind each task-local material through the Browser public execution-scoped facade.",
-  }));
-  const brokerIdentifiers = identifiers(sources.broker);
-  for (const forbidden of ["BrowserArtifactRegistry", "copyFile", "rename"]) {
-    if (!brokerIdentifiers.has(forbidden)) continue;
-    findings.push(createLocalFinding({
-      checkId: "browser-authority/execution-artifact-binding",
-      lawId,
-      filePath: sourcePaths[18],
-      message: `Browser must not retain private artifact persistence/copy primitive ${forbidden}.`,
-    }));
-  }
-  const retiredIdentifiers = ["markSent", "markUnknown", "unknownForBinding", "readUnknown"];
-  const retiredLiterals = ["SENT", "UNKNOWN", "BROWSER_OUTCOME_UNKNOWN"];
-  for (const retired of [...retiredIdentifiers.filter((name) => allIdentifiers.has(name)),
-    ...retiredLiterals.filter((value) => mutationLiterals.includes(value))]) {
-    findings.push(createLocalFinding({
-      checkId: "browser-authority/retired-mutation-chain",
-      lawId,
-      filePath: sourcePaths[7],
-      message: `The retired Browser mutation token ${retired} must be physically absent.`,
-    }));
-  }
-  inspectExtensionExecutionBoundary(sources, findings, lawId);
-};
+import { createLocalFinding, identifiers, requireIdentifiers, requireSource,
+  sourcePaths, stringLiterals } from "./inspector-support.js";
 
 export const inspectAtomicIfAndThenBoundary = (
   context: InspectorContext,
@@ -415,17 +267,12 @@ export const inspectCompactMutationRecoveryBoundary = (
   }
 };
 
-export const inspectJobScopedMutationRecovery = (
-  context: InspectorContext,
+const inspectLaneRecoveryContract = (
+  lane: SourceFile,
+  lanePath: string,
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  const lanePath = "src/lib/browser/infrastructure/browser-lane-coordinator.ts";
-  const laneAcceptancePath = "scripts/acceptance/browser-lane-fifo.acceptance.ts";
-  const lane = requireSource(context, findings, lawId, lanePath);
-  const laneAcceptance = requireSource(context, findings, lawId, laneAcceptancePath);
-  const actor = requireSource(context, findings, lawId, sourcePaths[6]);
-  if (!lane || !laneAcceptance || !actor) return;
   requireIdentifiers(lane, ["callRecoveryScope", "recovery", "park", "pump", "quarantine",
     "refreshQuarantine", "rejectLostTargetLocalDocument", "settleLostTargetLocalDocument",
     "observeCurrentTargetClaim"], findings, lawId,
@@ -450,6 +297,23 @@ export const inspectJobScopedMutationRecovery = (
       message: `Confirmed Provider readback recovery must retain ${required}.`,
     }));
   }
+  for (const retired of ["private unsettled", "acquireReconciliation", "reconciliationAllowed"]) {
+    if (!laneText.includes(retired)) continue;
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/job-scoped-recovery",
+      lawId,
+      filePath: lanePath,
+      message: `The retired global Browser recovery gate ${retired} must be physically absent.`,
+    }));
+  }
+};
+
+const inspectLaneRecoveryAcceptance = (
+  laneAcceptance: SourceFile,
+  laneAcceptancePath: string,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
   const laneAcceptanceText = laneAcceptance.getFullText();
   for (const required of [
     '["target:confirmed", null]',
@@ -470,15 +334,13 @@ export const inspectJobScopedMutationRecovery = (
       message: `Browser lane acceptance must prove ${required}.`,
     }));
   }
-  for (const retired of ["private unsettled", "acquireReconciliation", "reconciliationAllowed"]) {
-    if (!laneText.includes(retired)) continue;
-    findings.push(createLocalFinding({
-      checkId: "browser-authority/job-scoped-recovery",
-      lawId,
-      filePath: lanePath,
-      message: `The retired global Browser recovery gate ${retired} must be physically absent.`,
-    }));
-  }
+};
+
+const inspectActorEffectScope = (
+  actor: SourceFile,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
   const actorText = actor.getFullText();
   for (const required of [
     "provider_effect", "target_local", 'effectScope === "target_local" ? [permit.targetRef] : []',
@@ -492,4 +354,20 @@ export const inspectJobScopedMutationRecovery = (
       message: `Browser logical mutation identity is missing ${required}.`,
     }));
   }
+};
+
+export const inspectJobScopedMutationRecovery = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const lanePath = "src/lib/browser/infrastructure/browser-lane-coordinator.ts";
+  const laneAcceptancePath = "scripts/acceptance/browser-lane-fifo.acceptance.ts";
+  const lane = requireSource(context, findings, lawId, lanePath);
+  const laneAcceptance = requireSource(context, findings, lawId, laneAcceptancePath);
+  const actor = requireSource(context, findings, lawId, sourcePaths[6]);
+  if (!lane || !laneAcceptance || !actor) return;
+  inspectLaneRecoveryContract(lane, lanePath, findings, lawId);
+  inspectLaneRecoveryAcceptance(laneAcceptance, laneAcceptancePath, findings, lawId);
+  inspectActorEffectScope(actor, findings, lawId);
 };

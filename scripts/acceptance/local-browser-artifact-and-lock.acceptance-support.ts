@@ -20,12 +20,71 @@ const prepareArtifactFixture = async () => {
   await writeFile(stagedFile, "approved-browser-artifact", "utf8");
   const approvedBytes = await readFile(stagedFile);
   const approvedHash = `sha256:${createHash("sha256").update(approvedBytes).digest("hex")}` as const;
-  return { fixture, stagedFile, approvedBytes, approvedHash };
+  const approvedRealPath = await realpath(stagedFile);
+  return { fixture, stagedFile, approvedBytes, approvedHash, approvedRealPath };
+};
+
+const verifyBoundArtifactLifecycle = async (input: Readonly<{
+  approvedBytes: Buffer;
+  approvedHash: `sha256:${string}`;
+  approvedRealPath: string;
+  binding: BrowserExecutionBinding;
+  broker: BrowserAuthorityBroker;
+  grantResolverCapture: {
+    current?: (grants: readonly BrowserFileArtifactGrantV1[]) => Promise<readonly string[]>;
+  };
+  stagedFile: string;
+}>): Promise<void> => {
+  const { approvedBytes, approvedHash, approvedRealPath, binding, broker, grantResolverCapture,
+    stagedFile } = input;
+    const bindingLease = await broker.bindExecutionArtifacts({
+      binding,
+      artifacts: [{
+        artifactRef: "approved", localPath: stagedFile,
+        contentHash: approvedHash, sizeBytes: approvedBytes.byteLength,
+      }],
+    });
+    const authorityLease = await broker.acquireForExecution(binding);
+    const grant = await authorityLease.issueFileArtifactGrant({
+      artifactRef: "approved", expectedSha256: approvedHash, maxBytes: approvedBytes.byteLength,
+    });
+    const resolver = grantResolverCapture.current;
+    if (!resolver) throw new Error("BROWSER_FILE_GRANT_INVALID");
+    assert.deepEqual(await resolver([grant]), [approvedRealPath],
+      "Browser must resolve the Runtime-owned task file without copying it into a private registry");
+    await writeFile(stagedFile, "tampered-browser-artifact", "utf8");
+    await assert.rejects(resolver([grant]), /BROWSER_FILE_GRANT_INVALID/u,
+      "file-input path resolution must revalidate bytes after grant issue and immediately before dispatch");
+    await assert.rejects(authorityLease.issueFileArtifactGrant({
+      artifactRef: "approved", expectedSha256: approvedHash, maxBytes: approvedBytes.byteLength,
+    }), /BROWSER_FILE_GRANT_INVALID/u, "grant issue must revalidate the current task file bytes");
+    await writeFile(stagedFile, approvedBytes);
+    bindingLease.release();
+    await assert.rejects(authorityLease.issueFileArtifactGrant({
+      artifactRef: "approved", expectedSha256: approvedHash, maxBytes: approvedBytes.byteLength,
+    }), /BROWSER_FILE_GRANT_INVALID/u, "execution settlement must invalidate its artifact binding");
+    await authorityLease.release();
+};
+
+const verifyRestartHasNoArtifactBinding = async (
+  issuer: BrowserAuthorityIssuer,
+  binding: BrowserExecutionBinding,
+  approvedHash: `sha256:${string}`,
+  approvedBytes: Buffer,
+): Promise<void> => {
+    const restartedBroker = new BrowserAuthorityBroker(
+      issuer, () => undefined,
+      () => Object.freeze({ acquire: () => { throw new Error("not acquired"); } }),
+    );
+    const restartedLease = await restartedBroker.acquireForExecution(binding);
+    await assert.rejects(restartedLease.issueFileArtifactGrant({
+      artifactRef: "approved", expectedSha256: approvedHash, maxBytes: approvedBytes.byteLength,
+    }), /BROWSER_FILE_GRANT_INVALID/u, "Browser restart must not retain task-local artifact paths");
 };
 
 const verifyExecutionScopedArtifactBinding = async (): Promise<void> => {
   const prepared = await prepareArtifactFixture();
-  const { fixture, stagedFile, approvedBytes, approvedHash } = prepared;
+  const { fixture, stagedFile, approvedBytes, approvedHash, approvedRealPath } = prepared;
   const issuer = new BrowserAuthorityIssuer();
   Reflect.set(issuer, "slot", {
     kind: "PRESENT",
@@ -34,16 +93,12 @@ const verifyExecutionScopedArtifactBinding = async (): Promise<void> => {
   const grantResolverCapture: {
     current?: (grants: readonly BrowserFileArtifactGrantV1[]) => Promise<readonly string[]>;
   } = {};
-  const broker = new BrowserAuthorityBroker(
-    issuer,
-    () => undefined,
-    (_binding, resolver) => {
-      grantResolverCapture.current = resolver;
-      return Object.freeze({
-        acquire: () => { throw new Error("target lease acquisition is outside this artifact acceptance"); },
-      });
-    },
-  );
+  const broker = new BrowserAuthorityBroker(issuer, () => undefined, (_binding, resolver) => {
+    grantResolverCapture.current = resolver;
+    return Object.freeze({
+      acquire: () => { throw new Error("target lease acquisition is outside this artifact acceptance"); },
+    });
+  });
   const status = broker.currentStatus();
   assert.equal(status.kind, "AVAILABLE");
   if (status.kind !== "AVAILABLE") throw new Error("BROWSER_AUTHENTICATION_INCOMPLETE");
@@ -61,41 +116,9 @@ const verifyExecutionScopedArtifactBinding = async (): Promise<void> => {
     candidateHash: approvedHash, commandTtlMs: 5_000,
   };
   try {
-    const bindingLease = await broker.bindExecutionArtifacts({
-      binding,
-      artifacts: [{
-        artifactRef: "approved", localPath: stagedFile,
-        contentHash: approvedHash, sizeBytes: approvedBytes.byteLength,
-      }],
-    });
-    const authorityLease = await broker.acquireForExecution(binding);
-    const grant = await authorityLease.issueFileArtifactGrant({
-      artifactRef: "approved", expectedSha256: approvedHash, maxBytes: approvedBytes.byteLength,
-    });
-    const resolver = grantResolverCapture.current;
-    if (!resolver) throw new Error("BROWSER_FILE_GRANT_INVALID");
-    assert.deepEqual(await resolver([grant]), [await realpath(stagedFile)],
-      "Browser must resolve the Runtime-owned task file without copying it into a private registry");
-    await writeFile(stagedFile, "tampered-browser-artifact", "utf8");
-    await assert.rejects(resolver([grant]), /BROWSER_FILE_GRANT_INVALID/u,
-      "file-input path resolution must revalidate bytes after grant issue and immediately before dispatch");
-    await assert.rejects(authorityLease.issueFileArtifactGrant({
-      artifactRef: "approved", expectedSha256: approvedHash, maxBytes: approvedBytes.byteLength,
-    }), /BROWSER_FILE_GRANT_INVALID/u, "grant issue must revalidate the current task file bytes");
-    await writeFile(stagedFile, approvedBytes);
-    bindingLease.release();
-    await assert.rejects(authorityLease.issueFileArtifactGrant({
-      artifactRef: "approved", expectedSha256: approvedHash, maxBytes: approvedBytes.byteLength,
-    }), /BROWSER_FILE_GRANT_INVALID/u, "execution settlement must invalidate its artifact binding");
-    await authorityLease.release();
-    const restartedBroker = new BrowserAuthorityBroker(
-      issuer, () => undefined,
-      () => Object.freeze({ acquire: () => { throw new Error("not acquired"); } }),
-    );
-    const restartedLease = await restartedBroker.acquireForExecution(binding);
-    await assert.rejects(restartedLease.issueFileArtifactGrant({
-      artifactRef: "approved", expectedSha256: approvedHash, maxBytes: approvedBytes.byteLength,
-    }), /BROWSER_FILE_GRANT_INVALID/u, "Browser restart must not retain task-local artifact paths");
+    await verifyBoundArtifactLifecycle({ approvedBytes, approvedHash, approvedRealPath, binding,
+      broker, grantResolverCapture, stagedFile });
+    await verifyRestartHasNoArtifactBinding(issuer, binding, approvedHash, approvedBytes);
   } finally {
     await rm(fixture, { recursive: true, force: true });
   }

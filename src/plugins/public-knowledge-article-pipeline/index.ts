@@ -145,18 +145,7 @@ const produceResearchTurn = async (
       currentCheckpoint: continuationTextCheckpoint(context.gpt.attemptId, checkpoint),
       frontier: {
         frontierRef,
-        originCheckpoint: {
-          sourceAttemptId: context.gpt.attemptId,
-          assistantTurnId: checkpoint.assistantTurnId,
-          artifactRef: checkpoint.artifactRef,
-          rawDomHash: checkpoint.rawDomHash,
-          semanticTextHash: checkpoint.semanticTextHash,
-          canonicalConversationUrl: checkpoint.canonicalConversationUrl,
-          promptHash: checkpoint.promptHash,
-          turnMarker: checkpoint.turnMarker,
-          evidenceRef: checkpoint.evidenceRef,
-          evidenceHash: checkpoint.evidenceHash,
-        },
+        originCheckpoint: continuationTextCheckpoint(context.gpt.attemptId, checkpoint),
       },
     },
   });

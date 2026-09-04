@@ -7,11 +7,9 @@ import { typedExecutionFailure } from "../../../src/lib/execution-failure.js";
 import { postSubmitReadbackReceipt } from "../../../src/mediator/product-plugin-contract.js";
 import { productionRoutePolicy } from "../../../src/lib/local-runtime/production/route-policy.js";
 import { parsePublicKnowledgeArticle, parsePublicKnowledgeResearch } from "../../../src/plugins/public-knowledge-article-pipeline/result-contract.js";
-import {
-  articleOutput,
-  exerciseSeoFlow,
-  researchOutput,
-} from "./public-knowledge-article-pipeline.test-runtime.js";
+import { exerciseSeoFlow } from "./public-knowledge-article-pipeline.test-runtime.js";
+import { articleOutput, researchOutput } from
+  "./public-knowledge-article-pipeline-output-fixtures.js";
 import {
   exerciseSeoArticleFrontierResume,
   exerciseSeoConfirmedImageSubmitResume,

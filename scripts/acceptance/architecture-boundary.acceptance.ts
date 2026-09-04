@@ -75,7 +75,6 @@ for (const [checkId, source] of mutants) {
   const sourceFile = project.createSourceFile(
     resolve("src/lib/local-runtime/browser-private-import-mutant.ts"),
     'import type { BrowserMutationStore } from "../browser/exact-target/browser-mutation-store.js";\nexport type Mutant = BrowserMutationStore;\n',
-    { overwrite: true },
   );
   const findings: Parameters<typeof inspectRuntimeBrowserPrivateImports>[0] = [];
   inspectRuntimeBrowserPrivateImports(

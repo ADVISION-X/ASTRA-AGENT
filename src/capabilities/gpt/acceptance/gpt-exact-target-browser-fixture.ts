@@ -159,6 +159,69 @@ const markDispatchedMutation = (state: FakeBrowserState): void => {
   });
 };
 
+const throwFakeMutationFailure = (
+  state: FakeBrowserState,
+  mutationOutcome: "no" | "dispatched" | "confirmed",
+  browserOutcome: "DISPATCHED" | "REJECTED",
+  failureCode: string,
+  nativeCauseCode: string | null,
+): never => {
+  const cause = nativeCauseCode
+    ? Object.assign(new Error(nativeCauseCode), { code: nativeCauseCode }) : undefined;
+  throw browserExecutionFailure(new Error(failureCode, { ...(cause ? { cause } : {}) }), mutationOutcome, {
+    effectScope: state.atomicIdentity?.replayPolicy === "provider-effect-once"
+      ? "provider_effect" : "target_local",
+    childCapabilityId: state.atomicIdentity?.childCapabilityId ?? "unknown",
+    browserOutcome,
+  });
+};
+
+const fakeResultRecord = (value: unknown): Readonly<Record<string, unknown>> | null =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? value as Readonly<Record<string, unknown>> : null;
+
+const fakeMutationCount = (result: Readonly<Record<string, unknown>> | null): number => {
+  const declared = result?.mutationCount;
+  return Number.isSafeInteger(declared) ? Number(declared) : 1;
+};
+
+const fakeFailureDetails = (
+  result: Readonly<Record<string, unknown>>,
+  fallback: string,
+): Readonly<{ failureCode: string; nativeCauseCode: string | null }> => ({
+  failureCode: typeof result.failureCode === "string" ? result.failureCode : fallback,
+  nativeCauseCode: typeof result.nativeCauseCode === "string" ? result.nativeCauseCode : null,
+});
+
+const rejectFakeMutation = (
+  state: FakeBrowserState,
+  result: Readonly<Record<string, unknown>>,
+  mutationOutcome: "no" | "dispatched" | "confirmed",
+  fallback: string,
+): never => {
+  const { failureCode, nativeCauseCode } = fakeFailureDetails(result, fallback);
+  markRejectedMutation(state, mutationOutcome, failureCode, nativeCauseCode);
+  return throwFakeMutationFailure(state, mutationOutcome, "REJECTED", failureCode, nativeCauseCode);
+};
+
+const settleFakeMutation = (state: FakeBrowserState, value: unknown): void => {
+  const result = fakeResultRecord(value);
+  const mutationCount = fakeMutationCount(result);
+  state.physicalMutations += mutationCount;
+  const mutationOutcome = mutationCount === 0 ? "no" as const : "confirmed" as const;
+  if (result?.terminalRejectedDispatched === true) {
+    rejectFakeMutation(state, result, "dispatched", "BROWSER_CAPABILITY_REJECTED");
+  }
+  if (result?.receiptMissing === true) {
+    markDispatchedMutation(state);
+    throwFakeMutationFailure(state, "dispatched", "DISPATCHED", "BROWSER_COMMAND_RECEIPT_MISSING", null);
+  }
+  if (result?.postconditionVerified === false) {
+    rejectFakeMutation(state, result, mutationOutcome, "BROWSER_POSTCONDITION_FAILED");
+  }
+  markConfirmedMutation(state, mutationOutcome);
+};
+
 const executeFakeDomIntent = async (
   responder: DomResponder,
   state: FakeBrowserState,
@@ -167,53 +230,7 @@ const executeFakeDomIntent = async (
   state.domCalls += 1;
   const mutates = ["click", "hover", "doubleClick", "keypress", "fill"].includes(intent.kind);
   const value = await responder(intent, state.domCalls);
-  if (mutates) {
-    const result = value && typeof value === "object" && !Array.isArray(value) ? value : null;
-    const declaredMutationCount = result ? Reflect.get(result, "mutationCount") : undefined;
-    const mutationCount = Number.isSafeInteger(declaredMutationCount) ? Number(declaredMutationCount) : 1;
-    state.physicalMutations += mutationCount;
-    const mutationOutcome = mutationCount === 0 ? "no" as const : "confirmed" as const;
-    if (result && Reflect.get(result, "terminalRejectedDispatched") === true) {
-      const failureCode = typeof Reflect.get(result, "failureCode") === "string"
-        ? String(Reflect.get(result, "failureCode")) : "BROWSER_CAPABILITY_REJECTED";
-      const nativeCauseCode = typeof Reflect.get(result, "nativeCauseCode") === "string"
-        ? String(Reflect.get(result, "nativeCauseCode")) : null;
-      markRejectedMutation(state, "dispatched", failureCode, nativeCauseCode);
-      const cause = nativeCauseCode
-        ? Object.assign(new Error(nativeCauseCode), { code: nativeCauseCode }) : undefined;
-      throw browserExecutionFailure(new Error(failureCode, { ...(cause ? { cause } : {}) }), "dispatched", {
-        effectScope: state.atomicIdentity?.replayPolicy === "provider-effect-once"
-          ? "provider_effect" : "target_local",
-        childCapabilityId: state.atomicIdentity?.childCapabilityId ?? "unknown",
-        browserOutcome: "REJECTED",
-      });
-    }
-    if (result && Reflect.get(result, "receiptMissing") === true) {
-      markDispatchedMutation(state);
-      throw browserExecutionFailure(new Error("BROWSER_COMMAND_RECEIPT_MISSING"), "dispatched", {
-        effectScope: state.atomicIdentity?.replayPolicy === "provider-effect-once"
-          ? "provider_effect" : "target_local",
-        childCapabilityId: state.atomicIdentity?.childCapabilityId ?? "unknown",
-        browserOutcome: "DISPATCHED",
-      });
-    }
-    if (result && Reflect.get(result, "postconditionVerified") === false) {
-      const failureCode = typeof Reflect.get(result, "failureCode") === "string"
-        ? String(Reflect.get(result, "failureCode")) : "BROWSER_POSTCONDITION_FAILED";
-      const nativeCauseCode = typeof Reflect.get(result, "nativeCauseCode") === "string"
-        ? String(Reflect.get(result, "nativeCauseCode")) : null;
-      markRejectedMutation(state, mutationOutcome, failureCode, nativeCauseCode);
-      const cause = nativeCauseCode
-        ? Object.assign(new Error(nativeCauseCode), { code: nativeCauseCode }) : undefined;
-      throw browserExecutionFailure(new Error(failureCode, { ...(cause ? { cause } : {}) }), mutationOutcome, {
-        effectScope: state.atomicIdentity?.replayPolicy === "provider-effect-once"
-          ? "provider_effect" : "target_local",
-        childCapabilityId: state.atomicIdentity?.childCapabilityId ?? "unknown",
-        browserOutcome: "REJECTED",
-      });
-    }
-    markConfirmedMutation(state, mutationOutcome);
-  }
+  if (mutates) settleFakeMutation(state, value);
   if (intent.kind !== "document" || !value || typeof value !== "object" || Array.isArray(value)) return value;
   const nextUrl = Reflect.get(value, "url");
   if (typeof nextUrl === "string" && nextUrl !== state.url) {

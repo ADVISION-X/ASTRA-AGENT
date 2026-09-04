@@ -58,6 +58,17 @@ export type BrowserInfrastructureSupervisorOptions = Readonly<{
   runtimeLogger: RuntimeLogger;
 }>;
 
+const emitInfrastructureFailure = (
+  options: BrowserInfrastructureSupervisorOptions,
+  state: ReturnType<typeof createBrowserInfrastructureState>,
+  reasonCode: string,
+  source: string,
+  nativeCauseCode?: string,
+): void => {
+  new BrowserRuntimeLogEmitter(options.runtimeLogger, () => state.connectionGeneration)
+    .failure(reasonCode, source, nativeCauseCode);
+};
+
 export class BrowserInfrastructureSupervisor {
   private readonly issuer = new BrowserAuthorityIssuer();
   private readonly transport = new BrowserTransportActor(this.issuer);
@@ -65,7 +76,6 @@ export class BrowserInfrastructureSupervisor {
   private readonly broker: BrowserAuthorityBroker;
   private readonly websocket: BrowserAuthorityWebSocket;
   private readonly state = createBrowserInfrastructureState();
-  private readonly logs: BrowserRuntimeLogEmitter;
   private readonly lane: BrowserLaneCoordinator;
 
   public constructor(private readonly options: BrowserInfrastructureSupervisorOptions) {
@@ -92,7 +102,6 @@ export class BrowserInfrastructureSupervisor {
           binding, resolveGrantPaths, resolveCurrentTarget, issueApprovedArtifactGrants,
         ),
     );
-    this.logs = new BrowserRuntimeLogEmitter(options.runtimeLogger, () => this.state.connectionGeneration);
     this.lane = new BrowserLaneCoordinator(
       () => this.broker, this.websocket, this.issuer, this.state, options.runtimeLogger,
     );
@@ -114,7 +123,8 @@ export class BrowserInfrastructureSupervisor {
       && refs.targetRef) {
       this.websocket.rejectTargetCommands(refs.targetRef, reasonCode, refs.nativeCauseCode);
     }
-    this.logs.failure(reasonCode, refs.runtimeEventType ?? "extension-diagnostic", refs.nativeCauseCode);
+    emitInfrastructureFailure(this.options, this.state, reasonCode,
+      refs.runtimeEventType ?? "extension-diagnostic", refs.nativeCauseCode);
   }
 
   private onRevoked(reasonCode: string, refs?: Readonly<Record<string, string>>): void {
@@ -122,7 +132,8 @@ export class BrowserInfrastructureSupervisor {
       || refs?.diagnosticSource === "extension-runtime";
     this.lane.rejectPending(reasonCode);
     this.disconnectTransport(normalizeBrowserDisconnectReason(reasonCode));
-    this.logs.failure(reasonCode, extensionFailure ? "extension-runtime" : "authority-revoked");
+    emitInfrastructureFailure(this.options, this.state, reasonCode,
+      extensionFailure ? "extension-runtime" : "authority-revoked");
   }
 
   public async start(): Promise<void> {

@@ -216,28 +216,14 @@ export const exerciseBrowserRejectedDispatchedEvidenceReadback = async (): Promi
   await exerciseFailedEvidenceReadback(result, Object.freeze({ timeoutMs: 1_000 }), serialized!);
 };
 
-export const exerciseBrowserDispatchedEvidenceReadback = async (): Promise<void> => {
-  const { execute } = createGptAcceptanceHarness("gpt-browser-dispatched-evidence");
-  const fixture = fakeBrowser((intent) => {
-    if (intent.kind === "observe") return coherentObservationPacket(intent, {
-      composer: Object.freeze({ rawCount: 1, eligibleCount: 1,
-        matches: Object.freeze([{ semanticTextHash: hash("stale draft") }]) }),
-    });
-    if (intent.kind === "fill") return { mutationCount: 1, receiptMissing: true };
-    throw new Error(`UNEXPECTED_DISPATCHED_CLEAN_CHAT_INTENT:${intent.kind}`);
-  });
-  const result = await execute("prepare_clean_gpt_chat", fixture.browser, { timeoutMs: 1_000 });
-  assert.equal(result.status, "failed");
-  assert.equal(result.failureCode, "BROWSER_COMMAND_RECEIPT_MISSING");
-  assert.equal(result.proof.committedMutation, "dispatched");
-  assert.equal(result.proof.postconditionResult, "pending");
-  assert.equal(result.proof.browserFact?.browserOutcome, "DISPATCHED");
-  assert.equal(result.proof.browserFact?.mutationOutcome, "dispatched");
-  assert.equal(result.proof.browserFact?.evidenceRef, "browser-mutation:acceptance-call");
-  const intent = intentFor<"prepare_clean_gpt_chat">(
-    result, Object.freeze({ timeoutMs: 1_000 }),
-  );
-  const persistence = evidenceHarness();
+type CleanChatResult = GptChildCapabilityResult<"prepare_clean_gpt_chat">;
+type CleanChatIntent = GptChildCapabilityIntent<"prepare_clean_gpt_chat">;
+
+const assertPendingDispatchedPersistence = async (
+  result: CleanChatResult,
+  intent: CleanChatIntent,
+  persistence: ReturnType<typeof evidenceHarness>,
+): Promise<void> => {
   await persistGptChildEvidence({
     result, intent, evidenceStore: persistence.evidenceStore,
     jobId: result.proof.jobId, attemptId: result.proof.attemptId,
@@ -261,7 +247,13 @@ export const exerciseBrowserDispatchedEvidenceReadback = async (): Promise<void>
     evidence_ref: "browser-mutation:acceptance-call",
     evidence_hash: `sha256:${"9".repeat(64)}`,
   });
+};
 
+const assertDispatchedAtomicRecovery = async (
+  result: CleanChatResult,
+  intent: CleanChatIntent,
+  fixture: ReturnType<typeof fakeBrowser>,
+): Promise<void> => {
   const readback = Object.freeze({
     ...result,
     proof: Object.freeze({
@@ -275,7 +267,7 @@ export const exerciseBrowserDispatchedEvidenceReadback = async (): Promise<void>
     failureCode: "GPT_CHAT_DRAFT_CLEAR_FAILED",
     failureCause: Object.freeze({ name: "Error", code: "GPT_CHAT_ATTACHMENT_PRESENT" }),
     failureBrowserEffect: null,
-  }) as GptChildCapabilityResult<"prepare_clean_gpt_chat">;
+  }) as CleanChatResult;
   const atomic = await executeProductionGptAtomicCall({
     dataDir: "/tmp/gpt-dispatched-readback",
     gpt: Object.freeze({
@@ -305,4 +297,30 @@ export const exerciseBrowserDispatchedEvidenceReadback = async (): Promise<void>
     evidence_hash: `sha256:${"9".repeat(64)}`,
     cause: { name: "Error", code: "GPT_CHAT_ATTACHMENT_PRESENT" },
   });
+};
+
+export const exerciseBrowserDispatchedEvidenceReadback = async (): Promise<void> => {
+  const { execute } = createGptAcceptanceHarness("gpt-browser-dispatched-evidence");
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, {
+      composer: Object.freeze({ rawCount: 1, eligibleCount: 1,
+        matches: Object.freeze([{ semanticTextHash: hash("stale draft") }]) }),
+    });
+    if (intent.kind === "fill") return { mutationCount: 1, receiptMissing: true };
+    throw new Error(`UNEXPECTED_DISPATCHED_CLEAN_CHAT_INTENT:${intent.kind}`);
+  });
+  const result = await execute("prepare_clean_gpt_chat", fixture.browser, { timeoutMs: 1_000 });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, "BROWSER_COMMAND_RECEIPT_MISSING");
+  assert.equal(result.proof.committedMutation, "dispatched");
+  assert.equal(result.proof.postconditionResult, "pending");
+  assert.equal(result.proof.browserFact?.browserOutcome, "DISPATCHED");
+  assert.equal(result.proof.browserFact?.mutationOutcome, "dispatched");
+  assert.equal(result.proof.browserFact?.evidenceRef, "browser-mutation:acceptance-call");
+  const intent = intentFor<"prepare_clean_gpt_chat">(
+    result, Object.freeze({ timeoutMs: 1_000 }),
+  );
+  const persistence = evidenceHarness();
+  await assertPendingDispatchedPersistence(result, intent, persistence);
+  await assertDispatchedAtomicRecovery(result, intent, fixture);
 };

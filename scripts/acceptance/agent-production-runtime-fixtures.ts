@@ -31,6 +31,18 @@ export const HASH_A = `sha256:${"a".repeat(64)}` as ProductionHash;
 export const HASH_B = `sha256:${"b".repeat(64)}` as ProductionHash;
 export const HASH_C = `sha256:${"c".repeat(64)}` as ProductionHash;
 
+export const validDeviceCredential = {
+  protocol_version: "xuanxue-ai-production-v6",
+  server_base_url: "http://127.0.0.1:4322",
+  environment_id: "production",
+  origin: "http://127.0.0.1:4173",
+  device_id: "device:projection-owner-test",
+  device_epoch: 7,
+  control_manifest_hash: HASH_A,
+  credential: `aidc_v6_${"a".repeat(32)}`,
+  enrolled_at: new Date().toISOString(),
+} as const;
+
 export const task = (input: Readonly<{
   jobId: string;
   productId: ProductionProductId;

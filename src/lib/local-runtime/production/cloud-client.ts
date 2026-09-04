@@ -87,6 +87,23 @@ export async function claimProductionTasks(
   };
 }
 
+const writeProductionMaterial = async (destination: string, bytes: Uint8Array): Promise<void> => {
+  const temporary = `${destination}.${process.pid}.tmp`;
+  const handle = await open(temporary, "wx", 0o600);
+  try {
+    await handle.writeFile(bytes);
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+  try {
+    await rename(temporary, destination);
+  } catch (error) {
+    await rm(temporary, { force: true });
+    throw error;
+  }
+};
+
 export async function downloadProductionMaterials(
   session: ProductionWorkerSession,
   job: ClaimedProductionTask,
@@ -108,10 +125,7 @@ export async function downloadProductionMaterials(
       throw executionFailure("failed", `MATERIAL_DOWNLOAD_IDENTITY_MISMATCH:${material.material_id}`);
     }
     const destination = path.join(materialDir, material.display_name);
-    const temporary = `${destination}.${process.pid}.tmp`;
-    const handle = await open(temporary, "wx", 0o600);
-    try { await handle.writeFile(bytes); await handle.sync(); } finally { await handle.close(); }
-    try { await rename(temporary, destination); } catch (error) { await rm(temporary, { force: true }); throw error; }
+    await writeProductionMaterial(destination, bytes);
     result.push({ ...material, local_path: destination });
   }
   return Object.freeze(result);

@@ -47,7 +47,7 @@ const observationPacket = (advancedEligibleCount: number) => ({
   ],
 });
 
-export const exerciseStrictMutationReceipts = (): void => {
+const exerciseFileAndQualificationReceipts = (): void => {
   const fileSuccess = { candidateCount: 1, identityRevalidated: true, mutationCount: 1,
     selectedFileCount: 1, approvedSetVerified: true, acceptVerified: true,
     postconditionVerified: true };
@@ -92,6 +92,9 @@ export const exerciseStrictMutationReceipts = (): void => {
     ...crossKindFailure, qualificationStage: "candidate-set", failureCode: "BROWSER_DOM_CANDIDATE_MISSING",
   }), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
   "candidate-set causes and candidate counts must describe the same fact");
+};
+
+const exerciseFreshReadbackReceipts = (): void => {
   const fillReadbackFailure = {
     filled: true, candidateCount: 0, identityRevalidated: false, mutationCount: 1,
     retainedValueVerified: false, postconditionVerified: false,
@@ -130,6 +133,9 @@ export const exerciseStrictMutationReceipts = (): void => {
     ...coherentFailure, nativeCauseCode: "BROWSER_DOM_CANDIDATE_AMBIGUOUS",
   }), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
   "coherent negative receipts must preserve the mechanical cause of the first mismatched query");
+};
+
+const exercisePostconditionEvidenceReceipts = (): void => {
   const ariaHiddenPostconditionFailure = {
     clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
     postconditionVerified: false, postconditionRawCount: 1, postconditionEligibleCount: 0,
@@ -146,4 +152,10 @@ export const exerciseStrictMutationReceipts = (): void => {
   ]) assert.throws(() => decodeBrowserMutationReceipt(clickCommand, forged),
     /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
     "postcondition evidence and native cause must describe the same candidate set");
+};
+
+export const exerciseStrictMutationReceipts = (): void => {
+  exerciseFileAndQualificationReceipts();
+  exerciseFreshReadbackReceipts();
+  exercisePostconditionEvidenceReceipts();
 };
