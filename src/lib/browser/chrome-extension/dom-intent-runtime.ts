@@ -190,7 +190,7 @@ const zeroActionReceipt = (assertCurrent: CurrentDocumentAssertion): Readonly<Re
     postconditionVerified: true, zeroActionSatisfied: true });
 };
 
-const dispatchPointerClickSequence = async (
+export const dispatchPointerClickSequence = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
   point: BrowserPointerAction,
@@ -294,10 +294,10 @@ const executeKeypressIntent = async (
   intent: KeypressIntent,
   assertCurrent: CurrentDocumentAssertion,
 ): Promise<unknown> => {
-  const node = await qualifiedNode(() => mutationCandidate(debuggerRuntime, target, intent));
-  if ("receipt" in node) return node.receipt;
   const precondition = await waitForMatch(debuggerRuntime, target, intent.postKeypressMatch, 0);
   if (precondition.verified) return zeroActionMatchReceipt(assertCurrent, precondition);
+  const node = await qualifiedNode(() => mutationCandidate(debuggerRuntime, target, intent));
+  if ("receipt" in node) return node.receipt;
   try { await requireKeyboardActionTarget(debuggerRuntime, target.tabId, node.nodeId); }
   catch (error) {
     const code = error instanceof Error ? error.message : "";

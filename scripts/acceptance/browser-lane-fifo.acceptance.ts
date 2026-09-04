@@ -446,7 +446,9 @@ try {
   await assert.rejects(confirmedReplacement.navigate({
     url: "https://chatgpt.com/", title: "wrong page",
   }), /BROWSER_RECONCILIATION_SCOPE_INVALID/u);
-  await assert.rejects(confirmedReplacement.attachFile({ selector: "input", approvedArtifacts: [] }),
+  await assert.rejects(confirmedReplacement.attachFile({ selector: "input",
+    activation: { selector: "span", scope: { selector: "body" }, expectedTextEquals: "upload" },
+    approvedArtifacts: [] }),
     /BROWSER_RECONCILIATION_SCOPE_INVALID/u);
   await confirmedReplacement.park({ reason: "confirmed-provider-target-replaced", mode: "recovery" });
 

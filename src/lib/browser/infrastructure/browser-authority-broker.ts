@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { readFile, realpath, stat } from "node:fs/promises";
+import { basename } from "node:path";
 import type { BrowserTargetLeaseManager, BrowserExactTargetAcquisition } from "../exact-target/browser-target-lease-manager.js";
 import type { BrowserApprovedArtifactRef, BrowserTargetLease } from "../exact-target/browser-target-lease.js";
 import type { BrowserFileArtifactGrantV1 } from "../exact-target/browser-file-artifact-grant.js";
@@ -62,7 +63,12 @@ export type AuthenticatedBrowserAuthorityLease = Readonly<{
   leaseRef: string;
   executionBinding: BrowserExecutionBinding;
   acquireTargetLease(input: BrowserExactTargetAcquisition): BrowserTargetLease;
-  issueFileArtifactGrant(input: Readonly<{ artifactRef: string; expectedSha256: BrowserHash; maxBytes: number }>): Promise<BrowserFileArtifactGrantV1>;
+  issueFileArtifactGrant(input: Readonly<{
+    artifactRef: string;
+    providerDisplayName: string;
+    expectedSha256: BrowserHash;
+    maxBytes: number;
+  }>): Promise<BrowserFileArtifactGrantV1>;
   release(): Promise<void>;
 }>;
 
@@ -81,16 +87,20 @@ export type BrowserExecutionArtifact = Readonly<{
   localPath: string;
   contentHash: BrowserHash;
   sizeBytes: number;
+  materializeProviderPath(providerDisplayName: string): Promise<string>;
+  releaseProviderPaths(): Promise<void>;
 }>;
 
 export type BrowserExecutionArtifactLease = Readonly<{
-  release(): void;
+  release(): Promise<void>;
 }>;
 
 type BoundBrowserArtifact = Readonly<{
   canonicalPath: string;
   contentHash: BrowserHash;
   sizeBytes: number;
+  materializeProviderPath(providerDisplayName: string): Promise<string>;
+  releaseProviderPaths(): Promise<void>;
 }>;
 
 type BrowserArtifactScope = ReadonlyMap<string, BoundBrowserArtifact>;
@@ -145,6 +155,14 @@ const resolveBoundArtifact = async (artifact: BoundBrowserArtifact): Promise<Bou
   return artifact;
 };
 
+const assertProviderDisplayName = (value: string): void => {
+  if (!value || value !== value.normalize("NFC") || value === "." || value === ".."
+    || value.includes("/") || value.includes("\\") || basename(value) !== value
+    || Buffer.byteLength(value, "utf8") > 255) {
+    throw new Error("BROWSER_FILE_GRANT_INVALID");
+  }
+};
+
 export type BrowserOperatorTargetClaim = Readonly<{
   authorityEpoch: number;
   targetRef: string;
@@ -155,6 +173,7 @@ export type BrowserOperatorTargetClaim = Readonly<{
 
 type GrantedPathEntry = Readonly<{
   artifactRef: string;
+  providerDisplayName: string;
   path: string;
   expiresAt: string;
   contentHash: BrowserHash;
@@ -191,10 +210,18 @@ const resolveGrantedPaths = async (
     || Date.parse(registered.expiresAt) <= Date.now()) {
     throw new Error("BROWSER_FILE_GRANT_INVALID");
   }
-  const artifact = await resolveCurrentArtifact(registered.artifactRef);
-  if (artifact.canonicalPath !== registered.path
-    || artifact.contentHash !== registered.contentHash
-    || artifact.sizeBytes !== registered.maxBytes) {
+  const source = await resolveCurrentArtifact(registered.artifactRef);
+  if (source.contentHash !== registered.contentHash || source.sizeBytes !== registered.maxBytes) {
+    throw new Error("BROWSER_FILE_GRANT_INVALID");
+  }
+  const artifact = await resolveBoundArtifact({
+    canonicalPath: registered.path,
+    contentHash: registered.contentHash,
+    sizeBytes: registered.maxBytes,
+    materializeProviderPath: source.materializeProviderPath,
+    releaseProviderPaths: source.releaseProviderPaths,
+  });
+  if (basename(artifact.canonicalPath) !== registered.providerDisplayName) {
     throw new Error("BROWSER_FILE_GRANT_INVALID");
   }
   return artifact.canonicalPath;
@@ -241,7 +268,9 @@ export class BrowserAuthorityBroker {
     for (const artifact of input.artifacts) {
       if (!artifact.artifactRef || artifacts.has(artifact.artifactRef)
         || !Number.isSafeInteger(artifact.sizeBytes) || artifact.sizeBytes < 0
-        || !/^sha256:[a-f0-9]{64}$/u.test(artifact.contentHash)) {
+        || !/^sha256:[a-f0-9]{64}$/u.test(artifact.contentHash)
+        || typeof artifact.materializeProviderPath !== "function"
+        || typeof artifact.releaseProviderPaths !== "function") {
         throw new Error("BROWSER_FILE_GRANT_INVALID");
       }
       const canonicalPath = await realpath(artifact.localPath);
@@ -249,6 +278,8 @@ export class BrowserAuthorityBroker {
         canonicalPath,
         contentHash: artifact.contentHash,
         sizeBytes: artifact.sizeBytes,
+        materializeProviderPath: artifact.materializeProviderPath,
+        releaseProviderPaths: artifact.releaseProviderPaths,
       });
       artifacts.set(artifact.artifactRef, bound);
     }
@@ -256,10 +287,19 @@ export class BrowserAuthorityBroker {
     this.executionArtifacts.set(key, scope);
     let released = false;
     return Object.freeze({
-      release: () => {
+      release: async () => {
         if (released) return;
         released = true;
         if (this.executionArtifacts.get(key) === scope) this.executionArtifacts.delete(key);
+        const cleanup = await Promise.allSettled(
+          [...scope.values()].map((artifact) => artifact.releaseProviderPaths()),
+        );
+        const failures = cleanup.filter((result) => result.status === "rejected");
+        if (failures.length > 0) throw new AggregateError(
+          failures.map((result) => (result as PromiseRejectedResult).reason),
+          "BROWSER_FILE_BINDING_RELEASE_FAILED",
+          { cause: (failures[0] as PromiseRejectedResult).reason },
+        );
       },
     });
   }
@@ -342,15 +382,27 @@ export class BrowserAuthorityBroker {
       ) throw new Error("BROWSER_LIVENESS_EXPIRED");
       this.assertTransportLive();
     };
-    const issueFileArtifactGrant = async ({ artifactRef, expectedSha256, maxBytes }: Readonly<{
-      artifactRef: string; expectedSha256: BrowserHash; maxBytes: number;
+    const issueFileArtifactGrant = async ({ artifactRef, providerDisplayName, expectedSha256, maxBytes }: Readonly<{
+      artifactRef: string; providerDisplayName: string; expectedSha256: BrowserHash; maxBytes: number;
     }>): Promise<BrowserFileArtifactGrantV1> => {
       assertLive();
+      assertProviderDisplayName(providerDisplayName);
       if (!Number.isSafeInteger(maxBytes) || maxBytes < 1) throw new Error("BROWSER_FILE_GRANT_INVALID");
       const boundArtifact = this.executionArtifacts.get(artifactScopeKey)?.get(artifactRef);
       if (!boundArtifact) throw new Error("BROWSER_FILE_GRANT_INVALID");
-      const artifact = await resolveBoundArtifact(boundArtifact);
-      if (artifact.contentHash !== expectedSha256 || artifact.sizeBytes !== maxBytes) {
+      const source = await resolveBoundArtifact(boundArtifact);
+      if (source.contentHash !== expectedSha256 || source.sizeBytes !== maxBytes) {
+        throw new Error("BROWSER_FILE_GRANT_INVALID");
+      }
+      const providerPath = await source.materializeProviderPath(providerDisplayName);
+      const artifact = await resolveBoundArtifact({
+        canonicalPath: await realpath(providerPath),
+        contentHash: source.contentHash,
+        sizeBytes: source.sizeBytes,
+        materializeProviderPath: source.materializeProviderPath,
+        releaseProviderPaths: source.releaseProviderPaths,
+      });
+      if (basename(artifact.canonicalPath) !== providerDisplayName) {
         throw new Error("BROWSER_FILE_GRANT_INVALID");
       }
       const grant = {
@@ -365,6 +417,7 @@ export class BrowserAuthorityBroker {
       } as const;
       grantedPaths.set(grant.grantRef, {
         artifactRef,
+        providerDisplayName,
         path: artifact.canonicalPath,
         expiresAt: grant.expiresAt,
         contentHash: grant.contentHash,
@@ -382,6 +435,7 @@ export class BrowserAuthorityBroker {
       () => this.controlledTargetForCurrentClaim(slot.authority.authorityEpoch, binding),
       (artifacts) => Promise.all(artifacts.map((artifact) => issueFileArtifactGrant({
         artifactRef: artifact.artifactRef,
+        providerDisplayName: artifact.providerDisplayName,
         expectedSha256: artifact.expectedSha256,
         maxBytes: artifact.bytes,
       }))),

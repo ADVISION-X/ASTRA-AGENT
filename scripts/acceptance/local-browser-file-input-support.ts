@@ -1,7 +1,9 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 
-import type { ExtensionDebuggerRuntime } from
+import { ExtensionDebuggerRuntime } from
   "../../src/lib/browser/chrome-extension/debugger-runtime.js";
+import type { ExtensionChromeApi } from
+  "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
 import { executeExtensionFileInput } from
   "../../src/lib/browser/chrome-extension/extension-file-input-runtime.js";
 
@@ -14,7 +16,24 @@ type FileInputScenario = Readonly<{
   driftBeforeDispatch?: boolean;
   failReadback?: boolean;
   onFileInput?: () => void;
+  activationResult?: unknown;
+  chooserFailure?: "timeout" | "mismatch";
+  failInterception?: "enable" | "disable";
+  failFileInput?: boolean;
+  activationAfterInterception?: boolean;
+  interceptionEvents?: boolean[];
+  activationOverride?: Readonly<{
+    selector: string;
+    scope: Readonly<{ selector: string }>;
+    expectedTextEquals: string;
+  }>;
 }>;
+
+const activation = Object.freeze({
+  selector: "div.__menu-item[tabindex='0'] span",
+  scope: Object.freeze({ selector: "#thread-bottom div.popover[aria-busy='false']" }),
+  expectedTextEquals: "从电脑上传",
+});
 
 const fileMechanicalFacts = (overrides: Readonly<Record<string, unknown>> = {}) => ({
   connected: true, layout: true, visible: true,
@@ -29,7 +48,11 @@ const fileMechanicalFacts = (overrides: Readonly<Record<string, unknown>> = {}) 
 
 const runFileInputScenario = async (input: FileInputScenario) => {
   let fileInputs = 0; let queries = 0; let targetChecks = 0;
+  let pointerClicks = 0; let interceptionEnabled = 0; let interceptionDisabled = 0;
+  let usedChooserBackendNode = false;
+  const clickedPoints: Array<Readonly<{ x: unknown; y: unknown }>> = [];
   const runtime = { async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
+    if (method === "Page.getFrameTree") return { frameTree: { frame: { loaderId: "loader-8" } } };
     if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
     if (method === "DOM.querySelectorAll") {
       queries += 1;
@@ -39,9 +62,10 @@ const runFileInputScenario = async (input: FileInputScenario) => {
     if (method === "DOM.describeNode") {
       const attributes = ["type", "file", "accept", String(input.facts?.accept ?? "")];
       if (input.facts?.multiple !== false) attributes.push("multiple", "");
-      return { node: { nodeId: parameters?.nodeId, nodeName: "INPUT", attributes } };
+      return { node: { nodeId: parameters?.nodeId, backendNodeId: 700, nodeName: "INPUT", attributes } };
     }
-    if (method === "DOM.resolveNode") return { object: { objectId: `file-node-${parameters?.nodeId}` } };
+    if (method === "DOM.resolveNode") return { object: { objectId: parameters?.nodeId === 1
+      ? "document-root" : `file-node-${parameters?.nodeId}` } };
     if (method === "Runtime.releaseObject") return {};
     if (method === "Runtime.callFunctionOn") {
       if (String(parameters?.functionDeclaration).includes("approvedSetVerified")) return { result: { value: {
@@ -49,10 +73,49 @@ const runFileInputScenario = async (input: FileInputScenario) => {
         approvedSetVerified: input.approvedSetVerified ?? true,
         acceptVerified: input.acceptVerified ?? true,
       } } };
+      const argument = Array.isArray(parameters?.arguments)
+        ? parameters.arguments[0] as { value?: { output?: unknown } } | undefined : undefined;
+      if (argument?.value?.output === "pointer") return { result: {
+        value: input.activationResult ?? (input.activationAfterInterception && interceptionEnabled === 0
+          ? { x: 1, y: 1 } : { x: 20, y: 30 }),
+      } };
       return { result: { value: fileMechanicalFacts(input.facts) } };
     }
-    if (method === "DOM.setFileInputFiles") { fileInputs += 1; input.onFileInput?.(); return {}; }
+    if (method === "Page.setInterceptFileChooserDialog") {
+      const enabled = parameters?.enabled === true;
+      input.interceptionEvents?.push(enabled);
+      if (enabled) interceptionEnabled += 1;
+      if (!enabled) interceptionDisabled += 1;
+      if ((enabled && input.failInterception === "enable")
+        || (!enabled && input.failInterception === "disable")) {
+        throw new Error("INTERCEPTION_CONTROL_FAILED");
+      }
+      return {};
+    }
+    if (method === "Input.dispatchMouseEvent") {
+      if (parameters?.type === "mouseReleased") {
+        pointerClicks += 1;
+        clickedPoints.push({ x: parameters.x, y: parameters.y });
+      }
+      return {};
+    }
+    if (method === "DOM.setFileInputFiles") {
+      fileInputs += 1;
+      if (input.failFileInput) throw new Error("FILE_INPUT_FAILED");
+      usedChooserBackendNode = parameters?.backendNodeId === 700 && parameters?.nodeId === undefined;
+      input.onFileInput?.();
+      return {};
+    }
     throw new Error(`UNEXPECTED_FILE_INPUT_METHOD:${method}`);
+  }, async captureFileChooserOpened(
+    _tabId: number,
+    _timeoutMs: number,
+    trigger: () => Promise<void>,
+    consume: (opened: Readonly<{ backendNodeId: number }>) => Promise<void>,
+  ) {
+    await trigger();
+    if (input.chooserFailure === "timeout") throw new Error("BROWSER_FILE_CHOOSER_TIMEOUT");
+    await consume({ backendNodeId: input.chooserFailure === "mismatch" ? 701 : 700 });
   } } as ExtensionDebuggerRuntime;
   const result = await executeExtensionFileInput({
     runtime,
@@ -62,22 +125,73 @@ const runFileInputScenario = async (input: FileInputScenario) => {
       if (input.driftBeforeDispatch && targetChecks === 3) throw new Error("BROWSER_DOCUMENT_INVALID");
     },
     selector: "#upload-files",
+    activation: input.activationOverride ?? activation,
     approvedFiles: [
       { grantRef: "grant-a", contentHash: `sha256:${"a".repeat(64)}`, maxBytes: 10_000 },
       { grantRef: "grant-b", contentHash: `sha256:${"b".repeat(64)}`, maxBytes: 20_000 },
     ],
     resolvedFilePaths: ["/approved/a.pdf", "/approved/b.pdf"],
   });
-  return { result, fileInputs, targetChecks };
+  return { result, fileInputs, targetChecks, pointerClicks,
+    interceptionEnabled, interceptionDisabled, usedChooserBackendNode, clickedPoints };
+};
+
+const exerciseFileChooserEventBinding = async (): Promise<void> => {
+  let eventListener: ((
+    target: Readonly<{ tabId: number }>,
+    method: string,
+    parameters?: Readonly<Record<string, unknown>>,
+  ) => void) | null = null;
+  const runtime = new ExtensionDebuggerRuntime({ debugger: {
+    onEvent: { addListener(listener) { eventListener = listener; } },
+  } } as ExtensionChromeApi);
+  runtime.adoptAttached(108);
+  let opened: Readonly<{ backendNodeId: number }> | null = null;
+  await runtime.captureFileChooserOpened(108, 100, async () => {
+    eventListener?.({ tabId: 108 }, "Page.fileChooserOpened", { backendNodeId: 700 });
+  }, async (value) => {
+    opened = value;
+  });
+  assert.deepEqual(opened, { backendNodeId: 700 });
+  await assert.rejects(runtime.captureFileChooserOpened(108, 100, async () => {
+    eventListener?.({ tabId: 108 }, "Page.fileChooserOpened", { backendNodeId: "forged" });
+  }, async () => undefined), /BROWSER_FILE_CHOOSER_MISMATCH/u);
+  await assert.rejects(runtime.captureFileChooserOpened(108, 100, async () => {
+    eventListener?.({ tabId: 108 }, "Page.fileChooserOpened", { backendNodeId: 700 });
+  }, async () => {
+    await Promise.resolve();
+    eventListener?.({ tabId: 108 }, "Page.fileChooserOpened", { backendNodeId: 700 });
+  }), /BROWSER_FILE_CHOOSER_MISMATCH/u,
+  "one governed click must not accept more than one chooser event");
+  await assert.rejects(runtime.captureFileChooserOpened(108, 10, async () => {
+    eventListener?.({ tabId: 108 }, "Page.fileChooserOpened", { backendNodeId: 700 });
+    await new Promise<void>(() => undefined);
+  }, async () => undefined), /BROWSER_FILE_CHOOSER_TIMEOUT/u,
+  "the chooser deadline must still bound a trigger that hangs after the first event");
 };
 
 export const exerciseFileInput = async (): Promise<void> => {
+  await exerciseFileChooserEventBinding();
+  await assert.rejects(runFileInputScenario({ nodeIds: [7], activationOverride: {
+    ...activation, expectedTextEquals: "模糊上传",
+  } }), /BROWSER_FILE_GRANT_INVALID/u,
+  "Browser must reject caller-authored or drifted chooser activation semantics before physical input");
   const success = await runFileInputScenario({ nodeIds: [7], selectedCount: 2 });
   assert.deepEqual(success.result, {
     selectedFileCount: 2, candidateCount: 1, identityRevalidated: true,
     approvedSetVerified: true, acceptVerified: true, mutationCount: 1, postconditionVerified: true,
   });
   assert.equal(success.fileInputs, 1, "the complete approved set must use one physical file-input command");
+  assert.equal(success.pointerClicks, 1, "the exact visible Provider upload leaf must be clicked once");
+  assert.equal(success.interceptionEnabled, 1);
+  assert.equal(success.interceptionDisabled, 1);
+  assert.equal(success.usedChooserBackendNode, true,
+    "the approved set must bind to the exact chooser backend node, never a direct hidden nodeId path");
+  const redrawn = await runFileInputScenario({
+    nodeIds: [7], selectedCount: 2, activationAfterInterception: true,
+  });
+  assert.deepEqual(redrawn.clickedPoints, [{ x: 20, y: 30 }],
+    "the visible leaf must be freshly resolved only after chooser interception is active");
   assert.ok(success.targetChecks >= 6, "Target and Document must be rebound before and after the physical input");
   for (const [scenario, expectedCount, expectedCode, qualificationStage] of [
     [{ nodeIds: [] }, 0, "BROWSER_DOM_CANDIDATE_MISSING", "candidate-set"],
@@ -94,11 +208,48 @@ export const exerciseFileInput = async (): Promise<void> => {
     assert.equal(rejected.fileInputs, 0);
   }
   await assert.rejects(runFileInputScenario({ nodeIds: [7], driftBeforeDispatch: true }), /BROWSER_DOCUMENT_INVALID/u);
+  for (const [activationResult, expected] of [
+    ["BROWSER_DOM_CANDIDATE_MISSING", "BROWSER_DOM_CANDIDATE_MISSING"],
+    ["BROWSER_DOM_CANDIDATE_AMBIGUOUS", "BROWSER_DOM_CANDIDATE_AMBIGUOUS"],
+    ["BROWSER_DOM_ACTION_HIT_TEST_FAILED", "BROWSER_FILE_INPUT_NOT_QUALIFIED"],
+  ] as const) {
+    const rejected = await runFileInputScenario({ nodeIds: [7], activationResult });
+    assert.equal(rejected.result.failureCode, expected);
+    assert.equal(rejected.pointerClicks, 0);
+    assert.equal(rejected.fileInputs, 0);
+  }
+  for (const chooserFailure of ["timeout", "mismatch"] as const) {
+    const interceptionEvents: boolean[] = [];
+    await assert.rejects(runFileInputScenario({ nodeIds: [7], chooserFailure, interceptionEvents }),
+      chooserFailure === "timeout" ? /BROWSER_FILE_CHOOSER_TIMEOUT/u : /BROWSER_FILE_CHOOSER_MISMATCH/u);
+    assert.deepEqual(interceptionEvents, [true, false],
+      "chooser interception must close after every chooser failure");
+  }
+  const fileSetInterceptionEvents: boolean[] = [];
+  await assert.rejects(runFileInputScenario({
+    nodeIds: [7], failFileInput: true, interceptionEvents: fileSetInterceptionEvents,
+  }), /FILE_INPUT_FAILED/u);
+  assert.deepEqual(fileSetInterceptionEvents, [true, false],
+    "chooser interception must close after file-set failure");
+  await assert.rejects(runFileInputScenario({
+    nodeIds: [7], failInterception: "disable",
+  }), /BROWSER_FILE_CHOOSER_CLEANUP_FAILED/u,
+  "an unproven chooser cleanup must fail closed with its own terminal cause");
+  const uncertainEnableEvents: boolean[] = [];
+  await assert.rejects(runFileInputScenario({
+    nodeIds: [7], failInterception: "enable", interceptionEvents: uncertainEnableEvents,
+  }), /INTERCEPTION_CONTROL_FAILED/u);
+  assert.deepEqual(uncertainEnableEvents, [true, false],
+    "an uncertain interception enable must still attempt and prove cleanup");
   let failedReadbackInputs = 0;
+  const readbackInterceptionEvents: boolean[] = [];
   await assert.rejects(runFileInputScenario({ nodeIds: [7], failReadback: true,
+    interceptionEvents: readbackInterceptionEvents,
     onFileInput: () => { failedReadbackInputs += 1; } }), /BROWSER_DOM_NODE_STALE/u,
   "an unreadable after-action file set must stay DISPATCHED/unknown instead of inventing a count");
   assert.equal(failedReadbackInputs, 1);
+  assert.deepEqual(readbackInterceptionEvents, [true, false],
+    "chooser interception must already be closed before after-action readback");
   for (const mismatch of [{ approvedSetVerified: false }, { acceptVerified: false }]) {
     const rejected = await runFileInputScenario({ nodeIds: [7], ...mismatch });
     assert.equal(rejected.fileInputs, 1, "a failed exact-set readback must preserve the one physical input fact");

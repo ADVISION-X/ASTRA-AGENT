@@ -9,6 +9,7 @@ const BROWSER_DOM_FIELD_VALUES = [
 
 export type BrowserDomField = typeof BROWSER_DOM_FIELD_VALUES[number];
 export type BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">;
+export type BrowserDomPostconditionField = Exclude<BrowserDomObservationField, "semanticTextHash">;
 export type BrowserDomReadEligibility = "non-actionable-aria-state";
 
 export type BrowserDomIneligibleReason =
@@ -38,7 +39,8 @@ export type BrowserDomObservationQuery = Readonly<{
   textEquals?: string;
 }>;
 
-export type BrowserDomPostconditionQuery = BrowserDomObservationQuery & Readonly<{
+export type BrowserDomPostconditionQuery = Omit<BrowserDomObservationQuery, "fields"> & Readonly<{
+  fields: readonly BrowserDomPostconditionField[];
   expectedEligibleCount: number;
 }>;
 
@@ -369,7 +371,7 @@ const assertClickObservation = (
   if (!observation) return;
   assertObservationQueries(observation.queries, POSTCONDITION_QUERY_KEYS);
   for (const query of observation.queries) {
-    if (query.fields.length !== 0
+    if ((query.fields as readonly string[]).includes("semanticTextHash")
       || !Number.isInteger(query.expectedEligibleCount)
       || query.expectedEligibleCount < 0 || query.expectedEligibleCount > query.maxMatches) {
       throw new Error("BROWSER_COMMAND_PERMIT_INVALID");

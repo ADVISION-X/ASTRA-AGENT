@@ -29,6 +29,12 @@ assert.equal(/from\s+["']node:/u.test(worker), false, "The MV3 bundle must not r
 assert.equal(/\beval\s*\(/u.test(worker), false, "The MV3 bundle must not create an eval surface.");
 assert.doesNotMatch(worker, /DOMParser/u, "The MV3 service worker must not depend on page-only DOMParser.");
 assert.match(worker, /DOM\.setFileInputFiles/u, "The registered exact-target file-input command must reach the Chrome DevTools file-input primitive.");
+assert.match(worker, /Page\.setInterceptFileChooserDialog/u,
+  "The one file-input command must arm and close the Provider-native chooser interception.");
+assert.match(worker, /Page\.fileChooserOpened/u,
+  "The one file-input command must bind the Provider chooser event before setting files.");
+assert.match(worker, /Input\.dispatchMouseEvent/u,
+  "The exact visible Provider upload leaf must be physically clicked inside the one file-input command.");
 assert.match(worker, /#upload-files/u, "The file-input executor must remain pinned to the observed ChatGPT document input.");
 assert.match(worker, /browser\.authenticated-media\.v1/u, "The registered authenticated media observation must remain on the one encrypted Browser chain.");
 assert.match(worker, /gpt-generated-image-main/u, "Authenticated media retrieval must remain pinned to the fixed generated-image semantic identity.");

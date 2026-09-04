@@ -54,12 +54,18 @@ try {
       queries: [{ ...coherentClick.postClickObservation.queries[0]!, semanticState: "open" }] },
   } as never), /BROWSER_COMMAND_PERMIT_INVALID/u,
   "Browser admission must reject semantic fields outside the mechanical query contract");
-  assert.throws(() => assertBrowserDomIntent({
+  assert.equal(assertBrowserDomIntent({
     ...coherentClick,
     postClickObservation: { ...coherentClick.postClickObservation,
       queries: [{ ...coherentClick.postClickObservation.queries[0]!, fields: ["ariaExpanded"] }] },
-  }), /BROWSER_COMMAND_PERMIT_INVALID/u,
-  "an atomic click postcondition may compare mechanical counts only and cannot add a field-read phase");
+  }).kind, "click",
+  "an atomic click postcondition may return bounded mechanical fields in the same coherent packet");
+  assert.throws(() => assertBrowserDomIntent({
+    ...coherentClick,
+    postClickObservation: { ...coherentClick.postClickObservation,
+      queries: [{ ...coherentClick.postClickObservation.queries[0]!, fields: ["semanticTextHash"] }] },
+  } as never), /BROWSER_COMMAND_PERMIT_INVALID/u,
+  "a synchronous atomic click postcondition cannot add semantic content hashing");
   assert.throws(() => assertBrowserDomIntent({
     ...coherentClick,
     postClickMatch: { selector: "[data-active='true']", expectedMatches: 1 },

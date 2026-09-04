@@ -365,13 +365,14 @@ export const advanceLane = async (
 export const prepareAttachedTurnPrefix = async (input: Readonly<{
   flow: ReturnType<typeof createSeoExecutor>;
   stepId: string;
+  files: readonly Omit<SeoUploadedAttachment, "providerDisplayName">[];
   uploadedFiles: readonly SeoUploadedAttachment[];
   recoverOnly: boolean;
 }>): Promise<void> => {
   const freshChat = { productStepId: input.stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;
   const attachmentOpen = { productStepId: input.stepId, callId: "attachment-control-open", child: "open_gpt_attachment_control", actionOrdinal: 8, input: {} } as const;
-  const attachmentsAttach = { productStepId: input.stepId, callId: "attachments-attach", child: "attach_approved_gpt_files_once", actionOrdinal: 9, input: { files: input.uploadedFiles } } as const;
-  const attachmentsReconcile = { productStepId: input.stepId, callId: "attachments-reconcile", child: "reconcile_gpt_attachment_set", actionOrdinal: 10, input: { files: input.uploadedFiles, timeoutMs: 600_000 } } as const;
+  const attachmentsAttach = { productStepId: input.stepId, callId: "attachments-attach", child: "attach_approved_gpt_files_once", actionOrdinal: 9, input: { files: input.files } } as const;
+  const attachmentsReconcile = { productStepId: input.stepId, callId: "attachments-reconcile", child: "reconcile_gpt_attachment_set", actionOrdinal: 10, input: { files: input.files, timeoutMs: 600_000 } } as const;
   if (input.recoverOnly) {
     await input.flow.requireEvidence(freshChat);
     await requireExactProfileEvidence(input.flow, input.stepId, [2, 3, 4, 5, 6, 7]);

@@ -1,8 +1,8 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { link, lstat, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import {
   BrowserAuthorityBroker,
@@ -20,14 +20,12 @@ const prepareArtifactFixture = async () => {
   await writeFile(stagedFile, "approved-browser-artifact", "utf8");
   const approvedBytes = await readFile(stagedFile);
   const approvedHash = `sha256:${createHash("sha256").update(approvedBytes).digest("hex")}` as const;
-  const approvedRealPath = await realpath(stagedFile);
-  return { fixture, stagedFile, approvedBytes, approvedHash, approvedRealPath };
+  return { fixture, stagedFile, approvedBytes, approvedHash };
 };
 
 const verifyBoundArtifactLifecycle = async (input: Readonly<{
   approvedBytes: Buffer;
   approvedHash: `sha256:${string}`;
-  approvedRealPath: string;
   binding: BrowserExecutionBinding;
   broker: BrowserAuthorityBroker;
   grantResolverCapture: {
@@ -35,33 +33,56 @@ const verifyBoundArtifactLifecycle = async (input: Readonly<{
   };
   stagedFile: string;
 }>): Promise<void> => {
-  const { approvedBytes, approvedHash, approvedRealPath, binding, broker, grantResolverCapture,
+  const { approvedBytes, approvedHash, binding, broker, grantResolverCapture,
     stagedFile } = input;
+    const providerDisplayName = "proof-provider-0123456789ab.txt";
+    const providerPath = join(dirname(stagedFile), providerDisplayName);
+    let materializeCalls = 0;
     const bindingLease = await broker.bindExecutionArtifacts({
       binding,
       artifacts: [{
         artifactRef: "approved", localPath: stagedFile,
         contentHash: approvedHash, sizeBytes: approvedBytes.byteLength,
+        materializeProviderPath: async (name) => {
+          materializeCalls += 1;
+          assert.equal(name, providerDisplayName);
+          await link(stagedFile, providerPath);
+          return providerPath;
+        },
+        releaseProviderPaths: async () => rm(providerPath, { force: true }),
       }],
     });
     const authorityLease = await broker.acquireForExecution(binding);
+    await assert.rejects(authorityLease.issueFileArtifactGrant({
+      artifactRef: "approved", providerDisplayName: "../escape.txt",
+      expectedSha256: approvedHash, maxBytes: approvedBytes.byteLength,
+    }), /BROWSER_FILE_GRANT_INVALID/u, "unsafe provider names must fail before Runtime materialization");
+    assert.equal(materializeCalls, 0);
     const grant = await authorityLease.issueFileArtifactGrant({
-      artifactRef: "approved", expectedSha256: approvedHash, maxBytes: approvedBytes.byteLength,
+      artifactRef: "approved", providerDisplayName,
+      expectedSha256: approvedHash, maxBytes: approvedBytes.byteLength,
     });
     const resolver = grantResolverCapture.current;
     if (!resolver) throw new Error("BROWSER_FILE_GRANT_INVALID");
-    assert.deepEqual(await resolver([grant]), [approvedRealPath],
-      "Browser must resolve the Runtime-owned task file without copying it into a private registry");
+    assert.deepEqual(await resolver([grant]), [await realpath(providerPath)],
+      "Browser must resolve the exact Runtime-owned provider basename through its sole resolver");
+    const [sourceIdentity, aliasIdentity] = await Promise.all([lstat(stagedFile), lstat(providerPath)]);
+    assert.deepEqual([aliasIdentity.dev, aliasIdentity.ino], [sourceIdentity.dev, sourceIdentity.ino],
+      "the provider path must remain a hardlink to the approved Runtime material");
     await writeFile(stagedFile, "tampered-browser-artifact", "utf8");
     await assert.rejects(resolver([grant]), /BROWSER_FILE_GRANT_INVALID/u,
       "file-input path resolution must revalidate bytes after grant issue and immediately before dispatch");
     await assert.rejects(authorityLease.issueFileArtifactGrant({
-      artifactRef: "approved", expectedSha256: approvedHash, maxBytes: approvedBytes.byteLength,
+      artifactRef: "approved", providerDisplayName,
+      expectedSha256: approvedHash, maxBytes: approvedBytes.byteLength,
     }), /BROWSER_FILE_GRANT_INVALID/u, "grant issue must revalidate the current task file bytes");
     await writeFile(stagedFile, approvedBytes);
-    bindingLease.release();
+    await bindingLease.release();
+    await assert.rejects(lstat(providerPath), /ENOENT/u,
+      "execution settlement must remove the Runtime-owned provider alias");
     await assert.rejects(authorityLease.issueFileArtifactGrant({
-      artifactRef: "approved", expectedSha256: approvedHash, maxBytes: approvedBytes.byteLength,
+      artifactRef: "approved", providerDisplayName,
+      expectedSha256: approvedHash, maxBytes: approvedBytes.byteLength,
     }), /BROWSER_FILE_GRANT_INVALID/u, "execution settlement must invalidate its artifact binding");
     await authorityLease.release();
 };
@@ -78,13 +99,14 @@ const verifyRestartHasNoArtifactBinding = async (
     );
     const restartedLease = await restartedBroker.acquireForExecution(binding);
     await assert.rejects(restartedLease.issueFileArtifactGrant({
-      artifactRef: "approved", expectedSha256: approvedHash, maxBytes: approvedBytes.byteLength,
+      artifactRef: "approved", providerDisplayName: "proof-provider-0123456789ab.txt",
+      expectedSha256: approvedHash, maxBytes: approvedBytes.byteLength,
     }), /BROWSER_FILE_GRANT_INVALID/u, "Browser restart must not retain task-local artifact paths");
 };
 
 const verifyExecutionScopedArtifactBinding = async (): Promise<void> => {
   const prepared = await prepareArtifactFixture();
-  const { fixture, stagedFile, approvedBytes, approvedHash, approvedRealPath } = prepared;
+  const { fixture, stagedFile, approvedBytes, approvedHash } = prepared;
   const issuer = new BrowserAuthorityIssuer();
   Reflect.set(issuer, "slot", {
     kind: "PRESENT",
@@ -116,7 +138,7 @@ const verifyExecutionScopedArtifactBinding = async (): Promise<void> => {
     candidateHash: approvedHash, commandTtlMs: 5_000,
   };
   try {
-    await verifyBoundArtifactLifecycle({ approvedBytes, approvedHash, approvedRealPath, binding,
+    await verifyBoundArtifactLifecycle({ approvedBytes, approvedHash, binding,
       broker, grantResolverCapture, stagedFile });
     await verifyRestartHasNoArtifactBinding(issuer, binding, approvedHash, approvedBytes);
   } finally {

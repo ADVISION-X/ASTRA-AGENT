@@ -251,6 +251,7 @@ export class ExtensionTargetAuthority {
         target,
         assertCurrent: (targetRef, documentRef) => { this.targets.resolve(targetRef, documentRef); },
         selector: command.selector,
+        activation: command.activation,
         approvedFiles: command.approvedFiles,
         resolvedFilePaths: command.resolvedFilePaths,
       });

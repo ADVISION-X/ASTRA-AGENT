@@ -1,4 +1,6 @@
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
+import { resolveCoherentPointerAction } from "./dom-coherent-candidate.js";
+import { dispatchPointerClickSequence } from "./dom-intent-runtime.js";
 import { inspectNode } from "./dom-query-runtime.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 
@@ -6,7 +8,13 @@ type CurrentTargetAssertion = (targetRef: string, documentRef: string) => void;
 type Candidate = Readonly<{
   candidateCount: number;
   nodeId: number | null;
+  backendNodeId: number | null;
   facts: Readonly<Record<string, unknown>> | null;
+}>;
+type FileInputActivation = Readonly<{
+  selector: string;
+  scope: Readonly<{ selector: string }>;
+  expectedTextEquals: string;
 }>;
 type ApprovedFile = Readonly<{
   grantRef: string;
@@ -72,14 +80,28 @@ const readExactFileInput = async (
     throw new Error("BROWSER_DOM_READ_INVALID");
   }
   if (selection.nodeIds.length !== 1) {
-    return Object.freeze({ candidateCount: selection.nodeIds.length, nodeId: null, facts: null });
+    return Object.freeze({
+      candidateCount: selection.nodeIds.length,
+      nodeId: null,
+      backendNodeId: null,
+      facts: null,
+    });
   }
   const exactNodeId = selection.nodeIds[0] as number;
+  const described = record(record(await safeRead(() => runtime.send(
+    target.tabId, "DOM.describeNode", { nodeId: exactNodeId },
+  ))).node);
+  if (!Number.isSafeInteger(described.backendNodeId)) throw new Error("BROWSER_DOM_READ_INVALID");
   const facts = await inspectNode(runtime, target.tabId, exactNodeId, [
     "tagName", "type", "connected", "disabled", "ariaDisabled", "multiple", "accept",
   ]);
   assertCurrent(target.targetRef, target.documentRef);
-  return Object.freeze({ candidateCount: 1, nodeId: exactNodeId, facts });
+  return Object.freeze({
+    candidateCount: 1,
+    nodeId: exactNodeId,
+    backendNodeId: described.backendNodeId as number,
+    facts,
+  });
 };
 
 const SELECTION_PROOF_FUNCTION = `async function (approvedFiles) {
@@ -170,11 +192,16 @@ const qualificationFailure = (error: unknown): string | null => {
 type ExtensionFileInput = Readonly<{
   runtime: ExtensionDebuggerRuntime; target: ExtensionExactTarget;
   assertCurrent: CurrentTargetAssertion; selector: string;
+  activation: FileInputActivation;
   approvedFiles: readonly ApprovedFile[]; resolvedFilePaths: readonly string[];
 }>;
 
 const assertFileInputRequest = (input: ExtensionFileInput): void => {
-  if (input.selector !== "#upload-files" || input.approvedFiles.length < 1 || input.approvedFiles.length > 20
+  if (input.selector !== "#upload-files"
+    || input.activation?.selector !== "div.__menu-item[tabindex='0'] span"
+    || input.activation?.scope?.selector !== "#thread-bottom div.popover[aria-busy='false']"
+    || input.activation?.expectedTextEquals !== "从电脑上传"
+    || input.approvedFiles.length < 1 || input.approvedFiles.length > 20
     || input.resolvedFilePaths.length !== input.approvedFiles.length
     || new Set(input.approvedFiles.map((file) => file.grantRef)).size !== input.approvedFiles.length
     || input.approvedFiles.some((file) => !file.grantRef || !/^sha256:[a-f0-9]{64}$/u.test(file.contentHash)
@@ -185,7 +212,8 @@ const assertFileInputRequest = (input: ExtensionFileInput): void => {
 };
 
 const fileInputQualified = (candidate: Candidate, selectedPathCount: number): boolean =>
-  candidate.facts?.tagName === "INPUT" && candidate.facts.type === "file"
+  Number.isSafeInteger(candidate.backendNodeId)
+  && candidate.facts?.tagName === "INPUT" && candidate.facts.type === "file"
   && candidate.facts.connected === true && candidate.facts.disabled === false
   && candidate.facts.ariaDisabled === false
   && (selectedPathCount === 1 || candidate.facts.multiple === true)
@@ -213,18 +241,81 @@ export const executeExtensionFileInput = async (
     if (code) return reject(0, code, "candidate-set");
     throw error;
   }
-  if (candidate.candidateCount !== 1 || candidate.nodeId === null || candidate.facts === null) {
+  if (candidate.candidateCount !== 1 || candidate.nodeId === null
+    || candidate.backendNodeId === null || candidate.facts === null) {
     return reject(candidate.candidateCount, candidate.candidateCount === 0
       ? "BROWSER_DOM_CANDIDATE_MISSING" : "BROWSER_DOM_CANDIDATE_AMBIGUOUS", "candidate-set");
   }
   if (!fileInputQualified(candidate, input.resolvedFilePaths.length)) {
     return reject(1, "BROWSER_FILE_INPUT_NOT_QUALIFIED", "actionability");
   }
-  input.assertCurrent(input.target.targetRef, input.target.documentRef);
-  await input.runtime.send(input.target.tabId, "DOM.setFileInputFiles", {
-    nodeId: candidate.nodeId,
-    files: [...input.resolvedFilePaths],
-  });
+  let interceptionMayBeEnabled = false;
+  let primaryFailure: unknown = null;
+  const closeInterception = async (): Promise<void> => {
+    if (!interceptionMayBeEnabled) return;
+    interceptionMayBeEnabled = false;
+    try {
+      await input.runtime.send(input.target.tabId, "Page.setInterceptFileChooserDialog", { enabled: false });
+    } catch (error) {
+      throw new Error("BROWSER_FILE_CHOOSER_CLEANUP_FAILED", {
+        cause: Object.freeze({ primaryFailure, cleanupFailure: error }),
+      });
+    }
+  };
+  try {
+    input.assertCurrent(input.target.targetRef, input.target.documentRef);
+    interceptionMayBeEnabled = true;
+    await input.runtime.send(input.target.tabId, "Page.setInterceptFileChooserDialog", { enabled: true });
+    let activationPoint;
+    try {
+      activationPoint = await resolveCoherentPointerAction(input.runtime, input.target, {
+        selector: input.activation.selector,
+        scope: input.activation.scope,
+        text: { value: input.activation.expectedTextEquals, exact: true },
+      });
+    } catch (error) {
+      const code = error instanceof Error ? error.message : "";
+      if (code === "BROWSER_DOM_CANDIDATE_MISSING") return reject(0, code, "candidate-set");
+      if (code === "BROWSER_DOM_CANDIDATE_AMBIGUOUS") return reject(2, code, "candidate-set");
+      if (/^BROWSER_DOM_ACTION_[A-Z_]+$/u.test(code)) {
+        return reject(1, "BROWSER_FILE_INPUT_NOT_QUALIFIED", "actionability");
+      }
+      throw error;
+    }
+    await input.runtime.captureFileChooserOpened(
+      input.target.tabId,
+      5_000,
+      () => dispatchPointerClickSequence(
+        input.runtime,
+        input.target,
+        activationPoint,
+        [1],
+        () => input.assertCurrent(input.target.targetRef, input.target.documentRef),
+      ),
+      async (chooser) => {
+        try {
+          input.assertCurrent(input.target.targetRef, input.target.documentRef);
+          if (chooser.backendNodeId !== candidate.backendNodeId) {
+            throw new Error("BROWSER_FILE_CHOOSER_MISMATCH");
+          }
+          await input.runtime.send(input.target.tabId, "DOM.setFileInputFiles", {
+            backendNodeId: chooser.backendNodeId,
+            files: [...input.resolvedFilePaths],
+          });
+        } catch (error) {
+          primaryFailure = error;
+          throw error;
+        } finally {
+          await closeInterception();
+        }
+      },
+    );
+  } catch (error) {
+    primaryFailure = error;
+    throw error;
+  } finally {
+    await closeInterception();
+  }
   input.assertCurrent(input.target.targetRef, input.target.documentRef);
   const readback = await readExactFileInput(
     input.runtime, input.target, input.assertCurrent, input.selector,

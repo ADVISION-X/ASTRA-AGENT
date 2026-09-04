@@ -26,8 +26,15 @@ export type BrowserAtomicStepRecovery = Readonly<{
 
 export type BrowserApprovedArtifactRef = Readonly<{
   artifactRef: string;
+  providerDisplayName: string;
   expectedSha256: `sha256:${string}`;
   bytes: number;
+}>;
+
+export type BrowserFileInputActivation = Readonly<{
+  selector: string;
+  scope: Readonly<{ selector: string }>;
+  expectedTextEquals: string;
 }>;
 
 export type BrowserTargetLease = Readonly<{
@@ -54,6 +61,7 @@ export type BrowserTargetLease = Readonly<{
   captureScreenshot(input: Readonly<{ regionLabel: string }>): Promise<Readonly<{ artifactRef: string; contentHash: `sha256:${string}` }>>;
   attachFile(input: Readonly<{
     selector: string;
+    activation: BrowserFileInputActivation;
     approvedArtifacts: readonly BrowserApprovedArtifactRef[];
   }>): Promise<void>;
   downloadAuthenticatedMedia(input: Readonly<{

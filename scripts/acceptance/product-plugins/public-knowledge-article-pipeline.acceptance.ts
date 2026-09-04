@@ -45,7 +45,7 @@ const continuationImage = [
   "advance_gpt_continuation_lane",
 ] as const;
 
-assert.equal(plugin.pluginVersion, 16);
+assert.equal(plugin.pluginVersion, 17);
 const source = readFileSync("src/plugins/public-knowledge-article-pipeline/index.ts", "utf8");
 assert.doesNotMatch(source, /PRODUCT_FLOW_NOT_IMPLEMENTED:|throw new Error/u);
 assert.match(source, /corpus_research/u);

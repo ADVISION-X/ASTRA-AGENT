@@ -102,6 +102,20 @@ const COHERENT_OBSERVATION_POINTER_FUNCTION = `function (request) {
     }
     return reasons;
   };
+  const fieldValue = (node, facts, field) => {
+    if (field === "id") return node.getAttribute("id") || "";
+    if (field === "dataTurn") return node.getAttribute("data-turn") || "";
+    if (field === "tagName") return node.tagName;
+    if (field === "ariaLabel") return node.getAttribute("aria-label") || "";
+    if (field === "ariaExpanded") return node.getAttribute("aria-expanded") || "";
+    if (field === "ariaChecked") return node.getAttribute("aria-checked") || "";
+    if (field === "ariaValueMin") return node.getAttribute("aria-valuemin") || "";
+    if (field === "ariaValueMax") return node.getAttribute("aria-valuemax") || "";
+    if (field === "ariaValueNow") return node.getAttribute("aria-valuenow") || "";
+    if (field === "accept") return node.getAttribute("accept") || "";
+    if (field === "multiple") return node.hasAttribute("multiple");
+    return facts[field];
+  };
   const rejected = (observed, spec, checkText) => observed
     .map(({ node, facts, candidateIndex }) => ({
       index: candidateIndex, reasons: eligibilityReasons(node, facts, spec, checkText)
@@ -116,7 +130,7 @@ const COHERENT_OBSERVATION_POINTER_FUNCTION = `function (request) {
     }));
   };
   const queries = request.postcondition.queries.map((spec) => {
-    if (spec.fields.length !== 0) throw new Error("BROWSER_DOM_READ_INVALID");
+    if (spec.fields.includes("semanticTextHash")) throw new Error("BROWSER_DOM_READ_INVALID");
     const scopeRaw = spec.scope ? Array.from(document.querySelectorAll(spec.scope.selector))
       : [document.documentElement];
     const scopeObserved = observeNodes(scopeRaw);
@@ -137,7 +151,10 @@ const COHERENT_OBSERVATION_POINTER_FUNCTION = `function (request) {
     return {
       queryId: spec.queryId, scopeRawCount: scopeRaw.length, scopeEligibleCount: scopeEligible.length,
       rawCount: raw.length, eligibleCount: eligible.length,
-      matches: eligible.slice(0, spec.maxMatches + 1).map(({ candidateIndex }) => ({ candidateIndex })),
+      matches: eligible.slice(0, spec.maxMatches + 1).map(({ node, facts, candidateIndex }) => ({
+        candidateIndex,
+        ...Object.fromEntries(spec.fields.map((field) => [field, fieldValue(node, facts, field)]))
+      })),
       scopeRejections, rejections: rejected(observed, spec, true),
       nativeCauseCode: noLayoutCount > 0 ? "NO_LAYOUT_BOX" : null,
       nativeCauseCount: noLayoutCount, nativeStage: "runtime-call-function-on"

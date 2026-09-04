@@ -1,5 +1,5 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-import { mkdtemp, rm } from "node:fs/promises";
+import { lstat, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
@@ -9,7 +9,7 @@ import {
   downloadProductionMaterials,
 } from "../../src/lib/local-runtime/production/cloud-client.js";
 import { readProductionDeviceJobStatus } from "../../src/lib/local-runtime/production/cloud-reconciliation-client.js";
-import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
+import { hashCanonical, sha256 } from "../../src/lib/local-runtime/production/contracts.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { executionFailure } from "../../src/lib/execution-failure.js";
 import {
@@ -40,6 +40,38 @@ assert.equal("accepted_attempt_limit" in parsed, false,
 assert.equal("attempt_authority" in parsed, false,
   "the AGENT must not depend on an undeclared Website attempt projection");
 assert.equal(parsed.control_intent.intent, "none");
+
+const materialIdentityTemporary = await mkdtemp(path.join(tmpdir(), "agent-material-identity-"));
+const materialIdentityFetch = globalThis.fetch;
+try {
+  const materialBytes = Buffer.from("stable-material-bytes", "utf8");
+  const materialJob = claimTask(task({
+    jobId: "job:material-local-identity",
+    productId: "payment_screenshot_observation",
+    actionId: "observe",
+    materialRefs: [{
+      material_id: "material:local-identity", ordinal: 0, role: "payment_screenshot",
+      display_name: "payment.png", object_ref: "object:payment", sha256: sha256(materialBytes),
+      bytes: materialBytes.byteLength, media_type: "image/png", storage_class: "private_owner_scoped",
+      owner_scope_hash: HASH_B, trust_class: "user_provided_data", may_issue_instruction: false,
+    }],
+    extra: { parameters: { observation_schema_version: "payment-screenshot-observation-v1" } },
+  }));
+  globalThis.fetch = (async () => new Response(materialBytes)) as typeof globalThis.fetch;
+  const session = {
+    device: { server_base_url: "https://website.example" },
+    authorizationHeaders: async () => ({}),
+  } as never;
+  const first = await downloadProductionMaterials(session, materialJob, materialIdentityTemporary);
+  const firstIdentity = await lstat(first[0]!.local_path);
+  const second = await downloadProductionMaterials(session, materialJob, materialIdentityTemporary);
+  const secondIdentity = await lstat(second[0]!.local_path);
+  assert.deepEqual([secondIdentity.dev, secondIdentity.ino], [firstIdentity.dev, firstIdentity.ino],
+    "an exact repeated material download must preserve the source inode for same-attempt alias recovery");
+} finally {
+  globalThis.fetch = materialIdentityFetch;
+  await rm(materialIdentityTemporary, { recursive: true, force: true });
+}
 
 const materialFailureTemporary = await mkdtemp(path.join(tmpdir(), "agent-material-failure-"));
 const originalMaterialFetch = globalThis.fetch;

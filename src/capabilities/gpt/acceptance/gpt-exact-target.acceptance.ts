@@ -88,6 +88,14 @@ const profileFixture = fakeBrowser((intent) => {
         ["popup", 1], ["simple-panel", 1], ["reasoning-control", 1],
         ["enabled-reasoning-control", 1], ["reasoning-value", 1], ["trigger", 1],
       ], "profile open must prove the complete topology in the same Browser mutation packet");
+      assert.deepEqual(intent.postClickObservation.queries.map((query) => [
+        query.queryId, query.fields,
+      ]), [
+        ["popup", []], ["simple-panel", []], ["reasoning-control", []],
+        ["enabled-reasoning-control", []],
+        ["reasoning-value", ["ariaValueMin", "ariaValueMax", "ariaValueNow"]],
+        ["trigger", ["ariaExpanded"]],
+      ], "GPT must request only the governed mechanical profile fields in the same Browser packet");
       profileHydrated = true;
       const queries = intent.postClickObservation.queries
         .map(({ expectedEligibleCount: _expected, ...query }) => query);

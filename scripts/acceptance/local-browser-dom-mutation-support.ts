@@ -4,7 +4,8 @@ import type { ExtensionDebuggerRuntime } from
   "../../src/lib/browser/chrome-extension/debugger-runtime.js";
 import { executeRegisteredDomIntent } from
   "../../src/lib/browser/chrome-extension/dom-intent-runtime.js";
-import { exerciseCapturedCandidateFunction } from "./local-browser-dom-function-support.js";
+import { exerciseCapturedCandidateFunction, exerciseCapturedCoherentObservationPointerFunction } from
+  "./local-browser-dom-function-support.js";
 
 type PointerClickIntent = Extract<Parameters<typeof executeRegisteredDomIntent>[2], {
   kind: "click" | "doubleClick";
@@ -108,6 +109,64 @@ const exerciseReasoningSlider = async (): Promise<void> => {
     postconditionRejections: [{ index: 0, reasons: ["ARIA_HIDDEN"] }],
     nativeCauseCode: "ARIA_HIDDEN", failureCode: "BROWSER_POSTCONDITION_FAILED",
   }, "ordinary postcondition matching must reject and preserve the aria-hidden cause");
+};
+
+const redrawKeypressRuntime = (staleAfterResolve: boolean) => {
+  let preconditionRead = false;
+  let candidateNodeId = 0;
+  const physicalEvents: string[] = [];
+  const runtime = { async send(
+    _tabId: number,
+    method: string,
+    parameters?: Readonly<Record<string, unknown>>,
+  ) {
+    if (method === "DOM.requestNode") {
+      candidateNodeId = preconditionRead ? 8 : 7;
+      return { nodeId: candidateNodeId };
+    }
+    if (method === "Runtime.callFunctionOn" && parameters?.objectId === `node-${candidateNodeId}`
+      && (candidateNodeId === 7 || staleAfterResolve)) throw new Error("Could not find node with given id");
+    const infrastructure = mutationInfrastructureReply(method, parameters);
+    if (infrastructure !== undefined) return infrastructure;
+    if (method === "DOM.querySelectorAll") {
+      preconditionRead = true;
+      return { nodeIds: physicalEvents.length === 0 ? [] : [9] };
+    }
+    if (method === "DOM.focus" || method === "Input.dispatchKeyEvent") {
+      physicalEvents.push(method);
+      return {};
+    }
+    throw new Error(`UNEXPECTED_REDRAW_KEYPRESS_METHOD:${method}`);
+  } } as ExtensionDebuggerRuntime;
+  return { runtime, candidateNodeId: () => candidateNodeId, physicalEvents };
+};
+
+const exerciseFreshKeypressCandidate = async (): Promise<void> => {
+  const intent = { kind: "keypress", selector: "[role='menuitem'][aria-label='能力']",
+    key: "ArrowRight", expectedMatches: 1,
+    postKeypressMatch: { selector: "[role='slider'][aria-valuenow='2']", expectedMatches: 1,
+      readEligibility: "non-actionable-aria-state" } } as const;
+  const redrawn = redrawKeypressRuntime(false);
+  const success = await executeRegisteredDomIntent(
+    redrawn.runtime, { tabId: 104 } as never, intent, () => undefined,
+  ) as Readonly<Record<string, unknown>>;
+  assert.equal(redrawn.candidateNodeId(), 8,
+    "keypress must resolve its candidate after the zero-action pre-read can redraw the Provider DOM");
+  assert.equal(success.postconditionVerified, true);
+  assert.deepEqual(redrawn.physicalEvents,
+    ["DOM.focus", "Input.dispatchKeyEvent", "Input.dispatchKeyEvent"]);
+
+  const stale = redrawKeypressRuntime(true);
+  const rejected = await executeRegisteredDomIntent(
+    stale.runtime, { tabId: 105 } as never, intent, () => undefined,
+  );
+  assert.deepEqual(rejected, { candidateCount: 1, qualificationStage: "actionability",
+    identityRevalidated: false, mutationCount: 0, postconditionVerified: false,
+    qualificationRejected: true, failureCode: "BROWSER_DOM_ACTION_NOT_QUALIFIED",
+    nativeCauseCode: "BROWSER_DOM_NODE_STALE" });
+  assert.equal(stale.candidateNodeId(), 8);
+  assert.deepEqual(stale.physicalEvents, [],
+    "a node that becomes stale after fresh resolution must fail closed without input or fallback");
 };
 
 const exerciseContentEditableFill = async (): Promise<void> => {
@@ -257,7 +316,8 @@ const exerciseNativePointerSequences = async (): Promise<void> => {
 const coherentPostconditionQueries = [
   { queryId: "entry", selector: "[role='menuitem']", maxMatches: 2, fields: [],
     expectedEligibleCount: 0 },
-  { queryId: "advanced", selector: "[data-active='true']", maxMatches: 2, fields: [],
+  { queryId: "advanced", selector: "[data-active='true']", maxMatches: 2,
+    fields: ["ariaExpanded"],
     expectedEligibleCount: 1 },
 ] as const;
 
@@ -269,7 +329,8 @@ const coherentObservation = (open: boolean) => ({
       scopeRejections: [], rejections: open ? [{ index: 0, reasons: ["ARIA_HIDDEN"] }] : [],
       nativeCauseCode: null, nativeCauseCount: 0, nativeStage: "runtime-call-function-on" },
     { queryId: "advanced", scopeRawCount: 1, scopeEligibleCount: 1, rawCount: open ? 1 : 0,
-      eligibleCount: open ? 1 : 0, matches: open ? [{ candidateIndex: 0 }] : [],
+      eligibleCount: open ? 1 : 0,
+      matches: open ? [{ candidateIndex: 0, ariaExpanded: "true" }] : [],
       scopeRejections: [], rejections: [], nativeCauseCode: null, nativeCauseCount: 0,
       nativeStage: "runtime-call-function-on" },
   ],
@@ -329,6 +390,9 @@ const exerciseCoherentClickPostcondition = async (): Promise<void> => {
   assert.equal(((success.postconditionObservation as Readonly<Record<string, unknown>>)
     .queries as readonly Readonly<Record<string, unknown>>[])[0]?.rawCount, 1,
   "a retained but mechanically ineligible DOM node must satisfy expected eligible cardinality zero");
+  assert.equal(((((success.postconditionObservation as Readonly<Record<string, unknown>>)
+    .queries as readonly Readonly<Record<string, unknown>>[])[1]?.matches as
+      readonly Readonly<Record<string, unknown>>[])[0])?.ariaExpanded, "true");
 
   const raced = coherentRuntimeFor(true, 1);
   const zeroAction = await executeRegisteredDomIntent(raced.runtime, target, {
@@ -342,6 +406,7 @@ const exerciseCoherentClickPostcondition = async (): Promise<void> => {
     "a postcondition already true in the atomic preparation snapshot must not be clicked");
   assert.match(raced.atomicSource(), /if \(postconditionSatisfied\) return \{ kind: "postcondition", observation \};[\s\S]*const scopeRaw = request\.candidate\.scope/u,
     "one Runtime.callFunctionOn snapshot must choose postcondition or a freshly qualified pointer before returning");
+  exerciseCapturedCoherentObservationPointerFunction(raced.atomicSource());
 
   const stuck = coherentRuntimeFor(false);
   const rejected = await executeRegisteredDomIntent(stuck.runtime, target, {
@@ -411,6 +476,7 @@ const exerciseMutationDocumentGuard = async (): Promise<void> => {
 
 export const exerciseDomMutations = async (): Promise<void> => {
   await exerciseReasoningSlider();
+  await exerciseFreshKeypressCandidate();
   await exerciseContentEditableFill();
   await exerciseFillReadbackRejection();
   await exerciseScopedExactCandidate();

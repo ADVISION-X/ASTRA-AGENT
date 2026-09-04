@@ -109,6 +109,38 @@ export const exerciseCapturedCandidateFunction = (source: string): void => {
   }), "BROWSER_DOM_READ_INVALID", "scope plus target candidates must share the 256 budget");
 };
 
+export const exerciseCapturedCoherentObservationPointerFunction = (source: string): void => {
+  const reasoning = new FakeElement("", {}, {}, {
+    "aria-valuemin": "0", "aria-valuemax": "4", "aria-valuenow": "2",
+  });
+  const trigger = new FakeElement("", {}, {}, { "aria-expanded": "true" }, "BUTTON");
+  const root = new FakeElement("root", { reasoning: [reasoning], trigger: [trigger] });
+  reasoning.parentElement = root;
+  trigger.parentElement = root;
+  const result = execute(source, {
+    documentElement: root, querySelectorAll: () => [], elementFromPoint: () => trigger,
+  }, {
+    candidate: { selector: "button" },
+    postcondition: { queries: [
+      { queryId: "reasoning-value", selector: "reasoning", maxMatches: 1,
+        fields: ["ariaValueMin", "ariaValueMax", "ariaValueNow"], expectedEligibleCount: 1 },
+      { queryId: "trigger", selector: "trigger", maxMatches: 1,
+        fields: ["ariaExpanded"], expectedEligibleCount: 1 },
+    ] },
+  }) as Readonly<{ kind: string; observation: Readonly<{
+    queries: readonly Readonly<{ matches: readonly Readonly<Record<string, unknown>>[] }>[];
+  }> }>;
+  assert.equal(result.kind, "postcondition");
+  assert.equal(JSON.stringify(result.observation.queries[0]?.matches), JSON.stringify([{
+    candidateIndex: 0, ariaValueMin: "0", ariaValueMax: "4", ariaValueNow: "2",
+  }]));
+  assert.equal(JSON.stringify(result.observation.queries[1]?.matches), JSON.stringify([{
+    candidateIndex: 0, ariaExpanded: "true",
+  }]));
+  assert.equal((source.match(/location\.href/gu) ?? []).length, 1,
+    "the atomic pointer preparation must read currentUrl and mechanical fields in one synchronous call");
+};
+
 export const exerciseCapturedObservationFunction = async (source: string): Promise<void> => {
   const nodes = [new FakeElement("a", {}, { display: "none" }),
     new FakeElement("b", {}, { visibility: "hidden" }), new FakeElement("c", {}, { opacity: "0" }),

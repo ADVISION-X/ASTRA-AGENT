@@ -1,3 +1,6 @@
+import { link, lstat, unlink } from "node:fs/promises";
+import { basename, dirname, join } from "node:path";
+
 import {
   createProductionGptChildTools,
   type GptAbilityGroup,
@@ -64,6 +67,71 @@ const durableIdentityValid = (
     && identity.skill_hash === current.identity.skill_hash
     && identity.checkpoint_schema_version === current.identity.checkpoint_schema_version
     && identity.request_hash === task.request_hash;
+};
+
+const errno = (error: unknown): string | null =>
+  error && typeof error === "object" && "code" in error && typeof error.code === "string"
+    ? error.code : null;
+
+const productionMaterialBrowserArtifact = (material: LocalProductionMaterial) => {
+  const aliases = new Map<string, Readonly<{ dev: number; ino: number }>>();
+  const materializeProviderPath = async (providerDisplayName: string): Promise<string> => {
+    if (!providerDisplayName || providerDisplayName !== providerDisplayName.normalize("NFC")
+      || providerDisplayName === "." || providerDisplayName === ".."
+      || providerDisplayName.includes("/") || providerDisplayName.includes("\\")
+      || basename(providerDisplayName) !== providerDisplayName
+      || Buffer.byteLength(providerDisplayName, "utf8") > 255) {
+      throw executionFailure("failed", "PRODUCTION_MATERIAL_UPLOAD_ALIAS_INVALID");
+    }
+    const sourcePath = material.local_path;
+    const aliasPath = join(dirname(sourcePath), providerDisplayName);
+    if (aliasPath === sourcePath) return sourcePath;
+    const source = await lstat(sourcePath);
+    if (!source.isFile() || source.size !== material.bytes) {
+      throw executionFailure("failed", "PRODUCTION_MATERIAL_UPLOAD_ALIAS_INVALID");
+    }
+    try {
+      await link(sourcePath, aliasPath);
+    } catch (error) {
+      if (errno(error) !== "EEXIST") {
+        throw executionFailure("failed", "PRODUCTION_MATERIAL_UPLOAD_ALIAS_UNAVAILABLE", { cause: error });
+      }
+    }
+    const alias = await lstat(aliasPath);
+    if (!alias.isFile() || alias.dev !== source.dev || alias.ino !== source.ino
+      || alias.size !== source.size) {
+      throw executionFailure("failed", "PRODUCTION_MATERIAL_UPLOAD_ALIAS_INVALID");
+    }
+    aliases.set(aliasPath, { dev: alias.dev, ino: alias.ino });
+    return aliasPath;
+  };
+  const releaseProviderPaths = async (): Promise<void> => {
+    const failures: unknown[] = [];
+    for (const [aliasPath, identity] of aliases) {
+      try {
+        const current = await lstat(aliasPath);
+        if (!current.isFile() || current.dev !== identity.dev || current.ino !== identity.ino) {
+          throw executionFailure("failed", "PRODUCTION_MATERIAL_UPLOAD_ALIAS_RELEASE_INVALID");
+        }
+        await unlink(aliasPath);
+      } catch (error) {
+        if (errno(error) !== "ENOENT") failures.push(error);
+      }
+    }
+    aliases.clear();
+    if (failures.length > 0) throw executionFailure(
+      "failed", "PRODUCTION_MATERIAL_UPLOAD_ALIAS_RELEASE_FAILED",
+      { cause: new AggregateError(failures) },
+    );
+  };
+  return Object.freeze({
+    artifactRef: material.material_id,
+    localPath: material.local_path,
+    contentHash: material.sha256,
+    sizeBytes: material.bytes,
+    materializeProviderPath,
+    releaseProviderPaths,
+  });
 };
 
 const pluginIdentity = (task: WebsiteAgentTask): DurablePluginIdentity => {
@@ -276,23 +344,34 @@ export class ProductionExecutor {
           leaseVersion: lease.lease_version,
           writerFenceHash: lease.execution_fence_hash,
         },
-        artifacts: materials.map((material) => ({
-          artifactRef: material.material_id,
-          localPath: material.local_path,
-          contentHash: material.sha256,
-          sizeBytes: material.bytes,
-        })),
+        artifacts: materials.map(productionMaterialBrowserArtifact),
       });
       const result = await this.dispatchPlugin({ task, materials, lease, span, complete, uploadGeneratedImage });
+      try {
+        await browserArtifactLease.release();
+      } catch (cleanupError) {
+        throw new AggregateError(
+          [cleanupError], "GPT_BROWSER_LIFECYCLE_FAILED", { cause: cleanupError },
+        );
+      }
+      browserArtifactLease = null;
       requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
       return { record: this.store.readTask(task.job_id)!, result };
     } catch (error) {
-      return this.terminalizePluginFailure(span, error, {
+      let failure = error;
+      if (browserArtifactLease) {
+        try {
+          await browserArtifactLease.release();
+        } catch (cleanupError) {
+          failure = new AggregateError(
+            [cleanupError], "GPT_BROWSER_LIFECYCLE_FAILED", { cause: error },
+          );
+        }
+      }
+      return this.terminalizePluginFailure(span, failure, {
         attemptId: lease.attempt_id,
         pluginId: accepted.identity.plugin_id,
       });
-    } finally {
-      browserArtifactLease?.release();
     }
   }
 }

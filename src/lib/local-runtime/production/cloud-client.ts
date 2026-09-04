@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, open, rename, rm } from "node:fs/promises";
+import { lstat, mkdir, open, readFile, rename, rm } from "node:fs/promises";
 import path from "node:path";
 
 import {
@@ -88,6 +88,17 @@ export async function claimProductionTasks(
 }
 
 const writeProductionMaterial = async (destination: string, bytes: Uint8Array): Promise<void> => {
+  try {
+    const metadata = await lstat(destination);
+    const existing = await readFile(destination);
+    if (!metadata.isFile() || existing.byteLength !== bytes.byteLength
+      || sha256(existing) !== sha256(bytes)) {
+      throw executionFailure("failed", "MATERIAL_LOCAL_IDENTITY_CONFLICT");
+    }
+    return;
+  } catch (error) {
+    if (!(error && typeof error === "object" && "code" in error && error.code === "ENOENT")) throw error;
+  }
   const temporary = `${destination}.${process.pid}.tmp`;
   const handle = await open(temporary, "wx", 0o600);
   try {

@@ -434,8 +434,14 @@ export const attachmentChildHandlers = {
     }
     await browser.attachFile({
       selector: GPT_FILE_INPUT_SELECTOR,
+      activation: {
+        selector: GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
+        scope: { selector: GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR },
+        expectedTextEquals: GPT_UPLOAD_FROM_COMPUTER_LABEL,
+      },
       approvedArtifacts: files.map((file) => ({
         artifactRef: file.artifactRef,
+        providerDisplayName: file.providerDisplayName,
         expectedSha256: file.sha256,
         bytes: file.bytes,
       })),

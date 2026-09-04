@@ -9,6 +9,9 @@ const clickCommand = { kind: "dom-intent" as const, intent: {
 } };
 
 const fileCommand = { kind: "file-input" as const, selector: "#upload-files",
+  activation: { selector: "div.__menu-item[tabindex='0'] span",
+    scope: { selector: "#thread-bottom div.popover[aria-busy='false']" },
+    expectedTextEquals: "从电脑上传" },
   approvedFiles: [{ grantRef: "grant-one", contentHash: `sha256:${"a".repeat(64)}` as const,
     maxBytes: 64 }], resolvedFilePaths: ["/approved/one.txt"] };
 const keypressCommand = { kind: "dom-intent" as const, intent: {

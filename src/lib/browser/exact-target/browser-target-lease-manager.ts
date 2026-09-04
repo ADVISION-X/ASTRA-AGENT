@@ -248,8 +248,9 @@ export class BrowserTargetLeaseManager {
       executeDomIntent: async (intent: BrowserDomIntent) => command(this.capabilityForIntent(intent), { kind: "dom-intent", intent }),
       observeCapability: async ({ capabilityId }) => command(capabilityId, { kind: "observe", capabilityId }),
       captureScreenshot: ({ regionLabel }) => this.captureScreenshot(command, regionLabel),
-      attachFile: async ({ selector, approvedArtifacts }) => this.attachFile(
-        command, selector, await this.artifactOperations.issueApprovedArtifactGrants(approvedArtifacts),
+      attachFile: async ({ selector, activation, approvedArtifacts }) => this.attachFile(
+        command, selector, activation,
+        await this.artifactOperations.issueApprovedArtifactGrants(approvedArtifacts),
       ),
       downloadAuthenticatedMedia: (media) => this.downloadAuthenticatedMedia(state, command, media),
       wait: async ({ durationMs }) => { await command("browser.wait.v1", { kind: "wait", durationMs }); },
@@ -309,6 +310,7 @@ export class BrowserTargetLeaseManager {
   private async attachFile(
     command: LeaseCommand,
     selector: string,
+    activation: Parameters<BrowserTargetLease["attachFile"]>[0]["activation"],
     grants: readonly BrowserFileArtifactGrantV1[],
   ): Promise<void> {
     if (grants.length === 0 || grants.length > 20 || new Set(grants.map((grant) => grant.grantRef)).size !== grants.length) {
@@ -322,6 +324,7 @@ export class BrowserTargetLeaseManager {
     await command("browser.file-input.v1", {
       kind: "file-input",
       selector,
+      activation,
       approvedFiles: grants.map(({ grantRef, contentHash, maxBytes }) => ({
         grantRef,
         contentHash,

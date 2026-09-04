@@ -291,7 +291,7 @@ assert.equal(attachmentFixture.documentCalls(), 1,
 assert.equal(attachmentFixture.physicalMutations(), 0,
   "readback must never dispatch or replay an upload");
 
-let attachedArtifacts: unknown = null;
+let attachedInput: unknown = null;
 const attachmentMutationFixture = fakeBrowser((intent) => {
   if (intent.kind === "observe") return coherentObservationPacket(intent, {
     "attachment-control": { rawCount: 1, eligibleCount: 1 },
@@ -299,7 +299,7 @@ const attachmentMutationFixture = fakeBrowser((intent) => {
   });
   throw new Error(`UNEXPECTED_ATTACHMENT_MUTATION_INTENT:${intent.kind}`);
 }, {
-  onAttachFile: (input) => { attachedArtifacts = input.approvedArtifacts; },
+  onAttachFile: (input) => { attachedInput = input; },
 });
 const attachmentMutation = await execute(
   "attach_approved_gpt_files_once",
@@ -308,11 +308,20 @@ const attachmentMutation = await execute(
 );
 assert.equal(attachmentMutation.status, "success", attachmentMutation.failureCode ?? "attachment dispatch failed");
 assert.equal(attachmentMutation.value?.mutationSent, true);
-assert.deepEqual(attachedArtifacts, [{
-  artifactRef: approvedAttachment.artifactRef,
-  expectedSha256: approvedAttachment.sha256,
-  bytes: approvedAttachment.bytes,
-}]);
+assert.deepEqual(attachedInput, {
+  selector: "#upload-files",
+  activation: {
+    selector: "div.__menu-item[tabindex='0'] span",
+    scope: { selector: "#thread-bottom div.popover[aria-busy='false']" },
+    expectedTextEquals: "从电脑上传",
+  },
+  approvedArtifacts: [{
+    artifactRef: approvedAttachment.artifactRef,
+    providerDisplayName: providerAttachmentName(approvedAttachment.displayName, approvedAttachment.artifactRef),
+    expectedSha256: approvedAttachment.sha256,
+    bytes: approvedAttachment.bytes,
+  }],
+});
 assert.equal(attachmentMutation.proof.committedMutation, "confirmed");
 assert.equal(attachmentMutationFixture.documentCalls(), 1);
 assert.equal(attachmentMutationFixture.physicalMutations(), 1,

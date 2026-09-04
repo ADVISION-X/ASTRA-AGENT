@@ -40,6 +40,11 @@ export type BrowserGovernedCommand =
   | Readonly<{
     kind: "file-input";
     selector: string;
+    activation: Readonly<{
+      selector: string;
+      scope: Readonly<{ selector: string }>;
+      expectedTextEquals: string;
+    }>;
     approvedFiles: readonly Readonly<{
       grantRef: string;
       contentHash: `sha256:${string}`;
@@ -125,6 +130,7 @@ const postconditionPair = (command: BrowserGovernedCommand): Readonly<{
     const positive = {
       kind: "file-input",
       selector: command.selector,
+      activation: command.activation,
       approvedFiles: command.approvedFiles,
       attached: true,
     };

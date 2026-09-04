@@ -1,5 +1,5 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-import { chmod, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
@@ -31,6 +31,7 @@ import {
 } from "../../src/lib/runtime-logs/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
+import type { BrowserExecutionArtifact } from "../../src/lib/browser/browser-authority-api.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 import { verifyProductionDependency } from "../startup/lib/production-contract-preflight.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
@@ -318,15 +319,31 @@ try {
   const pluginFailureStore = new ProductionRuntimeStore(pluginFailureTemporary);
   let browserArtifactBindCalls = 0;
   let browserArtifactReleaseCalls = 0;
+  const providerAliasName = "payment-0123456789ab.png";
+  let providerAliasPath: string | null = null;
   const executor = new ProductionExecutor(
     pluginFailureStore, pluginFailureLogger,
     {
       dataDir: pluginFailureTemporary, sourceHash: HASH_A,
       gpt: {} as never, evidenceStore: {} as never,
       browserAuthority: {
-        bindExecutionArtifacts: async () => {
+        bindExecutionArtifacts: async (input: Readonly<{ artifacts: readonly BrowserExecutionArtifact[] }>) => {
           browserArtifactBindCalls += 1;
-          return { release: () => { browserArtifactReleaseCalls += 1; } };
+          const artifact = input.artifacts[0]!;
+          const conflictPath = path.join(path.dirname(artifact.localPath), "conflict.png");
+          await mkdir(conflictPath);
+          await assert.rejects(artifact.materializeProviderPath("conflict.png"),
+            /PRODUCTION_MATERIAL_UPLOAD_ALIAS_INVALID/u,
+            "an alien same-name entry must fail closed without a copy fallback");
+          providerAliasPath = await artifact.materializeProviderPath(providerAliasName);
+          assert.equal(await artifact.materializeProviderPath(providerAliasName), providerAliasPath,
+            "the exact same-inode provider alias must be idempotent");
+          const [source, alias] = await Promise.all([lstat(artifact.localPath), lstat(providerAliasPath)]);
+          assert.deepEqual([alias.dev, alias.ino, alias.size], [source.dev, source.ino, source.size]);
+          return { release: async () => {
+            browserArtifactReleaseCalls += 1;
+            await Promise.all(input.artifacts.map((item) => item.releaseProviderPaths()));
+          } };
         },
       } as never,
     },
@@ -392,6 +409,16 @@ try {
     extra: { parameters: { observation_schema_version: "payment-screenshot-observation-v1" } },
   });
   const dispatchAttemptId = "attempt:plugin-primary-with-cleanup-failure";
+  const materialDirectory = path.join(pluginFailureTemporary, "materials");
+  await mkdir(materialDirectory);
+  const paymentPath = path.join(materialDirectory, "payment.png");
+  const contractPath = path.join(materialDirectory, "contract.json");
+  await writeFile(paymentPath, "0123456789");
+  await writeFile(contractPath, "abcdefghij");
+  const localMaterials = dispatchFailureTask.material_refs.map((material) => ({
+    ...material,
+    local_path: material.material_id === "material:plugin-primary-payment" ? paymentPath : contractPath,
+  }));
   executor.accept(dispatchFailureTask, dispatchAttemptId);
   const gptChildTools = Reflect.get(executor, "gptChildTools") as Record<string, unknown>;
   let settleCalls = 0;
@@ -413,7 +440,7 @@ try {
   await assert.rejects(
     executor.execute(
       dispatchFailureTask,
-      [],
+      localMaterials,
       {
         attempt_id: dispatchAttemptId,
         device_id: "device:plugin-primary-with-cleanup-failure",
@@ -443,6 +470,9 @@ try {
     "Runtime production execution must invoke the Browser public task-local material binding");
   assert.equal(browserArtifactReleaseCalls, 1,
     "Runtime must release the Browser artifact binding after failure and lifecycle settlement");
+  assert.ok(providerAliasPath);
+  await assert.rejects(lstat(providerAliasPath!), /ENOENT/u,
+    "Runtime must remove its provider alias when Browser releases the execution binding");
 
   const pluginLogEvents = (await readFile(pluginFailureLogger.currentSegmentPath()!, "utf8")).trim().split("\n")
     .map((line) => JSON.parse(line) as Readonly<Record<string, unknown>>);

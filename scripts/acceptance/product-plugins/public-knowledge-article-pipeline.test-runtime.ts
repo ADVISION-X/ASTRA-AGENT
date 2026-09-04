@@ -269,6 +269,17 @@ const executeCall = async (
   failureAt?: SeoFailure,
   attemptId = "attempt-1",
 ) => {
+  if (input.child === "attach_approved_gpt_files_once"
+    || input.child === "reconcile_gpt_attachment_set") {
+    assert(Array.isArray(input.input.files));
+    for (const file of input.input.files) {
+      assert(file && typeof file === "object" && !Array.isArray(file));
+      assert.deepEqual(Object.keys(file).sort(), ["artifactRef", "bytes", "displayName", "sha256"],
+        "Product to GPT attachment input must contain exactly the four approved-file fields");
+      assert.equal("providerDisplayName" in file, false,
+        "providerDisplayName is derived by GPT and must not enter attachment input");
+    }
+  }
   state.calls.push(input);
   if (state.remainingFailures > 0 && input.child === failureAt?.child
     && (!failureAt.productStepId || input.productStepId === failureAt.productStepId)) {

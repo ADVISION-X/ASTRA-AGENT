@@ -123,7 +123,7 @@ const produceResearchTurn = async (
     && recovered.prior_turn_marker === marker
     && recovered.prior_prompt_hash === textHash(prompt) ? recovered : undefined;
   await prepareAttachedTurnPrefix({
-    flow, stepId, uploadedFiles,
+    flow, stepId, files, uploadedFiles,
     recoverOnly: Boolean(submitFacts.mutation || submitFacts.evidence),
   });
   const checkpoint = await submitTextTurn({
@@ -338,7 +338,7 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
   const submitCall = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 13, input: { files: uploadedFiles, promptHash: textHash(prompt), turnMarker: marker } } as const;
   const submitFacts = await flow.facts(submitCall);
   await prepareAttachedTurnPrefix({
-    flow, stepId, uploadedFiles,
+    flow, stepId, files, uploadedFiles,
     recoverOnly: Boolean(submitFacts.mutation || submitFacts.evidence),
   });
   const checkpoint = await submitTextTurn({
@@ -353,7 +353,7 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
 
 export const publicKnowledgeArticlePipelinePlugin: ProductPlugin = {
   pluginId: PLUGIN_ID,
-  pluginVersion: 16,
+  pluginVersion: 17,
   checkpointSchemaVersion: 2,
   accepts: [
     { productId: "public_knowledge_article_pipeline", actionId: "produce_article" },
