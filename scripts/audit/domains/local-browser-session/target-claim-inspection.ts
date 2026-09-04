@@ -27,7 +27,7 @@ const inspectJobBoundClaimOrder = (actor: ReturnType<typeof requireSource>, find
 };
 
 const inspectServerClaimOrder = (serverClaim: string, findings: InspectorFinding[], lawId: string): void => {
-  const policyIndex = serverClaim.indexOf("requireGptWebPolicyForUrl(input.url)");
+  const policyIndex = serverClaim.indexOf("requireGptWebClaimOrigin(input.claimOrigin)");
   const workspaceIndex = serverClaim.indexOf("this.establishClaimBoundWorkspace()");
   if (policyIndex >= 0 && workspaceIndex > policyIndex) return;
   findings.push(createLocalFinding({
@@ -65,8 +65,12 @@ const inspectDispatchedMutationReleaseGuard = (
 };
 
 const inspectExactChatGptPolicy = (source: ReturnType<typeof requireSource>, findings: InspectorFinding[], lawId: string): void => {
-  if (!source || (stringLiterals(source).includes("https://chatgpt.com/")
-    && /siteId: "gpt-web",\s*allowedOrigins: \["https:\/\/chatgpt\.com"\]/u.test(source.getFullText()))) return;
+  const text = source?.getFullText() ?? "";
+  const claimOrigin = source?.getFunction("requireGptWebClaimOrigin")?.getText() ?? "";
+  if (text.includes('export const GPT_WEB_ORIGIN = "https://chatgpt.com" as const')
+    && text.includes('export const GPT_WEB_START_URL = "https://chatgpt.com/" as const')
+    && /siteId: "gpt-web",\s*allowedOrigins: \[GPT_WEB_ORIGIN\]/u.test(text)
+    && claimOrigin.includes("value !== GPT_WEB_ORIGIN")) return;
   findings.push(createLocalFinding({
     checkId: "browser-authority/job-bound-target-claim", lawId, filePath: sitePolicyPath,
     message: "The gpt-web policy must own one exact https://chatgpt.com/ start URL.",
@@ -101,7 +105,7 @@ const inspectJobBoundClaimPolicy = (
     "parkActiveTarget", "parkedLoaderIds", "attachedTabId", "singleParkedTargetRef",
   ], findings, lawId, "The fixed extension must create, validate and retain exactly one visible system Target for all GPT turns.");
   requireIdentifiers(supervisor, [
-    "requireGptWebPolicyForUrl", "establishClaimBoundWorkspace", "pendingJobBoundTargetAcquisition",
+    "requireGptWebClaimOrigin", "establishClaimBoundWorkspace", "pendingJobBoundTargetAcquisition",
     "acquireJobBoundTargetLease",
   ], findings, lawId,
   "The server must bind initial Target acquisition to one current job request before establishing Session Workspace.");
