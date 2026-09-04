@@ -71,7 +71,6 @@ export type BrowserCallRecoveryScope = BrowserMutationReconciliationScope & Read
   state: "DISPATCHED" | "CONFIRMED" | "REJECTED";
   effectScope: "target_local" | "provider_effect";
 }>;
-
 export type BrowserExactCallMutationFact = Readonly<{
   effectScope: "target_local" | "provider_effect";
   outcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";

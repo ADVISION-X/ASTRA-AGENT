@@ -348,7 +348,7 @@ export const inspectGptBrowserFailureRecoveryContract = (
   const lifecycle = sourceFor(context, PRODUCTION_BROWSER_LIFECYCLE_PATH)?.getFullText() ?? "";
   const group = sourceFor(context, GROUP_PATH)?.getFullText() ?? "";
   inspectMissingTokens({ source: tools,
-    required: ["facts.mutation.failureCode", "facts.mutation.nativeFailureCode", "cause: nativeCause"],
+    required: ["mutation.failureCode", "mutation.nativeFailureCode", "cause: nativeCause"],
     checkId: "gpt/browser-rejected-wal-cause", filePath: PRODUCTION_CHILD_TOOLS_PATH,
     findings, finding, message: (required) => `The Browser REJECTED fact path is missing ${required}.` });
   inspectMissingTokens({ source: lifecycle,
@@ -357,7 +357,7 @@ export const inspectGptBrowserFailureRecoveryContract = (
     findings, finding, message: (required) => `The Browser atomic-step recovery path is missing ${required}.` });
   inspectMissingTokens({ source: group, required: [
     'recovery.state === "confirmed"', '"CONFIRMED" as const',
-    "mutationOutcome: walBrowserFact.mutationOutcome", "browserFact: walBrowserFact",
+    "mutationOutcome: input.walBrowserFact.mutationOutcome", "browserFact: input.walBrowserFact",
   ], checkId: "gpt/browser-confirmed-semantic-failure-proof", filePath: GROUP_PATH,
   findings, finding,
   message: (required) => `The GPT failed proof cannot preserve a confirmed Browser fact; missing ${required}.` });

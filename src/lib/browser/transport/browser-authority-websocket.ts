@@ -87,7 +87,6 @@ type ActiveSocket = Readonly<{
   lastHeartbeatAt: number;
   replies: ReadonlyMap<number, AwaitingReply>;
 }>;
-
 const MAX_PREAUTH_FRAMES = 3;
 const AUTH_EPOCH = 1;
 const COMMAND_DEADLINE_MS = BROWSER_COMMAND_DEFAULT_DEADLINE_MS;
