@@ -1274,9 +1274,10 @@ test("active mutation inspectors use one DISPATCHED chain inside each law scope"
     'mutationMode: "readback"', "childCapabilityId", "inputHash",
   ]) assert.equal(agentInspector.includes(token), false, token);
 
-  const browserInspector = readFileSync(
-    "scripts/audit/domains/local-browser-session/mutation-atomicity-inspection.ts", "utf8",
-  );
+  const browserInspector = [
+    "scripts/audit/domains/local-browser-session/mutation-atomicity-inspection.ts",
+    "scripts/audit/domains/local-browser-session/mutation-registry-inspection.ts",
+  ].map((path) => readFileSync(path, "utf8")).join("\n");
   const runtimeInspector = readFileSync("scripts/audit/domains/runtime-log-spine/inspector.ts", "utf8");
   const activeInspectors = `${browserInspector}\n${runtimeInspector}`;
   for (const retired of [
@@ -1291,7 +1292,10 @@ test("active mutation inspectors use one DISPATCHED chain inside each law scope"
     "logicalMutationId", "positivePostconditionHash", "callRecoveryScope", "atomicStepRecovery",
     "inspectJobScopedMutationRecovery", '"DISPATCHED"',
   ]) assert.equal(activeInspectors.includes(current), true, current);
-  const browserLane = readFileSync("src/lib/browser/infrastructure/browser-lane-coordinator.ts", "utf8");
+  const browserLane = [
+    "src/lib/browser/infrastructure/browser-lane-coordinator.ts",
+    "src/lib/browser/infrastructure/browser-target-acquirer.ts",
+  ].map((path) => readFileSync(path, "utf8")).join("\n");
   for (const retired of ["private unsettled", "acquireReconciliation", "reconciliationAllowed"]) {
     assert.equal(browserLane.includes(retired), false, retired);
   }
