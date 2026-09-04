@@ -1,5 +1,5 @@
 import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
-import { productionPluginCatalog } from "../../../src/lib/local-runtime/production/catalog.js";
+import { productionPluginCatalog } from "../../../src/mediator/product-plugin-catalog.js";
 import { productionRoutePolicies } from "../../../src/lib/local-runtime/production/route-policy.js";
 import { buildProductTask, exerciseProductFlow, FIXTURE_HASH, routesForPlugin } from "../product-plugin-test-runtime.js";
 
@@ -7,7 +7,8 @@ const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "hehun
 assert(plugin);
 const reviewSequence = [
   "prepare_clean_gpt_chat", "open_gpt_execution_profile", "open_gpt_model_selector_v2",
-  "select_exact_gpt_model_v2", "ensure_exact_gpt_reasoning_tier", "close_gpt_execution_profile",
+  "select_exact_gpt_model_v2", "open_gpt_execution_profile", "ensure_exact_gpt_reasoning_tier",
+  "close_gpt_execution_profile",
   "open_gpt_attachment_control", "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set",
   "write_exact_gpt_prompt", "reconcile_gpt_draft", "submit_exact_gpt_turn_once",
   "reconcile_gpt_turn_submission", "wait_for_stable_gpt_text", "checkpoint_gpt_text_response",
@@ -15,7 +16,7 @@ const reviewSequence = [
 const followupSequence = [
   "acquire_gpt_continuation_lane", "focus_exact_gpt_conversation", "verify_gpt_conversation_identity",
   "open_gpt_execution_profile", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
-  "ensure_exact_gpt_reasoning_tier", "close_gpt_execution_profile", "open_gpt_attachment_control",
+  "open_gpt_execution_profile", "ensure_exact_gpt_reasoning_tier", "close_gpt_execution_profile", "open_gpt_attachment_control",
   "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set", "write_exact_gpt_prompt",
   "reconcile_gpt_draft", "submit_exact_gpt_turn_once", "reconcile_gpt_turn_submission",
   "wait_for_stable_gpt_text", "checkpoint_gpt_text_response", "advance_gpt_continuation_lane",

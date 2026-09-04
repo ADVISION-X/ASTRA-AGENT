@@ -11,12 +11,11 @@ import {
 import {
   hashCanonical,
   type WebsiteAgentTask,
-} from "../../../src/lib/local-runtime/production/contracts.js";
-import type {
-  ProductPluginOutput,
-  ProductPlugin,
-  SharedExecutionContext,
-} from "../../../src/lib/local-runtime/production/plugin.js";
+  type ProductPluginOutput,
+  type ProductPlugin,
+  type SharedExecutionContext,
+} from "../../../src/mediator/product-plugin-contract.js";
+import { productionRoutePolicy } from "../../../src/lib/local-runtime/production/route-policy.js";
 import { executionFailure } from "../../../src/lib/execution-failure.js";
 import { task } from "../agent-production-runtime-fixtures.js";
 
@@ -60,6 +59,7 @@ type SeoFact = Readonly<{
   terminalAt: string | null;
 }>;
 export type SeoHarness = {
+  actionId: SeoAction;
   calls: SeoCall[];
   factsByCall: Map<string, SeoFact>;
   handoffDelays: number[];
@@ -74,6 +74,8 @@ export type SeoHarness = {
   continuationLaneOwned: boolean;
   remainingFailures: number;
   physicalSubmitDispatches: number;
+  generatedImageUploadCalls: number;
+  uploadedImageHashes: Set<string>;
   acquiredLaneVersions: number[];
   materials: SharedExecutionContext["materials"];
   providerNames: readonly string[];
@@ -111,6 +113,7 @@ const fixtureMaterials = (actionId: SeoAction): SharedExecutionContext["material
 export const createHarness = (actionId: SeoAction, failureAt?: SeoFailure): SeoHarness => {
   const materials = fixtureMaterials(actionId);
   return {
+    actionId,
     calls: [],
     factsByCall: new Map(),
     handoffDelays: [],
@@ -125,6 +128,8 @@ export const createHarness = (actionId: SeoAction, failureAt?: SeoFailure): SeoH
     continuationLaneOwned: false,
     remainingFailures: failureAt ? 1 : 0,
     physicalSubmitDispatches: 0,
+    generatedImageUploadCalls: 0,
+    uploadedImageHashes: new Set(),
     acquiredLaneVersions: [],
     materials,
     providerNames: materials.map((material) => gptAttachmentProviderDisplayName(
@@ -374,6 +379,11 @@ const completeSeo = (
     state.completionFailuresRemaining -= 1;
     throw executionFailure("failed", "WEBSITE_COMPLETION_TEST_FAULT");
   }
+  const payload = output.payload as Readonly<Record<string, unknown>>;
+  if (payload.image) {
+    assert.equal(state.generatedImageUploadCalls, 1,
+      "the image receipt must exist before Product final assembly and completion");
+  }
   state.completed = output;
   return {} as Awaited<ReturnType<SharedExecutionContext["complete"]>>;
 };
@@ -385,6 +395,8 @@ export const createContext = (
   attemptId = "attempt-1",
 ): SharedExecutionContext => ({
   materials: state.materials,
+  routePolicy: productionRoutePolicy("public_knowledge_article_pipeline", state.actionId),
+  productSkill: Object.freeze({ text: "fixture public knowledge skill", hash: HASH }),
   gpt: {
     attemptId,
     readContinuationExact: readSeoContinuation(state, decision, attemptId),
@@ -393,6 +405,22 @@ export const createContext = (
       const result = await executeCall(state, input as SeoCall, decision, failureAt, attemptId);
       return { ...result, value: result.value } as never;
     },
+  },
+  uploadGeneratedImage: async (artifact) => {
+    if (!state.uploadedImageHashes.has(artifact.sha256)) {
+      state.uploadedImageHashes.add(artifact.sha256);
+      state.generatedImageUploadCalls += 1;
+    }
+    return Object.freeze({
+      artifact_id: artifact.artifact_id,
+      object_ref: `object:${artifact.artifact_id}`,
+      sha256: artifact.sha256,
+      receipt_hash: HASH,
+      bytes: artifact.bytes,
+      mime_type: artifact.media_type,
+      width: artifact.width,
+      height: artifact.height,
+    });
   },
   complete: completeSeo(state),
 });
@@ -436,12 +464,13 @@ const assertHarness = (state: SeoHarness, actionId: SeoAction, recoverAfterFault
     assert.deepEqual(state.calls.map((call) => call.actionOrdinal),
       state.calls.map((_call, index) => index + 1));
     assert.deepEqual(output.evidence_refs, state.calls.map((_call, index) => `evidence:${index + 1}`));
-    assert.equal(state.handoffDelays.length, Math.max(0, state.calls.length - 1));
+    assert.equal(state.handoffDelays.length, 0,
+      "SEO Product must not schedule fixed sleeps between GPT Children");
   }
   assert.equal(new Set(state.calls.map((call) => call.sessionKey)).size, 1);
   assert.ok(state.calls.every((call) => call.sessionKey.includes("attempt-1")));
-  assert.ok(state.handoffDelays.every((delay) => delay === 2_000),
-    "every adjacent SEO Child must retain a 2s handoff floor");
+  assert.equal(state.handoffDelays.length, 0,
+    "SEO Product must derive handoff readiness from each Child fact, not elapsed time");
   const firstPrompt = state.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt;
   assert.equal(typeof firstPrompt, "string");
   if (actionId === "produce_article") {
@@ -478,5 +507,6 @@ export const exerciseSeoFlow = async (
     calls: state.calls, completed, firstFailure,
     physicalSubmitDispatches: state.physicalSubmitDispatches,
     acquiredLaneVersions: state.acquiredLaneVersions,
+    generatedImageUploadCalls: state.generatedImageUploadCalls,
   };
 };

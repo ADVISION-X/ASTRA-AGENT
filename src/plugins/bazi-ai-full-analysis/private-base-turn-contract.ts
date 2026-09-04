@@ -1,5 +1,5 @@
 import { buildGptExecutionProfile } from "../../capabilities/gpt/index.js";
-import { sha256 } from "../../lib/local-runtime/production/contracts.js";
+import { sha256 } from "../../mediator/product-plugin-contract.js";
 
 const turn = Object.freeze({
   schemaVersion: "bazi-private-base-turn-contract.v1",

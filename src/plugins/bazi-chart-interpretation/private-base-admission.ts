@@ -7,14 +7,14 @@ import {
   sha256,
   type ProductionHash,
   type WebsiteAgentTask,
-} from "../../lib/local-runtime/production/contracts.js";
+} from "../../mediator/product-plugin-contract.js";
 import {
   productResultValidation,
-} from "../../lib/local-runtime/production/plugin.js";
+} from "../../mediator/product-plugin-contract.js";
 import type {
   ExactGptContinuationReadback,
 } from "../../capabilities/gpt/index.js";
-import { evaluateExactNestedResultContract } from "../../lib/local-runtime/production/route-policy.js";
+import { evaluateExactNestedResultContract } from "../../mediator/product-plugin-contract.js";
 import {
   localBaziPrivateBaseTurn,
   localBaziPrivateBaseTurnHash,

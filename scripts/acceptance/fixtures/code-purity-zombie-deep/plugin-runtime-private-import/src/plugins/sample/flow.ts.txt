@@ -1,0 +1,3 @@
+import { runtimePrivate } from "../../lib/local-runtime/production/private.js";
+
+export const run = (): string => runtimePrivate();

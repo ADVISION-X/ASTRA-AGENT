@@ -1,10 +1,8 @@
-import type { WebsiteAgentTask } from "../../lib/local-runtime/production/contracts.js";
-import { productResultValidation as result } from "../../lib/local-runtime/production/plugin.js";
-import { productionRoutePolicy } from "../../lib/local-runtime/production/route-policy.js";
+import type { ProductionRoutePolicy, WebsiteAgentTask } from "../../mediator/product-plugin-contract.js";
+import { productResultValidation as result } from "../../mediator/product-plugin-contract.js";
 
-export const parseProductResult = (task: WebsiteAgentTask, value: unknown): Readonly<Record<string, unknown>> => {
+export const parseProductResult = (task: WebsiteAgentTask, value: unknown, route: ProductionRoutePolicy): Readonly<Record<string, unknown>> => {
   if (task.product_id !== "bazi_report_followup") throw new Error("PRODUCT_RESULT_OWNER_MISMATCH");
-  const route = productionRoutePolicy(task.product_id, task.action_id);
   const output = result.object(value, "AGENT_RESULT_OBJECT_REQUIRED");
   if (route.relation_kind === "review") {
     if (!("decision" in output) || !("issues" in output)) throw new Error("AGENT_REVIEW_OUTPUT_INCOMPLETE");

@@ -29,7 +29,6 @@ import {
   GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_INNER_SELECTOR,
   GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR,
   GPT_MODEL_SELECTION_V2_PANEL_SELECTOR,
-  GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR,
 } from "../contracts/model-selection-v2.contract.js";
 import {
   GPT_PROFILE_POPUP_SELECTOR,
@@ -70,6 +69,14 @@ const MODEL_SELECTOR_OPEN_POSTCONDITION = Object.freeze({
   queries: Object.freeze(MODEL_SELECTOR_TOPOLOGY_QUERIES.map((query) => Object.freeze({
     ...query,
     expectedEligibleCount: query.queryId === "popup" || query.queryId === "advanced-panel" ? 1 : 0,
+  }))) as readonly BrowserDomPostconditionQuery[],
+  timeoutMs: 5_000,
+});
+
+const MODEL_SELECTION_POSTCONDITION = Object.freeze({
+  queries: Object.freeze(MODEL_SELECTOR_TOPOLOGY_QUERIES.map((query) => Object.freeze({
+    ...query,
+    expectedEligibleCount: query.queryId === "advanced-panel" ? 0 : 1,
   }))) as readonly BrowserDomPostconditionQuery[],
   timeoutMs: 5_000,
 });
@@ -200,24 +207,25 @@ export const modelSelectionV2ChildHandlers = {
       );
     }
     if (context.mutationMode === "readback") {
-      throw executionFailure("failed", "GPT_MODEL_SELECTION_V2_PROFILE_RESTORE_PENDING");
+      throw executionFailure("failed", "GPT_MODEL_SELECTION_V2_SELECTION_PENDING");
     }
-    await browser.executeDomIntent({
+    const mutation = await browser.executeDomIntent({
       kind: "click",
       selector: GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR,
       expectedTextEquals: profile.modelDisplayName,
       expectedMatches: 1,
-      postClickMatch: {
-        selector: GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR,
-        expectedMatches: 1,
-        timeoutMs: 5_000,
-      },
+      postClickObservation: MODEL_SELECTION_POSTCONDITION,
     });
-    const restored = await readModelSelectorTopology(browser, profile.modelDisplayName);
+    const mutationRecord = mutation && typeof mutation === "object" && !Array.isArray(mutation)
+      ? mutation as Readonly<Record<string, unknown>> : {};
+    const restored = projectModelSelectorTopology(decodeCoherentObservationPacket(
+      mutationRecord.postconditionObservation,
+      MODEL_SELECTOR_TOPOLOGY_QUERIES,
+    ));
     if (!isOpenable(restored)) {
       throw executionFailure(
         "failed",
-        `GPT_MODEL_SELECTION_V2_PROFILE_RESTORE_INVALID:${topologyCode(restored)}`,
+        `GPT_MODEL_SELECTION_V2_POSTCONDITION_INVALID:${topologyCode(restored)}`,
       );
     }
     const browserFact = requireConfirmedBrowserFact(intent, browser);
@@ -226,7 +234,7 @@ export const modelSelectionV2ChildHandlers = {
         modelDisplayName: profile.modelDisplayName,
         previousChecked: candidate.ariaChecked,
         selectionVersion: GPT_MODEL_SELECTION_VERSION,
-        state: "exact-model-selected-profile-restored",
+        state: "exact-model-selected",
       },
       ...declaredFacts({
         ...restored.facts,

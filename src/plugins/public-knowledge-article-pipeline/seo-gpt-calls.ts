@@ -7,11 +7,11 @@ import {
 import type {
   ProductionHash,
   WebsiteAgentTask,
-} from "../../lib/local-runtime/production/contracts.js";
+} from "../../mediator/product-plugin-contract.js";
 import type {
   SharedExecutionContext,
-} from "../../lib/local-runtime/production/plugin.js";
-import { postSubmitReadbackFault } from "../../lib/local-runtime/production/plugin.js";
+} from "../../mediator/product-plugin-contract.js";
+import { postSubmitReadbackFault } from "../../mediator/product-plugin-contract.js";
 import type {
   ExactGptCallFacts,
   ProductGptFactQuery,
@@ -33,17 +33,16 @@ import {
   type SeoUploadedAttachment,
 } from "./seo-turn-contract.js";
 const MODEL_PROFILE = buildGptExecutionProfile({
-  profileRef: `${PLUGIN_ID}:gpt-5.6-sol-pro-standard`,
+  profileRef: `${PLUGIN_ID}:gpt-5.6-sol-high`,
   accountCapabilityRef: "openai-chatgpt:gpt-5.6-sol",
   modelDisplayName: "GPT-5.6 Sol",
   modelFamily: "gpt-5.6",
-  reasoningTier: "pro_standard",
+  reasoningTier: "high",
   executorIdentityRef: PLUGIN_ID,
   acceptanceRef: `${PLUGIN_ID}:seo-production`,
   acceptanceVersion: "v1",
 });
 const WAIT_TIMEOUT_MS = 3_600_000;
-const SEO_CHILD_HANDOFF_DELAY_MS = 2_000;
 
 export const preservePostSubmitReadback = (error: unknown, submit: ExactGptCallFacts): never => {
   const typed = executionFailureMetadata(error);
@@ -105,7 +104,6 @@ const laneValue = (value: unknown): GptContinuationLane => {
 export const createSeoExecutor = (task: WebsiteAgentTask, context: SharedExecutionContext) => {
   const sessionKey = `${PLUGIN_ID}:${task.job_id}:${context.gpt.attemptId}`;
   const evidenceByOrdinal = new Map<number, string>();
-  let priorChildCompleted = false;
   const recordEvidence = (actionOrdinal: number, evidenceRef: string): void => {
     const current = evidenceByOrdinal.get(actionOrdinal);
     if (current && current !== evidenceRef) fail("SEO_EVIDENCE_SEQUENCE_CONFLICT");
@@ -121,11 +119,7 @@ export const createSeoExecutor = (task: WebsiteAgentTask, context: SharedExecuti
   };
   const execute: SeoChild = async (input) => {
     await facts(input as SeoCall);
-    if (priorChildCompleted) {
-      await new Promise<void>((resolve) => setTimeout(resolve, SEO_CHILD_HANDOFF_DELAY_MS));
-    }
     const result = await context.gpt.execute({ ...input, sessionKey });
-    priorChildCompleted = true;
     recordEvidence(input.actionOrdinal, result.evidenceRef);
     return result;
   };
@@ -145,7 +139,7 @@ export const createSeoExecutor = (task: WebsiteAgentTask, context: SharedExecuti
   });
 };
 
-type SeoProfileOrdinals = readonly [number, number, number, number, number];
+type SeoProfileOrdinals = readonly [number, number, number, number, number, number];
 
 export const applyExactProfile = async (
   execute: SeoChild,
@@ -155,8 +149,9 @@ export const applyExactProfile = async (
   await execute({ sessionKey: "", productStepId: stepId, callId: "profile-open", child: "open_gpt_execution_profile", actionOrdinal: ordinals[0], input: { profile: MODEL_PROFILE } });
   await execute({ sessionKey: "", productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v2", actionOrdinal: ordinals[1], input: { profile: MODEL_PROFILE } });
   await execute({ sessionKey: "", productStepId: stepId, callId: "model-select", child: "select_exact_gpt_model_v2", actionOrdinal: ordinals[2], input: { profile: MODEL_PROFILE } });
-  await execute({ sessionKey: "", productStepId: stepId, callId: "reasoning-select", child: "ensure_exact_gpt_reasoning_tier", actionOrdinal: ordinals[3], input: { profile: MODEL_PROFILE } });
-  await execute({ sessionKey: "", productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[4], input: { profile: MODEL_PROFILE } });
+  await execute({ sessionKey: "", productStepId: stepId, callId: "profile-open-after-model", child: "open_gpt_execution_profile", actionOrdinal: ordinals[3], input: { profile: MODEL_PROFILE } });
+  await execute({ sessionKey: "", productStepId: stepId, callId: "reasoning-select", child: "ensure_exact_gpt_reasoning_tier", actionOrdinal: ordinals[4], input: { profile: MODEL_PROFILE } });
+  await execute({ sessionKey: "", productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[5], input: { profile: MODEL_PROFILE } });
 };
 
 export const requireExactProfileEvidence = async (
@@ -167,8 +162,9 @@ export const requireExactProfileEvidence = async (
   await flow.requireEvidence({ productStepId: stepId, callId: "profile-open", child: "open_gpt_execution_profile", actionOrdinal: ordinals[0], input: { profile: MODEL_PROFILE } });
   await flow.requireEvidence({ productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v2", actionOrdinal: ordinals[1], input: { profile: MODEL_PROFILE } });
   await flow.requireEvidence({ productStepId: stepId, callId: "model-select", child: "select_exact_gpt_model_v2", actionOrdinal: ordinals[2], input: { profile: MODEL_PROFILE } });
-  await flow.requireEvidence({ productStepId: stepId, callId: "reasoning-select", child: "ensure_exact_gpt_reasoning_tier", actionOrdinal: ordinals[3], input: { profile: MODEL_PROFILE } });
-  await flow.requireEvidence({ productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[4], input: { profile: MODEL_PROFILE } });
+  await flow.requireEvidence({ productStepId: stepId, callId: "profile-open-after-model", child: "open_gpt_execution_profile", actionOrdinal: ordinals[3], input: { profile: MODEL_PROFILE } });
+  await flow.requireEvidence({ productStepId: stepId, callId: "reasoning-select", child: "ensure_exact_gpt_reasoning_tier", actionOrdinal: ordinals[4], input: { profile: MODEL_PROFILE } });
+  await flow.requireEvidence({ productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[5], input: { profile: MODEL_PROFILE } });
 };
 
 type TextTurnInput = Readonly<{
@@ -369,24 +365,23 @@ export const advanceLane = async (
 export const prepareAttachedTurnPrefix = async (input: Readonly<{
   flow: ReturnType<typeof createSeoExecutor>;
   stepId: string;
-  files: readonly Readonly<Record<string, unknown>>[];
   uploadedFiles: readonly SeoUploadedAttachment[];
   recoverOnly: boolean;
 }>): Promise<void> => {
   const freshChat = { productStepId: input.stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;
-  const attachmentOpen = { productStepId: input.stepId, callId: "attachment-control-open", child: "open_gpt_attachment_control", actionOrdinal: 7, input: {} } as const;
-  const attachmentsAttach = { productStepId: input.stepId, callId: "attachments-attach", child: "attach_approved_gpt_files_once", actionOrdinal: 8, input: { files: input.uploadedFiles } } as const;
-  const attachmentsReconcile = { productStepId: input.stepId, callId: "attachments-reconcile", child: "reconcile_gpt_attachment_set", actionOrdinal: 9, input: { files: input.uploadedFiles, timeoutMs: 600_000 } } as const;
+  const attachmentOpen = { productStepId: input.stepId, callId: "attachment-control-open", child: "open_gpt_attachment_control", actionOrdinal: 8, input: {} } as const;
+  const attachmentsAttach = { productStepId: input.stepId, callId: "attachments-attach", child: "attach_approved_gpt_files_once", actionOrdinal: 9, input: { files: input.uploadedFiles } } as const;
+  const attachmentsReconcile = { productStepId: input.stepId, callId: "attachments-reconcile", child: "reconcile_gpt_attachment_set", actionOrdinal: 10, input: { files: input.uploadedFiles, timeoutMs: 600_000 } } as const;
   if (input.recoverOnly) {
     await input.flow.requireEvidence(freshChat);
-    await requireExactProfileEvidence(input.flow, input.stepId, [2, 3, 4, 5, 6]);
+    await requireExactProfileEvidence(input.flow, input.stepId, [2, 3, 4, 5, 6, 7]);
     await input.flow.requireEvidence(attachmentOpen);
     await input.flow.requireEvidence(attachmentsAttach);
     await input.flow.requireEvidence(attachmentsReconcile);
     return;
   }
   await input.flow.execute({ sessionKey: "", ...freshChat });
-  await applyExactProfile(input.flow.execute, input.stepId, [2, 3, 4, 5, 6]);
+  await applyExactProfile(input.flow.execute, input.stepId, [2, 3, 4, 5, 6, 7]);
   await input.flow.execute({ sessionKey: "", ...attachmentOpen });
   await input.flow.execute({ sessionKey: "", ...attachmentsAttach });
   const reconciled = await input.flow.execute({ sessionKey: "", ...attachmentsReconcile });

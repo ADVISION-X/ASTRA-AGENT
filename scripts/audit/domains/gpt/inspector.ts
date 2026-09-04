@@ -25,7 +25,7 @@ import {
 } from "./gpt-contract-inspection.js";
 import { inspectGptCurrentPageProofs } from "./gpt-page-proof-inspection.js";
 
-const LAW_ID = "LAW-GPT-001-V22";
+const LAW_ID = "LAW-GPT-001-V23";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 12, 15, 19),
   "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 16, 17, 18, 19),
@@ -273,8 +273,8 @@ const inspectModelSelectionContract = (context: InspectorContext, findings: Insp
   for (const required of [
     "selector: GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR",
     "expectedTextEquals: profile.modelDisplayName",
-    "selector: GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR",
-    "readModelSelectorTopology", "isOpenable(restored)",
+    "postClickObservation: MODEL_SELECTION_POSTCONDITION",
+    "mutationRecord.postconditionObservation", "isOpenable(restored)",
     "value.entry === 0", "value.simplePanel === 0", "value.advancedPanel === 1",
     "postClickObservation: MODEL_SELECTOR_OPEN_POSTCONDITION",
     "expectedEligibleCount", "decodeCoherentObservationPacket", "scope: { selector: GPT_PROFILE_POPUP_SELECTOR }",
@@ -282,7 +282,10 @@ const inspectModelSelectionContract = (context: InspectorContext, findings: Insp
     "gpt/model-selection-exact-radio", MODEL_SELECTION_V2_HANDLER_PATH,
     `Exact model selection is missing ${required}.`,
   ));
-  for (const retired of ["GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR", "expandedEntry"]) {
+  for (const retired of [
+    "GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR", "expandedEntry",
+    "GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR", "postClickMatch: {",
+  ]) {
     if (handler.includes(retired) || contract.includes(retired)) findings.push(finding(
       "gpt/model-selection-expanded-entry-retired", MODEL_SELECTION_V2_HANDLER_PATH,
       `The obsolete expanded-entry state remains reachable through ${retired}.`,
@@ -290,12 +293,10 @@ const inspectModelSelectionContract = (context: InspectorContext, findings: Insp
   }
   for (const required of [
     "GPT_MODEL_SELECTION_V2_ENTRY_INNER_SELECTOR", "GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_INNER_SELECTOR",
-    "GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR",
-    "[aria-expanded='false'][aria-hidden='false']", "GPT_PROFILE_SIMPLE_PANEL_SELECTOR",
-    ":not(:has(${GPT_MODEL_SELECTION_V2_PANEL_SELECTOR}))",
+    "[aria-expanded='false'][aria-hidden='false']", "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR",
   ]) if (!contract.includes(required)) findings.push(finding(
     "gpt/model-selection-direct-postcondition", MODEL_SELECTION_V2_CONTRACT_PATH,
-    `The direct restored-state selector is missing ${required}.`,
+    `The model selection contract is missing ${required}.`,
   ));
 };
 
@@ -307,12 +308,22 @@ const inspectExecutionProfileDynamicContract = (
   for (const required of [
     "/facts/profile_trigger_unique_observed", "/facts/profile_trigger_pointer_qualified",
     "/facts/profile_open_mutation_count", "/facts/profile_popup_direct_readback",
+    "/facts/profile_entry_hydration_observed", "/facts/profile_partial_conflict_rejected",
+    "/facts/profile_candidate_evidence_complete", "/facts/profile_open_same_packet_postcondition",
+    "/facts/profile_open_followup_observation_count",
     "/facts/model_open_stable_topology_observed", "/facts/model_open_transitional_topology_rejected",
     "/facts/model_open_mutation_count", "/facts/exact_model_selection_observed",
     "/facts/exact_model_selection_mutation_count", "/facts/reasoning_tier_values_observed",
+    "/facts/exact_model_selection_same_packet_postcondition",
+    "/facts/exact_model_selection_followup_observation_count",
+    "/facts/profile_reopen_after_model_observed",
     "/facts/confirmed_semantic_failure_browser_outcome",
     "/facts/confirmed_semantic_failure_mutation_outcome",
     "/facts/confirmed_semantic_failure_postcondition_result",
+    "/facts/attachment_control_hydration_observed", "/facts/attachment_active_scope_unique",
+    "/facts/attachment_global_hidden_nodes_excluded", "/facts/upload_choice_exact_leaf_unique",
+    "/facts/attachment_open_mutation_count", "/facts/attachment_open_same_packet_postcondition",
+    "/facts/attachment_open_followup_observation_count", "/facts/prompt_child_started_after_attachment_ready",
   ]) if (!proof.includes(required)) findings.push(finding(
     "gpt/profile-open-real-browser-denominator", REAL_PROOF_PATH,
     `The existing GPT dynamic proof contract is missing ${required}.`,
@@ -332,9 +343,9 @@ const inspectExecutionProfileStateReadContract = (
     "gpt/profile-non-actionable-state-read", EXECUTION_PROFILE_HANDLER_PATH,
     `The execution-profile Child is missing ${required}.`,
   ));
-  if ((handler.match(/readEligibility:\s*"non-actionable-aria-state"/gu) ?? []).length !== 3) findings.push(finding(
+  if ((handler.match(/readEligibility:\s*"non-actionable-aria-state"/gu) ?? []).length !== 2) findings.push(finding(
     "gpt/profile-non-actionable-state-read", EXECUTION_PROFILE_HANDLER_PATH,
-    "The reasoning slider read mode must exist exactly on topology, open postcondition, and reasoning postcondition.",
+    "The reasoning slider read mode must exist exactly on the reused topology query and reasoning postcondition.",
   ));
   if (/kind:\s*"keypress"[\s\S]{0,160}selector:\s*GPT_PROFILE_REASONING_VALUE_SELECTOR\s*,/u.test(handler)) {
     findings.push(finding(

@@ -12,6 +12,7 @@ const DOM_ACCEPTANCE_PATH = "scripts/acceptance/local-browser-dom-intent-support
 const FILE_INPUT_ACCEPTANCE_PATH = "scripts/acceptance/local-browser-file-input-support.ts";
 const MUTATION_RECEIPT_PATH = "src/lib/browser/exact-target/browser-mutation-receipt.ts";
 const REAL_PROOF_PATH = "scripts/acceptance/local-browser.real-proof.ts";
+const PROPERTY_ACCEPTANCE_PATH = "scripts/acceptance/local-browser-property-model.acceptance.ts";
 
 const requireText = (
   text: string,
@@ -63,18 +64,26 @@ export const inspectBrowserMutationSettlement = (
   const fileInputAcceptance = requireSource(context, findings, lawId, FILE_INPUT_ACCEPTANCE_PATH);
   const mutationReceipt = requireSource(context, findings, lawId, MUTATION_RECEIPT_PATH);
   const realProof = requireSource(context, findings, lawId, REAL_PROOF_PATH);
+  const propertyAcceptance = requireSource(context, findings, lawId, PROPERTY_ACCEPTANCE_PATH);
   const transport = requireSource(context, findings, lawId, sourcePaths[0]);
+  const manager = requireSource(context, findings, lawId, sourcePaths[5]);
   const commandPostcondition = requireSource(
     context, findings, lawId, browserCommandPostconditionPath,
   );
   if (!actor || !store || !schema || !runtime || !postcondition || !contract || !resolver || !acceptance
     || !fileInput || !domAcceptance || !fileInputAcceptance || !mutationReceipt || !realProof || !transport
-    || !commandPostcondition) return;
+    || !commandPostcondition || !propertyAcceptance || !manager) return;
+
+  requireText(manager.getFullText(), [
+    'if (browserOutcome === "DISPATCHED") state.pendingMutationCommandIds.push(permit.commandId)',
+  ], findings, lawId, sourcePaths[5]);
 
   requireText(actor.getFullText(), [
     "readMutationOutcome", "decodeBrowserMutationReceipt", "result.failureCode",
     "this.mutations.markRejected(",
     "mutationOutcome: receipt.mutationOutcome",
+    "BrowserCommandTerminalReplyError",
+    "error.failureCode",
   ], findings, lawId, sourcePaths[6]);
   requireText(mutationReceipt.getFullText(), [
     "zeroActionSatisfied", "qualificationRejected", "mutationCount === 0",
@@ -90,6 +99,7 @@ export const inspectBrowserMutationSettlement = (
     "BrowserMutationOutcome", "mutationOutcome", "mutation_outcome", "readMutationOutcome",
     "legacyMutationOutcome", "mutationOutcome: row.mutation_outcome", "terminal_at=case when",
     "native_cause_code", "nativeCauseCode", "terminalFailureFields", "nativeFailureCode",
+    "markTargetLocalDocumentAbsent", "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT",
   ], findings, lawId, sourcePaths[7]);
   requireText(actor.getFullText(), [
     "result.nativeCauseCode",
@@ -123,6 +133,22 @@ export const inspectBrowserMutationSettlement = (
     "value.qualificationRejected === true", "value.postconditionObservation === undefined",
     "bindOneObservationPacket",
   ], findings, lawId, browserCommandPostconditionPath);
+  requireText(transport.getFullText(), [
+    "BrowserCommandTerminalReplyError", "reply.reject(new BrowserCommandTerminalReplyError(",
+    "permitSequence !== reply.permitSequence",
+    "!compareReplyToken(replyChannelToken, reply.replyChannelToken)",
+  ], findings, lawId, sourcePaths[0]);
+  requireText(actor.getFullText(), [
+    "error.replyChannelToken === permit.replyChannelToken",
+    "error.permitSequence === permit.sequence",
+  ], findings, lawId, sourcePaths[6]);
+  requireText(propertyAcceptance.getFullText(), [
+    "browser-reply-chain-", "BROWSER_DOM_CANDIDATE_MISSING",
+    "an explicit authenticated error reply must terminalize without a second dispatch",
+    "wrong-reply-token", "wrong-permit-sequence",
+    "must not counterfeit terminal settlement or authorize a second dispatch",
+    "a genuinely missing terminal reply must preserve one DISPATCHED WAL row without resend",
+  ], findings, lawId, PROPERTY_ACCEPTANCE_PATH);
   requireText(fileInput.getFullText(), [
     "executeExtensionFileInput", "DOM.setFileInputFiles", "approvedFiles", "resolvedFilePaths",
     "candidate.facts.multiple === true", "candidate.facts.disabled === false",

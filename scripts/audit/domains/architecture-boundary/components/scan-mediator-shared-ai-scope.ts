@@ -1,5 +1,6 @@
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
+import { getRepoSourcePath } from "../../../shared/source-files.js";
 import {
   collectResolvedModuleTargets,
   type SourceModuleTarget,
@@ -7,6 +8,7 @@ import {
 import {
   findPlannerToken,
   isPrivateCapabilityPath,
+  isPublicCapabilityFacadePath,
   isPlannerScope,
   type ArchitectureSourceFile,
 } from "./architecture-boundary-shared.js";
@@ -44,10 +46,22 @@ export const inspectMediatorImports = (
   if (!repoPath.startsWith("src/mediator/")) {
     return;
   }
+  const typeOnlyFacadeTargets = new Set(sourceFile.getImportDeclarations().flatMap((declaration) => {
+    const namedImports = declaration.getNamedImports();
+    const typeOnly = declaration.isTypeOnly()
+      || (namedImports.length > 0 && namedImports.every((namedImport) => namedImport.isTypeOnly())
+        && !declaration.getDefaultImport() && !declaration.getNamespaceImport());
+    const target = declaration.getModuleSpecifierSourceFile();
+    return typeOnly && target
+      ? [getRepoSourcePath(target)]
+      : [];
+  }));
   for (const target of collectResolvedModuleTargets(sourceFile)) {
     const targetPath = target.targetPath;
+    if (isPublicCapabilityFacadePath(targetPath) && typeOnlyFacadeTargets.has(targetPath)) continue;
     if (
       !targetPath.startsWith("src/lib/browser/") &&
+      !targetPath.startsWith("src/lib/local-runtime/production/") &&
       !targetPath.startsWith("src/capabilities/") &&
       !isPrivateCapabilityPath(targetPath)
     ) {
@@ -58,7 +72,7 @@ export const inspectMediatorImports = (
       lawId: mediatorLawId,
       repoPath,
       targetPath,
-      message: `${repoPath} ${describeEdgeVerb(target.edgeKind)} runtime action surface ${targetPath}.`,
+      message: `${repoPath} ${describeEdgeVerb(target.edgeKind)} private runtime action or contract surface ${targetPath}.`,
     });
   }
 };

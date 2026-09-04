@@ -6,7 +6,7 @@ import { createLocalFinding, extensionFileInputPath, identifiers, requireIdentif
   sourcePaths, stringLiterals, targetAuthorityPath } from "./inspector-support.js";
 
 type RegistryMutationSources = Readonly<Record<
-  "actor" | "broker" | "commandActor" | "domRuntime" | "fileInput" | "manager" | "mutationStore" | "registry" | "targetAuthority",
+  "actor" | "broker" | "commandActor" | "domRuntime" | "fileInput" | "manager" | "mutationStore" | "registry" | "runtimeExecutor" | "targetAuthority",
   SourceFile
 >>;
 
@@ -15,11 +15,11 @@ const requireRegistryMutationSources = (
   findings: InspectorFinding[],
   lawId: string,
 ): RegistryMutationSources | null => {
-  const paths = [sourcePaths[1], targetAuthorityPath, extensionFileInputPath, sourcePaths[8], sourcePaths[6], sourcePaths[7], sourcePaths[5], sourcePaths[18], sourcePaths[19]];
+  const paths = [sourcePaths[1], targetAuthorityPath, extensionFileInputPath, sourcePaths[8], sourcePaths[6], sourcePaths[7], sourcePaths[5], sourcePaths[18], sourcePaths[19], "src/lib/local-runtime/production/executor.ts"];
   const sources = paths.map((path) => requireSource(context, findings, lawId, path));
   if (sources.some((source) => source === null)) return null;
-  const [actor, targetAuthority, fileInput, registry, commandActor, mutationStore, manager, broker, domRuntime] = sources.map((source) => source!) as [SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile];
-  return { actor, targetAuthority, fileInput, registry, commandActor, mutationStore, manager, broker, domRuntime };
+  const [actor, targetAuthority, fileInput, registry, commandActor, mutationStore, manager, broker, domRuntime, runtimeExecutor] = sources.map((source) => source!) as [SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile];
+  return { actor, targetAuthority, fileInput, registry, commandActor, mutationStore, manager, broker, domRuntime, runtimeExecutor };
 };
 const inspectExtensionExecutionBoundary = (
   sources: RegistryMutationSources,
@@ -75,6 +75,7 @@ export const inspectRegistryAndMutationBoundary = (
     ...identifiers(sources.mutationStore),
     ...identifiers(sources.manager),
     ...identifiers(sources.broker),
+    ...identifiers(sources.runtimeExecutor),
   ]);
   const mutationLiterals = stringLiterals(sources.mutationStore);
   for (const required of [
@@ -100,8 +101,12 @@ export const inspectRegistryAndMutationBoundary = (
     "PREPARED",
     "DISPATCHED",
     "REJECTED",
-    "BrowserArtifactRegistry",
-    "registerArtifact",
+    "BrowserExecutionArtifactBinding",
+    "bindExecutionArtifacts",
+    "resolveBoundArtifact",
+    "hashBrowserAuthorityCertificate",
+    "authorityRefHash",
+    "certificateHash",
     "issueFileArtifactGrant",
     "resolveGrantPaths",
     "resolvedFilePaths",
@@ -114,6 +119,25 @@ export const inspectRegistryAndMutationBoundary = (
         message: `The registry/mutation chain must contain ${required}.`,
       }));
     }
+  }
+  const runtimeBindingConsumer = sources.runtimeExecutor.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .some((call) => call.getExpression().getText() === "this.browserAuthority.bindExecutionArtifacts"
+      && call.getText().includes("localPath: material.local_path"));
+  if (!runtimeBindingConsumer) findings.push(createLocalFinding({
+    checkId: "browser-authority/execution-artifact-binding",
+    lawId,
+    filePath: "src/lib/local-runtime/production/executor.ts",
+    message: "Runtime production execution must bind each task-local material through the Browser public execution-scoped facade.",
+  }));
+  const brokerIdentifiers = identifiers(sources.broker);
+  for (const forbidden of ["BrowserArtifactRegistry", "copyFile", "rename"]) {
+    if (!brokerIdentifiers.has(forbidden)) continue;
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/execution-artifact-binding",
+      lawId,
+      filePath: sourcePaths[18],
+      message: `Browser must not retain private artifact persistence/copy primitive ${forbidden}.`,
+    }));
   }
   const retiredIdentifiers = ["markSent", "markUnknown", "unknownForBinding", "readUnknown"];
   const retiredLiterals = ["SENT", "UNKNOWN", "BROWSER_OUTCOME_UNKNOWN"];
@@ -354,7 +378,7 @@ export const inspectCompactMutationRecoveryBoundary = (
   if (!mutationStore) return;
   requireIdentifiers(mutationStore, [
     "BrowserMutationStore", "prepare", "markDispatched", "markReceiptMissing", "markConfirmed",
-    "markRejected", "markFailedBeforeDispatch", "resolve", "dispatchedForBinding", "dispatchedForJob",
+    "markRejected", "markFailedBeforeDispatch", "markTargetLocalDocumentAbsent", "resolve", "dispatchedForBinding", "dispatchedForJob",
     "reconciliationScope", "callRecoveryScope", "atomicStepRecovery", "readDispatched",
     "logicalMutationId", "exactCallIdentityHash", "pluginVersion", "productStepId", "callId", "childCapabilityId", "requestHash", "effectScope",
     "actionOrdinal", "positivePostconditionHash", "negativePostconditionHash", "requestHash", "payloadHash",
@@ -402,8 +426,10 @@ export const inspectJobScopedMutationRecovery = (
   const laneAcceptance = requireSource(context, findings, lawId, laneAcceptancePath);
   const actor = requireSource(context, findings, lawId, sourcePaths[6]);
   if (!lane || !laneAcceptance || !actor) return;
-  requireIdentifiers(lane, ["callRecoveryScope", "recovery", "park", "pump"], findings, lawId,
-    "Browser recovery must be job-scoped, exact-target and capacity releasing.");
+  requireIdentifiers(lane, ["callRecoveryScope", "recovery", "park", "pump", "quarantine",
+    "refreshQuarantine", "rejectLostTargetLocalDocument", "settleLostTargetLocalDocument",
+    "observeCurrentTargetClaim"], findings, lawId,
+  "Browser recovery must be job-scoped, exact-target and quarantine the sole Browser lane.");
   const laneText = lane.getFullText();
   for (const required of [
     "confirmedReadbackMatches",
@@ -412,6 +438,9 @@ export const inspectJobScopedMutationRecovery = (
     'error.message === "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT"',
     "confirmedProviderTargetReplaced",
     "recoveryMutationOutcome",
+    'this.quarantine ? "blocked" : "idle"',
+    "this.bindingMatchesRecovery",
+    "markTargetLocalDocumentAbsent",
   ]) {
     if (laneText.includes(required)) continue;
     findings.push(createLocalFinding({
@@ -427,6 +456,11 @@ export const inspectJobScopedMutationRecovery = (
     "a CONFIRMED target-local action must not authorize a replacement physical Target",
     "a claimed but mismatched Target is not proof that the original physical Target was lost",
     'failure?.mutationOutcome, "confirmed"',
+    "recovery park must retain Browser-lane quarantine while releasing the upper execution",
+    "an unrelated Browser job must perform zero acquisition/navigation while DISPATCHED is unresolved",
+    "Browser must terminalize target-local DISPATCHED when its original Document is authoritatively absent",
+    "an authenticated current Target/Document claim must settle the lost target-local row with zero navigation/mutation",
+    "target-local lost-document settlement must project exactly one BROWSER_MUTATION_REJECTED Runtime Log event",
   ]) {
     if (laneAcceptanceText.includes(required)) continue;
     findings.push(createLocalFinding({

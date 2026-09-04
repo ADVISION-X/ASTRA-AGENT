@@ -1,0 +1,3 @@
+import type { BrowserPrivateFact } from "../browser/exact-target/private.js";
+
+export const consume = (fact: BrowserPrivateFact): string => fact.value;

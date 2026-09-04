@@ -7,7 +7,7 @@ import { typedBrowserExecutionFailure } from "../../browser/browser-authority-ap
 import {
   postCheckpointReceiverReceipt,
   postSubmitReadbackReceipt,
-} from "./plugin.js";
+} from "../../../mediator/product-plugin-contract.js";
 import { typedRuntimeTransportFailure } from "./transport-failure.js";
 
 export type SerializedExecutionFailure = Readonly<{

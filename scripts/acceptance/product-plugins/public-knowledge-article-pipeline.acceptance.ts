@@ -2,9 +2,10 @@ import { governanceAssert as assert } from "../../audit/shared/governance-exam-a
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
-import { productionPluginCatalog } from "../../../src/lib/local-runtime/production/catalog.js";
+import { productionPluginCatalog } from "../../../src/mediator/product-plugin-catalog.js";
 import { typedExecutionFailure } from "../../../src/lib/execution-failure.js";
-import { postSubmitReadbackReceipt } from "../../../src/lib/local-runtime/production/plugin.js";
+import { postSubmitReadbackReceipt } from "../../../src/mediator/product-plugin-contract.js";
+import { productionRoutePolicy } from "../../../src/lib/local-runtime/production/route-policy.js";
 import { parsePublicKnowledgeArticle, parsePublicKnowledgeResearch } from "../../../src/plugins/public-knowledge-article-pipeline/result-contract.js";
 import {
   articleOutput,
@@ -20,11 +21,12 @@ import {
 
 const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "public-knowledge-article-pipeline");
 assert(plugin);
+const produceRoute = productionRoutePolicy("public_knowledge_article_pipeline", "produce_article");
 const hashText = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 const profile = [
   "open_gpt_execution_profile", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
-  "ensure_exact_gpt_reasoning_tier", "close_gpt_execution_profile",
+  "open_gpt_execution_profile", "ensure_exact_gpt_reasoning_tier", "close_gpt_execution_profile",
 ] as const;
 const attachments = [
   "open_gpt_attachment_control", "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set",
@@ -58,10 +60,10 @@ assert.doesNotMatch(
 );
 assert.equal(parsePublicKnowledgeResearch(JSON.stringify({
   ...researchOutput("proceed"), topic_manifest: { primary_question: "incomplete" },
-})).schema_version, "public-knowledge-research-output.v3");
+}), produceRoute).schema_version, "public-knowledge-research-output.v3");
 assert.equal(parsePublicKnowledgeArticle(JSON.stringify({
   ...articleOutput(), claim_coverage: [{ claim_id: "CL1", status: "addressed", reason_if_omitted: "must-be-null" }],
-})).schema_version, "public-knowledge-article-output.v3");
+}), produceRoute).schema_version, "public-knowledge-article-output.v3");
 
 const decline = await exerciseSeoFlow(plugin, "produce_article", "decline");
 assert.deepEqual(decline.calls.map((call) => call.child), [...initialText, "persist_gpt_continuation"]);
@@ -71,6 +73,16 @@ const proceed = await exerciseSeoFlow(plugin, "produce_article", "proceed");
 assert.deepEqual(proceed.calls.map((call) => call.child), [
   ...initialText, "persist_gpt_continuation", ...continuationText, ...continuationImage,
 ]);
+const reasoningProfileCalls = proceed.calls.filter(
+  (call) => call.child === "ensure_exact_gpt_reasoning_tier",
+);
+assert.equal(reasoningProfileCalls.length, 3);
+for (const call of reasoningProfileCalls) {
+  assert.equal(call.input.profile.profileRef,
+    "public-knowledge-article-pipeline:gpt-5.6-sol-high");
+  assert.equal(call.input.profile.modelDisplayName, "GPT-5.6 Sol");
+  assert.equal(call.input.profile.reasoningTier, "high");
+}
 assert.deepEqual([...new Set(proceed.calls.map((call) => call.productStepId))], [
   "corpus_research", "article_synthesis", "article_image_generation",
 ]);
@@ -91,7 +103,8 @@ assert.equal(verifies[0]?.input.expectedPromptHash, hashText(prompts[0]!));
 assert.equal(advances[0]?.input.provider.prior_prompt_hash, hashText(prompts[1]!));
 assert.equal(verifies[1]?.input.expectedPromptHash, hashText(prompts[1]!));
 assert.equal(advances[1]?.input.provider.prior_prompt_hash, hashText(prompts[2]!));
-assert.ok(proceed.completed.generated_image);
+assert.ok((proceed.completed.payload as Readonly<Record<string, unknown>>).image);
+assert.equal(proceed.generatedImageUploadCalls, 1);
 
 const recovered = await exerciseSeoFlow(plugin, "produce_article", "proceed", {
   child: "checkpoint_gpt_text_response", code: "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE",

@@ -4,7 +4,7 @@ import {
   executionFailure,
   failureCode,
 } from "../../lib/execution-failure.js";
-import { typedBrowserExecutionFailure } from "../../lib/browser/browser-failure.js";
+import { typedBrowserExecutionFailure } from "../../lib/browser/browser-authority-api.js";
 
 import {
   GPT_ABILITY_GROUP_ID,
@@ -172,7 +172,10 @@ const failedBrowserFact = <K extends GptChildCapabilityId>(
   if (!recovery) return null;
   const legalPair = recovery.state === "dispatched"
     ? recovery.mutationOutcome === "dispatched"
-    : recovery.mutationOutcome === "no" || recovery.mutationOutcome === "confirmed";
+    : recovery.state === "confirmed"
+      ? recovery.mutationOutcome === "no" || recovery.mutationOutcome === "confirmed"
+      : recovery.mutationOutcome === "no" || recovery.mutationOutcome === "confirmed"
+        || recovery.mutationOutcome === "dispatched";
   if (!legalPair) return null;
   const browserOutcome = recovery.state === "confirmed" ? "CONFIRMED" as const
     : recovery.state === "rejected" ? "REJECTED" as const : "DISPATCHED" as const;
@@ -273,13 +276,16 @@ const failedExecution = async <K extends GptChildCapabilityId>(input: Readonly<{
   const committedMutation = observation?.mutationOutcome
     ?? (browserFailureOutcome !== "no" ? browserFailureOutcome
       : browserDispatched || sessionDispatched ? "dispatched" : "no");
+  const postconditionResult = observation?.browserFact
+    ? observation.browserFact.browserOutcome === "DISPATCHED" ? "pending" as const : "failed" as const
+    : committedMutation === "dispatched" ? "pending" as const : "failed" as const;
   const proof = proofFor({
     intent: input.intent, context: input.context, startedAt: input.startedAt, endedAt: new Date().toISOString(),
     beforeUrl: input.before.url, afterUrl: after.url,
     beforeDocumentRef: input.before.ref, afterDocumentRef: after.ref,
     ...(observation ? { observation } : {}), failureCode: failure.code,
     nativeFailureCode: nativeCause?.code ?? null, committedMutation,
-    postconditionResult: committedMutation === "dispatched" ? "pending" : "failed",
+    postconditionResult,
   });
   await input.context.onProof?.(proof);
   return Object.freeze({

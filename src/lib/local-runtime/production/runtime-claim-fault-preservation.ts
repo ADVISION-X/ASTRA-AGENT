@@ -2,7 +2,7 @@ import { failureCode } from "../../execution-failure.js";
 import {
   postCheckpointReceiverReceipt,
   postSubmitReadbackReceipt,
-} from "./plugin.js";
+} from "../../../mediator/product-plugin-contract.js";
 import { releaseLeaseWithLog } from "./runtime-logging.js";
 import { leaseAuthority, safeReason, type RuntimeState } from "./runtime-state.js";
 import type { ClaimedProductionTask } from "./transport-protocol.js";

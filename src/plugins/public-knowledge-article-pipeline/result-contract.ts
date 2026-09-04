@@ -1,6 +1,5 @@
-import type { WebsiteAgentTask } from "../../lib/local-runtime/production/contracts.js";
-import { productResultValidation as result } from "../../lib/local-runtime/production/plugin.js";
-import { productionRoutePolicy } from "../../lib/local-runtime/production/route-policy.js";
+import type { ProductionRoutePolicy, WebsiteAgentTask } from "../../mediator/product-plugin-contract.js";
+import { productResultValidation as result } from "../../mediator/product-plugin-contract.js";
 
 type ContractObject = Readonly<Record<string, unknown>>;
 export type PublicKnowledgeReceptionReceipt = Readonly<{
@@ -78,8 +77,7 @@ const contractValues = (contract: ContractObject, key: string, code: string): re
 const contractSection = (contract: ContractObject, key: string, code: string): ContractObject =>
   contractObject(contract[key], code);
 
-const publicKnowledgeResultContract = (): ContractObject => {
-  const route = productionRoutePolicy("public_knowledge_article_pipeline", "produce_article");
+const publicKnowledgeResultContract = (route: ProductionRoutePolicy): ContractObject => {
   const contract = contractObject(route.result_contract, "PUBLIC_KNOWLEDGE_RESULT_CONTRACT_MISSING");
   result.exact(contract as Record<string, unknown>, [
     "schema_version", "package", "research", "article", "image",
@@ -90,8 +88,12 @@ const publicKnowledgeResultContract = (): ContractObject => {
   return contract;
 };
 
-export const publicKnowledgeTurnContract = (turn: "research" | "article"): ContractObject =>
-  contractSection(publicKnowledgeResultContract(), turn, "PUBLIC_KNOWLEDGE_TURN_CONTRACT_MISSING");
+export const publicKnowledgeTurnContract = (
+  route: ProductionRoutePolicy,
+  turn: "research" | "article",
+): ContractObject => contractSection(
+  publicKnowledgeResultContract(route), turn, "PUBLIC_KNOWLEDGE_TURN_CONTRACT_MISSING",
+);
 
 const normalizeTurn = (
   input: Readonly<Record<string, unknown>>,
@@ -159,9 +161,10 @@ export const publicKnowledgeReceptionOf = (
 
 export const parsePublicKnowledgeResearch = (
   raw: string,
+  route: ProductionRoutePolicy,
   receipt?: PublicKnowledgeReceptionReceipt,
 ): Readonly<Record<string, unknown>> => {
-  const contract = publicKnowledgeTurnContract("research");
+  const contract = publicKnowledgeTurnContract(route, "research");
   const output = normalizeTurn(
     result.parseJsonObject(raw, "PUBLIC_KNOWLEDGE_RESEARCH"), receipt,
     RESEARCH_STRING_ARRAY_PATHS, RESEARCH_OBJECT_ARRAY_PATHS, RESEARCH_STRING_PATHS,
@@ -176,9 +179,10 @@ export const parsePublicKnowledgeResearch = (
 
 export const parsePublicKnowledgeArticle = (
   raw: string,
+  route: ProductionRoutePolicy,
   receipt?: PublicKnowledgeReceptionReceipt,
 ): Readonly<Record<string, unknown>> => {
-  const contract = publicKnowledgeTurnContract("article");
+  const contract = publicKnowledgeTurnContract(route, "article");
   const output = normalizeTurn(
     result.parseJsonObject(raw, "PUBLIC_KNOWLEDGE_ARTICLE"), receipt,
     ARTICLE_STRING_ARRAY_PATHS, ARTICLE_OBJECT_ARRAY_PATHS, ARTICLE_STRING_PATHS,
@@ -189,9 +193,9 @@ export const parsePublicKnowledgeArticle = (
   return Object.freeze(output);
 };
 
-const validatePublicKnowledgeImage = (value: unknown): void => {
+const validatePublicKnowledgeImage = (value: unknown, route: ProductionRoutePolicy): void => {
   const code = "PUBLIC_KNOWLEDGE_IMAGE_INVALID";
-  const contract = contractSection(publicKnowledgeResultContract(), "image", code);
+  const contract = contractSection(publicKnowledgeResultContract(route), "image", code);
   const image = result.object(value, code);
   if (image.schema_version !== contractText(contract, "schema_version", code)
     || image.mime_type !== contractText(contract, "mime_type", code)
@@ -206,14 +210,14 @@ const validatePublicKnowledgeImage = (value: unknown): void => {
 export const parseProductResult = (
   task: WebsiteAgentTask,
   value: unknown,
+  route: ProductionRoutePolicy,
   phase: "draft" | "final" = "final",
 ): Readonly<Record<string, unknown>> => {
   if (task.product_id !== "public_knowledge_article_pipeline") result.fail("PRODUCT_RESULT_OWNER_MISMATCH");
-  const route = productionRoutePolicy(task.product_id, task.action_id);
   if (route.relation_kind === "review") return Object.freeze(
     result.object(value, "PUBLIC_KNOWLEDGE_REVIEW_OBJECT_REQUIRED"),
   );
-  const contract = publicKnowledgeResultContract();
+  const contract = publicKnowledgeResultContract(route);
   const packageContract = contractSection(contract, "package", "PUBLIC_KNOWLEDGE_PACKAGE_CONTRACT_INVALID");
   const output = result.object(value, "PUBLIC_KNOWLEDGE_PACKAGE_INVALID");
   if (output.schema_version !== route.result_schema_version
@@ -221,7 +225,7 @@ export const parseProductResult = (
     result.fail("AGENT_RESULT_SCHEMA_VERSION_INVALID");
   }
   const research = result.object(output.research, "PUBLIC_KNOWLEDGE_RESEARCH_INVALID");
-  const researchContract = publicKnowledgeTurnContract("research");
+  const researchContract = publicKnowledgeTurnContract(route, "research");
   if (research.schema_version !== contractText(
     researchContract, "schema_version", "PUBLIC_KNOWLEDGE_RESEARCH_CONTRACT_INVALID",
   ) || !contractValues(
@@ -240,14 +244,18 @@ export const parseProductResult = (
   }
   if (output.article) {
     const article = result.object(output.article, "PUBLIC_KNOWLEDGE_ARTICLE_INVALID");
-    const articleContract = publicKnowledgeTurnContract("article");
+    const articleContract = publicKnowledgeTurnContract(route, "article");
     if (article.schema_version !== contractText(
       articleContract, "schema_version", "PUBLIC_KNOWLEDGE_ARTICLE_CONTRACT_INVALID",
     )) result.fail("PUBLIC_KNOWLEDGE_ARTICLE_INVALID");
   }
-  if (output.image) validatePublicKnowledgeImage(output.image);
+  if (output.image) validatePublicKnowledgeImage(output.image, route);
   return Object.freeze(output);
 };
 
-export const parseRouteResult = (task: WebsiteAgentTask, raw: string): Readonly<Record<string, unknown>> =>
-  parseProductResult(task, result.parseJsonObject(raw, "AGENT_ROUTE_RESULT"), "final");
+export const parseRouteResult = (
+  task: WebsiteAgentTask,
+  raw: string,
+  route: ProductionRoutePolicy,
+): Readonly<Record<string, unknown>> =>
+  parseProductResult(task, result.parseJsonObject(raw, "AGENT_ROUTE_RESULT"), route, "final");

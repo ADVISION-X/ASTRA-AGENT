@@ -1,0 +1,1 @@
+export type BrowserPrivateFact = Readonly<{ value: string }>;

@@ -129,11 +129,9 @@ const inspectProfileContracts = (
   for (const required of [
     "GPT_MODEL_SELECTION_V2_ENTRY_SELECTOR", "GPT_PROFILE_POPUP_SELECTOR",
     "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR", "[data-active='true']:not([inert])",
-    "GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR", "GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR",
+    "GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR",
     "GPT_MODEL_SELECTION_V2_ENTRY_INNER_SELECTOR", "GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_INNER_SELECTOR",
-    "GPT_PROFILE_SIMPLE_PANEL_SELECTOR",
     "[aria-expanded='false'][aria-hidden='false']",
-    ":has(${GPT_PROFILE_SIMPLE_PANEL_SELECTOR})", ":not(:has(${GPT_MODEL_SELECTION_V2_PANEL_SELECTOR}))",
   ]) if (!modelContract.includes(required)) findings.push(finding(
     "gpt/model-selection-v2-visible-contract", MODEL_CONTRACT_PATH,
     `Model selection V2 contract is missing ${required}.`,
@@ -141,14 +139,18 @@ const inspectProfileContracts = (
   const modelHandler = sourceFor(context, MODEL_HANDLER_PATH)?.getFullText() ?? "";
   for (const required of [
     "open_gpt_model_selector_v2", "select_exact_gpt_model_v2", "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR",
-    "GPT_PROFILE_SIMPLE_PANEL_SELECTOR", "GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR",
+    "GPT_PROFILE_SIMPLE_PANEL_SELECTOR", "MODEL_SELECTION_POSTCONDITION",
     "isAlreadyOpen", "isOpenable", "value.entry === 0", "value.simplePanel === 0",
     "value.advancedPanel === 1", "postClickObservation: MODEL_SELECTOR_OPEN_POSTCONDITION",
+    "postClickObservation: MODEL_SELECTION_POSTCONDITION", "mutationRecord.postconditionObservation",
     "expectedEligibleCount", "decodeCoherentObservationPacket", "scope: { selector: GPT_PROFILE_POPUP_SELECTOR }",
   ]) if (!modelHandler.includes(required)) findings.push(finding(
     "gpt/model-selection-v2-handler", MODEL_HANDLER_PATH, `Model selection V2 handler is missing ${required}.`,
   ));
-  for (const retired of ["GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR", "expandedEntry"]) {
+  for (const retired of [
+    "GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR", "expandedEntry",
+    "GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR", "postClickMatch: {",
+  ]) {
     if (modelContract.includes(retired) || modelHandler.includes(retired)) findings.push(finding(
       "gpt/model-selection-v2-expanded-state-retired", MODEL_HANDLER_PATH,
       `The obsolete expanded-entry topology remains reachable through ${retired}.`,
@@ -165,11 +167,22 @@ const inspectProfileContracts = (
   for (const required of [
     "ensure_exact_gpt_reasoning_tier", "requireExactInputKeys", "profileFromIntent",
     "requireBrowser(context)", "ariaValueMin", "ariaValueMax", "ariaValueNow",
-    "postKeypressMatch", "requireConfirmedBrowserFact",
+    "postKeypressMatch", "requireConfirmedBrowserFact", "PROFILE_HYDRATION_TIMEOUT_MS",
+    "PROFILE_TOPOLOGY_QUERIES", "profileFullyAbsent", "profileOpenReady", "profileOpenable",
+    "waitForProfileHydration", "GPT_EXECUTION_PROFILE_HYDRATION_TIMEOUT",
+    "GPT_EXECUTION_PROFILE_HYDRATION_DOCUMENT_CHANGED",
+    "postClickObservation: PROFILE_OPEN_POSTCONDITION", "mutationRecord.postconditionObservation",
+    "decodeCoherentObservationPacket", "scopeRejections", "observationRevisionHash",
   ]) if (!reasoningHandler.includes(required)) findings.push(finding(
     "gpt/reasoning-coherent-control", PROFILE_HANDLER_PATH,
     `Reasoning Child must qualify and read back the Browser-owned numeric control; missing ${required}.`,
   ));
+  if (reasoningHandler.includes("postClickMatch: { selector: GPT_PROFILE_REASONING_VALUE_SELECTOR")) {
+    findings.push(finding(
+      "gpt/profile-open-second-readback-retired", PROFILE_HANDLER_PATH,
+      "Profile open must consume one coherent Browser postcondition packet instead of a match plus second DOM readback.",
+    ));
+  }
 };
 
 const inspectContractShape = (
@@ -228,6 +241,7 @@ const inspectAttachmentSelectors = (
   const expected = {
     GPT_ATTACHMENT_CONTROL_SELECTOR:
       "button#composer-plus-btn[data-testid='composer-plus-btn'][aria-haspopup='menu']",
+    GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR: "#thread-bottom div.popover[aria-busy='false']",
     GPT_UPLOAD_FROM_COMPUTER_SELECTOR: "div.__menu-item[tabindex='0'] span",
     GPT_UPLOAD_FROM_COMPUTER_LABEL: "从电脑上传",
   } as const;
@@ -260,16 +274,35 @@ const inspectAttachmentHandler = (
   const calls = handler?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
   if (!(handlerText.includes("attachmentControlState") && handlerText.includes("readCoherentObservation")
     && handlerText.includes('queryId: "attachment-control"')
-    && handlerText.includes('queryId: "upload-choice"'))) findings.push(finding(
+    && handlerText.includes('queryId: "upload-choice"')
+    && handlerText.includes("scope: { selector: GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR }")
+    && handlerText.includes("waitForAttachmentControlHydration")
+    && handlerText.includes("attachmentControlFullyAbsent")
+    && handlerText.includes("attachmentControlOpenable")
+    && handlerText.includes("attachmentControlReady")
+    && handlerText.includes("GPT_ATTACHMENT_CONTROL_HYDRATION_TIMEOUT")
+    && handlerText.includes("GPT_ATTACHMENT_CONTROL_HYDRATION_DOCUMENT_CHANGED")
+    && handlerText.includes("scopeRejections")
+    && handlerText.includes("observationRevisionHash"))) findings.push(finding(
     "gpt/attachment-entry-coherent-facts", ATTACHMENT_HANDLER_PATH,
     "Attachment control and upload leaf must be qualified by one coherent Browser packet.",
   ));
   const postcondition = calls.find((call) => call.getExpression().getText().endsWith(".executeDomIntent")
     && call.getText().includes("GPT_ATTACHMENT_CONTROL_SELECTOR"));
-  if (!postcondition || !postcondition.getText().includes("GPT_UPLOAD_FROM_COMPUTER_SELECTOR")
-    || !postcondition.getText().includes("GPT_UPLOAD_FROM_COMPUTER_LABEL")) findings.push(finding(
+  if (!postcondition || !postcondition.getText().includes("ATTACHMENT_CONTROL_OPEN_POSTCONDITION")
+    || !handlerText.includes("mutationRecord.postconditionObservation")
+    || !handlerText.includes("decodeCoherentObservationPacket")
+    || !handlerText.includes("GPT_UPLOAD_FROM_COMPUTER_SELECTOR")
+    || !handlerText.includes("GPT_UPLOAD_FROM_COMPUTER_LABEL")) findings.push(finding(
     "gpt/attachment-entry-direct-postcondition", ATTACHMENT_HANDLER_PATH,
-    "Attachment entry click must prove the Chrome-observed upload action selector and exact label.",
+    "Attachment entry click must consume one coherent Browser postcondition packet for the scoped exact upload leaf.",
+  ));
+  for (const retired of [
+    "observed.choiceRaw === 1", "observed.choiceRaw !== 0", "readback.choiceRaw !== 1",
+    "postClickMatch: {\n        selector: GPT_UPLOAD_FROM_COMPUTER_SELECTOR",
+  ]) if (handlerText.includes(retired)) findings.push(finding(
+    "gpt/attachment-global-raw-or-second-readback-retired", ATTACHMENT_HANDLER_PATH,
+    `Attachment control retains the retired unscoped/immediate path ${retired}.`,
   ));
   for (const forbidden of ["filePath", "readFile", "registerFileArtifact", "issueFileArtifactGrant"]) {
     if (handlerText.includes(forbidden)) findings.push(finding(

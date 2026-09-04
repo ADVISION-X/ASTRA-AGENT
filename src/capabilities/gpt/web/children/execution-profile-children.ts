@@ -1,9 +1,13 @@
-import type { BrowserTargetLease } from "../../../../lib/browser/browser-authority-api.js";
+import type {
+  BrowserDomObservationQuery,
+  BrowserTargetLease,
+} from "../../../../lib/browser/browser-authority-api.js";
 import { executionFailure } from "../../../../lib/execution-failure.js";
 
 import type { GptChildHandlerMap } from "../child-handler.js";
 import type { GptChildObservation } from "../child-handler.js";
-import type { GptChildCapabilityIntent } from "../../contract.js";
+import type { GptChildBrowserFact, GptChildCapabilityIntent } from "../../contract.js";
+import { gptExecutionFailure } from "../../execution-fault.js";
 import {
   declaredFacts,
   recordInput,
@@ -13,8 +17,11 @@ import {
   success,
 } from "../child-handler.js";
 import {
+  decodeCoherentObservationPacket,
   projectCoherentObservation,
   readCoherentObservation,
+  type GptCoherentObservation,
+  type GptCoherentObservationRow,
   type GptCoherentFactProjection,
 } from "../gpt-dom-observation.js";
 import {
@@ -46,21 +53,35 @@ type ProfileTopology = Readonly<{
   reasoningCurrent: string | null;
   trigger: number;
   triggerExpanded: string | null;
+  targetRefHash: `sha256:${string}`;
+  documentRefHash: `sha256:${string}`;
+  rows: readonly GptCoherentObservationRow[];
   facts: GptCoherentFactProjection;
 }>;
 
-const topology = async (browser: BrowserTargetLease): Promise<ProfileTopology> => {
-  const observation = await readCoherentObservation(browser, [
-    { queryId: "popup", selector: GPT_PROFILE_POPUP_SELECTOR, maxMatches: 2, fields: [] },
-    { queryId: "simple-panel", selector: GPT_PROFILE_SIMPLE_PANEL_SELECTOR, maxMatches: 2, fields: [] },
-    { queryId: "reasoning-control", selector: GPT_PROFILE_REASONING_CONTROL_SELECTOR, maxMatches: 2, fields: [] },
-    { queryId: "enabled-reasoning-control", selector: GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR,
-      maxMatches: 2, fields: [] },
-    { queryId: "reasoning-value", selector: GPT_PROFILE_REASONING_VALUE_SELECTOR, maxMatches: 2,
-      readEligibility: "non-actionable-aria-state",
-      fields: ["ariaValueMin", "ariaValueMax", "ariaValueNow"] },
-    { queryId: "trigger", selector: GPT_PROFILE_TRIGGER_SELECTOR, maxMatches: 2, fields: ["ariaExpanded"] },
-  ]);
+const PROFILE_HYDRATION_TIMEOUT_MS = 5_000;
+const PROFILE_TOPOLOGY_QUERIES = Object.freeze([
+  { queryId: "popup", selector: GPT_PROFILE_POPUP_SELECTOR, maxMatches: 2, fields: [] },
+  { queryId: "simple-panel", selector: GPT_PROFILE_SIMPLE_PANEL_SELECTOR, maxMatches: 2, fields: [] },
+  { queryId: "reasoning-control", selector: GPT_PROFILE_REASONING_CONTROL_SELECTOR, maxMatches: 2, fields: [] },
+  { queryId: "enabled-reasoning-control", selector: GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR,
+    maxMatches: 2, fields: [] },
+  { queryId: "reasoning-value", selector: GPT_PROFILE_REASONING_VALUE_SELECTOR, maxMatches: 2,
+    readEligibility: "non-actionable-aria-state" as const,
+    fields: ["ariaValueMin", "ariaValueMax", "ariaValueNow"] as const },
+  { queryId: "trigger", selector: GPT_PROFILE_TRIGGER_SELECTOR, maxMatches: 2,
+    fields: ["ariaExpanded"] as const },
+] satisfies readonly BrowserDomObservationQuery[]);
+
+const PROFILE_OPEN_POSTCONDITION = Object.freeze({
+  queries: Object.freeze(PROFILE_TOPOLOGY_QUERIES.map((query) => Object.freeze({
+    ...query,
+    expectedEligibleCount: 1,
+  }))),
+  timeoutMs: PROFILE_HYDRATION_TIMEOUT_MS,
+});
+
+const projectTopology = (observation: GptCoherentObservation): ProfileTopology => {
   const row = (queryId: string) => observation.rows.find((candidate) => candidate.queryId === queryId)!;
   const trigger = row("trigger");
   const expanded = trigger.matches[0]?.ariaExpanded;
@@ -76,8 +97,20 @@ const topology = async (browser: BrowserTargetLease): Promise<ProfileTopology> =
     reasoningCurrent: typeof reasoning?.ariaValueNow === "string" ? reasoning.ariaValueNow : null,
     trigger: trigger.eligibleCount,
     triggerExpanded: typeof expanded === "string" ? expanded : null,
+    targetRefHash: observation.targetRefHash,
+    documentRefHash: observation.documentRefHash,
+    rows: observation.rows,
     facts: projectCoherentObservation(observation, "popup"),
   });
+};
+
+const topology = async (browser: BrowserTargetLease): Promise<ProfileTopology> =>
+  projectTopology(await readCoherentObservation(browser, PROFILE_TOPOLOGY_QUERIES));
+
+const rowCode = (row: GptCoherentObservationRow): string => {
+  const rejected = [...row.scopeRejections, ...row.rejections]
+    .map((entry) => `${entry.index}.${entry.reasons.join("+")}`).join(",") || "none";
+  return `${row.queryId}[scope=${row.scopeRawCount}/${row.scopeEligibleCount};raw=${row.rawCount};eligible=${row.eligibleCount};rejected=${rejected};native=${row.nativeCauseCode ?? "none"}/${row.nativeCauseCount}]`;
 };
 
 const topologyCode = (value: ProfileTopology): string => [
@@ -90,17 +123,90 @@ const topologyCode = (value: ProfileTopology): string => [
   `reasoningCurrent=${value.reasoningCurrent ?? "missing"}`,
   `trigger=${value.trigger}`,
   `expanded=${value.triggerExpanded ?? "missing"}`,
+  `revision=${value.facts.observationRevisionHash}`,
+  `candidates=${value.rows.map(rowCode).join("|")}`,
 ].join(":");
 
 const failTopology = (code: string, value: ProfileTopology): never => {
   throw executionFailure("failed", `${code}:${topologyCode(value)}`);
 };
 
+const profileNativeCause = (value: ProfileTopology): string | null =>
+  value.rows.find((row) => row.nativeCauseCode !== null)?.nativeCauseCode ?? null;
+
+const failProfileOpen = (
+  code: string,
+  value: ProfileTopology,
+  browserFact: GptChildBrowserFact | null = null,
+): never => {
+  const mutationOutcome = browserFact?.mutationOutcome ?? "no";
+  const nativeFailureCode = profileNativeCause(value);
+  throw gptExecutionFailure(`${code}:${topologyCode(value)}`, {
+    mutationOutcome,
+    ...(browserFact ? {
+      browserEffect: Object.freeze({
+        effectScope: browserFact.effectScope,
+        childCapabilityId: browserFact.childCapabilityId,
+        browserOutcome: browserFact.browserOutcome,
+      }),
+    } : {}),
+    proofFacts: Object.freeze({
+      ...value.facts,
+      decision: "FAIL_CLOSED",
+      mutationOutcome,
+      browserFact,
+      nativeFailureCode,
+    }),
+  });
+};
+
+const rowIs = (value: ProfileTopology, queryId: string, raw: number, eligible: number): boolean => {
+  const row = value.rows.find((candidate) => candidate.queryId === queryId);
+  return row?.rawCount === raw && row.eligibleCount === eligible;
+};
+
+const profileFullyAbsent = (value: ProfileTopology): boolean =>
+  value.rows.every((row) => row.rawCount === 0 && row.eligibleCount === 0);
+
+const profileOpenReady = (value: ProfileTopology): boolean =>
+  ["popup", "simple-panel", "reasoning-control", "enabled-reasoning-control", "reasoning-value", "trigger"]
+    .every((queryId) => rowIs(value, queryId, 1, 1))
+  && value.reasoningMinimum === "0" && value.reasoningMaximum === "4"
+  && /^[0-4]$/u.test(value.reasoningCurrent ?? "")
+  && value.triggerExpanded === "true";
+
+const profileOpenable = (value: ProfileTopology): boolean =>
+  ["popup", "simple-panel", "reasoning-control", "enabled-reasoning-control", "reasoning-value"]
+    .every((queryId) => rowIs(value, queryId, 0, 0))
+  && rowIs(value, "trigger", 1, 1)
+  && value.triggerExpanded === "false";
+
+const waitForProfileHydration = async (
+  browser: BrowserTargetLease,
+  signal?: AbortSignal,
+): Promise<ProfileTopology> => {
+  const deadline = Date.now() + PROFILE_HYDRATION_TIMEOUT_MS;
+  let observed = await topology(browser);
+  const targetRefHash = observed.targetRefHash;
+  const documentRefHash = observed.documentRefHash;
+  while (profileFullyAbsent(observed)) {
+    if (signal?.aborted) throw executionFailure("failed", "GPT_EXECUTION_ABORTED");
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) failProfileOpen("GPT_EXECUTION_PROFILE_HYDRATION_TIMEOUT", observed);
+    await browser.wait({
+      durationMs: Math.min(remaining, Math.max(25, Math.min(250, Math.ceil(remaining / 20)))),
+    });
+    observed = await topology(browser);
+    if (observed.targetRefHash !== targetRefHash || observed.documentRefHash !== documentRefHash) {
+      failProfileOpen("GPT_EXECUTION_PROFILE_HYDRATION_DOCUMENT_CHANGED", observed);
+    }
+  }
+  return observed;
+};
+
 const requireActiveReasoningProfile = async (browser: BrowserTargetLease): Promise<ProfileTopology> => {
   const observed = await topology(browser);
-  if (observed.popup !== 1 || observed.simplePanel !== 1
-    || observed.reasoningControl !== 1 || observed.enabledReasoningControl !== 1
-    || observed.reasoningValue !== 1) {
+  if (!profileOpenReady(observed)) {
     failTopology("GPT_EXECUTION_PROFILE_POPUP_INVALID", observed);
   }
   return observed;
@@ -111,11 +217,7 @@ const openProfilePopup = async (
   browser: BrowserTargetLease,
   observed: ProfileTopology,
 ): Promise<GptChildObservation<"open_gpt_execution_profile">> => {
-  if (observed.popup === 1) {
-    if (observed.simplePanel !== 1 || observed.reasoningControl !== 1
-      || observed.enabledReasoningControl !== 1 || observed.reasoningValue !== 1) {
-      failTopology("GPT_EXECUTION_PROFILE_POPUP_INVALID", observed);
-    }
+  if (profileOpenReady(observed)) {
     return success({
       value: { state: "profile-popup-open" as const },
       ...declaredFacts({
@@ -124,18 +226,25 @@ const openProfilePopup = async (
       }),
     });
   }
-  if (observed.popup !== 0 || observed.trigger !== 1) {
-    failTopology("GPT_EXECUTION_PROFILE_OPEN_QUALIFICATION_INVALID", observed);
+  if (!profileOpenable(observed)) {
+    failProfileOpen("GPT_EXECUTION_PROFILE_OPEN_QUALIFICATION_INVALID", observed);
   }
-  await browser.executeDomIntent({
+  const mutation = await browser.executeDomIntent({
     kind: "click",
     selector: GPT_PROFILE_TRIGGER_SELECTOR,
     expectedMatches: 1,
-    postClickMatch: { selector: GPT_PROFILE_REASONING_VALUE_SELECTOR, expectedMatches: 1,
-      readEligibility: "non-actionable-aria-state", timeoutMs: 5_000 },
+    postClickObservation: PROFILE_OPEN_POSTCONDITION,
   });
-  const readback = await requireActiveReasoningProfile(browser);
+  const mutationRecord = mutation && typeof mutation === "object" && !Array.isArray(mutation)
+    ? mutation as Readonly<Record<string, unknown>> : {};
+  const readback = projectTopology(decodeCoherentObservationPacket(
+    mutationRecord.postconditionObservation,
+    PROFILE_TOPOLOGY_QUERIES,
+  ));
   const browserFact = requireConfirmedBrowserFact(intent, browser);
+  if (!profileOpenReady(readback)) {
+    failProfileOpen("GPT_EXECUTION_PROFILE_POPUP_INVALID", readback, browserFact);
+  }
   return success({
     value: { state: "profile-popup-open" as const },
     ...declaredFacts({
@@ -193,9 +302,9 @@ export const executionProfileChildHandlers = {
     requireExactInputKeys(intent, ["profile"]);
     profileFromIntent(intent);
     const browser = requireBrowser(context);
-    const observed = await topology(browser);
-    if (observed.popup !== 1 && context.mutationMode === "readback") {
-      throw executionFailure("failed", "GPT_EXECUTION_PROFILE_OPEN_PENDING");
+    const observed = await waitForProfileHydration(browser, context.signal);
+    if (!profileOpenReady(observed) && context.mutationMode === "readback") {
+      failProfileOpen("GPT_EXECUTION_PROFILE_OPEN_PENDING", observed);
     }
     return openProfilePopup(intent, browser, observed);
   },

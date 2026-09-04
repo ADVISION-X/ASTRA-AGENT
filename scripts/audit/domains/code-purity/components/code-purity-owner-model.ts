@@ -117,6 +117,7 @@ const resolveLibOwner = (repoPath: string): string | null => {
     ["src/lib/browser/", "browser"],
     ["src/lib/storage/", "storage"],
     ["src/lib/runtime-logs/", "runtime-logs"],
+    ["src/lib/local-runtime/production/", "agent-production-runtime"],
     ["src/lib/local-runtime/", "local-runtime"],
   ]) ?? (repoPath.startsWith("src/lib/") ? "lib" : null);
 };

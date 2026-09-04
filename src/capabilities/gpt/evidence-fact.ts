@@ -70,8 +70,9 @@ const failureBrowserFact = (input: Readonly<{
   const outcome = fact.browser_outcome;
   const mutation = fact.mutation_outcome;
   const legalPair = outcome === "DISPATCHED" ? mutation === "dispatched"
-    : (outcome === "CONFIRMED" || outcome === "REJECTED")
-      && (mutation === "no" || mutation === "confirmed");
+    : outcome === "CONFIRMED" ? mutation === "no" || mutation === "confirmed"
+      : outcome === "REJECTED"
+        && (mutation === "no" || mutation === "confirmed" || mutation === "dispatched");
   const contract = GPT_CHILD_CAPABILITY_CONTRACTS[input.intent.childCapabilityId];
   const expectedScope = contract.replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local";
   const terminalAt = fact.terminal_at;

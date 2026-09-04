@@ -7,14 +7,18 @@ import { Project } from "ts-morph";
 
 import {
   agentPluginCapabilityManifest,
-  productionPluginCatalog,
 } from "../../src/lib/local-runtime/production/catalog.js";
+import {
+  productPluginCatalogSnapshot,
+  productionCatalogHash,
+} from "../../src/mediator/product-plugin-catalog.js";
 import { inspectProductAcceptanceBoundaries } from "../audit/domains/architecture-boundary/components/scan-product-acceptance-boundaries.js";
+import { inspectRuntimeBrowserPrivateImports } from "../audit/domains/architecture-boundary/components/scan-plugin-capability-boundaries.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V4";
 const testDirectory = resolve("scripts/acceptance/product-plugins");
-const catalogIds = productionPluginCatalog.map((plugin) => plugin.pluginId).sort();
+const catalogIds = productPluginCatalogSnapshot.map((plugin) => plugin.plugin_id).sort();
 const manifestIds = agentPluginCapabilityManifest.plugins.map((plugin) => plugin.plugin_id).sort();
 const testIds = readdirSync(testDirectory)
   .filter((name) => name.endsWith(".acceptance.ts"))
@@ -24,6 +28,16 @@ const testIds = readdirSync(testDirectory)
 assert(catalogIds.length > 0, "the current Catalog must publish at least one Product Plugin");
 assert.deepEqual(manifestIds, catalogIds,
   "the current Capability Manifest and Catalog must publish the same Plugin identities");
+assert.equal(agentPluginCapabilityManifest.catalog_hash, productionCatalogHash);
+assert.equal(agentPluginCapabilityManifest.plugins.length, productPluginCatalogSnapshot.length);
+for (const [index, plugin] of productPluginCatalogSnapshot.entries()) {
+  const published = agentPluginCapabilityManifest.plugins[index]!;
+  assert.equal(published.plugin_id, plugin.plugin_id);
+  assert.equal(published.plugin_version, plugin.plugin_version);
+  assert.deepEqual(published.accepts, plugin.accepts);
+  assert.equal(published.task_contract_version, 1);
+  assert.equal(published.result_contract_version, 1);
+}
 assert.deepEqual(testIds, catalogIds,
   "every current Product Plugin must have exactly one independently named acceptance file");
 
@@ -54,6 +68,24 @@ for (const [checkId, source] of mutants) {
   inspectProductAcceptanceBoundaries({ findings, inspectedFiles, lawId, project });
   assert.ok(findings.some((finding) => finding.checkId === checkId),
     `${source} must emit ${checkId}`);
+}
+
+{
+  const project = new Project({ tsConfigFilePath });
+  const sourceFile = project.createSourceFile(
+    resolve("src/lib/local-runtime/browser-private-import-mutant.ts"),
+    'import type { BrowserMutationStore } from "../browser/exact-target/browser-mutation-store.js";\nexport type Mutant = BrowserMutationStore;\n',
+    { overwrite: true },
+  );
+  const findings: Parameters<typeof inspectRuntimeBrowserPrivateImports>[0] = [];
+  inspectRuntimeBrowserPrivateImports(
+    findings,
+    lawId,
+    "src/lib/local-runtime/browser-private-import-mutant.ts",
+    sourceFile,
+  );
+  assert.ok(findings.some((finding) => finding.checkId === "architecture/runtime-imports-browser-private"),
+    "Runtime Browser-private import mutant must fail");
 }
 
 process.stdout.write("[ACCEPTANCE][architecture-boundary] PASS\n");

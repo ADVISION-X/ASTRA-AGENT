@@ -1,23 +1,9 @@
 import { hashCanonical, type ProductionActionId, type ProductionHash, type ProductionProductId,
   type WebsiteAgentTask } from "./contracts.js";
+import type { ProductionRoutePolicy } from "../../../mediator/product-plugin-contract.js";
 import routePolicyArtifact from "./website-agent-route-policies.v1.json" with { type: "json" };
 
-export interface ProductionRoutePolicy {
-  readonly product_id: ProductionProductId;
-  readonly action_id: ProductionActionId;
-  readonly required_parameter_keys: readonly string[];
-  readonly material_roles: readonly Readonly<{
-    role: string;
-    trust_class: WebsiteAgentTask["material_refs"][number]["trust_class"];
-    may_issue_instruction: boolean;
-    media_types: readonly string[];
-    storage_class: WebsiteAgentTask["material_refs"][number]["storage_class"];
-    owner_scope_policy: "required" | "forbidden";
-  }>[];
-  readonly result_schema_version: string;
-  readonly result_contract?: Readonly<Record<string, unknown>>;
-  readonly relation_kind: "primary" | "continuation" | "review";
-}
+export type { ProductionRoutePolicy } from "../../../mediator/product-plugin-contract.js";
 
 type RoutePolicyProjection = Readonly<{
   schema_version: "website-agent-route-policies.v1";

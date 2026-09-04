@@ -150,6 +150,72 @@ export const exerciseBrowserRejectedEvidenceReadback = async (): Promise<void> =
   await exerciseFailedEvidenceReadback(result, Object.freeze({ timeoutMs: 1_000 }), serialized!);
 };
 
+export const exerciseBrowserRejectedDispatchedEvidenceReadback = async (): Promise<void> => {
+  const { execute } = createGptAcceptanceHarness("gpt-browser-rejected-dispatched-evidence");
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, {
+      composer: Object.freeze({
+        rawCount: 1,
+        eligibleCount: 1,
+        matches: Object.freeze([{ semanticTextHash: hash("stale draft") }]),
+      }),
+    });
+    if (intent.kind === "fill") return {
+      mutationCount: 1,
+      terminalRejectedDispatched: true,
+      failureCode: "BROWSER_CAPABILITY_REJECTED",
+    };
+    throw new Error(`UNEXPECTED_REJECTED_DISPATCHED_INTENT:${intent.kind}`);
+  });
+  const result = await execute("prepare_clean_gpt_chat", fixture.browser, { timeoutMs: 1_000 });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, "BROWSER_CAPABILITY_REJECTED");
+  assert.equal(result.proof.committedMutation, "dispatched");
+  assert.equal(result.proof.browserFact?.browserOutcome, "REJECTED");
+  assert.equal(result.proof.browserFact?.mutationOutcome, "dispatched");
+  assert.equal(result.proof.browserFact?.evidenceRef, "browser-mutation:acceptance-call");
+  assert.equal(fixture.physicalMutations(), 1);
+  let serialized: ReturnType<typeof serializeTerminalFailure> | null = null;
+  try { throwGptChildFailure(result); }
+  catch (error) { serialized = serializeTerminalFailure(error); }
+  assert.deepEqual(serialized, {
+    code: "BROWSER_CAPABILITY_REJECTED",
+    mutation_outcome: "dispatched",
+    effect_scope: "target_local",
+    child_capability_id: "prepare_clean_gpt_chat",
+    browser_outcome: "REJECTED",
+    evidence_ref: "browser-mutation:acceptance-call",
+    evidence_hash: `sha256:${"9".repeat(64)}`,
+    cause: { name: "Error", code: null },
+  });
+  const intent = intentFor<"prepare_clean_gpt_chat">(
+    result, Object.freeze({ timeoutMs: 1_000 }),
+  );
+  const recovered = await executeProductionGptAtomicCall({
+    dataDir: "/tmp/gpt-rejected-dispatched-wal-readback",
+    gpt: Object.freeze({
+      abilityGroupId: "gpt" as const,
+      transport: "gpt-web" as const,
+      listChildCapabilityIds: () => Object.freeze(["prepare_clean_gpt_chat" as const]),
+      execute: async () => { throw new Error("REJECTED_DISPATCHED_WAL_MUST_NOT_REPLAY_GPT"); },
+    }),
+    store: {} as never,
+    browsers: {} as never,
+    intent,
+    browserCall: { browser: fixture.browser, facade: fixture.browser, providerWaitLog: null },
+    signal: new AbortController().signal,
+  });
+  assert.equal(recovered.result.failureCode, "BROWSER_CAPABILITY_REJECTED");
+  assert.equal(recovered.result.proof.committedMutation, "dispatched");
+  assert.equal(recovered.result.proof.browserFact?.browserOutcome, "REJECTED");
+  let recoveredFailure: unknown = null;
+  try { throwGptChildFailure(recovered.result); }
+  catch (error) { recoveredFailure = error; }
+  assert.deepEqual(serializeTerminalFailure(recoveredFailure), serialized,
+    "a rejected+dispatched Browser WAL readback must preserve the terminal tuple without replay");
+  await exerciseFailedEvidenceReadback(result, Object.freeze({ timeoutMs: 1_000 }), serialized!);
+};
+
 export const exerciseBrowserDispatchedEvidenceReadback = async (): Promise<void> => {
   const { execute } = createGptAcceptanceHarness("gpt-browser-dispatched-evidence");
   const fixture = fakeBrowser((intent) => {

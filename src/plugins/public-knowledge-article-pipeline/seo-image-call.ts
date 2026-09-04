@@ -5,10 +5,11 @@ import type {
 import type {
   ProductionHash,
   WebsiteAgentTask,
-} from "../../lib/local-runtime/production/contracts.js";
+} from "../../mediator/product-plugin-contract.js";
 import type {
   GeneratedImageArtifact,
-} from "../../lib/local-runtime/production/plugin.js";
+  ProductSkill,
+} from "../../mediator/product-plugin-contract.js";
 import type {
   ExactGptCallFacts,
 } from "../../capabilities/gpt/index.js";
@@ -43,6 +44,7 @@ type ImageTurnInput = Readonly<{
   sourceAttemptId: string;
   predecessorCheckpoint: SeoTurnCheckpoint;
   predecessorSourceAttemptId: string;
+  productSkill: ProductSkill;
 }>;
 
 const prepareImageSubmit = async (
@@ -50,10 +52,10 @@ const prepareImageSubmit = async (
   prompt: string,
   promptHash: ProductionHash,
 ): Promise<ExactGptCallFacts> => {
-  const promptWrite = { productStepId: input.stepId, callId: "prompt-write", child: "write_exact_gpt_prompt", actionOrdinal: 40, input: { prompt } } as const;
-  const draftReconcile = { productStepId: input.stepId, callId: "draft-reconcile", child: "reconcile_gpt_draft", actionOrdinal: 41, input: { files: [], prompt, turnMarker: input.marker } } as const;
-  const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 42, input: { files: [], promptHash, turnMarker: input.marker } } as const;
-  await applyExactProfile(input.flow.execute, input.stepId, [35, 36, 37, 38, 39]);
+  const promptWrite = { productStepId: input.stepId, callId: "prompt-write", child: "write_exact_gpt_prompt", actionOrdinal: 43, input: { prompt } } as const;
+  const draftReconcile = { productStepId: input.stepId, callId: "draft-reconcile", child: "reconcile_gpt_draft", actionOrdinal: 44, input: { files: [], prompt, turnMarker: input.marker } } as const;
+  const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 45, input: { files: [], promptHash, turnMarker: input.marker } } as const;
+  await applyExactProfile(input.flow.execute, input.stepId, [37, 38, 39, 40, 41, 42]);
   await input.flow.execute({ sessionKey: "", ...promptWrite });
   await input.flow.execute({ sessionKey: "", ...draftReconcile });
   await input.flow.execute({ sessionKey: "", ...turnSubmit });
@@ -67,16 +69,16 @@ const settleCurrentImageSubmit = async (
   prompt: string,
   promptHash: ProductionHash,
 ): Promise<ExactGptCallFacts> => {
-  await requireExactProfileEvidence(input.flow, input.stepId, [35, 36, 37, 38, 39]);
+  await requireExactProfileEvidence(input.flow, input.stepId, [37, 38, 39, 40, 41, 42]);
   await input.flow.requireEvidence({
     productStepId: input.stepId, callId: "prompt-write", child: "write_exact_gpt_prompt",
-    actionOrdinal: 40, input: { prompt },
+    actionOrdinal: 43, input: { prompt },
   });
   await input.flow.requireEvidence({
     productStepId: input.stepId, callId: "draft-reconcile", child: "reconcile_gpt_draft",
-    actionOrdinal: 41, input: { files: [], prompt, turnMarker: input.marker },
+    actionOrdinal: 44, input: { files: [], prompt, turnMarker: input.marker },
   });
-  const submit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 42, input: { files: [], promptHash, turnMarker: input.marker } } as const;
+  const submit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 45, input: { files: [], promptHash, turnMarker: input.marker } } as const;
   await input.flow.execute({ sessionKey: "", ...submit });
   const confirmed = await input.flow.facts(submit);
   confirmedDeadline(confirmed);
@@ -111,14 +113,14 @@ const checkpointSubmittedImage = async (
   currentCheckpoint: GptContinuationCheckpointInput;
 }>> => {
   try {
-    const submitted = await input.flow.execute({ sessionKey: "", productStepId: input.stepId, callId: "submission-reconcile", child: "reconcile_gpt_turn_submission", actionOrdinal: 43, input: { expectedPromptHash: promptHash, timeoutMs: 60_000, turnMarker: input.marker } });
+    const submitted = await input.flow.execute({ sessionKey: "", productStepId: input.stepId, callId: "submission-reconcile", child: "reconcile_gpt_turn_submission", actionOrdinal: 46, input: { expectedPromptHash: promptHash, timeoutMs: 60_000, turnMarker: input.marker } });
     const canonicalConversationUrl = textValue(
       objectValue(submitted.value, "SEO_IMAGE_SUBMISSION_INVALID").canonicalConversationUrl,
       "SEO_IMAGE_SUBMISSION_INVALID",
     );
     const stable = await input.flow.execute({
       sessionKey: "", productStepId: input.stepId, callId: "image-wait",
-      child: "wait_for_stable_gpt_image", actionOrdinal: 44,
+      child: "wait_for_stable_gpt_image", actionOrdinal: 47,
       input: {
         absoluteDeadline: confirmedDeadline(confirmedSubmit), canonicalConversationUrl,
         expectedPromptHash: promptHash, turnMarker: input.marker,
@@ -129,7 +131,7 @@ const checkpointSubmittedImage = async (
     const mediaHash = hashValue(stableValue.mediaHash, "SEO_IMAGE_RESPONSE_INVALID");
     const checkpointCall = {
       sessionKey: "", productStepId: input.stepId, callId: "image-checkpoint",
-      child: "checkpoint_gpt_generated_image", actionOrdinal: 45,
+      child: "checkpoint_gpt_generated_image", actionOrdinal: 48,
       input: {
         assistantTurnId, canonicalConversationUrl, expectedPromptHash: promptHash,
         expectedMediaHash: mediaHash,
@@ -173,15 +175,15 @@ const checkpointSubmittedImage = async (
 };
 
 export const generateImage = async (input: ImageTurnInput): Promise<GeneratedImageArtifact> => {
-  const prompt = imagePrompt(input.task, input.marker);
+  const prompt = imagePrompt(input.task, input.marker, input.productSkill);
   const promptHash = textHash(prompt);
-  const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 42, input: { files: [], promptHash, turnMarker: input.marker } } as const;
+  const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 45, input: { files: [], promptHash, turnMarker: input.marker } } as const;
   const currentSubmit = await input.flow.facts(turnSubmit);
   const priorSubmit = currentSubmit.mutation || currentSubmit.evidence
     ? currentSubmit : await input.flow.facts(turnSubmit, "task_exact_effect");
   const lane = await focusContinuation(
     input.flow, input.task, input.stepId, input.continuationRef,
-    input.expectedProvider, [32, 33, 34], 47,
+    input.expectedProvider, [34, 35, 36], 50,
   );
   let advanced = false;
   try {
@@ -202,10 +204,10 @@ export const generateImage = async (input: ImageTurnInput): Promise<GeneratedIma
     await advanceLane(input.flow.execute, input.task, input.stepId, lane, {
       canonicalConversationUrl: checkpoint.canonicalConversationUrl,
       promptHash, rawOutputHash: checkpoint.mediaHash, turnMarker: input.marker,
-    }, checkpoint.currentCheckpoint, 46);
+    }, checkpoint.currentCheckpoint, 49);
     advanced = true;
     return checkpoint.generated;
   } finally {
-    if (!advanced) await releaseLane(input.flow.execute, input.task, input.stepId, lane, 47);
+    if (!advanced) await releaseLane(input.flow.execute, input.task, input.stepId, lane, 50);
   }
 };

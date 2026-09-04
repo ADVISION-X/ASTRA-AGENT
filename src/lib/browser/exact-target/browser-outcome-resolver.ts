@@ -10,8 +10,8 @@ export type BrowserOutcomeResolutionReceipt = Readonly<{
   boundedAt: string;
 }>;
 
-/** Only the owning plugin may reconcile an already-dispatched command; transport cannot replay it. */
-export const assertPluginOutcomeResolution = (
+/** The owning plugin may submit fresh read-only facts; Browser alone validates and settles its WAL. */
+export const assertOwningPluginReconciliationEvidence = (
   receipt: BrowserOutcomeResolutionReceipt,
   ownerPluginId: string,
 ): void => {

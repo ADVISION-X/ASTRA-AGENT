@@ -4,12 +4,269 @@ import { executionFailure } from "../../../lib/execution-failure.js";
 import { createGptAcceptanceHarness } from "./gpt-acceptance-harness.js";
 import { coherentObservationPacket, fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
 import { providerAttachmentName } from "./gpt-exact-target-source-support.js";
+import {
+  GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR,
+  GPT_ATTACHMENT_CONTROL_SELECTOR,
+  GPT_COMPOSER_FORM_SELECTOR,
+  GPT_UPLOAD_FROM_COMPUTER_LABEL,
+  GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
+} from "../web/contracts/attachment.contract.js";
 
 const { execute } = createGptAcceptanceHarness("gpt-attachment");
 const sha256 = `sha256:${"1".repeat(64)}` as const;
 const approvedAttachment = Object.freeze({
   artifactRef: "artifact:1", displayName: "甲.pdf", sha256, bytes: 10,
 });
+
+const hiddenPopoverRejections = Object.freeze(Array.from({ length: 22 }, (_, index) => Object.freeze({
+  index, reasons: Object.freeze(["NO_LAYOUT_BOX"]),
+})));
+const attachmentControlFacts = (state: "absent" | "closed" | "open") => ({
+  "attachment-control": {
+    rawCount: state === "absent" ? 0 : 1,
+    eligibleCount: state === "absent" ? 0 : 1,
+  },
+  "upload-choice": state === "open" ? {
+    scopeRawCount: 23, scopeEligibleCount: 1,
+    scopeRejections: hiddenPopoverRejections,
+    rawCount: 19, eligibleCount: 1,
+    matches: [{}],
+    rejections: Array.from({ length: 18 }, (_, offset) => ({
+      index: offset + 1, reasons: ["TEXT_MISMATCH"],
+    })),
+  } : {
+    scopeRawCount: 22, scopeEligibleCount: 0,
+    scopeRejections: hiddenPopoverRejections,
+    rawCount: 0, eligibleCount: 0,
+  },
+});
+
+{
+  let simulatedNow = 0;
+  let observeCount = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      observeCount += 1;
+      return coherentObservationPacket(intent, attachmentControlFacts(simulatedNow === 0 ? "absent" : "closed"));
+    }
+    if (intent.kind === "click" && intent.selector === GPT_ATTACHMENT_CONTROL_SELECTOR) {
+      assert.deepEqual(intent.scope, { selector: GPT_COMPOSER_FORM_SELECTOR });
+      assert.equal(intent.postClickObservation?.timeoutMs, 5_000);
+      assert.deepEqual(intent.postClickObservation?.queries.map((query) => [
+        query.queryId, query.scope?.selector, query.expectedEligibleCount,
+      ]), [
+        ["attachment-control", GPT_COMPOSER_FORM_SELECTOR, 1],
+        ["upload-choice", GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR, 1],
+      ]);
+      const queries = intent.postClickObservation!.queries
+        .map(({ expectedEligibleCount: _expected, ...query }) => query);
+      return {
+        postconditionVerified: true,
+        postconditionObservation: coherentObservationPacket({ queries }, attachmentControlFacts("open")),
+      };
+    }
+    throw new Error(`UNEXPECTED_ATTACHMENT_CONTROL_HYDRATION_INTENT:${intent.kind}`);
+  }, { onWait: (durationMs) => { simulatedNow += durationMs; } });
+  const nativeDateNow = Date.now;
+  Date.now = () => simulatedNow;
+  try {
+    const result = await execute("open_gpt_attachment_control", fixture.browser, {});
+    assert.equal(result.status, "success", result.failureCode ?? "attachment control hydration failed");
+    assert.equal(result.value?.state, "upload-choice-ready");
+    assert.equal(observeCount, 2,
+      "fully absent attachment control must hydrate before the one click and never read again after it");
+    assert.equal(fixture.waitDurations().length, 1);
+    assert.equal(fixture.physicalMutations(), 1);
+    assert.deepEqual(result.proof.candidateCardinality, { raw: 19, eligible: 1 },
+      "scoped exact text eligibility, not global raw count, must settle the menu");
+  } finally {
+    Date.now = nativeDateNow;
+  }
+}
+
+{
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, attachmentControlFacts("open"));
+    throw new Error(`ATTACHMENT_ALREADY_DONE_MUST_NOT_ACT:${intent.kind}`);
+  });
+  const result = await execute("open_gpt_attachment_control", fixture.browser, {});
+  assert.equal(result.status, "success", result.failureCode ?? "attachment DONE readback failed");
+  assert.equal(result.value?.state, "upload-choice-ready");
+  assert.equal(fixture.physicalMutations(), 0, "an already-DONE attachment menu must not click again");
+}
+
+{
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, {
+      ...attachmentControlFacts("closed"),
+      "attachment-control": { rawCount: 2, eligibleCount: 2 },
+    });
+    throw new Error(`ATTACHMENT_PARTIAL_CONFLICT_MUST_NOT_ACT:${intent.kind}`);
+  });
+  const result = await execute("open_gpt_attachment_control", fixture.browser, {});
+  assert.equal(result.status, "failed");
+  assert.ok(result.failureCode?.startsWith("GPT_ATTACHMENT_CONTROL_QUALIFICATION_INVALID:"));
+  assert.ok(result.failureCode?.includes("attachment-control[scope=1/1;raw=2;eligible=2"));
+  assert.equal(result.proof.observationRevisionHash, `sha256:${"4".repeat(64)}`);
+  assert.equal(fixture.waitDurations().length, 0);
+  assert.equal(fixture.physicalMutations(), 0);
+}
+
+{
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, {
+      ...attachmentControlFacts("closed"),
+      "attachment-control": {
+        scopeRawCount: 2, scopeEligibleCount: 1,
+        rawCount: 1, eligibleCount: 1,
+        scopeRejections: [{ index: 1, reasons: ["INERT"] }],
+      },
+    });
+    throw new Error(`ATTACHMENT_SCOPE_AMBIGUITY_MUST_NOT_ACT:${intent.kind}`);
+  });
+  const result = await execute("open_gpt_attachment_control", fixture.browser, {});
+  assert.equal(result.status, "failed");
+  assert.ok(result.failureCode?.startsWith("GPT_ATTACHMENT_CONTROL_QUALIFICATION_INVALID:"));
+  assert.ok(result.failureCode?.includes("attachment-control[scope=2/1;raw=1;eligible=1;rejected=1.INERT"));
+  assert.equal(fixture.waitDurations().length, 0,
+    "an ineligible competing composer scope must fail without waiting");
+  assert.equal(fixture.physicalMutations(), 0);
+}
+
+for (const conflict of ["control-ineligible", "active-scope-ambiguous", "leaf-missing", "leaf-ambiguous"] as const) {
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      const facts = attachmentControlFacts(conflict === "control-ineligible" ? "closed" : "open");
+      if (conflict === "control-ineligible") return coherentObservationPacket(intent, {
+        ...facts,
+        "attachment-control": {
+          rawCount: 1, eligibleCount: 0,
+          rejections: [{ index: 0, reasons: ["NO_LAYOUT_BOX"] }],
+          nativeCauseCode: "NO_LAYOUT_BOX", nativeCauseCount: 1,
+        },
+      });
+      if (conflict === "active-scope-ambiguous") return coherentObservationPacket(intent, {
+        ...facts,
+        "upload-choice": {
+          scopeRawCount: 23, scopeEligibleCount: 2,
+          scopeRejections: hiddenPopoverRejections.slice(0, 21),
+          rawCount: 2, eligibleCount: 2,
+        },
+      });
+      if (conflict === "leaf-missing") return coherentObservationPacket(intent, {
+        ...facts,
+        "upload-choice": {
+          scopeRawCount: 23, scopeEligibleCount: 1,
+          scopeRejections: hiddenPopoverRejections,
+          rawCount: 19, eligibleCount: 0,
+          rejections: Array.from({ length: 19 }, (_, index) => ({ index, reasons: ["TEXT_MISMATCH"] })),
+        },
+      });
+      return coherentObservationPacket(intent, {
+        ...facts,
+        "upload-choice": {
+          scopeRawCount: 23, scopeEligibleCount: 1,
+          scopeRejections: hiddenPopoverRejections,
+          rawCount: 19, eligibleCount: 2,
+          rejections: Array.from({ length: 17 }, (_, index) => ({ index: index + 2, reasons: ["TEXT_MISMATCH"] })),
+        },
+      });
+    }
+    throw new Error(`ATTACHMENT_CONFLICT_MUST_NOT_ACT:${conflict}:${intent.kind}`);
+  });
+  const result = await execute("open_gpt_attachment_control", fixture.browser, {});
+  assert.equal(result.status, "failed");
+  assert.ok(result.failureCode?.startsWith("GPT_ATTACHMENT_CONTROL_QUALIFICATION_INVALID:"));
+  assert.ok(result.failureCode?.includes("attachment-control["));
+  assert.ok(result.failureCode?.includes("upload-choice["));
+  assert.ok(result.failureCode?.includes(`revision=sha256:${"4".repeat(64)}`));
+  if (conflict === "control-ineligible") {
+    assert.ok(result.failureCode?.includes("native=NO_LAYOUT_BOX/1"));
+    assert.equal(result.proof.nativeFailureCode, "NO_LAYOUT_BOX");
+  }
+  assert.equal(result.proof.observationRevisionHash, `sha256:${"4".repeat(64)}`);
+  assert.equal(fixture.waitDurations().length, 0, "attachment partial conflicts must fail without waiting");
+  assert.equal(fixture.physicalMutations(), 0);
+}
+
+{
+  let observations = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      observations += 1;
+      return coherentObservationPacket(intent, attachmentControlFacts("closed"));
+    }
+    if (intent.kind === "click" && intent.postClickObservation) {
+      const queries = intent.postClickObservation.queries
+        .map(({ expectedEligibleCount: _expected, ...query }) => query);
+      return {
+        postconditionVerified: true,
+        postconditionObservation: coherentObservationPacket({ queries }, {
+          ...attachmentControlFacts("open"),
+          "upload-choice": {
+            scopeRawCount: 23, scopeEligibleCount: 1,
+            scopeRejections: hiddenPopoverRejections,
+            rawCount: 19, eligibleCount: 0,
+            rejections: Array.from({ length: 19 }, (_, index) => ({ index, reasons: ["TEXT_MISMATCH"] })),
+          },
+        }),
+      };
+    }
+    throw new Error(`ATTACHMENT_FAILED_POSTCONDITION_MUST_NOT_REREAD:${intent.kind}`);
+  });
+  const result = await execute("open_gpt_attachment_control", fixture.browser, {});
+  assert.equal(result.status, "failed");
+  assert.ok(result.failureCode?.startsWith("GPT_ATTACHMENT_CONTROL_OPEN_PENDING:"));
+  assert.equal(result.proof.committedMutation, "confirmed");
+  assert.equal(result.proof.postconditionResult, "failed");
+  assert.equal(observations, 1, "a failed attachment postcondition must not issue a follow-up DOM observation");
+  assert.equal(fixture.physicalMutations(), 1);
+}
+
+{
+  let simulatedNow = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, attachmentControlFacts("absent"));
+    throw new Error(`ATTACHMENT_TIMEOUT_MUST_NOT_ACT:${intent.kind}`);
+  }, { onWait: (durationMs) => { simulatedNow += durationMs; } });
+  const nativeDateNow = Date.now;
+  Date.now = () => simulatedNow;
+  try {
+    const result = await execute("open_gpt_attachment_control", fixture.browser, {});
+    assert.equal(result.status, "failed");
+    assert.ok(result.failureCode?.startsWith("GPT_ATTACHMENT_CONTROL_HYDRATION_TIMEOUT:"));
+    assert.equal(simulatedNow, 5_000, "attachment hydration must not exceed its strict five-second ceiling");
+    assert.equal(fixture.physicalMutations(), 0);
+  } finally {
+    Date.now = nativeDateNow;
+  }
+}
+
+for (const driftField of ["targetRefHash", "documentRefHash"] as const) {
+  let simulatedNow = 0;
+  let observations = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      observations += 1;
+      const packet = coherentObservationPacket(intent,
+        attachmentControlFacts(observations === 1 ? "absent" : "closed"));
+      return observations === 1 ? packet : { ...packet, [driftField]: `sha256:${"5".repeat(64)}` };
+    }
+    throw new Error(`ATTACHMENT_DOCUMENT_DRIFT_MUST_NOT_ACT:${intent.kind}`);
+  }, { onWait: (durationMs) => { simulatedNow += durationMs; } });
+  const nativeDateNow = Date.now;
+  Date.now = () => simulatedNow;
+  try {
+    const result = await execute("open_gpt_attachment_control", fixture.browser, {});
+    assert.equal(result.status, "failed");
+    assert.ok(result.failureCode?.startsWith("GPT_ATTACHMENT_CONTROL_HYDRATION_DOCUMENT_CHANGED:"));
+    assert.equal(result.proof.committedMutation, "no");
+    assert.equal(fixture.physicalMutations(), 0);
+  } finally {
+    Date.now = nativeDateNow;
+  }
+}
+
 const attachmentFacts = (ready: boolean) => ({
   "attachment-region": { rawCount: 1, eligibleCount: 1 },
   "attachment-items": {

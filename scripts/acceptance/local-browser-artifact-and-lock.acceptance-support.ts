@@ -4,46 +4,98 @@ import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promi
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { BrowserArtifactRegistry } from "../../src/lib/browser/infrastructure/browser-authority-broker.js";
+import {
+  BrowserAuthorityBroker,
+  type BrowserExecutionBinding,
+} from "../../src/lib/browser/infrastructure/browser-authority-broker.js";
+import { BrowserAuthorityIssuer } from "../../src/lib/browser/infrastructure/browser-authority-issuer.js";
+import { hashBrowserAuthorityCertificate } from "../../src/lib/browser/infrastructure/browser-authority-certificate.js";
+import type { BrowserFileArtifactGrantV1 } from "../../src/lib/browser/exact-target/browser-file-artifact-grant.js";
 import { BrowserOwnerLock } from "../../src/lib/browser/infrastructure/browser-owner-lock.js";
 
 const prepareArtifactFixture = async () => {
   const fixture = await mkdtemp(join(tmpdir(), "browser-artifact-registry-"));
-  const allowedRoot = join(fixture, "upload-staging");
   const stagedFile = join(fixture, "incoming", "proof.txt");
-  const outsideFile = join(fixture, "outside.txt");
   await mkdir(join(fixture, "incoming"), { recursive: true });
   await writeFile(stagedFile, "approved-browser-artifact", "utf8");
-  await writeFile(outsideFile, "outside-browser-artifact", "utf8");
   const approvedBytes = await readFile(stagedFile);
   const approvedHash = `sha256:${createHash("sha256").update(approvedBytes).digest("hex")}` as const;
-  return { fixture, allowedRoot, stagedFile, outsideFile, approvedBytes, approvedHash };
+  return { fixture, stagedFile, approvedBytes, approvedHash };
 };
 
-const verifyArtifactRegistry = async (): Promise<void> => {
+const verifyExecutionScopedArtifactBinding = async (): Promise<void> => {
   const prepared = await prepareArtifactFixture();
-  const { fixture, allowedRoot, stagedFile, outsideFile, approvedBytes, approvedHash } = prepared;
-  const registry = new BrowserArtifactRegistry(allowedRoot);
+  const { fixture, stagedFile, approvedBytes, approvedHash } = prepared;
+  const issuer = new BrowserAuthorityIssuer();
+  Reflect.set(issuer, "slot", {
+    kind: "PRESENT",
+    authority: { authorityEpoch: 1, authorityRef: "authority:artifact-binding" },
+  });
+  const grantResolverCapture: {
+    current?: (grants: readonly BrowserFileArtifactGrantV1[]) => Promise<readonly string[]>;
+  } = {};
+  const broker = new BrowserAuthorityBroker(
+    issuer,
+    () => undefined,
+    (_binding, resolver) => {
+      grantResolverCapture.current = resolver;
+      return Object.freeze({
+        acquire: () => { throw new Error("target lease acquisition is outside this artifact acceptance"); },
+      });
+    },
+  );
+  const status = broker.currentStatus();
+  assert.equal(status.kind, "AVAILABLE");
+  if (status.kind !== "AVAILABLE") throw new Error("BROWSER_AUTHENTICATION_INCOMPLETE");
+  assert.equal(status.authorityRefHash,
+    `sha256:${createHash("sha256").update("authority:artifact-binding").digest("hex")}`);
+  const currentAuthority = issuer.current();
+  if (currentAuthority.kind === "ABSENT") throw new Error("BROWSER_AUTHENTICATION_INCOMPLETE");
+  assert.equal(status.certificateHash, hashBrowserAuthorityCertificate(currentAuthority.authority));
+  const binding: BrowserExecutionBinding = {
+    kind: "production", ownerPluginId: "artifact-proof", pluginVersion: 1, jobId: "artifact-job",
+    productStepId: "artifact-step", callId: "artifact-call", attemptId: "artifact-attempt",
+    deviceId: "artifact-device", leaseVersion: 1, localOrderId: "artifact-order",
+    contractManifestHash: approvedHash, executionRef: "artifact-execution", jobRefHash: approvedHash,
+    executionRefHash: approvedHash, writerLeaseEpoch: 1, writerFenceHash: approvedHash,
+    candidateHash: approvedHash, commandTtlMs: 5_000,
+  };
   try {
-    await registry.registerArtifact({
-      artifactRef: "approved", filePath: stagedFile,
-      contentHash: approvedHash, sizeBytes: approvedBytes.byteLength,
+    const bindingLease = await broker.bindExecutionArtifacts({
+      binding,
+      artifacts: [{
+        artifactRef: "approved", localPath: stagedFile,
+        contentHash: approvedHash, sizeBytes: approvedBytes.byteLength,
+      }],
     });
-    const resolved = await registry.resolveArtifact("approved");
-    assert.equal(
-      resolved.canonicalPath,
-      await realpath(join(allowedRoot, approvedHash.slice("sha256:".length), "proof.txt")),
+    const authorityLease = await broker.acquireForExecution(binding);
+    const grant = await authorityLease.issueFileArtifactGrant({
+      artifactRef: "approved", expectedSha256: approvedHash, maxBytes: approvedBytes.byteLength,
+    });
+    const resolver = grantResolverCapture.current;
+    if (!resolver) throw new Error("BROWSER_FILE_GRANT_INVALID");
+    assert.deepEqual(await resolver([grant]), [await realpath(stagedFile)],
+      "Browser must resolve the Runtime-owned task file without copying it into a private registry");
+    await writeFile(stagedFile, "tampered-browser-artifact", "utf8");
+    await assert.rejects(resolver([grant]), /BROWSER_FILE_GRANT_INVALID/u,
+      "file-input path resolution must revalidate bytes after grant issue and immediately before dispatch");
+    await assert.rejects(authorityLease.issueFileArtifactGrant({
+      artifactRef: "approved", expectedSha256: approvedHash, maxBytes: approvedBytes.byteLength,
+    }), /BROWSER_FILE_GRANT_INVALID/u, "grant issue must revalidate the current task file bytes");
+    await writeFile(stagedFile, approvedBytes);
+    bindingLease.release();
+    await assert.rejects(authorityLease.issueFileArtifactGrant({
+      artifactRef: "approved", expectedSha256: approvedHash, maxBytes: approvedBytes.byteLength,
+    }), /BROWSER_FILE_GRANT_INVALID/u, "execution settlement must invalidate its artifact binding");
+    await authorityLease.release();
+    const restartedBroker = new BrowserAuthorityBroker(
+      issuer, () => undefined,
+      () => Object.freeze({ acquire: () => { throw new Error("not acquired"); } }),
     );
-    assert.notEqual(resolved.canonicalPath, await realpath(stagedFile));
-    assert.deepEqual(await readFile(resolved.canonicalPath), approvedBytes);
-    await assert.rejects(registry.registerArtifact({
-      artifactRef: "outside", filePath: outsideFile,
-      contentHash: `sha256:${"0".repeat(64)}`, sizeBytes: 24,
-    }), /BROWSER_FILE_GRANT_INVALID/u);
-    await assert.rejects(registry.registerArtifact({
-      artifactRef: "tampered-hash", filePath: stagedFile,
-      contentHash: `sha256:${"0".repeat(64)}`, sizeBytes: approvedBytes.byteLength,
-    }), /BROWSER_FILE_GRANT_INVALID/u);
+    const restartedLease = await restartedBroker.acquireForExecution(binding);
+    await assert.rejects(restartedLease.issueFileArtifactGrant({
+      artifactRef: "approved", expectedSha256: approvedHash, maxBytes: approvedBytes.byteLength,
+    }), /BROWSER_FILE_GRANT_INVALID/u, "Browser restart must not retain task-local artifact paths");
   } finally {
     await rm(fixture, { recursive: true, force: true });
   }
@@ -65,6 +117,6 @@ const verifyStaleOwnerLockRecovery = async (): Promise<void> => {
 };
 
 export const verifyBrowserArtifactAndLockContracts = async (): Promise<void> => {
-  await verifyArtifactRegistry();
+  await verifyExecutionScopedArtifactBinding();
   await verifyStaleOwnerLockRecovery();
 };

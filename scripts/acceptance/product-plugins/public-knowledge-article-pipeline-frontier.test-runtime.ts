@@ -1,6 +1,6 @@
 import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
 
-import type { ProductPlugin } from "../../../src/lib/local-runtime/production/plugin.js";
+import type { ProductPlugin, ProductPluginOutput } from "../../../src/mediator/product-plugin-contract.js";
 import {
   createContext,
   createHarness,
@@ -9,6 +9,10 @@ import {
   type SeoFailure,
   type SeoHarness,
 } from "./public-knowledge-article-pipeline.test-runtime.js";
+
+const hasCompletedImage = (completed: ProductPluginOutput | null | undefined): boolean => Boolean(
+  (completed?.payload as Readonly<Record<string, unknown>> | undefined)?.image,
+);
 
 export const exerciseSeoFrontierResume = async (plugin: ProductPlugin) => {
   const failureAt: SeoFailure = {
@@ -29,14 +33,14 @@ export const exerciseSeoFrontierResume = async (plugin: ProductPlugin) => {
     state.completed = null;
     await plugin.execute(taskInput, createContext(state, "proceed", undefined, "attempt-2"));
     const resumeCalls = state.calls.slice(firstAttemptCalls);
-    assert.equal(resumeCalls[0]?.actionOrdinal, 17);
+    assert.equal(resumeCalls[0]?.actionOrdinal, 18);
     assert.equal(resumeCalls[0]?.productStepId, "article_synthesis");
     assert.equal(resumeCalls.some((call) => call.productStepId === "corpus_research"), false);
     assert.equal(state.calls.filter((call) => call.productStepId === "corpus_research"
       && call.child === "submit_exact_gpt_turn_once").length, researchSubmitsBeforeResume);
     assert.equal(state.physicalSubmitDispatches, 3);
     const completed = (state as SeoHarness).completed;
-    assert(completed?.generated_image);
+    assert(hasCompletedImage(completed));
     return { firstFailure, resumeCalls, completed };
   });
 };
@@ -58,12 +62,12 @@ export const exerciseSeoArticleFrontierResume = async (plugin: ProductPlugin) =>
     const firstAttemptCalls = state.calls.length;
     await plugin.execute(taskInput, createContext(state, "proceed", undefined, "attempt-2"));
     const resumeCalls = state.calls.slice(firstAttemptCalls);
-    assert.equal(resumeCalls[0]?.actionOrdinal, 32);
+    assert.equal(resumeCalls[0]?.actionOrdinal, 34);
     assert.equal(resumeCalls.every((call) => call.productStepId === "article_image_generation"), true);
     assert.equal(resumeCalls.some((call) => call.productStepId === "corpus_research"
       || call.productStepId === "article_synthesis"), false);
     assert.equal(state.physicalSubmitDispatches, 3);
-    assert(state.completed?.generated_image);
+    assert(hasCompletedImage(state.completed));
     return { firstFailure, resumeCalls, completed: state.completed };
   });
 };
@@ -88,15 +92,15 @@ export const exerciseSeoConfirmedImageSubmitResume = async (
     await plugin.execute(taskInput, createContext(state, "proceed", undefined, "attempt-2"));
     const resumeCalls = state.calls.slice(firstAttemptCalls);
     const forbidden = new Set([
-      "open_gpt_execution_profile", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
-      "ensure_exact_gpt_reasoning_tier", "close_gpt_execution_profile", "write_exact_gpt_prompt",
+  "open_gpt_execution_profile", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
+  "open_gpt_execution_profile", "ensure_exact_gpt_reasoning_tier", "close_gpt_execution_profile", "write_exact_gpt_prompt",
       "reconcile_gpt_draft", "submit_exact_gpt_turn_once",
     ]);
     assert.equal(resumeCalls.some((call) => forbidden.has(call.child)), false);
     assert.equal(resumeCalls.some((call) => call.productStepId !== "article_image_generation"), false);
-    assert.equal(resumeCalls.find((call) => call.actionOrdinal >= 35)?.actionOrdinal, 43);
+    assert.equal(resumeCalls.find((call) => call.actionOrdinal >= 37)?.actionOrdinal, 46);
     assert.equal(state.physicalSubmitDispatches, submitsBeforeResume);
-    assert(state.completed?.generated_image);
+    assert(hasCompletedImage(state.completed));
     return { firstFailure, resumeCalls, completed: state.completed };
   });
 };
@@ -117,7 +121,7 @@ export const exerciseSeoImageFrontierResume = async (plugin: ProductPlugin) => {
     const resumeCalls = state.calls.slice(firstAttemptCalls);
     assert.deepEqual(resumeCalls, []);
     assert.equal(state.physicalSubmitDispatches, submitsBeforeResume);
-    assert(state.completed?.generated_image);
+    assert(hasCompletedImage(state.completed));
     return { firstFailure, resumeCalls, completed: state.completed };
   });
 };

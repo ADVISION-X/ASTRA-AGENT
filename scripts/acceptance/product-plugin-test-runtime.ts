@@ -13,16 +13,17 @@ import {
   hashCanonical,
   type ProductionHash,
   type WebsiteAgentTask,
-} from "../../src/lib/local-runtime/production/contracts.js";
-import type {
-  ProductPlugin,
-  ProductPluginOutput,
-  SharedExecutionContext,
-} from "../../src/lib/local-runtime/production/plugin.js";
+  type ProductPlugin,
+  type ProductPluginOutput,
+  type SharedExecutionContext,
+} from "../../src/mediator/product-plugin-contract.js";
 import type {
   ExactGptContinuationReadback,
 } from "../../src/capabilities/gpt/index.js";
-import type { ProductionRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
+import {
+  productionRoutePolicy,
+  type ProductionRoutePolicy,
+} from "../../src/lib/local-runtime/production/route-policy.js";
 
 export const FIXTURE_HASH = `sha256:${"a".repeat(64)}` as ProductionHash;
 export const FIXTURE_HASH_B = `sha256:${"b".repeat(64)}` as ProductionHash;
@@ -235,6 +236,7 @@ type ProductRunState = {
   facts: Map<string, ProductFact>;
   laneOwned: boolean;
   physicalSubmitDispatches: number;
+  generatedImageUploads: number;
   provider: GptProviderContinuation | null;
 };
 
@@ -299,7 +301,22 @@ const createProductContext = (
   fixture: ProductFlowFixture,
 ): SharedExecutionContext => ({
   materials: createMaterials(root, fixture),
+  routePolicy: productionRoutePolicy(fixture.task.product_id, fixture.task.action_id),
+  productSkill: Object.freeze({ text: "fixture product skill", hash: FIXTURE_HASH }),
   gpt: createGptFixture(state, fixture),
+  uploadGeneratedImage: async (artifact) => {
+    state.generatedImageUploads += 1;
+    return Object.freeze({
+      artifact_id: artifact.artifact_id,
+      object_ref: `object:${artifact.artifact_id}`,
+      sha256: artifact.sha256,
+      receipt_hash: FIXTURE_HASH_B,
+      bytes: artifact.bytes,
+      mime_type: artifact.media_type,
+      width: artifact.width,
+      height: artifact.height,
+    });
+  },
   complete: async (output) => {
     state.completed = output;
     return {} as Awaited<ReturnType<SharedExecutionContext["complete"]>>;
@@ -314,11 +331,13 @@ export const exerciseProductFlow = async (
   completed: ProductPluginOutput;
   continuationReads: readonly unknown[];
   physicalSubmitDispatches: number;
+  generatedImageUploads: number;
 }>> => {
   const root = mkdtempSync(join(tmpdir(), "grasseye-product-acceptance-"));
   const state: ProductRunState = {
     calls: [], completed: null, continuationReads: [], facts: new Map(), laneOwned: false,
-    physicalSubmitDispatches: 0, provider: fixture.task.continuation_ref ? initialProvider() : null,
+    physicalSubmitDispatches: 0, generatedImageUploads: 0,
+    provider: fixture.task.continuation_ref ? initialProvider() : null,
   };
   try {
     await plugin.execute(fixture.task, createProductContext(root, state, fixture));
@@ -327,7 +346,8 @@ export const exerciseProductFlow = async (
     assert.equal(new Set(state.calls.map((call) => call.sessionKey)).size, 1);
     assert.ok(state.calls.every((call) => call.sessionKey.includes(plugin.pluginId)));
     return { calls: state.calls, completed: state.completed,
-      continuationReads: state.continuationReads, physicalSubmitDispatches: state.physicalSubmitDispatches };
+      continuationReads: state.continuationReads, physicalSubmitDispatches: state.physicalSubmitDispatches,
+      generatedImageUploads: state.generatedImageUploads };
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

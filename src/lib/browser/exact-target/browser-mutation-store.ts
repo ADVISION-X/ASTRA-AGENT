@@ -206,7 +206,7 @@ export class BrowserMutationStore {
   public markRejected(
     commandId: string,
     proofHash: `sha256:${string}`,
-    mutationOutcome: "no" | "confirmed" = "confirmed",
+    mutationOutcome: BrowserMutationOutcome = "confirmed",
     reason = "BROWSER_POSTCONDITION_FAILED",
     nativeCauseCode: string | null = null,
   ): void {
@@ -216,6 +216,23 @@ export class BrowserMutationStore {
 
   public markFailedBeforeDispatch(commandId: string, reason: string): void {
     this.transition(commandId, "PREPARED", "FAILED", "no", reason, null, null);
+  }
+
+  public markTargetLocalDocumentAbsent(input: Readonly<{
+    commandId: string;
+    targetRef: string;
+    documentRef: string;
+    proofHash: `sha256:${string}`;
+  }>): void {
+    const timestamp = new Date().toISOString();
+    const result = this.database.prepare(
+      `update browser_mutations set state='REJECTED',mutation_outcome='dispatched',proof_hash=?,
+       reason='BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT',native_cause_code=null,
+       terminal_at=coalesce(terminal_at,?),updated_at=?
+       where command_id=? and target_ref=? and document_ref=? and effect_scope='target_local'
+         and state='DISPATCHED'`,
+    ).run(input.proofHash, timestamp, timestamp, input.commandId, input.targetRef, input.documentRef);
+    if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
   }
 
   public resolve(input: Readonly<{
@@ -231,7 +248,8 @@ export class BrowserMutationStore {
       `update browser_mutations set state=?,mutation_outcome=?,proof_hash=?,reason=?,native_cause_code=null,
        terminal_at=coalesce(terminal_at,?),updated_at=?
        where command_id=? and owner_plugin_id=? and target_ref=? and state='DISPATCHED'`,
-    ).run(input.state, input.mutationOutcome, input.proofHash, `owning-plugin:${input.ownerPluginId}`,
+    ).run(input.state, input.mutationOutcome, input.proofHash,
+      `browser-validated-plugin-evidence:${input.ownerPluginId}`,
       terminalAt, terminalAt, input.commandId, input.ownerPluginId, input.targetRef);
     if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
   }

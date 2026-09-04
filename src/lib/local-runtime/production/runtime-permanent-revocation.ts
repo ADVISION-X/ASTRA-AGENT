@@ -1,10 +1,10 @@
 import {
   postCheckpointReceiverReceipt,
   postSubmitReadbackReceipt,
-} from "./plugin.js";
+} from "../../../mediator/product-plugin-contract.js";
 import { executionFailure, failureCode } from "../../execution-failure.js";
 import { runtimeLogCauseEventId, type RuntimeSpanHandle } from "../../runtime-logs/index.js";
-import { resolveProductionPlugin } from "./catalog.js";
+import { authorizeWebsiteAgentTask } from "../../../mediator/agent-production-route.js";
 import {
   readProductionDeviceJobStatus,
   type RemoteProductionDeviceJobStatus,
@@ -135,10 +135,10 @@ export const settlePermanentAuthorizationRevocation = async (
   state.store.setCurrentReason(job.job_id, "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
   state.store.releaseGptContinuationLanesForJob(job.job_id);
   const task = websiteAgentTaskFromClaim(job);
-  const plugin = resolveProductionPlugin(task.product_id, task.action_id).plugin;
+  const plugin = authorizeWebsiteAgentTask(task).identity;
   const unresolved = state.browserAuthority.readBrowserReconciliationScope({
     jobId: job.job_id,
-    ownerPluginId: plugin.pluginId,
+    ownerPluginId: plugin.plugin_id,
   });
   if (unresolved) {
     state.store.recordLease(leaseAuthority(job, "stale", null));

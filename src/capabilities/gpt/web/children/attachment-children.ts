@@ -1,6 +1,10 @@
 import { executionFailure, failureCode } from "../../../../lib/execution-failure.js";
 
-import type { GptAnyChildCapabilityIntent } from "../../contract.js";
+import type {
+  BrowserDomObservationQuery,
+} from "../../../../lib/browser/browser-authority-api.js";
+import type { GptAnyChildCapabilityIntent, GptChildBrowserFact } from "../../contract.js";
+import { gptExecutionFailure } from "../../execution-fault.js";
 import { gptAttachmentProviderDisplayName } from "../../schema.js";
 import type { GptChildHandlerMap } from "../child-handler.js";
 import {
@@ -13,11 +17,15 @@ import {
   success,
 } from "../child-handler.js";
 import {
+  decodeCoherentObservationPacket,
   projectCoherentObservation,
   readCoherentObservation,
+  type GptCoherentObservation,
+  type GptCoherentObservationRow,
   type GptCoherentFactProjection,
 } from "../gpt-dom-observation.js";
 import {
+  GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR,
   GPT_ATTACHMENT_CONTROL_SELECTOR,
   GPT_ATTACHMENT_ITEM_SELECTOR,
   GPT_ATTACHMENT_READY_ICON_SELECTOR,
@@ -50,22 +58,37 @@ type AttachmentControlState = Readonly<{
   controlEligible: number;
   choiceRaw: number;
   choiceEligible: number;
+  targetRefHash: `sha256:${string}`;
+  documentRefHash: `sha256:${string}`;
+  rows: readonly GptCoherentObservationRow[];
   facts: GptCoherentFactProjection;
 }>;
 
-const attachmentControlState = async (
-  browser: ReturnType<typeof requireBrowser>,
-): Promise<AttachmentControlState> => {
-  const observation = await readCoherentObservation(browser, [
-    {
-      queryId: "attachment-control", selector: GPT_ATTACHMENT_CONTROL_SELECTOR,
-      scope: { selector: GPT_COMPOSER_FORM_SELECTOR }, maxMatches: 2, fields: ["disabled", "ariaDisabled"],
-    },
-    {
-      queryId: "upload-choice", selector: GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
-      textEquals: GPT_UPLOAD_FROM_COMPUTER_LABEL, maxMatches: 2, fields: [],
-    },
-  ]);
+const ATTACHMENT_CONTROL_HYDRATION_TIMEOUT_MS = 5_000;
+const ATTACHMENT_CONTROL_QUERIES = Object.freeze([
+  {
+    queryId: "attachment-control", selector: GPT_ATTACHMENT_CONTROL_SELECTOR,
+    scope: { selector: GPT_COMPOSER_FORM_SELECTOR }, maxMatches: 2,
+    fields: ["disabled", "ariaDisabled"] as const,
+  },
+  {
+    queryId: "upload-choice", selector: GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
+    scope: { selector: GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR },
+    textEquals: GPT_UPLOAD_FROM_COMPUTER_LABEL, maxMatches: 2, fields: [],
+  },
+] satisfies readonly BrowserDomObservationQuery[]);
+
+const ATTACHMENT_CONTROL_OPEN_POSTCONDITION = Object.freeze({
+  queries: Object.freeze(ATTACHMENT_CONTROL_QUERIES.map((query) => Object.freeze({
+    ...query,
+    expectedEligibleCount: 1,
+  }))),
+  timeoutMs: ATTACHMENT_CONTROL_HYDRATION_TIMEOUT_MS,
+});
+
+const projectAttachmentControlState = (
+  observation: GptCoherentObservation,
+): AttachmentControlState => {
   const control = observation.rows.find((row) => row.queryId === "attachment-control")!;
   const choice = observation.rows.find((row) => row.queryId === "upload-choice")!;
   return Object.freeze({
@@ -73,8 +96,108 @@ const attachmentControlState = async (
     controlEligible: control.eligibleCount,
     choiceRaw: choice.rawCount,
     choiceEligible: choice.eligibleCount,
-    facts: projectCoherentObservation(observation, "attachment-control"),
+    targetRefHash: observation.targetRefHash,
+    documentRefHash: observation.documentRefHash,
+    rows: observation.rows,
+    facts: projectCoherentObservation(observation, "upload-choice"),
   });
+};
+
+const attachmentControlState = async (
+  browser: ReturnType<typeof requireBrowser>,
+): Promise<AttachmentControlState> => projectAttachmentControlState(
+  await readCoherentObservation(browser, ATTACHMENT_CONTROL_QUERIES),
+);
+
+const attachmentRow = (value: AttachmentControlState, queryId: string): GptCoherentObservationRow =>
+  value.rows.find((row) => row.queryId === queryId)!;
+
+const attachmentRowCode = (row: GptCoherentObservationRow): string => {
+  const rejected = [...row.scopeRejections, ...row.rejections]
+    .map((entry) => `${entry.index}.${entry.reasons.join("+")}`).join(",") || "none";
+  return `${row.queryId}[scope=${row.scopeRawCount}/${row.scopeEligibleCount};raw=${row.rawCount};eligible=${row.eligibleCount};rejected=${rejected};native=${row.nativeCauseCode ?? "none"}/${row.nativeCauseCount}]`;
+};
+
+const attachmentControlCode = (value: AttachmentControlState): string =>
+  `revision=${value.facts.observationRevisionHash}:candidates=${value.rows.map(attachmentRowCode).join("|")}`;
+
+const attachmentNativeCause = (value: AttachmentControlState): string | null =>
+  value.rows.find((row) => row.nativeCauseCode !== null)?.nativeCauseCode ?? null;
+
+const failAttachmentControl = (
+  code: string,
+  value: AttachmentControlState,
+  browserFact: GptChildBrowserFact | null = null,
+): never => {
+  const mutationOutcome = browserFact?.mutationOutcome ?? "no";
+  const nativeFailureCode = attachmentNativeCause(value);
+  throw gptExecutionFailure(`${code}:${attachmentControlCode(value)}`, {
+    mutationOutcome,
+    ...(browserFact ? {
+      browserEffect: Object.freeze({
+        effectScope: browserFact.effectScope,
+        childCapabilityId: browserFact.childCapabilityId,
+        browserOutcome: browserFact.browserOutcome,
+      }),
+    } : {}),
+    proofFacts: Object.freeze({
+      ...value.facts,
+      decision: "FAIL_CLOSED",
+      mutationOutcome,
+      browserFact,
+      nativeFailureCode,
+    }),
+  });
+};
+
+const attachmentControlFullyAbsent = (value: AttachmentControlState): boolean => {
+  const control = attachmentRow(value, "attachment-control");
+  const choice = attachmentRow(value, "upload-choice");
+  const composerScopeHydrated = (control.scopeRawCount === 0 && control.scopeEligibleCount === 0)
+    || (control.scopeRawCount === 1 && control.scopeEligibleCount === 1);
+  return composerScopeHydrated && control.rawCount === 0 && control.eligibleCount === 0
+    && choice.scopeEligibleCount === 0 && choice.rawCount === 0 && choice.eligibleCount === 0;
+};
+
+const attachmentControlOpenable = (value: AttachmentControlState): boolean => {
+  const control = attachmentRow(value, "attachment-control");
+  const choice = attachmentRow(value, "upload-choice");
+  return control.scopeRawCount === 1 && control.scopeEligibleCount === 1
+    && control.rawCount === 1 && control.eligibleCount === 1
+    && choice.scopeEligibleCount === 0 && choice.rawCount === 0 && choice.eligibleCount === 0;
+};
+
+const attachmentControlReady = (value: AttachmentControlState): boolean => {
+  const control = attachmentRow(value, "attachment-control");
+  const choice = attachmentRow(value, "upload-choice");
+  return control.scopeRawCount === 1 && control.scopeEligibleCount === 1
+    && control.rawCount === 1 && control.eligibleCount === 1
+    && choice.scopeEligibleCount === 1 && choice.rawCount >= 1 && choice.eligibleCount === 1
+    && choice.scopeRejections.every((entry) => entry.reasons.length > 0)
+    && choice.rejections.every((entry) => entry.reasons.length === 1 && entry.reasons[0] === "TEXT_MISMATCH");
+};
+
+const waitForAttachmentControlHydration = async (
+  browser: ReturnType<typeof requireBrowser>,
+  signal?: AbortSignal,
+): Promise<AttachmentControlState> => {
+  const deadline = Date.now() + ATTACHMENT_CONTROL_HYDRATION_TIMEOUT_MS;
+  let observed = await attachmentControlState(browser);
+  const targetRefHash = observed.targetRefHash;
+  const documentRefHash = observed.documentRefHash;
+  while (attachmentControlFullyAbsent(observed)) {
+    if (signal?.aborted) throw executionFailure("failed", "GPT_EXECUTION_ABORTED");
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) failAttachmentControl("GPT_ATTACHMENT_CONTROL_HYDRATION_TIMEOUT", observed);
+    await browser.wait({
+      durationMs: Math.min(remaining, Math.max(25, Math.min(250, Math.ceil(remaining / 20)))),
+    });
+    observed = await attachmentControlState(browser);
+    if (observed.targetRefHash !== targetRefHash || observed.documentRefHash !== documentRefHash) {
+      failAttachmentControl("GPT_ATTACHMENT_CONTROL_HYDRATION_DOCUMENT_CHANGED", observed);
+    }
+  }
+  return observed;
 };
 
 const filesFromIntent = (intent: GptAnyChildCapabilityIntent): readonly ApprovedFile[] => {
@@ -247,41 +370,35 @@ export const attachmentChildHandlers = {
   async open_gpt_attachment_control(intent, context) {
     requireExactInputKeys(intent, []);
     const browser = requireBrowser(context);
-    const observed = await attachmentControlState(browser);
-    if (observed.choiceRaw === 1 && observed.choiceEligible === 1) return success({
+    const observed = await waitForAttachmentControlHydration(browser, context.signal);
+    if (attachmentControlReady(observed)) return success({
       value: { state: "upload-choice-ready" },
       ...declaredFacts({
         ...observed.facts, decision: "DONE", mutationOutcome: "no",
         browserFact: null, nativeFailureCode: null,
       }),
     });
-    if (observed.choiceRaw !== 0 || observed.choiceEligible !== 0) {
-      throw executionFailure(
-        "failed",
-        `GPT_UPLOAD_CHOICE_INVALID:raw=${observed.choiceRaw}:eligible=${observed.choiceEligible}`,
-      );
+    if (!attachmentControlOpenable(observed)) {
+      failAttachmentControl("GPT_ATTACHMENT_CONTROL_QUALIFICATION_INVALID", observed);
     }
-    if (context.mutationMode === "readback") throw executionFailure("failed", "GPT_ATTACHMENT_CONTROL_OPEN_PENDING");
-    if (observed.controlRaw !== 1 || observed.controlEligible !== 1) {
-      throw executionFailure(
-        "failed",
-        `GPT_ATTACHMENT_CONTROL_INVALID:raw=${observed.controlRaw}:eligible=${observed.controlEligible}`,
-      );
+    if (context.mutationMode === "readback") {
+      failAttachmentControl("GPT_ATTACHMENT_CONTROL_OPEN_PENDING", observed);
     }
-    await browser.executeDomIntent({
+    const mutation = await browser.executeDomIntent({
       kind: "click", selector: GPT_ATTACHMENT_CONTROL_SELECTOR, expectedMatches: 1,
-      postClickMatch: {
-        selector: GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
-        textEquals: GPT_UPLOAD_FROM_COMPUTER_LABEL,
-        expectedMatches: 1,
-        timeoutMs: 5_000,
-      },
+      scope: { selector: GPT_COMPOSER_FORM_SELECTOR },
+      postClickObservation: ATTACHMENT_CONTROL_OPEN_POSTCONDITION,
     });
-    const readback = await attachmentControlState(browser);
-    if (readback.choiceRaw !== 1 || readback.choiceEligible !== 1) {
-      throw executionFailure("failed", "GPT_ATTACHMENT_CONTROL_OPEN_PENDING");
-    }
+    const mutationRecord = mutation && typeof mutation === "object" && !Array.isArray(mutation)
+      ? mutation as Readonly<Record<string, unknown>> : {};
+    const readback = projectAttachmentControlState(decodeCoherentObservationPacket(
+      mutationRecord.postconditionObservation,
+      ATTACHMENT_CONTROL_QUERIES,
+    ));
     const browserFact = requireConfirmedBrowserFact(intent, browser);
+    if (!attachmentControlReady(readback)) {
+      failAttachmentControl("GPT_ATTACHMENT_CONTROL_OPEN_PENDING", readback, browserFact);
+    }
     return success({
       value: { state: "upload-choice-ready" },
       ...declaredFacts({
@@ -312,10 +429,8 @@ export const attachmentChildHandlers = {
       });
     }
     const control = await attachmentControlState(browser);
-    if (control.choiceRaw !== 1 || control.choiceEligible !== 1) {
-      throw executionFailure(
-        "failed", `GPT_UPLOAD_CHOICE_INVALID:raw=${control.choiceRaw}:eligible=${control.choiceEligible}`,
-      );
+    if (!attachmentControlReady(control)) {
+      failAttachmentControl("GPT_UPLOAD_CHOICE_INVALID", control);
     }
     await browser.attachFile({
       selector: GPT_FILE_INPUT_SELECTOR,

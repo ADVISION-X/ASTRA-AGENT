@@ -4,12 +4,20 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import {
-  agentPluginCapabilityManifest, productionCatalogHash, resolveProductionPlugin,
+  agentPluginCapabilityManifest, productionCatalogHash,
 } from "../../src/lib/local-runtime/production/catalog.js";
-import { claimProductionTasks } from "../../src/lib/local-runtime/production/cloud-client.js";
+import { resolveProductPluginIdentity } from "../../src/mediator/product-plugin-catalog.js";
+import {
+  claimProductionTasks,
+  uploadProductionGeneratedImage,
+} from "../../src/lib/local-runtime/production/cloud-client.js";
 import { readProductionDeviceJobStatus } from
   "../../src/lib/local-runtime/production/cloud-reconciliation-client.js";
-import { WebsiteAgentTaskSchema, hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
+import {
+  WebsiteAgentTaskSchema,
+  hashCanonical,
+  sha256,
+} from "../../src/lib/local-runtime/production/contracts.js";
 import { reconcileBusinessAdmission } from "../../src/lib/local-runtime/production/runtime-claim.js";
 import { permanentAuthorizationRevoked } from
   "../../src/lib/local-runtime/production/runtime-permanent-revocation.js";
@@ -104,8 +112,8 @@ const reviewTask = task({
   },
 });
 
-assert.equal(authorizeWebsiteAgentTask(productionTask).plugin.pluginId, "payment-screenshot-observation");
-assert.equal(authorizeWebsiteAgentTask(reviewTask).plugin.pluginId, "payment-screenshot-observation");
+assert.equal(authorizeWebsiteAgentTask(productionTask).identity.plugin_id, "payment-screenshot-observation");
+assert.equal(authorizeWebsiteAgentTask(reviewTask).identity.plugin_id, "payment-screenshot-observation");
 assert.throws(() => WebsiteAgentTaskSchema.parse({ ...productionTask, plugin_id: "forbidden" }), /unrecognized_keys/u);
 assert.throws(() => WebsiteAgentTaskSchema.parse({
   ...productionTask, material_refs: [{ ...productionTask.material_refs[0]!, may_issue_instruction: true }],
@@ -120,7 +128,10 @@ assert.throws(() => assertProductionTaskRoutePolicy(task({
     review_policy: "manual-accuracy-challenge.v1",
   },
 })), /AGENT_REVIEW_SUBJECT_MATERIAL_INVALID/u);
-assert.throws(() => resolveProductionPlugin("bazi_basic_chart" as never, "produce" as never), /PLUGIN_ROUTE_UNSUPPORTED/u);
+assert.throws(
+  () => resolveProductPluginIdentity("bazi_basic_chart" as never, "produce" as never),
+  /PLUGIN_ROUTE_UNSUPPORTED/u,
+);
 
 const renewal = LeaseRenewReceiptSchema.parse({
   schema_version: "xuanxue-ai-lease-renew-receipt.v6", job_id: "job:control-epoch",
@@ -231,6 +242,54 @@ try {
   store.close();
 } finally {
   await rm(admissionTemporary, { recursive: true, force: true });
+}
+
+const imageTemporary = await mkdtemp(path.join(tmpdir(), "agent-generated-image-"));
+const imageStore = new ProductionRuntimeStore(imageTemporary);
+const imageFetch = globalThis.fetch;
+let physicalImageUploads = 0;
+try {
+  const webpBytes = new TextEncoder().encode("fixture-webp");
+  const originalBytes = new TextEncoder().encode("fixture-original");
+  const image = Object.freeze({
+    artifact_id: "image:fixture",
+    webp_bytes: webpBytes,
+    original_bytes: originalBytes,
+    sha256: sha256(webpBytes),
+    original_sha256: sha256(originalBytes),
+    bytes: webpBytes.byteLength,
+    media_type: "image/webp" as const,
+    width: 1200 as const,
+    height: 630 as const,
+  });
+  globalThis.fetch = (async () => {
+    physicalImageUploads += 1;
+    return successfulJsonResponse({
+      schema_version: "xuanxue-ai-material-receipt.v6",
+      artifact_id: image.artifact_id,
+      role: "generated_image",
+      object_ref: "object:image:fixture",
+      sha256: image.sha256,
+      byte_length: image.bytes,
+      media_type: "image/webp",
+      state: "staged",
+      receipt_hash: HASH_C,
+    });
+  }) as typeof globalThis.fetch;
+  const imageJob = claimTask(productionTask);
+  const imageSession = {
+    device: { server_base_url: "https://production.invalid" },
+    authorizationHeaders: async (headers: Record<string, string>) => headers,
+  };
+  const first = await uploadProductionGeneratedImage(imageSession as never, imageStore, imageJob, image);
+  const repeated = await uploadProductionGeneratedImage(imageSession as never, imageStore, imageJob, image);
+  assert.equal(physicalImageUploads, 1, "the generated image transport must be physically delivered once");
+  assert.deepEqual(repeated.receipt, first.receipt);
+  assert.equal(first.receipt.object_ref, "object:image:fixture");
+} finally {
+  globalThis.fetch = imageFetch;
+  imageStore.close();
+  await rm(imageTemporary, { recursive: true, force: true });
 }
 
 const claimed = claimTask(productionTask);
@@ -468,21 +527,21 @@ assert.deepEqual(runtimeManifestOwnershipDrift([
 ]), []);
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V4",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V5",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"],
   locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",
   observedValue: "the unique Runtime ownership inspector accepted the current Runtime-only manifest and rejected injected Mediator and Product ownership mutants",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V35",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V36",
   evidenceMode: "exam.state-machine",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "summary"],
   locator: "acceptance:agent-production-runtime:attempt-recovery-state-machine",
   observedValue: "binary task lifecycle durable accept same-attempt recovery lease outbox and typed cross-owner boundaries exercised",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V35",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V36",
   evidenceMode: "exam.property",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "summary"],
   locator: "acceptance:agent-production-runtime:transport-properties",
@@ -490,7 +549,7 @@ emitQualityProofObservation({
 });
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V4",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V5",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "summary"],
     locator: `acceptance:agent-production-runtime:business-admission:${evidenceMode}`,

@@ -328,11 +328,19 @@ try {
     terminalEnabled: false, fileSink: { directoryPath: path.join(pluginFailureTemporary, "runtime-logs") },
   });
   const pluginFailureStore = new ProductionRuntimeStore(pluginFailureTemporary);
+  let browserArtifactBindCalls = 0;
+  let browserArtifactReleaseCalls = 0;
   const executor = new ProductionExecutor(
     pluginFailureStore, pluginFailureLogger,
     {
       dataDir: pluginFailureTemporary, sourceHash: HASH_A,
-      gpt: {} as never, evidenceStore: {} as never, browserAuthority: {} as never,
+      gpt: {} as never, evidenceStore: {} as never,
+      browserAuthority: {
+        bindExecutionArtifacts: async () => {
+          browserArtifactBindCalls += 1;
+          return { release: () => { browserArtifactReleaseCalls += 1; } };
+        },
+      } as never,
     },
   );
   const terminalizePluginFailure = Reflect.get(executor, "terminalizePluginFailure") as
@@ -432,6 +440,7 @@ try {
       },
       "span:plugin-primary-with-cleanup-failure",
       async () => { throw new Error("UNREACHABLE_PLUGIN_COMPLETE"); },
+      async () => { throw new Error("UNREACHABLE_IMAGE_UPLOAD"); },
     ),
     (error: unknown) => {
       assert.equal(
@@ -442,6 +451,10 @@ try {
     },
   );
   assert.equal(settleCalls, 1, "the primary-plus-cleanup path must execute lifecycle settlement exactly once");
+  assert.equal(browserArtifactBindCalls, 1,
+    "Runtime production execution must invoke the Browser public task-local material binding");
+  assert.equal(browserArtifactReleaseCalls, 1,
+    "Runtime must release the Browser artifact binding after failure and lifecycle settlement");
 
   const pluginLogEvents = (await readFile(pluginFailureLogger.currentSegmentPath()!, "utf8")).trim().split("\n")
     .map((line) => JSON.parse(line) as Readonly<Record<string, unknown>>);
@@ -488,7 +501,7 @@ for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
 }
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V4",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V5",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:storage-inventory:${evidenceMode}`,

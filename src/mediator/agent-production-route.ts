@@ -1,33 +1,31 @@
-import { resolveProductionPlugin } from "../lib/local-runtime/production/catalog.js";
 import {
-  WebsiteAgentTaskSchema,
-  type WebsiteAgentResult,
-  type WebsiteAgentTask,
-} from "../lib/local-runtime/production/contracts.js";
-import type { ProductPlugin, SharedExecutionContext } from "../lib/local-runtime/production/plugin.js";
+  dispatchProductPlugin,
+  resolveProductPluginIdentity,
+  type ProductPluginIdentity,
+} from "./product-plugin-catalog.js";
+import type {
+  ProductCompletionReceipt,
+  ProductDispatchContext,
+  WebsiteAgentTask,
+} from "./product-plugin-contract.js";
 
 export interface AuthorizedWebsiteAgentTask {
   readonly task: WebsiteAgentTask;
-  readonly plugin: ProductPlugin;
-  readonly skillText: string;
-  readonly skillHash: `sha256:${string}`;
+  readonly identity: ProductPluginIdentity;
 }
 
-export const authorizeWebsiteAgentTask = (rawTask: unknown): AuthorizedWebsiteAgentTask => {
-  const task = WebsiteAgentTaskSchema.parse(rawTask);
-  const resolved = resolveProductionPlugin(task.product_id, task.action_id);
+export const authorizeWebsiteAgentTask = (task: WebsiteAgentTask): AuthorizedWebsiteAgentTask => {
+  const identity = resolveProductPluginIdentity(task.product_id, task.action_id);
   return Object.freeze({
     task,
-    plugin: resolved.plugin,
-    skillText: resolved.skill_text,
-    skillHash: resolved.skill_hash,
+    identity,
   });
 };
 
 export const dispatchWebsiteAgentTask = async (
-  rawTask: unknown,
-  contextFor: (authorized: AuthorizedWebsiteAgentTask) => SharedExecutionContext,
-): Promise<WebsiteAgentResult> => {
-  const authorized = authorizeWebsiteAgentTask(rawTask);
-  return authorized.plugin.execute(authorized.task, contextFor(authorized));
+  task: WebsiteAgentTask,
+  contextFor: (authorized: AuthorizedWebsiteAgentTask) => ProductDispatchContext,
+): Promise<ProductCompletionReceipt> => {
+  const authorized = authorizeWebsiteAgentTask(task);
+  return dispatchProductPlugin(authorized.task, contextFor(authorized));
 };

@@ -12,11 +12,15 @@ import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-s
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../../mediator/agent-production-route.js";
 import { productionCatalogHash } from "./catalog.js";
 import type {
+  GeneratedImageArtifact,
+  GeneratedImageResultReceipt,
+  ProductPluginOutput,
+} from "../../../mediator/product-plugin-contract.js";
+import type {
   DurablePluginIdentity, LocalProductionMaterial, ProductionExecutionLease, ProductionHash,
   WebsiteAgentResult, WebsiteAgentTask,
 } from "./contracts.js";
-import type { ProductPluginOutput } from "./plugin.js";
-import { assertProductionTaskRoutePolicy } from "./route-policy.js";
+import { assertProductionTaskRoutePolicy, productionRoutePolicy } from "./route-policy.js";
 import { ProductionRuntimeStore, type StoredProductionTask } from "./store.js";
 
 export interface ProductionExecutionResult {
@@ -55,10 +59,10 @@ const durableIdentityValid = (
   const current = authorizeWebsiteAgentTask(task);
   const identity = accepted.identity;
   return identity.catalog_hash === productionCatalogHash
-    && identity.plugin_id === current.plugin.pluginId
-    && identity.plugin_version === current.plugin.pluginVersion
-    && identity.skill_hash === current.skillHash
-    && identity.checkpoint_schema_version === current.plugin.checkpointSchemaVersion
+    && identity.plugin_id === current.identity.plugin_id
+    && identity.plugin_version === current.identity.plugin_version
+    && identity.skill_hash === current.identity.skill_hash
+    && identity.checkpoint_schema_version === current.identity.checkpoint_schema_version
     && identity.request_hash === task.request_hash;
 };
 
@@ -66,16 +70,17 @@ const pluginIdentity = (task: WebsiteAgentTask): DurablePluginIdentity => {
   const resolved = authorizeWebsiteAgentTask(task);
   return {
     catalog_hash: productionCatalogHash,
-    plugin_id: resolved.plugin.pluginId,
-    plugin_version: resolved.plugin.pluginVersion,
-    skill_hash: resolved.skillHash,
-    checkpoint_schema_version: resolved.plugin.checkpointSchemaVersion,
+    plugin_id: resolved.identity.plugin_id,
+    plugin_version: resolved.identity.plugin_version,
+    skill_hash: resolved.identity.skill_hash,
+    checkpoint_schema_version: resolved.identity.checkpoint_schema_version,
     request_hash: task.request_hash,
   };
 };
 
 export class ProductionExecutor {
   private readonly gptChildTools: ReturnType<typeof createProductionGptChildTools>;
+  private readonly browserAuthority: WorkbenchBrowserAuthority;
 
   public constructor(
     private readonly store: ProductionRuntimeStore,
@@ -88,6 +93,7 @@ export class ProductionExecutor {
       browserAuthority: WorkbenchBrowserAuthority;
     }>,
   ) {
+    this.browserAuthority = input.browserAuthority;
     this.gptChildTools = createProductionGptChildTools(
       input.dataDir, input.sourceHash, input.gpt, input.evidenceStore,
       input.browserAuthority, {
@@ -185,6 +191,7 @@ export class ProductionExecutor {
     lease: ProductionExecutionLease;
     span: RuntimeSpanHandle;
     complete: (output: ProductPluginOutput, continuationRef: string | null) => Promise<WebsiteAgentResult>;
+    uploadGeneratedImage: (artifact: GeneratedImageArtifact) => Promise<GeneratedImageResultReceipt>;
   }>): Promise<WebsiteAgentResult> {
     let completed = false;
     let gptExecution: ActiveGptExecution | null = null;
@@ -199,8 +206,8 @@ export class ProductionExecutor {
           ownerRef: authorized.task.business_identity.owner_ref,
           subjectRef: authorized.task.business_identity.subject_ref,
           authorizationRef: authorized.task.business_identity.authorization_ref,
-          pluginId: authorized.plugin.pluginId,
-          pluginVersion: authorized.plugin.pluginVersion,
+          pluginId: authorized.identity.plugin_id,
+          pluginVersion: authorized.identity.plugin_version,
           attemptId: input.lease.attempt_id,
           deviceId: input.lease.device_id,
           leaseVersion: input.lease.lease_version,
@@ -216,14 +223,15 @@ export class ProductionExecutor {
         gptLifecycle.settle = gptExecution.settle;
         return {
           materials: input.materials,
+          routePolicy: productionRoutePolicy(authorized.task.product_id, authorized.task.action_id),
           gpt: gptExecution.tools,
+          uploadGeneratedImage: input.uploadGeneratedImage,
           complete: async (output) => {
             if (input.lease.abort_signal.aborted) {
               throw executionFailure("failed", typeof input.lease.abort_signal.reason === "string"
                 ? input.lease.abort_signal.reason : "PRODUCTION_EXECUTION_ABORTED");
             }
             if (completed) throw new Error("PLUGIN_RESULT_ALREADY_COMPLETED");
-            authorized.plugin.parseResult(authorized.task, output.payload, "draft");
             const envelope = await input.complete(output, gptExecution!.continuationRef());
             completed = true;
             return envelope;
@@ -246,6 +254,7 @@ export class ProductionExecutor {
     lease: ProductionExecutionLease,
     parentSpanId: string,
     complete: (output: ProductPluginOutput, continuationRef: string | null) => Promise<WebsiteAgentResult>,
+    uploadGeneratedImage: (artifact: GeneratedImageArtifact) => Promise<GeneratedImageResultReceipt>,
   ): Promise<ProductionExecutionResult> {
     const accepted = this.store.readTask(task.job_id);
     if (!accepted) throw new Error("PRODUCTION_DURABLE_IDENTITY_MISSING");
@@ -255,8 +264,26 @@ export class ProductionExecutor {
       throw executionFailure("failed", "PRODUCTION_PLUGIN_DURABLE_IDENTITY_MISMATCH");
     }
     const span = this.startPluginSpan(task, lease, parentSpanId, accepted.identity.plugin_id);
+    let browserArtifactLease: Awaited<ReturnType<WorkbenchBrowserAuthority["bindExecutionArtifacts"]>> | null = null;
     try {
-      const result = await this.dispatchPlugin({ task, materials, lease, span, complete });
+      browserArtifactLease = await this.browserAuthority.bindExecutionArtifacts({
+        binding: {
+          ownerPluginId: accepted.identity.plugin_id,
+          pluginVersion: accepted.identity.plugin_version,
+          jobId: task.job_id,
+          attemptId: lease.attempt_id,
+          deviceId: lease.device_id,
+          leaseVersion: lease.lease_version,
+          writerFenceHash: lease.execution_fence_hash,
+        },
+        artifacts: materials.map((material) => ({
+          artifactRef: material.material_id,
+          localPath: material.local_path,
+          contentHash: material.sha256,
+          sizeBytes: material.bytes,
+        })),
+      });
+      const result = await this.dispatchPlugin({ task, materials, lease, span, complete, uploadGeneratedImage });
       requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
       return { record: this.store.readTask(task.job_id)!, result };
     } catch (error) {
@@ -264,6 +291,8 @@ export class ProductionExecutor {
         attemptId: lease.attempt_id,
         pluginId: accepted.identity.plugin_id,
       });
+    } finally {
+      browserArtifactLease?.release();
     }
   }
 }

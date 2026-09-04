@@ -26,7 +26,10 @@ import {
   type BrowserMutationIdentity,
 } from "./browser-mutation-store.js";
 import type { BrowserAtomicStepIdentity } from "./browser-target-lease.js";
-import { assertPluginOutcomeResolution, type BrowserOutcomeResolutionReceipt } from "./browser-outcome-resolver.js";
+import {
+  assertOwningPluginReconciliationEvidence,
+  type BrowserOutcomeResolutionReceipt,
+} from "./browser-outcome-resolver.js";
 import { decodeBrowserMutationReceipt } from "./browser-mutation-receipt.js";
 
 export type BrowserGovernedCommand =
@@ -67,6 +70,19 @@ export type BrowserCommandReply = Readonly<{
   permitSequence: number;
   result: unknown;
 }>;
+
+/** An authenticated extension REPLY that explicitly terminalized the command as rejected. */
+export class BrowserCommandTerminalReplyError extends Error {
+  public constructor(
+    public readonly failureCode: string,
+    public readonly replyChannelToken: string,
+    public readonly transportSequence: number,
+    public readonly permitSequence: number,
+  ) {
+    super(failureCode);
+    this.name = "BrowserCommandTerminalReplyError";
+  }
+}
 
 export type BrowserCommandAuthorityGuard = Readonly<{
   assertCurrentAuthority(permit: BrowserCommandPermit): void;
@@ -226,7 +242,7 @@ const assertMatchingReply = (permit: BrowserCommandPermit, reply: BrowserCommand
 };
 
 const causalBrowserFailureCode = (error: unknown): string =>
-  error instanceof Error && /^BROWSER_[A-Z_]+$/u.test(error.message)
+  error instanceof Error && /^BROWSER_[A-Z0-9_]+$/u.test(error.message)
     ? error.message : "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE";
 
 export class BrowserCommandActor {
@@ -381,6 +397,31 @@ export class BrowserCommandActor {
     error: unknown,
   ): never {
     if (state.terminalized) throw error;
+    if (mutation && state.dispatched && error instanceof BrowserCommandTerminalReplyError
+      && error.replyChannelToken === permit.replyChannelToken
+      && error.permitSequence === permit.sequence) {
+      this.mutations.markRejected(
+        permit.commandId,
+        hashValue({
+          failureCode: error.failureCode,
+          replyChannelToken: error.replyChannelToken,
+          transportSequence: error.transportSequence,
+          permitSequence: error.permitSequence,
+        }),
+        "dispatched",
+        error.failureCode,
+      );
+      emitBrowserMutationEvent({
+        runtimeLogger: this.runtimeLogger, mutation: permit, outcome: "REJECTED",
+        authorityHash: this.mutations.authorityHash(permit.commandId),
+      });
+      const failureEvent = failBrowserCommandSpan({
+        span: commandSpan, permit, proofHash: this.mutations.authorityHash(permit.commandId),
+        failureCode: error.failureCode, error, pendingReceipt: false,
+      });
+      state.terminalized = true;
+      throw withRuntimeLogCause(new Error(error.failureCode, { cause: error }), failureEvent.eventId);
+    }
     const code = mutation && state.dispatched ? "BROWSER_COMMAND_RECEIPT_MISSING" : causalBrowserFailureCode(error);
     if (mutation && state.prepared) {
       if (state.dispatched) this.mutations.markReceiptMissing(permit.commandId);
@@ -415,7 +456,7 @@ export class BrowserCommandActor {
   public async resolveDispatchedMutation(receipt: BrowserOutcomeResolutionReceipt): Promise<void> {
     const entry = this.mutations.readDispatched(receipt.commandId);
     if (!entry) throw new Error("BROWSER_MUTATION_UNSETTLED");
-    assertPluginOutcomeResolution(receipt, entry.ownerPluginId);
+    assertOwningPluginReconciliationEvidence(receipt, entry.ownerPluginId);
     if (receipt.uniqueTargetRef !== entry.targetRef) throw new Error("BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
     const state = receipt.outcome === "TERMINAL_SUCCESS" ? "CONFIRMED" : "REJECTED";
     this.mutations.resolve({

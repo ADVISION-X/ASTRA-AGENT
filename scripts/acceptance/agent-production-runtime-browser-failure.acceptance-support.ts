@@ -9,6 +9,7 @@ export const verifyBrowserFailureStoreContract = (store: ProductionRuntimeStore)
     Object.freeze({ browser_outcome: "CONFIRMED" as const, mutation_outcome: "confirmed" as const }),
     Object.freeze({ browser_outcome: "REJECTED" as const, mutation_outcome: "no" as const }),
     Object.freeze({ browser_outcome: "REJECTED" as const, mutation_outcome: "confirmed" as const }),
+    Object.freeze({ browser_outcome: "REJECTED" as const, mutation_outcome: "dispatched" as const }),
     Object.freeze({ browser_outcome: "DISPATCHED" as const, mutation_outcome: "dispatched" as const }),
   ]);
   for (const [index, pair] of legalPairs.entries()) {

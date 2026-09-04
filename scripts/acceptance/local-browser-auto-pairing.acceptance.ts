@@ -11,10 +11,9 @@ import {
 } from "../../src/lib/browser/chrome-extension/pairing-auto-bootstrap.js";
 import { ExtensionTargetAuthority } from "../../src/lib/browser/chrome-extension/extension-target-authority.js";
 import type { ExtensionChromeApi, ExtensionDebugTarget } from "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
-import type { BrowserFileArtifactGrantV1 } from "../../src/lib/browser/exact-target/browser-file-artifact-grant.js";
 import type { BrowserTargetLeaseManager } from "../../src/lib/browser/exact-target/browser-target-lease-manager.js";
 import { GPT_WEB_START_URL, requireGptWebPolicyForUrl } from "../../src/lib/browser/exact-target/browser-site-policy-registry.js";
-import { BrowserAuthorityBroker, type BrowserExecutionBinding } from "../../src/lib/browser/infrastructure/browser-authority-broker.js";
+import { BrowserAuthorityBroker } from "../../src/lib/browser/infrastructure/browser-authority-broker.js";
 import { BrowserAuthorityIssuer } from "../../src/lib/browser/infrastructure/browser-authority-issuer.js";
 import { exerciseAuthenticatedMedia } from "./local-browser-authenticated-media-support.js";
 import { exerciseLocalBrowserDomIntent } from "./local-browser-dom-intent-support.js";
@@ -426,10 +425,6 @@ const broker = new BrowserAuthorityBroker(
   issuer,
   () => undefined,
   () => { throw new Error("target lease factory is outside this claim-only acceptance"); },
-  {
-    registerArtifact: async () => undefined,
-    resolveArtifact: async () => { throw new Error("artifact resolution is outside this claim-only acceptance"); },
-  },
 );
 const initialClaim = {
   authorityEpoch: 7, targetRef: "target-1", documentRef: "document-1", navigationEpoch: 0,
@@ -441,46 +436,6 @@ assert.throws(() => broker.registerOperatorTargetClaim({ ...initialClaim, target
   "an authenticated connection must not replace its claimed target without revoke");
 assert.throws(() => broker.registerOperatorTargetClaim({ ...initialClaim, documentRef: "document-4", navigationEpoch: 3 }), /BROWSER_TARGET_INVALID/u,
   "Document claims must advance by exactly one navigation epoch");
-
-const grantHash = `sha256:${"c".repeat(64)}` as const;
-const grantResolverCapture: {
-  current?: (grants: readonly BrowserFileArtifactGrantV1[]) => Promise<readonly string[]>;
-} = {};
-const grantBroker = new BrowserAuthorityBroker(
-  issuer,
-  () => undefined,
-  (_binding, resolveGrantPaths) => {
-    grantResolverCapture.current = resolveGrantPaths;
-    return Object.freeze({
-      acquire: () => { throw new Error("target lease acquisition is outside this grant-only acceptance"); },
-    });
-  },
-  {
-    registerArtifact: async () => undefined,
-    resolveArtifact: async () => ({ canonicalPath: "/approved/proof.txt", contentHash: grantHash, sizeBytes: 21 }),
-  },
-);
-const grantBinding: BrowserExecutionBinding = {
-  kind: "local", ownerPluginId: "grant-proof", pluginVersion: 1, jobId: "grant-job",
-  productStepId: "grant-step", callId: "grant-call", attemptId: "grant-attempt", deviceId: "device-1",
-  leaseVersion: 1, localOrderId: "grant-order", contractManifestHash: grantHash,
-  executionRef: "grant-execution", jobRefHash: grantHash, executionRefHash: grantHash,
-  writerLeaseEpoch: 1, writerFenceHash: grantHash, candidateHash: grantHash, commandTtlMs: 5_000,
-};
-const authorityLease = await grantBroker.acquireForExecution(grantBinding);
-for (const maxBytes of [Number.NaN, Number.POSITIVE_INFINITY, 1.5]) {
-  await assert.rejects(authorityLease.issueFileArtifactGrant({
-    artifactRef: "proof", expectedSha256: grantHash, maxBytes,
-  }), /BROWSER_FILE_GRANT_INVALID/u, "file grants must reject non-integer byte bounds before dispatch");
-}
-const fileGrant = await authorityLease.issueFileArtifactGrant({
-  artifactRef: "proof", expectedSha256: grantHash, maxBytes: 21,
-});
-const capturedGrantResolver = grantResolverCapture.current;
-if (!capturedGrantResolver) throw new Error("BROWSER_FILE_GRANT_INVALID");
-assert.deepEqual(await capturedGrantResolver([fileGrant]), ["/approved/proof.txt"]);
-await assert.rejects(capturedGrantResolver([{ ...fileGrant, maxBytes: 128 }]), /BROWSER_FILE_GRANT_INVALID/u,
-  "a caller must not widen an already-issued Browser file grant byte limit");
 
 process.stdout.write("LOCAL_BROWSER_AUTO_PAIRING_AND_EXACT_CHATGPT_CLAIM_ACCEPTANCE_PASS\n");
 emitLocalBrowserAutoPairingProofs();

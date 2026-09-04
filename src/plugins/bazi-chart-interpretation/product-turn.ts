@@ -10,18 +10,17 @@ import {
   sha256,
   type ProductionHash,
   type WebsiteAgentTask,
-} from "../../lib/local-runtime/production/contracts.js";
+} from "../../mediator/product-plugin-contract.js";
 import {
   postCheckpointReceiverFault,
   postSubmitReadbackFault,
   productResultValidation,
   type SharedExecutionContext,
-} from "../../lib/local-runtime/production/plugin.js";
+} from "../../mediator/product-plugin-contract.js";
 import type {
   ExactGptCallFacts,
   ProductGptAnyCallInput,
 } from "../../capabilities/gpt/index.js";
-import { productionRoutePolicy } from "../../lib/local-runtime/production/route-policy.js";
 import {
   executionFailure,
   executionFailureMetadata,
@@ -29,7 +28,7 @@ import {
   typedExecutionFailure,
 } from "../../lib/execution-failure.js";
 import { parseProductResult } from "./result-contract.js";
-import { MODEL_PROFILE, PLUGIN_ID, PRODUCT_INSTRUCTION, skill } from "./product-identity.js";
+import { MODEL_PROFILE, PLUGIN_ID, PRODUCT_INSTRUCTION } from "./product-identity.js";
 
 const WAIT_TIMEOUT_MS = 3_600_000;
 
@@ -107,7 +106,6 @@ export const createOwnedExecution = (task: WebsiteAgentTask, context: SharedExec
 const materialFiles = (context: SharedExecutionContext) => context.materials.slice()
   .sort((left, right) => left.ordinal - right.ordinal).map((material) => Object.freeze({
     artifactRef: material.material_id,
-    filePath: material.local_path,
     displayName: material.display_name,
     sha256: material.sha256,
     bytes: material.bytes,
@@ -116,7 +114,6 @@ export const materialFilesForRoles = (context: SharedExecutionContext, roles: re
   context.materials.slice().sort((left, right) => left.ordinal - right.ordinal)
     .filter((material) => roles.includes(material.role)).map((material) => Object.freeze({
       artifactRef: material.material_id,
-      filePath: material.local_path,
       displayName: material.display_name,
       sha256: material.sha256,
       bytes: material.bytes,
@@ -168,10 +165,10 @@ export const promptFor = (
     : task.action_id === "quality_reflection"
       ? "只复核当前 subject result 的表达、完整性、合同摩擦与质量风险，返回可核验 finding；不得生成第二份正式结果。"
       : PRODUCT_INSTRUCTION;
-  const routeContract = productionRoutePolicy(task.product_id, task.action_id).result_contract;
+  const routeContract = context.routePolicy.result_contract;
   const { reusable_base_candidate: _controlOnlyCandidate, ...providerBusinessFacts } = task.parameters;
   return [
-    skill.text, "", `当前 Product Plugin：${PLUGIN_ID}`, `当前授权动作：${task.action_id}`,
+    context.productSkill.text, "", `当前 Product Plugin：${PLUGIN_ID}`, `当前授权动作：${task.action_id}`,
     `当前业务事实：${JSON.stringify(providerBusinessFacts)}`, `本轮获准附件：${attachments.join("；")}`,
     instruction,
     ...(routeContract ? [`当前 canonical 输出合同：${JSON.stringify(routeContract)}`] : []),
@@ -185,18 +182,20 @@ export const applyProfile = async (
   flow: OwnedExecution,
   stepId: string,
   profile: typeof MODEL_PROFILE,
-  ordinals: readonly [number, number, number, number, number],
+  ordinals: readonly [number, number, number, number, number, number],
   recoverOnly: boolean,
 ): Promise<void> => {
   const open = { productStepId: stepId, callId: "profile-open", child: "open_gpt_execution_profile", actionOrdinal: ordinals[0], input: { profile } } as const;
   const selector = { productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v2", actionOrdinal: ordinals[1], input: { profile } } as const;
   const model = { productStepId: stepId, callId: "model-select", child: "select_exact_gpt_model_v2", actionOrdinal: ordinals[2], input: { profile } } as const;
-  const reasoning = { productStepId: stepId, callId: "reasoning-select", child: "ensure_exact_gpt_reasoning_tier", actionOrdinal: ordinals[3], input: { profile } } as const;
-  const close = { productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[4], input: { profile } } as const;
+  const reopen = { productStepId: stepId, callId: "profile-open-after-model", child: "open_gpt_execution_profile", actionOrdinal: ordinals[3], input: { profile } } as const;
+  const reasoning = { productStepId: stepId, callId: "reasoning-select", child: "ensure_exact_gpt_reasoning_tier", actionOrdinal: ordinals[4], input: { profile } } as const;
+  const close = { productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[5], input: { profile } } as const;
   if (recoverOnly) {
     await flow.requireEvidence(open);
     await flow.requireEvidence(selector);
     await flow.requireEvidence(model);
+    await flow.requireEvidence(reopen);
     await flow.requireEvidence(reasoning);
     await flow.requireEvidence(close);
     return;
@@ -204,6 +203,7 @@ export const applyProfile = async (
   await flow.execute(open);
   await flow.execute(selector);
   await flow.execute(model);
+  await flow.execute(reopen);
   await flow.execute(reasoning);
   await flow.execute(close);
 };
@@ -354,19 +354,19 @@ export const runFreshTurn = async (
   marker: string,
 ): Promise<Checkpoint> => {
   const stepId = task.action_id;
-  const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 12, input: { files: uploadedFiles(context), promptHash: sha256(prompt), turnMarker: marker }, effectLookupKind: "task_exact_effect" } as const;
+  const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 13, input: { files: uploadedFiles(context), promptHash: sha256(prompt), turnMarker: marker }, effectLookupKind: "task_exact_effect" } as const;
   const existing = await flow.facts(submit);
   const prior = !existing.mutation && !existing.evidence ? await flow.taskExactFacts(submit) : null;
   const recoverOnly = Boolean(existing.mutation || existing.evidence);
   const priorConfirmed = Boolean(prior?.mutation || prior?.evidence);
   const fresh = { productStepId: stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;
-  if (priorConfirmed) return submitTurn(flow, stepId, prompt, marker, uploadedFiles(context), [10, 11, 12, 13, 14, 15]);
+  if (priorConfirmed) return submitTurn(flow, stepId, prompt, marker, uploadedFiles(context), [11, 12, 13, 14, 15, 16]);
   if (recoverOnly) await flow.requireEvidence(fresh);
   else await flow.execute(fresh);
-  await applyProfile(flow, stepId, MODEL_PROFILE, [2, 3, 4, 5, 6], recoverOnly);
+  await applyProfile(flow, stepId, MODEL_PROFILE, [2, 3, 4, 5, 6, 7], recoverOnly);
   await applyAttachments(flow, context, stepId,
-    context.materials.map((material) => material.role), [7, 8, 9], recoverOnly);
-  return submitTurn(flow, stepId, prompt, marker, uploadedFiles(context), [10, 11, 12, 13, 14, 15]);
+  context.materials.map((material) => material.role), [8, 9, 10], recoverOnly);
+  return submitTurn(flow, stepId, prompt, marker, uploadedFiles(context), [11, 12, 13, 14, 15, 16]);
 };
 
 export const providerFor = (task: WebsiteAgentTask, checkpoint: Checkpoint): GptProviderContinuation =>
@@ -378,12 +378,12 @@ export const providerFor = (task: WebsiteAgentTask, checkpoint: Checkpoint): Gpt
     prior_turn_marker: checkpoint.turnMarker,
   });
 
-export const receive = (task: WebsiteAgentTask, checkpoint: Checkpoint): Readonly<Record<string, unknown>> => {
+export const receive = (task: WebsiteAgentTask, checkpoint: Checkpoint, context: SharedExecutionContext): Readonly<Record<string, unknown>> => {
   try {
     const value = productResultValidation.parseJsonObject(
       checkpoint.semanticText, "PRODUCT_RESULT_JSON_INVALID",
     );
-    return parseProductResult(task, value);
+    return parseProductResult(task, value, context.routePolicy);
   } catch (error) {
     throw postCheckpointReceiverFault(failureCode(error, "PRODUCT_RESULT_RECEIVER_FAILED"), {
       artifactRef: checkpoint.artifactRef,

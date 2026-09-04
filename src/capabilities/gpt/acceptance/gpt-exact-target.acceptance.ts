@@ -8,7 +8,6 @@ import { emitQualityProofObservation } from "../../../../scripts/audit/shared/pr
 import {
   GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR,
   GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR,
-  GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR,
 } from "../web/contracts/model-selection-v2.contract.js";
 import {
   GPT_PROFILE_POPUP_SELECTOR,
@@ -80,15 +79,22 @@ const profileFixture = fakeBrowser((intent) => {
     return coherentObservationPacket(intent, profileFacts(intent, profileOpen, 0, profileHydrated));
   }
   if (intent.kind === "click" && intent.selector === GPT_PROFILE_TRIGGER_SELECTOR) {
-    if (intent.postClickMatch?.expectedMatches === 1) {
+    if (intent.postClickObservation) {
       profileOpen = true;
-      assert.deepEqual(intent.postClickMatch, {
-        selector: GPT_PROFILE_REASONING_VALUE_SELECTOR,
-        expectedMatches: 1,
-        readEligibility: "non-actionable-aria-state",
-        timeoutMs: 5_000,
-      }, "profile open must wait for the hydrated reasoning slider, not only the popup shell");
+      assert.equal(intent.postClickObservation.timeoutMs, 5_000);
+      assert.deepEqual(intent.postClickObservation.queries.map((query) => [
+        query.queryId, query.expectedEligibleCount,
+      ]), [
+        ["popup", 1], ["simple-panel", 1], ["reasoning-control", 1],
+        ["enabled-reasoning-control", 1], ["reasoning-value", 1], ["trigger", 1],
+      ], "profile open must prove the complete topology in the same Browser mutation packet");
       profileHydrated = true;
+      const queries = intent.postClickObservation.queries
+        .map(({ expectedEligibleCount: _expected, ...query }) => query);
+      return {
+        postconditionVerified: true,
+        postconditionObservation: coherentObservationPacket({ queries }, profileFacts({ queries }, true, 0, true)),
+      };
     } else {
       profileOpen = false;
       profileHydrated = false;
@@ -101,9 +107,153 @@ const openedProfile = await execute("open_gpt_execution_profile", profileFixture
 assert.equal(openedProfile.status, "success", openedProfile.failureCode ?? "profile open failed");
 assert.equal(openedProfile.proof.observationRevisionHash, `sha256:${"4".repeat(64)}`);
 assert.equal(profileFixture.physicalMutations(), 1);
+const alreadyOpenProfile = await execute("open_gpt_execution_profile", profileFixture.browser, { profile });
+assert.equal(alreadyOpenProfile.status, "success", alreadyOpenProfile.failureCode ?? "open profile readback failed");
+assert.equal(alreadyOpenProfile.value?.state, "profile-popup-open");
+assert.equal(profileFixture.physicalMutations(), 1, "an already-DONE profile must not click again");
 const closedProfile = await execute("close_gpt_execution_profile", profileFixture.browser, { profile });
 assert.equal(closedProfile.status, "success", closedProfile.failureCode ?? "profile close failed");
 assert.equal(profileFixture.physicalMutations(), 2);
+
+{
+  let simulatedNow = 0;
+  let observeCount = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      observeCount += 1;
+      return coherentObservationPacket(intent, simulatedNow === 0 ? {} : profileFacts(intent, false, 0, false));
+    }
+    if (intent.kind === "click" && intent.postClickObservation) {
+      const queries = intent.postClickObservation.queries
+        .map(({ expectedEligibleCount: _expected, ...query }) => query);
+      return {
+        postconditionVerified: true,
+        postconditionObservation: coherentObservationPacket({ queries }, profileFacts({ queries }, true, 1, true)),
+      };
+    }
+    throw new Error(`UNEXPECTED_PROFILE_HYDRATION_INTENT:${intent.kind}`);
+  }, { onWait: (durationMs) => { simulatedNow += durationMs; } });
+  const nativeDateNow = Date.now;
+  Date.now = () => simulatedNow;
+  try {
+    const result = await execute("open_gpt_execution_profile", fixture.browser, { profile });
+    assert.equal(result.status, "success", result.failureCode ?? "profile hydration failed");
+    assert.ok(observeCount >= 2, "a fully absent profile must be observed fresh until its trigger hydrates");
+    assert.ok(fixture.waitDurations().length >= 1);
+    assert.equal(fixture.physicalMutations(), 1, "hydration must not add a second click");
+  } finally {
+    Date.now = nativeDateNow;
+  }
+}
+
+for (const queryId of [
+  "popup", "simple-panel", "reasoning-control", "enabled-reasoning-control", "reasoning-value", "trigger",
+] as const) {
+  for (const variant of ["ambiguous", "ineligible"] as const) {
+    const fixture = fakeBrowser((intent) => {
+      if (intent.kind === "observe") return coherentObservationPacket(intent, {
+        ...profileFacts(intent, false, 0, false),
+        [queryId]: variant === "ambiguous" ? {
+          rawCount: 2, eligibleCount: 2,
+        } : {
+          rawCount: 1, eligibleCount: 0,
+          rejections: [{ index: 0, reasons: ["NO_LAYOUT_BOX"] }],
+          nativeCauseCode: "NO_LAYOUT_BOX", nativeCauseCount: 1,
+        },
+      });
+      throw new Error(`PROFILE_PARTIAL_CONFLICT_MUST_NOT_ACT:${queryId}:${variant}:${intent.kind}`);
+    });
+    const result = await execute("open_gpt_execution_profile", fixture.browser, { profile });
+    assert.equal(result.status, "failed");
+    assert.ok(result.failureCode?.startsWith("GPT_EXECUTION_PROFILE_OPEN_QUALIFICATION_INVALID:"));
+    assert.ok(result.failureCode?.includes(`${queryId}[scope=0/0;raw=${variant === "ambiguous" ? 2 : 1};eligible=${variant === "ambiguous" ? 2 : 0}`));
+    if (variant === "ineligible") {
+      assert.ok(result.failureCode?.includes("native=NO_LAYOUT_BOX/1"));
+      assert.equal(result.proof.nativeFailureCode, "NO_LAYOUT_BOX");
+    }
+    for (const retainedQueryId of [
+      "popup", "simple-panel", "reasoning-control", "enabled-reasoning-control", "reasoning-value", "trigger",
+    ]) assert.ok(result.failureCode?.includes(`${retainedQueryId}[`));
+    assert.ok(result.failureCode?.includes(`revision=sha256:${"4".repeat(64)}`));
+    assert.equal(result.proof.observationRevisionHash, `sha256:${"4".repeat(64)}`);
+    assert.equal(result.proof.committedMutation, "no");
+    assert.equal(fixture.waitDurations().length, 0, "partial profile structure must fail without waiting");
+    assert.equal(fixture.physicalMutations(), 0);
+  }
+}
+
+{
+  let observations = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      observations += 1;
+      return coherentObservationPacket(intent, profileFacts(intent, false, 0, false));
+    }
+    if (intent.kind === "click" && intent.postClickObservation) {
+      const queries = intent.postClickObservation.queries
+        .map(({ expectedEligibleCount: _expected, ...query }) => query);
+      return {
+        postconditionVerified: true,
+        postconditionObservation: coherentObservationPacket({ queries }, {
+          ...profileFacts({ queries }, true, 1, true),
+          "reasoning-control": { rawCount: 0, eligibleCount: 0 },
+        }),
+      };
+    }
+    throw new Error(`PROFILE_FAILED_POSTCONDITION_MUST_NOT_REREAD:${intent.kind}`);
+  });
+  const result = await execute("open_gpt_execution_profile", fixture.browser, { profile });
+  assert.equal(result.status, "failed");
+  assert.ok(result.failureCode?.startsWith("GPT_EXECUTION_PROFILE_POPUP_INVALID:"));
+  assert.equal(result.proof.committedMutation, "confirmed");
+  assert.equal(result.proof.postconditionResult, "failed");
+  assert.equal(observations, 1, "a failed profile postcondition must not issue a follow-up DOM observation");
+  assert.equal(fixture.physicalMutations(), 1);
+}
+
+{
+  let simulatedNow = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, {});
+    throw new Error(`PROFILE_TIMEOUT_MUST_NOT_ACT:${intent.kind}`);
+  }, { onWait: (durationMs) => { simulatedNow += durationMs; } });
+  const nativeDateNow = Date.now;
+  Date.now = () => simulatedNow;
+  try {
+    const result = await execute("open_gpt_execution_profile", fixture.browser, { profile });
+    assert.equal(result.status, "failed");
+    assert.ok(result.failureCode?.startsWith("GPT_EXECUTION_PROFILE_HYDRATION_TIMEOUT:"));
+    assert.equal(simulatedNow, 5_000, "profile hydration must not exceed its strict five-second ceiling");
+    assert.equal(fixture.physicalMutations(), 0);
+  } finally {
+    Date.now = nativeDateNow;
+  }
+}
+
+for (const driftField of ["targetRefHash", "documentRefHash"] as const) {
+  let simulatedNow = 0;
+  let observations = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      observations += 1;
+      const packet = coherentObservationPacket(intent,
+        observations === 1 ? {} : profileFacts(intent, false, 0, false));
+      return observations === 1 ? packet : { ...packet, [driftField]: `sha256:${"5".repeat(64)}` };
+    }
+    throw new Error(`PROFILE_DOCUMENT_DRIFT_MUST_NOT_ACT:${intent.kind}`);
+  }, { onWait: (durationMs) => { simulatedNow += durationMs; } });
+  const nativeDateNow = Date.now;
+  Date.now = () => simulatedNow;
+  try {
+    const result = await execute("open_gpt_execution_profile", fixture.browser, { profile });
+    assert.equal(result.status, "failed");
+    assert.ok(result.failureCode?.startsWith("GPT_EXECUTION_PROFILE_HYDRATION_DOCUMENT_CHANGED:"));
+    assert.equal(result.proof.committedMutation, "no");
+    assert.equal(fixture.physicalMutations(), 0);
+  } finally {
+    Date.now = nativeDateNow;
+  }
+}
 
 type ModelState = "closed" | "transition" | "open" | "broken";
 const modelFacts = (state: ModelState, checked?: "true" | "false") => ({
@@ -200,23 +350,62 @@ for (const initiallyOpen of [true, false]) {
 
 for (const checked of ["true", "false"] as const) {
   let state: ModelState = "open";
+  let observations = 0;
   const fixture = fakeBrowser((intent) => {
-    if (intent.kind === "observe") return coherentObservationPacket(intent, modelFacts(state, checked));
+    if (intent.kind === "observe") {
+      observations += 1;
+      return coherentObservationPacket(intent, modelFacts(state, checked));
+    }
     if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR) {
       assert.equal(intent.expectedTextEquals, profile.modelDisplayName);
-      assert.deepEqual(intent.postClickMatch, {
-        selector: GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR,
-        expectedMatches: 1,
-        timeoutMs: 5_000,
-      });
+      assert.deepEqual(intent.postClickObservation?.queries.map((query) => [
+        query.queryId, query.expectedEligibleCount,
+      ]), [["popup", 1], ["entry", 1], ["openable-entry", 1], ["simple-panel", 1], ["advanced-panel", 0]],
+      "model selection must prove the restored five-part topology in the same Browser mutation packet");
+      assert.equal(intent.postClickObservation?.timeoutMs, 5_000);
       state = "closed";
-      return { postconditionVerified: true };
+      const queries = intent.postClickObservation!.queries
+        .map(({ expectedEligibleCount: _expected, ...query }) => query);
+      return {
+        postconditionVerified: true,
+        postconditionObservation: coherentObservationPacket({ queries }, modelFacts(state)),
+      };
     }
     throw new Error(`UNEXPECTED_MODEL_SELECT_INTENT:${intent.kind}`);
   });
   const result = await execute("select_exact_gpt_model_v2", fixture.browser, { profile });
   assert.equal(result.status, "success", result.failureCode ?? "model selection failed");
   assert.equal(result.value?.previousChecked, checked);
+  assert.equal(result.value?.state, "exact-model-selected");
+  assert.equal(observations, 1, "model selection must not issue a second DOM observation after Browser confirmation");
+  assert.equal(fixture.physicalMutations(), 1);
+}
+
+{
+  let observations = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      observations += 1;
+      return coherentObservationPacket(intent, modelFacts("open", "false"));
+    }
+    if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR) {
+      const queries = intent.postClickObservation!.queries
+        .map(({ expectedEligibleCount: _expected, ...query }) => query);
+      return {
+        postconditionVerified: true,
+        postconditionObservation: coherentObservationPacket({ queries }, modelFacts("broken")),
+      };
+    }
+    throw new Error(`UNEXPECTED_MODEL_SELECT_DRIFT_INTENT:${intent.kind}`);
+  });
+  const result = await execute("select_exact_gpt_model_v2", fixture.browser, { profile });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode,
+    "GPT_MODEL_SELECTION_V2_POSTCONDITION_INVALID:popup=1:entry=0:openableEntry=0:simple=0:advanced=0");
+  assert.equal(result.proof.committedMutation, "confirmed");
+  assert.equal(result.proof.postconditionResult, "failed");
+  assert.equal(observations, 1,
+    "a failed same-packet postcondition must not trigger a second DOM observation");
   assert.equal(fixture.physicalMutations(), 1);
 }
 
@@ -264,14 +453,14 @@ assert.equal(GPT_PROFILE_SIMPLE_PANEL_SELECTOR,
   "[data-testid='composer-model-picker-slider-simple-view'][data-active='true']:not([inert])");
 
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V22",
+  lawId: "LAW-GPT-001-V23",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:3", "forbidden:4", "forbidden:5", "forbidden:9", "summary"],
   locator: "acceptance:gpt-exact-target:coherent-ready-subset",
   observedValue: "coherent profile model and numeric reasoning Children prove same-revision DONE or one confirmed mutation",
 });
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V22",
+  lawId: "LAW-GPT-001-V23",
   evidenceMode: "exam.property",
   clauses: ["forbidden:10", "forbidden:13", "forbidden:15", "forbidden:16", "summary"],
   locator: "acceptance:gpt-exact-target:browser-handoff",

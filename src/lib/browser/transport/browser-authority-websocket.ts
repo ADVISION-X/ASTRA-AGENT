@@ -14,7 +14,12 @@ import {
   type BrowserAuthorityHandshakeState,
   verifyBrowserAuthorityChallenge,
 } from "./browser-authority-session-crypto.js";
-import type { BrowserGovernedCommand, BrowserCommandReply, BrowserCommandPort } from "../exact-target/browser-command-actor.js";
+import {
+  BrowserCommandTerminalReplyError,
+  type BrowserGovernedCommand,
+  type BrowserCommandReply,
+  type BrowserCommandPort,
+} from "../exact-target/browser-command-actor.js";
 import type { BrowserCommandPermit } from "./command-permit.js";
 import {
   authorityRecord,
@@ -365,11 +370,25 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       || !compareReplyToken(replyChannelToken, reply.replyChannelToken)) {
       throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     }
-    this.removeReply(requestSequence);
+    const replyKeys = Object.keys(body);
     if (typeof body.errorCode === "string") {
-      reply.reject(new Error(body.errorCode));
+      if (replyKeys.length !== 4 || Object.hasOwn(body, "result")
+        || !/^BROWSER_[A-Z0-9_]+$/u.test(body.errorCode)) {
+        throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+      }
+      this.removeReply(requestSequence);
+      reply.reject(new BrowserCommandTerminalReplyError(
+        body.errorCode,
+        replyChannelToken,
+        requestSequence,
+        permitSequence,
+      ));
       return;
     }
+    if (replyKeys.length !== 4 || !Object.hasOwn(body, "result")) {
+      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    }
+    this.removeReply(requestSequence);
     reply.resolve({
       replyChannelToken,
       transportSequence: requestSequence,

@@ -1,10 +1,8 @@
-import type { ProductPlugin } from "../../lib/local-runtime/production/plugin.js";
-import { executeOwnedFlow, productSkillHash } from "./flow.js";
-import { parseProductResult } from "./result-contract.js";
+import type { ProductPlugin } from "../../mediator/product-plugin-contract.js";
+import { executeOwnedFlow } from "./flow.js";
 
 export const localizationProductionPlugin: ProductPlugin = {
-  pluginId: "localization-production", pluginVersion: 11, skillHash: productSkillHash, checkpointSchemaVersion: 2,
-  parseResult: parseProductResult,
+  pluginId: "localization-production", pluginVersion: 11, checkpointSchemaVersion: 2,
   accepts: [
     { productId: "localization_report_translation", actionId: "report_translation" },
     { productId: "localization_report_translation", actionId: "accuracy_challenge" },

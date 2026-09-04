@@ -1,23 +1,26 @@
 import { createHash } from "node:crypto";
 
 import type {
+  BrowserAtomicStepIdentity,
+  BrowserAtomicStepRecovery,
   BrowserDomIntent,
   BrowserDomObservationQuery,
   BrowserTargetLease,
 } from "../../../lib/browser/browser-authority-api.js";
 import { browserExecutionFailure } from "../../../lib/browser/browser-authority-api.js";
-import type {
-  BrowserAtomicStepIdentity,
-  BrowserAtomicStepRecovery,
-} from "../../../lib/browser/exact-target/browser-target-lease.js";
 
 export const coherentObservationPacket = (
   intent: Readonly<{ queries: readonly BrowserDomObservationQuery[] }>,
   facts: Readonly<Record<string, Readonly<{
+    scopeRawCount?: number;
+    scopeEligibleCount?: number;
     rawCount: number;
     eligibleCount: number;
     matches?: readonly Readonly<Record<string, unknown>>[];
+    scopeRejections?: readonly Readonly<{ index: number; reasons: readonly string[] }>[];
     rejections?: readonly Readonly<{ index: number; reasons: readonly string[] }>[];
+    nativeCauseCode?: "NO_LAYOUT_BOX" | null;
+    nativeCauseCount?: number;
   }>>>,
   currentUrl = "https://chatgpt.com/",
 ) => Object.freeze({
@@ -32,15 +35,15 @@ export const coherentObservationPacket = (
     const fact = facts[query.queryId] ?? { rawCount: 0, eligibleCount: 0 };
     return Object.freeze({
       queryId: query.queryId,
-      scopeRawCount: query.scope ? 1 : 0,
-      scopeEligibleCount: query.scope ? 1 : 0,
+      scopeRawCount: fact.scopeRawCount ?? (query.scope ? 1 : 0),
+      scopeEligibleCount: fact.scopeEligibleCount ?? (query.scope ? 1 : 0),
       rawCount: fact.rawCount,
       eligibleCount: fact.eligibleCount,
       matches: Object.freeze([...(fact.matches ?? [])]),
-      scopeRejections: Object.freeze([]),
+      scopeRejections: Object.freeze([...(fact.scopeRejections ?? [])]),
       rejections: Object.freeze([...(fact.rejections ?? [])]),
-      nativeCauseCode: null,
-      nativeCauseCount: 0,
+      nativeCauseCode: fact.nativeCauseCode ?? null,
+      nativeCauseCount: fact.nativeCauseCount ?? 0,
       nativeStage: "runtime-call-function-on" as const,
     });
   }),
@@ -123,7 +126,7 @@ const markConfirmedMutation = (
 
 const markRejectedMutation = (
   state: FakeBrowserState,
-  mutationOutcome: "no" | "confirmed",
+  mutationOutcome: "no" | "dispatched" | "confirmed",
   failureCode: string,
   nativeFailureCode: string | null,
 ): void => {
@@ -170,6 +173,21 @@ const executeFakeDomIntent = async (
     const mutationCount = Number.isSafeInteger(declaredMutationCount) ? Number(declaredMutationCount) : 1;
     state.physicalMutations += mutationCount;
     const mutationOutcome = mutationCount === 0 ? "no" as const : "confirmed" as const;
+    if (result && Reflect.get(result, "terminalRejectedDispatched") === true) {
+      const failureCode = typeof Reflect.get(result, "failureCode") === "string"
+        ? String(Reflect.get(result, "failureCode")) : "BROWSER_CAPABILITY_REJECTED";
+      const nativeCauseCode = typeof Reflect.get(result, "nativeCauseCode") === "string"
+        ? String(Reflect.get(result, "nativeCauseCode")) : null;
+      markRejectedMutation(state, "dispatched", failureCode, nativeCauseCode);
+      const cause = nativeCauseCode
+        ? Object.assign(new Error(nativeCauseCode), { code: nativeCauseCode }) : undefined;
+      throw browserExecutionFailure(new Error(failureCode, { ...(cause ? { cause } : {}) }), "dispatched", {
+        effectScope: state.atomicIdentity?.replayPolicy === "provider-effect-once"
+          ? "provider_effect" : "target_local",
+        childCapabilityId: state.atomicIdentity?.childCapabilityId ?? "unknown",
+        browserOutcome: "REJECTED",
+      });
+    }
     if (result && Reflect.get(result, "receiptMissing") === true) {
       markDispatchedMutation(state);
       throw browserExecutionFailure(new Error("BROWSER_COMMAND_RECEIPT_MISSING"), "dispatched", {

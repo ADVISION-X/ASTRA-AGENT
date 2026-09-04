@@ -4,7 +4,13 @@ import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../../shared/source-files.js";
 import type { ArchitectureLawIds } from "./architecture-boundary-shared.js";
-import { inspectCapabilityImports, inspectChildAbilityImports, inspectPluginBoundaries } from "./scan-plugin-capability-boundaries.js";
+import {
+  inspectCapabilityImports,
+  inspectChildAbilityImports,
+  inspectPluginBoundaries,
+  inspectRuntimeBrowserPrivateImports,
+  inspectRuntimePluginImports,
+} from "./scan-plugin-capability-boundaries.js";
 import { inspectMediatorImports, inspectPlannerScope, inspectSharedImports } from "./scan-mediator-shared-ai-scope.js";
 
 const isTrueLiteral = (node: Node | undefined): boolean =>
@@ -82,6 +88,8 @@ const inspectSourceFile = (
   const repoPath = getRepoSourcePath(sourceFile);
   inspectedFiles.add(repoPath);
   inspectPluginBoundaries(findings, lawIds.jobFlowLawId, repoPath, sourceFile);
+  inspectRuntimePluginImports(findings, lawIds.jobFlowLawId, repoPath, sourceFile);
+  inspectRuntimeBrowserPrivateImports(findings, lawIds.productionBoundaryLawId, repoPath, sourceFile);
   inspectMediatorImports(findings, lawIds.mediatorLawId, repoPath, sourceFile);
   inspectCapabilityImports(findings, lawIds.capabilityLawId, repoPath, sourceFile);
   inspectChildAbilityImports(findings, lawIds.childAbilityLawId, repoPath, sourceFile);

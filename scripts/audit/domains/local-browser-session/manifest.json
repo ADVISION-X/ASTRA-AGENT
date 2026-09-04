@@ -5,10 +5,10 @@
   "lawIds": [
     "LAW-LOCAL-BROWSER-SESSION-001-V4",
     "LAW-LOCAL-BROWSER-SESSION-002-V6",
-    "LAW-LOCAL-BROWSER-SESSION-003-V19",
-    "LAW-LOCAL-BROWSER-SESSION-004-V18",
+    "LAW-LOCAL-BROWSER-SESSION-003-V20",
+    "LAW-LOCAL-BROWSER-SESSION-004-V19",
     "LAW-LOCAL-BROWSER-SESSION-005-V6",
-    "LAW-LOCAL-BROWSER-SESSION-006-V13"
+    "LAW-LOCAL-BROWSER-SESSION-006-V14"
   ],
   "ownedPaths": [
     "artifacts/browser-release/**",
@@ -42,6 +42,7 @@
     "src/lib/browser/**"
   ],
   "observedPaths": [
-    "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md"
+    "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md",
+    "src/lib/local-runtime/production/executor.ts"
   ]
 }

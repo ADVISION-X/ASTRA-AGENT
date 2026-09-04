@@ -1,0 +1,3 @@
+import { plugin } from "../../../plugins/sample/index.js";
+
+export const catalog = plugin;

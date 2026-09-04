@@ -1,6 +1,6 @@
 import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
 import { hashCanonical } from "../../../src/lib/local-runtime/production/contracts.js";
-import { productionPluginCatalog } from "../../../src/lib/local-runtime/production/catalog.js";
+import { productionPluginCatalog } from "../../../src/mediator/product-plugin-catalog.js";
 import { productionRoutePolicies } from "../../../src/lib/local-runtime/production/route-policy.js";
 import { reusableIdentity } from "../../../src/plugins/bazi-ai-full-analysis/private-base-admission.js";
 import { buildProductTask, exerciseProductFlow, FIXTURE_HASH, FIXTURE_HASH_B, routesForPlugin } from "../product-plugin-test-runtime.js";
@@ -9,7 +9,8 @@ const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "bazi-
 assert(plugin);
 const reviewSequence = [
   "prepare_clean_gpt_chat", "open_gpt_execution_profile", "open_gpt_model_selector_v2",
-  "select_exact_gpt_model_v2", "ensure_exact_gpt_reasoning_tier", "close_gpt_execution_profile",
+  "select_exact_gpt_model_v2", "open_gpt_execution_profile", "ensure_exact_gpt_reasoning_tier",
+  "close_gpt_execution_profile",
   "open_gpt_attachment_control", "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set",
   "write_exact_gpt_prompt", "reconcile_gpt_draft", "submit_exact_gpt_turn_once",
   "reconcile_gpt_turn_submission", "wait_for_stable_gpt_text", "checkpoint_gpt_text_response",

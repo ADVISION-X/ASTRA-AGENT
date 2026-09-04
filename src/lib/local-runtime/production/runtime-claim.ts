@@ -16,12 +16,14 @@ import {
 import {
   downloadProductionMaterials,
   terminalProductionTask,
+  uploadProductionGeneratedImage,
   uploadProductionResult,
 } from "./cloud-client.js";
 import {
   readProductionDeviceJobStatus,
 } from "./cloud-reconciliation-client.js";
-import { productionCatalogHash, resolveProductionPlugin } from "./catalog.js";
+import { productionCatalogHash } from "./catalog.js";
+import { authorizeWebsiteAgentTask } from "../../../mediator/agent-production-route.js";
 import { hashCanonical, type ProductionHash, type WebsiteAgentTask } from "./contracts.js";
 import type { ProductionExecutionLease } from "./contracts.js";
 import {
@@ -127,10 +129,10 @@ const assertClaimIdentity = (job: ClaimedProductionTask, task: WebsiteAgentTask)
   if (job.grant.capability_manifest_hash !== productionCatalogHash) {
     throw executionFailure("failed", "CAPABILITY_MANIFEST_CHANGED_BEFORE_ACCEPT");
   }
-  const plugin = resolveProductionPlugin(task.product_id, task.action_id).plugin;
+  const plugin = authorizeWebsiteAgentTask(task).identity;
   if (job.grant.expected_catalog_hash !== productionCatalogHash
-    || job.grant.expected_plugin_id !== plugin.pluginId
-    || job.grant.expected_plugin_version !== plugin.pluginVersion) {
+    || job.grant.expected_plugin_id !== plugin.plugin_id
+    || job.grant.expected_plugin_version !== plugin.plugin_version) {
     throw executionFailure("failed", "CLAIMED_PLUGIN_IDENTITY_MISMATCH");
   }
 };
@@ -262,6 +264,7 @@ const executeAndUpload = async (input: Readonly<{
 }>) => {
   let uploaded: Awaited<ReturnType<typeof uploadProductionResult>> | undefined;
   let uploadBoundaryFailure: unknown | undefined;
+  const generatedImageReceipts: Awaited<ReturnType<typeof uploadProductionGeneratedImage>>["transportReceipt"][] = [];
   let execution: Awaited<ReturnType<RuntimeState["executor"]["execute"]>>;
   try {
     execution = await heartbeatWhileRunning({
@@ -277,6 +280,7 @@ const executeAndUpload = async (input: Readonly<{
             span, failureCode: "RESULT_UPLOAD_FAILED", action: () => uploadProductionResult({
               session: input.state.session, store: input.state.store, job: input.job,
               identity: input.identity, output, continuationRef,
+              priorArtifactReceipts: generatedImageReceipts,
             }),
           });
         } catch (error) {
@@ -284,6 +288,13 @@ const executeAndUpload = async (input: Readonly<{
           throw error;
         }
         return uploaded.envelope;
+        },
+        async (artifact) => {
+          const uploadedImage = await uploadProductionGeneratedImage(
+            input.state.session, input.state.store, input.job, artifact,
+          );
+          generatedImageReceipts.push(uploadedImage.transportReceipt);
+          return uploadedImage.receipt;
         }),
       abort: input.abort, parentSpanId: input.jobSpan.spanId,
     });

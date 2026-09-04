@@ -1,0 +1,3 @@
+import { RuntimeTaskSchema } from "../lib/local-runtime/production/contracts.js";
+
+export const route = (input: unknown): unknown => RuntimeTaskSchema.parse(input);

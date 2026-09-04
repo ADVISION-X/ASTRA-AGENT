@@ -113,6 +113,14 @@ const required: Array<[string, ExpectedFinding]> = [
   ["dynamic-import-nonliteral", { checkId: "code-purity/dynamic-import-nonliteral" }],
   ["dynamic-import-owner-boundary-violation", { checkId: "code-purity/plugin-non-facade-capability-import" }],
   ["side-effect-import-owner-boundary-violation", { checkId: "code-purity/plugin-non-facade-capability-import" }],
+  ["plugin-runtime-private-import", { checkId: "code-purity/plugin-runtime-private-import" }],
+  ["runtime-imports-plugin", { checkId: "code-purity/runtime-imports-plugin" }],
+  ["runtime-imports-browser-private", { checkId: "code-purity/runtime-imports-browser-private" }],
+  ["runtime-imports-plugin-object", { checkId: "code-purity/runtime-imports-plugin-object" }],
+  ["runtime-dynamic-imports-plugin-catalog", { checkId: "code-purity/runtime-imports-plugin-object" }],
+  ["runtime-reexports-plugin-catalog", { checkId: "code-purity/runtime-imports-plugin-object" }],
+  ["plugin-imports-catalog", { checkId: "code-purity/plugin-imports-catalog" }],
+  ["mediator-runtime-private-import", { checkId: "code-purity/mediator-runtime-import" }],
   ["catch-and-swallow", { checkId: "code-purity/catch-and-swallow" }],
   ["catch-fake-success", { checkId: "code-purity/catch-fake-success" }],
   ["promise-catch-and-swallow", { checkId: "code-purity/promise-catch-and-swallow" }],
@@ -142,6 +150,7 @@ const forbidden: Array<[string, ExpectedFinding]> = [
 
 assert.equal(resolveCodePurityOwner("scripts/generate/sync.ts"), "agent-production-runtime");
 assert.equal(resolveCodePurityOwner("scripts/runtime-logs/inspect.ts"), "runtime-logs");
+assert.equal(resolveCodePurityOwner("src/lib/local-runtime/production/catalog.ts"), "agent-production-runtime");
 assert.equal(resolveCodePurityRole("scripts/generate/sync.ts"), "audit-phase");
 assert.equal(resolveCodePurityRole("scripts/runtime-logs/inspect.ts"), "audit-phase");
 

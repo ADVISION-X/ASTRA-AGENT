@@ -272,7 +272,7 @@ export interface GptChildOutputMap {
     modelDisplayName: string;
     previousChecked: "true" | "false";
     selectionVersion: "gpt-model-selection.v2";
-    state: "exact-model-selected-profile-restored";
+    state: "exact-model-selected";
   }>;
   readonly ensure_exact_gpt_reasoning_tier: Readonly<{
     targetLabel: string;

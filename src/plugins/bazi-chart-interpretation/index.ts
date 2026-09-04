@@ -1,10 +1,8 @@
-import type { ProductPlugin } from "../../lib/local-runtime/production/plugin.js";
-import { executeOwnedFlow, productSkillHash } from "./flow.js";
-import { parseProductResult } from "./result-contract.js";
+import type { ProductPlugin } from "../../mediator/product-plugin-contract.js";
+import { executeOwnedFlow } from "./flow.js";
 
 export const baziChartInterpretationPlugin: ProductPlugin = {
-  pluginId: "bazi-chart-interpretation", pluginVersion: 8, skillHash: productSkillHash, checkpointSchemaVersion: 2,
-  parseResult: parseProductResult,
+  pluginId: "bazi-chart-interpretation", pluginVersion: 8, checkpointSchemaVersion: 2,
   accepts: [
     { productId: "bazi_chart_interpretation", actionId: "produce" },
     { productId: "bazi_chart_interpretation", actionId: "accuracy_challenge" },

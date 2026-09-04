@@ -7,12 +7,13 @@ import {
 import {
   hashCanonical,
   type ProductionHash,
+  type ProductionRoutePolicy,
   type WebsiteAgentTask,
-} from "../../lib/local-runtime/production/contracts.js";
+} from "../../mediator/product-plugin-contract.js";
 import {
   gptTextContinuationCheckpointInput,
   postCheckpointReceiverFault,
-} from "../../lib/local-runtime/production/plugin.js";
+} from "../../mediator/product-plugin-contract.js";
 import type {
   ProductGptAnyCallInput,
   ProductGptTools,
@@ -82,10 +83,11 @@ export const receiveResearch = (
   task: WebsiteAgentTask,
   attemptId: string,
   checkpoint: SeoTurnCheckpoint,
+  route: ProductionRoutePolicy,
 ): Readonly<Record<string, unknown>> => {
   try {
     return parsePublicKnowledgeResearch(
-      checkpoint.semanticText, receptionReceipt(task, attemptId, checkpoint),
+      checkpoint.semanticText, route, receptionReceipt(task, attemptId, checkpoint),
     );
   } catch (error) {
     throw postCheckpointReceiverFault(failureCode(error, "PUBLIC_KNOWLEDGE_RESEARCH_RECEIVER_FAILED"), {
@@ -100,10 +102,11 @@ export const receiveArticle = (
   task: WebsiteAgentTask,
   attemptId: string,
   checkpoint: SeoTurnCheckpoint,
+  route: ProductionRoutePolicy,
 ): Readonly<Record<string, unknown>> => {
   try {
     return parsePublicKnowledgeArticle(
-      checkpoint.semanticText, receptionReceipt(task, attemptId, checkpoint),
+      checkpoint.semanticText, route, receptionReceipt(task, attemptId, checkpoint),
     );
   } catch (error) {
     throw postCheckpointReceiverFault(failureCode(error, "PUBLIC_KNOWLEDGE_ARTICLE_RECEIVER_FAILED"), {

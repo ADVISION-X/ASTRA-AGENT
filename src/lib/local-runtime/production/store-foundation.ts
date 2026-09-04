@@ -110,7 +110,7 @@ const browserFailureFactsValid = (row: Record<string, unknown>): boolean => {
   const outcome = String(row.browser_outcome);
   const outcomeMatchesMutation = outcome === "DISPATCHED" && row.mutation_outcome === "dispatched"
     || outcome === "CONFIRMED" && ["no", "confirmed"].includes(String(row.mutation_outcome))
-    || outcome === "REJECTED" && ["no", "confirmed"].includes(String(row.mutation_outcome));
+    || outcome === "REJECTED" && ["no", "confirmed", "dispatched"].includes(String(row.mutation_outcome));
   const completeEvidence = typeof row.evidence_ref === "string" && row.evidence_ref.length > 0
     && typeof row.evidence_hash === "string" && /^sha256:[a-f0-9]{64}$/u.test(row.evidence_hash);
   return ["target_local", "provider_effect"].includes(String(row.effect_scope))

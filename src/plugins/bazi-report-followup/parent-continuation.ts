@@ -5,13 +5,13 @@ import {
 import {
   sha256,
   type WebsiteAgentTask,
-} from "../../lib/local-runtime/production/contracts.js";
+} from "../../mediator/product-plugin-contract.js";
 import {
   gptTextContinuationCheckpointInput,
   postCheckpointReceiverFault,
   productResultValidation,
   type SharedExecutionContext,
-} from "../../lib/local-runtime/production/plugin.js";
+} from "../../mediator/product-plugin-contract.js";
 import { failureCode } from "../../lib/execution-failure.js";
 import { parseProductResult } from "./result-contract.js";
 import {
@@ -133,12 +133,12 @@ export const runContinuationTurn = async (
   marker: string,
 ): Promise<Checkpoint> => {
   const stepId = task.action_id;
-  const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 14, input: { files: uploadedFiles(context), promptHash: sha256(prompt), turnMarker: marker } } as const;
+  const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 15, input: { files: uploadedFiles(context), promptHash: sha256(prompt), turnMarker: marker } } as const;
   const existing = await flow.facts(submit);
   const recoverOnly = Boolean(existing.mutation || existing.evidence);
-  await applyProfile(flow, stepId, [4, 5, 6, 7, 8], recoverOnly);
-  await applyAttachments(flow, context, stepId, [9, 10, 11], recoverOnly);
-  return submitTurn(flow, stepId, prompt, marker, uploadedFiles(context), [12, 13, 14, 15, 16, 17]);
+  await applyProfile(flow, stepId, [4, 5, 6, 7, 8, 9], recoverOnly);
+  await applyAttachments(flow, context, stepId, [10, 11, 12], recoverOnly);
+  return submitTurn(flow, stepId, prompt, marker, uploadedFiles(context), [13, 14, 15, 16, 17, 18]);
 };
 
 const providerFor = (task: WebsiteAgentTask, checkpoint: Checkpoint): GptProviderContinuation =>
@@ -150,12 +150,12 @@ const providerFor = (task: WebsiteAgentTask, checkpoint: Checkpoint): GptProvide
     prior_turn_marker: checkpoint.turnMarker,
   });
 
-export const receive = (task: WebsiteAgentTask, checkpoint: Checkpoint): Readonly<Record<string, unknown>> => {
+export const receive = (task: WebsiteAgentTask, checkpoint: Checkpoint, context: SharedExecutionContext): Readonly<Record<string, unknown>> => {
   try {
     const value = productResultValidation.parseJsonObject(
       checkpoint.semanticText, "PRODUCT_RESULT_JSON_INVALID",
     );
-    return parseProductResult(task, value);
+    return parseProductResult(task, value, context.routePolicy);
   } catch (error) {
     throw postCheckpointReceiverFault(failureCode(error, "PRODUCT_RESULT_RECEIVER_FAILED"), {
       artifactRef: checkpoint.artifactRef,
@@ -174,7 +174,7 @@ export const advanceContinuation = async (
 ): Promise<void> => {
   await flow.execute({
     productStepId: task.action_id, callId: "continuation-advance", child: "advance_gpt_continuation_lane",
-    actionOrdinal: 18, input: {
+    actionOrdinal: 19, input: {
       currentCheckpoint: gptTextContinuationCheckpointInput(sourceAttemptId, checkpoint),
       jobId: task.job_id, lane, pluginId: PLUGIN_ID, provider: providerFor(task, checkpoint),
     },
@@ -188,6 +188,6 @@ export const releaseContinuation = async (
 ): Promise<void> => {
   await flow.execute({
     productStepId: task.action_id, callId: "continuation-release", child: "release_gpt_continuation_lane",
-    actionOrdinal: 19, input: { jobId: task.job_id, lane },
+    actionOrdinal: 20, input: { jobId: task.job_id, lane },
   });
 };

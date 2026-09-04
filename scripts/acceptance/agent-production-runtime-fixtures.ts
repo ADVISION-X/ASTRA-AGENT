@@ -15,7 +15,8 @@ import {
   type WebsiteAgentResult,
   type WebsiteAgentTask,
 } from "../../src/lib/local-runtime/production/contracts.js";
-import { productionCatalogHash, resolveProductionPlugin } from "../../src/lib/local-runtime/production/catalog.js";
+import { productionCatalogHash } from "../../src/lib/local-runtime/production/catalog.js";
+import { resolveProductPluginIdentity } from "../../src/mediator/product-plugin-catalog.js";
 import {
   ClaimedProductionTaskSchema,
   type ClaimedProductionTask,
@@ -68,9 +69,9 @@ export const resultFor = (
 export const identityFor = (accepted: WebsiteAgentTask): DurablePluginIdentity => {
   const resolved = authorizeWebsiteAgentTask(accepted);
   return {
-    catalog_hash: productionCatalogHash, plugin_id: resolved.plugin.pluginId,
-    plugin_version: resolved.plugin.pluginVersion, skill_hash: resolved.skillHash,
-    checkpoint_schema_version: resolved.plugin.checkpointSchemaVersion, request_hash: accepted.request_hash,
+    catalog_hash: productionCatalogHash, plugin_id: resolved.identity.plugin_id,
+    plugin_version: resolved.identity.plugin_version, skill_hash: resolved.identity.skill_hash,
+    checkpoint_schema_version: resolved.identity.checkpoint_schema_version, request_hash: accepted.request_hash,
   };
 };
 
@@ -103,7 +104,8 @@ const executionGrant = (
 };
 
 export const claimTask = (base: WebsiteAgentTask): ClaimedProductionTask => {
-  const plugin = resolveProductionPlugin(base.product_id, base.action_id).plugin;
+  const identity = resolveProductPluginIdentity(base.product_id, base.action_id);
+  const plugin = { pluginId: identity.plugin_id, pluginVersion: identity.plugin_version };
   return ClaimedProductionTaskSchema.parse({
     ...base, status: "failed", current_reason: "LEASE_GRANTED", lease_owner: "device:1",
     lease_expires_at: "2030-01-01T00:05:00.000Z",

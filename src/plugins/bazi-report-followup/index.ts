@@ -1,10 +1,8 @@
-import type { ProductPlugin } from "../../lib/local-runtime/production/plugin.js";
-import { executeOwnedFlow, productSkillHash } from "./flow.js";
-import { parseProductResult } from "./result-contract.js";
+import type { ProductPlugin } from "../../mediator/product-plugin-contract.js";
+import { executeOwnedFlow } from "./flow.js";
 
 export const baziReportFollowupPlugin: ProductPlugin = {
-  pluginId: "bazi-report-followup", pluginVersion: 8, skillHash: productSkillHash, checkpointSchemaVersion: 2,
-  parseResult: parseProductResult,
+  pluginId: "bazi-report-followup", pluginVersion: 8, checkpointSchemaVersion: 2,
   accepts: [
     { productId: "bazi_report_followup", actionId: "followup" },
     { productId: "bazi_report_followup", actionId: "accuracy_challenge" },

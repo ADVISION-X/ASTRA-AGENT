@@ -1,10 +1,8 @@
-import type { ProductPlugin } from "../../lib/local-runtime/production/plugin.js";
-import { executeOwnedFlow, productSkillHash } from "./flow.js";
-import { parseProductResult } from "./result-contract.js";
+import type { ProductPlugin } from "../../mediator/product-plugin-contract.js";
+import { executeOwnedFlow } from "./flow.js";
 
 export const namingBaziAnalysisAndNamingPlugin: ProductPlugin = {
-  pluginId: "naming-bazi-analysis-and-naming", pluginVersion: 7, skillHash: productSkillHash, checkpointSchemaVersion: 2,
-  parseResult: parseProductResult,
+  pluginId: "naming-bazi-analysis-and-naming", pluginVersion: 7, checkpointSchemaVersion: 2,
   accepts: [
     { productId: "naming_bazi_analysis_and_naming", actionId: "produce" },
     { productId: "naming_bazi_analysis_and_naming", actionId: "accuracy_challenge" },

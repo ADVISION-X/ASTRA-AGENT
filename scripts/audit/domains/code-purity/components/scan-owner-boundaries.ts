@@ -128,6 +128,28 @@ const scanPluginBoundary = (
 ): void => {
   const sourcePath = normalizeCodePurityPath(governedFile.repoPath);
   const targetPath = normalizeCodePurityPath(directTarget.targetPath);
+  if (sourcePath.startsWith("src/plugins/")
+    && targetPath === "src/mediator/product-plugin-catalog.ts") {
+    pushBoundaryFinding(collector, {
+      checkId: "code-purity/plugin-imports-catalog",
+      governedFile,
+      lawId: jobFlowLawId,
+      reason: `Plugin ${describeEdgeVerb(directTarget.edgeKind)} the cross-Product Catalog.`,
+      message: `${governedFile.repoPath} ${describeEdgeVerb(directTarget.edgeKind)} the cross-Product Catalog instead of its Product-facing contract.`,
+    });
+  }
+  if (
+    sourcePath.startsWith("src/plugins/") &&
+    targetPath.startsWith("src/lib/local-runtime/production/")
+  ) {
+    pushBoundaryFinding(collector, {
+      checkId: "code-purity/plugin-runtime-private-import",
+      governedFile,
+      lawId: jobFlowLawId,
+      reason: `Plugin ${describeEdgeVerb(directTarget.edgeKind)} Runtime-private production code ${directTarget.targetPath}.`,
+      message: `${governedFile.repoPath} ${describeEdgeVerb(directTarget.edgeKind)} Runtime-private production code ${directTarget.targetPath}.`,
+    });
+  }
   if (
     sourcePath.startsWith("src/plugins/") &&
     targetPath.startsWith("src/capabilities/") &&
@@ -160,6 +182,52 @@ const scanPluginBoundary = (
   }
 };
 
+const scanProductionRuntimeBoundary = (
+  collector: InventoryFindingCollector,
+  governedFile: GovernedFile,
+  directTarget: SourceModuleTarget,
+  jobFlowLawId: string,
+): void => {
+  const sourcePath = normalizeCodePurityPath(governedFile.repoPath);
+  const targetPath = normalizeCodePurityPath(directTarget.targetPath);
+  if (sourcePath.startsWith("src/lib/local-runtime/")
+    && targetPath.startsWith("src/lib/browser/exact-target/")) {
+    pushBoundaryFinding(collector, {
+      checkId: "code-purity/runtime-imports-browser-private",
+      governedFile,
+      lawId: jobFlowLawId,
+      reason: `Runtime ${describeEdgeVerb(directTarget.edgeKind)} Browser-private exact-target code ${directTarget.targetPath}.`,
+      message: `${governedFile.repoPath} must consume Browser facts through the Browser public facade.`,
+    });
+  }
+  if (sourcePath.startsWith("src/lib/local-runtime/production/")
+    && targetPath === "src/mediator/product-plugin-catalog.ts") {
+    const runtimeCatalogDataExports = new Set(["productPluginCatalogSnapshot", "productionCatalogHash"]);
+    const dataOnlyImport = directTarget.edgeKind === "import"
+      && !directTarget.namespaceImport
+      && directTarget.namedBindings.length > 0
+      && directTarget.namedBindings.every((name) => runtimeCatalogDataExports.has(name));
+    if (!dataOnlyImport) {
+      pushBoundaryFinding(collector, {
+        checkId: "code-purity/runtime-imports-plugin-object",
+        governedFile,
+        lawId: jobFlowLawId,
+        reason: "Production Runtime uses the Product Catalog through a non-data-only import edge.",
+        message: `${governedFile.repoPath} may statically import only the immutable Catalog snapshot and canonical hash.`,
+      });
+    }
+  }
+  if (!sourcePath.startsWith("src/lib/local-runtime/production/")
+    || !targetPath.startsWith("src/plugins/")) return;
+  pushBoundaryFinding(collector, {
+    checkId: "code-purity/runtime-imports-plugin",
+    governedFile,
+    lawId: jobFlowLawId,
+    reason: `Production Runtime ${describeEdgeVerb(directTarget.edgeKind)} Product Plugin code ${directTarget.targetPath}.`,
+    message: `${governedFile.repoPath} ${describeEdgeVerb(directTarget.edgeKind)} Product Plugin code ${directTarget.targetPath}.`,
+  });
+};
+
 const scanMediatorBoundary = (
   collector: InventoryFindingCollector,
   governedFile: GovernedFile,
@@ -167,16 +235,19 @@ const scanMediatorBoundary = (
   mediatorLawId: string,
 ): void => {
   const sourcePath = normalizeCodePurityPath(governedFile.repoPath);
+  const targetPath = normalizeCodePurityPath(directTarget.targetPath);
   if (
     sourcePath.startsWith("src/mediator/") &&
-    (directTarget.targetPath.startsWith("src/lib/browser/") || isPrivateCapabilityPath(directTarget.targetPath))
+    (targetPath.startsWith("src/lib/browser/")
+      || targetPath.startsWith("src/lib/local-runtime/production/")
+      || isPrivateCapabilityPath(targetPath))
   ) {
     pushBoundaryFinding(collector, {
       checkId: "code-purity/mediator-runtime-import",
       governedFile,
       lawId: mediatorLawId,
       reason: `Mediator ${describeEdgeVerb(directTarget.edgeKind)} runtime implementation ${directTarget.targetPath}.`,
-      message: `${governedFile.repoPath} ${describeEdgeVerb(directTarget.edgeKind)} browser or private runtime code ${directTarget.targetPath}.`,
+      message: `${governedFile.repoPath} ${describeEdgeVerb(directTarget.edgeKind)} browser or private Runtime code ${directTarget.targetPath}.`,
     });
   }
 };
@@ -249,6 +320,7 @@ export const scanOwnerBoundaries = (governedFiles: readonly GovernedFile[], lawI
       const directTargetOwner = resolveCodePurityOwner(directTarget.targetPath);
       scanCapabilityBoundary(collector, governedFile, directTarget, directTargetOwner, abilityLawId);
       scanPluginBoundary(collector, governedFile, directTarget, directTargetOwner, jobFlowLawId);
+      scanProductionRuntimeBoundary(collector, governedFile, directTarget, jobFlowLawId);
       scanMediatorBoundary(collector, governedFile, directTarget, mediatorLawId);
       scanChildAbilityBoundary(collector, governedFile, directTarget, directTargetOwner, childAbilityLawId);
       scanSharedBoundary(collector, governedFile, directTarget, sharedScopeLawId);

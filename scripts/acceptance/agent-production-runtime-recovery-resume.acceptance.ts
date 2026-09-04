@@ -16,7 +16,7 @@ import {
 import {
   postSubmitReadbackFault,
   postSubmitReadbackReceipt,
-} from "../../src/lib/local-runtime/production/plugin.js";
+} from "../../src/mediator/product-plugin-contract.js";
 import {
   HASH_A,
   HASH_B,

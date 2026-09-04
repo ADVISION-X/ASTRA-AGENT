@@ -25,7 +25,7 @@ export const assertGptExactTargetSourceShape = (baseUrl: string): void => {
     "../ability-group.ts",
     "../production-child-tools.ts",
     "../production-browser-lifecycle.ts",
-    "../../../lib/local-runtime/production/plugin.ts",
+    "../../../mediator/product-plugin-contract.ts",
   ]) {
     const source = readFileSync(new URL(active, baseUrl), "utf8");
     assert.doesNotMatch(source,

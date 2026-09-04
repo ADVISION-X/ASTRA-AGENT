@@ -1,11 +1,21 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { webcrypto } from "node:crypto";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { canonicalizeBrowserAuthorityValue, decodeBrowserAuthorityFrame, encodeBrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
 import { canonicalBrowserAuthorityPlaintext, encryptedFrameBody, parseCanonicalPlaintext } from "../../src/lib/browser/transport/browser-authority-frame-payload.js";
 import { decryptBrowserAuthorityFrame, encryptBrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-session-crypto.js";
 import { BrowserAuthorityWebSocket, type BrowserAuthoritySocket } from "../../src/lib/browser/transport/browser-authority-websocket.js";
 import type { BrowserCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
-import type { BrowserGovernedCommand } from "../../src/lib/browser/exact-target/browser-command-actor.js";
+import {
+  BrowserCommandActor,
+  BrowserCommandTerminalReplyError,
+  type BrowserGovernedCommand,
+} from "../../src/lib/browser/exact-target/browser-command-actor.js";
+import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
+import { BrowserCommandAdmissionBudget } from "../../src/lib/browser/transport/browser-command-admission-budget.js";
+import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { BROWSER_PROTOCOL_REVISION, type BrowserCapabilityId } from "../../src/lib/browser/protocol/generated/browser-protocol.generated.js";
 import { base64Url, cryptoBytes, decrypt as extensionDecrypt, deriveKeys, encrypt as extensionEncrypt,
   fromBase64Url, hmac, publicSigningJwk, signaturePayload } from "../../src/lib/browser/chrome-extension/websocket-actor-crypto.js";
@@ -262,5 +272,112 @@ assert.deepEqual((await graceReplyPromise).result, { postconditionVerified: true
 assert.equal(graceDispatches, 1);
 assert.equal(sentFrames.length, graceSentBefore + 1,
   "terminal reply grace must not issue a second permit or resend the mutation");
+
+const chainRoot = await mkdtemp(join(tmpdir(), "browser-reply-chain-"));
+const chainStore = new BrowserMutationStore(chainRoot);
+try {
+  const chainActor = new BrowserCommandActor(
+    new BrowserCommandAdmissionBudget(),
+    authority,
+    chainStore,
+    { assertCurrentAuthority: () => undefined },
+    createRuntimeLogger({
+      producer: "browser-reply-chain-acceptance",
+      owner: "browser-session",
+      component: "browser-command",
+      terminalEnabled: false,
+      fileSink: { directoryPath: join(chainRoot, "runtime-logs") },
+    }),
+  );
+  const terminalErrorPermit = permitFor(30, "browser.dom.click.v1", "mutation");
+  const terminalErrorSentBefore = sentFrames.length;
+  const terminalErrorPromise = chainActor.execute(terminalErrorPermit, graceCommand);
+  const terminalErrorCommandFrame = decodeBrowserAuthorityFrame(sentFrames[terminalErrorSentBefore]!);
+  const terminalErrorHeader = {
+    protocolVersion: BROWSER_PROTOCOL_REVISION,
+    kind: "REPLY" as const,
+    epoch: 1,
+    sequence: clientSequence++,
+    deadline: new Date(Date.now() + 20_000).toISOString(),
+  };
+  authority.receive(socket, encodeBrowserAuthorityFrame({ ...terminalErrorHeader, body: {
+    encrypted: await extensionEncrypt(
+      directionalKeys.clientToServerKey,
+      "client-to-server",
+      terminalErrorHeader,
+      {
+        requestSequence: terminalErrorCommandFrame.sequence,
+        permitSequence: terminalErrorPermit.sequence,
+        replyChannelToken: terminalErrorPermit.replyChannelToken,
+        errorCode: "BROWSER_DOM_CANDIDATE_MISSING",
+      },
+    ),
+  } }));
+  await assert.rejects(terminalErrorPromise, /BROWSER_DOM_CANDIDATE_MISSING/u);
+  assert.equal(chainStore.readState(terminalErrorPermit.commandId), "REJECTED");
+  assert.equal(chainStore.readMutationOutcome(terminalErrorPermit.commandId), "dispatched");
+  assert.equal(sentFrames.length, terminalErrorSentBefore + 1,
+    "an explicit authenticated error reply must terminalize without a second dispatch");
+
+  for (const [caseName, terminalErrorFor] of [
+    ["wrong-reply-token", (permit: BrowserCommandPermit) => new BrowserCommandTerminalReplyError(
+      "BROWSER_DOM_CANDIDATE_MISSING",
+      `${permit.replyChannelToken}:forged`,
+      permit.sequence,
+      permit.sequence,
+    )],
+    ["wrong-permit-sequence", (permit: BrowserCommandPermit) => new BrowserCommandTerminalReplyError(
+      "BROWSER_DOM_CANDIDATE_MISSING",
+      permit.replyChannelToken,
+      permit.sequence,
+      permit.sequence + 1,
+    )],
+  ] as const) {
+    const forgedPermit = permitFor(
+      caseName === "wrong-reply-token" ? 31 : 32,
+      "browser.dom.click.v1",
+      "mutation",
+    );
+    let forgedDispatches = 0;
+    const forgedActor = new BrowserCommandActor(
+      new BrowserCommandAdmissionBudget(),
+      {
+        send: async (permit, _command, onDispatched) => {
+          onDispatched?.();
+          forgedDispatches += 1;
+          throw terminalErrorFor(permit);
+        },
+      },
+      chainStore,
+      { assertCurrentAuthority: () => undefined },
+      createRuntimeLogger({
+        producer: `browser-reply-chain-${caseName}`,
+        owner: "browser-session",
+        component: "browser-command",
+        terminalEnabled: false,
+        fileSink: { directoryPath: join(chainRoot, `runtime-logs-${caseName}`) },
+      }),
+    );
+    await assert.rejects(forgedActor.execute(forgedPermit, graceCommand), /BROWSER_COMMAND_RECEIPT_MISSING/u);
+    assert.equal(chainStore.readState(forgedPermit.commandId), "DISPATCHED");
+    assert.equal(chainStore.readMutationOutcome(forgedPermit.commandId), "dispatched");
+    assert.equal(forgedDispatches, 1,
+      `${caseName} must not counterfeit terminal settlement or authorize a second dispatch`);
+  }
+
+  const missingReplyPermit = {
+    ...permitFor(33, "browser.dom.click.v1", "mutation"),
+    commandTtlMs: 1_001,
+  };
+  const missingReplySentBefore = sentFrames.length;
+  await assert.rejects(chainActor.execute(missingReplyPermit, graceCommand), /BROWSER_COMMAND_RECEIPT_MISSING/u);
+  assert.equal(chainStore.readState(missingReplyPermit.commandId), "DISPATCHED");
+  assert.equal(chainStore.readMutationOutcome(missingReplyPermit.commandId), "dispatched");
+  assert.equal(sentFrames.length, missingReplySentBefore + 1,
+    "a genuinely missing terminal reply must preserve one DISPATCHED WAL row without resend");
+} finally {
+  chainStore.close();
+  await rm(chainRoot, { recursive: true, force: true });
+}
 console.log("LOCAL_BROWSER_PROPERTY_MODEL_ACCEPTANCE_PASS");
-emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V18", evidenceMode: "exam.property", clauses: ["forbidden:1","forbidden:3","forbidden:4","summary"], locator: "acceptance:browser-terminal:frame-property-model", observedValue: "64 authenticated frame sequences round-trip exactly" });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V19", evidenceMode: "exam.property", clauses: ["forbidden:1","forbidden:3","forbidden:4","summary"], locator: "acceptance:browser-terminal:frame-property-model", observedValue: "64 authenticated frame sequences round-trip exactly" });

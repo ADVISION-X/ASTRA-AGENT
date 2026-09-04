@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { BrowserTargetLease } from "../exact-target/browser-target-lease.js";
 import type {
   BrowserExactCallMutationFact,
@@ -9,6 +10,8 @@ import { BrowserAuthorityIssuer } from "./browser-authority-issuer.js";
 import type { createBrowserInfrastructureState } from "./browser-infrastructure-state.js";
 import { BrowserAuthorityWebSocket } from "../transport/browser-authority-websocket.js";
 import { browserExecutionFailure } from "../browser-failure.js";
+import { emitBrowserMutationEvent } from "../exact-target/browser-command-runtime-logging.js";
+import type { RuntimeLogger } from "../../runtime-logs/index.js";
 import { BROWSER_COMMAND_DEFAULT_DEADLINE_MS } from "../protocol/generated/browser-protocol.generated.js";
 
 type LaneWaiter = Readonly<{
@@ -24,6 +27,13 @@ type LaneWaiter = Readonly<{
 type LaneState = ReturnType<typeof createBrowserInfrastructureState>;
 
 type LaneRecovery = Readonly<{
+  commandId: string;
+  ownerPluginId: string;
+  pluginVersion: number;
+  jobId: string;
+  attemptId: string;
+  productStepId: string;
+  childCapabilityId: string;
   state: "DISPATCHED" | "CONFIRMED" | "REJECTED";
   effectScope: "target_local" | "provider_effect";
   callId: string;
@@ -96,6 +106,7 @@ const confirmedReadbackMatches = (
 export class BrowserLaneCoordinator {
   private readonly queue: LaneWaiter[] = [];
   private readonly confirmedReadbackReplacementTargets = new Map<string, string>();
+  private quarantine: LaneRecovery | null = null;
   private active = false;
 
   public constructor(
@@ -103,6 +114,7 @@ export class BrowserLaneCoordinator {
     private readonly websocket: BrowserAuthorityWebSocket,
     private readonly issuer: BrowserAuthorityIssuer,
     private readonly infrastructure: LaneState,
+    private readonly runtimeLogger: RuntimeLogger,
   ) {}
 
   public acquire(
@@ -142,7 +154,9 @@ export class BrowserLaneCoordinator {
     void this.pump();
   }
 
-  public readState(): "idle" | "busy" { return this.active ? "busy" : "idle"; }
+  public readState(): "idle" | "busy" | "blocked" {
+    return this.active ? "busy" : this.quarantine ? "blocked" : "idle";
+  }
 
   public waiterCount(): number { return this.queue.length; }
 
@@ -152,6 +166,8 @@ export class BrowserLaneCoordinator {
       for (const waiter of this.queue.splice(0)) waiter.reject(browserExecutionFailure(new Error(reasonCode)));
     }
     this.confirmedReadbackReplacementTargets.clear();
+    this.quarantine = null;
+    if (!reasonCode) this.refreshQuarantine();
     this.active = false;
     void this.pump();
   }
@@ -177,6 +193,16 @@ export class BrowserLaneCoordinator {
     return this.infrastructure.mutationState?.reconciliationScope(input) ?? null;
   }
 
+  public observeCurrentTargetClaim(input: Readonly<{ targetRef: string; documentRef: string }>): void {
+    let recovery = this.quarantine;
+    while (recovery?.state === "DISPATCHED" && recovery.effectScope === "target_local"
+      && (recovery.targetRef !== input.targetRef || recovery.documentRef !== input.documentRef)) {
+      this.settleLostTargetLocalDocument(recovery, input);
+      recovery = this.quarantine;
+    }
+    void this.pump();
+  }
+
   public readExactCallMutationFact(input: Readonly<{
     jobId: string;
     attemptId: string;
@@ -189,14 +215,18 @@ export class BrowserLaneCoordinator {
   }
 
   private nextWaiter(): LaneWaiter | null {
-    let waiter = this.queue.shift();
-    while (waiter && (waiter.signal.aborted || waiter.remainingMs() < 1)) {
+    for (let index = this.queue.length - 1; index >= 0; index -= 1) {
+      const waiter = this.queue[index]!;
+      if (!waiter.signal.aborted && waiter.remainingMs() >= 1) continue;
+      this.queue.splice(index, 1);
       waiter.reject(browserExecutionFailure(new Error(
         waiter.signal.aborted ? "BROWSER_WAIT_ABORTED" : "V6_DEADLINE_BUDGET_EXHAUSTED",
       )));
-      waiter = this.queue.shift();
     }
-    return waiter ?? null;
+    const index = this.quarantine
+      ? this.queue.findIndex((waiter) => this.bindingMatchesRecovery(waiter.binding, this.quarantine!))
+      : 0;
+    return index < 0 ? null : this.queue.splice(index, 1)[0] ?? null;
   }
 
   private async pump(): Promise<void> {
@@ -207,13 +237,28 @@ export class BrowserLaneCoordinator {
     this.active = true;
     let recovery: LaneRecovery | null = null;
     try {
-      recovery = this.recoveryFor(waiter.binding);
+      recovery = this.quarantine && this.bindingMatchesRecovery(waiter.binding, this.quarantine)
+        ? this.quarantine : this.recoveryFor(waiter.binding);
       const acquisition = await this.ensureAvailableTarget(waiter, recovery);
       if (waiter.signal.aborted || waiter.remainingMs() < 1) throw browserExecutionFailure(new Error(
         waiter.signal.aborted ? "BROWSER_WAIT_ABORTED" : "V6_DEADLINE_BUDGET_EXHAUSTED",
       ));
       const lease = await this.resolveBroker().acquireOperatorClaimedTargetLease(waiter.binding, waiter.ownerId);
-      const admitted = this.admitRecoveredLease(lease, recovery, acquisition);
+      let admitted: ReturnType<BrowserLaneCoordinator["admitRecoveredLease"]>;
+      try {
+        admitted = this.admitRecoveredLease(lease, recovery, acquisition);
+      } catch (error) {
+        try {
+          await lease.park({
+            reason: "browser-recovery-admission-rejected",
+            mode: recovery?.state === "DISPATCHED" ? "recovery" : "normal-provider-wait",
+          });
+        } catch (parkError) {
+          this.resolveBroker().revokeOperatorTargetClaim(lease.target.targetRef);
+          throw new AggregateError([error, parkError], "BROWSER_TARGET_LIFECYCLE_UNSETTLED", { cause: error });
+        }
+        throw error;
+      }
       waiter.resolve(this.withLifecycle(admitted.lease, admitted.replacementKey));
     } catch (error) {
       const failure = browserExecutionFailure(
@@ -238,6 +283,10 @@ export class BrowserLaneCoordinator {
       await this.acquireJobBoundTarget(ttl, knownTarget ?? recovery?.targetRef ?? null);
       return { replacementBinding, confirmedProviderTargetReplaced: false };
     } catch (error) {
+      const targetLocalDocumentLost = recovery?.state === "DISPATCHED"
+        && recovery.effectScope === "target_local" && error instanceof Error
+        && error.message === "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT";
+      if (targetLocalDocumentLost) this.rejectLostTargetLocalDocument(recovery);
       const replaceable = replacementBinding && recovery?.state === "CONFIRMED"
         && recovery.effectScope === "provider_effect" && error instanceof Error
         && error.message === "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT";
@@ -265,6 +314,11 @@ export class BrowserLaneCoordinator {
     acquisition: TargetAcquisition,
   ): Readonly<{ lease: BrowserTargetLease; replacementKey: string | null }> {
     const targetMismatch = Boolean(recovery) && lease.target.targetRef !== recovery?.targetRef;
+    const documentMismatch = Boolean(recovery) && lease.document.documentRef !== recovery?.documentRef;
+    if (recovery?.state === "DISPATCHED" && recovery.effectScope === "target_local"
+      && (targetMismatch || documentMismatch)) {
+      this.rejectLostTargetLocalDocument(recovery);
+    }
     const replacementKeyToClear = targetMismatch && acquisition.replacementBinding
       ? this.recordReplacementTarget(
         acquisition.replacementBinding, lease.target.targetRef, acquisition.confirmedProviderTargetReplaced,
@@ -284,13 +338,19 @@ export class BrowserLaneCoordinator {
     const mutationState = this.infrastructure.mutationState;
     if (!mutationState) return null;
     if (binding.kind !== "production-reconciliation") {
-      return mutationState.callRecoveryScope({
+      const scope = mutationState.callRecoveryScope({
         jobId: binding.jobId,
         attemptId: binding.attemptId,
         ownerPluginId: binding.ownerPluginId,
         pluginVersion: binding.pluginVersion,
         productStepId: binding.productStepId,
       });
+      return scope ? Object.freeze({
+        ...scope,
+        pluginVersion: binding.pluginVersion,
+        attemptId: binding.attemptId,
+        childCapabilityId: mutationState.readDispatched(scope.commandId)?.childCapabilityId ?? "recovered-call",
+      }) : null;
     }
     const authorization = binding.confirmedProviderReadback;
     const fact = mutationState.readExactCallMutationFact({
@@ -305,6 +365,13 @@ export class BrowserLaneCoordinator {
       throw new Error("BROWSER_RECONCILIATION_SCOPE_INVALID");
     }
     return Object.freeze({
+      commandId: fact.authorityRef.slice("browser-mutation:".length),
+      ownerPluginId: binding.ownerPluginId,
+      pluginVersion: binding.pluginVersion,
+      jobId: binding.jobId,
+      attemptId: authorization.sourceAttemptId,
+      productStepId: fact.productStepId,
+      childCapabilityId: fact.childCapabilityId,
       state: fact.outcome,
       effectScope: fact.effectScope,
       callId: fact.callId,
@@ -350,6 +417,7 @@ export class BrowserLaneCoordinator {
         this.resolveBroker().revokeOperatorTargetClaim(lease.target.targetRef);
         throw browserExecutionFailure(new Error("BROWSER_TARGET_LIFECYCLE_UNSETTLED", { cause: error }), "no");
       } finally {
+        this.refreshQuarantine();
         this.active = false;
         void this.pump();
       }
@@ -364,6 +432,82 @@ export class BrowserLaneCoordinator {
         }
       }),
     };
+  }
+
+  private bindingMatchesRecovery(binding: BrowserExecutionBinding, recovery: LaneRecovery): boolean {
+    return binding.jobId === recovery.jobId
+      && binding.attemptId === recovery.attemptId
+      && binding.ownerPluginId === recovery.ownerPluginId
+      && binding.pluginVersion === recovery.pluginVersion
+      && binding.productStepId === recovery.productStepId;
+  }
+
+  private refreshQuarantine(): void {
+    const state = this.infrastructure.mutationState;
+    const entry = state?.reconciliationStates().find((candidate) => candidate.current === "DISPATCHED");
+    this.quarantine = entry ? Object.freeze({
+      commandId: entry.mutation.commandId,
+      ownerPluginId: entry.mutation.ownerPluginId,
+      pluginVersion: entry.mutation.pluginVersion,
+      jobId: entry.mutation.jobId,
+      attemptId: entry.mutation.attemptId,
+      productStepId: entry.mutation.productStepId,
+      childCapabilityId: entry.mutation.childCapabilityId,
+      state: "DISPATCHED",
+      effectScope: entry.mutation.effectScope,
+      callId: entry.mutation.callId,
+      targetRef: entry.mutation.targetRef,
+      documentRef: entry.mutation.documentRef,
+    }) : null;
+  }
+
+  private rejectLostTargetLocalDocument(recovery: LaneRecovery): never {
+    this.settleLostTargetLocalDocument(recovery);
+    throw browserExecutionFailure(
+      new Error("BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT"),
+      "dispatched",
+      {
+        effectScope: "target_local",
+        childCapabilityId: recovery.childCapabilityId,
+        browserOutcome: "REJECTED",
+      },
+    );
+  }
+
+  private settleLostTargetLocalDocument(
+    recovery: LaneRecovery,
+    observed?: Readonly<{ targetRef: string; documentRef: string }>,
+  ): void {
+    const mutationState = this.infrastructure.mutationState;
+    if (!mutationState || recovery.state !== "DISPATCHED" || recovery.effectScope !== "target_local") {
+      throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
+    }
+    const mutation = mutationState.readDispatched(recovery.commandId);
+    if (!mutation || mutation.targetRef !== recovery.targetRef
+      || mutation.documentRef !== recovery.documentRef || mutation.effectScope !== "target_local") {
+      throw new Error("BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
+    }
+    const proofHash = `sha256:${createHash("sha256").update(JSON.stringify({
+      commandId: recovery.commandId,
+      targetRef: recovery.targetRef,
+      documentRef: recovery.documentRef,
+      observedTargetRef: observed?.targetRef ?? null,
+      observedDocumentRef: observed?.documentRef ?? null,
+      conclusion: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT",
+    })).digest("hex")}` as const;
+    mutationState.markTargetLocalDocumentAbsent({
+      commandId: recovery.commandId,
+      targetRef: recovery.targetRef,
+      documentRef: recovery.documentRef,
+      proofHash,
+    });
+    emitBrowserMutationEvent({
+      runtimeLogger: this.runtimeLogger,
+      mutation,
+      outcome: "REJECTED",
+      authorityHash: mutationState.authorityHash(recovery.commandId),
+    });
+    this.refreshQuarantine();
   }
 
   private async acquireJobBoundTarget(commandTtlMs: number, targetRef: string | null = null): Promise<void> {

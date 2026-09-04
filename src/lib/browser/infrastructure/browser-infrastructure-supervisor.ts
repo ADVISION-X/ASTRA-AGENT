@@ -17,7 +17,13 @@ import { BrowserCommandAdmissionBudget } from "../transport/browser-command-admi
 import { BrowserTransportActor } from "../transport/transport-actor.js";
 import type { RuntimeLogger } from "../../runtime-logs/index.js";
 import { commitBrowserAuthentication, normalizeBrowserDisconnectReason } from "./browser-authentication-commit.js";
-import { BrowserArtifactRegistry, BrowserAuthorityBroker, type BrowserExecutionBinding } from "./browser-authority-broker.js";
+import {
+  BrowserAuthorityBroker,
+  type BrowserExecutionArtifact,
+  type BrowserExecutionArtifactBinding,
+  type BrowserExecutionArtifactLease,
+  type BrowserExecutionBinding,
+} from "./browser-authority-broker.js";
 import { BrowserAuthorityIssuer } from "./browser-authority-issuer.js";
 import { createBrowserInfrastructureState } from "./browser-infrastructure-state.js";
 import { BrowserLaneCoordinator } from "./browser-lane-coordinator.js";
@@ -85,10 +91,11 @@ export class BrowserInfrastructureSupervisor {
         this.createTargetLeaseManager(
           binding, resolveGrantPaths, resolveCurrentTarget, issueApprovedArtifactGrants,
         ),
-      new BrowserArtifactRegistry(join(options.dataDir, "runtime-data", "gpt", "upload-attempts")),
     );
     this.logs = new BrowserRuntimeLogEmitter(options.runtimeLogger, () => this.state.connectionGeneration);
-    this.lane = new BrowserLaneCoordinator(() => this.broker, this.websocket, this.issuer, this.state);
+    this.lane = new BrowserLaneCoordinator(
+      () => this.broker, this.websocket, this.issuer, this.state, options.runtimeLogger,
+    );
   }
 
   private onTargetClaim(input: BrowserAuthorityTargetClaim): void {
@@ -97,6 +104,7 @@ export class BrowserInfrastructureSupervisor {
     if (initialClaim && !this.state.pendingJobBoundTargetAcquisition) throw new Error("BROWSER_TARGET_INVALID");
     this.establishClaimBoundWorkspace();
     this.broker.registerOperatorTargetClaim({ authorityEpoch: currentAuthorityEpoch(this.issuer), ...input });
+    this.lane.observeCurrentTargetClaim(input);
     if (initialClaim) this.lane.resolvePending(input.targetRef);
   }
 
@@ -150,6 +158,10 @@ export class BrowserInfrastructureSupervisor {
   }
 
   public authorityBroker(): BrowserAuthorityBroker { return this.broker; }
+  public bindExecutionArtifacts(input: Readonly<{
+    binding: BrowserExecutionArtifactBinding;
+    artifacts: readonly BrowserExecutionArtifact[];
+  }>): Promise<BrowserExecutionArtifactLease> { return this.broker.bindExecutionArtifacts(input); }
   public browserAuthorityWebSocket(): BrowserAuthorityWebSocket { return this.websocket; }
 
   public readOperatorPairingState(): Readonly<{ authority: "present" | "absent"; pairingSecret: string | null }> {
@@ -187,7 +199,7 @@ export class BrowserInfrastructureSupervisor {
     wait: Readonly<{ signal: AbortSignal; remainingMs(): number }>,
   ): Promise<BrowserTargetLease> { return this.lane.acquire(binding, ownerId, wait); }
 
-  public readBrowserLaneState(): "idle" | "busy" { return this.lane.readState(); }
+  public readBrowserLaneState(): "idle" | "busy" | "blocked" { return this.lane.readState(); }
   public readBrowserLaneWaiterCount(): number { return this.lane.waiterCount(); }
   public hasUnresolvedBrowserMutation(): boolean { return this.lane.hasUnresolvedMutation(); }
   public hasBrowserMutationForJob(jobId: string): boolean { return this.lane.hasMutationForJob(jobId); }

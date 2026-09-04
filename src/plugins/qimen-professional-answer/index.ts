@@ -1,10 +1,8 @@
-import type { ProductPlugin } from "../../lib/local-runtime/production/plugin.js";
-import { executeOwnedFlow, productSkillHash } from "./flow.js";
-import { parseProductResult } from "./result-contract.js";
+import type { ProductPlugin } from "../../mediator/product-plugin-contract.js";
+import { executeOwnedFlow } from "./flow.js";
 
 export const qimenProfessionalAnswerPlugin: ProductPlugin = {
-  pluginId: "qimen-professional-answer", pluginVersion: 7, skillHash: productSkillHash, checkpointSchemaVersion: 2,
-  parseResult: parseProductResult,
+  pluginId: "qimen-professional-answer", pluginVersion: 7, checkpointSchemaVersion: 2,
   accepts: [
     { productId: "qimen_professional_answer", actionId: "produce" },
     { productId: "qimen_professional_answer", actionId: "accuracy_challenge" },

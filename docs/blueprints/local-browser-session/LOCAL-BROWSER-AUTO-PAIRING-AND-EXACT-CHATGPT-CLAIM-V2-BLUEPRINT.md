@@ -1,4 +1,4 @@
-# GrassEye 单生产 Tab、可信 DOM 事实与唯一 Browser FIFO V12 施工图
+# GrassEye 单生产 Tab、可信 DOM 事实与唯一 Browser FIFO V13 施工图
 
 状态：active final-state blueprint
 Owner：`local-browser-session`
@@ -6,15 +6,16 @@ Owner：`local-browser-session`
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "local-browser-auto-pairing-and-exact-chatgpt-claim-v12",
+  "blueprintId": "local-browser-auto-pairing-and-exact-chatgpt-claim-v13",
   "status": "active",
   "owner": "local-browser-session",
   "lawIds": [
+    "LAW-LOCAL-BROWSER-SESSION-001-V4",
     "LAW-LOCAL-BROWSER-SESSION-002-V6",
-    "LAW-LOCAL-BROWSER-SESSION-003-V19",
-    "LAW-LOCAL-BROWSER-SESSION-004-V18",
+    "LAW-LOCAL-BROWSER-SESSION-003-V20",
+    "LAW-LOCAL-BROWSER-SESSION-004-V19",
     "LAW-LOCAL-BROWSER-SESSION-005-V6",
-    "LAW-LOCAL-BROWSER-SESSION-006-V13"
+    "LAW-LOCAL-BROWSER-SESSION-006-V14"
   ],
   "contractRefs": [],
   "dependencyEdges": [
@@ -40,8 +41,9 @@ AGENT 启动
 -> 服务端校验并 ACK
 -> 建立 connection-bound Session Workspace
 -> 需要生成媒体原件时，在同一已鉴权 Target/Document 内取回精确 assistant turn 原始 bytes 并出具 receipt
--> Provider wait 或 turn settle 时只撤销 claim/Workspace 并释放 FIFO，system Tab 与 debugger session 保留
--> 其它 job 按智慧指挥 FIFO 在同一 Tab 时间片执行；每次重领只做无聚焦精确验证，再用 conversation URL + marker + prompt hash 与适用的文本 response hash 或图片 media/content identity 定位
+-> 无未收束 DISPATCHED 时，Provider wait 或 turn settle 可 normal park：撤销 claim/Workspace 并释放 FIFO，system Tab 与 debugger session 保留
+-> 存在未收束 DISPATCHED 时只能 recovery park：保留原 Target/Document 并隔离唯一 Browser lane，不占 Website 业务槽且不阻塞非 Browser 工作
+-> 只有 normal park 释放后，其它 job 才按智慧指挥 FIFO 在同一 Tab 时间片执行；每次重领只做无聚焦精确验证，再用 conversation URL + marker + prompt hash 与适用的文本 response hash 或图片 media/content identity 定位
 ```
 
 操作者不复制密码、不点击“认领当前标签页”。启动器只同步固定扩展 artifact 并启动本地 Shell；它不读取、
@@ -63,7 +65,7 @@ system-owned Target；后续 acquisition 只复用它。扩展不枚举、不复
 - 新页面加载未完成或主 frame Origin 不精确：不得附加、认领或建立 Workspace。
 - 只对首次 acquisition 创建并记录的 inactive system Tab 执行一次 debugger attach；正常 park、任务切换、turn settle 与 AGENT/WebSocket 重启均不 detach/close。创建、重领和轮询全部禁止 `Page.bringToFront`、`windows.update({focused:true})`、`tabs.update({active:true})` 以及任何等价前台化；操作者切出 Chrome 或切换其它 Tab 不得改变 Target 身份，系统不得改变操作者当前 Tab 或前台应用。
 - 每一个 fresh job 在取得 claim 前都必须在同一 system Target 上无条件导航固定 start URL，即使当前 URL 已精确等于 start URL 也不得跳过；必须直接读回新的主 frame loaderId/Document identity，且相对上一停放 Document 已改变，随后 `prepare_clean_gpt_chat` 再证明 zero prior turn、zero attachment、empty draft 与 not generating。不得点击附件 X、创建第二 Tab、切到操作者页面或用旧 Document 冒充新任务。continuation/poll job 由 GPT Child 导航 exact canonical conversation URL，并校验 marker、prompt hash、紧邻 assistant，以及文本的 response hash 或图片的 mediaHash/content identity；禁止用 response hash 拒绝图片。
-- 存在未收束 DISPATCHED 时保留原 Target/Document 和冻结判据；CONFIRMED 后同一 Target 可产生新 Document。所有 park 都撤销 active claim/Workspace 并立即释放 FIFO，其他 job 继续按智慧指挥 FIFO 在同一 system Target 时间片执行。
+- 无未收束 DISPATCHED 时，normal park 撤销 active claim/Workspace 并立即释放 FIFO，其他 job 才可在同一 system Target 时间片执行。存在未收束 DISPATCHED 时，recovery park 必须保留原 Target/Document 和冻结判据，并持有唯一 Browser lane 隔离；其它 Browser job 不得导航或 mutation。该隔离不占用 Website 十个业务槽，不阻塞无需 Browser 的工作，也不产生第二 lane、Tab、queue 或 recovery bypass。Browser Authority 权威证明原 Document 丢失后，target_local 以 `REJECTED + mutation_outcome=dispatched` 保留不确定后终结；provider_effect 仍必须依 WAL、Forensics receipt 与 task-owned locator 只读收束。CONFIRMED 后同一 Target 可产生新 Document。
 - Provider effect 的 logical identity 只在同一业务 attempt/call 内跨 lease、process、Target、build 稳定且至多一次；新 attempt 必须使用包含新 attempt_id 的新 identity，但创建前必须证明前一 attempt 没有未收束 DISPATCHED。Target-local Browser mutation identity 另绑定 target generation，但同 attempt 的 exact call 已有 verified evidence 或 DISPATCHED/CONFIRMED/REJECTED Browser fact 后，禁止在新 Target generation 重做物理 mutation。不存在 verified confirmed effect 时，新 attempt 才能对未完成 effect 用新 exact call identity 首次生产；已有唯一 Browser WAL + Forensics `CONFIRMED + passed` submit receipt 时，即使原 Target 丢失，也只允许同一 accepted attempt 通过现役 acquisition 取得新的合法 system Target/Document，并由 GPT 使用 task-owned submission-locator 只读重证原 conversation/turn，Provider mutation 增量为零。
 - MV3 actor/Service Worker 重建且内存 registry 为空时，只有 Browser WAL 恢复事实给出的确定 `target-tab-<tabId>` 才能触发精确重建：`chrome.debugger.getTargets()` 必须只命中一个同 tabId、`type=page`、`attached=true`、gpt-web Origin 的 Target，当前扩展必须在不调用 `attach` 且不改变 Tab/窗口前台状态的前提下成功执行 `Page.getFrameTree`，然后以同一 targetRef 和当前主 frame 登记一个新 Document。零个、多于一个、未 attached、Origin 不符或当前扩展不能发送 Page 命令都立即返回 `BROWSER_EXACT_TARGET_UNAVAILABLE`，不得建新 Tab、重新 attach、将页面前台化或猜操作者页面。
 
@@ -78,9 +80,9 @@ system-owned Target；后续 acquisition 只复用它。扩展不枚举、不复
 `gpt-web` policy 精确校验 `claimOrigin`，并拒绝在未 revoke 时用不同 `targetRef` 覆盖现有 claim。只有服务端完成
 注册、SQLite/WAL compact claim receipt 持久化并返回现有 ACK 后，扩展和服务端才可报告 Target PRESENT 与 Session Workspace 已建立。
 
-同 Origin 主 frame 导航复用现有 claim 更新 Document lease；停放只撤销 active claim/Workspace并保留扩展内存 Target registry 与同一 debugger session，
+同 Origin 主 frame 导航复用现有 claim 更新 Document lease；normal park 撤销 active claim/Workspace、释放 FIFO 并保留扩展内存 Target registry 与同一 debugger session；recovery park 只撤销上层 Workspace，保留原 Target/Document 并隔离唯一 Browser lane，
 精确重领必须验证同一 tab、主 frame Origin 与 targetRef，随后由 GPT 的 canonical URL + marker + prompt hash 与适用的文本 response hash 或图片 media/content identity 重证当前 Document 的业务语义。内存 registry 存在时沿现役 parked 路径；registry 因 actor 重建丢失时只沿上一节精确 debugger-owned tab 路径重建同一 targetRef，不持久化 registry。DISPATCHED 仍必须匹配原 Document，重建产生的新 Document 不得满足其恢复；CONFIRMED 通常接受同 Target 的新 Document。跨 Origin、Target 关闭或异常 debugger detach 先走现有 revoke 路径；仅当 Provider submit 已有唯一 `CONFIRMED + passed` receipt 时，同一 accepted attempt 才能在权威证明旧 Target 不存在后通过现役 acquisition 建立一个不与旧 Tab 并存的新合法 system Target/Document，由 GPT 只读重证原 conversation/turn且 Provider mutation 为零。socket 断开只把 active claim 转为 parked，不 detach system Tab。正常 turn settle 不关闭 system Target；
-异常 detach 或关闭后不得在同一 turn 争抢式重建。同 attempt 中，只有 Browser Owner 能证明当前 exact call 从未发生物理 dispatch 且无 verified evidence 时，新 Target generation 才能执行该 call 的首次 mutation；DISPATCHED 或未确认事实只能精确重领原 Target 只读 rehydrate，无法恢复则当前 attempt typed fail-close。唯一例外是 Provider submit 已有唯一 `CONFIRMED + passed` receipt：Browser 不恢复旧 Target 身份，而是经现役 acquisition 建立新合法 system Target/Document；GPT 依 task-owned canonical conversation locator 只读重证原 turn，任何 fill/click/submit 等 Provider mutation 都必须为零，Website 仍保留同一 accepted attempt。
+异常 detach 或关闭后不得在同一 turn 争抢式重建。同 attempt 中，只有 Browser Owner 能证明当前 exact call 从未发生物理 dispatch 且无 verified evidence 时，新 Target generation 才能执行该 call 的首次 mutation；DISPATCHED 或未确认事实只能精确重领原 Target/Document 只读 rehydrate。Browser Authority 权威证明原 Document 丢失时，target_local 当前 attempt 以 `REJECTED + mutation_outcome=dispatched` typed fail-close 并释放 Browser lane，不得重放；provider_effect 不得使用该简化结算。唯一换 Target 例外是 Provider submit 已有唯一 `CONFIRMED + passed` receipt：Browser 不恢复旧 Target 身份，而是经现役 acquisition 建立新合法 system Target/Document；GPT 依 task-owned canonical conversation locator 只读重证原 turn，任何 fill/click/submit 等 Provider mutation 都必须为零，Website 仍保留同一 accepted attempt。
 
 ### 3.1 Target-local evidence 与 WAL 事实
 
@@ -163,7 +165,7 @@ Browser Authority 校验 authority + exact call + typed permit
 -> CONFIRMED | REJECTED；回复/终局缺失保持 DISPATCHED
 ```
 
-扩展只允许四种结算：zero-action predicate 已成立时 `CONFIRMED + mutation_outcome=no`；动作机械资格不成立时 `REJECTED + mutation_outcome=no`；一次物理输入后按冻结正反 readback 结算 `CONFIRMED` 或 `REJECTED`，mutation outcome 只表达 `confirmed` 或实际可证明的物理事实；回复或终局证据缺失时保持 `DISPATCHED + mutation_outcome=dispatched`。Browser terminal、物理输入事实、GPT 直接语义后置互相正交，不从邻近事件、错误码或彼此推断。
+扩展只允许四种结算：zero-action predicate 已成立时 `CONFIRMED + mutation_outcome=no`；动作机械资格不成立时 `REJECTED + mutation_outcome=no`；一次物理输入后按冻结正反 readback 结算 `CONFIRMED` 或 `REJECTED`，mutation outcome 只表达 `confirmed` 或实际可证明的物理事实；已鉴权 exact `REPLY.errorCode` 必须结算 `REJECTED`，若不能证明输入为零则保留 `mutation_outcome=dispatched`；只有 deadline 前完全没收到终局 reply 才保持 `DISPATCHED + mutation_outcome=dispatched` 并记录 `BROWSER_COMMAND_RECEIPT_MISSING`。Browser terminal、物理输入事实、GPT 直接语义后置互相正交，不从邻近事件或普通抛错推断。
 
 同一 exact call 一经 DISPATCHED 就只能 settle/rehydrate，不得 fresh re-act；新 Target/Document generation 不产生重做资格。keypress 的有界 repeat 仍是一条 typed command、一次 dispatch；file input 仍是一条批量 `DOM.setFileInputFiles` command；两者都不得扩展为通用 range/JavaScript engine。现役非空 WAL 只允许由唯一 Browser store 的前向 schema migration 原位补齐新机械字段和 readback，不得重建表、清空历史、双读写或增加第二 mutation store。
 
@@ -172,10 +174,16 @@ Browser Authority 校验 authority + exact call + typed permit
 Browser 只保留一条最多十个 waiter 的有界严格 FIFO。normal、inspection、recovery 使用相同 acquire 入口，无 priority、抢占、aging、保留槽或 recovery bypass。Provider wait 的 `nextCheckAt` 是 coroutine 瞬时事实，未到时不进 FIFO且不持久化。
 
 - normal Provider wait park：只在 exact submit 已 CONFIRMED、pending mutation 为零、当前无待收束 postcondition 且 Target/Document/conversation/turn 恢复锚点完整时允许；
-- recovery park：专用于存在 unresolved DISPATCHED 的任务局部现场，必须保留原正负 postcondition 判据；
-- 两者都撤销 active claim/Workspace 并立即释放 FIFO；其它 job 可在同一 system Tab 时间片执行，原 job 重领时通常保持 targetRef，并以 URL + marker + prompt hash 及文本 response hash 或图片 media/content identity 重建 conversation 语义；confirmed submit 后旧 Target 权威消失的唯一例外按第 3 节以新合法 system Target 只读重证且 mutation 为零。
+- recovery park：专用于 unresolved DISPATCHED，必须保留原 Target/Document 与正负 postcondition 判据，并持有唯一 Browser lane 隔离；它不占 Website 业务槽，不阻塞非 Browser 工作；
+- 只有 normal park 立即释放 FIFO，其它 job 才可在同一 system Tab 时间片执行。recovery park 禁止其它 Browser job 导航或 mutation，直到原现场只读收束，或 Browser Authority 权威证明原 Document 不存在并按 effect scope 结算：target_local 终结 `REJECTED + dispatched`，provider_effect 继续依 WAL/receipt/locator 对账。confirmed submit 后旧 Target 权威消失的唯一例外按第 3 节以新合法 system Target 只读重证且 mutation 为零。
 
 Provider wait 的 absoluteDeadline 由 exact submit 首次 CONFIRMED 的 immutable terminalAt + Product timeoutMs 派生。WAL 必须在现有 compact row 内冻结 terminalAt；可变 `updated_at` 不得刷新 deadline，也不得新建 terminal-time 第二表。
+
+### 3.2.1 唯一附件交接点
+
+Website 继续是材料原件与 object binding 的唯一 durable Owner。Runtime 从 Website 下载后，只在当前 task-owned 临时目录保留已校验 bytes，并在当前 `job_id + attempt_id + exact execution binding` 下通过 Browser public facade 提交 `{artifactRef, localPath, sha256, bytes}`。Browser 只在该 execution 的内存 lease 中重做 realpath、regular-file、SHA-256 和 bytes 校验，然后签发 file grant；settle/abort 必须释放绑定，进程重启必须由 Runtime 从 Website durable truth 重新下载并重绑。
+
+Browser 不得复制附件、创建 Browser 私有上传目录、持久 artifact registry、保留 settle 后映射，或建立第二 resolver/store/ledger。附件跨 Product→GPT 边界只允许稳定 `artifactRef/hash/bytes/providerDisplayName`，不得携带 Product 在既有 task-owned `LocalProductionMaterial` 中为本 Product 材料解析而取得的 `local_path`；Product 不得调用 Browser 附件绑定，GPT 不取得 `localPath`，只有 Runtime 可把已校验 task-owned 路径绑定到 Browser public facade。完整本地路径只能在 Browser 已鉴权 file-input 命令调用期进入 request，不进入 reply、WAL、log、proof 或 error。
 
 Browser Authority 同时是当前已鉴权页面资源传输的唯一 Owner。调用方只能提交 GPT Owner 已在紧邻 user turn 的 exact 外层 assistant section 中机械确认的 assistantTurnId、semanticMediaId、
 预期 media type 与 task-owned 接收端口，不能提交任意资源 URL、cookie、token 或第二 transport 指令。扩展必须在同一个原子命令内重新证明当前 exact
@@ -204,8 +212,7 @@ session-level Target claim gate。唯一时序为 exact job durable 接受 -> �
 物理删除“查询并复用既存 ChatGPT Target”、单/多候选选择分支及其测试，不存在 manual/auto 兼容桥、feature flag、
 fallback 或第二 claim path。
 
-同时物理删除 Browser lane 的全局 `unsettled` 闸门、reconciliation 抢占旁路和“一个任务现场把全局 ledger 置假”的判定。
-普通执行与恢复执行统一进入同一有界 FIFO；恢复身份只从 Browser WAL 按 job + plugin step 派生，不接受调用方自报。
+同时物理删除 reconciliation 抢占旁路和“一个任务现场把十个业务槽或全局 Runtime ledger 置假”的判定。普通执行与恢复执行统一进入同一有界 FIFO；但任一 unresolved DISPATCHED 必须由现有 lane 的唯一 owner/quarantine 状态阻止同 Tab 上的后续 Browser 导航和 mutation，直到只读收束或按 effect scope 终结。这不是第二 queue、第二 recovery lane 或业务 capacity gate。恢复身份只从 Browser WAL 按 job + plugin step 派生，不接受调用方自报。
 
 ## 6. 质检与真实验收
 
@@ -213,12 +220,13 @@ fallback 或第二 claim path。
 2. 确定性测试覆盖 Authority READY 与空闲期间不创建/认领、首个 job-bound acquisition 后忽略既存操作者页面并只创建一个
    inactive visible Target、加载完成前不 attach、精确 Origin 复核、创建/claim/reacquire 的零 `Page.bringToFront/windows.update focused=true/tabs.update active=true`、debugger 冲突、服务端拒绝、ACK 超时、同 Origin
    Document 更新、跨 Origin revoke、正常 settle/断线不 close/detach、park/revoke/FIFO release、跨 job 同 Target 时间片复用、
-   整体销毁并重建 `ExtensionTargetAuthority` 后从仍由本扩展 debugger 持有的精确 tabId 恢复同一 targetRef 且不调用 attach/create、attached=false/Origin 错误/多义时立即 `BROWSER_EXACT_TARGET_UNAVAILABLE`，DISPATCHED 原 Document 不因新 Document 被误放行，Provider effect 跨 Target 禁重放、同 attempt 已有 verified evidence 的 Target-local call 跨 Target generation 物理 mutation count 为零、原 Target 不可只读恢复时未确认/DISPATCHED attempt fail-close；另须覆盖 confirmed submit 后原 Target 被关闭或异常 detach，同一 accepted attempt 经现役 acquisition 取得新合法 system Target/Document、GPT 只读导航并重证原 conversation/turn、fill/click/submit mutation count 全为零且继续取得原成果；以及一个 job 的恢复现场不阻断后续 job，
+   整体销毁并重建 `ExtensionTargetAuthority` 后从仍由本扩展 debugger 持有的精确 tabId 恢复同一 targetRef 且不调用 attach/create、attached=false/Origin 错误/多义时立即 `BROWSER_EXACT_TARGET_UNAVAILABLE`，DISPATCHED 原 Document 不因新 Document 被误放行，Provider effect 跨 Target 禁重放、同 attempt 已有 verified evidence 的 Target-local call 跨 Target generation 物理 mutation count 为零、原 Document 权威不存在时 target_local 精确结算 `REJECTED + dispatched`、provider_effect 仍留在 receipt/locator 只读对账；另须覆盖 confirmed submit 后原 Target 被关闭或异常 detach，同一 accepted attempt 经现役 acquisition 取得新合法 system Target/Document、GPT 只读导航并重证原 conversation/turn、fill/click/submit mutation count 全为零且继续取得原成果；以及一个 job 的 unresolved DISPATCHED 只隔离 Browser lane、不占 Website 业务槽且不阻塞非 Browser 工作，隔离期间后续 Browser job 导航/mutation 增量为零，
    以及 DOM candidate 零/多、Provider 重绘后的 stale node、已识别 no-layout/no-box 与真实畸形 CDP payload 分别映射为 missing/ambiguous、`BROWSER_DOM_NODE_STALE`、当次不可见候选与 `BROWSER_DOM_READ_INVALID`，真正 Target/Document failure 不得与它们混淆；fresh retry 丢弃旧 nodeId、重新 query 且物理 mutation增量为零、既有 CONFIRMED WAL 不变；同 URL fresh reset 仍必须产生新 loaderId/Document，返回相同或缺失 loaderId 必须失败关闭，且第二 Tab、附件 X、操作者页面 mutation count 均为零；以及 exact 外层 assistant section 在内层 assistant-role/text 都缺席时仍可凭唯一 semanticMediaId 取得媒体、section 零/一/多的原子判定、三个 raw img 仅一个完整可见非空 alt 语义媒体、display/visibility/opacity 隐藏负例、同 URL 与不同 URL 同 bytes 的 content-hash 去重、两个不同 content hash 拒绝、fetch rejection 映射稳定 Browser code、跨 turn/Document 拒绝、绑定 Target/Document hash 与 conversation/turn/prompt/content identity 的已鉴权原始 bytes receipt，异常 debugger detach 原生 cause 不被外层通用码覆盖。
-   DOM/WAL 聚焦分母还必须逐字段覆盖 coherent packet 的 exact call/Target/Document/currentUrl/revision/observedAt、raw/eligible count、connected、layout、display/visibility/opacity、hidden/aria-hidden/inert、disabled/aria-disabled、role/name/testId/label/value/checked/type、按需 viewport/hit-test 与 native cause/stage；每个字段分别 mutate，调用中途 redraw/Document change 必须令整包失效。URL 专项必须证明 `location.href` 与 DOM facts 只在同一次 `Runtime.callFunctionOn` 读取一次，query/fragment 总是物理丢弃，userinfo、非 https、非精确 Origin、多段/空 conversation path、缺失 currentUrl 均整包 fail-close，`currentUrl` 任一改变都会改变 observationRevisionHash；从 TARGET_CLAIM、Page.getFrameTree、第二次读取或 caller 拼装的 mutant 必须被杀死。还必须证明 TARGET_CLAIM wire 只有 claimOrigin、coherent reply 只有 currentUrl、通用 observation 不含 rawDomHtml/semanticText、专用 assistant-turn reply-only channel 才可返回二者，以及完整 URL 不进入 Browser WAL/log/proof/registry。mutation property/mutant 必须覆盖 PREPARED、发送前 DISPATCHED、扩展 zero-action、qualification reject、一次 click、bounded keypress、隐藏 file input、扩展崩溃、reply 丢失、新 generation 禁重做和非空旧 WAL 前向迁移；任何第二 dispatch、direct hidden-slider write、new range command、任意 JavaScript/selector、schema rebuild 或从 mutation outcome 推断 Browser terminal 的 mutant 都必须被杀死。
+   DOM/WAL 聚焦分母还必须逐字段覆盖 coherent packet 的 exact call/Target/Document/currentUrl/revision/observedAt、raw/eligible count、connected、layout、display/visibility/opacity、hidden/aria-hidden/inert、disabled/aria-disabled、role/name/testId/label/value/checked/type、按需 viewport/hit-test 与 native cause/stage；每个字段分别 mutate，调用中途 redraw/Document change 必须令整包失效。URL 专项必须证明 `location.href` 与 DOM facts 只在同一次 `Runtime.callFunctionOn` 读取一次，query/fragment 总是物理丢弃，userinfo、非 https、非精确 Origin、多段/空 conversation path、缺失 currentUrl 均整包 fail-close，`currentUrl` 任一改变都会改变 observationRevisionHash；从 TARGET_CLAIM、Page.getFrameTree、第二次读取或 caller 拼装的 mutant 必须被杀死。还必须证明 TARGET_CLAIM wire 只有 claimOrigin、coherent reply 只有 currentUrl、通用 observation 不含 rawDomHtml/semanticText、专用 assistant-turn reply-only channel 才可返回二者，以及完整 URL 不进入 Browser WAL/log/proof/registry。mutation property/mutant 必须覆盖 PREPARED、发送前 DISPATCHED、扩展 zero-action、qualification reject、一次 click、bounded keypress、隐藏 file input、明确 `REPLY.errorCode`、真实 reply 丢失、disconnect、late reply、扩展崩溃、动作前/动作后失败、新 generation 禁重做和非空旧 WAL 前向迁移；必须走完 `Extension REPLY.errorCode -> WebSocket acceptReply -> BrowserCommandActor -> WAL` 真实调用链，证明明确错误结算 REJECTED 而非 receipt missing，只有无 reply 保留 DISPATCHED。任何第二 dispatch、direct hidden-slider write、new range command、任意 JavaScript/selector、schema rebuild 或从 mutation outcome 推断 Browser terminal 的 mutant 都必须被杀死。
+   附件分母必须从 Runtime 生产下载的 task-owned 临时文件走到 Browser public binding、realpath/hash/bytes 重验和唯一 file-input grant；证明生产 consumer 真实可达、settle/abort 释放内存绑定、重启从 Website durable truth 重建，Browser 复制、Browser 私有附件目录、持久 registry 与 settle 后残留的 mutant 全部失败。
 3. 服务端测试证明 TARGET_CLAIM 缺失或不精确等于 `https://chatgpt.com` 的 claimOrigin、claim 帧出现完整 URL/path/query/fragment/conversation identity、未 revoke 的不同 `targetRef` 覆盖和未确认 Workspace全部失败；claimOrigin 不得进入 GPT coherent packet。
 4. 真实 Chrome 证明：启动 AGENT 后固定扩展自动配对且 Target absent；无需复制密码或点击 popup；首个 exact job
-   durable 接受后才以 `tabs.create({active:false})` 创建唯一 visible system ChatGPT Target，且操作者既存页面、当前 Tab 和前台应用完全不受影响；三个并发业务任务始终只有该一个 tabId/targetRef，不人工点击也能执行。每个 normal wait 短 probe 必须依次产生同一 targetRef 的 park/无聚焦 reacquire，park 只撤销 active claim/Workspace并释放全局 FIFO，扩展保留同一 debugger session、tabId 与 parked registry；随后真实重启 MV3 actor，在不点击页面、不创建 Tab、不重新 attach、不前台化的情况下从同一 debugger-owned tabId 恢复同一 targetRef 与新 Document。操作者先切到其它应用，再切到其它 Chrome Tab 的两组验收中，reacquire 都只执行 `Page.getFrameTree` 且必须继续上传、submit、一小时轮询、checkpoint 与 Product 下一步，`tabs.create active=true/Page.bringToFront/windows.update focused=true/tabs.update active=true` 计数必须为零；正常 DOM 重绘不得再产生 `BROWSER_TARGET_INVALID`，真正 lifecycle failure 必须保留自己的精确 code；不得留下两个并存 production Tab或未终态 Browser 调用。还必须用真实附件证明：文件卡片先出现、ready SVG 曾短暂无 layout box 时系统继续在同一 Product timeout 内 fresh query，ready 后 `write_exact_gpt_prompt` 实际开始且无第二次 file-input mutation；上一 job 留有附件卡片时，下一 fresh job 即使已停在根 URL 仍在同一 Target 强制取得新 loaderId/Document，并由 `prepare_clean_gpt_chat` 证明 attachment=0，且不点击 X、不建第二 Tab。normal wait/recovery park 后其它 job 在同一 Tab 时间片执行；原 job 重领时以 canonical URL + marker + 请求正文 prompt hash + 文本 response hash 或图片 media/content identity 回到正确回合，外层 user turn 的附件卡片与控制文字不得改变 prompt hash。AGENT 重启且原 Target 仍在时不新建 Tab、不重发已 CONFIRMED submit，并继续 SEO 下一步；Provider terminalAt 不变。还必须完成一条真实 Chrome 端到端故障验收：图片 submit 已唯一 `CONFIRMED + passed` 后，物理关闭原 system Target或制造真实异常 debugger detach，权威确认旧 Target 已不存在；Website 保留同一 accepted attempt，现役 acquisition 只创建一个 inactive 替代 system Target/Document，GPT 导航原 conversation 并用 locator 重证原 user turn，所有 attach/profile/prompt/draft/submit Provider mutation 增量为零，随后取得原图 bytes、生成 1200×630 WebP、checkpoint、staging 并取得同一 job 的 Website business admission receipt。turn settle 后 system Tab parked 而非关闭，后续 fresh job 复位根页并复用同一 Target。
+   durable 接受后才以 `tabs.create({active:false})` 创建唯一 visible system ChatGPT Target，且操作者既存页面、当前 Tab 和前台应用完全不受影响；三个并发业务任务始终只有该一个 tabId/targetRef，不人工点击也能执行。每个 normal wait 短 probe 必须依次产生同一 targetRef 的 park/无聚焦 reacquire，normal park 撤销 active claim/Workspace 并释放 FIFO，扩展保留同一 debugger session、tabId 与 parked registry；随后真实重启 MV3 actor，在不点击页面、不创建 Tab、不重新 attach、不前台化的情况下从同一 debugger-owned tabId 恢复同一 targetRef 与新 Document。操作者先切到其它应用，再切到其它 Chrome Tab 的两组验收中，reacquire 都只执行 `Page.getFrameTree` 且必须继续上传、submit、一小时轮询、checkpoint 与 Product 下一步，`tabs.create active=true/Page.bringToFront/windows.update focused=true/tabs.update active=true` 计数必须为零；正常 DOM 重绘不得再产生 `BROWSER_TARGET_INVALID`，真正 lifecycle failure 必须保留自己的精确 code；不得留下两个并存 production Tab或未终态 Browser 调用。还必须用真实附件证明：Runtime 生产 material 经 Browser public binding 真实可达，Browser 不复制且 settle/abort 释放绑定；文件卡片先出现、ready SVG 曾短暂无 layout box 时系统继续在同一 Product timeout 内 fresh query，ready 后 `write_exact_gpt_prompt` 实际开始且无第二次 file-input mutation。上一 job 留有附件卡片时，下一 fresh job 只能在无 unresolved DISPATCHED 隔离后于同一 Target 强制取得新 loaderId/Document，并由 `prepare_clean_gpt_chat` 证明 attachment=0，且不点击 X、不建第二 Tab。normal park 后其它 job 可在同一 Tab 时间片执行；recovery park 期间其它 Browser job 导航/mutation 必须为零，但 Website 业务槽和非 Browser 工作不得被占死。原 job 重领时以 canonical URL + marker + 请求正文 prompt hash + 文本 response hash 或图片 media/content identity 回到正确回合，外层 user turn 的附件卡片与控制文字不得改变 prompt hash。AGENT 重启且原 Target 仍在时不新建 Tab、不重发已 CONFIRMED submit，并继续 SEO 下一步；Provider terminalAt 不变。还必须完成一条真实 Chrome 端到端故障验收：图片 submit 已唯一 `CONFIRMED + passed` 后，物理关闭原 system Target或制造真实异常 debugger detach，权威确认旧 Target 已不存在；Website 保留同一 accepted attempt，现役 acquisition 只创建一个 inactive 替代 system Target/Document，GPT 导航原 conversation 并用 locator 重证原 user turn，所有 attach/profile/prompt/draft/submit Provider mutation 增量为零，随后取得原图 bytes、生成 1200×630 WebP、checkpoint、staging 并取得同一 job 的 Website business admission receipt。turn settle 后 system Tab parked 而非关闭，后续 fresh job 复位根页并复用同一 Target。
 5. 启动器检查证明 scripts/startup 与 `grasseye:start` 不使用 Chrome Target API、不打开 ChatGPT、不发送
    `TARGET_CLAIM`、不创建或认领任务。
 
@@ -228,7 +236,7 @@ fallback 或第二 claim path。
 正文闭环：终态 Owner 是 `local-browser-session`；输入是当前 release identity、精确 Extension Origin、
 exact job 接受事实、唯一 system Chrome Target 元数据，以及需要时的精确 assistant turn 媒体 identity；输出是已确认的
 connection-bound Workspace receipt 或绑定 content identity 的已鉴权媒体 receipt。状态只持久进入现有 SQLite/WAL
-compact mutation row 与调用方现役 artifact/checkpoint，调用方向固定为 Extension -> Workbench -> Browser Owner。失败恢复将 exact Target 停放为任务局部现场并释放 Workspace/FIFO，
+compact mutation row 与调用方现役 artifact/checkpoint，调用方向固定为 Extension -> Workbench -> Browser Owner。失败恢复将 exact Target/Document 停放为任务局部现场；normal park 释放 Workspace/FIFO，unresolved DISPATCHED 的 recovery park 只释放上层 Workspace 并隔离唯一 Browser lane，不占业务槽或阻塞非 Browser 工作，
 安全边界拒绝调用方 selector、坐标和 tab 身份；验收必须同时证明唯一 system Target、既存页面零影响、正常 settle 不关闭、
-park 后释放全局 FIFO、跨 job 单 Tab 时间片、URL + marker + prompt hash 与适用的 text response hash 或 image media/content identity 精确重领、生成媒体原始 bytes 的唯一已鉴权链和 revoke 后失效；mutation outcome 只能是
+normal park 后释放 FIFO、recovery park 隔离 Browser lane、跨 job 单 Tab 时间片、URL + marker + prompt hash 与适用的 text response hash 或 image media/content identity 精确重领、生成媒体原始 bytes 的唯一已鉴权链和 revoke 后失效；mutation outcome 只能是
 现役三值枚举，不得产生额外状态。

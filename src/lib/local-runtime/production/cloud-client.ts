@@ -27,8 +27,11 @@ import {
 } from "./contracts.js";
 import { ProductionWorkerSession } from "./worker-session.js";
 import { ProductionRuntimeStore } from "./store.js";
-import type { GeneratedImageArtifact, ProductPluginOutput } from "./plugin.js";
-import { resolveProductionPlugin } from "./catalog.js";
+import type {
+  GeneratedImageArtifact,
+  GeneratedImageResultReceipt,
+  ProductPluginOutput,
+} from "../../../mediator/product-plugin-contract.js";
 import { executionFailure } from "../../execution-failure.js";
 import type { SerializedExecutionFailure } from "./terminal-failure.js";
 import { productionCloudFetch } from "./cloud-transport.js";
@@ -316,6 +319,31 @@ async function uploadGeneratedImage(
   });
 }
 
+export async function uploadProductionGeneratedImage(
+  session: ProductionWorkerSession,
+  store: ProductionRuntimeStore,
+  job: ClaimedProductionTask,
+  image: GeneratedImageArtifact,
+): Promise<Readonly<{
+  receipt: GeneratedImageResultReceipt;
+  transportReceipt: UploadedResultReceipt;
+}>> {
+  const transportReceipt = await uploadGeneratedImage(session, store, job, image);
+  return Object.freeze({
+    transportReceipt,
+    receipt: Object.freeze({
+      artifact_id: transportReceipt.artifact_id,
+      object_ref: transportReceipt.object_ref,
+      sha256: transportReceipt.sha256,
+      receipt_hash: transportReceipt.receipt_hash,
+      bytes: transportReceipt.byte_length,
+      mime_type: image.media_type,
+      width: image.width,
+      height: image.height,
+    }),
+  });
+}
+
 type ProductionResultUploadInput = Readonly<{
   session: ProductionWorkerSession;
   store: ProductionRuntimeStore;
@@ -323,29 +351,8 @@ type ProductionResultUploadInput = Readonly<{
   identity: DurablePluginIdentity;
   output: ProductPluginOutput;
   continuationRef: string | null;
+  priorArtifactReceipts?: readonly UploadedResultReceipt[];
 }>;
-
-const uploadGeneratedImagePayload = async (input: ProductionResultUploadInput): Promise<Readonly<{
-  payload: unknown;
-  imageReceipt: UploadedResultReceipt | null;
-}>> => {
-  if (!input.output.generated_image) return { payload: input.output.payload, imageReceipt: null };
-  const image = input.output.generated_image;
-  const imageReceipt = await uploadGeneratedImage(input.session, input.store, input.job, image.artifact);
-  return {
-    imageReceipt,
-    payload: image.assemblePayload(Object.freeze({
-      artifact_id: imageReceipt.artifact_id,
-      object_ref: imageReceipt.object_ref,
-      sha256: imageReceipt.sha256,
-      receipt_hash: imageReceipt.receipt_hash,
-      bytes: imageReceipt.byte_length,
-      mime_type: image.artifact.media_type,
-      width: image.artifact.width,
-      height: image.artifact.height,
-    })),
-  };
-};
 
 const buildProductionResultEnvelope = (
   input: ProductionResultUploadInput,
@@ -397,11 +404,8 @@ export async function uploadProductionResult(input: ProductionResultUploadInput)
   envelope_receipt: UploadedResultReceipt;
   artifact_receipts: readonly UploadedResultReceipt[];
 }>> {
-  const prepared = await uploadGeneratedImagePayload(input);
-  resolveProductionPlugin(input.job.product_id, input.job.action_id)
-    .plugin.parseResult(input.job, prepared.payload, "final");
   const payloadReceipt = await uploadJsonObject(
-    input.session, input.store, input.job, "result_payload", prepared.payload,
+    input.session, input.store, input.job, "result_payload", input.output.payload,
   );
   const executionContextReceipt = input.output.execution_context === undefined ? null
     : await uploadJsonObject(
@@ -416,7 +420,7 @@ export async function uploadProductionResult(input: ProductionResultUploadInput)
     payload_receipt: payloadReceipt,
     envelope_receipt: envelopeReceipt,
     artifact_receipts: Object.freeze([
-      ...(prepared.imageReceipt ? [prepared.imageReceipt] : []),
+      ...(input.priorArtifactReceipts ?? []),
       ...(executionContextReceipt ? [executionContextReceipt] : []),
       payloadReceipt, envelopeReceipt,
     ]),

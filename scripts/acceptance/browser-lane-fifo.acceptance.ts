@@ -1,5 +1,5 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -140,8 +140,8 @@ try {
   });
   assert.equal(
     supervisor.readBrowserLaneState(),
-    "idle",
-    "a historical job-scoped DISPATCHED command must not deadlock unrelated jobs after restart",
+    "blocked",
+    "a historical DISPATCHED command must quarantine the sole Browser lane after restart",
   );
   assert.equal(
     supervisor.readBrowserReconciliationScope({
@@ -202,6 +202,22 @@ try {
   assert.deepEqual([recovered.target.targetRef, recovered.document.documentRef],
     ["target:historic", "document:historic"]);
   await recovered.park({ reason: "recovery-scope-proven", mode: "recovery" });
+  assert.equal(supervisor.readBrowserLaneState(), "blocked",
+    "recovery park must retain Browser-lane quarantine while releasing the upper execution");
+
+  let unrelatedResolved = false;
+  const unrelatedWhileQuarantined = supervisor.acquireJobBoundTargetLease(
+    binding("job:quarantined-unrelated"),
+    "owner:quarantined-unrelated",
+    { signal: openSignal.signal, remainingMs: () => 60_000 },
+  ).then((lease) => {
+    unrelatedResolved = true;
+    return lease;
+  });
+  await Promise.resolve();
+  assert.equal(unrelatedResolved, false);
+  assert.deepEqual(acquisitions, ["job:historic"],
+    "an unrelated Browser job must perform zero acquisition/navigation while DISPATCHED is unresolved");
 
   leaseIdentities.set("job:historic", {
     targetRef: "target:historic", documentRef: "document:historic:changed",
@@ -213,23 +229,87 @@ try {
     ),
     (error) => {
       const failure = typedBrowserExecutionFailure(error);
-      assert.equal(failure?.code, "BROWSER_DOCUMENT_INVALID");
+      assert.equal(failure?.code, "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT");
       assert.equal(failure?.mutationOutcome, "dispatched");
+      assert.deepEqual(failure?.browserEffect, {
+        effectScope: "target_local",
+        childCapabilityId: "open_gpt_model_selector_v2",
+        browserOutcome: "REJECTED",
+      });
       return true;
     },
-    "DISPATCHED recovery must retain the original Target and Document",
+    "Browser must terminalize target-local DISPATCHED when its original Document is authoritatively absent",
   );
-  leaseIdentities.set("job:historic", {
-    targetRef: "target:historic:changed", documentRef: "document:historic",
-  });
-  await assert.rejects(
-    supervisor.acquireJobBoundTargetLease(
-      binding("job:historic", "historic-step", "gpt-turn-flow.v3"), "owner:historic:wrong-target",
-      { signal: openSignal.signal, remainingMs: () => 60_000 },
-    ),
-    /BROWSER_DOCUMENT_INVALID/u,
-  );
+  assert.equal(supervisor.readBrowserReconciliationScope({
+    jobId: "job:historic", ownerPluginId: "plugin",
+  }), null);
+  const releasedUnrelated = await unrelatedWhileQuarantined;
+  assert.equal(unrelatedResolved, true,
+    "the existing FIFO must resume after Browser has terminalized the quarantined mutation");
+  await releasedUnrelated.close({ reason: "quarantine-terminalized" });
   leaseIdentities.delete("job:historic");
+
+  const liveMutationStore = Reflect.get(
+    Reflect.get(supervisor, "state") as object,
+    "mutationState",
+  ) as BrowserMutationStore;
+  liveMutationStore.prepare({
+    commandId: "claim-proven-lost-command",
+    exactCallIdentityHash: `sha256:${"9".repeat(64)}`,
+    ownerPluginId: "plugin",
+    pluginVersion: 1,
+    jobId: "job:claim-proven-lost",
+    attemptId: "attempt:job:claim-proven-lost",
+    leaseVersion: 1,
+    executionFenceHash: HASH,
+    productStepId: "claim-proven-step",
+    childCapabilityId: "open_gpt_model_selector_v2",
+    callId: "claim-proven-call",
+    effectScope: "target_local",
+    actionOrdinal: 1,
+    targetRef: "target:claim-proven",
+    documentRef: "document:claim-proven:old",
+    actionId: "browser.dom.click.v1",
+    positivePostconditionHash: HASH,
+    negativePostconditionHash: `sha256:${"8".repeat(64)}`,
+    requestHash: HASH,
+    payloadHash: HASH,
+  });
+  liveMutationStore.markDispatched("claim-proven-lost-command");
+  const laneControl = lane as Readonly<{
+    reset(): void;
+    observeCurrentTargetClaim(input: Readonly<{ targetRef: string; documentRef: string }>): void;
+  }>;
+  laneControl.reset();
+  assert.equal(supervisor.readBrowserLaneState(), "blocked");
+  const acquisitionsBeforeClaimSettlement = acquisitions.length;
+  laneControl.observeCurrentTargetClaim({
+    targetRef: "target:claim-proven",
+    documentRef: "document:claim-proven:new",
+  });
+  assert.equal(supervisor.readBrowserLaneState(), "idle");
+  assert.equal(acquisitions.length, acquisitionsBeforeClaimSettlement,
+    "an authenticated current Target/Document claim must settle the lost target-local row with zero navigation/mutation");
+  assert.deepEqual(liveMutationStore.readExactCallMutationFact({
+    jobId: "job:claim-proven-lost",
+    attemptId: "attempt:job:claim-proven-lost",
+    ownerPluginId: "plugin",
+    pluginVersion: 1,
+    exactCallIdentityHash: `sha256:${"9".repeat(64)}`,
+    actionOrdinal: 1,
+  })?.outcome, "REJECTED");
+  const runtimeLogPath = logger.currentSegmentPath();
+  assert.ok(runtimeLogPath, "Browser lane acceptance must retain a durable Runtime Log segment");
+  const rejectedMutationEvents = (await readFile(runtimeLogPath, "utf8")).trim().split("\n")
+    .filter(Boolean)
+    .map((line) => JSON.parse(line) as Readonly<{
+      code?: string;
+      typedIdentity?: Readonly<{ commandId?: string }>;
+    }>)
+    .filter((event) => event.code === "BROWSER_MUTATION_REJECTED"
+      && event.typedIdentity?.commandId === "claim-proven-lost-command");
+  assert.equal(rejectedMutationEvents.length, 1,
+    "target-local lost-document settlement must project exactly one BROWSER_MUTATION_REJECTED Runtime Log event");
 
   leaseIdentities.set("job:confirmed", {
     targetRef: "target:confirmed", documentRef: "document:confirmed:2",

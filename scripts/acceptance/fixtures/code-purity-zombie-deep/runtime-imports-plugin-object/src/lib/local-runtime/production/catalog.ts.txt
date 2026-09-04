@@ -1,0 +1,3 @@
+import { productionPluginCatalog } from "../../../mediator/product-plugin-catalog.js";
+
+export const runtimeCatalog = productionPluginCatalog;

@@ -1,0 +1,3 @@
+export const loadCatalog = async (): Promise<unknown> => import("../../../mediator/product-plugin-catalog.js");
+
+void loadCatalog();

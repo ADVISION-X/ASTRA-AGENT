@@ -1,11 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
-import { copyFile, mkdir, readFile, realpath, rename, rm, stat } from "node:fs/promises";
-import path from "node:path";
+import { readFile, realpath, stat } from "node:fs/promises";
 import type { BrowserTargetLeaseManager, BrowserExactTargetAcquisition } from "../exact-target/browser-target-lease-manager.js";
 import type { BrowserApprovedArtifactRef, BrowserTargetLease } from "../exact-target/browser-target-lease.js";
 import type { BrowserFileArtifactGrantV1 } from "../exact-target/browser-file-artifact-grant.js";
 import type { BrowserAuthorityIssuer } from "./browser-authority-issuer.js";
 import type { BrowserControlledTarget, BrowserHash } from "../exact-target/browser-target-ref.js";
+import { hashBrowserAuthorityCertificate } from "./browser-authority-certificate.js";
 
 type BrowserExecutionBindingCore = Readonly<{
   ownerPluginId: string;
@@ -66,78 +66,69 @@ export type AuthenticatedBrowserAuthorityLease = Readonly<{
   release(): Promise<void>;
 }>;
 
-export type BrowserArtifactResolver = Readonly<{
-  registerArtifact(input: Readonly<{
-    artifactRef: string;
-    filePath: string;
-    contentHash: BrowserHash;
-    sizeBytes: number;
-  }>): Promise<void>;
-  resolveArtifact(artifactRef: string): Promise<Readonly<{ canonicalPath: string; contentHash: BrowserHash; sizeBytes: number }>>;
+export type BrowserExecutionArtifactBinding = Readonly<{
+  ownerPluginId: string;
+  pluginVersion: number;
+  jobId: string;
+  attemptId: string;
+  deviceId: string;
+  leaseVersion: number;
+  writerFenceHash: BrowserHash;
 }>;
 
-type RegisteredBrowserArtifact = Readonly<{
+export type BrowserExecutionArtifact = Readonly<{
+  artifactRef: string;
+  localPath: string;
+  contentHash: BrowserHash;
+  sizeBytes: number;
+}>;
+
+export type BrowserExecutionArtifactLease = Readonly<{
+  release(): void;
+}>;
+
+type BoundBrowserArtifact = Readonly<{
   canonicalPath: string;
   contentHash: BrowserHash;
   sizeBytes: number;
 }>;
 
-const MAX_REGISTERED_BROWSER_ARTIFACTS = 100;
+type BrowserArtifactScope = ReadonlyMap<string, BoundBrowserArtifact>;
 
-export class BrowserArtifactRegistry implements BrowserArtifactResolver {
-  private readonly artifacts = new Map<string, RegisteredBrowserArtifact>();
+const MAX_BOUND_BROWSER_EXECUTIONS = 10;
+const MAX_EXECUTION_ARTIFACTS = 64;
 
-  public constructor(private readonly allowedRoot: string) {}
+const artifactBindingKey = (binding: BrowserExecutionArtifactBinding): string => JSON.stringify([
+  binding.ownerPluginId,
+  binding.pluginVersion,
+  binding.jobId,
+  binding.attemptId,
+  binding.deviceId,
+  binding.leaseVersion,
+  binding.writerFenceHash,
+]);
 
-  public async registerArtifact(input: Readonly<{
-    artifactRef: string;
-    filePath: string;
-    contentHash: BrowserHash;
-    sizeBytes: number;
-  }>): Promise<void> {
-    const sourcePath = await realpath(input.filePath);
-    const metadata = await stat(sourcePath);
-    const bytes = await readFile(sourcePath);
-    const actualHash = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
-    if (!metadata.isFile()
-      || metadata.size !== input.sizeBytes
-      || actualHash !== input.contentHash) {
-      throw new Error("BROWSER_FILE_GRANT_INVALID");
-    }
-    await mkdir(this.allowedRoot, { recursive: true, mode: 0o700 });
-    const root = await realpath(this.allowedRoot);
-    const artifactDirectory = path.join(root, input.contentHash.slice("sha256:".length));
-    await mkdir(artifactDirectory, { recursive: true, mode: 0o700 });
-    const stagedPath = path.join(artifactDirectory, path.basename(sourcePath));
-    const temporaryPath = `${stagedPath}.${randomUUID()}.tmp`;
-    try {
-      await copyFile(sourcePath, temporaryPath);
-      await rename(temporaryPath, stagedPath);
-    } finally {
-      await rm(temporaryPath, { force: true });
-    }
-    const canonicalPath = await realpath(stagedPath);
-    const relativePath = path.relative(root, canonicalPath);
-    if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
-      throw new Error("BROWSER_FILE_GRANT_INVALID");
-    }
-    if (this.artifacts.size >= MAX_REGISTERED_BROWSER_ARTIFACTS) {
-      const oldest = this.artifacts.keys().next().value as string | undefined;
-      if (oldest) this.artifacts.delete(oldest);
-    }
-    this.artifacts.set(input.artifactRef, {
-      canonicalPath,
-      contentHash: input.contentHash,
-      sizeBytes: input.sizeBytes,
-    });
+const executionArtifactBinding = (binding: BrowserExecutionBinding): BrowserExecutionArtifactBinding => ({
+  ownerPluginId: binding.ownerPluginId,
+  pluginVersion: binding.pluginVersion,
+  jobId: binding.jobId,
+  attemptId: binding.attemptId,
+  deviceId: binding.deviceId,
+  leaseVersion: binding.leaseVersion,
+  writerFenceHash: binding.writerFenceHash,
+});
+
+const resolveBoundArtifact = async (artifact: BoundBrowserArtifact): Promise<BoundBrowserArtifact> => {
+  const canonicalPath = await realpath(artifact.canonicalPath);
+  const metadata = await stat(canonicalPath);
+  const bytes = await readFile(canonicalPath);
+  const actualHash = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+  if (canonicalPath !== artifact.canonicalPath || !metadata.isFile()
+    || metadata.size !== artifact.sizeBytes || actualHash !== artifact.contentHash) {
+    throw new Error("BROWSER_FILE_GRANT_INVALID");
   }
-
-  public async resolveArtifact(artifactRef: string): Promise<RegisteredBrowserArtifact> {
-    const artifact = this.artifacts.get(artifactRef);
-    if (!artifact) throw new Error("BROWSER_FILE_GRANT_INVALID");
-    return artifact;
-  }
-}
+  return artifact;
+};
 
 export type BrowserOperatorTargetClaim = Readonly<{
   authorityEpoch: number;
@@ -148,6 +139,7 @@ export type BrowserOperatorTargetClaim = Readonly<{
 }>;
 
 type GrantedPathEntry = Readonly<{
+  artifactRef: string;
   path: string;
   expiresAt: string;
   contentHash: BrowserHash;
@@ -174,7 +166,8 @@ const controlledTargetForClaim = (
 const resolveGrantedPaths = async (
   grantedPaths: ReadonlyMap<string, GrantedPathEntry>,
   grants: readonly BrowserFileArtifactGrantV1[],
-): Promise<readonly string[]> => grants.map((grant) => {
+  resolveCurrentArtifact: (artifactRef: string) => Promise<BoundBrowserArtifact>,
+): Promise<readonly string[]> => Promise.all(grants.map(async (grant) => {
   const registered = grantedPaths.get(grant.grantRef);
   if (!registered
     || registered.expiresAt !== grant.expiresAt
@@ -183,11 +176,18 @@ const resolveGrantedPaths = async (
     || Date.parse(registered.expiresAt) <= Date.now()) {
     throw new Error("BROWSER_FILE_GRANT_INVALID");
   }
-  return registered.path;
-});
+  const artifact = await resolveCurrentArtifact(registered.artifactRef);
+  if (artifact.canonicalPath !== registered.path
+    || artifact.contentHash !== registered.contentHash
+    || artifact.sizeBytes !== registered.maxBytes) {
+    throw new Error("BROWSER_FILE_GRANT_INVALID");
+  }
+  return artifact.canonicalPath;
+}));
 
 export class BrowserAuthorityBroker {
   private operatorTargetClaim: BrowserOperatorTargetClaim | null = null;
+  private readonly executionArtifacts = new Map<string, BrowserArtifactScope>();
   public constructor(
     private readonly issuer: BrowserAuthorityIssuer,
     private readonly assertTransportLive: () => void,
@@ -199,7 +199,6 @@ export class BrowserAuthorityBroker {
         artifacts: readonly BrowserApprovedArtifactRef[],
       ) => Promise<readonly BrowserFileArtifactGrantV1[]>,
     ) => Pick<BrowserTargetLeaseManager, "acquire">,
-    private readonly artifactResolver: BrowserArtifactResolver,
   ) {}
 
   public currentStatus(): BrowserAuthorityStatus {
@@ -207,10 +206,53 @@ export class BrowserAuthorityBroker {
     if (slot.kind === "ABSENT") return { kind: "UNAVAILABLE", reasonCode: slot.reasonCode };
     return {
       kind: "AVAILABLE",
-      authorityRefHash: `sha256:${slot.authority.authorityRef}`,
-      certificateHash: `sha256:${slot.authority.authTranscriptHash.slice(7)}`,
+      authorityRefHash: `sha256:${createHash("sha256").update(slot.authority.authorityRef).digest("hex")}`,
+      certificateHash: hashBrowserAuthorityCertificate(slot.authority),
       channelSessionHash: slot.authority.channelSessionHash,
     };
+  }
+
+  /** Runtime binds its task-local files; Browser keeps only an execution-scoped in-memory view. */
+  public async bindExecutionArtifacts(input: Readonly<{
+    binding: BrowserExecutionArtifactBinding;
+    artifacts: readonly BrowserExecutionArtifact[];
+  }>): Promise<BrowserExecutionArtifactLease> {
+    if (!input.binding.ownerPluginId || !Number.isInteger(input.binding.pluginVersion)
+      || input.binding.pluginVersion < 1 || !input.binding.jobId || !input.binding.attemptId
+      || !input.binding.deviceId || !Number.isInteger(input.binding.leaseVersion)
+      || input.binding.leaseVersion < 1 || !/^sha256:[a-f0-9]{64}$/u.test(input.binding.writerFenceHash)
+      || input.artifacts.length > MAX_EXECUTION_ARTIFACTS) {
+      throw new Error("BROWSER_FILE_GRANT_INVALID");
+    }
+    const key = artifactBindingKey(input.binding);
+    if (this.executionArtifacts.has(key) || this.executionArtifacts.size >= MAX_BOUND_BROWSER_EXECUTIONS) {
+      throw new Error("BROWSER_BACKPRESSURE");
+    }
+    const artifacts = new Map<string, BoundBrowserArtifact>();
+    for (const artifact of input.artifacts) {
+      if (!artifact.artifactRef || artifacts.has(artifact.artifactRef)
+        || !Number.isSafeInteger(artifact.sizeBytes) || artifact.sizeBytes < 0
+        || !/^sha256:[a-f0-9]{64}$/u.test(artifact.contentHash)) {
+        throw new Error("BROWSER_FILE_GRANT_INVALID");
+      }
+      const canonicalPath = await realpath(artifact.localPath);
+      const bound = await resolveBoundArtifact({
+        canonicalPath,
+        contentHash: artifact.contentHash,
+        sizeBytes: artifact.sizeBytes,
+      });
+      artifacts.set(artifact.artifactRef, bound);
+    }
+    const scope = artifacts as BrowserArtifactScope;
+    this.executionArtifacts.set(key, scope);
+    let released = false;
+    return Object.freeze({
+      release: () => {
+        if (released) return;
+        released = true;
+        if (this.executionArtifacts.get(key) === scope) this.executionArtifacts.delete(key);
+      },
+    });
   }
 
   public currentOperatorTargetStatus(): "claimed" | "absent" {
@@ -271,6 +313,7 @@ export class BrowserAuthorityBroker {
     if (slot.kind === "ABSENT") throw new Error(slot.reasonCode);
     this.assertTransportLive();
     const grantedPaths = new Map<string, GrantedPathEntry>();
+    const artifactScopeKey = artifactBindingKey(executionArtifactBinding(binding));
     let released = false;
     const assertLive = (): void => {
       if (released) throw new Error("BROWSER_LIVENESS_EXPIRED");
@@ -287,7 +330,9 @@ export class BrowserAuthorityBroker {
     }>): Promise<BrowserFileArtifactGrantV1> => {
       assertLive();
       if (!Number.isSafeInteger(maxBytes) || maxBytes < 1) throw new Error("BROWSER_FILE_GRANT_INVALID");
-      const artifact = await this.artifactResolver.resolveArtifact(artifactRef);
+      const boundArtifact = this.executionArtifacts.get(artifactScopeKey)?.get(artifactRef);
+      if (!boundArtifact) throw new Error("BROWSER_FILE_GRANT_INVALID");
+      const artifact = await resolveBoundArtifact(boundArtifact);
       if (artifact.contentHash !== expectedSha256 || artifact.sizeBytes !== maxBytes) {
         throw new Error("BROWSER_FILE_GRANT_INVALID");
       }
@@ -302,6 +347,7 @@ export class BrowserAuthorityBroker {
         expiresAt: new Date(Date.now() + 300_000).toISOString(),
       } as const;
       grantedPaths.set(grant.grantRef, {
+        artifactRef,
         path: artifact.canonicalPath,
         expiresAt: grant.expiresAt,
         contentHash: grant.contentHash,
@@ -311,7 +357,11 @@ export class BrowserAuthorityBroker {
     };
     const manager = this.targetLeaseManagerFor(
       binding,
-      (grants) => resolveGrantedPaths(grantedPaths, grants),
+      (grants) => resolveGrantedPaths(grantedPaths, grants, async (artifactRef) => {
+        const artifact = this.executionArtifacts.get(artifactScopeKey)?.get(artifactRef);
+        if (!artifact) throw new Error("BROWSER_FILE_GRANT_INVALID");
+        return resolveBoundArtifact(artifact);
+      }),
       () => {
         const currentClaim = this.operatorTargetClaim;
         if (!currentClaim || currentClaim.authorityEpoch !== slot.authority.authorityEpoch) return null;

@@ -5,9 +5,8 @@ import {
   hashCanonical,
   sha256,
   type WebsiteAgentTask,
-} from "../../lib/local-runtime/production/contracts.js";
-import type { SharedExecutionContext } from "../../lib/local-runtime/production/plugin.js";
-import { productionRoutePolicy } from "../../lib/local-runtime/production/route-policy.js";
+} from "../../mediator/product-plugin-contract.js";
+import type { SharedExecutionContext } from "../../mediator/product-plugin-contract.js";
 import {
   MODEL_PROFILE,
   PLUGIN_ID,
@@ -15,7 +14,6 @@ import {
   markerFor,
   promptFor,
   runFreshTurn,
-  skill,
   type Checkpoint,
 } from "./product-turn.js";
 import {
@@ -27,8 +25,6 @@ import {
   validateFollowupContract,
   verifyParentContinuation,
 } from "./parent-continuation.js";
-
-export { productSkillHash } from "./product-turn.js";
 
 type FollowupExecutionContextInput = Readonly<{
   task: WebsiteAgentTask;
@@ -108,7 +104,7 @@ const followupExecutionContext = (input: FollowupExecutionContextInput) => {
     turn_marker: input.checkpoint.turnMarker,
     material_roles: ["bazi_input_bundle", "result_contract"],
     result_contract_hash: hashCanonical(
-      productionRoutePolicy(input.task.product_id, input.task.action_id).result_contract ?? {},
+      input.context.routePolicy.result_contract ?? {},
     ),
   });
   return Object.freeze({
@@ -117,7 +113,9 @@ const followupExecutionContext = (input: FollowupExecutionContextInput) => {
     input_materials: followupMaterials(input.context),
     product_skill: Object.freeze({
       plugin_id: PLUGIN_ID, plugin_version: 8, skill_version: "current-plugin-skill",
-      exact_bytes_utf8: skill.text, sha256: skill.hash, may_issue_instruction: false,
+      exact_bytes_utf8: input.context.productSkill.text,
+      sha256: input.context.productSkill.hash,
+      may_issue_instruction: false,
     }),
     execution_profile: Object.freeze({ value: MODEL_PROFILE, hash: hashCanonical(MODEL_PROFILE) }),
     private_base: null,
@@ -140,7 +138,7 @@ export const executeOwnedFlow = async (
     try {
       await verifyParentContinuation(task, flow, lane);
       const checkpoint = await runContinuationTurn(task, context, flow, prompt, marker);
-      const payload = receive(task, checkpoint);
+      const payload = receive(task, checkpoint, context);
       await advanceContinuation(task, flow, lane, checkpoint, context.gpt.attemptId);
       advanced = true;
       return context.complete({
@@ -153,6 +151,6 @@ export const executeOwnedFlow = async (
     }
   }
   const checkpoint = await runFreshTurn(task, context, flow, prompt, marker);
-  const payload = receive(task, checkpoint);
+  const payload = receive(task, checkpoint, context);
   return context.complete({ payload, evidence_refs: flow.evidenceRefs() });
 };

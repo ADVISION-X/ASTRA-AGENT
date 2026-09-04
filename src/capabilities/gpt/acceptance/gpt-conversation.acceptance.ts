@@ -7,6 +7,7 @@ import { throwGptChildFailure } from "../production-child-support.js";
 import { serializeTerminalFailure } from "../../../lib/local-runtime/production/terminal-failure.js";
 import {
   exerciseBrowserDispatchedEvidenceReadback,
+  exerciseBrowserRejectedDispatchedEvidenceReadback,
   exerciseBrowserRejectedEvidenceReadback,
   exerciseFailedEvidenceReadback,
 } from "./gpt-failure-evidence-readback.acceptance-support.js";
@@ -209,6 +210,7 @@ const freshHarness = () => createGptAcceptanceHarness("gpt-browser-handoff");
 }
 
 await exerciseBrowserRejectedEvidenceReadback();
+await exerciseBrowserRejectedDispatchedEvidenceReadback();
 await exerciseBrowserDispatchedEvidenceReadback();
 
 {

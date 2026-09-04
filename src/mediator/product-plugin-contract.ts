@@ -1,19 +1,115 @@
-import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 
-import type {
-  LocalProductionMaterial,
-  ProductionActionId,
-  ProductionHash,
-  ProductionProductId,
-  WebsiteAgentResult,
-  WebsiteAgentTask,
-} from "./contracts.js";
-import { sha256 } from "./contracts.js";
-import { TypedExecutionFailure, executionFailure } from "../../execution-failure.js";
 import type {
   GptProviderContinuation,
   ProductGptTools,
-} from "../../../capabilities/gpt/index.js";
+} from "../capabilities/gpt/index.js";
+import { TypedExecutionFailure, executionFailure } from "../lib/execution-failure.js";
+
+export type ProductionHash = `sha256:${string}`;
+export type ProductionProductId = string;
+export type ProductionActionId = string;
+
+export type ProductMaterial = Readonly<{
+  material_id: string;
+  ordinal: number;
+  role: string;
+  display_name: string;
+  object_ref: string;
+  sha256: ProductionHash;
+  bytes: number;
+  media_type: string;
+  storage_class: "shared_static" | "private_owner_scoped";
+  owner_scope_hash: ProductionHash | null;
+  trust_class: "instruction" | "locked_fact" | "nonbinding_prior_interpretation"
+    | "user_provided_data" | "classical_source_data" | "transport_evidence";
+  may_issue_instruction: boolean;
+}>;
+
+export type LocalProductionMaterial = ProductMaterial & Readonly<{ local_path: string }>;
+
+export interface WebsiteAgentTask {
+  readonly schema_version: "website-agent-task.v1";
+  readonly protocol_version: "xuanxue-ai-production-v6";
+  readonly job_id: string;
+  readonly source_task_id: string;
+  readonly product_id: ProductionProductId;
+  readonly action_id: ProductionActionId;
+  readonly idempotency_key: string;
+  readonly request_hash: ProductionHash;
+  readonly task_contract_id: "website-agent-task";
+  readonly task_contract_version: 1;
+  readonly business_identity: Readonly<{
+    owner_ref: string;
+    subject_ref: string;
+    authorization_ref: string;
+  }>;
+  readonly business_context_ref: string;
+  readonly business_context_hash: ProductionHash;
+  readonly parameters: Readonly<Record<string, unknown>>;
+  readonly material_refs: readonly ProductMaterial[];
+  readonly result_contract_id: "website-agent-result";
+  readonly result_contract_version: 1;
+  readonly privacy_subject_ref?: string | undefined;
+  readonly continuation_ref?: string | undefined;
+  readonly parent_task_ref?: string | undefined;
+  readonly parent_result_ref?: string | undefined;
+  readonly parent_result_hash?: ProductionHash | undefined;
+  readonly subject_task_ref?: string | undefined;
+  readonly subject_result_ref?: string | undefined;
+  readonly subject_result_hash?: ProductionHash | undefined;
+  readonly review_policy?: string | undefined;
+}
+
+export interface ProductCompletionReceipt {
+  readonly schema_version: "website-agent-result.v1";
+  readonly job_id: string;
+  readonly source_task_id: string;
+  readonly product_id: ProductionProductId;
+  readonly action_id: ProductionActionId;
+  readonly plugin_id: string;
+  readonly plugin_version: number;
+  readonly result_contract_id: "website-agent-result";
+  readonly result_contract_version: 1;
+  readonly result_payload_ref: string;
+  readonly result_payload_hash: ProductionHash;
+  readonly result_payload_bytes: number;
+  readonly result_payload_media_type: string;
+  readonly result_object_receipt: Readonly<{
+    object_ref: string;
+    sha256: ProductionHash;
+    bytes: number;
+    media_type: string;
+    receipt_hash: ProductionHash;
+  }>;
+  readonly execution_context_object_receipt?: Readonly<{
+    object_ref: string;
+    sha256: ProductionHash;
+    bytes: number;
+    media_type: "application/json";
+    receipt_hash: ProductionHash;
+  }>;
+  readonly evidence_refs: readonly string[];
+  readonly execution_receipt_hash: ProductionHash;
+  readonly continuation_ref?: string;
+}
+
+export interface ProductionRoutePolicy {
+  readonly product_id: ProductionProductId;
+  readonly action_id: ProductionActionId;
+  readonly required_parameter_keys: readonly string[];
+  readonly material_roles: readonly Readonly<{
+    role: string;
+    trust_class: ProductMaterial["trust_class"];
+    may_issue_instruction: boolean;
+    media_types: readonly string[];
+    storage_class: ProductMaterial["storage_class"];
+    owner_scope_policy: "required" | "forbidden";
+  }>[];
+  readonly result_schema_version: string;
+  readonly result_contract?: Readonly<Record<string, unknown>> | undefined;
+  readonly relation_kind: "primary" | "continuation" | "review";
+}
 
 export interface GeneratedImageArtifact {
   readonly artifact_id: string;
@@ -37,6 +133,55 @@ export interface GeneratedImageResultReceipt {
   readonly width: number;
   readonly height: number;
 }
+
+export interface ProductPluginOutput {
+  readonly payload: unknown;
+  readonly evidence_refs: readonly string[];
+  readonly execution_context?: unknown | undefined;
+  readonly continuation?: GptProviderContinuation | null | undefined;
+}
+
+export interface ProductSkill {
+  readonly text: string;
+  readonly hash: ProductionHash;
+}
+
+export interface SharedExecutionContext {
+  readonly materials: readonly LocalProductionMaterial[];
+  readonly routePolicy: ProductionRoutePolicy;
+  readonly productSkill: ProductSkill;
+  readonly gpt: ProductGptTools;
+  readonly uploadGeneratedImage: (artifact: GeneratedImageArtifact) => Promise<GeneratedImageResultReceipt>;
+  readonly complete: (output: ProductPluginOutput) => Promise<ProductCompletionReceipt>;
+}
+
+export interface ProductPlugin {
+  readonly pluginId: string;
+  readonly pluginVersion: number;
+  readonly checkpointSchemaVersion: number;
+  readonly accepts: readonly Readonly<{
+    productId: ProductionProductId;
+    actionId: ProductionActionId;
+  }>[];
+  execute(task: WebsiteAgentTask, context: SharedExecutionContext): Promise<ProductCompletionReceipt>;
+}
+
+export type ProductDispatchContext = Omit<SharedExecutionContext, "productSkill">;
+
+export const sha256 = (value: string | Uint8Array): ProductionHash =>
+  `sha256:${createHash("sha256").update(value).digest("hex")}`;
+
+export const hashCanonical = (value: unknown): ProductionHash => {
+  const canonical = (input: unknown): unknown => {
+    if (Array.isArray(input)) return input.map(canonical);
+    if (input && typeof input === "object") return Object.fromEntries(
+      Object.entries(input as Record<string, unknown>).sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, nested]) => [key, canonical(nested)]),
+    );
+    return typeof input === "string" ? input.normalize("NFC") : input;
+  };
+  return sha256(JSON.stringify(canonical(value)));
+};
 
 export type ProductCheckpointReceipt = Readonly<{
   artifactRef: string;
@@ -90,6 +235,9 @@ export const postCheckpointReceiverFault = (
 export const postCheckpointReceiverReceipt = (error: unknown): ProductCheckpointReceipt | null =>
   handoffReceipt(error, "POST_CHECKPOINT_RECEIVER_FAULT:");
 
+const RESULT_HASH = /^sha256:[a-f0-9]{64}$/u;
+const resultFailure = (code: string): never => { throw executionFailure("failed", code); };
+
 export const postSubmitReadbackFault = (
   code: string,
   input: PostSubmitReadbackReceiptInput,
@@ -136,51 +284,6 @@ export const gptTextContinuationCheckpointInput = (
   evidenceHash: checkpoint.evidenceHash,
 });
 
-export interface SharedExecutionContext {
-  readonly materials: readonly LocalProductionMaterial[];
-  readonly gpt: ProductGptTools;
-  readonly complete: (output: ProductPluginOutput) => Promise<WebsiteAgentResult>;
-}
-
-export interface ProductPluginOutput {
-  readonly payload: unknown;
-  readonly evidence_refs: readonly string[];
-  readonly execution_context?: unknown;
-  readonly continuation?: GptProviderContinuation | null;
-  readonly generated_image?: Readonly<{
-    artifact: GeneratedImageArtifact;
-    assemblePayload: (receipt: GeneratedImageResultReceipt) => unknown;
-  }>;
-}
-
-export interface ProductPlugin {
-  readonly pluginId: string;
-  readonly pluginVersion: number;
-  readonly skillHash: ProductionHash;
-  readonly checkpointSchemaVersion: number;
-  readonly accepts: readonly Readonly<{
-    productId: ProductionProductId;
-    actionId: ProductionActionId;
-  }>[];
-  readonly parseResult: (
-    task: WebsiteAgentTask,
-    value: unknown,
-    phase: "draft" | "final",
-  ) => Readonly<Record<string, unknown>>;
-  execute(task: WebsiteAgentTask, context: SharedExecutionContext): Promise<WebsiteAgentResult>;
-}
-
-export const readProductSkill = (pluginModuleUrl: string): Readonly<{
-  path: string;
-  text: string;
-  hash: ProductionHash;
-}> => {
-  const path = new URL("./SKILL.md", pluginModuleUrl).pathname;
-  const text = readFileSync(path, "utf8").normalize("NFC");
-  if (!text.trim()) throw new Error("PLUGIN_SKILL_EMPTY");
-  return Object.freeze({ path, text, hash: sha256(text) });
-};
-
 type ParsedPluginObject = Readonly<{ start: number; end: number; value: Record<string, unknown> }>;
 
 const pluginObjectAt = (raw: string, start: number): ParsedPluginObject | null => {
@@ -225,9 +328,6 @@ export function parsePluginJsonObject(raw: string, code: string): Readonly<Recor
   }
   return Object.freeze(outermost[0]!.value);
 }
-
-const RESULT_HASH = /^sha256:[a-f0-9]{64}$/u;
-const resultFailure = (code: string): never => { throw executionFailure("failed", code); };
 
 const resultObject = (value: unknown, code: string): Record<string, unknown> => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return resultFailure(code);
@@ -314,7 +414,6 @@ const parseReview = (raw: string): Readonly<Record<string, unknown>> => {
   return Object.freeze(output);
 };
 
-/** Product-neutral validation primitives; each Product Plugin owns its business schema. */
 export const productResultValidation = Object.freeze({
   array: resultArray,
   commonReport,
@@ -329,3 +428,38 @@ export const productResultValidation = Object.freeze({
   stringArray: resultStringArray,
   text: resultText,
 });
+
+export function evaluateExactNestedResultContract(input: Readonly<{
+  artifactHash: ProductionHash;
+  value: Readonly<Record<string, unknown>>;
+  contract: Readonly<Record<string, unknown>>;
+  topLevelFieldsKey: string;
+  nestedArrayFields: Readonly<Record<string, string>>;
+}>): Readonly<{
+  artifact_hash: ProductionHash;
+  contract_hash: ProductionHash;
+  outcome: "accepted";
+  evaluation_hash: ProductionHash;
+}> {
+  const expectedTop = input.contract[input.topLevelFieldsKey];
+  if (!Array.isArray(expectedTop) || !expectedTop.every((field) => typeof field === "string")
+    || Object.keys(input.value).sort().join("\0") !== [...expectedTop].sort().join("\0")) {
+    throw new Error("EXACT_NESTED_RESULT_CONTRACT_TOP_LEVEL_INVALID");
+  }
+  for (const [valueKey, contractKey] of Object.entries(input.nestedArrayFields)) {
+    const expectedFields = input.contract[contractKey];
+    const values = input.value[valueKey];
+    if (!Array.isArray(expectedFields) || !expectedFields.every((field) => typeof field === "string")
+      || !Array.isArray(values)) throw new Error("EXACT_NESTED_RESULT_CONTRACT_ARRAY_INVALID");
+    for (const child of values) {
+      if (!child || typeof child !== "object" || Array.isArray(child)
+        || Object.keys(child).sort().join("\0") !== [...expectedFields].sort().join("\0")) {
+        throw new Error("EXACT_NESTED_RESULT_CONTRACT_CHILD_INVALID");
+      }
+    }
+  }
+  const contractHash = hashCanonical(input.contract);
+  const stable = { kind: "exact-nested-result-contract-evaluation.v1",
+    artifact_hash: input.artifactHash, contract_hash: contractHash, outcome: "accepted" as const };
+  return Object.freeze({ ...stable, evaluation_hash: hashCanonical(stable) });
+}

@@ -8,16 +8,17 @@ import {
   type BrowserHealthSnapshot,
 } from "../browser/infrastructure/browser-infrastructure-supervisor.js";
 import type {
+  BrowserExecutionArtifact,
+  BrowserExecutionArtifactBinding,
+  BrowserExecutionArtifactLease,
   BrowserExecutionBinding,
+  BrowserExactCallMutationFact,
+  BrowserMutationReconciliationScope,
   BrowserTargetLease,
 } from "../browser/browser-authority-api.js";
 import { hashExtensionDirectoryV1 } from "../browser/release/extension-directory-hash-v1.js";
 import { readUnpackedExtensionReleaseIdentity } from "../browser/release/unpacked-extension-release-identity.js";
 import type { RuntimeLogger } from "../runtime-logs/index.js";
-import type {
-  BrowserExactCallMutationFact,
-  BrowserMutationReconciliationScope,
-} from "../browser/exact-target/browser-mutation-store.js";
 
 export type WorkbenchBrowserAuthority = Readonly<{
   broker: Pick<
@@ -40,8 +41,12 @@ export type WorkbenchBrowserAuthority = Readonly<{
     browserAuthorityState: "present" | "absent";
     browserTargetState: "claimed" | "absent";
   }>;
-  readBrowserLaneState(): "idle" | "busy";
+  readBrowserLaneState(): "idle" | "busy" | "blocked";
   readBrowserLaneWaiterCount(): number;
+  bindExecutionArtifacts(input: Readonly<{
+    binding: BrowserExecutionArtifactBinding;
+    artifacts: readonly BrowserExecutionArtifact[];
+  }>): Promise<BrowserExecutionArtifactLease>;
   hasUnresolvedBrowserMutation(): boolean;
   hasBrowserMutationForJob(jobId: string): boolean;
   countProviderTurnDispatches(jobId: string, attemptId: string): number;
@@ -138,6 +143,7 @@ export const createWorkbenchBrowserAuthority = async (
     }),
     readBrowserLaneState: () => supervisor.readBrowserLaneState(),
     readBrowserLaneWaiterCount: () => supervisor.readBrowserLaneWaiterCount(),
+    bindExecutionArtifacts: (input) => supervisor.bindExecutionArtifacts(input),
     hasUnresolvedBrowserMutation: () =>
       supervisor.hasUnresolvedBrowserMutation(),
     hasBrowserMutationForJob: (jobId) => supervisor.hasBrowserMutationForJob(jobId),

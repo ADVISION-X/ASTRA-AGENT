@@ -2,12 +2,12 @@ import type {
   ExactGptContinuationReadback,
   GptProviderContinuation,
 } from "../../capabilities/gpt/index.js";
-import type { WebsiteAgentTask } from "../../lib/local-runtime/production/contracts.js";
+import type { WebsiteAgentTask } from "../../mediator/product-plugin-contract.js";
 import type {
   GeneratedImageArtifact,
   ProductPlugin,
   SharedExecutionContext,
-} from "../../lib/local-runtime/production/plugin.js";
+} from "../../mediator/product-plugin-contract.js";
 import {
   advanceLane,
   applyExactProfile,
@@ -38,7 +38,6 @@ import {
   articlePrompt,
   attachmentFiles,
   expectedUploadedFiles,
-  productSkillHash,
   providerDisplayNames,
   researchPrompt,
   reviewPrompt,
@@ -109,8 +108,11 @@ const produceResearchTurn = async (
   const uploadedFiles = expectedUploadedFiles(files, context.gpt.attemptId);
   const stepId = "corpus_research";
   const marker = turnMarker(task, context.gpt.attemptId, stepId);
-  const prompt = researchPrompt(task, marker, providerDisplayNames(files, context.gpt.attemptId));
-  const submitCall = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 12, input: { files: uploadedFiles, promptHash: textHash(prompt), turnMarker: marker } } as const;
+  const prompt = researchPrompt(
+    task, marker, providerDisplayNames(files, context.gpt.attemptId),
+    context.routePolicy, context.productSkill,
+  );
+  const submitCall = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 13, input: { files: uploadedFiles, promptHash: textHash(prompt), turnMarker: marker } } as const;
   const submitFacts = await flow.facts(submitCall);
   const recoveredReadback = await context.gpt.readContinuationExact({
     lookupKind: "turn_marker", turnMarker: marker,
@@ -121,18 +123,18 @@ const produceResearchTurn = async (
     && recovered.prior_turn_marker === marker
     && recovered.prior_prompt_hash === textHash(prompt) ? recovered : undefined;
   await prepareAttachedTurnPrefix({
-    flow, stepId, files, uploadedFiles,
+    flow, stepId, uploadedFiles,
     recoverOnly: Boolean(submitFacts.mutation || submitFacts.evidence),
   });
   const checkpoint = await submitTextTurn({
     flow, stepId, prompt, marker, files: uploadedFiles,
-    ordinals: [10, 11, 12, 13, 14, 15],
+    ordinals: [11, 12, 13, 14, 15, 16],
     ...(recoveryProvider ? { recoveryProvider } : {}),
   });
   const provider = continuationProvider(task, checkpoint);
   const persisted = await flow.execute({
     sessionKey: "", productStepId: stepId, callId: "continuation-persist",
-    child: "persist_gpt_continuation", actionOrdinal: 16,
+    child: "persist_gpt_continuation", actionOrdinal: 17,
     input: {
       authorizationRef: task.business_identity.authorization_ref,
       jobId: task.job_id,
@@ -169,7 +171,7 @@ const produceResearchTurn = async (
       rawDomHtml: checkpoint.rawDomHtml,
       semanticText: checkpoint.semanticText,
     }),
-    result: receiveResearch(task, context.gpt.attemptId, checkpoint),
+    result: receiveResearch(task, context.gpt.attemptId, checkpoint, context.routePolicy),
   });
 };
 
@@ -189,14 +191,16 @@ const recoverResearchTurn = async (
   if (!readback) return null;
   if (readback.lookupKind !== "frontier_ref") fail("SEO_RESEARCH_FRONTIER_READBACK_INVALID");
   const checkpoint = checkpointFromReadback(readback.originCheckpoint);
-  flow.recordRecoveredEvidence(15, checkpoint.evidenceRef);
+  flow.recordRecoveredEvidence(16, checkpoint.evidenceRef);
   return Object.freeze({
     checkpoint,
     continuationRef: readback.continuationRef,
     provider: readback.originProvider,
     currentProvider: readback.currentProvider,
     currentCheckpoint: readback.currentCheckpoint,
-    result: receiveResearch(task, readback.originCheckpoint.sourceAttemptId, checkpoint),
+    result: receiveResearch(
+      task, readback.originCheckpoint.sourceAttemptId, checkpoint, context.routePolicy,
+    ),
   });
 };
 
@@ -209,49 +213,51 @@ const produceArticleTurn = async (
 ): Promise<ArticleTurn> => {
   const stepId = "article_synthesis";
   const marker = turnMarker(task, context.gpt.attemptId, stepId);
-  const prompt = articlePrompt(task, marker);
-  const submitCall = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 27, input: { files: [], promptHash: textHash(prompt), turnMarker: marker } } as const;
+  const prompt = articlePrompt(task, marker, context.routePolicy, context.productSkill);
+  const submitCall = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 29, input: { files: [], promptHash: textHash(prompt), turnMarker: marker } } as const;
   const submitFacts = await flow.facts(submitCall);
   const recovering = Boolean(submitFacts.mutation || submitFacts.evidence);
   const lane = await focusContinuation(
-    flow, task, stepId, continuationRef, researchProvider, [17, 18, 19], 32,
+    flow, task, stepId, continuationRef, researchProvider, [18, 19, 20], 34,
   );
   let advanced = false;
   try {
-    if (recovering) await requireExactProfileEvidence(flow, stepId, [20, 21, 22, 23, 24]);
-    else await applyExactProfile(flow.execute, stepId, [20, 21, 22, 23, 24]);
+    if (recovering) await requireExactProfileEvidence(flow, stepId, [21, 22, 23, 24, 25, 26]);
+    else await applyExactProfile(flow.execute, stepId, [21, 22, 23, 24, 25, 26]);
     const checkpoint = await submitTextTurn({
-      flow, stepId, prompt, marker, files: [], ordinals: [25, 26, 27, 28, 29, 30],
+      flow, stepId, prompt, marker, files: [], ordinals: [27, 28, 29, 30, 31, 32],
     });
-    const result = receiveArticle(task, context.gpt.attemptId, checkpoint);
+    const result = receiveArticle(task, context.gpt.attemptId, checkpoint, context.routePolicy);
     await advanceLane(flow.execute, task, stepId, lane, {
       canonicalConversationUrl: checkpoint.canonicalConversationUrl,
       promptHash: checkpoint.promptHash,
       rawOutputHash: checkpoint.semanticTextHash,
       turnMarker: checkpoint.turnMarker,
-    }, continuationTextCheckpoint(context.gpt.attemptId, checkpoint), 31);
+    }, continuationTextCheckpoint(context.gpt.attemptId, checkpoint), 33);
     advanced = true;
     return Object.freeze({ checkpoint, sourceAttemptId: context.gpt.attemptId, result });
   } finally {
-    if (!advanced) await releaseLane(flow.execute, task, stepId, lane, 32);
+    if (!advanced) await releaseLane(flow.execute, task, stepId, lane, 34);
   }
 };
 
 const recoverArticleTurn = (
   task: WebsiteAgentTask,
+  context: SharedExecutionContext,
   flow: SeoFlow,
   checkpoint: ExactGptTextCheckpointReadback,
 ): ArticleTurn => {
   const restored = checkpointFromReadback(checkpoint);
-  flow.recordRecoveredEvidence(30, restored.evidenceRef);
+  flow.recordRecoveredEvidence(32, restored.evidenceRef);
   return Object.freeze({
     checkpoint: restored,
     sourceAttemptId: checkpoint.sourceAttemptId,
-    result: receiveArticle(task, checkpoint.sourceAttemptId, restored),
+    result: receiveArticle(task, checkpoint.sourceAttemptId, restored, context.routePolicy),
   });
 };
 
-const completeArticlePackage = (
+const completeArticlePackage = async (
+  task: WebsiteAgentTask,
   context: SharedExecutionContext,
   flow: SeoFlow,
   research: Readonly<Record<string, unknown>>,
@@ -263,31 +269,33 @@ const completeArticlePackage = (
     research, article, image: null,
     _agent_reception: receptionSidecar(research, article),
   });
+  const receipt = await context.uploadGeneratedImage(image);
+  const payload = Object.freeze({ ...draft, image: Object.freeze({
+    schema_version: "public-knowledge-agent-hero-image.v1",
+    ...receipt,
+  }) });
   return context.complete({
-    payload: draft,
+    payload: parseProductResult(task, payload, context.routePolicy, "final"),
     evidence_refs: flow.evidenceRefs(),
-    generated_image: {
-      artifact: image,
-      assemblePayload: (receipt) => Object.freeze({ ...draft, image: Object.freeze({
-        schema_version: "public-knowledge-agent-hero-image.v1",
-        ...receipt,
-      }) }),
-    },
   });
 };
 
 const completeDeclinedResearch = (
+  task: WebsiteAgentTask,
   context: SharedExecutionContext,
   flow: SeoFlow,
   research: Readonly<Record<string, unknown>>,
-) => context.complete({
-  payload: {
+) => {
+  const payload = {
     schema_version: "public-knowledge-article-package.v1",
     research, article: null, image: null,
     _agent_reception: receptionSidecar(research, null),
-  },
-  evidence_refs: flow.evidenceRefs(),
-});
+  };
+  return context.complete({
+    payload: parseProductResult(task, payload, context.routePolicy, "final"),
+    evidence_refs: flow.evidenceRefs(),
+  });
+};
 
 const executeArticleProduction = async (
   task: WebsiteAgentTask,
@@ -298,15 +306,15 @@ const executeArticleProduction = async (
   const research = await recoverResearchTurn(task, context, flow, frontierRef)
     ?? await produceResearchTurn(task, context, flow, frontierRef);
   if (research.result.decision === "decline") {
-    return completeDeclinedResearch(context, flow, research.result);
+    return completeDeclinedResearch(task, context, flow, research.result);
   }
   if (research.currentCheckpoint.checkpointKind === "generated_image") {
     const article = recoverArticleTurn(
-      task, flow, research.currentCheckpoint.predecessorTextCheckpoint,
+      task, context, flow, research.currentCheckpoint.predecessorTextCheckpoint,
     );
     flow.recordRecoveredEvidence(45, research.currentCheckpoint.evidenceRef);
     return completeArticlePackage(
-      context, flow, research.result, article.result, imageFromReadback(research.currentCheckpoint),
+      task, context, flow, research.result, article.result, imageFromReadback(research.currentCheckpoint),
     );
   }
   const currentIsResearch = sameProvider(research.currentProvider, research.provider)
@@ -314,7 +322,7 @@ const executeArticleProduction = async (
     && research.currentCheckpoint.artifactRef === research.checkpoint.artifactRef;
   const article = currentIsResearch
     ? await produceArticleTurn(task, context, flow, research.continuationRef, research.provider)
-    : recoverArticleTurn(task, flow, research.currentCheckpoint);
+    : recoverArticleTurn(task, context, flow, research.currentCheckpoint);
   const imageStep = "article_image_generation";
   const image = await generateImage({
     flow, task, stepId: imageStep,
@@ -324,8 +332,9 @@ const executeArticleProduction = async (
     sourceAttemptId: context.gpt.attemptId,
     predecessorCheckpoint: article.checkpoint,
     predecessorSourceAttemptId: article.sourceAttemptId,
+    productSkill: context.productSkill,
   });
-  return completeArticlePackage(context, flow, research.result, article.result, image);
+  return completeArticlePackage(task, context, flow, research.result, article.result, image);
 };
 
 const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionContext) => {
@@ -334,19 +343,21 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
   const marker = turnMarker(task, context.gpt.attemptId, stepId);
   const files = attachmentFiles(context);
   const uploadedFiles = expectedUploadedFiles(files, context.gpt.attemptId);
-  const prompt = reviewPrompt(task, marker, providerDisplayNames(files, context.gpt.attemptId));
-  const submitCall = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 12, input: { files: uploadedFiles, promptHash: textHash(prompt), turnMarker: marker } } as const;
+  const prompt = reviewPrompt(
+    task, marker, providerDisplayNames(files, context.gpt.attemptId), context.productSkill,
+  );
+  const submitCall = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 13, input: { files: uploadedFiles, promptHash: textHash(prompt), turnMarker: marker } } as const;
   const submitFacts = await flow.facts(submitCall);
   await prepareAttachedTurnPrefix({
-    flow, stepId, files, uploadedFiles,
+    flow, stepId, uploadedFiles,
     recoverOnly: Boolean(submitFacts.mutation || submitFacts.evidence),
   });
   const checkpoint = await submitTextTurn({
     flow, stepId, prompt, marker, files: uploadedFiles,
-    ordinals: [10, 11, 12, 13, 14, 15],
+    ordinals: [11, 12, 13, 14, 15, 16],
   });
   return context.complete({
-    payload: parseRouteResult(task, checkpoint.semanticText),
+    payload: parseRouteResult(task, checkpoint.semanticText, context.routePolicy),
     evidence_refs: flow.evidenceRefs(),
   });
 };
@@ -354,9 +365,7 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
 export const publicKnowledgeArticlePipelinePlugin: ProductPlugin = {
   pluginId: PLUGIN_ID,
   pluginVersion: 16,
-  skillHash: productSkillHash,
   checkpointSchemaVersion: 2,
-  parseResult: parseProductResult,
   accepts: [
     { productId: "public_knowledge_article_pipeline", actionId: "produce_article" },
     { productId: "public_knowledge_article_pipeline", actionId: "accuracy_challenge" },

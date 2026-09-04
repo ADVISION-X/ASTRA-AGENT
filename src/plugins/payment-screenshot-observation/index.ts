@@ -1,10 +1,8 @@
-import type { ProductPlugin } from "../../lib/local-runtime/production/plugin.js";
-import { executeOwnedFlow, productSkillHash } from "./flow.js";
-import { parseProductResult } from "./result-contract.js";
+import type { ProductPlugin } from "../../mediator/product-plugin-contract.js";
+import { executeOwnedFlow } from "./flow.js";
 
 export const paymentScreenshotObservationPlugin: ProductPlugin = {
-  pluginId: "payment-screenshot-observation", pluginVersion: 7, skillHash: productSkillHash, checkpointSchemaVersion: 2,
-  parseResult: parseProductResult,
+  pluginId: "payment-screenshot-observation", pluginVersion: 7, checkpointSchemaVersion: 2,
   accepts: [
     { productId: "payment_screenshot_observation", actionId: "observe" },
     { productId: "payment_screenshot_observation", actionId: "accuracy_challenge" },

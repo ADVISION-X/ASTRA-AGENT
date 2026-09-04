@@ -6,11 +6,11 @@ import {
   sha256,
   type ProductionHash,
   type WebsiteAgentTask,
-} from "../../lib/local-runtime/production/contracts.js";
+} from "../../mediator/product-plugin-contract.js";
 import {
   gptTextContinuationCheckpointInput,
   type SharedExecutionContext,
-} from "../../lib/local-runtime/production/plugin.js";
+} from "../../mediator/product-plugin-contract.js";
 import { failureCode } from "../../lib/execution-failure.js";
 import { localBaziPrivateBaseTurn } from "./private-base-turn-contract.js";
 import {
@@ -114,7 +114,7 @@ const prepareBaseConversation = async (
   input: Readonly<{
     suffix?: string;
     freshOrdinal: number;
-    profileOrdinals: readonly [number, number, number, number, number];
+    profileOrdinals: readonly [number, number, number, number, number, number];
     attachmentOrdinals: readonly [number, number, number];
   }>,
 ): Promise<void> => {
@@ -139,7 +139,7 @@ const createBaseCheckpoint = async (input: Readonly<{
   const prompt = basePrompt(marker);
   const baseSubmit = {
     productStepId: "private-base", callId: "turn-submit", child: "submit_exact_gpt_turn_once",
-    actionOrdinal: 13, input: {
+    actionOrdinal: 14, input: {
       files: uploadedFilesForRoles(context, ["bazi_private_base_input"]),
       promptHash: sha256(prompt), turnMarker: marker,
     },
@@ -150,12 +150,12 @@ const createBaseCheckpoint = async (input: Readonly<{
     ? await flow.taskExactFacts(baseSubmit) : null;
   if (!currentSubmit.mutation && !currentSubmit.evidence && !priorSubmit?.mutation && !priorSubmit?.evidence) {
     await prepareBaseConversation(flow, context, {
-      freshOrdinal: 2, profileOrdinals: [3, 4, 5, 6, 7], attachmentOrdinals: [8, 9, 10],
+      freshOrdinal: 2, profileOrdinals: [3, 4, 5, 6, 7, 8], attachmentOrdinals: [9, 10, 11],
     });
   }
   let checkpoint = await submitTurn(
     flow, "private-base", prompt, marker,
-    uploadedFilesForRoles(context, ["bazi_private_base_input"]), [11, 12, 13, 14, 15, 16],
+    uploadedFilesForRoles(context, ["bazi_private_base_input"]), [12, 13, 14, 15, 16, 17],
   );
   let admission: ReturnType<typeof validateBaseOutput>;
   try {
@@ -167,12 +167,12 @@ const createBaseCheckpoint = async (input: Readonly<{
     }
     const retrySuffix = `semantic-retry-${context.gpt.attemptId}`;
     await prepareBaseConversation(flow, context, {
-      suffix: retrySuffix, freshOrdinal: 18,
-      profileOrdinals: [19, 20, 21, 22, 23], attachmentOrdinals: [24, 25, 26],
+      suffix: retrySuffix, freshOrdinal: 19,
+      profileOrdinals: [20, 21, 22, 23, 24, 25], attachmentOrdinals: [26, 27, 28],
     });
     checkpoint = await submitTurn(
       flow, "private-base", prompt, marker,
-      uploadedFilesForRoles(context, ["bazi_private_base_input"]), [27, 28, 29, 30, 31, 32], retrySuffix,
+      uploadedFilesForRoles(context, ["bazi_private_base_input"]), [29, 30, 31, 32, 33, 34], retrySuffix,
     );
     admission = validateBaseOutput(checkpoint, baseInput);
   }
@@ -201,7 +201,7 @@ const completeReusableBase = async (input: Readonly<{
   });
   await flow.execute({
     productStepId: "private-base", callId: "complete-reusable-origin",
-    child: "complete_exact_gpt_continuation_reservation_once", actionOrdinal: 33,
+    child: "complete_exact_gpt_continuation_reservation_once", actionOrdinal: 35,
     input: {
       reservationIdentityHash: identity,
       laneVersion: reserve.laneVersion,
@@ -282,7 +282,7 @@ export const reserveCompleteAndAcquireDerived = async (
   const fenceHash = hashCanonical({ kind: "bazi-derived-continuation-fence.v1", identity });
   const reservation = reservationValue((await flow.execute({
     productStepId: "formal", callId: "reserve-derived-continuation",
-    child: "reserve_exact_gpt_continuation_once", actionOrdinal: 34,
+    child: "reserve_exact_gpt_continuation_once", actionOrdinal: 36,
     input: {
       reservationKind: "derived_continuation", reservationIdentityHash: identity,
       ownerRef: task.business_identity.owner_ref, subjectRef: task.business_identity.subject_ref,
@@ -308,7 +308,7 @@ export const reserveCompleteAndAcquireDerived = async (
   });
   await flow.execute({
     productStepId: "formal", callId: "complete-derived-continuation",
-    child: "complete_exact_gpt_continuation_reservation_once", actionOrdinal: 35,
+    child: "complete_exact_gpt_continuation_reservation_once", actionOrdinal: 37,
     input: {
       reservationIdentityHash: identity, laneVersion: reservation.laneVersion,
       reservationFenceHash: fenceHash, provider: base.provider,
@@ -323,7 +323,7 @@ export const reserveCompleteAndAcquireDerived = async (
   });
   return laneValue((await flow.execute({
     productStepId: "formal", callId: "acquire-derived-continuation",
-    child: "acquire_gpt_continuation_lane", actionOrdinal: 36,
+    child: "acquire_gpt_continuation_lane", actionOrdinal: 38,
     input: {
       continuationRef: reservation.continuationRef,
       ownerRef: task.business_identity.owner_ref,

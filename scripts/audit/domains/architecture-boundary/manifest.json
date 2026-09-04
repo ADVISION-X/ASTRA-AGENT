@@ -16,6 +16,8 @@
     "scripts/acceptance/product-plugins/**",
     "scripts/audit/domains/architecture-boundary/**",
     "src/mediator/agent-production-route.ts",
+    "src/mediator/product-plugin-catalog.ts",
+    "src/mediator/product-plugin-contract.ts",
     "src/plugins/**"
   ],
   "observedPaths": [

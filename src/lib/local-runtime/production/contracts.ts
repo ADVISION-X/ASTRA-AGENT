@@ -1,7 +1,14 @@
-import { createHash } from "node:crypto";
 import { z } from "zod";
 
+import {
+  hashCanonical,
+  sha256,
+  type ProductionHash,
+} from "../../../mediator/product-plugin-contract.js";
 import { executionFailure } from "../../execution-failure.js";
+
+export { hashCanonical, sha256 };
+export type { ProductionHash };
 
 const WEBSITE_AGENT_PROTOCOL_VERSION = "xuanxue-ai-production-v6" as const;
 export const TASK_CONTRACT_ID = "website-agent-task" as const;
@@ -150,7 +157,6 @@ export type WebsiteAgentTask = z.infer<typeof WebsiteAgentTaskSchema>;
 export type ProductionProductId = z.infer<typeof ProductionProductIdSchema>;
 export type ProductionActionId = z.infer<typeof ProductionActionIdSchema>;
 type ProductionMaterial = z.infer<typeof ProductionMaterialSchema>;
-export type ProductionHash = `sha256:${string}`;
 
 export interface ProductionExecutionLease {
   readonly attempt_id: string;
@@ -284,21 +290,6 @@ export const AgentPluginCapabilityManifestSchema = z.object({
     context.addIssue({ code: z.ZodIssueCode.custom, message: "AGENT_CAPABILITY_ROUTE_DENOMINATOR_INVALID" });
   }
 });
-
-export const sha256 = (value: string | Uint8Array): ProductionHash =>
-  `sha256:${createHash("sha256").update(value).digest("hex")}`;
-
-export const hashCanonical = (value: unknown): ProductionHash => {
-  const canonical = (input: unknown): unknown => {
-    if (Array.isArray(input)) return input.map(canonical);
-    if (input && typeof input === "object") return Object.fromEntries(
-      Object.entries(input as Record<string, unknown>).sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, nested]) => [key, canonical(nested)]),
-    );
-    return typeof input === "string" ? input.normalize("NFC") : input;
-  };
-  return sha256(JSON.stringify(canonical(value)));
-};
 
 export const parseTerminalReceiptExpectation = (value: unknown): TerminalReceiptExpectation => {
   let candidate = value;

@@ -6,7 +6,8 @@ import { resolveFromRepo } from "../../../shared/paths.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../../shared/source-files.js";
 import { collectResolvedModuleTargets } from "../../../shared/source-module-targets.js";
 
-const catalogPath = "src/lib/local-runtime/production/catalog.ts";
+const catalogPath = "src/mediator/product-plugin-catalog.ts";
+const catalogPluginPrefix = "../plugins/";
 const architectureAcceptanceScript = "acceptance:architecture-boundary";
 const productAcceptancePrefix = "scripts/acceptance/product-plugins/";
 
@@ -29,8 +30,8 @@ const catalogPluginIds = (
   const catalog = project.getSourceFiles().find((file) => getRepoSourcePath(file) === catalogPath);
   return [...new Set(catalog?.getImportDeclarations()
     .map((declaration) => declaration.getModuleSpecifierValue())
-    .filter((specifier) => specifier.startsWith("../../../plugins/"))
-    .map((specifier) => specifier.slice("../../../plugins/".length).split("/")[0])
+    .filter((specifier) => specifier.startsWith(catalogPluginPrefix))
+    .map((specifier) => specifier.slice(catalogPluginPrefix.length).split("/")[0])
     .filter((pluginId): pluginId is string => Boolean(pluginId)) ?? [])].sort();
 };
 
