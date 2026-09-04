@@ -210,8 +210,16 @@ export class ExtensionTargetAuthority {
   ): Promise<unknown> {
     if (command.kind === "dom-intent") {
       const assertCurrent = (): void => { this.targets.resolve(target.targetRef, target.documentRef); };
+      const expectedMainFrameLoaderId = command.intent.kind === "readExactAssistantTurn"
+        && this.activeTarget?.targetRef === target.targetRef
+        && this.activeTarget.documentRef === target.documentRef
+        ? this.activeLoaderId : undefined;
+      if (command.intent.kind === "readExactAssistantTurn" && !expectedMainFrameLoaderId) {
+        throw new Error("BROWSER_DOCUMENT_INVALID");
+      }
       const result = await executeRegisteredDomIntent(
         this.debuggerRuntime, target, command.intent, assertCurrent,
+        expectedMainFrameLoaderId ?? undefined,
       );
       this.targets.resolve(target.targetRef, target.documentRef);
       return result;

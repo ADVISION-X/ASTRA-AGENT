@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import { BrowserMutationStore } from
   "../../src/lib/browser/exact-target/browser-mutation-store.js";
-import { ensureCurrentSchema } from
+import { ensureCurrentSchema, identityColumns } from
   "../../src/lib/browser/exact-target/browser-mutation-schema.js";
 
 export const hash = `sha256:${"a".repeat(64)}` as const;
@@ -91,24 +91,35 @@ const verifyTerminalRestart = (root: string): void => {
   terminalRestart.close();
 };
 
-const verifyObsoleteSchemaFailsClosed = (root: string): void => {
-  const obsoleteRoot = join(root, "obsolete-nonempty");
-  const obsolete = new BrowserMutationStore(obsoleteRoot);
-  obsolete.prepare(identity("obsolete-rejected-command", "obsolete-job"));
-  obsolete.markDispatched("obsolete-rejected-command");
-  obsolete.markRejected("obsolete-rejected-command", hash);
-  obsolete.close();
-  const database = new Database(join(obsoleteRoot, "browser", "browser-mutations.sqlite"));
+const verifyNonemptyForwardSchemaMigration = (root: string): void => {
+  const migrationRoot = join(root, "nonempty-forward-migration");
+  const beforeMigration = new BrowserMutationStore(migrationRoot);
+  beforeMigration.prepare(identity("migrated-rejected-command", "migration-job"));
+  beforeMigration.markDispatched("migrated-rejected-command");
+  beforeMigration.markRejected("migrated-rejected-command", hash);
+  beforeMigration.close();
+  const database = new Database(join(migrationRoot, "browser", "browser-mutations.sqlite"));
+  const durableBefore = database.prepare(
+    `select ${identityColumns},proof_hash,state,reason,terminal_at,updated_at from browser_mutations`,
+  ).get();
   database.exec("alter table browser_mutations drop column mutation_outcome");
   database.exec("alter table browser_mutations drop column native_cause_code");
-  const columnsBefore = (database.prepare("pragma table_info(browser_mutations)").all() as Array<{ name: string }>)
-    .map((column) => column.name).sort();
-  assert.throws(() => ensureCurrentSchema(database), /BROWSER_MUTATION_SCHEMA_REBUILD_REQUIRES_EMPTY_STORE/u,
-    "a nonempty obsolete Browser WAL must fail closed instead of entering a compatibility migration");
-  const columnsAfter = (database.prepare("pragma table_info(browser_mutations)").all() as Array<{ name: string }>)
-    .map((column) => column.name).sort();
-  assert.deepEqual(columnsAfter, columnsBefore, "schema admission failure must not mutate the obsolete WAL");
+  ensureCurrentSchema(database);
+  const durableAfter = database.prepare(
+    `select ${identityColumns},proof_hash,state,reason,terminal_at,updated_at from browser_mutations`,
+  ).get();
+  assert.deepEqual(durableAfter, durableBefore,
+    "the forward migration must preserve every nonempty WAL identity, terminal, proof, and timestamp byte");
+  assert.deepEqual(database.prepare(
+    "select mutation_outcome,native_cause_code from browser_mutations",
+  ).get(), { mutation_outcome: "confirmed", native_cause_code: null },
+  "the one-time migration must materialize current mechanical fields before normal reads resume");
+  database.prepare("update browser_mutations set mutation_outcome=null").run();
   database.close();
+  const migrated = new BrowserMutationStore(migrationRoot);
+  assert.equal(migrated.readMutationOutcome("migrated-rejected-command"), "confirmed",
+    "an already-added legacy column with an unfinished null row must complete the same in-place backfill");
+  migrated.close();
 };
 
 export const exerciseBrowserMutationStore = (root: string): void => {
@@ -117,5 +128,5 @@ export const exerciseBrowserMutationStore = (root: string): void => {
   verifyJobScopedReconciliation(restarted);
   restarted.close();
   verifyTerminalRestart(root);
-  verifyObsoleteSchemaFailsClosed(root);
+  verifyNonemptyForwardSchemaMigration(root);
 };

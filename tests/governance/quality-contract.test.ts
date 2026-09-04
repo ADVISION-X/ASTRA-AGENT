@@ -37,6 +37,8 @@ import { relevantExamScripts } from "../../scripts/audit/shared/quality-routes.j
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, staticImplementationDigest, validateStaticInspection } from "../../scripts/audit/shared/static-inspection-contract.js";
 import { inspectPerSiteHmac } from "../../scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.js";
 import { containsPageMutation } from "../../scripts/audit/domains/gpt/inspector.js";
+import { browserMutationSchemaMigrationIsCurrent } from "../../scripts/audit/domains/local-browser-session/browser-mutation-settlement-inspection.js";
+import { exactAssistantTurnReadIsAtomic } from "../../scripts/audit/domains/local-browser-session/dom-mechanical-facts-inspection.js";
 import { exactTextMatcherIsStrict } from "../../scripts/audit/domains/local-browser-session/mutation-atomicity-inspection.js";
 import { requireSource } from "../../scripts/audit/domains/local-browser-session/inspector-support.js";
 import { redactHashWriteOrderIsExact } from "../../scripts/audit/domains/runtime-log-spine/inspector.js";
@@ -1356,6 +1358,32 @@ test("active Browser and Runtime Log inspectors reject semantic decoys", () => {
     "const unsigned = redactedUnsigned(unsignedInput);", "const unsigned = unsignedInput;",
   );
   assert.equal(redactHashWriteOrderIsExact(inspectSource(loggerPath, redactionDecoy)), false);
+});
+
+test("Browser inspectors kill WAL rebuild and split exact-assistant DOM reads", () => {
+  const inspectSource = (path: string, source: string) => {
+    const project = new Project({ useInMemoryFileSystem: true });
+    return project.createSourceFile(path, source);
+  };
+  const schemaPath = "src/lib/browser/exact-target/browser-mutation-schema.ts";
+  const schema = readFileSync(schemaPath, "utf8");
+  assert.equal(browserMutationSchemaMigrationIsCurrent(inspectSource(schemaPath, schema)), true);
+  for (const mutant of [
+    schema.replace("alter table browser_mutations add column mutation_outcome", "drop table browser_mutations"),
+    schema.replace("update browser_mutations set mutation_outcome=case", "select mutation_outcome from browser_mutations"),
+    schema.replace("when state='DISPATCHED' then 'dispatched'", "when state='DISPATCHED' then 'confirmed'"),
+    schema.replace("where mutation_outcome is null", "where mutation_outcome is not null"),
+  ]) assert.equal(browserMutationSchemaMigrationIsCurrent(inspectSource(schemaPath, mutant)), false);
+
+  const exactPath = "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts";
+  const exact = readFileSync(exactPath, "utf8");
+  assert.equal(exactAssistantTurnReadIsAtomic(inspectSource(exactPath, exact)), true);
+  for (const mutant of [
+    exact.replace("document.querySelectorAll(selector)", "document.querySelector(selector)"),
+    exact.replace("browserMechanicalFacts(node, false)", "null"),
+    exact.replace("loaderAfter !== expectedMainFrameLoaderId", "loaderAfter === expectedMainFrameLoaderId"),
+    `${exact}\nvoid queryCandidateSet;`,
+  ]) assert.equal(exactAssistantTurnReadIsAtomic(inspectSource(exactPath, mutant)), false);
 });
 
 test("GPT mutation inspection permits bounded reads but rejects looped or concurrent dispatch", () => {

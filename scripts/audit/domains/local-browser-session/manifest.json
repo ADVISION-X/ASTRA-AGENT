@@ -29,6 +29,7 @@
     "scripts/acceptance/local-browser-dom-function-support.ts",
     "scripts/acceptance/local-browser-dom-intent-support.ts",
     "scripts/acceptance/local-browser-dom-mutation-support.ts",
+    "scripts/acceptance/local-browser-exact-assistant-turn-support.ts",
     "scripts/acceptance/local-browser-file-input-support.ts",
     "scripts/acceptance/local-browser-mutation-receipt-support.ts",
     "scripts/acceptance/local-browser-mutation-store-support.ts",

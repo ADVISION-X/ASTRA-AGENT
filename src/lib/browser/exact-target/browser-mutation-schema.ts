@@ -62,6 +62,29 @@ const createIndexes = (database: Database.Database): void => {
 const requiredColumns = [...identityColumns.split(",").map((column) => column.trim()),
   "proof_hash", "state", "mutation_outcome", "reason", "native_cause_code", "terminal_at", "updated_at"];
 
+const forwardSchemaColumns = new Set(["mutation_outcome", "native_cause_code"]);
+
+const migrateCurrentColumns = (
+  database: Database.Database,
+  missingColumns: ReadonlySet<string>,
+  mutationOutcomeRequiresBackfill: boolean,
+): void => {
+  database.transaction(() => {
+    if (missingColumns.has("mutation_outcome")) {
+      database.exec(
+        "alter table browser_mutations add column mutation_outcome text check(mutation_outcome in ('no','dispatched','confirmed'))",
+      );
+    }
+    if (mutationOutcomeRequiresBackfill) database.exec(`update browser_mutations set mutation_outcome=case
+      when state in ('PREPARED','FAILED') then 'no'
+      when state='DISPATCHED' then 'dispatched'
+      else 'confirmed' end where mutation_outcome is null`);
+    if (missingColumns.has("native_cause_code")) {
+      database.exec("alter table browser_mutations add column native_cause_code text");
+    }
+  })();
+};
+
 export const ensureCurrentSchema = (database: Database.Database): void => {
   const table = database.prepare(
     "select sql from sqlite_master where type='table' and name='browser_mutations'",
@@ -73,15 +96,16 @@ export const ensureCurrentSchema = (database: Database.Database): void => {
   }
   const columns = new Set((database.prepare("pragma table_info(browser_mutations)").all() as Array<{ name: string }>)
     .map((column) => column.name));
-  if (!requiredColumns.every((column) => columns.has(column))) {
-    const row = database.prepare("select count(*) as count from browser_mutations").get() as { count: number };
-    if (row.count !== 0) throw new Error("BROWSER_MUTATION_SCHEMA_REBUILD_REQUIRES_EMPTY_STORE");
-    database.transaction(() => {
-      database.exec("drop table browser_mutations");
-      database.exec(currentTableSql);
-    })();
-    createIndexes(database);
-    return;
+  const missingColumns = new Set(requiredColumns.filter((column) => !columns.has(column)));
+  if ([...missingColumns].some((column) => !forwardSchemaColumns.has(column))) {
+    throw new Error("BROWSER_REPAIR_REQUIRED");
+  }
+  const mutationOutcomeRequiresBackfill = missingColumns.has("mutation_outcome")
+    || (database.prepare(
+      "select count(*) as count from browser_mutations where mutation_outcome is null",
+    ).get() as { count: number }).count > 0;
+  if (missingColumns.size > 0 || mutationOutcomeRequiresBackfill) {
+    migrateCurrentColumns(database, missingColumns, mutationOutcomeRequiresBackfill);
   }
   createIndexes(database);
 };

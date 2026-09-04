@@ -1,3 +1,5 @@
+import type { SourceFile } from "ts-morph";
+
 import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
 import { browserCommandPostconditionPath, browserMutationSchemaPath, createLocalFinding,
   domMutationPostconditionPath,
@@ -42,6 +44,23 @@ const inspectDispatchPersistence = (
 };
 
 type SettlementSource = NonNullable<ReturnType<typeof requireSource>>;
+
+export const browserMutationSchemaMigrationIsCurrent = (schema: SourceFile): boolean => {
+  const text = schema.getFullText().toLowerCase();
+  const migration = schema.getVariableDeclaration("migrateCurrentColumns")
+    ?.getInitializer()?.getText().toLowerCase() ?? "";
+  const admission = schema.getVariableDeclaration("ensureCurrentSchema")?.getInitializer()?.getText() ?? "";
+  return migration.includes("alter table browser_mutations add column mutation_outcome")
+    && migration.includes("alter table browser_mutations add column native_cause_code")
+    && migration.includes("update browser_mutations set mutation_outcome=case")
+    && migration.includes("when state in ('prepared','failed') then 'no'")
+    && migration.includes("when state='dispatched' then 'dispatched'")
+    && migration.includes("else 'confirmed' end where mutation_outcome is null")
+    && admission.includes("forwardSchemaColumns")
+    && admission.includes('throw new Error("BROWSER_REPAIR_REQUIRED")')
+    && !text.includes("drop table browser_mutations")
+    && !text.includes("browser_mutation_schema_rebuild_requires_empty_store");
+};
 
 type SettlementSources = Readonly<{
   actor: SettlementSource;
@@ -116,16 +135,13 @@ const inspectMutationPersistence = (
   requireText(sources.actor.getFullText(), [
     "result.nativeCauseCode",
   ], findings, lawId, sourcePaths[6]);
-  requireText(sources.schema.getFullText(), [
-    "mutation_outcome text check", "native_cause_code text", "requiredColumns",
-    "BROWSER_MUTATION_SCHEMA_REBUILD_REQUIRES_EMPTY_STORE", "drop table browser_mutations",
-  ], findings, lawId, browserMutationSchemaPath);
-  for (const [filePath, text, forbidden] of [
-    [sourcePaths[7], sources.store.getFullText(), "legacyMutationOutcome"],
-    [browserMutationSchemaPath, sources.schema.getFullText().toLowerCase(), "alter table"],
-  ] as const) if (text.includes(forbidden)) findings.push(createLocalFinding({
-    checkId: "browser-authority/mutation-settlement", lawId, filePath,
-    message: `The Browser WAL must not retain compatibility migration path ${forbidden}.`,
+  if (!browserMutationSchemaMigrationIsCurrent(sources.schema)) findings.push(createLocalFinding({
+    checkId: "browser-authority/mutation-settlement", lawId, filePath: browserMutationSchemaPath,
+    message: "The Browser WAL must forward-migrate the two current fields in place and must never rebuild the table.",
+  }));
+  if (sources.store.getFullText().includes("legacyMutationOutcome")) findings.push(createLocalFinding({
+    checkId: "browser-authority/mutation-settlement", lawId, filePath: sourcePaths[7],
+    message: "The current Browser WAL reader must not retain a legacy outcome fallback.",
   }));
 };
 

@@ -470,14 +470,16 @@ export const executeRegisteredDomIntent = async (
   target: ExtensionExactTarget,
   intent: BrowserDomIntent,
   assertCurrent: CurrentDocumentAssertion,
+  expectedMainFrameLoaderId?: string,
 ): Promise<unknown> => {
   assertCurrent();
   if (intent.kind === "document" || intent.kind === "observe") {
     return executeDocumentReadIntent(debuggerRuntime, target, intent);
   }
   if (intent.kind === "readExactAssistantTurn") {
+    if (!expectedMainFrameLoaderId) throw new Error("BROWSER_DOCUMENT_INVALID");
     return executeExactAssistantTurnRead(
-      debuggerRuntime, target, intent.assistantTurnId, assertCurrent,
+      debuggerRuntime, target, intent.assistantTurnId, assertCurrent, expectedMainFrameLoaderId,
     );
   }
   if (intent.kind === "find") return executeFindIntent(debuggerRuntime, target, intent);

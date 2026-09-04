@@ -8,8 +8,8 @@ class FakeElement {
   public parentElement: FakeElement | null = null;
   public readonly tagName: string;
   public readonly nodeName: string;
-  public readonly nodeType = 1;
-  public readonly nodeValue = null;
+  public readonly nodeType: number;
+  public readonly nodeValue: string | null;
   public constructor(
     public textContent: string,
     private readonly queries: Readonly<Record<string, readonly FakeElement[]>> = {},
@@ -17,10 +17,18 @@ class FakeElement {
     private readonly attributes: Readonly<Record<string, string>> = {},
     tagName = "DIV",
     public readonly childNodes: readonly FakeElement[] = [],
+    nodeType = 1,
+    nodeValue: string | null = null,
   ) {
     this.tagName = tagName;
     this.nodeName = tagName;
+    this.nodeType = nodeType;
+    this.nodeValue = nodeValue;
     for (const child of childNodes) child.parentElement = this;
+  }
+  public get outerHTML(): string {
+    if (this.nodeType === 3 || this.nodeName === "#TEXT") return this.nodeValue ?? "";
+    return `<${this.tagName.toLowerCase()}>${this.childNodes.map((child) => child.outerHTML).join("")}</${this.tagName.toLowerCase()}>`;
   }
   public querySelectorAll(selector: string): readonly FakeElement[] { return this.queries[selector] ?? []; }
   public getBoundingClientRect() { return { left: 0, top: 0, right: 10, bottom: 10, width: 10, height: 10 }; }
@@ -165,4 +173,44 @@ export const exerciseCapturedObservationFunction = async (source: string): Promi
     "https://chatgpt.com/c/", "https://chatgpt.com/c/one/two", `https://chatgpt.com/c/${"x".repeat(257)}`]) {
     await assert.rejects(async () => execute(source, observationDocument, input, invalidUrl), /BROWSER_DOM_READ_INVALID/u);
   }
+};
+
+export const exerciseCapturedExactAssistantTurnFunction = (source: string): void => {
+  const text = (value: string) => new FakeElement(value, {}, {}, {}, "#TEXT", [], 3, value);
+  const paragraph = new FakeElement("bold", {}, {}, {}, "P", [
+    new FakeElement("bold", {}, {}, {}, "STRONG", [text("bold")]),
+  ]);
+  const listItem = new FakeElement("item", {}, {}, {}, "LI", [text("item")]);
+  const list = new FakeElement("item", {}, {}, {}, "UL", [listItem]);
+  const assistant = new FakeElement("bold item", { "pre code": [] }, {}, {}, "DIV", [paragraph, list]);
+  const selector = '[data-testid="conversation-turn-2"][data-turn="assistant"] [data-message-author-role="assistant"]';
+  let queryCalls = 0;
+  const document = {
+    querySelectorAll: (value: string) => {
+      queryCalls += 1;
+      return value === selector ? [assistant] : [];
+    },
+    elementFromPoint: () => assistant,
+  };
+  const observed = execute(source, document, "conversation-turn-2") as Readonly<{
+    rawCount: number; eligibleCount: number; rawDomHtml: string; semanticText: string;
+    nativeStage: string;
+  }>;
+  assert.equal(queryCalls, 1, "the exact assistant turn must be selected once inside one synchronous call");
+  assert.equal(observed.rawCount, 1);
+  assert.equal(observed.eligibleCount, 1);
+  assert.match(observed.rawDomHtml, /<strong>bold<\/strong>/u);
+  assert.equal(observed.semanticText, "**bold**\n- item\n\n");
+  assert.equal(observed.nativeStage, "runtime-call-function-on");
+  const hidden = new FakeElement("hidden", { "pre code": [] }, { display: "none" }, {}, "DIV", [text("hidden")]);
+  const hiddenObserved = execute(source, {
+    querySelectorAll: () => [hidden], elementFromPoint: () => null,
+  }, "conversation-turn-2") as Readonly<{ rawCount: number; eligibleCount: number; rawDomHtml: string }>;
+  assert.deepEqual({ rawCount: hiddenObserved.rawCount, eligibleCount: hiddenObserved.eligibleCount,
+    rawDomHtml: hiddenObserved.rawDomHtml }, { rawCount: 1, eligibleCount: 0, rawDomHtml: "" });
+  const ambiguous = execute(source, {
+    querySelectorAll: () => [assistant, assistant], elementFromPoint: () => assistant,
+  }, "conversation-turn-2") as Readonly<{ rawCount: number; eligibleCount: number }>;
+  assert.deepEqual({ rawCount: ambiguous.rawCount, eligibleCount: ambiguous.eligibleCount },
+    { rawCount: 2, eligibleCount: 0 });
 };

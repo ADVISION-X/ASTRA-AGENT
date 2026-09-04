@@ -9,6 +9,7 @@ import { BROWSER_MECHANICAL_FACTS_READER_SOURCE } from
 import { assertBrowserDomIntent } from
   "../../src/lib/browser/exact-target/browser-dom-intent.js";
 import { exerciseDomMutations } from "./local-browser-dom-mutation-support.js";
+import { exerciseExactAssistantTurnRead } from "./local-browser-exact-assistant-turn-support.js";
 import { exerciseFileInput } from "./local-browser-file-input-support.js";
 import { exerciseCapturedObservationFunction } from "./local-browser-dom-function-support.js";
 
@@ -466,6 +467,7 @@ export const exerciseLocalBrowserDomIntent = async (): Promise<void> => {
   await exerciseMechanicalFacts();
   await exerciseSeparatedMechanicalEligibility();
   await exerciseCoherentObservation();
+  await exerciseExactAssistantTurnRead();
   await exerciseDomMutations();
   await exerciseFileInput();
 };
