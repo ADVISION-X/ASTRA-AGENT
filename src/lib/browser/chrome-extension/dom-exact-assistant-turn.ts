@@ -74,27 +74,45 @@ const count = (value: unknown): number => {
   return value as number;
 };
 
+const exactIsoTimestamp = (value: unknown): value is string => typeof value === "string"
+  && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString() === value;
+
+const observationValueShapeValid = (
+  observed: BrowserRecord,
+  keys: readonly string[],
+  rawCount: number,
+  eligibleCount: number,
+): boolean => [
+  Object.keys(observed).length === keys.length,
+  keys.every((key) => Object.hasOwn(observed, key)),
+  eligibleCount <= rawCount,
+  eligibleCount <= 1,
+  typeof observed.rawDomHtml === "string",
+  typeof observed.semanticText === "string",
+  exactIsoTimestamp(observed.observedAt),
+  new Set([null, "NO_LAYOUT_BOX"]).has(observed.nativeCauseCode as string | null),
+  observed.nativeStage === "runtime-call-function-on",
+].every(Boolean);
+
 const decodeObservation = (value: unknown): ExactAssistantObservation => {
   const observed = record(value);
   const keys = ["rawCount", "eligibleCount", "rawDomHtml", "semanticText", "observedAt",
     "nativeCauseCode", "nativeStage"];
   const rawCount = count(observed.rawCount);
   const eligibleCount = count(observed.eligibleCount);
-  if (Object.keys(observed).length !== keys.length || keys.some((key) => !Object.hasOwn(observed, key))
-    || eligibleCount > rawCount || eligibleCount > 1
-    || typeof observed.rawDomHtml !== "string" || typeof observed.semanticText !== "string"
-    || typeof observed.observedAt !== "string" || new Date(observed.observedAt).toISOString() !== observed.observedAt
-    || (observed.nativeCauseCode !== null && observed.nativeCauseCode !== "NO_LAYOUT_BOX")
-    || observed.nativeStage !== "runtime-call-function-on") {
+  if (!observationValueShapeValid(observed, keys, rawCount, eligibleCount)) {
     throw new Error("BROWSER_DOM_READ_INVALID");
   }
   if (rawCount > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
   if (rawCount === 0 || eligibleCount === 0) throw new Error("BROWSER_DOM_CANDIDATE_MISSING");
   if (eligibleCount !== 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
-  if (observed.rawDomHtml.length === 0) throw new Error("BROWSER_DOM_READ_INVALID");
+  const rawDomHtml = observed.rawDomHtml as string;
+  if (rawDomHtml.length === 0) throw new Error("BROWSER_DOM_READ_INVALID");
   return Object.freeze({
-    rawCount, eligibleCount, rawDomHtml: observed.rawDomHtml, semanticText: observed.semanticText,
-    observedAt: observed.observedAt, nativeCauseCode: observed.nativeCauseCode, nativeStage: observed.nativeStage,
+    rawCount, eligibleCount, rawDomHtml,
+    semanticText: observed.semanticText as string, observedAt: observed.observedAt as string,
+    nativeCauseCode: observed.nativeCauseCode as "NO_LAYOUT_BOX" | null,
+    nativeStage: "runtime-call-function-on",
   }) as ExactAssistantObservation;
 };
 

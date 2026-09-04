@@ -8,8 +8,8 @@ class FakeElement {
   public parentElement: FakeElement | null = null;
   public readonly tagName: string;
   public readonly nodeName: string;
-  public readonly nodeType: number;
-  public readonly nodeValue: string | null;
+  public get nodeType(): number { return 1; }
+  public get nodeValue(): string | null { return null; }
   public constructor(
     public textContent: string,
     private readonly queries: Readonly<Record<string, readonly FakeElement[]>> = {},
@@ -17,13 +17,9 @@ class FakeElement {
     private readonly attributes: Readonly<Record<string, string>> = {},
     tagName = "DIV",
     public readonly childNodes: readonly FakeElement[] = [],
-    nodeType = 1,
-    nodeValue: string | null = null,
   ) {
     this.tagName = tagName;
     this.nodeName = tagName;
-    this.nodeType = nodeType;
-    this.nodeValue = nodeValue;
     for (const child of childNodes) child.parentElement = this;
   }
   public get outerHTML(): string {
@@ -44,6 +40,12 @@ class FakeElement {
     return matches ? this : this.parentElement?.closest(selector) ?? null;
   }
   public contains(element: FakeElement): boolean { return element === this; }
+}
+
+class FakeTextNode extends FakeElement {
+  public constructor(value: string) { super(value, {}, {}, {}, "#TEXT"); }
+  public override get nodeType(): number { return 3; }
+  public override get nodeValue(): string { return this.textContent; }
 }
 
 const execute = (source: string, document: Readonly<Record<string, unknown>>, input: unknown,
@@ -176,7 +178,7 @@ export const exerciseCapturedObservationFunction = async (source: string): Promi
 };
 
 export const exerciseCapturedExactAssistantTurnFunction = (source: string): void => {
-  const text = (value: string) => new FakeElement(value, {}, {}, {}, "#TEXT", [], 3, value);
+  const text = (value: string) => new FakeTextNode(value);
   const paragraph = new FakeElement("bold", {}, {}, {}, "P", [
     new FakeElement("bold", {}, {}, {}, "STRONG", [text("bold")]),
   ]);

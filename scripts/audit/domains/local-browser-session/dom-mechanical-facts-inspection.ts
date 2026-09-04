@@ -170,19 +170,19 @@ export const exactAssistantTurnReadIsAtomic = (source: import("ts-morph").Source
   const text = source.getFullText();
   const observe = source.getVariableDeclaration("observeExactAssistantTurn")?.getInitializer()?.getText() ?? "";
   const execute = source.getVariableDeclaration("executeExactAssistantTurnRead")?.getInitializer()?.getText() ?? "";
-  return text.includes("EXACT_ASSISTANT_TURN_FUNCTION")
-    && text.includes("document.querySelectorAll(selector)")
-    && text.includes("browserMechanicalFacts(node, false)")
-    && text.includes("rawDomHtml: eligible ? node.outerHTML")
-    && text.includes("semanticText: eligible ? semanticText(node)")
-    && (text.match(/Runtime\.callFunctionOn/gu) ?? []).length === 1
-    && (observe.match(/mainFrameLoaderId\(runtime, target\.tabId\)/gu) ?? []).length === 2
-    && (observe.match(/!== expectedMainFrameLoaderId/gu) ?? []).length === 2
-    && execute.includes("expectedMainFrameLoaderId")
-    && !text.includes("queryCandidateSet")
-    && !text.includes("inspectNode")
-    && !text.includes("DOM.getOuterHTML")
-    && !text.includes("DOM.describeNode");
+  const required = ["EXACT_ASSISTANT_TURN_FUNCTION", "document.querySelectorAll(selector)",
+    "browserMechanicalFacts(node, false)", "rawDomHtml: eligible ? node.outerHTML",
+    "semanticText: eligible ? semanticText(node)"];
+  const forbidden = ["queryCandidateSet", "inspectNode", "DOM.getOuterHTML", "DOM.describeNode"];
+  const exactCounts = [
+    (text.match(/Runtime\.callFunctionOn/gu) ?? []).length === 1,
+    (observe.match(/mainFrameLoaderId\(runtime, target\.tabId\)/gu) ?? []).length === 2,
+    (observe.match(/!== expectedMainFrameLoaderId/gu) ?? []).length === 2,
+  ];
+  return required.every((token) => text.includes(token))
+    && forbidden.every((token) => !text.includes(token))
+    && exactCounts.every(Boolean)
+    && execute.includes("expectedMainFrameLoaderId");
 };
 
 const inspectPostconditionEvidence = (
