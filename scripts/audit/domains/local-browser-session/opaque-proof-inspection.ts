@@ -18,7 +18,6 @@ const extensionCryptoPath = "src/lib/browser/chrome-extension/websocket-actor-cr
 const commandLoggingPath = "src/lib/browser/exact-target/browser-command-runtime-logging.ts";
 const commandDiagnosticPath = "src/lib/browser/chrome-extension/websocket-command-diagnostic.ts";
 const frameDiagnosticPath = "src/lib/browser/chrome-extension/websocket-actor-diagnostics.ts";
-const payloadPropertyPath = "scripts/acceptance/local-browser-property-model.acceptance.ts";
 
 const inspectOpaqueRawFields = (
   sources: readonly (readonly [string, RequiredSource])[],
@@ -172,10 +171,9 @@ export const inspectOpaqueAuthorityBoundary = (
   const commandLogging = requireSource(context, findings, lawId, commandLoggingPath);
   const commandDiagnostic = requireSource(context, findings, lawId, commandDiagnosticPath);
   const frameDiagnostic = requireSource(context, findings, lawId, frameDiagnosticPath);
-  const payloadProperty = requireSource(context, findings, lawId, payloadPropertyPath);
   if (!transport || !journal || !broker || !supervisor || !targetAuthority
     || !authenticatedMediaRuntime || !leaseManager || !extensionActor || !extensionCrypto
-    || !commandLogging || !commandDiagnostic || !frameDiagnostic || !payloadProperty) return;
+    || !commandLogging || !commandDiagnostic || !frameDiagnostic) return;
   requireIdentifiers(broker, ["authorityRefHash", "certificateHash", "channelSessionHash", "artifactRef", "contentHash"], findings, lawId,
     "Public Browser authority and artifact status must expose opaque references and hashes.");
   requireIdentifiers(journal, ["payloadHash", "proofHash", "targetRef", "documentRef"], findings, lawId,
@@ -192,16 +190,4 @@ export const inspectOpaqueAuthorityBoundary = (
     { transport, extensionActor, extensionCrypto, journal, commandLogging, commandDiagnostic, frameDiagnostic },
     findings, lawId,
   );
-  for (const required of [
-    "invocationPayloads", "rawPayloadFragments", "encryptedFrameBody",
-    "modified invocation payload bytes must fail authenticated decryption",
-    "new BrowserAuthorityWebSocket", "extensionDecrypt", "extensionEncrypt",
-    "server-to-client", "client-to-server", "wireCases",
-    "the production socket must observe DISPATCHED before sending a mutation",
-  ]) if (!payloadProperty.getFullText().includes(required)) findings.push(createLocalFinding({
-    checkId: "browser-authority/closed-invocation-payload",
-    lawId,
-    filePath: payloadPropertyPath,
-    message: `The closed payload property proof is missing ${required}.`,
-  }));
 };

@@ -81,7 +81,16 @@ export const requireSource = (
   lawId: string,
   path: string,
 ): SourceFile | null => {
-  if (!context.targetPaths.includes(path)) return null;
+  const lawTargets = context.lawRequirements.find((requirement) => requirement.lawId === lawId)?.targetPaths;
+  if (!lawTargets?.includes(path)) {
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/static-source-scope",
+      lawId,
+      filePath: path,
+      message: `${path} is not present in the sealed target set for ${lawId}.`,
+    }));
+    return null;
+  }
   const source = context.project.getSourceFile(resolveFromRepo(path));
   if (!source) findings.push(createLocalFinding({
     checkId: "browser-authority/terminal-authority",

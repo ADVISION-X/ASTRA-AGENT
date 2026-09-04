@@ -308,34 +308,6 @@ const inspectLaneRecoveryContract = (
   }
 };
 
-const inspectLaneRecoveryAcceptance = (
-  laneAcceptance: SourceFile,
-  laneAcceptancePath: string,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  const laneAcceptanceText = laneAcceptance.getFullText();
-  for (const required of [
-    '["target:confirmed", null]',
-    "a CONFIRMED target-local action must not authorize a replacement physical Target",
-    "a claimed but mismatched Target is not proof that the original physical Target was lost",
-    'failure?.mutationOutcome, "confirmed"',
-    "recovery park must retain Browser-lane quarantine while releasing the upper execution",
-    "an unrelated Browser job must perform zero acquisition/navigation while DISPATCHED is unresolved",
-    "Browser must terminalize target-local DISPATCHED when its original Document is authoritatively absent",
-    "an authenticated current Target/Document claim must settle the lost target-local row with zero navigation/mutation",
-    "target-local lost-document settlement must project exactly one BROWSER_MUTATION_REJECTED Runtime Log event",
-  ]) {
-    if (laneAcceptanceText.includes(required)) continue;
-    findings.push(createLocalFinding({
-      checkId: "browser-authority/confirmed-provider-target-replacement-acceptance",
-      lawId,
-      filePath: laneAcceptancePath,
-      message: `Browser lane acceptance must prove ${required}.`,
-    }));
-  }
-};
-
 const inspectActorEffectScope = (
   actor: SourceFile,
   findings: InspectorFinding[],
@@ -362,12 +334,9 @@ export const inspectJobScopedMutationRecovery = (
   lawId: string,
 ): void => {
   const lanePath = "src/lib/browser/infrastructure/browser-lane-coordinator.ts";
-  const laneAcceptancePath = "scripts/acceptance/browser-lane-fifo.acceptance.ts";
   const lane = requireSource(context, findings, lawId, lanePath);
-  const laneAcceptance = requireSource(context, findings, lawId, laneAcceptancePath);
   const actor = requireSource(context, findings, lawId, sourcePaths[6]);
-  if (!lane || !laneAcceptance || !actor) return;
+  if (!lane || !actor) return;
   inspectLaneRecoveryContract(lane, lanePath, findings, lawId);
-  inspectLaneRecoveryAcceptance(laneAcceptance, laneAcceptancePath, findings, lawId);
   inspectActorEffectScope(actor, findings, lawId);
 };

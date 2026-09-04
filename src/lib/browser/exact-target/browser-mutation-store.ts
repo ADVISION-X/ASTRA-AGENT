@@ -3,12 +3,12 @@ import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { mutationIdentity, type MutationRow } from "./browser-mutation-row.js";
 import { ensureCurrentSchema, identityColumns, mutationAuthorityHash } from "./browser-mutation-schema.js";
-export type BrowserMutationState =
-  "PREPARED" | "DISPATCHED" | "CONFIRMED" | "REJECTED" | "FAILED";
+export type BrowserMutationState = "PREPARED" | "DISPATCHED" | "CONFIRMED" | "REJECTED" | "FAILED";
 export type BrowserMutationOutcome = "no" | "dispatched" | "confirmed";
-const legacyMutationOutcome = (state: BrowserMutationState): BrowserMutationOutcome =>
-  state === "DISPATCHED" ? "dispatched"
-    : state === "CONFIRMED" || state === "REJECTED" ? "confirmed" : "no";
+const requireMutationOutcome = (value: BrowserMutationOutcome | null): BrowserMutationOutcome => {
+  if (value === "no" || value === "dispatched" || value === "confirmed") return value;
+  throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+};
 const machineCode = (value: unknown): value is string => typeof value === "string"
   && /^BROWSER_[A-Z0-9_]+$/u.test(value);
 const terminalFailureFields = (
@@ -374,7 +374,7 @@ export class BrowserMutationStore {
     const failure = terminalFailureFields(row.state, row.reason, row.native_cause_code);
     return Object.freeze({
       state: row.state.toLowerCase() as BrowserAtomicStepRecovery["state"],
-      mutationOutcome: row.mutation_outcome ?? legacyMutationOutcome(row.state),
+      mutationOutcome: requireMutationOutcome(row.mutation_outcome),
       terminalAt: row.terminal_at,
       ...failure,
       authorityRef: `browser-mutation:${row.command_id}`,
@@ -428,7 +428,7 @@ export class BrowserMutationStore {
     return Object.freeze({
       effectScope: row.effect_scope,
       outcome: row.state,
-      mutationOutcome: row.mutation_outcome ?? legacyMutationOutcome(row.state),
+      mutationOutcome: requireMutationOutcome(row.mutation_outcome),
       terminalAt: row.terminal_at,
       ...failure,
       authorityRef: `browser-mutation:${row.command_id}`,
@@ -460,7 +460,7 @@ export class BrowserMutationStore {
     const row = this.database.prepare(
       "select state,mutation_outcome from browser_mutations where command_id=?",
     ).get(commandId) as { state: BrowserMutationState; mutation_outcome: BrowserMutationOutcome | null } | undefined;
-    return row ? row.mutation_outcome ?? legacyMutationOutcome(row.state) : "no";
+    return row ? requireMutationOutcome(row.mutation_outcome) : "no";
   }
 
   public authorityHash(commandId: string): `sha256:${string}` {

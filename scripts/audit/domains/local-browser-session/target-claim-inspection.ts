@@ -7,7 +7,7 @@ const targetClaimAwaiterPath = "src/lib/browser/chrome-extension/websocket-targe
 const sitePolicyPath = "src/lib/browser/exact-target/browser-site-policy-registry.ts";
 const targetLeaseManagerPath = "src/lib/browser/exact-target/browser-target-lease-manager.ts";
 const laneCoordinatorPath = "src/lib/browser/infrastructure/browser-lane-coordinator.ts";
-const jobBoundClaimAcceptancePath = "scripts/acceptance/local-browser-auto-pairing.acceptance.ts";
+const targetAcquirerPath = "src/lib/browser/infrastructure/browser-target-acquirer.ts";
 
 const inspectJobBoundClaimOrder = (actor: ReturnType<typeof requireSource>, findings: InspectorFinding[], lawId: string): void => {
   const actorClass = actor?.getClass("ExtensionWebSocketActor");
@@ -43,20 +43,6 @@ const inspectBrokerClaimMonotonicity = (brokerText: string, findings: InspectorF
     checkId: "browser-authority/job-bound-target-claim", lawId, filePath: brokerPath,
     message: "The Broker must reject target replacement and non-monotonic Document claims on one authority epoch.",
   }));
-};
-
-const inspectJobBoundClaimAcceptance = (combined: string, findings: InspectorFinding[], lawId: string): void => {
-  for (const required of [
-    "BROWSER_DEVTOOLS_CONFLICT", "getTargetsCalls", "active: false", "Page.getFrameTree",
-    "BROWSER_EXACT_TARGET_UNAVAILABLE", "single-Tab reuse", "removedTabs.includes",
-    "targetTabRemoved", "replacement production Tab", "target-tab-4",
-  ]) {
-    if (combined.includes(required)) continue;
-    findings.push(createLocalFinding({
-      checkId: "browser-authority/job-bound-target-claim", lawId, filePath: jobBoundClaimAcceptancePath,
-      message: `Job-bound target claim must enforce and test ${required}.`,
-    }));
-  }
 };
 
 const inspectDispatchedMutationReleaseGuard = (
@@ -104,11 +90,11 @@ const inspectJobBoundClaimPolicy = (
   const actor = requireSource(context, findings, lawId, sourcePaths[1]);
   const supervisor = requireSource(context, findings, lawId, sourcePaths[3]);
   const broker = requireSource(context, findings, lawId, brokerPath);
-  const acceptance = requireSource(context, findings, lawId, jobBoundClaimAcceptancePath);
   const leaseManager = requireSource(context, findings, lawId, targetLeaseManagerPath);
   const lane = requireSource(context, findings, lawId, laneCoordinatorPath);
-  if (!targetAuthority || !sitePolicy || !actor || !supervisor || !broker || !acceptance
-    || !leaseManager || !lane) return;
+  const targetAcquirer = requireSource(context, findings, lawId, targetAcquirerPath);
+  if (!targetAuthority || !sitePolicy || !actor || !supervisor || !broker
+    || !leaseManager || !lane || !targetAcquirer) return;
   requireIdentifiers(targetAuthority, [
     "acquireJobBoundChatGptTarget", "create", "remove", "GPT_WEB_START_URL",
     "requireGptWebPolicyForUrl", "waitForCreatedTarget", "navigationPublication",
@@ -119,14 +105,17 @@ const inspectJobBoundClaimPolicy = (
     "acquireJobBoundTargetLease",
   ], findings, lawId,
   "The server must bind initial Target acquisition to one current job request before establishing Session Workspace.");
-  requireIdentifiers(lane, ["requestPreauthorizedTargetAcquisition", "pendingJobBoundTargetAcquisition"],
-    findings, lawId, "The sole Browser lane must bind target acquisition to the current queued job.");
+  requireIdentifiers(lane, ["BrowserTargetAcquirer", "targetAcquirer", "ensureAvailableTarget"], findings, lawId,
+    "The sole Browser lane must delegate target acquisition to its one private target acquirer.");
+  requireIdentifiers(targetAcquirer, [
+    "acquireJobBoundTarget", "requestPreauthorizedTargetAcquisition", "pendingJobBoundTargetAcquisition",
+    "expectedTargetRef", "resolvePending", "rejectPending",
+  ], findings, lawId, "The target acquirer must bind acquisition to the current queued job and exact recovery target.");
   requireIdentifiers(broker, ["current", "targetRef", "navigationEpoch"], findings, lawId,
     "The sole Broker must reject target replacement and non-monotonic Document claims.");
   inspectJobBoundClaimOrder(actor, findings, lawId);
   inspectServerClaimOrder(supervisor.getClass("BrowserInfrastructureSupervisor")?.getMethod("onTargetClaim")?.getText() ?? "", findings, lawId);
   inspectBrokerClaimMonotonicity(broker.getFullText(), findings, lawId);
-  inspectJobBoundClaimAcceptance(`${targetAuthority.getFullText()}\n${acceptance.getFullText()}`, findings, lawId);
   const targetAuthorityText = targetAuthority.getFullText();
   if (!recoveryInspectionIsExact(targetAuthorityText)) findings.push(createLocalFinding({
     checkId: "browser-authority/job-bound-target-claim", lawId, filePath: targetAuthorityPath,

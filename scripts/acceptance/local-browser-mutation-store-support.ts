@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import { BrowserMutationStore } from
   "../../src/lib/browser/exact-target/browser-mutation-store.js";
-import { identityColumns, mutationAuthorityHash } from
+import { ensureCurrentSchema } from
   "../../src/lib/browser/exact-target/browser-mutation-schema.js";
 
 export const hash = `sha256:${"a".repeat(64)}` as const;
@@ -91,45 +91,24 @@ const verifyTerminalRestart = (root: string): void => {
   terminalRestart.close();
 };
 
-const verifyLegacyMigration = (root: string): void => {
-  const legacyRoot = join(root, "legacy-nonempty");
-  const legacy = new BrowserMutationStore(legacyRoot);
-  legacy.prepare(identity("legacy-rejected-command", "legacy-job"));
-  legacy.markDispatched("legacy-rejected-command");
-  legacy.markRejected("legacy-rejected-command", hash);
-  legacy.close();
-  const legacyFile = join(legacyRoot, "browser", "browser-mutations.sqlite");
-  const legacyDatabase = new Database(legacyFile);
-  const identityBefore = legacyDatabase.prepare(
-    "select command_id,exact_call_identity_hash,state,terminal_at from browser_mutations",
-  ).get();
-  legacyDatabase.exec("alter table browser_mutations drop column mutation_outcome");
-  legacyDatabase.exec("alter table browser_mutations drop column native_cause_code");
-  const legacyAuthorityHash = mutationAuthorityHash(legacyDatabase.prepare(
-    `select ${identityColumns},proof_hash,state,reason,terminal_at,updated_at from browser_mutations`,
-  ).get());
-  legacyDatabase.close();
-  const migratedLegacy = new BrowserMutationStore(legacyRoot);
-  assert.equal(migratedLegacy.authorityHash("legacy-rejected-command"), legacyAuthorityHash,
-    "adding mutation outcome and native cause must not invalidate an already-issued legacy Browser authority hash");
-  assert.deepEqual(migratedLegacy.readExactCallMutationFact({
-    jobId: "legacy-job", attemptId: "attempt-1", ownerPluginId: "fixture-product-plugin",
-    pluginVersion: 1, exactCallIdentityHash: exactHash("legacy-rejected-command"), actionOrdinal: 1,
-  }), {
-    effectScope: "target_local", outcome: "REJECTED", mutationOutcome: "confirmed",
-    terminalAt: (identityBefore as { terminal_at: string }).terminal_at,
-    failureCode: "BROWSER_POSTCONDITION_FAILED", nativeFailureCode: null,
-    authorityRef: "browser-mutation:legacy-rejected-command", authorityHash: legacyAuthorityHash,
-    targetRef: "target-1", documentRef: "document-1",
-    productStepId: "report_translation:candidate_a", callId: "gpt-turn-flow.v3",
-    childCapabilityId: "open_gpt_model_selector_v2", actionOrdinal: 1,
-  });
-  const migratedDatabase = new Database(legacyFile, { readonly: true });
-  assert.deepEqual(migratedDatabase.prepare(
-    "select command_id,exact_call_identity_hash,state,terminal_at from browser_mutations",
-  ).get(), identityBefore, "the forward ALTER migration must preserve every legacy identity and terminal byte");
-  migratedDatabase.close();
-  migratedLegacy.close();
+const verifyObsoleteSchemaFailsClosed = (root: string): void => {
+  const obsoleteRoot = join(root, "obsolete-nonempty");
+  const obsolete = new BrowserMutationStore(obsoleteRoot);
+  obsolete.prepare(identity("obsolete-rejected-command", "obsolete-job"));
+  obsolete.markDispatched("obsolete-rejected-command");
+  obsolete.markRejected("obsolete-rejected-command", hash);
+  obsolete.close();
+  const database = new Database(join(obsoleteRoot, "browser", "browser-mutations.sqlite"));
+  database.exec("alter table browser_mutations drop column mutation_outcome");
+  database.exec("alter table browser_mutations drop column native_cause_code");
+  const columnsBefore = (database.prepare("pragma table_info(browser_mutations)").all() as Array<{ name: string }>)
+    .map((column) => column.name).sort();
+  assert.throws(() => ensureCurrentSchema(database), /BROWSER_MUTATION_SCHEMA_REBUILD_REQUIRES_EMPTY_STORE/u,
+    "a nonempty obsolete Browser WAL must fail closed instead of entering a compatibility migration");
+  const columnsAfter = (database.prepare("pragma table_info(browser_mutations)").all() as Array<{ name: string }>)
+    .map((column) => column.name).sort();
+  assert.deepEqual(columnsAfter, columnsBefore, "schema admission failure must not mutate the obsolete WAL");
+  database.close();
 };
 
 export const exerciseBrowserMutationStore = (root: string): void => {
@@ -138,5 +117,5 @@ export const exerciseBrowserMutationStore = (root: string): void => {
   verifyJobScopedReconciliation(restarted);
   restarted.close();
   verifyTerminalRestart(root);
-  verifyLegacyMigration(root);
+  verifyObsoleteSchemaFailsClosed(root);
 };

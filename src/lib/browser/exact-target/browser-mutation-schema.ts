@@ -10,7 +10,6 @@ export const mutationAuthorityHash = (row: unknown): `sha256:${string}` => {
   let hashInput = row;
   if (row && typeof row === "object" && !Array.isArray(row)) {
     const normalized = { ...row as Record<string, unknown> };
-    if (normalized.mutation_outcome === null) delete normalized.mutation_outcome;
     if (normalized.native_cause_code === null) delete normalized.native_cause_code;
     hashInput = normalized;
   }
@@ -60,17 +59,8 @@ const createIndexes = (database: Database.Database): void => {
   `);
 };
 
-const addMutationOutcomeWithoutRebuild = (database: Database.Database): void => {
-  database.transaction(() => database.exec(
-    "alter table browser_mutations add column mutation_outcome text check(mutation_outcome in ('no','dispatched','confirmed'))",
-  ))();
-};
-
-const addNativeCauseWithoutRebuild = (database: Database.Database): void => {
-  database.transaction(() => database.exec(
-    "alter table browser_mutations add column native_cause_code text",
-  ))();
-};
+const requiredColumns = [...identityColumns.split(",").map((column) => column.trim()),
+  "proof_hash", "state", "mutation_outcome", "reason", "native_cause_code", "terminal_at", "updated_at"];
 
 export const ensureCurrentSchema = (database: Database.Database): void => {
   const table = database.prepare(
@@ -83,10 +73,7 @@ export const ensureCurrentSchema = (database: Database.Database): void => {
   }
   const columns = new Set((database.prepare("pragma table_info(browser_mutations)").all() as Array<{ name: string }>)
     .map((column) => column.name));
-  const identity = ["exact_call_identity_hash", "plugin_version", "product_step_id", "call_id",
-    "child_capability_id", "effect_scope", "action_ordinal", "positive_postcondition_hash",
-    "negative_postcondition_hash", "terminal_at"];
-  if (!identity.every((column) => columns.has(column))) {
+  if (!requiredColumns.every((column) => columns.has(column))) {
     const row = database.prepare("select count(*) as count from browser_mutations").get() as { count: number };
     if (row.count !== 0) throw new Error("BROWSER_MUTATION_SCHEMA_REBUILD_REQUIRES_EMPTY_STORE");
     database.transaction(() => {
@@ -96,7 +83,5 @@ export const ensureCurrentSchema = (database: Database.Database): void => {
     createIndexes(database);
     return;
   }
-  if (!columns.has("mutation_outcome")) addMutationOutcomeWithoutRebuild(database);
-  if (!columns.has("native_cause_code")) addNativeCauseWithoutRebuild(database);
   createIndexes(database);
 };

@@ -38,6 +38,7 @@ import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRef
 import { inspectPerSiteHmac } from "../../scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.js";
 import { containsPageMutation } from "../../scripts/audit/domains/gpt/inspector.js";
 import { exactTextMatcherIsStrict } from "../../scripts/audit/domains/local-browser-session/mutation-atomicity-inspection.js";
+import { requireSource } from "../../scripts/audit/domains/local-browser-session/inspector-support.js";
 import { redactHashWriteOrderIsExact } from "../../scripts/audit/domains/runtime-log-spine/inspector.js";
 
 const fixtureLaw = (): Law => ({
@@ -1302,6 +1303,30 @@ test("active mutation inspectors use one DISPATCHED chain inside each law scope"
   for (const current of ["callRecoveryScope", "expectedTargetRef", "park: (input)"]) {
     assert.equal(browserLane.includes(current), true, current);
   }
+  const browserStaticInspectors = [
+    "browser-mutation-settlement-inspection.ts", "dom-mechanical-facts-inspection.ts",
+    "mutation-atomicity-inspection.ts", "opaque-proof-inspection.ts", "target-claim-inspection.ts",
+  ].map((name) => readFileSync(`scripts/audit/domains/local-browser-session/${name}`, "utf8"));
+  for (const source of browserStaticInspectors) {
+    assert.equal(source.includes("scripts/acceptance"), false);
+    assert.equal(source.includes("real-proof"), false);
+  }
+  assert.equal(browserStaticInspectors.at(-1)!.includes(
+    'src/lib/browser/infrastructure/browser-target-acquirer.ts',
+  ), true);
+});
+
+test("local Browser static source lookup fails closed outside the law target set", () => {
+  const lawId = "LAW-LOCAL-BROWSER-SESSION-004-V19";
+  const findings: import("../../scripts/audit/shared/inspector-contracts.js").InspectorFinding[] = [];
+  const context = {
+    project: new Project({ useInMemoryFileSystem: true }),
+    targetPaths: ["src/lib/browser/inside.ts"],
+    lawRequirements: [{ lawId, targetPaths: ["src/lib/browser/inside.ts"] }],
+  } as unknown as InspectorContext;
+  assert.equal(requireSource(context, findings, lawId, "scripts/acceptance/outside.ts"), null);
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0]!.checkId, "browser-authority/static-source-scope");
 });
 
 test("active Browser and Runtime Log inspectors reject semantic decoys", () => {
