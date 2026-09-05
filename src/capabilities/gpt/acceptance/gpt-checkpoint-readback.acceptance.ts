@@ -201,6 +201,7 @@ const evidenceStore = new CheckpointEvidenceStore();
       failureCode: null,
       failureCause: null,
       failureBrowserEffect: null,
+      reasoningRequirementResult: null,
     });
     const persisted = await persistGptChildEvidence({
       result, intent, evidenceStore, jobId: JOB_ID, attemptId: ATTEMPT_ID,
@@ -277,6 +278,7 @@ const evidenceStore = new CheckpointEvidenceStore();
     failureCode: null,
     failureCause: null,
     failureBrowserEffect: null,
+    reasoningRequirementResult: null,
   });
   const locatorPersisted = await persistGptChildEvidence({
     result: locatorResult,
@@ -366,6 +368,7 @@ const evidenceStore = new CheckpointEvidenceStore();
     failureCode: null,
     failureCause: null,
     failureBrowserEffect: null,
+    reasoningRequirementResult: null,
   });
   const imagePersisted = await persistGptChildEvidence({
     result: imageResult, intent: imageIntent, evidenceStore, jobId: JOB_ID, attemptId: ATTEMPT_ID,

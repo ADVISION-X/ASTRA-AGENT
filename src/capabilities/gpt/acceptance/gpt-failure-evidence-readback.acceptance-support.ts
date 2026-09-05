@@ -82,6 +82,7 @@ export const exerciseFailedEvidenceReadback = async <K extends GptChildCapabilit
   assert.deepEqual(typed?.proofFacts?.browserFact, result.proof.browserFact);
   assert.deepEqual(typed?.proofFacts?.candidateCardinality, result.proof.candidateCardinality);
   assert.deepEqual(typed?.proofFacts?.factResultIds, result.proof.factResultIds);
+  assert.deepEqual(typed?.reasoningRequirementResult, result.reasoningRequirementResult);
 };
 
 export const exerciseBrowserRejectedEvidenceReadback = async (): Promise<void> => {

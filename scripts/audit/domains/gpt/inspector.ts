@@ -43,6 +43,10 @@ const ROOT = "src/capabilities/gpt";
 const CONTRACT_PATH = `${ROOT}/contract.ts`;
 const FACADE_PATH = `${ROOT}/index.ts`;
 const GROUP_PATH = `${ROOT}/ability-group.ts`;
+const SCHEMA_PATH = `${ROOT}/schema.ts`;
+const CHILD_TYPES_PATH = `${ROOT}/child-types.ts`;
+const EVIDENCE_WRITER_PATH = `${ROOT}/evidence-writer.ts`;
+const EVIDENCE_FACT_PATH = `${ROOT}/evidence-fact.ts`;
 const SESSION_PATH = `${ROOT}/session/gpt-session-controller.ts`;
 const SESSION_CHILDREN_PATH = `${ROOT}/session/session-children.ts`;
 const RESPONSE_HANDLER_PATH = `${ROOT}/web/children/response-children.ts`;
@@ -385,7 +389,8 @@ const inspectGptContracts = (context: InspectorContext, findings: InspectorFindi
 
 const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const path of [
-    CONTRACT_PATH, FACADE_PATH, GROUP_PATH, SESSION_PATH, SESSION_CHILDREN_PATH, RESPONSE_HANDLER_PATH,
+    CONTRACT_PATH, FACADE_PATH, GROUP_PATH, SCHEMA_PATH, CHILD_TYPES_PATH,
+    EVIDENCE_WRITER_PATH, EVIDENCE_FACT_PATH, SESSION_PATH, SESSION_CHILDREN_PATH, RESPONSE_HANDLER_PATH,
     TEXT_RESPONSE_HANDLER_PATH, IMAGE_RESPONSE_HANDLER_PATH,
     CONVERSATION_HANDLER_PATH,
     MODEL_SELECTION_V2_HANDLER_PATH, MODEL_SELECTION_V2_CONTRACT_PATH,

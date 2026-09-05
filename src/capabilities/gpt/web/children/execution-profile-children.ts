@@ -456,6 +456,7 @@ export const executionProfileChildHandlers = {
         includeTopology: false,
       });
     }
+    const resolved = resolution as ReasoningResolution;
     const currentBefore = observedScale.currentBefore!;
     const selectedResult = (input: Readonly<{
       currentValue: number;
@@ -466,7 +467,7 @@ export const executionProfileChildHandlers = {
       ...reasoningRequirementResult({
         profile,
         observedScale,
-        resolution,
+        resolution: resolved,
         currentValue: input.currentValue,
         mutationOutcome: input.mutationOutcome,
         browserOutcome: input.browserOutcome,
@@ -474,7 +475,7 @@ export const executionProfileChildHandlers = {
       }),
       state: input.state,
     });
-    if (currentBefore === resolution.value) {
+    if (currentBefore === resolved.value) {
       return success({
         value: selectedResult({
           currentValue: currentBefore,
@@ -494,12 +495,12 @@ export const executionProfileChildHandlers = {
         profile,
         topology: observed,
         observedScale,
-        resolution,
+        resolution: resolved,
         currentValue: currentBefore,
         includeTopology: false,
       });
     }
-    const delta = resolution.value - currentBefore;
+    const delta = resolved.value - currentBefore;
     try {
       await browser.executeDomIntent({
         kind: "keypress",
@@ -508,7 +509,7 @@ export const executionProfileChildHandlers = {
         repeat: Math.abs(delta) as 1 | 2 | 3 | 4,
         expectedMatches: 1,
         postKeypressMatch: {
-          selector: `${GPT_PROFILE_REASONING_VALUE_SELECTOR}[aria-valuenow='${resolution.value}']`,
+          selector: `${GPT_PROFILE_REASONING_VALUE_SELECTOR}[aria-valuenow='${resolved.value}']`,
           expectedMatches: 1,
           readEligibility: "non-actionable-aria-state",
           timeoutMs: 5_000,
@@ -523,7 +524,7 @@ export const executionProfileChildHandlers = {
         profile,
         topology: observed,
         observedScale,
-        resolution,
+        resolution: resolved,
         currentValue: mutationOutcome === "no" ? currentBefore : null,
         mutationOutcome,
         browserOutcome,
@@ -538,20 +539,20 @@ export const executionProfileChildHandlers = {
     if (!profileOpenReady(readback)
       || readbackScale.min !== observedScale.min
       || readbackScale.max !== observedScale.max
-      || readbackScale.currentBefore !== resolution.value) {
+      || readbackScale.currentBefore !== resolved.value) {
       failReasoningRequirement({
         code: "GPT_EXECUTION_PROFILE_REASONING_PENDING",
         profile,
         topology: readback,
         observedScale,
-        resolution,
+        resolution: resolved,
         currentValue: readbackScale.currentBefore,
         browserFact,
       });
     }
     return success({
       value: selectedResult({
-        currentValue: resolution.value,
+        currentValue: resolved.value,
         mutationOutcome: "confirmed",
         browserOutcome: "CONFIRMED",
         state: "selected",

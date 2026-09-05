@@ -223,14 +223,15 @@ const reasoningRequirementResult = (input: Readonly<{
     return null;
   }
   const result = record(value);
-  const observedScale = record(result?.observedScale);
-  if (!result || !observedScale
-    || !exactKeys(result, [
+  if (!result) return invalid();
+  const observedScale = record(result.observedScale);
+  if (!observedScale) return invalid();
+  if (!exactKeys(result, [
       "requestedTier", "requestedValue", "selectionPolicy", "observedScale",
       "resolvedTier", "resolvedValue", "degraded", "currentValue",
       "mutationOutcome", "browserOutcome", "gptPostcondition",
     ])
-    || !exactKeys(observedScale, ["min", "max", "currentBefore"])) invalid();
+    || !exactKeys(observedScale, ["min", "max", "currentBefore"])) return invalid();
   const requestedTier = result.requestedTier;
   const requestedValue = result.requestedValue;
   const selectionPolicy = result.selectionPolicy;
@@ -282,7 +283,7 @@ const reasoningRequirementResult = (input: Readonly<{
     }),
     resolvedTier: resolvedTier as GptReasoningRequirementResult["resolvedTier"],
     resolvedValue: resolvedValue as number | null,
-    degraded,
+    degraded: degraded as boolean,
     currentValue: result.currentValue as number | null,
     mutationOutcome: result.mutationOutcome as GptReasoningRequirementResult["mutationOutcome"],
     browserOutcome: browserOutcome as GptReasoningRequirementResult["browserOutcome"],

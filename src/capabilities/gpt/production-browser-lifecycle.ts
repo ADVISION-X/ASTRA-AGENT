@@ -136,6 +136,7 @@ export const recoveredGptChildResult = (input: Readonly<{
       failureCode: null,
       failureCause: null,
       failureBrowserEffect: null,
+      reasoningRequirementResult: input.readback.reasoningRequirementResult,
     });
   }
   if (input.state === "dispatched" && input.readback?.status !== "failed") {
@@ -159,6 +160,7 @@ export const recoveredGptChildResult = (input: Readonly<{
       childCapabilityId: input.intent.childCapabilityId,
       browserOutcome: input.state === "dispatched" ? "DISPATCHED" as const : "REJECTED" as const,
     }),
+    reasoningRequirementResult: input.readback?.reasoningRequirementResult ?? null,
   });
 };
 

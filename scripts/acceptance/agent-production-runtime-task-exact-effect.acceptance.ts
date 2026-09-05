@@ -68,7 +68,7 @@ try {
     const intent = intentFor(providerTask, attemptId);
     const evidenceHash = hashCanonical({ attemptId });
     const recordPayload = Object.freeze({
-      schema_version: "agent-gpt-evidence-safe.v1",
+      schema_version: "agent-gpt-evidence-safe.v2",
       exact_call_identity_hash: intent.exactCallIdentityHash,
       child_capability_id: intent.childCapabilityId,
       plugin_version: intent.pluginVersion,
@@ -78,6 +78,7 @@ try {
       committed_mutation: "confirmed",
       postcondition_result: "passed",
       result_status: "success",
+      reasoning_requirement_result: null,
       failure_code: null,
       failure_cause: null,
       started_at: "2026-09-03T00:00:00.000Z",

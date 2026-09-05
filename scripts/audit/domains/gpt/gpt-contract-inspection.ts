@@ -7,6 +7,9 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 const ROOT = "src/capabilities/gpt";
 const CONTRACT_PATH = `${ROOT}/contract.ts`;
 const CHILD_TYPES_PATH = `${ROOT}/child-types.ts`;
+const SCHEMA_PATH = `${ROOT}/schema.ts`;
+const EVIDENCE_WRITER_PATH = `${ROOT}/evidence-writer.ts`;
+const EVIDENCE_FACT_PATH = `${ROOT}/evidence-fact.ts`;
 const MODEL_HANDLER_PATH = `${ROOT}/web/children/model-selection-v2-children.ts`;
 const MODEL_CONTRACT_PATH = `${ROOT}/web/contracts/model-selection-v2.contract.ts`;
 const PROFILE_HANDLER_PATH = `${ROOT}/web/children/execution-profile-children.ts`;
@@ -77,7 +80,7 @@ const inspectRequiredChildIds = (
   finding: FindingFactory,
 ): void => {
   for (const required of [
-    "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
+    "open_gpt_model_selector_v2", "select_exact_gpt_model_v2", "ensure_gpt_reasoning_requirement",
     "reserve_exact_gpt_continuation_once", "complete_exact_gpt_continuation_reservation_once",
     "fork_exact_gpt_conversation_at_checkpoint",
   ]) if (!ids.includes(required)) findings.push(finding(
@@ -115,6 +118,10 @@ const inspectChildDenominator = (
   if (ids.includes("ensure_exact_gpt_model")) findings.push(finding(
     "gpt/model-selection-v1-retired", CONTRACT_PATH,
     "V1 ensure_exact_gpt_model must not remain production-reachable.",
+  ));
+  if (ids.includes("ensure_exact_gpt_reasoning_tier")) findings.push(finding(
+    "gpt/reasoning-requirement-v2-retired", CONTRACT_PATH,
+    "The retired exact-only reasoning Child must not remain production-reachable.",
   ));
   const denominator = contract.getVariableDeclaration("GPT_CHILD_CAPABILITY_IDS")?.getInitializer()?.getText() ?? "";
   if (!denominator.includes("Object.keys(GPT_CHILD_CONTRACTS)")) findings.push(finding(
@@ -173,7 +180,7 @@ const inspectProfileContracts = (
   inspectMissingTokens({ source: reasoningContract, required: [
     "[role='menuitem'][aria-label='能力']", "[data-model-reasoning-effort-slider] [role='slider']",
     "fast: 0", "medium: 1", "high: 2", "extra_high: 3", "pro_standard: 4",
-  ], checkId: "gpt/reasoning-five-value-contract", filePath: PROFILE_CONTRACT_PATH,
+  ], checkId: "gpt/reasoning-approved-scale-contract", filePath: PROFILE_CONTRACT_PATH,
   findings, finding, message: (required) => `Reasoning contract is missing ${required}.` });
   const reasoningHandler = sourceFor(context, PROFILE_HANDLER_PATH)?.getFullText() ?? "";
   inspectMissingTokens({ source: reasoningHandler, required: [
@@ -185,7 +192,13 @@ const inspectProfileContracts = (
     "GPT_EXECUTION_PROFILE_HYDRATION_DOCUMENT_CHANGED",
     "postClickObservation: PROFILE_OPEN_POSTCONDITION", "mutationRecord.postconditionObservation",
     "decodeCoherentObservationPacket", "scopeRejections", "observationRevisionHash",
-  ], checkId: "gpt/reasoning-coherent-control", filePath: PROFILE_HANDLER_PATH,
+    'value.reasoningMaximum === "2"', 'value.reasoningMaximum === "4"',
+    "resolveReasoningRequirement", 'code: "GPT_REASONING_TIER_UNAVAILABLE"',
+    'selectionPolicy === "exact"', 'tier: "high", value: 2, degraded: true',
+    'tier: "pro_standard", value: 4, degraded: false',
+    "requestedTier", "requestedValue", "observedScale", "resolvedTier", "resolvedValue",
+    "currentValue", "mutationOutcome", "browserOutcome", "gptPostcondition",
+  ], checkId: "gpt/reasoning-requirement-resolution", filePath: PROFILE_HANDLER_PATH,
   findings, finding,
   message: (required) => `Reasoning Child must qualify and read back the Browser-owned numeric control; missing ${required}.` });
   if (reasoningHandler.includes("postClickMatch: { selector: GPT_PROFILE_REASONING_VALUE_SELECTOR")) {
@@ -194,6 +207,62 @@ const inspectProfileContracts = (
       "Profile open must consume one coherent Browser postcondition packet instead of a match plus second DOM readback.",
     ));
   }
+};
+
+const inspectProfileVersionCutover = (
+  context: InspectorContext,
+  contract: SourceFile,
+  findings: InspectorFinding[],
+  finding: FindingFactory,
+): void => {
+  const schema = sourceFor(context, SCHEMA_PATH)?.getFullText() ?? "";
+  inspectMissingTokens({ source: schema, required: [
+    'z.literal("gpt-execution-profile.v2")', 'z.discriminatedUnion("selectionPolicy"',
+    'selectionPolicy: z.literal("exact")',
+    'selectionPolicy: z.literal("exact-or-observed-maximum")',
+    'requestedTier: z.literal("pro_standard")', "reasoningRequirement: GptReasoningRequirementSchema",
+  ], checkId: "gpt/profile-v2-required-policy", filePath: SCHEMA_PATH,
+  findings, finding, message: (required) => `Execution Profile V2 is missing ${required}.` });
+  for (const retired of ["gpt-execution-profile.v1", "reasoningTier", "pro_extended"]) {
+    if (schema.includes(retired)) findings.push(finding(
+      "gpt/profile-v1-reader-retired", SCHEMA_PATH,
+      `Execution Profile schema retains retired token ${retired}.`,
+    ));
+  }
+
+  const contractObject = contract.getVariableDeclaration("GPT_CHILD_CONTRACTS")?.getInitializer();
+  const contracts = contractObject && Node.isObjectLiteralExpression(contractObject)
+    ? contractObject : contractObject?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
+  const profileConsumers = new Set([
+    "open_gpt_execution_profile", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
+    "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile",
+  ]);
+  for (const property of contracts?.getProperties() ?? []) {
+    if (!Node.isPropertyAssignment(property)) continue;
+    const id = property.getName().replace(/^['"]|['"]$/gu, "");
+    const value = property.getInitializerIfKind(SyntaxKind.ObjectLiteralExpression);
+    const version = value?.getProperty("contractVersion");
+    const inputSchema = value?.getProperty("inputSchema");
+    const versionText = Node.isPropertyAssignment(version) ? version.getInitializer()?.getText() : null;
+    const inputText = Node.isPropertyAssignment(inputSchema) ? inputSchema.getInitializer()?.getText() : null;
+    const expectedVersion = profileConsumers.has(id) ? "3" : "2";
+    const expectedInputSuffix = profileConsumers.has(id) ? ".input.v2\"" : ".input.v1\"";
+    if (versionText !== expectedVersion || !inputText?.endsWith(expectedInputSuffix)) findings.push(finding(
+      "gpt/profile-v2-contract-cutover", CONTRACT_PATH,
+      `${id} must use contract/input ${expectedVersion}/${profileConsumers.has(id) ? "v2" : "v1"}; found ${versionText}/${inputText}.`,
+      property.getStartLineNumber(),
+    ));
+  }
+
+  const childTypes = sourceFor(context, CHILD_TYPES_PATH)?.getFullText() ?? "";
+  const writer = sourceFor(context, EVIDENCE_WRITER_PATH)?.getFullText() ?? "";
+  const reader = sourceFor(context, EVIDENCE_FACT_PATH)?.getFullText() ?? "";
+  inspectMissingTokens({ source: `${childTypes}\n${writer}\n${reader}`, required: [
+    "GptReasoningRequirementResult", "reasoningRequirementResult",
+    'schema_version: "agent-gpt-evidence-safe.v2"', "reasoning_requirement_result",
+    'verifiedPayload.schema_version !== "agent-gpt-evidence-safe.v2"',
+  ], checkId: "gpt/reasoning-evidence-v2", filePath: EVIDENCE_WRITER_PATH,
+  findings, finding, message: (required) => `The single reasoning evidence path is missing ${required}.` });
 };
 
 const inspectContractShape = (
@@ -375,5 +444,6 @@ export const inspectGptContractDenominator = (
   }
   inspectChildDenominator(context, contract, findings, finding);
   inspectProfileContracts(context, findings, finding);
+  inspectProfileVersionCutover(context, contract, findings, finding);
   inspectContractShape(contract, findings, finding);
 };
