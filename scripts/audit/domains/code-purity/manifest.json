@@ -8,6 +8,7 @@
     "LAW-CODE-PURITY-003-V2"
   ],
   "ownedPaths": [
+    ".agents/skills/agent-flow-boundary-gatekeeper/SKILL.md",
     ".github/CODEOWNERS",
     ".gitignore",
     ".nvmrc",

@@ -133,6 +133,7 @@
         "src/**"
       ],
       "ownedPaths": [
+        ".agents/skills/agent-flow-boundary-gatekeeper/SKILL.md",
         ".github/CODEOWNERS",
         ".gitignore",
         ".nvmrc",
