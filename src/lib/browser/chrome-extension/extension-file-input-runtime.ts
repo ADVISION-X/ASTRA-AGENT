@@ -229,26 +229,40 @@ const fileInputPostconditionVerified = (
   && proof?.selectedFileCount === approvedFileCount
   && proof.approvedSetVerified && proof.acceptVerified;
 
-export const executeExtensionFileInput = async (
-  input: ExtensionFileInput,
-): Promise<Readonly<Record<string, unknown>>> => {
-  assertFileInputRequest(input);
-  let candidate: Candidate;
-  try {
-    candidate = await readExactFileInput(input.runtime, input.target, input.assertCurrent, input.selector);
-  } catch (error) {
-    const code = qualificationFailure(error);
-    if (code) return reject(0, code, "candidate-set");
-    throw error;
-  }
-  if (candidate.candidateCount !== 1 || candidate.nodeId === null
-    || candidate.backendNodeId === null || candidate.facts === null) {
-    return reject(candidate.candidateCount, candidate.candidateCount === 0
-      ? "BROWSER_DOM_CANDIDATE_MISSING" : "BROWSER_DOM_CANDIDATE_AMBIGUOUS", "candidate-set");
-  }
-  if (!fileInputQualified(candidate, input.resolvedFilePaths.length)) {
+type PointerAction = Awaited<ReturnType<typeof resolveCoherentPointerAction>>;
+
+const activationRejection = (error: unknown): Readonly<Record<string, unknown>> | null => {
+  const code = error instanceof Error ? error.message : "";
+  if (code === "BROWSER_DOM_CANDIDATE_MISSING") return reject(0, code, "candidate-set");
+  if (code === "BROWSER_DOM_CANDIDATE_AMBIGUOUS") return reject(2, code, "candidate-set");
+  if (/^BROWSER_DOM_ACTION_[A-Z_]+$/u.test(code)) {
     return reject(1, "BROWSER_FILE_INPUT_NOT_QUALIFIED", "actionability");
   }
+  return null;
+};
+
+const activationPoint = async (
+  input: ExtensionFileInput,
+): Promise<Readonly<{ kind: "point"; point: PointerAction }>
+  | Readonly<{ kind: "rejection"; value: Readonly<Record<string, unknown>> }>> => {
+  try {
+    const point = await resolveCoherentPointerAction(input.runtime, input.target, {
+      selector: input.activation.selector,
+      scope: input.activation.scope,
+      text: { value: input.activation.expectedTextEquals, exact: true },
+    });
+    return Object.freeze({ kind: "point", point });
+  } catch (error) {
+    const rejection = activationRejection(error);
+    if (rejection) return Object.freeze({ kind: "rejection", value: rejection });
+    throw error;
+  }
+};
+
+const selectApprovedFiles = async (
+  input: ExtensionFileInput,
+  candidate: Candidate,
+): Promise<Readonly<Record<string, unknown>> | null> => {
   let interceptionMayBeEnabled = false;
   let primaryFailure: unknown = null;
   const closeInterception = async (): Promise<void> => {
@@ -266,32 +280,13 @@ export const executeExtensionFileInput = async (
     input.assertCurrent(input.target.targetRef, input.target.documentRef);
     interceptionMayBeEnabled = true;
     await input.runtime.send(input.target.tabId, "Page.setInterceptFileChooserDialog", { enabled: true });
-    let activationPoint;
-    try {
-      activationPoint = await resolveCoherentPointerAction(input.runtime, input.target, {
-        selector: input.activation.selector,
-        scope: input.activation.scope,
-        text: { value: input.activation.expectedTextEquals, exact: true },
-      });
-    } catch (error) {
-      const code = error instanceof Error ? error.message : "";
-      if (code === "BROWSER_DOM_CANDIDATE_MISSING") return reject(0, code, "candidate-set");
-      if (code === "BROWSER_DOM_CANDIDATE_AMBIGUOUS") return reject(2, code, "candidate-set");
-      if (/^BROWSER_DOM_ACTION_[A-Z_]+$/u.test(code)) {
-        return reject(1, "BROWSER_FILE_INPUT_NOT_QUALIFIED", "actionability");
-      }
-      throw error;
-    }
+    const activation = await activationPoint(input);
+    if (activation.kind === "rejection") return activation.value;
     await input.runtime.captureFileChooserOpened(
       input.target.tabId,
       5_000,
-      () => dispatchPointerClickSequence(
-        input.runtime,
-        input.target,
-        activationPoint,
-        [1],
-        () => input.assertCurrent(input.target.targetRef, input.target.documentRef),
-      ),
+      () => dispatchPointerClickSequence(input.runtime, input.target, activation.point, [1],
+        () => input.assertCurrent(input.target.targetRef, input.target.documentRef)),
       async (chooser) => {
         try {
           input.assertCurrent(input.target.targetRef, input.target.documentRef);
@@ -316,6 +311,12 @@ export const executeExtensionFileInput = async (
   } finally {
     await closeInterception();
   }
+  return null;
+};
+
+const fileInputReadback = async (
+  input: ExtensionFileInput,
+): Promise<Readonly<Record<string, unknown>>> => {
   input.assertCurrent(input.target.targetRef, input.target.documentRef);
   const readback = await readExactFileInput(
     input.runtime, input.target, input.assertCurrent, input.selector,
@@ -335,4 +336,29 @@ export const executeExtensionFileInput = async (
     postconditionVerified,
     ...(postconditionVerified ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }),
   });
+};
+
+export const executeExtensionFileInput = async (
+  input: ExtensionFileInput,
+): Promise<Readonly<Record<string, unknown>>> => {
+  assertFileInputRequest(input);
+  let candidate: Candidate;
+  try {
+    candidate = await readExactFileInput(input.runtime, input.target, input.assertCurrent, input.selector);
+  } catch (error) {
+    const code = qualificationFailure(error);
+    if (code) return reject(0, code, "candidate-set");
+    throw error;
+  }
+  if (candidate.candidateCount !== 1 || candidate.nodeId === null
+    || candidate.backendNodeId === null || candidate.facts === null) {
+    return reject(candidate.candidateCount, candidate.candidateCount === 0
+      ? "BROWSER_DOM_CANDIDATE_MISSING" : "BROWSER_DOM_CANDIDATE_AMBIGUOUS", "candidate-set");
+  }
+  if (!fileInputQualified(candidate, input.resolvedFilePaths.length)) {
+    return reject(1, "BROWSER_FILE_INPUT_NOT_QUALIFIED", "actionability");
+  }
+  const selectionRejection = await selectApprovedFiles(input, candidate);
+  if (selectionRejection) return selectionRejection;
+  return fileInputReadback(input);
 };

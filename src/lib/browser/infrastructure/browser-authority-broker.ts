@@ -123,8 +123,62 @@ type ArtifactBindingInput = Readonly<{
   artifacts: readonly BrowserExecutionArtifact[];
 }>;
 
+type FileArtifactGrantIssuerInput = Readonly<{
+  assertLive: () => void;
+  artifactFor: (artifactRef: string) => BoundBrowserArtifact | undefined;
+  authorityEpoch: number;
+  executionBindingHash: BrowserHash;
+  grantedPaths: Map<string, GrantedPathEntry>;
+}>;
+
 const MAX_BOUND_BROWSER_EXECUTIONS = 10;
 const MAX_EXECUTION_ARTIFACTS = 64;
+
+const createFileArtifactGrantIssuer = (context: FileArtifactGrantIssuerInput) => async ({
+  artifactRef, providerDisplayName, expectedSha256, maxBytes,
+}: Readonly<{
+  artifactRef: string; providerDisplayName: string; expectedSha256: BrowserHash; maxBytes: number;
+}>): Promise<BrowserFileArtifactGrantV1> => {
+  context.assertLive();
+  assertProviderDisplayName(providerDisplayName);
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 1) throw new Error("BROWSER_FILE_GRANT_INVALID");
+  const boundArtifact = context.artifactFor(artifactRef);
+  if (!boundArtifact) throw new Error("BROWSER_FILE_GRANT_INVALID");
+  const source = await resolveBoundArtifact(boundArtifact);
+  if (source.contentHash !== expectedSha256 || source.sizeBytes !== maxBytes) {
+    throw new Error("BROWSER_FILE_GRANT_INVALID");
+  }
+  const providerPath = await source.materializeProviderPath(providerDisplayName);
+  const artifact = await resolveBoundArtifact({
+    canonicalPath: await realpath(providerPath),
+    contentHash: source.contentHash,
+    sizeBytes: source.sizeBytes,
+    materializeProviderPath: source.materializeProviderPath,
+    releaseProviderPaths: source.releaseProviderPaths,
+  });
+  if (basename(artifact.canonicalPath) !== providerDisplayName) {
+    throw new Error("BROWSER_FILE_GRANT_INVALID");
+  }
+  const grant = {
+    schemaVersion: "browser-file-artifact-grant-v1",
+    grantRef: `grant-${randomUUID()}`,
+    authorityEpoch: context.authorityEpoch,
+    executionBindingHash: context.executionBindingHash,
+    artifactRef,
+    contentHash: expectedSha256,
+    maxBytes,
+    expiresAt: new Date(Date.now() + 300_000).toISOString(),
+  } as const;
+  context.grantedPaths.set(grant.grantRef, {
+    artifactRef,
+    providerDisplayName,
+    path: artifact.canonicalPath,
+    expiresAt: grant.expiresAt,
+    contentHash: grant.contentHash,
+    maxBytes: grant.maxBytes,
+  });
+  return grant;
+};
 
 const artifactBindingKey = (binding: BrowserExecutionArtifactBinding): string => JSON.stringify([
   binding.ownerPluginId,
@@ -395,49 +449,13 @@ export class BrowserAuthorityBroker {
       ) throw new Error("BROWSER_LIVENESS_EXPIRED");
       this.assertTransportLive();
     };
-    const issueFileArtifactGrant = async ({ artifactRef, providerDisplayName, expectedSha256, maxBytes }: Readonly<{
-      artifactRef: string; providerDisplayName: string; expectedSha256: BrowserHash; maxBytes: number;
-    }>): Promise<BrowserFileArtifactGrantV1> => {
-      assertLive();
-      assertProviderDisplayName(providerDisplayName);
-      if (!Number.isSafeInteger(maxBytes) || maxBytes < 1) throw new Error("BROWSER_FILE_GRANT_INVALID");
-      const boundArtifact = this.executionArtifacts.get(artifactScopeKey)?.get(artifactRef);
-      if (!boundArtifact) throw new Error("BROWSER_FILE_GRANT_INVALID");
-      const source = await resolveBoundArtifact(boundArtifact);
-      if (source.contentHash !== expectedSha256 || source.sizeBytes !== maxBytes) {
-        throw new Error("BROWSER_FILE_GRANT_INVALID");
-      }
-      const providerPath = await source.materializeProviderPath(providerDisplayName);
-      const artifact = await resolveBoundArtifact({
-        canonicalPath: await realpath(providerPath),
-        contentHash: source.contentHash,
-        sizeBytes: source.sizeBytes,
-        materializeProviderPath: source.materializeProviderPath,
-        releaseProviderPaths: source.releaseProviderPaths,
-      });
-      if (basename(artifact.canonicalPath) !== providerDisplayName) {
-        throw new Error("BROWSER_FILE_GRANT_INVALID");
-      }
-      const grant = {
-        schemaVersion: "browser-file-artifact-grant-v1",
-        grantRef: `grant-${randomUUID()}`,
-        authorityEpoch: slot.authority.authorityEpoch,
-        executionBindingHash: binding.executionRefHash,
-        artifactRef,
-        contentHash: expectedSha256,
-        maxBytes,
-        expiresAt: new Date(Date.now() + 300_000).toISOString(),
-      } as const;
-      grantedPaths.set(grant.grantRef, {
-        artifactRef,
-        providerDisplayName,
-        path: artifact.canonicalPath,
-        expiresAt: grant.expiresAt,
-        contentHash: grant.contentHash,
-        maxBytes: grant.maxBytes,
-      });
-      return grant;
-    };
+    const issueFileArtifactGrant = createFileArtifactGrantIssuer({
+      assertLive,
+      artifactFor: (artifactRef) => this.executionArtifacts.get(artifactScopeKey)?.get(artifactRef),
+      authorityEpoch: slot.authority.authorityEpoch,
+      executionBindingHash: binding.executionRefHash,
+      grantedPaths,
+    });
     const manager = this.targetLeaseManagerFor(
       binding,
       (grants) => resolveGrantedPaths(grantedPaths, grants, async (artifactRef) => {

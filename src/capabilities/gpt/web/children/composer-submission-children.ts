@@ -69,6 +69,31 @@ type DraftState = Readonly<{
   facts: GptCoherentFactProjection;
 }>;
 
+const userTurnsFromObservation = (
+  matches: readonly Readonly<Record<string, unknown>>[],
+): readonly Readonly<{ testId: string; promptHash: string }>[] => Object.freeze(matches.map((match) => {
+  if (typeof match.testId !== "string" || !/^conversation-turn-[1-9][0-9]*$/u.test(match.testId)
+    || typeof match.exactGptUserPromptHash !== "string" || !HASH.test(match.exactGptUserPromptHash)) {
+    throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
+  }
+  return Object.freeze({ testId: match.testId, promptHash: match.exactGptUserPromptHash });
+}));
+
+const attachmentLabelsFromObservation = (
+  matches: readonly Readonly<Record<string, unknown>>[],
+): readonly string[] => Object.freeze(matches.map((match) => {
+  if (typeof match.ariaLabel !== "string") throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
+  return match.ariaLabel.normalize("NFC");
+}));
+
+const exactComposerHash = (match: Readonly<Record<string, unknown>> | undefined): string | null => {
+  const value = match?.exactEditableTextHash;
+  if (value !== undefined && (typeof value !== "string" || !HASH.test(value))) {
+    throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
+  }
+  return typeof value === "string" ? value : null;
+};
+
 const readDraftState = async (
   browser: BrowserTargetLease,
   options: Readonly<{ includeSend?: boolean; includeTurns?: boolean; includeAttachments?: boolean }> = {},
@@ -88,29 +113,16 @@ const readDraftState = async (
   const row = (queryId: string) => observation.rows.find((candidate) => candidate.queryId === queryId);
   const composer = row("composer")!;
   const send = row("send");
-  const userTurns = row("user-turns")?.matches.map((match) => {
-    if (typeof match.testId !== "string" || !/^conversation-turn-[1-9][0-9]*$/u.test(match.testId)
-      || typeof match.exactGptUserPromptHash !== "string" || !HASH.test(match.exactGptUserPromptHash)) {
-      throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
-    }
-    return Object.freeze({ testId: match.testId, promptHash: match.exactGptUserPromptHash });
-  }) ?? [];
-  const attachmentLabels = row("attachment-items")?.matches.map((match) => {
-    if (typeof match.ariaLabel !== "string") throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
-    return match.ariaLabel.normalize("NFC");
-  }) ?? [];
-  const rawComposerHash = composer.matches[0]?.exactEditableTextHash;
-  if (rawComposerHash !== undefined
-    && (typeof rawComposerHash !== "string" || !HASH.test(rawComposerHash))) {
-    throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
-  }
+  const userTurns = userTurnsFromObservation(row("user-turns")?.matches ?? []);
+  const attachmentLabels = attachmentLabelsFromObservation(row("attachment-items")?.matches ?? []);
+  const composerHash = exactComposerHash(composer.matches[0]);
   const attachments = row("attachment-items");
   const sendMatch = send?.matches[0];
   return Object.freeze({
     currentUrl: observation.currentUrl,
     composerRaw: composer.rawCount,
     composerEligible: composer.eligibleCount,
-    composerHash: typeof rawComposerHash === "string" ? rawComposerHash : null,
+    composerHash,
     sendRaw: send?.rawCount ?? 0,
     sendEligible: send?.eligibleCount ?? 0,
     sendTag: typeof sendMatch?.tagName === "string" ? sendMatch.tagName : null,

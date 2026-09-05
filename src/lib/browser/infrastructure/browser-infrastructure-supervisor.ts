@@ -32,22 +32,6 @@ import { BrowserRuntimeLogEmitter } from "./browser-runtime-log-emitter.js";
 
 export type BrowserHealthComponent = "browserInfrastructure" | "browserAuthority";
 export type BrowserHealthSnapshot = Readonly<Record<BrowserHealthComponent, Readonly<{ ok: boolean; reasonCode?: string }>>>;
-export type BrowserInfrastructureMetrics = Readonly<{
-  unauthenticated_browser_authority_issued_total: 0;
-  command_without_valid_authority_total: 0;
-  stale_event_side_effect_total: 0;
-  old_completion_to_new_port_total: 0;
-  non_idempotent_auto_replay_total: 0;
-  wrong_profile_process_authority_issued_total: 0;
-  command_after_liveness_expiry_total: 0;
-  browser_action_during_authority_absence_total: 0;
-  dual_active_browser_worker_total: 0;
-  revoked_or_rollback_blocked_tuple_activated_total: 0;
-  browser_admission_budget_violation_total: 0;
-  unbounded_queue: 0;
-  unbounded_cache: 0;
-  unbounded_stream: 0;
-}>;
 
 export type BrowserInfrastructureSupervisorOptions = Readonly<{
   dataDir: string;
@@ -168,13 +152,14 @@ export class BrowserInfrastructureSupervisor {
     this.state.started = false;
   }
 
-  public authorityBroker(): BrowserAuthorityBroker { return this.broker; }
+  public endpoints(): Readonly<{
+    broker: BrowserAuthorityBroker;
+    websocket: BrowserAuthorityWebSocket;
+  }> { return Object.freeze({ broker: this.broker, websocket: this.websocket }); }
   public bindExecutionArtifacts(input: Readonly<{
     binding: BrowserExecutionArtifactBinding;
     artifacts: readonly BrowserExecutionArtifact[];
   }>): Promise<BrowserExecutionArtifactLease> { return this.broker.bindExecutionArtifacts(input); }
-  public browserAuthorityWebSocket(): BrowserAuthorityWebSocket { return this.websocket; }
-
   public readOperatorPairingState(): Readonly<{ authority: "present" | "absent"; pairingSecret: string | null }> {
     return {
       authority: this.issuer.current().kind === "PRESENT" ? "present" : "absent",
@@ -248,17 +233,6 @@ export class BrowserInfrastructureSupervisor {
       },
       browserAuthority: current.kind === "PRESENT"
         ? { ok: true } : { ok: false, reasonCode: current.reasonCode },
-    };
-  }
-
-  public metrics(): BrowserInfrastructureMetrics {
-    return {
-      unauthenticated_browser_authority_issued_total: 0, command_without_valid_authority_total: 0,
-      stale_event_side_effect_total: 0, old_completion_to_new_port_total: 0,
-      non_idempotent_auto_replay_total: 0, wrong_profile_process_authority_issued_total: 0,
-      command_after_liveness_expiry_total: 0, browser_action_during_authority_absence_total: 0,
-      dual_active_browser_worker_total: 0, revoked_or_rollback_blocked_tuple_activated_total: 0,
-      browser_admission_budget_violation_total: 0, unbounded_queue: 0, unbounded_cache: 0, unbounded_stream: 0,
     };
   }
 

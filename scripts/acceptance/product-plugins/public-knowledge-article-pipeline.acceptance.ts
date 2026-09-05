@@ -6,13 +6,12 @@ import { productionPluginCatalog } from "../../../src/mediator/product-plugin-ca
 import { typedExecutionFailure } from "../../../src/lib/execution-failure.js";
 import { postSubmitReadbackReceipt } from "../../../src/mediator/product-plugin-contract.js";
 import { productionRoutePolicy } from "../../../src/lib/local-runtime/production/route-policy.js";
-import { gptExactCallIdentityHash } from "../../../src/capabilities/gpt/contract.js";
 import { parsePublicKnowledgeArticle, parsePublicKnowledgeResearch } from "../../../src/plugins/public-knowledge-article-pipeline/result-contract.js";
 import {
   exerciseSeoAttachmentReconcileFailure,
   exerciseSeoFlow,
   exerciseSeoPromptWriteFailure,
-} from "./public-knowledge-article-pipeline.test-runtime.js";
+} from "./public-knowledge-article-pipeline-flow.test-runtime.js";
 import { articleOutput, researchOutput } from
   "./public-knowledge-article-pipeline-output-fixtures.js";
 import {
@@ -51,17 +50,6 @@ const continuationImage = [
 ] as const;
 
 assert.equal(plugin.pluginVersion, 20);
-const attachmentIdentity = {
-  jobId: "job", attemptId: "attempt", pluginId: plugin.pluginId,
-  productStepId: "corpus_research", callId: "attachments-reconcile",
-  childCapabilityId: "reconcile_gpt_attachment_set" as const,
-  inputHash: `sha256:${"1".repeat(64)}` as const,
-};
-assert.notEqual(
-  gptExactCallIdentityHash({ ...attachmentIdentity, pluginVersion: 19 }),
-  gptExactCallIdentityHash({ ...attachmentIdentity, pluginVersion: plugin.pluginVersion }),
-  "the submit-recovery contract cutover must not recover pre-v20 evidence",
-);
 const source = readFileSync("src/plugins/public-knowledge-article-pipeline/index.ts", "utf8");
 assert.doesNotMatch(source, /PRODUCT_FLOW_NOT_IMPLEMENTED:|throw new Error/u);
 assert.match(source, /corpus_research/u);

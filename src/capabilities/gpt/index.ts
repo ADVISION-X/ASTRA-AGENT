@@ -14,12 +14,6 @@ export {
   gptContinuationUsable,
 } from "./schema.js";
 export type {
-  GptExecutionProfile,
-  GptReasoningRequirement,
-  GptReasoningTier,
-} from "./schema.js";
-export type { GptReasoningRequirementResult } from "./child-types.js";
-export type {
   ConfirmedGptSubmitFailureReceipt,
   ExactGptCallFacts,
   ExactGptContinuationReadback,
@@ -38,6 +32,5 @@ export type {
   GptContinuationReservationReadback,
   GptContinuationStorePort,
   GptProviderContinuation,
-  NewStoredGptContinuation,
   StoredGptContinuation,
 } from "./session/gpt-continuation-store-port.js";

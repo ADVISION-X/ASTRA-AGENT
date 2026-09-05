@@ -212,6 +212,115 @@ const evidenceState = (
 const safeIntegerOrNull = (value: unknown): value is number | null =>
   value === null || Number.isSafeInteger(value);
 
+const reasoningShapeValid = (
+  result: Readonly<Record<string, unknown>>,
+  observedScale: Readonly<Record<string, unknown>>,
+): boolean => exactKeys(result, [
+  "requestedTier", "requestedValue", "selectionPolicy", "observedScale",
+  "resolvedTier", "resolvedValue", "degraded", "currentValue",
+  "mutationOutcome", "browserOutcome", "gptPostcondition",
+]) && exactKeys(observedScale, ["min", "max", "currentBefore"]);
+
+const reasoningRequestValid = (
+  result: Readonly<Record<string, unknown>>,
+  observedScale: Readonly<Record<string, unknown>>,
+): boolean => typeof result.requestedTier === "string"
+  && result.requestedTier in reasoningTierUiValue
+  && result.requestedValue === reasoningTierUiValue[result.requestedTier as keyof typeof reasoningTierUiValue]
+  && (result.selectionPolicy === "exact" || result.selectionPolicy === "exact-or-observed-maximum")
+  && !(result.selectionPolicy === "exact-or-observed-maximum" && result.requestedTier !== "pro_standard")
+  && safeIntegerOrNull(observedScale.min)
+  && safeIntegerOrNull(observedScale.max)
+  && safeIntegerOrNull(observedScale.currentBefore);
+
+const reasoningResultFieldsValid = (
+  result: Readonly<Record<string, unknown>>,
+  state: EvidenceState,
+): boolean => (result.resolvedTier === null
+  || (typeof result.resolvedTier === "string" && result.resolvedTier in reasoningTierUiValue))
+  && safeIntegerOrNull(result.resolvedValue)
+  && typeof result.degraded === "boolean"
+  && safeIntegerOrNull(result.currentValue)
+  && result.mutationOutcome === state.mutation
+  && result.gptPostcondition === state.postcondition
+  && ((result.browserOutcome === null && result.mutationOutcome === "no")
+    || browserOutcomeMatchesMutation(result.browserOutcome, result.mutationOutcome, state.mutation));
+
+const exactReasoningResolutionValid = (result: Readonly<Record<string, unknown>>): boolean =>
+  (result.resolvedTier === null) === (result.resolvedValue === null)
+  && !(result.selectionPolicy === "exact" && result.resolvedTier !== null
+    && (result.resolvedTier !== result.requestedTier
+      || result.resolvedValue !== result.requestedValue || result.degraded !== false));
+
+const adaptiveReasoningResolutionValid = (
+  result: Readonly<Record<string, unknown>>,
+  observedScale: Readonly<Record<string, unknown>>,
+): boolean => {
+  if (result.degraded && !validDegradedReasoningResolution(result, observedScale)) return false;
+  if (result.selectionPolicy !== "exact-or-observed-maximum" || result.resolvedTier === null) return true;
+  return validObservedMaximumResolution(result, observedScale);
+};
+
+const validDegradedReasoningResolution = (
+  result: Readonly<Record<string, unknown>>,
+  observedScale: Readonly<Record<string, unknown>>,
+): boolean => result.selectionPolicy === "exact-or-observed-maximum"
+  && result.requestedTier === "pro_standard"
+  && observedScale.min === 0
+  && observedScale.max === 2
+  && result.resolvedTier === "high"
+  && result.resolvedValue === 2;
+
+const validObservedMaximumResolution = (
+  result: Readonly<Record<string, unknown>>,
+  observedScale: Readonly<Record<string, unknown>>,
+): boolean => observedScale.min === 0 && (
+  (observedScale.max === 2 && result.resolvedTier === "high"
+    && result.resolvedValue === 2 && result.degraded === true)
+  || (observedScale.max === 4 && result.resolvedTier === "pro_standard"
+    && result.resolvedValue === 4 && result.degraded === false)
+);
+
+const successfulReasoningResultValid = (
+  result: Readonly<Record<string, unknown>>,
+  state: EvidenceState,
+): boolean => state.resultStatus !== "success" || (result.resolvedTier !== null
+  && result.currentValue === result.resolvedValue && result.gptPostcondition === "passed");
+
+const reasoningPayloadValid = (
+  result: Readonly<Record<string, unknown>>,
+  observedScale: Readonly<Record<string, unknown>>,
+  state: EvidenceState,
+): boolean => [
+  reasoningShapeValid(result, observedScale),
+  reasoningRequestValid(result, observedScale),
+  reasoningResultFieldsValid(result, state),
+  exactReasoningResolutionValid(result),
+  adaptiveReasoningResolutionValid(result, observedScale),
+  successfulReasoningResultValid(result, state),
+].every(Boolean);
+
+const decodedReasoningResult = (
+  result: Readonly<Record<string, unknown>>,
+  observedScale: Readonly<Record<string, unknown>>,
+): GptReasoningRequirementResult => Object.freeze({
+  requestedTier: result.requestedTier as GptReasoningRequirementResult["requestedTier"],
+  requestedValue: result.requestedValue as number,
+  selectionPolicy: result.selectionPolicy as GptReasoningRequirementResult["selectionPolicy"],
+  observedScale: Object.freeze({
+    min: observedScale.min as number | null,
+    max: observedScale.max as number | null,
+    currentBefore: observedScale.currentBefore as number | null,
+  }),
+  resolvedTier: result.resolvedTier as GptReasoningRequirementResult["resolvedTier"],
+  resolvedValue: result.resolvedValue as number | null,
+  degraded: result.degraded as boolean,
+  currentValue: result.currentValue as number | null,
+  mutationOutcome: result.mutationOutcome as GptReasoningRequirementResult["mutationOutcome"],
+  browserOutcome: result.browserOutcome as GptReasoningRequirementResult["browserOutcome"],
+  gptPostcondition: result.gptPostcondition as GptReasoningRequirementResult["gptPostcondition"],
+});
+
 const reasoningRequirementResult = (input: Readonly<{
   payload: Readonly<Record<string, unknown>>;
   intent: GptChildCapabilityIntent;
@@ -226,69 +335,8 @@ const reasoningRequirementResult = (input: Readonly<{
   if (!result) return invalid();
   const observedScale = record(result.observedScale);
   if (!observedScale) return invalid();
-  if (!exactKeys(result, [
-      "requestedTier", "requestedValue", "selectionPolicy", "observedScale",
-      "resolvedTier", "resolvedValue", "degraded", "currentValue",
-      "mutationOutcome", "browserOutcome", "gptPostcondition",
-    ])
-    || !exactKeys(observedScale, ["min", "max", "currentBefore"])) return invalid();
-  const requestedTier = result.requestedTier;
-  const requestedValue = result.requestedValue;
-  const selectionPolicy = result.selectionPolicy;
-  const resolvedTier = result.resolvedTier;
-  const resolvedValue = result.resolvedValue;
-  const degraded = result.degraded;
-  const browserOutcome = result.browserOutcome;
-  const gptPostcondition = result.gptPostcondition;
-  if (typeof requestedTier !== "string" || !(requestedTier in reasoningTierUiValue)
-    || requestedValue !== reasoningTierUiValue[requestedTier as keyof typeof reasoningTierUiValue]
-    || (selectionPolicy !== "exact" && selectionPolicy !== "exact-or-observed-maximum")
-    || (selectionPolicy === "exact-or-observed-maximum" && requestedTier !== "pro_standard")
-    || !(resolvedTier === null
-      || (typeof resolvedTier === "string" && resolvedTier in reasoningTierUiValue))
-    || !safeIntegerOrNull(resolvedValue)
-    || typeof degraded !== "boolean"
-    || !safeIntegerOrNull(observedScale.min)
-    || !safeIntegerOrNull(observedScale.max)
-    || !safeIntegerOrNull(observedScale.currentBefore)
-    || !safeIntegerOrNull(result.currentValue)
-    || result.mutationOutcome !== input.state.mutation
-    || gptPostcondition !== input.state.postcondition
-    || !((browserOutcome === null && result.mutationOutcome === "no")
-      || browserOutcomeMatchesMutation(browserOutcome, result.mutationOutcome, input.state.mutation))) invalid();
-  if ((resolvedTier === null) !== (resolvedValue === null)) invalid();
-  if (selectionPolicy === "exact" && resolvedTier !== null
-    && (resolvedTier !== requestedTier || resolvedValue !== requestedValue || degraded)) invalid();
-  if (degraded && !(selectionPolicy === "exact-or-observed-maximum"
-    && requestedTier === "pro_standard" && observedScale.min === 0 && observedScale.max === 2
-    && resolvedTier === "high" && resolvedValue === 2)) invalid();
-  if (selectionPolicy === "exact-or-observed-maximum" && resolvedTier !== null) {
-    const validAdaptive = observedScale.min === 0 && (
-      (observedScale.max === 2 && resolvedTier === "high" && resolvedValue === 2 && degraded)
-      || (observedScale.max === 4 && resolvedTier === "pro_standard"
-        && resolvedValue === 4 && !degraded)
-    );
-    if (!validAdaptive) invalid();
-  }
-  if (input.state.resultStatus === "success" && (resolvedTier === null
-    || result.currentValue !== resolvedValue || gptPostcondition !== "passed")) invalid();
-  return Object.freeze({
-    requestedTier: requestedTier as GptReasoningRequirementResult["requestedTier"],
-    requestedValue: requestedValue as number,
-    selectionPolicy: selectionPolicy as GptReasoningRequirementResult["selectionPolicy"],
-    observedScale: Object.freeze({
-      min: observedScale.min as number | null,
-      max: observedScale.max as number | null,
-      currentBefore: observedScale.currentBefore as number | null,
-    }),
-    resolvedTier: resolvedTier as GptReasoningRequirementResult["resolvedTier"],
-    resolvedValue: resolvedValue as number | null,
-    degraded: degraded as boolean,
-    currentValue: result.currentValue as number | null,
-    mutationOutcome: result.mutationOutcome as GptReasoningRequirementResult["mutationOutcome"],
-    browserOutcome: browserOutcome as GptReasoningRequirementResult["browserOutcome"],
-    gptPostcondition: gptPostcondition as GptReasoningRequirementResult["gptPostcondition"],
-  });
+  if (!reasoningPayloadValid(result, observedScale, input.state)) return invalid();
+  return decodedReasoningResult(result, observedScale);
 };
 
 const assertIdentity = (input: Readonly<{

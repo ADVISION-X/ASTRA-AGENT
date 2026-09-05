@@ -27,17 +27,19 @@ import { imagePrompt } from "./seo-turn-prompts.js";
 import {
   advanceLane,
   applyExactProfile,
-  confirmedDeadline,
   createSeoExecutor,
   focusContinuation,
-  preservePostSubmitReadback,
-  preserveConfirmedSubmitDirectFailure,
   reconcileConfirmedSubmissionLocator,
   releaseLane,
-  requireConfirmedSubmitDirectFailure,
   requireExactProfileEvidence,
-  type SeoConfirmedSubmit,
 } from "./seo-gpt-calls.js";
+import {
+  confirmedDeadline,
+  preserveConfirmedSubmitDirectFailure,
+  preservePostSubmitReadback,
+  requireConfirmedSubmitDirectFailure,
+  type SeoConfirmedSubmit,
+} from "./seo-submit-readback.js";
 
 type ImageTurnInput = Readonly<{
   flow: ReturnType<typeof createSeoExecutor>;
@@ -206,47 +208,68 @@ const checkpointSubmittedImage = async (
   }
 };
 
+type ImageSubmitState = Readonly<{
+  failed: ConfirmedGptSubmitFailureReceipt | null;
+  recoveredConversationUrl: string | null;
+  current: ExactGptCallFacts | null;
+  prior: ExactGptCallFacts | null;
+}>;
+
+const readImageSubmitState = async (
+  input: ImageTurnInput,
+  turnSubmit: Parameters<ImageTurnInput["flow"]["confirmedSubmitFailure"]>[0],
+  promptHash: ProductionHash,
+): Promise<ImageSubmitState> => {
+  const failed = await input.flow.confirmedSubmitFailure(turnSubmit);
+  const recoveredConversationUrl = failed ? await reconcileConfirmedSubmissionLocator({
+    actionOrdinal: 46, confirmedSubmit: failed, flow: input.flow,
+    marker: input.marker, promptHash, stepId: input.stepId,
+  }) : null;
+  const current = failed ? null : await input.flow.facts(turnSubmit);
+  const prior = failed ? null : current && (current.mutation || current.evidence)
+    ? current : await input.flow.facts(turnSubmit, "task_exact_effect");
+  return Object.freeze({ failed, recoveredConversationUrl, current, prior });
+};
+
+const priorImageSubmitConfirmed = (facts: ExactGptCallFacts | null): facts is ExactGptCallFacts => [
+  facts?.mutation?.outcome === "CONFIRMED",
+  Boolean(facts?.mutation?.terminalAt),
+  facts?.evidence?.readbackVerified === true,
+].every(Boolean);
+
+const confirmedImageSubmit = async (
+  input: ImageTurnInput,
+  prompt: string,
+  promptHash: ProductionHash,
+  state: ImageSubmitState,
+): Promise<SeoConfirmedSubmit> => {
+  if (state.failed) return recoverFailedImageSubmit(input, prompt, state.failed);
+  if (state.current && (state.current.mutation || state.current.evidence)) {
+    return settleCurrentImageSubmit(input, prompt, promptHash);
+  }
+  if (state.prior && !state.prior.mutation && !state.prior.evidence) {
+    return prepareImageSubmit(input, prompt, promptHash);
+  }
+  if (priorImageSubmitConfirmed(state.prior)) {
+    confirmedDeadline(state.prior);
+    return state.prior;
+  }
+  return fail("SEO_IMAGE_SUBMIT_FACT_UNRESOLVED");
+};
+
 export const generateImage = async (input: ImageTurnInput): Promise<GeneratedImageArtifact> => {
   const prompt = imagePrompt(input.task, input.marker, input.productSkill);
   const promptHash = textHash(prompt);
   const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 45, input: { files: [], promptHash, turnMarker: input.marker } } as const;
-  const failedSubmit = await input.flow.confirmedSubmitFailure(turnSubmit);
-  const recoveredConversationUrl = failedSubmit
-    ? await reconcileConfirmedSubmissionLocator({
-      actionOrdinal: 46,
-      confirmedSubmit: failedSubmit,
-      flow: input.flow,
-      marker: input.marker,
-      promptHash,
-      stepId: input.stepId,
-    }) : null;
-  const currentSubmit = failedSubmit ? null : await input.flow.facts(turnSubmit);
-  const priorSubmit = failedSubmit
-    ? null
-    : currentSubmit && (currentSubmit.mutation || currentSubmit.evidence)
-      ? currentSubmit : await input.flow.facts(turnSubmit, "task_exact_effect");
+  const state = await readImageSubmitState(input, turnSubmit, promptHash);
   const lane = await focusContinuation(
     input.flow, input.task, input.stepId, input.continuationRef,
     input.expectedProvider, [34, 35, 36], 50,
   );
   let advanced = false;
   try {
-    let confirmed: SeoConfirmedSubmit;
-    if (failedSubmit) {
-      confirmed = await recoverFailedImageSubmit(input, prompt, failedSubmit);
-    } else if (currentSubmit && (currentSubmit.mutation || currentSubmit.evidence)) {
-      confirmed = await settleCurrentImageSubmit(input, prompt, promptHash);
-    } else if (priorSubmit && !priorSubmit.mutation && !priorSubmit.evidence) {
-      confirmed = await prepareImageSubmit(input, prompt, promptHash);
-    } else if (priorSubmit?.mutation?.outcome === "CONFIRMED"
-      && priorSubmit.mutation.terminalAt
-      && priorSubmit.evidence?.readbackVerified === true) {
-      confirmedDeadline(priorSubmit);
-      confirmed = priorSubmit;
-    } else {
-      fail("SEO_IMAGE_SUBMIT_FACT_UNRESOLVED");
-    }
-    const canonicalConversationUrl = recoveredConversationUrl
+    const confirmed = await confirmedImageSubmit(input, prompt, promptHash, state);
+    const canonicalConversationUrl = state.recoveredConversationUrl
       ?? await reconcileConfirmedSubmissionLocator({
         actionOrdinal: 46,
         confirmedSubmit: confirmed,

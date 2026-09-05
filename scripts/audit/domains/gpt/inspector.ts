@@ -21,11 +21,14 @@ import {
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 import {
   inspectGptAttachmentContract,
-  inspectGptBrowserFailureRecoveryContract,
   inspectGptContractDenominator,
-  inspectGptDirectMutationSettlementContract,
 } from "./gpt-contract-inspection.js";
+import {
+  inspectGptBrowserFailureRecoveryContract,
+  inspectGptDirectMutationSettlementContract,
+} from "./gpt-recovery-contract-inspection.js";
 import { inspectGptCurrentPageProofs } from "./gpt-page-proof-inspection.js";
+import { inspectProviderWaitContract } from "./gpt-provider-contract-inspection.js";
 
 const LAW_ID = "LAW-GPT-001-V26";
 const MODE_CLAUSES = {
@@ -56,17 +59,19 @@ const IMAGE_RESPONSE_HANDLER_PATH = `${ROOT}/web/children/image-response-childre
 const RETIRED_RESPONSE_SUPPORT_PATH = `${ROOT}/web/children/response-child-support.ts`;
 const RETIRED_RATE_DIALOG_PATH = `${ROOT}/web/children/rate-limit-dialog.ts`;
 const CONVERSATION_HANDLER_PATH = `${ROOT}/web/children/conversation-children.ts`;
-const SUBMISSION_HANDLER_PATH = `${ROOT}/web/children/composer-submission-children.ts`;
 const RESPONSE_PAGE_PATH = `${ROOT}/web/gpt-response-page.ts`;
 const TURN_EXECUTOR_PATH = `${ROOT}/gpt-turn-executor.ts`;
 const MODEL_SELECTION_V2_HANDLER_PATH = `${ROOT}/web/children/model-selection-v2-children.ts`;
 const MODEL_SELECTION_V2_CONTRACT_PATH = `${ROOT}/web/contracts/model-selection-v2.contract.ts`;
 const EXECUTION_PROFILE_HANDLER_PATH = `${ROOT}/web/children/execution-profile-children.ts`;
+const EXECUTION_PROFILE_OBSERVATION_PATH = `${ROOT}/web/children/execution-profile-observation.ts`;
 const EXECUTION_PROFILE_CONTRACT_PATH = `${ROOT}/web/contracts/execution-profile.contract.ts`;
 const ATTACHMENT_HANDLER_PATH = `${ROOT}/web/children/attachment-children.ts`;
+const ATTACHMENT_SET_OBSERVATION_PATH = `${ROOT}/web/children/attachment-set-observation.ts`;
 const ATTACHMENT_CONTRACT_PATH = `${ROOT}/web/contracts/attachment.contract.ts`;
 const PRODUCTION_CHILD_TOOLS_PATH = `${ROOT}/production-child-tools.ts`;
 const PRODUCTION_BROWSER_LIFECYCLE_PATH = `${ROOT}/production-browser-lifecycle.ts`;
+const PRODUCTION_CONFIRMED_READBACK_FACADE_PATH = `${ROOT}/production-confirmed-readback-facade.ts`;
 
 const finding = (checkId: string, filePath: string, message: string, line?: number): InspectorFinding =>
   createFinding({
@@ -310,7 +315,8 @@ const inspectExecutionProfileStateReadContract = (
   context: InspectorContext,
   findings: InspectorFinding[],
 ): void => {
-  const handler = sourceFor(context, EXECUTION_PROFILE_HANDLER_PATH)?.getFullText() ?? "";
+  const handler = [EXECUTION_PROFILE_HANDLER_PATH, EXECUTION_PROFILE_OBSERVATION_PATH]
+    .map((path) => sourceFor(context, path)?.getFullText() ?? "").join("\n");
   for (const required of [
     "selector: GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR",
     'readEligibility: "non-actionable-aria-state"',
@@ -331,80 +337,10 @@ const inspectExecutionProfileStateReadContract = (
   }
 };
 
-const inspectProviderWaitContract = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const textResponse = sourceFor(context, TEXT_RESPONSE_HANDLER_PATH)?.getFullText() ?? "";
-  const imageResponse = sourceFor(context, IMAGE_RESPONSE_HANDLER_PATH)?.getFullText() ?? "";
-  const conversation = sourceFor(context, CONVERSATION_HANDLER_PATH)?.getFullText() ?? "";
-  const submission = sourceFor(context, SUBMISSION_HANDLER_PATH)?.getFullText() ?? "";
-  const implementedFiles = [
-    [CONVERSATION_HANDLER_PATH, conversation, [
-      "prepare_clean_gpt_chat", "focus_exact_gpt_conversation", "verify_gpt_conversation_identity",
-      "open_gpt_checkpoint_actions_menu", "fork_exact_gpt_conversation_at_checkpoint",
-      "readCoherentObservation", "readExactAssistantTurn", "exactEditableTextHash", "exactGptUserPromptHash",
-    ]],
-    [SUBMISSION_HANDLER_PATH, submission, [
-      "write_exact_gpt_prompt", "reconcile_gpt_draft", "submit_exact_gpt_turn_once",
-      "reconcile_gpt_turn_submission", "readCoherentObservation", "exactEditableTextHash",
-      "exactGptUserPromptHash",
-      "GPT_COMPOSER_FORM_SELECTOR", "scope: { selector: GPT_COMPOSER_FORM_SELECTOR }",
-      "exactAttachmentSet", "includeAttachments: true",
-    ]],
-    [TEXT_RESPONSE_HANDLER_PATH, textResponse, [
-      "wait_for_stable_gpt_text", "checkpoint_gpt_text_response",
-      "readExactAssistantTurn", "ensureResponseConversation",
-    ]],
-    [IMAGE_RESPONSE_HANDLER_PATH, imageResponse, [
-      "wait_for_stable_gpt_image", "checkpoint_gpt_generated_image",
-      "downloadAuthenticatedMedia", "ensureResponseConversation",
-    ]],
-  ] as const;
-  for (const [path, source, requiredTokens] of implementedFiles) {
-    for (const required of ["requireBrowser(context)", "requireExactInputKeys", ...requiredTokens]) {
-      if (!source.includes(required)) findings.push(finding(
-        "gpt/browser-handoff-implemented", path,
-        `Production page Child slice is missing ${required}.`,
-      ));
-    }
-    for (const retiredBlocker of [
-      "GPT_BROWSER_COHERENT_PAGE_HANDOFF_REQUIRED",
-      "GPT_BROWSER_COHERENT_SEMANTIC_HANDOFF_REQUIRED",
-    ]) if (source.includes(retiredBlocker)) findings.push(finding(
-      "gpt/placeholder-handoff-retired", path,
-      `Production page Child slice retains retired placeholder ${retiredBlocker}.`,
-    ));
-  }
-  for (const [path, source] of [
-    [CONVERSATION_HANDLER_PATH, conversation], [SUBMISSION_HANDLER_PATH, submission],
-  ] as const) if (/queryId:\s*"composer"[\s\S]{0,180}fields:\s*\[[^\]]*"semanticTextHash"/u.test(source)) {
-    findings.push(finding(
-      "gpt/composer-semantic-fallback-forbidden", path,
-      "Composer current-value decisions must consume exactEditableTextHash, never rendered semanticTextHash.",
-    ));
-  }
-  const responsePage = sourceFor(context, RESPONSE_PAGE_PATH)?.getFullText() ?? "";
-  for (const [path, source] of [
-    [CONVERSATION_HANDLER_PATH, conversation], [SUBMISSION_HANDLER_PATH, submission],
-    [RESPONSE_PAGE_PATH, responsePage],
-  ] as const) {
-    if (!source.includes('queryId: "user-turns"') || !source.includes("exactGptUserPromptHash")) {
-      findings.push(finding(
-        "gpt/exact-user-prompt-hash-required", path,
-        "Every GPT user-turn identity reader must consume exactGptUserPromptHash.",
-      ));
-    }
-    if (/queryId:\s*"user-turns"[\s\S]{0,180}fields:\s*\[[^\]]*"semanticTextHash"/u.test(source)) {
-      findings.push(finding(
-        "gpt/outer-user-turn-semantic-hash-forbidden", path,
-        "A whole user-turn semantic hash includes attachments and controls and cannot identify the Prompt.",
-      ));
-    }
-  }
-};
-
 const inspectIntelligentExecutionContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {
   inspectExactCallContract(context, findings);
   inspectContinuationContract(context, findings);
-  inspectProviderWaitContract(context, findings);
+  inspectProviderWaitContract(context, findings, finding);
 };
 
 const inspectGptContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {
@@ -427,9 +363,10 @@ const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFind
     CONVERSATION_HANDLER_PATH,
     RESPONSE_PAGE_PATH,
     MODEL_SELECTION_V2_HANDLER_PATH, MODEL_SELECTION_V2_CONTRACT_PATH,
-    EXECUTION_PROFILE_HANDLER_PATH, EXECUTION_PROFILE_CONTRACT_PATH,
-    ATTACHMENT_HANDLER_PATH, ATTACHMENT_CONTRACT_PATH,
+    EXECUTION_PROFILE_HANDLER_PATH, EXECUTION_PROFILE_OBSERVATION_PATH, EXECUTION_PROFILE_CONTRACT_PATH,
+    ATTACHMENT_HANDLER_PATH, ATTACHMENT_SET_OBSERVATION_PATH, ATTACHMENT_CONTRACT_PATH,
     PRODUCTION_CHILD_TOOLS_PATH, PRODUCTION_BROWSER_LIFECYCLE_PATH,
+    PRODUCTION_CONFIRMED_READBACK_FACADE_PATH,
   ])
     if (!existsSync(resolve(context.sealedRoot, path))) findings.push(finding(
       "gpt/filesystem-required-owner-file", path, `${path} is missing.`));

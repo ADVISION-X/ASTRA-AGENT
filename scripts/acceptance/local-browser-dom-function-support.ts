@@ -145,7 +145,7 @@ export const exerciseCapturedCoherentObservationPointerFunction = (source: strin
     "the atomic pointer preparation must read currentUrl and mechanical fields in one synchronous call");
 };
 
-export const exerciseCapturedObservationFunction = async (source: string): Promise<void> => {
+const exerciseObservationRejections = async (source: string): Promise<Readonly<Record<string, unknown>>> => {
   const nodes = [new FakeElement("a", {}, { display: "none" }),
     new FakeElement("b", {}, { visibility: "hidden" }), new FakeElement("c", {}, { opacity: "0" }),
     new FakeElement("d", {}, {}, { inert: "" })];
@@ -167,6 +167,10 @@ export const exerciseCapturedObservationFunction = async (source: string): Promi
     { index: 0, reasons: ["DISPLAY_HIDDEN"] }, { index: 1, reasons: ["VISIBILITY_HIDDEN"] },
     { index: 2, reasons: ["OPACITY_HIDDEN"] }, { index: 3, reasons: ["INERT"] },
   ]));
+  return observationDocument;
+};
+
+const exerciseHiddenStateRead = async (source: string): Promise<void> => {
   const hiddenState = new FakeElement("", {}, {}, { "aria-hidden": "true", "aria-valuenow": "4" });
   const hiddenRoot = new FakeElement("root", { "[data-state]": [hiddenState] });
   hiddenState.parentElement = hiddenRoot;
@@ -190,6 +194,9 @@ export const exerciseCapturedObservationFunction = async (source: string): Promi
     matches: hiddenResult.queries[1]?.matches }), JSON.stringify({
     rawCount: 1, eligibleCount: 1, matches: [{ candidateIndex: 0, ariaHidden: true }],
   }), "the explicit non-actionable read mode may ignore only ARIA_HIDDEN");
+};
+
+const exerciseComposerExactHashes = async (source: string): Promise<void> => {
   const trailingBreak = new FakeElement("", {}, {}, { class: "ProseMirror-trailingBreak" }, "BR");
   const emptyParagraph = new FakeElement("", {}, {}, { "data-empty-paragraph": "true" }, "P", [trailingBreak]);
   const emptyComposer = new FakeElement("", {}, {}, {
@@ -236,6 +243,9 @@ export const exerciseCapturedObservationFunction = async (source: string): Promi
   assert.equal(exactResult.queries[1]?.matches[0]?.exactEditableTextHash, hash("bold"));
   assert.equal(exactResult.queries[1]?.matches[0]?.semanticTextHash, hash("**bold**"),
     "rendered semantic text must remain distinct from the Composer current-value projection");
+};
+
+const exerciseUserPromptHashes = async (source: string): Promise<void> => {
   const userPrompt = "[GRASSEYE:exact-user-prompt]\napproved prompt";
   const promptBody = new FakeElement(userPrompt, {}, {}, {
     "data-testid": "collapsible-user-message-content",
@@ -288,11 +298,25 @@ export const exerciseCapturedObservationFunction = async (source: string): Promi
   }, [{ queryId: "user-turns", selector: ".user-turn", maxMatches: 1,
     fields: ["exactGptUserPromptHash"] }]), /BROWSER_DOM_READ_INVALID/u,
   "multiple Prompt bodies inside one user turn must fail closed");
+};
+
+const exerciseInvalidObservationUrls = async (
+  source: string,
+  observationDocument: Readonly<Record<string, unknown>>,
+): Promise<void> => {
   const input = [{ queryId: "reasons", selector: "button", maxMatches: 1, fields: ["visible"] }];
   for (const invalidUrl of ["http://chatgpt.com/", "https://example.com/", "https://user@chatgpt.com/",
     "https://chatgpt.com/c/", "https://chatgpt.com/c/one/two", `https://chatgpt.com/c/${"x".repeat(257)}`]) {
     await assert.rejects(async () => execute(source, observationDocument, input, invalidUrl), /BROWSER_DOM_READ_INVALID/u);
   }
+};
+
+export const exerciseCapturedObservationFunction = async (source: string): Promise<void> => {
+  const observationDocument = await exerciseObservationRejections(source);
+  await exerciseHiddenStateRead(source);
+  await exerciseComposerExactHashes(source);
+  await exerciseUserPromptHashes(source);
+  await exerciseInvalidObservationUrls(source, observationDocument);
 };
 
 export const exerciseCapturedExactAssistantTurnFunction = (source: string): void => {

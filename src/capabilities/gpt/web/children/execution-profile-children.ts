@@ -1,6 +1,5 @@
 import {
   typedBrowserExecutionFailure,
-  type BrowserDomObservationQuery,
   type BrowserTargetLease,
 } from "../../../../lib/browser/browser-authority-api.js";
 import {
@@ -31,18 +30,11 @@ import {
 } from "../child-handler.js";
 import {
   decodeCoherentObservationPacket,
-  projectCoherentObservation,
-  readCoherentObservation,
-  type GptCoherentObservation,
-  type GptCoherentObservationRow,
-  type GptCoherentFactProjection,
 } from "../gpt-dom-observation.js";
 import {
   GPT_PROFILE_POPUP_SELECTOR,
-  GPT_PROFILE_REASONING_CONTROL_SELECTOR,
   GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR,
   GPT_PROFILE_REASONING_VALUE_SELECTOR,
-  GPT_PROFILE_SIMPLE_PANEL_SELECTOR,
   GPT_PROFILE_TRIGGER_SELECTOR,
   reasoningTierUiValue,
 } from "../contracts/execution-profile.contract.js";
@@ -51,101 +43,22 @@ import {
   type GptExecutionProfile,
   type GptReasoningTier,
 } from "../../schema.js";
+import {
+  PROFILE_HYDRATION_TIMEOUT_MS,
+  PROFILE_OPEN_POSTCONDITION,
+  PROFILE_TOPOLOGY_QUERIES,
+  profileFullyAbsent,
+  profileNativeCause,
+  profileOpenable,
+  profileOpenReady,
+  projectTopology,
+  topology,
+  topologyCode,
+  type ProfileTopology,
+} from "./execution-profile-observation.js";
 
 const profileFromIntent = (intent: Parameters<NonNullable<GptChildHandlerMap[keyof GptChildHandlerMap]>>[0]): GptExecutionProfile =>
   assertGptExecutionProfileIntegrity(recordInput(intent, "profile"));
-
-type ProfileTopology = Readonly<{
-  popup: number;
-  simplePanel: number;
-  reasoningControl: number;
-  enabledReasoningControl: number;
-  reasoningValue: number;
-  reasoningMinimum: string | null;
-  reasoningMaximum: string | null;
-  reasoningCurrent: string | null;
-  trigger: number;
-  triggerExpanded: string | null;
-  targetRefHash: `sha256:${string}`;
-  documentRefHash: `sha256:${string}`;
-  rows: readonly GptCoherentObservationRow[];
-  facts: GptCoherentFactProjection;
-}>;
-
-const PROFILE_HYDRATION_TIMEOUT_MS = 5_000;
-const PROFILE_TOPOLOGY_QUERIES = Object.freeze([
-  { queryId: "popup", selector: GPT_PROFILE_POPUP_SELECTOR, maxMatches: 2, fields: [] },
-  { queryId: "simple-panel", selector: GPT_PROFILE_SIMPLE_PANEL_SELECTOR, maxMatches: 2, fields: [] },
-  { queryId: "reasoning-control", selector: GPT_PROFILE_REASONING_CONTROL_SELECTOR, maxMatches: 2, fields: [] },
-  { queryId: "enabled-reasoning-control", selector: GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR,
-    maxMatches: 2, fields: [] },
-  { queryId: "reasoning-value", selector: GPT_PROFILE_REASONING_VALUE_SELECTOR, maxMatches: 2,
-    readEligibility: "non-actionable-aria-state" as const,
-    fields: ["ariaValueMin", "ariaValueMax", "ariaValueNow"] as const },
-  { queryId: "trigger", selector: GPT_PROFILE_TRIGGER_SELECTOR, maxMatches: 2,
-    fields: ["ariaExpanded"] as const },
-] satisfies readonly BrowserDomObservationQuery[]);
-
-const PROFILE_OPEN_POSTCONDITION = Object.freeze({
-  queries: Object.freeze(PROFILE_TOPOLOGY_QUERIES.map((query) => Object.freeze({
-    ...query,
-    expectedEligibleCount: 1,
-  }))),
-  timeoutMs: PROFILE_HYDRATION_TIMEOUT_MS,
-});
-
-const projectTopology = (observation: GptCoherentObservation): ProfileTopology => {
-  const row = (queryId: string) => observation.rows.find((candidate) => candidate.queryId === queryId)!;
-  const trigger = row("trigger");
-  const expanded = trigger.matches[0]?.ariaExpanded;
-  const reasoning = row("reasoning-value").matches[0];
-  return Object.freeze({
-    popup: row("popup").eligibleCount,
-    simplePanel: row("simple-panel").eligibleCount,
-    reasoningControl: row("reasoning-control").eligibleCount,
-    enabledReasoningControl: row("enabled-reasoning-control").eligibleCount,
-    reasoningValue: row("reasoning-value").eligibleCount,
-    reasoningMinimum: typeof reasoning?.ariaValueMin === "string" ? reasoning.ariaValueMin : null,
-    reasoningMaximum: typeof reasoning?.ariaValueMax === "string" ? reasoning.ariaValueMax : null,
-    reasoningCurrent: typeof reasoning?.ariaValueNow === "string" ? reasoning.ariaValueNow : null,
-    trigger: trigger.eligibleCount,
-    triggerExpanded: typeof expanded === "string" ? expanded : null,
-    targetRefHash: observation.targetRefHash,
-    documentRefHash: observation.documentRefHash,
-    rows: observation.rows,
-    facts: projectCoherentObservation(observation, "popup"),
-  });
-};
-
-const topology = async (browser: BrowserTargetLease): Promise<ProfileTopology> =>
-  projectTopology(await readCoherentObservation(browser, PROFILE_TOPOLOGY_QUERIES));
-
-const rowCode = (row: GptCoherentObservationRow): string => {
-  const rejected = [...row.scopeRejections, ...row.rejections]
-    .map((entry) => `${entry.index}.${entry.reasons.join("+")}`).join(",") || "none";
-  return `${row.queryId}[scope=${row.scopeRawCount}/${row.scopeEligibleCount};raw=${row.rawCount};eligible=${row.eligibleCount};rejected=${rejected};native=${row.nativeCauseCode ?? "none"}/${row.nativeCauseCount}]`;
-};
-
-const topologyCode = (value: ProfileTopology): string => [
-  `popup=${value.popup}`,
-  `simple=${value.simplePanel}`,
-  `reasoningControl=${value.reasoningControl}`,
-  `enabledReasoningControl=${value.enabledReasoningControl}`,
-  `reasoningValue=${value.reasoningValue}`,
-  `reasoningRange=${value.reasoningMinimum ?? "missing"}-${value.reasoningMaximum ?? "missing"}`,
-  `reasoningCurrent=${value.reasoningCurrent ?? "missing"}`,
-  `trigger=${value.trigger}`,
-  `expanded=${value.triggerExpanded ?? "missing"}`,
-  `revision=${value.facts.observationRevisionHash}`,
-  `candidates=${value.rows.map(rowCode).join("|")}`,
-].join(":");
-
-const failTopology = (code: string, value: ProfileTopology): never => {
-  throw executionFailure("failed", `${code}:${topologyCode(value)}`);
-};
-
-const profileNativeCause = (value: ProfileTopology): string | null =>
-  value.rows.find((row) => row.nativeCauseCode !== null)?.nativeCauseCode ?? null;
 
 const failProfileOpen = (
   code: string,
@@ -172,32 +85,6 @@ const failProfileOpen = (
     }),
   });
 };
-
-const rowIs = (value: ProfileTopology, queryId: string, raw: number, eligible: number): boolean => {
-  const row = value.rows.find((candidate) => candidate.queryId === queryId);
-  return row?.rawCount === raw && row.eligibleCount === eligible;
-};
-
-const profileFullyAbsent = (value: ProfileTopology): boolean =>
-  value.rows.every((row) => row.rawCount === 0 && row.eligibleCount === 0);
-
-const approvedReasoningScale = (value: ProfileTopology): boolean =>
-  value.reasoningMinimum === "0" && (
-    (value.reasoningMaximum === "2" && /^[0-2]$/u.test(value.reasoningCurrent ?? ""))
-    || (value.reasoningMaximum === "4" && /^[0-4]$/u.test(value.reasoningCurrent ?? ""))
-  );
-
-const profileOpenReady = (value: ProfileTopology): boolean =>
-  ["popup", "simple-panel", "reasoning-control", "enabled-reasoning-control", "reasoning-value", "trigger"]
-    .every((queryId) => rowIs(value, queryId, 1, 1))
-  && approvedReasoningScale(value)
-  && value.triggerExpanded === "true";
-
-const profileOpenable = (value: ProfileTopology): boolean =>
-  ["popup", "simple-panel", "reasoning-control", "enabled-reasoning-control", "reasoning-value"]
-    .every((queryId) => rowIs(value, queryId, 0, 0))
-  && rowIs(value, "trigger", 1, 1)
-  && value.triggerExpanded === "false";
 
 const waitForProfileHydration = async (
   browser: BrowserTargetLease,
@@ -415,6 +302,136 @@ const closeProfilePopup = async (
   });
 };
 
+const selectedReasoningResult = (input: Readonly<{
+  profile: GptExecutionProfile;
+  observedScale: GptReasoningRequirementResult["observedScale"];
+  resolution: ReasoningResolution;
+  currentValue: number;
+  mutationOutcome: "no" | "confirmed";
+  browserOutcome: "CONFIRMED" | null;
+  state: "already-selected" | "selected";
+}>) => Object.freeze({
+  ...reasoningRequirementResult({
+    profile: input.profile,
+    observedScale: input.observedScale,
+    resolution: input.resolution,
+    currentValue: input.currentValue,
+    mutationOutcome: input.mutationOutcome,
+    browserOutcome: input.browserOutcome,
+    gptPostcondition: "passed",
+  }),
+  state: input.state,
+});
+
+const executeReasoningMutation = async (input: Readonly<{
+  browser: BrowserTargetLease;
+  profile: GptExecutionProfile;
+  observed: ProfileTopology;
+  observedScale: GptReasoningRequirementResult["observedScale"];
+  resolution: ReasoningResolution;
+  currentBefore: number;
+}>): Promise<void> => {
+  const delta = input.resolution.value - input.currentBefore;
+  try {
+    await input.browser.executeDomIntent({
+      kind: "keypress",
+      selector: GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR,
+      key: delta < 0 ? "ArrowLeft" : "ArrowRight",
+      repeat: Math.abs(delta) as 1 | 2 | 3 | 4,
+      expectedMatches: 1,
+      postKeypressMatch: {
+        selector: `${GPT_PROFILE_REASONING_VALUE_SELECTOR}[aria-valuenow='${input.resolution.value}']`,
+        expectedMatches: 1,
+        readEligibility: "non-actionable-aria-state",
+        timeoutMs: 5_000,
+      },
+    });
+  } catch (error) {
+    const browserFailure = typedBrowserExecutionFailure(error);
+    const mutationOutcome = browserFailure?.mutationOutcome ?? "no";
+    const browserOutcome = browserFailure?.browserEffect?.browserOutcome ?? null;
+    failReasoningRequirement({
+      code: failureCode(error, "GPT_EXECUTION_PROFILE_REASONING_MUTATION_FAILED"),
+      profile: input.profile,
+      topology: input.observed,
+      observedScale: input.observedScale,
+      resolution: input.resolution,
+      currentValue: mutationOutcome === "no" ? input.currentBefore : null,
+      mutationOutcome,
+      browserOutcome,
+      gptPostcondition: browserOutcome === "DISPATCHED" ? "pending" : "failed",
+      includeTopology: false,
+      cause: error,
+    });
+  }
+};
+
+const ensureReasoningRequirement: NonNullable<
+  GptChildHandlerMap["ensure_gpt_reasoning_requirement"]
+> = async (intent, context) => {
+  requireExactInputKeys(intent, ["profile"]);
+  const profile = profileFromIntent(intent);
+  const browser = requireBrowser(context);
+  const observed = await topology(browser);
+  const observedScale = observedReasoningScale(observed);
+  if (!profileOpenReady(observed)) {
+    failReasoningRequirement({
+      code: "GPT_EXECUTION_PROFILE_REASONING_STATE_INVALID", profile, topology: observed,
+      observedScale, resolution: null, currentValue: observedScale.currentBefore,
+    });
+  }
+  const resolution = resolveReasoningRequirement(profile, observedScale.max as 2 | 4);
+  if (!resolution) {
+    failReasoningRequirement({
+      code: "GPT_REASONING_TIER_UNAVAILABLE", profile, topology: observed,
+      observedScale, resolution: null, currentValue: observedScale.currentBefore, includeTopology: false,
+    });
+  }
+  const resolved = resolution as ReasoningResolution;
+  const currentBefore = observedScale.currentBefore!;
+  if (currentBefore === resolved.value) {
+    return success({
+      value: selectedReasoningResult({
+        profile, observedScale, resolution: resolved, currentValue: currentBefore,
+        mutationOutcome: "no", browserOutcome: null, state: "already-selected",
+      }),
+      ...declaredFacts({
+        ...observed.facts, decision: "DONE", mutationOutcome: "no",
+        browserFact: null, nativeFailureCode: null,
+      }),
+    });
+  }
+  if (context.mutationMode === "readback") {
+    failReasoningRequirement({
+      code: "GPT_EXECUTION_PROFILE_REASONING_PENDING", profile, topology: observed,
+      observedScale, resolution: resolved, currentValue: currentBefore, includeTopology: false,
+    });
+  }
+  await executeReasoningMutation({ browser, profile, observed, observedScale, resolution: resolved, currentBefore });
+  const readback = await topology(browser);
+  const readbackScale = observedReasoningScale(readback);
+  const browserFact = requireConfirmedBrowserFact(intent, browser);
+  if (!profileOpenReady(readback) || readbackScale.min !== observedScale.min
+    || readbackScale.max !== observedScale.max || readbackScale.currentBefore !== resolved.value) {
+    failReasoningRequirement({
+      code: "GPT_EXECUTION_PROFILE_REASONING_PENDING", profile, topology: readback,
+      observedScale, resolution: resolved, currentValue: readbackScale.currentBefore, browserFact,
+    });
+  }
+  return success({
+    value: selectedReasoningResult({
+      profile, observedScale, resolution: resolved, currentValue: resolved.value,
+      mutationOutcome: "confirmed", browserOutcome: "CONFIRMED", state: "selected",
+    }),
+    ...declaredFacts({
+      ...readback.facts, decision: "ACT",
+      factResultIds: Object.freeze([...readback.facts.factResultIds, browserFact.evidenceRef]),
+      authorityRefHashes: Object.freeze([...readback.facts.authorityRefHashes, browserFact.evidenceHash]),
+      mutationOutcome: "confirmed", browserFact, nativeFailureCode: null,
+    }),
+  });
+};
+
 export const executionProfileChildHandlers = {
   async open_gpt_execution_profile(intent, context) {
     requireExactInputKeys(intent, ["profile"]);
@@ -427,144 +444,7 @@ export const executionProfileChildHandlers = {
     return openProfilePopup(intent, browser, observed);
   },
 
-  async ensure_gpt_reasoning_requirement(intent, context) {
-    requireExactInputKeys(intent, ["profile"]);
-    const profile = profileFromIntent(intent);
-    const browser = requireBrowser(context);
-    const observed = await topology(browser);
-    const observedScale = observedReasoningScale(observed);
-    if (!profileOpenReady(observed)) {
-      failReasoningRequirement({
-        code: "GPT_EXECUTION_PROFILE_REASONING_STATE_INVALID",
-        profile,
-        topology: observed,
-        observedScale,
-        resolution: null,
-        currentValue: observedScale.currentBefore,
-      });
-    }
-    const observedMaximum = observedScale.max as 2 | 4;
-    const resolution = resolveReasoningRequirement(profile, observedMaximum);
-    if (!resolution) {
-      failReasoningRequirement({
-        code: "GPT_REASONING_TIER_UNAVAILABLE",
-        profile,
-        topology: observed,
-        observedScale,
-        resolution: null,
-        currentValue: observedScale.currentBefore,
-        includeTopology: false,
-      });
-    }
-    const resolved = resolution as ReasoningResolution;
-    const currentBefore = observedScale.currentBefore!;
-    const selectedResult = (input: Readonly<{
-      currentValue: number;
-      mutationOutcome: "no" | "confirmed";
-      browserOutcome: "CONFIRMED" | null;
-      state: "already-selected" | "selected";
-    }>) => Object.freeze({
-      ...reasoningRequirementResult({
-        profile,
-        observedScale,
-        resolution: resolved,
-        currentValue: input.currentValue,
-        mutationOutcome: input.mutationOutcome,
-        browserOutcome: input.browserOutcome,
-        gptPostcondition: "passed",
-      }),
-      state: input.state,
-    });
-    if (currentBefore === resolved.value) {
-      return success({
-        value: selectedResult({
-          currentValue: currentBefore,
-          mutationOutcome: "no",
-          browserOutcome: null,
-          state: "already-selected",
-        }),
-        ...declaredFacts({
-          ...observed.facts, decision: "DONE", mutationOutcome: "no",
-          browserFact: null, nativeFailureCode: null,
-        }),
-      });
-    }
-    if (context.mutationMode === "readback") {
-      failReasoningRequirement({
-        code: "GPT_EXECUTION_PROFILE_REASONING_PENDING",
-        profile,
-        topology: observed,
-        observedScale,
-        resolution: resolved,
-        currentValue: currentBefore,
-        includeTopology: false,
-      });
-    }
-    const delta = resolved.value - currentBefore;
-    try {
-      await browser.executeDomIntent({
-        kind: "keypress",
-        selector: GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR,
-        key: delta < 0 ? "ArrowLeft" : "ArrowRight",
-        repeat: Math.abs(delta) as 1 | 2 | 3 | 4,
-        expectedMatches: 1,
-        postKeypressMatch: {
-          selector: `${GPT_PROFILE_REASONING_VALUE_SELECTOR}[aria-valuenow='${resolved.value}']`,
-          expectedMatches: 1,
-          readEligibility: "non-actionable-aria-state",
-          timeoutMs: 5_000,
-        },
-      });
-    } catch (error) {
-      const browserFailure = typedBrowserExecutionFailure(error);
-      const mutationOutcome = browserFailure?.mutationOutcome ?? "no";
-      const browserOutcome = browserFailure?.browserEffect?.browserOutcome ?? null;
-      failReasoningRequirement({
-        code: failureCode(error, "GPT_EXECUTION_PROFILE_REASONING_MUTATION_FAILED"),
-        profile,
-        topology: observed,
-        observedScale,
-        resolution: resolved,
-        currentValue: mutationOutcome === "no" ? currentBefore : null,
-        mutationOutcome,
-        browserOutcome,
-        gptPostcondition: browserOutcome === "DISPATCHED" ? "pending" : "failed",
-        includeTopology: false,
-        cause: error,
-      });
-    }
-    const readback = await topology(browser);
-    const readbackScale = observedReasoningScale(readback);
-    const browserFact = requireConfirmedBrowserFact(intent, browser);
-    if (!profileOpenReady(readback)
-      || readbackScale.min !== observedScale.min
-      || readbackScale.max !== observedScale.max
-      || readbackScale.currentBefore !== resolved.value) {
-      failReasoningRequirement({
-        code: "GPT_EXECUTION_PROFILE_REASONING_PENDING",
-        profile,
-        topology: readback,
-        observedScale,
-        resolution: resolved,
-        currentValue: readbackScale.currentBefore,
-        browserFact,
-      });
-    }
-    return success({
-      value: selectedResult({
-        currentValue: resolved.value,
-        mutationOutcome: "confirmed",
-        browserOutcome: "CONFIRMED",
-        state: "selected",
-      }),
-      ...declaredFacts({
-        ...readback.facts, decision: "ACT",
-        factResultIds: Object.freeze([...readback.facts.factResultIds, browserFact.evidenceRef]),
-        authorityRefHashes: Object.freeze([...readback.facts.authorityRefHashes, browserFact.evidenceHash]),
-        mutationOutcome: "confirmed", browserFact, nativeFailureCode: null,
-      }),
-    });
-  },
+  ensure_gpt_reasoning_requirement: ensureReasoningRequirement,
 
   async close_gpt_execution_profile(intent, context) {
     requireExactInputKeys(intent, ["profile"]);

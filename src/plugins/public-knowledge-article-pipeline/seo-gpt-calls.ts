@@ -11,16 +11,11 @@ import type {
 import type {
   SharedExecutionContext,
 } from "../../mediator/product-plugin-contract.js";
-import { postSubmitReadbackFault } from "../../mediator/product-plugin-contract.js";
 import type {
   ConfirmedGptSubmitFailureReceipt,
   ExactGptCallFacts,
   ProductGptFactQuery,
 } from "../../capabilities/gpt/index.js";
-import {
-  executionFailureMetadata,
-  failureCode,
-} from "../../lib/execution-failure.js";
 import {
   PLUGIN_ID,
   fail,
@@ -33,6 +28,13 @@ import {
   type SeoTurnCheckpoint,
   type SeoUploadedAttachment,
 } from "./seo-turn-contract.js";
+import {
+  confirmedDeadline,
+  preserveConfirmedSubmitDirectFailure,
+  preservePostSubmitReadback,
+  requireConfirmedSubmitDirectFailure,
+  type SeoConfirmedSubmit,
+} from "./seo-submit-readback.js";
 const MODEL_PROFILE = buildGptExecutionProfile({
   profileRef: `${PLUGIN_ID}:gpt-5.6-sol-high`,
   accountCapabilityRef: "openai-chatgpt:gpt-5.6-sol",
@@ -46,64 +48,6 @@ const MODEL_PROFILE = buildGptExecutionProfile({
   acceptanceRef: `${PLUGIN_ID}:seo-production`,
   acceptanceVersion: "v1",
 });
-const WAIT_TIMEOUT_MS = 3_600_000;
-
-export const preservePostSubmitReadback = (error: unknown, submit: SeoConfirmedSubmit): never => {
-  const typed = executionFailureMetadata(error);
-  const code = failureCode(error);
-  if (!typed || typed.mutationOutcome !== "no" || code.startsWith("GPT_PROVIDER_TERMINAL_")) throw error;
-  const terminalAt = "terminalAt" in submit
-    ? submit.terminalAt
-    : submit.mutation?.outcome === "CONFIRMED" ? submit.mutation.terminalAt : null;
-  const evidenceRef = "terminalAt" in submit ? submit.evidenceRef : submit.evidence?.evidenceRef;
-  const evidenceHash = "terminalAt" in submit ? submit.evidenceHash : submit.evidence?.evidenceHash;
-  if (!terminalAt || !evidenceRef || !evidenceHash) throw error;
-  if (!("terminalAt" in submit) && (submit.mutation?.owner !== "browser"
-    || submit.mutation.effectScope !== "provider_effect"
-    || submit.mutation.outcome !== "CONFIRMED"
-    || submit.evidence?.owner !== "forensics-persistence"
-    || submit.evidence.readbackVerified !== true)) throw error;
-  throw postSubmitReadbackFault(code, {
-    causeCode: code,
-    exactCallIdentityHash: submit.exactCallIdentityHash,
-    terminalAt,
-    readbackDeadlineAt: confirmedDeadline(submit),
-    evidenceRef,
-    evidenceHash,
-  });
-};
-
-export const requireConfirmedSubmitDirectFailure = (
-  error: unknown,
-  receipt: ConfirmedGptSubmitFailureReceipt | null,
-): ConfirmedGptSubmitFailureReceipt => {
-  const typed = executionFailureMetadata(error);
-  const code = failureCode(error);
-  if (code !== "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED"
-    || typed?.mutationOutcome !== "confirmed"
-    || typed.browserEffect?.effectScope !== "provider_effect"
-    || typed.browserEffect.childCapabilityId !== "submit_exact_gpt_turn_once"
-    || typed.browserEffect.browserOutcome !== "CONFIRMED"
-    || !receipt || receipt.failureCode !== code) throw error;
-  return receipt;
-};
-
-export const preserveConfirmedSubmitDirectFailure = (
-  error: unknown,
-  submit: ConfirmedGptSubmitFailureReceipt,
-): never => {
-  const receipt = requireConfirmedSubmitDirectFailure(error, submit);
-  const code = receipt.failureCode;
-  throw postSubmitReadbackFault(code, {
-    causeCode: code,
-    exactCallIdentityHash: receipt.exactCallIdentityHash,
-    terminalAt: receipt.terminalAt,
-    readbackDeadlineAt: confirmedDeadline(submit),
-    evidenceRef: receipt.evidenceRef,
-    evidenceHash: receipt.evidenceHash,
-  });
-};
-
 const uploadedAttachmentFiles = (value: unknown, code: string): readonly SeoUploadedAttachment[] => {
   const files = objectValue(value, code).files;
   if (!Array.isArray(files) || files.length === 0) fail(code);
@@ -225,23 +169,11 @@ export type SeoTextTurnInput = Readonly<{
   recoveryProvider?: GptProviderContinuation;
 }>;
 
-export type SeoConfirmedSubmit = ExactGptCallFacts | ConfirmedGptSubmitFailureReceipt;
-
 export type SeoReconciledTextSubmission = Readonly<{
   canonicalConversationUrl: string;
   confirmedSubmit: SeoConfirmedSubmit;
   promptHash: ProductionHash;
 }>;
-
-export const confirmedDeadline = (submit: SeoConfirmedSubmit): string => {
-  const terminalAt = "terminalAt" in submit
-    ? submit.terminalAt
-    : submit.mutation?.outcome === "CONFIRMED" ? submit.mutation.terminalAt : null;
-  if (!terminalAt) fail("SEO_PROVIDER_EFFECT_TERMINAL_FACT_MISSING");
-  const confirmedAt = Date.parse(terminalAt);
-  if (!Number.isFinite(confirmedAt)) fail("SEO_PROVIDER_EFFECT_TERMINAL_FACT_MISSING");
-  return new Date(confirmedAt + WAIT_TIMEOUT_MS).toISOString();
-};
 
 const submittedConversationUrl = async (
   input: Readonly<{
@@ -370,24 +302,33 @@ export const completeReconciledTextSubmission = async (
   );
 };
 
-export const submitTextTurn = async (input: SeoTextTurnInput): Promise<SeoTurnCheckpoint> => {
-  const promptHash = textHash(input.prompt);
-  const promptWrite = { productStepId: input.stepId, callId: "prompt-write", child: "write_exact_gpt_prompt", actionOrdinal: input.ordinals[0], input: { prompt: input.prompt } } as const;
-  const draftReconcile = { productStepId: input.stepId, callId: "draft-reconcile", child: "reconcile_gpt_draft", actionOrdinal: input.ordinals[1], input: { files: input.files, prompt: input.prompt, turnMarker: input.marker } } as const;
-  const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: input.ordinals[2], input: { files: input.files, promptHash, turnMarker: input.marker } } as const;
-  const failedSubmit = await input.flow.confirmedSubmitFailure(turnSubmit);
-  if (failedSubmit) {
-    const reconciled = await reconcileConfirmedTextSubmission(input, failedSubmit);
-    return completeReconciledTextSubmission(input, reconciled);
-  }
+const prepareTextDraft = async (
+  input: SeoTextTurnInput,
+  turnSubmit: SeoCall,
+): Promise<void> => {
+  const promptWrite = {
+    productStepId: input.stepId, callId: "prompt-write", child: "write_exact_gpt_prompt",
+    actionOrdinal: input.ordinals[0], input: { prompt: input.prompt },
+  } as const;
+  const draftReconcile = {
+    productStepId: input.stepId, callId: "draft-reconcile", child: "reconcile_gpt_draft",
+    actionOrdinal: input.ordinals[1], input: { files: input.files, prompt: input.prompt, turnMarker: input.marker },
+  } as const;
   const beforeSubmit = await input.flow.facts(turnSubmit);
   if (beforeSubmit.mutation || beforeSubmit.evidence) {
     await input.flow.requireEvidence(promptWrite);
     await input.flow.requireEvidence(draftReconcile);
-  } else {
-    await input.flow.execute({ sessionKey: "", ...promptWrite });
-    await input.flow.execute({ sessionKey: "", ...draftReconcile });
+    return;
   }
+  await input.flow.execute({ sessionKey: "", ...promptWrite });
+  await input.flow.execute({ sessionKey: "", ...draftReconcile });
+};
+
+const executeTextSubmit = async (
+  input: SeoTextTurnInput,
+  turnSubmit: Extract<SeoCall, { child: "submit_exact_gpt_turn_once" }>,
+  promptHash: ProductionHash,
+): Promise<ExactGptCallFacts> => {
   try {
     await input.flow.execute({ sessionKey: "", ...turnSubmit });
   } catch (error) {
@@ -403,6 +344,19 @@ export const submitTextTurn = async (input: SeoTextTurnInput): Promise<SeoTurnCh
   }
   const confirmedSubmit = await input.flow.facts(turnSubmit);
   confirmedDeadline(confirmedSubmit);
+  return confirmedSubmit;
+};
+
+export const submitTextTurn = async (input: SeoTextTurnInput): Promise<SeoTurnCheckpoint> => {
+  const promptHash = textHash(input.prompt);
+  const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: input.ordinals[2], input: { files: input.files, promptHash, turnMarker: input.marker } } as const;
+  const failedSubmit = await input.flow.confirmedSubmitFailure(turnSubmit);
+  if (failedSubmit) {
+    const reconciled = await reconcileConfirmedTextSubmission(input, failedSubmit);
+    return completeReconciledTextSubmission(input, reconciled);
+  }
+  await prepareTextDraft(input, turnSubmit);
+  const confirmedSubmit = await executeTextSubmit(input, turnSubmit, promptHash);
   const reconciled = await reconcileConfirmedTextSubmission(input, confirmedSubmit);
   return checkpointSubmittedTextTurn(
     input,

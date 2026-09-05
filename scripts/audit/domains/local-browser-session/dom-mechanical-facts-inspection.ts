@@ -281,8 +281,14 @@ export const inspectDomMechanicalFacts = (
   const factsText = facts.getFullText();
   const queryText = query.getFullText();
   inspectMechanicalConsumers(factsText, queryText, findings, lawId);
+  const exactEditableReaderInitializer = exactEditable
+    .getVariableDeclaration("BROWSER_EXACT_EDITABLE_TEXT_READER_SOURCE")?.getInitializer();
+  const exactEditableReader = exactEditableReaderInitializer
+    && Node.isNoSubstitutionTemplateLiteral(exactEditableReaderInitializer)
+    ? exactEditableReaderInitializer.getLiteralValue() : "";
   inspectExactEditableProjection(
-    exactEditable.getFullText(), queryText, observation.getFullText(), contract.getFullText(), findings, lawId,
+    `${exactEditable.getFullText()}\n${exactEditableReader}`,
+    queryText, observation.getFullText(), contract.getFullText(), findings, lawId,
   );
   inspectExactGptUserPromptProjection(
     observation.getFullText(), contract.getFullText(), candidate.getFullText(), findings, lawId,

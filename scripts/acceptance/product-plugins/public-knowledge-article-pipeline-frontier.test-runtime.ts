@@ -3,12 +3,14 @@ import { governanceAssert as assert } from "../../audit/shared/governance-exam-a
 import type { ProductPlugin, ProductPluginOutput } from "../../../src/mediator/product-plugin-contract.js";
 import {
   createContext,
+  withFastHandoffs,
+} from "./public-knowledge-article-pipeline.test-runtime.js";
+import {
   createHarness,
   seoTask,
-  withFastHandoffs,
   type SeoFailure,
   type SeoHarness,
-} from "./public-knowledge-article-pipeline.test-runtime.js";
+} from "./public-knowledge-article-pipeline-fixture-state.js";
 
 const hasCompletedImage = (completed: ProductPluginOutput | null | undefined): boolean => Boolean(
   (completed?.payload as Readonly<Record<string, unknown>> | undefined)?.image,

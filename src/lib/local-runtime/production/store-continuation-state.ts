@@ -7,8 +7,8 @@ import {
   type GptContinuationOriginCheckpoint,
   type GptContinuationReservation,
   type GptContinuationReservationReadback,
+  type GptContinuationStorePort,
   type GptProviderContinuation,
-  type NewStoredGptContinuation,
   type StoredGptContinuation,
 } from "../../../capabilities/gpt/index.js";
 import { hashCanonical, type ProductionHash } from "./contracts.js";
@@ -40,6 +40,8 @@ type GptContinuationRecord = Omit<
   origin_provider: GptProviderContinuation | null;
   provider: GptProviderContinuation | null;
 }>;
+
+type NewStoredGptContinuation = Parameters<GptContinuationStorePort["createGptContinuation"]>[0];
 
 const continuationRecordFromRow = (row: GptContinuationRow): GptContinuationRecord => {
   const {

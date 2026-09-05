@@ -87,6 +87,72 @@ export const mergeConfirmedProviderSubmitReceipt = (
   return next;
 };
 
+type ConfirmedFailureMutation = NonNullable<ReturnType<
+  GptProductionBrowserAuthority["readExactCallMutationFact"]
+>>;
+
+const confirmedFailureMutationMatches = (input: Readonly<{
+  mutation: ConfirmedFailureMutation;
+  call: ProductGptCallInput<"submit_exact_gpt_turn_once">;
+  exactCallIdentityHash: `sha256:${string}`;
+  evidence: NonNullable<Awaited<ReturnType<typeof readConfirmedSubmitFailureEvidence>>>;
+}>): boolean => input.mutation.effectScope === "provider_effect"
+  && input.mutation.outcome === "CONFIRMED"
+  && input.mutation.mutationOutcome === "confirmed"
+  && Boolean(input.mutation.terminalAt)
+  && input.mutation.productStepId === input.call.productStepId
+  && input.mutation.callId === input.call.callId
+  && input.mutation.childCapabilityId === input.call.child
+  && input.mutation.actionOrdinal === input.call.actionOrdinal
+  && input.evidence.browserFact.exactCallIdentityHash === input.exactCallIdentityHash
+  && input.evidence.browserFact.terminalAt === input.mutation.terminalAt
+  && input.evidence.browserFact.evidenceRef === input.mutation.authorityRef
+  && input.evidence.browserFact.evidenceHash === input.mutation.authorityHash;
+
+const confirmedFailureFacts = (input: Readonly<{
+  mutation: ConfirmedFailureMutation;
+  intent: GptChildCapabilityIntent<"submit_exact_gpt_turn_once">;
+  exactCallIdentityHash: `sha256:${string}`;
+  evidence: NonNullable<Awaited<ReturnType<typeof readConfirmedSubmitFailureEvidence>>>;
+}>): GptExactCallFactsWithBrowserBinding => Object.freeze({
+  exactCallIdentityHash: input.exactCallIdentityHash,
+  mutation: Object.freeze({
+    owner: "browser",
+    sourceAttemptId: input.intent.attemptId,
+    effectScope: input.mutation.effectScope,
+    outcome: input.mutation.outcome,
+    mutationOutcome: input.mutation.mutationOutcome,
+    failureCode: input.mutation.failureCode,
+    nativeFailureCode: input.mutation.nativeFailureCode,
+    terminalAt: input.mutation.terminalAt,
+    authorityRef: input.mutation.authorityRef,
+    authorityHash: input.mutation.authorityHash,
+    targetRef: input.mutation.targetRef,
+    documentRef: input.mutation.documentRef,
+    productStepId: input.mutation.productStepId,
+    callId: input.mutation.callId,
+    childCapabilityId: input.mutation.childCapabilityId,
+    actionOrdinal: input.mutation.actionOrdinal,
+  }),
+  evidence: input.evidence.evidence,
+  continuation: null,
+});
+
+const confirmedFailureProductReceipt = (
+  provider: ConfirmedProviderSubmitReceipt,
+  evidence: NonNullable<Awaited<ReturnType<typeof readConfirmedSubmitFailureEvidence>>>,
+): ConfirmedGptSubmitFailureReceipt => Object.freeze({
+  sourceAttemptId: provider.sourceAttemptId,
+  exactCallIdentityHash: provider.sourceExactCallIdentityHash,
+  productStepId: provider.sourceProductStepId,
+  callId: provider.sourceCallId,
+  actionOrdinal: provider.sourceActionOrdinal,
+  terminalAt: provider.sourceTerminalAt,
+  failureCode: evidence.failureCode,
+  evidenceRef: provider.evidenceRef,
+  evidenceHash: provider.evidenceHash,
+});
+
 export const readConfirmedProviderSubmitFailureReceipt = async (input: Readonly<{
   call: ProductGptCallInput<"submit_exact_gpt_turn_once">;
   intent: GptChildCapabilityIntent<"submit_exact_gpt_turn_once">;
@@ -111,58 +177,18 @@ export const readConfirmedProviderSubmitFailureReceipt = async (input: Readonly<
     exactCallIdentityHash,
     actionOrdinal: input.intent.actionOrdinal,
   });
-  if (!mutation
-    || mutation.effectScope !== "provider_effect"
-    || mutation.outcome !== "CONFIRMED"
-    || mutation.mutationOutcome !== "confirmed"
-    || !mutation.terminalAt
-    || mutation.productStepId !== input.call.productStepId
-    || mutation.callId !== input.call.callId
-    || mutation.childCapabilityId !== input.call.child
-    || mutation.actionOrdinal !== input.call.actionOrdinal
-    || evidence.browserFact.exactCallIdentityHash !== exactCallIdentityHash
-    || evidence.browserFact.terminalAt !== mutation.terminalAt
-    || evidence.browserFact.evidenceRef !== mutation.authorityRef
-    || evidence.browserFact.evidenceHash !== mutation.authorityHash) {
+  if (!mutation || !confirmedFailureMutationMatches({
+    mutation, call: input.call, exactCallIdentityHash, evidence,
+  })) {
     throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
   }
-  const provider = confirmedProviderSubmitReceipt(input.call, Object.freeze({
-    exactCallIdentityHash,
-    mutation: Object.freeze({
-      owner: "browser",
-      sourceAttemptId: input.intent.attemptId,
-      effectScope: mutation.effectScope,
-      outcome: mutation.outcome,
-      mutationOutcome: mutation.mutationOutcome,
-      failureCode: mutation.failureCode,
-      nativeFailureCode: mutation.nativeFailureCode,
-      terminalAt: mutation.terminalAt,
-      authorityRef: mutation.authorityRef,
-      authorityHash: mutation.authorityHash,
-      targetRef: mutation.targetRef,
-      documentRef: mutation.documentRef,
-      productStepId: mutation.productStepId,
-      callId: mutation.callId,
-      childCapabilityId: mutation.childCapabilityId,
-      actionOrdinal: mutation.actionOrdinal,
-    }),
-    evidence: evidence.evidence,
-    continuation: null,
+  const provider = confirmedProviderSubmitReceipt(input.call, confirmedFailureFacts({
+    mutation, intent: input.intent, exactCallIdentityHash, evidence,
   }));
   if (!provider) throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
   return Object.freeze({
     provider,
-    product: Object.freeze({
-      sourceAttemptId: provider.sourceAttemptId,
-      exactCallIdentityHash: provider.sourceExactCallIdentityHash,
-      productStepId: provider.sourceProductStepId,
-      callId: provider.sourceCallId,
-      actionOrdinal: provider.sourceActionOrdinal,
-      terminalAt: provider.sourceTerminalAt,
-      failureCode: evidence.failureCode,
-      evidenceRef: provider.evidenceRef,
-      evidenceHash: provider.evidenceHash,
-    }),
+    product: confirmedFailureProductReceipt(provider, evidence),
   });
 };
 

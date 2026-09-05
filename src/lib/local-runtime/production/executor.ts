@@ -73,37 +73,51 @@ const errno = (error: unknown): string | null =>
   error && typeof error === "object" && "code" in error && typeof error.code === "string"
     ? error.code : null;
 
+const assertProviderDisplayName = (providerDisplayName: string): void => {
+  if (!providerDisplayName || providerDisplayName !== providerDisplayName.normalize("NFC")
+    || providerDisplayName === "." || providerDisplayName === ".."
+    || providerDisplayName.includes("/") || providerDisplayName.includes("\\")
+    || basename(providerDisplayName) !== providerDisplayName
+    || Buffer.byteLength(providerDisplayName, "utf8") > 255) {
+    throw executionFailure("failed", "PRODUCTION_MATERIAL_UPLOAD_ALIAS_INVALID");
+  }
+};
+
+const materializeUploadAlias = async (
+  material: LocalProductionMaterial,
+  providerDisplayName: string,
+): Promise<Readonly<{ aliasPath: string; dev: number; ino: number }>> => {
+  assertProviderDisplayName(providerDisplayName);
+  const sourcePath = material.local_path;
+  const aliasPath = join(dirname(sourcePath), providerDisplayName);
+  if (aliasPath === sourcePath) return Object.freeze({ aliasPath, dev: 0, ino: 0 });
+  const source = await lstat(sourcePath);
+  if (!source.isFile() || source.size !== material.bytes) {
+    throw executionFailure("failed", "PRODUCTION_MATERIAL_UPLOAD_ALIAS_INVALID");
+  }
+  try {
+    await link(sourcePath, aliasPath);
+  } catch (error) {
+    if (errno(error) !== "EEXIST") {
+      throw executionFailure("failed", "PRODUCTION_MATERIAL_UPLOAD_ALIAS_UNAVAILABLE", { cause: error });
+    }
+  }
+  const alias = await lstat(aliasPath);
+  if (!alias.isFile() || alias.dev !== source.dev || alias.ino !== source.ino
+    || alias.size !== source.size) {
+    throw executionFailure("failed", "PRODUCTION_MATERIAL_UPLOAD_ALIAS_INVALID");
+  }
+  return Object.freeze({ aliasPath, dev: alias.dev, ino: alias.ino });
+};
+
 const productionMaterialBrowserArtifact = (material: LocalProductionMaterial) => {
   const aliases = new Map<string, Readonly<{ dev: number; ino: number }>>();
   const materializeProviderPath = async (providerDisplayName: string): Promise<string> => {
-    if (!providerDisplayName || providerDisplayName !== providerDisplayName.normalize("NFC")
-      || providerDisplayName === "." || providerDisplayName === ".."
-      || providerDisplayName.includes("/") || providerDisplayName.includes("\\")
-      || basename(providerDisplayName) !== providerDisplayName
-      || Buffer.byteLength(providerDisplayName, "utf8") > 255) {
-      throw executionFailure("failed", "PRODUCTION_MATERIAL_UPLOAD_ALIAS_INVALID");
+    const alias = await materializeUploadAlias(material, providerDisplayName);
+    if (alias.aliasPath !== material.local_path) {
+      aliases.set(alias.aliasPath, { dev: alias.dev, ino: alias.ino });
     }
-    const sourcePath = material.local_path;
-    const aliasPath = join(dirname(sourcePath), providerDisplayName);
-    if (aliasPath === sourcePath) return sourcePath;
-    const source = await lstat(sourcePath);
-    if (!source.isFile() || source.size !== material.bytes) {
-      throw executionFailure("failed", "PRODUCTION_MATERIAL_UPLOAD_ALIAS_INVALID");
-    }
-    try {
-      await link(sourcePath, aliasPath);
-    } catch (error) {
-      if (errno(error) !== "EEXIST") {
-        throw executionFailure("failed", "PRODUCTION_MATERIAL_UPLOAD_ALIAS_UNAVAILABLE", { cause: error });
-      }
-    }
-    const alias = await lstat(aliasPath);
-    if (!alias.isFile() || alias.dev !== source.dev || alias.ino !== source.ino
-      || alias.size !== source.size) {
-      throw executionFailure("failed", "PRODUCTION_MATERIAL_UPLOAD_ALIAS_INVALID");
-    }
-    aliases.set(aliasPath, { dev: alias.dev, ino: alias.ino });
-    return aliasPath;
+    return alias.aliasPath;
   };
   const releaseProviderPaths = async (): Promise<void> => {
     const failures: unknown[] = [];

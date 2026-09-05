@@ -267,28 +267,59 @@ export const inspectCompactMutationRecoveryBoundary = (
   }
 };
 
-const inspectLaneRecoveryContract = (
-  lane: SourceFile,
-  lanePath: string,
-  targetAcquirer: SourceFile,
-  targetAcquirerPath: string,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
+const inspectConfirmedReadbackFiles = (input: Readonly<{
+  readbackSource: SourceFile;
+  readbackSourcePath: string;
+  readbackLease: SourceFile;
+  readbackLeasePath: string;
+  findings: InspectorFinding[];
+  lawId: string;
+}>): void => {
+  const { readbackSource, readbackSourcePath, readbackLease, readbackLeasePath,
+    findings, lawId } = input;
+  const sourceText = readbackSource.getFullText();
+  for (const required of [
+    "confirmedSourceMatches", 'kind === "production-confirmed-failure-readback"',
+    'source.sourceChildCapabilityId === "submit_exact_gpt_turn_once"',
+  ]) if (!sourceText.includes(required)) findings.push(createLocalFinding({
+    checkId: "browser-authority/confirmed-provider-target-replacement",
+    lawId,
+    filePath: readbackSourcePath,
+    message: `Confirmed Provider source validation must retain ${required}.`,
+  }));
+  const leaseText = readbackLease.getFullText();
+  for (const required of [
+    "readOnlyLease", "CONFIRMED_READBACK_TARGET_LOCAL_CHILDREN",
+    '"focus_exact_gpt_conversation"', '"wait_for_stable_gpt_text"',
+    '"wait_for_stable_gpt_image"', "downloadAuthenticatedMedia: reject",
+  ]) if (!leaseText.includes(required)) findings.push(createLocalFinding({
+    checkId: "browser-authority/confirmed-provider-target-replacement",
+    lawId,
+    filePath: readbackLeasePath,
+    message: `Confirmed Provider readback lease admission must retain ${required}.`,
+  }));
+};
+
+const inspectLaneRecoveryContract = (input: Readonly<{
+  lane: SourceFile;
+  lanePath: string;
+  readbackSource: SourceFile;
+  readbackSourcePath: string;
+  readbackLease: SourceFile;
+  readbackLeasePath: string;
+  targetAcquirer: SourceFile;
+  targetAcquirerPath: string;
+  findings: InspectorFinding[];
+  lawId: string;
+}>): void => {
+  const { lane, lanePath, readbackSource, readbackSourcePath, readbackLease,
+    readbackLeasePath, targetAcquirer, targetAcquirerPath, findings, lawId } = input;
   requireIdentifiers(lane, ["callRecoveryScope", "recovery", "park", "pump", "quarantine",
     "refreshQuarantine", "rejectLostTargetLocalDocument", "settleLostTargetLocalDocument",
     "observeCurrentTargetClaim"], findings, lawId,
   "Browser recovery must be job-scoped, exact-target and quarantine the sole Browser lane.");
   const laneText = lane.getFullText();
   for (const required of [
-    "confirmedSourceMatches",
-    "confirmedFailureReadbackLease",
-    'kind === "production-confirmed-failure-readback"',
-    "CONFIRMED_READBACK_TARGET_LOCAL_CHILDREN",
-    '"focus_exact_gpt_conversation"',
-    '"wait_for_stable_gpt_text"',
-    '"wait_for_stable_gpt_image"',
-    "downloadAuthenticatedMedia: reject",
     "confirmedProviderTargetReplaced",
     "recoveryMutationOutcome",
     'this.quarantine ? "blocked" : "idle"',
@@ -303,6 +334,9 @@ const inspectLaneRecoveryContract = (
       message: `Confirmed Provider readback recovery must retain ${required}.`,
     }));
   }
+  inspectConfirmedReadbackFiles({
+    readbackSource, readbackSourcePath, readbackLease, readbackLeasePath, findings, lawId,
+  });
   const targetAcquirerText = targetAcquirer.getFullText();
   for (const required of [
     'recovery?.state === "CONFIRMED"', 'recovery.effectScope === "provider_effect"',
@@ -351,11 +385,18 @@ export const inspectJobScopedMutationRecovery = (
   lawId: string,
 ): void => {
   const lanePath = "src/lib/browser/infrastructure/browser-lane-coordinator.ts";
+  const readbackSourcePath = "src/lib/browser/infrastructure/browser-confirmed-readback-source.ts";
+  const readbackLeasePath = "src/lib/browser/infrastructure/browser-confirmed-readback-lease.ts";
   const targetAcquirerPath = "src/lib/browser/infrastructure/browser-target-acquirer.ts";
   const lane = requireSource(context, findings, lawId, lanePath);
+  const readbackSource = requireSource(context, findings, lawId, readbackSourcePath);
+  const readbackLease = requireSource(context, findings, lawId, readbackLeasePath);
   const targetAcquirer = requireSource(context, findings, lawId, targetAcquirerPath);
   const actor = requireSource(context, findings, lawId, sourcePaths[6]);
-  if (!lane || !targetAcquirer || !actor) return;
-  inspectLaneRecoveryContract(lane, lanePath, targetAcquirer, targetAcquirerPath, findings, lawId);
+  if (!lane || !readbackSource || !readbackLease || !targetAcquirer || !actor) return;
+  inspectLaneRecoveryContract({
+    lane, lanePath, readbackSource, readbackSourcePath, readbackLease, readbackLeasePath,
+    targetAcquirer, targetAcquirerPath, findings, lawId,
+  });
   inspectActorEffectScope(actor, findings, lawId);
 };

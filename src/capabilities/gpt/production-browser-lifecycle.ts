@@ -18,6 +18,10 @@ import type {
 } from "../../lib/browser/browser-authority-api.js";
 import { requireRuntimeLogWrite, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { executionFailure } from "../../lib/execution-failure.js";
+import {
+  dynamicConfirmedFailureReadbackFacade,
+  dynamicConfirmedReadbackFacade,
+} from "./production-confirmed-readback-facade.js";
 
 type GptBrowserLeaseAuthority = Readonly<{
   acquireJobBoundTargetLease(
@@ -82,12 +86,6 @@ export type ProductionGptBrowserCall = {
 };
 
 const PROVIDER_WAIT_LOG_INTERVAL_MS = 30_000;
-const CONFIRMED_READBACK_TARGET_LOCAL_CHILDREN = new Set<GptChildCapabilityId>([
-  "focus_exact_gpt_conversation",
-  "wait_for_stable_gpt_text",
-  "wait_for_stable_gpt_image",
-]);
-
 const recoveredProof = (input: Readonly<{
   intent: GptAnyChildCapabilityIntent;
   browser: BrowserTargetLease;
@@ -228,7 +226,7 @@ export class ProductionGptBrowserLifecycle {
       }
     }
     for (const active of this.browsers.values()) {
-      active.facade = this.dynamicConfirmedFailureReadbackFacade(active);
+      active.facade = dynamicConfirmedFailureReadbackFacade(() => active.browser);
     }
     this.confirmedProviderFailureReadback = Object.freeze({ ...authorization });
   }
@@ -266,7 +264,7 @@ export class ProductionGptBrowserLifecycle {
     }
     this.confirmedProviderReadback = Object.freeze({ ...authorization });
     for (const active of this.browsers.values()) {
-      active.facade = this.dynamicConfirmedReadbackFacade(active, authorization);
+      active.facade = dynamicConfirmedReadbackFacade(() => active.browser, authorization);
     }
   }
 
@@ -442,87 +440,6 @@ export class ProductionGptBrowserLifecycle {
       remainingMs: () => Math.floor(
         this.execution.expiresAtMonotonic - performance.now(),
       ),
-    });
-  }
-
-  private confirmedFailureReadbackLease(lease: BrowserTargetLease): BrowserTargetLease {
-    const reject = async (): Promise<never> => {
-      throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
-    };
-    const readKinds = new Set([
-      "document", "observe", "readExactAssistantTurn", "inspect", "find", "readText", "readAttribute",
-    ]);
-    return {
-      ...lease,
-      runAtomicStep: (identity, action) => identity.replayPolicy === "observation-only"
-        ? lease.runAtomicStep(identity, action) : reject(),
-      navigate: reject,
-      executeDomIntent: (intent) => readKinds.has(intent.kind)
-        ? lease.executeDomIntent(intent) : reject(),
-      observeCapability: (input) => lease.observeCapability(input),
-      captureScreenshot: reject,
-      attachFile: reject,
-      downloadAuthenticatedMedia: reject,
-      wait: (input) => lease.wait(input),
-      park: (input) => lease.park(input),
-      close: (input) => lease.close(input),
-      resolvePendingMutation: reject,
-    };
-  }
-
-  private confirmedReadbackLease(
-    lease: BrowserTargetLease,
-    authorization: BrowserConfirmedProviderReadbackAuthorization,
-  ): BrowserTargetLease {
-    const reject = async (): Promise<never> => {
-      throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
-    };
-    const readKinds = new Set([
-      "document", "observe", "readExactAssistantTurn", "inspect", "find", "readText", "readAttribute",
-    ]);
-    return {
-      ...lease,
-      runAtomicStep: (identity, action) => identity.replayPolicy === "observation-only"
-        || (identity.replayPolicy === "target-local-per-generation"
-          && CONFIRMED_READBACK_TARGET_LOCAL_CHILDREN.has(identity.childCapabilityId as GptChildCapabilityId))
-        ? lease.runAtomicStep(identity, action) : reject(),
-      navigate: (input) => input.url === authorization.canonicalConversationUrl
-        ? lease.navigate(input) : reject(),
-      executeDomIntent: (intent) => readKinds.has(intent.kind)
-        ? lease.executeDomIntent(intent) : reject(),
-      observeCapability: (input) => lease.observeCapability(input),
-      captureScreenshot: reject,
-      attachFile: reject,
-      downloadAuthenticatedMedia: (input) => lease.downloadAuthenticatedMedia(input),
-      wait: (input) => lease.wait(input),
-      park: (input) => lease.park(input),
-      close: (input) => lease.close(input),
-      resolvePendingMutation: reject,
-    };
-  }
-
-  private dynamicConfirmedFailureReadbackFacade(
-    active: ProductionGptBrowserCall,
-  ): BrowserTargetLease {
-    return new Proxy(active.browser, {
-      get: (_target, property) => {
-        const governed = this.confirmedFailureReadbackLease(active.browser);
-        const value = Reflect.get(governed, property, governed) as unknown;
-        return typeof value === "function" ? value.bind(governed) : value;
-      },
-    });
-  }
-
-  private dynamicConfirmedReadbackFacade(
-    active: ProductionGptBrowserCall,
-    authorization: BrowserConfirmedProviderReadbackAuthorization,
-  ): BrowserTargetLease {
-    return new Proxy(active.browser, {
-      get: (_target, property) => {
-        const governed = this.confirmedReadbackLease(active.browser, authorization);
-        const value = Reflect.get(governed, property, governed) as unknown;
-        return typeof value === "function" ? value.bind(governed) : value;
-      },
     });
   }
 

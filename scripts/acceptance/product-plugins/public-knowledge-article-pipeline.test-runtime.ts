@@ -1,7 +1,6 @@
 import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
 
 import {
-  gptAttachmentProviderDisplayName,
   type ExactGptContinuationReadback,
   type GptContinuationCheckpointInput,
   type ProductGptAnyCallInput,
@@ -10,22 +9,22 @@ import {
 } from "../../../src/capabilities/gpt/index.js";
 import {
   hashCanonical,
-  type WebsiteAgentTask,
-  type ProductPluginOutput,
-  type ProductPlugin,
   type SharedExecutionContext,
 } from "../../../src/mediator/product-plugin-contract.js";
 import { productionRoutePolicy } from "../../../src/lib/local-runtime/production/route-policy.js";
 import { executionFailure } from "../../../src/lib/execution-failure.js";
-import { task } from "../agent-production-runtime-fixtures.js";
 import { articleOutput, researchOutput } from
   "./public-knowledge-article-pipeline-output-fixtures.js";
+import {
+  CONFIRMED_AT,
+  HASH,
+  createHarness,
+  seoTask,
+  type SeoCall,
+  type SeoFailure,
+  type SeoHarness,
+} from "./public-knowledge-article-pipeline-fixture-state.js";
 
-const HASH = `sha256:${"1".repeat(64)}` as const;
-const CONFIRMED_AT = new Date(Date.now() - 1_000).toISOString();
-
-type SeoAction = "produce_article" | "accuracy_challenge" | "quality_reflection";
-type SeoCall = ProductGptAnyCallInput & Readonly<{ sessionKey: string }>;
 type SeoExecuteInput = Parameters<ProductGptTools["execute"]>[0];
 type GptTextCheckpointInput = Extract<GptContinuationCheckpointInput, { checkpointKind: "text" }>;
 type FrontierReadback = Extract<ExactGptContinuationReadback, { lookupKind: "frontier_ref" }>;
@@ -34,103 +33,6 @@ type ExactGptGeneratedImageCheckpointReadback = Extract<
   FrontierReadback["currentCheckpoint"], { checkpointKind: "generated_image" }
 >;
 type SeoFactQuery = Parameters<SharedExecutionContext["gpt"]["readCallFacts"]>[0];
-export type SeoFailure = Readonly<{
-  child: string;
-  code: string;
-  productStepId?: string;
-  confirmedSubmit?: boolean;
-  locatorFailureCode?: string;
-}>;
-type SeoFact = Readonly<{
-  attemptId: string;
-  callIdentityHash: string;
-  evidenceRef: string;
-  failureCode: string | null;
-  mutation: boolean;
-  terminalAt: string | null;
-}>;
-export type SeoHarness = {
-  actionId: SeoAction;
-  calls: SeoCall[];
-  factsByCall: Map<string, SeoFact>;
-  handoffDelays: number[];
-  completed: ProductPluginOutput | null;
-  continuationProvider: GptProviderContinuation | null;
-  originProvider: GptProviderContinuation | null;
-  frontierRef: `sha256:${string}` | null;
-  frontierOriginCheckpoint: Omit<GptTextCheckpointInput, "checkpointKind"> | null;
-  currentCheckpoint: GptContinuationCheckpointInput | null;
-  completionFailuresRemaining: number;
-  continuationLaneVersion: number;
-  continuationLaneOwned: boolean;
-  remainingFailures: number;
-  physicalSubmitDispatches: number;
-  generatedImageUploadCalls: number;
-  uploadedImageHashes: Set<string>;
-  acquiredLaneVersions: number[];
-  confirmedReadbackAuthorizationByStep: Map<string, "source-only" | "full">;
-  materials: SharedExecutionContext["materials"];
-  providerNames: readonly string[];
-};
-
-export const seoTask = (actionId: SeoAction): WebsiteAgentTask => task({
-  jobId: `job-${actionId}`,
-  productId: "public_knowledge_article_pipeline",
-  actionId,
-  extra: {
-    parameters: { domain_id: "bazi", locale: "zh-CN", ready_corpus_snapshot_hash: HASH },
-    ...(actionId === "produce_article" ? {} : {
-      subject_task_ref: "subject-task", subject_result_ref: "subject-result",
-      subject_result_hash: HASH, review_policy: "strict",
-    }),
-  },
-});
-
-const fixtureMaterials = (actionId: SeoAction): SharedExecutionContext["materials"] => actionId === "produce_article"
-  ? [{ material_id: "m0", ordinal: 0, role: "ready_corpus_archive", display_name: "public-knowledge-materials.zip",
-    object_ref: "object:m0", local_path: "/tmp/public-knowledge-materials.zip", sha256: HASH, bytes: 1,
-    media_type: "application/zip", storage_class: "shared_static", owner_scope_hash: null,
-    trust_class: "classical_source_data", may_issue_instruction: false }]
-  : [
-    { material_id: "m0", ordinal: 0, role: "subject_result", display_name: "one.json",
-      object_ref: "object:m0", local_path: "/tmp/one.json", sha256: HASH, bytes: 1,
-      media_type: "application/json", storage_class: "shared_static", owner_scope_hash: null,
-      trust_class: "locked_fact", may_issue_instruction: false },
-    { material_id: "m1", ordinal: 1, role: "review_contract", display_name: "two.json",
-      object_ref: "object:m1", local_path: "/tmp/two.json", sha256: HASH, bytes: 1,
-      media_type: "application/json", storage_class: "shared_static", owner_scope_hash: null,
-      trust_class: "locked_fact", may_issue_instruction: false },
-  ];
-
-export const createHarness = (actionId: SeoAction, failureAt?: SeoFailure): SeoHarness => {
-  const materials = fixtureMaterials(actionId);
-  return {
-    actionId,
-    calls: [],
-    factsByCall: new Map(),
-    handoffDelays: [],
-    completed: null,
-    continuationProvider: null,
-    originProvider: null,
-    frontierRef: null,
-    frontierOriginCheckpoint: null,
-    currentCheckpoint: null,
-    completionFailuresRemaining: 0,
-    continuationLaneVersion: 0,
-    continuationLaneOwned: false,
-    remainingFailures: failureAt ? 1 : 0,
-    physicalSubmitDispatches: 0,
-    generatedImageUploadCalls: 0,
-    uploadedImageHashes: new Set(),
-    acquiredLaneVersions: [],
-    confirmedReadbackAuthorizationByStep: new Map(),
-    materials,
-    providerNames: materials.map((material) => gptAttachmentProviderDisplayName(
-      material.display_name, "attempt-1", material.material_id,
-    )),
-  };
-};
-
 const callIdentityHash = (input: Pick<SeoFactQuery, "productStepId" | "callId" | "child" | "actionOrdinal" | "input">): string =>
   hashCanonical({
     productStepId: input.productStepId, callId: input.callId, child: input.child,
@@ -271,6 +173,74 @@ const applyContinuationCall = (state: SeoHarness, input: SeoCall, initial: unkno
   return initial;
 };
 
+const assertSeoCallBoundary = (state: SeoHarness, input: SeoCall): void => {
+  if (state.confirmedReadbackAuthorizationByStep.get(input.productStepId) === "source-only") {
+    assert.equal(input.child, "reconcile_gpt_turn_submission",
+      "source-only confirmed-submit recovery must close the existing submission locator before any other Child");
+  }
+  if (input.child !== "attach_approved_gpt_files_once"
+    && input.child !== "reconcile_gpt_attachment_set") return;
+  assert(Array.isArray(input.input.files));
+  for (const file of input.input.files) {
+    assert(file && typeof file === "object" && !Array.isArray(file));
+    assert.deepEqual(Object.keys(file).sort(), ["artifactRef", "bytes", "displayName", "sha256"],
+      "Product to GPT attachment input must contain exactly the four approved-file fields");
+    assert.equal("providerDisplayName" in file, false,
+      "providerDisplayName is derived by GPT and must not enter attachment input");
+  }
+};
+
+const throwConfiguredSeoFailure = (
+  state: SeoHarness,
+  input: SeoCall,
+  failureAt: SeoFailure | undefined,
+  attemptId: string,
+): void => {
+  const matches = state.remainingFailures > 0 && input.child === failureAt?.child
+    && (!failureAt.productStepId || input.productStepId === failureAt.productStepId);
+  if (!matches || !failureAt) return;
+  state.remainingFailures -= 1;
+  if (!failureAt.confirmedSubmit) {
+    throw executionFailure("failed", failureAt.code, {
+      metadata: Object.freeze({ mutationOutcome: "no" }),
+    });
+  }
+  assert.equal(input.child, "submit_exact_gpt_turn_once");
+  const priorFact = state.factsByCall.get(factKey(attemptId, input));
+  if (!priorFact) state.physicalSubmitDispatches += 1;
+  const evidenceRef = priorFact?.evidenceRef ?? `evidence:${state.calls.length}`;
+  state.factsByCall.set(factKey(attemptId, input), {
+    attemptId, callIdentityHash: callIdentityHash(input), evidenceRef,
+    failureCode: failureAt.code, mutation: true, terminalAt: CONFIRMED_AT,
+  });
+  throw executionFailure("failed", failureAt.code, {
+    metadata: Object.freeze({
+      mutationOutcome: "confirmed",
+      evidence: Object.freeze({ evidenceRef: "browser-mutation:test", evidenceHash: HASH }),
+      browserEffect: Object.freeze({
+        effectScope: "provider_effect", childCapabilityId: "submit_exact_gpt_turn_once",
+        browserOutcome: "CONFIRMED",
+      }),
+    }),
+  });
+};
+
+const recordSuccessfulSeoCall = (
+  state: SeoHarness,
+  input: SeoCall,
+  attemptId: string,
+): string => {
+  const priorFact = state.factsByCall.get(factKey(attemptId, input));
+  if (input.child === "submit_exact_gpt_turn_once" && !priorFact) state.physicalSubmitDispatches += 1;
+  const evidenceRef = priorFact?.evidenceRef ?? `evidence:${state.calls.length}`;
+  state.factsByCall.set(factKey(attemptId, input), {
+    attemptId, callIdentityHash: callIdentityHash(input), evidenceRef, failureCode: null,
+    mutation: input.child === "submit_exact_gpt_turn_once",
+    terminalAt: input.child === "submit_exact_gpt_turn_once" ? CONFIRMED_AT : null,
+  });
+  return evidenceRef;
+};
+
 const executeCall = async (
   state: SeoHarness,
   input: SeoCall,
@@ -278,57 +248,9 @@ const executeCall = async (
   failureAt?: SeoFailure,
   attemptId = "attempt-1",
 ) => {
-  if (state.confirmedReadbackAuthorizationByStep.get(input.productStepId) === "source-only") {
-    assert.equal(
-      input.child,
-      "reconcile_gpt_turn_submission",
-      "source-only confirmed-submit recovery must close the existing submission locator before any other Child",
-    );
-  }
-  if (input.child === "attach_approved_gpt_files_once"
-    || input.child === "reconcile_gpt_attachment_set") {
-    assert(Array.isArray(input.input.files));
-    for (const file of input.input.files) {
-      assert(file && typeof file === "object" && !Array.isArray(file));
-      assert.deepEqual(Object.keys(file).sort(), ["artifactRef", "bytes", "displayName", "sha256"],
-        "Product to GPT attachment input must contain exactly the four approved-file fields");
-      assert.equal("providerDisplayName" in file, false,
-        "providerDisplayName is derived by GPT and must not enter attachment input");
-    }
-  }
+  assertSeoCallBoundary(state, input);
   state.calls.push(input);
-  if (state.remainingFailures > 0 && input.child === failureAt?.child
-    && (!failureAt.productStepId || input.productStepId === failureAt.productStepId)) {
-    state.remainingFailures -= 1;
-    if (failureAt.confirmedSubmit) {
-      assert.equal(input.child, "submit_exact_gpt_turn_once");
-      const priorFact = state.factsByCall.get(factKey(attemptId, input));
-      if (!priorFact) state.physicalSubmitDispatches += 1;
-      const evidenceRef = priorFact?.evidenceRef ?? `evidence:${state.calls.length}`;
-      state.factsByCall.set(factKey(attemptId, input), {
-        attemptId,
-        callIdentityHash: callIdentityHash(input),
-        evidenceRef,
-        failureCode: failureAt.code,
-        mutation: true,
-        terminalAt: CONFIRMED_AT,
-      });
-      throw executionFailure("failed", failureAt.code, {
-        metadata: Object.freeze({
-          mutationOutcome: "confirmed",
-          evidence: Object.freeze({ evidenceRef: "browser-mutation:test", evidenceHash: HASH }),
-          browserEffect: Object.freeze({
-            effectScope: "provider_effect",
-            childCapabilityId: "submit_exact_gpt_turn_once",
-            browserOutcome: "CONFIRMED",
-          }),
-        }),
-      });
-    }
-    throw executionFailure("failed", failureAt.code, {
-      metadata: Object.freeze({ mutationOutcome: "no" }),
-    });
-  }
+  throwConfiguredSeoFailure(state, input, failureAt, attemptId);
   if (failureAt?.locatorFailureCode
     && input.child === "reconcile_gpt_turn_submission"
     && input.productStepId === failureAt.productStepId) {
@@ -341,17 +263,7 @@ const executeCall = async (
     && state.confirmedReadbackAuthorizationByStep.get(input.productStepId) === "source-only") {
     state.confirmedReadbackAuthorizationByStep.set(input.productStepId, "full");
   }
-  const priorFact = state.factsByCall.get(factKey(attemptId, input));
-  if (input.child === "submit_exact_gpt_turn_once" && !priorFact) state.physicalSubmitDispatches += 1;
-  const evidenceRef = priorFact?.evidenceRef ?? `evidence:${state.calls.length}`;
-  state.factsByCall.set(factKey(attemptId, input), {
-    attemptId,
-    callIdentityHash: callIdentityHash(input),
-    evidenceRef,
-    failureCode: null,
-    mutation: input.child === "submit_exact_gpt_turn_once",
-    terminalAt: input.child === "submit_exact_gpt_turn_once" ? CONFIRMED_AT : null,
-  });
+  const evidenceRef = recordSuccessfulSeoCall(state, input, attemptId);
   return { value, evidenceRef, evidenceHash: HASH };
 };
 
@@ -510,117 +422,4 @@ export const withFastHandoffs = async <T>(state: SeoHarness, run: () => Promise<
   } finally {
     globalThis.setTimeout = nativeSetTimeout;
   }
-};
-
-const runPlugin = async (
-  plugin: ProductPlugin,
-  taskInput: WebsiteAgentTask,
-  context: SharedExecutionContext,
-  state: SeoHarness,
-  recoverAfterFault: boolean,
-): Promise<unknown> => {
-  return withFastHandoffs(state, async () => {
-    let firstFailure: unknown = null;
-    try { await plugin.execute(taskInput, context); }
-    catch (error) {
-      if (!recoverAfterFault) throw error;
-      firstFailure = error;
-    }
-    if (recoverAfterFault) await plugin.execute(taskInput, context);
-    return firstFailure;
-  });
-};
-
-const assertHarness = (state: SeoHarness, actionId: SeoAction, recoverAfterFault: boolean): ProductPluginOutput => {
-  const output = state.completed;
-  assert(output);
-  if (!recoverAfterFault) {
-    assert.deepEqual(state.calls.map((call) => call.actionOrdinal),
-      state.calls.map((_call, index) => index + 1));
-    assert.deepEqual(output.evidence_refs, state.calls.map((_call, index) => `evidence:${index + 1}`));
-    assert.equal(state.handoffDelays.length, 0,
-      "SEO Product must not schedule fixed sleeps between GPT Children");
-  }
-  assert.equal(new Set(state.calls.map((call) => call.sessionKey)).size, 1);
-  assert.ok(state.calls.every((call) => call.sessionKey.includes("attempt-1")));
-  assert.equal(state.handoffDelays.length, 0,
-    "SEO Product must derive handoff readiness from each Child fact, not elapsed time");
-  const firstPrompt = state.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt;
-  assert.equal(typeof firstPrompt, "string");
-  if (actionId === "produce_article") {
-    assert.equal(state.providerNames.length, 1);
-    assert.match(firstPrompt as string, new RegExp(state.providerNames[0]!, "u"));
-    assert.match(firstPrompt as string, /解压并读取本轮唯一 ZIP 附件/u);
-    assert.match(firstPrompt as string, /原文\.md 与索引\.json/u);
-    assert.match(firstPrompt as string, /public-knowledge-research-output\.v3/u);
-    assert.match(firstPrompt as string, /本回合不得返回 article package/u);
-    assert.doesNotMatch(firstPrompt as string, /ready_corpus_snapshot_hash|sha256:/u);
-  } else {
-    assert.match(firstPrompt as string, new RegExp(`${state.providerNames[0]} 与 ${state.providerNames[1]}`, "u"));
-  }
-  const files = state.calls.find((call) => call.child === "reconcile_gpt_draft")?.input.files;
-  assert.deepEqual(Array.isArray(files)
-    ? files.map((file) => (file as { providerDisplayName?: unknown }).providerDisplayName) : null,
-  state.providerNames);
-  return output;
-};
-
-export const exerciseSeoFlow = async (
-  plugin: ProductPlugin,
-  actionId: SeoAction,
-  decision: "proceed" | "decline" = "proceed",
-  failureAt?: SeoFailure,
-  recoverAfterFault = false,
-) => {
-  const state = createHarness(actionId, failureAt);
-  const firstFailure = await runPlugin(
-    plugin, seoTask(actionId), createContext(state, decision, failureAt), state, recoverAfterFault,
-  );
-  const completed = assertHarness(state, actionId, recoverAfterFault);
-  return {
-    calls: state.calls, completed, firstFailure,
-    physicalSubmitDispatches: state.physicalSubmitDispatches,
-    acquiredLaneVersions: state.acquiredLaneVersions,
-    generatedImageUploadCalls: state.generatedImageUploadCalls,
-  };
-};
-
-export const exerciseSeoAttachmentReconcileFailure = async (plugin: ProductPlugin) => {
-  const failureAt = Object.freeze({
-    child: "reconcile_gpt_attachment_set" as const,
-    code: "GPT_ATTACHMENT_UPLOAD_TIMEOUT",
-    productStepId: "corpus_research",
-  });
-  const state = createHarness("produce_article", failureAt);
-  let failure: unknown = null;
-  try {
-    await withFastHandoffs(state, () => plugin.execute(
-      seoTask("produce_article"), createContext(state, "proceed", failureAt),
-    ));
-  } catch (error) {
-    failure = error;
-  }
-  assert(failure, "attachment reconciliation failure must stop the Product flow");
-  return Object.freeze({ calls: Object.freeze([...state.calls]), failure,
-    physicalSubmitDispatches: state.physicalSubmitDispatches });
-};
-
-export const exerciseSeoPromptWriteFailure = async (plugin: ProductPlugin) => {
-  const failureAt = Object.freeze({
-    child: "write_exact_gpt_prompt" as const,
-    code: "GPT_PROMPT_WRITE_UNCONFIRMED",
-    productStepId: "corpus_research",
-  });
-  const state = createHarness("produce_article", failureAt);
-  let failure: unknown = null;
-  try {
-    await withFastHandoffs(state, () => plugin.execute(
-      seoTask("produce_article"), createContext(state, "proceed", failureAt),
-    ));
-  } catch (error) {
-    failure = error;
-  }
-  assert(failure, "prompt write failure must stop the Product flow before draft reconciliation and submit");
-  return Object.freeze({ calls: Object.freeze([...state.calls]), failure,
-    physicalSubmitDispatches: state.physicalSubmitDispatches });
 };

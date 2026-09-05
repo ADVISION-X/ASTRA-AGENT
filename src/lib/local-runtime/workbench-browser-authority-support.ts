@@ -14,6 +14,7 @@ import type {
   BrowserExecutionBinding,
   BrowserExactCallMutationFact,
   BrowserMutationReconciliationScope,
+  BrowserAuthorityBroker,
   BrowserTargetLease,
 } from "../browser/browser-authority-api.js";
 import { hashExtensionDirectoryV1 } from "../browser/release/extension-directory-hash-v1.js";
@@ -22,12 +23,12 @@ import type { RuntimeLogger } from "../runtime-logs/index.js";
 
 export type WorkbenchBrowserAuthority = Readonly<{
   broker: Pick<
-    ReturnType<BrowserInfrastructureSupervisor["authorityBroker"]>,
+    BrowserAuthorityBroker,
     "currentStatus"
   > &
     Partial<
       Pick<
-        ReturnType<BrowserInfrastructureSupervisor["authorityBroker"]>,
+        BrowserAuthorityBroker,
         "currentOperatorTargetStatus"
       >
     >;
@@ -131,19 +132,18 @@ export const createWorkbenchBrowserAuthority = async (
     runtimeLogger,
   });
   await supervisor.start();
+  const endpoints = supervisor.endpoints();
   return {
-    broker: supervisor.authorityBroker(),
+    broker: endpoints.broker,
     health: () => supervisor.health(),
     readOperatorPairingState: () => supervisor.readOperatorPairingState(),
     readReleaseBuildId: () => releaseIdentity.releaseBuildId,
     readProductionRuntimeState: () => ({
       browserAuthorityState:
-        supervisor.authorityBroker().currentStatus().kind === "AVAILABLE"
+        endpoints.broker.currentStatus().kind === "AVAILABLE"
           ? "present"
           : "absent",
-      browserTargetState: supervisor
-        .authorityBroker()
-        .currentOperatorTargetStatus(),
+      browserTargetState: endpoints.broker.currentOperatorTargetStatus(),
     }),
     readBrowserLaneState: () => supervisor.readBrowserLaneState(),
     readBrowserLaneWaiterCount: () => supervisor.readBrowserLaneWaiterCount(),
@@ -163,12 +163,9 @@ export const createWorkbenchBrowserAuthority = async (
     acquireJobBoundTargetLease: (binding, ownerId, wait) =>
       supervisor.acquireJobBoundTargetLease(binding, ownerId, wait),
     acceptBrowserAuthoritySocket: (socket) => ({
-      receive: (payload) =>
-        supervisor.browserAuthorityWebSocket().receive(socket, payload),
+      receive: (payload) => endpoints.websocket.receive(socket, payload),
       disconnect: (reasonCode, refs) =>
-        supervisor
-          .browserAuthorityWebSocket()
-          .disconnect(socket, reasonCode, refs),
+        endpoints.websocket.disconnect(socket, reasonCode, refs),
     }),
     shutdown: () => supervisor.stop(),
   };

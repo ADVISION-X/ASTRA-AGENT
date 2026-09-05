@@ -6,45 +6,14 @@ import { executeRegisteredDomIntent } from
   "../../src/lib/browser/chrome-extension/dom-intent-runtime.js";
 import { exerciseCapturedCandidateFunction, exerciseCapturedCoherentObservationPointerFunction } from
   "./local-browser-dom-function-support.js";
+import { exerciseContentEditableFill, exerciseFillReadbackRejection } from
+  "./local-browser-dom-fill-support.js";
+import { browserDomFacts as facts, mutationInfrastructureReply } from
+  "./local-browser-dom-runtime-fixture.js";
 
 type PointerClickIntent = Extract<Parameters<typeof executeRegisteredDomIntent>[2], {
   kind: "click" | "doubleClick";
 }>;
-
-const facts = (overrides: Readonly<Record<string, unknown>> = {}) => ({
-  connected: true, layout: true, visible: true,
-  computedDisplay: "block", computedVisibility: "visible", computedOpacity: "1", effectiveOpacity: "1",
-  displayHidden: false, visibilityHidden: false, opacityHidden: false,
-  hidden: false, ariaHidden: false, inert: false, disabled: false, ariaDisabled: false,
-  role: "", name: "", testId: "", label: "", value: "", checked: null, type: "",
-  bounds: { x: 0, y: 0, width: 10, height: 10 }, viewport: true, hitTest: true,
-  nativeCauseCode: null, nativeStage: "runtime-call-function-on", ...overrides,
-});
-
-const mutationInfrastructureReply = (
-  method: string,
-  parameters?: Readonly<Record<string, unknown>>,
-): unknown | undefined => {
-  if (method === "Runtime.callFunctionOn"
-    && String(parameters?.functionDeclaration ?? "").includes("browserExactEditableText")) return undefined;
-  let reply: unknown;
-  if (method === "Page.getFrameTree") reply = { frameTree: { frame: { loaderId: "loader-current" } } };
-  if (method === "DOM.getDocument") reply = { root: { nodeId: 1 } };
-  if (method === "DOM.resolveNode") reply = { object: {
-    objectId: parameters?.nodeId === 1 ? "candidate-root" : `node-${parameters?.nodeId}`,
-  } };
-  if (method === "Runtime.callFunctionOn") reply = { result: { value: facts() } };
-  if (method === "Runtime.callFunctionOn" && parameters?.returnByValue === false) {
-    reply = { result: { type: "object", subtype: "node", objectId: "candidate-node" } };
-  }
-  if (method === "Runtime.callFunctionOn" && parameters?.returnByValue === true
-    && String(parameters.functionDeclaration).includes("spec.output")) {
-    reply = { result: { value: { x: 5, y: 5 } } };
-  }
-  if (method === "DOM.requestNode") reply = { nodeId: 7 };
-  if (method === "Runtime.releaseObject") reply = {};
-  return reply;
-};
 
 const exerciseReasoningSlider = async (): Promise<void> => {
   for (const [key, virtualKeyCode, repeat] of [["ArrowLeft", 37, 1], ["ArrowRight", 39, 4]] as const) {
@@ -169,86 +138,6 @@ const exerciseFreshKeypressCandidate = async (): Promise<void> => {
   assert.equal(stale.candidateNodeId(), 8);
   assert.deepEqual(stale.physicalEvents, [],
     "a node that becomes stale after fresh resolution must fail closed without input or fallback");
-};
-
-const exerciseContentEditableFill = async (): Promise<void> => {
-  let text = "stale SEO prompt";
-  let candidateReads = 0;
-  let finalReadNodeId: number | null = null;
-  const events: Readonly<Record<string, unknown>>[] = [];
-  const runtime = { async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
-    if (method === "DOM.requestNode") {
-      candidateReads += 1;
-      return { nodeId: candidateReads === 1 ? 7 : 8 };
-    }
-    if (method === "Runtime.callFunctionOn"
-      && String(parameters?.functionDeclaration ?? "").includes("browserExactEditableText")) {
-      return { result: { value: text } };
-    }
-    const infrastructure = mutationInfrastructureReply(method, parameters);
-    if (infrastructure !== undefined) return infrastructure;
-    if (method === "DOM.querySelectorAll") return { nodeIds: [7] };
-    if (method === "DOM.focus") return {};
-    if (method === "Input.dispatchKeyEvent") {
-      events.push(parameters ?? {});
-      if (parameters?.type === "rawKeyDown" && parameters.key === "Backspace") text = "";
-      return {};
-    }
-    if (method === "Input.insertText") { text += String(parameters?.text ?? ""); return {}; }
-    if (method === "DOM.describeNode") {
-      if (text.length === 0) finalReadNodeId = Number(parameters?.nodeId);
-      return { node: { nodeId: parameters?.nodeId, backendNodeId: 107,
-      nodeName: "DIV", attributes: ["contenteditable", "true"],
-      children: text.length === 0 ? [] : [{ nodeName: "P", nodeValue: text }] } };
-    }
-    throw new Error(`UNEXPECTED_CONTENTEDITABLE_FILL_METHOD:${method}`);
-  } } as ExtensionDebuggerRuntime;
-  const cleared = await executeRegisteredDomIntent(runtime, { tabId: 103 } as never, {
-    kind: "fill", selector: "#prompt-textarea", approvedText: "", clearBeforeType: true, expectedMatches: 1,
-  }, () => undefined);
-  assert.deepEqual(cleared, { filled: true, candidateCount: 1, identityRevalidated: true,
-    mutationCount: 1, retainedValueVerified: true, postconditionVerified: true });
-  assert.equal(candidateReads, 2, "fill postcondition must bind a fresh current candidate");
-  assert.equal(finalReadNodeId, 8, "fill postcondition must not reuse the pre-action nodeId");
-  assert.deepEqual(events, [
-    { type: "rawKeyDown", key: "a", code: "KeyA", commands: ["selectAll"] },
-    { type: "keyUp", key: "a", code: "KeyA" },
-    { type: "rawKeyDown", key: "Backspace", code: "Backspace" },
-    { type: "keyUp", key: "Backspace", code: "Backspace" },
-  ]);
-};
-
-const exerciseFillReadbackRejection = async (): Promise<void> => {
-  let candidateReads = 0;
-  const runtime = { async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
-    if (method === "Runtime.callFunctionOn" && parameters?.returnByValue === false) {
-      candidateReads += 1;
-      return candidateReads === 1
-        ? { result: { type: "object", subtype: "node", objectId: "candidate-node" } }
-        : { result: { type: "string", value: "BROWSER_DOM_CANDIDATE_MISSING" } };
-    }
-    if (method === "Runtime.callFunctionOn"
-      && String(parameters?.functionDeclaration ?? "").includes("browserExactEditableText")) {
-      return { result: { value: "stale" } };
-    }
-    const infrastructure = mutationInfrastructureReply(method, parameters);
-    if (infrastructure !== undefined) return infrastructure;
-    if (method === "DOM.focus" || method === "Input.insertText") return {};
-    if (method === "DOM.describeNode") return { node: { nodeId: 7, backendNodeId: 107,
-      nodeName: "DIV", attributes: ["contenteditable", "true"],
-      children: [{ nodeName: "P", nodeValue: "stale" }] } };
-    throw new Error(`UNEXPECTED_FILL_READBACK_METHOD:${method}`);
-  } } as ExtensionDebuggerRuntime;
-  const rejected = await executeRegisteredDomIntent(runtime, { tabId: 117 } as never, {
-    kind: "fill", selector: "#prompt-textarea", approvedText: "approved",
-    clearBeforeType: false, expectedMatches: 1,
-  }, () => undefined);
-  assert.deepEqual(rejected, {
-    filled: true, candidateCount: 0, identityRevalidated: false, mutationCount: 1,
-    retainedValueVerified: false, postconditionVerified: false,
-    failureCode: "BROWSER_POSTCONDITION_FAILED",
-    nativeCauseCode: "BROWSER_DOM_CANDIDATE_MISSING",
-  });
 };
 
 const exerciseScopedExactCandidate = async (): Promise<void> => {

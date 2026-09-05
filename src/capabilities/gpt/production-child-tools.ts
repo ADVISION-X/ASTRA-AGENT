@@ -141,8 +141,8 @@ export class ProductionGptChildTools {
   ) {
     this.continuationReadback = new GptContinuationReadback(evidenceStore, runtime.continuationReadback);
   }
-  public createExecution(input: ExecutionInput): ProductGptExecution {
-    const browsers = new ProductionGptBrowserLifecycle(
+  private browserLifecycle(input: ExecutionInput): ProductionGptBrowserLifecycle {
+    return new ProductionGptBrowserLifecycle(
       this.browserAuthority,
       this.runtimeLogger,
       this.sourceHash,
@@ -160,6 +160,20 @@ export class ProductionGptChildTools {
         abortSignal: input.abortSignal,
       },
     );
+  }
+  private readContinuation(input: ExecutionInput, query: ExactGptContinuationQuery) {
+    return this.continuationReadback.readExact({
+      jobId: input.jobId,
+      continuationRef: input.continuationRef,
+      ownerRef: input.ownerRef,
+      subjectRef: input.subjectRef,
+      authorizationRef: input.authorizationRef,
+      pluginId: input.pluginId,
+      pluginVersion: input.pluginVersion,
+    }, query);
+  }
+  public createExecution(input: ExecutionInput): ProductGptExecution {
+    const browsers = this.browserLifecycle(input);
     let continuationRef: string | null = input.continuationRef;
     let confirmedProviderSubmit: ConfirmedProviderSubmitReceipt | null = null;
     const observedCalls = new Map<string, ProductGptCallInput & Readonly<{ sessionKey: string }>>();
@@ -212,16 +226,7 @@ export class ProductionGptChildTools {
     return Object.freeze({
       tools: Object.freeze({
         attemptId: input.attemptId,
-        readContinuationExact: (query: ExactGptContinuationQuery) =>
-          this.continuationReadback.readExact({
-            jobId: input.jobId,
-            continuationRef: input.continuationRef,
-            ownerRef: input.ownerRef,
-            subjectRef: input.subjectRef,
-            authorizationRef: input.authorizationRef,
-            pluginId: input.pluginId,
-            pluginVersion: input.pluginVersion,
-          }, query),
+        readContinuationExact: (query: ExactGptContinuationQuery) => this.readContinuation(input, query),
         execute,
         readCallFacts,
         readConfirmedSubmitFailure,

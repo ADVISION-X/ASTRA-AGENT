@@ -13,17 +13,11 @@ const EVIDENCE_FACT_PATH = `${ROOT}/evidence-fact.ts`;
 const MODEL_HANDLER_PATH = `${ROOT}/web/children/model-selection-v2-children.ts`;
 const MODEL_CONTRACT_PATH = `${ROOT}/web/contracts/model-selection-v2.contract.ts`;
 const PROFILE_HANDLER_PATH = `${ROOT}/web/children/execution-profile-children.ts`;
+const PROFILE_OBSERVATION_PATH = `${ROOT}/web/children/execution-profile-observation.ts`;
 const PROFILE_CONTRACT_PATH = `${ROOT}/web/contracts/execution-profile.contract.ts`;
 const ATTACHMENT_HANDLER_PATH = `${ROOT}/web/children/attachment-children.ts`;
+const ATTACHMENT_SET_OBSERVATION_PATH = `${ROOT}/web/children/attachment-set-observation.ts`;
 const ATTACHMENT_CONTRACT_PATH = `${ROOT}/web/contracts/attachment.contract.ts`;
-const COMPOSER_SUBMISSION_HANDLER_PATH = `${ROOT}/web/children/composer-submission-children.ts`;
-const CONVERSATION_HANDLER_PATH = `${ROOT}/web/children/conversation-children.ts`;
-const DIRECT_MUTATION_SETTLEMENT_PATH = `${ROOT}/web/direct-mutation-settlement.ts`;
-const PRODUCT_API_PATH = `${ROOT}/product-api.ts`;
-const CONFIRMED_PROVIDER_READBACK_PATH = `${ROOT}/confirmed-provider-readback.ts`;
-const GROUP_PATH = `${ROOT}/ability-group.ts`;
-const PRODUCTION_CHILD_TOOLS_PATH = `${ROOT}/production-child-tools.ts`;
-const PRODUCTION_BROWSER_LIFECYCLE_PATH = `${ROOT}/production-browser-lifecycle.ts`;
 const BROWSER_TARGET_LEASE_PATH = "src/lib/browser/exact-target/browser-target-lease.ts";
 
 type FindingFactory = (
@@ -187,7 +181,8 @@ const inspectProfileContracts = (
     "fast: 0", "medium: 1", "high: 2", "extra_high: 3", "pro_standard: 4",
   ], checkId: "gpt/reasoning-approved-scale-contract", filePath: PROFILE_CONTRACT_PATH,
   findings, finding, message: (required) => `Reasoning contract is missing ${required}.` });
-  const reasoningHandler = sourceFor(context, PROFILE_HANDLER_PATH)?.getFullText() ?? "";
+  const reasoningHandler = [PROFILE_HANDLER_PATH, PROFILE_OBSERVATION_PATH]
+    .map((path) => sourceFor(context, path)?.getFullText() ?? "").join("\n");
   inspectMissingTokens({ source: reasoningHandler, required: [
     "ensure_gpt_reasoning_requirement", "requireExactInputKeys", "profileFromIntent",
     "requireBrowser(context)", "ariaValueMin", "ariaValueMax", "ariaValueNow",
@@ -214,9 +209,28 @@ const inspectProfileContracts = (
   }
 };
 
-const inspectProfileVersionCutover = (
+const PROFILE_CONSUMERS = new Set([
+  "open_gpt_execution_profile", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
+  "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile",
+]);
+const CONTRACT_V4_CHILDREN = new Set([
+  "prepare_clean_gpt_chat", "focus_exact_gpt_conversation", "reconcile_gpt_draft",
+  "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "reconcile_gpt_turn_submission",
+]);
+const CONTRACT_V3_CHILDREN = new Set([
+  "verify_gpt_conversation_identity", "checkpoint_gpt_text_response",
+  "checkpoint_gpt_generated_image", "wait_for_stable_gpt_text", "wait_for_stable_gpt_image",
+  "open_gpt_checkpoint_actions_menu", "fork_exact_gpt_conversation_at_checkpoint",
+  ...PROFILE_CONSUMERS, "reconcile_gpt_attachment_set",
+]);
+
+const expectedContractVersion = (id: string): string => {
+  if (CONTRACT_V4_CHILDREN.has(id)) return "4";
+  return CONTRACT_V3_CHILDREN.has(id) ? "3" : "2";
+};
+
+const inspectProfileSchema = (
   context: InspectorContext,
-  contract: SourceFile,
   findings: InspectorFinding[],
   finding: FindingFactory,
 ): void => {
@@ -234,14 +248,16 @@ const inspectProfileVersionCutover = (
       `Execution Profile schema retains retired token ${retired}.`,
     ));
   }
+};
 
+const inspectChildContractVersions = (
+  contract: SourceFile,
+  findings: InspectorFinding[],
+  finding: FindingFactory,
+): void => {
   const contractObject = contract.getVariableDeclaration("GPT_CHILD_CONTRACTS")?.getInitializer();
   const contracts = contractObject && Node.isObjectLiteralExpression(contractObject)
     ? contractObject : contractObject?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
-  const profileConsumers = new Set([
-    "open_gpt_execution_profile", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
-    "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile",
-  ]);
   for (const property of contracts?.getProperties() ?? []) {
     if (!Node.isPropertyAssignment(property)) continue;
     const id = property.getName().replace(/^['"]|['"]$/gu, "");
@@ -250,30 +266,41 @@ const inspectProfileVersionCutover = (
     const inputSchema = value?.getProperty("inputSchema");
     const versionText = Node.isPropertyAssignment(version) ? version.getInitializer()?.getText() : null;
     const inputText = Node.isPropertyAssignment(inputSchema) ? inputSchema.getInitializer()?.getText() : null;
-    const expectedVersion = new Set([
-      "reconcile_gpt_draft", "write_exact_gpt_prompt", "submit_exact_gpt_turn_once",
-    ]).has(id) ? "4"
-      : new Set([
-        ...profileConsumers,
-        "reconcile_gpt_attachment_set", "reconcile_gpt_turn_submission",
-      ]).has(id) ? "3" : "2";
-    const expectedInputSuffix = profileConsumers.has(id) ? ".input.v2\"" : ".input.v1\"";
+    const expectedVersion = expectedContractVersion(id);
+    const expectedInputSuffix = PROFILE_CONSUMERS.has(id) ? ".input.v2\"" : ".input.v1\"";
     if (versionText !== expectedVersion || !inputText?.endsWith(expectedInputSuffix)) findings.push(finding(
       "gpt/profile-v2-contract-cutover", CONTRACT_PATH,
-      `${id} must use contract/input ${expectedVersion}/${profileConsumers.has(id) ? "v2" : "v1"}; found ${versionText}/${inputText}.`,
+      `${id} must use contract/input ${expectedVersion}/${PROFILE_CONSUMERS.has(id) ? "v2" : "v1"}; found ${versionText}/${inputText}.`,
       property.getStartLineNumber(),
     ));
   }
+};
 
+const inspectReasoningEvidence = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  finding: FindingFactory,
+): void => {
   const childTypes = sourceFor(context, CHILD_TYPES_PATH)?.getFullText() ?? "";
   const writer = sourceFor(context, EVIDENCE_WRITER_PATH)?.getFullText() ?? "";
   const reader = sourceFor(context, EVIDENCE_FACT_PATH)?.getFullText() ?? "";
   inspectMissingTokens({ source: `${childTypes}\n${writer}\n${reader}`, required: [
     "GptReasoningRequirementResult", "reasoningRequirementResult",
     'schema_version: "agent-gpt-evidence-safe.v2"', "reasoning_requirement_result",
-    'verifiedPayload.schema_version !== "agent-gpt-evidence-safe.v2"',
+    'payload.schema_version !== "agent-gpt-evidence-safe.v2"',
   ], checkId: "gpt/reasoning-evidence-v2", filePath: EVIDENCE_WRITER_PATH,
   findings, finding, message: (required) => `The single reasoning evidence path is missing ${required}.` });
+};
+
+const inspectProfileVersionCutover = (
+  context: InspectorContext,
+  contract: SourceFile,
+  findings: InspectorFinding[],
+  finding: FindingFactory,
+): void => {
+  inspectProfileSchema(context, findings, finding);
+  inspectChildContractVersions(contract, findings, finding);
+  inspectReasoningEvidence(context, findings, finding);
 };
 
 const inspectContractShape = (
@@ -362,10 +389,11 @@ const inspectAttachmentSelectors = (
 
 const inspectAttachmentHandler = (
   handler: SourceFile | undefined,
+  attachmentSetObservation: SourceFile | undefined,
   findings: InspectorFinding[],
   finding: FindingFactory,
 ): void => {
-  const handlerText = handler?.getFullText() ?? "";
+  const handlerText = `${handler?.getFullText() ?? ""}\n${attachmentSetObservation?.getFullText() ?? ""}`;
   if (!handlerText.includes('Math.max(1_000, numberInput(intent, "timeoutMs"))')
     || /Math\.min\([^\n]*timeoutMs[^\n]*(?:60_000|60000)|Math\.min\([^\n]*numberInput\([^\n]*(?:60_000|60000)/u.test(handlerText)) {
     findings.push(finding(
@@ -424,7 +452,12 @@ export const inspectGptAttachmentContract = (
   finding: FindingFactory,
 ): void => {
   inspectAttachmentSelectors(sourceFor(context, ATTACHMENT_CONTRACT_PATH), findings, finding);
-  inspectAttachmentHandler(sourceFor(context, ATTACHMENT_HANDLER_PATH), findings, finding);
+  inspectAttachmentHandler(
+    sourceFor(context, ATTACHMENT_HANDLER_PATH),
+    sourceFor(context, ATTACHMENT_SET_OBSERVATION_PATH),
+    findings,
+    finding,
+  );
   const capabilityContract = sourceFor(context, CONTRACT_PATH)?.getFullText() ?? "";
   inspectMissingTokens({ source: capabilityContract, required: [
     'reconcile_gpt_attachment_set: { childCapabilityId: "reconcile_gpt_attachment_set", contractVersion: 3',
@@ -447,133 +480,6 @@ export const inspectGptAttachmentContract = (
       "Browser public attachment contract still requires a physical-path registration/grant step outside GPT artifactRef input.",
     ));
   }
-};
-
-export const inspectGptBrowserFailureRecoveryContract = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  finding: FindingFactory,
-): void => {
-  const tools = sourceFor(context, PRODUCTION_CHILD_TOOLS_PATH)?.getFullText() ?? "";
-  const lifecycle = sourceFor(context, PRODUCTION_BROWSER_LIFECYCLE_PATH)?.getFullText() ?? "";
-  const group = sourceFor(context, GROUP_PATH)?.getFullText() ?? "";
-  inspectMissingTokens({ source: tools,
-    required: ["mutation.failureCode", "mutation.nativeFailureCode", "cause: nativeCause"],
-    checkId: "gpt/browser-rejected-wal-cause", filePath: PRODUCTION_CHILD_TOOLS_PATH,
-    findings, finding, message: (required) => `The Browser REJECTED fact path is missing ${required}.` });
-  inspectMissingTokens({ source: lifecycle,
-    required: [
-      "input.recovery.failureCode", "input.recovery.nativeFailureCode",
-      "authorizeConfirmedProviderFailureReadback", "dynamicConfirmedFailureReadbackFacade",
-      "dynamicConfirmedReadbackFacade", "CONFIRMED_READBACK_TARGET_LOCAL_CHILDREN",
-      '"focus_exact_gpt_conversation"', '"wait_for_stable_gpt_text"',
-      '"wait_for_stable_gpt_image"', "downloadAuthenticatedMedia: reject",
-    ],
-    checkId: "gpt/browser-rejected-wal-cause", filePath: PRODUCTION_BROWSER_LIFECYCLE_PATH,
-    findings, finding, message: (required) => `The Browser atomic-step recovery path is missing ${required}.` });
-  inspectMissingTokens({ source: group, required: [
-    'recovery.state === "confirmed"', '"CONFIRMED" as const',
-    "mutationOutcome: input.walBrowserFact.mutationOutcome", "browserFact: input.walBrowserFact",
-  ], checkId: "gpt/browser-confirmed-semantic-failure-proof", filePath: GROUP_PATH,
-  findings, finding,
-  message: (required) => `The GPT failed proof cannot preserve a confirmed Browser fact; missing ${required}.` });
-
-  const productApi = sourceFor(context, PRODUCT_API_PATH)?.getFullText() ?? "";
-  const evidenceReader = sourceFor(context, EVIDENCE_FACT_PATH)?.getFullText() ?? "";
-  const confirmedReader = sourceFor(context, CONFIRMED_PROVIDER_READBACK_PATH)?.getFullText() ?? "";
-  inspectMissingTokens({ source: productApi, required: [
-    "ConfirmedGptSubmitFailureReceipt", "readConfirmedSubmitFailure(",
-  ], checkId: "gpt/confirmed-submit-failure-public-receipt", filePath: PRODUCT_API_PATH,
-  findings, finding,
-  message: (required) => `The narrow confirmed-submit failure API is missing ${required}.` });
-  inspectMissingTokens({ source: evidenceReader, required: [
-    "readConfirmedSubmitFailureEvidence", 'browserOutcome !== "CONFIRMED"',
-    'mutationOutcome !== "confirmed"', 'effectScope !== "provider_effect"',
-  ], checkId: "gpt/confirmed-submit-failure-evidence-readback", filePath: EVIDENCE_FACT_PATH,
-  findings, finding,
-  message: (required) => `The exact failed-evidence readback is missing ${required}.` });
-  inspectMissingTokens({ source: confirmedReader, required: [
-    "readConfirmedProviderSubmitFailureReceipt", "readExactCallMutationFact",
-    "readConfirmedSubmitFailureEvidence", "confirmedProviderSubmitReceipt",
-    "authorizeConfirmedProviderFailureReadback", "sourceTargetRef", "sourceDocumentRef",
-  ], checkId: "gpt/confirmed-submit-failure-owner-closure", filePath: CONFIRMED_PROVIDER_READBACK_PATH,
-  findings, finding,
-  message: (required) => `The GPT-owned Browser and Forensics closure is missing ${required}.` });
-  inspectMissingTokens({ source: tools, required: [
-    "readConfirmedProviderSubmitFailureReceipt", "mergeConfirmedProviderSubmitReceipt",
-    "authorizeConfirmedProviderFailureReadback", "authorizeConfirmedProviderReadback",
-    "readConfirmedSubmitFailure",
-  ], checkId: "gpt/confirmed-submit-failure-runtime-handoff", filePath: PRODUCTION_CHILD_TOOLS_PATH,
-  findings, finding,
-  message: (required) => `The production GPT tool handoff is missing ${required}.` });
-  const confirmedFailureRead = tools.indexOf("const receipt = await readConfirmedProviderSubmitFailureReceipt");
-  const confirmedFailureMerge = tools.indexOf("confirmedProviderSubmit = mergeConfirmedProviderSubmitReceipt(", confirmedFailureRead);
-  const confirmedFailureAuthorization = tools.indexOf("authorizeConfirmedProviderFailureReadback({", confirmedFailureMerge);
-  const confirmedFailureReturn = tools.indexOf("return receipt.product;", confirmedFailureAuthorization);
-  if (confirmedFailureRead < 0 || confirmedFailureMerge < confirmedFailureRead
-    || confirmedFailureAuthorization < confirmedFailureMerge
-    || confirmedFailureReturn < confirmedFailureAuthorization) {
-    findings.push(finding(
-      "gpt/confirmed-submit-failure-runtime-handoff", PRODUCTION_CHILD_TOOLS_PATH,
-      "The exact failed receipt must be validated, merged, and readback-authorized before Product receives it.",
-    ));
-  }
-  const receipt = sourceFor(context, PRODUCT_API_PATH)?.getTypeAlias("ConfirmedGptSubmitFailureReceipt")
-    ?.getFullText() ?? "";
-  for (const forbidden of ["targetRef", "documentRef", "browserFact", "wal", "dom"]) {
-    if (receipt.toLowerCase().includes(forbidden.toLowerCase())) findings.push(finding(
-      "gpt/confirmed-submit-failure-safe-projection", PRODUCT_API_PATH,
-      `The Product-visible confirmed-submit failure receipt leaks forbidden field ${forbidden}.`,
-    ));
-  }
-};
-
-export const inspectGptDirectMutationSettlementContract = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  finding: FindingFactory,
-): void => {
-  const handler = sourceFor(context, COMPOSER_SUBMISSION_HANDLER_PATH)?.getFullText() ?? "";
-  const conversation = sourceFor(context, CONVERSATION_HANDLER_PATH)?.getFullText() ?? "";
-  const settlement = sourceFor(context, DIRECT_MUTATION_SETTLEMENT_PATH)?.getFullText() ?? "";
-  const contract = sourceFor(context, CONTRACT_PATH)?.getFullText() ?? "";
-  inspectMissingTokens({ source: settlement, required: [
-    "GPT_DIRECT_POST_MUTATION_SETTLEMENT_MS = 2_500", "waitForGptDirectMutationSettlement",
-    "Math.min(125, remaining)", "retryableGptObservationFailure",
-    '"BROWSER_DOM_CANDIDATE_MISSING"', '"BROWSER_DOM_NODE_STALE"',
-  ], checkId: "gpt/direct-mutation-conditional-settlement", filePath: DIRECT_MUTATION_SETTLEMENT_PATH,
-  findings, finding,
-  message: (required) => `The shared direct semantic settlement path is missing ${required}.` });
-  inspectMissingTokens({ source: handler, required: [
-    "waitForGptDirectMutationSettlement", "waitForFreshDraftState",
-  ], checkId: "gpt/direct-mutation-conditional-settlement", filePath: COMPOSER_SUBMISSION_HANDLER_PATH,
-  findings, finding,
-  message: (required) => `The composer settlement consumer is missing ${required}.` });
-  const settlementCalls = handler.match(/waitForFreshDraftState\(/gu)?.length ?? 0;
-  if (settlementCalls !== 2) findings.push(finding(
-    "gpt/direct-mutation-conditional-settlement", COMPOSER_SUBMISSION_HANDLER_PATH,
-    `The local wrapper must have one definition and exactly one mutation consumer; found ${settlementCalls}.`,
-  ));
-  const conversationSettlementCalls = conversation.match(/waitForGptDirectMutationSettlement\(/gu)?.length ?? 0;
-  if (conversationSettlementCalls !== 2) findings.push(finding(
-    "gpt/direct-mutation-conditional-settlement", CONVERSATION_HANDLER_PATH,
-    `Clean-draft and exact-navigation readback must each consume the shared settlement helper; found ${conversationSettlementCalls}.`,
-  ));
-  if (/setTimeout\s*\(|sleep\s*\(/u.test(`${settlement}\n${handler}\n${conversation}`)) findings.push(finding(
-    "gpt/direct-mutation-fixed-sleep-forbidden", DIRECT_MUTATION_SETTLEMENT_PATH,
-    "Direct semantic settlement must remain condition-driven and must not add a fixed sleep path.",
-  ));
-  inspectMissingTokens({ source: contract, required: [
-    'reconcile_gpt_draft: { childCapabilityId: "reconcile_gpt_draft", contractVersion: 4',
-    'reconcile_gpt_draft.input.v1", requiredTargetKind: "chatgpt", allowedDocumentTransition: "forbidden", profile: "DOM_OBSERVATION", boundedWait: false',
-    'prepare_clean_gpt_chat: { childCapabilityId: "prepare_clean_gpt_chat", contractVersion: 4',
-    'focus_exact_gpt_conversation: { childCapabilityId: "focus_exact_gpt_conversation", contractVersion: 4',
-    'write_exact_gpt_prompt: { childCapabilityId: "write_exact_gpt_prompt", contractVersion: 4',
-    'submit_exact_gpt_turn_once: { childCapabilityId: "submit_exact_gpt_turn_once", contractVersion: 4',
-    "unsettled for 2500ms",
-  ], checkId: "gpt/direct-mutation-settlement-contract-version", filePath: CONTRACT_PATH,
-  findings, finding,
-  message: (required) => `The direct semantic settlement contract is missing ${required}.` });
 };
 
 export const inspectGptContractDenominator = (

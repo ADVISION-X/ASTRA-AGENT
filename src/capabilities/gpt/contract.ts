@@ -42,7 +42,7 @@ export type GptChildBrowserFact = Readonly<{
   evidenceHash: `sha256:${string}`;
 }>;
 
-export interface ChildCapabilityContract {
+interface ChildCapabilityContract {
   readonly childCapabilityId: string;
   readonly contractVersion: 2 | 3 | 4;
   readonly semanticIntent: string;
