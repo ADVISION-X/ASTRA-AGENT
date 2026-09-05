@@ -373,14 +373,14 @@ for (const checked of ["true", "false"] as const) {
 }
 
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V27",
+  lawId: "LAW-GPT-001-V29",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:12", "forbidden:3", "forbidden:4", "forbidden:5", "summary"],
   locator: "acceptance:gpt-exact-target:coherent-ready-subset",
   observedValue: "coherent profile model and numeric reasoning Children prove same-revision DONE or one confirmed mutation",
 });
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V27",
+  lawId: "LAW-GPT-001-V29",
   evidenceMode: "exam.property",
   clauses: ["forbidden:12", "forbidden:18", "forbidden:19", "forbidden:6", "summary"],
   locator: "acceptance:gpt-exact-target:browser-handoff",

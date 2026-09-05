@@ -35,6 +35,11 @@ const executionContext = (
       input.browserCall!, input.intent.productStepId, input.intent.callId,
       input.intent.childCapabilityId, durationMs,
     ),
+    navigateCrossConversationPoll: (canonicalConversationUrl: string, absoluteDeadline: number) =>
+      input.browsers.navigateCrossConversationPoll(
+        input.browserCall!, input.intent.productStepId, input.intent.callId,
+        input.intent.childCapabilityId, canonicalConversationUrl, absoluteDeadline,
+      ),
   } : {}),
 });
 

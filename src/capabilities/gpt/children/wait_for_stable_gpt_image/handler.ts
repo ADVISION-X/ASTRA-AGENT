@@ -39,7 +39,9 @@ export const waitForStableGptImageHandler: GptChildHandler<"wait_for_stable_gpt_
     let probeDelayMs = 250;
     do {
       if (context.signal?.aborted) throw executionFailure("failed", "GPT_IMAGE_WAIT_ABORTED");
-      const observed = await ensureResponseConversation(browser, conversationUrl);
+      const observed = await ensureResponseConversation({
+        browser, canonicalConversationUrl: conversationUrl, context, deadline,
+      });
       const assistantTurnId = assistantTurnForPrompt(observed, expectedPromptHash);
       if (assistantTurnId && observed.generatingRaw === 0) {
         try {

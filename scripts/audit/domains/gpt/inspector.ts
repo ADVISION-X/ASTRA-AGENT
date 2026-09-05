@@ -28,9 +28,12 @@ import {
   inspectGptDirectMutationSettlementContract,
 } from "./gpt-recovery-contract-inspection.js";
 import { inspectGptCurrentPageProofs } from "./gpt-page-proof-inspection.js";
-import { inspectProviderWaitContract } from "./gpt-provider-contract-inspection.js";
+import {
+  inspectGptCrossConversationPollContract,
+  inspectProviderWaitContract,
+} from "./gpt-provider-contract-inspection.js";
 
-const LAW_ID = "LAW-GPT-001-V27";
+const LAW_ID = "LAW-GPT-001-V29";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 15, 18, 22),
   "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 11, 12, 13, 16, 17, 19, 20, 21, 22),
@@ -176,6 +179,7 @@ const ATTACHMENT_HANDLER_PATHS = [
 const ATTACHMENT_CONTRACT_PATH = childFilePath("attach_approved_gpt_files_once", "selectors.ts");
 const PRODUCTION_CHILD_TOOLS_PATH = `${ROOT}/production-child-tools.ts`;
 const PRODUCTION_BROWSER_LIFECYCLE_PATH = `${ROOT}/production-browser-lifecycle.ts`;
+const CROSS_CONVERSATION_CADENCE_PATH = `${ROOT}/provider-wait-cross-conversation-cadence.ts`;
 const PRODUCTION_CONFIRMED_READBACK_FACADE_PATH = `${ROOT}/production-confirmed-readback-facade.ts`;
 
 const finding = (checkId: string, filePath: string, message: string, line?: number): InspectorFinding =>
@@ -518,7 +522,7 @@ const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFind
     ...EXECUTION_PROFILE_HANDLER_PATHS, EXECUTION_PROFILE_CONTRACT_PATH,
     ...ATTACHMENT_HANDLER_PATHS, ATTACHMENT_CONTRACT_PATH,
     PRODUCTION_CHILD_TOOLS_PATH, PRODUCTION_BROWSER_LIFECYCLE_PATH,
-    PRODUCTION_CONFIRMED_READBACK_FACADE_PATH,
+    PRODUCTION_CONFIRMED_READBACK_FACADE_PATH, CROSS_CONVERSATION_CADENCE_PATH,
   ])
     if (!existsSync(resolve(context.sealedRoot, path))) findings.push(finding(
       "gpt/filesystem-required-owner-file", path, `${path} is missing.`));
@@ -559,6 +563,7 @@ const inspectGptTypes = (context: InspectorContext, findings: InspectorFinding[]
 const inspectGptAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
   inspectAtomicSafety(context, findings);
   inspectGptCurrentPageProofs(context, findings);
+  inspectGptCrossConversationPollContract(context, findings, finding);
 };
 const inspectGptDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   inspectImportOwnership(context, findings);

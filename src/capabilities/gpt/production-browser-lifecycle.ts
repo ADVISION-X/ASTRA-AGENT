@@ -22,6 +22,7 @@ import {
   dynamicConfirmedFailureReadbackFacade,
   dynamicConfirmedReadbackFacade,
 } from "./production-confirmed-readback-facade.js";
+import { productionGptCrossConversationPollCadence } from "./provider-wait-cross-conversation-cadence.js";
 
 type GptBrowserLeaseAuthority = Readonly<{
   acquireJobBoundTargetLease(
@@ -317,6 +318,78 @@ export class ProductionGptBrowserLifecycle {
     if (active.browser.pendingMutationCount() > 0 || active.browser.requiresMutationRecovery()) {
       throw executionFailure("failed", "BROWSER_NORMAL_PROVIDER_WAIT_WITH_PENDING_MUTATION");
     }
+    this.emitProviderWaitLog(active, productStepId, callId, childCapabilityId);
+    await this.yieldAndReacquire(
+      active, productStepId, callId, durationMs, "gpt-normal-provider-wait-yield",
+    );
+  }
+
+  public async navigateCrossConversationPoll(
+    active: ProductionGptBrowserCall,
+    productStepId: string,
+    callId: string,
+    childCapabilityId: GptChildCapabilityId,
+    canonicalConversationUrl: string,
+    absoluteDeadline: number,
+  ): Promise<"navigated" | "reobserve" | "deadline"> {
+    if (childCapabilityId !== "wait_for_stable_gpt_text"
+      && childCapabilityId !== "wait_for_stable_gpt_image") {
+      throw executionFailure("failed", "GPT_CROSS_CONVERSATION_POLL_CHILD_INVALID");
+    }
+    if (typeof canonicalConversationUrl !== "string" || canonicalConversationUrl.length === 0
+      || !Number.isFinite(absoluteDeadline)) {
+      throw executionFailure("failed", "GPT_CROSS_CONVERSATION_POLL_WAIT_INVALID");
+    }
+    if (this.execution.abortSignal.aborted) {
+      throw executionFailure("failed", "GPT_RESPONSE_WAIT_ABORTED");
+    }
+    if (active.browser.pendingMutationCount() > 0 || active.browser.requiresMutationRecovery()) {
+      throw executionFailure("failed", "BROWSER_NORMAL_PROVIDER_WAIT_WITH_PENDING_MUTATION");
+    }
+    const remaining = Math.floor(absoluteDeadline - Date.now());
+    if (remaining < 25 || remaining > 3_600_000) return "deadline";
+    const eligibility = productionGptCrossConversationPollCadence.reserve(performance.now());
+    if (eligibility.kind === "reserved") {
+      if (this.execution.abortSignal.aborted) {
+        throw executionFailure("failed", "GPT_RESPONSE_WAIT_ABORTED");
+      }
+      if (Date.now() >= absoluteDeadline) return "deadline";
+      const navigation = (() => {
+        try {
+          return active.browser.navigate({
+            url: canonicalConversationUrl,
+            title: "poll exact GPT conversation",
+          });
+        } finally {
+          productionGptCrossConversationPollCadence.bindDispatch(performance.now());
+        }
+      })();
+      await navigation;
+      return "navigated";
+    }
+    this.emitProviderWaitLog(active, productStepId, callId, childCapabilityId);
+    if (eligibility.durationMs >= remaining) {
+      await this.parkUntilProviderDeadline(
+        active, remaining, "gpt-cross-conversation-poll-wait",
+      );
+      return "deadline";
+    }
+    await this.yieldAndReacquire(
+      active,
+      productStepId,
+      callId,
+      eligibility.durationMs,
+      "gpt-cross-conversation-poll-wait",
+    );
+    return "reobserve";
+  }
+
+  private emitProviderWaitLog(
+    active: ProductionGptBrowserCall,
+    productStepId: string,
+    callId: string,
+    childCapabilityId: GptChildCapabilityId,
+  ): void {
     const callIdentity = `${productStepId}:${callId}:${childCapabilityId}`;
     const emittedAt = performance.now();
     if (active.providerWaitLog?.callIdentity !== callIdentity
@@ -339,9 +412,18 @@ export class ProductionGptBrowserLifecycle {
       }));
       active.providerWaitLog = { callIdentity, emittedAt };
     }
+  }
+
+  private async yieldAndReacquire(
+    active: ProductionGptBrowserCall,
+    productStepId: string,
+    callId: string,
+    durationMs: number,
+    reason: "gpt-normal-provider-wait-yield" | "gpt-cross-conversation-poll-wait",
+  ): Promise<void> {
     const targetRef = active.browser.target.targetRef;
     await active.browser.park({
-      reason: "gpt-normal-provider-wait-yield",
+      reason,
       mode: "normal-provider-wait",
     });
     await this.waitForDelay(durationMs);
@@ -360,6 +442,25 @@ export class ProductionGptBrowserLifecycle {
       throw mismatch;
     }
     active.browser = reacquired;
+  }
+
+  private async parkUntilProviderDeadline(
+    active: ProductionGptBrowserCall,
+    durationMs: number,
+    reason: "gpt-cross-conversation-poll-wait",
+  ): Promise<void> {
+    await active.browser.park({ reason, mode: "normal-provider-wait" });
+    this.forgetParkedBrowser(active);
+    await this.waitForDelay(durationMs);
+  }
+
+  private forgetParkedBrowser(active: ProductionGptBrowserCall): void {
+    for (const [sessionKey, candidate] of this.browsers) {
+      if (candidate !== active) continue;
+      this.browsers.delete(sessionKey);
+      return;
+    }
+    throw executionFailure("failed", "GPT_PARKED_BROWSER_CALL_MISSING");
   }
 
   public async settle(error: unknown | null): Promise<void> {

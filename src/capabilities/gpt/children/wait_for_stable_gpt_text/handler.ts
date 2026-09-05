@@ -51,7 +51,9 @@ export const waitForStableGptTextHandler: GptChildHandler<"wait_for_stable_gpt_t
     let probeDelayMs = 250;
     do {
       if (context.signal?.aborted) throw executionFailure("failed", "GPT_RESPONSE_WAIT_ABORTED");
-      const observed = await ensureResponseConversation(browser, conversationUrl);
+      const observed = await ensureResponseConversation({
+        browser, canonicalConversationUrl: conversationUrl, context, deadline,
+      });
       const assistantTurnId = assistantTurnForPrompt(observed, expectedPromptHash);
       const assistantState = assistantTurnId === null ? undefined
         : observed.assistantTurns.find((turn) => turn.testId === assistantTurnId);

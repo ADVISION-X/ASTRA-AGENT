@@ -1,4 +1,4 @@
-# GrassEye 单生产 Tab、可信 DOM 事实与唯一 Browser FIFO V17 施工图
+# GrassEye 单生产 Tab、可信 DOM 事实与唯一 Browser FIFO V18 施工图
 
 状态：active final-state blueprint
 Owner：`local-browser-session`
@@ -6,7 +6,7 @@ Owner：`local-browser-session`
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "local-browser-auto-pairing-and-exact-chatgpt-claim-v17",
+  "blueprintId": "local-browser-auto-pairing-and-exact-chatgpt-claim-v18",
   "status": "active",
   "owner": "local-browser-session",
   "lawIds": [
@@ -174,7 +174,7 @@ Browser Authority 校验 authority + exact call + typed permit
 
 ### 3.2 唯一 FIFO、Provider wait 与两种 park
 
-Browser 只保留一条最多十个 waiter 的有界严格 FIFO。normal、inspection、recovery 使用相同 acquire 入口，无 priority、抢占、aging、保留槽或 recovery bypass。Provider wait 的 `nextCheckAt` 是 coroutine 瞬时事实，未到时不进 FIFO且不持久化。
+Browser 只保留一条最多十个 waiter 的有界严格 FIFO。normal、inspection、recovery 使用相同 acquire 入口，无 priority、抢占、aging、保留槽或 recovery bypass。Provider wait 的 `nextCheckAt` 是 coroutine 瞬时事实，未到时不进 FIFO且不持久化。只有 GPT Owner 的 `wait_for_stable_gpt_text`/`wait_for_stable_gpt_image` 在等待产物、fresh currentUrl 不等于目标 canonical conversation URL 且即将实际跨 conversation URL 查证结果时，另以 GPT 全进程共享的单调资格保证任意相邻导航至少间隔 30000ms。资格未到的调用必须先 normal park 释放 FIFO，到期重领后 fresh 重读 currentUrl；Browser 只执行同一 park/reacquire 与机械 navigate，不产生轮询时钟、不按 job 排程、不把通用 navigate 限流。同 URL DOM probe、附件、profile、模型、推理、Prompt、submit、checkpoint、fresh root、直接后置和 Runtime/Website 动作不属于该 30000ms 边界。
 
 - normal Provider wait park：只在 exact submit 已 CONFIRMED、pending mutation 为零、当前无待收束 postcondition 且 Target/Document/conversation/turn 恢复锚点完整时允许；
 - recovery park：专用于 unresolved DISPATCHED，必须保留原 Target/Document 与正负 postcondition 判据，并持有唯一 Browser lane 隔离；它不占 Website 业务槽，不阻塞非 Browser 工作；

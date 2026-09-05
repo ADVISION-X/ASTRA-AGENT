@@ -198,6 +198,10 @@ export type GptExecutionContext = Readonly<{
   continuationStore?: GptContinuationStorePort;
   mutationMode?: "normal" | "readback";
   yieldForProviderWait?: (durationMs: number) => Promise<void>;
+  navigateCrossConversationPoll?: (
+    canonicalConversationUrl: string,
+    absoluteDeadline: number,
+  ) => Promise<"navigated" | "reobserve" | "deadline">;
   onProof?: (proof: GptChildCapabilityProof) => Promise<void>;
 }>;
 

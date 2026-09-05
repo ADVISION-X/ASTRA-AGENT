@@ -17,6 +17,8 @@ const TEXT_RESPONSE_PATHS = [
   childFilePath("checkpoint_gpt_text_response", "selectors.ts"),
 ] as const;
 const IMAGE_RESPONSE_HANDLER_PATH = childHandlerPath("wait_for_stable_gpt_image");
+const TEXT_RESPONSE_PAGE_PATH = childFilePath("wait_for_stable_gpt_text", "page-observation.ts");
+const IMAGE_RESPONSE_PAGE_PATH = childFilePath("wait_for_stable_gpt_image", "page-observation.ts");
 const IMAGE_RESPONSE_PATHS = [
   IMAGE_RESPONSE_HANDLER_PATH,
   childFilePath("wait_for_stable_gpt_image", "page-observation.ts"),
@@ -73,6 +75,10 @@ const PAGE_SELECTORS_PATHS = [
 ] as const;
 const PAGE_SELECTORS_PATH = PAGE_SELECTORS_PATHS[0];
 const RESPONSE_PAGE_PATH = childFilePath("wait_for_stable_gpt_text", "page-observation.ts");
+const CONTRACT_PATH = `${ROOT}/contract.ts`;
+const PRODUCTION_ATOMIC_CALL_PATH = `${ROOT}/production-atomic-call.ts`;
+const PRODUCTION_BROWSER_LIFECYCLE_PATH = `${ROOT}/production-browser-lifecycle.ts`;
+const CROSS_CONVERSATION_CADENCE_PATH = `${ROOT}/provider-wait-cross-conversation-cadence.ts`;
 const EXACT_ASSISTANT_PATH = "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts";
 const COHERENT_OBSERVATION_PATH = "src/lib/browser/chrome-extension/dom-coherent-observation.ts";
 const SEMANTIC_TEXT_PATH = "src/lib/browser/chrome-extension/dom-semantic-text.ts";
@@ -146,6 +152,113 @@ const inspectUserTurnHashes = (
       ));
     }
   }
+};
+
+export const inspectGptCrossConversationPollContract = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  finding: FindingFactory,
+): void => {
+  const cadence = sourceText(context, CROSS_CONVERSATION_CADENCE_PATH);
+  const lifecycle = sourceText(context, PRODUCTION_BROWSER_LIFECYCLE_PATH);
+  const contract = sourceText(context, CONTRACT_PATH);
+  const atomicCall = sourceText(context, PRODUCTION_ATOMIC_CALL_PATH);
+  const waitSlices = [
+    sourceText(context, TEXT_RESPONSE_HANDLER_PATH) + sourceText(context, TEXT_RESPONSE_PAGE_PATH),
+    sourceText(context, IMAGE_RESPONSE_HANDLER_PATH) + sourceText(context, IMAGE_RESPONSE_PAGE_PATH),
+  ];
+  for (const required of [
+    "GPT_CROSS_CONVERSATION_POLL_INTERVAL_MS = 30_000",
+    "class GptCrossConversationPollCadence",
+    "private nextEligibleAt = 0",
+    "this.nextEligibleAt = now + GPT_CROSS_CONVERSATION_POLL_INTERVAL_MS",
+    "public bindDispatch(now: number)",
+    "now + GPT_CROSS_CONVERSATION_POLL_INTERVAL_MS",
+    "productionGptCrossConversationPollCadence",
+  ]) if (!cadence.includes(required)) findings.push(finding(
+    "gpt/cross-conversation-poll-global-cadence", CROSS_CONVERSATION_CADENCE_PATH,
+    `The process-wide monotonic cross-conversation poll cadence is missing ${required}.`,
+  ));
+  for (const forbidden of ["new Map", "new Set", "setInterval", "setTimeout"]) {
+    if (cadence.includes(forbidden)) findings.push(finding(
+      "gpt/cross-conversation-poll-no-second-scheduler", CROSS_CONVERSATION_CADENCE_PATH,
+      `The cadence must remain one scalar without a queue or scheduler; found ${forbidden}.`,
+    ));
+  }
+  for (const required of [
+    "navigateCrossConversationPoll(",
+    "productionGptCrossConversationPollCadence.reserve(performance.now())",
+    'childCapabilityId !== "wait_for_stable_gpt_text"',
+    'childCapabilityId !== "wait_for_stable_gpt_image"',
+    "this.execution.abortSignal.aborted",
+    "eligibility.durationMs >= remaining",
+    "return active.browser.navigate(",
+    "productionGptCrossConversationPollCadence.bindDispatch(performance.now())",
+    "await navigation",
+    'return "deadline"',
+    "private async parkUntilProviderDeadline(",
+    "this.forgetParkedBrowser(active)",
+    '"gpt-cross-conversation-poll-wait"',
+    "private async yieldAndReacquire(",
+    "durationMs > 5_000",
+  ]) if (!lifecycle.includes(required)) findings.push(finding(
+    "gpt/cross-conversation-poll-lifecycle", PRODUCTION_BROWSER_LIFECYCLE_PATH,
+      `The existing normal park/reacquire lifecycle is missing ${required}.`,
+    ));
+  const deadlineMethodStart = lifecycle.indexOf("private async parkUntilProviderDeadline(");
+  const deadlineMethodEnd = lifecycle.indexOf("private forgetParkedBrowser(", deadlineMethodStart);
+  const deadlineMethod = deadlineMethodStart >= 0 && deadlineMethodEnd > deadlineMethodStart
+    ? lifecycle.slice(deadlineMethodStart, deadlineMethodEnd) : "";
+  const deadlineOrder = [
+    "await active.browser.park(",
+    "this.forgetParkedBrowser(active)",
+    "await this.waitForDelay(durationMs)",
+  ].map((token) => deadlineMethod.indexOf(token));
+  if (deadlineOrder.some((position) => position < 0)
+    || deadlineOrder.some((position, index) => index > 0 && position <= deadlineOrder[index - 1]!)
+    || deadlineMethod.includes("acquireBrowserLease(")
+    || deadlineMethod.includes("yieldAndReacquire(")) {
+    findings.push(finding(
+      "gpt/cross-conversation-poll-deadline-order", PRODUCTION_BROWSER_LIFECYCLE_PATH,
+      "A Product deadline must normal-park, leave lifecycle ownership, then wait outside the FIFO without reacquire.",
+    ));
+  }
+  const reserveAt = lifecycle.indexOf(
+    "const eligibility = productionGptCrossConversationPollCadence.reserve(performance.now())",
+  );
+  const navigateAt = lifecycle.indexOf("return active.browser.navigate(", reserveAt);
+  const bindAt = lifecycle.indexOf(
+    "productionGptCrossConversationPollCadence.bindDispatch(performance.now())", navigateAt,
+  );
+  const awaitAt = lifecycle.indexOf("await navigation", bindAt);
+  const dispatchHandoff = reserveAt >= 0 && navigateAt > reserveAt && bindAt > navigateAt && awaitAt > bindAt
+    ? lifecycle.slice(reserveAt, awaitAt) : "";
+  if (!dispatchHandoff || dispatchHandoff.includes("await ")) findings.push(finding(
+    "gpt/cross-conversation-poll-dispatch-atomicity", PRODUCTION_BROWSER_LIFECYCLE_PATH,
+    "The cadence reserve, Browser navigate invocation, and dispatch-time extension must share one synchronous stack before await.",
+  ));
+  if (!contract.includes("navigateCrossConversationPoll?:")
+    || !atomicCall.includes("navigateCrossConversationPoll: (canonicalConversationUrl: string")
+    || !atomicCall.includes("input.browsers.navigateCrossConversationPoll(")) {
+    findings.push(finding(
+      "gpt/cross-conversation-poll-context-binding", PRODUCTION_ATOMIC_CALL_PATH,
+      "The wait Child context must bind the one production cross-conversation eligibility gate.",
+    ));
+  }
+  for (const [index, waitSlice] of waitSlices.entries()) for (const required of [
+    "navigateCrossConversationPoll",
+    'GPT_CROSS_CONVERSATION_POLL_GATE_REQUIRED',
+    "input.context.signal?.aborted",
+    "Date.now() >= input.deadline",
+    "requireActiveWait();",
+    'outcome === "deadline"',
+    'outcome === "reobserve"',
+    "input.deadline",
+  ]) if (!waitSlice.includes(required)) findings.push(finding(
+    "gpt/cross-conversation-poll-wait-consumer",
+    index === 0 ? TEXT_RESPONSE_PAGE_PATH : IMAGE_RESPONSE_PAGE_PATH,
+    `Each text/image wait must gate only its actual cross-conversation navigate; missing ${required}.`,
+  ));
 };
 
 export const inspectProviderWaitContract = (

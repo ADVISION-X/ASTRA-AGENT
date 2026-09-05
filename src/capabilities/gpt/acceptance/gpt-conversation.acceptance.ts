@@ -51,6 +51,223 @@ import "./gpt-turn-submission.acceptance.js";
 
 {
   const { execute } = freshHarness();
+  let simulatedNow = 0;
+  let gateCalls = 0;
+  const otherConversationUrl = "https://chatgpt.com/c/other-conversation";
+  const fixture = fakeBrowser((intent, callNumber) => {
+    if (intent.kind === "observe") {
+      return coherentObservationPacket(
+        intent,
+        responseFacts(),
+        callNumber <= 2 ? otherConversationUrl : conversationUrl,
+      );
+    }
+    if (intent.kind === "readExactAssistantTurn") {
+      return exactAssistantTurnReply(intent.assistantTurnId, responseText);
+    }
+    throw new Error(`UNEXPECTED_CROSS_CONVERSATION_TEXT_INTENT:${intent.kind}`);
+  }, { initialUrl: otherConversationUrl, onWait: (durationMs) => { simulatedNow += durationMs; } });
+  const nativeDateNow = Date.now;
+  Date.now = () => simulatedNow;
+  try {
+    const result = await execute("wait_for_stable_gpt_text", fixture.browser, {
+      absoluteDeadline: new Date(40_000).toISOString(), canonicalConversationUrl: conversationUrl,
+      expectedPromptHash: promptHash, turnMarker: marker,
+    }, undefined, {
+      navigateCrossConversationPoll: async (canonicalConversationUrl) => {
+        gateCalls += 1;
+        if (gateCalls === 1) {
+          simulatedNow = 30_000;
+          return "reobserve";
+        }
+        await fixture.browser.navigate({
+          url: canonicalConversationUrl, title: "poll exact GPT conversation",
+        });
+        return "navigated";
+      },
+    });
+    assert.equal(result.status, "success", result.failureCode ?? "cross-conversation wait failed");
+  } finally {
+    Date.now = nativeDateNow;
+  }
+  assert.equal(gateCalls, 2, "reacquire must fresh-observe before competing for the shared eligibility again");
+  assert.equal(fixture.physicalMutations(), 1, "the cross-conversation result poll must navigate exactly once");
+}
+
+{
+  const { execute } = freshHarness();
+  let simulatedNow = 0;
+  let gateCalls = 0;
+  const otherConversationUrl = "https://chatgpt.com/c/other-image-conversation";
+  const original = Buffer.from(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" fill="red"/></svg>',
+  );
+  const mediaHash = hash(original);
+  const fixture = fakeBrowser((intent, callNumber) => {
+    if (intent.kind === "observe") {
+      return coherentObservationPacket(
+        intent, responseFacts(), callNumber === 1 ? otherConversationUrl : conversationUrl,
+      );
+    }
+    throw new Error(`UNEXPECTED_CROSS_CONVERSATION_IMAGE_INTENT:${intent.kind}`);
+  }, { initialUrl: otherConversationUrl, onWait: (durationMs) => { simulatedNow += durationMs; },
+    authenticatedMedia: {
+      authorityTargetHash: `sha256:${"2".repeat(64)}`,
+      authorityDocumentHash: `sha256:${"3".repeat(64)}`,
+      assistantTurnId: "conversation-turn-2", semanticMediaId: "gpt-generated-image-main",
+      bytesBase64: original.toString("base64"), sha256: mediaHash, sizeBytes: original.byteLength,
+      mediaType: "image/svg+xml", width: 16, height: 16,
+    } });
+  const nativeDateNow = Date.now;
+  Date.now = () => simulatedNow;
+  try {
+    const result = await execute("wait_for_stable_gpt_image", fixture.browser, {
+      absoluteDeadline: new Date(1_000).toISOString(), canonicalConversationUrl: conversationUrl,
+      expectedPromptHash: promptHash, turnMarker: marker,
+    }, undefined, {
+      navigateCrossConversationPoll: async (canonicalConversationUrl) => {
+        gateCalls += 1;
+        await fixture.browser.navigate({
+          url: canonicalConversationUrl, title: "poll exact GPT conversation",
+        });
+        return "navigated";
+      },
+    });
+    assert.equal(result.status, "success", result.failureCode ?? "cross-conversation image wait failed");
+  } finally {
+    Date.now = nativeDateNow;
+  }
+  assert.equal(gateCalls, 1);
+  assert.equal(fixture.physicalMutations(), 1);
+  assert.equal(fixture.authenticatedMediaDownloads(), 2);
+}
+
+{
+  const { execute } = freshHarness();
+  let simulatedNow = 0;
+  const otherConversationUrl = "https://chatgpt.com/c/deadline-other-conversation";
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, responseFacts(), otherConversationUrl);
+    throw new Error(`UNEXPECTED_DEADLINE_CROSS_CONVERSATION_INTENT:${intent.kind}`);
+  }, { initialUrl: otherConversationUrl });
+  const nativeDateNow = Date.now;
+  Date.now = () => simulatedNow;
+  try {
+    const result = await execute("wait_for_stable_gpt_text", fixture.browser, {
+      absoluteDeadline: new Date(100).toISOString(), canonicalConversationUrl: conversationUrl,
+      expectedPromptHash: promptHash, turnMarker: marker,
+    }, undefined, {
+      navigateCrossConversationPoll: async () => {
+        simulatedNow = 100;
+        return "reobserve";
+      },
+    });
+    assert.equal(result.status, "failed");
+    assert.equal(result.failureCode, "GPT_RESPONSE_STABILITY_TIMEOUT");
+  } finally {
+    Date.now = nativeDateNow;
+  }
+  assert.equal(fixture.physicalMutations(), 0,
+    "a cross-conversation poll whose immutable deadline expires while parked must not navigate");
+}
+
+{
+  const { execute } = freshHarness();
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      return coherentObservationPacket(
+        intent, responseFacts(), "https://chatgpt.com/c/text-deadline-outcome",
+      );
+    }
+    throw new Error(`UNEXPECTED_TEXT_DEADLINE_OUTCOME_INTENT:${intent.kind}`);
+  });
+  const result = await execute("wait_for_stable_gpt_text", fixture.browser, {
+    absoluteDeadline: new Date(Date.now() + 1_000).toISOString(), canonicalConversationUrl: conversationUrl,
+    expectedPromptHash: promptHash, turnMarker: marker,
+  }, undefined, { navigateCrossConversationPoll: async () => "deadline" });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, "GPT_RESPONSE_STABILITY_TIMEOUT");
+  assert.equal(fixture.physicalMutations(), 0,
+    "the text wait deadline gate outcome must fail without cross-conversation navigation");
+}
+
+{
+  const { execute } = freshHarness();
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      return coherentObservationPacket(
+        intent, responseFacts(), "https://chatgpt.com/c/image-deadline-outcome",
+      );
+    }
+    throw new Error(`UNEXPECTED_IMAGE_DEADLINE_OUTCOME_INTENT:${intent.kind}`);
+  });
+  const result = await execute("wait_for_stable_gpt_image", fixture.browser, {
+    absoluteDeadline: new Date(Date.now() + 1_000).toISOString(), canonicalConversationUrl: conversationUrl,
+    expectedPromptHash: promptHash, turnMarker: marker,
+  }, undefined, { navigateCrossConversationPoll: async () => "deadline" });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, "GPT_IMAGE_STABILITY_TIMEOUT");
+  assert.equal(fixture.physicalMutations(), 0,
+    "the image wait deadline gate outcome must fail without cross-conversation navigation");
+}
+
+{
+  const { execute } = freshHarness();
+  let simulatedNow = 0;
+  const nativeDateNow = Date.now;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      simulatedNow = 100;
+      return coherentObservationPacket(intent, responseFacts(), conversationUrl);
+    }
+    throw new Error(`UNEXPECTED_EXPIRED_TARGET_CONVERSATION_INTENT:${intent.kind}`);
+  });
+  Date.now = () => simulatedNow;
+  try {
+    const result = await execute("wait_for_stable_gpt_text", fixture.browser, {
+      absoluteDeadline: new Date(100).toISOString(), canonicalConversationUrl: conversationUrl,
+      expectedPromptHash: promptHash, turnMarker: marker,
+    });
+    assert.equal(result.status, "failed");
+    assert.equal(result.failureCode, "GPT_RESPONSE_STABILITY_TIMEOUT");
+  } finally {
+    Date.now = nativeDateNow;
+  }
+  assert.equal(fixture.physicalMutations(), 0,
+    "a fresh target-URL observation completed at the immutable deadline must not be accepted");
+}
+
+{
+  const { execute } = freshHarness();
+  const controller = new AbortController();
+  let gateCalls = 0;
+  const otherConversationUrl = "https://chatgpt.com/c/aborted-other-conversation";
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      controller.abort();
+      return coherentObservationPacket(intent, responseFacts(), otherConversationUrl);
+    }
+    throw new Error(`UNEXPECTED_ABORTED_CROSS_CONVERSATION_INTENT:${intent.kind}`);
+  });
+  const result = await execute("wait_for_stable_gpt_text", fixture.browser, {
+    absoluteDeadline: new Date(Date.now() + 1_000).toISOString(), canonicalConversationUrl: conversationUrl,
+    expectedPromptHash: promptHash, turnMarker: marker,
+  }, undefined, {
+    signal: controller.signal,
+    navigateCrossConversationPoll: async () => {
+      gateCalls += 1;
+      return "navigated";
+    },
+  });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, "GPT_RESPONSE_WAIT_ABORTED");
+  assert.equal(gateCalls, 0, "abort during fresh observation must stop before reserving poll eligibility");
+  assert.equal(fixture.physicalMutations(), 0,
+    "abort during fresh observation must stop before cross-conversation navigation");
+}
+
+{
+  const { execute } = freshHarness();
   let cleared = false;
   const fixture = fakeBrowser((intent) => {
     if (intent.kind === "observe") {
