@@ -29,11 +29,11 @@ import { inspectGptCurrentPageProofs } from "./gpt-page-proof-inspection.js";
 
 const LAW_ID = "LAW-GPT-001-V26";
 const MODE_CLAUSES = {
-  "static.filesystem": staticForbiddenClauses(1, 12, 15, 19),
-  "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 16, 17, 18, 19),
-  "static.types": staticForbiddenClauses(3, 4, 14, 16, 17, 18),
-  "static.contract": staticForbiddenClauses(2, 3, 4, 9, 10, 11, 12, 14, 16, 17, 18),
-  "static.dependency": staticForbiddenClauses(0, 1, 2, 5, 15, 16, 17, 18, 19),
+  "static.filesystem": staticForbiddenClauses(1, 15, 18, 22),
+  "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 11, 12, 13, 16, 17, 19, 20, 21, 22),
+  "static.types": staticForbiddenClauses(3, 4, 17, 19, 20, 21),
+  "static.contract": staticForbiddenClauses(2, 3, 4, 9, 10, 11, 12, 13, 14, 15, 17, 19, 20, 21),
+  "static.dependency": staticForbiddenClauses(0, 1, 2, 5, 18, 19, 20, 21, 22),
 } as const;
 const MODE_CHECKS = {
   "static.filesystem": ["inspectGptFilesystem"], "static.ast": ["inspectGptAst"],

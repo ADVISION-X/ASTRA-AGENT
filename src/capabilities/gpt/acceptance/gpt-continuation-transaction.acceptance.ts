@@ -347,7 +347,7 @@ try {
 emitQualityProofObservation({
   lawId: "LAW-GPT-001-V26",
   evidenceMode: "exam.state-machine",
-  clauses: ["forbidden:15", "forbidden:17", "summary"],
+  clauses: ["forbidden:18", "forbidden:20", "summary"],
   locator: "acceptance:gpt-continuation-transaction:state-machine",
   observedValue: "continuation reserve complete acquire advance release and identical readback transitions exercised",
 });

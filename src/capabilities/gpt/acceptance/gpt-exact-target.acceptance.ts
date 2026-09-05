@@ -624,14 +624,14 @@ assert.equal(GPT_PROFILE_SIMPLE_PANEL_SELECTOR,
 emitQualityProofObservation({
   lawId: "LAW-GPT-001-V26",
   evidenceMode: "exam.golden",
-  clauses: ["forbidden:3", "forbidden:4", "forbidden:5", "forbidden:9", "summary"],
+  clauses: ["forbidden:12", "forbidden:3", "forbidden:4", "forbidden:5", "summary"],
   locator: "acceptance:gpt-exact-target:coherent-ready-subset",
   observedValue: "coherent profile model and numeric reasoning Children prove same-revision DONE or one confirmed mutation",
 });
 emitQualityProofObservation({
   lawId: "LAW-GPT-001-V26",
   evidenceMode: "exam.property",
-  clauses: ["forbidden:10", "forbidden:13", "forbidden:15", "forbidden:16", "summary"],
+  clauses: ["forbidden:12", "forbidden:18", "forbidden:19", "forbidden:6", "summary"],
   locator: "acceptance:gpt-exact-target:browser-handoff",
   observedValue: "Browser coherent numeric fields drive one exact reasoning mutation followed by zero-mutation readback",
 });
