@@ -224,18 +224,19 @@ const inspectMechanicalContract = (
 
 export const exactAssistantTurnReadIsAtomic = (source: import("ts-morph").SourceFile): boolean => {
   const text = source.getFullText();
+  const exactFunction = source.getVariableDeclaration("EXACT_ASSISTANT_TURN_FUNCTION")?.getInitializer()?.getText() ?? "";
   const observe = source.getVariableDeclaration("observeExactAssistantTurn")?.getInitializer()?.getText() ?? "";
   const execute = source.getVariableDeclaration("executeExactAssistantTurnRead")?.getInitializer()?.getText() ?? "";
-  const required = ["EXACT_ASSISTANT_TURN_FUNCTION", "document.querySelectorAll(selector)",
+  const required = ["BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE", "document.querySelectorAll(selector)",
     "browserMechanicalFacts(node, false)", "rawDomHtml: eligible ? node.outerHTML",
-    "semanticText: eligible ? semanticText(node)"];
+    "semanticText: eligible ? browserCanonicalSemanticText(node)"];
   const forbidden = ["queryCandidateSet", "inspectNode", "DOM.getOuterHTML", "DOM.describeNode"];
   const exactCounts = [
     (text.match(/Runtime\.callFunctionOn/gu) ?? []).length === 1,
     (observe.match(/mainFrameLoaderId\(runtime, target\.tabId\)/gu) ?? []).length === 2,
     (observe.match(/!== expectedMainFrameLoaderId/gu) ?? []).length === 2,
   ];
-  return required.every((token) => text.includes(token))
+  return required.every((token) => exactFunction.includes(token))
     && forbidden.every((token) => !text.includes(token))
     && exactCounts.every(Boolean)
     && execute.includes("expectedMainFrameLoaderId");
