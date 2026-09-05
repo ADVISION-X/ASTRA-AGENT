@@ -24,7 +24,7 @@ const hashText = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 const profile = [
   "open_gpt_execution_profile", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
-  "open_gpt_execution_profile", "ensure_exact_gpt_reasoning_tier", "close_gpt_execution_profile",
+  "open_gpt_execution_profile", "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile",
 ] as const;
 const attachments = [
   "open_gpt_attachment_control", "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set",
@@ -45,7 +45,7 @@ const continuationImage = [
   "advance_gpt_continuation_lane",
 ] as const;
 
-assert.equal(plugin.pluginVersion, 17);
+assert.equal(plugin.pluginVersion, 18);
 const source = readFileSync("src/plugins/public-knowledge-article-pipeline/index.ts", "utf8");
 assert.doesNotMatch(source, /PRODUCT_FLOW_NOT_IMPLEMENTED:|throw new Error/u);
 assert.match(source, /corpus_research/u);
@@ -72,14 +72,17 @@ assert.deepEqual(proceed.calls.map((call) => call.child), [
   ...initialText, "persist_gpt_continuation", ...continuationText, ...continuationImage,
 ]);
 const reasoningProfileCalls = proceed.calls.filter(
-  (call) => call.child === "ensure_exact_gpt_reasoning_tier",
+  (call) => call.child === "ensure_gpt_reasoning_requirement",
 );
 assert.equal(reasoningProfileCalls.length, 3);
 for (const call of reasoningProfileCalls) {
   assert.equal(call.input.profile.profileRef,
     "public-knowledge-article-pipeline:gpt-5.6-sol-high");
   assert.equal(call.input.profile.modelDisplayName, "GPT-5.6 Sol");
-  assert.equal(call.input.profile.reasoningTier, "high");
+  assert.deepEqual(call.input.profile.reasoningRequirement, {
+    selectionPolicy: "exact",
+    requestedTier: "high",
+  });
 }
 assert.deepEqual([...new Set(proceed.calls.map((call) => call.productStepId))], [
   "corpus_research", "article_synthesis", "article_image_generation",

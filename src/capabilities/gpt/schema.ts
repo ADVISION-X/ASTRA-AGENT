@@ -15,11 +15,21 @@ export const GptReasoningTierSchema = z.enum([
   "high",
   "extra_high",
   "pro_standard",
-  "pro_extended",
+]);
+
+export const GptReasoningRequirementSchema = z.discriminatedUnion("selectionPolicy", [
+  z.object({
+    selectionPolicy: z.literal("exact"),
+    requestedTier: GptReasoningTierSchema,
+  }).strict(),
+  z.object({
+    selectionPolicy: z.literal("exact-or-observed-maximum"),
+    requestedTier: z.literal("pro_standard"),
+  }).strict(),
 ]);
 
 export const GptExecutionProfileSchema = z.object({
-  schemaVersion: z.literal("gpt-execution-profile.v1"),
+  schemaVersion: z.literal("gpt-execution-profile.v2"),
   profileRef: z.string().min(1).max(512),
   profileHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u)
     .transform((value): `sha256:${string}` => `sha256:${value.slice(7)}`),
@@ -28,13 +38,14 @@ export const GptExecutionProfileSchema = z.object({
   accountCapabilityRef: z.string().min(1).max(512),
   modelDisplayName: z.string().min(1).max(120),
   modelFamily: z.string().min(1).max(120),
-  reasoningTier: GptReasoningTierSchema,
+  reasoningRequirement: GptReasoningRequirementSchema,
   executorIdentityRef: z.string().min(1).max(512),
   acceptanceRef: z.string().min(1).max(512),
   acceptanceVersion: z.string().min(1).max(120),
 }).strict();
 
 export type GptReasoningTier = z.infer<typeof GptReasoningTierSchema>;
+export type GptReasoningRequirement = z.infer<typeof GptReasoningRequirementSchema>;
 export type GptExecutionProfile = z.infer<typeof GptExecutionProfileSchema>;
 
 export const gptContinuationUsable = (stored: StoredGptContinuation): boolean =>
@@ -80,20 +91,20 @@ export const buildGptExecutionProfile = (input: Readonly<{
   accountCapabilityRef: string;
   modelDisplayName: string;
   modelFamily: string;
-  reasoningTier: GptReasoningTier;
+  reasoningRequirement: GptReasoningRequirement;
   executorIdentityRef: string;
   acceptanceRef: string;
   acceptanceVersion: string;
 }>): GptExecutionProfile => {
   const profile = {
-    schemaVersion: "gpt-execution-profile.v1" as const,
+    schemaVersion: "gpt-execution-profile.v2" as const,
     profileRef: input.profileRef,
     provider: "openai-chatgpt" as const,
     transport: "gpt-web" as const,
     accountCapabilityRef: input.accountCapabilityRef,
     modelDisplayName: input.modelDisplayName,
     modelFamily: input.modelFamily,
-    reasoningTier: input.reasoningTier,
+    reasoningRequirement: input.reasoningRequirement,
     executorIdentityRef: input.executorIdentityRef,
     acceptanceRef: input.acceptanceRef,
     acceptanceVersion: input.acceptanceVersion,

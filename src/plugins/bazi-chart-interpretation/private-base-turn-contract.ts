@@ -8,7 +8,10 @@ const turn = Object.freeze({
     accountCapabilityRef: "openai-chatgpt:gpt-5.6-sol",
     modelDisplayName: "GPT-5.6 Sol",
     modelFamily: "gpt-5.6",
-    reasoningTier: "pro_standard" as const,
+    reasoningRequirement: Object.freeze({
+      selectionPolicy: "exact-or-observed-maximum" as const,
+      requestedTier: "pro_standard" as const,
+    }),
     executorIdentityRef: "bazi-private-base-turn",
     acceptanceRef: "bazi-private-base:production",
     acceptanceVersion: "v1",
@@ -25,7 +28,7 @@ const turn = Object.freeze({
 
 export const localBaziPrivateBaseTurnBytes = JSON.stringify(turn);
 export const localBaziPrivateBaseTurnHash = sha256(localBaziPrivateBaseTurnBytes);
-const EXPECTED_PRIVATE_BASE_TURN_HASH = "sha256:59ce74f71c819c24ebffde36fbf94b2ec2251e879b96e64f7097a51ebc84fea1";
+const EXPECTED_PRIVATE_BASE_TURN_HASH = "sha256:83da2e426774bd269d40d202b5968609b031b465b6a3346a95190bd264b12e18";
 if (localBaziPrivateBaseTurnHash !== EXPECTED_PRIVATE_BASE_TURN_HASH) {
   throw new Error("BAZI_PRIVATE_BASE_TURN_CONTRACT_DRIFT");
 }

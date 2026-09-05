@@ -93,7 +93,7 @@ export const exerciseSeoConfirmedImageSubmitResume = async (
     const resumeCalls = state.calls.slice(firstAttemptCalls);
     const forbidden = new Set([
   "open_gpt_execution_profile", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
-  "open_gpt_execution_profile", "ensure_exact_gpt_reasoning_tier", "close_gpt_execution_profile", "write_exact_gpt_prompt",
+  "open_gpt_execution_profile", "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile", "write_exact_gpt_prompt",
       "reconcile_gpt_draft", "submit_exact_gpt_turn_once",
     ]);
     assert.equal(resumeCalls.some((call) => forbidden.has(call.child)), false);

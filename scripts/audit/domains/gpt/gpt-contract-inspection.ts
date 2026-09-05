@@ -177,7 +177,7 @@ const inspectProfileContracts = (
   findings, finding, message: (required) => `Reasoning contract is missing ${required}.` });
   const reasoningHandler = sourceFor(context, PROFILE_HANDLER_PATH)?.getFullText() ?? "";
   inspectMissingTokens({ source: reasoningHandler, required: [
-    "ensure_exact_gpt_reasoning_tier", "requireExactInputKeys", "profileFromIntent",
+    "ensure_gpt_reasoning_requirement", "requireExactInputKeys", "profileFromIntent",
     "requireBrowser(context)", "ariaValueMin", "ariaValueMax", "ariaValueNow",
     "postKeypressMatch", "requireConfirmedBrowserFact", "PROFILE_HYDRATION_TIMEOUT_MS",
     "PROFILE_TOPOLOGY_QUERIES", "profileFullyAbsent", "profileOpenReady", "profileOpenable",

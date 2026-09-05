@@ -7,6 +7,8 @@ import { gptExecutionFailure, type GptFailureProofFacts } from "./execution-faul
 import { executionFailure } from "../../lib/execution-failure.js";
 import type { ExactGptCallFacts } from "./product-api.js";
 import type { GptEvidenceStorePort } from "./production-ports.js";
+import type { GptReasoningRequirementResult } from "./child-types.js";
+import { reasoningTierUiValue } from "./web/contracts/execution-profile.contract.js";
 
 type GptHash = `sha256:${string}`;
 
@@ -207,6 +209,87 @@ const evidenceState = (
   };
 };
 
+const safeIntegerOrNull = (value: unknown): value is number | null =>
+  value === null || Number.isSafeInteger(value);
+
+const reasoningRequirementResult = (input: Readonly<{
+  payload: Readonly<Record<string, unknown>>;
+  intent: GptChildCapabilityIntent;
+  state: EvidenceState;
+}>): GptReasoningRequirementResult | null => {
+  const value = input.payload.reasoning_requirement_result;
+  if (input.intent.childCapabilityId !== "ensure_gpt_reasoning_requirement") {
+    if (value !== null) invalid();
+    return null;
+  }
+  const result = record(value);
+  const observedScale = record(result?.observedScale);
+  if (!result || !observedScale
+    || !exactKeys(result, [
+      "requestedTier", "requestedValue", "selectionPolicy", "observedScale",
+      "resolvedTier", "resolvedValue", "degraded", "currentValue",
+      "mutationOutcome", "browserOutcome", "gptPostcondition",
+    ])
+    || !exactKeys(observedScale, ["min", "max", "currentBefore"])) invalid();
+  const requestedTier = result.requestedTier;
+  const requestedValue = result.requestedValue;
+  const selectionPolicy = result.selectionPolicy;
+  const resolvedTier = result.resolvedTier;
+  const resolvedValue = result.resolvedValue;
+  const degraded = result.degraded;
+  const browserOutcome = result.browserOutcome;
+  const gptPostcondition = result.gptPostcondition;
+  if (typeof requestedTier !== "string" || !(requestedTier in reasoningTierUiValue)
+    || requestedValue !== reasoningTierUiValue[requestedTier as keyof typeof reasoningTierUiValue]
+    || (selectionPolicy !== "exact" && selectionPolicy !== "exact-or-observed-maximum")
+    || (selectionPolicy === "exact-or-observed-maximum" && requestedTier !== "pro_standard")
+    || !(resolvedTier === null
+      || (typeof resolvedTier === "string" && resolvedTier in reasoningTierUiValue))
+    || !safeIntegerOrNull(resolvedValue)
+    || typeof degraded !== "boolean"
+    || !safeIntegerOrNull(observedScale.min)
+    || !safeIntegerOrNull(observedScale.max)
+    || !safeIntegerOrNull(observedScale.currentBefore)
+    || !safeIntegerOrNull(result.currentValue)
+    || result.mutationOutcome !== input.state.mutation
+    || gptPostcondition !== input.state.postcondition
+    || !((browserOutcome === null && result.mutationOutcome === "no")
+      || browserOutcomeMatchesMutation(browserOutcome, result.mutationOutcome, input.state.mutation))) invalid();
+  if ((resolvedTier === null) !== (resolvedValue === null)) invalid();
+  if (selectionPolicy === "exact" && resolvedTier !== null
+    && (resolvedTier !== requestedTier || resolvedValue !== requestedValue || degraded)) invalid();
+  if (degraded && !(selectionPolicy === "exact-or-observed-maximum"
+    && requestedTier === "pro_standard" && observedScale.min === 0 && observedScale.max === 2
+    && resolvedTier === "high" && resolvedValue === 2)) invalid();
+  if (selectionPolicy === "exact-or-observed-maximum" && resolvedTier !== null) {
+    const validAdaptive = observedScale.min === 0 && (
+      (observedScale.max === 2 && resolvedTier === "high" && resolvedValue === 2 && degraded)
+      || (observedScale.max === 4 && resolvedTier === "pro_standard"
+        && resolvedValue === 4 && !degraded)
+    );
+    if (!validAdaptive) invalid();
+  }
+  if (input.state.resultStatus === "success" && (resolvedTier === null
+    || result.currentValue !== resolvedValue || gptPostcondition !== "passed")) invalid();
+  return Object.freeze({
+    requestedTier: requestedTier as GptReasoningRequirementResult["requestedTier"],
+    requestedValue: requestedValue as number,
+    selectionPolicy: selectionPolicy as GptReasoningRequirementResult["selectionPolicy"],
+    observedScale: Object.freeze({
+      min: observedScale.min as number | null,
+      max: observedScale.max as number | null,
+      currentBefore: observedScale.currentBefore as number | null,
+    }),
+    resolvedTier: resolvedTier as GptReasoningRequirementResult["resolvedTier"],
+    resolvedValue: resolvedValue as number | null,
+    degraded,
+    currentValue: result.currentValue as number | null,
+    mutationOutcome: result.mutationOutcome as GptReasoningRequirementResult["mutationOutcome"],
+    browserOutcome: browserOutcome as GptReasoningRequirementResult["browserOutcome"],
+    gptPostcondition: gptPostcondition as GptReasoningRequirementResult["gptPostcondition"],
+  });
+};
+
 const assertIdentity = (input: Readonly<{
   intent: GptChildCapabilityIntent;
   exactCallIdentityHash: `sha256:${string}`;
@@ -247,9 +330,11 @@ export const readExactGptEvidenceFact = async (input: Readonly<{
   const evidenceHash = payload?.source_evidence_hash;
   if (!payload) return invalid();
   const verifiedPayload = payload as Readonly<Record<string, unknown>>;
-  if (typeof evidenceHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(evidenceHash)) invalid();
+  if (verifiedPayload.schema_version !== "agent-gpt-evidence-safe.v2"
+    || typeof evidenceHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(evidenceHash)) invalid();
   const terminalKey = assertIdentity({ ...input, stored, payload: verifiedPayload, artifactRefs });
   const state = evidenceState(verifiedPayload, terminalKey);
+  const reasoningResult = reasoningRequirementResult({ payload: verifiedPayload, intent: input.intent, state });
   const cause = failureCause(verifiedPayload.failure_cause);
   if (state.postcondition === "failed") {
     const proofFacts = failureProofFacts({
@@ -269,6 +354,7 @@ export const readExactGptEvidenceFact = async (input: Readonly<{
         browserOutcome: browserFact.browserOutcome,
       }) : null,
       proofFacts,
+      reasoningRequirementResult: reasoningResult,
       ...(cause ? { cause } : {}),
     });
   }

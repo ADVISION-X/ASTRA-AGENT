@@ -21,7 +21,7 @@ const safeProjection = (
   result: GptChildCapabilityResult,
   exactCallIdentityHash: `sha256:${string}`,
 ): Readonly<Record<string, unknown>> => Object.freeze({
-  schema_version: "agent-gpt-evidence-safe.v1",
+  schema_version: "agent-gpt-evidence-safe.v2",
   exact_call_identity_hash: exactCallIdentityHash,
   child_capability_id: result.proof.childCapabilityId,
   plugin_version: result.proof.pluginVersion,
@@ -31,6 +31,7 @@ const safeProjection = (
   committed_mutation: result.proof.committedMutation,
   postcondition_result: result.proof.postconditionResult,
   result_status: result.status,
+  reasoning_requirement_result: result.reasoningRequirementResult,
   failure_code: result.failureCode,
   failure_cause: result.failureCause,
   failure_proof: result.status === "failed" ? Object.freeze({

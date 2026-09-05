@@ -10,7 +10,6 @@ export const reasoningTierUiLabel = Object.freeze({
   high: "高",
   extra_high: "极高",
   pro_standard: "Pro",
-  pro_extended: "Pro",
 });
 
 export const reasoningTierUiValue = Object.freeze({
@@ -19,5 +18,4 @@ export const reasoningTierUiValue = Object.freeze({
   high: 2,
   extra_high: 3,
   pro_standard: 4,
-  pro_extended: 4,
 });

@@ -2,7 +2,7 @@ import type { ProductPlugin } from "../../mediator/product-plugin-contract.js";
 import { executeOwnedFlow } from "./flow.js";
 
 export const baziChartInterpretationPlugin: ProductPlugin = {
-  pluginId: "bazi-chart-interpretation", pluginVersion: 8, checkpointSchemaVersion: 2,
+  pluginId: "bazi-chart-interpretation", pluginVersion: 9, checkpointSchemaVersion: 2,
   accepts: [
     { productId: "bazi_chart_interpretation", actionId: "produce" },
     { productId: "bazi_chart_interpretation", actionId: "accuracy_challenge" },

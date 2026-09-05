@@ -8,7 +8,10 @@ export const MODEL_PROFILE = buildGptExecutionProfile({
   accountCapabilityRef: "openai-chatgpt:gpt-5.6-sol",
   modelDisplayName: "GPT-5.6 Sol",
   modelFamily: "gpt-5.6",
-  reasoningTier: "pro_standard",
+  reasoningRequirement: {
+    selectionPolicy: "exact-or-observed-maximum",
+    requestedTier: "pro_standard",
+  },
   executorIdentityRef: PLUGIN_ID,
   acceptanceRef: `${PLUGIN_ID}:production`,
   acceptanceVersion: "v1",

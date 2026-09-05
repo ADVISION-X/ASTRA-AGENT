@@ -38,7 +38,10 @@ const profile = buildGptExecutionProfile({
   accountCapabilityRef: "acceptance:account-capability",
   modelDisplayName: "GPT-5.6 Sol",
   modelFamily: "gpt-5.6",
-  reasoningTier: "pro_standard",
+  reasoningRequirement: {
+    selectionPolicy: "exact-or-observed-maximum",
+    requestedTier: "pro_standard",
+  },
   executorIdentityRef: "acceptance:executor",
   acceptanceRef: "acceptance:gpt-exact-target",
   acceptanceVersion: "v1",
@@ -434,7 +437,7 @@ const reasoningFixture = fakeBrowser((intent) => {
   throw new Error(`UNEXPECTED_REASONING_INTENT:${intent.kind}`);
 });
 const selectedReasoning = await execute(
-  "ensure_exact_gpt_reasoning_tier", reasoningFixture.browser, { profile },
+  "ensure_gpt_reasoning_requirement", reasoningFixture.browser, { profile },
 );
 assert.equal(selectedReasoning.status, "success", selectedReasoning.failureCode ?? "reasoning selection failed");
 assert.equal(selectedReasoning.value?.previousValue, 1);
@@ -443,14 +446,14 @@ assert.equal(selectedReasoning.proof.committedMutation, "confirmed");
 assert.equal(reasoningFixture.physicalMutations(), 1);
 
 const reasoningReadback = await execute(
-  "ensure_exact_gpt_reasoning_tier", reasoningFixture.browser, { profile }, "readback",
+  "ensure_gpt_reasoning_requirement", reasoningFixture.browser, { profile }, "readback",
 );
 assert.equal(reasoningReadback.status, "success", reasoningReadback.failureCode ?? "reasoning readback failed");
 assert.equal(reasoningReadback.value?.state, "already-selected");
 assert.equal(reasoningFixture.physicalMutations(), 1, "reasoning readback must not mutate again");
 
 assert.deepEqual(reasoningTierUiValue, {
-  fast: 0, medium: 1, high: 2, extra_high: 3, pro_standard: 4, pro_extended: 4,
+  fast: 0, medium: 1, high: 2, extra_high: 3, pro_standard: 4,
 });
 assert.equal(reasoningTierUiLabel.fast, "极速");
 assert.equal(GPT_PROFILE_REASONING_CONTROL_SELECTOR, "[role='menuitem'][aria-label='能力']");
@@ -461,14 +464,14 @@ assert.equal(GPT_PROFILE_SIMPLE_PANEL_SELECTOR,
   "[data-testid='composer-model-picker-slider-simple-view'][data-active='true']:not([inert])");
 
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V23",
+  lawId: "LAW-GPT-001-V24",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:3", "forbidden:4", "forbidden:5", "forbidden:9", "summary"],
   locator: "acceptance:gpt-exact-target:coherent-ready-subset",
   observedValue: "coherent profile model and numeric reasoning Children prove same-revision DONE or one confirmed mutation",
 });
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V23",
+  lawId: "LAW-GPT-001-V24",
   evidenceMode: "exam.property",
   clauses: ["forbidden:10", "forbidden:13", "forbidden:15", "forbidden:16", "summary"],
   locator: "acceptance:gpt-exact-target:browser-handoff",

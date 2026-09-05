@@ -1,4 +1,8 @@
-import type { GptExecutionProfile } from "./schema.js";
+import type {
+  GptExecutionProfile,
+  GptReasoningRequirement,
+  GptReasoningTier,
+} from "./schema.js";
 import type { GptContinuationLane } from "./session/gpt-session-controller.js";
 import type {
   GptProviderContinuation,
@@ -6,6 +10,24 @@ import type {
 } from "./session/gpt-continuation-store-port.js";
 
 export type GptHash = `sha256:${string}`;
+
+export type GptReasoningRequirementResult = Readonly<{
+  requestedTier: GptReasoningTier;
+  requestedValue: number;
+  selectionPolicy: GptReasoningRequirement["selectionPolicy"];
+  observedScale: Readonly<{
+    min: number | null;
+    max: number | null;
+    currentBefore: number | null;
+  }>;
+  resolvedTier: GptReasoningTier | null;
+  resolvedValue: number | null;
+  degraded: boolean;
+  currentValue: number | null;
+  mutationOutcome: "no" | "dispatched" | "confirmed";
+  browserOutcome: "DISPATCHED" | "CONFIRMED" | "REJECTED" | null;
+  gptPostcondition: "passed" | "failed" | "pending";
+}>;
 
 export type GptApprovedFileInput = Readonly<{
   artifactRef: string;
@@ -158,7 +180,7 @@ export interface GptChildInputMap {
   readonly open_gpt_execution_profile: Readonly<{ profile: GptExecutionProfile }>;
   readonly open_gpt_model_selector_v2: Readonly<{ profile: GptExecutionProfile }>;
   readonly select_exact_gpt_model_v2: Readonly<{ profile: GptExecutionProfile }>;
-  readonly ensure_exact_gpt_reasoning_tier: Readonly<{ profile: GptExecutionProfile }>;
+  readonly ensure_gpt_reasoning_requirement: Readonly<{ profile: GptExecutionProfile }>;
   readonly close_gpt_execution_profile: Readonly<{ profile: GptExecutionProfile }>;
   readonly open_gpt_attachment_control: Readonly<Record<string, never>>;
   readonly attach_approved_gpt_files_once: Readonly<{ files: readonly GptApprovedFileInput[] }>;
@@ -274,11 +296,7 @@ export interface GptChildOutputMap {
     selectionVersion: "gpt-model-selection.v2";
     state: "exact-model-selected";
   }>;
-  readonly ensure_exact_gpt_reasoning_tier: Readonly<{
-    targetLabel: string;
-    targetValue: number;
-    previousValue?: number;
-    currentValue: number;
+  readonly ensure_gpt_reasoning_requirement: GptReasoningRequirementResult & Readonly<{
     state: "already-selected" | "selected";
   }>;
   readonly close_gpt_execution_profile: Readonly<{ state: "profile-popup-closed" }>;

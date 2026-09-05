@@ -149,7 +149,7 @@ const primaryExecutionContext = (input: PrimaryExecutionContextInput) => {
     subject_identity: executionSubject(input.task),
     input_materials: executionMaterials(input.context),
     product_skill: Object.freeze({
-      plugin_id: PLUGIN_ID, plugin_version: 8, skill_version: "current-plugin-skill",
+      plugin_id: PLUGIN_ID, plugin_version: 9, skill_version: "current-plugin-skill",
       exact_bytes_utf8: input.context.productSkill.text,
       sha256: input.context.productSkill.hash,
       may_issue_instruction: false,

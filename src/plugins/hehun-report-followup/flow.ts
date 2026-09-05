@@ -37,7 +37,10 @@ const MODEL_PROFILE = buildGptExecutionProfile({
   accountCapabilityRef: "openai-chatgpt:gpt-5.6-sol",
   modelDisplayName: "GPT-5.6 Sol",
   modelFamily: "gpt-5.6",
-  reasoningTier: "pro_standard",
+  reasoningRequirement: {
+    selectionPolicy: "exact-or-observed-maximum",
+    requestedTier: "pro_standard",
+  },
   executorIdentityRef: PLUGIN_ID,
   acceptanceRef: `${PLUGIN_ID}:production`,
   acceptanceVersion: "v1",
@@ -155,7 +158,7 @@ const applyProfile = async (
   const selector = { productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v2", actionOrdinal: ordinals[1], input: { profile: MODEL_PROFILE } } as const;
   const model = { productStepId: stepId, callId: "model-select", child: "select_exact_gpt_model_v2", actionOrdinal: ordinals[2], input: { profile: MODEL_PROFILE } } as const;
   const reopen = { productStepId: stepId, callId: "profile-open-after-model", child: "open_gpt_execution_profile", actionOrdinal: ordinals[3], input: { profile: MODEL_PROFILE } } as const;
-  const reasoning = { productStepId: stepId, callId: "reasoning-select", child: "ensure_exact_gpt_reasoning_tier", actionOrdinal: ordinals[4], input: { profile: MODEL_PROFILE } } as const;
+  const reasoning = { productStepId: stepId, callId: "reasoning-select", child: "ensure_gpt_reasoning_requirement", actionOrdinal: ordinals[4], input: { profile: MODEL_PROFILE } } as const;
   const close = { productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[5], input: { profile: MODEL_PROFILE } } as const;
   const apply = recoverOnly ? flow.requireEvidence : flow.execute;
   await apply(open);

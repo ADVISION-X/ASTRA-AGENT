@@ -2,7 +2,7 @@ import type { ProductPlugin } from "../../mediator/product-plugin-contract.js";
 import { executeOwnedFlow } from "./flow.js";
 
 export const namingFromExistingBaziReportPlugin: ProductPlugin = {
-  pluginId: "naming-from-existing-bazi-report", pluginVersion: 7, checkpointSchemaVersion: 2,
+  pluginId: "naming-from-existing-bazi-report", pluginVersion: 8, checkpointSchemaVersion: 2,
   accepts: [
     { productId: "naming_from_existing_bazi_report", actionId: "produce" },
     { productId: "naming_from_existing_bazi_report", actionId: "accuracy_challenge" },

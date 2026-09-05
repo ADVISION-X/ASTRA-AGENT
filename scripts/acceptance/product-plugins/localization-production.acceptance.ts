@@ -7,7 +7,7 @@ const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "local
 assert(plugin);
 const sequence = [
   "prepare_clean_gpt_chat", "open_gpt_execution_profile", "open_gpt_model_selector_v2",
-  "select_exact_gpt_model_v2", "open_gpt_execution_profile", "ensure_exact_gpt_reasoning_tier",
+  "select_exact_gpt_model_v2", "open_gpt_execution_profile", "ensure_gpt_reasoning_requirement",
   "close_gpt_execution_profile",
   "open_gpt_attachment_control", "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set",
   "write_exact_gpt_prompt", "reconcile_gpt_draft", "submit_exact_gpt_turn_once",

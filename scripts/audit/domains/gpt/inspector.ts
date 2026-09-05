@@ -26,7 +26,7 @@ import {
 } from "./gpt-contract-inspection.js";
 import { inspectGptCurrentPageProofs } from "./gpt-page-proof-inspection.js";
 
-const LAW_ID = "LAW-GPT-001-V23";
+const LAW_ID = "LAW-GPT-001-V24";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 12, 15, 19),
   "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 16, 17, 18, 19),

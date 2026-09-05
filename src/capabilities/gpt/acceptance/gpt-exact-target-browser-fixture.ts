@@ -74,7 +74,7 @@ export const EXPECTED_GPT_CHILD_IDS = Object.freeze([
   "attach_approved_gpt_files_once", "checkpoint_gpt_generated_image",
   "complete_exact_gpt_continuation_reservation_once",
   "checkpoint_gpt_text_response", "close_gpt_execution_profile",
-  "ensure_exact_gpt_reasoning_tier",
+  "ensure_gpt_reasoning_requirement",
   "focus_exact_gpt_conversation", "fork_exact_gpt_conversation_at_checkpoint", "open_gpt_attachment_control",
   "open_gpt_checkpoint_actions_menu",
   "open_gpt_execution_profile", "open_gpt_model_selector_v2",

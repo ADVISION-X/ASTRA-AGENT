@@ -14,6 +14,12 @@ export {
   gptContinuationUsable,
 } from "./schema.js";
 export type {
+  GptExecutionProfile,
+  GptReasoningRequirement,
+  GptReasoningTier,
+} from "./schema.js";
+export type { GptReasoningRequirementResult } from "./child-types.js";
+export type {
   ExactGptCallFacts,
   ExactGptContinuationReadback,
   ProductGptAnyCallInput,

@@ -4,6 +4,7 @@ import type {
   MutationOutcome,
 } from "../../lib/browser/browser-authority-api.js";
 import type { GptChildBrowserFact } from "./contract.js";
+import type { GptReasoningRequirementResult } from "./child-types.js";
 
 export type GptFailureProofFacts = Readonly<{
   decision: "DONE" | "ACT" | "WAIT" | "FAIL_CLOSED";
@@ -28,6 +29,7 @@ class GptExecutionFailure extends TypedExecutionFailure {
     }> | null = null,
     public readonly browserEffect: BrowserEffectFailureFacts | null = null,
     public readonly proofFacts: GptFailureProofFacts | null = null,
+    public readonly reasoningRequirementResult: GptReasoningRequirementResult | null = null,
     cause?: unknown,
   ) {
     super("failed", code, cause, Object.freeze({ mutationOutcome, evidence, browserEffect, proofFacts }));
@@ -52,6 +54,7 @@ export const gptExecutionFailure = (
     evidence?: Readonly<{ evidenceRef: string; evidenceHash: `sha256:${string}` }> | null;
     browserEffect?: BrowserEffectFailureFacts | null;
     proofFacts?: GptFailureProofFacts | null;
+    reasoningRequirementResult?: GptReasoningRequirementResult | null;
     cause?: unknown;
   }> = {},
 ): GptExecutionFailure => new GptExecutionFailure(
@@ -60,5 +63,6 @@ export const gptExecutionFailure = (
   input.evidence,
   input.browserEffect,
   input.proofFacts,
+  input.reasoningRequirementResult,
   input.cause,
 );

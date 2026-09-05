@@ -18,8 +18,10 @@ import {
   type GptChildCapabilityProof,
   type GptChildCapabilityResult,
   type GptChildBrowserFact,
+  type GptChildOutputMap,
   type GptExecutionContext,
   type GptFailureClassification,
+  type GptReasoningRequirementResult,
 } from "./contract.js";
 import { sessionChildHandlers } from "./session/session-children.js";
 import type { GptChildHandler, GptChildObservation } from "./web/child-handler.js";
@@ -222,6 +224,27 @@ const assertObservationIsAtomic = (
   }
 };
 
+const successfulReasoningRequirementResult = (
+  childCapabilityId: GptChildCapabilityId,
+  observation: GptChildObservation,
+): GptReasoningRequirementResult | null => {
+  if (childCapabilityId !== "ensure_gpt_reasoning_requirement") return null;
+  const value = observation.value as GptChildOutputMap["ensure_gpt_reasoning_requirement"];
+  return Object.freeze({
+    requestedTier: value.requestedTier,
+    requestedValue: value.requestedValue,
+    selectionPolicy: value.selectionPolicy,
+    observedScale: Object.freeze({ ...value.observedScale }),
+    resolvedTier: value.resolvedTier,
+    resolvedValue: value.resolvedValue,
+    degraded: value.degraded,
+    currentValue: value.currentValue,
+    mutationOutcome: value.mutationOutcome,
+    browserOutcome: value.browserOutcome,
+    gptPostcondition: value.gptPostcondition,
+  });
+};
+
 const successfulExecution = async <K extends GptChildCapabilityId>(input: Readonly<{
   intent: GptChildCapabilityIntent<K>;
   context: GptExecutionContext;
@@ -240,6 +263,10 @@ const successfulExecution = async <K extends GptChildCapabilityId>(input: Readon
   return Object.freeze({
     status: "success", value: input.observation.value, proof, failureCode: null, failureCause: null,
     failureBrowserEffect: null,
+    reasoningRequirementResult: successfulReasoningRequirementResult(
+      input.intent.childCapabilityId,
+      input.observation,
+    ),
   }) as GptChildCapabilityResult<K>;
 };
 
@@ -250,7 +277,24 @@ const failureObservation = <K extends GptChildCapabilityId>(input: Readonly<{
   nativeFailureCode: string | null;
 }>): ProofObservation | undefined => {
   if (input.observation) return input.observation;
-  if (input.gptProof) return input.gptProof;
+  if (input.gptProof) {
+    const browserFact = input.gptProof.browserFact ?? input.walBrowserFact;
+    return Object.freeze({
+      ...input.gptProof,
+      factResultIds: Object.freeze([
+        ...input.gptProof.factResultIds,
+        ...(browserFact && !input.gptProof.factResultIds.includes(browserFact.evidenceRef)
+          ? [browserFact.evidenceRef] : []),
+      ]),
+      authorityRefHashes: Object.freeze([
+        ...input.gptProof.authorityRefHashes,
+        ...(browserFact && !input.gptProof.authorityRefHashes.includes(browserFact.evidenceHash)
+          ? [browserFact.evidenceHash] : []),
+      ]),
+      mutationOutcome: browserFact?.mutationOutcome ?? input.gptProof.mutationOutcome,
+      browserFact,
+    });
+  }
   if (!input.walBrowserFact) return undefined;
   return Object.freeze({
     decision: "FAIL_CLOSED" as const,
@@ -354,6 +398,7 @@ const failedExecution = async <K extends GptChildCapabilityId>(input: Readonly<{
     status: failure.status, value: null, proof, failureCode: failure.code,
     failureCause: nativeCause,
     failureBrowserEffect: browserEffect,
+    reasoningRequirementResult: gpt?.reasoningRequirementResult ?? null,
   }) as GptChildCapabilityResult<K>;
 };
 

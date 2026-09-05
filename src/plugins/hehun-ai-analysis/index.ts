@@ -2,7 +2,7 @@ import type { ProductPlugin } from "../../mediator/product-plugin-contract.js";
 import { executeOwnedFlow } from "./flow.js";
 
 export const hehunAiAnalysisPlugin: ProductPlugin = {
-  pluginId: "hehun-ai-analysis", pluginVersion: 7, checkpointSchemaVersion: 2,
+  pluginId: "hehun-ai-analysis", pluginVersion: 8, checkpointSchemaVersion: 2,
   accepts: [
     { productId: "hehun_ai_analysis", actionId: "produce" },
     { productId: "hehun_ai_analysis", actionId: "accuracy_challenge" },

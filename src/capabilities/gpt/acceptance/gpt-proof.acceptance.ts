@@ -12,7 +12,10 @@ const profile = buildGptExecutionProfile({
   accountCapabilityRef: "acceptance:account-capability",
   modelDisplayName: "GPT-5.6 Sol",
   modelFamily: "gpt-5.6",
-  reasoningTier: "pro_standard",
+  reasoningRequirement: {
+    selectionPolicy: "exact-or-observed-maximum",
+    requestedTier: "pro_standard",
+  },
   executorIdentityRef: "acceptance:executor",
   acceptanceRef: "acceptance:gpt-proof",
   acceptanceVersion: "v1",
