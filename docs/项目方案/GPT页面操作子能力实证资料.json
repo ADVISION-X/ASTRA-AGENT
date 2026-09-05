@@ -1,0 +1,5047 @@
+{
+  "schemaVersion": "gpt-page-operation-evidence.v1",
+  "generatedAt": "2026-09-05T05:46:29.297Z",
+  "repositoryRoot": "/Users/nexgen/Documents/AGENT",
+  "purpose": "Current-only offline engineering evidence for GPT children that operate a page",
+  "runtimeAuthority": "GPT Child owns semantic intent; Browser Authority owns physical target/document/action/WAL; Product owns flow",
+  "productionRuntimeConsumer": false,
+  "claimsQualityVerdict": false,
+  "captureStatus": "NOT_CAPTURED",
+  "productionValue": {
+    "offlineIterationReady": false,
+    "supports": [
+      "contract inventory",
+      "source-impact analysis",
+      "fixture design",
+      "offline implementation and deterministic regression after complete capture"
+    ],
+    "doesNotReplace": [
+      "fresh real-Chrome proof",
+      "native quality verdict",
+      "READY",
+      "RELEASE",
+      "Website admission or storage"
+    ]
+  },
+  "denominator": {
+    "rule": "A child is in scope when it reads, navigates, clicks, types, uploads, waits on, checkpoints, or obtains media from a page. DOM terminology does not define the denominator.",
+    "contractChildren": 27,
+    "pageOperationChildren": 21,
+    "nonPageChildren": 6,
+    "pageOperationChildIds": [
+      "attach_approved_gpt_files_once",
+      "checkpoint_gpt_generated_image",
+      "checkpoint_gpt_text_response",
+      "close_gpt_execution_profile",
+      "ensure_gpt_reasoning_requirement",
+      "focus_exact_gpt_conversation",
+      "fork_exact_gpt_conversation_at_checkpoint",
+      "open_gpt_attachment_control",
+      "open_gpt_checkpoint_actions_menu",
+      "open_gpt_execution_profile",
+      "open_gpt_model_selector_v2",
+      "prepare_clean_gpt_chat",
+      "reconcile_gpt_attachment_set",
+      "reconcile_gpt_draft",
+      "reconcile_gpt_turn_submission",
+      "select_exact_gpt_model_v2",
+      "submit_exact_gpt_turn_once",
+      "verify_gpt_conversation_identity",
+      "wait_for_stable_gpt_image",
+      "wait_for_stable_gpt_text",
+      "write_exact_gpt_prompt"
+    ],
+    "nonPageChildIds": [
+      "acquire_gpt_continuation_lane",
+      "advance_gpt_continuation_lane",
+      "complete_exact_gpt_continuation_reservation_once",
+      "persist_gpt_continuation",
+      "release_gpt_continuation_lane",
+      "reserve_exact_gpt_continuation_once"
+    ]
+  },
+  "productConsumers": [
+    "bazi-ai-full-analysis",
+    "bazi-chart-interpretation",
+    "bazi-report-followup",
+    "hehun-ai-analysis",
+    "hehun-report-followup",
+    "localization-production",
+    "naming-bazi-analysis-and-naming",
+    "naming-from-existing-bazi-report",
+    "payment-screenshot-observation",
+    "public-knowledge-article-pipeline",
+    "qimen-professional-answer",
+    "qimen-report-followup"
+  ],
+  "authorityBinding": {
+    "bindingModel": "content-addressed-v1",
+    "matrixHash": "sha256:37d7615d880e63fde3e3449c5c53f662875c61b16a7fa9f74153fe701bd205db",
+    "fileHashes": {
+      ".agents/skills/agent-flow-boundary-gatekeeper/SKILL.md": "sha256:d8a5299104b5138becb090906af7acdda48955989e411a0473b861894cc25b1a",
+      ".github/instructions/agent-rules/功能法案.md": "sha256:5b74c58626b83cd684c68ae88a57a39d9d5ed480b329551369673e45c567d605",
+      ".github/instructions/agent-rules/基础法案.md": "sha256:f1487a8c50504f6d5db5bb05ec18409499df617ab46d5851fd0c1def589aa4d8",
+      "AGENTS.md": "sha256:861569b40c535f2180511885df05d53ec893e4e746475c16e182a395bbd7e91e",
+      "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md": "sha256:62f9af0c97a1e8d14acfd527af98cbd2670234d50b46b06e145c669cc2bf75dc",
+      "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md": "sha256:c88476b8ff9ff92ebdd4baf0ab8cfd28abbfa6fccd7f147ec30c6d08dd80f3dc",
+      "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md": "sha256:0d164ced203a7968e07a5a92c2ff6cdaa4b8297709af826201894225b3adc980",
+      "scripts/audit/domains/agent-production-runtime/manifest.json": "sha256:c64483a1f0928c8fb03249c37f45ce10bcfecb3956a1bfb05d4b7e17d099ce7b",
+      "scripts/audit/domains/architecture-boundary/manifest.json": "sha256:0f2ad30cbb91ce73bf896e091c2441cdc9b47b249950e203774d4a480735c6e3",
+      "scripts/audit/domains/capability-governance/manifest.json": "sha256:07379082625a5be36039f3a079ccd55750ff0aa3553e8655c09aa251cbfa5065",
+      "scripts/audit/domains/code-purity/manifest.json": "sha256:7c6775936a060c68de7af049dd8aceeeed62c31ba714bd12aafa47d3cb212fad",
+      "scripts/audit/domains/gpt/manifest.json": "sha256:2a86f6919c8a8f0a9350ab38d023b0192b2ec869f44bc63e72ae43317f8b1f14",
+      "scripts/audit/domains/local-browser-session/manifest.json": "sha256:1c050041d9d28b7c793ef736710bff90a003d01edea8e4421a8db895955b2096",
+      "scripts/audit/generated/law-registry.generated.json": "sha256:9d94e47c4f2064abf72ceaf3904b00d7f882a91cdf82891a3cb36c41a04b0709",
+      "src/capabilities/gpt/ability-group.ts": "sha256:b46b79c1b2cf4c67e1d30d4082faee37773bde28c9006afe55689c29930f3023",
+      "src/capabilities/gpt/acceptance/gpt-acceptance-harness.ts": "sha256:42db128981697539d441f7e3f1b65473a3d9692126ef10e432a25f62282b679d",
+      "src/capabilities/gpt/acceptance/gpt-attachment.acceptance.ts": "sha256:68e54a955179f582a69ac66ec1ae7f4a27809ebf9c6c4bc6b7960d558bb58419",
+      "src/capabilities/gpt/acceptance/gpt-checkpoint-readback.acceptance.ts": "sha256:68c4d9b6c868433183e83f71347deb6719204e968d8cf30a343b09d439595e6b",
+      "src/capabilities/gpt/acceptance/gpt-child-input-denominator.acceptance.ts": "sha256:5aed7458660e8dba7b29808def11b451ec74597f6e768172e9973c5ccba347d0",
+      "src/capabilities/gpt/acceptance/gpt-continuation-transaction.acceptance.ts": "sha256:8729ca6939ea344c08c5fd7bbd5096ebe0984256c96a72bd602b103dbee55e00",
+      "src/capabilities/gpt/acceptance/gpt-contract-types.acceptance.ts": "sha256:fe1ea2036479586665f9ece3f77d629161765b046d56c4b7583979c917685345",
+      "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts": "sha256:321562100d1d18f02ad89fb1fe0b9c198b87af0fde1bd13d0c13f3ec012d1a76",
+      "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts": "sha256:835acc5328ededc6fa7f1b766ba877a1d12dd87757c5576d7590a80897f9a6ca",
+      "src/capabilities/gpt/acceptance/gpt-exact-target-source-support.ts": "sha256:ed3c838f4405d344c616113b7dd960db5bd090a5c4ba723051f6629df9f63852",
+      "src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts": "sha256:a539a271ce1458eb3a04a7e4c1df72cd448176d5c3858d169df59599a351b80f",
+      "src/capabilities/gpt/acceptance/gpt-failure-evidence-readback.acceptance-support.ts": "sha256:70039ba14226e8d706724402ed6a846861581fc4c01e44a681731858f8e3e006",
+      "src/capabilities/gpt/acceptance/gpt-production-browser-lifecycle.acceptance.ts": "sha256:b641ae1cfc901f328951157f69bd634811fdd018db299f35f5d7334abd4c796f",
+      "src/capabilities/gpt/acceptance/gpt-proof.acceptance.ts": "sha256:950085d3d5344998063e92e291b49ded1c43477f4ec18711e34b3d9003056385",
+      "src/capabilities/gpt/artifact-contract.ts": "sha256:568dcf172dd897a9d4dd3e3bd90de84b0bf9fcdc7a2ad7657c7a8825a739d801",
+      "src/capabilities/gpt/artifact-reader.ts": "sha256:29e880cf584a212466a67f1ef412d900797fe819cc49e53f591a222241550869",
+      "src/capabilities/gpt/child-types.ts": "sha256:09709fa8c4e449f5c900553cc1295fe90bfc00ce12f8d4e09edd0a5886a71725",
+      "src/capabilities/gpt/completed-result.ts": "sha256:08efe80e0cacc12fde26c855218c5bb406dd3f53c8bc05416f8ff86c305a9360",
+      "src/capabilities/gpt/confirmed-provider-readback.ts": "sha256:bb4f64ba52599f306ef3886b4eb4c883f0b72634b949107f631cb3ba2f2934dd",
+      "src/capabilities/gpt/continuation-evidence.ts": "sha256:a7b9e2d3f6bcd176e578be8686232c18c089b692d0bb5d1074b0c4df9b22f6d9",
+      "src/capabilities/gpt/continuation-readback.ts": "sha256:61918ec5256164fd31d3288e4cb55de44a81a0ef406521196626178fac76b1ec",
+      "src/capabilities/gpt/contract.ts": "sha256:2b18415e11141b0c2adbdb2a8f28accec42e647069be669785152cca13d04b60",
+      "src/capabilities/gpt/evidence-artifacts.ts": "sha256:a09c5ee5035c2c77c6814ecfc5528ea2f15daaacb7c2daf6a479d1d484519a55",
+      "src/capabilities/gpt/evidence-fact.ts": "sha256:2ff55b9d6b8fb75beb9fe943114eb629167d3f71d31b857d653c78fdad97208c",
+      "src/capabilities/gpt/evidence-writer.ts": "sha256:e47c42aa95e690a0defb7792f85a2fc5a0f3c8336ef4dc1d3924d74d2a938106",
+      "src/capabilities/gpt/execution-fault.ts": "sha256:925198993d4aff74fa8116447ff2c9d7ea4245bdb9cdf1de5ebb954a7819d81e",
+      "src/capabilities/gpt/generated-image-artifact-reader.ts": "sha256:6f5eef6e95fa7400803aa4c89aec55eb581a47925e3b77d591ed281f761c512a",
+      "src/capabilities/gpt/index.ts": "sha256:2d9b41b46dbb72565675d7e438ee6b7349331ff5e2448375e313e2af3d282cea",
+      "src/capabilities/gpt/product-api.ts": "sha256:817083ee9811f334862e61cca8ccabaabb24f6215a765a27b11659e70a00ba65",
+      "src/capabilities/gpt/production-atomic-call.ts": "sha256:4f080941bf8ba6adcb8d489973506670ae682fa553ba98d083fc61d01d4ba0c9",
+      "src/capabilities/gpt/production-browser-lifecycle.ts": "sha256:c7d9a14b302c8705c368800554a13a486bd0cb2ec8cc0091277bad5e89395e13",
+      "src/capabilities/gpt/production-call-facts.ts": "sha256:7d16533d9dbd93ec47eee27422a0e928f83a195da544d31c828ec45763e8efce",
+      "src/capabilities/gpt/production-child-support.ts": "sha256:7201c0fd6d2d47ffac11603bc993cbe44e659e6429735f64031c9e63b5003428",
+      "src/capabilities/gpt/production-child-tools.ts": "sha256:9ff29e6434b1c1b5b259519206c0c10e503a79e2bc614a894714413854dfdf2e",
+      "src/capabilities/gpt/production-ports.ts": "sha256:be487d95814440b38fbfc5f22e914b5cbb5ad1e3c563ae1cb8d7f400f38d4166",
+      "src/capabilities/gpt/schema.ts": "sha256:c1463bff06f9f1069072802e575ffdecfbbbb5e43dd91e06365a97957a9ccfc4",
+      "src/capabilities/gpt/session/gpt-continuation-store-port.ts": "sha256:49afb18b46e7f2a7909760ba255fe6435add357e8f006220053f882dd7db1deb",
+      "src/capabilities/gpt/session/gpt-session-controller.ts": "sha256:7b347bc9e4fc399f51922f79cae0c62f47f10052cd5c7e63793a3285e4cbd3f9",
+      "src/capabilities/gpt/session/session-children.ts": "sha256:ddce856964e99bbf91b8f2ecaf981ae89c70fa570f1e9e548a66cd2fa1b386ac",
+      "src/capabilities/gpt/task-exact-effect.ts": "sha256:2071110cfe1e841d0fd625c5f20aca6b41f1c6f5ea82db24ee438338f34365d0",
+      "src/capabilities/gpt/web/child-handler.ts": "sha256:e97c062b7327b03b337a37717f598123aea6a88264d3a00d056606575b9c7abe",
+      "src/capabilities/gpt/web/children/attachment-children.ts": "sha256:193122782c2518aaf72b71ee392fae4cbbad55bae204e1972fc5eedfc8ecfff8",
+      "src/capabilities/gpt/web/children/composer-submission-children.ts": "sha256:df8b7aaa19c048393b2ee552dc890ecb23f8952a2b003f06da75c999e914791d",
+      "src/capabilities/gpt/web/children/conversation-children.ts": "sha256:0c5f9b0461d4b47bed8a097147cac25616a3f4ce5fc0c3996c7af32e32d1cf33",
+      "src/capabilities/gpt/web/children/execution-profile-children.ts": "sha256:68efccc3a2771e01e781ca2a3a988b28753974f81e09374c7cb78b92758d2afd",
+      "src/capabilities/gpt/web/children/image-response-children.ts": "sha256:59d78755c337378abf2dd5cf6f60dc1fcf2e42ef540a4af3f3a1e018e54023ba",
+      "src/capabilities/gpt/web/children/model-selection-v2-children.ts": "sha256:e95cd7e2bf90bdce9d525a1a296d4a4792a13957349c536cf8825e5feb49d994",
+      "src/capabilities/gpt/web/children/response-children.ts": "sha256:2ce6f0dc1d16a609dca8f56f4d863afa74f1a91df51eebb7390d15b46abdecd7",
+      "src/capabilities/gpt/web/children/text-response-children.ts": "sha256:33509d454fb1f1d635df3ce9676126cb2cf5f8333b1bb2aded5dd61b5263b832",
+      "src/capabilities/gpt/web/contracts/attachment.contract.ts": "sha256:2ab635f918898a40af19079c53edebc8cef23ef104707408f703f75063c0cb03",
+      "src/capabilities/gpt/web/contracts/execution-profile.contract.ts": "sha256:44cb7349e2b1ef8fa2ee9042be6d24de8f322b27b98ffc5f63e4605eeb74fbeb",
+      "src/capabilities/gpt/web/contracts/model-selection-v2.contract.ts": "sha256:e4ccc0642d65d0620a9efe336bc615ebbbf19a9ff07d1abc6fa2d29e213e4eb9",
+      "src/capabilities/gpt/web/contracts/target-document.contract.ts": "sha256:ed3275982156cc04ae56d4d3655ad1f23f78c25c6a6a5af5ac7803d3f6704a38",
+      "src/capabilities/gpt/web/direct-mutation-settlement.ts": "sha256:40c3ff0795cf51090ba7d9330c946a2b16cccf01bb60c3bb44ad1a11b07ae9a8",
+      "src/capabilities/gpt/web/gpt-dom-observation.ts": "sha256:43dce0c49407cb06d64a2fadac0839cf62edf0c18d97ac6b1f73971af67bd081",
+      "src/capabilities/gpt/web/gpt-page-selectors.ts": "sha256:13d08e705441b312dd81ecbe933da4627df9b14677cbda915f32efa19a17c77d",
+      "src/capabilities/gpt/web/gpt-response-page.ts": "sha256:ed28d0f60e0f0f8e23d39c6822bf7175a9f891b3e69179bbad45c311088e1114",
+      "src/lib/browser/browser-authority-api.ts": "sha256:d1caa5e00e088ae9e9d2a6398df91941566acf4da6596dfa390303defcd7d67c",
+      "src/lib/browser/browser-failure.ts": "sha256:e3c26bd3a29744bd0b71accde5db9c326c98901a5a8c6bc81e56e4d20e39cd51",
+      "src/lib/browser/chrome-extension/authenticated-media-runtime.ts": "sha256:0bd98b04068be21e0ec3a57e19f5175ff58f9b29778c4d0d2bfe252fbcb072cf",
+      "src/lib/browser/chrome-extension/authenticated-media-value.ts": "sha256:624f8be024380d38bac0cba5e6dacd7a38a90180984fc0e06cc61af5b07536bd",
+      "src/lib/browser/chrome-extension/build.d.mts": "sha256:f15c78939b135d1a7f923ed346e599808210f4c806a7652e94633d74d173917b",
+      "src/lib/browser/chrome-extension/build.mjs": "sha256:6126af8525bb62431a40bb72b7d6a5ca435116e2e376c58b2495b70224f6dabc",
+      "src/lib/browser/chrome-extension/command-permit-validator.ts": "sha256:aca662515b15fea0d65657385c6af7fd111a9b39d8d4a19cc1e8c27403e87c38",
+      "src/lib/browser/chrome-extension/command-registry.ts": "sha256:df3462f546b5b9c61cebea3eb282780e8fd5b454ba6f994d4ec1c5f0f318e58a",
+      "src/lib/browser/chrome-extension/debugger-runtime.ts": "sha256:29d71a61d95c5ef30f1d6d0983e3696a948c414596b513a2053fac61d860d709",
+      "src/lib/browser/chrome-extension/dom-coherent-candidate.ts": "sha256:369a2658a74b0de541d4f9a6dc26aad77bbec760fd41a84ec2af34bbf0231286",
+      "src/lib/browser/chrome-extension/dom-coherent-observation.ts": "sha256:fff354fdf17e1d8a9f9fafacccf67c1a46efd137c720b1149d262c3900890ecb",
+      "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts": "sha256:459b74d87fe1759d6b6387b7371e0f6a741b60aeaef9fe6a2942b969b1479282",
+      "src/lib/browser/chrome-extension/dom-exact-editable-text.ts": "sha256:1ce2c31c9d54e62b08de6fc2dbd9807157b69697895c058ebbf63c4b714a9b41",
+      "src/lib/browser/chrome-extension/dom-intent-runtime.ts": "sha256:73a5c141ee4bb5bc9b9576c6f838a1d19c72a620e31ad698f1dee6dd40e7eac8",
+      "src/lib/browser/chrome-extension/dom-mechanical-facts.ts": "sha256:d80fd5e7554e2d66fa702dfc3df72d9aa85a8747c23b1d9038927d68d98b26e9",
+      "src/lib/browser/chrome-extension/dom-mutation-postcondition.ts": "sha256:8e17a18da8e0e6d64dd37cd69c28bc0f0d913427e735d9965ddf56c174a964ae",
+      "src/lib/browser/chrome-extension/dom-query-runtime.ts": "sha256:21213a1396cb8cc755086530f6a48b3a2a1013a23380cf71dc41de8297a3063a",
+      "src/lib/browser/chrome-extension/exact-target-runtime.ts": "sha256:bd88f9c63d79172fc1a4215fea1cbeca5169087d705b9e4f4a86921b99f7c992",
+      "src/lib/browser/chrome-extension/extension-file-input-runtime.ts": "sha256:9f9a5021f9ef8545d13a3b46901c822f6fc7abb76c82b47ddb2f9a1a929e4451",
+      "src/lib/browser/chrome-extension/extension-heartbeat.ts": "sha256:4bb96e326884b10c28e410c8329c95f7d9a69932740f20a7733365e506827528",
+      "src/lib/browser/chrome-extension/extension-runtime-types.ts": "sha256:ac54351173f80c07105432f0abc9e3a372cd80c63ef8e3232cb2140a5f4eb3e5",
+      "src/lib/browser/chrome-extension/extension-target-authority.ts": "sha256:056ca381c0456259503f80db6a254043c67b309c6ffd055b7c06279715571bf3",
+      "src/lib/browser/chrome-extension/manifest.json": "sha256:ed1888bfba012deeb521a1766bfdcb46bf90176b143d874abffebf72b7df42a4",
+      "src/lib/browser/chrome-extension/pairing-auto-bootstrap.ts": "sha256:5e2693b5b315a3ed3be4d896a7819b8d97089469c78df0610d8d39f6ebb8705b",
+      "src/lib/browser/chrome-extension/pairing-completion-gate.ts": "sha256:2e43940c816ac0ef0ca99e4e1f71caec662f497955523504128c10063eacd05e",
+      "src/lib/browser/chrome-extension/pairing-popup.ts": "sha256:b3d72fa1b5afd1a3a3f4f7a4e2b2914ff50861afe09871f67d7e9d1de5c57572",
+      "src/lib/browser/chrome-extension/pairing.html": "sha256:bafe94c59feb21dda877bed736ab454436f72fe71e645f1e19cacf38fc4eaf78",
+      "src/lib/browser/chrome-extension/service-worker.ts": "sha256:fc23e3566329d1143421cba7e79875cade9a81e76721dc84d32898c1603f988f",
+      "src/lib/browser/chrome-extension/websocket-actor-crypto.ts": "sha256:44ba2bcf52d43a4b42a749288a33355faf9b27e31fa02545d195c9c96a067625",
+      "src/lib/browser/chrome-extension/websocket-actor-diagnostics.ts": "sha256:fabcab6e970ef82acab6d6bc5d1a8aebf615dcff584260897f79b6c41ed5424a",
+      "src/lib/browser/chrome-extension/websocket-actor.ts": "sha256:48156d670ef0b387dd81710af5048a814ffd1a4fe32e6f64fe9d5cfebf1fafa9",
+      "src/lib/browser/chrome-extension/websocket-command-diagnostic.ts": "sha256:5b41ee4ffee98967125612fd7a5786f6872f5f6beca447b4bb7113fa707d11dc",
+      "src/lib/browser/chrome-extension/websocket-target-claim-awaiter.ts": "sha256:3bab724d9037c4085fe9b457c6893aaa7e9d00b9eb38230234e5d4aaa600033c",
+      "src/lib/browser/exact-target/browser-command-actor.ts": "sha256:0628711d998dc1ad43089d4446cb9cf3d2a7ec5909a2fef4dad6fee8f830c0f6",
+      "src/lib/browser/exact-target/browser-command-postcondition.ts": "sha256:6466a39f9b7c7bf6b6520b9bb815b66286621de50bf2a5d3436775efe943f807",
+      "src/lib/browser/exact-target/browser-command-runtime-logging.ts": "sha256:2aa3fd22f0ddee4eb9e999d012fd204c0f752ed61fd0e1b1fe7201edd1842e57",
+      "src/lib/browser/exact-target/browser-dom-intent.ts": "sha256:83ab1a0954511b2be45b91ddd916b7ddfeeb658c8d323bdd2ef0b3a4df1b3df0",
+      "src/lib/browser/exact-target/browser-file-artifact-grant.ts": "sha256:1621f89f1d3ef1e519abf42207790d8d2bd922817c34cbef23b33e751e7cc812",
+      "src/lib/browser/exact-target/browser-mutation-receipt.ts": "sha256:02c9327a67dfde13506d2b3f510305baf7a8c1e5058a921f6ca73172b2a2a979",
+      "src/lib/browser/exact-target/browser-mutation-row.ts": "sha256:0ab977870c08c4756a1253cde4ee9ac787d7d88d6949294a0693d22ffd6f8b9d",
+      "src/lib/browser/exact-target/browser-mutation-schema.ts": "sha256:2507f25148ba761cd6204254c1e3af67f6d997891eb932d9fb1d153845ec8f45",
+      "src/lib/browser/exact-target/browser-mutation-store.ts": "sha256:d5469158f0f5a85fa4d0eecd2a8aba1495a8733ccf480fc4d89d212b5f854a61",
+      "src/lib/browser/exact-target/browser-outcome-resolver.ts": "sha256:1d4ba68812e200ccdee929ce5ddcc0276535684e09544f69ed8001c7a1e15cb4",
+      "src/lib/browser/exact-target/browser-session-workspace.ts": "sha256:d24d6a7e364751e569c2b3fc0573d8ba993253a4dbae68ae585a138543ac6293",
+      "src/lib/browser/exact-target/browser-site-policy-registry.ts": "sha256:786651dab92b8d9b294e62d1abc2baeb28435af511dea88adade779bf7319715",
+      "src/lib/browser/exact-target/browser-target-lease-manager.ts": "sha256:3ef78717b6fc3f2448a8f1f9266036244729630a13ef76aa60aef12ffe7b6c9e",
+      "src/lib/browser/exact-target/browser-target-lease.ts": "sha256:09ebf2a3fd83dfc35637299b489180a433b0b64d81c02029476279e2446807d6",
+      "src/lib/browser/exact-target/browser-target-ref.ts": "sha256:137b68bd0032fa771a8db7e7ed211b2159e7eadaef3735488572be110a4aacda",
+      "src/lib/browser/infrastructure/browser-authentication-commit.ts": "sha256:89b687dc26aa9b901768f0ebf7734b9cd5c411d349b1eb42d73af52c371bfac9",
+      "src/lib/browser/infrastructure/browser-authority-broker.ts": "sha256:7f18a8d8da44cfb8ba2106381237444c2645b2e9a2b8bccf7448807891cfe0c1",
+      "src/lib/browser/infrastructure/browser-authority-certificate.ts": "sha256:ec350b26f23fe69040e30f213f0a9b6636796bab706377a8f4d5834d3c39947a",
+      "src/lib/browser/infrastructure/browser-authority-issuer.ts": "sha256:aca11f193ec0d5cc00adc6d2d1beaf7074a4f6d2665a3886fd0ecf4bc5bbd2ce",
+      "src/lib/browser/infrastructure/browser-control-state.ts": "sha256:139ffb2b6a750ff5dee7364a096f036d287e0cf554d34852d0e731a421b976ae",
+      "src/lib/browser/infrastructure/browser-infrastructure-state.ts": "sha256:b76d1c5e2cd850ff17367ef308e0605207e8d86a1ee684982ce6583e99fb353a",
+      "src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts": "sha256:a6e611bdb1196c193c403736e8651e0cc706f0324a837ebda289f715cbfc6846",
+      "src/lib/browser/infrastructure/browser-lane-coordinator.ts": "sha256:522bbc87d0db62c473b6e6899c4121172fe40628a0254ebbd593b309e1964045",
+      "src/lib/browser/infrastructure/browser-owner-lock.ts": "sha256:2ae244629fc7a97d9e62c096f5ce65f45aa5e1e302cb6280c27891525134c1a2",
+      "src/lib/browser/infrastructure/browser-runtime-log-emitter.ts": "sha256:066f1c8c3c330af95a708740fc4f2fa0f1a283e7fe4de677898e05a135c8dba5",
+      "src/lib/browser/infrastructure/browser-target-acquirer.ts": "sha256:10c077fb28b9eb1508f9745a9b3ce384a23bb43d05f8d894248af17cda1b2867",
+      "src/lib/browser/profile/browser-profile-config.ts": "sha256:31c0d39a47e57eb8fb59eb172e57af57b3c88d9bf094520bb374ab13a9e311fd",
+      "src/lib/browser/profile/browser-profile-enrollment.ts": "sha256:c76d4a191143e5dee4af8d1d1f434da61e7906f0ae8063bbaaf260a84778dc7e",
+      "src/lib/browser/profile/browser-profile-state.ts": "sha256:11b9d8e9ac7cbfa1cb96011842601b655e947d764218124fff209656c6df653f",
+      "src/lib/browser/profile/dedicated-profile-policy.ts": "sha256:7c33e2a5cbd3513e9385abca8e3880bd07e1d976e7f273adebd472e19a7f1e74",
+      "src/lib/browser/profile/managed-policy-readback.ts": "sha256:040da1c27793ef255657390bf38053fc1617b91a9213f8246a56f469d6794f1c",
+      "src/lib/browser/protocol/browser-authority-certificate.schema.json": "sha256:1f5a194f6d5071882f86cccc12e1a0c540062f5bdeda8c53f74780e148900a0c",
+      "src/lib/browser/protocol/browser-capabilities.json": "sha256:063352aa41540e3a139178d71a03906fbf33aed4eb0e8fb441f5266e843ee3ea",
+      "src/lib/browser/protocol/browser-errors.json": "sha256:881323ce44633b09669e3cbcb3c81c221f9cca686beddc1187f7767061f30ef5",
+      "src/lib/browser/protocol/browser-file-artifact-grant.schema.json": "sha256:9117cd24726d4f57fa055567cc3f9122a8ba6b1bd5e29c9fa726f8a2439f143b",
+      "src/lib/browser/protocol/browser-profile-enrollment.schema.json": "sha256:87ecc0301d926bf13dbc8a6fb871ed6811dbaa65b85fdcdfe6534a42c62c89c0",
+      "src/lib/browser/protocol/browser-protocol.schema.json": "sha256:461bbca399d393894960b5e263f69e5763da8e86361653b7db5e2c1874a7682f",
+      "src/lib/browser/protocol/generate-browser-protocol.mjs": "sha256:7c2d7ce12f0b9ce05c5933a198e3ae07decd93ef72e02a90aaa71e1bdc980202",
+      "src/lib/browser/protocol/generated/browser-protocol.generated.ts": "sha256:fb2359efd7991cf3fff545b300218a9b458e13c4a72a34e3b495b31ef5219169",
+      "src/lib/browser/release/extension-directory-hash-v1.ts": "sha256:8106c8bf35e731eaadd6b1056fef46c9b0c2b7195f5964bf6d02447cb02aaf63",
+      "src/lib/browser/release/unpacked-extension-release-identity.ts": "sha256:138f49cf0a689c41feaf13066777db2adb3de88fbcf18b58c65c2379bad10d80",
+      "src/lib/browser/transport/browser-authority-diagnostic.ts": "sha256:14efaa3d113677f6cc03ebaf6fa9f22638ba68c0b69c62573fc7751e4167ccf3",
+      "src/lib/browser/transport/browser-authority-frame-codec.ts": "sha256:6022be2a628910f5084a290fb2048c5a3ad919bb415f3dbb62b6bd8a281b9e6d",
+      "src/lib/browser/transport/browser-authority-frame-payload.ts": "sha256:42d14c067f6413e8fb6ceaf9516a426f73dd787e0bdc43857a42b5a5f194ea58",
+      "src/lib/browser/transport/browser-authority-session-crypto.ts": "sha256:12185d6dcbdb828b225c5cf3c6bae030c1fa857ad47b5d70774869ded839f33c",
+      "src/lib/browser/transport/browser-authority-websocket.ts": "sha256:fbe11056548f13ce7eb36af1eeaa3f9ca9dffc985a8de3cb1b29ec86620ff3d6",
+      "src/lib/browser/transport/browser-command-admission-budget.ts": "sha256:1f19c9580f242e3621930742e232209ec24bdaf52514ca9719c5aa5be4071039",
+      "src/lib/browser/transport/command-permit.ts": "sha256:01cc04494e005a67696902dab16e07b657320d28acd9f6930f7677b331cb305e",
+      "src/lib/browser/transport/transport-actor.ts": "sha256:3e9c77841d34635209340704a7d8209765856683875619b6558f9b94f0fb503c",
+      "src/lib/browser/transport/transport-authenticator.ts": "sha256:ee1ef2ee4b14396a57a345ba5cc024981fd0671c068f8a607fcab98f5dbeac4f",
+      "src/lib/browser/transport/transport-event.ts": "sha256:9244820be01a0aa93681a8f0ed7a30233bb0b888fe999cecfbd7f97dc9e082b5",
+      "src/lib/browser/transport/transport-reducer.ts": "sha256:6f224572e572f30877918f65a688cc7211d2359cd31c09a6f38c715db25d1254"
+    },
+    "collectorHashes": {
+      "SKILL.md": "sha256:f5e9f45d8fd16b3aba28c863f00b87de2ac77f2a8d49ad1d8a855173bf53b67e",
+      "agents/openai.yaml": "sha256:55421a0e24847c8ecacf5ec16f2e1f7daf5ec678ee51d9030a1cd16e60bd5184",
+      "references/collection-protocol.md": "sha256:d84accc7d6b1ef94cc13bfc7443bd23b003bddab74af63870511f8ca7a606093",
+      "references/evidence-schema.md": "sha256:8490cf559475ad2d20261c8906fcadb4d9ae67e03d20713aeeaed3cbe99c2ed2",
+      "references/page-operation-matrix.json": "sha256:37d7615d880e63fde3e3449c5c53f662875c61b16a7fa9f74153fe701bd205db",
+      "scripts/make-fixtures.mjs": "sha256:3767c417e90edeb308fbafb07687b059026dfd0a673f6773c1808e020ff59233",
+      "scripts/report-tool.mjs": "sha256:c0f62fefe69d5f30c401207d0ce620b7cf1fe8da8025599144aaa7f7af9ac5bc"
+    },
+    "bindingHash": "sha256:9bc44214abac57b806c42576d4cbdb43e05fc7a6c5eb236c327c123383775f82"
+  },
+  "captureMetadata": null,
+  "children": [
+    {
+      "childCapabilityId": "acquire_gpt_continuation_lane",
+      "contractVersion": 2,
+      "pageOperationRequired": false,
+      "inclusionBasis": "requiredTargetKind is none and implementation has no GPT web owner reference",
+      "contract": {
+        "actionQualification": "lane is free or identically owned",
+        "allowedDocumentTransition": "not-applicable",
+        "boundedWait": false,
+        "childCapabilityId": "acquire_gpt_continuation_lane",
+        "contractVersion": 2,
+        "decisions": [
+          "DONE",
+          "ACT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.acquire_gpt_continuation_lane.input.v1",
+        "mutationBudget": "zero-or-one-transaction",
+        "negativePostcondition": "incomplete row variant mix owner subject authorization or version conflict fails closed",
+        "oneObservationOrMutation": "at-most-one-mutation",
+        "owner": "gpt",
+        "positivePostcondition": "lane owner and new version read back exactly",
+        "precondition": "complete row expected version and one mutually exclusive typed authorization",
+        "profile": "CONTINUATION_TRANSACTION",
+        "replayPolicy": "transaction-identical-readback",
+        "requiredTargetKind": "none",
+        "semanticIntent": "acquire the exact complete continuation lane"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-continuation-transaction.acceptance.ts",
+          "lines": [
+            128,
+            217,
+            259,
+            314
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            73
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            242,
+            382
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            94
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/session/session-children.ts",
+          "lines": [
+            367
+          ]
+        }
+      ],
+      "webImplementationReferences": [],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/private-base-reservation.ts",
+          "lines": [
+            326
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/private-base-reservation.ts",
+          "lines": [
+            325
+          ]
+        },
+        {
+          "consumer": "bazi-report-followup",
+          "path": "src/plugins/bazi-report-followup/parent-continuation.ts",
+          "lines": [
+            64
+          ]
+        },
+        {
+          "consumer": "hehun-report-followup",
+          "path": "src/plugins/hehun-report-followup/flow.ts",
+          "lines": [
+            347
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
+          "lines": [
+            426
+          ]
+        },
+        {
+          "consumer": "qimen-report-followup",
+          "path": "src/plugins/qimen-report-followup/flow.ts",
+          "lines": [
+            347
+          ]
+        }
+      ],
+      "collectionRequirements": null,
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": []
+    },
+    {
+      "childCapabilityId": "advance_gpt_continuation_lane",
+      "contractVersion": 2,
+      "pageOperationRequired": false,
+      "inclusionBasis": "requiredTargetKind is none and implementation has no GPT web owner reference",
+      "contract": {
+        "actionQualification": "current pair differs and CAS version matches",
+        "allowedDocumentTransition": "not-applicable",
+        "boundedWait": false,
+        "childCapabilityId": "advance_gpt_continuation_lane",
+        "contractVersion": 2,
+        "decisions": [
+          "DONE",
+          "ACT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.advance_gpt_continuation_lane.input.v1",
+        "mutationBudget": "zero-or-one-transaction",
+        "negativePostcondition": "owner version pair or content conflict fails closed",
+        "oneObservationOrMutation": "at-most-one-mutation",
+        "owner": "gpt",
+        "positivePostcondition": "provider checkpoint advance atomically and lane owner is null",
+        "precondition": "same lane owner version and exact new provider checkpoint pair",
+        "profile": "CONTINUATION_TRANSACTION",
+        "replayPolicy": "transaction-identical-readback",
+        "requiredTargetKind": "none",
+        "semanticIntent": "advance the exact continuation frontier and release the lane"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-continuation-transaction.acceptance.ts",
+          "lines": [
+            236,
+            249,
+            297
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            73
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            243,
+            383
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            95
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/session/session-children.ts",
+          "lines": [
+            426
+          ]
+        }
+      ],
+      "webImplementationReferences": [],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/flow.ts",
+          "lines": [
+            329
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/flow.ts",
+          "lines": [
+            329
+          ]
+        },
+        {
+          "consumer": "bazi-report-followup",
+          "path": "src/plugins/bazi-report-followup/parent-continuation.ts",
+          "lines": [
+            176
+          ]
+        },
+        {
+          "consumer": "hehun-report-followup",
+          "path": "src/plugins/hehun-report-followup/flow.ts",
+          "lines": [
+            429
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
+          "lines": [
+            491
+          ]
+        },
+        {
+          "consumer": "qimen-report-followup",
+          "path": "src/plugins/qimen-report-followup/flow.ts",
+          "lines": [
+            429
+          ]
+        }
+      ],
+      "collectionRequirements": null,
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": []
+    },
+    {
+      "childCapabilityId": "attach_approved_gpt_files_once",
+      "contractVersion": 2,
+      "pageOperationRequired": true,
+      "inclusionBasis": "requiredTargetKind is not none and implementation is present under GPT web owner",
+      "contract": {
+        "actionQualification": "one current connected enabled file input accepts the approved batch",
+        "allowedDocumentTransition": "forbidden",
+        "boundedWait": false,
+        "childCapabilityId": "attach_approved_gpt_files_once",
+        "contractVersion": 2,
+        "decisions": [
+          "DONE",
+          "ACT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.attach_approved_gpt_files_once.input.v1",
+        "mutationBudget": "zero-or-one-browser-input",
+        "negativePostcondition": "grant scope input identity candidate or set mismatch fails closed",
+        "oneObservationOrMutation": "at-most-one-mutation",
+        "owner": "gpt",
+        "positivePostcondition": "one batch selected and exact attachment set readback is possible",
+        "precondition": "exact scoped upload leaf grants file input and immutable content hashes",
+        "profile": "PROVIDER_EFFECT_ONCE",
+        "replayPolicy": "provider-effect-once",
+        "requiredTargetKind": "chatgpt",
+        "semanticIntent": "select the complete approved file set in one batch"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-attachment.acceptance.ts",
+          "lines": [
+            285,
+            306,
+            332
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            74
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            186,
+            304
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            88
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/attachment-children.ts",
+          "lines": [
+            443
+          ]
+        }
+      ],
+      "webImplementationReferences": [
+        {
+          "path": "src/capabilities/gpt/web/children/attachment-children.ts",
+          "lines": [
+            443
+          ]
+        }
+      ],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
+          "lines": [
+            212
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
+          "lines": [
+            213
+          ]
+        },
+        {
+          "consumer": "bazi-report-followup",
+          "path": "src/plugins/bazi-report-followup/product-turn.ts",
+          "lines": [
+            183
+          ]
+        },
+        {
+          "consumer": "hehun-ai-analysis",
+          "path": "src/plugins/hehun-ai-analysis/flow.ts",
+          "lines": [
+            180
+          ]
+        },
+        {
+          "consumer": "hehun-report-followup",
+          "path": "src/plugins/hehun-report-followup/flow.ts",
+          "lines": [
+            181
+          ]
+        },
+        {
+          "consumer": "localization-production",
+          "path": "src/plugins/localization-production/flow.ts",
+          "lines": [
+            175
+          ]
+        },
+        {
+          "consumer": "naming-bazi-analysis-and-naming",
+          "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
+          "lines": [
+            175
+          ]
+        },
+        {
+          "consumer": "naming-from-existing-bazi-report",
+          "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
+          "lines": [
+            175
+          ]
+        },
+        {
+          "consumer": "payment-screenshot-observation",
+          "path": "src/plugins/payment-screenshot-observation/flow.ts",
+          "lines": [
+            175
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
+          "lines": [
+            514
+          ]
+        },
+        {
+          "consumer": "qimen-professional-answer",
+          "path": "src/plugins/qimen-professional-answer/flow.ts",
+          "lines": [
+            180
+          ]
+        },
+        {
+          "consumer": "qimen-report-followup",
+          "path": "src/plugins/qimen-report-followup/flow.ts",
+          "lines": [
+            181
+          ]
+        }
+      ],
+      "collectionRequirements": {
+        "childCapabilityId": "attach_approved_gpt_files_once",
+        "scenarioId": "text-main",
+        "coreTargets": [
+          "upload-entry",
+          "file-input",
+          "attachment-cards"
+        ],
+        "requiredLiveStates": [
+          "upload-leaf-ready",
+          "file-chooser-bound",
+          "file-set-readback"
+        ],
+        "optionalLiveStates": [
+          "upload-progress"
+        ],
+        "childSpecificDerivedStates": [
+          "file-input-unavailable",
+          "file-set-partially-attached",
+          "file-set-duplicated",
+          "upload-dispatched-outcome-unknown"
+        ],
+        "requiredFixtures": [
+          "synthetic-txt",
+          "synthetic-json",
+          "synthetic-zip"
+        ]
+      },
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": [
+        "live-page-capture-not-present"
+      ]
+    },
+    {
+      "childCapabilityId": "checkpoint_gpt_generated_image",
+      "contractVersion": 3,
+      "pageOperationRequired": true,
+      "inclusionBasis": "requiredTargetKind is not none and implementation is present under GPT web owner",
+      "contract": {
+        "actionQualification": "never",
+        "allowedDocumentTransition": "exact-navigation-only",
+        "boundedWait": false,
+        "childCapabilityId": "checkpoint_gpt_generated_image",
+        "contractVersion": 3,
+        "decisions": [
+          "DONE",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.checkpoint_gpt_generated_image.input.v1",
+        "mutationBudget": "zero",
+        "negativePostcondition": "zero multiple changed or unauthorized media fails closed",
+        "oneObservationOrMutation": "bounded-observation",
+        "owner": "gpt",
+        "positivePostcondition": "one authenticated original image content identity is stored",
+        "precondition": "exact assistant turn semantic media and predecessor text receipt",
+        "profile": "DOM_OBSERVATION",
+        "replayPolicy": "observation-only",
+        "requiredTargetKind": "chatgpt",
+        "semanticIntent": "checkpoint the exact assistant image content"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-checkpoint-readback.acceptance.ts",
+          "lines": [
+            107,
+            147,
+            329,
+            333,
+            364
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts",
+          "lines": [
+            677
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            74
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            216,
+            338
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/completed-result.ts",
+          "lines": [
+            70
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/continuation-evidence.ts",
+          "lines": [
+            18,
+            55
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/continuation-readback.ts",
+          "lines": [
+            183
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            75
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/evidence-artifacts.ts",
+          "lines": [
+            206
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/image-response-children.ts",
+          "lines": [
+            166,
+            171
+          ]
+        }
+      ],
+      "webImplementationReferences": [
+        {
+          "path": "src/capabilities/gpt/web/children/image-response-children.ts",
+          "lines": [
+            166,
+            171
+          ]
+        }
+      ],
+      "productConsumers": [
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-image-call.ts",
+          "lines": [
+            166
+          ]
+        }
+      ],
+      "collectionRequirements": {
+        "childCapabilityId": "checkpoint_gpt_generated_image",
+        "scenarioId": "image-main",
+        "coreTargets": [
+          "assistant-turn",
+          "semantic-media-node",
+          "original-content-control"
+        ],
+        "requiredLiveStates": [
+          "exact-media-node",
+          "original-content-identity-readback",
+          "stable-image-checkpoint"
+        ],
+        "optionalLiveStates": [
+          "download-or-open-original-control"
+        ],
+        "childSpecificDerivedStates": [
+          "thumbnail-only",
+          "wrong-turn-media",
+          "media-not-stable",
+          "original-content-identity-mismatch"
+        ],
+        "requiredFixtures": [
+          "synthetic-image-prompt"
+        ]
+      },
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": [
+        "live-page-capture-not-present"
+      ]
+    },
+    {
+      "childCapabilityId": "checkpoint_gpt_text_response",
+      "contractVersion": 3,
+      "pageOperationRequired": true,
+      "inclusionBasis": "requiredTargetKind is not none and implementation is present under GPT web owner",
+      "contract": {
+        "actionQualification": "never",
+        "allowedDocumentTransition": "exact-navigation-only",
+        "boundedWait": false,
+        "childCapabilityId": "checkpoint_gpt_text_response",
+        "contractVersion": 3,
+        "decisions": [
+          "DONE",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.checkpoint_gpt_text_response.input.v1",
+        "mutationBudget": "zero",
+        "negativePostcondition": "zero multiple stale or hash drift fails closed",
+        "oneObservationOrMutation": "bounded-observation",
+        "owner": "gpt",
+        "positivePostcondition": "one task-owned artifact binds DOM and semantic text hashes",
+        "precondition": "exact stable assistant turn identity",
+        "profile": "DOM_OBSERVATION",
+        "replayPolicy": "observation-only",
+        "requiredTargetKind": "chatgpt",
+        "semanticIntent": "checkpoint exact assistant outerHTML and deterministic semantic text"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-checkpoint-readback.acceptance.ts",
+          "lines": [
+            107,
+            147,
+            180,
+            184,
+            191
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts",
+          "lines": [
+            636
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            76
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            208,
+            326
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/completed-result.ts",
+          "lines": [
+            69
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/continuation-evidence.ts",
+          "lines": [
+            18,
+            55
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/continuation-readback.ts",
+          "lines": [
+            162
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            74
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/evidence-artifacts.ts",
+          "lines": [
+            207
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/text-response-children.ts",
+          "lines": [
+            142,
+            148
+          ]
+        }
+      ],
+      "webImplementationReferences": [
+        {
+          "path": "src/capabilities/gpt/web/children/text-response-children.ts",
+          "lines": [
+            142,
+            148
+          ]
+        }
+      ],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
+          "lines": [
+            284
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
+          "lines": [
+            285
+          ]
+        },
+        {
+          "consumer": "bazi-report-followup",
+          "path": "src/plugins/bazi-report-followup/product-turn.ts",
+          "lines": [
+            253
+          ]
+        },
+        {
+          "consumer": "hehun-ai-analysis",
+          "path": "src/plugins/hehun-ai-analysis/flow.ts",
+          "lines": [
+            252
+          ]
+        },
+        {
+          "consumer": "hehun-report-followup",
+          "path": "src/plugins/hehun-report-followup/flow.ts",
+          "lines": [
+            253
+          ]
+        },
+        {
+          "consumer": "localization-production",
+          "path": "src/plugins/localization-production/flow.ts",
+          "lines": [
+            247
+          ]
+        },
+        {
+          "consumer": "naming-bazi-analysis-and-naming",
+          "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
+          "lines": [
+            247
+          ]
+        },
+        {
+          "consumer": "naming-from-existing-bazi-report",
+          "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
+          "lines": [
+            247
+          ]
+        },
+        {
+          "consumer": "payment-screenshot-observation",
+          "path": "src/plugins/payment-screenshot-observation/flow.ts",
+          "lines": [
+            247
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
+          "lines": [
+            324
+          ]
+        },
+        {
+          "consumer": "qimen-professional-answer",
+          "path": "src/plugins/qimen-professional-answer/flow.ts",
+          "lines": [
+            252
+          ]
+        },
+        {
+          "consumer": "qimen-report-followup",
+          "path": "src/plugins/qimen-report-followup/flow.ts",
+          "lines": [
+            253
+          ]
+        }
+      ],
+      "collectionRequirements": {
+        "childCapabilityId": "checkpoint_gpt_text_response",
+        "scenarioId": "text-main",
+        "coreTargets": [
+          "assistant-turn",
+          "rich-text-response",
+          "semantic-text-projection"
+        ],
+        "requiredLiveStates": [
+          "rich-response-outer-html",
+          "semantic-projection-readback",
+          "stable-text-checkpoint"
+        ],
+        "optionalLiveStates": [
+          "citation-or-code-controls"
+        ],
+        "childSpecificDerivedStates": [
+          "response-projection-empty",
+          "response-projection-truncated",
+          "response-bound-to-wrong-turn",
+          "response-still-generating"
+        ],
+        "requiredFixtures": [
+          "synthetic-rich-text-response"
+        ]
+      },
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": [
+        "live-page-capture-not-present"
+      ]
+    },
+    {
+      "childCapabilityId": "close_gpt_execution_profile",
+      "contractVersion": 3,
+      "pageOperationRequired": true,
+      "inclusionBasis": "requiredTargetKind is not none and implementation is present under GPT web owner",
+      "contract": {
+        "actionQualification": "popup present and trigger uniquely qualified",
+        "allowedDocumentTransition": "forbidden",
+        "boundedWait": false,
+        "childCapabilityId": "close_gpt_execution_profile",
+        "contractVersion": 3,
+        "decisions": [
+          "DONE",
+          "ACT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.close_gpt_execution_profile.input.v2",
+        "mutationBudget": "zero-or-one-browser-input",
+        "negativePostcondition": "ambiguous trigger or retained popup fails closed",
+        "oneObservationOrMutation": "at-most-one-mutation",
+        "owner": "gpt",
+        "positivePostcondition": "profile popup absent",
+        "precondition": "popup absent or one expanded exact profile trigger with a v2 execution profile",
+        "profile": "TARGET_LOCAL_MUTATION",
+        "replayPolicy": "target-local-per-generation",
+        "requiredTargetKind": "chatgpt",
+        "semanticIntent": "close the current execution profile popup"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            76
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts",
+          "lines": [
+            134
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            184,
+            302
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            82
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/execution-profile-children.ts",
+          "lines": [
+            378,
+            381,
+            569
+          ]
+        }
+      ],
+      "webImplementationReferences": [
+        {
+          "path": "src/capabilities/gpt/web/children/execution-profile-children.ts",
+          "lines": [
+            378,
+            381,
+            569
+          ]
+        }
+      ],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
+          "lines": [
+            192
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
+          "lines": [
+            193
+          ]
+        },
+        {
+          "consumer": "bazi-report-followup",
+          "path": "src/plugins/bazi-report-followup/product-turn.ts",
+          "lines": [
+            164
+          ]
+        },
+        {
+          "consumer": "hehun-ai-analysis",
+          "path": "src/plugins/hehun-ai-analysis/flow.ts",
+          "lines": [
+            161
+          ]
+        },
+        {
+          "consumer": "hehun-report-followup",
+          "path": "src/plugins/hehun-report-followup/flow.ts",
+          "lines": [
+            162
+          ]
+        },
+        {
+          "consumer": "localization-production",
+          "path": "src/plugins/localization-production/flow.ts",
+          "lines": [
+            156
+          ]
+        },
+        {
+          "consumer": "naming-bazi-analysis-and-naming",
+          "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
+          "lines": [
+            156
+          ]
+        },
+        {
+          "consumer": "naming-from-existing-bazi-report",
+          "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
+          "lines": [
+            156
+          ]
+        },
+        {
+          "consumer": "payment-screenshot-observation",
+          "path": "src/plugins/payment-screenshot-observation/flow.ts",
+          "lines": [
+            156
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
+          "lines": [
+            202,
+            215
+          ]
+        },
+        {
+          "consumer": "qimen-professional-answer",
+          "path": "src/plugins/qimen-professional-answer/flow.ts",
+          "lines": [
+            161
+          ]
+        },
+        {
+          "consumer": "qimen-report-followup",
+          "path": "src/plugins/qimen-report-followup/flow.ts",
+          "lines": [
+            162
+          ]
+        }
+      ],
+      "collectionRequirements": {
+        "childCapabilityId": "close_gpt_execution_profile",
+        "scenarioId": "text-main",
+        "coreTargets": [
+          "execution-profile-panel",
+          "execution-profile-close-control",
+          "composer"
+        ],
+        "requiredLiveStates": [
+          "profile-before-close",
+          "profile-closed",
+          "profile-already-closed"
+        ],
+        "optionalLiveStates": [
+          "profile-closing-transition"
+        ],
+        "childSpecificDerivedStates": [
+          "profile-remains-open",
+          "wrong-panel-closed",
+          "composer-obscured-after-close"
+        ],
+        "requiredFixtures": []
+      },
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": [
+        "live-page-capture-not-present"
+      ]
+    },
+    {
+      "childCapabilityId": "complete_exact_gpt_continuation_reservation_once",
+      "contractVersion": 2,
+      "pageOperationRequired": false,
+      "inclusionBasis": "requiredTargetKind is none and implementation has no GPT web owner reference",
+      "contract": {
+        "actionQualification": "reservation is incomplete and owned by this exact creator",
+        "allowedDocumentTransition": "not-applicable",
+        "boundedWait": false,
+        "childCapabilityId": "complete_exact_gpt_continuation_reservation_once",
+        "contractVersion": 2,
+        "decisions": [
+          "DONE",
+          "ACT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.complete_exact_gpt_continuation_reservation_once.input.v1",
+        "mutationBudget": "zero-or-one-transaction",
+        "negativePostcondition": "partial fields owner version authorization or content conflict fails closed",
+        "oneObservationOrMutation": "at-most-one-mutation",
+        "owner": "gpt",
+        "positivePostcondition": "all completion fields commit atomically and reservation lane is released",
+        "precondition": "same reservation lane fence provider artifact admission and read grant",
+        "profile": "CONTINUATION_TRANSACTION",
+        "replayPolicy": "transaction-identical-readback",
+        "requiredTargetKind": "none",
+        "semanticIntent": "complete the exact reservation and release its lane"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-continuation-transaction.acceptance.ts",
+          "lines": [
+            206,
+            212
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            75
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            228,
+            376
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            93
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/production-child-tools.ts",
+          "lines": [
+            202
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/session/session-children.ts",
+          "lines": [
+            299
+          ]
+        }
+      ],
+      "webImplementationReferences": [],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/private-base-reservation.ts",
+          "lines": [
+            204,
+            311
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/private-base-reservation.ts",
+          "lines": [
+            204,
+            310
+          ]
+        }
+      ],
+      "collectionRequirements": null,
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": []
+    },
+    {
+      "childCapabilityId": "ensure_gpt_reasoning_requirement",
+      "contractVersion": 3,
+      "pageOperationRequired": true,
+      "inclusionBasis": "requiredTargetKind is not none and implementation is present under GPT web owner",
+      "contract": {
+        "actionQualification": "the resolved numeric value differs from the observed current value",
+        "allowedDocumentTransition": "forbidden",
+        "boundedWait": false,
+        "childCapabilityId": "ensure_gpt_reasoning_requirement",
+        "contractVersion": 3,
+        "decisions": [
+          "DONE",
+          "ACT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.ensure_gpt_reasoning_requirement.input.v2",
+        "mutationBudget": "zero-or-one-browser-input",
+        "negativePostcondition": "unknown scale unavailable exact tier ambiguity disabled state or readback mismatch fails closed",
+        "oneObservationOrMutation": "at-most-one-mutation",
+        "owner": "gpt",
+        "positivePostcondition": "fresh aria-valuenow equals the resolved tier and requested resolved degraded facts remain distinct",
+        "precondition": "one enabled reasoning control one approved slider scale and one required profile.reasoningRequirement",
+        "profile": "TARGET_LOCAL_MUTATION",
+        "replayPolicy": "target-local-per-generation",
+        "requiredTargetKind": "chatgpt",
+        "semanticIntent": "resolve and satisfy the Product-frozen reasoning requirement on an approved observed scale"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/ability-group.ts",
+          "lines": [
+            231,
+            232
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            77
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts",
+          "lines": [
+            474,
+            567,
+            589
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-failure-evidence-readback.acceptance-support.ts",
+          "lines": [
+            93,
+            94
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            183,
+            299
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            81
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/evidence-fact.ts",
+          "lines": [
+            221
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/execution-profile-children.ts",
+          "lines": [
+            430
+          ]
+        }
+      ],
+      "webImplementationReferences": [
+        {
+          "path": "src/capabilities/gpt/web/children/execution-profile-children.ts",
+          "lines": [
+            430
+          ]
+        }
+      ],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
+          "lines": [
+            191
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
+          "lines": [
+            192
+          ]
+        },
+        {
+          "consumer": "bazi-report-followup",
+          "path": "src/plugins/bazi-report-followup/product-turn.ts",
+          "lines": [
+            163
+          ]
+        },
+        {
+          "consumer": "hehun-ai-analysis",
+          "path": "src/plugins/hehun-ai-analysis/flow.ts",
+          "lines": [
+            160
+          ]
+        },
+        {
+          "consumer": "hehun-report-followup",
+          "path": "src/plugins/hehun-report-followup/flow.ts",
+          "lines": [
+            161
+          ]
+        },
+        {
+          "consumer": "localization-production",
+          "path": "src/plugins/localization-production/flow.ts",
+          "lines": [
+            155
+          ]
+        },
+        {
+          "consumer": "naming-bazi-analysis-and-naming",
+          "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
+          "lines": [
+            155
+          ]
+        },
+        {
+          "consumer": "naming-from-existing-bazi-report",
+          "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
+          "lines": [
+            155
+          ]
+        },
+        {
+          "consumer": "payment-screenshot-observation",
+          "path": "src/plugins/payment-screenshot-observation/flow.ts",
+          "lines": [
+            155
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
+          "lines": [
+            201,
+            214
+          ]
+        },
+        {
+          "consumer": "qimen-professional-answer",
+          "path": "src/plugins/qimen-professional-answer/flow.ts",
+          "lines": [
+            160
+          ]
+        },
+        {
+          "consumer": "qimen-report-followup",
+          "path": "src/plugins/qimen-report-followup/flow.ts",
+          "lines": [
+            161
+          ]
+        }
+      ],
+      "collectionRequirements": {
+        "childCapabilityId": "ensure_gpt_reasoning_requirement",
+        "scenarioId": "text-main",
+        "coreTargets": [
+          "reasoning-control",
+          "reasoning-option",
+          "selected-reasoning-indicator"
+        ],
+        "requiredLiveStates": [
+          "reasoning-scale-current-variant",
+          "reasoning-target-selected",
+          "reasoning-selection-postcondition"
+        ],
+        "optionalLiveStates": [
+          "reasoning-scale-0-2",
+          "reasoning-scale-0-4",
+          "already-selected"
+        ],
+        "childSpecificDerivedStates": [
+          "required-reasoning-unavailable",
+          "reasoning-option-ambiguous",
+          "reasoning-selection-did-not-stick",
+          "reasoning-scale-unsupported"
+        ],
+        "requiredFixtures": [
+          "authorized-reasoning-requirement"
+        ]
+      },
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": [
+        "live-page-capture-not-present"
+      ]
+    },
+    {
+      "childCapabilityId": "focus_exact_gpt_conversation",
+      "contractVersion": 4,
+      "pageOperationRequired": true,
+      "inclusionBasis": "requiredTargetKind is not none and implementation is present under GPT web owner",
+      "contract": {
+        "actionQualification": "current canonical URL differs",
+        "allowedDocumentTransition": "exact-navigation-only",
+        "boundedWait": true,
+        "childCapabilityId": "focus_exact_gpt_conversation",
+        "contractVersion": 4,
+        "decisions": [
+          "DONE",
+          "ACT",
+          "WAIT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.focus_exact_gpt_conversation.input.v1",
+        "mutationBudget": "zero-or-one-browser-input",
+        "negativePostcondition": "transient navigation readback remains unsettled for 2500ms or origin mismatch navigation failure or readback mismatch fails closed",
+        "oneObservationOrMutation": "at-most-one-mutation",
+        "owner": "gpt",
+        "positivePostcondition": "current URL equals the exact canonical conversation URL",
+        "precondition": "verified canonical conversation URL",
+        "profile": "TARGET_LOCAL_MUTATION",
+        "replayPolicy": "target-local-per-generation",
+        "requiredTargetKind": "chatgpt",
+        "semanticIntent": "focus the Product-frozen exact conversation"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts",
+          "lines": [
+            279,
+            302
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            78
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            178,
+            283
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            77
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/production-browser-lifecycle.ts",
+          "lines": [
+            86
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/conversation-children.ts",
+          "lines": [
+            315
+          ]
+        }
+      ],
+      "webImplementationReferences": [
+        {
+          "path": "src/capabilities/gpt/web/children/conversation-children.ts",
+          "lines": [
+            315
+          ]
+        }
+      ],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/flow.ts",
+          "lines": [
+            187,
+            231
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/flow.ts",
+          "lines": [
+            187,
+            231
+          ]
+        },
+        {
+          "consumer": "bazi-report-followup",
+          "path": "src/plugins/bazi-report-followup/parent-continuation.ts",
+          "lines": [
+            92
+          ]
+        },
+        {
+          "consumer": "hehun-report-followup",
+          "path": "src/plugins/hehun-report-followup/flow.ts",
+          "lines": [
+            361
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
+          "lines": [
+            444
+          ]
+        },
+        {
+          "consumer": "qimen-report-followup",
+          "path": "src/plugins/qimen-report-followup/flow.ts",
+          "lines": [
+            361
+          ]
+        }
+      ],
+      "collectionRequirements": {
+        "childCapabilityId": "focus_exact_gpt_conversation",
+        "scenarioId": "focus-fork",
+        "coreTargets": [
+          "page-root",
+          "conversation-link-or-route",
+          "conversation-root"
+        ],
+        "requiredLiveStates": [
+          "root-before-navigation",
+          "conversation-after-navigation",
+          "already-focused"
+        ],
+        "optionalLiveStates": [
+          "navigation-loading"
+        ],
+        "childSpecificDerivedStates": [
+          "focus-landed-on-wrong-conversation",
+          "focus-route-unavailable",
+          "focus-document-changed-mid-read"
+        ],
+        "requiredFixtures": [
+          "synthetic-conversation-marker"
+        ]
+      },
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": [
+        "live-page-capture-not-present"
+      ]
+    },
+    {
+      "childCapabilityId": "fork_exact_gpt_conversation_at_checkpoint",
+      "contractVersion": 3,
+      "pageOperationRequired": true,
+      "inclusionBasis": "requiredTargetKind is not none and implementation is present under GPT web owner",
+      "contract": {
+        "actionQualification": "no child relation exists and the unique leaf remains source-bound",
+        "allowedDocumentTransition": "exact-navigation-only",
+        "boundedWait": false,
+        "childCapabilityId": "fork_exact_gpt_conversation_at_checkpoint",
+        "contractVersion": 3,
+        "decisions": [
+          "DONE",
+          "ACT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.fork_exact_gpt_conversation_at_checkpoint.input.v1",
+        "mutationBudget": "zero-or-one-browser-input",
+        "negativePostcondition": "menu source leaf child or relation missing ambiguous changed or unclosed fails closed",
+        "oneObservationOrMutation": "at-most-one-mutation",
+        "owner": "gpt",
+        "positivePostcondition": "one child canonical URL and one source-to-child relation",
+        "precondition": "fresh exact source identity active menu and one fork leaf",
+        "profile": "PROVIDER_EFFECT_ONCE",
+        "replayPolicy": "provider-effect-once",
+        "requiredTargetKind": "chatgpt",
+        "semanticIntent": "fork once from the already-open exact source-bound menu"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts",
+          "lines": [
+            380
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            78
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            225,
+            366
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/completed-result.ts",
+          "lines": [
+            72
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            90
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/evidence-artifacts.ts",
+          "lines": [
+            209
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/task-exact-effect.ts",
+          "lines": [
+            19
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/conversation-children.ts",
+          "lines": [
+            421
+          ]
+        }
+      ],
+      "webImplementationReferences": [
+        {
+          "path": "src/capabilities/gpt/web/children/conversation-children.ts",
+          "lines": [
+            421
+          ]
+        }
+      ],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/flow.ts",
+          "lines": [
+            170
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/flow.ts",
+          "lines": [
+            170
+          ]
+        }
+      ],
+      "collectionRequirements": {
+        "childCapabilityId": "fork_exact_gpt_conversation_at_checkpoint",
+        "scenarioId": "focus-fork",
+        "coreTargets": [
+          "source-turn",
+          "source-bound-fork-entry",
+          "child-conversation-root"
+        ],
+        "requiredLiveStates": [
+          "source-bound-fork-leaf",
+          "child-conversation-after-fork",
+          "source-child-relation-readback"
+        ],
+        "optionalLiveStates": [
+          "fork-navigation-transition"
+        ],
+        "childSpecificDerivedStates": [
+          "fork-entry-bound-to-wrong-turn",
+          "fork-effect-unknown",
+          "child-conversation-identity-mismatch",
+          "duplicate-fork-effect"
+        ],
+        "requiredFixtures": [
+          "synthetic-source-turn-marker"
+        ]
+      },
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": [
+        "live-page-capture-not-present"
+      ]
+    },
+    {
+      "childCapabilityId": "open_gpt_attachment_control",
+      "contractVersion": 2,
+      "pageOperationRequired": true,
+      "inclusionBasis": "requiredTargetKind is not none and implementation is present under GPT web owner",
+      "contract": {
+        "actionQualification": "active menu absent and one composer-scoped trigger",
+        "allowedDocumentTransition": "forbidden",
+        "boundedWait": true,
+        "childCapabilityId": "open_gpt_attachment_control",
+        "contractVersion": 2,
+        "decisions": [
+          "DONE",
+          "ACT",
+          "WAIT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.open_gpt_attachment_control.input.v1",
+        "mutationBudget": "zero-or-one-browser-input",
+        "negativePostcondition": "partial ambiguity ineligible candidate document drift timeout or incomplete same-packet menu fails closed",
+        "oneObservationOrMutation": "at-most-one-mutation",
+        "owner": "gpt",
+        "positivePostcondition": "same mutation packet proves one active menu scope and one exact upload-from-computer leaf",
+        "precondition": "same-Document composer-scoped trigger and active-popover-scoped exact upload leaf",
+        "profile": "TARGET_LOCAL_MUTATION",
+        "replayPolicy": "target-local-per-generation",
+        "requiredTargetKind": "chatgpt",
+        "semanticIntent": "open the exact composer attachment menu"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-attachment.acceptance.ts",
+          "lines": [
+            74,
+            93,
+            107,
+            128,
+            178,
+            218,
+            236,
+            261
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-child-input-denominator.acceptance.ts",
+          "lines": [
+            56
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            78
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            185,
+            303
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            83
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/attachment-children.ts",
+          "lines": [
+            400
+          ]
+        }
+      ],
+      "webImplementationReferences": [
+        {
+          "path": "src/capabilities/gpt/web/children/attachment-children.ts",
+          "lines": [
+            400
+          ]
+        }
+      ],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
+          "lines": [
+            211
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
+          "lines": [
+            212
+          ]
+        },
+        {
+          "consumer": "bazi-report-followup",
+          "path": "src/plugins/bazi-report-followup/product-turn.ts",
+          "lines": [
+            182
+          ]
+        },
+        {
+          "consumer": "hehun-ai-analysis",
+          "path": "src/plugins/hehun-ai-analysis/flow.ts",
+          "lines": [
+            179
+          ]
+        },
+        {
+          "consumer": "hehun-report-followup",
+          "path": "src/plugins/hehun-report-followup/flow.ts",
+          "lines": [
+            180
+          ]
+        },
+        {
+          "consumer": "localization-production",
+          "path": "src/plugins/localization-production/flow.ts",
+          "lines": [
+            174
+          ]
+        },
+        {
+          "consumer": "naming-bazi-analysis-and-naming",
+          "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
+          "lines": [
+            174
+          ]
+        },
+        {
+          "consumer": "naming-from-existing-bazi-report",
+          "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
+          "lines": [
+            174
+          ]
+        },
+        {
+          "consumer": "payment-screenshot-observation",
+          "path": "src/plugins/payment-screenshot-observation/flow.ts",
+          "lines": [
+            174
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
+          "lines": [
+            513
+          ]
+        },
+        {
+          "consumer": "qimen-professional-answer",
+          "path": "src/plugins/qimen-professional-answer/flow.ts",
+          "lines": [
+            179
+          ]
+        },
+        {
+          "consumer": "qimen-report-followup",
+          "path": "src/plugins/qimen-report-followup/flow.ts",
+          "lines": [
+            180
+          ]
+        }
+      ],
+      "collectionRequirements": {
+        "childCapabilityId": "open_gpt_attachment_control",
+        "scenarioId": "text-main",
+        "coreTargets": [
+          "attachment-trigger",
+          "attachment-menu",
+          "upload-entry"
+        ],
+        "requiredLiveStates": [
+          "attachment-trigger-before",
+          "attachment-menu-after",
+          "attachment-menu-already-open"
+        ],
+        "optionalLiveStates": [
+          "attachment-menu-opening-transition"
+        ],
+        "childSpecificDerivedStates": [
+          "attachment-menu-not-owned-by-trigger",
+          "upload-entry-missing",
+          "attachment-menu-did-not-open"
+        ],
+        "requiredFixtures": []
+      },
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": [
+        "live-page-capture-not-present"
+      ]
+    },
+    {
+      "childCapabilityId": "open_gpt_checkpoint_actions_menu",
+      "contractVersion": 3,
+      "pageOperationRequired": true,
+      "inclusionBasis": "requiredTargetKind is not none and implementation is present under GPT web owner",
+      "contract": {
+        "actionQualification": "source-bound menu absent and one source more-actions control",
+        "allowedDocumentTransition": "forbidden",
+        "boundedWait": false,
+        "childCapabilityId": "open_gpt_checkpoint_actions_menu",
+        "contractVersion": 3,
+        "decisions": [
+          "DONE",
+          "ACT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.open_gpt_checkpoint_actions_menu.input.v1",
+        "mutationBudget": "zero-or-one-browser-input",
+        "negativePostcondition": "source mismatch menu or leaf missing ambiguous or unbound fails closed",
+        "oneObservationOrMutation": "at-most-one-mutation",
+        "owner": "gpt",
+        "positivePostcondition": "one active source-bound menu and one fork leaf",
+        "precondition": "exact source conversation assistant turn marker prompt and response hashes",
+        "profile": "TARGET_LOCAL_MUTATION",
+        "replayPolicy": "target-local-per-generation",
+        "requiredTargetKind": "chatgpt",
+        "semanticIntent": "open or confirm the exact source checkpoint actions menu"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts",
+          "lines": [
+            354
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            79
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            224,
+            362
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            87
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/conversation-children.ts",
+          "lines": [
+            383
+          ]
+        }
+      ],
+      "webImplementationReferences": [
+        {
+          "path": "src/capabilities/gpt/web/children/conversation-children.ts",
+          "lines": [
+            383
+          ]
+        }
+      ],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/flow.ts",
+          "lines": [
+            203
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/flow.ts",
+          "lines": [
+            203
+          ]
+        }
+      ],
+      "collectionRequirements": {
+        "childCapabilityId": "open_gpt_checkpoint_actions_menu",
+        "scenarioId": "focus-fork",
+        "coreTargets": [
+          "source-turn",
+          "turn-actions-trigger",
+          "source-bound-actions-menu"
+        ],
+        "requiredLiveStates": [
+          "source-turn-menu-closed",
+          "source-bound-menu-open",
+          "source-turn-menu-already-open"
+        ],
+        "optionalLiveStates": [
+          "menu-opening-transition"
+        ],
+        "childSpecificDerivedStates": [
+          "menu-bound-to-wrong-turn",
+          "fork-entry-missing",
+          "multiple-source-menus-open"
+        ],
+        "requiredFixtures": [
+          "synthetic-source-turn-marker"
+        ]
+      },
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": [
+        "live-page-capture-not-present"
+      ]
+    },
+    {
+      "childCapabilityId": "open_gpt_execution_profile",
+      "contractVersion": 3,
+      "pageOperationRequired": true,
+      "inclusionBasis": "requiredTargetKind is not none and implementation is present under GPT web owner",
+      "contract": {
+        "actionQualification": "five profile rows absent and one collapsed qualified trigger",
+        "allowedDocumentTransition": "forbidden",
+        "boundedWait": true,
+        "childCapabilityId": "open_gpt_execution_profile",
+        "contractVersion": 3,
+        "decisions": [
+          "DONE",
+          "ACT",
+          "WAIT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.open_gpt_execution_profile.input.v2",
+        "mutationBudget": "zero-or-one-browser-input",
+        "negativePostcondition": "partial ambiguity unknown scale ineligible candidate document drift timeout or incomplete same-packet topology fails closed",
+        "oneObservationOrMutation": "at-most-one-mutation",
+        "owner": "gpt",
+        "positivePostcondition": "same mutation packet proves one complete popup reasoning topology on scale zero through two or zero through four and expanded trigger",
+        "precondition": "same-Document six-query profile topology is fully absent hydrating or fully open on an approved reasoning scale",
+        "profile": "TARGET_LOCAL_MUTATION",
+        "replayPolicy": "target-local-per-generation",
+        "requiredTargetKind": "chatgpt",
+        "semanticIntent": "open the unique execution profile popup"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            80
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts",
+          "lines": [
+            126,
+            130,
+            159,
+            186,
+            225,
+            243,
+            268
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            180,
+            288
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            78
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/execution-profile-children.ts",
+          "lines": [
+            334,
+            337,
+            419
+          ]
+        }
+      ],
+      "webImplementationReferences": [
+        {
+          "path": "src/capabilities/gpt/web/children/execution-profile-children.ts",
+          "lines": [
+            334,
+            337,
+            419
+          ]
+        }
+      ],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
+          "lines": [
+            187,
+            190
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
+          "lines": [
+            188,
+            191
+          ]
+        },
+        {
+          "consumer": "bazi-report-followup",
+          "path": "src/plugins/bazi-report-followup/product-turn.ts",
+          "lines": [
+            159,
+            162
+          ]
+        },
+        {
+          "consumer": "hehun-ai-analysis",
+          "path": "src/plugins/hehun-ai-analysis/flow.ts",
+          "lines": [
+            156,
+            159
+          ]
+        },
+        {
+          "consumer": "hehun-report-followup",
+          "path": "src/plugins/hehun-report-followup/flow.ts",
+          "lines": [
+            157,
+            160
+          ]
+        },
+        {
+          "consumer": "localization-production",
+          "path": "src/plugins/localization-production/flow.ts",
+          "lines": [
+            151,
+            154
+          ]
+        },
+        {
+          "consumer": "naming-bazi-analysis-and-naming",
+          "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
+          "lines": [
+            151,
+            154
+          ]
+        },
+        {
+          "consumer": "naming-from-existing-bazi-report",
+          "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
+          "lines": [
+            151,
+            154
+          ]
+        },
+        {
+          "consumer": "payment-screenshot-observation",
+          "path": "src/plugins/payment-screenshot-observation/flow.ts",
+          "lines": [
+            151,
+            154
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
+          "lines": [
+            197,
+            200,
+            210,
+            213
+          ]
+        },
+        {
+          "consumer": "qimen-professional-answer",
+          "path": "src/plugins/qimen-professional-answer/flow.ts",
+          "lines": [
+            156,
+            159
+          ]
+        },
+        {
+          "consumer": "qimen-report-followup",
+          "path": "src/plugins/qimen-report-followup/flow.ts",
+          "lines": [
+            157,
+            160
+          ]
+        }
+      ],
+      "collectionRequirements": {
+        "childCapabilityId": "open_gpt_execution_profile",
+        "scenarioId": "text-main",
+        "coreTargets": [
+          "execution-profile-trigger",
+          "execution-profile-panel"
+        ],
+        "requiredLiveStates": [
+          "profile-collapsed-trigger",
+          "profile-open",
+          "profile-already-open"
+        ],
+        "optionalLiveStates": [
+          "profile-opening-transition"
+        ],
+        "childSpecificDerivedStates": [
+          "profile-panel-not-owned-by-trigger",
+          "profile-did-not-open",
+          "multiple-profile-panels"
+        ],
+        "requiredFixtures": []
+      },
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": [
+        "live-page-capture-not-present"
+      ]
+    },
+    {
+      "childCapabilityId": "open_gpt_model_selector_v2",
+      "contractVersion": 3,
+      "pageOperationRequired": true,
+      "inclusionBasis": "requiredTargetKind is not none and implementation is present under GPT web owner",
+      "contract": {
+        "actionQualification": "OPENABLE topology only",
+        "allowedDocumentTransition": "forbidden",
+        "boundedWait": false,
+        "childCapabilityId": "open_gpt_model_selector_v2",
+        "contractVersion": 3,
+        "decisions": [
+          "DONE",
+          "ACT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.open_gpt_model_selector_v2.input.v2",
+        "mutationBudget": "zero-or-one-browser-input",
+        "negativePostcondition": "transition legacy or any other topology and failed direct readback fail closed",
+        "oneObservationOrMutation": "at-most-one-mutation",
+        "owner": "gpt",
+        "positivePostcondition": "stable ALREADY_OPEN topology has zero entry zero simple and one active advanced panel",
+        "precondition": "one coherent popup entry simple and advanced topology with a v2 execution profile",
+        "profile": "TARGET_LOCAL_MUTATION",
+        "replayPolicy": "target-local-per-generation",
+        "requiredTargetKind": "chatgpt",
+        "semanticIntent": "open the unique advanced model selector"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            80
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts",
+          "lines": [
+            314,
+            325,
+            350,
+            363
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-proof.acceptance.ts",
+          "lines": [
+            37,
+            59,
+            65,
+            83,
+            99,
+            100
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            181,
+            289
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            79
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/child-handler.ts",
+          "lines": [
+            43,
+            48
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/model-selection-v2-children.ts",
+          "lines": [
+            143
+          ]
+        }
+      ],
+      "webImplementationReferences": [
+        {
+          "path": "src/capabilities/gpt/web/child-handler.ts",
+          "lines": [
+            43,
+            48
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/model-selection-v2-children.ts",
+          "lines": [
+            143
+          ]
+        }
+      ],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
+          "lines": [
+            188
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
+          "lines": [
+            189
+          ]
+        },
+        {
+          "consumer": "bazi-report-followup",
+          "path": "src/plugins/bazi-report-followup/product-turn.ts",
+          "lines": [
+            160
+          ]
+        },
+        {
+          "consumer": "hehun-ai-analysis",
+          "path": "src/plugins/hehun-ai-analysis/flow.ts",
+          "lines": [
+            157
+          ]
+        },
+        {
+          "consumer": "hehun-report-followup",
+          "path": "src/plugins/hehun-report-followup/flow.ts",
+          "lines": [
+            158
+          ]
+        },
+        {
+          "consumer": "localization-production",
+          "path": "src/plugins/localization-production/flow.ts",
+          "lines": [
+            152
+          ]
+        },
+        {
+          "consumer": "naming-bazi-analysis-and-naming",
+          "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
+          "lines": [
+            152
+          ]
+        },
+        {
+          "consumer": "naming-from-existing-bazi-report",
+          "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
+          "lines": [
+            152
+          ]
+        },
+        {
+          "consumer": "payment-screenshot-observation",
+          "path": "src/plugins/payment-screenshot-observation/flow.ts",
+          "lines": [
+            152
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
+          "lines": [
+            198,
+            211
+          ]
+        },
+        {
+          "consumer": "qimen-professional-answer",
+          "path": "src/plugins/qimen-professional-answer/flow.ts",
+          "lines": [
+            157
+          ]
+        },
+        {
+          "consumer": "qimen-report-followup",
+          "path": "src/plugins/qimen-report-followup/flow.ts",
+          "lines": [
+            158
+          ]
+        }
+      ],
+      "collectionRequirements": {
+        "childCapabilityId": "open_gpt_model_selector_v2",
+        "scenarioId": "text-main",
+        "coreTargets": [
+          "model-selector-trigger",
+          "model-selector-panel"
+        ],
+        "requiredLiveStates": [
+          "model-selector-openable",
+          "model-selector-open",
+          "model-selector-already-open"
+        ],
+        "optionalLiveStates": [
+          "advanced-model-group-open"
+        ],
+        "childSpecificDerivedStates": [
+          "selector-panel-not-owned-by-trigger",
+          "selector-did-not-open",
+          "model-list-not-hydrated"
+        ],
+        "requiredFixtures": []
+      },
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": [
+        "live-page-capture-not-present"
+      ]
+    },
+    {
+      "childCapabilityId": "persist_gpt_continuation",
+      "contractVersion": 2,
+      "pageOperationRequired": false,
+      "inclusionBasis": "requiredTargetKind is none and implementation has no GPT web owner reference",
+      "contract": {
+        "actionQualification": "row is absent",
+        "allowedDocumentTransition": "not-applicable",
+        "boundedWait": false,
+        "childCapabilityId": "persist_gpt_continuation",
+        "contractVersion": 2,
+        "decisions": [
+          "DONE",
+          "ACT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.persist_gpt_continuation.input.v1",
+        "mutationBudget": "zero-or-one-transaction",
+        "negativePostcondition": "identity content authorization or pair conflict fails closed",
+        "oneObservationOrMutation": "at-most-one-mutation",
+        "owner": "gpt",
+        "positivePostcondition": "origin and current provider checkpoint pair are identical and immutable",
+        "precondition": "exact owner subject authorization provider checkpoint and optional frontier",
+        "profile": "CONTINUATION_TRANSACTION",
+        "replayPolicy": "transaction-identical-readback",
+        "requiredTargetKind": "none",
+        "semanticIntent": "atomically bind an exact continuation origin"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-continuation-transaction.acceptance.ts",
+          "lines": [
+            89,
+            96
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            81
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            226,
+            367
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            91
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/production-call-facts.ts",
+          "lines": [
+            58
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/production-child-tools.ts",
+          "lines": [
+            201
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/session/session-children.ts",
+          "lines": [
+            209
+          ]
+        }
+      ],
+      "webImplementationReferences": [],
+      "productConsumers": [
+        {
+          "consumer": "hehun-ai-analysis",
+          "path": "src/plugins/hehun-ai-analysis/flow.ts",
+          "lines": [
+            353
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/index.ts",
+          "lines": [
+            148
+          ]
+        },
+        {
+          "consumer": "qimen-professional-answer",
+          "path": "src/plugins/qimen-professional-answer/flow.ts",
+          "lines": [
+            353
+          ]
+        }
+      ],
+      "collectionRequirements": null,
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": []
+    },
+    {
+      "childCapabilityId": "prepare_clean_gpt_chat",
+      "contractVersion": 4,
+      "pageOperationRequired": true,
+      "inclusionBasis": "requiredTargetKind is not none and implementation is present under GPT web owner",
+      "contract": {
+        "actionQualification": "only a nonempty stale exact editable draft remains",
+        "allowedDocumentTransition": "forbidden",
+        "boundedWait": true,
+        "childCapabilityId": "prepare_clean_gpt_chat",
+        "contractVersion": 4,
+        "decisions": [
+          "DONE",
+          "ACT",
+          "WAIT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.prepare_clean_gpt_chat.input.v1",
+        "mutationBudget": "zero-or-one-browser-input",
+        "negativePostcondition": "transient draft-clear readback remains unsettled for 2500ms or prior turn attachment generating ambiguity or uncleared draft fails closed",
+        "oneObservationOrMutation": "at-most-one-mutation",
+        "owner": "gpt",
+        "positivePostcondition": "revision-bound exact empty editable draft with zero prior state",
+        "precondition": "one composer zero turns attachments and generating",
+        "profile": "TARGET_LOCAL_MUTATION",
+        "replayPolicy": "target-local-per-generation",
+        "requiredTargetKind": "chatgpt",
+        "semanticIntent": "prove a fresh chat and clear only an otherwise isolated stale draft"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts",
+          "lines": [
+            121,
+            144,
+            168,
+            193,
+            218,
+            235,
+            264
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            81
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-failure-evidence-readback.acceptance-support.ts",
+          "lines": [
+            170,
+            186,
+            192,
+            200,
+            236,
+            251,
+            257,
+            265,
+            285,
+            286,
+            308,
+            342,
+            360,
+            378,
+            386
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            177,
+            275
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            76
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/child-handler.ts",
+          "lines": [
+            43,
+            47
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/conversation-children.ts",
+          "lines": [
+            254
+          ]
+        }
+      ],
+      "webImplementationReferences": [
+        {
+          "path": "src/capabilities/gpt/web/child-handler.ts",
+          "lines": [
+            43,
+            47
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/conversation-children.ts",
+          "lines": [
+            254
+          ]
+        }
+      ],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/private-base-reservation.ts",
+          "lines": [
+            123
+          ]
+        },
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
+          "lines": [
+            353
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/private-base-reservation.ts",
+          "lines": [
+            123
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
+          "lines": [
+            354
+          ]
+        },
+        {
+          "consumer": "bazi-report-followup",
+          "path": "src/plugins/bazi-report-followup/product-turn.ts",
+          "lines": [
+            319
+          ]
+        },
+        {
+          "consumer": "hehun-ai-analysis",
+          "path": "src/plugins/hehun-ai-analysis/flow.ts",
+          "lines": [
+            314
+          ]
+        },
+        {
+          "consumer": "hehun-report-followup",
+          "path": "src/plugins/hehun-report-followup/flow.ts",
+          "lines": [
+            315
+          ]
+        },
+        {
+          "consumer": "localization-production",
+          "path": "src/plugins/localization-production/flow.ts",
+          "lines": [
+            307
+          ]
+        },
+        {
+          "consumer": "naming-bazi-analysis-and-naming",
+          "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
+          "lines": [
+            307
+          ]
+        },
+        {
+          "consumer": "naming-from-existing-bazi-report",
+          "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
+          "lines": [
+            307
+          ]
+        },
+        {
+          "consumer": "payment-screenshot-observation",
+          "path": "src/plugins/payment-screenshot-observation/flow.ts",
+          "lines": [
+            307
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
+          "lines": [
+            512
+          ]
+        },
+        {
+          "consumer": "qimen-professional-answer",
+          "path": "src/plugins/qimen-professional-answer/flow.ts",
+          "lines": [
+            314
+          ]
+        },
+        {
+          "consumer": "qimen-report-followup",
+          "path": "src/plugins/qimen-report-followup/flow.ts",
+          "lines": [
+            315
+          ]
+        }
+      ],
+      "collectionRequirements": {
+        "childCapabilityId": "prepare_clean_gpt_chat",
+        "scenarioId": "text-main",
+        "coreTargets": [
+          "conversation-root",
+          "composer",
+          "attachment-region"
+        ],
+        "requiredLiveStates": [
+          "fresh-empty-chat",
+          "stale-draft-before",
+          "stale-draft-after-clean"
+        ],
+        "optionalLiveStates": [
+          "stale-attachment-before",
+          "stale-attachment-after-clean"
+        ],
+        "childSpecificDerivedStates": [
+          "draft-remains-after-clean",
+          "attachment-remains-after-clean",
+          "wrong-conversation-cleaned"
+        ],
+        "requiredFixtures": [
+          "synthetic-stale-draft"
+        ]
+      },
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": [
+        "live-page-capture-not-present"
+      ]
+    },
+    {
+      "childCapabilityId": "reconcile_gpt_attachment_set",
+      "contractVersion": 3,
+      "pageOperationRequired": true,
+      "inclusionBasis": "requiredTargetKind is not none and implementation is present under GPT web owner",
+      "contract": {
+        "actionQualification": "never",
+        "allowedDocumentTransition": "forbidden",
+        "boundedWait": true,
+        "childCapabilityId": "reconcile_gpt_attachment_set",
+        "contractVersion": 3,
+        "decisions": [
+          "DONE",
+          "WAIT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.reconcile_gpt_attachment_set.input.v1",
+        "mutationBudget": "zero",
+        "negativePostcondition": "composer or attachment ambiguity unexpected duplicate card or Product deadline fails closed",
+        "oneObservationOrMutation": "bounded-observation",
+        "owner": "gpt",
+        "positivePostcondition": "one composer exact visible approved attachment card set and zero scoped spinner and pending action",
+        "precondition": "approved provider display names and Product timeout",
+        "profile": "DOM_OBSERVATION",
+        "replayPolicy": "observation-only",
+        "requiredTargetKind": "chatgpt",
+        "semanticIntent": "prove all and only approved attachments are ready"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-attachment.acceptance.ts",
+          "lines": [
+            356,
+            383,
+            402,
+            420,
+            437
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            82
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            187,
+            308
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            71
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/attachment-children.ts",
+          "lines": [
+            491
+          ]
+        }
+      ],
+      "webImplementationReferences": [
+        {
+          "path": "src/capabilities/gpt/web/children/attachment-children.ts",
+          "lines": [
+            491
+          ]
+        }
+      ],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
+          "lines": [
+            213
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
+          "lines": [
+            214
+          ]
+        },
+        {
+          "consumer": "bazi-report-followup",
+          "path": "src/plugins/bazi-report-followup/product-turn.ts",
+          "lines": [
+            184
+          ]
+        },
+        {
+          "consumer": "hehun-ai-analysis",
+          "path": "src/plugins/hehun-ai-analysis/flow.ts",
+          "lines": [
+            181
+          ]
+        },
+        {
+          "consumer": "hehun-report-followup",
+          "path": "src/plugins/hehun-report-followup/flow.ts",
+          "lines": [
+            182
+          ]
+        },
+        {
+          "consumer": "localization-production",
+          "path": "src/plugins/localization-production/flow.ts",
+          "lines": [
+            176
+          ]
+        },
+        {
+          "consumer": "naming-bazi-analysis-and-naming",
+          "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
+          "lines": [
+            176
+          ]
+        },
+        {
+          "consumer": "naming-from-existing-bazi-report",
+          "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
+          "lines": [
+            176
+          ]
+        },
+        {
+          "consumer": "payment-screenshot-observation",
+          "path": "src/plugins/payment-screenshot-observation/flow.ts",
+          "lines": [
+            176
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
+          "lines": [
+            515
+          ]
+        },
+        {
+          "consumer": "qimen-professional-answer",
+          "path": "src/plugins/qimen-professional-answer/flow.ts",
+          "lines": [
+            181
+          ]
+        },
+        {
+          "consumer": "qimen-report-followup",
+          "path": "src/plugins/qimen-report-followup/flow.ts",
+          "lines": [
+            182
+          ]
+        }
+      ],
+      "collectionRequirements": {
+        "childCapabilityId": "reconcile_gpt_attachment_set",
+        "scenarioId": "text-main",
+        "coreTargets": [
+          "composer",
+          "attachment-cards",
+          "upload-status"
+        ],
+        "requiredLiveStates": [
+          "uploading-pending",
+          "attachment-cards-ready",
+          "attachment-set-exact"
+        ],
+        "optionalLiveStates": [
+          "attachment-upload-error"
+        ],
+        "childSpecificDerivedStates": [
+          "attachment-missing",
+          "attachment-extra",
+          "attachment-still-uploading",
+          "attachment-terminal-error"
+        ],
+        "requiredFixtures": [
+          "synthetic-txt",
+          "synthetic-json",
+          "synthetic-zip"
+        ]
+      },
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": [
+        "live-page-capture-not-present"
+      ]
+    },
+    {
+      "childCapabilityId": "reconcile_gpt_draft",
+      "contractVersion": 4,
+      "pageOperationRequired": true,
+      "inclusionBasis": "requiredTargetKind is not none and implementation is present under GPT web owner",
+      "contract": {
+        "actionQualification": "never",
+        "allowedDocumentTransition": "forbidden",
+        "boundedWait": false,
+        "childCapabilityId": "reconcile_gpt_draft",
+        "contractVersion": 4,
+        "decisions": [
+          "DONE",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.reconcile_gpt_draft.input.v1",
+        "mutationBudget": "zero",
+        "negativePostcondition": "missing ambiguous changed unscoped attachment or semantic-projection-only draft fails closed",
+        "oneObservationOrMutation": "bounded-observation",
+        "owner": "gpt",
+        "positivePostcondition": "one revision binds exact editable prompt hash exact composer-scoped approved attachment set and enabled send control",
+        "precondition": "exact prompt approved attachment set and one composer",
+        "profile": "DOM_OBSERVATION",
+        "replayPolicy": "observation-only",
+        "requiredTargetKind": "chatgpt",
+        "semanticIntent": "prove composer retains the exact prompt approved attachments and enabled send control"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts",
+          "lines": [
+            506
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            82
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            192,
+            310
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            72
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/composer-submission-children.ts",
+          "lines": [
+            245
+          ]
+        }
+      ],
+      "webImplementationReferences": [
+        {
+          "path": "src/capabilities/gpt/web/children/composer-submission-children.ts",
+          "lines": [
+            245
+          ]
+        }
+      ],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
+          "lines": [
+            322
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
+          "lines": [
+            323
+          ]
+        },
+        {
+          "consumer": "bazi-report-followup",
+          "path": "src/plugins/bazi-report-followup/product-turn.ts",
+          "lines": [
+            288
+          ]
+        },
+        {
+          "consumer": "hehun-ai-analysis",
+          "path": "src/plugins/hehun-ai-analysis/flow.ts",
+          "lines": [
+            286
+          ]
+        },
+        {
+          "consumer": "hehun-report-followup",
+          "path": "src/plugins/hehun-report-followup/flow.ts",
+          "lines": [
+            287
+          ]
+        },
+        {
+          "consumer": "localization-production",
+          "path": "src/plugins/localization-production/flow.ts",
+          "lines": [
+            279
+          ]
+        },
+        {
+          "consumer": "naming-bazi-analysis-and-naming",
+          "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
+          "lines": [
+            279
+          ]
+        },
+        {
+          "consumer": "naming-from-existing-bazi-report",
+          "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
+          "lines": [
+            279
+          ]
+        },
+        {
+          "consumer": "payment-screenshot-observation",
+          "path": "src/plugins/payment-screenshot-observation/flow.ts",
+          "lines": [
+            279
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
+          "lines": [
+            362,
+            376
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-image-call.ts",
+          "lines": [
+            61,
+            96,
+            114
+          ]
+        },
+        {
+          "consumer": "qimen-professional-answer",
+          "path": "src/plugins/qimen-professional-answer/flow.ts",
+          "lines": [
+            286
+          ]
+        },
+        {
+          "consumer": "qimen-report-followup",
+          "path": "src/plugins/qimen-report-followup/flow.ts",
+          "lines": [
+            287
+          ]
+        }
+      ],
+      "collectionRequirements": {
+        "childCapabilityId": "reconcile_gpt_draft",
+        "scenarioId": "text-main",
+        "coreTargets": [
+          "composer",
+          "composer-text-projection"
+        ],
+        "requiredLiveStates": [
+          "exact-draft-ready",
+          "draft-readback-stable"
+        ],
+        "optionalLiveStates": [
+          "empty-composer"
+        ],
+        "childSpecificDerivedStates": [
+          "draft-text-mismatch",
+          "draft-text-duplicated",
+          "draft-readback-unstable"
+        ],
+        "requiredFixtures": [
+          "synthetic-rich-text-prompt"
+        ]
+      },
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": [
+        "live-page-capture-not-present"
+      ]
+    },
+    {
+      "childCapabilityId": "reconcile_gpt_turn_submission",
+      "contractVersion": 4,
+      "pageOperationRequired": true,
+      "inclusionBasis": "requiredTargetKind is not none and implementation is present under GPT web owner",
+      "contract": {
+        "actionQualification": "never",
+        "allowedDocumentTransition": "exact-navigation-only",
+        "boundedWait": true,
+        "childCapabilityId": "reconcile_gpt_turn_submission",
+        "contractVersion": 4,
+        "decisions": [
+          "DONE",
+          "WAIT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.reconcile_gpt_turn_submission.input.v1",
+        "mutationBudget": "zero",
+        "negativePostcondition": "stable mismatch ambiguity lifecycle failure or deadline fails closed",
+        "oneObservationOrMutation": "bounded-observation",
+        "owner": "gpt",
+        "positivePostcondition": "one exact user turn permanent conversation locator and exact empty editable composer",
+        "precondition": "confirmed submit identity marker prompt hash and locator",
+        "profile": "DOM_OBSERVATION",
+        "replayPolicy": "observation-only",
+        "requiredTargetKind": "chatgpt",
+        "semanticIntent": "prove Provider accepted the exact user turn without resubmission"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-checkpoint-readback.acceptance.ts",
+          "lines": [
+            107,
+            147,
+            255,
+            258,
+            274
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts",
+          "lines": [
+            545
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            82
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            202,
+            314
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/completed-result.ts",
+          "lines": [
+            71
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/confirmed-provider-readback.ts",
+          "lines": [
+            184
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            73
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/evidence-artifacts.ts",
+          "lines": [
+            208
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/composer-submission-children.ts",
+          "lines": [
+            319
+          ]
+        }
+      ],
+      "webImplementationReferences": [
+        {
+          "path": "src/capabilities/gpt/web/children/composer-submission-children.ts",
+          "lines": [
+            319
+          ]
+        }
+      ],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
+          "lines": [
+            267
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
+          "lines": [
+            268
+          ]
+        },
+        {
+          "consumer": "bazi-report-followup",
+          "path": "src/plugins/bazi-report-followup/product-turn.ts",
+          "lines": [
+            236
+          ]
+        },
+        {
+          "consumer": "hehun-ai-analysis",
+          "path": "src/plugins/hehun-ai-analysis/flow.ts",
+          "lines": [
+            235
+          ]
+        },
+        {
+          "consumer": "hehun-report-followup",
+          "path": "src/plugins/hehun-report-followup/flow.ts",
+          "lines": [
+            236
+          ]
+        },
+        {
+          "consumer": "localization-production",
+          "path": "src/plugins/localization-production/flow.ts",
+          "lines": [
+            230
+          ]
+        },
+        {
+          "consumer": "naming-bazi-analysis-and-naming",
+          "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
+          "lines": [
+            230
+          ]
+        },
+        {
+          "consumer": "naming-from-existing-bazi-report",
+          "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
+          "lines": [
+            230
+          ]
+        },
+        {
+          "consumer": "payment-screenshot-observation",
+          "path": "src/plugins/payment-screenshot-observation/flow.ts",
+          "lines": [
+            230
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
+          "lines": [
+            257
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-image-call.ts",
+          "lines": [
+            75
+          ]
+        },
+        {
+          "consumer": "qimen-professional-answer",
+          "path": "src/plugins/qimen-professional-answer/flow.ts",
+          "lines": [
+            235
+          ]
+        },
+        {
+          "consumer": "qimen-report-followup",
+          "path": "src/plugins/qimen-report-followup/flow.ts",
+          "lines": [
+            236
+          ]
+        }
+      ],
+      "collectionRequirements": {
+        "childCapabilityId": "reconcile_gpt_turn_submission",
+        "scenarioId": "text-main",
+        "coreTargets": [
+          "user-turn",
+          "assistant-generation-boundary",
+          "conversation-root"
+        ],
+        "requiredLiveStates": [
+          "hydrated-exact-user-turn",
+          "submitted-turn-effect-readback"
+        ],
+        "optionalLiveStates": [
+          "generation-started"
+        ],
+        "childSpecificDerivedStates": [
+          "submitted-turn-missing",
+          "submitted-turn-duplicate",
+          "submitted-turn-text-mismatch",
+          "submission-effect-unknown"
+        ],
+        "requiredFixtures": [
+          "synthetic-rich-text-prompt"
+        ]
+      },
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": [
+        "live-page-capture-not-present"
+      ]
+    },
+    {
+      "childCapabilityId": "release_gpt_continuation_lane",
+      "contractVersion": 2,
+      "pageOperationRequired": false,
+      "inclusionBasis": "requiredTargetKind is none and implementation has no GPT web owner reference",
+      "contract": {
+        "actionQualification": "lane is currently owned by this exact job",
+        "allowedDocumentTransition": "not-applicable",
+        "boundedWait": false,
+        "childCapabilityId": "release_gpt_continuation_lane",
+        "contractVersion": 2,
+        "decisions": [
+          "DONE",
+          "ACT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.release_gpt_continuation_lane.input.v1",
+        "mutationBudget": "zero-or-one-transaction",
+        "negativePostcondition": "foreign owner version conflict or simultaneous advance fails closed",
+        "oneObservationOrMutation": "at-most-one-mutation",
+        "owner": "gpt",
+        "positivePostcondition": "lane owner is null and release version reads back exactly",
+        "precondition": "same exact lane owner and version",
+        "profile": "CONTINUATION_TRANSACTION",
+        "replayPolicy": "transaction-identical-readback",
+        "requiredTargetKind": "none",
+        "semanticIntent": "release the exact continuation lane without advancing"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-continuation-transaction.acceptance.ts",
+          "lines": [
+            323,
+            329
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            83
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            250,
+            384
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            96
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/session/session-children.ts",
+          "lines": [
+            455
+          ]
+        }
+      ],
+      "webImplementationReferences": [],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/flow.ts",
+          "lines": [
+            50
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/flow.ts",
+          "lines": [
+            50
+          ]
+        },
+        {
+          "consumer": "bazi-report-followup",
+          "path": "src/plugins/bazi-report-followup/parent-continuation.ts",
+          "lines": [
+            190
+          ]
+        },
+        {
+          "consumer": "hehun-report-followup",
+          "path": "src/plugins/hehun-report-followup/flow.ts",
+          "lines": [
+            443
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
+          "lines": [
+            472
+          ]
+        },
+        {
+          "consumer": "qimen-report-followup",
+          "path": "src/plugins/qimen-report-followup/flow.ts",
+          "lines": [
+            443
+          ]
+        }
+      ],
+      "collectionRequirements": null,
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": []
+    },
+    {
+      "childCapabilityId": "reserve_exact_gpt_continuation_once",
+      "contractVersion": 2,
+      "pageOperationRequired": false,
+      "inclusionBasis": "requiredTargetKind is none and implementation has no GPT web owner reference",
+      "contract": {
+        "actionQualification": "matching reservation is absent",
+        "allowedDocumentTransition": "not-applicable",
+        "boundedWait": false,
+        "childCapabilityId": "reserve_exact_gpt_continuation_once",
+        "contractVersion": 2,
+        "decisions": [
+          "DONE",
+          "ACT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.reserve_exact_gpt_continuation_once.input.v1",
+        "mutationBudget": "zero-or-one-transaction",
+        "negativePostcondition": "owner authorization version provenance or competing content fails closed",
+        "oneObservationOrMutation": "at-most-one-mutation",
+        "owner": "gpt",
+        "positivePostcondition": "one reservation CAS row reads back identically",
+        "precondition": "exact continuation creator lane fence effect and provenance",
+        "profile": "CONTINUATION_TRANSACTION",
+        "replayPolicy": "transaction-identical-readback",
+        "requiredTargetKind": "none",
+        "semanticIntent": "reserve the exact continuation once"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-continuation-transaction.acceptance.ts",
+          "lines": [
+            118,
+            119
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            81
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            227,
+            368
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            92
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/session/session-children.ts",
+          "lines": [
+            240
+          ]
+        }
+      ],
+      "webImplementationReferences": [],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/private-base-reservation.ts",
+          "lines": [
+            89,
+            285
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/private-base-reservation.ts",
+          "lines": [
+            89,
+            284
+          ]
+        }
+      ],
+      "collectionRequirements": null,
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": []
+    },
+    {
+      "childCapabilityId": "select_exact_gpt_model_v2",
+      "contractVersion": 3,
+      "pageOperationRequired": true,
+      "inclusionBasis": "requiredTargetKind is not none and implementation is present under GPT web owner",
+      "contract": {
+        "actionQualification": "the unique radio is qualified whether checked true or false",
+        "allowedDocumentTransition": "forbidden",
+        "boundedWait": false,
+        "childCapabilityId": "select_exact_gpt_model_v2",
+        "contractVersion": 3,
+        "decisions": [
+          "ACT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.select_exact_gpt_model_v2.input.v2",
+        "mutationBudget": "exactly-one-browser-input",
+        "negativePostcondition": "radio ambiguity invalid checked state or incomplete same-packet postcondition fails closed",
+        "oneObservationOrMutation": "at-most-one-mutation",
+        "owner": "gpt",
+        "positivePostcondition": "same mutation packet proves popup retained entry collapsed simple active advanced absent with no later DOM observation",
+        "precondition": "v2 execution profile ALREADY_OPEN topology and one exact radio with boolean checked state",
+        "profile": "TARGET_LOCAL_MUTATION",
+        "replayPolicy": "target-local-per-generation",
+        "requiredTargetKind": "chatgpt",
+        "semanticIntent": "select the exact model and consume the same Browser mutation postcondition packet"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            83
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts",
+          "lines": [
+            396,
+            421
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            182,
+            293
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            80
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/model-selection-v2-children.ts",
+          "lines": [
+            195
+          ]
+        }
+      ],
+      "webImplementationReferences": [
+        {
+          "path": "src/capabilities/gpt/web/children/model-selection-v2-children.ts",
+          "lines": [
+            195
+          ]
+        }
+      ],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
+          "lines": [
+            189
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
+          "lines": [
+            190
+          ]
+        },
+        {
+          "consumer": "bazi-report-followup",
+          "path": "src/plugins/bazi-report-followup/product-turn.ts",
+          "lines": [
+            161
+          ]
+        },
+        {
+          "consumer": "hehun-ai-analysis",
+          "path": "src/plugins/hehun-ai-analysis/flow.ts",
+          "lines": [
+            158
+          ]
+        },
+        {
+          "consumer": "hehun-report-followup",
+          "path": "src/plugins/hehun-report-followup/flow.ts",
+          "lines": [
+            159
+          ]
+        },
+        {
+          "consumer": "localization-production",
+          "path": "src/plugins/localization-production/flow.ts",
+          "lines": [
+            153
+          ]
+        },
+        {
+          "consumer": "naming-bazi-analysis-and-naming",
+          "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
+          "lines": [
+            153
+          ]
+        },
+        {
+          "consumer": "naming-from-existing-bazi-report",
+          "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
+          "lines": [
+            153
+          ]
+        },
+        {
+          "consumer": "payment-screenshot-observation",
+          "path": "src/plugins/payment-screenshot-observation/flow.ts",
+          "lines": [
+            153
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
+          "lines": [
+            199,
+            212
+          ]
+        },
+        {
+          "consumer": "qimen-professional-answer",
+          "path": "src/plugins/qimen-professional-answer/flow.ts",
+          "lines": [
+            158
+          ]
+        },
+        {
+          "consumer": "qimen-report-followup",
+          "path": "src/plugins/qimen-report-followup/flow.ts",
+          "lines": [
+            159
+          ]
+        }
+      ],
+      "collectionRequirements": {
+        "childCapabilityId": "select_exact_gpt_model_v2",
+        "scenarioId": "text-main",
+        "coreTargets": [
+          "model-option",
+          "selected-model-indicator",
+          "model-selector-trigger"
+        ],
+        "requiredLiveStates": [
+          "target-model-unchecked",
+          "target-model-checked",
+          "model-selection-postcondition"
+        ],
+        "optionalLiveStates": [
+          "model-option-description"
+        ],
+        "childSpecificDerivedStates": [
+          "target-model-missing",
+          "target-model-ambiguous",
+          "selection-did-not-stick",
+          "different-model-selected"
+        ],
+        "requiredFixtures": [
+          "authorized-model-id"
+        ]
+      },
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": [
+        "live-page-capture-not-present"
+      ]
+    },
+    {
+      "childCapabilityId": "submit_exact_gpt_turn_once",
+      "contractVersion": 4,
+      "pageOperationRequired": true,
+      "inclusionBasis": "requiredTargetKind is not none and implementation is present under GPT web owner",
+      "contract": {
+        "actionQualification": "no exact submitted turn exists and precondition remains current",
+        "allowedDocumentTransition": "exact-navigation-only",
+        "boundedWait": true,
+        "childCapabilityId": "submit_exact_gpt_turn_once",
+        "contractVersion": 4,
+        "decisions": [
+          "DONE",
+          "ACT",
+          "WAIT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.submit_exact_gpt_turn_once.input.v1",
+        "mutationBudget": "zero-or-one-browser-input",
+        "negativePostcondition": "Browser same-packet outer-turn hydration remains unsettled for 5000ms or changed prompt candidate ambiguity Provider negative semantic fallback and unclosed dispatch fails closed",
+        "oneObservationOrMutation": "at-most-one-mutation",
+        "owner": "gpt",
+        "positivePostcondition": "one exact user turn exact empty editable composer and permanent conversation locator",
+        "precondition": "revision-bound exact editable draft marker approved attachments and one enabled send control",
+        "profile": "PROVIDER_EFFECT_ONCE",
+        "replayPolicy": "provider-effect-once",
+        "requiredTargetKind": "chatgpt",
+        "semanticIntent": "submit the exact prompt attachments and turn marker once"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-contract-types.acceptance.ts",
+          "lines": [
+            17,
+            18,
+            34
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts",
+          "lines": [
+            535,
+            572,
+            596
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            83
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-failure-evidence-readback.acceptance-support.ts",
+          "lines": [
+            117,
+            118,
+            126
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-production-browser-lifecycle.acceptance.ts",
+          "lines": [
+            185,
+            218,
+            367
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            197,
+            313
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/completed-result.ts",
+          "lines": [
+            73,
+            74
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/confirmed-provider-readback.ts",
+          "lines": [
+            43,
+            44,
+            91,
+            92,
+            175,
+            199
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            89
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/evidence-fact.ts",
+          "lines": [
+            362,
+            373,
+            386
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/product-api.ts",
+          "lines": [
+            176
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/production-child-tools.ts",
+          "lines": [
+            395
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/task-exact-effect.ts",
+          "lines": [
+            18
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/composer-submission-children.ts",
+          "lines": [
+            272
+          ]
+        }
+      ],
+      "webImplementationReferences": [
+        {
+          "path": "src/capabilities/gpt/web/children/composer-submission-children.ts",
+          "lines": [
+            272
+          ]
+        }
+      ],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/flow.ts",
+          "lines": [
+            287
+          ]
+        },
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/private-base-reservation.ts",
+          "lines": [
+            141
+          ]
+        },
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
+          "lines": [
+            323,
+            348
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/flow.ts",
+          "lines": [
+            287
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/private-base-reservation.ts",
+          "lines": [
+            141
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
+          "lines": [
+            324,
+            349
+          ]
+        },
+        {
+          "consumer": "bazi-report-followup",
+          "path": "src/plugins/bazi-report-followup/parent-continuation.ts",
+          "lines": [
+            136
+          ]
+        },
+        {
+          "consumer": "bazi-report-followup",
+          "path": "src/plugins/bazi-report-followup/product-turn.ts",
+          "lines": [
+            289,
+            314
+          ]
+        },
+        {
+          "consumer": "hehun-ai-analysis",
+          "path": "src/plugins/hehun-ai-analysis/flow.ts",
+          "lines": [
+            287,
+            311
+          ]
+        },
+        {
+          "consumer": "hehun-report-followup",
+          "path": "src/plugins/hehun-report-followup/flow.ts",
+          "lines": [
+            288,
+            312,
+            389
+          ]
+        },
+        {
+          "consumer": "localization-production",
+          "path": "src/plugins/localization-production/flow.ts",
+          "lines": [
+            280,
+            304
+          ]
+        },
+        {
+          "consumer": "naming-bazi-analysis-and-naming",
+          "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
+          "lines": [
+            280,
+            304
+          ]
+        },
+        {
+          "consumer": "naming-from-existing-bazi-report",
+          "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
+          "lines": [
+            280,
+            304
+          ]
+        },
+        {
+          "consumer": "payment-screenshot-observation",
+          "path": "src/plugins/payment-screenshot-observation/flow.ts",
+          "lines": [
+            280,
+            304
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/index.ts",
+          "lines": [
+            121,
+            220,
+            359
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
+          "lines": [
+            85,
+            377
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-image-call.ts",
+          "lines": [
+            62,
+            117,
+            212
+          ]
+        },
+        {
+          "consumer": "qimen-professional-answer",
+          "path": "src/plugins/qimen-professional-answer/flow.ts",
+          "lines": [
+            287,
+            311
+          ]
+        },
+        {
+          "consumer": "qimen-report-followup",
+          "path": "src/plugins/qimen-report-followup/flow.ts",
+          "lines": [
+            288,
+            312,
+            389
+          ]
+        }
+      ],
+      "collectionRequirements": {
+        "childCapabilityId": "submit_exact_gpt_turn_once",
+        "scenarioId": "text-main",
+        "coreTargets": [
+          "composer",
+          "submit-control",
+          "user-turn"
+        ],
+        "requiredLiveStates": [
+          "pre-submit-ready",
+          "post-submit-user-turn",
+          "confirmed-submit-effect-readback"
+        ],
+        "optionalLiveStates": [
+          "submit-control-state-transition"
+        ],
+        "childSpecificDerivedStates": [
+          "submit-control-not-qualified",
+          "submit-effect-unknown",
+          "duplicate-submit-effect",
+          "prompt-or-attachment-precondition-mismatch"
+        ],
+        "requiredFixtures": [
+          "synthetic-rich-text-prompt",
+          "synthetic-txt",
+          "synthetic-json",
+          "synthetic-zip"
+        ]
+      },
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": [
+        "live-page-capture-not-present"
+      ]
+    },
+    {
+      "childCapabilityId": "verify_gpt_conversation_identity",
+      "contractVersion": 3,
+      "pageOperationRequired": true,
+      "inclusionBasis": "requiredTargetKind is not none and implementation is present under GPT web owner",
+      "contract": {
+        "actionQualification": "never",
+        "allowedDocumentTransition": "exact-navigation-only",
+        "boundedWait": false,
+        "childCapabilityId": "verify_gpt_conversation_identity",
+        "contractVersion": 3,
+        "decisions": [
+          "DONE",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.verify_gpt_conversation_identity.input.v1",
+        "mutationBudget": "zero",
+        "negativePostcondition": "missing ambiguous stale or mismatched identity fails closed",
+        "oneObservationOrMutation": "bounded-observation",
+        "owner": "gpt",
+        "positivePostcondition": "one canonical conversation and exact adjacent turn pair match",
+        "precondition": "exact conversation URL marker prompt hash and response hash",
+        "profile": "DOM_OBSERVATION",
+        "replayPolicy": "observation-only",
+        "requiredTargetKind": "chatgpt",
+        "semanticIntent": "prove the current conversation matches the exact canonical identity"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts",
+          "lines": [
+            325,
+            707,
+            709
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            84
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            179,
+            287
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            70
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/conversation-children.ts",
+          "lines": [
+            345
+          ]
+        }
+      ],
+      "webImplementationReferences": [
+        {
+          "path": "src/capabilities/gpt/web/children/conversation-children.ts",
+          "lines": [
+            345
+          ]
+        }
+      ],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/flow.ts",
+          "lines": [
+            192,
+            236
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/flow.ts",
+          "lines": [
+            192,
+            236
+          ]
+        },
+        {
+          "consumer": "bazi-report-followup",
+          "path": "src/plugins/bazi-report-followup/parent-continuation.ts",
+          "lines": [
+            96
+          ]
+        },
+        {
+          "consumer": "hehun-report-followup",
+          "path": "src/plugins/hehun-report-followup/flow.ts",
+          "lines": [
+            365
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
+          "lines": [
+            449
+          ]
+        },
+        {
+          "consumer": "qimen-report-followup",
+          "path": "src/plugins/qimen-report-followup/flow.ts",
+          "lines": [
+            365
+          ]
+        }
+      ],
+      "collectionRequirements": {
+        "childCapabilityId": "verify_gpt_conversation_identity",
+        "scenarioId": "focus-fork",
+        "coreTargets": [
+          "page-root",
+          "conversation-identity-evidence"
+        ],
+        "requiredLiveStates": [
+          "exact-conversation-match",
+          "identity-readback-after-focus"
+        ],
+        "optionalLiveStates": [
+          "root-page-without-conversation"
+        ],
+        "childSpecificDerivedStates": [
+          "conversation-identity-mismatch",
+          "conversation-identity-unavailable"
+        ],
+        "requiredFixtures": [
+          "synthetic-conversation-marker"
+        ]
+      },
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": [
+        "live-page-capture-not-present"
+      ]
+    },
+    {
+      "childCapabilityId": "wait_for_stable_gpt_image",
+      "contractVersion": 3,
+      "pageOperationRequired": true,
+      "inclusionBasis": "requiredTargetKind is not none and implementation is present under GPT web owner",
+      "contract": {
+        "actionQualification": "one exact rate-limit dialog may be acknowledged once",
+        "allowedDocumentTransition": "exact-navigation-only",
+        "boundedWait": true,
+        "childCapabilityId": "wait_for_stable_gpt_image",
+        "contractVersion": 3,
+        "decisions": [
+          "DONE",
+          "ACT",
+          "WAIT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.wait_for_stable_gpt_image.input.v1",
+        "mutationBudget": "zero-or-one-browser-input",
+        "negativePostcondition": "terminal decline repeated dialog zero multiple changed media or deadline fails closed",
+        "oneObservationOrMutation": "at-most-one-mutation",
+        "owner": "gpt",
+        "positivePostcondition": "one adjacent assistant semantic media content identity is stable",
+        "precondition": "exact conversation user turn marker prompt hash and deadline",
+        "profile": "TARGET_LOCAL_MUTATION",
+        "replayPolicy": "target-local-per-generation",
+        "requiredTargetKind": "chatgpt",
+        "semanticIntent": "wait for the exact assistant image to become stable"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts",
+          "lines": [
+            669
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            84
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-production-browser-lifecycle.acceptance.ts",
+          "lines": [
+            85,
+            108
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            215,
+            333
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            86
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/production-browser-lifecycle.ts",
+          "lines": [
+            88
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/image-response-children.ts",
+          "lines": [
+            115
+          ]
+        }
+      ],
+      "webImplementationReferences": [
+        {
+          "path": "src/capabilities/gpt/web/children/image-response-children.ts",
+          "lines": [
+            115
+          ]
+        }
+      ],
+      "productConsumers": [
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-image-call.ts",
+          "lines": [
+            155
+          ]
+        }
+      ],
+      "collectionRequirements": {
+        "childCapabilityId": "wait_for_stable_gpt_image",
+        "scenarioId": "image-main",
+        "coreTargets": [
+          "assistant-turn",
+          "image-generation-indicator",
+          "semantic-media-node"
+        ],
+        "requiredLiveStates": [
+          "image-generating",
+          "image-stable",
+          "image-stability-readback"
+        ],
+        "optionalLiveStates": [
+          "image-generation-error"
+        ],
+        "childSpecificDerivedStates": [
+          "image-never-stabilizes",
+          "stable-thumbnail-without-original",
+          "wrong-turn-image",
+          "image-error-terminal"
+        ],
+        "requiredFixtures": [
+          "synthetic-image-prompt"
+        ]
+      },
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": [
+        "live-page-capture-not-present"
+      ]
+    },
+    {
+      "childCapabilityId": "wait_for_stable_gpt_text",
+      "contractVersion": 3,
+      "pageOperationRequired": true,
+      "inclusionBasis": "requiredTargetKind is not none and implementation is present under GPT web owner",
+      "contract": {
+        "actionQualification": "one exact rate-limit dialog may be acknowledged once",
+        "allowedDocumentTransition": "exact-navigation-only",
+        "boundedWait": true,
+        "childCapabilityId": "wait_for_stable_gpt_text",
+        "contractVersion": 3,
+        "decisions": [
+          "DONE",
+          "ACT",
+          "WAIT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.wait_for_stable_gpt_text.input.v1",
+        "mutationBudget": "zero-or-one-browser-input",
+        "negativePostcondition": "terminal decline repeated dialog ambiguity drift or deadline fails closed",
+        "oneObservationOrMutation": "at-most-one-mutation",
+        "owner": "gpt",
+        "positivePostcondition": "one adjacent assistant semantic text is stable for the bounded interval",
+        "precondition": "exact conversation user turn marker prompt hash and deadline",
+        "profile": "TARGET_LOCAL_MUTATION",
+        "replayPolicy": "target-local-per-generation",
+        "requiredTargetKind": "chatgpt",
+        "semanticIntent": "wait for the exact assistant text to become stable"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts",
+          "lines": [
+            628
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            85
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-production-browser-lifecycle.acceptance.ts",
+          "lines": [
+            71,
+            76,
+            81,
+            106,
+            107,
+            358,
+            373,
+            427
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            207,
+            321
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            85
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/production-browser-lifecycle.ts",
+          "lines": [
+            87
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/text-response-children.ts",
+          "lines": [
+            93
+          ]
+        }
+      ],
+      "webImplementationReferences": [
+        {
+          "path": "src/capabilities/gpt/web/children/text-response-children.ts",
+          "lines": [
+            93
+          ]
+        }
+      ],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
+          "lines": [
+            275
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
+          "lines": [
+            276
+          ]
+        },
+        {
+          "consumer": "bazi-report-followup",
+          "path": "src/plugins/bazi-report-followup/product-turn.ts",
+          "lines": [
+            244
+          ]
+        },
+        {
+          "consumer": "hehun-ai-analysis",
+          "path": "src/plugins/hehun-ai-analysis/flow.ts",
+          "lines": [
+            243
+          ]
+        },
+        {
+          "consumer": "hehun-report-followup",
+          "path": "src/plugins/hehun-report-followup/flow.ts",
+          "lines": [
+            244
+          ]
+        },
+        {
+          "consumer": "localization-production",
+          "path": "src/plugins/localization-production/flow.ts",
+          "lines": [
+            238
+          ]
+        },
+        {
+          "consumer": "naming-bazi-analysis-and-naming",
+          "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
+          "lines": [
+            238
+          ]
+        },
+        {
+          "consumer": "naming-from-existing-bazi-report",
+          "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
+          "lines": [
+            238
+          ]
+        },
+        {
+          "consumer": "payment-screenshot-observation",
+          "path": "src/plugins/payment-screenshot-observation/flow.ts",
+          "lines": [
+            238
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
+          "lines": [
+            309
+          ]
+        },
+        {
+          "consumer": "qimen-professional-answer",
+          "path": "src/plugins/qimen-professional-answer/flow.ts",
+          "lines": [
+            243
+          ]
+        },
+        {
+          "consumer": "qimen-report-followup",
+          "path": "src/plugins/qimen-report-followup/flow.ts",
+          "lines": [
+            244
+          ]
+        }
+      ],
+      "collectionRequirements": {
+        "childCapabilityId": "wait_for_stable_gpt_text",
+        "scenarioId": "text-main",
+        "coreTargets": [
+          "assistant-turn",
+          "generation-indicator",
+          "response-text-region"
+        ],
+        "requiredLiveStates": [
+          "text-generating",
+          "text-stable",
+          "text-stability-readback"
+        ],
+        "optionalLiveStates": [
+          "rate-limit-dialog",
+          "generation-retry-control"
+        ],
+        "childSpecificDerivedStates": [
+          "text-never-stabilizes",
+          "generation-error",
+          "stable-empty-response",
+          "wrong-turn-stable"
+        ],
+        "requiredFixtures": [
+          "synthetic-rich-text-response"
+        ]
+      },
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": [
+        "live-page-capture-not-present"
+      ]
+    },
+    {
+      "childCapabilityId": "write_exact_gpt_prompt",
+      "contractVersion": 4,
+      "pageOperationRequired": true,
+      "inclusionBasis": "requiredTargetKind is not none and implementation is present under GPT web owner",
+      "contract": {
+        "actionQualification": "exact editable retained value is not already exact",
+        "allowedDocumentTransition": "forbidden",
+        "boundedWait": true,
+        "childCapabilityId": "write_exact_gpt_prompt",
+        "contractVersion": 4,
+        "decisions": [
+          "DONE",
+          "ACT",
+          "WAIT",
+          "FAIL_CLOSED"
+        ],
+        "evidenceBoundary": "hashes-refs-counts-typed-causes-only",
+        "evidenceSchema": "gpt-child-capability-proof.v2",
+        "failureClassification": [
+          "failed"
+        ],
+        "inputSchema": "gpt.write_exact_gpt_prompt.input.v1",
+        "mutationBudget": "zero-or-one-browser-input",
+        "negativePostcondition": "transient retained-value mismatch remains unsettled for 2500ms or ambiguity disabled composer drift and semantic fallback fails closed",
+        "oneObservationOrMutation": "at-most-one-mutation",
+        "owner": "gpt",
+        "positivePostcondition": "revision-bound exact editable hash proves retained bytes equal the approved prompt",
+        "precondition": "one composer and exact approved prompt",
+        "profile": "TARGET_LOCAL_MUTATION",
+        "replayPolicy": "target-local-per-generation",
+        "requiredTargetKind": "chatgpt",
+        "semanticIntent": "make the composer retain the exact approved prompt"
+      },
+      "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-contract-types.acceptance.ts",
+          "lines": [
+            13,
+            14,
+            24,
+            30,
+            32,
+            36,
+            38
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts",
+          "lines": [
+            409,
+            440,
+            480,
+            613,
+            710,
+            714
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
+          "lines": [
+            85
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/child-types.ts",
+          "lines": [
+            191,
+            309
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/contract.ts",
+          "lines": [
+            84
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/web/children/composer-submission-children.ts",
+          "lines": [
+            207
+          ]
+        }
+      ],
+      "webImplementationReferences": [
+        {
+          "path": "src/capabilities/gpt/web/children/composer-submission-children.ts",
+          "lines": [
+            207
+          ]
+        }
+      ],
+      "productConsumers": [
+        {
+          "consumer": "bazi-ai-full-analysis",
+          "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
+          "lines": [
+            321
+          ]
+        },
+        {
+          "consumer": "bazi-chart-interpretation",
+          "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
+          "lines": [
+            322
+          ]
+        },
+        {
+          "consumer": "bazi-report-followup",
+          "path": "src/plugins/bazi-report-followup/product-turn.ts",
+          "lines": [
+            287
+          ]
+        },
+        {
+          "consumer": "hehun-ai-analysis",
+          "path": "src/plugins/hehun-ai-analysis/flow.ts",
+          "lines": [
+            285
+          ]
+        },
+        {
+          "consumer": "hehun-report-followup",
+          "path": "src/plugins/hehun-report-followup/flow.ts",
+          "lines": [
+            286
+          ]
+        },
+        {
+          "consumer": "localization-production",
+          "path": "src/plugins/localization-production/flow.ts",
+          "lines": [
+            278
+          ]
+        },
+        {
+          "consumer": "naming-bazi-analysis-and-naming",
+          "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
+          "lines": [
+            278
+          ]
+        },
+        {
+          "consumer": "naming-from-existing-bazi-report",
+          "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
+          "lines": [
+            278
+          ]
+        },
+        {
+          "consumer": "payment-screenshot-observation",
+          "path": "src/plugins/payment-screenshot-observation/flow.ts",
+          "lines": [
+            278
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
+          "lines": [
+            357,
+            375
+          ]
+        },
+        {
+          "consumer": "public-knowledge-article-pipeline",
+          "path": "src/plugins/public-knowledge-article-pipeline/seo-image-call.ts",
+          "lines": [
+            60,
+            92,
+            110
+          ]
+        },
+        {
+          "consumer": "qimen-professional-answer",
+          "path": "src/plugins/qimen-professional-answer/flow.ts",
+          "lines": [
+            285
+          ]
+        },
+        {
+          "consumer": "qimen-report-followup",
+          "path": "src/plugins/qimen-report-followup/flow.ts",
+          "lines": [
+            286
+          ]
+        }
+      ],
+      "collectionRequirements": {
+        "childCapabilityId": "write_exact_gpt_prompt",
+        "scenarioId": "text-main",
+        "coreTargets": [
+          "composer",
+          "composer-editable-leaf",
+          "composer-text-projection"
+        ],
+        "requiredLiveStates": [
+          "composer-before",
+          "exact-prompt-after",
+          "prompt-already-exact"
+        ],
+        "optionalLiveStates": [
+          "multiline-rich-prompt"
+        ],
+        "childSpecificDerivedStates": [
+          "prompt-partially-written",
+          "prompt-duplicated",
+          "prompt-normalization-mismatch",
+          "composer-not-editable"
+        ],
+        "requiredFixtures": [
+          "synthetic-rich-text-prompt"
+        ]
+      },
+      "collection": null,
+      "offlineIterationReady": false,
+      "offlineIterationMissing": [
+        "live-page-capture-not-present"
+      ]
+    }
+  ]
+}
