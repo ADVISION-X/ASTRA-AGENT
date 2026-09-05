@@ -43,9 +43,11 @@ import {
 } from "./continuation-readback.js";
 import { readCompletedGptChildResult } from "./completed-result.js";
 import {
+  authorizeConfirmedProviderFailureReadback,
   authorizeConfirmedProviderReadback,
   confirmedProviderSubmitReceipt,
   mergeConfirmedProviderSubmitReceipt,
+  readConfirmedProviderSubmitFailureReceipt,
   type ConfirmedProviderSubmitReceipt,
 } from "./confirmed-provider-readback.js";
 import { readTaskExactGptCallFacts } from "./task-exact-effect.js";
@@ -169,13 +171,31 @@ export class ProductionGptChildTools {
       );
       return productSafeExactGptCallFacts(facts);
     };
+    const readConfirmedSubmitFailure: ProductGptTools["readConfirmedSubmitFailure"] = async (call) => {
+      const receipt = await readConfirmedProviderSubmitFailureReceipt({
+        call,
+        intent: this.intentFor(input, call),
+        browserAuthority: this.browserAuthority,
+        evidenceStore: this.evidenceStore,
+      });
+      if (!receipt) return null;
+      confirmedProviderSubmit = mergeConfirmedProviderSubmitReceipt(
+        confirmedProviderSubmit,
+        receipt.provider,
+      );
+      authorizeConfirmedProviderFailureReadback({ browsers, receipt: receipt.provider });
+      return receipt.product;
+    };
     const execute = async <K extends GptChildCapabilityId>(
       call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
     ): Promise<ProductGptChildResult<K>> => {
       this.assertExecutionActive(input);
       observedCalls.set(hashCanonical(call), call);
       const completed = await this.completedTaskExactEffect(input, call, readCallFacts);
-      if (completed) return completed;
+      if (completed) {
+        authorizeConfirmedProviderReadback({ browsers, call, result: completed, receipt: confirmedProviderSubmit });
+        return completed;
+      }
       const result = await this.executeOne(input, browsers, call);
       authorizeConfirmedProviderReadback({ browsers, call, result, receipt: confirmedProviderSubmit });
       if ((call.child === "persist_gpt_continuation"
@@ -204,6 +224,7 @@ export class ProductionGptChildTools {
           }, query),
         execute,
         readCallFacts,
+        readConfirmedSubmitFailure,
       }),
       continuationRef: () => continuationRef,
       reconcilePermanentCancellation: () => this.reconcileObservedCalls(

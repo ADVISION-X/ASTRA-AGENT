@@ -15,6 +15,7 @@ export const createLocalFinding = (
 export const targetAuthorityPath = "src/lib/browser/chrome-extension/extension-target-authority.ts";
 export const brokerPath = "src/lib/browser/infrastructure/browser-authority-broker.ts";
 export const domMechanicalFactsPath = "src/lib/browser/chrome-extension/dom-mechanical-facts.ts";
+export const domExactEditableTextPath = "src/lib/browser/chrome-extension/dom-exact-editable-text.ts";
 export const domCoherentObservationPath = "src/lib/browser/chrome-extension/dom-coherent-observation.ts";
 export const domMutationPostconditionPath = "src/lib/browser/chrome-extension/dom-mutation-postcondition.ts";
 export const browserCommandPostconditionPath = "src/lib/browser/exact-target/browser-command-postcondition.ts";
@@ -47,6 +48,7 @@ export const sourcePaths = [
   "src/lib/browser/chrome-extension/extension-heartbeat.ts",
   "src/lib/browser/chrome-extension/pairing-completion-gate.ts",
   domMechanicalFactsPath,
+  domExactEditableTextPath,
   domCoherentObservationPath,
   browserMutationSchemaPath,
   "src/lib/browser/exact-target/browser-outcome-resolver.ts",

@@ -11,9 +11,11 @@ import type {
 import {
   advanceLane,
   applyExactProfile,
+  completeReconciledTextSubmission,
   createSeoExecutor,
   focusContinuation,
   prepareAttachedTurnPrefix,
+  reconcileConfirmedTextSubmission,
   releaseLane,
   requireExactProfileEvidence,
   submitTextTurn,
@@ -112,8 +114,15 @@ const produceResearchTurn = async (
     task, marker, providerDisplayNames(files, context.gpt.attemptId),
     context.routePolicy, context.productSkill,
   );
+  const textTurn = {
+    flow, stepId, prompt, marker, files: uploadedFiles,
+    ordinals: [11, 12, 13, 14, 15, 16],
+  } as const;
   const submitCall = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 13, input: { files: uploadedFiles, promptHash: textHash(prompt), turnMarker: marker } } as const;
-  const submitFacts = await flow.facts(submitCall);
+  const failedSubmit = await flow.confirmedSubmitFailure(submitCall);
+  const reconciledSubmit = failedSubmit
+    ? await reconcileConfirmedTextSubmission(textTurn, failedSubmit) : null;
+  const submitFacts = failedSubmit ? null : await flow.facts(submitCall);
   const recoveredReadback = await context.gpt.readContinuationExact({
     lookupKind: "turn_marker", turnMarker: marker,
   });
@@ -124,13 +133,15 @@ const produceResearchTurn = async (
     && recovered.prior_prompt_hash === textHash(prompt) ? recovered : undefined;
   await prepareAttachedTurnPrefix({
     flow, stepId, files, uploadedFiles,
-    recoverOnly: Boolean(submitFacts.mutation || submitFacts.evidence),
+    recoverOnly: Boolean(failedSubmit || submitFacts?.mutation || submitFacts?.evidence),
   });
-  const checkpoint = await submitTextTurn({
-    flow, stepId, prompt, marker, files: uploadedFiles,
-    ordinals: [11, 12, 13, 14, 15, 16],
+  const checkpointInput = {
+    ...textTurn,
     ...(recoveryProvider ? { recoveryProvider } : {}),
-  });
+  } as const;
+  const checkpoint = reconciledSubmit
+    ? await completeReconciledTextSubmission(checkpointInput, reconciledSubmit)
+    : await submitTextTurn(checkpointInput);
   const provider = continuationProvider(task, checkpoint);
   const persisted = await flow.execute({
     sessionKey: "", productStepId: stepId, callId: "continuation-persist",
@@ -203,9 +214,15 @@ const produceArticleTurn = async (
   const stepId = "article_synthesis";
   const marker = turnMarker(task, context.gpt.attemptId, stepId);
   const prompt = articlePrompt(task, marker, context.routePolicy, context.productSkill);
+  const textTurn = {
+    flow, stepId, prompt, marker, files: [], ordinals: [27, 28, 29, 30, 31, 32],
+  } as const;
   const submitCall = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 29, input: { files: [], promptHash: textHash(prompt), turnMarker: marker } } as const;
-  const submitFacts = await flow.facts(submitCall);
-  const recovering = Boolean(submitFacts.mutation || submitFacts.evidence);
+  const failedSubmit = await flow.confirmedSubmitFailure(submitCall);
+  const reconciledSubmit = failedSubmit
+    ? await reconcileConfirmedTextSubmission(textTurn, failedSubmit) : null;
+  const submitFacts = failedSubmit ? null : await flow.facts(submitCall);
+  const recovering = Boolean(failedSubmit || submitFacts?.mutation || submitFacts?.evidence);
   const lane = await focusContinuation(
     flow, task, stepId, continuationRef, researchProvider, [18, 19, 20], 34,
   );
@@ -213,9 +230,9 @@ const produceArticleTurn = async (
   try {
     if (recovering) await requireExactProfileEvidence(flow, stepId, [21, 22, 23, 24, 25, 26]);
     else await applyExactProfile(flow.execute, stepId, [21, 22, 23, 24, 25, 26]);
-    const checkpoint = await submitTextTurn({
-      flow, stepId, prompt, marker, files: [], ordinals: [27, 28, 29, 30, 31, 32],
-    });
+    const checkpoint = reconciledSubmit
+      ? await completeReconciledTextSubmission(textTurn, reconciledSubmit)
+      : await submitTextTurn(textTurn);
     const result = receiveArticle(task, context.gpt.attemptId, checkpoint, context.routePolicy);
     await advanceLane(flow.execute, task, stepId, lane, {
       canonicalConversationUrl: checkpoint.canonicalConversationUrl,
@@ -335,16 +352,22 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
   const prompt = reviewPrompt(
     task, marker, providerDisplayNames(files, context.gpt.attemptId), context.productSkill,
   );
-  const submitCall = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 13, input: { files: uploadedFiles, promptHash: textHash(prompt), turnMarker: marker } } as const;
-  const submitFacts = await flow.facts(submitCall);
-  await prepareAttachedTurnPrefix({
-    flow, stepId, files, uploadedFiles,
-    recoverOnly: Boolean(submitFacts.mutation || submitFacts.evidence),
-  });
-  const checkpoint = await submitTextTurn({
+  const textTurn = {
     flow, stepId, prompt, marker, files: uploadedFiles,
     ordinals: [11, 12, 13, 14, 15, 16],
+  } as const;
+  const submitCall = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 13, input: { files: uploadedFiles, promptHash: textHash(prompt), turnMarker: marker } } as const;
+  const failedSubmit = await flow.confirmedSubmitFailure(submitCall);
+  const reconciledSubmit = failedSubmit
+    ? await reconcileConfirmedTextSubmission(textTurn, failedSubmit) : null;
+  const submitFacts = failedSubmit ? null : await flow.facts(submitCall);
+  await prepareAttachedTurnPrefix({
+    flow, stepId, files, uploadedFiles,
+    recoverOnly: Boolean(failedSubmit || submitFacts?.mutation || submitFacts?.evidence),
   });
+  const checkpoint = reconciledSubmit
+    ? await completeReconciledTextSubmission(textTurn, reconciledSubmit)
+    : await submitTextTurn(textTurn);
   return context.complete({
     payload: parseRouteResult(task, checkpoint.semanticText, context.routePolicy),
     evidence_refs: flow.evidenceRefs(),
@@ -353,7 +376,7 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
 
 export const publicKnowledgeArticlePipelinePlugin: ProductPlugin = {
   pluginId: PLUGIN_ID,
-  pluginVersion: 18,
+  pluginVersion: 20,
   checkpointSchemaVersion: 2,
   accepts: [
     { productId: "public_knowledge_article_pipeline", actionId: "produce_article" },

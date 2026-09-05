@@ -25,6 +25,8 @@ const mutationInfrastructureReply = (
   method: string,
   parameters?: Readonly<Record<string, unknown>>,
 ): unknown | undefined => {
+  if (method === "Runtime.callFunctionOn"
+    && String(parameters?.functionDeclaration ?? "").includes("browserExactEditableText")) return undefined;
   let reply: unknown;
   if (method === "Page.getFrameTree") reply = { frameTree: { frame: { loaderId: "loader-current" } } };
   if (method === "DOM.getDocument") reply = { root: { nodeId: 1 } };
@@ -179,6 +181,10 @@ const exerciseContentEditableFill = async (): Promise<void> => {
       candidateReads += 1;
       return { nodeId: candidateReads === 1 ? 7 : 8 };
     }
+    if (method === "Runtime.callFunctionOn"
+      && String(parameters?.functionDeclaration ?? "").includes("browserExactEditableText")) {
+      return { result: { value: text } };
+    }
     const infrastructure = mutationInfrastructureReply(method, parameters);
     if (infrastructure !== undefined) return infrastructure;
     if (method === "DOM.querySelectorAll") return { nodeIds: [7] };
@@ -220,6 +226,10 @@ const exerciseFillReadbackRejection = async (): Promise<void> => {
       return candidateReads === 1
         ? { result: { type: "object", subtype: "node", objectId: "candidate-node" } }
         : { result: { type: "string", value: "BROWSER_DOM_CANDIDATE_MISSING" } };
+    }
+    if (method === "Runtime.callFunctionOn"
+      && String(parameters?.functionDeclaration ?? "").includes("browserExactEditableText")) {
+      return { result: { value: "stale" } };
     }
     const infrastructure = mutationInfrastructureReply(method, parameters);
     if (infrastructure !== undefined) return infrastructure;
@@ -429,6 +439,10 @@ const guardRuntime = (events: string[], guardState: { current: boolean }): Exten
       return {};
     }
     guardState.current = false;
+    if (method === "Runtime.callFunctionOn"
+      && String(parameters?.functionDeclaration ?? "").includes("browserExactEditableText")) {
+      return { result: { value: events.length === 0 ? "stale" : "approved" } };
+    }
     const infrastructure = mutationInfrastructureReply(method, parameters);
     if (infrastructure !== undefined) return infrastructure;
     if (method === "DOM.querySelectorAll") return { nodeIds: events.length === 0 ? [] : [7] };

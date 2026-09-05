@@ -7,7 +7,11 @@ import type {
   GptChildCapabilityResult,
   GptChildInputMap,
 } from "../contract.js";
-import { isPendingExactEvidence, readExactGptEvidenceFact } from "../evidence-fact.js";
+import {
+  isPendingExactEvidence,
+  readConfirmedSubmitFailureEvidence,
+  readExactGptEvidenceFact,
+} from "../evidence-fact.js";
 import { typedGptExecutionFailure } from "../execution-fault.js";
 import { persistGptChildEvidence } from "../evidence-writer.js";
 import { executeProductionGptAtomicCall } from "../production-atomic-call.js";
@@ -85,6 +89,67 @@ export const exerciseFailedEvidenceReadback = async <K extends GptChildCapabilit
   assert.deepEqual(typed?.reasoningRequirementResult, result.reasoningRequirementResult);
 };
 
+export const exerciseReasoningEvidenceReadback = async (
+  result: GptChildCapabilityResult<"ensure_gpt_reasoning_requirement">,
+  input: GptChildInputMap["ensure_gpt_reasoning_requirement"],
+): Promise<void> => {
+  assert.equal(result.status, "success");
+  const persistence = evidenceHarness();
+  const proof = result.proof;
+  const intent = intentFor(result, input);
+  await persistGptChildEvidence({
+    result, intent, evidenceStore: persistence.evidenceStore,
+    jobId: proof.jobId, attemptId: proof.attemptId,
+    stepId: proof.productStepId, exactCallIdentityHash: proof.exactCallIdentityHash,
+  });
+  const readback = await readExactGptEvidenceFact({
+    evidenceStore: persistence.evidenceStore,
+    intent,
+    exactCallIdentityHash: proof.exactCallIdentityHash,
+  });
+  assert.equal(readback?.readbackVerified, true);
+  const payload = persistence.stored()?.record.payload as Readonly<Record<string, unknown>>;
+  assert.equal(payload.schema_version, "agent-gpt-evidence-safe.v2");
+  assert.deepEqual(payload.reasoning_requirement_result, result.reasoningRequirementResult);
+};
+
+export const exerciseConfirmedSubmitFailureEvidenceReadback = async (
+  result: GptChildCapabilityResult<"submit_exact_gpt_turn_once">,
+  input: GptChildInputMap["submit_exact_gpt_turn_once"],
+): Promise<void> => {
+  assert.equal(result.status, "failed");
+  assert.equal(result.proof.browserFact?.effectScope, "provider_effect");
+  assert.equal(result.proof.browserFact?.browserOutcome, "CONFIRMED");
+  assert.equal(result.proof.browserFact?.mutationOutcome, "confirmed");
+  const persistence = evidenceHarness();
+  const proof = result.proof;
+  const intent = intentFor<"submit_exact_gpt_turn_once">(result, input);
+  await persistGptChildEvidence({
+    result, intent, evidenceStore: persistence.evidenceStore,
+    jobId: proof.jobId, attemptId: proof.attemptId,
+    stepId: proof.productStepId, exactCallIdentityHash: proof.exactCallIdentityHash,
+  });
+  await assert.rejects(
+    () => readExactGptEvidenceFact({
+      evidenceStore: persistence.evidenceStore,
+      intent,
+      exactCallIdentityHash: proof.exactCallIdentityHash,
+    }),
+    (error: unknown) => typedGptExecutionFailure(error)?.code === result.failureCode,
+    "the ordinary success-fact reader must preserve the confirmed semantic failure",
+  );
+  const receipt = await readConfirmedSubmitFailureEvidence({
+    evidenceStore: persistence.evidenceStore,
+    intent,
+    exactCallIdentityHash: proof.exactCallIdentityHash,
+  });
+  assert.equal(receipt?.failureCode, result.failureCode);
+  assert.equal(receipt?.browserFact.exactCallIdentityHash, proof.exactCallIdentityHash);
+  assert.equal(receipt?.browserFact.terminalAt, proof.browserFact?.terminalAt);
+  assert.equal(receipt?.evidence.readbackVerified, true);
+  assert.equal(receipt?.evidence.evidenceRef, persistence.stored()?.recordRef);
+};
+
 export const exerciseBrowserRejectedEvidenceReadback = async (): Promise<void> => {
   const { execute } = createGptAcceptanceHarness("gpt-browser-rejected-evidence");
   const fixture = fakeBrowser((intent) => {
@@ -92,7 +157,7 @@ export const exerciseBrowserRejectedEvidenceReadback = async (): Promise<void> =
       composer: Object.freeze({
         rawCount: 1,
         eligibleCount: 1,
-        matches: Object.freeze([{ semanticTextHash: hash("stale draft") }]),
+        matches: Object.freeze([{ exactEditableTextHash: hash("stale draft") }]),
       }),
     });
     if (intent.kind === "fill") return {
@@ -158,7 +223,7 @@ export const exerciseBrowserRejectedDispatchedEvidenceReadback = async (): Promi
       composer: Object.freeze({
         rawCount: 1,
         eligibleCount: 1,
-        matches: Object.freeze([{ semanticTextHash: hash("stale draft") }]),
+        matches: Object.freeze([{ exactEditableTextHash: hash("stale draft") }]),
       }),
     });
     if (intent.kind === "fill") return {
@@ -305,7 +370,7 @@ export const exerciseBrowserDispatchedEvidenceReadback = async (): Promise<void>
   const fixture = fakeBrowser((intent) => {
     if (intent.kind === "observe") return coherentObservationPacket(intent, {
       composer: Object.freeze({ rawCount: 1, eligibleCount: 1,
-        matches: Object.freeze([{ semanticTextHash: hash("stale draft") }]) }),
+        matches: Object.freeze([{ exactEditableTextHash: hash("stale draft") }]) }),
     });
     if (intent.kind === "fill") return { mutationCount: 1, receiptMissing: true };
     throw new Error(`UNEXPECTED_DISPATCHED_CLEAN_CHAT_INTENT:${intent.kind}`);

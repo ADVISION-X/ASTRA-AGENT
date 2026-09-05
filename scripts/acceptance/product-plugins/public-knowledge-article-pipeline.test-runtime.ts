@@ -34,11 +34,18 @@ type ExactGptGeneratedImageCheckpointReadback = Extract<
   FrontierReadback["currentCheckpoint"], { checkpointKind: "generated_image" }
 >;
 type SeoFactQuery = Parameters<SharedExecutionContext["gpt"]["readCallFacts"]>[0];
-export type SeoFailure = Readonly<{ child: string; code: string; productStepId?: string }>;
+export type SeoFailure = Readonly<{
+  child: string;
+  code: string;
+  productStepId?: string;
+  confirmedSubmit?: boolean;
+  locatorFailureCode?: string;
+}>;
 type SeoFact = Readonly<{
   attemptId: string;
   callIdentityHash: string;
   evidenceRef: string;
+  failureCode: string | null;
   mutation: boolean;
   terminalAt: string | null;
 }>;
@@ -61,6 +68,7 @@ export type SeoHarness = {
   generatedImageUploadCalls: number;
   uploadedImageHashes: Set<string>;
   acquiredLaneVersions: number[];
+  confirmedReadbackAuthorizationByStep: Map<string, "source-only" | "full">;
   materials: SharedExecutionContext["materials"];
   providerNames: readonly string[];
 };
@@ -115,6 +123,7 @@ export const createHarness = (actionId: SeoAction, failureAt?: SeoFailure): SeoH
     generatedImageUploadCalls: 0,
     uploadedImageHashes: new Set(),
     acquiredLaneVersions: [],
+    confirmedReadbackAuthorizationByStep: new Map(),
     materials,
     providerNames: materials.map((material) => gptAttachmentProviderDisplayName(
       material.display_name, "attempt-1", material.material_id,
@@ -269,6 +278,13 @@ const executeCall = async (
   failureAt?: SeoFailure,
   attemptId = "attempt-1",
 ) => {
+  if (state.confirmedReadbackAuthorizationByStep.get(input.productStepId) === "source-only") {
+    assert.equal(
+      input.child,
+      "reconcile_gpt_turn_submission",
+      "source-only confirmed-submit recovery must close the existing submission locator before any other Child",
+    );
+  }
   if (input.child === "attach_approved_gpt_files_once"
     || input.child === "reconcile_gpt_attachment_set") {
     assert(Array.isArray(input.input.files));
@@ -284,11 +300,47 @@ const executeCall = async (
   if (state.remainingFailures > 0 && input.child === failureAt?.child
     && (!failureAt.productStepId || input.productStepId === failureAt.productStepId)) {
     state.remainingFailures -= 1;
+    if (failureAt.confirmedSubmit) {
+      assert.equal(input.child, "submit_exact_gpt_turn_once");
+      const priorFact = state.factsByCall.get(factKey(attemptId, input));
+      if (!priorFact) state.physicalSubmitDispatches += 1;
+      const evidenceRef = priorFact?.evidenceRef ?? `evidence:${state.calls.length}`;
+      state.factsByCall.set(factKey(attemptId, input), {
+        attemptId,
+        callIdentityHash: callIdentityHash(input),
+        evidenceRef,
+        failureCode: failureAt.code,
+        mutation: true,
+        terminalAt: CONFIRMED_AT,
+      });
+      throw executionFailure("failed", failureAt.code, {
+        metadata: Object.freeze({
+          mutationOutcome: "confirmed",
+          evidence: Object.freeze({ evidenceRef: "browser-mutation:test", evidenceHash: HASH }),
+          browserEffect: Object.freeze({
+            effectScope: "provider_effect",
+            childCapabilityId: "submit_exact_gpt_turn_once",
+            browserOutcome: "CONFIRMED",
+          }),
+        }),
+      });
+    }
     throw executionFailure("failed", failureAt.code, {
       metadata: Object.freeze({ mutationOutcome: "no" }),
     });
   }
+  if (failureAt?.locatorFailureCode
+    && input.child === "reconcile_gpt_turn_submission"
+    && input.productStepId === failureAt.productStepId) {
+    throw executionFailure("failed", failureAt.locatorFailureCode, {
+      metadata: Object.freeze({ mutationOutcome: "no" }),
+    });
+  }
   const value = applyContinuationCall(state, input, outputForCall(state, input, decision));
+  if (input.child === "reconcile_gpt_turn_submission"
+    && state.confirmedReadbackAuthorizationByStep.get(input.productStepId) === "source-only") {
+    state.confirmedReadbackAuthorizationByStep.set(input.productStepId, "full");
+  }
   const priorFact = state.factsByCall.get(factKey(attemptId, input));
   if (input.child === "submit_exact_gpt_turn_once" && !priorFact) state.physicalSubmitDispatches += 1;
   const evidenceRef = priorFact?.evidenceRef ?? `evidence:${state.calls.length}`;
@@ -296,6 +348,7 @@ const executeCall = async (
     attemptId,
     callIdentityHash: callIdentityHash(input),
     evidenceRef,
+    failureCode: null,
     mutation: input.child === "submit_exact_gpt_turn_once",
     terminalAt: input.child === "submit_exact_gpt_turn_once" ? CONFIRMED_AT : null,
   });
@@ -344,10 +397,19 @@ const readSeoCallFacts = (
   attemptId: string,
 ): SharedExecutionContext["gpt"]["readCallFacts"] => async (input) => {
   const lookupKind = input.lookupKind ?? "current_attempt";
+  const current = state.factsByCall.get(factKey(attemptId, input));
+  if (lookupKind === "task_exact_effect" && current) {
+    throw executionFailure("failed", "GPT_TASK_EXACT_EFFECT_CURRENT_ATTEMPT_PRESENT");
+  }
   const stored = lookupKind === "current_attempt"
-    ? state.factsByCall.get(factKey(attemptId, input))
+    ? current
     : [...state.factsByCall.values()].filter((fact) =>
       fact.attemptId !== attemptId && fact.callIdentityHash === callIdentityHash(input))[0];
+  if (stored?.failureCode) {
+    throw executionFailure("failed", stored.failureCode, {
+      metadata: Object.freeze({ mutationOutcome: stored.mutation ? "confirmed" : "no" }),
+    });
+  }
   return {
     exactCallIdentityHash: HASH,
     mutation: stored?.mutation ? {
@@ -395,6 +457,23 @@ export const createContext = (
   gpt: {
     attemptId,
     readContinuationExact: readSeoContinuation(state, decision, attemptId),
+    readConfirmedSubmitFailure: async (input) => {
+      if (input.child !== "submit_exact_gpt_turn_once") return null;
+      const stored = state.factsByCall.get(factKey(attemptId, input));
+      if (!stored?.failureCode || !stored.mutation || !stored.terminalAt) return null;
+      state.confirmedReadbackAuthorizationByStep.set(input.productStepId, "source-only");
+      return Object.freeze({
+        sourceAttemptId: stored.attemptId,
+        exactCallIdentityHash: HASH,
+        productStepId: input.productStepId,
+        callId: input.callId,
+        actionOrdinal: input.actionOrdinal,
+        terminalAt: stored.terminalAt,
+        failureCode: stored.failureCode,
+        evidenceRef: stored.evidenceRef,
+        evidenceHash: HASH,
+      });
+    },
     readCallFacts: readSeoCallFacts(state, attemptId),
     execute: async (input: SeoExecuteInput) => {
       const result = await executeCall(state, input as SeoCall, decision, failureAt, attemptId);
@@ -504,4 +583,44 @@ export const exerciseSeoFlow = async (
     acquiredLaneVersions: state.acquiredLaneVersions,
     generatedImageUploadCalls: state.generatedImageUploadCalls,
   };
+};
+
+export const exerciseSeoAttachmentReconcileFailure = async (plugin: ProductPlugin) => {
+  const failureAt = Object.freeze({
+    child: "reconcile_gpt_attachment_set" as const,
+    code: "GPT_ATTACHMENT_UPLOAD_TIMEOUT",
+    productStepId: "corpus_research",
+  });
+  const state = createHarness("produce_article", failureAt);
+  let failure: unknown = null;
+  try {
+    await withFastHandoffs(state, () => plugin.execute(
+      seoTask("produce_article"), createContext(state, "proceed", failureAt),
+    ));
+  } catch (error) {
+    failure = error;
+  }
+  assert(failure, "attachment reconciliation failure must stop the Product flow");
+  return Object.freeze({ calls: Object.freeze([...state.calls]), failure,
+    physicalSubmitDispatches: state.physicalSubmitDispatches });
+};
+
+export const exerciseSeoPromptWriteFailure = async (plugin: ProductPlugin) => {
+  const failureAt = Object.freeze({
+    child: "write_exact_gpt_prompt" as const,
+    code: "GPT_PROMPT_WRITE_UNCONFIRMED",
+    productStepId: "corpus_research",
+  });
+  const state = createHarness("produce_article", failureAt);
+  let failure: unknown = null;
+  try {
+    await withFastHandoffs(state, () => plugin.execute(
+      seoTask("produce_article"), createContext(state, "proceed", failureAt),
+    ));
+  } catch (error) {
+    failure = error;
+  }
+  assert(failure, "prompt write failure must stop the Product flow before draft reconciliation and submit");
+  return Object.freeze({ calls: Object.freeze([...state.calls]), failure,
+    physicalSubmitDispatches: state.physicalSubmitDispatches });
 };

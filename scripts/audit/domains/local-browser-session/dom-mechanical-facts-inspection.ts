@@ -1,7 +1,7 @@
 import { Node } from "ts-morph";
 
 import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
-import { createLocalFinding, domCoherentObservationPath, domMechanicalFactsPath,
+import { createLocalFinding, domCoherentObservationPath, domExactEditableTextPath, domMechanicalFactsPath,
   domMutationPostconditionPath, requireSource } from "./inspector-support.js";
 
 const QUERY_RUNTIME_PATH = "src/lib/browser/chrome-extension/dom-query-runtime.ts";
@@ -139,6 +139,62 @@ const inspectCoherentRuntime = (runtimeText: string, findings: InspectorFinding[
   }
 };
 
+const inspectExactEditableProjection = (
+  exactText: string,
+  queryText: string,
+  observationText: string,
+  contractText: string,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  requireTokens(exactText, [
+    "BROWSER_EXACT_EDITABLE_TEXT_READER_SOURCE", "browserExactEditableBlockText",
+    "browserExactEditableText", 'element.getAttribute("contenteditable") !== "true"',
+    'children.map((child) => browserExactEditableBlockText(child)).join("\\n")',
+    "readExactEditableText", "Runtime.callFunctionOn", "returnByValue: true",
+  ], findings, lawId, domExactEditableTextPath,
+  "The single Browser exact contenteditable projection is missing");
+  requireTokens(queryText, ["readExactEditableText(runtime, tabId, nodeId)"], findings, lawId,
+    QUERY_RUNTIME_PATH, "Fill direct readback is not consuming");
+  if (queryText.includes("collectContentEditableText") || queryText.includes("collectEditableBlockText")) {
+    finding(findings, lawId, QUERY_RUNTIME_PATH,
+      "A retired second contenteditable text projection remains in the fill readback path.");
+  }
+  requireTokens(observationText, [
+    "BROWSER_EXACT_EDITABLE_TEXT_READER_SOURCE", 'field === "exactEditableTextHash"',
+    "browserExactEditableText(node)", "sha256(exactEditableText)",
+  ], findings, lawId, domCoherentObservationPath,
+  "Coherent observation is not consuming the single exact editable projection");
+  requireTokens(contractText, ["exactEditableTextHash"], findings, lawId, INTENT_CONTRACT_PATH,
+    "The bounded Browser observation field set is missing");
+};
+
+const inspectExactGptUserPromptProjection = (
+  observationText: string,
+  contractText: string,
+  candidateText: string,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  requireTokens(observationText, [
+    "GPT_USER_TURN_TEST_ID", "GPT_USER_PROMPT_CONTENT_SELECTOR", "exactGptUserPromptText",
+    'node.getAttribute("data-turn") !== "user"', "promptNodes.length !== 1",
+    'field === "exactGptUserPromptHash"', "sha256(exactGptUserPromptText(node))",
+  ], findings, lawId, domCoherentObservationPath,
+  "The exact GPT user Prompt hash projection is missing");
+  requireTokens(contractText, ["exactGptUserPromptHash"], findings, lawId, INTENT_CONTRACT_PATH,
+    "The bounded Browser observation field set is missing");
+  requireTokens(candidateText, [
+    'spec.fields.includes("exactGptUserPromptHash")',
+  ], findings, lawId, COHERENT_CANDIDATE_PATH,
+  "Mutation postconditions must reject the read-only exact GPT user Prompt hash field");
+  if (observationText.includes("replace(\"公开知识生产资料.zip\"")
+    || observationText.includes("replace(\"展开/收起\"")) {
+    finding(findings, lawId, domCoherentObservationPath,
+      "Prompt identity must select the exact body node, never filter attachment or control strings.");
+  }
+};
+
 const inspectMechanicalContract = (
   contractText: string,
   exactAssistantTurnText: string,
@@ -206,6 +262,7 @@ export const inspectDomMechanicalFacts = (
   lawId: string,
 ): void => {
   const facts = requireSource(context, findings, lawId, domMechanicalFactsPath);
+  const exactEditable = requireSource(context, findings, lawId, domExactEditableTextPath);
   const query = requireSource(context, findings, lawId, QUERY_RUNTIME_PATH);
   const runtime = requireSource(context, findings, lawId, INTENT_RUNTIME_PATH);
   const postcondition = requireSource(context, findings, lawId, domMutationPostconditionPath);
@@ -214,7 +271,7 @@ export const inspectDomMechanicalFacts = (
   const candidate = requireSource(context, findings, lawId, COHERENT_CANDIDATE_PATH);
   const exactAssistantTurn = requireSource(context, findings, lawId, EXACT_ASSISTANT_TURN_PATH);
   const mutationReceipt = requireSource(context, findings, lawId, MUTATION_RECEIPT_PATH);
-  if (!facts || !query || !runtime || !postcondition || !observation || !contract || !candidate
+  if (!facts || !exactEditable || !query || !runtime || !postcondition || !observation || !contract || !candidate
     || !exactAssistantTurn || !mutationReceipt) return;
 
   const readerInitializer = facts.getVariableDeclaration("BROWSER_MECHANICAL_FACTS_READER_SOURCE")?.getInitializer();
@@ -224,6 +281,12 @@ export const inspectDomMechanicalFacts = (
   const factsText = facts.getFullText();
   const queryText = query.getFullText();
   inspectMechanicalConsumers(factsText, queryText, findings, lawId);
+  inspectExactEditableProjection(
+    exactEditable.getFullText(), queryText, observation.getFullText(), contract.getFullText(), findings, lawId,
+  );
+  inspectExactGptUserPromptProjection(
+    observation.getFullText(), contract.getFullText(), candidate.getFullText(), findings, lawId,
+  );
   inspectCoherentPointerAction(candidate.getFullText(), queryText, findings, lawId);
   inspectAtomicObservationPointer(
     candidate.getFullText(), runtime.getFullText(), findings, lawId,

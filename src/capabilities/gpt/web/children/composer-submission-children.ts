@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { executionFailure, failureCode } from "../../../../lib/execution-failure.js";
+import { gptExecutionFailure } from "../../execution-fault.js";
 
 import type { BrowserTargetLease } from "../../../../lib/browser/browser-authority-api.js";
 import type { GptChildHandlerMap } from "../child-handler.js";
@@ -10,9 +11,12 @@ import {
 import {
   projectCoherentObservation, readCoherentObservation, type GptCoherentFactProjection,
 } from "../gpt-dom-observation.js";
-import { GPT_ATTACHMENT_ITEM_SELECTOR } from "../contracts/attachment.contract.js";
+import {
+  GPT_ATTACHMENT_ITEM_SELECTOR, GPT_COMPOSER_FORM_SELECTOR,
+} from "../contracts/attachment.contract.js";
 import { GPT_COMPOSER_SELECTOR, GPT_SEND_SELECTOR, GPT_USER_TURN_SELECTOR } from "../gpt-page-selectors.js";
 import { canonicalGptConversationUrl } from "../contracts/target-document.contract.js";
+import { waitForGptDirectMutationSettlement } from "../direct-mutation-settlement.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 type AnyHandler = NonNullable<GptChildHandlerMap[keyof GptChildHandlerMap]>;
@@ -59,6 +63,8 @@ type DraftState = Readonly<{
   sendDisabled: boolean | null;
   sendAriaDisabled: boolean | null;
   userTurns: readonly Readonly<{ testId: string; promptHash: string }>[];
+  attachmentRaw: number;
+  attachmentEligible: number;
   attachmentLabels: readonly string[];
   facts: GptCoherentFactProjection;
 }>;
@@ -69,12 +75,13 @@ const readDraftState = async (
 ): Promise<DraftState> => {
   const queries = [
     { queryId: "composer", selector: GPT_COMPOSER_SELECTOR, maxMatches: 2,
-      fields: ["semanticTextHash" as const] },
+      fields: ["exactEditableTextHash" as const] },
     ...(options.includeSend ? [{ queryId: "send", selector: GPT_SEND_SELECTOR, maxMatches: 2,
       fields: ["tagName" as const, "disabled" as const, "ariaDisabled" as const] }] : []),
     ...(options.includeTurns ? [{ queryId: "user-turns", selector: GPT_USER_TURN_SELECTOR, maxMatches: 20,
-      fields: ["testId" as const, "semanticTextHash" as const] }] : []),
+      fields: ["testId" as const, "exactGptUserPromptHash" as const] }] : []),
     ...(options.includeAttachments ? [{ queryId: "attachment-items", selector: GPT_ATTACHMENT_ITEM_SELECTOR,
+      scope: { selector: GPT_COMPOSER_FORM_SELECTOR },
       maxMatches: 20, fields: ["ariaLabel" as const] }] : []),
   ];
   const observation = await readCoherentObservation(browser, queries);
@@ -83,28 +90,35 @@ const readDraftState = async (
   const send = row("send");
   const userTurns = row("user-turns")?.matches.map((match) => {
     if (typeof match.testId !== "string" || !/^conversation-turn-[1-9][0-9]*$/u.test(match.testId)
-      || typeof match.semanticTextHash !== "string" || !HASH.test(match.semanticTextHash)) {
+      || typeof match.exactGptUserPromptHash !== "string" || !HASH.test(match.exactGptUserPromptHash)) {
       throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
     }
-    return Object.freeze({ testId: match.testId, promptHash: match.semanticTextHash });
+    return Object.freeze({ testId: match.testId, promptHash: match.exactGptUserPromptHash });
   }) ?? [];
   const attachmentLabels = row("attachment-items")?.matches.map((match) => {
     if (typeof match.ariaLabel !== "string") throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
     return match.ariaLabel.normalize("NFC");
   }) ?? [];
-  const composerHash = composer.matches[0]?.semanticTextHash;
+  const rawComposerHash = composer.matches[0]?.exactEditableTextHash;
+  if (rawComposerHash !== undefined
+    && (typeof rawComposerHash !== "string" || !HASH.test(rawComposerHash))) {
+    throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
+  }
+  const attachments = row("attachment-items");
   const sendMatch = send?.matches[0];
   return Object.freeze({
     currentUrl: observation.currentUrl,
     composerRaw: composer.rawCount,
     composerEligible: composer.eligibleCount,
-    composerHash: typeof composerHash === "string" ? composerHash : null,
+    composerHash: typeof rawComposerHash === "string" ? rawComposerHash : null,
     sendRaw: send?.rawCount ?? 0,
     sendEligible: send?.eligibleCount ?? 0,
     sendTag: typeof sendMatch?.tagName === "string" ? sendMatch.tagName : null,
     sendDisabled: typeof sendMatch?.disabled === "boolean" ? sendMatch.disabled : null,
     sendAriaDisabled: typeof sendMatch?.ariaDisabled === "boolean" ? sendMatch.ariaDisabled : null,
     userTurns: Object.freeze(userTurns),
+    attachmentRaw: attachments?.rawCount ?? 0,
+    attachmentEligible: attachments?.eligibleCount ?? 0,
     attachmentLabels: Object.freeze(attachmentLabels),
     facts: projectCoherentObservation(observation, "composer"),
   });
@@ -116,12 +130,70 @@ const requireExactComposer = (state: DraftState): void => {
   }
 };
 
+const waitForFreshDraftState = (
+  browser: BrowserTargetLease,
+  options: Parameters<typeof readDraftState>[1],
+  ready: (state: DraftState) => boolean,
+  hardFailure: (state: DraftState) => boolean,
+): Promise<DraftState> => waitForGptDirectMutationSettlement(
+  browser, () => readDraftState(browser, options), ready, hardFailure,
+);
+
 const canonicalConversationOrNull = (value: string): string | null => {
   try { return canonicalGptConversationUrl(value); } catch { return null; }
 };
 
 const submissionMatch = (state: DraftState, promptHash: string) =>
   state.userTurns.filter((turn) => turn.promptHash === promptHash);
+
+const exactAttachmentSet = (
+  state: DraftState,
+  files: readonly Readonly<{ providerDisplayName: string }>[],
+): boolean => {
+  const expected = files.map((file) => file.providerDisplayName);
+  return new Set(expected).size === expected.length
+    && new Set(state.attachmentLabels).size === state.attachmentLabels.length
+    && state.attachmentRaw === expected.length
+    && state.attachmentEligible === expected.length
+    && state.attachmentLabels.length === expected.length
+    && expected.every((label) => state.attachmentLabels.includes(label));
+};
+
+const promptWriteMismatchFailure = (
+  intent: AnyIntent,
+  browser: BrowserTargetLease,
+  expectedHash: `sha256:${string}`,
+  observed: DraftState,
+) => {
+  const browserFact = requireConfirmedBrowserFact(intent, browser);
+  const observedHash = observed.composerHash ?? "missing";
+  const proofFacts = Object.freeze({
+    ...observed.facts,
+    decision: "FAIL_CLOSED",
+    factResultIds: Object.freeze([
+      ...observed.facts.factResultIds,
+      `gpt-composer-expected-hash:${expectedHash.slice(7)}`,
+      `gpt-composer-observed-hash:${observedHash.startsWith("sha256:") ? observedHash.slice(7) : observedHash}`,
+      browserFact.evidenceRef,
+    ]),
+    authorityRefHashes: Object.freeze([
+      ...observed.facts.authorityRefHashes, browserFact.evidenceHash,
+    ]),
+    mutationOutcome: browserFact.mutationOutcome,
+    browserFact,
+    nativeFailureCode: "GPT_PROMPT_WRITE_UNCONFIRMED",
+  });
+  return gptExecutionFailure("GPT_PROMPT_WRITE_UNCONFIRMED", {
+    mutationOutcome: browserFact.mutationOutcome,
+    evidence: { evidenceRef: browserFact.evidenceRef, evidenceHash: browserFact.evidenceHash },
+    browserEffect: {
+      effectScope: browserFact.effectScope,
+      childCapabilityId: browserFact.childCapabilityId,
+      browserOutcome: browserFact.browserOutcome,
+    },
+    proofFacts,
+  });
+};
 
 const timeoutInput = (intent: AnyIntent): number => {
   const value = numberInput(intent, "timeoutMs");
@@ -149,9 +221,17 @@ export const composerSubmissionChildHandlers = {
       kind: "fill", selector: GPT_COMPOSER_SELECTOR, approvedText: prompt,
       clearBeforeType: true, expectedMatches: 1,
     });
-    const readback = await readDraftState(browser);
+    const readback = await waitForFreshDraftState(
+      browser,
+      {},
+      (state) => state.composerRaw === 1 && state.composerEligible === 1
+        && state.composerHash === promptHash,
+      (state) => state.composerRaw > 1 || (state.composerRaw === 1 && state.composerEligible !== 1),
+    );
     requireExactComposer(readback);
-    if (readback.composerHash !== promptHash) throw executionFailure("failed", "GPT_PROMPT_WRITE_UNCONFIRMED");
+    if (readback.composerHash !== promptHash) {
+      throw promptWriteMismatchFailure(intent, browser, promptHash, readback);
+    }
     const browserFact = requireConfirmedBrowserFact(intent, browser);
     return success({
       value: promptIdentity(prompt),
@@ -168,14 +248,18 @@ export const composerSubmissionChildHandlers = {
     const prompt = stringInput(intent, "prompt");
     const marker = stringInput(intent, "turnMarker");
     if (!prompt.includes(marker)) throw executionFailure("failed", "GPT_PROMPT_MARKER_MISSING");
-    const observed = await readDraftState(requireBrowser(context), { includeSend: true, includeAttachments: true });
-    requireExactComposer(observed);
     const expectedLabels = files.map((file) => file.providerDisplayName);
-    if (observed.composerHash !== hash(prompt)
-      || observed.sendRaw !== 1 || observed.sendEligible !== 1 || observed.sendTag !== "BUTTON"
-      || observed.sendDisabled !== false || observed.sendAriaDisabled !== false
-      || expectedLabels.length !== observed.attachmentLabels.length
-      || expectedLabels.some((label) => !observed.attachmentLabels.includes(label))) {
+    const ready = (state: DraftState): boolean => state.composerRaw === 1
+      && state.composerEligible === 1
+      && state.composerHash === hash(prompt)
+      && state.sendRaw === 1 && state.sendEligible === 1 && state.sendTag === "BUTTON"
+      && state.sendDisabled === false && state.sendAriaDisabled === false
+      && exactAttachmentSet(state, files);
+    const observed = await readDraftState(
+      requireBrowser(context), { includeSend: true, includeAttachments: true },
+    );
+    requireExactComposer(observed);
+    if (!ready(observed)) {
       throw executionFailure("failed", "GPT_DRAFT_OR_SEND_READBACK_MISMATCH");
     }
     return success({
@@ -187,11 +271,13 @@ export const composerSubmissionChildHandlers = {
 
   async submit_exact_gpt_turn_once(intent, context) {
     requireExactInputKeys(intent, ["files", "promptHash", "turnMarker"]);
-    filesInput(intent);
+    const files = filesInput(intent);
     const promptHash = hashInput(intent, "promptHash");
     stringInput(intent, "turnMarker");
     const browser = requireBrowser(context);
-    const observed = await readDraftState(browser, { includeSend: true, includeTurns: true });
+    const observed = await readDraftState(browser, {
+      includeSend: true, includeTurns: true, includeAttachments: true,
+    });
     requireExactComposer(observed);
     const alreadySubmitted = submissionMatch(observed, promptHash);
     if (alreadySubmitted.length > 1) throw executionFailure("failed", `GPT_SUBMITTED_TURN_COUNT_${alreadySubmitted.length}`);
@@ -204,6 +290,7 @@ export const composerSubmissionChildHandlers = {
     if (observed.composerHash !== promptHash
       || observed.sendRaw !== 1 || observed.sendEligible !== 1 || observed.sendTag !== "BUTTON"
       || observed.sendDisabled !== false || observed.sendAriaDisabled !== false
+      || !exactAttachmentSet(observed, files)
       || observed.userTurns.length >= 20) {
       throw executionFailure("failed", "GPT_SUBMIT_PRECONDITION_INVALID");
     }

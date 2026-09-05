@@ -18,6 +18,7 @@ export type {
 export type { BrowserFileArtifactGrantV1 } from "./exact-target/browser-file-artifact-grant.js";
 export type {
   BrowserExecutionBinding,
+  BrowserConfirmedProviderFailureReadbackAuthorization,
   BrowserConfirmedProviderReadbackAuthorization,
   BrowserExecutionArtifact,
   BrowserExecutionArtifactBinding,

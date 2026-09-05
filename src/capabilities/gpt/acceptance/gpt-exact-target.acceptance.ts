@@ -26,7 +26,10 @@ import {
 } from "./gpt-exact-target-browser-fixture.js";
 import { createGptAcceptanceHarness } from "./gpt-acceptance-harness.js";
 import { assertGptExactTargetSourceShape } from "./gpt-exact-target-source-support.js";
-import { exerciseFailedEvidenceReadback } from "./gpt-failure-evidence-readback.acceptance-support.js";
+import {
+  exerciseFailedEvidenceReadback,
+  exerciseReasoningEvidenceReadback,
+} from "./gpt-failure-evidence-readback.acceptance-support.js";
 
 const { gpt, execute } = createGptAcceptanceHarness("gpt-exact-target");
 assert.deepEqual(gpt.listChildCapabilityIds(), EXPECTED_GPT_CHILD_IDS);
@@ -502,6 +505,9 @@ for (const reasoningCase of [
   assert.equal(result.proof.committedMutation, reasoningCase.mutation);
   assert.equal(keypresses, reasoningCase.mutation === "confirmed" ? 1 : 0);
   assert.equal(fixture.physicalMutations(), reasoningCase.mutation === "confirmed" ? 1 : 0);
+  if (reasoningCase.mutation === "confirmed") {
+    await exerciseReasoningEvidenceReadback(result, Object.freeze({ profile }));
+  }
 }
 
 for (const maximum of [2, 4]) {
@@ -616,14 +622,14 @@ assert.equal(GPT_PROFILE_SIMPLE_PANEL_SELECTOR,
   "[data-testid='composer-model-picker-slider-simple-view'][data-active='true']:not([inert])");
 
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V24",
+  lawId: "LAW-GPT-001-V26",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:3", "forbidden:4", "forbidden:5", "forbidden:9", "summary"],
   locator: "acceptance:gpt-exact-target:coherent-ready-subset",
   observedValue: "coherent profile model and numeric reasoning Children prove same-revision DONE or one confirmed mutation",
 });
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V24",
+  lawId: "LAW-GPT-001-V26",
   evidenceMode: "exam.property",
   clauses: ["forbidden:10", "forbidden:13", "forbidden:15", "forbidden:16", "summary"],
   locator: "acceptance:gpt-exact-target:browser-handoff",

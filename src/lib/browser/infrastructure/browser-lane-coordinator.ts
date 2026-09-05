@@ -67,31 +67,44 @@ const exactCanonicalConversationUrl = (value: string): boolean => {
 };
 
 type ReconciliationBinding = Extract<BrowserExecutionBinding, { kind: "production-reconciliation" }>;
+type FailureReadbackBinding = Extract<BrowserExecutionBinding, { kind: "production-confirmed-failure-readback" }>;
+type ConfirmedReadbackBinding = ReconciliationBinding | FailureReadbackBinding;
+const CONFIRMED_READBACK_TARGET_LOCAL_CHILDREN = new Set([
+  "focus_exact_gpt_conversation",
+  "wait_for_stable_gpt_text",
+  "wait_for_stable_gpt_image",
+]);
 
-const confirmedReadbackMatches = (
-  binding: ReconciliationBinding,
+const readbackSource = (binding: ConfirmedReadbackBinding) => binding.kind === "production-reconciliation"
+  ? binding.confirmedProviderReadback : binding.confirmedProviderFailureReadback;
+
+const confirmedSourceMatches = (
+  binding: ConfirmedReadbackBinding,
   fact: BrowserExactCallMutationFact | null,
-): fact is BrowserExactCallMutationFact => Boolean(fact) && [
-  binding.confirmedProviderReadback.schemaVersion === "browser-confirmed-provider-readback.v1",
-  binding.confirmedProviderReadback.sourceProductStepId === binding.productStepId,
-  binding.confirmedProviderReadback.sourceChildCapabilityId === "submit_exact_gpt_turn_once",
+): fact is BrowserExactCallMutationFact => {
+  const source = readbackSource(binding);
+  return Boolean(fact) && [
+  source.sourceProductStepId === binding.productStepId,
+  source.sourceChildCapabilityId === "submit_exact_gpt_turn_once",
   fact?.effectScope === "provider_effect", fact?.outcome === "CONFIRMED",
-  fact?.terminalAt === binding.confirmedProviderReadback.sourceTerminalAt,
-  fact?.targetRef === binding.confirmedProviderReadback.sourceTargetRef,
-  fact?.documentRef === binding.confirmedProviderReadback.sourceDocumentRef,
-  fact?.productStepId === binding.confirmedProviderReadback.sourceProductStepId,
-  fact?.callId === binding.confirmedProviderReadback.sourceCallId,
-  fact?.childCapabilityId === binding.confirmedProviderReadback.sourceChildCapabilityId,
-  fact?.actionOrdinal === binding.confirmedProviderReadback.sourceActionOrdinal,
-  hash(binding.confirmedProviderReadback.sourceExactCallIdentityHash),
-  hash(binding.confirmedProviderReadback.evidenceHash),
-  hash(binding.confirmedProviderReadback.conversationIdentityHash),
-  hash(binding.confirmedProviderReadback.promptHash),
-  Boolean(binding.confirmedProviderReadback.evidenceRef),
-  Boolean(binding.confirmedProviderReadback.turnMarker),
-  Number.isFinite(Date.parse(binding.confirmedProviderReadback.sourceTerminalAt)),
-  exactCanonicalConversationUrl(binding.confirmedProviderReadback.canonicalConversationUrl),
-].every(Boolean);
+  fact?.terminalAt === source.sourceTerminalAt,
+  fact?.targetRef === source.sourceTargetRef,
+  fact?.documentRef === source.sourceDocumentRef,
+  fact?.productStepId === source.sourceProductStepId,
+  fact?.callId === source.sourceCallId,
+  fact?.childCapabilityId === source.sourceChildCapabilityId,
+  fact?.actionOrdinal === source.sourceActionOrdinal,
+  hash(source.sourceExactCallIdentityHash), hash(source.evidenceHash), hash(source.promptHash),
+  Boolean(source.evidenceRef), Boolean(source.turnMarker),
+  Number.isFinite(Date.parse(source.sourceTerminalAt)),
+  binding.kind === "production-reconciliation"
+    ? binding.confirmedProviderReadback.schemaVersion === "browser-confirmed-provider-readback.v1"
+      && hash(binding.confirmedProviderReadback.conversationIdentityHash)
+      && exactCanonicalConversationUrl(binding.confirmedProviderReadback.canonicalConversationUrl)
+    : binding.confirmedProviderFailureReadback.schemaVersion
+      === "browser-confirmed-provider-failure-readback.v1",
+  ].every(Boolean);
+};
 
 export class BrowserLaneCoordinator {
   private readonly queue: LaneWaiter[] = [];
@@ -262,7 +275,7 @@ export class BrowserLaneCoordinator {
       const lease = await this.resolveBroker().acquireOperatorClaimedTargetLease(waiter.binding, waiter.ownerId);
       let admitted: ReturnType<BrowserLaneCoordinator["admitRecoveredLease"]>;
       try {
-        admitted = this.admitRecoveredLease(lease, recovery, acquisition);
+        admitted = this.admitRecoveredLease(waiter.binding, lease, recovery, acquisition);
       } catch (error) {
         try {
           await lease.park({
@@ -288,12 +301,16 @@ export class BrowserLaneCoordinator {
   }
 
   private admitRecoveredLease(
+    binding: BrowserExecutionBinding,
     lease: BrowserTargetLease,
     recovery: LaneRecovery | null,
     acquisition: BrowserTargetAcquisition,
   ): Readonly<{ lease: BrowserTargetLease; replacementKey: string | null }> {
     const targetMismatch = Boolean(recovery) && lease.target.targetRef !== recovery?.targetRef;
     const documentMismatch = Boolean(recovery) && lease.document.documentRef !== recovery?.documentRef;
+    if (binding.kind === "production-confirmed-failure-readback" && (targetMismatch || documentMismatch)) {
+      throw new Error("BROWSER_DOCUMENT_INVALID");
+    }
     if (recovery?.state === "DISPATCHED" && recovery.effectScope === "target_local"
       && (targetMismatch || documentMismatch)) {
       this.rejectLostTargetLocalDocument(recovery);
@@ -306,9 +323,12 @@ export class BrowserLaneCoordinator {
       || (recovery.state === "DISPATCHED" && lease.document.documentRef !== recovery.documentRef))) {
       throw new Error("BROWSER_DOCUMENT_INVALID");
     }
+    const admittedLease = binding.kind === "production-confirmed-failure-readback"
+      ? this.confirmedFailureReadbackLease(lease)
+      : binding.kind === "production-reconciliation"
+        ? this.confirmedReadbackLease(lease, binding) : lease;
     return {
-      lease: replacementKeyToClear && acquisition.replacementBinding
-        ? this.confirmedReadbackLease(lease, acquisition.replacementBinding) : lease,
+      lease: admittedLease,
       replacementKey: replacementKeyToClear,
     };
   }
@@ -316,7 +336,8 @@ export class BrowserLaneCoordinator {
   private recoveryFor(binding: BrowserExecutionBinding): LaneRecovery | null {
     const mutationState = this.infrastructure.mutationState;
     if (!mutationState) return null;
-    if (binding.kind !== "production-reconciliation") {
+    if (binding.kind !== "production-reconciliation"
+      && binding.kind !== "production-confirmed-failure-readback") {
       const scope = mutationState.callRecoveryScope({
         jobId: binding.jobId,
         attemptId: binding.attemptId,
@@ -331,7 +352,7 @@ export class BrowserLaneCoordinator {
         childCapabilityId: mutationState.readDispatched(scope.commandId)?.childCapabilityId ?? "recovered-call",
       }) : null;
     }
-    const authorization = binding.confirmedProviderReadback;
+    const authorization = readbackSource(binding);
     const fact = mutationState.readExactCallMutationFact({
       jobId: binding.jobId,
       attemptId: authorization.sourceAttemptId,
@@ -340,7 +361,7 @@ export class BrowserLaneCoordinator {
       exactCallIdentityHash: authorization.sourceExactCallIdentityHash,
       actionOrdinal: authorization.sourceActionOrdinal,
     });
-    if (!confirmedReadbackMatches(binding, fact)) {
+    if (!confirmedSourceMatches(binding, fact)) {
       throw new Error("BROWSER_RECONCILIATION_SCOPE_INVALID");
     }
     return Object.freeze({
@@ -359,6 +380,31 @@ export class BrowserLaneCoordinator {
     });
   }
 
+  private confirmedFailureReadbackLease(lease: BrowserTargetLease): BrowserTargetLease {
+    const reject = async (): Promise<never> => {
+      throw new Error("BROWSER_RECONCILIATION_SCOPE_INVALID");
+    };
+    const readKinds = new Set([
+      "document", "observe", "readExactAssistantTurn", "inspect", "find", "readText", "readAttribute",
+    ]);
+    return {
+      ...lease,
+      runAtomicStep: (identity, action) => identity.replayPolicy === "observation-only"
+        ? lease.runAtomicStep(identity, action) : reject(),
+      navigate: reject,
+      executeDomIntent: (intent) => readKinds.has(intent.kind)
+        ? lease.executeDomIntent(intent) : reject(),
+      observeCapability: (input) => lease.observeCapability(input),
+      captureScreenshot: reject,
+      attachFile: reject,
+      downloadAuthenticatedMedia: reject,
+      wait: (input) => lease.wait(input),
+      park: (input) => lease.park(input),
+      close: (input) => lease.close(input),
+      resolvePendingMutation: reject,
+    };
+  }
+
   private confirmedReadbackLease(
     lease: BrowserTargetLease,
     binding: Extract<BrowserExecutionBinding, { kind: "production-reconciliation" }>,
@@ -372,6 +418,8 @@ export class BrowserLaneCoordinator {
     return {
       ...lease,
       runAtomicStep: (identity, action) => identity.replayPolicy === "observation-only"
+        || (identity.replayPolicy === "target-local-per-generation"
+          && CONFIRMED_READBACK_TARGET_LOCAL_CHILDREN.has(identity.childCapabilityId))
         ? lease.runAtomicStep(identity, action) : reject(),
       navigate: (input) => input.url === binding.confirmedProviderReadback.canonicalConversationUrl
         ? lease.navigate(input) : reject(),

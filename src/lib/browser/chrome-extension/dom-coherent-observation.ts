@@ -7,11 +7,14 @@ import {
 import { canonicalizeBrowserAuthorityValue } from "../transport/browser-authority-frame-codec.js";
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import { BROWSER_MECHANICAL_FACTS_READER_SOURCE } from "./dom-mechanical-facts.js";
+import { BROWSER_EXACT_EDITABLE_TEXT_READER_SOURCE } from "./dom-exact-editable-text.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 
 type BrowserRecord = Record<string, unknown>;
 const GPT_ORIGIN = "https://chatgpt.com";
 const GPT_CONVERSATION_SEGMENT_MAX_CHARS = 256;
+const GPT_USER_TURN_TEST_ID = /^conversation-turn-[1-9][0-9]*$/u;
+const GPT_USER_PROMPT_CONTENT_SELECTOR = "[data-testid='collapsible-user-message-content']";
 type CoherentObservationResult = Readonly<{
   schemaVersion: "grasseye.browser.dom-observation.v2";
   targetRefHash: `sha256:${string}`;
@@ -26,6 +29,7 @@ export type BrowserCoherentObservationResult = CoherentObservationResult;
 
 const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
   ${BROWSER_MECHANICAL_FACTS_READER_SOURCE}
+  ${BROWSER_EXACT_EDITABLE_TEXT_READER_SOURCE}
   const sha256 = async (value) => {
     const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
     return "sha256:" + Array.from(new Uint8Array(digest))
@@ -69,6 +73,15 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
     const value = Array.from(node.childNodes || []).map((child) => semanticNode(child, node)).join("");
     return value.endsWith("\\n") ? value.slice(0, -1) : value;
   };
+  const exactGptUserPromptText = (node) => {
+    if (!(node instanceof Element) || node.getAttribute("data-turn") !== "user"
+      || !/${GPT_USER_TURN_TEST_ID.source}/.test(node.getAttribute("data-testid") || "")) {
+      throw new Error("BROWSER_DOM_READ_INVALID");
+    }
+    const promptNodes = Array.from(node.querySelectorAll("${GPT_USER_PROMPT_CONTENT_SELECTOR}"));
+    if (promptNodes.length !== 1) throw new Error("BROWSER_DOM_READ_INVALID");
+    return canonicalSemanticText(promptNodes[0]);
+  };
   const currentUrlValue = (() => {
     const observedUrl = new URL(location.href);
     if (observedUrl.protocol !== "https:" || observedUrl.origin !== "${GPT_ORIGIN}"
@@ -93,6 +106,12 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
     if (field === "ariaValueMax") return node.getAttribute("aria-valuemax") || "";
     if (field === "ariaValueNow") return node.getAttribute("aria-valuenow") || "";
     if (field === "semanticTextHash") return sha256(canonicalSemanticText(node));
+    if (field === "exactGptUserPromptHash") return sha256(exactGptUserPromptText(node));
+    if (field === "exactEditableTextHash") {
+      const exactEditableText = browserExactEditableText(node);
+      if (exactEditableText === null) throw new Error("BROWSER_DOM_READ_INVALID");
+      return sha256(exactEditableText);
+    }
     if (field === "accept") return node.getAttribute("accept") || "";
     if (field === "multiple") return node.hasAttribute("multiple");
     return facts[field];
@@ -177,6 +196,7 @@ const observationCount = (value: unknown): number => {
 const stringObservationFields = new Set<BrowserDomObservationField>([
   "id", "testId", "dataTurn", "tagName", "type", "role", "name", "label", "ariaLabel",
   "ariaExpanded", "ariaChecked", "ariaValueMin", "ariaValueMax", "ariaValueNow", "semanticTextHash",
+  "exactEditableTextHash", "exactGptUserPromptHash",
   "value", "accept", "computedDisplay", "computedVisibility",
   "computedOpacity", "effectiveOpacity",
 ]);
@@ -186,6 +206,10 @@ const booleanObservationFields = new Set<BrowserDomObservationField>([
 ]);
 
 const observationFieldValid = (field: BrowserDomObservationField, value: unknown): boolean => {
+  if (field === "semanticTextHash" || field === "exactEditableTextHash"
+    || field === "exactGptUserPromptHash") {
+    return typeof value === "string" && /^sha256:[a-f0-9]{64}$/u.test(value);
+  }
   if (stringObservationFields.has(field)) return typeof value === "string";
   if (booleanObservationFields.has(field)) return typeof value === "boolean";
   if (field === "checked") return value === null || typeof value === "boolean";

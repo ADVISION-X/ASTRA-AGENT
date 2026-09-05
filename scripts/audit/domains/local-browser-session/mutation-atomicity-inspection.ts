@@ -281,7 +281,14 @@ const inspectLaneRecoveryContract = (
   "Browser recovery must be job-scoped, exact-target and quarantine the sole Browser lane.");
   const laneText = lane.getFullText();
   for (const required of [
-    "confirmedReadbackMatches",
+    "confirmedSourceMatches",
+    "confirmedFailureReadbackLease",
+    'kind === "production-confirmed-failure-readback"',
+    "CONFIRMED_READBACK_TARGET_LOCAL_CHILDREN",
+    '"focus_exact_gpt_conversation"',
+    '"wait_for_stable_gpt_text"',
+    '"wait_for_stable_gpt_image"',
+    "downloadAuthenticatedMedia: reject",
     "confirmedProviderTargetReplaced",
     "recoveryMutationOutcome",
     'this.quarantine ? "blocked" : "idle"',
@@ -300,6 +307,7 @@ const inspectLaneRecoveryContract = (
   for (const required of [
     'recovery?.state === "CONFIRMED"', 'recovery.effectScope === "provider_effect"',
     'error.message === "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT"',
+    'waiter.binding.kind === "production-reconciliation"',
   ]) if (!targetAcquirerText.includes(required)) findings.push(createLocalFinding({
     checkId: "browser-authority/confirmed-provider-target-replacement",
     lawId,

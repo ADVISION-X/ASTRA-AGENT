@@ -5,6 +5,7 @@ import type {
   BrowserDomReadEligibility,
 } from "../exact-target/browser-dom-intent.js";
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
+import { readExactEditableText } from "./dom-exact-editable-text.js";
 import { keyboardActionEligible, readMechanicalFacts, semanticEligible,
   type BrowserMechanicalFacts } from "./dom-mechanical-facts.js";
 
@@ -198,7 +199,7 @@ export const describeNode = async (runtime: ExtensionDebuggerRuntime, tabId: num
 export const nodeText = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number): Promise<string> => {
   const node = await describeNodeTree(runtime, tabId, nodeId);
   return attribute(node, "contenteditable") === "true"
-    ? collectContentEditableText(node)
+    ? readExactEditableText(runtime, tabId, nodeId)
     : collectNodeText(node);
 };
 
@@ -281,24 +282,6 @@ export const nodeOuterHtml = async (
   record(await read(() => runtime.send(tabId, "DOM.getOuterHTML", { nodeId }))).outerHTML,
   DOM_READ_INVALID,
 );
-
-const collectContentEditableText = (node: DevToolsRecord): string => {
-  const children = Array.isArray(node.children) ? node.children.map(record) : [];
-  if (children.length === 0) return collectNodeText(node);
-  return children.map((child) => collectEditableBlockText(child)).join("\n");
-};
-
-const collectEditableBlockText = (node: DevToolsRecord): string => {
-  if (node.nodeName === "BR") return "";
-  const own = typeof node.nodeValue === "string" ? node.nodeValue : "";
-  const children = Array.isArray(node.children)
-    ? node.children.map((child) => {
-      const value = record(child);
-      return value.nodeName === "BR" ? "\n" : collectEditableBlockText(value);
-    }).join("")
-    : "";
-  return `${own}${children}`.replace(/\n$/u, "");
-};
 
 const collectNodeText = (node: DevToolsRecord): string => {
   const own = typeof node.nodeValue === "string" ? node.nodeValue : "";

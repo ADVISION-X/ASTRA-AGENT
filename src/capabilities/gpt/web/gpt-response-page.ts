@@ -41,7 +41,7 @@ export const turnOrdinal = (turnId: string): number => {
 export const readResponsePage = async (browser: BrowserTargetLease): Promise<GptResponsePageState> => {
   const observation = await readCoherentObservation(browser, [
     { queryId: "user-turns", selector: GPT_USER_TURN_SELECTOR, maxMatches: 20,
-      fields: ["testId", "semanticTextHash"] },
+      fields: ["testId", "exactGptUserPromptHash"] },
     { queryId: "assistant-turns", selector: GPT_ASSISTANT_TURN_SELECTOR, maxMatches: 20,
       fields: ["testId", "semanticTextHash"] },
     { queryId: "generating", selector: GPT_GENERATING_STOP_SELECTOR, maxMatches: 2, fields: [] },
@@ -56,10 +56,10 @@ export const readResponsePage = async (browser: BrowserTargetLease): Promise<Gpt
   const row = (queryId: string) => observation.rows.find((candidate) => candidate.queryId === queryId)!;
   const userTurns = row("user-turns").matches.map((match) => {
     if (typeof match.testId !== "string" || !TURN.test(match.testId)
-      || typeof match.semanticTextHash !== "string" || !HASH.test(match.semanticTextHash)) {
+      || typeof match.exactGptUserPromptHash !== "string" || !HASH.test(match.exactGptUserPromptHash)) {
       throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
     }
-    return Object.freeze({ testId: match.testId, promptHash: match.semanticTextHash });
+    return Object.freeze({ testId: match.testId, promptHash: match.exactGptUserPromptHash });
   });
   const assistantTurns = row("assistant-turns").matches.map((match) => {
     if (typeof match.testId !== "string" || !TURN.test(match.testId)

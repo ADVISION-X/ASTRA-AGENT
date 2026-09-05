@@ -4,9 +4,19 @@ import type { BrowserConfirmedProviderReadbackAuthorization } from
   "../../lib/browser/browser-authority-api.js";
 import { executionFailure } from "../../lib/execution-failure.js";
 import { gptSubmissionLocatorArtifact } from "./artifact-contract.js";
-import type { ProductGptCallInput, ProductGptChildResult } from "./product-api.js";
+import { gptExactCallIdentityHash, type GptChildCapabilityIntent } from "./contract.js";
+import { readConfirmedSubmitFailureEvidence } from "./evidence-fact.js";
+import type {
+  ConfirmedGptSubmitFailureReceipt,
+  ProductGptCallInput,
+  ProductGptChildResult,
+} from "./product-api.js";
 import type { GptExactCallFactsWithBrowserBinding } from "./production-call-facts.js";
 import type { ProductionGptBrowserLifecycle } from "./production-browser-lifecycle.js";
+import type {
+  GptEvidenceStorePort,
+  GptProductionBrowserAuthority,
+} from "./production-ports.js";
 
 export type ConfirmedProviderSubmitReceipt = Readonly<{
   sourceAttemptId: string;
@@ -76,6 +86,94 @@ export const mergeConfirmedProviderSubmitReceipt = (
   }
   return next;
 };
+
+export const readConfirmedProviderSubmitFailureReceipt = async (input: Readonly<{
+  call: ProductGptCallInput<"submit_exact_gpt_turn_once">;
+  intent: GptChildCapabilityIntent<"submit_exact_gpt_turn_once">;
+  browserAuthority: GptProductionBrowserAuthority;
+  evidenceStore: GptEvidenceStorePort;
+}>): Promise<Readonly<{
+  provider: ConfirmedProviderSubmitReceipt;
+  product: ConfirmedGptSubmitFailureReceipt;
+}> | null> => {
+  const exactCallIdentityHash = gptExactCallIdentityHash(input.intent);
+  const evidence = await readConfirmedSubmitFailureEvidence({
+    evidenceStore: input.evidenceStore,
+    intent: input.intent,
+    exactCallIdentityHash,
+  });
+  if (!evidence) return null;
+  const mutation = input.browserAuthority.readExactCallMutationFact({
+    jobId: input.intent.jobId,
+    attemptId: input.intent.attemptId,
+    ownerPluginId: input.intent.pluginId,
+    pluginVersion: input.intent.pluginVersion,
+    exactCallIdentityHash,
+    actionOrdinal: input.intent.actionOrdinal,
+  });
+  if (!mutation
+    || mutation.effectScope !== "provider_effect"
+    || mutation.outcome !== "CONFIRMED"
+    || mutation.mutationOutcome !== "confirmed"
+    || !mutation.terminalAt
+    || mutation.productStepId !== input.call.productStepId
+    || mutation.callId !== input.call.callId
+    || mutation.childCapabilityId !== input.call.child
+    || mutation.actionOrdinal !== input.call.actionOrdinal
+    || evidence.browserFact.exactCallIdentityHash !== exactCallIdentityHash
+    || evidence.browserFact.terminalAt !== mutation.terminalAt
+    || evidence.browserFact.evidenceRef !== mutation.authorityRef
+    || evidence.browserFact.evidenceHash !== mutation.authorityHash) {
+    throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
+  }
+  const provider = confirmedProviderSubmitReceipt(input.call, Object.freeze({
+    exactCallIdentityHash,
+    mutation: Object.freeze({
+      owner: "browser",
+      sourceAttemptId: input.intent.attemptId,
+      effectScope: mutation.effectScope,
+      outcome: mutation.outcome,
+      mutationOutcome: mutation.mutationOutcome,
+      failureCode: mutation.failureCode,
+      nativeFailureCode: mutation.nativeFailureCode,
+      terminalAt: mutation.terminalAt,
+      authorityRef: mutation.authorityRef,
+      authorityHash: mutation.authorityHash,
+      targetRef: mutation.targetRef,
+      documentRef: mutation.documentRef,
+      productStepId: mutation.productStepId,
+      callId: mutation.callId,
+      childCapabilityId: mutation.childCapabilityId,
+      actionOrdinal: mutation.actionOrdinal,
+    }),
+    evidence: evidence.evidence,
+    continuation: null,
+  }));
+  if (!provider) throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
+  return Object.freeze({
+    provider,
+    product: Object.freeze({
+      sourceAttemptId: provider.sourceAttemptId,
+      exactCallIdentityHash: provider.sourceExactCallIdentityHash,
+      productStepId: provider.sourceProductStepId,
+      callId: provider.sourceCallId,
+      actionOrdinal: provider.sourceActionOrdinal,
+      terminalAt: provider.sourceTerminalAt,
+      failureCode: evidence.failureCode,
+      evidenceRef: provider.evidenceRef,
+      evidenceHash: provider.evidenceHash,
+    }),
+  });
+};
+
+export const authorizeConfirmedProviderFailureReadback = (input: Readonly<{
+  browsers: ProductionGptBrowserLifecycle;
+  receipt: ConfirmedProviderSubmitReceipt;
+}>): void => input.browsers.authorizeConfirmedProviderFailureReadback(Object.freeze({
+  schemaVersion: "browser-confirmed-provider-failure-readback.v1",
+  ...input.receipt,
+  sourceChildCapabilityId: "submit_exact_gpt_turn_once",
+}));
 
 export const authorizeConfirmedProviderReadback = (input: Readonly<{
   browsers: ProductionGptBrowserLifecycle;

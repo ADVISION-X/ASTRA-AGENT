@@ -12,7 +12,10 @@ import {
   projectCoherentObservation, readCoherentObservation, readExactAssistantTurn,
   type GptCoherentFactProjection, type GptExactAssistantTurnObservation,
 } from "../gpt-dom-observation.js";
-import { GPT_ATTACHMENT_REGION_SELECTOR } from "../contracts/attachment.contract.js";
+import {
+  GPT_ATTACHMENT_ITEM_SELECTOR,
+  GPT_COMPOSER_FORM_SELECTOR,
+} from "../contracts/attachment.contract.js";
 import {
   GPT_ACTIVE_ACTIONS_MENU_SELECTOR, GPT_ASSISTANT_TURN_SELECTOR, GPT_COMPOSER_SELECTOR,
   GPT_FORK_ACTION_SELECTOR, GPT_GENERATING_STOP_SELECTOR, GPT_USER_TURN_SELECTOR,
@@ -21,6 +24,7 @@ import {
 import {
   canonicalGptConversationUrl, isGptRootUrl,
 } from "../contracts/target-document.contract.js";
+import { waitForGptDirectMutationSettlement } from "../direct-mutation-settlement.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 const TURN = /^conversation-turn-([1-9][0-9]*)$/u;
@@ -79,12 +83,13 @@ const readConversationState = async (
 ): Promise<ConversationState> => {
   const queries = [
     { queryId: "composer", selector: GPT_COMPOSER_SELECTOR, maxMatches: 2,
-      fields: ["semanticTextHash" as const] },
+      fields: ["exactEditableTextHash" as const] },
     { queryId: "user-turns", selector: GPT_USER_TURN_SELECTOR, maxMatches: 20,
-      fields: ["testId" as const, "semanticTextHash" as const] },
+      fields: ["testId" as const, "exactGptUserPromptHash" as const] },
     { queryId: "assistant-turns", selector: GPT_ASSISTANT_TURN_SELECTOR, maxMatches: 20,
       fields: ["testId" as const] },
-    { queryId: "attachments", selector: GPT_ATTACHMENT_REGION_SELECTOR, maxMatches: 2, fields: [] },
+    { queryId: "attachments", selector: GPT_ATTACHMENT_ITEM_SELECTOR,
+      scope: { selector: GPT_COMPOSER_FORM_SELECTOR }, maxMatches: 20, fields: [] },
     { queryId: "generating", selector: GPT_GENERATING_STOP_SELECTOR, maxMatches: 2, fields: [] },
     ...(triggerAssistantTurnId === undefined ? [] : [
       { queryId: "source-trigger", selector: gptMoreActionsButtonSelector(triggerAssistantTurnId),
@@ -100,10 +105,10 @@ const readConversationState = async (
   const assistants = row("assistant-turns")!;
   const userTurns = users.matches.map((match) => {
     if (typeof match.testId !== "string" || !TURN.test(match.testId)
-      || typeof match.semanticTextHash !== "string" || !HASH.test(match.semanticTextHash)) {
+      || typeof match.exactGptUserPromptHash !== "string" || !HASH.test(match.exactGptUserPromptHash)) {
       throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
     }
-    return Object.freeze({ testId: match.testId, contentHash: match.semanticTextHash });
+    return Object.freeze({ testId: match.testId, contentHash: match.exactGptUserPromptHash });
   });
   const assistantTurnIds = assistants.matches.map((match) => {
     if (typeof match.testId !== "string" || !TURN.test(match.testId)) {
@@ -113,12 +118,16 @@ const readConversationState = async (
   });
   const trigger = row("source-trigger");
   const triggerExpanded = trigger?.matches[0]?.ariaExpanded;
-  const composerHash = composer.matches[0]?.semanticTextHash;
+  const rawComposerHash = composer.matches[0]?.exactEditableTextHash;
+  if (rawComposerHash !== undefined
+    && (typeof rawComposerHash !== "string" || !HASH.test(rawComposerHash))) {
+    throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
+  }
   return Object.freeze({
     currentUrl: observation.currentUrl,
     composerRaw: composer.rawCount,
     composerEligible: composer.eligibleCount,
-    composerHash: typeof composerHash === "string" ? composerHash : null,
+    composerHash: typeof rawComposerHash === "string" ? rawComposerHash : null,
     userRaw: users.rawCount,
     userTurns: Object.freeze(userTurns),
     assistantRaw: assistants.rawCount,
@@ -222,6 +231,14 @@ const freshChatFailureCode = (state: ConversationState): string => {
   return failure.find(([matches]) => matches)?.[1] ?? "GPT_CHAT_DRAFT_NOT_EMPTY_AFTER_CLEAR";
 };
 
+const freshChatSettlementHardFailure = (state: ConversationState): boolean =>
+  !isGptRootUrl(state.currentUrl)
+  || state.composerRaw > 1
+  || state.userRaw > 0
+  || state.assistantRaw > 0
+  || state.attachmentsRaw > 0
+  || state.generatingRaw > 0;
+
 const checkpointActionsMenuReady = (state: ConversationState): boolean => state.menuRaw === 1
   && state.menuEligible === 1 && state.forkRaw === 1 && state.forkEligible === 1
   && state.triggerExpanded === "true";
@@ -262,7 +279,12 @@ export const conversationChildHandlers = {
       clearBeforeType: true, expectedMatches: 1,
     });
     const browserFact = requireConfirmedBrowserFact(intent, browser);
-    const readback = await readConversationState(browser);
+    const readback = await waitForGptDirectMutationSettlement(
+      browser,
+      () => readConversationState(browser),
+      (state) => freshChatTopology(state) && state.composerHash === hash(""),
+      freshChatSettlementHardFailure,
+    );
     const proofFacts = declaredFacts({
       ...readback.facts, decision: "ACT", mutationOutcome: browserFact.mutationOutcome,
       factResultIds: Object.freeze([...readback.facts.factResultIds, browserFact.evidenceRef]),
@@ -304,7 +326,12 @@ export const conversationChildHandlers = {
       throw executionFailure("failed", "GPT_CONVERSATION_NAVIGATION_NOT_YET_CONFIRMED");
     }
     await browser.navigate({ url: expected, title: "focus exact GPT conversation" });
-    const readback = await readConversationState(browser);
+    const readback = await waitForGptDirectMutationSettlement(
+      browser,
+      () => readConversationState(browser),
+      (state) => state.currentUrl === expected,
+      () => false,
+    );
     if (readback.currentUrl !== expected) {
       throw executionFailure("failed", "GPT_CONVERSATION_NAVIGATION_NOT_YET_CONFIRMED");
     }

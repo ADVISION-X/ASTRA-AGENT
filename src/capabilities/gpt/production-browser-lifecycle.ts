@@ -11,6 +11,7 @@ import {
 import { gptExactCallIdentityHash } from "./ability-group.js";
 import type {
   BrowserAtomicStepRecovery,
+  BrowserConfirmedProviderFailureReadbackAuthorization,
   BrowserConfirmedProviderReadbackAuthorization,
   BrowserExecutionBinding,
   BrowserTargetLease,
@@ -43,6 +44,37 @@ export type GptBrowserExecutionInput = Readonly<{
 const sha256 = (value: string): GptHash =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
+const confirmedFailureReadbackIdentityHash = (
+  authorization: BrowserConfirmedProviderFailureReadbackAuthorization,
+): GptHash => sha256(JSON.stringify([
+  authorization.schemaVersion,
+  authorization.sourceAttemptId,
+  authorization.sourceExactCallIdentityHash,
+  authorization.sourceActionOrdinal,
+  authorization.sourceProductStepId,
+  authorization.sourceCallId,
+  authorization.sourceChildCapabilityId,
+  authorization.sourceTargetRef,
+  authorization.sourceDocumentRef,
+  authorization.sourceTerminalAt,
+  authorization.evidenceRef,
+  authorization.evidenceHash,
+  authorization.promptHash,
+  authorization.turnMarker,
+]));
+
+const confirmedReadbackIdentityHash = (
+  authorization: BrowserConfirmedProviderReadbackAuthorization,
+): GptHash => sha256(JSON.stringify([
+  confirmedFailureReadbackIdentityHash({
+    ...authorization,
+    schemaVersion: "browser-confirmed-provider-failure-readback.v1",
+  }),
+  authorization.schemaVersion,
+  authorization.canonicalConversationUrl,
+  authorization.conversationIdentityHash,
+]));
+
 export type ProductionGptBrowserCall = {
   browser: BrowserTargetLease;
   facade: BrowserTargetLease;
@@ -50,6 +82,11 @@ export type ProductionGptBrowserCall = {
 };
 
 const PROVIDER_WAIT_LOG_INTERVAL_MS = 30_000;
+const CONFIRMED_READBACK_TARGET_LOCAL_CHILDREN = new Set<GptChildCapabilityId>([
+  "focus_exact_gpt_conversation",
+  "wait_for_stable_gpt_text",
+  "wait_for_stable_gpt_image",
+]);
 
 const recoveredProof = (input: Readonly<{
   intent: GptAnyChildCapabilityIntent;
@@ -166,6 +203,7 @@ export const recoveredGptChildResult = (input: Readonly<{
 
 export class ProductionGptBrowserLifecycle {
   private readonly browsers = new Map<string, ProductionGptBrowserCall>();
+  private confirmedProviderFailureReadback: BrowserConfirmedProviderFailureReadbackAuthorization | null = null;
   private confirmedProviderReadback: BrowserConfirmedProviderReadbackAuthorization | null = null;
 
   public constructor(
@@ -175,14 +213,61 @@ export class ProductionGptBrowserLifecycle {
     private readonly execution: GptBrowserExecutionInput,
   ) {}
 
+  public authorizeConfirmedProviderFailureReadback(
+    authorization: BrowserConfirmedProviderFailureReadbackAuthorization,
+  ): void {
+    const existing = this.confirmedProviderFailureReadback;
+    if (existing && confirmedFailureReadbackIdentityHash(existing)
+      !== confirmedFailureReadbackIdentityHash(authorization)) {
+      throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
+    }
+    for (const active of this.browsers.values()) {
+      if (active.browser.target.targetRef !== authorization.sourceTargetRef
+        || active.browser.document.documentRef !== authorization.sourceDocumentRef) {
+        throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
+      }
+    }
+    for (const active of this.browsers.values()) {
+      active.facade = this.dynamicConfirmedFailureReadbackFacade(active);
+    }
+    this.confirmedProviderFailureReadback = Object.freeze({ ...authorization });
+  }
+
   public authorizeConfirmedProviderReadback(
     authorization: BrowserConfirmedProviderReadbackAuthorization,
   ): void {
+    const pending = this.confirmedProviderFailureReadback;
+    if (pending) {
+      const source = Object.freeze({
+        schemaVersion: "browser-confirmed-provider-failure-readback.v1" as const,
+        sourceAttemptId: authorization.sourceAttemptId,
+        sourceExactCallIdentityHash: authorization.sourceExactCallIdentityHash,
+        sourceActionOrdinal: authorization.sourceActionOrdinal,
+        sourceProductStepId: authorization.sourceProductStepId,
+        sourceCallId: authorization.sourceCallId,
+        sourceChildCapabilityId: authorization.sourceChildCapabilityId,
+        sourceTargetRef: authorization.sourceTargetRef,
+        sourceDocumentRef: authorization.sourceDocumentRef,
+        sourceTerminalAt: authorization.sourceTerminalAt,
+        evidenceRef: authorization.evidenceRef,
+        evidenceHash: authorization.evidenceHash,
+        promptHash: authorization.promptHash,
+        turnMarker: authorization.turnMarker,
+      });
+      if (confirmedFailureReadbackIdentityHash(pending)
+        !== confirmedFailureReadbackIdentityHash(source)) {
+        throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
+      }
+    }
     const existing = this.confirmedProviderReadback;
-    if (existing && sha256(JSON.stringify(existing)) !== sha256(JSON.stringify(authorization))) {
+    if (existing && confirmedReadbackIdentityHash(existing)
+      !== confirmedReadbackIdentityHash(authorization)) {
       throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
     }
     this.confirmedProviderReadback = Object.freeze({ ...authorization });
+    for (const active of this.browsers.values()) {
+      active.facade = this.dynamicConfirmedReadbackFacade(active, authorization);
+    }
   }
 
   public async browserFor(
@@ -191,8 +276,8 @@ export class ProductionGptBrowserLifecycle {
     callId: string,
   ): Promise<ProductionGptBrowserCall> {
     if (!sessionKey) throw executionFailure("failed", "GPT_SESSION_KEY_REQUIRED");
-    if (this.confirmedProviderReadback
-      && this.confirmedProviderReadback.sourceProductStepId !== productStepId) {
+    const readbackSource = this.confirmedProviderReadback ?? this.confirmedProviderFailureReadback;
+    if (readbackSource && readbackSource.sourceProductStepId !== productStepId) {
       for (const [key, active] of this.browsers) {
         await active.browser.park({
           reason: "gpt-confirmed-provider-readback-complete",
@@ -200,6 +285,7 @@ export class ProductionGptBrowserLifecycle {
         });
         this.browsers.delete(key);
       }
+      this.confirmedProviderFailureReadback = null;
       this.confirmedProviderReadback = null;
     }
     const current = this.browsers.get(sessionKey);
@@ -313,6 +399,7 @@ export class ProductionGptBrowserLifecycle {
     };
     currentCommandTtlMs();
     const confirmedProviderReadback = this.confirmedProviderReadback;
+    const confirmedProviderFailureReadback = this.confirmedProviderFailureReadback;
     const executionRef = [
       this.execution.jobId,
       this.execution.attemptId,
@@ -320,12 +407,16 @@ export class ProductionGptBrowserLifecycle {
       this.execution.pluginVersion,
       productStepId,
       callId,
-      confirmedProviderReadback?.sourceExactCallIdentityHash ?? "normal",
+      confirmedProviderReadback?.sourceExactCallIdentityHash
+        ?? confirmedProviderFailureReadback?.sourceExactCallIdentityHash ?? "normal",
     ].join(":");
     const binding = {
       ...(confirmedProviderReadback ? {
         kind: "production-reconciliation" as const,
         confirmedProviderReadback,
+      } : confirmedProviderFailureReadback ? {
+        kind: "production-confirmed-failure-readback" as const,
+        confirmedProviderFailureReadback,
       } : { kind: "production" as const }),
       ownerPluginId: this.execution.pluginId,
       pluginVersion: this.execution.pluginVersion,
@@ -351,6 +442,87 @@ export class ProductionGptBrowserLifecycle {
       remainingMs: () => Math.floor(
         this.execution.expiresAtMonotonic - performance.now(),
       ),
+    });
+  }
+
+  private confirmedFailureReadbackLease(lease: BrowserTargetLease): BrowserTargetLease {
+    const reject = async (): Promise<never> => {
+      throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
+    };
+    const readKinds = new Set([
+      "document", "observe", "readExactAssistantTurn", "inspect", "find", "readText", "readAttribute",
+    ]);
+    return {
+      ...lease,
+      runAtomicStep: (identity, action) => identity.replayPolicy === "observation-only"
+        ? lease.runAtomicStep(identity, action) : reject(),
+      navigate: reject,
+      executeDomIntent: (intent) => readKinds.has(intent.kind)
+        ? lease.executeDomIntent(intent) : reject(),
+      observeCapability: (input) => lease.observeCapability(input),
+      captureScreenshot: reject,
+      attachFile: reject,
+      downloadAuthenticatedMedia: reject,
+      wait: (input) => lease.wait(input),
+      park: (input) => lease.park(input),
+      close: (input) => lease.close(input),
+      resolvePendingMutation: reject,
+    };
+  }
+
+  private confirmedReadbackLease(
+    lease: BrowserTargetLease,
+    authorization: BrowserConfirmedProviderReadbackAuthorization,
+  ): BrowserTargetLease {
+    const reject = async (): Promise<never> => {
+      throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
+    };
+    const readKinds = new Set([
+      "document", "observe", "readExactAssistantTurn", "inspect", "find", "readText", "readAttribute",
+    ]);
+    return {
+      ...lease,
+      runAtomicStep: (identity, action) => identity.replayPolicy === "observation-only"
+        || (identity.replayPolicy === "target-local-per-generation"
+          && CONFIRMED_READBACK_TARGET_LOCAL_CHILDREN.has(identity.childCapabilityId as GptChildCapabilityId))
+        ? lease.runAtomicStep(identity, action) : reject(),
+      navigate: (input) => input.url === authorization.canonicalConversationUrl
+        ? lease.navigate(input) : reject(),
+      executeDomIntent: (intent) => readKinds.has(intent.kind)
+        ? lease.executeDomIntent(intent) : reject(),
+      observeCapability: (input) => lease.observeCapability(input),
+      captureScreenshot: reject,
+      attachFile: reject,
+      downloadAuthenticatedMedia: (input) => lease.downloadAuthenticatedMedia(input),
+      wait: (input) => lease.wait(input),
+      park: (input) => lease.park(input),
+      close: (input) => lease.close(input),
+      resolvePendingMutation: reject,
+    };
+  }
+
+  private dynamicConfirmedFailureReadbackFacade(
+    active: ProductionGptBrowserCall,
+  ): BrowserTargetLease {
+    return new Proxy(active.browser, {
+      get: (_target, property) => {
+        const governed = this.confirmedFailureReadbackLease(active.browser);
+        const value = Reflect.get(governed, property, governed) as unknown;
+        return typeof value === "function" ? value.bind(governed) : value;
+      },
+    });
+  }
+
+  private dynamicConfirmedReadbackFacade(
+    active: ProductionGptBrowserCall,
+    authorization: BrowserConfirmedProviderReadbackAuthorization,
+  ): BrowserTargetLease {
+    return new Proxy(active.browser, {
+      get: (_target, property) => {
+        const governed = this.confirmedReadbackLease(active.browser, authorization);
+        const value = Reflect.get(governed, property, governed) as unknown;
+        return typeof value === "function" ? value.bind(governed) : value;
+      },
     });
   }
 

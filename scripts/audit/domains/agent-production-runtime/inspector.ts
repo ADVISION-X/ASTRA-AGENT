@@ -13,7 +13,7 @@ import { inspectAgentContracts } from "./contract-inspection.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
 
 const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V37",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V38",
   credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V2",
   route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V6",
   admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V6",

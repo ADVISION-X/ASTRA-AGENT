@@ -28,8 +28,7 @@ type BrowserExecutionBindingCore = Readonly<{
   commandTtlMs: number;
 }>;
 
-export type BrowserConfirmedProviderReadbackAuthorization = Readonly<{
-  schemaVersion: "browser-confirmed-provider-readback.v1";
+type BrowserConfirmedProviderReadbackSource = Readonly<{
   sourceAttemptId: string;
   sourceExactCallIdentityHash: BrowserHash;
   sourceActionOrdinal: number;
@@ -41,14 +40,28 @@ export type BrowserConfirmedProviderReadbackAuthorization = Readonly<{
   sourceTerminalAt: string;
   evidenceRef: string;
   evidenceHash: BrowserHash;
-  canonicalConversationUrl: string;
-  conversationIdentityHash: BrowserHash;
   promptHash: BrowserHash;
   turnMarker: string;
 }>;
 
+export type BrowserConfirmedProviderFailureReadbackAuthorization =
+  BrowserConfirmedProviderReadbackSource & Readonly<{
+    schemaVersion: "browser-confirmed-provider-failure-readback.v1";
+  }>;
+
+export type BrowserConfirmedProviderReadbackAuthorization =
+  BrowserConfirmedProviderReadbackSource & Readonly<{
+  schemaVersion: "browser-confirmed-provider-readback.v1";
+  canonicalConversationUrl: string;
+  conversationIdentityHash: BrowserHash;
+}>;
+
 export type BrowserExecutionBinding = BrowserExecutionBindingCore & Readonly<
   | { kind: "local" | "production" }
+  | {
+    kind: "production-confirmed-failure-readback";
+    confirmedProviderFailureReadback: BrowserConfirmedProviderFailureReadbackAuthorization;
+  }
   | {
     kind: "production-reconciliation";
     confirmedProviderReadback: BrowserConfirmedProviderReadbackAuthorization;

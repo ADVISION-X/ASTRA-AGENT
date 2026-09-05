@@ -315,11 +315,21 @@ const assertIdentity = (input: Readonly<{
   return isTerminal;
 };
 
-export const readExactGptEvidenceFact = async (input: Readonly<{
+type VerifiedExactGptEvidence = Readonly<{
+  recordRef: string;
+  evidenceHash: GptHash;
+  artifactRefs: readonly string[];
+  payload: Readonly<Record<string, unknown>>;
+  state: EvidenceState;
+  reasoningResult: GptReasoningRequirementResult | null;
+  cause: Error | undefined;
+}>;
+
+const readVerifiedExactGptEvidence = async (input: Readonly<{
   evidenceStore: GptEvidenceStorePort;
   intent: GptChildCapabilityIntent;
   exactCallIdentityHash: `sha256:${string}`;
-}>): Promise<ExactGptCallFacts["evidence"]> => {
+}>): Promise<VerifiedExactGptEvidence | null> => {
   const stored = await input.evidenceStore.readExactCallEvidence({
     missionId: input.intent.jobId,
     runId: input.intent.attemptId,
@@ -329,25 +339,87 @@ export const readExactGptEvidenceFact = async (input: Readonly<{
   const payload = record(stored.record.payload);
   const artifactRefs = stringArray(stored.record.artifactRefs ?? []);
   const evidenceHash = payload?.source_evidence_hash;
-  if (!payload) return invalid();
-  const verifiedPayload = payload as Readonly<Record<string, unknown>>;
-  if (verifiedPayload.schema_version !== "agent-gpt-evidence-safe.v2"
-    || typeof evidenceHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(evidenceHash)) invalid();
-  const terminalKey = assertIdentity({ ...input, stored, payload: verifiedPayload, artifactRefs });
-  const state = evidenceState(verifiedPayload, terminalKey);
-  const reasoningResult = reasoningRequirementResult({ payload: verifiedPayload, intent: input.intent, state });
-  const cause = failureCause(verifiedPayload.failure_cause);
+  if (!payload || !hashValue(evidenceHash)) return invalid();
+  if (payload.schema_version !== "agent-gpt-evidence-safe.v2") invalid();
+  const terminalKey = assertIdentity({ ...input, stored, payload, artifactRefs });
+  const state = evidenceState(payload, terminalKey);
+  const reasoningResult = reasoningRequirementResult({ payload, intent: input.intent, state });
+  const cause = failureCause(payload.failure_cause);
+  return Object.freeze({
+    recordRef: stored.recordRef,
+    evidenceHash,
+    artifactRefs: artifactRefs!,
+    payload,
+    state,
+    reasoningResult,
+    cause,
+  });
+};
+
+export type ConfirmedSubmitFailureEvidence = Readonly<{
+  failureCode: string;
+  browserFact: GptChildBrowserFact & Readonly<{
+    childCapabilityId: "submit_exact_gpt_turn_once";
+    effectScope: "provider_effect";
+    browserOutcome: "CONFIRMED";
+    mutationOutcome: "confirmed";
+    terminalAt: string;
+  }>;
+  evidence: NonNullable<ExactGptCallFacts["evidence"]>;
+}>;
+
+export const readConfirmedSubmitFailureEvidence = async (input: Readonly<{
+  evidenceStore: GptEvidenceStorePort;
+  intent: GptChildCapabilityIntent<"submit_exact_gpt_turn_once">;
+  exactCallIdentityHash: `sha256:${string}`;
+}>): Promise<ConfirmedSubmitFailureEvidence | null> => {
+  const verified = await readVerifiedExactGptEvidence(input);
+  if (!verified || verified.state.postcondition !== "failed") return null;
+  const proofFacts = failureProofFacts({
+    payload: verified.payload,
+    intent: input.intent,
+    exactCallIdentityHash: input.exactCallIdentityHash,
+    mutation: verified.state.mutation,
+  });
+  const browserFact = proofFacts.browserFact;
+  if (!browserFact
+    || browserFact.childCapabilityId !== "submit_exact_gpt_turn_once"
+    || browserFact.effectScope !== "provider_effect"
+    || browserFact.browserOutcome !== "CONFIRMED"
+    || browserFact.mutationOutcome !== "confirmed"
+    || !browserFact.terminalAt) return null;
+  return Object.freeze({
+    failureCode: verified.state.failureCode!,
+    browserFact: browserFact as ConfirmedSubmitFailureEvidence["browserFact"],
+    evidence: Object.freeze({
+      owner: "forensics-persistence",
+      evidenceRef: verified.recordRef,
+      evidenceHash: verified.evidenceHash,
+      readbackVerified: true,
+      artifactRefs: verified.artifactRefs,
+    }),
+  });
+};
+
+export const readExactGptEvidenceFact = async (input: Readonly<{
+  evidenceStore: GptEvidenceStorePort;
+  intent: GptChildCapabilityIntent;
+  exactCallIdentityHash: `sha256:${string}`;
+}>): Promise<ExactGptCallFacts["evidence"]> => {
+  const verified = await readVerifiedExactGptEvidence(input);
+  if (!verified) return null;
+  const { payload, state, reasoningResult, cause } = verified;
   if (state.postcondition === "failed") {
     const proofFacts = failureProofFacts({
-      payload: verifiedPayload, intent: input.intent,
+      payload, intent: input.intent,
       exactCallIdentityHash: input.exactCallIdentityHash, mutation: state.mutation,
     });
     const browserFact = proofFacts.browserFact;
     throw gptExecutionFailure(state.failureCode!, {
       mutationOutcome: state.mutation,
       evidence: Object.freeze({
-        evidenceRef: browserFact?.evidenceRef ?? stored.recordRef,
-        evidenceHash: browserFact?.evidenceHash ?? evidenceHash as GptHash,
+        evidenceRef: browserFact?.evidenceRef ?? verified.recordRef,
+        evidenceHash: browserFact?.evidenceHash ?? verified.evidenceHash,
       }),
       browserEffect: browserFact ? Object.freeze({
         effectScope: browserFact.effectScope,
@@ -359,13 +431,13 @@ export const readExactGptEvidenceFact = async (input: Readonly<{
       ...(cause ? { cause } : {}),
     });
   }
-  if (state.postcondition === "passed" && verifiedPayload.failure_cause !== null) invalid();
+  if (state.postcondition === "passed" && payload.failure_cause !== null) invalid();
   const fact = Object.freeze({
     owner: "forensics-persistence" as const,
-    evidenceRef: stored.recordRef,
-    evidenceHash: evidenceHash as GptHash,
+    evidenceRef: verified.recordRef,
+    evidenceHash: verified.evidenceHash,
     readbackVerified: true as const,
-    artifactRefs: artifactRefs!,
+    artifactRefs: verified.artifactRefs,
   });
   if (state.postcondition === "pending") pendingEvidence.add(fact);
   return fact;

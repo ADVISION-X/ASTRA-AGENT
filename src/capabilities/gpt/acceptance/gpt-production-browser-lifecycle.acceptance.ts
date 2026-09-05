@@ -4,7 +4,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { ProductionGptBrowserLifecycle } from "../production-browser-lifecycle.js";
-import type { BrowserExecutionBinding } from "../../../lib/browser/browser-authority-api.js";
+import type {
+  BrowserConfirmedProviderFailureReadbackAuthorization,
+  BrowserExecutionBinding,
+} from "../../../lib/browser/browser-authority-api.js";
 import { createRuntimeLogger } from "../../../lib/runtime-logs/index.js";
 import { typedExecutionFailure } from "../../../lib/execution-failure.js";
 import { HASH_A, HASH_B, task } from "../../../../scripts/acceptance/agent-production-runtime-fixtures.js";
@@ -203,6 +206,184 @@ try {
     reason: "gpt-confirmed-provider-readback-complete", mode: "normal-provider-wait",
   }]);
   await readbackLifecycle.settle(null);
+
+  const confirmedAt = new Date().toISOString();
+  const failureReadbackAuthorization: BrowserConfirmedProviderFailureReadbackAuthorization = Object.freeze({
+    schemaVersion: "browser-confirmed-provider-failure-readback.v1",
+    sourceAttemptId: "attempt:confirmed-failure-readback",
+    sourceExactCallIdentityHash: HASH_A,
+    sourceActionOrdinal: 12,
+    sourceProductStepId: "corpus_research",
+    sourceCallId: "turn-submit",
+    sourceChildCapabilityId: "submit_exact_gpt_turn_once",
+    sourceTargetRef: "target:confirmed-failure-readback",
+    sourceDocumentRef: "document:confirmed-failure-readback",
+    sourceTerminalAt: confirmedAt,
+    evidenceRef: "evidence:confirmed-failure-readback",
+    evidenceHash: HASH_B,
+    promptHash: HASH_A,
+    turnMarker: "[GRASSEYE:confirmed-failure-readback]",
+  });
+  const failureReadbackBindings: BrowserExecutionBinding[] = [];
+  const failureReadbackLifecycle = new ProductionGptBrowserLifecycle(
+    {
+      acquireJobBoundTargetLease: async (binding: BrowserExecutionBinding) => {
+        failureReadbackBindings.push(binding);
+        return {
+          target: { targetRef: failureReadbackAuthorization.sourceTargetRef },
+          document: { documentRef: failureReadbackAuthorization.sourceDocumentRef },
+          pendingMutationCount: () => 0, requiresMutationRecovery: () => false,
+          park: async () => undefined, close: async () => undefined,
+        };
+      },
+    } as never,
+    runtimeLogger,
+    HASH_A,
+    {
+      jobId: waitTask.job_id, attemptId: failureReadbackAuthorization.sourceAttemptId,
+      pluginId: "payment-screenshot-observation", pluginVersion: 1,
+      deviceId: "device:1", leaseVersion: 1,
+      executionFenceHash: HASH_A, controlManifestHash: HASH_B,
+      expiresAtMonotonic: performance.now() + 10_000, commandTtlMs: 1_000,
+      abortSignal: new AbortController().signal,
+    },
+  );
+  failureReadbackLifecycle.authorizeConfirmedProviderFailureReadback(failureReadbackAuthorization);
+  await failureReadbackLifecycle.browserFor(
+    "session:confirmed-failure-readback", "corpus_research", "turn-reconcile",
+  );
+  assert.equal(failureReadbackBindings[0]?.kind, "production-confirmed-failure-readback",
+    "reading a confirmed submit failure must authorize the exact source target before reconcile acquisition");
+  if (failureReadbackBindings[0]?.kind === "production-confirmed-failure-readback") {
+    assert.deepEqual(
+      failureReadbackBindings[0].confirmedProviderFailureReadback,
+      failureReadbackAuthorization,
+    );
+  }
+  failureReadbackLifecycle.authorizeConfirmedProviderReadback({
+    ...failureReadbackAuthorization,
+    schemaVersion: "browser-confirmed-provider-readback.v1",
+    canonicalConversationUrl: "https://chatgpt.com/c/confirmed-failure-readback",
+    conversationIdentityHash: HASH_B,
+  });
+  assert.throws(
+    () => failureReadbackLifecycle.authorizeConfirmedProviderReadback({
+      ...failureReadbackAuthorization,
+      schemaVersion: "browser-confirmed-provider-readback.v1",
+      sourceCallId: "other-submit",
+      canonicalConversationUrl: "https://chatgpt.com/c/confirmed-failure-readback",
+      conversationIdentityHash: HASH_B,
+    }),
+    (error: unknown) => typedExecutionFailure(error)?.code === "BROWSER_RECONCILIATION_SCOPE_INVALID",
+    "a locator may upgrade only the same confirmed-submit source authorization",
+  );
+  await failureReadbackLifecycle.settle(null);
+
+  let allowedReadCount = 0;
+  let allowedMediaReadCount = 0;
+  const exactActiveBrowser = {
+    target: { targetRef: failureReadbackAuthorization.sourceTargetRef },
+    document: { documentRef: failureReadbackAuthorization.sourceDocumentRef },
+    runAtomicStep: async (_identity: unknown, action: () => Promise<unknown>) => action(),
+    readAtomicStepRecovery: () => null,
+    requiresMutationRecovery: () => false,
+    navigate: async () => ({ documentRef: "document:navigated" }),
+    executeDomIntent: async () => { allowedReadCount += 1; return Object.freeze({}); },
+    observeCapability: async () => Object.freeze({}),
+    captureScreenshot: async () => Object.freeze({ artifactRef: "screenshot:unexpected", contentHash: HASH_A }),
+    attachFile: async () => undefined,
+    downloadAuthenticatedMedia: async () => {
+      allowedMediaReadCount += 1;
+      return Object.freeze({});
+    },
+    wait: async () => undefined,
+    park: async () => undefined,
+    close: async () => undefined,
+    resolvePendingMutation: async () => 0,
+    pendingMutationCount: () => 0,
+    assertNoPendingMutations: () => undefined,
+  };
+  const reacquiredActiveBrowser = {
+    ...exactActiveBrowser,
+    document: { documentRef: "document:confirmed-failure-readback:reacquired" },
+  };
+  let activeFailureReadbackAcquisitions = 0;
+  const activeFailureReadbackLifecycle = new ProductionGptBrowserLifecycle(
+    { acquireJobBoundTargetLease: async () => {
+      activeFailureReadbackAcquisitions += 1;
+      return activeFailureReadbackAcquisitions === 1 ? exactActiveBrowser : reacquiredActiveBrowser;
+    } } as never,
+    runtimeLogger,
+    HASH_A,
+    {
+      jobId: waitTask.job_id, attemptId: failureReadbackAuthorization.sourceAttemptId,
+      pluginId: "payment-screenshot-observation", pluginVersion: 1,
+      deviceId: "device:1", leaseVersion: 1,
+      executionFenceHash: HASH_A, controlManifestHash: HASH_B,
+      expiresAtMonotonic: performance.now() + 10_000, commandTtlMs: 1_000,
+      abortSignal: new AbortController().signal,
+    },
+  );
+  const activeFailureReadback = await activeFailureReadbackLifecycle.browserFor(
+    "session:active-confirmed-failure-readback", "corpus_research", "turn-submit",
+  );
+  activeFailureReadbackLifecycle.authorizeConfirmedProviderFailureReadback(failureReadbackAuthorization);
+  await activeFailureReadback.facade.executeDomIntent({ kind: "observe" } as never);
+  assert.equal(allowedReadCount, 1);
+  await assert.rejects(
+    () => activeFailureReadback.facade.executeDomIntent({ kind: "fill" } as never),
+    (error: unknown) => typedExecutionFailure(error)?.code === "BROWSER_RECONCILIATION_SCOPE_INVALID",
+  );
+  await assert.rejects(
+    () => activeFailureReadback.facade.navigate({ url: "https://chatgpt.com/", title: "forbidden" }),
+    (error: unknown) => typedExecutionFailure(error)?.code === "BROWSER_RECONCILIATION_SCOPE_INVALID",
+  );
+  await assert.rejects(
+    () => activeFailureReadback.facade.downloadAuthenticatedMedia({
+      assistantTurnId: "conversation-turn-2",
+      semanticMediaId: "gpt-generated-image-main",
+    }),
+    (error: unknown) => typedExecutionFailure(error)?.code === "BROWSER_RECONCILIATION_SCOPE_INVALID",
+  );
+  assert.equal(allowedMediaReadCount, 0,
+    "source-only failure readback must not authorize output-media access before locator closure");
+  activeFailureReadbackLifecycle.authorizeConfirmedProviderReadback({
+    ...failureReadbackAuthorization,
+    schemaVersion: "browser-confirmed-provider-readback.v1",
+    canonicalConversationUrl: "https://chatgpt.com/c/confirmed-failure-readback",
+    conversationIdentityHash: HASH_B,
+  });
+  await activeFailureReadback.facade.runAtomicStep({
+    productStepId: "corpus_research", callId: "text-wait",
+    childCapabilityId: "wait_for_stable_gpt_text", inputHash: HASH_A,
+    actionOrdinal: 15, replayPolicy: "target-local-per-generation",
+  }, () => activeFailureReadback.facade.navigate({
+    url: "https://chatgpt.com/c/confirmed-failure-readback",
+    title: "confirmed readback",
+  }));
+  await assert.rejects(
+    activeFailureReadback.facade.runAtomicStep({
+      productStepId: "corpus_research", callId: "forbidden-submit",
+      childCapabilityId: "submit_exact_gpt_turn_once", inputHash: HASH_A,
+      actionOrdinal: 16, replayPolicy: "provider-effect-once",
+    }, async () => undefined),
+    (error: unknown) => typedExecutionFailure(error)?.code === "BROWSER_RECONCILIATION_SCOPE_INVALID",
+  );
+  await activeFailureReadbackLifecycle.yieldForProviderWait(
+    activeFailureReadback, "corpus_research", "text-wait", "wait_for_stable_gpt_text", 25,
+  );
+  assert.equal(
+    activeFailureReadback.facade.document.documentRef,
+    "document:confirmed-failure-readback:reacquired",
+    "confirmed-readback policy must remain attached to the newly reacquired lease",
+  );
+  await activeFailureReadback.facade.downloadAuthenticatedMedia({
+    assistantTurnId: "conversation-turn-2",
+    semanticMediaId: "gpt-generated-image-main",
+  });
+  assert.equal(allowedMediaReadCount, 1,
+    "the matching durable locator must upgrade the same facade to full read-only output recovery");
+  await activeFailureReadbackLifecycle.settle(null);
 
   const cleanupError = new Error("TEST_REACQUIRED_TARGET_CLOSE_FAILED");
   const originalBrowser = {

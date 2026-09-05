@@ -1,8 +1,6 @@
 import { executionFailure, failureCode } from "../../../../lib/execution-failure.js";
 
-import type {
-  BrowserDomObservationQuery,
-} from "../../../../lib/browser/browser-authority-api.js";
+import type { BrowserDomObservationQuery } from "../../../../lib/browser/browser-authority-api.js";
 import type { GptAnyChildCapabilityIntent, GptChildBrowserFact } from "../../contract.js";
 import { gptExecutionFailure } from "../../execution-fault.js";
 import { gptAttachmentProviderDisplayName } from "../../schema.js";
@@ -16,52 +14,32 @@ import {
   requireExactInputKeys,
   success,
 } from "../child-handler.js";
-import {
-  decodeCoherentObservationPacket,
-  projectCoherentObservation,
-  readCoherentObservation,
-  type GptCoherentObservation,
-  type GptCoherentObservationRow,
-  type GptCoherentFactProjection,
+import { decodeCoherentObservationPacket, projectCoherentObservation, readCoherentObservation,
+  type GptCoherentObservation, type GptCoherentObservationRow, type GptCoherentFactProjection,
 } from "../gpt-dom-observation.js";
 import {
-  GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR,
-  GPT_ATTACHMENT_CONTROL_SELECTOR,
-  GPT_ATTACHMENT_ITEM_SELECTOR,
-  GPT_ATTACHMENT_READY_ICON_SELECTOR,
-  GPT_ATTACHMENT_REGION_SELECTOR,
-  GPT_ATTACHMENT_UPLOAD_SPINNER_SELECTOR,
-  GPT_COMPOSER_FORM_SELECTOR,
-  GPT_FILE_INPUT_SELECTOR,
-  GPT_UPLOAD_FROM_COMPUTER_LABEL,
-  GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
+  GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR, GPT_ATTACHMENT_CONTROL_SELECTOR,
+  GPT_ATTACHMENT_ITEM_SELECTOR, GPT_ATTACHMENT_PENDING_ACTION_SELECTOR,
+  GPT_ATTACHMENT_UPLOAD_SPINNER_SELECTOR, GPT_COMPOSER_FORM_SELECTOR,
+  GPT_FILE_INPUT_SELECTOR, GPT_UPLOAD_FROM_COMPUTER_LABEL, GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
 } from "../contracts/attachment.contract.js";
 
 type ApprovedFile = Readonly<{
-  artifactRef: string;
-  displayName: string;
-  providerDisplayName: string;
-  sha256: `sha256:${string}`;
-  bytes: number;
+  artifactRef: string; displayName: string; providerDisplayName: string;
+  sha256: `sha256:${string}`; bytes: number;
 }>;
 
 type AttachmentSetState = Readonly<{
-  regionCount: number;
-  observedLabels: readonly string[];
-  readyCount: number;
-  uploadingCount: number;
-  facts: GptCoherentFactProjection;
+  composerRawCount: number; composerEligibleCount: number;
+  itemRawCount: number; itemEligibleCount: number; observedLabels: readonly string[];
+  uploadingCount: number; pendingActionCount: number;
+  rows: readonly GptCoherentObservationRow[]; facts: GptCoherentFactProjection;
 }>;
 
 type AttachmentControlState = Readonly<{
-  controlRaw: number;
-  controlEligible: number;
-  choiceRaw: number;
-  choiceEligible: number;
-  targetRefHash: `sha256:${string}`;
-  documentRefHash: `sha256:${string}`;
-  rows: readonly GptCoherentObservationRow[];
-  facts: GptCoherentFactProjection;
+  controlRaw: number; controlEligible: number; choiceRaw: number; choiceEligible: number;
+  targetRefHash: `sha256:${string}`; documentRefHash: `sha256:${string}`;
+  rows: readonly GptCoherentObservationRow[]; facts: GptCoherentFactProjection;
 }>;
 
 const ATTACHMENT_CONTROL_HYDRATION_TIMEOUT_MS = 5_000;
@@ -124,6 +102,12 @@ const attachmentControlCode = (value: AttachmentControlState): string =>
 const attachmentNativeCause = (value: AttachmentControlState): string | null =>
   value.rows.find((row) => row.nativeCauseCode !== null)?.nativeCauseCode ?? null;
 
+const attachmentSetCode = (value: AttachmentSetState): string =>
+  `revision=${value.facts.observationRevisionHash}:candidates=${value.rows.map(attachmentRowCode).join("|")}`;
+
+const attachmentSetNativeCause = (value: AttachmentSetState): string | null =>
+  value.rows.find((row) => row.nativeCauseCode !== null)?.nativeCauseCode ?? null;
+
 const failAttachmentControl = (
   code: string,
   value: AttachmentControlState,
@@ -145,6 +129,20 @@ const failAttachmentControl = (
       decision: "FAIL_CLOSED",
       mutationOutcome,
       browserFact,
+      nativeFailureCode,
+    }),
+  });
+};
+
+const failAttachmentSet = (code: string, value: AttachmentSetState): never => {
+  const nativeFailureCode = attachmentSetNativeCause(value);
+  throw gptExecutionFailure(`${code}:${attachmentSetCode(value)}`, {
+    mutationOutcome: "no",
+    proofFacts: Object.freeze({
+      ...value.facts,
+      decision: "FAIL_CLOSED",
+      mutationOutcome: "no",
+      browserFact: null,
       nativeFailureCode,
     }),
   });
@@ -229,34 +227,41 @@ const filesFromIntent = (intent: GptAnyChildCapabilityIntent): readonly Approved
 
 const attachmentSetState = async (
   browser: ReturnType<typeof requireBrowser>,
-  includeReady = true,
+  includeUploadState = true,
 ): Promise<AttachmentSetState> => {
   const specs = [
-    { queryId: "attachment-region", selector: GPT_ATTACHMENT_REGION_SELECTOR, maxMatches: 2, fields: [] },
-    { queryId: "attachment-items", selector: GPT_ATTACHMENT_ITEM_SELECTOR, maxMatches: 20, fields: ["ariaLabel" as const] },
-    ...(includeReady ? [
-      { queryId: "attachment-ready", selector: GPT_ATTACHMENT_READY_ICON_SELECTOR, maxMatches: 20, fields: [] },
-      { queryId: "attachment-uploading", selector: GPT_ATTACHMENT_UPLOAD_SPINNER_SELECTOR, maxMatches: 20, fields: [] },
+    { queryId: "attachment-composer", selector: GPT_COMPOSER_FORM_SELECTOR, maxMatches: 2, fields: [] },
+    {
+      queryId: "attachment-items", selector: GPT_ATTACHMENT_ITEM_SELECTOR,
+      scope: { selector: GPT_COMPOSER_FORM_SELECTOR }, maxMatches: 20, fields: ["ariaLabel" as const],
+    },
+    ...(includeUploadState ? [
+      {
+        queryId: "attachment-uploading", selector: GPT_ATTACHMENT_UPLOAD_SPINNER_SELECTOR,
+        scope: { selector: GPT_COMPOSER_FORM_SELECTOR }, maxMatches: 20, fields: [],
+      },
+      {
+        queryId: "attachment-pending", selector: GPT_ATTACHMENT_PENDING_ACTION_SELECTOR,
+        scope: { selector: GPT_COMPOSER_FORM_SELECTOR }, maxMatches: 20, fields: [],
+      },
     ] : []),
   ] as const;
   const observation = await readCoherentObservation(browser, specs);
   const row = (queryId: string) => observation.rows.find((candidate) => candidate.queryId === queryId)!;
-  const regionCount = row("attachment-region").eligibleCount;
-  const facts = projectCoherentObservation(observation, "attachment-region");
-  if (regionCount === 0) return Object.freeze({
-    regionCount, observedLabels: [], readyCount: 0, uploadingCount: 0, facts,
-  });
-  if (regionCount !== 1) throw executionFailure("failed", `GPT_ATTACHMENT_REGION_COUNT_${regionCount}`);
   const observedLabels = row("attachment-items").matches.map((match) => {
     if (typeof match.ariaLabel !== "string") throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
     return match.ariaLabel.normalize("NFC");
   });
   return Object.freeze({
-    regionCount,
+    composerRawCount: row("attachment-composer").rawCount,
+    composerEligibleCount: row("attachment-composer").eligibleCount,
+    itemRawCount: row("attachment-items").rawCount,
+    itemEligibleCount: row("attachment-items").eligibleCount,
     observedLabels,
-    readyCount: includeReady ? row("attachment-ready").eligibleCount : 0,
-    uploadingCount: includeReady ? row("attachment-uploading").eligibleCount : 0,
-    facts,
+    uploadingCount: includeUploadState ? row("attachment-uploading").eligibleCount : 0,
+    pendingActionCount: includeUploadState ? row("attachment-pending").eligibleCount : 0,
+    rows: observation.rows,
+    facts: projectCoherentObservation(observation, "attachment-items"),
   });
 };
 
@@ -281,8 +286,13 @@ const observeExactAttachmentSet = async (
   files: readonly ApprovedFile[],
 ) => {
   const observed = await attachmentSetState(browser, false);
+  if (observed.composerRawCount !== 1 || observed.composerEligibleCount !== 1) {
+    failAttachmentSet("GPT_ATTACHMENT_COMPOSER_INVALID", observed);
+  }
   if (files.length === 0) {
-    if (observed.regionCount !== 0) throw executionFailure("failed", `GPT_ATTACHMENT_REGION_COUNT_${observed.regionCount}`);
+    if (observed.itemRawCount !== 0 || observed.itemEligibleCount !== 0) {
+      failAttachmentSet("GPT_ATTACHMENT_SET_MISMATCH", observed);
+    }
     return success({
       value: { files: [] },
       ...declaredFacts({
@@ -292,8 +302,12 @@ const observeExactAttachmentSet = async (
     });
   }
   const { expectedLabels, missing, unexpected } = attachmentSetDifference(files, observed.observedLabels);
-  if (observed.observedLabels.length !== expectedLabels.length || missing.length > 0 || unexpected.length > 0) {
-    throw executionFailure("failed", `GPT_ATTACHMENT_SET_MISMATCH:${[...missing, ...unexpected].join("|")}`);
+  if (observed.itemRawCount !== expectedLabels.length
+    || observed.itemEligibleCount !== expectedLabels.length
+    || observed.observedLabels.length !== expectedLabels.length
+    || new Set(observed.observedLabels).size !== observed.observedLabels.length
+    || missing.length > 0 || unexpected.length > 0) {
+    failAttachmentSet("GPT_ATTACHMENT_SET_MISMATCH", observed);
   }
   return success({
     value: attachmentValue(files),
@@ -308,11 +322,14 @@ const attachmentSetReady = (
   state: AttachmentSetState,
   expectedCount: number,
   missingCount: number,
-): boolean => state.regionCount === 1
+): boolean => state.composerRawCount === 1
+  && state.composerEligibleCount === 1
+  && state.itemRawCount === expectedCount
+  && state.itemEligibleCount === expectedCount
   && state.observedLabels.length === expectedCount
   && missingCount === 0
-  && state.readyCount === expectedCount
-  && state.uploadingCount === 0;
+  && state.uploadingCount === 0
+  && state.pendingActionCount === 0;
 
 const waitForUploadedAttachmentSet = async (
   browser: ReturnType<typeof requireBrowser>,
@@ -323,7 +340,9 @@ const waitForUploadedAttachmentSet = async (
   if (files.length === 0) return observeExactAttachmentSet(browser, files);
   const deadline = Date.now() + timeoutMs;
   let last: AttachmentSetState = Object.freeze({
-    regionCount: 0, observedLabels: [], readyCount: 0, uploadingCount: 0,
+    composerRawCount: 0, composerEligibleCount: 0,
+    itemRawCount: 0, itemEligibleCount: 0,
+    observedLabels: [], uploadingCount: 0, pendingActionCount: 0, rows: [],
     facts: Object.freeze({
       factResultIds: [], candidateCardinality: { raw: 0, eligible: 0 },
       authorityRefHashes: [], observationRevisionHash: `sha256:${"0".repeat(64)}`,
@@ -337,17 +356,26 @@ const waitForUploadedAttachmentSet = async (
       if (failureCode(error) !== "BROWSER_DOM_NODE_STALE") throw error;
       const remaining = deadline - Date.now();
       if (remaining <= 0) {
-        throw executionFailure("failed", `GPT_ATTACHMENT_UPLOAD_TIMEOUT:ready=${last.readyCount}:uploading=${last.uploadingCount}:expected=${files.length}`);
+        failAttachmentSet(`GPT_ATTACHMENT_UPLOAD_TIMEOUT:cards=${last.itemEligibleCount}:uploading=${last.uploadingCount}:pending=${last.pendingActionCount}:expected=${files.length}`, last);
       }
-      await browser.wait({ durationMs: Math.max(25, Math.min(500, Math.ceil(remaining / 20))) });
+      await browser.wait({
+        durationMs: Math.min(remaining, Math.max(1, Math.min(500, Math.ceil(remaining / 20)))),
+      });
       continue;
     }
     const { expectedLabels, missing, unexpected } = attachmentSetDifference(files, last.observedLabels);
-    if (unexpected.length > 0 || last.observedLabels.length > expectedLabels.length) {
-      throw executionFailure("failed", `GPT_ATTACHMENT_SET_MISMATCH:${[...missing, ...unexpected].join("|")}`);
+    if (last.composerRawCount > 1 || last.composerEligibleCount > 1
+      || (last.composerRawCount > 0 && last.composerRawCount !== last.composerEligibleCount)) {
+      failAttachmentSet("GPT_ATTACHMENT_COMPOSER_INVALID", last);
     }
-    if (last.readyCount > last.observedLabels.length || last.uploadingCount > last.observedLabels.length) {
-      throw executionFailure("failed", "GPT_ATTACHMENT_VISIBILITY_COUNT_INVALID");
+    if (last.itemRawCount > expectedLabels.length
+      || last.itemEligibleCount > expectedLabels.length
+      || new Set(last.observedLabels).size !== last.observedLabels.length
+      || unexpected.length > 0) {
+      failAttachmentSet("GPT_ATTACHMENT_SET_MISMATCH", last);
+    }
+    if (last.uploadingCount > last.itemEligibleCount || last.pendingActionCount > last.itemEligibleCount) {
+      failAttachmentSet("GPT_ATTACHMENT_VISIBILITY_COUNT_INVALID", last);
     }
     if (attachmentSetReady(last, expectedLabels.length, missing.length)) {
       return success({
@@ -360,9 +388,11 @@ const waitForUploadedAttachmentSet = async (
     }
     const remaining = deadline - Date.now();
     if (remaining <= 0) {
-      throw executionFailure("failed", `GPT_ATTACHMENT_UPLOAD_TIMEOUT:ready=${last.readyCount}:uploading=${last.uploadingCount}:expected=${files.length}`);
+      failAttachmentSet(`GPT_ATTACHMENT_UPLOAD_TIMEOUT:cards=${last.itemEligibleCount}:uploading=${last.uploadingCount}:pending=${last.pendingActionCount}:expected=${files.length}`, last);
     }
-    await browser.wait({ durationMs: Math.max(25, Math.min(500, Math.ceil(remaining / 20))) });
+    await browser.wait({
+      durationMs: Math.min(remaining, Math.max(1, Math.min(500, Math.ceil(remaining / 20)))),
+    });
   }
 };
 

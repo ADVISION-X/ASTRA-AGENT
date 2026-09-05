@@ -6,8 +6,13 @@ import { productionPluginCatalog } from "../../../src/mediator/product-plugin-ca
 import { typedExecutionFailure } from "../../../src/lib/execution-failure.js";
 import { postSubmitReadbackReceipt } from "../../../src/mediator/product-plugin-contract.js";
 import { productionRoutePolicy } from "../../../src/lib/local-runtime/production/route-policy.js";
+import { gptExactCallIdentityHash } from "../../../src/capabilities/gpt/contract.js";
 import { parsePublicKnowledgeArticle, parsePublicKnowledgeResearch } from "../../../src/plugins/public-knowledge-article-pipeline/result-contract.js";
-import { exerciseSeoFlow } from "./public-knowledge-article-pipeline.test-runtime.js";
+import {
+  exerciseSeoAttachmentReconcileFailure,
+  exerciseSeoFlow,
+  exerciseSeoPromptWriteFailure,
+} from "./public-knowledge-article-pipeline.test-runtime.js";
 import { articleOutput, researchOutput } from
   "./public-knowledge-article-pipeline-output-fixtures.js";
 import {
@@ -45,7 +50,18 @@ const continuationImage = [
   "advance_gpt_continuation_lane",
 ] as const;
 
-assert.equal(plugin.pluginVersion, 18);
+assert.equal(plugin.pluginVersion, 20);
+const attachmentIdentity = {
+  jobId: "job", attemptId: "attempt", pluginId: plugin.pluginId,
+  productStepId: "corpus_research", callId: "attachments-reconcile",
+  childCapabilityId: "reconcile_gpt_attachment_set" as const,
+  inputHash: `sha256:${"1".repeat(64)}` as const,
+};
+assert.notEqual(
+  gptExactCallIdentityHash({ ...attachmentIdentity, pluginVersion: 19 }),
+  gptExactCallIdentityHash({ ...attachmentIdentity, pluginVersion: plugin.pluginVersion }),
+  "the submit-recovery contract cutover must not recover pre-v20 evidence",
+);
 const source = readFileSync("src/plugins/public-knowledge-article-pipeline/index.ts", "utf8");
 assert.doesNotMatch(source, /PRODUCT_FLOW_NOT_IMPLEMENTED:|throw new Error/u);
 assert.match(source, /corpus_research/u);
@@ -106,6 +122,101 @@ assert.equal(verifies[1]?.input.expectedPromptHash, hashText(prompts[1]!));
 assert.equal(advances[1]?.input.provider.prior_prompt_hash, hashText(prompts[2]!));
 assert.ok((proceed.completed.payload as Readonly<Record<string, unknown>>).image);
 assert.equal(proceed.generatedImageUploadCalls, 1);
+
+const attachmentBlocked = await exerciseSeoAttachmentReconcileFailure(plugin);
+assert.equal(typedExecutionFailure(attachmentBlocked.failure)?.code, "GPT_ATTACHMENT_UPLOAD_TIMEOUT");
+assert.equal(attachmentBlocked.calls.at(-1)?.child, "reconcile_gpt_attachment_set");
+assert.equal(attachmentBlocked.calls.some((call) => call.child === "write_exact_gpt_prompt"), false,
+  "Prompt input must not start until the exact attachment set is ready");
+assert.equal(attachmentBlocked.calls.some((call) => call.child === "submit_exact_gpt_turn_once"), false,
+  "submit must not start when attachment readiness fails");
+assert.equal(attachmentBlocked.physicalSubmitDispatches, 0);
+
+const promptBlocked = await exerciseSeoPromptWriteFailure(plugin);
+assert.equal(typedExecutionFailure(promptBlocked.failure)?.code, "GPT_PROMPT_WRITE_UNCONFIRMED");
+assert.equal(promptBlocked.calls.at(-1)?.child, "write_exact_gpt_prompt");
+assert.equal(promptBlocked.calls.some((call) => call.child === "reconcile_gpt_draft"), false,
+  "draft reconciliation must not start after exact Prompt readback fails");
+assert.equal(promptBlocked.calls.some((call) => call.child === "submit_exact_gpt_turn_once"), false,
+  "submit must not start after exact Prompt readback fails");
+assert.equal(promptBlocked.physicalSubmitDispatches, 0);
+
+const directSubmitRecovered = await exerciseSeoFlow(plugin, "produce_article", "proceed", {
+  child: "submit_exact_gpt_turn_once",
+  code: "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED",
+  productStepId: "corpus_research",
+  confirmedSubmit: true,
+}, true);
+assert.equal(postSubmitReadbackReceipt(directSubmitRecovered.firstFailure)?.causeCode,
+  "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED");
+const firstResearchSubmit = directSubmitRecovered.calls.findIndex((call) =>
+  call.productStepId === "corpus_research" && call.child === "submit_exact_gpt_turn_once");
+assert.equal(directSubmitRecovered.calls[firstResearchSubmit + 1]?.child,
+  "reconcile_gpt_turn_submission",
+  "the confirmed direct-submit failure must persist the locator before the Browser lane is released");
+assert.equal(directSubmitRecovered.calls.filter((call) => call.productStepId === "corpus_research"
+  && call.child === "submit_exact_gpt_turn_once").length, 1,
+  "the same accepted attempt must skip the already-confirmed submit during recovery");
+assert.equal(directSubmitRecovered.physicalSubmitDispatches, 3,
+  "the recovered research turn plus article and image turns must still dispatch exactly three submits");
+
+const articleSubmitRecovered = await exerciseSeoFlow(plugin, "produce_article", "proceed", {
+  child: "submit_exact_gpt_turn_once",
+  code: "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED",
+  productStepId: "article_synthesis",
+  confirmedSubmit: true,
+}, true);
+assert.equal(postSubmitReadbackReceipt(articleSubmitRecovered.firstFailure)?.causeCode,
+  "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED");
+assert.equal(articleSubmitRecovered.calls.filter((call) => call.productStepId === "article_synthesis"
+  && call.child === "submit_exact_gpt_turn_once").length, 1,
+  "article recovery must skip the already-confirmed submit");
+assert.equal(articleSubmitRecovered.physicalSubmitDispatches, 3,
+  "research, recovered article and image must still dispatch exactly once each");
+assert.equal(articleSubmitRecovered.generatedImageUploadCalls, 1,
+  "the recovered article turn must continue through image generation and Website upload assembly");
+
+const imageSubmitRecovered = await exerciseSeoFlow(plugin, "produce_article", "proceed", {
+  child: "submit_exact_gpt_turn_once",
+  code: "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED",
+  productStepId: "article_image_generation",
+  confirmedSubmit: true,
+}, true);
+assert.equal(postSubmitReadbackReceipt(imageSubmitRecovered.firstFailure)?.causeCode,
+  "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED");
+assert.equal(imageSubmitRecovered.calls.filter((call) => call.productStepId === "article_image_generation"
+  && call.child === "submit_exact_gpt_turn_once").length, 1,
+  "image recovery must also skip the already-confirmed submit");
+assert.equal(imageSubmitRecovered.physicalSubmitDispatches, 3,
+  "research, article and image must still dispatch exactly once each after image recovery");
+assert.equal(imageSubmitRecovered.generatedImageUploadCalls, 1,
+  "the recovered image turn must continue through checkpoint and Website upload assembly");
+
+await assert.rejects(
+  () => exerciseSeoFlow(plugin, "produce_article", "proceed", {
+    child: "submit_exact_gpt_turn_once",
+    code: "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED",
+    productStepId: "corpus_research",
+  }),
+  (error: unknown) => typedExecutionFailure(error)?.code
+    === "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED"
+    && postSubmitReadbackReceipt(error) === null,
+  "a submit failure without exact Browser CONFIRMED metadata must never enter post-submit recovery",
+);
+
+await assert.rejects(
+  () => exerciseSeoFlow(plugin, "produce_article", "proceed", {
+    child: "submit_exact_gpt_turn_once",
+    code: "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED",
+    productStepId: "corpus_research",
+    confirmedSubmit: true,
+    locatorFailureCode: "GPT_TURN_SUBMISSION_RECONCILIATION_PENDING",
+  }),
+  (error: unknown) => typedExecutionFailure(error)?.code
+    === "GPT_TURN_SUBMISSION_RECONCILIATION_PENDING"
+    && postSubmitReadbackReceipt(error) === null,
+  "post-submit release must remain forbidden until the task-owned locator is durable",
+);
 
 const recovered = await exerciseSeoFlow(plugin, "produce_article", "proceed", {
   child: "checkpoint_gpt_text_response", code: "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE",

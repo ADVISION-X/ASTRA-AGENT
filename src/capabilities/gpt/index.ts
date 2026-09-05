@@ -20,6 +20,7 @@ export type {
 } from "./schema.js";
 export type { GptReasoningRequirementResult } from "./child-types.js";
 export type {
+  ConfirmedGptSubmitFailureReceipt,
   ExactGptCallFacts,
   ExactGptContinuationReadback,
   ProductGptAnyCallInput,

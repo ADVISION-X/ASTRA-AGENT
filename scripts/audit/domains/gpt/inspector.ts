@@ -23,10 +23,11 @@ import {
   inspectGptAttachmentContract,
   inspectGptBrowserFailureRecoveryContract,
   inspectGptContractDenominator,
+  inspectGptDirectMutationSettlementContract,
 } from "./gpt-contract-inspection.js";
 import { inspectGptCurrentPageProofs } from "./gpt-page-proof-inspection.js";
 
-const LAW_ID = "LAW-GPT-001-V24";
+const LAW_ID = "LAW-GPT-001-V26";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 12, 15, 19),
   "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 16, 17, 18, 19),
@@ -56,6 +57,7 @@ const RETIRED_RESPONSE_SUPPORT_PATH = `${ROOT}/web/children/response-child-suppo
 const RETIRED_RATE_DIALOG_PATH = `${ROOT}/web/children/rate-limit-dialog.ts`;
 const CONVERSATION_HANDLER_PATH = `${ROOT}/web/children/conversation-children.ts`;
 const SUBMISSION_HANDLER_PATH = `${ROOT}/web/children/composer-submission-children.ts`;
+const RESPONSE_PAGE_PATH = `${ROOT}/web/gpt-response-page.ts`;
 const TURN_EXECUTOR_PATH = `${ROOT}/gpt-turn-executor.ts`;
 const MODEL_SELECTION_V2_HANDLER_PATH = `${ROOT}/web/children/model-selection-v2-children.ts`;
 const MODEL_SELECTION_V2_CONTRACT_PATH = `${ROOT}/web/contracts/model-selection-v2.contract.ts`;
@@ -338,11 +340,14 @@ const inspectProviderWaitContract = (context: InspectorContext, findings: Inspec
     [CONVERSATION_HANDLER_PATH, conversation, [
       "prepare_clean_gpt_chat", "focus_exact_gpt_conversation", "verify_gpt_conversation_identity",
       "open_gpt_checkpoint_actions_menu", "fork_exact_gpt_conversation_at_checkpoint",
-      "readCoherentObservation", "readExactAssistantTurn",
+      "readCoherentObservation", "readExactAssistantTurn", "exactEditableTextHash", "exactGptUserPromptHash",
     ]],
     [SUBMISSION_HANDLER_PATH, submission, [
       "write_exact_gpt_prompt", "reconcile_gpt_draft", "submit_exact_gpt_turn_once",
-      "reconcile_gpt_turn_submission", "readCoherentObservation", "semanticTextHash",
+      "reconcile_gpt_turn_submission", "readCoherentObservation", "exactEditableTextHash",
+      "exactGptUserPromptHash",
+      "GPT_COMPOSER_FORM_SELECTOR", "scope: { selector: GPT_COMPOSER_FORM_SELECTOR }",
+      "exactAttachmentSet", "includeAttachments: true",
     ]],
     [TEXT_RESPONSE_HANDLER_PATH, textResponse, [
       "wait_for_stable_gpt_text", "checkpoint_gpt_text_response",
@@ -368,6 +373,32 @@ const inspectProviderWaitContract = (context: InspectorContext, findings: Inspec
       `Production page Child slice retains retired placeholder ${retiredBlocker}.`,
     ));
   }
+  for (const [path, source] of [
+    [CONVERSATION_HANDLER_PATH, conversation], [SUBMISSION_HANDLER_PATH, submission],
+  ] as const) if (/queryId:\s*"composer"[\s\S]{0,180}fields:\s*\[[^\]]*"semanticTextHash"/u.test(source)) {
+    findings.push(finding(
+      "gpt/composer-semantic-fallback-forbidden", path,
+      "Composer current-value decisions must consume exactEditableTextHash, never rendered semanticTextHash.",
+    ));
+  }
+  const responsePage = sourceFor(context, RESPONSE_PAGE_PATH)?.getFullText() ?? "";
+  for (const [path, source] of [
+    [CONVERSATION_HANDLER_PATH, conversation], [SUBMISSION_HANDLER_PATH, submission],
+    [RESPONSE_PAGE_PATH, responsePage],
+  ] as const) {
+    if (!source.includes('queryId: "user-turns"') || !source.includes("exactGptUserPromptHash")) {
+      findings.push(finding(
+        "gpt/exact-user-prompt-hash-required", path,
+        "Every GPT user-turn identity reader must consume exactGptUserPromptHash.",
+      ));
+    }
+    if (/queryId:\s*"user-turns"[\s\S]{0,180}fields:\s*\[[^\]]*"semanticTextHash"/u.test(source)) {
+      findings.push(finding(
+        "gpt/outer-user-turn-semantic-hash-forbidden", path,
+        "A whole user-turn semantic hash includes attachments and controls and cannot identify the Prompt.",
+      ));
+    }
+  }
 };
 
 const inspectIntelligentExecutionContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {
@@ -385,6 +416,7 @@ const inspectGptContracts = (context: InspectorContext, findings: InspectorFindi
   inspectModelSelectionContract(context, findings);
   inspectExecutionProfileStateReadContract(context, findings);
   inspectGptBrowserFailureRecoveryContract(context, findings, finding);
+  inspectGptDirectMutationSettlementContract(context, findings, finding);
 };
 
 const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
@@ -393,6 +425,7 @@ const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFind
     EVIDENCE_WRITER_PATH, EVIDENCE_FACT_PATH, SESSION_PATH, SESSION_CHILDREN_PATH, RESPONSE_HANDLER_PATH,
     TEXT_RESPONSE_HANDLER_PATH, IMAGE_RESPONSE_HANDLER_PATH,
     CONVERSATION_HANDLER_PATH,
+    RESPONSE_PAGE_PATH,
     MODEL_SELECTION_V2_HANDLER_PATH, MODEL_SELECTION_V2_CONTRACT_PATH,
     EXECUTION_PROFILE_HANDLER_PATH, EXECUTION_PROFILE_CONTRACT_PATH,
     ATTACHMENT_HANDLER_PATH, ATTACHMENT_CONTRACT_PATH,

@@ -7,6 +7,7 @@ import { providerAttachmentName } from "./gpt-exact-target-source-support.js";
 import {
   GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR,
   GPT_ATTACHMENT_CONTROL_SELECTOR,
+  GPT_ATTACHMENT_PENDING_ACTION_SELECTOR,
   GPT_COMPOSER_FORM_SELECTOR,
   GPT_UPLOAD_FROM_COMPUTER_LABEL,
   GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
@@ -267,14 +268,14 @@ for (const driftField of ["targetRefHash", "documentRefHash"] as const) {
   }
 }
 
-const attachmentFacts = (ready: boolean) => ({
-  "attachment-region": { rawCount: 1, eligibleCount: 1 },
+const attachmentFacts = (ready: boolean, pending = false) => ({
+  "attachment-composer": { rawCount: 1, eligibleCount: 1 },
   "attachment-items": {
     rawCount: 1, eligibleCount: 1,
     matches: [{ ariaLabel: providerAttachmentName("甲.pdf", "artifact:1") }],
   },
-  "attachment-ready": { rawCount: ready ? 1 : 0, eligibleCount: ready ? 1 : 0 },
   "attachment-uploading": { rawCount: ready ? 0 : 1, eligibleCount: ready ? 0 : 1 },
+  "attachment-pending": { rawCount: pending ? 1 : 0, eligibleCount: pending ? 1 : 0 },
 });
 
 const attachmentFixture = fakeBrowser((intent) => {
@@ -339,7 +340,16 @@ let uploadObservations = 0;
 const uploadingFixture = fakeBrowser((intent) => {
   if (intent.kind === "observe") {
     uploadObservations += 1;
-    return coherentObservationPacket(intent, attachmentFacts(uploadObservations >= 3));
+    assert.deepEqual(intent.queries.map((query) => [query.queryId, query.scope?.selector]), [
+      ["attachment-composer", undefined],
+      ["attachment-items", GPT_COMPOSER_FORM_SELECTOR],
+      ["attachment-uploading", GPT_COMPOSER_FORM_SELECTOR],
+      ["attachment-pending", GPT_COMPOSER_FORM_SELECTOR],
+    ], "attachment readiness must use one composer-scoped card/spinner/pending observation without a ready-icon reader");
+    assert.equal(intent.queries.find((query) => query.queryId === "attachment-pending")?.selector,
+      GPT_ATTACHMENT_PENDING_ACTION_SELECTOR, "readiness must consume the one live-proven Provider busy signal");
+    return coherentObservationPacket(intent, uploadObservations === 1
+      ? attachmentFacts(false) : attachmentFacts(true, uploadObservations === 2));
   }
   throw new Error(`UNEXPECTED_ATTACHMENT_UPLOAD_INTENT:${intent.kind}`);
 });
@@ -348,11 +358,37 @@ const uploaded = await execute("reconcile_gpt_attachment_set", uploadingFixture.
 });
 assert.equal(uploaded.status, "success", uploaded.failureCode ?? "uploaded attachment reconciliation failed");
 assert.equal(uploaded.value?.files[0]?.providerDisplayName, providerAttachmentName("甲.pdf", "artifact:1"));
-assert.equal(uploadObservations, 3, "attachment name alone must not complete reconciliation");
-assert.equal(uploadingFixture.waitDurations().length, 2, "pending upload must wait only between fresh observations");
+assert.equal(uploadObservations, 3, "card plus zero spinner must wait until the Provider pending action clears");
+assert.equal(uploadingFixture.waitDurations().length, 2, "busy attachment state must wait only between fresh observations");
 assert.equal(uploadingFixture.physicalMutations(), 0, "attachment reconciliation must remain read-only");
 assert.equal(uploaded.proof.observationRevisionHash, `sha256:${"4".repeat(64)}`);
 assert.deepEqual(uploaded.proof.candidateCardinality, { raw: 1, eligible: 1 });
+
+let noLayoutCardReads = 0;
+const noLayoutAttachmentFixture = fakeBrowser((intent) => {
+  if (intent.kind === "observe") {
+    noLayoutCardReads += 1;
+    return coherentObservationPacket(intent, noLayoutCardReads === 1 ? {
+      ...attachmentFacts(true),
+      "attachment-items": {
+        rawCount: 1, eligibleCount: 0, matches: [],
+        rejections: [{ index: 0, reasons: ["NO_LAYOUT_BOX"] }],
+        nativeCauseCode: "NO_LAYOUT_BOX", nativeCauseCount: 1,
+      },
+    } : attachmentFacts(true));
+  }
+  throw new Error(`UNEXPECTED_NO_LAYOUT_ATTACHMENT_INTENT:${intent.kind}`);
+});
+const recoveredNoLayoutAttachment = await execute(
+  "reconcile_gpt_attachment_set",
+  noLayoutAttachmentFixture.browser,
+  { files: [approvedAttachment], timeoutMs: 2_000 },
+);
+assert.equal(recoveredNoLayoutAttachment.status, "success",
+  recoveredNoLayoutAttachment.failureCode ?? "no-layout attachment card did not recover");
+assert.equal(noLayoutCardReads, 2, "a no-layout card must be queried fresh before readiness");
+assert.equal(noLayoutAttachmentFixture.physicalMutations(), 0,
+  "a no-layout attachment card must never authorize a mutation");
 
 let staleReadyReads = 0;
 const staleAttachmentFixture = fakeBrowser((intent) => {
@@ -390,13 +426,23 @@ try {
   Date.now = nativeDateNow;
 }
 
+let uploadTimeoutNow = 0;
 const uploadTimeoutFixture = fakeBrowser((intent) => {
-  if (intent.kind === "observe") return coherentObservationPacket(intent, attachmentFacts(false));
+  if (intent.kind === "observe") return coherentObservationPacket(intent, attachmentFacts(true, true));
   throw new Error(`UNEXPECTED_ATTACHMENT_TIMEOUT_INTENT:${intent.kind}`);
-});
-const uploadTimedOut = await execute("reconcile_gpt_attachment_set", uploadTimeoutFixture.browser, {
-  files: [approvedAttachment], timeoutMs: 1_000,
-});
-assert.equal(uploadTimedOut.status, "failed");
-assert.equal(uploadTimedOut.failureCode, "GPT_ATTACHMENT_UPLOAD_TIMEOUT:ready=0:uploading=1:expected=1");
-assert.equal(uploadTimeoutFixture.physicalMutations(), 0, "timed-out reconciliation must never mutate the page");
+}, { onWait: (durationMs) => { uploadTimeoutNow += durationMs; } });
+const nativeTimeoutDateNow = Date.now;
+Date.now = () => uploadTimeoutNow;
+try {
+  const uploadTimedOut = await execute("reconcile_gpt_attachment_set", uploadTimeoutFixture.browser, {
+    files: [approvedAttachment], timeoutMs: 1_000,
+  });
+  assert.equal(uploadTimedOut.status, "failed");
+  assert.ok(uploadTimedOut.failureCode?.startsWith("GPT_ATTACHMENT_UPLOAD_TIMEOUT:cards=1:uploading=0:pending=1:expected=1:"));
+  assert.equal(uploadTimedOut.proof.observationRevisionHash, `sha256:${"4".repeat(64)}`);
+  assert.equal(uploadTimeoutNow, 1_000, "attachment reconciliation must stop at the exact Product deadline");
+  assert.equal(uploadTimeoutFixture.physicalMutations(), 0,
+    "timed-out reconciliation must never mutate the page");
+} finally {
+  Date.now = nativeTimeoutDateNow;
+}

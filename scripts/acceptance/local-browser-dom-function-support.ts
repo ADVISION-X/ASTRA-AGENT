@@ -1,4 +1,5 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
+import { createHash } from "node:crypto";
 import { runInNewContext } from "node:vm";
 
 type Style = Readonly<{ display?: string; visibility?: string; opacity?: string; pointerEvents?: string }>;
@@ -67,6 +68,9 @@ const execute = (source: string, document: Readonly<Record<string, unknown>>, in
   const implementation = runInNewContext(`(${source})`, context) as (value: unknown) => unknown;
   return implementation(input);
 };
+
+const hash = (value: string): string =>
+  `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
 export const exerciseCapturedCandidateFunction = (source: string): void => {
   const target = new FakeElement("Run", {}, {}, {}, "BUTTON");
@@ -202,6 +206,88 @@ export const exerciseCapturedObservationFunction = async (source: string): Promi
   assert.equal(emptyResult.queries[0]?.matches[0]?.semanticTextHash,
     "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "the exact live ProseMirror empty marker must project to the empty semantic string");
+  const markdownPrompt = "# Heading\n- item\n`code`\n";
+  const markdownBlocks = markdownPrompt.split("\n").map((value) =>
+    new FakeElement(value, {}, {}, {}, "P", value.length === 0 ? [] : [new FakeTextNode(value)]));
+  const markdownComposer = new FakeElement(markdownPrompt, {}, {}, {
+    id: "prompt-textarea", contenteditable: "true",
+  }, "DIV", markdownBlocks);
+  const styledParagraph = new FakeElement("bold", {}, {}, {}, "P", [
+    new FakeElement("bold", {}, {}, {}, "STRONG", [new FakeTextNode("bold")]),
+  ]);
+  const styledComposer = new FakeElement("bold", {}, {}, {
+    id: "prompt-textarea", contenteditable: "true",
+  }, "DIV", [styledParagraph]);
+  const exactRoot = new FakeElement("", { "#markdown": [markdownComposer], "#styled": [styledComposer] });
+  markdownComposer.parentElement = exactRoot;
+  styledComposer.parentElement = exactRoot;
+  const exactResult = await execute(source, {
+    documentElement: exactRoot, querySelectorAll: () => [], elementFromPoint: () => markdownComposer,
+  }, [
+    { queryId: "markdown", selector: "#markdown", maxMatches: 1,
+      fields: ["exactEditableTextHash"] },
+    { queryId: "styled", selector: "#styled", maxMatches: 1,
+      fields: ["exactEditableTextHash", "semanticTextHash"] },
+  ]) as Readonly<{ queries: readonly Readonly<{ matches: readonly Readonly<{
+      exactEditableTextHash: string; semanticTextHash?: string;
+    }>[] }>[] }>;
+  assert.equal(exactResult.queries[0]?.matches[0]?.exactEditableTextHash, hash(markdownPrompt),
+    "Composer exact hash must preserve headings, list markers, backticks, and the trailing newline");
+  assert.equal(exactResult.queries[1]?.matches[0]?.exactEditableTextHash, hash("bold"));
+  assert.equal(exactResult.queries[1]?.matches[0]?.semanticTextHash, hash("**bold**"),
+    "rendered semantic text must remain distinct from the Composer current-value projection");
+  const userPrompt = "[GRASSEYE:exact-user-prompt]\napproved prompt";
+  const promptBody = new FakeElement(userPrompt, {}, {}, {
+    "data-testid": "collapsible-user-message-content",
+  }, "DIV", [
+    new FakeElement("[GRASSEYE:exact-user-prompt]", {}, {}, {}, "P", [
+      new FakeTextNode("[GRASSEYE:exact-user-prompt]"),
+    ]),
+    new FakeElement("approved prompt", {}, {}, {}, "P", [new FakeTextNode("approved prompt")]),
+  ]);
+  const attachmentCard = new FakeElement("公开知识生产资料.zip 文件", {}, {}, {}, "DIV", [
+    new FakeTextNode("公开知识生产资料.zip 文件"),
+  ]);
+  const collapseControl = new FakeElement("展开/收起", {}, {}, {}, "BUTTON", [new FakeTextNode("展开/收起")]);
+  const userTurn = new FakeElement(`${userPrompt}公开知识生产资料.zip 文件展开/收起`, {
+    "[data-testid='collapsible-user-message-content']": [promptBody],
+  }, {}, { "data-testid": "conversation-turn-1", "data-turn": "user" }, "ARTICLE", [
+    promptBody, attachmentCard, collapseControl,
+  ]);
+  const userTurnRoot = new FakeElement("", { ".user-turn": [userTurn] });
+  userTurn.parentElement = userTurnRoot;
+  const userTurnResult = await execute(source, {
+    documentElement: userTurnRoot, querySelectorAll: () => [], elementFromPoint: () => userTurn,
+  }, [{ queryId: "user-turns", selector: ".user-turn", maxMatches: 1,
+    fields: ["testId", "semanticTextHash", "exactGptUserPromptHash"] }]) as Readonly<{
+      queries: readonly Readonly<{ matches: readonly Readonly<{
+        testId: string; semanticTextHash: string; exactGptUserPromptHash: string;
+      }>[] }>[];
+    }>;
+  const exactUserTurn = userTurnResult.queries[0]?.matches[0];
+  assert.equal(exactUserTurn?.testId, "conversation-turn-1");
+  assert.equal(exactUserTurn?.exactGptUserPromptHash, hash(userPrompt),
+    "the exact GPT user Prompt hash must include only the unique rendered Prompt body");
+  assert.notEqual(exactUserTurn?.semanticTextHash, hash(userPrompt),
+    "the outer user-turn semantic hash must expose why attachment and controls cannot identify the Prompt");
+  const missingPromptBody = new FakeElement("attachment only", {}, {}, {
+    "data-testid": "conversation-turn-1", "data-turn": "user",
+  });
+  const missingRoot = new FakeElement("", { ".user-turn": [missingPromptBody] });
+  await assert.rejects(async () => execute(source, {
+    documentElement: missingRoot, querySelectorAll: () => [], elementFromPoint: () => missingPromptBody,
+  }, [{ queryId: "user-turns", selector: ".user-turn", maxMatches: 1,
+    fields: ["exactGptUserPromptHash"] }]), /BROWSER_DOM_READ_INVALID/u,
+  "a user turn without the exact Prompt body must fail closed");
+  const duplicatePromptTurn = new FakeElement(userPrompt, {
+    "[data-testid='collapsible-user-message-content']": [promptBody, promptBody],
+  }, {}, { "data-testid": "conversation-turn-1", "data-turn": "user" });
+  const duplicateRoot = new FakeElement("", { ".user-turn": [duplicatePromptTurn] });
+  await assert.rejects(async () => execute(source, {
+    documentElement: duplicateRoot, querySelectorAll: () => [], elementFromPoint: () => duplicatePromptTurn,
+  }, [{ queryId: "user-turns", selector: ".user-turn", maxMatches: 1,
+    fields: ["exactGptUserPromptHash"] }]), /BROWSER_DOM_READ_INVALID/u,
+  "multiple Prompt bodies inside one user turn must fail closed");
   const input = [{ queryId: "reasons", selector: "button", maxMatches: 1, fields: ["visible"] }];
   for (const invalidUrl of ["http://chatgpt.com/", "https://example.com/", "https://user@chatgpt.com/",
     "https://chatgpt.com/c/", "https://chatgpt.com/c/one/two", `https://chatgpt.com/c/${"x".repeat(257)}`]) {

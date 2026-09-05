@@ -1,7 +1,8 @@
 const BROWSER_DOM_FIELD_VALUES = [
   "id", "testId", "dataTurn", "tagName", "type", "role", "name", "label",
   "ariaLabel", "ariaExpanded", "ariaChecked", "ariaValueMin", "ariaValueMax", "ariaValueNow",
-  "text", "outerHtml", "semanticText", "semanticTextHash",
+  "text", "outerHtml", "semanticText", "semanticTextHash", "exactEditableTextHash",
+  "exactGptUserPromptHash",
   "value", "checked", "accept", "multiple", "connected", "layout", "visible",
   "computedDisplay", "computedVisibility", "computedOpacity", "effectiveOpacity", "hidden", "ariaHidden",
   "inert", "disabled", "ariaDisabled",
@@ -9,7 +10,8 @@ const BROWSER_DOM_FIELD_VALUES = [
 
 export type BrowserDomField = typeof BROWSER_DOM_FIELD_VALUES[number];
 export type BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">;
-export type BrowserDomPostconditionField = Exclude<BrowserDomObservationField, "semanticTextHash">;
+export type BrowserDomPostconditionField = Exclude<BrowserDomObservationField,
+  "semanticTextHash" | "exactEditableTextHash" | "exactGptUserPromptHash">;
 export type BrowserDomReadEligibility = "non-actionable-aria-state";
 
 export type BrowserDomIneligibleReason =
@@ -371,7 +373,9 @@ const assertClickObservation = (
   if (!observation) return;
   assertObservationQueries(observation.queries, POSTCONDITION_QUERY_KEYS);
   for (const query of observation.queries) {
-    if ((query.fields as readonly string[]).includes("semanticTextHash")
+    if ((query.fields as readonly string[]).some((field) =>
+      field === "semanticTextHash" || field === "exactEditableTextHash"
+      || field === "exactGptUserPromptHash")
       || !Number.isInteger(query.expectedEligibleCount)
       || query.expectedEligibleCount < 0 || query.expectedEligibleCount > query.maxMatches) {
       throw new Error("BROWSER_COMMAND_PERMIT_INVALID");

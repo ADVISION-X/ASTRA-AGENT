@@ -130,7 +130,8 @@ const COHERENT_OBSERVATION_POINTER_FUNCTION = `function (request) {
     }));
   };
   const queries = request.postcondition.queries.map((spec) => {
-    if (spec.fields.includes("semanticTextHash")) throw new Error("BROWSER_DOM_READ_INVALID");
+    if (spec.fields.includes("semanticTextHash") || spec.fields.includes("exactEditableTextHash")
+      || spec.fields.includes("exactGptUserPromptHash")) throw new Error("BROWSER_DOM_READ_INVALID");
     const scopeRaw = spec.scope ? Array.from(document.querySelectorAll(spec.scope.selector))
       : [document.documentElement];
     const scopeObserved = observeNodes(scopeRaw);
