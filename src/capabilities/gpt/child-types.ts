@@ -222,6 +222,7 @@ export interface GptChildInputMap {
     turnMarker: string;
   }>;
   readonly open_gpt_checkpoint_actions_menu: GptSourceCheckpointInput;
+  readonly open_gpt_fork_destination_menu: GptSourceCheckpointInput;
   readonly fork_exact_gpt_conversation_at_checkpoint: GptSourceCheckpointInput;
   readonly persist_gpt_continuation: GptPersistContinuationInput;
   readonly reserve_exact_gpt_continuation_once: GptReservationInput;
@@ -360,6 +361,10 @@ export interface GptChildOutputMap {
     predecessorTextCheckpoint: GptTextCheckpointInput;
   }>;
   readonly open_gpt_checkpoint_actions_menu: Readonly<{
+    sourceAssistantTurnId: string;
+    state: "already-open" | "opened";
+  }>;
+  readonly open_gpt_fork_destination_menu: Readonly<{
     sourceAssistantTurnId: string;
     state: "already-open" | "opened";
   }>;

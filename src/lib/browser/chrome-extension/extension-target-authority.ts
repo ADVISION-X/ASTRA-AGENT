@@ -2,6 +2,7 @@ import type { BrowserGovernedCommand } from "../exact-target/browser-command-act
 import {
   GPT_WEB_START_URL,
   gptWebClaimOriginForUrl,
+  requireCanonicalGptConversationUrl,
   requireGptWebPolicyForUrl,
 } from "../exact-target/browser-site-policy-registry.js";
 import { BROWSER_COMMAND_DEFAULT_DEADLINE_MS } from "../protocol/generated/browser-protocol.generated.js";
@@ -210,6 +211,10 @@ export class ExtensionTargetAuthority {
   ): Promise<unknown> {
     if (command.kind === "dom-intent") {
       const assertCurrent = (): void => { this.targets.resolve(target.targetRef, target.documentRef); };
+      const forkTransition = command.intent.kind === "click"
+        ? command.intent.postClickTargetTransition : undefined;
+      const targetBaseline = forkTransition === undefined
+        ? null : await this.readDiscoveredTabIds();
       const expectedMainFrameLoaderId = command.intent.kind === "readExactAssistantTurn"
         && this.activeTarget?.targetRef === target.targetRef
         && this.activeTarget.documentRef === target.documentRef
@@ -220,8 +225,17 @@ export class ExtensionTargetAuthority {
       const result = await executeRegisteredDomIntent(
         this.debuggerRuntime, target, command.intent, assertCurrent,
         expectedMainFrameLoaderId ?? undefined,
+        forkTransition === undefined || targetBaseline === null ? undefined
+          : () => this.normalizeGptForkSuccessor(target, targetBaseline, forkTransition.timeoutMs),
       );
-      this.targets.resolve(target.targetRef, target.documentRef);
+      if (forkTransition === undefined) this.targets.resolve(target.targetRef, target.documentRef);
+      else {
+        const current = this.activeTarget;
+        if (!current || current.targetRef !== target.targetRef || current.tabId !== target.tabId
+          || current.navigationEpoch !== target.navigationEpoch + 1) {
+          throw new Error("BROWSER_POSTCONDITION_FAILED");
+        }
+      }
       return result;
     }
     if (command.kind === "observe") {
@@ -439,6 +453,124 @@ export class ExtensionTargetAuthority {
     }
     await new Promise<void>((resolve) => globalThis.setTimeout(resolve, durationMs));
     return { waitedMs: durationMs };
+  }
+
+  private async readDiscoveredTabIds(): Promise<ReadonlySet<number>> {
+    try {
+      return new Set((await this.chromeApi.debugger.getTargets())
+        .flatMap((candidate) => Number.isSafeInteger(candidate.tabId) ? [candidate.tabId!] : []));
+    } catch (error) {
+      throw new Error("BROWSER_TARGET_DISCOVERY_UNAVAILABLE", { cause: error });
+    }
+  }
+
+  private async normalizeGptForkSuccessor(
+    source: ExtensionExactTarget,
+    baselineTabIds: ReadonlySet<number>,
+    timeoutMs: number,
+  ): Promise<void> {
+    const deadline = Date.now() + timeoutMs;
+    let successor: ExtensionDebugTarget | null = null;
+    let attached = false;
+    try {
+      do {
+        let discovered: readonly ExtensionDebugTarget[];
+        try {
+          discovered = (await this.chromeApi.debugger.getTargets()).filter((candidate) =>
+            Number.isSafeInteger(candidate.tabId) && !baselineTabIds.has(candidate.tabId!));
+        } catch (error) {
+          throw new Error("BROWSER_TARGET_DISCOVERY_UNAVAILABLE", { cause: error });
+        }
+        if (discovered.length > 1) throw new Error("BROWSER_POSTCONDITION_FAILED");
+        if (discovered.length === 1) {
+          successor = discovered[0]!;
+          if (successor.type !== "page" || !Number.isSafeInteger(successor.tabId)) {
+            throw new Error("BROWSER_POSTCONDITION_FAILED");
+          }
+          break;
+        }
+        await this.waitForTargetObservation(deadline);
+      } while (Date.now() < deadline);
+      if (!successor || successor.tabId === undefined) throw new Error("BROWSER_POSTCONDITION_FAILED");
+
+      await this.debuggerRuntime.attach(successor.tabId);
+      attached = true;
+      await this.debuggerRuntime.send(successor.tabId, "Page.enable");
+      let childUrl: string | null = null;
+      do {
+        const frame = await this.readMainFrame(successor.tabId);
+        try {
+          childUrl = requireCanonicalGptConversationUrl(frame.url);
+          break;
+        } catch (error) {
+          if (frame.url !== "" && frame.url !== "about:blank") throw error;
+        }
+        await this.waitForTargetObservation(deadline);
+      } while (Date.now() < deadline);
+      if (childUrl === null) throw new Error("BROWSER_POSTCONDITION_FAILED");
+
+      await this.debuggerRuntime.detach(successor.tabId);
+      attached = false;
+      await this.chromeApi.tabs.remove(successor.tabId);
+      await this.waitForDiscoveredTabAbsence(successor.tabId, deadline);
+
+      this.targets.resolve(source.targetRef, source.documentRef);
+      const sourceLoaderId = this.activeLoaderId;
+      if (!sourceLoaderId) throw new Error("BROWSER_POSTCONDITION_FAILED");
+      await this.debuggerRuntime.send(source.tabId, "Page.navigate", { url: childUrl });
+      const observed = await this.waitForExactMainFrame(
+        source.tabId, childUrl, sourceLoaderId, deadline,
+      );
+      const next = await this.publishMainFrameNavigation(observed.url, observed.loaderId);
+      if (next.targetRef !== source.targetRef || next.tabId !== source.tabId
+        || next.navigationEpoch !== source.navigationEpoch + 1) {
+        throw new Error("BROWSER_POSTCONDITION_FAILED");
+      }
+      const settled = (await this.chromeApi.debugger.getTargets()).filter((candidate) =>
+        candidate.tabId === source.tabId && candidate.type === "page");
+      if (settled.length !== 1) throw new Error("BROWSER_POSTCONDITION_FAILED");
+    } catch (error) {
+      if (successor?.tabId !== undefined) {
+        if (attached) await this.debuggerRuntime.detach(successor.tabId).catch(() => undefined);
+        await this.chromeApi.tabs.remove(successor.tabId).catch(() => undefined);
+      }
+      if (error instanceof Error && error.message === "BROWSER_TARGET_DISCOVERY_UNAVAILABLE") throw error;
+      throw new Error("BROWSER_POSTCONDITION_FAILED", { cause: error });
+    }
+  }
+
+  private async waitForTargetObservation(deadline: number): Promise<void> {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) return;
+    await new Promise<void>((resolve) => globalThis.setTimeout(resolve, Math.min(50, remaining)));
+  }
+
+  private async waitForDiscoveredTabAbsence(tabId: number, deadline: number): Promise<void> {
+    do {
+      if (!(await this.readDiscoveredTabIds()).has(tabId)) return;
+      await this.waitForTargetObservation(deadline);
+    } while (Date.now() < deadline);
+    throw new Error("BROWSER_POSTCONDITION_FAILED");
+  }
+
+  private async waitForExactMainFrame(
+    tabId: number,
+    expectedUrl: string,
+    priorLoaderId: string,
+    deadline: number,
+  ): Promise<MainFrame> {
+    do {
+      const frame = await this.readMainFrame(tabId);
+      let canonicalUrl: string | null = null;
+      try {
+        canonicalUrl = requireCanonicalGptConversationUrl(frame.url);
+      } catch (error) {
+        if (frame.url !== "" && frame.url !== "about:blank") throw error;
+      }
+      if (canonicalUrl === expectedUrl && frame.loaderId !== priorLoaderId) return frame;
+      await this.waitForTargetObservation(deadline);
+    } while (Date.now() < deadline);
+    throw new Error("BROWSER_POSTCONDITION_FAILED");
   }
 
   private async executeNavigation(target: ExtensionExactTarget, url: string): Promise<Record<string, unknown>> {

@@ -5,12 +5,12 @@ import { emitQualityProofObservation } from "../../../../scripts/audit/shared/pr
 import {
   GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR,
   GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR,
-} from "../web/contracts/model-selection-v2.contract.js";
+} from "./gpt-page-fixture-selectors.js";
 import {
   GPT_PROFILE_POPUP_SELECTOR,
   GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR,
   GPT_PROFILE_TRIGGER_SELECTOR,
-} from "../web/contracts/execution-profile.contract.js";
+} from "./gpt-page-fixture-selectors.js";
 import {
   coherentObservationPacket,
   EXPECTED_GPT_CHILD_IDS,
@@ -24,7 +24,7 @@ import { execute, gpt, profile, profileFacts } from "./gpt-exact-target-profile-
 import "./gpt-reasoning-requirement.acceptance.js";
 
 assert.deepEqual(gpt.listChildCapabilityIds(), EXPECTED_GPT_CHILD_IDS);
-assert.equal(Object.keys(GPT_CHILD_CAPABILITY_CONTRACTS).length, 27);
+assert.equal(Object.keys(GPT_CHILD_CAPABILITY_CONTRACTS).length, 28);
 assertGptExactTargetSourceShape(import.meta.url);
 
 let profileOpen = false;
@@ -373,14 +373,14 @@ for (const checked of ["true", "false"] as const) {
 }
 
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V26",
+  lawId: "LAW-GPT-001-V27",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:12", "forbidden:3", "forbidden:4", "forbidden:5", "summary"],
   locator: "acceptance:gpt-exact-target:coherent-ready-subset",
   observedValue: "coherent profile model and numeric reasoning Children prove same-revision DONE or one confirmed mutation",
 });
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V26",
+  lawId: "LAW-GPT-001-V27",
   evidenceMode: "exam.property",
   clauses: ["forbidden:12", "forbidden:18", "forbidden:19", "forbidden:6", "summary"],
   locator: "acceptance:gpt-exact-target:browser-handoff",

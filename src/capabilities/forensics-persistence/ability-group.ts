@@ -1,7 +1,7 @@
-import { executeAppendArtifact } from "./children/append-artifact.js";
-import { executeAppendRecord } from "./children/append-record.js";
-import { executeReadRecordRef } from "./children/read-record-ref.js";
-import { executeReadArtifactRef } from "./children/read-artifact-ref.js";
+import { executeAppendArtifact } from "./children/append-artifact/handler.js";
+import { executeAppendRecord } from "./children/append-record/handler.js";
+import { executeReadArtifactRef } from "./children/read-artifact-ref/handler.js";
+import { executeReadRecordRef } from "./children/read-record-ref/handler.js";
 import type { ForensicsPersistenceAbilityGroup } from "./contract.js";
 import { createForensicsStorageAdapter } from "./storage-adapter.js";
 import type {

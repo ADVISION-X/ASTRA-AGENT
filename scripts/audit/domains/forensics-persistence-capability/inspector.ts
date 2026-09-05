@@ -1,4 +1,5 @@
-import { relative } from "node:path";
+import { existsSync, readdirSync } from "node:fs";
+import { relative, resolve } from "node:path";
 
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
@@ -11,11 +12,15 @@ type Finding = ReturnType<typeof createFinding>;
 
 const requiredCapabilityFiles = [
   "src/capabilities/forensics-persistence/index.ts",
+  "src/capabilities/forensics-persistence/contract.ts",
   "src/capabilities/forensics-persistence/ability-group.ts",
   "src/capabilities/forensics-persistence/schema.ts",
   "src/capabilities/forensics-persistence/storage-adapter.ts",
   "src/capabilities/forensics-persistence/storage-port.ts",
 ] as const;
+
+const FORENSICS_ROOT = "src/capabilities/forensics-persistence";
+const FORENSICS_CHILDREN_ROOT = `${FORENSICS_ROOT}/children`;
 
 const requiredStorageFiles = [
   "src/lib/storage/index.ts",
@@ -137,6 +142,63 @@ const inspectPublicFacade = (
     const specifier = declaration.getModuleSpecifierValue();
     if (!specifier || allowed.has(specifier)) continue;
     pushFinding(findings, lawId, clauseId, repoPath, "forensics/public-facade", `Forensics public facade must not export private module ${specifier}.`, "static.contract");
+  }
+};
+
+const forensicsContractIds = (context: InspectorContext): string[] => {
+  const schema = sourceFile(context, `${FORENSICS_ROOT}/schema.ts`);
+  const call = schema?.getVariableDeclaration("ForensicsChildCapabilityIdSchema")
+    ?.getInitializerIfKind(SyntaxKind.CallExpression);
+  const values = call?.getArguments()[0];
+  return Node.isArrayLiteralExpression(values)
+    ? values.getElements().flatMap((element) => Node.isStringLiteral(element) ? [element.getLiteralValue()] : []).sort()
+    : [];
+};
+
+const forensicsSwitchIds = (context: InspectorContext): string[] => sourceFile(
+  context, `${FORENSICS_ROOT}/ability-group.ts`,
+)?.getDescendantsOfKind(SyntaxKind.CaseClause).flatMap((clause) => {
+  const expression = clause.getExpression();
+  return Node.isStringLiteral(expression) ? [expression.getLiteralValue()] : [];
+}).sort() ?? [];
+
+const inspectChildLayout = (
+  context: InspectorContext,
+  findings: Finding[],
+  lawId: string,
+  inspectedFiles: Set<string>,
+): void => {
+  const expected = forensicsContractIds(context);
+  const root = resolve(context.sealedRoot, FORENSICS_CHILDREN_ROOT);
+  const directories = existsSync(root) ? readdirSync(root, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort() : [];
+  const mapped = forensicsSwitchIds(context);
+  const report = (checkId: string, message: string): void => pushFinding(
+    findings, lawId, `${lawId.toLowerCase()}-requirement`, FORENSICS_CHILDREN_ROOT,
+    checkId, message, "static.contract",
+  );
+  if (expected.length !== 4 || new Set(expected).size !== 4) {
+    report("forensics/exact-child-denominator", `Forensics contract must define four unique Child ids; found ${expected.length}/${new Set(expected).size}.`);
+  }
+  if (JSON.stringify(expected) !== JSON.stringify(directories)) {
+    report("forensics/one-directory-per-child", `Contract and directories differ: contract=${expected.join(",")}; directories=${directories.join(",")}.`);
+  }
+  if (JSON.stringify(expected) !== JSON.stringify(mapped)) {
+    report("forensics/one-ability-group-mapping-per-child", `Contract and ability-group switch differ: contract=${expected.join(",")}; mapped=${mapped.join(",")}.`);
+  }
+  for (const id of directories) {
+    const directory = resolve(root, id);
+    const files = readdirSync(directory).filter((name) => name !== ".DS_Store").sort();
+    const handlerPath = `${FORENSICS_CHILDREN_ROOT}/${id}/handler.ts`;
+    inspectedFiles.add(handlerPath);
+    const handler = sourceFile(context, handlerPath)?.getFullText() ?? "";
+    if (JSON.stringify(files) !== JSON.stringify(["handler.ts"]) || !handler.includes(`childCapabilityId: "${id}"`)) {
+      report("forensics/one-handler-file-per-child", `${id} must contain only one handler.ts bound to its exact childCapabilityId; found ${files.join(",") || "none"}.`);
+    }
+  }
+  for (const id of expected) {
+    const retired = resolve(context.sealedRoot, FORENSICS_CHILDREN_ROOT, `${id}.ts`);
+    if (existsSync(retired)) report("forensics/flat-child-handler-retired", `Retired flat Child handler must be absent: ${FORENSICS_CHILDREN_ROOT}/${id}.ts.`);
   }
 };
 
@@ -282,6 +344,8 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   run("inspectStorageRequiredFiles", schemaBoundaryLaw, inspectStorageRequiredFiles, () => inspectStorageRequiredFiles(context, findings, schemaBoundaryLaw, inspectedFiles));
   run("inspectOwnerImports", evidenceLaw, inspectOwnerImports, () => inspectOwnerImports(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles));
   run("inspectPublicFacade", evidenceLaw, inspectPublicFacade, () => inspectPublicFacade(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles));
+  run("inspectChildLayout", evidenceLaw, inspectChildLayout,
+    () => inspectChildLayout(context, findings, evidenceLaw, inspectedFiles));
   run("inspectStoragePort", schemaBoundaryLaw, inspectStoragePort, () => inspectStoragePort(context, findings, schemaBoundaryLaw, "grasseye-local-persistence-schema-001-requirement", inspectedFiles));
   run("inspectSchemaVocabulary", schemaVocabularyLaw, inspectSchemaVocabulary, () => inspectSchemaVocabulary(context, findings, schemaVocabularyLaw, "grasseye-local-persistence-schema-002-v2-requirement", inspectedFiles));
   run("inspectSchemaContract", schemaVocabularyLaw, inspectSchemaContract, () => inspectSchemaContract(context, findings, schemaVocabularyLaw,
@@ -303,7 +367,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
   const semanticChecks = (lawId: string, evidenceMode: string): string[] => lawId.endsWith("001-V4")
-    ? evidenceMode === "static.ast" ? ["inspectCapabilityRequiredFiles", "inspectOwnerImports"] : ["inspectPublicFacade", "inspectExactCallEvidenceOwner"]
+    ? evidenceMode === "static.ast" ? ["inspectCapabilityRequiredFiles", "inspectOwnerImports", "inspectChildLayout"] : ["inspectPublicFacade", "inspectExactCallEvidenceOwner", "inspectChildLayout"]
     : lawId.endsWith("002-V4")
       ? evidenceMode === "static.ast" ? ["inspectStorageRequiredFiles", "inspectDeterministicRecordIdentity"] : ["inspectStoragePort"]
       : evidenceMode === "static.ast" ? ["inspectSchemaVocabulary"] : ["inspectSchemaContract"];

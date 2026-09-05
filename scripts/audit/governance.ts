@@ -40,7 +40,11 @@ export function addedSourceAt(root: string, change: { status: string; path: stri
   if (!absolute.startsWith(`${resolve(root)}/`)) fail('TARGET_OUTSIDE_DOMAIN_AUTHORITY', change.path);
   const baseline = spawnSync('git', ['cat-file', '-e', `HEAD:${change.path}`], { cwd: root, encoding: 'utf8' });
   if (change.status === 'A' && baseline.status !== 0) return readFileSync(absolute, 'utf8');
-  return execFileSync('git', ['diff', '--unified=0', 'HEAD', '--', change.path], { cwd: root, encoding: 'utf8' })
+  return execFileSync('git', ['diff', '--unified=0', 'HEAD', '--', change.path], {
+    cwd: root,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  })
     .split('\n').filter((line) => line.startsWith('+') && !line.startsWith('+++')).map((line) => line.slice(1)).join('\n');
 }
 

@@ -1,7 +1,7 @@
 import {
   type GptAnyChildCapabilityIntent,
+  gptExactCallIdentityHash,
 } from "./contract.js";
-import { gptExactCallIdentityHash } from "./ability-group.js";
 import { gptContinuationIdentityHash } from "./schema.js";
 import { executionFailure } from "../../lib/execution-failure.js";
 import type { GptProductionBrowserAuthority } from "./production-ports.js";

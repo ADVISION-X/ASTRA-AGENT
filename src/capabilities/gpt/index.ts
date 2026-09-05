@@ -3,6 +3,7 @@ export {
   createProductionGptChildTools,
 } from "./ability-group.js";
 export {
+  GPT_CHILD_CAPABILITY_IDS,
   type GptAbilityGroup,
   type GptApprovedFile,
   type GptContinuationCheckpointInput,

@@ -8,7 +8,7 @@ import {
   type GptChildCapabilityResult,
   type GptHash,
 } from "./contract.js";
-import { gptExactCallIdentityHash } from "./ability-group.js";
+import { gptExactCallIdentityHash } from "./contract.js";
 import type {
   BrowserAtomicStepRecovery,
   BrowserConfirmedProviderFailureReadbackAuthorization,

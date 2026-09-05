@@ -30,7 +30,7 @@ import {
 import { inspectGptCurrentPageProofs } from "./gpt-page-proof-inspection.js";
 import { inspectProviderWaitContract } from "./gpt-provider-contract-inspection.js";
 
-const LAW_ID = "LAW-GPT-001-V26";
+const LAW_ID = "LAW-GPT-001-V27";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 15, 18, 22),
   "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 11, 12, 13, 16, 17, 19, 20, 21, 22),
@@ -52,23 +52,128 @@ const CHILD_TYPES_PATH = `${ROOT}/child-types.ts`;
 const EVIDENCE_WRITER_PATH = `${ROOT}/evidence-writer.ts`;
 const EVIDENCE_FACT_PATH = `${ROOT}/evidence-fact.ts`;
 const SESSION_PATH = `${ROOT}/session/gpt-session-controller.ts`;
-const SESSION_CHILDREN_PATH = `${ROOT}/session/session-children.ts`;
-const RESPONSE_HANDLER_PATH = `${ROOT}/web/children/response-children.ts`;
-const TEXT_RESPONSE_HANDLER_PATH = `${ROOT}/web/children/text-response-children.ts`;
-const IMAGE_RESPONSE_HANDLER_PATH = `${ROOT}/web/children/image-response-children.ts`;
-const RETIRED_RESPONSE_SUPPORT_PATH = `${ROOT}/web/children/response-child-support.ts`;
-const RETIRED_RATE_DIALOG_PATH = `${ROOT}/web/children/rate-limit-dialog.ts`;
-const CONVERSATION_HANDLER_PATH = `${ROOT}/web/children/conversation-children.ts`;
-const RESPONSE_PAGE_PATH = `${ROOT}/web/gpt-response-page.ts`;
+const CHILDREN_PATH = `${ROOT}/children`;
+const childHandlerPath = (id: string): string => `${CHILDREN_PATH}/${id}/handler.ts`;
+const childFilePath = (id: string, file: string): string => `${CHILDREN_PATH}/${id}/${file}`;
+const CONTINUATION_HANDLER_PATHS = [
+  childHandlerPath("persist_gpt_continuation"),
+  childHandlerPath("reserve_exact_gpt_continuation_once"),
+  childHandlerPath("complete_exact_gpt_continuation_reservation_once"),
+  childHandlerPath("acquire_gpt_continuation_lane"),
+  childHandlerPath("advance_gpt_continuation_lane"),
+  childHandlerPath("release_gpt_continuation_lane"),
+  `${ROOT}/session/continuation-child-input.ts`,
+] as const;
+const TEXT_RESPONSE_HANDLER_PATHS = [
+  childHandlerPath("wait_for_stable_gpt_text"),
+  childFilePath("wait_for_stable_gpt_text", "page-observation.ts"),
+  childFilePath("wait_for_stable_gpt_text", "response-support.ts"),
+  childFilePath("wait_for_stable_gpt_text", "selectors.ts"),
+  childHandlerPath("checkpoint_gpt_text_response"),
+  childFilePath("checkpoint_gpt_text_response", "page-observation.ts"),
+  childFilePath("checkpoint_gpt_text_response", "response-support.ts"),
+  childFilePath("checkpoint_gpt_text_response", "selectors.ts"),
+] as const;
+const IMAGE_RESPONSE_HANDLER_PATHS = [
+  childHandlerPath("wait_for_stable_gpt_image"),
+  childFilePath("wait_for_stable_gpt_image", "page-observation.ts"),
+  childFilePath("wait_for_stable_gpt_image", "response-support.ts"),
+  childFilePath("wait_for_stable_gpt_image", "selectors.ts"),
+  childHandlerPath("checkpoint_gpt_generated_image"),
+  childFilePath("checkpoint_gpt_generated_image", "page-observation.ts"),
+  childFilePath("checkpoint_gpt_generated_image", "response-support.ts"),
+  childFilePath("checkpoint_gpt_generated_image", "selectors.ts"),
+] as const;
+const RETIRED_SHARED_SEMANTIC_PATHS = [
+  `${CHILDREN_PATH}/page-handler-exports.ts`,
+  `${CHILDREN_PATH}/continuation-handler-exports.ts`,
+  `${ROOT}/session/session-children.ts`,
+  `${ROOT}/web/attachment-control-observation.ts`,
+  `${ROOT}/web/attachment-set-observation.ts`,
+  `${ROOT}/web/composer-observation.ts`,
+  `${ROOT}/web/conversation-observation.ts`,
+  `${ROOT}/web/execution-profile-observation.ts`,
+  `${ROOT}/web/fork-menu-state.ts`,
+  `${ROOT}/web/gpt-page-selectors.ts`,
+  `${ROOT}/web/gpt-response-page.ts`,
+  `${ROOT}/web/model-selection-v2-observation.ts`,
+  `${ROOT}/web/response-child-support.ts`,
+  `${ROOT}/web/contracts/attachment.contract.ts`,
+  `${ROOT}/web/contracts/execution-profile.contract.ts`,
+  `${ROOT}/web/contracts/model-selection-v2.contract.ts`,
+  `${ROOT}/web/children/attachment-children.ts`,
+  `${ROOT}/web/children/attachment-set-observation.ts`,
+  `${ROOT}/web/children/composer-submission-children.ts`,
+  `${ROOT}/web/children/conversation-children.ts`,
+  `${ROOT}/web/children/execution-profile-children.ts`,
+  `${ROOT}/web/children/execution-profile-observation.ts`,
+  `${ROOT}/web/children/image-response-children.ts`,
+  `${ROOT}/web/children/model-selection-v2-children.ts`,
+  `${ROOT}/web/children/rate-limit-dialog.ts`,
+  `${ROOT}/web/children/response-child-support.ts`,
+  `${ROOT}/web/children/response-children.ts`,
+  `${ROOT}/web/children/text-response-children.ts`,
+] as const;
+const CONVERSATION_HANDLER_PATHS = [
+  childHandlerPath("prepare_clean_gpt_chat"),
+  childHandlerPath("focus_exact_gpt_conversation"),
+  childHandlerPath("verify_gpt_conversation_identity"),
+  childHandlerPath("open_gpt_checkpoint_actions_menu"),
+  childHandlerPath("open_gpt_fork_destination_menu"),
+  childHandlerPath("fork_exact_gpt_conversation_at_checkpoint"),
+  childFilePath("prepare_clean_gpt_chat", "observation.ts"),
+  childFilePath("prepare_clean_gpt_chat", "selectors.ts"),
+  childFilePath("focus_exact_gpt_conversation", "observation.ts"),
+  childFilePath("focus_exact_gpt_conversation", "selectors.ts"),
+  childFilePath("verify_gpt_conversation_identity", "observation.ts"),
+  childFilePath("verify_gpt_conversation_identity", "selectors.ts"),
+  childFilePath("open_gpt_checkpoint_actions_menu", "observation.ts"),
+  childFilePath("open_gpt_checkpoint_actions_menu", "menu-state.ts"),
+  childFilePath("open_gpt_checkpoint_actions_menu", "selectors.ts"),
+  childFilePath("open_gpt_fork_destination_menu", "observation.ts"),
+  childFilePath("open_gpt_fork_destination_menu", "menu-state.ts"),
+  childFilePath("open_gpt_fork_destination_menu", "selectors.ts"),
+  childFilePath("fork_exact_gpt_conversation_at_checkpoint", "observation.ts"),
+  childFilePath("fork_exact_gpt_conversation_at_checkpoint", "menu-state.ts"),
+  childFilePath("fork_exact_gpt_conversation_at_checkpoint", "selectors.ts"),
+] as const;
+const RESPONSE_PAGE_PATH = childFilePath("wait_for_stable_gpt_text", "page-observation.ts");
 const TURN_EXECUTOR_PATH = `${ROOT}/gpt-turn-executor.ts`;
-const MODEL_SELECTION_V2_HANDLER_PATH = `${ROOT}/web/children/model-selection-v2-children.ts`;
-const MODEL_SELECTION_V2_CONTRACT_PATH = `${ROOT}/web/contracts/model-selection-v2.contract.ts`;
-const EXECUTION_PROFILE_HANDLER_PATH = `${ROOT}/web/children/execution-profile-children.ts`;
-const EXECUTION_PROFILE_OBSERVATION_PATH = `${ROOT}/web/children/execution-profile-observation.ts`;
-const EXECUTION_PROFILE_CONTRACT_PATH = `${ROOT}/web/contracts/execution-profile.contract.ts`;
-const ATTACHMENT_HANDLER_PATH = `${ROOT}/web/children/attachment-children.ts`;
-const ATTACHMENT_SET_OBSERVATION_PATH = `${ROOT}/web/children/attachment-set-observation.ts`;
-const ATTACHMENT_CONTRACT_PATH = `${ROOT}/web/contracts/attachment.contract.ts`;
+const MODEL_SELECTION_V2_HANDLER_PATHS = [
+  childHandlerPath("open_gpt_model_selector_v2"),
+  childFilePath("open_gpt_model_selector_v2", "observation.ts"),
+  childFilePath("open_gpt_model_selector_v2", "selectors.ts"),
+  childHandlerPath("select_exact_gpt_model_v2"),
+  childFilePath("select_exact_gpt_model_v2", "observation.ts"),
+  childFilePath("select_exact_gpt_model_v2", "selectors.ts"),
+] as const;
+const MODEL_SELECTION_V2_CONTRACT_PATH = childFilePath("select_exact_gpt_model_v2", "selectors.ts");
+const EXECUTION_PROFILE_HANDLER_PATHS = [
+  childHandlerPath("open_gpt_execution_profile"),
+  childFilePath("open_gpt_execution_profile", "observation.ts"),
+  childFilePath("open_gpt_execution_profile", "selectors.ts"),
+  childHandlerPath("ensure_gpt_reasoning_requirement"),
+  childFilePath("ensure_gpt_reasoning_requirement", "observation.ts"),
+  childFilePath("ensure_gpt_reasoning_requirement", "selectors.ts"),
+  childHandlerPath("close_gpt_execution_profile"),
+  childFilePath("close_gpt_execution_profile", "observation.ts"),
+  childFilePath("close_gpt_execution_profile", "selectors.ts"),
+  `${ROOT}/web/execution-profile-input.ts`,
+] as const;
+const EXECUTION_PROFILE_CONTRACT_PATH = childFilePath("ensure_gpt_reasoning_requirement", "selectors.ts");
+const ATTACHMENT_HANDLER_PATHS = [
+  childHandlerPath("open_gpt_attachment_control"),
+  childFilePath("open_gpt_attachment_control", "observation.ts"),
+  childFilePath("open_gpt_attachment_control", "selectors.ts"),
+  childHandlerPath("attach_approved_gpt_files_once"),
+  childFilePath("attach_approved_gpt_files_once", "attachment-observation.ts"),
+  childFilePath("attach_approved_gpt_files_once", "control-observation.ts"),
+  childFilePath("attach_approved_gpt_files_once", "selectors.ts"),
+  childHandlerPath("reconcile_gpt_attachment_set"),
+  childFilePath("reconcile_gpt_attachment_set", "observation.ts"),
+  childFilePath("reconcile_gpt_attachment_set", "selectors.ts"),
+] as const;
+const ATTACHMENT_CONTRACT_PATH = childFilePath("attach_approved_gpt_files_once", "selectors.ts");
 const PRODUCTION_CHILD_TOOLS_PATH = `${ROOT}/production-child-tools.ts`;
 const PRODUCTION_BROWSER_LIFECYCLE_PATH = `${ROOT}/production-browser-lifecycle.ts`;
 const PRODUCTION_CONFIRMED_READBACK_FACADE_PATH = `${ROOT}/production-confirmed-readback-facade.ts`;
@@ -86,6 +191,9 @@ const finding = (checkId: string, filePath: string, message: string, line?: numb
 
 const sourceFor = (context: InspectorContext, path: string): SourceFile | undefined =>
   context.project.getSourceFile(resolve(context.sealedRoot, path));
+
+const sourceTextForPaths = (context: InspectorContext, paths: readonly string[]): string =>
+  paths.map((path) => sourceFor(context, path)?.getFullText() ?? "").join("\n");
 
 const repoPath = (context: InspectorContext, source: SourceFile): string =>
   source.getFilePath().slice(resolve(context.sealedRoot).length + 1).split("\\").join("/");
@@ -106,6 +214,46 @@ const inspectImportOwnership = (context: InspectorContext, findings: InspectorFi
       }
     }
   }
+};
+
+const inspectAcyclicCapabilityGraph = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const ownedSources = context.project.getSourceFiles().filter((source) => {
+    const path = repoPath(context, source);
+    return path.startsWith(`${ROOT}/`) && !path.includes("/acceptance/");
+  });
+  const edges = new Map(ownedSources.map((source) => {
+    const path = repoPath(context, source);
+    const targets = source.getImportDeclarations().flatMap((declaration) => {
+      const target = declaration.getModuleSpecifierSourceFile();
+      if (!target) return [];
+      const targetPath = repoPath(context, target);
+      return targetPath.startsWith(`${ROOT}/`) && !targetPath.includes("/acceptance/") ? [targetPath] : [];
+    });
+    return [path, targets] as const;
+  }));
+  const visited = new Set<string>();
+  const visiting = new Set<string>();
+  const stack: string[] = [];
+  let cycle: string[] | null = null;
+  const visit = (path: string): void => {
+    if (cycle || visited.has(path)) return;
+    if (visiting.has(path)) {
+      const start = stack.indexOf(path);
+      cycle = [...stack.slice(start), path];
+      return;
+    }
+    visiting.add(path);
+    stack.push(path);
+    for (const target of edges.get(path) ?? []) visit(target);
+    stack.pop();
+    visiting.delete(path);
+    visited.add(path);
+  };
+  for (const path of edges.keys()) visit(path);
+  if (cycle) findings.push(finding(
+    "gpt/import-cycle-forbidden", GROUP_PATH,
+    `GPT capability import graph must be acyclic; found ${(cycle as string[]).join(" -> ")}.`,
+  ));
 };
 
 const inspectFacadeAndOwnership = (context: InspectorContext, findings: InspectorFinding[]): void => {
@@ -149,14 +297,18 @@ const inspectAtomicSafety = (context: InspectorContext, findings: InspectorFindi
   }
   for (const source of sources) {
     const path = repoPath(context, source);
+    const sourceChild = path.match(new RegExp(`^${CHILDREN_PATH}/([^/]+)/`, "u"))?.[1];
     const siblingImports = source.getImportDeclarations().filter((declaration) => {
-      if (!path.includes("/children/") || path.endsWith("/response-children.ts")) return false;
+      if (!sourceChild) return false;
       const target = declaration.getModuleSpecifierSourceFile();
-      return target?.getVariableDeclarations().some((variable) => variable.getName().endsWith("ChildHandlers")) === true;
+      if (!target) return false;
+      const targetPath = repoPath(context, target);
+      const targetChild = targetPath.match(new RegExp(`^${CHILDREN_PATH}/([^/]+)/`, "u"))?.[1];
+      return targetChild !== undefined && targetChild !== sourceChild;
     });
     for (const declaration of siblingImports) findings.push(finding(
       "gpt/child-cannot-call-child", path,
-      `Child implementation imports executable sibling Child handlers ${declaration.getModuleSpecifierValue()}.`,
+      `Child private implementation imports sibling Child module ${declaration.getModuleSpecifierValue()}.`,
       declaration.getStartLineNumber(),
     ));
     for (const concurrent of source.getDescendantsOfKind(SyntaxKind.CallExpression)
@@ -257,13 +409,13 @@ const inspectExactCallContract = (context: InspectorContext, findings: Inspector
 };
 
 const inspectContinuationContract = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const sessionChildren = sourceFor(context, SESSION_CHILDREN_PATH)?.getFullText() ?? "";
+  const sessionChildren = sourceTextForPaths(context, CONTINUATION_HANDLER_PATHS);
   for (const required of ["gptExactCallIdentityHash", "gpt-continuation:", "prior_prompt_hash"]) if (!sessionChildren.includes(required)) findings.push(finding(
-    "gpt/deterministic-continuation-ref", SESSION_CHILDREN_PATH,
+    "gpt/deterministic-continuation-ref", childHandlerPath("persist_gpt_continuation"),
     `Continuation persistence must derive its ref from exact call identity; missing ${required}.`,
   ));
   if (sessionChildren.includes("randomUUID")) findings.push(finding(
-    "gpt/random-continuation-ref-retired", SESSION_CHILDREN_PATH,
+    "gpt/random-continuation-ref-retired", childHandlerPath("persist_gpt_continuation"),
     "Random continuation refs are forbidden after deterministic cutover.",
   ));
   const controller = sourceFor(context, SESSION_PATH)?.getFullText() ?? "";
@@ -279,18 +431,18 @@ const inspectContinuationContract = (context: InspectorContext, findings: Inspec
 };
 
 const inspectModelSelectionContract = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const handler = sourceFor(context, MODEL_SELECTION_V2_HANDLER_PATH)?.getFullText() ?? "";
+  const handler = sourceTextForPaths(context, MODEL_SELECTION_V2_HANDLER_PATHS);
   const contract = sourceFor(context, MODEL_SELECTION_V2_CONTRACT_PATH)?.getFullText() ?? "";
   for (const required of [
     "selector: GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR",
     "expectedTextEquals: profile.modelDisplayName",
-    "postClickObservation: MODEL_SELECTION_POSTCONDITION",
-    "mutationRecord.postconditionObservation", "isOpenable(restored)",
+    "postClickObservation: SELECTION_POSTCONDITION",
+    "mutationRecord.postconditionObservation", "modelSelectorOpenable(restored)",
     "value.entry === 0", "value.simplePanel === 0", "value.advancedPanel === 1",
-    "postClickObservation: MODEL_SELECTOR_OPEN_POSTCONDITION",
+    "postClickObservation: OPEN_POSTCONDITION",
     "expectedEligibleCount", "decodeCoherentObservationPacket", "scope: { selector: GPT_PROFILE_POPUP_SELECTOR }",
   ]) if (!handler.includes(required)) findings.push(finding(
-    "gpt/model-selection-exact-radio", MODEL_SELECTION_V2_HANDLER_PATH,
+    "gpt/model-selection-exact-radio", childHandlerPath("select_exact_gpt_model_v2"),
     `Exact model selection is missing ${required}.`,
   ));
   for (const retired of [
@@ -298,7 +450,7 @@ const inspectModelSelectionContract = (context: InspectorContext, findings: Insp
     "GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR", "postClickMatch: {",
   ]) {
     if (handler.includes(retired) || contract.includes(retired)) findings.push(finding(
-      "gpt/model-selection-expanded-entry-retired", MODEL_SELECTION_V2_HANDLER_PATH,
+      "gpt/model-selection-expanded-entry-retired", childHandlerPath("select_exact_gpt_model_v2"),
       `The obsolete expanded-entry state remains reachable through ${retired}.`,
     ));
   }
@@ -315,23 +467,22 @@ const inspectExecutionProfileStateReadContract = (
   context: InspectorContext,
   findings: InspectorFinding[],
 ): void => {
-  const handler = [EXECUTION_PROFILE_HANDLER_PATH, EXECUTION_PROFILE_OBSERVATION_PATH]
-    .map((path) => sourceFor(context, path)?.getFullText() ?? "").join("\n");
+  const handler = sourceTextForPaths(context, EXECUTION_PROFILE_HANDLER_PATHS);
   for (const required of [
     "selector: GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR",
     'readEligibility: "non-actionable-aria-state"',
     "GPT_PROFILE_REASONING_VALUE_SELECTOR}[aria-valuenow=",
   ]) if (!handler.includes(required)) findings.push(finding(
-    "gpt/profile-non-actionable-state-read", EXECUTION_PROFILE_HANDLER_PATH,
+    "gpt/profile-non-actionable-state-read", childHandlerPath("ensure_gpt_reasoning_requirement"),
     `The execution-profile Child is missing ${required}.`,
   ));
   if ((handler.match(/readEligibility:\s*"non-actionable-aria-state"/gu) ?? []).length !== 2) findings.push(finding(
-    "gpt/profile-non-actionable-state-read", EXECUTION_PROFILE_HANDLER_PATH,
+    "gpt/profile-non-actionable-state-read", childHandlerPath("ensure_gpt_reasoning_requirement"),
     "The reasoning slider read mode must exist exactly on the reused topology query and reasoning postcondition.",
   ));
   if (/kind:\s*"keypress"[\s\S]{0,160}selector:\s*GPT_PROFILE_REASONING_VALUE_SELECTOR\s*,/u.test(handler)) {
     findings.push(finding(
-      "gpt/profile-hidden-slider-action-forbidden", EXECUTION_PROFILE_HANDLER_PATH,
+      "gpt/profile-hidden-slider-action-forbidden", childHandlerPath("ensure_gpt_reasoning_requirement"),
       "The aria-hidden reasoning slider must never become the keypress action target.",
     ));
   }
@@ -358,22 +509,23 @@ const inspectGptContracts = (context: InspectorContext, findings: InspectorFindi
 const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const path of [
     CONTRACT_PATH, FACADE_PATH, GROUP_PATH, SCHEMA_PATH, CHILD_TYPES_PATH,
-    EVIDENCE_WRITER_PATH, EVIDENCE_FACT_PATH, SESSION_PATH, SESSION_CHILDREN_PATH, RESPONSE_HANDLER_PATH,
-    TEXT_RESPONSE_HANDLER_PATH, IMAGE_RESPONSE_HANDLER_PATH,
-    CONVERSATION_HANDLER_PATH,
+    EVIDENCE_WRITER_PATH, EVIDENCE_FACT_PATH, SESSION_PATH,
+    ...CONTINUATION_HANDLER_PATHS,
+    ...TEXT_RESPONSE_HANDLER_PATHS, ...IMAGE_RESPONSE_HANDLER_PATHS,
+    ...CONVERSATION_HANDLER_PATHS,
     RESPONSE_PAGE_PATH,
-    MODEL_SELECTION_V2_HANDLER_PATH, MODEL_SELECTION_V2_CONTRACT_PATH,
-    EXECUTION_PROFILE_HANDLER_PATH, EXECUTION_PROFILE_OBSERVATION_PATH, EXECUTION_PROFILE_CONTRACT_PATH,
-    ATTACHMENT_HANDLER_PATH, ATTACHMENT_SET_OBSERVATION_PATH, ATTACHMENT_CONTRACT_PATH,
+    ...MODEL_SELECTION_V2_HANDLER_PATHS, MODEL_SELECTION_V2_CONTRACT_PATH,
+    ...EXECUTION_PROFILE_HANDLER_PATHS, EXECUTION_PROFILE_CONTRACT_PATH,
+    ...ATTACHMENT_HANDLER_PATHS, ATTACHMENT_CONTRACT_PATH,
     PRODUCTION_CHILD_TOOLS_PATH, PRODUCTION_BROWSER_LIFECYCLE_PATH,
     PRODUCTION_CONFIRMED_READBACK_FACADE_PATH,
   ])
     if (!existsSync(resolve(context.sealedRoot, path))) findings.push(finding(
       "gpt/filesystem-required-owner-file", path, `${path} is missing.`));
-  for (const retired of [RETIRED_RESPONSE_SUPPORT_PATH, RETIRED_RATE_DIALOG_PATH]) {
+  for (const retired of RETIRED_SHARED_SEMANTIC_PATHS) {
     if (existsSync(resolve(context.sealedRoot, retired))) findings.push(finding(
       "gpt/filesystem-retired-fallback-file", retired,
-      `${retired} must remain physically absent after the Browser handoff cutover.`,
+      `${retired} must remain physically absent after Child private-slice cutover.`,
     ));
   }
   const controllers = readdirSync(resolve(context.sealedRoot, ROOT, "session"))
@@ -408,8 +560,10 @@ const inspectGptAst = (context: InspectorContext, findings: InspectorFinding[]):
   inspectAtomicSafety(context, findings);
   inspectGptCurrentPageProofs(context, findings);
 };
-const inspectGptDependencies = (context: InspectorContext, findings: InspectorFinding[]): void =>
+const inspectGptDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   inspectImportOwnership(context, findings);
+  inspectAcyclicCapabilityGraph(context, findings);
+};
 
 const evaluate = (context: InspectorContext): InspectorEvaluation => {
   const findings: InspectorFinding[] = [];

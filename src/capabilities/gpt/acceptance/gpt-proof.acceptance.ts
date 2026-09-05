@@ -3,7 +3,7 @@ import { governanceAssert as assert } from "../../../../scripts/audit/shared/gov
 import { buildGptExecutionProfile } from "../index.js";
 import {
   GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR,
-} from "../web/contracts/model-selection-v2.contract.js";
+} from "./gpt-page-fixture-selectors.js";
 import { createGptAcceptanceHarness } from "./gpt-acceptance-harness.js";
 import { coherentObservationPacket, fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
 

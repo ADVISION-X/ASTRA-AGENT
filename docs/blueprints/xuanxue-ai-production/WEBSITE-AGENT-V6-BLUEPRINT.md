@@ -1,20 +1,20 @@
-# production-runtime 生产级施工图
+# production-runtime 生产级施工图 V22
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v20",
+  "blueprintId": "agent-production-runtime-v22",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V38",
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V39",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V2",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V6",
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V6",
-    "LAW-AGENT-PRODUCTION-RUNTIME-005-V6",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V6",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V6",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V7"
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V7",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V7",
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V7",
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V7",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V7",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V8"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -35,9 +35,9 @@
     {"contractRef":null,"from":{"domain":"startup-entrypoint","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"}}
   ],
   "prohibitedDependencyEdges": [
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V38","to":{"domain":"app-shell-ui","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V38","to":{"domain":"local-app-shell","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V38","to":{"domain":"startup-entrypoint","repo":"local"}}
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V39","to":{"domain":"app-shell-ui","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V39","to":{"domain":"local-app-shell","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V39","to":{"domain":"startup-entrypoint","repo":"local"}}
   ]
 }
 ```
@@ -70,6 +70,8 @@ Manifest primary Owner 只表示路径登记、结构检查与变更准入；Pro
 Runtime 对外发布 Agent Plugin Capability Manifest，但不拥有形成该清单的 Product composition。它只从 Mediator 取得冻结、不可变、纯数据的 `plugin_id + plugin_version + skill_hash + checkpoint_schema_version + accepts` 描述，随后在本域校验 Manifest schema/hash 并用于 session、claim、durable identity 与诊断。Runtime 源码不得直接或间接取得 `ProductPlugin` 实例、Product Skill 正文、`parseResult`、`assemblePayload` 或其它 Product 可执行回调；Product Plugin 也不得 import、re-export、dynamic import 或 side-effect import Runtime 私有模块。
 
 Product、GPT、Browser、Forensics、Runtime Log、App Shell、Startup、Website 继续由各自 active law、blueprint、spec 与唯一 Manifest primary Owner 守住文件及接口边界。Runtime 文档只记录上表接口边，不复制其业务流程、DOM、模型策略、Provider 操作或发布裁决。
+
+GPT 页面 selector 的语义冻结只属于 GPT Child，Browser 只机械执行 typed query，Runtime 只消费 Child terminal；本次 source-turn “更多操作”入口实证修正不得进入 Runtime 配置、Manifest 字段、第二 selector registry 或恢复分支，也不得触碰已冻结的 PRO/PLUS 模型与推理兼容语义。
 
 ## 2. 真实调用方向与内部结构
 

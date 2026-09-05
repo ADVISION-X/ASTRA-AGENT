@@ -66,7 +66,7 @@ export const inspectAtomicIfAndThenBoundary = (
     filePath: "src/lib/browser/chrome-extension/dom-query-runtime.ts",
     message: "DOM candidate, node and payload failures must not be collapsed into BROWSER_TARGET_INVALID.",
   }));
-  requireIdentifiers(domRuntime, ["postconditionVerified"], findings, lawId,
+  requireIdentifiers(domRuntime, ["postconditionVerified", "targetTransitionPostcondition"], findings, lawId,
     "The DOM executor must retain same-command postcondition evidence.");
   requireIdentifiers(mutationReceipt, ["postconditionVerified", "retainedValueVerified"], findings, lawId,
     "The Browser transcript must reject mutation replies that omit their declared atomic postcondition.");

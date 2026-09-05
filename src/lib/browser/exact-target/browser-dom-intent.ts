@@ -148,6 +148,11 @@ export type BrowserDomIntent =
       notEquals?: string;
       timeoutMs?: number;
     }>;
+    /** Fixed Browser-owned normalization for the GPT fork page created by this click. */
+    postClickTargetTransition?: Readonly<{
+      kind: "gpt-fork-successor";
+      timeoutMs: number;
+    }>;
   }>
   | Readonly<{
     kind: "hover";
@@ -367,6 +372,15 @@ const assertClickUrl = (url: Extract<BrowserDomIntent, { kind: "click" }>["postC
   }
 };
 
+const assertClickTargetTransition = (
+  transition: Extract<BrowserDomIntent, { kind: "click" }>["postClickTargetTransition"],
+): void => {
+  if (!transition) return;
+  if (transition.kind !== "gpt-fork-successor" || timeoutInvalid(transition.timeoutMs)) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  }
+};
+
 const assertClickObservation = (
   observation: Extract<BrowserDomIntent, { kind: "click" }>["postClickObservation"],
 ): void => {
@@ -388,6 +402,7 @@ const assertClickIntent = (intent: Extract<BrowserDomIntent, { kind: "click" }>)
   assertTargetText(intent);
   const postconditions = [
     intent.postClickAttribute, intent.postClickMatch, intent.postClickObservation, intent.postClickUrl,
+    intent.postClickTargetTransition,
   ]
     .filter((value) => value !== undefined);
   if (postconditions.length !== 1) {
@@ -397,6 +412,7 @@ const assertClickIntent = (intent: Extract<BrowserDomIntent, { kind: "click" }>)
   assertClickMatch(intent.postClickMatch);
   assertClickObservation(intent.postClickObservation);
   assertClickUrl(intent.postClickUrl);
+  assertClickTargetTransition(intent.postClickTargetTransition);
 };
 
 const assertHoverIntent = (intent: Extract<BrowserDomIntent, { kind: "hover" }>): void => {

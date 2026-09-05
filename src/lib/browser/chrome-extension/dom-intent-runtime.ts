@@ -31,6 +31,7 @@ type ValueIntent = Exclude<BrowserDomIntent, {
   kind: "document" | "observe" | "readExactAssistantTurn" | "find" | "click" | "hover" | "doubleClick" | "keypress";
 }>;
 type CurrentDocumentAssertion = () => void;
+type TargetTransitionPostcondition = () => Promise<void>;
 
 /** Executes the finite declarative DOM intent set without a script/eval surface. */
 const executeFindIntent = async (
@@ -218,6 +219,7 @@ const executeClickIntent = async (
   target: ExtensionExactTarget,
   intent: ClickIntent,
   assertCurrent: CurrentDocumentAssertion,
+  targetTransitionPostcondition?: TargetTransitionPostcondition,
 ): Promise<unknown> => {
   const zeroActionIfSatisfied = async (): Promise<Readonly<Record<string, unknown>> | null> => {
     const readback = await verifyClickPostcondition(debuggerRuntime, target, intent, 0);
@@ -229,7 +231,10 @@ const executeClickIntent = async (
       ? zeroActionReceipt(assertCurrent) : zeroActionMatchReceipt(assertCurrent, readback.match);
   };
   let box: BrowserPointerAction | QualificationReceipt;
-  if (intent.postClickObservation !== undefined) {
+  if (intent.postClickTargetTransition !== undefined) {
+    if (!targetTransitionPostcondition) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+    box = await pointerAction(debuggerRuntime, target, intent);
+  } else if (intent.postClickObservation !== undefined) {
     const preparation = await observationPointerAction(
       debuggerRuntime, target,
       intent as ClickIntent & Readonly<{ postClickObservation: NonNullable<ClickIntent["postClickObservation"]> }>,
@@ -248,6 +253,16 @@ const executeClickIntent = async (
   }
   if ("failureCode" in box) return box;
   await dispatchPointerClickSequence(debuggerRuntime, target, box, [1], assertCurrent);
+  if (intent.postClickTargetTransition !== undefined) {
+    await targetTransitionPostcondition!();
+    return {
+      clicked: true,
+      candidateCount: 1,
+      identityRevalidated: true,
+      mutationCount: 1,
+      postconditionVerified: true,
+    };
+  }
   assertCurrent();
   const postcondition = await verifyClickPostcondition(debuggerRuntime, target, intent);
   return {
@@ -471,6 +486,7 @@ export const executeRegisteredDomIntent = async (
   intent: BrowserDomIntent,
   assertCurrent: CurrentDocumentAssertion,
   expectedMainFrameLoaderId?: string,
+  targetTransitionPostcondition?: TargetTransitionPostcondition,
 ): Promise<unknown> => {
   assertCurrent();
   if (intent.kind === "document" || intent.kind === "observe") {
@@ -483,7 +499,9 @@ export const executeRegisteredDomIntent = async (
     );
   }
   if (intent.kind === "find") return executeFindIntent(debuggerRuntime, target, intent);
-  if (intent.kind === "click") return executeClickIntent(debuggerRuntime, target, intent, assertCurrent);
+  if (intent.kind === "click") {
+    return executeClickIntent(debuggerRuntime, target, intent, assertCurrent, targetTransitionPostcondition);
+  }
   if (intent.kind === "hover") return executeHoverIntent(debuggerRuntime, target, intent, assertCurrent);
   if (intent.kind === "doubleClick") return executeDoubleClickIntent(debuggerRuntime, target, intent, assertCurrent);
   if (intent.kind === "keypress") return executeKeypressIntent(debuggerRuntime, target, intent, assertCurrent);

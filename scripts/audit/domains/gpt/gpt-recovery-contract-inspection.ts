@@ -7,8 +7,34 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 const ROOT = "src/capabilities/gpt";
 const CONTRACT_PATH = `${ROOT}/contract.ts`;
 const EVIDENCE_FACT_PATH = `${ROOT}/evidence-fact.ts`;
-const COMPOSER_SUBMISSION_HANDLER_PATH = `${ROOT}/web/children/composer-submission-children.ts`;
-const CONVERSATION_HANDLER_PATH = `${ROOT}/web/children/conversation-children.ts`;
+const childHandlerPath = (id: string): string => `${ROOT}/children/${id}/handler.ts`;
+const childFilePath = (id: string, file: string): string => `${ROOT}/children/${id}/${file}`;
+const COMPOSER_SUBMISSION_HANDLER_PATH = childHandlerPath("write_exact_gpt_prompt");
+const COMPOSER_SUBMISSION_PATHS = [
+  COMPOSER_SUBMISSION_HANDLER_PATH,
+  childHandlerPath("reconcile_gpt_draft"),
+  childHandlerPath("submit_exact_gpt_turn_once"),
+  childHandlerPath("reconcile_gpt_turn_submission"),
+  childFilePath("write_exact_gpt_prompt", "observation.ts"),
+  childFilePath("reconcile_gpt_draft", "observation.ts"),
+  childFilePath("submit_exact_gpt_turn_once", "observation.ts"),
+  childFilePath("reconcile_gpt_turn_submission", "observation.ts"),
+] as const;
+const CONVERSATION_HANDLER_PATH = childHandlerPath("prepare_clean_gpt_chat");
+const CONVERSATION_PATHS = [
+  CONVERSATION_HANDLER_PATH,
+  childHandlerPath("focus_exact_gpt_conversation"),
+  childHandlerPath("verify_gpt_conversation_identity"),
+  childHandlerPath("open_gpt_checkpoint_actions_menu"),
+  childHandlerPath("open_gpt_fork_destination_menu"),
+  childHandlerPath("fork_exact_gpt_conversation_at_checkpoint"),
+  childFilePath("prepare_clean_gpt_chat", "observation.ts"),
+  childFilePath("focus_exact_gpt_conversation", "observation.ts"),
+  childFilePath("verify_gpt_conversation_identity", "observation.ts"),
+  childFilePath("open_gpt_checkpoint_actions_menu", "observation.ts"),
+  childFilePath("open_gpt_fork_destination_menu", "observation.ts"),
+  childFilePath("fork_exact_gpt_conversation_at_checkpoint", "observation.ts"),
+] as const;
 const DIRECT_MUTATION_SETTLEMENT_PATH = `${ROOT}/web/direct-mutation-settlement.ts`;
 const PRODUCT_API_PATH = `${ROOT}/product-api.ts`;
 const CONFIRMED_PROVIDER_READBACK_PATH = `${ROOT}/confirmed-provider-readback.ts`;
@@ -26,6 +52,9 @@ type FindingFactory = (
 
 const sourceText = (context: InspectorContext, path: string): string =>
   context.project.getSourceFile(resolve(context.sealedRoot, path))?.getFullText() ?? "";
+
+const sourceTexts = (context: InspectorContext, paths: readonly string[]): string =>
+  paths.map((path) => sourceText(context, path)).join("\n");
 
 const inspectMissing = (input: Readonly<{
   source: string;
@@ -149,8 +178,8 @@ export const inspectGptDirectMutationSettlementContract = (
   findings: InspectorFinding[],
   finding: FindingFactory,
 ): void => {
-  const handler = sourceText(context, COMPOSER_SUBMISSION_HANDLER_PATH);
-  const conversation = sourceText(context, CONVERSATION_HANDLER_PATH);
+  const handler = sourceTexts(context, COMPOSER_SUBMISSION_PATHS);
+  const conversation = sourceTexts(context, CONVERSATION_PATHS);
   const settlement = sourceText(context, DIRECT_MUTATION_SETTLEMENT_PATH);
   const contract = sourceText(context, CONTRACT_PATH);
   inspectMissing({ source: settlement, required: [
@@ -160,12 +189,12 @@ export const inspectGptDirectMutationSettlementContract = (
   ], checkId: "gpt/direct-mutation-conditional-settlement", filePath: DIRECT_MUTATION_SETTLEMENT_PATH,
   findings, finding, message: (required) => `The shared direct semantic settlement path is missing ${required}.` });
   inspectMissing({ source: handler, required: [
-    "waitForGptDirectMutationSettlement", "waitForFreshDraftState",
+    "waitForGptDirectMutationSettlement",
   ], checkId: "gpt/direct-mutation-conditional-settlement", filePath: COMPOSER_SUBMISSION_HANDLER_PATH,
   findings, finding, message: (required) => `The composer settlement consumer is missing ${required}.` });
   const settlementCalls = context.project.getSourceFile(resolve(context.sealedRoot, COMPOSER_SUBMISSION_HANDLER_PATH))
     ?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .filter((call) => call.getExpression().getText() === "waitForFreshDraftState").length ?? 0;
+    .filter((call) => call.getExpression().getText() === "waitForGptDirectMutationSettlement").length ?? 0;
   if (settlementCalls !== 1) findings.push(finding(
     "gpt/direct-mutation-conditional-settlement", COMPOSER_SUBMISSION_HANDLER_PATH,
     `The composer must have exactly one direct-mutation settlement consumer; found ${settlementCalls}.`,

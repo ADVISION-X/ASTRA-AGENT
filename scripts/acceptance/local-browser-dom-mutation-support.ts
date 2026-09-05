@@ -377,6 +377,32 @@ const exerciseMutationDocumentGuard = async (): Promise<void> => {
   }
 };
 
+const exerciseFixedTargetTransitionPostcondition = async (): Promise<void> => {
+  const events: string[] = [];
+  const runtime = { async send(
+    _tabId: number,
+    method: string,
+    parameters?: Readonly<Record<string, unknown>>,
+  ) {
+    const infrastructure = mutationInfrastructureReply(method, parameters);
+    if (infrastructure !== undefined) return infrastructure;
+    if (method === "Input.dispatchMouseEvent") { events.push(String(parameters?.type)); return {}; }
+    throw new Error(`UNEXPECTED_TARGET_TRANSITION_METHOD:${method}`);
+  } } as ExtensionDebuggerRuntime;
+  let transitions = 0;
+  const result = await executeRegisteredDomIntent(runtime, { tabId: 130 } as never, {
+    kind: "click", selector: "[role='menuitem']", expectedTextEquals: "分支到新聊天",
+    expectedMatches: 1,
+    postClickTargetTransition: { kind: "gpt-fork-successor", timeoutMs: 5_000 },
+  }, () => undefined, undefined, async () => { transitions += 1; }) as Readonly<Record<string, unknown>>;
+  assert.deepEqual(events, ["mouseMoved", "mousePressed", "mouseReleased"]);
+  assert.equal(transitions, 1, "the fixed successor normalizer must run once after the one click");
+  assert.deepEqual(result, {
+    clicked: true, candidateCount: 1, identityRevalidated: true,
+    mutationCount: 1, postconditionVerified: true,
+  });
+};
+
 export const exerciseDomMutations = async (): Promise<void> => {
   await exerciseReasoningSlider();
   await exerciseFreshKeypressCandidate();
@@ -386,4 +412,5 @@ export const exerciseDomMutations = async (): Promise<void> => {
   await exerciseNativePointerSequences();
   await exerciseCoherentClickPostcondition();
   await exerciseMutationDocumentGuard();
+  await exerciseFixedTargetTransitionPostcondition();
 };

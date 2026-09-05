@@ -28,6 +28,10 @@ import {
   responseText,
   sourceInput,
 } from "./gpt-conversation-fixture.js";
+import {
+  GPT_MORE_ACTIONS_BUTTON_LABEL,
+  gptMoreActionsButtonSelector,
+} from "./gpt-page-fixture-selectors.js";
 import "./gpt-turn-submission.acceptance.js";
 
 {
@@ -266,6 +270,14 @@ await exerciseBrowserDispatchedEvidenceReadback();
       return exactAssistantTurnReply(intent.assistantTurnId, responseText);
     }
     if (intent.kind === "click") {
+      assert.equal(GPT_MORE_ACTIONS_BUTTON_LABEL, "更多操作");
+      assert.equal(
+        intent.selector,
+        `[data-testid="conversation-turn-2"][data-turn='assistant'] button[aria-label='更多操作'][aria-haspopup='menu']`,
+      );
+      assert.equal(intent.selector, gptMoreActionsButtonSelector(sourceInput.sourceAssistantTurnId));
+      assert.equal(intent.selector.includes("more-turn-action-button"), false);
+      assert.equal(intent.selector.includes("aria-expanded"), false);
       menuOpen = true;
       return { postconditionVerified: true };
     }
@@ -279,6 +291,31 @@ await exerciseBrowserDispatchedEvidenceReadback();
 
 {
   const { execute } = freshHarness();
+  let destinationOpen = false;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      return coherentObservationPacket(intent, conversationFacts({
+        promptHash, assistant: true, menuOpen: true, destinationOpen,
+      }), conversationUrl);
+    }
+    if (intent.kind === "readExactAssistantTurn") {
+      return exactAssistantTurnReply(intent.assistantTurnId, responseText);
+    }
+    if (intent.kind === "click") {
+      assert.equal(intent.expectedTextEquals, "打开新分支");
+      destinationOpen = true;
+      return { postconditionVerified: true };
+    }
+    throw new Error(`UNEXPECTED_DESTINATION_MENU_INTENT:${intent.kind}`);
+  });
+  const result = await execute("open_gpt_fork_destination_menu", fixture.browser, sourceInput);
+  assert.equal(result.status, "success", result.failureCode ?? "fork destination menu open failed");
+  assert.equal(result.value?.state, "opened");
+  assert.equal(fixture.physicalMutations(), 1);
+}
+
+{
+  const { execute } = freshHarness();
   let forked = false;
   const fixture = fakeBrowser((intent) => {
     if (intent.kind === "observe") {
@@ -286,12 +323,15 @@ await exerciseBrowserDispatchedEvidenceReadback();
         promptHash,
         assistant: true,
         menuOpen: !forked,
+        destinationOpen: !forked,
       }), forked ? childConversationUrl : conversationUrl);
     }
     if (intent.kind === "readExactAssistantTurn") {
       return exactAssistantTurnReply(intent.assistantTurnId, responseText);
     }
     if (intent.kind === "click") {
+      assert.equal(intent.expectedTextEquals, "分支到新聊天");
+      assert.equal(intent.postClickTargetTransition?.kind, "gpt-fork-successor");
       forked = true;
       return { postconditionVerified: true };
     }
@@ -307,21 +347,34 @@ await exerciseBrowserDispatchedEvidenceReadback();
 
 {
   const { execute } = freshHarness();
+  let simulatedNow = 0;
   const fixture = fakeBrowser((intent) => {
     if (intent.kind === "observe") return coherentObservationPacket(intent, responseFacts(), conversationUrl);
     if (intent.kind === "readExactAssistantTurn") {
       return exactAssistantTurnReply(intent.assistantTurnId, responseText);
     }
     throw new Error(`UNEXPECTED_TEXT_RESPONSE_INTENT:${intent.kind}`);
-  });
-  const waited = await execute("wait_for_stable_gpt_text", fixture.browser, {
-    absoluteDeadline: new Date(Date.now() - 1).toISOString(),
-    canonicalConversationUrl: conversationUrl,
-    expectedPromptHash: promptHash,
-    turnMarker: marker,
-  });
-  assert.equal(waited.status, "success", waited.failureCode ?? "stable text wait failed");
-  assert.equal(waited.value?.responseText, responseText);
+  }, { onWait: (durationMs) => { simulatedNow += durationMs; } });
+  const nativeDateNow = Date.now;
+  Date.now = () => simulatedNow;
+  try {
+    const expired = await execute("wait_for_stable_gpt_text", fixture.browser, {
+      absoluteDeadline: new Date(-1).toISOString(), canonicalConversationUrl: conversationUrl,
+      expectedPromptHash: promptHash, turnMarker: marker,
+    });
+    assert.equal(expired.status, "failed");
+    assert.equal(expired.failureCode, "GPT_RESPONSE_STABILITY_TIMEOUT");
+    assert.equal(fixture.documentCalls(), 0, "expired text deadline must fail before observing the page");
+    const waited = await execute("wait_for_stable_gpt_text", fixture.browser, {
+      absoluteDeadline: new Date(1_000).toISOString(), canonicalConversationUrl: conversationUrl,
+      expectedPromptHash: promptHash, turnMarker: marker,
+    });
+    assert.equal(waited.status, "success", waited.failureCode ?? "stable text wait failed");
+    assert.equal(waited.value?.responseText, responseText);
+    assert.equal(fixture.waitDurations().length, 1, "stable text requires two separated observations");
+  } finally {
+    Date.now = nativeDateNow;
+  }
   const checkpoint = await execute("checkpoint_gpt_text_response", fixture.browser, {
     assistantTurnId: "conversation-turn-2",
     canonicalConversationUrl: conversationUrl,
@@ -336,6 +389,7 @@ await exerciseBrowserDispatchedEvidenceReadback();
 
 {
   const { execute } = freshHarness();
+  let simulatedNow = 0;
   const original = Buffer.from(
     '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" fill="red"/></svg>',
   );
@@ -343,7 +397,7 @@ await exerciseBrowserDispatchedEvidenceReadback();
   const fixture = fakeBrowser((intent) => {
     if (intent.kind === "observe") return coherentObservationPacket(intent, responseFacts(), conversationUrl);
     throw new Error(`UNEXPECTED_IMAGE_RESPONSE_INTENT:${intent.kind}`);
-  }, { authenticatedMedia: {
+  }, { onWait: (durationMs) => { simulatedNow += durationMs; }, authenticatedMedia: {
     authorityTargetHash: `sha256:${"2".repeat(64)}`,
     authorityDocumentHash: `sha256:${"3".repeat(64)}`,
     assistantTurnId: "conversation-turn-2",
@@ -355,14 +409,28 @@ await exerciseBrowserDispatchedEvidenceReadback();
     width: 16,
     height: 16,
   } });
-  const waited = await execute("wait_for_stable_gpt_image", fixture.browser, {
-    absoluteDeadline: new Date(Date.now() - 1).toISOString(),
-    canonicalConversationUrl: conversationUrl,
-    expectedPromptHash: promptHash,
-    turnMarker: marker,
-  });
-  assert.equal(waited.status, "success", waited.failureCode ?? "stable image wait failed");
-  assert.equal(waited.value?.mediaHash, mediaHash);
+  const nativeDateNow = Date.now;
+  Date.now = () => simulatedNow;
+  try {
+    const expired = await execute("wait_for_stable_gpt_image", fixture.browser, {
+      absoluteDeadline: new Date(-1).toISOString(), canonicalConversationUrl: conversationUrl,
+      expectedPromptHash: promptHash, turnMarker: marker,
+    });
+    assert.equal(expired.status, "failed");
+    assert.equal(expired.failureCode, "GPT_IMAGE_STABILITY_TIMEOUT");
+    assert.equal(fixture.authenticatedMediaDownloads(), 0,
+      "expired image deadline must fail before downloading media");
+    const waited = await execute("wait_for_stable_gpt_image", fixture.browser, {
+      absoluteDeadline: new Date(1_000).toISOString(), canonicalConversationUrl: conversationUrl,
+      expectedPromptHash: promptHash, turnMarker: marker,
+    });
+    assert.equal(waited.status, "success", waited.failureCode ?? "stable image wait failed");
+    assert.equal(waited.value?.mediaHash, mediaHash);
+    assert.equal(fixture.authenticatedMediaDownloads(), 2,
+      "stable image requires two equal authenticated downloads");
+  } finally {
+    Date.now = nativeDateNow;
+  }
   const checkpoint = await execute("checkpoint_gpt_generated_image", fixture.browser, {
     assistantTurnId: "conversation-turn-2",
     canonicalConversationUrl: conversationUrl,

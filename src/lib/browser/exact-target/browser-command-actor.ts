@@ -149,7 +149,7 @@ const postconditionPair = (command: BrowserGovernedCommand): Readonly<{
     case "click":
       positive = { kind: "click", selector: intent.selector,
         postcondition: intent.postClickAttribute ?? intent.postClickMatch
-          ?? intent.postClickObservation ?? intent.postClickUrl };
+          ?? intent.postClickObservation ?? intent.postClickUrl ?? intent.postClickTargetTransition };
       break;
     case "hover":
       positive = { kind: "hover", selector: intent.selector, postcondition: intent.postHoverAttribute };

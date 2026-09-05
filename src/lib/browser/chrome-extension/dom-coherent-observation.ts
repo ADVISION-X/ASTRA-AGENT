@@ -8,6 +8,7 @@ import { canonicalizeBrowserAuthorityValue } from "../transport/browser-authorit
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import { BROWSER_MECHANICAL_FACTS_READER_SOURCE } from "./dom-mechanical-facts.js";
 import { BROWSER_EXACT_EDITABLE_TEXT_READER_SOURCE } from "./dom-exact-editable-text.js";
+import { BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE } from "./dom-semantic-text.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 
 type BrowserRecord = Record<string, unknown>;
@@ -30,31 +31,11 @@ export type BrowserCoherentObservationResult = CoherentObservationResult;
 const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
   ${BROWSER_MECHANICAL_FACTS_READER_SOURCE}
   ${BROWSER_EXACT_EDITABLE_TEXT_READER_SOURCE}
+  ${BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE}
   const sha256 = async (value) => {
     const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
     return "sha256:" + Array.from(new Uint8Array(digest))
       .map((byte) => byte.toString(16).padStart(2, "0")).join("");
-  };
-  const blockNames = new Set(["ADDRESS", "ARTICLE", "ASIDE", "BLOCKQUOTE", "DD", "DIV", "DL", "DT",
-    "FIGCAPTION", "FIGURE", "FOOTER", "FORM", "H1", "H2", "H3", "H4", "H5", "H6", "HEADER", "HR",
-    "MAIN", "NAV", "OL", "P", "PRE", "SECTION", "TABLE", "TBODY", "TD", "TFOOT", "TH", "THEAD", "TR", "UL"]);
-  const inlineCode = (value) => {
-    const runs = Array.from(value.matchAll(/\x60+/g), (match) => match[0].length);
-    const fence = "\x60".repeat(Math.max(0, ...runs) + 1);
-    return fence + value + fence;
-  };
-  const semanticNode = (node, parent) => {
-    const name = String(node.nodeName || "").toUpperCase();
-    if (node.nodeType === 3 || name === "#TEXT") return typeof node.nodeValue === "string" ? node.nodeValue : "";
-    if (["#COMMENT", "SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE", "SVG", "PATH"].includes(name)
-      || (node instanceof Element && (node.hasAttribute("hidden") || node.getAttribute("aria-hidden") === "true"))) return "";
-    if (name === "BR") return "\\n";
-    const body = Array.from(node.childNodes || []).map((child) => semanticNode(child, node)).join("");
-    if (name === "STRONG" || name === "B") return "**" + body + "**";
-    if (name === "EM" || name === "I") return "*" + body + "*";
-    if (name === "CODE") return inlineCode(body);
-    if (name === "LI") return ((parent && String(parent.nodeName).toUpperCase() === "OL") ? "1. " : "- ") + body + "\\n";
-    return blockNames.has(name) ? body + "\\n" : body;
   };
   const exactEmptyComposerMarker = (node) => {
     if (!(node instanceof Element) || node.getAttribute("id") !== "prompt-textarea"
@@ -70,8 +51,7 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
   };
   const canonicalSemanticText = (node) => {
     if (exactEmptyComposerMarker(node)) return "";
-    const value = Array.from(node.childNodes || []).map((child) => semanticNode(child, node)).join("");
-    return value.endsWith("\\n") ? value.slice(0, -1) : value;
+    return browserCanonicalSemanticText(node);
   };
   const exactGptUserPromptText = (node) => {
     if (!(node instanceof Element) || node.getAttribute("data-turn") !== "user"

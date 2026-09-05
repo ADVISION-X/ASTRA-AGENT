@@ -39,6 +39,7 @@ export const conversationFacts = (input: Readonly<{
   assistant?: boolean;
   attachment?: boolean;
   menuOpen?: boolean;
+  destinationOpen?: boolean;
 }> = {}): Readonly<Record<string, Fact>> => ({
   composer: exact([{ exactEditableTextHash: input.composerHash ?? EMPTY_HASH }]),
   "user-turns": input.promptHash
@@ -50,8 +51,10 @@ export const conversationFacts = (input: Readonly<{
   attachments: input.attachment ? exact() : absent(),
   generating: absent(),
   "source-trigger": exact([{ ariaExpanded: input.menuOpen ? "true" : "false" }]),
-  "active-menu": input.menuOpen ? exact() : absent(),
-  "fork-leaf": input.menuOpen ? exact() : absent(),
+  "checkpoint-menu": input.menuOpen ? exact() : absent(),
+  "open-fork-leaf": input.menuOpen ? exact() : absent(),
+  "destination-menu": input.destinationOpen ? exact() : absent(),
+  "fork-to-new-chat-leaf": input.destinationOpen ? exact() : absent(),
 });
 
 export const responseFacts = (): Readonly<Record<string, Fact>> => ({

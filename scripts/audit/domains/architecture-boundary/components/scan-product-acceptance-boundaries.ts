@@ -1,6 +1,6 @@
 import { SyntaxKind, type Project, type SourceFile } from "ts-morph";
 
-import { GPT_CHILD_CAPABILITY_IDS } from "../../../../../src/capabilities/gpt/contract.js";
+import { GPT_CHILD_CAPABILITY_IDS } from "../../../../../src/capabilities/gpt/index.js";
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../../shared/source-files.js";

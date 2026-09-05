@@ -8,7 +8,14 @@ import { executionFailure } from "../../lib/execution-failure.js";
 import type { ExactGptCallFacts } from "./product-api.js";
 import type { GptEvidenceStorePort } from "./production-ports.js";
 import type { GptReasoningRequirementResult } from "./child-types.js";
-import { reasoningTierUiValue } from "./web/contracts/execution-profile.contract.js";
+
+const reasoningTierUiValue = Object.freeze({
+  fast: 0,
+  medium: 1,
+  high: 2,
+  extra_high: 3,
+  pro_standard: 4,
+});
 
 type GptHash = `sha256:${string}`;
 

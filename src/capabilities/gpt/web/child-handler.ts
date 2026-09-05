@@ -40,18 +40,11 @@ export type GptChildHandlerMap = {
   readonly [K in GptChildCapabilityId]?: GptChildHandler<K>;
 };
 
-type ZeroActionMutationChild = "prepare_clean_gpt_chat" | "open_gpt_model_selector_v2";
-
-const allowsConfirmedZeroAction = (
-  childCapabilityId: GptChildCapabilityId,
-): childCapabilityId is ZeroActionMutationChild => childCapabilityId === "prepare_clean_gpt_chat"
-  || childCapabilityId === "open_gpt_model_selector_v2";
-
-type ConfirmedGptChildBrowserFact<K extends GptChildCapabilityId> = Omit<
+type ConfirmedGptChildBrowserFact<AllowsNo extends boolean> = Omit<
   GptChildBrowserFact, "browserOutcome" | "mutationOutcome"
 > & Readonly<{
   browserOutcome: "CONFIRMED";
-  mutationOutcome: K extends ZeroActionMutationChild ? "no" | "confirmed" : "confirmed";
+  mutationOutcome: AllowsNo extends true ? "no" | "confirmed" : "confirmed";
 }>;
 
 type GptInputDecoderIntent = Readonly<{
@@ -72,10 +65,16 @@ export const requireBrowser = (context: GptExecutionContext) => {
   return context.browser;
 };
 
-export const requireConfirmedBrowserFact = <K extends GptChildCapabilityId>(
+export const requireConfirmedBrowserFact = <
+  K extends GptChildCapabilityId,
+  AllowsNo extends boolean = false,
+>(
   intent: GptChildCapabilityIntent<K>,
   browser: Pick<BrowserTargetLease, "readAtomicStepRecovery">,
-): ConfirmedGptChildBrowserFact<K> => {
+  options: Readonly<{ allowNoMutationOutcome: AllowsNo }> = Object.freeze({
+    allowNoMutationOutcome: false as AllowsNo,
+  }),
+): ConfirmedGptChildBrowserFact<AllowsNo> => {
   const contract = GPT_CHILD_CAPABILITY_CONTRACTS[intent.childCapabilityId];
   if (contract.replayPolicy === "observation-only"
     || contract.replayPolicy === "transaction-identical-readback") {
@@ -92,7 +91,7 @@ export const requireConfirmedBrowserFact = <K extends GptChildCapabilityId>(
   const mutationOutcome = recovery?.mutationOutcome;
   if (!recovery || recovery.state !== "confirmed"
     || (mutationOutcome !== "confirmed"
-      && (!allowsConfirmedZeroAction(intent.childCapabilityId) || mutationOutcome !== "no"))) {
+      && (!options.allowNoMutationOutcome || mutationOutcome !== "no"))) {
     throw gptExecutionFailure("GPT_BROWSER_TERMINAL_FACT_REQUIRED", {
       mutationOutcome: recovery?.mutationOutcome ?? "no",
     });
@@ -106,7 +105,7 @@ export const requireConfirmedBrowserFact = <K extends GptChildCapabilityId>(
     terminalAt: recovery.terminalAt,
     evidenceRef: recovery.authorityRef,
     evidenceHash: recovery.authorityHash,
-  }) as ConfirmedGptChildBrowserFact<K>;
+  }) as ConfirmedGptChildBrowserFact<AllowsNo>;
 };
 
 export const requireExactInputKeys = (

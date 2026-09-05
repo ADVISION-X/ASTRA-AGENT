@@ -1,3 +1,4 @@
+import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
@@ -10,14 +11,47 @@ const CHILD_TYPES_PATH = `${ROOT}/child-types.ts`;
 const SCHEMA_PATH = `${ROOT}/schema.ts`;
 const EVIDENCE_WRITER_PATH = `${ROOT}/evidence-writer.ts`;
 const EVIDENCE_FACT_PATH = `${ROOT}/evidence-fact.ts`;
-const MODEL_HANDLER_PATH = `${ROOT}/web/children/model-selection-v2-children.ts`;
-const MODEL_CONTRACT_PATH = `${ROOT}/web/contracts/model-selection-v2.contract.ts`;
-const PROFILE_HANDLER_PATH = `${ROOT}/web/children/execution-profile-children.ts`;
-const PROFILE_OBSERVATION_PATH = `${ROOT}/web/children/execution-profile-observation.ts`;
-const PROFILE_CONTRACT_PATH = `${ROOT}/web/contracts/execution-profile.contract.ts`;
-const ATTACHMENT_HANDLER_PATH = `${ROOT}/web/children/attachment-children.ts`;
-const ATTACHMENT_SET_OBSERVATION_PATH = `${ROOT}/web/children/attachment-set-observation.ts`;
-const ATTACHMENT_CONTRACT_PATH = `${ROOT}/web/contracts/attachment.contract.ts`;
+const CHILDREN_PATH = `${ROOT}/children`;
+const GROUP_PATH = `${ROOT}/ability-group.ts`;
+const childFilePath = (id: string, file: string): string => `${CHILDREN_PATH}/${id}/${file}`;
+const MODEL_HANDLER_PATH = `${CHILDREN_PATH}/select_exact_gpt_model_v2/handler.ts`;
+const MODEL_HANDLER_PATHS = [
+  `${CHILDREN_PATH}/open_gpt_model_selector_v2/handler.ts`,
+  childFilePath("open_gpt_model_selector_v2", "observation.ts"),
+  childFilePath("open_gpt_model_selector_v2", "selectors.ts"),
+  MODEL_HANDLER_PATH,
+  childFilePath("select_exact_gpt_model_v2", "observation.ts"),
+  childFilePath("select_exact_gpt_model_v2", "selectors.ts"),
+] as const;
+const MODEL_CONTRACT_PATH = childFilePath("select_exact_gpt_model_v2", "selectors.ts");
+const PROFILE_HANDLER_PATH = `${CHILDREN_PATH}/ensure_gpt_reasoning_requirement/handler.ts`;
+const PROFILE_HANDLER_PATHS = [
+  `${CHILDREN_PATH}/open_gpt_execution_profile/handler.ts`,
+  childFilePath("open_gpt_execution_profile", "observation.ts"),
+  childFilePath("open_gpt_execution_profile", "selectors.ts"),
+  PROFILE_HANDLER_PATH,
+  childFilePath("ensure_gpt_reasoning_requirement", "observation.ts"),
+  childFilePath("ensure_gpt_reasoning_requirement", "selectors.ts"),
+  `${CHILDREN_PATH}/close_gpt_execution_profile/handler.ts`,
+  childFilePath("close_gpt_execution_profile", "observation.ts"),
+  childFilePath("close_gpt_execution_profile", "selectors.ts"),
+  `${ROOT}/web/execution-profile-input.ts`,
+] as const;
+const PROFILE_CONTRACT_PATH = childFilePath("ensure_gpt_reasoning_requirement", "selectors.ts");
+const ATTACHMENT_HANDLER_PATH = `${CHILDREN_PATH}/open_gpt_attachment_control/handler.ts`;
+const ATTACHMENT_HANDLER_PATHS = [
+  ATTACHMENT_HANDLER_PATH,
+  childFilePath("open_gpt_attachment_control", "observation.ts"),
+  childFilePath("open_gpt_attachment_control", "selectors.ts"),
+  `${CHILDREN_PATH}/attach_approved_gpt_files_once/handler.ts`,
+  childFilePath("attach_approved_gpt_files_once", "attachment-observation.ts"),
+  childFilePath("attach_approved_gpt_files_once", "control-observation.ts"),
+  childFilePath("attach_approved_gpt_files_once", "selectors.ts"),
+  `${CHILDREN_PATH}/reconcile_gpt_attachment_set/handler.ts`,
+  childFilePath("reconcile_gpt_attachment_set", "observation.ts"),
+  childFilePath("reconcile_gpt_attachment_set", "selectors.ts"),
+] as const;
+const ATTACHMENT_CONTRACT_PATH = childFilePath("attach_approved_gpt_files_once", "selectors.ts");
 const BROWSER_TARGET_LEASE_PATH = "src/lib/browser/exact-target/browser-target-lease.ts";
 
 type FindingFactory = (
@@ -44,8 +78,8 @@ const inspectMissingTokens = (input: Readonly<{
 const sourceFor = (context: InspectorContext, path: string): SourceFile | undefined =>
   context.project.getSourceFile(resolve(context.sealedRoot, path));
 
-const repoPath = (context: InspectorContext, source: SourceFile): string =>
-  source.getFilePath().slice(resolve(context.sealedRoot).length + 1).split("\\").join("/");
+const sourceTextForPaths = (context: InspectorContext, paths: readonly string[]): string =>
+  paths.map((path) => sourceFor(context, path)?.getFullText() ?? "").join("\n");
 
 const childIdsFromContract = (contract: SourceFile): string[] => {
   const initializer = contract.getVariableDeclaration("GPT_CHILD_CONTRACTS")?.getInitializer();
@@ -56,22 +90,95 @@ const childIdsFromContract = (contract: SourceFile): string[] => {
     Node.isPropertyAssignment(property) ? [property.getName().replace(/^['"]|['"]$/gu, "")] : []).sort() : [];
 };
 
-const handlerIds = (context: InspectorContext): string[] => context.project.getSourceFiles()
-  .filter((source) => {
-    const path = repoPath(context, source);
-    return path.startsWith(`${ROOT}/web/children/`) || path === `${ROOT}/session/session-children.ts`;
-  })
-  .flatMap((source) => source.getVariableDeclarations())
-  .filter((declaration) => declaration.getName().endsWith("ChildHandlers"))
-  .flatMap((declaration) => {
-    const initializer = declaration.getInitializer();
-    const object = initializer && Node.isObjectLiteralExpression(initializer)
-      ? initializer
-      : initializer?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
-    return object ? object.getProperties().flatMap((property) =>
-      Node.isMethodDeclaration(property) || Node.isPropertyAssignment(property) ? [property.getName()] : []) : [];
+const childDirectoryIds = (context: InspectorContext): string[] => {
+  const root = resolve(context.sealedRoot, CHILDREN_PATH);
+  return existsSync(root) ? readdirSync(root, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort() : [];
+};
+
+const handlerIds = (context: InspectorContext, directories: readonly string[]): string[] => directories
+  .flatMap((directory) => {
+    const source = sourceFor(context, `${CHILDREN_PATH}/${directory}/handler.ts`);
+    return source?.getVariableDeclarations().flatMap((declaration) => {
+      if (!declaration.isExported()) return [];
+      const match = declaration.getTypeNode()?.getText().match(/GptChildHandler<\s*["']([^"']+)["']\s*>/u);
+      return match?.[1] ? [match[1]] : [];
+    }) ?? [];
   })
   .sort();
+
+const mappedHandlerIds = (context: InspectorContext): string[] => {
+  const initializer = sourceFor(context, GROUP_PATH)?.getVariableDeclaration("handlers")?.getInitializer();
+  const object = initializer && Node.isObjectLiteralExpression(initializer)
+    ? initializer : initializer?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
+  return object?.getProperties().flatMap((property) =>
+    Node.isPropertyAssignment(property) ? [property.getName().replace(/^['"]|['"]$/gu, "")] : []).sort() ?? [];
+};
+
+const privateSupportConsumers = (
+  context: InspectorContext,
+  directory: string,
+  support: SourceFile,
+): Readonly<{ importers: number; names: ReadonlySet<string> }> => {
+  const prefix = resolve(context.sealedRoot, CHILDREN_PATH, directory);
+  const names = new Set<string>();
+  let importers = 0;
+  for (const source of context.project.getSourceFiles()) {
+    if (source === support || !source.getFilePath().startsWith(`${prefix}/`)) continue;
+    for (const declaration of source.getImportDeclarations()) {
+      if (declaration.getModuleSpecifierSourceFile() !== support) continue;
+      importers += 1;
+      for (const named of declaration.getNamedImports()) names.add(named.getName());
+      if (declaration.getNamespaceImport()) names.add("*");
+    }
+  }
+  return Object.freeze({ importers, names });
+};
+
+const inspectPrivateSupportSource = (
+  context: InspectorContext,
+  directory: string,
+  file: string,
+  findings: InspectorFinding[],
+  finding: FindingFactory,
+): void => {
+  const path = `${CHILDREN_PATH}/${directory}/${file}`;
+  const source = sourceFor(context, path);
+  if (!source) return;
+  const consumers = privateSupportConsumers(context, directory, source);
+  if (consumers.importers === 0) findings.push(finding(
+    "gpt/child-private-support-consumer", path,
+    `Child private support ${file} has no importer inside ${directory}.`,
+  ));
+  for (const [name, declarations] of source.getExportedDeclarations()) {
+    if (consumers.names.has(name) || consumers.names.has("*")) continue;
+    findings.push(finding(
+      "gpt/child-private-export-consumer", path,
+      `Child private export ${name} has no importer inside ${directory}.`,
+      declarations[0]?.getStartLineNumber(),
+    ));
+  }
+  for (const declaration of source.getVariableDeclarations()) {
+    const statement = declaration.getVariableStatement();
+    if (statement?.isExported()) continue;
+    const name = declaration.getNameNode();
+    if (!Node.isIdentifier(name) || name.findReferencesAsNodes().length > 0) continue;
+    findings.push(finding(
+      "gpt/child-private-dead-declaration", path,
+      `Child private declaration ${declaration.getName()} has no runtime or type consumer.`,
+      declaration.getStartLineNumber(),
+    ));
+  }
+  for (const forbidden of [
+    "GptAnyChildCapabilityIntent", "GptChildHandlerMap[keyof",
+    "includeSend", "includeTurns", "includeAttachments",
+  ]) if (source.getFullText().includes(forbidden)) findings.push(finding(
+    "gpt/child-private-exact-intent", path,
+    `Child private support retains generic sibling-semantic token ${forbidden}.`,
+  ));
+};
 
 const inspectRequiredChildIds = (
   ids: readonly string[],
@@ -81,7 +188,7 @@ const inspectRequiredChildIds = (
   for (const required of [
     "open_gpt_model_selector_v2", "select_exact_gpt_model_v2", "ensure_gpt_reasoning_requirement",
     "reserve_exact_gpt_continuation_once", "complete_exact_gpt_continuation_reservation_once",
-    "fork_exact_gpt_conversation_at_checkpoint",
+    "open_gpt_fork_destination_menu", "fork_exact_gpt_conversation_at_checkpoint",
   ]) if (!ids.includes(required)) findings.push(finding(
     "gpt/model-selection-v2-required", CONTRACT_PATH, `The public denominator is missing ${required}.`,
   ));
@@ -109,9 +216,9 @@ const inspectChildDenominator = (
   finding: FindingFactory,
 ): string[] => {
   const ids = childIdsFromContract(contract);
-  if (ids.length !== 27 || new Set(ids).size !== 27) findings.push(finding(
+  if (ids.length !== 28 || new Set(ids).size !== 28) findings.push(finding(
     "gpt/exact-child-denominator", CONTRACT_PATH,
-    `GPT_CHILD_CAPABILITY_IDS must derive exactly 27 unique child ids; found ${ids.length}/${new Set(ids).size}.`,
+    `GPT_CHILD_CAPABILITY_IDS must derive exactly 28 unique child ids; found ${ids.length}/${new Set(ids).size}.`,
   ));
   inspectRequiredChildIds(ids, findings, finding);
   if (ids.includes("ensure_exact_gpt_model")) findings.push(finding(
@@ -127,18 +234,54 @@ const inspectChildDenominator = (
     "gpt/denominator-derived-once", CONTRACT_PATH,
     "GPT_CHILD_CAPABILITY_IDS must derive only from the unique GPT_CHILD_CONTRACTS registry.",
   ));
-  const implemented = handlerIds(context);
+  const directories = childDirectoryIds(context);
+  const implemented = handlerIds(context, directories);
+  const mapped = mappedHandlerIds(context);
+  const groupChildImports = sourceFor(context, GROUP_PATH)?.getImportDeclarations()
+    .map((declaration) => declaration.getModuleSpecifierValue())
+    .filter((specifier) => specifier.startsWith("./children/")) ?? [];
+  for (const directory of directories) {
+    const path = resolve(context.sealedRoot, CHILDREN_PATH, directory);
+    const files = readdirSync(path).filter((name) => name !== ".DS_Store").sort();
+    const handlers = files.filter((name) => name === "handler.ts");
+    const invalid = files.filter((name) => !name.endsWith(".ts") || name === "index.ts"
+      || /(?:^|[-_.])(common|shared|utils?|service|manager|facade|bridge|adapter)(?:[-_.]|$)/u.test(name));
+    if (handlers.length !== 1 || invalid.length > 0) findings.push(finding(
+      "gpt/one-private-slice-per-child", `${CHILDREN_PATH}/${directory}`,
+      `Child directory ${directory} must contain one handler.ts and only explicit private TypeScript support; found ${files.join(",") || "none"}.`,
+    ));
+    for (const file of files.filter((name) => name.endsWith(".ts") && name !== "handler.ts")) {
+      inspectPrivateSupportSource(context, directory, file, findings, finding);
+    }
+  }
+  if (JSON.stringify(ids) !== JSON.stringify(directories)) findings.push(finding(
+    "gpt/one-directory-per-child", CHILDREN_PATH,
+    `Child directory denominator differs from contract: contract=${ids.join(",")}; directories=${directories.join(",")}.`,
+  ));
   if (JSON.stringify(ids) !== JSON.stringify(implemented)) findings.push(finding(
     "gpt/one-handler-per-child", CONTRACT_PATH,
     `Handler denominator differs from contract: contract=${ids.join(",")}; handlers=${implemented.join(",")}.`,
   ));
+  if (JSON.stringify(ids) !== JSON.stringify(mapped)) findings.push(finding(
+    "gpt/one-ability-group-mapping-per-child", GROUP_PATH,
+    `Ability-group mapping differs from contract: contract=${ids.join(",")}; mapped=${mapped.join(",")}.`,
+  ));
+  const directlyImported = groupChildImports.flatMap((specifier) => {
+    const match = specifier.match(/^\.\/children\/([^/]+)\/handler\.js$/u);
+    return match?.[1] ? [match[1]] : [];
+  }).sort();
+  if (groupChildImports.length !== ids.length
+    || JSON.stringify(directlyImported) !== JSON.stringify(ids)) findings.push(finding(
+    "gpt/ability-group-direct-child-imports", GROUP_PATH,
+    "Ability-group must import each Child directly from ./children/<child_id>/handler.js with no forwarding sheet or alternate module.",
+  ));
   const actualProfiles = profileDenominator(contract);
   const expectedProfiles = {
-    CONTINUATION_TRANSACTION: 6, DOM_OBSERVATION: 6, PROVIDER_EFFECT_ONCE: 3, TARGET_LOCAL_MUTATION: 12,
+    CONTINUATION_TRANSACTION: 6, DOM_OBSERVATION: 6, PROVIDER_EFFECT_ONCE: 3, TARGET_LOCAL_MUTATION: 13,
   };
   if (JSON.stringify(actualProfiles) !== JSON.stringify(expectedProfiles)) findings.push(finding(
     "gpt/exact-child-profile-denominator", CONTRACT_PATH,
-    `GPT Child profiles must be exactly 6/12/3/6; found ${JSON.stringify(actualProfiles)}.`,
+    `GPT Child profiles must be exactly 6/13/3/6; found ${JSON.stringify(actualProfiles)}.`,
   ));
   return ids;
 };
@@ -156,13 +299,13 @@ const inspectProfileContracts = (
     "[aria-expanded='false'][aria-hidden='false']",
   ], checkId: "gpt/model-selection-v2-visible-contract", filePath: MODEL_CONTRACT_PATH,
   findings, finding, message: (required) => `Model selection V2 contract is missing ${required}.` });
-  const modelHandler = sourceFor(context, MODEL_HANDLER_PATH)?.getFullText() ?? "";
+  const modelHandler = sourceTextForPaths(context, MODEL_HANDLER_PATHS);
   inspectMissingTokens({ source: modelHandler, required: [
-    "open_gpt_model_selector_v2", "select_exact_gpt_model_v2", "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR",
-    "GPT_PROFILE_SIMPLE_PANEL_SELECTOR", "MODEL_SELECTION_POSTCONDITION",
-    "isAlreadyOpen", "isOpenable", "value.entry === 0", "value.simplePanel === 0",
-    "value.advancedPanel === 1", "postClickObservation: MODEL_SELECTOR_OPEN_POSTCONDITION",
-    "postClickObservation: MODEL_SELECTION_POSTCONDITION", "mutationRecord.postconditionObservation",
+    "openGptModelSelectorV2Handler", "selectExactGptModelV2Handler", "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR",
+    "GPT_PROFILE_SIMPLE_PANEL_SELECTOR", "SELECTION_POSTCONDITION",
+    "modelSelectorAlreadyOpen", "modelSelectorOpenable", "value.entry === 0", "value.simplePanel === 0",
+    "value.advancedPanel === 1", "postClickObservation: OPEN_POSTCONDITION",
+    "postClickObservation: SELECTION_POSTCONDITION", "mutationRecord.postconditionObservation",
     "expectedEligibleCount", "decodeCoherentObservationPacket", "scope: { selector: GPT_PROFILE_POPUP_SELECTOR }",
   ], checkId: "gpt/model-selection-v2-handler", filePath: MODEL_HANDLER_PATH,
   findings, finding, message: (required) => `Model selection V2 handler is missing ${required}.` });
@@ -181,10 +324,9 @@ const inspectProfileContracts = (
     "fast: 0", "medium: 1", "high: 2", "extra_high: 3", "pro_standard: 4",
   ], checkId: "gpt/reasoning-approved-scale-contract", filePath: PROFILE_CONTRACT_PATH,
   findings, finding, message: (required) => `Reasoning contract is missing ${required}.` });
-  const reasoningHandler = [PROFILE_HANDLER_PATH, PROFILE_OBSERVATION_PATH]
-    .map((path) => sourceFor(context, path)?.getFullText() ?? "").join("\n");
+  const reasoningHandler = sourceTextForPaths(context, PROFILE_HANDLER_PATHS);
   inspectMissingTokens({ source: reasoningHandler, required: [
-    "ensure_gpt_reasoning_requirement", "requireExactInputKeys", "profileFromIntent",
+    "ensureGptReasoningRequirementHandler", "requireExactInputKeys", "profileFromIntent",
     "requireBrowser(context)", "ariaValueMin", "ariaValueMax", "ariaValueNow",
     "postKeypressMatch", "requireConfirmedBrowserFact", "PROFILE_HYDRATION_TIMEOUT_MS",
     "PROFILE_TOPOLOGY_QUERIES", "profileFullyAbsent", "profileOpenReady", "profileOpenable",
@@ -216,11 +358,12 @@ const PROFILE_CONSUMERS = new Set([
 const CONTRACT_V4_CHILDREN = new Set([
   "prepare_clean_gpt_chat", "focus_exact_gpt_conversation", "reconcile_gpt_draft",
   "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "reconcile_gpt_turn_submission",
+  "fork_exact_gpt_conversation_at_checkpoint",
 ]);
 const CONTRACT_V3_CHILDREN = new Set([
   "verify_gpt_conversation_identity", "checkpoint_gpt_text_response",
   "checkpoint_gpt_generated_image", "wait_for_stable_gpt_text", "wait_for_stable_gpt_image",
-  "open_gpt_checkpoint_actions_menu", "fork_exact_gpt_conversation_at_checkpoint",
+  "open_gpt_checkpoint_actions_menu",
   ...PROFILE_CONSUMERS, "reconcile_gpt_attachment_set",
 ]);
 
@@ -340,8 +483,8 @@ const inspectContractShape = (
     source.getFilePath().split("\\").join("/").endsWith(`/${CHILD_TYPES_PATH}`));
   for (const mapName of ["GptChildInputMap", "GptChildOutputMap"]) {
     const count = childTypes?.getInterface(mapName)?.getProperties().length ?? 0;
-    if (count !== 27) findings.push(finding(
-      "gpt/exact-child-type-map", CHILD_TYPES_PATH, `${mapName} must define exactly 27 properties; found ${count}.`,
+    if (count !== 28) findings.push(finding(
+      "gpt/exact-child-type-map", CHILD_TYPES_PATH, `${mapName} must define exactly 28 properties; found ${count}.`,
     ));
   }
 };
@@ -388,12 +531,11 @@ const inspectAttachmentSelectors = (
 };
 
 const inspectAttachmentHandler = (
-  handler: SourceFile | undefined,
-  attachmentSetObservation: SourceFile | undefined,
+  handlerSources: readonly SourceFile[],
   findings: InspectorFinding[],
   finding: FindingFactory,
 ): void => {
-  const handlerText = `${handler?.getFullText() ?? ""}\n${attachmentSetObservation?.getFullText() ?? ""}`;
+  const handlerText = handlerSources.map((source) => source.getFullText()).join("\n");
   if (!handlerText.includes('Math.max(1_000, numberInput(intent, "timeoutMs"))')
     || /Math\.min\([^\n]*timeoutMs[^\n]*(?:60_000|60000)|Math\.min\([^\n]*numberInput\([^\n]*(?:60_000|60000)/u.test(handlerText)) {
     findings.push(finding(
@@ -402,9 +544,9 @@ const inspectAttachmentHandler = (
     ));
   }
   inspectMissingTokens({ source: handlerText, required: [
-    "attachmentControlState", "readCoherentObservation", 'queryId: "attachment-control"',
+    "readAttachmentControlState", "readCoherentObservation", 'queryId: "attachment-control"',
     'queryId: "upload-choice"', "scope: { selector: GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR }",
-    "waitForAttachmentControlHydration", "attachmentControlFullyAbsent", "attachmentControlOpenable",
+    "waitForAttachmentControlHydration", "fullyAbsent", "attachmentControlOpenable",
     "attachmentControlReady", "GPT_ATTACHMENT_CONTROL_HYDRATION_TIMEOUT",
     "GPT_ATTACHMENT_CONTROL_HYDRATION_DOCUMENT_CHANGED", "scopeRejections", "observationRevisionHash",
     "attachmentSetState", 'queryId: "attachment-composer"', 'queryId: "attachment-items"',
@@ -413,7 +555,7 @@ const inspectAttachmentHandler = (
   ], checkId: "gpt/attachment-entry-coherent-facts", filePath: ATTACHMENT_HANDLER_PATH,
   findings, finding,
   message: () => "Attachment control and upload leaf must be qualified by one coherent Browser packet." });
-  const calls = handler?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
+  const calls = handlerSources.flatMap((source) => source.getDescendantsOfKind(SyntaxKind.CallExpression));
   const postcondition = calls.find((call) => call.getExpression().getText().endsWith(".executeDomIntent")
     && call.getText().includes("GPT_ATTACHMENT_CONTROL_SELECTOR"));
   if (!postcondition || !postcondition.getText().includes("ATTACHMENT_CONTROL_OPEN_POSTCONDITION")
@@ -453,8 +595,10 @@ export const inspectGptAttachmentContract = (
 ): void => {
   inspectAttachmentSelectors(sourceFor(context, ATTACHMENT_CONTRACT_PATH), findings, finding);
   inspectAttachmentHandler(
-    sourceFor(context, ATTACHMENT_HANDLER_PATH),
-    sourceFor(context, ATTACHMENT_SET_OBSERVATION_PATH),
+    ATTACHMENT_HANDLER_PATHS.flatMap((path) => {
+      const source = sourceFor(context, path);
+      return source ? [source] : [];
+    }),
     findings,
     finding,
   );

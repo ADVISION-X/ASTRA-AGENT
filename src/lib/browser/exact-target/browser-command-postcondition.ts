@@ -106,7 +106,7 @@ const declaredPostconditionTimeoutMs = (command: BrowserGovernedCommand): number
   const intent = command.intent;
   if (intent.kind === "click") return intent.postClickAttribute?.timeoutMs
     ?? intent.postClickMatch?.timeoutMs ?? intent.postClickObservation?.timeoutMs
-    ?? intent.postClickUrl?.timeoutMs ?? 1;
+    ?? intent.postClickUrl?.timeoutMs ?? intent.postClickTargetTransition?.timeoutMs ?? 1;
   if (intent.kind === "hover") return intent.postHoverAttribute.timeoutMs ?? 1;
   if (intent.kind === "doubleClick") return intent.postDoubleClickMatch.timeoutMs ?? 1;
   if (intent.kind === "keypress") return intent.postKeypressMatch.timeoutMs ?? 1;

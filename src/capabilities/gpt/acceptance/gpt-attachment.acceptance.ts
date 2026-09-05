@@ -11,7 +11,7 @@ import {
   GPT_COMPOSER_FORM_SELECTOR,
   GPT_UPLOAD_FROM_COMPUTER_LABEL,
   GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
-} from "../web/contracts/attachment.contract.js";
+} from "./gpt-page-fixture-selectors.js";
 
 const { execute } = createGptAcceptanceHarness("gpt-attachment");
 const sha256 = `sha256:${"1".repeat(64)}` as const;

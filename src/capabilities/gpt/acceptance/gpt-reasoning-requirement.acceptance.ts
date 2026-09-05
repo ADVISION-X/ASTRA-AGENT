@@ -8,7 +8,7 @@ import {
   GPT_PROFILE_SIMPLE_PANEL_SELECTOR,
   reasoningTierUiLabel,
   reasoningTierUiValue,
-} from "../web/contracts/execution-profile.contract.js";
+} from "./gpt-page-fixture-selectors.js";
 import { coherentObservationPacket, fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
 import { execute, profile, profileFacts } from "./gpt-exact-target-profile-fixture.js";
 import {
@@ -207,4 +207,3 @@ assert.equal(GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR,
 assert.equal(GPT_PROFILE_REASONING_VALUE_SELECTOR, "[data-model-reasoning-effort-slider] [role='slider']");
 assert.equal(GPT_PROFILE_SIMPLE_PANEL_SELECTOR,
   "[data-testid='composer-model-picker-slider-simple-view'][data-active='true']:not([inert])");
-

@@ -18,6 +18,7 @@ import { BrowserAuthorityIssuer } from "../../src/lib/browser/infrastructure/bro
 import { exerciseAuthenticatedMedia } from "./local-browser-authenticated-media-support.js";
 import { exerciseLocalBrowserDomIntent } from "./local-browser-dom-intent-support.js";
 import { emitLocalBrowserAutoPairingProofs } from "./local-browser-proof-support.js";
+import { browserDomFacts } from "./local-browser-dom-runtime-fixture.js";
 
 const secret = "a".repeat(64);
 const currentBuild = "build-00000000-0000-4000-8000-000000000001";
@@ -189,6 +190,8 @@ let getTargetsFailure: Error | null = null;
 let frameTreeFailureTabId: number | null = null;
 let attachFailureTabId: number | null = null;
 let evaluateRuntime: ((expression: string) => Promise<unknown>) | null = null;
+let forkTransitionClick = false;
+let navigateSerial = 0;
 const attachedTabs: number[] = [];
 const detachedTabs: number[] = [];
 const debuggerMethods: string[] = [];
@@ -212,6 +215,27 @@ const targetChromeApi: ExtensionChromeApi = {
     },
     sendCommand: async ({ tabId }, method, parameters) => {
       debuggerMethods.push(method);
+      if (forkTransitionClick && method === "DOM.getDocument") return { root: { nodeId: 1 } };
+      if (forkTransitionClick && method === "DOM.resolveNode") return { object: { objectId: "candidate-root" } };
+      if (forkTransitionClick && method === "Runtime.callFunctionOn"
+        && String(parameters?.functionDeclaration ?? "").includes("spec.output")) {
+        return { result: { value: { x: 5, y: 5 } } };
+      }
+      if (forkTransitionClick && method === "Runtime.callFunctionOn") {
+        return { result: { value: browserDomFacts() } };
+      }
+      if (forkTransitionClick && method === "Runtime.releaseObject") return {};
+      if (forkTransitionClick && method === "Input.dispatchMouseEvent") {
+        if (parameters?.type === "mouseReleased") {
+          mainFrameUrlByTab.set(4, "https://chatgpt.com/c/fork-child");
+          debuggerTargets = [
+            ...debuggerTargets.filter((candidate) => candidate.tabId !== 4),
+            { attached: false, id: "debug-target-4", tabId: 4, title: "Fork child",
+              type: "page", url: "https://chatgpt.com/c/fork-child" },
+          ];
+        }
+        return {};
+      }
       if (method === "Runtime.evaluate" && evaluateRuntime) {
         return { result: { value: await evaluateRuntime(String(parameters?.expression)) } };
       }
@@ -220,7 +244,10 @@ const targetChromeApi: ExtensionChromeApi = {
       }
       if (method === "Page.navigate" && typeof parameters?.url === "string") {
         mainFrameUrlByTab.set(tabId, parameters.url);
-        return { loaderId: `loader-${tabId}-navigate` };
+        debuggerTargets = debuggerTargets.map((candidate) => candidate.tabId === tabId
+          ? { ...candidate, url: parameters.url as string } : candidate);
+        navigateSerial += 1;
+        return { loaderId: `loader-${tabId}-navigate-${navigateSerial}` };
       }
       return method === "Page.getFrameTree"
         ? { frameTree: { frame: { loaderId: `loader-${tabId}`, url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/" } } }
@@ -234,7 +261,10 @@ const targetChromeApi: ExtensionChromeApi = {
       createdTab = input;
       return { id: nextCreatedTabId++ };
     },
-    remove: async (tabId) => { removedTabs.push(tabId); },
+    remove: async (tabId) => {
+      removedTabs.push(tabId);
+      debuggerTargets = debuggerTargets.filter((candidate) => candidate.tabId !== tabId);
+    },
     onUpdated: { addListener: (listener) => { targetTabUpdated = listener; } },
     onRemoved: { addListener: () => undefined },
   },
@@ -376,6 +406,34 @@ assert.notEqual(targetFrames.at(-1)?.body.documentRef, firstDocumentRef,
   "a fresh job must publish a new Document instead of inheriting residual composer attachments");
 assert.equal(targetFrames.at(-1)?.body.claimOrigin, "https://chatgpt.com",
   "the debugger-owned main frame may publish only the exact admitted origin");
+const beforeForkClaim = targetFrames.at(-1)!;
+const beforeForkNavigateCount = debuggerMethods.filter((method) => method === "Page.navigate").length;
+forkTransitionClick = true;
+const forkTarget = targetAuthority.resolve(
+  String(beforeForkClaim.body.targetRef), String(beforeForkClaim.body.documentRef),
+);
+const forkReceipt = await targetAuthority.executeRegisteredCommand({
+  kind: "dom-intent",
+  intent: {
+    kind: "click", selector: "[role='menuitem'][tabindex='0']", expectedTextEquals: "分支到新聊天",
+    expectedMatches: 1,
+    postClickTargetTransition: { kind: "gpt-fork-successor", timeoutMs: 5_000 },
+  },
+}, forkTarget) as Readonly<Record<string, unknown>>;
+forkTransitionClick = false;
+assert.equal(forkReceipt.postconditionVerified, true);
+assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length,
+  beforeForkNavigateCount + 1, "fork normalization must navigate the original production tab exactly once");
+assert.ok((attachedTabs as readonly number[]).includes(4)
+  && (detachedTabs as readonly number[]).includes(4)
+  && (removedTabs as readonly number[]).includes(4),
+  "the one transient fork page must be attached, verified, detached, and removed");
+assert.equal(targetFrames.at(-1)?.body.targetRef, beforeForkClaim.body.targetRef,
+  "fork normalization must retain the original targetRef");
+assert.equal(Number(targetFrames.at(-1)?.body.navigationEpoch), Number(beforeForkClaim.body.navigationEpoch) + 1,
+  "fork normalization must publish exactly one successor Document");
+assert.deepEqual(debuggerTargets.map((candidate) => candidate.tabId), [3],
+  "fork normalization must restore one production tab before replying");
 targetFailureOrder.length = 0;
 debuggerDetach({ tabId: 3 }, "target_closed");
 await Promise.resolve();

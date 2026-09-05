@@ -103,6 +103,8 @@ const inspectJobBoundClaimPolicy = (
     "acquireJobBoundChatGptTarget", "create", "remove", "GPT_WEB_START_URL",
     "requireGptWebPolicyForUrl", "waitForCreatedTarget", "navigationPublication",
     "parkActiveTarget", "parkedLoaderIds", "attachedTabId", "singleParkedTargetRef",
+    "normalizeGptForkSuccessor", "readDiscoveredTabIds", "requireCanonicalGptConversationUrl",
+    "baselineTabIds", "publishMainFrameNavigation",
   ], findings, lawId, "The fixed extension must create, validate and retain exactly one visible system Target for all GPT turns.");
   requireIdentifiers(supervisor, [
     "requireGptWebClaimOrigin", "establishClaimBoundWorkspace", "pendingJobBoundTargetAcquisition",
@@ -127,6 +129,25 @@ const inspectJobBoundClaimPolicy = (
   }));
   inspectDispatchedMutationReleaseGuard(leaseManager, findings, lawId);
   inspectExactChatGptPolicy(sitePolicy, findings, lawId);
+  for (const required of [
+    "discovered.length > 1", "debuggerRuntime.attach(successor.tabId)",
+    "debuggerRuntime.detach(successor.tabId)", "chromeApi.tabs.remove(successor.tabId)",
+    'debuggerRuntime.send(source.tabId, "Page.navigate", { url: childUrl })',
+    "next.navigationEpoch !== source.navigationEpoch + 1",
+  ]) if (!targetAuthorityText.includes(required)) findings.push(createLocalFinding({
+    checkId: "browser-authority/gpt-fork-successor-normalization", lawId,
+    filePath: targetAuthorityPath,
+    message: `The one fixed GPT fork successor normalization is missing ${required}.`,
+  }));
+  const sitePolicyText = sitePolicy.getFullText();
+  for (const required of ["requireCanonicalGptConversationUrl", 'segments[1] === "c"',
+    'url.search !== ""', 'url.hash !== ""']) if (!sitePolicyText.includes(required)) {
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/gpt-fork-successor-normalization", lawId,
+      filePath: sitePolicyPath,
+      message: `The Browser-owned canonical successor policy is missing ${required}.`,
+    }));
+  }
 };
 
 export const inspectTargetClaimGuards = (

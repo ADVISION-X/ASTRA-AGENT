@@ -71,6 +71,13 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   assert.equal(run.physicalSubmitDispatches, 2);
   assert.equal(run.calls.filter((call) => call.child === "reserve_exact_gpt_continuation_once").length, 2);
   assert.equal(run.calls.filter((call) => call.child === "fork_exact_gpt_conversation_at_checkpoint").length, 1);
+  assert.deepEqual(run.calls.filter((call) => [
+    "open_gpt_checkpoint_actions_menu", "open_gpt_fork_destination_menu",
+    "fork_exact_gpt_conversation_at_checkpoint",
+  ].includes(call.child)).map((call) => call.child), [
+    "open_gpt_checkpoint_actions_menu", "open_gpt_fork_destination_menu",
+    "fork_exact_gpt_conversation_at_checkpoint",
+  ]);
   assert.equal(run.calls.filter((call) => call.child === "submit_exact_gpt_turn_once").length, 2);
   assert.equal(run.calls.at(-1)?.child, "advance_gpt_continuation_lane");
   assert.equal(run.calls.find((call) => call.child === "reserve_exact_gpt_continuation_once")?.input.reservationIdentityHash,

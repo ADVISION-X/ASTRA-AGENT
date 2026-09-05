@@ -49,6 +49,23 @@ class FakeTextNode extends FakeElement {
   public override get nodeValue(): string { return this.textContent; }
 }
 
+const RICH_SEMANTIC_TEXT = "Title\nBody `inline`\n- item\n\n{\"ok\":true}\nend";
+
+const richSemanticTree = (): FakeElement => new FakeElement("rich response", {}, {}, {}, "DIV", [
+  new FakeElement("Title", {}, {}, {}, "H1", [new FakeTextNode("Title")]),
+  new FakeElement("Body inline", {}, {}, {}, "P", [
+    new FakeTextNode("Body "),
+    new FakeElement("inline", {}, {}, {}, "CODE", [new FakeTextNode("inline")]),
+  ]),
+  new FakeElement("item", {}, {}, {}, "UL", [
+    new FakeElement("item", {}, {}, {}, "LI", [new FakeTextNode("item")]),
+  ]),
+  new FakeElement('{"ok":true}', {}, {}, {}, "PRE", [
+    new FakeElement('{"ok":true}', {}, {}, {}, "CODE", [new FakeTextNode('{"ok":true}')]),
+  ]),
+  new FakeElement("end", {}, {}, {}, "P", [new FakeTextNode("end")]),
+]);
+
 const execute = (source: string, document: Readonly<Record<string, unknown>>, input: unknown,
   href = "https://chatgpt.com/"): unknown => {
   const context = {
@@ -225,9 +242,13 @@ const exerciseComposerExactHashes = async (source: string): Promise<void> => {
   const styledComposer = new FakeElement("bold", {}, {}, {
     id: "prompt-textarea", contenteditable: "true",
   }, "DIV", [styledParagraph]);
-  const exactRoot = new FakeElement("", { "#markdown": [markdownComposer], "#styled": [styledComposer] });
+  const richResponse = richSemanticTree();
+  const exactRoot = new FakeElement("", {
+    "#markdown": [markdownComposer], "#styled": [styledComposer], "#rich": [richResponse],
+  });
   markdownComposer.parentElement = exactRoot;
   styledComposer.parentElement = exactRoot;
+  richResponse.parentElement = exactRoot;
   const exactResult = await execute(source, {
     documentElement: exactRoot, querySelectorAll: () => [], elementFromPoint: () => markdownComposer,
   }, [
@@ -235,6 +256,7 @@ const exerciseComposerExactHashes = async (source: string): Promise<void> => {
       fields: ["exactEditableTextHash"] },
     { queryId: "styled", selector: "#styled", maxMatches: 1,
       fields: ["exactEditableTextHash", "semanticTextHash"] },
+    { queryId: "rich", selector: "#rich", maxMatches: 1, fields: ["semanticTextHash"] },
   ]) as Readonly<{ queries: readonly Readonly<{ matches: readonly Readonly<{
       exactEditableTextHash: string; semanticTextHash?: string;
     }>[] }>[] }>;
@@ -243,6 +265,8 @@ const exerciseComposerExactHashes = async (source: string): Promise<void> => {
   assert.equal(exactResult.queries[1]?.matches[0]?.exactEditableTextHash, hash("bold"));
   assert.equal(exactResult.queries[1]?.matches[0]?.semanticTextHash, hash("**bold**"),
     "rendered semantic text must remain distinct from the Composer current-value projection");
+  assert.equal(exactResult.queries[2]?.matches[0]?.semanticTextHash, hash(RICH_SEMANTIC_TEXT),
+    "coherent observation must hash the whole rich answer, including text around its one code block");
 };
 
 const exerciseUserPromptHashes = async (source: string): Promise<void> => {
@@ -344,7 +368,7 @@ export const exerciseCapturedExactAssistantTurnFunction = (source: string): void
   assert.equal(observed.rawCount, 1);
   assert.equal(observed.eligibleCount, 1);
   assert.match(observed.rawDomHtml, /<strong>bold<\/strong>/u);
-  assert.equal(observed.semanticText, "**bold**\n- item\n\n");
+  assert.equal(observed.semanticText, "**bold**\n- item\n");
   assert.equal(observed.nativeStage, "runtime-call-function-on");
   const hidden = new FakeElement("hidden", { "pre code": [] }, { display: "none" }, {}, "DIV", [text("hidden")]);
   const hiddenObserved = execute(source, {
@@ -357,4 +381,11 @@ export const exerciseCapturedExactAssistantTurnFunction = (source: string): void
   }, "conversation-turn-2") as Readonly<{ rawCount: number; eligibleCount: number }>;
   assert.deepEqual({ rawCount: ambiguous.rawCount, eligibleCount: ambiguous.eligibleCount },
     { rawCount: 2, eligibleCount: 0 });
+  const rich = richSemanticTree();
+  const richObserved = execute(source, {
+    querySelectorAll: (value: string) => value === selector ? [rich] : [],
+    elementFromPoint: () => rich,
+  }, "conversation-turn-2") as Readonly<{ semanticText: string }>;
+  assert.equal(richObserved.semanticText, RICH_SEMANTIC_TEXT,
+    "exact assistant read must preserve headings, prose, lists, inline code, the code block, and trailing prose");
 };

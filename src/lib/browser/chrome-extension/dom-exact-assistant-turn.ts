@@ -1,5 +1,6 @@
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import { BROWSER_MECHANICAL_FACTS_READER_SOURCE } from "./dom-mechanical-facts.js";
+import { BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE } from "./dom-semantic-text.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 
 type BrowserRecord = Record<string, unknown>;
@@ -15,33 +16,7 @@ type ExactAssistantObservation = Readonly<{
 
 const EXACT_ASSISTANT_TURN_FUNCTION = `function (assistantTurnId) {
   ${BROWSER_MECHANICAL_FACTS_READER_SOURCE}
-  const blockNames = new Set(["ADDRESS", "ARTICLE", "ASIDE", "BLOCKQUOTE", "DD", "DIV", "DL", "DT",
-    "FIGCAPTION", "FIGURE", "FOOTER", "FORM", "H1", "H2", "H3", "H4", "H5", "H6", "HEADER", "HR",
-    "MAIN", "NAV", "OL", "P", "PRE", "SECTION", "TABLE", "TBODY", "TD", "TFOOT", "TH", "THEAD", "TR", "UL"]);
-  const inlineCode = (value) => {
-    const runs = Array.from(value.matchAll(/\x60+/g), (match) => match[0].length);
-    const fence = "\x60".repeat(Math.max(0, ...runs) + 1);
-    return fence + value + fence;
-  };
-  const semanticNode = (node, parent) => {
-    const name = String(node.nodeName || "").toUpperCase();
-    if (node.nodeType === 3 || name === "#TEXT") return typeof node.nodeValue === "string" ? node.nodeValue : "";
-    if (["#COMMENT", "SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE", "SVG", "PATH"].includes(name)
-      || (node instanceof Element && (node.hasAttribute("hidden") || node.getAttribute("aria-hidden") === "true"))) return "";
-    if (name === "BR") return "\\n";
-    const body = Array.from(node.childNodes || []).map((child) => semanticNode(child, node)).join("");
-    if (name === "STRONG" || name === "B") return "**" + body + "**";
-    if (name === "EM" || name === "I") return "*" + body + "*";
-    if (name === "CODE") return inlineCode(body);
-    if (name === "LI") return ((parent && String(parent.nodeName).toUpperCase() === "OL") ? "1. " : "- ") + body + "\\n";
-    return blockNames.has(name) ? body + "\\n" : body;
-  };
-  const codeBlocks = (node) => Array.from(node.querySelectorAll("pre code"));
-  const semanticText = (node) => {
-    const codes = codeBlocks(node);
-    return codes.length === 1 ? (codes[0].textContent || "")
-      : Array.from(node.childNodes || []).map((child) => semanticNode(child, node)).join("");
-  };
+  ${BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE}
   if (!/^conversation-turn-[1-9][0-9]*$/.test(assistantTurnId)) throw new Error("BROWSER_DOM_READ_INVALID");
   const selector = '[data-testid="' + assistantTurnId
     + '"][data-turn="assistant"] [data-message-author-role="assistant"]';
@@ -54,7 +29,7 @@ const EXACT_ASSISTANT_TURN_FUNCTION = `function (assistantTurnId) {
   const facts = browserMechanicalFacts(node, false);
   const eligible = facts !== null && facts.visible && !facts.ariaHidden && !facts.inert;
   return { rawCount: 1, eligibleCount: eligible ? 1 : 0,
-    rawDomHtml: eligible ? node.outerHTML : "", semanticText: eligible ? semanticText(node) : "",
+    rawDomHtml: eligible ? node.outerHTML : "", semanticText: eligible ? browserCanonicalSemanticText(node) : "",
     observedAt, nativeCauseCode: facts === null ? null : facts.nativeCauseCode,
     nativeStage: "runtime-call-function-on" };
 }`;

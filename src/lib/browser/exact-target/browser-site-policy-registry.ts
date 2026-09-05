@@ -52,6 +52,20 @@ export const gptWebClaimOriginForUrl = (value: string): typeof GPT_WEB_ORIGIN =>
   return GPT_WEB_ORIGIN;
 };
 
+export const requireCanonicalGptConversationUrl = (value: string): string => {
+  let url: URL;
+  try { url = new URL(value); } catch { throw new Error("BROWSER_ORIGIN_REJECTED"); }
+  const segments = url.pathname.split("/");
+  const segment = segments.length === 3 && segments[0] === "" && segments[1] === "c"
+    ? segments[2]! : "";
+  if (url.protocol !== "https:" || url.origin !== GPT_WEB_ORIGIN
+    || url.username !== "" || url.password !== "" || url.search !== "" || url.hash !== ""
+    || segment.length < 1 || segment.length > 256) {
+    throw new Error("BROWSER_ORIGIN_REJECTED");
+  }
+  return `${url.origin}${url.pathname}`;
+};
+
 export const requireGptWebClaimOrigin = (value: string): typeof GPT_WEB_ORIGIN => {
   if (value !== GPT_WEB_ORIGIN) throw new Error("BROWSER_ORIGIN_REJECTED");
   return GPT_WEB_ORIGIN;
