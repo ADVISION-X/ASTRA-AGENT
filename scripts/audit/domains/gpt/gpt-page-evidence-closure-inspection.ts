@@ -1,7 +1,6 @@
-import { createRequire } from "node:module";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { relative, resolve, sep } from "node:path";
-import { Node, SyntaxKind, type Expression, type ObjectLiteralExpression } from "ts-morph";
+import { Node, SyntaxKind, ts, type Expression, type ObjectLiteralExpression } from "ts-morph";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import {
   bindingPaths,
@@ -84,10 +83,8 @@ const currentContracts = (context: InspectorContext): Record<string, Record<stri
   }));
 };
 
-const semanticPrint = (root: string, path: string, source: string): string => {
+const semanticPrint = (path: string, source: string): string => {
   if (!path.endsWith(".ts") && !path.endsWith(".tsx")) return source.replace(/\s+/gu, " ").trim();
-  const requireFromRepo = createRequire(resolve(root, "package.json"));
-  const ts = requireFromRepo("typescript") as typeof import("typescript");
   const kind = path.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
   const ast = ts.createSourceFile(path, source, ts.ScriptTarget.Latest, true, kind);
   return ts.createPrinter({ removeComments: true, newLine: ts.NewLineKind.LineFeed }).printFile(ast);
@@ -103,7 +100,7 @@ const sourceBinding = (root: string, paths: readonly string[]): SourceBinding =>
     const absolute = resolve(root, path);
     if (!existsSync(absolute)) throw new Error(`DEMAND_SOURCE_MISSING:${path}`);
     const raw = readFileSync(absolute);
-    return { path, contentHash: sha256(raw), semanticHash: sha256(semanticPrint(root, path, raw.toString("utf8"))) };
+    return { path, contentHash: sha256(raw), semanticHash: sha256(semanticPrint(path, raw.toString("utf8"))) };
   });
   return stable({ files, semanticDigest: sha256(JSON.stringify(stable(
     files.map(({ path, semanticHash }) => ({ path, semanticHash })),
