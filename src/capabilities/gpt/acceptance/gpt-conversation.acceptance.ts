@@ -257,6 +257,41 @@ import "./gpt-turn-submission.acceptance.js";
 
 {
   const { execute } = freshHarness();
+  let simulatedNow = 0;
+  const nativeDateNow = Date.now;
+  const original = Buffer.from(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" fill="red"/></svg>',
+  );
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      simulatedNow = 100;
+      return coherentObservationPacket(intent, responseFacts(), conversationUrl);
+    }
+    throw new Error(`UNEXPECTED_EXPIRED_IMAGE_OBSERVATION_INTENT:${intent.kind}`);
+  }, { authenticatedMedia: {
+    authorityTargetHash: `sha256:${"2".repeat(64)}`,
+    authorityDocumentHash: `sha256:${"3".repeat(64)}`,
+    assistantTurnId: "conversation-turn-2", semanticMediaId: "gpt-generated-image-main",
+    bytesBase64: original.toString("base64"), sha256: hash(original), sizeBytes: original.byteLength,
+    mediaType: "image/svg+xml", width: 16, height: 16,
+  } });
+  Date.now = () => simulatedNow;
+  try {
+    const result = await execute("wait_for_stable_gpt_image", fixture.browser, {
+      probeBudgetMs: 100, canonicalConversationUrl: conversationUrl,
+      conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
+    });
+    assert.equal(result.status, "failed");
+    assert.equal(result.failureCode, "GPT_IMAGE_STABILITY_TIMEOUT");
+  } finally {
+    Date.now = nativeDateNow;
+  }
+  assert.equal(fixture.authenticatedMediaDownloads(), 0,
+    "an observation completed at the immutable deadline must not authorize a media download");
+}
+
+{
+  const { execute } = freshHarness();
   const controller = new AbortController();
   let gateCalls = 0;
   const otherConversationUrl = "https://chatgpt.com/c/aborted-other-conversation";

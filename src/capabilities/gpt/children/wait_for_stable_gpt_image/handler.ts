@@ -42,9 +42,11 @@ export const waitForStableGptImageHandler: GptChildHandler<"wait_for_stable_gpt_
     let probeDelayMs = 250;
     do {
       if (context.signal?.aborted) throw executionFailure("failed", "GPT_IMAGE_WAIT_ABORTED");
+      if (Date.now() >= deadline) break;
       const observed = await ensureResponseConversation({
         browser, canonicalConversationUrl: conversationUrl, context, deadline,
       });
+      if (Date.now() >= deadline) break;
       const assistantTurnId = assistantTurnForIdentity(observed, {
         canonicalConversationUrl: conversationUrl, conversationIdentityHash, expectedPromptHash, turnMarker,
       });
@@ -53,6 +55,7 @@ export const waitForStableGptImageHandler: GptChildHandler<"wait_for_stable_gpt_
           const media = await browser.downloadAuthenticatedMedia({
             assistantTurnId, semanticMediaId: "gpt-generated-image-main",
           });
+          if (Date.now() >= deadline) break;
           if (!observed.facts.authorityRefHashes.includes(media.authorityTargetHash)
             || !observed.facts.authorityRefHashes.includes(media.authorityDocumentHash)) {
             throw executionFailure("failed", "GPT_GENERATED_IMAGE_DOCUMENT_MISMATCH");

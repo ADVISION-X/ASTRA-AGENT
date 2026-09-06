@@ -508,9 +508,9 @@ const inspectExecutionProfileStateReadContract = (
     "gpt/profile-non-actionable-state-read", childHandlerPath("ensure_gpt_reasoning_requirement"),
     `The execution-profile Child is missing ${required}.`,
   ));
-  if ((handler.match(/readEligibility:\s*"non-actionable-aria-state"/gu) ?? []).length !== 2) findings.push(finding(
+  if ((handler.match(/readEligibility:\s*"non-actionable-aria-state"/gu) ?? []).length !== 3) findings.push(finding(
     "gpt/profile-non-actionable-state-read", childHandlerPath("ensure_gpt_reasoning_requirement"),
-    "The reasoning slider read mode must exist exactly on the reused topology query and reasoning postcondition.",
+    "The reasoning slider read mode must exist exactly on both isolated Child topology queries and the reasoning postcondition.",
   ));
   if (/kind:\s*"keypress"[\s\S]{0,160}selector:\s*GPT_PROFILE_REASONING_VALUE_SELECTOR\s*,/u.test(handler)) {
     findings.push(finding(

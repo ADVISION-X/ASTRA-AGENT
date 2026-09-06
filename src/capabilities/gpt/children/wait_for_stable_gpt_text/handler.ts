@@ -54,9 +54,11 @@ export const waitForStableGptTextHandler: GptChildHandler<"wait_for_stable_gpt_t
     let probeDelayMs = 250;
     do {
       if (context.signal?.aborted) throw executionFailure("failed", "GPT_RESPONSE_WAIT_ABORTED");
+      if (Date.now() >= deadline) break;
       const observed = await ensureResponseConversation({
         browser, canonicalConversationUrl: conversationUrl, context, deadline,
       });
+      if (Date.now() >= deadline) break;
       const assistantTurnId = assistantTurnForIdentity(observed, {
         canonicalConversationUrl: conversationUrl, conversationIdentityHash, expectedPromptHash, turnMarker,
       });

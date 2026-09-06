@@ -15,7 +15,10 @@ import type {
   ExactGptTextCheckpointReadback,
 } from "./product-api.js";
 import { executionFailure } from "../../lib/execution-failure.js";
-import type { GptEvidenceStorePort } from "./production-ports.js";
+import type {
+  GptContinuationReadbackPort,
+  GptEvidenceStorePort,
+} from "./production-ports.js";
 import {
   readGeneratedImageCheckpointArtifacts,
   readTextCheckpointArtifact,
@@ -31,16 +34,6 @@ export type GptContinuationReadbackExecution = Readonly<{
   pluginId: string;
   pluginVersion: number;
 }>;
-export interface GptContinuationReadbackPort {
-  readGptContinuation(continuationRef: string): StoredGptContinuation | null;
-  readGptContinuationForOriginJob(
-    jobId: string,
-    pluginId: string,
-    turnMarker: string,
-  ): StoredGptContinuation | null;
-  readGptContinuationForFrontier(frontierRef: `sha256:${string}`): StoredGptContinuation | null;
-  readTaskPluginVersion(jobId: string): number | null;
-}
 type FrontierQuery = Extract<ExactGptContinuationQuery, { lookupKind: "frontier_ref" }>;
 type FrontierReadback = Extract<ExactGptContinuationReadback, { lookupKind: "frontier_ref" }>;
 type StoredFrontier = StoredGptContinuation;

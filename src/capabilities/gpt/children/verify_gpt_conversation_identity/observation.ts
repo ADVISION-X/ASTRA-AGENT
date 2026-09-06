@@ -8,7 +8,6 @@ import {
   projectCoherentObservation,
   readCoherentObservation,
   type GptCoherentFactProjection,
-  type GptExactAssistantTurnObservation,
 } from "../../web/gpt-dom-observation.js";
 import {
   GPT_ASSISTANT_TURN_SELECTOR,
@@ -91,21 +90,5 @@ export const readConversationState = async (
     userTurns: Object.freeze(userTurns),
     assistantTurnIds: Object.freeze(assistantTurnIds),
     facts: projectCoherentObservation(observation, "composer"),
-  });
-};
-
-export const assistantFacts = (
-  facts: GptCoherentFactProjection,
-  assistant: GptExactAssistantTurnObservation,
-): GptCoherentFactProjection => {
-  if (!facts.authorityRefHashes.includes(assistant.targetRefHash)
-    || !facts.authorityRefHashes.includes(assistant.documentRefHash)) {
-    throw executionFailure("failed", "GPT_EXACT_ASSISTANT_TURN_DOCUMENT_MISMATCH");
-  }
-  return Object.freeze({
-    ...facts,
-    factResultIds: Object.freeze([
-      ...facts.factResultIds, `gpt-assistant-turn-fact:${assistant.exactCallIdentityHash.slice(7)}`,
-    ]),
   });
 };

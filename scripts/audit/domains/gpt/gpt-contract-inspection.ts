@@ -52,6 +52,7 @@ const ATTACHMENT_HANDLER_PATHS = [
   childFilePath("reconcile_gpt_attachment_set", "selectors.ts"),
 ] as const;
 const ATTACHMENT_CONTRACT_PATH = childFilePath("attach_approved_gpt_files_once", "selectors.ts");
+const ATTACHMENT_SETTLEMENT_CONTRACT_PATH = childFilePath("reconcile_gpt_attachment_set", "selectors.ts");
 const BROWSER_TARGET_LEASE_PATH = "src/lib/browser/exact-target/browser-target-lease.ts";
 
 type FindingFactory = (
@@ -356,24 +357,26 @@ const PROFILE_CONSUMERS = new Set([
   "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile",
 ]);
 const CONTRACT_V4_CHILDREN = new Set([
-  "prepare_clean_gpt_chat", "focus_exact_gpt_conversation", "reconcile_gpt_draft",
+  "prepare_clean_gpt_chat", "reconcile_gpt_draft",
   "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "reconcile_gpt_turn_submission",
   "fork_exact_gpt_conversation_at_checkpoint", "wait_for_stable_gpt_text", "wait_for_stable_gpt_image",
 ]);
+const CONTRACT_V5_CHILDREN = new Set(["focus_exact_gpt_conversation"]);
 const CONTRACT_V3_CHILDREN = new Set([
   "verify_gpt_conversation_identity", "checkpoint_gpt_text_response",
   "checkpoint_gpt_generated_image",
   "open_gpt_checkpoint_actions_menu",
-  ...PROFILE_CONSUMERS, "reconcile_gpt_attachment_set",
+  ...PROFILE_CONSUMERS, "reconcile_gpt_attachment_set", "open_gpt_attachment_control",
 ]);
 
 const expectedContractVersion = (id: string): string => {
+  if (CONTRACT_V5_CHILDREN.has(id)) return "5";
   if (CONTRACT_V4_CHILDREN.has(id)) return "4";
   return CONTRACT_V3_CHILDREN.has(id) ? "3" : "2";
 };
 
 const INPUT_V2_CHILDREN = new Set([
-  ...PROFILE_CONSUMERS, "wait_for_stable_gpt_text", "wait_for_stable_gpt_image",
+  ...PROFILE_CONSUMERS, "focus_exact_gpt_conversation", "wait_for_stable_gpt_text", "wait_for_stable_gpt_image",
 ]);
 
 const inspectProfileSchema = (
@@ -495,6 +498,7 @@ const inspectContractShape = (
 
 const inspectAttachmentSelectors = (
   contract: SourceFile | undefined,
+  settlementContract: SourceFile | undefined,
   findings: InspectorFinding[],
   finding: FindingFactory,
 ): void => {
@@ -517,10 +521,11 @@ const inspectAttachmentSelectors = (
     `${name} must equal the current Chrome-proven value ${value}.`,
   ));
   const contractText = contract?.getFullText() ?? "";
+  const settlementContractText = settlementContract?.getFullText() ?? "";
   for (const required of [
     "GPT_ATTACHMENT_PENDING_ACTION_SELECTOR", "button.cursor-wait",
-  ]) if (!contractText.includes(required)) findings.push(finding(
-    "gpt/chrome-proven-attachment-dom", ATTACHMENT_CONTRACT_PATH,
+  ]) if (!settlementContractText.includes(required)) findings.push(finding(
+    "gpt/chrome-proven-attachment-dom", ATTACHMENT_SETTLEMENT_CONTRACT_PATH,
     `Attachment DOM contract is missing current Chrome-proven pending state ${required}.`,
   ));
   for (const stale of [
@@ -597,7 +602,12 @@ export const inspectGptAttachmentContract = (
   findings: InspectorFinding[],
   finding: FindingFactory,
 ): void => {
-  inspectAttachmentSelectors(sourceFor(context, ATTACHMENT_CONTRACT_PATH), findings, finding);
+  inspectAttachmentSelectors(
+    sourceFor(context, ATTACHMENT_CONTRACT_PATH),
+    sourceFor(context, ATTACHMENT_SETTLEMENT_CONTRACT_PATH),
+    findings,
+    finding,
+  );
   inspectAttachmentHandler(
     ATTACHMENT_HANDLER_PATHS.flatMap((path) => {
       const source = sourceFor(context, path);

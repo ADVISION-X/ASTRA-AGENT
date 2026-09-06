@@ -131,13 +131,20 @@ const inspectJobBoundClaimPolicy = (
   inspectExactChatGptPolicy(sitePolicy, findings, lawId);
   for (const required of [
     "discovered.length > 1", "debuggerRuntime.attach(successor.tabId)",
-    "debuggerRuntime.detach(successor.tabId)", "chromeApi.tabs.remove(successor.tabId)",
-    'debuggerRuntime.send(source.tabId, "Page.navigate", { url: childUrl })',
+    "debuggerRuntime.detach(successor.tabId)",
     "next.navigationEpoch !== source.navigationEpoch + 1",
   ]) if (!targetAuthorityText.includes(required)) findings.push(createLocalFinding({
     checkId: "browser-authority/gpt-fork-successor-normalization", lawId,
     filePath: targetAuthorityPath,
     message: `The one fixed GPT fork successor normalization is missing ${required}.`,
+  }));
+  for (const retired of [
+    "chromeApi.tabs.remove(successor.tabId)",
+    'debuggerRuntime.send(source.tabId, "Page.navigate", { url: childUrl })',
+  ]) if (targetAuthorityText.includes(retired)) findings.push(createLocalFinding({
+    checkId: "browser-authority/gpt-fork-successor-normalization", lawId,
+    filePath: targetAuthorityPath,
+    message: `The retired fork rollback path remains reachable through ${retired}.`,
   }));
   const sitePolicyText = sitePolicy.getFullText();
   for (const required of ["requireCanonicalGptConversationUrl", 'segments[1] === "c"',

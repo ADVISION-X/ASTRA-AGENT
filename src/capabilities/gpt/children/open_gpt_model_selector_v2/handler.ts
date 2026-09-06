@@ -24,7 +24,7 @@ import {
   readModelSelectorTopology,
 } from "./observation.js";
 
-const openPostcondition = (modelDisplayName: string) => Object.freeze({
+const OPEN_POSTCONDITION = (modelDisplayName: string) => Object.freeze({
   queries: Object.freeze(modelSelectorTopologyQueries(modelDisplayName).map((query) => Object.freeze({
     ...query, expectedEligibleCount: query.queryId === "popup" || query.queryId === "advanced-panel"
       || query.queryId === "model-choice" ? 1 : 0,
@@ -52,7 +52,7 @@ export const openGptModelSelectorV2Handler: GptChildHandler<"open_gpt_model_sele
     }
     const mutation = await browser.executeDomIntent({
       kind: "click", selector: GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR, expectedMatches: 1,
-      postClickObservation: openPostcondition(profile.modelDisplayName),
+      postClickObservation: OPEN_POSTCONDITION(profile.modelDisplayName),
     });
     const mutationRecord = mutation && typeof mutation === "object" && !Array.isArray(mutation)
       ? mutation as Readonly<Record<string, unknown>> : {};

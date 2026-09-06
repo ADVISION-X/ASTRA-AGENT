@@ -20,11 +20,13 @@ import {
 } from "../session/gpt-continuation-store-port.js";
 import {
   GptContinuationReadback,
-  type GptContinuationReadbackPort,
 } from "../continuation-readback.js";
 import { readSubmissionLocatorArtifact } from "../artifact-reader.js";
 import { persistGptChildEvidence } from "../evidence-writer.js";
-import type { GptEvidenceStorePort } from "../production-ports.js";
+import type {
+  GptContinuationReadbackPort,
+  GptEvidenceStorePort,
+} from "../production-ports.js";
 import type { ExactGptCallFacts, ProductGptCallInput } from "../product-api.js";
 
 const hash = (value: string | Uint8Array): `sha256:${string}` =>

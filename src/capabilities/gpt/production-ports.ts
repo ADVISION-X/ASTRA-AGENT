@@ -3,8 +3,10 @@ import type {
   BrowserExactCallMutationFact,
   BrowserTargetLease,
 } from "../../lib/browser/browser-authority-api.js";
-import type { GptContinuationReadbackPort } from "./continuation-readback.js";
-import type { GptContinuationStorePort } from "./session/gpt-continuation-store-port.js";
+import type {
+  GptContinuationStorePort,
+  StoredGptContinuation,
+} from "./session/gpt-continuation-store-port.js";
 
 type GptEvidenceStoreResult = Readonly<{
   status: "success" | "failed" | "invalid_input";
@@ -84,6 +86,17 @@ export interface GptProductionBrowserAuthority {
     ownerId: string,
     wait: Readonly<{ signal: AbortSignal; remainingMs(): number }>,
   ): Promise<BrowserTargetLease>;
+}
+
+export interface GptContinuationReadbackPort {
+  readGptContinuation(continuationRef: string): StoredGptContinuation | null;
+  readGptContinuationForOriginJob(
+    jobId: string,
+    pluginId: string,
+    turnMarker: string,
+  ): StoredGptContinuation | null;
+  readGptContinuationForFrontier(frontierRef: `sha256:${string}`): StoredGptContinuation | null;
+  readTaskPluginVersion(jobId: string): number | null;
 }
 
 export interface GptProductionRuntimePort {

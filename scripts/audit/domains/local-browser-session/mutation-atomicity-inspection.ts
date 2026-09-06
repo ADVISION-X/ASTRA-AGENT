@@ -277,8 +277,8 @@ export const inspectProviderEffectCrossAttemptGuard = (
   const actor = requireSource(context, findings, lawId, sourcePaths[6]);
   const store = requireSource(context, findings, lawId, sourcePaths[7]);
   if (!postcondition || !actor || !store) return;
-  const identity = postcondition.getFunction("browserProviderEffectIdentityHash");
-  const identityText = identity?.getFullText() ?? "";
+  const identity = postcondition.getVariableDeclaration("browserProviderEffectIdentityHash");
+  const identityText = identity?.getInitializer()?.getText() ?? "";
   const orderedFields = [
     "permit.jobId", "permit.ownerPluginId", "permit.pluginVersion", "permit.productStepId",
     "permit.callId", "permit.childCapabilityId", "permit.inputHash", "payloadHash",
@@ -434,7 +434,7 @@ const inspectActorEffectScope = (
 ): void => {
   const actorText = actor.getFullText();
   for (const required of [
-    "provider_effect", "target_local", 'effectScope === "target_local" ? [permit.targetRef] : []',
+    "provider_effect", "target_local", ": hashValue([callIdentityHash, permit.targetRef])",
     "exactCallIdentityHash", "pluginVersion",
   ]) {
     if (actorText.includes(required)) continue;

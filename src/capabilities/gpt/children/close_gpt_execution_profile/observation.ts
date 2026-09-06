@@ -14,7 +14,7 @@ import {
   GPT_COMPOSER_SELECTOR,
 } from "./selectors.js";
 
-export type ProfileTopology = Readonly<{
+type ProfileTopology = Readonly<{
   popup: number;
   popupLabelledBy: string | null;
   trigger: number;
