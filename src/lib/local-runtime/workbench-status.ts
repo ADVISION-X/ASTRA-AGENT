@@ -69,6 +69,8 @@ const readAiProductionComponents = (
       ok: health.cloudState === "ready",
       detail: `AGENT Cloud Worker state=${health.cloudState}; manifest=${health.contractManifestHash ?? "none"}; last_heartbeat=${health.lastSuccessfulHeartbeatAt ?? "none"}; error=${health.lastErrorCode ?? "none"}.`,
       actionableMessage: health.cloudState === "ready" ? null
+        : health.lastErrorCode === "AI_SESSION_BINDING_MISMATCH"
+          ? "Keep every existing job and attempt unchanged. Compare the enrolled device, environment, origin and manifest binding; only when stale enrollment is proven may an operator use the one explicitly authorized enrollment path. Do not retry the same binding."
         : health.cloudState === "contract_blocked"
           ? "Deploy the website task/result contract and AGENT Capability Manifest with the exact same V6 manifest."
           : "Restore the AGENT Cloud Worker session/API dependency without changing task identity.",

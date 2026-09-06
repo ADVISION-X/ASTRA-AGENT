@@ -19,6 +19,7 @@ import type { ProductionHash } from "./contracts.js";
 import { readProductionCredential } from "./credential.js";
 import { ProductionExecutor } from "./executor.js";
 import { ProductionRuntimeStore, type StoredProductionTask } from "./store.js";
+import { typedRuntimeTransportFailure } from "./transport-failure.js";
 import { ProductionWorkerSession } from "./worker-session.js";
 import type { ProductionRuntimeHandle, ProductionRuntimeHealth } from "./runtime-contract.js";
 import {
@@ -51,6 +52,7 @@ const blockedHealth = (
   store: ProductionRuntimeStore,
   error: unknown,
   stopped: boolean,
+  contractManifestHash: ProductionHash | null,
 ): ProductionRuntimeHealth => {
   const browser = input.browserAuthority.readProductionRuntimeState();
   const reason = safeReason(error);
@@ -61,7 +63,7 @@ const blockedHealth = (
     logSinkState: input.runtimeLogger.getSinkState(), browserAuthorityState: browser.browserAuthorityState,
     browserTargetState: browser.browserTargetState,
     browserLaneState: browser.browserAuthorityState === "present" ? "idle" : "blocked",
-    contractManifestHash: null, catalogHash: productionCatalogHash,
+    contractManifestHash, catalogHash: productionCatalogHash,
     activeCount: 0, pendingOutboxCount: store.pendingOutboxCount(),
     lastSuccessfulHeartbeatAt: null,
     lastErrorCode: failureCode(error, "PRODUCTION_RUNTIME_START_BLOCKED"),
@@ -96,11 +98,12 @@ const blockedRuntimeHandle = (
   input: ProductionRuntimeStartInput,
   store: ProductionRuntimeStore,
   error: unknown,
+  contractManifestHash: ProductionHash | null = null,
 ): ProductionRuntimeHandle => {
   const traceId = `producer:${input.runtimeLogger.producerRunId}`;
   let stopped = false;
   return {
-    readHealth: () => blockedHealth(input, store, error, stopped),
+    readHealth: () => blockedHealth(input, store, error, stopped, contractManifestHash),
     readTask: (jobId) => store.readTask(jobId),
     diagnose: (jobId) => diagnoseProductionRuntime(input.dataDir, store, jobId),
     close: async () => {
@@ -219,7 +222,7 @@ const establishCloudSession = async (
   input: ProductionRuntimeStartInput,
   state: RuntimeState,
   startSpan: RuntimeSpanHandle,
-): Promise<void> => {
+): Promise<unknown | null> => {
   const boundaryId = `aipsopen_${randomUUID()}`;
   const span = requireRuntimeLogWrite(input.runtimeLogger.startSpan({
     traceId: `producer:${input.runtimeLogger.producerRunId}`, parentSpanId: startSpan.spanId, boundaryId,
@@ -235,6 +238,7 @@ const establishCloudSession = async (
     state.lastHeartbeat = receipt.issued_at;
     requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
     requireRuntimeLogWrite(startSpan.terminal({ outcome: "succeeded" }));
+    return null;
   } catch (error) {
     const sessionFailure = terminalSpanFailure(
       span, error, runtimeLogCauseEventId(error), "CLOUD_SESSION_OPEN_FAILED",
@@ -242,6 +246,7 @@ const establishCloudSession = async (
     terminalSpanFailure(startSpan, error, sessionFailure.eventId, "RUNTIME_START_FAILED");
     state.lastErrorCode = failureCode(error, "PRODUCTION_SESSION_START_FAILED");
     state.lastErrorReason = safeReason(error);
+    return error;
   }
 };
 
@@ -331,6 +336,14 @@ export const startProductionRuntime = async (
   }
   const state = createRuntimeState(input, store, credential);
   await reconcileLocalState(input, state);
-  await establishCloudSession(input, state, startSpan);
+  const sessionFailure = await establishCloudSession(input, state, startSpan);
+  const transportFailure = sessionFailure === null
+    ? null : typedRuntimeTransportFailure(sessionFailure);
+  if (transportFailure?.httpStatus === 409
+    && failureCode(sessionFailure) === "AI_SESSION_BINDING_MISMATCH") {
+    return blockedRuntimeHandle(
+      input, store, sessionFailure, credential.control_manifest_hash,
+    );
+  }
   return createRuntimeHandle(input, state);
 };

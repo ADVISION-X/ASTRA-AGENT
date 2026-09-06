@@ -139,6 +139,30 @@ const verifyInitializationHealth = async (): Promise<void> => {
     false,
   );
 
+  const bindingBlocked = await getHealthReport(assembly, {
+    status: "ready",
+    failureReason: null,
+  }, {
+    shellState: "ready",
+    cloudState: "contract_blocked",
+    browserState: "blocked",
+    executionState: "blocked",
+    claimAdmissionState: "blocked",
+    browserAuthorityState: "absent",
+    browserTargetState: "absent",
+    browserLaneState: "blocked",
+    contractManifestHash: `sha256:${"a".repeat(64)}`,
+    activeCount: 0,
+    lastSuccessfulHeartbeatAt: null,
+    lastErrorCode: "AI_SESSION_BINDING_MISMATCH",
+    lastErrorReason: "AI_SESSION_BINDING_MISMATCH",
+    checkedAt: new Date().toISOString(),
+  });
+  const bindingAction = bindingBlocked.components
+    .find((component) => component.name === "agentCloudWorker")?.actionableMessage;
+  assert.match(bindingAction ?? "", /one explicitly authorized enrollment path/u);
+  assert.match(bindingAction ?? "", /Do not retry the same binding/u);
+
 };
 
 const verifySingleLocalEnvironmentInjection = async (): Promise<void> => {

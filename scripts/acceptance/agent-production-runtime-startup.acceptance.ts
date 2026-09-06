@@ -24,7 +24,7 @@ import { executionFailure, typedExecutionFailure } from "../../src/lib/execution
 import type { BrowserExecutionArtifact } from "../../src/lib/browser/browser-authority-api.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
-import { HASH_A, HASH_B, task } from "./agent-production-runtime-fixtures.js";
+import { HASH_A, HASH_B, task, validDeviceCredential } from "./agent-production-runtime-fixtures.js";
 import { assertProductionStartupPreflight } from
   "./agent-production-runtime-startup-preflight.acceptance-support.js";
 import "./agent-production-runtime-recovery-contract.acceptance.js";
@@ -122,6 +122,62 @@ try {
   if (previousCredentialPath === undefined) delete process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
   else process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = previousCredentialPath;
   await rm(temporary, { recursive: true, force: true });
+}
+
+const bindingMismatchTemporary = await mkdtemp(path.join(tmpdir(), "agent-session-binding-mismatch-"));
+const bindingMismatchCredentialPath = path.join(bindingMismatchTemporary, "device-credential.json");
+const bindingMismatchOriginalCredentialPath = process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
+const bindingMismatchOriginalFetch = globalThis.fetch;
+let bindingMismatchRuntime: Awaited<ReturnType<typeof startProductionRuntime>> | null = null;
+const bindingMismatchRequestPaths: string[] = [];
+try {
+  await writeFile(bindingMismatchCredentialPath, JSON.stringify(validDeviceCredential), { mode: 0o600 });
+  process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = bindingMismatchCredentialPath;
+  globalThis.fetch = (async (input: string | URL | Request) => {
+    bindingMismatchRequestPaths.push(new URL(input instanceof Request ? input.url : input).pathname);
+    return new Response(JSON.stringify({
+      ok: false,
+      error: {
+        code: "AI_SESSION_BINDING_MISMATCH",
+        message: "Worker session binding rejected.",
+      },
+    }), { status: 409, headers: { "content-type": "application/json" } });
+  }) as typeof globalThis.fetch;
+  const dataDir = path.join(bindingMismatchTemporary, "runtime");
+  bindingMismatchRuntime = await startProductionRuntime({
+    dataDir,
+    sourceHash: HASH_A,
+    gpt: createGptAbilityGroup(),
+    evidenceStore: createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(dataDir)),
+    browserAuthority: {
+      readProductionRuntimeState: () => ({
+        browserAuthorityState: "absent" as const,
+        browserTargetState: "absent" as const,
+      }),
+    } as never,
+    runtimeLogger: createRuntimeLogger({
+      producer: "agent-session-binding-mismatch", owner: "production-runtime", component: "production-session",
+      terminalEnabled: false, fileSink: { directoryPath: path.join(bindingMismatchTemporary, "runtime-logs") },
+    }),
+  });
+  const health = bindingMismatchRuntime.readHealth();
+  assert.equal(health.shellState, "ready");
+  assert.equal(health.cloudState, "contract_blocked");
+  assert.equal(health.executionState, "blocked");
+  assert.equal(health.claimAdmissionState, "blocked");
+  assert.equal(health.contractManifestHash, validDeviceCredential.control_manifest_hash,
+    "blocked diagnostics must retain only the enrolled manifest hash needed for exact comparison");
+  assert.equal(health.lastErrorCode, "AI_SESSION_BINDING_MISMATCH");
+  await bindingMismatchRuntime.close();
+  bindingMismatchRuntime = null;
+  assert.deepEqual(bindingMismatchRequestPaths, ["/internal/ai-production/v6/sessions/open"],
+    "a deterministic session binding 409 must not create a worker or heartbeat handle that reopens on shutdown");
+} finally {
+  if (bindingMismatchRuntime) await bindingMismatchRuntime.close();
+  globalThis.fetch = bindingMismatchOriginalFetch;
+  if (bindingMismatchOriginalCredentialPath === undefined) delete process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
+  else process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = bindingMismatchOriginalCredentialPath;
+  await rm(bindingMismatchTemporary, { recursive: true, force: true });
 }
 
 const remoteClaimLogTemporary = await mkdtemp(path.join(tmpdir(), "agent-remote-claim-log-"));
@@ -352,7 +408,7 @@ for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:credential:${evidenceMode}`,
-    observedValue: "credential missing parent missing file malformed JSON missing manifest invalid origin unsafe permissions and symlink each failed with one stable typed code while a valid credential read back exactly",
+    observedValue: "credential format failures returned exact typed codes and valid credentials read exactly; a deterministic session binding 409 preserved the enrolled manifest hash, kept Shell ready and execution blocked, and issued exactly one session-open request with no worker or heartbeat handle",
   });
 }
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
