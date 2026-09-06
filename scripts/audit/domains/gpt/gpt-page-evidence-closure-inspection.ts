@@ -514,8 +514,8 @@ const inspectBoundFiles = (
     const absolute = resolve(context.sealedRoot, boundPath);
     if (!existsSync(absolute) || repoPath(context.sealedRoot, absolute) !== boundPath
       || sha256(readFileSync(absolute)) !== record.contentHash) {
-      findings.push(finding("gpt/page-evidence-source-binding-stale", boundPath,
-        `${childId} ${kind} demand source changed after evidence capture.`));
+      findings.push(finding("gpt/page-evidence-source-binding-stale", REPORT_PATH,
+        `${childId} ${kind} demand source ${boundPath} changed after evidence capture.`));
     }
   }
 };
