@@ -1,4 +1,4 @@
-import { Node } from "ts-morph";
+import { Node, type SourceFile } from "ts-morph";
 
 import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
 import { createLocalFinding, domCoherentObservationPath, domExactEditableTextPath, domMechanicalFactsPath,
@@ -263,19 +263,16 @@ export const inspectDomMechanicalFacts = (
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  const facts = requireSource(context, findings, lawId, domMechanicalFactsPath);
-  const exactEditable = requireSource(context, findings, lawId, domExactEditableTextPath);
-  const query = requireSource(context, findings, lawId, QUERY_RUNTIME_PATH);
-  const runtime = requireSource(context, findings, lawId, INTENT_RUNTIME_PATH);
-  const postcondition = requireSource(context, findings, lawId, domMutationPostconditionPath);
-  const observation = requireSource(context, findings, lawId, domCoherentObservationPath);
-  const contract = requireSource(context, findings, lawId, INTENT_CONTRACT_PATH);
-  const candidate = requireSource(context, findings, lawId, COHERENT_CANDIDATE_PATH);
-  const candidateReadback = requireSource(context, findings, lawId, COHERENT_CANDIDATE_READBACK_PATH);
-  const exactAssistantTurn = requireSource(context, findings, lawId, EXACT_ASSISTANT_TURN_PATH);
-  const mutationReceipt = requireSource(context, findings, lawId, MUTATION_RECEIPT_PATH);
-  if (!facts || !exactEditable || !query || !runtime || !postcondition || !observation || !contract || !candidate
-    || !candidateReadback || !exactAssistantTurn || !mutationReceipt) return;
+  const sources = [domMechanicalFactsPath, domExactEditableTextPath, QUERY_RUNTIME_PATH, INTENT_RUNTIME_PATH,
+    domMutationPostconditionPath, domCoherentObservationPath, INTENT_CONTRACT_PATH, COHERENT_CANDIDATE_PATH,
+    COHERENT_CANDIDATE_READBACK_PATH, EXACT_ASSISTANT_TURN_PATH, MUTATION_RECEIPT_PATH]
+    .map((path) => requireSource(context, findings, lawId, path));
+  if (!sources.every((source): source is SourceFile => source !== null)) return;
+  const [facts, exactEditable, query, runtime, postcondition, observation, contract, candidate,
+    candidateReadback, exactAssistantTurn, mutationReceipt] = sources as [
+      SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile,
+      SourceFile, SourceFile, SourceFile, SourceFile, SourceFile,
+    ];
 
   const readerInitializer = facts.getVariableDeclaration("BROWSER_MECHANICAL_FACTS_READER_SOURCE")?.getInitializer();
   const reader = readerInitializer && Node.isNoSubstitutionTemplateLiteral(readerInitializer)

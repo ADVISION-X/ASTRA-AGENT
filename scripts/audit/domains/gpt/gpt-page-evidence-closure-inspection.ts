@@ -1,9 +1,7 @@
 import { createRequire } from "node:module";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { relative, resolve, sep } from "node:path";
-
 import { Node, SyntaxKind, type Expression, type ObjectLiteralExpression } from "ts-morph";
-
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import {
   bindingPaths,
@@ -34,12 +32,9 @@ const DEMAND_CHAIN_FACTS = Object.freeze([
   "document-and-revision-identity", "precondition-observation", "typed-command-and-terminal-receipt",
   "direct-postcondition-observation", "owner-and-linked-node-relations",
 ]);
-
 type FindingFactory = (checkId: string, filePath: string, message: string, line?: number) => InspectorFinding;
 
-const repoPath = (root: string, path: string): string =>
-  relative(root, path).split(sep).join("/");
-
+const repoPath = (root: string, path: string): string => relative(root, path).split(sep).join("/");
 const filesBelow = (root: string, suffixes: readonly string[]): string[] => {
   if (!existsSync(root)) return [];
   const output: string[] = [];
@@ -70,12 +65,11 @@ const literalValue = (expression: Expression): unknown => {
   throw new Error(`CONTRACT_LITERAL_UNSUPPORTED:${expression.getKindName()}`);
 };
 
-const objectValue = (object: ObjectLiteralExpression): Record<string, unknown> => Object.fromEntries(
-  object.getProperties().map((property) => {
+const objectValue = (object: ObjectLiteralExpression): Record<string, unknown> =>
+  Object.fromEntries(object.getProperties().map((property) => {
     if (!Node.isPropertyAssignment(property)) throw new Error("CONTRACT_PROPERTY_INVALID");
     return [property.getName().replace(/^['"]|['"]$/gu, ""), literalValue(property.getInitializerOrThrow())];
-  }),
-);
+  }));
 
 const currentContracts = (context: InspectorContext): Record<string, Record<string, unknown>> => {
   const source = context.project.getSourceFile(resolve(context.sealedRoot, CONTRACT_PATH));

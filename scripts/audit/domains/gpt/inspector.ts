@@ -1,6 +1,5 @@
 import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
-
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../shared/finding-utils.js";

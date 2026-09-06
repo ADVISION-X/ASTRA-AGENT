@@ -1,11 +1,11 @@
 {
   "schemaVersion": "gpt-page-operation-evidence.v5",
-  "generatedAt": "2026-09-06T19:36:13.143Z",
+  "generatedAt": "2026-09-06T19:51:03.536Z",
   "repository": "AGENT",
   "candidateBinding": {
-    "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+    "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
     "clean": true,
-    "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+    "head": "e9b0d0050494c10d8625091216802f2f817b8862",
     "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
   },
   "projectionRevision": "sha256:0905bd12740b48e75afb93bd4eea40b48dfffa626a6ed1b6d9c4f573898fb486",
@@ -6468,9 +6468,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
             "clean": true,
-            "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "head": "e9b0d0050494c10d8625091216802f2f817b8862",
             "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -8874,9 +8874,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
             "clean": true,
-            "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "head": "e9b0d0050494c10d8625091216802f2f817b8862",
             "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -11377,9 +11377,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
             "clean": true,
-            "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "head": "e9b0d0050494c10d8625091216802f2f817b8862",
             "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -13768,9 +13768,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
             "clean": true,
-            "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "head": "e9b0d0050494c10d8625091216802f2f817b8862",
             "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -16630,9 +16630,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
             "clean": true,
-            "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "head": "e9b0d0050494c10d8625091216802f2f817b8862",
             "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -19124,9 +19124,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
             "clean": true,
-            "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "head": "e9b0d0050494c10d8625091216802f2f817b8862",
             "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -21516,9 +21516,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
             "clean": true,
-            "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "head": "e9b0d0050494c10d8625091216802f2f817b8862",
             "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -23973,9 +23973,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
             "clean": true,
-            "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "head": "e9b0d0050494c10d8625091216802f2f817b8862",
             "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -26460,9 +26460,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
             "clean": true,
-            "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "head": "e9b0d0050494c10d8625091216802f2f817b8862",
             "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -28916,9 +28916,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
             "clean": true,
-            "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "head": "e9b0d0050494c10d8625091216802f2f817b8862",
             "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -31379,9 +31379,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
             "clean": true,
-            "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "head": "e9b0d0050494c10d8625091216802f2f817b8862",
             "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -33853,9 +33853,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
             "clean": true,
-            "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "head": "e9b0d0050494c10d8625091216802f2f817b8862",
             "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -36587,9 +36587,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
             "clean": true,
-            "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "head": "e9b0d0050494c10d8625091216802f2f817b8862",
             "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -38834,9 +38834,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
             "clean": true,
-            "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "head": "e9b0d0050494c10d8625091216802f2f817b8862",
             "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -40936,9 +40936,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
             "clean": true,
-            "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "head": "e9b0d0050494c10d8625091216802f2f817b8862",
             "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -43172,9 +43172,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
             "clean": true,
-            "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "head": "e9b0d0050494c10d8625091216802f2f817b8862",
             "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -45867,9 +45867,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
             "clean": true,
-            "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "head": "e9b0d0050494c10d8625091216802f2f817b8862",
             "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -48527,9 +48527,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
             "clean": true,
-            "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "head": "e9b0d0050494c10d8625091216802f2f817b8862",
             "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -50532,9 +50532,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
             "clean": true,
-            "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "head": "e9b0d0050494c10d8625091216802f2f817b8862",
             "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -52889,9 +52889,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
             "clean": true,
-            "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "head": "e9b0d0050494c10d8625091216802f2f817b8862",
             "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -55486,9 +55486,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
             "clean": true,
-            "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "head": "e9b0d0050494c10d8625091216802f2f817b8862",
             "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -58151,9 +58151,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "candidate": "e9b0d0050494c10d8625091216802f2f817b8862",
             "clean": true,
-            "head": "2e3b7ef79b2ed8c5c92ac584cd1ce8a14d224804",
+            "head": "e9b0d0050494c10d8625091216802f2f817b8862",
             "worktreeDigest": "sha256:35c1a0f65eeccc2b923248091082fcbca1f288a485f2d759248ad13e789f839b"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
