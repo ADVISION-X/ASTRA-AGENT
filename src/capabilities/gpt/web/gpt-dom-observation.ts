@@ -177,6 +177,42 @@ export const projectCoherentObservation = (
   });
 };
 
+const exactAssistantIdentityValid = (
+  value: Readonly<Record<string, unknown>>,
+  assistantTurnId: string,
+  sourceCheckpoint: Readonly<{
+    canonicalConversationUrl: string;
+    expectedPromptHash: `sha256:${string}`;
+    turnMarker: string;
+  }>,
+  precedingUserTurnId: string,
+): boolean => value.schemaVersion === "grasseye.browser.exact-assistant-turn.v2"
+  && value.assistantTurnId === assistantTurnId
+  && value.currentUrl === sourceCheckpoint.canonicalConversationUrl
+  && value.precedingUserTurnId === precedingUserTurnId
+  && value.precedingPromptHash === sourceCheckpoint.expectedPromptHash
+  && value.turnMarkerMatched === true;
+
+type ExactAssistantContent = Readonly<{
+  rawDomHtml: string;
+  semanticText: string;
+  observedAt: string;
+}>;
+
+const exactAssistantContentValid = (
+  value: Readonly<Record<string, unknown>>,
+): value is Readonly<Record<string, unknown>> & ExactAssistantContent => {
+  const hashes = [value.exactCallIdentityHash, value.targetRefHash, value.documentRefHash,
+    value.observationRevisionHash, value.rawDomHash, value.semanticTextHash];
+  return hashes.every((candidate) => typeof candidate === "string" && /^sha256:[a-f0-9]{64}$/u.test(candidate))
+    && typeof value.rawDomHtml === "string" && value.rawDomHtml.length > 0
+    && typeof value.semanticText === "string"
+    && nonNegativeInteger(value.generatingRaw)
+    && hashText(value.rawDomHtml) === value.rawDomHash
+    && hashText(value.semanticText) === value.semanticTextHash
+    && typeof value.observedAt === "string" && !Number.isNaN(Date.parse(value.observedAt));
+};
+
 export const readExactAssistantTurn = async (
   browser: Pick<BrowserTargetLease, "executeDomIntent">,
   assistantTurnId: string,
@@ -192,24 +228,10 @@ export const readExactAssistantTurn = async (
   const value = record(await browser.executeDomIntent({
     kind: "readExactAssistantTurn", assistantTurnId, sourceCheckpoint,
   }));
-  const hashes = [value.exactCallIdentityHash, value.targetRefHash, value.documentRefHash,
-    value.observationRevisionHash,
-    value.rawDomHash, value.semanticTextHash];
   const ordinal = Number(assistantTurnId.slice("conversation-turn-".length));
   const precedingUserTurnId = `conversation-turn-${ordinal - 1}`;
-  if (value.schemaVersion !== "grasseye.browser.exact-assistant-turn.v2"
-    || value.assistantTurnId !== assistantTurnId
-    || !hashes.every((candidate) => typeof candidate === "string" && /^sha256:[a-f0-9]{64}$/u.test(candidate))
-    || typeof value.rawDomHtml !== "string" || value.rawDomHtml.length === 0
-    || typeof value.semanticText !== "string"
-    || value.currentUrl !== sourceCheckpoint.canonicalConversationUrl
-    || value.precedingUserTurnId !== precedingUserTurnId
-    || value.precedingPromptHash !== sourceCheckpoint.expectedPromptHash
-    || value.turnMarkerMatched !== true
-    || !nonNegativeInteger(value.generatingRaw)
-    || hashText(value.rawDomHtml) !== value.rawDomHash
-    || hashText(value.semanticText) !== value.semanticTextHash
-    || typeof value.observedAt !== "string" || Number.isNaN(Date.parse(value.observedAt))) {
+  if (!exactAssistantIdentityValid(value, assistantTurnId, sourceCheckpoint, precedingUserTurnId)
+    || !exactAssistantContentValid(value)) {
     throw executionFailure("failed", "GPT_EXACT_ASSISTANT_TURN_RESULT_INVALID");
   }
   return Object.freeze({

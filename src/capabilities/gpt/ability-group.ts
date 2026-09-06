@@ -485,12 +485,15 @@ const executeOne = async <K extends GptChildCapabilityId>(
   context: GptExecutionContext,
 ): Promise<GptChildCapabilityResult<K>> => {
   const startedAt = new Date().toISOString();
-  const handler = handlers[intent.childCapabilityId] as unknown as GptChildHandler<K>;
+  const registeredHandler: unknown = Reflect.get(handlers, intent.childCapabilityId);
+  if (typeof registeredHandler !== "function") {
+    throw executionFailure("failed", `GPT_CHILD_NOT_REGISTERED:${intent.childCapabilityId}`);
+  }
+  const handler = registeredHandler as GptChildHandler<K>;
   const before = currentDocument(context);
   let observation: GptChildObservation<K> | undefined;
   try {
     assertExecutionIdentity(intent);
-    if (!handler) throw executionFailure("failed", `GPT_CHILD_NOT_REGISTERED:${intent.childCapabilityId}`);
     if (context.signal?.aborted) throw executionFailure("failed", "GPT_EXECUTION_ABORTED");
     if ((context.browser?.pendingMutationCount() ?? 0) !== 0 && context.mutationMode !== "readback") {
       throw executionFailure("failed", "GPT_PRIOR_BROWSER_MUTATION_UNRESOLVED");

@@ -11,6 +11,17 @@ export type GptSubmissionLocatorArtifact = Readonly<{
 const isSha256 = (value: unknown): value is `sha256:${string}` =>
   typeof value === "string" && /^sha256:[a-f0-9]{64}$/u.test(value);
 
+const locatorFieldsValid = (
+  row: Readonly<Record<string, unknown>>,
+): row is Readonly<Record<string, unknown>> & Pick<
+  GptSubmissionLocatorArtifact,
+  "turnMarker" | "userTurnId" | "promptHash" | "conversationIdentityHash"
+> =>
+  typeof row.turnMarker === "string" && row.turnMarker.length > 0
+  && typeof row.userTurnId === "string" && /^conversation-turn-[1-9][0-9]*$/u.test(row.userTurnId)
+  && isSha256(row.promptHash)
+  && isSha256(row.conversationIdentityHash);
+
 export const gptSubmissionLocatorArtifact = (
   value: unknown,
   hash: (content: string) => `sha256:${string}`,
@@ -22,9 +33,7 @@ export const gptSubmissionLocatorArtifact = (
   let canonicalConversationUrl: string;
   try { canonicalConversationUrl = durableGptConversationUrl(row.canonicalConversationUrl); }
   catch { return null; }
-  if (typeof row.turnMarker !== "string" || !row.turnMarker) return null;
-  if (typeof row.userTurnId !== "string" || !/^conversation-turn-[1-9][0-9]*$/u.test(row.userTurnId)) return null;
-  if (!isSha256(row.promptHash) || !isSha256(row.conversationIdentityHash)) return null;
+  if (!locatorFieldsValid(row)) return null;
   const identity = hash(`${canonicalConversationUrl}\n${row.turnMarker}\n${row.userTurnId}\n${row.promptHash}`);
   if (identity !== row.conversationIdentityHash) return null;
   return Object.freeze({

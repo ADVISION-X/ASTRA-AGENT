@@ -229,24 +229,29 @@ export const assertBrowserDomIntent = (intent: BrowserDomIntent): BrowserDomInte
   return intent;
 };
 
+const exactAssistantReadIntentValid = (
+  intent: Extract<BrowserDomIntent, { kind: "readExactAssistantTurn" }>,
+): boolean => {
+  const source = intent.sourceCheckpoint;
+  let canonical = false;
+  try {
+    canonical = requireCanonicalGptConversationUrl(source?.canonicalConversationUrl ?? "")
+      === source?.canonicalConversationUrl;
+  } catch { canonical = false; }
+  const ordinal = Number(intent.assistantTurnId.slice("conversation-turn-".length));
+  return /^conversation-turn-[1-9][0-9]*$/u.test(intent.assistantTurnId)
+    && Number.isSafeInteger(ordinal) && ordinal >= 2
+    && Boolean(source)
+    && Object.keys(source ?? {}).sort().join("|") === "canonicalConversationUrl|expectedPromptHash|turnMarker"
+    && canonical
+    && /^sha256:[a-f0-9]{64}$/u.test(source?.expectedPromptHash ?? "")
+    && isBoundedText(source?.turnMarker, 1_024);
+};
+
 const assertObservationIntent = (intent: BrowserDomIntent): void => {
   if (intent.kind === "observe") assertObserveIntent(intent);
-  if (intent.kind === "readExactAssistantTurn") {
-    const source = intent.sourceCheckpoint;
-    let canonical = false;
-    try {
-      canonical = requireCanonicalGptConversationUrl(source?.canonicalConversationUrl ?? "")
-        === source?.canonicalConversationUrl;
-    } catch { canonical = false; }
-    const ordinal = Number(intent.assistantTurnId.slice("conversation-turn-".length));
-    if (!/^conversation-turn-[1-9][0-9]*$/u.test(intent.assistantTurnId)
-      || !Number.isSafeInteger(ordinal) || ordinal < 2
-      || !source || Object.keys(source).sort().join("|")
-        !== "canonicalConversationUrl|expectedPromptHash|turnMarker"
-      || !canonical || !/^sha256:[a-f0-9]{64}$/u.test(source.expectedPromptHash)
-      || !isBoundedText(source.turnMarker, 1_024)) {
-      throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-    }
+  if (intent.kind === "readExactAssistantTurn" && !exactAssistantReadIntentValid(intent)) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
   if (intent.kind === "inspect") assertDomFields(intent.fields);
   if (intent.kind === "find") {

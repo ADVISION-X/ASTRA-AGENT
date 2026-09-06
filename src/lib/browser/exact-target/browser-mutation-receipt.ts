@@ -280,6 +280,37 @@ const assertFileInputReceipt = (
   }
 };
 
+const clickedAttributeReceiptValid = (
+  clickedAttribute: Readonly<{ name: string; equals: string }> | undefined,
+  clickedReadback: unknown,
+  postconditionVerified: unknown,
+): boolean => {
+  if (clickedAttribute === undefined) return true;
+  if (!clickedReadback || typeof clickedReadback !== "object" || Array.isArray(clickedReadback)) return false;
+  const readback = clickedReadback as Readonly<Record<string, unknown>>;
+  return exactKeys(readback, ["name", "value", "verified"])
+    && readback.name === clickedAttribute.name
+    && typeof readback.value === "string"
+    && readback.verified === (readback.value === clickedAttribute.equals)
+    && (postconditionVerified !== true || readback.verified === true);
+};
+
+const domActionReceiptValid = (
+  intent: Extract<BrowserGovernedCommand, { kind: "dom-intent" }>["intent"],
+  value: Readonly<Record<string, unknown>>,
+  clickedAttributeValid: boolean,
+): boolean => {
+  if (intent.kind === "click") return value.clicked === true && clickedAttributeValid;
+  if (intent.kind === "hover") return value.hovered === true;
+  if (intent.kind === "doubleClick") return value.doubleClicked === true;
+  if (intent.kind === "keypress") {
+    return value.keyPressed === intent.key && value.keypressCount === (intent.repeat ?? 1);
+  }
+  return intent.kind === "fill"
+    && value.filled === true
+    && value.retainedValueVerified === value.postconditionVerified;
+};
+
 const assertDomActionReceipt = (
   command: Extract<BrowserGovernedCommand, { kind: "dom-intent" }>,
   value: Readonly<Record<string, unknown>>,
@@ -288,22 +319,10 @@ const assertDomActionReceipt = (
   const clickedAttribute = intent.kind === "click"
     ? intent.postClickObservation?.clickedCandidateAttribute : undefined;
   const clickedReadback = value.clickedCandidateAttributeReadback;
-  const clickedAttributeValid = clickedAttribute === undefined || (!!clickedReadback
-    && typeof clickedReadback === "object" && !Array.isArray(clickedReadback)
-    && exactKeys(clickedReadback as Readonly<Record<string, unknown>>, ["name", "value", "verified"])
-    && (clickedReadback as Readonly<Record<string, unknown>>).name === clickedAttribute.name
-    && typeof (clickedReadback as Readonly<Record<string, unknown>>).value === "string"
-    && (clickedReadback as Readonly<Record<string, unknown>>).verified
-      === ((clickedReadback as Readonly<Record<string, unknown>>).value === clickedAttribute.equals)
-    && (value.postconditionVerified !== true
-      || (clickedReadback as Readonly<Record<string, unknown>>).verified === true));
-  const valid = intent.kind === "click" ? value.clicked === true && clickedAttributeValid
-    : intent.kind === "hover" ? value.hovered === true
-      : intent.kind === "doubleClick" ? value.doubleClicked === true
-        : intent.kind === "keypress" ? value.keyPressed === intent.key
-          && value.keypressCount === (intent.repeat ?? 1)
-          : intent.kind === "fill" ? value.filled === true
-            && value.retainedValueVerified === value.postconditionVerified : false;
+  const clickedAttributeValid = clickedAttributeReceiptValid(
+    clickedAttribute, clickedReadback, value.postconditionVerified,
+  );
+  const valid = domActionReceiptValid(intent, value, clickedAttributeValid);
   if (!valid) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
 };
 

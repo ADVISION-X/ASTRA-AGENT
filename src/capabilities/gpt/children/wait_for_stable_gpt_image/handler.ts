@@ -23,6 +23,15 @@ const stableImageObserved = (
   mediaHash: `sha256:${string}`,
 ): boolean => prior !== null && prior.assistantTurnId === assistantTurnId && prior.mediaHash === mediaHash;
 
+const validProbeBudget = (value: number): boolean =>
+  Number.isSafeInteger(value) && value >= 1 && value <= 3_600_000;
+
+const documentOwnsMedia = (
+  authorityRefHashes: readonly `sha256:${string}`[],
+  media: Readonly<{ authorityTargetHash: `sha256:${string}`; authorityDocumentHash: `sha256:${string}` }>,
+): boolean => authorityRefHashes.includes(media.authorityTargetHash)
+  && authorityRefHashes.includes(media.authorityDocumentHash);
+
 export const waitForStableGptImageHandler: GptChildHandler<"wait_for_stable_gpt_image"> =
   async (intent, context) => {
     const invocationStartedAt = Date.now();
@@ -32,7 +41,7 @@ export const waitForStableGptImageHandler: GptChildHandler<"wait_for_stable_gpt_
     const expectedPromptHash = responseHashInput(intent, "expectedPromptHash");
     const turnMarker = stringInput(intent, "turnMarker");
     const probeBudgetMs = numberInput(intent, "probeBudgetMs");
-    if (!Number.isSafeInteger(probeBudgetMs) || probeBudgetMs < 1 || probeBudgetMs > 3_600_000) {
+    if (!validProbeBudget(probeBudgetMs)) {
       throw executionFailure("failed", "GPT_RESPONSE_PROBE_BUDGET_INVALID");
     }
     const deadline = invocationStartedAt + probeBudgetMs;
@@ -56,8 +65,7 @@ export const waitForStableGptImageHandler: GptChildHandler<"wait_for_stable_gpt_
             assistantTurnId, semanticMediaId: "gpt-generated-image-main",
           });
           if (Date.now() >= deadline) break;
-          if (!observed.facts.authorityRefHashes.includes(media.authorityTargetHash)
-            || !observed.facts.authorityRefHashes.includes(media.authorityDocumentHash)) {
+          if (!documentOwnsMedia(observed.facts.authorityRefHashes, media)) {
             throw executionFailure("failed", "GPT_GENERATED_IMAGE_DOCUMENT_MISMATCH");
           }
           if (stableImageObserved(prior, assistantTurnId, media.sha256)) return success({

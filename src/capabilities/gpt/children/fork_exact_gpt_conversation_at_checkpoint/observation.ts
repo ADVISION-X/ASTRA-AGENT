@@ -14,6 +14,7 @@ import {
   readCoherentObservation,
   readExactAssistantTurn,
   type GptCoherentFactProjection,
+  type GptCoherentObservation,
   type GptExactAssistantTurnObservation,
 } from "../../web/gpt-dom-observation.js";
 import {
@@ -106,6 +107,62 @@ export type ConversationState = Readonly<{
   facts: GptCoherentFactProjection;
 }>;
 
+const projectConversationState = (observation: GptCoherentObservation): ConversationState => {
+  const row = (queryId: string) => observation.rows.find((candidate) => candidate.queryId === queryId);
+  const composer = row("composer")!;
+  const users = row("user-turns")!;
+  const assistants = row("assistant-turns")!;
+  const userTurns = users.matches.map((match) => {
+    if (typeof match.testId !== "string" || !TURN.test(match.testId)
+      || typeof match.exactGptUserPromptHash !== "string" || !HASH.test(match.exactGptUserPromptHash)) {
+      throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
+    }
+    return Object.freeze({ testId: match.testId, contentHash: match.exactGptUserPromptHash });
+  });
+  const assistantTurnIds = assistants.matches.map((match) => {
+    if (typeof match.testId !== "string" || !TURN.test(match.testId)) {
+      throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
+    }
+    return match.testId;
+  });
+  const trigger = row("source-trigger");
+  const checkpointMenu = row("checkpoint-menu");
+  const openFork = row("open-fork-leaf");
+  const destinationMenu = row("destination-menu");
+  const stringField = (value: unknown): string | null => typeof value === "string" ? value : null;
+  const rawComposerHash = composer.matches[0]?.exactEditableTextHash;
+  if (rawComposerHash !== undefined
+    && (typeof rawComposerHash !== "string" || !HASH.test(rawComposerHash))) {
+    throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
+  }
+  const documentState = {
+    currentUrl: observation.currentUrl, composerRaw: composer.rawCount,
+    composerEligible: composer.eligibleCount,
+    composerHash: typeof rawComposerHash === "string" ? rawComposerHash : null,
+    userRaw: users.rawCount, userTurns: Object.freeze(userTurns),
+    assistantRaw: assistants.rawCount, assistantTurnIds: Object.freeze(assistantTurnIds),
+    attachmentsRaw: row("attachments")!.rawCount, generatingRaw: row("generating")!.rawCount,
+  };
+  const menuState = {
+    triggerRaw: trigger?.rawCount ?? 0, triggerEligible: trigger?.eligibleCount ?? 0,
+    triggerId: stringField(trigger?.matches[0]?.id), triggerExpanded: stringField(trigger?.matches[0]?.ariaExpanded),
+    triggerMenuId: stringField(trigger?.matches[0]?.ariaControls),
+    checkpointMenuRaw: checkpointMenu?.rawCount ?? 0, checkpointMenuEligible: checkpointMenu?.eligibleCount ?? 0,
+    checkpointMenuId: stringField(checkpointMenu?.matches[0]?.id),
+    checkpointMenuLabelledBy: stringField(checkpointMenu?.matches[0]?.ariaLabelledBy),
+    openForkRaw: openFork?.rawCount ?? 0, openForkEligible: openFork?.eligibleCount ?? 0,
+    openForkId: stringField(openFork?.matches[0]?.id), openForkExpanded: stringField(openFork?.matches[0]?.ariaExpanded),
+    openForkMenuId: stringField(openFork?.matches[0]?.ariaControls),
+    destinationMenuRaw: destinationMenu?.rawCount ?? 0,
+    destinationMenuEligible: destinationMenu?.eligibleCount ?? 0,
+    destinationMenuId: stringField(destinationMenu?.matches[0]?.id),
+    destinationMenuLabelledBy: stringField(destinationMenu?.matches[0]?.ariaLabelledBy),
+    forkToNewChatRaw: row("fork-to-new-chat-leaf")?.rawCount ?? 0,
+    forkToNewChatEligible: row("fork-to-new-chat-leaf")?.eligibleCount ?? 0,
+  };
+  return Object.freeze({ ...documentState, ...menuState, facts: projectCoherentObservation(observation, "composer") });
+};
+
 export const readConversationState = async (
   browser: BrowserTargetLease,
   triggerAssistantTurnId?: string,
@@ -135,67 +192,7 @@ export const readConversationState = async (
         maxMatches: 2, fields: [] },
     ]),
   ];
-  const observation = await readCoherentObservation(browser, queries);
-  const row = (queryId: string) => observation.rows.find((candidate) => candidate.queryId === queryId);
-  const composer = row("composer")!;
-  const users = row("user-turns")!;
-  const assistants = row("assistant-turns")!;
-  const userTurns = users.matches.map((match) => {
-    if (typeof match.testId !== "string" || !TURN.test(match.testId)
-      || typeof match.exactGptUserPromptHash !== "string" || !HASH.test(match.exactGptUserPromptHash)) {
-      throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
-    }
-    return Object.freeze({ testId: match.testId, contentHash: match.exactGptUserPromptHash });
-  });
-  const assistantTurnIds = assistants.matches.map((match) => {
-    if (typeof match.testId !== "string" || !TURN.test(match.testId)) {
-      throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
-    }
-    return match.testId;
-  });
-  const trigger = row("source-trigger");
-  const checkpointMenu = row("checkpoint-menu");
-  const openFork = row("open-fork-leaf");
-  const destinationMenu = row("destination-menu");
-  const stringField = (value: unknown): string | null => typeof value === "string" ? value : null;
-  const rawComposerHash = composer.matches[0]?.exactEditableTextHash;
-  if (rawComposerHash !== undefined
-    && (typeof rawComposerHash !== "string" || !HASH.test(rawComposerHash))) {
-    throw executionFailure("failed", "GPT_DOM_RESULT_INVALID");
-  }
-  return Object.freeze({
-    currentUrl: observation.currentUrl,
-    composerRaw: composer.rawCount,
-    composerEligible: composer.eligibleCount,
-    composerHash: typeof rawComposerHash === "string" ? rawComposerHash : null,
-    userRaw: users.rawCount,
-    userTurns: Object.freeze(userTurns),
-    assistantRaw: assistants.rawCount,
-    assistantTurnIds: Object.freeze(assistantTurnIds),
-    attachmentsRaw: row("attachments")!.rawCount,
-    generatingRaw: row("generating")!.rawCount,
-    triggerRaw: trigger?.rawCount ?? 0,
-    triggerEligible: trigger?.eligibleCount ?? 0,
-    triggerId: stringField(trigger?.matches[0]?.id),
-    triggerExpanded: stringField(trigger?.matches[0]?.ariaExpanded),
-    triggerMenuId: stringField(trigger?.matches[0]?.ariaControls),
-    checkpointMenuRaw: checkpointMenu?.rawCount ?? 0,
-    checkpointMenuEligible: checkpointMenu?.eligibleCount ?? 0,
-    checkpointMenuId: stringField(checkpointMenu?.matches[0]?.id),
-    checkpointMenuLabelledBy: stringField(checkpointMenu?.matches[0]?.ariaLabelledBy),
-    openForkRaw: openFork?.rawCount ?? 0,
-    openForkEligible: openFork?.eligibleCount ?? 0,
-    openForkId: stringField(openFork?.matches[0]?.id),
-    openForkExpanded: stringField(openFork?.matches[0]?.ariaExpanded),
-    openForkMenuId: stringField(openFork?.matches[0]?.ariaControls),
-    destinationMenuRaw: destinationMenu?.rawCount ?? 0,
-    destinationMenuEligible: destinationMenu?.eligibleCount ?? 0,
-    destinationMenuId: stringField(destinationMenu?.matches[0]?.id),
-    destinationMenuLabelledBy: stringField(destinationMenu?.matches[0]?.ariaLabelledBy),
-    forkToNewChatRaw: row("fork-to-new-chat-leaf")?.rawCount ?? 0,
-    forkToNewChatEligible: row("fork-to-new-chat-leaf")?.eligibleCount ?? 0,
-    facts: projectCoherentObservation(observation, "composer"),
-  });
+  return projectConversationState(await readCoherentObservation(browser, queries));
 };
 
 const assistantFacts = (

@@ -1,8 +1,5 @@
 import type { InventoryFindingCollector } from "./code-purity-finding-collector.js";
-import {
-  isGeneratedOwnerInspectorExport,
-  pushZombieFinding,
-} from "./zombie-surface-shared.js";
+import { pushZombieFinding } from "./zombie-surface-shared.js";
 import type { ZombieModuleGraph, ZombieReachability } from "./zombie-module-graph.js";
 import type { ZombieNamespaceUsageReport } from "./zombie-namespace-usage.js";
 import type { ZombieExportSymbol, ZombieSymbolGraph } from "./zombie-symbol-graph.js";
@@ -141,9 +138,6 @@ const scanZombieExportSymbol = (
   },
   exportSymbol: ZombieExportSymbol,
 ): "live" | "skip" | "zombie" => {
-  if (isGeneratedOwnerInspectorExport(input.governedFile, exportSymbol.exportName)) {
-    return "skip";
-  }
   if (exportSymbol.exportName === "inspectDomain"
     && input.generatedOwnerInspectorPaths.has(exportSymbol.exportingFile)) {
     return "live";
@@ -206,9 +200,6 @@ const scanZombieExports = (
       continue;
     }
     for (const exportSymbol of exportSymbols) {
-      if (isGeneratedOwnerInspectorExport(governedFile, exportSymbol.exportName)) {
-        continue;
-      }
       const status = scanZombieExportSymbol(
         collector,
         {

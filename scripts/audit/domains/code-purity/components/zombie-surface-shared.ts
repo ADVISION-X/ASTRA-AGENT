@@ -1,15 +1,6 @@
 import type { InventoryFindingCollector } from "./code-purity-finding-collector.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
 
-export const isOwnerInspectorPath = (repoPath: string): boolean => {
-  const segments = repoPath.split("/").filter((segment) => segment.length > 0);
-  return segments.length === 5
-    && segments[0] === "scripts"
-    && segments[1] === "audit"
-    && segments[2] === "domains"
-    && segments[4] === "inspector.ts";
-};
-
 export const pushZombieFinding = (
   collector: InventoryFindingCollector,
   input: {
@@ -42,9 +33,3 @@ export const pushZombieFinding = (
     input.message,
   );
 };
-export const isGeneratedOwnerInspectorExport = (
-  governedFile: GovernedFile,
-  exportName: string,
-): boolean =>
-  (isOwnerInspectorPath(governedFile.repoPath)
-    && exportName === "inspectDomain");

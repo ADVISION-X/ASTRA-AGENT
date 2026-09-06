@@ -2,18 +2,27 @@ import type { BrowserGovernedCommand } from "../exact-target/browser-command-act
 import {
   GPT_WEB_START_URL,
   gptWebClaimOriginForUrl,
-  requireCanonicalGptConversationUrl,
   requireGptWebPolicyForUrl,
 } from "../exact-target/browser-site-policy-registry.js";
 import { BROWSER_COMMAND_DEFAULT_DEADLINE_MS } from "../protocol/generated/browser-protocol.generated.js";
 import { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
-import { executeAuthenticatedMedia } from "./authenticated-media-runtime.js";
+import { executeRegisteredExtensionCommand } from "./extension-command-runtime.js";
 import { executeRegisteredDomIntent } from "./dom-intent-runtime.js";
 import { ExtensionExactTargetRegistry, type ExtensionExactTarget } from "./exact-target-runtime.js";
-import { executeExtensionFileInput } from "./extension-file-input-runtime.js";
+import {
+  collectForkCleanupFailures,
+  debuggerDetachFailure,
+  discoverGptForkSuccessor,
+  exactAssistantReadLoaderId,
+  forkTransitionComplete,
+  forkTargetSetSettled,
+  readDiscoveredTabIds,
+  readExtensionMainFrame,
+  waitForCanonicalGptMainFrame,
+  waitForDiscoveredTabAbsence,
+} from "./extension-target-observation.js";
 import type {
   ExtensionChromeApi,
-  ExtensionDebuggerDetachReason,
   ExtensionDebugTarget,
 } from "./extension-runtime-types.js";
 
@@ -29,28 +38,12 @@ type TargetFailureReporter = (input: Readonly<{
   nativeCauseCode?: "CHROME_DEBUGGER_TARGET_CLOSED" | "CHROME_DEBUGGER_CANCELED_BY_USER";
 }>) => Promise<void> | void;
 
-const DEBUGGER_DETACH_FAILURE: Readonly<Record<ExtensionDebuggerDetachReason, Readonly<{
-  reasonCode: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT" | "BROWSER_DEVTOOLS_CONFLICT";
-  nativeCauseCode: "CHROME_DEBUGGER_TARGET_CLOSED" | "CHROME_DEBUGGER_CANCELED_BY_USER";
-}>>> = Object.freeze({
-  target_closed: Object.freeze({
-    reasonCode: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT",
-    nativeCauseCode: "CHROME_DEBUGGER_TARGET_CLOSED",
-  }),
-  canceled_by_user: Object.freeze({
-    reasonCode: "BROWSER_DEVTOOLS_CONFLICT",
-    nativeCauseCode: "CHROME_DEBUGGER_CANCELED_BY_USER",
-  }),
-});
-
 type PendingCreatedTarget = Readonly<{
   tabId: number;
   resolve(target: ExtensionDebugTarget): void;
   reject(error: Error): void;
   timeout: ReturnType<typeof globalThis.setTimeout>;
 }>;
-
-type MainFrame = Readonly<{ loaderId: string; url: string }>;
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   typeof value === "object" && value !== null && !Array.isArray(value)
@@ -92,7 +85,7 @@ export class ExtensionTargetAuthority {
       this.attachedTabId = null;
       this.navigationPublication = null;
       void this.publishTargetFailure({
-        targetRef, runtimeEventType: "debugger-detach", ...DEBUGGER_DETACH_FAILURE[reason],
+        targetRef, runtimeEventType: "debugger-detach", ...debuggerDetachFailure(reason),
       });
     });
     this.chromeApi.debugger.onEvent.addListener((target, method, parameters) => {
@@ -154,7 +147,7 @@ export class ExtensionTargetAuthority {
     }
     try {
       await this.debuggerRuntime.send(candidate.tabId, "Page.enable");
-      const mainFrame = await this.readMainFrame(candidate.tabId);
+      const mainFrame = await readExtensionMainFrame(this.debuggerRuntime, candidate.tabId);
       requireGptWebPolicyForUrl(mainFrame.url);
       const target = this.targets.claimOperatorTarget(candidate.tabId);
       this.activeTarget = target;
@@ -214,11 +207,10 @@ export class ExtensionTargetAuthority {
       const forkTransition = command.intent.kind === "click"
         ? command.intent.postClickTargetTransition : undefined;
       const targetBaseline = forkTransition === undefined
-        ? null : await this.readDiscoveredTabIds();
-      const expectedMainFrameLoaderId = command.intent.kind === "readExactAssistantTurn"
-        && this.activeTarget?.targetRef === target.targetRef
-        && this.activeTarget.documentRef === target.documentRef
-        ? this.activeLoaderId : undefined;
+        ? null : await readDiscoveredTabIds(this.chromeApi);
+      const expectedMainFrameLoaderId = exactAssistantReadLoaderId(
+        command.intent.kind, target, this.activeTarget, this.activeLoaderId,
+      );
       if (command.intent.kind === "readExactAssistantTurn" && !expectedMainFrameLoaderId) {
         throw new Error("BROWSER_DOCUMENT_INVALID");
       }
@@ -230,53 +222,21 @@ export class ExtensionTargetAuthority {
       );
       if (forkTransition === undefined) this.targets.resolve(target.targetRef, target.documentRef);
       else {
-        const current = this.activeTarget;
-        if (!current || current.targetRef !== target.targetRef || current.tabId === target.tabId
-          || current.documentRef === target.documentRef
-          || current.navigationEpoch !== target.navigationEpoch + 1) {
+        if (!forkTransitionComplete(this.activeTarget, target)) {
           throw new Error("BROWSER_POSTCONDITION_FAILED");
         }
       }
       return result;
     }
-    if (command.kind === "observe") {
-      const result = await executeRegisteredDomIntent(
-        this.debuggerRuntime,
-        target,
-        { kind: "document" },
-        () => { this.targets.resolve(target.targetRef, target.documentRef); },
-      );
-      this.targets.resolve(target.targetRef, target.documentRef);
-      return result;
-    }
-    if (command.kind === "wait") return this.executeWait(command.durationMs);
-    if (command.kind === "navigate") return this.executeNavigation(target, command.url);
-    if (command.kind === "park-target") {
-      await this.parkActiveTarget();
-      return { parked: true };
-    }
-    if (command.kind === "close-target") {
-      await this.debuggerRuntime.send(target.tabId, "Page.close");
-      await this.releaseActiveTarget();
-      return { closed: true };
-    }
-    if (command.kind === "file-input") {
-      return executeExtensionFileInput({
-        runtime: this.debuggerRuntime,
-        target,
-        assertCurrent: (targetRef, documentRef) => { this.targets.resolve(targetRef, documentRef); },
-        selector: command.selector,
-        activation: command.activation,
-        approvedFiles: command.approvedFiles,
-        resolvedFilePaths: command.resolvedFilePaths,
-      });
-    }
-    if (command.kind === "authenticated-media") {
-      return executeAuthenticatedMedia(
-        this.debuggerRuntime, target, command.assistantTurnId, command.semanticMediaId,
-      );
-    }
-    throw new Error("BROWSER_FILE_GRANT_INVALID");
+    return executeRegisteredExtensionCommand(this.debuggerRuntime, target, command, {
+      assertCurrent: () => { this.targets.resolve(target.targetRef, target.documentRef); },
+      closeTarget: async () => {
+        await this.debuggerRuntime.send(target.tabId, "Page.close");
+        await this.releaseActiveTarget();
+      },
+      navigate: (url) => this.executeNavigation(target, url),
+      parkTarget: () => this.parkActiveTarget(),
+    });
   }
 
   private async createProductionCandidate(): Promise<ExtensionDebugTarget> {
@@ -295,7 +255,7 @@ export class ExtensionTargetAuthority {
     }
     try {
       await this.debuggerRuntime.send(parked.tabId, "Page.enable");
-      let mainFrame = await this.readMainFrame(parked.tabId);
+      let mainFrame = await readExtensionMainFrame(this.debuggerRuntime, parked.tabId);
       requireGptWebPolicyForUrl(mainFrame.url);
       if (resetToStart) {
         const response = asRecord(await this.debuggerRuntime.send(
@@ -303,7 +263,7 @@ export class ExtensionTargetAuthority {
         ));
         mainFrame = typeof response?.loaderId === "string"
           ? { loaderId: response.loaderId, url: GPT_WEB_START_URL }
-          : await this.readMainFrame(parked.tabId);
+          : await readExtensionMainFrame(this.debuggerRuntime, parked.tabId);
         if (priorLoaderId === null || mainFrame.loaderId === priorLoaderId) {
           throw new Error("BROWSER_DOCUMENT_INVALID");
         }
@@ -356,7 +316,7 @@ export class ExtensionTargetAuthority {
     try {
       requireGptWebPolicyForUrl(candidates[0]!.url);
       this.debuggerRuntime.adoptAttached(tabId);
-      const mainFrame = await this.readMainFrame(tabId);
+      const mainFrame = await readExtensionMainFrame(this.debuggerRuntime, tabId);
       requireGptWebPolicyForUrl(mainFrame.url);
       const recovered = this.targets.claimOperatorTarget(tabId);
       if (recovered.targetRef !== targetRef) throw new Error("BROWSER_EXACT_TARGET_UNAVAILABLE");
@@ -438,33 +398,6 @@ export class ExtensionTargetAuthority {
     if (cleanupErrors.length) throw new AggregateError(cleanupErrors, "BROWSER_TARGET_CLEANUP_FAILED");
   }
 
-  private async readMainFrame(tabId: number): Promise<MainFrame> {
-    const result = asRecord(await this.debuggerRuntime.send(tabId, "Page.getFrameTree"));
-    const frameTree = asRecord(result?.frameTree);
-    const frame = asRecord(frameTree?.frame);
-    if (!frame || typeof frame.url !== "string" || typeof frame.loaderId !== "string") {
-      throw new Error("BROWSER_TARGET_INVALID");
-    }
-    return { loaderId: frame.loaderId, url: frame.url };
-  }
-
-  private async executeWait(durationMs: number): Promise<Readonly<{ waitedMs: number }>> {
-    if (!Number.isInteger(durationMs) || durationMs < 1 || durationMs > BROWSER_COMMAND_DEFAULT_DEADLINE_MS) {
-      throw new Error("BROWSER_CAPABILITY_REJECTED");
-    }
-    await new Promise<void>((resolve) => globalThis.setTimeout(resolve, durationMs));
-    return { waitedMs: durationMs };
-  }
-
-  private async readDiscoveredTabIds(): Promise<ReadonlySet<number>> {
-    try {
-      return new Set((await this.chromeApi.debugger.getTargets())
-        .flatMap((candidate) => Number.isSafeInteger(candidate.tabId) ? [candidate.tabId!] : []));
-    } catch (error) {
-      throw new Error("BROWSER_TARGET_DISCOVERY_UNAVAILABLE", { cause: error });
-    }
-  }
-
   private async normalizeGptForkSuccessor(
     source: ExtensionExactTarget,
     baselineTabIds: ReadonlySet<number>,
@@ -475,30 +408,15 @@ export class ExtensionTargetAuthority {
     let attached = false;
     let takeoverCommitted = false;
     try {
-      do {
-        let discovered: readonly ExtensionDebugTarget[];
-        try {
-          discovered = (await this.chromeApi.debugger.getTargets()).filter((candidate) =>
-            Number.isSafeInteger(candidate.tabId) && !baselineTabIds.has(candidate.tabId!));
-        } catch (error) {
-          throw new Error("BROWSER_TARGET_DISCOVERY_UNAVAILABLE", { cause: error });
-        }
-        if (discovered.length > 1) throw new Error("BROWSER_POSTCONDITION_FAILED");
-        if (discovered.length === 1) {
-          successor = discovered[0]!;
-          if (successor.type !== "page" || !Number.isSafeInteger(successor.tabId)) {
-            throw new Error("BROWSER_POSTCONDITION_FAILED");
-          }
-          break;
-        }
-        await this.waitForTargetObservation(deadline);
-      } while (Date.now() < deadline);
-      if (!successor || successor.tabId === undefined) throw new Error("BROWSER_POSTCONDITION_FAILED");
+      successor = await discoverGptForkSuccessor(this.chromeApi, baselineTabIds, deadline);
+      if (successor.tabId === undefined) throw new Error("BROWSER_POSTCONDITION_FAILED");
 
       await this.debuggerRuntime.attach(successor.tabId);
       attached = true;
       await this.debuggerRuntime.send(successor.tabId, "Page.enable");
-      const childFrame = await this.waitForCanonicalGptMainFrame(successor.tabId, deadline);
+      const childFrame = await waitForCanonicalGptMainFrame(
+        this.debuggerRuntime, successor.tabId, deadline,
+      );
 
       const next = this.targets.transferPhysicalTab(
         source.targetRef, source.documentRef, successor.tabId,
@@ -513,57 +431,24 @@ export class ExtensionTargetAuthority {
       }));
       await this.debuggerRuntime.detach(source.tabId);
       await this.chromeApi.tabs.remove(source.tabId);
-      await this.waitForDiscoveredTabAbsence(source.tabId, deadline);
+      await waitForDiscoveredTabAbsence(this.chromeApi, source.tabId, deadline);
       if (next.targetRef !== source.targetRef || next.tabId !== successor.tabId
         || next.navigationEpoch !== source.navigationEpoch + 1) {
         throw new Error("BROWSER_POSTCONDITION_FAILED");
       }
-      const settled = (await this.chromeApi.debugger.getTargets()).filter((candidate) =>
-        (candidate.tabId === source.tabId || candidate.tabId === successor!.tabId)
-          && candidate.type === "page");
-      if (settled.length !== 1 || settled[0]?.tabId !== successor.tabId) {
+      if (!await forkTargetSetSettled(this.chromeApi, source.tabId, successor.tabId)) {
         throw new Error("BROWSER_POSTCONDITION_FAILED");
       }
     } catch (error) {
-      if (successor?.tabId !== undefined) {
-        if (!takeoverCommitted) {
-          if (attached) await this.debuggerRuntime.detach(successor.tabId).catch(() => undefined);
-        } else {
-          await this.debuggerRuntime.detach(source.tabId).catch(() => undefined);
-          await this.chromeApi.tabs.remove(source.tabId).catch(() => undefined);
-        }
-      }
+      const cleanupFailures = await collectForkCleanupFailures(
+        this.debuggerRuntime, this.chromeApi, {
+          attached, sourceTabId: source.tabId, successorTabId: successor?.tabId ?? null,
+          takeoverCommitted,
+        },
+      );
       if (error instanceof Error && error.message === "BROWSER_TARGET_DISCOVERY_UNAVAILABLE") throw error;
-      throw new Error("BROWSER_POSTCONDITION_FAILED", { cause: error });
+      throw new AggregateError([error, ...cleanupFailures], "BROWSER_POSTCONDITION_FAILED");
     }
-  }
-
-  private async waitForTargetObservation(deadline: number): Promise<void> {
-    const remaining = deadline - Date.now();
-    if (remaining <= 0) return;
-    await new Promise<void>((resolve) => globalThis.setTimeout(resolve, Math.min(50, remaining)));
-  }
-
-  private async waitForCanonicalGptMainFrame(tabId: number, deadline: number): Promise<MainFrame> {
-    do {
-      const frame = await this.readMainFrame(tabId);
-      try {
-        requireCanonicalGptConversationUrl(frame.url);
-        return frame;
-      } catch (error) {
-        if (frame.url !== "" && frame.url !== "about:blank") throw error;
-      }
-      await this.waitForTargetObservation(deadline);
-    } while (Date.now() < deadline);
-    throw new Error("BROWSER_POSTCONDITION_FAILED");
-  }
-
-  private async waitForDiscoveredTabAbsence(tabId: number, deadline: number): Promise<void> {
-    do {
-      if (!(await this.readDiscoveredTabIds()).has(tabId)) return;
-      await this.waitForTargetObservation(deadline);
-    } while (Date.now() < deadline);
-    throw new Error("BROWSER_POSTCONDITION_FAILED");
   }
 
   private async executeNavigation(target: ExtensionExactTarget, url: string): Promise<Record<string, unknown>> {
@@ -578,7 +463,9 @@ export class ExtensionTargetAuthority {
       throw new Error("BROWSER_ORIGIN_REJECTED");
     }
     const response = asRecord(await this.debuggerRuntime.send(target.tabId, "Page.navigate", { url }));
-    const observed = typeof response?.loaderId === "string" ? { loaderId: response.loaderId, url: destination.href } : await this.readMainFrame(target.tabId);
+    const observed = typeof response?.loaderId === "string"
+      ? { loaderId: response.loaderId, url: destination.href }
+      : await readExtensionMainFrame(this.debuggerRuntime, target.tabId);
     const next = await this.publishMainFrameNavigation(observed.url, observed.loaderId);
     return { targetRef: next.targetRef, documentRef: next.documentRef, navigationEpoch: next.navigationEpoch };
   }

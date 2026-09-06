@@ -178,6 +178,7 @@ const runStaticDomain = async (
   laws: Law[],
   targetPathsByLaw: ReadonlyMap<string, string[]>,
   runDirectory: string,
+  registry: Registry,
 ): Promise<LawExecutionResult[]> => {
   const paths = ordered(laws.flatMap((law) => targetPathsByLaw.get(law.lawId) ?? []));
   const sealedRoot = copyTargets(paths, runDirectory, domain);
@@ -195,7 +196,13 @@ const runStaticDomain = async (
         targetSet: targetSet(law.lawId, lawPaths),
       };
     }),
-    ownerInspectorPath: inspectorPath(domain), sealedRoot, targetPaths: paths,
+    ownerInspectorPath: inspectorPath(domain),
+    ownerInspectorPlan: registry.domains.map((entry) => ({
+      capabilityDomain: entry.capabilityDomain,
+      lawIds: [...entry.lawIds],
+    })),
+    sealedRoot,
+    targetPaths: paths,
   };
   writeFileSync(requestPath, canonicalBytes(request), { mode: 0o600 });
   const worker = resolve(ROOT, "scripts/audit/shared/quality-inspector-worker.ts");
@@ -425,7 +432,13 @@ const staticResults = async (context: QualityRunContext): Promise<Map<string, La
   const resultsByLaw = new Map<string, LawExecutionResult>();
   const domainResults = await mapWithConcurrency(context.registry.domains, STATIC_CONCURRENCY, async (domain) => {
     const domainLaws = context.laws.filter((law) => law.capabilityDomain === domain.capabilityDomain);
-    const results = await runStaticDomain(domain.capabilityDomain, domainLaws, targets, context.runDirectory);
+    const results = await runStaticDomain(
+      domain.capabilityDomain,
+      domainLaws,
+      targets,
+      context.runDirectory,
+      context.registry,
+    );
     assertCleanCandidate(context.candidate, domain.capabilityDomain);
     return results;
   });

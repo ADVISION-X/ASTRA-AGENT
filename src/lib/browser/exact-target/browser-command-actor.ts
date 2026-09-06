@@ -205,15 +205,14 @@ const mutationIdentity = (permit: BrowserCommandPermit, command: BrowserGoverned
   };
 };
 
-const exactAssistantTurnValueValid = (
+const exactAssistantTurnIdentityValid = (
   value: Readonly<Record<string, unknown>>,
   permit: BrowserCommandPermit,
   intent: Extract<BrowserDomIntent, { kind: "readExactAssistantTurn" }>,
 ): boolean => {
   const keys = Object.keys(value);
-  const observedAt = value.observedAt;
   const ordinal = Number(intent.assistantTurnId.slice("conversation-turn-".length));
-  const structurallyValid = keys.length === 15 && [
+  return keys.length === 15 && [
     "schemaVersion", "targetRefHash", "documentRefHash", "observationRevisionHash",
     "assistantTurnId", "currentUrl", "precedingUserTurnId", "precedingPromptHash",
     "turnMarkerMatched", "generatingRaw", "rawDomHtml", "rawDomHash", "semanticText",
@@ -228,13 +227,26 @@ const exactAssistantTurnValueValid = (
     && value.currentUrl === intent.sourceCheckpoint.canonicalConversationUrl
     && value.precedingUserTurnId === `conversation-turn-${ordinal - 1}`
     && value.precedingPromptHash === intent.sourceCheckpoint.expectedPromptHash
-    && value.turnMarkerMatched === true
-    && Number.isSafeInteger(value.generatingRaw) && (value.generatingRaw as number) >= 0
+    && value.turnMarkerMatched === true;
+};
+
+const exactAssistantTurnContentValid = (value: Readonly<Record<string, unknown>>): boolean => {
+  const observedAt = value.observedAt;
+  return Number.isSafeInteger(value.generatingRaw) && (value.generatingRaw as number) >= 0
     && typeof value.rawDomHtml === "string" && hashText(value.rawDomHtml) === value.rawDomHash
     && typeof value.semanticText === "string" && hashText(value.semanticText) === value.semanticTextHash
     && typeof observedAt === "string" && !Number.isNaN(Date.parse(observedAt))
     && new Date(observedAt).toISOString() === observedAt;
-  if (!structurallyValid || typeof observedAt !== "string") return false;
+};
+
+const exactAssistantTurnValueValid = (
+  value: Readonly<Record<string, unknown>>,
+  permit: BrowserCommandPermit,
+  intent: Extract<BrowserDomIntent, { kind: "readExactAssistantTurn" }>,
+): boolean => {
+  const observedAt = value.observedAt;
+  if (!exactAssistantTurnIdentityValid(value, permit, intent)
+    || !exactAssistantTurnContentValid(value) || typeof observedAt !== "string") return false;
   return value.observationRevisionHash === hashText(canonicalBrowserExactAssistantTurnRevision({
     targetRefHash: value.targetRefHash as `sha256:${string}`,
     documentRefHash: value.documentRefHash as `sha256:${string}`,

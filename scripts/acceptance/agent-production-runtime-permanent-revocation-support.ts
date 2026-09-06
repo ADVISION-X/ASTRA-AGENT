@@ -62,7 +62,8 @@ const runtimeState = (
   jobId: string,
   execute: RuntimeState["executor"]["execute"],
   active = false,
-): RuntimeState => ({
+): RuntimeState => {
+  const state: object = {
   abort: new AbortController(),
   active: new Map(),
   activeAbort: active ? new Map([[jobId, new AbortController()]]) : new Map(),
@@ -77,9 +78,7 @@ const runtimeState = (
     execute,
   },
   session,
-  browserAuthority: {
-    readBrowserReconciliationScope: () => null,
-  },
+  browserAuthority: { readBrowserReconciliationScope: () => null },
   gpt: {},
   dataDir: temporary,
   runtimeLogger: createRuntimeLogger({
@@ -93,7 +92,9 @@ const runtimeState = (
   stopped: false,
   ledgerReconciled: false,
   reconciliationBaselineValid: true,
-} as unknown as RuntimeState);
+  };
+  return state as RuntimeState;
+};
 
 const assertRevokedOutboxPreserved = (store: ProductionRuntimeStore): void => {
   const jobId = "job:permanently-revoked";
@@ -220,7 +221,7 @@ const assertRevocationStatusGate = async (
   const database = Reflect.get(store, "database") as Database.Database;
   let statusMode: "temporary-failure" | "mismatch" | "revoked" = "temporary-failure";
   let mutationSends = 0;
-  const session = {
+  const session: object = {
     request: async (pathname: string) => {
       if (!pathname.endsWith("/device-status")) {
         mutationSends += 1;
@@ -231,8 +232,8 @@ const assertRevocationStatusGate = async (
       }
       return statusMode === "mismatch" ? activeStatus(job.job_id) : revokedStatus(job.job_id);
     },
-  } as unknown as ProductionWorkerSession;
-  const state = runtimeState(store, temporary, session, job.job_id, async () => {
+  };
+  const state = runtimeState(store, temporary, session as ProductionWorkerSession, job.job_id, async () => {
     throw new Error("PRODUCT_EXECUTION_MUST_NOT_START");
   });
   for (const mode of ["temporary-failure", "mismatch", "revoked"] as const) {
@@ -269,7 +270,7 @@ const assertActiveRevocationSettlement = async (
   let releaseCount = 0;
   let productExecutions = 0;
   const checkpointBodies: Record<string, unknown>[] = [];
-  const session = {
+  const session: object = {
     workerSessionId: job.grant.worker_session_id,
     workerSessionEpoch: job.grant.worker_session_epoch,
     device: { server_base_url: "https://production.invalid" },
@@ -312,8 +313,8 @@ const assertActiveRevocationSettlement = async (
       }
       throw new Error(`UNEXPECTED_REVOCATION_REQUEST:${pathname}`);
     },
-  } as unknown as ProductionWorkerSession;
-  const state = runtimeState(store, temporary, session, job.job_id, async () => {
+  };
+  const state = runtimeState(store, temporary, session as ProductionWorkerSession, job.job_id, async () => {
     productExecutions += 1;
     throw executionFailure("failed", "PRODUCT_FAILURE_DURING_DELETION");
   }, true);

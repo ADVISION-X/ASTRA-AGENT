@@ -10,6 +10,7 @@ type WorkerRequest = {
   capabilityDomain: string;
   laws: Array<{ lawId: string; forbiddenCount: number; requiredStaticModes: string[]; targetPaths: string[]; targetSet: { queryRef: string; count: number } }>;
   ownerInspectorPath: string;
+  ownerInspectorPlan: Array<{ capabilityDomain: string; lawIds: string[] }>;
   sealedRoot: string;
   targetPaths: string[];
 };
@@ -44,6 +45,15 @@ const plan = (input: WorkerRequest): InspectorContext["planEntry"] => ({
   lawIds: input.laws.map((law) => law.lawId),
 });
 
+const generatedPlan = (input: WorkerRequest): InspectorContext["generatedPlan"] =>
+  input.ownerInspectorPlan.map((entry) => ({
+    capabilityDomain: entry.capabilityDomain,
+    manifestPath: `scripts/audit/domains/${entry.capabilityDomain}/manifest.json`,
+    ownerInspectorPath: `scripts/audit/domains/${entry.capabilityDomain}/inspector.ts`,
+    executionGroup: "domain",
+    lawIds: [...entry.lawIds],
+  }));
+
 export const runInspectionWorker = async (): Promise<void> => {
   const input = request();
   const loadInspector = inspectorLoaders[input.capabilityDomain];
@@ -61,7 +71,7 @@ export const runInspectionWorker = async (): Promise<void> => {
     targetPaths: input.targetPaths,
     lawRequirements: input.laws,
     planEntry,
-    generatedPlan: [planEntry],
+    generatedPlan: generatedPlan(input),
   };
   const output = await inspector(context);
   process.stdout.write(`GOVERNANCE_INSPECTOR_RESULT ${JSON.stringify(output)}\n`);

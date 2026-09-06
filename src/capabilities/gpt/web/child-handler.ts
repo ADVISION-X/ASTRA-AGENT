@@ -36,10 +36,6 @@ export type GptChildHandler<K extends GptChildCapabilityId> = (
   context: GptExecutionContext,
 ) => Promise<GptChildObservation<K>>;
 
-export type GptChildHandlerMap = {
-  readonly [K in GptChildCapabilityId]?: GptChildHandler<K>;
-};
-
 type ConfirmedGptChildBrowserFact<AllowsNo extends boolean> = Omit<
   GptChildBrowserFact, "browserOutcome" | "mutationOutcome"
 > & Readonly<{

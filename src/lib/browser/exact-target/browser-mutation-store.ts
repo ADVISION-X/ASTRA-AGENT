@@ -198,6 +198,22 @@ export class BrowserMutationStore {
     })();
   }
 
+  private providerEffectIdentityMatches(
+    row: ProviderEffectHistoryRow,
+    input: BrowserMutationIdentity,
+  ): boolean {
+    return row.logical_mutation_id === input.logicalMutationId
+      && row.job_id === input.jobId
+      && row.owner_plugin_id === input.ownerPluginId
+      && row.plugin_version === input.pluginVersion
+      && row.product_step_id === input.productStepId
+      && row.call_id === input.callId
+      && row.child_capability_id === input.childCapabilityId
+      && row.effect_scope === "provider_effect"
+      && row.request_hash === input.requestHash
+      && row.payload_hash === input.payloadHash;
+  }
+
   private assertProviderEffectHistory(input: BrowserMutationIdentity): void {
     if (!input.logicalMutationId) throw new Error("BROWSER_ATOMIC_STEP_IDENTITY_REQUIRED");
     const rows = this.database.prepare(
@@ -212,17 +228,7 @@ export class BrowserMutationStore {
     if (rows.length === 0) return;
     const attempts = new Set<string>();
     for (const row of rows) {
-      const identityMatches = row.logical_mutation_id === input.logicalMutationId
-        && row.job_id === input.jobId
-        && row.owner_plugin_id === input.ownerPluginId
-        && row.plugin_version === input.pluginVersion
-        && row.product_step_id === input.productStepId
-        && row.call_id === input.callId
-        && row.child_capability_id === input.childCapabilityId
-        && row.effect_scope === "provider_effect"
-        && row.request_hash === input.requestHash
-        && row.payload_hash === input.payloadHash;
-      if (!identityMatches || attempts.has(row.attempt_id)) {
+      if (!this.providerEffectIdentityMatches(row, input) || attempts.has(row.attempt_id)) {
         throw new Error("BROWSER_PROVIDER_EFFECT_HISTORY_AMBIGUOUS");
       }
       attempts.add(row.attempt_id);

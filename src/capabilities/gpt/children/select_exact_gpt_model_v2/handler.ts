@@ -31,6 +31,14 @@ const SELECTION_POSTCONDITION = Object.freeze({
   clickedCandidateAttribute: Object.freeze({ name: "aria-checked", equals: "true" }),
 });
 
+const selectedReadbackValid = (value: unknown): boolean => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  return Object.keys(value).sort().join("|") === "name|value|verified"
+    && Reflect.get(value, "name") === "aria-checked"
+    && Reflect.get(value, "value") === "true"
+    && Reflect.get(value, "verified") === true;
+};
+
 export const selectExactGptModelV2Handler: GptChildHandler<"select_exact_gpt_model_v2"> =
   async (intent, context) => {
     requireExactInputKeys(intent, ["profile"]);
@@ -58,11 +66,7 @@ export const selectExactGptModelV2Handler: GptChildHandler<"select_exact_gpt_mod
     const mutationRecord = mutation && typeof mutation === "object" && !Array.isArray(mutation)
       ? mutation as Readonly<Record<string, unknown>> : {};
     const selectedReadback = mutationRecord.clickedCandidateAttributeReadback;
-    if (!selectedReadback || typeof selectedReadback !== "object" || Array.isArray(selectedReadback)
-      || Object.keys(selectedReadback).sort().join("|") !== "name|value|verified"
-      || Reflect.get(selectedReadback, "name") !== "aria-checked"
-      || Reflect.get(selectedReadback, "value") !== "true"
-      || Reflect.get(selectedReadback, "verified") !== true) {
+    if (!selectedReadbackValid(selectedReadback)) {
       throw executionFailure("failed", "GPT_MODEL_SELECTION_V2_SELECTED_FACT_INVALID");
     }
     const restored = projectModelSelectorTopology(decodeCoherentObservationPacket(

@@ -1,6 +1,6 @@
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import { resolveCoherentPointerAction } from "./dom-coherent-candidate.js";
-import { dispatchPointerClickSequence } from "./dom-intent-runtime.js";
+import { dispatchPointerClickSequence } from "./dom-pointer-intent-runtime.js";
 import { inspectNode } from "./dom-query-runtime.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 

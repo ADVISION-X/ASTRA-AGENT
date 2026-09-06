@@ -21,6 +21,27 @@ import {
 } from "./observation.js";
 import { GPT_SEND_SELECTOR, GPT_USER_TURN_SELECTOR } from "./selectors.js";
 
+const submissionReady = (
+  observed: Awaited<ReturnType<typeof readDraftState>>,
+  promptHash: `sha256:${string}`,
+  files: ReturnType<typeof composerFilesInput>,
+): boolean => observed.composerHash === promptHash
+  && observed.sendRaw === 1
+  && observed.sendEligible === 1
+  && observed.sendTag === "BUTTON"
+  && observed.sendDisabled === false
+  && observed.sendAriaDisabled === false
+  && exactAttachmentSet(observed, files)
+  && observed.userTurns.length < 20;
+
+const submissionComplete = (
+  observed: Awaited<ReturnType<typeof readDraftState>>,
+  promptHash: `sha256:${string}`,
+): boolean => submissionMatch(observed, promptHash).length === 1
+  && observed.composerHash === gptComposerHash("")
+  && exactAttachmentSet(observed, [])
+  && canonicalConversationOrNull(observed.currentUrl) !== null;
+
 export const submitExactGptTurnOnceHandler: GptChildHandler<"submit_exact_gpt_turn_once"> =
   async (intent, context) => {
     requireExactInputKeys(intent, ["files", "promptHash", "turnMarker"]);
@@ -44,11 +65,7 @@ export const submitExactGptTurnOnceHandler: GptChildHandler<"submit_exact_gpt_tu
       throw executionFailure("failed", "GPT_SUBMIT_EXISTING_TURN_POSTCONDITION_INVALID");
     }
     if (context.mutationMode === "readback") throw executionFailure("failed", "GPT_TURN_SUBMISSION_PENDING");
-    if (observed.composerHash !== promptHash
-      || observed.sendRaw !== 1 || observed.sendEligible !== 1 || observed.sendTag !== "BUTTON"
-      || observed.sendDisabled !== false || observed.sendAriaDisabled !== false
-      || !exactAttachmentSet(observed, files)
-      || observed.userTurns.length >= 20) {
+    if (!submissionReady(observed, promptHash, files)) {
       throw executionFailure("failed", "GPT_SUBMIT_PRECONDITION_INVALID");
     }
     await browser.executeDomIntent({
@@ -58,10 +75,7 @@ export const submitExactGptTurnOnceHandler: GptChildHandler<"submit_exact_gpt_tu
     });
     const readback = await readDraftState(browser, "postcondition");
     requireExactComposer(readback);
-    const submitted = submissionMatch(readback, promptHash);
-    const canonicalUrl = canonicalConversationOrNull(readback.currentUrl);
-    if (submitted.length !== 1 || readback.composerHash !== gptComposerHash("")
-      || !exactAttachmentSet(readback, []) || canonicalUrl === null) {
+    if (!submissionComplete(readback, promptHash)) {
       throw executionFailure("failed", "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED");
     }
     const browserFact = requireConfirmedBrowserFact(intent, browser);

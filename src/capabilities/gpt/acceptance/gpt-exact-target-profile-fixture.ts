@@ -18,6 +18,21 @@ export const profile = buildGptExecutionProfile({
   acceptanceVersion: "v1",
 });
 
+const reasoningValueFacts = (
+  ready: boolean,
+  eligible: boolean,
+  current: number,
+  maximum: number,
+  minimum: number,
+) => ({
+  rawCount: ready ? 1 : 0,
+  eligibleCount: eligible ? 1 : 0,
+  matches: eligible ? [{
+    ariaValueMin: String(minimum), ariaValueMax: String(maximum), ariaValueNow: String(current),
+  }] : [],
+  rejections: ready && !eligible ? [{ index: 0, reasons: ["ARIA_HIDDEN"] }] : [],
+});
+
 export const profileFacts = (
   intent: Parameters<typeof coherentObservationPacket>[0],
   open: boolean,
@@ -35,18 +50,9 @@ export const profileFacts = (
     "simple-panel": { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
     "reasoning-control": { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
     "enabled-reasoning-control": { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
-    "reasoning-value": {
-      rawCount: reasoningReady ? 1 : 0,
-      eligibleCount: reasoningEligible ? 1 : 0,
-      matches: reasoningEligible
-        ? [{
-          ariaValueMin: String(reasoningMinimum),
-          ariaValueMax: String(reasoningMaximum),
-          ariaValueNow: String(reasoningCurrent),
-        }] : [],
-      rejections: reasoningReady && !reasoningEligible
-        ? [{ index: 0, reasons: ["ARIA_HIDDEN"] }] : [],
-    },
+    "reasoning-value": reasoningValueFacts(
+      reasoningReady, reasoningEligible, reasoningCurrent, reasoningMaximum, reasoningMinimum,
+    ),
     trigger: {
       rawCount: 1, eligibleCount: 1,
       matches: [{ id: "profile-trigger", ariaExpanded: open ? "true" : "false" }],

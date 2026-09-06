@@ -9,8 +9,6 @@ import {
   GPT_ATTACHMENT_CONTROL_SELECTOR,
   GPT_ATTACHMENT_PENDING_ACTION_SELECTOR,
   GPT_COMPOSER_FORM_SELECTOR,
-  GPT_UPLOAD_FROM_COMPUTER_LABEL,
-  GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
 } from "./gpt-page-fixture-selectors.js";
 
 const { execute } = createGptAcceptanceHarness("gpt-attachment");

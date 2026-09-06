@@ -35,33 +35,46 @@ export const readbackSource = (binding: ConfirmedReadbackBinding) => {
   return exhausted;
 };
 
+const sourceIdentityMatches = (
+  source: ReturnType<typeof readbackSource>,
+  binding: ConfirmedReadbackBinding,
+): boolean => source.sourceProductStepId === binding.productStepId
+  && source.sourceChildCapabilityId === "submit_exact_gpt_turn_once"
+  && hash(source.sourceExactCallIdentityHash)
+  && hash(source.evidenceHash)
+  && hash(source.promptHash)
+  && Boolean(source.evidenceRef)
+  && Boolean(source.turnMarker)
+  && Number.isFinite(Date.parse(source.sourceTerminalAt));
+
+const factMatchesSource = (
+  fact: BrowserExactCallMutationFact,
+  source: ReturnType<typeof readbackSource>,
+): boolean => fact.effectScope === "provider_effect"
+  && fact.outcome === "CONFIRMED"
+  && fact.mutationOutcome === "confirmed"
+  && fact.terminalAt === source.sourceTerminalAt
+  && fact.targetRef === source.sourceTargetRef
+  && fact.documentRef === source.sourceDocumentRef
+  && fact.productStepId === source.sourceProductStepId
+  && fact.callId === source.sourceCallId
+  && fact.childCapabilityId === source.sourceChildCapabilityId
+  && fact.actionOrdinal === source.sourceActionOrdinal;
+
+const bindingSchemaMatches = (binding: ConfirmedReadbackBinding): boolean =>
+  binding.kind === "production-reconciliation"
+    ? binding.confirmedProviderReadback.schemaVersion === "browser-confirmed-provider-readback.v1"
+      && hash(binding.confirmedProviderReadback.conversationIdentityHash)
+      && durableCanonicalGptConversationUrl(binding.confirmedProviderReadback.canonicalConversationUrl) !== null
+    : binding.confirmedProviderSourceReadback.schemaVersion === "browser-confirmed-provider-source-readback.v1";
+
 export const confirmedSourceMatches = (
   binding: ConfirmedReadbackBinding,
   fact: BrowserExactCallMutationFact | null,
 ): fact is BrowserExactCallMutationFact => {
   const source = readbackSource(binding);
-  return Boolean(fact) && [
-    source.sourceProductStepId === binding.productStepId,
-    source.sourceChildCapabilityId === "submit_exact_gpt_turn_once",
-    fact?.effectScope === "provider_effect", fact?.outcome === "CONFIRMED",
-    fact?.mutationOutcome === "confirmed",
-    fact?.terminalAt === source.sourceTerminalAt,
-    fact?.targetRef === source.sourceTargetRef,
-    fact?.documentRef === source.sourceDocumentRef,
-    fact?.productStepId === source.sourceProductStepId,
-    fact?.callId === source.sourceCallId,
-    fact?.childCapabilityId === source.sourceChildCapabilityId,
-    fact?.actionOrdinal === source.sourceActionOrdinal,
-    hash(source.sourceExactCallIdentityHash), hash(source.evidenceHash), hash(source.promptHash),
-    Boolean(source.evidenceRef), Boolean(source.turnMarker),
-    Number.isFinite(Date.parse(source.sourceTerminalAt)),
-    binding.kind === "production-reconciliation"
-      ? binding.confirmedProviderReadback.schemaVersion === "browser-confirmed-provider-readback.v1"
-        && hash(binding.confirmedProviderReadback.conversationIdentityHash)
-        && durableCanonicalGptConversationUrl(
-          binding.confirmedProviderReadback.canonicalConversationUrl,
-        ) !== null
-      : binding.confirmedProviderSourceReadback.schemaVersion
-        === "browser-confirmed-provider-source-readback.v1",
-  ].every(Boolean);
+  return fact !== null
+    && sourceIdentityMatches(source, binding)
+    && factMatchesSource(fact, source)
+    && bindingSchemaMatches(binding);
 };

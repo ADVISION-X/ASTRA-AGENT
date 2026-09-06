@@ -277,29 +277,6 @@ const checkpointSubmittedTextTurn = async (
   }
 };
 
-export const completeReconciledTextSubmission = async (
-  input: SeoTextTurnInput,
-  reconciled: SeoReconciledTextSubmission,
-): Promise<SeoTurnCheckpoint> => {
-  await input.flow.requireEvidence({
-    productStepId: input.stepId, callId: "prompt-write",
-    child: "write_exact_gpt_prompt", actionOrdinal: input.ordinals[0],
-    input: { prompt: input.prompt },
-  });
-  await input.flow.requireEvidence({
-    productStepId: input.stepId, callId: "draft-reconcile",
-    child: "reconcile_gpt_draft", actionOrdinal: input.ordinals[1],
-    input: { files: input.files, prompt: input.prompt, turnMarker: input.marker },
-  });
-  return checkpointSubmittedTextTurn(
-    input,
-    reconciled.promptHash,
-    reconciled.confirmedSubmit,
-    reconciled.canonicalConversationUrl,
-    reconciled.conversationIdentityHash,
-  );
-};
-
 const prepareTextDraft = async (
   input: SeoTextTurnInput,
   turnSubmit: SeoCall,
