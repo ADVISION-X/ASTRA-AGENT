@@ -105,7 +105,9 @@ const domActionKeys = (
   command: Extract<BrowserGovernedCommand, { kind: "dom-intent" }>,
 ): readonly string[] => {
   if (command.intent.kind === "fill") return ["filled", "retainedValueVerified"];
-  if (command.intent.kind === "click") return ["clicked"];
+  if (command.intent.kind === "click") return ["clicked",
+    ...(command.intent.postClickObservation?.clickedCandidateAttribute === undefined
+      ? [] : ["clickedCandidateAttributeReadback"])];
   if (command.intent.kind === "hover") return ["hovered"];
   if (command.intent.kind === "doubleClick") return ["doubleClicked"];
   if (command.intent.kind === "keypress") return ["keyPressed", "keypressCount"];
@@ -283,7 +285,19 @@ const assertDomActionReceipt = (
   value: Readonly<Record<string, unknown>>,
 ): void => {
   const intent = command.intent;
-  const valid = intent.kind === "click" ? value.clicked === true
+  const clickedAttribute = intent.kind === "click"
+    ? intent.postClickObservation?.clickedCandidateAttribute : undefined;
+  const clickedReadback = value.clickedCandidateAttributeReadback;
+  const clickedAttributeValid = clickedAttribute === undefined || (!!clickedReadback
+    && typeof clickedReadback === "object" && !Array.isArray(clickedReadback)
+    && exactKeys(clickedReadback as Readonly<Record<string, unknown>>, ["name", "value", "verified"])
+    && (clickedReadback as Readonly<Record<string, unknown>>).name === clickedAttribute.name
+    && typeof (clickedReadback as Readonly<Record<string, unknown>>).value === "string"
+    && (clickedReadback as Readonly<Record<string, unknown>>).verified
+      === ((clickedReadback as Readonly<Record<string, unknown>>).value === clickedAttribute.equals)
+    && (value.postconditionVerified !== true
+      || (clickedReadback as Readonly<Record<string, unknown>>).verified === true));
+  const valid = intent.kind === "click" ? value.clicked === true && clickedAttributeValid
     : intent.kind === "hover" ? value.hovered === true
       : intent.kind === "doubleClick" ? value.doubleClicked === true
         : intent.kind === "keypress" ? value.keyPressed === intent.key

@@ -336,6 +336,25 @@ try {
       clickedCandidateAttribute: { name: "aria-checked" as const, equals: "true" as const },
     },
   } };
+  const selectedCandidatePermit: BrowserCommandPermit = {
+    ...permit("actor-selected-candidate"), commandTtlMs: 10_000,
+  };
+  await actorFor(async (candidate, _command, onDispatched) => {
+    onDispatched?.();
+    return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+      permitSequence: candidate.sequence, result: {
+        clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
+        postconditionVerified: true,
+        clickedCandidateAttributeReadback: { name: "aria-checked", value: "true", verified: true },
+        postconditionObservation: {
+          schemaVersion: "grasseye.browser.dom-observation.v2", targetRefHash: coherentTargetRefHash,
+          documentRefHash: coherentDocumentRefHash, currentUrl,
+          observationRevisionHash: coherentRevisionHash, observedAt, queries: coherentObservationQueries,
+        },
+      } };
+  }).execute(selectedCandidatePermit, selectedCandidateCommand);
+  assert.equal(actorStore.readState(selectedCandidatePermit.commandId), "CONFIRMED",
+    "the exact selected-candidate readback must survive the Browser receipt decoder");
   await assert.rejects(actorFor(async (candidate, _command, onDispatched) => {
     onDispatched?.();
     return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
@@ -349,8 +368,10 @@ try {
           observationRevisionHash: coherentRevisionHash, observedAt, queries: coherentObservationQueries,
         },
       } };
-  }).execute(forgedSelectedPermit, selectedCandidateCommand), /BROWSER_COMMAND_RECEIPT_MISSING/u,
+  }).execute(forgedSelectedPermit, selectedCandidateCommand), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
   "the Browser actor must reject a claimed success when the exact clicked candidate is still unchecked");
+  assert.equal(actorStore.readState(forgedSelectedPermit.commandId), "REJECTED");
+  assert.equal(actorStore.readMutationOutcome(forgedSelectedPermit.commandId), "dispatched");
 
   const coherentQualificationPermit: BrowserCommandPermit = {
     ...permit("actor-coherent-click-qualification-rejected"), commandTtlMs: 10_000,
@@ -400,10 +421,11 @@ try {
     return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
       permitSequence: candidate.sequence, result: { candidateCount: 1, identityRevalidated: true,
         mutationCount: 1, postconditionVerified: true } };
-  }).execute(forgedFilePermit, fileCommand), /BROWSER_COMMAND_RECEIPT_MISSING/u,
+  }).execute(forgedFilePermit, fileCommand), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
   "file-input may not be confirmed without exact selected-count, approved-set, and accept readback");
-  assert.equal(actorStore.readState(forgedFilePermit.commandId), "DISPATCHED",
-    "a malformed after-dispatch file receipt must remain unknown rather than inventing success");
+  assert.equal(actorStore.readState(forgedFilePermit.commandId), "REJECTED",
+    "an authenticated malformed result must retain its exact rejection instead of impersonating a missing reply");
+  assert.equal(actorStore.readMutationOutcome(forgedFilePermit.commandId), "dispatched");
 
   const confirmedFilePermit: BrowserCommandPermit = {
     ...permit("actor-file-confirmed"), capabilityId: "browser.file-input.v1",

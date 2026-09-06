@@ -95,6 +95,7 @@ export type BrowserCommandAuthorityGuard = Readonly<{
 }>;
 
 type BrowserCommandExecutionState = {
+  authenticatedReplyHash: `sha256:${string}` | null;
   budgetEntered: boolean;
   prepared: boolean;
   dispatched: boolean;
@@ -335,7 +336,8 @@ export class BrowserCommandActor {
     const commandSpan = startBrowserCommandSpan(this.runtimeLogger, permit);
     const mutation = isMutation(command);
     const state: BrowserCommandExecutionState = {
-      budgetEntered: false, prepared: false, dispatched: false, terminalized: false,
+      authenticatedReplyHash: null, budgetEntered: false, prepared: false,
+      dispatched: false, terminalized: false,
     };
     try {
       assertAcceptedCommand(permit, command);
@@ -353,6 +355,7 @@ export class BrowserCommandActor {
         });
       } : undefined);
       assertMatchingReply(permit, reply);
+      state.authenticatedReplyHash = hashValue(reply.result);
       this.authorityGuard.assertCurrentAuthority(permit);
       const result = bindExactAssistantTurnReply(
         permit, command, bindBrowserCommandObservationPacket(permit, command, reply.result),
@@ -452,6 +455,25 @@ export class BrowserCommandActor {
       });
       state.terminalized = true;
       throw withRuntimeLogCause(new Error(error.failureCode, { cause: error }), failureEvent.eventId);
+    }
+    if (mutation && state.dispatched && state.authenticatedReplyHash !== null) {
+      const code = causalBrowserFailureCode(error);
+      this.mutations.markRejected(
+        permit.commandId,
+        state.authenticatedReplyHash,
+        "dispatched",
+        code,
+      );
+      emitBrowserMutationEvent({
+        runtimeLogger: this.runtimeLogger, mutation: permit, outcome: "REJECTED",
+        authorityHash: this.mutations.authorityHash(permit.commandId),
+      });
+      const failureEvent = failBrowserCommandSpan({
+        span: commandSpan, permit, proofHash: this.mutations.authorityHash(permit.commandId),
+        failureCode: code, error, pendingReceipt: false,
+      });
+      state.terminalized = true;
+      throw withRuntimeLogCause(new Error(code, { cause: error }), failureEvent.eventId);
     }
     const code = mutation && state.dispatched ? "BROWSER_COMMAND_RECEIPT_MISSING" : causalBrowserFailureCode(error);
     if (mutation && state.prepared) {

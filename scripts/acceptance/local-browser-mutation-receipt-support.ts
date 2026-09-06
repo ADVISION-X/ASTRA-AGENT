@@ -34,6 +34,13 @@ const observationClickCommand = { kind: "dom-intent" as const, intent: {
       expectedEligibleCount: 1 },
   ] },
 } };
+const selectedCandidateCommand = { kind: "dom-intent" as const, intent: {
+  ...observationClickCommand.intent,
+  postClickObservation: {
+    ...observationClickCommand.intent.postClickObservation,
+    clickedCandidateAttribute: { name: "aria-checked" as const, equals: "true" as const },
+  },
+} };
 const observationPacket = (advancedEligibleCount: number) => ({
   schemaVersion: "grasseye.browser.dom-observation.v2",
   exactCallIdentityHash: `sha256:${"1".repeat(64)}`,
@@ -124,6 +131,18 @@ const exerciseFreshReadbackReceipts = (): void => {
   assert.deepEqual(decodeBrowserMutationReceipt(observationClickCommand, coherentSuccess), {
     terminal: "confirmed", mutationOutcome: "confirmed", failureCode: null, nativeCauseCode: null,
   }, "coherent postconditions must compare eligible cardinality without requiring raw DOM absence");
+  const selectedCandidateSuccess = {
+    ...coherentSuccess,
+    clickedCandidateAttributeReadback: { name: "aria-checked", value: "true", verified: true },
+  };
+  assert.deepEqual(decodeBrowserMutationReceipt(selectedCandidateCommand, selectedCandidateSuccess), {
+    terminal: "confirmed", mutationOutcome: "confirmed", failureCode: null, nativeCauseCode: null,
+  }, "the exact selected-candidate attribute readback is part of the successful click receipt");
+  assert.throws(() => decodeBrowserMutationReceipt(selectedCandidateCommand, {
+    ...selectedCandidateSuccess,
+    clickedCandidateAttributeReadback: { name: "aria-checked", value: "false", verified: false },
+  }), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
+  "a selected-candidate success cannot claim an unchecked clicked radio");
   const coherentFailure = {
     ...coherentSuccess, postconditionVerified: false, postconditionObservation: observationPacket(0),
     failureCode: "BROWSER_POSTCONDITION_FAILED", nativeCauseCode: "BROWSER_DOM_CANDIDATE_MISSING",
