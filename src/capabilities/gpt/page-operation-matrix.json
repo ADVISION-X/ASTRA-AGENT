@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "gpt-page-operation-matrix.v4",
+    "schemaVersion": "gpt-page-operation-matrix.v4",
   "scopeRule": "A child is in scope when it reads, navigates, clicks, types, uploads, waits on, checkpoints, or obtains media from a page. DOM terminology does not define the denominator.",
   "currentContractCount": 28,
   "expectedPageOperationCount": 22,

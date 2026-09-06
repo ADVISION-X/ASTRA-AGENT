@@ -1,9 +1,9 @@
-# GPT 能力组 V23 施工图
+# GPT 能力组 V24 施工图
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "gpt-capability-group-v23",
+  "blueprintId": "gpt-capability-group-v24",
   "status": "active",
   "owner": "gpt",
   "lawIds": [
@@ -193,6 +193,8 @@ bounded-wait 只是画像附加特征：`prepare_clean_gpt_chat`、`focus_exact_
 `fork_exact_gpt_conversation_at_checkpoint` 再使用独立 exact call identity，只接受自身 fresh 前置重新证明的同一 source-bound 第二层目标菜单与唯一“分支到新聊天”叶子。Browser Authority 至多 dispatch 一次最终 fork 动作，并把 Provider 新开页面的机械收束作为同一 typed command 的固定 successor normalization：点击前冻结当前 target 集合，点击后必须恰好新增一个合法 gpt-web page；Browser attach 并只读验证该新页主 frame、source conversation content 与 current child route，把现有逻辑 `targetRef` 的物理所有权原子转移到 child tab，签发递增 Document/navigation epoch，再 detach 并关闭 source tab。terminal reply 前必须重新发布同一逻辑 targetRef 的 child claim，并读回 settled production Tab 恰好一个且就是 child tab；不得关闭 child、不得导航 source、不得保持 source tab 存活。GPT 与 Product 不得枚举 tab、接收 tabId/URL 或选择页面；后续只在该逻辑 targetRef 的 child Document 上读回唯一 child conversation identity、child URL/marker 与绑定 source marker/checkpoint 的 source-to-child relation。固定 normalization 不是第二 Provider 动作、第二 WAL row 或第二执行链。fork 是 provider-effect-once：dispatch 前必须先从现役 Browser mutation receipt 与既有 fork-relation artifact 对账同一 exact call/source checkpoint；已有 verified relation 时只读返回原 child，DISPATCHED/CONFIRMED/REJECTED 或多义事实均不得再次点击。`readCallFacts(task_exact_effect)` 按同 task/plugin/version/call/input/source checkpoint 重算完整 identity并只返回 Product-safe 的零或唯一 fact。commit-before-return 后只读原 child，禁止第二次 fork。任一步 missing、ambiguous、stale、目标集合零/多、新页 Origin 非法、child 接管失败、source tab 关闭失败、新 claim 未闭合或 relation 多义都以自身 typed reason 零额外 Provider 动作失败，不允许循环点击、latest source、same-conversation fallback、第二 Browser capability或并存第二生产 Tab。
 
 ### 3.1 页面实证闭环
+
+页面操作分母矩阵唯一位于 `src/capabilities/gpt/page-operation-matrix.json`，归属 GPT Owner，并处于 `LAW-GPT-001-V31` 的 `src/capabilities/gpt/**` 适用范围内。质检只能从密封候选读取该矩阵；不得从工作树外读回、复制第二份矩阵或建立兼容查找路径。
 
 二十二个页面 Child 继续只在各自现有 handler、合同和 Browser typed command 内闭合，不新增 Child、公共 selector registry、第二 observation、第二存储或质量裁决。当前真实页面实证要求以下直接约束：
 

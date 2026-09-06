@@ -105,7 +105,7 @@ V5 报告区分：
 ```bash
 node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/report-tool.mjs admit \
   --repo /Users/nexgen/Documents/AGENT \
-  --matrix /Users/nexgen/Documents/AGENT/scripts/audit/domains/gpt/page-operation-matrix.json \
+  --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
   --report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
   --child child_id \
   --candidate exact_HEAD_or_WORKTREE_digest

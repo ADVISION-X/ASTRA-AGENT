@@ -8,7 +8,7 @@ import { Node, SyntaxKind, type Expression, type ObjectLiteralExpression } from 
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 
 const REPORT_PATH = "docs/项目方案/GPT页面操作子能力实证资料.json";
-const MATRIX_PATH = "scripts/audit/domains/gpt/page-operation-matrix.json";
+const MATRIX_PATH = "src/capabilities/gpt/page-operation-matrix.json";
 const CONTRACT_PATH = "src/capabilities/gpt/contract.ts";
 const GPT_ROOT = "src/capabilities/gpt";
 const PLUGIN_ROOT = "src/plugins";
