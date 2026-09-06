@@ -38,7 +38,7 @@ import { retiredAuthorityExamContractViolations } from "../../scripts/audit/doma
 import { relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, staticImplementationDigest, validateStaticInspection } from "../../scripts/audit/shared/static-inspection-contract.js";
 import { inspectPerSiteHmac } from "../../scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.js";
-import { containsPageMutation } from "../../scripts/audit/domains/gpt/inspector.js";
+import { containsPageMutation, gptPrivateInfrastructureViolations } from "../../scripts/audit/domains/gpt/inspector.js";
 import { browserMutationSchemaMigrationIsCurrent } from "../../scripts/audit/domains/local-browser-session/browser-mutation-settlement-inspection.js";
 import { exactAssistantTurnReadIsAtomic } from "../../scripts/audit/domains/local-browser-session/dom-mechanical-facts-inspection.js";
 import { exactTextMatcherIsStrict } from "../../scripts/audit/domains/local-browser-session/mutation-atomicity-inspection.js";
@@ -1448,6 +1448,20 @@ test("GPT mutation inspection permits bounded reads but rejects looped or concur
   assert.equal(containsPageMutation(source(`await Promise.all([
     browser.executeDomIntent({ kind: "click", selector: "button", expectedMatches: 1 }),
   ]);`)), true);
+});
+
+test("GPT inspection rejects private persistence and worker infrastructure while preserving Owner ports", () => {
+  const source = (path: string, body: string) => {
+    const project = new Project({ useInMemoryFileSystem: true });
+    return project.createSourceFile(path, body);
+  };
+  assert.deepEqual(gptPrivateInfrastructureViolations(source(
+    "src/capabilities/gpt/private-queue.ts", 'import Database from "better-sqlite3"; class GptEvidenceStore {}',
+  )), ["declaration:GptEvidenceStore", "import:better-sqlite3", "path:private-queue.ts"]);
+  assert.deepEqual(gptPrivateInfrastructureViolations(source(
+    "src/capabilities/gpt/production-ports.ts",
+    'import type { RuntimeLogger } from "../../lib/runtime-logs/index.js"; interface GptEvidenceStorePort {}',
+  )), []);
 });
 
 test("every declared Dynamic mode has one exact producer claim route", () => {

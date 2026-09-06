@@ -37,7 +37,7 @@ import {
 const LAW_ID = "LAW-GPT-001-V31";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 15, 18, 22),
-  "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 11, 12, 13, 16, 17, 19, 20, 21, 22),
+  "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 11, 12, 13, 16, 17, 19, 20, 21, 22, 23),
   "static.types": staticForbiddenClauses(3, 4, 17, 19, 20, 21),
   "static.contract": staticForbiddenClauses(2, 3, 4, 9, 10, 11, 12, 13, 14, 15, 17, 19, 20, 21),
   "static.dependency": staticForbiddenClauses(0, 1, 2, 5, 18, 19, 20, 21, 22),
@@ -359,6 +359,32 @@ const isPageMutationCall = (call: import("ts-morph").CallExpression): boolean =>
 export const containsPageMutation = (node: Node): boolean =>
   node.getDescendantsOfKind(SyntaxKind.CallExpression).some(isPageMutationCall);
 
+const PRIVATE_INFRASTRUCTURE_PATH = /(?:^|[-_.])(?:database|sqlite|queue|worker|scheduler|ledger|housekeeping)(?:[-_.]|$)/iu;
+const PRIVATE_INFRASTRUCTURE_IMPORTS = new Set([
+  "better-sqlite3", "bull", "bullmq", "node:fs", "node:fs/promises", "node:sqlite", "node:worker_threads", "sqlite3",
+]);
+const PRIVATE_INFRASTRUCTURE_NAME = /(?:Database|Queue|Worker|Scheduler|Ledger|Housekeeping|EvidenceStore|MutationStore)$/u;
+
+export const gptPrivateInfrastructureViolations = (source: SourceFile): string[] => {
+  const path = source.getFilePath().split("\\").join("/");
+  const leaf = path.split("/").at(-1) ?? path;
+  const violations: string[] = [];
+  if (PRIVATE_INFRASTRUCTURE_PATH.test(leaf)) violations.push(`path:${leaf}`);
+  for (const declaration of source.getImportDeclarations()) {
+    const target = declaration.getModuleSpecifierValue();
+    if (PRIVATE_INFRASTRUCTURE_IMPORTS.has(target)) violations.push(`import:${target}`);
+  }
+  const names = [
+    ...source.getClasses().flatMap((entry) => entry.getName() ?? []),
+    ...source.getFunctions().flatMap((entry) => entry.getName() ?? []),
+    ...source.getInterfaces().map((entry) => entry.getName()),
+    ...source.getTypeAliases().map((entry) => entry.getName()),
+    ...source.getVariableDeclarations().map((entry) => entry.getName()),
+  ];
+  for (const name of names) if (PRIVATE_INFRASTRUCTURE_NAME.test(name)) violations.push(`declaration:${name}`);
+  return [...new Set(violations)].sort();
+};
+
 const inspectUniqueRuntimeChain = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const controllerDir = resolve(context.sealedRoot, ROOT, "session");
   const controllers = existsSync(controllerDir)
@@ -565,6 +591,13 @@ const inspectGptTypes = (context: InspectorContext, findings: InspectorFinding[]
 
 const inspectGptAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
   inspectAtomicSafety(context, findings);
+  for (const source of context.project.getSourceFiles().filter((candidate) => {
+    const path = repoPath(context, candidate);
+    return path.startsWith(`${ROOT}/`) && !path.includes("/acceptance/");
+  })) for (const violation of gptPrivateInfrastructureViolations(source)) findings.push(finding(
+    "gpt/private-infrastructure-forbidden", repoPath(context, source),
+    `GPT must reuse the governed persistence, log and mutation Owners; found ${violation}.`,
+  ));
   inspectGptCurrentPageProofs(context, findings);
   inspectGptCrossConversationPollContract(context, findings, finding);
 };
