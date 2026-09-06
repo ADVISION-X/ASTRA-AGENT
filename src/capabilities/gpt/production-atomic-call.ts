@@ -39,10 +39,10 @@ const executionContext = (
       input.browserCall!, input.intent.productStepId, input.intent.callId,
       input.intent.childCapabilityId, durationMs,
     ),
-    navigateCrossConversationPoll: (canonicalConversationUrl: string, absoluteDeadline: number) =>
+    navigateCrossConversationPoll: (canonicalConversationUrl: string, probeDeadlineAt: number) =>
       input.browsers.navigateCrossConversationPoll(
         input.browserCall!, input.intent.productStepId, input.intent.callId,
-        input.intent.childCapabilityId, canonicalConversationUrl, absoluteDeadline,
+        input.intent.childCapabilityId, canonicalConversationUrl, probeDeadlineAt,
       ),
   } : {}),
 });

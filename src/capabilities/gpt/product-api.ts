@@ -72,18 +72,6 @@ export type ExactGptCallFacts = Readonly<{
   }> | null;
 }>;
 
-export type ConfirmedGptSubmitFailureReceipt = Readonly<{
-  sourceAttemptId: string;
-  exactCallIdentityHash: `sha256:${string}`;
-  productStepId: string;
-  callId: string;
-  actionOrdinal: number;
-  terminalAt: string;
-  failureCode: string;
-  evidenceRef: string;
-  evidenceHash: `sha256:${string}`;
-}>;
-
 export type ExactGptContinuationQuery = Readonly<
   | { lookupKind: "turn_marker"; turnMarker: string }
   | {
@@ -172,7 +160,4 @@ export interface ProductGptTools {
     input: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
   ): Promise<ProductGptChildResult<K>>;
   readCallFacts(input: ProductGptFactQuery): Promise<ExactGptCallFacts>;
-  readConfirmedSubmitFailure(
-    input: ProductGptCallInput<"submit_exact_gpt_turn_once">,
-  ): Promise<ConfirmedGptSubmitFailureReceipt | null>;
 }

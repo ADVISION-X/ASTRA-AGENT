@@ -1,5 +1,5 @@
 import type { GptChildCapabilityId } from "./contract.js";
-import type { BrowserConfirmedProviderReadbackAuthorization } from
+import type { BrowserConfirmedProviderReadbackAuthorization, BrowserConfirmedProviderSourceReadbackAuthorization } from
   "../../lib/browser/browser-authority-api.js";
 import type { BrowserTargetLease } from "../../lib/browser/exact-target/browser-target-lease.js";
 import { executionFailure } from "../../lib/execution-failure.js";
@@ -18,10 +18,24 @@ const readKinds = new Set([
   "document", "observe", "readExactAssistantTurn", "inspect", "find", "readText", "readAttribute",
 ]);
 
-const confirmedFailureReadbackLease = (lease: BrowserTargetLease): BrowserTargetLease => ({
+const confirmedSourceReadbackLease = (
+  lease: BrowserTargetLease,
+  authorization: BrowserConfirmedProviderSourceReadbackAuthorization,
+): BrowserTargetLease => ({
   ...lease,
-  runAtomicStep: (identity, action) => identity.replayPolicy === "observation-only"
-    ? lease.runAtomicStep(identity, action) : rejectedReadbackMutation(),
+  runAtomicStep: (identity, action) => {
+    const recovery = lease.readAtomicStepRecovery(identity);
+    const exactConfirmedSubmit = identity.replayPolicy === "provider-effect-once"
+      && identity.childCapabilityId === "submit_exact_gpt_turn_once"
+      && identity.productStepId === authorization.sourceProductStepId
+      && identity.callId === authorization.sourceCallId
+      && identity.actionOrdinal === authorization.sourceActionOrdinal
+      && recovery?.state === "confirmed" && recovery.mutationOutcome === "confirmed"
+      && recovery.targetRef === authorization.sourceTargetRef
+      && recovery.documentRef === authorization.sourceDocumentRef;
+    return identity.replayPolicy === "observation-only" || exactConfirmedSubmit
+      ? lease.runAtomicStep(identity, action) : rejectedReadbackMutation();
+  },
   navigate: rejectedReadbackMutation,
   executeDomIntent: (intent) => readKinds.has(intent.kind)
     ? lease.executeDomIntent(intent) : rejectedReadbackMutation(),
@@ -68,9 +82,10 @@ const dynamicFacade = (
   },
 });
 
-export const dynamicConfirmedFailureReadbackFacade = (
+export const dynamicConfirmedSourceReadbackFacade = (
   browser: () => BrowserTargetLease,
-): BrowserTargetLease => dynamicFacade(() => confirmedFailureReadbackLease(browser()));
+  authorization: BrowserConfirmedProviderSourceReadbackAuthorization,
+): BrowserTargetLease => dynamicFacade(() => confirmedSourceReadbackLease(browser(), authorization));
 
 export const dynamicConfirmedReadbackFacade = (
   browser: () => BrowserTargetLease,

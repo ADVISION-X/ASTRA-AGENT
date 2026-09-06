@@ -13,7 +13,7 @@ import {
   GPT_COMPOSER_SELECTOR,
   GPT_USER_TURN_SELECTOR,
 } from "./selectors.js";
-import { canonicalGptConversationUrl } from "../../web/contracts/target-document.contract.js";
+import { durableGptConversationUrl } from "../../web/contracts/target-document.contract.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 
@@ -85,7 +85,7 @@ export const requireExactComposer = (state: DraftState): void => {
 };
 
 export const canonicalConversationOrNull = (value: string): string | null => {
-  try { return canonicalGptConversationUrl(value); } catch { return null; }
+  try { return durableGptConversationUrl(value); } catch { return null; }
 };
 
 export const submissionMatch = (state: DraftState, promptHash: string) =>

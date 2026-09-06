@@ -10,10 +10,7 @@ import type {
   GeneratedImageArtifact,
   ProductSkill,
 } from "../../mediator/product-plugin-contract.js";
-import type {
-  ConfirmedGptSubmitFailureReceipt,
-  ExactGptCallFacts,
-} from "../../capabilities/gpt/index.js";
+import type { ExactGptCallFacts } from "../../capabilities/gpt/index.js";
 import {
   continuationTextCheckpoint,
   fail,
@@ -21,6 +18,7 @@ import {
   objectValue,
   textHash,
   textValue,
+  type SeoCall,
   type SeoTurnCheckpoint,
 } from "./seo-turn-contract.js";
 import { imagePrompt } from "./seo-turn-prompts.js";
@@ -34,10 +32,8 @@ import {
   requireExactProfileEvidence,
 } from "./seo-gpt-calls.js";
 import {
-  confirmedDeadline,
-  preserveConfirmedSubmitDirectFailure,
   preservePostSubmitReadback,
-  requireConfirmedSubmitDirectFailure,
+  SEO_PROVIDER_PROBE_BUDGET_MS,
   type SeoConfirmedSubmit,
 } from "./seo-submit-readback.js";
 
@@ -68,38 +64,10 @@ const prepareImageSubmit = async (
   try {
     await input.flow.execute({ sessionKey: "", ...turnSubmit });
   } catch (error) {
-    const confirmed = requireConfirmedSubmitDirectFailure(
-      error,
-      await input.flow.confirmedSubmitFailure(turnSubmit),
-    );
-    await input.flow.execute({
-      sessionKey: "", productStepId: input.stepId, callId: "submission-reconcile",
-      child: "reconcile_gpt_turn_submission", actionOrdinal: 46,
-      input: { expectedPromptHash: promptHash, timeoutMs: 60_000, turnMarker: input.marker },
-    });
-    return preserveConfirmedSubmitDirectFailure(error, confirmed);
+    return preservePostSubmitReadback(error, await input.flow.facts(turnSubmit));
   }
   const confirmed = await input.flow.facts(turnSubmit);
-  confirmedDeadline(confirmed);
   return confirmed;
-};
-
-const recoverFailedImageSubmit = async (
-  input: ImageTurnInput,
-  prompt: string,
-  receipt: ConfirmedGptSubmitFailureReceipt,
-): Promise<ConfirmedGptSubmitFailureReceipt> => {
-  await requireExactProfileEvidence(input.flow, input.stepId, [37, 38, 39, 40, 41, 42]);
-  await input.flow.requireEvidence({
-    productStepId: input.stepId, callId: "prompt-write", child: "write_exact_gpt_prompt",
-    actionOrdinal: 43, input: { prompt },
-  });
-  await input.flow.requireEvidence({
-    productStepId: input.stepId, callId: "draft-reconcile", child: "reconcile_gpt_draft",
-    actionOrdinal: 44, input: { files: [], prompt, turnMarker: input.marker },
-  });
-  confirmedDeadline(receipt);
-  return receipt;
 };
 
 const settleCurrentImageSubmit = async (
@@ -117,9 +85,12 @@ const settleCurrentImageSubmit = async (
     actionOrdinal: 44, input: { files: [], prompt, turnMarker: input.marker },
   });
   const submit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 45, input: { files: [], promptHash, turnMarker: input.marker } } as const;
-  await input.flow.execute({ sessionKey: "", ...submit });
+  try {
+    await input.flow.execute({ sessionKey: "", ...submit });
+  } catch (error) {
+    return preservePostSubmitReadback(error, await input.flow.facts(submit));
+  }
   const confirmed = await input.flow.facts(submit);
-  confirmedDeadline(confirmed);
   return confirmed;
 };
 
@@ -157,7 +128,7 @@ const checkpointSubmittedImage = async (
       sessionKey: "", productStepId: input.stepId, callId: "image-wait",
       child: "wait_for_stable_gpt_image", actionOrdinal: 47,
       input: {
-        absoluteDeadline: confirmedDeadline(confirmedSubmit), canonicalConversationUrl,
+        probeBudgetMs: SEO_PROVIDER_PROBE_BUDGET_MS, canonicalConversationUrl,
         conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: input.marker,
       },
     });
@@ -210,33 +181,19 @@ const checkpointSubmittedImage = async (
 };
 
 type ImageSubmitState = Readonly<{
-  failed: ConfirmedGptSubmitFailureReceipt | null;
-  recoveredLocator: Awaited<ReturnType<typeof reconcileConfirmedSubmissionLocator>> | null;
   current: ExactGptCallFacts | null;
   prior: ExactGptCallFacts | null;
 }>;
 
 const readImageSubmitState = async (
   input: ImageTurnInput,
-  turnSubmit: Parameters<ImageTurnInput["flow"]["confirmedSubmitFailure"]>[0],
-  promptHash: ProductionHash,
+  turnSubmit: Extract<SeoCall, { child: "submit_exact_gpt_turn_once" }>,
 ): Promise<ImageSubmitState> => {
-  const failed = await input.flow.confirmedSubmitFailure(turnSubmit);
-  const recoveredLocator = failed ? await reconcileConfirmedSubmissionLocator({
-    actionOrdinal: 46, confirmedSubmit: failed, flow: input.flow,
-    marker: input.marker, promptHash, stepId: input.stepId,
-  }) : null;
-  const current = failed ? null : await input.flow.facts(turnSubmit);
-  const prior = failed ? null : current && (current.mutation || current.evidence)
+  const current = await input.flow.facts(turnSubmit);
+  const prior = current && (current.mutation || current.evidence)
     ? current : await input.flow.facts(turnSubmit, "task_exact_effect");
-  return Object.freeze({ failed, recoveredLocator, current, prior });
+  return Object.freeze({ current, prior });
 };
-
-const priorImageSubmitConfirmed = (facts: ExactGptCallFacts | null): facts is ExactGptCallFacts => [
-  facts?.mutation?.outcome === "CONFIRMED",
-  Boolean(facts?.mutation?.terminalAt),
-  facts?.evidence?.readbackVerified === true,
-].every(Boolean);
 
 const confirmedImageSubmit = async (
   input: ImageTurnInput,
@@ -244,16 +201,11 @@ const confirmedImageSubmit = async (
   promptHash: ProductionHash,
   state: ImageSubmitState,
 ): Promise<SeoConfirmedSubmit> => {
-  if (state.failed) return recoverFailedImageSubmit(input, prompt, state.failed);
   if (state.current && (state.current.mutation || state.current.evidence)) {
     return settleCurrentImageSubmit(input, prompt, promptHash);
   }
   if (state.prior && !state.prior.mutation && !state.prior.evidence) {
     return prepareImageSubmit(input, prompt, promptHash);
-  }
-  if (priorImageSubmitConfirmed(state.prior)) {
-    confirmedDeadline(state.prior);
-    return state.prior;
   }
   return fail("SEO_IMAGE_SUBMIT_FACT_UNRESOLVED");
 };
@@ -262,26 +214,30 @@ export const generateImage = async (input: ImageTurnInput): Promise<GeneratedIma
   const prompt = imagePrompt(input.task, input.marker, input.productSkill);
   const promptHash = textHash(prompt);
   const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 45, input: { files: [], promptHash, turnMarker: input.marker } } as const;
-  const state = await readImageSubmitState(input, turnSubmit, promptHash);
+  const state = await readImageSubmitState(input, turnSubmit);
+  const settleImageSubmit = async () => {
+    const confirmed = await confirmedImageSubmit(input, prompt, promptHash, state);
+    const locator = await reconcileConfirmedSubmissionLocator({
+      actionOrdinal: 46,
+      confirmedSubmit: confirmed,
+      flow: input.flow,
+      marker: input.marker,
+      promptHash,
+      stepId: input.stepId,
+    });
+    return checkpointSubmittedImage(
+      input, promptHash, confirmed, locator.canonicalConversationUrl, locator.conversationIdentityHash,
+    );
+  };
+  const recovering = Boolean(state.current && (state.current.mutation || state.current.evidence));
+  const recoveredCheckpoint = recovering ? await settleImageSubmit() : null;
   const lane = await focusContinuation(
     input.flow, input.task, input.stepId, input.continuationRef,
     input.expectedProvider, [34, 35, 36], 50,
   );
   let advanced = false;
   try {
-    const confirmed = await confirmedImageSubmit(input, prompt, promptHash, state);
-    const locator = state.recoveredLocator
-      ?? await reconcileConfirmedSubmissionLocator({
-        actionOrdinal: 46,
-        confirmedSubmit: confirmed,
-        flow: input.flow,
-        marker: input.marker,
-        promptHash,
-        stepId: input.stepId,
-      });
-    const checkpoint = await checkpointSubmittedImage(
-      input, promptHash, confirmed, locator.canonicalConversationUrl, locator.conversationIdentityHash,
-    );
+    const checkpoint = recoveredCheckpoint ?? await settleImageSubmit();
     await advanceLane(input.flow.execute, input.task, input.stepId, lane, {
       canonicalConversationUrl: checkpoint.canonicalConversationUrl,
       promptHash, rawOutputHash: checkpoint.mediaHash, turnMarker: input.marker,

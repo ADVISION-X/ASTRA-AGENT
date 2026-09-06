@@ -72,7 +72,7 @@ import "./gpt-turn-submission.acceptance.js";
   Date.now = () => simulatedNow;
   try {
     const result = await execute("wait_for_stable_gpt_text", fixture.browser, {
-      absoluteDeadline: new Date(40_000).toISOString(), canonicalConversationUrl: conversationUrl,
+      probeBudgetMs: 40_000, canonicalConversationUrl: conversationUrl,
       conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
     }, undefined, {
       navigateCrossConversationPoll: async (canonicalConversationUrl) => {
@@ -140,7 +140,7 @@ import "./gpt-turn-submission.acceptance.js";
   Date.now = () => simulatedNow;
   try {
     const result = await execute("wait_for_stable_gpt_image", fixture.browser, {
-      absoluteDeadline: new Date(1_000).toISOString(), canonicalConversationUrl: conversationUrl,
+      probeBudgetMs: 1_000, canonicalConversationUrl: conversationUrl,
       conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
     }, undefined, {
       navigateCrossConversationPoll: async (canonicalConversationUrl) => {
@@ -172,7 +172,7 @@ import "./gpt-turn-submission.acceptance.js";
   Date.now = () => simulatedNow;
   try {
     const result = await execute("wait_for_stable_gpt_text", fixture.browser, {
-      absoluteDeadline: new Date(100).toISOString(), canonicalConversationUrl: conversationUrl,
+      probeBudgetMs: 100, canonicalConversationUrl: conversationUrl,
       conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
     }, undefined, {
       navigateCrossConversationPoll: async () => {
@@ -200,7 +200,7 @@ import "./gpt-turn-submission.acceptance.js";
     throw new Error(`UNEXPECTED_TEXT_DEADLINE_OUTCOME_INTENT:${intent.kind}`);
   });
   const result = await execute("wait_for_stable_gpt_text", fixture.browser, {
-    absoluteDeadline: new Date(Date.now() + 1_000).toISOString(), canonicalConversationUrl: conversationUrl,
+    probeBudgetMs: 1_000, canonicalConversationUrl: conversationUrl,
     conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
   }, undefined, { navigateCrossConversationPoll: async () => "deadline" });
   assert.equal(result.status, "failed");
@@ -220,7 +220,7 @@ import "./gpt-turn-submission.acceptance.js";
     throw new Error(`UNEXPECTED_IMAGE_DEADLINE_OUTCOME_INTENT:${intent.kind}`);
   });
   const result = await execute("wait_for_stable_gpt_image", fixture.browser, {
-    absoluteDeadline: new Date(Date.now() + 1_000).toISOString(), canonicalConversationUrl: conversationUrl,
+    probeBudgetMs: 1_000, canonicalConversationUrl: conversationUrl,
     conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
   }, undefined, { navigateCrossConversationPoll: async () => "deadline" });
   assert.equal(result.status, "failed");
@@ -243,7 +243,7 @@ import "./gpt-turn-submission.acceptance.js";
   Date.now = () => simulatedNow;
   try {
     const result = await execute("wait_for_stable_gpt_text", fixture.browser, {
-      absoluteDeadline: new Date(100).toISOString(), canonicalConversationUrl: conversationUrl,
+      probeBudgetMs: 100, canonicalConversationUrl: conversationUrl,
       conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
     });
     assert.equal(result.status, "failed");
@@ -268,7 +268,7 @@ import "./gpt-turn-submission.acceptance.js";
     throw new Error(`UNEXPECTED_ABORTED_CROSS_CONVERSATION_INTENT:${intent.kind}`);
   });
   const result = await execute("wait_for_stable_gpt_text", fixture.browser, {
-    absoluteDeadline: new Date(Date.now() + 1_000).toISOString(), canonicalConversationUrl: conversationUrl,
+    probeBudgetMs: 1_000, canonicalConversationUrl: conversationUrl,
     conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
   }, undefined, {
     signal: controller.signal,
@@ -675,14 +675,14 @@ await exerciseBrowserDispatchedEvidenceReadback();
   Date.now = () => simulatedNow;
   try {
     const expired = await execute("wait_for_stable_gpt_text", fixture.browser, {
-      absoluteDeadline: new Date(-1).toISOString(), canonicalConversationUrl: conversationUrl,
+      probeBudgetMs: -1, canonicalConversationUrl: conversationUrl,
       conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
     });
     assert.equal(expired.status, "failed");
-    assert.equal(expired.failureCode, "GPT_RESPONSE_STABILITY_TIMEOUT");
-    assert.equal(fixture.documentCalls(), 0, "expired text deadline must fail before observing the page");
+    assert.equal(expired.failureCode, "GPT_RESPONSE_PROBE_BUDGET_INVALID");
+    assert.equal(fixture.documentCalls(), 0, "invalid text probe budget must fail before observing the page");
     const waited = await execute("wait_for_stable_gpt_text", fixture.browser, {
-      absoluteDeadline: new Date(1_000).toISOString(), canonicalConversationUrl: conversationUrl,
+      probeBudgetMs: 1_000, canonicalConversationUrl: conversationUrl,
       conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
     });
     assert.equal(waited.status, "success", waited.failureCode ?? "stable text wait failed");
@@ -729,15 +729,15 @@ await exerciseBrowserDispatchedEvidenceReadback();
   Date.now = () => simulatedNow;
   try {
     const expired = await execute("wait_for_stable_gpt_image", fixture.browser, {
-      absoluteDeadline: new Date(-1).toISOString(), canonicalConversationUrl: conversationUrl,
+      probeBudgetMs: -1, canonicalConversationUrl: conversationUrl,
       conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
     });
     assert.equal(expired.status, "failed");
-    assert.equal(expired.failureCode, "GPT_IMAGE_STABILITY_TIMEOUT");
+    assert.equal(expired.failureCode, "GPT_RESPONSE_PROBE_BUDGET_INVALID");
     assert.equal(fixture.authenticatedMediaDownloads(), 0,
-      "expired image deadline must fail before downloading media");
+      "invalid image probe budget must fail before downloading media");
     const waited = await execute("wait_for_stable_gpt_image", fixture.browser, {
-      absoluteDeadline: new Date(1_000).toISOString(), canonicalConversationUrl: conversationUrl,
+      probeBudgetMs: 1_000, canonicalConversationUrl: conversationUrl,
       conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
     });
     assert.equal(waited.status, "success", waited.failureCode ?? "stable image wait failed");

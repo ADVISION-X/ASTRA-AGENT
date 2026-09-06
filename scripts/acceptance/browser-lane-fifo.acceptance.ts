@@ -53,6 +53,7 @@ try {
   mutationStore.markReceiptMissing("historic-dispatched-command");
   mutationStore.prepare({
     commandId: "historic-confirmed-command",
+    logicalMutationId: `sha256:${"f".repeat(64)}`,
     exactCallIdentityHash: `sha256:${"c".repeat(64)}`,
     ownerPluginId: "plugin",
     pluginVersion: 1,
@@ -142,9 +143,9 @@ try {
   });
   const confirmedFailureBinding = (): BrowserExecutionBinding => ({
     ...binding("job:confirmed", "confirmed-step", "submission-reconcile"),
-    kind: "production-confirmed-failure-readback",
-    confirmedProviderFailureReadback: {
-      schemaVersion: "browser-confirmed-provider-failure-readback.v1",
+    kind: "production-confirmed-source-readback",
+    confirmedProviderSourceReadback: {
+      schemaVersion: "browser-confirmed-provider-source-readback.v1",
       sourceAttemptId: "attempt:job:confirmed",
       sourceExactCallIdentityHash: CONFIRMED_EXACT_HASH,
       sourceActionOrdinal: 1,

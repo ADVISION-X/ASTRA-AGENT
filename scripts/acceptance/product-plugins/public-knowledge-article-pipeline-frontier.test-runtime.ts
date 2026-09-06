@@ -91,16 +91,18 @@ export const exerciseSeoConfirmedImageSubmitResume = async (
     assert(firstFailure, "the first attempt must fail after the image submit was confirmed");
     const firstAttemptCalls = state.calls.length;
     const submitsBeforeResume = state.physicalSubmitDispatches;
-    await plugin.execute(taskInput, createContext(state, "proceed", undefined, "attempt-2"));
+    await plugin.execute(taskInput, createContext(state, "proceed", undefined, "attempt-1"));
     const resumeCalls = state.calls.slice(firstAttemptCalls);
     const forbidden = new Set([
   "open_gpt_execution_profile", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
   "open_gpt_execution_profile", "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile", "write_exact_gpt_prompt",
-      "reconcile_gpt_draft", "submit_exact_gpt_turn_once",
+      "reconcile_gpt_draft",
     ]);
     assert.equal(resumeCalls.some((call) => forbidden.has(call.child)), false);
     assert.equal(resumeCalls.some((call) => call.productStepId !== "article_image_generation"), false);
-    assert.equal(resumeCalls.find((call) => call.actionOrdinal >= 37)?.actionOrdinal, 46);
+    assert.equal(resumeCalls.filter((call) => call.child === "submit_exact_gpt_turn_once").length, 1,
+      "the same accepted attempt must settle the confirmed submit Child exactly once without redispatch");
+    assert.equal(resumeCalls.find((call) => call.actionOrdinal >= 37)?.actionOrdinal, 45);
     assert.equal(state.physicalSubmitDispatches, submitsBeforeResume);
     assert(hasCompletedImage(state.completed));
     return { firstFailure, resumeCalls, completed: state.completed };

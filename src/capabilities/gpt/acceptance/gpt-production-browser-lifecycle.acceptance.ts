@@ -10,7 +10,7 @@ import {
   productionGptCrossConversationPollCadence,
 } from "../provider-wait-cross-conversation-cadence.js";
 import type {
-  BrowserConfirmedProviderFailureReadbackAuthorization,
+  BrowserConfirmedProviderSourceReadbackAuthorization,
   BrowserExecutionBinding,
 } from "../../../lib/browser/browser-authority-api.js";
 import { createRuntimeLogger } from "../../../lib/runtime-logs/index.js";
@@ -448,8 +448,8 @@ try {
   await readbackLifecycle.settle(null);
 
   const confirmedAt = new Date().toISOString();
-  const failureReadbackAuthorization: BrowserConfirmedProviderFailureReadbackAuthorization = Object.freeze({
-    schemaVersion: "browser-confirmed-provider-failure-readback.v1",
+  const failureReadbackAuthorization: BrowserConfirmedProviderSourceReadbackAuthorization = Object.freeze({
+    schemaVersion: "browser-confirmed-provider-source-readback.v1",
     sourceAttemptId: "attempt:confirmed-failure-readback",
     sourceExactCallIdentityHash: HASH_A,
     sourceActionOrdinal: 12,
@@ -488,15 +488,15 @@ try {
       abortSignal: new AbortController().signal,
     },
   );
-  failureReadbackLifecycle.authorizeConfirmedProviderFailureReadback(failureReadbackAuthorization);
+  failureReadbackLifecycle.authorizeConfirmedProviderSourceReadback(failureReadbackAuthorization);
   await failureReadbackLifecycle.browserFor(
     "session:confirmed-failure-readback", "corpus_research", "turn-reconcile",
   );
-  assert.equal(failureReadbackBindings[0]?.kind, "production-confirmed-failure-readback",
+  assert.equal(failureReadbackBindings[0]?.kind, "production-confirmed-source-readback",
     "reading a confirmed submit failure must authorize the exact source target before reconcile acquisition");
-  if (failureReadbackBindings[0]?.kind === "production-confirmed-failure-readback") {
+  if (failureReadbackBindings[0]?.kind === "production-confirmed-source-readback") {
     assert.deepEqual(
-      failureReadbackBindings[0].confirmedProviderFailureReadback,
+      failureReadbackBindings[0].confirmedProviderSourceReadback,
       failureReadbackAuthorization,
     );
   }
@@ -521,11 +521,31 @@ try {
 
   let allowedReadCount = 0;
   let allowedMediaReadCount = 0;
+  let sourceReadbackActionCount = 0;
   const exactActiveBrowser = {
     target: { targetRef: failureReadbackAuthorization.sourceTargetRef },
     document: { documentRef: failureReadbackAuthorization.sourceDocumentRef },
     runAtomicStep: async (_identity: unknown, action: () => Promise<unknown>) => action(),
-    readAtomicStepRecovery: () => null,
+    readAtomicStepRecovery: (identity: Readonly<{
+      productStepId: string; callId: string; childCapabilityId: string;
+      actionOrdinal: number; replayPolicy: string;
+    }>) => identity.replayPolicy === "provider-effect-once"
+      && identity.childCapabilityId === "submit_exact_gpt_turn_once"
+      && identity.productStepId === failureReadbackAuthorization.sourceProductStepId
+      && identity.callId === failureReadbackAuthorization.sourceCallId
+      && identity.actionOrdinal === failureReadbackAuthorization.sourceActionOrdinal
+      ? Object.freeze({
+          state: "confirmed" as const,
+          mutationOutcome: "confirmed" as const,
+          terminalAt: confirmedAt,
+          failureCode: null,
+          nativeFailureCode: null,
+          authorityRef: "browser-mutation:confirmed-source",
+          authorityHash: HASH_A,
+          targetRef: failureReadbackAuthorization.sourceTargetRef,
+          documentRef: failureReadbackAuthorization.sourceDocumentRef,
+        })
+      : null,
     requiresMutationRecovery: () => false,
     navigate: async () => ({ documentRef: "document:navigated" }),
     executeDomIntent: async () => { allowedReadCount += 1; return Object.freeze({}); },
@@ -567,7 +587,30 @@ try {
   const activeFailureReadback = await activeFailureReadbackLifecycle.browserFor(
     "session:active-confirmed-failure-readback", "corpus_research", "turn-submit",
   );
-  activeFailureReadbackLifecycle.authorizeConfirmedProviderFailureReadback(failureReadbackAuthorization);
+  activeFailureReadbackLifecycle.authorizeConfirmedProviderSourceReadback(failureReadbackAuthorization);
+  await activeFailureReadback.facade.runAtomicStep({
+    productStepId: failureReadbackAuthorization.sourceProductStepId,
+    callId: failureReadbackAuthorization.sourceCallId,
+    childCapabilityId: "submit_exact_gpt_turn_once",
+    inputHash: HASH_A,
+    actionOrdinal: failureReadbackAuthorization.sourceActionOrdinal,
+    replayPolicy: "provider-effect-once",
+  }, async () => { sourceReadbackActionCount += 1; });
+  assert.equal(sourceReadbackActionCount, 1,
+    "source-only authority must allow exactly the recovered confirmed submit to settle its locator");
+  await assert.rejects(
+    activeFailureReadback.facade.runAtomicStep({
+      productStepId: failureReadbackAuthorization.sourceProductStepId,
+      callId: "other-submit",
+      childCapabilityId: "submit_exact_gpt_turn_once",
+      inputHash: HASH_A,
+      actionOrdinal: failureReadbackAuthorization.sourceActionOrdinal,
+      replayPolicy: "provider-effect-once",
+    }, async () => { sourceReadbackActionCount += 1; }),
+    (error: unknown) => typedExecutionFailure(error)?.code === "BROWSER_RECONCILIATION_SCOPE_INVALID",
+  );
+  assert.equal(sourceReadbackActionCount, 1,
+    "source-only authority must reject every non-identical provider submit");
   await activeFailureReadback.facade.executeDomIntent({ kind: "observe" } as never);
   assert.equal(allowedReadCount, 1);
   await assert.rejects(

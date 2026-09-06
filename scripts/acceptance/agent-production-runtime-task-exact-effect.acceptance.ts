@@ -170,7 +170,7 @@ try {
 
   const attempt1 = "attempt:runtime-task-exact-effect:1";
   store.acceptTask(providerTask, identityFor(providerTask), attempt1);
-  const attempt1Hash = await persistAttempt(attempt1);
+  await persistAttempt(attempt1);
   failAttempt(attempt1);
 
   const attempt2 = "attempt:runtime-task-exact-effect:2";
@@ -214,10 +214,40 @@ try {
     cause: { name: "Error", code: "BROWSER_DOM_ACTION_HIT_TEST_FAILED" },
   }, "WAL-only REJECTED replay must preserve the exact Browser terminal and native failure tuple");
   await rejectedExecution.settle(null);
-  const unique = await secondExecution.tools.readCallFacts({ ...call, lookupKind: "task_exact_effect" });
-  assert.equal(unique.exactCallIdentityHash, attempt1Hash);
-  assert.equal(unique.evidence?.readbackVerified, true);
-  assert.equal(unique.evidence?.owner, "forensics-persistence");
+  await assert.rejects(
+    secondExecution.tools.readCallFacts({ ...call, lookupKind: "task_exact_effect" }),
+    (error: unknown) => typedExecutionFailure(error)?.code === "GPT_TASK_EXACT_EFFECT_AMBIGUOUS",
+    "prior evidence without its Browser WAL fact must fail closed rather than authorize a new attempt",
+  );
+
+  const confirmedAuthority = Object.assign(Object.create(null) as WorkbenchBrowserAuthority, {
+    readExactCallMutationFact: (input: Parameters<WorkbenchBrowserAuthority["readExactCallMutationFact"]>[0]) =>
+      input.attemptId === attempt1 ? ({
+        effectScope: "provider_effect" as const,
+        outcome: "CONFIRMED" as const,
+        mutationOutcome: "confirmed" as const,
+        terminalAt: "2026-09-03T00:00:00.000Z",
+        failureCode: null,
+        nativeFailureCode: null,
+        authorityRef: "browser-mutation:confirmed-submit",
+        authorityHash: HASH_B,
+        targetRef: "target:confirmed-submit",
+        documentRef: "document:confirmed-submit",
+        productStepId: call.productStepId,
+        callId: call.callId,
+        childCapabilityId: call.child,
+        actionOrdinal: input.actionOrdinal,
+      }) : null,
+    countProviderTurnDispatches: () => 0,
+    acquireJobBoundTargetLease: async () => { throw new Error("UNEXPECTED_BROWSER_ACQUISITION"); },
+  });
+  const confirmedExecution = execution(attempt2, 23, confirmedAuthority);
+  await assert.rejects(
+    confirmedExecution.tools.readCallFacts({ ...call, lookupKind: "task_exact_effect" }),
+    (error: unknown) => typedExecutionFailure(error)?.code === "GPT_TASK_EXACT_EFFECT_PRIOR_ATTEMPT_BLOCKED",
+    "a confirmed provider effect belongs to its Website accepted attempt and cannot move to a new attempt",
+  );
+  await confirmedExecution.settle(null);
 
   const differentBinding = await secondExecution.tools.readCallFacts({
     ...call,

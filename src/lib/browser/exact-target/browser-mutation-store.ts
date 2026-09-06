@@ -100,6 +100,22 @@ export type BrowserAtomicStepRecovery = Readonly<{
   documentRef: string;
 }>;
 
+type ProviderEffectHistoryRow = Readonly<{
+  logical_mutation_id: `sha256:${string}` | null;
+  owner_plugin_id: string;
+  plugin_version: number;
+  job_id: string;
+  attempt_id: string;
+  product_step_id: string;
+  call_id: string;
+  child_capability_id: string;
+  effect_scope: "target_local" | "provider_effect";
+  request_hash: `sha256:${string}`;
+  payload_hash: `sha256:${string}`;
+  state: "PREPARED" | "DISPATCHED" | "CONFIRMED" | "REJECTED";
+  mutation_outcome: BrowserMutationOutcome | null;
+}>;
+
 export const resolveStoredBrowserMutationAuthority = (
   dataDir: string,
   authorityRef: string,
@@ -148,6 +164,7 @@ export class BrowserMutationStore {
       throw new Error("BROWSER_ATOMIC_STEP_IDENTITY_REQUIRED");
     }
     this.database.transaction(() => {
+      if (input.effectScope === "provider_effect") this.assertProviderEffectHistory(input);
       const exact = this.database.prepare(
         `select action_ordinal from browser_mutations
          where job_id=? and attempt_id=? and owner_plugin_id=? and plugin_version=?
@@ -158,7 +175,7 @@ export class BrowserMutationStore {
         if (exact.action_ordinal !== input.actionOrdinal) throw new Error("BROWSER_ACTION_SEQUENCE_DRIFT");
         throw new Error("BROWSER_EXACT_CALL_REPLAY_FORBIDDEN");
       }
-      if (input.logicalMutationId) {
+      if (input.effectScope === "target_local" && input.logicalMutationId) {
         const existing = this.database.prepare(
           `select command_id from browser_mutations
            where job_id=? and logical_mutation_id=? and state in ('DISPATCHED','CONFIRMED','REJECTED') limit 1`,
@@ -179,6 +196,43 @@ export class BrowserMutationStore {
         input.requestHash, input.payloadHash, new Date().toISOString(),
       );
     })();
+  }
+
+  private assertProviderEffectHistory(input: BrowserMutationIdentity): void {
+    if (!input.logicalMutationId) throw new Error("BROWSER_ATOMIC_STEP_IDENTITY_REQUIRED");
+    const rows = this.database.prepare(
+      `select logical_mutation_id,owner_plugin_id,plugin_version,job_id,attempt_id,
+              product_step_id,call_id,child_capability_id,effect_scope,request_hash,payload_hash,
+              state,mutation_outcome
+       from browser_mutations
+       where job_id=? and logical_mutation_id=?
+         and state in ('PREPARED','DISPATCHED','CONFIRMED','REJECTED')
+       order by attempt_id,command_id`,
+    ).all(input.jobId, input.logicalMutationId) as readonly ProviderEffectHistoryRow[];
+    if (rows.length === 0) return;
+    const attempts = new Set<string>();
+    for (const row of rows) {
+      const identityMatches = row.logical_mutation_id === input.logicalMutationId
+        && row.job_id === input.jobId
+        && row.owner_plugin_id === input.ownerPluginId
+        && row.plugin_version === input.pluginVersion
+        && row.product_step_id === input.productStepId
+        && row.call_id === input.callId
+        && row.child_capability_id === input.childCapabilityId
+        && row.effect_scope === "provider_effect"
+        && row.request_hash === input.requestHash
+        && row.payload_hash === input.payloadHash;
+      if (!identityMatches || attempts.has(row.attempt_id)) {
+        throw new Error("BROWSER_PROVIDER_EFFECT_HISTORY_AMBIGUOUS");
+      }
+      attempts.add(row.attempt_id);
+    }
+    if (attempts.has(input.attemptId)) {
+      throw new Error("BROWSER_PROVIDER_EFFECT_REPLAY_FORBIDDEN");
+    }
+    if (rows.some((row) => row.state !== "REJECTED" || row.mutation_outcome !== "no")) {
+      throw new Error("BROWSER_PROVIDER_EFFECT_REPLAY_FORBIDDEN");
+    }
   }
 
   public markDispatched(commandId: string): void {

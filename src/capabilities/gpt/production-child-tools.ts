@@ -43,11 +43,10 @@ import {
 } from "./continuation-readback.js";
 import { readCompletedGptChildResult } from "./completed-result.js";
 import {
-  authorizeConfirmedProviderFailureReadback,
   authorizeConfirmedProviderReadback,
+  authorizeConfirmedProviderSourceReadback,
   confirmedProviderSubmitReceipt,
   mergeConfirmedProviderSubmitReceipt,
-  readConfirmedProviderSubmitFailureReceipt,
   type ConfirmedProviderSubmitReceipt,
 } from "./confirmed-provider-readback.js";
 import { readTaskExactGptCallFacts } from "./task-exact-effect.js";
@@ -179,26 +178,13 @@ export class ProductionGptChildTools {
     const observedCalls = new Map<string, ProductGptCallInput & Readonly<{ sessionKey: string }>>();
     const readCallFacts = async (call: ProductGptFactQuery): Promise<ExactGptCallFacts> => {
       const facts = await this.readCallFacts(input, call);
+      const receipt = confirmedProviderSubmitReceipt(call, facts);
       confirmedProviderSubmit = mergeConfirmedProviderSubmitReceipt(
         confirmedProviderSubmit,
-        confirmedProviderSubmitReceipt(call, facts),
+        receipt,
       );
+      if (receipt) authorizeConfirmedProviderSourceReadback({ browsers, receipt });
       return productSafeExactGptCallFacts(facts);
-    };
-    const readConfirmedSubmitFailure: ProductGptTools["readConfirmedSubmitFailure"] = async (call) => {
-      const receipt = await readConfirmedProviderSubmitFailureReceipt({
-        call,
-        intent: this.intentFor(input, call),
-        browserAuthority: this.browserAuthority,
-        evidenceStore: this.evidenceStore,
-      });
-      if (!receipt) return null;
-      confirmedProviderSubmit = mergeConfirmedProviderSubmitReceipt(
-        confirmedProviderSubmit,
-        receipt.provider,
-      );
-      authorizeConfirmedProviderFailureReadback({ browsers, receipt: receipt.provider });
-      return receipt.product;
     };
     const execute = async <K extends GptChildCapabilityId>(
       call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
@@ -231,7 +217,6 @@ export class ProductionGptChildTools {
         readContinuationExact: (query: ExactGptContinuationQuery) => this.readContinuation(input, query),
         execute,
         readCallFacts,
-        readConfirmedSubmitFailure,
       }),
       continuationRef: () => continuationRef,
       reconcilePermanentCancellation: () => this.reconcileObservedCalls(

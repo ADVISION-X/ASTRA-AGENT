@@ -23,7 +23,6 @@ export type ProductionLeaseRelease =
       exact_call_identity_hash: ProductionHash;
       outcome: "CONFIRMED";
       terminal_at: string;
-      readback_deadline_at: string;
       readback_mutation_outcome: "no";
       evidence_ref: string;
       evidence_hash: ProductionHash;
@@ -41,7 +40,6 @@ export type ProductionLeaseRelease =
       exact_call_identity_hash: ProductionHash;
       outcome: "CONFIRMED";
       terminal_at: string;
-      readback_deadline_at: string;
       readback_mutation_outcome: "no";
       evidence_ref: string;
       evidence_hash: ProductionHash;

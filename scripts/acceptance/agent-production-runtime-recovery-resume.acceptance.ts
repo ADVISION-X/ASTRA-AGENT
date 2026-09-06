@@ -195,7 +195,6 @@ try {
         causeCode: "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE",
         exactCallIdentityHash: HASH_A,
         terminalAt,
-        readbackDeadlineAt: new Date(Date.parse(terminalAt) + 3_600_000).toISOString(),
         evidenceRef: "gpt-call-evidence:submit",
         evidenceHash: HASH_B,
       });
@@ -218,25 +217,18 @@ try {
   assert.equal(store.readTask(postSubmitTask.job_id)?.attempt_failure, null,
     "a confirmed-submit readback fault must release the lease without freezing attempt_failure");
   const expiredTerminalAt = new Date(Date.now() - 7_200_000).toISOString();
-  for (const [code, terminalAt, readbackDeadlineAt] of [
-    ["BROWSER_TARGET_INVALID", expiredTerminalAt,
-      new Date(Date.parse(expiredTerminalAt) + 3_600_000).toISOString()],
-    ["BROWSER_DOCUMENT_INVALID", new Date(Date.now() - 1_000).toISOString(),
-      new Date(Date.now() + 3_599_000).toISOString()],
-    ["BROWSER_DOM_CANDIDATE_MISSING", new Date(Date.now() - 1_000).toISOString(),
-      new Date(Date.now() + 3_599_000).toISOString()],
-    ["GPT_RESPONSE_STABILITY_TIMEOUT", new Date(Date.now() - 1_000).toISOString(),
-      new Date(Date.now() + 3_599_000).toISOString()],
-    ["GPT_RESPONSE_WAIT_ABORTED", new Date(Date.now() - 1_000).toISOString(),
-      new Date(Date.now() + 3_599_000).toISOString()],
-    ["GPT_RATE_LIMIT_ACTIVE", new Date(Date.now() - 1_000).toISOString(),
-      new Date(Date.now() + 3_599_000).toISOString()],
+  for (const [code, terminalAt] of [
+    ["BROWSER_TARGET_INVALID", expiredTerminalAt],
+    ["BROWSER_DOCUMENT_INVALID", new Date(Date.now() - 1_000).toISOString()],
+    ["BROWSER_DOM_CANDIDATE_MISSING", new Date(Date.now() - 1_000).toISOString()],
+    ["GPT_RESPONSE_STABILITY_TIMEOUT", new Date(Date.now() - 1_000).toISOString()],
+    ["GPT_RESPONSE_WAIT_ABORTED", new Date(Date.now() - 1_000).toISOString()],
+    ["GPT_RATE_LIMIT_ACTIVE", new Date(Date.now() - 1_000).toISOString()],
   ] as const) {
     const preservedFailure = postSubmitReadbackFault(code, {
       causeCode: code,
       exactCallIdentityHash: HASH_A,
       terminalAt,
-      readbackDeadlineAt,
       evidenceRef: `gpt-call-evidence:${code}`,
       evidenceHash: HASH_B,
     });

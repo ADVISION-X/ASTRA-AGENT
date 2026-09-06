@@ -194,7 +194,6 @@ type PostSubmitReadbackReceipt = Readonly<{
   exactCallIdentityHash: ProductionHash;
   outcome: "CONFIRMED";
   terminalAt: string;
-  readbackDeadlineAt: string;
   readbackMutationOutcome: "no";
   evidenceRef: string;
   evidenceHash: ProductionHash;
@@ -243,9 +242,8 @@ export const postSubmitReadbackFault = (
   input: PostSubmitReadbackReceiptInput,
 ): TypedExecutionFailure => {
   const terminalAt = Date.parse(input.terminalAt);
-  const deadlineAt = Date.parse(input.readbackDeadlineAt);
-  if (input.causeCode !== code || !Number.isFinite(terminalAt) || !Number.isFinite(deadlineAt)
-    || deadlineAt <= terminalAt || !RESULT_HASH.test(input.exactCallIdentityHash)
+  if (input.causeCode !== code || !Number.isFinite(terminalAt)
+    || !RESULT_HASH.test(input.exactCallIdentityHash)
     || !input.evidenceRef.trim() || !RESULT_HASH.test(input.evidenceHash)) {
     return executionFailure("failed", code);
   }

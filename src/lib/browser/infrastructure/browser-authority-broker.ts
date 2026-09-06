@@ -44,9 +44,9 @@ type BrowserConfirmedProviderReadbackSource = Readonly<{
   turnMarker: string;
 }>;
 
-export type BrowserConfirmedProviderFailureReadbackAuthorization =
+export type BrowserConfirmedProviderSourceReadbackAuthorization =
   BrowserConfirmedProviderReadbackSource & Readonly<{
-    schemaVersion: "browser-confirmed-provider-failure-readback.v1";
+    schemaVersion: "browser-confirmed-provider-source-readback.v1";
   }>;
 
 export type BrowserConfirmedProviderReadbackAuthorization =
@@ -59,8 +59,8 @@ export type BrowserConfirmedProviderReadbackAuthorization =
 export type BrowserExecutionBinding = BrowserExecutionBindingCore & Readonly<
   | { kind: "local" | "production" }
   | {
-    kind: "production-confirmed-failure-readback";
-    confirmedProviderFailureReadback: BrowserConfirmedProviderFailureReadbackAuthorization;
+    kind: "production-confirmed-source-readback";
+    confirmedProviderSourceReadback: BrowserConfirmedProviderSourceReadbackAuthorization;
   }
   | {
     kind: "production-reconciliation";

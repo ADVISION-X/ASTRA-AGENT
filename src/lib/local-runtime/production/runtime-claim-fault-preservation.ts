@@ -55,7 +55,6 @@ export const preservePostSubmitReadbackFault = async (
         exact_call_identity_hash: receipt.exactCallIdentityHash,
         outcome: receipt.outcome,
         terminal_at: receipt.terminalAt,
-        readback_deadline_at: receipt.readbackDeadlineAt,
         readback_mutation_outcome: receipt.readbackMutationOutcome,
         evidence_ref: receipt.evidenceRef,
         evidence_hash: receipt.evidenceHash,

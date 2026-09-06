@@ -291,17 +291,36 @@ const inspectExactCallEvidenceOwner = (
     "src/capabilities/forensics-persistence/ability-group.ts",
     "src/capabilities/forensics-persistence/storage-port.ts",
   ] as const;
-  const text = paths.map((repoPath) => {
+  const sources = paths.map((repoPath) => {
     inspectedFiles.add(repoPath);
-    return sourceFile(context, repoPath)?.getFullText() ?? "";
-  }).join("\n");
+    return sourceFile(context, repoPath);
+  });
+  const text = sources.map((source) => source?.getFullText() ?? "").join("\n");
   for (const required of [
     "readExactCallEvidence", "readRecordByIdentity", "exactCallIdentityHash",
-    "gpt-call-evidence:v1:", "recordRef",
+    "gpt-call-evidence:v1:", "gpt-call-terminal-evidence:v1:", "recordRef",
   ]) if (!text.includes(required)) pushFinding(
     findings, lawId, `${lawId.toLowerCase()}-requirement`, paths[0],
     "forensics/exact-call-readback", `The unique Forensics Owner is missing ${required}.`, "static.contract",
   );
+  const method = sources[1]?.getDescendantsOfKind(SyntaxKind.MethodDeclaration)
+    .find((candidate) => candidate.getName() === "readExactCallEvidence");
+  const methodText = method?.getFullText() ?? "";
+  const reads = methodText.match(/storage\.readRecordByIdentity\s*\(/gu)?.length ?? 0;
+  if (reads !== 2
+    || methodText.indexOf("gpt-call-terminal-evidence:v1:") > methodText.indexOf("gpt-call-evidence:v1:")
+    || !/return\s+terminal\s*\?\?\s*storage\.readRecordByIdentity\s*\(/u.test(methodText)) {
+    pushFinding(findings, lawId, `${lawId.toLowerCase()}-requirement`, paths[1],
+      "forensics/exact-call-evidence-lifecycle",
+      `Exact-call evidence readback must read terminal then initial with exactly two identities; found ${reads} reads.`,
+      "static.contract");
+  }
+  for (const forbidden of ["gpt-call-invocation-evidence", "recoveryGeneration", "evidenceVersion"]) {
+    if (!text.includes(forbidden)) continue;
+    pushFinding(findings, lawId, `${lawId.toLowerCase()}-requirement`, paths[1],
+      "forensics/exact-call-evidence-lifecycle",
+      `Exact-call evidence must not add a third lifecycle identity through ${forbidden}.`, "static.contract");
+  }
 };
 
 const inspectDeterministicRecordIdentity = (
@@ -329,8 +348,8 @@ const inspectDeterministicRecordIdentity = (
 };
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
-  const evidenceLaw = selectLawId(context.planEntry.lawIds, "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V4");
-  const schemaBoundaryLaw = selectLawId(context.planEntry.lawIds, "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V4");
+  const evidenceLaw = selectLawId(context.planEntry.lawIds, "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V5");
+  const schemaBoundaryLaw = selectLawId(context.planEntry.lawIds, "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V5");
   const schemaVocabularyLaw = selectLawId(context.planEntry.lawIds, "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V3");
   const findings: Finding[] = [];
   const inspectedFiles = new Set<string>();
@@ -366,9 +385,9 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
-  const semanticChecks = (lawId: string, evidenceMode: string): string[] => lawId.endsWith("001-V4")
+  const semanticChecks = (lawId: string, evidenceMode: string): string[] => lawId.endsWith("001-V5")
     ? evidenceMode === "static.ast" ? ["inspectCapabilityRequiredFiles", "inspectOwnerImports"] : ["inspectPublicFacade", "inspectExactCallEvidenceOwner", "inspectChildLayout"]
-    : lawId.endsWith("002-V4")
+    : lawId.endsWith("002-V5")
       ? evidenceMode === "static.ast" ? ["inspectStorageRequiredFiles", "inspectDeterministicRecordIdentity"] : ["inspectStoragePort"]
       : evidenceMode === "static.ast" ? ["inspectSchemaVocabulary"] : ["inspectSchemaContract"];
   const lawResult = (lawId: string) => {
@@ -381,8 +400,8 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   };
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
-    lawResults: [lawResult("LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V4"),
-      lawResult("LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V4"),
+    lawResults: [lawResult("LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V5"),
+      lawResult("LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V5"),
       lawResult("LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V3")], inspectedFiles: evaluation.inspectedFiles,
   });
 };

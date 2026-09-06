@@ -388,10 +388,24 @@ const sessionMutationWasDispatched = (
     && !failureCode.startsWith("GPT_CHILD_INPUT_INVALID:");
 };
 
+const confirmedProviderSubmitRemainsPending = (
+  intent: GptChildCapabilityIntent,
+  observation: ProofObservation | undefined,
+  failureCode: string,
+): boolean => intent.childCapabilityId === "submit_exact_gpt_turn_once"
+  && observation?.browserFact?.childCapabilityId === "submit_exact_gpt_turn_once"
+  && observation.browserFact.effectScope === "provider_effect"
+  && observation.browserFact.browserOutcome === "CONFIRMED"
+  && observation.browserFact.mutationOutcome === "confirmed"
+  && !failureCode.startsWith("GPT_PROVIDER_TERMINAL_");
+
 const failurePostconditionResult = (
+  intent: GptChildCapabilityIntent,
   observation: ProofObservation | undefined,
   committedMutation: "no" | "dispatched" | "confirmed",
+  failureCode: string,
 ): "pending" | "failed" => {
+  if (confirmedProviderSubmitRemainsPending(intent, observation, failureCode)) return "pending";
   if (observation?.browserFact) {
     return observation.browserFact.browserOutcome === "DISPATCHED" ? "pending" : "failed";
   }
@@ -425,7 +439,9 @@ const failedExecution = async <K extends GptChildCapabilityId>(input: Readonly<{
     browserMutationWasDispatched(input.context, input.observation)
       || sessionMutationWasDispatched(input.intent, input.observation, failure.code),
   );
-  const postconditionResult = failurePostconditionResult(observation, committedMutation);
+  const postconditionResult = failurePostconditionResult(
+    input.intent, observation, committedMutation, failure.code,
+  );
   const proof = proofFor({
     intent: input.intent, context: input.context, startedAt: input.startedAt, endedAt: new Date().toISOString(),
     beforeUrl: input.before.url, afterUrl: after.url,

@@ -178,8 +178,9 @@ const applyContinuationCall = (state: SeoHarness, input: SeoCall, initial: unkno
 
 const assertSeoCallBoundary = (state: SeoHarness, input: SeoCall): void => {
   if (state.confirmedReadbackAuthorizationByStep.get(input.productStepId) === "source-only") {
-    assert.equal(input.child, "reconcile_gpt_turn_submission",
-      "source-only confirmed-submit recovery must close the existing submission locator before any other Child");
+    assert(["submit_exact_gpt_turn_once", "reconcile_gpt_turn_submission",
+      "release_gpt_continuation_lane"].includes(input.child),
+    "source-only confirmed-submit recovery may settle the same submit or locator and release non-Browser ownership");
   }
   if (input.child !== "attach_approved_gpt_files_once"
     && input.child !== "reconcile_gpt_attachment_set") return;
@@ -320,10 +321,8 @@ const readSeoCallFacts = (
     ? current
     : [...state.factsByCall.values()].filter((fact) =>
       fact.attemptId !== attemptId && fact.callIdentityHash === callIdentityHash(input))[0];
-  if (stored?.failureCode) {
-    throw executionFailure("failed", stored.failureCode, {
-      metadata: Object.freeze({ mutationOutcome: stored.mutation ? "confirmed" : "no" }),
-    });
+  if (stored?.failureCode && stored.mutation) {
+    state.confirmedReadbackAuthorizationByStep.set(input.productStepId, "source-only");
   }
   return {
     exactCallIdentityHash: HASH,
@@ -372,23 +371,6 @@ export const createContext = (
   gpt: {
     attemptId,
     readContinuationExact: readSeoContinuation(state, decision, attemptId),
-    readConfirmedSubmitFailure: async (input) => {
-      if (input.child !== "submit_exact_gpt_turn_once") return null;
-      const stored = state.factsByCall.get(factKey(attemptId, input));
-      if (!stored?.failureCode || !stored.mutation || !stored.terminalAt) return null;
-      state.confirmedReadbackAuthorizationByStep.set(input.productStepId, "source-only");
-      return Object.freeze({
-        sourceAttemptId: stored.attemptId,
-        exactCallIdentityHash: HASH,
-        productStepId: input.productStepId,
-        callId: input.callId,
-        actionOrdinal: input.actionOrdinal,
-        terminalAt: stored.terminalAt,
-        failureCode: stored.failureCode,
-        evidenceRef: stored.evidenceRef,
-        evidenceHash: HASH,
-      });
-    },
     readCallFacts: readSeoCallFacts(state, attemptId),
     execute: async (input: SeoExecuteInput) => {
       const result = await executeCall(state, input as SeoCall, decision, failureAt, attemptId);

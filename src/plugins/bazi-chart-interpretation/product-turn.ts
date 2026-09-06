@@ -226,7 +226,7 @@ export const applyAttachments = async (
   }
 };
 
-const confirmedDeadline = (facts: ExactGptCallFacts): string => {
+const requireConfirmedSubmit = (facts: ExactGptCallFacts): void => {
   const mutation = facts.mutation;
   if (mutation?.owner !== "browser" || mutation.effectScope !== "provider_effect"
     || mutation.outcome !== "CONFIRMED" || !mutation.terminalAt) {
@@ -234,7 +234,6 @@ const confirmedDeadline = (facts: ExactGptCallFacts): string => {
   }
   const confirmedAt = Date.parse(mutation.terminalAt);
   if (!Number.isFinite(confirmedAt)) fail("PRODUCT_PROVIDER_EFFECT_TERMINAL_FACT_MISSING");
-  return new Date(confirmedAt + WAIT_TIMEOUT_MS).toISOString();
 };
 
 const preservePostSubmitReadback = (error: unknown, submit: ExactGptCallFacts): never => {
@@ -247,7 +246,6 @@ const preservePostSubmitReadback = (error: unknown, submit: ExactGptCallFacts): 
     causeCode: code,
     exactCallIdentityHash: submit.exactCallIdentityHash,
     terminalAt: submit.mutation.terminalAt,
-    readbackDeadlineAt: confirmedDeadline(submit),
     evidenceRef: submit.evidence.evidenceRef,
     evidenceHash: submit.evidence.evidenceHash,
   });
@@ -277,7 +275,7 @@ const checkpointSubmittedTurn = async (
     const stable = objectValue((await flow.execute({
       productStepId: stepId, callId: callId("text-wait"), child: "wait_for_stable_gpt_text",
       actionOrdinal: ordinals[1], input: {
-        absoluteDeadline: confirmedDeadline(submit), canonicalConversationUrl,
+        probeBudgetMs: WAIT_TIMEOUT_MS, canonicalConversationUrl,
         conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
       },
     })).value, "PRODUCT_TEXT_RESPONSE_INVALID");
@@ -335,7 +333,7 @@ export const submitTurn = async (
   }
   await flow.execute(submit);
   const submitFacts = prior?.mutation || prior?.evidence ? prior : await flow.facts(submit);
-  confirmedDeadline(submitFacts);
+  requireConfirmedSubmit(submitFacts);
   return checkpointSubmittedTurn(flow, stepId, marker, promptHash, submitFacts,
     [ordinals[3], ordinals[4], ordinals[5]], callIdSuffix);
 };

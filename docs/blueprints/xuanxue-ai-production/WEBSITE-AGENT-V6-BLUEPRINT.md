@@ -7,14 +7,14 @@
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V41",
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V42",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V2",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V9",
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V9",
-    "LAW-AGENT-PRODUCTION-RUNTIME-005-V9",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V9",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V9",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V10"
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V10",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V10",
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V10",
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V10",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V10",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V11"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -35,9 +35,9 @@
     {"contractRef":null,"from":{"domain":"startup-entrypoint","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"}}
   ],
   "prohibitedDependencyEdges": [
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V41","to":{"domain":"app-shell-ui","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V41","to":{"domain":"local-app-shell","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V41","to":{"domain":"startup-entrypoint","repo":"local"}}
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V42","to":{"domain":"app-shell-ui","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V42","to":{"domain":"local-app-shell","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V42","to":{"domain":"startup-entrypoint","repo":"local"}}
   ]
 }
 ```
@@ -138,7 +138,7 @@ Website ai-acceptance 是唯一 provider。AGENT 三份 spec 的现役身份为�
 
 - Agent Plugin Capability Manifest provider：version 3；authorityArtifact 路径、selector 与 provider spec 只定义 Manifest 的规范字段和 schema。任一 Product Profile/Skill/执行语义变化必须提升对应 `plugin_version` 并重算 canonical catalog hash；只有 Manifest 规范字段或 schema 变化才提升 provider spec version，禁止用旧 Plugin identity/hash 掩盖语义变化；
 - Website Agent Task Result consumer dependency：version 5；
-- Xuanxue AI Production V6 consumer dependency：version 15。
+- Xuanxue AI Production V6 consumer dependency：version 16。
 
 consumer dependency 的 contract body 只能包含 contractId、version、providerRepo。普通启动只校验本仓最小 dependency，不读取未绑定 Website 工作树；跨仓 participant commit 只属于 RELEASE 证据。
 
@@ -175,7 +175,7 @@ Bazi 三字段必须全有或全无；Bazi 与 review 不得混合；额外字�
 
 公开任务状态只允许 failed 和 completed。failed 表示尚未完成，current_reason 说明当前权威位置；claim、lease、执行中、等待发送、等待消费和恢复都不是第三状态。
 
-durable accept 必须先于执行并冻结 job、attempt、plugin/version、authorization、lease/grant/fence。进程重启、lease 更新、Target 变化、build 或错误码不得替换 job 或无事实依据地消耗新 attempt。若相邻能力权威已证明 effect 为 DISPATCHED 或 CONFIRMED，Runtime 只能沿原 task/attempt 与 typed receipt 只读对账，不得盲重放。
+durable accept 必须先于执行并冻结 job、accepted attempt、plugin/version、authorization、lease/grant/fence。进程重启、lease 更新、Target/Document 变化、build、错误码、locator 暂缺或本次 probe deadline 都不得替换 job、消耗新 attempt 或批准 provider effect 重做。Browser/Forensics 已唯一证明 submit `CONFIRMED + passed` 时，Runtime 必须携该 typed receipt 释放 `POST_SUBMIT_READBACK_FAULT`，Website 保留同一 accepted attempt；locator pending 只允许原 Target/Document source-only reconcile，locator 闭合后才允许 full readback，直到唯一 terminal passed 或显式不可恢复事实。任何相邻能力 `DISPATCHED` 仍只沿原现场只读对账，不得盲重放。
 
 Outbox 只有一个。任何网络发送前必须先持久 intent、确定性 idempotency key、payload hash 与当前 task/attempt binding；响应 receipt 必须先持久再推进。timeout、5xx、确定性拒绝和重启只更新同一 intent 的 last_error 与有限 next_delivery_at，不新建 intent、不丢失责任。只有 Website 精确持久化的永久业务撤权事实才能停止新发送，且必须保留原 row、payload/hash、receipt、checkpoint 与相邻能力权威的未决现场。
 
@@ -231,7 +231,7 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 每次候选都必须重新证明：
 
 1. 八条 Runtime law、稳定 blueprintId、三份 active contractRef 与 Runtime 唯一 Manifest 的 lawIds 相互一致；Architecture Boundary law 与 Manifest 独立保持其现役一一对应；越界 `ownedPaths` 只在同一候选的一次原子修改中归位，并立即证明无无主、无重叠、无 Runtime manifest-owner-drift。
-2. Website task-result v5、V6 v15 与 AGENT dependency 精确一致，consumer contract body 只有三字段。
+2. Website task-result v5、V6 v16 与 AGENT dependency 精确一致，consumer contract body 只有三字段。
 3. route projection 精确为 39 routes、57 parameter types、30 result contracts、2 reservation routes。
 4. base、Bazi primary、review admission receipt 的互斥字段与完整 canonical hash 全部闭合，未闭合时本地 completed 增量为零。
 5. credential 失败类别分别得到稳定脱敏 typed code，且 claim/Provider mutation 增量为零。
@@ -248,3 +248,4 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 16. Runtime proof 只声明本域五种 dynamic mode；GPT、Browser、Runtime Log 的原生 proof 均可独立运行，Runtime 相邻 proof assertion 为零，任何未解耦 route 都阻断 RELEASE。
 17. Runtime CHANGE/READY 不替 Website、Product、GPT、Browser 宣称业务完成；最终业务完成仍以 Website admission/storage 为准。
 18. 各域现有唯一 inspector、acceptance 与适用 proof 分别覆盖本域 active law 的 summary、全部 forbidden 与全部 evidenceModes；Owner-bound import mutant 必须证明 Runtime→Plugin、Plugin→Runtime private 与旧 Catalog 豁免都会失败关闭，全部被替代路径的生产消费清零，不新增第二 checker、proof 或 verdict。
+19. 五个并发真实业务任务必须逐个取得唯一 Browser lane 时间片，并各自留下 `acquire -> 页面 Child -> normal park -> reacquire -> checkpoint -> Product 下一步` 的 Target/Document/currentUrl 事实；五项均无饥饿、Provider submit 无重复，且每个任务最终以 Website 自身的 business admission receipt 与持久化读回作为完成证据。页面未切换、只记录轮询日志、只完成 AGENT checkpoint 或只得到本地 success 均不得通过。

@@ -58,11 +58,11 @@ const recoveryMutationOutcome = (
   return recovery.state === "CONFIRMED" ? "confirmed" : "no";
 };
 
-const failureReadbackTargetChanged = (
+const sourceReadbackTargetChanged = (
   binding: BrowserExecutionBinding,
   targetMismatch: boolean,
   documentMismatch: boolean,
-): boolean => binding.kind === "production-confirmed-failure-readback"
+): boolean => binding.kind === "production-confirmed-source-readback"
   && (targetMismatch || documentMismatch);
 
 const dispatchedTargetLocalChanged = (
@@ -282,7 +282,7 @@ export class BrowserLaneCoordinator {
   ): Readonly<{ lease: BrowserTargetLease; replacementKey: string | null }> {
     const targetMismatch = Boolean(recovery) && lease.target.targetRef !== recovery?.targetRef;
     const documentMismatch = Boolean(recovery) && lease.document.documentRef !== recovery?.documentRef;
-    if (failureReadbackTargetChanged(binding, targetMismatch, documentMismatch)) {
+    if (sourceReadbackTargetChanged(binding, targetMismatch, documentMismatch)) {
       throw new Error("BROWSER_DOCUMENT_INVALID");
     }
     if (dispatchedTargetLocalChanged(recovery, targetMismatch, documentMismatch)) {
@@ -305,7 +305,7 @@ export class BrowserLaneCoordinator {
     const mutationState = this.infrastructure.mutationState;
     if (!mutationState) return null;
     if (binding.kind !== "production-reconciliation"
-      && binding.kind !== "production-confirmed-failure-readback") {
+      && binding.kind !== "production-confirmed-source-readback") {
       const scope = mutationState.callRecoveryScope({
         jobId: binding.jobId,
         attemptId: binding.attemptId,

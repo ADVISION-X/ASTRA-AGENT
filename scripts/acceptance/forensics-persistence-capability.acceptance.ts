@@ -141,6 +141,6 @@ try {
 }
 
 process.stdout.write("[ACCEPTANCE] forensics-persistence-capability PASS\n");
-emitQualityProofObservation({ lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V4", evidenceMode: "exam.golden", clauses: ["forbidden:0","summary"], locator: "acceptance:forensics:append-only-record", observedValue: "exact-call record append, deterministic readback, and integrity hash verified" });
-emitQualityProofObservation({ lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V4", evidenceMode: "exam.golden", clauses: ["forbidden:0","summary"], locator: "acceptance:forensics:artifact-index", observedValue: "exact-call keys bind one record and artifact index without embedding private body" });
+emitQualityProofObservation({ lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V5", evidenceMode: "exam.golden", clauses: ["forbidden:0","summary"], locator: "acceptance:forensics:append-only-record", observedValue: "exact-call record append, deterministic readback, and integrity hash verified" });
+emitQualityProofObservation({ lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V5", evidenceMode: "exam.golden", clauses: ["forbidden:0","summary"], locator: "acceptance:forensics:artifact-index", observedValue: "exact-call keys bind one record and artifact index without embedding private body" });
 emitQualityProofObservation({ lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V3", evidenceMode: "exam.golden", clauses: ["forbidden:0","summary"], locator: "acceptance:forensics:storage-owner", observedValue: "ability group persists through sole governed file storage" });

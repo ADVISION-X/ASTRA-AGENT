@@ -12,7 +12,6 @@ import type {
   SharedExecutionContext,
 } from "../../mediator/product-plugin-contract.js";
 import type {
-  ConfirmedGptSubmitFailureReceipt,
   ExactGptCallFacts,
   ProductGptFactQuery,
 } from "../../capabilities/gpt/index.js";
@@ -29,10 +28,8 @@ import {
   type SeoUploadedAttachment,
 } from "./seo-turn-contract.js";
 import {
-  confirmedDeadline,
-  preserveConfirmedSubmitDirectFailure,
   preservePostSubmitReadback,
-  requireConfirmedSubmitDirectFailure,
+  SEO_PROVIDER_PROBE_BUDGET_MS,
   type SeoConfirmedSubmit,
 } from "./seo-submit-readback.js";
 const MODEL_PROFILE = buildGptExecutionProfile({
@@ -111,13 +108,6 @@ export const createSeoExecutor = (task: WebsiteAgentTask, context: SharedExecuti
     const current = await facts(input);
     if (!current.evidence) fail("SEO_PROGRESSIVE_PREFIX_EVIDENCE_MISSING");
   };
-  const confirmedSubmitFailure = async (
-    input: Parameters<SharedExecutionContext["gpt"]["readConfirmedSubmitFailure"]>[0],
-  ): Promise<ConfirmedGptSubmitFailureReceipt | null> => {
-    const receipt = await context.gpt.readConfirmedSubmitFailure(input);
-    if (receipt) recordEvidence(input.actionOrdinal, receipt.evidenceRef);
-    return receipt;
-  };
   const evidenceRefs = (): readonly string[] => Object.freeze(
     [...evidenceByOrdinal.entries()].sort((left, right) => left[0] - right[0]).map((entry) => entry[1]),
   );
@@ -125,7 +115,6 @@ export const createSeoExecutor = (task: WebsiteAgentTask, context: SharedExecuti
     evidenceRefs,
     execute,
     facts,
-    confirmedSubmitFailure,
     recordRecoveredEvidence: recordEvidence,
     requireEvidence,
   });
@@ -248,7 +237,7 @@ const checkpointSubmittedTextTurn = async (
       sessionKey: "", productStepId: input.stepId, callId: "text-wait",
       child: "wait_for_stable_gpt_text", actionOrdinal: input.ordinals[4],
       input: {
-        absoluteDeadline: confirmedDeadline(confirmedSubmit), canonicalConversationUrl,
+        probeBudgetMs: SEO_PROVIDER_PROBE_BUDGET_MS, canonicalConversationUrl,
         conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: input.marker,
       },
     });
@@ -341,29 +330,15 @@ const executeTextSubmit = async (
   try {
     await input.flow.execute({ sessionKey: "", ...turnSubmit });
   } catch (error) {
-    const confirmedSubmit = requireConfirmedSubmitDirectFailure(
-      error,
-      await input.flow.confirmedSubmitFailure(turnSubmit),
-    );
-    await submittedConversationLocator({
-      actionOrdinal: input.ordinals[3], flow: input.flow, marker: input.marker,
-      promptHash, stepId: input.stepId,
-    });
-    return preserveConfirmedSubmitDirectFailure(error, confirmedSubmit);
+    return preservePostSubmitReadback(error, await input.flow.facts(turnSubmit));
   }
   const confirmedSubmit = await input.flow.facts(turnSubmit);
-  confirmedDeadline(confirmedSubmit);
   return confirmedSubmit;
 };
 
 export const submitTextTurn = async (input: SeoTextTurnInput): Promise<SeoTurnCheckpoint> => {
   const promptHash = textHash(input.prompt);
   const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: input.ordinals[2], input: { files: input.files, promptHash, turnMarker: input.marker } } as const;
-  const failedSubmit = await input.flow.confirmedSubmitFailure(turnSubmit);
-  if (failedSubmit) {
-    const reconciled = await reconcileConfirmedTextSubmission(input, failedSubmit);
-    return completeReconciledTextSubmission(input, reconciled);
-  }
   await prepareTextDraft(input, turnSubmit);
   const confirmedSubmit = await executeTextSubmit(input, turnSubmit, promptHash);
   const reconciled = await reconcileConfirmedTextSubmission(input, confirmedSubmit);

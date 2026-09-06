@@ -2,29 +2,34 @@ import type { BrowserExecutionBinding } from "./browser-authority-broker.js";
 import type { BrowserExactCallMutationFact } from "../exact-target/browser-mutation-store.js";
 
 type ReconciliationBinding = Extract<BrowserExecutionBinding, { kind: "production-reconciliation" }>;
-type FailureReadbackBinding = Extract<
+type SourceReadbackBinding = Extract<
   BrowserExecutionBinding,
-  { kind: "production-confirmed-failure-readback" }
+  { kind: "production-confirmed-source-readback" }
 >;
-export type ConfirmedReadbackBinding = ReconciliationBinding | FailureReadbackBinding;
+export type ConfirmedReadbackBinding = ReconciliationBinding | SourceReadbackBinding;
 
 const hash = (value: string): boolean => /^sha256:[a-f0-9]{64}$/u.test(value);
 
-const exactCanonicalConversationUrl = (value: string): boolean => {
+export const durableCanonicalGptConversationUrl = (value: string): string | null => {
   try {
     const url = new URL(value);
-    return url.protocol === "https:" && url.host === "chatgpt.com"
-      && /^\/c\/[^/]+$/u.test(url.pathname)
-      && value === `${url.origin}${url.pathname}`;
+    const segment = url.pathname.split("/");
+    return url.protocol === "https:" && url.origin === "https://chatgpt.com"
+      && url.username === "" && url.password === "" && url.search === "" && url.hash === ""
+      && segment.length === 3 && segment[0] === "" && segment[1] === "c"
+      && (segment[2] ?? "").length <= 256
+      && /^[A-Za-z0-9_-]+$/u.test(segment[2] ?? "")
+      && !(segment[2] ?? "").startsWith("WEB:")
+      && value === `${url.origin}${url.pathname}` ? value : null;
   } catch {
-    return false;
+    return null;
   }
 };
 
 export const readbackSource = (binding: ConfirmedReadbackBinding) => {
   if (binding.kind === "production-reconciliation") return binding.confirmedProviderReadback;
-  if (binding.kind === "production-confirmed-failure-readback") {
-    return binding.confirmedProviderFailureReadback;
+  if (binding.kind === "production-confirmed-source-readback") {
+    return binding.confirmedProviderSourceReadback;
   }
   const exhausted: never = binding;
   return exhausted;
@@ -39,6 +44,7 @@ export const confirmedSourceMatches = (
     source.sourceProductStepId === binding.productStepId,
     source.sourceChildCapabilityId === "submit_exact_gpt_turn_once",
     fact?.effectScope === "provider_effect", fact?.outcome === "CONFIRMED",
+    fact?.mutationOutcome === "confirmed",
     fact?.terminalAt === source.sourceTerminalAt,
     fact?.targetRef === source.sourceTargetRef,
     fact?.documentRef === source.sourceDocumentRef,
@@ -52,8 +58,10 @@ export const confirmedSourceMatches = (
     binding.kind === "production-reconciliation"
       ? binding.confirmedProviderReadback.schemaVersion === "browser-confirmed-provider-readback.v1"
         && hash(binding.confirmedProviderReadback.conversationIdentityHash)
-        && exactCanonicalConversationUrl(binding.confirmedProviderReadback.canonicalConversationUrl)
-      : binding.confirmedProviderFailureReadback.schemaVersion
-        === "browser-confirmed-provider-failure-readback.v1",
+        && durableCanonicalGptConversationUrl(
+          binding.confirmedProviderReadback.canonicalConversationUrl,
+        ) !== null
+      : binding.confirmedProviderSourceReadback.schemaVersion
+        === "browser-confirmed-provider-source-readback.v1",
   ].every(Boolean);
 };

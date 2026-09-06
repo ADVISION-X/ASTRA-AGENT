@@ -90,7 +90,6 @@ const releaseRevokedLease = async (input: Readonly<{
       exact_call_identity_hash: confirmed.exactCallIdentityHash,
       outcome: confirmed.outcome,
       terminal_at: confirmed.terminalAt,
-      readback_deadline_at: confirmed.readbackDeadlineAt,
       readback_mutation_outcome: confirmed.readbackMutationOutcome,
       evidence_ref: confirmed.evidenceRef,
       evidence_hash: confirmed.evidenceHash,

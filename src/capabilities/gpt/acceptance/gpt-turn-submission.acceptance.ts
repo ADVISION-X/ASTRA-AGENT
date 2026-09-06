@@ -241,6 +241,25 @@ import {
   assert.equal(reconciled.status, "success", reconciled.failureCode ?? "submission reconciliation failed");
   assert.equal(reconciled.value?.canonicalConversationUrl, conversationUrl);
   assert.equal(fixture.physicalMutations(), 1, "readback must not submit again");
+
+  for (const invalidPermanentLocator of [
+    "https://chatgpt.com/c/WEB:transient-child",
+    `https://chatgpt.com/c/${"a".repeat(257)}`,
+  ]) {
+    const invalidLocatorFixture = fakeBrowser((intent) => {
+      if (intent.kind === "observe") return coherentObservationPacket(intent, draftFacts({
+        composerHash: EMPTY_HASH, submitted: true, attachment: false,
+      }), invalidPermanentLocator);
+      throw new Error(`INVALID_PERMANENT_LOCATOR_MUST_NOT_MUTATE:${intent.kind}`);
+    });
+    const invalidLocator = await execute("reconcile_gpt_turn_submission", invalidLocatorFixture.browser, {
+      expectedPromptHash: promptHash, timeoutMs: 1, turnMarker: marker,
+    }, undefined, { confirmedProviderSubmitReceipt });
+    assert.equal(invalidLocator.status, "failed");
+    assert.equal(invalidLocator.failureCode, "GPT_TURN_SUBMISSION_RECONCILIATION_PENDING");
+    assert.equal(invalidLocatorFixture.physicalMutations(), 0,
+      "a transient or overlong route must never become a permanent conversation locator");
+  }
 }
 
 {

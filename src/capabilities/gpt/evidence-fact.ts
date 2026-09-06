@@ -196,7 +196,8 @@ const evidencePairValid = (
 ): boolean => !(terminalKey && postcondition === "pending")
   && !(resultStatus === "success" && (postcondition !== "passed" || failure !== null))
   && !(resultStatus === "failed" && (!machineCode(failure) || postcondition === "passed"))
-  && !(postcondition === "pending" && (resultStatus !== "failed" || mutation !== "dispatched"));
+  && !(postcondition === "pending"
+    && (resultStatus !== "failed" || (mutation !== "dispatched" && mutation !== "confirmed")));
 
 const evidenceState = (
   payload: Readonly<Record<string, unknown>>,
@@ -408,51 +409,6 @@ const readVerifiedExactGptEvidence = async (input: Readonly<{
     state,
     reasoningResult,
     cause,
-  });
-};
-
-export type ConfirmedSubmitFailureEvidence = Readonly<{
-  failureCode: string;
-  browserFact: GptChildBrowserFact & Readonly<{
-    childCapabilityId: "submit_exact_gpt_turn_once";
-    effectScope: "provider_effect";
-    browserOutcome: "CONFIRMED";
-    mutationOutcome: "confirmed";
-    terminalAt: string;
-  }>;
-  evidence: NonNullable<ExactGptCallFacts["evidence"]>;
-}>;
-
-export const readConfirmedSubmitFailureEvidence = async (input: Readonly<{
-  evidenceStore: GptEvidenceStorePort;
-  intent: GptChildCapabilityIntent<"submit_exact_gpt_turn_once">;
-  exactCallIdentityHash: `sha256:${string}`;
-}>): Promise<ConfirmedSubmitFailureEvidence | null> => {
-  const verified = await readVerifiedExactGptEvidence(input);
-  if (!verified || verified.state.postcondition !== "failed") return null;
-  const proofFacts = failureProofFacts({
-    payload: verified.payload,
-    intent: input.intent,
-    exactCallIdentityHash: input.exactCallIdentityHash,
-    mutation: verified.state.mutation,
-  });
-  const browserFact = proofFacts.browserFact;
-  if (!browserFact
-    || browserFact.childCapabilityId !== "submit_exact_gpt_turn_once"
-    || browserFact.effectScope !== "provider_effect"
-    || browserFact.browserOutcome !== "CONFIRMED"
-    || browserFact.mutationOutcome !== "confirmed"
-    || !browserFact.terminalAt) return null;
-  return Object.freeze({
-    failureCode: verified.state.failureCode!,
-    browserFact: browserFact as ConfirmedSubmitFailureEvidence["browserFact"],
-    evidence: Object.freeze({
-      owner: "forensics-persistence",
-      evidenceRef: verified.recordRef,
-      evidenceHash: verified.evidenceHash,
-      readbackVerified: true,
-      artifactRefs: verified.artifactRefs,
-    }),
   });
 };
 

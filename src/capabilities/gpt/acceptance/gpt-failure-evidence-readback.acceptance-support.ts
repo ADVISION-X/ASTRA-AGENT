@@ -9,7 +9,6 @@ import type {
 } from "../contract.js";
 import {
   isPendingExactEvidence,
-  readConfirmedSubmitFailureEvidence,
   readExactGptEvidenceFact,
 } from "../evidence-fact.js";
 import { typedGptExecutionFailure } from "../execution-fault.js";
@@ -129,25 +128,15 @@ export const exerciseConfirmedSubmitFailureEvidenceReadback = async (
     jobId: proof.jobId, attemptId: proof.attemptId,
     stepId: proof.productStepId, exactCallIdentityHash: proof.exactCallIdentityHash,
   });
-  await assert.rejects(
-    () => readExactGptEvidenceFact({
-      evidenceStore: persistence.evidenceStore,
-      intent,
-      exactCallIdentityHash: proof.exactCallIdentityHash,
-    }),
-    (error: unknown) => typedGptExecutionFailure(error)?.code === result.failureCode,
-    "the ordinary success-fact reader must preserve the confirmed semantic failure",
-  );
-  const receipt = await readConfirmedSubmitFailureEvidence({
+  const pending = await readExactGptEvidenceFact({
     evidenceStore: persistence.evidenceStore,
     intent,
     exactCallIdentityHash: proof.exactCallIdentityHash,
   });
-  assert.equal(receipt?.failureCode, result.failureCode);
-  assert.equal(receipt?.browserFact.exactCallIdentityHash, proof.exactCallIdentityHash);
-  assert.equal(receipt?.browserFact.terminalAt, proof.browserFact?.terminalAt);
-  assert.equal(receipt?.evidence.readbackVerified, true);
-  assert.equal(receipt?.evidence.evidenceRef, persistence.stored()?.recordRef);
+  assert.equal(result.proof.postconditionResult, "pending");
+  assert.equal(isPendingExactEvidence(pending), true);
+  assert.equal(pending?.readbackVerified, true);
+  assert.equal(pending?.evidenceRef, persistence.stored()?.recordRef);
 };
 
 export const exerciseBrowserRejectedEvidenceReadback = async (): Promise<void> => {

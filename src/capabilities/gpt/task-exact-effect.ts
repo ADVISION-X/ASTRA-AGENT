@@ -27,13 +27,17 @@ export const readTaskExactGptCallFacts = async (input: Readonly<{
   for (const attemptId of input.attemptIds) {
     if (attemptId === input.currentAttemptId) continue;
     const facts = await input.readIntentFacts(input.intentForAttempt(call, attemptId));
-    if (isPendingExactEvidence(facts.evidence)) {
-      throw executionFailure("failed", "GPT_TASK_EXACT_EFFECT_PENDING");
+    if (facts.mutation?.outcome === "REJECTED" && facts.mutation.mutationOutcome === "no") continue;
+    if (facts.evidence && !facts.mutation) {
+      throw executionFailure("failed", "GPT_TASK_EXACT_EFFECT_AMBIGUOUS");
     }
-    if (facts.mutation || facts.evidence) candidates.push(facts);
+    if (facts.mutation || isPendingExactEvidence(facts.evidence)) candidates.push(facts);
   }
   if (candidates.length > 1) {
     throw executionFailure("failed", "GPT_TASK_EXACT_EFFECT_AMBIGUOUS");
   }
-  return candidates[0] ?? currentFacts;
+  if (candidates.length === 1) {
+    throw executionFailure("failed", "GPT_TASK_EXACT_EFFECT_PRIOR_ATTEMPT_BLOCKED");
+  }
+  return currentFacts;
 };

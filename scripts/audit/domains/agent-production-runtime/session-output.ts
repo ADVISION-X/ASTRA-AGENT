@@ -22,7 +22,7 @@ const MODE_CHECKS = {
 
 type EvidenceMode = keyof typeof MODE_CHECKS;
 const LAW_MODE_CLAUSES: Readonly<Record<string, Readonly<Partial<Record<EvidenceMode, readonly string[]>>>>> = {
-  "LAW-AGENT-PRODUCTION-RUNTIME-001-V41": {
+  "LAW-AGENT-PRODUCTION-RUNTIME-001-V42": {
     "static.ast": staticForbiddenClauses(0, 3),
     "static.types": staticForbiddenClauses(0),
     "static.contract": staticForbiddenClauses(0, 1, 2),
@@ -34,36 +34,36 @@ const LAW_MODE_CLAUSES: Readonly<Record<string, Readonly<Partial<Record<Evidence
     "static.types": staticForbiddenClauses(0),
     "static.contract": staticClauses(1),
   },
-  "LAW-AGENT-PRODUCTION-RUNTIME-003-V9": {
+  "LAW-AGENT-PRODUCTION-RUNTIME-003-V10": {
     "static.ast": staticForbiddenClauses(1, 2),
     "static.types": staticForbiddenClauses(1),
     "static.contract": staticForbiddenClauses(0, 1),
     "static.dependency": staticClauses(0),
   },
-  "LAW-AGENT-PRODUCTION-RUNTIME-004-V9": {
+  "LAW-AGENT-PRODUCTION-RUNTIME-004-V10": {
     "static.ast": staticForbiddenClauses(0),
     "static.types": staticForbiddenClauses(0),
     "static.contract": staticClauses(0, 1),
   },
-  "LAW-AGENT-PRODUCTION-RUNTIME-005-V9": {
+  "LAW-AGENT-PRODUCTION-RUNTIME-005-V10": {
     "static.ast": staticForbiddenClauses(1),
     "static.types": staticForbiddenClauses(1),
     "static.sql": staticClauses(0),
   },
-  "LAW-AGENT-PRODUCTION-RUNTIME-006-V9": {
+  "LAW-AGENT-PRODUCTION-RUNTIME-006-V10": {
     "static.filesystem": staticForbiddenClauses(0),
     "static.ast": staticForbiddenClauses(0, 1, 2),
     "static.types": staticForbiddenClauses(0),
     "static.contract": staticClauses(0),
   },
-  "LAW-AGENT-PRODUCTION-RUNTIME-007-V9": {
+  "LAW-AGENT-PRODUCTION-RUNTIME-007-V10": {
     "static.filesystem": staticForbiddenClauses(0),
     "static.ast": staticForbiddenClauses(1),
     "static.types": staticForbiddenClauses(1),
     "static.contract": staticForbiddenClauses(1),
     "static.dependency": staticClauses(0),
   },
-  "LAW-AGENT-PRODUCTION-RUNTIME-008-V10": {
+  "LAW-AGENT-PRODUCTION-RUNTIME-008-V11": {
     "static.filesystem": staticForbiddenClauses(0),
     "static.ast": staticForbiddenClauses(0),
     "static.contract": staticForbiddenClauses(0, 1, 2),

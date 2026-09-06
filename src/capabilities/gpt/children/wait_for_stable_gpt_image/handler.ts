@@ -1,6 +1,7 @@
 import { executionFailure, failureCode } from "../../../../lib/execution-failure.js";
 
 import {
+  numberInput,
   requireBrowser,
   requireExactInputKeys,
   stringInput,
@@ -24,16 +25,17 @@ const stableImageObserved = (
 
 export const waitForStableGptImageHandler: GptChildHandler<"wait_for_stable_gpt_image"> =
   async (intent, context) => {
-    requireExactInputKeys(intent, ["absoluteDeadline", "canonicalConversationUrl", "conversationIdentityHash", "expectedPromptHash", "turnMarker"]);
+    const invocationStartedAt = Date.now();
+    requireExactInputKeys(intent, ["canonicalConversationUrl", "conversationIdentityHash", "expectedPromptHash", "probeBudgetMs", "turnMarker"]);
     const conversationUrl = canonicalGptConversationUrl(stringInput(intent, "canonicalConversationUrl"));
     const conversationIdentityHash = responseHashInput(intent, "conversationIdentityHash");
     const expectedPromptHash = responseHashInput(intent, "expectedPromptHash");
     const turnMarker = stringInput(intent, "turnMarker");
-    const deadline = Date.parse(stringInput(intent, "absoluteDeadline"));
-    if (!Number.isFinite(deadline) || deadline > Date.now() + 3_600_000) {
-      throw executionFailure("failed", "GPT_RESPONSE_ABSOLUTE_DEADLINE_INVALID");
+    const probeBudgetMs = numberInput(intent, "probeBudgetMs");
+    if (!Number.isSafeInteger(probeBudgetMs) || probeBudgetMs < 1 || probeBudgetMs > 3_600_000) {
+      throw executionFailure("failed", "GPT_RESPONSE_PROBE_BUDGET_INVALID");
     }
-    if (Date.now() >= deadline) throw executionFailure("failed", "GPT_IMAGE_STABILITY_TIMEOUT");
+    const deadline = invocationStartedAt + probeBudgetMs;
     const browser = requireBrowser(context);
     let prior: Readonly<{ assistantTurnId: string; mediaHash: `sha256:${string}` }> | null = null;
     let rateLimitAcknowledged = false;

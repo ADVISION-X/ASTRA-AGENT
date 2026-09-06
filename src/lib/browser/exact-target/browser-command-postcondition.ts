@@ -21,6 +21,20 @@ export const browserExactCallIdentityHash = (
   permit.callId, permit.childCapabilityId, permit.inputHash,
 ]);
 
+export const browserProviderEffectIdentityHash = (
+  permit: BrowserCommandPermit,
+  payloadHash: `sha256:${string}`,
+): `sha256:${string}` => hashValue([
+  permit.jobId,
+  permit.ownerPluginId,
+  permit.pluginVersion,
+  permit.productStepId,
+  permit.callId,
+  permit.childCapabilityId,
+  permit.inputHash,
+  payloadHash,
+]);
+
 const observationHeaderValid = (
   value: Record<string, unknown>,
   permit: BrowserCommandPermit,

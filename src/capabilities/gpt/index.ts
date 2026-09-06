@@ -15,7 +15,6 @@ export {
   gptContinuationUsable,
 } from "./schema.js";
 export type {
-  ConfirmedGptSubmitFailureReceipt,
   ExactGptCallFacts,
   ExactGptContinuationReadback,
   ProductGptAnyCallInput,

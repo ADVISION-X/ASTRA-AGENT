@@ -262,7 +262,6 @@ const createGptFixture = (
     state.continuationReads.push(query);
     return fixture.continuationReadback ?? null;
   },
-  readConfirmedSubmitFailure: async () => null,
   readCallFacts: async (call) => {
     const fact = state.facts.get(callKey(call));
     return {

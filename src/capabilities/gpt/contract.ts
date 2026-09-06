@@ -214,7 +214,7 @@ export type GptExecutionContext = Readonly<{
   yieldForProviderWait?: (durationMs: number) => Promise<void>;
   navigateCrossConversationPoll?: (
     canonicalConversationUrl: string,
-    absoluteDeadline: number,
+    probeDeadlineAt: number,
   ) => Promise<"navigated" | "reobserve" | "deadline">;
   onProof?: (proof: GptChildCapabilityProof) => Promise<void>;
 }>;

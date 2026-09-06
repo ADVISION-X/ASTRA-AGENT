@@ -11,7 +11,7 @@ import {
 import { gptExactCallIdentityHash } from "./contract.js";
 import type {
   BrowserAtomicStepRecovery,
-  BrowserConfirmedProviderFailureReadbackAuthorization,
+  BrowserConfirmedProviderSourceReadbackAuthorization,
   BrowserConfirmedProviderReadbackAuthorization,
   BrowserExecutionBinding,
   BrowserTargetLease,
@@ -19,7 +19,7 @@ import type {
 import { requireRuntimeLogWrite, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { executionFailure } from "../../lib/execution-failure.js";
 import {
-  dynamicConfirmedFailureReadbackFacade,
+  dynamicConfirmedSourceReadbackFacade,
   dynamicConfirmedReadbackFacade,
 } from "./production-confirmed-readback-facade.js";
 import { productionGptCrossConversationPollCadence } from "./provider-wait-cross-conversation-cadence.js";
@@ -49,8 +49,8 @@ export type GptBrowserExecutionInput = Readonly<{
 const sha256 = (value: string): GptHash =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
-const confirmedFailureReadbackIdentityHash = (
-  authorization: BrowserConfirmedProviderFailureReadbackAuthorization,
+const confirmedSourceReadbackIdentityHash = (
+  authorization: BrowserConfirmedProviderSourceReadbackAuthorization,
 ): GptHash => sha256(JSON.stringify([
   authorization.schemaVersion,
   authorization.sourceAttemptId,
@@ -71,9 +71,9 @@ const confirmedFailureReadbackIdentityHash = (
 const confirmedReadbackIdentityHash = (
   authorization: BrowserConfirmedProviderReadbackAuthorization,
 ): GptHash => sha256(JSON.stringify([
-  confirmedFailureReadbackIdentityHash({
+  confirmedSourceReadbackIdentityHash({
     ...authorization,
-    schemaVersion: "browser-confirmed-provider-failure-readback.v1",
+    schemaVersion: "browser-confirmed-provider-source-readback.v1",
   }),
   authorization.schemaVersion,
   authorization.canonicalConversationUrl,
@@ -202,7 +202,7 @@ export const recoveredGptChildResult = (input: Readonly<{
 
 export class ProductionGptBrowserLifecycle {
   private readonly browsers = new Map<string, ProductionGptBrowserCall>();
-  private confirmedProviderFailureReadback: BrowserConfirmedProviderFailureReadbackAuthorization | null = null;
+  private confirmedProviderSourceReadback: BrowserConfirmedProviderSourceReadbackAuthorization | null = null;
   private confirmedProviderReadback: BrowserConfirmedProviderReadbackAuthorization | null = null;
 
   public constructor(
@@ -212,12 +212,12 @@ export class ProductionGptBrowserLifecycle {
     private readonly execution: GptBrowserExecutionInput,
   ) {}
 
-  public authorizeConfirmedProviderFailureReadback(
-    authorization: BrowserConfirmedProviderFailureReadbackAuthorization,
+  public authorizeConfirmedProviderSourceReadback(
+    authorization: BrowserConfirmedProviderSourceReadbackAuthorization,
   ): void {
-    const existing = this.confirmedProviderFailureReadback;
-    if (existing && confirmedFailureReadbackIdentityHash(existing)
-      !== confirmedFailureReadbackIdentityHash(authorization)) {
+    const existing = this.confirmedProviderSourceReadback;
+    if (existing && confirmedSourceReadbackIdentityHash(existing)
+      !== confirmedSourceReadbackIdentityHash(authorization)) {
       throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
     }
     for (const active of this.browsers.values()) {
@@ -227,18 +227,18 @@ export class ProductionGptBrowserLifecycle {
       }
     }
     for (const active of this.browsers.values()) {
-      active.facade = dynamicConfirmedFailureReadbackFacade(() => active.browser);
+      active.facade = dynamicConfirmedSourceReadbackFacade(() => active.browser, authorization);
     }
-    this.confirmedProviderFailureReadback = Object.freeze({ ...authorization });
+    this.confirmedProviderSourceReadback = Object.freeze({ ...authorization });
   }
 
   public authorizeConfirmedProviderReadback(
     authorization: BrowserConfirmedProviderReadbackAuthorization,
   ): void {
-    const pending = this.confirmedProviderFailureReadback;
+    const pending = this.confirmedProviderSourceReadback;
     if (pending) {
       const source = Object.freeze({
-        schemaVersion: "browser-confirmed-provider-failure-readback.v1" as const,
+        schemaVersion: "browser-confirmed-provider-source-readback.v1" as const,
         sourceAttemptId: authorization.sourceAttemptId,
         sourceExactCallIdentityHash: authorization.sourceExactCallIdentityHash,
         sourceActionOrdinal: authorization.sourceActionOrdinal,
@@ -253,8 +253,8 @@ export class ProductionGptBrowserLifecycle {
         promptHash: authorization.promptHash,
         turnMarker: authorization.turnMarker,
       });
-      if (confirmedFailureReadbackIdentityHash(pending)
-        !== confirmedFailureReadbackIdentityHash(source)) {
+      if (confirmedSourceReadbackIdentityHash(pending)
+        !== confirmedSourceReadbackIdentityHash(source)) {
         throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
       }
     }
@@ -275,7 +275,7 @@ export class ProductionGptBrowserLifecycle {
     callId: string,
   ): Promise<ProductionGptBrowserCall> {
     if (!sessionKey) throw executionFailure("failed", "GPT_SESSION_KEY_REQUIRED");
-    const readbackSource = this.confirmedProviderReadback ?? this.confirmedProviderFailureReadback;
+    const readbackSource = this.confirmedProviderReadback ?? this.confirmedProviderSourceReadback;
     if (readbackSource && readbackSource.sourceProductStepId !== productStepId) {
       for (const [key, active] of this.browsers) {
         await active.browser.park({
@@ -284,7 +284,7 @@ export class ProductionGptBrowserLifecycle {
         });
         this.browsers.delete(key);
       }
-      this.confirmedProviderFailureReadback = null;
+      this.confirmedProviderSourceReadback = null;
       this.confirmedProviderReadback = null;
     }
     const current = this.browsers.get(sessionKey);
@@ -330,14 +330,14 @@ export class ProductionGptBrowserLifecycle {
     callId: string,
     childCapabilityId: GptChildCapabilityId,
     canonicalConversationUrl: string,
-    absoluteDeadline: number,
+    probeDeadlineAt: number,
   ): Promise<"navigated" | "reobserve" | "deadline"> {
     if (childCapabilityId !== "wait_for_stable_gpt_text"
       && childCapabilityId !== "wait_for_stable_gpt_image") {
       throw executionFailure("failed", "GPT_CROSS_CONVERSATION_POLL_CHILD_INVALID");
     }
     if (typeof canonicalConversationUrl !== "string" || canonicalConversationUrl.length === 0
-      || !Number.isFinite(absoluteDeadline)) {
+      || !Number.isFinite(probeDeadlineAt)) {
       throw executionFailure("failed", "GPT_CROSS_CONVERSATION_POLL_WAIT_INVALID");
     }
     if (this.execution.abortSignal.aborted) {
@@ -346,14 +346,14 @@ export class ProductionGptBrowserLifecycle {
     if (active.browser.pendingMutationCount() > 0 || active.browser.requiresMutationRecovery()) {
       throw executionFailure("failed", "BROWSER_NORMAL_PROVIDER_WAIT_WITH_PENDING_MUTATION");
     }
-    const remaining = Math.floor(absoluteDeadline - Date.now());
+    const remaining = Math.floor(probeDeadlineAt - Date.now());
     if (remaining < 25 || remaining > 3_600_000) return "deadline";
     const eligibility = productionGptCrossConversationPollCadence.reserve(performance.now());
     if (eligibility.kind === "reserved") {
       if (this.execution.abortSignal.aborted) {
         throw executionFailure("failed", "GPT_RESPONSE_WAIT_ABORTED");
       }
-      if (Date.now() >= absoluteDeadline) return "deadline";
+      if (Date.now() >= probeDeadlineAt) return "deadline";
       const navigation = (() => {
         try {
           return active.browser.navigate({
@@ -498,7 +498,7 @@ export class ProductionGptBrowserLifecycle {
     };
     currentCommandTtlMs();
     const confirmedProviderReadback = this.confirmedProviderReadback;
-    const confirmedProviderFailureReadback = this.confirmedProviderFailureReadback;
+    const confirmedProviderSourceReadback = this.confirmedProviderSourceReadback;
     const executionRef = [
       this.execution.jobId,
       this.execution.attemptId,
@@ -507,15 +507,15 @@ export class ProductionGptBrowserLifecycle {
       productStepId,
       callId,
       confirmedProviderReadback?.sourceExactCallIdentityHash
-        ?? confirmedProviderFailureReadback?.sourceExactCallIdentityHash ?? "normal",
+        ?? confirmedProviderSourceReadback?.sourceExactCallIdentityHash ?? "normal",
     ].join(":");
     const binding = {
       ...(confirmedProviderReadback ? {
         kind: "production-reconciliation" as const,
         confirmedProviderReadback,
-      } : confirmedProviderFailureReadback ? {
-        kind: "production-confirmed-failure-readback" as const,
-        confirmedProviderFailureReadback,
+      } : confirmedProviderSourceReadback ? {
+        kind: "production-confirmed-source-readback" as const,
+        confirmedProviderSourceReadback,
       } : { kind: "production" as const }),
       ownerPluginId: this.execution.pluginId,
       pluginVersion: this.execution.pluginVersion,

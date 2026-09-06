@@ -108,7 +108,7 @@ type GptSourceCheckpointInput = Readonly<{
 }>;
 
 type GptResponseWaitInput = Readonly<{
-  absoluteDeadline: string;
+  probeBudgetMs: number;
   canonicalConversationUrl: string;
   conversationIdentityHash: GptHash;
   expectedPromptHash: GptHash;

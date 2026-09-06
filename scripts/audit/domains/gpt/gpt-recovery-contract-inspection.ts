@@ -86,78 +86,89 @@ const inspectBrowserFailureEvidence = (
     findings, finding, message: (required) => `The Browser REJECTED fact path is missing ${required}.` });
   inspectMissing({ source: lifecycle, required: [
     "input.recovery.failureCode", "input.recovery.nativeFailureCode",
-    "authorizeConfirmedProviderFailureReadback", "dynamicConfirmedFailureReadbackFacade",
+    "authorizeConfirmedProviderSourceReadback", "dynamicConfirmedSourceReadbackFacade",
     "dynamicConfirmedReadbackFacade", "CONFIRMED_READBACK_TARGET_LOCAL_CHILDREN",
     '"focus_exact_gpt_conversation"', '"wait_for_stable_gpt_text"',
     '"wait_for_stable_gpt_image"', "downloadAuthenticatedMedia: reject",
   ], checkId: "gpt/browser-rejected-wal-cause", filePath: PRODUCTION_BROWSER_LIFECYCLE_PATH,
   findings, finding, message: (required) => `The Browser atomic-step recovery path is missing ${required}.` });
   inspectMissing({ source: group, required: [
-    'recovery.state === "confirmed"', '"CONFIRMED" as const',
+    'recovery.state === "confirmed"', '"CONFIRMED" as const', "confirmedProviderSubmitRemainsPending",
     "mutationOutcome: input.walBrowserFact.mutationOutcome", "browserFact: input.walBrowserFact",
-  ], checkId: "gpt/browser-confirmed-semantic-failure-proof", filePath: GROUP_PATH,
+  ], checkId: "gpt/browser-confirmed-submit-pending-proof", filePath: GROUP_PATH,
   findings, finding,
-  message: (required) => `The GPT failed proof cannot preserve a confirmed Browser fact; missing ${required}.` });
+  message: (required) => `The GPT pending proof cannot preserve a confirmed Provider submit; missing ${required}.` });
 };
 
-const inspectConfirmedFailureClosure = (
+const inspectConfirmedSubmitClosure = (
   context: InspectorContext,
   findings: InspectorFinding[],
   finding: FindingFactory,
 ): void => {
-  inspectMissing({ source: sourceText(context, PRODUCT_API_PATH), required: [
-    "ConfirmedGptSubmitFailureReceipt", "readConfirmedSubmitFailure(",
-  ], checkId: "gpt/confirmed-submit-failure-public-receipt", filePath: PRODUCT_API_PATH,
-  findings, finding, message: (required) => `The narrow confirmed-submit failure API is missing ${required}.` });
+  const productApi = sourceText(context, PRODUCT_API_PATH);
+  inspectMissing({ source: productApi, required: ["ExactGptCallFacts", "readCallFacts("],
+    checkId: "gpt/confirmed-submit-safe-facts", filePath: PRODUCT_API_PATH,
+    findings, finding, message: (required) => `The Product-safe exact facts API is missing ${required}.` });
   inspectMissing({ source: sourceText(context, EVIDENCE_FACT_PATH), required: [
-    "readConfirmedSubmitFailureEvidence", 'browserOutcome !== "CONFIRMED"',
-    'mutationOutcome !== "confirmed"', 'effectScope !== "provider_effect"',
-  ], checkId: "gpt/confirmed-submit-failure-evidence-readback", filePath: EVIDENCE_FACT_PATH,
-  findings, finding, message: (required) => `The exact failed-evidence readback is missing ${required}.` });
+    "isPendingExactEvidence", "gpt-call-evidence:v1:", "gpt-call-terminal-evidence:v1:",
+    'mutation === "confirmed"',
+  ], checkId: "gpt/confirmed-submit-evidence-lifecycle", filePath: EVIDENCE_FACT_PATH,
+  findings, finding, message: (required) => `The exact pending-to-terminal evidence lifecycle is missing ${required}.` });
   inspectMissing({ source: sourceText(context, CONFIRMED_PROVIDER_READBACK_PATH), required: [
-    "readConfirmedProviderSubmitFailureReceipt", "readExactCallMutationFact",
-    "readConfirmedSubmitFailureEvidence", "confirmedProviderSubmitReceipt",
-    "authorizeConfirmedProviderFailureReadback", "sourceTargetRef", "sourceDocumentRef",
-  ], checkId: "gpt/confirmed-submit-failure-owner-closure", filePath: CONFIRMED_PROVIDER_READBACK_PATH,
-  findings, finding, message: (required) => `The GPT-owned Browser and Forensics closure is missing ${required}.` });
+    "confirmedProviderSubmitReceipt", "authorizeConfirmedProviderSourceReadback",
+    "authorizeConfirmedProviderReadback", "sourceTargetRef", "sourceDocumentRef",
+    "gptSubmissionLocatorArtifact", "mutationOutcome",
+  ], checkId: "gpt/confirmed-submit-owner-closure", filePath: CONFIRMED_PROVIDER_READBACK_PATH,
+  findings, finding, message: (required) => `The GPT-owned confirmed-submit closure is missing ${required}.` });
   inspectMissing({ source: sourceText(context, PRODUCTION_CHILD_TOOLS_PATH), required: [
-    "readConfirmedProviderSubmitFailureReceipt", "mergeConfirmedProviderSubmitReceipt",
-    "authorizeConfirmedProviderFailureReadback", "authorizeConfirmedProviderReadback",
-    "readConfirmedSubmitFailure",
-  ], checkId: "gpt/confirmed-submit-failure-runtime-handoff", filePath: PRODUCTION_CHILD_TOOLS_PATH,
-  findings, finding, message: (required) => `The production GPT tool handoff is missing ${required}.` });
+    "readCallFacts", "confirmedProviderSubmitReceipt", "mergeConfirmedProviderSubmitReceipt",
+    "authorizeConfirmedProviderSourceReadback", "authorizeConfirmedProviderReadback",
+  ], checkId: "gpt/confirmed-submit-runtime-handoff", filePath: PRODUCTION_CHILD_TOOLS_PATH,
+  findings, finding, message: (required) => `The production GPT facts handoff is missing ${required}.` });
+  const combined = `${productApi}\n${sourceText(context, EVIDENCE_FACT_PATH)}\n${sourceText(
+    context, CONFIRMED_PROVIDER_READBACK_PATH,
+  )}\n${sourceText(context, PRODUCTION_CHILD_TOOLS_PATH)}`;
+  for (const forbidden of [
+    "ConfirmedGptSubmitFailureReceipt", "readConfirmedSubmitFailure",
+    "readConfirmedSubmitFailureEvidence", "readConfirmedProviderSubmitFailureReceipt",
+    "authorizeConfirmedProviderFailureReadback",
+  ]) if (combined.includes(forbidden)) findings.push(finding(
+    "gpt/retired-confirmed-submit-failure-path", PRODUCT_API_PATH,
+    `The retired second confirmed-submit failure path remains present through ${forbidden}.`,
+  ));
 };
 
-const inspectFailureHandoffOrder = (
+const inspectConfirmedSubmitHandoffOrder = (
   context: InspectorContext,
   findings: InspectorFinding[],
   finding: FindingFactory,
 ): void => {
   const tools = sourceText(context, PRODUCTION_CHILD_TOOLS_PATH);
-  const read = tools.indexOf("const receipt = await readConfirmedProviderSubmitFailureReceipt");
-  const merge = tools.indexOf("confirmedProviderSubmit = mergeConfirmedProviderSubmitReceipt(", read);
-  const authorize = tools.indexOf("authorizeConfirmedProviderFailureReadback({", merge);
-  const returned = tools.indexOf("return receipt.product;", authorize);
-  const steps = [read, merge, authorize, returned];
+  const read = tools.indexOf("const facts = await this.readCallFacts");
+  const receipt = tools.indexOf("confirmedProviderSubmitReceipt(call, facts)", read);
+  const merge = tools.indexOf("mergeConfirmedProviderSubmitReceipt(", receipt);
+  const authorize = tools.indexOf("authorizeConfirmedProviderSourceReadback({", merge);
+  const returned = tools.indexOf("return productSafeExactGptCallFacts(facts);", authorize);
+  const steps = [read, receipt, merge, authorize, returned];
   if (steps.some((step) => step < 0) || steps.some((step, index) => index > 0 && step < steps[index - 1]!)) {
     findings.push(finding(
-      "gpt/confirmed-submit-failure-runtime-handoff", PRODUCTION_CHILD_TOOLS_PATH,
-      "The exact failed receipt must be validated, merged, and readback-authorized before Product receives it.",
+      "gpt/confirmed-submit-runtime-handoff", PRODUCTION_CHILD_TOOLS_PATH,
+      "Exact facts must validate and authorize source-only confirmed-submit readback before Product receives the safe projection.",
     ));
   }
 };
 
-const inspectSafeFailureReceipt = (
+const inspectSafeFactProjection = (
   context: InspectorContext,
   findings: InspectorFinding[],
   finding: FindingFactory,
 ): void => {
-  const receipt = context.project.getSourceFile(resolve(context.sealedRoot, PRODUCT_API_PATH))
-    ?.getTypeAlias("ConfirmedGptSubmitFailureReceipt")?.getFullText() ?? "";
-  for (const forbidden of ["targetRef", "documentRef", "browserFact", "wal", "dom"]) {
-    if (receipt.toLowerCase().includes(forbidden.toLowerCase())) findings.push(finding(
-      "gpt/confirmed-submit-failure-safe-projection", PRODUCT_API_PATH,
-      `The Product-visible confirmed-submit failure receipt leaks forbidden field ${forbidden}.`,
+  const facts = context.project.getSourceFile(resolve(context.sealedRoot, PRODUCT_API_PATH))
+    ?.getTypeAlias("ExactGptCallFacts")?.getFullText() ?? "";
+  for (const forbidden of ["targetRef", "documentRef", "authorityRef", "authorityHash", "nativeFailureCode"]) {
+    if (facts.includes(forbidden)) findings.push(finding(
+      "gpt/confirmed-submit-safe-projection", PRODUCT_API_PATH,
+      `The Product-visible exact facts leak private Browser field ${forbidden}.`,
     ));
   }
 };
@@ -168,9 +179,9 @@ export const inspectGptBrowserFailureRecoveryContract = (
   finding: FindingFactory,
 ): void => {
   inspectBrowserFailureEvidence(context, findings, finding);
-  inspectConfirmedFailureClosure(context, findings, finding);
-  inspectFailureHandoffOrder(context, findings, finding);
-  inspectSafeFailureReceipt(context, findings, finding);
+  inspectConfirmedSubmitClosure(context, findings, finding);
+  inspectConfirmedSubmitHandoffOrder(context, findings, finding);
+  inspectSafeFactProjection(context, findings, finding);
 };
 
 export const inspectGptDirectMutationSettlementContract = (

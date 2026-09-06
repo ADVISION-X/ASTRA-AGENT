@@ -14,6 +14,7 @@ import {
   assertBrowserCommandTerminalReplyMargin,
   bindBrowserCommandObservationPacket,
   browserExactCallIdentityHash,
+  browserProviderEffectIdentityHash,
 } from "./browser-command-postcondition.js";
 import {
   completeBrowserCommandSpan,
@@ -176,11 +177,12 @@ const mutationIdentity = (permit: BrowserCommandPermit, command: BrowserGoverned
   const postconditions = postconditionPair(command);
   const effectScope = permit.replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local";
   const callIdentityHash = browserExactCallIdentityHash(permit);
-  const targetScope = effectScope === "target_local" ? [permit.targetRef] : [];
+  const payloadHash = hashValue(command);
   return {
     commandId: permit.commandId,
-    logicalMutationId: targetScope.length === 0
-      ? callIdentityHash : hashValue([callIdentityHash, ...targetScope]),
+    logicalMutationId: effectScope === "provider_effect"
+      ? browserProviderEffectIdentityHash(permit, payloadHash)
+      : hashValue([callIdentityHash, permit.targetRef]),
     exactCallIdentityHash: callIdentityHash,
     ownerPluginId: permit.ownerPluginId,
     pluginVersion: permit.pluginVersion,
@@ -199,7 +201,7 @@ const mutationIdentity = (permit: BrowserCommandPermit, command: BrowserGoverned
     positivePostconditionHash: postconditions.positive,
     negativePostconditionHash: postconditions.negative,
     requestHash: permit.inputHash,
-    payloadHash: hashValue(command),
+    payloadHash,
   };
 };
 

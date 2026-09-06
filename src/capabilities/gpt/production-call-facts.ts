@@ -95,6 +95,14 @@ export const readProductionGptCallFacts = async (
     jobId: intent.jobId, attemptId: intent.attemptId, ownerPluginId: intent.pluginId,
     pluginVersion: intent.pluginVersion, exactCallIdentityHash, actionOrdinal: intent.actionOrdinal,
   });
+  let evidence: ExactGptCallFacts["evidence"] = null;
+  try {
+    evidence = await readExactGptEvidenceFact({
+      evidenceStore: reader.evidenceStore, intent, exactCallIdentityHash,
+    });
+  } catch (error) {
+    if (mutation?.outcome !== "REJECTED" || mutation.mutationOutcome !== "no") throw error;
+  }
   return Object.freeze({
     exactCallIdentityHash,
     mutation: mutation ? Object.freeze({
@@ -115,9 +123,7 @@ export const readProductionGptCallFacts = async (
       childCapabilityId: mutation.childCapabilityId,
       actionOrdinal: mutation.actionOrdinal,
     }) : null,
-    evidence: await readExactGptEvidenceFact({
-      evidenceStore: reader.evidenceStore, intent, exactCallIdentityHash,
-    }),
+    evidence,
     continuation: readContinuation(reader, intent),
   });
 };

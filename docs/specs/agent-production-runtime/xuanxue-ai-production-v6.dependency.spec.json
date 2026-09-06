@@ -2,17 +2,17 @@
   "schemaVersion": 1,
   "specId": "agent-production-runtime.xuanxue-ai-production-v6-dependency",
   "status": "active",
-  "version": 15,
+  "version": 16,
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V41",
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V42",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V2",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V9"
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V10"
   ],
   "specKind": "cross-repo-dependency",
   "contract": {
     "contractId": "ai-acceptance.xuanxue-ai-production-v6",
     "providerRepo": "ADVISION-X/xuanxue-web",
-    "version": 15
+    "version": 16
   }
 }
