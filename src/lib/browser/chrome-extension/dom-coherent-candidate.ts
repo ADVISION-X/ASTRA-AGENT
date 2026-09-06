@@ -16,7 +16,6 @@ import { BROWSER_MECHANICAL_FACTS_READER_SOURCE } from "./dom-mechanical-facts.j
 import { BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE } from "./dom-semantic-text.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 
-type BrowserRecord = Record<string, unknown>;
 type CandidateRequest = Readonly<{
   selector: string;
   scope?: BrowserDomReadScope;

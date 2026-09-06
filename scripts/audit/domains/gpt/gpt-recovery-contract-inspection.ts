@@ -41,6 +41,7 @@ const CONFIRMED_PROVIDER_READBACK_PATH = `${ROOT}/confirmed-provider-readback.ts
 const GROUP_PATH = `${ROOT}/ability-group.ts`;
 const PRODUCTION_CHILD_TOOLS_PATH = `${ROOT}/production-child-tools.ts`;
 const PRODUCTION_BROWSER_LIFECYCLE_PATH = `${ROOT}/production-browser-lifecycle.ts`;
+const PRODUCTION_BROWSER_RECOVERY_RESULT_PATH = `${ROOT}/production-browser-recovery-result.ts`;
 const PRODUCTION_CONFIRMED_READBACK_FACADE_PATH = `${ROOT}/production-confirmed-readback-facade.ts`;
 
 type FindingFactory = (
@@ -76,9 +77,11 @@ const inspectBrowserFailureEvidence = (
   finding: FindingFactory,
 ): void => {
   const tools = sourceText(context, PRODUCTION_CHILD_TOOLS_PATH);
-  const lifecycle = `${sourceText(context, PRODUCTION_BROWSER_LIFECYCLE_PATH)}\n${sourceText(
-    context, PRODUCTION_CONFIRMED_READBACK_FACADE_PATH,
-  )}`;
+  const lifecycle = [
+    PRODUCTION_BROWSER_LIFECYCLE_PATH,
+    PRODUCTION_BROWSER_RECOVERY_RESULT_PATH,
+    PRODUCTION_CONFIRMED_READBACK_FACADE_PATH,
+  ].map((path) => sourceText(context, path)).join("\n");
   const group = sourceText(context, GROUP_PATH);
   inspectMissing({ source: tools,
     required: ["mutation.failureCode", "mutation.nativeFailureCode", "cause: nativeCause"],

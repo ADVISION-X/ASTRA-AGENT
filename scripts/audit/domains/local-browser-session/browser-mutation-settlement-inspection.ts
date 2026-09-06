@@ -11,6 +11,7 @@ const DOM_RUNTIME_PATH = "src/lib/browser/chrome-extension/dom-intent-runtime.ts
 const DOM_CONTRACT_PATH = "src/lib/browser/exact-target/browser-dom-intent.ts";
 const OUTCOME_RESOLVER_PATH = "src/lib/browser/exact-target/browser-outcome-resolver.ts";
 const MUTATION_RECEIPT_PATH = "src/lib/browser/exact-target/browser-mutation-receipt.ts";
+const COMMAND_FAILURE_PATH = "src/lib/browser/exact-target/browser-command-failure.ts";
 
 const requireText = (
   text: string,
@@ -68,6 +69,7 @@ type SettlementSources = Readonly<{
   commandPostcondition: SettlementSource;
   contract: SettlementSource;
   fileInput: SettlementSource;
+  failure: SettlementSource;
   manager: SettlementSource;
   mutationReceipt: SettlementSource;
   postcondition: SettlementSource;
@@ -93,6 +95,7 @@ const requireSettlementSources = (
   const contract = requireSource(context, findings, lawId, DOM_CONTRACT_PATH);
   const resolver = requireSource(context, findings, lawId, OUTCOME_RESOLVER_PATH);
   const fileInput = requireSource(context, findings, lawId, extensionFileInputPath);
+  const failure = requireSource(context, findings, lawId, COMMAND_FAILURE_PATH);
   const mutationReceipt = requireSource(context, findings, lawId, MUTATION_RECEIPT_PATH);
   const transport = requireSource(context, findings, lawId, sourcePaths[0]);
   const manager = requireSource(context, findings, lawId, sourcePaths[5]);
@@ -100,10 +103,10 @@ const requireSettlementSources = (
     context, findings, lawId, browserCommandPostconditionPath,
   );
   const required = [actor, store, schema, runtime, pointerRuntime, postcondition, contract, resolver,
-    fileInput, mutationReceipt, transport, commandPostcondition, manager];
+    fileInput, failure, mutationReceipt, transport, commandPostcondition, manager];
   if (required.some((source) => source === null)) return null;
   return { actor: actor!, commandPostcondition: commandPostcondition!, contract: contract!,
-    fileInput: fileInput!, manager: manager!, mutationReceipt: mutationReceipt!, postcondition: postcondition!,
+    failure: failure!, fileInput: fileInput!, manager: manager!, mutationReceipt: mutationReceipt!, postcondition: postcondition!,
     pointerRuntime: pointerRuntime!, resolver: resolver!, runtime: runtime!, schema: schema!,
     store: store!, transport: transport! };
 };
@@ -113,15 +116,16 @@ const inspectMutationPersistence = (
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
+  const actorText = `${sources.actor.getFullText()}\n${sources.failure.getFullText()}`;
   requireText(sources.manager.getFullText(), [
     'if (browserOutcome === "DISPATCHED") state.pendingMutationCommandIds.push(permit.commandId)',
   ], findings, lawId, sourcePaths[5]);
-  requireText(sources.actor.getFullText(), [
+  requireText(actorText, [
     "readMutationOutcome", "decodeBrowserMutationReceipt", "result.failureCode",
     "this.mutations.markRejected(",
     "mutationOutcome: receipt.mutationOutcome",
     "BrowserCommandTerminalReplyError",
-    "error.failureCode",
+    "reply.failureCode",
   ], findings, lawId, sourcePaths[6]);
   requireText(sources.mutationReceipt.getFullText(), [
     "zeroActionSatisfied", "qualificationRejected", "mutationCount === 0",
@@ -136,7 +140,7 @@ const inspectMutationPersistence = (
     "native_cause_code", "nativeCauseCode", "terminalFailureFields", "nativeFailureCode",
     "markTargetLocalDocumentAbsent", "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT",
   ], findings, lawId, sourcePaths[7]);
-  requireText(sources.actor.getFullText(), [
+  requireText(actorText, [
     "result.nativeCauseCode",
   ], findings, lawId, sourcePaths[6]);
   if (!browserMutationSchemaMigrationIsCurrent(sources.schema)) findings.push(createLocalFinding({
@@ -189,7 +193,7 @@ const inspectAuthenticatedMutationReply = (
     "permitSequence !== reply.permitSequence",
     "!compareReplyToken(replyChannelToken, reply.replyChannelToken)",
   ], findings, lawId, sourcePaths[0]);
-  requireText(sources.actor.getFullText(), [
+  requireText(`${sources.actor.getFullText()}\n${sources.failure.getFullText()}`, [
     "error.replyChannelToken === permit.replyChannelToken",
     "error.permitSequence === permit.sequence",
   ], findings, lawId, sourcePaths[6]);

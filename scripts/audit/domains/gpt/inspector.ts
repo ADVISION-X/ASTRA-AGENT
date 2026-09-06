@@ -19,9 +19,7 @@ import {
   validateStaticInspection,
 } from "../../shared/static-inspection-contract.js";
 import { observeStaticMode } from "../../shared/static-target-object-inspector.js";
-import {
-  inspectGptContractDenominator,
-} from "./gpt-contract-inspection.js";
+import { inspectGptContractDenominator } from "./gpt-contract-inspection.js";
 import { inspectGptAttachmentContract } from "./gpt-attachment-contract-inspection.js";
 import { inspectGptPageEvidenceClosure } from "./gpt-page-evidence-closure-inspection.js";
 import {
@@ -33,6 +31,35 @@ import {
   inspectGptCrossConversationPollContract,
   inspectProviderWaitContract,
 } from "./gpt-provider-contract-inspection.js";
+import {
+  GPT_CHILDREN_PATH as CHILDREN_PATH, GPT_CHILD_TYPES_PATH as CHILD_TYPES_PATH, GPT_CONTRACT_PATH as CONTRACT_PATH,
+  GPT_CROSS_CONVERSATION_CADENCE_PATH as CROSS_CONVERSATION_CADENCE_PATH,
+  GPT_EVIDENCE_FACT_PATH as EVIDENCE_FACT_PATH, GPT_EVIDENCE_WRITER_PATH as EVIDENCE_WRITER_PATH,
+  GPT_FACADE_PATH as FACADE_PATH, GPT_GROUP_PATH as GROUP_PATH,
+  GPT_PAGE_EVIDENCE_REPORT_PATH as PAGE_EVIDENCE_REPORT_PATH,
+  GPT_PRODUCTION_BROWSER_LIFECYCLE_PATH as PRODUCTION_BROWSER_LIFECYCLE_PATH,
+  GPT_PRODUCTION_CHILD_TOOLS_PATH as PRODUCTION_CHILD_TOOLS_PATH,
+  GPT_PRODUCTION_CONFIRMED_READBACK_FACADE_PATH as PRODUCTION_CONFIRMED_READBACK_FACADE_PATH,
+  GPT_ROOT as ROOT, GPT_SCHEMA_PATH as SCHEMA_PATH, GPT_SESSION_PATH as SESSION_PATH,
+  gptChildHandlerPath as childHandlerPath,
+} from "./gpt-inspection-core-paths.js";
+import {
+  GPT_ATTACHMENT_CONTRACT_PATH as ATTACHMENT_CONTRACT_PATH,
+  GPT_ATTACHMENT_HANDLER_PATHS as ATTACHMENT_HANDLER_PATHS,
+  GPT_CONTINUATION_HANDLER_PATHS as CONTINUATION_HANDLER_PATHS,
+  GPT_CONVERSATION_HANDLER_PATHS as CONVERSATION_HANDLER_PATHS,
+  GPT_EXECUTION_PROFILE_CONTRACT_PATH as EXECUTION_PROFILE_CONTRACT_PATH,
+  GPT_EXECUTION_PROFILE_HANDLER_PATHS as EXECUTION_PROFILE_HANDLER_PATHS,
+  GPT_IMAGE_RESPONSE_HANDLER_PATHS as IMAGE_RESPONSE_HANDLER_PATHS,
+  GPT_MODEL_SELECTION_V2_CONTRACT_PATH as MODEL_SELECTION_V2_CONTRACT_PATH,
+  GPT_MODEL_SELECTION_V2_HANDLER_PATHS as MODEL_SELECTION_V2_HANDLER_PATHS,
+  GPT_RESPONSE_PAGE_PATH as RESPONSE_PAGE_PATH,
+  GPT_RETIRED_SHARED_SEMANTIC_PATHS as RETIRED_SHARED_SEMANTIC_PATHS,
+  GPT_TEXT_RESPONSE_HANDLER_PATHS as TEXT_RESPONSE_HANDLER_PATHS,
+  GPT_TURN_EXECUTOR_PATH as TURN_EXECUTOR_PATH,
+} from "./gpt-inspection-child-paths.js";
+import { containsPageMutation, gptPrivateInfrastructureViolations, sourceFor, sourceTextForPaths }
+  from "./gpt-inspection-support.js";
 
 const LAW_ID = "LAW-GPT-001-V32";
 const MODE_CLAUSES = {
@@ -47,140 +74,6 @@ const MODE_CHECKS = {
   "static.types": ["inspectGptTypes"], "static.contract": ["inspectGptContracts"],
   "static.dependency": ["inspectGptDependencies"],
 } as const;
-const ROOT = "src/capabilities/gpt";
-const CONTRACT_PATH = `${ROOT}/contract.ts`;
-const FACADE_PATH = `${ROOT}/index.ts`;
-const GROUP_PATH = `${ROOT}/ability-group.ts`;
-const SCHEMA_PATH = `${ROOT}/schema.ts`;
-const CHILD_TYPES_PATH = `${ROOT}/child-types.ts`;
-const EVIDENCE_WRITER_PATH = `${ROOT}/evidence-writer.ts`;
-const EVIDENCE_FACT_PATH = `${ROOT}/evidence-fact.ts`;
-const PAGE_EVIDENCE_REPORT_PATH = "docs/项目方案/GPT页面操作子能力实证资料.json";
-const SESSION_PATH = `${ROOT}/session/gpt-session-controller.ts`;
-const CHILDREN_PATH = `${ROOT}/children`;
-const childHandlerPath = (id: string): string => `${CHILDREN_PATH}/${id}/handler.ts`;
-const childFilePath = (id: string, file: string): string => `${CHILDREN_PATH}/${id}/${file}`;
-const CONTINUATION_HANDLER_PATHS = [
-  childHandlerPath("persist_gpt_continuation"),
-  childHandlerPath("reserve_exact_gpt_continuation_once"),
-  childHandlerPath("complete_exact_gpt_continuation_reservation_once"),
-  childHandlerPath("acquire_gpt_continuation_lane"),
-  childHandlerPath("advance_gpt_continuation_lane"),
-  childHandlerPath("release_gpt_continuation_lane"),
-  `${ROOT}/session/continuation-child-input.ts`,
-] as const;
-const TEXT_RESPONSE_HANDLER_PATHS = [
-  childHandlerPath("wait_for_stable_gpt_text"),
-  childFilePath("wait_for_stable_gpt_text", "page-observation.ts"),
-  childFilePath("wait_for_stable_gpt_text", "response-support.ts"),
-  childFilePath("wait_for_stable_gpt_text", "selectors.ts"),
-  childHandlerPath("checkpoint_gpt_text_response"),
-  childFilePath("checkpoint_gpt_text_response", "response-support.ts"),
-] as const;
-const IMAGE_RESPONSE_HANDLER_PATHS = [
-  childHandlerPath("wait_for_stable_gpt_image"),
-  childFilePath("wait_for_stable_gpt_image", "page-observation.ts"),
-  childFilePath("wait_for_stable_gpt_image", "response-support.ts"),
-  childFilePath("wait_for_stable_gpt_image", "selectors.ts"),
-  childHandlerPath("checkpoint_gpt_generated_image"),
-  childFilePath("checkpoint_gpt_generated_image", "page-observation.ts"),
-  childFilePath("checkpoint_gpt_generated_image", "response-support.ts"),
-  childFilePath("checkpoint_gpt_generated_image", "selectors.ts"),
-] as const;
-const RETIRED_SHARED_SEMANTIC_PATHS = [
-  `${CHILDREN_PATH}/page-handler-exports.ts`,
-  `${CHILDREN_PATH}/continuation-handler-exports.ts`,
-  `${ROOT}/session/session-children.ts`,
-  `${ROOT}/web/attachment-control-observation.ts`,
-  `${ROOT}/web/attachment-set-observation.ts`,
-  `${ROOT}/web/composer-observation.ts`,
-  `${ROOT}/web/conversation-observation.ts`,
-  `${ROOT}/web/execution-profile-observation.ts`,
-  `${ROOT}/web/fork-menu-state.ts`,
-  `${ROOT}/web/gpt-page-selectors.ts`,
-  `${ROOT}/web/gpt-response-page.ts`,
-  `${ROOT}/web/model-selection-v2-observation.ts`,
-  `${ROOT}/web/response-child-support.ts`,
-  `${ROOT}/web/contracts/attachment.contract.ts`,
-  `${ROOT}/web/contracts/execution-profile.contract.ts`,
-  `${ROOT}/web/contracts/model-selection-v2.contract.ts`,
-  `${ROOT}/web/children/attachment-children.ts`,
-  `${ROOT}/web/children/attachment-set-observation.ts`,
-  `${ROOT}/web/children/composer-submission-children.ts`,
-  `${ROOT}/web/children/conversation-children.ts`,
-  `${ROOT}/web/children/execution-profile-children.ts`,
-  `${ROOT}/web/children/execution-profile-observation.ts`,
-  `${ROOT}/web/children/image-response-children.ts`,
-  `${ROOT}/web/children/model-selection-v2-children.ts`,
-  `${ROOT}/web/children/rate-limit-dialog.ts`,
-  `${ROOT}/web/children/response-child-support.ts`,
-  `${ROOT}/web/children/response-children.ts`,
-  `${ROOT}/web/children/text-response-children.ts`,
-] as const;
-const CONVERSATION_HANDLER_PATHS = [
-  childHandlerPath("prepare_clean_gpt_chat"),
-  childHandlerPath("focus_exact_gpt_conversation"),
-  childHandlerPath("verify_gpt_conversation_identity"),
-  childHandlerPath("open_gpt_checkpoint_actions_menu"),
-  childHandlerPath("open_gpt_fork_destination_menu"),
-  childHandlerPath("fork_exact_gpt_conversation_at_checkpoint"),
-  childFilePath("prepare_clean_gpt_chat", "observation.ts"),
-  childFilePath("prepare_clean_gpt_chat", "selectors.ts"),
-  childFilePath("focus_exact_gpt_conversation", "observation.ts"),
-  childFilePath("focus_exact_gpt_conversation", "selectors.ts"),
-  childFilePath("verify_gpt_conversation_identity", "observation.ts"),
-  childFilePath("verify_gpt_conversation_identity", "selectors.ts"),
-  childFilePath("open_gpt_checkpoint_actions_menu", "observation.ts"),
-  childFilePath("open_gpt_checkpoint_actions_menu", "menu-state.ts"),
-  childFilePath("open_gpt_checkpoint_actions_menu", "selectors.ts"),
-  childFilePath("open_gpt_fork_destination_menu", "observation.ts"),
-  childFilePath("open_gpt_fork_destination_menu", "menu-state.ts"),
-  childFilePath("open_gpt_fork_destination_menu", "selectors.ts"),
-  childFilePath("fork_exact_gpt_conversation_at_checkpoint", "observation.ts"),
-  childFilePath("fork_exact_gpt_conversation_at_checkpoint", "menu-state.ts"),
-  childFilePath("fork_exact_gpt_conversation_at_checkpoint", "selectors.ts"),
-] as const;
-const RESPONSE_PAGE_PATH = childFilePath("wait_for_stable_gpt_text", "page-observation.ts");
-const TURN_EXECUTOR_PATH = `${ROOT}/gpt-turn-executor.ts`;
-const MODEL_SELECTION_V2_HANDLER_PATHS = [
-  childHandlerPath("open_gpt_model_selector_v2"),
-  childFilePath("open_gpt_model_selector_v2", "observation.ts"),
-  childFilePath("open_gpt_model_selector_v2", "selectors.ts"),
-  childHandlerPath("select_exact_gpt_model_v2"),
-  childFilePath("select_exact_gpt_model_v2", "observation.ts"),
-  childFilePath("select_exact_gpt_model_v2", "selectors.ts"),
-] as const;
-const MODEL_SELECTION_V2_CONTRACT_PATH = childFilePath("select_exact_gpt_model_v2", "selectors.ts");
-const EXECUTION_PROFILE_HANDLER_PATHS = [
-  childHandlerPath("open_gpt_execution_profile"),
-  childFilePath("open_gpt_execution_profile", "observation.ts"),
-  childFilePath("open_gpt_execution_profile", "selectors.ts"),
-  childHandlerPath("ensure_gpt_reasoning_requirement"),
-  childFilePath("ensure_gpt_reasoning_requirement", "observation.ts"),
-  childFilePath("ensure_gpt_reasoning_requirement", "selectors.ts"),
-  childHandlerPath("close_gpt_execution_profile"),
-  childFilePath("close_gpt_execution_profile", "observation.ts"),
-  childFilePath("close_gpt_execution_profile", "selectors.ts"),
-  `${ROOT}/web/execution-profile-input.ts`,
-] as const;
-const EXECUTION_PROFILE_CONTRACT_PATH = childFilePath("ensure_gpt_reasoning_requirement", "selectors.ts");
-const ATTACHMENT_HANDLER_PATHS = [
-  childHandlerPath("open_gpt_attachment_control"),
-  childFilePath("open_gpt_attachment_control", "observation.ts"),
-  childFilePath("open_gpt_attachment_control", "selectors.ts"),
-  childHandlerPath("attach_approved_gpt_files_once"),
-  childFilePath("attach_approved_gpt_files_once", "attachment-observation.ts"),
-  childFilePath("attach_approved_gpt_files_once", "control-observation.ts"),
-  childFilePath("attach_approved_gpt_files_once", "selectors.ts"),
-  childHandlerPath("reconcile_gpt_attachment_set"),
-  childFilePath("reconcile_gpt_attachment_set", "observation.ts"),
-  childFilePath("reconcile_gpt_attachment_set", "selectors.ts"),
-] as const;
-const ATTACHMENT_CONTRACT_PATH = childFilePath("attach_approved_gpt_files_once", "selectors.ts");
-const PRODUCTION_CHILD_TOOLS_PATH = `${ROOT}/production-child-tools.ts`;
-const PRODUCTION_BROWSER_LIFECYCLE_PATH = `${ROOT}/production-browser-lifecycle.ts`;
-const CROSS_CONVERSATION_CADENCE_PATH = `${ROOT}/provider-wait-cross-conversation-cadence.ts`;
-const PRODUCTION_CONFIRMED_READBACK_FACADE_PATH = `${ROOT}/production-confirmed-readback-facade.ts`;
 
 const finding = (checkId: string, filePath: string, message: string, line?: number): InspectorFinding =>
   createFinding({
@@ -192,12 +85,6 @@ const finding = (checkId: string, filePath: string, message: string, line?: numb
     message,
     ...(line === undefined ? {} : { line }),
   });
-
-const sourceFor = (context: InspectorContext, path: string): SourceFile | undefined =>
-  context.project.getSourceFile(resolve(context.sealedRoot, path));
-
-const sourceTextForPaths = (context: InspectorContext, paths: readonly string[]): string =>
-  paths.map((path) => sourceFor(context, path)?.getFullText() ?? "").join("\n");
 
 const repoPath = (context: InspectorContext, source: SourceFile): string =>
   source.getFilePath().slice(resolve(context.sealedRoot).length + 1).split("\\").join("/");
@@ -335,52 +222,6 @@ const inspectAtomicSafety = (context: InspectorContext, findings: InspectorFindi
       ));
     }
   }
-};
-
-const READ_ONLY_DOM_INTENTS = new Set([
-  "document", "observe", "readExactAssistantTurn", "find", "inspect", "readAttribute", "readText",
-]);
-
-const isPageMutationCall = (call: import("ts-morph").CallExpression): boolean => {
-  const expression = call.getExpression().getText();
-  if (expression.endsWith(".navigate") || expression.endsWith(".attachFile")) return true;
-  if (!expression.endsWith(".executeDomIntent")) return false;
-  const argument = call.getArguments()[0];
-  if (!Node.isObjectLiteralExpression(argument)) return true;
-  const kind = argument.getProperty("kind");
-  if (!Node.isPropertyAssignment(kind)) return true;
-  const value = kind.getInitializer();
-  return !(Node.isStringLiteral(value) || Node.isNoSubstitutionTemplateLiteral(value))
-    || !READ_ONLY_DOM_INTENTS.has(value.getLiteralValue());
-};
-
-export const containsPageMutation = (node: Node): boolean =>
-  node.getDescendantsOfKind(SyntaxKind.CallExpression).some(isPageMutationCall);
-
-const PRIVATE_INFRASTRUCTURE_PATH = /(?:^|[-_.])(?:database|sqlite|queue|worker|scheduler|ledger|housekeeping)(?:[-_.]|$)/iu;
-const PRIVATE_INFRASTRUCTURE_IMPORTS = new Set([
-  "better-sqlite3", "bull", "bullmq", "node:fs", "node:fs/promises", "node:sqlite", "node:worker_threads", "sqlite3",
-]);
-const PRIVATE_INFRASTRUCTURE_NAME = /(?:Database|Queue|Worker|Scheduler|Ledger|Housekeeping|EvidenceStore|MutationStore)$/u;
-
-export const gptPrivateInfrastructureViolations = (source: SourceFile): string[] => {
-  const path = source.getFilePath().split("\\").join("/");
-  const leaf = path.split("/").at(-1) ?? path;
-  const violations: string[] = [];
-  if (PRIVATE_INFRASTRUCTURE_PATH.test(leaf)) violations.push(`path:${leaf}`);
-  for (const declaration of source.getImportDeclarations()) {
-    const target = declaration.getModuleSpecifierValue();
-    if (PRIVATE_INFRASTRUCTURE_IMPORTS.has(target)) violations.push(`import:${target}`);
-  }
-  const names = [
-    ...source.getClasses().flatMap((entry) => entry.getName() ?? []),
-    ...source.getFunctions().flatMap((entry) => entry.getName() ?? []),
-    ...source.getInterfaces().map((entry) => entry.getName()),
-    ...source.getTypeAliases().map((entry) => entry.getName()),
-    ...source.getVariableDeclarations().map((entry) => entry.getName()),
-  ];
-  for (const name of names) if (PRIVATE_INFRASTRUCTURE_NAME.test(name)) violations.push(`declaration:${name}`);
-  return [...new Set(violations)].sort();
 };
 
 const inspectUniqueRuntimeChain = (context: InspectorContext, findings: InspectorFinding[]): void => {

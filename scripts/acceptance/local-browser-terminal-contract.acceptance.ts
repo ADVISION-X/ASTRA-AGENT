@@ -17,7 +17,7 @@ import { exerciseStrictMutationReceipts } from "./local-browser-mutation-receipt
 import { exerciseBrowserDiagnosticContract } from "./local-browser-diagnostic-contract-support.js";
 import { exactHash, exerciseBrowserMutationStore, hash, valueHash } from
   "./local-browser-mutation-store-support.js";
-import { clickCommand, createBrowserActorFactory, matchClickCommand, permit } from "./local-browser-terminal-fixture.js";
+import { createBrowserActorFactory, createClickCommand, createMatchClickCommand, permit } from "./local-browser-terminal-fixture.js";
 import { permitAuthority, permitExecution } from "./local-browser-terminal-fixture.js";
 import type { BrowserCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
 const root = await mkdtemp(join(tmpdir(), "browser-mutation-state-"));
@@ -34,6 +34,8 @@ try {
     fileSink: { directoryPath: join(root, "actor-logs"), maxTotalBytes: 1_048_576 },
   });
   const actorFor = createBrowserActorFactory(actorStore, actorLogger);
+  const clickCommand = createClickCommand();
+  const matchClickCommand = createMatchClickCommand();
   const confirmedPermit = permit("actor-confirmed");
   await actorFor(async (candidate, _command, onDispatched) => {
     onDispatched?.();

@@ -157,7 +157,6 @@ export const exerciseForkFailureChildSurvival = async (stage: ForkFailureStage):
     }
   }, () => undefined);
   authority.start();
-  void state.detachListener;
   await authority.acquireJobBoundChatGptTarget();
   state.discovered = [{ attached: true, id: "source", tabId: state.sourceTabId, title: "Source", type: "page",
     url: state.urls.get(state.sourceTabId)! }];

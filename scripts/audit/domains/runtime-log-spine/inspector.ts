@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { extname, resolve } from "node:path";
-import { SyntaxKind, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type {
@@ -268,36 +268,55 @@ const inspectPrivacyContract = (context: InspectorContext): InspectorFinding[] =
   return findings;
 };
 
+const walTransitionBeforeEmission = (
+  owner: Node | undefined,
+  authorityName: string,
+  emissionName: string,
+  emissionText: string,
+): boolean => {
+  const calls = owner?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
+  const authorities = calls.filter((call) => call.getExpression().getText() === authorityName);
+  const emissions = calls.filter((call) => call.getExpression().getText() === emissionName
+    && call.getText().includes(emissionText));
+  return authorities.length === 1 && authorities.every((authority) =>
+    emissions.some((emission) => emission.getStart() > authority.getStart()));
+};
+
 const inspectStructureAst = (context: InspectorContext): InspectorFinding[] => {
   const findings: InspectorFinding[] = [];
-  requireTokens(context, findings, LAW_STRUCTURE, "static.ast", "wal-before-log",
-    "src/lib/browser/exact-target/browser-command-actor.ts", [
+  const actorRepoPath = "src/lib/browser/exact-target/browser-command-actor.ts";
+  const failureRepoPath = "src/lib/browser/exact-target/browser-command-failure.ts";
+  requireTokens(context, findings, LAW_STRUCTURE, "static.ast", "wal-before-log", actorRepoPath, [
       "this.mutations.prepare", "outcome: \"PREPARED\"", "this.mutations.markDispatched",
-      "outcome: \"DISPATCHED\"", "this.mutations.markReceiptMissing", "this.mutations.markRejected",
-      "this.mutations.markConfirmed", "this.mutations.markFailedBeforeDispatch",
+      "outcome: \"DISPATCHED\"", "this.mutations.markRejected", "this.mutations.markConfirmed",
       "this.mutations.resolve", "outcome: state",
     ]);
-  const actorPath = resolve(context.sealedRoot, "src/lib/browser/exact-target/browser-command-actor.ts");
-  const actorSource = context.project.getSourceFile(actorPath);
+  requireTokens(context, findings, LAW_STRUCTURE, "static.ast", "wal-before-log", failureRepoPath, [
+    "input.mutations.markReceiptMissing", "input.mutations.markFailedBeforeDispatch", "outcome: \"FAILED\"",
+  ]);
+  const actorSource = context.project.getSourceFile(resolve(context.sealedRoot, actorRepoPath));
+  const failureSource = context.project.getSourceFile(resolve(context.sealedRoot, failureRepoPath));
   const actorClass = actorSource?.getClass("BrowserCommandActor");
-  for (const [methodName, authorityCalls, emission] of [
-    ["prepareMutation", ["this.mutations.prepare"], "outcome: \"PREPARED\""],
-    ["execute", ["this.mutations.markDispatched"], "outcome: \"DISPATCHED\""],
-    ["completeMutation", ["this.mutations.markRejected", "this.mutations.markConfirmed"],
+  for (const [owner, filePath, authorityCalls, emissionName, emission] of [
+    [actorClass?.getMethod("prepareMutation"), actorRepoPath, ["this.mutations.prepare"],
+      "emitBrowserMutationEvent", "outcome: \"PREPARED\""],
+    [actorClass?.getMethod("execute"), actorRepoPath, ["this.mutations.markDispatched"],
+      "emitBrowserMutationEvent", "outcome: \"DISPATCHED\""],
+    [actorClass?.getMethod("completeMutation"), actorRepoPath,
+      ["this.mutations.markRejected", "this.mutations.markConfirmed"], "emitBrowserMutationEvent",
       "outcome: result.terminal === \"rejected\" ? \"REJECTED\" : \"CONFIRMED\""],
-    ["failExecution", ["this.mutations.markReceiptMissing", "this.mutations.markFailedBeforeDispatch"],
-      "outcome: \"FAILED\""],
-    ["resolveDispatchedMutation", ["this.mutations.resolve"], "outcome: state"],
+    [actorClass?.getMethod("resolveDispatchedMutation"), actorRepoPath, ["this.mutations.resolve"],
+      "emitBrowserMutationEvent", "outcome: state"],
+    [failureSource?.getVariableDeclaration("rejectAuthenticatedTerminalReply")?.getInitializer(), failureRepoPath,
+      ["input.mutations.markRejected"], "emitRejected", ""],
+    [failureSource?.getVariableDeclaration("rejectAuthenticatedResult")?.getInitializer(), failureRepoPath,
+      ["input.mutations.markRejected"], "emitRejected", ""],
+    [failureSource?.getVariableDeclaration("recordUnsettledMutation")?.getInitializer(), failureRepoPath,
+      ["input.mutations.markFailedBeforeDispatch"], "emitBrowserMutationEvent", "outcome: \"FAILED\""],
   ] as const) {
-    const calls = actorClass?.getMethod(methodName)?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
-    const emissionCalls = calls.filter((call) => call.getExpression().getText() === "emitBrowserMutationEvent"
-      && call.getText().includes(emission));
     for (const authorityName of authorityCalls) {
-      const authorities = calls.filter((call) => call.getExpression().getText() === authorityName);
-      const transitionOrdered = authorities.length === 1 && authorities.every((authorityCall) =>
-        emissionCalls.some((call) => call.getStart() > authorityCall.getStart()));
-      if (!transitionOrdered) findings.push(finding(
-        LAW_STRUCTURE, "static.ast", "wal-before-log", "src/lib/browser/exact-target/browser-command-actor.ts",
+      if (!walTransitionBeforeEmission(owner, authorityName, emissionName, emission)) findings.push(finding(
+        LAW_STRUCTURE, "static.ast", "wal-before-log", filePath,
         `Browser mutation log precedes its WAL authority transition: ${authorityName}.`,
       ));
     }

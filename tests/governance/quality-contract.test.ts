@@ -39,7 +39,7 @@ import { retiredAuthorityExamContractViolations } from "../../scripts/audit/doma
 import { relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, staticImplementationDigest, validateStaticInspection } from "../../scripts/audit/shared/static-inspection-contract.js";
 import { inspectPerSiteHmac } from "../../scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.js";
-import { containsPageMutation, gptPrivateInfrastructureViolations } from "../../scripts/audit/domains/gpt/inspector.js";
+import { containsPageMutation, gptPrivateInfrastructureViolations } from "../../scripts/audit/domains/gpt/gpt-inspection-support.js";
 import { browserMutationSchemaMigrationIsCurrent } from "../../scripts/audit/domains/local-browser-session/browser-mutation-settlement-inspection.js";
 import { exactAssistantTurnReadIsAtomic } from "../../scripts/audit/domains/local-browser-session/dom-mechanical-facts-inspection.js";
 import { exactTextMatcherIsStrict } from "../../scripts/audit/domains/local-browser-session/mutation-atomicity-inspection.js";

@@ -1,0 +1,17 @@
+export const GPT_ROOT = "src/capabilities/gpt";
+export const GPT_CONTRACT_PATH = `${GPT_ROOT}/contract.ts`;
+export const GPT_FACADE_PATH = `${GPT_ROOT}/index.ts`;
+export const GPT_GROUP_PATH = `${GPT_ROOT}/ability-group.ts`;
+export const GPT_SCHEMA_PATH = `${GPT_ROOT}/schema.ts`;
+export const GPT_CHILD_TYPES_PATH = `${GPT_ROOT}/child-types.ts`;
+export const GPT_EVIDENCE_WRITER_PATH = `${GPT_ROOT}/evidence-writer.ts`;
+export const GPT_EVIDENCE_FACT_PATH = `${GPT_ROOT}/evidence-fact.ts`;
+export const GPT_PAGE_EVIDENCE_REPORT_PATH = "docs/项目方案/GPT页面操作子能力实证资料.json";
+export const GPT_SESSION_PATH = `${GPT_ROOT}/session/gpt-session-controller.ts`;
+export const GPT_CHILDREN_PATH = `${GPT_ROOT}/children`;
+export const gptChildHandlerPath = (id: string): string => `${GPT_CHILDREN_PATH}/${id}/handler.ts`;
+export const gptChildFilePath = (id: string, file: string): string => `${GPT_CHILDREN_PATH}/${id}/${file}`;
+export const GPT_PRODUCTION_CHILD_TOOLS_PATH = `${GPT_ROOT}/production-child-tools.ts`;
+export const GPT_PRODUCTION_BROWSER_LIFECYCLE_PATH = `${GPT_ROOT}/production-browser-lifecycle.ts`;
+export const GPT_PRODUCTION_CONFIRMED_READBACK_FACADE_PATH = `${GPT_ROOT}/production-confirmed-readback-facade.ts`;
+export const GPT_CROSS_CONVERSATION_CADENCE_PATH = `${GPT_ROOT}/provider-wait-cross-conversation-cadence.ts`;

@@ -1,0 +1,69 @@
+import { GPT_CHILDREN_PATH, GPT_ROOT, gptChildFilePath, gptChildHandlerPath } from "./gpt-inspection-core-paths.js";
+
+export const GPT_CONTINUATION_HANDLER_PATHS = [
+  gptChildHandlerPath("persist_gpt_continuation"), gptChildHandlerPath("reserve_exact_gpt_continuation_once"),
+  gptChildHandlerPath("complete_exact_gpt_continuation_reservation_once"),
+  gptChildHandlerPath("acquire_gpt_continuation_lane"), gptChildHandlerPath("advance_gpt_continuation_lane"),
+  gptChildHandlerPath("release_gpt_continuation_lane"), `${GPT_ROOT}/session/continuation-child-input.ts`,
+] as const;
+export const GPT_TEXT_RESPONSE_HANDLER_PATHS = [
+  gptChildHandlerPath("wait_for_stable_gpt_text"), gptChildFilePath("wait_for_stable_gpt_text", "page-observation.ts"),
+  gptChildFilePath("wait_for_stable_gpt_text", "response-support.ts"), gptChildFilePath("wait_for_stable_gpt_text", "selectors.ts"),
+  gptChildHandlerPath("checkpoint_gpt_text_response"), gptChildFilePath("checkpoint_gpt_text_response", "response-support.ts"),
+] as const;
+export const GPT_IMAGE_RESPONSE_HANDLER_PATHS = [
+  gptChildHandlerPath("wait_for_stable_gpt_image"), gptChildFilePath("wait_for_stable_gpt_image", "page-observation.ts"),
+  gptChildFilePath("wait_for_stable_gpt_image", "response-support.ts"), gptChildFilePath("wait_for_stable_gpt_image", "selectors.ts"),
+  gptChildHandlerPath("checkpoint_gpt_generated_image"), gptChildFilePath("checkpoint_gpt_generated_image", "page-observation.ts"),
+  gptChildFilePath("checkpoint_gpt_generated_image", "response-support.ts"), gptChildFilePath("checkpoint_gpt_generated_image", "selectors.ts"),
+] as const;
+export const GPT_RETIRED_SHARED_SEMANTIC_PATHS = [
+  `${GPT_CHILDREN_PATH}/page-handler-exports.ts`, `${GPT_CHILDREN_PATH}/continuation-handler-exports.ts`,
+  `${GPT_ROOT}/session/session-children.ts`, `${GPT_ROOT}/web/attachment-control-observation.ts`,
+  `${GPT_ROOT}/web/attachment-set-observation.ts`, `${GPT_ROOT}/web/composer-observation.ts`,
+  `${GPT_ROOT}/web/conversation-observation.ts`, `${GPT_ROOT}/web/execution-profile-observation.ts`,
+  `${GPT_ROOT}/web/fork-menu-state.ts`, `${GPT_ROOT}/web/gpt-page-selectors.ts`,
+  `${GPT_ROOT}/web/gpt-response-page.ts`, `${GPT_ROOT}/web/model-selection-v2-observation.ts`,
+  `${GPT_ROOT}/web/response-child-support.ts`, `${GPT_ROOT}/web/contracts/attachment.contract.ts`,
+  `${GPT_ROOT}/web/contracts/execution-profile.contract.ts`, `${GPT_ROOT}/web/contracts/model-selection-v2.contract.ts`,
+  `${GPT_ROOT}/web/children/attachment-children.ts`, `${GPT_ROOT}/web/children/attachment-set-observation.ts`,
+  `${GPT_ROOT}/web/children/composer-submission-children.ts`, `${GPT_ROOT}/web/children/conversation-children.ts`,
+  `${GPT_ROOT}/web/children/execution-profile-children.ts`, `${GPT_ROOT}/web/children/execution-profile-observation.ts`,
+  `${GPT_ROOT}/web/children/image-response-children.ts`, `${GPT_ROOT}/web/children/model-selection-v2-children.ts`,
+  `${GPT_ROOT}/web/children/rate-limit-dialog.ts`, `${GPT_ROOT}/web/children/response-child-support.ts`,
+  `${GPT_ROOT}/web/children/response-children.ts`, `${GPT_ROOT}/web/children/text-response-children.ts`,
+] as const;
+export const GPT_CONVERSATION_HANDLER_PATHS = [
+  gptChildHandlerPath("prepare_clean_gpt_chat"), gptChildHandlerPath("focus_exact_gpt_conversation"),
+  gptChildHandlerPath("verify_gpt_conversation_identity"), gptChildHandlerPath("open_gpt_checkpoint_actions_menu"),
+  gptChildHandlerPath("open_gpt_fork_destination_menu"), gptChildHandlerPath("fork_exact_gpt_conversation_at_checkpoint"),
+  ...["prepare_clean_gpt_chat", "focus_exact_gpt_conversation", "verify_gpt_conversation_identity"].flatMap((id) => [
+    gptChildFilePath(id, "observation.ts"), gptChildFilePath(id, "selectors.ts"),
+  ]),
+  ...["open_gpt_checkpoint_actions_menu", "open_gpt_fork_destination_menu", "fork_exact_gpt_conversation_at_checkpoint"].flatMap((id) => [
+    gptChildFilePath(id, "observation.ts"), gptChildFilePath(id, "menu-state.ts"), gptChildFilePath(id, "selectors.ts"),
+  ]),
+] as const;
+export const GPT_RESPONSE_PAGE_PATH = gptChildFilePath("wait_for_stable_gpt_text", "page-observation.ts");
+export const GPT_TURN_EXECUTOR_PATH = `${GPT_ROOT}/gpt-turn-executor.ts`;
+export const GPT_MODEL_SELECTION_V2_HANDLER_PATHS = [
+  gptChildHandlerPath("open_gpt_model_selector_v2"), gptChildFilePath("open_gpt_model_selector_v2", "observation.ts"),
+  gptChildFilePath("open_gpt_model_selector_v2", "selectors.ts"), gptChildHandlerPath("select_exact_gpt_model_v2"),
+  gptChildFilePath("select_exact_gpt_model_v2", "observation.ts"), gptChildFilePath("select_exact_gpt_model_v2", "selectors.ts"),
+] as const;
+export const GPT_MODEL_SELECTION_V2_CONTRACT_PATH = gptChildFilePath("select_exact_gpt_model_v2", "selectors.ts");
+export const GPT_EXECUTION_PROFILE_HANDLER_PATHS = [
+  ...["open_gpt_execution_profile", "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile"].flatMap((id) => [
+    gptChildHandlerPath(id), gptChildFilePath(id, "observation.ts"), gptChildFilePath(id, "selectors.ts"),
+  ]), `${GPT_ROOT}/web/execution-profile-input.ts`,
+] as const;
+export const GPT_EXECUTION_PROFILE_CONTRACT_PATH = gptChildFilePath("ensure_gpt_reasoning_requirement", "selectors.ts");
+export const GPT_ATTACHMENT_HANDLER_PATHS = [
+  gptChildHandlerPath("open_gpt_attachment_control"), gptChildFilePath("open_gpt_attachment_control", "observation.ts"),
+  gptChildFilePath("open_gpt_attachment_control", "selectors.ts"), gptChildHandlerPath("attach_approved_gpt_files_once"),
+  gptChildFilePath("attach_approved_gpt_files_once", "attachment-observation.ts"),
+  gptChildFilePath("attach_approved_gpt_files_once", "control-observation.ts"),
+  gptChildFilePath("attach_approved_gpt_files_once", "selectors.ts"), gptChildHandlerPath("reconcile_gpt_attachment_set"),
+  gptChildFilePath("reconcile_gpt_attachment_set", "observation.ts"), gptChildFilePath("reconcile_gpt_attachment_set", "selectors.ts"),
+] as const;
+export const GPT_ATTACHMENT_CONTRACT_PATH = gptChildFilePath("attach_approved_gpt_files_once", "selectors.ts");

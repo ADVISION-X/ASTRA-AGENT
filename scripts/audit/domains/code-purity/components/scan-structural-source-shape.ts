@@ -145,31 +145,40 @@ const collectImportBudgetChecks = (
 
 const childHandlerImportPattern = /^\.\/children\/([^/]+)\/handler\.js$/;
 
-const isExhaustiveChildHandlerRegistry = (governedFile: GovernedFile): boolean => {
-  if (!governedFile.repoPath.endsWith("/handler-registry.ts")) return false;
+const childHandlerEntries = (governedFile: GovernedFile): Map<string, string> | null => {
   const imports = governedFile.sourceFile.getImportDeclarations();
   const handlerImports = imports.filter((declaration) => childHandlerImportPattern.test(declaration.getModuleSpecifierValue()));
-  if (handlerImports.length < 25 || handlerImports.length > 28 || imports.length > 30) return false;
-  if (imports.some((declaration) => !childHandlerImportPattern.test(declaration.getModuleSpecifierValue()) && !declaration.isTypeOnly())) return false;
+  if (handlerImports.length < 25 || handlerImports.length > 28 || imports.length > 30) return null;
+  if (imports.some((declaration) => !childHandlerImportPattern.test(declaration.getModuleSpecifierValue()) && !declaration.isTypeOnly())) return null;
   const handlerEntries = new Map<string, string>();
   for (const declaration of handlerImports) {
     const match = childHandlerImportPattern.exec(declaration.getModuleSpecifierValue());
     const namedImports = declaration.getNamedImports();
-    if (!match || namedImports.length !== 1 || declaration.isTypeOnly()) return false;
+    if (!match || namedImports.length !== 1 || declaration.isTypeOnly()) return null;
     handlerEntries.set(match[1]!, namedImports[0]!.getName());
   }
-  if (handlerEntries.size !== handlerImports.length) return false;
+  return handlerEntries.size === handlerImports.length ? handlerEntries : null;
+};
+
+const exportedHandlerMap = (governedFile: GovernedFile): Map<string, string> | null => {
   const exportedStatements = governedFile.sourceFile.getVariableStatements().filter((statement) => statement.isExported());
-  if (exportedStatements.length !== 1 || exportedStatements[0]!.getDeclarations().length !== 1) return false;
+  if (exportedStatements.length !== 1 || exportedStatements[0]!.getDeclarations().length !== 1) return null;
   const initializer = exportedStatements[0]!.getDeclarations()[0]!.getInitializer();
   const objectLiteral = initializer?.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression)[0];
-  if (!objectLiteral || objectLiteral.getProperties().length !== handlerEntries.size) return false;
+  if (!objectLiteral) return null;
   const mappedHandlers = new Map<string, string>();
   for (const property of objectLiteral.getProperties()) {
-    if (!Node.isPropertyAssignment(property)) return false;
+    if (!Node.isPropertyAssignment(property)) return null;
     mappedHandlers.set(property.getName(), property.getInitializer()?.getText() ?? "");
   }
-  return mappedHandlers.size === handlerEntries.size
+  return mappedHandlers.size === objectLiteral.getProperties().length ? mappedHandlers : null;
+};
+
+const isExhaustiveChildHandlerRegistry = (governedFile: GovernedFile): boolean => {
+  if (!governedFile.repoPath.endsWith("/handler-registry.ts")) return false;
+  const handlerEntries = childHandlerEntries(governedFile);
+  const mappedHandlers = exportedHandlerMap(governedFile);
+  return handlerEntries !== null && mappedHandlers !== null && mappedHandlers.size === handlerEntries.size
     && [...handlerEntries].every(([childId, handler]) => mappedHandlers.get(childId) === handler);
 };
 

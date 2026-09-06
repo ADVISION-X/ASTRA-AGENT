@@ -407,16 +407,21 @@ const inspectReportEnvelope = (
   ));
 };
 
+type EvidenceChildInspection = Readonly<{
+  context: InspectorContext;
+  finding: FindingFactory;
+  findings: InspectorFinding[];
+  pluginFiles: readonly Readonly<{ path: string; text: string }>[];
+}>;
+
 const inspectEvidenceChild = (
-  context: InspectorContext,
+  inspection: EvidenceChildInspection,
   id: string,
   child: Record<string, unknown>,
   contract: Record<string, unknown>,
   isPageChild: boolean,
-  pluginFiles: readonly Readonly<{ path: string; text: string }>[],
-  findings: InspectorFinding[],
-  finding: FindingFactory,
 ): void => {
+  const { context, finding, findings, pluginFiles } = inspection;
   if (JSON.stringify(stable(child.contract)) !== JSON.stringify(stable(contract))
     || child.contractVersion !== contract.contractVersion) findings.push(finding(
     "gpt/page-evidence-contract-binding-stale", REPORT_PATH,
@@ -484,13 +489,14 @@ export const inspectGptPageEvidenceClosure = (
 
   const pluginFiles = filesBelow(resolve(context.sealedRoot, PLUGIN_ROOT), [".ts"])
     .map((path) => ({ path: repoPath(context.sealedRoot, path), text: readFileSync(path, "utf8") }));
+  const childInspection = { context, finding, findings, pluginFiles };
   for (const id of Object.keys(contracts).sort()) {
     const child = byId.get(id);
     if (!child) {
       findings.push(finding("gpt/page-evidence-child-required", REPORT_PATH, `Report is missing ${id}.`));
       continue;
     }
-    inspectEvidenceChild(context, id, child, contracts[id]!, pageIds.includes(id), pluginFiles, findings, finding);
+    inspectEvidenceChild(childInspection, id, child, contracts[id]!, pageIds.includes(id));
   }
   if (!new Set(["NOT_CAPTURED", "CAPTURE_PARTIAL", "CAPTURE_COMPLETE"]).has(String(report.captureStatus))) {
     findings.push(finding("gpt/page-evidence-capture-status", REPORT_PATH,

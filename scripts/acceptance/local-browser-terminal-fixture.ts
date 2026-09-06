@@ -44,18 +44,18 @@ export const permit = (commandId: string): BrowserCommandPermit => ({
   ...permitAuthority(commandId), ...permitExecution(commandId),
 });
 
-export const clickCommand = {
+export const createClickCommand = () => ({
   kind: "dom-intent" as const,
   intent: {
     kind: "click" as const, selector: "button[aria-label='Model selector']", expectedMatches: 1,
     postClickAttribute: { name: "aria-expanded" as const, equals: "true" as const, timeoutMs: 1_000 },
   },
-};
+});
 
-export const matchClickCommand = {
+export const createMatchClickCommand = () => ({
   kind: "dom-intent" as const,
   intent: {
     kind: "click" as const, selector: "button[aria-label='Model selector']", expectedMatches: 1,
     postClickMatch: { selector: "[aria-hidden='true']", expectedMatches: 1 },
   },
-};
+});

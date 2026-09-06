@@ -9,6 +9,7 @@ const INTENT_RUNTIME_PATH = "src/lib/browser/chrome-extension/dom-intent-runtime
 const INTENT_CONTRACT_PATH = "src/lib/browser/exact-target/browser-dom-intent.ts";
 const MUTATION_RECEIPT_PATH = "src/lib/browser/exact-target/browser-mutation-receipt.ts";
 const COHERENT_CANDIDATE_PATH = "src/lib/browser/chrome-extension/dom-coherent-candidate.ts";
+const COHERENT_CANDIDATE_READBACK_PATH = "src/lib/browser/chrome-extension/dom-coherent-candidate-readback.ts";
 const EXACT_ASSISTANT_TURN_PATH = "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts";
 
 const finding = (
@@ -270,10 +271,11 @@ export const inspectDomMechanicalFacts = (
   const observation = requireSource(context, findings, lawId, domCoherentObservationPath);
   const contract = requireSource(context, findings, lawId, INTENT_CONTRACT_PATH);
   const candidate = requireSource(context, findings, lawId, COHERENT_CANDIDATE_PATH);
+  const candidateReadback = requireSource(context, findings, lawId, COHERENT_CANDIDATE_READBACK_PATH);
   const exactAssistantTurn = requireSource(context, findings, lawId, EXACT_ASSISTANT_TURN_PATH);
   const mutationReceipt = requireSource(context, findings, lawId, MUTATION_RECEIPT_PATH);
   if (!facts || !exactEditable || !query || !runtime || !postcondition || !observation || !contract || !candidate
-    || !exactAssistantTurn || !mutationReceipt) return;
+    || !candidateReadback || !exactAssistantTurn || !mutationReceipt) return;
 
   const readerInitializer = facts.getVariableDeclaration("BROWSER_MECHANICAL_FACTS_READER_SOURCE")?.getInitializer();
   const reader = readerInitializer && Node.isNoSubstitutionTemplateLiteral(readerInitializer)
@@ -291,14 +293,15 @@ export const inspectDomMechanicalFacts = (
     `${exactEditable.getFullText()}\n${exactEditableReader}`,
     queryText, observation.getFullText(), contract.getFullText(), findings, lawId,
   );
+  const candidateText = `${candidate.getFullText()}\n${candidateReadback.getFullText()}`;
   inspectExactGptUserPromptProjection(
-    observation.getFullText(), contract.getFullText(), candidate.getFullText(), findings, lawId,
+    observation.getFullText(), contract.getFullText(), candidateText, findings, lawId,
   );
-  inspectCoherentPointerAction(candidate.getFullText(), queryText, findings, lawId);
+  inspectCoherentPointerAction(candidateText, queryText, findings, lawId);
   inspectAtomicObservationPointer(
-    candidate.getFullText(), runtime.getFullText(), findings, lawId,
+    candidateText, runtime.getFullText(), findings, lawId,
   );
-  const runtimeText = `${runtime.getFullText()}\n${observation.getFullText()}\n${candidate.getFullText()}`;
+  const runtimeText = `${runtime.getFullText()}\n${observation.getFullText()}\n${candidateText}`;
   inspectCoherentRuntime(runtimeText, findings, lawId);
   inspectPostconditionEvidence(postcondition.getFullText(), mutationReceipt.getFullText(), findings, lawId);
   const contractText = contract.getFullText();
