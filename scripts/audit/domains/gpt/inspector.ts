@@ -75,9 +75,7 @@ const TEXT_RESPONSE_HANDLER_PATHS = [
   childFilePath("wait_for_stable_gpt_text", "response-support.ts"),
   childFilePath("wait_for_stable_gpt_text", "selectors.ts"),
   childHandlerPath("checkpoint_gpt_text_response"),
-  childFilePath("checkpoint_gpt_text_response", "page-observation.ts"),
   childFilePath("checkpoint_gpt_text_response", "response-support.ts"),
-  childFilePath("checkpoint_gpt_text_response", "selectors.ts"),
 ] as const;
 const IMAGE_RESPONSE_HANDLER_PATHS = [
   childHandlerPath("wait_for_stable_gpt_image"),
