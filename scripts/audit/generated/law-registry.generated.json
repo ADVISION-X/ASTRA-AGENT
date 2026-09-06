@@ -191,6 +191,8 @@
         "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
         "docs/项目方案/GPT页面操作子能力实证资料.json",
         "docs/项目方案/GPT页面操作子能力实证采集方案.md",
+        "scripts/acceptance/gpt-page-evidence-change-gate.ts",
+        "scripts/acceptance/gpt-page-evidence-closure.acceptance.ts",
         "scripts/acceptance/gpt.real-proof.ts",
         "scripts/audit/domains/gpt/**",
         "src/capabilities/gpt/**"
