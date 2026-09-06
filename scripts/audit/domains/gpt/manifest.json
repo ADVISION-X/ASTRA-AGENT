@@ -3,7 +3,7 @@
   "capabilityDomain": "gpt",
   "status": "active",
   "lawIds": [
-    "LAW-GPT-001-V31"
+    "LAW-GPT-001-V32"
   ],
   "ownedPaths": [
     "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
@@ -16,6 +16,7 @@
     "src/capabilities/gpt/**"
   ],
   "observedPaths": [
+    ".github/instructions/agent-rules/功能法案.md",
     "src/lib/browser/**",
     "src/lib/local-runtime/production/**",
     "src/lib/runtime-logs/**",

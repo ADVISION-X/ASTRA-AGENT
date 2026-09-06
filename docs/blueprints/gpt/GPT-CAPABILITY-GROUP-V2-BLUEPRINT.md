@@ -1,13 +1,13 @@
-# GPT 能力组 V24 施工图
+# GPT 能力组 V25 施工图
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "gpt-capability-group-v24",
+  "blueprintId": "gpt-capability-group-v25",
   "status": "active",
   "owner": "gpt",
   "lawIds": [
-    "LAW-GPT-001-V31"
+    "LAW-GPT-001-V32"
   ],
   "contractRefs": [],
   "dependencyEdges": [
@@ -23,7 +23,7 @@
 
 `gpt` 只拥有 GPT Provider 的 28 个原子 Child、对应局部合同、Browser Authority 调用、直接后置证明和 typed result：二十二个 Provider 页面语义 Child、六个 continuation transaction Child。十二个 Product Plugin 各自直接拥有 Child 顺序、分支、重复、跳过、Prompt 语义、精确模型、requested reasoning tier、selection policy 和结果组装；模型选择完成后重新确保 execution profile 打开、再执行 Product 冻结的推理要求，也属于每个 Product 自己的显式顺序。
 
-本次 V23 保持 28 个 Child 的物理隔离与三步 fork 公开边界，并根据同一专用 QA Chrome 现场实证，修正最终 fork 的物理页面接管与 `/c/WEB:<opaque>` 瞬时 route 边界。子会话首页由 Browser Authority 接管真实 child tab、把同一逻辑 `targetRef` 转移到 child 的新物理 `tabId`，随后关闭 source tab；禁止关闭 child 后再导航 source tab。首次 follow-up reconcile 必须等待 durable 非 WEB URL 后才成功。其余 Child 的公开身份、局部合同和 mutation 配额不改变。`open_gpt_execution_profile`、`open_gpt_model_selector_v2`、`select_exact_gpt_model_v2`、`ensure_gpt_reasoning_requirement`、`close_gpt_execution_profile` 的 PRO/PLUS、0..2/0..4 与 exact/exact-or-observed-maximum 语义继续冻结，不得借本次修改行为或建立兼容路径。
+本次 V25 保持 28 个 Child 的物理隔离与三步 fork 公开边界，并根据同一专用 QA Chrome 现场实证，修正最终 fork 的物理页面接管与 `/c/WEB:<opaque>` 瞬时 route 边界。子会话首页由 Browser Authority 接管真实 child tab、把同一逻辑 `targetRef` 转移到 child 的新物理 `tabId`，随后关闭 source tab；禁止关闭 child 后再导航 source tab。首次 follow-up reconcile 必须等待 durable 非 WEB URL 后才成功。其余 Child 的公开身份、局部合同和 mutation 配额不改变。`open_gpt_execution_profile`、`open_gpt_model_selector_v2`、`select_exact_gpt_model_v2`、`ensure_gpt_reasoning_requirement`、`close_gpt_execution_profile` 的 PRO/PLUS、0..2/0..4 与 exact/exact-or-observed-maximum 语义继续冻结，不得借本次修改行为或建立兼容路径。
 
 ```text
 Product Plugin 的普通 TypeScript Flow
@@ -194,7 +194,7 @@ bounded-wait 只是画像附加特征：`prepare_clean_gpt_chat`、`focus_exact_
 
 ### 3.1 页面实证闭环
 
-页面操作分母矩阵唯一位于 `src/capabilities/gpt/page-operation-matrix.json`，归属 GPT Owner，并处于 `LAW-GPT-001-V31` 的 `src/capabilities/gpt/**` 适用范围内。质检只能从密封候选读取该矩阵；不得从工作树外读回、复制第二份矩阵或建立兼容查找路径。
+页面操作分母矩阵唯一位于 `src/capabilities/gpt/page-operation-matrix.json`，归属 GPT Owner，并处于 `LAW-GPT-001-V32` 的 `src/capabilities/gpt/**` 适用范围内。质检只能从密封候选读取该矩阵；不得从工作树外读回、复制第二份矩阵或建立兼容查找路径。
 
 二十二个页面 Child 继续只在各自现有 handler、合同和 Browser typed command 内闭合，不新增 Child、公共 selector registry、第二 observation、第二存储或质量裁决。当前真实页面实证要求以下直接约束：
 

@@ -345,7 +345,7 @@ try {
 }
 
 emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V31",
+  lawId: "LAW-GPT-001-V32",
   evidenceMode: "exam.state-machine",
   clauses: ["forbidden:18", "forbidden:20", "summary"],
   locator: "acceptance:gpt-continuation-transaction:state-machine",
