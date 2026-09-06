@@ -1,6 +1,6 @@
 export const GPT_MORE_ACTIONS_BUTTON_LABEL = "更多操作";
 export const gptMoreActionsButtonSelector = (assistantTurnId: string): string =>
-  `[data-testid="${assistantTurnId}"][data-turn='assistant'] button[aria-label='${GPT_MORE_ACTIONS_BUTTON_LABEL}'][aria-haspopup='menu']`;
+  `[data-testid="${assistantTurnId}"]:has([data-message-author-role='assistant']) button[aria-label='${GPT_MORE_ACTIONS_BUTTON_LABEL}']`;
 
 export const GPT_ATTACHMENT_CONTROL_SELECTOR =
   "button#composer-plus-btn[data-testid='composer-plus-btn'][aria-haspopup='menu']";

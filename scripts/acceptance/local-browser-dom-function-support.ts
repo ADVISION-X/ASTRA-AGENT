@@ -140,12 +140,13 @@ export const exerciseCapturedGptForkCandidateFunction = async (source: string): 
   const responseNode = new FakeElement(response, {}, {}, {}, "DIV", [new FakeTextNode(response)]);
   const userTurn = new FakeElement(prompt, {
     "[data-testid='collapsible-user-message-content']": [promptNode],
+    "[data-message-author-role='user']": [promptNode],
   });
   const candidate = new FakeElement("分支到新聊天", {}, {}, {}, "BUTTON");
   const root = new FakeElement("root", { "[role='menuitem']": [candidate] });
   for (const node of [promptNode, responseNode, userTurn, candidate]) node.parentElement = root;
-  const assistantSelector = `[data-testid='${assistantTurnId}'][data-turn='assistant'] [data-message-author-role='assistant']`;
-  const userSelector = `[data-testid='${userTurnId}'][data-turn='user']`;
+  const assistantSelector = `[data-testid='${assistantTurnId}']:has([data-message-author-role='assistant']) [data-message-author-role='assistant']`;
+  const userSelector = `[data-testid='${userTurnId}']:has([data-message-author-role='user'])`;
   const document = {
     documentElement: root,
     querySelectorAll: (selector: string) => selector === assistantSelector ? [responseNode]
@@ -362,7 +363,8 @@ const exerciseUserPromptHashes = async (source: string): Promise<void> => {
   const collapseControl = new FakeElement("展开/收起", {}, {}, {}, "BUTTON", [new FakeTextNode("展开/收起")]);
   const userTurn = new FakeElement(`${userPrompt}公开知识生产资料.zip 文件展开/收起`, {
     "[data-testid='collapsible-user-message-content']": [promptBody],
-  }, {}, { "data-testid": "conversation-turn-1", "data-turn": "user" }, "ARTICLE", [
+    "[data-message-author-role='user']": [promptBody],
+  }, {}, { "data-testid": "conversation-turn-1" }, "ARTICLE", [
     promptBody, attachmentCard, collapseControl,
   ]);
   const userTurnRoot = new FakeElement("", { ".user-turn": [userTurn] });
@@ -386,7 +388,8 @@ const exerciseUserPromptHashes = async (source: string): Promise<void> => {
   }, "DIV", [new FakeTextNode("approved prompt")]);
   const markerOnlyInAttachment = new FakeElement("approved prompt [GRASSEYE:exact-user-prompt]", {
     "[data-testid='collapsible-user-message-content']": [bodyWithoutMarker],
-  }, {}, { "data-testid": "conversation-turn-1", "data-turn": "user" }, "ARTICLE", [
+    "[data-message-author-role='user']": [bodyWithoutMarker],
+  }, {}, { "data-testid": "conversation-turn-1" }, "ARTICLE", [
     bodyWithoutMarker, new FakeElement("[GRASSEYE:exact-user-prompt]", {}, {}, {}, "DIV", [
       new FakeTextNode("[GRASSEYE:exact-user-prompt]"),
     ]),
@@ -405,8 +408,10 @@ const exerciseUserPromptHashes = async (source: string): Promise<void> => {
   assert.equal(markerOnlyResult.queries[0]?.rejections[0]?.reasons.length, 1);
   assert.equal(markerOnlyResult.queries[0]?.rejections[0]?.reasons[0], "TEXT_MISMATCH",
     "attachment or control text must not satisfy a Prompt-body marker requirement");
-  const missingPromptBody = new FakeElement("attachment only", {}, {}, {
-    "data-testid": "conversation-turn-1", "data-turn": "user",
+  const missingPromptBody = new FakeElement("attachment only", {
+    "[data-message-author-role='user']": [promptBody],
+  }, {}, {
+    "data-testid": "conversation-turn-1",
   });
   const missingRoot = new FakeElement("", { ".user-turn": [missingPromptBody] });
   await assert.rejects(async () => execute(source, {
@@ -416,7 +421,8 @@ const exerciseUserPromptHashes = async (source: string): Promise<void> => {
   "a user turn without the exact Prompt body must fail closed");
   const duplicatePromptTurn = new FakeElement(userPrompt, {
     "[data-testid='collapsible-user-message-content']": [promptBody, promptBody],
-  }, {}, { "data-testid": "conversation-turn-1", "data-turn": "user" });
+    "[data-message-author-role='user']": [promptBody],
+  }, {}, { "data-testid": "conversation-turn-1" });
   const duplicateRoot = new FakeElement("", { ".user-turn": [duplicatePromptTurn] });
   await assert.rejects(async () => execute(source, {
     documentElement: duplicateRoot, querySelectorAll: () => [], elementFromPoint: () => duplicatePromptTurn,
@@ -452,13 +458,14 @@ export const exerciseCapturedExactAssistantTurnFunction = async (source: string)
   const listItem = new FakeElement("item", {}, {}, {}, "LI", [text("item")]);
   const list = new FakeElement("item", {}, {}, {}, "UL", [listItem]);
   const assistant = new FakeElement("bold item", { "pre code": [] }, {}, {}, "DIV", [paragraph, list]);
-  const selector = '[data-testid="conversation-turn-2"][data-turn="assistant"] [data-message-author-role="assistant"]';
+  const selector = '[data-testid="conversation-turn-2"]:has([data-message-author-role="assistant"]) [data-message-author-role="assistant"]';
   const promptText = "approved [GRASSEYE:checkpoint]";
   const prompt = new FakeElement(promptText, {}, {}, {}, "DIV", [text(promptText)]);
   const user = new FakeElement(promptText, {
     "[data-testid='collapsible-user-message-content']": [prompt],
+    "[data-message-author-role='user']": [prompt],
   });
-  const userSelector = "[data-testid='conversation-turn-1'][data-turn='user']";
+  const userSelector = "[data-testid='conversation-turn-1']:has([data-message-author-role='user'])";
   const input = { kind: "readExactAssistantTurn", assistantTurnId: "conversation-turn-2",
     sourceCheckpoint: { canonicalConversationUrl: "https://chatgpt.com/c/exact",
       expectedPromptHash: hash(promptText), turnMarker: "[GRASSEYE:checkpoint]" } };

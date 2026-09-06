@@ -132,8 +132,7 @@ export const settlePermanentAuthorizationRevocation = async (
   const failureEvent = terminalSpanFailure(jobSpan,
     executionFailure("failed", "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED", { cause: error }),
     runtimeLogCauseEventId(error), "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
-  state.store.setCurrentReason(job.job_id, "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
-  state.store.releaseGptContinuationLanesForJob(job.job_id);
+  state.store.settlePermanentlyRevokedJob(job.job_id, "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
   const task = websiteAgentTaskFromClaim(job);
   const plugin = authorizeWebsiteAgentTask(task).identity;
   const unresolved = state.browserAuthority.readBrowserReconciliationScope({

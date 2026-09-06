@@ -6,7 +6,8 @@ import {
 } from "../../web/gpt-dom-observation.js";
 import { GPT_COMPOSER_SELECTOR } from "./selectors.js";
 
-const GPT_USER_TURN_SELECTOR = "[data-testid^='conversation-turn-'][data-turn='user']";
+const GPT_USER_TURN_SELECTOR =
+  "[data-testid^='conversation-turn-']:has([data-message-author-role='user'])";
 
 type ConversationState = Readonly<{
   currentUrl: string;

@@ -23,10 +23,14 @@ import {
 const OUTBOX_TRANSIENT_RETRY_DELAY_MS = 5_000;
 const OUTBOX_LOW_FREQUENCY_RETRY_DELAY_MS = 3_600_000;
 const PERMANENT_REVOCATION_REASON = "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED";
+const PERMANENT_AUTHORIZATION_REVOKED_CODE = "AI_PERMANENT_AUTHORIZATION_REVOKED";
 const jobPathMarker = (jobId: string): string => `/jobs/${encodeURIComponent(jobId)}/`;
 
 const retryDelay = (error: unknown): number => {
   const httpStatus = terminalFailureHttpStatus(error);
+  if (httpStatus === 409 && failureCode(error) === PERMANENT_AUTHORIZATION_REVOKED_CODE) {
+    return OUTBOX_TRANSIENT_RETRY_DELAY_MS;
+  }
   return httpStatus !== null && httpStatus >= 400 && httpStatus <= 499
     ? OUTBOX_LOW_FREQUENCY_RETRY_DELAY_MS : OUTBOX_TRANSIENT_RETRY_DELAY_MS;
 };
@@ -237,6 +241,9 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
           failure: task.attempt_failure!,
         });
       }
+      if (prefix.attemptFailure) {
+        this.recordAttemptFailure(input.jobId, input.attemptId, prefix.attemptFailure);
+      }
       return Object.freeze({ checkpointSeq: prefix.checkpointSeq, checkpointHash: prefix.checkpointHash });
     })();
   }
@@ -260,12 +267,20 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
   public deferOutboxReconciliation(jobId: string, error: unknown): number {
     const nextDeliveryAt = new Date(Date.now() + retryDelay(error)).toISOString();
     const changed = this.database.prepare(`update production_outbox
-      set last_error=?,next_delivery_at=? where instr(path,?)>0
+      set last_error=case when last_error=? then last_error else ? end,next_delivery_at=?
+        where instr(path,?)>0
         and sent_at is null and response_hash is null`
-    ).run(failureCode(error, "OUTBOX_RECONCILIATION_FAILED"), nextDeliveryAt,
+    ).run(PERMANENT_AUTHORIZATION_REVOKED_CODE,
+      failureCode(error, "OUTBOX_RECONCILIATION_FAILED"), nextDeliveryAt,
       jobPathMarker(jobId));
     this.notifyOutbox(this.outboxAuthorities().find((row) => row.jobId === jobId) ?? null);
     return changed.changes;
+  }
+
+  public hasPermanentAuthorizationRevocationFailure(jobId: string): boolean {
+    return Boolean(this.database.prepare(`select 1 from production_outbox
+      where instr(path,?)>0 and sent_at is null and response_hash is null and last_error=? limit 1`
+    ).get(jobPathMarker(jobId), PERMANENT_AUTHORIZATION_REVOKED_CODE));
   }
 
   public settlePermanentlyRevokedJob(jobId: string, currentReason: string): number {
@@ -274,12 +289,29 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
       if (!task || task.status !== "failed") {
         throw executionFailure("failed", "PRODUCTION_REVOCATION_TASK_AUTHORITY_INVALID");
       }
+      const rejectedFailureIntents = this.database.prepare(`select body_blob from production_outbox
+        where kind='checkpoint' and instr(path,?)>0 and sent_at is null and response_hash is null
+          and last_error=?`).all(jobPathMarker(jobId), PERMANENT_AUTHORIZATION_REVOKED_CODE) as Array<{
+        body_blob: Buffer;
+      }>;
+      const unacceptedFailure = task.attempt_failure !== null && rejectedFailureIntents.some((row) => {
+        const body = JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>;
+        return body.job_id === jobId && body.attempt_id === task.current_attempt_id
+          && body.checkpoint_kind === "attempt_failure"
+          && json(body.attempt_failure) === json(task.attempt_failure);
+      });
       const changed = this.database.prepare(`update production_outbox
         set last_error=?,next_delivery_at=null where instr(path,?)>0
           and sent_at is null and response_hash is null`
       ).run(PERMANENT_REVOCATION_REASON, jobPathMarker(jobId));
       this.database.prepare(`update production_tasks set current_reason=?,updated_at=?
         where job_id=? and status='failed'`).run(currentReason, now(), jobId);
+      if (unacceptedFailure) {
+        this.database.prepare(`delete from production_attempt_failures
+          where job_id=? and attempt_id=? and failure_json=?`).run(
+          jobId, task.current_attempt_id, json(task.attempt_failure),
+        );
+      }
       this.database.prepare(
         "update production_continuations set lane_owner_job_id=null where lane_owner_job_id=?",
       ).run(jobId);

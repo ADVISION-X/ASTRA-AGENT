@@ -55,7 +55,7 @@ const hashText = (value: string): `sha256:${string}` =>
 export const exactAssistantTurnReply = (
   intent: Extract<BrowserDomIntent, { kind: "readExactAssistantTurn" }>,
   semanticText: string,
-  rawDomHtml = `<article data-testid="${intent.assistantTurnId}" data-turn="assistant">${semanticText}</article>`,
+  rawDomHtml = `<section data-testid="${intent.assistantTurnId}"><div data-message-author-role="assistant">${semanticText}</div></section>`,
 ) => Object.freeze({
   schemaVersion: "grasseye.browser.exact-assistant-turn.v2" as const,
   exactCallIdentityHash: `sha256:${"5".repeat(64)}` as `sha256:${string}`,

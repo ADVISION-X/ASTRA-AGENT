@@ -1,0 +1,701 @@
+{
+  "schemaVersion": "gpt-page-operation-matrix.v4",
+  "scopeRule": "A child is in scope when it reads, navigates, clicks, types, uploads, waits on, checkpoints, or obtains media from a page. DOM terminology does not define the denominator.",
+  "currentContractCount": 28,
+  "expectedPageOperationCount": 22,
+  "requiredLiveStateOrder": "capturedAt-ascending-same-run",
+  "requiredCircles": ["core", "related", "peripheral"],
+  "authoritySources": [
+    ".github/instructions/agent-rules/功能法案.md",
+    "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md"
+  ],
+  "browserSourceBindings": {
+    "verify_gpt_conversation_identity": [
+      "src/lib/browser/chrome-extension/dom-coherent-observation.ts"
+    ],
+    "reconcile_gpt_turn_submission": [
+      "src/lib/browser/chrome-extension/dom-coherent-observation.ts"
+    ],
+    "checkpoint_gpt_text_response": [
+      "src/lib/browser/chrome-extension/dom-coherent-observation.ts",
+      "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts"
+    ],
+    "checkpoint_gpt_generated_image": [
+      "src/lib/browser/chrome-extension/dom-coherent-observation.ts",
+      "src/lib/browser/chrome-extension/authenticated-media-runtime.ts"
+    ],
+    "focus_exact_gpt_conversation": [
+      "src/lib/browser/chrome-extension/dom-coherent-observation.ts"
+    ],
+    "wait_for_stable_gpt_text": [
+      "src/lib/browser/chrome-extension/dom-coherent-observation.ts",
+      "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts"
+    ],
+    "wait_for_stable_gpt_image": [
+      "src/lib/browser/chrome-extension/dom-coherent-observation.ts",
+      "src/lib/browser/chrome-extension/authenticated-media-runtime.ts"
+    ],
+    "open_gpt_checkpoint_actions_menu": [
+      "src/lib/browser/chrome-extension/dom-coherent-observation.ts",
+      "src/lib/browser/chrome-extension/dom-coherent-candidate.ts"
+    ],
+    "open_gpt_fork_destination_menu": [
+      "src/lib/browser/chrome-extension/dom-coherent-observation.ts",
+      "src/lib/browser/chrome-extension/dom-coherent-candidate.ts"
+    ],
+    "submit_exact_gpt_turn_once": [
+      "src/lib/browser/chrome-extension/dom-coherent-observation.ts"
+    ],
+    "fork_exact_gpt_conversation_at_checkpoint": [
+      "src/lib/browser/chrome-extension/dom-coherent-observation.ts",
+      "src/lib/browser/chrome-extension/dom-coherent-candidate.ts"
+    ]
+  },
+  "chainInputSources": {
+    "chain-confirmed-submit-receipt": "submit_exact_gpt_turn_once",
+    "chain-text-wait": "wait_for_stable_gpt_text",
+    "chain-image-wait": "wait_for_stable_gpt_image",
+    "chain-text-checkpoint": "checkpoint_gpt_text_response",
+    "chain-conversation-identity": "reconcile_gpt_turn_submission",
+    "chain-checkpoint-actions-menu": "open_gpt_checkpoint_actions_menu",
+    "chain-fork-destination-menu": "open_gpt_fork_destination_menu"
+  },
+  "commonRequiredDerivedStates": [
+    "candidate-missing",
+    "candidate-duplicate-or-ambiguous",
+    "candidate-hidden",
+    "candidate-aria-hidden",
+    "candidate-inert",
+    "candidate-disabled",
+    "candidate-no-layout",
+    "stale-or-revision-drift",
+    "document-drift"
+  ],
+  "scenarios": {
+    "text-main": "One synthetic text conversation covering profile, model, reasoning, attachments, prompt, submission, stable rich text, and checkpoint behavior.",
+    "image-main": "One synthetic image conversation covering generation, stable semantic media, original-content identity, and image checkpoint behavior.",
+    "focus-fork": "One synthetic source conversation covering exact focus, identity, the source-turn actions menu, the fork-destination menu, the final fork action, and the child-conversation relation."
+  },
+  "children": [
+    {
+      "childCapabilityId": "verify_gpt_conversation_identity",
+      "scenarioId": "focus-fork",
+      "coreTargets": ["page-root", "conversation-identity-evidence"],
+      "requiredLiveStates": ["exact-conversation-match", "identity-readback-after-focus"],
+      "liveStateTargets": {
+        "exact-conversation-match": ["page-root", "conversation-identity-evidence"],
+        "identity-readback-after-focus": ["page-root", "conversation-identity-evidence"]
+      },
+      "optionalLiveStates": ["root-page-without-conversation"],
+      "childSpecificDerivedStates": ["conversation-identity-mismatch", "conversation-identity-unavailable"],
+      "requiredInputRefs": ["synthetic-conversation-marker", "synthetic-rich-text-prompt"],
+      "stateAssertions": {
+        "exact-conversation-match": [
+          {"path": "stateFacts.currentRouteKind", "operator": "equals", "value": "CONVERSATION"},
+          {"path": "stateFacts.syntheticUserTurnCount", "operator": "greaterThan", "value": 0}
+        ],
+        "identity-readback-after-focus": [
+          {"path": "stateFacts.currentRouteKind", "operator": "equals", "value": "CONVERSATION"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "ALREADY_SATISFIED"}
+        ]
+      }
+    },
+    {
+      "childCapabilityId": "reconcile_gpt_attachment_set",
+      "scenarioId": "text-main",
+      "coreTargets": ["composer", "attachment-cards", "upload-status"],
+      "requiredLiveStates": ["uploading-pending", "attachment-cards-ready", "attachment-set-exact", "attachment-terminal-error"],
+      "liveStateTargets": {
+        "uploading-pending": ["composer", "upload-status"],
+        "attachment-cards-ready": ["composer", "attachment-cards", "upload-status"],
+        "attachment-set-exact": ["composer", "attachment-cards"],
+        "attachment-terminal-error": ["composer", "upload-status"]
+      },
+      "stateAssertions": {
+        "uploading-pending": [
+          {"path": "stateFacts.attachmentUploadPending", "operator": "equals", "value": true}
+        ],
+        "attachment-cards-ready": [
+          {"path": "stateFacts.attachmentUploadPending", "operator": "equals", "value": false},
+          {"path": "stateFacts.attachmentTerminalErrorVisible", "operator": "equals", "value": false},
+          {"path": "stateFacts.attachmentSyntheticCount", "operator": "equals", "value": 3}
+        ],
+        "attachment-set-exact": [
+          {"path": "stateFacts.attachmentUploadPending", "operator": "equals", "value": false},
+          {"path": "stateFacts.attachmentTerminalErrorVisible", "operator": "equals", "value": false},
+          {"path": "stateFacts.attachmentSyntheticCount", "operator": "equals", "value": 3}
+        ],
+        "attachment-terminal-error": [
+          {"path": "stateFacts.attachmentTerminalErrorVisible", "operator": "equals", "value": true}
+        ]
+      },
+      "optionalLiveStates": ["attachment-upload-error"],
+      "childSpecificDerivedStates": ["attachment-missing", "attachment-extra", "attachment-still-uploading"],
+      "requiredInputRefs": ["synthetic-txt", "synthetic-json", "synthetic-zip"]
+    },
+    {
+      "childCapabilityId": "reconcile_gpt_draft",
+      "scenarioId": "text-main",
+      "coreTargets": ["composer", "composer-text-projection"],
+      "requiredLiveStates": ["exact-draft-ready", "draft-readback-stable"],
+      "liveStateTargets": {
+        "exact-draft-ready": ["composer", "composer-text-projection"],
+        "draft-readback-stable": ["composer", "composer-text-projection"]
+      },
+      "optionalLiveStates": ["empty-composer"],
+      "childSpecificDerivedStates": ["draft-text-mismatch", "draft-text-duplicated", "draft-readback-unstable"],
+      "requiredInputRefs": ["synthetic-rich-text-prompt"],
+      "stateAssertions": {
+        "exact-draft-ready": [
+          {"path": "stateFacts.composerSyntheticMarkerPresent", "operator": "equals", "value": true},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "POST_ACTION"}
+        ],
+        "draft-readback-stable": [
+          {"path": "stateFacts.composerSyntheticMarkerPresent", "operator": "equals", "value": true},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "ALREADY_SATISFIED"}
+        ]
+      }
+    },
+    {
+      "childCapabilityId": "reconcile_gpt_turn_submission",
+      "scenarioId": "text-main",
+      "coreTargets": ["user-turn", "assistant-generation-boundary", "conversation-root"],
+      "requiredLiveStates": ["hydrated-exact-user-turn", "submitted-turn-effect-readback"],
+      "liveStateTargets": {
+        "hydrated-exact-user-turn": ["user-turn", "conversation-root"],
+        "submitted-turn-effect-readback": ["user-turn", "assistant-generation-boundary", "conversation-root"]
+      },
+      "optionalLiveStates": ["generation-started"],
+      "childSpecificDerivedStates": ["submitted-turn-missing", "submitted-turn-duplicate", "submitted-turn-text-mismatch", "submission-effect-unknown"],
+      "requiredInputRefs": ["synthetic-rich-text-prompt", "chain-confirmed-submit-receipt"],
+      "stateAssertions": {
+        "hydrated-exact-user-turn": [
+          {"path": "stateFacts.syntheticUserTurnCount", "operator": "greaterThan", "value": 0},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "POST_ACTION"}
+        ],
+        "submitted-turn-effect-readback": [
+          {"path": "stateFacts.syntheticUserTurnCount", "operator": "greaterThan", "value": 0},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "ALREADY_SATISFIED"}
+        ]
+      }
+    },
+    {
+      "childCapabilityId": "checkpoint_gpt_text_response",
+      "scenarioId": "text-main",
+      "coreTargets": ["assistant-turn", "rich-text-response", "semantic-text-projection"],
+      "requiredLiveStates": ["rich-response-outer-html", "semantic-projection-readback", "stable-text-checkpoint"],
+      "liveStateTargets": {
+        "rich-response-outer-html": ["assistant-turn", "rich-text-response"],
+        "semantic-projection-readback": ["assistant-turn", "semantic-text-projection"],
+        "stable-text-checkpoint": ["assistant-turn", "rich-text-response", "semantic-text-projection"]
+      },
+      "optionalLiveStates": ["citation-or-code-controls"],
+      "childSpecificDerivedStates": ["response-projection-empty", "response-projection-truncated", "response-bound-to-wrong-turn", "response-still-generating"],
+      "requiredInputRefs": ["synthetic-rich-text-prompt", "chain-text-wait"],
+      "stateAssertions": {
+        "rich-response-outer-html": [
+          {"path": "core.targets.rich-text-response.textProjection", "operator": "present"},
+          {"path": "stateFacts.assistantGenerationActive", "operator": "equals", "value": false}
+        ],
+        "semantic-projection-readback": [
+          {"path": "core.targets.semantic-text-projection.textProjection", "operator": "present"},
+          {"path": "stateFacts.assistantGenerationActive", "operator": "equals", "value": false}
+        ],
+        "stable-text-checkpoint": [
+          {"path": "core.targets.rich-text-response", "operator": "present"},
+          {"path": "core.targets.semantic-text-projection", "operator": "present"}
+        ]
+      }
+    },
+    {
+      "childCapabilityId": "checkpoint_gpt_generated_image",
+      "scenarioId": "image-main",
+      "coreTargets": ["assistant-turn", "semantic-media-node", "original-content-control"],
+      "requiredLiveStates": ["exact-media-node", "original-content-identity-readback", "stable-image-checkpoint"],
+      "liveStateTargets": {
+        "exact-media-node": ["assistant-turn", "semantic-media-node"],
+        "original-content-identity-readback": ["semantic-media-node", "original-content-control"],
+        "stable-image-checkpoint": ["assistant-turn", "semantic-media-node", "original-content-control"]
+      },
+      "optionalLiveStates": ["download-or-open-original-control"],
+      "childSpecificDerivedStates": ["thumbnail-only", "wrong-turn-media", "media-not-stable", "original-content-identity-mismatch"],
+      "requiredInputRefs": ["synthetic-image-prompt", "chain-image-wait", "chain-text-checkpoint"],
+      "stateAssertions": {
+        "exact-media-node": [
+          {"path": "stateFacts.semanticMediaReady", "operator": "equals", "value": true},
+          {"path": "core.targets.semantic-media-node", "operator": "present"}
+        ],
+        "original-content-identity-readback": [
+          {"path": "core.targets.original-content-control", "operator": "present"},
+          {"path": "stateFacts.semanticMediaReady", "operator": "equals", "value": true}
+        ],
+        "stable-image-checkpoint": [
+          {"path": "core.targets.semantic-media-node", "operator": "present"},
+          {"path": "core.targets.original-content-control", "operator": "present"}
+        ]
+      }
+    },
+    {
+      "childCapabilityId": "prepare_clean_gpt_chat",
+      "scenarioId": "text-main",
+      "coreTargets": ["conversation-root", "composer", "attachment-region"],
+      "requiredLiveStates": ["fresh-empty-chat", "stale-draft-before", "stale-draft-after-clean"],
+      "liveStateTargets": {
+        "fresh-empty-chat": ["conversation-root", "composer", "attachment-region"],
+        "stale-draft-before": ["conversation-root", "composer"],
+        "stale-draft-after-clean": ["conversation-root", "composer", "attachment-region"]
+      },
+      "optionalLiveStates": ["stale-attachment-before", "stale-attachment-after-clean"],
+      "childSpecificDerivedStates": ["draft-remains-after-clean", "attachment-remains-after-clean", "wrong-conversation-cleaned"],
+      "requiredInputRefs": ["synthetic-stale-draft"],
+      "stateAssertions": {
+        "fresh-empty-chat": [
+          {"path": "stateFacts.currentRouteKind", "operator": "equals", "value": "ROOT"},
+          {"path": "stateFacts.syntheticUserTurnCount", "operator": "equals", "value": 0},
+          {"path": "stateFacts.composerSyntheticMarkerPresent", "operator": "equals", "value": false}
+        ],
+        "stale-draft-before": [
+          {"path": "stateFacts.composerSyntheticMarkerPresent", "operator": "equals", "value": true},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "POST_ACTION"}
+        ],
+        "stale-draft-after-clean": [
+          {"path": "stateFacts.composerSyntheticMarkerPresent", "operator": "equals", "value": false},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "POST_ACTION"}
+        ]
+      }
+    },
+    {
+      "childCapabilityId": "focus_exact_gpt_conversation",
+      "scenarioId": "focus-fork",
+      "coreTargets": ["page-root", "conversation-link-or-route", "conversation-root"],
+      "requiredLiveStates": ["root-before-navigation", "conversation-after-navigation", "already-focused"],
+      "liveStateTargets": {
+        "root-before-navigation": ["page-root", "conversation-link-or-route"],
+        "conversation-after-navigation": ["page-root", "conversation-link-or-route", "conversation-root"],
+        "already-focused": ["page-root", "conversation-link-or-route", "conversation-root"]
+      },
+      "stateAssertions": {
+        "root-before-navigation": [
+          {"path": "stateFacts.currentRouteKind", "operator": "equals", "value": "ROOT"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "PRE_ACTION"}
+        ],
+        "conversation-after-navigation": [
+          {"path": "related.transitionChain.typedCommand.kind", "operator": "equals", "value": "CAPTURED_BROWSER_COMMAND"},
+          {"path": "stateFacts.currentRouteKind", "operator": "equals", "value": "CONVERSATION"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "POST_ACTION"}
+        ],
+        "already-focused": [
+          {"path": "stateFacts.currentRouteKind", "operator": "equals", "value": "CONVERSATION"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "ALREADY_SATISFIED"}
+        ]
+      },
+      "optionalLiveStates": ["navigation-loading"],
+      "childSpecificDerivedStates": ["focus-landed-on-wrong-conversation", "focus-route-unavailable", "focus-document-changed-mid-read"],
+      "requiredInputRefs": ["synthetic-conversation-marker", "synthetic-rich-text-prompt"]
+    },
+    {
+      "childCapabilityId": "open_gpt_execution_profile",
+      "scenarioId": "text-main",
+      "coreTargets": ["execution-profile-trigger", "execution-profile-panel"],
+      "requiredLiveStates": ["profile-collapsed-trigger", "profile-open", "profile-already-open"],
+      "liveStateTargets": {
+        "profile-collapsed-trigger": ["execution-profile-trigger"],
+        "profile-open": ["execution-profile-trigger", "execution-profile-panel"],
+        "profile-already-open": ["execution-profile-trigger", "execution-profile-panel"]
+      },
+      "optionalLiveStates": ["profile-opening-transition"],
+      "childSpecificDerivedStates": ["profile-panel-not-owned-by-trigger", "profile-did-not-open", "multiple-profile-panels"],
+      "requiredInputRefs": [],
+      "stateAssertions": {
+        "profile-collapsed-trigger": [
+          {"path": "core.attributes.aria-expanded", "operator": "equals", "value": "false"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "PRE_ACTION"}
+        ],
+        "profile-open": [
+          {"path": "core.targets.execution-profile-panel.attributes.role", "operator": "equals", "value": "menu"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "POST_ACTION"}
+        ],
+        "profile-already-open": [
+          {"path": "core.targets.execution-profile-panel.attributes.role", "operator": "equals", "value": "menu"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "ALREADY_SATISFIED"}
+        ]
+      }
+    },
+    {
+      "childCapabilityId": "open_gpt_model_selector_v2",
+      "scenarioId": "text-main",
+      "coreTargets": ["model-selector-trigger", "model-selector-panel"],
+      "requiredLiveStates": ["model-selector-openable", "model-selector-open", "model-selector-already-open"],
+      "liveStateTargets": {
+        "model-selector-openable": ["model-selector-trigger"],
+        "model-selector-open": ["model-selector-panel"],
+        "model-selector-already-open": ["model-selector-panel"]
+      },
+      "optionalLiveStates": ["advanced-model-group-open"],
+      "childSpecificDerivedStates": ["selector-panel-not-owned-by-trigger", "selector-did-not-open", "model-list-not-hydrated"],
+      "requiredInputRefs": ["authorized-model-id"],
+      "stateAssertions": {
+        "model-selector-openable": [
+          {"path": "core.attributes.aria-expanded", "operator": "equals", "value": "false"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "PRE_ACTION"}
+        ],
+        "model-selector-open": [
+          {"path": "core.attributes.role", "operator": "equals", "value": "menu"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "POST_ACTION"}
+        ],
+        "model-selector-already-open": [
+          {"path": "core.attributes.role", "operator": "equals", "value": "menu"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "ALREADY_SATISFIED"}
+        ]
+      }
+    },
+    {
+      "childCapabilityId": "select_exact_gpt_model_v2",
+      "scenarioId": "text-main",
+      "coreTargets": ["model-option", "model-selector-trigger"],
+      "requiredLiveStates": ["target-model-actionable-unchecked", "model-panel-closed-after-selection", "model-selection-postcondition"],
+      "liveStateTargets": {
+        "target-model-actionable-unchecked": ["model-option"],
+        "model-panel-closed-after-selection": ["model-selector-trigger"],
+        "model-selection-postcondition": ["model-option"]
+      },
+      "optionalLiveStates": ["model-option-description"],
+      "childSpecificDerivedStates": ["target-model-missing", "target-model-ambiguous", "selection-did-not-stick", "different-model-selected"],
+      "requiredInputRefs": ["authorized-model-id"],
+      "stateAssertions": {
+        "target-model-actionable-unchecked": [
+          { "path": "core.attributes.aria-checked", "operator": "equals", "value": "false" },
+          { "path": "stateFacts.capturePhase", "operator": "equals", "value": "PRE_ACTION" }
+        ],
+        "model-panel-closed-after-selection": [
+          { "path": "core.attributes.aria-expanded", "operator": "equals", "value": "false" },
+          { "path": "stateFacts.capturePhase", "operator": "equals", "value": "POST_ACTION" }
+        ],
+        "model-selection-postcondition": [
+          { "path": "core.attributes.aria-checked", "operator": "equals", "value": "true" },
+          { "path": "stateFacts.capturePhase", "operator": "equals", "value": "ALREADY_SATISFIED" }
+        ]
+      }
+    },
+    {
+      "childCapabilityId": "ensure_gpt_reasoning_requirement",
+      "scenarioId": "text-main",
+      "coreTargets": ["reasoning-control", "selected-reasoning-indicator"],
+      "requiredLiveStates": ["reasoning-scale-current-variant", "reasoning-target-selected", "reasoning-selection-postcondition"],
+      "liveStateTargets": {
+        "reasoning-scale-current-variant": ["reasoning-control", "selected-reasoning-indicator"],
+        "reasoning-target-selected": ["reasoning-control", "selected-reasoning-indicator"],
+        "reasoning-selection-postcondition": ["reasoning-control", "selected-reasoning-indicator"]
+      },
+      "optionalLiveStates": ["reasoning-scale-0-2", "reasoning-scale-0-4", "already-selected"],
+      "childSpecificDerivedStates": ["required-reasoning-unavailable", "reasoning-option-ambiguous", "reasoning-selection-did-not-stick", "reasoning-scale-unsupported"],
+      "requiredInputRefs": ["authorized-reasoning-requirement"],
+      "stateAssertions": {
+        "reasoning-scale-current-variant": [
+          {"path": "core.targets.selected-reasoning-indicator.attributes.aria-valuemax", "operator": "present"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "PRE_ACTION"}
+        ],
+        "reasoning-target-selected": [
+          {"path": "core.targets.selected-reasoning-indicator.attributes.aria-valuenow", "operator": "present"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "POST_ACTION"}
+        ],
+        "reasoning-selection-postcondition": [
+          {"path": "stateFacts.authorizedInputVariantHashes", "operator": "present"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "ALREADY_SATISFIED"}
+        ]
+      }
+    },
+    {
+      "childCapabilityId": "close_gpt_execution_profile",
+      "scenarioId": "text-main",
+      "coreTargets": ["execution-profile-panel", "execution-profile-close-control", "composer"],
+      "requiredLiveStates": ["profile-before-close", "profile-closed", "profile-already-closed"],
+      "liveStateTargets": {
+        "profile-before-close": ["execution-profile-panel", "execution-profile-close-control"],
+        "profile-closed": ["composer"],
+        "profile-already-closed": ["composer"]
+      },
+      "optionalLiveStates": ["profile-closing-transition"],
+      "childSpecificDerivedStates": ["profile-remains-open", "wrong-panel-closed", "composer-obscured-after-close"],
+      "requiredInputRefs": [],
+      "stateAssertions": {
+        "profile-before-close": [
+          {"path": "core.targets.execution-profile-panel.attributes.role", "operator": "equals", "value": "menu"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "PRE_ACTION"}
+        ],
+        "profile-closed": [
+          {"path": "core.targets.composer.attributes.id", "operator": "equals", "value": "prompt-textarea"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "POST_ACTION"}
+        ],
+        "profile-already-closed": [
+          {"path": "core.targets.composer.attributes.id", "operator": "equals", "value": "prompt-textarea"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "ALREADY_SATISFIED"}
+        ]
+      }
+    },
+    {
+      "childCapabilityId": "open_gpt_attachment_control",
+      "scenarioId": "text-main",
+      "coreTargets": ["attachment-trigger", "attachment-menu", "upload-entry"],
+      "requiredLiveStates": ["attachment-trigger-before", "attachment-menu-after", "attachment-menu-already-open"],
+      "liveStateTargets": {
+        "attachment-trigger-before": ["attachment-trigger"],
+        "attachment-menu-after": ["attachment-trigger", "attachment-menu", "upload-entry"],
+        "attachment-menu-already-open": ["attachment-trigger", "attachment-menu", "upload-entry"]
+      },
+      "optionalLiveStates": ["attachment-menu-opening-transition"],
+      "childSpecificDerivedStates": ["attachment-menu-not-owned-by-trigger", "upload-entry-missing", "attachment-menu-did-not-open"],
+      "requiredInputRefs": [],
+      "stateAssertions": {
+        "attachment-trigger-before": [
+          {"path": "core.attributes.data-testid", "operator": "equals", "value": "composer-plus-btn"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "PRE_ACTION"}
+        ],
+        "attachment-menu-after": [
+          {"path": "core.targets.upload-entry.textProjection", "operator": "present"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "POST_ACTION"}
+        ],
+        "attachment-menu-already-open": [
+          {"path": "core.targets.attachment-menu.attributes.kind", "operator": "equals", "value": "ACTIVE_ATTACHMENT_POPOVER"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "ALREADY_SATISFIED"}
+        ]
+      }
+    },
+    {
+      "childCapabilityId": "write_exact_gpt_prompt",
+      "scenarioId": "text-main",
+      "coreTargets": ["composer", "composer-editable-leaf", "composer-text-projection"],
+      "requiredLiveStates": ["composer-before", "exact-prompt-after", "prompt-already-exact"],
+      "liveStateTargets": {
+        "composer-before": ["composer", "composer-editable-leaf"],
+        "exact-prompt-after": ["composer", "composer-editable-leaf", "composer-text-projection"],
+        "prompt-already-exact": ["composer", "composer-editable-leaf", "composer-text-projection"]
+      },
+      "optionalLiveStates": ["multiline-rich-prompt"],
+      "childSpecificDerivedStates": ["prompt-partially-written", "prompt-duplicated", "prompt-normalization-mismatch", "composer-not-editable"],
+      "requiredInputRefs": ["synthetic-rich-text-prompt"],
+      "stateAssertions": {
+        "composer-before": [
+          {"path": "core.targets.composer-editable-leaf.attributes.contenteditable", "operator": "equals", "value": "true"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "PRE_ACTION"}
+        ],
+        "exact-prompt-after": [
+          {"path": "stateFacts.composerSyntheticMarkerPresent", "operator": "equals", "value": true},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "POST_ACTION"}
+        ],
+        "prompt-already-exact": [
+          {"path": "stateFacts.composerSyntheticMarkerPresent", "operator": "equals", "value": true},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "ALREADY_SATISFIED"}
+        ]
+      }
+    },
+    {
+      "childCapabilityId": "wait_for_stable_gpt_text",
+      "scenarioId": "text-main",
+      "coreTargets": ["assistant-turn", "generation-indicator", "response-text-region"],
+      "requiredLiveStates": ["text-generating", "text-stable", "text-stability-readback", "generation-error"],
+      "liveStateTargets": {
+        "text-generating": ["assistant-turn", "generation-indicator"],
+        "text-stable": ["assistant-turn", "response-text-region"],
+        "text-stability-readback": ["assistant-turn", "response-text-region"],
+        "generation-error": ["assistant-turn", "response-text-region"]
+      },
+      "stateAssertions": {
+        "text-generating": [
+          {"path": "stateFacts.assistantGenerationActive", "operator": "equals", "value": true},
+          {"path": "stateFacts.assistantTerminalErrorVisible", "operator": "equals", "value": false}
+        ],
+        "text-stable": [
+          {"path": "stateFacts.assistantGenerationActive", "operator": "equals", "value": false},
+          {"path": "stateFacts.assistantTerminalErrorVisible", "operator": "equals", "value": false}
+        ],
+        "text-stability-readback": [
+          {"path": "stateFacts.assistantGenerationActive", "operator": "equals", "value": false},
+          {"path": "stateFacts.assistantTerminalErrorVisible", "operator": "equals", "value": false}
+        ],
+        "generation-error": [
+          {"path": "stateFacts.assistantGenerationActive", "operator": "equals", "value": false},
+          {"path": "stateFacts.assistantTerminalErrorVisible", "operator": "equals", "value": true}
+        ]
+      },
+      "optionalLiveStates": ["rate-limit-dialog", "generation-retry-control"],
+      "childSpecificDerivedStates": ["text-never-stabilizes", "stable-empty-response", "wrong-turn-stable"],
+      "requiredInputRefs": ["synthetic-rich-text-prompt", "chain-conversation-identity"]
+    },
+    {
+      "childCapabilityId": "wait_for_stable_gpt_image",
+      "scenarioId": "image-main",
+      "coreTargets": ["assistant-turn", "image-generation-indicator", "semantic-media-node"],
+      "requiredLiveStates": ["image-generating", "image-stable", "image-stability-readback", "image-error-terminal"],
+      "liveStateTargets": {
+        "image-generating": ["assistant-turn", "image-generation-indicator"],
+        "image-stable": ["assistant-turn", "semantic-media-node"],
+        "image-stability-readback": ["assistant-turn", "semantic-media-node"],
+        "image-error-terminal": ["assistant-turn"]
+      },
+      "stateAssertions": {
+        "image-generating": [
+          {"path": "stateFacts.assistantGenerationActive", "operator": "equals", "value": true},
+          {"path": "stateFacts.assistantTerminalErrorVisible", "operator": "equals", "value": false}
+        ],
+        "image-stable": [
+          {"path": "stateFacts.assistantGenerationActive", "operator": "equals", "value": false},
+          {"path": "stateFacts.semanticMediaReady", "operator": "equals", "value": true}
+        ],
+        "image-stability-readback": [
+          {"path": "stateFacts.assistantGenerationActive", "operator": "equals", "value": false},
+          {"path": "stateFacts.semanticMediaReady", "operator": "equals", "value": true}
+        ],
+        "image-error-terminal": [
+          {"path": "stateFacts.assistantGenerationActive", "operator": "equals", "value": false},
+          {"path": "stateFacts.assistantTerminalErrorVisible", "operator": "equals", "value": true}
+        ]
+      },
+      "optionalLiveStates": ["image-generation-error"],
+      "childSpecificDerivedStates": ["image-never-stabilizes", "stable-thumbnail-without-original", "wrong-turn-image"],
+      "requiredInputRefs": ["synthetic-image-prompt", "chain-conversation-identity"]
+    },
+    {
+      "childCapabilityId": "open_gpt_checkpoint_actions_menu",
+      "scenarioId": "focus-fork",
+      "coreTargets": ["source-turn", "source-turn-more-actions-control", "source-bound-actions-menu"],
+      "requiredLiveStates": ["source-turn-menu-closed", "source-bound-menu-open", "source-turn-menu-already-open"],
+      "liveStateTargets": {
+        "source-turn-menu-closed": ["source-turn", "source-turn-more-actions-control"],
+        "source-bound-menu-open": ["source-turn", "source-turn-more-actions-control", "source-bound-actions-menu"],
+        "source-turn-menu-already-open": ["source-turn", "source-turn-more-actions-control", "source-bound-actions-menu"]
+      },
+      "optionalLiveStates": ["menu-opening-transition"],
+      "childSpecificDerivedStates": ["menu-bound-to-wrong-turn", "fork-entry-missing", "multiple-source-menus-open"],
+      "requiredInputRefs": ["synthetic-source-turn-marker"],
+      "stateAssertions": {
+        "source-turn-menu-closed": [
+          {"path": "core.targets.source-turn-more-actions-control.attributes.aria-label", "operator": "equals", "value": "更多操作"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "PRE_ACTION"}
+        ],
+        "source-bound-menu-open": [
+          {"path": "core.targets.source-bound-actions-menu.attributes.role", "operator": "equals", "value": "menu"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "POST_ACTION"}
+        ],
+        "source-turn-menu-already-open": [
+          {"path": "core.targets.source-bound-actions-menu.attributes.role", "operator": "equals", "value": "menu"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "ALREADY_SATISFIED"}
+        ]
+      }
+    },
+    {
+      "childCapabilityId": "open_gpt_fork_destination_menu",
+      "scenarioId": "focus-fork",
+      "coreTargets": ["source-bound-actions-menu", "open-new-fork-entry", "fork-destination-menu", "branch-to-new-chat-entry"],
+      "requiredLiveStates": ["source-bound-menu-open", "fork-destination-menu-open", "fork-destination-menu-already-open"],
+      "liveStateTargets": {
+        "source-bound-menu-open": ["source-bound-actions-menu", "open-new-fork-entry"],
+        "fork-destination-menu-open": ["fork-destination-menu", "branch-to-new-chat-entry"],
+        "fork-destination-menu-already-open": ["fork-destination-menu", "branch-to-new-chat-entry"]
+      },
+      "optionalLiveStates": ["fork-destination-menu-opening-transition"],
+      "childSpecificDerivedStates": ["fork-destination-menu-missing", "fork-destination-menu-ambiguous", "open-new-fork-entry-bound-to-wrong-menu", "branch-to-new-chat-entry-missing"],
+      "requiredInputRefs": ["synthetic-source-turn-marker", "chain-checkpoint-actions-menu"],
+      "stateAssertions": {
+        "source-bound-menu-open": [
+          {"path": "core.targets.open-new-fork-entry.attributes.role", "operator": "equals", "value": "menuitem"},
+          {"path": "core.targets.open-new-fork-entry.attributes.aria-expanded", "operator": "equals", "value": "false"},
+          {"path": "core.targets.open-new-fork-entry.attributes.data-state", "operator": "equals", "value": "closed"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "PRE_ACTION"}
+        ],
+        "fork-destination-menu-open": [
+          {"path": "core.targets.branch-to-new-chat-entry.attributes.role", "operator": "equals", "value": "menuitem"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "POST_ACTION"}
+        ],
+        "fork-destination-menu-already-open": [
+          {"path": "core.targets.branch-to-new-chat-entry.attributes.role", "operator": "equals", "value": "menuitem"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "ALREADY_SATISFIED"}
+        ]
+      }
+    },
+    {
+      "childCapabilityId": "attach_approved_gpt_files_once",
+      "scenarioId": "text-main",
+      "coreTargets": ["upload-entry", "file-input", "attachment-cards"],
+      "requiredLiveStates": ["upload-leaf-ready", "file-chooser-bound", "file-set-readback"],
+      "liveStateTargets": {
+        "upload-leaf-ready": ["upload-entry"],
+        "file-chooser-bound": ["file-input"],
+        "file-set-readback": ["attachment-cards"]
+      },
+      "optionalLiveStates": ["upload-progress"],
+      "childSpecificDerivedStates": ["file-input-unavailable", "file-set-partially-attached", "file-set-duplicated", "upload-dispatched-outcome-unknown"],
+      "requiredInputRefs": ["synthetic-txt", "synthetic-json", "synthetic-zip"],
+      "stateAssertions": {
+        "upload-leaf-ready": [
+          {"path": "core.attributes.role", "operator": "equals", "value": "menuitem"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "ALREADY_SATISFIED"}
+        ],
+        "file-chooser-bound": [
+          {"path": "core.attributes.type", "operator": "equals", "value": "file"},
+          {"path": "core.attributes.id", "operator": "equals", "value": "upload-files"}
+        ],
+        "file-set-readback": [
+          {"path": "core.attributes.kind", "operator": "equals", "value": "SYNTHETIC_ATTACHMENT_SET"},
+          {"path": "stateFacts.attachmentSyntheticCount", "operator": "equals", "value": 3}
+        ]
+      }
+    },
+    {
+      "childCapabilityId": "submit_exact_gpt_turn_once",
+      "scenarioId": "text-main",
+      "coreTargets": ["composer", "submit-control", "user-turn"],
+      "requiredLiveStates": ["pre-submit-ready", "post-submit-user-turn", "confirmed-submit-effect-readback"],
+      "liveStateTargets": {
+        "pre-submit-ready": ["composer", "submit-control"],
+        "post-submit-user-turn": ["user-turn"],
+        "confirmed-submit-effect-readback": ["user-turn"]
+      },
+      "stateAssertions": {
+        "pre-submit-ready": [
+          {"path": "core.targets.submit-control.attributes.data-testid", "operator": "equals", "value": "send-button"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "PRE_ACTION"}
+        ],
+        "post-submit-user-turn": [
+          {"path": "related.transitionChain.typedCommand.kind", "operator": "equals", "value": "CAPTURED_BROWSER_COMMAND"},
+          {"path": "related.transitionChain.directPostcondition.passed", "operator": "equals", "value": true}
+        ],
+        "confirmed-submit-effect-readback": [
+          {"path": "related.transitionChain.typedCommand.kind", "operator": "equals", "value": "ZERO_ACTION"},
+          {"path": "related.transitionChain.directPostcondition.passed", "operator": "equals", "value": true}
+        ]
+      },
+      "optionalLiveStates": ["submit-control-state-transition"],
+      "childSpecificDerivedStates": ["submit-control-not-qualified", "submit-effect-unknown", "duplicate-submit-effect", "prompt-or-attachment-precondition-mismatch"],
+      "requiredInputRefs": ["synthetic-rich-text-prompt", "synthetic-txt", "synthetic-json", "synthetic-zip"]
+    },
+    {
+      "childCapabilityId": "fork_exact_gpt_conversation_at_checkpoint",
+      "scenarioId": "focus-fork",
+      "coreTargets": ["fork-destination-menu", "branch-to-new-chat-entry", "child-conversation-root"],
+      "requiredLiveStates": ["fork-destination-menu-ready", "child-conversation-after-fork", "source-child-relation-readback"],
+      "liveStateTargets": {
+        "fork-destination-menu-ready": ["fork-destination-menu", "branch-to-new-chat-entry"],
+        "child-conversation-after-fork": ["child-conversation-root"],
+        "source-child-relation-readback": ["child-conversation-root"]
+      },
+      "optionalLiveStates": ["fork-navigation-transition"],
+      "childSpecificDerivedStates": ["final-fork-entry-bound-to-wrong-destination-menu", "fork-effect-unknown", "child-conversation-identity-mismatch", "duplicate-fork-effect"],
+      "requiredInputRefs": ["synthetic-source-turn-marker", "chain-fork-destination-menu"],
+      "stateAssertions": {
+        "fork-destination-menu-ready": [
+          {"path": "core.targets.branch-to-new-chat-entry.attributes.role", "operator": "equals", "value": "menuitem"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "PRE_ACTION"}
+        ],
+        "child-conversation-after-fork": [
+          {"path": "stateFacts.currentRouteKind", "operator": "equals", "value": "CONVERSATION"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "POST_ACTION"}
+        ],
+        "source-child-relation-readback": [
+          {"path": "stateFacts.currentRouteKind", "operator": "equals", "value": "CONVERSATION"},
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "ALREADY_SATISFIED"}
+        ]
+      }
+    }
+  ]
+}

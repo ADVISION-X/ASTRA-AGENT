@@ -310,7 +310,7 @@ export const inspectProviderWaitContract = (
   for (const required of [
     'GPT_MORE_ACTIONS_BUTTON_LABEL = "更多操作"',
     "gptMoreActionsButtonSelector",
-    "button[aria-label='${GPT_MORE_ACTIONS_BUTTON_LABEL}'][aria-haspopup='menu']",
+    "button[aria-label='${GPT_MORE_ACTIONS_BUTTON_LABEL}']",
   ]) if (!pageSelectors.includes(required)) findings.push(finding(
     "gpt/checkpoint-more-actions-selector", PAGE_SELECTORS_PATH,
     `The source-turn More actions selector is missing ${required}.`,
@@ -318,6 +318,10 @@ export const inspectProviderWaitContract = (
   if (pageSelectors.includes("more-turn-action-button")) findings.push(finding(
     "gpt/checkpoint-more-actions-selector", PAGE_SELECTORS_PATH,
     "The retired data-testid More actions selector must not remain as a fallback or second entry.",
+  ));
+  if (pageSelectors.includes("GPT_MORE_ACTIONS_BUTTON_LABEL}'][aria-haspopup='menu']")) findings.push(finding(
+    "gpt/checkpoint-more-actions-selector", PAGE_SELECTORS_PATH,
+    "Live Chrome proves that the More actions button has no aria-haspopup; it cannot remain a selector qualifier.",
   ));
   const semanticText = sourceText(context, SEMANTIC_TEXT_PATH);
   const exactAssistant = sourceText(context, EXACT_ASSISTANT_PATH);

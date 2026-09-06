@@ -7,7 +7,7 @@ import {
   runtimeLogCauseEventId,
   withRuntimeLogCause,
 } from "../../runtime-logs/index.js";
-import { failureCode } from "../../execution-failure.js";
+import { executionFailure, failureCode } from "../../execution-failure.js";
 import { claimProductionTasks } from "./cloud-client.js";
 import { readProductionDeviceJobStatus, sendProductionOutboxWrite } from "./cloud-reconciliation-client.js";
 import { productionCatalogHash } from "./catalog.js";
@@ -77,6 +77,9 @@ const reconcileOutboxJobStatus = async (state: RuntimeState, jobId: string): Pro
     const remote = await readProductionDeviceJobStatus(state.session, jobId);
     state.store.hydrateRemoteOutboxReceipts(jobId, remote.write_receipts);
     const revoked = settleInactivePermanentAuthorizationRevocation(state, jobId, remote);
+    if (!revoked && state.store.hasPermanentAuthorizationRevocationFailure(jobId)) {
+      throw executionFailure("failed", "PRODUCTION_REVOCATION_STATUS_MISMATCH");
+    }
     requireRuntimeLogWrite(span.terminal({
       outcome: "succeeded", authorityRef: `website-device-job:${jobId}`,
       authorityHash: hashCanonical(remote),

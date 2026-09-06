@@ -120,11 +120,11 @@ const GPT_FORK_CANDIDATE_FUNCTION = `async function (spec) {
   }
   const assistantNodes = Array.from(document.querySelectorAll(
     "[data-testid='" + source.assistantTurnId
-      + "'][data-turn='assistant'] [data-message-author-role='assistant']"
+      + "']:has([data-message-author-role='assistant']) [data-message-author-role='assistant']"
   ));
   const userTurnId = "conversation-turn-" + (assistantOrdinal - 1);
   const userNodes = Array.from(document.querySelectorAll(
-    "[data-testid='" + userTurnId + "'][data-turn='user']"
+    "[data-testid='" + userTurnId + "']:has([data-message-author-role='user'])"
   ));
   if (assistantNodes.length !== 1 || userNodes.length !== 1) {
     return "BROWSER_DOM_CANDIDATE_MISSING";
@@ -178,7 +178,11 @@ const COHERENT_OBSERVATION_POINTER_FUNCTION = `function (request) {
   };
   const fieldValue = (node, facts, field) => {
     if (field === "id") return node.getAttribute("id") || "";
-    if (field === "dataTurn") return node.getAttribute("data-turn") || "";
+    if (field === "dataTurn") {
+      const user = node.querySelectorAll("[data-message-author-role='user']").length;
+      const assistant = node.querySelectorAll("[data-message-author-role='assistant']").length;
+      return user === 1 && assistant === 0 ? "user" : assistant === 1 && user === 0 ? "assistant" : "";
+    }
     if (field === "tagName") return node.tagName;
     if (field === "ariaLabel") return node.getAttribute("aria-label") || "";
     if (field === "ariaLabelledBy") return node.getAttribute("aria-labelledby") || "";

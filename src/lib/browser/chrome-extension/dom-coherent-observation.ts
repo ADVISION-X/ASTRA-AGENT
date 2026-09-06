@@ -54,7 +54,7 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
     return browserCanonicalSemanticText(node);
   };
   const exactGptUserPromptText = (node) => {
-    if (!(node instanceof Element) || node.getAttribute("data-turn") !== "user"
+    if (!(node instanceof Element) || node.querySelectorAll("[data-message-author-role='user']").length !== 1
       || !/${GPT_USER_TURN_TEST_ID.source}/.test(node.getAttribute("data-testid") || "")) {
       throw new Error("BROWSER_DOM_READ_INVALID");
     }
@@ -77,7 +77,11 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
   })();
   const fieldValue = async (node, facts, field) => {
     if (field === "id") return node.getAttribute("id") || "";
-    if (field === "dataTurn") return node.getAttribute("data-turn") || "";
+    if (field === "dataTurn") {
+      const user = node.querySelectorAll("[data-message-author-role='user']").length;
+      const assistant = node.querySelectorAll("[data-message-author-role='assistant']").length;
+      return user === 1 && assistant === 0 ? "user" : assistant === 1 && user === 0 ? "assistant" : "";
+    }
     if (field === "tagName") return node.tagName;
     if (field === "ariaLabel") return node.getAttribute("aria-label") || "";
     if (field === "ariaLabelledBy") return node.getAttribute("aria-labelledby") || "";

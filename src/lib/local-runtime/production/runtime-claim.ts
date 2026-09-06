@@ -52,6 +52,7 @@ import {
 } from "./runtime-claim-fault-preservation.js";
 import {
   permanentAuthorizationRevoked,
+  remotePermanentAuthorizationRevoked,
   settlePermanentAuthorizationRevocation,
 } from "./runtime-permanent-revocation.js";
 import { productionRuntimeTaskPath } from "./runtime-storage-inventory.js";
@@ -90,20 +91,44 @@ const releaseUnacceptedClaim = async (
 const persistAttemptFailure = async (
   state: RuntimeState,
   job: ClaimedProductionTask,
-  failure: ReturnType<typeof serializeTerminalFailure>,
+  error: unknown,
   parentSpanId: string,
   checkpointSeq: number,
 ): Promise<void> => {
-  state.store.recordAttemptFailure(job.job_id, job.grant.attempt_id, failure);
+  const failure = serializeTerminalFailure(error);
   state.store.recordLease(leaseAuthority(job, "stale", null));
   try {
     await checkpointWithLog(
       state, job, parentSpanId, "attempt_failure", checkpointSeq, failure,
     );
   } catch (checkpointError) {
+    if (terminalFailureHttpStatus(checkpointError) === 409
+      && failureCode(checkpointError) === "AI_PERMANENT_AUTHORIZATION_REVOKED") {
+      try {
+        const remote = await readProductionDeviceJobStatus(state.session, job.job_id);
+        state.store.hydrateRemoteOutboxReceipts(job.job_id, remote.write_receipts);
+        if (!remotePermanentAuthorizationRevoked(remote)) {
+          throw executionFailure("failed", "PRODUCTION_REVOCATION_STATUS_MISMATCH");
+        }
+        await settlePermanentAuthorizationRevocation(state, job, error,
+          requireRuntimeLogWrite(state.runtimeLogger.startSpan({
+            traceId: job.job_id, parentSpanId, owner: "production-runtime",
+            component: "production-runtime", operation: "website.v6-request",
+            typedIdentity: jobIdentity(job),
+          })));
+        return;
+      } catch (statusError) {
+        state.store.deferOutboxReconciliation(job.job_id, statusError);
+        state.lastErrorCode = failureCode(statusError, "DEVICE_JOB_STATUS_RECONCILIATION_FAILED");
+        state.lastErrorReason = safeReason(statusError);
+        return;
+      }
+    }
     state.lastErrorCode = failureCode(checkpointError, "CHECKPOINT_STORAGE_FAILED");
     state.lastErrorReason = safeReason(checkpointError);
+    return;
   }
+  state.store.recordAttemptFailure(job.job_id, job.grant.attempt_id, failure);
 };
 
 const readClaimRecoveryStatus = async (
@@ -414,6 +439,17 @@ const haltForClaimAuthority = async (input: Readonly<{
     );
     return true;
   }
+  if (input.continuingAttempt && input.cursor.recoveredCheckpointPrefix
+    && input.record.attempt_failure) {
+    input.state.store.recordLease(leaseAuthority(input.job, "stale", null));
+    terminalSpanFailure(
+      input.jobSpan,
+      executionFailure("failed", input.record.attempt_failure.code),
+      null,
+      input.record.attempt_failure.code,
+    );
+    return true;
+  }
   if (!input.record.attempt_failure) return false;
   throw executionFailure("failed", "PRODUCTION_ATTEMPT_AUTHORITY_CONFLICT");
 };
@@ -462,7 +498,7 @@ export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTa
         state, job, error, jobSpan.spanId, failureEvent.eventId,
       )) return;
       await persistAttemptFailure(
-        state, job, serializeTerminalFailure(error), jobSpan.spanId, material.checkpointSeq + 1,
+        state, job, error, jobSpan.spanId, material.checkpointSeq + 1,
       );
       return;
     }

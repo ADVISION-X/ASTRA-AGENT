@@ -27,16 +27,13 @@ const attachmentControlFacts = (state: "absent" | "closed" | "open") => ({
     rawCount: state === "absent" ? 0 : 1,
     eligibleCount: state === "absent" ? 0 : 1,
     matches: state === "absent" ? [] : [{
-      id: "composer-plus-btn",
-      ariaExpanded: state === "open" ? "true" : "false",
-      ariaControls: state === "open" ? "attachment-menu" : "",
       disabled: false,
       ariaDisabled: false,
     }],
   },
   "active-menu": state === "open" ? {
     rawCount: 23, eligibleCount: 1,
-    matches: [{ id: "attachment-menu", ariaLabelledBy: "composer-plus-btn" }],
+    matches: [{}],
     rejections: hiddenPopoverRejections,
   } : {
     rawCount: 22, eligibleCount: 0,
@@ -77,6 +74,13 @@ const attachmentControlFacts = (state: "absent" | "closed" | "open") => ({
         ["active-menu", undefined, 1],
         ["upload-choice", GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR, 1],
       ]);
+      assert.deepEqual(intent.postClickObservation?.queries.map((query) => [
+        query.queryId, query.fields,
+      ]), [
+        ["attachment-control", ["disabled", "ariaDisabled"]],
+        ["active-menu", []],
+        ["upload-choice", []],
+      ], "attachment admission must not invent ARIA owner or expansion requirements");
       const queries = intent.postClickObservation!.queries
         .map(({ expectedEligibleCount: _expected, ...query }) => query);
       return {
@@ -101,24 +105,6 @@ const attachmentControlFacts = (state: "absent" | "closed" | "open") => ({
   } finally {
     Date.now = nativeDateNow;
   }
-}
-
-{
-  const fixture = fakeBrowser((intent) => {
-    if (intent.kind === "observe") return coherentObservationPacket(intent, {
-      ...attachmentControlFacts("open"),
-      "active-menu": {
-        rawCount: 23, eligibleCount: 1,
-        matches: [{ id: "wrong-menu", ariaLabelledBy: "another-trigger" }],
-        rejections: hiddenPopoverRejections,
-      },
-    });
-    throw new Error(`ATTACHMENT_WRONG_OWNER_MUST_NOT_ACT:${intent.kind}`);
-  });
-  const result = await execute("open_gpt_attachment_control", fixture.browser, {});
-  assert.equal(result.status, "failed");
-  assert.ok(result.failureCode?.startsWith("GPT_ATTACHMENT_CONTROL_QUALIFICATION_INVALID:"));
-  assert.equal(fixture.physicalMutations(), 0, "an unrelated open menu must never satisfy DONE");
 }
 
 {

@@ -1,251 +1,167 @@
-# GPT 页面操作子能力实证采集方案
+# GPT 页面操作子能力实证闭环方案
 
-> 版本：V2
-> 日期：2026-09-05  
-> 状态：Skill 已建设；真实 Chrome 全量采集已完成；源码绑定已退役
-> 方案性质：项目工程方案与证据说明，不是 active law、Blueprint、READY、RELEASE 或第二份 quality verdict
+> 版本：V5
+> 日期：2026-09-06
+> 状态：低成本闭环已冻结；页面快照与工程需求投影已解耦，日常迭代禁止自动重采集
+> 性质：工程需求与证据方案，不是 active law、READY、RELEASE 或第二质量裁决
 
 ## 一、直接结论
 
-建立一份“Codex 不打开实时 Chrome 也能用”的 GPT 页面操作实证资料是有生产价值的，但必须把它定位准确：
-
-1. 它是页面操作 Child 的离线工程输入，用来改代码、补边界、造确定性 fixture、做回归和评审。
-2. 它不能成为生产运行时读取的 DOM 库，不能替代 Browser Authority，也不能成为全局 selector registry。
-3. 它不能替代准确候选上的新鲜真实 Chrome 最终证明。
-4. 纳入范围不看 Child 是否叫 DOM observation；只要它会读取、导航、点击、输入、上传、等待、检查点或取得页面媒体，就必须采集。
-
-本方案选择一个 Skill、一份矩阵、一份当前报告，不建立第二存储、历史台账、兼容桥或新的生产服务。
-
-## 二、用户原则转换成可执行合同
-
-### 2.1 总目标
-
-采集完成后，Codex 在迭代任一 GPT 页面操作 Child 时，可以仅依靠：
-
-- 当前 Child 合同；
-- 当前源码与 Browser typed contract；
-- 该 Child 的核心圈、相关圈、外围圈实证；
-- 真实页面样本及其单变量派生负例；
-- 采集时的 Child 身份、合同版本、页面环境和源码导航引用；
-
-完成页面判定逻辑设计、实现、离线 fixture、确定性测试和影响分析，而不需要临时打开 Chrome 猜页面。
-
-### 2.2 纳入标准
-
-页面操作包括：
-
-- 读取或判断页面状态；
-- 导航、聚焦或核验会话；
-- 展开、关闭、选择、点击、输入、上传或提交；
-- 等待文本、图片、上传或页面生命周期稳定；
-- 从页面建立文本、图片、动作菜单或 fork 关系检查点。
-
-当前静态准入以 `requiredTargetKind !== "none"` 为入口，同时扫描 `src/capabilities/gpt/web/` 的实际实现。合同说“不操作页面”但实现进入 web Owner，或合同说“操作页面”但没有 web 实现，都必须失败关闭。
-
-### 2.3 当前分母
-
-当前 GPT Child 合同共 28 个：
-
-- 页面操作 Child：22 个，全部必须采集；
-- 非页面 continuation transaction Child：6 个，不采集页面信息，但仍保留在总分母报告中，防止把它们误算或漏算。
-
-22 个页面操作 Child：
-
-1. `verify_gpt_conversation_identity`
-2. `reconcile_gpt_attachment_set`
-3. `reconcile_gpt_draft`
-4. `reconcile_gpt_turn_submission`
-5. `checkpoint_gpt_text_response`
-6. `checkpoint_gpt_generated_image`
-7. `prepare_clean_gpt_chat`
-8. `focus_exact_gpt_conversation`
-9. `open_gpt_execution_profile`
-10. `open_gpt_model_selector_v2`
-11. `select_exact_gpt_model_v2`
-12. `ensure_gpt_reasoning_requirement`
-13. `close_gpt_execution_profile`
-14. `open_gpt_attachment_control`
-15. `write_exact_gpt_prompt`
-16. `wait_for_stable_gpt_text`
-17. `wait_for_stable_gpt_image`
-18. `open_gpt_checkpoint_actions_menu`
-19. `open_gpt_fork_destination_menu`
-20. `attach_approved_gpt_files_once`
-21. `submit_exact_gpt_turn_once`
-22. `fork_exact_gpt_conversation_at_checkpoint`
-
-6 个非页面 Child：
-
-1. `persist_gpt_continuation`
-2. `reserve_exact_gpt_continuation_once`
-3. `complete_exact_gpt_continuation_reservation_once`
-4. `acquire_gpt_continuation_lane`
-5. `advance_gpt_continuation_lane`
-6. `release_gpt_continuation_lane`
-
-## 三、每个 Child 必须收集的三圈
-
-### 3.1 核心圈：目标自身
-
-- 清洗后的目标结构与 `outerHTML`；
-- 安全属性、ARIA、disabled、hidden、inert、contenteditable；
-- connected、布局、视口、computed visibility、pointer events；
-- 动作目标的 hit-test 和操作资格；
-- 当前语义 scope、候选基数、选中原因、拒绝候选及原因；
-- 合成文字原文，白名单 UI 标签，其他文字只保存哈希和长度。
-
-### 3.2 相关圈：为什么它在这里成立
-
-- 祖先链、直接兄弟、所属 composer、turn、panel、menu、attachment card 或 media container；
-- trigger 与 panel、source turn 与 actions menu、assistant turn 与 media 的绑定；
-- 动作前后归一化 DOM diff；
-- 实际事件顺序、正反 postcondition、unknown outcome readback；
-- Child 合同、实现文件、私有 query 规格以及 Browser command/WAL 的安全投影。
-
-### 3.3 外围圈：什么环境使它变成这样
-
-- page kind 和哈希化 conversation identity；
-- locale、viewport、theme、Chrome 版本和 provider build marker；
-- 账号 UI、模型 UI、reasoning 档位规模；
-- overlay、dialog、hydration、generation、rate-limit 等现场状态；
-- 采集时 contract version、run ID 和页面环境。
-
-三圈缺任何一圈，该 specimen 都不能算完整。
-
-## 四、真实样本与派生负例
-
-### 4.1 真实页面证据
-
-只有在本次专用 QA Chrome 标签页直接观察到的状态才标记 `LIVE_PAGE`。全量采集以三个合成场景覆盖 22 个 Child：
-
-- `text-main`：clean chat、profile、model、reasoning、附件、prompt、draft、submit、稳定富文本和 checkpoint；
-- `image-main`：图片生成、稳定语义媒体、original identity 和图片 checkpoint；
-- `focus-fork`：准确会话 focus、身份核验、source turn 菜单、fork 与父子关系。
-
-### 4.2 确定性负例
-
-由清洗后的真实样本单变量派生，并标记 `DERIVED_FIXTURE`：
-
-- missing、duplicate/ambiguous；
-- hidden、aria-hidden、inert、disabled、no-layout；
-- stale/revision drift、Document drift；
-- 每个 Child 自己的业务负例，例如 wrong turn、wrong conversation、selection did not stick、upload pending、submit unknown outcome、thumbnail only。
-
-派生 fixture 只能支撑离线回归，不能冒充“页面上真的发生过”。
-
-## 五、唯一 Owner 与禁止接线
-
-生产 Owner 不变：
+唯一主链固定为：
 
 ```text
-Product：流程、授权、输入、截止时间
-    ↓
-GPT Child：语义意图、局部合同、私有 query 规格、正反 postcondition
-    ↓
-Browser Authority：物理 Target、Document、selector 解析、动作、FIFO、WAL、readback
+          稳定真实 Chrome 页面快照（昂贵、低频）
+                    ↓
+现役法案 / Blueprint / 合同 / 实现 / Product 消费者
+                    ↓
+     逐 Child 离线需求投影（廉价、每次迭代可重算）
+                    ↓
+              当前唯一 V5 报告
+                    ↓
+      admit 对准确候选和目标 Child 强制消费
+                    ↓
+              Child 修复 + 确定性测试
+                    ↓
+   离线 refresh / admit / 原生 quality:check
 ```
 
-Skill 和报告：
+报告不进入生产运行时，不成为 selector registry、Browser Authority 或第二质量 verdict。任何页面 Child 开工前未取得 `ADMITTED`，就不得继续迭代。
 
-- 不被 `src/` 生产代码 import；
-- 不向 Browser 公共接口传 selector、JavaScript 或坐标；
-- 不生成第二个页面事实 Owner；
-- 不把持久化报告当成生产时 coherent packet；
-- 不建立 fallback、dual-read、shadow path 或第二质量结论。
+## 二、分母与 Owner
 
-## 六、隐私与页面安全
+现役合同共 28 个 Child：22 个页面 Child，6 个 continuation transaction Child。纳入标准不是名字里有没有 DOM，而是职责是否读取、导航、点击、输入、上传、等待、检查点或取得页面媒体。
 
-真实采集只允许：
+Owner 不变：
 
-- Skill 临时生成的唯一 marker、提示词、`.txt`、`.json` 和真实 UTF-8 `.zip`；
-- 本次新建且唯一绑定的 QA Chrome 标签页；
-- 本次创建的测试会话。
+```text
+Product：流程、授权、输入和前驱结果
+GPT Child：语义意图、私有 query、正反 postcondition
+Browser Authority：Target、Document、机械 DOM、动作、WAL 和 readback
+Skill 报告：候选绑定的离线工程事实，只供迭代消费
+```
 
-禁止采集：
+不新增 Child、公共 selector registry、第二 observation、第二存储、兼容桥或第二质量结论。
 
-- 原始 conversation ID；
-- Cookie、localStorage、sessionStorage、密码、Authorization header、access/refresh token；
-- 用户已有会话、提示词、回复、附件名或媒体；
-- AGENT 系统生产标签页和用户已有标签页。
+## 三、逐 Child 需求生成
 
-原始会话 URL 必须在进入资料前变成 `/c/sha256:<digest>`。结束时只关闭本次 QA 标签页；服务端测试会话不自行删除，除非用户另行授权。
+`inventory` 为每个页面 Child 生成唯一 `evidenceDemand`，至少包含：
 
-## 七、产物
+- 当前合同的语义意图、输入、前置、动作资格、mutation budget、正反 postcondition、replay policy；
+- 矩阵声明的 core targets、required live/derived states 和输入引用；
+- Child 私有实现的内容 hash 与去注释归一化语义 hash；
+- 实际 Product 消费文件的内容 hash 与语义 hash；
+- 现役 GPT Blueprint 的内容与语义 hash；
+- `Document/revision → pre → typed command → terminal receipt → post → direct postcondition` 证据链要求。
 
-### 7.1 Skill
+需求 facts 和上述来源共同形成逐 Child `projectionDigest` 与 `childCandidateDigest`。语义来源改变时返回 `REPORT_PROJECTION_STALE`，随后只运行离线 `refresh`；它不得使真实页面快照失效，也不得自动启动 Chrome。
 
-目录：`/Users/nexgen/.codex/skills/gpt-page-operation-evidence/`
+## 四、采集合同
 
-- `SKILL.md`：模式、边界、执行顺序和离线闸门；
-- `references/page-operation-matrix.json`：22 个 Child 的采集状态合同，不保存 selector；
-- `references/evidence-schema.md`：三圈和报告 schema；
-- `references/collection-protocol.md`：真实 Chrome 采集协议；
-- `scripts/report-tool.mjs`：盘点、合并和严格校验；
-- `scripts/make-fixtures.mjs`：生成纯合成提示词与三类附件；
-- `agents/openai.yaml`：Skill UI 元数据。
+初始快照完成后，只有两种事件可以产生新的 `captureEpoch`：
 
-### 7.2 项目报告
+1. 当前报告已被 Child 的真实 GPT 页面执行实际消费，并由同一次事件的代码、运行日志和页面回读共同确认页面事实冲突，记为 `PAGE_EVIDENCE_CONFLICT_CONFIRMED`；
+2. 用户明确要求立即、手动或周期重采集，记为 `HUMAN_REQUESTED_RECAPTURE`。
 
-当前唯一机器资料：`docs/项目方案/GPT页面操作子能力实证资料.json`
+除此之外固定返回 `RECAPTURE_FORBIDDEN`。编译、测试、候选、合同、实现、Product、法案、Blueprint、矩阵、需求 digest 或 provider build marker 改变均不是重采集理由。实际消费冲突只重采受影响场景；只有用户明确要求全量时才全量采集。
 
-它记录：
+只允许使用 `chrome:control-chrome`，并新建、唯一绑定一个 QA 标签页。不得接管用户已有标签页或 AGENT 生产标签页，不得读取 Cookie、storage、密码、token 或既有会话内容。
 
-- 28/22/6 分母；
-- 每个 Child 的采集时 contract、源码导航引用和 Product 消费者；
-- 每个页面操作 Child 的 required/optional 状态；
-- 已采集 capture 的三圈 specimen 和离线完整度；
-- `claimsQualityVerdict: false` 与 `productionRuntimeConsumer: false`。
+三个最小场景：
 
-只保留当前一份报告。刷新时原子替换，不在项目中累积第二资料库。
+- `text-main`：clean、profile、model、reasoning、附件、prompt、draft、submit、hydration、稳定富文本和 checkpoint；
+- `image-main`：生成中、稳定语义媒体、original content identity 和图片 checkpoint；
+- `focus-fork`：focus、身份、source actions menu、fork destination menu、最终 fork 和父子关系。
 
-报告不保存源码、矩阵、采集器或治理文件的绑定哈希。源码变化不会把整份页面资料自动改成 `NOT_CAPTURED` 或失效；使用者在每次实际迭代前手工读取目标 Child 的当前合同和实现，只核对本次要消费的样本。源码引用仅是采集时的导航线索，不是生产准入证。
+每个 required live specimen 必须记录：
 
-## 八、生产价值验收
+- `observationId`、Target/Document hash、revision 和不可重复的 `stateSignature`；
+- core 的真实 targets、候选基数、资格、结构、安全属性、computed style、布局和文本投影；
+- related 的 owner/ancestor/sibling/linked-node、前后 diff、源码引用和完整 transition chain；
+- peripheral 的 page kind、清洗 URL identity、locale、viewport、theme、Chrome/provider build 和页面状态；
+- 逐需求事实 `factBindings`：`factId → LIVE observationId → 实际字段路径`。
 
-### 8.1 本次建设验收
+派生负例必须标记 `DERIVED_FIXTURE`，单次只改变一个事实，并回指同 Child 的 live observation。它不能证明页面真的存在该状态。
 
-- Skill 可以从现役合同自动盘点 28 个 Child；
-- 自动确认 22 个页面操作 Child 与 6 个非页面 Child；
-- 合同与 web 实现分母不一致会失败；
-- 临时 fixture 可重复生成并带 SHA-256；
-- `inventory --read-only` 只输出当前分母和源码导航，不输出采集状态。
+以下三个 terminal error 必须是 `LIVE_PAGE`：
 
-### 8.2 完整采集验收
+- `reconcile_gpt_attachment_set / attachment-terminal-error`
+- `wait_for_stable_gpt_text / generation-error`
+- `wait_for_stable_gpt_image / image-error-terminal`
 
-只有同时满足以下条件才标记 `CAPTURE_COMPLETE`：
+无法在真实页面合法取得时保持缺口，不猜 selector，不用 timeout 或派生 fixture 顶替。
 
-- 22 个页面操作 Child 全覆盖；
-- 每个 required live state 都有 `LIVE_PAGE`；
-- 每个 required negative state 都有 `DERIVED_FIXTURE`；
-- 每个 specimen 的核心圈、相关圈、外围圈非空；
-- 专用 Chrome QA 标签页身份已哈希绑定；
-- 隐私扫描通过；
-- 严格校验通过。
+## 五、报告与准入
 
-这时可以说“离线工程资料完整”，仍不能说 READY、RELEASE 或已经生产发布。
+唯一报告：`docs/项目方案/GPT页面操作子能力实证资料.json`。
 
-### 8.3 离线迭代验收
+V5 报告区分：
 
-Codex 针对一个 Child 开工前运行严格校验：
+- `NOT_CAPTURED`：需求盘点完成，没有有效 capture；
+- `CAPTURE_PARTIAL`：存在采集，但仍有明确缺口；
+- `CAPTURE_COMPLETE`：22 个页面 Child 的采集合同完整。
 
-- 报告完整，且已手工确认目标 Child 当前实现与所用样本相关：可以不打开 Chrome 做离线迭代；
-- 报告不完整：列出准确缺失状态，不猜页面；
-- 修改了合同、页面 query、Browser typed contract 或 authority：手工判断受影响样本；只有缺少本次所需事实时才刷新对应实证，不使无关 Child 的资料整体失效；
-- 实现完成后仍需在准确候选上做真实 Chrome 最终证明。
+`CAPTURE_COMPLETE` 仍不是候选准入。目标 Child 必须运行：
 
-## 九、定期运行建议
+```bash
+node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/report-tool.mjs admit \
+  --repo /Users/nexgen/Documents/AGENT \
+  --matrix /Users/nexgen/Documents/AGENT/scripts/audit/domains/gpt/page-operation-matrix.json \
+  --report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
+  --child child_id \
+  --candidate exact_HEAD_or_WORKTREE_digest
+```
 
-不得用源码变化自动触发页面刷新。只有用户明确要求定期复核页面事实时，才运行临时 inventory 并进入专用 QA 标签页；无页面事实变化时保持安静，只有完成、失败或需要用户介入时通知。定期刷新不得与 AGENT 生产 Browser 同时操作页面。
+只有返回 `ADMITTED` 才能施工。完整 Child 消费全部事实；只有明确缺口的单个 Child 才可用 `--facts` 绑定本次修改实际消费的已观察事实，未知、未观察或未声明范围固定拒绝。指定 Child 时逐项准入，只有 `--child all` 才要求 22/22；terminal 现场缺失只阻断对应事实，不得连坐该 Child 已证明的成功观察、下游已绑定的具体成功结果或其余 Child。法案/Blueprint 未点名页面 Child 的其它域变更不得回退为 22 个 Child 全受影响。旧 V1/V2/V3/V4 固定返回 `REPORT_LEGACY_INVALIDATED`。
 
-建议在首次人工完整采集并确认账号功能覆盖后，再创建定时自动化。这样定期任务复用的是已经跑通的采集合同，而不是定时重复试错。
+## 六、反馈更新与 AGENT 闭环
 
-## 十、当前如实状态
+Child 修复顺序：
 
-- Skill：已建设。
-- 22 个页面操作 Child 矩阵：已建设。
-- 源码绑定：已物理退役；报告不再因源码变化整体失效。
-- 真实 Chrome 页面实证：已完成一次全量采集。
-- 离线资料完整度：`CAPTURE_COMPLETE`；这不证明当前生产候选正确。
-- `acceptance:gpt:real-proof`：现役入口明确未准入，不能拿它伪装成本采集器。
+1. clean → focus → verify；
+2. profile → model selector → exact model → reasoning → close；
+3. attachment control → attach/reconcile → prompt → draft；
+4. submit → submission reconcile；
+5. text/image wait → text/image checkpoint；
+6. checkpoint actions menu → fork destination menu → final fork。
 
-后续只在用户明确要求或页面事实确有变化时受控刷新；生产候选仍按现役原生质量入口和真实 Chrome 动态证明验收。
+每个批次完成后必须：
+
+1. 重跑 `inventory`，确认分母仍为 28/22/6；
+2. 运行不接收 capture 的离线 `refresh`，廉价重投影全部页面 Child，保持同一 `captureEpoch`；
+3. 重跑目标 Child `admit`；
+4. 运行该 Child 确定性反例；
+5. 运行 AGENT 唯一原生 `quality:check`，不得另报平行质量结论；
+6. 若业务任务本身要求真实 GPT 页面执行，再运行目标 Child；只有该次执行报错并取得同一事件三方冲突证据，才允许重采集；
+7. 若属于业务完成，再由 Website admission/storage 接收并读回，成功入库才算业务闭环。
+
+## 七、硬验收
+
+闭环达到 95% 以上不是主观打分。以下任一 P0/P1 缺失都不能通过：
+
+- 22/22 页面 Child 有当前 demand；
+- 页面 facts 绑定真实 observation 和实际字段；合同、Product、authority 等非页面 facts 绑定当前离线投影；
+- required live 状态不重复、不自相矛盾；
+- 三个 terminal error 保持真实 Chrome 边界；
+- 任何页面 Child 开工前能被 `admit` 强制拦截；
+- 修复后有离线重投影、目标确定性测试和原生 quality verdict；真实页面执行按业务任务需要运行，但不得等同于重新采集；
+- 自动重采集入口固定拒绝，只有两个合法 trigger 可改变 `captureEpoch`；
+- 报告仍只有一份，生产代码没有导入 Skill、报告或 selector 数据。
+
+Skill 自验必须通过完整基线，并拒绝：无 trigger 采集、源码变化触发采集、复制同一 live DOM、unchecked/checked 矛盾、遗漏 fact binding 和派生 terminal substitution；同时证明代码变更后可在相同 `captureEpoch` 离线重投影。
+
+## 八、当前真实状态
+
+- Skill、矩阵、可恢复的 Chrome 场景采集器、capture 装配器、V5 validator/admit、离线 refresh 和对抗性自验：已建设；
+- 28/22/6 分母与逐 Child demand：已从修复后当前候选重新生成；
+- 旧 V3 `CAPTURE_COMPLETE`：已撤销，固定视为历史失效报告；
+- 当前唯一报告：`V5 / CAPTURE_PARTIAL`；已有页面现场保留在同一稳定 epoch，工程变化通过离线投影消费，不再以版本迭代为由重采集；
+- 当前 3 个存在真实页面缺口的 Child：`reconcile_gpt_attachment_set`、`wait_for_stable_gpt_image`、`wait_for_stable_gpt_text`；其余 19 个完整；
+- 三个强制真实 terminal state 仍缺：附件 terminal error、文本 generation error、图片 error terminal；
+- 图片场景已执行三次独立真实提交，其中两次显式选择“创建图片”，最长等待 90 秒；最终均为停止按钮消失、助手回合 0、语义媒体 0、可见错误 0，报告固定记录 `IMAGE_SUBMISSION_WITHOUT_TERMINAL_RECEIPT`，不冒充成功或错误终态；
+- 附件初始三文件集合真实成功；移除 JSON 后重新上传，页面卡片 `aria-label` 变为带 `(1)` 的名称，报告固定记录 `ATTACHMENT_REUPLOAD_PROVIDER_RENAMED`；
+- 已按报告修复 9 个获准入 Child 的真实 selector 偏差：以 `data-message-author-role` 绑定回合，并移除分支菜单项并不存在的 `tabindex/aria-haspopup` 假设；
+- 修复后真实 Chrome 复验的用户回合、助手回合、更多操作、源菜单、打开新分支、目标菜单、分支入口均唯一命中；
+- 修复后 `acceptance:gpt` 通过，原生 `quality:check CHANGE` 返回 `CHANGE_PASS`；
+- `admit --child all` 与 3 个缺口 Child 的全量准入继续失败关闭；两个 checkpoint 按各自已存在的成功 observation 链准入，不再被上游无关错误状态连坐。缺口 Child 只有显式 `--facts` 的已观察范围可准入。
+
+因此，日常 Child 迭代只重投影和按事实准入；4 个既有现场状态缺口继续如实保留，除非发生实际消费冲突或用户明确触发，否则禁止为了补齐数字自动重采集。

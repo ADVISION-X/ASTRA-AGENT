@@ -23,6 +23,7 @@ import {
   inspectGptAttachmentContract,
   inspectGptContractDenominator,
 } from "./gpt-contract-inspection.js";
+import { inspectGptPageEvidenceClosure } from "./gpt-page-evidence-closure-inspection.js";
 import {
   inspectGptBrowserFailureRecoveryContract,
   inspectGptDirectMutationSettlementContract,
@@ -33,7 +34,7 @@ import {
   inspectProviderWaitContract,
 } from "./gpt-provider-contract-inspection.js";
 
-const LAW_ID = "LAW-GPT-001-V29";
+const LAW_ID = "LAW-GPT-001-V30";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 15, 18, 22),
   "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 11, 12, 13, 16, 17, 19, 20, 21, 22),
@@ -54,6 +55,7 @@ const SCHEMA_PATH = `${ROOT}/schema.ts`;
 const CHILD_TYPES_PATH = `${ROOT}/child-types.ts`;
 const EVIDENCE_WRITER_PATH = `${ROOT}/evidence-writer.ts`;
 const EVIDENCE_FACT_PATH = `${ROOT}/evidence-fact.ts`;
+const PAGE_EVIDENCE_REPORT_PATH = "docs/项目方案/GPT页面操作子能力实证资料.json";
 const SESSION_PATH = `${ROOT}/session/gpt-session-controller.ts`;
 const CHILDREN_PATH = `${ROOT}/children`;
 const childHandlerPath = (id: string): string => `${CHILDREN_PATH}/${id}/handler.ts`;
@@ -508,12 +510,13 @@ const inspectGptContracts = (context: InspectorContext, findings: InspectorFindi
   inspectExecutionProfileStateReadContract(context, findings);
   inspectGptBrowserFailureRecoveryContract(context, findings, finding);
   inspectGptDirectMutationSettlementContract(context, findings, finding);
+  inspectGptPageEvidenceClosure(context, findings, finding);
 };
 
 const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const path of [
     CONTRACT_PATH, FACADE_PATH, GROUP_PATH, SCHEMA_PATH, CHILD_TYPES_PATH,
-    EVIDENCE_WRITER_PATH, EVIDENCE_FACT_PATH, SESSION_PATH,
+    EVIDENCE_WRITER_PATH, EVIDENCE_FACT_PATH, PAGE_EVIDENCE_REPORT_PATH, SESSION_PATH,
     ...CONTINUATION_HANDLER_PATHS,
     ...TEXT_RESPONSE_HANDLER_PATHS, ...IMAGE_RESPONSE_HANDLER_PATHS,
     ...CONVERSATION_HANDLER_PATHS,

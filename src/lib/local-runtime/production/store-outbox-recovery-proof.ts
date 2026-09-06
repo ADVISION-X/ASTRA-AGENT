@@ -31,7 +31,10 @@ export type RecoveryCheckpointPrefix = Readonly<{
   checkpointHash: ProductionHash | null;
 }>;
 
-type RecoveryCheckpointProof = RecoveryCheckpointPrefix & Readonly<{ rejectedIncident: boolean }>;
+type RecoveryCheckpointProof = RecoveryCheckpointPrefix & Readonly<{
+  rejectedIncident: boolean;
+  attemptFailure: SerializedExecutionFailure | null;
+}>;
 
 const payloadHashOf = (local: LocalReceiptIntent): ProductionHash => {
   const headers = JSON.parse(local.headers_json) as Record<string, string>;
@@ -248,10 +251,16 @@ const deliveredPrefixValid = (input: Readonly<{
       ? input.rejectedAccepted >= 1 && input.rejectedFailure >= 1
       : input.rejectedAccepted === 0 && input.rejectedFailure === 0)
     && input.delivered.length >= minimumLength
-    && input.delivered.every(({ body }, index) => body.checkpoint_seq === index + 1
-      && body.checkpoint_kind === (index === 0 ? "accepted" : "progress")
-      && body.attempt_failure === null
-      && (body.object_receipts as unknown[]).length === 0);
+    && input.delivered.every(({ body }, index) => {
+      const last = index === input.delivered.length - 1;
+      const terminalFailure = last && index > 0 && body.checkpoint_kind === "attempt_failure";
+      return body.checkpoint_seq === index + 1
+        && (terminalFailure
+          ? isSerializedTerminalFailure(body.attempt_failure)
+          : body.checkpoint_kind === (index === 0 ? "accepted" : "progress")
+            && body.attempt_failure === null)
+        && (body.object_receipts as unknown[]).length === 0;
+    });
 };
 
 const currentRecoveryPrefix = (input: Readonly<{
@@ -311,13 +320,18 @@ export const proveRecoveryCheckpointPrefix = (input: Readonly<{
     return body.attempt_id === input.attemptId;
   });
   if (currentAttemptRows.length === 0) {
-    return Object.freeze({ checkpointSeq: 0, checkpointHash: null, rejectedIncident: false });
+    return Object.freeze({
+      checkpointSeq: 0, checkpointHash: null, rejectedIncident: false, attemptFailure: null,
+    });
   }
   const current = currentRecoveryPrefix({ ...input, remoteByRequest });
   const cursor = current.delivered.at(-1)!;
+  const attemptFailure = cursor.body.checkpoint_kind === "attempt_failure"
+    ? cursor.body.attempt_failure as SerializedExecutionFailure : null;
   return Object.freeze({
     checkpointSeq: Number(cursor.body.checkpoint_seq),
     checkpointHash: cursor.receipt.payload_hash,
     rejectedIncident: current.rejectedCount > 0,
+    attemptFailure,
   });
 };

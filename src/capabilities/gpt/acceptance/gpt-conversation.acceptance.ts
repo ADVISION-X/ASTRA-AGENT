@@ -509,7 +509,7 @@ await exerciseBrowserDispatchedEvidenceReadback();
       assert.equal(GPT_MORE_ACTIONS_BUTTON_LABEL, "更多操作");
       assert.equal(
         intent.selector,
-        `[data-testid="conversation-turn-2"][data-turn='assistant'] button[aria-label='更多操作'][aria-haspopup='menu']`,
+        `[data-testid="conversation-turn-2"]:has([data-message-author-role='assistant']) button[aria-label='更多操作']`,
       );
       assert.equal(intent.selector, gptMoreActionsButtonSelector(sourceInput.sourceAssistantTurnId));
       assert.equal(intent.selector.includes("more-turn-action-button"), false);

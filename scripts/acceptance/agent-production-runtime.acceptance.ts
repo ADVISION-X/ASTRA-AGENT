@@ -308,7 +308,7 @@ const exactControlAbort = new AbortController();
 exactControlAbort.abort("CONTROL_INTENT:cancel_requested:PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
 assert.equal(permanentAuthorizationRevoked(exactControlAbort.signal), true);
 assert.doesNotMatch(deletionSettlement, /AI_PERMANENT_AUTHORIZATION_REVOKED/u);
-assert.match(deletionSettlement, /releaseGptContinuationLanesForJob\(job\.job_id\)/u);
+assert.match(deletionSettlement, /settlePermanentlyRevokedJob\(job\.job_id/u);
 assert.match(deletionSettlement, /readBrowserReconciliationScope/u);
 assert.match(deletionSettlement, /PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED:READ_ONLY_RECONCILIATION_REQUIRED/u);
 assert.match(deletionSettlement, /const stableRequestId = `aiprelease_/u);
@@ -374,21 +374,21 @@ assert.deepEqual(runtimeManifestOwnershipDrift([
 ]), []);
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V8",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V9",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"],
   locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",
   observedValue: "the unique Runtime ownership inspector accepted the current Runtime-only manifest and rejected injected Mediator and Product ownership mutants",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V40",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V41",
   evidenceMode: "exam.state-machine",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "summary"],
   locator: "acceptance:agent-production-runtime:attempt-recovery-state-machine",
   observedValue: "binary task lifecycle durable accept same-attempt recovery lease outbox and typed cross-owner boundaries exercised",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V40",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V41",
   evidenceMode: "exam.property",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "summary"],
   locator: "acceptance:agent-production-runtime:transport-properties",
@@ -396,7 +396,7 @@ emitQualityProofObservation({
 });
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V8",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V9",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "summary"],
     locator: `acceptance:agent-production-runtime:business-admission:${evidenceMode}`,

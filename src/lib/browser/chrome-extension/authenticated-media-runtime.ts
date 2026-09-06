@@ -14,7 +14,7 @@ const sha256Text = async (value: string): Promise<`sha256:${string}`> => {
 
 const authenticatedMediaExpression = (assistantTurnId: string): string => `
     (async () => {
-      const turns = [...document.querySelectorAll(${JSON.stringify(`[data-testid=${JSON.stringify(assistantTurnId)}][data-turn='assistant']`)})];
+      const turns = [...document.querySelectorAll(${JSON.stringify(`[data-testid=${JSON.stringify(assistantTurnId)}]:not(:has([data-message-author-role='user']))`)})];
       if (turns.length === 0) return { errorCode: "BROWSER_AUTHENTICATED_MEDIA_ABSENT" };
       if (turns.length !== 1) return { errorCode: "BROWSER_AUTHENTICATED_MEDIA_MULTIPLE" };
       const turn = turns[0];
