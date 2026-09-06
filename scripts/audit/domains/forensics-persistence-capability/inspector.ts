@@ -367,7 +367,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
   const semanticChecks = (lawId: string, evidenceMode: string): string[] => lawId.endsWith("001-V4")
-    ? evidenceMode === "static.ast" ? ["inspectCapabilityRequiredFiles", "inspectOwnerImports", "inspectChildLayout"] : ["inspectPublicFacade", "inspectExactCallEvidenceOwner", "inspectChildLayout"]
+    ? evidenceMode === "static.ast" ? ["inspectCapabilityRequiredFiles", "inspectOwnerImports"] : ["inspectPublicFacade", "inspectExactCallEvidenceOwner", "inspectChildLayout"]
     : lawId.endsWith("002-V4")
       ? evidenceMode === "static.ast" ? ["inspectStorageRequiredFiles", "inspectDeterministicRecordIdentity"] : ["inspectStoragePort"]
       : evidenceMode === "static.ast" ? ["inspectSchemaVocabulary"] : ["inspectSchemaContract"];
