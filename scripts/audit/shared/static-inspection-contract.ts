@@ -10,6 +10,18 @@ import { inspectTargetObjects, observeStaticMode } from "./static-target-object-
 const ordered = (values: readonly string[]): string[] => [...new Set(values)].sort((left, right) =>
   Buffer.compare(Buffer.from(left), Buffer.from(right)));
 const sha256 = (value: string | Buffer): string => createHash("sha256").update(value).digest("hex");
+const objectDigestCache = new WeakMap<InspectorContext, Map<string, string>>();
+const objectDigest = (context: InspectorContext, path: string): string => {
+  const cache = objectDigestCache.get(context) ?? new Map<string, string>();
+  objectDigestCache.set(context, cache);
+  const cached = cache.get(path);
+  if (cached) return cached;
+  let digest: string;
+  try { digest = sha256(readFileSync(resolve(context.sealedRoot, path))); }
+  catch { return fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${path}:object-digest`); }
+  cache.set(path, digest);
+  return digest;
+};
 export const staticImplementationDigest = (implementation: (...args: never[]) => unknown): string =>
   sha256(implementation.toString());
 
@@ -77,10 +89,7 @@ const requirementFor = (context: InspectorContext, lawId: string): InspectorLawR
 const evidenceLocatorPaths = (requirement: InspectorLawRequirement): string[] =>
   requirement.targetPaths.filter((path) => !/[#@:%]/u.test(path));
 const targetSetObjectDigest = (context: InspectorContext, requirement: InspectorLawRequirement): string =>
-  sha256(requirement.targetPaths.map((path) => {
-    try { return `${path}\0${sha256(readFileSync(resolve(context.sealedRoot, path)))}`; }
-    catch { return fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${requirement.lawId}:${path}:object-digest`); }
-  }).join("\0"));
+  sha256(requirement.targetPaths.map((path) => `${path}\0${objectDigest(context, path)}`).join("\0"));
 
 const staticEvidenceKind = (lawId: string, evidenceMode: string): string => ({
   "static.ast": "ast", "static.config": "config", "static.contract": "config",
@@ -114,8 +123,8 @@ const observeNativeRef = (input: {
   const implementationSignature = binding.get("checkImplementations") ?? "";
   const implementationNames = implementations.map((entry) => entry.split(":", 1)[0]);
   const nativeObservationSignature = binding.get("modeNativeObservation") ?? "";
-  let objectDigest = "";
-  try { objectDigest = sha256(readFileSync(resolve(context.sealedRoot, objectPath))); }
+  let observedObjectDigest = "";
+  try { observedObjectDigest = objectDigest(context, objectPath); }
   catch { return { implementationSignature, invalid: true, nativeObservationSignature, objectPath }; }
   const expectedNativeObservation = observeStaticMode(context, mode);
   const nativeObservationInvalid = nativeObservationSignature !== expectedNativeObservation;
@@ -124,7 +133,7 @@ const observeNativeRef = (input: {
     binding.get("lawId") !== lawId, binding.get("mode") !== mode,
     binding.get("clauses") !== assertion.clauses.join(","),
     binding.get("executionResult") !== (assertion.passed ? "passed" : "failed"),
-    binding.get("objectDigest") !== objectDigest, binding.get("targetSetDigest") !== targetSetDigest,
+    binding.get("objectDigest") !== observedObjectDigest, binding.get("targetSetDigest") !== targetSetDigest,
     !checks.length, JSON.stringify(implementationNames) !== JSON.stringify(checks),
     implementations.some((entry) => !/^[A-Za-z_$][A-Za-z0-9_$]*:[a-f0-9]{64}$/u.test(entry)),
     nativeObservationInvalid,
@@ -196,10 +205,8 @@ export const staticEvidenceRefs = (
   )}`;
   const targetSetBinding = encodeURIComponent(`targetSetDigest=${targetSetObjectDigest(context, requirement)};`);
   const nativeRefs = locatorPaths.map((path) => {
-    let objectDigest: string;
-    try { objectDigest = sha256(readFileSync(resolve(context.sealedRoot, path))); }
-    catch { return fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:${evidenceMode}:${path}:object-digest`); }
-    return `${evidenceKind}:${path}#${lawModeBinding}${semanticBinding}%3B${executionBinding}%3B${implementationBinding}${nativeObservationBinding}%3B${encodeURIComponent(`objectDigest=${objectDigest};`)}${targetSetBinding}${clauseBinding}`;
+    const digest = objectDigest(context, path);
+    return `${evidenceKind}:${path}#${lawModeBinding}${semanticBinding}%3B${executionBinding}%3B${implementationBinding}${nativeObservationBinding}%3B${encodeURIComponent(`objectDigest=${digest};`)}${targetSetBinding}${clauseBinding}`;
   });
   return ordered([
     ...nativeRefs,

@@ -1,23 +1,11 @@
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
-import { inspectDomain as inspectAgentProductionRuntime } from "../domains/agent-production-runtime/inspector.js";
-import { inspectDomain as inspectAppShellUi } from "../domains/app-shell-ui/inspector.js";
-import { inspectDomain as inspectArchitectureBoundary } from "../domains/architecture-boundary/inspector.js";
-import { inspectDomain as inspectCapabilityGovernance } from "../domains/capability-governance/inspector.js";
-import { inspectDomain as inspectCodePurity } from "../domains/code-purity/inspector.js";
-import { inspectDomain as inspectForensics } from "../domains/forensics-persistence-capability/inspector.js";
-import { inspectDomain as inspectGpt } from "../domains/gpt/inspector.js";
-import { inspectDomain as inspectLocalAppShell } from "../domains/local-app-shell/inspector.js";
-import { inspectDomain as inspectLocalBrowserSession } from "../domains/local-browser-session/inspector.js";
-import { inspectDomain as inspectRuntimeLogSpine } from "../domains/runtime-log-spine/inspector.js";
-import { inspectDomain as inspectStartupEntrypoint } from "../domains/startup-entrypoint/inspector.js";
-import { inspectDomain as inspectSystemSecurity } from "../domains/system-security/inspector.js";
-import { inspectDomain as inspectWorkbenchApiBoundary } from "../domains/workbench-api-boundary/inspector.js";
 import { createAuditProject } from "./project.js";
 import type { InspectorContext, SessionInspectorOutput } from "./inspector-contracts.js";
 
 type DomainInspector = (context: InspectorContext) => Promise<SessionInspectorOutput>;
+type DomainInspectorModule = { inspectDomain: DomainInspector };
 type WorkerRequest = {
   capabilityDomain: string;
   laws: Array<{ lawId: string; forbiddenCount: number; requiredStaticModes: string[]; targetPaths: string[]; targetSet: { queryRef: string; count: number } }>;
@@ -26,20 +14,20 @@ type WorkerRequest = {
   targetPaths: string[];
 };
 
-const inspectors: Record<string, DomainInspector> = {
-  "agent-production-runtime": inspectAgentProductionRuntime,
-  "app-shell-ui": inspectAppShellUi,
-  "architecture-boundary": inspectArchitectureBoundary,
-  "capability-governance": inspectCapabilityGovernance,
-  "code-purity": inspectCodePurity,
-  "forensics-persistence-capability": inspectForensics,
-  gpt: inspectGpt,
-  "local-app-shell": inspectLocalAppShell,
-  "local-browser-session": inspectLocalBrowserSession,
-  "runtime-log-spine": inspectRuntimeLogSpine,
-  "startup-entrypoint": inspectStartupEntrypoint,
-  "system-security": inspectSystemSecurity,
-  "workbench-api-boundary": inspectWorkbenchApiBoundary,
+const inspectorLoaders: Record<string, () => Promise<DomainInspectorModule>> = {
+  "agent-production-runtime": () => import("../domains/agent-production-runtime/inspector.js"),
+  "app-shell-ui": () => import("../domains/app-shell-ui/inspector.js"),
+  "architecture-boundary": () => import("../domains/architecture-boundary/inspector.js"),
+  "capability-governance": () => import("../domains/capability-governance/inspector.js"),
+  "code-purity": () => import("../domains/code-purity/inspector.js"),
+  "forensics-persistence-capability": () => import("../domains/forensics-persistence-capability/inspector.js"),
+  gpt: () => import("../domains/gpt/inspector.js"),
+  "local-app-shell": () => import("../domains/local-app-shell/inspector.js"),
+  "local-browser-session": () => import("../domains/local-browser-session/inspector.js"),
+  "runtime-log-spine": () => import("../domains/runtime-log-spine/inspector.js"),
+  "startup-entrypoint": () => import("../domains/startup-entrypoint/inspector.js"),
+  "system-security": () => import("../domains/system-security/inspector.js"),
+  "workbench-api-boundary": () => import("../domains/workbench-api-boundary/inspector.js"),
 };
 
 const request = (): WorkerRequest => {
@@ -58,8 +46,9 @@ const plan = (input: WorkerRequest): InspectorContext["planEntry"] => ({
 
 export const runInspectionWorker = async (): Promise<void> => {
   const input = request();
-  const inspector = inspectors[input.capabilityDomain];
-  if (!inspector) throw new Error(`GOVERNANCE_INSPECTOR_MISSING:${input.capabilityDomain}`);
+  const loadInspector = inspectorLoaders[input.capabilityDomain];
+  if (!loadInspector) throw new Error(`GOVERNANCE_INSPECTOR_MISSING:${input.capabilityDomain}`);
+  const { inspectDomain: inspector } = await loadInspector();
   const planEntry = plan(input);
   const context: InspectorContext = {
     project: createAuditProject(input.sealedRoot, input.targetPaths),

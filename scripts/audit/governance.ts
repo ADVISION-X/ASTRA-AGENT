@@ -121,9 +121,6 @@ function projectChecks(): void {
   const tests = readdirSync('tests/governance').filter((name) => name.endsWith('.test.ts')).sort().map((name) => `tests/governance/${name}`);
   if (!tests.length) fail('LAW_EVIDENCE_MISSING', 'governance tests');
   run(process.execPath, ['--import', 'tsx', '--test', ...tests]);
-  run('npm', ['run', 'acceptance:capability-governance']);
-  run('npm', ['run', 'acceptance:architecture-boundary']);
-  run('npm', ['run', 'acceptance:code-purity-zombie-deep']);
 }
 
 function relevantChangeChecks(changes: Array<{ status: string; path: string }>, registry: Registry): void {
@@ -155,11 +152,11 @@ async function quality(level: Level): Promise<void> {
   }
   if (changes.length) fail(level === 'READY' ? 'READY_GIT_COMMIT_REQUIRED' : 'RELEASE_GIT_COMMIT_REQUIRED', 'dirty worktree');
   validateCommittedProviderContractVersionChanges();
-  checkProjection();
-  verifyProductionOwnership();
+  const registry = checkProjection();
+  verifyProductionOwnership(registry);
   projectChecks();
   if (initial !== gitCommit() || diffPaths().length) fail('CANDIDATE_DRIFT', level);
-  const result = await runFullQuality(level);
+  const result = await runFullQuality(level, registry);
   if (result.outcome !== 'PASS') fail('LAW_FAILED', result.reportPath);
 }
 

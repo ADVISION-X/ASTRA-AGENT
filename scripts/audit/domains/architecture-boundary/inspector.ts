@@ -8,7 +8,7 @@ import { inspectRootAllowlist } from "./components/scan-root-allowlist.js";
 import { inspectTypesContractRelations, inspectTypesContractRoot } from "./components/scan-types-contract-root.js";
 import { inspectConstitutionalBoundary } from "./constitutional-boundary-inspector.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
-import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
+import { observeStaticMode } from "../../shared/static-target-object-inspector.js";
 
 
 
@@ -48,7 +48,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
         project: context.project,
       }));
   recordStaticCheck({ check: "inspectTypesContractRelations", findings, implementation: inspectTypesContractRelations,
-    lawIds: [lawId], observe: () => observeTypeCheckerRelations(context.project, context.targetPaths),
+    lawIds: [lawId], observe: () => observeStaticMode(context, "static.types"),
     receipts: staticCheckReceipts, run: () => inspectTypesContractRelations({
       findings, inspectedFiles, lawId: lawIds.lawFirstChangeLawId, project: context.project,
     }) });

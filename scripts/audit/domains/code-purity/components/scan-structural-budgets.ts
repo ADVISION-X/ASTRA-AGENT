@@ -37,13 +37,14 @@ export const scanStructuralFilesystemBudgets = (
   (governedFile, collector) => scanStructuralFilesystemShape(governedFile, lawIds, collector));
 
 export const scanStructuralTypeBudgets = (
-  governedFiles: readonly GovernedFile[], lawIds: readonly string[],
+  governedFiles: readonly GovernedFile[], lawIds: readonly string[], nativeObservation?: string,
 ): StructuralBudgetScanResult => {
   const scan = scanFiles(governedFiles, (governedFile, collector) =>
     scanStructuralTypeEscapes(collector, governedFile, selectLawId(lawIds, "LAW-CODE-PURITY-001-V5")));
   const project = governedFiles[0]?.sourceFile.getProject();
   if (!project) throw new Error("TYPECHECKER_OBSERVATION_EMPTY");
-  return { ...scan, nativeObservation: observeTypeCheckerRelations(project, governedFiles.map((file) => file.repoPath)) };
+  return { ...scan, nativeObservation: nativeObservation
+    ?? observeTypeCheckerRelations(project, governedFiles.map((file) => file.repoPath)) };
 };
 
 export const scanStructuralDependencyBudgets = (

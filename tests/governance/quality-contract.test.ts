@@ -28,6 +28,8 @@ import {
   type LawExecutionResult,
 } from "../../scripts/audit/shared/quality-contract.js";
 import { assertCandidateStable, assertExactProviderContract, assertParticipantCommitIdentity, bindNativeProofObservations, computeTargetPaths, dynamicScriptFor, parseInspectorOutput } from "../../scripts/audit/shared/quality-runner.js";
+import { mapWithConcurrency } from "../../scripts/audit/shared/quality-process-execution.js";
+import { sealedSnapshotDigest } from "../../scripts/audit/shared/sealed-target-snapshot.js";
 import { validateProviderContractSpec } from "../../scripts/audit/shared/provider-contract-authority.js";
 import type { InspectorContext } from "../../scripts/audit/shared/inspector-contracts.js";
 import { producerClaimRoutesFor, proofObservationPrefix, validateDynamicReceiptPayload, validateExamReceiptPayload } from "../../scripts/audit/shared/proof-observation.js";
@@ -971,6 +973,49 @@ test("a finding propagates from one law result to the only top-level verdict", (
   const report = buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [result] });
   assert.equal(report.laws[0]!.outcome, "FAIL");
   assert.equal(report.outcome, "FAIL");
+});
+
+test("bounded quality execution preserves order, reaches its cap, and fails closed after all work", async () => {
+  let active = 0;
+  let peak = 0;
+  const ordered = await mapWithConcurrency([3, 1, 2, 0], 2, async (value) => {
+    active += 1;
+    peak = Math.max(peak, active);
+    await new Promise<void>((resolveTurn) => setImmediate(resolveTurn));
+    active -= 1;
+    return value * 2;
+  });
+  assert.deepEqual(ordered, [6, 2, 4, 0]);
+  assert.equal(peak, 2);
+
+  let completed = 0;
+  let rejected = false;
+  try {
+    await mapWithConcurrency([0, 1, 2], 2, async (value) => {
+      await new Promise<void>((resolveTurn) => setImmediate(resolveTurn));
+      completed += 1;
+      if (value === 1) throw undefined;
+      return value;
+    });
+  } catch (error) {
+    rejected = true;
+    assert.equal(error, undefined);
+  }
+  assert.equal(rejected, true);
+  assert.equal(completed, 3);
+});
+
+test("sealed target digests detect mutation and inspector workers load only the selected domain", () => {
+  const root = mkdtempSync(resolve(tmpdir(), "quality-sealed-digest-"));
+  const target = resolve(root, "target.ts");
+  writeFileSync(target, "before");
+  const before = sealedSnapshotDigest(root, ["target.ts"]);
+  writeFileSync(target, "after");
+  assert.notEqual(sealedSnapshotDigest(root, ["target.ts"]), before);
+
+  const worker = readFileSync("scripts/audit/shared/quality-inspector-worker.ts", "utf8");
+  assert.equal(worker.includes("import { inspectDomain as"), false);
+  assert.equal([...worker.matchAll(/: \(\) => import\(/gu)].length, buildRegistry().domains.length);
 });
 
 test("candidate and provider mutations fail closed with fixed governance codes", () => {

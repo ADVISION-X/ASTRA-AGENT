@@ -1,5 +1,6 @@
 import type { InspectorContext, InspectorFinding, StaticCheckReceipt } from "../../../shared/inspector-contracts.js";
 import { staticImplementationDigest } from "../../../shared/static-inspection-contract.js";
+import { observeStaticMode } from "../../../shared/static-target-object-inspector.js";
 import { collectCodePurityGovernedFiles } from "./code-purity-governed-files.js";
 import type { CodePurityInventoryItem } from "./code-purity-inventory.js";
 import { scanOwnerBoundaries } from "./scan-owner-boundaries.js";
@@ -75,7 +76,9 @@ export const runCodePurityPhases = async (context: InspectorContext): Promise<Co
   const governedFiles = collectCodePurityGovernedFiles(context.project);
   const structuralAst = scanStructuralAstBudgets(governedFiles, context.planEntry.lawIds);
   const structuralFilesystem = scanStructuralFilesystemBudgets(governedFiles, context.planEntry.lawIds);
-  const structuralTypes = scanStructuralTypeBudgets(governedFiles, context.planEntry.lawIds);
+  const structuralTypes = scanStructuralTypeBudgets(
+    governedFiles, context.planEntry.lawIds, observeStaticMode(context, "static.types"),
+  );
   const structuralDependencies = scanStructuralDependencyBudgets(governedFiles, context.planEntry.lawIds);
   const ownerBoundaryScan = scanOwnerBoundaries(governedFiles, context.planEntry.lawIds);
   const zombieScan = scanZombieSurfaces(context, governedFiles, context.planEntry.lawIds);

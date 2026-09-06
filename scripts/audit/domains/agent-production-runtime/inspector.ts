@@ -6,7 +6,7 @@ import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from
   "../../shared/inspector-contracts.js";
 import { recordStaticCheck } from "../../shared/static-inspection-contract.js";
-import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
+import { observeStaticMode } from "../../shared/static-target-object-inspector.js";
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 import { inspectAgentAuthorityAst } from "./authority-inspection.js";
 import { inspectAgentContracts } from "./contract-inspection.js";
@@ -467,7 +467,7 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => {
     lawIds: ALL_LAWS, receipts, run: () => inspectAgentProductionRuntime(context, findings) });
   recordStaticCheck({ check: "inspectAgentTypes", findings, implementation: inspectAgentTypes,
     lawIds: ALL_LAWS.filter((lawId) => lawId !== LAWS.dynamicProof), receipts,
-    observe: () => observeTypeCheckerRelations(context.project, context.targetPaths),
+    observe: () => observeStaticMode(context, "static.types"),
     run: () => inspectAgentTypes(context, findings) });
   recordStaticCheck({ check: "inspectAgentContracts", findings, implementation: inspectAgentContracts,
     lawIds: [LAWS.core, LAWS.credential, LAWS.route, LAWS.admission, LAWS.storage,

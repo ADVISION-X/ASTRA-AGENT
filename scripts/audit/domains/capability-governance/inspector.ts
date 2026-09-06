@@ -11,6 +11,7 @@ import {
 } from "../../shared/repo-path-classifier.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, staticForbiddenClauses, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../shared/source-files.js";
+import { observeStaticMode } from "../../shared/static-target-object-inspector.js";
 import { observeTypeCheckerRelations } from "../../shared/typechecker-observation.js";
 import { resolveCapabilityFacadePolicy } from "./components/capability-source-of-truth.js";
 import { pushCapabilitySourceOfTruthFindings } from "./components/capability-governance-report.js";
@@ -412,6 +413,7 @@ export const inspectCapabilityGovernanceProject = (
   project: InspectorContext["project"],
   includeAuthority: boolean,
   lawId = "LAW-CAPABILITY-GOVERNANCE-001-V6",
+  observeTypes: () => string = () => observeTypeCheckerRelations(project),
 ): { findings: ReturnType<typeof createFinding>[]; inspectedFiles: string[]; staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] } => {
   const findings: ReturnType<typeof createFinding>[] = [];
   const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
@@ -451,7 +453,7 @@ export const inspectCapabilityGovernanceProject = (
     pushFinding,
   }) });
   recordStaticCheck({ check: "inspectCapabilityFacadeTypes", findings, implementation: inspectCapabilityFacadeTypes,
-    lawIds: [lawId], observe: () => observeTypeCheckerRelations(project), receipts: staticCheckReceipts,
+    lawIds: [lawId], observe: observeTypes, receipts: staticCheckReceipts,
     run: () => inspectCapabilityFacadeTypes({ lawId, project, pushFinding }) });
 
   return { findings, inspectedFiles: [...scan.inspectedFiles].sort(), staticCheckReceipts };
@@ -461,7 +463,9 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   const lawId = selectLawId(context.planEntry.lawIds, context.selectedLawId);
   const authorityAvailable = context.targetPaths.includes(".github/instructions/agent-rules/基础法案.md")
     && context.targetPaths.includes(".github/instructions/agent-rules/功能法案.md");
-  const evaluation = inspectCapabilityGovernanceProject(context.project, authorityAvailable, lawId);
+  const evaluation = inspectCapabilityGovernanceProject(
+    context.project, authorityAvailable, lawId, () => observeStaticMode(context, "static.types"),
+  );
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

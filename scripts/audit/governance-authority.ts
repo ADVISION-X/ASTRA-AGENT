@@ -479,13 +479,14 @@ export function writeRegistry(): void {
   process.stdout.write('REGISTRY_BUILT\n');
 }
 
-export function checkProjection(): void {
+export function checkProjection(registry = buildRegistry()): Registry {
   const generated = existsSync(resolve(ROOT, 'scripts/audit/generated')) ? readdirSync(resolve(ROOT, 'scripts/audit/generated')).filter((name) => !name.startsWith('.')).sort(byteCompare) : [];
   if (JSON.stringify(generated) !== JSON.stringify(['law-registry.generated.json'])) fail('GENERATED_FILESET_INVALID', generated.join(','));
-  const expected = Buffer.from(canonicalBytes(buildRegistry()));
+  const expected = Buffer.from(canonicalBytes(registry));
   const actual = existsSync(resolve(ROOT, REGISTRY)) ? readFileSync(resolve(ROOT, REGISTRY)) : Buffer.alloc(0);
   assertProjectionEqual(expected, actual);
   process.stdout.write('PROJECTION_CURRENT\n');
+  return registry;
 }
 export function assertProjectionEqual(expected: Buffer, actual: Buffer): void {
   if (!actual.equals(expected)) fail('GENERATED_PROJECTION_STALE', REGISTRY);

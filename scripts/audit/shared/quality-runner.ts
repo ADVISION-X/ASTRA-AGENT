@@ -1,6 +1,6 @@
-import { execFileSync, spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { execFileSync } from "node:child_process";
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
+import { availableParallelism, tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { buildRegistry, parseLawSource, providerDomainForDependencySpec } from "../governance-authority.js";
 import type { Law, Level, Registry } from "../governance-contract.js";
@@ -14,6 +14,8 @@ import type { InspectorFinding, InspectorLawResult, SessionInspectorOutput } fro
 import { dynamicReceiptFileValid, examReceiptFileValid, parseQualityProofObservations, producerClaimRoutesMatch, type QualityProofObservation, type QualityProofRequest } from "./proof-observation.js";
 import { dynamicScriptFor, examScriptFor } from "./quality-routes.js";
 import { validateProviderContractSpec, type ProviderContract } from "./provider-contract-authority.js";
+import { executeCaptured, mapWithConcurrency } from "./quality-process-execution.js";
+import { copyTargets, sealedSnapshotDigest } from "./sealed-target-snapshot.js";
 export { dynamicScriptFor } from "./quality-routes.js";
 type TargetSet = { queryRef: string; count: number };
 type ProofRoute = { law: Law; mode: string };
@@ -32,6 +34,8 @@ type QualityRunContext = {
   runDirectory: string;
   reportLevel: "READY" | "RELEASE";
 };
+const STATIC_CONCURRENCY = Math.min(3, availableParallelism());
+const EXAM_CONCURRENCY = Math.min(4, availableParallelism());
 const byteCompare = (left: string, right: string): number => Buffer.compare(Buffer.from(left), Buffer.from(right));
 const ordered = (values: readonly string[]): string[] => [...new Set(values)].sort(byteCompare);
 const matches = (pattern: string, path: string): boolean => pattern === "**/*" || pattern === path
@@ -142,11 +146,15 @@ const assertParticipantCommits = (participants: readonly BoundParticipant[]): vo
   }
 };
 const inspectorPath = (domain: string): string => `scripts/audit/domains/${domain}/inspector.ts`;
-export const computeTargetPaths = (law: Law, registry: Registry): string[] => {
+export const computeTargetPaths = (
+  law: Law,
+  registry: Registry,
+  repositoryPathSnapshot: readonly string[] = repositoryPaths(),
+): string[] => {
   const manifest = registry.domains.find((domain) => domain.capabilityDomain === law.capabilityDomain)
     ?? fail("ACTIVE_LAW_DENOMINATOR_MISMATCH", law.capabilityDomain);
   const paths = ordered([
-    ...repositoryPaths().filter((path) => law.appliesTo.some((pattern) => matches(pattern, path))
+    ...repositoryPathSnapshot.filter((path) => law.appliesTo.some((pattern) => matches(pattern, path))
       && !law.excludes.some((pattern) => matches(pattern, path))),
     ...law.contractRefs,
   ]);
@@ -159,29 +167,21 @@ const targetSet = (lawId: string, paths: readonly string[]): TargetSet => ({
   queryRef: `scope:${lawId}#appliesTo-minus-excludes`,
   count: paths.length,
 });
-const copyTargets = (paths: readonly string[], runDirectory: string, domain: string): string => {
-  const root = mkdtempSync(resolve(runDirectory, `${domain}-sealed-`));
-  for (const path of paths) {
-    const destination = resolve(root, path);
-    mkdirSync(dirname(destination), { recursive: true });
-    copyFileSync(resolve(ROOT, path), destination);
-  }
-  return root;
-};
 export const parseInspectorOutput = (stdout: string, domain: string): SessionInspectorOutput => {
   const line = stdout.split("\n").find((current) => current.startsWith("GOVERNANCE_INSPECTOR_RESULT "));
   if (!line) fail("CHECK_EXECUTION_FAILED", `${domain}:missing inspector output`);
   try { return JSON.parse(line!.slice("GOVERNANCE_INSPECTOR_RESULT ".length)) as SessionInspectorOutput; }
   catch { return fail("CHECK_EXECUTION_FAILED", `${domain}:invalid inspector output`); }
 };
-const runStaticDomain = (
+const runStaticDomain = async (
   domain: string,
   laws: Law[],
   targetPathsByLaw: ReadonlyMap<string, string[]>,
   runDirectory: string,
-): LawExecutionResult[] => {
+): Promise<LawExecutionResult[]> => {
   const paths = ordered(laws.flatMap((law) => targetPathsByLaw.get(law.lawId) ?? []));
   const sealedRoot = copyTargets(paths, runDirectory, domain);
+  const sealedBefore = sealedSnapshotDigest(sealedRoot, paths);
   const requestPath = resolve(runDirectory, `${domain}.inspection-request.json`);
   const request = {
     capabilityDomain: domain,
@@ -201,13 +201,14 @@ const runStaticDomain = (
   const worker = resolve(ROOT, "scripts/audit/shared/quality-inspector-worker.ts");
   if (runInspectionWorker.name !== "runInspectionWorker") fail("INSPECTOR_WORKER_INVALID", worker);
   const loader = resolve(ROOT, "node_modules/tsx/dist/loader.mjs");
-  const execution = spawnSync(process.execPath, ["--import", loader, worker], {
+  const execution = await executeCaptured(process.execPath, ["--import", loader, worker], {
     cwd: sealedRoot,
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024,
     env: { ...process.env, GOVERNANCE_INSPECTION_REQUEST: requestPath, GOVERNANCE_SEALED_ROOT: sealedRoot,
       GOVERNANCE_BINDING_CONTRACT: JSON.stringify({ targetPaths: paths }) },
   });
+  if (sealedSnapshotDigest(sealedRoot, paths) !== sealedBefore) {
+    fail("INSPECTOR_WORKER_INVALID", `${domain}:sealed-target-drift`);
+  }
   if (execution.status !== 0) {
     process.stderr.write(execution.stderr || execution.stdout || `${domain} inspector failed\n`);
     fail("CHECK_EXECUTION_FAILED", `${domain}:static-inspector`);
@@ -352,10 +353,10 @@ export const bindNativeProofObservations = (
   }
   return bound;
 };
-const executeProofCommand = (
+const executeProofCommand = async (
   kind: "exam" | "dynamic", script: string, routes: ProofRoute[],
   runDirectory: string, candidate: string,
-): Map<string, ProofResult> => {
+): Promise<Map<string, ProofResult>> => {
   if (kind === "dynamic" && !producerClaimRoutesMatch(script,
     routes.map(({ law, mode }) => `${law.lawId}:${mode}`)))
     fail("RELEASE_EVIDENCE_MISSING", `${script}:producer-route-denominator`);
@@ -369,10 +370,8 @@ const executeProofCommand = (
   const token = sha(`${kind}:${script}`).slice(0, 12);
   const nativeReceiptDirectory = resolve(runDirectory, `${kind}-${token}-native-receipts`);
   mkdirSync(nativeReceiptDirectory, { recursive: false, mode: 0o700 });
-  const execution = spawnSync("npm", ["run", script], {
+  const execution = await executeCaptured("npm", ["run", script], {
     cwd: ROOT,
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024,
     timeout: timeoutMs,
     env: {
       ...process.env,
@@ -418,40 +417,54 @@ const addProofs = (resultsByLaw: Map<string, LawExecutionResult>, proofs: Readon
     current.findings.push(...proof.findings);
   }
 };
-const staticResults = (context: QualityRunContext): Map<string, LawExecutionResult> => {
-  const targets = new Map(context.laws.map((law) => [law.lawId, computeTargetPaths(law, context.registry)]));
+const staticResults = async (context: QualityRunContext): Promise<Map<string, LawExecutionResult>> => {
+  const repositoryPathSnapshot = repositoryPaths();
+  const targets = new Map(context.laws.map((law) => [
+    law.lawId, computeTargetPaths(law, context.registry, repositoryPathSnapshot),
+  ]));
   const resultsByLaw = new Map<string, LawExecutionResult>();
-  for (const domain of context.registry.domains) {
+  const domainResults = await mapWithConcurrency(context.registry.domains, STATIC_CONCURRENCY, async (domain) => {
     const domainLaws = context.laws.filter((law) => law.capabilityDomain === domain.capabilityDomain);
-    for (const result of runStaticDomain(domain.capabilityDomain, domainLaws, targets, context.runDirectory)) {
+    const results = await runStaticDomain(domain.capabilityDomain, domainLaws, targets, context.runDirectory);
+    assertCleanCandidate(context.candidate, domain.capabilityDomain);
+    return results;
+  });
+  for (const results of domainResults) {
+    for (const result of results) {
       if (resultsByLaw.has(result.lawId)) fail("LAW_EVIDENCE_DUPLICATE", result.lawId);
       resultsByLaw.set(result.lawId, result);
     }
-    assertCleanCandidate(context.candidate, domain.capabilityDomain);
   }
   return resultsByLaw;
 };
-const runExamProofs = (context: QualityRunContext, resultsByLaw: Map<string, LawExecutionResult>): void => {
-  for (const domain of context.registry.domains) {
+const runExamProofs = async (context: QualityRunContext, resultsByLaw: Map<string, LawExecutionResult>): Promise<void> => {
+  const routedDomains = context.registry.domains.flatMap((domain) => {
     const routes = context.laws.filter((law) => law.capabilityDomain === domain.capabilityDomain)
       .flatMap((law) => law.evidenceModes.filter((mode) => mode.startsWith("exam.")).map((mode) => ({ law, mode })));
-    if (!routes.length) continue;
-    const script = examScriptFor(domain.capabilityDomain);
-    addProofs(resultsByLaw, executeProofCommand("exam", script, routes, context.runDirectory, context.candidate));
-  }
+    return routes.length ? [{ routes, script: examScriptFor(domain.capabilityDomain) }] : [];
+  });
+  const proofs = await mapWithConcurrency(routedDomains, EXAM_CONCURRENCY, ({ routes, script }) =>
+    executeProofCommand("exam", script, routes, context.runDirectory, context.candidate));
+  for (const proof of proofs) addProofs(resultsByLaw, proof);
 };
-const runDynamicProofs = (context: QualityRunContext, resultsByLaw: Map<string, LawExecutionResult>): void => {
+const runDynamicProofs = async (
+  context: QualityRunContext,
+  resultsByLaw: Map<string, LawExecutionResult>,
+): Promise<void> => {
   const routesByScript = new Map<string, ProofRoute[]>();
   for (const law of context.laws) for (const mode of law.evidenceModes.filter((current) => current.startsWith("dynamic."))) {
     const script = dynamicScriptFor(law.capabilityDomain, mode);
     routesByScript.set(script, [...(routesByScript.get(script) ?? []), { law, mode }]);
   }
   for (const [script, routes] of routesByScript) addProofs(resultsByLaw,
-    executeProofCommand("dynamic", script, routes, context.runDirectory, context.candidate));
+    await executeProofCommand("dynamic", script, routes, context.runDirectory, context.candidate));
 };
-export const runFullQuality = async (level: Level): Promise<{ reportPath: string; outcome: "PASS" | "FAIL" }> => {
+export const runFullQuality = async (
+  level: Level,
+  preparedRegistry?: Registry,
+): Promise<{ reportPath: string; outcome: "PASS" | "FAIL" }> => {
   if (level === "CHANGE") fail("ENTRY_CONTRACT_MISMATCH", "full quality requires READY or RELEASE");
-  const registry = buildRegistry();
+  const registry = preparedRegistry ?? buildRegistry();
   const laws = registry.laws;
   const commit = gitCommit();
   if (diffPaths().length) fail(level === "READY" ? "READY_GIT_COMMIT_REQUIRED" : "RELEASE_GIT_COMMIT_REQUIRED", "dirty worktree");
@@ -459,9 +472,9 @@ export const runFullQuality = async (level: Level): Promise<{ reportPath: string
   const runDirectory = outputDirectory();
   const boundParticipants = level === "RELEASE" ? bindReleaseParticipants() : [];
   const context: QualityRunContext = { candidate, laws, registry, runDirectory, reportLevel: level === "READY" ? "READY" : "RELEASE" };
-  const resultsByLaw = staticResults(context);
-  runExamProofs(context, resultsByLaw);
-  if (level === "RELEASE") runDynamicProofs(context, resultsByLaw);
+  const resultsByLaw = await staticResults(context);
+  await runExamProofs(context, resultsByLaw);
+  if (level === "RELEASE") await runDynamicProofs(context, resultsByLaw);
   const results = laws.map((law) => resultsByLaw.get(law.lawId) ?? fail("LAW_DENOMINATOR_MISSING", law.lawId));
   assertCleanCandidate(candidate, level);
   assertParticipantCommits(boundParticipants);

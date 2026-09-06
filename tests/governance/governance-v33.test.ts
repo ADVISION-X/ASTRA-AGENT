@@ -396,17 +396,20 @@ test('quality CHANGE executes a changed governance test and rejects its failing 
   const temporary = mkdtempSync(resolve(tmpdir(), 'governance-change-test-mutant-'));
   const repository = resolve(temporary, 'repo');
   try {
-    execFileSync('git', ['clone', '-q', '--local', '--no-hardlinks', process.cwd(), repository]);
+    const sourceRoot = resolve(process.cwd());
+    const ignoredRoots = new Set(['.git', '.grasseye-local', 'artifacts', 'node_modules', 'tmp']);
+    cpSync(sourceRoot, repository, { recursive: true, filter: (source) => {
+      const path = relative(sourceRoot, source).split('\\').join('/');
+      const first = path.split('/')[0] ?? '';
+      return path === '' || (!ignoredRoots.has(first) && !path.endsWith('/.DS_Store') && path !== '.DS_Store');
+    } });
+    execFileSync('git', ['init', '-q'], { cwd: repository });
+    execFileSync('git', ['config', 'user.email', 'governance@example.invalid'], { cwd: repository });
+    execFileSync('git', ['config', 'user.name', 'Governance Fixture'], { cwd: repository });
+    execFileSync('git', ['add', '.'], { cwd: repository });
+    execFileSync('git', ['commit', '-q', '-m', 'current candidate baseline'], { cwd: repository });
     writeFileSync(resolve(repository, '.git/info/exclude'), 'node_modules\n');
     symlinkSync(resolve(process.cwd(), 'node_modules'), resolve(repository, 'node_modules'), 'dir');
-    copyFileSync(resolve(process.cwd(), 'scripts/audit/governance.ts'), resolve(repository, 'scripts/audit/governance.ts'));
-    copyFileSync(resolve(process.cwd(), 'scripts/audit/governance-authority.ts'),
-      resolve(repository, 'scripts/audit/governance-authority.ts'));
-    copyFileSync(resolve(process.cwd(), 'scripts/audit/governance-change-authority.ts'),
-      resolve(repository, 'scripts/audit/governance-change-authority.ts'));
-    copyFileSync(resolve(process.cwd(), 'scripts/audit/shared/high-impact-detector.ts'),
-      resolve(repository, 'scripts/audit/shared/high-impact-detector.ts'));
-    copyFileSync(resolve(process.cwd(), 'AGENTS.md'), resolve(repository, 'AGENTS.md'));
     const changedPath = resolve(repository, 'tests/governance/quality-contract.test.ts');
     writeFileSync(changedPath, `${readFileSync(changedPath, 'utf8')}\ntest("focused failing mutant", () => assert.fail("mutant executed"));\n`);
     const execution = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/audit/governance.ts', 'quality', 'CHANGE'], {
