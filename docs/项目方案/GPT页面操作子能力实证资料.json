@@ -1,11 +1,11 @@
 {
   "schemaVersion": "gpt-page-operation-evidence.v5",
-  "generatedAt": "2026-09-06T17:13:33.385Z",
+  "generatedAt": "2026-09-06T17:18:00.054Z",
   "repository": "AGENT",
   "candidateBinding": {
-    "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+    "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
     "clean": true,
-    "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+    "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
     "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
   },
   "projectionRevision": "sha256:c9b0a677ba7125862456d725703284bb7c6051f757310e34a4fd859fc94d3ce0",
@@ -6468,9 +6468,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "clean": true,
-            "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -6770,8 +6770,8 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts",
           "lines": [
-            750,
-            776
+            785,
+            811
           ]
         },
         {
@@ -8874,9 +8874,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "clean": true,
-            "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -9182,7 +9182,7 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts",
           "lines": [
-            694
+            729
           ]
         },
         {
@@ -11390,9 +11390,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "clean": true,
-            "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -13781,9 +13781,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "clean": true,
-            "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -16638,9 +16638,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "clean": true,
-            "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -16941,8 +16941,8 @@
           "path": "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts",
           "lines": [
             107,
-            439,
-            462
+            474,
+            497
           ]
         },
         {
@@ -19127,9 +19127,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "clean": true,
-            "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -19434,9 +19434,9 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts",
           "lines": [
-            604,
-            627,
-            656
+            639,
+            662,
+            691
           ]
         },
         {
@@ -21518,9 +21518,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "clean": true,
-            "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -23975,9 +23975,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "clean": true,
-            "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -24275,8 +24275,8 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts",
           "lines": [
-            522,
-            566
+            557,
+            601
           ]
         },
         {
@@ -26462,9 +26462,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "clean": true,
-            "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -28918,9 +28918,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "clean": true,
-            "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -29218,8 +29218,8 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts",
           "lines": [
-            547,
-            585
+            582,
+            620
           ]
         },
         {
@@ -31376,9 +31376,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "clean": true,
-            "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -33850,9 +33850,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "clean": true,
-            "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -34269,12 +34269,12 @@
           "path": "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts",
           "lines": [
             46,
-            303,
-            327,
-            352,
-            377,
-            394,
-            423
+            338,
+            362,
+            387,
+            412,
+            429,
+            458
           ]
         },
         {
@@ -36579,9 +36579,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "clean": true,
-            "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -38826,9 +38826,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "clean": true,
-            "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -40929,9 +40929,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "clean": true,
-            "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -43161,9 +43161,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "clean": true,
-            "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -45856,9 +45856,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "clean": true,
-            "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -48511,9 +48511,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "clean": true,
-            "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -48811,9 +48811,9 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts",
           "lines": [
-            485,
-            805,
-            807
+            520,
+            840,
+            842
           ]
         },
         {
@@ -50511,9 +50511,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "clean": true,
-            "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -50786,8 +50786,9 @@
           "lines": [
             142,
             222,
-            731,
-            739
+            280,
+            766,
+            774
           ]
         },
         {
@@ -52857,9 +52858,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "clean": true,
-            "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -53186,9 +53187,9 @@
             174,
             202,
             245,
-            270,
-            677,
-            684
+            305,
+            712,
+            719
           ]
         },
         {
@@ -55434,9 +55435,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "clean": true,
-            "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
@@ -55773,8 +55774,8 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts",
           "lines": [
-            808,
-            812
+            843,
+            847
           ]
         },
         {
@@ -58100,9 +58101,9 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "candidate": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "clean": true,
-            "head": "5d34ceea7bc035e558f6add99ae0a2329655e561",
+            "head": "8358113781db9fa1033fc3e228d34a3189f1075f",
             "worktreeDigest": "sha256:74cf9eac9f3bbe5076112c4dfbb8b42dad2e17896d31347ec81c6b6cef8170c5"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
