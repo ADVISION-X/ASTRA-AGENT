@@ -17,7 +17,7 @@ import {
   hashCanonical,
   sha256,
 } from "../../src/lib/local-runtime/production/contracts.js";
-import { reconcileBusinessAdmission } from "../../src/lib/local-runtime/production/runtime-claim.js";
+import { reconcileBusinessAdmission } from "../../src/lib/local-runtime/production/runtime-business-admission.js";
 import { permanentAuthorizationRevoked } from
   "../../src/lib/local-runtime/production/runtime-permanent-revocation.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";

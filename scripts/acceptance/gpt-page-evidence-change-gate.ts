@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { completeGptPageEvidenceCaptureFailures, gptPageEvidencePrivacyFailures }
-  from "../audit/domains/gpt/gpt-page-evidence-closure-inspection.js";
+  from "../audit/domains/gpt/gpt-page-evidence-capture-inspection.js";
 
 const ROOT = resolve(".");
 const REPORT_PATH = "docs/项目方案/GPT页面操作子能力实证资料.json";
@@ -95,6 +95,48 @@ export const affectedGptPageChildren = (paths: readonly string[], children: read
   return [...affected].sort();
 };
 
+const childBindingFailures = (child: EvidenceChild): string[] => {
+  const failures: string[] = [];
+  const authorityPaths = child.evidenceDemand?.sourceBinding?.authority?.files?.map((entry) => entry.path) ?? [];
+  if (!authorityPaths.includes(ACTIVE_LAW_PATH) || !authorityPaths.includes(BLUEPRINT_PATH)) {
+    failures.push(`${child.childCapabilityId}:authority-binding`);
+  }
+  for (const binding of Object.values(child.evidenceDemand?.sourceBinding ?? {})) {
+    for (const entry of binding.files ?? []) {
+      if (!entry.path || !entry.contentHash || !existsSync(resolve(ROOT, entry.path))
+        || sha256(readFileSync(resolve(ROOT, entry.path))) !== entry.contentHash) {
+        failures.push(`${child.childCapabilityId}:source-stale:${entry.path ?? "missing"}`);
+      }
+    }
+  }
+  if (child.captureComplete === true) {
+    failures.push(...completeGptPageEvidenceCaptureFailures(child, child.evidenceDemand)
+      .map((failure) => `${child.childCapabilityId}:capture:${failure}`));
+  }
+  return failures;
+};
+
+const affectedChildFailures = (
+  id: string,
+  children: readonly EvidenceChild[],
+  requestedScope: EvidenceScope,
+): string[] => {
+  const child = children.find((entry) => entry.childCapabilityId === id);
+  if (!child) return [`${id}:not-admitted`];
+  if (child.captureComplete === true) {
+    return completeGptPageEvidenceCaptureFailures(child, child.evidenceDemand)
+      .map((failure) => `${id}:targeted-capture:${failure}`);
+  }
+  const admittedFacts = new Set((child.collection?.factBindings ?? [])
+    .flatMap((binding) => typeof binding.factId === "string" ? [binding.factId] : []));
+  const requestedFacts = requestedScope[id] ?? [];
+  return [
+    ...(requestedFacts.length === 0 ? [`${id}:observation-scope-required`] : []),
+    ...requestedFacts.filter((factId) => !admittedFacts.has(factId))
+      .map((factId) => `${id}:fact-not-admitted:${factId}`),
+  ];
+};
+
 export const gptPageEvidenceChangeGateFailures = (
   report: Record<string, unknown>,
   paths: readonly string[],
@@ -113,45 +155,8 @@ export const gptPageEvidenceChangeGateFailures = (
   }
   if (gptPageEvidencePrivacyFailures(report).length > 0) failures.push("privacy");
   const affected = affectedGptPageChildren(paths, children);
-  for (const child of children) {
-    const authorityPaths = child.evidenceDemand?.sourceBinding?.authority?.files?.map((entry) => entry.path) ?? [];
-    if (!authorityPaths.includes(ACTIVE_LAW_PATH) || !authorityPaths.includes(BLUEPRINT_PATH)) {
-      failures.push(`${child.childCapabilityId}:authority-binding`);
-    }
-    for (const binding of Object.values(child.evidenceDemand?.sourceBinding ?? {})) {
-      for (const entry of binding.files ?? []) {
-        if (!entry.path || !entry.contentHash || !existsSync(resolve(ROOT, entry.path))
-          || sha256(readFileSync(resolve(ROOT, entry.path))) !== entry.contentHash) {
-          failures.push(`${child.childCapabilityId}:source-stale:${entry.path ?? "missing"}`);
-        }
-      }
-    }
-    if (child.captureComplete === true) {
-      for (const failure of completeGptPageEvidenceCaptureFailures(child, child.evidenceDemand)) {
-        failures.push(`${child.childCapabilityId}:capture:${failure}`);
-      }
-    }
-  }
-  for (const id of affected) {
-    const child = children.find((entry) => entry.childCapabilityId === id);
-    if (!child) {
-      failures.push(`${id}:not-admitted`);
-      continue;
-    }
-    if (child.captureComplete !== true) {
-      const admittedFacts = new Set((child.collection?.factBindings ?? [])
-        .flatMap((binding) => typeof binding.factId === "string" ? [binding.factId] : []));
-      const requestedFacts = requestedScope[id] ?? [];
-      if (requestedFacts.length === 0) failures.push(`${id}:observation-scope-required`);
-      for (const factId of requestedFacts.filter((factId) => !admittedFacts.has(factId))) {
-        failures.push(`${id}:fact-not-admitted:${factId}`);
-      }
-      continue;
-    }
-    for (const failure of completeGptPageEvidenceCaptureFailures(child, child.evidenceDemand)) {
-      failures.push(`${id}:targeted-capture:${failure}`);
-    }
-  }
+  for (const child of children) failures.push(...childBindingFailures(child));
+  for (const id of affected) failures.push(...affectedChildFailures(id, children, requestedScope));
   return [...new Set(failures)];
 };
 

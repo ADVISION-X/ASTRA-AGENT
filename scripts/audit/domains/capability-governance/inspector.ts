@@ -17,6 +17,7 @@ import { resolveCapabilityFacadePolicy } from "./components/capability-source-of
 import { pushCapabilitySourceOfTruthFindings } from "./components/capability-governance-report.js";
 import { pushFacadePurityFindings } from "./components/capability-facade-purity.js";
 import { inspectCapabilityFacadeTypes } from "./components/capability-facade-types.js";
+import { isOwnerlessGenericTarget } from "./components/capability-path-boundary.js";
 type CapabilityGroupFindingInput = Omit<Parameters<typeof createFinding>[0], "evidenceMode"> & { evidenceMode?: string };
 
 const createDedupedFindingPusher = (findings: ReturnType<typeof createFinding>[]) => {
@@ -41,15 +42,6 @@ const registerCapabilityRoot = (capabilityRoots: Set<string>, repoPath: string):
 const resolveCapabilityRoot = (repoPath: string): string | undefined => {
   const pathInfo = classifyRepoPath(repoPath);
   return pathInfo.kind === "capability" ? buildCapabilityRoot(pathInfo.owner) : undefined;
-};
-
-const ownerlessGenericRoots = new Set([
-  "common", "shared", "utils", "helpers", "services", "managers", "facades", "bridges", "adapters",
-]);
-
-const isOwnerlessGenericTarget = (repoPath: string): boolean => {
-  const [root, owner] = repoPath.split("/");
-  return root === "src" && Boolean(owner) && ownerlessGenericRoots.has(owner!);
 };
 
 const pushCapabilityPluginImportFindings = (

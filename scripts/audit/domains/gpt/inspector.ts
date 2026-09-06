@@ -20,9 +20,9 @@ import {
 } from "../../shared/static-inspection-contract.js";
 import { observeStaticMode } from "../../shared/static-target-object-inspector.js";
 import {
-  inspectGptAttachmentContract,
   inspectGptContractDenominator,
 } from "./gpt-contract-inspection.js";
+import { inspectGptAttachmentContract } from "./gpt-attachment-contract-inspection.js";
 import { inspectGptPageEvidenceClosure } from "./gpt-page-evidence-closure-inspection.js";
 import {
   inspectGptBrowserFailureRecoveryContract,

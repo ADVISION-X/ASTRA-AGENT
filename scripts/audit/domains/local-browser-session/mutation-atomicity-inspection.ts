@@ -267,6 +267,41 @@ export const inspectCompactMutationRecoveryBoundary = (
   }
 };
 
+const providerIdentityFieldsAreOrdered = (identityText: string): boolean => {
+  const orderedFields = [
+    "permit.jobId", "permit.ownerPluginId", "permit.pluginVersion", "permit.productStepId",
+    "permit.callId", "permit.childCapabilityId", "permit.inputHash", "payloadHash",
+  ];
+  let cursor = -1;
+  return orderedFields.every((field) => {
+    const next = identityText.indexOf(field, cursor + 1);
+    if (next < 0) return false;
+    cursor = next;
+    return true;
+  });
+};
+
+const inspectProviderHistoryGuard = (
+  store: SourceFile,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const guard = store.getClass("BrowserMutationStore")?.getMethod("assertProviderEffectHistory");
+  const guardText = guard?.getFullText() ?? "";
+  for (const required of [
+    "logical_mutation_id", "owner_plugin_id", "plugin_version", "job_id", "attempt_id",
+    "product_step_id", "call_id", "child_capability_id", "effect_scope", "request_hash",
+    "payload_hash", "PREPARED", "DISPATCHED", "CONFIRMED", "REJECTED",
+    "BROWSER_PROVIDER_EFFECT_HISTORY_AMBIGUOUS", "BROWSER_PROVIDER_EFFECT_REPLAY_FORBIDDEN",
+    'row.state !== "REJECTED"', 'row.mutation_outcome !== "no"', "attempts.has(input.attemptId)",
+  ]) if (!guardText.includes(required)) findings.push(createLocalFinding({
+    checkId: "browser-authority/provider-effect-predispatch",
+    lawId,
+    filePath: sourcePaths[7],
+    message: `The Browser WAL cross-attempt provider-effect guard is missing ${required}.`,
+  }));
+};
+
 export const inspectProviderEffectCrossAttemptGuard = (
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -279,17 +314,7 @@ export const inspectProviderEffectCrossAttemptGuard = (
   if (!postcondition || !actor || !store) return;
   const identity = postcondition.getVariableDeclaration("browserProviderEffectIdentityHash");
   const identityText = identity?.getInitializer()?.getText() ?? "";
-  const orderedFields = [
-    "permit.jobId", "permit.ownerPluginId", "permit.pluginVersion", "permit.productStepId",
-    "permit.callId", "permit.childCapabilityId", "permit.inputHash", "payloadHash",
-  ];
-  let cursor = -1;
-  const ordered = orderedFields.every((field) => {
-    const next = identityText.indexOf(field, cursor + 1);
-    if (next < 0) return false;
-    cursor = next;
-    return true;
-  });
+  const ordered = providerIdentityFieldsAreOrdered(identityText);
   if (!identity || !ordered || identityText.includes("attemptId") || identityText.includes("targetRef")
     || identityText.includes("documentRef") || identityText.includes("leaseVersion")) {
     findings.push(createLocalFinding({
@@ -309,20 +334,7 @@ export const inspectProviderEffectCrossAttemptGuard = (
       message: "The Browser command actor must consume the canonical provider-effect identity before WAL admission.",
     }));
   }
-  const guard = store.getClass("BrowserMutationStore")?.getMethod("assertProviderEffectHistory");
-  const guardText = guard?.getFullText() ?? "";
-  for (const required of [
-    "logical_mutation_id", "owner_plugin_id", "plugin_version", "job_id", "attempt_id",
-    "product_step_id", "call_id", "child_capability_id", "effect_scope", "request_hash",
-    "payload_hash", "PREPARED", "DISPATCHED", "CONFIRMED", "REJECTED",
-    "BROWSER_PROVIDER_EFFECT_HISTORY_AMBIGUOUS", "BROWSER_PROVIDER_EFFECT_REPLAY_FORBIDDEN",
-    'row.state !== "REJECTED"', 'row.mutation_outcome !== "no"', "attempts.has(input.attemptId)",
-  ]) if (!guardText.includes(required)) findings.push(createLocalFinding({
-    checkId: "browser-authority/provider-effect-predispatch",
-    lawId,
-    filePath: sourcePaths[7],
-    message: `The Browser WAL cross-attempt provider-effect guard is missing ${required}.`,
-  }));
+  inspectProviderHistoryGuard(store, findings, lawId);
   const prepare = store.getClass("BrowserMutationStore")?.getMethod("prepare")?.getFullText() ?? "";
   if (prepare.indexOf("assertProviderEffectHistory(input)") < 0
     || prepare.indexOf("assertProviderEffectHistory(input)") > prepare.indexOf("insert into browser_mutations")) {

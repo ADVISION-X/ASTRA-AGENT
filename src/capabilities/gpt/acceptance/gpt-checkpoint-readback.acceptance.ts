@@ -1,11 +1,9 @@
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 import { createHash } from "node:crypto";
 
-import { failureCode } from "../../../lib/execution-failure.js";
 import {
   gptContinuationIdentityHash,
 } from "../index.js";
-import { readCompletedGptChildResult } from "../completed-result.js";
 import {
   gptExactCallIdentityHash,
   type GptChildCapabilityIntent,
@@ -27,7 +25,7 @@ import type {
   GptContinuationReadbackPort,
   GptEvidenceStorePort,
 } from "../production-ports.js";
-import type { ExactGptCallFacts, ProductGptCallInput } from "../product-api.js";
+import { exerciseForkTaskEffectReadback } from "./gpt-fork-task-effect-readback.acceptance-support.js";
 
 const hash = (value: string | Uint8Array): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -484,120 +482,5 @@ const evidenceStore = new CheckpointEvidenceStore();
   assert.equal(readback.currentCheckpoint.predecessorTextCheckpoint.assistantTurnId, "conversation-turn-4");
   assert.equal(readback.currentCheckpoint.predecessorTextCheckpoint.semanticText, "predecessor semantic text");
 
-{
-  const store = new CheckpointEvidenceStore();
-  const call: ProductGptCallInput<"fork_exact_gpt_conversation_at_checkpoint"> = Object.freeze({
-    child: "fork_exact_gpt_conversation_at_checkpoint",
-    productStepId: "fork-task-effect-readback",
-    callId: "fork-call",
-    actionOrdinal: 7,
-    input: Object.freeze({
-      sourceAssistantTurnId: "conversation-turn-2",
-      sourceCanonicalConversationUrl: "https://chatgpt.com/c/fork-source",
-      sourcePromptHash: HASH_A,
-      sourceResponseHash: HASH_B,
-      sourceTurnMarker: "[GRASSEYE:fork-task-effect-readback]",
-      timeoutMs: 1_000,
-    }),
-  });
-  const childUrl = "https://chatgpt.com/c/fork-child";
-  const relation = Object.freeze({
-    schemaVersion: "agent-gpt-fork-relation-artifact.v1",
-    sourceCanonicalConversationUrl: call.input.sourceCanonicalConversationUrl,
-    sourceAssistantTurnId: call.input.sourceAssistantTurnId,
-    childCanonicalConversationUrl: childUrl,
-    sourceToChildRelationHash: hash([
-      call.input.sourceCanonicalConversationUrl,
-      call.input.sourceTurnMarker,
-      call.input.sourcePromptHash,
-      call.input.sourceAssistantTurnId,
-      call.input.sourceResponseHash,
-      childUrl,
-    ].join("\n")),
-  });
-  const persisted = await store.appendArtifact({
-    missionId: JOB_ID,
-    runId: ATTEMPT_ID,
-    idempotencyKey: "fork-task-effect-valid",
-    artifactType: "other",
-    mimeType: "application/json",
-    content: JSON.stringify(relation),
-  });
-  assert.equal(persisted.status, "success");
-  if (persisted.status !== "success") throw new Error("FORK_TASK_EFFECT_ARTIFACT_SETUP_FAILED");
-  const evidence = Object.freeze({
-    owner: "forensics-persistence" as const,
-    evidenceRef: "record:fork-task-effect",
-    evidenceHash: hash("fork-task-effect-evidence"),
-    readbackVerified: true as const,
-    artifactRefs: Object.freeze([persisted.artifactRef]),
-  });
-  const mutation = Object.freeze({
-    owner: "browser" as const,
-    sourceAttemptId: "attempt:prior-fork",
-    effectScope: "provider_effect" as const,
-    outcome: "CONFIRMED" as const,
-    terminalAt: "2026-09-05T00:00:00.000Z",
-    productStepId: call.productStepId,
-    callId: call.callId,
-    childCapabilityId: call.child,
-    actionOrdinal: call.actionOrdinal,
-  });
-  const facts = (overrides: Partial<ExactGptCallFacts> = {}): ExactGptCallFacts => Object.freeze({
-    exactCallIdentityHash: hash("fork-task-effect-identity"),
-    mutation,
-    evidence,
-    continuation: null,
-    ...overrides,
-  });
-  let successCount = 0;
-  const completed = await readCompletedGptChildResult({
-    call, facts: facts(), evidenceStore: store, onSuccess: () => { successCount += 1; },
-  });
-  assert.equal((completed?.value as Readonly<{ childCanonicalConversationUrl: string }> | undefined)
-    ?.childCanonicalConversationUrl, childUrl);
-  assert.equal(successCount, 1);
 
-  let evidenceOnlyFailure: unknown;
-  try {
-    await readCompletedGptChildResult({
-      call, facts: facts({ mutation: null }), evidenceStore: store, onSuccess: () => { successCount += 1; },
-    });
-  } catch (error) { evidenceOnlyFailure = error; }
-  assert.equal(failureCode(evidenceOnlyFailure), "GPT_FORK_TASK_EFFECT_RECEIPT_INVALID");
-  assert.equal(successCount, 1, "evidence-only fork replay must not publish success");
-
-  let unconfirmedMutationFailure: unknown;
-  try {
-    await readCompletedGptChildResult({
-      call,
-      facts: facts({ mutation: Object.freeze({ ...mutation, outcome: "DISPATCHED", terminalAt: null }) }),
-      evidenceStore: store,
-      onSuccess: () => { successCount += 1; },
-    });
-  } catch (error) { unconfirmedMutationFailure = error; }
-  assert.equal(failureCode(unconfirmedMutationFailure), "GPT_FORK_TASK_EFFECT_RECEIPT_INVALID");
-  assert.equal(successCount, 1, "unconfirmed fork mutation must not publish success");
-
-  const tampered = await store.appendArtifact({
-    missionId: JOB_ID,
-    runId: ATTEMPT_ID,
-    idempotencyKey: "fork-task-effect-tampered",
-    artifactType: "other",
-    mimeType: "application/json",
-    content: JSON.stringify({ ...relation, sourceToChildRelationHash: hash("another relation") }),
-  });
-  assert.equal(tampered.status, "success");
-  if (tampered.status !== "success") throw new Error("FORK_TASK_EFFECT_TAMPER_SETUP_FAILED");
-  let relationFailure: unknown;
-  try {
-    await readCompletedGptChildResult({
-      call,
-      facts: facts({ evidence: Object.freeze({ ...evidence, artifactRefs: [tampered.artifactRef] }) }),
-      evidenceStore: store,
-      onSuccess: () => { successCount += 1; },
-    });
-  } catch (error) { relationFailure = error; }
-  assert.equal(failureCode(relationFailure), "GPT_FORK_RELATION_TASK_ARTIFACT_INVALID");
-  assert.equal(successCount, 1, "a relation artifact not bound to current input must not publish success");
-}
+await exerciseForkTaskEffectReadback(new CheckpointEvidenceStore(), hash);

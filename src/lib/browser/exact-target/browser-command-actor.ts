@@ -23,6 +23,12 @@ import {
   startBrowserCommandSpan,
 } from "./browser-command-runtime-logging.js";
 import {
+  failBrowserCommandExecution,
+  hashBrowserCommandValue as hashValue,
+  type AuthenticatedTerminalReplyFailure,
+  type BrowserCommandExecutionState,
+} from "./browser-command-failure.js";
+import {
   BrowserMutationStore,
   type BrowserAtomicStepRecovery,
   type BrowserMutationIdentity,
@@ -94,22 +100,6 @@ export class BrowserCommandTerminalReplyError extends Error {
 export type BrowserCommandAuthorityGuard = Readonly<{
   assertCurrentAuthority(permit: BrowserCommandPermit): void;
 }>;
-
-type BrowserCommandExecutionState = {
-  authenticatedReplyHash: `sha256:${string}` | null;
-  budgetEntered: boolean;
-  prepared: boolean;
-  dispatched: boolean;
-  terminalized: boolean;
-};
-
-const hashValue = (value: unknown): `sha256:${string}` => {
-  try {
-    return `sha256:${createHash("sha256").update(JSON.stringify(value)).digest("hex")}`;
-  } catch {
-    return `sha256:${createHash("sha256").update("unserializable").digest("hex")}`;
-  }
-};
 
 const hashText = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -287,10 +277,6 @@ const assertMatchingReply = (permit: BrowserCommandPermit, reply: BrowserCommand
   }
 };
 
-const causalBrowserFailureCode = (error: unknown): string =>
-  error instanceof Error && /^BROWSER_[A-Z0-9_]+$/u.test(error.message)
-    ? error.message : "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE";
-
 export class BrowserCommandActor {
 
   public constructor(
@@ -444,67 +430,15 @@ export class BrowserCommandActor {
     state: BrowserCommandExecutionState,
     error: unknown,
   ): never {
-    if (state.terminalized) throw error;
-    if (mutation && state.dispatched && error instanceof BrowserCommandTerminalReplyError
+    const terminalReply: AuthenticatedTerminalReplyFailure | null =
+      mutation && state.dispatched && error instanceof BrowserCommandTerminalReplyError
       && error.replyChannelToken === permit.replyChannelToken
-      && error.permitSequence === permit.sequence) {
-      this.mutations.markRejected(
-        permit.commandId,
-        hashValue({
-          failureCode: error.failureCode,
-          replyChannelToken: error.replyChannelToken,
-          transportSequence: error.transportSequence,
-          permitSequence: error.permitSequence,
-        }),
-        "dispatched",
-        error.failureCode,
-      );
-      emitBrowserMutationEvent({
-        runtimeLogger: this.runtimeLogger, mutation: permit, outcome: "REJECTED",
-        authorityHash: this.mutations.authorityHash(permit.commandId),
-      });
-      const failureEvent = failBrowserCommandSpan({
-        span: commandSpan, permit, proofHash: this.mutations.authorityHash(permit.commandId),
-        failureCode: error.failureCode, error, pendingReceipt: false,
-      });
-      state.terminalized = true;
-      throw withRuntimeLogCause(new Error(error.failureCode, { cause: error }), failureEvent.eventId);
-    }
-    if (mutation && state.dispatched && state.authenticatedReplyHash !== null) {
-      const code = causalBrowserFailureCode(error);
-      this.mutations.markRejected(
-        permit.commandId,
-        state.authenticatedReplyHash,
-        "dispatched",
-        code,
-      );
-      emitBrowserMutationEvent({
-        runtimeLogger: this.runtimeLogger, mutation: permit, outcome: "REJECTED",
-        authorityHash: this.mutations.authorityHash(permit.commandId),
-      });
-      const failureEvent = failBrowserCommandSpan({
-        span: commandSpan, permit, proofHash: this.mutations.authorityHash(permit.commandId),
-        failureCode: code, error, pendingReceipt: false,
-      });
-      state.terminalized = true;
-      throw withRuntimeLogCause(new Error(code, { cause: error }), failureEvent.eventId);
-    }
-    const code = mutation && state.dispatched ? "BROWSER_COMMAND_RECEIPT_MISSING" : causalBrowserFailureCode(error);
-    if (mutation && state.prepared) {
-      if (state.dispatched) this.mutations.markReceiptMissing(permit.commandId);
-      else this.mutations.markFailedBeforeDispatch(permit.commandId, code);
-      if (!state.dispatched) emitBrowserMutationEvent({
-        runtimeLogger: this.runtimeLogger, mutation: permit,
-        outcome: "FAILED",
-        authorityHash: this.mutations.authorityHash(permit.commandId),
-      });
-    }
-    const failureEvent = failBrowserCommandSpan({
-      span: commandSpan, permit,
-      proofHash: mutation && state.prepared ? this.mutations.authorityHash(permit.commandId) : hashValue(code),
-      failureCode: code, error, pendingReceipt: mutation && state.dispatched,
+      && error.permitSequence === permit.sequence
+        ? error : null;
+    return failBrowserCommandExecution({
+      permit, commandSpan, mutation, state, error, terminalReply,
+      mutations: this.mutations, runtimeLogger: this.runtimeLogger,
     });
-    throw withRuntimeLogCause(new Error(code, { cause: error }), failureEvent.eventId);
   }
 
   public hasDispatchedMutation(commandId: string): boolean {

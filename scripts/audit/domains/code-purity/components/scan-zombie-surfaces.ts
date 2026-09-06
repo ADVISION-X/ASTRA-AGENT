@@ -70,7 +70,7 @@ const buildZombieGraphState = (
     moduleGraph,
   });
   return {
-    antiEvasionLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V5"),
+    antiEvasionLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V6"),
     dynamicImportLawId: selectLawId(lawIds, "LAW-CODE-PURITY-002-V2"),
     liveEntryState,
     moduleGraph,

@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import { resolveStoredBrowserMutationAuthority } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
+import { resolveStoredBrowserMutationAuthority } from "../../src/lib/browser/exact-target/browser-mutation-authority.js";
 import { resolveStoredProductionAuthority } from "../../src/lib/local-runtime/production/store.js";
 import { diagnoseRuntimeLog } from "../../src/lib/runtime-logs/index.js";
 

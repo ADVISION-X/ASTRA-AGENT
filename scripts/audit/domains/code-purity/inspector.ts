@@ -19,7 +19,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const lawResult = (lawId: string, clausesByMode: Readonly<Record<string, string[]>>) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
     const checkForMode = (evidenceMode: string): string[] => ({
-      "LAW-CODE-PURITY-001-V5": {
+      "LAW-CODE-PURITY-001-V6": {
         "static.ast": ["scanStructuralAstBudgets", "scanZombieAst"],
         "static.dependency": ["scanStructuralDependencyBudgets"],
         "static.filesystem": ["scanStructuralFilesystemBudgets"],
@@ -56,7 +56,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [
-      lawResult("LAW-CODE-PURITY-001-V5", {
+      lawResult("LAW-CODE-PURITY-001-V6", {
         "static.filesystem": staticForbiddenClauses(0), "static.ast": staticClauses(0, 1, 3, 4),
         "static.types": staticForbiddenClauses(1), "static.dependency": staticForbiddenClauses(2),
       }),

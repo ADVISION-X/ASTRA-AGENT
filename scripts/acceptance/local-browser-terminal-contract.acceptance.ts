@@ -4,13 +4,10 @@ import { readFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { BrowserCommandActor } from "../../src/lib/browser/exact-target/browser-command-actor.js";
 import { canonicalBrowserExactAssistantTurnRevision } from
   "../../src/lib/browser/exact-target/exact-assistant-turn-revision.js";
 import { browserExecutionFailure } from "../../src/lib/browser/browser-failure.js";
 import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
-import { BrowserCommandAdmissionBudget } from "../../src/lib/browser/transport/browser-command-admission-budget.js";
-import type { BrowserCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
 import { canonicalizeBrowserAuthorityValue } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
@@ -20,65 +17,9 @@ import { exerciseStrictMutationReceipts } from "./local-browser-mutation-receipt
 import { exerciseBrowserDiagnosticContract } from "./local-browser-diagnostic-contract-support.js";
 import { exactHash, exerciseBrowserMutationStore, hash, valueHash } from
   "./local-browser-mutation-store-support.js";
-const permitAuthority = (commandId: string) => ({
-  permitRef: `permit:${commandId}`,
-  authorityRef: "authority-1",
-  authorityEpoch: 1,
-  certificateHash: hash,
-  channelSessionHash: hash,
-  executionBindingHash: hash,
-  writerFenceHash: hash,
-  candidateHash: hash,
-  contractManifestHash: hash,
-});
-const permitExecution = (commandId: string) => ({
-  ownerPluginId: "fixture-product-plugin",
-  pluginVersion: 1,
-  jobId: `job:${commandId}`,
-  attemptId: "attempt-actor",
-  deviceId: "device-1",
-  leaseVersion: 1,
-  localOrderId: `order:${commandId}`,
-  targetLeaseRef: "lease-1",
-  targetRef: "target-1",
-  documentRef: "document-1",
-  productStepId: "report_translation:candidate_a",
-  childCapabilityId: "open_gpt_model_selector_v2",
-  callId: "gpt-turn-flow.v3",
-  inputHash: hash,
-  replayPolicy: "target-local-per-generation" as const,
-  actionOrdinal: 1,
-  capabilityId: "browser.dom.click.v1" as const,
-  commandId,
-  sequence: 1,
-  mutationClass: "mutation" as const,
-  workspaceRef: "workspace-1",
-  commandTtlMs: 5_000,
-  replyChannelToken: `reply:${commandId}`,
-  commandFrameMac: hash,
-});
-const permit = (commandId: string): BrowserCommandPermit => ({
-  ...permitAuthority(commandId),
-  ...permitExecution(commandId),
-});
-const clickCommand = {
-  kind: "dom-intent" as const,
-  intent: {
-    kind: "click" as const,
-    selector: "button[aria-label='Model selector']",
-    expectedMatches: 1,
-    postClickAttribute: { name: "aria-expanded" as const, equals: "true" as const, timeoutMs: 1_000 },
-  },
-};
-const matchClickCommand = {
-  kind: "dom-intent" as const,
-  intent: {
-    kind: "click" as const,
-    selector: "button[aria-label='Model selector']",
-    expectedMatches: 1,
-    postClickMatch: { selector: "[aria-hidden='true']", expectedMatches: 1 },
-  },
-};
+import { clickCommand, createBrowserActorFactory, matchClickCommand, permit } from "./local-browser-terminal-fixture.js";
+import { permitAuthority, permitExecution } from "./local-browser-terminal-fixture.js";
+import type { BrowserCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
 const root = await mkdtemp(join(tmpdir(), "browser-mutation-state-"));
 try {
   exerciseBrowserMutationStore(root);
@@ -92,14 +33,7 @@ try {
     terminalEnabled: false,
     fileSink: { directoryPath: join(root, "actor-logs"), maxTotalBytes: 1_048_576 },
   });
-  const actorFor = (send: ConstructorParameters<typeof BrowserCommandActor>[1]["send"]) =>
-    new BrowserCommandActor(
-      new BrowserCommandAdmissionBudget(),
-      { send },
-      actorStore,
-      { assertCurrentAuthority: () => {} },
-      actorLogger,
-    );
+  const actorFor = createBrowserActorFactory(actorStore, actorLogger);
   const confirmedPermit = permit("actor-confirmed");
   await actorFor(async (candidate, _command, onDispatched) => {
     onDispatched?.();

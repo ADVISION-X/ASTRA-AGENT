@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
-import { availableParallelism, tmpdir } from "node:os";
+import { existsSync, lstatSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
+import { availableParallelism } from "node:os";
 import { dirname, resolve } from "node:path";
 import { buildRegistry, parseLawSource, providerDomainForDependencySpec } from "../governance-authority.js";
 import type { Law, Level, Registry } from "../governance-contract.js";
@@ -15,17 +15,23 @@ import { dynamicReceiptFileValid, examReceiptFileValid, parseQualityProofObserva
 import { dynamicScriptFor, examScriptFor } from "./quality-routes.js";
 import { validateProviderContractSpec, type ProviderContract } from "./provider-contract-authority.js";
 import { executeCaptured, mapWithConcurrency } from "./quality-process-execution.js";
+import { createQualityOutputDirectory } from "./quality-output-directory.js";
+import { byteCompare, orderedUnique as ordered } from "./quality-ordering.js";
+import {
+  assertExactProviderContract,
+  assertParticipantCommitIdentity,
+  type ProviderDependency,
+} from "./quality-participant-binding.js";
 import { copyTargets, sealedSnapshotDigest } from "./sealed-target-snapshot.js";
 export { dynamicScriptFor } from "./quality-routes.js";
-type TargetSet = { queryRef: string; count: number };
-type ProofRoute = { law: Law; mode: string };
+type TargetSet = { queryRef: string; count: number }; type ProofRoute = { law: Law; mode: string };
 type ProofResult = { assertions: QualityAssertion[]; findings: QualityFinding[] };
 type ProofResultInput = {
   routes: ProofRoute[];
   observations: ReadonlyMap<string, QualityProofObservation>;
   executionPassed: boolean;
 };
-type Dependency = { contractId: string; providerRepo: string; providerDomain: string; version: number };
+type Dependency = ProviderDependency;
 type BoundParticipant = { path: string; report: QualityParticipant };
 type QualityRunContext = {
   candidate: string;
@@ -36,8 +42,6 @@ type QualityRunContext = {
 };
 const STATIC_CONCURRENCY = Math.min(3, availableParallelism());
 const EXAM_CONCURRENCY = Math.min(4, availableParallelism());
-const byteCompare = (left: string, right: string): number => Buffer.compare(Buffer.from(left), Buffer.from(right));
-const ordered = (values: readonly string[]): string[] => [...new Set(values)].sort(byteCompare);
 const matches = (pattern: string, path: string): boolean => pattern === "**/*" || pattern === path
   || (pattern.endsWith("/**") && (path === pattern.slice(0, -3) || path.startsWith(`${pattern.slice(0, -3)}/`)))
   || (() => {
@@ -109,14 +113,6 @@ const providerContracts = (path: string, commit: string, repo: string): Provider
     })];
   });
 };
-export const assertExactProviderContract = (
-  repo: string, dependency: Dependency, available: readonly Dependency[],
-): void => {
-  const matches = available.filter((contract) => contract.providerRepo === repo
-    && contract.providerDomain === dependency.providerDomain
-    && contract.contractId === dependency.contractId && contract.version === dependency.version);
-  if (matches.length !== 1) fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:${dependency.contractId}:${dependency.version}`);
-};
 const bindReleaseParticipants = (): BoundParticipant[] => {
   const grouped = new Map<string, Dependency[]>();
   for (const dependency of consumerDependencies()) grouped.set(dependency.providerRepo, [
@@ -136,9 +132,6 @@ const bindReleaseParticipants = (): BoundParticipant[] => {
     });
     return { path, report: { repo, gitCommit, contracts } };
   });
-};
-export const assertParticipantCommitIdentity = (expected: string, actual: string, repo: string): void => {
-  if (actual !== expected) fail("RELEASE_PARTICIPANT_DRIFT", repo);
 };
 const assertParticipantCommits = (participants: readonly BoundParticipant[]): void => {
   for (const participant of participants) {
@@ -407,16 +400,6 @@ const executeProofCommand = async (
     routes, observations, executionPassed,
   });
 };
-const outputDirectory = (): string => {
-  const requested = process.env.GRASSEYE_QUALITY_OUTPUT_DIR?.trim();
-  if (requested) {
-    const absolute = resolve(requested);
-    if (!absolute.startsWith(`${resolve(tmpdir())}/`)) fail("CI_OUTPUT_PATH_INVALID", absolute);
-    mkdirSync(absolute, { recursive: true });
-    return absolute;
-  }
-  return mkdtempSync(resolve(tmpdir(), "grasseye-quality-"));
-};
 const addProofs = (resultsByLaw: Map<string, LawExecutionResult>, proofs: ReadonlyMap<string, ProofResult>): void => {
   for (const [lawId, proof] of proofs) {
     const current = resultsByLaw.get(lawId) ?? fail("LAW_DENOMINATOR_MISSING", lawId);
@@ -482,7 +465,7 @@ export const runFullQuality = async (
   const commit = gitCommit();
   if (diffPaths().length) fail(level === "READY" ? "READY_GIT_COMMIT_REQUIRED" : "RELEASE_GIT_COMMIT_REQUIRED", "dirty worktree");
   const candidate = commit;
-  const runDirectory = outputDirectory();
+  const runDirectory = createQualityOutputDirectory();
   const boundParticipants = level === "RELEASE" ? bindReleaseParticipants() : [];
   const context: QualityRunContext = { candidate, laws, registry, runDirectory, reportLevel: level === "READY" ? "READY" : "RELEASE" };
   const resultsByLaw = await staticResults(context);

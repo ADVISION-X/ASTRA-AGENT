@@ -6,10 +6,8 @@ import {
   type GptExecutionContext,
 } from "./contract.js";
 import { ProductionGptBrowserLifecycle } from "./production-browser-lifecycle.js";
-import {
-  recoveredGptChildResult,
-  type ProductionGptBrowserCall,
-} from "./production-browser-lifecycle.js";
+import type { ProductionGptBrowserCall } from "./production-browser-lifecycle.js";
+import { recoveredGptChildResult } from "./production-browser-recovery-result.js";
 import type { GptContinuationStorePort } from "./session/gpt-continuation-store-port.js";
 import type { ConfirmedProviderSubmitReceipt } from "./confirmed-provider-readback.js";
 

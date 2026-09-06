@@ -28,7 +28,7 @@ export const scanStructuralAstBudgets = (
 ): StructuralBudgetScanResult => scanFiles(governedFiles,
   (governedFile, collector) => {
     scanStructuralFunctionBudgets(governedFile, lawIds, collector);
-    scanStructuralRuntimeEscapes(governedFile, collector, selectLawId(lawIds, "LAW-CODE-PURITY-001-V5"));
+    scanStructuralRuntimeEscapes(governedFile, collector, selectLawId(lawIds, "LAW-CODE-PURITY-001-V6"));
   });
 
 export const scanStructuralFilesystemBudgets = (
@@ -40,7 +40,7 @@ export const scanStructuralTypeBudgets = (
   governedFiles: readonly GovernedFile[], lawIds: readonly string[], nativeObservation?: string,
 ): StructuralBudgetScanResult => {
   const scan = scanFiles(governedFiles, (governedFile, collector) =>
-    scanStructuralTypeEscapes(collector, governedFile, selectLawId(lawIds, "LAW-CODE-PURITY-001-V5")));
+    scanStructuralTypeEscapes(collector, governedFile, selectLawId(lawIds, "LAW-CODE-PURITY-001-V6")));
   const project = governedFiles[0]?.sourceFile.getProject();
   if (!project) throw new Error("TYPECHECKER_OBSERVATION_EMPTY");
   return { ...scan, nativeObservation: nativeObservation

@@ -13,6 +13,12 @@ export const createLocalFinding = (
 });
 
 export const targetAuthorityPath = "src/lib/browser/chrome-extension/extension-target-authority.ts";
+export const extensionTargetObservationPath =
+  "src/lib/browser/chrome-extension/extension-target-observation.ts";
+export const extensionCommandRuntimePath =
+  "src/lib/browser/chrome-extension/extension-command-runtime.ts";
+export const domPointerIntentRuntimePath =
+  "src/lib/browser/chrome-extension/dom-pointer-intent-runtime.ts";
 export const brokerPath = "src/lib/browser/infrastructure/browser-authority-broker.ts";
 export const domMechanicalFactsPath = "src/lib/browser/chrome-extension/dom-mechanical-facts.ts";
 export const domExactEditableTextPath = "src/lib/browser/chrome-extension/dom-exact-editable-text.ts";
@@ -56,6 +62,9 @@ export const sourcePaths = [
   "scripts/acceptance/local-browser-dom-intent-support.ts",
   domMutationPostconditionPath,
   browserCommandPostconditionPath,
+  extensionTargetObservationPath,
+  extensionCommandRuntimePath,
+  domPointerIntentRuntimePath,
 ] as const;
 
 export const retiredPaths = [

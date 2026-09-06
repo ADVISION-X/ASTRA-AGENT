@@ -1,94 +1,7 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-import { createHash } from "node:crypto";
-import { runInNewContext } from "node:vm";
-
-type Style = Readonly<{ display?: string; visibility?: string; opacity?: string; pointerEvents?: string }>;
-
-class FakeElement {
-  public isConnected = true;
-  public parentElement: FakeElement | null = null;
-  public readonly tagName: string;
-  public readonly nodeName: string;
-  public get nodeType(): number { return 1; }
-  public get nodeValue(): string | null { return null; }
-  public constructor(
-    public textContent: string,
-    private readonly queries: Readonly<Record<string, readonly FakeElement[]>> = {},
-    public readonly style: Style = {},
-    private readonly attributes: Readonly<Record<string, string>> = {},
-    tagName = "DIV",
-    public readonly childNodes: readonly FakeElement[] = [],
-  ) {
-    this.tagName = tagName;
-    this.nodeName = tagName;
-    for (const child of childNodes) child.parentElement = this;
-  }
-  public get outerHTML(): string {
-    if (this.nodeType === 3 || this.nodeName === "#TEXT") return this.nodeValue ?? "";
-    return `<${this.tagName.toLowerCase()}>${this.childNodes.map((child) => child.outerHTML).join("")}</${this.tagName.toLowerCase()}>`;
-  }
-  public querySelectorAll(selector: string): readonly FakeElement[] { return this.queries[selector] ?? []; }
-  public getBoundingClientRect() { return { left: 0, top: 0, right: 10, bottom: 10, width: 10, height: 10 }; }
-  public getClientRects(): readonly object[] { return [{}]; }
-  public getAttribute(name: string): string | null { return this.attributes[name] ?? null; }
-  public hasAttribute(name: string): boolean { return this.attributes[name] !== undefined; }
-  public matches(selector: string): boolean { return selector === ":disabled" && this.hasAttribute("disabled"); }
-  public closest(selector: string): FakeElement | null {
-    const matches = selector === "[hidden]" ? this.hasAttribute("hidden")
-      : selector === "[aria-hidden='true']" ? this.getAttribute("aria-hidden") === "true"
-        : selector === "[inert]" ? this.hasAttribute("inert")
-          : selector === "[aria-disabled='true']" ? this.getAttribute("aria-disabled") === "true" : false;
-    return matches ? this : this.parentElement?.closest(selector) ?? null;
-  }
-  public contains(element: FakeElement): boolean { return element === this; }
-}
-
-class FakeTextNode extends FakeElement {
-  public constructor(value: string) { super(value, {}, {}, {}, "#TEXT"); }
-  public override get nodeType(): number { return 3; }
-  public override get nodeValue(): string { return this.textContent; }
-}
-
-const RICH_SEMANTIC_TEXT = "Title\nBody `inline`\n- item\n\n{\"ok\":true}\nend";
-
-const richSemanticTree = (): FakeElement => new FakeElement("rich response", {}, {}, {}, "DIV", [
-  new FakeElement("Title", {}, {}, {}, "H1", [new FakeTextNode("Title")]),
-  new FakeElement("Body inline", {}, {}, {}, "P", [
-    new FakeTextNode("Body "),
-    new FakeElement("inline", {}, {}, {}, "CODE", [new FakeTextNode("inline")]),
-  ]),
-  new FakeElement("item", {}, {}, {}, "UL", [
-    new FakeElement("item", {}, {}, {}, "LI", [new FakeTextNode("item")]),
-  ]),
-  new FakeElement('{"ok":true}', {}, {}, {}, "PRE", [
-    new FakeElement('{"ok":true}', {}, {}, {}, "CODE", [new FakeTextNode('{"ok":true}')]),
-  ]),
-  new FakeElement("end", {}, {}, {}, "P", [new FakeTextNode("end")]),
-]);
-
-const execute = (source: string, document: Readonly<Record<string, unknown>>, input: unknown,
-  href = "https://chatgpt.com/"): unknown => {
-  const context = {
-    Element: FakeElement,
-    URL,
-    document,
-    location: Object.freeze({ href }),
-    crypto: globalThis.crypto,
-    TextEncoder,
-    getComputedStyle: (element: FakeElement) => ({
-      display: element.style.display ?? "block", visibility: element.style.visibility ?? "visible",
-      opacity: element.style.opacity ?? "1", pointerEvents: element.style.pointerEvents ?? "auto",
-    }),
-    innerHeight: 800,
-    innerWidth: 1200,
-  };
-  const implementation = runInNewContext(`(${source})`, context) as (value: unknown) => unknown;
-  return implementation(input);
-};
-
-const hash = (value: string): string =>
-  `sha256:${createHash("sha256").update(value).digest("hex")}`;
-
+import {
+  FakeElement, FakeTextNode, RICH_SEMANTIC_TEXT, execute, hash, richSemanticTree,
+} from "./local-browser-dom-function-fixture.js";
 export const exerciseCapturedCandidateFunction = (source: string): void => {
   const target = new FakeElement("Run", {}, {}, {}, "BUTTON");
   const scope = new FakeElement("Container text is deliberately not equal to Run", { button: [target] });
@@ -347,7 +260,7 @@ const exerciseComposerExactHashes = async (source: string): Promise<void> => {
     "coherent observation must hash the whole rich answer, including text around its one code block");
 };
 
-const exerciseUserPromptHashes = async (source: string): Promise<void> => {
+const userPromptFixture = () => {
   const userPrompt = "[GRASSEYE:exact-user-prompt]\napproved prompt";
   const promptBody = new FakeElement(userPrompt, {}, {}, {
     "data-testid": "collapsible-user-message-content",
@@ -357,6 +270,11 @@ const exerciseUserPromptHashes = async (source: string): Promise<void> => {
     ]),
     new FakeElement("approved prompt", {}, {}, {}, "P", [new FakeTextNode("approved prompt")]),
   ]);
+  return { userPrompt, promptBody };
+};
+
+const exerciseExactUserPromptHash = async (source: string): Promise<void> => {
+  const { userPrompt, promptBody } = userPromptFixture();
   const attachmentCard = new FakeElement("公开知识生产资料.zip 文件", {}, {}, {}, "DIV", [
     new FakeTextNode("公开知识生产资料.zip 文件"),
   ]);
@@ -383,6 +301,10 @@ const exerciseUserPromptHashes = async (source: string): Promise<void> => {
     "the exact GPT user Prompt hash must include only the unique rendered Prompt body");
   assert.notEqual(exactUserTurn?.semanticTextHash, hash(userPrompt),
     "the outer user-turn semantic hash must expose why attachment and controls cannot identify the Prompt");
+};
+
+const exerciseRejectedUserPromptHashes = async (source: string): Promise<void> => {
+  const { userPrompt, promptBody } = userPromptFixture();
   const bodyWithoutMarker = new FakeElement("approved prompt", {}, {}, {
     "data-testid": "collapsible-user-message-content",
   }, "DIV", [new FakeTextNode("approved prompt")]);
@@ -429,6 +351,11 @@ const exerciseUserPromptHashes = async (source: string): Promise<void> => {
   }, [{ queryId: "user-turns", selector: ".user-turn", maxMatches: 1,
     fields: ["exactGptUserPromptHash"] }]), /BROWSER_DOM_READ_INVALID/u,
   "multiple Prompt bodies inside one user turn must fail closed");
+};
+
+const exerciseUserPromptHashes = async (source: string): Promise<void> => {
+  await exerciseExactUserPromptHash(source);
+  await exerciseRejectedUserPromptHashes(source);
 };
 
 const exerciseInvalidObservationUrls = async (

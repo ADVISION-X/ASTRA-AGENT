@@ -8,6 +8,17 @@ const BROWSER_DOM_FIELD_VALUES = [
   "inert", "disabled", "ariaDisabled",
 ] as const;
 
+import {
+  assertFindIntent,
+  assertOptionalRange,
+  assertReadIntent,
+  assertReadScope,
+  assertSelector,
+  exactAssistantReadIntentValid,
+  isBoundedText,
+} from "./browser-dom-read-intent.js";
+import { requireCanonicalGptConversationUrl } from "./browser-site-policy-registry.js";
+
 export type BrowserDomField = typeof BROWSER_DOM_FIELD_VALUES[number];
 export type BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">;
 export type BrowserDomPostconditionField = Exclude<BrowserDomObservationField,
@@ -227,25 +238,6 @@ export const assertBrowserDomIntent = (intent: BrowserDomIntent): BrowserDomInte
   assertMutationIntent(intent);
   assertScopedIntent(intent);
   return intent;
-};
-
-const exactAssistantReadIntentValid = (
-  intent: Extract<BrowserDomIntent, { kind: "readExactAssistantTurn" }>,
-): boolean => {
-  const source = intent.sourceCheckpoint;
-  let canonical = false;
-  try {
-    canonical = requireCanonicalGptConversationUrl(source?.canonicalConversationUrl ?? "")
-      === source?.canonicalConversationUrl;
-  } catch { canonical = false; }
-  const ordinal = Number(intent.assistantTurnId.slice("conversation-turn-".length));
-  return /^conversation-turn-[1-9][0-9]*$/u.test(intent.assistantTurnId)
-    && Number.isSafeInteger(ordinal) && ordinal >= 2
-    && Boolean(source)
-    && Object.keys(source ?? {}).sort().join("|") === "canonicalConversationUrl|expectedPromptHash|turnMarker"
-    && canonical
-    && /^sha256:[a-f0-9]{64}$/u.test(source?.expectedPromptHash ?? "")
-    && isBoundedText(source?.turnMarker, 1_024);
 };
 
 const assertObservationIntent = (intent: BrowserDomIntent): void => {
@@ -503,62 +495,3 @@ const assertHoverIntent = (intent: Extract<BrowserDomIntent, { kind: "hover" }>)
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
 };
-
-const assertSelector = (intent: BrowserDomIntent): void => {
-  if ("selector" in intent && intent.selector !== undefined && !isBoundedText(intent.selector, 2_048)) {
-    throw new Error("BROWSER_TARGET_INVALID");
-  }
-};
-
-const findTextValid = (intent: Extract<BrowserDomIntent, { kind: "find" }>): boolean =>
-  (intent.textContains === undefined || isBoundedText(intent.textContains, 1_024))
-  && (intent.textEquals === undefined || isBoundedText(intent.textEquals, 1_024))
-  && !(intent.textContains !== undefined && intent.textEquals !== undefined);
-
-const findWaitValid = (intent: Extract<BrowserDomIntent, { kind: "find" }>): boolean => {
-  if (intent.waitFor === undefined) return true;
-  return Number.isInteger(intent.waitFor.minimumMatches)
-    && intent.waitFor.minimumMatches >= 1 && intent.waitFor.minimumMatches <= intent.maxMatches
-    && Number.isInteger(intent.waitFor.timeoutMs)
-    && intent.waitFor.timeoutMs >= 1 && intent.waitFor.timeoutMs <= 30_000;
-};
-
-const assertFindIntent = (intent: Extract<BrowserDomIntent, { kind: "find" }>): void => {
-  if ((intent.selector === undefined) === (intent.locator === undefined)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-  if (intent.maxMatches < 1 || intent.maxMatches > 20) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-  if (!findTextValid(intent) || !findWaitValid(intent)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-};
-
-const assertReadIntent = (intent: Extract<BrowserDomIntent, { kind: "readText" | "readAttribute" }>): void => {
-  if (!Number.isSafeInteger(intent.maxChars) || intent.maxChars < 1) {
-    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-  }
-  assertOptionalRange(intent.maxMatches, 1, 100);
-  assertReadScope(intent.scope);
-  assertOptionalExpectedMatches(intent.expectedMatches);
-  assertOptionalRange(intent.matchIndex, 0, 99);
-  if (intent.kind === "readAttribute" && intent.textContains !== undefined && !isBoundedText(intent.textContains, 1_024)) {
-    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-  }
-};
-
-const assertReadScope = (scope: BrowserDomReadScope | undefined): void => {
-  if (!scope) return;
-  if (!isBoundedText(scope.selector, 2_048)) {
-    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-  }
-};
-
-const assertOptionalExpectedMatches = (value: number | undefined): void => {
-  if (value === undefined) return;
-  if (!Number.isInteger(value) || value < 1 || value > 20) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-};
-
-const assertOptionalRange = (value: number | undefined, minimum: number, maximum: number): void => {
-  if (value !== undefined && (value < minimum || value > maximum)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-};
-
-const isBoundedText = (value: unknown, limit: number): value is string =>
-  typeof value === "string" && value.trim().length > 0 && value.length <= limit
-  && !/[\u0000-\u001f]/u.test(value);
-import { requireCanonicalGptConversationUrl } from "./browser-site-policy-registry.js";

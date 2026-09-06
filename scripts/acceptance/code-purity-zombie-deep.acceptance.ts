@@ -20,7 +20,7 @@ import { createInspectorContextFixture } from "../audit/shared/inspector-context
 type FixtureConfig = { entryScripts: string[] };
 type ExpectedFinding = { checkId: string; fileIncludes?: string; messageIncludes?: string; symbolName?: string };
 
-const LAW_IDS = ["LAW-CODE-PURITY-001-V5", "LAW-CODE-PURITY-002-V2", "LAW-CODE-PURITY-003-V2"];
+const LAW_IDS = ["LAW-CODE-PURITY-001-V6", "LAW-CODE-PURITY-002-V2", "LAW-CODE-PURITY-003-V2"];
 const FIXTURE_ROOT = resolveFromRepo("scripts/acceptance/fixtures/code-purity-zombie-deep");
 const RUNTIME_ROOT = resolveFromRepo("tmp/code-purity-zombie-deep-runtime");
 

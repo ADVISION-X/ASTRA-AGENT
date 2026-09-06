@@ -2,6 +2,7 @@ import type { SourceFile } from "ts-morph";
 
 import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
 import { browserCommandPostconditionPath, browserMutationSchemaPath, createLocalFinding,
+  domPointerIntentRuntimePath,
   domMutationPostconditionPath,
   extensionFileInputPath, requireSource,
   sourcePaths } from "./inspector-support.js";
@@ -70,6 +71,7 @@ type SettlementSources = Readonly<{
   manager: SettlementSource;
   mutationReceipt: SettlementSource;
   postcondition: SettlementSource;
+  pointerRuntime: SettlementSource;
   resolver: SettlementSource;
   runtime: SettlementSource;
   schema: SettlementSource;
@@ -86,6 +88,7 @@ const requireSettlementSources = (
   const store = requireSource(context, findings, lawId, sourcePaths[7]);
   const schema = requireSource(context, findings, lawId, browserMutationSchemaPath);
   const runtime = requireSource(context, findings, lawId, DOM_RUNTIME_PATH);
+  const pointerRuntime = requireSource(context, findings, lawId, domPointerIntentRuntimePath);
   const postcondition = requireSource(context, findings, lawId, domMutationPostconditionPath);
   const contract = requireSource(context, findings, lawId, DOM_CONTRACT_PATH);
   const resolver = requireSource(context, findings, lawId, OUTCOME_RESOLVER_PATH);
@@ -96,12 +99,13 @@ const requireSettlementSources = (
   const commandPostcondition = requireSource(
     context, findings, lawId, browserCommandPostconditionPath,
   );
-  const required = [actor, store, schema, runtime, postcondition, contract, resolver,
+  const required = [actor, store, schema, runtime, pointerRuntime, postcondition, contract, resolver,
     fileInput, mutationReceipt, transport, commandPostcondition, manager];
   if (required.some((source) => source === null)) return null;
   return { actor: actor!, commandPostcondition: commandPostcondition!, contract: contract!,
     fileInput: fileInput!, manager: manager!, mutationReceipt: mutationReceipt!, postcondition: postcondition!,
-    resolver: resolver!, runtime: runtime!, schema: schema!, store: store!, transport: transport! };
+    pointerRuntime: pointerRuntime!, resolver: resolver!, runtime: runtime!, schema: schema!,
+    store: store!, transport: transport! };
 };
 
 const inspectMutationPersistence = (
@@ -150,7 +154,7 @@ const inspectMutationExecution = (
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  requireText(`${sources.runtime.getFullText()}\n${sources.postcondition.getFullText()}`, [
+  requireText(`${sources.runtime.getFullText()}\n${sources.pointerRuntime.getFullText()}\n${sources.postcondition.getFullText()}`, [
     "qualificationReceipt", "qualifiedNode", "pointerAction", "resolveCoherentPointerAction",
     "zeroActionReceipt", "verifyClickPostcondition",
     "candidate-set", "actionability",

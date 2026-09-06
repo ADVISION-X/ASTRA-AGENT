@@ -124,7 +124,7 @@
     {
       "capabilityDomain": "code-purity",
       "lawIds": [
-        "LAW-CODE-PURITY-001-V5",
+        "LAW-CODE-PURITY-001-V6",
         "LAW-CODE-PURITY-002-V2",
         "LAW-CODE-PURITY-003-V2"
       ],
@@ -951,7 +951,9 @@
         "src/**"
       ],
       "capabilityDomain": "code-purity",
-      "contractRefs": [],
+      "contractRefs": [
+        "docs/blueprints/code-purity/QUALITY-EVIDENCE-OWNERSHIP-V1-BLUEPRINT.md"
+      ],
       "dependsOnLawIds": [],
       "enforcementMode": "static",
       "evidenceModes": [
@@ -967,11 +969,11 @@
       "forbidden": [
         "不得发生：活动源码文件超过 500 个物理行，或函数超过 75 行、7 个参数、8 个返回分支、5 层嵌套、16 圈复杂度或10个 await。",
         "不得发生：any、ts-ignore、ts-nocheck、catch-and-swallow、伪成功或 mock/demo/placeholder/no-op/fallback 生产路径。",
-        "不得发生：export star、无合法工具要求的 default export、require、超过 28 个 import declaration、24 个 import source 或24个命名导出。",
+        "不得发生：export star、无合法工具要求的 default export、require、超过 28 个 import declaration、24 个 import source 或24个命名导出。唯一例外是现役合同分母强制的单一穷举 Child handler registry：它必须直接且一对一导入 25..28 个 exact Child handler，只导出一份 typed complete map，非 handler 导入全为 type-only，不得拥有流程、fallback、转发表或第二 map，且 import declaration/source 均不得超过 30；对应 Owner inspector 必须独立证明合同集、目录集、导入集与 map key 集完全相等。",
         "不得发生：generated artifact 被手工维护为源真相，或注释掉的可执行代码代替物理删除。",
         "不得发生：修复只做改名、转发、搬家和重新包装而未物理删除、内联、合并或简化真实结构。"
       ],
-      "lawId": "LAW-CODE-PURITY-001-V5",
+      "lawId": "LAW-CODE-PURITY-001-V6",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 49,
@@ -980,7 +982,7 @@
       },
       "status": "active",
       "summary": "必须使每个活动源码文件与函数满足结构、类型、导入导出和 generated-source 红线，不得用伪成功、类型逃逸或重新包装规避。",
-      "supersedesLawId": "LAW-CODE-PURITY-001-V4",
+      "supersedesLawId": "LAW-CODE-PURITY-001-V5",
       "tier": "P0"
     },
     {

@@ -1,5 +1,13 @@
 import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
-import { createLocalFinding, identifiers, requireIdentifiers, requireSource, sourcePaths, targetAuthorityPath } from "./inspector-support.js";
+import {
+  createLocalFinding,
+  extensionCommandRuntimePath,
+  identifiers,
+  requireIdentifiers,
+  requireSource,
+  sourcePaths,
+  targetAuthorityPath,
+} from "./inspector-support.js";
 
 type RequiredSource = NonNullable<ReturnType<typeof requireSource>>;
 type InvocationPayloadSources = Readonly<{
@@ -41,6 +49,7 @@ const inspectOpaqueRawFields = (
 
 const inspectAuthenticatedMediaBoundary = (
   targetAuthority: RequiredSource,
+  commandRuntime: RequiredSource,
   authenticatedMediaRuntime: RequiredSource,
   leaseManager: RequiredSource,
   findings: InspectorFinding[],
@@ -48,11 +57,12 @@ const inspectAuthenticatedMediaBoundary = (
 ): void => {
   const registeredCommandMethod = targetAuthority.getClass("ExtensionTargetAuthority")
     ?.getMethod("executeRegisteredCommand")?.getText() ?? "";
+  const commandDispatchText = `${registeredCommandMethod}\n${commandRuntime.getFullText()}`;
   const mediaRuntimeText = authenticatedMediaRuntime.getFullText();
   const leaseMethod = leaseManager.getClass("BrowserTargetLeaseManager")
     ?.getMethod("downloadAuthenticatedMedia")?.getText() ?? "";
   for (const required of ["command.kind === \"authenticated-media\"", "executeAuthenticatedMedia("]) {
-    if (registeredCommandMethod.includes(required)) continue;
+    if (commandDispatchText.includes(required)) continue;
     findings.push(createLocalFinding({
       checkId: "browser-authority/authenticated-media-boundary",
       lawId,
@@ -162,6 +172,7 @@ export const inspectOpaqueAuthorityBoundary = (
   const broker = requireSource(context, findings, lawId, sourcePaths[18]);
   const supervisor = requireSource(context, findings, lawId, sourcePaths[3]);
   const targetAuthority = requireSource(context, findings, lawId, targetAuthorityPath);
+  const commandRuntime = requireSource(context, findings, lawId, extensionCommandRuntimePath);
   const authenticatedMediaRuntime = requireSource(
     context, findings, lawId, authenticatedMediaRuntimePath,
   );
@@ -171,7 +182,7 @@ export const inspectOpaqueAuthorityBoundary = (
   const commandLogging = requireSource(context, findings, lawId, commandLoggingPath);
   const commandDiagnostic = requireSource(context, findings, lawId, commandDiagnosticPath);
   const frameDiagnostic = requireSource(context, findings, lawId, frameDiagnosticPath);
-  if (!transport || !journal || !broker || !supervisor || !targetAuthority
+  if (!transport || !journal || !broker || !supervisor || !targetAuthority || !commandRuntime
     || !authenticatedMediaRuntime || !leaseManager || !extensionActor || !extensionCrypto
     || !commandLogging || !commandDiagnostic || !frameDiagnostic) return;
   requireIdentifiers(broker, ["authorityRefHash", "certificateHash", "channelSessionHash", "artifactRef", "contentHash"], findings, lawId,
@@ -184,7 +195,7 @@ export const inspectOpaqueAuthorityBoundary = (
     [sourcePaths[3], supervisor],
   ], findings, lawId);
   inspectAuthenticatedMediaBoundary(
-    targetAuthority, authenticatedMediaRuntime, leaseManager, findings, lawId,
+    targetAuthority, commandRuntime, authenticatedMediaRuntime, leaseManager, findings, lawId,
   );
   inspectClosedInvocationPayloadBoundary(
     { transport, extensionActor, extensionCrypto, journal, commandLogging, commandDiagnostic, frameDiagnostic },

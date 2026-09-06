@@ -10,16 +10,29 @@ export type ConfirmedReadbackBinding = ReconciliationBinding | SourceReadbackBin
 
 const hash = (value: string): boolean => /^sha256:[a-f0-9]{64}$/u.test(value);
 
+const canonicalConversationOrigin = (url: URL): boolean => url.protocol === "https:"
+  && url.origin === "https://chatgpt.com"
+  && url.username === ""
+  && url.password === ""
+  && url.search === ""
+  && url.hash === "";
+
+const canonicalConversationPath = (url: URL): boolean => {
+  const segments = url.pathname.split("/");
+  const conversationId = segments[2] ?? "";
+  return segments.length === 3
+    && segments[0] === ""
+    && segments[1] === "c"
+    && conversationId.length <= 256
+    && /^[A-Za-z0-9_-]+$/u.test(conversationId)
+    && !conversationId.startsWith("WEB:");
+};
+
 export const durableCanonicalGptConversationUrl = (value: string): string | null => {
   try {
     const url = new URL(value);
-    const segment = url.pathname.split("/");
-    return url.protocol === "https:" && url.origin === "https://chatgpt.com"
-      && url.username === "" && url.password === "" && url.search === "" && url.hash === ""
-      && segment.length === 3 && segment[0] === "" && segment[1] === "c"
-      && (segment[2] ?? "").length <= 256
-      && /^[A-Za-z0-9_-]+$/u.test(segment[2] ?? "")
-      && !(segment[2] ?? "").startsWith("WEB:")
+    return canonicalConversationOrigin(url)
+      && canonicalConversationPath(url)
       && value === `${url.origin}${url.pathname}` ? value : null;
   } catch {
     return null;

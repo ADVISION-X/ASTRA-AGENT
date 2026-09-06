@@ -120,24 +120,57 @@ const collectImportBudgetChecks = (
 }> => {
   const importDeclarations = governedFile.sourceFile.getImportDeclarations();
   const uniqueImportSources = new Set(importDeclarations.map((declaration) => declaration.getModuleSpecifierValue()));
+  const exhaustiveRegistry = isExhaustiveChildHandlerRegistry(governedFile);
+  const declarationLimit = exhaustiveRegistry ? 30 : 28;
+  const sourceLimit = exhaustiveRegistry ? 30 : 24;
   return [
-    importDeclarations.length > 28
+    importDeclarations.length > declarationLimit
       ? {
           checkId: "code-purity/import-declaration-budget",
-          reason: `Import declaration count ${importDeclarations.length} exceeds red line 28.`,
-          message: `${governedFile.repoPath} declares ${importDeclarations.length} imports and exceeds the red line 28.`,
+          reason: `Import declaration count ${importDeclarations.length} exceeds red line ${declarationLimit}.`,
+          message: `${governedFile.repoPath} declares ${importDeclarations.length} imports and exceeds the red line ${declarationLimit}.`,
           remediation: "Split the file by owner or role and collapse broad import surfaces.",
         }
       : null,
-    uniqueImportSources.size > 24
+    uniqueImportSources.size > sourceLimit
       ? {
           checkId: "code-purity/import-source-budget",
-          reason: `Import source count ${uniqueImportSources.size} exceeds red line 24.`,
-          message: `${governedFile.repoPath} imports ${uniqueImportSources.size} unique sources and exceeds the red line 24.`,
+          reason: `Import source count ${uniqueImportSources.size} exceeds red line ${sourceLimit}.`,
+          message: `${governedFile.repoPath} imports ${uniqueImportSources.size} unique sources and exceeds the red line ${sourceLimit}.`,
           remediation: "Split the file by runtime role and keep only the owner-local dependencies in each slice.",
         }
       : null,
   ].filter((check): check is NonNullable<typeof check> => check !== null);
+};
+
+const childHandlerImportPattern = /^\.\/children\/([^/]+)\/handler\.js$/;
+
+const isExhaustiveChildHandlerRegistry = (governedFile: GovernedFile): boolean => {
+  if (!governedFile.repoPath.endsWith("/handler-registry.ts")) return false;
+  const imports = governedFile.sourceFile.getImportDeclarations();
+  const handlerImports = imports.filter((declaration) => childHandlerImportPattern.test(declaration.getModuleSpecifierValue()));
+  if (handlerImports.length < 25 || handlerImports.length > 28 || imports.length > 30) return false;
+  if (imports.some((declaration) => !childHandlerImportPattern.test(declaration.getModuleSpecifierValue()) && !declaration.isTypeOnly())) return false;
+  const handlerEntries = new Map<string, string>();
+  for (const declaration of handlerImports) {
+    const match = childHandlerImportPattern.exec(declaration.getModuleSpecifierValue());
+    const namedImports = declaration.getNamedImports();
+    if (!match || namedImports.length !== 1 || declaration.isTypeOnly()) return false;
+    handlerEntries.set(match[1]!, namedImports[0]!.getName());
+  }
+  if (handlerEntries.size !== handlerImports.length) return false;
+  const exportedStatements = governedFile.sourceFile.getVariableStatements().filter((statement) => statement.isExported());
+  if (exportedStatements.length !== 1 || exportedStatements[0]!.getDeclarations().length !== 1) return false;
+  const initializer = exportedStatements[0]!.getDeclarations()[0]!.getInitializer();
+  const objectLiteral = initializer?.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression)[0];
+  if (!objectLiteral || objectLiteral.getProperties().length !== handlerEntries.size) return false;
+  const mappedHandlers = new Map<string, string>();
+  for (const property of objectLiteral.getProperties()) {
+    if (!Node.isPropertyAssignment(property)) return false;
+    mappedHandlers.set(property.getName(), property.getInitializer()?.getText() ?? "");
+  }
+  return mappedHandlers.size === handlerEntries.size
+    && [...handlerEntries].every(([childId, handler]) => mappedHandlers.get(childId) === handler);
 };
 
 const scanExportShape = (
@@ -250,8 +283,8 @@ export const scanStructuralFilesystemShape = (
   lawIds: readonly string[],
   collector: InventoryFindingCollector,
 ): void => {
-  const sourceAtomicityLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V5");
-  const bridgeLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V5");
+  const sourceAtomicityLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V6");
+  const bridgeLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V6");
   scanPathBudget(collector, governedFile, sourceAtomicityLawId, bridgeLawId);
 };
 
@@ -260,6 +293,6 @@ export const scanStructuralDependencyShape = (
   lawIds: readonly string[],
   collector: InventoryFindingCollector,
 ): void => {
-  const sourceAtomicityLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V5");
+  const sourceAtomicityLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V6");
   scanImportExportBudgets(collector, governedFile, sourceAtomicityLawId);
 };

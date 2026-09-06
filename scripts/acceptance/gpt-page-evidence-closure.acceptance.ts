@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import {
   completeGptPageEvidenceCaptureFailures,
   gptPageEvidencePrivacyFailures,
-} from "../audit/domains/gpt/gpt-page-evidence-closure-inspection.js";
+} from "../audit/domains/gpt/gpt-page-evidence-capture-inspection.js";
 
 const report = JSON.parse(readFileSync(resolve(
   "docs/项目方案/GPT页面操作子能力实证资料.json",

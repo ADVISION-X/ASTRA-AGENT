@@ -27,7 +27,8 @@ import {
   validEvidenceRef,
   type LawExecutionResult,
 } from "../../scripts/audit/shared/quality-contract.js";
-import { assertCandidateStable, assertExactProviderContract, assertParticipantCommitIdentity, bindNativeProofObservations, computeTargetPaths, dynamicScriptFor, parseInspectorOutput } from "../../scripts/audit/shared/quality-runner.js";
+import { assertCandidateStable, bindNativeProofObservations, computeTargetPaths, dynamicScriptFor, parseInspectorOutput } from "../../scripts/audit/shared/quality-runner.js";
+import { assertExactProviderContract, assertParticipantCommitIdentity } from "../../scripts/audit/shared/quality-participant-binding.js";
 import { mapWithConcurrency } from "../../scripts/audit/shared/quality-process-execution.js";
 import { sealedSnapshotDigest } from "../../scripts/audit/shared/sealed-target-snapshot.js";
 import { validateProviderContractSpec } from "../../scripts/audit/shared/provider-contract-authority.js";

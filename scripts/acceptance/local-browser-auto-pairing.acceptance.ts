@@ -2,68 +2,27 @@ import { governanceAssert as assert } from "../audit/shared/governance-exam-asse
 
 import {
   GRASSEYE_AUTO_PAIRING_ALARM,
-  GRASSEYE_PAIRING_URL,
   GRASSEYE_TOOL_EXTENSION_ID,
-  GRASSEYE_TOOL_EXTENSION_ID_HEADER,
   PairingAutoBootstrap,
-  readWorkbenchPairingState,
   type WorkbenchPairingState,
 } from "../../src/lib/browser/chrome-extension/pairing-auto-bootstrap.js";
 import { ExtensionTargetAuthority } from "../../src/lib/browser/chrome-extension/extension-target-authority.js";
 import type { ExtensionChromeApi, ExtensionDebugTarget } from "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
 import type { BrowserTargetLeaseManager } from "../../src/lib/browser/exact-target/browser-target-lease-manager.js";
-import { GPT_WEB_START_URL, requireGptWebPolicyForUrl } from "../../src/lib/browser/exact-target/browser-site-policy-registry.js";
 import { BrowserAuthorityBroker } from "../../src/lib/browser/infrastructure/browser-authority-broker.js";
 import { BrowserAuthorityIssuer } from "../../src/lib/browser/infrastructure/browser-authority-issuer.js";
 import { exerciseAuthenticatedMedia } from "./local-browser-authenticated-media-support.js";
 import { exerciseLocalBrowserDomIntent } from "./local-browser-dom-intent-support.js";
 import { emitLocalBrowserAutoPairingProofs } from "./local-browser-proof-support.js";
 import { browserDomFacts } from "./local-browser-dom-runtime-fixture.js";
+import { exercisePairingReadback } from "./local-browser-pairing-readback-support.js";
+import { exerciseForkFailureChildSurvival } from "./local-browser-fork-failure-support.js";
 
 const secret = "a".repeat(64);
 const currentBuild = "build-00000000-0000-4000-8000-000000000001";
 const nextBuild = "build-00000000-0000-4000-8000-000000000002";
 
-assert.equal(GPT_WEB_START_URL, "https://chatgpt.com/");
-assert.equal(requireGptWebPolicyForUrl("https://chatgpt.com/c/exact").siteId, "gpt-web");
-for (const rejectedUrl of ["https://www.amazon.com/", "https://evil.chatgpt.com/", "http://chatgpt.com/"]) {
-  assert.throws(() => requireGptWebPolicyForUrl(rejectedUrl), /BROWSER_ORIGIN_REJECTED/u,
-    `job-bound target policy must reject ${rejectedUrl}`);
-}
-
-let observedInput = "";
-let observedInit: RequestInit | undefined;
-const state = await readWorkbenchPairingState((async (input: string | URL | Request, init?: RequestInit) => {
-  observedInput = String(input);
-  observedInit = init;
-  return new Response(JSON.stringify({ authority: "absent", pairingSecret: secret, releaseBuildId: currentBuild }), {
-    status: 200,
-    headers: { "content-type": "application/json" },
-  });
-}) as typeof globalThis.fetch);
-assert.deepEqual(state, { authority: "absent", pairingSecret: secret, releaseBuildId: currentBuild });
-assert.equal(observedInput, GRASSEYE_PAIRING_URL);
-assert.deepEqual(observedInit, {
-  method: "GET",
-  cache: "no-store",
-  credentials: "omit",
-  headers: { [GRASSEYE_TOOL_EXTENSION_ID_HEADER]: GRASSEYE_TOOL_EXTENSION_ID },
-  redirect: "error",
-  referrerPolicy: "no-referrer",
-});
-
-await assert.rejects(
-  readWorkbenchPairingState((async () => new Response(JSON.stringify({ authority: "absent", pairingSecret: "invalid", releaseBuildId: currentBuild }), { status: 200 })) as typeof globalThis.fetch),
-  /BROWSER_PAIRING_RESPONSE_INVALID/u,
-);
-await assert.rejects(
-  readWorkbenchPairingState((async () => new Response(JSON.stringify({ authority: "absent", pairingSecret: secret, releaseBuildId: "invalid" }), { status: 200 })) as typeof globalThis.fetch),
-  /BROWSER_PAIRING_RESPONSE_INVALID/u,
-);
-await assert.rejects(
-  readWorkbenchPairingState((async () => new Response("{}", { status: 403 })) as typeof globalThis.fetch),
-  /BROWSER_PAIRING_ORIGIN_REJECTED/u,
-);
+await exercisePairingReadback(secret, currentBuild);
 
 type RuntimeStartupListener = () => void;
 type TabUpdatedListener = Parameters<ExtensionChromeApi["tabs"]["onUpdated"]["addListener"]>[0];
@@ -200,6 +159,55 @@ const mainFrameUrlByTab = new Map<number, string>();
 const targetFrames: Array<Readonly<{ kind: "TARGET_CLAIM" | "TARGET_REVOKE"; body: Record<string, unknown> }>> = [];
 const targetFailures: Array<Readonly<Record<string, unknown>>> = [];
 const targetFailureOrder: string[] = [];
+
+const sendForkTransitionCommand = (
+  method: string,
+  parameters: Readonly<Record<string, unknown>> | undefined,
+): Readonly<Record<string, unknown>> | null => {
+  if (!forkTransitionClick) return null;
+  if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
+  if (method === "DOM.resolveNode") return { object: { objectId: "candidate-root" } };
+  if (method === "Runtime.callFunctionOn" && String(parameters?.functionDeclaration ?? "").includes("spec.output")) {
+    return { result: { value: { x: 5, y: 5 } } };
+  }
+  if (method === "Runtime.callFunctionOn") return { result: { value: browserDomFacts() } };
+  if (method === "Runtime.releaseObject") return {};
+  if (method !== "Input.dispatchMouseEvent") return null;
+  if (parameters?.type === "mouseReleased") {
+    mainFrameUrlByTab.set(4, "https://chatgpt.com/c/fork-child");
+    debuggerTargets = [
+      ...debuggerTargets.filter((candidate) => candidate.tabId !== 4),
+      { attached: false, id: "debug-target-4", tabId: 4, title: "Fork child",
+        type: "page", url: "https://chatgpt.com/c/fork-child" },
+    ];
+  }
+  return {};
+};
+
+const sendTargetChromeCommand: ExtensionChromeApi["debugger"]["sendCommand"] = async (
+  { tabId }, method, parameters,
+) => {
+  debuggerMethods.push(method);
+  const forkResult = sendForkTransitionCommand(method, parameters);
+  if (forkResult) return forkResult;
+  if (method === "Runtime.evaluate" && evaluateRuntime) {
+    return { result: { value: await evaluateRuntime(String(parameters?.expression)) } };
+  }
+  if (method === "Page.getFrameTree" && tabId === frameTreeFailureTabId) {
+    throw new Error("temporary frame tree read failure");
+  }
+  if (method === "Page.navigate" && typeof parameters?.url === "string") {
+    mainFrameUrlByTab.set(tabId, parameters.url);
+    debuggerTargets = debuggerTargets.map((candidate) => candidate.tabId === tabId
+      ? { ...candidate, url: parameters.url as string } : candidate);
+    navigateSerial += 1;
+    return { loaderId: `loader-${tabId}-navigate-${navigateSerial}` };
+  }
+  return method === "Page.getFrameTree"
+    ? { frameTree: { frame: { loaderId: `loader-${tabId}`, url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/" } } }
+    : {};
+};
+
 const targetChromeApi: ExtensionChromeApi = {
   runtime: chromeApi.runtime,
   debugger: {
@@ -213,46 +221,7 @@ const targetChromeApi: ExtensionChromeApi = {
       if (getTargetsFailure) throw getTargetsFailure;
       return debuggerTargets;
     },
-    sendCommand: async ({ tabId }, method, parameters) => {
-      debuggerMethods.push(method);
-      if (forkTransitionClick && method === "DOM.getDocument") return { root: { nodeId: 1 } };
-      if (forkTransitionClick && method === "DOM.resolveNode") return { object: { objectId: "candidate-root" } };
-      if (forkTransitionClick && method === "Runtime.callFunctionOn"
-        && String(parameters?.functionDeclaration ?? "").includes("spec.output")) {
-        return { result: { value: { x: 5, y: 5 } } };
-      }
-      if (forkTransitionClick && method === "Runtime.callFunctionOn") {
-        return { result: { value: browserDomFacts() } };
-      }
-      if (forkTransitionClick && method === "Runtime.releaseObject") return {};
-      if (forkTransitionClick && method === "Input.dispatchMouseEvent") {
-        if (parameters?.type === "mouseReleased") {
-          mainFrameUrlByTab.set(4, "https://chatgpt.com/c/fork-child");
-          debuggerTargets = [
-            ...debuggerTargets.filter((candidate) => candidate.tabId !== 4),
-            { attached: false, id: "debug-target-4", tabId: 4, title: "Fork child",
-              type: "page", url: "https://chatgpt.com/c/fork-child" },
-          ];
-        }
-        return {};
-      }
-      if (method === "Runtime.evaluate" && evaluateRuntime) {
-        return { result: { value: await evaluateRuntime(String(parameters?.expression)) } };
-      }
-      if (method === "Page.getFrameTree" && tabId === frameTreeFailureTabId) {
-        throw new Error("temporary frame tree read failure");
-      }
-      if (method === "Page.navigate" && typeof parameters?.url === "string") {
-        mainFrameUrlByTab.set(tabId, parameters.url);
-        debuggerTargets = debuggerTargets.map((candidate) => candidate.tabId === tabId
-          ? { ...candidate, url: parameters.url as string } : candidate);
-        navigateSerial += 1;
-        return { loaderId: `loader-${tabId}-navigate-${navigateSerial}` };
-      }
-      return method === "Page.getFrameTree"
-        ? { frameTree: { frame: { loaderId: `loader-${tabId}`, url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/" } } }
-        : {};
-    },
+    sendCommand: sendTargetChromeCommand,
     onDetach: { addListener: (listener) => { debuggerDetach = listener; } },
     onEvent: { addListener: (listener) => { debuggerEvent = listener; } },
   },
@@ -271,144 +240,6 @@ const targetChromeApi: ExtensionChromeApi = {
   alarms: chromeApi.alarms,
 };
 
-const exerciseForkFailureChildSurvival = async (
-  stage: "child-attach" | "child-frame" | "claim" | "source-detach" | "source-remove",
-): Promise<void> => {
-  const sourceTabId = 300;
-  const childTabId = 301;
-  let updated: TabUpdatedListener = () => { throw new Error("failure fixture listener missing"); };
-  let detachListener: DebuggerDetachListener = () => undefined;
-  let claims = 0;
-  let injectionHits = 0;
-  const claimBodies: Readonly<Record<string, unknown>>[] = [];
-  let forkClick = false;
-  const removed: number[] = [];
-  const detached: number[] = [];
-  const urls = new Map<number, string>([
-    [sourceTabId, "https://chatgpt.com/c/source%20opaque"],
-    [childTabId, "https://chatgpt.com/c/child%20opaque"],
-  ]);
-  let discovered: readonly ExtensionDebugTarget[] = [];
-  const api: ExtensionChromeApi = {
-    runtime: chromeApi.runtime,
-    debugger: {
-      attach: async ({ tabId }) => {
-        if (stage === "child-attach" && tabId === childTabId) {
-          injectionHits += 1;
-          throw new Error("injected child attach failure");
-        }
-      },
-      detach: async ({ tabId }) => {
-        if (stage === "source-detach" && tabId === sourceTabId) {
-          injectionHits += 1;
-          throw new Error("injected source detach failure");
-        }
-        detached.push(tabId);
-      },
-      getTargets: async () => discovered,
-      sendCommand: async ({ tabId }, method, parameters) => {
-        if (forkClick && method === "DOM.getDocument") return { root: { nodeId: 1 } };
-        if (forkClick && method === "DOM.resolveNode") return { object: { objectId: "candidate-root" } };
-        if (forkClick && method === "Runtime.callFunctionOn"
-          && String(parameters?.functionDeclaration ?? "").startsWith("async function (spec)")) {
-          assert.equal(parameters?.awaitPromise, true);
-          return { result: { value: { x: 5, y: 5 } } };
-        }
-        if (forkClick && method === "Runtime.callFunctionOn") {
-          return { result: { value: browserDomFacts() } };
-        }
-        if (forkClick && method === "Runtime.releaseObject") return {};
-        if (forkClick && method === "Input.dispatchMouseEvent") {
-          if (parameters?.type === "mouseReleased") discovered = [
-            { attached: true, id: "source", tabId: sourceTabId, title: "Source", type: "page",
-              url: urls.get(sourceTabId)! },
-            { attached: false, id: "child", tabId: childTabId, title: "Child", type: "page",
-              url: urls.get(childTabId)! },
-          ];
-          return {};
-        }
-        if (method === "Page.getFrameTree") {
-          if (stage === "child-frame" && tabId === childTabId) {
-            injectionHits += 1;
-            throw new Error("injected child frame failure");
-          }
-          return { frameTree: { frame: { loaderId: `loader-${tabId}`, url: urls.get(tabId)! } } };
-        }
-        return {};
-      },
-      onDetach: { addListener: (listener) => { detachListener = listener; } },
-      onEvent: { addListener: () => undefined },
-    },
-    tabs: {
-      create: async () => {
-        globalThis.setTimeout(() => updated(sourceTabId, { status: "complete" }, {
-          id: sourceTabId, url: urls.get(sourceTabId)!, title: "Source",
-        }), 0);
-        return { id: sourceTabId };
-      },
-      remove: async (tabId) => {
-        if (stage === "source-remove" && tabId === sourceTabId) {
-          injectionHits += 1;
-          throw new Error("injected source remove failure");
-        }
-        removed.push(tabId);
-        discovered = discovered.filter((candidate) => candidate.tabId !== tabId);
-      },
-      onUpdated: { addListener: (listener) => { updated = listener; } },
-      onRemoved: { addListener: () => undefined },
-    },
-    alarms: chromeApi.alarms,
-  };
-  const authority = new ExtensionTargetAuthority(api, async (kind, body) => {
-    if (kind === "TARGET_CLAIM") {
-      claims += 1;
-      claimBodies.push(body);
-      if (stage === "claim" && claims === 2) {
-        injectionHits += 1;
-        throw new Error("injected claim failure");
-      }
-    }
-  }, () => undefined);
-  authority.start();
-  void detachListener;
-  await authority.acquireJobBoundChatGptTarget();
-  discovered = [{ attached: true, id: "source", tabId: sourceTabId, title: "Source", type: "page",
-    url: urls.get(sourceTabId)! }];
-  const firstClaimBody = claimBodies[0];
-  assert.ok(firstClaimBody, "initial source claim must be published before fork failure injection");
-  const firstClaim = authority.resolve(String(firstClaimBody.targetRef), String(firstClaimBody.documentRef));
-  forkClick = true;
-  await assert.rejects(authority.executeRegisteredCommand({
-    kind: "dom-intent",
-    intent: {
-      kind: "click", selector: "[role='menuitem']", expectedTextEquals: "分支到新聊天", expectedMatches: 1,
-      postClickTargetTransition: {
-        kind: "gpt-fork-successor",
-        sourceCheckpoint: {
-          assistantTurnId: "conversation-turn-10",
-          canonicalConversationUrl: urls.get(sourceTabId)!,
-          promptHash: `sha256:${"6".repeat(64)}`,
-          responseHash: `sha256:${"7".repeat(64)}`,
-          turnMarker: "[GRASSEYE:fork]",
-        },
-        timeoutMs: 5_000,
-      },
-    },
-  }, firstClaim), /BROWSER_POSTCONDITION_FAILED/u, `${stage} must fail closed`);
-  assert.ok(injectionHits >= 1, `${stage} must reach its named failure boundary`);
-  assert.equal(removed.includes(childTabId), false, `${stage} must never delete the user-visible child tab`);
-  assert.equal(discovered.some((candidate) => candidate.tabId === childTabId), true,
-    `${stage} must preserve the user-visible child rather than destroy Provider output`);
-  if (stage === "child-attach" || stage === "child-frame") {
-    assert.equal(authority.resolve(String(firstClaimBody.targetRef), String(firstClaimBody.documentRef)).tabId,
-      sourceTabId, `${stage} must leave the verified source as the sole logical production Target`);
-  } else {
-    const successorClaim = claimBodies[1];
-    assert.ok(successorClaim, `${stage} must reach the child Target transfer before failing`);
-    assert.equal(authority.resolve(String(successorClaim.targetRef), String(successorClaim.documentRef)).tabId,
-      childTabId, `${stage} must keep the transferred child as the logical production Target`);
-  }
-};
 
 for (const stage of ["child-attach", "child-frame", "claim", "source-detach", "source-remove"] as const) {
   await exerciseForkFailureChildSurvival(stage);
