@@ -7,7 +7,7 @@ import {
   success,
   type GptChildHandler,
 } from "../../web/child-handler.js";
-import { assistantTurnForPrompt, ensureResponseConversation } from "./page-observation.js";
+import { assistantTurnForIdentity, ensureResponseConversation } from "./page-observation.js";
 import {
   maybeAcknowledgeRateLimit,
   providerWait,
@@ -24,10 +24,11 @@ const stableImageObserved = (
 
 export const waitForStableGptImageHandler: GptChildHandler<"wait_for_stable_gpt_image"> =
   async (intent, context) => {
-    requireExactInputKeys(intent, ["absoluteDeadline", "canonicalConversationUrl", "expectedPromptHash", "turnMarker"]);
+    requireExactInputKeys(intent, ["absoluteDeadline", "canonicalConversationUrl", "conversationIdentityHash", "expectedPromptHash", "turnMarker"]);
     const conversationUrl = canonicalGptConversationUrl(stringInput(intent, "canonicalConversationUrl"));
+    const conversationIdentityHash = responseHashInput(intent, "conversationIdentityHash");
     const expectedPromptHash = responseHashInput(intent, "expectedPromptHash");
-    stringInput(intent, "turnMarker");
+    const turnMarker = stringInput(intent, "turnMarker");
     const deadline = Date.parse(stringInput(intent, "absoluteDeadline"));
     if (!Number.isFinite(deadline) || deadline > Date.now() + 3_600_000) {
       throw executionFailure("failed", "GPT_RESPONSE_ABSOLUTE_DEADLINE_INVALID");
@@ -42,7 +43,9 @@ export const waitForStableGptImageHandler: GptChildHandler<"wait_for_stable_gpt_
       const observed = await ensureResponseConversation({
         browser, canonicalConversationUrl: conversationUrl, context, deadline,
       });
-      const assistantTurnId = assistantTurnForPrompt(observed, expectedPromptHash);
+      const assistantTurnId = assistantTurnForIdentity(observed, {
+        canonicalConversationUrl: conversationUrl, conversationIdentityHash, expectedPromptHash, turnMarker,
+      });
       if (assistantTurnId && observed.generatingRaw === 0) {
         try {
           const media = await browser.downloadAuthenticatedMedia({

@@ -5,6 +5,8 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { BrowserCommandActor } from "../../src/lib/browser/exact-target/browser-command-actor.js";
+import { canonicalBrowserExactAssistantTurnRevision } from
+  "../../src/lib/browser/exact-target/exact-assistant-turn-revision.js";
 import { browserExecutionFailure } from "../../src/lib/browser/browser-failure.js";
 import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
 import { BrowserCommandAdmissionBudget } from "../../src/lib/browser/transport/browser-command-admission-budget.js";
@@ -221,6 +223,59 @@ try {
   ]));
   assert.equal(actorStore.readState(observationPermit.commandId), null);
 
+  const exactAssistantPermit: BrowserCommandPermit = {
+    ...permit("actor-exact-assistant"), capabilityId: "browser.dom.inspect.v1",
+    mutationClass: "observation", replayPolicy: "observation-only",
+  };
+  const exactAssistantCommand = { kind: "dom-intent" as const, intent: {
+    kind: "readExactAssistantTurn" as const,
+    assistantTurnId: "conversation-turn-2",
+    sourceCheckpoint: {
+      canonicalConversationUrl: "https://chatgpt.com/c/exact-assistant",
+      expectedPromptHash: exactHash("prompt"), turnMarker: "[GRASSEYE:exact-assistant]",
+    },
+  } };
+  const exactAssistantRawDomHtml = "<div>answer</div>";
+  const exactAssistantSemanticText = "answer";
+  const exactAssistantReply = {
+    schemaVersion: "grasseye.browser.exact-assistant-turn.v2" as const,
+    targetRefHash: exactHash(exactAssistantPermit.targetRef),
+    documentRefHash: exactHash(exactAssistantPermit.documentRef),
+    assistantTurnId: exactAssistantCommand.intent.assistantTurnId,
+    currentUrl: exactAssistantCommand.intent.sourceCheckpoint.canonicalConversationUrl,
+    precedingUserTurnId: "conversation-turn-1",
+    precedingPromptHash: exactAssistantCommand.intent.sourceCheckpoint.expectedPromptHash,
+    turnMarkerMatched: true as const, generatingRaw: 0,
+    rawDomHtml: exactAssistantRawDomHtml, rawDomHash: exactHash(exactAssistantRawDomHtml),
+    semanticText: exactAssistantSemanticText, semanticTextHash: exactHash(exactAssistantSemanticText),
+    observedAt,
+  };
+  const exactAssistantObservationRevisionHash = exactHash(
+    canonicalBrowserExactAssistantTurnRevision(exactAssistantReply),
+  );
+  const boundExactAssistant = await actorFor(async (candidate) => ({
+    replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+    permitSequence: candidate.sequence,
+    result: { ...exactAssistantReply, observationRevisionHash: exactAssistantObservationRevisionHash },
+  })).execute(exactAssistantPermit, exactAssistantCommand) as Readonly<Record<string, unknown>>;
+  assert.match(String(boundExactAssistant.exactCallIdentityHash), /^sha256:[a-f0-9]{64}$/u);
+  const tamperedExactAssistantPermit: BrowserCommandPermit = {
+    ...exactAssistantPermit,
+    ...permitAuthority("actor-exact-assistant-tampered"),
+    ...permitExecution("actor-exact-assistant-tampered"),
+    capabilityId: "browser.dom.inspect.v1", mutationClass: "observation", replayPolicy: "observation-only",
+  };
+  await assert.rejects(actorFor(async (candidate) => ({
+    replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+    permitSequence: candidate.sequence,
+    result: { ...exactAssistantReply,
+      targetRefHash: exactHash(tamperedExactAssistantPermit.targetRef),
+      documentRefHash: exactHash(tamperedExactAssistantPermit.documentRef),
+      semanticText: "tampered but hash-shaped", semanticTextHash: exactHash("tampered but hash-shaped"),
+      observationRevisionHash: exactAssistantObservationRevisionHash },
+  })).execute(tamperedExactAssistantPermit, exactAssistantCommand), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
+  "the Browser actor must reject source/assistant facts not bound into the exact observation revision");
+
   const coherentClickPermit: BrowserCommandPermit = {
     ...permit("actor-coherent-click"), commandTtlMs: 10_000,
   };
@@ -270,6 +325,32 @@ try {
     .queries as readonly Readonly<Record<string, unknown>>[])[0]?.matches as readonly Readonly<Record<string, unknown>>[])[0]
     ?.ariaExpanded, "true", "the exact-call-bound packet must preserve its permitted mechanical field");
   assert.equal(actorStore.readState(coherentClickPermit.commandId), "CONFIRMED");
+
+  const forgedSelectedPermit: BrowserCommandPermit = {
+    ...permit("actor-forged-selected-candidate"), commandTtlMs: 10_000,
+  };
+  const selectedCandidateCommand = { kind: "dom-intent" as const, intent: {
+    ...coherentClickCommand.intent,
+    postClickObservation: {
+      ...coherentClickCommand.intent.postClickObservation,
+      clickedCandidateAttribute: { name: "aria-checked" as const, equals: "true" as const },
+    },
+  } };
+  await assert.rejects(actorFor(async (candidate, _command, onDispatched) => {
+    onDispatched?.();
+    return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+      permitSequence: candidate.sequence, result: {
+        clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
+        postconditionVerified: true,
+        clickedCandidateAttributeReadback: { name: "aria-checked", value: "false", verified: false },
+        postconditionObservation: {
+          schemaVersion: "grasseye.browser.dom-observation.v2", targetRefHash: coherentTargetRefHash,
+          documentRefHash: coherentDocumentRefHash, currentUrl,
+          observationRevisionHash: coherentRevisionHash, observedAt, queries: coherentObservationQueries,
+        },
+      } };
+  }).execute(forgedSelectedPermit, selectedCandidateCommand), /BROWSER_COMMAND_RECEIPT_MISSING/u,
+  "the Browser actor must reject a claimed success when the exact clicked candidate is still unchecked");
 
   const coherentQualificationPermit: BrowserCommandPermit = {
     ...permit("actor-coherent-click-qualification-rejected"), commandTtlMs: 10_000,

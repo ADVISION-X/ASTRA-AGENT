@@ -212,7 +212,7 @@ export const inspectGptDirectMutationSettlementContract = (
     'reconcile_gpt_draft: { childCapabilityId: "reconcile_gpt_draft", contractVersion: 4',
     'reconcile_gpt_draft.input.v1", requiredTargetKind: "chatgpt", allowedDocumentTransition: "forbidden", profile: "DOM_OBSERVATION", boundedWait: false',
     'prepare_clean_gpt_chat: { childCapabilityId: "prepare_clean_gpt_chat", contractVersion: 4',
-    'focus_exact_gpt_conversation: { childCapabilityId: "focus_exact_gpt_conversation", contractVersion: 4',
+    'focus_exact_gpt_conversation: { childCapabilityId: "focus_exact_gpt_conversation", contractVersion: 5',
     'write_exact_gpt_prompt: { childCapabilityId: "write_exact_gpt_prompt", contractVersion: 4',
     'submit_exact_gpt_turn_once: { childCapabilityId: "submit_exact_gpt_turn_once", contractVersion: 4',
     "unsettled for 2500ms",

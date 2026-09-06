@@ -10,6 +10,9 @@ export const childConversationUrl = "https://chatgpt.com/c/gpt-browser-handoff-c
 export const marker = "[GRASSEYE:gpt-browser-handoff]";
 export const prompt = `${marker}\napproved prompt`;
 export const promptHash = hash(prompt);
+export const conversationIdentityHash = hash(
+  `${conversationUrl}\n${marker}\nconversation-turn-1\n${promptHash}`,
+);
 export const responseText = "approved assistant response";
 export const responseHash = hash(responseText);
 export const approvedFile = Object.freeze({
@@ -42,6 +45,9 @@ export const conversationFacts = (input: Readonly<{
   destinationOpen?: boolean;
 }> = {}): Readonly<Record<string, Fact>> => ({
   composer: exact([{ exactEditableTextHash: input.composerHash ?? EMPTY_HASH }]),
+  "identity-turn": input.promptHash
+    ? exact([{ exactGptUserPromptHash: input.promptHash }])
+    : absent(),
   "user-turns": input.promptHash
     ? exact([{ testId: "conversation-turn-1", exactGptUserPromptHash: input.promptHash }])
     : absent(),
@@ -50,10 +56,20 @@ export const conversationFacts = (input: Readonly<{
     : absent(),
   attachments: input.attachment ? exact() : absent(),
   generating: absent(),
-  "source-trigger": exact([{ ariaExpanded: input.menuOpen ? "true" : "false" }]),
-  "checkpoint-menu": input.menuOpen ? exact() : absent(),
-  "open-fork-leaf": input.menuOpen ? exact() : absent(),
-  "destination-menu": input.destinationOpen ? exact() : absent(),
+  "source-trigger": exact([{
+    id: "source-turn-trigger",
+    ariaExpanded: input.menuOpen ? "true" : "false",
+    ariaControls: input.menuOpen ? "source-turn-menu" : "",
+  }]),
+  "checkpoint-menu": input.menuOpen
+    ? exact([{ id: "source-turn-menu", ariaLabelledBy: "source-turn-trigger" }]) : absent(),
+  "open-fork-leaf": input.menuOpen ? exact([{
+    id: "open-fork-trigger",
+    ariaExpanded: input.destinationOpen ? "true" : "false",
+    ariaControls: input.destinationOpen ? "fork-destination-menu" : "",
+  }]) : absent(),
+  "destination-menu": input.destinationOpen
+    ? exact([{ id: "fork-destination-menu", ariaLabelledBy: "open-fork-trigger" }]) : absent(),
   "fork-to-new-chat-leaf": input.destinationOpen ? exact() : absent(),
 });
 

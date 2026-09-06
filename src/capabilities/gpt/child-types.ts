@@ -110,6 +110,7 @@ type GptSourceCheckpointInput = Readonly<{
 type GptResponseWaitInput = Readonly<{
   absoluteDeadline: string;
   canonicalConversationUrl: string;
+  conversationIdentityHash: GptHash;
   expectedPromptHash: GptHash;
   turnMarker: string;
 }>;
@@ -175,7 +176,11 @@ type GptAcquireContinuationInput = Readonly<{
 
 export interface GptChildInputMap {
   readonly prepare_clean_gpt_chat: Readonly<{ timeoutMs: number }>;
-  readonly focus_exact_gpt_conversation: Readonly<{ canonicalConversationUrl: string }>;
+  readonly focus_exact_gpt_conversation: Readonly<{
+    canonicalConversationUrl: string;
+    expectedPromptHash: GptHash;
+    turnMarker: string;
+  }>;
   readonly verify_gpt_conversation_identity: GptConversationIdentityInput;
   readonly open_gpt_execution_profile: Readonly<{ profile: GptExecutionProfile }>;
   readonly open_gpt_model_selector_v2: Readonly<{ profile: GptExecutionProfile }>;

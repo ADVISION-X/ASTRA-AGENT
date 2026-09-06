@@ -30,6 +30,8 @@ const attachmentObservationRowsCode = (
 
 type AttachmentControlState = Readonly<{
   controlRaw: number; controlEligible: number; choiceRaw: number; choiceEligible: number;
+  controlId: string | null; controlExpanded: string | null; controlMenuId: string | null;
+  activeMenuId: string | null; activeMenuLabelledBy: string | null;
   targetRefHash: `sha256:${string}`; documentRefHash: `sha256:${string}`;
   rows: readonly GptCoherentObservationRow[]; facts: GptCoherentFactProjection;
 }>;
@@ -40,7 +42,11 @@ const ATTACHMENT_CONTROL_QUERIES = Object.freeze([
   {
     queryId: "attachment-control", selector: GPT_ATTACHMENT_CONTROL_SELECTOR,
     scope: { selector: GPT_COMPOSER_FORM_SELECTOR }, maxMatches: 2,
-    fields: ["disabled", "ariaDisabled"] as const,
+    fields: ["disabled", "ariaDisabled", "id", "ariaExpanded", "ariaControls"] as const,
+  },
+  {
+    queryId: "active-menu", selector: GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR,
+    maxMatches: 2, fields: ["id", "ariaLabelledBy"] as const,
   },
   {
     queryId: "upload-choice", selector: GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
@@ -61,12 +67,21 @@ const projectAttachmentControlState = (
   observation: GptCoherentObservation,
 ): AttachmentControlState => {
   const control = observation.rows.find((row) => row.queryId === "attachment-control")!;
+  const activeMenu = observation.rows.find((row) => row.queryId === "active-menu")!;
   const choice = observation.rows.find((row) => row.queryId === "upload-choice")!;
+  const controlMatch = control.matches[0];
+  const activeMenuMatch = activeMenu.matches[0];
+  const stringField = (value: unknown): string | null => typeof value === "string" ? value : null;
   return Object.freeze({
     controlRaw: control.rawCount,
     controlEligible: control.eligibleCount,
     choiceRaw: choice.rawCount,
     choiceEligible: choice.eligibleCount,
+    controlId: stringField(controlMatch?.id),
+    controlExpanded: stringField(controlMatch?.ariaExpanded),
+    controlMenuId: stringField(controlMatch?.ariaControls),
+    activeMenuId: stringField(activeMenuMatch?.id),
+    activeMenuLabelledBy: stringField(activeMenuMatch?.ariaLabelledBy),
     targetRefHash: observation.targetRefHash,
     documentRefHash: observation.documentRefHash,
     rows: observation.rows,
@@ -112,26 +127,42 @@ export const failAttachmentControl = (
 
 const fullyAbsent = (value: AttachmentControlState): boolean => {
   const control = row(value, "attachment-control");
+  const activeMenu = row(value, "active-menu");
   const choice = row(value, "upload-choice");
   const composerScopeHydrated = (control.scopeRawCount === 0 && control.scopeEligibleCount === 0)
     || (control.scopeRawCount === 1 && control.scopeEligibleCount === 1);
   return composerScopeHydrated && control.rawCount === 0 && control.eligibleCount === 0
+    && activeMenu.eligibleCount === 0
     && choice.scopeEligibleCount === 0 && choice.rawCount === 0 && choice.eligibleCount === 0;
+};
+
+const attachmentMenuOwnedByControl = (value: AttachmentControlState): boolean => {
+  const labelledBy = value.activeMenuLabelledBy !== null && value.activeMenuLabelledBy.length > 0;
+  const controls = value.controlMenuId !== null && value.controlMenuId.length > 0;
+  if (!labelledBy && !controls) return false;
+  return (!labelledBy || value.activeMenuLabelledBy === value.controlId)
+    && (!controls || value.controlMenuId === value.activeMenuId);
 };
 
 export const attachmentControlOpenable = (value: AttachmentControlState): boolean => {
   const control = row(value, "attachment-control");
+  const activeMenu = row(value, "active-menu");
   const choice = row(value, "upload-choice");
   return control.scopeRawCount === 1 && control.scopeEligibleCount === 1
     && control.rawCount === 1 && control.eligibleCount === 1
+    && value.controlId !== null && value.controlId.length > 0 && value.controlExpanded === "false"
+    && activeMenu.eligibleCount === 0
     && choice.scopeEligibleCount === 0 && choice.rawCount === 0 && choice.eligibleCount === 0;
 };
 
 export const attachmentControlReady = (value: AttachmentControlState): boolean => {
   const control = row(value, "attachment-control");
+  const activeMenu = row(value, "active-menu");
   const choice = row(value, "upload-choice");
   return control.scopeRawCount === 1 && control.scopeEligibleCount === 1
     && control.rawCount === 1 && control.eligibleCount === 1
+    && value.controlId !== null && value.controlId.length > 0 && value.controlExpanded === "true"
+    && activeMenu.eligibleCount === 1 && attachmentMenuOwnedByControl(value)
     && choice.scopeEligibleCount === 1 && choice.rawCount >= 1 && choice.eligibleCount === 1
     && choice.scopeRejections.every((entry) => entry.reasons.length > 0)
     && choice.rejections.every((entry) => entry.reasons.length === 1 && entry.reasons[0] === "TEXT_MISMATCH");

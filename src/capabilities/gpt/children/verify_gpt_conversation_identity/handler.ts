@@ -9,7 +9,6 @@ import {
   type GptChildHandler,
 } from "../../web/child-handler.js";
 import {
-  assistantFacts,
   hashConversationValue,
   hashInput,
   readConversationState,
@@ -17,7 +16,7 @@ import {
   turnOrdinal,
 } from "./observation.js";
 import { canonicalGptConversationUrl } from "../../web/contracts/target-document.contract.js";
-import { readExactAssistantTurn } from "../../web/gpt-dom-observation.js";
+import { projectExactAssistantTurn, readExactAssistantTurn } from "../../web/gpt-dom-observation.js";
 
 export const verifyGptConversationIdentityHandler:
 GptChildHandler<"verify_gpt_conversation_identity"> = async (intent, context) => {
@@ -37,11 +36,13 @@ GptChildHandler<"verify_gpt_conversation_identity"> = async (intent, context) =>
       const userTurnId = matchingUsers[0]!.testId;
       const assistantTurnId = `conversation-turn-${turnOrdinal(userTurnId) + 1}`;
       if (observed.assistantTurnIds.includes(assistantTurnId)) {
-        const assistant = await readExactAssistantTurn(browser, assistantTurnId);
+        const assistant = await readExactAssistantTurn(browser, assistantTurnId, {
+          canonicalConversationUrl: expectedUrl, expectedPromptHash, turnMarker: marker,
+        });
         if (assistant.semanticTextHash !== expectedResponseHash) {
           throw executionFailure("failed", "GPT_RESPONSE_CHECKPOINT_MISMATCH");
         }
-        const facts = assistantFacts(observed.facts, assistant);
+        const facts = projectExactAssistantTurn(assistant);
         return success({
           value: { canonicalConversationUrl: expectedUrl, turnMarker: marker, userTurnId, assistantTurnId,
             semanticText: assistant.semanticText, promptHash: expectedPromptHash,

@@ -23,7 +23,14 @@ import {
 } from "./selectors.js";
 
 const relationHash = (source: ReturnType<typeof sourceCheckpointInput>, childUrl: string) =>
-  hashConversationValue(`${source.sourceUrl}\n${source.assistantTurnId}\n${source.responseHash}\n${childUrl}`);
+  hashConversationValue([
+    source.sourceUrl,
+    source.marker,
+    source.promptHash,
+    source.assistantTurnId,
+    source.responseHash,
+    childUrl,
+  ].join("\n"));
 
 export const forkExactGptConversationAtCheckpointHandler:
 GptChildHandler<"fork_exact_gpt_conversation_at_checkpoint"> = async (intent, context) => {
@@ -51,7 +58,17 @@ GptChildHandler<"fork_exact_gpt_conversation_at_checkpoint"> = async (intent, co
     kind: "click", selector: GPT_FORK_TO_NEW_CHAT_SELECTOR,
     scope: { selector: GPT_FORK_DESTINATION_MENU_SELECTOR },
     expectedTextEquals: GPT_FORK_TO_NEW_CHAT_TEXT, expectedMatches: 1,
-    postClickTargetTransition: { kind: "gpt-fork-successor", timeoutMs: Math.min(source.timeoutMs, 5_000) },
+    postClickTargetTransition: {
+      kind: "gpt-fork-successor",
+      sourceCheckpoint: {
+        assistantTurnId: source.assistantTurnId,
+        canonicalConversationUrl: source.sourceUrl,
+        promptHash: source.promptHash,
+        responseHash: source.responseHash,
+        turnMarker: source.marker,
+      },
+      timeoutMs: Math.min(source.timeoutMs, 5_000),
+    },
   });
   const readback = await readConversationState(browser);
   const childUrl = canonicalGptConversationUrl(readback.currentUrl);

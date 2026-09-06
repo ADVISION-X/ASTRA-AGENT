@@ -9,11 +9,19 @@ import {
   type GptChildHandler,
 } from "../../web/child-handler.js";
 import {
-  GPT_PROFILE_POPUP_SELECTOR,
   GPT_PROFILE_TRIGGER_SELECTOR,
 } from "./selectors.js";
 import { profileFromIntent } from "../../web/execution-profile-input.js";
-import { topology } from "./observation.js";
+import { decodeCoherentObservationPacket } from "../../web/gpt-dom-observation.js";
+import { PROFILE_TOPOLOGY_QUERIES, profileClosedReady, profileOpenReady,
+  projectTopology, topology } from "./observation.js";
+
+const CLOSE_POSTCONDITION = Object.freeze({
+  queries: Object.freeze(PROFILE_TOPOLOGY_QUERIES.map((query) => Object.freeze({
+    ...query, expectedEligibleCount: query.queryId === "popup" ? 0 : 1,
+  }))),
+  timeoutMs: 5_000,
+});
 
 export const closeGptExecutionProfileHandler: GptChildHandler<"close_gpt_execution_profile"> =
   async (intent, context) => {
@@ -21,23 +29,27 @@ export const closeGptExecutionProfileHandler: GptChildHandler<"close_gpt_executi
     profileFromIntent(intent);
     const browser = requireBrowser(context);
     const observed = await topology(browser);
-    if (observed.popup === 0) return success({
+    if (profileClosedReady(observed)) return success({
       value: { state: "profile-popup-closed" },
       ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",
         browserFact: null, nativeFailureCode: null }),
     });
-    if (observed.popup !== 1 || observed.trigger !== 1 || observed.triggerExpanded !== "true") {
+    if (!profileOpenReady(observed)) {
       throw executionFailure("failed", "GPT_EXECUTION_PROFILE_CLOSE_TRIGGER_INVALID");
     }
     if (context.mutationMode === "readback") {
       throw executionFailure("failed", "GPT_EXECUTION_PROFILE_CLOSE_PENDING");
     }
-    await browser.executeDomIntent({
+    const mutation = await browser.executeDomIntent({
       kind: "click", selector: GPT_PROFILE_TRIGGER_SELECTOR, expectedMatches: 1,
-      postClickMatch: { selector: GPT_PROFILE_POPUP_SELECTOR, expectedMatches: 0, timeoutMs: 5_000 },
+      postClickObservation: CLOSE_POSTCONDITION,
     });
-    const readback = await topology(browser);
-    if (readback.popup !== 0) throw executionFailure("failed", "GPT_EXECUTION_PROFILE_CLOSE_PENDING");
+    const mutationRecord = mutation && typeof mutation === "object" && !Array.isArray(mutation)
+      ? mutation as Readonly<Record<string, unknown>> : {};
+    const readback = projectTopology(decodeCoherentObservationPacket(
+      mutationRecord.postconditionObservation, PROFILE_TOPOLOGY_QUERIES,
+    ));
+    if (!profileClosedReady(readback)) throw executionFailure("failed", "GPT_EXECUTION_PROFILE_CLOSE_PENDING");
     const browserFact = requireConfirmedBrowserFact(intent, browser);
     return success({
       value: { state: "profile-popup-closed" },

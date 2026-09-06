@@ -28,6 +28,7 @@ const SELECTION_POSTCONDITION = Object.freeze({
     expectedEligibleCount: query.queryId === "advanced-panel" ? 0 : 1,
   }))) as readonly BrowserDomPostconditionQuery[],
   timeoutMs: 5_000,
+  clickedCandidateAttribute: Object.freeze({ name: "aria-checked", equals: "true" }),
 });
 
 export const selectExactGptModelV2Handler: GptChildHandler<"select_exact_gpt_model_v2"> =
@@ -56,6 +57,14 @@ export const selectExactGptModelV2Handler: GptChildHandler<"select_exact_gpt_mod
     });
     const mutationRecord = mutation && typeof mutation === "object" && !Array.isArray(mutation)
       ? mutation as Readonly<Record<string, unknown>> : {};
+    const selectedReadback = mutationRecord.clickedCandidateAttributeReadback;
+    if (!selectedReadback || typeof selectedReadback !== "object" || Array.isArray(selectedReadback)
+      || Object.keys(selectedReadback).sort().join("|") !== "name|value|verified"
+      || Reflect.get(selectedReadback, "name") !== "aria-checked"
+      || Reflect.get(selectedReadback, "value") !== "true"
+      || Reflect.get(selectedReadback, "verified") !== true) {
+      throw executionFailure("failed", "GPT_MODEL_SELECTION_V2_SELECTED_FACT_INVALID");
+    }
     const restored = projectModelSelectorTopology(decodeCoherentObservationPacket(
       mutationRecord.postconditionObservation,
       MODEL_SELECTOR_TOPOLOGY_QUERIES,

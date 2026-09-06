@@ -16,7 +16,7 @@ import {
 } from "./selectors.js";
 import { profileFromIntent } from "../../web/execution-profile-input.js";
 import {
-  MODEL_SELECTOR_TOPOLOGY_QUERIES,
+  modelSelectorTopologyQueries,
   modelSelectorAlreadyOpen,
   modelSelectorOpenable,
   modelSelectorTopologyCode,
@@ -24,10 +24,10 @@ import {
   readModelSelectorTopology,
 } from "./observation.js";
 
-const OPEN_POSTCONDITION = Object.freeze({
-  queries: Object.freeze(MODEL_SELECTOR_TOPOLOGY_QUERIES.map((query) => Object.freeze({
-    ...query,
-    expectedEligibleCount: query.queryId === "popup" || query.queryId === "advanced-panel" ? 1 : 0,
+const openPostcondition = (modelDisplayName: string) => Object.freeze({
+  queries: Object.freeze(modelSelectorTopologyQueries(modelDisplayName).map((query) => Object.freeze({
+    ...query, expectedEligibleCount: query.queryId === "popup" || query.queryId === "advanced-panel"
+      || query.queryId === "model-choice" ? 1 : 0,
   }))) as readonly BrowserDomPostconditionQuery[],
   timeoutMs: 5_000,
 });
@@ -35,9 +35,10 @@ const OPEN_POSTCONDITION = Object.freeze({
 export const openGptModelSelectorV2Handler: GptChildHandler<"open_gpt_model_selector_v2"> =
   async (intent, context) => {
     requireExactInputKeys(intent, ["profile"]);
-    profileFromIntent(intent);
+    const profile = profileFromIntent(intent);
     const browser = requireBrowser(context);
-    const observed = await readModelSelectorTopology(browser);
+    const queries = modelSelectorTopologyQueries(profile.modelDisplayName);
+    const observed = await readModelSelectorTopology(browser, profile.modelDisplayName);
     if (modelSelectorAlreadyOpen(observed)) return success({
       value: { selectionVersion: GPT_MODEL_SELECTION_VERSION, state: "model-selector-open" },
       ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",
@@ -51,13 +52,13 @@ export const openGptModelSelectorV2Handler: GptChildHandler<"open_gpt_model_sele
     }
     const mutation = await browser.executeDomIntent({
       kind: "click", selector: GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR, expectedMatches: 1,
-      postClickObservation: OPEN_POSTCONDITION,
+      postClickObservation: openPostcondition(profile.modelDisplayName),
     });
     const mutationRecord = mutation && typeof mutation === "object" && !Array.isArray(mutation)
       ? mutation as Readonly<Record<string, unknown>> : {};
     const readback = projectModelSelectorTopology(decodeCoherentObservationPacket(
       mutationRecord.postconditionObservation,
-      MODEL_SELECTOR_TOPOLOGY_QUERIES,
+      queries,
     ));
     if (!modelSelectorAlreadyOpen(readback)) {
       throw executionFailure("failed", `GPT_MODEL_SELECTION_V2_STATE_INVALID:${modelSelectorTopologyCode(readback)}`);

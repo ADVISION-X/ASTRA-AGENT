@@ -358,11 +358,11 @@ const PROFILE_CONSUMERS = new Set([
 const CONTRACT_V4_CHILDREN = new Set([
   "prepare_clean_gpt_chat", "focus_exact_gpt_conversation", "reconcile_gpt_draft",
   "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "reconcile_gpt_turn_submission",
-  "fork_exact_gpt_conversation_at_checkpoint",
+  "fork_exact_gpt_conversation_at_checkpoint", "wait_for_stable_gpt_text", "wait_for_stable_gpt_image",
 ]);
 const CONTRACT_V3_CHILDREN = new Set([
   "verify_gpt_conversation_identity", "checkpoint_gpt_text_response",
-  "checkpoint_gpt_generated_image", "wait_for_stable_gpt_text", "wait_for_stable_gpt_image",
+  "checkpoint_gpt_generated_image",
   "open_gpt_checkpoint_actions_menu",
   ...PROFILE_CONSUMERS, "reconcile_gpt_attachment_set",
 ]);
@@ -371,6 +371,10 @@ const expectedContractVersion = (id: string): string => {
   if (CONTRACT_V4_CHILDREN.has(id)) return "4";
   return CONTRACT_V3_CHILDREN.has(id) ? "3" : "2";
 };
+
+const INPUT_V2_CHILDREN = new Set([
+  ...PROFILE_CONSUMERS, "wait_for_stable_gpt_text", "wait_for_stable_gpt_image",
+]);
 
 const inspectProfileSchema = (
   context: InspectorContext,
@@ -410,10 +414,10 @@ const inspectChildContractVersions = (
     const versionText = Node.isPropertyAssignment(version) ? version.getInitializer()?.getText() : null;
     const inputText = Node.isPropertyAssignment(inputSchema) ? inputSchema.getInitializer()?.getText() : null;
     const expectedVersion = expectedContractVersion(id);
-    const expectedInputSuffix = PROFILE_CONSUMERS.has(id) ? ".input.v2\"" : ".input.v1\"";
+    const expectedInputSuffix = INPUT_V2_CHILDREN.has(id) ? ".input.v2\"" : ".input.v1\"";
     if (versionText !== expectedVersion || !inputText?.endsWith(expectedInputSuffix)) findings.push(finding(
       "gpt/profile-v2-contract-cutover", CONTRACT_PATH,
-      `${id} must use contract/input ${expectedVersion}/${PROFILE_CONSUMERS.has(id) ? "v2" : "v1"}; found ${versionText}/${inputText}.`,
+      `${id} must use contract/input ${expectedVersion}/${INPUT_V2_CHILDREN.has(id) ? "v2" : "v1"}; found ${versionText}/${inputText}.`,
       property.getStartLineNumber(),
     ));
   }

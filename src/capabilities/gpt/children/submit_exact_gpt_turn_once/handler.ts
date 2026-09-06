@@ -34,11 +34,15 @@ export const submitExactGptTurnOnceHandler: GptChildHandler<"submit_exact_gpt_tu
     if (alreadySubmitted.length > 1) {
       throw executionFailure("failed", `GPT_SUBMITTED_TURN_COUNT_${alreadySubmitted.length}`);
     }
-    if (alreadySubmitted.length === 1 && canonicalConversationOrNull(observed.currentUrl)) return success({
-      value: { promptHash, mutationSent: false },
-      ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",
-        browserFact: null, nativeFailureCode: null }),
-    });
+    if (alreadySubmitted.length === 1) {
+      if (canonicalConversationOrNull(observed.currentUrl)
+        && observed.composerHash === gptComposerHash("") && exactAttachmentSet(observed, [])) return success({
+        value: { promptHash, mutationSent: false },
+        ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",
+          browserFact: null, nativeFailureCode: null }),
+      });
+      throw executionFailure("failed", "GPT_SUBMIT_EXISTING_TURN_POSTCONDITION_INVALID");
+    }
     if (context.mutationMode === "readback") throw executionFailure("failed", "GPT_TURN_SUBMISSION_PENDING");
     if (observed.composerHash !== promptHash
       || observed.sendRaw !== 1 || observed.sendEligible !== 1 || observed.sendTag !== "BUTTON"
@@ -56,7 +60,8 @@ export const submitExactGptTurnOnceHandler: GptChildHandler<"submit_exact_gpt_tu
     requireExactComposer(readback);
     const submitted = submissionMatch(readback, promptHash);
     const canonicalUrl = canonicalConversationOrNull(readback.currentUrl);
-    if (submitted.length !== 1 || readback.composerHash !== gptComposerHash("") || canonicalUrl === null) {
+    if (submitted.length !== 1 || readback.composerHash !== gptComposerHash("")
+      || !exactAttachmentSet(readback, []) || canonicalUrl === null) {
       throw executionFailure("failed", "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED");
     }
     const browserFact = requireConfirmedBrowserFact(intent, browser);

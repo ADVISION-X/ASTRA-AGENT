@@ -14,11 +14,18 @@ import { waitForGptDirectMutationSettlement } from "../../web/direct-mutation-se
 
 export const focusExactGptConversationHandler: GptChildHandler<"focus_exact_gpt_conversation"> =
   async (intent, context) => {
-    requireExactInputKeys(intent, ["canonicalConversationUrl"]);
+    requireExactInputKeys(intent, ["canonicalConversationUrl", "expectedPromptHash", "turnMarker"]);
     const expected = canonicalGptConversationUrl(stringInput(intent, "canonicalConversationUrl"));
+    const expectedPromptHash = stringInput(intent, "expectedPromptHash");
+    if (!/^sha256:[a-f0-9]{64}$/u.test(expectedPromptHash)) {
+      throw executionFailure("failed", "GPT_CHILD_INPUT_INVALID:focus_exact_gpt_conversation:expectedPromptHash");
+    }
+    const turnMarker = stringInput(intent, "turnMarker");
     const browser = requireBrowser(context);
-    const observed = await readConversationState(browser);
-    if (observed.currentUrl === expected) return success({
+    const readIdentity = () => readConversationState(browser, expectedPromptHash, turnMarker);
+    const observed = await readIdentity();
+    if (observed.currentUrl === expected && observed.composerEligible === 1
+      && observed.matchingTurnCount === 1) return success({
       value: { url: expected, state: "already-focused" },
       ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",
         browserFact: null, nativeFailureCode: null }),
@@ -26,14 +33,19 @@ export const focusExactGptConversationHandler: GptChildHandler<"focus_exact_gpt_
     if (context.mutationMode === "readback") {
       throw executionFailure("failed", "GPT_CONVERSATION_NAVIGATION_NOT_YET_CONFIRMED");
     }
+    if (new URL(expected).pathname.split("/")[2]?.startsWith("WEB:")) {
+      throw executionFailure("failed", "GPT_TRANSIENT_WEB_CONVERSATION_NAVIGATION_FORBIDDEN");
+    }
     await browser.navigate({ url: expected, title: "focus exact GPT conversation" });
     const readback = await waitForGptDirectMutationSettlement(
       browser,
-      () => readConversationState(browser),
-      (state) => state.currentUrl === expected,
+      readIdentity,
+      (state) => state.currentUrl === expected && state.composerEligible === 1
+        && state.matchingTurnCount === 1,
       () => false,
     );
-    if (readback.currentUrl !== expected) {
+    if (readback.currentUrl !== expected || readback.composerEligible !== 1
+      || readback.matchingTurnCount !== 1) {
       throw executionFailure("failed", "GPT_CONVERSATION_NAVIGATION_NOT_YET_CONFIRMED");
     }
     return success({

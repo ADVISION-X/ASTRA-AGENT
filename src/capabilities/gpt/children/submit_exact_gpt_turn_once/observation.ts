@@ -108,9 +108,9 @@ export const readDraftState = async (
       fields: ["tagName" as const, "disabled" as const, "ariaDisabled" as const] }] : []),
     { queryId: "user-turns", selector: GPT_USER_TURN_SELECTOR, maxMatches: 20,
       fields: ["testId" as const, "exactGptUserPromptHash" as const] },
-    ...(phase === "precondition" ? [{ queryId: "attachment-items", selector: GPT_ATTACHMENT_ITEM_SELECTOR,
+    { queryId: "attachment-items", selector: GPT_ATTACHMENT_ITEM_SELECTOR,
       scope: { selector: GPT_COMPOSER_FORM_SELECTOR },
-      maxMatches: 20, fields: ["ariaLabel" as const] }] : []),
+      maxMatches: 20, fields: ["ariaLabel" as const] },
   ];
   const observation = await readCoherentObservation(browser, queries);
   const row = (queryId: string) => observation.rows.find((candidate) => candidate.queryId === queryId);

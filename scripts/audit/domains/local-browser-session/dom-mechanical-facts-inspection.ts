@@ -205,7 +205,7 @@ const inspectMechanicalContract = (
   requireTokens(contractText, ["rawCount", "eligibleCount", "effectiveOpacity", "scopeRejections", "rejections",
     "nativeCauseCode", "nativeStage", "candidateIndex", "observationIdentityHash",
     "BrowserDomObservationPacketV2", "exactCallIdentityHash", "targetRefHash", "documentRefHash",
-    "currentUrl", "observationRevisionHash", "BrowserExactAssistantTurnReplyV1",
+    "currentUrl", "observationRevisionHash", "BrowserExactAssistantTurnReplyV2",
     'kind: "readExactAssistantTurn"', 'BrowserDomReadEligibility = "non-actionable-aria-state"',
     "readEligibility?: BrowserDomReadEligibility",
     'BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">'], findings, lawId,

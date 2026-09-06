@@ -70,6 +70,12 @@ GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
   const expectedMediaHash = responseHashInput(intent, "expectedMediaHash");
   const turnMarker = stringInput(intent, "turnMarker");
   const predecessorTextCheckpoint = predecessorInput(intent);
+  if (predecessorTextCheckpoint.assistantTurnId !== assistantTurnId
+    || predecessorTextCheckpoint.canonicalConversationUrl !== conversationUrl
+    || predecessorTextCheckpoint.promptHash !== expectedPromptHash
+    || predecessorTextCheckpoint.turnMarker !== turnMarker) {
+    throw executionFailure("failed", "GPT_GENERATED_IMAGE_PREDECESSOR_MISMATCH");
+  }
   const browser = requireBrowser(context);
   const observed = await ensureResponseConversation(browser, conversationUrl);
   if (assistantTurnForPrompt(observed, expectedPromptHash) !== assistantTurnId || observed.generatingRaw !== 0) {

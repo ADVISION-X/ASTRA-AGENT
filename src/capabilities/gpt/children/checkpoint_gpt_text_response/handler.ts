@@ -8,10 +8,8 @@ import {
   success,
   type GptChildHandler,
 } from "../../web/child-handler.js";
-import { readExactAssistantTurn } from "../../web/gpt-dom-observation.js";
-import { assistantTurnForPrompt, ensureResponseConversation } from "./page-observation.js";
+import { projectExactAssistantTurn, readExactAssistantTurn } from "../../web/gpt-dom-observation.js";
 import {
-  exactAssistantFacts,
   isGptTurnId,
   responseHashInput,
 } from "./response-support.js";
@@ -29,17 +27,16 @@ export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_t
     const conversationUrl = canonicalGptConversationUrl(stringInput(intent, "canonicalConversationUrl"));
     const expectedPromptHash = responseHashInput(intent, "expectedPromptHash");
     const expectedResponseHash = responseHashInput(intent, "expectedResponseHash");
-    stringInput(intent, "turnMarker");
+    const turnMarker = stringInput(intent, "turnMarker");
     const browser = requireBrowser(context);
-    const observed = await ensureResponseConversation(browser, conversationUrl);
-    if (assistantTurnForPrompt(observed, expectedPromptHash) !== assistantTurnId || observed.generatingRaw !== 0) {
+    const assistant = await readExactAssistantTurn(browser, assistantTurnId, {
+      canonicalConversationUrl: conversationUrl, expectedPromptHash, turnMarker,
+    });
+    if (assistant.generatingRaw !== 0 || assistant.semanticText.trim().length === 0
+      || assistant.semanticTextHash !== expectedResponseHash) {
       throw executionFailure("failed", "GPT_RESPONSE_CHECKPOINT_MISMATCH");
     }
-    const assistant = await readExactAssistantTurn(browser, assistantTurnId);
-    if (assistant.semanticText.trim().length === 0 || assistant.semanticTextHash !== expectedResponseHash) {
-      throw executionFailure("failed", "GPT_RESPONSE_CHECKPOINT_MISMATCH");
-    }
-    const facts = exactAssistantFacts(observed.facts, assistant);
+    const facts = projectExactAssistantTurn(assistant);
     return success({
       value: { assistantTurnId, rawDomHtml: assistant.rawDomHtml, rawDomHash: assistant.rawDomHash,
         semanticText: assistant.semanticText, semanticTextHash: assistant.semanticTextHash },

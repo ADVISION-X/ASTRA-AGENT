@@ -235,15 +235,17 @@ const checkpointSubmittedTurn = async (
       productStepId: stepId, callId: "submission-reconcile", child: "reconcile_gpt_turn_submission",
       actionOrdinal: ordinals[0], input: { expectedPromptHash: promptHash, timeoutMs: 60_000, turnMarker: marker },
     });
+    const submission = objectValue(submitted.value, "PRODUCT_SUBMISSION_INVALID");
     const canonicalConversationUrl = textValue(
-      objectValue(submitted.value, "PRODUCT_SUBMISSION_INVALID").canonicalConversationUrl,
+      submission.canonicalConversationUrl,
       "PRODUCT_SUBMISSION_INVALID",
     );
+    const conversationIdentityHash = hashValue(submission.conversationIdentityHash, "PRODUCT_SUBMISSION_INVALID");
     const stable = objectValue((await flow.execute({
       productStepId: stepId, callId: "text-wait", child: "wait_for_stable_gpt_text",
       actionOrdinal: ordinals[1], input: {
         absoluteDeadline: confirmedDeadline(submit), canonicalConversationUrl,
-        expectedPromptHash: promptHash, turnMarker: marker,
+        conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
       },
     })).value, "PRODUCT_TEXT_RESPONSE_INVALID");
     const assistantTurnId = textValue(stable.assistantTurnId, "PRODUCT_TEXT_RESPONSE_INVALID");

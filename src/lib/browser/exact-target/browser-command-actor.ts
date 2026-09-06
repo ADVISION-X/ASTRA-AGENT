@@ -6,9 +6,10 @@ import { BrowserCommandAdmissionBudget } from "../transport/browser-command-admi
 import { withRuntimeLogCause, type RuntimeLogger } from "../../runtime-logs/index.js";
 import type {
   BrowserDomIntent,
-  BrowserExactAssistantTurnReplyV1,
+  BrowserExactAssistantTurnReplyV2,
 } from "./browser-dom-intent.js";
 import { assertBrowserDomIntent } from "./browser-dom-intent.js";
+import { canonicalBrowserExactAssistantTurnRevision } from "./exact-assistant-turn-revision.js";
 import {
   assertBrowserCommandTerminalReplyMargin,
   bindBrowserCommandObservationPacket,
@@ -204,22 +205,46 @@ const mutationIdentity = (permit: BrowserCommandPermit, command: BrowserGoverned
 const exactAssistantTurnValueValid = (
   value: Readonly<Record<string, unknown>>,
   permit: BrowserCommandPermit,
-  assistantTurnId: string,
+  intent: Extract<BrowserDomIntent, { kind: "readExactAssistantTurn" }>,
 ): boolean => {
   const keys = Object.keys(value);
   const observedAt = value.observedAt;
-  return keys.length === 9 && [
-    "schemaVersion", "targetRefHash", "documentRefHash", "assistantTurnId", "rawDomHtml",
-    "rawDomHash", "semanticText", "semanticTextHash", "observedAt",
+  const ordinal = Number(intent.assistantTurnId.slice("conversation-turn-".length));
+  const structurallyValid = keys.length === 15 && [
+    "schemaVersion", "targetRefHash", "documentRefHash", "observationRevisionHash",
+    "assistantTurnId", "currentUrl", "precedingUserTurnId", "precedingPromptHash",
+    "turnMarkerMatched", "generatingRaw", "rawDomHtml", "rawDomHash", "semanticText",
+    "semanticTextHash", "observedAt",
   ].every((key) => keys.includes(key))
-    && value.schemaVersion === "grasseye.browser.exact-assistant-turn.v1"
+    && value.schemaVersion === "grasseye.browser.exact-assistant-turn.v2"
     && value.targetRefHash === hashText(permit.targetRef)
     && value.documentRefHash === hashText(permit.documentRef)
-    && value.assistantTurnId === assistantTurnId
+    && typeof value.observationRevisionHash === "string"
+    && /^sha256:[a-f0-9]{64}$/u.test(value.observationRevisionHash)
+    && value.assistantTurnId === intent.assistantTurnId
+    && value.currentUrl === intent.sourceCheckpoint.canonicalConversationUrl
+    && value.precedingUserTurnId === `conversation-turn-${ordinal - 1}`
+    && value.precedingPromptHash === intent.sourceCheckpoint.expectedPromptHash
+    && value.turnMarkerMatched === true
+    && Number.isSafeInteger(value.generatingRaw) && (value.generatingRaw as number) >= 0
     && typeof value.rawDomHtml === "string" && hashText(value.rawDomHtml) === value.rawDomHash
     && typeof value.semanticText === "string" && hashText(value.semanticText) === value.semanticTextHash
     && typeof observedAt === "string" && !Number.isNaN(Date.parse(observedAt))
     && new Date(observedAt).toISOString() === observedAt;
+  if (!structurallyValid || typeof observedAt !== "string") return false;
+  return value.observationRevisionHash === hashText(canonicalBrowserExactAssistantTurnRevision({
+    targetRefHash: value.targetRefHash as `sha256:${string}`,
+    documentRefHash: value.documentRefHash as `sha256:${string}`,
+    assistantTurnId: intent.assistantTurnId,
+    currentUrl: value.currentUrl as string,
+    precedingUserTurnId: value.precedingUserTurnId as string,
+    precedingPromptHash: value.precedingPromptHash as `sha256:${string}`,
+    turnMarkerMatched: true,
+    generatingRaw: value.generatingRaw as number,
+    rawDomHash: value.rawDomHash as `sha256:${string}`,
+    semanticTextHash: value.semanticTextHash as `sha256:${string}`,
+    observedAt,
+  }));
 };
 
 const bindExactAssistantTurnReply = (
@@ -231,11 +256,11 @@ const bindExactAssistantTurnReply = (
   try {
     if (!result || typeof result !== "object" || Array.isArray(result)) throw new Error();
     const value = result as Record<string, unknown>;
-    if (!exactAssistantTurnValueValid(value, permit, command.intent.assistantTurnId)) throw new Error();
+    if (!exactAssistantTurnValueValid(value, permit, command.intent)) throw new Error();
     return Object.freeze({
       ...value,
       exactCallIdentityHash: browserExactCallIdentityHash(permit),
-    }) as BrowserExactAssistantTurnReplyV1;
+    }) as BrowserExactAssistantTurnReplyV2;
   } catch {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }

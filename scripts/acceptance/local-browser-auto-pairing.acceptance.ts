@@ -270,6 +270,149 @@ const targetChromeApi: ExtensionChromeApi = {
   },
   alarms: chromeApi.alarms,
 };
+
+const exerciseForkFailureChildSurvival = async (
+  stage: "child-attach" | "child-frame" | "claim" | "source-detach" | "source-remove",
+): Promise<void> => {
+  const sourceTabId = 300;
+  const childTabId = 301;
+  let updated: TabUpdatedListener = () => { throw new Error("failure fixture listener missing"); };
+  let detachListener: DebuggerDetachListener = () => undefined;
+  let claims = 0;
+  let injectionHits = 0;
+  const claimBodies: Readonly<Record<string, unknown>>[] = [];
+  let forkClick = false;
+  const removed: number[] = [];
+  const detached: number[] = [];
+  const urls = new Map<number, string>([
+    [sourceTabId, "https://chatgpt.com/c/source%20opaque"],
+    [childTabId, "https://chatgpt.com/c/child%20opaque"],
+  ]);
+  let discovered: readonly ExtensionDebugTarget[] = [];
+  const api: ExtensionChromeApi = {
+    runtime: chromeApi.runtime,
+    debugger: {
+      attach: async ({ tabId }) => {
+        if (stage === "child-attach" && tabId === childTabId) {
+          injectionHits += 1;
+          throw new Error("injected child attach failure");
+        }
+      },
+      detach: async ({ tabId }) => {
+        if (stage === "source-detach" && tabId === sourceTabId) {
+          injectionHits += 1;
+          throw new Error("injected source detach failure");
+        }
+        detached.push(tabId);
+      },
+      getTargets: async () => discovered,
+      sendCommand: async ({ tabId }, method, parameters) => {
+        if (forkClick && method === "DOM.getDocument") return { root: { nodeId: 1 } };
+        if (forkClick && method === "DOM.resolveNode") return { object: { objectId: "candidate-root" } };
+        if (forkClick && method === "Runtime.callFunctionOn"
+          && String(parameters?.functionDeclaration ?? "").startsWith("async function (spec)")) {
+          assert.equal(parameters?.awaitPromise, true);
+          return { result: { value: { x: 5, y: 5 } } };
+        }
+        if (forkClick && method === "Runtime.callFunctionOn") {
+          return { result: { value: browserDomFacts() } };
+        }
+        if (forkClick && method === "Runtime.releaseObject") return {};
+        if (forkClick && method === "Input.dispatchMouseEvent") {
+          if (parameters?.type === "mouseReleased") discovered = [
+            { attached: true, id: "source", tabId: sourceTabId, title: "Source", type: "page",
+              url: urls.get(sourceTabId)! },
+            { attached: false, id: "child", tabId: childTabId, title: "Child", type: "page",
+              url: urls.get(childTabId)! },
+          ];
+          return {};
+        }
+        if (method === "Page.getFrameTree") {
+          if (stage === "child-frame" && tabId === childTabId) {
+            injectionHits += 1;
+            throw new Error("injected child frame failure");
+          }
+          return { frameTree: { frame: { loaderId: `loader-${tabId}`, url: urls.get(tabId)! } } };
+        }
+        return {};
+      },
+      onDetach: { addListener: (listener) => { detachListener = listener; } },
+      onEvent: { addListener: () => undefined },
+    },
+    tabs: {
+      create: async () => {
+        globalThis.setTimeout(() => updated(sourceTabId, { status: "complete" }, {
+          id: sourceTabId, url: urls.get(sourceTabId)!, title: "Source",
+        }), 0);
+        return { id: sourceTabId };
+      },
+      remove: async (tabId) => {
+        if (stage === "source-remove" && tabId === sourceTabId) {
+          injectionHits += 1;
+          throw new Error("injected source remove failure");
+        }
+        removed.push(tabId);
+        discovered = discovered.filter((candidate) => candidate.tabId !== tabId);
+      },
+      onUpdated: { addListener: (listener) => { updated = listener; } },
+      onRemoved: { addListener: () => undefined },
+    },
+    alarms: chromeApi.alarms,
+  };
+  const authority = new ExtensionTargetAuthority(api, async (kind, body) => {
+    if (kind === "TARGET_CLAIM") {
+      claims += 1;
+      claimBodies.push(body);
+      if (stage === "claim" && claims === 2) {
+        injectionHits += 1;
+        throw new Error("injected claim failure");
+      }
+    }
+  }, () => undefined);
+  authority.start();
+  void detachListener;
+  await authority.acquireJobBoundChatGptTarget();
+  discovered = [{ attached: true, id: "source", tabId: sourceTabId, title: "Source", type: "page",
+    url: urls.get(sourceTabId)! }];
+  const firstClaimBody = claimBodies[0];
+  assert.ok(firstClaimBody, "initial source claim must be published before fork failure injection");
+  const firstClaim = authority.resolve(String(firstClaimBody.targetRef), String(firstClaimBody.documentRef));
+  forkClick = true;
+  await assert.rejects(authority.executeRegisteredCommand({
+    kind: "dom-intent",
+    intent: {
+      kind: "click", selector: "[role='menuitem']", expectedTextEquals: "分支到新聊天", expectedMatches: 1,
+      postClickTargetTransition: {
+        kind: "gpt-fork-successor",
+        sourceCheckpoint: {
+          assistantTurnId: "conversation-turn-10",
+          canonicalConversationUrl: urls.get(sourceTabId)!,
+          promptHash: `sha256:${"6".repeat(64)}`,
+          responseHash: `sha256:${"7".repeat(64)}`,
+          turnMarker: "[GRASSEYE:fork]",
+        },
+        timeoutMs: 5_000,
+      },
+    },
+  }, firstClaim), /BROWSER_POSTCONDITION_FAILED/u, `${stage} must fail closed`);
+  assert.ok(injectionHits >= 1, `${stage} must reach its named failure boundary`);
+  assert.equal(removed.includes(childTabId), false, `${stage} must never delete the user-visible child tab`);
+  assert.equal(discovered.some((candidate) => candidate.tabId === childTabId), true,
+    `${stage} must preserve the user-visible child rather than destroy Provider output`);
+  if (stage === "child-attach" || stage === "child-frame") {
+    assert.equal(authority.resolve(String(firstClaimBody.targetRef), String(firstClaimBody.documentRef)).tabId,
+      sourceTabId, `${stage} must leave the verified source as the sole logical production Target`);
+  } else {
+    const successorClaim = claimBodies[1];
+    assert.ok(successorClaim, `${stage} must reach the child Target transfer before failing`);
+    assert.equal(authority.resolve(String(successorClaim.targetRef), String(successorClaim.documentRef)).tabId,
+      childTabId, `${stage} must keep the transferred child as the logical production Target`);
+  }
+};
+
+for (const stage of ["child-attach", "child-frame", "claim", "source-detach", "source-remove"] as const) {
+  await exerciseForkFailureChildSurvival(stage);
+}
 const targetAuthority = new ExtensionTargetAuthority(
   targetChromeApi,
   async (kind, body) => { targetFrames.push({ kind, body }); if (kind === "TARGET_REVOKE") targetFailureOrder.push(kind); },
@@ -417,25 +560,38 @@ const forkReceipt = await targetAuthority.executeRegisteredCommand({
   intent: {
     kind: "click", selector: "[role='menuitem'][tabindex='0']", expectedTextEquals: "分支到新聊天",
     expectedMatches: 1,
-    postClickTargetTransition: { kind: "gpt-fork-successor", timeoutMs: 5_000 },
+    postClickTargetTransition: {
+      kind: "gpt-fork-successor",
+      sourceCheckpoint: {
+        assistantTurnId: "conversation-turn-2",
+        canonicalConversationUrl: "https://chatgpt.com/c/exact-recovery",
+        promptHash: `sha256:${"6".repeat(64)}`,
+        responseHash: `sha256:${"7".repeat(64)}`,
+        turnMarker: "[GRASSEYE:fork]",
+      },
+      timeoutMs: 5_000,
+    },
   },
 }, forkTarget) as Readonly<Record<string, unknown>>;
 forkTransitionClick = false;
 assert.equal(forkReceipt.postconditionVerified, true);
 assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length,
-  beforeForkNavigateCount + 1, "fork normalization must navigate the original production tab exactly once");
+  beforeForkNavigateCount, "fork takeover must not navigate the source production tab");
 assert.ok((attachedTabs as readonly number[]).includes(4)
-  && (detachedTabs as readonly number[]).includes(4)
-  && (removedTabs as readonly number[]).includes(4),
-  "the one transient fork page must be attached, verified, detached, and removed");
+  && !(detachedTabs as readonly number[]).includes(4)
+  && !(removedTabs as readonly number[]).includes(4),
+  "the verified fork child must remain attached as the one production page");
+assert.ok((detachedTabs as readonly number[]).includes(3)
+  && (removedTabs as readonly number[]).includes(3),
+  "the superseded source page must be detached and removed");
 assert.equal(targetFrames.at(-1)?.body.targetRef, beforeForkClaim.body.targetRef,
   "fork normalization must retain the original targetRef");
 assert.equal(Number(targetFrames.at(-1)?.body.navigationEpoch), Number(beforeForkClaim.body.navigationEpoch) + 1,
   "fork normalization must publish exactly one successor Document");
-assert.deepEqual(debuggerTargets.map((candidate) => candidate.tabId), [3],
-  "fork normalization must restore one production tab before replying");
+assert.deepEqual(debuggerTargets.map((candidate) => candidate.tabId), [4],
+  "fork normalization must retain only the successor production tab before replying");
 targetFailureOrder.length = 0;
-debuggerDetach({ tabId: 3 }, "target_closed");
+debuggerDetach({ tabId: 4 }, "target_closed");
 await Promise.resolve();
 assert.deepEqual(targetFailureOrder, ["DIAGNOSTIC", "TARGET_REVOKE"]);
 assert.deepEqual(targetFailures.at(-1), {

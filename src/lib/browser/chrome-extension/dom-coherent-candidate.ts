@@ -8,6 +8,7 @@ import {
   type BrowserCoherentObservationResult,
 } from "./dom-coherent-observation.js";
 import { BROWSER_MECHANICAL_FACTS_READER_SOURCE } from "./dom-mechanical-facts.js";
+import { BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE } from "./dom-semantic-text.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 
 type BrowserRecord = Record<string, unknown>;
@@ -15,8 +16,16 @@ type CandidateRequest = Readonly<{
   selector: string;
   scope?: BrowserDomReadScope;
   text?: Readonly<{ value: string; exact: boolean }>;
+  gptSourceCheckpoint?: Readonly<{
+    assistantTurnId: string;
+    canonicalConversationUrl: string;
+    promptHash: `sha256:${string}`;
+    responseHash: `sha256:${string}`;
+    turnMarker: string;
+  }>;
 }>;
 export type BrowserPointerAction = Readonly<{ x: number; y: number }>;
+export type BrowserRetainedPointerAction = BrowserPointerAction & Readonly<{ nodeId: number }>;
 export type CoherentObservationPointerPreparation = Readonly<{
   kind: "postcondition";
   observation: BrowserCoherentObservationResult;
@@ -69,6 +78,71 @@ const COHERENT_CANDIDATE_FUNCTION = `function (spec) {
   };
 }`;
 
+const RETAINED_POINTER_FUNCTION = `function () {
+  ${BROWSER_MECHANICAL_FACTS_READER_SOURCE}
+  const candidate = this;
+  const facts = browserMechanicalFacts(candidate, true);
+  if (!facts.connected) return "BROWSER_DOM_ACTION_NODE_DISCONNECTED";
+  if (!facts.layout || facts.bounds === null) return "BROWSER_DOM_ACTION_NO_LAYOUT_BOX";
+  if (!facts.visible) return "BROWSER_DOM_ACTION_NOT_VISIBLE";
+  if (facts.ariaHidden) return "BROWSER_DOM_ACTION_ARIA_HIDDEN";
+  if (facts.inert) return "BROWSER_DOM_ACTION_INERT";
+  if (facts.disabled) return "BROWSER_DOM_ACTION_DISABLED";
+  if (facts.ariaDisabled) return "BROWSER_DOM_ACTION_ARIA_DISABLED";
+  if (!facts.viewport) return "BROWSER_DOM_ACTION_OUTSIDE_VIEWPORT";
+  if (globalThis.getComputedStyle(candidate).pointerEvents === "none") {
+    return "BROWSER_DOM_ACTION_POINTER_EVENTS_NONE";
+  }
+  if (!facts.hitTest) return "BROWSER_DOM_ACTION_HIT_TEST_FAILED";
+  return {
+    x: facts.bounds.x + facts.bounds.width / 2,
+    y: facts.bounds.y + facts.bounds.height / 2
+  };
+}`;
+
+const GPT_FORK_CANDIDATE_FUNCTION = `async function (spec) {
+  ${BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE}
+  const source = spec.gptSourceCheckpoint;
+  if (!source) return "BROWSER_DOM_READ_INVALID";
+  const sha256 = async (value) => {
+    const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+    return "sha256:" + Array.from(new Uint8Array(digest))
+      .map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  };
+  const observedUrl = new URL(location.href);
+  const currentUrl = observedUrl.origin + observedUrl.pathname;
+  if (observedUrl.protocol !== "https:" || observedUrl.origin !== "https://chatgpt.com"
+    || observedUrl.username !== "" || observedUrl.password !== ""
+    || currentUrl !== source.canonicalConversationUrl) return "BROWSER_DOM_CANDIDATE_MISSING";
+  const assistantOrdinal = Number(source.assistantTurnId.slice("conversation-turn-".length));
+  if (!Number.isSafeInteger(assistantOrdinal) || assistantOrdinal < 2) {
+    return "BROWSER_DOM_CANDIDATE_MISSING";
+  }
+  const assistantNodes = Array.from(document.querySelectorAll(
+    "[data-testid='" + source.assistantTurnId
+      + "'][data-turn='assistant'] [data-message-author-role='assistant']"
+  ));
+  const userTurnId = "conversation-turn-" + (assistantOrdinal - 1);
+  const userNodes = Array.from(document.querySelectorAll(
+    "[data-testid='" + userTurnId + "'][data-turn='user']"
+  ));
+  if (assistantNodes.length !== 1 || userNodes.length !== 1) {
+    return "BROWSER_DOM_CANDIDATE_MISSING";
+  }
+  const promptNodes = Array.from(userNodes[0].querySelectorAll(
+    "[data-testid='collapsible-user-message-content']"
+  ));
+  if (promptNodes.length !== 1) return "BROWSER_DOM_CANDIDATE_MISSING";
+  const prompt = browserCanonicalSemanticText(promptNodes[0]);
+  const response = browserCanonicalSemanticText(assistantNodes[0]);
+  if (!prompt.includes(source.turnMarker)
+    || await sha256(prompt) !== source.promptHash
+    || await sha256(response) !== source.responseHash) {
+    return "BROWSER_DOM_CANDIDATE_MISSING";
+  }
+  return (${COHERENT_CANDIDATE_FUNCTION})(spec);
+}`;
+
 const COHERENT_OBSERVATION_POINTER_FUNCTION = `function (request) {
   ${BROWSER_MECHANICAL_FACTS_READER_SOURCE}
   const currentUrlValue = (() => {
@@ -79,7 +153,7 @@ const COHERENT_OBSERVATION_POINTER_FUNCTION = `function (request) {
       && segments[2].length > 0 && segments[2].length <= 256;
     if (observedUrl.protocol !== "https:" || observedUrl.origin !== "https://chatgpt.com"
       || observedUrl.username !== "" || observedUrl.password !== "" || (!root && !conversation)
-      || observedUrl.search !== "" || observedUrl.hash !== "") {
+    ) {
       throw new Error("BROWSER_DOM_READ_INVALID");
     }
     return observedUrl.origin + observedUrl.pathname;
@@ -107,6 +181,8 @@ const COHERENT_OBSERVATION_POINTER_FUNCTION = `function (request) {
     if (field === "dataTurn") return node.getAttribute("data-turn") || "";
     if (field === "tagName") return node.tagName;
     if (field === "ariaLabel") return node.getAttribute("aria-label") || "";
+    if (field === "ariaLabelledBy") return node.getAttribute("aria-labelledby") || "";
+    if (field === "ariaControls") return node.getAttribute("aria-controls") || "";
     if (field === "ariaExpanded") return node.getAttribute("aria-expanded") || "";
     if (field === "ariaChecked") return node.getAttribute("aria-checked") || "";
     if (field === "ariaValueMin") return node.getAttribute("aria-valuemin") || "";
@@ -345,6 +421,48 @@ export const resolveCoherentMutationCandidate = async (
   }
 };
 
+export const resolveCoherentRetainedPointerAction = async (
+  runtime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  request: CandidateRequest,
+): Promise<BrowserRetainedPointerAction> => {
+  let candidateObjectId: string | null = null;
+  let primaryFailure: unknown = null;
+  try {
+    const loaderBefore = await mainFrameLoaderId(runtime, target.tabId);
+    const nodeId = await resolveCoherentMutationCandidate(runtime, target, request);
+    const resolved = record(await read(() => runtime.send(
+      target.tabId, "DOM.resolveNode", { nodeId },
+    )));
+    candidateObjectId = record(resolved.object).objectId as string;
+    if (typeof candidateObjectId !== "string" || candidateObjectId.length === 0) {
+      throw new Error("BROWSER_DOM_READ_INVALID");
+    }
+    const call = record(await read(() => runtime.send(target.tabId, "Runtime.callFunctionOn", {
+      objectId: candidateObjectId,
+      functionDeclaration: RETAINED_POINTER_FUNCTION,
+      returnByValue: true,
+      awaitPromise: false,
+      silent: true,
+    })));
+    if (call.exceptionDetails !== undefined) throw new Error("BROWSER_DOM_READ_INVALID");
+    const point = pointerFromValue(record(call.result).value);
+    if (await mainFrameLoaderId(runtime, target.tabId) !== loaderBefore) {
+      throw new Error("BROWSER_DOCUMENT_INVALID");
+    }
+    return Object.freeze({ ...point, nodeId });
+  } catch (error) {
+    primaryFailure = error;
+    throw machineError(error);
+  } finally {
+    if (candidateObjectId !== null) try {
+      await read(() => runtime.send(target.tabId, "Runtime.releaseObject", { objectId: candidateObjectId }));
+    } catch (error) {
+      if (primaryFailure === null) throw machineError(error);
+    }
+  }
+};
+
 export const resolveCoherentPointerAction = async (
   runtime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
@@ -365,9 +483,11 @@ export const resolveCoherentPointerAction = async (
       throw new Error("BROWSER_DOM_READ_INVALID");
     }
     const call = record(await read(() => runtime.send(target.tabId, "Runtime.callFunctionOn", {
-      objectId: rootObjectId, functionDeclaration: COHERENT_CANDIDATE_FUNCTION,
+      objectId: rootObjectId,
+      functionDeclaration: request.gptSourceCheckpoint === undefined
+        ? COHERENT_CANDIDATE_FUNCTION : GPT_FORK_CANDIDATE_FUNCTION,
       arguments: [{ value: { ...request, output: "pointer" } }], returnByValue: true,
-      awaitPromise: false, silent: true,
+      awaitPromise: request.gptSourceCheckpoint !== undefined, silent: true,
     })));
     if (call.exceptionDetails !== undefined) throw new Error("BROWSER_DOM_READ_INVALID");
     const point = pointerFromValue(record(call.result).value);

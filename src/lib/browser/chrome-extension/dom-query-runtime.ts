@@ -295,6 +295,8 @@ const staticFieldReaders: Readonly<Record<string, (node: DevToolsRecord) => unkn
   tagName: (node) => stringValue(node.nodeName, DOM_READ_INVALID),
   ariaLabel: (node) => attribute(node, "aria-label") ?? "",
   ariaExpanded: (node) => attribute(node, "aria-expanded") ?? "",
+  ariaLabelledBy: (node) => attribute(node, "aria-labelledby") ?? "",
+  ariaControls: (node) => attribute(node, "aria-controls") ?? "",
   ariaChecked: (node) => attribute(node, "aria-checked") ?? "",
   accept: (node) => attribute(node, "accept") ?? "",
   multiple: (node) => attribute(node, "multiple") !== undefined,

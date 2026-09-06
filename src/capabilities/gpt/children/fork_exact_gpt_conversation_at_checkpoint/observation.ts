@@ -85,13 +85,22 @@ export type ConversationState = Readonly<{
   generatingRaw: number;
   triggerRaw: number;
   triggerEligible: number;
+  triggerId: string | null;
   triggerExpanded: string | null;
+  triggerMenuId: string | null;
   checkpointMenuRaw: number;
   checkpointMenuEligible: number;
+  checkpointMenuId: string | null;
+  checkpointMenuLabelledBy: string | null;
   openForkRaw: number;
   openForkEligible: number;
+  openForkId: string | null;
+  openForkExpanded: string | null;
+  openForkMenuId: string | null;
   destinationMenuRaw: number;
   destinationMenuEligible: number;
+  destinationMenuId: string | null;
+  destinationMenuLabelledBy: string | null;
   forkToNewChatRaw: number;
   forkToNewChatEligible: number;
   facts: GptCoherentFactProjection;
@@ -113,12 +122,14 @@ export const readConversationState = async (
     { queryId: "generating", selector: GPT_GENERATING_STOP_SELECTOR, maxMatches: 2, fields: [] },
     ...(triggerAssistantTurnId === undefined ? [] : [
       { queryId: "source-trigger", selector: gptMoreActionsButtonSelector(triggerAssistantTurnId),
-        maxMatches: 2, fields: ["ariaExpanded" as const] },
-      { queryId: "checkpoint-menu", selector: GPT_CHECKPOINT_ACTIONS_MENU_SELECTOR, maxMatches: 2, fields: [] },
+        maxMatches: 2, fields: ["id", "ariaExpanded", "ariaControls"] as const },
+      { queryId: "checkpoint-menu", selector: GPT_CHECKPOINT_ACTIONS_MENU_SELECTOR, maxMatches: 2,
+        fields: ["id", "ariaLabelledBy"] as const },
       { queryId: "open-fork-leaf", selector: GPT_OPEN_FORK_ACTION_SELECTOR,
         scope: { selector: GPT_CHECKPOINT_ACTIONS_MENU_SELECTOR }, textEquals: GPT_OPEN_FORK_ACTION_TEXT,
-        maxMatches: 2, fields: [] },
-      { queryId: "destination-menu", selector: GPT_FORK_DESTINATION_MENU_SELECTOR, maxMatches: 2, fields: [] },
+        maxMatches: 2, fields: ["id", "ariaExpanded", "ariaControls"] as const },
+      { queryId: "destination-menu", selector: GPT_FORK_DESTINATION_MENU_SELECTOR, maxMatches: 2,
+        fields: ["id", "ariaLabelledBy"] as const },
       { queryId: "fork-to-new-chat-leaf", selector: GPT_FORK_TO_NEW_CHAT_SELECTOR,
         scope: { selector: GPT_FORK_DESTINATION_MENU_SELECTOR }, textEquals: GPT_FORK_TO_NEW_CHAT_TEXT,
         maxMatches: 2, fields: [] },
@@ -143,7 +154,10 @@ export const readConversationState = async (
     return match.testId;
   });
   const trigger = row("source-trigger");
-  const triggerExpanded = trigger?.matches[0]?.ariaExpanded;
+  const checkpointMenu = row("checkpoint-menu");
+  const openFork = row("open-fork-leaf");
+  const destinationMenu = row("destination-menu");
+  const stringField = (value: unknown): string | null => typeof value === "string" ? value : null;
   const rawComposerHash = composer.matches[0]?.exactEditableTextHash;
   if (rawComposerHash !== undefined
     && (typeof rawComposerHash !== "string" || !HASH.test(rawComposerHash))) {
@@ -162,13 +176,22 @@ export const readConversationState = async (
     generatingRaw: row("generating")!.rawCount,
     triggerRaw: trigger?.rawCount ?? 0,
     triggerEligible: trigger?.eligibleCount ?? 0,
-    triggerExpanded: typeof triggerExpanded === "string" ? triggerExpanded : null,
-    checkpointMenuRaw: row("checkpoint-menu")?.rawCount ?? 0,
-    checkpointMenuEligible: row("checkpoint-menu")?.eligibleCount ?? 0,
-    openForkRaw: row("open-fork-leaf")?.rawCount ?? 0,
-    openForkEligible: row("open-fork-leaf")?.eligibleCount ?? 0,
-    destinationMenuRaw: row("destination-menu")?.rawCount ?? 0,
-    destinationMenuEligible: row("destination-menu")?.eligibleCount ?? 0,
+    triggerId: stringField(trigger?.matches[0]?.id),
+    triggerExpanded: stringField(trigger?.matches[0]?.ariaExpanded),
+    triggerMenuId: stringField(trigger?.matches[0]?.ariaControls),
+    checkpointMenuRaw: checkpointMenu?.rawCount ?? 0,
+    checkpointMenuEligible: checkpointMenu?.eligibleCount ?? 0,
+    checkpointMenuId: stringField(checkpointMenu?.matches[0]?.id),
+    checkpointMenuLabelledBy: stringField(checkpointMenu?.matches[0]?.ariaLabelledBy),
+    openForkRaw: openFork?.rawCount ?? 0,
+    openForkEligible: openFork?.eligibleCount ?? 0,
+    openForkId: stringField(openFork?.matches[0]?.id),
+    openForkExpanded: stringField(openFork?.matches[0]?.ariaExpanded),
+    openForkMenuId: stringField(openFork?.matches[0]?.ariaControls),
+    destinationMenuRaw: destinationMenu?.rawCount ?? 0,
+    destinationMenuEligible: destinationMenu?.eligibleCount ?? 0,
+    destinationMenuId: stringField(destinationMenu?.matches[0]?.id),
+    destinationMenuLabelledBy: stringField(destinationMenu?.matches[0]?.ariaLabelledBy),
     forkToNewChatRaw: row("fork-to-new-chat-leaf")?.rawCount ?? 0,
     forkToNewChatEligible: row("fork-to-new-chat-leaf")?.eligibleCount ?? 0,
     facts: projectCoherentObservation(observation, "composer"),
@@ -223,7 +246,11 @@ export const requireSourceCheckpoint = async (
   if (user.length !== 1 || !state.assistantTurnIds.includes(source.assistantTurnId)) {
     throw executionFailure("failed", "GPT_FORK_SOURCE_CHECKPOINT_MISMATCH");
   }
-  const assistant = await readExactAssistantTurn(browser, source.assistantTurnId);
+  const assistant = await readExactAssistantTurn(browser, source.assistantTurnId, {
+    canonicalConversationUrl: source.sourceUrl,
+    expectedPromptHash: source.promptHash,
+    turnMarker: source.marker,
+  });
   if (assistant.semanticTextHash !== source.responseHash) {
     throw executionFailure("failed", "GPT_FORK_SOURCE_CHECKPOINT_MISMATCH");
   }

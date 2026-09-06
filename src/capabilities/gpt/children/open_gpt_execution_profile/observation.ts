@@ -20,6 +20,7 @@ import {
 
 export type ProfileTopology = Readonly<{
   popup: number;
+  popupLabelledBy: string | null;
   simplePanel: number;
   reasoningControl: number;
   enabledReasoningControl: number;
@@ -28,6 +29,7 @@ export type ProfileTopology = Readonly<{
   reasoningMaximum: string | null;
   reasoningCurrent: string | null;
   trigger: number;
+  triggerId: string | null;
   triggerExpanded: string | null;
   targetRefHash: `sha256:${string}`;
   documentRefHash: `sha256:${string}`;
@@ -37,7 +39,8 @@ export type ProfileTopology = Readonly<{
 
 export const PROFILE_HYDRATION_TIMEOUT_MS = 5_000;
 export const PROFILE_TOPOLOGY_QUERIES = Object.freeze([
-  { queryId: "popup", selector: GPT_PROFILE_POPUP_SELECTOR, maxMatches: 2, fields: [] },
+  { queryId: "popup", selector: GPT_PROFILE_POPUP_SELECTOR, maxMatches: 2,
+    fields: ["ariaLabelledBy"] as const },
   { queryId: "simple-panel", selector: GPT_PROFILE_SIMPLE_PANEL_SELECTOR, maxMatches: 2, fields: [] },
   { queryId: "reasoning-control", selector: GPT_PROFILE_REASONING_CONTROL_SELECTOR, maxMatches: 2, fields: [] },
   { queryId: "enabled-reasoning-control", selector: GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR,
@@ -46,7 +49,7 @@ export const PROFILE_TOPOLOGY_QUERIES = Object.freeze([
     readEligibility: "non-actionable-aria-state" as const,
     fields: ["ariaValueMin", "ariaValueMax", "ariaValueNow"] as const },
   { queryId: "trigger", selector: GPT_PROFILE_TRIGGER_SELECTOR, maxMatches: 2,
-    fields: ["ariaExpanded"] as const },
+    fields: ["id", "ariaExpanded"] as const },
 ] satisfies readonly BrowserDomObservationQuery[]);
 
 export const PROFILE_OPEN_POSTCONDITION = Object.freeze({
@@ -60,10 +63,14 @@ export const PROFILE_OPEN_POSTCONDITION = Object.freeze({
 export const projectTopology = (observation: GptCoherentObservation): ProfileTopology => {
   const row = (queryId: string) => observation.rows.find((candidate) => candidate.queryId === queryId)!;
   const trigger = row("trigger");
+  const popup = row("popup");
   const expanded = trigger.matches[0]?.ariaExpanded;
+  const triggerId = trigger.matches[0]?.id;
+  const popupLabelledBy = popup.matches[0]?.ariaLabelledBy;
   const reasoning = row("reasoning-value").matches[0];
   return Object.freeze({
-    popup: row("popup").eligibleCount,
+    popup: popup.eligibleCount,
+    popupLabelledBy: typeof popupLabelledBy === "string" ? popupLabelledBy : null,
     simplePanel: row("simple-panel").eligibleCount,
     reasoningControl: row("reasoning-control").eligibleCount,
     enabledReasoningControl: row("enabled-reasoning-control").eligibleCount,
@@ -72,6 +79,7 @@ export const projectTopology = (observation: GptCoherentObservation): ProfileTop
     reasoningMaximum: typeof reasoning?.ariaValueMax === "string" ? reasoning.ariaValueMax : null,
     reasoningCurrent: typeof reasoning?.ariaValueNow === "string" ? reasoning.ariaValueNow : null,
     trigger: trigger.eligibleCount,
+    triggerId: typeof triggerId === "string" ? triggerId : null,
     triggerExpanded: typeof expanded === "string" ? expanded : null,
     targetRefHash: observation.targetRefHash,
     documentRefHash: observation.documentRefHash,
@@ -91,6 +99,7 @@ const rowCode = (row: GptCoherentObservationRow): string => {
 
 export const topologyCode = (value: ProfileTopology): string => [
   `popup=${value.popup}`,
+  `owner=${value.popupLabelledBy ?? "missing"}/${value.triggerId ?? "missing"}`,
   `simple=${value.simplePanel}`,
   `reasoningControl=${value.reasoningControl}`,
   `enabledReasoningControl=${value.enabledReasoningControl}`,
@@ -124,10 +133,13 @@ export const profileOpenReady = (value: ProfileTopology): boolean =>
   ["popup", "simple-panel", "reasoning-control", "enabled-reasoning-control", "reasoning-value", "trigger"]
     .every((queryId) => rowIs(value, queryId, 1, 1))
   && approvedReasoningScale(value)
-  && value.triggerExpanded === "true";
+  && value.triggerExpanded === "true"
+  && value.triggerId !== null && value.triggerId.length > 0
+  && value.popupLabelledBy === value.triggerId;
 
 export const profileOpenable = (value: ProfileTopology): boolean =>
   ["popup", "simple-panel", "reasoning-control", "enabled-reasoning-control", "reasoning-value"]
     .every((queryId) => rowIs(value, queryId, 0, 0))
   && rowIs(value, "trigger", 1, 1)
-  && value.triggerExpanded === "false";
+  && value.triggerExpanded === "false"
+  && value.triggerId !== null && value.triggerId.length > 0;

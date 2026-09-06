@@ -160,7 +160,10 @@ const observationExecutionValue = (input: ExecutionValueInput): ExecutionValue |
   const { call, fixture } = input;
   if (call.child === "reconcile_gpt_attachment_set") return attachmentExecutionValue(input);
   if (call.child === "reconcile_gpt_turn_submission") {
-    return { ...input, value: { canonicalConversationUrl: "https://chatgpt.com/c/current" } };
+    return { ...input, value: {
+      canonicalConversationUrl: "https://chatgpt.com/c/current",
+      conversationIdentityHash: FIXTURE_HASH,
+    } };
   }
   if (call.child === "wait_for_stable_gpt_text") {
     return { ...input, value: { assistantTurnId: "assistant:1", responseHash: FIXTURE_HASH } };

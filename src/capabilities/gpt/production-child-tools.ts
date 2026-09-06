@@ -210,7 +210,9 @@ export class ProductionGptChildTools {
         authorizeConfirmedProviderReadback({ browsers, call, result: completed, receipt: confirmedProviderSubmit });
         return completed;
       }
-      const result = await this.executeOne(input, browsers, call);
+      const result = await this.executeOne(
+        input, browsers, call, input.abortSignal, confirmedProviderSubmit,
+      );
       authorizeConfirmedProviderReadback({ browsers, call, result, receipt: confirmedProviderSubmit });
       if ((call.child === "persist_gpt_continuation"
         || call.child === "complete_exact_gpt_continuation_reservation_once") && result.value
@@ -413,6 +415,7 @@ export class ProductionGptChildTools {
     browsers: ProductionGptBrowserLifecycle,
     call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
     signal: AbortSignal = execution.abortSignal,
+    confirmedProviderSubmitReceipt: ConfirmedProviderSubmitReceipt | null = null,
   ): Promise<ProductGptChildResult<K>> {
     const intent = this.intentFor(execution, call);
     const facts = await this.readIntentFacts(intent);
@@ -443,6 +446,7 @@ export class ProductionGptChildTools {
         browsers,
         intent: intent as GptAnyChildCapabilityIntent,
         browserCall,
+        confirmedProviderSubmitReceipt,
         signal,
       });
       result = atomic.result;

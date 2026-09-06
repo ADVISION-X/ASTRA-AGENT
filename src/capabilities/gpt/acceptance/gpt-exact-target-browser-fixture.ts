@@ -53,15 +53,21 @@ const hashText = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
 export const exactAssistantTurnReply = (
-  assistantTurnId: string,
+  intent: Extract<BrowserDomIntent, { kind: "readExactAssistantTurn" }>,
   semanticText: string,
-  rawDomHtml = `<article data-testid="${assistantTurnId}" data-turn="assistant">${semanticText}</article>`,
+  rawDomHtml = `<article data-testid="${intent.assistantTurnId}" data-turn="assistant">${semanticText}</article>`,
 ) => Object.freeze({
-  schemaVersion: "grasseye.browser.exact-assistant-turn.v1" as const,
+  schemaVersion: "grasseye.browser.exact-assistant-turn.v2" as const,
   exactCallIdentityHash: `sha256:${"5".repeat(64)}` as `sha256:${string}`,
   targetRefHash: `sha256:${"2".repeat(64)}` as `sha256:${string}`,
   documentRefHash: `sha256:${"3".repeat(64)}` as `sha256:${string}`,
-  assistantTurnId,
+  observationRevisionHash: `sha256:${"6".repeat(64)}` as `sha256:${string}`,
+  assistantTurnId: intent.assistantTurnId,
+  currentUrl: intent.sourceCheckpoint.canonicalConversationUrl,
+  precedingUserTurnId: `conversation-turn-${Number(intent.assistantTurnId.slice("conversation-turn-".length)) - 1}`,
+  precedingPromptHash: intent.sourceCheckpoint.expectedPromptHash,
+  turnMarkerMatched: true as const,
+  generatingRaw: 0,
   rawDomHtml,
   rawDomHash: hashText(rawDomHtml),
   semanticText,

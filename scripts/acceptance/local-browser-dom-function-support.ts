@@ -130,6 +130,68 @@ export const exerciseCapturedCandidateFunction = (source: string): void => {
   }), "BROWSER_DOM_READ_INVALID", "scope plus target candidates must share the 256 budget");
 };
 
+export const exerciseCapturedGptForkCandidateFunction = async (source: string): Promise<void> => {
+  const assistantTurnId = "conversation-turn-10";
+  const userTurnId = "conversation-turn-9";
+  const turnMarker = "[GRASSEYE:fork]";
+  const prompt = `approved ${turnMarker}`;
+  const response = "approved response";
+  const promptNode = new FakeElement(prompt, {}, {}, {}, "DIV", [new FakeTextNode(prompt)]);
+  const responseNode = new FakeElement(response, {}, {}, {}, "DIV", [new FakeTextNode(response)]);
+  const userTurn = new FakeElement(prompt, {
+    "[data-testid='collapsible-user-message-content']": [promptNode],
+  });
+  const candidate = new FakeElement("分支到新聊天", {}, {}, {}, "BUTTON");
+  const root = new FakeElement("root", { "[role='menuitem']": [candidate] });
+  for (const node of [promptNode, responseNode, userTurn, candidate]) node.parentElement = root;
+  const assistantSelector = `[data-testid='${assistantTurnId}'][data-turn='assistant'] [data-message-author-role='assistant']`;
+  const userSelector = `[data-testid='${userTurnId}'][data-turn='user']`;
+  const document = {
+    documentElement: root,
+    querySelectorAll: (selector: string) => selector === assistantSelector ? [responseNode]
+      : selector === userSelector ? [userTurn] : [],
+    elementFromPoint: () => candidate,
+  };
+  const checkpoint = Object.freeze({
+    assistantTurnId,
+    canonicalConversationUrl: "https://chatgpt.com/c/opaque%20segment",
+    promptHash: hash(prompt),
+    responseHash: hash(response),
+    turnMarker,
+  });
+  const input = Object.freeze({
+    selector: "[role='menuitem']",
+    text: { value: "分支到新聊天", exact: true },
+    gptSourceCheckpoint: checkpoint,
+    output: "pointer",
+  });
+  const href = checkpoint.canonicalConversationUrl;
+  assert.equal(JSON.stringify(await execute(source, document, input, href)), JSON.stringify({ x: 5, y: 5 }),
+    "the async fork resolver must validate the exact source checkpoint before returning the pointer");
+  assert.equal(JSON.stringify(await execute(
+    source, document, input, `${href}?query=discarded#fragment`,
+  )), JSON.stringify({ x: 5, y: 5 }),
+  "the fork resolver must physically discard query and fragment before source URL comparison");
+  const rejected = async (overrides: Readonly<Record<string, unknown>>, observedHref: string = href) =>
+    await execute(source, document, {
+      ...input,
+      gptSourceCheckpoint: { ...checkpoint, ...overrides },
+    }, observedHref);
+  assert.equal(await rejected({ assistantTurnId: "conversation-turn-11" }), "BROWSER_DOM_CANDIDATE_MISSING");
+  assert.equal(await rejected({ turnMarker: "[GRASSEYE:wrong]" }), "BROWSER_DOM_CANDIDATE_MISSING");
+  assert.equal(await rejected({ promptHash: `sha256:${"1".repeat(64)}` }), "BROWSER_DOM_CANDIDATE_MISSING");
+  assert.equal(await rejected({ responseHash: `sha256:${"2".repeat(64)}` }), "BROWSER_DOM_CANDIDATE_MISSING");
+  assert.equal(await rejected({}, "https://chatgpt.com/c/another"), "BROWSER_DOM_CANDIDATE_MISSING");
+  assert.equal(await execute(source, {
+    ...document,
+    querySelectorAll: (selector: string) => selector === assistantSelector ? [responseNode] : [],
+  }, input, href), "BROWSER_DOM_CANDIDATE_MISSING",
+  "the matching assistant turn must not authorize a fork without its exact preceding user turn");
+  assert.equal(await execute(source, document, input,
+    "https://user:password@chatgpt.com/c/opaque%20segment"), "BROWSER_DOM_CANDIDATE_MISSING",
+  "the runtime source URL check must reject userinfo exactly like the canonical contract");
+};
+
 export const exerciseCapturedCoherentObservationPointerFunction = (source: string): void => {
   const reasoning = new FakeElement("", {}, {}, {
     "aria-valuemin": "0", "aria-valuemax": "4", "aria-valuenow": "2",
@@ -160,6 +222,21 @@ export const exerciseCapturedCoherentObservationPointerFunction = (source: strin
   }]));
   assert.equal((source.match(/location\.href/gu) ?? []).length, 1,
     "the atomic pointer preparation must read currentUrl and mechanical fields in one synchronous call");
+  const sanitized = execute(source, {
+    documentElement: root, querySelectorAll: () => [], elementFromPoint: () => trigger,
+  }, {
+    candidate: { selector: "button" },
+    postcondition: { queries: [
+      { queryId: "reasoning-value", selector: "reasoning", maxMatches: 1,
+        fields: ["ariaValueMin", "ariaValueMax", "ariaValueNow"], expectedEligibleCount: 1 },
+      { queryId: "trigger", selector: "trigger", maxMatches: 1,
+        fields: ["ariaExpanded"], expectedEligibleCount: 1 },
+    ] },
+  }, "https://chatgpt.com/c/postcondition?query=discarded#fragment") as Readonly<{
+    kind: string; observation: Readonly<{ currentUrl: string }>;
+  }>;
+  assert.equal(sanitized.observation.currentUrl, "https://chatgpt.com/c/postcondition",
+    "the coherent postcondition packet must physically discard query and fragment");
 };
 
 const exerciseObservationRejections = async (source: string): Promise<Readonly<Record<string, unknown>>> => {
@@ -304,6 +381,30 @@ const exerciseUserPromptHashes = async (source: string): Promise<void> => {
     "the exact GPT user Prompt hash must include only the unique rendered Prompt body");
   assert.notEqual(exactUserTurn?.semanticTextHash, hash(userPrompt),
     "the outer user-turn semantic hash must expose why attachment and controls cannot identify the Prompt");
+  const bodyWithoutMarker = new FakeElement("approved prompt", {}, {}, {
+    "data-testid": "collapsible-user-message-content",
+  }, "DIV", [new FakeTextNode("approved prompt")]);
+  const markerOnlyInAttachment = new FakeElement("approved prompt [GRASSEYE:exact-user-prompt]", {
+    "[data-testid='collapsible-user-message-content']": [bodyWithoutMarker],
+  }, {}, { "data-testid": "conversation-turn-1", "data-turn": "user" }, "ARTICLE", [
+    bodyWithoutMarker, new FakeElement("[GRASSEYE:exact-user-prompt]", {}, {}, {}, "DIV", [
+      new FakeTextNode("[GRASSEYE:exact-user-prompt]"),
+    ]),
+  ]);
+  const markerOnlyRoot = new FakeElement("", { ".user-turn": [markerOnlyInAttachment] });
+  const markerOnlyResult = await execute(source, {
+    documentElement: markerOnlyRoot, querySelectorAll: () => [], elementFromPoint: () => markerOnlyInAttachment,
+  }, [{ queryId: "user-turns", selector: ".user-turn", maxMatches: 1,
+    exactGptUserPromptContains: "[GRASSEYE:exact-user-prompt]",
+    fields: ["exactGptUserPromptHash"] }]) as Readonly<{
+      queries: readonly Readonly<{ eligibleCount: number; rejections: readonly Readonly<{
+        reasons: readonly string[];
+      }>[] }>[];
+  }>;
+  assert.equal(markerOnlyResult.queries[0]?.eligibleCount, 0);
+  assert.equal(markerOnlyResult.queries[0]?.rejections[0]?.reasons.length, 1);
+  assert.equal(markerOnlyResult.queries[0]?.rejections[0]?.reasons[0], "TEXT_MISMATCH",
+    "attachment or control text must not satisfy a Prompt-body marker requirement");
   const missingPromptBody = new FakeElement("attachment only", {}, {}, {
     "data-testid": "conversation-turn-1", "data-turn": "user",
   });
@@ -343,7 +444,7 @@ export const exerciseCapturedObservationFunction = async (source: string): Promi
   await exerciseInvalidObservationUrls(source, observationDocument);
 };
 
-export const exerciseCapturedExactAssistantTurnFunction = (source: string): void => {
+export const exerciseCapturedExactAssistantTurnFunction = async (source: string): Promise<void> => {
   const text = (value: string) => new FakeTextNode(value);
   const paragraph = new FakeElement("bold", {}, {}, {}, "P", [
     new FakeElement("bold", {}, {}, {}, "STRONG", [text("bold")]),
@@ -352,40 +453,56 @@ export const exerciseCapturedExactAssistantTurnFunction = (source: string): void
   const list = new FakeElement("item", {}, {}, {}, "UL", [listItem]);
   const assistant = new FakeElement("bold item", { "pre code": [] }, {}, {}, "DIV", [paragraph, list]);
   const selector = '[data-testid="conversation-turn-2"][data-turn="assistant"] [data-message-author-role="assistant"]';
+  const promptText = "approved [GRASSEYE:checkpoint]";
+  const prompt = new FakeElement(promptText, {}, {}, {}, "DIV", [text(promptText)]);
+  const user = new FakeElement(promptText, {
+    "[data-testid='collapsible-user-message-content']": [prompt],
+  });
+  const userSelector = "[data-testid='conversation-turn-1'][data-turn='user']";
+  const input = { kind: "readExactAssistantTurn", assistantTurnId: "conversation-turn-2",
+    sourceCheckpoint: { canonicalConversationUrl: "https://chatgpt.com/c/exact",
+      expectedPromptHash: hash(promptText), turnMarker: "[GRASSEYE:checkpoint]" } };
   let queryCalls = 0;
   const document = {
     querySelectorAll: (value: string) => {
       queryCalls += 1;
-      return value === selector ? [assistant] : [];
+      return value === selector ? [assistant] : value === userSelector ? [user] : [];
     },
     elementFromPoint: () => assistant,
   };
-  const observed = execute(source, document, "conversation-turn-2") as Readonly<{
+  const observed = await execute(
+    source, document, input, "https://chatgpt.com/c/exact?query=discarded#fragment",
+  ) as Readonly<{
     rawCount: number; eligibleCount: number; rawDomHtml: string; semanticText: string;
-    nativeStage: string;
+    currentUrl: string; nativeStage: string;
   }>;
-  assert.equal(queryCalls, 1, "the exact assistant turn must be selected once inside one synchronous call");
+  assert.equal(queryCalls, 3,
+    "the assistant, exact predecessor, and generating state must share one async Runtime call");
   assert.equal(observed.rawCount, 1);
   assert.equal(observed.eligibleCount, 1);
   assert.match(observed.rawDomHtml, /<strong>bold<\/strong>/u);
   assert.equal(observed.semanticText, "**bold**\n- item\n");
+  assert.equal(observed.currentUrl, "https://chatgpt.com/c/exact");
   assert.equal(observed.nativeStage, "runtime-call-function-on");
   const hidden = new FakeElement("hidden", { "pre code": [] }, { display: "none" }, {}, "DIV", [text("hidden")]);
-  const hiddenObserved = execute(source, {
-    querySelectorAll: () => [hidden], elementFromPoint: () => null,
-  }, "conversation-turn-2") as Readonly<{ rawCount: number; eligibleCount: number; rawDomHtml: string }>;
+  const hiddenObserved = await execute(source, {
+    querySelectorAll: (value: string) => value === selector ? [hidden]
+      : value === userSelector ? [user] : [], elementFromPoint: () => null,
+  }, input, "https://chatgpt.com/c/exact") as Readonly<{ rawCount: number; eligibleCount: number; rawDomHtml: string }>;
   assert.deepEqual({ rawCount: hiddenObserved.rawCount, eligibleCount: hiddenObserved.eligibleCount,
     rawDomHtml: hiddenObserved.rawDomHtml }, { rawCount: 1, eligibleCount: 0, rawDomHtml: "" });
-  const ambiguous = execute(source, {
-    querySelectorAll: () => [assistant, assistant], elementFromPoint: () => assistant,
-  }, "conversation-turn-2") as Readonly<{ rawCount: number; eligibleCount: number }>;
+  const ambiguous = await execute(source, {
+    querySelectorAll: (value: string) => value === selector ? [assistant, assistant]
+      : value === userSelector ? [user] : [], elementFromPoint: () => assistant,
+  }, input, "https://chatgpt.com/c/exact") as Readonly<{ rawCount: number; eligibleCount: number }>;
   assert.deepEqual({ rawCount: ambiguous.rawCount, eligibleCount: ambiguous.eligibleCount },
     { rawCount: 2, eligibleCount: 0 });
   const rich = richSemanticTree();
-  const richObserved = execute(source, {
-    querySelectorAll: (value: string) => value === selector ? [rich] : [],
+  const richObserved = await execute(source, {
+    querySelectorAll: (value: string) => value === selector ? [rich]
+      : value === userSelector ? [user] : [],
     elementFromPoint: () => rich,
-  }, "conversation-turn-2") as Readonly<{ semanticText: string }>;
+  }, input, "https://chatgpt.com/c/exact") as Readonly<{ semanticText: string }>;
   assert.equal(richObserved.semanticText, RICH_SEMANTIC_TEXT,
     "exact assistant read must preserve headings, prose, lists, inline code, the code block, and trailing prose");
 };

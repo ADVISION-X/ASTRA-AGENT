@@ -17,6 +17,7 @@ import {
   requireExactComposer,
   submissionMatch,
 } from "./observation.js";
+import { gptConversationIdentityHash } from "../../web/conversation-identity.js";
 
 const timeoutInput = (intent: Parameters<GptChildHandler<"reconcile_gpt_turn_submission">>[0]): number => {
   const value = numberInput(intent, "timeoutMs");
@@ -31,6 +32,19 @@ export const reconcileGptTurnSubmissionHandler: GptChildHandler<"reconcile_gpt_t
     requireExactInputKeys(intent, ["expectedPromptHash", "timeoutMs", "turnMarker"]);
     const expectedPromptHash = composerHashInput(intent, "expectedPromptHash");
     const marker = stringInput(intent, "turnMarker");
+    const submitReceipt = context.confirmedProviderSubmitReceipt;
+    if (!submitReceipt
+      || submitReceipt.sourceAttemptId !== intent.attemptId
+      || submitReceipt.sourceProductStepId !== intent.productStepId
+      || submitReceipt.sourceActionOrdinal >= intent.actionOrdinal
+      || submitReceipt.promptHash !== expectedPromptHash
+      || submitReceipt.turnMarker !== marker
+      || !/^sha256:[a-f0-9]{64}$/u.test(submitReceipt.sourceExactCallIdentityHash)
+      || !/^sha256:[a-f0-9]{64}$/u.test(submitReceipt.evidenceHash)
+      || !submitReceipt.sourceCallId || !submitReceipt.sourceTargetRef || !submitReceipt.sourceDocumentRef
+      || !submitReceipt.evidenceRef || Number.isNaN(Date.parse(submitReceipt.sourceTerminalAt))) {
+      throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_RECEIPT_MISMATCH");
+    }
     const deadline = Date.now() + timeoutInput(intent);
     const browser = requireBrowser(context);
     let lastTransient: unknown = null;
@@ -47,9 +61,9 @@ export const reconcileGptTurnSubmissionHandler: GptChildHandler<"reconcile_gpt_t
           const userTurnId = matching[0]!.testId;
           return success({
             value: { turnMarker: marker, userTurnId, canonicalConversationUrl, promptHash: expectedPromptHash,
-              conversationIdentityHash: gptComposerHash(
-                `${canonicalConversationUrl}\n${marker}\n${userTurnId}\n${expectedPromptHash}`,
-              ) },
+              conversationIdentityHash: gptConversationIdentityHash({
+                canonicalConversationUrl, turnMarker: marker, userTurnId, promptHash: expectedPromptHash,
+              }) },
             ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",
               browserFact: null, nativeFailureCode: null }),
           });

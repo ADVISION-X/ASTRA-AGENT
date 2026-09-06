@@ -117,7 +117,10 @@ const outputForCall = (state: SeoHarness, input: SeoCall, decision: "proceed" | 
       })),
     },
     write_exact_gpt_prompt: { hash: HASH },
-    reconcile_gpt_turn_submission: { canonicalConversationUrl: "https://chatgpt.com/c/example" },
+    reconcile_gpt_turn_submission: {
+      canonicalConversationUrl: "https://chatgpt.com/c/example",
+      conversationIdentityHash: HASH,
+    },
     wait_for_stable_gpt_text: { assistantTurnId: "conversation-turn-2", responseHash: HASH, responseText: text },
     checkpoint_gpt_text_response: {
       assistantTurnId: "conversation-turn-2",

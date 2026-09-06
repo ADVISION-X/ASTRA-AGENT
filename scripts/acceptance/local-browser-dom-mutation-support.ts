@@ -4,7 +4,8 @@ import type { ExtensionDebuggerRuntime } from
   "../../src/lib/browser/chrome-extension/debugger-runtime.js";
 import { executeRegisteredDomIntent } from
   "../../src/lib/browser/chrome-extension/dom-intent-runtime.js";
-import { exerciseCapturedCandidateFunction, exerciseCapturedCoherentObservationPointerFunction } from
+import { exerciseCapturedCandidateFunction, exerciseCapturedCoherentObservationPointerFunction,
+  exerciseCapturedGptForkCandidateFunction } from
   "./local-browser-dom-function-support.js";
 import { exerciseContentEditableFill, exerciseFillReadbackRejection } from
   "./local-browser-dom-fill-support.js";
@@ -319,6 +320,57 @@ const exerciseCoherentClickPostcondition = async (): Promise<void> => {
     "an ordinary deadline miss must return the final coherent negative readback instead of DOM_READ_INVALID");
 };
 
+const exerciseRetainedClickedCandidatePostcondition = async (): Promise<void> => {
+  const run = async (selectedAfterClick: boolean) => {
+    let clicked = false;
+    const runtime = { async send(
+      _tabId: number,
+      method: string,
+      parameters?: Readonly<Record<string, unknown>>,
+    ) {
+      const source = String(parameters?.functionDeclaration ?? "");
+      if (method === "Runtime.callFunctionOn" && source.startsWith("function ()")) {
+        return { result: { value: { x: 5, y: 5 } } };
+      }
+      if (method === "Runtime.callFunctionOn" && source.startsWith("async function (specs)")) {
+        return { result: { value: coherentObservation(clicked) } };
+      }
+      if (method === "DOM.describeNode") return { node: {
+        nodeId: 7, backendNodeId: 107, nodeName: "DIV",
+        attributes: ["aria-checked", clicked && selectedAfterClick ? "true" : "false"],
+      } };
+      if (method === "Input.dispatchMouseEvent") {
+        if (parameters?.type === "mouseReleased") clicked = true;
+        return {};
+      }
+      const infrastructure = mutationInfrastructureReply(method, parameters);
+      if (infrastructure !== undefined) return infrastructure;
+      throw new Error(`UNEXPECTED_RETAINED_CANDIDATE_METHOD:${method}`);
+    } } as ExtensionDebuggerRuntime;
+    return executeRegisteredDomIntent(runtime, {
+      tabId: 126, targetRef: "target-126", documentRef: "document-126", navigationEpoch: 1,
+    } as never, {
+      kind: "click", selector: "[role='menuitemradio']", expectedTextEquals: "GPT-5.6 Sol",
+      expectedMatches: 1,
+      postClickObservation: {
+        queries: coherentPostconditionQueries,
+        timeoutMs: 10,
+        clickedCandidateAttribute: { name: "aria-checked", equals: "true" },
+      },
+    }, () => undefined) as Promise<Readonly<Record<string, unknown>>>;
+  };
+  const selected = await run(true);
+  assert.equal(selected.postconditionVerified, true);
+  assert.deepEqual(selected.clickedCandidateAttributeReadback,
+    { name: "aria-checked", value: "true", verified: true });
+  const ignored = await run(false);
+  assert.equal(ignored.postconditionVerified, false);
+  assert.equal(ignored.failureCode, "BROWSER_POSTCONDITION_FAILED");
+  assert.deepEqual(ignored.clickedCandidateAttributeReadback,
+    { name: "aria-checked", value: "false", verified: false },
+  "a collapsed panel cannot hide that the exact clicked radio never became selected");
+};
+
 const guardRuntime = (events: string[], guardState: { current: boolean }): ExtensionDebuggerRuntime => ({
   async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
     if (method.startsWith("Input.") || method === "DOM.focus") {
@@ -379,11 +431,22 @@ const exerciseMutationDocumentGuard = async (): Promise<void> => {
 
 const exerciseFixedTargetTransitionPostcondition = async (): Promise<void> => {
   const events: string[] = [];
+  let candidateSource = "";
+  const candidateRequests: Readonly<Record<string, unknown>>[] = [];
+  let awaitedCandidate = false;
   const runtime = { async send(
     _tabId: number,
     method: string,
     parameters?: Readonly<Record<string, unknown>>,
   ) {
+    if (method === "Runtime.callFunctionOn" && parameters?.returnByValue === true
+      && String(parameters.functionDeclaration).startsWith("async function (spec)")) {
+      candidateSource = String(parameters.functionDeclaration);
+      const request = (parameters.arguments as readonly Readonly<{ value: Readonly<Record<string, unknown>> }>[])?.[0]?.value;
+      if (request) candidateRequests.push(request);
+      awaitedCandidate = parameters.awaitPromise === true;
+      return { result: { value: { x: 5, y: 5 } } };
+    }
     const infrastructure = mutationInfrastructureReply(method, parameters);
     if (infrastructure !== undefined) return infrastructure;
     if (method === "Input.dispatchMouseEvent") { events.push(String(parameters?.type)); return {}; }
@@ -393,9 +456,22 @@ const exerciseFixedTargetTransitionPostcondition = async (): Promise<void> => {
   const result = await executeRegisteredDomIntent(runtime, { tabId: 130 } as never, {
     kind: "click", selector: "[role='menuitem']", expectedTextEquals: "分支到新聊天",
     expectedMatches: 1,
-    postClickTargetTransition: { kind: "gpt-fork-successor", timeoutMs: 5_000 },
+    postClickTargetTransition: {
+      kind: "gpt-fork-successor",
+      sourceCheckpoint: {
+        assistantTurnId: "conversation-turn-10",
+        canonicalConversationUrl: "https://chatgpt.com/c/opaque%20segment",
+        promptHash: `sha256:${"6".repeat(64)}`,
+        responseHash: `sha256:${"7".repeat(64)}`,
+        turnMarker: "[GRASSEYE:fork]",
+      },
+      timeoutMs: 5_000,
+    },
   }, () => undefined, undefined, async () => { transitions += 1; }) as Readonly<Record<string, unknown>>;
   assert.deepEqual(events, ["mouseMoved", "mousePressed", "mouseReleased"]);
+  assert.equal(awaitedCandidate, true, "the source-bound fork resolver must await its SHA-256 checks");
+  assert.equal(candidateRequests[0]?.output, "pointer");
+  await exerciseCapturedGptForkCandidateFunction(candidateSource);
   assert.equal(transitions, 1, "the fixed successor normalizer must run once after the one click");
   assert.deepEqual(result, {
     clicked: true, candidateCount: 1, identityRevalidated: true,
@@ -411,6 +487,7 @@ export const exerciseDomMutations = async (): Promise<void> => {
   await exerciseScopedExactCandidate();
   await exerciseNativePointerSequences();
   await exerciseCoherentClickPostcondition();
+  await exerciseRetainedClickedCandidatePostcondition();
   await exerciseMutationDocumentGuard();
   await exerciseFixedTargetTransitionPostcondition();
 };

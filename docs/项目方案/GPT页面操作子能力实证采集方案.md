@@ -1,8 +1,8 @@
 # GPT 页面操作子能力实证采集方案
 
-> 版本：V1  
+> 版本：V2
 > 日期：2026-09-05  
-> 状态：Skill 已建设；静态分母已绑定；真实 Chrome 全量采集尚未执行  
+> 状态：Skill 已建设；真实 Chrome 全量采集已完成；源码绑定已退役
 > 方案性质：项目工程方案与证据说明，不是 active law、Blueprint、READY、RELEASE 或第二份 quality verdict
 
 ## 一、直接结论
@@ -26,7 +26,7 @@
 - 当前源码与 Browser typed contract；
 - 该 Child 的核心圈、相关圈、外围圈实证；
 - 真实页面样本及其单变量派生负例；
-- 明确的源码、候选、页面环境与证据绑定；
+- 采集时的 Child 身份、合同版本、页面环境和源码导航引用；
 
 完成页面判定逻辑设计、实现、离线 fixture、确定性测试和影响分析，而不需要临时打开 Chrome 猜页面。
 
@@ -44,12 +44,12 @@
 
 ### 2.3 当前分母
 
-当前 GPT Child 合同共 27 个：
+当前 GPT Child 合同共 28 个：
 
-- 页面操作 Child：21 个，全部必须采集；
+- 页面操作 Child：22 个，全部必须采集；
 - 非页面 continuation transaction Child：6 个，不采集页面信息，但仍保留在总分母报告中，防止把它们误算或漏算。
 
-21 个页面操作 Child：
+22 个页面操作 Child：
 
 1. `verify_gpt_conversation_identity`
 2. `reconcile_gpt_attachment_set`
@@ -69,9 +69,10 @@
 16. `wait_for_stable_gpt_text`
 17. `wait_for_stable_gpt_image`
 18. `open_gpt_checkpoint_actions_menu`
-19. `attach_approved_gpt_files_once`
-20. `submit_exact_gpt_turn_once`
-21. `fork_exact_gpt_conversation_at_checkpoint`
+19. `open_gpt_fork_destination_menu`
+20. `attach_approved_gpt_files_once`
+21. `submit_exact_gpt_turn_once`
+22. `fork_exact_gpt_conversation_at_checkpoint`
 
 6 个非页面 Child：
 
@@ -107,7 +108,7 @@
 - locale、viewport、theme、Chrome 版本和 provider build marker；
 - 账号 UI、模型 UI、reasoning 档位规模；
 - overlay、dialog、hydration、generation、rate-limit 等现场状态；
-- 当前 contract version、源码/法案/Blueprint/Manifest/registry/矩阵/采集器的内容寻址绑定哈希。
+- 采集时 contract version、run ID 和页面环境。
 
 三圈缺任何一圈，该 specimen 都不能算完整。
 
@@ -115,7 +116,7 @@
 
 ### 4.1 真实页面证据
 
-只有在本次专用 QA Chrome 标签页直接观察到的状态才标记 `LIVE_PAGE`。全量采集以三个合成场景覆盖 21 个 Child：
+只有在本次专用 QA Chrome 标签页直接观察到的状态才标记 `LIVE_PAGE`。全量采集以三个合成场景覆盖 22 个 Child：
 
 - `text-main`：clean chat、profile、model、reasoning、附件、prompt、draft、submit、稳定富文本和 checkpoint；
 - `image-main`：图片生成、稳定语义媒体、original identity 和图片 checkpoint；
@@ -176,10 +177,10 @@ Skill 和报告：
 目录：`/Users/nexgen/.codex/skills/gpt-page-operation-evidence/`
 
 - `SKILL.md`：模式、边界、执行顺序和离线闸门；
-- `references/page-operation-matrix.json`：21 个 Child 的采集状态合同，不保存 selector；
+- `references/page-operation-matrix.json`：22 个 Child 的采集状态合同，不保存 selector；
 - `references/evidence-schema.md`：三圈和报告 schema；
 - `references/collection-protocol.md`：真实 Chrome 采集协议；
-- `scripts/report-tool.mjs`：盘点、合并、绑定和严格校验；
+- `scripts/report-tool.mjs`：盘点、合并和严格校验；
 - `scripts/make-fixtures.mjs`：生成纯合成提示词与三类附件；
 - `agents/openai.yaml`：Skill UI 元数据。
 
@@ -189,38 +190,36 @@ Skill 和报告：
 
 它记录：
 
-- 27/21/6 分母；
-- 每个 Child 的当前 contract、源码引用和 Product 消费者；
-- 法案、Blueprint、GPT/Browser 源码与矩阵的绑定哈希；
+- 28/22/6 分母；
+- 每个 Child 的采集时 contract、源码导航引用和 Product 消费者；
 - 每个页面操作 Child 的 required/optional 状态；
-- 未来 capture 的三圈 specimen 和离线就绪缺口；
+- 已采集 capture 的三圈 specimen 和离线完整度；
 - `claimsQualityVerdict: false` 与 `productionRuntimeConsumer: false`。
 
-只保留当前一份报告。刷新时重新绑定当前候选并原子替换，不在项目中累积第二资料库。
+只保留当前一份报告。刷新时原子替换，不在项目中累积第二资料库。
 
-绑定模型固定为 `content-addressed-v1`：报告只绑定矩阵、现役法案/Blueprint/Manifest/registry、GPT/Browser 源码与采集器自身的实际内容，不把 Git HEAD、dirty 状态或报告自身写进有效性哈希。这样报告随同相同内容提交后，可在 clean commit 上原样复验；任何受绑定内容变化仍会立即失效。
+报告不保存源码、矩阵、采集器或治理文件的绑定哈希。源码变化不会把整份页面资料自动改成 `NOT_CAPTURED` 或失效；使用者在每次实际迭代前手工读取目标 Child 的当前合同和实现，只核对本次要消费的样本。源码引用仅是采集时的导航线索，不是生产准入证。
 
 ## 八、生产价值验收
 
 ### 8.1 本次建设验收
 
-- Skill 可以从现役合同自动盘点 27 个 Child；
-- 自动确认 21 个页面操作 Child 与 6 个非页面 Child；
+- Skill 可以从现役合同自动盘点 28 个 Child；
+- 自动确认 22 个页面操作 Child 与 6 个非页面 Child；
 - 合同与 web 实现分母不一致会失败；
-- 报告与当前源码、Browser 源码、法案、Blueprint、Manifest、registry、矩阵及采集器内容绑定；
 - 临时 fixture 可重复生成并带 SHA-256；
-- 初始报告如实标记 `NOT_CAPTURED`。
+- `inventory --read-only` 只输出当前分母和源码导航，不输出采集状态。
 
 ### 8.2 完整采集验收
 
 只有同时满足以下条件才标记 `CAPTURE_COMPLETE`：
 
-- 21 个页面操作 Child 全覆盖；
+- 22 个页面操作 Child 全覆盖；
 - 每个 required live state 都有 `LIVE_PAGE`；
 - 每个 required negative state 都有 `DERIVED_FIXTURE`；
 - 每个 specimen 的核心圈、相关圈、外围圈非空；
 - 专用 Chrome QA 标签页身份已哈希绑定；
-- 隐私扫描与当前源码绑定通过；
+- 隐私扫描通过；
 - 严格校验通过。
 
 这时可以说“离线工程资料完整”，仍不能说 READY、RELEASE 或已经生产发布。
@@ -229,29 +228,24 @@ Skill 和报告：
 
 Codex 针对一个 Child 开工前运行严格校验：
 
-- 报告完整且绑定未漂移：可以不打开 Chrome 迭代；
+- 报告完整，且已手工确认目标 Child 当前实现与所用样本相关：可以不打开 Chrome 做离线迭代；
 - 报告不完整：列出准确缺失状态，不猜页面；
-- 修改了合同、页面 query、Browser typed contract 或 authority：旧报告立即失效，先刷新实证；
+- 修改了合同、页面 query、Browser typed contract 或 authority：手工判断受影响样本；只有缺少本次所需事实时才刷新对应实证，不使无关 Child 的资料整体失效；
 - 实现完成后仍需在准确候选上做真实 Chrome 最终证明。
 
 ## 九、定期运行建议
 
-定期自动化应先生成临时 inventory 与当前报告比对：
-
-1. 没有绑定漂移且严格校验有效：保持安静。
-2. 有合同、源码、矩阵或 provider 页面漂移：进入专用 QA 标签页刷新。
-3. 只有完成、失效、失败或需要用户介入时通知。
-4. 定期刷新不得与 AGENT 生产 Browser 同时操作页面。
+不得用源码变化自动触发页面刷新。只有用户明确要求定期复核页面事实时，才运行临时 inventory 并进入专用 QA 标签页；无页面事实变化时保持安静，只有完成、失败或需要用户介入时通知。定期刷新不得与 AGENT 生产 Browser 同时操作页面。
 
 建议在首次人工完整采集并确认账号功能覆盖后，再创建定时自动化。这样定期任务复用的是已经跑通的采集合同，而不是定时重复试错。
 
 ## 十、当前如实状态
 
 - Skill：已建设。
-- 21 个页面操作 Child 矩阵：已建设。
-- 当前合同/源码/权威静态绑定：由报告工具生成。
-- 真实 Chrome 页面实证：尚未执行。
-- 离线迭代完整就绪：否；原因是缺少首次全量 `LIVE_PAGE` 与 `DERIVED_FIXTURE` 资料。
+- 22 个页面操作 Child 矩阵：已建设。
+- 源码绑定：已物理退役；报告不再因源码变化整体失效。
+- 真实 Chrome 页面实证：已完成一次全量采集。
+- 离线资料完整度：`CAPTURE_COMPLETE`；这不证明当前生产候选正确。
 - `acceptance:gpt:real-proof`：现役入口明确未准入，不能拿它伪装成本采集器。
 
-下一阶段应执行一次受控人工全量采集。首次通过后，才适合把同一 Skill 接到定期自动化。
+后续只在用户明确要求或页面事实确有变化时受控刷新；生产候选仍按现役原生质量入口和真实 Chrome 动态证明验收。

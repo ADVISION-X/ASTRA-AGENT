@@ -35,28 +35,37 @@ const profileFixture = fakeBrowser((intent) => {
   }
   if (intent.kind === "click" && intent.selector === GPT_PROFILE_TRIGGER_SELECTOR) {
     if (intent.postClickObservation) {
-      profileOpen = true;
+      const opening = !profileOpen;
+      profileOpen = opening;
       assert.equal(intent.postClickObservation.timeoutMs, 5_000);
-      assert.deepEqual(intent.postClickObservation.queries.map((query) => [
-        query.queryId, query.expectedEligibleCount,
-      ]), [
-        ["popup", 1], ["simple-panel", 1], ["reasoning-control", 1],
-        ["enabled-reasoning-control", 1], ["reasoning-value", 1], ["trigger", 1],
-      ], "profile open must prove the complete topology in the same Browser mutation packet");
-      assert.deepEqual(intent.postClickObservation.queries.map((query) => [
-        query.queryId, query.fields,
-      ]), [
-        ["popup", []], ["simple-panel", []], ["reasoning-control", []],
-        ["enabled-reasoning-control", []],
-        ["reasoning-value", ["ariaValueMin", "ariaValueMax", "ariaValueNow"]],
-        ["trigger", ["ariaExpanded"]],
-      ], "GPT must request only the governed mechanical profile fields in the same Browser packet");
-      profileHydrated = true;
+      if (opening) {
+        assert.deepEqual(intent.postClickObservation.queries.map((query) => [
+          query.queryId, query.expectedEligibleCount,
+        ]), [
+          ["popup", 1], ["simple-panel", 1], ["reasoning-control", 1],
+          ["enabled-reasoning-control", 1], ["reasoning-value", 1], ["trigger", 1],
+        ], "profile open must prove the complete topology in the same Browser mutation packet");
+        assert.deepEqual(intent.postClickObservation.queries.map((query) => [
+          query.queryId, query.fields,
+        ]), [
+          ["popup", ["ariaLabelledBy"]], ["simple-panel", []], ["reasoning-control", []],
+          ["enabled-reasoning-control", []],
+          ["reasoning-value", ["ariaValueMin", "ariaValueMax", "ariaValueNow"]],
+          ["trigger", ["id", "ariaExpanded"]],
+        ], "GPT must request only the governed mechanical profile fields in the same Browser packet");
+      } else {
+        assert.deepEqual(intent.postClickObservation.queries.map((query) => [
+          query.queryId, query.expectedEligibleCount,
+        ]), [["popup", 0], ["trigger", 1], ["composer", 1]],
+        "profile close must prove popup absence, collapsed exact trigger, and usable composer in one packet");
+      }
+      profileHydrated = opening;
       const queries = intent.postClickObservation.queries
         .map(({ expectedEligibleCount: _expected, ...query }) => query);
       return {
         postconditionVerified: true,
-        postconditionObservation: coherentObservationPacket({ queries }, profileFacts({ queries }, true, 0, true)),
+        postconditionObservation: coherentObservationPacket({ queries },
+          profileFacts({ queries }, opening, 0, opening)),
       };
     } else {
       profileOpen = false;
@@ -229,8 +238,9 @@ const modelFacts = (state: ModelState, checked?: "true" | "false") => ({
     eligibleCount: state === "closed" ? 1 : 0 },
   "advanced-panel": { rawCount: state === "open" || state === "transition" ? 1 : 0,
     eligibleCount: state === "open" || state === "transition" ? 1 : 0 },
-  ...(checked === undefined ? {} : {
-    "model-choice": { rawCount: 1, eligibleCount: 1, matches: [{ ariaChecked: checked }] },
+  ...((checked ?? (state === "open" ? "false" : undefined)) === undefined ? {} : {
+    "model-choice": { rawCount: 1, eligibleCount: 1,
+      matches: [{ ariaChecked: checked ?? "false" }] },
   }),
 });
 
@@ -241,8 +251,9 @@ for (const initiallyOpen of [true, false]) {
     if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR) {
       assert.deepEqual(intent.postClickObservation?.queries.map((query) => [
         query.queryId, query.expectedEligibleCount,
-      ]), [["popup", 1], ["entry", 0], ["openable-entry", 0], ["simple-panel", 0], ["advanced-panel", 1]],
-      "the one Browser click must mechanically prove the five-part stable topology");
+      ]), [["popup", 1], ["entry", 0], ["openable-entry", 0], ["simple-panel", 0],
+        ["advanced-panel", 1], ["model-choice", 1]],
+      "the one Browser click must prove the stable topology and exact target-model hydration");
       assert.equal(intent.postClickObservation?.timeoutMs, 5_000);
       state = "open";
       const queries = intent.postClickObservation!.queries
@@ -258,6 +269,21 @@ for (const initiallyOpen of [true, false]) {
   assert.equal(result.status, "success", result.failureCode ?? "model selector failed");
   assert.equal(state, "open");
   assert.equal(fixture.physicalMutations(), initiallyOpen ? 0 : 1);
+}
+
+{
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, {
+      ...modelFacts("open"), "model-choice": { rawCount: 0, eligibleCount: 0 },
+    });
+    throw new Error(`UNHYDRATED_MODEL_CHOICE_MUST_NOT_COMPLETE:${intent.kind}`);
+  });
+  const result = await execute("open_gpt_model_selector_v2", fixture.browser, { profile });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode,
+    "GPT_MODEL_SELECTION_V2_STATE_INVALID:popup=1:entry=0:openableEntry=0:simple=0:advanced=1");
+  assert.equal(fixture.physicalMutations(), 0,
+    "an open advanced shell without the exact target-model radio must fail without mutation");
 }
 
 {
@@ -321,6 +347,8 @@ for (const checked of ["true", "false"] as const) {
     }
     if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR) {
       assert.equal(intent.expectedTextEquals, profile.modelDisplayName);
+      assert.deepEqual(intent.postClickObservation?.clickedCandidateAttribute,
+        { name: "aria-checked", equals: "true" });
       assert.deepEqual(intent.postClickObservation?.queries.map((query) => [
         query.queryId, query.expectedEligibleCount,
       ]), [["popup", 1], ["entry", 1], ["openable-entry", 1], ["simple-panel", 1], ["advanced-panel", 0]],
@@ -331,6 +359,7 @@ for (const checked of ["true", "false"] as const) {
         .map(({ expectedEligibleCount: _expected, ...query }) => query);
       return {
         postconditionVerified: true,
+        clickedCandidateAttributeReadback: { name: "aria-checked", value: "true", verified: true },
         postconditionObservation: coherentObservationPacket({ queries }, modelFacts(state)),
       };
     }
@@ -341,6 +370,28 @@ for (const checked of ["true", "false"] as const) {
   assert.equal(result.value?.previousChecked, checked);
   assert.equal(result.value?.state, "exact-model-selected");
   assert.equal(observations, 1, "model selection must not issue a second DOM observation after Browser confirmation");
+  assert.equal(fixture.physicalMutations(), 1);
+}
+
+{
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      return coherentObservationPacket(intent, modelFacts("open", "false"));
+    }
+    if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR) {
+      const queries = intent.postClickObservation!.queries
+        .map(({ expectedEligibleCount: _expected, ...query }) => query);
+      return {
+        postconditionVerified: true,
+        clickedCandidateAttributeReadback: { name: "aria-checked", value: "false", verified: false },
+        postconditionObservation: coherentObservationPacket({ queries }, modelFacts("closed")),
+      };
+    }
+    throw new Error(`UNEXPECTED_UNSELECTED_MODEL_INTENT:${intent.kind}`);
+  });
+  const result = await execute("select_exact_gpt_model_v2", fixture.browser, { profile });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, "GPT_MODEL_SELECTION_V2_SELECTED_FACT_INVALID");
   assert.equal(fixture.physicalMutations(), 1);
 }
 
@@ -356,6 +407,7 @@ for (const checked of ["true", "false"] as const) {
         .map(({ expectedEligibleCount: _expected, ...query }) => query);
       return {
         postconditionVerified: true,
+        clickedCandidateAttributeReadback: { name: "aria-checked", value: "true", verified: true },
         postconditionObservation: coherentObservationPacket({ queries }, modelFacts("broken")),
       };
     }

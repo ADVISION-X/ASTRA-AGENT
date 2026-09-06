@@ -86,6 +86,19 @@ export const bindBrowserCommandObservationPacket = (
     if (value.qualificationRejected === true && value.postconditionObservation === undefined) {
       return result;
     }
+    const clickedAttribute = command.intent.postClickObservation.clickedCandidateAttribute;
+    if (clickedAttribute !== undefined) {
+      const readback = value.clickedCandidateAttributeReadback;
+      if (!readback || typeof readback !== "object" || Array.isArray(readback)) throw new Error();
+      const typed = readback as Record<string, unknown>;
+      const verified = typed.name === clickedAttribute.name
+        && typed.value === clickedAttribute.equals && typed.verified === true;
+      if (Object.keys(typed).sort().join("|") !== "name|value|verified"
+        || typed.name !== clickedAttribute.name
+        || typeof typed.value !== "string"
+        || typed.verified !== (typed.value === clickedAttribute.equals)
+        || (value.postconditionVerified === true && !verified)) throw new Error();
+    }
     const specs = command.intent.postClickObservation.queries
       .map(({ expectedEligibleCount: _expected, ...query }) => query);
     return Object.freeze({

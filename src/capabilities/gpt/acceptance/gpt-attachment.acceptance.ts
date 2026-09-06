@@ -26,6 +26,21 @@ const attachmentControlFacts = (state: "absent" | "closed" | "open") => ({
   "attachment-control": {
     rawCount: state === "absent" ? 0 : 1,
     eligibleCount: state === "absent" ? 0 : 1,
+    matches: state === "absent" ? [] : [{
+      id: "composer-plus-btn",
+      ariaExpanded: state === "open" ? "true" : "false",
+      ariaControls: state === "open" ? "attachment-menu" : "",
+      disabled: false,
+      ariaDisabled: false,
+    }],
+  },
+  "active-menu": state === "open" ? {
+    rawCount: 23, eligibleCount: 1,
+    matches: [{ id: "attachment-menu", ariaLabelledBy: "composer-plus-btn" }],
+    rejections: hiddenPopoverRejections,
+  } : {
+    rawCount: 22, eligibleCount: 0,
+    rejections: hiddenPopoverRejections,
   },
   "upload-choice": state === "open" ? {
     scopeRawCount: 23, scopeEligibleCount: 1,
@@ -53,10 +68,13 @@ const attachmentControlFacts = (state: "absent" | "closed" | "open") => ({
     if (intent.kind === "click" && intent.selector === GPT_ATTACHMENT_CONTROL_SELECTOR) {
       assert.deepEqual(intent.scope, { selector: GPT_COMPOSER_FORM_SELECTOR });
       assert.equal(intent.postClickObservation?.timeoutMs, 5_000);
+      assert.equal(intent.postClickObservation?.queries.find((query) => query.queryId === "active-menu")?.maxMatches, 2,
+        "the GPT menu query must remain inside the Browser permit's 1..20 bound");
       assert.deepEqual(intent.postClickObservation?.queries.map((query) => [
         query.queryId, query.scope?.selector, query.expectedEligibleCount,
       ]), [
         ["attachment-control", GPT_COMPOSER_FORM_SELECTOR, 1],
+        ["active-menu", undefined, 1],
         ["upload-choice", GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR, 1],
       ]);
       const queries = intent.postClickObservation!.queries
@@ -83,6 +101,24 @@ const attachmentControlFacts = (state: "absent" | "closed" | "open") => ({
   } finally {
     Date.now = nativeDateNow;
   }
+}
+
+{
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, {
+      ...attachmentControlFacts("open"),
+      "active-menu": {
+        rawCount: 23, eligibleCount: 1,
+        matches: [{ id: "wrong-menu", ariaLabelledBy: "another-trigger" }],
+        rejections: hiddenPopoverRejections,
+      },
+    });
+    throw new Error(`ATTACHMENT_WRONG_OWNER_MUST_NOT_ACT:${intent.kind}`);
+  });
+  const result = await execute("open_gpt_attachment_control", fixture.browser, {});
+  assert.equal(result.status, "failed");
+  assert.ok(result.failureCode?.startsWith("GPT_ATTACHMENT_CONTROL_QUALIFICATION_INVALID:"));
+  assert.equal(fixture.physicalMutations(), 0, "an unrelated open menu must never satisfy DONE");
 }
 
 {

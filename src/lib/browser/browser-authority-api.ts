@@ -13,7 +13,7 @@ export type {
   BrowserDomObservationPacketV2,
   BrowserDomObservationQuery,
   BrowserDomPostconditionQuery,
-  BrowserExactAssistantTurnReplyV1,
+  BrowserExactAssistantTurnReplyV2,
 } from "./exact-target/browser-dom-intent.js";
 export type { BrowserFileArtifactGrantV1 } from "./exact-target/browser-file-artifact-grant.js";
 export type {

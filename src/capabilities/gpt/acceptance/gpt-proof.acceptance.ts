@@ -27,6 +27,9 @@ const modelFacts = (open: boolean) => ({
   "openable-entry": { rawCount: open ? 0 : 1, eligibleCount: open ? 0 : 1 },
   "simple-panel": { rawCount: 1, eligibleCount: open ? 0 : 1 },
   "advanced-panel": { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
+  "model-choice": open
+    ? { rawCount: 1, eligibleCount: 1, matches: [{ ariaChecked: "false" }] }
+    : { rawCount: 0, eligibleCount: 0 },
 });
 
 const doneHarness = createGptAcceptanceHarness("gpt-proof-done");

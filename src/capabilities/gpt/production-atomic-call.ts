@@ -11,6 +11,7 @@ import {
   type ProductionGptBrowserCall,
 } from "./production-browser-lifecycle.js";
 import type { GptContinuationStorePort } from "./session/gpt-continuation-store-port.js";
+import type { ConfirmedProviderSubmitReceipt } from "./confirmed-provider-readback.js";
 
 type AtomicGptCallInput = Readonly<{
   dataDir: string;
@@ -19,6 +20,7 @@ type AtomicGptCallInput = Readonly<{
   browsers: ProductionGptBrowserLifecycle;
   intent: GptAnyChildCapabilityIntent;
   browserCall: ProductionGptBrowserCall | undefined;
+  confirmedProviderSubmitReceipt: ConfirmedProviderSubmitReceipt | null;
   signal: AbortSignal;
 }>;
 
@@ -30,6 +32,8 @@ const executionContext = (
   ...(browser ? { browser } : {}),
   signal: input.signal,
   continuationStore: input.store,
+  ...(input.confirmedProviderSubmitReceipt
+    ? { confirmedProviderSubmitReceipt: input.confirmedProviderSubmitReceipt } : {}),
   ...(input.browserCall ? {
     yieldForProviderWait: (durationMs: number) => input.browsers.yieldForProviderWait(
       input.browserCall!, input.intent.productStepId, input.intent.callId,

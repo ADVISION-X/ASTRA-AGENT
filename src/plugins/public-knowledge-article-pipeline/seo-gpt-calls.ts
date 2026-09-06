@@ -171,11 +171,17 @@ export type SeoTextTurnInput = Readonly<{
 
 export type SeoReconciledTextSubmission = Readonly<{
   canonicalConversationUrl: string;
+  conversationIdentityHash: ProductionHash;
   confirmedSubmit: SeoConfirmedSubmit;
   promptHash: ProductionHash;
 }>;
 
-const submittedConversationUrl = async (
+export type SeoSubmissionLocator = Readonly<{
+  canonicalConversationUrl: string;
+  conversationIdentityHash: ProductionHash;
+}>;
+
+const submittedConversationLocator = async (
   input: Readonly<{
     actionOrdinal: number;
     flow: ReturnType<typeof createSeoExecutor>;
@@ -183,17 +189,18 @@ const submittedConversationUrl = async (
     promptHash: ProductionHash;
     stepId: string;
   }>,
-): Promise<string> => {
+): Promise<SeoSubmissionLocator> => {
   const call = {
     productStepId: input.stepId, callId: "submission-reconcile",
     child: "reconcile_gpt_turn_submission", actionOrdinal: input.actionOrdinal,
     input: { expectedPromptHash: input.promptHash, timeoutMs: 60_000, turnMarker: input.marker },
   } as const;
   const submitted = await input.flow.execute({ sessionKey: "", ...call });
-  return textValue(
-    objectValue(submitted.value, "SEO_SUBMISSION_INVALID").canonicalConversationUrl,
-    "SEO_SUBMISSION_INVALID",
-  );
+  const value = objectValue(submitted.value, "SEO_SUBMISSION_INVALID");
+  return Object.freeze({
+    canonicalConversationUrl: textValue(value.canonicalConversationUrl, "SEO_SUBMISSION_INVALID"),
+    conversationIdentityHash: hashValue(value.conversationIdentityHash, "SEO_SUBMISSION_INVALID"),
+  });
 };
 
 export const reconcileConfirmedSubmissionLocator = async (
@@ -205,9 +212,9 @@ export const reconcileConfirmedSubmissionLocator = async (
     promptHash: ProductionHash;
     stepId: string;
   }>,
-): Promise<string> => {
+): Promise<SeoSubmissionLocator> => {
   try {
-    return await submittedConversationUrl(input);
+    return await submittedConversationLocator(input);
   } catch (error) {
     return preservePostSubmitReadback(error, input.confirmedSubmit);
   }
@@ -218,7 +225,7 @@ export const reconcileConfirmedTextSubmission = async (
   confirmedSubmit: SeoConfirmedSubmit,
 ): Promise<SeoReconciledTextSubmission> => {
   const promptHash = textHash(input.prompt);
-  const canonicalConversationUrl = await reconcileConfirmedSubmissionLocator({
+  const locator = await reconcileConfirmedSubmissionLocator({
     actionOrdinal: input.ordinals[3],
     confirmedSubmit,
     flow: input.flow,
@@ -226,7 +233,7 @@ export const reconcileConfirmedTextSubmission = async (
     promptHash,
     stepId: input.stepId,
   });
-  return Object.freeze({ canonicalConversationUrl, confirmedSubmit, promptHash });
+  return Object.freeze({ ...locator, confirmedSubmit, promptHash });
 };
 
 const checkpointSubmittedTextTurn = async (
@@ -234,6 +241,7 @@ const checkpointSubmittedTextTurn = async (
   promptHash: `sha256:${string}`,
   confirmedSubmit: SeoConfirmedSubmit,
   canonicalConversationUrl: string,
+  conversationIdentityHash: ProductionHash,
 ): Promise<SeoTurnCheckpoint> => {
   try {
     const stable = await input.flow.execute({
@@ -241,7 +249,7 @@ const checkpointSubmittedTextTurn = async (
       child: "wait_for_stable_gpt_text", actionOrdinal: input.ordinals[4],
       input: {
         absoluteDeadline: confirmedDeadline(confirmedSubmit), canonicalConversationUrl,
-        expectedPromptHash: promptHash, turnMarker: input.marker,
+        conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: input.marker,
       },
     });
     const stableValue = objectValue(stable.value, "SEO_TEXT_RESPONSE_INVALID");
@@ -299,6 +307,7 @@ export const completeReconciledTextSubmission = async (
     reconciled.promptHash,
     reconciled.confirmedSubmit,
     reconciled.canonicalConversationUrl,
+    reconciled.conversationIdentityHash,
   );
 };
 
@@ -336,7 +345,7 @@ const executeTextSubmit = async (
       error,
       await input.flow.confirmedSubmitFailure(turnSubmit),
     );
-    await submittedConversationUrl({
+    await submittedConversationLocator({
       actionOrdinal: input.ordinals[3], flow: input.flow, marker: input.marker,
       promptHash, stepId: input.stepId,
     });
@@ -363,6 +372,7 @@ export const submitTextTurn = async (input: SeoTextTurnInput): Promise<SeoTurnCh
     reconciled.promptHash,
     reconciled.confirmedSubmit,
     reconciled.canonicalConversationUrl,
+    reconciled.conversationIdentityHash,
   );
 };
 
@@ -396,7 +406,8 @@ export const focusContinuation = async (
     await flow.execute({
       sessionKey: "", productStepId: stepId, callId: "conversation-focus",
       child: "focus_exact_gpt_conversation", actionOrdinal: ordinals[1],
-      input: { canonicalConversationUrl: lane.provider.provider_page_url },
+      input: { canonicalConversationUrl: lane.provider.provider_page_url,
+        expectedPromptHash: lane.provider.prior_prompt_hash, turnMarker: lane.provider.prior_turn_marker },
     });
     await flow.execute({
       sessionKey: "", productStepId: stepId, callId: "conversation-verify",

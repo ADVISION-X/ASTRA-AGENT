@@ -48,7 +48,13 @@ export type GptExactAssistantTurnObservation = Readonly<{
   exactCallIdentityHash: `sha256:${string}`;
   targetRefHash: `sha256:${string}`;
   documentRefHash: `sha256:${string}`;
+  observationRevisionHash: `sha256:${string}`;
   assistantTurnId: string;
+  currentUrl: string;
+  precedingUserTurnId: string;
+  precedingPromptHash: `sha256:${string}`;
+  turnMarkerMatched: true;
+  generatingRaw: number;
   rawDomHtml: string;
   rawDomHash: `sha256:${string}`;
   semanticText: string;
@@ -174,18 +180,33 @@ export const projectCoherentObservation = (
 export const readExactAssistantTurn = async (
   browser: Pick<BrowserTargetLease, "executeDomIntent">,
   assistantTurnId: string,
+  sourceCheckpoint: Readonly<{
+    canonicalConversationUrl: string;
+    expectedPromptHash: `sha256:${string}`;
+    turnMarker: string;
+  }>,
 ): Promise<GptExactAssistantTurnObservation> => {
   if (!/^conversation-turn-[1-9][0-9]*$/u.test(assistantTurnId)) {
     throw executionFailure("failed", "GPT_TURN_ID_INVALID");
   }
-  const value = record(await browser.executeDomIntent({ kind: "readExactAssistantTurn", assistantTurnId }));
+  const value = record(await browser.executeDomIntent({
+    kind: "readExactAssistantTurn", assistantTurnId, sourceCheckpoint,
+  }));
   const hashes = [value.exactCallIdentityHash, value.targetRefHash, value.documentRefHash,
+    value.observationRevisionHash,
     value.rawDomHash, value.semanticTextHash];
-  if (value.schemaVersion !== "grasseye.browser.exact-assistant-turn.v1"
+  const ordinal = Number(assistantTurnId.slice("conversation-turn-".length));
+  const precedingUserTurnId = `conversation-turn-${ordinal - 1}`;
+  if (value.schemaVersion !== "grasseye.browser.exact-assistant-turn.v2"
     || value.assistantTurnId !== assistantTurnId
     || !hashes.every((candidate) => typeof candidate === "string" && /^sha256:[a-f0-9]{64}$/u.test(candidate))
     || typeof value.rawDomHtml !== "string" || value.rawDomHtml.length === 0
     || typeof value.semanticText !== "string"
+    || value.currentUrl !== sourceCheckpoint.canonicalConversationUrl
+    || value.precedingUserTurnId !== precedingUserTurnId
+    || value.precedingPromptHash !== sourceCheckpoint.expectedPromptHash
+    || value.turnMarkerMatched !== true
+    || !nonNegativeInteger(value.generatingRaw)
     || hashText(value.rawDomHtml) !== value.rawDomHash
     || hashText(value.semanticText) !== value.semanticTextHash
     || typeof value.observedAt !== "string" || Number.isNaN(Date.parse(value.observedAt))) {
@@ -195,7 +216,13 @@ export const readExactAssistantTurn = async (
     exactCallIdentityHash: value.exactCallIdentityHash as `sha256:${string}`,
     targetRefHash: value.targetRefHash as `sha256:${string}`,
     documentRefHash: value.documentRefHash as `sha256:${string}`,
+    observationRevisionHash: value.observationRevisionHash as `sha256:${string}`,
     assistantTurnId,
+    currentUrl: value.currentUrl as string,
+    precedingUserTurnId,
+    precedingPromptHash: value.precedingPromptHash as `sha256:${string}`,
+    turnMarkerMatched: true,
+    generatingRaw: value.generatingRaw as number,
     rawDomHtml: value.rawDomHtml,
     rawDomHash: value.rawDomHash as `sha256:${string}`,
     semanticText: value.semanticText,
@@ -203,3 +230,14 @@ export const readExactAssistantTurn = async (
     observedAt: value.observedAt,
   });
 };
+
+export const projectExactAssistantTurn = (
+  assistant: GptExactAssistantTurnObservation,
+): GptCoherentFactProjection => Object.freeze({
+  factResultIds: Object.freeze([
+    `gpt-assistant-turn-fact:${assistant.exactCallIdentityHash.slice(7)}`,
+  ]),
+  candidateCardinality: Object.freeze({ raw: 1, eligible: 1 }),
+  authorityRefHashes: Object.freeze([assistant.targetRefHash, assistant.documentRefHash]),
+  observationRevisionHash: assistant.observationRevisionHash,
+});

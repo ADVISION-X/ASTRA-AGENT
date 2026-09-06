@@ -1,6 +1,6 @@
 const BROWSER_DOM_FIELD_VALUES = [
   "id", "testId", "dataTurn", "tagName", "type", "role", "name", "label",
-  "ariaLabel", "ariaExpanded", "ariaChecked", "ariaValueMin", "ariaValueMax", "ariaValueNow",
+  "ariaLabel", "ariaLabelledBy", "ariaControls", "ariaExpanded", "ariaChecked", "ariaValueMin", "ariaValueMax", "ariaValueNow",
   "text", "outerHtml", "semanticText", "semanticTextHash", "exactEditableTextHash",
   "exactGptUserPromptHash",
   "value", "checked", "accept", "multiple", "connected", "layout", "visible",
@@ -39,9 +39,12 @@ export type BrowserDomObservationQuery = Readonly<{
   scope?: BrowserDomReadScope;
   textContains?: string;
   textEquals?: string;
+  exactGptUserPromptContains?: string;
 }>;
 
-export type BrowserDomPostconditionQuery = Omit<BrowserDomObservationQuery, "fields"> & Readonly<{
+export type BrowserDomPostconditionQuery = Omit<
+  BrowserDomObservationQuery, "fields" | "exactGptUserPromptContains"
+> & Readonly<{
   fields: readonly BrowserDomPostconditionField[];
   expectedEligibleCount: number;
 }>;
@@ -51,8 +54,8 @@ export type BrowserDomObservationPacketV2 = Readonly<{
   exactCallIdentityHash: `sha256:${string}`;
   targetRefHash: `sha256:${string}`;
   documentRefHash: `sha256:${string}`;
-  currentUrl: string;
   observationRevisionHash: `sha256:${string}`;
+  currentUrl: string;
   observedAt: string;
   queries: readonly Readonly<{
     queryId: string;
@@ -72,12 +75,18 @@ export type BrowserDomObservationPacketV2 = Readonly<{
   }>[];
 }>;
 
-export type BrowserExactAssistantTurnReplyV1 = Readonly<{
-  schemaVersion: "grasseye.browser.exact-assistant-turn.v1";
+export type BrowserExactAssistantTurnReplyV2 = Readonly<{
+  schemaVersion: "grasseye.browser.exact-assistant-turn.v2";
   exactCallIdentityHash: `sha256:${string}`;
   targetRefHash: `sha256:${string}`;
   documentRefHash: `sha256:${string}`;
+  observationRevisionHash: `sha256:${string}`;
   assistantTurnId: string;
+  currentUrl: string;
+  precedingUserTurnId: string;
+  precedingPromptHash: `sha256:${string}`;
+  turnMarkerMatched: true;
+  generatingRaw: number;
   rawDomHtml: string;
   rawDomHash: `sha256:${string}`;
   semanticText: string;
@@ -99,7 +108,11 @@ export type BrowserSemanticLocator = Readonly<{
 export type BrowserDomIntent =
   | Readonly<{ kind: "document" }>
   | Readonly<{ kind: "observe"; queries: readonly BrowserDomObservationQuery[] }>
-  | Readonly<{ kind: "readExactAssistantTurn"; assistantTurnId: string }>
+  | Readonly<{ kind: "readExactAssistantTurn"; assistantTurnId: string; sourceCheckpoint: Readonly<{
+    canonicalConversationUrl: string;
+    expectedPromptHash: `sha256:${string}`;
+    turnMarker: string;
+  }> }>
   | Readonly<{ kind: "inspect"; selector: string; fields: readonly BrowserDomField[]; scope?: BrowserDomReadScope }>
   | Readonly<{
     kind: "find";
@@ -142,6 +155,11 @@ export type BrowserDomIntent =
     postClickObservation?: Readonly<{
       queries: readonly BrowserDomPostconditionQuery[];
       timeoutMs?: number;
+      /** Post-click state read from the exact candidate node retained by this command. */
+      clickedCandidateAttribute?: Readonly<{
+        name: "aria-checked";
+        equals: "true";
+      }>;
     }>;
     postClickUrl?: Readonly<{
       equals?: string;
@@ -151,6 +169,13 @@ export type BrowserDomIntent =
     /** Fixed Browser-owned normalization for the GPT fork page created by this click. */
     postClickTargetTransition?: Readonly<{
       kind: "gpt-fork-successor";
+      sourceCheckpoint: Readonly<{
+        assistantTurnId: string;
+        canonicalConversationUrl: string;
+        promptHash: `sha256:${string}`;
+        responseHash: `sha256:${string}`;
+        turnMarker: string;
+      }>;
       timeoutMs: number;
     }>;
   }>
@@ -206,9 +231,22 @@ export const assertBrowserDomIntent = (intent: BrowserDomIntent): BrowserDomInte
 
 const assertObservationIntent = (intent: BrowserDomIntent): void => {
   if (intent.kind === "observe") assertObserveIntent(intent);
-  if (intent.kind === "readExactAssistantTurn"
-    && !/^conversation-turn-[1-9][0-9]*$/u.test(intent.assistantTurnId)) {
-    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  if (intent.kind === "readExactAssistantTurn") {
+    const source = intent.sourceCheckpoint;
+    let canonical = false;
+    try {
+      canonical = requireCanonicalGptConversationUrl(source?.canonicalConversationUrl ?? "")
+        === source?.canonicalConversationUrl;
+    } catch { canonical = false; }
+    const ordinal = Number(intent.assistantTurnId.slice("conversation-turn-".length));
+    if (!/^conversation-turn-[1-9][0-9]*$/u.test(intent.assistantTurnId)
+      || !Number.isSafeInteger(ordinal) || ordinal < 2
+      || !source || Object.keys(source).sort().join("|")
+        !== "canonicalConversationUrl|expectedPromptHash|turnMarker"
+      || !canonical || !/^sha256:[a-f0-9]{64}$/u.test(source.expectedPromptHash)
+      || !isBoundedText(source.turnMarker, 1_024)) {
+      throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+    }
   }
   if (intent.kind === "inspect") assertDomFields(intent.fields);
   if (intent.kind === "find") {
@@ -220,8 +258,12 @@ const assertObservationIntent = (intent: BrowserDomIntent): void => {
 
 const OBSERVATION_QUERY_KEYS = new Set([
   "queryId", "selector", "maxMatches", "fields", "readEligibility", "scope", "textContains", "textEquals",
+  "exactGptUserPromptContains",
 ]);
-const POSTCONDITION_QUERY_KEYS = new Set([...OBSERVATION_QUERY_KEYS, "expectedEligibleCount"]);
+const POSTCONDITION_QUERY_KEYS = new Set([
+  "queryId", "selector", "maxMatches", "fields", "readEligibility", "scope", "textContains", "textEquals",
+  "expectedEligibleCount",
+]);
 
 const assertReadEligibility = (value: BrowserDomReadEligibility | undefined): void => {
   if (value !== undefined && value !== "non-actionable-aria-state") {
@@ -262,7 +304,11 @@ const assertObserveIntent = (intent: Extract<BrowserDomIntent, { kind: "observe"
 const assertObservationText = (query: BrowserDomObservationQuery): void => {
   if ((query.textContains !== undefined && !isBoundedText(query.textContains, 1_024))
     || (query.textEquals !== undefined && !isBoundedText(query.textEquals, 1_024))
-    || (query.textContains !== undefined && query.textEquals !== undefined)) {
+    || (query.exactGptUserPromptContains !== undefined
+      && !isBoundedText(query.exactGptUserPromptContains, 1_024))
+    || (query.textContains !== undefined && query.textEquals !== undefined)
+    || (query.exactGptUserPromptContains !== undefined
+      && (query.textContains !== undefined || query.textEquals !== undefined))) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
 };
@@ -376,7 +422,22 @@ const assertClickTargetTransition = (
   transition: Extract<BrowserDomIntent, { kind: "click" }>["postClickTargetTransition"],
 ): void => {
   if (!transition) return;
-  if (transition.kind !== "gpt-fork-successor" || timeoutInvalid(transition.timeoutMs)) {
+  const source = transition.sourceCheckpoint;
+  let canonicalSourceUrl = false;
+  try {
+    canonicalSourceUrl = requireCanonicalGptConversationUrl(source?.canonicalConversationUrl ?? "")
+      === source?.canonicalConversationUrl;
+  } catch { canonicalSourceUrl = false; }
+  const assistantOrdinal = Number(source?.assistantTurnId.slice("conversation-turn-".length));
+  if (transition.kind !== "gpt-fork-successor" || timeoutInvalid(transition.timeoutMs)
+    || !source || Object.keys(source).sort().join("|")
+      !== "assistantTurnId|canonicalConversationUrl|promptHash|responseHash|turnMarker"
+    || !/^conversation-turn-[1-9][0-9]*$/u.test(source.assistantTurnId)
+    || !Number.isSafeInteger(assistantOrdinal) || assistantOrdinal < 2
+    || !canonicalSourceUrl
+    || !/^sha256:[a-f0-9]{64}$/u.test(source.promptHash)
+    || !/^sha256:[a-f0-9]{64}$/u.test(source.responseHash)
+    || source.turnMarker.length === 0 || source.turnMarker.length > 1_024) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
 };
@@ -385,6 +446,10 @@ const assertClickObservation = (
   observation: Extract<BrowserDomIntent, { kind: "click" }>["postClickObservation"],
 ): void => {
   if (!observation) return;
+  if (Object.keys(observation).some((key) =>
+    key !== "queries" && key !== "timeoutMs" && key !== "clickedCandidateAttribute")) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  }
   assertObservationQueries(observation.queries, POSTCONDITION_QUERY_KEYS);
   for (const query of observation.queries) {
     if ((query.fields as readonly string[]).some((field) =>
@@ -394,6 +459,12 @@ const assertClickObservation = (
       || query.expectedEligibleCount < 0 || query.expectedEligibleCount > query.maxMatches) {
       throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
     }
+  }
+  if (observation.clickedCandidateAttribute !== undefined
+    && (Object.keys(observation.clickedCandidateAttribute).sort().join("|") !== "equals|name"
+      || observation.clickedCandidateAttribute.name !== "aria-checked"
+      || observation.clickedCandidateAttribute.equals !== "true")) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
   if (timeoutInvalid(observation.timeoutMs)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
 };
@@ -485,3 +556,4 @@ const assertOptionalRange = (value: number | undefined, minimum: number, maximum
 const isBoundedText = (value: unknown, limit: number): value is string =>
   typeof value === "string" && value.trim().length > 0 && value.length <= limit
   && !/[\u0000-\u001f]/u.test(value);
+import { requireCanonicalGptConversationUrl } from "./browser-site-policy-registry.js";

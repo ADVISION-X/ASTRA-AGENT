@@ -80,6 +80,8 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
     if (field === "dataTurn") return node.getAttribute("data-turn") || "";
     if (field === "tagName") return node.tagName;
     if (field === "ariaLabel") return node.getAttribute("aria-label") || "";
+    if (field === "ariaLabelledBy") return node.getAttribute("aria-labelledby") || "";
+    if (field === "ariaControls") return node.getAttribute("aria-controls") || "";
     if (field === "ariaExpanded") return node.getAttribute("aria-expanded") || "";
     if (field === "ariaChecked") return node.getAttribute("aria-checked") || "";
     if (field === "ariaValueMin") return node.getAttribute("aria-valuemin") || "";
@@ -109,7 +111,9 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
     }
     if (facts.inert) reasons.push("INERT");
     if (checkText && ((spec.textContains !== undefined && !(node.textContent || "").includes(spec.textContains))
-      || (spec.textEquals !== undefined && (node.textContent || "").trim() !== spec.textEquals.trim()))) {
+      || (spec.textEquals !== undefined && (node.textContent || "").trim() !== spec.textEquals.trim())
+      || (spec.exactGptUserPromptContains !== undefined
+        && !exactGptUserPromptText(node).includes(spec.exactGptUserPromptContains)))) {
       reasons.push("TEXT_MISMATCH");
     }
     return reasons;
@@ -175,7 +179,7 @@ const observationCount = (value: unknown): number => {
 
 const stringObservationFields = new Set<BrowserDomObservationField>([
   "id", "testId", "dataTurn", "tagName", "type", "role", "name", "label", "ariaLabel",
-  "ariaExpanded", "ariaChecked", "ariaValueMin", "ariaValueMax", "ariaValueNow", "semanticTextHash",
+  "ariaLabelledBy", "ariaControls", "ariaExpanded", "ariaChecked", "ariaValueMin", "ariaValueMax", "ariaValueNow", "semanticTextHash",
   "exactEditableTextHash", "exactGptUserPromptHash",
   "value", "accept", "computedDisplay", "computedVisibility",
   "computedOpacity", "effectiveOpacity",

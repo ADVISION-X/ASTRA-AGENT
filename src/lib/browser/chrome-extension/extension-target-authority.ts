@@ -231,7 +231,8 @@ export class ExtensionTargetAuthority {
       if (forkTransition === undefined) this.targets.resolve(target.targetRef, target.documentRef);
       else {
         const current = this.activeTarget;
-        if (!current || current.targetRef !== target.targetRef || current.tabId !== target.tabId
+        if (!current || current.targetRef !== target.targetRef || current.tabId === target.tabId
+          || current.documentRef === target.documentRef
           || current.navigationEpoch !== target.navigationEpoch + 1) {
           throw new Error("BROWSER_POSTCONDITION_FAILED");
         }
@@ -472,6 +473,7 @@ export class ExtensionTargetAuthority {
     const deadline = Date.now() + timeoutMs;
     let successor: ExtensionDebugTarget | null = null;
     let attached = false;
+    let takeoverCommitted = false;
     try {
       do {
         let discovered: readonly ExtensionDebugTarget[];
@@ -496,43 +498,40 @@ export class ExtensionTargetAuthority {
       await this.debuggerRuntime.attach(successor.tabId);
       attached = true;
       await this.debuggerRuntime.send(successor.tabId, "Page.enable");
-      let childUrl: string | null = null;
-      do {
-        const frame = await this.readMainFrame(successor.tabId);
-        try {
-          childUrl = requireCanonicalGptConversationUrl(frame.url);
-          break;
-        } catch (error) {
-          if (frame.url !== "" && frame.url !== "about:blank") throw error;
-        }
-        await this.waitForTargetObservation(deadline);
-      } while (Date.now() < deadline);
-      if (childUrl === null) throw new Error("BROWSER_POSTCONDITION_FAILED");
+      const childFrame = await this.waitForCanonicalGptMainFrame(successor.tabId, deadline);
 
-      await this.debuggerRuntime.detach(successor.tabId);
-      attached = false;
-      await this.chromeApi.tabs.remove(successor.tabId);
-      await this.waitForDiscoveredTabAbsence(successor.tabId, deadline);
-
-      this.targets.resolve(source.targetRef, source.documentRef);
-      const sourceLoaderId = this.activeLoaderId;
-      if (!sourceLoaderId) throw new Error("BROWSER_POSTCONDITION_FAILED");
-      await this.debuggerRuntime.send(source.tabId, "Page.navigate", { url: childUrl });
-      const observed = await this.waitForExactMainFrame(
-        source.tabId, childUrl, sourceLoaderId, deadline,
+      const next = this.targets.transferPhysicalTab(
+        source.targetRef, source.documentRef, successor.tabId,
       );
-      const next = await this.publishMainFrameNavigation(observed.url, observed.loaderId);
-      if (next.targetRef !== source.targetRef || next.tabId !== source.tabId
+      this.activeTarget = next;
+      this.activeLoaderId = childFrame.loaderId;
+      this.attachedTabId = successor.tabId;
+      this.navigationPublication = null;
+      takeoverCommitted = true;
+      await this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(next, {
+        claimOrigin: gptWebClaimOriginForUrl(childFrame.url),
+      }));
+      await this.debuggerRuntime.detach(source.tabId);
+      await this.chromeApi.tabs.remove(source.tabId);
+      await this.waitForDiscoveredTabAbsence(source.tabId, deadline);
+      if (next.targetRef !== source.targetRef || next.tabId !== successor.tabId
         || next.navigationEpoch !== source.navigationEpoch + 1) {
         throw new Error("BROWSER_POSTCONDITION_FAILED");
       }
       const settled = (await this.chromeApi.debugger.getTargets()).filter((candidate) =>
-        candidate.tabId === source.tabId && candidate.type === "page");
-      if (settled.length !== 1) throw new Error("BROWSER_POSTCONDITION_FAILED");
+        (candidate.tabId === source.tabId || candidate.tabId === successor!.tabId)
+          && candidate.type === "page");
+      if (settled.length !== 1 || settled[0]?.tabId !== successor.tabId) {
+        throw new Error("BROWSER_POSTCONDITION_FAILED");
+      }
     } catch (error) {
       if (successor?.tabId !== undefined) {
-        if (attached) await this.debuggerRuntime.detach(successor.tabId).catch(() => undefined);
-        await this.chromeApi.tabs.remove(successor.tabId).catch(() => undefined);
+        if (!takeoverCommitted) {
+          if (attached) await this.debuggerRuntime.detach(successor.tabId).catch(() => undefined);
+        } else {
+          await this.debuggerRuntime.detach(source.tabId).catch(() => undefined);
+          await this.chromeApi.tabs.remove(source.tabId).catch(() => undefined);
+        }
       }
       if (error instanceof Error && error.message === "BROWSER_TARGET_DISCOVERY_UNAVAILABLE") throw error;
       throw new Error("BROWSER_POSTCONDITION_FAILED", { cause: error });
@@ -545,29 +544,23 @@ export class ExtensionTargetAuthority {
     await new Promise<void>((resolve) => globalThis.setTimeout(resolve, Math.min(50, remaining)));
   }
 
-  private async waitForDiscoveredTabAbsence(tabId: number, deadline: number): Promise<void> {
+  private async waitForCanonicalGptMainFrame(tabId: number, deadline: number): Promise<MainFrame> {
     do {
-      if (!(await this.readDiscoveredTabIds()).has(tabId)) return;
+      const frame = await this.readMainFrame(tabId);
+      try {
+        requireCanonicalGptConversationUrl(frame.url);
+        return frame;
+      } catch (error) {
+        if (frame.url !== "" && frame.url !== "about:blank") throw error;
+      }
       await this.waitForTargetObservation(deadline);
     } while (Date.now() < deadline);
     throw new Error("BROWSER_POSTCONDITION_FAILED");
   }
 
-  private async waitForExactMainFrame(
-    tabId: number,
-    expectedUrl: string,
-    priorLoaderId: string,
-    deadline: number,
-  ): Promise<MainFrame> {
+  private async waitForDiscoveredTabAbsence(tabId: number, deadline: number): Promise<void> {
     do {
-      const frame = await this.readMainFrame(tabId);
-      let canonicalUrl: string | null = null;
-      try {
-        canonicalUrl = requireCanonicalGptConversationUrl(frame.url);
-      } catch (error) {
-        if (frame.url !== "" && frame.url !== "about:blank") throw error;
-      }
-      if (canonicalUrl === expectedUrl && frame.loaderId !== priorLoaderId) return frame;
+      if (!(await this.readDiscoveredTabIds()).has(tabId)) return;
       await this.waitForTargetObservation(deadline);
     } while (Date.now() < deadline);
     throw new Error("BROWSER_POSTCONDITION_FAILED");

@@ -90,7 +90,8 @@ export const verifyParentContinuation = async (
   }
   await flow.execute({
     productStepId: task.action_id, callId: "conversation-focus", child: "focus_exact_gpt_conversation",
-    actionOrdinal: 2, input: { canonicalConversationUrl: lane.provider.provider_page_url },
+    actionOrdinal: 2, input: { canonicalConversationUrl: lane.provider.provider_page_url,
+      expectedPromptHash: lane.provider.prior_prompt_hash, turnMarker: lane.provider.prior_turn_marker },
   });
   await flow.execute({
     productStepId: task.action_id, callId: "conversation-verify", child: "verify_gpt_conversation_identity",

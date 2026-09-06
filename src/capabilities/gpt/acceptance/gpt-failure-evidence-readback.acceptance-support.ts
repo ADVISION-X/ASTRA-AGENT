@@ -204,6 +204,7 @@ export const exerciseBrowserRejectedEvidenceReadback = async (): Promise<void> =
     browsers: {} as never,
     intent,
     browserCall: { browser: fixture.browser, facade: fixture.browser, providerWaitLog: null },
+    confirmedProviderSubmitReceipt: null,
     signal: new AbortController().signal,
   });
   assert.equal(recovered.result.failureCode, "BROWSER_POSTCONDITION_FAILED");
@@ -269,6 +270,7 @@ export const exerciseBrowserRejectedDispatchedEvidenceReadback = async (): Promi
     browsers: {} as never,
     intent,
     browserCall: { browser: fixture.browser, facade: fixture.browser, providerWaitLog: null },
+    confirmedProviderSubmitReceipt: null,
     signal: new AbortController().signal,
   });
   assert.equal(recovered.result.failureCode, "BROWSER_CAPABILITY_REJECTED");
@@ -346,6 +348,7 @@ const assertDispatchedAtomicRecovery = async (
     browsers: {} as never,
     intent,
     browserCall: { browser: fixture.browser, facade: fixture.browser, providerWaitLog: null },
+    confirmedProviderSubmitReceipt: null,
     signal: new AbortController().signal,
   });
   assert.equal(atomic.result.proof.browserFact?.browserOutcome, "DISPATCHED");

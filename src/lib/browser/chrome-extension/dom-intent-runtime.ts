@@ -4,9 +4,10 @@ import type {
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import { resolveCoherentMutationCandidate, resolveCoherentObservationPointerAction,
+  resolveCoherentRetainedPointerAction,
   resolveCoherentPointerAction,
   type CoherentObservationPointerPreparation,
-  type BrowserPointerAction } from "./dom-coherent-candidate.js";
+  type BrowserPointerAction, type BrowserRetainedPointerAction } from "./dom-coherent-candidate.js";
 import { executeExactAssistantTurnRead } from "./dom-exact-assistant-turn.js";
 import { executeCoherentObservation } from "./dom-coherent-observation.js";
 import {
@@ -148,9 +149,35 @@ const pointerAction = async (
           : intent.expectedText !== undefined
             ? { text: { value: intent.expectedText, exact: false } } : {}
         : {}),
+      ...(intent.kind === "click" && intent.postClickTargetTransition !== undefined
+        ? { gptSourceCheckpoint: intent.postClickTargetTransition.sourceCheckpoint } : {}),
     });
   }
   catch (error) {
+    const code = error instanceof Error ? error.message : "";
+    if (/^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|READ_INVALID)$/u.test(code)) {
+      return qualificationReceipt(code === "BROWSER_DOM_CANDIDATE_AMBIGUOUS" ? 2 : 0, code, "candidate-set");
+    }
+    if (!/^BROWSER_DOM_ACTION_[A-Z_]+$/u.test(code)) throw error;
+    return qualificationReceipt(1, code, "actionability");
+  }
+};
+
+const retainedPointerAction = async (
+  runtime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  intent: ClickIntent,
+): Promise<BrowserRetainedPointerAction | QualificationReceipt> => {
+  try {
+    return await resolveCoherentRetainedPointerAction(runtime, target, {
+      selector: intent.selector,
+      ...(intent.scope === undefined ? {} : { scope: intent.scope }),
+      ...(intent.expectedTextEquals !== undefined
+        ? { text: { value: intent.expectedTextEquals, exact: true } }
+        : intent.expectedText !== undefined
+          ? { text: { value: intent.expectedText, exact: false } } : {}),
+    });
+  } catch (error) {
     const code = error instanceof Error ? error.message : "";
     if (/^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|READ_INVALID)$/u.test(code)) {
       return qualificationReceipt(code === "BROWSER_DOM_CANDIDATE_AMBIGUOUS" ? 2 : 0, code, "candidate-set");
@@ -231,21 +258,29 @@ const executeClickIntent = async (
       ? zeroActionReceipt(assertCurrent) : zeroActionMatchReceipt(assertCurrent, readback.match);
   };
   let box: BrowserPointerAction | QualificationReceipt;
+  let retainedNodeId: number | null = null;
   if (intent.postClickTargetTransition !== undefined) {
     if (!targetTransitionPostcondition) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
     box = await pointerAction(debuggerRuntime, target, intent);
   } else if (intent.postClickObservation !== undefined) {
-    const preparation = await observationPointerAction(
-      debuggerRuntime, target,
-      intent as ClickIntent & Readonly<{ postClickObservation: NonNullable<ClickIntent["postClickObservation"]> }>,
-    );
-    if ("failureCode" in preparation) return preparation;
-    if (preparation.kind === "postcondition") {
-      return zeroActionObservationReceipt(assertCurrent, {
-        verified: true, observation: preparation.observation, nativeCauseCode: null,
-      });
+    if (intent.postClickObservation.clickedCandidateAttribute !== undefined) {
+      const retained = await retainedPointerAction(debuggerRuntime, target, intent);
+      if ("failureCode" in retained) return retained;
+      retainedNodeId = retained.nodeId;
+      box = retained;
+    } else {
+      const preparation = await observationPointerAction(
+        debuggerRuntime, target,
+        intent as ClickIntent & Readonly<{ postClickObservation: NonNullable<ClickIntent["postClickObservation"]> }>,
+      );
+      if ("failureCode" in preparation) return preparation;
+      if (preparation.kind === "postcondition") {
+        return zeroActionObservationReceipt(assertCurrent, {
+          verified: true, observation: preparation.observation, nativeCauseCode: null,
+        });
+      }
+      box = preparation.point;
     }
-    box = preparation.point;
   } else {
     const preconditionReceipt = await zeroActionIfSatisfied();
     if (preconditionReceipt !== null) return preconditionReceipt;
@@ -264,16 +299,30 @@ const executeClickIntent = async (
     };
   }
   assertCurrent();
+  const clickedCandidateAttribute = intent.postClickObservation?.clickedCandidateAttribute;
+  const clickedCandidateAttributeValue = clickedCandidateAttribute && retainedNodeId !== null
+    ? attribute(await describeNode(debuggerRuntime, target.tabId, retainedNodeId), clickedCandidateAttribute.name)
+    : null;
   const postcondition = await verifyClickPostcondition(debuggerRuntime, target, intent);
+  const clickedCandidateAttributeVerified = clickedCandidateAttribute === undefined
+    || clickedCandidateAttributeValue === clickedCandidateAttribute.equals;
   return {
     clicked: true,
     candidateCount: 1,
     identityRevalidated: true,
     mutationCount: 1,
-    postconditionVerified: postcondition.verified,
+    postconditionVerified: postcondition.verified && clickedCandidateAttributeVerified,
+    ...(clickedCandidateAttribute === undefined ? {} : {
+      clickedCandidateAttributeReadback: {
+        name: clickedCandidateAttribute.name,
+        value: clickedCandidateAttributeValue,
+        verified: clickedCandidateAttributeVerified,
+      },
+    }),
     ...(postcondition.match === undefined ? {} : matchReceiptEvidence(postcondition.match)),
     ...(postcondition.observation === undefined ? {} : observationReceiptEvidence(postcondition.observation)),
-    ...(postcondition.verified ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }),
+    ...(postcondition.verified && clickedCandidateAttributeVerified
+      ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }),
   };
 };
 
@@ -495,7 +544,7 @@ export const executeRegisteredDomIntent = async (
   if (intent.kind === "readExactAssistantTurn") {
     if (!expectedMainFrameLoaderId) throw new Error("BROWSER_DOCUMENT_INVALID");
     return executeExactAssistantTurnRead(
-      debuggerRuntime, target, intent.assistantTurnId, assertCurrent, expectedMainFrameLoaderId,
+      debuggerRuntime, target, intent, assertCurrent, expectedMainFrameLoaderId,
     );
   }
   if (intent.kind === "find") return executeFindIntent(debuggerRuntime, target, intent);

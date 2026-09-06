@@ -30,7 +30,8 @@ export const profileFacts = (
   const reasoningEligible = reasoningReady
     && reasoningQuery?.readEligibility === "non-actionable-aria-state";
   return ({
-    popup: { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
+    popup: { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0,
+      matches: open ? [{ ariaLabelledBy: "profile-trigger" }] : [] },
     "simple-panel": { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
     "reasoning-control": { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
     "enabled-reasoning-control": { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
@@ -48,7 +49,8 @@ export const profileFacts = (
     },
     trigger: {
       rawCount: 1, eligibleCount: 1,
-      matches: [{ ariaExpanded: open ? "true" : "false" }],
+      matches: [{ id: "profile-trigger", ariaExpanded: open ? "true" : "false" }],
     },
+    composer: { rawCount: 1, eligibleCount: 1 },
   });
 };

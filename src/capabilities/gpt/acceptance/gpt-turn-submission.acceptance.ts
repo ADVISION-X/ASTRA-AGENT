@@ -147,6 +147,46 @@ import {
 
 {
   const { execute } = freshHarness();
+  let observations = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      observations += 1;
+      return coherentObservationPacket(intent, draftFacts({
+        composerHash: observations === 1 ? promptHash : EMPTY_HASH,
+        attachment: true,
+      }));
+    }
+    throw new Error(`UNSTABLE_DRAFT_MUST_NOT_MUTATE:${intent.kind}`);
+  });
+  const result = await execute("reconcile_gpt_draft", fixture.browser, {
+    files: [approvedFile], prompt, turnMarker: marker,
+  });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, "GPT_DRAFT_READBACK_UNSTABLE");
+  assert.equal(observations, 2, "a semantically valid first draft read must be confirmed by one fresh read");
+  assert.equal(fixture.physicalMutations(), 0);
+}
+
+{
+  const { execute } = freshHarness();
+  let observations = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      observations += 1;
+      return coherentObservationPacket(intent, draftFacts({ composerHash: promptHash, attachment: true }));
+    }
+    throw new Error(`STABLE_DRAFT_MUST_NOT_MUTATE:${intent.kind}`);
+  });
+  const result = await execute("reconcile_gpt_draft", fixture.browser, {
+    files: [approvedFile], prompt, turnMarker: marker,
+  });
+  assert.equal(result.status, "success", result.failureCode ?? "stable draft failed");
+  assert.equal(observations, 2);
+  assert.equal(fixture.physicalMutations(), 0);
+}
+
+{
+  const { execute } = freshHarness();
   let submitted = false;
   const fixture = fakeBrowser((intent) => {
     if (intent.kind === "observe") {
@@ -174,12 +214,50 @@ import {
     "submit must not append a second GPT settlement chain after Browser's bounded postcondition");
   assert.equal(fixture.physicalMutations(), 1);
 
+  const confirmedProviderSubmitReceipt = Object.freeze({
+    sourceAttemptId: "attempt:gpt-exact-target",
+    sourceExactCallIdentityHash: `sha256:${"a".repeat(64)}` as const,
+    sourceActionOrdinal: 1,
+    sourceProductStepId: "acceptance:gpt-browser-handoff",
+    sourceCallId: "acceptance-call",
+    sourceTargetRef: "target:1",
+    sourceDocumentRef: "document:1",
+    sourceTerminalAt: "2026-09-02T00:00:01.000Z",
+    evidenceRef: "evidence:submit",
+    evidenceHash: `sha256:${"b".repeat(64)}` as const,
+    promptHash,
+    turnMarker: marker,
+  });
+  const mismatchedReceipt = await execute("reconcile_gpt_turn_submission", fixture.browser, {
+    expectedPromptHash: promptHash, timeoutMs: 1_000, turnMarker: marker,
+  }, undefined, { confirmedProviderSubmitReceipt: {
+    ...confirmedProviderSubmitReceipt, turnMarker: "[GRASSEYE:wrong-submit]",
+  } });
+  assert.equal(mismatchedReceipt.status, "failed");
+  assert.equal(mismatchedReceipt.failureCode, "GPT_CONFIRMED_SUBMIT_RECEIPT_MISMATCH");
   const reconciled = await execute("reconcile_gpt_turn_submission", fixture.browser, {
     expectedPromptHash: promptHash, timeoutMs: 1_000, turnMarker: marker,
-  });
+  }, undefined, { confirmedProviderSubmitReceipt });
   assert.equal(reconciled.status, "success", reconciled.failureCode ?? "submission reconciliation failed");
   assert.equal(reconciled.value?.canonicalConversationUrl, conversationUrl);
   assert.equal(fixture.physicalMutations(), 1, "readback must not submit again");
+}
+
+{
+  const { execute } = freshHarness();
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, draftFacts({
+      composerHash: promptHash, submitted: true, attachment: true,
+    }), conversationUrl);
+    throw new Error(`DIRTY_ALREADY_SUBMITTED_STATE_MUST_NOT_MUTATE:${intent.kind}`);
+  });
+  const result = await execute("submit_exact_gpt_turn_once", fixture.browser, {
+    files: [approvedFile], promptHash, turnMarker: marker,
+  });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, "GPT_SUBMIT_EXISTING_TURN_POSTCONDITION_INVALID");
+  assert.equal(fixture.physicalMutations(), 0,
+    "an existing matching turn with draft or attachment residue must not be accepted or resubmitted");
 }
 
 {

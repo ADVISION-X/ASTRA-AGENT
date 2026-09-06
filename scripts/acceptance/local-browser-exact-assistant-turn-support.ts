@@ -14,6 +14,11 @@ const observedAt = "2026-09-04T00:00:00.000Z";
 const successfulObservation = Object.freeze({
   rawCount: 1, eligibleCount: 1,
   rawDomHtml: "<div><strong>complete</strong></div>", semanticText: "**complete**",
+  currentUrl: "https://chatgpt.com/c/exact",
+  precedingUserTurnId: "conversation-turn-1",
+  precedingPromptHash: `sha256:${"6".repeat(64)}`,
+  turnMarkerMatched: true,
+  generatingRaw: 0,
   observedAt, nativeCauseCode: null, nativeStage: "runtime-call-function-on",
 });
 
@@ -44,9 +49,11 @@ const runtimeFor = (
       functionSource = String(parameters?.functionDeclaration ?? "");
       assert.equal(parameters?.objectId, "document-object");
       assert.deepEqual((parameters?.arguments as readonly Readonly<{ value: unknown }>[])?.[0]?.value,
-        "conversation-turn-2");
+        { kind: "readExactAssistantTurn", assistantTurnId: "conversation-turn-2",
+          sourceCheckpoint: { canonicalConversationUrl: "https://chatgpt.com/c/exact",
+            expectedPromptHash: `sha256:${"6".repeat(64)}`, turnMarker: "[GRASSEYE:checkpoint]" } });
       assert.equal(parameters?.returnByValue, true);
-      assert.equal(parameters?.awaitPromise, false);
+      assert.equal(parameters?.awaitPromise, true);
       return { result: { value: observation } };
     }
     if (method === "Runtime.releaseObject") { releases += 1; return {}; }
@@ -59,7 +66,10 @@ const runtimeFor = (
 const execute = (fixture: ReturnType<typeof runtimeFor>): Promise<unknown> => executeRegisteredDomIntent(
   fixture.runtime,
   target,
-  { kind: "readExactAssistantTurn", assistantTurnId: "conversation-turn-2" },
+  { kind: "readExactAssistantTurn", assistantTurnId: "conversation-turn-2", sourceCheckpoint: {
+    canonicalConversationUrl: "https://chatgpt.com/c/exact",
+    expectedPromptHash: `sha256:${"6".repeat(64)}`, turnMarker: "[GRASSEYE:checkpoint]",
+  } },
   () => undefined,
   "loader-current",
 );
@@ -79,8 +89,8 @@ const exerciseSingleAtomicRead = async (): Promise<void> => {
   assert.equal(reply.observedAt, observedAt);
   assert.match(String(reply.targetRefHash), /^sha256:[a-f0-9]{64}$/u);
   assert.match(String(reply.documentRefHash), /^sha256:[a-f0-9]{64}$/u);
-  assert.match(fixture.functionSource(), /^function \(assistantTurnId\)/u);
-  exerciseCapturedExactAssistantTurnFunction(fixture.functionSource());
+  assert.match(fixture.functionSource(), /^async function \(spec\)/u);
+  await exerciseCapturedExactAssistantTurnFunction(fixture.functionSource());
 };
 
 const exerciseAtomicFailureClosure = async (): Promise<void> => {
@@ -98,7 +108,10 @@ const exerciseAtomicFailureClosure = async (): Promise<void> => {
   await assert.rejects(executeRegisteredDomIntent(
     runtimeFor(successfulObservation).runtime,
     target,
-    { kind: "readExactAssistantTurn", assistantTurnId: "conversation-turn-2" },
+    { kind: "readExactAssistantTurn", assistantTurnId: "conversation-turn-2", sourceCheckpoint: {
+      canonicalConversationUrl: "https://chatgpt.com/c/exact",
+      expectedPromptHash: `sha256:${"6".repeat(64)}`, turnMarker: "[GRASSEYE:checkpoint]",
+    } },
     () => undefined,
   ), /BROWSER_DOCUMENT_INVALID/u,
   "the exact assistant reply must be bound to the Authority-owned current loader");

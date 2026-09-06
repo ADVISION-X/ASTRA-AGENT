@@ -9,7 +9,7 @@ import {
 } from "../../web/child-handler.js";
 import { readExactAssistantTurn } from "../../web/gpt-dom-observation.js";
 import {
-  assistantTurnForPrompt,
+  assistantTurnForIdentity,
   ensureResponseConversation,
   type GptResponsePageState,
 } from "./page-observation.js";
@@ -36,10 +36,11 @@ const stableTextObserved = (
 
 export const waitForStableGptTextHandler: GptChildHandler<"wait_for_stable_gpt_text"> =
   async (intent, context) => {
-    requireExactInputKeys(intent, ["absoluteDeadline", "canonicalConversationUrl", "expectedPromptHash", "turnMarker"]);
+    requireExactInputKeys(intent, ["absoluteDeadline", "canonicalConversationUrl", "conversationIdentityHash", "expectedPromptHash", "turnMarker"]);
     const conversationUrl = canonicalGptConversationUrl(stringInput(intent, "canonicalConversationUrl"));
+    const conversationIdentityHash = responseHashInput(intent, "conversationIdentityHash");
     const expectedPromptHash = responseHashInput(intent, "expectedPromptHash");
-    stringInput(intent, "turnMarker");
+    const turnMarker = stringInput(intent, "turnMarker");
     const deadline = Date.parse(stringInput(intent, "absoluteDeadline"));
     if (!Number.isFinite(deadline) || deadline > Date.now() + 3_600_000) {
       throw executionFailure("failed", "GPT_RESPONSE_ABSOLUTE_DEADLINE_INVALID");
@@ -54,13 +55,17 @@ export const waitForStableGptTextHandler: GptChildHandler<"wait_for_stable_gpt_t
       const observed = await ensureResponseConversation({
         browser, canonicalConversationUrl: conversationUrl, context, deadline,
       });
-      const assistantTurnId = assistantTurnForPrompt(observed, expectedPromptHash);
+      const assistantTurnId = assistantTurnForIdentity(observed, {
+        canonicalConversationUrl: conversationUrl, conversationIdentityHash, expectedPromptHash, turnMarker,
+      });
       const assistantState = assistantTurnId === null ? undefined
         : observed.assistantTurns.find((turn) => turn.testId === assistantTurnId);
       if (stableTextObserved(assistantState, observed.generatingRaw, prior)) {
         const stableAssistantTurnId = assistantState.testId;
-        const assistant = await readExactAssistantTurn(browser, stableAssistantTurnId);
-        if (assistant.semanticText.trim().length > 0
+        const assistant = await readExactAssistantTurn(browser, stableAssistantTurnId, {
+          canonicalConversationUrl: conversationUrl, expectedPromptHash, turnMarker,
+        });
+        if (assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0
           && assistant.semanticTextHash === assistantState.semanticTextHash) {
           const facts = exactAssistantFacts(observed.facts, assistant);
           return success({

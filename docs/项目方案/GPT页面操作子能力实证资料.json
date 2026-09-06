@@ -2,8 +2,8 @@
   "schemaVersion": "gpt-page-operation-evidence.v3",
   "generatedAt": "2026-09-05T16:52:43.213Z",
   "repositoryRoot": "/Users/nexgen/Documents/AGENT",
-  "purpose": "Current-only offline engineering evidence for GPT children that operate a page",
-  "evidenceRole": "offline Chrome evidence bound to the current GPT page-child source architecture",
+  "purpose": "Offline engineering evidence for GPT children that operate a page",
+  "evidenceRole": "offline Chrome evidence recorded per GPT page child; current-source relevance is checked manually when used",
   "productionRuntimeConsumer": false,
   "claimsQualityVerdict": false,
   "captureStatus": "CAPTURE_COMPLETE",
@@ -11,7 +11,6 @@
     "offlineIterationReady": true,
     "supports": [
       "contract inventory",
-      "source-impact analysis",
       "fixture design",
       "offline implementation and deterministic regression after complete capture"
     ],
@@ -75,239 +74,6 @@
     "qimen-professional-answer",
     "qimen-report-followup"
   ],
-  "sourceBinding": {
-    "bindingModel": "page-child-source-v1",
-    "matrixHash": "sha256:98e4f694346e1b3b31bb885612b271de97c6ed30083aaf5f565e04ac84a28251",
-    "sourceFileHashes": {
-      "src/capabilities/gpt/ability-group.ts": "sha256:2ce21e85c549f687aced73f651dbb8bae5382d60461f64a81bf5613665ec7855",
-      "src/capabilities/gpt/acceptance/gpt-acceptance-harness.ts": "sha256:42db128981697539d441f7e3f1b65473a3d9692126ef10e432a25f62282b679d",
-      "src/capabilities/gpt/acceptance/gpt-attachment.acceptance.ts": "sha256:a4973a33f50e1e842d02495ac0fc40c27ee6868be0718c1b91857a1379ade369",
-      "src/capabilities/gpt/acceptance/gpt-checkpoint-readback.acceptance.ts": "sha256:68c4d9b6c868433183e83f71347deb6719204e968d8cf30a343b09d439595e6b",
-      "src/capabilities/gpt/acceptance/gpt-child-input-denominator.acceptance.ts": "sha256:5aed7458660e8dba7b29808def11b451ec74597f6e768172e9973c5ccba347d0",
-      "src/capabilities/gpt/acceptance/gpt-continuation-transaction.acceptance.ts": "sha256:814cbdd3d7b8485aad5517fab4776326d2412764b2f84ad53ee06ada37768515",
-      "src/capabilities/gpt/acceptance/gpt-contract-types.acceptance.ts": "sha256:fe1ea2036479586665f9ece3f77d629161765b046d56c4b7583979c917685345",
-      "src/capabilities/gpt/acceptance/gpt-conversation-fixture.ts": "sha256:240cc8026260dc9b8d938a914c40b0299c101b0f88f1e89a4c2d2e61a4aa69fd",
-      "src/capabilities/gpt/acceptance/gpt-conversation.acceptance.ts": "sha256:e04cd1673ad81ab3835fca6c05a4ae7e579432e8a565b59a6f21713bcf7b2fc2",
-      "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts": "sha256:db1e321e1eb907fc6c2fdb8a5f13b4eb646782c0f3647b52fb752ba7d9ad86b7",
-      "src/capabilities/gpt/acceptance/gpt-exact-target-profile-fixture.ts": "sha256:1f022eb22038eaec5b22929dfd827cfa3e7860dc70f6038b197351890ad5d4a9",
-      "src/capabilities/gpt/acceptance/gpt-exact-target-source-support.ts": "sha256:ed3c838f4405d344c616113b7dd960db5bd090a5c4ba723051f6629df9f63852",
-      "src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts": "sha256:ed17591384a49c9b47be46abbcf511c723aa71dcb24bba6f430fb6dbb1e30637",
-      "src/capabilities/gpt/acceptance/gpt-failure-evidence-readback.acceptance-support.ts": "sha256:70039ba14226e8d706724402ed6a846861581fc4c01e44a681731858f8e3e006",
-      "src/capabilities/gpt/acceptance/gpt-page-fixture-selectors.ts": "sha256:620e2b8521c7c65e767e637bfc17513c90e2d9238fd83ca97bd723f8929c2767",
-      "src/capabilities/gpt/acceptance/gpt-production-browser-lifecycle.acceptance.ts": "sha256:bb22479b4459a3bcfe3f24032d5fb8e41d791a3f7b74653b84c9bd10a6137600",
-      "src/capabilities/gpt/acceptance/gpt-proof.acceptance.ts": "sha256:6317fdd303cdcbc817dd599f59c214cc900ec0e310f10f7c543c5f15184ddaa1",
-      "src/capabilities/gpt/acceptance/gpt-reasoning-requirement.acceptance.ts": "sha256:0f320558da0788c2ceac7ae925050ca66c82138d38a72e048a88129529ee9a2a",
-      "src/capabilities/gpt/acceptance/gpt-turn-submission.acceptance.ts": "sha256:d0c948c58d0f5f27be85b0822a78445bfd5a3df433285ba8cd7244db101df4fc",
-      "src/capabilities/gpt/artifact-contract.ts": "sha256:568dcf172dd897a9d4dd3e3bd90de84b0bf9fcdc7a2ad7657c7a8825a739d801",
-      "src/capabilities/gpt/artifact-reader.ts": "sha256:29e880cf584a212466a67f1ef412d900797fe819cc49e53f591a222241550869",
-      "src/capabilities/gpt/child-types.ts": "sha256:dc2dcf0cbe5b8ff0fefdc7c936e60ab88384e9d02867893996a2277e4ae3bdd1",
-      "src/capabilities/gpt/children/acquire_gpt_continuation_lane/handler.ts": "sha256:9bf90acfca20e98f5699428d95a995ca5398ed0e236e727e810a458ed0645f2e",
-      "src/capabilities/gpt/children/advance_gpt_continuation_lane/handler.ts": "sha256:6967805c7ce998d07af5a52748b98f8fa9b1e9d2950f46a388a82e99356cab85",
-      "src/capabilities/gpt/children/attach_approved_gpt_files_once/attachment-observation.ts": "sha256:d4e66bab525b14e8a56d15d0cda36f03a9dbd879c01f4ea1f1ea780e87f047ad",
-      "src/capabilities/gpt/children/attach_approved_gpt_files_once/control-observation.ts": "sha256:0ec4276e0b5d7cd36283356d871eaad0de39095161a81e7b6b138ceb06b22ba2",
-      "src/capabilities/gpt/children/attach_approved_gpt_files_once/handler.ts": "sha256:a0ddb5fb8b9c685daeb54c7b1ab04963618ead4bbfead87d447342256f9aadc1",
-      "src/capabilities/gpt/children/attach_approved_gpt_files_once/selectors.ts": "sha256:470892567e7206c5cf48d175b5c9ea0d335c1ee6994f32cc28ac577273295e4f",
-      "src/capabilities/gpt/children/checkpoint_gpt_generated_image/handler.ts": "sha256:6358f197ee38899f0ba03f06648983fb11ca758433eda605f0c8ede021bbb64a",
-      "src/capabilities/gpt/children/checkpoint_gpt_generated_image/page-observation.ts": "sha256:c7aba2ba723567128e7d65143129ed69e9edc358f65be885d22d303713f62aba",
-      "src/capabilities/gpt/children/checkpoint_gpt_generated_image/response-support.ts": "sha256:a9fa21e03d94983eb97ebc3605e685fe338edd6508531309bdc3c7dcde97da72",
-      "src/capabilities/gpt/children/checkpoint_gpt_generated_image/selectors.ts": "sha256:894397348f41f00cdcd04beeb6b75021f91383ad3fb236f30fd118e5619aaf73",
-      "src/capabilities/gpt/children/checkpoint_gpt_text_response/handler.ts": "sha256:b810b6109107704645018502406f986686b71c62a77027f99eaaf7ed176d7382",
-      "src/capabilities/gpt/children/checkpoint_gpt_text_response/page-observation.ts": "sha256:c7aba2ba723567128e7d65143129ed69e9edc358f65be885d22d303713f62aba",
-      "src/capabilities/gpt/children/checkpoint_gpt_text_response/response-support.ts": "sha256:3c03d27e993d106611610cb987caa8dc056f75880caf018a276903d8f5ef2f42",
-      "src/capabilities/gpt/children/checkpoint_gpt_text_response/selectors.ts": "sha256:894397348f41f00cdcd04beeb6b75021f91383ad3fb236f30fd118e5619aaf73",
-      "src/capabilities/gpt/children/close_gpt_execution_profile/handler.ts": "sha256:412a6ab6aa77841b7de80e11bb98224b06c14b8c586622d071a18abccc408538",
-      "src/capabilities/gpt/children/close_gpt_execution_profile/observation.ts": "sha256:c944aab527e54fea6006befe041be081ff81ae5d1a3fdf6f7d5bd80ef583f7e2",
-      "src/capabilities/gpt/children/close_gpt_execution_profile/selectors.ts": "sha256:6f921657444b6a8fb7bbbe551d8f3bb54fc9bdcb0a5b27d45802cfea6a253994",
-      "src/capabilities/gpt/children/complete_exact_gpt_continuation_reservation_once/handler.ts": "sha256:d63d1cbda939068e4404f9ec4b803b76679c252f89c30ee68a8226dcb8f8c79e",
-      "src/capabilities/gpt/children/ensure_gpt_reasoning_requirement/handler.ts": "sha256:d6705f98e09c0327951cb6fd7762d797b4e7ea481fa2c27af875821eeeb45c40",
-      "src/capabilities/gpt/children/ensure_gpt_reasoning_requirement/observation.ts": "sha256:79995603aec3a934a7cd4d23f738b238ba8d1e7f9527142424af3411eac8d237",
-      "src/capabilities/gpt/children/ensure_gpt_reasoning_requirement/selectors.ts": "sha256:c8e93de9536908ae33c2f81585b5f3a4604d7de0d3fc53c21f9fe86b4e42b06a",
-      "src/capabilities/gpt/children/focus_exact_gpt_conversation/handler.ts": "sha256:db1c9da439f6aca1e79f6aac0176506c1baa0fac43148b4a2713de5ba0151c4a",
-      "src/capabilities/gpt/children/focus_exact_gpt_conversation/observation.ts": "sha256:d1fcfe391e5b6bc3099a45c81979ef367334bade3bb23bddf5074cc77768ebea",
-      "src/capabilities/gpt/children/focus_exact_gpt_conversation/selectors.ts": "sha256:f392c7788a9d342cd4e6ae23029330d37dd7833a4f8efa55b07c25bf038d7051",
-      "src/capabilities/gpt/children/fork_exact_gpt_conversation_at_checkpoint/handler.ts": "sha256:1442f66bf839755e7c907257362435ec2ac65722914b9c2803b3f6cc04584fbc",
-      "src/capabilities/gpt/children/fork_exact_gpt_conversation_at_checkpoint/menu-state.ts": "sha256:72391f07f3ca3105867e6154d76a4f1ea82fadcb3feefd6fb0bf3323bdfd1212",
-      "src/capabilities/gpt/children/fork_exact_gpt_conversation_at_checkpoint/observation.ts": "sha256:ec11f8eab642f85d5c5325b5c3233fdcb72ba243c7585ba068820e18fd1a4b4f",
-      "src/capabilities/gpt/children/fork_exact_gpt_conversation_at_checkpoint/selectors.ts": "sha256:e5f3f997f008ae733956cf7df05b8f4ebac7e8bb2a901424fb36520ce5f47e33",
-      "src/capabilities/gpt/children/open_gpt_attachment_control/handler.ts": "sha256:39746c792b14cd868d0177040879cb31d8ba2a66b684a3ed7b499366b77abfc0",
-      "src/capabilities/gpt/children/open_gpt_attachment_control/observation.ts": "sha256:8a2e6b731d2f149b247b0dd9ad632b4d42d7ca8ed7752de20d224e6408ffeafe",
-      "src/capabilities/gpt/children/open_gpt_attachment_control/selectors.ts": "sha256:dfd93a8283e730059ec8f31595b164594e8b38bb2d59345f3ba04025b78fbb23",
-      "src/capabilities/gpt/children/open_gpt_checkpoint_actions_menu/handler.ts": "sha256:fc657ffebeb82804a30dca181812fa494a30cbac4e7c7784bc8e979b1871b6d2",
-      "src/capabilities/gpt/children/open_gpt_checkpoint_actions_menu/menu-state.ts": "sha256:441ba08a5f78ae84ec34a3410d843e44b339cd744fc2db538a338a4a26639b73",
-      "src/capabilities/gpt/children/open_gpt_checkpoint_actions_menu/observation.ts": "sha256:9d0802469a5cfa0ea5a1db8e5bcf1ed3597dc6b1437cd879a5a5b5951763b4d0",
-      "src/capabilities/gpt/children/open_gpt_checkpoint_actions_menu/selectors.ts": "sha256:e5f3f997f008ae733956cf7df05b8f4ebac7e8bb2a901424fb36520ce5f47e33",
-      "src/capabilities/gpt/children/open_gpt_execution_profile/handler.ts": "sha256:dc1ab0ef4e2f53d81ae80c22ed50d09396184104f0028a924b5205bdac63f62f",
-      "src/capabilities/gpt/children/open_gpt_execution_profile/observation.ts": "sha256:9f252972597e784967450573c6a22900ab3ebc67c7a4447d38b0b8983ead53b5",
-      "src/capabilities/gpt/children/open_gpt_execution_profile/selectors.ts": "sha256:ced1807724a556eee59a4ac0e0782d336c2b69f814c4eba995cc244970c48548",
-      "src/capabilities/gpt/children/open_gpt_fork_destination_menu/handler.ts": "sha256:2d9fa8299bdc1db916e5b394713cfaaf0db5b9eab460b264955d6a4c1a636fe4",
-      "src/capabilities/gpt/children/open_gpt_fork_destination_menu/menu-state.ts": "sha256:6f852eb0141866d64e5ec2c6569cab9822fcff32d74f71865689dbc9324c6a3e",
-      "src/capabilities/gpt/children/open_gpt_fork_destination_menu/observation.ts": "sha256:08759e3d9f08f2a9d0899a7463fe77bc95ba391f8008a8dde0036c573b84435c",
-      "src/capabilities/gpt/children/open_gpt_fork_destination_menu/selectors.ts": "sha256:e5f3f997f008ae733956cf7df05b8f4ebac7e8bb2a901424fb36520ce5f47e33",
-      "src/capabilities/gpt/children/open_gpt_model_selector_v2/handler.ts": "sha256:c153ddbdf51b18dbf7289e777259a9afb9df0aebc3a6339fe9465975003fd219",
-      "src/capabilities/gpt/children/open_gpt_model_selector_v2/observation.ts": "sha256:29a819ab49b936392c4ac7c1bff4354ba854807fcb819b7e16aabd0bfe400716",
-      "src/capabilities/gpt/children/open_gpt_model_selector_v2/selectors.ts": "sha256:4b1ecffe57819e93c1682367af63eacec9ee330aa7cc01ea1b75996d3305a49f",
-      "src/capabilities/gpt/children/persist_gpt_continuation/handler.ts": "sha256:0707475e05692b414a6b84b941533db551bc499ce6085ea1ae982c2a6b5a3c45",
-      "src/capabilities/gpt/children/prepare_clean_gpt_chat/handler.ts": "sha256:5bd7293e311f5c68ce2f02bcf3d54dd86522cfc62a8f8bf33b568e15f5785063",
-      "src/capabilities/gpt/children/prepare_clean_gpt_chat/observation.ts": "sha256:89a91885934a89a345bbc64e036c67be96480c9832fc81cf988e3d15778a13e6",
-      "src/capabilities/gpt/children/prepare_clean_gpt_chat/selectors.ts": "sha256:faa929cb796a7cdeec3e1a7265b5966f849f535a7b66f8f3a7309dd1ebb708c0",
-      "src/capabilities/gpt/children/reconcile_gpt_attachment_set/handler.ts": "sha256:eaa22f598f8755e956d0754fd1babce5cddb50b17dd0962cb4b2331bf685de62",
-      "src/capabilities/gpt/children/reconcile_gpt_attachment_set/observation.ts": "sha256:1024b07b383ae9be5d5c3e1374314ceb9653ba28f052979e4fa8aef7454eac0c",
-      "src/capabilities/gpt/children/reconcile_gpt_attachment_set/selectors.ts": "sha256:60c590dd60ac06c355c285b6d60dc55a3bcdebb83eddd94553a7bccf79715b46",
-      "src/capabilities/gpt/children/reconcile_gpt_draft/handler.ts": "sha256:df583ff6977a4d8432d531aeea40eef80797726d31840ce3f359f5809b2ce06a",
-      "src/capabilities/gpt/children/reconcile_gpt_draft/observation.ts": "sha256:388d8ab1bd1cfb32257a0513e1f52f5df7de876c975971cb1db8aa49956f69f2",
-      "src/capabilities/gpt/children/reconcile_gpt_draft/selectors.ts": "sha256:ea61c54b782135a05d4bcca8652eb37313dfcecd77a063fba5417ee60554847c",
-      "src/capabilities/gpt/children/reconcile_gpt_turn_submission/handler.ts": "sha256:3bad1d59e312a9288b053fad59e432c9825d584a59dba1059e2f3a6cdd94a1db",
-      "src/capabilities/gpt/children/reconcile_gpt_turn_submission/observation.ts": "sha256:fe7a96c40b790aeb7d7f62b5f5cdccbc7e7631eb4b890fa24e1ab8c70248bd24",
-      "src/capabilities/gpt/children/reconcile_gpt_turn_submission/selectors.ts": "sha256:3838022aadd72066a296046feedbb7dfd52fdab11978ba097b404738d1b0f9e0",
-      "src/capabilities/gpt/children/release_gpt_continuation_lane/handler.ts": "sha256:de4b18440553656183a3d8a14b5aa48462c5caca9c20e7040ce180f8e9d3e2e6",
-      "src/capabilities/gpt/children/reserve_exact_gpt_continuation_once/handler.ts": "sha256:8f4e87e3653bbfc1c07cc98251c427a1be7943d2422f4351d97210e8f893c03a",
-      "src/capabilities/gpt/children/select_exact_gpt_model_v2/handler.ts": "sha256:8adde586301a747e3c012f696b876957fae81759bb7e6ac95857eaee5f1ec410",
-      "src/capabilities/gpt/children/select_exact_gpt_model_v2/observation.ts": "sha256:faa13ffb4410c25988cdf6a6c7782064ba43ff3ad7d42076640a4f6a36a21006",
-      "src/capabilities/gpt/children/select_exact_gpt_model_v2/selectors.ts": "sha256:1e1c5f243de448e90eda4e02e5d039976085c024bc5e91cded863daa548803b7",
-      "src/capabilities/gpt/children/submit_exact_gpt_turn_once/handler.ts": "sha256:ee328429a4fee1bf1c37af90193429458b008839923d9a116b22c67ae36b4116",
-      "src/capabilities/gpt/children/submit_exact_gpt_turn_once/observation.ts": "sha256:2bb932dcc0842e9aa523a939a3590dd2684fa99ae5e8cc6024ebbbb46aaf7eb0",
-      "src/capabilities/gpt/children/submit_exact_gpt_turn_once/selectors.ts": "sha256:95c0cbbbbd803397159e69379f6b0139965e860bd5412331b78aa2fef8a9d018",
-      "src/capabilities/gpt/children/verify_gpt_conversation_identity/handler.ts": "sha256:563bc3a8135a7d57b99093224c91767d3482227404b4214e538f18bfad6690f8",
-      "src/capabilities/gpt/children/verify_gpt_conversation_identity/observation.ts": "sha256:098a0817f32c0cb445192d2427d87a7d16874a96112aed43f199ca1c486e52e7",
-      "src/capabilities/gpt/children/verify_gpt_conversation_identity/selectors.ts": "sha256:072676956930c3af08200a9e9fae64c5814ea97a3cad9762f3001341708658dc",
-      "src/capabilities/gpt/children/wait_for_stable_gpt_image/handler.ts": "sha256:9bd15a04d21aab16c222d277a283dfe47c28384028e644b7fd41deb89d1d6888",
-      "src/capabilities/gpt/children/wait_for_stable_gpt_image/page-observation.ts": "sha256:3d96a9d27e0f867fb168b893f5b7a777fdd569523d4cc884ae5d45f0a89bd80d",
-      "src/capabilities/gpt/children/wait_for_stable_gpt_image/response-support.ts": "sha256:b6813ab8771fec8fb73be7f97924f077a8054224f199f20a2dc4a4f58559e69e",
-      "src/capabilities/gpt/children/wait_for_stable_gpt_image/selectors.ts": "sha256:6de8052ed1948270ec4c7271ec7054b151aa38b0d34e025689ff5b298148e41d",
-      "src/capabilities/gpt/children/wait_for_stable_gpt_text/handler.ts": "sha256:49b6dd5dc4befc5ccc1e4dd0b390ad7b5c4cd35d12088b9534cd4d75ba1d3c98",
-      "src/capabilities/gpt/children/wait_for_stable_gpt_text/page-observation.ts": "sha256:c0fdc52190d343f3f31677da7cb0c1466c4ee7151531959620e42a0dc622a6fb",
-      "src/capabilities/gpt/children/wait_for_stable_gpt_text/response-support.ts": "sha256:a149240baf28454d374a1456ed77185f7d8e26597a53f5ef7bab71baa702cec2",
-      "src/capabilities/gpt/children/wait_for_stable_gpt_text/selectors.ts": "sha256:6de8052ed1948270ec4c7271ec7054b151aa38b0d34e025689ff5b298148e41d",
-      "src/capabilities/gpt/children/write_exact_gpt_prompt/handler.ts": "sha256:55dc5b3833d5c573bc23db31448783862c5543016acd5b4c57956f86a9e44e11",
-      "src/capabilities/gpt/children/write_exact_gpt_prompt/observation.ts": "sha256:4874a76ed04ebddbf5367fad631be1e96abbac6aac7d4016d4ec310daca35bcc",
-      "src/capabilities/gpt/children/write_exact_gpt_prompt/selectors.ts": "sha256:f392c7788a9d342cd4e6ae23029330d37dd7833a4f8efa55b07c25bf038d7051",
-      "src/capabilities/gpt/completed-result.ts": "sha256:08efe80e0cacc12fde26c855218c5bb406dd3f53c8bc05416f8ff86c305a9360",
-      "src/capabilities/gpt/confirmed-provider-readback.ts": "sha256:659c6db2e90870aaaf62500739d8a5fbd959df1b7902e52154f8f51ea1986635",
-      "src/capabilities/gpt/continuation-evidence.ts": "sha256:a7b9e2d3f6bcd176e578be8686232c18c089b692d0bb5d1074b0c4df9b22f6d9",
-      "src/capabilities/gpt/continuation-readback.ts": "sha256:61918ec5256164fd31d3288e4cb55de44a81a0ef406521196626178fac76b1ec",
-      "src/capabilities/gpt/contract.ts": "sha256:561e5287aa668231e91ec31e0bcb95371b10e2f941de71c4966cc680b7cef40f",
-      "src/capabilities/gpt/evidence-artifacts.ts": "sha256:a09c5ee5035c2c77c6814ecfc5528ea2f15daaacb7c2daf6a479d1d484519a55",
-      "src/capabilities/gpt/evidence-fact.ts": "sha256:61f78e69f86f3c3c59d2f0f152c309e126f090484d437ca553e4dea74b6e9854",
-      "src/capabilities/gpt/evidence-writer.ts": "sha256:e47c42aa95e690a0defb7792f85a2fc5a0f3c8336ef4dc1d3924d74d2a938106",
-      "src/capabilities/gpt/execution-fault.ts": "sha256:925198993d4aff74fa8116447ff2c9d7ea4245bdb9cdf1de5ebb954a7819d81e",
-      "src/capabilities/gpt/generated-image-artifact-reader.ts": "sha256:6f5eef6e95fa7400803aa4c89aec55eb581a47925e3b77d591ed281f761c512a",
-      "src/capabilities/gpt/index.ts": "sha256:f931fb38eaffb3dd3b7996bba0171d8da634eb58383418f60bd8862ccce9a0a2",
-      "src/capabilities/gpt/product-api.ts": "sha256:817083ee9811f334862e61cca8ccabaabb24f6215a765a27b11659e70a00ba65",
-      "src/capabilities/gpt/production-atomic-call.ts": "sha256:bd4d7810e82662a7f9bc9b7cf1dfa03d5b2bbbe136bb4d9ca954b3d672986f74",
-      "src/capabilities/gpt/production-browser-lifecycle.ts": "sha256:911a5e77aa42c52840144d2af10caef62d73998d9fefd845db93917c11fa6a62",
-      "src/capabilities/gpt/production-call-facts.ts": "sha256:d02af6e4dae696da7e158463b531eb0cb6642f3ad317f1e7440a1342f15d25d7",
-      "src/capabilities/gpt/production-child-support.ts": "sha256:7201c0fd6d2d47ffac11603bc993cbe44e659e6429735f64031c9e63b5003428",
-      "src/capabilities/gpt/production-child-tools.ts": "sha256:dd43b052183fa6bfb49c7b811d25812dd6f31093eaf54d02764bc6b600a21026",
-      "src/capabilities/gpt/production-confirmed-readback-facade.ts": "sha256:f994c85172ba3f3597a3e4e7777324293befb63f454df3c9826f1d763e674f3b",
-      "src/capabilities/gpt/production-ports.ts": "sha256:be487d95814440b38fbfc5f22e914b5cbb5ad1e3c563ae1cb8d7f400f38d4166",
-      "src/capabilities/gpt/provider-wait-cross-conversation-cadence.ts": "sha256:ee40ebfa9e33736b43555767cb7ac43d2f4f390eab42d986d16d3ac0dbfbf2ad",
-      "src/capabilities/gpt/schema.ts": "sha256:c1463bff06f9f1069072802e575ffdecfbbbb5e43dd91e06365a97957a9ccfc4",
-      "src/capabilities/gpt/session/continuation-child-input.ts": "sha256:73857b78ba58e847676fd1d625234ec113dc840604001b46938da15e8eff264e",
-      "src/capabilities/gpt/session/gpt-continuation-store-port.ts": "sha256:49afb18b46e7f2a7909760ba255fe6435add357e8f006220053f882dd7db1deb",
-      "src/capabilities/gpt/session/gpt-session-controller.ts": "sha256:7b347bc9e4fc399f51922f79cae0c62f47f10052cd5c7e63793a3285e4cbd3f9",
-      "src/capabilities/gpt/task-exact-effect.ts": "sha256:2071110cfe1e841d0fd625c5f20aca6b41f1c6f5ea82db24ee438338f34365d0",
-      "src/capabilities/gpt/web/child-handler.ts": "sha256:1ea51627ae5cb48ddbadc3123a3bd488f7986acf1b5ce37f67f1dea865bbde55",
-      "src/capabilities/gpt/web/contracts/target-document.contract.ts": "sha256:ed3275982156cc04ae56d4d3655ad1f23f78c25c6a6a5af5ac7803d3f6704a38",
-      "src/capabilities/gpt/web/direct-mutation-settlement.ts": "sha256:40c3ff0795cf51090ba7d9330c946a2b16cccf01bb60c3bb44ad1a11b07ae9a8",
-      "src/capabilities/gpt/web/execution-profile-input.ts": "sha256:d85491b700a55a7c4bfac24c89b5b2e42c442b66e3eb810438bde9e8cdcd11a7",
-      "src/capabilities/gpt/web/gpt-dom-observation.ts": "sha256:43dce0c49407cb06d64a2fadac0839cf62edf0c18d97ac6b1f73971af67bd081",
-      "src/lib/browser/browser-authority-api.ts": "sha256:d1caa5e00e088ae9e9d2a6398df91941566acf4da6596dfa390303defcd7d67c",
-      "src/lib/browser/browser-failure.ts": "sha256:e3c26bd3a29744bd0b71accde5db9c326c98901a5a8c6bc81e56e4d20e39cd51",
-      "src/lib/browser/chrome-extension/authenticated-media-runtime.ts": "sha256:0bd98b04068be21e0ec3a57e19f5175ff58f9b29778c4d0d2bfe252fbcb072cf",
-      "src/lib/browser/chrome-extension/authenticated-media-value.ts": "sha256:624f8be024380d38bac0cba5e6dacd7a38a90180984fc0e06cc61af5b07536bd",
-      "src/lib/browser/chrome-extension/build.d.mts": "sha256:f15c78939b135d1a7f923ed346e599808210f4c806a7652e94633d74d173917b",
-      "src/lib/browser/chrome-extension/build.mjs": "sha256:6126af8525bb62431a40bb72b7d6a5ca435116e2e376c58b2495b70224f6dabc",
-      "src/lib/browser/chrome-extension/command-permit-validator.ts": "sha256:aca662515b15fea0d65657385c6af7fd111a9b39d8d4a19cc1e8c27403e87c38",
-      "src/lib/browser/chrome-extension/command-registry.ts": "sha256:df3462f546b5b9c61cebea3eb282780e8fd5b454ba6f994d4ec1c5f0f318e58a",
-      "src/lib/browser/chrome-extension/debugger-runtime.ts": "sha256:29d71a61d95c5ef30f1d6d0983e3696a948c414596b513a2053fac61d860d709",
-      "src/lib/browser/chrome-extension/dom-coherent-candidate.ts": "sha256:369a2658a74b0de541d4f9a6dc26aad77bbec760fd41a84ec2af34bbf0231286",
-      "src/lib/browser/chrome-extension/dom-coherent-observation.ts": "sha256:4760eefd60f24e3cc811f61e3c478c6d685d1646f2c8abecee97dd88546e590a",
-      "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts": "sha256:4dcf6febdfba7f2466769877b8db26df3322e45a3b5e4192a5bdc77d322db1fc",
-      "src/lib/browser/chrome-extension/dom-exact-editable-text.ts": "sha256:1ce2c31c9d54e62b08de6fc2dbd9807157b69697895c058ebbf63c4b714a9b41",
-      "src/lib/browser/chrome-extension/dom-intent-runtime.ts": "sha256:3ba28bae21455e3d50cc6299e7ac9c5cc811f77a27b803c6d71ae273c55cc465",
-      "src/lib/browser/chrome-extension/dom-mechanical-facts.ts": "sha256:d80fd5e7554e2d66fa702dfc3df72d9aa85a8747c23b1d9038927d68d98b26e9",
-      "src/lib/browser/chrome-extension/dom-mutation-postcondition.ts": "sha256:8e17a18da8e0e6d64dd37cd69c28bc0f0d913427e735d9965ddf56c174a964ae",
-      "src/lib/browser/chrome-extension/dom-query-runtime.ts": "sha256:21213a1396cb8cc755086530f6a48b3a2a1013a23380cf71dc41de8297a3063a",
-      "src/lib/browser/chrome-extension/dom-semantic-text.ts": "sha256:79b3ea035531ef7ebd9d470d33841fe99c0bca2a2dfc7a91808eede34e71f7f1",
-      "src/lib/browser/chrome-extension/exact-target-runtime.ts": "sha256:bd88f9c63d79172fc1a4215fea1cbeca5169087d705b9e4f4a86921b99f7c992",
-      "src/lib/browser/chrome-extension/extension-file-input-runtime.ts": "sha256:48122fd24879c63ba87682f74772e63e7b20f164772a839c1a42058cf81a9010",
-      "src/lib/browser/chrome-extension/extension-heartbeat.ts": "sha256:4bb96e326884b10c28e410c8329c95f7d9a69932740f20a7733365e506827528",
-      "src/lib/browser/chrome-extension/extension-runtime-types.ts": "sha256:ac54351173f80c07105432f0abc9e3a372cd80c63ef8e3232cb2140a5f4eb3e5",
-      "src/lib/browser/chrome-extension/extension-target-authority.ts": "sha256:1a762d64bee6bb57388a94e8f29629622ee6ba9044932302d723a2988ba534e6",
-      "src/lib/browser/chrome-extension/manifest.json": "sha256:ed1888bfba012deeb521a1766bfdcb46bf90176b143d874abffebf72b7df42a4",
-      "src/lib/browser/chrome-extension/pairing-auto-bootstrap.ts": "sha256:5e2693b5b315a3ed3be4d896a7819b8d97089469c78df0610d8d39f6ebb8705b",
-      "src/lib/browser/chrome-extension/pairing-completion-gate.ts": "sha256:2e43940c816ac0ef0ca99e4e1f71caec662f497955523504128c10063eacd05e",
-      "src/lib/browser/chrome-extension/pairing-popup.ts": "sha256:b3d72fa1b5afd1a3a3f4f7a4e2b2914ff50861afe09871f67d7e9d1de5c57572",
-      "src/lib/browser/chrome-extension/pairing.html": "sha256:bafe94c59feb21dda877bed736ab454436f72fe71e645f1e19cacf38fc4eaf78",
-      "src/lib/browser/chrome-extension/service-worker.ts": "sha256:fc23e3566329d1143421cba7e79875cade9a81e76721dc84d32898c1603f988f",
-      "src/lib/browser/chrome-extension/websocket-actor-crypto.ts": "sha256:44ba2bcf52d43a4b42a749288a33355faf9b27e31fa02545d195c9c96a067625",
-      "src/lib/browser/chrome-extension/websocket-actor-diagnostics.ts": "sha256:fabcab6e970ef82acab6d6bc5d1a8aebf615dcff584260897f79b6c41ed5424a",
-      "src/lib/browser/chrome-extension/websocket-actor.ts": "sha256:48156d670ef0b387dd81710af5048a814ffd1a4fe32e6f64fe9d5cfebf1fafa9",
-      "src/lib/browser/chrome-extension/websocket-command-diagnostic.ts": "sha256:5b41ee4ffee98967125612fd7a5786f6872f5f6beca447b4bb7113fa707d11dc",
-      "src/lib/browser/chrome-extension/websocket-target-claim-awaiter.ts": "sha256:3bab724d9037c4085fe9b457c6893aaa7e9d00b9eb38230234e5d4aaa600033c",
-      "src/lib/browser/exact-target/browser-command-actor.ts": "sha256:03bb7d641dcec35f65121013c094fcdf7a33acf8c6d0c2ba015f5e5b6b4bfba8",
-      "src/lib/browser/exact-target/browser-command-postcondition.ts": "sha256:5c443022e891c486437d99dc6eec139750fc9881cd00724ea49d6b4076bb7687",
-      "src/lib/browser/exact-target/browser-command-runtime-logging.ts": "sha256:2aa3fd22f0ddee4eb9e999d012fd204c0f752ed61fd0e1b1fe7201edd1842e57",
-      "src/lib/browser/exact-target/browser-dom-intent.ts": "sha256:176025e05c593c71b9dbd3c2bcd3c3789a256f79498df5e1634ccca306a0d72d",
-      "src/lib/browser/exact-target/browser-file-artifact-grant.ts": "sha256:1621f89f1d3ef1e519abf42207790d8d2bd922817c34cbef23b33e751e7cc812",
-      "src/lib/browser/exact-target/browser-mutation-receipt.ts": "sha256:02c9327a67dfde13506d2b3f510305baf7a8c1e5058a921f6ca73172b2a2a979",
-      "src/lib/browser/exact-target/browser-mutation-row.ts": "sha256:0ab977870c08c4756a1253cde4ee9ac787d7d88d6949294a0693d22ffd6f8b9d",
-      "src/lib/browser/exact-target/browser-mutation-schema.ts": "sha256:2507f25148ba761cd6204254c1e3af67f6d997891eb932d9fb1d153845ec8f45",
-      "src/lib/browser/exact-target/browser-mutation-store.ts": "sha256:d5469158f0f5a85fa4d0eecd2a8aba1495a8733ccf480fc4d89d212b5f854a61",
-      "src/lib/browser/exact-target/browser-outcome-resolver.ts": "sha256:1d4ba68812e200ccdee929ce5ddcc0276535684e09544f69ed8001c7a1e15cb4",
-      "src/lib/browser/exact-target/browser-session-workspace.ts": "sha256:d24d6a7e364751e569c2b3fc0573d8ba993253a4dbae68ae585a138543ac6293",
-      "src/lib/browser/exact-target/browser-site-policy-registry.ts": "sha256:5246057aea6e1d8a827052d05fb6f8c8c5bcb252591097eee5761c3e2111b53f",
-      "src/lib/browser/exact-target/browser-target-lease-manager.ts": "sha256:3ef78717b6fc3f2448a8f1f9266036244729630a13ef76aa60aef12ffe7b6c9e",
-      "src/lib/browser/exact-target/browser-target-lease.ts": "sha256:09ebf2a3fd83dfc35637299b489180a433b0b64d81c02029476279e2446807d6",
-      "src/lib/browser/exact-target/browser-target-ref.ts": "sha256:137b68bd0032fa771a8db7e7ed211b2159e7eadaef3735488572be110a4aacda",
-      "src/lib/browser/infrastructure/browser-authentication-commit.ts": "sha256:89b687dc26aa9b901768f0ebf7734b9cd5c411d349b1eb42d73af52c371bfac9",
-      "src/lib/browser/infrastructure/browser-authority-broker.ts": "sha256:dc9e072c4bd257710b0020f67697c65bc81d64088d77f27118ab68575ebc5911",
-      "src/lib/browser/infrastructure/browser-authority-certificate.ts": "sha256:ec350b26f23fe69040e30f213f0a9b6636796bab706377a8f4d5834d3c39947a",
-      "src/lib/browser/infrastructure/browser-authority-issuer.ts": "sha256:aca11f193ec0d5cc00adc6d2d1beaf7074a4f6d2665a3886fd0ecf4bc5bbd2ce",
-      "src/lib/browser/infrastructure/browser-confirmed-readback-lease.ts": "sha256:80229aa3fffa2d04e97202749814945fdde3c898f72ce38d7b1d64bbeffae66a",
-      "src/lib/browser/infrastructure/browser-confirmed-readback-source.ts": "sha256:8461d992f74455b6870e647a8ef0a739e8c8a0f67d70211d5b4d524f9108919f",
-      "src/lib/browser/infrastructure/browser-control-state.ts": "sha256:139ffb2b6a750ff5dee7364a096f036d287e0cf554d34852d0e731a421b976ae",
-      "src/lib/browser/infrastructure/browser-infrastructure-state.ts": "sha256:b76d1c5e2cd850ff17367ef308e0605207e8d86a1ee684982ce6583e99fb353a",
-      "src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts": "sha256:9acca3b159602d4b5fae237119a8fd3107265257ad8fc23bf5fd318c3185e4eb",
-      "src/lib/browser/infrastructure/browser-lane-coordinator.ts": "sha256:a6601e656a0d26521775b5e51fb45c2979600f5297966c8d33d180677325a831",
-      "src/lib/browser/infrastructure/browser-owner-lock.ts": "sha256:2ae244629fc7a97d9e62c096f5ce65f45aa5e1e302cb6280c27891525134c1a2",
-      "src/lib/browser/infrastructure/browser-runtime-log-emitter.ts": "sha256:066f1c8c3c330af95a708740fc4f2fa0f1a283e7fe4de677898e05a135c8dba5",
-      "src/lib/browser/infrastructure/browser-target-acquirer.ts": "sha256:10c077fb28b9eb1508f9745a9b3ce384a23bb43d05f8d894248af17cda1b2867",
-      "src/lib/browser/profile/browser-profile-config.ts": "sha256:31c0d39a47e57eb8fb59eb172e57af57b3c88d9bf094520bb374ab13a9e311fd",
-      "src/lib/browser/profile/browser-profile-enrollment.ts": "sha256:c76d4a191143e5dee4af8d1d1f434da61e7906f0ae8063bbaaf260a84778dc7e",
-      "src/lib/browser/profile/browser-profile-state.ts": "sha256:11b9d8e9ac7cbfa1cb96011842601b655e947d764218124fff209656c6df653f",
-      "src/lib/browser/profile/dedicated-profile-policy.ts": "sha256:7c33e2a5cbd3513e9385abca8e3880bd07e1d976e7f273adebd472e19a7f1e74",
-      "src/lib/browser/profile/managed-policy-readback.ts": "sha256:040da1c27793ef255657390bf38053fc1617b91a9213f8246a56f469d6794f1c",
-      "src/lib/browser/protocol/browser-authority-certificate.schema.json": "sha256:1f5a194f6d5071882f86cccc12e1a0c540062f5bdeda8c53f74780e148900a0c",
-      "src/lib/browser/protocol/browser-capabilities.json": "sha256:063352aa41540e3a139178d71a03906fbf33aed4eb0e8fb441f5266e843ee3ea",
-      "src/lib/browser/protocol/browser-errors.json": "sha256:881323ce44633b09669e3cbcb3c81c221f9cca686beddc1187f7767061f30ef5",
-      "src/lib/browser/protocol/browser-file-artifact-grant.schema.json": "sha256:9117cd24726d4f57fa055567cc3f9122a8ba6b1bd5e29c9fa726f8a2439f143b",
-      "src/lib/browser/protocol/browser-profile-enrollment.schema.json": "sha256:87ecc0301d926bf13dbc8a6fb871ed6811dbaa65b85fdcdfe6534a42c62c89c0",
-      "src/lib/browser/protocol/browser-protocol.schema.json": "sha256:461bbca399d393894960b5e263f69e5763da8e86361653b7db5e2c1874a7682f",
-      "src/lib/browser/protocol/generate-browser-protocol.mjs": "sha256:7c2d7ce12f0b9ce05c5933a198e3ae07decd93ef72e02a90aaa71e1bdc980202",
-      "src/lib/browser/protocol/generated/browser-protocol.generated.ts": "sha256:fb2359efd7991cf3fff545b300218a9b458e13c4a72a34e3b495b31ef5219169",
-      "src/lib/browser/release/extension-directory-hash-v1.ts": "sha256:8106c8bf35e731eaadd6b1056fef46c9b0c2b7195f5964bf6d02447cb02aaf63",
-      "src/lib/browser/release/unpacked-extension-release-identity.ts": "sha256:138f49cf0a689c41feaf13066777db2adb3de88fbcf18b58c65c2379bad10d80",
-      "src/lib/browser/transport/browser-authority-diagnostic.ts": "sha256:14efaa3d113677f6cc03ebaf6fa9f22638ba68c0b69c62573fc7751e4167ccf3",
-      "src/lib/browser/transport/browser-authority-frame-codec.ts": "sha256:6022be2a628910f5084a290fb2048c5a3ad919bb415f3dbb62b6bd8a281b9e6d",
-      "src/lib/browser/transport/browser-authority-frame-payload.ts": "sha256:42d14c067f6413e8fb6ceaf9516a426f73dd787e0bdc43857a42b5a5f194ea58",
-      "src/lib/browser/transport/browser-authority-session-crypto.ts": "sha256:12185d6dcbdb828b225c5cf3c6bae030c1fa857ad47b5d70774869ded839f33c",
-      "src/lib/browser/transport/browser-authority-websocket.ts": "sha256:fbe11056548f13ce7eb36af1eeaa3f9ca9dffc985a8de3cb1b29ec86620ff3d6",
-      "src/lib/browser/transport/browser-command-admission-budget.ts": "sha256:1f19c9580f242e3621930742e232209ec24bdaf52514ca9719c5aa5be4071039",
-      "src/lib/browser/transport/command-permit.ts": "sha256:01cc04494e005a67696902dab16e07b657320d28acd9f6930f7677b331cb305e",
-      "src/lib/browser/transport/transport-actor.ts": "sha256:3e9c77841d34635209340704a7d8209765856683875619b6558f9b94f0fb503c",
-      "src/lib/browser/transport/transport-authenticator.ts": "sha256:ee1ef2ee4b14396a57a345ba5cc024981fd0671c068f8a607fcab98f5dbeac4f",
-      "src/lib/browser/transport/transport-event.ts": "sha256:9244820be01a0aa93681a8f0ed7a30233bb0b888fe999cecfbd7f97dc9e082b5",
-      "src/lib/browser/transport/transport-reducer.ts": "sha256:6f224572e572f30877918f65a688cc7211d2359cd31c09a6f38c715db25d1254"
-    },
-    "collectorHashes": {
-      "references/collection-protocol.md": "sha256:a9862b4fda55967fa1f792ef4250b68fb2557e3e30763a1cfb638c372ec9d716",
-      "references/evidence-schema.md": "sha256:07e6b110fd58bac9d443da1feac61c82436ed3664efc9fb38b067271cd0a6c75",
-      "scripts/make-fixtures.mjs": "sha256:df74c5b5c17815d30df5380ff4b642c6d69664e99bda863c8e0194798d6851a1",
-      "scripts/report-tool.mjs": "sha256:a5b889e3b05b9a48758fec8a65beadc76a281878cbdb1477ada7fe39779a844e"
-    },
-    "bindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60"
-  },
   "captureMetadata": {
     "authorizedInputs": {
       "authorized-model-id": {
@@ -400,8 +166,7 @@
       "schemaVersion": "gpt-page-operation-fixtures.v2",
       "syntheticOnly": true
     },
-    "runId": "20260905-203355",
-    "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60"
+    "runId": "20260905-203355"
   },
   "children": [
     {
@@ -1019,7 +784,6 @@
               "pageState": {
                 "menu": "open"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "upload-leaf-ready",
@@ -1174,7 +938,6 @@
                 "chooser": "bound",
                 "multiple": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "file-chooser-bound",
@@ -1337,7 +1100,6 @@
                 ],
                 "exactSet": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "file-set-readback",
@@ -1481,7 +1243,6 @@
                 "menu": "open",
                 "derivedFailureState": "candidate-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-missing",
@@ -1648,7 +1409,6 @@
                 "menu": "open",
                 "derivedFailureState": "candidate-duplicate-or-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-duplicate-or-ambiguous",
@@ -1807,7 +1567,6 @@
                 "menu": "open",
                 "derivedFailureState": "candidate-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-hidden",
@@ -1966,7 +1725,6 @@
                 "menu": "open",
                 "derivedFailureState": "candidate-aria-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-aria-hidden",
@@ -2125,7 +1883,6 @@
                 "menu": "open",
                 "derivedFailureState": "candidate-inert"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-inert",
@@ -2284,7 +2041,6 @@
                 "menu": "open",
                 "derivedFailureState": "candidate-disabled"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-disabled",
@@ -2442,7 +2198,6 @@
                 "menu": "open",
                 "derivedFailureState": "candidate-no-layout"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-no-layout",
@@ -2600,7 +2355,6 @@
                 "menu": "open",
                 "derivedFailureState": "stale-or-revision-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-or-revision-drift",
@@ -2758,7 +2512,6 @@
                 "menu": "open",
                 "derivedFailureState": "document-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "document-drift",
@@ -2910,7 +2663,6 @@
                 "menu": "open",
                 "derivedFailureState": "file-input-unavailable"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "file-input-unavailable",
@@ -3067,7 +2819,6 @@
                 "menu": "open",
                 "derivedFailureState": "file-set-partially-attached"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "file-set-partially-attached",
@@ -3234,7 +2985,6 @@
                 "menu": "open",
                 "derivedFailureState": "file-set-duplicated"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "file-set-duplicated",
@@ -3391,7 +3141,6 @@
                 "menu": "open",
                 "derivedFailureState": "upload-dispatched-outcome-unknown"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "upload-dispatched-outcome-unknown",
@@ -3765,7 +3514,6 @@
                 "height": 1254,
                 "originalContentIdentityHash": "sha256:0280d3c4d448a5b02daab20021db273eddc60dc3b0e810f12d9b4875f3ae9e4b"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "exact-media-node",
@@ -3953,7 +3701,6 @@
                 "height": 1254,
                 "originalContentIdentityHash": "sha256:0280d3c4d448a5b02daab20021db273eddc60dc3b0e810f12d9b4875f3ae9e4b"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "original-content-identity-readback",
@@ -4139,7 +3886,6 @@
                 "generation": "stable-readback",
                 "originalContentIdentityHash": "sha256:0280d3c4d448a5b02daab20021db273eddc60dc3b0e810f12d9b4875f3ae9e4b"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stable-image-checkpoint",
@@ -4318,7 +4064,6 @@
                 "originalContentIdentityHash": "sha256:0280d3c4d448a5b02daab20021db273eddc60dc3b0e810f12d9b4875f3ae9e4b",
                 "derivedFailureState": "candidate-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-missing",
@@ -4520,7 +4265,6 @@
                 "originalContentIdentityHash": "sha256:0280d3c4d448a5b02daab20021db273eddc60dc3b0e810f12d9b4875f3ae9e4b",
                 "derivedFailureState": "candidate-duplicate-or-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-duplicate-or-ambiguous",
@@ -4715,7 +4459,6 @@
                 "originalContentIdentityHash": "sha256:0280d3c4d448a5b02daab20021db273eddc60dc3b0e810f12d9b4875f3ae9e4b",
                 "derivedFailureState": "candidate-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-hidden",
@@ -4910,7 +4653,6 @@
                 "originalContentIdentityHash": "sha256:0280d3c4d448a5b02daab20021db273eddc60dc3b0e810f12d9b4875f3ae9e4b",
                 "derivedFailureState": "candidate-aria-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-aria-hidden",
@@ -5105,7 +4847,6 @@
                 "originalContentIdentityHash": "sha256:0280d3c4d448a5b02daab20021db273eddc60dc3b0e810f12d9b4875f3ae9e4b",
                 "derivedFailureState": "candidate-inert"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-inert",
@@ -5300,7 +5041,6 @@
                 "originalContentIdentityHash": "sha256:0280d3c4d448a5b02daab20021db273eddc60dc3b0e810f12d9b4875f3ae9e4b",
                 "derivedFailureState": "candidate-disabled"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-disabled",
@@ -5493,7 +5233,6 @@
                 "originalContentIdentityHash": "sha256:0280d3c4d448a5b02daab20021db273eddc60dc3b0e810f12d9b4875f3ae9e4b",
                 "derivedFailureState": "candidate-no-layout"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-no-layout",
@@ -5686,7 +5425,6 @@
                 "originalContentIdentityHash": "sha256:0280d3c4d448a5b02daab20021db273eddc60dc3b0e810f12d9b4875f3ae9e4b",
                 "derivedFailureState": "stale-or-revision-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-or-revision-drift",
@@ -5879,7 +5617,6 @@
                 "originalContentIdentityHash": "sha256:0280d3c4d448a5b02daab20021db273eddc60dc3b0e810f12d9b4875f3ae9e4b",
                 "derivedFailureState": "document-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "document-drift",
@@ -6072,7 +5809,6 @@
                 "originalContentIdentityHash": "sha256:0280d3c4d448a5b02daab20021db273eddc60dc3b0e810f12d9b4875f3ae9e4b",
                 "derivedFailureState": "thumbnail-only"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "thumbnail-only",
@@ -6265,7 +6001,6 @@
                 "originalContentIdentityHash": "sha256:0280d3c4d448a5b02daab20021db273eddc60dc3b0e810f12d9b4875f3ae9e4b",
                 "derivedFailureState": "wrong-turn-media"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "wrong-turn-media",
@@ -6458,7 +6193,6 @@
                 "originalContentIdentityHash": "sha256:0280d3c4d448a5b02daab20021db273eddc60dc3b0e810f12d9b4875f3ae9e4b",
                 "derivedFailureState": "media-not-stable"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "media-not-stable",
@@ -6651,7 +6385,6 @@
                 "originalContentIdentityHash": "sha256:0280d3c4d448a5b02daab20021db273eddc60dc3b0e810f12d9b4875f3ae9e4b",
                 "derivedFailureState": "original-content-identity-mismatch"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "original-content-identity-mismatch",
@@ -7111,7 +6844,6 @@
                   "ul": 1
                 }
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "rich-response-outer-html",
@@ -7300,7 +7032,6 @@
                 "generation": "stable-readback",
                 "sha256": "sha256:6fbfb9b2090694e2371426754283f85794e62136e04b3a071107d1f51ddea1e4"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "semantic-projection-readback",
@@ -7489,7 +7220,6 @@
                 "generation": "stable-readback",
                 "sha256": "sha256:6fbfb9b2090694e2371426754283f85794e62136e04b3a071107d1f51ddea1e4"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stable-text-checkpoint",
@@ -7679,7 +7409,6 @@
                 },
                 "derivedFailureState": "candidate-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-missing",
@@ -7892,7 +7621,6 @@
                 },
                 "derivedFailureState": "candidate-duplicate-or-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-duplicate-or-ambiguous",
@@ -8097,7 +7825,6 @@
                 },
                 "derivedFailureState": "candidate-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-hidden",
@@ -8302,7 +8029,6 @@
                 },
                 "derivedFailureState": "candidate-aria-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-aria-hidden",
@@ -8507,7 +8233,6 @@
                 },
                 "derivedFailureState": "candidate-inert"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-inert",
@@ -8712,7 +8437,6 @@
                 },
                 "derivedFailureState": "candidate-disabled"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-disabled",
@@ -8916,7 +8640,6 @@
                 },
                 "derivedFailureState": "candidate-no-layout"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-no-layout",
@@ -9120,7 +8843,6 @@
                 },
                 "derivedFailureState": "stale-or-revision-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-or-revision-drift",
@@ -9324,7 +9046,6 @@
                 },
                 "derivedFailureState": "document-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "document-drift",
@@ -9522,7 +9243,6 @@
                 },
                 "derivedFailureState": "response-projection-empty"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "response-projection-empty",
@@ -9726,7 +9446,6 @@
                 },
                 "derivedFailureState": "response-projection-truncated"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "response-projection-truncated",
@@ -9930,7 +9649,6 @@
                 },
                 "derivedFailureState": "response-bound-to-wrong-turn"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "response-bound-to-wrong-turn",
@@ -10134,7 +9852,6 @@
                 },
                 "derivedFailureState": "response-still-generating"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "response-still-generating",
@@ -10504,7 +10221,6 @@
               "pageState": {
                 "profile": "open"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "profile-before-close",
@@ -10657,7 +10373,6 @@
               "pageState": {
                 "profile": "closed"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "profile-closed",
@@ -10810,7 +10525,6 @@
               "pageState": {
                 "profile": "closed"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "profile-already-closed",
@@ -10956,7 +10670,6 @@
                 "profile": "open",
                 "derivedFailureState": "candidate-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-missing",
@@ -11125,7 +10838,6 @@
                 "profile": "open",
                 "derivedFailureState": "candidate-duplicate-or-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-duplicate-or-ambiguous",
@@ -11286,7 +10998,6 @@
                 "profile": "open",
                 "derivedFailureState": "candidate-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-hidden",
@@ -11447,7 +11158,6 @@
                 "profile": "open",
                 "derivedFailureState": "candidate-aria-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-aria-hidden",
@@ -11608,7 +11318,6 @@
                 "profile": "open",
                 "derivedFailureState": "candidate-inert"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-inert",
@@ -11769,7 +11478,6 @@
                 "profile": "open",
                 "derivedFailureState": "candidate-disabled"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-disabled",
@@ -11929,7 +11637,6 @@
                 "profile": "open",
                 "derivedFailureState": "candidate-no-layout"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-no-layout",
@@ -12089,7 +11796,6 @@
                 "profile": "open",
                 "derivedFailureState": "stale-or-revision-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-or-revision-drift",
@@ -12249,7 +11955,6 @@
                 "profile": "open",
                 "derivedFailureState": "document-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "document-drift",
@@ -12408,7 +12113,6 @@
                 "profile": "open",
                 "derivedFailureState": "profile-remains-open"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "profile-remains-open",
@@ -12567,7 +12271,6 @@
                 "profile": "open",
                 "derivedFailureState": "wrong-panel-closed"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "wrong-panel-closed",
@@ -12726,7 +12429,6 @@
                 "profile": "open",
                 "derivedFailureState": "composer-obscured-after-close"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "composer-obscured-after-close",
@@ -13248,7 +12950,6 @@
                 "current": "2",
                 "degradedFromPro": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "reasoning-scale-current-variant",
@@ -13425,7 +13126,6 @@
                 "current": "2",
                 "degradedFromPro": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "reasoning-target-selected",
@@ -13602,7 +13302,6 @@
                 "current": "2",
                 "degradedFromPro": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "reasoning-selection-postcondition",
@@ -13772,7 +13471,6 @@
                 "degradedFromPro": true,
                 "derivedFailureState": "candidate-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-missing",
@@ -13965,7 +13663,6 @@
                 "degradedFromPro": true,
                 "derivedFailureState": "candidate-duplicate-or-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-duplicate-or-ambiguous",
@@ -14150,7 +13847,6 @@
                 "degradedFromPro": true,
                 "derivedFailureState": "candidate-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-hidden",
@@ -14334,7 +14030,6 @@
                 "degradedFromPro": true,
                 "derivedFailureState": "candidate-aria-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-aria-hidden",
@@ -14519,7 +14214,6 @@
                 "degradedFromPro": true,
                 "derivedFailureState": "candidate-inert"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-inert",
@@ -14704,7 +14398,6 @@
                 "degradedFromPro": true,
                 "derivedFailureState": "candidate-disabled"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-disabled",
@@ -14888,7 +14581,6 @@
                 "degradedFromPro": true,
                 "derivedFailureState": "candidate-no-layout"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-no-layout",
@@ -15072,7 +14764,6 @@
                 "degradedFromPro": true,
                 "derivedFailureState": "stale-or-revision-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-or-revision-drift",
@@ -15256,7 +14947,6 @@
                 "degradedFromPro": true,
                 "derivedFailureState": "document-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "document-drift",
@@ -15434,7 +15124,6 @@
                 "degradedFromPro": true,
                 "derivedFailureState": "required-reasoning-unavailable"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "required-reasoning-unavailable",
@@ -15627,7 +15316,6 @@
                 "degradedFromPro": true,
                 "derivedFailureState": "reasoning-option-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "reasoning-option-ambiguous",
@@ -15810,7 +15498,6 @@
                 "degradedFromPro": true,
                 "derivedFailureState": "reasoning-selection-did-not-stick"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "reasoning-selection-did-not-stick",
@@ -15993,7 +15680,6 @@
                 "degradedFromPro": true,
                 "derivedFailureState": "reasoning-scale-unsupported"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "reasoning-scale-unsupported",
@@ -16342,7 +16028,6 @@
                 "draft": "empty",
                 "conversation": "root"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "root-before-navigation",
@@ -16496,7 +16181,6 @@
                 "navigation": "root-to-exact-conversation",
                 "sourceMarkerExact": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "conversation-after-navigation",
@@ -16648,7 +16332,6 @@
               "pageState": {
                 "markerExact": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "already-focused",
@@ -16802,7 +16485,6 @@
                 "conversation": "root",
                 "derivedFailureState": "candidate-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-missing",
@@ -16979,7 +16661,6 @@
                 "conversation": "root",
                 "derivedFailureState": "candidate-duplicate-or-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-duplicate-or-ambiguous",
@@ -17148,7 +16829,6 @@
                 "conversation": "root",
                 "derivedFailureState": "candidate-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-hidden",
@@ -17317,7 +16997,6 @@
                 "conversation": "root",
                 "derivedFailureState": "candidate-aria-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-aria-hidden",
@@ -17486,7 +17165,6 @@
                 "conversation": "root",
                 "derivedFailureState": "candidate-inert"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-inert",
@@ -17655,7 +17333,6 @@
                 "conversation": "root",
                 "derivedFailureState": "candidate-disabled"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-disabled",
@@ -17823,7 +17500,6 @@
                 "conversation": "root",
                 "derivedFailureState": "candidate-no-layout"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-no-layout",
@@ -17991,7 +17667,6 @@
                 "conversation": "root",
                 "derivedFailureState": "stale-or-revision-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-or-revision-drift",
@@ -18159,7 +17834,6 @@
                 "conversation": "root",
                 "derivedFailureState": "document-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "document-drift",
@@ -18326,7 +18000,6 @@
                 "conversation": "root",
                 "derivedFailureState": "focus-landed-on-wrong-conversation"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "focus-landed-on-wrong-conversation",
@@ -18488,7 +18161,6 @@
                 "conversation": "root",
                 "derivedFailureState": "focus-route-unavailable"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "focus-route-unavailable",
@@ -18655,7 +18327,6 @@
                 "conversation": "root",
                 "derivedFailureState": "focus-document-changed-mid-read"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "focus-document-changed-mid-read",
@@ -19004,7 +18675,6 @@
                 "sourceMarker": "GPT-EVIDENCE-20260905-203355-SOURCE-TURN",
                 "destination": "new-chat"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "fork-destination-menu-ready",
@@ -19180,7 +18850,6 @@
                 "childCreated": true,
                 "sourceMarkerExact": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "child-conversation-after-fork",
@@ -19356,7 +19025,6 @@
                 "childCreated": true,
                 "sourceMarkerExact": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "source-child-relation-readback",
@@ -19520,7 +19188,6 @@
                 "destination": "new-chat",
                 "derivedFailureState": "candidate-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-missing",
@@ -19707,7 +19374,6 @@
                 "destination": "new-chat",
                 "derivedFailureState": "candidate-duplicate-or-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-duplicate-or-ambiguous",
@@ -19886,7 +19552,6 @@
                 "destination": "new-chat",
                 "derivedFailureState": "candidate-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-hidden",
@@ -20065,7 +19730,6 @@
                 "destination": "new-chat",
                 "derivedFailureState": "candidate-aria-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-aria-hidden",
@@ -20244,7 +19908,6 @@
                 "destination": "new-chat",
                 "derivedFailureState": "candidate-inert"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-inert",
@@ -20423,7 +20086,6 @@
                 "destination": "new-chat",
                 "derivedFailureState": "candidate-disabled"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-disabled",
@@ -20601,7 +20263,6 @@
                 "destination": "new-chat",
                 "derivedFailureState": "candidate-no-layout"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-no-layout",
@@ -20779,7 +20440,6 @@
                 "destination": "new-chat",
                 "derivedFailureState": "stale-or-revision-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-or-revision-drift",
@@ -20957,7 +20617,6 @@
                 "destination": "new-chat",
                 "derivedFailureState": "document-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "document-drift",
@@ -21134,7 +20793,6 @@
                 "destination": "new-chat",
                 "derivedFailureState": "final-fork-entry-bound-to-wrong-destination-menu"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "final-fork-entry-bound-to-wrong-destination-menu",
@@ -21311,7 +20969,6 @@
                 "destination": "new-chat",
                 "derivedFailureState": "fork-effect-unknown"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "fork-effect-unknown",
@@ -21488,7 +21145,6 @@
                 "destination": "new-chat",
                 "derivedFailureState": "child-conversation-identity-mismatch"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "child-conversation-identity-mismatch",
@@ -21675,7 +21331,6 @@
                 "destination": "new-chat",
                 "derivedFailureState": "duplicate-fork-effect"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "duplicate-fork-effect",
@@ -22076,7 +21731,6 @@
               "pageState": {
                 "menu": "closed"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "attachment-trigger-before",
@@ -22234,7 +21888,6 @@
               "pageState": {
                 "menu": "open"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "attachment-menu-after",
@@ -22392,7 +22045,6 @@
               "pageState": {
                 "menu": "open"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "attachment-menu-already-open",
@@ -22556,7 +22208,6 @@
                 "menu": "closed",
                 "derivedFailureState": "candidate-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-missing",
@@ -22743,7 +22394,6 @@
                 "menu": "closed",
                 "derivedFailureState": "candidate-duplicate-or-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-duplicate-or-ambiguous",
@@ -22922,7 +22572,6 @@
                 "menu": "closed",
                 "derivedFailureState": "candidate-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-hidden",
@@ -23101,7 +22750,6 @@
                 "menu": "closed",
                 "derivedFailureState": "candidate-aria-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-aria-hidden",
@@ -23280,7 +22928,6 @@
                 "menu": "closed",
                 "derivedFailureState": "candidate-inert"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-inert",
@@ -23459,7 +23106,6 @@
                 "menu": "closed",
                 "derivedFailureState": "candidate-disabled"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-disabled",
@@ -23637,7 +23283,6 @@
                 "menu": "closed",
                 "derivedFailureState": "candidate-no-layout"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-no-layout",
@@ -23815,7 +23460,6 @@
                 "menu": "closed",
                 "derivedFailureState": "stale-or-revision-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-or-revision-drift",
@@ -23993,7 +23637,6 @@
                 "menu": "closed",
                 "derivedFailureState": "document-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "document-drift",
@@ -24171,7 +23814,6 @@
                 "menu": "closed",
                 "derivedFailureState": "attachment-menu-not-owned-by-trigger"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "attachment-menu-not-owned-by-trigger",
@@ -24343,7 +23985,6 @@
                 "menu": "closed",
                 "derivedFailureState": "upload-entry-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "upload-entry-missing",
@@ -24520,7 +24161,6 @@
                 "menu": "closed",
                 "derivedFailureState": "attachment-menu-did-not-open"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "attachment-menu-did-not-open",
@@ -24842,7 +24482,6 @@
                 "sourceMarker": "GPT-EVIDENCE-20260905-203355-SOURCE-TURN",
                 "menu": "closed"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "source-turn-menu-closed",
@@ -24997,7 +24636,6 @@
                 "sourceMarker": "GPT-EVIDENCE-20260905-203355-SOURCE-TURN",
                 "menu": "open"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "source-bound-menu-open",
@@ -25152,7 +24790,6 @@
                 "sourceMarker": "GPT-EVIDENCE-20260905-203355-SOURCE-TURN",
                 "menu": "open"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "source-turn-menu-already-open",
@@ -25308,7 +24945,6 @@
                 "menu": "closed",
                 "derivedFailureState": "candidate-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-missing",
@@ -25487,7 +25123,6 @@
                 "menu": "closed",
                 "derivedFailureState": "candidate-duplicate-or-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-duplicate-or-ambiguous",
@@ -25658,7 +25293,6 @@
                 "menu": "closed",
                 "derivedFailureState": "candidate-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-hidden",
@@ -25829,7 +25463,6 @@
                 "menu": "closed",
                 "derivedFailureState": "candidate-aria-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-aria-hidden",
@@ -26000,7 +25633,6 @@
                 "menu": "closed",
                 "derivedFailureState": "candidate-inert"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-inert",
@@ -26171,7 +25803,6 @@
                 "menu": "closed",
                 "derivedFailureState": "candidate-disabled"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-disabled",
@@ -26341,7 +25972,6 @@
                 "menu": "closed",
                 "derivedFailureState": "candidate-no-layout"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-no-layout",
@@ -26511,7 +26141,6 @@
                 "menu": "closed",
                 "derivedFailureState": "stale-or-revision-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-or-revision-drift",
@@ -26681,7 +26310,6 @@
                 "menu": "closed",
                 "derivedFailureState": "document-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "document-drift",
@@ -26850,7 +26478,6 @@
                 "menu": "closed",
                 "derivedFailureState": "menu-bound-to-wrong-turn"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "menu-bound-to-wrong-turn",
@@ -27014,7 +26641,6 @@
                 "menu": "closed",
                 "derivedFailureState": "fork-entry-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "fork-entry-missing",
@@ -27193,7 +26819,6 @@
                 "menu": "closed",
                 "derivedFailureState": "multiple-source-menus-open"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "multiple-source-menus-open",
@@ -27589,7 +27214,6 @@
               "pageState": {
                 "profile": "closed"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "profile-collapsed-trigger",
@@ -27750,7 +27374,6 @@
               "pageState": {
                 "profile": "open"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "profile-open",
@@ -27911,7 +27534,6 @@
               "pageState": {
                 "profile": "open"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "profile-already-open",
@@ -28064,7 +27686,6 @@
                 "profile": "closed",
                 "derivedFailureState": "candidate-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-missing",
@@ -28240,7 +27861,6 @@
                 "profile": "closed",
                 "derivedFailureState": "candidate-duplicate-or-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-duplicate-or-ambiguous",
@@ -28408,7 +28028,6 @@
                 "profile": "closed",
                 "derivedFailureState": "candidate-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-hidden",
@@ -28576,7 +28195,6 @@
                 "profile": "closed",
                 "derivedFailureState": "candidate-aria-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-aria-hidden",
@@ -28744,7 +28362,6 @@
                 "profile": "closed",
                 "derivedFailureState": "candidate-inert"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-inert",
@@ -28912,7 +28529,6 @@
                 "profile": "closed",
                 "derivedFailureState": "candidate-disabled"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-disabled",
@@ -29079,7 +28695,6 @@
                 "profile": "closed",
                 "derivedFailureState": "candidate-no-layout"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-no-layout",
@@ -29246,7 +28861,6 @@
                 "profile": "closed",
                 "derivedFailureState": "stale-or-revision-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-or-revision-drift",
@@ -29413,7 +29027,6 @@
                 "profile": "closed",
                 "derivedFailureState": "document-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "document-drift",
@@ -29580,7 +29193,6 @@
                 "profile": "closed",
                 "derivedFailureState": "profile-panel-not-owned-by-trigger"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "profile-panel-not-owned-by-trigger",
@@ -29746,7 +29358,6 @@
                 "profile": "closed",
                 "derivedFailureState": "profile-did-not-open"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "profile-did-not-open",
@@ -29922,7 +29533,6 @@
                 "profile": "closed",
                 "derivedFailureState": "multiple-profile-panels"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "multiple-profile-panels",
@@ -30236,7 +29846,6 @@
                 "sourceMarker": "GPT-EVIDENCE-20260905-203355-SOURCE-TURN",
                 "menu": "open"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "source-bound-menu-open",
@@ -30391,7 +30000,6 @@
                 "sourceMarker": "GPT-EVIDENCE-20260905-203355-SOURCE-TURN",
                 "destination": "new-chat"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "fork-destination-menu-open",
@@ -30546,7 +30154,6 @@
                 "sourceMarker": "GPT-EVIDENCE-20260905-203355-SOURCE-TURN",
                 "destination": "new-chat"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "fork-destination-menu-already-open",
@@ -30692,7 +30299,6 @@
                 "menu": "open",
                 "derivedFailureState": "candidate-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-missing",
@@ -30861,7 +30467,6 @@
                 "menu": "open",
                 "derivedFailureState": "candidate-duplicate-or-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-duplicate-or-ambiguous",
@@ -31022,7 +30627,6 @@
                 "menu": "open",
                 "derivedFailureState": "candidate-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-hidden",
@@ -31183,7 +30787,6 @@
                 "menu": "open",
                 "derivedFailureState": "candidate-aria-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-aria-hidden",
@@ -31344,7 +30947,6 @@
                 "menu": "open",
                 "derivedFailureState": "candidate-inert"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-inert",
@@ -31505,7 +31107,6 @@
                 "menu": "open",
                 "derivedFailureState": "candidate-disabled"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-disabled",
@@ -31665,7 +31266,6 @@
                 "menu": "open",
                 "derivedFailureState": "candidate-no-layout"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-no-layout",
@@ -31825,7 +31425,6 @@
                 "menu": "open",
                 "derivedFailureState": "stale-or-revision-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-or-revision-drift",
@@ -31985,7 +31584,6 @@
                 "menu": "open",
                 "derivedFailureState": "document-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "document-drift",
@@ -32139,7 +31737,6 @@
                 "menu": "open",
                 "derivedFailureState": "fork-destination-menu-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "fork-destination-menu-missing",
@@ -32308,7 +31905,6 @@
                 "menu": "open",
                 "derivedFailureState": "fork-destination-menu-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "fork-destination-menu-ambiguous",
@@ -32467,7 +32063,6 @@
                 "menu": "open",
                 "derivedFailureState": "open-new-fork-entry-bound-to-wrong-menu"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "open-new-fork-entry-bound-to-wrong-menu",
@@ -32621,7 +32216,6 @@
                 "menu": "open",
                 "derivedFailureState": "branch-to-new-chat-entry-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "branch-to-new-chat-entry-missing",
@@ -33018,7 +32612,6 @@
               "pageState": {
                 "profile": "open"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "model-selector-openable",
@@ -33187,7 +32780,6 @@
               "pageState": {
                 "profile": "open"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "model-selector-open",
@@ -33356,7 +32948,6 @@
               "pageState": {
                 "profile": "open"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "model-selector-already-open",
@@ -33516,7 +33107,6 @@
                 "profile": "open",
                 "derivedFailureState": "candidate-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-missing",
@@ -33699,7 +33289,6 @@
                 "profile": "open",
                 "derivedFailureState": "candidate-duplicate-or-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-duplicate-or-ambiguous",
@@ -33874,7 +33463,6 @@
                 "profile": "open",
                 "derivedFailureState": "candidate-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-hidden",
@@ -34049,7 +33637,6 @@
                 "profile": "open",
                 "derivedFailureState": "candidate-aria-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-aria-hidden",
@@ -34224,7 +33811,6 @@
                 "profile": "open",
                 "derivedFailureState": "candidate-inert"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-inert",
@@ -34399,7 +33985,6 @@
                 "profile": "open",
                 "derivedFailureState": "candidate-disabled"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-disabled",
@@ -34573,7 +34158,6 @@
                 "profile": "open",
                 "derivedFailureState": "candidate-no-layout"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-no-layout",
@@ -34747,7 +34331,6 @@
                 "profile": "open",
                 "derivedFailureState": "stale-or-revision-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-or-revision-drift",
@@ -34921,7 +34504,6 @@
                 "profile": "open",
                 "derivedFailureState": "document-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "document-drift",
@@ -35095,7 +34677,6 @@
                 "profile": "open",
                 "derivedFailureState": "selector-panel-not-owned-by-trigger"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "selector-panel-not-owned-by-trigger",
@@ -35268,7 +34849,6 @@
                 "profile": "open",
                 "derivedFailureState": "selector-did-not-open"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "selector-did-not-open",
@@ -35436,7 +35016,6 @@
                 "profile": "open",
                 "derivedFailureState": "model-list-not-hydrated"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "model-list-not-hydrated",
@@ -35997,7 +35576,6 @@
                 "draft": "empty",
                 "conversation": "root"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "fresh-empty-chat",
@@ -36180,7 +35758,6 @@
               "pageState": {
                 "draft": "stale"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-draft-before",
@@ -36363,7 +35940,6 @@
               "pageState": {
                 "draft": "empty"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-draft-after-clean",
@@ -36538,7 +36114,6 @@
                 "conversation": "root",
                 "derivedFailureState": "candidate-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-missing",
@@ -36736,7 +36311,6 @@
                 "conversation": "root",
                 "derivedFailureState": "candidate-duplicate-or-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-duplicate-or-ambiguous",
@@ -36926,7 +36500,6 @@
                 "conversation": "root",
                 "derivedFailureState": "candidate-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-hidden",
@@ -37116,7 +36689,6 @@
                 "conversation": "root",
                 "derivedFailureState": "candidate-aria-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-aria-hidden",
@@ -37306,7 +36878,6 @@
                 "conversation": "root",
                 "derivedFailureState": "candidate-inert"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-inert",
@@ -37496,7 +37067,6 @@
                 "conversation": "root",
                 "derivedFailureState": "candidate-disabled"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-disabled",
@@ -37685,7 +37255,6 @@
                 "conversation": "root",
                 "derivedFailureState": "candidate-no-layout"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-no-layout",
@@ -37874,7 +37443,6 @@
                 "conversation": "root",
                 "derivedFailureState": "stale-or-revision-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-or-revision-drift",
@@ -38063,7 +37631,6 @@
                 "conversation": "root",
                 "derivedFailureState": "document-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "document-drift",
@@ -38251,7 +37818,6 @@
                 "conversation": "root",
                 "derivedFailureState": "draft-remains-after-clean"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "draft-remains-after-clean",
@@ -38439,7 +38005,6 @@
                 "conversation": "root",
                 "derivedFailureState": "attachment-remains-after-clean"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "attachment-remains-after-clean",
@@ -38627,7 +38192,6 @@
                 "conversation": "root",
                 "derivedFailureState": "wrong-conversation-cleaned"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "wrong-conversation-cleaned",
@@ -39017,7 +38581,6 @@
                   "GPT-EVIDENCE-20260905-203355-sample.zip"
                 ]
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "uploading-pending",
@@ -39178,7 +38741,6 @@
                 ],
                 "exactSet": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "attachment-cards-ready",
@@ -39339,7 +38901,6 @@
                 ],
                 "exactSet": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "attachment-set-exact",
@@ -39491,7 +39052,6 @@
                 ],
                 "derivedFailureState": "candidate-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-missing",
@@ -39666,7 +39226,6 @@
                 ],
                 "derivedFailureState": "candidate-duplicate-or-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-duplicate-or-ambiguous",
@@ -39833,7 +39392,6 @@
                 ],
                 "derivedFailureState": "candidate-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-hidden",
@@ -40000,7 +39558,6 @@
                 ],
                 "derivedFailureState": "candidate-aria-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-aria-hidden",
@@ -40167,7 +39724,6 @@
                 ],
                 "derivedFailureState": "candidate-inert"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-inert",
@@ -40334,7 +39890,6 @@
                 ],
                 "derivedFailureState": "candidate-disabled"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-disabled",
@@ -40500,7 +40055,6 @@
                 ],
                 "derivedFailureState": "candidate-no-layout"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-no-layout",
@@ -40666,7 +40220,6 @@
                 ],
                 "derivedFailureState": "stale-or-revision-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-or-revision-drift",
@@ -40832,7 +40385,6 @@
                 ],
                 "derivedFailureState": "document-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "document-drift",
@@ -40992,7 +40544,6 @@
                 ],
                 "derivedFailureState": "attachment-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "attachment-missing",
@@ -41167,7 +40718,6 @@
                 ],
                 "derivedFailureState": "attachment-extra"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "attachment-extra",
@@ -41332,7 +40882,6 @@
                 ],
                 "derivedFailureState": "attachment-still-uploading"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "attachment-still-uploading",
@@ -41497,7 +41046,6 @@
                 ],
                 "derivedFailureState": "attachment-terminal-error"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "attachment-terminal-error",
@@ -41883,7 +41431,6 @@
                 "canonicalExact": true,
                 "attachmentsExact": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "exact-draft-ready",
@@ -42042,7 +41589,6 @@
                 "canonicalExact": true,
                 "attachmentsExact": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "draft-readback-stable",
@@ -42192,7 +41738,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "candidate-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-missing",
@@ -42365,7 +41910,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "candidate-duplicate-or-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-duplicate-or-ambiguous",
@@ -42530,7 +42074,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "candidate-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-hidden",
@@ -42695,7 +42238,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "candidate-aria-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-aria-hidden",
@@ -42860,7 +42402,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "candidate-inert"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-inert",
@@ -43025,7 +42566,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "candidate-disabled"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-disabled",
@@ -43189,7 +42729,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "candidate-no-layout"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-no-layout",
@@ -43353,7 +42892,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "stale-or-revision-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-or-revision-drift",
@@ -43517,7 +43055,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "document-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "document-drift",
@@ -43680,7 +43217,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "draft-text-mismatch"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "draft-text-mismatch",
@@ -43853,7 +43389,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "draft-text-duplicated"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "draft-text-duplicated",
@@ -44017,7 +43552,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "draft-readback-unstable"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "draft-readback-unstable",
@@ -44457,7 +43991,6 @@
                 ],
                 "composerCleared": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "hydrated-exact-user-turn",
@@ -44640,7 +44173,6 @@
                 ],
                 "composerCleared": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "submitted-turn-effect-readback",
@@ -44814,7 +44346,6 @@
                 "composerCleared": true,
                 "derivedFailureState": "candidate-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-missing",
@@ -45011,7 +44542,6 @@
                 "composerCleared": true,
                 "derivedFailureState": "candidate-duplicate-or-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-duplicate-or-ambiguous",
@@ -45200,7 +44730,6 @@
                 "composerCleared": true,
                 "derivedFailureState": "candidate-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-hidden",
@@ -45389,7 +44918,6 @@
                 "composerCleared": true,
                 "derivedFailureState": "candidate-aria-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-aria-hidden",
@@ -45578,7 +45106,6 @@
                 "composerCleared": true,
                 "derivedFailureState": "candidate-inert"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-inert",
@@ -45767,7 +45294,6 @@
                 "composerCleared": true,
                 "derivedFailureState": "candidate-disabled"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-disabled",
@@ -45955,7 +45481,6 @@
                 "composerCleared": true,
                 "derivedFailureState": "candidate-no-layout"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-no-layout",
@@ -46143,7 +45668,6 @@
                 "composerCleared": true,
                 "derivedFailureState": "stale-or-revision-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-or-revision-drift",
@@ -46331,7 +45855,6 @@
                 "composerCleared": true,
                 "derivedFailureState": "document-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "document-drift",
@@ -46513,7 +46036,6 @@
                 "composerCleared": true,
                 "derivedFailureState": "submitted-turn-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "submitted-turn-missing",
@@ -46710,7 +46232,6 @@
                 "composerCleared": true,
                 "derivedFailureState": "submitted-turn-duplicate"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "submitted-turn-duplicate",
@@ -46897,7 +46418,6 @@
                 "composerCleared": true,
                 "derivedFailureState": "submitted-turn-text-mismatch"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "submitted-turn-text-mismatch",
@@ -47084,7 +46604,6 @@
                 "composerCleared": true,
                 "derivedFailureState": "submission-effect-unknown"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "submission-effect-unknown",
@@ -47678,7 +47197,6 @@
               "pageState": {
                 "checked": "true"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "target-model-unchecked",
@@ -47830,7 +47348,6 @@
               "pageState": {
                 "checked": "true"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "target-model-checked",
@@ -47982,7 +47499,6 @@
               "pageState": {
                 "checked": "true"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "model-selection-postcondition",
@@ -48125,7 +47641,6 @@
                 "checked": "true",
                 "derivedFailureState": "candidate-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-missing",
@@ -48291,7 +47806,6 @@
                 "checked": "true",
                 "derivedFailureState": "candidate-duplicate-or-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-duplicate-or-ambiguous",
@@ -48449,7 +47963,6 @@
                 "checked": "true",
                 "derivedFailureState": "candidate-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-hidden",
@@ -48607,7 +48120,6 @@
                 "checked": "true",
                 "derivedFailureState": "candidate-aria-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-aria-hidden",
@@ -48765,7 +48277,6 @@
                 "checked": "true",
                 "derivedFailureState": "candidate-inert"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-inert",
@@ -48923,7 +48434,6 @@
                 "checked": "true",
                 "derivedFailureState": "candidate-disabled"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-disabled",
@@ -49080,7 +48590,6 @@
                 "checked": "true",
                 "derivedFailureState": "candidate-no-layout"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-no-layout",
@@ -49237,7 +48746,6 @@
                 "checked": "true",
                 "derivedFailureState": "stale-or-revision-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-or-revision-drift",
@@ -49394,7 +48902,6 @@
                 "checked": "true",
                 "derivedFailureState": "document-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "document-drift",
@@ -49545,7 +49052,6 @@
                 "checked": "true",
                 "derivedFailureState": "target-model-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "target-model-missing",
@@ -49711,7 +49217,6 @@
                 "checked": "true",
                 "derivedFailureState": "target-model-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "target-model-ambiguous",
@@ -49867,7 +49372,6 @@
                 "checked": "true",
                 "derivedFailureState": "selection-did-not-stick"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "selection-did-not-stick",
@@ -50023,7 +49527,6 @@
                 "checked": "true",
                 "derivedFailureState": "different-model-selected"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "different-model-selected",
@@ -50632,7 +50135,6 @@
                 "promptExact": true,
                 "attachmentsExact": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "pre-submit-ready",
@@ -50859,7 +50361,6 @@
                 ],
                 "composerCleared": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "post-submit-user-turn",
@@ -51086,7 +50587,6 @@
                 ],
                 "composerCleared": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "confirmed-submit-effect-readback",
@@ -51311,7 +50811,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "candidate-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-missing",
@@ -51559,7 +51058,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "candidate-duplicate-or-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-duplicate-or-ambiguous",
@@ -51799,7 +51297,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "candidate-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-hidden",
@@ -52039,7 +51536,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "candidate-aria-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-aria-hidden",
@@ -52279,7 +51775,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "candidate-inert"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-inert",
@@ -52519,7 +52014,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "candidate-disabled"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-disabled",
@@ -52758,7 +52252,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "candidate-no-layout"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-no-layout",
@@ -52997,7 +52490,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "stale-or-revision-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-or-revision-drift",
@@ -53236,7 +52728,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "document-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "document-drift",
@@ -53475,7 +52966,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "submit-control-not-qualified"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "submit-control-not-qualified",
@@ -53713,7 +53203,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "submit-effect-unknown"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "submit-effect-unknown",
@@ -53961,7 +53450,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "duplicate-submit-effect"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "duplicate-submit-effect",
@@ -54199,7 +53687,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "prompt-or-attachment-precondition-mismatch"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "prompt-or-attachment-precondition-mismatch",
@@ -54528,7 +54015,6 @@
               "pageState": {
                 "markerExact": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "exact-conversation-match",
@@ -54680,7 +54166,6 @@
                 "identity": "stable",
                 "sourceMarkerExact": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "identity-readback-after-focus",
@@ -54821,7 +54306,6 @@
                 "markerExact": true,
                 "derivedFailureState": "candidate-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-missing",
@@ -54985,7 +54469,6 @@
                 "markerExact": true,
                 "derivedFailureState": "candidate-duplicate-or-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-duplicate-or-ambiguous",
@@ -55141,7 +54624,6 @@
                 "markerExact": true,
                 "derivedFailureState": "candidate-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-hidden",
@@ -55297,7 +54779,6 @@
                 "markerExact": true,
                 "derivedFailureState": "candidate-aria-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-aria-hidden",
@@ -55453,7 +54934,6 @@
                 "markerExact": true,
                 "derivedFailureState": "candidate-inert"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-inert",
@@ -55609,7 +55089,6 @@
                 "markerExact": true,
                 "derivedFailureState": "candidate-disabled"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-disabled",
@@ -55764,7 +55243,6 @@
                 "markerExact": true,
                 "derivedFailureState": "candidate-no-layout"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-no-layout",
@@ -55919,7 +55397,6 @@
                 "markerExact": true,
                 "derivedFailureState": "stale-or-revision-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-or-revision-drift",
@@ -56074,7 +55551,6 @@
                 "markerExact": true,
                 "derivedFailureState": "document-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "document-drift",
@@ -56228,7 +55704,6 @@
                 "markerExact": true,
                 "derivedFailureState": "conversation-identity-mismatch"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "conversation-identity-mismatch",
@@ -56377,7 +55852,6 @@
                 "markerExact": true,
                 "derivedFailureState": "conversation-identity-unavailable"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "conversation-identity-unavailable",
@@ -56726,7 +56200,6 @@
                 "stopControlCount": 1,
                 "imageCount": 0
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "image-generating",
@@ -56900,7 +56373,6 @@
                 "height": 1254,
                 "originalContentIdentityHash": "sha256:0280d3c4d448a5b02daab20021db273eddc60dc3b0e810f12d9b4875f3ae9e4b"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "image-stable",
@@ -57072,7 +56544,6 @@
                 "generation": "stable-readback",
                 "originalContentIdentityHash": "sha256:0280d3c4d448a5b02daab20021db273eddc60dc3b0e810f12d9b4875f3ae9e4b"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "image-stability-readback",
@@ -57240,7 +56711,6 @@
                 "imageCount": 0,
                 "derivedFailureState": "candidate-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-missing",
@@ -57431,7 +56901,6 @@
                 "imageCount": 0,
                 "derivedFailureState": "candidate-duplicate-or-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-duplicate-or-ambiguous",
@@ -57614,7 +57083,6 @@
                 "imageCount": 0,
                 "derivedFailureState": "candidate-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-hidden",
@@ -57797,7 +57265,6 @@
                 "imageCount": 0,
                 "derivedFailureState": "candidate-aria-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-aria-hidden",
@@ -57980,7 +57447,6 @@
                 "imageCount": 0,
                 "derivedFailureState": "candidate-inert"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-inert",
@@ -58163,7 +57629,6 @@
                 "imageCount": 0,
                 "derivedFailureState": "candidate-disabled"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-disabled",
@@ -58345,7 +57810,6 @@
                 "imageCount": 0,
                 "derivedFailureState": "candidate-no-layout"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-no-layout",
@@ -58527,7 +57991,6 @@
                 "imageCount": 0,
                 "derivedFailureState": "stale-or-revision-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-or-revision-drift",
@@ -58709,7 +58172,6 @@
                 "imageCount": 0,
                 "derivedFailureState": "document-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "document-drift",
@@ -58891,7 +58353,6 @@
                 "imageCount": 0,
                 "derivedFailureState": "image-never-stabilizes"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "image-never-stabilizes",
@@ -59073,7 +58534,6 @@
                 "imageCount": 0,
                 "derivedFailureState": "stable-thumbnail-without-original"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stable-thumbnail-without-original",
@@ -59255,7 +58715,6 @@
                 "imageCount": 0,
                 "derivedFailureState": "wrong-turn-image"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "wrong-turn-image",
@@ -59437,7 +58896,6 @@
                 "imageCount": 0,
                 "derivedFailureState": "image-error-terminal"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "image-error-terminal",
@@ -59883,7 +59341,6 @@
                 "generation": "in-progress",
                 "stopControlCount": 1
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "text-generating",
@@ -60079,7 +59536,6 @@
                   "ul": 1
                 }
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "text-stable",
@@ -60265,7 +59721,6 @@
                 "generation": "stable-readback",
                 "sha256": "sha256:6fbfb9b2090694e2371426754283f85794e62136e04b3a071107d1f51ddea1e4"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "text-stability-readback",
@@ -60442,7 +59897,6 @@
                 "stopControlCount": 1,
                 "derivedFailureState": "candidate-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-missing",
@@ -60642,7 +60096,6 @@
                 "stopControlCount": 1,
                 "derivedFailureState": "candidate-duplicate-or-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-duplicate-or-ambiguous",
@@ -60834,7 +60287,6 @@
                 "stopControlCount": 1,
                 "derivedFailureState": "candidate-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-hidden",
@@ -61026,7 +60478,6 @@
                 "stopControlCount": 1,
                 "derivedFailureState": "candidate-aria-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-aria-hidden",
@@ -61218,7 +60669,6 @@
                 "stopControlCount": 1,
                 "derivedFailureState": "candidate-inert"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-inert",
@@ -61410,7 +60860,6 @@
                 "stopControlCount": 1,
                 "derivedFailureState": "candidate-disabled"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-disabled",
@@ -61601,7 +61050,6 @@
                 "stopControlCount": 1,
                 "derivedFailureState": "candidate-no-layout"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-no-layout",
@@ -61792,7 +61240,6 @@
                 "stopControlCount": 1,
                 "derivedFailureState": "stale-or-revision-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-or-revision-drift",
@@ -61983,7 +61430,6 @@
                 "stopControlCount": 1,
                 "derivedFailureState": "document-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "document-drift",
@@ -62174,7 +61620,6 @@
                 "stopControlCount": 1,
                 "derivedFailureState": "text-never-stabilizes"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "text-never-stabilizes",
@@ -62365,7 +61810,6 @@
                 "stopControlCount": 1,
                 "derivedFailureState": "generation-error"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "generation-error",
@@ -62556,7 +62000,6 @@
                 "stopControlCount": 1,
                 "derivedFailureState": "stable-empty-response"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stable-empty-response",
@@ -62747,7 +62190,6 @@
                 "stopControlCount": 1,
                 "derivedFailureState": "wrong-turn-stable"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "wrong-turn-stable",
@@ -63180,7 +62622,6 @@
                 "draft": "empty",
                 "attachmentsExact": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "composer-before",
@@ -63360,7 +62801,6 @@
                 "canonicalExact": true,
                 "attachmentsExact": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "exact-prompt-after",
@@ -63540,7 +62980,6 @@
                 "canonicalExact": true,
                 "attachmentsExact": true
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "prompt-already-exact",
@@ -63710,7 +63149,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "candidate-missing"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-missing",
@@ -63903,7 +63341,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "candidate-duplicate-or-ambiguous"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-duplicate-or-ambiguous",
@@ -64088,7 +63525,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "candidate-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-hidden",
@@ -64273,7 +63709,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "candidate-aria-hidden"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-aria-hidden",
@@ -64458,7 +63893,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "candidate-inert"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-inert",
@@ -64643,7 +64077,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "candidate-disabled"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-disabled",
@@ -64827,7 +64260,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "candidate-no-layout"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "candidate-no-layout",
@@ -65011,7 +64443,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "stale-or-revision-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "stale-or-revision-drift",
@@ -65195,7 +64626,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "document-drift"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "document-drift",
@@ -65378,7 +64808,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "prompt-partially-written"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "prompt-partially-written",
@@ -65571,7 +65000,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "prompt-duplicated"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "prompt-duplicated",
@@ -65754,7 +65182,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "prompt-normalization-mismatch"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "prompt-normalization-mismatch",
@@ -65938,7 +65365,6 @@
                 "attachmentsExact": true,
                 "derivedFailureState": "composer-not-editable"
               },
-              "sourceBindingHash": "sha256:264ae697e735b76cdf4b048e1a81fe12a39dc3340887bff2633c5f6076839e60",
               "runId": "20260905-203355"
             },
             "stateId": "composer-not-editable",

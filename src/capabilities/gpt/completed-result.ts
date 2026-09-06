@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { executionFailure } from "../../lib/execution-failure.js";
 import type { GptEvidenceStorePort } from "./production-ports.js";
 import {
@@ -56,10 +58,53 @@ const submissionLocator = async (input: ReplayInput): Promise<ProductGptChildRes
   return success(input, await readSubmissionLocatorArtifact(input.evidenceStore, refs[0]!));
 };
 
+const forkRelationHash = (values: readonly string[]): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(values.join("\n")).digest("hex")}`;
+
+const confirmedForkMutation = (input: ReplayInput): boolean => {
+  const mutation = input.facts.mutation;
+  return mutation !== null
+    && mutation.owner === "browser"
+    && mutation.effectScope === "provider_effect"
+    && mutation.outcome === "CONFIRMED"
+    && typeof mutation.terminalAt === "string"
+    && mutation.terminalAt.length > 0
+    && Number.isFinite(Date.parse(mutation.terminalAt))
+    && typeof mutation.sourceAttemptId === "string"
+    && mutation.sourceAttemptId.length > 0
+    && mutation.productStepId === input.call.productStepId
+    && mutation.callId === input.call.callId
+    && mutation.childCapabilityId === "fork_exact_gpt_conversation_at_checkpoint"
+    && mutation.actionOrdinal === input.call.actionOrdinal;
+};
+
 const forkRelation = async (input: ReplayInput): Promise<ProductGptChildResult> => {
+  if (!confirmedForkMutation(input)) {
+    throw executionFailure("failed", "GPT_FORK_TASK_EFFECT_RECEIPT_INVALID");
+  }
   const refs = input.facts.evidence!.artifactRefs;
   if (refs.length !== 1) throw executionFailure("failed", "GPT_FORK_RELATION_TASK_ARTIFACT_MISSING");
-  return success(input, await readForkRelationArtifact(input.evidenceStore, refs[0]!));
+  const relation = await readForkRelationArtifact(input.evidenceStore, refs[0]!);
+  const call = input.call as ProductGptCallInput<"fork_exact_gpt_conversation_at_checkpoint">;
+  const sourceUrl = relation.sourceCanonicalConversationUrl;
+  const sourceAssistantTurnId = relation.sourceAssistantTurnId;
+  const childUrl = relation.childCanonicalConversationUrl;
+  const relationHash = relation.sourceToChildRelationHash;
+  if (sourceUrl !== call.input.sourceCanonicalConversationUrl
+    || sourceAssistantTurnId !== call.input.sourceAssistantTurnId
+    || typeof childUrl !== "string"
+    || childUrl === call.input.sourceCanonicalConversationUrl
+    || relationHash !== forkRelationHash([
+      call.input.sourceCanonicalConversationUrl,
+      call.input.sourceTurnMarker,
+      call.input.sourcePromptHash,
+      call.input.sourceAssistantTurnId,
+      call.input.sourceResponseHash,
+      childUrl,
+    ])) {
+    throw executionFailure("failed", "GPT_FORK_RELATION_TASK_ARTIFACT_INVALID");
+  }
+  return success(input, relation);
 };
 
 export const readCompletedGptChildResult = async (

@@ -10,6 +10,7 @@ import {
   GPT_RATE_LIMIT_HEADING_TEXT, GPT_RATE_LIMIT_ROOT_SELECTOR, GPT_USER_TURN_SELECTOR,
 } from "./selectors.js";
 import { canonicalGptConversationUrl } from "../../web/contracts/target-document.contract.js";
+import { gptConversationIdentityHash } from "../../web/conversation-identity.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 const TURN = /^conversation-turn-([1-9][0-9]*)$/u;
@@ -128,11 +129,22 @@ export const ensureResponseConversation = async (
   }
 };
 
-export const assistantTurnForPrompt = (
+export const assistantTurnForIdentity = (
   state: GptResponsePageState,
-  expectedPromptHash: string,
+  input: Readonly<{
+    canonicalConversationUrl: string;
+    conversationIdentityHash: `sha256:${string}`;
+    expectedPromptHash: `sha256:${string}`;
+    turnMarker: string;
+  }>,
 ): string | null => {
-  const users = state.userTurns.filter((turn) => turn.promptHash === expectedPromptHash);
+  const users = state.userTurns.filter((turn) => turn.promptHash === input.expectedPromptHash
+    && gptConversationIdentityHash({
+      canonicalConversationUrl: input.canonicalConversationUrl,
+      turnMarker: input.turnMarker,
+      userTurnId: turn.testId,
+      promptHash: input.expectedPromptHash,
+    }) === input.conversationIdentityHash);
   if (users.length > 1) throw executionFailure("failed", `GPT_USER_TURN_COUNT_${users.length}`);
   if (users.length === 0) return null;
   const assistantTurnId = `conversation-turn-${turnOrdinal(users[0]!.testId) + 1}`;
