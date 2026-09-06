@@ -32,11 +32,18 @@ assert.ok(findingIds({
 }).has("capability-group/facade-noncontract-value-export"));
 
 assert.ok(findingIds({
-  "src/capabilities/demo/children/first.ts": "import { second } from './second.ts'; export const first = () => second();",
-  "src/capabilities/demo/children/second.ts": "export const second = () => 'done';",
-  "src/capabilities/demo/index.ts": "export { first } from './children/first.ts';",
+  "src/capabilities/demo/children/first/handler.ts": "import { second } from '../second/handler.ts'; export const first = () => second();",
+  "src/capabilities/demo/children/second/handler.ts": "export const second = () => 'done';",
+  "src/capabilities/demo/index.ts": "export { first } from './children/first/handler.ts';",
   "src/plugins/demo/index.ts": "import { first } from '../../capabilities/demo/index.ts'; void first;",
 }).has("capability-group/child-composes-child"));
+
+assert.equal(findingIds({
+  "src/capabilities/demo/children/first/handler.ts": "import { observeFirst } from './observation.ts'; export const first = () => observeFirst();",
+  "src/capabilities/demo/children/first/observation.ts": "export const observeFirst = () => 'done';",
+  "src/capabilities/demo/index.ts": "export const createDemo = () => ({});",
+  "src/plugins/demo/index.ts": "import { createDemo } from '../../capabilities/demo/index.ts'; void createDemo;",
+}).has("capability-group/child-composes-child"), false);
 
 assert.ok(findingIds({
   "src/capabilities/demo/index.ts": "export const createDemo = () => ({});",

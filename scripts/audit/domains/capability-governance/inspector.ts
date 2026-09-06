@@ -130,12 +130,15 @@ const pushChildCompositionFindings = (
 ): void => {
   const sourceInfo = classifyRepoPath(repoPath);
   if (sourceInfo.kind !== "capability" || sourceInfo.section !== "children") return;
+  const sourceChildId = repoPath.split("/")[4];
+  if (!sourceChildId) return;
   for (const importDeclaration of sourceFile.getImportDeclarations()) {
     const targetSourceFile = importDeclaration.getModuleSpecifierSourceFile();
     if (!targetSourceFile) continue;
     const targetPath = getRepoSourcePath(targetSourceFile);
     const targetInfo = classifyRepoPath(targetPath);
     if (targetInfo.kind !== "capability" || targetInfo.owner !== sourceInfo.owner || targetInfo.section !== "children") continue;
+    if (targetPath.split("/")[4] === sourceChildId) continue;
     pushFinding({
       checkId: "capability-group/child-composes-child",
       lawId: facadeLawId,
