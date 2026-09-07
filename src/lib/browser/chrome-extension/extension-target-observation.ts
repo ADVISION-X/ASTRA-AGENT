@@ -3,7 +3,6 @@ import { BROWSER_COMMAND_DEFAULT_DEADLINE_MS } from "../protocol/generated/brows
 import { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 import type {
-  ExtensionChromeApi,
   ExtensionDebuggerDetachReason,
   ExtensionDebugTarget,
 } from "./extension-runtime-types.js";
@@ -76,10 +75,10 @@ export const executeBoundedBrowserWait = async (
 };
 
 export const readDiscoveredTabIds = async (
-  chromeApi: ExtensionChromeApi,
+  debuggerRuntime: ExtensionDebuggerRuntime,
 ): Promise<ReadonlySet<number>> => {
   try {
-    return new Set((await chromeApi.debugger.getTargets())
+    return new Set((await debuggerRuntime.readTargets())
       .flatMap((candidate) => Number.isSafeInteger(candidate.tabId) ? [candidate.tabId!] : []));
   } catch (error) {
     throw new Error("BROWSER_TARGET_DISCOVERY_UNAVAILABLE", { cause: error });
@@ -111,26 +110,26 @@ export const waitForCanonicalGptMainFrame = async (
 };
 
 export const waitForDiscoveredTabAbsence = async (
-  chromeApi: ExtensionChromeApi,
+  debuggerRuntime: ExtensionDebuggerRuntime,
   tabId: number,
   deadline: number,
 ): Promise<void> => {
   do {
-    if (!(await readDiscoveredTabIds(chromeApi)).has(tabId)) return;
+    if (!(await readDiscoveredTabIds(debuggerRuntime)).has(tabId)) return;
     await waitForTargetObservation(deadline);
   } while (Date.now() < deadline);
   throw new Error("BROWSER_POSTCONDITION_FAILED");
 };
 
 export const discoverGptForkSuccessor = async (
-  chromeApi: ExtensionChromeApi,
+  debuggerRuntime: ExtensionDebuggerRuntime,
   baselineTabIds: ReadonlySet<number>,
   deadline: number,
 ): Promise<ExtensionDebugTarget> => {
   do {
     let discovered: readonly ExtensionDebugTarget[];
     try {
-      discovered = (await chromeApi.debugger.getTargets()).filter((candidate) =>
+      discovered = (await debuggerRuntime.readTargets()).filter((candidate) =>
         Number.isSafeInteger(candidate.tabId) && !baselineTabIds.has(candidate.tabId!));
     } catch (error) {
       throw new Error("BROWSER_TARGET_DISCOVERY_UNAVAILABLE", { cause: error });
@@ -149,11 +148,11 @@ export const discoverGptForkSuccessor = async (
 };
 
 export const forkTargetSetSettled = async (
-  chromeApi: ExtensionChromeApi,
+  debuggerRuntime: ExtensionDebuggerRuntime,
   sourceTabId: number,
   successorTabId: number,
 ): Promise<boolean> => {
-  const settled = (await chromeApi.debugger.getTargets()).filter((candidate) =>
+  const settled = (await debuggerRuntime.readTargets()).filter((candidate) =>
     (candidate.tabId === sourceTabId || candidate.tabId === successorTabId)
       && candidate.type === "page");
   return settled.length === 1 && settled[0]?.tabId === successorTabId;
@@ -161,7 +160,6 @@ export const forkTargetSetSettled = async (
 
 export const collectForkCleanupFailures = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
-  chromeApi: ExtensionChromeApi,
   input: Readonly<{
     attached: boolean;
     sourceTabId: number;
@@ -175,7 +173,7 @@ export const collectForkCleanupFailures = async (
   }
   if (input.successorTabId !== null && input.takeoverCommitted) {
     cleanupTasks.push(debuggerRuntime.detach(input.sourceTabId));
-    cleanupTasks.push(chromeApi.tabs.remove(input.sourceTabId));
+    cleanupTasks.push(debuggerRuntime.removeTab(input.sourceTabId));
   }
   const cleanup = await Promise.allSettled(cleanupTasks);
   return cleanup.flatMap((result) => result.status === "rejected" ? [result.reason] : []);

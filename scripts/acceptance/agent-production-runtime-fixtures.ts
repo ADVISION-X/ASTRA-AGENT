@@ -80,7 +80,7 @@ export const resultFor = (
 export const identityFor = (accepted: WebsiteAgentTask): DurablePluginIdentity => {
   const resolved = authorizeWebsiteAgentTask(accepted);
   return {
-    catalog_hash: productionCatalogHash, plugin_id: resolved.identity.plugin_id,
+    plugin_id: resolved.identity.plugin_id,
     plugin_version: resolved.identity.plugin_version, skill_hash: resolved.identity.skill_hash,
     checkpoint_schema_version: resolved.identity.checkpoint_schema_version, request_hash: accepted.request_hash,
   };
@@ -95,7 +95,7 @@ const executionGrant = (
     claim_batch_id: `claim:${base.job_id}`, job_id: base.job_id, source_task_id: base.source_task_id,
     request_hash: base.request_hash, task_contract_id: TASK_CONTRACT_ID, task_contract_version: TASK_CONTRACT_VERSION,
     result_contract_id: RESULT_CONTRACT_ID, result_contract_version: RESULT_CONTRACT_VERSION,
-    capability_manifest_hash: productionCatalogHash, expected_catalog_hash: productionCatalogHash,
+    capability_manifest_hash: productionCatalogHash,
     expected_plugin_id: plugin.pluginId, expected_plugin_version: plugin.pluginVersion,
     accepted_attempt_count: 1, max_provider_turns: 8,
   } as const;
@@ -104,12 +104,12 @@ const executionGrant = (
     worker_session_id: "worker:1", worker_session_epoch: 1, lease_token: `lease:${base.job_id}`,
     lease_version: 1, server_now: "2030-01-01T00:00:00.000Z", accept_by: "2030-01-01T00:01:00.000Z",
     lease_expires_at: "2030-01-01T00:05:00.000Z", renew_after_ms: 20_000,
-    control_contract_version: 17,
+    control_contract_version: 18,
     execution_fence: {
       schema_version: "xuanxue-ai-execution-fence.v6", environment_id: "production", device_id: "device:1",
       device_epoch: 1, worker_session_id: "worker:1", worker_session_epoch: 1, job_id: base.job_id,
       attempt_id: `attempt:${base.job_id}`, lease_version: 1, lease_token_hash: HASH_A,
-      control_contract_version: 17, fence_hash: HASH_B,
+      control_contract_version: 18, fence_hash: HASH_B,
     },
   } as const;
 };

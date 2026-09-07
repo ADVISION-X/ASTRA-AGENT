@@ -12,6 +12,8 @@ import { exerciseContentEditableFill, exerciseFillReadbackRejection } from
 import { browserDomFacts as facts, mutationInfrastructureReply } from
   "./local-browser-dom-runtime-fixture.js";
 
+const noPageReadBarrier = async (): Promise<void> => undefined;
+
 type PointerClickIntent = Extract<Parameters<typeof executeRegisteredDomIntent>[2], {
   kind: "click" | "doubleClick";
 }>;
@@ -19,7 +21,8 @@ type PointerClickIntent = Extract<Parameters<typeof executeRegisteredDomIntent>[
 const exerciseReasoningSlider = async (): Promise<void> => {
   for (const [key, virtualKeyCode, repeat] of [["ArrowLeft", 37, 1], ["ArrowRight", 39, 4]] as const) {
     const events: Readonly<Record<string, unknown>>[] = [];
-    const runtime = { async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
+    const runtime = { awaitPageReadPermission: noPageReadBarrier,
+      async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
       if (method === "Runtime.callFunctionOn" && parameters?.objectId === "node-8") {
         return { result: { value: facts({ ariaHidden: true }) } };
       }
@@ -51,7 +54,7 @@ const exerciseReasoningSlider = async (): Promise<void> => {
       windowsVirtualKeyCode: event.windowsVirtualKeyCode, nativeVirtualKeyCode: event.nativeVirtualKeyCode })), expected);
   }
   const defaultEvents: Readonly<Record<string, unknown>>[] = [];
-  const defaultRuntime = { async send(
+  const defaultRuntime = { awaitPageReadPermission: noPageReadBarrier, async send(
     _tabId: number,
     method: string,
     parameters?: Readonly<Record<string, unknown>>,
@@ -87,7 +90,7 @@ const redrawKeypressRuntime = (staleAfterResolve: boolean) => {
   let preconditionRead = false;
   let candidateNodeId = 0;
   const physicalEvents: string[] = [];
-  const runtime = { async send(
+  const runtime = { awaitPageReadPermission: noPageReadBarrier, async send(
     _tabId: number,
     method: string,
     parameters?: Readonly<Record<string, unknown>>,
@@ -144,7 +147,8 @@ const exerciseFreshKeypressCandidate = async (): Promise<void> => {
 const exerciseScopedExactCandidate = async (): Promise<void> => {
   let candidateSource = "";
   let candidateRequest: unknown;
-  const runtime = { async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
+  const runtime = { awaitPageReadPermission: noPageReadBarrier,
+    async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
     if (method === "Runtime.callFunctionOn" && parameters?.returnByValue === true
       && String(parameters.functionDeclaration).includes("spec.output")) {
       candidateSource = String(parameters.functionDeclaration ?? "");
@@ -179,7 +183,8 @@ const exerciseNativePointerSequences = async (): Promise<void> => {
   const run = async (intent: PointerClickIntent): Promise<readonly Readonly<Record<string, unknown>>[]> => {
     const events: Readonly<Record<string, unknown>>[] = [];
     let postconditionReads = 0;
-    const runtime = { async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
+    const runtime = { awaitPageReadPermission: noPageReadBarrier,
+      async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
       const infrastructure = mutationInfrastructureReply(method, parameters);
       if (infrastructure !== undefined) return infrastructure;
       if (method === "DOM.querySelectorAll") {
@@ -241,7 +246,7 @@ const coherentRuntimeFor = (settles: boolean, externallyOpensAtObservation?: num
   let coherentCalls = 0;
   let pointerEvents = 0;
   let atomicSource = "";
-  const runtime = { async send(
+  const runtime = { awaitPageReadPermission: noPageReadBarrier, async send(
     _tabId: number,
     method: string,
     parameters?: Readonly<Record<string, unknown>>,
@@ -323,7 +328,7 @@ const exerciseCoherentClickPostcondition = async (): Promise<void> => {
 const exerciseRetainedClickedCandidatePostcondition = async (): Promise<void> => {
   const run = async (selectedAfterClick: boolean) => {
     let clicked = false;
-    const runtime = { async send(
+    const runtime = { awaitPageReadPermission: noPageReadBarrier, async send(
       _tabId: number,
       method: string,
       parameters?: Readonly<Record<string, unknown>>,
@@ -372,6 +377,7 @@ const exerciseRetainedClickedCandidatePostcondition = async (): Promise<void> =>
 };
 
 const guardRuntime = (events: string[], guardState: { current: boolean }): ExtensionDebuggerRuntime => ({
+  awaitPageReadPermission: noPageReadBarrier,
   async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
     if (method.startsWith("Input.") || method === "DOM.focus") {
       assert.equal(guardState.current, true, `${method} must be immediately preceded by current Document proof`);
@@ -434,7 +440,7 @@ const exerciseFixedTargetTransitionPostcondition = async (): Promise<void> => {
   let candidateSource = "";
   const candidateRequests: Readonly<Record<string, unknown>>[] = [];
   let awaitedCandidate = false;
-  const runtime = { async send(
+  const runtime = { awaitPageReadPermission: noPageReadBarrier, async send(
     _tabId: number,
     method: string,
     parameters?: Readonly<Record<string, unknown>>,

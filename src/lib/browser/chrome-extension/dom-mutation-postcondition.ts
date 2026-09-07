@@ -83,7 +83,9 @@ export const waitForMatch = async (
   }>,
   timeoutMs?: number,
 ): Promise<MatchReadback> => {
-  const deadline = Date.now() + (timeoutMs ?? match.timeoutMs ?? 1);
+  const timeout = timeoutMs ?? match.timeoutMs ?? 1;
+  await debuggerRuntime.awaitPageReadPermission();
+  const deadline = Date.now() + timeout;
   while (true) {
     const candidates = await queryCandidateSet(
       debuggerRuntime, target.tabId, match.selector, match.expectedMatches + 1, undefined,
@@ -111,7 +113,9 @@ const waitForObservation = async (
   postcondition: NonNullable<ClickIntent["postClickObservation"]>,
   timeoutMs?: number,
 ): Promise<ObservationReadback> => {
-  const deadline = Date.now() + (timeoutMs ?? postcondition.timeoutMs ?? 1);
+  const timeout = timeoutMs ?? postcondition.timeoutMs ?? 1;
+  await runtime.awaitPageReadPermission();
+  const deadline = Date.now() + timeout;
   const specs = postcondition.queries.map(({ expectedEligibleCount: _expected, ...query }) => query);
   while (true) {
     const observation = await executeCoherentObservation(runtime, target, specs);
@@ -137,7 +141,9 @@ const waitForUrl = async (
   postcondition: Readonly<{ equals?: string; notEquals?: string; timeoutMs?: number }>,
   timeoutMs?: number,
 ): Promise<boolean> => {
-  const deadline = Date.now() + (timeoutMs ?? postcondition.timeoutMs ?? 1);
+  const timeout = timeoutMs ?? postcondition.timeoutMs ?? 1;
+  await debuggerRuntime.awaitPageReadPermission();
+  const deadline = Date.now() + timeout;
   do {
     const document = await documentState(debuggerRuntime, target.tabId) as { url?: unknown };
     if (postcondition.equals !== undefined && document.url === postcondition.equals) return true;
@@ -156,7 +162,9 @@ export const waitForInteractionAttribute = async (
   postAttribute: NonNullable<ClickIntent["postClickAttribute"]> | HoverIntent["postHoverAttribute"],
   timeoutMs?: number,
 ): Promise<boolean> => {
-  const deadline = Date.now() + (timeoutMs ?? postAttribute.timeoutMs ?? 1);
+  const timeout = timeoutMs ?? postAttribute.timeoutMs ?? 1;
+  await debuggerRuntime.awaitPageReadPermission();
+  const deadline = Date.now() + timeout;
   do {
     const nodes = intent.expectedTextEquals !== undefined
       ? await queryVisibleTextMatches({ runtime: debuggerRuntime, tabId: target.tabId,

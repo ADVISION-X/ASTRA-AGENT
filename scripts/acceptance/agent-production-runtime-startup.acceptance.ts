@@ -41,7 +41,7 @@ try {
     jobId: "job:first-checkpoint-crash", productId: "bazi_ai_full_analysis", actionId: "produce",
   });
   store.acceptTask(acceptedTask, {
-    catalog_hash: HASH_A, plugin_id: "bazi-ai-full-analysis", plugin_version: 1,
+    plugin_id: "bazi-ai-full-analysis", plugin_version: 1,
     skill_hash: HASH_B, checkpoint_schema_version: 1, request_hash: acceptedTask.request_hash,
   }, "attempt:first-checkpoint-crash");
   assert.equal(reconcileTaskRecord({ store } as never, store.readTask(acceptedTask.job_id)!), true,
@@ -71,7 +71,7 @@ try {
     jobId: "job:corrupt-continuation", productId: "bazi_ai_full_analysis", actionId: "produce",
   });
   corruptStore.acceptTask(corruptTask, {
-    catalog_hash: HASH_A, plugin_id: "bazi-ai-full-analysis", plugin_version: 1,
+    plugin_id: "bazi-ai-full-analysis", plugin_version: 1,
     skill_hash: HASH_B, checkpoint_schema_version: 1, request_hash: corruptTask.request_hash,
   }, "attempt:corrupt-continuation");
   corruptStore.close();
@@ -167,7 +167,7 @@ try {
   assert.equal(health.cloudState, "contract_blocked");
   assert.equal(health.executionState, "blocked");
   assert.equal(health.claimAdmissionState, "blocked");
-  assert.equal(health.controlContractVersion, 17,
+  assert.equal(health.controlContractVersion, 18,
     "blocked diagnostics must retain only the consumer contract version needed for exact comparison");
   assert.equal(health.lastErrorCode, "AI_SESSION_BINDING_MISMATCH");
   await bindingMismatchRuntime.close();
@@ -415,7 +415,7 @@ for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
 }
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V14",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V15",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:storage-inventory:${evidenceMode}`,

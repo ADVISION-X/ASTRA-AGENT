@@ -1,13 +1,13 @@
-# GPT 能力组 V27 施工图
+# GPT 能力组 V28 施工图
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "gpt-capability-group-v27",
+  "blueprintId": "gpt-capability-group-v28",
   "status": "active",
   "owner": "gpt",
   "lawIds": [
-    "LAW-GPT-001-V33"
+    "LAW-GPT-001-V34"
   ],
   "contractRefs": [],
   "dependencyEdges": [
@@ -23,7 +23,7 @@
 
 `gpt` 只拥有 GPT Provider 的 28 个原子 Child、对应局部合同、Browser Authority 调用、直接后置证明和 typed result：二十二个 Provider 页面语义 Child、六个 continuation transaction Child。十二个 Product Plugin 各自直接拥有 Child 顺序、分支、重复、跳过、Prompt 语义、精确模型、requested reasoning tier、selection policy 和结果组装；模型选择完成后重新确保 execution profile 打开、再执行 Product 冻结的推理要求，也属于每个 Product 自己的显式顺序。
 
-本次 V26 保持 28 个 Child 的公开身份、物理隔离、局部合同与 mutation 配额不变，并把 `checkpoint_gpt_generated_image` 的直接前驱核验口径收敛到现役 continuation 唯一真相：直接前驱 text checkpoint 保留自己的 turn marker、prompt hash 与 assistant turn，当前图片 turn 必须与它位于同一 canonical conversation 且 assistant turn ordinal 精确相差 2。页面同一次 coherent observation 还必须证明前驱 text assistant turn 的 semantic text hash 与 receipt 相同；不得反向要求前驱 receipt 冒充当前图片 turn。本次同时保留 V25 已冻结的三步 fork 页面接管、`/c/WEB:<opaque>` 瞬时 route 以及 execution profile 的 PRO/PLUS、0..2/0..4 与 exact/exact-or-observed-maximum 语义，不得借本次修改行为或建立兼容路径。
+V26 已冻结 28 个 Child 的公开身份、物理隔离、局部合同与 mutation 配额不变，并把 `checkpoint_gpt_generated_image` 的直接前驱核验口径收敛到现役 continuation 唯一真相：直接前驱 text checkpoint 保留自己的 turn marker、prompt hash 与 assistant turn，当前图片 turn 必须与它位于同一 canonical conversation 且 assistant turn ordinal 精确相差 2。页面同一次 coherent observation 还必须证明前驱 text assistant turn 的 semantic text hash 与 receipt 相同；不得反向要求前驱 receipt 冒充当前图片 turn。本次 V28 继续保留 V25 已冻结的三步 fork 页面接管、`/c/WEB:<opaque>` 瞬时 route 以及 execution profile 的 PRO/PLUS、0..2/0..4 与 exact/exact-or-observed-maximum 语义，不得借本次修改行为或建立兼容路径。
 
 ```text
 Product Plugin 的普通 TypeScript Flow
@@ -182,7 +182,9 @@ GPT Capability 的生产物理边界固定为一个 `src/capabilities/gpt/` 总�
 | `PROVIDER_EFFECT_ONCE`（3） | `attach_approved_gpt_files_once`、`submit_exact_gpt_turn_once`、`fork_exact_gpt_conversation_at_checkpoint` |
 | `CONTINUATION_TRANSACTION`（6） | `persist_gpt_continuation`、`reserve_exact_gpt_continuation_once`、`complete_exact_gpt_continuation_reservation_once`、`acquire_gpt_continuation_lane`、`advance_gpt_continuation_lane`、`release_gpt_continuation_lane` |
 
-bounded-wait 只是画像附加特征：`prepare_clean_gpt_chat`、`focus_exact_gpt_conversation`、`open_gpt_execution_profile`、`open_gpt_attachment_control`、`write_exact_gpt_prompt`、`submit_exact_gpt_turn_once`、`reconcile_gpt_attachment_set`、`reconcile_gpt_turn_submission`、`wait_for_stable_gpt_text`、`wait_for_stable_gpt_image` 只能在各自合同冻结的上限或调用既有 deadline 内对正面瞬时事实 fresh observe。`prepare_clean_gpt_chat`、`focus_exact_gpt_conversation` 与 `write_exact_gpt_prompt` 只在自身唯一 mutation 后使用共享 2500ms semantic fresh-readback 窗口；`submit_exact_gpt_turn_once` 只消费 Browser 同一点击包已有的 5000ms 外层 turn hydration 后置，随后进行一次 GPT semantic readback，不叠加第二等待链；`open_gpt_execution_profile` 与 `open_gpt_attachment_control` 只等待当前 Document 的入口或直接后置 hydration。所有这些等待都不等待 Product 步骤、不跨 Target/Document，也不取得额外 mutation 配额。纯 observation 的 `reconcile_gpt_draft` 必须以两份各自完整的 fresh coherent packet 证明同一 Target/Document、composer、exact draft hash、附件集合与 send 条件连续一致；任一 packet 自身不完整、revision 漂移或两次事实不等即丢弃重取或在原 deadline 内失败，禁止把两次各自不完整的读取拼成一次资格。候选多义、结构冲突或 native payload 非法必须立即失败。公开 terminal 始终只有 `success(value,evidence)` 或 `failed(typedReason,evidence)`；局部裁决不持久化、不进入 Product 状态。
+Browser 动作后 2500ms 读回总闸门不是 Child 的 bounded-wait 画像，而是所有真实 GPT 页面状态改变共享的唯一物理底座。点击、输入、清空、填写、键盘、文件选择/上传、提交、导航、刷新、返回根页、切换会话、模型/推理档位、菜单开关、弹窗确认、fork、轮询导航、恢复导航以及未来新增页面动作，均由 Browser Authority 在最后一个物理页面输入完成后保持同一 Target、current Document、claim 与 FIFO，硬等待完整 2500ms；2499ms 及以前动作后结果读取为零，满时才允许首次 fresh coherent current-Document read。成功或失败都不能提前，延迟本身也不是成功证据；现有 postcondition budget 从首次可读时刻起算。GPT/Product 不能传入、缩短、关闭或另配延迟，任何 Child-specific 2500ms helper、条件窗口和第二计时链都必须删除。纯 observation、continuation transaction 与非页面动作不产生新闸门，但它们若是某一页面动作后的首次结果读取，仍服从该动作已建立的 read-not-before。
+
+Child 自身的 bounded-wait 只保留动作闸门之后的真实条件等待和无前置动作的 Provider 长等待：`reconcile_gpt_attachment_set`、`reconcile_gpt_turn_submission`、`wait_for_stable_gpt_text`、`wait_for_stable_gpt_image` 等只在各自合同冻结上限或调用既有 deadline 内 fresh observe，不取得额外 mutation 配额。纯 observation 的 `reconcile_gpt_draft` 仍以两份各自完整的 fresh coherent packet 证明同一 Target/Document、composer、exact draft hash、附件集合与 send 条件连续一致；任一 packet 不完整、revision 漂移或两次事实不等即丢弃重取或在原 deadline 内失败。候选多义、结构冲突或 native payload 非法在获得合法首读后按原合同失败关闭。公开 terminal 始终只有 `success(value,evidence)` 或 `failed(typedReason,evidence)`；局部裁决不持久化、不进入 Product 状态。
 
 所有页面 Child 的一次裁决只能消费 Browser 在同一 typed observation 内原子采集、或由 Browser 机械证明 revision 未变化的 `BrowserDomObservationPacketV2`。packet 固定绑定 exact call、Target、current Document、sanitized `currentUrl`、observation revision、observedAt、该 Child 最少充分的稀疏事实和 native cause；`currentUrl` 必须与 DOM facts 来自 current Document 的同一次 `Runtime.callFunctionOn` 并共同进入 `observationRevisionHash`。整包 stale、`currentUrl` 缺失/非法、Document/revision 改变或未完整返回时整包作废，禁止 Child 从 `claimOrigin`、Target claim 时 URL、`Page.getFrameTree`、另一次 URL/DOM 读取、页面外请求或持久 snapshot 拼接。Observation V1 的类型、decoder、caller 与 tests 在同一 CHANGE 物理删除，不存在 V1/V2 union、alias、optional currentUrl、dual-read 或 fallback。Browser 只签发物理事实；GPT 只负责 root/conversation Provider 语义，不读取 raw WAL、Target/Document 或把 Browser terminal 当成 GPT 语义。
 
@@ -194,7 +196,7 @@ bounded-wait 只是画像附加特征：`prepare_clean_gpt_chat`、`focus_exact_
 
 ### 3.1 页面实证闭环
 
-页面操作分母矩阵唯一位于 `src/capabilities/gpt/page-operation-matrix.json`，归属 GPT Owner，并处于 `LAW-GPT-001-V33` 的 `src/capabilities/gpt/**` 适用范围内。质检只能从密封候选读取该矩阵；不得从工作树外读回、复制第二份矩阵或建立兼容查找路径。
+页面操作分母矩阵唯一位于 `src/capabilities/gpt/page-operation-matrix.json`，归属 GPT Owner，并处于 `LAW-GPT-001-V34` 的 `src/capabilities/gpt/**` 适用范围内。质检只能从密封候选读取该矩阵；不得从工作树外读回、复制第二份矩阵或建立兼容查找路径。
 
 二十二个页面 Child 继续只在各自现有 handler、合同和 Browser typed command 内闭合，不新增 Child、公共 selector registry、第二 observation、第二存储或质量裁决。当前真实页面实证要求以下直接约束：
 
@@ -234,7 +236,7 @@ Provider effect 在整个 job 的相同 `provider_effect_identity_hash` 下物�
 
 当 `submit_exact_gpt_turn_once` 已由 Browser WAL + Forensics 唯一终结为 `CONFIRMED + passed`，但直接 GPT 语义后置或后续 locator/readback 失败时，唯一 evidence 生命周期必须保持原 `pending`，Website 保留同一 accepted attempt。Browser 可绑定发送源 D0，或该 exact submit 同一原子 Child 已按同 Target、navigationEpoch 不变或精确 +1、initial evidence hash 唯一证明的直接后置 D1 时，Product 可在同一 Browser execution 内立即且只调用现役 `reconcile_gpt_turn_submission` 做 source-only 有界零 mutation回证并写入唯一 locator；locator 闭合后，后续 invocation 才可经 full readback 导航原 canonical URL。reconcile 失败、locator 暂缺/损坏/多义或原 Document 消失只结束本次 probe，不得 terminal-fail 原 submit evidence、创建新 attempt、重写 Prompt/附件/submit、按当前/最新聊天猜测，或释放成可重提任务。
 
-所有 Product 共用的 Provider 页面 mutation Child 必须在自己的直接后置内统一执行条件驱动稳定判定：Browser 已终结唯一物理动作后，若该 Child 仍需 GPT semantic fresh readback，首次只有可恢复的缺席、未 hydration、尚未清空或尚未形成 canonical locator 等瞬时负事实时，必须在最多 `2500ms` 内反复从同一 exact Target/Document 取得 fresh coherent 零 mutation 观察；正面条件出现立即返回，Target/Document 失效、候选多义、结构冲突、非法输入或其它硬失败立即停止，到期仍未满足才返回原 typed postcondition failure。该规则位于 GPT Child，不位于 SEO 或其它 Product；Browser 的同一 mutation packet 已经拥有更长的条件驱动 direct postcondition 时继续沿现役 packet，不追加第二观察链。纯 observation、continuation transaction、Provider 长等待、checkpoint、DONE 零动作不使用该窗口；禁止固定 sleep、等待后单次读取、把时间到达当成功、重发动作或增加 mutation 配额。
+所有 Product 共用的页面动作不再由各 Child 自行决定是否等待。GPT 只调用 Browser Authority 的既有 typed command；Browser 唯一总闸门在动作完成后先阻断完整 2500ms，再允许 Browser 自带 postcondition 或 GPT semantic readback 第一次读取 fresh current Document。动作已显示成功、失败、缺席、未 hydration、尚未清空或 locator 尚未形成，都不得在 2500ms 内被读取或裁决；满时后再依源码冻结的正反判据、既有有界 timeout 与 fresh coherent observation 收束。该规则覆盖全部现役和未来页面动作，不以 Product、Child、effect scope、轮询、恢复或内部动作区分。调用方零配置，等待失败零重放，Browser 之外不得存在 2500ms helper、sleep、第二观察链或第二 timer。
 
 已渲染 user turn 的请求身份保持单链：同一次 coherent observation 以外层 `[data-testid^='conversation-turn-']:has([data-message-author-role='user'])` 取得 `conversation-turn-*`，但 prompt hash 只消费 Browser 在该外层 turn 内对唯一 `[data-testid='collapsible-user-message-content']` 正文节点签发的 `exactGptUserPromptHash`。真实 Chrome 已证明角色在内层 `data-message-author-role`，外层不再携带 `data-turn`。正文零项/多项或外层身份不合法失败关闭；附件卡片、展开/收起等控制文字不得进入哈希。禁止对外层容器使用 `semanticTextHash`，禁止第二 query 按序拼接、字符串剔除、selector OR 或 fallback。submit 直接后置、reconcile、Provider wait、conversation verify/fork 与 checkpoint identity 共用这一条事实。
 
@@ -292,7 +294,7 @@ safe evidence projection 必须保持 Browser terminal、物理 mutation 与 GPT
 
 Continuation lane 的结构边界固定为：首次 persist 必须先验证 origin provider/checkpoint 成对、current=origin、prior_task_id=jobId，再原子写入；advance 必须先验证 current provider 与 text semantic hash 或 image media hash、URL、Prompt、marker 成对，再以同一 lane/version CAS 原子写 current provider/checkpoint 并清空 owner；release 只清空同一 owner/version，同 lane/version 已 owner=null 说明 advance/release 已结算，旧 provider lane 的 finally release 必须幂等 no-op而不得覆盖原 evidence 故障。generated-image current receipt 必须在自身内部绑定经 artifact readback 验证的同 conversation 直接前驱 text receipt；它仍是一份 current receipt，不形成历史链或第二状态。调用 Product 在 acquire 成功的下一语句立即进入 try/finally，expected provider compare、conversation focus/verify 或任一后续调用抛错时都必须 release；只有 advance 已成功或 DB commit 后幂等 readback证明成功时才设置 settled。合法 task-local busy lane 不是 ledger corruption；异常遗留 lane 只影响所属 job，并由同一 job 下一 accepted attempt 的现役接收事务释放，不得阻断其它 job、增加 cleanup worker 或建立第二 ledger。既有 frontier row 的一次性 cutover 不得在 schema migration 阶段盲写 current：evidenceStore 可用后，current provider=origin provider 时仍须读回 origin text artifact/evidence/hash 再复制；current provider 已推进时，现役部署只允许从同 job/plugin 的 task-owned exact-call artifact 唯一重建与 current provider 的 URL/marker/prompt/response hash 全等的 article text receipt。旧 generated-image provider 没有持久直接前驱 text receipt，不能伪造新 receipt，必须只让所属 task以精确 cutover code fail-close且禁止重做 Provider turn；零条、多条或不等同样 task-local fail-close，不得回退 provider、保留 nullable/legacy reader或阻断其它 task。
 
-固定 5 秒等待被删除。等待只允许是单个 Child 为 fresh DOM、hydration 或直接 postcondition 使用的有界实现，并由真实条件提前结束。Provider text/image wait 每次由 Product 传入稳定 `probeBudgetMs`，本次合法 invocation 派生 `probeDeadlineAt=min(invocationStartedAt+probeBudgetMs, 当前 lease/abort 上限)`；同 invocation 的 normal park/reacquire 不刷新它，后续同 accepted attempt 的新 invocation 获得新的有限 budget。Provider submit 的 immutable terminalAt 只记录 effect 终结时刻，不参与 wait 寿命。两个 wait Child 继续共享 GPT Owner 进程级单调 `nextCrossConversationPollAt`：只有 fresh currentUrl 不等于目标 canonical URL 且即将实际导航时才同步 check-and-set，使跨 conversation navigate 至少相隔 30000ms；资格未到就 normal park、释放 Browser FIFO，在 FIFO 外等待资格或本次 probeDeadlineAt/abort，重领后 fresh 重读 URL。同 URL probe、其它 Child、checkpoint、fresh root 与动作直接后置不消费该资格。该标量不按 job 分片、不持久化，不建 waiter、队列、scheduler、worker、table 或第二 lane。每次重领重新证明 URL + marker + prompt hash + 相邻 assistant，并按类型重证文本或媒体 identity。本次 deadline 到达只以 typed fault 结束这一 probe并保留 confirmed submit 的 pending evidence；成功仍至少需要 deadline 内两次分离 fresh observation/download 一致。`close_gpt_execution_profile` 只能使用当前 profile Owner 内经实证唯一的收束动作并直接证明 popup 缺席。
+GPT/Product 侧旧固定 5 秒等待和 Child-specific 2500ms 条件窗口均被删除；唯一固定等待是 Browser Authority 对每个页面状态改变强制执行的动作后 2500ms 首读闸门。闸门结束后，单个 Child 只可为 fresh DOM、hydration、直接 postcondition 或 Provider 产物保留现役有界条件等待，真实条件满足即可结束后续等待，但绝不能把首读提前到 2500ms 内。Provider text/image wait 每次仍由 Product 传入稳定 `probeBudgetMs`，本次合法 invocation 派生 `probeDeadlineAt=min(invocationStartedAt+probeBudgetMs, 当前 lease/abort 上限)`；同 invocation 的 normal park/reacquire 不刷新它，后续同 accepted attempt 的新 invocation 获得新的有限 budget。Provider submit 的 immutable terminalAt 只记录 effect 终结时刻，不参与 wait 寿命。两个 wait Child 继续共享 GPT Owner 进程级单调 `nextCrossConversationPollAt`：只有 fresh currentUrl 不等于目标 canonical URL 且即将实际导航时才同步 check-and-set，使跨 conversation navigate 至少相隔 30000ms；资格未到就 normal park、释放 Browser FIFO，在 FIFO 外等待资格或本次 probeDeadlineAt/abort，重领后 fresh 重读 URL。实际导航自身仍必须经过 Browser 2500ms 首读闸门；同 URL probe、其它 Child、checkpoint 与 fresh root 不消费 30000ms 资格。该标量不按 job 分片、不持久化，不建 waiter、队列、scheduler、worker、table 或第二 lane。每次重领重新证明 URL + marker + prompt hash + 相邻 assistant，并按类型重证文本或媒体 identity。本次 deadline 到达只以 typed fault 结束这一 probe并保留 confirmed submit 的 pending evidence；成功仍至少需要 deadline 内两次分离 fresh observation/download 一致。`close_gpt_execution_profile` 只能使用当前 profile Owner 内经实证唯一的收束动作并直接证明 popup 缺席。
 
 授权验收必须额外证明：`current_artifact_read_grant` 零 manifest/child-relation 要求且只在 current authorization、owner/subject、source artifact/checkpoint、semantic-admission receipt/read-grant 全闭合时读回；`continuation_lane_use_grant` 则只在 current/origin authorization、owner/subject、manifest/continuation relation 全闭合时允许现役 acquire 一次跨 entitlement CAS。两种 grant 不得互换、合并或补默认值。
 

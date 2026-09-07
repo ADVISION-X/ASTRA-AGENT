@@ -240,7 +240,6 @@ export const WebsiteAgentResultSchema = z.object({
 }).strict();
 
 export interface DurablePluginIdentity {
-  readonly catalog_hash: ProductionHash;
   readonly plugin_id: string;
   readonly plugin_version: number;
   readonly skill_hash: ProductionHash;

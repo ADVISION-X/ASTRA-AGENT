@@ -1,4 +1,4 @@
-# GrassEye 单生产 Tab、可信 DOM 事实与唯一 Browser FIFO V19 施工图
+# GrassEye 单生产 Tab、可信 DOM 事实与唯一 Browser FIFO V20 施工图
 
 状态：active final-state blueprint
 Owner：`local-browser-session`
@@ -6,14 +6,14 @@ Owner：`local-browser-session`
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "local-browser-auto-pairing-and-exact-chatgpt-claim-v19",
+  "blueprintId": "local-browser-auto-pairing-and-exact-chatgpt-claim-v20",
   "status": "active",
   "owner": "local-browser-session",
   "lawIds": [
     "LAW-LOCAL-BROWSER-SESSION-001-V4",
     "LAW-LOCAL-BROWSER-SESSION-002-V6",
     "LAW-LOCAL-BROWSER-SESSION-003-V24",
-    "LAW-LOCAL-BROWSER-SESSION-004-V24",
+    "LAW-LOCAL-BROWSER-SESSION-004-V25",
     "LAW-LOCAL-BROWSER-SESSION-005-V6",
     "LAW-LOCAL-BROWSER-SESSION-006-V17"
   ],
@@ -53,7 +53,7 @@ AGENT 启动
 durable 接受后的第一个 Browser 原子动作触发，固定扩展单独拥有物理认领。
 
 Browser Authority 不决定 fresh 或 continuation，只提供全系统唯一的物理 production Target。Product Plugin 决定
-会话意图；Browser 只在 current Document 同一次 coherent observation 中读取、清洗并签发 revision-bound `currentUrl`，GPT Child 再在同一 Target 上判断干净根页面或按 canonical conversation URL + marker + prompt hash 与适用的文本 response hash 或图片 media/content identity 聚焦精确历史 conversation。Target admission 的 `claimOrigin` 不含 path，永不进入 GPT 页面语义。prompt hash 只绑定 marker 所在 exact 外层 user turn 内唯一 `[data-testid='collapsible-user-message-content']` 请求正文机器节点；Browser 机械验证外层 `[data-testid^='conversation-turn-'][data-turn='user']` 身份及唯一正文后，用现役 deterministic semantic tree 生成同 observation revision 的 hash-only `exactGptUserPromptHash`，GPT Owner 只消费该哈希形成 canonical rendered-prompt identity。外层 turn 继续提供 `conversation-turn-*`；正文零项或多项失败关闭。Browser 不解释 URL 的 root/conversation 语义或 Prompt，也不绑定附件卡片或页面控制文字。建 tab 不另立为 GPT DOM
+会话意图；Browser 只在 current Document 同一次 coherent observation 中读取、清洗并签发 revision-bound `currentUrl`，GPT Child 再在同一 Target 上判断干净根页面或按 canonical conversation URL + marker + prompt hash 与适用的文本 response hash 或图片 media/content identity 聚焦精确历史 conversation。Target admission 的 `claimOrigin` 不含 path，永不进入 GPT 页面语义。prompt hash 只绑定 marker 所在 exact 外层 user turn 内唯一 `[data-testid='collapsible-user-message-content']` 请求正文机器节点；Browser 机械验证外层 `[data-testid^='conversation-turn-']:has([data-message-author-role='user'])` 身份及唯一正文后，用现役 deterministic semantic tree 生成同 observation revision 的 hash-only `exactGptUserPromptHash`，GPT Owner 只消费该哈希形成 canonical rendered-prompt identity。外层 turn 继续提供 `conversation-turn-*`；正文零项或多项失败关闭。Browser 不解释 URL 的 root/conversation 语义或 Prompt，也不绑定附件卡片或页面控制文字。建 tab 不另立为 GPT DOM
 Child，也不允许 Product Plugin 直接接触 Chrome 资源。
 
 ## 2. 唯一认领策略
@@ -164,9 +164,20 @@ Browser Authority 校验 authority + exact call + typed permit
 -> Extension 同一命令重绑 exact Target/current Document
 -> 机械重验 zero-action predicate、候选基数与动作资格
 -> Provider 物理输入 0 或 1
--> fresh mechanical readback；只有源码冻结 final fork 可执行同命令 Browser-owned child-tab takeover normalization
+-> 最后一个物理页面输入完成后，以唯一硬编码 2500ms read-not-before 保持同一 Target/current Document/claim/FIFO
+-> 满 2500ms 后首次 fresh mechanical readback；只有源码冻结 final fork 可执行同命令 Browser-owned child-tab takeover normalization
 -> CONFIRMED | REJECTED；回复/终局缺失保持 DISPATCHED
 ```
+
+### 3.1.4 唯一页面动作后读回总闸门
+
+总闸门按物理页面状态改变认定，不按现有 Child 或 Browser command 名单认定。点击、输入、清空、填写、DOM focus、鼠标与键盘事件、文件选择与上传、提交、`Page.navigate`、刷新、返回根页、切换会话、模型与推理档位、菜单开关、弹窗确认、tabs create、fork、轮询导航、恢复导航，以及未来新增的页面动作，都必须通过 Browser Authority 的同一 in-memory read-not-before。唯一常量固定为 `2500`，没有参数、环境变量、调用方 override、feature flag 或其它延迟档位。
+
+起点是复合动作的最后一个物理页面输入已经完成。CDP dispatch acknowledgement、唯一 file chooser 事件、`Page.navigate` 的协议回包以及完成同一复合动作所必需的底层写入回包，可以在闸门内机械消费，但不能读取页面结果，也不能产生成功或失败 verdict。连续鼠标事件、按键 repeat 或“点击上传入口 -> chooser -> `DOM.setFileInputFiles`”只在最后一个输入后开始 2500ms。final fork 必须在最终 click 后等满 2500ms 才能第一次读取 Target 增量；navigation/create/reset/switch 必须在动作后等满 2500ms 才能第一次读取 frame、Document、currentUrl 或 DOM。
+
+等待期间，同一 typed command 不返回动作结果，Target、current Document、claim 与唯一 FIFO 均不释放，不得 park、reacquire、切换会话或为轮询导航其它任务。2499ms 及以前，动作后 DOM、URL、frame、Target 集合、页面媒体、Browser postcondition 与上层 GPT/Product 判定读取总数必须为零；即使页面已显示成功或失败也不能提前结束。满 2500ms 后必须从 current Document 发起第一次 fresh coherent read，不得复用动作前、动作瞬间或缓存 packet。2500ms 只发放首读资格，不是成功证据；其后继续依源码冻结的机械正反 postcondition 和语义合同结算。既有 postcondition timeout 从首次可读时刻起算，不能被闸门吞掉。等待被 abort、撤权、超时、Target/Document 失效或读取失败时，原动作仍不得重放。
+
+实现只有一个 Browser-owned 总闸门和一个常量；GPT Child 旧 2500ms helper、条件稳定窗口及其它页面动作后 sleep 必须物理删除。纯 observation 自身不设置新闸门，数据库、Website 请求、日志、checkpoint 与其它非页面动作完全不适用；但任何读取如果是某一页面动作后的首次结果读取，仍必须先满足该动作留下的 read-not-before。不得以内部动作、轮询动作、恢复动作、已有 Browser postcondition、Target-local scope 或未来新 command 为由绕过。
 
 扩展只允许四种结算：zero-action predicate 已成立时 `CONFIRMED + mutation_outcome=no`；动作机械资格不成立时 `REJECTED + mutation_outcome=no`；一次 Provider 物理输入后按冻结正反 readback 结算 `CONFIRMED` 或 `REJECTED`，mutation outcome 只表达 `confirmed` 或实际可证明的 Provider 物理事实；已鉴权 exact `REPLY.errorCode` 必须结算 `REJECTED`，若不能证明输入为零则保留 `mutation_outcome=dispatched`；只有 deadline 前完全没收到终局 reply 才保持 `DISPATCHED + mutation_outcome=dispatched` 并记录 `BROWSER_COMMAND_RECEIPT_MISSING`。final fork 的正向 Browser readback 还必须在同一命令完成唯一新增合法 page、source conversation content 与 child route 验证、同一逻辑 targetRef 向 child tab 的物理转移、source tab 关闭、child Document/navigation epoch、现有 TARGET_CLAIM/ACK 与 settled 单页闭合；它不得导航 source 或关闭 child，也不增加第二 Provider 输入、第二 mutation row 或第二 Browser capability。Browser terminal、Provider 物理输入事实、GPT 直接语义后置互相正交，不从邻近事件或普通抛错推断。
 
@@ -218,6 +229,8 @@ fallback 或第二 claim path。
 同时物理删除 reconciliation 抢占旁路和“一个任务现场把十个业务槽或全局 Runtime ledger 置假”的判定。普通执行与恢复执行统一进入同一有界 FIFO；但任一 unresolved DISPATCHED 必须由现有 lane 的唯一 owner/quarantine 状态阻止同 Tab 上的后续 Browser 导航和 mutation，直到只读收束或按 effect scope 终结。这不是第二 queue、第二 recovery lane 或业务 capacity gate。恢复身份只从 Browser WAL 按 job + plugin step 派生，不接受调用方自报。
 
 ## 6. 质检与真实验收
+
+本次总闸门必须由确定性时钟逐项证明：每一种现役页面物理动作在 2499ms 时动作后读取为零，2500ms 满后第一次读取来自 fresh current Document；等待期同一 Target、Document、claim 与 FIFO 未释放；成功态与失败态都不能提前；Browser 自带 postcondition、final fork Target 增量读取、轮询/恢复导航、弹窗与菜单、file chooser/批量 file set、keypress repeat、navigation/create/reset/switch 均受同一常量约束；postcondition timeout 从首次可读时刻起算；abort、撤权、Document 丢失与读回失败的物理动作重放次数为零。静态 inspector 必须从真实调用图和 AST 证明唯一硬编码 `2500`、调用方无 delay 参数或 override、GPT Child 旧 timing helper 已物理缺席，且新增页面动作若未登记为 Browser state-changing method 或未经过同一 gate 会使唯一 `quality:check` 失败。不得以测试文件的字符串搜索、手写动作总数或第二 allowlist 冒充生产调用图。
 
 1. 构建与静态质检证明 manifest 无 `activeTab`/storage/宽 host，popup 无手动认领入口，源码无旧 handler。
 2. 确定性测试覆盖 Authority READY 与空闲期间不创建/认领、首个 job-bound acquisition 后忽略既存操作者页面并只创建一个

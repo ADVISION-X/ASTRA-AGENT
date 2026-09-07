@@ -59,10 +59,13 @@ export abstract class ProductionStoreTaskState extends ProductionStoreContinuati
       if (existing.task.request_hash !== task.request_hash) {
         throw executionFailure("failed", "PRODUCTION_TASK_REQUEST_HASH_CONFLICT");
       }
-      if (json(existing.identity) !== json(identity)) {
-        throw executionFailure("failed", "PRODUCTION_TASK_IDENTITY_CONFLICT");
+      if (existing.current_attempt_id === attemptId) {
+        if (json(existing.identity) !== json(identity)) {
+          throw executionFailure("failed", "PRODUCTION_TASK_IDENTITY_CONFLICT");
+        }
+        return existing;
       }
-      if (existing.status === "failed" && existing.current_attempt_id !== attemptId) {
+      if (existing.status === "failed") {
         if (existing.staged_result) throw executionFailure("failed", "PRODUCTION_NEW_ATTEMPT_AFTER_STAGED_RESULT");
         this.readCheckpoint(task.job_id);
         this.readLease(task.job_id);
@@ -73,12 +76,12 @@ export abstract class ProductionStoreTaskState extends ProductionStoreContinuati
           this.database.prepare("delete from production_checkpoints where job_id=?").run(task.job_id);
           this.database.prepare("delete from production_leases where job_id=?").run(task.job_id);
           this.database.prepare(`update production_tasks
-            set current_attempt_id=?,current_reason='LEASE_GRANTED',updated_at=?
-            where job_id=? and status='failed'`).run(attemptId, now(), task.job_id);
+            set identity_json=?,current_attempt_id=?,current_reason='LEASE_GRANTED',updated_at=?
+            where job_id=? and status='failed'`).run(json(identity), attemptId, now(), task.job_id);
         })();
         return this.readTask(task.job_id)!;
       }
-      return existing;
+      throw executionFailure("failed", "PRODUCTION_TASK_IDENTITY_CONFLICT");
     }
     const timestamp = now();
     this.database.prepare(`insert into production_tasks(

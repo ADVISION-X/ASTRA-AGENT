@@ -17,6 +17,8 @@ export const extensionTargetObservationPath =
   "src/lib/browser/chrome-extension/extension-target-observation.ts";
 export const extensionCommandRuntimePath =
   "src/lib/browser/chrome-extension/extension-command-runtime.ts";
+export const extensionDebuggerRuntimePath =
+  "src/lib/browser/chrome-extension/debugger-runtime.ts";
 export const domPointerIntentRuntimePath =
   "src/lib/browser/chrome-extension/dom-pointer-intent-runtime.ts";
 export const brokerPath = "src/lib/browser/infrastructure/browser-authority-broker.ts";
@@ -63,6 +65,7 @@ export const sourcePaths = [
   domMutationPostconditionPath,
   browserCommandPostconditionPath,
   extensionTargetObservationPath,
+  extensionDebuggerRuntimePath,
   extensionCommandRuntimePath,
   domPointerIntentRuntimePath,
 ] as const;

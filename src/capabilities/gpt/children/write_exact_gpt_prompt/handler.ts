@@ -19,7 +19,6 @@ import {
   requireExactComposer,
   type DraftState,
 } from "./observation.js";
-import { waitForGptDirectMutationSettlement } from "../../web/direct-mutation-settlement.js";
 import { GPT_COMPOSER_SELECTOR } from "./selectors.js";
 
 const mismatchFailure = (
@@ -73,12 +72,7 @@ export const writeExactGptPromptHandler: GptChildHandler<"write_exact_gpt_prompt
       kind: "fill", selector: GPT_COMPOSER_SELECTOR, approvedText: prompt,
       clearBeforeType: true, expectedMatches: 1,
     });
-    const readback = await waitForGptDirectMutationSettlement(
-      browser,
-      () => readDraftState(browser),
-      (state) => state.composerRaw === 1 && state.composerEligible === 1 && state.composerHash === promptHash,
-      (state) => state.composerRaw > 1 || (state.composerRaw === 1 && state.composerEligible !== 1),
-    );
+    const readback = await readDraftState(browser);
     requireExactComposer(readback);
     if (readback.composerHash !== promptHash) throw mismatchFailure(intent, browser, promptHash, readback);
     const browserFact = requireConfirmedBrowserFact(intent, browser);

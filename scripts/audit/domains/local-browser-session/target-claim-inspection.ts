@@ -86,7 +86,7 @@ const inspectExactChatGptPolicy = (source: ReturnType<typeof requireSource>, fin
   }));
 };
 
-const recoveryInspectionIsExact = (source: string): boolean => source.includes("chromeApi.debugger.getTargets()")
+const recoveryInspectionIsExact = (source: string): boolean => source.includes("debuggerRuntime.readTargets()")
   && source.includes("candidate.tabId === tabId")
   && (source.includes('candidate.type === "page"') || source.includes('candidates[0]!.type !== "page"'))
   && (source.includes("candidate.attached === true") || source.includes("candidates[0]!.attached !== true"))

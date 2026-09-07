@@ -6,6 +6,8 @@ import { executeRegisteredDomIntent } from
   "../../src/lib/browser/chrome-extension/dom-intent-runtime.js";
 import { mutationInfrastructureReply } from "./local-browser-dom-runtime-fixture.js";
 
+const noPageReadBarrier = async (): Promise<void> => undefined;
+
 type FillState = {
   text: string;
   candidateReads: number;
@@ -55,7 +57,8 @@ const contentEditableReply = (
 
 export const exerciseContentEditableFill = async (): Promise<void> => {
   const state: FillState = { text: "stale SEO prompt", candidateReads: 0, finalReadNodeId: null, events: [] };
-  const runtime = { async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
+  const runtime = { awaitPageReadPermission: noPageReadBarrier,
+    async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
     const local = contentEditableReply(state, method, parameters);
     if (local !== undefined) return local;
     const infrastructure = mutationInfrastructureReply(method, parameters);
@@ -79,7 +82,8 @@ export const exerciseContentEditableFill = async (): Promise<void> => {
 
 export const exerciseFillReadbackRejection = async (): Promise<void> => {
   let candidateReads = 0;
-  const runtime = { async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
+  const runtime = { awaitPageReadPermission: noPageReadBarrier,
+    async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
     if (method === "Runtime.callFunctionOn" && parameters?.returnByValue === false) {
       candidateReads += 1;
       return candidateReads === 1

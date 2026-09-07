@@ -111,6 +111,8 @@ const createForkFailureApi = (state: ForkFailureState): ExtensionChromeApi => ({
       }), 0);
       return { id: state.sourceTabId };
     },
+    get: async (tabId) => ({ id: tabId, status: "complete",
+      url: state.urls.get(tabId)!, title: "ChatGPT" }),
     remove: async (tabId) => {
       if (state.stage === "source-remove" && tabId === state.sourceTabId) {
         state.injectionHits += 1;

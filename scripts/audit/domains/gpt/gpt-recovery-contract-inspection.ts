@@ -1,7 +1,5 @@
 import { resolve } from "node:path";
 
-import { SyntaxKind } from "ts-morph";
-
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 
 const ROOT = "src/capabilities/gpt";
@@ -208,32 +206,24 @@ export const inspectGptDirectMutationSettlementContract = (
   const conversation = sourceTexts(context, CONVERSATION_PATHS);
   const settlement = sourceText(context, DIRECT_MUTATION_SETTLEMENT_PATH);
   const contract = sourceText(context, CONTRACT_PATH);
-  inspectMissing({ source: settlement, required: [
-    "GPT_DIRECT_POST_MUTATION_SETTLEMENT_MS = 2_500", "waitForGptDirectMutationSettlement",
-    "Math.min(125, remaining)", "retryableGptObservationFailure",
-    '"BROWSER_DOM_CANDIDATE_MISSING"', '"BROWSER_DOM_NODE_STALE"',
-  ], checkId: "gpt/direct-mutation-conditional-settlement", filePath: DIRECT_MUTATION_SETTLEMENT_PATH,
-  findings, finding, message: (required) => `The shared direct semantic settlement path is missing ${required}.` });
+  if (settlement !== "") findings.push(finding(
+    "gpt/browser-owned-post-action-read-gate", DIRECT_MUTATION_SETTLEMENT_PATH,
+    "The retired GPT-owned mutation settlement file must remain physically absent.",
+  ));
+  if (/waitForGptDirectMutationSettlement|GPT_DIRECT_POST_MUTATION_SETTLEMENT_MS/gu
+    .test(`${handler}\n${conversation}`)) findings.push(finding(
+    "gpt/browser-owned-post-action-read-gate", COMPOSER_SUBMISSION_HANDLER_PATH,
+    "GPT mutation Children must not retain a second action-settlement timer or helper.",
+  ));
   inspectMissing({ source: handler, required: [
-    "waitForGptDirectMutationSettlement",
-  ], checkId: "gpt/direct-mutation-conditional-settlement", filePath: COMPOSER_SUBMISSION_HANDLER_PATH,
-  findings, finding, message: (required) => `The composer settlement consumer is missing ${required}.` });
-  const settlementCalls = context.project.getSourceFile(resolve(context.sealedRoot, COMPOSER_SUBMISSION_HANDLER_PATH))
-    ?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .filter((call) => call.getExpression().getText() === "waitForGptDirectMutationSettlement").length ?? 0;
-  if (settlementCalls !== 1) findings.push(finding(
-    "gpt/direct-mutation-conditional-settlement", COMPOSER_SUBMISSION_HANDLER_PATH,
-    `The composer must have exactly one direct-mutation settlement consumer; found ${settlementCalls}.`,
-  ));
-  const conversationCalls = conversation.match(/waitForGptDirectMutationSettlement\(/gu)?.length ?? 0;
-  if (conversationCalls !== 2) findings.push(finding(
-    "gpt/direct-mutation-conditional-settlement", CONVERSATION_HANDLER_PATH,
-    `Clean-draft and exact-navigation readback must each consume the shared settlement helper; found ${conversationCalls}.`,
-  ));
-  if (/setTimeout\s*\(|sleep\s*\(/u.test(`${settlement}\n${handler}\n${conversation}`)) findings.push(finding(
-    "gpt/direct-mutation-fixed-sleep-forbidden", DIRECT_MUTATION_SETTLEMENT_PATH,
-    "Direct semantic settlement must remain condition-driven and must not add a fixed sleep path.",
-  ));
+    "const readback = await readDraftState(browser);",
+  ], checkId: "gpt/browser-owned-post-action-fresh-read", filePath: COMPOSER_SUBMISSION_HANDLER_PATH,
+  findings, finding, message: (required) => `The composer direct Browser-owned fresh read is missing ${required}.` });
+  inspectMissing({ source: conversation, required: [
+    "const readback = await readConversationState(browser);",
+    "const readback = await readIdentity();",
+  ], checkId: "gpt/browser-owned-post-action-fresh-read", filePath: CONVERSATION_HANDLER_PATH,
+  findings, finding, message: (required) => `The conversation direct Browser-owned fresh read is missing ${required}.` });
   inspectMissing({ source: contract, required: [
     'reconcile_gpt_draft: { childCapabilityId: "reconcile_gpt_draft", contractVersion: 4',
     'reconcile_gpt_draft.input.v1", requiredTargetKind: "chatgpt", allowedDocumentTransition: "forbidden", profile: "DOM_OBSERVATION", boundedWait: false',
@@ -241,7 +231,11 @@ export const inspectGptDirectMutationSettlementContract = (
     'focus_exact_gpt_conversation: { childCapabilityId: "focus_exact_gpt_conversation", contractVersion: 5',
     'write_exact_gpt_prompt: { childCapabilityId: "write_exact_gpt_prompt", contractVersion: 4',
     'submit_exact_gpt_turn_once: { childCapabilityId: "submit_exact_gpt_turn_once", contractVersion: 4',
-    "unsettled for 2500ms",
-  ], checkId: "gpt/direct-mutation-settlement-contract-version", filePath: CONTRACT_PATH,
-  findings, finding, message: (required) => `The direct semantic settlement contract is missing ${required}.` });
+    "the Browser-owned post-action fresh read proves",
+  ], checkId: "gpt/browser-owned-post-action-read-contract", filePath: CONTRACT_PATH,
+  findings, finding, message: (required) => `The Browser-owned post-action read contract is missing ${required}.` });
+  if (/unsettled for 2500ms|direct-mutation-settlement/gu.test(contract)) findings.push(finding(
+    "gpt/browser-owned-post-action-read-contract", CONTRACT_PATH,
+    "The GPT contract must not retain the retired Child-owned 2500ms settlement chain.",
+  ));
 };

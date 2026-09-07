@@ -16,7 +16,6 @@ import {
   timeoutInput,
 } from "./observation.js";
 import { isGptRootUrl } from "../../web/contracts/target-document.contract.js";
-import { waitForGptDirectMutationSettlement } from "../../web/direct-mutation-settlement.js";
 import { GPT_COMPOSER_SELECTOR } from "./selectors.js";
 
 const freshChatTopology = (state: ConversationState): boolean => state.composerRaw === 1
@@ -39,11 +38,6 @@ const freshChatFailureCode = (state: ConversationState): string => {
   ] as const;
   return failure.find(([matches]) => matches)?.[1] ?? "GPT_CHAT_DRAFT_NOT_EMPTY_AFTER_CLEAR";
 };
-
-const freshChatSettlementHardFailure = (state: ConversationState): boolean =>
-  !isGptRootUrl(state.currentUrl) || state.composerRaw > 1
-  || state.userRaw > 0 || state.assistantRaw > 0
-  || state.attachmentsRaw > 0 || state.generatingRaw > 0;
 
 export const prepareCleanGptChatHandler: GptChildHandler<"prepare_clean_gpt_chat"> =
   async (intent, context) => {
@@ -78,12 +72,7 @@ export const prepareCleanGptChatHandler: GptChildHandler<"prepare_clean_gpt_chat
       clearBeforeType: true, expectedMatches: 1,
     });
     const browserFact = requireConfirmedBrowserFact(intent, browser, { allowNoMutationOutcome: true });
-    const readback = await waitForGptDirectMutationSettlement(
-      browser,
-      () => readConversationState(browser),
-      (state) => freshChatTopology(state) && state.composerHash === hashConversationValue(""),
-      freshChatSettlementHardFailure,
-    );
+    const readback = await readConversationState(browser);
     const proofFacts = declaredFacts({
       ...readback.facts, decision: "ACT", mutationOutcome: browserFact.mutationOutcome,
       factResultIds: Object.freeze([...readback.facts.factResultIds, browserFact.evidenceRef]),

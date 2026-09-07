@@ -53,10 +53,12 @@ import {
   Date.now = () => simulatedNow;
   try {
     const result = await execute("write_exact_gpt_prompt", fixture.browser, { prompt });
-    assert.equal(result.status, "success", result.failureCode ?? "prompt write failed");
-    assert.equal(result.value?.hash, promptHash);
-    assert.equal(fixture.waitDurations().reduce((sum, duration) => sum + duration, 0), 125,
-      "a transient post-fill readback must settle inside the shared 2500ms window");
+    assert.equal(result.status, "failed");
+    assert.equal(result.failureCode, "GPT_PROMPT_WRITE_UNCONFIRMED");
+    assert.equal(postFillObservations, 1,
+      "GPT must consume exactly the fresh read already admitted by the Browser-owned gate");
+    assert.equal(fixture.waitDurations().length, 0,
+      "GPT must not append a second timing chain after Browser settlement");
     assert.equal(fixture.physicalMutations(), 1);
   } finally {
     Date.now = nativeDateNow;
@@ -90,8 +92,8 @@ import {
     assert.equal(result.proof.observationRevisionHash, `sha256:${"4".repeat(64)}`);
     assert.ok(result.proof.factResultIds.includes(`gpt-composer-expected-hash:${promptHash.slice(7)}`));
     assert.ok(result.proof.factResultIds.includes(`gpt-composer-observed-hash:${mismatchedHash.slice(7)}`));
-    assert.equal(simulatedNow, 2_500,
-      "a persistent post-fill mismatch must consume exactly the shared settlement ceiling");
+    assert.equal(simulatedNow, 0,
+      "GPT must fail from the single Browser-admitted fresh read without owning a timer");
     assert.equal(fixture.physicalMutations(), 1,
       "a confirmed fill with mismatched exact readback must fail closed without a second mutation");
   } finally {
@@ -125,9 +127,10 @@ import {
   try {
     const result = await execute("write_exact_gpt_prompt", fixture.browser, { prompt });
     assert.equal(result.status, "failed");
-    assert.equal(result.failureCode, "BROWSER_DOM_NODE_STALE",
-      "the latest native observation failure must not be masked by an older semantic mismatch");
-    assert.equal(simulatedNow, 2_500);
+    assert.equal(result.failureCode, "GPT_PROMPT_WRITE_UNCONFIRMED",
+      "GPT must not perform a second observation after the Browser-admitted fresh read mismatches");
+    assert.equal(postFillReads, 1);
+    assert.equal(simulatedNow, 0);
     assert.equal(fixture.physicalMutations(), 1);
   } finally {
     Date.now = nativeDateNow;

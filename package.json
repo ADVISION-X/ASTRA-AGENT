@@ -40,6 +40,7 @@
     "acceptance:agent-production-runtime": "node --import tsx scripts/acceptance/agent-route-contract.acceptance.ts && node --import tsx scripts/acceptance/agent-production-runtime.acceptance.ts && node --import tsx scripts/acceptance/agent-production-runtime-task-exact-effect.acceptance.ts",
     "acceptance:agent-production-runtime:real-proof": "node --import tsx scripts/acceptance/agent-production-runtime.real-proof.ts",
     "production-runtime:credential:normalize": "node --import tsx scripts/maintenance/production-runtime-credential-normalize.ts --remove-retired-control-manifest-hash",
+    "production-runtime:task-identity:retire": "node --import tsx scripts/maintenance/production-runtime-catalog-identity-retire.ts --retire-task-catalog-hash",
     "production-runtime:storage:inventory": "node --import tsx scripts/maintenance/production-runtime-storage-reconcile.ts --dry-run",
     "acceptance:local-app-shell": "node --import tsx scripts/acceptance/local-app-shell.acceptance.ts",
     "proof:local-shell-current-runtime": "node --import tsx scripts/acceptance/local-shell-current-runtime.dynamic.ts",

@@ -81,7 +81,6 @@ const ExecutionGrantSchema = z.object({
   result_contract_id: z.literal("website-agent-result"),
   result_contract_version: z.literal(1),
   capability_manifest_hash: hash,
-  expected_catalog_hash: hash,
   expected_plugin_id: z.string().min(1),
   expected_plugin_version: z.number().int().positive(),
   accepted_attempt_count: z.number().int().min(0),
@@ -130,8 +129,7 @@ export const ClaimedProductionTaskSchema = WebsiteAgentTaskBaseSchema.extend({
     || grant.execution_fence.job_id !== task.job_id
     || grant.execution_fence.attempt_id !== grant.attempt_id
     || grant.execution_fence.lease_version !== grant.lease_version
-    || grant.execution_fence.control_contract_version !== grant.control_contract_version
-    || grant.expected_catalog_hash !== grant.capability_manifest_hash) {
+    || grant.execution_fence.control_contract_version !== grant.control_contract_version) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "V6_CLAIM_TASK_GRANT_MISMATCH" });
   }
 });

@@ -133,7 +133,7 @@ export const bindBrowserCommandObservationPacket = (
   }
 };
 
-const BROWSER_TERMINAL_REPLY_MARGIN_MS = 1_000;
+const BROWSER_TERMINAL_REPLY_MARGIN_MS = 4_000;
 
 const declaredPostconditionTimeoutMs = (command: BrowserGovernedCommand): number | null => {
   if (command.kind !== "dom-intent") return null;

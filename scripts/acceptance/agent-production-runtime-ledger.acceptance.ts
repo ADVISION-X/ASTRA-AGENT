@@ -10,6 +10,8 @@ import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/s
 import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
+import { retireProductionTaskCatalogIdentity } from
+  "../maintenance/production-runtime-catalog-identity-retire.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { HASH_A, HASH_B, identityFor, resultFor, task } from "./agent-production-runtime-fixtures.js";
 import { verifyBrowserFailureStoreContract } from
@@ -119,6 +121,19 @@ try {
   assert.throws(
     () => store.acceptTask(binaryTask, { ...identity, plugin_version: identity.plugin_version + 1 }, secondAttempt),
     /PRODUCTION_TASK_IDENTITY_CONFLICT/u,
+  );
+  const rotationTask = task({ jobId: "job:plugin-rotation", productId: "bazi_ai_full_analysis", actionId: "produce" });
+  const rotationIdentity = identityFor(rotationTask);
+  store.acceptTask(rotationTask, rotationIdentity, "attempt:plugin-rotation:1");
+  store.recordAttemptFailure(rotationTask.job_id, "attempt:plugin-rotation:1", firstFailure);
+  const nextRotationIdentity = { ...rotationIdentity, plugin_version: rotationIdentity.plugin_version + 1, skill_hash: HASH_B };
+  const rotated = store.acceptTask(rotationTask, nextRotationIdentity, "attempt:plugin-rotation:2");
+  assert.deepEqual(rotated.identity, nextRotationIdentity,
+    "a Website-issued new attempt must atomically bind the current matching Plugin identity");
+  assert.throws(
+    () => store.acceptTask(rotationTask, { ...nextRotationIdentity, skill_hash: HASH_A }, "attempt:plugin-rotation:2"),
+    /PRODUCTION_TASK_IDENTITY_CONFLICT/u,
+    "the same accepted attempt must keep its exact Plugin, Skill and checkpoint identity",
   );
   const falseCheckpointFailure = serializeTerminalFailure(executionFailure(
     "failed", "AI_V6_CHECKPOINT_SEQUENCE_INVALID", { cause: new Error("sequence") },
@@ -454,6 +469,49 @@ try {
   assert.throws(() => resolveStoredProductionAuthority(
     rowIdentityDirectory, `production-task:${rowIdentityTask.job_id}`, HASH_A,
   ), (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_AUTHORITY_STORE_CORRUPT");
+  const retiredCatalogDirectory = path.join(temporary, "retired-task-catalog-identity");
+  await mkdir(retiredCatalogDirectory);
+  const retiredCatalogStore = new ProductionRuntimeStore(retiredCatalogDirectory);
+  const retiredCatalogTask = task({ jobId: "job:retired-task-catalog", productId: "bazi_ai_full_analysis", actionId: "produce" });
+  retiredCatalogStore.acceptTask(retiredCatalogTask, identityFor(retiredCatalogTask), "attempt:retired-task-catalog");
+  retiredCatalogStore.recordAttemptFailure(retiredCatalogTask.job_id, "attempt:retired-task-catalog", firstFailure);
+  retiredCatalogStore.recordCheckpoint({ jobId: retiredCatalogTask.job_id, attemptId: "attempt:retired-task-catalog",
+    checkpointId: "attempt_failure", checkpointHash: null, state: "failed" });
+  retiredCatalogStore.recordLease({ jobId: retiredCatalogTask.job_id, attemptId: "attempt:retired-task-catalog",
+    leaseVersion: 1, fenceHash: HASH_A, state: "absent", expiresAt: null });
+  retiredCatalogStore.enqueue({ idempotency_key: "outbox:retired-task-catalog", kind: "checkpoint",
+    path: `/internal/ai-production/v6/jobs/${encodeURIComponent(retiredCatalogTask.job_id)}/checkpoints`,
+    method: "POST", headers: {}, body: "{}" });
+  retiredCatalogStore.close();
+  const retiredCatalogDatabase = new Database(path.join(retiredCatalogDirectory, "production-runtime.sqlite"));
+  const storedIdentity = JSON.parse((retiredCatalogDatabase.prepare(
+    "select identity_json from production_tasks where job_id=?",
+  ).get(retiredCatalogTask.job_id) as { identity_json: string }).identity_json) as Record<string, unknown>;
+  retiredCatalogDatabase.prepare("update production_tasks set identity_json=? where job_id=?")
+    .run(JSON.stringify({ catalog_hash: HASH_A, ...storedIdentity }), retiredCatalogTask.job_id);
+  retiredCatalogDatabase.prepare(`insert into production_continuations(
+    continuation_ref,reservation_kind,reservation_identity_hash,origin_job_id,origin_plugin_version,
+    plugin_id,owner_ref,subject_ref,authorization_ref,lane_version,created_at
+  ) values(?,?,?,?,?,?,?,?,?,?,?)`).run(
+    "continuation:retired-task-catalog", "persisted", HASH_B, retiredCatalogTask.job_id, 13,
+    "localization-production", "owner", "subject", "authorization", 0, "2026-09-07T00:00:00.000Z",
+  );
+  retiredCatalogDatabase.close();
+  assert.deepEqual(retireProductionTaskCatalogIdentity(retiredCatalogDirectory), {
+    status: "migrated", migratedTaskCount: 1,
+  });
+  const migratedCatalogStore = new ProductionRuntimeStore(retiredCatalogDirectory);
+  assert.equal("catalog_hash" in migratedCatalogStore.readTask(retiredCatalogTask.job_id)!.identity, false);
+  const preservedDatabase = Reflect.get(migratedCatalogStore, "database") as Database.Database;
+  for (const table of ["production_tasks", "production_attempt_failures", "production_continuations",
+    "production_outbox", "production_checkpoints", "production_leases"]) {
+    assert.equal((preservedDatabase.prepare(`select count(*) count from ${table}`).get() as { count: number }).count, 1,
+      `${table} must be preserved across task identity retirement`);
+  }
+  migratedCatalogStore.close();
+  assert.deepEqual(retireProductionTaskCatalogIdentity(retiredCatalogDirectory), {
+    status: "already-current", migratedTaskCount: 0,
+  });
   const invariantDirectory = path.join(temporary, "checkpoint-lease-invariants");
   await mkdir(invariantDirectory);
   const invariantStore = new ProductionRuntimeStore(invariantDirectory);
@@ -486,7 +544,7 @@ try {
 }
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V12",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V13",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "summary"],
     locator: `acceptance:agent-production-runtime:sqlite-authority:${evidenceMode}`,

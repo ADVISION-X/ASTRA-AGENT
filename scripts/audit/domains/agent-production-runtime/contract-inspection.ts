@@ -7,11 +7,11 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 
 const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V44", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V3",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V14", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V14",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V12", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V14",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V14",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V15",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V45", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V3",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V15", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V15",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V13", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V15",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V15",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V16",
 } as const;
 const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
@@ -21,6 +21,8 @@ const PATHS = {
   manifest: "scripts/audit/domains/agent-production-runtime/manifest.json",
   proof: "scripts/acceptance/agent-production-runtime.real-proof.ts",
   routeProjection: `${ROOT}/website-agent-route-policies.v1.json`, store: `${ROOT}/store-foundation.ts`,
+  contracts: `${ROOT}/contracts.ts`, transport: `${ROOT}/transport-protocol.ts`,
+  taskState: `${ROOT}/store-task-state.ts`,
   preflight: "scripts/startup/lib/production-contract-preflight.ts",
 } as const;
 const finding = (lawId: string, checkId: string, filePath: string, message: string): InspectorFinding => createFinding({
@@ -34,8 +36,8 @@ const sourceFor = (context: InspectorContext, path: string): SourceFile | undefi
 
 const inspectMinimalDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const [path, version, lawId, checkId] of [
-    ["docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json", 17,
-      LAWS.route, "agent-production-runtime/v17-dependency"],
+    ["docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json", 18,
+      LAWS.route, "agent-production-runtime/v18-dependency"],
     ["docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json", 6,
       LAWS.route, "agent-production-runtime/v6-result-dependency"],
   ] as const) {
@@ -89,6 +91,29 @@ const inspectCredentialAndDurableTypes = (context: InspectorContext, findings: I
   if (manifestProperty) {
     findings.push(finding(LAWS.credential, "agent-production-runtime/credential-contract", credentialPath,
       "DeviceCredentialSchema still persists the Website manifest hash."));
+  }
+  const durableIdentity = sourceFor(context, PATHS.contracts)?.getInterface("DurablePluginIdentity");
+  const durableIdentityFields = durableIdentity?.getProperties().map((property) => property.getName()).sort() ?? [];
+  const expectedDurableIdentityFields = [
+    "checkpoint_schema_version", "plugin_id", "plugin_version", "request_hash", "skill_hash",
+  ];
+  if (JSON.stringify(durableIdentityFields) !== JSON.stringify(expectedDurableIdentityFields)) {
+    findings.push(finding(LAWS.core, "agent-production-runtime/task-identity-contract", PATHS.contracts,
+      "Durable task identity is not the exact five-field task and Plugin identity contract."));
+  }
+  const grantSchema = sourceFor(context, PATHS.transport)
+    ?.getVariableDeclaration("ExecutionGrantSchema")?.getInitializer();
+  const grantObject = grantSchema?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
+  if (!grantObject?.getProperty("capability_manifest_hash") || grantObject.getProperty("expected_catalog_hash")) {
+    findings.push(finding(LAWS.route, "agent-production-runtime/grant-catalog-boundary", PATHS.transport,
+      "Execution grant must attest the current capability manifest without freezing its catalog hash into the task."));
+  }
+  const taskState = read(context, PATHS.taskState);
+  if (!taskState.includes("existing.current_attempt_id === attemptId")
+    || !taskState.includes("set identity_json=?,current_attempt_id=?")
+    || taskState.includes("identity.catalog_hash")) {
+    findings.push(finding(LAWS.core, "agent-production-runtime/attempt-identity-rotation", PATHS.taskState,
+      "Task state does not strictly resume one attempt and atomically rebind a failed task on a new attempt."));
   }
   const store = sourceFor(context, PATHS.store);
   const taskFields = store?.getInterface("StoredProductionTask")?.getProperties().map((item) => item.getName()) ?? [];

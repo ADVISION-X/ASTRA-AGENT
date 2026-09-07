@@ -60,13 +60,13 @@ import {
 import { containsPageMutation, gptPrivateInfrastructureViolations, sourceFor, sourceTextForPaths }
   from "./gpt-inspection-support.js";
 
-const LAW_ID = "LAW-GPT-001-V33";
+const LAW_ID = "LAW-GPT-001-V34";
 const MODE_CLAUSES = {
-  "static.filesystem": staticForbiddenClauses(1, 15, 18, 22),
-  "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 11, 12, 13, 16, 17, 19, 20, 21, 22, 23),
-  "static.types": staticForbiddenClauses(3, 4, 17, 19, 20, 21),
-  "static.contract": staticForbiddenClauses(2, 3, 4, 9, 10, 11, 12, 13, 14, 15, 17, 19, 20, 21),
-  "static.dependency": staticForbiddenClauses(0, 1, 2, 5, 18, 19, 20, 21, 22),
+  "static.filesystem": staticForbiddenClauses(1, 16, 19, 23),
+  "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 17, 18, 20, 21, 22, 23),
+  "static.types": staticForbiddenClauses(3, 4, 18, 20, 21, 22),
+  "static.contract": staticForbiddenClauses(2, 3, 4, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 22),
+  "static.dependency": staticForbiddenClauses(0, 1, 2, 5, 19, 20, 21, 22, 23),
 } as const;
 const MODE_CHECKS = {
   "static.filesystem": ["inspectGptFilesystem"], "static.ast": ["inspectGptAst"],

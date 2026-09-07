@@ -80,8 +80,8 @@ export const productionLeaseAuthorityFromRow = (
 const durableIdentityValid = (record: StoredProductionTask): boolean => {
   const identity = record.identity;
   return JSON.stringify(Object.keys(identity).sort()) === JSON.stringify([
-    "catalog_hash", "checkpoint_schema_version", "plugin_id", "plugin_version", "request_hash", "skill_hash",
-  ]) && [identity.catalog_hash, identity.request_hash, identity.skill_hash].every(persistedHash)
+    "checkpoint_schema_version", "plugin_id", "plugin_version", "request_hash", "skill_hash",
+  ]) && [identity.request_hash, identity.skill_hash].every(persistedHash)
     && typeof identity.plugin_id === "string" && identity.plugin_id.length > 0
     && Number.isSafeInteger(identity.plugin_version) && Number(identity.plugin_version) > 0
     && Number.isSafeInteger(identity.checkpoint_schema_version) && Number(identity.checkpoint_schema_version) > 0

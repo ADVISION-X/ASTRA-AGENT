@@ -55,6 +55,7 @@ const chromeApi: ExtensionChromeApi = {
   },
   tabs: {
     create: async () => ({ id: 1 }),
+    get: async (tabId) => ({ id: tabId, status: "complete", url: "https://chatgpt.com/", title: "ChatGPT" }),
     remove: async () => undefined,
     onUpdated: { addListener: (listener) => { listeners.tabUpdated = listener; } },
   },
@@ -156,6 +157,7 @@ const detachedTabs: number[] = [];
 const debuggerMethods: string[] = [];
 const removedTabs: number[] = [];
 const mainFrameUrlByTab = new Map<number, string>();
+const mainFrameLoaderByTab = new Map<number, string>();
 const targetFrames: Array<Readonly<{ kind: "TARGET_CLAIM" | "TARGET_REVOKE"; body: Record<string, unknown> }>> = [];
 const targetFailures: Array<Readonly<Record<string, unknown>>> = [];
 const targetFailureOrder: string[] = [];
@@ -201,10 +203,13 @@ const sendTargetChromeCommand: ExtensionChromeApi["debugger"]["sendCommand"] = a
     debuggerTargets = debuggerTargets.map((candidate) => candidate.tabId === tabId
       ? { ...candidate, url: parameters.url as string } : candidate);
     navigateSerial += 1;
-    return { loaderId: `loader-${tabId}-navigate-${navigateSerial}` };
+    const loaderId = `loader-${tabId}-navigate-${navigateSerial}`;
+    mainFrameLoaderByTab.set(tabId, loaderId);
+    return { loaderId };
   }
   return method === "Page.getFrameTree"
-    ? { frameTree: { frame: { loaderId: `loader-${tabId}`, url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/" } } }
+    ? { frameTree: { frame: { loaderId: mainFrameLoaderByTab.get(tabId) ?? `loader-${tabId}`,
+      url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/" } } }
     : {};
 };
 
@@ -230,6 +235,8 @@ const targetChromeApi: ExtensionChromeApi = {
       createdTab = input;
       return { id: nextCreatedTabId++ };
     },
+    get: async (tabId) => ({ id: tabId, status: "complete",
+      url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/", title: "ChatGPT" }),
     remove: async (tabId) => {
       removedTabs.push(tabId);
       debuggerTargets = debuggerTargets.filter((candidate) => candidate.tabId !== tabId);
@@ -423,7 +430,7 @@ assert.deepEqual(debuggerTargets.map((candidate) => candidate.tabId), [4],
   "fork normalization must retain only the successor production tab before replying");
 targetFailureOrder.length = 0;
 debuggerDetach({ tabId: 4 }, "target_closed");
-await Promise.resolve();
+await new Promise<void>((resolve) => globalThis.setTimeout(resolve, 0));
 assert.deepEqual(targetFailureOrder, ["DIAGNOSTIC", "TARGET_REVOKE"]);
 assert.deepEqual(targetFailures.at(-1), {
   targetRef: firstTargetRef, runtimeEventType: "debugger-detach",
@@ -440,6 +447,7 @@ assert.deepEqual(createdTab, { active: false, url: "https://chatgpt.com/" },
   "replacement acquisition must remain inactive and must not touch an operator tab");
 assert.equal(nextCreatedTabId, 5, "physical loss must create exactly one replacement production Tab");
 debuggerDetach({ tabId: 4 }, "canceled_by_user");
+await new Promise<void>((resolve) => globalThis.setTimeout(resolve, 0));
 assert.deepEqual(targetFailures.at(-1), {
   targetRef: "target-tab-4", runtimeEventType: "debugger-detach",
   reasonCode: "BROWSER_DEVTOOLS_CONFLICT",

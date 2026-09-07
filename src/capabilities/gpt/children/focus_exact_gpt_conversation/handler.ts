@@ -10,7 +10,6 @@ import {
 } from "../../web/child-handler.js";
 import { readConversationState } from "./observation.js";
 import { canonicalGptConversationUrl } from "../../web/contracts/target-document.contract.js";
-import { waitForGptDirectMutationSettlement } from "../../web/direct-mutation-settlement.js";
 
 export const focusExactGptConversationHandler: GptChildHandler<"focus_exact_gpt_conversation"> =
   async (intent, context) => {
@@ -37,13 +36,7 @@ export const focusExactGptConversationHandler: GptChildHandler<"focus_exact_gpt_
       throw executionFailure("failed", "GPT_TRANSIENT_WEB_CONVERSATION_NAVIGATION_FORBIDDEN");
     }
     await browser.navigate({ url: expected, title: "focus exact GPT conversation" });
-    const readback = await waitForGptDirectMutationSettlement(
-      browser,
-      readIdentity,
-      (state) => state.currentUrl === expected && state.composerEligible === 1
-        && state.matchingTurnCount === 1,
-      () => false,
-    );
+    const readback = await readIdentity();
     if (readback.currentUrl !== expected || readback.composerEligible !== 1
       || readback.matchingTurnCount !== 1) {
       throw executionFailure("failed", "GPT_CONVERSATION_NAVIGATION_NOT_YET_CONFIRMED");

@@ -90,7 +90,7 @@ type ActiveSocket = Readonly<{
 const MAX_PREAUTH_FRAMES = 3;
 const AUTH_EPOCH = 1;
 const COMMAND_DEADLINE_MS = BROWSER_COMMAND_DEFAULT_DEADLINE_MS;
-const MUTATION_TERMINAL_REPLY_GRACE_MS = 1_000;
+const MUTATION_TERMINAL_REPLY_GRACE_MS = 4_000;
 const aadForFrame = (frame: Pick<BrowserAuthorityFrame, "protocolVersion" | "kind" | "epoch" | "sequence" | "deadline">): string =>
   canonicalizeBrowserAuthorityValue({
     protocolVersion: frame.protocolVersion,

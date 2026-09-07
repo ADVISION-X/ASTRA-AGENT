@@ -370,7 +370,7 @@ try {
 
   const missingReplyPermit = {
     ...permitFor(33, "browser.dom.click.v1", "mutation"),
-    commandTtlMs: 1_001,
+    commandTtlMs: 4_001,
   };
   const missingReplySentBefore = sentFrames.length;
   await assert.rejects(chainActor.execute(missingReplyPermit, graceCommand), /BROWSER_COMMAND_RECEIPT_MISSING/u);
@@ -383,4 +383,4 @@ try {
   await rm(chainRoot, { recursive: true, force: true });
 }
 console.log("LOCAL_BROWSER_PROPERTY_MODEL_ACCEPTANCE_PASS");
-emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V24", evidenceMode: "exam.property", clauses: ["forbidden:1","forbidden:3","forbidden:4","summary"], locator: "acceptance:browser-terminal:frame-property-model", observedValue: "64 authenticated frame sequences round-trip exactly" });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V25", evidenceMode: "exam.property", clauses: ["forbidden:1","forbidden:3","forbidden:4","summary"], locator: "acceptance:browser-terminal:frame-property-model", observedValue: "64 authenticated frame sequences round-trip exactly" });

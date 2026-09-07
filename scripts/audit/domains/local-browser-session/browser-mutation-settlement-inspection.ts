@@ -1,11 +1,12 @@
-import type { SourceFile } from "ts-morph";
+import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
 import { browserCommandPostconditionPath, browserMutationSchemaPath, createLocalFinding,
   domPointerIntentRuntimePath,
   domMutationPostconditionPath,
+  extensionDebuggerRuntimePath,
   extensionFileInputPath, requireSource,
-  sourcePaths } from "./inspector-support.js";
+  sourcePaths, targetAuthorityPath, extensionTargetObservationPath } from "./inspector-support.js";
 
 const DOM_RUNTIME_PATH = "src/lib/browser/chrome-extension/dom-intent-runtime.ts";
 const DOM_CONTRACT_PATH = "src/lib/browser/exact-target/browser-dom-intent.ts";
@@ -68,6 +69,7 @@ type SettlementSources = Readonly<{
   actor: SettlementSource;
   commandPostcondition: SettlementSource;
   contract: SettlementSource;
+  debuggerRuntime: SettlementSource;
   fileInput: SettlementSource;
   failure: SettlementSource;
   manager: SettlementSource;
@@ -79,6 +81,8 @@ type SettlementSources = Readonly<{
   schema: SettlementSource;
   store: SettlementSource;
   transport: SettlementSource;
+  targetAuthority: SettlementSource;
+  targetObservation: SettlementSource;
 }>;
 
 const requireSettlementSources = (
@@ -102,13 +106,126 @@ const requireSettlementSources = (
   const commandPostcondition = requireSource(
     context, findings, lawId, browserCommandPostconditionPath,
   );
+  const debuggerRuntime = requireSource(context, findings, lawId, extensionDebuggerRuntimePath);
+  const targetAuthority = requireSource(context, findings, lawId, targetAuthorityPath);
+  const targetObservation = requireSource(context, findings, lawId, extensionTargetObservationPath);
   const required = [actor, store, schema, runtime, pointerRuntime, postcondition, contract, resolver,
-    fileInput, failure, mutationReceipt, transport, commandPostcondition, manager];
+    fileInput, failure, mutationReceipt, transport, commandPostcondition, manager,
+    debuggerRuntime, targetAuthority, targetObservation];
   if (required.some((source) => source === null)) return null;
   return { actor: actor!, commandPostcondition: commandPostcondition!, contract: contract!,
+    debuggerRuntime: debuggerRuntime!,
     failure: failure!, fileInput: fileInput!, manager: manager!, mutationReceipt: mutationReceipt!, postcondition: postcondition!,
     pointerRuntime: pointerRuntime!, resolver: resolver!, runtime: runtime!, schema: schema!,
-    store: store!, transport: transport! };
+    store: store!, targetAuthority: targetAuthority!, targetObservation: targetObservation!,
+    transport: transport! };
+};
+
+const inspectUniversalPostActionReadGate = (
+  context: InspectorContext,
+  sources: SettlementSources,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const runtime = sources.debuggerRuntime.getFullText();
+  const authority = sources.targetAuthority.getFullText();
+  const observation = sources.targetObservation.getFullText();
+  requireText(runtime, [
+    "PAGE_ACTION_READ_SETTLEMENT_MS = 2500",
+    "PAGE_MUTATION_METHODS",
+    "PAGE_READ_METHODS",
+    "DEVTOOLS_CONTROL_METHODS",
+    "executePageAction",
+    "awaitPageReadPermission",
+    "pageReadNotBefore",
+    "monotonicNow() + PAGE_ACTION_READ_SETTLEMENT_MS",
+    'throw new Error("BROWSER_UNREGISTERED_DEVTOOLS_METHOD")',
+    '"DOM.focus"',
+    '"DOM.setFileInputFiles"',
+    '"DOM.requestNode"',
+    '"Input.dispatchKeyEvent"',
+    '"Input.dispatchMouseEvent"',
+    '"Input.insertText"',
+    '"Page.close"',
+    '"Page.navigate"',
+    "createBackgroundTab",
+    "removeTab",
+    "readTab",
+    "readTargets",
+    "await this.awaitPageReadPermission();\n      throw error;",
+  ], findings, lawId, extensionDebuggerRuntimePath);
+  requireText(`${authority}\n${observation}\n${sources.postcondition.getFullText()}`, [
+    "awaitPageReadPermission",
+    "readTargets()",
+    "createBackgroundTab",
+    "removeTab",
+    "startCreatedTargetDeadlineAfterBarrier",
+    "await this.rejectPendingCreatedTarget",
+  ], findings, lawId, targetAuthorityPath);
+  requireText(sources.transport.getFullText(), [
+    "MUTATION_TERMINAL_REPLY_GRACE_MS = 4_000",
+  ], findings, lawId, sourcePaths[0]);
+  requireText(sources.commandPostcondition.getFullText(), [
+    "BROWSER_TERMINAL_REPLY_MARGIN_MS = 4_000",
+  ], findings, lawId, browserCommandPostconditionPath);
+  const constantCount = runtime.match(/PAGE_ACTION_READ_SETTLEMENT_MS\s*=\s*2500/gu)?.length ?? 0;
+  if (constantCount !== 1) findings.push(createLocalFinding({
+    checkId: "browser-authority/mutation-settlement", lawId, filePath: extensionDebuggerRuntimePath,
+    message: `The Browser Authority must own exactly one hard-coded 2500ms page-read gate; found ${constantCount}.`,
+  }));
+  if (/constructor\([^)]*(?:delay|settlement|timing)/iu.test(runtime)) findings.push(createLocalFinding({
+    checkId: "browser-authority/mutation-settlement", lawId, filePath: extensionDebuggerRuntimePath,
+    message: "The Browser post-action delay must not be caller-configurable.",
+  }));
+  for (const [path, text] of [[targetAuthorityPath, authority], [extensionTargetObservationPath, observation]] as const) {
+    if (/chromeApi\.(?:debugger\.getTargets|tabs\.(?:create|get|remove))/u.test(text)) findings.push(createLocalFinding({
+      checkId: "browser-authority/mutation-settlement", lawId, filePath: path,
+      message: "Page mutation and Target reads must pass through the sole ExtensionDebuggerRuntime gate.",
+    }));
+  }
+  if (/navigationResult|asRecord\(await[^)]*Page\.navigate/su.test(authority)) findings.push(createLocalFinding({
+    checkId: "browser-authority/mutation-settlement", lawId, filePath: targetAuthorityPath,
+    message: "Navigation postconditions must use a fresh frame read after the gate, never the Page.navigate acknowledgement.",
+  }));
+
+  const methodRegistry = new Set(["PAGE_MUTATION_METHODS", "PAGE_READ_METHODS", "DEVTOOLS_CONTROL_METHODS"]
+    .flatMap((name) => sources.debuggerRuntime.getVariableDeclaration(name)?.getInitializer()
+      ?.getDescendantsOfKind(SyntaxKind.StringLiteral).map((literal) => literal.getLiteralValue()) ?? []));
+  const rawPageApi = /(?:^|\.)(?:chromeApi|this\.chromeApi)\.(?:debugger\.(?:sendCommand|getTargets)|tabs\.(?:create|get|remove))$/u;
+  for (const source of context.project.getSourceFiles()) {
+    const extensionMarker = "/src/lib/browser/chrome-extension/";
+    const markerAt = source.getFilePath().indexOf(extensionMarker);
+    const repositoryPath = markerAt < 0 ? source.getFilePath()
+      : source.getFilePath().slice(markerAt + 1);
+    if (!repositoryPath.startsWith("src/lib/browser/chrome-extension/")) continue;
+    for (const call of source.getDescendantsOfKind(SyntaxKind.CallExpression)) {
+      const callee = call.getExpression().getText();
+      if (rawPageApi.test(callee) && repositoryPath !== extensionDebuggerRuntimePath) {
+        findings.push(createLocalFinding({
+          checkId: "browser-authority/mutation-settlement", lawId, filePath: repositoryPath,
+          line: call.getStartLineNumber(),
+          message: "A production Chrome page mutation/read bypasses the sole ExtensionDebuggerRuntime gate.",
+        }));
+      }
+      const [targetArgument, methodArgument] = call.getArguments();
+      if (!targetArgument || !methodArgument || !/(?:^|\.)(?:debuggerRuntime|runtime)\.send$/u.test(callee)) continue;
+      if (!methodArgument.isKind(SyntaxKind.StringLiteral)) {
+        findings.push(createLocalFinding({
+          checkId: "browser-authority/mutation-settlement", lawId, filePath: repositoryPath,
+          line: call.getStartLineNumber(),
+          message: "A production DevTools call must use one literal method classified by the sole runtime registry.",
+        }));
+        continue;
+      }
+      const method = methodArgument.getLiteralValue();
+      if (methodRegistry.has(method)) continue;
+      findings.push(createLocalFinding({
+        checkId: "browser-authority/mutation-settlement", lawId, filePath: repositoryPath,
+        line: call.getStartLineNumber(),
+        message: `The production DevTools method ${method} is not classified by the sole runtime gate.`,
+      }));
+    }
+  }
 };
 
 const inspectMutationPersistence = (
@@ -210,4 +327,5 @@ export const inspectBrowserMutationSettlement = (
   inspectMutationPersistence(sources, findings, lawId);
   inspectMutationExecution(sources, findings, lawId);
   inspectAuthenticatedMutationReply(sources, findings, lawId);
+  inspectUniversalPostActionReadGate(context, sources, findings, lawId);
 };

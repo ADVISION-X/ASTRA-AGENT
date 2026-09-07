@@ -13,14 +13,14 @@ import { inspectAgentContracts } from "./contract-inspection.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
 
 const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V44",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V45",
   credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V3",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V14",
-  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V14",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V12",
-  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V14",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V14",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V15",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V15",
+  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V15",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V13",
+  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V15",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V15",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V16",
 } as const;
 const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
@@ -40,6 +40,7 @@ const PATHS = {
   authority: `${ROOT}/store-authority-reader.ts`,
   inventory: `${ROOT}/runtime-storage-inventory.ts`,
   maintenance: "scripts/maintenance/production-runtime-storage-reconcile.ts",
+  identityMaintenance: "scripts/maintenance/production-runtime-catalog-identity-retire.ts",
   manifest: "scripts/audit/domains/agent-production-runtime/manifest.json",
   proof: "scripts/acceptance/agent-production-runtime.real-proof.ts",
 } as const;
@@ -127,6 +128,7 @@ export function inspectAgentFilesystem(
   const required = [
     [LAWS.credential, PATHS.credential],
     [LAWS.storage, PATHS.inventory], [LAWS.storage, PATHS.maintenance],
+    [LAWS.database, PATHS.identityMaintenance],
     [LAWS.staticQuality, PATHS.manifest], [LAWS.dynamicProof, PATHS.proof],
   ] as const;
   for (const [lawId, path] of required) if (!existsSync(resolve(context.sealedRoot, path))) {
@@ -397,6 +399,7 @@ export const runtimeManifestOwnershipDrift = (ownedPaths: readonly string[]): st
     || path === "scripts/audit/domains/agent-production-runtime/**"
     || path === "scripts/generate/sync-website-agent-route-policy-projection.ts"
     || path === "scripts/maintenance/production-runtime-credential-normalize.ts"
+    || path === "scripts/maintenance/production-runtime-catalog-identity-retire.ts"
     || path === "scripts/maintenance/production-runtime-storage-reconcile.ts"
     || path === "src/lib/execution-failure.ts"
     || path === "src/lib/local-runtime/production/**";
@@ -408,6 +411,30 @@ export function inspectAgentSql(
   findings: InspectorFinding[],
 ): void {
   const store = sourceFor(context, PATHS.store);
+  const identityMaintenanceSource = sourceFor(context, PATHS.identityMaintenance);
+  const identityMaintenance = read(context, PATHS.identityMaintenance).toLowerCase().replace(/\s+/gu, " ");
+  const maintenanceTables = identityMaintenanceSource?.getVariableDeclaration("tables")?.getInitializer()
+    ?.getDescendantsOfKind(SyntaxKind.StringLiteral).map((literal) => literal.getLiteralValue()) ?? [];
+  const maintenanceCalls = new Set(identityMaintenanceSource?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .map((call) => call.getExpression().getText()) ?? []);
+  const expectedMaintenanceTables = ["production_tasks", "production_attempt_failures", "production_continuations",
+    "production_outbox", "production_checkpoints", "production_leases"];
+  for (const token of ["begin immediate", "where state='active'", "catalog_hash: _retired",
+    "integrity_check", "foreign_key_check", "rollback"]) {
+    if (!identityMaintenance.includes(token)) {
+      findings.push(finding(LAWS.database, "static.sql",
+        "agent-production-runtime/catalog-identity-retirement", PATHS.identityMaintenance,
+        `Task catalog identity retirement is missing ${token}.`));
+    }
+  }
+  if (JSON.stringify(maintenanceTables) !== JSON.stringify(expectedMaintenanceTables)
+    || !maintenanceCalls.has("resolveStoredProductionAuthority")
+    || !maintenanceCalls.has("databaseSnapshot")
+    || !identityMaintenanceSource?.getFunction("verifyAuthorityReadback")) {
+    findings.push(finding(LAWS.database, "static.sql",
+      "agent-production-runtime/catalog-identity-authority-readback", PATHS.identityMaintenance,
+      "Task catalog retirement lacks exact six-table preservation and formal authority-reader readback."));
+  }
   const schemaInitializer = variableDeclaration(store, "productionSchemaSql")?.getInitializer();
   const schemaSql = (Node.isNoSubstitutionTemplateLiteral(schemaInitializer)
     ? schemaInitializer.getLiteralValue() : "").toLowerCase().replace(/\s+/gu, " ");

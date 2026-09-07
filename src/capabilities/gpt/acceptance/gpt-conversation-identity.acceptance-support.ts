@@ -75,10 +75,11 @@ import {
   Date.now = () => simulatedNow;
   try {
     const result = await execute("prepare_clean_gpt_chat", fixture.browser, { timeoutMs: 1_000 });
-    assert.equal(result.status, "success", result.failureCode ?? "settled stale draft clear failed");
-    assert.equal(simulatedNow, 250,
-      "draft clear must consume fresh observations and stop before the 2500ms ceiling");
-    assert.equal(fixture.physicalMutations(), 1, "draft clear settlement must not repeat the fill");
+    assert.equal(result.status, "failed");
+    assert.equal(result.failureCode, "GPT_CHAT_DRAFT_CLEAR_FAILED");
+    assert.equal(reads, 2, "GPT must consume only one Browser-admitted fresh post-action read");
+    assert.equal(simulatedNow, 0, "GPT must not own a second post-action timer");
+    assert.equal(fixture.physicalMutations(), 1, "draft readback failure must not repeat the fill");
   } finally {
     Date.now = nativeDateNow;
   }
@@ -212,10 +213,11 @@ await exerciseBrowserDispatchedEvidenceReadback();
     const result = await execute("focus_exact_gpt_conversation", fixture.browser, {
       canonicalConversationUrl: conversationUrl, expectedPromptHash: promptHash, turnMarker: marker,
     });
-    assert.equal(result.status, "success", result.failureCode ?? "settled exact conversation focus failed");
-    assert.equal(simulatedNow, 250,
-      "exact navigation must consume fresh observations and stop before the 2500ms ceiling");
-    assert.equal(fixture.physicalMutations(), 1, "navigation settlement must not repeat navigation");
+    assert.equal(result.status, "failed");
+    assert.equal(result.failureCode, "GPT_CONVERSATION_NAVIGATION_NOT_YET_CONFIRMED");
+    assert.equal(reads, 2, "GPT must consume only one Browser-admitted fresh post-navigation read");
+    assert.equal(simulatedNow, 0, "GPT must not own a second post-navigation timer");
+    assert.equal(fixture.physicalMutations(), 1, "navigation readback failure must not repeat navigation");
   } finally {
     Date.now = nativeDateNow;
   }

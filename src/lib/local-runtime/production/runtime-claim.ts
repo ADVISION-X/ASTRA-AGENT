@@ -156,8 +156,7 @@ const assertClaimIdentity = (job: ClaimedProductionTask, task: WebsiteAgentTask)
     throw executionFailure("failed", "CAPABILITY_MANIFEST_CHANGED_BEFORE_ACCEPT");
   }
   const plugin = authorizeWebsiteAgentTask(task).identity;
-  if (job.grant.expected_catalog_hash !== productionCatalogHash
-    || job.grant.expected_plugin_id !== plugin.plugin_id
+  if (job.grant.expected_plugin_id !== plugin.plugin_id
     || job.grant.expected_plugin_version !== plugin.plugin_version) {
     throw executionFailure("failed", "CLAIMED_PLUGIN_IDENTITY_MISMATCH");
   }

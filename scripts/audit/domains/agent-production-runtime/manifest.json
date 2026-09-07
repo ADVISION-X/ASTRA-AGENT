@@ -3,14 +3,14 @@
   "capabilityDomain": "agent-production-runtime",
   "status": "active",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V44",
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V45",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V3",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V14",
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V14",
-    "LAW-AGENT-PRODUCTION-RUNTIME-005-V12",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V14",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V14",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V15"
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V15",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V15",
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V13",
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V15",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V15",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V16"
   ],
   "ownedPaths": [
     "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
@@ -35,6 +35,7 @@
     "scripts/acceptance/agent-route-contract.acceptance.ts",
     "scripts/audit/domains/agent-production-runtime/**",
     "scripts/generate/sync-website-agent-route-policy-projection.ts",
+    "scripts/maintenance/production-runtime-catalog-identity-retire.ts",
     "scripts/maintenance/production-runtime-credential-normalize.ts",
     "scripts/maintenance/production-runtime-storage-reconcile.ts",
     "src/lib/execution-failure.ts",

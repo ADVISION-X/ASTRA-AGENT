@@ -1,20 +1,20 @@
-# production-runtime 生产级施工图 V26
+# production-runtime 生产级施工图 V27
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v26",
+  "blueprintId": "agent-production-runtime-v27",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V44",
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V45",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V3",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V14",
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V14",
-    "LAW-AGENT-PRODUCTION-RUNTIME-005-V12",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V14",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V14",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V15"
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V15",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V15",
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V13",
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V15",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V15",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V16"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -35,9 +35,9 @@
     {"contractRef":null,"from":{"domain":"startup-entrypoint","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"}}
   ],
   "prohibitedDependencyEdges": [
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V44","to":{"domain":"app-shell-ui","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V44","to":{"domain":"local-app-shell","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V44","to":{"domain":"startup-entrypoint","repo":"local"}}
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V45","to":{"domain":"app-shell-ui","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V45","to":{"domain":"local-app-shell","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V45","to":{"domain":"startup-entrypoint","repo":"local"}}
   ]
 }
 ```
@@ -67,7 +67,7 @@ Website claim + lease/grant/fence
 
 Manifest primary Owner 只表示路径登记、结构检查与变更准入；Product runtime authority 才表示 Prompt、模型、Child 顺序、分支、checkpoint、恢复与结果组装的决策权。`architecture-boundary` 仍只 primary-own Product 源码、与生产 import surface 分离的 Product 验收、薄 Mediator 与精确关联项目文档；唯一 Catalog composition 和 Product-facing execution contract 是现有薄 Mediator/Product 源码边界的组成文件，不新增 Owner 类别或运行权力。只有该 Catalog composition 可以导入 `src/plugins/<plugin-id>/index.ts`，且它只按 `product_id + action_id + contract version` 完成一次路由；每个 Product Plugin 仍是自身唯一 Product runtime authority。Runtime 对以上两种权力均不得越权。
 
-Runtime 对外发布 Agent Plugin Capability Manifest，但不拥有形成该清单的 Product composition。它只从 Mediator 取得冻结、不可变、纯数据的 `plugin_id + plugin_version + skill_hash + checkpoint_schema_version + accepts` 描述，随后在本域校验 Manifest schema/hash 并用于 session、claim、durable identity 与诊断。Runtime 源码不得直接或间接取得 `ProductPlugin` 实例、Product Skill 正文、`parseResult`、`assemblePayload` 或其它 Product 可执行回调；Product Plugin 也不得 import、re-export、dynamic import 或 side-effect import Runtime 私有模块。
+Runtime 对外发布 Agent Plugin Capability Manifest，但不拥有形成该清单的 Product composition。它只从 Mediator 取得冻结、不可变、纯数据的 `plugin_id + plugin_version + skill_hash + checkpoint_schema_version + accepts` 描述，随后在本域校验 Manifest schema/hash 并用于当前 session attestation、claim 资格、授权审计与诊断。整份 Catalog hash 不进入 Website job、request 或 accepted-attempt 永久身份；Runtime 源码不得直接或间接取得 `ProductPlugin` 实例、Product Skill 正文、`parseResult`、`assemblePayload` 或其它 Product 可执行回调；Product Plugin 也不得 import、re-export、dynamic import 或 side-effect import Runtime 私有模块。
 
 Product、GPT、Browser、Forensics、Runtime Log、App Shell、Startup、Website 继续由各自 active law、blueprint、spec 与唯一 Manifest primary Owner 守住文件及接口边界。Runtime 文档只记录上表接口边，不复制其业务流程、DOM、模型策略、Provider 操作或发布裁决。
 
@@ -139,7 +139,7 @@ Website ai-acceptance 是唯一 provider。AGENT 三份 spec 的现役身份为�
 
 - Agent Plugin Capability Manifest provider：version 3；authorityArtifact 路径、selector 与 provider spec 只定义 Manifest 的规范字段和 schema。任一 Product Profile/Skill/执行语义变化必须提升对应 `plugin_version` 并重算 canonical catalog hash；只有 Manifest 规范字段或 schema 变化才提升 provider spec version，禁止用旧 Plugin identity/hash 掩盖语义变化；
 - Website Agent Task Result consumer dependency：version 5；
-- Xuanxue AI Production V6 consumer dependency：version 17。
+- Xuanxue AI Production V6 consumer dependency：version 18。
 
 consumer dependency 的 contract body 只能包含 contractId、version、providerRepo。普通启动只校验本仓最小 dependency，不读取未绑定 Website 工作树；跨仓 participant commit 只属于 RELEASE 证据。
 
@@ -176,7 +176,7 @@ Bazi 三字段必须全有或全无；Bazi 与 review 不得混合；额外字�
 
 公开任务状态只允许 failed 和 completed。failed 表示尚未完成，current_reason 说明当前权威位置；claim、lease、执行中、等待发送、等待消费和恢复都不是第三状态。
 
-durable accept 必须先于执行并冻结 job、accepted attempt、plugin/version、authorization、lease/grant/fence。进程重启、lease 更新、Target/Document 变化、build、错误码、locator 暂缺或本次 probe deadline 都不得替换 job、消耗新 attempt 或批准 provider effect 重做。Browser/Forensics 已唯一证明 submit `CONFIRMED + passed` 时，Runtime 必须携该 typed receipt 释放 `POST_SUBMIT_READBACK_FAULT`，Website 保留同一 accepted attempt；locator pending 只允许 Browser 在发送源 D0，或同一 exact submit 原子 Child 以同 Target、navigationEpoch 不变或精确 +1、initial evidence hash 唯一证明的直接后置 D1 上 source-only reconcile；receipt 闭合后的 facts/source authorization/readback fault 必须先携 Product-safe confirmed receipt 再抛出，locator 闭合后才允许 full readback，直到唯一 terminal passed 或显式不可恢复事实。任何相邻能力 `DISPATCHED` 仍只沿原现场只读对账，不得盲重放。
+durable accept 必须先于执行。三层身份不得混写：job 永久身份是 `job_id + request_hash + Website business task`；当前 session 的 Catalog hash 只证明 claim 时能力清单；accepted attempt 冻结 `attempt_id + plugin_id + plugin_version`，AGENT 本地再冻结 `skill_hash + checkpoint_schema_version`。同一 accepted attempt 恢复必须精确匹配上述 Plugin 执行身份，Catalog 中无关 Plugin 的增删或升版不得结束 attempt；只有 Website 在前一 attempt 无未决 Provider effect、无 staged result并正式签发新 attempt 后，Runtime 才在同一 task row 原子换绑当前 Plugin 执行身份。进程重启、lease 更新、Target/Document 变化、build、错误码、locator 暂缺或本次 probe deadline 都不得替换 job、消耗无事实依据的新 attempt 或批准 provider effect 重做。Browser/Forensics 已唯一证明 submit `CONFIRMED + passed` 时，Runtime 必须携该 typed receipt 释放 `POST_SUBMIT_READBACK_FAULT`，Website 保留同一 accepted attempt；locator pending 只允许 Browser 在发送源 D0，或同一 exact submit 原子 Child 以同 Target、navigationEpoch 不变或精确 +1、initial evidence hash 唯一证明的直接后置 D1 上 source-only reconcile；receipt 闭合后的 facts/source authorization/readback fault 必须先携 Product-safe confirmed receipt 再抛出，locator 闭合后才允许 full readback，直到唯一 terminal passed 或显式不可恢复事实。任何相邻能力 `DISPATCHED` 仍只沿原现场只读对账，不得盲重放。
 
 Outbox 只有一个。任何网络发送前必须先持久 intent、确定性 idempotency key、payload hash 与当前 task/attempt binding；响应 receipt 必须先持久再推进。timeout、5xx、确定性拒绝和重启只更新同一 intent 的 last_error 与有限 next_delivery_at，不新建 intent、不丢失责任。只有 Website 精确持久化的永久业务撤权事实才能停止新发送，且必须保留原 row、payload/hash、receipt、checkpoint 与相邻能力权威的未决现场。
 
@@ -192,6 +192,8 @@ Runtime 唯一数据库固定为六表：
 - production_outbox；
 - production_checkpoints；
 - production_leases。
+
+`production_tasks.identity_json` 只保存当前 accepted attempt 的 `plugin_id + plugin_version + skill_hash + checkpoint_schema_version + request_hash`，不保存全局 Catalog hash。既有库中的 task-level `catalog_hash` 只能由显式离线 `production-runtime-catalog-identity-retire` maintenance 在无运行进程且全部前置事实闭合后，于原六表同一事务逐行移除并完整读回；普通启动和 claim 不兼容读取、不自动改库，不新增表、影子字段或第二身份。
 
 首次安装只有在零张 production_* 表时才可建立当前 schema 并设置 WAL。已有任一表后，普通构造与启动只读验证精确表、列、主键、唯一索引、外键、WAL、integrity_check、foreign_key_check 与数据不变量；不得 ALTER、drop/rebuild、回填、执行 legacy migration、恢复旧调度或删除目录。数据库缺失、不可读、损坏、查询异常、记录缺失与 hash mismatch 必须分别保留，不能统一降格为 missing。
 
@@ -232,7 +234,7 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 每次候选都必须重新证明：
 
 1. 八条 Runtime law、稳定 blueprintId、三份 active contractRef 与 Runtime 唯一 Manifest 的 lawIds 相互一致；Architecture Boundary law 与 Manifest 独立保持其现役一一对应；越界 `ownedPaths` 只在同一候选的一次原子修改中归位，并立即证明无无主、无重叠、无 Runtime manifest-owner-drift。
-2. Website task-result v6、V6 v17 与 AGENT dependency 精确一致，consumer contract body 只有三字段；device credential 与 enrollment response 不含 manifest hash，session/grant/fence 的 control_contract_version 逐项同值；只含唯一退役 `control_manifest_hash` 的已 enrollment credential 可由显式离线 normalization 原子删去该字段并保持全部当前字段逐项不变，其它 credential 故障写入增量为零。
+2. Website task-result v6、V6 v18 与 AGENT dependency 精确一致，consumer contract body 只有三字段；grant 保留当前 claim 的 capability_manifest_hash 审计事实但不含 expected_catalog_hash，accepted attempt 只冻结对应 Plugin identity；device credential 与 enrollment response 不含 control manifest hash，session/grant/fence 的 control_contract_version 逐项同值；只含唯一退役 `control_manifest_hash` 的已 enrollment credential 可由显式离线 normalization 原子删去该字段并保持全部当前字段逐项不变，其它 credential 故障写入增量为零。
 3. route projection 精确为 40 routes、57 parameter types、31 result contracts、2 reservation routes。
 4. base、Bazi primary、review admission receipt 的互斥字段与完整 canonical hash 全部闭合，未闭合时本地 completed 增量为零。
 5. credential 失败类别分别得到稳定脱敏 typed code，且 claim/Provider mutation 增量为零。

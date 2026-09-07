@@ -13,7 +13,6 @@ import {
 import { executionFailure, failureCode, typedExecutionFailure } from "../../execution-failure.js";
 import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-support.js";
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../../mediator/agent-production-route.js";
-import { productionCatalogHash } from "./catalog.js";
 import type {
   GeneratedImageArtifact,
   GeneratedImageResultReceipt,
@@ -61,8 +60,7 @@ const durableIdentityValid = (
 ): boolean => {
   const current = authorizeWebsiteAgentTask(task);
   const identity = accepted.identity;
-  return identity.catalog_hash === productionCatalogHash
-    && identity.plugin_id === current.identity.plugin_id
+  return identity.plugin_id === current.identity.plugin_id
     && identity.plugin_version === current.identity.plugin_version
     && identity.skill_hash === current.identity.skill_hash
     && identity.checkpoint_schema_version === current.identity.checkpoint_schema_version
@@ -151,7 +149,6 @@ const productionMaterialBrowserArtifact = (material: LocalProductionMaterial) =>
 const pluginIdentity = (task: WebsiteAgentTask): DurablePluginIdentity => {
   const resolved = authorizeWebsiteAgentTask(task);
   return {
-    catalog_hash: productionCatalogHash,
     plugin_id: resolved.identity.plugin_id,
     plugin_version: resolved.identity.plugin_version,
     skill_hash: resolved.identity.skill_hash,
