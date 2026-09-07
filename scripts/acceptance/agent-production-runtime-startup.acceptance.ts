@@ -410,7 +410,7 @@ for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:credential:${evidenceMode}`,
-    observedValue: "credential format failures returned exact typed codes and valid credentials read exactly; a deterministic session binding 409 preserved the consumer contract version, kept Shell ready and execution blocked, and issued exactly one session-open request with no worker or heartbeat handle",
+    observedValue: "credential format failures returned exact typed codes; explicit retired manifest normalization preserved every current credential field, rejected all non-exact candidates without writes, and valid credentials read exactly; a deterministic session binding 409 preserved the consumer contract version, kept Shell ready and execution blocked, and issued exactly one session-open request with no worker or heartbeat handle",
   });
 }
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {

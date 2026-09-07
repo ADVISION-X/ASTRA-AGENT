@@ -412,10 +412,10 @@ type VerifiedExactGptEvidence = Readonly<{
 
 const failedInitialReadbackPending = (
   recovery: boolean,
-  evidence: VerifiedExactGptEvidence,
-): boolean => [recovery, !evidence.terminal, evidence.state.postcondition === "failed",
-  evidence.state.resultStatus === "failed", evidence.state.mutation === "no",
-  !evidence.state.failureCode?.startsWith("GPT_PROVIDER_TERMINAL_")].every(Boolean);
+  verified: VerifiedExactGptEvidence,
+): boolean => [recovery, !verified.terminal, verified.state.postcondition === "failed",
+  verified.state.resultStatus === "failed", verified.state.mutation === "no",
+  !verified.state.failureCode?.startsWith("GPT_PROVIDER_TERMINAL_")].every(Boolean);
 
 const readVerifiedExactGptEvidence = async (input: Readonly<{
   evidenceStore: GptEvidenceStorePort;

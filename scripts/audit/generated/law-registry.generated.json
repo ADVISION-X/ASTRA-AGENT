@@ -53,6 +53,7 @@
         "scripts/acceptance/agent-route-contract.acceptance.ts",
         "scripts/audit/domains/agent-production-runtime/**",
         "scripts/generate/sync-website-agent-route-policy-projection.ts",
+        "scripts/maintenance/production-runtime-credential-normalize.ts",
         "scripts/maintenance/production-runtime-storage-reconcile.ts",
         "src/lib/execution-failure.ts",
         "src/lib/local-runtime/production/**"

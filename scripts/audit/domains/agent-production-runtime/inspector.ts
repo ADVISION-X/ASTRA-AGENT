@@ -396,6 +396,7 @@ export const runtimeManifestOwnershipDrift = (ownedPaths: readonly string[]): st
     || path === "scripts/acceptance/agent-route-contract.acceptance.ts"
     || path === "scripts/audit/domains/agent-production-runtime/**"
     || path === "scripts/generate/sync-website-agent-route-policy-projection.ts"
+    || path === "scripts/maintenance/production-runtime-credential-normalize.ts"
     || path === "scripts/maintenance/production-runtime-storage-reconcile.ts"
     || path === "src/lib/execution-failure.ts"
     || path === "src/lib/local-runtime/production/**";

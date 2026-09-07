@@ -84,7 +84,6 @@ export const recoveryAssistantTurnReply = (
 };
 
 export const recoveryBrowserLease = (
-  currentUrl: string,
   responder: (intent: BrowserDomIntent) => unknown,
 ): BrowserTargetLease => {
   let atomicIdentity: BrowserAtomicStepIdentity | null = null;
@@ -117,9 +116,6 @@ export const recoveryBrowserLease = (
     async close() {},
     async resolvePendingMutation() { throw new Error("UNEXPECTED_RECOVERY_MUTATION_RESOLUTION"); },
     pendingMutationCount: () => 0,
-    assertNoPendingMutations() {
-      if (atomicIdentity) return;
-      void currentUrl;
-    },
+    assertNoPendingMutations() { if (atomicIdentity) return; },
   };
 };

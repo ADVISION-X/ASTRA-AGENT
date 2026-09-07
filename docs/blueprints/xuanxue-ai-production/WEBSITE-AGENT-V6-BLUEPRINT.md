@@ -1,9 +1,9 @@
-# production-runtime 生产级施工图 V24
+# production-runtime 生产级施工图 V25
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v24",
+  "blueprintId": "agent-production-runtime-v25",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
@@ -131,6 +131,8 @@ Runtime 自身代码保持 production 目录内的直接模块关系。不得新
 
 授权 enrollment 只建立或恢复长期 device identity 与 credential，不签发整份 manifest hash，不因合同升级重建 device。Runtime 只从本仓唯一 active consumer dependency 读取 `control_contract_version`，在 session open 时发送；Website 必须与自身当前 provider contract version 精确比较，并在 session、claim grant 与 execution fence 返回同一版本。版本不相等只产生一次 typed 409 并保持 Execution blocked，不允许定时重试、fallback、第二 reader、自动 enrollment 或旧凭据回退。
 
+已经 enrollment 的唯一 credential 文件若且唯若满足“当前严格 schema 的全部字段 + 唯一退役字段 `control_manifest_hash`”，且退役字段仍是合法 `sha256:` hash，唯一恢复动作是操作者显式执行离线 credential normalization。该动作必须先复用正式 reader 的父目录、文件、owner、权限、symlink、JSON 与 origin 检查，再以原子替换只删除这个退役字段；`device_id`、`device_epoch`、origin、Website-issued `credential` 与其余当前字段值必须逐项保持不变，写后必须重新通过唯一正式 reader 读回。普通启动仍只读并按当前严格 schema 失败关闭；字段缺失、值非法、存在其它额外字段、现场并发变化或权限不合格均不得写入。该动作不 enrollment、不签发或轮换密钥、不创建 backup credential、第二文件、第二 reader、fallback、dual-read/write、兼容桥或自动修复。
+
 ## 4. 跨仓合同与业务完成
 
 Website ai-acceptance 是唯一 provider。AGENT 三份 spec 的现役身份为：
@@ -230,7 +232,7 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 每次候选都必须重新证明：
 
 1. 八条 Runtime law、稳定 blueprintId、三份 active contractRef 与 Runtime 唯一 Manifest 的 lawIds 相互一致；Architecture Boundary law 与 Manifest 独立保持其现役一一对应；越界 `ownedPaths` 只在同一候选的一次原子修改中归位，并立即证明无无主、无重叠、无 Runtime manifest-owner-drift。
-2. Website task-result v6、V6 v17 与 AGENT dependency 精确一致，consumer contract body 只有三字段；device credential 与 enrollment response 不含 manifest hash，session/grant/fence 的 control_contract_version 逐项同值。
+2. Website task-result v6、V6 v17 与 AGENT dependency 精确一致，consumer contract body 只有三字段；device credential 与 enrollment response 不含 manifest hash，session/grant/fence 的 control_contract_version 逐项同值；只含唯一退役 `control_manifest_hash` 的已 enrollment credential 可由显式离线 normalization 原子删去该字段并保持全部当前字段逐项不变，其它 credential 故障写入增量为零。
 3. route projection 精确为 40 routes、57 parameter types、31 result contracts、2 reservation routes。
 4. base、Bazi primary、review admission receipt 的互斥字段与完整 canonical hash 全部闭合，未闭合时本地 completed 增量为零。
 5. credential 失败类别分别得到稳定脱敏 typed code，且 claim/Provider mutation 增量为零。

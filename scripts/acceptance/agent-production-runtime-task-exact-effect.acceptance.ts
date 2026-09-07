@@ -347,7 +347,7 @@ try {
   });
   const responseText = "stable recovered assistant response";
   const responseHash = textHash(responseText);
-  const browser = recoveryBrowserLease(canonicalConversationUrl, (intent) => {
+  const browser = recoveryBrowserLease((intent) => {
     if (intent.kind === "observe") {
       const queryIds = new Set(intent.queries.map((query) => query.queryId));
       if (queryIds.has("composer")) return recoveryObservationPacket(intent, {

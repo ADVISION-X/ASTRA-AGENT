@@ -44,6 +44,8 @@ const parseCredentialUrl = (value: string): URL => {
   catch (error) { return credentialFailure("PRODUCTION_CREDENTIAL_ORIGIN_INVALID", error); }
 };
 
+const RetiredControlManifestHashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u);
+
 const readCredentialFile = async (filePath: string, expected: Stats): Promise<string> => {
   let handle: Awaited<ReturnType<typeof open>>;
   try { handle = await open(filePath, constants.O_RDONLY | constants.O_NOFOLLOW); }
@@ -81,8 +83,7 @@ const assertCredentialMetadata = (parent: Stats, file: Stats): void => {
   }
 };
 
-const parseProductionCredential = (source: string): DeviceCredential => {
-  const value = parseCredentialJson(source);
+const parseProductionCredential = (value: unknown): DeviceCredential => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return credentialFailure("PRODUCTION_CREDENTIAL_SCHEMA_INVALID");
   }
@@ -100,7 +101,12 @@ const assertCredentialOrigins = (credential: DeviceCredential): void => {
   if (!serverValid || !originValid) credentialFailure("PRODUCTION_CREDENTIAL_ORIGIN_INVALID");
 };
 
-export async function readProductionCredential(dataDir: string): Promise<DeviceCredential> {
+const readProductionCredentialSource = async (dataDir: string): Promise<Readonly<{
+  filePath: string;
+  file: Stats;
+  source: string;
+  value: unknown;
+}>> => {
   const filePath = productionCredentialPath(dataDir);
   const parent = await credentialMetadata(path.dirname(filePath),
     "PRODUCTION_CREDENTIAL_PARENT_MISSING", "PRODUCTION_CREDENTIAL_PARENT_UNREADABLE");
@@ -108,7 +114,12 @@ export async function readProductionCredential(dataDir: string): Promise<DeviceC
     "PRODUCTION_CREDENTIAL_MISSING", "PRODUCTION_CREDENTIAL_FILE_UNREADABLE");
   assertCredentialMetadata(parent, file);
   const source = await readCredentialFile(filePath, file);
-  const credential = parseProductionCredential(source);
+  return Object.freeze({ filePath, file, source, value: parseCredentialJson(source) });
+};
+
+export async function readProductionCredential(dataDir: string): Promise<DeviceCredential> {
+  const inspected = await readProductionCredentialSource(dataDir);
+  const credential = parseProductionCredential(inspected.value);
   assertCredentialOrigins(credential);
   return credential;
 }
@@ -202,6 +213,63 @@ async function writeProductionCredential(dataDir: string, credential: DeviceCred
   }
   await replaceCredentialFile(temporary, destination, parent);
   return destination;
+}
+
+const assertCredentialUnchanged = async (
+  filePath: string,
+  expectedFile: Stats,
+  expectedSource: string,
+): Promise<void> => {
+  const current = await credentialMetadata(filePath,
+    "PRODUCTION_CREDENTIAL_NORMALIZATION_RACE", "PRODUCTION_CREDENTIAL_NORMALIZATION_RACE");
+  if (current.dev !== expectedFile.dev || current.ino !== expectedFile.ino
+    || current.size !== expectedFile.size || current.mtimeMs !== expectedFile.mtimeMs) {
+    credentialFailure("PRODUCTION_CREDENTIAL_NORMALIZATION_RACE");
+  }
+  const currentSource = await readCredentialFile(filePath, current);
+  if (currentSource !== expectedSource) credentialFailure("PRODUCTION_CREDENTIAL_NORMALIZATION_RACE");
+};
+
+export async function normalizeRetiredProductionCredentialManifestHash(
+  dataDir: string,
+): Promise<Readonly<{
+  status: "CURRENT" | "NORMALIZED";
+  credentialPath: string;
+  deviceId: string;
+}>> {
+  const inspected = await readProductionCredentialSource(dataDir);
+  const current = DeviceCredentialSchema.safeParse(inspected.value);
+  if (current.success) {
+    assertCredentialOrigins(current.data);
+    return Object.freeze({
+      status: "CURRENT",
+      credentialPath: inspected.filePath,
+      deviceId: current.data.device_id,
+    });
+  }
+  if (!inspected.value || typeof inspected.value !== "object" || Array.isArray(inspected.value)) {
+    return credentialFailure("PRODUCTION_CREDENTIAL_NORMALIZATION_NOT_APPLICABLE");
+  }
+  const legacy = inspected.value as Record<string, unknown>;
+  if (!RetiredControlManifestHashSchema.safeParse(legacy.control_manifest_hash).success) {
+    return credentialFailure("PRODUCTION_CREDENTIAL_NORMALIZATION_NOT_APPLICABLE");
+  }
+  const candidate = { ...legacy };
+  delete candidate.control_manifest_hash;
+  const parsed = DeviceCredentialSchema.safeParse(candidate);
+  if (!parsed.success) return credentialFailure("PRODUCTION_CREDENTIAL_NORMALIZATION_NOT_APPLICABLE");
+  assertCredentialOrigins(parsed.data);
+  await assertCredentialUnchanged(inspected.filePath, inspected.file, inspected.source);
+  await writeProductionCredential(dataDir, parsed.data);
+  const readback = await readProductionCredential(dataDir);
+  if (JSON.stringify(readback) !== JSON.stringify(parsed.data)) {
+    return credentialFailure("PRODUCTION_CREDENTIAL_NORMALIZATION_READBACK_INVALID");
+  }
+  return Object.freeze({
+    status: "NORMALIZED",
+    credentialPath: inspected.filePath,
+    deviceId: readback.device_id,
+  });
 }
 
 export async function enrollProductionDevice(input?: Readonly<{
