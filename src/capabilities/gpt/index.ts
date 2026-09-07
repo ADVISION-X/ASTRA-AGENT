@@ -4,8 +4,7 @@ export {
 } from "./ability-group.js";
 export {
   confirmedProviderSubmitReceiptFromError,
-  type ProductSafeConfirmedProviderSubmitReceipt,
-} from "./confirmed-provider-readback.js";
+} from "./schema.js";
 export {
   type GptAbilityGroup,
   type GptApprovedFile,
@@ -30,7 +29,6 @@ export {
 } from "./session/gpt-session-controller.js";
 export type {
   GptContinuationCheckpoint,
-  GptContinuationOriginCheckpoint,
   GptContinuationCompletionInput,
   GptContinuationReservation,
   GptContinuationReservationReadback,

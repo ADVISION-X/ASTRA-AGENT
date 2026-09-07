@@ -31,6 +31,12 @@ import {
   type GptFailureProofFacts,
 } from "./execution-fault.js";
 import { confirmedProviderReadbackEvidencePending } from "./confirmed-provider-readback.js";
+import {
+  currentDocument,
+  documentTransitionAllowed,
+  documentTransitionObservable,
+  type CurrentDocument,
+} from "./document-transition-policy.js";
 
 const hash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -134,22 +140,6 @@ const proofFor = <K extends GptChildCapabilityId>(input: ProofInput<K>): GptChil
   });
 };
 
-type CurrentDocument = Readonly<{
-  ref: string | null;
-  targetRef: string | null;
-  navigationEpoch: number | null;
-  url: string | null;
-}>;
-
-const currentDocument = (context: GptExecutionContext): CurrentDocument => context.browser
-  ? Object.freeze({
-    ref: context.browser.document.documentRef,
-    targetRef: context.browser.document.targetRef,
-    navigationEpoch: context.browser.document.navigationEpoch,
-    url: null,
-  })
-  : Object.freeze({ ref: null, targetRef: null, navigationEpoch: null, url: null });
-
 const failedBrowserFact = <K extends GptChildCapabilityId>(
   intent: GptChildCapabilityIntent<K>,
   context: GptExecutionContext,
@@ -186,33 +176,6 @@ const failedBrowserFact = <K extends GptChildCapabilityId>(
     evidenceHash: recovery.authorityHash,
   });
 };
-
-const documentTransitionAllowed = (
-  childCapabilityId: GptChildCapabilityId,
-  before: CurrentDocument,
-  after: CurrentDocument,
-): boolean => {
-  const contract = GPT_CHILD_CAPABILITY_CONTRACTS[childCapabilityId];
-  if (contract.allowedDocumentTransition === "not-applicable") {
-    return before.ref === null && after.ref === null
-      && before.targetRef === null && after.targetRef === null
-      && before.navigationEpoch === null && after.navigationEpoch === null;
-  }
-  if (before.ref === null || after.ref === null
-    || before.targetRef === null || after.targetRef === null
-    || before.navigationEpoch === null || after.navigationEpoch === null
-    || before.targetRef !== after.targetRef) return false;
-  if (contract.allowedDocumentTransition === "forbidden") {
-    return before.ref === after.ref && before.navigationEpoch === after.navigationEpoch;
-  }
-  return (after.navigationEpoch === before.navigationEpoch && after.ref === before.ref)
-    || (after.navigationEpoch === before.navigationEpoch + 1 && after.ref !== before.ref);
-};
-
-const documentTransitionObservable = (before: CurrentDocument, after: CurrentDocument): boolean =>
-  before.ref !== null && after.ref !== null
-  && before.targetRef !== null && after.targetRef !== null
-  && before.navigationEpoch !== null && after.navigationEpoch !== null;
 
 const assertObservationIsAtomic = (
   intent: Readonly<{ childCapabilityId: GptChildCapabilityId }>,

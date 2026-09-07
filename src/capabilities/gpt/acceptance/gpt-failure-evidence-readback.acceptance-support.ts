@@ -7,9 +7,11 @@ import type {
   GptChildInputMap,
 } from "../contract.js";
 import {
+  confirmedSubmitReadbackDocumentHash,
   isPendingExactEvidence,
   readExactGptEvidenceFact,
 } from "../evidence-fact.js";
+import { failureCode } from "../../../lib/execution-failure.js";
 import { typedGptExecutionFailure } from "../execution-fault.js";
 import { persistGptChildEvidence } from "../evidence-writer.js";
 import { executeProductionGptAtomicCall } from "../production-atomic-call.js";
@@ -100,6 +102,41 @@ export const exerciseConfirmedSubmitFailureEvidenceReadback = async (
   assert.equal(isPendingExactEvidence(pending), true);
   assert.equal(pending?.readbackVerified, true);
   assert.equal(pending?.evidenceRef, persistence.stored()?.recordRef);
+};
+
+export const exerciseConfirmedSubmitDocumentEvidence = async (
+  result: GptChildCapabilityResult<"submit_exact_gpt_turn_once">,
+  input: GptChildInputMap["submit_exact_gpt_turn_once"],
+): Promise<void> => {
+  const intent = intentFor(result, input);
+  const persistence = evidenceHarness();
+  await persistGptChildEvidence({
+    result, intent, evidenceStore: persistence.evidenceStore,
+    jobId: result.proof.jobId, attemptId: result.proof.attemptId,
+    stepId: result.proof.productStepId, exactCallIdentityHash: result.proof.exactCallIdentityHash,
+  });
+  const payload = persistence.stored()!.record.payload as Readonly<Record<string, unknown>>;
+  assert.equal(payload.confirmed_submit_readback_document_hash, result.proof.afterDocumentRefHash,
+    "confirmed submit evidence must bind the direct post-submit Document by hash");
+  const verified = await readExactGptEvidenceFact({
+    evidenceStore: persistence.evidenceStore,
+    intent,
+    exactCallIdentityHash: result.proof.exactCallIdentityHash,
+  });
+  assert.equal(confirmedSubmitReadbackDocumentHash(verified), result.proof.afterDocumentRefHash);
+  persistence.tamperLastPayload(Object.freeze({
+    ...payload,
+    confirmed_submit_readback_document_hash: null,
+  }));
+  await assert.rejects(
+    () => readExactGptEvidenceFact({
+      evidenceStore: persistence.evidenceStore,
+      intent,
+      exactCallIdentityHash: result.proof.exactCallIdentityHash,
+    }),
+    (error: unknown) => failureCode(error) === "FORENSICS_EXACT_CALL_EVIDENCE_INVALID",
+    "confirmed submit evidence without the D1 hash must fail closed",
+  );
 };
 
 export const exerciseBrowserRejectedEvidenceReadback = async (): Promise<void> => {

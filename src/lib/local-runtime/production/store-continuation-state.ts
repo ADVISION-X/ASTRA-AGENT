@@ -4,7 +4,6 @@ import {
   gptContinuationUsable,
   type GptContinuationCompletionInput,
   type GptContinuationCheckpoint,
-  type GptContinuationOriginCheckpoint,
   type GptContinuationReservation,
   type GptContinuationReservationReadback,
   type GptContinuationStorePort,
@@ -42,6 +41,7 @@ type GptContinuationRecord = Omit<
 }>;
 
 type NewStoredGptContinuation = Parameters<GptContinuationStorePort["createGptContinuation"]>[0];
+type GptContinuationOriginCheckpoint = NonNullable<StoredGptContinuation["origin_checkpoint"]>;
 
 const continuationRecordFromRow = (row: GptContinuationRow): GptContinuationRecord => {
   const {

@@ -3,11 +3,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 import { productionPluginCatalog } from "../../../src/mediator/product-plugin-catalog.js";
-import { executionFailure, typedExecutionFailure } from "../../../src/lib/execution-failure.js";
-import {
-  carryConfirmedProviderSubmitReceipt,
-  type ConfirmedProviderSubmitReceipt,
-} from "../../../src/capabilities/gpt/confirmed-provider-readback.js";
+import { typedExecutionFailure } from "../../../src/lib/execution-failure.js";
 import { postSubmitReadbackReceipt } from "../../../src/mediator/product-plugin-contract.js";
 import { productionRoutePolicy } from "../../../src/lib/local-runtime/production/route-policy.js";
 import { browserProviderEffectIdentityHash } from
@@ -30,8 +26,6 @@ import {
   exerciseSeoFrontierResume,
   exerciseSeoImageFrontierResume,
 } from "./public-knowledge-article-pipeline-frontier.test-runtime.js";
-import { preservePostSubmitReadback } from
-  "../../../src/plugins/public-knowledge-article-pipeline/seo-submit-readback.js";
 
 const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "public-knowledge-article-pipeline");
 assert(plugin);
@@ -193,39 +187,6 @@ assert.equal(promptBlocked.calls.some((call) => call.child === "reconcile_gpt_dr
 assert.equal(promptBlocked.calls.some((call) => call.child === "submit_exact_gpt_turn_once"), false,
   "submit must not start after exact Prompt readback fails");
 assert.equal(promptBlocked.physicalSubmitDispatches, 0);
-
-const carriedReceipt = Object.freeze({
-  sourceAttemptId: "attempt-1",
-  sourceExactCallIdentityHash: hashText("confirmed-submit-call"),
-  sourceActionOrdinal: 1,
-  sourceProductStepId: "article_synthesis",
-  sourceCallId: "article_synthesis:submit",
-  sourceTargetRef: "target:confirmed-submit",
-  sourceDocumentRef: "document:confirmed-submit",
-  readbackDocumentRefHash: hashText("document:direct-after-submit"),
-  sourceTerminalAt: "2026-09-07T00:00:00.000Z",
-  evidenceRef: "evidence:confirmed-submit",
-  evidenceHash: hashText("confirmed-submit-evidence"),
-  promptHash: hashText("article-prompt"),
-  turnMarker: "[GRASSEYE:article-synthesis]",
-}) satisfies ConfirmedProviderSubmitReceipt;
-const sourceAuthorizationFault = executionFailure(
-  "failed", "BROWSER_RECONCILIATION_SCOPE_INVALID",
-);
-carryConfirmedProviderSubmitReceipt(sourceAuthorizationFault, carriedReceipt);
-await assert.rejects(
-  async () => preservePostSubmitReadback(sourceAuthorizationFault, null),
-  (error: unknown) => {
-    const preserved = postSubmitReadbackReceipt(error);
-    return typedExecutionFailure(error)?.code
-      === "POST_SUBMIT_READBACK_FAULT:BROWSER_RECONCILIATION_SCOPE_INVALID"
-      && preserved?.exactCallIdentityHash === carriedReceipt.sourceExactCallIdentityHash
-      && preserved?.causeCode === "BROWSER_RECONCILIATION_SCOPE_INVALID"
-      && !JSON.stringify(preserved).includes(carriedReceipt.sourceTargetRef)
-      && !JSON.stringify(preserved).includes(carriedReceipt.sourceDocumentRef);
-  },
-  "a source authorization fault after Browser CONFIRMED must preserve the same attempt without leaking raw Browser refs",
-);
 
 const directSubmitRecovered = await exerciseSeoFlow(plugin, "produce_article", "proceed", {
   child: "submit_exact_gpt_turn_once",

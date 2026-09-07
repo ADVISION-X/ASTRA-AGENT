@@ -1,10 +1,25 @@
-import { TypedExecutionFailure } from "../../lib/execution-failure.js";
+import { executionFailure, TypedExecutionFailure } from "../../lib/execution-failure.js";
 import type {
   BrowserEffectFailureFacts,
   MutationOutcome,
 } from "../../lib/browser/browser-authority-api.js";
 import type { GptChildBrowserFact } from "./contract.js";
 import type { GptReasoningRequirementResult } from "./child-types.js";
+
+export const gptEvidenceFailureCause = (value: unknown): Error | undefined => {
+  if (value === null) return undefined;
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw executionFailure("failed", "FORENSICS_EXACT_CALL_EVIDENCE_INVALID");
+  }
+  const cause = value as Readonly<Record<string, unknown>>;
+  const name = cause.name;
+  const code = cause.code;
+  if (typeof name !== "string" || !/^[A-Za-z][A-Za-z0-9_.-]{0,63}$/u.test(name)
+    || !(code === null || (typeof code === "string" && /^[A-Z][A-Za-z0-9_.:=-]{0,255}$/u.test(code)))) {
+    throw executionFailure("failed", "FORENSICS_EXACT_CALL_EVIDENCE_INVALID");
+  }
+  return Object.assign(new Error(name), { name, ...(code ? { code } : {}) });
+};
 
 export type ProductSafeConfirmedProviderSubmitReceipt = Readonly<{
   exactCallIdentityHash: `sha256:${string}`;

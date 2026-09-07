@@ -12,7 +12,10 @@ import {
   acceptanceIntentFor,
   createEvidenceHarness,
 } from "./gpt-confirmed-provider-readback.acceptance-support.js";
-import { exerciseConfirmedSubmitFailureEvidenceReadback } from
+import {
+  exerciseConfirmedSubmitDocumentEvidence,
+  exerciseConfirmedSubmitFailureEvidenceReadback,
+} from
   "./gpt-failure-evidence-readback.acceptance-support.js";
 import { coherentObservationPacket, fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
 import {
@@ -226,41 +229,7 @@ import {
     "submit must not append a second GPT settlement chain after Browser's bounded postcondition");
   assert.equal(fixture.physicalMutations(), 1);
 
-  const submitIntent = acceptanceIntentFor(submittedResult, submitInput);
-  const submitEvidence = createEvidenceHarness();
-  await persistGptChildEvidence({
-    result: submittedResult,
-    intent: submitIntent,
-    evidenceStore: submitEvidence.evidenceStore,
-    jobId: submittedResult.proof.jobId,
-    attemptId: submittedResult.proof.attemptId,
-    stepId: submittedResult.proof.productStepId,
-    exactCallIdentityHash: submittedResult.proof.exactCallIdentityHash,
-  });
-  const storedSubmitPayload = submitEvidence.stored()!.record.payload as Readonly<Record<string, unknown>>;
-  assert.equal(storedSubmitPayload.confirmed_submit_readback_document_hash,
-    submittedResult.proof.afterDocumentRefHash,
-    "confirmed submit evidence must bind the direct post-submit Document by hash");
-  const verifiedSubmitEvidence = await readExactGptEvidenceFact({
-    evidenceStore: submitEvidence.evidenceStore,
-    intent: submitIntent,
-    exactCallIdentityHash: submittedResult.proof.exactCallIdentityHash,
-  });
-  assert.equal(confirmedSubmitReadbackDocumentHash(verifiedSubmitEvidence),
-    submittedResult.proof.afterDocumentRefHash);
-  submitEvidence.tamperLastPayload(Object.freeze({
-    ...storedSubmitPayload,
-    confirmed_submit_readback_document_hash: null,
-  }));
-  await assert.rejects(
-    () => readExactGptEvidenceFact({
-      evidenceStore: submitEvidence.evidenceStore,
-      intent: submitIntent,
-      exactCallIdentityHash: submittedResult.proof.exactCallIdentityHash,
-    }),
-    (error: unknown) => failureCode(error) === "FORENSICS_EXACT_CALL_EVIDENCE_INVALID",
-    "confirmed submit evidence without the D1 hash must fail closed",
-  );
+  await exerciseConfirmedSubmitDocumentEvidence(submittedResult, submitInput);
 
   const confirmedProviderSubmitReceipt = Object.freeze({
     sourceAttemptId: "attempt:gpt-exact-target",

@@ -186,11 +186,8 @@ export class ProductionGptChildTools {
         receipt,
       );
       if (receipt) {
-        try {
-          authorizeConfirmedProviderSourceReadback({ browsers, receipt });
-        } catch (error) {
-          throw carryConfirmedProviderSubmitReceipt(error, receipt);
-        }
+        try { authorizeConfirmedProviderSourceReadback({ browsers, receipt }); }
+        catch (error) { throw carryConfirmedProviderSubmitReceipt(error, receipt); }
       }
       return productSafeExactGptCallFacts(facts);
     };
@@ -500,5 +497,4 @@ export class ProductionGptChildTools {
       boundedAt: new Date().toISOString(),
     });
   }
-
 }

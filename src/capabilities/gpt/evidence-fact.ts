@@ -4,10 +4,11 @@ import {
   type GptChildCapabilityIntent,
 } from "./contract.js";
 import {
-  carryProductSafeConfirmedProviderSubmitReceipt,
+  gptEvidenceFailureCause,
   gptExecutionFailure,
   type GptFailureProofFacts,
 } from "./execution-fault.js";
+import * as confirmedSubmitEvidence from "./confirmed-submit-evidence.js";
 import { executionFailure } from "../../lib/execution-failure.js";
 import type { ExactGptCallFacts } from "./product-api.js";
 import type { GptEvidenceStorePort } from "./production-ports.js";
@@ -24,14 +25,9 @@ const reasoningTierUiValue = Object.freeze({
 type GptHash = `sha256:${string}`;
 
 const pendingEvidence = new WeakSet<object>();
-const confirmedSubmitReadbackDocumentHashes = new WeakMap<object, GptHash>();
 export const isPendingExactEvidence = (value: ExactGptCallFacts["evidence"]): boolean =>
   value !== null && pendingEvidence.has(value);
-export const confirmedSubmitReadbackDocumentHash = (
-  value: ExactGptCallFacts["evidence"],
-): GptHash | null => value === null
-  ? null
-  : confirmedSubmitReadbackDocumentHashes.get(value) ?? null;
+export { confirmedSubmitReadbackDocumentHash } from "./confirmed-submit-evidence.js";
 
 const invalid = (): never => {
   throw executionFailure("failed", "FORENSICS_EXACT_CALL_EVIDENCE_INVALID");
@@ -58,20 +54,6 @@ const exactKeys = (value: Readonly<Record<string, unknown>>, expected: readonly 
 
 const validCount = (value: unknown): value is number | null =>
   value === null || (Number.isSafeInteger(value) && Number(value) >= 0);
-
-const failureCause = (value: unknown): Error | undefined => {
-  if (value === null) return undefined;
-  const cause = record(value);
-  if (!cause) return invalid();
-  const name = cause.name;
-  const code = cause.code;
-  if (typeof name !== "string" || !/^[A-Za-z][A-Za-z0-9_.-]{0,63}$/u.test(name)
-    || !(code === null || machineCode(code))) invalid();
-  return Object.assign(new Error(String(name)), {
-    name: String(name),
-    ...(code ? { code: String(code) } : {}),
-  });
-};
 
 const browserOutcomeMatchesMutation = (
   outcome: unknown,
@@ -421,26 +403,8 @@ type VerifiedExactGptEvidence = Readonly<{
   confirmedSubmitReadbackDocumentHash: GptHash | null;
 }>;
 
-const verifiedConfirmedSubmitReadbackDocumentHash = (input: Readonly<{
-  payload: Readonly<Record<string, unknown>>;
-  intent: GptChildCapabilityIntent;
-  state: EvidenceState;
-}>): GptHash | null => {
-  const value = input.payload.confirmed_submit_readback_document_hash;
-  const failureProof = record(input.payload.failure_proof);
-  const browserFact = record(failureProof?.browser_fact);
-  const required = input.intent.childCapabilityId === "submit_exact_gpt_turn_once"
-    && input.state.mutation === "confirmed"
-    && (input.state.resultStatus === "success" || browserFact?.browser_outcome === "CONFIRMED")
-    && !input.state.failureCode?.startsWith("GPT_DOCUMENT_TRANSITION_FORBIDDEN:");
-  if (required ? !hashValue(value) : value !== null) invalid();
-  return required ? value as GptHash : null;
-};
-
-const failedInitialReadbackPending = (
-  recovery: boolean,
-  verified: VerifiedExactGptEvidence,
-): boolean => [recovery, !verified.terminal, verified.state.postcondition === "failed",
+const failedInitialReadbackPending = (recovery: boolean, verified: VerifiedExactGptEvidence): boolean => [
+  recovery, !verified.terminal, verified.state.postcondition === "failed",
   verified.state.resultStatus === "failed", verified.state.mutation === "no",
   !verified.state.failureCode?.startsWith("GPT_PROVIDER_TERMINAL_")].every(Boolean);
 
@@ -463,11 +427,11 @@ const readVerifiedExactGptEvidence = async (input: Readonly<{
   if (payload.schema_version !== "agent-gpt-evidence-safe.v2") invalid();
   const terminalKey = assertIdentity({ ...input, stored, payload, artifactRefs });
   const state = evidenceState(payload, terminalKey, input.postSubmitReadbackRecovery === true);
-  const confirmedSubmitReadbackDocumentHash = verifiedConfirmedSubmitReadbackDocumentHash({
-    payload, intent: input.intent, state,
-  });
+  const confirmedSubmitReadbackDocumentHash = confirmedSubmitEvidence.readConfirmedSubmitDocumentHash(
+    payload, input.intent, state,
+  );
   const reasoningResult = reasoningRequirementResult({ payload, intent: input.intent, state });
-  const cause = failureCause(payload.failure_cause);
+  const cause = gptEvidenceFailureCause(payload.failure_cause);
   return Object.freeze({
     recordRef: stored.recordRef,
     evidenceHash,
@@ -514,20 +478,9 @@ export const readExactGptEvidenceFact = async (input: Readonly<{
       reasoningRequirementResult: reasoningResult,
       ...(cause ? { cause } : {}),
     });
-    if (input.intent.childCapabilityId === "submit_exact_gpt_turn_once"
-      && state.mutation === "confirmed"
-      && browserFact?.effectScope === "provider_effect"
-      && browserFact.browserOutcome === "CONFIRMED"
-      && browserFact.mutationOutcome === "confirmed"
-      && browserFact.terminalAt) {
-      throw carryProductSafeConfirmedProviderSubmitReceipt(failure, {
-        exactCallIdentityHash: input.exactCallIdentityHash,
-        terminalAt: browserFact.terminalAt,
-        evidenceRef: verified.recordRef,
-        evidenceHash: verified.evidenceHash,
-      });
-    }
-    throw failure;
+    throw confirmedSubmitEvidence.carryConfirmedSubmitEvidenceFailure(
+      failure, input.intent, state, browserFact, input.exactCallIdentityHash, verified,
+    );
   }
   if (state.postcondition === "passed" && payload.failure_cause !== null) invalid();
   const fact = Object.freeze({
@@ -539,7 +492,9 @@ export const readExactGptEvidenceFact = async (input: Readonly<{
   });
   if (state.postcondition === "pending" || failedInitialReadbackRemainsPending) pendingEvidence.add(fact);
   if (verified.confirmedSubmitReadbackDocumentHash) {
-    confirmedSubmitReadbackDocumentHashes.set(fact, verified.confirmedSubmitReadbackDocumentHash);
+    confirmedSubmitEvidence.rememberConfirmedSubmitReadbackDocumentHash(
+      fact, verified.confirmedSubmitReadbackDocumentHash,
+    );
   }
   return fact;
 };
