@@ -1,4 +1,5 @@
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
+import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -13,9 +14,14 @@ import type {
   BrowserConfirmedProviderSourceReadbackAuthorization,
   BrowserExecutionBinding,
 } from "../../../lib/browser/browser-authority-api.js";
+import { confirmedSourceReadbackDocumentMatches } from
+  "../../../lib/browser/browser-authority-api.js";
 import { createRuntimeLogger } from "../../../lib/runtime-logs/index.js";
 import { typedExecutionFailure } from "../../../lib/execution-failure.js";
 import { HASH_A, HASH_B, task } from "../../../../scripts/acceptance/agent-production-runtime-fixtures.js";
+
+const documentHash = (value: string): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-readback-acceptance-"));
 try {
@@ -103,6 +109,7 @@ try {
     sourceChildCapabilityId: "submit_exact_gpt_turn_once",
     sourceTargetRef: "target:confirmed-readback:source",
     sourceDocumentRef: "document:confirmed-readback:source",
+    readbackDocumentRefHash: documentHash("document:confirmed-readback:successor"),
     sourceTerminalAt: new Date().toISOString(),
     evidenceRef: "evidence:confirmed-readback",
     evidenceHash: HASH_B,
@@ -136,12 +143,45 @@ try {
     sourceChildCapabilityId: "submit_exact_gpt_turn_once",
     sourceTargetRef: "target:confirmed-failure-readback",
     sourceDocumentRef: "document:confirmed-failure-readback",
+    readbackDocumentRefHash: documentHash("document:confirmed-failure-readback:successor"),
     sourceTerminalAt: confirmedAt,
     evidenceRef: "evidence:confirmed-failure-readback",
     evidenceHash: HASH_B,
     promptHash: HASH_A,
     turnMarker: "[GRASSEYE:confirmed-failure-readback]",
   });
+  assert.equal(confirmedSourceReadbackDocumentMatches(failureReadbackAuthorization, {
+    target: { targetRef: failureReadbackAuthorization.sourceTargetRef },
+    document: {
+      documentRef: failureReadbackAuthorization.sourceDocumentRef,
+      targetRef: failureReadbackAuthorization.sourceTargetRef,
+      navigationEpoch: 1,
+    },
+  } as never), true, "the immutable submit source D0 remains legal");
+  assert.equal(confirmedSourceReadbackDocumentMatches(failureReadbackAuthorization, {
+    target: { targetRef: failureReadbackAuthorization.sourceTargetRef },
+    document: {
+      documentRef: "document:confirmed-failure-readback:successor",
+      targetRef: failureReadbackAuthorization.sourceTargetRef,
+      navigationEpoch: 2,
+    },
+  } as never), true, "the hash-bound direct submit successor D1 is legal");
+  assert.equal(confirmedSourceReadbackDocumentMatches(failureReadbackAuthorization, {
+    target: { targetRef: failureReadbackAuthorization.sourceTargetRef },
+    document: {
+      documentRef: "document:confirmed-failure-readback:later",
+      targetRef: failureReadbackAuthorization.sourceTargetRef,
+      navigationEpoch: 3,
+    },
+  } as never), false, "a same-Target later D2 must never inherit source-only authority");
+  assert.equal(confirmedSourceReadbackDocumentMatches(failureReadbackAuthorization, {
+    target: { targetRef: "target:other" },
+    document: {
+      documentRef: "document:confirmed-failure-readback:successor",
+      targetRef: "target:other",
+      navigationEpoch: 2,
+    },
+  } as never), false, "a hash match on another Target must fail closed");
   const failureReadbackBindings: BrowserExecutionBinding[] = [];
   const failureReadbackLifecycle = new ProductionGptBrowserLifecycle(
     {
@@ -202,7 +242,11 @@ try {
   let sourceReadbackActionCount = 0;
   const exactActiveBrowser = {
     target: { targetRef: failureReadbackAuthorization.sourceTargetRef },
-    document: { documentRef: failureReadbackAuthorization.sourceDocumentRef },
+    document: {
+      documentRef: "document:confirmed-failure-readback:successor",
+      targetRef: failureReadbackAuthorization.sourceTargetRef,
+      navigationEpoch: 2,
+    },
     runAtomicStep: async (_identity: unknown, action: () => Promise<unknown>) => action(),
     readAtomicStepRecovery: (identity: Readonly<{
       productStepId: string; callId: string; childCapabilityId: string;
@@ -243,7 +287,11 @@ try {
   };
   const reacquiredActiveBrowser = {
     ...exactActiveBrowser,
-    document: { documentRef: "document:confirmed-failure-readback:reacquired" },
+    document: {
+      documentRef: "document:confirmed-failure-readback:reacquired",
+      targetRef: failureReadbackAuthorization.sourceTargetRef,
+      navigationEpoch: 3,
+    },
   };
   let activeFailureReadbackAcquisitions = 0;
   const activeFailureReadbackLifecycle = new ProductionGptBrowserLifecycle(

@@ -60,7 +60,7 @@ import {
 import { containsPageMutation, gptPrivateInfrastructureViolations, sourceFor, sourceTextForPaths }
   from "./gpt-inspection-support.js";
 
-const LAW_ID = "LAW-GPT-001-V32";
+const LAW_ID = "LAW-GPT-001-V33";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 15, 18, 22),
   "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 11, 12, 13, 16, 17, 19, 20, 21, 22, 23),

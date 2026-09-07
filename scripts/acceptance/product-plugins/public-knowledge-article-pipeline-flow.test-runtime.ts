@@ -28,6 +28,7 @@ const assertHarness = (
   state: SeoHarness,
   actionId: SeoAction,
   recoverAfterFault: boolean,
+  attemptId: string,
 ): ProductPluginOutput => {
   const output = state.completed;
   assert(output);
@@ -39,21 +40,24 @@ const assertHarness = (
       "SEO Product must not schedule fixed sleeps between GPT Children");
   }
   assert.equal(new Set(state.calls.map((call) => call.sessionKey)).size, 1);
-  assert.ok(state.calls.every((call) => call.sessionKey.includes("attempt-1")));
+  assert.ok(state.calls.every((call) => call.sessionKey.includes(attemptId)));
   assert.equal(state.handoffDelays.length, 0,
     "SEO Product must derive handoff readiness from each Child fact, not elapsed time");
   const firstPrompt = state.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt;
   assert.equal(typeof firstPrompt, "string");
   if (actionId === "produce_article") {
     assert.equal(state.providerNames.length, 1);
-    assert.match(firstPrompt as string, new RegExp(state.providerNames[0]!, "u"));
     assert.match(firstPrompt as string, /解压并读取本轮唯一 ZIP 附件/u);
+    assert.doesNotMatch(firstPrompt as string, new RegExp(state.providerNames[0]!, "u"),
+      "Product prompt must describe the exact attachment set without owning the Provider filename");
     assert.match(firstPrompt as string, /原文\.md 与索引\.json/u);
     assert.match(firstPrompt as string, /public-knowledge-research-output\.v3/u);
     assert.match(firstPrompt as string, /本回合不得返回 article package/u);
     assert.doesNotMatch(firstPrompt as string, /ready_corpus_snapshot_hash|sha256:/u);
   } else {
-    assert.match(firstPrompt as string, new RegExp(`${state.providerNames[0]} 与 ${state.providerNames[1]}`, "u"));
+    assert.match(firstPrompt as string, /读取且只读取本轮两个附件/u);
+    assert.doesNotMatch(firstPrompt as string, new RegExp(state.providerNames.join("|"), "u"),
+      "review prompts must not derive Provider filenames");
   }
   const files = state.calls.find((call) => call.child === "reconcile_gpt_draft")?.input.files;
   assert.deepEqual(Array.isArray(files)
@@ -68,12 +72,13 @@ export const exerciseSeoFlow = async (
   decision: "proceed" | "decline" = "proceed",
   failureAt?: SeoFailure,
   recoverAfterFault = false,
+  attemptId = "attempt-1",
 ) => {
   const state = createHarness(actionId, failureAt);
   const firstFailure = await runPlugin(
-    plugin, seoTask(actionId), createContext(state, decision, failureAt), state, recoverAfterFault,
+    plugin, seoTask(actionId), createContext(state, decision, failureAt, attemptId), state, recoverAfterFault,
   );
-  const completed = assertHarness(state, actionId, recoverAfterFault);
+  const completed = assertHarness(state, actionId, recoverAfterFault, attemptId);
   return {
     calls: state.calls, completed, firstFailure,
     physicalSubmitDispatches: state.physicalSubmitDispatches,

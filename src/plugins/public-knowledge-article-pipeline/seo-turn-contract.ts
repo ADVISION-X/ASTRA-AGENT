@@ -129,8 +129,8 @@ export const receptionSidecar = (
 export const textHash = (value: string): ProductionHash =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
-export const turnMarker = (task: WebsiteAgentTask, attemptId: string, stepId: string): string =>
-  `[GRASSEYE:${hashCanonical({ job_id: task.job_id, attempt_id: attemptId, product_step_id: stepId }).slice(7, 31)}]`;
+export const turnMarker = (task: WebsiteAgentTask, stepId: string): string =>
+  `[GRASSEYE:${hashCanonical({ job_id: task.job_id, product_step_id: stepId }).slice(7, 31)}]`;
 
 export const researchFrontierRef = (task: WebsiteAgentTask): ProductionHash => hashCanonical({
   identity_type: "gpt-continuation-frontier.v1",

@@ -10,6 +10,8 @@ import type {
   BrowserExecutionBinding,
   BrowserTargetLease,
 } from "../../lib/browser/browser-authority-api.js";
+import { confirmedSourceReadbackDocumentMatches } from
+  "../../lib/browser/browser-authority-api.js";
 import { requireRuntimeLogWrite, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { executionFailure } from "../../lib/execution-failure.js";
 import {
@@ -55,6 +57,7 @@ const confirmedSourceReadbackIdentityHash = (
   authorization.sourceChildCapabilityId,
   authorization.sourceTargetRef,
   authorization.sourceDocumentRef,
+  authorization.readbackDocumentRefHash,
   authorization.sourceTerminalAt,
   authorization.evidenceRef,
   authorization.evidenceHash,
@@ -103,8 +106,7 @@ export class ProductionGptBrowserLifecycle {
       throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
     }
     for (const active of this.browsers.values()) {
-      if (active.browser.target.targetRef !== authorization.sourceTargetRef
-        || active.browser.document.documentRef !== authorization.sourceDocumentRef) {
+      if (!confirmedSourceReadbackDocumentMatches(authorization, active.browser)) {
         throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
       }
     }
@@ -129,6 +131,7 @@ export class ProductionGptBrowserLifecycle {
         sourceChildCapabilityId: authorization.sourceChildCapabilityId,
         sourceTargetRef: authorization.sourceTargetRef,
         sourceDocumentRef: authorization.sourceDocumentRef,
+        readbackDocumentRefHash: authorization.readbackDocumentRefHash,
         sourceTerminalAt: authorization.sourceTerminalAt,
         evidenceRef: authorization.evidenceRef,
         evidenceHash: authorization.evidenceHash,

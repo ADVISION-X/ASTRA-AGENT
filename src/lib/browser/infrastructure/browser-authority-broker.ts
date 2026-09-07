@@ -37,6 +37,7 @@ type BrowserConfirmedProviderReadbackSource = Readonly<{
   sourceChildCapabilityId: "submit_exact_gpt_turn_once";
   sourceTargetRef: string;
   sourceDocumentRef: string;
+  readbackDocumentRefHash: BrowserHash;
   sourceTerminalAt: string;
   evidenceRef: string;
   evidenceHash: BrowserHash;

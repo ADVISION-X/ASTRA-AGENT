@@ -204,6 +204,7 @@ export type GptExecutionContext = Readonly<{
     sourceCallId: string;
     sourceTargetRef: string;
     sourceDocumentRef: string;
+    readbackDocumentRefHash: `sha256:${string}`;
     sourceTerminalAt: string;
     evidenceRef: string;
     evidenceHash: `sha256:${string}`;

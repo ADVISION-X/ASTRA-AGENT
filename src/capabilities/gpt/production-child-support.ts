@@ -1,6 +1,9 @@
 import type { GptChildCapabilityResult, GptHash } from "./contract.js";
 import { withRuntimeLogCause } from "../../lib/runtime-logs/index.js";
-import { gptExecutionFailure } from "./execution-fault.js";
+import {
+  carryProductSafeConfirmedProviderSubmitReceipt,
+  gptExecutionFailure,
+} from "./execution-fault.js";
 import { persistedGptEvidenceRef } from "./evidence-writer.js";
 import type { ProductGptTools } from "./product-api.js";
 
@@ -53,5 +56,20 @@ export const throwGptChildFailure = (result: GptChildCapabilityResult): never =>
     ...(native ? { cause: native } : {}),
   });
   const causeEventId = childFailureEventIds.get(result);
-  throw causeEventId ? withRuntimeLogCause(error, causeEventId) : error;
+  const propagated = causeEventId ? withRuntimeLogCause(error, causeEventId) : error;
+  if (result.proof.childCapabilityId === "submit_exact_gpt_turn_once"
+    && result.proof.committedMutation === "confirmed"
+    && browserFact?.effectScope === "provider_effect"
+    && browserFact.browserOutcome === "CONFIRMED"
+    && browserFact.mutationOutcome === "confirmed"
+    && browserFact.terminalAt
+    && evidenceRef) {
+    throw carryProductSafeConfirmedProviderSubmitReceipt(propagated, {
+      exactCallIdentityHash: result.proof.exactCallIdentityHash,
+      terminalAt: browserFact.terminalAt,
+      evidenceRef,
+      evidenceHash: result.proof.evidenceHash,
+    });
+  }
+  throw propagated;
 };

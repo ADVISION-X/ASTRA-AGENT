@@ -96,6 +96,7 @@ try {
       reasoning_requirement_result: null,
       failure_code: null,
       failure_cause: null,
+      confirmed_submit_readback_document_hash: textHash("document:confirmed-submit"),
       started_at: "2026-09-03T00:00:00.000Z",
       ended_at: "2026-09-03T00:00:00.001Z",
       source_evidence_hash: evidenceHash,
@@ -230,6 +231,7 @@ try {
       reasoning_requirement_result: null,
       failure_code: "BROWSER_DOM_READ_INVALID",
       failure_cause: null,
+      confirmed_submit_readback_document_hash: null,
       failure_proof: Object.freeze({
         internal_decision_code: "FAIL_CLOSED",
         fact_result_ids: Object.freeze([]),

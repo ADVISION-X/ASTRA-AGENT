@@ -150,7 +150,7 @@ const attachmentExecutionValue = (input: ExecutionValueInput): ExecutionValue =>
       artifactRef: file.artifactRef,
       displayName: file.displayName,
       providerDisplayName: gptAttachmentProviderDisplayName(
-        String(file.displayName), "attempt-1", String(file.artifactRef),
+        String(file.displayName), input.fixture.task.job_id, String(file.artifactRef),
       ),
       sha256: file.sha256,
       bytes: file.bytes,
@@ -260,6 +260,7 @@ const createGptFixture = (
   state: ProductRunState,
   fixture: ProductFlowFixture,
 ): SharedExecutionContext["gpt"] => ({
+  jobId: fixture.task.job_id,
   attemptId: "attempt-1",
   readContinuationExact: async (query) => {
     state.continuationReads.push(query);

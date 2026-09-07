@@ -6,6 +6,39 @@ import type {
 import type { GptChildBrowserFact } from "./contract.js";
 import type { GptReasoningRequirementResult } from "./child-types.js";
 
+export type ProductSafeConfirmedProviderSubmitReceipt = Readonly<{
+  exactCallIdentityHash: `sha256:${string}`;
+  terminalAt: string;
+  evidenceRef: string;
+  evidenceHash: `sha256:${string}`;
+}>;
+
+const errorConfirmedSubmitReceipts = new WeakMap<object, ProductSafeConfirmedProviderSubmitReceipt>();
+
+export const carryProductSafeConfirmedProviderSubmitReceipt = (
+  error: unknown,
+  receipt: ProductSafeConfirmedProviderSubmitReceipt,
+): unknown => {
+  if (error && typeof error === "object") {
+    errorConfirmedSubmitReceipts.set(error, Object.freeze(receipt));
+  }
+  return error;
+};
+
+export const confirmedProviderSubmitReceiptFromError = (
+  error: unknown,
+): ProductSafeConfirmedProviderSubmitReceipt | null => {
+  let current = error;
+  const seen = new Set<object>();
+  while (current && typeof current === "object" && !seen.has(current)) {
+    seen.add(current);
+    const receipt = errorConfirmedSubmitReceipts.get(current);
+    if (receipt) return receipt;
+    current = current instanceof Error ? current.cause : undefined;
+  }
+  return null;
+};
+
 export type GptFailureProofFacts = Readonly<{
   decision: "DONE" | "ACT" | "WAIT" | "FAIL_CLOSED";
   factResultIds: readonly string[];

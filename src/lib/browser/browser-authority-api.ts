@@ -25,6 +25,8 @@ export type {
   BrowserExecutionArtifactLease,
 } from "./infrastructure/browser-authority-broker.js";
 export { BrowserAuthorityBroker } from "./infrastructure/browser-authority-broker.js";
+export { confirmedSourceReadbackDocumentMatches } from
+  "./infrastructure/browser-confirmed-readback-source.js";
 export {
   browserExecutionFailure,
   typedBrowserExecutionFailure,

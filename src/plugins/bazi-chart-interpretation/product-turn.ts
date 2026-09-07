@@ -66,7 +66,7 @@ export const integerValue = (value: unknown, code: string): number => {
   if (!Number.isSafeInteger(value) || Number(value) < 1) fail(code);
   return Number(value);
 };
-export const markerFor = (task: WebsiteAgentTask, _attemptId: string): string =>
+export const markerFor = (task: WebsiteAgentTask): string =>
   `[GRASSEYE:${hashCanonical({
     job_id: task.job_id, product_step_id: task.action_id,
   }).slice(7, 31)}]`;
@@ -123,7 +123,7 @@ const uploadedFiles = (context: SharedExecutionContext) => materialFiles(context
     artifactRef: file.artifactRef,
     displayName: file.displayName,
     providerDisplayName: gptAttachmentProviderDisplayName(
-      file.displayName, context.gpt.attemptId, file.artifactRef,
+      file.displayName, context.gpt.jobId, file.artifactRef,
     ),
     sha256: file.sha256,
     bytes: file.bytes,
@@ -133,7 +133,7 @@ export const uploadedFilesForRoles = (context: SharedExecutionContext, roles: re
     artifactRef: file.artifactRef,
     displayName: file.displayName,
     providerDisplayName: gptAttachmentProviderDisplayName(
-      file.displayName, context.gpt.attemptId, file.artifactRef,
+      file.displayName, context.gpt.jobId, file.artifactRef,
     ),
     sha256: file.sha256,
     bytes: file.bytes,
@@ -158,7 +158,7 @@ export const promptFor = (
 ): string => {
   const attachments = context.materials.slice().sort((left, right) => left.ordinal - right.ordinal)
     .map((material) => `${material.role}=${gptAttachmentProviderDisplayName(
-      material.display_name, context.gpt.attemptId, material.material_id,
+      material.display_name, context.gpt.jobId, material.material_id,
     )}`);
   const instruction = task.action_id === "accuracy_challenge"
     ? "只复核当前 subject result 的事实、证据、问题覆盖与推理，返回可核验 finding；不得改写结果或替 Website 裁决。"

@@ -1,5 +1,8 @@
+import { createHash } from "node:crypto";
+
 import type { BrowserExecutionBinding } from "./browser-authority-broker.js";
 import type { BrowserExactCallMutationFact } from "../exact-target/browser-mutation-store.js";
+import type { BrowserTargetLease } from "../exact-target/browser-target-lease.js";
 
 type ReconciliationBinding = Extract<BrowserExecutionBinding, { kind: "production-reconciliation" }>;
 type SourceReadbackBinding = Extract<
@@ -48,12 +51,24 @@ export const readbackSource = (binding: ConfirmedReadbackBinding) => {
   return exhausted;
 };
 
+const documentRefHash = (value: string): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(value).digest("hex")}`;
+
+export const confirmedSourceReadbackDocumentMatches = (
+  source: ReturnType<typeof readbackSource>,
+  lease: Pick<BrowserTargetLease, "target" | "document">,
+): boolean => lease.target.targetRef === source.sourceTargetRef
+  && lease.document.targetRef === source.sourceTargetRef
+  && (lease.document.documentRef === source.sourceDocumentRef
+    || documentRefHash(lease.document.documentRef) === source.readbackDocumentRefHash);
+
 const sourceIdentityMatches = (
   source: ReturnType<typeof readbackSource>,
   binding: ConfirmedReadbackBinding,
 ): boolean => source.sourceProductStepId === binding.productStepId
   && source.sourceChildCapabilityId === "submit_exact_gpt_turn_once"
   && hash(source.sourceExactCallIdentityHash)
+  && hash(source.readbackDocumentRefHash)
   && hash(source.evidenceHash)
   && hash(source.promptHash)
   && Boolean(source.evidenceRef)

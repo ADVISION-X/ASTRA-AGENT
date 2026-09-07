@@ -38,7 +38,6 @@ import {
   articlePrompt,
   attachmentFiles,
   expectedUploadedFiles,
-  providerDisplayNames,
   researchPrompt,
   reviewPrompt,
 } from "./seo-turn-prompts.js";
@@ -105,13 +104,10 @@ const produceResearchTurn = async (
   frontierRef: `sha256:${string}`,
 ): Promise<ResearchTurn> => {
   const files = attachmentFiles(context);
-  const uploadedFiles = expectedUploadedFiles(files, context.gpt.attemptId);
+  const uploadedFiles = expectedUploadedFiles(files, context.gpt.jobId);
   const stepId = "corpus_research";
-  const marker = turnMarker(task, context.gpt.attemptId, stepId);
-  const prompt = researchPrompt(
-    task, marker, providerDisplayNames(files, context.gpt.attemptId),
-    context.routePolicy, context.productSkill,
-  );
+  const marker = turnMarker(task, stepId);
+  const prompt = researchPrompt(task, marker, context.routePolicy, context.productSkill);
   const textTurn = {
     flow, stepId, prompt, marker, files: uploadedFiles,
     ordinals: [11, 12, 13, 14, 15, 16],
@@ -127,7 +123,7 @@ const produceResearchTurn = async (
     && recovered.prior_turn_marker === marker
     && recovered.prior_prompt_hash === textHash(prompt) ? recovered : undefined;
   await prepareAttachedTurnPrefix({
-    flow, stepId, files, uploadedFiles,
+    flow, stepId, files,
     recoverOnly: Boolean(submitFacts.mutation || submitFacts.evidence),
   });
   const checkpointInput = {
@@ -207,7 +203,7 @@ const produceArticleTurn = async (
   researchProvider: GptProviderContinuation,
 ): Promise<ArticleTurn> => {
   const stepId = "article_synthesis";
-  const marker = turnMarker(task, context.gpt.attemptId, stepId);
+  const marker = turnMarker(task, stepId);
   const prompt = articlePrompt(task, marker, context.routePolicy, context.productSkill);
   const textTurn = {
     flow, stepId, prompt, marker, files: [], ordinals: [27, 28, 29, 30, 31, 32],
@@ -338,7 +334,7 @@ const executeArticleProduction = async (
   const imageStep = "article_image_generation";
   const image = await generateImage({
     flow, task, stepId: imageStep,
-    marker: turnMarker(task, article.sourceAttemptId, imageStep),
+    marker: turnMarker(task, imageStep),
     continuationRef: research.continuationRef,
     expectedProvider: continuationProvider(task, article.checkpoint),
     sourceAttemptId: context.gpt.attemptId,
@@ -352,12 +348,10 @@ const executeArticleProduction = async (
 const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionContext) => {
   const flow = createSeoExecutor(task, context);
   const stepId = task.action_id;
-  const marker = turnMarker(task, context.gpt.attemptId, stepId);
+  const marker = turnMarker(task, stepId);
   const files = attachmentFiles(context);
-  const uploadedFiles = expectedUploadedFiles(files, context.gpt.attemptId);
-  const prompt = reviewPrompt(
-    task, marker, providerDisplayNames(files, context.gpt.attemptId), context.productSkill,
-  );
+  const uploadedFiles = expectedUploadedFiles(files, context.gpt.jobId);
+  const prompt = reviewPrompt(task, marker, context.productSkill);
   const textTurn = {
     flow, stepId, prompt, marker, files: uploadedFiles,
     ordinals: [11, 12, 13, 14, 15, 16],
@@ -365,7 +359,7 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
   const submitCall = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 13, input: { files: uploadedFiles, promptHash: textHash(prompt), turnMarker: marker } } as const;
   const submitFacts = await flow.facts(submitCall);
   await prepareAttachedTurnPrefix({
-    flow, stepId, files, uploadedFiles,
+    flow, stepId, files,
     recoverOnly: Boolean(submitFacts.mutation || submitFacts.evidence),
   });
   const checkpoint = await submitTextTurn(textTurn);

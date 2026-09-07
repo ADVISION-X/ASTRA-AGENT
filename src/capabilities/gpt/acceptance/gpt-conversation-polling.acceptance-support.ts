@@ -337,6 +337,7 @@ import {
     sourceCallId: "turn-submit",
     sourceTargetRef: "target:confirmed-submit",
     sourceDocumentRef: "document:confirmed-submit",
+    readbackDocumentRefHash: hash("document:confirmed-submit"),
     sourceTerminalAt: "2026-09-07T00:00:00.000Z",
     evidenceRef: "evidence:confirmed-submit",
     evidenceHash: `sha256:${"b".repeat(64)}` as const,

@@ -1,6 +1,17 @@
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 
-import { executionFailure } from "../../../lib/execution-failure.js";
+import { executionFailure, failureCode } from "../../../lib/execution-failure.js";
+import { confirmedSubmitReadbackDocumentHash, readExactGptEvidenceFact } from "../evidence-fact.js";
+import { persistGptChildEvidence } from "../evidence-writer.js";
+import { throwGptChildFailure } from "../production-child-support.js";
+import {
+  confirmedProviderSubmitReceipt,
+  confirmedProviderSubmitReceiptFromError,
+} from "../confirmed-provider-readback.js";
+import {
+  acceptanceIntentFor,
+  createEvidenceHarness,
+} from "./gpt-confirmed-provider-readback.acceptance-support.js";
 import { exerciseConfirmedSubmitFailureEvidenceReadback } from
   "./gpt-failure-evidence-readback.acceptance-support.js";
 import { coherentObservationPacket, fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
@@ -204,15 +215,52 @@ import {
     }
     throw new Error(`UNEXPECTED_SUBMIT_INTENT:${intent.kind}`);
   });
-  const submittedResult = await execute("submit_exact_gpt_turn_once", fixture.browser, {
+  const submitInput = Object.freeze({
     files: [approvedFile], promptHash, turnMarker: marker,
   });
+  const submittedResult = await execute("submit_exact_gpt_turn_once", fixture.browser, submitInput);
   assert.equal(submittedResult.status, "success", submittedResult.failureCode ?? "turn submission failed");
   assert.equal(submittedResult.value?.mutationSent, true);
   assert.equal(submittedResult.proof.committedMutation, "confirmed");
   assert.equal(fixture.waitDurations().length, 0,
     "submit must not append a second GPT settlement chain after Browser's bounded postcondition");
   assert.equal(fixture.physicalMutations(), 1);
+
+  const submitIntent = acceptanceIntentFor(submittedResult, submitInput);
+  const submitEvidence = createEvidenceHarness();
+  await persistGptChildEvidence({
+    result: submittedResult,
+    intent: submitIntent,
+    evidenceStore: submitEvidence.evidenceStore,
+    jobId: submittedResult.proof.jobId,
+    attemptId: submittedResult.proof.attemptId,
+    stepId: submittedResult.proof.productStepId,
+    exactCallIdentityHash: submittedResult.proof.exactCallIdentityHash,
+  });
+  const storedSubmitPayload = submitEvidence.stored()!.record.payload as Readonly<Record<string, unknown>>;
+  assert.equal(storedSubmitPayload.confirmed_submit_readback_document_hash,
+    submittedResult.proof.afterDocumentRefHash,
+    "confirmed submit evidence must bind the direct post-submit Document by hash");
+  const verifiedSubmitEvidence = await readExactGptEvidenceFact({
+    evidenceStore: submitEvidence.evidenceStore,
+    intent: submitIntent,
+    exactCallIdentityHash: submittedResult.proof.exactCallIdentityHash,
+  });
+  assert.equal(confirmedSubmitReadbackDocumentHash(verifiedSubmitEvidence),
+    submittedResult.proof.afterDocumentRefHash);
+  submitEvidence.tamperLastPayload(Object.freeze({
+    ...storedSubmitPayload,
+    confirmed_submit_readback_document_hash: null,
+  }));
+  await assert.rejects(
+    () => readExactGptEvidenceFact({
+      evidenceStore: submitEvidence.evidenceStore,
+      intent: submitIntent,
+      exactCallIdentityHash: submittedResult.proof.exactCallIdentityHash,
+    }),
+    (error: unknown) => failureCode(error) === "FORENSICS_EXACT_CALL_EVIDENCE_INVALID",
+    "confirmed submit evidence without the D1 hash must fail closed",
+  );
 
   const confirmedProviderSubmitReceipt = Object.freeze({
     sourceAttemptId: "attempt:gpt-exact-target",
@@ -222,6 +270,7 @@ import {
     sourceCallId: "acceptance-call",
     sourceTargetRef: "target:1",
     sourceDocumentRef: "document:1",
+    readbackDocumentRefHash: hash("document:1"),
     sourceTerminalAt: "2026-09-02T00:00:01.000Z",
     evidenceRef: "evidence:submit",
     evidenceHash: `sha256:${"b".repeat(64)}` as const,
@@ -260,6 +309,87 @@ import {
     assert.equal(invalidLocatorFixture.physicalMutations(), 0,
       "a transient or overlong route must never become a permanent conversation locator");
   }
+}
+
+{
+  const { execute } = freshHarness();
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      return coherentObservationPacket(intent, draftFacts({
+        composerHash: promptHash, submitted: false, attachment: true,
+      }), "https://chatgpt.com/");
+    }
+    if (intent.kind === "click") return { postconditionVerified: true };
+    throw new Error(`UNEXPECTED_D2_SUBMIT_INTENT:${intent.kind}`);
+  }, { navigationEpochAdvanceOnMutation: 2 });
+  const input = Object.freeze({ files: [approvedFile], promptHash, turnMarker: marker });
+  const result = await execute("submit_exact_gpt_turn_once", fixture.browser, input);
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, "GPT_DOCUMENT_TRANSITION_FORBIDDEN:submit_exact_gpt_turn_once");
+  assert.equal(result.proof.committedMutation, "confirmed");
+  assert.equal(result.proof.browserFact?.browserOutcome, "CONFIRMED");
+  assert.equal(result.proof.browserFact?.mutationOutcome, "confirmed");
+  const intent = acceptanceIntentFor(result, input);
+  const persistence = createEvidenceHarness();
+  await persistGptChildEvidence({
+    result,
+    intent,
+    evidenceStore: persistence.evidenceStore,
+    jobId: result.proof.jobId,
+    attemptId: result.proof.attemptId,
+    stepId: result.proof.productStepId,
+    exactCallIdentityHash: result.proof.exactCallIdentityHash,
+  });
+  const payload = persistence.stored()!.record.payload as Readonly<Record<string, unknown>>;
+  assert.equal(payload.confirmed_submit_readback_document_hash, null,
+    "a D2/+2 transition must never mint its own confirmed-submit readback authorization hash");
+  assert.throws(
+    () => throwGptChildFailure(result),
+    (error: unknown) => {
+      const receipt = confirmedProviderSubmitReceiptFromError(error);
+      const serialized = JSON.stringify(receipt);
+      return failureCode(error) === "GPT_DOCUMENT_TRANSITION_FORBIDDEN:submit_exact_gpt_turn_once"
+        && receipt?.exactCallIdentityHash === result.proof.exactCallIdentityHash
+        && receipt.evidenceRef === persistence.stored()!.recordRef
+        && !serialized.includes("target:1")
+        && !serialized.includes("document:1");
+    },
+    "ProductionGptChildTools failure propagation must retain a Product-safe confirmed-submit receipt",
+  );
+  const evidence = await readExactGptEvidenceFact({
+    evidenceStore: persistence.evidenceStore,
+    intent,
+    exactCallIdentityHash: result.proof.exactCallIdentityHash,
+  });
+  assert.equal(confirmedSubmitReadbackDocumentHash(evidence), null);
+  assert.throws(
+    () => confirmedProviderSubmitReceipt({
+      productStepId: result.proof.productStepId,
+      callId: result.proof.callId,
+      child: "submit_exact_gpt_turn_once",
+      actionOrdinal: result.proof.actionOrdinal,
+      input,
+    }, {
+      exactCallIdentityHash: result.proof.exactCallIdentityHash,
+      mutation: {
+        owner: "browser", sourceAttemptId: result.proof.attemptId,
+        effectScope: "provider_effect", outcome: "CONFIRMED", mutationOutcome: "confirmed",
+        terminalAt: result.proof.browserFact!.terminalAt,
+        productStepId: result.proof.productStepId, callId: result.proof.callId,
+        childCapabilityId: result.proof.childCapabilityId, actionOrdinal: result.proof.actionOrdinal,
+        failureCode: null, nativeFailureCode: null,
+        authorityRef: result.proof.browserFact!.evidenceRef,
+        authorityHash: result.proof.browserFact!.evidenceHash,
+        targetRef: "target:1", documentRef: "document:1",
+      },
+      evidence,
+      continuation: null,
+    }),
+    (error: unknown) => failureCode(error) === "FORENSICS_EXACT_CALL_EVIDENCE_INVALID"
+      && confirmedProviderSubmitReceiptFromError(error)?.exactCallIdentityHash
+        === result.proof.exactCallIdentityHash,
+    "the stored D2 failure must preserve the confirmed effect without ever becoming a D1 receipt",
+  );
 }
 
 {
@@ -308,6 +438,51 @@ import {
   assert.equal(fixture.physicalMutations(), 1,
     "semantic readback failure must never repeat the Provider submit mutation");
   await exerciseConfirmedSubmitFailureEvidenceReadback(result, input);
+}
+
+{
+  const { execute } = freshHarness();
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      return coherentObservationPacket(intent, draftFacts({
+        composerHash: promptHash, submitted: false, attachment: true,
+      }), "https://chatgpt.com/");
+    }
+    if (intent.kind === "click") return {
+      mutationCount: 1,
+      postconditionVerified: false,
+      failureCode: "BROWSER_POSTCONDITION_FAILED",
+      nativeCauseCode: "BROWSER_DOM_ACTION_HIT_TEST_FAILED",
+    };
+    throw new Error(`UNEXPECTED_REJECTED_SUBMIT_INTENT:${intent.kind}`);
+  });
+  const input = Object.freeze({ files: [approvedFile], promptHash, turnMarker: marker });
+  const result = await execute("submit_exact_gpt_turn_once", fixture.browser, input);
+  assert.equal(result.status, "failed");
+  assert.equal(result.proof.committedMutation, "confirmed");
+  assert.equal(result.proof.browserFact?.browserOutcome, "REJECTED");
+  const intent = acceptanceIntentFor(result, input);
+  const persistence = createEvidenceHarness();
+  await persistGptChildEvidence({
+    result,
+    intent,
+    evidenceStore: persistence.evidenceStore,
+    jobId: result.proof.jobId,
+    attemptId: result.proof.attemptId,
+    stepId: result.proof.productStepId,
+    exactCallIdentityHash: result.proof.exactCallIdentityHash,
+  });
+  const payload = persistence.stored()!.record.payload as Readonly<Record<string, unknown>>;
+  assert.equal(payload.confirmed_submit_readback_document_hash, null,
+    "REJECTED+confirmed must preserve the attempt without minting a confirmed-submit D1 authorization");
+  await assert.rejects(
+    () => readExactGptEvidenceFact({
+      evidenceStore: persistence.evidenceStore,
+      intent,
+      exactCallIdentityHash: result.proof.exactCallIdentityHash,
+    }),
+    (error: unknown) => failureCode(error) === "BROWSER_POSTCONDITION_FAILED",
+  );
 }
 
 {

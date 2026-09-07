@@ -1,5 +1,6 @@
 import type { BrowserTargetLease } from "../exact-target/browser-target-lease.js";
 import type { BrowserExecutionBinding } from "./browser-authority-broker.js";
+import { confirmedSourceReadbackDocumentMatches } from "./browser-confirmed-readback-source.js";
 
 type ReconciliationBinding = Extract<BrowserExecutionBinding, { kind: "production-reconciliation" }>;
 type SourceBinding = Extract<BrowserExecutionBinding, { kind: "production-confirmed-source-readback" }>;
@@ -28,7 +29,11 @@ const readOnlyLease = (lease: BrowserTargetLease, binding: SourceBinding): Brows
         && identity.actionOrdinal === binding.confirmedProviderSourceReadback.sourceActionOrdinal
         && recovery?.state === "confirmed" && recovery.mutationOutcome === "confirmed"
         && recovery.targetRef === binding.confirmedProviderSourceReadback.sourceTargetRef
-        && recovery.documentRef === binding.confirmedProviderSourceReadback.sourceDocumentRef;
+        && recovery.documentRef === binding.confirmedProviderSourceReadback.sourceDocumentRef
+        && confirmedSourceReadbackDocumentMatches(
+          binding.confirmedProviderSourceReadback,
+          lease,
+        );
       return identity.replayPolicy === "observation-only" || exactConfirmedSubmit
         ? lease.runAtomicStep(identity, action) : reject();
     },

@@ -154,6 +154,7 @@ export type ExactGptContinuationReadback = Readonly<
 >;
 
 export interface ProductGptTools {
+  readonly jobId: string;
   readonly attemptId: string;
   readContinuationExact(query: ExactGptContinuationQuery): Promise<ExactGptContinuationReadback | null>;
   execute<K extends GptChildCapabilityId>(

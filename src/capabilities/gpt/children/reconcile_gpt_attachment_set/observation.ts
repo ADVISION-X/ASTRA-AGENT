@@ -78,7 +78,7 @@ export const filesFromIntent = (
     return {
       artifactRef: item.artifactRef,
       displayName,
-      providerDisplayName: gptAttachmentProviderDisplayName(displayName, intent.attemptId, item.artifactRef),
+      providerDisplayName: gptAttachmentProviderDisplayName(displayName, intent.jobId, item.artifactRef),
       sha256: item.sha256 as `sha256:${string}`,
       bytes: item.bytes,
     };

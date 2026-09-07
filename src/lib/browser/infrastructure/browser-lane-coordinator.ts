@@ -18,6 +18,7 @@ import {
 } from "./browser-target-acquirer.js";
 import { admittedReadbackLease } from "./browser-confirmed-readback-lease.js";
 import {
+  confirmedSourceReadbackDocumentMatches,
   confirmedSourceMatches,
   readbackSource,
 } from "./browser-confirmed-readback-source.js";
@@ -60,10 +61,9 @@ const recoveryMutationOutcome = (
 
 const sourceReadbackTargetChanged = (
   binding: BrowserExecutionBinding,
-  targetMismatch: boolean,
-  documentMismatch: boolean,
+  lease: BrowserTargetLease,
 ): boolean => binding.kind === "production-confirmed-source-readback"
-  && (targetMismatch || documentMismatch);
+  && !confirmedSourceReadbackDocumentMatches(binding.confirmedProviderSourceReadback, lease);
 
 const dispatchedTargetLocalChanged = (
   recovery: LaneRecovery | null,
@@ -282,7 +282,7 @@ export class BrowserLaneCoordinator {
   ): Readonly<{ lease: BrowserTargetLease; replacementKey: string | null }> {
     const targetMismatch = Boolean(recovery) && lease.target.targetRef !== recovery?.targetRef;
     const documentMismatch = Boolean(recovery) && lease.document.documentRef !== recovery?.documentRef;
-    if (sourceReadbackTargetChanged(binding, targetMismatch, documentMismatch)) {
+    if (sourceReadbackTargetChanged(binding, lease)) {
       throw new Error("BROWSER_DOCUMENT_INVALID");
     }
     if (dispatchedTargetLocalChanged(recovery, targetMismatch, documentMismatch)) {

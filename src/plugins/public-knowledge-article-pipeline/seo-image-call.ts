@@ -32,6 +32,7 @@ import {
   requireExactProfileEvidence,
 } from "./seo-gpt-calls.js";
 import {
+  executeAndReadConfirmedSubmit,
   preservePostSubmitReadback,
   SEO_PROVIDER_PROBE_BUDGET_MS,
   type SeoConfirmedSubmit,
@@ -61,13 +62,10 @@ const prepareImageSubmit = async (
   await applyExactProfile(input.flow.execute, input.stepId, [37, 38, 39, 40, 41, 42]);
   await input.flow.execute({ sessionKey: "", ...promptWrite });
   await input.flow.execute({ sessionKey: "", ...draftReconcile });
-  try {
-    await input.flow.execute({ sessionKey: "", ...turnSubmit });
-  } catch (error) {
-    return preservePostSubmitReadback(error, await input.flow.facts(turnSubmit));
-  }
-  const confirmed = await input.flow.facts(turnSubmit);
-  return confirmed;
+  return executeAndReadConfirmedSubmit({
+    execute: () => input.flow.execute({ sessionKey: "", ...turnSubmit }),
+    readFacts: () => input.flow.facts(turnSubmit),
+  });
 };
 
 const settleCurrentImageSubmit = async (
@@ -85,13 +83,10 @@ const settleCurrentImageSubmit = async (
     actionOrdinal: 44, input: { files: [], prompt, turnMarker: input.marker },
   });
   const submit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 45, input: { files: [], promptHash, turnMarker: input.marker } } as const;
-  try {
-    await input.flow.execute({ sessionKey: "", ...submit });
-  } catch (error) {
-    return preservePostSubmitReadback(error, await input.flow.facts(submit));
-  }
-  const confirmed = await input.flow.facts(submit);
-  return confirmed;
+  return executeAndReadConfirmedSubmit({
+    execute: () => input.flow.execute({ sessionKey: "", ...submit }),
+    readFacts: () => input.flow.facts(submit),
+  });
 };
 
 const imageArtifact = (value: unknown): GeneratedImageArtifact => {

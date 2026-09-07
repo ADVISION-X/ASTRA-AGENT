@@ -134,12 +134,21 @@ const proofFor = <K extends GptChildCapabilityId>(input: ProofInput<K>): GptChil
   });
 };
 
-const currentDocument = (context: GptExecutionContext): Readonly<{
+type CurrentDocument = Readonly<{
   ref: string | null;
+  targetRef: string | null;
+  navigationEpoch: number | null;
   url: string | null;
-}> => context.browser
-  ? Object.freeze({ ref: context.browser.document.documentRef, url: null })
-  : Object.freeze({ ref: null, url: null });
+}>;
+
+const currentDocument = (context: GptExecutionContext): CurrentDocument => context.browser
+  ? Object.freeze({
+    ref: context.browser.document.documentRef,
+    targetRef: context.browser.document.targetRef,
+    navigationEpoch: context.browser.document.navigationEpoch,
+    url: null,
+  })
+  : Object.freeze({ ref: null, targetRef: null, navigationEpoch: null, url: null });
 
 const failedBrowserFact = <K extends GptChildCapabilityId>(
   intent: GptChildCapabilityIntent<K>,
@@ -180,19 +189,35 @@ const failedBrowserFact = <K extends GptChildCapabilityId>(
 
 const documentTransitionAllowed = (
   childCapabilityId: GptChildCapabilityId,
-  before: Readonly<{ ref: string | null; url: string | null }>,
-  after: Readonly<{ ref: string | null; url: string | null }>,
+  before: CurrentDocument,
+  after: CurrentDocument,
 ): boolean => {
   const contract = GPT_CHILD_CAPABILITY_CONTRACTS[childCapabilityId];
-  if (contract.allowedDocumentTransition === "not-applicable") return before.ref === null && after.ref === null;
-  if (contract.allowedDocumentTransition === "forbidden") return before.ref === after.ref;
-  return before.ref !== null && after.ref !== null;
+  if (contract.allowedDocumentTransition === "not-applicable") {
+    return before.ref === null && after.ref === null
+      && before.targetRef === null && after.targetRef === null
+      && before.navigationEpoch === null && after.navigationEpoch === null;
+  }
+  if (before.ref === null || after.ref === null
+    || before.targetRef === null || after.targetRef === null
+    || before.navigationEpoch === null || after.navigationEpoch === null
+    || before.targetRef !== after.targetRef) return false;
+  if (contract.allowedDocumentTransition === "forbidden") {
+    return before.ref === after.ref && before.navigationEpoch === after.navigationEpoch;
+  }
+  return (after.navigationEpoch === before.navigationEpoch && after.ref === before.ref)
+    || (after.navigationEpoch === before.navigationEpoch + 1 && after.ref !== before.ref);
 };
+
+const documentTransitionObservable = (before: CurrentDocument, after: CurrentDocument): boolean =>
+  before.ref !== null && after.ref !== null
+  && before.targetRef !== null && after.targetRef !== null
+  && before.navigationEpoch !== null && after.navigationEpoch !== null;
 
 const assertObservationIsAtomic = (
   intent: Readonly<{ childCapabilityId: GptChildCapabilityId }>,
   context: GptExecutionContext,
-  before: Readonly<{ ref: string | null; url: string | null }>,
+  before: CurrentDocument,
   observation: GptChildObservation,
 ): void => {
   if (!documentTransitionAllowed(intent.childCapabilityId, before, currentDocument(context))) {
@@ -234,7 +259,7 @@ const successfulExecution = async <K extends GptChildCapabilityId>(input: Readon
   intent: GptChildCapabilityIntent<K>;
   context: GptExecutionContext;
   startedAt: string;
-  before: Readonly<{ ref: string | null; url: string | null }>;
+  before: CurrentDocument;
   observation: GptChildObservation<K>;
 }>): Promise<GptChildCapabilityResult<K>> => {
   const after = currentDocument(input.context);
@@ -372,13 +397,17 @@ const failedExecution = async <K extends GptChildCapabilityId>(input: Readonly<{
   intent: GptChildCapabilityIntent<K>;
   context: GptExecutionContext;
   startedAt: string;
-  before: Readonly<{ ref: string | null; url: string | null }>;
+  before: CurrentDocument;
   observation?: GptChildObservation<K>;
   error: unknown;
 }>): Promise<GptChildCapabilityResult<K>> => {
   const after = currentDocument(input.context);
-  const failure = classify(input.error);
-  const nativeCause = executionFailureCause(input.error);
+  const failureError = documentTransitionObservable(input.before, after)
+    && !documentTransitionAllowed(input.intent.childCapabilityId, input.before, after)
+      ? executionFailure("failed", `GPT_DOCUMENT_TRANSITION_FORBIDDEN:${input.intent.childCapabilityId}`)
+      : input.error;
+  const failure = classify(failureError);
+  const nativeCause = executionFailureCause(failureError);
   const browser = typedBrowserExecutionFailure(input.error);
   const gpt = typedGptExecutionFailure(input.error);
   const walBrowserFact = failedBrowserFact(input.intent, input.context);

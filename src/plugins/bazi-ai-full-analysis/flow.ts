@@ -295,7 +295,7 @@ const runFormalTurn = async (
   fork: Record<string, unknown>,
   childUrl: string,
 ): Promise<Readonly<{ checkpoint: Checkpoint; formalPrompt: string }>> => {
-  const marker = markerFor(task, context.gpt.attemptId);
+  const marker = markerFor(task);
   const formalPrompt = formalPromptFor(task, context, base, fork, marker);
   const formalSubmit = {
     productStepId: "formal", callId: "turn-submit", child: "submit_exact_gpt_turn_once",
@@ -365,7 +365,7 @@ export const executeOwnedFlow = async (
 ) => {
   const flow = createOwnedExecution(task, context);
   if (task.action_id === "produce") return runPrimary(task, context, flow);
-  const marker = markerFor(task, context.gpt.attemptId);
+  const marker = markerFor(task);
   const prompt = promptFor(task, context, marker);
   const checkpoint = await runFreshTurn(task, context, flow, prompt, marker);
   const payload = receive(task, checkpoint, context);

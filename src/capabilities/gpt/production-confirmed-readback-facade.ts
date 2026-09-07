@@ -2,6 +2,7 @@ import type { GptChildCapabilityId } from "./contract.js";
 import type { BrowserConfirmedProviderReadbackAuthorization, BrowserConfirmedProviderSourceReadbackAuthorization } from
   "../../lib/browser/browser-authority-api.js";
 import type { BrowserTargetLease } from "../../lib/browser/exact-target/browser-target-lease.js";
+import { confirmedSourceReadbackDocumentMatches } from "../../lib/browser/browser-authority-api.js";
 import { executionFailure } from "../../lib/execution-failure.js";
 
 const CONFIRMED_READBACK_TARGET_LOCAL_CHILDREN = new Set<GptChildCapabilityId>([
@@ -32,7 +33,8 @@ const confirmedSourceReadbackLease = (
       && identity.actionOrdinal === authorization.sourceActionOrdinal
       && recovery?.state === "confirmed" && recovery.mutationOutcome === "confirmed"
       && recovery.targetRef === authorization.sourceTargetRef
-      && recovery.documentRef === authorization.sourceDocumentRef;
+      && recovery.documentRef === authorization.sourceDocumentRef
+      && confirmedSourceReadbackDocumentMatches(authorization, lease);
     return identity.replayPolicy === "observation-only" || exactConfirmedSubmit
       ? lease.runAtomicStep(identity, action) : rejectedReadbackMutation();
   },

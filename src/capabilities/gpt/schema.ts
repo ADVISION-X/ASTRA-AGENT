@@ -72,18 +72,18 @@ export const gptContinuationIdentityHash = (
 
 export const gptAttachmentProviderDisplayName = (
   displayName: string,
-  attemptId: string,
+  jobId: string,
   artifactRef: string,
 ): string => {
   const parsed = parse(displayName);
   if (parsed.base !== displayName || !parsed.name) {
     throw executionFailure("failed", "GPT_ATTACHMENT_DISPLAY_NAME_INVALID");
   }
-  const attemptToken = createHash("sha256")
-    .update(`${attemptId}\u0000${artifactRef}`)
+  const businessFileToken = createHash("sha256")
+    .update(`${jobId}\u0000${artifactRef}`)
     .digest("hex")
     .slice(0, 12);
-  return `${parsed.name}-${attemptToken}${parsed.ext}`.normalize("NFC");
+  return `${parsed.name}-${businessFileToken}${parsed.ext}`.normalize("NFC");
 };
 
 export const buildGptExecutionProfile = (input: Readonly<{

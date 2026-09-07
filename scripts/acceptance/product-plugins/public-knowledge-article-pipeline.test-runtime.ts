@@ -381,6 +381,7 @@ export const createContext = (
   routePolicy: productionRoutePolicy("public_knowledge_article_pipeline", state.actionId),
   productSkill: Object.freeze({ text: "fixture public knowledge skill", hash: HASH }),
   gpt: {
+    jobId: `job-${state.actionId}`,
     attemptId,
     readContinuationExact: readSeoContinuation(state, decision, attemptId),
     readCallFacts: readSeoCallFacts(state, attemptId),

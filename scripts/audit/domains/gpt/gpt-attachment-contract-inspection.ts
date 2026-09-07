@@ -6,6 +6,8 @@ const ROOT = "src/capabilities/gpt";
 const CHILDREN_PATH = `${ROOT}/children`;
 const childFilePath = (id: string, file: string): string => `${CHILDREN_PATH}/${id}/${file}`;
 const CONTRACT_PATH = `${ROOT}/contract.ts`;
+const SCHEMA_PATH = `${ROOT}/schema.ts`;
+const PRODUCT_API_PATH = `${ROOT}/product-api.ts`;
 const ATTACHMENT_HANDLER_PATH = `${CHILDREN_PATH}/open_gpt_attachment_control/handler.ts`;
 const ATTACHMENT_HANDLER_PATHS = [
   ATTACHMENT_HANDLER_PATH,
@@ -164,4 +166,22 @@ export const inspectGptAttachmentContract = (
       "Browser public attachment contract still requires a physical-path registration/grant step outside GPT artifactRef input.",
     ));
   }
+  const attachmentIdentitySource = [
+    sourceFor(context, SCHEMA_PATH)?.getFullText() ?? "",
+    sourceFor(context, childFilePath("attach_approved_gpt_files_once", "attachment-observation.ts"))
+      ?.getFullText() ?? "",
+    sourceFor(context, childFilePath("reconcile_gpt_attachment_set", "observation.ts"))
+      ?.getFullText() ?? "",
+    sourceFor(context, PRODUCT_API_PATH)?.getFullText() ?? "",
+  ].join("\n");
+  inspectMissingTokens({ source: attachmentIdentitySource, required: [
+    "jobId: string", "businessFileToken", "`${jobId}\\u0000${artifactRef}`",
+    "intent.jobId", "readonly jobId: string",
+  ], checkId: "gpt/attachment-job-stable-provider-name", filePath: SCHEMA_PATH,
+  findings, finding,
+  message: (required) => `GPT attachment Provider name is missing job-stable identity token ${required}.` });
+  if (attachmentIdentitySource.includes("`${attemptId}\\u0000${artifactRef}`")) findings.push(finding(
+    "gpt/attachment-job-stable-provider-name", SCHEMA_PATH,
+    "GPT attachment Provider name must not vary with attempt identity.",
+  ));
 };

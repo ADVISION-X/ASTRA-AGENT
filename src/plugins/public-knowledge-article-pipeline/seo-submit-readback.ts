@@ -1,8 +1,10 @@
-import type { ExactGptCallFacts } from "../../capabilities/gpt/index.js";
+import {
+  confirmedProviderSubmitReceiptFromError,
+  type ExactGptCallFacts,
+} from "../../capabilities/gpt/index.js";
 import type { ProductionHash } from "../../mediator/product-plugin-contract.js";
 import { postSubmitReadbackFault } from "../../mediator/product-plugin-contract.js";
 import {
-  executionFailureMetadata,
   failureCode,
 } from "../../lib/execution-failure.js";
 export const SEO_PROVIDER_PROBE_BUDGET_MS = 3_600_000;
@@ -32,17 +34,46 @@ const postSubmitEvidence = (submit: SeoConfirmedSubmit): Readonly<{
   });
 };
 
-export const preservePostSubmitReadback = (error: unknown, submit: SeoConfirmedSubmit): never => {
-  const typed = executionFailureMetadata(error);
+export const preservePostSubmitReadback = (
+  error: unknown,
+  submit: SeoConfirmedSubmit | null,
+): never => {
+  const carried = confirmedProviderSubmitReceiptFromError(error);
   const code = failureCode(error);
-  if (!typed || typed.mutationOutcome === "dispatched" || code.startsWith("GPT_PROVIDER_TERMINAL_")) throw error;
-  const evidence = postSubmitEvidence(submit);
-  if (!evidence) throw error;
+  const evidence = carried ?? (submit ? postSubmitEvidence(submit) : null);
+  if (!evidence || code.startsWith("GPT_PROVIDER_TERMINAL_")) throw error;
   throw postSubmitReadbackFault(code, {
     causeCode: code,
-    exactCallIdentityHash: submit.exactCallIdentityHash,
+    exactCallIdentityHash: carried?.exactCallIdentityHash ?? submit!.exactCallIdentityHash,
     terminalAt: evidence.terminalAt,
     evidenceRef: evidence.evidenceRef,
     evidenceHash: evidence.evidenceHash,
   });
+};
+
+export const executeAndReadConfirmedSubmit = async (input: Readonly<{
+  execute(): Promise<unknown>;
+  readFacts(): Promise<SeoConfirmedSubmit>;
+}>): Promise<SeoConfirmedSubmit> => {
+  let executionError: unknown = null;
+  try {
+    await input.execute();
+  } catch (error) {
+    if (confirmedProviderSubmitReceiptFromError(error)) {
+      return preservePostSubmitReadback(error, null);
+    }
+    executionError = error;
+  }
+  let submit: SeoConfirmedSubmit;
+  try {
+    submit = await input.readFacts();
+  } catch (readbackError) {
+    if (confirmedProviderSubmitReceiptFromError(readbackError)) {
+      return preservePostSubmitReadback(readbackError, null);
+    }
+    if (executionError) throw executionError;
+    throw readbackError;
+  }
+  if (executionError) return preservePostSubmitReadback(executionError, submit);
+  return submit;
 };

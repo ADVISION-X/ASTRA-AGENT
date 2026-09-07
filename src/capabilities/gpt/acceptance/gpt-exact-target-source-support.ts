@@ -7,7 +7,7 @@ export const providerAttachmentName = (displayName: string, artifactRef: string)
   const stem = dot > 0 ? displayName.slice(0, dot) : displayName;
   const extension = dot > 0 ? displayName.slice(dot) : "";
   const token = createHash("sha256")
-    .update(`attempt:gpt-exact-target\u0000${artifactRef}`)
+    .update(`job:gpt-exact-target\u0000${artifactRef}`)
     .digest("hex")
     .slice(0, 12);
   return `${stem}-${token}${extension}`;

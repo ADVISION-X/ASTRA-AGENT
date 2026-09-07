@@ -88,7 +88,7 @@ export const createHarness = (actionId: SeoAction, failureAt?: SeoFailure): SeoH
     physicalSubmitDispatches: 0, generatedImageUploadCalls: 0, uploadedImageHashes: new Set(),
     acquiredLaneVersions: [], confirmedReadbackAuthorizationByStep: new Map(), materials,
     providerNames: materials.map((material) => gptAttachmentProviderDisplayName(
-      material.display_name, "attempt-1", material.material_id,
+      material.display_name, `job-${actionId}`, material.material_id,
     )),
   };
 };

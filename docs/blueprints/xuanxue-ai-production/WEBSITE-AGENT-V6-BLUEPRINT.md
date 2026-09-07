@@ -1,20 +1,20 @@
-# production-runtime 生产级施工图 V25
+# production-runtime 生产级施工图 V26
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v25",
+  "blueprintId": "agent-production-runtime-v26",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V43",
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V44",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V3",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V13",
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V13",
-    "LAW-AGENT-PRODUCTION-RUNTIME-005-V11",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V13",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V13",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V14"
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V14",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V14",
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V12",
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V14",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V14",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V15"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -35,9 +35,9 @@
     {"contractRef":null,"from":{"domain":"startup-entrypoint","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"}}
   ],
   "prohibitedDependencyEdges": [
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V43","to":{"domain":"app-shell-ui","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V43","to":{"domain":"local-app-shell","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V43","to":{"domain":"startup-entrypoint","repo":"local"}}
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V44","to":{"domain":"app-shell-ui","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V44","to":{"domain":"local-app-shell","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V44","to":{"domain":"startup-entrypoint","repo":"local"}}
   ]
 }
 ```
@@ -176,7 +176,7 @@ Bazi 三字段必须全有或全无；Bazi 与 review 不得混合；额外字�
 
 公开任务状态只允许 failed 和 completed。failed 表示尚未完成，current_reason 说明当前权威位置；claim、lease、执行中、等待发送、等待消费和恢复都不是第三状态。
 
-durable accept 必须先于执行并冻结 job、accepted attempt、plugin/version、authorization、lease/grant/fence。进程重启、lease 更新、Target/Document 变化、build、错误码、locator 暂缺或本次 probe deadline 都不得替换 job、消耗新 attempt 或批准 provider effect 重做。Browser/Forensics 已唯一证明 submit `CONFIRMED + passed` 时，Runtime 必须携该 typed receipt 释放 `POST_SUBMIT_READBACK_FAULT`，Website 保留同一 accepted attempt；locator pending 只允许原 Target/Document source-only reconcile，locator 闭合后才允许 full readback，直到唯一 terminal passed 或显式不可恢复事实。任何相邻能力 `DISPATCHED` 仍只沿原现场只读对账，不得盲重放。
+durable accept 必须先于执行并冻结 job、accepted attempt、plugin/version、authorization、lease/grant/fence。进程重启、lease 更新、Target/Document 变化、build、错误码、locator 暂缺或本次 probe deadline 都不得替换 job、消耗新 attempt 或批准 provider effect 重做。Browser/Forensics 已唯一证明 submit `CONFIRMED + passed` 时，Runtime 必须携该 typed receipt 释放 `POST_SUBMIT_READBACK_FAULT`，Website 保留同一 accepted attempt；locator pending 只允许 Browser 在发送源 D0，或同一 exact submit 原子 Child 以同 Target、navigationEpoch 不变或精确 +1、initial evidence hash 唯一证明的直接后置 D1 上 source-only reconcile；receipt 闭合后的 facts/source authorization/readback fault 必须先携 Product-safe confirmed receipt 再抛出，locator 闭合后才允许 full readback，直到唯一 terminal passed 或显式不可恢复事实。任何相邻能力 `DISPATCHED` 仍只沿原现场只读对账，不得盲重放。
 
 Outbox 只有一个。任何网络发送前必须先持久 intent、确定性 idempotency key、payload hash 与当前 task/attempt binding；响应 receipt 必须先持久再推进。timeout、5xx、确定性拒绝和重启只更新同一 intent 的 last_error 与有限 next_delivery_at，不新建 intent、不丢失责任。只有 Website 精确持久化的永久业务撤权事实才能停止新发送，且必须保留原 row、payload/hash、receipt、checkpoint 与相邻能力权威的未决现场。
 

@@ -28,6 +28,7 @@ import {
   type SeoUploadedAttachment,
 } from "./seo-turn-contract.js";
 import {
+  executeAndReadConfirmedSubmit,
   preservePostSubmitReadback,
   SEO_PROVIDER_PROBE_BUDGET_MS,
   type SeoConfirmedSubmit,
@@ -83,6 +84,7 @@ const laneValue = (value: unknown): GptContinuationLane => {
 };
 
 export const createSeoExecutor = (task: WebsiteAgentTask, context: SharedExecutionContext) => {
+  if (context.gpt.jobId !== task.job_id) fail("SEO_GPT_JOB_IDENTITY_MISMATCH");
   const sessionKey = `${PLUGIN_ID}:${task.job_id}:${context.gpt.attemptId}`;
   const evidenceByOrdinal = new Map<number, string>();
   const recordEvidence = (actionOrdinal: number, evidenceRef: string): void => {
@@ -94,9 +96,13 @@ export const createSeoExecutor = (task: WebsiteAgentTask, context: SharedExecuti
     input: SeoCall,
     lookupKind: NonNullable<ProductGptFactQuery["lookupKind"]> = "current_attempt",
   ): Promise<ExactGptCallFacts> => {
-    const result = await context.gpt.readCallFacts({ ...input, lookupKind });
-    if (result.evidence) recordEvidence(input.actionOrdinal, result.evidence.evidenceRef);
-    return result;
+    try {
+      const result = await context.gpt.readCallFacts({ ...input, lookupKind });
+      if (result.evidence) recordEvidence(input.actionOrdinal, result.evidence.evidenceRef);
+      return result;
+    } catch (error) {
+      return preservePostSubmitReadback(error, null);
+    }
   };
   const execute: SeoChild = async (input) => {
     await facts(input as SeoCall);
@@ -304,13 +310,10 @@ const executeTextSubmit = async (
   turnSubmit: Extract<SeoCall, { child: "submit_exact_gpt_turn_once" }>,
   promptHash: ProductionHash,
 ): Promise<ExactGptCallFacts> => {
-  try {
-    await input.flow.execute({ sessionKey: "", ...turnSubmit });
-  } catch (error) {
-    return preservePostSubmitReadback(error, await input.flow.facts(turnSubmit));
-  }
-  const confirmedSubmit = await input.flow.facts(turnSubmit);
-  return confirmedSubmit;
+  return executeAndReadConfirmedSubmit({
+    execute: () => input.flow.execute({ sessionKey: "", ...turnSubmit }),
+    readFacts: () => input.flow.facts(turnSubmit),
+  });
 };
 
 export const submitTextTurn = async (input: SeoTextTurnInput): Promise<SeoTurnCheckpoint> => {
@@ -423,7 +426,6 @@ export const prepareAttachedTurnPrefix = async (input: Readonly<{
   flow: ReturnType<typeof createSeoExecutor>;
   stepId: string;
   files: readonly Omit<SeoUploadedAttachment, "providerDisplayName">[];
-  uploadedFiles: readonly SeoUploadedAttachment[];
   recoverOnly: boolean;
 }>): Promise<void> => {
   const freshChat = { productStepId: input.stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;
@@ -444,7 +446,8 @@ export const prepareAttachedTurnPrefix = async (input: Readonly<{
   await input.flow.execute({ sessionKey: "", ...attachmentsAttach });
   const reconciled = await input.flow.execute({ sessionKey: "", ...attachmentsReconcile });
   const actual = uploadedAttachmentFiles(reconciled.value, "SEO_ATTACHMENT_RECONCILIATION_INVALID");
-  if (JSON.stringify(actual) !== JSON.stringify(input.uploadedFiles)) {
+  const approved = actual.map(({ providerDisplayName: _providerDisplayName, ...file }) => file);
+  if (JSON.stringify(approved) !== JSON.stringify(input.files)) {
     fail("SEO_ATTACHMENT_RECONCILIATION_INVALID");
   }
 };

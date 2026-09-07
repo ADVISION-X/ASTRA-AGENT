@@ -95,6 +95,7 @@ type DomResponder = (intent: BrowserDomIntent, callNumber: number) => unknown | 
 type FakeBrowserOptions = Readonly<{
   initialPending?: number;
   initialUrl?: string;
+  navigationEpochAdvanceOnMutation?: number;
   authenticatedMedia?: Awaited<ReturnType<BrowserTargetLease["downloadAuthenticatedMedia"]>>;
   onAttachFile?: (input: Parameters<BrowserTargetLease["attachFile"]>[0]) => void;
   onWait?: (durationMs: number) => void;
@@ -232,11 +233,19 @@ const executeFakeDomIntent = async (
   responder: DomResponder,
   state: FakeBrowserState,
   intent: BrowserDomIntent,
+  options: FakeBrowserOptions,
 ): Promise<unknown> => {
   state.domCalls += 1;
   const mutates = ["click", "hover", "doubleClick", "keypress", "fill"].includes(intent.kind);
   const value = await responder(intent, state.domCalls);
-  if (mutates) settleFakeMutation(state, value);
+  if (mutates) {
+    settleFakeMutation(state, value);
+    const advance = options.navigationEpochAdvanceOnMutation ?? 0;
+    if (advance > 0) {
+      state.navigationEpoch += advance;
+      state.documentRef = `document:${state.navigationEpoch}`;
+    }
+  }
   if (intent.kind !== "document" || !value || typeof value !== "object" || Array.isArray(value)) return value;
   const nextUrl = Reflect.get(value, "url");
   if (typeof nextUrl === "string" && nextUrl !== state.url) {
@@ -279,7 +288,7 @@ const createFakeBrowserLease = (
     markConfirmedMutation(state);
     return { documentRef: state.documentRef, targetRef: "target:1", navigationEpoch: state.navigationEpoch };
   },
-  executeDomIntent: (intent: BrowserDomIntent) => executeFakeDomIntent(responder, state, intent),
+  executeDomIntent: (intent: BrowserDomIntent) => executeFakeDomIntent(responder, state, intent, options),
   async observeCapability() { return {}; },
   async captureScreenshot() { return { artifactRef: "screenshot:1", contentHash: `sha256:${"e".repeat(64)}` }; },
   async attachFile(input) {

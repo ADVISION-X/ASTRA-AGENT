@@ -45,6 +45,7 @@ import { readCompletedGptChildResult } from "./completed-result.js";
 import {
   authorizeConfirmedProviderReadback,
   authorizeConfirmedProviderSourceReadback,
+  carryConfirmedProviderSubmitReceipt,
   confirmedProviderReadbackEvidencePending,
   confirmedProviderSubmitReceipt,
   mergeConfirmedProviderSubmitReceipt,
@@ -184,7 +185,13 @@ export class ProductionGptChildTools {
         confirmedProviderSubmit,
         receipt,
       );
-      if (receipt) authorizeConfirmedProviderSourceReadback({ browsers, receipt });
+      if (receipt) {
+        try {
+          authorizeConfirmedProviderSourceReadback({ browsers, receipt });
+        } catch (error) {
+          throw carryConfirmedProviderSubmitReceipt(error, receipt);
+        }
+      }
       return productSafeExactGptCallFacts(facts);
     };
     const execute = async <K extends GptChildCapabilityId>(
@@ -214,6 +221,7 @@ export class ProductionGptChildTools {
     };
     return Object.freeze({
       tools: Object.freeze({
+        jobId: input.jobId,
         attemptId: input.attemptId,
         readContinuationExact: (query: ExactGptContinuationQuery) => this.readContinuation(input, query),
         execute,

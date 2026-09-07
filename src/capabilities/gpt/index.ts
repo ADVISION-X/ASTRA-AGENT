@@ -3,6 +3,10 @@ export {
   createProductionGptChildTools,
 } from "./ability-group.js";
 export {
+  confirmedProviderSubmitReceiptFromError,
+  type ProductSafeConfirmedProviderSubmitReceipt,
+} from "./confirmed-provider-readback.js";
+export {
   type GptAbilityGroup,
   type GptApprovedFile,
   type GptContinuationCheckpointInput,

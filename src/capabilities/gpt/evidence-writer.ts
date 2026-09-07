@@ -54,6 +54,14 @@ const safeProjection = (
   started_at: result.proof.startedAt,
   ended_at: result.proof.endedAt,
   source_evidence_hash: result.proof.evidenceHash,
+  confirmed_submit_readback_document_hash:
+    result.proof.childCapabilityId === "submit_exact_gpt_turn_once"
+      && result.proof.committedMutation === "confirmed"
+      && result.proof.browserFact?.browserOutcome === "CONFIRMED"
+      && result.proof.browserFact.mutationOutcome === "confirmed"
+      && !result.failureCode?.startsWith("GPT_DOCUMENT_TRANSITION_FORBIDDEN:")
+      ? result.proof.afterDocumentRefHash
+      : null,
 });
 
 export const persistGptChildEvidence = async (input: Readonly<{

@@ -3,15 +3,25 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 import { productionPluginCatalog } from "../../../src/mediator/product-plugin-catalog.js";
-import { typedExecutionFailure } from "../../../src/lib/execution-failure.js";
+import { executionFailure, typedExecutionFailure } from "../../../src/lib/execution-failure.js";
+import {
+  carryConfirmedProviderSubmitReceipt,
+  type ConfirmedProviderSubmitReceipt,
+} from "../../../src/capabilities/gpt/confirmed-provider-readback.js";
 import { postSubmitReadbackReceipt } from "../../../src/mediator/product-plugin-contract.js";
 import { productionRoutePolicy } from "../../../src/lib/local-runtime/production/route-policy.js";
+import { browserProviderEffectIdentityHash } from
+  "../../../src/lib/browser/exact-target/browser-command-postcondition.js";
+import { hashCanonical } from "../../../src/mediator/product-plugin-contract.js";
 import { parsePublicKnowledgeArticle, parsePublicKnowledgeResearch } from "../../../src/plugins/public-knowledge-article-pipeline/result-contract.js";
 import {
   exerciseSeoAttachmentReconcileFailure,
   exerciseSeoFlow,
   exerciseSeoPromptWriteFailure,
 } from "./public-knowledge-article-pipeline-flow.test-runtime.js";
+import { createContext } from "./public-knowledge-article-pipeline.test-runtime.js";
+import { createHarness, seoTask } from
+  "./public-knowledge-article-pipeline-fixture-state.js";
 import { articleOutput, researchOutput } from
   "./public-knowledge-article-pipeline-output-fixtures.js";
 import {
@@ -20,6 +30,8 @@ import {
   exerciseSeoFrontierResume,
   exerciseSeoImageFrontierResume,
 } from "./public-knowledge-article-pipeline-frontier.test-runtime.js";
+import { preservePostSubmitReadback } from
+  "../../../src/plugins/public-knowledge-article-pipeline/seo-submit-readback.js";
 
 const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "public-knowledge-article-pipeline");
 assert(plugin);
@@ -51,15 +63,42 @@ const continuationImage = [
 
 assert.equal(plugin.pluginVersion, 21);
 const source = readFileSync("src/plugins/public-knowledge-article-pipeline/index.ts", "utf8");
+const turnContractSource = readFileSync(
+  "src/plugins/public-knowledge-article-pipeline/seo-turn-contract.ts", "utf8",
+);
 assert.doesNotMatch(source, /PRODUCT_FLOW_NOT_IMPLEMENTED:|throw new Error/u);
 assert.match(source, /corpus_research/u);
 assert.match(source, /article_synthesis/u);
 assert.match(source, /article_image_generation/u);
+assert.match(turnContractSource,
+  /hashCanonical\(\{ job_id: task\.job_id, product_step_id: stepId \}\)/u,
+  "one business step must keep the same turn marker when Website changes only attempt_id");
+const turnMarkerDeclaration = turnContractSource.slice(
+  turnContractSource.indexOf("export const turnMarker"),
+  turnContractSource.indexOf("export const researchFrontierRef"),
+);
+assert.doesNotMatch(turnMarkerDeclaration, /attempt/iu,
+  "attempt identity must not alter Browser provider-effect deduplication input");
 assert.doesNotMatch(
   readFileSync("src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts", "utf8"),
   /return input\.recoveryProvider\.provider_page_url/u,
   "recovery must execute the exact reconcile call so Runtime reads the durable locator artifact",
 );
+{
+  const identityState = createHarness("produce_article");
+  const context = createContext(identityState, "proceed");
+  const mismatchedContext = Object.freeze({
+    ...context,
+    gpt: Object.freeze({ ...context.gpt, jobId: "job-not-owned-by-this-task" }),
+  });
+  await assert.rejects(
+    () => plugin.execute(seoTask("produce_article"), mismatchedContext),
+    (error: unknown) => typedExecutionFailure(error)?.code === "SEO_GPT_JOB_IDENTITY_MISMATCH",
+    "Product must fail closed before deriving Provider filenames from a mismatched GPT job identity",
+  );
+  assert.equal(identityState.calls.length, 0,
+    "job identity mismatch must fail before any GPT Child is invoked");
+}
 assert.equal(parsePublicKnowledgeResearch(JSON.stringify({
   ...researchOutput("proceed"), topic_manifest: { primary_question: "incomplete" },
 }), produceRoute).schema_version, "public-knowledge-research-output.v3");
@@ -111,6 +150,32 @@ assert.equal(advances[1]?.input.provider.prior_prompt_hash, hashText(prompts[2]!
 assert.ok((proceed.completed.payload as Readonly<Record<string, unknown>>).image);
 assert.equal(proceed.generatedImageUploadCalls, 1);
 
+const nextAttempt = await exerciseSeoFlow(
+  plugin, "produce_article", "proceed", undefined, false, "attempt-2",
+);
+const submits = proceed.calls.filter((call) => call.child === "submit_exact_gpt_turn_once");
+const nextAttemptSubmits = nextAttempt.calls.filter((call) => call.child === "submit_exact_gpt_turn_once");
+assert.equal(submits.length, 3);
+assert.equal(nextAttemptSubmits.length, 3);
+assert.deepEqual(nextAttemptSubmits.map((call) => call.input), submits.map((call) => call.input),
+  "the complete submit input, including Prompt marker and attachment names, must be byte-stable across attempts");
+for (const [index, call] of submits.entries()) {
+  const nextCall = nextAttemptSubmits[index]!;
+  const identity = (attemptId: string, input: typeof call.input): `sha256:${string}` =>
+    browserProviderEffectIdentityHash({
+    jobId: "job-produce_article",
+    attemptId,
+    ownerPluginId: plugin.pluginId,
+    pluginVersion: plugin.pluginVersion,
+    productStepId: call.productStepId,
+    callId: call.callId,
+    childCapabilityId: call.child,
+    inputHash: hashCanonical(input),
+    } as never, hashCanonical({ child: call.child, input }));
+  assert.equal(identity("attempt-1", call.input), identity("attempt-2", nextCall.input),
+    `submit ${index + 1} must retain one Browser provider-effect identity across attempts`);
+}
+
 const attachmentBlocked = await exerciseSeoAttachmentReconcileFailure(plugin);
 assert.equal(typedExecutionFailure(attachmentBlocked.failure)?.code, "GPT_ATTACHMENT_UPLOAD_TIMEOUT");
 assert.equal(attachmentBlocked.calls.at(-1)?.child, "reconcile_gpt_attachment_set");
@@ -128,6 +193,39 @@ assert.equal(promptBlocked.calls.some((call) => call.child === "reconcile_gpt_dr
 assert.equal(promptBlocked.calls.some((call) => call.child === "submit_exact_gpt_turn_once"), false,
   "submit must not start after exact Prompt readback fails");
 assert.equal(promptBlocked.physicalSubmitDispatches, 0);
+
+const carriedReceipt = Object.freeze({
+  sourceAttemptId: "attempt-1",
+  sourceExactCallIdentityHash: hashText("confirmed-submit-call"),
+  sourceActionOrdinal: 1,
+  sourceProductStepId: "article_synthesis",
+  sourceCallId: "article_synthesis:submit",
+  sourceTargetRef: "target:confirmed-submit",
+  sourceDocumentRef: "document:confirmed-submit",
+  readbackDocumentRefHash: hashText("document:direct-after-submit"),
+  sourceTerminalAt: "2026-09-07T00:00:00.000Z",
+  evidenceRef: "evidence:confirmed-submit",
+  evidenceHash: hashText("confirmed-submit-evidence"),
+  promptHash: hashText("article-prompt"),
+  turnMarker: "[GRASSEYE:article-synthesis]",
+}) satisfies ConfirmedProviderSubmitReceipt;
+const sourceAuthorizationFault = executionFailure(
+  "failed", "BROWSER_RECONCILIATION_SCOPE_INVALID",
+);
+carryConfirmedProviderSubmitReceipt(sourceAuthorizationFault, carriedReceipt);
+await assert.rejects(
+  async () => preservePostSubmitReadback(sourceAuthorizationFault, null),
+  (error: unknown) => {
+    const preserved = postSubmitReadbackReceipt(error);
+    return typedExecutionFailure(error)?.code
+      === "POST_SUBMIT_READBACK_FAULT:BROWSER_RECONCILIATION_SCOPE_INVALID"
+      && preserved?.exactCallIdentityHash === carriedReceipt.sourceExactCallIdentityHash
+      && preserved?.causeCode === "BROWSER_RECONCILIATION_SCOPE_INVALID"
+      && !JSON.stringify(preserved).includes(carriedReceipt.sourceTargetRef)
+      && !JSON.stringify(preserved).includes(carriedReceipt.sourceDocumentRef);
+  },
+  "a source authorization fault after Browser CONFIRMED must preserve the same attempt without leaking raw Browser refs",
+);
 
 const directSubmitRecovered = await exerciseSeoFlow(plugin, "produce_article", "proceed", {
   child: "submit_exact_gpt_turn_once",

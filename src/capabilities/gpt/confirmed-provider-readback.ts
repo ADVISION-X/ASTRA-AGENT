@@ -14,6 +14,16 @@ import type {
 } from "./product-api.js";
 import type { GptExactCallFactsWithBrowserBinding } from "./production-call-facts.js";
 import type { ProductionGptBrowserLifecycle } from "./production-browser-lifecycle.js";
+import { confirmedSubmitReadbackDocumentHash } from "./evidence-fact.js";
+import {
+  carryProductSafeConfirmedProviderSubmitReceipt,
+  type ProductSafeConfirmedProviderSubmitReceipt,
+} from "./execution-fault.js";
+
+export {
+  confirmedProviderSubmitReceiptFromError,
+  type ProductSafeConfirmedProviderSubmitReceipt,
+} from "./execution-fault.js";
 
 export type ConfirmedProviderSubmitReceipt = Readonly<{
   sourceAttemptId: string;
@@ -23,12 +33,23 @@ export type ConfirmedProviderSubmitReceipt = Readonly<{
   sourceCallId: string;
   sourceTargetRef: string;
   sourceDocumentRef: string;
+  readbackDocumentRefHash: `sha256:${string}`;
   sourceTerminalAt: string;
   evidenceRef: string;
   evidenceHash: `sha256:${string}`;
   promptHash: `sha256:${string}`;
   turnMarker: string;
 }>;
+
+export const carryConfirmedProviderSubmitReceipt = (
+  error: unknown,
+  receipt: ConfirmedProviderSubmitReceipt,
+): unknown => carryProductSafeConfirmedProviderSubmitReceipt(error, {
+  exactCallIdentityHash: receipt.sourceExactCallIdentityHash,
+  terminalAt: receipt.sourceTerminalAt,
+  evidenceRef: receipt.evidenceRef,
+  evidenceHash: receipt.evidenceHash,
+});
 
 const hash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -61,6 +82,7 @@ const receiptShapeValid = (receipt: ConfirmedProviderSubmitReceipt): boolean =>
   && Number.isSafeInteger(receipt.sourceActionOrdinal)
   && receipt.sourceActionOrdinal >= 0
   && hashValue(receipt.sourceExactCallIdentityHash)
+  && hashValue(receipt.readbackDocumentRefHash)
   && hashValue(receipt.evidenceHash)
   && hashValue(receipt.promptHash);
 
@@ -96,8 +118,20 @@ export const confirmedProviderSubmitReceipt = (
   }
   const promptHash = submitCall.input.promptHash;
   const turnMarker = submitCall.input.turnMarker;
+  const readbackDocumentRefHash = confirmedSubmitReadbackDocumentHash(evidence);
   if (!/^sha256:[a-f0-9]{64}$/u.test(promptHash) || !turnMarker) {
     throw executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID");
+  }
+  if (!readbackDocumentRefHash) {
+    throw carryProductSafeConfirmedProviderSubmitReceipt(
+      executionFailure("failed", "FORENSICS_EXACT_CALL_EVIDENCE_INVALID"),
+      {
+        exactCallIdentityHash: facts.exactCallIdentityHash,
+        terminalAt: mutation.terminalAt,
+        evidenceRef: evidence.evidenceRef,
+        evidenceHash: evidence.evidenceHash,
+      },
+    );
   }
   return Object.freeze({
     sourceAttemptId: mutation.sourceAttemptId,
@@ -107,6 +141,7 @@ export const confirmedProviderSubmitReceipt = (
     sourceCallId: mutation.callId,
     sourceTargetRef: mutation.targetRef,
     sourceDocumentRef: mutation.documentRef,
+    readbackDocumentRefHash,
     sourceTerminalAt: mutation.terminalAt,
     evidenceRef: evidence.evidenceRef,
     evidenceHash: evidence.evidenceHash,

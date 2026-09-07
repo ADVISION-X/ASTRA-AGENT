@@ -129,7 +129,7 @@ export const executeOwnedFlow = async (
   context: SharedExecutionContext,
 ) => {
   const flow = createOwnedExecution(task, context);
-  const marker = markerFor(task, context.gpt.attemptId);
+  const marker = markerFor(task);
   const prompt = promptFor(task, context, marker);
   if (task.action_id === "followup") {
     validateFollowupContract(task, context);
