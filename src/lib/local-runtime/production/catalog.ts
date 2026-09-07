@@ -37,6 +37,6 @@ export const appShellProductionPluginSupport = Object.freeze(
 );
 
 if (manifestPlugins.length !== 12
-  || manifestPlugins.reduce((count, plugin) => count + plugin.accepts.length, 0) !== 39) {
+  || manifestPlugins.reduce((count, plugin) => count + plugin.accepts.length, 0) !== 40) {
   throw new Error("PLUGIN_MANIFEST_DENOMINATOR_INVALID");
 }

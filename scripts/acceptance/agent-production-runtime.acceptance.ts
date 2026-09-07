@@ -388,7 +388,7 @@ assert.deepEqual(runtimeManifestOwnershipDrift([
 ]), []);
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V12",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V13",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"],
   locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",
@@ -410,7 +410,7 @@ emitQualityProofObservation({
 });
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V12",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V13",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "summary"],
     locator: `acceptance:agent-production-runtime:business-admission:${evidenceMode}`,

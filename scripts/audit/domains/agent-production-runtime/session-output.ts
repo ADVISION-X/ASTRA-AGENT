@@ -34,13 +34,13 @@ const LAW_MODE_CLAUSES: Readonly<Record<string, Readonly<Partial<Record<Evidence
     "static.types": staticForbiddenClauses(0),
     "static.contract": staticClauses(1),
   },
-  "LAW-AGENT-PRODUCTION-RUNTIME-003-V12": {
+  "LAW-AGENT-PRODUCTION-RUNTIME-003-V13": {
     "static.ast": staticForbiddenClauses(1, 2),
     "static.types": staticForbiddenClauses(1),
     "static.contract": staticForbiddenClauses(0, 1),
     "static.dependency": staticClauses(0),
   },
-  "LAW-AGENT-PRODUCTION-RUNTIME-004-V12": {
+  "LAW-AGENT-PRODUCTION-RUNTIME-004-V13": {
     "static.ast": staticForbiddenClauses(0),
     "static.types": staticForbiddenClauses(0),
     "static.contract": staticClauses(0, 1),
@@ -50,20 +50,20 @@ const LAW_MODE_CLAUSES: Readonly<Record<string, Readonly<Partial<Record<Evidence
     "static.types": staticForbiddenClauses(1),
     "static.sql": staticClauses(0),
   },
-  "LAW-AGENT-PRODUCTION-RUNTIME-006-V12": {
+  "LAW-AGENT-PRODUCTION-RUNTIME-006-V13": {
     "static.filesystem": staticForbiddenClauses(0),
     "static.ast": staticForbiddenClauses(0, 1, 2),
     "static.types": staticForbiddenClauses(0),
     "static.contract": staticClauses(0),
   },
-  "LAW-AGENT-PRODUCTION-RUNTIME-007-V12": {
+  "LAW-AGENT-PRODUCTION-RUNTIME-007-V13": {
     "static.filesystem": staticForbiddenClauses(0),
     "static.ast": staticForbiddenClauses(1),
     "static.types": staticForbiddenClauses(1),
     "static.contract": staticForbiddenClauses(1),
     "static.dependency": staticClauses(0),
   },
-  "LAW-AGENT-PRODUCTION-RUNTIME-008-V13": {
+  "LAW-AGENT-PRODUCTION-RUNTIME-008-V14": {
     "static.filesystem": staticForbiddenClauses(0),
     "static.ast": staticForbiddenClauses(0),
     "static.contract": staticForbiddenClauses(0, 1, 2),

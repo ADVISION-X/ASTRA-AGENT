@@ -11,11 +11,16 @@ import {
   isPendingExactEvidence,
   readExactGptEvidenceFact,
 } from "../evidence-fact.js";
+import {
+  confirmedProviderReadbackEvidencePending,
+  type ConfirmedProviderSubmitReceipt,
+} from "../confirmed-provider-readback.js";
 import { typedGptExecutionFailure } from "../execution-fault.js";
 import { persistGptChildEvidence } from "../evidence-writer.js";
 import { executeProductionGptAtomicCall } from "../production-atomic-call.js";
 import type { GptEvidenceStorePort } from "../production-ports.js";
 import { serializeTerminalFailure } from "../../../lib/local-runtime/production/terminal-failure.js";
+import { failureCode } from "../../../lib/execution-failure.js";
 import { throwGptChildFailure } from "../production-child-support.js";
 import { createGptAcceptanceHarness } from "./gpt-acceptance-harness.js";
 import { coherentObservationPacket, fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
@@ -25,27 +30,58 @@ const hash = (value: string): `sha256:${string}` =>
 
 type StoredEvidence = Readonly<{ recordRef: string; record: Readonly<Record<string, unknown>> }>;
 const evidenceHarness = () => {
-  let stored: StoredEvidence | null = null;
+  const storedByKey = new Map<string, StoredEvidence>();
+  const storedByRef = new Map<string, StoredEvidence>();
+  let lastStored: StoredEvidence | null = null;
   const evidenceStore: GptEvidenceStorePort = {
     appendRecord: async (input) => {
-      const recordRef = "record:gpt-failed-readback";
-      stored = Object.freeze({ recordRef, record: Object.freeze({
+      const existing = storedByKey.get(input.idempotencyKey);
+      if (existing) {
+        return JSON.stringify(existing.record.payload) === JSON.stringify(input.recordPayload)
+          ? { status: "success", recordRef: existing.recordRef }
+          : { status: "failed" };
+      }
+      const recordRef = input.idempotencyKey.startsWith("gpt-call-terminal-evidence:v1:")
+        ? "record:gpt-terminal-readback"
+        : "record:gpt-failed-readback";
+      const stored = Object.freeze({ recordRef, record: Object.freeze({
         missionId: input.missionId, runId: input.runId, stepId: input.stepId,
         sourceAbilityGroupId: input.sourceCapabilityId,
         sourceChildCapabilityId: input.sourceChildCapabilityId,
         idempotencyKey: input.idempotencyKey, payload: input.recordPayload,
         artifactRefs: Object.freeze([...(input.artifactRefs ?? [])]),
       }) });
+      storedByKey.set(input.idempotencyKey, stored);
+      storedByRef.set(recordRef, stored);
+      lastStored = stored;
       return { status: "success", recordRef };
     },
     appendArtifact: async () => ({ status: "failed" }),
-    readRecordRef: async (input) => stored?.recordRef === input.recordRef
-      ? { status: "success", recordRef: stored.recordRef, record: stored.record }
+    readRecordRef: async (input) => storedByRef.has(input.recordRef)
+      ? { status: "success", recordRef: input.recordRef, record: storedByRef.get(input.recordRef)!.record }
       : { status: "failed" },
     readArtifactRef: async () => ({ status: "failed" }),
-    readExactCallEvidence: async () => stored,
+    readExactCallEvidence: async (input) => storedByKey.get(
+      `gpt-call-terminal-evidence:v1:${input.exactCallIdentityHash}`,
+    ) ?? storedByKey.get(`gpt-call-evidence:v1:${input.exactCallIdentityHash}`) ?? null,
   };
-  return Object.freeze({ evidenceStore, stored: () => stored });
+  return Object.freeze({
+    evidenceStore,
+    stored: () => lastStored,
+    recordCount: () => storedByKey.size,
+    recordKeys: () => Object.freeze([...storedByKey.keys()]),
+    tamperLastPayload: (payload: Readonly<Record<string, unknown>>): void => {
+      if (!lastStored) throw new Error("EVIDENCE_TEST_RECORD_MISSING");
+      const key = String(lastStored.record.idempotencyKey);
+      const replacement = Object.freeze({
+        recordRef: lastStored.recordRef,
+        record: Object.freeze({ ...lastStored.record, payload }),
+      });
+      storedByKey.set(key, replacement);
+      storedByRef.set(replacement.recordRef, replacement);
+      lastStored = replacement;
+    },
+  });
 };
 
 const intentFor = <K extends GptChildCapabilityId>(
@@ -137,6 +173,234 @@ export const exerciseConfirmedSubmitFailureEvidenceReadback = async (
   assert.equal(isPendingExactEvidence(pending), true);
   assert.equal(pending?.readbackVerified, true);
   assert.equal(pending?.evidenceRef, persistence.stored()?.recordRef);
+};
+
+const readbackFailureCode = async (input: Readonly<{
+  evidenceStore: GptEvidenceStorePort;
+  intent: GptChildCapabilityIntent;
+  exactCallIdentityHash: `sha256:${string}`;
+  postSubmitReadbackRecovery?: boolean;
+}>): Promise<string | null> => {
+  try {
+    await readExactGptEvidenceFact(input);
+    return null;
+  } catch (error) {
+    return failureCode(error, "UNKNOWN_FAILURE");
+  }
+};
+
+const persistEvidence = async <K extends GptChildCapabilityId>(input: Readonly<{
+  result: GptChildCapabilityResult<K>;
+  intent: GptChildCapabilityIntent<K>;
+  evidenceStore: GptEvidenceStorePort;
+  settlesPendingEvidence?: boolean;
+}>): Promise<void> => {
+  await persistGptChildEvidence({
+    result: input.result,
+    intent: input.intent,
+    evidenceStore: input.evidenceStore,
+    jobId: input.result.proof.jobId,
+    attemptId: input.result.proof.attemptId,
+    stepId: input.result.proof.productStepId,
+    exactCallIdentityHash: input.result.proof.exactCallIdentityHash,
+    ...(input.settlesPendingEvidence ? { settlesPendingEvidence: true } : {}),
+  });
+};
+
+export const exerciseConfirmedProviderReadbackEvidenceLifecycle = async (
+  result: GptChildCapabilityResult<"wait_for_stable_gpt_text">,
+  input: GptChildInputMap["wait_for_stable_gpt_text"],
+  receipt: ConfirmedProviderSubmitReceipt,
+): Promise<void> => {
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, "BROWSER_DOM_READ_INVALID");
+  assert.equal(result.proof.committedMutation, "no");
+  assert.equal(result.proof.postconditionResult, "pending");
+  const intent = intentFor(result, input);
+  const recovery = confirmedProviderReadbackEvidencePending(receipt, intent);
+  assert.equal(recovery, true, "the validated same-attempt submit receipt must authorize readback recovery");
+
+  const pendingPersistence = evidenceHarness();
+  await persistEvidence({ result, intent, evidenceStore: pendingPersistence.evidenceStore });
+  assert.equal(await readbackFailureCode({
+    evidenceStore: pendingPersistence.evidenceStore,
+    intent,
+    exactCallIdentityHash: result.proof.exactCallIdentityHash,
+  }), "FORENSICS_EXACT_CALL_EVIDENCE_INVALID",
+  "pending+no must remain invalid outside the validated post-submit context");
+  const pending = await readExactGptEvidenceFact({
+    evidenceStore: pendingPersistence.evidenceStore,
+    intent,
+    exactCallIdentityHash: result.proof.exactCallIdentityHash,
+    postSubmitReadbackRecovery: recovery,
+  });
+  assert.equal(isPendingExactEvidence(pending), true);
+
+  const historicalFailure = Object.freeze({
+    ...result,
+    proof: Object.freeze({ ...result.proof, postconditionResult: "failed" as const }),
+  }) as GptChildCapabilityResult<"wait_for_stable_gpt_text">;
+  const historicalPersistence = evidenceHarness();
+  await persistEvidence({
+    result: historicalFailure,
+    intent,
+    evidenceStore: historicalPersistence.evidenceStore,
+  });
+  assert.equal(await readbackFailureCode({
+    evidenceStore: historicalPersistence.evidenceStore,
+    intent,
+    exactCallIdentityHash: result.proof.exactCallIdentityHash,
+  }), "BROWSER_DOM_READ_INVALID", "the historical failure must remain terminal without receipt context");
+  const recovered = await readExactGptEvidenceFact({
+    evidenceStore: historicalPersistence.evidenceStore,
+    intent,
+    exactCallIdentityHash: result.proof.exactCallIdentityHash,
+    postSubmitReadbackRecovery: recovery,
+  });
+  assert.equal(isPendingExactEvidence(recovered), true,
+    "the exact historical failed+no initial record must become retryable only in context");
+
+  const mismatchedReceipts: readonly ConfirmedProviderSubmitReceipt[] = Object.freeze([
+    Object.freeze({ ...receipt, sourceAttemptId: "attempt:other" }),
+    Object.freeze({ ...receipt, sourceProductStepId: "step:other" }),
+    Object.freeze({ ...receipt, sourceActionOrdinal: intent.actionOrdinal }),
+    Object.freeze({ ...receipt, promptHash: hash("wrong-prompt") }),
+    Object.freeze({ ...receipt, turnMarker: "[GRASSEYE:wrong-turn]" }),
+    Object.freeze({ ...receipt, sourceTerminalAt: "not-an-iso-timestamp" }),
+  ]);
+  for (const mismatch of mismatchedReceipts) {
+    const mismatchedRecovery = confirmedProviderReadbackEvidencePending(mismatch, intent);
+    assert.equal(mismatchedRecovery, false);
+    assert.equal(await readbackFailureCode({
+      evidenceStore: historicalPersistence.evidenceStore,
+      intent,
+      exactCallIdentityHash: result.proof.exactCallIdentityHash,
+      postSubmitReadbackRecovery: mismatchedRecovery,
+    }), "BROWSER_DOM_READ_INVALID", "receipt drift must remain fail closed");
+  }
+
+  const terminalPersistence = evidenceHarness();
+  await persistEvidence({
+    result: historicalFailure,
+    intent,
+    evidenceStore: terminalPersistence.evidenceStore,
+    settlesPendingEvidence: true,
+  });
+  assert.equal(await readbackFailureCode({
+    evidenceStore: terminalPersistence.evidenceStore,
+    intent,
+    exactCallIdentityHash: result.proof.exactCallIdentityHash,
+    postSubmitReadbackRecovery: recovery,
+  }), "BROWSER_DOM_READ_INVALID", "a terminal evidence key must never be reinterpreted as pending");
+
+  const providerTerminal = Object.freeze({
+    ...historicalFailure,
+    failureCode: "GPT_PROVIDER_TERMINAL_DECLINED",
+    proof: Object.freeze({
+      ...historicalFailure.proof,
+      childReasonCode: "GPT_PROVIDER_TERMINAL_DECLINED",
+    }),
+  }) as GptChildCapabilityResult<"wait_for_stable_gpt_text">;
+  const providerTerminalPersistence = evidenceHarness();
+  await persistEvidence({
+    result: providerTerminal,
+    intent,
+    evidenceStore: providerTerminalPersistence.evidenceStore,
+  });
+  assert.equal(await readbackFailureCode({
+    evidenceStore: providerTerminalPersistence.evidenceStore,
+    intent,
+    exactCallIdentityHash: result.proof.exactCallIdentityHash,
+    postSubmitReadbackRecovery: recovery,
+  }), "GPT_PROVIDER_TERMINAL_DECLINED", "a Provider terminal result must remain terminal");
+
+  const malformedProviderPending = Object.freeze({
+    ...providerTerminal,
+    proof: Object.freeze({
+      ...providerTerminal.proof,
+      postconditionResult: "pending" as const,
+    }),
+  }) as GptChildCapabilityResult<"wait_for_stable_gpt_text">;
+  const malformedProviderPendingPersistence = evidenceHarness();
+  await persistEvidence({
+    result: malformedProviderPending,
+    intent,
+    evidenceStore: malformedProviderPendingPersistence.evidenceStore,
+  });
+  assert.equal(await readbackFailureCode({
+    evidenceStore: malformedProviderPendingPersistence.evidenceStore,
+    intent,
+    exactCallIdentityHash: result.proof.exactCallIdentityHash,
+    postSubmitReadbackRecovery: recovery,
+  }), "FORENSICS_EXACT_CALL_EVIDENCE_INVALID",
+  "a Provider terminal failure mislabeled pending must fail structural validation");
+
+  const malformedPersistence = evidenceHarness();
+  await persistEvidence({
+    result: historicalFailure,
+    intent,
+    evidenceStore: malformedPersistence.evidenceStore,
+  });
+  const storedPayload = malformedPersistence.stored()!.record.payload as Readonly<Record<string, unknown>>;
+  const malformedPayload = { ...storedPayload };
+  delete malformedPayload.failure_proof;
+  malformedPersistence.tamperLastPayload(Object.freeze(malformedPayload));
+  assert.equal(await readbackFailureCode({
+    evidenceStore: malformedPersistence.evidenceStore,
+    intent,
+    exactCallIdentityHash: result.proof.exactCallIdentityHash,
+    postSubmitReadbackRecovery: recovery,
+  }), "FORENSICS_EXACT_CALL_EVIDENCE_INVALID",
+  "a malformed historical failure must not be recovered as pending");
+
+  const success = Object.freeze({
+    status: "success" as const,
+    value: Object.freeze({
+      assistantTurnId: "conversation-turn-2",
+      responseHash: hash("stable response"),
+      responseText: "stable response",
+    }),
+    proof: Object.freeze({
+      ...result.proof,
+      childStatus: "success" as const,
+      childReasonCode: "GPT_CHILD_SUCCESS",
+      internalDecisionCode: "DONE" as const,
+      committedMutation: "no" as const,
+      postconditionResult: "passed" as const,
+      browserFact: null,
+      nativeFailureCode: null,
+    }),
+    reasoningRequirementResult: null,
+    failureCode: null,
+    failureCause: null,
+    failureBrowserEffect: null,
+  }) as GptChildCapabilityResult<"wait_for_stable_gpt_text">;
+  await persistEvidence({
+    result: success,
+    intent,
+    evidenceStore: historicalPersistence.evidenceStore,
+    settlesPendingEvidence: true,
+  });
+  const terminal = await readExactGptEvidenceFact({
+    evidenceStore: historicalPersistence.evidenceStore,
+    intent,
+    exactCallIdentityHash: result.proof.exactCallIdentityHash,
+    postSubmitReadbackRecovery: recovery,
+  });
+  assert.equal(isPendingExactEvidence(terminal), false);
+  assert.deepEqual(historicalPersistence.recordKeys(), [
+    `gpt-call-evidence:v1:${result.proof.exactCallIdentityHash}`,
+    `gpt-call-terminal-evidence:v1:${result.proof.exactCallIdentityHash}`,
+  ]);
+  assert.equal(historicalPersistence.recordCount(), 2);
+  await persistEvidence({
+    result: success,
+    intent,
+    evidenceStore: historicalPersistence.evidenceStore,
+    settlesPendingEvidence: true,
+  });
+  assert.equal(historicalPersistence.recordCount(), 2,
+    "repeated settlement must preserve one unique terminal evidence record");
 };
 
 export const exerciseBrowserRejectedEvidenceReadback = async (): Promise<void> => {

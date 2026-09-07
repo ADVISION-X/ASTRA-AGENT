@@ -1,6 +1,7 @@
 import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
 import { productionPluginCatalog } from "../../../src/mediator/product-plugin-catalog.js";
 import { productionRoutePolicies } from "../../../src/lib/local-runtime/production/route-policy.js";
+import { hashCanonical, sha256 } from "../../../src/mediator/product-plugin-contract.js";
 import { buildProductTask, exerciseProductFlow, FIXTURE_HASH, routesForPlugin } from "../product-plugin-test-runtime.js";
 
 const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "localization-production");
@@ -15,6 +16,7 @@ const sequence = [
 ] as const;
 
 for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
+  if (route.product_id === "localization_static_catalog") continue;
   const review = route.relation_kind === "review";
   const fixture = review
     ? route.action_id === "accuracy_challenge"
@@ -38,4 +40,96 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   assert.match(String(run.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt), /当前 Product Plugin：localization-production/u);
   assert.equal(run.physicalSubmitDispatches, 1);
 }
+
+const staticRoute = productionRoutePolicies.find((route) => route.product_id === "localization_static_catalog"
+  && route.action_id === "produce_locale_catalog");
+assert(staticRoute);
+const contextBundle = {
+  schema_version: "target-language-context-bundle.v1",
+  message_syntax: "typed-placeholder-v1",
+  review_kind: "target_language_translation",
+  locale: "en-US",
+  source_locale: "zh-CN",
+  source_catalog_hash: FIXTURE_HASH,
+  batch_id: "en-US-batch-001",
+  expression_policy_hash: sha256("{}"),
+  expression_policy_json: "{}",
+  terminology_hash: sha256("{}"),
+  terminology_json: "{}",
+  format_policy_hash: sha256("fixture-format-policy"),
+  format_policy_source: "fixture-format-policy",
+  message_items: [{
+    message_id: "fixture.hello",
+    semantic_owner: "fixture",
+    surface_ref: "fixture:surface",
+    surface_source_refs: ["fixture.ts:1"],
+    copy_group_id: "fixture.hello",
+    risk_class: "normal",
+    audience: "site_visitor_or_customer",
+    user_action: "read",
+    user_outcome: "understand",
+    surrounding_message_ids: [],
+    control_role: "text",
+    source_text: "<style>@page{size:A4}</style> 你好 {name}",
+    source_hash: sha256("<style>@page{size:A4}</style> 你好 {name}"),
+    existing_target_text: "<style>@page{size:A4}</style> Hello {name}",
+    existing_target_hash: sha256("<style>@page{size:A4}</style> Hello {name}"),
+    parameter_schema: ["name"],
+    parameter_types: [{ name: "name", type: "string" }],
+    protected_tokens: ["<style>", "{name}", "</style>"],
+    max_graphemes: null,
+    allow_wrapping: true,
+    safety_owner_refs: [],
+    legal_owner_refs: [],
+    commercial_owner_refs: [],
+  }],
+} as const;
+const contextBundleJson = JSON.stringify(contextBundle);
+const contextBundleHash = sha256(contextBundleJson);
+const staticInput = {
+  schema_version: "localization-static-catalog-input.v1",
+  target_locale: "en-US",
+  source_resource_id: "website-fixed-copy-catalog",
+  source_version: "fixture-v1",
+  source_sha256: FIXTURE_HASH,
+  policy_version: "target-language-review-v3-20260816",
+  expected_message_count: 1,
+  context_bundles: [{ batch_id: contextBundle.batch_id, context_bundle_json: contextBundleJson,
+    context_bundle_hash: contextBundleHash, message_count: 1 }],
+} as const;
+const staticTask = buildProductTask(staticRoute, { parameters: {
+  target_locale: staticInput.target_locale,
+  source_resource_id: staticInput.source_resource_id,
+  source_version: staticInput.source_version,
+  source_sha256: staticInput.source_sha256,
+  policy_version: staticInput.policy_version,
+  result_schema_version: "localization-static-catalog-result.v1",
+} });
+const staticRun = await exerciseProductFlow(plugin, {
+  task: staticTask,
+  materialContents: { static_catalog_input: staticInput },
+  output: {},
+  expectedSessionCount: 3,
+  checkpointOutput: (call) => call.productStepId.endsWith(":selector") ? {
+    schema_version: "target-language-selector-output.v1",
+    locale: "en-US",
+    pass: "first",
+    selections: [{
+      message_id: "fixture.hello",
+      selection: "identical",
+      reason_code: "identical-byte-match",
+    }],
+  } : {
+    schema_version: "target-language-candidate.v1",
+    locale: "en-US",
+    context_bundle_hash: contextBundleHash,
+    items: [{ message_id: "fixture.hello", text: "<style>@page{size:A4}</style> Hello {name}", finding_codes: [] }],
+  },
+});
+assert.equal(staticRun.physicalSubmitDispatches, 3);
+const staticPayload = staticRun.completed.payload as Readonly<Record<string, unknown>>;
+assert.equal(staticPayload.schema_version, "localization-static-catalog-result.v1");
+assert.equal(staticPayload.decision, "production_approved");
+assert.equal(staticPayload.selected_catalog_hash,
+  hashCanonical([{ message_id: "fixture.hello", text: "<style>@page{size:A4}</style> Hello {name}", finding_codes: [] }]));
 process.stdout.write("[ACCEPTANCE][localization-production] PASS\n");

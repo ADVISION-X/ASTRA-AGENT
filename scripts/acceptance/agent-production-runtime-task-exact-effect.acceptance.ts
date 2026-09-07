@@ -1,4 +1,5 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
+import { createHash } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -7,6 +8,14 @@ import {
   createGptAbilityGroup,
   createProductionGptChildTools,
 } from "../../src/capabilities/gpt/index.js";
+import type { ProductGptCallInput } from "../../src/capabilities/gpt/product-api.js";
+import {
+  coherentObservationPacket,
+  exactAssistantTurnReply,
+  fakeBrowser,
+} from "../../src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.js";
+import { gptConversationIdentityHash } from
+  "../../src/capabilities/gpt/web/conversation-identity.js";
 import { createForensicsPersistenceAbilityGroupFromStorage } from
   "../../src/capabilities/forensics-persistence/index.js";
 import {
@@ -21,6 +30,8 @@ import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import { typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
+import type { SharedExecutionContext } from "../../src/mediator/product-plugin-contract.js";
+import { createSeoExecutor } from "../../src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.js";
 import { HASH_A, HASH_B, identityFor, task } from "./agent-production-runtime-fixtures.js";
 
 const call = Object.freeze({
@@ -31,16 +42,23 @@ const call = Object.freeze({
   input: Object.freeze({ files: [], promptHash: HASH_A, turnMarker: "[GRASSEYE:task-exact-effect]" }),
 });
 
-const intentFor = (taskInput: WebsiteAgentTask, attemptId: string) => {
+const textHash = (value: string): ProductionHash =>
+  `sha256:${createHash("sha256").update(value).digest("hex")}`;
+
+const intentFor = (
+  taskInput: WebsiteAgentTask,
+  attemptId: string,
+  exactCall: ProductGptCallInput = call,
+) => {
   const identity = Object.freeze({
     jobId: taskInput.job_id,
     attemptId,
     pluginId: "public-knowledge-article-pipeline",
     pluginVersion: 16,
-    productStepId: call.productStepId,
-    callId: call.callId,
-    childCapabilityId: call.child,
-    inputHash: hashCanonical(call.input),
+    productStepId: exactCall.productStepId,
+    callId: exactCall.callId,
+    childCapabilityId: exactCall.child,
+    inputHash: hashCanonical(exactCall.input),
   });
   const exactCallIdentityHash = hashCanonical([
     identity.jobId, identity.attemptId, identity.pluginId, identity.pluginVersion,
@@ -50,8 +68,8 @@ const intentFor = (taskInput: WebsiteAgentTask, attemptId: string) => {
     ...identity,
     exactCallIdentityHash,
     executionId: `gpt-call:${exactCallIdentityHash.slice(7)}`,
-    actionOrdinal: call.actionOrdinal,
-    input: call.input,
+    actionOrdinal: exactCall.actionOrdinal,
+    input: exactCall.input,
   });
 };
 
@@ -171,6 +189,67 @@ try {
   const attempt1 = "attempt:runtime-task-exact-effect:1";
   store.acceptTask(providerTask, identityFor(providerTask), attempt1);
   await persistAttempt(attempt1);
+  const canonicalConversationUrl = "https://chatgpt.com/c/task-exact-effect";
+  const userTurnId = "conversation-turn-1";
+  const assistantTurnId = "conversation-turn-2";
+  const conversationIdentityHash = gptConversationIdentityHash({
+    canonicalConversationUrl,
+    turnMarker: call.input.turnMarker,
+    userTurnId,
+    promptHash: HASH_A,
+  });
+  const waitCall = Object.freeze({
+    productStepId: call.productStepId,
+    callId: "text-wait",
+    child: "wait_for_stable_gpt_text" as const,
+    actionOrdinal: 14,
+    input: Object.freeze({
+      probeBudgetMs: 1_000,
+      canonicalConversationUrl,
+      conversationIdentityHash,
+      expectedPromptHash: HASH_A,
+      turnMarker: call.input.turnMarker,
+    }),
+  });
+  const waitIntent = intentFor(providerTask, attempt1, waitCall);
+  const historicalWaitFailure = await evidenceStore.appendRecord({
+    missionId: providerTask.job_id,
+    runId: attempt1,
+    stepId: waitCall.productStepId,
+    sourceCapabilityId: "gpt",
+    sourceChildCapabilityId: waitCall.child,
+    recordType: "evidence",
+    recordPayload: {
+      schema_version: "agent-gpt-evidence-safe.v2",
+      exact_call_identity_hash: waitIntent.exactCallIdentityHash,
+      child_capability_id: waitIntent.childCapabilityId,
+      plugin_version: waitIntent.pluginVersion,
+      action_ordinal: waitIntent.actionOrdinal,
+      execution_identity_hash: hashCanonical(waitIntent.executionId),
+      candidate_cardinality: Object.freeze({ raw: null, eligible: null }),
+      committed_mutation: "no",
+      postcondition_result: "failed",
+      result_status: "failed",
+      reasoning_requirement_result: null,
+      failure_code: "BROWSER_DOM_READ_INVALID",
+      failure_cause: null,
+      failure_proof: Object.freeze({
+        internal_decision_code: "FAIL_CLOSED",
+        fact_result_ids: Object.freeze([]),
+        authority_ref_hashes: Object.freeze([]),
+        observation_revision_hash: null,
+        browser_fact: null,
+        native_failure_code: null,
+      }),
+      started_at: "2026-09-03T00:00:00.002Z",
+      ended_at: "2026-09-03T00:00:00.003Z",
+      source_evidence_hash: hashCanonical({ attemptId: attempt1, child: waitCall.child }),
+    },
+    idempotencyKey: `gpt-call-evidence:v1:${waitIntent.exactCallIdentityHash}`,
+    correlationId: waitIntent.executionId,
+    createdAt: "2026-09-03T00:00:00.003Z",
+  });
+  assert.equal(historicalWaitFailure.status, "success");
   failAttempt(attempt1);
 
   const attempt2 = "attempt:runtime-task-exact-effect:2";
@@ -248,6 +327,110 @@ try {
     "a confirmed provider effect belongs to its Website accepted attempt and cannot move to a new attempt",
   );
   await confirmedExecution.settle(null);
+
+  const sameAttemptRecoveryAuthority = Object.assign(Object.create(null) as WorkbenchBrowserAuthority, {
+    readExactCallMutationFact: (input: Parameters<WorkbenchBrowserAuthority["readExactCallMutationFact"]>[0]) =>
+      input.exactCallIdentityHash === intentFor(providerTask, attempt1).exactCallIdentityHash ? ({
+        effectScope: "provider_effect" as const,
+        outcome: "CONFIRMED" as const,
+        mutationOutcome: "confirmed" as const,
+        terminalAt: "2026-09-03T00:00:00.000Z",
+        failureCode: null,
+        nativeFailureCode: null,
+        authorityRef: "browser-mutation:same-attempt-submit",
+        authorityHash: HASH_B,
+        targetRef: "target:1",
+        documentRef: "document:1",
+        productStepId: call.productStepId,
+        callId: call.callId,
+        childCapabilityId: call.child,
+        actionOrdinal: call.actionOrdinal,
+      }) : null,
+    countProviderTurnDispatches: () => 1,
+  });
+  const responseText = "stable recovered assistant response";
+  const responseHash = textHash(responseText);
+  const browser = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      const queryIds = new Set(intent.queries.map((query) => query.queryId));
+      if (queryIds.has("composer")) return coherentObservationPacket(intent, {
+        composer: Object.freeze({ rawCount: 1, eligibleCount: 1,
+          matches: Object.freeze([{ exactEditableTextHash: textHash("") }]) }),
+        "user-turns": Object.freeze({ rawCount: 1, eligibleCount: 1,
+          matches: Object.freeze([{ testId: userTurnId, exactGptUserPromptHash: HASH_A }]) }),
+      }, canonicalConversationUrl);
+      return coherentObservationPacket(intent, {
+        "user-turns": Object.freeze({ rawCount: 1, eligibleCount: 1,
+          matches: Object.freeze([{ testId: userTurnId, exactGptUserPromptHash: HASH_A }]) }),
+        "assistant-turns": Object.freeze({ rawCount: 1, eligibleCount: 1,
+          matches: Object.freeze([{ testId: assistantTurnId, semanticTextHash: responseHash }]) }),
+        generating: Object.freeze({ rawCount: 0, eligibleCount: 0, matches: Object.freeze([]) }),
+      }, canonicalConversationUrl);
+    }
+    if (intent.kind === "readExactAssistantTurn") {
+      return exactAssistantTurnReply(intent, responseText);
+    }
+    throw new Error(`UNEXPECTED_SAME_ATTEMPT_RECOVERY_INTENT:${intent.kind}`);
+  }, { initialUrl: canonicalConversationUrl });
+  Object.assign(sameAttemptRecoveryAuthority, {
+    acquireJobBoundTargetLease: async () => browser.browser,
+  });
+  const sameAttemptRecovery = execution(attempt1, 24, sameAttemptRecoveryAuthority);
+  const flow = createSeoExecutor(providerTask, {
+    gpt: sameAttemptRecovery.tools,
+  } as unknown as SharedExecutionContext);
+  const confirmedSubmit = await flow.facts(call);
+  assert.equal(confirmedSubmit.mutation?.outcome, "CONFIRMED");
+  const recoverableWait = await flow.facts(waitCall);
+  assert.equal(recoverableWait.evidence, null,
+    "internal pending evidence must not enter Product's terminal evidence sequence");
+  const reconcileCall = Object.freeze({
+    productStepId: call.productStepId,
+    callId: "submission-reconcile",
+    child: "reconcile_gpt_turn_submission" as const,
+    actionOrdinal: 13,
+    input: Object.freeze({
+      expectedPromptHash: HASH_A,
+      timeoutMs: 1_000,
+      turnMarker: call.input.turnMarker,
+    }),
+  });
+  const reconciled = await flow.execute({ sessionKey: "", ...reconcileCall });
+  assert.equal(reconciled.value?.canonicalConversationUrl, canonicalConversationUrl);
+  const stable = await flow.execute({ sessionKey: "", ...waitCall });
+  assert.equal(stable.value?.responseText, responseText,
+    "the same-attempt recovery must return the exact stable assistant answer through Product");
+  const checkpointCall = Object.freeze({
+    productStepId: call.productStepId,
+    callId: "text-checkpoint",
+    child: "checkpoint_gpt_text_response" as const,
+    actionOrdinal: 15,
+    input: Object.freeze({
+      assistantTurnId,
+      canonicalConversationUrl,
+      expectedPromptHash: HASH_A,
+      expectedResponseHash: responseHash,
+      turnMarker: call.input.turnMarker,
+    }),
+  });
+  const checkpoint = await flow.execute({ sessionKey: "", ...checkpointCall });
+  assert.equal(checkpoint.value?.semanticText, responseText,
+    "the recovered answer must cross the exact text checkpoint boundary");
+  assert.deepEqual(flow.evidenceRefs(), [
+    confirmedSubmit.evidence!.evidenceRef,
+    reconciled.evidenceRef,
+    stable.evidenceRef,
+    checkpoint.evidenceRef,
+  ], "Product must expose only one terminal evidence ref per action ordinal");
+  const terminalWait = await evidenceStore.readExactCallEvidence({
+    missionId: providerTask.job_id,
+    runId: attempt1,
+    exactCallIdentityHash: waitIntent.exactCallIdentityHash,
+  });
+  assert.equal(terminalWait?.record.idempotencyKey,
+    `gpt-call-terminal-evidence:v1:${waitIntent.exactCallIdentityHash}`);
+  assert.equal((terminalWait?.record.payload as Readonly<Record<string, unknown>>).postcondition_result, "passed");
+  await sameAttemptRecovery.settle(null);
 
   const differentBinding = await secondExecution.tools.readCallFacts({
     ...call,

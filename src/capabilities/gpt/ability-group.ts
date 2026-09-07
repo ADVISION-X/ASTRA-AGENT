@@ -30,6 +30,7 @@ import {
   typedGptExecutionFailure,
   type GptFailureProofFacts,
 } from "./execution-fault.js";
+import { confirmedProviderReadbackEvidencePending } from "./confirmed-provider-readback.js";
 
 const hash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -341,13 +342,26 @@ const confirmedProviderSubmitRemainsPending = (
   && observation.browserFact.mutationOutcome === "confirmed"
   && !failureCode.startsWith("GPT_PROVIDER_TERMINAL_");
 
+const confirmedProviderReadbackRemainsPending = (
+  intent: GptChildCapabilityIntent,
+  context: GptExecutionContext,
+  committedMutation: "no" | "dispatched" | "confirmed",
+  failureCode: string,
+): boolean => committedMutation === "no"
+  && confirmedProviderReadbackEvidencePending(context.confirmedProviderSubmitReceipt, intent)
+  && !failureCode.startsWith("GPT_PROVIDER_TERMINAL_");
+
 const failurePostconditionResult = (
   intent: GptChildCapabilityIntent,
+  context: GptExecutionContext,
   observation: ProofObservation | undefined,
   committedMutation: "no" | "dispatched" | "confirmed",
   failureCode: string,
 ): "pending" | "failed" => {
   if (confirmedProviderSubmitRemainsPending(intent, observation, failureCode)) return "pending";
+  if (confirmedProviderReadbackRemainsPending(
+    intent, context, committedMutation, failureCode,
+  )) return "pending";
   if (observation?.browserFact) {
     return observation.browserFact.browserOutcome === "DISPATCHED" ? "pending" : "failed";
   }
@@ -382,7 +396,7 @@ const failedExecution = async <K extends GptChildCapabilityId>(input: Readonly<{
       || sessionMutationWasDispatched(input.intent, input.observation, failure.code),
   );
   const postconditionResult = failurePostconditionResult(
-    input.intent, observation, committedMutation, failure.code,
+    input.intent, input.context, observation, committedMutation, failure.code,
   );
   const proof = proofFor({
     intent: input.intent, context: input.context, startedAt: input.startedAt, endedAt: new Date().toISOString(),

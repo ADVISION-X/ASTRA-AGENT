@@ -1,8 +1,9 @@
 import type { ProductPlugin } from "../../mediator/product-plugin-contract.js";
 import { executeOwnedFlow } from "./flow.js";
+import { executeStaticCatalogFlow } from "./static-catalog-flow.js";
 
 export const localizationProductionPlugin: ProductPlugin = {
-  pluginId: "localization-production", pluginVersion: 12, checkpointSchemaVersion: 2,
+  pluginId: "localization-production", pluginVersion: 13, checkpointSchemaVersion: 2,
   accepts: [
     { productId: "localization_report_translation", actionId: "report_translation" },
     { productId: "localization_report_translation", actionId: "accuracy_challenge" },
@@ -10,6 +11,9 @@ export const localizationProductionPlugin: ProductPlugin = {
     { productId: "localization_article_translation", actionId: "article_translation" },
     { productId: "localization_article_translation", actionId: "accuracy_challenge" },
     { productId: "localization_article_translation", actionId: "quality_reflection" },
+    { productId: "localization_static_catalog", actionId: "produce_locale_catalog" },
   ],
-  execute: executeOwnedFlow,
+  execute: (task, context) => task.product_id === "localization_static_catalog"
+    ? executeStaticCatalogFlow(task, context)
+    : executeOwnedFlow(task, context),
 };

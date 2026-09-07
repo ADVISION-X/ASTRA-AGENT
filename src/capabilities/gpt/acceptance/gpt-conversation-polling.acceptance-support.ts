@@ -2,10 +2,12 @@ import { governanceAssert as assert } from "../../../../scripts/audit/shared/gov
 
 import { throwGptChildFailure } from "../production-child-support.js";
 import { serializeTerminalFailure } from "../../../lib/local-runtime/production/terminal-failure.js";
+import { executionFailure } from "../../../lib/execution-failure.js";
 import {
   exerciseBrowserDispatchedEvidenceReadback,
   exerciseBrowserRejectedDispatchedEvidenceReadback,
   exerciseBrowserRejectedEvidenceReadback,
+  exerciseConfirmedProviderReadbackEvidenceLifecycle,
   exerciseFailedEvidenceReadback,
 } from "./gpt-failure-evidence-readback.acceptance-support.js";
 import {
@@ -316,4 +318,52 @@ import {
   assert.equal(gateCalls, 0, "abort during fresh observation must stop before reserving poll eligibility");
   assert.equal(fixture.physicalMutations(), 0,
     "abort during fresh observation must stop before cross-conversation navigation");
+}
+
+{
+  const { execute } = freshHarness();
+  const waitInput = Object.freeze({
+    probeBudgetMs: 1_000,
+    canonicalConversationUrl: conversationUrl,
+    conversationIdentityHash,
+    expectedPromptHash: promptHash,
+    turnMarker: marker,
+  });
+  const confirmedProviderSubmitReceipt = Object.freeze({
+    sourceAttemptId: "attempt:gpt-exact-target",
+    sourceExactCallIdentityHash: `sha256:${"a".repeat(64)}` as const,
+    sourceActionOrdinal: 0,
+    sourceProductStepId: "acceptance:gpt-browser-handoff",
+    sourceCallId: "turn-submit",
+    sourceTargetRef: "target:confirmed-submit",
+    sourceDocumentRef: "document:confirmed-submit",
+    sourceTerminalAt: "2026-09-07T00:00:00.000Z",
+    evidenceRef: "evidence:confirmed-submit",
+    evidenceHash: `sha256:${"b".repeat(64)}` as const,
+    promptHash,
+    turnMarker: marker,
+  });
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      throw executionFailure("failed", "BROWSER_DOM_READ_INVALID");
+    }
+    throw new Error(`POST_SUBMIT_READBACK_FAULT_MUST_NOT_MUTATE:${intent.kind}`);
+  });
+  const result = await execute(
+    "wait_for_stable_gpt_text",
+    fixture.browser,
+    waitInput,
+    undefined,
+    { confirmedProviderSubmitReceipt },
+  );
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, "BROWSER_DOM_READ_INVALID");
+  assert.equal(result.proof.committedMutation, "no");
+  assert.equal(result.proof.postconditionResult, "pending");
+  assert.equal(fixture.physicalMutations(), 0);
+  await exerciseConfirmedProviderReadbackEvidenceLifecycle(
+    result,
+    waitInput,
+    confirmedProviderSubmitReceipt,
+  );
 }

@@ -45,6 +45,7 @@ import { readCompletedGptChildResult } from "./completed-result.js";
 import {
   authorizeConfirmedProviderReadback,
   authorizeConfirmedProviderSourceReadback,
+  confirmedProviderReadbackEvidencePending,
   confirmedProviderSubmitReceipt,
   mergeConfirmedProviderSubmitReceipt,
   type ConfirmedProviderSubmitReceipt,
@@ -177,7 +178,7 @@ export class ProductionGptChildTools {
     let confirmedProviderSubmit: ConfirmedProviderSubmitReceipt | null = null;
     const observedCalls = new Map<string, ProductGptCallInput & Readonly<{ sessionKey: string }>>();
     const readCallFacts = async (call: ProductGptFactQuery): Promise<ExactGptCallFacts> => {
-      const facts = await this.readCallFacts(input, call);
+      const facts = await this.readCallFacts(input, call, confirmedProviderSubmit);
       const receipt = confirmedProviderSubmitReceipt(call, facts);
       confirmedProviderSubmit = mergeConfirmedProviderSubmitReceipt(
         confirmedProviderSubmit,
@@ -298,23 +299,30 @@ export class ProductionGptChildTools {
   private async readCallFacts(
     execution: ExecutionInput,
     query: ProductGptFactQuery,
+    confirmedProviderSubmitReceipt: ConfirmedProviderSubmitReceipt | null = null,
   ): Promise<GptExactCallFactsWithBrowserBinding> {
     return readTaskExactGptCallFacts({
       query,
       currentAttemptId: execution.attemptId,
       attemptIds: this.runtime.attemptIdsForTask(execution.jobId),
       intentForAttempt: (call, attemptId) => this.intentForAttempt(execution, call, attemptId),
-      readIntentFacts: (intent) => this.readIntentFacts(intent),
+      readIntentFacts: (intent) => this.readIntentFacts(intent, confirmedProviderSubmitReceipt),
     });
   }
   private async readIntentFacts(
     intent: GptChildCapabilityIntent,
+    confirmedProviderSubmitReceipt: ConfirmedProviderSubmitReceipt | null = null,
   ): Promise<GptExactCallFactsWithBrowserBinding> {
     return readProductionGptCallFacts({
       browserAuthority: this.browserAuthority,
       evidenceStore: this.evidenceStore,
       store: this.runtime.continuationStore,
-    }, intent as GptAnyChildCapabilityIntent);
+    }, intent as GptAnyChildCapabilityIntent, {
+      postSubmitReadbackRecovery: confirmedProviderReadbackEvidencePending(
+        confirmedProviderSubmitReceipt,
+        intent,
+      ),
+    });
   }
 
   private childSpan(input: ExecutionInput, intent: GptChildCapabilityIntent): RuntimeSpanHandle {
@@ -403,7 +411,7 @@ export class ProductionGptChildTools {
     confirmedProviderSubmitReceipt: ConfirmedProviderSubmitReceipt | null = null,
   ): Promise<ProductGptChildResult<K>> {
     const intent = this.intentFor(execution, call);
-    const facts = await this.readIntentFacts(intent);
+    const facts = await this.readIntentFacts(intent, confirmedProviderSubmitReceipt);
     const contract = GPT_CHILD_CAPABILITY_CONTRACTS[call.child];
     const span = this.childSpan(execution, intent);
     let result: GptChildCapabilityResult;

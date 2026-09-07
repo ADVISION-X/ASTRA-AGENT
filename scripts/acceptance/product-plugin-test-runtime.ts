@@ -11,6 +11,7 @@ import {
 } from "../../src/capabilities/gpt/index.js";
 import {
   hashCanonical,
+  sha256,
   type ProductionHash,
   type WebsiteAgentTask,
   type ProductPlugin,
@@ -44,6 +45,7 @@ export type ProductFlowFixture = Readonly<{
   materialContents?: Readonly<Record<string, unknown>>;
   checkpointOutput?: (call: ProductCall) => Readonly<Record<string, unknown>>;
   continuationReadback?: ExactGptContinuationReadback;
+  expectedSessionCount?: number;
 }>;
 
 const exactKeys = (value: Readonly<Record<string, unknown>>): readonly string[] =>
@@ -161,7 +163,7 @@ const observationExecutionValue = (input: ExecutionValueInput): ExecutionValue |
   if (call.child === "reconcile_gpt_attachment_set") return attachmentExecutionValue(input);
   if (call.child === "reconcile_gpt_turn_submission") {
     return { ...input, value: {
-      canonicalConversationUrl: "https://chatgpt.com/c/current",
+      canonicalConversationUrl: `https://chatgpt.com/c/${sha256(call.sessionKey).slice(7, 31)}`,
       conversationIdentityHash: FIXTURE_HASH,
     } };
   }
@@ -249,8 +251,9 @@ const createMaterials = (root: string, fixture: ProductFlowFixture) =>
     const content = fixture.materialContents?.[material.role]
       ?? (material.role === "result_contract" ? { schema_version: "fixture-result-contract.v1" }
         : { schema_version: `${material.role}.fixture.v1` });
-    writeFileSync(localPath, JSON.stringify(content), "utf8");
-    return { ...material, local_path: localPath };
+    const bytes = JSON.stringify(content);
+    writeFileSync(localPath, bytes, "utf8");
+    return { ...material, sha256: sha256(bytes), bytes: Buffer.byteLength(bytes), local_path: localPath };
   });
 
 const createGptFixture = (
@@ -346,7 +349,7 @@ export const exerciseProductFlow = async (
     await plugin.execute(fixture.task, createProductContext(root, state, fixture));
     assert(state.completed);
     assert.equal(state.laneOwned, false, `${plugin.pluginId} must release or advance every continuation lane`);
-    assert.equal(new Set(state.calls.map((call) => call.sessionKey)).size, 1);
+    assert.equal(new Set(state.calls.map((call) => call.sessionKey)).size, fixture.expectedSessionCount ?? 1);
     assert.ok(state.calls.every((call) => call.sessionKey.includes(plugin.pluginId)));
     return { calls: state.calls, completed: state.completed,
       continuationReads: state.continuationReads, physicalSubmitDispatches: state.physicalSubmitDispatches,

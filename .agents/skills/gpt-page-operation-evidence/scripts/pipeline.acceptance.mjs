@@ -105,6 +105,13 @@ function inputs(directory, scenes, mappingPatch = {}) {
   const inventory = {
     candidateBinding,
     matrixBinding: { digest: matrixDigest },
+    denominator: {
+      contractChildren: 1,
+      pageOperationChildren: 1,
+      nonPageChildren: 0,
+      pageOperationChildIds: ["submit_exact_gpt_turn_once"],
+      nonPageChildIds: [],
+    },
     children: [{
       childCapabilityId: "submit_exact_gpt_turn_once",
       contractVersion: 1,

@@ -13,6 +13,7 @@ export {
   gptContinuationIdentityHash,
   gptContinuationUsable,
 } from "./schema.js";
+export type { GptExecutionProfile } from "./schema.js";
 export type {
   ExactGptCallFacts,
   ExactGptContinuationReadback,

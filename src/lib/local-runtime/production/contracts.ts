@@ -286,7 +286,7 @@ export const AgentPluginCapabilityManifestSchema = z.object({
   if (pluginIds.size !== manifest.plugins.length || new Set(routes).size !== routes.length) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "AGENT_CAPABILITY_MANIFEST_IDENTITY_DUPLICATE" });
   }
-  if (routes.length !== 39) {
+  if (routes.length !== 40) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "AGENT_CAPABILITY_ROUTE_DENOMINATOR_INVALID" });
   }
 });

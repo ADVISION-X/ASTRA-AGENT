@@ -75,10 +75,10 @@ const projection = JSON.parse(await readFile(new URL(
   }>[];
 }>;
 
-assert.equal(productionRoutePolicies.length, 39);
-assert.equal(projection.routes.length, 39);
+assert.equal(productionRoutePolicies.length, 40);
+assert.equal(projection.routes.length, 40);
 assert.equal(Object.keys(projection.parameter_types).length, 57);
-assert.equal(projection.routes.filter((route) => route.result_contract !== undefined).length, 30);
+assert.equal(projection.routes.filter((route) => route.result_contract !== undefined).length, 31);
 assert.equal(projection.routes.filter((route) =>
   route.required_parameter_keys.includes("reusable_base_reservation_ref")
   && route.required_parameter_keys.includes("reusable_base_reservation_hash")).length, 2);
@@ -102,7 +102,7 @@ for (const route of productionRoutePolicies) {
   }
   tested.add(`${route.product_id}\0${route.action_id}`);
 }
-assert.equal(tested.size, 39);
+assert.equal(tested.size, 40);
 
 const sample = taskFor(productionRoutePolicies[0]!);
 assert.throws(() => assertProductionTaskRoutePolicy({
@@ -110,10 +110,10 @@ assert.throws(() => assertProductionTaskRoutePolicy({
   parameters: { ...sample.parameters, forbidden_extra: true },
 }), /AGENT_ROUTE_PARAMETER_SET_INVALID/u);
 
-process.stdout.write("[ACCEPTANCE][agent-route-contract] PASS 39/57/30/2\n");
+process.stdout.write("[ACCEPTANCE][agent-route-contract] PASS 40/57/31/2\n");
 for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V12",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V13",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:route-contract:${evidenceMode}`,

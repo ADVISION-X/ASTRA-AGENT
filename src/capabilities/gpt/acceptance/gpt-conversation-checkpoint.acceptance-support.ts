@@ -130,7 +130,9 @@ import {
   const { execute } = freshHarness();
   let simulatedNow = 0;
   const fixture = fakeBrowser((intent) => {
-    if (intent.kind === "observe") return coherentObservationPacket(intent, responseFacts(), conversationUrl);
+    if (intent.kind === "observe") {
+      return coherentObservationPacket(intent, responseFacts(), conversationUrl);
+    }
     if (intent.kind === "readExactAssistantTurn") {
       return exactAssistantTurnReply(intent, responseText);
     }
@@ -176,7 +178,9 @@ import {
   );
   const mediaHash = hash(original);
   const fixture = fakeBrowser((intent) => {
-    if (intent.kind === "observe") return coherentObservationPacket(intent, responseFacts(), conversationUrl);
+    if (intent.kind === "observe") {
+      return coherentObservationPacket(intent, responseFacts(), conversationUrl);
+    }
     throw new Error(`UNEXPECTED_IMAGE_RESPONSE_INTENT:${intent.kind}`);
   }, { onWait: (durationMs) => { simulatedNow += durationMs; }, authenticatedMedia: {
     authorityTargetHash: `sha256:${"2".repeat(64)}`,

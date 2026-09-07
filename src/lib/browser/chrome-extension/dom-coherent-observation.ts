@@ -14,8 +14,9 @@ import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 type BrowserRecord = Record<string, unknown>;
 const GPT_ORIGIN = "https://chatgpt.com";
 const GPT_CONVERSATION_SEGMENT_MAX_CHARS = 256;
-const GPT_USER_TURN_TEST_ID = /^conversation-turn-[1-9][0-9]*$/u;
+const GPT_TURN_TEST_ID = /^conversation-turn-[1-9][0-9]*$/u;
 const GPT_USER_PROMPT_CONTENT_SELECTOR = "[data-testid='collapsible-user-message-content']";
+const GPT_ASSISTANT_RESPONSE_SELECTOR = "[data-message-author-role='assistant']";
 type CoherentObservationResult = Readonly<{
   schemaVersion: "grasseye.browser.dom-observation.v2";
   targetRefHash: `sha256:${string}`;
@@ -55,12 +56,23 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
   };
   const exactGptUserPromptText = (node) => {
     if (!(node instanceof Element) || node.querySelectorAll("[data-message-author-role='user']").length !== 1
-      || !/${GPT_USER_TURN_TEST_ID.source}/.test(node.getAttribute("data-testid") || "")) {
+      || !/${GPT_TURN_TEST_ID.source}/.test(node.getAttribute("data-testid") || "")) {
       throw new Error("BROWSER_DOM_READ_INVALID");
     }
     const promptNodes = Array.from(node.querySelectorAll("${GPT_USER_PROMPT_CONTENT_SELECTOR}"));
     if (promptNodes.length !== 1) throw new Error("BROWSER_DOM_READ_INVALID");
     return canonicalSemanticText(promptNodes[0]);
+  };
+  const gptAssistantResponseText = (node) => {
+    if (!(node instanceof Element)
+      || !/${GPT_TURN_TEST_ID.source}/.test(node.getAttribute("data-testid") || "")) return null;
+    const responseNodes = Array.from(node.querySelectorAll("${GPT_ASSISTANT_RESPONSE_SELECTOR}"));
+    if (responseNodes.length === 0) return null;
+    if (node.querySelectorAll("[data-message-author-role='user']").length !== 0) {
+      throw new Error("BROWSER_DOM_READ_INVALID");
+    }
+    if (responseNodes.length !== 1) throw new Error("BROWSER_DOM_READ_INVALID");
+    return canonicalSemanticText(responseNodes[0]);
   };
   const currentUrlValue = (() => {
     const observedUrl = new URL(location.href);
@@ -91,7 +103,9 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
     if (field === "ariaValueMin") return node.getAttribute("aria-valuemin") || "";
     if (field === "ariaValueMax") return node.getAttribute("aria-valuemax") || "";
     if (field === "ariaValueNow") return node.getAttribute("aria-valuenow") || "";
-    if (field === "semanticTextHash") return sha256(canonicalSemanticText(node));
+    if (field === "semanticTextHash") {
+      return sha256(gptAssistantResponseText(node) ?? canonicalSemanticText(node));
+    }
     if (field === "exactGptUserPromptHash") return sha256(exactGptUserPromptText(node));
     if (field === "exactEditableTextHash") {
       const exactEditableText = browserExactEditableText(node);

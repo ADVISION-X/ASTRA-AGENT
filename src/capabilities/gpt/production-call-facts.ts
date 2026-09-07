@@ -31,6 +31,7 @@ export type GptExactCallFactsWithBrowserBinding = Omit<ExactGptCallFacts, "mutat
 export const productSafeExactGptCallFacts = (facts: GptExactCallFactsWithBrowserBinding): ExactGptCallFacts =>
   Object.freeze({
     ...facts,
+    evidence: isPendingExactEvidence(facts.evidence) ? null : facts.evidence,
     mutation: facts.mutation ? Object.freeze({
       owner: facts.mutation.owner,
       sourceAttemptId: facts.mutation.sourceAttemptId,
@@ -89,6 +90,7 @@ const readContinuation = (
 export const readProductionGptCallFacts = async (
   reader: FactReader,
   intent: GptAnyChildCapabilityIntent,
+  options: Readonly<{ postSubmitReadbackRecovery?: boolean }> = {},
 ): Promise<GptExactCallFactsWithBrowserBinding> => {
   const exactCallIdentityHash = gptExactCallIdentityHash(intent);
   const mutation = reader.browserAuthority.readExactCallMutationFact({
@@ -99,6 +101,7 @@ export const readProductionGptCallFacts = async (
   try {
     evidence = await readExactGptEvidenceFact({
       evidenceStore: reader.evidenceStore, intent, exactCallIdentityHash,
+      postSubmitReadbackRecovery: options.postSubmitReadbackRecovery === true,
     });
   } catch (error) {
     if (mutation?.outcome !== "REJECTED" || mutation.mutationOutcome !== "no") throw error;

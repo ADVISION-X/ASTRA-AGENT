@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { readFile, rename, writeFile } from "node:fs/promises";
 
 const DEFAULT_ROOT_SELECTOR =
-  'main, body [role="menu"]:visible, body [role="dialog"]:visible, body [role="listbox"]:visible';
+  'main, body [role="menu"]:visible, body [role="dialog"]:visible, body [role="listbox"]:visible, body [role="alert"]:visible';
 
 const DEFAULT_UI_ALLOWLIST = new Set([
   "GPT-5.6 Sol",
@@ -107,7 +107,7 @@ export async function createChromeSceneCollector({
 
   const scenes = await readExisting(outputPath);
   let activeTab = tab;
-
+  let syntheticAttachmentUploadArmed = false;
   const tabIdentityHash = (targetTab) => {
     const id = targetTab?.id ?? targetTab?.tabId;
     if ((typeof id !== "string" && typeof id !== "number") || String(id).length === 0) {
@@ -130,7 +130,8 @@ export async function createChromeSceneCollector({
       throw new Error(`SCENE_ID_DUPLICATE_OR_EMPTY:${sceneId ?? ""}`);
     }
     const roots = activeTab.playwright.locator(rootSelector);
-    const rawPacket = await roots.evaluateAll((elements, marker) => {
+    const rawPacket = await roots.evaluateAll((elements, context) => {
+      const { marker, attachmentUploadArmed } = context;
       const attributeNames = [
         "id",
         "role",
@@ -219,6 +220,10 @@ export async function createChromeSceneCollector({
               ariaHiddenAncestor: element.closest("[aria-hidden='true']") !== null,
               syntheticAttachmentGroupAncestor: (element.closest("[role='group'][aria-label]")
                 ?.getAttribute("aria-label") || "").includes(marker),
+              attachmentUploadSpinner: element.matches("svg[class*='animate-spin']"),
+              attachmentPendingAction: element.matches("button.cursor-wait"),
+              attachmentUploadErrorAlert: attachmentUploadArmed
+                && element.getAttribute("role") === "alert" && subtreeText.length > 0,
               activeAttachmentPopoverAncestor: element.closest("div.popover[aria-busy='false']") !== null,
             },
             media:
@@ -251,8 +256,14 @@ export async function createChromeSceneCollector({
           });
         }
       }
-      return { nodes: result, currentUrl: location.href, documentTimeOrigin: performance.timeOrigin };
-    }, syntheticMarker);
+      const ownerDocument = elements[0]?.ownerDocument;
+      return {
+        nodes: result,
+        currentUrl: ownerDocument?.location?.href ?? "",
+        documentTimeOrigin: ownerDocument?.defaultView?.performance?.timeOrigin
+          ?? ownerDocument?.lastModified,
+      };
+    }, { marker: syntheticMarker, attachmentUploadArmed: syntheticAttachmentUploadArmed });
     const rawNodes = rawPacket.nodes;
 
     const syntheticAttachmentNodes = rawNodes.filter((node) =>
@@ -268,10 +279,13 @@ export async function createChromeSceneCollector({
         && node.media.naturalWidth > 100 && node.media.alt.length > 0),
       attachmentSyntheticCount: syntheticAttachmentNodes.length,
       attachmentUploadPending: rawNodes.some((node) => node.machineFacts.syntheticAttachmentGroupAncestor
-        && (node.attributes.role === "progressbar" || node.attributes["aria-busy"] === "true"
+        && (node.machineFacts.attachmentUploadSpinner || node.machineFacts.attachmentPendingAction
+          || node.attributes.role === "progressbar" || node.attributes["aria-busy"] === "true"
           || ["loading", "uploading", "pending"].includes(node.attributes["data-state"]))),
-      attachmentTerminalErrorVisible: rawNodes.some((node) => node.machineFacts.syntheticAttachmentGroupAncestor
-        && (node.attributes.role === "alert" || /error/u.test(String(node.attributes["data-testid"] ?? "")))),
+      attachmentTerminalErrorVisible: rawNodes.some((node) =>
+        (node.machineFacts.syntheticAttachmentGroupAncestor
+          && (node.attributes.role === "alert" || /error/u.test(String(node.attributes["data-testid"] ?? ""))))
+        || node.machineFacts.attachmentUploadErrorAlert),
       syntheticMarkerNodeCount: rawNodes.filter((node) => (node.directText || "").includes(syntheticMarker)).length,
       syntheticUserTurnCount: rawNodes.filter((node) => node.attributes["data-message-author-role"] === "user"
         && (node.subtreeText || "").includes(syntheticMarker)).length,
@@ -338,6 +352,10 @@ export async function createChromeSceneCollector({
     const scene = { ...base, stateSignature: sceneContentSignature(base) };
     scenes.push(scene);
     await writeAtomic(outputPath, scenes);
+    if (pageFacts.attachmentTerminalErrorVisible
+      || (pageFacts.attachmentSyntheticCount > 0 && !pageFacts.attachmentUploadPending)) {
+      syntheticAttachmentUploadArmed = false;
+    }
     return scene;
   }
 
@@ -349,8 +367,9 @@ export async function createChromeSceneCollector({
       throw new Error("CHROME_SCENE_COLLECTOR_LOCATOR_REQUIRED");
     }
     const rawPacket = await locator.evaluateAll((elements) => ({
-      currentUrl: location.href,
-      documentTimeOrigin: performance.timeOrigin,
+      currentUrl: elements[0]?.ownerDocument?.location?.href ?? "",
+      documentTimeOrigin: elements[0]?.ownerDocument?.defaultView?.performance?.timeOrigin
+        ?? elements[0]?.ownerDocument?.lastModified,
       nodes: elements.map((element) => {
         const attributeNames = [
           "id",
@@ -465,6 +484,10 @@ export async function createChromeSceneCollector({
       includeMedia,
       decisionReceipt: { kind: "ACTION_REQUIRED", actionId, operation },
     });
+    if (operation === "setInputFiles" && (Array.isArray(value) ? value : [value])
+      .some((entry) => String(entry ?? "").split(/[\\/]/u).at(-1)?.includes(syntheticMarker))) {
+      syntheticAttachmentUploadArmed = true;
+    }
     const issuedAt = new Date().toISOString();
     const syntheticUserCountBefore = postcondition === "synthetic-user-turn-hydrated"
       ? await activeTab.playwright.locator("[data-message-author-role='user']").evaluateAll(

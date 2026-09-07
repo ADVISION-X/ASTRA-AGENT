@@ -193,22 +193,29 @@ const evidencePairValid = (
   failure: unknown,
   mutation: unknown,
   terminalKey: boolean,
+  postSubmitReadbackRecovery: boolean,
 ): boolean => !(terminalKey && postcondition === "pending")
   && !(resultStatus === "success" && (postcondition !== "passed" || failure !== null))
   && !(resultStatus === "failed" && (!machineCode(failure) || postcondition === "passed"))
+  && !(postcondition === "pending" && typeof failure === "string"
+    && failure.startsWith("GPT_PROVIDER_TERMINAL_"))
   && !(postcondition === "pending"
-    && (resultStatus !== "failed" || (mutation !== "dispatched" && mutation !== "confirmed")));
+    && (resultStatus !== "failed" || (mutation !== "dispatched" && mutation !== "confirmed"
+      && !(mutation === "no" && postSubmitReadbackRecovery && !terminalKey))));
 
 const evidenceState = (
   payload: Readonly<Record<string, unknown>>,
   terminalKey: boolean,
+  postSubmitReadbackRecovery: boolean,
 ): EvidenceState => {
   const postcondition = payload.postcondition_result;
   const resultStatus = payload.result_status;
   const failure = payload.failure_code;
   const mutation = payload.committed_mutation;
   if (!evidenceEnumsValid(postcondition, resultStatus, mutation)
-    || !evidencePairValid(postcondition, resultStatus, failure, mutation, terminalKey)) invalid();
+    || !evidencePairValid(
+      postcondition, resultStatus, failure, mutation, terminalKey, postSubmitReadbackRecovery,
+    )) invalid();
   return {
     postcondition: postcondition as EvidenceState["postcondition"],
     resultStatus: resultStatus as EvidenceState["resultStatus"],
@@ -379,12 +386,14 @@ type VerifiedExactGptEvidence = Readonly<{
   state: EvidenceState;
   reasoningResult: GptReasoningRequirementResult | null;
   cause: Error | undefined;
+  terminal: boolean;
 }>;
 
 const readVerifiedExactGptEvidence = async (input: Readonly<{
   evidenceStore: GptEvidenceStorePort;
   intent: GptChildCapabilityIntent;
   exactCallIdentityHash: `sha256:${string}`;
+  postSubmitReadbackRecovery?: boolean;
 }>): Promise<VerifiedExactGptEvidence | null> => {
   const stored = await input.evidenceStore.readExactCallEvidence({
     missionId: input.intent.jobId,
@@ -398,7 +407,7 @@ const readVerifiedExactGptEvidence = async (input: Readonly<{
   if (!payload || !hashValue(evidenceHash)) return invalid();
   if (payload.schema_version !== "agent-gpt-evidence-safe.v2") invalid();
   const terminalKey = assertIdentity({ ...input, stored, payload, artifactRefs });
-  const state = evidenceState(payload, terminalKey);
+  const state = evidenceState(payload, terminalKey, input.postSubmitReadbackRecovery === true);
   const reasoningResult = reasoningRequirementResult({ payload, intent: input.intent, state });
   const cause = failureCause(payload.failure_cause);
   return Object.freeze({
@@ -409,6 +418,7 @@ const readVerifiedExactGptEvidence = async (input: Readonly<{
     state,
     reasoningResult,
     cause,
+    terminal: terminalKey,
   });
 };
 
@@ -416,16 +426,23 @@ export const readExactGptEvidenceFact = async (input: Readonly<{
   evidenceStore: GptEvidenceStorePort;
   intent: GptChildCapabilityIntent;
   exactCallIdentityHash: `sha256:${string}`;
+  postSubmitReadbackRecovery?: boolean;
 }>): Promise<ExactGptCallFacts["evidence"]> => {
   const verified = await readVerifiedExactGptEvidence(input);
   if (!verified) return null;
   const { payload, state, reasoningResult, cause } = verified;
-  if (state.postcondition === "failed") {
-    const proofFacts = failureProofFacts({
-      payload, intent: input.intent,
-      exactCallIdentityHash: input.exactCallIdentityHash, mutation: state.mutation,
-    });
-    const browserFact = proofFacts.browserFact;
+  const failedInitialReadbackRemainsPending = input.postSubmitReadbackRecovery === true
+    && !verified.terminal
+    && state.postcondition === "failed"
+    && state.resultStatus === "failed"
+    && state.mutation === "no"
+    && !state.failureCode?.startsWith("GPT_PROVIDER_TERMINAL_");
+  const proofFacts = state.resultStatus === "failed" ? failureProofFacts({
+    payload, intent: input.intent,
+    exactCallIdentityHash: input.exactCallIdentityHash, mutation: state.mutation,
+  }) : null;
+  if (state.postcondition === "failed" && !failedInitialReadbackRemainsPending) {
+    const browserFact = proofFacts!.browserFact;
     throw gptExecutionFailure(state.failureCode!, {
       mutationOutcome: state.mutation,
       evidence: Object.freeze({
@@ -437,7 +454,7 @@ export const readExactGptEvidenceFact = async (input: Readonly<{
         childCapabilityId: browserFact.childCapabilityId,
         browserOutcome: browserFact.browserOutcome,
       }) : null,
-      proofFacts,
+      proofFacts: proofFacts!,
       reasoningRequirementResult: reasoningResult,
       ...(cause ? { cause } : {}),
     });
@@ -450,6 +467,6 @@ export const readExactGptEvidenceFact = async (input: Readonly<{
     readbackVerified: true as const,
     artifactRefs: verified.artifactRefs,
   });
-  if (state.postcondition === "pending") pendingEvidence.add(fact);
+  if (state.postcondition === "pending" || failedInitialReadbackRemainsPending) pendingEvidence.add(fact);
   return fact;
 };

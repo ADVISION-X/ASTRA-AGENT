@@ -3,7 +3,11 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { completeGptPageEvidenceCaptureFailures, gptPageEvidencePrivacyFailures }
+import {
+  completeGptPageEvidenceCaptureFailures,
+  gptPageEvidencePrivacyFailures,
+  scopedGptPageEvidenceFactFailures,
+}
   from "../audit/domains/gpt/gpt-page-evidence-capture-inspection.js";
 
 const ROOT = resolve(".");
@@ -43,7 +47,7 @@ type EvidenceChild = Record<string, unknown> & {
     digest: string;
     sourceBinding: Record<string, { files?: Array<{ path?: string; contentHash?: string }> }>;
   };
-  collection?: { factBindings?: Array<{ factId?: string }> };
+  collection?: Record<string, unknown> & { factBindings?: Array<{ factId?: string }> };
 };
 
 type EvidenceScope = Readonly<Record<string, readonly string[]>>;
@@ -127,13 +131,11 @@ const affectedChildFailures = (
     return completeGptPageEvidenceCaptureFailures(child, child.evidenceDemand)
       .map((failure) => `${id}:targeted-capture:${failure}`);
   }
-  const admittedFacts = new Set((child.collection?.factBindings ?? [])
-    .flatMap((binding) => typeof binding.factId === "string" ? [binding.factId] : []));
   const requestedFacts = requestedScope[id] ?? [];
   return [
     ...(requestedFacts.length === 0 ? [`${id}:observation-scope-required`] : []),
-    ...requestedFacts.filter((factId) => !admittedFacts.has(factId))
-      .map((factId) => `${id}:fact-not-admitted:${factId}`),
+    ...scopedGptPageEvidenceFactFailures(child, child.evidenceDemand, requestedFacts)
+      .map((failure) => `${id}:scoped-capture:${failure}`),
   ];
 };
 

@@ -15,19 +15,22 @@ const stable = (value) => Array.isArray(value) ? value.map(stable)
     ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, stable(value[key])]))
     : value;
 const sha256 = (value) => `sha256:${createHash("sha256").update(String(value)).digest("hex")}`;
-const admissionCandidate = (children, scopedFacts = []) => `CHILDSET:${sha256(JSON.stringify(stable(children.map((child) => [
-  child.childCapabilityId, child.evidenceDemand.childCandidateDigest,
-]).sort().concat(scopedFacts.length > 0 ? [["FACT_SCOPE", [...scopedFacts].sort()]] : [])))).slice("sha256:".length)}`;
 
 function run(args, expectedStatus = 0) {
   const result = spawnSync(process.execPath, ["--import", "tsx", TOOL, ...args], {
     cwd: REPO,
     encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
   });
   if ((result.status ?? 1) !== expectedStatus) {
     throw new Error(`COMMAND_STATUS_MISMATCH:${args[0]}:${result.status}:${result.stderr || result.stdout}`);
   }
   return { stdout: result.stdout.trim(), stderr: result.stderr.trim() };
+}
+
+function candidateFor(reportPath, child = "all", facts = []) {
+  return JSON.parse(run(["candidate", "--repo", REPO, "--matrix", MATRIX, "--report", reportPath,
+    "--child", child, ...(facts.length > 0 ? ["--facts", facts.join(",")] : [])]).stdout).candidate;
 }
 
 function exactProjection(value) {
@@ -152,6 +155,13 @@ function liveSpecimen(child, requirement, runId, stateId, index, observationIds)
       setAtPath(specimen, assertion.path, "present");
     }
     if (assertion.operator === "greaterThan") setAtPath(specimen, assertion.path, Number(assertion.value) + 1);
+  }
+  if (observationOnly) {
+    specimen.related.transitionChain.preObservationId = observationId;
+    specimen.related.transitionChain.postObservationId = observationId;
+    specimen.related.transitionChain.directPostcondition = {
+      passed: true, sourceSceneId, sourceSceneSignature,
+    };
   }
   specimen.stateSignature = observedStateSignature(specimen);
   return specimen;
@@ -318,7 +328,7 @@ async function main() {
   run(["validate", "--repo", REPO, "--matrix", MATRIX, "--report", reportPath, "--require-complete"]);
   const completeReport = JSON.parse(await readFile(reportPath, "utf8"));
   run(["admit", "--repo", REPO, "--matrix", MATRIX, "--report", reportPath, "--child", "all",
-    "--candidate", admissionCandidate(completeReport.children.filter((child) => child.pageOperationRequired))]);
+    "--candidate", candidateFor(reportPath)]);
   const missingCandidate = run(["admit", "--repo", REPO, "--matrix", MATRIX, "--report", reportPath,
     "--child", "prepare_clean_gpt_chat"], 1);
   if (!/ADMISSION_CANDIDATE_REQUIRED/u.test(missingCandidate.stderr)) throw new Error("MISSING_CANDIDATE_PASSED");
@@ -341,6 +351,93 @@ async function main() {
     throw new Error("STABLE_SNAPSHOT_NOT_PRESERVED");
   }
 
+  const targetedChildId = "reconcile_gpt_attachment_set";
+  const targetedInventory = inventory.children.find((child) => child.childCapabilityId === targetedChildId);
+  const targetedRequirement = matrix.children.find((child) => child.childCapabilityId === targetedChildId);
+  const targetedRunId = "v5-targeted-state-acceptance";
+  const targetedStateId = targetedRequirement.requiredLiveStates[0];
+  const targetedObservationId = `${targetedChildId}:${targetedStateId}:targeted-live`;
+  const targetedSpecimen = liveSpecimen(targetedInventory, targetedRequirement, targetedRunId,
+    targetedStateId, 0, [targetedObservationId]);
+  const targetedDerivedStates = [...matrix.commonRequiredDerivedStates,
+    ...targetedRequirement.childSpecificDerivedStates];
+  const targetedDerived = targetedDerivedStates.map((stateId, index) =>
+    derivedSpecimen(targetedInventory, targetedRequirement, targetedRunId,
+      stateId, targetedObservationId, index + 1));
+  const priorCaptureChild = capture.children.find((child) => child.childCapabilityId === targetedChildId);
+  const priorFirstObservationId = priorCaptureChild.specimens.find((specimen) =>
+    specimen.evidenceKind === "LIVE_PAGE" && specimen.stateId === targetedStateId).observationId;
+  const targetedScene = stable({
+    sceneId: targetedSpecimen.sourceSceneId,
+    capturedAt: targetedSpecimen.capturedAt,
+    stateSignature: targetedSpecimen.sourceSceneSignature,
+    activeTabIdentityHash: sha256("targeted-qa-tab"),
+    documentIdentityHash: targetedSpecimen.documentIdentityHash,
+    observationRevisionHash: targetedSpecimen.revision,
+    binding: { runId: targetedRunId, captureEpoch: capture.captureEpoch,
+      qaTabIdentityHash: sha256("targeted-qa-tab") },
+    transitionReceipt: null,
+    decisionReceipt: null,
+  });
+  const targetedCapture = {
+    ...structuredClone(capture),
+    runId: targetedRunId,
+    capturedAt: targetedSpecimen.capturedAt,
+    browser: { ...capture.browser, qaTabIdentityHash: sha256("targeted-qa-tab") },
+    fixtureManifest: { ...capture.fixtureManifest, runId: targetedRunId },
+    sceneManifest: [{ ...targetedScene,
+      envelopeHash: sha256(JSON.stringify(stable(targetedScene))) }],
+    children: [{
+      ...priorCaptureChild,
+      factBindings: priorCaptureChild.factBindings.filter((binding) =>
+        binding.observationId === priorFirstObservationId).map((binding) =>
+        ({ ...binding, observationId: targetedObservationId })),
+      specimens: [targetedSpecimen, ...targetedDerived],
+    }],
+  };
+  const targetedCapturePath = join(directory, "targeted-state.capture.json");
+  const targetedReportPath = join(directory, "targeted-state.report.json");
+  await writeFile(targetedCapturePath, `${JSON.stringify(targetedCapture)}\n`, "utf8");
+  const targetedMerge = JSON.parse(run(["merge", "--repo", REPO, "--matrix", MATRIX,
+    "--capture", targetedCapturePath, "--base-report", reportPath, "--child", targetedChildId,
+    "--output", targetedReportPath]).stdout);
+  if (targetedMerge.status !== "CAPTURE_COMPLETE") {
+    const incomplete = JSON.parse(await readFile(targetedReportPath, "utf8"));
+    const target = incomplete.children.find((child) => child.childCapabilityId === targetedChildId);
+    throw new Error(`TARGETED_STATE_MERGE_NOT_COMPLETE:${JSON.stringify(target?.captureMissing ?? [])}`);
+  }
+  const targetedReport = JSON.parse(await readFile(targetedReportPath, "utf8"));
+  const targetedCollection = targetedReport.children.find((child) =>
+    child.childCapabilityId === targetedChildId).collection.specimens.filter((specimen) =>
+    specimen.evidenceKind === "LIVE_PAGE");
+  if (targetedCollection.length !== targetedRequirement.requiredLiveStates.length
+    || targetedCollection.find((specimen) => specimen.stateId === targetedStateId)?.peripheral.runId !== targetedRunId
+    || targetedCollection.some((specimen) => specimen.stateId !== targetedStateId
+      && specimen.peripheral.runId !== capture.runId)) {
+    throw new Error("TARGETED_STATE_MERGE_DID_NOT_PRESERVE_UNREFRESHED_STATES");
+  }
+  run(["validate", "--repo", REPO, "--matrix", MATRIX, "--report", targetedReportPath, "--require-complete"]);
+  const targetedRefreshedPath = join(directory, "targeted-state-refreshed.report.json");
+  run(["refresh", "--repo", REPO, "--matrix", MATRIX, "--base-report", targetedReportPath,
+    "--output", targetedRefreshedPath, "--child", targetedChildId]);
+  const targetedRefreshed = JSON.parse(await readFile(targetedRefreshedPath, "utf8"));
+  for (const child of targetedReport.children.filter((entry) => entry.pageOperationRequired)) {
+    const beforeScenes = child.collection.captureContext.sceneManifest;
+    const afterChild = targetedRefreshed.children.find((entry) =>
+      entry.childCapabilityId === child.childCapabilityId);
+    const afterScenes = afterChild.collection.captureContext.sceneManifest;
+    for (const specimen of afterChild.collection.specimens.filter((entry) => entry.evidenceKind === "LIVE_PAGE")) {
+      const before = beforeScenes.find((scene) => scene.sceneId === specimen.sourceSceneId);
+      const after = afterScenes.find((scene) => scene.sceneId === specimen.sourceSceneId);
+      if (!before || !after || JSON.stringify(before.binding) !== JSON.stringify(after.binding)
+        || before.activeTabIdentityHash !== after.activeTabIdentityHash) {
+        throw new Error(`OFFLINE_REFRESH_CHANGED_SCENE_PROVENANCE:${child.childCapabilityId}:${specimen.sourceSceneId}`);
+      }
+    }
+  }
+  run(["validate", "--repo", REPO, "--matrix", MATRIX,
+    "--report", targetedRefreshedPath, "--require-complete"]);
+
   const partialBase = structuredClone(completeReport);
   const partialWait = partialBase.children.find((child) => child.childCapabilityId === "wait_for_stable_gpt_text");
   partialWait.collection.specimens = partialWait.collection.specimens.filter((specimen) =>
@@ -351,16 +448,43 @@ async function main() {
   run(["refresh", "--repo", REPO, "--matrix", MATRIX, "--base-report", partialBasePath,
     "--output", partialPath, "--child", "wait_for_stable_gpt_text"]);
   const partialReport = JSON.parse(await readFile(partialPath, "utf8"));
-  const partialChild = partialReport.children.find((child) => child.childCapabilityId === "wait_for_stable_gpt_text");
   const observedScope = ["live-state:text-stable"];
-  run(["admit", "--repo", REPO, "--matrix", MATRIX, "--report", partialPath,
+  const observedCandidate = candidateFor(partialPath, "wait_for_stable_gpt_text", observedScope);
+  const scopedAdmission = JSON.parse(run(["admit", "--repo", REPO, "--matrix", MATRIX, "--report", partialPath,
     "--child", "wait_for_stable_gpt_text", "--facts", observedScope.join(","),
-    "--candidate", admissionCandidate([partialChild], observedScope)]);
+    "--candidate", observedCandidate]).stdout);
+  if (scopedAdmission.status !== "ADMITTED"
+    || scopedAdmission.evidenceBriefs?.[0]?.facts?.[0]?.actualValues?.[0]?.value !== "text-stable"
+    || !scopedAdmission.admissionReceipt?.evidenceBriefHashes?.[0]?.hash) {
+    throw new Error("SCOPED_ADMISSION_DID_NOT_CONSUME_ACTUAL_EVIDENCE");
+  }
   const missingScope = ["live-state:generation-error"];
   const missingFact = run(["admit", "--repo", REPO, "--matrix", MATRIX, "--report", partialPath,
     "--child", "wait_for_stable_gpt_text", "--facts", missingScope.join(","),
-    "--candidate", admissionCandidate([partialChild], missingScope)], 1);
-  if (!/ADMISSION_FACT_NOT_OBSERVED/u.test(missingFact.stderr)) throw new Error("UNOBSERVED_FACT_ADMITTED");
+    "--candidate", candidateFor(partialPath, "wait_for_stable_gpt_text", missingScope)], 1);
+  if (!/ADMISSION_FACT_EVIDENCE_INVALID.*fact-not-observed/u.test(missingFact.stderr)) {
+    throw new Error("UNOBSERVED_FACT_ADMITTED");
+  }
+
+  const tampered = structuredClone(partialReport);
+  const tamperedChild = tampered.children.find((child) => child.childCapabilityId === "wait_for_stable_gpt_text");
+  const targetBinding = tamperedChild.collection.factBindings.find((binding) => binding.factId === "target:assistant-turn");
+  const targetSpecimen = tamperedChild.collection.specimens.find((specimen) =>
+    specimen.observationId === targetBinding.observationId);
+  targetSpecimen.core.targets["assistant-turn"].observed = false;
+  const tamperedPath = join(directory, "tampered-scoped.report.json");
+  await writeFile(tamperedPath, `${JSON.stringify(tampered)}\n`, "utf8");
+  const tamperedScope = ["target:assistant-turn"];
+  const tamperedCandidate = candidateFor(tamperedPath, "wait_for_stable_gpt_text", tamperedScope);
+  if (tamperedCandidate === candidateFor(partialPath, "wait_for_stable_gpt_text", tamperedScope)) {
+    throw new Error("ACTUAL_EVIDENCE_NOT_BOUND_TO_CANDIDATE");
+  }
+  const tamperedAdmission = run(["admit", "--repo", REPO, "--matrix", MATRIX, "--report", tamperedPath,
+    "--child", "wait_for_stable_gpt_text", "--facts", tamperedScope.join(","),
+    "--candidate", tamperedCandidate], 1);
+  if (!/ADMISSION_FACT_EVIDENCE_INVALID.*binding-target/u.test(tamperedAdmission.stderr)) {
+    throw new Error("FALSE_TARGET_ADMITTED");
+  }
 
   const cases = [
     ["reused-live-scene", (value) => {
@@ -405,10 +529,8 @@ async function main() {
     if (!/REPORT_NOT_COMPLETE/u.test(rejected.stderr)) throw new Error(`WRONG_REJECTION:${name}:${rejected.stderr}`);
     if (name === "missing-demand-binding") {
       const partialReport = JSON.parse(await readFile(variantReport, "utf8"));
-      const modelCandidate = admissionCandidate([partialReport.children.find((child) =>
-        child.childCapabilityId === "select_exact_gpt_model_v2")]);
-      const prepareCandidate = admissionCandidate([partialReport.children.find((child) =>
-        child.childCapabilityId === "prepare_clean_gpt_chat")]);
+      const modelCandidate = candidateFor(variantReport, "select_exact_gpt_model_v2");
+      const prepareCandidate = candidateFor(variantReport, "prepare_clean_gpt_chat");
       run(["admit", "--repo", REPO, "--matrix", MATRIX, "--report", variantReport,
         "--child", "select_exact_gpt_model_v2", "--candidate", modelCandidate]);
       const localReject = run(["admit", "--repo", REPO, "--matrix", MATRIX, "--report", variantReport,
@@ -427,7 +549,7 @@ async function main() {
     "--report", stalePath, "--require-complete"], 1);
   if (!/REPORT_PROJECTION_STALE/u.test(staleRejected.stderr)) throw new Error(`STALE_CANDIDATE_PASSED:${staleRejected.stderr}`);
 
-  process.stdout.write(`${JSON.stringify({ passed: true, cases: ["recapture-without-trigger-rejected", "baseline-complete", "admit-all", "candidate-required", "head-candidate-rejected", "canonical-report-path", "offline-refresh-same-capture-epoch", "observation-scoped-partial-admit", "unobserved-fact-rejected", "partial-report-child-local-admit", ...cases.map(([name]) => name), "stale-projection"], directory })}\n`);
+  process.stdout.write(`${JSON.stringify({ passed: true, cases: ["recapture-without-trigger-rejected", "baseline-complete", "admit-all", "candidate-required", "head-candidate-rejected", "canonical-report-path", "offline-refresh-same-capture-epoch", "targeted-state-merge-preserves-unrefreshed-states", "offline-refresh-preserves-scene-provenance", "observation-scoped-partial-admit", "actual-evidence-brief-returned", "unobserved-fact-rejected", "actual-evidence-bound-to-candidate", "false-target-rejected", "partial-report-child-local-admit", ...cases.map(([name]) => name), "stale-projection"], directory })}\n`);
 }
 
 main().catch((error) => {

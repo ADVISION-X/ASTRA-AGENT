@@ -5,6 +5,10 @@ import type { BrowserConfirmedProviderReadbackAuthorization } from
 import { executionFailure } from "../../lib/execution-failure.js";
 import { gptSubmissionLocatorArtifact } from "./artifact-contract.js";
 import type {
+  GptChildCapabilityId,
+  GptChildCapabilityIntent,
+} from "./contract.js";
+import type {
   ProductGptCallInput,
   ProductGptChildResult,
 } from "./product-api.js";
@@ -28,6 +32,48 @@ export type ConfirmedProviderSubmitReceipt = Readonly<{
 
 const hash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
+
+const CONFIRMED_PROVIDER_READBACK_EVIDENCE_CHILDREN = new Set<GptChildCapabilityId>([
+  "reconcile_gpt_turn_submission",
+  "wait_for_stable_gpt_text",
+  "wait_for_stable_gpt_image",
+  "checkpoint_gpt_text_response",
+  "checkpoint_gpt_generated_image",
+]);
+
+const hashValue = (value: unknown): value is `sha256:${string}` =>
+  typeof value === "string" && /^sha256:[a-f0-9]{64}$/u.test(value);
+
+const nonEmptyString = (value: unknown): value is string =>
+  typeof value === "string" && value.length > 0;
+
+const receiptShapeValid = (receipt: ConfirmedProviderSubmitReceipt): boolean =>
+  nonEmptyString(receipt.sourceAttemptId)
+  && nonEmptyString(receipt.sourceProductStepId)
+  && nonEmptyString(receipt.sourceCallId)
+  && nonEmptyString(receipt.sourceTargetRef)
+  && nonEmptyString(receipt.sourceDocumentRef)
+  && nonEmptyString(receipt.sourceTerminalAt)
+  && !Number.isNaN(Date.parse(receipt.sourceTerminalAt))
+  && new Date(receipt.sourceTerminalAt).toISOString() === receipt.sourceTerminalAt
+  && nonEmptyString(receipt.evidenceRef)
+  && nonEmptyString(receipt.turnMarker)
+  && Number.isSafeInteger(receipt.sourceActionOrdinal)
+  && receipt.sourceActionOrdinal >= 0
+  && hashValue(receipt.sourceExactCallIdentityHash)
+  && hashValue(receipt.evidenceHash)
+  && hashValue(receipt.promptHash);
+
+export const confirmedProviderReadbackEvidencePending = (
+  receipt: ConfirmedProviderSubmitReceipt | null | undefined,
+  intent: GptChildCapabilityIntent,
+): boolean => Boolean(receipt && receiptShapeValid(receipt)
+  && CONFIRMED_PROVIDER_READBACK_EVIDENCE_CHILDREN.has(intent.childCapabilityId)
+  && receipt.sourceAttemptId === intent.attemptId
+  && receipt.sourceProductStepId === intent.productStepId
+  && receipt.sourceActionOrdinal < intent.actionOrdinal
+  && Reflect.get(intent.input, "expectedPromptHash") === receipt.promptHash
+  && Reflect.get(intent.input, "turnMarker") === receipt.turnMarker);
 
 export const confirmedProviderSubmitReceipt = (
   call: ProductGptCallInput,

@@ -97,6 +97,7 @@ const inspectBrowserFailureEvidence = (
   findings, finding, message: (required) => `The Browser atomic-step recovery path is missing ${required}.` });
   inspectMissing({ source: group, required: [
     'recovery.state === "confirmed"', '"CONFIRMED" as const', "confirmedProviderSubmitRemainsPending",
+    "confirmedProviderReadbackRemainsPending", "confirmedProviderReadbackEvidencePending",
     "mutationOutcome: input.walBrowserFact.mutationOutcome", "browserFact: input.walBrowserFact",
   ], checkId: "gpt/browser-confirmed-submit-pending-proof", filePath: GROUP_PATH,
   findings, finding,
@@ -114,20 +115,31 @@ const inspectConfirmedSubmitClosure = (
     findings, finding, message: (required) => `The Product-safe exact facts API is missing ${required}.` });
   inspectMissing({ source: sourceText(context, EVIDENCE_FACT_PATH), required: [
     "isPendingExactEvidence", "gpt-call-evidence:v1:", "gpt-call-terminal-evidence:v1:",
-    'mutation === "confirmed"',
+    'mutation === "confirmed"', "postSubmitReadbackRecovery", "!verified.terminal",
+    'failure.startsWith("GPT_PROVIDER_TERMINAL_")',
   ], checkId: "gpt/confirmed-submit-evidence-lifecycle", filePath: EVIDENCE_FACT_PATH,
   findings, finding, message: (required) => `The exact pending-to-terminal evidence lifecycle is missing ${required}.` });
   inspectMissing({ source: sourceText(context, CONFIRMED_PROVIDER_READBACK_PATH), required: [
     "confirmedProviderSubmitReceipt", "authorizeConfirmedProviderSourceReadback",
     "authorizeConfirmedProviderReadback", "sourceTargetRef", "sourceDocumentRef",
-    "gptSubmissionLocatorArtifact", "mutationOutcome",
+    "gptSubmissionLocatorArtifact", "mutationOutcome", "confirmedProviderReadbackEvidencePending",
+    '"reconcile_gpt_turn_submission"', '"wait_for_stable_gpt_text"',
+    '"wait_for_stable_gpt_image"', '"checkpoint_gpt_text_response"',
+    '"checkpoint_gpt_generated_image"',
   ], checkId: "gpt/confirmed-submit-owner-closure", filePath: CONFIRMED_PROVIDER_READBACK_PATH,
   findings, finding, message: (required) => `The GPT-owned confirmed-submit closure is missing ${required}.` });
   inspectMissing({ source: sourceText(context, PRODUCTION_CHILD_TOOLS_PATH), required: [
     "readCallFacts", "confirmedProviderSubmitReceipt", "mergeConfirmedProviderSubmitReceipt",
     "authorizeConfirmedProviderSourceReadback", "authorizeConfirmedProviderReadback",
+    "confirmedProviderReadbackEvidencePending",
+    "this.readCallFacts(input, call, confirmedProviderSubmit)",
+    "this.readIntentFacts(intent, confirmedProviderSubmitReceipt)",
   ], checkId: "gpt/confirmed-submit-runtime-handoff", filePath: PRODUCTION_CHILD_TOOLS_PATH,
   findings, finding, message: (required) => `The production GPT facts handoff is missing ${required}.` });
+  inspectMissing({ source: sourceText(context, `${ROOT}/production-call-facts.ts`), required: [
+    "isPendingExactEvidence(facts.evidence) ? null : facts.evidence",
+  ], checkId: "gpt/confirmed-submit-runtime-handoff", filePath: `${ROOT}/production-call-facts.ts`,
+  findings, finding, message: (required) => `The Product-safe projection exposes internal pending evidence through ${required}.` });
   const combined = `${productApi}\n${sourceText(context, EVIDENCE_FACT_PATH)}\n${sourceText(
     context, CONFIRMED_PROVIDER_READBACK_PATH,
   )}\n${sourceText(context, PRODUCTION_CHILD_TOOLS_PATH)}`;

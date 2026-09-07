@@ -333,7 +333,7 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
     database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V43", clauses: ["forbidden:0", "forbidden:2"] },
     storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V43", clauses: ["forbidden:2"] },
     provider: { lawId: "LAW-GPT-001-V32", clauses: ["forbidden:1"] },
-    authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V2", clauses: ["forbidden:1", "forbidden:2"] },
+    authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V3", clauses: ["forbidden:1", "forbidden:2"] },
     recovery: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V43", clauses: ["forbidden:1", "forbidden:3"] },
   } as const;
   for (const [kind, observation] of Object.entries(observations)) {
@@ -1064,7 +1064,7 @@ test("provider contracts reject malformed payloads before identity matching", ()
   assert.doesNotThrow(() => validateProviderContractSpec(current, "ADVISION-X/AGENT",
     new Map([
       ["LAW-AGENT-PRODUCTION-RUNTIME-001-V43", "agent-production-runtime"],
-      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V11", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V13", "agent-production-runtime"],
     ]),
     (path) => path === "src/lib/local-runtime/production/catalog.ts"));
 });

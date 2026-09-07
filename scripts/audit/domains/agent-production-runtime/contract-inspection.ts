@@ -8,10 +8,10 @@ import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 
 const LAWS = {
   core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V43", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V3",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V12", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V12",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V11", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V12",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V12",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V13",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V13", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V13",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V11", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V13",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V13",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V14",
 } as const;
 const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
@@ -60,9 +60,9 @@ const inspectRouteProjection = (context: InspectorContext, findings: InspectorFi
     return Array.isArray(keys) && keys.includes("reusable_base_reservation_ref")
       && keys.includes("reusable_base_reservation_hash");
   }).length;
-  if (routes.length !== 39 || Object.keys(route.parameter_types ?? {}).length !== 57
-    || resultContracts !== 30 || reservations !== 2) findings.push(finding(LAWS.route,
-    "agent-production-runtime/route-denominator", PATHS.routeProjection, "Route projection is not 39/57/30/2."));
+  if (routes.length !== 40 || Object.keys(route.parameter_types ?? {}).length !== 57
+    || resultContracts !== 31 || reservations !== 2) findings.push(finding(LAWS.route,
+    "agent-production-runtime/route-denominator", PATHS.routeProjection, "Route projection is not 40/57/31/2."));
 };
 
 const inspectAdmissionHash = (context: InspectorContext, findings: InspectorFinding[]): void => {

@@ -9,12 +9,12 @@
   "lawIds": [
     "LAW-AGENT-PRODUCTION-RUNTIME-001-V43",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V3",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V12",
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V12",
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V13",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V13",
     "LAW-AGENT-PRODUCTION-RUNTIME-005-V11",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V12",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V12",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V13"
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V13",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V13",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V14"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -143,13 +143,13 @@ consumer dependency 的 contract body 只能包含 contractId、version、provid
 
 唯一 route projection generator 必须机械得到并逐项校验：
 
-- 39 routes；
+- 40 routes；
 - 57 parameter types；
-- 30 result contracts；
+- 31 result contracts；
 - 2 条含 reusable_base_reservation_ref/hash 的 reservation route；
 - 每条 route 的 parameters、materials、relations、result_contract 与 Website provider 语义完全一致。
 
-未知、缺失、额外、重复、顺序漂移或语义不等一律失败关闭。不得手写 route allowlist、第二支持表、compatibility、alias、fallback、bridge 或 shadow projection。
+未知、缺失、额外、重复、顺序漂移或语义不等一律失败关闭。新增的唯一固定 catalog route 是 `localization_static_catalog + produce_locale_catalog`，仍由现有 `localization-production` Product Plugin 私有执行，不新增 Plugin、Runtime、队列、公开 candidate/selector action 或第二恢复链。不得手写 route allowlist、第二支持表、compatibility、alias、fallback、bridge 或 shadow projection。
 
 Website 在签发任务前唯一判断业务参数值是否合法。Runtime 先把 product_id/action_id 解析为有界字符串，再按 current route projection 精确解析；Mediator 返回的纯数据 Plugin identity、Runtime 发布的 Capability Manifest 与 Website 冻结的 claim identity 必须精确匹配。除此之外 Runtime 只校验 authenticated session/claim/grant/fence、task wire/schema/hash、当前 contract/projection/control contract version，以及 route/key/material/relation/result-contract 与当前 projection 的机械一致性；不得保存 `bazi_analysis_kind`、locale、localization resource kind、Product package/version 或 Bazi reusable candidate 的业务白名单，不得按 action 名推导 review/continuation，不得维护 `routeProducesGeneratedImage`、手写 Product/Action 支持表或硬编码 primary 数量。Product Plugin 通过 Product-facing execution contract 取得当前 task、materials、当前 Website route policy 与 GPT public facade，只校验完成自身执行所必需的局部 artifact、Skill/checkpoint 与 result 组装前置，不复判 Website 业务资格，也不读取 Runtime 私有 transport、store、lease、Outbox 或 recovery 模块。
 
@@ -211,7 +211,7 @@ agent-production-runtime 只有全仓原生 quality:check 中的一份 Manifest�
 
 某一候选只有另获 AGENT 内相邻域原子归位明确授权后才可施工，且文字授权不等于已完成。法案、Inspector、测试、proof 与混合文件必须先在同一未提交 CHANGE 候选中准备完成；所有接收域与 Runtime 的 `ownedPaths` 在此期间保持原值。文件拆分完成后只允许一次原子修改：architecture-boundary 在已拥有的 Mediator/Product 边界内接收 `src/mediator/product-plugin-catalog.ts` 与 `src/mediator/product-plugin-contract.ts`，保留已归位的 `src/mediator/agent-production-route.ts`；agent-production-runtime 同时物理删除旧 Product-facing `plugin.ts` 和全部旧 import 边，而不是删除真实消费者。旧文件内容只按以下唯一映射归位：Product 类型、执行 context、产品中性 checkpoint/fault receipt 与结果校验 primitives 进入 `product-plugin-contract.ts`；12 个 Product 的唯一 composition、Skill 读取/hash、route identity 与单次 dispatch 进入 `product-plugin-catalog.ts`；artifact upload、Outbox、transport receipt 与 envelope 继续留在 Runtime；业务 parser/assembly 继续留在各 Product。现役 provider spec 已绑定的 `catalog.ts#agentPluginCapabilityManifest` 原位删除旧 Product imports、Plugin object、Skill text 与 route registry，只保留 Runtime 自有的 product-opaque Manifest publisher。不得再建立第三个 common/helper/adapter 层。其它相邻域只有在当前候选真实涉及其 Owner 路径时才参与。随后立即重建唯一 registry 并证明 `UNOWNED_PRODUCTION_FILE=0`、`MULTIPLE_PRIMARY_OWNERS=0` 与 Runtime manifest-owner-drift=0。不得先接收、先删除、建立临时第二 Manifest、兼容 re-export 或形成中间 READY/RELEASE 候选。
 
-静态证据必须来自 Manifest Owner、AST、JSON、resolved import、实际 symbol consumer、合同或状态机结果；路径名、字符串包含、文件存在、fixture 数量、历史 report、self-check 或另一个裁决不得产生 PASS。检查器必须拒绝任一 Runtime-owned source 对 `src/plugins/**` 的 direct/re-export/dynamic/side-effect import、任一 Product source 对 Runtime 私有模块的反向 import，以及通过旧 Catalog、alias 或中转模块形成的同义边；不得再为 `src/lib/local-runtime/**` 或旧 Catalog 设置豁免。Runtime acceptance 不运行完整 Product Flow，不启动 GPT/Browser 业务动作，不裁决内容，不要求 39 个 Website job 全量入库。现有 Product/Runtime acceptance 必须用确定性 stub 证明 generated-image 的同一 artifact intent 只上传一次、Product 只在取得真实 typed receipt 后组装并执行 final parse、Runtime 收到的 final output 不含 `assemblePayload`、`parseResult` 或 Plugin object。现有 Architecture/Runtime acceptance 还必须从唯一 architecture Catalog snapshot 机械逐字段投影并证明 provider v3 Manifest 的 schema、当前 Plugin identity/version、accepts、task/result contract version 与 canonical catalog hash 精确一致；Product Profile/Skill/执行语义变化必须提升对应 `plugin_version` 并改变 canonical catalog hash，只有任一 Manifest 规范字段或 schema 变化时才不得沿用 provider v3。`architecture-boundary` 的 Exam 只能从 architecture-owned 唯一 Catalog、Runtime 发布的 Capability Manifest 与 `scripts/acceptance/product-plugins/**` 发现身份、证明一一对应、执行并汇总各 Product 自有测试；中央入口不得手写 Plugin 或 primary product/action 列表，不得保存任一 Product 的 Prompt、Child 顺序、checkpoint、分支、恢复规则或 expected result body，生产 `src/plugins/**` 不得 import 测试代码。
+静态证据必须来自 Manifest Owner、AST、JSON、resolved import、实际 symbol consumer、合同或状态机结果；路径名、字符串包含、文件存在、fixture 数量、历史 report、self-check 或另一个裁决不得产生 PASS。检查器必须拒绝任一 Runtime-owned source 对 `src/plugins/**` 的 direct/re-export/dynamic/side-effect import、任一 Product source 对 Runtime 私有模块的反向 import，以及通过旧 Catalog、alias 或中转模块形成的同义边；不得再为 `src/lib/local-runtime/**` 或旧 Catalog 设置豁免。Runtime acceptance 不运行完整 Product Flow，不启动 GPT/Browser 业务动作，不裁决内容，不要求 40 个 Website job 全量入库。现有 Product/Runtime acceptance 必须用确定性 stub 证明 generated-image 的同一 artifact intent 只上传一次、Product 只在取得真实 typed receipt 后组装并执行 final parse、Runtime 收到的 final output 不含 `assemblePayload`、`parseResult` 或 Plugin object。现有 Architecture/Runtime acceptance 还必须从唯一 architecture Catalog snapshot 机械逐字段投影并证明 provider v3 Manifest 的 schema、当前 Plugin identity/version、accepts、task/result contract version 与 canonical catalog hash 精确一致；Product Profile/Skill/执行语义变化必须提升对应 `plugin_version` 并改变 canonical catalog hash，只有任一 Manifest 规范字段或 schema 变化时才不得沿用 provider v3。`architecture-boundary` 的 Exam 只能从 architecture-owned 唯一 Catalog、Runtime 发布的 Capability Manifest 与 `scripts/acceptance/product-plugins/**` 发现身份、证明一一对应、执行并汇总各 Product 自有测试；中央入口不得手写 Plugin 或 primary product/action 列表，不得保存任一 Product 的 Prompt、Child 顺序、checkpoint、分支、恢复规则或 expected result body，生产 `src/plugins/**` 不得 import 测试代码。
 
 Runtime 唯一 dynamic proof 只声明：
 
@@ -230,8 +230,8 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 每次候选都必须重新证明：
 
 1. 八条 Runtime law、稳定 blueprintId、三份 active contractRef 与 Runtime 唯一 Manifest 的 lawIds 相互一致；Architecture Boundary law 与 Manifest 独立保持其现役一一对应；越界 `ownedPaths` 只在同一候选的一次原子修改中归位，并立即证明无无主、无重叠、无 Runtime manifest-owner-drift。
-2. Website task-result v5、V6 v17 与 AGENT dependency 精确一致，consumer contract body 只有三字段；device credential 与 enrollment response 不含 manifest hash，session/grant/fence 的 control_contract_version 逐项同值。
-3. route projection 精确为 39 routes、57 parameter types、30 result contracts、2 reservation routes。
+2. Website task-result v6、V6 v17 与 AGENT dependency 精确一致，consumer contract body 只有三字段；device credential 与 enrollment response 不含 manifest hash，session/grant/fence 的 control_contract_version 逐项同值。
+3. route projection 精确为 40 routes、57 parameter types、31 result contracts、2 reservation routes。
 4. base、Bazi primary、review admission receipt 的互斥字段与完整 canonical hash 全部闭合，未闭合时本地 completed 增量为零。
 5. credential 失败类别分别得到稳定脱敏 typed code，且 claim/Provider mutation 增量为零。
 6. Runtime-owned source 对 Product Plugin 的 direct/re-export/dynamic/side-effect import 为零；Product source 对 Runtime 私有 production module 的 import 为零；唯一 architecture-owned Catalog 与 Runtime Manifest publisher 只以冻结纯数据 snapshot 连接，provider v3 Manifest 的全部规范字段精确一致，当前 Plugin identity/version 与 canonical catalog hash 忠实反映全部 Product Profile/Skill/执行语义，startup、Runtime inspector 不包含 Product frontier、reconstruction、Prompt、Child 顺序或 Product reason 特判。

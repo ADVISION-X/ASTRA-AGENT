@@ -7,6 +7,9 @@ import { pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
 
+import { scopedGptPageEvidenceFactFailures }
+  from "../../../../scripts/audit/domains/gpt/gpt-page-evidence-capture-inspection.ts";
+
 const REPORT_SCHEMA = "gpt-page-operation-evidence.v5";
 const CAPTURE_SCHEMA = "gpt-page-operation-capture.v5";
 const FIXTURE_SCHEMA = "gpt-page-operation-fixtures.v2";
@@ -564,8 +567,7 @@ function specimenShapeMissing(specimen, capture, liveObservationIds, childRecord
   const missing = [];
   const transitionObservationIds = new Set([
     ...liveObservationIds,
-    ...((capture.sceneManifest ?? []).filter((scene) =>
-      scene?.binding?.runId === capture.runId)
+    ...((capture.sceneManifest ?? [])
       .map((scene) => `${childRecord.childCapabilityId}:${scene.sceneId}:live`)),
   ]);
   const mark = (condition, field) => { if (!condition) missing.push(`SHAPE:${specimen.stateId ?? "missing"}:${field}`); };
@@ -691,7 +693,7 @@ function specimenShapeMissing(specimen, capture, liveObservationIds, childRecord
   mark(nonEmptyString(specimen.peripheral.providerBuildMarker), "peripheral.providerBuildMarker");
   mark(nonEmptyObject(specimen.peripheral.uiVariant), "peripheral.uiVariant");
   mark(nonEmptyObject(specimen.peripheral.pageState), "peripheral.pageState");
-  mark(specimen.peripheral.runId === capture.runId, "peripheral.runId");
+  mark(nonEmptyString(specimen.peripheral.runId), "peripheral.runId");
 
   if (specimen.evidenceKind === "LIVE_PAGE") {
     mark(nonEmptyString(specimen.observationId), "observationId");
@@ -704,6 +706,7 @@ function specimenShapeMissing(specimen, capture, liveObservationIds, childRecord
     mark(nonEmptyString(specimen.sourceSceneId), "sourceSceneId");
     mark(sha256String(specimen.sourceSceneSignature), "sourceSceneSignature");
     const sourceScene = (capture.sceneManifest ?? []).find((entry) => entry?.sceneId === specimen.sourceSceneId);
+    mark(sourceScene?.binding?.runId === specimen.peripheral.runId, "peripheral.runIdSceneBinding");
     mark(sourceScene?.documentIdentityHash === specimen.documentIdentityHash, "documentIdentityHashMismatch");
     mark(sourceScene?.observationRevisionHash === specimen.revision, "observationRevisionHashMismatch");
     if (nonEmptyObject(specimen.related.transitionChain)) {
@@ -753,6 +756,8 @@ function specimenShapeMissing(specimen, capture, liveObservationIds, childRecord
       }
     }
     missing.push(...stateAssertionMissing(specimen, requirements.stateAssertions?.[specimen.stateId] ?? []));
+  } else {
+    mark(specimen.peripheral.runId === capture.runId, "peripheral.runIdCaptureBinding");
   }
   return missing;
 }
@@ -1021,12 +1026,14 @@ function assessCapture(capture, inventory, matrix, requireComplete, expectedIdsO
       && requirements.requiredLiveStates.includes(specimen.stateId));
     const orderedLive = requirements.requiredLiveStates.map((stateId) =>
       requiredLiveSpecimens.find((specimen) => specimen.stateId === stateId)).filter(Boolean);
-    if (orderedLive.length === requirements.requiredLiveStates.length
+    const liveRunIds = new Set(orderedLive.map((specimen) => specimen.peripheral?.runId).filter(nonEmptyString));
+    const singleRun = liveRunIds.size <= 1;
+    if (singleRun && orderedLive.length === requirements.requiredLiveStates.length
       && orderedLive.some((specimen, index) => index > 0
         && Date.parse(specimen.capturedAt) <= Date.parse(orderedLive[index - 1].capturedAt))) {
       missing.push("LIVE_STATE_ORDER:capturedAt-not-strictly-ascending");
     }
-    if (inventoryChild.contract.allowedDocumentTransition === "forbidden"
+    if (singleRun && inventoryChild.contract.allowedDocumentTransition === "forbidden"
       && new Set(orderedLive.map((specimen) => specimen.documentIdentityHash)).size > 1) {
       missing.push("LIVE_STATE_DOCUMENT:forbidden-transition");
     }
@@ -1035,7 +1042,8 @@ function assessCapture(capture, inventory, matrix, requireComplete, expectedIdsO
     for (const specimen of requiredLiveSpecimens) {
       const scene = scenesById[specimen.sourceSceneId];
       if (!scene || scene.stateSignature !== specimen.sourceSceneSignature
-        || scene.binding?.runId !== capture.runId
+        || scene.binding?.runId !== specimen.peripheral?.runId
+        || scene.binding?.qaTabIdentityHash !== scene.activeTabIdentityHash
         || (capture.captureEpoch && scene.binding?.captureEpoch !== capture.captureEpoch)) {
         missing.push(`SCENE_BINDING:${specimen.stateId}`);
       }
@@ -1140,17 +1148,30 @@ const captureContext = (capture) => stable({
   sceneManifest: capture.sceneManifest,
 });
 
+function mergeSceneManifests(priorScenes, currentScenes) {
+  const merged = new Map();
+  for (const scene of [...(priorScenes ?? []), ...(currentScenes ?? [])]) {
+    const existing = merged.get(scene.sceneId);
+    if (existing && existing.stateSignature !== scene.stateSignature) {
+      fail("CAPTURE_SCENE_ID_COLLISION", scene.sceneId);
+    }
+    merged.set(scene.sceneId, scene);
+  }
+  return [...merged.values()];
+}
+
 async function mergeCapture(repo, matrixPath, capturePath, outputPath, baseReportPath = null, childArg = "all") {
   const inventory = await buildInventory(repo, matrixPath);
   const matrix = await loadMatrix(matrixPath);
   const capture = await readJson(capturePath);
-  const assessment = assessCapture(capture, inventory, matrix, false, null, true);
   const base = baseReportPath ? await readJson(baseReportPath) : null;
   if (base && base.schemaVersion !== REPORT_SCHEMA) fail("REFRESH_BASE_REPORT_INVALID");
   const pageIds = inventory.denominator.pageOperationChildIds;
   const selectedIds = childArg === "all" ? pageIds : childArg.split(",").filter(Boolean);
   assertUnique(selectedIds, "REFRESH_CHILD_DUPLICATE");
   for (const id of selectedIds) if (!pageIds.includes(id)) fail("REFRESH_CHILD_NOT_PAGE_OPERATION", id);
+  const assessment = assessCapture(capture, inventory, matrix, false,
+    childArg === "all" ? null : selectedIds, true);
   inventory.captureMetadata = stable({
     capturedAt: capture.capturedAt ?? null,
     runId: capture.runId ?? null,
@@ -1175,7 +1196,32 @@ async function mergeCapture(repo, matrixPath, capturePath, outputPath, baseRepor
       }
       return child;
     }
-    const assessed = assessment.assessments[child.childCapabilityId];
+    let assessed = assessment.assessments[child.childCapabilityId];
+    let context = captureContext(capture);
+    const prior = base?.children?.find((entry) => entry.childCapabilityId === child.childCapabilityId);
+    if (childArg !== "all" && prior?.collection) {
+      const currentLiveStateIds = new Set(assessed.specimens.filter((specimen) =>
+        specimen.evidenceKind === "LIVE_PAGE").map((specimen) => specimen.stateId));
+      const retainedLive = prior.collection.specimens.filter((specimen) =>
+        specimen.evidenceKind === "LIVE_PAGE" && !currentLiveStateIds.has(specimen.stateId));
+      const currentLive = assessed.specimens.filter((specimen) => specimen.evidenceKind === "LIVE_PAGE");
+      const currentDerived = assessed.specimens.filter((specimen) => specimen.evidenceKind === "DERIVED_FIXTURE");
+      const specimens = [...retainedLive, ...currentLive, ...currentDerived];
+      const factBindings = reprojectFactBindings(child, {
+        specimens,
+        factBindings: [...(prior.collection.factBindings ?? []), ...(assessed.factBindings ?? [])],
+      });
+      const captureChild = capture.children.find((entry) =>
+        entry.childCapabilityId === child.childCapabilityId) ?? fail("CAPTURE_CHILD_MISSING", child.childCapabilityId);
+      const mergedCapture = {
+        ...capture,
+        sceneManifest: mergeSceneManifests(prior.collection.captureContext?.sceneManifest, capture.sceneManifest),
+        children: [{ ...captureChild, specimens, factBindings }],
+      };
+      assessed = assessCapture(mergedCapture, inventory, matrix, false,
+        [child.childCapabilityId], true).assessments[child.childCapabilityId];
+      context = captureContext(mergedCapture);
+    }
     return {
       ...child,
       collection: {
@@ -1184,7 +1230,7 @@ async function mergeCapture(repo, matrixPath, capturePath, outputPath, baseRepor
         inputRefs: assessed.inputRefs,
         factBindings: assessed.factBindings,
         specimens: assessed.specimens,
-        captureContext: captureContext(capture),
+        captureContext: context,
       },
       captureComplete: assessed.complete,
       captureMissing: assessed.missing,
@@ -1351,9 +1397,10 @@ function reprojectSceneManifest(priorCollection, baseChildren, captureEpoch, cap
       documentIdentityHash: scene.documentIdentityHash ?? specimen?.documentIdentityHash,
       observationRevisionHash: scene.observationRevisionHash ?? specimen?.revision,
       binding: {
-        runId: priorCollection.captureContext.runId,
-        captureEpoch,
-        qaTabIdentityHash: captureMetadata?.browser?.qaTabIdentityHash,
+        runId: scene.binding?.runId ?? specimen?.peripheral?.runId ?? priorCollection.captureContext.runId,
+        captureEpoch: scene.binding?.captureEpoch ?? captureEpoch,
+        qaTabIdentityHash: scene.binding?.qaTabIdentityHash ?? scene.activeTabIdentityHash
+          ?? captureMetadata?.browser?.qaTabIdentityHash,
       },
     });
     const { envelopeHash: _ignored, ...withoutEnvelope } = entry;
@@ -1573,10 +1620,101 @@ async function validateReport(repo, matrixPath, reportPath, requireComplete, sel
   return { valid: true, complete: report.captureStatus === "CAPTURE_COMPLETE" };
 }
 
-function admissionCandidate(selected, scopedFacts = []) {
-  return `CHILDSET:${sha256(JSON.stringify(stable(selected.map((child) => [
-    child.childCapabilityId, child.evidenceDemand.childCandidateDigest,
-  ]).sort().concat(scopedFacts.length > 0 ? [["FACT_SCOPE", [...scopedFacts].sort()]] : [])))).slice("sha256:".length)}`;
+function evidenceBrief(report, child, scopedFacts = []) {
+  const bindings = child.collection?.factBindings ?? [];
+  const selectedFacts = scopedFacts.length > 0
+    ? scopedFacts
+    : bindings.filter((binding) => binding.bindingKind === "LIVE_OBSERVATION").map((binding) => binding.factId);
+  const facts = selectedFacts.map((factId) => {
+    const demandFact = child.evidenceDemand.facts.find((entry) => entry.factId === factId);
+    const binding = bindings.find((entry) => entry.factId === factId);
+    const specimen = child.collection?.specimens?.find((entry) =>
+      entry.evidenceKind === "LIVE_PAGE" && entry.observationId === binding?.observationId);
+    return stable({
+      factId,
+      kind: demandFact?.kind ?? null,
+      expected: demandFact?.expected ?? null,
+      expectedHash: binding?.expectedHash ?? null,
+      bindingKind: binding?.bindingKind ?? null,
+      observationId: binding?.observationId ?? null,
+      pointers: binding?.pointers ?? [],
+      actualValues: (binding?.pointers ?? []).map((pointer) => ({
+        pointer,
+        value: valueAtPath(specimen, pointer),
+      })),
+    });
+  });
+  const observationIds = new Set(facts.map((entry) => entry.observationId).filter(nonEmptyString));
+  const observations = (child.collection?.specimens ?? []).filter((entry) =>
+    entry.evidenceKind === "LIVE_PAGE" && observationIds.has(entry.observationId)).map((entry) => stable({
+      stateId: entry.stateId,
+      observationId: entry.observationId,
+      capturedAt: entry.capturedAt,
+      sourceSceneId: entry.sourceSceneId,
+      sourceSceneSignature: entry.sourceSceneSignature,
+      documentIdentityHash: entry.documentIdentityHash,
+      revision: entry.revision,
+      stateSignature: entry.stateSignature,
+      stateFacts: entry.stateFacts,
+      core: entry.core,
+      related: {
+        ancestors: entry.related?.ancestors,
+        siblings: entry.related?.siblings,
+        linkedNodes: entry.related?.linkedNodes,
+        beforeAfterDiff: entry.related?.beforeAfterDiff,
+        postconditions: entry.related?.postconditions,
+        transitionChain: entry.related?.transitionChain,
+      },
+      peripheral: {
+        pageKind: entry.peripheral?.pageKind,
+        sanitizedUrlIdentity: entry.peripheral?.sanitizedUrlIdentity,
+        locale: entry.peripheral?.locale,
+        viewport: entry.peripheral?.viewport,
+        theme: entry.peripheral?.theme,
+        chromeVersion: entry.peripheral?.chromeVersion,
+        providerBuildMarker: entry.peripheral?.providerBuildMarker,
+        uiVariant: entry.peripheral?.uiVariant,
+        pageState: entry.peripheral?.pageState,
+        runId: entry.peripheral?.runId,
+      },
+    }));
+  const derivedFixtures = (child.collection?.specimens ?? []).filter((entry) =>
+    entry.evidenceKind === "DERIVED_FIXTURE" && observationIds.has(entry.derivedFromObservationId))
+    .map((entry) => stable({
+      stateId: entry.stateId,
+      evidenceKind: entry.evidenceKind,
+      derivedFromObservationId: entry.derivedFromObservationId,
+      mutation: entry.mutation,
+      expectedFailureCode: entry.expectedFailureCode,
+    }));
+  return stable({
+    childCapabilityId: child.childCapabilityId,
+    captureEpoch: report.captureEpoch,
+    projectionRevision: report.projectionRevision,
+    factScope: selectedFacts,
+    facts,
+    observations,
+    derivedFixtures,
+    gaps: child.captureMissing ?? [],
+    rules: {
+      liveAndDerivedMustNotBeConfused: true,
+      missingFactMustNotBeGuessed: true,
+      unobservedSelectorAttributeOrOwnerRelationForbidden: true,
+    },
+  });
+}
+
+function admissionCandidate(report, selected, scopedFacts = []) {
+  return `CHILDSET:${sha256(JSON.stringify(stable({
+    captureEpoch: report.captureEpoch,
+    projectionRevision: report.projectionRevision,
+    factScope: [...scopedFacts].sort(),
+    children: selected.map((child) => ({
+      childCapabilityId: child.childCapabilityId,
+      childCandidateDigest: child.evidenceDemand.childCandidateDigest,
+      evidenceBriefHash: sha256(JSON.stringify(evidenceBrief(report, child, scopedFacts))),
+    })).sort((left, right) => left.childCapabilityId.localeCompare(right.childCapabilityId)),
+  }))).slice("sha256:".length)}`;
 }
 
 async function admitReport(repo, matrixPath, reportPath, childArg, candidateArg, factsArg = "") {
@@ -1591,7 +1729,7 @@ async function admitReport(repo, matrixPath, reportPath, childArg, candidateArg,
   const scopedFacts = factsArg ? factsArg.split(",").filter(Boolean) : [];
   assertUnique(scopedFacts, "ADMISSION_FACT_DUPLICATE");
   if (scopedFacts.length > 0 && selected.length !== 1) fail("ADMISSION_FACT_SCOPE_REQUIRES_ONE_CHILD");
-  const expectedCandidate = admissionCandidate(selected, scopedFacts);
+  const expectedCandidate = admissionCandidate(report, selected, scopedFacts);
   if (candidateArg !== expectedCandidate) {
     fail("ADMISSION_CANDIDATE_MISMATCH", `${candidateArg}/${expectedCandidate}`);
   }
@@ -1602,12 +1740,10 @@ async function admitReport(repo, matrixPath, reportPath, childArg, candidateArg,
       }
       continue;
     }
-    const admittedFacts = new Set((child.collection?.factBindings ?? []).map((binding) => binding.factId));
-    for (const factId of scopedFacts) {
-      if (!child.evidenceDemand.facts.some((fact) => fact.factId === factId)) fail("ADMISSION_FACT_UNKNOWN", factId);
-      if (!admittedFacts.has(factId)) fail("ADMISSION_FACT_NOT_OBSERVED", factId);
-    }
+    const failures = scopedGptPageEvidenceFactFailures(child, child.evidenceDemand, scopedFacts);
+    if (failures.length > 0) fail("ADMISSION_FACT_EVIDENCE_INVALID", failures.join(","));
   }
+  const evidenceBriefs = selected.map((child) => evidenceBrief(report, child, scopedFacts));
   const consumed = selected.map((child) => ({
     childCapabilityId: child.childCapabilityId,
     demandDigest: child.evidenceDemand.digest,
@@ -1625,6 +1761,10 @@ async function admitReport(repo, matrixPath, reportPath, childArg, candidateArg,
     captureEpoch: report.captureEpoch,
     projectionRevision: report.projectionRevision,
     admissionMode: scopedFacts.length > 0 ? "OBSERVATION_SCOPED" : "FULL_CHILD",
+    evidenceBriefHashes: evidenceBriefs.map((brief) => ({
+      childCapabilityId: brief.childCapabilityId,
+      hash: sha256(JSON.stringify(brief)),
+    })),
     consumed,
   });
   return stable({
@@ -1635,6 +1775,7 @@ async function admitReport(repo, matrixPath, reportPath, childArg, candidateArg,
     projectionRevision: report.projectionRevision,
     admissionReceipt,
     admissionReceiptHash: sha256(JSON.stringify(admissionReceipt)),
+    evidenceBriefs,
     children: selected.map((child) => ({
       childCapabilityId: child.childCapabilityId,
       demandDigest: child.evidenceDemand.digest,
@@ -1698,8 +1839,12 @@ async function main() {
     const outputPath = requiredArg(args, "output");
     assertCanonicalRepositoryOutput(repo, outputPath);
     await assertNoSecondRepositoryReport(repo, outputPath);
-    const report = await mergeCapture(repo, matrixPath, capturePath, outputPath);
-    process.stdout.write(`${JSON.stringify({ status: report.captureStatus, output: outputPath })}\n`);
+    const childArg = typeof args.child === "string" ? args.child : "all";
+    const baseReportPath = typeof args["base-report"] === "string" ? args["base-report"] : null;
+    if (childArg !== "all" && baseReportPath === null) fail("TARGETED_MERGE_BASE_REPORT_REQUIRED");
+    const report = await mergeCapture(repo, matrixPath, capturePath, outputPath, baseReportPath, childArg);
+    process.stdout.write(`${JSON.stringify({ status: report.captureStatus, output: outputPath,
+      requestedChildren: childArg, preservedUnselectedChildren: childArg !== "all" })}\n`);
     return;
   }
   if (command === "refresh") {
@@ -1757,8 +1902,10 @@ async function main() {
     const scopedFacts = typeof args.facts === "string" ? args.facts.split(",").filter(Boolean) : [];
     assertUnique(scopedFacts, "ADMISSION_FACT_DUPLICATE");
     if (scopedFacts.length > 0 && selected.length !== 1) fail("ADMISSION_FACT_SCOPE_REQUIRES_ONE_CHILD");
-    process.stdout.write(`${JSON.stringify({ candidate: admissionCandidate(selected, scopedFacts), children: requested,
-      factScope: scopedFacts })}\n`);
+    process.stdout.write(`${JSON.stringify({ candidate: admissionCandidate(report, selected, scopedFacts), children: requested,
+      factScope: scopedFacts,
+      evidenceBriefHashes: selected.map((child) => ({ childCapabilityId: child.childCapabilityId,
+        hash: sha256(JSON.stringify(evidenceBrief(report, child, scopedFacts))) })) })}\n`);
     return;
   }
   fail("COMMAND_UNKNOWN", command);

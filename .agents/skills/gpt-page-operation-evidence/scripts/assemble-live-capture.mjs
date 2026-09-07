@@ -153,8 +153,9 @@ function candidateEntries(target, scene, candidateContext = {}) {
       attr(entry, "role") === "group"
       && /GPT-EVIDENCE-.*\.(?:json|txt|zip|exe)/u.test(String(attr(entry, "aria-label") ?? ""))));
     case "upload-status": return virtualAggregate("UPLOAD_STATUS", entries.filter((entry) =>
-      attr(entry, "role") === "group"
-      && /GPT-EVIDENCE-.*\.(?:json|txt|zip|exe)/u.test(String(attr(entry, "aria-label") ?? ""))));
+      (attr(entry, "role") === "group"
+        && /GPT-EVIDENCE-.*\.(?:json|txt|zip|exe)/u.test(String(attr(entry, "aria-label") ?? "")))
+      || entry.node.machineFacts?.attachmentUploadErrorAlert === true));
     case "user-turn": return entries.filter((entry) => attr(entry, "data-message-author-role") === "user");
     case "source-turn":
     case "rich-text-response": return entries.filter((entry) => attr(entry, "data-message-author-role") === "assistant");
@@ -510,8 +511,9 @@ function sceneManifestEntry(scene) {
   return { ...entry, envelopeHash: sha256(JSON.stringify(entry)) };
 }
 
-function authorizedInputs(mapping, inventory, matrix) {
-  const ids = [...new Set(matrix.children.flatMap((child) => child.requiredInputRefs)
+function authorizedInputs(mapping, inventory, matrix, selectedIds) {
+  const ids = [...new Set(matrix.children.filter((child) => selectedIds.includes(child.childCapabilityId))
+    .flatMap((child) => child.requiredInputRefs)
     .filter((id) => id.startsWith("authorized-")))].sort();
   return Object.fromEntries(ids.map((id) => {
     const descriptor = mapping.authorizedInputs?.[id];
@@ -551,6 +553,11 @@ async function main() {
   const runId = fixtureManifest.runId;
   const captureEpoch = browserMeta.captureEpoch;
   const recaptureTrigger = browserMeta.recaptureTrigger;
+  const pageIds = inventory.denominator.pageOperationChildIds;
+  const selectedIds = typeof args.child === "string" && args.child !== "all"
+    ? args.child.split(",").filter(Boolean) : pageIds;
+  if (new Set(selectedIds).size !== selectedIds.length) fail("CAPTURE_CHILD_DUPLICATE");
+  for (const id of selectedIds) if (!pageIds.includes(id)) fail("CAPTURE_CHILD_OUT_OF_SCOPE", id);
   if (!/^sha256:[a-f0-9]{64}$/u.test(captureEpoch ?? "")) fail("CAPTURE_EPOCH_REQUIRED");
   assertRecaptureTrigger(recaptureTrigger);
   for (const scene of scenes) assertSceneBindings(scene, runId, captureEpoch, browserMeta.browser.qaTabIdentityHash);
@@ -566,14 +573,15 @@ async function main() {
     browser: browserMeta.browser,
     environment: browserMeta.environment,
     fixtureManifest,
-    authorizedInputs: authorizedInputs(mapping, inventory, matrix),
+    authorizedInputs: authorizedInputs(mapping, inventory, matrix, selectedIds),
     chainInputs: {},
     sceneManifest: scenes.map(sceneManifestEntry),
     children: [],
   };
   const matrixById = Object.fromEntries(matrix.children.map((entry) => [entry.childCapabilityId, entry]));
   const assembly = {};
-  for (const child of inventory.children.filter((entry) => entry.pageOperationRequired)) {
+  for (const child of inventory.children.filter((entry) =>
+    entry.pageOperationRequired && selectedIds.includes(entry.childCapabilityId))) {
     const requirement = matrixById[child.childCapabilityId];
     const childMapping = mapping.children?.[child.childCapabilityId] ?? { states: {} };
     const mappedIds = Object.values(childMapping.states ?? {}).filter(Boolean);

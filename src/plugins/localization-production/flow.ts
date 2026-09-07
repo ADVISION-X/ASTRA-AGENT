@@ -2,6 +2,7 @@ import {
   buildGptExecutionProfile,
   gptAttachmentProviderDisplayName,
   type GptApprovedFile,
+  type GptExecutionProfile,
 } from "../../capabilities/gpt/index.js";
 import {
   hashCanonical,
@@ -44,7 +45,7 @@ const MODEL_PROFILE = buildGptExecutionProfile({
 });
 
 type FlowCall = ProductGptAnyCallInput;
-type Checkpoint = Readonly<{
+export type LocalizationGptCheckpoint = Readonly<{
   artifactRef: string;
   canonicalConversationUrl: string;
   promptHash: ProductionHash;
@@ -52,7 +53,12 @@ type Checkpoint = Readonly<{
   semanticText: string;
   semanticTextHash: ProductionHash;
   turnMarker: string;
+  submitExactCallIdentityHash: ProductionHash;
+  submitEvidenceRef: string;
+  submitEvidenceHash: ProductionHash;
+  submitTerminalAt: string;
 }>;
+type Checkpoint = LocalizationGptCheckpoint;
 type OwnedExecution = ReturnType<typeof createOwnedExecution>;
 
 function fail(code: string): never { throw executionFailure("failed", code); }
@@ -68,35 +74,37 @@ const hashValue = (value: unknown, code: string): ProductionHash => {
   if (typeof value !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(value)) fail(code);
   return value as ProductionHash;
 };
-const markerFor = (task: WebsiteAgentTask, attemptId: string): string =>
+const markerFor = (task: WebsiteAgentTask, attemptId: string, productStepId = task.action_id): string =>
   `[GRASSEYE:${hashCanonical({
-    job_id: task.job_id, attempt_id: attemptId, product_step_id: task.action_id,
+    job_id: task.job_id, attempt_id: attemptId, product_step_id: productStepId,
   }).slice(7, 31)}]`;
 
-const createOwnedExecution = (task: WebsiteAgentTask, context: SharedExecutionContext) => {
-  const evidenceByOrdinal = new Map<number, string>();
-  const sessionKey = `${PLUGIN_ID}:${task.job_id}:${context.gpt.attemptId}`;
-  const recordEvidence = (ordinal: number, evidenceRef: string): void => {
-    const current = evidenceByOrdinal.get(ordinal);
+const createOwnedExecution = (task: WebsiteAgentTask, context: SharedExecutionContext, sessionSuffix = "primary") => {
+  const evidenceByCall = new Map<string, Readonly<{ ordinal: number; evidenceRef: string }>>();
+  const sessionKey = `${PLUGIN_ID}:${task.job_id}:${context.gpt.attemptId}:${sessionSuffix}`;
+  const recordEvidence = (call: FlowCall, evidenceRef: string): void => {
+    const key = `${call.productStepId}\0${call.callId}\0${call.actionOrdinal}`;
+    const current = evidenceByCall.get(key)?.evidenceRef;
     if (current && current !== evidenceRef) fail("PRODUCT_EVIDENCE_SEQUENCE_CONFLICT");
-    evidenceByOrdinal.set(ordinal, evidenceRef);
+    evidenceByCall.set(key, { ordinal: call.actionOrdinal, evidenceRef });
   };
   const facts = async (call: FlowCall): Promise<ExactGptCallFacts> => {
     const result = await context.gpt.readCallFacts(call);
-    if (result.evidence) recordEvidence(call.actionOrdinal, result.evidence.evidenceRef);
+    if (result.evidence) recordEvidence(call, result.evidence.evidenceRef);
     return result;
   };
   const execute = async (call: FlowCall) => {
     await facts(call);
     const result = await context.gpt.execute({ ...call, sessionKey });
-    recordEvidence(call.actionOrdinal, result.evidenceRef);
+    recordEvidence(call, result.evidenceRef);
     return result;
   };
   const requireEvidence = async (call: FlowCall): Promise<void> => {
     if (!(await facts(call)).evidence) fail("PRODUCT_PROGRESSIVE_PREFIX_EVIDENCE_MISSING");
   };
-  const evidenceRefs = (): readonly string[] => Object.freeze([...evidenceByOrdinal.entries()]
-    .sort((left, right) => left[0] - right[0]).map((entry) => entry[1]));
+  const evidenceRefs = (): readonly string[] => Object.freeze([...evidenceByCall.entries()]
+    .sort((left, right) => left[1].ordinal - right[1].ordinal || left[0].localeCompare(right[0]))
+    .map((entry) => entry[1].evidenceRef));
   return Object.freeze({ evidenceRefs, execute, facts, requireEvidence });
 };
 
@@ -147,13 +155,14 @@ const applyProfile = async (
   stepId: string,
   ordinals: readonly [number, number, number, number, number, number],
   recoverOnly: boolean,
-): Promise<void> => {
-  const open = { productStepId: stepId, callId: "profile-open", child: "open_gpt_execution_profile", actionOrdinal: ordinals[0], input: { profile: MODEL_PROFILE } } as const;
-  const selector = { productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v2", actionOrdinal: ordinals[1], input: { profile: MODEL_PROFILE } } as const;
-  const model = { productStepId: stepId, callId: "model-select", child: "select_exact_gpt_model_v2", actionOrdinal: ordinals[2], input: { profile: MODEL_PROFILE } } as const;
-  const reopen = { productStepId: stepId, callId: "profile-open-after-model", child: "open_gpt_execution_profile", actionOrdinal: ordinals[3], input: { profile: MODEL_PROFILE } } as const;
-  const reasoning = { productStepId: stepId, callId: "reasoning-select", child: "ensure_gpt_reasoning_requirement", actionOrdinal: ordinals[4], input: { profile: MODEL_PROFILE } } as const;
-  const close = { productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[5], input: { profile: MODEL_PROFILE } } as const;
+  profile: GptExecutionProfile = MODEL_PROFILE,
+): Promise<Readonly<{ model: ExactGptCallFacts; reasoning: ExactGptCallFacts }>> => {
+  const open = { productStepId: stepId, callId: "profile-open", child: "open_gpt_execution_profile", actionOrdinal: ordinals[0], input: { profile } } as const;
+  const selector = { productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v2", actionOrdinal: ordinals[1], input: { profile } } as const;
+  const model = { productStepId: stepId, callId: "model-select", child: "select_exact_gpt_model_v2", actionOrdinal: ordinals[2], input: { profile } } as const;
+  const reopen = { productStepId: stepId, callId: "profile-open-after-model", child: "open_gpt_execution_profile", actionOrdinal: ordinals[3], input: { profile } } as const;
+  const reasoning = { productStepId: stepId, callId: "reasoning-select", child: "ensure_gpt_reasoning_requirement", actionOrdinal: ordinals[4], input: { profile } } as const;
+  const close = { productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[5], input: { profile } } as const;
   const apply = recoverOnly ? flow.requireEvidence : flow.execute;
   await apply(open);
   await apply(selector);
@@ -161,6 +170,10 @@ const applyProfile = async (
   await apply(reopen);
   await apply(reasoning);
   await apply(close);
+  const modelFacts = await flow.facts(model);
+  const reasoningFacts = await flow.facts(reasoning);
+  if (!modelFacts.evidence || !reasoningFacts.evidence) fail("PRODUCT_MODEL_IDENTITY_EVIDENCE_MISSING");
+  return Object.freeze({ model: modelFacts, reasoning: reasoningFacts });
 };
 
 const applyAttachments = async (
@@ -260,6 +273,10 @@ const checkpointSubmittedTurn = async (
       semanticText: textValue(checkpoint.semanticText, "PRODUCT_TEXT_CHECKPOINT_INVALID"),
       semanticTextHash: hashValue(checkpoint.semanticTextHash, "PRODUCT_TEXT_CHECKPOINT_INVALID"),
       turnMarker: marker,
+      submitExactCallIdentityHash: submit.exactCallIdentityHash,
+      submitEvidenceRef: submit.evidence!.evidenceRef,
+      submitEvidenceHash: submit.evidence!.evidenceHash,
+      submitTerminalAt: submit.mutation!.terminalAt!,
     });
   } catch (error) {
     return preservePostSubmitReadback(error, submit);
@@ -310,6 +327,75 @@ const runFreshTurn = async (
   await applyProfile(flow, stepId, [2, 3, 4, 5, 6, 7], recoverOnly);
   await applyAttachments(flow, context, stepId, [8, 9, 10], recoverOnly);
   return submitTurn(flow, stepId, prompt, marker, uploadedFiles(context), [11, 12, 13, 14, 15, 16]);
+};
+
+export interface IsolatedLocalizationJsonTurn {
+  readonly value: Readonly<Record<string, unknown>>;
+  readonly checkpoint: LocalizationGptCheckpoint;
+  readonly evidenceRefs: readonly string[];
+  readonly modelIdentityProofJson: string;
+  readonly modelIdentityProofHash: ProductionHash;
+}
+
+export const executeIsolatedLocalizationJsonTurn = async (
+  task: WebsiteAgentTask,
+  context: SharedExecutionContext,
+  input: Readonly<{
+    stepId: string;
+    sessionSuffix: string;
+    prompt: string;
+    profile: GptExecutionProfile;
+    reasoningEffort: "xhigh" | "high";
+  }>,
+): Promise<IsolatedLocalizationJsonTurn> => {
+  const flow = createOwnedExecution(task, context, input.sessionSuffix);
+  const marker = markerFor(task, context.gpt.attemptId, input.stepId);
+  const prompt = [input.prompt,
+    `把此不可变标记原样保留在本次用户消息中，不要写入 JSON 结果：${marker}`].join("\n");
+  const submitCall = {
+    productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once",
+    actionOrdinal: 10, input: { files: [], promptHash: sha256(prompt), turnMarker: marker },
+  } as const;
+  const existing = await flow.facts(submitCall);
+  const recoverOnly = Boolean(existing.mutation || existing.evidence);
+  const fresh = {
+    productStepId: input.stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat",
+    actionOrdinal: 1, input: { timeoutMs: 60_000 },
+  } as const;
+  if (recoverOnly) await flow.requireEvidence(fresh);
+  else await flow.execute(fresh);
+  const profileFacts = await applyProfile(flow, input.stepId, [2, 3, 4, 5, 6, 7], recoverOnly, input.profile);
+  const checkpoint = await submitTurn(flow, input.stepId, prompt, marker, [], [8, 9, 10, 11, 12, 13]);
+  let value: Readonly<Record<string, unknown>>;
+  try {
+    value = productResultValidation.parseJsonObject(
+      checkpoint.semanticText, "PRODUCT_RESULT_JSON_INVALID",
+    );
+  } catch (error) {
+    throw postCheckpointReceiverFault(failureCode(error, "PRODUCT_RESULT_RECEIVER_FAILED"), {
+      artifactRef: checkpoint.artifactRef,
+      rawDomHash: checkpoint.rawDomHash,
+      semanticTextHash: checkpoint.semanticTextHash,
+    });
+  }
+  const modelIdentityProofJson = JSON.stringify({
+    proof_status: "verified",
+    model_display_name: input.profile.modelDisplayName,
+    model_family: input.profile.modelFamily,
+    reasoning_effort: input.reasoningEffort,
+    profile_ref: input.profile.profileRef,
+    profile_hash: input.profile.profileHash,
+    model_selection_call_hash: profileFacts.model.exactCallIdentityHash,
+    model_selection_evidence_ref: profileFacts.model.evidence!.evidenceRef,
+    model_selection_evidence_hash: profileFacts.model.evidence!.evidenceHash,
+    reasoning_call_hash: profileFacts.reasoning.exactCallIdentityHash,
+    reasoning_evidence_ref: profileFacts.reasoning.evidence!.evidenceRef,
+    reasoning_evidence_hash: profileFacts.reasoning.evidence!.evidenceHash,
+  });
+  return Object.freeze({
+    value, checkpoint, evidenceRefs: flow.evidenceRefs(), modelIdentityProofJson,
+    modelIdentityProofHash: sha256(modelIdentityProofJson),
+  });
 };
 
 const receive = (task: WebsiteAgentTask, checkpoint: Checkpoint, context: SharedExecutionContext): Readonly<Record<string, unknown>> => {

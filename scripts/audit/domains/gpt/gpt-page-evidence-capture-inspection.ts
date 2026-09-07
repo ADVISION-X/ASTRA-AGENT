@@ -150,8 +150,10 @@ const inspectSceneSpecimen = (
 ): void => {
   const scene = sceneManifest.find((entry) => entry.sceneId === specimen.sourceSceneId);
   const binding = record(scene?.binding);
+  const peripheral = record(specimen.peripheral);
   if (!scene || scene.stateSignature !== specimen.sourceSceneSignature
-    || binding?.runId !== state.captureContext?.runId
+    || binding?.runId !== peripheral?.runId
+    || binding?.qaTabIdentityHash !== scene.activeTabIdentityHash
     || (typeof state.captureContext?.captureEpoch === "string"
       && binding?.captureEpoch !== state.captureContext.captureEpoch)) {
     failures.push(`scene-binding:${String(specimen.stateId)}`);
@@ -266,4 +268,63 @@ export const completeGptPageEvidenceCaptureFailures = (
   inspectFactBindings(inspection.state, inspection.failures);
   inspectModelState(inspection.state, inspection.failures);
   return [...new Set(inspection.failures)];
+};
+
+export const scopedGptPageEvidenceFactFailures = (
+  child: Record<string, unknown>, demand: Record<string, unknown>, factIds: readonly string[],
+): string[] => {
+  const failures: string[] = [];
+  const collection = record(child.collection);
+  const captureContext = record(collection?.captureContext);
+  const specimens = Array.isArray(collection?.specimens)
+    ? collection.specimens.flatMap((entry) => record(entry) ? [record(entry)!] : []) : [];
+  const live = specimens.filter((entry) => entry.evidenceKind === "LIVE_PAGE");
+  const liveByObservation = new Map(live.flatMap((entry) => typeof entry.observationId === "string"
+    ? [[entry.observationId, entry] as const] : []));
+  const demandFacts = Array.isArray(demand.facts)
+    ? demand.facts.flatMap((entry) => record(entry) ? [record(entry)!] : []) : [];
+  const bindings = Array.isArray(collection?.factBindings)
+    ? collection.factBindings.flatMap((entry) => record(entry) ? [record(entry)!] : []) : [];
+  const state: CaptureInspection = {
+    child, demand, collection, captureContext,
+    demandFacts: demandFacts.flatMap((entry) => typeof entry.factId === "string" ? [entry.factId] : []),
+    live,
+    derived: specimens.filter((entry) => entry.evidenceKind === "DERIVED_FIXTURE"),
+    liveByObservation,
+    liveStates: [],
+  };
+
+  if (collection?.demandDigest !== demand.digest) failures.push("collection-demand-digest");
+  if (collection?.childCandidateDigest !== demand.childCandidateDigest) failures.push("child-candidate-digest");
+  if (!captureContext || !Array.isArray(captureContext.sceneManifest)) failures.push("capture-context");
+  if (new Set(factIds).size !== factIds.length) failures.push("fact-scope-duplicates");
+
+  const sceneManifest = Array.isArray(captureContext?.sceneManifest)
+    ? captureContext.sceneManifest.flatMap((entry) => record(entry) ? [record(entry)!] : []) : [];
+  for (const factId of factIds) {
+    const demandFact = demandFacts.find((entry) => entry.factId === factId) ?? null;
+    if (!demandFact) {
+      failures.push(`fact-not-declared:${factId}`);
+      continue;
+    }
+    const matches = bindings.filter((entry) => entry.factId === factId);
+    if (matches.length !== 1) {
+      failures.push(`${matches.length === 0 ? "fact-not-observed" : "fact-binding-duplicate"}:${factId}`);
+      continue;
+    }
+    const binding = matches[0]!;
+    if (binding.bindingKind === "CURRENT_PROJECTION") {
+      failures.push(`fact-not-live:${factId}`);
+      continue;
+    }
+    inspectLiveFactBinding(state, binding, factId, demandFact, failures);
+    const specimen = typeof binding.observationId === "string"
+      ? liveByObservation.get(binding.observationId) : undefined;
+    if (!specimen) continue;
+    if (typeof specimen.stateSignature !== "string" || !SHA256.test(specimen.stateSignature)
+      || observedStateSignature(specimen) !== specimen.stateSignature) failures.push(`live-signature:${factId}`);
+    inspectSceneSpecimen(state, specimen, sceneManifest, failures);
+  }
+  inspectModelState(state, failures);
+  return [...new Set(failures)];
 };

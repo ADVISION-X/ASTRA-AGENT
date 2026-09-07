@@ -986,6 +986,50 @@
       "relation_kind": "primary"
     },
     {
+      "product_id": "localization_static_catalog",
+      "action_id": "produce_locale_catalog",
+      "required_parameter_keys": [
+        "target_locale",
+        "source_resource_id",
+        "source_version",
+        "source_sha256",
+        "policy_version",
+        "result_schema_version"
+      ],
+      "material_roles": [
+        {
+          "role": "static_catalog_input",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "shared_static",
+          "owner_scope_policy": "forbidden"
+        }
+      ],
+      "result_schema_version": "localization-static-catalog-result.v1",
+      "result_contract": {
+        "exact_fields": [
+          "schema_version",
+          "action_id",
+          "source_resource_id",
+          "source_version",
+          "source_sha256",
+          "target_locale",
+          "policy_version",
+          "message_count",
+          "cohort_results",
+          "selected_messages",
+          "selected_catalog_hash",
+          "decision"
+        ],
+        "cohort_contract": "target-language-review-evidence.v1",
+        "candidate_set_admission": "all-five-locales"
+      },
+      "relation_kind": "primary"
+    },
+    {
       "product_id": "payment_screenshot_observation",
       "action_id": "observe",
       "required_parameter_keys": [

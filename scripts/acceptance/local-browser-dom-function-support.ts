@@ -358,6 +358,69 @@ const exerciseUserPromptHashes = async (source: string): Promise<void> => {
   await exerciseRejectedUserPromptHashes(source);
 };
 
+const assistantTurnFixture = (responses: readonly FakeElement[]) => {
+  const control = new FakeElement("复制 点赞 重试", {}, {}, {}, "BUTTON", [
+    new FakeTextNode("复制 点赞 重试"),
+  ]);
+  const assistantTurn = new FakeElement("rich response 复制 点赞 重试", {
+    "[data-message-author-role='assistant']": responses,
+  }, {}, { "data-testid": "conversation-turn-2" }, "ARTICLE",
+  responses.length === 0 ? [control] : [responses[0]!, control]);
+  const root = new FakeElement("", { ".assistant-turn": [assistantTurn] });
+  assistantTurn.parentElement = root;
+  return { assistantTurn, root };
+};
+
+const exerciseAssistantSemanticTextHash = async (source: string): Promise<void> => {
+  const response = richSemanticTree();
+  const { assistantTurn, root } = assistantTurnFixture([response]);
+  const result = await execute(source, {
+    documentElement: root, querySelectorAll: () => [], elementFromPoint: () => assistantTurn,
+  }, [{ queryId: "assistant-turns", selector: ".assistant-turn", maxMatches: 1,
+    fields: ["testId", "semanticTextHash"] }]) as Readonly<{
+      queries: readonly Readonly<{ matches: readonly Readonly<{
+        testId: string; semanticTextHash: string;
+      }>[] }>[];
+    }>;
+  const observed = result.queries[0]?.matches[0];
+  assert.equal(observed?.testId, "conversation-turn-2");
+  assert.equal(observed?.semanticTextHash, hash(RICH_SEMANTIC_TEXT),
+    "the existing assistant semantic hash must exclude outer turn controls");
+
+  const imageOnlyTurn = assistantTurnFixture([]);
+  const imageOnlyResult = await execute(source, {
+    documentElement: imageOnlyTurn.root, querySelectorAll: () => [],
+    elementFromPoint: () => imageOnlyTurn.assistantTurn,
+  }, [{ queryId: "image-turns", selector: ".assistant-turn", maxMatches: 1,
+    fields: ["semanticTextHash"] }]) as Readonly<{
+      queries: readonly Readonly<{ matches: readonly Readonly<{ semanticTextHash: string }>[] }>[];
+    }>;
+  assert.equal(imageOnlyResult.queries[0]?.matches[0]?.semanticTextHash, hash("复制 点赞 重试"),
+    "a non-user image turn without assistant text must keep its outer semantic projection");
+
+  const mixedResponse = richSemanticTree();
+  const mixedUser = new FakeElement("user prompt", {}, {}, {}, "DIV", [new FakeTextNode("user prompt")]);
+  const mixedTurn = new FakeElement("mixed turn", {
+    "[data-message-author-role='assistant']": [mixedResponse],
+    "[data-message-author-role='user']": [mixedUser],
+  }, {}, { "data-testid": "conversation-turn-2" }, "ARTICLE", [mixedUser, mixedResponse]);
+  const mixedRoot = new FakeElement("", { ".assistant-turn": [mixedTurn] });
+  mixedTurn.parentElement = mixedRoot;
+  await assert.rejects(async () => execute(source, {
+    documentElement: mixedRoot, querySelectorAll: () => [], elementFromPoint: () => mixedTurn,
+  }, [{ queryId: "assistant-turns", selector: ".assistant-turn", maxMatches: 1,
+    fields: ["semanticTextHash"] }]), /BROWSER_DOM_READ_INVALID/u,
+  "an assistant turn that also contains a user node must fail closed");
+
+  const rejected = assistantTurnFixture([richSemanticTree(), richSemanticTree()]);
+  await assert.rejects(async () => execute(source, {
+    documentElement: rejected.root, querySelectorAll: () => [],
+    elementFromPoint: () => rejected.assistantTurn,
+  }, [{ queryId: "assistant-turns", selector: ".assistant-turn", maxMatches: 1,
+    fields: ["semanticTextHash"] }]), /BROWSER_DOM_READ_INVALID/u,
+  "duplicate assistant response bodies must fail closed");
+};
+
 const exerciseInvalidObservationUrls = async (
   source: string,
   observationDocument: Readonly<Record<string, unknown>>,
@@ -374,6 +437,7 @@ export const exerciseCapturedObservationFunction = async (source: string): Promi
   await exerciseHiddenStateRead(source);
   await exerciseComposerExactHashes(source);
   await exerciseUserPromptHashes(source);
+  await exerciseAssistantSemanticTextHash(source);
   await exerciseInvalidObservationUrls(source, observationDocument);
 };
 

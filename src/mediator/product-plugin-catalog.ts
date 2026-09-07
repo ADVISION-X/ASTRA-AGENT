@@ -122,6 +122,6 @@ export const dispatchProductPlugin = (
   }));
 };
 
-if (productionPluginCatalog.length !== 12 || skillBytes.size !== 12 || routeCatalog.size !== 39) {
+if (productionPluginCatalog.length !== 12 || skillBytes.size !== 12 || routeCatalog.size !== 40) {
   throw new Error("PLUGIN_CATALOG_DENOMINATOR_INVALID");
 }

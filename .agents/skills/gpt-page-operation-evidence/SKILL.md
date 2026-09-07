@@ -7,6 +7,8 @@ description: 为 AGENT 的 GPT 页面操作子能力执行“稳定页面快照�
 
 本 Skill 只有一条低成本主链：`稳定页面快照 → 当前需求离线投影 → 唯一报告 → Child 强制消费 → 修复 → 离线反馈重投影`。稳定页面快照证明 GPT 页面的真实结构；当前需求投影证明现役合同、实现、Product 与这些页面事实如何衔接。二者必须分离：代码、合同、矩阵、Product 或候选变化只能使离线投影过期，不能自动使页面快照过期，更不能自动启动 Chrome。报告不是生产运行时 DOM 数据源，也不是第二质量裁决。
 
+防过度设计边界：只复用唯一报告、唯一矩阵、现有 `admit` 和 AGENT 原生门禁；不得再建 DOM 回放平台、selector 注册表、第二台账、第二报告、第二 Owner、第二 Child、第二持久化或第二质量结论。当前闭环只要求把真实事实直接交给施工者，并在施工后深验同一事实与目标行为；无法由现有报告确定的内容保持缺口。
+
 ## 先决定模式
 
 1. **盘点模式 `inventory-only`**：用户只要求清单、范围、缺口或静态更新时使用。不打开浏览器。
@@ -40,6 +42,7 @@ description: 为 AGENT 的 GPT 页面操作子能力执行“稳定页面快照�
 开始前读取：
 
 - `/Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json`（唯一权威矩阵；Skill 与 AGENT 原生质检共同消费）
+- `/Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json`（唯一页面实证报告；读取其中目标 Child 的真实 DOM、状态、关系、动作回执与明确缺口）
 - `references/evidence-schema.md`
 - `references/collection-protocol.md`
 - 当前法案注册表绑定的 GPT 法案与 `docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md`
@@ -67,7 +70,7 @@ description: 为 AGENT 的 GPT 页面操作子能力执行“稳定页面快照�
 ### 盘点模式
 
 ```bash
-node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/report-tool.mjs inventory \
+node --import tsx /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs inventory \
   --repo /Users/nexgen/Documents/AGENT \
   --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
   --read-only
@@ -81,7 +84,7 @@ node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/script
 2. 在仓库外临时目录创建合成提示词和附件：
 
 ```bash
-node /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/make-fixtures.mjs \
+node /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/make-fixtures.mjs \
   --dir /absolute/path/to/dedicated-temp-dir \
   --run-id YYYYMMDD-HHMMSS
 ```
@@ -92,30 +95,33 @@ node /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/make-fixtur
 6. 为本轮建立临时 scene mapping，并用正式装配器把逐场景节点、当前 inventory、fixture manifest、有明确源文件绑定的 Product Profile hash-only 授权与生产 Browser 空闲前置证据装成 capture。每个 live state 只能消费自己的 `liveStateTargets`，所有 target 必须来自该状态自己的唯一 scene；禁止 support scene 借目标、同一 scene 冒充两个状态、任意 `main` 冒充 route/identity、硬编码候选数量或补造 command/receipt：
 
 ```bash
-node /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/assemble-live-capture.mjs \
+node /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/assemble-live-capture.mjs \
   --inventory /absolute/path/to/inventory.json \
   --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
   --scenes /absolute/path/to/scenes.json \
   --mapping /absolute/path/to/scene-map.json \
   --fixtures /absolute/path/to/fixture-manifest.json \
   --browser-meta /absolute/path/to/browser-meta.json \
+  --child affected_child_id_or_comma_separated_ids \
   --output /absolute/path/to/capture.json
 ```
 
 7. 合并到唯一报告：
 
 ```bash
-node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/report-tool.mjs merge \
+node --import tsx /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs merge \
   --repo /Users/nexgen/Documents/AGENT \
   --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
   --capture /absolute/path/to/capture.json \
+  --base-report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
+  --child affected_child_id_or_comma_separated_ids \
   --output /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json
 ```
 
 Child 修复后使用下面的纯离线命令。它不接收 capture，也不打开 Chrome；为防止跨 Child 链引用陈旧，内部会廉价重投影全部页面 Child，但只把 `--child` 作为本次关注范围返回：
 
 ```bash
-node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/report-tool.mjs refresh \
+node --import tsx /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs refresh \
   --repo /Users/nexgen/Documents/AGENT \
   --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
   --base-report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
@@ -128,7 +134,7 @@ node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/script
 8. 运行严格校验：
 
 ```bash
-node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/report-tool.mjs validate \
+node --import tsx /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs validate \
   --repo /Users/nexgen/Documents/AGENT \
   --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
   --report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json
@@ -140,16 +146,16 @@ node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/script
 
 ## 强制消费闸门
 
-任何页面 Child 代码迭代前，必须运行：
+任何页面 Child 代码迭代前，必须先完成“当前需求投影 → 真实事实读取 → 代码决策”三步。若报告投影已过期，先执行上面的离线 `refresh`；随后运行：
 
 ```bash
-node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/report-tool.mjs candidate \
+node --import tsx /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs candidate \
   --repo /Users/nexgen/Documents/AGENT \
   --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
   --report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
   --child child_id_or_comma_separated_ids
 
-node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/report-tool.mjs admit \
+node --import tsx /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs admit \
   --repo /Users/nexgen/Documents/AGENT \
   --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
   --report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
@@ -160,14 +166,14 @@ node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/script
 完整 Child 使用上面的全 Child 准入。若 Child 只有明确的未观察状态，而本次修改只消费已经观察到的具体事实，则 `candidate` 与 `admit` 必须同时增加 `--facts`，只允许单个 Child：
 
 ```bash
-node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/report-tool.mjs candidate \
+node --import tsx /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs candidate \
   --repo /Users/nexgen/Documents/AGENT \
   --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
   --report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
   --child child_id \
   --facts live-state:observed_state,target:observed_target
 
-node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/report-tool.mjs admit \
+node --import tsx /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs admit \
   --repo /Users/nexgen/Documents/AGENT \
   --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
   --report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
@@ -178,7 +184,11 @@ node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/script
 
 `--facts` 不是绕过：未知事实、未观察事实或遗漏范围固定拒绝。运行原生质检时，用同一事实集合提供 `GPT_PAGE_EVIDENCE_SCOPE` JSON；不完整 Child 没有显式范围时失败关闭。完整 Child 无需该变量。法案或 Blueprint 中未点名任何页面 Child 的其它域变更只刷新离线投影，不得回退成 22 个 Child 全受影响。
 
-只有返回 `ADMITTED` 才能施工。`--child all` 要求 22/22 完整；指定一个或一组 Child 时只审查这些 Child，某个 terminal 现场缺失不得连坐其余 Child。完整 Child 消费全部事实；不完整 Child 只能消费 `--facts` 明确列出的已观察事实。它同时强制：
+`admit` 必须返回 `evidenceBriefs`、`admissionReceipt` 和对应 hash。`evidenceBriefs` 直接给出目标事实在报告中的 observation、pointer 与 actual value，并带出相关真实 DOM、target/owner 关系、页面状态和动作后置；候选摘要必须绑定这些真实值的 hash。若只拿到事实名称、缺少 actual value、引用了派生 fixture 冒充现场，或真实值与准备采用的代码判断对不上，一律不得编辑。
+
+在第一次 `apply_patch` 前，执行者必须写出一份短映射：`本次行为 → factId → observation/pointer/actual value → 代码判断 → 明确不允许猜测的内容`。代码只能使用映射中已有的事实；报告没有的 selector、属性、owner 关系或终态只能记为 `PAGE_EVIDENCE_GAP`，不得凭经验补写。无法机械证明“模型是否认真看过”，因此生产门禁证明的是更可核验的三件事：实际值已输出、候选已绑定其 hash、修复后的目标测试和原生门禁仍对同一事实通过。
+
+只有返回 `ADMITTED` 且上述映射完成后才能施工。`--child all` 要求 22/22 完整；指定一个或一组 Child 时只审查这些 Child，某个 terminal 现场缺失不得连坐其余 Child。完整 Child 消费全部事实；不完整 Child 只能消费 `--facts` 明确列出的已观察事实。它同时强制：
 
 - 22 个页面操作 Child 全部在分母内；
 - 每个 Child 的合成输入或 Product Profile hash-only 授权输入与矩阵精确一致；
@@ -189,7 +199,7 @@ node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/script
 - 报告没有把派生 fixture 冒充实时页面事实。
 - 动作链已绑定当前 Document/revision、目标/owner 关系、typed command、terminal receipt 与直接后置；纯观察 Child 明确标记 command/receipt 不适用。
 
-通过只代表“该报告的稳定页面快照已被准确候选的当前需求投影正确消费”。它不等于 `READY`、`RELEASE`、生产发布或 Website 入库。Child 修复后必须重新运行离线重投影、`admit`、目标确定性测试和 AGENT 唯一 `quality:check`；不得把“每次修复后重新真实 Chrome 采集”设为常规门禁。若业务任务本身要求真实 GPT 页面执行，可以运行目标 Child；只有该执行报错并满足 `PAGE_EVIDENCE_CONFLICT_CONFIRMED` 的三方证据条件时，才转入重采集。
+通过只代表“该报告的稳定页面快照已被准确候选的当前需求投影正确消费”。它不等于 `READY`、`RELEASE`、生产发布或 Website 入库。Child 修复后必须重新运行离线重投影、`admit`、覆盖本次映射的目标确定性测试和 AGENT 唯一 `quality:check`。不完整 Child 的原生门禁会深验所声明事实的 expected hash、真实 observation、pointer actual value、target 身份与现场签名，不能再用“报告里存在这个 factId”蒙混通过。不得把“每次修复后重新真实 Chrome 采集”设为常规门禁。若业务任务本身要求真实 GPT 页面执行，可以运行目标 Child；只有该执行报错并满足 `PAGE_EVIDENCE_CONFLICT_CONFIRMED` 的三方证据条件时，才转入重采集。
 
 ## 更新原则
 
@@ -206,8 +216,8 @@ node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/script
 每次修改本 Skill、矩阵或校验器后，必须运行：
 
 ```bash
-node /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/report-tool.acceptance.mjs
-node /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/pipeline.acceptance.mjs
+node /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/report-tool.acceptance.mjs
+node /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/pipeline.acceptance.mjs
 ```
 
-它必须证明完整基线可以准入，并证明复制 live 状态、`unchecked`/`checked` 矛盾、遗漏需求绑定、用派生数据替代真实 terminal 和伪造候选绑定都会失败。
+它必须证明完整基线可以准入、范围准入会返回真实 actual value 且候选绑定其 hash，并证明复制 live 状态、`unchecked`/`checked` 矛盾、遗漏需求绑定、虚假 target、用派生数据替代真实 terminal 和伪造候选绑定都会失败。
