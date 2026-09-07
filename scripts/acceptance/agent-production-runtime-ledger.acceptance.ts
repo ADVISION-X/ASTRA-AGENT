@@ -10,44 +10,18 @@ import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/s
 import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
-import { retireProductionTaskCatalogIdentity } from
-  "../maintenance/production-runtime-catalog-identity-retire.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
-import { HASH_A, HASH_B, identityFor, resultFor, task } from "./agent-production-runtime-fixtures.js";
+import { exerciseProductionRuntimeCatalogIdentityRetirement } from
+  "./agent-production-runtime-catalog-identity.acceptance-support.js";
+import { HASH_A, HASH_B, identityFor, recoveryCheckpointBody as baseRecoveryCheckpointBody,
+  resultFor, task } from "./agent-production-runtime-fixtures.js";
 import { verifyBrowserFailureStoreContract } from
   "./agent-production-runtime-browser-failure.acceptance-support.js";
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-production-ledger-"));
 const columns = (database: Database.Database, table: string): string[] =>
   (database.prepare(`pragma table_info(${table})`).all() as Array<{ name: string }>).map((row) => row.name);
-const recoveryCheckpointBody = (input: Readonly<{
-  jobId: string;
-  attemptId: string;
-  requestId: string;
-  checkpointSeq: number;
-  checkpointKind: "accepted" | "progress" | "attempt_failure";
-  attemptFailure?: unknown;
-}>) => ({
-  schema_version: "xuanxue-ai-checkpoint.v6",
-  control_protocol_version: "xuanxue-ai-production-v6",
-  request_id: input.requestId,
-  idempotency_key: input.requestId,
-  job_id: input.jobId,
-  worker_session_id: "session:recovery",
-  worker_session_epoch: 1,
-  attempt_id: input.attemptId,
-  lease_version: 2,
-  fence_hash: HASH_A,
-  local_order_id: input.jobId,
-  checkpoint_seq: input.checkpointSeq,
-  checkpoint_kind: input.checkpointKind,
-  payload_hash: hashCanonical({
-    job_id: input.jobId,
-    attempt_id: input.attemptId,
-    checkpoint_seq: input.checkpointSeq,
-    checkpoint_kind: input.checkpointKind,
-  }),
-  object_receipts: [],
-  attempt_failure: input.attemptFailure ?? null,
+const recoveryCheckpointBody = (input: Parameters<typeof baseRecoveryCheckpointBody>[0]) => ({
+  ...baseRecoveryCheckpointBody(input), worker_session_id: "session:recovery", lease_version: 2,
 });
 try {
   const dataDirectory = path.join(temporary, "binary-store");
@@ -469,49 +443,7 @@ try {
   assert.throws(() => resolveStoredProductionAuthority(
     rowIdentityDirectory, `production-task:${rowIdentityTask.job_id}`, HASH_A,
   ), (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_AUTHORITY_STORE_CORRUPT");
-  const retiredCatalogDirectory = path.join(temporary, "retired-task-catalog-identity");
-  await mkdir(retiredCatalogDirectory);
-  const retiredCatalogStore = new ProductionRuntimeStore(retiredCatalogDirectory);
-  const retiredCatalogTask = task({ jobId: "job:retired-task-catalog", productId: "bazi_ai_full_analysis", actionId: "produce" });
-  retiredCatalogStore.acceptTask(retiredCatalogTask, identityFor(retiredCatalogTask), "attempt:retired-task-catalog");
-  retiredCatalogStore.recordAttemptFailure(retiredCatalogTask.job_id, "attempt:retired-task-catalog", firstFailure);
-  retiredCatalogStore.recordCheckpoint({ jobId: retiredCatalogTask.job_id, attemptId: "attempt:retired-task-catalog",
-    checkpointId: "attempt_failure", checkpointHash: null, state: "failed" });
-  retiredCatalogStore.recordLease({ jobId: retiredCatalogTask.job_id, attemptId: "attempt:retired-task-catalog",
-    leaseVersion: 1, fenceHash: HASH_A, state: "absent", expiresAt: null });
-  retiredCatalogStore.enqueue({ idempotency_key: "outbox:retired-task-catalog", kind: "checkpoint",
-    path: `/internal/ai-production/v6/jobs/${encodeURIComponent(retiredCatalogTask.job_id)}/checkpoints`,
-    method: "POST", headers: {}, body: "{}" });
-  retiredCatalogStore.close();
-  const retiredCatalogDatabase = new Database(path.join(retiredCatalogDirectory, "production-runtime.sqlite"));
-  const storedIdentity = JSON.parse((retiredCatalogDatabase.prepare(
-    "select identity_json from production_tasks where job_id=?",
-  ).get(retiredCatalogTask.job_id) as { identity_json: string }).identity_json) as Record<string, unknown>;
-  retiredCatalogDatabase.prepare("update production_tasks set identity_json=? where job_id=?")
-    .run(JSON.stringify({ catalog_hash: HASH_A, ...storedIdentity }), retiredCatalogTask.job_id);
-  retiredCatalogDatabase.prepare(`insert into production_continuations(
-    continuation_ref,reservation_kind,reservation_identity_hash,origin_job_id,origin_plugin_version,
-    plugin_id,owner_ref,subject_ref,authorization_ref,lane_version,created_at
-  ) values(?,?,?,?,?,?,?,?,?,?,?)`).run(
-    "continuation:retired-task-catalog", "persisted", HASH_B, retiredCatalogTask.job_id, 13,
-    "localization-production", "owner", "subject", "authorization", 0, "2026-09-07T00:00:00.000Z",
-  );
-  retiredCatalogDatabase.close();
-  assert.deepEqual(retireProductionTaskCatalogIdentity(retiredCatalogDirectory), {
-    status: "migrated", migratedTaskCount: 1,
-  });
-  const migratedCatalogStore = new ProductionRuntimeStore(retiredCatalogDirectory);
-  assert.equal("catalog_hash" in migratedCatalogStore.readTask(retiredCatalogTask.job_id)!.identity, false);
-  const preservedDatabase = Reflect.get(migratedCatalogStore, "database") as Database.Database;
-  for (const table of ["production_tasks", "production_attempt_failures", "production_continuations",
-    "production_outbox", "production_checkpoints", "production_leases"]) {
-    assert.equal((preservedDatabase.prepare(`select count(*) count from ${table}`).get() as { count: number }).count, 1,
-      `${table} must be preserved across task identity retirement`);
-  }
-  migratedCatalogStore.close();
-  assert.deepEqual(retireProductionTaskCatalogIdentity(retiredCatalogDirectory), {
-    status: "already-current", migratedTaskCount: 0,
-  });
+  await exerciseProductionRuntimeCatalogIdentityRetirement(temporary);
   const invariantDirectory = path.join(temporary, "checkpoint-lease-invariants");
   await mkdir(invariantDirectory);
   const invariantStore = new ProductionRuntimeStore(invariantDirectory);

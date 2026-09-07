@@ -151,7 +151,7 @@ const inspectJobBoundClaimPolicy = (
   if (!targetAuthority || !targetObservation || !sitePolicy || !actor || !supervisor || !broker
     || !leaseManager || !lane || !targetAcquirer) return;
   requireIdentifiers(targetAuthority, [
-    "acquireJobBoundChatGptTarget", "create", "remove", "GPT_WEB_START_URL",
+    "acquireJobBoundChatGptTarget", "createBackgroundTab", "removeTab", "GPT_WEB_START_URL",
     "requireGptWebPolicyForUrl", "waitForCreatedTarget", "navigationPublication",
     "parkActiveTarget", "parkedLoaderIds", "attachedTabId", "singleParkedTargetRef",
     "normalizeGptForkSuccessor", "discoverGptForkSuccessor", "collectForkCleanupFailures",

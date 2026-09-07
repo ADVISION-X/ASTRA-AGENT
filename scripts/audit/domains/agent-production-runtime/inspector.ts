@@ -1,14 +1,13 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
-
 import { createFinding } from "../../shared/finding-utils.js";
-import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from
-  "../../shared/inspector-contracts.js";
+import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { recordStaticCheck } from "../../shared/static-inspection-contract.js";
 import { observeStaticMode } from "../../shared/static-target-object-inspector.js";
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 import { inspectAgentAuthorityAst } from "./authority-inspection.js";
+import { catalogIdentityMaintenanceFailures } from "./catalog-identity-inspection.js";
 import { inspectAgentContracts } from "./contract-inspection.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
 
@@ -413,27 +412,14 @@ export function inspectAgentSql(
   const store = sourceFor(context, PATHS.store);
   const identityMaintenanceSource = sourceFor(context, PATHS.identityMaintenance);
   const identityMaintenance = read(context, PATHS.identityMaintenance).toLowerCase().replace(/\s+/gu, " ");
-  const maintenanceTables = identityMaintenanceSource?.getVariableDeclaration("tables")?.getInitializer()
-    ?.getDescendantsOfKind(SyntaxKind.StringLiteral).map((literal) => literal.getLiteralValue()) ?? [];
-  const maintenanceCalls = new Set(identityMaintenanceSource?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .map((call) => call.getExpression().getText()) ?? []);
-  const expectedMaintenanceTables = ["production_tasks", "production_attempt_failures", "production_continuations",
-    "production_outbox", "production_checkpoints", "production_leases"];
-  for (const token of ["begin immediate", "where state='active'", "catalog_hash: _retired",
-    "integrity_check", "foreign_key_check", "rollback"]) {
-    if (!identityMaintenance.includes(token)) {
-      findings.push(finding(LAWS.database, "static.sql",
-        "agent-production-runtime/catalog-identity-retirement", PATHS.identityMaintenance,
-        `Task catalog identity retirement is missing ${token}.`));
-    }
-  }
-  if (JSON.stringify(maintenanceTables) !== JSON.stringify(expectedMaintenanceTables)
-    || !maintenanceCalls.has("resolveStoredProductionAuthority")
-    || !maintenanceCalls.has("databaseSnapshot")
-    || !identityMaintenanceSource?.getFunction("verifyAuthorityReadback")) {
+  for (const failure of catalogIdentityMaintenanceFailures(identityMaintenanceSource, identityMaintenance)) {
+    const authorityReadback = failure === "authority-readback";
     findings.push(finding(LAWS.database, "static.sql",
-      "agent-production-runtime/catalog-identity-authority-readback", PATHS.identityMaintenance,
-      "Task catalog retirement lacks exact six-table preservation and formal authority-reader readback."));
+      authorityReadback ? "agent-production-runtime/catalog-identity-authority-readback"
+        : "agent-production-runtime/catalog-identity-retirement",
+      PATHS.identityMaintenance, authorityReadback
+        ? "Task catalog retirement lacks exact six-table preservation and formal authority-reader readback."
+        : `Task catalog identity retirement is missing ${failure.slice("retirement:".length)}.`));
   }
   const schemaInitializer = variableDeclaration(store, "productionSchemaSql")?.getInitializer();
   const schemaSql = (Node.isNoSubstitutionTemplateLiteral(schemaInitializer)

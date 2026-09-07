@@ -4,6 +4,7 @@ import { type InspectorContext, type InspectorFinding } from "../../shared/inspe
 import { browserCommandPostconditionPath, browserMutationSchemaPath, createLocalFinding,
   domPointerIntentRuntimePath,
   domMutationPostconditionPath,
+  extensionCreatedTargetPath,
   extensionDebuggerRuntimePath,
   extensionFileInputPath, requireSource,
   sourcePaths, targetAuthorityPath, extensionTargetObservationPath } from "./inspector-support.js";
@@ -69,6 +70,7 @@ type SettlementSources = Readonly<{
   actor: SettlementSource;
   commandPostcondition: SettlementSource;
   contract: SettlementSource;
+  createdTarget: SettlementSource;
   debuggerRuntime: SettlementSource;
   fileInput: SettlementSource;
   failure: SettlementSource;
@@ -107,13 +109,15 @@ const requireSettlementSources = (
     context, findings, lawId, browserCommandPostconditionPath,
   );
   const debuggerRuntime = requireSource(context, findings, lawId, extensionDebuggerRuntimePath);
+  const createdTarget = requireSource(context, findings, lawId, extensionCreatedTargetPath);
   const targetAuthority = requireSource(context, findings, lawId, targetAuthorityPath);
   const targetObservation = requireSource(context, findings, lawId, extensionTargetObservationPath);
   const required = [actor, store, schema, runtime, pointerRuntime, postcondition, contract, resolver,
     fileInput, failure, mutationReceipt, transport, commandPostcondition, manager,
-    debuggerRuntime, targetAuthority, targetObservation];
+    debuggerRuntime, createdTarget, targetAuthority, targetObservation];
   if (required.some((source) => source === null)) return null;
   return { actor: actor!, commandPostcondition: commandPostcondition!, contract: contract!,
+    createdTarget: createdTarget!,
     debuggerRuntime: debuggerRuntime!,
     failure: failure!, fileInput: fileInput!, manager: manager!, mutationReceipt: mutationReceipt!, postcondition: postcondition!,
     pointerRuntime: pointerRuntime!, resolver: resolver!, runtime: runtime!, schema: schema!,
@@ -130,6 +134,7 @@ const inspectUniversalPostActionReadGate = (
   const runtime = sources.debuggerRuntime.getFullText();
   const authority = sources.targetAuthority.getFullText();
   const observation = sources.targetObservation.getFullText();
+  const createdTarget = sources.createdTarget.getFullText();
   requireText(runtime, [
     "PAGE_ACTION_READ_SETTLEMENT_MS = 2500",
     "PAGE_MUTATION_METHODS",
@@ -154,14 +159,18 @@ const inspectUniversalPostActionReadGate = (
     "readTargets",
     "await this.awaitPageReadPermission();\n      throw error;",
   ], findings, lawId, extensionDebuggerRuntimePath);
-  requireText(`${authority}\n${observation}\n${sources.postcondition.getFullText()}`, [
+  requireText(`${authority}\n${createdTarget}\n${observation}\n${sources.postcondition.getFullText()}`, [
     "awaitPageReadPermission",
     "readTargets()",
     "createBackgroundTab",
     "removeTab",
     "startCreatedTargetDeadlineAfterBarrier",
-    "await this.rejectPendingCreatedTarget",
+    "await this.createdTarget.rejectPendingCreatedTarget",
   ], findings, lawId, targetAuthorityPath);
+  requireText(createdTarget, [
+    "await this.debuggerRuntime.removeTab",
+    "pending.reject(new Error(reasonCode))",
+  ], findings, lawId, extensionCreatedTargetPath);
   requireText(sources.transport.getFullText(), [
     "MUTATION_TERMINAL_REPLY_GRACE_MS = 4_000",
   ], findings, lawId, sourcePaths[0]);
@@ -188,6 +197,15 @@ const inspectUniversalPostActionReadGate = (
     message: "Navigation postconditions must use a fresh frame read after the gate, never the Page.navigate acknowledgement.",
   }));
 
+  inspectRegisteredPageCallGraph(context, sources, findings, lawId);
+};
+
+const inspectRegisteredPageCallGraph = (
+  context: InspectorContext,
+  sources: SettlementSources,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
   const methodRegistry = new Set(["PAGE_MUTATION_METHODS", "PAGE_READ_METHODS", "DEVTOOLS_CONTROL_METHODS"]
     .flatMap((name) => sources.debuggerRuntime.getVariableDeclaration(name)?.getInitializer()
       ?.getDescendantsOfKind(SyntaxKind.StringLiteral).map((literal) => literal.getLiteralValue()) ?? []));

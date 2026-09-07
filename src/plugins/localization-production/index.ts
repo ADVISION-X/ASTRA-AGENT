@@ -3,7 +3,7 @@ import { executeOwnedFlow } from "./flow.js";
 import { executeStaticCatalogFlow } from "./static-catalog-flow.js";
 
 export const localizationProductionPlugin: ProductPlugin = {
-  pluginId: "localization-production", pluginVersion: 13, checkpointSchemaVersion: 2,
+  pluginId: "localization-production", pluginVersion: 14, checkpointSchemaVersion: 2,
   accepts: [
     { productId: "localization_report_translation", actionId: "report_translation" },
     { productId: "localization_report_translation", actionId: "accuracy_challenge" },

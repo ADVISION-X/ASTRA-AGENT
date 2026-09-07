@@ -33,11 +33,14 @@ import {
 const REVIEW_AUTHORITY_REF = "APEX-LOCALIZATION-009-V5";
 
 const candidateAProfile = buildGptExecutionProfile({
-  profileRef: "localization-production:static-catalog:candidate-a:xhigh",
+  profileRef: "localization-production:static-catalog:candidate-a:pro-standard",
   accountCapabilityRef: "openai-chatgpt:gpt-5.6-sol",
   modelDisplayName: "GPT-5.6 Sol",
   modelFamily: "gpt-5.6",
-  reasoningRequirement: { selectionPolicy: "exact", requestedTier: "extra_high" },
+  reasoningRequirement: {
+    selectionPolicy: "exact-or-observed-maximum",
+    requestedTier: "pro_standard",
+  },
   executorIdentityRef: "localization-production:static-catalog:candidate-a",
   acceptanceRef: "localization-production:static-catalog",
   acceptanceVersion: "v1",

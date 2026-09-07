@@ -38,6 +38,7 @@
     "scripts/acceptance/local-browser-fork-failure-support.ts",
     "scripts/acceptance/local-browser-mutation-receipt-support.ts",
     "scripts/acceptance/local-browser-mutation-store-support.ts",
+    "scripts/acceptance/local-browser-page-action-settlement-support.ts",
     "scripts/acceptance/local-browser-pairing-readback-support.ts",
     "scripts/acceptance/local-browser-proof-support.ts",
     "scripts/acceptance/local-browser-property-model.acceptance.ts",

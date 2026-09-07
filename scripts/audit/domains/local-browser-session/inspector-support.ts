@@ -13,6 +13,8 @@ export const createLocalFinding = (
 });
 
 export const targetAuthorityPath = "src/lib/browser/chrome-extension/extension-target-authority.ts";
+export const extensionCreatedTargetPath =
+  "src/lib/browser/chrome-extension/extension-created-target.ts";
 export const extensionTargetObservationPath =
   "src/lib/browser/chrome-extension/extension-target-observation.ts";
 export const extensionCommandRuntimePath =
@@ -65,6 +67,7 @@ export const sourcePaths = [
   domMutationPostconditionPath,
   browserCommandPostconditionPath,
   extensionTargetObservationPath,
+  extensionCreatedTargetPath,
   extensionDebuggerRuntimePath,
   extensionCommandRuntimePath,
   domPointerIntentRuntimePath,

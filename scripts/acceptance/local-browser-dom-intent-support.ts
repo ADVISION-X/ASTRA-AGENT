@@ -2,8 +2,6 @@ import { governanceAssert as assert } from "../audit/shared/governance-exam-asse
 
 import { ExtensionDebuggerRuntime } from
   "../../src/lib/browser/chrome-extension/debugger-runtime.js";
-import type { ExtensionChromeApi } from
-  "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
 import { executeRegisteredDomIntent as executeDomIntent } from
   "../../src/lib/browser/chrome-extension/dom-intent-runtime.js";
 import { BROWSER_MECHANICAL_FACTS_READER_SOURCE } from
@@ -14,6 +12,7 @@ import { exerciseDomMutations } from "./local-browser-dom-mutation-support.js";
 import { exerciseExactAssistantTurnRead } from "./local-browser-exact-assistant-turn-support.js";
 import { exerciseFileInput } from "./local-browser-file-input-support.js";
 import { exerciseCapturedObservationFunction } from "./local-browser-dom-function-support.js";
+import { exerciseUniversalPostActionReadGate } from "./local-browser-page-action-settlement-support.js";
 
 const executeRegisteredDomIntent = (
   runtime: ExtensionDebuggerRuntime,
@@ -21,118 +20,6 @@ const executeRegisteredDomIntent = (
   intent: Parameters<typeof executeDomIntent>[2],
   assertCurrent: () => void = () => undefined,
 ): Promise<unknown> => executeDomIntent(runtime, target, intent, assertCurrent);
-
-const exerciseUniversalPostActionReadGate = async (): Promise<void> => {
-  const mutationMethods = [
-    "DOM.focus", "DOM.setFileInputFiles", "Input.dispatchKeyEvent",
-    "Input.dispatchMouseEvent", "Input.insertText", "Page.close", "Page.navigate",
-  ] as const;
-  const after2499 = (): Promise<void> =>
-    new Promise((resolve) => globalThis.setTimeout(resolve, 2499));
-  const createRuntime = (input: Readonly<{ expectedMethod?: string; rejectMethod?: string }> = {}) => {
-    let actionCount = 0;
-    let pageReadCount = 0;
-    let tabReadCount = 0;
-    let chooserListener: Parameters<ExtensionChromeApi["debugger"]["onEvent"]["addListener"]>[0]
-      = () => undefined;
-    const runtime = new ExtensionDebuggerRuntime({
-      debugger: {
-        onEvent: { addListener(listener: Parameters<ExtensionChromeApi["debugger"]["onEvent"]["addListener"]>[0]) {
-          chooserListener = listener;
-        } },
-        async sendCommand(_target: Readonly<{ tabId: number }>, method: string) {
-          if (method === "DOM.getDocument") {
-            pageReadCount += 1;
-            return { root: { nodeId: 1 } };
-          }
-          if (method !== input.expectedMethod) throw new Error(`UNEXPECTED_GATE_METHOD:${method}`);
-          actionCount += 1;
-          if (method === input.rejectMethod) throw new Error("PHYSICAL_ACTION_REJECTED");
-          return {};
-        },
-      },
-      tabs: {
-        create: async () => { actionCount += 1; return { id: 706 }; },
-        get: async (tabId: number) => { tabReadCount += 1; return {
-          id: tabId, status: "complete" as const, url: "https://chatgpt.com/", title: "ChatGPT",
-        }; },
-        remove: async () => { actionCount += 1; },
-        onUpdated: { addListener() {} },
-      },
-    } as unknown as ExtensionChromeApi);
-    runtime.adoptAttached(106);
-    return { runtime, chooserListener: () => chooserListener,
-      actionCount: () => actionCount, pageReadCount: () => pageReadCount,
-      tabReadCount: () => tabReadCount };
-  };
-
-  await Promise.all([
-    ...mutationMethods.map(async (method) => {
-      const harness = createRuntime({ expectedMethod: method });
-      await harness.runtime.send(106, method, {});
-      const completedAt = globalThis.performance.now();
-      const freshRead = harness.runtime.send(106, "DOM.getDocument", { depth: 0 });
-      await after2499();
-      assert.equal(harness.pageReadCount(), 0,
-        `${method} must perform zero post-action reads at 2499ms and earlier`);
-      await freshRead;
-      assert.equal(harness.actionCount(), 1, `${method} must execute exactly once`);
-      assert.equal(harness.pageReadCount(), 1, `${method} must permit one first fresh read`);
-      assert.ok(globalThis.performance.now() - completedAt >= 2500,
-        `${method} must hold the full hard-coded 2500ms gate`);
-    }),
-    (async () => {
-      const harness = createRuntime();
-      await harness.runtime.createBackgroundTab("https://chatgpt.com/");
-      const freshTab = harness.runtime.readTab(706);
-      await after2499();
-      assert.equal(harness.tabReadCount(), 0, "tabs.create must gate the first fresh tabs.get read");
-      await freshTab;
-      assert.equal(harness.actionCount(), 1);
-    })(),
-    (async () => {
-      const harness = createRuntime();
-      let removalObserved = false;
-      const removal = harness.runtime.removeTab(706).then(() => { removalObserved = true; });
-      await after2499();
-      assert.equal(removalObserved, false, "tabs.remove success must not settle before 2500ms");
-      await removal;
-      assert.equal(harness.actionCount(), 1);
-    })(),
-    (async () => {
-      const harness = createRuntime({ expectedMethod: "Input.insertText", rejectMethod: "Input.insertText" });
-      let failureObserved = false;
-      const rejectedAction = harness.runtime.send(106, "Input.insertText", {})
-        .then(() => null, (error: unknown) => { failureObserved = true; return error; });
-      await after2499();
-      assert.equal(failureObserved, false,
-        "even a native action failure must not become observable before the full 2500ms gate");
-      assert.match(String(await rejectedAction), /PHYSICAL_ACTION_REJECTED/u);
-      assert.equal(harness.actionCount(), 1, "a delayed action failure must never replay the action");
-    })(),
-    (async () => {
-      const harness = createRuntime({ expectedMethod: "Input.dispatchMouseEvent" });
-      let mismatchObserved = false;
-      const mismatch = harness.runtime.captureFileChooserOpened(106, 5_000, async () => {
-        await harness.runtime.send(106, "Input.dispatchMouseEvent", { type: "mouseReleased" });
-        harness.chooserListener()({ tabId: 106 }, "Page.fileChooserOpened", { backendNodeId: "invalid" });
-      }, async () => undefined).then(() => null, (error: unknown) => {
-        mismatchObserved = true;
-        return error;
-      });
-      await after2499();
-      assert.equal(mismatchObserved, false,
-        "a chooser mismatch after the click must not become observable before 2500ms");
-      assert.match(String(await mismatch), /BROWSER_FILE_CHOOSER_MISMATCH/u);
-      assert.equal(harness.actionCount(), 1, "a chooser mismatch must never replay the click");
-    })(),
-  ]);
-
-  const unknown = createRuntime();
-  await assert.rejects(unknown.runtime.send(106, "Future.unclassifiedMethod"),
-    /BROWSER_UNREGISTERED_DEVTOOLS_METHOD/u,
-    "a future unclassified DevTools method must fail closed instead of bypassing the gate");
-};
 
 const mechanicalFacts = (overrides: Readonly<Record<string, unknown>> = {}) => ({
   connected: true, layout: true, visible: true,
@@ -575,15 +462,8 @@ const exerciseCoherentObservation = async (): Promise<void> => {
 };
 
 export const exerciseLocalBrowserDomIntent = async (): Promise<void> => {
-  await exerciseUniversalPostActionReadGate();
-  await exerciseComposerReadiness();
-  await exerciseDomFailures();
-  await exerciseLateTextMatch();
-  await exerciseUntruncatedRead();
-  await exerciseMechanicalFacts();
-  await exerciseSeparatedMechanicalEligibility();
-  await exerciseCoherentObservation();
-  await exerciseExactAssistantTurnRead();
-  await exerciseDomMutations();
-  await exerciseFileInput();
+  for (const exercise of [exerciseUniversalPostActionReadGate, exerciseComposerReadiness,
+    exerciseDomFailures, exerciseLateTextMatch, exerciseUntruncatedRead, exerciseMechanicalFacts,
+    exerciseSeparatedMechanicalEligibility, exerciseCoherentObservation, exerciseExactAssistantTurnRead,
+    exerciseDomMutations, exerciseFileInput]) await exercise();
 };

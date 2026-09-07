@@ -24,7 +24,7 @@
 
 报告和文章的唯一翻译结果只在当前 Product Flow 内做垂直校验；校验失败直接阻断，不得产生候选、选择轮次、第二正式结果或可认领的第二链路。
 
-`localization_static_catalog / produce_locale_catalog` 是网站固定文案的生产动作。一个任务只负责一个目标 locale，并按任务内冻结的全部 context cohort 顺序完成；每个 cohort 必须使用互相隔离的候选 A（xhigh）、候选 B（high）和盲选器（high），候选请求字节必须相同，盲选器不得看见生产者身份或重写候选。机械合同、消息总数、源 hash、locale、policy 或任一 cohort 证据不闭合时，整个 locale 结果阻断。
+`localization_static_catalog / produce_locale_catalog` 是网站固定文案的生产动作。一个任务只负责一个目标 locale，并按任务内冻结的全部 context cohort 顺序完成；每个 cohort 必须使用互相隔离的候选 A（请求 Pro；页面仅有 0–2 档时按现役策略降到 high）、候选 B（high）和盲选器（high），候选请求字节必须相同，盲选器不得看见生产者身份或重写候选。机械合同、消息总数、源 hash、locale、policy 或任一 cohort 证据不闭合时，整个 locale 结果阻断。
 
 固定文案动作只产出一个 hash 绑定的 locale 候选结果；它不写 Website 仓库、不发布、不部署、不自行重试，也不创建第二插件、第二队列或第二裁决。五个 locale 是否能作为候选集被接纳，只由 Website 的既有业务结果消费链统一判断。
 

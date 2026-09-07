@@ -16,6 +16,7 @@
     "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
     "docs/specs/agent-production-runtime/**",
     "scripts/acceptance/agent-production-runtime-browser-failure.acceptance-support.ts",
+    "scripts/acceptance/agent-production-runtime-catalog-identity.acceptance-support.ts",
     "scripts/acceptance/agent-production-runtime-continuation.acceptance.ts",
     "scripts/acceptance/agent-production-runtime-fixtures.ts",
     "scripts/acceptance/agent-production-runtime-gpt-recovery-fixture.ts",

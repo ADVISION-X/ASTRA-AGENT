@@ -30,7 +30,7 @@ const databaseSnapshot = (
     return { ...row, identity_json: JSON.stringify(currentIdentity) };
   })]),
 ));
-const verifyAuthorityReadback = (dataDir: string): void => {
+function verifyAuthorityReadback(dataDir: string): void {
   const store = new ProductionRuntimeStore(dataDir);
   const authorities: Array<Readonly<{ ref: string; hash: `sha256:${string}` }>> = [];
   try {
@@ -52,7 +52,7 @@ const verifyAuthorityReadback = (dataDir: string): void => {
   if (authorities.some(({ ref, hash }) => resolveStoredProductionAuthority(dataDir, ref, hash) !== "verified")) {
     throw new Error("PRODUCTION_CATALOG_IDENTITY_RETIRE_AUTHORITY_READBACK_FAILED");
   }
-};
+}
 
 export function retireProductionTaskCatalogIdentity(dataDir: string): Readonly<{
   status: "migrated" | "already-current";

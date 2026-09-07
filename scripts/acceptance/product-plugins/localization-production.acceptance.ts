@@ -126,6 +126,33 @@ const staticRun = await exerciseProductFlow(plugin, {
     items: [{ message_id: "fixture.hello", text: "<style>@page{size:A4}</style> Hello {name}", finding_codes: [] }],
   },
 });
+const staticReasoningCalls = staticRun.calls.filter(
+  (call) => call.child === "ensure_gpt_reasoning_requirement",
+);
+assert.deepEqual(staticReasoningCalls.map((call) => ({
+  productStepId: call.productStepId,
+  profileRef: call.input.profile.profileRef,
+  reasoningRequirement: call.input.profile.reasoningRequirement,
+})), [
+  {
+    productStepId: "en-US-batch-001:candidate-a",
+    profileRef: "localization-production:static-catalog:candidate-a:pro-standard",
+    reasoningRequirement: {
+      selectionPolicy: "exact-or-observed-maximum",
+      requestedTier: "pro_standard",
+    },
+  },
+  {
+    productStepId: "en-US-batch-001:candidate-b",
+    profileRef: "localization-production:static-catalog:candidate-b:high",
+    reasoningRequirement: { selectionPolicy: "exact", requestedTier: "high" },
+  },
+  {
+    productStepId: "en-US-batch-001:selector",
+    profileRef: "localization-production:static-catalog:selector:high",
+    reasoningRequirement: { selectionPolicy: "exact", requestedTier: "high" },
+  },
+]);
 assert.equal(staticRun.physicalSubmitDispatches, 3);
 const staticPayload = staticRun.completed.payload as Readonly<Record<string, unknown>>;
 assert.equal(staticPayload.schema_version, "localization-static-catalog-result.v1");

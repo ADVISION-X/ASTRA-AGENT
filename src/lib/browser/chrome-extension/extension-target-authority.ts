@@ -4,9 +4,9 @@ import {
   gptWebClaimOriginForUrl,
   requireGptWebPolicyForUrl,
 } from "../exact-target/browser-site-policy-registry.js";
-import { BROWSER_COMMAND_DEFAULT_DEADLINE_MS } from "../protocol/generated/browser-protocol.generated.js";
 import { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import { executeRegisteredExtensionCommand } from "./extension-command-runtime.js";
+import { ExtensionCreatedTarget, type TargetFailureReporter } from "./extension-created-target.js";
 import { executeRegisteredDomIntent } from "./dom-intent-runtime.js";
 import { ExtensionExactTargetRegistry, type ExtensionExactTarget } from "./exact-target-runtime.js";
 import {
@@ -24,33 +24,12 @@ import {
 import type {
   ExtensionChromeApi,
   ExtensionDebugTarget,
-  ExtensionTab,
 } from "./extension-runtime-types.js";
 
 type TargetFrameSender = (
   kind: "TARGET_CLAIM" | "TARGET_REVOKE",
   body: Record<string, unknown>,
 ) => Promise<void>;
-
-type TargetFailureReporter = (input: Readonly<{
-  targetRef: string;
-  runtimeEventType: "debugger-detach" | "tab-remove";
-  reasonCode: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT" | "BROWSER_DEVTOOLS_CONFLICT";
-  nativeCauseCode?: "CHROME_DEBUGGER_TARGET_CLOSED" | "CHROME_DEBUGGER_CANCELED_BY_USER";
-}>) => Promise<void> | void;
-
-type PendingCreatedTarget = Readonly<{
-  tabId: number;
-  resolve(target: ExtensionDebugTarget): void;
-  reject(error: Error): void;
-  timeout: ReturnType<typeof globalThis.setTimeout> | null;
-}>;
-
-const asRecord = (value: unknown): Record<string, unknown> | null =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : null;
-
 
 export class ExtensionTargetAuthority {
   private readonly targets = new ExtensionExactTargetRegistry();
@@ -59,7 +38,7 @@ export class ExtensionTargetAuthority {
   private activeLoaderId: string | null = null;
   private readonly parkedLoaderIds = new Map<string, string>();
   private attachedTabId: number | null = null;
-  private pendingCreatedTarget: PendingCreatedTarget | null = null;
+  private readonly createdTarget: ExtensionCreatedTarget;
   private navigationPublication: Readonly<{ loaderId: string; promise: Promise<void> }> | null = null;
 
   public constructor(
@@ -68,6 +47,7 @@ export class ExtensionTargetAuthority {
     private readonly reportTargetFailure: TargetFailureReporter,
   ) {
     this.debuggerRuntime = new ExtensionDebuggerRuntime(chromeApi);
+    this.createdTarget = new ExtensionCreatedTarget(this.debuggerRuntime, reportTargetFailure);
   }
 
   public start(): void {
@@ -79,7 +59,7 @@ export class ExtensionTargetAuthority {
       void this.consumeFrameNavigationAfterBarrier(target.tabId);
     });
     this.chromeApi.tabs.onUpdated.addListener((tabId) => {
-      void this.consumeTabUpdateAfterBarrier(tabId);
+      void this.createdTarget.consumeTabUpdateAfterBarrier(tabId);
     });
     this.chromeApi.tabs.onRemoved?.addListener((tabId) => {
       void this.consumeTabRemovalAfterBarrier(tabId);
@@ -118,13 +98,6 @@ export class ExtensionTargetAuthority {
     await this.publishMainFrameNavigation(frame.url, frame.loaderId);
   }
 
-  private async consumeTabUpdateAfterBarrier(tabId: number): Promise<void> {
-    await this.debuggerRuntime.awaitPageReadPermission();
-    if (this.pendingCreatedTarget?.tabId !== tabId) return;
-    const tab = await this.debuggerRuntime.readTab(tabId);
-    if (tab.status === "complete") this.completeCreatedTarget(tabId, tab);
-  }
-
   private async consumeTabRemovalAfterBarrier(tabId: number): Promise<void> {
     await this.debuggerRuntime.awaitPageReadPermission();
     const targetRef = `target-tab-${tabId}`;
@@ -154,7 +127,7 @@ export class ExtensionTargetAuthority {
   }
 
   public async acquireJobBoundChatGptTarget(targetRef?: string): Promise<void> {
-    if (this.activeTarget || this.pendingCreatedTarget) throw new Error("BROWSER_TARGET_INVALID");
+    if (this.activeTarget || this.createdTarget.isPending()) throw new Error("BROWSER_TARGET_INVALID");
     if (targetRef) return this.reacquireParkedTarget(targetRef);
     const parkedTargetRef = this.singleParkedTargetRef();
     if (parkedTargetRef) return this.reacquireParkedTarget(parkedTargetRef, true);
@@ -191,7 +164,7 @@ export class ExtensionTargetAuthority {
 
   public async releaseActiveTarget(notifyWorkbench = true): Promise<void> {
     await this.debuggerRuntime.awaitPageReadPermission();
-    await this.rejectPendingCreatedTarget("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
+    await this.createdTarget.rejectPendingCreatedTarget("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
     const target = this.activeTarget;
     if (!target) return;
     const loaderId = this.activeLoaderId;
@@ -269,7 +242,7 @@ export class ExtensionTargetAuthority {
   private async createProductionCandidate(): Promise<ExtensionDebugTarget> {
     const created = await this.debuggerRuntime.createBackgroundTab(GPT_WEB_START_URL);
     if (!Number.isInteger(created.id)) throw new Error("BROWSER_TARGET_INVALID");
-    return this.waitForCreatedTarget(created.id!);
+    return this.createdTarget.waitForCreatedTarget(created.id!);
   }
 
   private async reacquireParkedTarget(targetRef: string, resetToStart = false): Promise<void> {
@@ -364,65 +337,6 @@ export class ExtensionTargetAuthority {
     return this.parkedLoaderIds.keys().next().value as string;
   }
 
-  private waitForCreatedTarget(tabId: number): Promise<ExtensionDebugTarget> {
-    if (this.pendingCreatedTarget) throw new Error("BROWSER_TARGET_INVALID");
-    const pending = new Promise<ExtensionDebugTarget>((resolve, reject) => {
-      this.pendingCreatedTarget = { tabId, resolve, reject, timeout: null };
-    });
-    void this.startCreatedTargetDeadlineAfterBarrier(tabId);
-    return pending;
-  }
-
-  private async startCreatedTargetDeadlineAfterBarrier(tabId: number): Promise<void> {
-    await this.debuggerRuntime.awaitPageReadPermission();
-    const pending = this.pendingCreatedTarget;
-    if (!pending || pending.tabId !== tabId || pending.timeout !== null) return;
-    const timeout = globalThis.setTimeout(() => {
-      void this.rejectPendingCreatedTarget("BROWSER_TARGET_INVALID");
-    }, BROWSER_COMMAND_DEFAULT_DEADLINE_MS);
-    this.pendingCreatedTarget = { ...pending, timeout };
-  }
-
-  private completeCreatedTarget(
-    tabId: number,
-    tab: ExtensionTab,
-  ): void {
-    const pending = this.pendingCreatedTarget;
-    if (!pending || pending.tabId !== tabId) return;
-    const target: ExtensionDebugTarget = Object.freeze({
-      attached: false,
-      id: `job-owned-tab:${tabId}`,
-      tabId,
-      title: tab.title ?? "",
-      type: "page",
-      url: tab.url ?? "",
-    });
-    if (target.tabId !== pending.tabId) {
-      void this.rejectPendingCreatedTarget("BROWSER_TARGET_INVALID");
-      return;
-    }
-    this.pendingCreatedTarget = null;
-    if (pending.timeout !== null) globalThis.clearTimeout(pending.timeout);
-    pending.resolve(target);
-  }
-
-  private async rejectPendingCreatedTarget(reasonCode: string): Promise<void> {
-    const pending = this.pendingCreatedTarget;
-    if (!pending) return;
-    this.pendingCreatedTarget = null;
-    if (pending.timeout !== null) globalThis.clearTimeout(pending.timeout);
-    try {
-      await this.debuggerRuntime.removeTab(pending.tabId);
-    } catch {
-      await this.reportTargetFailure({
-        targetRef: `job-owned-tab:${pending.tabId}`,
-        runtimeEventType: "tab-remove",
-        reasonCode: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT",
-      });
-    }
-    pending.reject(new Error(reasonCode));
-  }
-
   private async discardJobOwnedTarget(tabId: number): Promise<void> {
     const cleanupErrors: unknown[] = [];
     if (this.activeTarget?.tabId === tabId) {
@@ -467,16 +381,9 @@ export class ExtensionTargetAuthority {
       await this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(next, {
         claimOrigin: gptWebClaimOriginForUrl(childFrame.url),
       }));
-      await this.debuggerRuntime.detach(source.tabId);
-      await this.debuggerRuntime.removeTab(source.tabId);
-      await this.debuggerRuntime.awaitPageReadPermission();
-      deadline = Date.now() + timeoutMs;
-      await waitForDiscoveredTabAbsence(this.debuggerRuntime, source.tabId, deadline);
+      await this.retireForkSource(source.tabId, successor.tabId, timeoutMs);
       if (next.targetRef !== source.targetRef || next.tabId !== successor.tabId
         || next.navigationEpoch !== source.navigationEpoch + 1) {
-        throw new Error("BROWSER_POSTCONDITION_FAILED");
-      }
-      if (!await forkTargetSetSettled(this.debuggerRuntime, source.tabId, successor.tabId)) {
         throw new Error("BROWSER_POSTCONDITION_FAILED");
       }
     } catch (error) {
@@ -488,6 +395,17 @@ export class ExtensionTargetAuthority {
       );
       if (error instanceof Error && error.message === "BROWSER_TARGET_DISCOVERY_UNAVAILABLE") throw error;
       throw new AggregateError([error, ...cleanupFailures], "BROWSER_POSTCONDITION_FAILED");
+    }
+  }
+
+  private async retireForkSource(sourceTabId: number, successorTabId: number, timeoutMs: number): Promise<void> {
+    await this.debuggerRuntime.detach(sourceTabId);
+    await this.debuggerRuntime.removeTab(sourceTabId);
+    await this.debuggerRuntime.awaitPageReadPermission();
+    const deadline = Date.now() + timeoutMs;
+    await waitForDiscoveredTabAbsence(this.debuggerRuntime, sourceTabId, deadline);
+    if (!await forkTargetSetSettled(this.debuggerRuntime, sourceTabId, successorTabId)) {
+      throw new Error("BROWSER_POSTCONDITION_FAILED");
     }
   }
 
