@@ -235,8 +235,8 @@ const imageSubmitRecovered = await exerciseSeoFlow(plugin, "produce_article", "p
 assert.equal(postSubmitReadbackReceipt(imageSubmitRecovered.firstFailure)?.causeCode,
   "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED");
 assert.equal(imageSubmitRecovered.calls.filter((call) => call.productStepId === "article_image_generation"
-  && call.child === "submit_exact_gpt_turn_once").length, 2,
-  "image recovery must also settle the same confirmed submit without a second physical dispatch");
+  && call.child === "submit_exact_gpt_turn_once").length, 1,
+  "image recovery must continue from the confirmed submit without executing submit again");
 assert.equal(imageSubmitRecovered.physicalSubmitDispatches, 3,
   "research, article and image must still dispatch exactly once each after image recovery");
 assert.equal(imageSubmitRecovered.generatedImageUploadCalls, 1,
@@ -292,7 +292,7 @@ for (const readbackCode of [
     `POST_SUBMIT_READBACK_FAULT:${readbackCode}`);
   assert.equal(imageResume.resumeCalls.filter(
     (call) => call.child === "submit_exact_gpt_turn_once",
-  ).length, 1, "same-attempt recovery must settle the existing submit Child without a second dispatch");
+  ).length, 0, "same-attempt recovery must continue directly to readback without executing submit again");
 }
 const imageFrontier = await exerciseSeoImageFrontierResume(plugin);
 assert.equal(typedExecutionFailure(imageFrontier.firstFailure)?.code, "WEBSITE_COMPLETION_TEST_FAULT");

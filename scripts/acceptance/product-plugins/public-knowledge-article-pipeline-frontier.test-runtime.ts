@@ -104,9 +104,10 @@ export const exerciseSeoConfirmedImageSubmitResume = async (
     ]);
     assert.equal(resumeCalls.some((call) => forbidden.has(call.child)), false);
     assert.equal(resumeCalls.some((call) => call.productStepId !== "article_image_generation"), false);
-    assert.equal(resumeCalls.filter((call) => call.child === "submit_exact_gpt_turn_once").length, 1,
-      "the same accepted attempt must settle the confirmed submit Child exactly once without redispatch");
-    assert.equal(resumeCalls.find((call) => call.actionOrdinal >= 37)?.actionOrdinal, 45);
+    assert.equal(resumeCalls.filter((call) => call.child === "submit_exact_gpt_turn_once").length, 0,
+      "the confirmed submit must continue directly to readback without executing submit again");
+    assert.equal(resumeCalls[0]?.child, "reconcile_gpt_turn_submission");
+    assert.equal(resumeCalls[0]?.actionOrdinal, 46);
     assert.equal(state.physicalSubmitDispatches, submitsBeforeResume);
     assert(hasCompletedImage(state.completed));
     return { firstFailure, resumeCalls, completed: state.completed };

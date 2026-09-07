@@ -29,10 +29,10 @@ import {
   focusContinuation,
   reconcileConfirmedSubmissionLocator,
   releaseLane,
-  requireExactProfileEvidence,
 } from "./seo-gpt-calls.js";
 import {
   executeAndReadConfirmedSubmit,
+  isConfirmedProviderSubmit,
   preservePostSubmitReadback,
   SEO_PROVIDER_PROBE_BUDGET_MS,
   type SeoConfirmedSubmit,
@@ -65,27 +65,6 @@ const prepareImageSubmit = async (
   return executeAndReadConfirmedSubmit({
     execute: () => input.flow.execute({ sessionKey: "", ...turnSubmit }),
     readFacts: () => input.flow.facts(turnSubmit),
-  });
-};
-
-const settleCurrentImageSubmit = async (
-  input: ImageTurnInput,
-  prompt: string,
-  promptHash: ProductionHash,
-): Promise<ExactGptCallFacts> => {
-  await requireExactProfileEvidence(input.flow, input.stepId, [37, 38, 39, 40, 41, 42]);
-  await input.flow.requireEvidence({
-    productStepId: input.stepId, callId: "prompt-write", child: "write_exact_gpt_prompt",
-    actionOrdinal: 43, input: { prompt },
-  });
-  await input.flow.requireEvidence({
-    productStepId: input.stepId, callId: "draft-reconcile", child: "reconcile_gpt_draft",
-    actionOrdinal: 44, input: { files: [], prompt, turnMarker: input.marker },
-  });
-  const submit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 45, input: { files: [], promptHash, turnMarker: input.marker } } as const;
-  return executeAndReadConfirmedSubmit({
-    execute: () => input.flow.execute({ sessionKey: "", ...submit }),
-    readFacts: () => input.flow.facts(submit),
   });
 };
 
@@ -196,13 +175,11 @@ const confirmedImageSubmit = async (
   promptHash: ProductionHash,
   state: ImageSubmitState,
 ): Promise<SeoConfirmedSubmit> => {
-  if (state.current && (state.current.mutation || state.current.evidence)) {
-    return settleCurrentImageSubmit(input, prompt, promptHash);
+  if (isConfirmedProviderSubmit(state.current)) return state.current;
+  if (state.current?.mutation || state.current?.evidence || state.prior?.mutation || state.prior?.evidence) {
+    return fail("SEO_IMAGE_SUBMIT_FACT_UNRESOLVED");
   }
-  if (state.prior && !state.prior.mutation && !state.prior.evidence) {
-    return prepareImageSubmit(input, prompt, promptHash);
-  }
-  return fail("SEO_IMAGE_SUBMIT_FACT_UNRESOLVED");
+  return prepareImageSubmit(input, prompt, promptHash);
 };
 
 export const generateImage = async (input: ImageTurnInput): Promise<GeneratedImageArtifact> => {

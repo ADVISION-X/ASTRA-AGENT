@@ -164,16 +164,16 @@ function gitOutput(repo, args) {
   return result.stdout.trim();
 }
 
-async function candidateBinding(repo) {
+async function candidateBinding(repo, boundPaths) {
   const head = gitOutput(repo, ["rev-parse", "HEAD"]);
-  const changed = gitOutput(repo, ["status", "--porcelain=v1", "--untracked-files=all", "--",
-    "src/capabilities/gpt/contract.ts", "src/capabilities/gpt/child-types.ts", "src/capabilities/gpt/schema.ts",
-    ".github/instructions/agent-rules/功能法案.md", "docs/blueprints/gpt"]);
-  const tracked = [
+  const tracked = [...new Set([
     ...["src/capabilities/gpt/contract.ts", "src/capabilities/gpt/child-types.ts", "src/capabilities/gpt/schema.ts",
       ".github/instructions/agent-rules/功能法案.md"].map((path) => join(repo, path)),
     ...await walkFiles(join(repo, "docs/blueprints/gpt"), (path) => path.endsWith(".md")),
-  ].sort();
+    ...boundPaths.map((path) => join(repo, path)),
+  ])].sort();
+  const relativePaths = tracked.map((path) => relative(repo, path).split(sep).join("/"));
+  const changed = gitOutput(repo, ["status", "--porcelain=v1", "--untracked-files=all", "--", ...relativePaths]);
   const sourceRows = [];
   for (const path of tracked) sourceRows.push([relative(repo, path).split(sep).join("/"), sha256(await readFile(path))]);
   const worktreeDigest = sha256(JSON.stringify(stable(sourceRows)));
@@ -181,7 +181,7 @@ async function candidateBinding(repo) {
     head,
     clean: changed.length === 0,
     worktreeDigest,
-    candidate: changed.length === 0 ? head : `WORKTREE:${worktreeDigest.slice("sha256:".length)}`,
+    candidate: `${changed.length === 0 ? "SOURCE" : "WORKTREE"}:${worktreeDigest.slice("sha256:".length)}`,
   });
 }
 
@@ -468,7 +468,10 @@ async function buildInventory(repo, matrixPath) {
       demandCoverage: pageSet.has(id) ? { coveredFacts: 0, requiredFacts: evidenceDemand.facts.length, percent: 0 } : null,
     });
   }
-  const candidate = await candidateBinding(repo);
+  const candidate = await candidateBinding(repo, children.filter((child) => child.pageOperationRequired)
+    .flatMap((child) => Object.values(child.evidenceDemand?.sourceBinding ?? {}))
+    .flatMap((binding) => binding.files ?? [])
+    .map((entry) => entry.path));
   const projectionRevision = sha256(JSON.stringify(stable(children.filter((child) => child.pageOperationRequired)
     .map((child) => [child.childCapabilityId, child.evidenceDemand.projectionDigest])
     .sort((left, right) => left[0].localeCompare(right[0])))));
@@ -1488,7 +1491,9 @@ async function validateReport(repo, matrixPath, reportPath, requireComplete, sel
   }
   const matrix = await loadMatrix(matrixPath);
   const current = await buildInventory(repo, matrixPath);
-  if (selectedIds === null && JSON.stringify(report.candidateBinding) !== JSON.stringify(current.candidateBinding)) {
+  const candidateIdentity = ({ head: _head, ...binding }) => binding;
+  if (selectedIds === null && JSON.stringify(candidateIdentity(report.candidateBinding))
+    !== JSON.stringify(candidateIdentity(current.candidateBinding))) {
     fail("REPORT_PROJECTION_STALE", `candidate:${report.candidateBinding?.candidate ?? "missing"}/${current.candidateBinding.candidate}`);
   }
   if (selectedIds === null && JSON.stringify(report.matrixBinding) !== JSON.stringify(current.matrixBinding)) {

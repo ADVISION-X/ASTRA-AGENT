@@ -11,6 +11,19 @@ export const SEO_PROVIDER_PROBE_BUDGET_MS = 3_600_000;
 
 export type SeoConfirmedSubmit = ExactGptCallFacts;
 
+type ConfirmedProviderSubmit = ExactGptCallFacts & Readonly<{
+  mutation: NonNullable<ExactGptCallFacts["mutation"]> & Readonly<{
+    effectScope: "provider_effect";
+    outcome: "CONFIRMED";
+    terminalAt: string;
+  }>;
+  evidence: NonNullable<ExactGptCallFacts["evidence"]> & Readonly<{
+    evidenceRef: string;
+    evidenceHash: ProductionHash;
+    readbackVerified: true;
+  }>;
+}>;
+
 const postSubmitEvidence = (submit: SeoConfirmedSubmit): Readonly<{
   terminalAt: string;
   evidenceRef: string;
@@ -33,6 +46,9 @@ const postSubmitEvidence = (submit: SeoConfirmedSubmit): Readonly<{
     evidenceHash: submit.evidence!.evidenceHash,
   });
 };
+
+export const isConfirmedProviderSubmit = (submit: SeoConfirmedSubmit | null): submit is ConfirmedProviderSubmit =>
+  Boolean(submit && postSubmitEvidence(submit));
 
 export const preservePostSubmitReadback = (
   error: unknown,
