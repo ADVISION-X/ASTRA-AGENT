@@ -7,7 +7,7 @@ import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const TOOL = resolve(new URL("./report-tool.mjs", import.meta.url).pathname);
-const MATRIX = "/Users/nexgen/Documents/AGENT/scripts/audit/domains/gpt/page-operation-matrix.json";
+const MATRIX = "/Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json";
 const REPO = "/Users/nexgen/Documents/AGENT";
 
 const stable = (value) => Array.isArray(value) ? value.map(stable)

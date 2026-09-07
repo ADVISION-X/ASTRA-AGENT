@@ -39,7 +39,7 @@ description: 为 AGENT 的 GPT 页面操作子能力执行“稳定页面快照�
 
 开始前读取：
 
-- `/Users/nexgen/Documents/AGENT/scripts/audit/domains/gpt/page-operation-matrix.json`（唯一权威矩阵；Skill 与 AGENT 原生质检共同消费）
+- `/Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json`（唯一权威矩阵；Skill 与 AGENT 原生质检共同消费）
 - `references/evidence-schema.md`
 - `references/collection-protocol.md`
 - 当前法案注册表绑定的 GPT 法案与 `docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md`
@@ -69,7 +69,7 @@ description: 为 AGENT 的 GPT 页面操作子能力执行“稳定页面快照�
 ```bash
 node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/report-tool.mjs inventory \
   --repo /Users/nexgen/Documents/AGENT \
-  --matrix /Users/nexgen/Documents/AGENT/scripts/audit/domains/gpt/page-operation-matrix.json \
+  --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
   --read-only
 ```
 
@@ -94,7 +94,7 @@ node /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/make-fixtur
 ```bash
 node /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/assemble-live-capture.mjs \
   --inventory /absolute/path/to/inventory.json \
-  --matrix /Users/nexgen/Documents/AGENT/scripts/audit/domains/gpt/page-operation-matrix.json \
+  --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
   --scenes /absolute/path/to/scenes.json \
   --mapping /absolute/path/to/scene-map.json \
   --fixtures /absolute/path/to/fixture-manifest.json \
@@ -107,7 +107,7 @@ node /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/assemble-li
 ```bash
 node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/report-tool.mjs merge \
   --repo /Users/nexgen/Documents/AGENT \
-  --matrix /Users/nexgen/Documents/AGENT/scripts/audit/domains/gpt/page-operation-matrix.json \
+  --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
   --capture /absolute/path/to/capture.json \
   --output /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json
 ```
@@ -117,7 +117,7 @@ Child 修复后使用下面的纯离线命令。它不接收 capture，也不打
 ```bash
 node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/report-tool.mjs refresh \
   --repo /Users/nexgen/Documents/AGENT \
-  --matrix /Users/nexgen/Documents/AGENT/scripts/audit/domains/gpt/page-operation-matrix.json \
+  --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
   --base-report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
   --output /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
   --child child_id_or_comma_separated_ids
@@ -130,7 +130,7 @@ node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/script
 ```bash
 node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/report-tool.mjs validate \
   --repo /Users/nexgen/Documents/AGENT \
-  --matrix /Users/nexgen/Documents/AGENT/scripts/audit/domains/gpt/page-operation-matrix.json \
+  --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
   --report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json
 ```
 
@@ -145,13 +145,13 @@ node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/script
 ```bash
 node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/report-tool.mjs candidate \
   --repo /Users/nexgen/Documents/AGENT \
-  --matrix /Users/nexgen/Documents/AGENT/scripts/audit/domains/gpt/page-operation-matrix.json \
+  --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
   --report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
   --child child_id_or_comma_separated_ids
 
 node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/report-tool.mjs admit \
   --repo /Users/nexgen/Documents/AGENT \
-  --matrix /Users/nexgen/Documents/AGENT/scripts/audit/domains/gpt/page-operation-matrix.json \
+  --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
   --report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
   --child child_id_or_comma_separated_ids \
   --candidate exact_CHILDSET_digest_from_candidate_command
@@ -162,14 +162,14 @@ node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/script
 ```bash
 node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/report-tool.mjs candidate \
   --repo /Users/nexgen/Documents/AGENT \
-  --matrix /Users/nexgen/Documents/AGENT/scripts/audit/domains/gpt/page-operation-matrix.json \
+  --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
   --report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
   --child child_id \
   --facts live-state:observed_state,target:observed_target
 
 node --import tsx /Users/nexgen/.codex/skills/gpt-page-operation-evidence/scripts/report-tool.mjs admit \
   --repo /Users/nexgen/Documents/AGENT \
-  --matrix /Users/nexgen/Documents/AGENT/scripts/audit/domains/gpt/page-operation-matrix.json \
+  --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
   --report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
   --child child_id \
   --facts live-state:observed_state,target:observed_target \
