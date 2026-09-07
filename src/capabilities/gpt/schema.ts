@@ -8,12 +8,6 @@ import {
   type GptProviderContinuation,
   type StoredGptContinuation,
 } from "./session/gpt-continuation-store-port.js";
-import { confirmedProviderSubmitReceiptFromError as readConfirmedProviderSubmitReceiptFromError } from
-  "./execution-fault.js";
-
-export const confirmedProviderSubmitReceiptFromError = (error: unknown) =>
-  readConfirmedProviderSubmitReceiptFromError(error);
-
 export const GptReasoningTierSchema = z.enum([
   "fast",
   "medium",

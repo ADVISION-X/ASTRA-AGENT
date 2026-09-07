@@ -486,8 +486,7 @@ export class ProductionGptChildTools {
     resolveDispatched: boolean;
   }>): Promise<void> {
     if (!input.resolveDispatched || !input.browser || input.result.status !== "success") return;
-    await input.browser.resolvePendingMutation({
-      schemaVersion: "grasseye.browser.outcome-resolution.v1",
+    await input.browser.resolvePendingMutation({ schemaVersion: "grasseye.browser.outcome-resolution.v1",
       ownerPluginId: input.execution.pluginId,
       outcome: "TERMINAL_SUCCESS",
       mutationOutcome: "dispatched",

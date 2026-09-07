@@ -1,10 +1,8 @@
 export {
+  confirmedProviderSubmitReceiptFromError,
   createGptAbilityGroup,
   createProductionGptChildTools,
 } from "./ability-group.js";
-export {
-  confirmedProviderSubmitReceiptFromError,
-} from "./schema.js";
 export {
   type GptAbilityGroup,
   type GptApprovedFile,

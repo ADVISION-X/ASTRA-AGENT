@@ -27,6 +27,7 @@ import type { GptChildHandler, GptChildObservation } from "./web/child-handler.j
 import { gptChildHandlers } from "./handler-registry.js";
 import { ProductionGptChildTools } from "./production-child-tools.js";
 import {
+  confirmedProviderSubmitReceiptFromError as readConfirmedProviderSubmitReceiptFromError,
   typedGptExecutionFailure,
   type GptFailureProofFacts,
 } from "./execution-fault.js";
@@ -465,3 +466,6 @@ export const createGptAbilityGroup = (): GptAbilityGroup => Object.freeze({
 export const createProductionGptChildTools = (
   ...input: ConstructorParameters<typeof ProductionGptChildTools>
 ): ProductionGptChildTools => new ProductionGptChildTools(...input);
+
+export const confirmedProviderSubmitReceiptFromError = (error: unknown) =>
+  readConfirmedProviderSubmitReceiptFromError(error);
