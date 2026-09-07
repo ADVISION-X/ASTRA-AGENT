@@ -136,6 +136,8 @@ const produceResearchTurn = async (
   } as const;
   const checkpoint = await submitTextTurn(checkpointInput);
   const provider = continuationProvider(task, checkpoint);
+  const currentCheckpoint = continuationTextCheckpoint(context.gpt.attemptId, checkpoint);
+  const { checkpointKind: _checkpointKind, ...originCheckpoint } = currentCheckpoint;
   const persisted = await flow.execute({
     sessionKey: "", productStepId: stepId, callId: "continuation-persist",
     child: "persist_gpt_continuation", actionOrdinal: 17,
@@ -146,10 +148,10 @@ const produceResearchTurn = async (
       pluginId: PLUGIN_ID,
       subjectRef: task.business_identity.subject_ref,
       provider,
-      currentCheckpoint: continuationTextCheckpoint(context.gpt.attemptId, checkpoint),
+      currentCheckpoint,
       frontier: {
         frontierRef,
-        originCheckpoint: continuationTextCheckpoint(context.gpt.attemptId, checkpoint),
+        originCheckpoint,
       },
     },
   });
@@ -375,7 +377,7 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
 
 export const publicKnowledgeArticlePipelinePlugin: ProductPlugin = {
   pluginId: PLUGIN_ID,
-  pluginVersion: 20,
+  pluginVersion: 21,
   checkpointSchemaVersion: 2,
   accepts: [
     { productId: "public_knowledge_article_pipeline", actionId: "produce_article" },

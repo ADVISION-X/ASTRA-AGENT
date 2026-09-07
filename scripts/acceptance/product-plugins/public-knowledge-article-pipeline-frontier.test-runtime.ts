@@ -29,6 +29,10 @@ export const exerciseSeoFrontierResume = async (plugin: ProductPlugin) => {
     catch (error) { firstFailure = error; }
     assert(firstFailure, "the first attempt must preserve the model-selection failure");
     assert.equal(state.frontierRef === null, false, "research persist must atomically bind the frontier");
+    assert.equal("checkpointKind" in (state.frontierOriginCheckpoint ?? {}), false,
+      "frontier origin must not include the current-checkpoint discriminator");
+    assert.equal(state.currentCheckpoint?.checkpointKind, "text",
+      "current checkpoint must retain its text discriminator");
     const firstAttemptCalls = state.calls.length;
     const researchSubmitsBeforeResume = state.calls.filter((call) =>
       call.productStepId === "corpus_research" && call.child === "submit_exact_gpt_turn_once").length;
