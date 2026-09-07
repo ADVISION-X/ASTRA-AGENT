@@ -79,6 +79,7 @@ import {
       navigateCrossConversationPoll: async (canonicalConversationUrl) => {
         gateCalls += 1;
         if (gateCalls === 1) {
+          fixture.normalReacquire();
           simulatedNow = 30_000;
           return "reobserve";
         }
@@ -177,6 +178,7 @@ import {
       conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
     }, undefined, {
       navigateCrossConversationPoll: async () => {
+        fixture.normalReacquire();
         simulatedNow = 100;
         return "reobserve";
       },

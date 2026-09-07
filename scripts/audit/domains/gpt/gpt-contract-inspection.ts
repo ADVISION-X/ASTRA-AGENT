@@ -341,9 +341,11 @@ const PROFILE_CONSUMERS = new Set([
 const CONTRACT_V4_CHILDREN = new Set([
   "prepare_clean_gpt_chat", "reconcile_gpt_draft",
   "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "reconcile_gpt_turn_submission",
-  "fork_exact_gpt_conversation_at_checkpoint", "wait_for_stable_gpt_text", "wait_for_stable_gpt_image",
+  "fork_exact_gpt_conversation_at_checkpoint", "wait_for_stable_gpt_image",
 ]);
-const CONTRACT_V5_CHILDREN = new Set(["focus_exact_gpt_conversation"]);
+const CONTRACT_V5_CHILDREN = new Set([
+  "focus_exact_gpt_conversation", "wait_for_stable_gpt_text",
+]);
 const CONTRACT_V3_CHILDREN = new Set([
   "verify_gpt_conversation_identity", "checkpoint_gpt_text_response",
   "checkpoint_gpt_generated_image",

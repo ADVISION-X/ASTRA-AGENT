@@ -11,6 +11,9 @@ export type CurrentDocument = Readonly<{
   url: string | null;
 }>;
 
+export type DocumentTransitionBoundary = "ordinary" | "exact-canonical-navigation"
+  | "normal-provider-reacquire";
+
 export const currentDocument = (context: GptExecutionContext): CurrentDocument => context.browser
   ? Object.freeze({
     ref: context.browser.document.documentRef,
@@ -36,12 +39,16 @@ export const documentTransitionAllowed = (
   childCapabilityId: GptChildCapabilityId,
   before: CurrentDocument,
   after: CurrentDocument,
+  boundary: DocumentTransitionBoundary = "ordinary",
 ): boolean => {
   const policy = GPT_CHILD_CAPABILITY_CONTRACTS[childCapabilityId].allowedDocumentTransition;
   if (policy === "not-applicable") return hasNoDocument(before) && hasNoDocument(after);
   if (!hasCompleteDocument(before) || !hasCompleteDocument(after)) return false;
   if (before.targetRef !== after.targetRef) return false;
   if (policy === "forbidden") return isSameDocument(before, after);
+  if (policy === "exact-navigation-or-normal-reacquire") {
+    return boundary === "ordinary" ? isSameDocument(before, after) : isExactNextDocument(before, after);
+  }
   return isSameDocument(before, after) || isExactNextDocument(before, after);
 };
 

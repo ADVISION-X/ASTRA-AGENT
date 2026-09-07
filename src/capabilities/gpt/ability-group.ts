@@ -36,6 +36,7 @@ import {
   currentDocument,
   documentTransitionAllowed,
   documentTransitionObservable,
+  type DocumentTransitionBoundary,
   type CurrentDocument,
 } from "./document-transition-policy.js";
 
@@ -362,12 +363,13 @@ const failedExecution = async <K extends GptChildCapabilityId>(input: Readonly<{
   context: GptExecutionContext;
   startedAt: string;
   before: CurrentDocument;
+  documentBoundary: CurrentDocument;
   observation?: GptChildObservation<K>;
   error: unknown;
 }>): Promise<GptChildCapabilityResult<K>> => {
   const after = currentDocument(input.context);
-  const failureError = documentTransitionObservable(input.before, after)
-    && !documentTransitionAllowed(input.intent.childCapabilityId, input.before, after)
+  const failureError = documentTransitionObservable(input.documentBoundary, after)
+    && !documentTransitionAllowed(input.intent.childCapabilityId, input.documentBoundary, after)
       ? executionFailure("failed", `GPT_DOCUMENT_TRANSITION_FORBIDDEN:${input.intent.childCapabilityId}`)
       : input.error;
   const failure = classify(failureError);
@@ -440,6 +442,35 @@ const executeOne = async <K extends GptChildCapabilityId>(
   }
   const handler = registeredHandler as GptChildHandler<K>;
   const before = currentDocument(context);
+  let documentBoundary = before;
+  const isStableTextWait = intent.childCapabilityId === "wait_for_stable_gpt_text";
+  const advanceDocumentBoundary = (boundary: DocumentTransitionBoundary): void => {
+    const after = currentDocument(context);
+    if (!documentTransitionAllowed(intent.childCapabilityId, documentBoundary, after, boundary)) {
+      throw executionFailure("failed", `GPT_DOCUMENT_TRANSITION_FORBIDDEN:${intent.childCapabilityId}`);
+    }
+    documentBoundary = after;
+  };
+  const handlerContext = Object.freeze({
+    ...context,
+    ...(isStableTextWait && context.yieldForProviderWait ? {
+      yieldForProviderWait: async (durationMs: number): Promise<void> => {
+        await context.yieldForProviderWait!(durationMs);
+        advanceDocumentBoundary("normal-provider-reacquire");
+      },
+    } : {}),
+    ...(isStableTextWait && context.navigateCrossConversationPoll ? {
+      navigateCrossConversationPoll: async (
+        canonicalConversationUrl: string,
+        probeDeadlineAt: number,
+      ): Promise<"navigated" | "reobserve" | "deadline"> => {
+        const outcome = await context.navigateCrossConversationPoll!(canonicalConversationUrl, probeDeadlineAt);
+        if (outcome === "navigated") advanceDocumentBoundary("exact-canonical-navigation");
+        if (outcome === "reobserve") advanceDocumentBoundary("normal-provider-reacquire");
+        return outcome;
+      },
+    } : {}),
+  });
   let observation: GptChildObservation<K> | undefined;
   try {
     assertExecutionIdentity(intent);
@@ -447,12 +478,14 @@ const executeOne = async <K extends GptChildCapabilityId>(
     if ((context.browser?.pendingMutationCount() ?? 0) !== 0 && context.mutationMode !== "readback") {
       throw executionFailure("failed", "GPT_PRIOR_BROWSER_MUTATION_UNRESOLVED");
     }
-    const nextObservation = await handler(intent, context);
+    const nextObservation = await handler(intent, handlerContext);
     observation = nextObservation;
-    assertObservationIsAtomic(intent, context, before, nextObservation);
+    assertObservationIsAtomic(intent, context, documentBoundary, nextObservation);
     return await successfulExecution({ intent, context, startedAt, before, observation: nextObservation });
   } catch (error) {
-    return await failedExecution({ intent, context, startedAt, before, ...(observation ? { observation } : {}), error });
+    return await failedExecution({
+      intent, context, startedAt, before, documentBoundary, ...(observation ? { observation } : {}), error,
+    });
   }
 };
 

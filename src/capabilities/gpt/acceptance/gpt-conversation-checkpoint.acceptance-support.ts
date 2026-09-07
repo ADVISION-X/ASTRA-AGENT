@@ -173,6 +173,73 @@ import {
 {
   const { execute } = freshHarness();
   let simulatedNow = 0;
+  let waits = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      return coherentObservationPacket(intent, {
+        ...responseFacts(),
+        generating: waits === 0
+          ? { rawCount: 1, eligibleCount: 1, matches: [{}] }
+          : { rawCount: 0, eligibleCount: 0, matches: [] },
+      }, conversationUrl);
+    }
+    if (intent.kind === "readExactAssistantTurn") return exactAssistantTurnReply(intent, responseText);
+    throw new Error(`UNEXPECTED_NORMAL_REACQUIRE_TEXT_INTENT:${intent.kind}`);
+  }, {
+    navigationEpochAdvanceOnWait: 1,
+    onWait: (durationMs) => { waits += 1; simulatedNow += durationMs; },
+  });
+  const nativeDateNow = Date.now;
+  Date.now = () => simulatedNow;
+  try {
+    const result = await execute("wait_for_stable_gpt_text", fixture.browser, {
+      probeBudgetMs: 1_000, canonicalConversationUrl: conversationUrl,
+      conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
+    }, undefined, {
+      yieldForProviderWait: (durationMs) => fixture.browser.wait({ durationMs }),
+    });
+    assert.equal(result.status, "success", result.failureCode ?? "normal text reacquire wait failed");
+  } finally {
+    Date.now = nativeDateNow;
+  }
+  assert.equal(waits, 2, "text waits must accept two separately proven normal reacquires");
+  assert.equal(fixture.browser.document.navigationEpoch, 3);
+}
+
+{
+  const { execute } = freshHarness();
+  let simulatedNow = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      return coherentObservationPacket(intent, {
+        ...responseFacts(),
+        generating: { rawCount: 1, eligibleCount: 1, matches: [{}] },
+      }, conversationUrl);
+    }
+    throw new Error(`UNEXPECTED_DOCUMENT_JUMP_TEXT_INTENT:${intent.kind}`);
+  }, {
+    navigationEpochAdvanceOnWait: 2,
+    onWait: (durationMs) => { simulatedNow += durationMs; },
+  });
+  const nativeDateNow = Date.now;
+  Date.now = () => simulatedNow;
+  try {
+    const result = await execute("wait_for_stable_gpt_text", fixture.browser, {
+      probeBudgetMs: 1_000, canonicalConversationUrl: conversationUrl,
+      conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
+    }, undefined, {
+      yieldForProviderWait: (durationMs) => fixture.browser.wait({ durationMs }),
+    });
+    assert.equal(result.status, "failed");
+    assert.equal(result.failureCode, "GPT_DOCUMENT_TRANSITION_FORBIDDEN:wait_for_stable_gpt_text");
+  } finally {
+    Date.now = nativeDateNow;
+  }
+}
+
+{
+  const { execute } = freshHarness();
+  let simulatedNow = 0;
   const predecessorPromptHash = hash("predecessor-prompt");
   const predecessorMarker = "[GRASSEYE:gpt-native-image-predecessor]";
   const imageConversationIdentityHash = hash(

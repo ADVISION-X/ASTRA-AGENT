@@ -1,14 +1,14 @@
 {
   "schemaVersion": "gpt-page-operation-evidence.v5",
-  "generatedAt": "2026-09-07T21:26:15.590Z",
+  "generatedAt": "2026-09-07T22:33:16.495Z",
   "repository": "AGENT",
   "candidateBinding": {
-    "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-    "clean": true,
-    "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-    "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+    "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+    "clean": false,
+    "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+    "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
   },
-  "projectionRevision": "sha256:c6e38fee285e2986b463eb4a6e0b33f113bf58d899db6d635534393dd5b708e4",
+  "projectionRevision": "sha256:89ffddc87ab5435d825383cd07ef08474ac37fbf90838364ac69b35be136b81c",
   "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
   "matrixBinding": {
     "schemaVersion": "gpt-page-operation-matrix.v4",
@@ -167,14 +167,14 @@
         "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
       },
       "chain-text-wait": {
-        "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+        "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
         "kind": "PRIOR_CHILD_OUTPUT",
         "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
         "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-        "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-        "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+        "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+        "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
         "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-        "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+        "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
       }
     },
     "environment": {
@@ -792,7 +792,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            89
+            90
           ]
         },
         {
@@ -2813,10 +2813,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "clean": true,
-            "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+            "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+            "clean": false,
+            "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+            "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -2882,14 +2882,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-              "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+              "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+              "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+              "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
             }
           },
           "environment": {
@@ -3108,8 +3108,8 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-checkpoint.acceptance-support.ts",
           "lines": [
-            240,
-            266
+            307,
+            333
           ]
         },
         {
@@ -3175,7 +3175,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            75
+            76
           ]
         },
         {
@@ -5225,10 +5225,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "clean": true,
-            "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+            "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+            "clean": false,
+            "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+            "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -5294,14 +5294,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-              "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+              "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+              "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+              "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
             }
           },
           "environment": {
@@ -5583,7 +5583,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            74
+            75
           ]
         },
         {
@@ -7751,10 +7751,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "clean": true,
-            "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+            "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+            "clean": false,
+            "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+            "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -7820,14 +7820,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-              "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+              "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+              "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+              "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
             }
           },
           "environment": {
@@ -8074,7 +8074,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            82
+            83
           ]
         },
         {
@@ -10159,10 +10159,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "clean": true,
-            "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+            "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+            "clean": false,
+            "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+            "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -10228,14 +10228,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-              "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+              "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+              "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+              "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
             }
           },
           "environment": {
@@ -10590,8 +10590,8 @@
         {
           "path": "src/capabilities/gpt/ability-group.ts",
           "lines": [
-            205,
-            206
+            206,
+            207
           ]
         },
         {
@@ -10639,7 +10639,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            81
+            82
           ]
         },
         {
@@ -13088,10 +13088,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "clean": true,
-            "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+            "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+            "clean": false,
+            "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+            "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -13157,14 +13157,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-              "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+              "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+              "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+              "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
             }
           },
           "environment": {
@@ -13390,7 +13390,7 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-polling.acceptance-support.ts",
           "lines": [
-            108
+            109
           ]
         },
         {
@@ -13424,7 +13424,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            77
+            78
           ]
         },
         {
@@ -15582,10 +15582,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "clean": true,
-            "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+            "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+            "clean": false,
+            "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+            "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -15651,14 +15651,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-              "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+              "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+              "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+              "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
             }
           },
           "environment": {
@@ -15935,7 +15935,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            91
+            92
           ]
         },
         {
@@ -17974,10 +17974,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "clean": true,
-            "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+            "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+            "clean": false,
+            "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+            "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -18043,14 +18043,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-              "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+              "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+              "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+              "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
             }
           },
           "environment": {
@@ -18319,7 +18319,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            83
+            84
           ]
         },
         {
@@ -20448,10 +20448,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "clean": true,
-            "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+            "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+            "clean": false,
+            "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+            "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -20517,14 +20517,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-              "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+              "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+              "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+              "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
             }
           },
           "environment": {
@@ -20784,7 +20784,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            87
+            88
           ]
         },
         {
@@ -22935,10 +22935,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "clean": true,
-            "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+            "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+            "clean": false,
+            "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+            "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -23004,14 +23004,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-              "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+              "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+              "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+              "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
             }
           },
           "environment": {
@@ -23268,7 +23268,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            78
+            79
           ]
         },
         {
@@ -25408,10 +25408,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "clean": true,
-            "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+            "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+            "clean": false,
+            "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+            "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -25477,14 +25477,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-              "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+              "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+              "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+              "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
             }
           },
           "environment": {
@@ -25749,7 +25749,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            88
+            89
           ]
         },
         {
@@ -27871,10 +27871,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "clean": true,
-            "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+            "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+            "clean": false,
+            "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+            "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -27940,14 +27940,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-              "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+              "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+              "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+              "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
             }
           },
           "environment": {
@@ -28217,7 +28217,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            79
+            80
           ]
         },
         {
@@ -30380,10 +30380,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "clean": true,
-            "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+            "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+            "clean": false,
+            "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+            "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -30449,14 +30449,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-              "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+              "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+              "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+              "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
             }
           },
           "environment": {
@@ -30865,7 +30865,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            76
+            77
           ]
         },
         {
@@ -33140,10 +33140,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "clean": true,
-            "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+            "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+            "clean": false,
+            "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+            "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -33209,14 +33209,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-              "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+              "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+              "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+              "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
             }
           },
           "environment": {
@@ -33512,7 +33512,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            71
+            72
           ]
         },
         {
@@ -36003,10 +36003,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "clean": true,
-            "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+            "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+            "clean": false,
+            "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+            "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-07T01:47:28.882Z",
@@ -36072,14 +36072,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-              "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+              "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+              "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+              "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
             }
           },
           "environment": {
@@ -36387,7 +36387,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            72
+            73
           ]
         },
         {
@@ -38198,10 +38198,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "clean": true,
-            "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+            "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+            "clean": false,
+            "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+            "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -38267,14 +38267,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-              "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+              "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+              "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+              "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
             }
           },
           "environment": {
@@ -38553,7 +38553,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            73
+            74
           ]
         },
         {
@@ -40452,10 +40452,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "clean": true,
-            "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+            "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+            "clean": false,
+            "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+            "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -40521,14 +40521,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-              "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+              "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+              "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+              "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
             }
           },
           "environment": {
@@ -41081,7 +41081,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            80
+            81
           ]
         },
         {
@@ -43254,10 +43254,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "clean": true,
-            "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+            "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+            "clean": false,
+            "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+            "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -43323,14 +43323,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-              "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+              "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+              "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+              "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
             }
           },
           "environment": {
@@ -43549,8 +43549,8 @@
         {
           "path": "src/capabilities/gpt/ability-group.ts",
           "lines": [
-            327,
-            328
+            328,
+            329
           ]
         },
         {
@@ -43652,7 +43652,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            90
+            91
           ]
         },
         {
@@ -45958,10 +45958,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "clean": true,
-            "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+            "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+            "clean": false,
+            "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+            "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -46027,14 +46027,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-              "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+              "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+              "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+              "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
             }
           },
           "environment": {
@@ -46251,8 +46251,8 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-checkpoint.acceptance-support.ts",
           "lines": [
-            295,
-            297
+            362,
+            364
           ]
         },
         {
@@ -46294,7 +46294,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            70
+            71
           ]
         },
         {
@@ -47963,10 +47963,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "clean": true,
-            "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+            "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+            "clean": false,
+            "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+            "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -48032,14 +48032,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-              "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+              "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+              "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+              "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
             }
           },
           "environment": {
@@ -48229,16 +48229,16 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-checkpoint.acceptance-support.ts",
           "lines": [
-            219,
-            228
+            286,
+            295
           ]
         },
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-polling.acceptance-support.ts",
           "lines": [
-            143,
-            223,
-            281
+            144,
+            225,
+            283
           ]
         },
         {
@@ -48297,7 +48297,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            86
+            87
           ]
         },
         {
@@ -50326,10 +50326,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "clean": true,
-            "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+            "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+            "clean": false,
+            "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+            "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -50395,14 +50395,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-              "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+              "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+              "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+              "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
             }
           },
           "environment": {
@@ -50608,15 +50608,15 @@
     },
     {
       "childCapabilityId": "wait_for_stable_gpt_text",
-      "contractVersion": 4,
+      "contractVersion": 5,
       "pageOperationRequired": true,
       "inclusionBasis": "requiredTargetKind is not none and the isolated Child implementation requires Browser page authority",
       "contract": {
         "actionQualification": "one exact rate-limit dialog may be acknowledged once",
-        "allowedDocumentTransition": "exact-navigation-only",
+        "allowedDocumentTransition": "exact-navigation-or-normal-reacquire",
         "boundedWait": true,
         "childCapabilityId": "wait_for_stable_gpt_text",
-        "contractVersion": 4,
+        "contractVersion": 5,
         "decisions": [
           "DONE",
           "ACT",
@@ -50630,17 +50630,23 @@
         ],
         "inputSchema": "gpt.wait_for_stable_gpt_text.input.v2",
         "mutationBudget": "zero-or-one-browser-input",
-        "negativePostcondition": "terminal decline repeated dialog ambiguity identity drift or deadline fails closed",
+        "negativePostcondition": "terminal decline repeated dialog ambiguity identity drift target change unproven or discontinuous document transition or deadline fails closed",
         "oneObservationOrMutation": "at-most-one-mutation",
         "owner": "gpt",
-        "positivePostcondition": "one identity-bound adjacent assistant semantic text is stable for the bounded interval",
+        "positivePostcondition": "two fresh identity-bound adjacent assistant semantic-text observations agree after each exact canonical navigation or Browser-proven normal reacquire",
         "precondition": "exact conversation identity user turn marker prompt hash and deadline",
         "profile": "TARGET_LOCAL_MUTATION",
         "replayPolicy": "target-local-per-generation",
         "requiredTargetKind": "chatgpt",
-        "semanticIntent": "wait for the exact assistant text to become stable"
+        "semanticIntent": "wait for the exact assistant text to become stable across exact canonical navigation or Browser-proven normal reacquire"
       },
       "sourceReferences": [
+        {
+          "path": "src/capabilities/gpt/ability-group.ts",
+          "lines": [
+            446
+          ]
+        },
         {
           "path": "src/capabilities/gpt/acceptance/gpt-confirmed-provider-readback.acceptance-support.ts",
           "lines": [
@@ -50663,18 +50669,21 @@
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-checkpoint.acceptance-support.ts",
           "lines": [
             144,
-            151
+            151,
+            195,
+            227,
+            234
           ]
         },
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-polling.acceptance-support.ts",
           "lines": [
             75,
-            175,
-            203,
-            246,
-            306,
-            354
+            176,
+            205,
+            248,
+            308,
+            356
           ]
         },
         {
@@ -50754,7 +50763,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            85
+            86
           ]
         },
         {
@@ -51028,11 +51037,11 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
-        "digest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+        "childCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
+        "digest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
         "facts": [
           {
-            "expected": "wait for the exact assistant text to become stable",
+            "expected": "wait for the exact assistant text to become stable across exact canonical navigation or Browser-proven normal reacquire",
             "factId": "contract:semanticIntent",
             "kind": "CONTRACT"
           },
@@ -51047,7 +51056,7 @@
             "kind": "CONTRACT"
           },
           {
-            "expected": "exact-navigation-only",
+            "expected": "exact-navigation-or-normal-reacquire",
             "factId": "contract:allowedDocumentTransition",
             "kind": "CONTRACT"
           },
@@ -51092,12 +51101,12 @@
             "kind": "CONTRACT"
           },
           {
-            "expected": "one identity-bound adjacent assistant semantic text is stable for the bounded interval",
+            "expected": "two fresh identity-bound adjacent assistant semantic-text observations agree after each exact canonical navigation or Browser-proven normal reacquire",
             "factId": "contract:positivePostcondition",
             "kind": "CONTRACT"
           },
           {
-            "expected": "terminal decline repeated dialog ambiguity identity drift or deadline fails closed",
+            "expected": "terminal decline repeated dialog ambiguity identity drift target change unproven or discontinuous document transition or deadline fails closed",
             "factId": "contract:negativePostcondition",
             "kind": "CONTRACT"
           },
@@ -51265,7 +51274,7 @@
           }
         ],
         "pageDemandDigest": "sha256:7ff16d346dce677d0d1d46a28755875b71319b93d50dba701992401265645330",
-        "projectionDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+        "projectionDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
@@ -51391,6 +51400,11 @@
           "implementation": {
             "files": [
               {
+                "contentHash": "sha256:4f650ae7ba4c643bdaffcd41fa47ca9229891fae1e37bc9a987de0dae84a38b4",
+                "path": "src/capabilities/gpt/ability-group.ts",
+                "semanticHash": "sha256:e8ff7d3540a9ee018f84be4734c51c9e539ddf4d0408b538439da1c6fabde356"
+              },
+              {
                 "contentHash": "sha256:da54621882846b521b894839aceed2efecba86bb0e2f9afb02dbfa1bfac04e13",
                 "path": "src/capabilities/gpt/children/wait_for_stable_gpt_text/handler.ts",
                 "semanticHash": "sha256:076c4154db166d552d61878296480a9c675d2254de6c3dd4033881003f2d409d"
@@ -51409,15 +51423,20 @@
                 "contentHash": "sha256:abb361c33c3e6ab3444b42bf17651c93a7f56d82d752d8ab196e157e552b77e0",
                 "path": "src/capabilities/gpt/children/wait_for_stable_gpt_text/selectors.ts",
                 "semanticHash": "sha256:e3378d9d01c2c5a8aa13af1b69c0edfb53444ce80d7656e09e109e7cf2ff1bda"
+              },
+              {
+                "contentHash": "sha256:622994379f815c1f7af3bd68b2faa9f8ab5353a49206b9f56586f96cbe7c44f2",
+                "path": "src/capabilities/gpt/document-transition-policy.ts",
+                "semanticHash": "sha256:99a5098292f61eec49c5bcda3beaeb811bfa7dc079634f535aaa263b1139f5ec"
               }
             ],
-            "semanticDigest": "sha256:cb7a7d05dddb77208ead33fa7cba77ea9cc5df903c81bb359472f60396f774f9"
+            "semanticDigest": "sha256:b8ee6d16f9700e4909155ea6cffc59085210300cb917c14f0484488af556bdb8"
           }
         }
       },
       "collection": {
-        "demandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
-        "childCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+        "demandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
+        "childCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
         "inputRefs": [
           "synthetic-rich-text-prompt",
           "chain-conversation-identity"
@@ -51429,7 +51448,7 @@
             "pointers": [
               "related.contractReference"
             ],
-            "expectedHash": "sha256:a1f92a85de99a907585a5af0c1c4f18ffb4968c27f5518d59498e8a4a0b0e684",
+            "expectedHash": "sha256:ad1483f28aa0fd31c69a8c851677f72207d61cbe7bc1b871cb8b557d635b1c10",
             "bindingKind": "LIVE_OBSERVATION"
           },
           {
@@ -51456,7 +51475,7 @@
             "pointers": [
               "related.contractReference"
             ],
-            "expectedHash": "sha256:0462c6f287e85860229e556aae162770c8b1e4171555202fb4215e748d0e79e5",
+            "expectedHash": "sha256:4b8d09d7983e3b338c5e0ab79eb3b646a165d1c7215baeb54c6ac6ec290a9260",
             "bindingKind": "LIVE_OBSERVATION"
           },
           {
@@ -51528,7 +51547,7 @@
             "pointers": [
               "related.contractReference"
             ],
-            "expectedHash": "sha256:f96a0ab7b3e2fdf41e43904e5b0d5ca1d0d4ed9601983951c03ce99d7d938f7a",
+            "expectedHash": "sha256:634df42b0abdbd1ceaf2032efce19ccb70b1df2e4b5d12a1194890a153ab1e12",
             "bindingKind": "LIVE_OBSERVATION"
           },
           {
@@ -51537,7 +51556,7 @@
             "pointers": [
               "related.contractReference"
             ],
-            "expectedHash": "sha256:15226b988ea919f1d46a0ee8d40f64b8faca9a684ffaa21a8d1ecdcdc336ec20",
+            "expectedHash": "sha256:268d8846a3d7ce8394c688ab3230b95c9f167f573c3c281023ef5d3be739f8a1",
             "bindingKind": "LIVE_OBSERVATION"
           },
           {
@@ -52965,10 +52984,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "clean": true,
-            "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+            "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+            "clean": false,
+            "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+            "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -53034,14 +53053,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-              "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+              "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+              "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+              "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
             }
           },
           "environment": {
@@ -53297,8 +53316,8 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-checkpoint.acceptance-support.ts",
           "lines": [
-            298,
-            302
+            365,
+            369
           ]
         },
         {
@@ -53341,7 +53360,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            84
+            85
           ]
         },
         {
@@ -55647,10 +55666,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "clean": true,
-            "head": "6244b3b749d76aa1ec81be8c1e3b2bf306a71424",
-            "worktreeDigest": "sha256:f44ac266e9662cbc57206c979b2c244e83f64ffc09c32ee084da7bc40b0ce3b4"
+            "candidate": "WORKTREE:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143",
+            "clean": false,
+            "head": "917115745b63fc5f3fac56617d27d3cc98a3a14b",
+            "worktreeDigest": "sha256:0220486fca9eea8a2a1b6964041be622c197d137c3d8fd46e501294dc6cfd143"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -55716,14 +55735,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:911c3f6774a7b0383ca3fdd41463f3cbc19444f07721ba43d84c7ceadb80d984",
-              "sourceChildCandidateDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6",
+              "sha256": "sha256:54633ffc47c6c934ece0072be55555751d47276d7c4aa09f37b38b6287b6642a",
+              "sourceChildCandidateDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:91f3dfea41c2ad683a3396a0f9943ff03e81298709ad5eaaad85145c890761d6"
+              "sourceDemandDigest": "sha256:ff504541bed283a6c5895e3639090e4f152727c8ba18ca2b1907c82efc3b2aba"
             }
           },
           "environment": {

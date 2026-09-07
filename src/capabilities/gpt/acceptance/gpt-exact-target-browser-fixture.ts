@@ -96,6 +96,7 @@ type FakeBrowserOptions = Readonly<{
   initialPending?: number;
   initialUrl?: string;
   navigationEpochAdvanceOnMutation?: number;
+  navigationEpochAdvanceOnWait?: number;
   authenticatedMedia?: Awaited<ReturnType<BrowserTargetLease["downloadAuthenticatedMedia"]>>;
   onAttachFile?: (input: Parameters<BrowserTargetLease["attachFile"]>[0]) => void;
   onWait?: (durationMs: number) => void;
@@ -304,6 +305,11 @@ const createFakeBrowserLease = (
   async wait(input) {
     state.waitDurations.push(input.durationMs);
     options.onWait?.(input.durationMs);
+    const advance = options.navigationEpochAdvanceOnWait ?? 0;
+    if (advance > 0) {
+      state.navigationEpoch += advance;
+      state.documentRef = `document:${state.navigationEpoch}`;
+    }
   },
   async park() { state.physicalMutations += 1; },
   async close() { state.physicalMutations += 1; },
@@ -333,6 +339,10 @@ export const fakeBrowser = (responder: DomResponder, input: FakeBrowserOptions =
   };
   return {
     browser: createFakeBrowserLease(responder, state, input),
+    normalReacquire: () => {
+      state.navigationEpoch += 1;
+      state.documentRef = `document:${state.navigationEpoch}`;
+    },
     physicalMutations: () => state.physicalMutations,
     authenticatedMediaDownloads: () => state.authenticatedMediaDownloads,
     documentCalls: () => state.domCalls,
