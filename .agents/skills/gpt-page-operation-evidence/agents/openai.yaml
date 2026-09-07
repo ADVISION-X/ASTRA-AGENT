@@ -1,0 +1,7 @@
+interface:
+  display_name: "GPT 页面操作实证"
+  short_description: "低成本复用页面快照并强制消费当前投影"
+  default_prompt: "$gpt-page-operation-evidence 对 AGENT 执行稳定页面快照、当前需求离线投影、唯一报告、候选强制消费与反馈更新闭环。除实际消费冲突获三方实证或用户明确触发外，禁止重新采集。"
+
+policy:
+  allow_implicit_invocation: true
