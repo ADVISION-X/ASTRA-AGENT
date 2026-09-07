@@ -368,13 +368,15 @@ const failedExecution = async <K extends GptChildCapabilityId>(input: Readonly<{
   error: unknown;
 }>): Promise<GptChildCapabilityResult<K>> => {
   const after = currentDocument(input.context);
-  const failureError = documentTransitionObservable(input.documentBoundary, after)
-    && !documentTransitionAllowed(input.intent.childCapabilityId, input.documentBoundary, after)
-      ? executionFailure("failed", `GPT_DOCUMENT_TRANSITION_FORBIDDEN:${input.intent.childCapabilityId}`)
-      : input.error;
+  const browser = typedBrowserExecutionFailure(input.error);
+  const failureError = browser
+    ? input.error
+    : documentTransitionObservable(input.documentBoundary, after)
+      && !documentTransitionAllowed(input.intent.childCapabilityId, input.documentBoundary, after)
+        ? executionFailure("failed", `GPT_DOCUMENT_TRANSITION_FORBIDDEN:${input.intent.childCapabilityId}`)
+        : input.error;
   const failure = classify(failureError);
   const nativeCause = executionFailureCause(failureError);
-  const browser = typedBrowserExecutionFailure(input.error);
   const gpt = typedGptExecutionFailure(input.error);
   const walBrowserFact = failedBrowserFact(input.intent, input.context);
   const observation = failureObservation({

@@ -13,6 +13,7 @@ import {
   exactAssistantTurnReply,
   fakeBrowser,
 } from "./gpt-exact-target-browser-fixture.js";
+import { browserExecutionFailure } from "../../../lib/browser/browser-authority-api.js";
 import {
   EMPTY_HASH,
   approvedFile,
@@ -235,6 +236,40 @@ import {
   } finally {
     Date.now = nativeDateNow;
   }
+}
+
+{
+  const { execute } = freshHarness();
+  let simulatedNow = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      return coherentObservationPacket(intent, {
+        ...responseFacts(),
+        generating: { rawCount: 1, eligibleCount: 1, matches: [{}] },
+      }, conversationUrl);
+    }
+    throw new Error(`UNEXPECTED_PHYSICALLY_ABSENT_TEXT_INTENT:${intent.kind}`);
+  });
+  const nativeDateNow = Date.now;
+  Date.now = () => simulatedNow;
+  try {
+    const result = await execute("wait_for_stable_gpt_text", fixture.browser, {
+      probeBudgetMs: 1_000, canonicalConversationUrl: conversationUrl,
+      conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
+    }, undefined, {
+      yieldForProviderWait: async () => {
+        fixture.normalReacquire();
+        throw browserExecutionFailure(new Error("BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT"), "no");
+      },
+    });
+    assert.equal(result.status, "failed");
+    assert.equal(result.failureCode, "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT",
+      "a Browser reacquire failure must not be relabeled as a Document transition failure");
+  } finally {
+    Date.now = nativeDateNow;
+  }
+  assert.equal(fixture.physicalMutations(), 0,
+    "a failed normal reacquire must not issue a second Provider mutation");
 }
 
 {
