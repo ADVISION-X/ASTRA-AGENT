@@ -187,6 +187,28 @@ const evidenceEnumsValid = (
   && (resultStatus === "success" || resultStatus === "failed")
   && (mutation === "no" || mutation === "confirmed" || mutation === "dispatched");
 
+const terminalPendingInvalid = (terminalKey: boolean, postcondition: unknown): boolean =>
+  terminalKey && postcondition === "pending";
+
+const successPairInvalid = (resultStatus: unknown, postcondition: unknown, failure: unknown): boolean =>
+  resultStatus === "success" && (postcondition !== "passed" || failure !== null);
+
+const failedPairInvalid = (resultStatus: unknown, postcondition: unknown, failure: unknown): boolean =>
+  resultStatus === "failed" && (!machineCode(failure) || postcondition === "passed");
+
+const providerTerminalPendingInvalid = (postcondition: unknown, failure: unknown): boolean =>
+  postcondition === "pending" && typeof failure === "string" && failure.startsWith("GPT_PROVIDER_TERMINAL_");
+
+const pendingMutationInvalid = (
+  postcondition: unknown,
+  resultStatus: unknown,
+  mutation: unknown,
+  terminalKey: boolean,
+  postSubmitReadbackRecovery: boolean,
+): boolean => postcondition === "pending" && resultStatus !== "failed"
+  || postcondition === "pending" && mutation !== "dispatched" && mutation !== "confirmed"
+    && !(mutation === "no" && postSubmitReadbackRecovery && !terminalKey);
+
 const evidencePairValid = (
   postcondition: unknown,
   resultStatus: unknown,
@@ -194,14 +216,13 @@ const evidencePairValid = (
   mutation: unknown,
   terminalKey: boolean,
   postSubmitReadbackRecovery: boolean,
-): boolean => !(terminalKey && postcondition === "pending")
-  && !(resultStatus === "success" && (postcondition !== "passed" || failure !== null))
-  && !(resultStatus === "failed" && (!machineCode(failure) || postcondition === "passed"))
-  && !(postcondition === "pending" && typeof failure === "string"
-    && failure.startsWith("GPT_PROVIDER_TERMINAL_"))
-  && !(postcondition === "pending"
-    && (resultStatus !== "failed" || (mutation !== "dispatched" && mutation !== "confirmed"
-      && !(mutation === "no" && postSubmitReadbackRecovery && !terminalKey))));
+): boolean => ![
+  terminalPendingInvalid(terminalKey, postcondition),
+  successPairInvalid(resultStatus, postcondition, failure),
+  failedPairInvalid(resultStatus, postcondition, failure),
+  providerTerminalPendingInvalid(postcondition, failure),
+  pendingMutationInvalid(postcondition, resultStatus, mutation, terminalKey, postSubmitReadbackRecovery),
+].some(Boolean);
 
 const evidenceState = (
   payload: Readonly<Record<string, unknown>>,
@@ -389,6 +410,13 @@ type VerifiedExactGptEvidence = Readonly<{
   terminal: boolean;
 }>;
 
+const failedInitialReadbackPending = (
+  recovery: boolean,
+  evidence: VerifiedExactGptEvidence,
+): boolean => [recovery, !evidence.terminal, evidence.state.postcondition === "failed",
+  evidence.state.resultStatus === "failed", evidence.state.mutation === "no",
+  !evidence.state.failureCode?.startsWith("GPT_PROVIDER_TERMINAL_")].every(Boolean);
+
 const readVerifiedExactGptEvidence = async (input: Readonly<{
   evidenceStore: GptEvidenceStorePort;
   intent: GptChildCapabilityIntent;
@@ -431,12 +459,9 @@ export const readExactGptEvidenceFact = async (input: Readonly<{
   const verified = await readVerifiedExactGptEvidence(input);
   if (!verified) return null;
   const { payload, state, reasoningResult, cause } = verified;
-  const failedInitialReadbackRemainsPending = input.postSubmitReadbackRecovery === true
-    && !verified.terminal
-    && state.postcondition === "failed"
-    && state.resultStatus === "failed"
-    && state.mutation === "no"
-    && !state.failureCode?.startsWith("GPT_PROVIDER_TERMINAL_");
+  const failedInitialReadbackRemainsPending = failedInitialReadbackPending(
+    input.postSubmitReadbackRecovery === true, verified,
+  );
   const proofFacts = state.resultStatus === "failed" ? failureProofFacts({
     payload, intent: input.intent,
     exactCallIdentityHash: input.exactCallIdentityHash, mutation: state.mutation,

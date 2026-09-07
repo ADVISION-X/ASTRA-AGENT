@@ -270,6 +270,38 @@ export const completeGptPageEvidenceCaptureFailures = (
   return [...new Set(inspection.failures)];
 };
 
+const inspectScopedFact = (
+  state: CaptureInspection,
+  demandFacts: readonly Record<string, unknown>[],
+  bindings: readonly Record<string, unknown>[],
+  sceneManifest: readonly Record<string, unknown>[],
+  factId: string,
+  failures: string[],
+): void => {
+  const demandFact = demandFacts.find((entry) => entry.factId === factId) ?? null;
+  if (!demandFact) {
+    failures.push(`fact-not-declared:${factId}`);
+    return;
+  }
+  const matches = bindings.filter((entry) => entry.factId === factId);
+  if (matches.length !== 1) {
+    failures.push(`${matches.length === 0 ? "fact-not-observed" : "fact-binding-duplicate"}:${factId}`);
+    return;
+  }
+  const binding = matches[0]!;
+  if (binding.bindingKind === "CURRENT_PROJECTION") {
+    failures.push(`fact-not-live:${factId}`);
+    return;
+  }
+  inspectLiveFactBinding(state, binding, factId, demandFact, failures);
+  const specimen = typeof binding.observationId === "string"
+    ? state.liveByObservation.get(binding.observationId) : undefined;
+  if (!specimen) return;
+  if (typeof specimen.stateSignature !== "string" || !SHA256.test(specimen.stateSignature)
+    || observedStateSignature(specimen) !== specimen.stateSignature) failures.push(`live-signature:${factId}`);
+  inspectSceneSpecimen(state, specimen, sceneManifest, failures);
+};
+
 export const scopedGptPageEvidenceFactFailures = (
   child: Record<string, unknown>, demand: Record<string, unknown>, factIds: readonly string[],
 ): string[] => {
@@ -301,30 +333,9 @@ export const scopedGptPageEvidenceFactFailures = (
 
   const sceneManifest = Array.isArray(captureContext?.sceneManifest)
     ? captureContext.sceneManifest.flatMap((entry) => record(entry) ? [record(entry)!] : []) : [];
-  for (const factId of factIds) {
-    const demandFact = demandFacts.find((entry) => entry.factId === factId) ?? null;
-    if (!demandFact) {
-      failures.push(`fact-not-declared:${factId}`);
-      continue;
-    }
-    const matches = bindings.filter((entry) => entry.factId === factId);
-    if (matches.length !== 1) {
-      failures.push(`${matches.length === 0 ? "fact-not-observed" : "fact-binding-duplicate"}:${factId}`);
-      continue;
-    }
-    const binding = matches[0]!;
-    if (binding.bindingKind === "CURRENT_PROJECTION") {
-      failures.push(`fact-not-live:${factId}`);
-      continue;
-    }
-    inspectLiveFactBinding(state, binding, factId, demandFact, failures);
-    const specimen = typeof binding.observationId === "string"
-      ? liveByObservation.get(binding.observationId) : undefined;
-    if (!specimen) continue;
-    if (typeof specimen.stateSignature !== "string" || !SHA256.test(specimen.stateSignature)
-      || observedStateSignature(specimen) !== specimen.stateSignature) failures.push(`live-signature:${factId}`);
-    inspectSceneSpecimen(state, specimen, sceneManifest, failures);
-  }
+  for (const factId of factIds) inspectScopedFact(
+    state, demandFacts, bindings, sceneManifest, factId, failures,
+  );
   inspectModelState(state, failures);
   return [...new Set(failures)];
 };

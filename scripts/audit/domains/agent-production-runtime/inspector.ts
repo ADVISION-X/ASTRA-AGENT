@@ -178,8 +178,7 @@ const inspectCredentialAst = (context: InspectorContext, findings: InspectorFind
     "PRODUCTION_CREDENTIAL_PARENT_MISSING", "PRODUCTION_CREDENTIAL_MISSING",
     "PRODUCTION_CREDENTIAL_PARENT_PERMISSIONS_INVALID", "PRODUCTION_CREDENTIAL_FILE_PERMISSIONS_INVALID",
     "PRODUCTION_CREDENTIAL_SYMLINK_INVALID", "PRODUCTION_CREDENTIAL_JSON_INVALID",
-    "PRODUCTION_CREDENTIAL_SCHEMA_INVALID", "PRODUCTION_CREDENTIAL_CONTROL_MANIFEST_MISSING",
-    "PRODUCTION_CREDENTIAL_ORIGIN_INVALID",
+    "PRODUCTION_CREDENTIAL_SCHEMA_INVALID", "PRODUCTION_CREDENTIAL_ORIGIN_INVALID",
   ]) if (!failureCodes.has(code)) findings.push(finding(LAWS.credential, "static.ast",
     "agent-production-runtime/credential-failure-code", PATHS.credential,
     `Credential reader is missing typed failure ${code}.`));

@@ -1,7 +1,6 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-import {
-  FakeElement, FakeTextNode, RICH_SEMANTIC_TEXT, execute, hash, richSemanticTree,
-} from "./local-browser-dom-function-fixture.js";
+import { FakeElement, FakeTextNode, RICH_SEMANTIC_TEXT, execute, hash, richSemanticTree }
+  from "./local-browser-dom-function-fixture.js";
 export const exerciseCapturedCandidateFunction = (source: string): void => {
   const target = new FakeElement("Run", {}, {}, {}, "BUTTON");
   const scope = new FakeElement("Container text is deliberately not equal to Run", { button: [target] });
@@ -42,7 +41,6 @@ export const exerciseCapturedCandidateFunction = (source: string): void => {
     selector: "button", scope: { selector: "main" }, text: { value: "Run", exact: true },
   }), "BROWSER_DOM_READ_INVALID", "scope plus target candidates must share the 256 budget");
 };
-
 export const exerciseCapturedGptForkCandidateFunction = async (source: string): Promise<void> => {
   const assistantTurnId = "conversation-turn-10";
   const userTurnId = "conversation-turn-9";
@@ -105,7 +103,6 @@ export const exerciseCapturedGptForkCandidateFunction = async (source: string): 
     "https://user:password@chatgpt.com/c/opaque%20segment"), "BROWSER_DOM_CANDIDATE_MISSING",
   "the runtime source URL check must reject userinfo exactly like the canonical contract");
 };
-
 export const exerciseCapturedCoherentObservationPointerFunction = (source: string): void => {
   const reasoning = new FakeElement("", {}, {}, {
     "aria-valuemin": "0", "aria-valuemax": "4", "aria-valuenow": "2",
@@ -152,7 +149,6 @@ export const exerciseCapturedCoherentObservationPointerFunction = (source: strin
   assert.equal(sanitized.observation.currentUrl, "https://chatgpt.com/c/postcondition",
     "the coherent postcondition packet must physically discard query and fragment");
 };
-
 const exerciseObservationRejections = async (source: string): Promise<Readonly<Record<string, unknown>>> => {
   const nodes = [new FakeElement("a", {}, { display: "none" }),
     new FakeElement("b", {}, { visibility: "hidden" }), new FakeElement("c", {}, { opacity: "0" }),
@@ -203,7 +199,6 @@ const exerciseHiddenStateRead = async (source: string): Promise<void> => {
     rawCount: 1, eligibleCount: 1, matches: [{ candidateIndex: 0, ariaHidden: true }],
   }), "the explicit non-actionable read mode may ignore only ARIA_HIDDEN");
 };
-
 const exerciseComposerExactHashes = async (source: string): Promise<void> => {
   const trailingBreak = new FakeElement("", {}, {}, { class: "ProseMirror-trailingBreak" }, "BR");
   const emptyParagraph = new FakeElement("", {}, {}, { "data-empty-paragraph": "true" }, "P", [trailingBreak]);
@@ -259,7 +254,6 @@ const exerciseComposerExactHashes = async (source: string): Promise<void> => {
   assert.equal(exactResult.queries[2]?.matches[0]?.semanticTextHash, hash(RICH_SEMANTIC_TEXT),
     "coherent observation must hash the whole rich answer, including text around its one code block");
 };
-
 const userPromptFixture = () => {
   const userPrompt = "[GRASSEYE:exact-user-prompt]\napproved prompt";
   const promptBody = new FakeElement(userPrompt, {}, {}, {
@@ -352,7 +346,6 @@ const exerciseRejectedUserPromptHashes = async (source: string): Promise<void> =
     fields: ["exactGptUserPromptHash"] }]), /BROWSER_DOM_READ_INVALID/u,
   "multiple Prompt bodies inside one user turn must fail closed");
 };
-
 const exerciseUserPromptHashes = async (source: string): Promise<void> => {
   await exerciseExactUserPromptHash(source);
   await exerciseRejectedUserPromptHashes(source);

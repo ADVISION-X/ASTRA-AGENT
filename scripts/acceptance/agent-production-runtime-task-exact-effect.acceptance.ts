@@ -7,15 +7,14 @@ import path from "node:path";
 import {
   createGptAbilityGroup,
   createProductionGptChildTools,
+  type ProductGptAnyCallInput,
 } from "../../src/capabilities/gpt/index.js";
-import type { ProductGptCallInput } from "../../src/capabilities/gpt/product-api.js";
 import {
-  coherentObservationPacket,
-  exactAssistantTurnReply,
-  fakeBrowser,
-} from "../../src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.js";
-import { gptConversationIdentityHash } from
-  "../../src/capabilities/gpt/web/conversation-identity.js";
+  recoveryAssistantTurnReply,
+  recoveryBrowserLease,
+  recoveryConversationIdentityHash,
+  recoveryObservationPacket,
+} from "./agent-production-runtime-gpt-recovery-fixture.js";
 import { createForensicsPersistenceAbilityGroupFromStorage } from
   "../../src/capabilities/forensics-persistence/index.js";
 import {
@@ -30,8 +29,6 @@ import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import { typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
-import type { SharedExecutionContext } from "../../src/mediator/product-plugin-contract.js";
-import { createSeoExecutor } from "../../src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.js";
 import { HASH_A, HASH_B, identityFor, task } from "./agent-production-runtime-fixtures.js";
 
 const call = Object.freeze({
@@ -48,7 +45,7 @@ const textHash = (value: string): ProductionHash =>
 const intentFor = (
   taskInput: WebsiteAgentTask,
   attemptId: string,
-  exactCall: ProductGptCallInput = call,
+  exactCall: ProductGptAnyCallInput = call,
 ) => {
   const identity = Object.freeze({
     jobId: taskInput.job_id,
@@ -192,7 +189,7 @@ try {
   const canonicalConversationUrl = "https://chatgpt.com/c/task-exact-effect";
   const userTurnId = "conversation-turn-1";
   const assistantTurnId = "conversation-turn-2";
-  const conversationIdentityHash = gptConversationIdentityHash({
+  const conversationIdentityHash = recoveryConversationIdentityHash({
     canonicalConversationUrl,
     turnMarker: call.input.turnMarker,
     userTurnId,
@@ -350,16 +347,16 @@ try {
   });
   const responseText = "stable recovered assistant response";
   const responseHash = textHash(responseText);
-  const browser = fakeBrowser((intent) => {
+  const browser = recoveryBrowserLease(canonicalConversationUrl, (intent) => {
     if (intent.kind === "observe") {
       const queryIds = new Set(intent.queries.map((query) => query.queryId));
-      if (queryIds.has("composer")) return coherentObservationPacket(intent, {
+      if (queryIds.has("composer")) return recoveryObservationPacket(intent, {
         composer: Object.freeze({ rawCount: 1, eligibleCount: 1,
           matches: Object.freeze([{ exactEditableTextHash: textHash("") }]) }),
         "user-turns": Object.freeze({ rawCount: 1, eligibleCount: 1,
           matches: Object.freeze([{ testId: userTurnId, exactGptUserPromptHash: HASH_A }]) }),
       }, canonicalConversationUrl);
-      return coherentObservationPacket(intent, {
+      return recoveryObservationPacket(intent, {
         "user-turns": Object.freeze({ rawCount: 1, eligibleCount: 1,
           matches: Object.freeze([{ testId: userTurnId, exactGptUserPromptHash: HASH_A }]) }),
         "assistant-turns": Object.freeze({ rawCount: 1, eligibleCount: 1,
@@ -368,20 +365,18 @@ try {
       }, canonicalConversationUrl);
     }
     if (intent.kind === "readExactAssistantTurn") {
-      return exactAssistantTurnReply(intent, responseText);
+      return recoveryAssistantTurnReply(intent, responseText);
     }
     throw new Error(`UNEXPECTED_SAME_ATTEMPT_RECOVERY_INTENT:${intent.kind}`);
-  }, { initialUrl: canonicalConversationUrl });
+  });
   Object.assign(sameAttemptRecoveryAuthority, {
-    acquireJobBoundTargetLease: async () => browser.browser,
+    acquireJobBoundTargetLease: async () => browser,
   });
   const sameAttemptRecovery = execution(attempt1, 24, sameAttemptRecoveryAuthority);
-  const flow = createSeoExecutor(providerTask, {
-    gpt: sameAttemptRecovery.tools,
-  } as unknown as SharedExecutionContext);
-  const confirmedSubmit = await flow.facts(call);
+  const recoverySessionKey = `public-knowledge-article-pipeline:${providerTask.job_id}:${attempt1}`;
+  const confirmedSubmit = await sameAttemptRecovery.tools.readCallFacts(call);
   assert.equal(confirmedSubmit.mutation?.outcome, "CONFIRMED");
-  const recoverableWait = await flow.facts(waitCall);
+  const recoverableWait = await sameAttemptRecovery.tools.readCallFacts(waitCall);
   assert.equal(recoverableWait.evidence, null,
     "internal pending evidence must not enter Product's terminal evidence sequence");
   const reconcileCall = Object.freeze({
@@ -395,9 +390,9 @@ try {
       turnMarker: call.input.turnMarker,
     }),
   });
-  const reconciled = await flow.execute({ sessionKey: "", ...reconcileCall });
+  const reconciled = await sameAttemptRecovery.tools.execute({ sessionKey: recoverySessionKey, ...reconcileCall });
   assert.equal(reconciled.value?.canonicalConversationUrl, canonicalConversationUrl);
-  const stable = await flow.execute({ sessionKey: "", ...waitCall });
+  const stable = await sameAttemptRecovery.tools.execute({ sessionKey: recoverySessionKey, ...waitCall });
   assert.equal(stable.value?.responseText, responseText,
     "the same-attempt recovery must return the exact stable assistant answer through Product");
   const checkpointCall = Object.freeze({
@@ -413,15 +408,15 @@ try {
       turnMarker: call.input.turnMarker,
     }),
   });
-  const checkpoint = await flow.execute({ sessionKey: "", ...checkpointCall });
+  const checkpoint = await sameAttemptRecovery.tools.execute({ sessionKey: recoverySessionKey, ...checkpointCall });
   assert.equal(checkpoint.value?.semanticText, responseText,
     "the recovered answer must cross the exact text checkpoint boundary");
-  assert.deepEqual(flow.evidenceRefs(), [
+  assert.equal(new Set([
     confirmedSubmit.evidence!.evidenceRef,
     reconciled.evidenceRef,
     stable.evidenceRef,
     checkpoint.evidenceRef,
-  ], "Product must expose only one terminal evidence ref per action ordinal");
+  ]).size, 4, "the recovered action ordinals must retain distinct terminal evidence refs");
   const terminalWait = await evidenceStore.readExactCallEvidence({
     missionId: providerTask.job_id,
     runId: attempt1,

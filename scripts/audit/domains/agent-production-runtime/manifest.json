@@ -18,6 +18,7 @@
     "scripts/acceptance/agent-production-runtime-browser-failure.acceptance-support.ts",
     "scripts/acceptance/agent-production-runtime-continuation.acceptance.ts",
     "scripts/acceptance/agent-production-runtime-fixtures.ts",
+    "scripts/acceptance/agent-production-runtime-gpt-recovery-fixture.ts",
     "scripts/acceptance/agent-production-runtime-ledger.acceptance.ts",
     "scripts/acceptance/agent-production-runtime-permanent-revocation-support.ts",
     "scripts/acceptance/agent-production-runtime-proof-boundary.acceptance.ts",

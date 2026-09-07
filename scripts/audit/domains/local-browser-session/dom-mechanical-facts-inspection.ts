@@ -178,7 +178,7 @@ const inspectExactGptUserPromptProjection = (
   lawId: string,
 ): void => {
   requireTokens(observationText, [
-    "GPT_USER_TURN_TEST_ID", "GPT_USER_PROMPT_CONTENT_SELECTOR", "exactGptUserPromptText",
+    "GPT_TURN_TEST_ID", "GPT_USER_PROMPT_CONTENT_SELECTOR", "exactGptUserPromptText",
     'node.querySelectorAll("[data-message-author-role=\'user\']").length !== 1', "promptNodes.length !== 1",
     'field === "exactGptUserPromptHash"', "sha256(exactGptUserPromptText(node))",
   ], findings, lawId, domCoherentObservationPath,
