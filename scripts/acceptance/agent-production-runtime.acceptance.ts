@@ -345,8 +345,22 @@ assert.doesNotMatch(revocationSettlementSource, /sent_at\s*=/u);
 assert.match(storeFoundationSource, /last_error<>'PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED'/u);
 
 assert.throws(() => parseJsonEnvelope({
-  ok: false, error: { code: "HTTP_401_UNAUTHORIZED", message: "unauthorized" },
+  ok: false, error: {
+    code: "HTTP_401_UNAUTHORIZED", message: "unauthorized", status: 401, request_id: "request:unauthorized",
+  },
 }, 401), (error: unknown) => typedExecutionFailure(error)?.code === "HTTP_401_UNAUTHORIZED");
+assert.throws(() => parseJsonEnvelope({ ok: true, data: {} }, 409),
+  (error: unknown) => typedExecutionFailure(error)?.code === "AI_PRODUCTION_HTTP_ENVELOPE_STATUS_MISMATCH");
+assert.throws(() => parseJsonEnvelope({
+  ok: false, error: {
+    code: "AI_SESSION_BINDING_MISMATCH", message: "mismatch", status: 503, request_id: "request:mismatch",
+  },
+}, 409), (error: unknown) => typedExecutionFailure(error)?.code === "AI_PRODUCTION_HTTP_ENVELOPE_STATUS_MISMATCH");
+assert.throws(() => parseJsonEnvelope({
+  ok: false, error: {
+    code: "AI_SESSION_BINDING_MISMATCH", message: "mismatch", status: 409, request_id: "request:mismatch",
+  },
+}, 200), (error: unknown) => typedExecutionFailure(error)?.code === "AI_PRODUCTION_HTTP_ENVELOPE_STATUS_MISMATCH");
 
 await assert.rejects(
   () => dispatchWebsiteAgentTask(productionTask, () => { throw new Error("CONTEXT_MUST_NOT_BE_CREATED"); }),
@@ -374,7 +388,7 @@ assert.deepEqual(runtimeManifestOwnershipDrift([
 ]), []);
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V11",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V12",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"],
   locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",
@@ -396,7 +410,7 @@ emitQualityProofObservation({
 });
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V11",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V12",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "summary"],
     locator: `acceptance:agent-production-runtime:business-admission:${evidenceMode}`,

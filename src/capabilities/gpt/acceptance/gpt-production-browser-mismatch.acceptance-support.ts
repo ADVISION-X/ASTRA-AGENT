@@ -53,7 +53,7 @@ try {
       jobId: waitTask.job_id, attemptId: "attempt:provider-wait-mismatch",
       pluginId: "payment-screenshot-observation", pluginVersion: 1,
       deviceId: "device:1", leaseVersion: 1,
-      executionFenceHash: HASH_A, controlManifestHash: HASH_B,
+      executionFenceHash: HASH_A, capabilityManifestHash: HASH_B,
       expiresAtMonotonic: performance.now() + 10_000, commandTtlMs: 1_000,
       abortSignal: new AbortController().signal,
     },

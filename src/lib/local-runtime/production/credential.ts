@@ -5,6 +5,7 @@ import path from "node:path";
 import { z } from "zod";
 
 import {
+  AiProductionErrorEnvelopeSchema,
   DeviceCredentialSchema,
   type DeviceCredential,
 } from "./transport-protocol.js";
@@ -85,9 +86,6 @@ const parseProductionCredential = (source: string): DeviceCredential => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return credentialFailure("PRODUCTION_CREDENTIAL_SCHEMA_INVALID");
   }
-  if (!("control_manifest_hash" in value)) {
-    credentialFailure("PRODUCTION_CREDENTIAL_CONTROL_MANIFEST_MISSING");
-  }
   const result = DeviceCredentialSchema.safeParse(value);
   return result.success ? result.data : credentialFailure("PRODUCTION_CREDENTIAL_SCHEMA_INVALID");
 };
@@ -115,8 +113,8 @@ export async function readProductionCredential(dataDir: string): Promise<DeviceC
   return credential;
 }
 
-const EnrollmentEnvelopeSchema = z.object({
-  ok: z.boolean(),
+const EnrollmentSuccessEnvelopeSchema = z.object({
+  ok: z.literal(true),
   data: z.object({
     device: z.object({
       device_id: z.string().min(1),
@@ -126,13 +124,13 @@ const EnrollmentEnvelopeSchema = z.object({
       origin_allowlist: z.array(z.string().url()).min(1),
     }).passthrough(),
     device_credential: z.string().regex(/^aidc_v6_[A-Za-z0-9_-]{32,}$/u),
-    control_manifest_hash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
-  }).strict().optional(),
-  error: z.object({
-    code: z.string().optional(),
-    message: z.string().optional(),
-  }).passthrough().optional(),
+  }).strict(),
 }).strict();
+
+const EnrollmentEnvelopeSchema = z.discriminatedUnion("ok", [
+  EnrollmentSuccessEnvelopeSchema,
+  AiProductionErrorEnvelopeSchema,
+]);
 
 const requiredEnvironment = (name: string): string => {
   const value = process.env[name]?.trim();
@@ -165,6 +163,15 @@ const assertCredentialDestination = async (destination: string): Promise<string>
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
   return parent;
+};
+
+const assertEnrollmentDoesNotReplaceCredential = async (dataDir: string): Promise<void> => {
+  try {
+    await lstat(productionCredentialPath(dataDir));
+    throw new Error("PRODUCTION_DEVICE_ALREADY_ENROLLED");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
 };
 
 const replaceCredentialFile = async (temporary: string, destination: string, parent: string): Promise<void> => {
@@ -200,6 +207,8 @@ async function writeProductionCredential(dataDir: string, credential: DeviceCred
 export async function enrollProductionDevice(input?: Readonly<{
   dataDir?: string;
 }>): Promise<Readonly<{ deviceId: string; credentialPath: string }>> {
+  const dataDir = path.resolve(input?.dataDir ?? process.env.GRASSEYE_DATA_DIR ?? path.join(process.cwd(), ".grasseye-local"));
+  await assertEnrollmentDoesNotReplaceCredential(dataDir);
   const serverBaseUrl = assertProductionUrl(requiredEnvironment("AGENT_PRODUCTION_CLOUD_BASE_URL"));
   const origin = assertProductionUrl(
     process.env.AGENT_PRODUCTION_AGENT_ORIGIN?.trim() || "http://127.0.0.1:4173",
@@ -216,14 +225,12 @@ export async function enrollProductionDevice(input?: Readonly<{
     signal: AbortSignal.timeout(30_000),
   });
   const envelope = EnrollmentEnvelopeSchema.parse(await response.json() as unknown);
-  const device = envelope.data?.device;
-  const credentialValue = envelope.data?.device_credential;
-  const controlManifestHash = envelope.data?.control_manifest_hash;
-  if (!response.ok || envelope.ok !== true || !device || !credentialValue
-    || !controlManifestHash || !device.origin_allowlist.includes(origin)) {
-    throw new Error(`PRODUCTION_ENROLLMENT_FAILED:${envelope.error?.code ?? response.status}`);
+  if (!response.ok || !envelope.ok) {
+    throw new Error(`PRODUCTION_ENROLLMENT_FAILED:${envelope.ok ? response.status : envelope.error.code}`);
   }
-  const dataDir = path.resolve(input?.dataDir ?? process.env.GRASSEYE_DATA_DIR ?? path.join(process.cwd(), ".grasseye-local"));
+  const device = envelope.data.device;
+  const credentialValue = envelope.data.device_credential;
+  if (!device.origin_allowlist.includes(origin)) throw new Error("PRODUCTION_ENROLLMENT_ORIGIN_MISMATCH");
   const credential: DeviceCredential = {
     protocol_version: "xuanxue-ai-production-v6",
     server_base_url: serverBaseUrl,
@@ -231,7 +238,6 @@ export async function enrollProductionDevice(input?: Readonly<{
     origin,
     device_id: device.device_id,
     device_epoch: device.device_epoch,
-    control_manifest_hash: controlManifestHash as `sha256:${string}`,
     credential: credentialValue,
     enrolled_at: new Date().toISOString(),
   };

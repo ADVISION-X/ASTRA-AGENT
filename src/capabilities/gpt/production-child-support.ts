@@ -16,7 +16,7 @@ export type GptProductionExecutionInput = Readonly<{
   deviceId: string;
   leaseVersion: number;
   executionFenceHash: GptHash;
-  controlManifestHash: GptHash;
+  capabilityManifestHash: GptHash;
   maxProviderTurns: number;
   expiresAtMonotonic: number;
   commandTtlMs: number;

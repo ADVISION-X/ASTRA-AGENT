@@ -63,7 +63,7 @@ const createSessionFetch = (
   if (url.endsWith("/internal/ai-production/v6/sessions/open")) return successfulJsonResponse({
     session: {
       device_id: "device:atomic-claim", worker_session_id: "worker-session:atomic-claim",
-      worker_session_epoch: 1, control_contract_manifest_hash: HASH_A,
+      worker_session_epoch: 1, control_contract_version: 17,
     },
     session_credential: credentialFor(1),
   });
@@ -185,7 +185,7 @@ export const exerciseWorkerSessionRotation = async (): Promise<void> => {
     const device = DeviceCredentialSchema.parse({
       protocol_version: "xuanxue-ai-production-v6", server_base_url: "http://127.0.0.1:3000",
       environment_id: "production", origin: "http://localhost:3000", device_id: "device:atomic-claim",
-      device_epoch: 1, control_manifest_hash: HASH_A, credential: `aidc_v6_${"d".repeat(40)}`,
+      device_epoch: 1, credential: `aidc_v6_${"d".repeat(40)}`,
       enrolled_at: "2026-09-03T00:00:00.000Z",
     });
     const session = new ProductionWorkerSession(device, async () => ({

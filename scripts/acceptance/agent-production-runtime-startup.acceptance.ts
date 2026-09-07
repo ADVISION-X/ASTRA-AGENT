@@ -140,6 +140,8 @@ try {
       error: {
         code: "AI_SESSION_BINDING_MISMATCH",
         message: "Worker session binding rejected.",
+        status: 409,
+        request_id: "request:binding-mismatch",
       },
     }), { status: 409, headers: { "content-type": "application/json" } });
   }) as typeof globalThis.fetch;
@@ -165,8 +167,8 @@ try {
   assert.equal(health.cloudState, "contract_blocked");
   assert.equal(health.executionState, "blocked");
   assert.equal(health.claimAdmissionState, "blocked");
-  assert.equal(health.contractManifestHash, validDeviceCredential.control_manifest_hash,
-    "blocked diagnostics must retain only the enrolled manifest hash needed for exact comparison");
+  assert.equal(health.controlContractVersion, 17,
+    "blocked diagnostics must retain only the consumer contract version needed for exact comparison");
   assert.equal(health.lastErrorCode, "AI_SESSION_BINDING_MISMATCH");
   await bindingMismatchRuntime.close();
   bindingMismatchRuntime = null;
@@ -340,7 +342,7 @@ try {
         device_id: "device:plugin-primary-with-cleanup-failure",
         lease_version: 1,
         execution_fence_hash: HASH_A,
-        control_manifest_hash: HASH_B,
+        capability_manifest_hash: HASH_B,
         max_provider_turns: 1,
         provider_turns_used: 0,
         expires_at_monotonic: performance.now() + 10_000,
@@ -404,16 +406,16 @@ assert.match(runtimeSource, /RUNTIME_RECOVERY_REQUIRED:/u);
 
 for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V2",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V3",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:credential:${evidenceMode}`,
-    observedValue: "credential format failures returned exact typed codes and valid credentials read exactly; a deterministic session binding 409 preserved the enrolled manifest hash, kept Shell ready and execution blocked, and issued exactly one session-open request with no worker or heartbeat handle",
+    observedValue: "credential format failures returned exact typed codes and valid credentials read exactly; a deterministic session binding 409 preserved the consumer contract version, kept Shell ready and execution blocked, and issued exactly one session-open request with no worker or heartbeat handle",
   });
 }
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V11",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V12",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:storage-inventory:${evidenceMode}`,

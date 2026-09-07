@@ -151,7 +151,7 @@ const verifyInitializationHealth = async (): Promise<void> => {
     browserAuthorityState: "absent",
     browserTargetState: "absent",
     browserLaneState: "blocked",
-    contractManifestHash: `sha256:${"a".repeat(64)}`,
+    controlContractVersion: 17,
     activeCount: 0,
     lastSuccessfulHeartbeatAt: null,
     lastErrorCode: "AI_SESSION_BINDING_MISMATCH",
@@ -160,7 +160,7 @@ const verifyInitializationHealth = async (): Promise<void> => {
   });
   const bindingAction = bindingBlocked.components
     .find((component) => component.name === "agentCloudWorker")?.actionableMessage;
-  assert.match(bindingAction ?? "", /one explicitly authorized enrollment path/u);
+  assert.match(bindingAction ?? "", /first device or explicit revoked-device recovery/u);
   assert.match(bindingAction ?? "", /Do not retry the same binding/u);
 
 };

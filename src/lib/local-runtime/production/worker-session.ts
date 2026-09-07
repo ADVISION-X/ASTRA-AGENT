@@ -3,6 +3,7 @@ import { executionFailure } from "../../execution-failure.js";
 
 import { agentPluginCapabilityManifest } from "./catalog.js";
 import type { ProductionHash } from "./contracts.js";
+import { productionControlContractVersion } from "./control-contract-dependency.js";
 import {
   RuntimeAttestationReceiptSchema,
   WorkerSessionCredentialSchema,
@@ -51,6 +52,8 @@ export class ProductionWorkerSession {
 
   public get buildHash(): ProductionHash { return this.agentBuildHash; }
 
+  public get controlContractVersion(): number { return productionControlContractVersion; }
+
   public get latestAttestation(): RuntimeAttestationReceipt {
     if (!this.attestation) throw new Error("PRODUCTION_ATTESTATION_MISSING");
     return this.attestation;
@@ -67,14 +70,14 @@ export class ProductionWorkerSession {
       device_epoch: this.device.device_epoch,
       worker_instance_id: this.workerInstanceId,
       agent_build_hash: this.agentBuildHash,
-      control_manifest_hash: this.device.control_manifest_hash,
+      control_contract_version: productionControlContractVersion,
     });
     const response = data as { session?: Record<string, unknown>; session_credential?: unknown };
     const credential = OpenResponseSchema.parse(response.session_credential);
     if (response.session?.device_id !== this.device.device_id
       || response.session.worker_session_id !== credential.worker_session_id
       || response.session.worker_session_epoch !== credential.worker_session_epoch
-      || response.session.control_contract_manifest_hash !== this.device.control_manifest_hash) {
+      || response.session.control_contract_version !== productionControlContractVersion) {
       throw executionFailure("failed", "PRODUCTION_SESSION_BINDING_INVALID");
     }
     this.credential = credential;

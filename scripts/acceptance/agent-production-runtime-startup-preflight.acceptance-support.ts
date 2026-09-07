@@ -56,7 +56,7 @@ const assertDependencyProjection = async (): Promise<void> => {
     await writeFile(dependencyPath, JSON.stringify(dependency), { mode: 0o600 });
     assert.deepEqual(await verifyProductionDependency({
       agentDependencyPath: dependencyPath,
-    }), { status: "READY", version: 16 });
+    }), { status: "READY", version: 17 });
   
     const contract = dependency.contract as Record<string, unknown>;
     await writeFile(dependencyPath, JSON.stringify({
@@ -69,9 +69,9 @@ const assertDependencyProjection = async (): Promise<void> => {
     );
   
     assert.equal(DeviceCredentialSchema.parse(validDeviceCredential).device_epoch, 7);
-    const { control_manifest_hash: _manifestHash, ...missingManifest } = validDeviceCredential;
     assert.throws(() => DeviceCredentialSchema.parse({
-      ...missingManifest,
+      ...validDeviceCredential,
+      control_manifest_hash: HASH_A,
     }));
   } finally {
     await rm(projectionTemporary, { recursive: true, force: true });
@@ -89,10 +89,9 @@ const assertCredentialFormatFailures = async (credentialTemporary: string): Prom
     await writeCredential(malformed, "{");
     await expectCredentialCode(malformed, "PRODUCTION_CREDENTIAL_JSON_INVALID");
   
-    const missingManifest = path.join(credentialTemporary, "missing-manifest");
-    const { control_manifest_hash: _controlManifestHash, ...withoutManifest } = validDeviceCredential;
-    await writeCredential(missingManifest, withoutManifest);
-    await expectCredentialCode(missingManifest, "PRODUCTION_CREDENTIAL_CONTROL_MANIFEST_MISSING");
+    const obsoleteManifest = path.join(credentialTemporary, "obsolete-manifest");
+    await writeCredential(obsoleteManifest, { ...validDeviceCredential, control_manifest_hash: HASH_A });
+    await expectCredentialCode(obsoleteManifest, "PRODUCTION_CREDENTIAL_SCHEMA_INVALID");
 };
 
 const assertCredentialValueFailures = async (credentialTemporary: string): Promise<void> => {

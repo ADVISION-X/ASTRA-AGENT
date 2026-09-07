@@ -103,7 +103,7 @@ export const leaseBudget = (
   return {
     attempt_id: job.grant.attempt_id, device_id: job.grant.device_id,
     lease_version: job.grant.lease_version, execution_fence_hash: job.grant.execution_fence.fence_hash,
-    control_manifest_hash: job.grant.control_contract_manifest_hash,
+    capability_manifest_hash: job.grant.capability_manifest_hash,
     max_provider_turns: job.grant.max_provider_turns, provider_turns_used: 0,
     expires_at_monotonic: performance.now() + remaining - 10_000,
     command_ttl_ms: Math.min(20_000, remaining - 10_000), abort_signal: abort.signal,

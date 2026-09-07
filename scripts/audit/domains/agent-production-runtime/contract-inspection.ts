@@ -7,11 +7,11 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 
 const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V43", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V2",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V11", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V11",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V11", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V11",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V11",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V12",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V43", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V3",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V12", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V12",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V11", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V12",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V12",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V13",
 } as const;
 const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
@@ -34,8 +34,8 @@ const sourceFor = (context: InspectorContext, path: string): SourceFile | undefi
 
 const inspectMinimalDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const [path, version, lawId, checkId] of [
-    ["docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json", 16,
-      LAWS.route, "agent-production-runtime/v16-dependency"],
+    ["docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json", 17,
+      LAWS.route, "agent-production-runtime/v17-dependency"],
     ["docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json", 5,
       LAWS.route, "agent-production-runtime/v5-result-dependency"],
   ] as const) {
@@ -86,9 +86,9 @@ const inspectCredentialAndDurableTypes = (context: InspectorContext, findings: I
     ?.getVariableDeclaration("DeviceCredentialSchema")?.getInitializer();
   const credentialObject = credentialSchema?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
   const manifestProperty = credentialObject?.getProperty("control_manifest_hash");
-  if (!Node.isPropertyAssignment(manifestProperty) || manifestProperty.getInitializer()?.getText() !== "hash") {
+  if (manifestProperty) {
     findings.push(finding(LAWS.credential, "agent-production-runtime/credential-contract", credentialPath,
-      "DeviceCredentialSchema does not require the Website manifest hash."));
+      "DeviceCredentialSchema still persists the Website manifest hash."));
   }
   const store = sourceFor(context, PATHS.store);
   const taskFields = store?.getInterface("StoredProductionTask")?.getProperties().map((item) => item.getName()) ?? [];

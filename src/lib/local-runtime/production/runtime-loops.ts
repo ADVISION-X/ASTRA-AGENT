@@ -60,7 +60,7 @@ export const readHealth = (state: RuntimeState): ProductionRuntimeHealth => {
     browserTargetState: browser.browserTargetState,
     browserLaneState: browser.browserAuthorityState !== "present"
       ? "blocked" : browserLane,
-    contractManifestHash: state.session.device.control_manifest_hash,
+    controlContractVersion: state.session.controlContractVersion,
     catalogHash: productionCatalogHash, activeCount: state.active.size,
     pendingOutboxCount: state.store.pendingOutboxCount(),
     lastSuccessfulHeartbeatAt: state.lastHeartbeat,

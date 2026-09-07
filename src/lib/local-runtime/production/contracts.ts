@@ -163,7 +163,7 @@ export interface ProductionExecutionLease {
   readonly device_id: string;
   readonly lease_version: number;
   readonly execution_fence_hash: ProductionHash;
-  readonly control_manifest_hash: ProductionHash;
+  readonly capability_manifest_hash: ProductionHash;
   readonly max_provider_turns: number;
   provider_turns_used: number;
   expires_at_monotonic: number;

@@ -15,6 +15,7 @@ import {
 } from "../../runtime-logs/index.js";
 import { executionFailure, failureCode } from "../../execution-failure.js";
 import { productionCatalogHash } from "./catalog.js";
+import { productionControlContractVersion } from "./control-contract-dependency.js";
 import type { ProductionHash } from "./contracts.js";
 import { readProductionCredential } from "./credential.js";
 import { ProductionExecutor } from "./executor.js";
@@ -52,7 +53,7 @@ const blockedHealth = (
   store: ProductionRuntimeStore,
   error: unknown,
   stopped: boolean,
-  contractManifestHash: ProductionHash | null,
+  controlContractVersion: number | null,
 ): ProductionRuntimeHealth => {
   const browser = input.browserAuthority.readProductionRuntimeState();
   const reason = safeReason(error);
@@ -63,7 +64,7 @@ const blockedHealth = (
     logSinkState: input.runtimeLogger.getSinkState(), browserAuthorityState: browser.browserAuthorityState,
     browserTargetState: browser.browserTargetState,
     browserLaneState: browser.browserAuthorityState === "present" ? "idle" : "blocked",
-    contractManifestHash, catalogHash: productionCatalogHash,
+    controlContractVersion, catalogHash: productionCatalogHash,
     activeCount: 0, pendingOutboxCount: store.pendingOutboxCount(),
     lastSuccessfulHeartbeatAt: null,
     lastErrorCode: failureCode(error, "PRODUCTION_RUNTIME_START_BLOCKED"),
@@ -98,12 +99,12 @@ const blockedRuntimeHandle = (
   input: ProductionRuntimeStartInput,
   store: ProductionRuntimeStore,
   error: unknown,
-  contractManifestHash: ProductionHash | null = null,
+  controlContractVersion: number | null = null,
 ): ProductionRuntimeHandle => {
   const traceId = `producer:${input.runtimeLogger.producerRunId}`;
   let stopped = false;
   return {
-    readHealth: () => blockedHealth(input, store, error, stopped, contractManifestHash),
+    readHealth: () => blockedHealth(input, store, error, stopped, controlContractVersion),
     readTask: (jobId) => store.readTask(jobId),
     diagnose: (jobId) => diagnoseProductionRuntime(input.dataDir, store, jobId),
     close: async () => {
@@ -342,7 +343,7 @@ export const startProductionRuntime = async (
   if (transportFailure?.httpStatus === 409
     && failureCode(sessionFailure) === "AI_SESSION_BINDING_MISMATCH") {
     return blockedRuntimeHandle(
-      input, store, sessionFailure, credential.control_manifest_hash,
+      input, store, sessionFailure, productionControlContractVersion,
     );
   }
   return createRuntimeHandle(input, state);

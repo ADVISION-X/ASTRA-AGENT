@@ -1,20 +1,20 @@
-# production-runtime 生产级施工图 V23
+# production-runtime 生产级施工图 V24
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v23",
+  "blueprintId": "agent-production-runtime-v24",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
     "LAW-AGENT-PRODUCTION-RUNTIME-001-V43",
-    "LAW-AGENT-PRODUCTION-RUNTIME-002-V2",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V11",
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V11",
+    "LAW-AGENT-PRODUCTION-RUNTIME-002-V3",
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V12",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V12",
     "LAW-AGENT-PRODUCTION-RUNTIME-005-V11",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V11",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V11",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V12"
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V12",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V12",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V13"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -122,15 +122,14 @@ Runtime 自身代码保持 production 目录内的直接模块关系。不得新
   -> credential parent + file lstat
   -> owner-only permissions
   -> JSON parse + schema
-  -> Website-issued control_manifest_hash presence
   -> production origin
-  -> Website session open exact manifest equality
+  -> Website session open exact control_contract_version equality
   -> claim eligibility
 ```
 
-任一步失败都不得继续 session、claim 或 Provider mutation。credential 不存在、父目录权限错误、文件权限错误、符号链接、JSON 损坏、schema 不完整、control manifest 缺失和 origin 非法分别输出稳定 typed code；健康与诊断只显示 code、唯一 responsible domain、影响与恢复动作，不显示 token、credential JSON、路径内容或原生解析正文。
+任一步失败都不得继续 session、claim 或 Provider mutation。credential 不存在、父目录权限错误、文件权限错误、符号链接、JSON 损坏、schema 不完整、origin 非法和 control contract version 不相等分别输出稳定 typed code；健康与诊断只显示 code、唯一 responsible domain、影响与恢复动作，不显示 token、credential JSON、路径内容或原生解析正文。
 
-control_manifest_hash 只由授权的现役 Website enrollment 原子签发并写入。Runtime 不从 dependency、代码常量、Website checkout、数据库旧字段或旧 credential 推导、补写、迁移或兼容读取；失败后不启动 fallback、第二 reader 或自动修复。
+授权 enrollment 只建立或恢复长期 device identity 与 credential，不签发整份 manifest hash，不因合同升级重建 device。Runtime 只从本仓唯一 active consumer dependency 读取 `control_contract_version`，在 session open 时发送；Website 必须与自身当前 provider contract version 精确比较，并在 session、claim grant 与 execution fence 返回同一版本。版本不相等只产生一次 typed 409 并保持 Execution blocked，不允许定时重试、fallback、第二 reader、自动 enrollment 或旧凭据回退。
 
 ## 4. 跨仓合同与业务完成
 
@@ -138,7 +137,7 @@ Website ai-acceptance 是唯一 provider。AGENT 三份 spec 的现役身份为�
 
 - Agent Plugin Capability Manifest provider：version 3；authorityArtifact 路径、selector 与 provider spec 只定义 Manifest 的规范字段和 schema。任一 Product Profile/Skill/执行语义变化必须提升对应 `plugin_version` 并重算 canonical catalog hash；只有 Manifest 规范字段或 schema 变化才提升 provider spec version，禁止用旧 Plugin identity/hash 掩盖语义变化；
 - Website Agent Task Result consumer dependency：version 5；
-- Xuanxue AI Production V6 consumer dependency：version 16。
+- Xuanxue AI Production V6 consumer dependency：version 17。
 
 consumer dependency 的 contract body 只能包含 contractId、version、providerRepo。普通启动只校验本仓最小 dependency，不读取未绑定 Website 工作树；跨仓 participant commit 只属于 RELEASE 证据。
 
@@ -152,7 +151,7 @@ consumer dependency 的 contract body 只能包含 contractId、version、provid
 
 未知、缺失、额外、重复、顺序漂移或语义不等一律失败关闭。不得手写 route allowlist、第二支持表、compatibility、alias、fallback、bridge 或 shadow projection。
 
-Website 在签发任务前唯一判断业务参数值是否合法。Runtime 先把 product_id/action_id 解析为有界字符串，再按 current route projection 精确解析；Mediator 返回的纯数据 Plugin identity、Runtime 发布的 Capability Manifest 与 Website 冻结的 claim identity 必须精确匹配。除此之外 Runtime 只校验 authenticated session/claim/grant/fence、task wire/schema、request hash、当前 contract/projection/control manifest identity，以及 route/key/material/relation/result-contract 与当前 projection 的机械一致性；不得保存 `bazi_analysis_kind`、locale、localization resource kind、Product package/version 或 Bazi reusable candidate 的业务白名单，不得按 action 名推导 review/continuation，不得维护 `routeProducesGeneratedImage`、手写 Product/Action 支持表或硬编码 primary 数量。Product Plugin 通过 Product-facing execution contract 取得当前 task、materials、当前 Website route policy 与 GPT public facade，只校验完成自身执行所必需的局部 artifact、Skill/checkpoint 与 result 组装前置，不复判 Website 业务资格，也不读取 Runtime 私有 transport、store、lease、Outbox 或 recovery 模块。
+Website 在签发任务前唯一判断业务参数值是否合法。Runtime 先把 product_id/action_id 解析为有界字符串，再按 current route projection 精确解析；Mediator 返回的纯数据 Plugin identity、Runtime 发布的 Capability Manifest 与 Website 冻结的 claim identity 必须精确匹配。除此之外 Runtime 只校验 authenticated session/claim/grant/fence、task wire/schema/hash、当前 contract/projection/control contract version，以及 route/key/material/relation/result-contract 与当前 projection 的机械一致性；不得保存 `bazi_analysis_kind`、locale、localization resource kind、Product package/version 或 Bazi reusable candidate 的业务白名单，不得按 action 名推导 review/continuation，不得维护 `routeProducesGeneratedImage`、手写 Product/Action 支持表或硬编码 primary 数量。Product Plugin 通过 Product-facing execution contract 取得当前 task、materials、当前 Website route policy 与 GPT public facade，只校验完成自身执行所必需的局部 artifact、Skill/checkpoint 与 result 组装前置，不复判 Website 业务资格，也不读取 Runtime 私有 transport、store、lease、Outbox 或 recovery 模块。
 
 Website business admission receipt 只有三种互斥结构：
 
@@ -231,7 +230,7 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 每次候选都必须重新证明：
 
 1. 八条 Runtime law、稳定 blueprintId、三份 active contractRef 与 Runtime 唯一 Manifest 的 lawIds 相互一致；Architecture Boundary law 与 Manifest 独立保持其现役一一对应；越界 `ownedPaths` 只在同一候选的一次原子修改中归位，并立即证明无无主、无重叠、无 Runtime manifest-owner-drift。
-2. Website task-result v5、V6 v16 与 AGENT dependency 精确一致，consumer contract body 只有三字段。
+2. Website task-result v5、V6 v17 与 AGENT dependency 精确一致，consumer contract body 只有三字段；device credential 与 enrollment response 不含 manifest hash，session/grant/fence 的 control_contract_version 逐项同值。
 3. route projection 精确为 39 routes、57 parameter types、30 result contracts、2 reservation routes。
 4. base、Bazi primary、review admission receipt 的互斥字段与完整 canonical hash 全部闭合，未闭合时本地 completed 增量为零。
 5. credential 失败类别分别得到稳定脱敏 typed code，且 claim/Provider mutation 增量为零。

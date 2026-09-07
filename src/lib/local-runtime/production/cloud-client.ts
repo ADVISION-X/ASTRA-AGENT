@@ -76,7 +76,7 @@ export async function claimProductionTasks(
   if ((receipt.outcome === "LEASE_GRANTED") !== (jobs.length > 0)
     || jobs.some((job) => job.grant.worker_session_id !== session.workerSessionId
       || job.grant.worker_session_epoch !== session.workerSessionEpoch
-      || job.grant.control_contract_manifest_hash !== session.device.control_manifest_hash)) {
+      || job.grant.control_contract_version !== session.controlContractVersion)) {
     throw executionFailure("failed", "V6_CLAIM_BATCH_INVALID");
   }
   return {

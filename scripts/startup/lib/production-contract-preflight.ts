@@ -1,38 +1,20 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-const CONTRACT_KEYS = ["contractId", "providerRepo", "version"] as const;
+import { parseProductionControlDependency } from "../../../src/lib/local-runtime/production/control-contract-dependency.js";
 
 const readJson = async (filePath: string): Promise<Record<string, unknown>> =>
   JSON.parse(await readFile(filePath, "utf8")) as Record<string, unknown>;
 
-const record = (value: unknown): Record<string, unknown> | null =>
-  value !== null && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown> : null;
-
-const dependencyMatches = (
-  dependency: Record<string, unknown>,
-  contract: Record<string, unknown>,
-): boolean => [
-  JSON.stringify(Object.keys(contract).sort()) === JSON.stringify([...CONTRACT_KEYS].sort()),
-  dependency.schemaVersion === 1,
-  dependency.specKind === "cross-repo-dependency",
-  dependency.status === "active",
-  dependency.version === 16,
-  contract.contractId === "ai-acceptance.xuanxue-ai-production-v6",
-  contract.providerRepo === "ADVISION-X/xuanxue-web",
-  contract.version === 16,
-].every(Boolean);
-
 export async function verifyProductionDependency(input: {
   readonly agentDependencyPath: string;
-}): Promise<Readonly<{ status: "READY"; version: 16 }>> {
-  const dependency = await readJson(input.agentDependencyPath);
-  const contract = record(dependency.contract);
-  if (!contract || !dependencyMatches(dependency, contract)) {
-    throw new Error("AI_PRODUCTION_DEPENDENCY_INVALID");
+}): Promise<Readonly<{ status: "READY"; version: number }>> {
+  try {
+    const dependency = parseProductionControlDependency(await readJson(input.agentDependencyPath));
+    return Object.freeze({ status: "READY", version: dependency.contract.version });
+  } catch (error) {
+    throw new Error("AI_PRODUCTION_DEPENDENCY_INVALID", { cause: error });
   }
-  return Object.freeze({ status: "READY", version: 16 });
 }
 
 export const productionDependencyPath = (input: {

@@ -153,7 +153,7 @@ export class ProductionGptChildTools {
         deviceId: input.deviceId,
         leaseVersion: input.leaseVersion,
         executionFenceHash: input.executionFenceHash,
-        controlManifestHash: input.controlManifestHash,
+        capabilityManifestHash: input.capabilityManifestHash,
         get expiresAtMonotonic() { return input.expiresAtMonotonic; },
         get commandTtlMs() { return input.commandTtlMs; },
         abortSignal: input.abortSignal,

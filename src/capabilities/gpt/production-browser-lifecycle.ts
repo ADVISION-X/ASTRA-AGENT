@@ -34,7 +34,7 @@ export type GptBrowserExecutionInput = Readonly<{
   deviceId: string;
   leaseVersion: number;
   executionFenceHash: GptHash;
-  controlManifestHash: GptHash;
+  capabilityManifestHash: GptHash;
   expiresAtMonotonic: number;
   commandTtlMs: number;
   abortSignal: AbortSignal;
@@ -408,7 +408,7 @@ export class ProductionGptBrowserLifecycle {
       deviceId: this.execution.deviceId,
       leaseVersion: this.execution.leaseVersion,
       localOrderId: this.execution.jobId,
-      contractManifestHash: this.execution.controlManifestHash,
+      contractManifestHash: this.execution.capabilityManifestHash,
       executionRef,
       jobRefHash: sha256(this.execution.jobId),
       executionRefHash: sha256(executionRef),

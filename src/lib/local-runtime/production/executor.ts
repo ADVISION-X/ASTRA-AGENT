@@ -294,7 +294,7 @@ export class ProductionExecutor {
           deviceId: input.lease.device_id,
           leaseVersion: input.lease.lease_version,
           executionFenceHash: input.lease.execution_fence_hash,
-          controlManifestHash: input.lease.control_manifest_hash,
+          capabilityManifestHash: input.lease.capability_manifest_hash,
           maxProviderTurns: input.lease.max_provider_turns,
           get expiresAtMonotonic() { return input.lease.expires_at_monotonic; },
           get commandTtlMs() { return input.lease.command_ttl_ms; },

@@ -71,8 +71,13 @@ const assertMaterialTransportFailure = async (): Promise<void> => {
   try {
     globalThis.fetch = (async () => new Response(JSON.stringify({
       ok: false,
-      error: { code: "AI_PRODUCTION_INPUT_OBJECT_READ_FAILED", message: "Input object is unavailable." },
-    }), { status: 503, headers: { "content-type": "application/problem+json" } })) as typeof globalThis.fetch;
+      error: {
+        code: "AI_PRODUCTION_INPUT_OBJECT_READ_FAILED",
+        message: "Input object is unavailable.",
+        status: 503,
+        request_id: "request:material-read-failure",
+      },
+    }), { status: 503, headers: { "content-type": "application/json" } })) as typeof globalThis.fetch;
     const materialJob = claimTask(task({
       jobId: "job:material-remote-failure",
       productId: "payment_screenshot_observation",

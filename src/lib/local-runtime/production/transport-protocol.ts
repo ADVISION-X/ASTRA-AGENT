@@ -18,7 +18,6 @@ export const DeviceCredentialSchema = z.object({
   origin: z.string().url(),
   device_id: z.string().min(1),
   device_epoch: z.number().int().positive(),
-  control_manifest_hash: hash,
   credential: z.string().regex(/^aidc_v6_[A-Za-z0-9_-]{32,}$/u),
   enrolled_at: z.string().datetime(),
 }).strict();
@@ -66,7 +65,7 @@ const ExecutionFenceSchema = z.object({
   attempt_id: z.string().min(1),
   lease_version: z.number().int().positive(),
   lease_token_hash: hash,
-  control_contract_manifest_hash: hash,
+  control_contract_version: z.number().int().positive(),
   fence_hash: hash,
 }).strict();
 
@@ -99,7 +98,7 @@ const ExecutionGrantSchema = z.object({
   accept_by: z.string().datetime(),
   lease_expires_at: z.string().datetime(),
   renew_after_ms: z.literal(20_000),
-  control_contract_manifest_hash: hash,
+  control_contract_version: z.number().int().positive(),
   execution_fence: ExecutionFenceSchema,
 }).strict();
 
@@ -131,7 +130,7 @@ export const ClaimedProductionTaskSchema = WebsiteAgentTaskBaseSchema.extend({
     || grant.execution_fence.job_id !== task.job_id
     || grant.execution_fence.attempt_id !== grant.attempt_id
     || grant.execution_fence.lease_version !== grant.lease_version
-    || grant.execution_fence.control_contract_manifest_hash !== grant.control_contract_manifest_hash
+    || grant.execution_fence.control_contract_version !== grant.control_contract_version
     || grant.expected_catalog_hash !== grant.capability_manifest_hash) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "V6_CLAIM_TASK_GRANT_MISMATCH" });
   }
@@ -196,18 +195,42 @@ export const UploadedResultReceiptSchema = z.object({
 
 export type UploadedResultReceipt = z.infer<typeof UploadedResultReceiptSchema>;
 
+export const AiProductionErrorEnvelopeSchema = z.object({
+  ok: z.literal(false),
+  error: z.object({
+    code: z.string().min(1),
+    message: z.string().min(1),
+    status: z.number().int().min(400).max(599),
+    request_id: z.string().min(1),
+    details: z.unknown().optional(),
+  }).strict(),
+}).strict();
+
+const AiProductionSuccessEnvelopeSchema = z.object({
+  ok: z.literal(true),
+  data: z.unknown(),
+}).strict();
+
 export const parseJsonEnvelope = (value: unknown, httpStatus?: number): unknown => {
-  const envelope = z.object({
-    ok: z.boolean(),
-    data: z.unknown().optional(),
-    error: z.object({ code: z.string(), message: z.string() }).passthrough().optional(),
-  }).passthrough().parse(value);
-  if (!envelope.ok || envelope.data === undefined) {
-    const code = envelope.error?.code ?? "PRODUCTION_CLOUD_API_UNKNOWN_FAILURE";
-    const cause = new Error(envelope.error?.message ?? "Production cloud API rejected the request.");
+  const envelope = z.discriminatedUnion("ok", [
+    AiProductionSuccessEnvelopeSchema,
+    AiProductionErrorEnvelopeSchema,
+  ]).parse(value);
+  if (httpStatus !== undefined) {
+    const httpSucceeded = httpStatus >= 200 && httpStatus < 300;
+    if (envelope.ok !== httpSucceeded || (!envelope.ok && envelope.error.status !== httpStatus)) {
+      throw runtimeTransportFailure(
+        "AI_PRODUCTION_HTTP_ENVELOPE_STATUS_MISMATCH",
+        httpStatus,
+        new Error("AI_PRODUCTION_HTTP_ENVELOPE_STATUS_MISMATCH"),
+      );
+    }
+  }
+  if (!envelope.ok) {
+    const cause = new Error(envelope.error.message);
     throw httpStatus === undefined
-      ? executionFailure("failed", code, { cause })
-      : runtimeTransportFailure(code, httpStatus, cause);
+      ? executionFailure("failed", envelope.error.code, { cause })
+      : runtimeTransportFailure(envelope.error.code, httpStatus, cause);
   }
   return envelope.data;
 };

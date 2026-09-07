@@ -20,7 +20,7 @@ type AiProductionHealthSnapshot = {
   readonly browserAuthorityState: "present" | "absent";
   readonly browserTargetState: "claimed" | "absent";
   readonly browserLaneState: "idle" | "busy" | "blocked";
-  readonly contractManifestHash: string | null;
+  readonly controlContractVersion: number | null;
   readonly activeCount: number;
   readonly lastSuccessfulHeartbeatAt: string | null;
   readonly lastErrorCode: string | null;
@@ -67,12 +67,12 @@ const readAiProductionComponents = (
     {
       name: "agentCloudWorker",
       ok: health.cloudState === "ready",
-      detail: `AGENT Cloud Worker state=${health.cloudState}; manifest=${health.contractManifestHash ?? "none"}; last_heartbeat=${health.lastSuccessfulHeartbeatAt ?? "none"}; error=${health.lastErrorCode ?? "none"}.`,
+      detail: `AGENT Cloud Worker state=${health.cloudState}; control_contract_version=${health.controlContractVersion ?? "none"}; last_heartbeat=${health.lastSuccessfulHeartbeatAt ?? "none"}; error=${health.lastErrorCode ?? "none"}.`,
       actionableMessage: health.cloudState === "ready" ? null
         : health.lastErrorCode === "AI_SESSION_BINDING_MISMATCH"
-          ? "Keep every existing job and attempt unchanged. Compare the enrolled device, environment, origin and manifest binding; only when stale enrollment is proven may an operator use the one explicitly authorized enrollment path. Do not retry the same binding."
+          ? "Keep every existing job and attempt unchanged. Compare the enrolled device, environment, origin and control contract version; use enrollment only for a first device or explicit revoked-device recovery. Do not retry the same binding."
         : health.cloudState === "contract_blocked"
-          ? "Deploy the website task/result contract and AGENT Capability Manifest with the exact same V6 manifest."
+          ? "Deploy the Website provider contract and AGENT consumer dependency at the exact same control contract version."
           : "Restore the AGENT Cloud Worker session/API dependency without changing task identity.",
       ownerResponsible: "production-runtime",
     },

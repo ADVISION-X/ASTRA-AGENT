@@ -160,7 +160,7 @@ try {
     deviceId: "device:runtime-task-exact-effect",
     leaseVersion,
     executionFenceHash: leaseVersion === 1 ? HASH_A : HASH_B,
-    controlManifestHash: HASH_A,
+    capabilityManifestHash: HASH_A,
     maxProviderTurns: 2,
     expiresAtMonotonic: performance.now() + 30_000,
     commandTtlMs: 1_000,
