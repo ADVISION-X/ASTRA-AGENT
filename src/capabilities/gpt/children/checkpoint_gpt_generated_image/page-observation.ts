@@ -82,3 +82,15 @@ export const assistantTurnForPrompt = (
   const assistantTurnId = `conversation-turn-${turnOrdinal(users[0]!.testId) + 1}`;
   return state.assistantTurns.some((turn) => turn.testId === assistantTurnId) ? assistantTurnId : null;
 };
+
+export const directPredecessorTextTurn = (
+  state: GptResponsePageState,
+  currentAssistantTurnId: string,
+): Readonly<{ testId: string; semanticTextHash: string }> | null => {
+  const currentOrdinal = turnOrdinal(currentAssistantTurnId);
+  if (currentOrdinal <= 2) return null;
+  const predecessorTurnId = `conversation-turn-${currentOrdinal - 2}`;
+  const matches = state.assistantTurns.filter((turn) => turn.testId === predecessorTurnId);
+  if (matches.length > 1) throw executionFailure("failed", `GPT_ASSISTANT_TURN_COUNT_${matches.length}`);
+  return matches[0] ?? null;
+};

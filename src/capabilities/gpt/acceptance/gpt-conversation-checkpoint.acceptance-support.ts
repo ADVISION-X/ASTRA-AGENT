@@ -173,19 +173,38 @@ import {
 {
   const { execute } = freshHarness();
   let simulatedNow = 0;
+  const predecessorPromptHash = hash("predecessor-prompt");
+  const predecessorMarker = "[GRASSEYE:gpt-native-image-predecessor]";
+  const imageConversationIdentityHash = hash(
+    `${conversationUrl}\n${marker}\nconversation-turn-3\n${promptHash}`,
+  );
   const original = Buffer.from(
     '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" fill="red"/></svg>',
   );
   const mediaHash = hash(original);
   const fixture = fakeBrowser((intent) => {
     if (intent.kind === "observe") {
-      return coherentObservationPacket(intent, responseFacts(), conversationUrl);
+      return coherentObservationPacket(intent, {
+        ...responseFacts(),
+        "user-turns": {
+          rawCount: 2, eligibleCount: 2, matches: [
+            { testId: "conversation-turn-1", exactGptUserPromptHash: predecessorPromptHash },
+            { testId: "conversation-turn-3", exactGptUserPromptHash: promptHash },
+          ],
+        },
+        "assistant-turns": {
+          rawCount: 2, eligibleCount: 2, matches: [
+            { testId: "conversation-turn-2", semanticTextHash: responseHash },
+            { testId: "conversation-turn-4", semanticTextHash: EMPTY_HASH },
+          ],
+        },
+      }, conversationUrl);
     }
     throw new Error(`UNEXPECTED_IMAGE_RESPONSE_INTENT:${intent.kind}`);
   }, { onWait: (durationMs) => { simulatedNow += durationMs; }, authenticatedMedia: {
     authorityTargetHash: `sha256:${"2".repeat(64)}`,
     authorityDocumentHash: `sha256:${"3".repeat(64)}`,
-    assistantTurnId: "conversation-turn-2",
+    assistantTurnId: "conversation-turn-4",
     semanticMediaId: "gpt-generated-image-main",
     bytesBase64: original.toString("base64"),
     sha256: mediaHash,
@@ -199,7 +218,8 @@ import {
   try {
     const expired = await execute("wait_for_stable_gpt_image", fixture.browser, {
       probeBudgetMs: -1, canonicalConversationUrl: conversationUrl,
-      conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
+      conversationIdentityHash: imageConversationIdentityHash,
+      expectedPromptHash: promptHash, turnMarker: marker,
     });
     assert.equal(expired.status, "failed");
     assert.equal(expired.failureCode, "GPT_RESPONSE_PROBE_BUDGET_INVALID");
@@ -207,7 +227,8 @@ import {
       "invalid image probe budget must fail before downloading media");
     const waited = await execute("wait_for_stable_gpt_image", fixture.browser, {
       probeBudgetMs: 1_000, canonicalConversationUrl: conversationUrl,
-      conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
+      conversationIdentityHash: imageConversationIdentityHash,
+      expectedPromptHash: promptHash, turnMarker: marker,
     });
     assert.equal(waited.status, "success", waited.failureCode ?? "stable image wait failed");
     assert.equal(waited.value?.mediaHash, mediaHash);
@@ -217,7 +238,7 @@ import {
     Date.now = nativeDateNow;
   }
   const checkpoint = await execute("checkpoint_gpt_generated_image", fixture.browser, {
-    assistantTurnId: "conversation-turn-2",
+    assistantTurnId: "conversation-turn-4",
     canonicalConversationUrl: conversationUrl,
     expectedMediaHash: mediaHash,
     expectedPromptHash: promptHash,
@@ -229,8 +250,8 @@ import {
       rawDomHash: hash("raw-dom"),
       semanticTextHash: responseHash,
       canonicalConversationUrl: conversationUrl,
-      promptHash,
-      turnMarker: marker,
+      promptHash: predecessorPromptHash,
+      turnMarker: predecessorMarker,
       evidenceRef: "evidence:text",
       evidenceHash: hash("evidence"),
     },
@@ -243,7 +264,7 @@ import {
   assert.equal(fixture.physicalMutations(), 0);
   const downloadsBeforeMismatch = fixture.authenticatedMediaDownloads();
   const predecessorMismatch = await execute("checkpoint_gpt_generated_image", fixture.browser, {
-    assistantTurnId: "conversation-turn-2",
+    assistantTurnId: "conversation-turn-4",
     canonicalConversationUrl: conversationUrl,
     expectedMediaHash: mediaHash,
     expectedPromptHash: promptHash,
@@ -253,10 +274,10 @@ import {
       assistantTurnId: "conversation-turn-2",
       artifactRef: "artifact:text",
       rawDomHash: hash("raw-dom"),
-      semanticTextHash: responseHash,
+      semanticTextHash: hash("wrong-predecessor-response"),
       canonicalConversationUrl: conversationUrl,
-      promptHash: hash("another-prompt"),
-      turnMarker: marker,
+      promptHash: predecessorPromptHash,
+      turnMarker: predecessorMarker,
       evidenceRef: "evidence:text",
       evidenceHash: hash("evidence"),
     },

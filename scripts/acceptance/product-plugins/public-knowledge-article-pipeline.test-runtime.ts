@@ -101,6 +101,8 @@ const currentCheckpointReadback = (
 
 const outputForCall = (state: SeoHarness, input: SeoCall, decision: "proceed" | "decline"): unknown => {
   const marker = `[GRASSEYE:${"a".repeat(24)}]`;
+  const textAssistantTurnId = input.productStepId === "article_synthesis"
+    ? "conversation-turn-4" : "conversation-turn-2";
   const text = input.productStepId === "corpus_research"
     ? JSON.stringify(researchOutput(decision))
     : input.productStepId === "article_synthesis"
@@ -121,9 +123,9 @@ const outputForCall = (state: SeoHarness, input: SeoCall, decision: "proceed" | 
       canonicalConversationUrl: "https://chatgpt.com/c/example",
       conversationIdentityHash: HASH,
     },
-    wait_for_stable_gpt_text: { assistantTurnId: "conversation-turn-2", responseHash: HASH, responseText: text },
+    wait_for_stable_gpt_text: { assistantTurnId: textAssistantTurnId, responseHash: HASH, responseText: text },
     checkpoint_gpt_text_response: {
-      assistantTurnId: "conversation-turn-2",
+      assistantTurnId: textAssistantTurnId,
       rawDomHtml: `<div data-message-author-role="assistant">${text}</div>`,
       rawDomHash: HASH, semanticText: text, semanticTextHash: HASH,
     },
@@ -181,6 +183,16 @@ const assertSeoCallBoundary = (state: SeoHarness, input: SeoCall): void => {
     assert(["submit_exact_gpt_turn_once", "reconcile_gpt_turn_submission",
       "release_gpt_continuation_lane"].includes(input.child),
     "source-only confirmed-submit recovery may settle the same submit or locator and release non-Browser ownership");
+  }
+  if (input.child === "checkpoint_gpt_generated_image") {
+    const predecessor = input.input.predecessorTextCheckpoint;
+    assert.equal(predecessor.assistantTurnId, "conversation-turn-4");
+    assert.equal(input.input.assistantTurnId, "conversation-turn-6");
+    assert.notEqual(predecessor.promptHash, input.input.expectedPromptHash,
+      "direct predecessor keeps the article prompt hash instead of impersonating the image prompt");
+    assert.notEqual(predecessor.turnMarker, input.input.turnMarker,
+      "direct predecessor keeps the article marker instead of impersonating the image marker");
+    return;
   }
   if (input.child !== "attach_approved_gpt_files_once"
     && input.child !== "reconcile_gpt_attachment_set") return;

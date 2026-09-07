@@ -1,9 +1,9 @@
-# GPT 能力组 V25 施工图
+# GPT 能力组 V26 施工图
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "gpt-capability-group-v25",
+  "blueprintId": "gpt-capability-group-v26",
   "status": "active",
   "owner": "gpt",
   "lawIds": [
@@ -23,7 +23,7 @@
 
 `gpt` 只拥有 GPT Provider 的 28 个原子 Child、对应局部合同、Browser Authority 调用、直接后置证明和 typed result：二十二个 Provider 页面语义 Child、六个 continuation transaction Child。十二个 Product Plugin 各自直接拥有 Child 顺序、分支、重复、跳过、Prompt 语义、精确模型、requested reasoning tier、selection policy 和结果组装；模型选择完成后重新确保 execution profile 打开、再执行 Product 冻结的推理要求，也属于每个 Product 自己的显式顺序。
 
-本次 V25 保持 28 个 Child 的物理隔离与三步 fork 公开边界，并根据同一专用 QA Chrome 现场实证，修正最终 fork 的物理页面接管与 `/c/WEB:<opaque>` 瞬时 route 边界。子会话首页由 Browser Authority 接管真实 child tab、把同一逻辑 `targetRef` 转移到 child 的新物理 `tabId`，随后关闭 source tab；禁止关闭 child 后再导航 source tab。首次 follow-up reconcile 必须等待 durable 非 WEB URL 后才成功。其余 Child 的公开身份、局部合同和 mutation 配额不改变。`open_gpt_execution_profile`、`open_gpt_model_selector_v2`、`select_exact_gpt_model_v2`、`ensure_gpt_reasoning_requirement`、`close_gpt_execution_profile` 的 PRO/PLUS、0..2/0..4 与 exact/exact-or-observed-maximum 语义继续冻结，不得借本次修改行为或建立兼容路径。
+本次 V26 保持 28 个 Child 的公开身份、物理隔离、局部合同与 mutation 配额不变，并把 `checkpoint_gpt_generated_image` 的直接前驱核验口径收敛到现役 continuation 唯一真相：直接前驱 text checkpoint 保留自己的 turn marker、prompt hash 与 assistant turn，当前图片 turn 必须与它位于同一 canonical conversation 且 assistant turn ordinal 精确相差 2。页面同一次 coherent observation 还必须证明前驱 text assistant turn 的 semantic text hash 与 receipt 相同；不得反向要求前驱 receipt 冒充当前图片 turn。本次同时保留 V25 已冻结的三步 fork 页面接管、`/c/WEB:<opaque>` 瞬时 route 以及 execution profile 的 PRO/PLUS、0..2/0..4 与 exact/exact-or-observed-maximum 语义，不得借本次修改行为或建立兼容路径。
 
 ```text
 Product Plugin 的普通 TypeScript Flow
@@ -198,7 +198,7 @@ bounded-wait 只是画像附加特征：`prepare_clean_gpt_chat`、`focus_exact_
 
 二十二个页面 Child 继续只在各自现有 handler、合同和 Browser typed command 内闭合，不新增 Child、公共 selector registry、第二 observation、第二存储或质量裁决。当前真实页面实证要求以下直接约束：
 
-- `checkpoint_gpt_generated_image` 必须先逐字段证明直接前驱 text checkpoint 与当前 canonical conversation、turn marker、user/assistant turn、prompt hash 及 source checkpoint identity 相同，再取得同一 assistant turn 的媒体；字段形状正确不能代替身份相等。
+- `checkpoint_gpt_generated_image` 必须先证明直接前驱 text checkpoint 与当前图片 turn 属于同一 canonical conversation，且前驱 assistant turn ordinal + 2 精确等于当前图片 assistant turn ordinal；同一次 coherent observation 必须同时命中该前驱 assistant turn，并证明它的 semantic text hash 与 receipt 相同。前驱 receipt 的 turn marker、prompt hash、assistant turn 与 source checkpoint identity 必须保持前驱自身原值，严禁要求它们等于当前图片 turn 的 marker、prompt hash 或 assistant turn；字段形状正确、仅 URL 相同或仅 ordinal 相邻都不能代替完整身份闭合。闭合后才可取得当前 assistant turn 的媒体。
 - `checkpoint_gpt_text_response` 的 exact assistant turn 专用 reply 必须携带并核对产生 turn 邻接事实的同一 `observationRevisionHash`；不得把一条列表 observation 与另一 revision 的完整 DOM/semantic reply 拼成 checkpoint。
 - `close_gpt_execution_profile` 必须在关闭前证明当前 trigger 与唯一 popup 的 owner relation，关闭后的同一直接后置必须证明该 popup 缺席、trigger collapsed 且唯一 composer 未被遮挡并可操作；全局 `popup=0` 单独不能成功。
 - `focus_exact_gpt_conversation` 导航或零导航后都必须在同一 fresh coherent packet 中证明 canonical URL、目标 marker、该 marker 的 exact user turn 与 prompt hash；URL 相等不是 conversation identity。

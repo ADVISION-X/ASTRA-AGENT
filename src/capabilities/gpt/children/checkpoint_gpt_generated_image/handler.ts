@@ -12,7 +12,9 @@ import {
   success,
   type GptChildHandler,
 } from "../../web/child-handler.js";
-import { assistantTurnForPrompt, ensureResponseConversation } from "./page-observation.js";
+import {
+  assistantTurnForPrompt, directPredecessorTextTurn, ensureResponseConversation,
+} from "./page-observation.js";
 import { isGptTurnId, responseHashInput } from "./response-support.js";
 import { canonicalGptConversationUrl } from "../../web/contracts/target-document.contract.js";
 
@@ -70,15 +72,25 @@ GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
   const expectedMediaHash = responseHashInput(intent, "expectedMediaHash");
   const turnMarker = stringInput(intent, "turnMarker");
   const predecessorTextCheckpoint = predecessorInput(intent);
-  if (predecessorTextCheckpoint.assistantTurnId !== assistantTurnId
-    || predecessorTextCheckpoint.canonicalConversationUrl !== conversationUrl
-    || predecessorTextCheckpoint.promptHash !== expectedPromptHash
-    || predecessorTextCheckpoint.turnMarker !== turnMarker) {
+  const assistantOrdinal = Number(/^conversation-turn-([1-9][0-9]*)$/u.exec(assistantTurnId)?.[1]);
+  const predecessorOrdinal = Number(
+    /^conversation-turn-([1-9][0-9]*)$/u.exec(predecessorTextCheckpoint.assistantTurnId)?.[1],
+  );
+  if (predecessorTextCheckpoint.canonicalConversationUrl !== conversationUrl
+    || !Number.isSafeInteger(assistantOrdinal) || !Number.isSafeInteger(predecessorOrdinal)
+    || predecessorOrdinal + 2 !== assistantOrdinal) {
     throw executionFailure("failed", "GPT_GENERATED_IMAGE_PREDECESSOR_MISMATCH");
   }
   const browser = requireBrowser(context);
   const observed = await ensureResponseConversation(browser, conversationUrl);
-  if (assistantTurnForPrompt(observed, expectedPromptHash) !== assistantTurnId || observed.generatingRaw !== 0) {
+  const predecessorTurn = directPredecessorTextTurn(observed, assistantTurnId);
+  if (!predecessorTurn
+    || predecessorTurn.testId !== predecessorTextCheckpoint.assistantTurnId
+    || predecessorTurn.semanticTextHash !== predecessorTextCheckpoint.semanticTextHash) {
+    throw executionFailure("failed", "GPT_GENERATED_IMAGE_PREDECESSOR_MISMATCH");
+  }
+  if (assistantTurnForPrompt(observed, expectedPromptHash) !== assistantTurnId
+    || observed.generatingRaw !== 0) {
     throw executionFailure("failed", "GPT_RESPONSE_CHECKPOINT_MISMATCH");
   }
   const media = await browser.downloadAuthenticatedMedia({
