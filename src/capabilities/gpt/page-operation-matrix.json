@@ -28,9 +28,6 @@
       "src/lib/browser/chrome-extension/dom-coherent-observation.ts"
     ],
     "wait_for_stable_gpt_text": [
-      "src/capabilities/gpt/ability-group.ts",
-      "src/capabilities/gpt/document-transition-policy.ts",
-      "src/capabilities/gpt/production-browser-lifecycle.ts",
       "src/lib/browser/chrome-extension/dom-coherent-observation.ts",
       "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts"
     ],

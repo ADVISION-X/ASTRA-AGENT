@@ -93,6 +93,11 @@ const createOwnedExecution = (task: WebsiteAgentTask, context: SharedExecutionCo
     if (result.evidence) recordEvidence(call, result.evidence.evidenceRef);
     return result;
   };
+  const taskExactFacts = async (call: FlowCall): Promise<ExactGptCallFacts> => {
+    const result = await context.gpt.readCallFacts({ ...call, lookupKind: "task_exact_effect" });
+    if (result.evidence) recordEvidence(call, result.evidence.evidenceRef);
+    return result;
+  };
   const execute = async (call: FlowCall) => {
     await facts(call);
     const result = await context.gpt.execute({ ...call, sessionKey });
@@ -105,7 +110,7 @@ const createOwnedExecution = (task: WebsiteAgentTask, context: SharedExecutionCo
   const evidenceRefs = (): readonly string[] => Object.freeze([...evidenceByCall.entries()]
     .sort((left, right) => left[1].ordinal - right[1].ordinal || left[0].localeCompare(right[0]))
     .map((entry) => entry[1].evidenceRef));
-  return Object.freeze({ evidenceRefs, execute, facts, requireEvidence });
+  return Object.freeze({ evidenceRefs, execute, facts, taskExactFacts, requireEvidence });
 };
 
 const materialFiles = (context: SharedExecutionContext) => context.materials.slice()
@@ -294,8 +299,9 @@ const submitTurn = async (
   const promptHash = sha256(prompt);
   const write = { productStepId: stepId, callId: "prompt-write", child: "write_exact_gpt_prompt", actionOrdinal: ordinals[0], input: { prompt } } as const;
   const draft = { productStepId: stepId, callId: "draft-reconcile", child: "reconcile_gpt_draft", actionOrdinal: ordinals[1], input: { files, prompt, turnMarker: marker } } as const;
-  const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: ordinals[2], input: { files, promptHash, turnMarker: marker } } as const;
+  const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: ordinals[2], input: { files, promptHash, turnMarker: marker }, effectLookupKind: "task_exact_effect" } as const;
   const existing = await flow.facts(submit);
+  if (!existing.mutation && !existing.evidence) await flow.taskExactFacts(submit);
   if (existing.mutation || existing.evidence) {
     await flow.requireEvidence(write);
     await flow.requireEvidence(draft);
@@ -318,8 +324,9 @@ const runFreshTurn = async (
   marker: string,
 ): Promise<Checkpoint> => {
   const stepId = task.action_id;
-  const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 13, input: { files: uploadedFiles(context), promptHash: sha256(prompt), turnMarker: marker } } as const;
+  const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 13, input: { files: uploadedFiles(context), promptHash: sha256(prompt), turnMarker: marker }, effectLookupKind: "task_exact_effect" } as const;
   const existing = await flow.facts(submit);
+  if (!existing.mutation && !existing.evidence) await flow.taskExactFacts(submit);
   const recoverOnly = Boolean(existing.mutation || existing.evidence);
   const fresh = { productStepId: stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;
   if (recoverOnly) await flow.requireEvidence(fresh);
@@ -355,8 +362,10 @@ export const executeIsolatedLocalizationJsonTurn = async (
   const submitCall = {
     productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once",
     actionOrdinal: 10, input: { files: [], promptHash: sha256(prompt), turnMarker: marker },
+    effectLookupKind: "task_exact_effect",
   } as const;
   const existing = await flow.facts(submitCall);
+  if (!existing.mutation && !existing.evidence) await flow.taskExactFacts(submitCall);
   const recoverOnly = Boolean(existing.mutation || existing.evidence);
   const fresh = {
     productStepId: input.stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat",

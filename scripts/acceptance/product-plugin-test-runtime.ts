@@ -31,6 +31,7 @@ export const FIXTURE_HASH_B = `sha256:${"b".repeat(64)}` as ProductionHash;
 
 type ProductCall = ProductGptAnyCallInput & Readonly<{ sessionKey: string }>;
 type ProductExecuteInput = Parameters<ProductGptTools["execute"]>[0];
+type ProductFactQuery = Parameters<ProductGptTools["readCallFacts"]>[0];
 type ProductFact = Readonly<{ evidenceRef: string; mutation: boolean }>;
 
 export type ProductTaskFixture = Readonly<{
@@ -238,6 +239,7 @@ type ProductRunState = {
   calls: ProductCall[];
   completed: ProductPluginOutput | null;
   continuationReads: unknown[];
+  factQueries: ProductFactQuery[];
   facts: Map<string, ProductFact>;
   laneOwned: boolean;
   physicalSubmitDispatches: number;
@@ -267,6 +269,7 @@ const createGptFixture = (
     return fixture.continuationReadback ?? null;
   },
   readCallFacts: async (call) => {
+    state.factQueries.push(call);
     const fact = state.facts.get(callKey(call));
     return {
       exactCallIdentityHash: FIXTURE_HASH,
@@ -337,12 +340,13 @@ export const exerciseProductFlow = async (
   calls: readonly ProductCall[];
   completed: ProductPluginOutput;
   continuationReads: readonly unknown[];
+  factQueries: readonly ProductFactQuery[];
   physicalSubmitDispatches: number;
   generatedImageUploads: number;
 }>> => {
   const root = mkdtempSync(join(tmpdir(), "grasseye-product-acceptance-"));
   const state: ProductRunState = {
-    calls: [], completed: null, continuationReads: [], facts: new Map(), laneOwned: false,
+    calls: [], completed: null, continuationReads: [], factQueries: [], facts: new Map(), laneOwned: false,
     physicalSubmitDispatches: 0, generatedImageUploads: 0,
     provider: fixture.task.continuation_ref ? initialProvider() : null,
   };
@@ -353,7 +357,8 @@ export const exerciseProductFlow = async (
     assert.equal(new Set(state.calls.map((call) => call.sessionKey)).size, fixture.expectedSessionCount ?? 1);
     assert.ok(state.calls.every((call) => call.sessionKey.includes(plugin.pluginId)));
     return { calls: state.calls, completed: state.completed,
-      continuationReads: state.continuationReads, physicalSubmitDispatches: state.physicalSubmitDispatches,
+      continuationReads: state.continuationReads, factQueries: state.factQueries,
+      physicalSubmitDispatches: state.physicalSubmitDispatches,
       generatedImageUploads: state.generatedImageUploads };
   } finally {
     rmSync(root, { recursive: true, force: true });

@@ -34,9 +34,9 @@ import {
 import { confirmedProviderReadbackEvidencePending } from "./confirmed-provider-readback.js";
 import {
   currentDocument,
+  documentTransitionContext,
   documentTransitionAllowed,
   documentTransitionObservable,
-  type DocumentTransitionBoundary,
   type CurrentDocument,
 } from "./document-transition-policy.js";
 
@@ -444,44 +444,7 @@ const executeOne = async <K extends GptChildCapabilityId>(
   }
   const handler = registeredHandler as GptChildHandler<K>;
   const before = currentDocument(context);
-  let documentBoundary = before;
-  const isStableTextWait = intent.childCapabilityId === "wait_for_stable_gpt_text";
-  const advanceDocumentBoundary = (
-    beforeBoundary: CurrentDocument,
-    boundary: DocumentTransitionBoundary,
-  ): void => {
-    const after = currentDocument(context);
-    if (!documentTransitionAllowed(intent.childCapabilityId, beforeBoundary, after, boundary)) {
-      throw executionFailure("failed", `GPT_DOCUMENT_TRANSITION_FORBIDDEN:${intent.childCapabilityId}`);
-    }
-    documentBoundary = after;
-  };
-  const handlerContext = Object.freeze({
-    ...context,
-    ...(isStableTextWait && context.yieldForProviderWait ? {
-      yieldForProviderWait: async (durationMs: number): Promise<void> => {
-        const beforeBoundary = currentDocument(context);
-        await context.yieldForProviderWait!(durationMs);
-        advanceDocumentBoundary(beforeBoundary, "normal-provider-reacquire");
-      },
-    } : {}),
-    ...(isStableTextWait && context.navigateCrossConversationPoll ? {
-      navigateCrossConversationPoll: async (
-        canonicalConversationUrl: string,
-        probeDeadlineAt: number,
-      ): Promise<"navigated" | "reobserve" | "deadline"> => {
-        const beforeBoundary = currentDocument(context);
-        const outcome = await context.navigateCrossConversationPoll!(canonicalConversationUrl, probeDeadlineAt);
-        if (outcome === "navigated") {
-          advanceDocumentBoundary(beforeBoundary, "exact-canonical-navigation");
-        }
-        if (outcome === "reobserve") {
-          advanceDocumentBoundary(beforeBoundary, "normal-provider-reacquire");
-        }
-        return outcome;
-      },
-    } : {}),
-  });
+  const transitions = documentTransitionContext(intent.childCapabilityId, context, before);
   let observation: GptChildObservation<K> | undefined;
   try {
     assertExecutionIdentity(intent);
@@ -489,13 +452,14 @@ const executeOne = async <K extends GptChildCapabilityId>(
     if ((context.browser?.pendingMutationCount() ?? 0) !== 0 && context.mutationMode !== "readback") {
       throw executionFailure("failed", "GPT_PRIOR_BROWSER_MUTATION_UNRESOLVED");
     }
-    const nextObservation = await handler(intent, handlerContext);
+    const nextObservation = await handler(intent, transitions.handlerContext);
     observation = nextObservation;
-    assertObservationIsAtomic(intent, context, documentBoundary, nextObservation);
+    assertObservationIsAtomic(intent, context, transitions.boundary(), nextObservation);
     return await successfulExecution({ intent, context, startedAt, before, observation: nextObservation });
   } catch (error) {
     return await failedExecution({
-      intent, context, startedAt, before, documentBoundary, ...(observation ? { observation } : {}), error,
+      intent, context, startedAt, before, documentBoundary: transitions.boundary(),
+      ...(observation ? { observation } : {}), error,
     });
   }
 };

@@ -3,6 +3,7 @@ import {
   type GptChildCapabilityId,
   type GptExecutionContext,
 } from "./contract.js";
+import { executionFailure } from "../../lib/execution-failure.js";
 
 export type CurrentDocument = Readonly<{
   ref: string | null;
@@ -62,3 +63,42 @@ export const documentTransitionObservable = (
   before: CurrentDocument,
   after: CurrentDocument,
 ): boolean => hasCompleteDocument(before) && hasCompleteDocument(after);
+
+export const documentTransitionContext = (
+  childCapabilityId: GptChildCapabilityId,
+  context: GptExecutionContext,
+  initialBoundary: CurrentDocument,
+): Readonly<{ handlerContext: GptExecutionContext; boundary: () => CurrentDocument }> => {
+  let documentBoundary = initialBoundary;
+  const advance = (before: CurrentDocument, boundary: DocumentTransitionBoundary): void => {
+    const after = currentDocument(context);
+    if (!documentTransitionAllowed(childCapabilityId, before, after, boundary)) {
+      throw executionFailure("failed", `GPT_DOCUMENT_TRANSITION_FORBIDDEN:${childCapabilityId}`);
+    }
+    documentBoundary = after;
+  };
+  const trackStableText = childCapabilityId === "wait_for_stable_gpt_text";
+  const handlerContext = Object.freeze({
+    ...context,
+    ...(trackStableText && context.yieldForProviderWait ? {
+      yieldForProviderWait: async (durationMs: number): Promise<void> => {
+        const before = currentDocument(context);
+        await context.yieldForProviderWait!(durationMs);
+        advance(before, "normal-provider-reacquire");
+      },
+    } : {}),
+    ...(trackStableText && context.navigateCrossConversationPoll ? {
+      navigateCrossConversationPoll: async (
+        canonicalConversationUrl: string,
+        probeDeadlineAt: number,
+      ): Promise<"navigated" | "reobserve" | "deadline"> => {
+        const before = currentDocument(context);
+        const outcome = await context.navigateCrossConversationPoll!(canonicalConversationUrl, probeDeadlineAt);
+        if (outcome === "navigated") advance(before, "exact-canonical-navigation");
+        if (outcome === "reobserve") advance(before, "normal-provider-reacquire");
+        return outcome;
+      },
+    } : {}),
+  });
+  return Object.freeze({ handlerContext, boundary: () => documentBoundary });
+};
