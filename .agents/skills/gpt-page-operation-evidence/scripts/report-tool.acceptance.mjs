@@ -1,558 +1,370 @@
 #!/usr/bin/env node
 
+import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
+import { captureContext, preserveUnselectedProductSlices, productRunFailures,
+  publicProductionSource } from "./report-tool.mjs";
+
 const TOOL = resolve(new URL("./report-tool.mjs", import.meta.url).pathname);
-const MATRIX = "/Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json";
-const REPO = "/Users/nexgen/Documents/AGENT";
-
-const stable = (value) => Array.isArray(value) ? value.map(stable)
+const REPO = resolve(new URL("../../../../", import.meta.url).pathname);
+const MATRIX = join(REPO, "src/capabilities/gpt/page-operation-matrix.json");
+const localStable = (value) => Array.isArray(value) ? value.map(localStable)
   : value && typeof value === "object"
-    ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, stable(value[key])]))
-    : value;
-const sha256 = (value) => `sha256:${createHash("sha256").update(String(value)).digest("hex")}`;
+    ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, localStable(value[key])])) : value;
+const localHash = (value) => `sha256:${createHash("sha256").update(String(value)).digest("hex")}`;
+const rehashEnvelope = (entry) => {
+  const { envelopeHash: _ignored, ...content } = entry;
+  entry.envelopeHash = localHash(JSON.stringify(localStable(content)));
+};
 
-function run(args, expectedStatus = 0) {
+function run(args, expected = 0) {
   const result = spawnSync(process.execPath, ["--import", "tsx", TOOL, ...args], {
-    cwd: REPO,
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024,
+    cwd: REPO, encoding: "utf8", maxBuffer: 64 * 1024 * 1024,
   });
-  if ((result.status ?? 1) !== expectedStatus) {
-    throw new Error(`COMMAND_STATUS_MISMATCH:${args[0]}:${result.status}:${result.stderr || result.stdout}`);
-  }
-  return { stdout: result.stdout.trim(), stderr: result.stderr.trim() };
+  assert.equal(result.status, expected, result.stderr || result.stdout);
+  return result;
 }
 
-function candidateFor(reportPath, child = "all", facts = []) {
-  return JSON.parse(run(["candidate", "--repo", REPO, "--matrix", MATRIX, "--report", reportPath,
-    "--child", child, ...(facts.length > 0 ? ["--facts", facts.join(",")] : [])]).stdout).candidate;
-}
-
-function exactProjection(value) {
-  return { kind: "SYNTHETIC_FIXTURE", value, sha256: sha256(value), length: value.length };
-}
-
-function setAtPath(root, path, value) {
-  const parts = path.split(".");
-  let current = root;
-  for (const part of parts.slice(0, -1)) {
-    if (!current[part] || typeof current[part] !== "object") current[part] = {};
-    current = current[part];
-  }
-  current[parts.at(-1)] = value;
-}
-
-function observedStateSignature(specimen) {
-  return sha256(JSON.stringify(stable({
-    sceneSignature: specimen.sourceSceneSignature,
-    url: specimen.peripheral.sanitizedUrlIdentity,
-    targets: specimen.core.targets,
-  })));
-}
-
-function liveSpecimen(child, requirement, runId, stateId, index, observationIds) {
-  const observationId = observationIds[index];
-  const sourceSceneId = `${child.childCapabilityId}:${stateId}:scene`;
-  const sourceSceneSignature = sha256(`scene:${sourceSceneId}`);
-  const attributes = { role: "region", "data-testid": `synthetic-${stateId}` };
-  const stateFacts = { stateId, ordinal: index, observed: true };
-  for (const assertion of requirement.stateAssertions?.[stateId] ?? []) {
-    if (assertion.operator === "equals" && assertion.path.startsWith("stateFacts.")) {
-      stateFacts[assertion.path.slice("stateFacts.".length)] = assertion.value;
-    }
-  }
-  const observationOnly = child.contract.profile === "DOM_OBSERVATION";
-  const actionId = `action:${child.childCapabilityId}`;
-  const specimen = {
-    stateId,
-    evidenceKind: "LIVE_PAGE",
-    capturedAt: `2026-09-06T00:00:${String(index).padStart(2, "0")}.000Z`,
-    observationId,
-    sourceSceneId,
-    sourceSceneSignature,
-    documentIdentityHash: sha256(`document:${child.childCapabilityId}`),
-    targetIdentityHash: sha256("target"),
-    revision: sha256(`revision:${sourceSceneId}`),
-    stateFacts,
-    stateSignature: "",
-    core: {
-      normalizedStructure: { tag: "div", sourceSceneSignature },
-      sanitizedOuterHtml: `<div data-testid="synthetic-${stateId}"></div>`,
-      attributes,
-      computedStyle: { display: "block", visibility: "visible", opacity: "1", pointerEvents: "auto" },
-      connected: true,
-      layout: { x: 1, y: 1, width: 10, height: 10, inViewport: true },
-      scope: { candidateCount: 1, selectedReason: stateId },
-      candidates: [{ qualified: true, rejectionReasons: [], identityHash: sha256(stateId) }],
-      targets: Object.fromEntries(requirement.liveStateTargets[stateId].map((target, targetIndex) => [target, {
-        observed: true,
-        identityHash: sha256(`${stateId}:${target}`),
-        nodeIndex: targetIndex,
-        sourceSceneId,
-        sourceSceneSignature,
-        attributes: { role: "region", "data-testid": `synthetic-${target}` },
-      }])),
-      textProjection: exactProjection(stateId),
-      actionQualification: { qualified: true, stateId },
-    },
-    related: {
-      ancestors: [{ role: "main" }],
-      siblings: [],
-      linkedNodes: [{ relation: "owner", identityHash: sha256(`owner:${stateId}`) }],
-      beforeAfterDiff: { kind: index === 0 ? "PRECONDITION" : "POSTCONDITION", changed: index > 0 },
-      contractReference: { childCapabilityId: child.childCapabilityId, contractVersion: child.contractVersion },
-      sourceReferences: child.webImplementationReferences.length > 0
-        ? child.webImplementationReferences.map(({ path }) => ({ path }))
-        : [{ path: `src/capabilities/gpt/children/${child.childCapabilityId}/handler.ts` }],
-      authorityEvidence: child.evidenceDemand.sourceBinding.authority,
-      postconditions: { positive: true, negative: false },
-      browserCommand: { kind: observationOnly ? "NOT_APPLICABLE" : "CAPTURED_BROWSER_COMMAND",
-        childCapabilityId: child.childCapabilityId, actionId, operation: "click" },
-      walProjection: { kind: observationOnly ? "NOT_APPLICABLE" : "CAPTURED_DISPATCH_RETURN",
-        committedMutation: observationOnly ? "no" : "confirmed", actionId, operation: "click" },
-      transitionChain: {
-        preObservationId: observationIds[0],
-        typedCommand: { kind: observationOnly ? "NOT_APPLICABLE" : "CAPTURED_BROWSER_COMMAND", actionId, operation: "click" },
-        terminalReceipt: { kind: observationOnly ? "NOT_APPLICABLE" : "CAPTURED_DISPATCH_RETURN",
-          actionId, operation: "click", preSceneSignature: sha256(`scene:${child.childCapabilityId}:${requirement.requiredLiveStates[0]}:scene`) },
-        postObservationId: observationIds.at(-1),
-        directPostcondition: { passed: true,
-          sourceSceneId: `${child.childCapabilityId}:${requirement.requiredLiveStates.at(-1)}:scene`,
-          sourceSceneSignature: sha256(`scene:${child.childCapabilityId}:${requirement.requiredLiveStates.at(-1)}:scene`) },
-      },
-    },
-    peripheral: {
-      pageKind: "chatgpt",
-      sanitizedUrlIdentity: `/c/${sha256("conversation")}`,
-      locale: "zh-CN",
-      viewport: { width: 1440, height: 1000 },
-      theme: "light",
-      chromeVersion: "acceptance",
-      providerBuildMarker: sha256("provider-build"),
-      uiVariant: { syntheticAcceptance: true },
-      pageState: { stateId },
-      runId,
-    },
-  };
-  for (const assertion of requirement.stateAssertions?.[stateId] ?? []) {
-    if (assertion.operator === "equals"
-      && assertion.path === "related.transitionChain.typedCommand.kind"
-      && assertion.value === "ZERO_ACTION") {
-      specimen.related.transitionChain.preObservationId = observationId;
-      specimen.related.transitionChain.typedCommand = { kind: "ZERO_ACTION", reason: "ALREADY_SATISFIED" };
-      specimen.related.transitionChain.terminalReceipt = { kind: "COHERENT_READBACK" };
-      specimen.related.transitionChain.postObservationId = observationId;
-      specimen.related.browserCommand = specimen.related.transitionChain.typedCommand;
-      specimen.related.walProjection = specimen.related.transitionChain.terminalReceipt;
-    }
-    if (assertion.operator === "equals") setAtPath(specimen, assertion.path, assertion.value);
-    if (assertion.operator === "present" && assertion.path.split(".").reduce((value, part) => value?.[part], specimen) === undefined) {
-      setAtPath(specimen, assertion.path, "present");
-    }
-    if (assertion.operator === "greaterThan") setAtPath(specimen, assertion.path, Number(assertion.value) + 1);
-  }
-  if (observationOnly) {
-    specimen.related.transitionChain.preObservationId = observationId;
-    specimen.related.transitionChain.postObservationId = observationId;
-    specimen.related.transitionChain.directPostcondition = {
-      passed: true, sourceSceneId, sourceSceneSignature,
-    };
-  }
-  specimen.stateSignature = observedStateSignature(specimen);
-  return specimen;
-}
-
-function derivedSpecimen(child, requirement, runId, stateId, observationId, ordinal) {
-  return {
-    stateId,
-    evidenceKind: "DERIVED_FIXTURE",
-    capturedAt: "2026-09-06T00:00:00.000Z",
-    derivedFromObservationId: observationId,
-    mutation: { kind: `TYPED_${stateId.toUpperCase().replace(/[^A-Z0-9]+/gu, "_")}`, changes: [{
-      path: "core.connected",
-      fromHash: sha256(JSON.stringify(true)),
-      toValueHash: sha256(JSON.stringify(false)),
-    }] },
-    expectedFailureCode: `SYNTHETIC_${stateId.toUpperCase().replace(/[^A-Z0-9]+/gu, "_")}`,
-  };
-}
-
-function captureFromInventory(inventory, matrix) {
-  const runId = "v5-acceptance";
-  const captureEpoch = sha256(`capture-epoch:${runId}`);
-  const syntheticIds = [...new Set(matrix.children.flatMap((child) => child.requiredInputRefs)
-    .filter((id) => id.startsWith("synthetic-")))].sort();
-  const authorizedIds = [...new Set(matrix.children.flatMap((child) => child.requiredInputRefs)
-    .filter((id) => id.startsWith("authorized-")))].sort();
-  const chainIds = [...new Set(matrix.children.flatMap((child) => child.requiredInputRefs)
-    .filter((id) => id.startsWith("chain-")))].sort();
-  const matrixById = Object.fromEntries(matrix.children.map((entry) => [entry.childCapabilityId, entry]));
-  const children = inventory.children.filter((child) => child.pageOperationRequired).map((child) => {
-    const requirement = matrixById[child.childCapabilityId];
-    const observationIds = requirement.requiredLiveStates.map((stateId) => `${child.childCapabilityId}:${stateId}:live`);
-    const live = requirement.requiredLiveStates.map((stateId, index) => liveSpecimen(child, requirement, runId, stateId, index, observationIds));
-    const derivedStates = [...matrix.commonRequiredDerivedStates, ...requirement.childSpecificDerivedStates];
-    const derived = derivedStates.map((stateId, index) => derivedSpecimen(child, requirement, runId, stateId, observationIds[0], index + live.length));
-    const byState = Object.fromEntries(live.map((specimen) => [specimen.stateId, specimen]));
-    const factBindings = child.evidenceDemand.facts.map((fact) => {
-      let observationId = observationIds[0];
-      let pointers = ["related.contractReference"];
-      if (fact.factId.startsWith("target:")) {
-        const target = fact.factId.slice("target:".length);
-        const targetSpecimen = live.find((entry) => entry.core.targets[target]);
-        observationId = targetSpecimen.observationId;
-        pointers = [`core.targets.${target}`];
-      }
-      if (fact.factId.startsWith("live-state:")) {
-        const stateId = fact.factId.slice("live-state:".length);
-        observationId = byState[stateId].observationId;
-        pointers = ["stateFacts.stateId"];
-      }
-      if (fact.factId.startsWith("derived-state:")) pointers = ["stateFacts.stateId"];
-      if (fact.factId.startsWith("chain:")) pointers = ["related.transitionChain"];
-      if (fact.factId.startsWith("authority:")) pointers = ["related.authorityEvidence"];
-      return { factId: fact.factId, observationId, pointers,
-        expectedHash: sha256(JSON.stringify(stable(fact.expected))) };
-    });
-    return {
-      childCapabilityId: child.childCapabilityId,
-      demandDigest: child.evidenceDemand.digest,
-      childCandidateDigest: child.evidenceDemand.childCandidateDigest,
-      inputRefs: requirement.requiredInputRefs,
-      factBindings,
-      specimens: [...live, ...derived],
-    };
-  });
-  return {
-    schemaVersion: "gpt-page-operation-capture.v5",
-    capturedAt: "2026-09-06T00:00:00.000Z",
-    runId,
-    captureEpoch,
-    recaptureTrigger: {
-      kind: "HUMAN_REQUESTED_RECAPTURE",
-      scope: ["acceptance-fixture"],
-      requestedAt: "2026-09-06T00:00:00.000Z",
-    },
-    candidateBinding: inventory.candidateBinding,
-    matrixDigest: inventory.matrixBinding.digest,
-    browser: {
-      family: "chrome", version: "acceptance", controlSkill: "chrome:control-chrome",
-      dedicatedQaTab: true, qaTabCreatedByRun: true, livePageObserved: true,
-      productionBrowserIdleEvidence: { kind: "SYNTHETIC_ACCEPTANCE_ONLY", sha256: sha256("idle") },
-      qaTabIdentityHash: sha256("qa-tab"),
-    },
-    environment: { locale: "zh-CN", viewport: { width: 1440, height: 1000 }, theme: "light", providerBuildMarker: sha256("provider") },
-    fixtureManifest: {
-      schemaVersion: "gpt-page-operation-fixtures.v2", runId, syntheticOnly: true,
-      inputs: Object.fromEntries(syntheticIds.map((id) => [id, exactProjection(id)])),
-    },
-    authorizedInputs: Object.fromEntries(authorizedIds.map((id) => {
-      const expected = inventory.children.find((child) => child.collectionRequirements?.requiredInputRefs.includes(id))
-        .evidenceDemand.authorizedInputRequirements[id];
-      return [id, { kind: "AUTHORIZED_FACT_SET", sourceKind: "PRODUCT_PROFILE",
-        variants: expected.variants, setHash: expected.setHash }];
-    })),
-    chainInputs: Object.fromEntries(chainIds.map((id) => {
-      const sourceChildCapabilityId = matrix.chainInputSources[id];
-      const source = children.find((child) => child.childCapabilityId === sourceChildCapabilityId);
-      const observationId = source.specimens.find((entry) => entry.evidenceKind === "LIVE_PAGE").observationId;
-      const sourceInventory = inventory.children.find((child) => child.childCapabilityId === sourceChildCapabilityId);
-      const observationSignature = source.specimens.find((entry) => entry.observationId === observationId).stateSignature;
-      const sourceDemandDigest = sourceInventory.evidenceDemand.digest;
-      const sourceChildCandidateDigest = sourceInventory.evidenceDemand.childCandidateDigest;
-      const evidenceRef = `${sourceChildCapabilityId}:${sourceChildCandidateDigest}:${observationId}:${observationSignature}`;
-      return [id, { kind: "PRIOR_CHILD_OUTPUT", sourceChildCapabilityId, sourceDemandDigest,
-        sourceChildCandidateDigest, observationId, observationSignature, evidenceRef, sha256: sha256(evidenceRef) }];
-    })),
-    sceneManifest: children.flatMap((child) => {
-      const live = child.specimens.filter((entry) => entry.evidenceKind === "LIVE_PAGE");
-      const actionId = `action:${child.childCapabilityId}`;
-      return live.map((entry, index) => {
-      const observationOnly = inventory.children.find((candidate) =>
-        candidate.childCapabilityId === child.childCapabilityId).contract.profile === "DOM_OBSERVATION";
-      const pre = live[0];
-      const scene = stable({
-        sceneId: entry.sourceSceneId,
-        capturedAt: entry.capturedAt,
-        stateSignature: entry.sourceSceneSignature,
-        activeTabIdentityHash: sha256("qa-tab"),
-        documentIdentityHash: entry.documentIdentityHash,
-        observationRevisionHash: entry.revision,
-        binding: { runId, captureEpoch, qaTabIdentityHash: sha256("qa-tab") },
-        transitionReceipt: !observationOnly && index === live.length - 1 ? {
-          actionId,
-          operation: "click",
-          issuedAt: pre.capturedAt,
-          completedAt: pre.capturedAt,
-          outcome: "DISPATCH_RETURNED",
-          preSceneId: pre.sourceSceneId,
-          preSceneSignature: pre.sourceSceneSignature,
-        } : null,
-        decisionReceipt: !observationOnly && index === 0 ? {
-          kind: "ACTION_REQUIRED",
-          actionId,
-          operation: "click",
-        } : null,
-      });
-      return { ...scene, envelopeHash: sha256(JSON.stringify(stable(scene))) };
-    });
-    }),
-    children,
-  };
-}
+const hasForbiddenBinding = (value) => {
+  if (Array.isArray(value)) return value.some(hasForbiddenBinding);
+  if (!value || typeof value !== "object") return false;
+  return Object.entries(value).some(([key, child]) =>
+    ["candidateBinding", "worktreeDigest", "gitHead", "headCommit"].includes(key) || hasForbiddenBinding(child));
+};
 
 async function main() {
-  const directory = await mkdtemp(join(tmpdir(), "gpt-page-evidence-v5-"));
-  const inventoryPath = join(directory, "inventory.json");
-  const capturePath = join(directory, "capture.json");
-  const reportPath = join(directory, "report.json");
-  run(["inventory", "--repo", REPO, "--matrix", MATRIX, "--output", inventoryPath]);
-  const inventory = JSON.parse(await readFile(inventoryPath, "utf8"));
-  const matrix = JSON.parse(await readFile(MATRIX, "utf8"));
-  const capture = captureFromInventory(inventory, matrix);
-  await writeFile(capturePath, `${JSON.stringify(capture)}\n`, "utf8");
-  const forbiddenCapture = structuredClone(capture);
-  delete forbiddenCapture.recaptureTrigger;
-  const forbiddenCapturePath = join(directory, "recapture-forbidden.capture.json");
-  await writeFile(forbiddenCapturePath, `${JSON.stringify(forbiddenCapture)}\n`, "utf8");
-  const forbidden = run(["merge", "--repo", REPO, "--matrix", MATRIX,
-    "--capture", forbiddenCapturePath, "--output", join(directory, "recapture-forbidden.report.json")], 1);
-  if (!/RECAPTURE_FORBIDDEN/u.test(forbidden.stderr)) throw new Error("UNAUTHORIZED_RECAPTURE_PASSED");
-  const merged = JSON.parse(run(["merge", "--repo", REPO, "--matrix", MATRIX, "--capture", capturePath, "--output", reportPath]).stdout);
-  if (merged.status !== "CAPTURE_COMPLETE") throw new Error(`BASELINE_NOT_COMPLETE:${merged.status}`);
-  run(["validate", "--repo", REPO, "--matrix", MATRIX, "--report", reportPath, "--require-complete"]);
-  const completeReport = JSON.parse(await readFile(reportPath, "utf8"));
-  run(["admit", "--repo", REPO, "--matrix", MATRIX, "--report", reportPath, "--child", "all",
-    "--candidate", candidateFor(reportPath)]);
-  const missingCandidate = run(["admit", "--repo", REPO, "--matrix", MATRIX, "--report", reportPath,
-    "--child", "prepare_clean_gpt_chat"], 1);
-  if (!/ADMISSION_CANDIDATE_REQUIRED/u.test(missingCandidate.stderr)) throw new Error("MISSING_CANDIDATE_PASSED");
-  const headCandidate = run(["admit", "--repo", REPO, "--matrix", MATRIX, "--report", reportPath,
-    "--child", "prepare_clean_gpt_chat", "--candidate", completeReport.candidateBinding.head], 1);
-  if (!/ADMISSION_CANDIDATE_MISMATCH/u.test(headCandidate.stderr)) throw new Error("HEAD_CANDIDATE_PASSED");
-  const nonCanonical = run(["inventory", "--repo", REPO, "--matrix", MATRIX,
-    "--output", `${REPO}/docs/项目方案/GPT页面操作子能力实证资料-第二份.json`], 1);
-  if (!/REPORT_CANONICAL_PATH_REQUIRED/u.test(nonCanonical.stderr)) throw new Error("NON_CANONICAL_REPORT_PASSED");
+  const priorOther = { productKey: "other/action", nested: { untouched: ["exact", 1] } };
+  const preserved = preserveUnselectedProductSlices([
+    { productKey: "selected/action", revision: "current" },
+    { productKey: "other/action", revision: "new-projection" },
+  ], [{ productKey: "selected/action", revision: "old" }, priorOther], "selected/action");
+  assert.equal(preserved[1], priorOther);
+  assert.equal(JSON.stringify(preserved[1]), JSON.stringify(priorOther));
+  const deletedFromCurrentCatalog = { productKey: "removed/action", nested: { historical: true } };
+  const newCurrentRoute = { productKey: "new/action", revision: "current" };
+  const preservedAcrossCatalogChange = preserveUnselectedProductSlices([
+    { productKey: "selected/action", revision: "current" }, newCurrentRoute,
+  ], [{ productKey: "selected/action", revision: "old" }, deletedFromCurrentCatalog], "selected/action");
+  assert.equal(preservedAcrossCatalogChange[1], deletedFromCurrentCatalog);
+  assert.equal(preservedAcrossCatalogChange[2], newCurrentRoute);
 
-  const refreshedPath = join(directory, "refreshed.report.json");
-  const refreshResult = JSON.parse(run(["refresh", "--repo", REPO, "--matrix", MATRIX,
-    "--base-report", reportPath, "--output", refreshedPath, "--child", "prepare_clean_gpt_chat"]).stdout);
-  if (refreshResult.chromeOpened !== false) throw new Error("OFFLINE_REFRESH_OPENED_CHROME");
-  const refreshed = JSON.parse(await readFile(refreshedPath, "utf8"));
-  if (refreshed.captureEpoch !== completeReport.captureEpoch) throw new Error("OFFLINE_REFRESH_CHANGED_CAPTURE_EPOCH");
-  const preservedId = "verify_gpt_conversation_identity";
-  if (JSON.stringify(refreshed.children.find((child) => child.childCapabilityId === preservedId).collection.specimens)
-    !== JSON.stringify(completeReport.children.find((child) => child.childCapabilityId === preservedId).collection.specimens)) {
-    throw new Error("STABLE_SNAPSHOT_NOT_PRESERVED");
+  const rawTaskBinding = localStable({ jobId: "aiprod_private", requestHash: localHash("request"),
+    taskEnvelopeHash: localHash("task"), businessContextHash: localHash("context"),
+    productId: "private_product", actionId: "private_action", parametersHash: localHash("parameters"),
+    resultContractId: "result", resultContractVersion: 1 });
+  const rawMaterials = [localStable({ materialIdHash: localHash("material-id"), ordinal: 0,
+    role: "source", displayName: "secret-file.zip", bytes: 7, sha256: localHash("content"),
+    mediaType: "application/zip", storageClass: "task_scoped" })];
+  const rawTrace = [localStable({ traceEntryId: localHash("trace"), productStepId: "private_action",
+    capabilityCallId: `gpt-call:${"1".repeat(64)}`, callId: "fresh-chat", actionOrdinal: 1,
+    childId: "prepare_clean_gpt_chat", exactCallIdentityHash: localHash("exact-call"),
+    resultStatus: "success", failureCode: null, mutationOutcome: "no", postconditionResult: "passed",
+    candidateCardinality: { raw: 1, eligible: 1 }, observationRevisionHash: localHash("revision"),
+    startedAt: "2026-09-08T00:00:00.000Z", endedAt: "2026-09-08T00:00:01.000Z",
+    evidenceRef: "record-private", evidenceHash: localHash("evidence"),
+    inputBinding: { schemaVersion: "gpt-page-input-binding.v1", source: "FORENSICS_SAFE_PROJECTION",
+      inputHash: localHash("input"), roleHashes: { promptHash: null, responseHash: null,
+        attachmentLabelHashes: null, attachmentSetHash: null, modelDisplayNameHash: null,
+        reasoningRequirement: null, conversationUrlHash: null, turnMarkerHash: null,
+        assistantTurnIdHash: null } },
+    browserReceipts: [{ command_id: "command-private", reason: "private failure reason" }] })];
+  const rawSource = localStable({ schemaVersion: "gpt-page-operation-production-source.v1",
+    sourceKind: "PRODUCTION_RUNTIME_DURABLE_TASK", synthetic: false,
+    jobId: "aiprod_private", attemptId: "33333333-3333-4333-8333-333333333333",
+    productId: "private_product", actionId: "private_action", pluginId: "private-plugin", pluginVersion: 1,
+    taskStatus: "completed", taskReason: "private failure reason", taskBinding: rawTaskBinding,
+    materials: rawMaterials, materialSetHash: localHash(JSON.stringify(localStable(rawMaterials))),
+    sourceSnapshotId: localHash(JSON.stringify(localStable({ taskBinding: rawTaskBinding, materials: rawMaterials }))),
+    pageEvidenceContract: { path: "src/plugins/private/page-evidence-contract.json", sha256: localHash("contract") },
+    flowContractBinding: { files: [{ path: "src/plugins/private/index.ts", sha256: localHash("flow") }],
+      digest: localHash("binding") }, flowContractDigest: localHash("flow-contract"),
+    flowStatus: "OBSERVED_COMPLETE_PATH", terminalBranch: "task-action-complete",
+    terminalBranchProof: { kind: "DURABLE_COMPLETION_RECEIPT", receiptHash: localHash("result"),
+      resultPayloadHash: localHash("payload"), resultObjectReceiptHash: localHash("object-receipt"),
+      resultPayloadOutboxHash: localHash("outbox") },
+    flowGaps: [], expectedStageCount: 1, observedStageCount: 1, actualTrace: rawTrace,
+    traceDigest: localHash(JSON.stringify(rawTrace)), reportInputs: { input: { kind: "HASH_ONLY", sha256: localHash("input") } } });
+  const publicSource = publicProductionSource(rawSource);
+  const serializedPublic = JSON.stringify(publicSource);
+  for (const forbidden of ["aiprod_private", "33333333-3333-4333-8333-333333333333",
+    "secret-file.zip", "record-private", "command-private", "private failure reason"]) {
+    assert.equal(serializedPublic.includes(forbidden), false, forbidden);
   }
+  const rawRunId = "private-run-id";
+  const runIdHash = localHash(rawRunId);
+  const captureEpoch = localHash("epoch");
+  const qaTabIdentityHash = localHash("tab");
+  const rawSceneWithoutEnvelope = localStable({ sceneId: "scene-1",
+    capturedAt: "2026-09-08T00:00:00.000Z", stateSignature: localHash("scene-state"),
+    activeTabIdentityHash: qaTabIdentityHash, documentIdentityHash: localHash("document"),
+    observationRevisionHash: localHash("revision"),
+    binding: { runId: rawRunId, captureEpoch, qaTabIdentityHash },
+    decisionReceipt: null, transitionReceipt: null });
+  const rawScene = { ...rawSceneWithoutEnvelope,
+    envelopeHash: localHash(JSON.stringify(rawSceneWithoutEnvelope)) };
+  const rawCaptureContext = { schemaVersion: "gpt-page-operation-capture.v6",
+    capturedAt: "2026-09-08T00:00:00.000Z", runId: rawRunId, captureEpoch,
+    recaptureTrigger: { kind: "HUMAN_REQUESTED_RECAPTURE", scope: ["private/action"],
+      requestedAt: "2026-09-08T00:00:00.000Z" }, matrixDigest: localHash("matrix"),
+    browser: { family: "chrome", version: "acceptance", controlSkill: "chrome:control-chrome",
+      dedicatedQaTab: true, qaTabCreatedByRun: true, livePageObserved: true,
+      productionBrowserIdleEvidence: { observed: true }, qaTabIdentityHash },
+    environment: { locale: "zh-CN", viewport: { width: 1200, height: 800 }, theme: "light",
+      providerBuildMarker: localHash("provider") }, authorizedInputs: {}, chainInputs: {},
+    sceneManifest: [rawScene] };
+  const projectedContext = captureContext(rawCaptureContext);
+  const publicScene = projectedContext.sceneManifest[0];
+  const targets = { root: { observed: true } };
+  const specimenWithoutEnvelope = localStable({ evidenceKind: "LIVE_PAGE", stateId: "observed",
+    capturedAt: "2026-09-08T00:00:00.000Z", observationId: "observed:scene-1:live",
+    sourceSceneId: "scene-1", sourceSceneSignature: publicScene.stateSignature,
+    documentIdentityHash: publicScene.documentIdentityHash, targetIdentityHash: localHash("target"),
+    revision: publicScene.observationRevisionHash, stateFacts: { observed: true },
+    stateSignature: localHash(JSON.stringify(localStable({ sceneSignature: publicScene.stateSignature,
+      url: "https://chatgpt.com/c/sha256:private", targets }))),
+    core: { normalizedStructure: { kind: "ELEMENT", tag: "main", children: [] },
+      sanitizedOuterHtml: "<main></main>", targets }, related: { admitted: true },
+    peripheral: { sanitizedUrlIdentity: "https://chatgpt.com/c/sha256:private", runId: runIdHash } });
+  const specimen = { ...specimenWithoutEnvelope,
+    envelopeHash: localHash(JSON.stringify(specimenWithoutEnvelope)) };
+  const validRun = localStable({ productId: publicSource.productId, actionId: publicSource.actionId,
+    pluginId: publicSource.pluginId, pluginVersion: publicSource.pluginVersion,
+    sourceSnapshotId: publicSource.sourceSnapshotId,
+    reportSourceSnapshotId: publicSource.reportSourceSnapshotId,
+    flowContractDigest: publicSource.flowContractDigest, traceDigest: publicSource.traceDigest,
+    reportTraceDigest: publicSource.reportTraceDigest, flowStatus: publicSource.flowStatus,
+    flowProjectionStatus: publicSource.flowProjectionStatus,
+    flowProjectionGaps: publicSource.flowProjectionGaps,
+    terminalBranch: publicSource.terminalBranch, terminalBranchProof: publicSource.terminalBranchProof,
+    calls: [{ ...publicSource.actualTrace[0], pageOperationRequired: true,
+      pageRequirementSnapshot: { matrixDigest: projectedContext.matrixDigest,
+        childCandidateDigest: localHash("candidate"), requiredLiveStates: ["observed"] },
+      inputBindingProof: { schemaVersion: "gpt-page-input-binding-proof.v1",
+        inputHash: localHash("input"), inputHashBound: true, checks: [], complete: true },
+      domEvidence: { specimens: [specimen] }, captureComplete: true, gaps: [] }],
+    captureComplete: true, gaps: [], captureContext: projectedContext });
+  const tinyMatrix = { children: [{ childCapabilityId: "prepare_clean_gpt_chat", requiredLiveStates: ["observed"] }] };
+  assert.deepEqual(productRunFailures(validRun, publicSource, tinyMatrix), []);
+  const tamperedRun = structuredClone(validRun);
+  tamperedRun.captureComplete = false;
+  assert.ok(productRunFailures(tamperedRun, publicSource, tinyMatrix).includes("captureComplete"));
+  const tamperedSpecimenRun = structuredClone(validRun);
+  tamperedSpecimenRun.calls[0].domEvidence.specimens[0].related.injected = true;
+  assert.ok(productRunFailures(tamperedSpecimenRun, publicSource, tinyMatrix)
+    .includes("call[0].specimenEnvelope"));
+  for (const [field, value, expectedFailure] of [
+    ["runId", localHash("wrong-run"), "scene.scene-1.runId"],
+    ["captureEpoch", localHash("wrong-epoch"), "scene.scene-1.captureEpoch"],
+    ["qaTabIdentityHash", localHash("wrong-tab"), "scene.scene-1.qaTabIdentityHash"],
+  ]) {
+    const bindingTamper = structuredClone(validRun);
+    bindingTamper.captureContext.sceneManifest[0].binding[field] = value;
+    rehashEnvelope(bindingTamper.captureContext.sceneManifest[0]);
+    assert.ok(productRunFailures(bindingTamper, publicSource, tinyMatrix, null, null, false)
+      .includes(expectedFailure));
+  }
+  const activeTabTamper = structuredClone(validRun);
+  activeTabTamper.captureContext.sceneManifest[0].activeTabIdentityHash = localHash("wrong-active-tab");
+  rehashEnvelope(activeTabTamper.captureContext.sceneManifest[0]);
+  assert.ok(productRunFailures(activeTabTamper, publicSource, tinyMatrix, null, null, false)
+    .includes("scene.scene-1.qaTabIdentityHash"));
+  const snapshotMatrixTamper = structuredClone(validRun);
+  snapshotMatrixTamper.calls[0].pageRequirementSnapshot.matrixDigest = localHash("wrong-matrix");
+  assert.ok(productRunFailures(snapshotMatrixTamper, publicSource, tinyMatrix, null, null, false)
+    .includes("call[0].pageRequirementSnapshot.matrixDigest"));
+  const authorizedContextTamper = structuredClone(validRun);
+  authorizedContextTamper.captureContext.authorizedInputs.injected = { debugNote: "must-not-pass" };
+  assert.ok(productRunFailures(authorizedContextTamper, publicSource, tinyMatrix, null, null, false)
+    .includes("captureContext.schema"));
+  const chainContextTamper = structuredClone(validRun);
+  chainContextTamper.captureContext.chainInputs.injected = { kind: "PRIOR_CHILD_OUTPUT", debugNote: "must-not-pass" };
+  assert.ok(productRunFailures(chainContextTamper, publicSource, tinyMatrix, null, null, false)
+    .includes("captureContext.schema"));
 
-  const targetedChildId = "reconcile_gpt_attachment_set";
-  const targetedInventory = inventory.children.find((child) => child.childCapabilityId === targetedChildId);
-  const targetedRequirement = matrix.children.find((child) => child.childCapabilityId === targetedChildId);
-  const targetedRunId = "v5-targeted-state-acceptance";
-  const targetedStateId = targetedRequirement.requiredLiveStates[0];
-  const targetedObservationId = `${targetedChildId}:${targetedStateId}:targeted-live`;
-  const targetedSpecimen = liveSpecimen(targetedInventory, targetedRequirement, targetedRunId,
-    targetedStateId, 0, [targetedObservationId]);
-  const targetedDerivedStates = [...matrix.commonRequiredDerivedStates,
-    ...targetedRequirement.childSpecificDerivedStates];
-  const targetedDerived = targetedDerivedStates.map((stateId, index) =>
-    derivedSpecimen(targetedInventory, targetedRequirement, targetedRunId,
-      stateId, targetedObservationId, index + 1));
-  const priorCaptureChild = capture.children.find((child) => child.childCapabilityId === targetedChildId);
-  const priorFirstObservationId = priorCaptureChild.specimens.find((specimen) =>
-    specimen.evidenceKind === "LIVE_PAGE" && specimen.stateId === targetedStateId).observationId;
-  const targetedScene = stable({
-    sceneId: targetedSpecimen.sourceSceneId,
-    capturedAt: targetedSpecimen.capturedAt,
-    stateSignature: targetedSpecimen.sourceSceneSignature,
-    activeTabIdentityHash: sha256("targeted-qa-tab"),
-    documentIdentityHash: targetedSpecimen.documentIdentityHash,
-    observationRevisionHash: targetedSpecimen.revision,
-    binding: { runId: targetedRunId, captureEpoch: capture.captureEpoch,
-      qaTabIdentityHash: sha256("targeted-qa-tab") },
-    transitionReceipt: null,
-    decisionReceipt: null,
+  const unknownBrowserField = structuredClone(rawCaptureContext);
+  unknownBrowserField.browser.debugNote = "must-not-pass";
+  assert.throws(() => captureContext(unknownBrowserField), /CAPTURE_PUBLIC_METADATA_INVALID/u);
+  const unknownReceiptField = structuredClone(rawCaptureContext);
+  unknownReceiptField.sceneManifest[0].decisionReceipt = { kind: "ALREADY_SATISFIED", debugNote: "must-not-pass" };
+  const { envelopeHash: _oldEnvelope, ...unknownReceiptScene } = unknownReceiptField.sceneManifest[0];
+  unknownReceiptField.sceneManifest[0].envelopeHash = localHash(JSON.stringify(localStable(unknownReceiptScene)));
+  assert.throws(() => captureContext(unknownReceiptField), /CAPTURE_SCENE_PUBLIC_SCHEMA_INVALID/u);
+
+  const secondRawTrace = localStable({ ...rawTrace[0], traceEntryId: localHash("trace-2"),
+    exactCallIdentityHash: localHash("exact-call-2"), actionOrdinal: 2 });
+  const twoTraceRawSource = localStable({ ...rawSource, actualTrace: [rawTrace[0], secondRawTrace] });
+  twoTraceRawSource.traceDigest = localHash(JSON.stringify(localStable(twoTraceRawSource.actualTrace)));
+  const twoTracePublicSource = publicProductionSource(twoTraceRawSource);
+  const reusedSceneRun = localStable({ ...validRun,
+    sourceSnapshotId: twoTracePublicSource.sourceSnapshotId,
+    reportSourceSnapshotId: twoTracePublicSource.reportSourceSnapshotId,
+    flowContractDigest: twoTracePublicSource.flowContractDigest,
+    traceDigest: twoTracePublicSource.traceDigest,
+    reportTraceDigest: twoTracePublicSource.reportTraceDigest,
+    calls: twoTracePublicSource.actualTrace.map((entry) => ({ ...entry, pageOperationRequired: true,
+      pageRequirementSnapshot: { matrixDigest: projectedContext.matrixDigest,
+        childCandidateDigest: localHash("candidate"), requiredLiveStates: ["observed"] },
+      inputBindingProof: { schemaVersion: "gpt-page-input-binding-proof.v1",
+        inputHash: entry.inputBinding.inputHash, inputHashBound: true, checks: [], complete: true },
+      domEvidence: { specimens: [specimen] }, captureComplete: true, gaps: [] })),
   });
-  const targetedCapture = {
-    ...structuredClone(capture),
-    runId: targetedRunId,
-    capturedAt: targetedSpecimen.capturedAt,
-    browser: { ...capture.browser, qaTabIdentityHash: sha256("targeted-qa-tab") },
-    fixtureManifest: { ...capture.fixtureManifest, runId: targetedRunId },
-    sceneManifest: [{ ...targetedScene,
-      envelopeHash: sha256(JSON.stringify(stable(targetedScene))) }],
-    children: [{
-      ...priorCaptureChild,
-      factBindings: priorCaptureChild.factBindings.filter((binding) =>
-        binding.observationId === priorFirstObservationId).map((binding) =>
-        ({ ...binding, observationId: targetedObservationId })),
-      specimens: [targetedSpecimen, ...targetedDerived],
-    }],
-  };
-  const targetedCapturePath = join(directory, "targeted-state.capture.json");
-  const targetedReportPath = join(directory, "targeted-state.report.json");
-  await writeFile(targetedCapturePath, `${JSON.stringify(targetedCapture)}\n`, "utf8");
-  const targetedMerge = JSON.parse(run(["merge", "--repo", REPO, "--matrix", MATRIX,
-    "--capture", targetedCapturePath, "--base-report", reportPath, "--child", targetedChildId,
-    "--output", targetedReportPath]).stdout);
-  if (targetedMerge.status !== "CAPTURE_COMPLETE") {
-    const incomplete = JSON.parse(await readFile(targetedReportPath, "utf8"));
-    const target = incomplete.children.find((child) => child.childCapabilityId === targetedChildId);
-    throw new Error(`TARGETED_STATE_MERGE_NOT_COMPLETE:${JSON.stringify(target?.captureMissing ?? [])}`);
-  }
-  const targetedReport = JSON.parse(await readFile(targetedReportPath, "utf8"));
-  const targetedCollection = targetedReport.children.find((child) =>
-    child.childCapabilityId === targetedChildId).collection.specimens.filter((specimen) =>
-    specimen.evidenceKind === "LIVE_PAGE");
-  if (targetedCollection.length !== targetedRequirement.requiredLiveStates.length
-    || targetedCollection.find((specimen) => specimen.stateId === targetedStateId)?.peripheral.runId !== targetedRunId
-    || targetedCollection.some((specimen) => specimen.stateId !== targetedStateId
-      && specimen.peripheral.runId !== capture.runId)) {
-    throw new Error("TARGETED_STATE_MERGE_DID_NOT_PRESERVE_UNREFRESHED_STATES");
-  }
-  run(["validate", "--repo", REPO, "--matrix", MATRIX, "--report", targetedReportPath, "--require-complete"]);
-  const targetedRefreshedPath = join(directory, "targeted-state-refreshed.report.json");
-  run(["refresh", "--repo", REPO, "--matrix", MATRIX, "--base-report", targetedReportPath,
-    "--output", targetedRefreshedPath, "--child", targetedChildId]);
-  const targetedRefreshed = JSON.parse(await readFile(targetedRefreshedPath, "utf8"));
-  for (const child of targetedReport.children.filter((entry) => entry.pageOperationRequired)) {
-    const beforeScenes = child.collection.captureContext.sceneManifest;
-    const afterChild = targetedRefreshed.children.find((entry) =>
-      entry.childCapabilityId === child.childCapabilityId);
-    const afterScenes = afterChild.collection.captureContext.sceneManifest;
-    for (const specimen of afterChild.collection.specimens.filter((entry) => entry.evidenceKind === "LIVE_PAGE")) {
-      const before = beforeScenes.find((scene) => scene.sceneId === specimen.sourceSceneId);
-      const after = afterScenes.find((scene) => scene.sceneId === specimen.sourceSceneId);
-      if (!before || !after || JSON.stringify(before.binding) !== JSON.stringify(after.binding)
-        || before.activeTabIdentityHash !== after.activeTabIdentityHash) {
-        throw new Error(`OFFLINE_REFRESH_CHANGED_SCENE_PROVENANCE:${child.childCapabilityId}:${specimen.sourceSceneId}`);
-      }
-    }
-  }
-  run(["validate", "--repo", REPO, "--matrix", MATRIX,
-    "--report", targetedRefreshedPath, "--require-complete"]);
+  assert.ok(productRunFailures(reusedSceneRun, twoTracePublicSource, tinyMatrix)
+    .includes("call[1].sceneCrossCallReuse"));
 
-  const partialBase = structuredClone(completeReport);
-  const partialWait = partialBase.children.find((child) => child.childCapabilityId === "wait_for_stable_gpt_text");
-  partialWait.collection.specimens = partialWait.collection.specimens.filter((specimen) =>
-    specimen.stateId !== "generation-error");
-  const partialBasePath = join(directory, "partial-base.report.json");
-  const partialPath = join(directory, "partial-refreshed.report.json");
-  await writeFile(partialBasePath, `${JSON.stringify(partialBase)}\n`, "utf8");
-  run(["refresh", "--repo", REPO, "--matrix", MATRIX, "--base-report", partialBasePath,
-    "--output", partialPath, "--child", "wait_for_stable_gpt_text"]);
-  const partialReport = JSON.parse(await readFile(partialPath, "utf8"));
-  const observedScope = ["live-state:text-stable"];
-  const observedCandidate = candidateFor(partialPath, "wait_for_stable_gpt_text", observedScope);
-  const scopedAdmission = JSON.parse(run(["admit", "--repo", REPO, "--matrix", MATRIX, "--report", partialPath,
-    "--child", "wait_for_stable_gpt_text", "--facts", observedScope.join(","),
-    "--candidate", observedCandidate]).stdout);
-  if (scopedAdmission.status !== "ADMITTED"
-    || scopedAdmission.evidenceBriefs?.[0]?.facts?.[0]?.actualValues?.[0]?.value !== "text-stable"
-    || !scopedAdmission.admissionReceipt?.evidenceBriefHashes?.[0]?.hash) {
-    throw new Error("SCOPED_ADMISSION_DID_NOT_CONSUME_ACTUAL_EVIDENCE");
-  }
-  const missingScope = ["live-state:generation-error"];
-  const missingFact = run(["admit", "--repo", REPO, "--matrix", MATRIX, "--report", partialPath,
-    "--child", "wait_for_stable_gpt_text", "--facts", missingScope.join(","),
-    "--candidate", candidateFor(partialPath, "wait_for_stable_gpt_text", missingScope)], 1);
-  if (!/ADMISSION_FACT_EVIDENCE_INVALID.*fact-not-observed/u.test(missingFact.stderr)) {
-    throw new Error("UNOBSERVED_FACT_ADMITTED");
-  }
+  const directory = await mkdtemp(join(tmpdir(), "gpt-product-report-v6-"));
+  const reportPath = join(directory, "report.json");
+  run(["inventory", "--repo", REPO, "--matrix", MATRIX, "--output", reportPath]);
+  const report = JSON.parse(await readFile(reportPath, "utf8"));
+  assert.equal(report.schemaVersion, "gpt-page-operation-evidence.v6");
+  assert.equal(report.primaryIndex, "products");
+  assert.equal(report.products.length, 40);
+  assert.equal(report.productCaptureStatus, "NOT_CAPTURED");
+  assert.equal(report.claimsQualityVerdict, false);
+  assert.equal(hasForbiddenBinding(report), false);
+  assert.ok(report.products.some((entry) => entry.productKey === "public_knowledge_article_pipeline/produce_article"
+    && entry.contractPath?.endsWith("page-evidence-contract.json")));
+  assert.ok(report.products.some((entry) => entry.productKey === "localization_static_catalog/produce_locale_catalog"
+    && entry.contractPath?.endsWith("page-evidence-contract.json")));
+  assert.ok(report.products.some((entry) => entry.gaps.includes("PRODUCT_EVIDENCE_CONTRACT_NOT_IMPLEMENTED")));
+  run(["validate", "--repo", REPO, "--matrix", MATRIX, "--report", reportPath]);
 
-  const tampered = structuredClone(partialReport);
-  const tamperedChild = tampered.children.find((child) => child.childCapabilityId === "wait_for_stable_gpt_text");
-  const targetBinding = tamperedChild.collection.factBindings.find((binding) => binding.factId === "target:assistant-turn");
-  const targetSpecimen = tamperedChild.collection.specimens.find((specimen) =>
-    specimen.observationId === targetBinding.observationId);
-  targetSpecimen.core.targets["assistant-turn"].observed = false;
-  const tamperedPath = join(directory, "tampered-scoped.report.json");
-  await writeFile(tamperedPath, `${JSON.stringify(tampered)}\n`, "utf8");
-  const tamperedScope = ["target:assistant-turn"];
-  const tamperedCandidate = candidateFor(tamperedPath, "wait_for_stable_gpt_text", tamperedScope);
-  if (tamperedCandidate === candidateFor(partialPath, "wait_for_stable_gpt_text", tamperedScope)) {
-    throw new Error("ACTUAL_EVIDENCE_NOT_BOUND_TO_CANDIDATE");
-  }
-  const tamperedAdmission = run(["admit", "--repo", REPO, "--matrix", MATRIX, "--report", tamperedPath,
-    "--child", "wait_for_stable_gpt_text", "--facts", tamperedScope.join(","),
-    "--candidate", tamperedCandidate], 1);
-  if (!/ADMISSION_FACT_EVIDENCE_INVALID.*binding-target/u.test(tamperedAdmission.stderr)) {
-    throw new Error("FALSE_TARGET_ADMITTED");
-  }
+  const digest = `sha256:${"0".repeat(64)}`;
+  const candidate = JSON.parse(run(["candidate", "--repo", REPO, "--matrix", MATRIX, "--report", reportPath,
+    "--product", "public_knowledge_article_pipeline", "--action", "produce_article"]).stdout).candidate;
+  assert.match(candidate, /^PRODUCT:[a-f0-9]{64}$/u);
+  const unrelatedDrift = structuredClone(report);
+  unrelatedDrift.projectionRevision = digest;
+  unrelatedDrift.matrixBinding = { schemaVersion: "changed-elsewhere", digest };
+  unrelatedDrift.generatedAt = "2099-01-01T00:00:00.000Z";
+  unrelatedDrift.products.find((entry) => entry.productKey !== "public_knowledge_article_pipeline/produce_article")
+    .gaps = ["UNRELATED_PRODUCT_CHANGED"];
+  unrelatedDrift.childIndex = { unrelated_child: [] };
+  const unrelatedDriftPath = join(directory, "unrelated-drift.json");
+  await writeFile(unrelatedDriftPath, `${JSON.stringify(unrelatedDrift)}\n`);
+  const localCandidate = JSON.parse(run(["candidate", "--repo", REPO, "--matrix", MATRIX,
+    "--report", unrelatedDriftPath, "--product", "public_knowledge_article_pipeline",
+    "--action", "produce_article"]).stdout).candidate;
+  assert.equal(localCandidate, candidate);
+  const preservedHistorical = structuredClone(report);
+  preservedHistorical.projectionRevision = digest;
+  preservedHistorical.matrixBinding = { schemaVersion: "historical", digest };
+  preservedHistorical.products.find((entry) => entry.productKey !== "public_knowledge_article_pipeline/produce_article")
+    .contractDigest = digest;
+  const preservedHistoricalPath = join(directory, "preserved-historical.json");
+  await writeFile(preservedHistoricalPath, `${JSON.stringify(preservedHistorical)}\n`);
+  const preservedValidation = JSON.parse(run(["validate", "--repo", REPO, "--matrix", MATRIX,
+    "--report", preservedHistoricalPath]).stdout);
+  assert.equal(preservedValidation.valid, true);
+  assert.equal(preservedValidation.projectionCurrent, false);
+  assert.ok(preservedValidation.staleProducts.length > 0);
+  assert.match(run(["candidate", "--repo", REPO, "--matrix", MATRIX,
+    "--report", reportPath, "--product", "public_knowledge_article_pipeline", "--action", "produce_article",
+    "--child", "submit_exact_gpt_turn_once"], 1).stderr,
+  /ADMISSION_CHILD_SCOPE_FORBIDDEN/u);
+  assert.match(run(["refresh", "--repo", REPO, "--matrix", MATRIX, "--base-report", reportPath,
+    "--output", join(directory, "child-refresh.json"), "--product", "public_knowledge_article_pipeline",
+    "--action", "produce_article", "--child", "submit_exact_gpt_turn_once"], 1).stderr,
+  /PRODUCT_CHILD_SCOPE_FORBIDDEN/u);
+  const incomplete = run(["admit", "--repo", REPO, "--matrix", MATRIX, "--report", reportPath,
+    "--product", "public_knowledge_article_pipeline", "--action", "produce_article", "--candidate", candidate], 1);
+  assert.match(incomplete.stderr, /ADMISSION_PRODUCT_EVIDENCE_INCOMPLETE/u);
 
-  const cases = [
-    ["reused-live-scene", (value) => {
-      const target = value.children.find((child) => child.childCapabilityId === "open_gpt_model_selector_v2");
-      const second = target.specimens.find((specimen) => specimen.stateId === "model-selector-open");
-      second.sourceSceneId = target.specimens[0].sourceSceneId;
-      second.sourceSceneSignature = target.specimens[0].sourceSceneSignature;
-      second.stateSignature = observedStateSignature(second);
-    }],
-    ["contradictory-unchecked-model", (value) => {
-      const target = value.children.find((child) => child.childCapabilityId === "select_exact_gpt_model_v2");
-      target.specimens.find((specimen) => specimen.stateId === "target-model-actionable-unchecked").core.attributes["aria-checked"] = "true";
-    }],
-    ["missing-demand-binding", (value) => {
-      const target = value.children.find((child) => child.childCapabilityId === "prepare_clean_gpt_chat");
-      target.factBindings.pop();
-    }],
-    ["derived-terminal-substitution", (value) => {
-      const target = value.children.find((child) => child.childCapabilityId === "wait_for_stable_gpt_image");
-      target.specimens.find((specimen) => specimen.stateId === "image-error-terminal").evidenceKind = "DERIVED_FIXTURE";
-    }],
-  ];
-  for (const [name, mutate] of cases) {
-    const variant = structuredClone(capture);
-    mutate(variant);
-    const variantCapture = join(directory, `${name}.capture.json`);
-    const variantReport = join(directory, `${name}.report.json`);
-    await writeFile(variantCapture, `${JSON.stringify(variant)}\n`, "utf8");
-    if (name === "derived-terminal-substitution") {
-      const rejectedAtMerge = run(["merge", "--repo", REPO, "--matrix", MATRIX,
-        "--capture", variantCapture, "--output", variantReport], 1);
-      if (!/CAPTURE_CHAIN_SOURCE_NOT_ADMITTED/u.test(rejectedAtMerge.stderr)) {
-        throw new Error(`WRONG_REJECTION:${name}:${rejectedAtMerge.stderr}`);
-      }
-      continue;
-    }
-    const output = JSON.parse(run(["merge", "--repo", REPO, "--matrix", MATRIX,
-      "--capture", variantCapture, "--output", variantReport]).stdout);
-    if (output.status !== "CAPTURE_PARTIAL") throw new Error(`ADVERSARIAL_CASE_PASSED:${name}`);
-    const rejected = run(["validate", "--repo", REPO, "--matrix", MATRIX,
-      "--report", variantReport, "--require-complete"], 1);
-    if (!/REPORT_NOT_COMPLETE/u.test(rejected.stderr)) throw new Error(`WRONG_REJECTION:${name}:${rejected.stderr}`);
-    if (name === "missing-demand-binding") {
-      const partialReport = JSON.parse(await readFile(variantReport, "utf8"));
-      const modelCandidate = candidateFor(variantReport, "select_exact_gpt_model_v2");
-      const prepareCandidate = candidateFor(variantReport, "prepare_clean_gpt_chat");
-      run(["admit", "--repo", REPO, "--matrix", MATRIX, "--report", variantReport,
-        "--child", "select_exact_gpt_model_v2", "--candidate", modelCandidate]);
-      const localReject = run(["admit", "--repo", REPO, "--matrix", MATRIX, "--report", variantReport,
-        "--child", "prepare_clean_gpt_chat", "--candidate", prepareCandidate], 1);
-      if (!/ADMISSION_CHILD_NOT_READY/u.test(localReject.stderr)) {
-        throw new Error(`LOCAL_ADMISSION_SCOPE_INVALID:${localReject.stderr}`);
-      }
-    }
-  }
+  const tampered = structuredClone(report);
+  tampered.childIndex = { fake_child: [] };
+  const tamperedPath = join(directory, "tampered.json");
+  await writeFile(tamperedPath, `${JSON.stringify(tampered)}\n`);
+  assert.match(run(["validate", "--repo", REPO, "--matrix", MATRIX, "--report", tamperedPath], 1).stderr,
+    /REPORT_CHILD_INDEX_NOT_DERIVED/u);
 
-  const stale = JSON.parse(await readFile(reportPath, "utf8"));
-  stale.candidateBinding.candidate = "WORKTREE:stale";
-  const stalePath = join(directory, "stale-candidate.report.json");
-  await writeFile(stalePath, `${JSON.stringify(stale)}\n`, "utf8");
-  const staleRejected = run(["validate", "--repo", REPO, "--matrix", MATRIX,
-    "--report", stalePath, "--require-complete"], 1);
-  if (!/REPORT_PROJECTION_STALE/u.test(staleRejected.stderr)) throw new Error(`STALE_CANDIDATE_PASSED:${staleRejected.stderr}`);
+  const gitBound = structuredClone(report);
+  gitBound.candidateBinding = { head: "deadbeef" };
+  const gitBoundPath = join(directory, "git-bound.json");
+  await writeFile(gitBoundPath, `${JSON.stringify(gitBound)}\n`);
+  assert.match(run(["validate", "--repo", REPO, "--matrix", MATRIX, "--report", gitBoundPath], 1).stderr,
+    /REPORT_GIT_BINDING_FORBIDDEN/u);
 
-  process.stdout.write(`${JSON.stringify({ passed: true, cases: ["recapture-without-trigger-rejected", "baseline-complete", "admit-all", "candidate-required", "head-candidate-rejected", "canonical-report-path", "offline-refresh-same-capture-epoch", "targeted-state-merge-preserves-unrefreshed-states", "offline-refresh-preserves-scene-provenance", "observation-scoped-partial-admit", "actual-evidence-brief-returned", "unobserved-fact-rejected", "actual-evidence-bound-to-candidate", "false-target-rejected", "partial-report-child-local-admit", ...cases.map(([name]) => name), "stale-projection"], directory })}\n`);
+  const staleProductRun = structuredClone(report);
+  const staleProduct = staleProductRun.products.find((entry) =>
+    entry.productKey === "public_knowledge_article_pipeline/produce_article");
+  const staleSource = structuredClone(publicSource);
+  staleSource.productId = staleProduct.productId;
+  staleSource.actionId = staleProduct.actionId;
+  staleSource.pluginId = staleProduct.pluginId;
+  staleSource.pluginVersion = staleProduct.pluginVersion;
+  staleSource.taskBinding.productId = staleProduct.productId;
+  staleSource.taskBinding.actionId = staleProduct.actionId;
+  staleSource.reportSourceSnapshotId = localHash(JSON.stringify(localStable({
+    taskBinding: staleSource.taskBinding, materials: staleSource.materials,
+  })));
+  const staleRun = { ...validRun, productId: staleProduct.productId, actionId: staleProduct.actionId,
+    pluginId: staleProduct.pluginId, pluginVersion: staleProduct.pluginVersion,
+    reportSourceSnapshotId: staleSource.reportSourceSnapshotId,
+    capturedAt: rawCaptureContext.capturedAt,
+    captureEpoch, recaptureTrigger: rawCaptureContext.recaptureTrigger,
+    productionSource: staleSource };
+  staleProduct.runs = [staleRun];
+  staleProduct.captureStatus = "CAPTURE_COMPLETE";
+  staleProduct.gaps = [];
+  staleProductRun.productCaptureStatus = "CAPTURE_PARTIAL";
+  staleProductRun.childIndex = localStable({ prepare_clean_gpt_chat: [{
+    productKey: staleProduct.productKey, sourceSnapshotId: staleRun.sourceSnapshotId, captureEpoch,
+    productStepId: staleRun.calls[0].productStepId, actionOrdinal: staleRun.calls[0].actionOrdinal,
+    traceEntryId: staleRun.calls[0].traceEntryId,
+    exactCallIdentityHash: staleRun.calls[0].exactCallIdentityHash, captureComplete: true,
+  }] });
+  const staleProductPath = join(directory, "stale-product-run.json");
+  await writeFile(staleProductPath, `${JSON.stringify(staleProductRun)}\n`);
+  const staleValidation = JSON.parse(run(["validate", "--repo", REPO, "--matrix", MATRIX,
+    "--report", staleProductPath]).stdout);
+  assert.equal(staleValidation.projectionCurrent, false);
+  const staleAggregateTamper = structuredClone(staleProductRun);
+  staleAggregateTamper.products.find((entry) => entry.productKey === staleProduct.productKey)
+    .captureStatus = "CAPTURE_PARTIAL";
+  const staleAggregateTamperPath = join(directory, "stale-aggregate-tampered.json");
+  await writeFile(staleAggregateTamperPath, `${JSON.stringify(staleAggregateTamper)}\n`);
+  assert.match(run(["validate", "--repo", REPO, "--matrix", MATRIX,
+    "--report", staleAggregateTamperPath], 1).stderr, /REPORT_PRODUCT_CAPTURE_PROJECTION_INVALID/u);
+  const staleContextTamper = structuredClone(staleProductRun);
+  staleContextTamper.products.find((entry) => entry.productKey === staleProduct.productKey)
+    .runs[0].captureContext.browser.debugNote = "must-not-pass-after-write";
+  const staleContextTamperPath = join(directory, "stale-context-tampered.json");
+  await writeFile(staleContextTamperPath, `${JSON.stringify(staleContextTamper)}\n`);
+  assert.match(run(["validate", "--repo", REPO, "--matrix", MATRIX,
+    "--report", staleContextTamperPath], 1).stderr, /captureContext\.schema/u);
+  const refreshedPath = join(directory, "refreshed-stale-product.json");
+  run(["refresh", "--repo", REPO, "--matrix", MATRIX, "--base-report", staleProductPath,
+    "--output", refreshedPath, "--product", "public_knowledge_article_pipeline", "--action", "produce_article"]);
+  const refreshed = JSON.parse(await readFile(refreshedPath, "utf8"));
+  const refreshedProduct = refreshed.products.find((entry) =>
+    entry.productKey === "public_knowledge_article_pipeline/produce_article");
+  assert.equal(refreshedProduct.captureStatus, "CAPTURE_COMPLETE");
+  assert.deepEqual(refreshedProduct.gaps, []);
+  run(["validate", "--repo", REPO, "--matrix", MATRIX, "--report", refreshedPath]);
+
+  const legacy = structuredClone(report);
+  legacy.schemaVersion = "gpt-page-operation-evidence.v5";
+  const legacyPath = join(directory, "legacy.json");
+  await writeFile(legacyPath, `${JSON.stringify(legacy)}\n`);
+  assert.match(run(["validate", "--repo", REPO, "--matrix", MATRIX, "--report", legacyPath], 1).stderr,
+    /REPORT_LEGACY_INVALIDATED/u);
+
+  process.stdout.write(`${JSON.stringify({ passed: true, products: report.products.length,
+    cases: ["catalog-denominator", "product-primary-index", "head-independent", "derived-child-index",
+      "public-source-redaction", "product-run-recomputed", "product-admission-fails-closed",
+      "product-candidate-locality", "targeted-slice-preserves-unselected-bytes",
+      "global-drift-does-not-block-targeted-product", "child-admission-forbidden",
+      "stale-slice-internal-validation", "persisted-capture-context-tamper-rejected",
+      "persisted-scene-binding-tamper-rejected", "stale-matrix-snapshot-tamper-rejected",
+      "stale-product-aggregate-derived", "product-local-projection-staleness",
+      "v5-invalidated"] })}\n`);
 }
 
 main().catch((error) => {
-  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+  process.stderr.write(`${error instanceof Error ? error.stack : String(error)}\n`);
   process.exitCode = 1;
 });

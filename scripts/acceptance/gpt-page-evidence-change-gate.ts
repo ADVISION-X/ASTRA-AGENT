@@ -12,7 +12,7 @@ import {
 
 const ROOT = resolve(".");
 const REPORT_PATH = "docs/项目方案/GPT页面操作子能力实证资料.json";
-const REPORT_SCHEMA = "gpt-page-operation-evidence.v5";
+const REPORT_SCHEMA = "gpt-page-operation-evidence.v6";
 const ACTIVE_LAW_PATH = ".github/instructions/agent-rules/功能法案.md";
 const BLUEPRINT_PATH = "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md";
 const SHARED_PAGE_PATHS = new Set([
@@ -81,6 +81,7 @@ export const affectedGptPageChildren = (paths: readonly string[], children: read
   const ids = children.map((child) => child.childCapabilityId);
   const affected = new Set<string>();
   for (const path of paths) {
+    if (path.endsWith("/page-evidence-contract.json")) continue;
     const direct = path.match(/^src\/capabilities\/gpt\/children\/([^/]+)\//u)?.[1];
     if (direct && ids.includes(direct)) affected.add(direct);
     for (const child of children) if (operationalBoundPaths(child).includes(path)) affected.add(child.childCapabilityId);

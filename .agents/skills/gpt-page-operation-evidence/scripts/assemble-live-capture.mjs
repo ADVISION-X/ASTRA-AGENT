@@ -2,8 +2,15 @@
 
 import { createHash } from "node:crypto";
 import { readFile, rename, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import {
+  derivePageInputBindingProof,
+  pageInputBindingValid,
+} from "./page-input-binding.mjs";
 
-const CAPTURE_SCHEMA = "gpt-page-operation-capture.v5";
+const CAPTURE_SCHEMA = "gpt-page-operation-capture.v6";
+const PRODUCTION_SOURCE_SCHEMA = "gpt-page-operation-production-source.v1";
 
 function fail(code, detail = "") {
   throw new Error(detail ? `${code}:${detail}` : code);
@@ -65,10 +72,7 @@ function safeTextProjection(node) {
     kind: "HASH_ONLY", sha256: projection.sha256, length: projection.length,
   };
   const value = typeof projection.value === "string" ? projection.value : "";
-  return {
-    kind: value.includes("GPT-EVIDENCE-") ? "SYNTHETIC_FIXTURE" : "ALLOWLISTED_UI",
-    value, sha256: sha256(value), length: value.length,
-  };
+  return { kind: "ALLOWLISTED_UI", value, sha256: sha256(value), length: value.length };
 }
 
 function safeSubtreeProjection(node) {
@@ -116,16 +120,43 @@ function virtualEntry(scene, target, markerObserved) {
     return { scene, nodeIndex: 0, node: { tag: "virtual-route", attributes: { kind: "SANITIZED_CURRENT_URL", conversation: String(isConversation) }, rect: { x: 0, y: 0, width: 1, height: 1 }, style: { display: "virtual", visibility: "visible", opacity: "1" }, connected: true, textProjection: { kind: "HASH_ONLY", sha256: sha256(scene.url), length: scene.url.length } } };
   }
   if (target === "conversation-identity-evidence" && isConversation && markerObserved) {
-    return { scene, nodeIndex: 0, node: { tag: "virtual-conversation-identity", attributes: { kind: "ROUTE_AND_SYNTHETIC_MARKER" }, rect: { x: 0, y: 0, width: 1, height: 1 }, style: { display: "virtual", visibility: "visible", opacity: "1" }, connected: true, textProjection: { kind: "HASH_ONLY", sha256: sha256(`${scene.url}:${markerObserved}`), length: markerObserved.length } } };
+    return { scene, nodeIndex: 0, node: { tag: "virtual-conversation-identity", attributes: { kind: "ROUTE_AND_PRODUCT_TURN_MARKER" }, rect: { x: 0, y: 0, width: 1, height: 1 }, style: { display: "virtual", visibility: "visible", opacity: "1" }, connected: true, textProjection: { kind: "HASH_ONLY", sha256: sha256(`${scene.url}:${markerObserved}`), length: String(markerObserved).length } } };
   }
   return null;
 }
 
-function candidateEntries(target, scene, candidateContext = {}) {
+export function candidateEntries(target, scene, candidateContext = {}) {
   const entries = sceneEntries(scene);
   const attr = (entry, name) => attributesOf(entry.node)[name];
-  const markerObserved = entries.find((entry) => textOf(entry.node).includes("GPT-EVIDENCE-"));
-  const virtual = virtualEntry(scene, target, markerObserved ? textOf(markerObserved.node) : "");
+  const ownerTurnHash = (entry) => {
+    const owner = entry.node.machineFacts?.ownerTurnTestId ?? attr(entry, "data-testid");
+    return typeof owner === "string" && owner.length > 0 ? sha256(owner) : null;
+  };
+  const expectedTurn = candidateContext.expectedPageInputRoles ?? {};
+  const assistantBound = [expectedTurn.promptHash, expectedTurn.responseHash, expectedTurn.turnMarkerHash,
+    expectedTurn.assistantTurnIdHash].some((value) => typeof value === "string");
+  const matchingAssistantIds = new Set((scene.pageFacts?.conversationTurnBindings ?? [])
+    .filter((binding) => (expectedTurn.promptHash === null || expectedTurn.promptHash === undefined
+      || binding.precedingPromptHash === expectedTurn.promptHash)
+      && (expectedTurn.responseHash === null || expectedTurn.responseHash === undefined
+        || binding.responseHash === expectedTurn.responseHash)
+      && (expectedTurn.turnMarkerHash === null || expectedTurn.turnMarkerHash === undefined
+        || binding.turnMarkerHashes?.includes(expectedTurn.turnMarkerHash))
+      && (expectedTurn.assistantTurnIdHash === null || expectedTurn.assistantTurnIdHash === undefined
+        || binding.assistantTurnIdHash === expectedTurn.assistantTurnIdHash))
+    .map((binding) => binding.assistantTurnIdHash));
+  const assistantOwnerMatches = (entry) => !assistantBound || matchingAssistantIds.has(ownerTurnHash(entry));
+  const userBound = [expectedTurn.promptHash, expectedTurn.turnMarkerHash]
+    .some((value) => typeof value === "string");
+  const matchingUserIds = new Set((scene.pageFacts?.userTurnBindings ?? [])
+    .filter((binding) => (expectedTurn.promptHash === null || expectedTurn.promptHash === undefined
+      || binding.promptHash === expectedTurn.promptHash)
+      && (expectedTurn.turnMarkerHash === null || expectedTurn.turnMarkerHash === undefined
+        || binding.turnMarkerHashes?.includes(expectedTurn.turnMarkerHash)))
+    .map((binding) => binding.userTurnIdHash));
+  const userOwnerMatches = (entry) => !userBound || matchingUserIds.has(ownerTurnHash(entry));
+  const markerObserved = entries.find((entry) => entry.node.machineFacts?.productTurnMarkerObserved === true);
+  const virtual = virtualEntry(scene, target, markerObserved ? markerObserved.node.textProjection?.sha256 ?? "observed" : "");
   if (virtual) return [virtual];
   const menus = entries.filter((entry) => attr(entry, "role") === "menu");
   const exactText = (value) => entries.filter((entry) => textOf(entry.node) === value);
@@ -149,17 +180,19 @@ function candidateEntries(target, scene, candidateContext = {}) {
     case "composer-text-projection": return entries.filter((entry) => attr(entry, "id") === "prompt-textarea");
     case "attachment-region":
     case "attachment-trigger": return entries.filter((entry) => attr(entry, "data-testid") === "composer-plus-btn");
-    case "attachment-cards": return virtualAggregate("SYNTHETIC_ATTACHMENT_SET", entries.filter((entry) =>
-      attr(entry, "role") === "group"
-      && /GPT-EVIDENCE-.*\.(?:json|txt|zip|exe)/u.test(String(attr(entry, "aria-label") ?? ""))));
+    case "attachment-cards": return virtualAggregate("APPROVED_PRODUCTION_ATTACHMENT_SET", entries.filter((entry) =>
+      attr(entry, "role") === "group" && entry.node.machineFacts?.productionAttachmentGroupAncestor === true));
     case "upload-status": return virtualAggregate("UPLOAD_STATUS", entries.filter((entry) =>
-      (attr(entry, "role") === "group"
-        && /GPT-EVIDENCE-.*\.(?:json|txt|zip|exe)/u.test(String(attr(entry, "aria-label") ?? "")))
+      (attr(entry, "role") === "group" && entry.node.machineFacts?.productionAttachmentGroupAncestor === true)
       || entry.node.machineFacts?.attachmentUploadErrorAlert === true));
-    case "user-turn": return entries.filter((entry) => attr(entry, "data-message-author-role") === "user");
+    case "user-turn": return entries.filter((entry) => attr(entry, "data-message-author-role") === "user"
+      && userOwnerMatches(entry));
     case "source-turn":
-    case "rich-text-response": return entries.filter((entry) => attr(entry, "data-message-author-role") === "assistant");
+    case "rich-text-response": return entries.filter((entry) => attr(entry, "data-message-author-role") === "assistant"
+      && assistantOwnerMatches(entry));
     case "assistant-turn": {
+      if (assistantBound) return entries.filter((entry) => attr(entry, "data-message-author-role") === "assistant"
+        && assistantOwnerMatches(entry));
       if (candidateContext.latestTextAssistantChild) {
         const assistants = entries.filter((entry) => attr(entry, "data-message-author-role") === "assistant");
         const latestOrdinal = Math.max(0, ...assistants.map((entry) => Number(String(entry.node.machineFacts?.ownerTurnTestId ?? "").slice("conversation-turn-".length))));
@@ -175,6 +208,7 @@ function candidateEntries(target, scene, candidateContext = {}) {
     case "response-text-region": {
       const responses = entries.filter((entry) => attr(entry, "data-message-author-role") === "assistant"
         && entry.node.subtreeTextProjection?.length > 0);
+      if (assistantBound) return responses.filter(assistantOwnerMatches);
       if (!candidateContext.latestTextAssistantChild) return responses;
       const latestOrdinal = Math.max(0, ...responses.map((entry) => Number(String(entry.node.machineFacts?.ownerTurnTestId ?? "").slice("conversation-turn-".length))));
       return responses.filter((entry) => entry.node.machineFacts?.ownerTurnTestId === `conversation-turn-${latestOrdinal}`);
@@ -186,7 +220,7 @@ function candidateEntries(target, scene, candidateContext = {}) {
     case "semantic-media-node":
     case "original-content-control": return entries.filter((entry) => entry.node.tag === "img"
       && entry.node.media?.complete === true && entry.node.media?.naturalWidth > 100
-      && entry.node.media?.altLength > 0);
+      && entry.node.media?.altLength > 0 && assistantOwnerMatches(entry));
     case "execution-profile-trigger":
     case "execution-profile-close-control": return entries.filter((entry) => entry.node.tag === "button"
       && attr(entry, "aria-expanded") !== undefined && attr(entry, "data-testid") !== "composer-plus-btn"
@@ -210,7 +244,8 @@ function candidateEntries(target, scene, candidateContext = {}) {
     case "file-input": return entries.filter((entry) => entry.node.tag === "input" && attr(entry, "type") === "file"
       && attr(entry, "id") === "upload-files");
     case "submit-control": return entries.filter((entry) => attr(entry, "data-testid") === "send-button");
-    case "source-turn-more-actions-control": return entries.filter((entry) => attr(entry, "aria-label") === "更多操作");
+    case "source-turn-more-actions-control": return entries.filter((entry) => attr(entry, "aria-label") === "更多操作"
+      && assistantOwnerMatches(entry));
     case "source-bound-actions-menu": return exactText("打开新分支").length === 1 ? menus.slice(0, 1) : [];
     case "open-new-fork-entry": return entries.filter((entry) => attr(entry, "role") === "menuitem"
       && attr(entry, "aria-expanded") !== undefined && attr(entry, "data-state") !== undefined
@@ -346,12 +381,13 @@ function transitionChain(child, scene, observationId, capture) {
   };
 }
 
-function makeLiveSpecimen({ child, requirement, stateId, scene, capture, mapping }) {
+function makeLiveSpecimen({ child, requirement, stateId, scene, capture, mapping, traceEntry = null }) {
   const requiredTargets = requirement.liveStateTargets[stateId];
   const candidateContext = {
     authorizedModelId: mapping.authorizedInputs?.["authorized-model-id"]?.values?.[0] ?? "",
     imageChild: ["checkpoint_gpt_generated_image", "wait_for_stable_gpt_image"].includes(child.childCapabilityId),
     latestTextAssistantChild: ["checkpoint_gpt_text_response", "wait_for_stable_gpt_text"].includes(child.childCapabilityId),
+    expectedPageInputRoles: traceEntry?.inputBinding?.roleHashes ?? {},
   };
   const targetResults = requiredTargets.map((target) => targetEvidence(target, scene, candidateContext));
   const failures = targetResults.filter((entry) => !entry.selected)
@@ -379,8 +415,8 @@ function makeLiveSpecimen({ child, requirement, stateId, scene, capture, mapping
       ...(scene.pageFacts ?? {}) },
     stateSignature: specimenSignature(scene, targetRecords),
     core: {
-      normalizedStructure: { tag: primary.node.tag, sourceSceneSignature: scene.stateSignature },
-      sanitizedOuterHtml: `<${primary.node.tag} data-node-identity="${targetRecords[requiredTargets[0]].identityHash}"></${primary.node.tag}>`,
+      normalizedStructure: primary.node.sanitizedDomTree,
+      sanitizedOuterHtml: primary.node.sanitizedOuterHtml,
       attributes: attributesOf(primary.node),
       computedStyle: primary.node.style ?? { display: "unknown", visibility: "unknown", opacity: "unknown" },
       connected: primary.node.connected ?? true,
@@ -496,7 +532,55 @@ function assertRecaptureTrigger(trigger) {
       .every((value) => /^sha256:[a-f0-9]{64}$/u.test(value ?? ""))) fail("RECAPTURE_TRIGGER_INVALID");
 }
 
+function exactObjectKeys(value, keys) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+    && JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...keys].sort());
+}
+
+function mappedStateIdsForCall(requirement, callMapping, traceEntryId) {
+  const mappedStateIds = Object.keys(callMapping?.states ?? {});
+  if (mappedStateIds.length === 0) fail("PRODUCT_CALL_MAPPING_SCHEMA_INVALID", traceEntryId);
+  const allowedStateIds = [...requirement.requiredLiveStates, ...(requirement.optionalLiveStates ?? [])];
+  for (const stateId of mappedStateIds) {
+    if (!allowedStateIds.includes(stateId)) {
+      fail("PRODUCT_CALL_STATE_OUT_OF_SCOPE", `${traceEntryId}:${stateId}`);
+    }
+  }
+  return allowedStateIds.filter((stateId) => mappedStateIds.includes(stateId));
+}
+
+function terminalProofValid(source) {
+  const proof = source?.terminalBranchProof;
+  if (source?.flowStatus === "PARTIAL") return proof === null;
+  if (source?.terminalBranch !== "production-failure") {
+    return exactObjectKeys(proof, ["kind", "receiptHash", "resultPayloadHash", "resultObjectReceiptHash",
+      "resultPayloadOutboxHash"])
+      && proof.kind === "DURABLE_COMPLETION_RECEIPT"
+      && [proof.receiptHash, proof.resultPayloadHash, proof.resultObjectReceiptHash,
+        proof.resultPayloadOutboxHash].every((value) => /^sha256:[a-f0-9]{64}$/u.test(value ?? ""));
+  }
+  const failedTraceIds = new Set((source.actualTrace ?? [])
+    .filter((entry) => entry?.resultStatus === "failed").map((entry) => entry.traceEntryId));
+  return exactObjectKeys(proof, ["kind", "failedTraceEntryId", "terminalSource", "durableFailureReceiptHash",
+    "durableFailureCodeHash", "traceFailureCodeHash", "codeRelation", "childCorrelation", "evidenceCorrelation"])
+    && proof.kind === "DURABLE_FAILURE_AND_TRACE_TERMINAL"
+    && failedTraceIds.has(proof.failedTraceEntryId)
+    && ["ATTEMPT_FAILURE_ROW", "CURRENT_TASK_ROW"].includes(proof.terminalSource)
+    && /^sha256:[a-f0-9]{64}$/u.test(proof.durableFailureReceiptHash ?? "")
+    && (proof.durableFailureCodeHash === null || /^sha256:[a-f0-9]{64}$/u.test(proof.durableFailureCodeHash ?? ""))
+    && (proof.traceFailureCodeHash === null || /^sha256:[a-f0-9]{64}$/u.test(proof.traceFailureCodeHash ?? ""))
+    && ["EXACT", "PRODUCT_FAILURE_WRAPS_TRACE_FAILURE"].includes(proof.codeRelation)
+    && ["MATCHED", "NOT_DECLARED"].includes(proof.childCorrelation)
+    && ["MATCHED", "NOT_DECLARED"].includes(proof.evidenceCorrelation);
+}
+
 function sceneManifestEntry(scene) {
+  const decisionReceipt = scene.decisionReceipt?.kind === "ALREADY_SATISFIED"
+    ? { kind: scene.decisionReceipt.kind }
+    : scene.decisionReceipt?.kind === "ACTION_REQUIRED"
+      ? { kind: scene.decisionReceipt.kind, actionId: scene.decisionReceipt.actionId,
+        operation: scene.decisionReceipt.operation }
+      : null;
   const entry = stable({
     sceneId: scene.sceneId,
     capturedAt: scene.capturedAt,
@@ -506,7 +590,7 @@ function sceneManifestEntry(scene) {
     observationRevisionHash: scene.observationRevisionHash,
     binding: scene.binding,
     transitionReceipt: scene.transitionReceipt ?? null,
-    decisionReceipt: scene.decisionReceipt ?? null,
+    decisionReceipt,
   });
   return { ...entry, envelopeHash: sha256(JSON.stringify(entry)) };
 }
@@ -539,25 +623,71 @@ function authorizedInputs(mapping, inventory, matrix, selectedIds) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  for (const required of ["inventory", "matrix", "scenes", "mapping", "fixtures", "browser-meta", "output"]) {
+  for (const required of ["inventory", "matrix", "scenes", "mapping", "production-source", "browser-meta", "output"]) {
     if (!args[required]) fail("ARGUMENT_REQUIRED", `--${required}`);
   }
-  const [inventory, matrix, scenes, mapping, fixtureManifest, browserMeta] = await Promise.all([
+  const [inventory, matrix, scenes, mapping, rawProductionSource, browserMeta] = await Promise.all([
     readJson(args.inventory), readJson(args.matrix), readJson(args.scenes), readJson(args.mapping),
-    readJson(args.fixtures), readJson(args["browser-meta"]),
+    readJson(args["production-source"]), readJson(args["browser-meta"]),
   ]);
+  const productionSource = rawProductionSource;
+  if (productionSource.schemaVersion !== PRODUCTION_SOURCE_SCHEMA
+    || productionSource.sourceKind !== "PRODUCTION_RUNTIME_DURABLE_TASK"
+    || productionSource.synthetic !== false
+    || !/^sha256:[a-f0-9]{64}$/u.test(productionSource.sourceSnapshotId ?? "")
+    || !/^sha256:[a-f0-9]{64}$/u.test(productionSource.flowContractDigest ?? "")
+    || !["OBSERVED_COMPLETE_PATH", "PARTIAL"].includes(productionSource.flowStatus)
+    || (productionSource.flowStatus === "OBSERVED_COMPLETE_PATH"
+      ? typeof productionSource.terminalBranch !== "string" || productionSource.terminalBranch.length === 0
+      : productionSource.terminalBranch !== null)
+    || !terminalProofValid(productionSource)
+    || !Array.isArray(productionSource.flowGaps)
+    || !Array.isArray(productionSource.materials)
+    || !Array.isArray(productionSource.actualTrace) || productionSource.actualTrace.length === 0
+    || productionSource.materialSetHash !== sha256(JSON.stringify(stable(productionSource.materials)))
+    || productionSource.sourceSnapshotId !== sha256(JSON.stringify(stable({
+      taskBinding: productionSource.taskBinding, materials: productionSource.materials,
+    })))
+    || productionSource.traceDigest !== sha256(JSON.stringify(stable(productionSource.actualTrace)))
+    || productionSource.actualTrace.some((entry) => !/^sha256:[a-f0-9]{64}$/u.test(entry.traceEntryId ?? "")
+      || !pageInputBindingValid(entry.inputBinding))
+    || new Set(productionSource.actualTrace.map((entry) => entry.traceEntryId)).size
+      !== productionSource.actualTrace.length) {
+    fail("PRODUCTION_SOURCE_INVALID");
+  }
   if (!Array.isArray(scenes) || scenes.length === 0) fail("SCENE_SET_EMPTY");
   const sceneIds = scenes.map((scene) => scene.sceneId);
   if (new Set(sceneIds).size !== sceneIds.length) fail("SCENE_ID_DUPLICATE");
   const scenesById = Object.fromEntries(scenes.map((scene) => [scene.sceneId, scene]));
-  const runId = fixtureManifest.runId;
+  const runId = `${productionSource.jobId}:${productionSource.attemptId}`;
   const captureEpoch = browserMeta.captureEpoch;
   const recaptureTrigger = browserMeta.recaptureTrigger;
   const pageIds = inventory.denominator.pageOperationChildIds;
+  const actualPageIds = [...new Set(productionSource.actualTrace.map((entry) => entry.childId)
+    .filter((childId) => pageIds.includes(childId)))];
+  if (actualPageIds.length === 0) fail("PRODUCT_TRACE_PAGE_CALL_EMPTY");
+  const matrixById = Object.fromEntries(matrix.children.map((entry) => [entry.childCapabilityId, entry]));
   const selectedIds = typeof args.child === "string" && args.child !== "all"
-    ? args.child.split(",").filter(Boolean) : pageIds;
+    ? args.child.split(",").filter(Boolean) : actualPageIds;
   if (new Set(selectedIds).size !== selectedIds.length) fail("CAPTURE_CHILD_DUPLICATE");
-  for (const id of selectedIds) if (!pageIds.includes(id)) fail("CAPTURE_CHILD_OUT_OF_SCOPE", id);
+  for (const id of selectedIds) if (!actualPageIds.includes(id)) fail("CAPTURE_CHILD_OUT_OF_SCOPE", id);
+  if (!mapping.productCalls || typeof mapping.productCalls !== "object" || Array.isArray(mapping.productCalls)) {
+    fail("PRODUCT_CALL_MAPPING_REQUIRED");
+  }
+  if (Object.prototype.hasOwnProperty.call(mapping, "children")) fail("MAPPING_CHILD_SECOND_TRUTH_FORBIDDEN");
+  const traceEntryIds = new Set(productionSource.actualTrace.map((entry) => entry.traceEntryId));
+  const traceById = Object.fromEntries(productionSource.actualTrace.map((entry) => [entry.traceEntryId, entry]));
+  for (const [traceEntryId, callMapping] of Object.entries(mapping.productCalls)) {
+    if (!traceEntryIds.has(traceEntryId)) fail("PRODUCT_CALL_MAPPING_OUT_OF_SCOPE", traceEntryId);
+    if (!callMapping || typeof callMapping !== "object" || Array.isArray(callMapping)
+      || Object.keys(callMapping).some((key) => key !== "states")
+      || !callMapping.states || typeof callMapping.states !== "object" || Array.isArray(callMapping.states)
+      || Object.values(callMapping.states).some((sceneId) => typeof sceneId !== "string" || sceneId.length === 0)) {
+      fail("PRODUCT_CALL_MAPPING_SCHEMA_INVALID", traceEntryId);
+    }
+    const requirement = matrixById[traceById[traceEntryId].childId];
+    if (requirement) mappedStateIdsForCall(requirement, callMapping, traceEntryId);
+  }
   if (!/^sha256:[a-f0-9]{64}$/u.test(captureEpoch ?? "")) fail("CAPTURE_EPOCH_REQUIRED");
   assertRecaptureTrigger(recaptureTrigger);
   for (const scene of scenes) assertSceneBindings(scene, runId, captureEpoch, browserMeta.browser.qaTabIdentityHash);
@@ -568,22 +698,43 @@ async function main() {
     runId,
     captureEpoch,
     recaptureTrigger,
-    candidateBinding: inventory.candidateBinding,
     matrixDigest: inventory.matrixBinding.digest,
-    browser: browserMeta.browser,
-    environment: browserMeta.environment,
-    fixtureManifest,
+    browser: stable({
+      family: browserMeta.browser.family,
+      version: browserMeta.browser.version,
+      controlSkill: browserMeta.browser.controlSkill,
+      dedicatedQaTab: browserMeta.browser.dedicatedQaTab,
+      qaTabCreatedByRun: browserMeta.browser.qaTabCreatedByRun,
+      livePageObserved: browserMeta.browser.livePageObserved,
+      productionBrowserIdleEvidence: {
+        observed: browserMeta.browser.productionBrowserIdleEvidence?.observed,
+      },
+      qaTabIdentityHash: browserMeta.browser.qaTabIdentityHash,
+    }),
+    environment: stable({
+      locale: browserMeta.environment.locale,
+      viewport: {
+        width: browserMeta.environment.viewport?.width,
+        height: browserMeta.environment.viewport?.height,
+      },
+      theme: browserMeta.environment.theme,
+      providerBuildMarker: browserMeta.environment.providerBuildMarker,
+    }),
+    productionSource,
     authorizedInputs: authorizedInputs(mapping, inventory, matrix, selectedIds),
     chainInputs: {},
     sceneManifest: scenes.map(sceneManifestEntry),
     children: [],
   };
-  const matrixById = Object.fromEntries(matrix.children.map((entry) => [entry.childCapabilityId, entry]));
   const assembly = {};
   for (const child of inventory.children.filter((entry) =>
     entry.pageOperationRequired && selectedIds.includes(entry.childCapabilityId))) {
     const requirement = matrixById[child.childCapabilityId];
-    const childMapping = mapping.children?.[child.childCapabilityId] ?? { states: {} };
+    const mappedProductCall = [...productionSource.actualTrace].reverse().find((entry) =>
+      entry.childId === child.childCapabilityId && mapping.productCalls?.[entry.traceEntryId]);
+    const childMapping = mappedProductCall
+      ? mapping.productCalls[mappedProductCall.traceEntryId]
+      : { states: {} };
     const mappedIds = Object.values(childMapping.states ?? {}).filter(Boolean);
     if (new Set(mappedIds).size !== mappedIds.length) fail("CHILD_STATE_SCENE_REUSE_FORBIDDEN", child.childCapabilityId);
     const live = [];
@@ -592,7 +743,8 @@ async function main() {
       const sceneId = childMapping.states?.[stateId];
       const scene = scenesById[sceneId];
       if (!scene) { skippedStates[stateId] = ["scene-not-mapped"]; continue; }
-      const built = makeLiveSpecimen({ child, requirement, stateId, scene, capture, mapping });
+      const built = makeLiveSpecimen({ child, requirement, stateId, scene, capture, mapping,
+        traceEntry: mappedProductCall ?? null });
       if (!built.specimen) { skippedStates[stateId] = built.failures; continue; }
       live.push(built.specimen);
     }
@@ -659,11 +811,92 @@ async function main() {
       evidenceRef, observationId: sourceLive.observationId, observationSignature: sourceLive.stateSignature,
       sha256: sha256(evidenceRef) };
   }
+  const productSceneOwners = new Map();
+  const calls = productionSource.actualTrace.map((traceEntry) => {
+    const child = inventory.children.find((entry) => entry.childCapabilityId === traceEntry.childId);
+    const requirement = matrixById[traceEntry.childId];
+    if (!child?.pageOperationRequired || !requirement) return stable({
+      ...traceEntry, pageOperationRequired: false, pageRequirementSnapshot: null, inputBindingProof: null,
+      domEvidence: null, captureComplete: true, gaps: [],
+    });
+    const callMapping = mapping.productCalls?.[traceEntry.traceEntryId];
+    if (!callMapping) {
+      const pageRequirementSnapshot = stable({
+        matrixDigest: capture.matrixDigest,
+        childCandidateDigest: child.evidenceDemand.childCandidateDigest,
+        requiredLiveStates: [],
+      });
+      const inputBindingProof = derivePageInputBindingProof(traceEntry, []);
+      return stable({ ...traceEntry, pageOperationRequired: true, pageRequirementSnapshot,
+        inputBindingProof, domEvidence: null,
+        captureComplete: false, gaps: ["PAGE_EVIDENCE_GAP:product-call-scene-map-missing",
+          ...inputBindingProof.checks.filter((entry) => entry.status === "GAP")
+            .map((entry) => `PAGE_INPUT_BINDING_GAP:${entry.role}`),
+          ...(inputBindingProof.inputHashBound ? [] : ["PAGE_INPUT_BINDING_GAP:inputHash"])] });
+    }
+    const requiredLiveStates = mappedStateIdsForCall(requirement, callMapping, traceEntry.traceEntryId);
+    const pageRequirementSnapshot = stable({
+      matrixDigest: capture.matrixDigest,
+      childCandidateDigest: child.evidenceDemand.childCandidateDigest,
+      requiredLiveStates,
+    });
+    const specimens = [];
+    const gaps = [];
+    const mappedSceneIds = Object.values(callMapping.states ?? {}).filter(Boolean);
+    if (new Set(mappedSceneIds).size !== mappedSceneIds.length) {
+      fail("PRODUCT_CALL_SCENE_REUSE_FORBIDDEN", traceEntry.exactCallIdentityHash);
+    }
+    for (const sceneId of mappedSceneIds) {
+      const owner = productSceneOwners.get(sceneId);
+      if (owner && owner !== traceEntry.traceEntryId) {
+        fail("PRODUCT_CALL_SCENE_CROSS_CALL_REUSE_FORBIDDEN", `${sceneId}:${owner}:${traceEntry.traceEntryId}`);
+      }
+      productSceneOwners.set(sceneId, traceEntry.traceEntryId);
+    }
+    for (const stateId of requiredLiveStates) {
+      const scene = scenesById[callMapping.states?.[stateId]];
+      if (!scene) { gaps.push(`PAGE_EVIDENCE_GAP:${stateId}:scene-not-mapped`); continue; }
+      const built = makeLiveSpecimen({ child, requirement, stateId, scene, capture, mapping, traceEntry });
+      if (!built.specimen) gaps.push(...built.failures.map((failure) => `PAGE_EVIDENCE_GAP:${stateId}:${failure}`));
+      else specimens.push(built.specimen);
+    }
+    const inputBindingProof = derivePageInputBindingProof(traceEntry, specimens);
+    gaps.push(...inputBindingProof.checks.filter((entry) => entry.status === "GAP")
+      .map((entry) => `PAGE_INPUT_BINDING_GAP:${entry.role}`));
+    if (!inputBindingProof.inputHashBound) gaps.push("PAGE_INPUT_BINDING_GAP:inputHash");
+    return stable({ ...traceEntry, pageOperationRequired: true, pageRequirementSnapshot, inputBindingProof,
+      domEvidence: { specimens }, captureComplete: gaps.length === 0, gaps });
+  });
+  const productGaps = [...productionSource.flowGaps,
+    ...calls.flatMap((call) => call.gaps.map((gap) => `${call.productStepId}/${call.actionOrdinal}/${call.childId}:${gap}`))];
+  capture.productRun = stable({
+    productId: productionSource.productId,
+    actionId: productionSource.actionId,
+    pluginId: productionSource.pluginId,
+    pluginVersion: productionSource.pluginVersion,
+    jobIdHash: sha256(productionSource.jobId),
+    attemptIdHash: sha256(productionSource.attemptId),
+    sourceSnapshotId: productionSource.sourceSnapshotId,
+    flowContractDigest: productionSource.flowContractDigest,
+    traceDigest: productionSource.traceDigest,
+    flowStatus: productionSource.flowStatus,
+    flowProjectionStatus: productionSource.flowProjectionStatus ?? null,
+    flowProjectionGaps: productionSource.flowProjectionGaps ?? [],
+    terminalBranch: productionSource.terminalBranch,
+    terminalBranchProof: productionSource.terminalBranchProof,
+    calls,
+    captureComplete: productionSource.flowStatus === "OBSERVED_COMPLETE_PATH"
+      && calls.every((call) => call.captureComplete === true),
+    gaps: productGaps,
+  });
   await writeJsonAtomic(args.output, capture);
-  process.stdout.write(`${JSON.stringify({ output: args.output, runId, assembly })}\n`);
+  process.stdout.write(`${JSON.stringify({ output: args.output, runId, product: `${productionSource.productId}/${productionSource.actionId}`,
+    productCaptureComplete: capture.productRun.captureComplete, gaps: capture.productRun.gaps, assembly })}\n`);
 }
 
-main().catch((error) => {
-  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-  process.exitCode = 1;
-});
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.exitCode = 1;
+  });
+}

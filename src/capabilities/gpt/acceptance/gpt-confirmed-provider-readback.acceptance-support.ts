@@ -20,10 +20,12 @@ export const acceptanceHash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
 type StoredEvidence = Readonly<{ recordRef: string; record: Readonly<Record<string, unknown>> }>;
+type StoredArtifact = Readonly<{ content: Uint8Array<ArrayBuffer>; mimeType?: string; integrityHash: string }>;
 
-export const createEvidenceHarness = () => {
+export const createEvidenceHarness = (options: Readonly<{ storeArtifacts?: boolean }> = {}) => {
   const storedByKey = new Map<string, StoredEvidence>();
   const storedByRef = new Map<string, StoredEvidence>();
+  const artifactsByRef = new Map<string, StoredArtifact>();
   let lastStored: StoredEvidence | null = null;
   const evidenceStore: GptEvidenceStorePort = {
     appendRecord: async (input) => {
@@ -47,11 +49,22 @@ export const createEvidenceHarness = () => {
       lastStored = stored;
       return { status: "success", recordRef };
     },
-    appendArtifact: async () => ({ status: "failed" }),
+    appendArtifact: async (input) => {
+      if (!options.storeArtifacts || input.content === undefined) return { status: "failed" };
+      const content = typeof input.content === "string"
+        ? new TextEncoder().encode(input.content) : new Uint8Array(input.content);
+      const artifactRef = `artifact:gpt-acceptance:${artifactsByRef.size + 1}`;
+      artifactsByRef.set(artifactRef, Object.freeze({ content,
+        ...(input.mimeType ? { mimeType: input.mimeType } : {}),
+        integrityHash: `sha256:${createHash("sha256").update(content).digest("hex")}` }));
+      return { status: "success", artifactRef };
+    },
     readRecordRef: async (input) => storedByRef.has(input.recordRef)
       ? { status: "success", recordRef: input.recordRef, record: storedByRef.get(input.recordRef)!.record }
       : { status: "failed" },
-    readArtifactRef: async () => ({ status: "failed" }),
+    readArtifactRef: async (input) => artifactsByRef.has(input.artifactRef)
+      ? { status: "success", artifactRef: input.artifactRef, artifact: artifactsByRef.get(input.artifactRef) }
+      : { status: "failed" },
     readExactCallEvidence: async (input) => storedByKey.get(
       `gpt-call-terminal-evidence:v1:${input.exactCallIdentityHash}`,
     ) ?? storedByKey.get(`gpt-call-evidence:v1:${input.exactCallIdentityHash}`) ?? null,

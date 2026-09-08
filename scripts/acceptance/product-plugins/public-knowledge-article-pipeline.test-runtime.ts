@@ -13,6 +13,8 @@ import {
 } from "../../../src/mediator/product-plugin-contract.js";
 import { productionRoutePolicy } from "../../../src/lib/local-runtime/production/route-policy.js";
 import { executionFailure } from "../../../src/lib/execution-failure.js";
+import { carryProductSafeConfirmedProviderSubmitReceipt } from
+  "../../../src/capabilities/gpt/execution-fault.js";
 import { articleOutput, researchOutput } from
   "./public-knowledge-article-pipeline-output-fixtures.js";
 import {
@@ -229,7 +231,7 @@ const throwConfiguredSeoFailure = (
     attemptId, callIdentityHash: callIdentityHash(input), evidenceRef,
     failureCode: failureAt.code, mutation: true, terminalAt: CONFIRMED_AT,
   });
-  throw executionFailure("failed", failureAt.code, {
+  throw carryProductSafeConfirmedProviderSubmitReceipt(executionFailure("failed", failureAt.code, {
     metadata: Object.freeze({
       mutationOutcome: "confirmed",
       evidence: Object.freeze({ evidenceRef: "browser-mutation:test", evidenceHash: HASH }),
@@ -238,6 +240,11 @@ const throwConfiguredSeoFailure = (
         browserOutcome: "CONFIRMED",
       }),
     }),
+  }), {
+    exactCallIdentityHash: HASH,
+    terminalAt: CONFIRMED_AT,
+    evidenceRef,
+    evidenceHash: HASH,
   });
 };
 
@@ -344,7 +351,7 @@ const readSeoCallFacts = (
       productStepId: input.productStepId, callId: input.callId,
       childCapabilityId: input.child, actionOrdinal: input.actionOrdinal,
     } : null,
-    evidence: stored ? {
+    evidence: stored && !stored.failureCode ? {
       owner: "forensics-persistence", evidenceRef: stored.evidenceRef, evidenceHash: HASH,
       readbackVerified: true,
       artifactRefs: input.child === "checkpoint_gpt_text_response" ? [`artifact:${input.productStepId}`]

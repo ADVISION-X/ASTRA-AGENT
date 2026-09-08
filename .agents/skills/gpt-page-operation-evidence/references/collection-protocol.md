@@ -1,107 +1,120 @@
-# 真实 Chrome 采集协议
+# Codex + Chrome 产品采集协议
 
-## 1. 准入
+## 1. 采集不是自动化任务
 
-已有初始页面快照后，只有以下两个触发器允许进入真实页面：
+采集的操作者是当前 Codex，浏览器通道只能是 `chrome:control-chrome`。本 Skill 不安装 Worker、不监听 Runtime、不注入 Product、不创建定时任务，也不在终端启动 Playwright/CDP。
 
-- `PAGE_EVIDENCE_CONFLICT_CONFIRMED`：现有报告已被 Child 的真实 GPT 页面执行实际消费，并由同一次事件的代码、日志和页面回读共同证明报告页面事实与当前页面冲突；
-- `HUMAN_REQUESTED_RECAPTURE`：用户明确要求立即、手动或周期重采集。
+终端运行的离线脚本只允许做：读取生产 task、核对材料 bytes/sha256、读取 Product 合同/源码/forensics trace、装配 Codex 已采回的 scene、更新唯一报告。任何离线 CLI 出现浏览器导航、点击、填入、上传或提交能力都必须拒绝。
 
-其它原因全部返回 `RECAPTURE_FORBIDDEN`。候选、源码、合同、Product、法案、Blueprint、矩阵、需求 digest 或 provider build marker 改变，都只能触发离线投影刷新，不能进入真实页面。
+`chrome-scene-collector.mjs` 是唯一例外，但它不是 CLI 或自动任务：只能由当前 Codex 在 `chrome:control-chrome` 已建立的交互会话中导入；Codex 每明确执行一个 Child 调用，才让它记录该次 pre/command/post。它不得读取 `process.argv`，不得拥有 `main`、产品循环、任务选择、调度或后台入口。
 
-开始前必须证明：
+## 2. 产品范围准入
 
-1. `inventory --read-only` 证明当前 28 个合同中 22 个页面 Child 全部映射到各自独立实现；合同与页面调用不一致时报告精确 Child 并停止。
-2. 本批次元数据包含合法触发器。`PAGE_EVIDENCE_CONFLICT_CONFIRMED` 还必须包含同一事件的代码、日志、页面回读三份 hash-only 证据和受影响场景；`HUMAN_REQUESTED_RECAPTURE` 必须包含用户要求的范围。每个 scene 只绑定同一 run、`captureEpoch` 与 QA tab identity，不绑定 candidate、实现 hash、矩阵 digest 或需求投影 digest。
-3. AGENT 的生产 Browser 当前没有正在执行、已 claim 未终结或等待恢复的动作。
-4. 可以新建并唯一绑定一个 QA Chrome 标签页；不会操作用户已有标签页或系统生产标签页。
-5. 当前账号允许使用必要的模型、reasoning、附件、图片与 fork 功能。
-6. 页面内容输入均来自 `make-fixtures.mjs` 的 V2 合成 manifest；模型和推理要求只来自当前 Product Profile 的 hash-only 授权事实；跨 Child 输入只来自 `chainInputs` 声明的前驱安全 evidence ref/hash。
+每轮必须明确：`productId`、`actionId`、生产 `jobId`、实际 `attemptId`。静态本地化还必须明确 `target_locale`，其最小范围是该 locale 的全部 cohort。
 
-法案与 Blueprint 是需求来源，不由本 Skill 另设质量裁决。它们、合同、实现语义、Product 消费者或矩阵改变时，只使离线投影过期。必须先刷新投影再消费，但稳定页面快照保持有效；新投影找不到必需页面事实时返回 `PAGE_EVIDENCE_GAP`，仍不得自动采集。
+目标 Product 必须拥有 `src/plugins/<plugin>/page-evidence-contract.json`。合同由 Product 自己维护，只声明资料规则、阶段拓扑和现役 flow source；它不复制 Child 调用序列，也不执行流程。已接受生产 attempt 的真实调用顺序只由 durable forensics trace 证明。`exactCallIdentityHash` 绑定调用身份，但不能单独冒充页面输入证明；每条新 forensics 还要保存 `input_hash` 和安全 `page_input_role_hashes`，供 Chrome DOM 做逐角色相等校验。当前合同与历史 trace 不同，只能标成投影漂移，不能宣布历史事实无效。
 
-无法证明任一项时失败关闭，不要用“看起来空闲”替代证据。
+仓库内不允许出现第二份 Product 路由注册表。报告的全部产品分母来自现役 `productPluginCatalogSnapshot`；缺合同的路由只能显示 `PRODUCT_EVIDENCE_CONTRACT_NOT_IMPLEMENTED`。
 
-## 2. 标签页与隐私边界
+## 3. 生产资料核对
 
-- 用 `chrome:control-chrome` 创建一个新标签页并记录本次 tab identity。
-- 只在这个标签页上导航和操作。页面自己产生的新 fork 标签页必须立即绑定为本次 QA 子标签页并记录父子关系。
-- 不读 Cookie、浏览器存储、密码框、token、Authorization、扩展私有数据或其他标签页内容。
-- 不采集现有会话；创建专用测试会话，并使用唯一 run marker。
-- 原始会话 URL 在进入 capture JSON 前必须替换为 `/c/sha256:<digest>`。
-- 页面文字只保留合成 fixture 或白名单 UI 标签；其余只保留哈希和长度。
-- 使用 `chrome-scene-collector.mjs` 后，每个场景必须原子写入仓库外 scenes JSON；文件损坏时失败关闭，禁止清空覆盖。隐藏但真实参与 file chooser 的 input 用 `collectHiddenTarget`；真实动作使用 `performAndCollect`，普通 `collect` 没有 command/receipt 权利。
-- capture 必须记录不可变 `captureEpoch` 与合法 `recaptureTrigger`；scene 只能绑定该 epoch、run 与 QA tab。candidate、matrix 和逐 Child 需求属于可反复重算的离线投影，不得写成 scene 的有效期。browser 元数据必须明确记录 `controlSkill: chrome:control-chrome`、`qaTabCreatedByRun: true`、`livePageObserved: true`，并附带非空的 `productionBrowserIdleEvidence`。
+`production-source.mjs` 必须只读打开 production runtime DB、材料目录、forensics records 和 Browser mutation DB。它要求：
 
-## 3. 场景
+1. task 行与 task JSON 的 job/request hash 一致；
+2. accepted Plugin identity 与 task request hash 一致；
+3. `material_refs` ordinal 从 0 连续且不重复；
+4. 材料目录没有缺文件、多文件或子目录；
+5. display name、role、bytes、sha256 与磁盘字节一致；
+6. Product 合同 plugin/version/route 与 accepted attempt 一致；
+7. trace 每行属于同一 job/attempt/plugin，Child 与 payload 身份一致；
+8. trace 每一步的 step/Child/ordinal/exact call identity 与 forensics 完整性成立，且每条实际记录有唯一 `traceEntryId`；
+9. Browser receipt 若存在，必须与同一 exact call 的 step/Child/ordinal 一致；语义 `callId` 只取自回执，无回执时为 `null`；
+10. Browser receipt 的 `request_hash` 与 forensics `input_hash` 必须一致；旧记录缺 `page_input_role_hashes` 时只能保留历史事实并报告输入绑定 GAP，禁止从源码、通用 profile 变体或相似任务反推；
+11. 当前 Product 阶段拓扑只输出 `flowProjectionStatus/flowProjectionGaps`，不得反向否决历史 trace；
+12. 当前 attempt 的完成分支必须把 task 行的 result receipt 与 production outbox 中对应 `result_payload` 的 object ref、body bytes、sha256、response hash 和 receipt hash 全部对齐；分支值从校验后的 payload 读取；指定历史 attempt 时禁止借用当前 task 行的状态或结果；
+13. 历史失败分支必须精确命中 `production_attempt_failures(job_id, attempt_id)`，并将该行的哈希回执与同 attempt 最后一条 failed trace 关联；记录声明 Child/evidence hash 时必须相等；
+14. 历史 attempt 没有自己的 durable terminal 时只能输出 `PARTIAL/DURABLE_ATTEMPT_TERMINAL_UNAVAILABLE`。
 
-一次完整刷新使用最少的三个场景，不为每个 Child 各建一套重复环境。
+校验器生成的仓库外 source manifest 可含执行所需的本地生产标识；合并进公共报告时必须投影为 hash-only 身份。公共报告不得保留原始 job/attempt、材料文件名、task reason、forensics record ref 或 Browser command id，也不复制 prompt、材料正文、结果正文或原始会话 ID。
 
-### A. `text-main`
+## 4. Codex 复刻流程
 
-覆盖 clean chat、会话身份、execution profile、模型、reasoning、附件菜单、三类附件、prompt、draft、submit、hydration、稳定文本、富文本语义投影与 checkpoint。
+Codex 读取 Product `SKILL.md`、合同列出的 flow sources 和 source manifest 后，按 `actualTrace` 这份实际采购清单使用 Chrome 插件逐调用采集。不得根据本协议发明步骤；当前源码与历史 trace 的差别要单独报告，不能改写历史调用。
 
-合成响应必须同时覆盖：标题、粗体、斜体、行内代码、有序和无序列表、中文、英文、emoji、JSON code block、段尾换行。
+每条实际 forensics 调用记录以唯一 `traceEntryId` 为采购单主键，同时保留其 `exactCallIdentityHash`。同一逻辑调用失败后重试时 exact call hash 可以相同，但 `traceEntryId` 不同，必须各有独立 mapping 和 DOM；以下行为禁止：
 
-### B. `image-main`
+- 一个通用 profile scene 冒充所有产品调用；
+- 一个 Child scene 同时冒充不同 cohort/pass；
+- 用另一个产品的相似页面替代；
+- 跳过失败步骤后继续伪造后续成功；
+- 用派生负例、单元测试 DOM 或旧 v5 synthetic scene 声称 `LIVE_PAGE`。
 
-覆盖图片生成中的页面、稳定图片、语义媒体节点、original-content identity 和图片 checkpoint。不得把缩略图、预览图或错误卡片当作原始媒体。
+## 5. 每调用的三段证据
 
-### C. `focus-fork`
+### pre observation
 
-覆盖从根页面到准确会话的 focus、身份核验，以及三个独立 Child：第一步打开 source turn 动作菜单，第二步打开 fork destination 菜单，第三步点击最终 fork 叶子并证明 child conversation 与父子关系。采集器按当前 Child 合同与实现记录真实动作、页面变化和最终 Target/Tab 现场，不解释或裁决治理文件。
+- 当前 Target/Document/revision 的 hash 身份；
+- 产品步骤、调用序号、Child 和 exact call hash；
+- scope 内 raw/eligible 候选数；
+- 每个候选的机械拒绝原因；
+- 目标节点的清洗属性、布局、可见性和 hash-only 文本；
+- 必需父节点、兄弟节点、owner/label/menu/dialog 关系；
+- 当前上传、生成、错误、overlay 等页面状态。
 
-## 4. 每个 live 状态的采集顺序
+### command receipt
 
-1. 读取当前 document identity 与 page kind。
-2. 在 Child 自己的语义 scope 中枚举候选，并记录基数。
-3. 对每个候选记录资格或拒绝理由。
-4. 对目标记录核心圈。
-5. 记录祖先、兄弟、关联控件、panel/turn/card/media 等相关圈。
-6. 记录 locale、viewport、theme、overlay、hydration、generation 等外围圈。
-7. 若为动作 Child，记录动作前 observation、typed command、terminal receipt、动作后 observation 与直接 postcondition；若为纯观察 Child，command/receipt 明确写 `NOT_APPLICABLE`。
-8. 立即重新读取 document identity；发生漂移则该 specimen 失败，不能把前后两个 Document 拼成一份证据。
-9. 为 required live 状态记录由现场关键事实计算的唯一 `stateSignature`；复制同一份 DOM 或只改 stateId 不得形成多个状态。
+- typed command、目标身份、effect scope；
+- dispatched/confirmed/rejected/no 的准确 outcome；
+- terminal receipt、native cause 和完成时间；
+- 纯观察调用必须写 `NOT_APPLICABLE`，不能伪造 command。
 
-页面 scene 不记录当前 `demandDigest`。装配和离线投影阶段为每个 Child 记录当前 `projectionDigest`、与矩阵精确相等的 `inputRefs`，以及覆盖需求事实的 `factBindings`。合成输入引用存在于同一 `captureEpoch` 的 fixture manifest；授权输入和前驱引用作为投影输入单独绑定。缺少、多出、hash 非法、字段指针不存在或 binding 不指向本 Child live observation 都不得完成。
+### post observation
 
-`core.targets.<target>` 只有在该 live state 自己的唯一 scene 中枚举到恰好一个合格候选时才能写入；必须同时包含 `observed: true`、selector 相关清洗 attributes、有效 `identityHash`、真实 `nodeIndex`、`sourceSceneId` 与 `sourceSceneSignature`。禁止跨 scene 拼接、support scene 借目标或同一 scene 映射两个 required state。
+- 动作后重新获取的 Document/revision；
+- 直接后置条件和必须不存在的失败条件；
+- DOM 差异；
+- 上传集合、提交 user turn、稳定文本/图片、错误终态或 checkpoint 的安全引用。
 
-每个 public Browser 调用仍由 Browser Authority 自己解析物理 selector。capture 可以保存清洗后的页面结构与 Child 私有 query 的源码引用，但不能向 Browser 公共接口注入 selector、JS 或坐标。
+pre/post 不能跨 Document 拼接；动作 outcome unknown 时必须先 readback，禁止重放。
 
-## 5. 派生负例
+### production input ↔ Chrome DOM
 
-每个 Child 都从 LIVE_PAGE 样本生成下列确定性 fixture：
+每个 `traceEntryId` 单独核对，不允许按 Child 或 Product 共用结论：
 
-- `candidate-missing`
-- `candidate-duplicate-or-ambiguous`
-- `candidate-hidden`
-- `candidate-aria-hidden`
-- `candidate-inert`
-- `candidate-disabled`
-- `candidate-no-layout`
-- `stale-or-revision-drift`
-- `document-drift`
+- prompt：生产 `promptHash/expectedPromptHash` 对 Chrome exact editable text 或 exact user prompt hash；
+- attachments：生产批准文件的 provider display name 哈希集合，对 composer scope 内 `[role='group'][aria-label]` 的完整哈希集合；空集合也必须精确相等；
+- model：本次调用 profile 的 `modelDisplayName` 哈希，对高级模型面板的实际选项文字哈希；
+- reasoning：本次调用的 selection policy/requested tier，对页面实际 `aria-valuemin/max/now` 做同一套解析；`pro_standard` 在 0..2 页面允许按生产规则降级到 observed maximum，但不能拿 A 的要求替 B/selector；
+- continuation：生产 canonical URL、prompt/response、assistant turn/marker 哈希，对当前 URL 和准确前序 user/assistant turn；
+- response/checkpoint：生产 expected response hash 对实际 assistant semantic text hash。
 
-再叠加矩阵的 `childSpecificDerivedStates`。派生时只改变被测试的一个关键事实，并保存从哪个 live specimen 派生、变更字段和预期失败码。
+公共 scene 只保存这些实际值的哈希、计数和非敏感 scale 枚举，不保存正文。装配器生成 `gpt-page-input-binding-proof.v1`；`inputHashBound=false`、期望缺失、实际缺失或不相等时都产生 `PAGE_INPUT_BINDING_GAP`，不得完成。
 
-## 6. 完成与失败
+scene metadata 与 decision/transition receipt 只接受 Schema 明列字段，多出的 note、debug、原始 payload 或 Provider 返回对象一律拒绝。合并报告时再次重算完整 specimen envelope，并按 `sourceSceneId → traceEntryId` 检查唯一归属，阻断绕过装配器的跨调用 DOM 复用。
 
-完成条件：22 个页面操作 Child 的全部 required input、live/derived 状态、三圈、动作证据链与需求事实绑定齐全，隐私扫描通过，`validate --repo --require-complete` 与 `admit --child all` 都通过。
+## 6. 隐私
 
-出现以下任一情况整次刷新不能标记完成：
+- UI 白名单文本可保留；Product prompt、用户/assistant 正文、文件正文只留 sha256 和长度。
+- attachment 名称只在 Website task 已明确声明且不含私密信息时进入 source manifest；DOM 内 aria-label 仍默认 hash-only。
+- URL 只保留根页面或 `/c/sha256:<digest>`。
+- Cookie、storage、password、authorization、token、邮箱和其它标签页内容禁止进入 scene/capture/report。
 
-- 分母与当前 28 个合同不一致；
-- 实现调用页面但合同仍写 `requiredTargetKind: none`；
-- 专用标签页失去唯一性或误触其他标签页；
-- 页面变体无法覆盖必需状态；
-- 发现任何敏感信息或真实用户内容；
-- 页面动作效果不明确、unknown outcome 未先 readback 就重放。
-- 三个 terminal error 没有真实 Chrome 页面状态，却被派生 fixture 或超时替代；
-- required live 状态签名重复、状态断言与实际字段矛盾，或需求覆盖低于 100%；
+## 7. 完成与缺口
 
-只允许报告缺口和精确失败原因，不能用旧截图、旧报告或派生 fixture 补成实时成功。
+完整产品要求：真实资料准入通过；durable task 已到真实完成或失败终点；trace 中每个实际页面 Child 调用都有独立且完整的 pre/command/post 证据；本地化静态目录按材料声明的全部 cohort 留有 A/B/selector 实际 trace。
 
-## 7. 定期运行
+真实生产失败是一个合法终点，固定记录 `terminalBranch=production-failure`，不能伪装成成功。如果失败前实际发生的每个页面调用都有完整 DOM，该失败 run 可以是 `CAPTURE_COMPLETE`；这只表示“故障现场采全”，不表示产品成功。只有实际调用缺 DOM 或 trace 尚未到合法终点时才是 `CAPTURE_PARTIAL`。缺口使用准确坐标：
 
-自动化不得按源码变化触发整份资料刷新。只有用户明确要求定期页面复核时，才可先做 `inventory --read-only`，再按既定页面场景采集；无页面事实变化时保持安静，完成、采集失败或需要用户介入时才通知。不得创建第二份历史库，也不得在生产代码内接入报告。
+```text
+PAGE_EVIDENCE_GAP:<product>/<action>/<step>/<ordinal>/<child>:<missing-field>
+```
+
+不允许为了追求 100% 而补造未走到的分支。
+
+## 8. 定向更新
+
+用户可只要求一个 Product/Action。Codex仍从该 Action 的合法入口开始，完整走到真实合法终点或真实失败点。合并时只替换同一产品切片；其它产品整个 slice 原样保留，包括已从当前 Catalog 删除的历史产品切片；当前 Catalog 新增路由才追加 `NOT_CAPTURED`。普通 `validate` 校验报告自身结构并返回 `projectionCurrent/staleProducts`，全局或其它 Product 漂移不阻止目标 slice 落盘；`candidate/admit` 只对所选 Product 严格核对当前来源。只有 `validate --require-complete` 才要求全局投影也为当前。页面需求变化但旧 DOM 足够时只离线 refresh，不开 Chrome。
+
+产品级 candidate/admit 只校验目标 Product 的当前合同、实际 source binding、run 推导和 DOM。全局投影或其它 Product 漂移不得改变该 candidate；共享 Child 只保留派生反向索引，不拥有独立准入通道。
+
+无论产品是否 stale，`validate` 都继续校验该历史 slice 的 production source/trace/input binding、capture context 精确白名单、scene/specimen envelope、scene 跨调用唯一性和 `captureComplete` 推导。stale 只暂停“与当前 Product/Child 投影一致”的检查，不能放过落盘后新增的 debug 字段或被改写的 DOM。

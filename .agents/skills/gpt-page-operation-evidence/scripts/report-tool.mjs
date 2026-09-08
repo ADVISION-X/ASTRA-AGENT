@@ -3,16 +3,17 @@
 import { createHash } from "node:crypto";
 import { readdir, readFile, rename, stat, writeFile, mkdir } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
-import { spawnSync } from "node:child_process";
+import {
+  derivePageInputBindingProof,
+  pageInputBindingProofValid,
+  pageInputBindingValid,
+} from "./page-input-binding.mjs";
 
-import { scopedGptPageEvidenceFactFailures }
-  from "../../../../scripts/audit/domains/gpt/gpt-page-evidence-capture-inspection.ts";
-
-const REPORT_SCHEMA = "gpt-page-operation-evidence.v5";
-const CAPTURE_SCHEMA = "gpt-page-operation-capture.v5";
-const FIXTURE_SCHEMA = "gpt-page-operation-fixtures.v2";
+const REPORT_SCHEMA = "gpt-page-operation-evidence.v6";
+const CAPTURE_SCHEMA = "gpt-page-operation-capture.v6";
+const PRODUCTION_SOURCE_SCHEMA = "gpt-page-operation-production-source.v1";
 const MATRIX_SCHEMA = "gpt-page-operation-matrix.v4";
 const CANONICAL_REPORT = "docs/项目方案/GPT页面操作子能力实证资料.json";
 const DEMAND_CONTRACT_FIELDS = Object.freeze([
@@ -158,33 +159,6 @@ async function loadMatrix(path) {
   return matrix;
 }
 
-function gitOutput(repo, args) {
-  const result = spawnSync("git", ["-C", repo, ...args], { encoding: "utf8" });
-  if (result.status !== 0) fail("GIT_BINDING_FAILED", result.stderr.trim() || args.join(" "));
-  return result.stdout.trim();
-}
-
-async function candidateBinding(repo, boundPaths) {
-  const head = gitOutput(repo, ["rev-parse", "HEAD"]);
-  const tracked = [...new Set([
-    ...["src/capabilities/gpt/contract.ts", "src/capabilities/gpt/child-types.ts", "src/capabilities/gpt/schema.ts",
-      ".github/instructions/agent-rules/功能法案.md"].map((path) => join(repo, path)),
-    ...await walkFiles(join(repo, "docs/blueprints/gpt"), (path) => path.endsWith(".md")),
-    ...boundPaths.map((path) => join(repo, path)),
-  ])].sort();
-  const relativePaths = tracked.map((path) => relative(repo, path).split(sep).join("/"));
-  const changed = gitOutput(repo, ["status", "--porcelain=v1", "--untracked-files=all", "--", ...relativePaths]);
-  const sourceRows = [];
-  for (const path of tracked) sourceRows.push([relative(repo, path).split(sep).join("/"), sha256(await readFile(path))]);
-  const worktreeDigest = sha256(JSON.stringify(stable(sourceRows)));
-  return stable({
-    head,
-    clean: changed.length === 0,
-    worktreeDigest,
-    candidate: `${changed.length === 0 ? "SOURCE" : "WORKTREE"}:${worktreeDigest.slice("sha256:".length)}`,
-  });
-}
-
 function semanticPrint(repo, path, source) {
   if (!path.endsWith(".ts") && !path.endsWith(".tsx")) return source.replace(/\s+/gu, " ").trim();
   const requireFromRepo = createRequire(join(repo, "package.json"));
@@ -197,13 +171,135 @@ function semanticPrint(repo, path, source) {
 async function sourceBinding(repo, refs) {
   const uniquePaths = [...new Set(refs.map((entry) => entry.path))].sort();
   const files = [];
+  const repoRoot = `${resolve(repo)}${sep}`;
   for (const path of uniquePaths) {
-    const absolute = join(repo, path);
+    const absolute = resolve(repo, path);
+    if (!absolute.startsWith(repoRoot)) fail("DEMAND_SOURCE_OUT_OF_SCOPE", path);
     if (!(await isFile(absolute))) fail("DEMAND_SOURCE_MISSING", path);
     const raw = await readFile(absolute);
     files.push({ path, contentHash: sha256(raw), semanticHash: sha256(semanticPrint(repo, path, raw.toString("utf8"))) });
   }
   return stable({ files, semanticDigest: sha256(JSON.stringify(stable(files.map(({ path, semanticHash }) => ({ path, semanticHash })))))});
+}
+
+const exactStringList = (value) => Array.isArray(value) && value.every((entry) => nonEmptyString(entry))
+  && new Set(value).size === value.length;
+
+function validProductRouteContract(route) {
+  if (!nonEmptyString(route?.productId) || !nonEmptyString(route?.actionId)
+    || route.materialPolicy?.kind !== "exact-task-material-set"
+    || !exactStringList(route.materialPolicy?.requiredRoles)) return false;
+  const topology = route.topology ?? {};
+  if (topology.legalStageCallSequences !== undefined || topology.legalCallSequencesByStage !== undefined
+    || topology.allowedFailureCleanupCalls !== undefined || topology.callSequenceTemplate !== undefined) return false;
+  if (topology.kind === "single-task-action-stage") return true;
+  if (topology.kind === "ordered-product-stages") return exactStringList(topology.stageOrder)
+    && exactStringList(topology.legalTerminalBranches);
+  return topology.kind === "material-declared-cohort-triplet"
+    && nonEmptyString(topology.cohortArrayField) && nonEmptyString(topology.cohortIdField)
+    && exactStringList(topology.passOrder);
+}
+
+async function buildProductInventory(repo) {
+  const pluginRoot = join(repo, "src/plugins");
+  const contracts = [];
+  for (const entry of await readdir(pluginRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const path = join(pluginRoot, entry.name, "page-evidence-contract.json");
+    if (!(await isFile(path))) continue;
+    const contract = await readJson(path);
+    if (contract.schemaVersion !== "product-page-evidence-contract.v1"
+      || contract.owner !== contract.pluginId || !Number.isSafeInteger(contract.pluginVersion)
+      || contract.traceAuthority?.kind !== "durable-product-forensics"
+      || contract.traceAuthority?.sequenceOwner !== "accepted-production-attempt"
+      || contract.traceAuthority?.currentFlowSourcesRole !== "projection-only"
+      || !exactStringList(contract.flowOwnerSources)
+      || contract.callSequenceTemplates !== undefined
+      || !Array.isArray(contract.routes) || contract.routes.length === 0) {
+      fail("PRODUCT_EVIDENCE_CONTRACT_INVALID", relative(repo, path));
+    }
+    const contractPath = relative(repo, path).split(sep).join("/");
+    const ownerBinding = await sourceBinding(repo, [
+      { path: contractPath }, ...contract.flowOwnerSources.map((sourcePath) => ({ path: sourcePath })),
+    ]);
+    for (const route of contract.routes) {
+      if (!validProductRouteContract(route)) {
+        fail("PRODUCT_EVIDENCE_CONTRACT_ROUTE_INVALID", contractPath);
+      }
+      contracts.push(stable({
+        productKey: `${route.productId}/${route.actionId}`,
+        productId: route.productId,
+        actionId: route.actionId,
+        pluginId: contract.pluginId,
+        pluginVersion: contract.pluginVersion,
+        contractPath,
+        contractDigest: sha256(JSON.stringify(stable(route))),
+        flowOwnerBinding: ownerBinding,
+        captureStatus: "NOT_CAPTURED",
+        runs: [],
+        gaps: ["PRODUCT_PRODUCTION_CAPTURE_NOT_PRESENT"],
+      }));
+    }
+  }
+  assertUnique(contracts.map((entry) => entry.productKey), "PRODUCT_EVIDENCE_ROUTE_DUPLICATE");
+  const catalogModule = await import(pathToFileURL(join(repo, "src/mediator/product-plugin-catalog.ts")).href);
+  const catalog = catalogModule.productPluginCatalogSnapshot;
+  if (!Array.isArray(catalog) || catalog.length === 0) fail("PRODUCT_CATALOG_INVALID");
+  const byKey = Object.fromEntries(contracts.map((entry) => [entry.productKey, entry]));
+  const products = [];
+  for (const plugin of catalog) for (const route of plugin.accepts ?? []) {
+    const productKey = `${route.product_id}/${route.action_id}`;
+    const declared = byKey[productKey];
+    if (declared && (declared.pluginId !== plugin.plugin_id || declared.pluginVersion !== plugin.plugin_version)) {
+      fail("PRODUCT_EVIDENCE_CONTRACT_IDENTITY_MISMATCH", productKey);
+    }
+    products.push(declared ?? stable({
+      productKey,
+      productId: route.product_id,
+      actionId: route.action_id,
+      pluginId: plugin.plugin_id,
+      pluginVersion: plugin.plugin_version,
+      contractPath: null,
+      contractDigest: null,
+      flowOwnerBinding: null,
+      captureStatus: "NOT_CAPTURED",
+      runs: [],
+      gaps: ["PRODUCT_EVIDENCE_CONTRACT_NOT_IMPLEMENTED"],
+    }));
+  }
+  assertUnique(products.map((entry) => entry.productKey), "PRODUCT_CATALOG_ROUTE_DUPLICATE");
+  const unknown = contracts.filter((entry) => !products.some((product) => product.productKey === entry.productKey));
+  if (unknown.length) fail("PRODUCT_EVIDENCE_CONTRACT_ROUTE_UNSUPPORTED", unknown.map((entry) => entry.productKey).join(","));
+  return products.sort((left, right) => left.productKey.localeCompare(right.productKey));
+}
+
+function productChildIndex(products) {
+  const index = {};
+  for (const product of products) for (const run of product.runs ?? []) {
+    for (const call of run.calls ?? []) {
+      if (call.pageOperationRequired !== true) continue;
+      (index[call.childId] ??= []).push(stable({
+        productKey: product.productKey,
+        sourceSnapshotId: run.sourceSnapshotId,
+        captureEpoch: run.captureEpoch,
+        productStepId: call.productStepId,
+        actionOrdinal: call.actionOrdinal,
+        traceEntryId: call.traceEntryId,
+        exactCallIdentityHash: call.exactCallIdentityHash,
+        captureComplete: call.captureComplete,
+      }));
+    }
+  }
+  return stable(index);
+}
+
+export function preserveUnselectedProductSlices(currentProducts, priorProducts, selectedProductKey) {
+  const currentByKey = Object.fromEntries((currentProducts ?? []).map((entry) => [entry.productKey, entry]));
+  const prior = priorProducts ?? [];
+  const preserved = prior.map((product) => product.productKey === selectedProductKey
+    ? currentByKey[selectedProductKey] ?? product : product);
+  const priorKeys = new Set(prior.map((entry) => entry.productKey));
+  return [...preserved, ...(currentProducts ?? []).filter((entry) => !priorKeys.has(entry.productKey))];
 }
 
 function demandFacts(contract, requirement, matrix) {
@@ -468,19 +564,15 @@ async function buildInventory(repo, matrixPath) {
       demandCoverage: pageSet.has(id) ? { coveredFacts: 0, requiredFacts: evidenceDemand.facts.length, percent: 0 } : null,
     });
   }
-  const candidate = await candidateBinding(repo, children.filter((child) => child.pageOperationRequired)
-    .flatMap((child) => Object.values(child.evidenceDemand?.sourceBinding ?? {}))
-    .flatMap((binding) => binding.files ?? [])
-    .map((entry) => entry.path));
   const projectionRevision = sha256(JSON.stringify(stable(children.filter((child) => child.pageOperationRequired)
     .map((child) => [child.childCapabilityId, child.evidenceDemand.projectionDigest])
     .sort((left, right) => left[0].localeCompare(right[0])))));
 
+  const products = await buildProductInventory(repo);
   return {
     schemaVersion: REPORT_SCHEMA,
     generatedAt: new Date().toISOString(),
     repository: "AGENT",
-    candidateBinding: candidate,
     projectionRevision,
     captureEpoch: null,
     matrixBinding: { schemaVersion: matrix.schemaVersion, digest: sha256(JSON.stringify(stable(matrix))) },
@@ -490,7 +582,7 @@ async function buildInventory(repo, matrixPath) {
     claimsQualityVerdict: false,
     captureStatus: "NOT_CAPTURED",
     productionValue: {
-      supports: ["candidate-bound demand admission", "fixture design", "offline re-projection and deterministic regression from one stable capture epoch"],
+      supports: ["product-flow-bound evidence admission", "offline re-projection and deterministic regression from one stable capture epoch"],
       doesNotReplace: ["real GPT task execution when the task requires it", "native quality verdict", "READY", "RELEASE", "Website admission or storage"]
     },
     denominator: {
@@ -502,6 +594,10 @@ async function buildInventory(repo, matrixPath) {
       nonPageChildIds: denominator.contractNoPageIds
     },
     productConsumers: summarizeConsumers(references.productConsumers, denominator.contractPageIds),
+    primaryIndex: "products",
+    products,
+    childIndex: productChildIndex(products),
+    productCaptureStatus: "NOT_CAPTURED",
     captureMetadata: null,
     children
   };
@@ -517,6 +613,163 @@ function nonEmptyString(value) {
 
 function sha256String(value) {
   return typeof value === "string" && /^sha256:[a-f0-9]{64}$/.test(value);
+}
+
+function exactObjectKeys(value, keys) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+    && JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...keys].sort());
+}
+
+function decisionReceiptValid(receipt) {
+  if (receipt === null) return true;
+  if (receipt?.kind === "ALREADY_SATISFIED") return exactObjectKeys(receipt, ["kind"]);
+  return receipt?.kind === "ACTION_REQUIRED"
+    && exactObjectKeys(receipt, ["kind", "actionId", "operation"])
+    && nonEmptyString(receipt.actionId) && nonEmptyString(receipt.operation);
+}
+
+function transitionReceiptValid(receipt) {
+  return receipt === null || (exactObjectKeys(receipt, ["actionId", "operation", "issuedAt", "completedAt",
+    "outcome", "preSceneId", "preSceneSignature"])
+    && nonEmptyString(receipt.actionId) && nonEmptyString(receipt.operation)
+    && receipt.outcome === "DISPATCH_RETURNED" && nonEmptyString(receipt.preSceneId)
+    && sha256String(receipt.preSceneSignature)
+    && Number.isFinite(Date.parse(receipt.issuedAt)) && Number.isFinite(Date.parse(receipt.completedAt)));
+}
+
+function captureMetadataValid(capture) {
+  const browser = capture?.browser;
+  const environment = capture?.environment;
+  const trigger = capture?.recaptureTrigger;
+  const browserValid = exactObjectKeys(browser, ["family", "version", "controlSkill", "dedicatedQaTab",
+    "qaTabCreatedByRun", "livePageObserved", "productionBrowserIdleEvidence", "qaTabIdentityHash"])
+    && exactObjectKeys(browser.productionBrowserIdleEvidence, ["observed"])
+    && browser.productionBrowserIdleEvidence.observed === true
+    && String(browser.family).toLowerCase() === "chrome"
+    && nonEmptyString(browser.version)
+    && browser.controlSkill === "chrome:control-chrome"
+    && browser.dedicatedQaTab === true && browser.qaTabCreatedByRun === true
+    && browser.livePageObserved === true && sha256String(browser.qaTabIdentityHash);
+  const environmentValid = exactObjectKeys(environment, ["locale", "viewport", "theme", "providerBuildMarker"])
+    && exactObjectKeys(environment.viewport, ["width", "height"])
+    && Number.isFinite(environment.viewport.width) && environment.viewport.width > 0
+    && Number.isFinite(environment.viewport.height) && environment.viewport.height > 0
+    && nonEmptyString(environment.locale) && nonEmptyString(environment.theme)
+    && nonEmptyString(environment.providerBuildMarker);
+  const triggerValid = trigger?.kind === "HUMAN_REQUESTED_RECAPTURE"
+    ? exactObjectKeys(trigger, ["kind", "scope", "requestedAt"])
+      && Array.isArray(trigger.scope) && trigger.scope.length > 0 && trigger.scope.every(nonEmptyString)
+      && Number.isFinite(Date.parse(trigger.requestedAt))
+    : trigger?.kind === "PAGE_EVIDENCE_CONFLICT_CONFIRMED"
+      && exactObjectKeys(trigger, ["kind", "affectedSceneIds", "sameIncidentEvidence"])
+      && exactObjectKeys(trigger.sameIncidentEvidence, ["codeEvidenceHash", "logEvidenceHash", "pageReadbackHash"])
+      && Array.isArray(trigger.affectedSceneIds) && trigger.affectedSceneIds.length > 0
+      && trigger.affectedSceneIds.every(nonEmptyString)
+      && [trigger.sameIncidentEvidence.codeEvidenceHash, trigger.sameIncidentEvidence.logEvidenceHash,
+        trigger.sameIncidentEvidence.pageReadbackHash].every(sha256String);
+  return browserValid && environmentValid && triggerValid;
+}
+
+function rawSceneMetadataValid(scene) {
+  return exactObjectKeys(scene, ["sceneId", "capturedAt", "stateSignature", "activeTabIdentityHash",
+    "documentIdentityHash", "observationRevisionHash", "binding", "transitionReceipt", "decisionReceipt", "envelopeHash"])
+    && exactObjectKeys(scene.binding, ["runId", "captureEpoch", "qaTabIdentityHash"])
+    && decisionReceiptValid(scene.decisionReceipt) && transitionReceiptValid(scene.transitionReceipt);
+}
+
+function publicSceneMetadataValid(scene) {
+  return exactObjectKeys(scene, ["sceneId", "capturedAt", "stateSignature", "activeTabIdentityHash",
+    "documentIdentityHash", "observationRevisionHash", "binding", "transitionReceipt", "decisionReceipt",
+    "sourceEnvelopeHash", "envelopeHash"])
+    && exactObjectKeys(scene.binding, ["runId", "captureEpoch", "qaTabIdentityHash"])
+    && sha256String(scene.sourceEnvelopeHash)
+    && decisionReceiptValid(scene.decisionReceipt) && transitionReceiptValid(scene.transitionReceipt);
+}
+
+function authorizedInputDescriptorValid(descriptor) {
+  if (!exactObjectKeys(descriptor, ["kind", "sourceKind", "variants", "setHash"])
+    || descriptor.kind !== "AUTHORIZED_FACT_SET" || descriptor.sourceKind !== "PRODUCT_PROFILE"
+    || !sha256String(descriptor.setHash) || !Array.isArray(descriptor.variants)
+    || descriptor.variants.length === 0) return false;
+  for (const variant of descriptor.variants) {
+    if (!exactObjectKeys(variant, ["valueHash", "sourceBindings"]) || !sha256String(variant.valueHash)
+      || !Array.isArray(variant.sourceBindings) || variant.sourceBindings.length === 0
+      || variant.sourceBindings.some((binding) => !exactObjectKeys(binding,
+        ["path", "contentHash", "semanticHash"])
+        || !nonEmptyString(binding.path) || !sha256String(binding.contentHash)
+        || !sha256String(binding.semanticHash))) return false;
+  }
+  const normalized = descriptor.variants.map((variant) => variant.valueHash).sort();
+  return new Set(normalized).size === normalized.length
+    && descriptor.setHash === sha256(JSON.stringify(stable(normalized)));
+}
+
+function chainInputDescriptorValid(descriptor, expectedSource = null) {
+  if (descriptor?.kind === "MISSING_PRIOR_CHILD_OUTPUT") {
+    return exactObjectKeys(descriptor, ["kind", "sourceChildCapabilityId"])
+      && nonEmptyString(descriptor.sourceChildCapabilityId)
+      && (expectedSource === null || descriptor.sourceChildCapabilityId === expectedSource);
+  }
+  return exactObjectKeys(descriptor, ["kind", "sourceChildCapabilityId", "sourceDemandDigest",
+    "sourceChildCandidateDigest", "evidenceRef", "observationId", "observationSignature", "sha256"])
+    && descriptor.kind === "PRIOR_CHILD_OUTPUT"
+    && nonEmptyString(descriptor.sourceChildCapabilityId)
+    && (expectedSource === null || descriptor.sourceChildCapabilityId === expectedSource)
+    && nonEmptyString(descriptor.evidenceRef) && nonEmptyString(descriptor.observationId)
+    && sha256String(descriptor.sourceDemandDigest) && sha256String(descriptor.sourceChildCandidateDigest)
+    && sha256String(descriptor.observationSignature) && sha256String(descriptor.sha256)
+    && descriptor.sha256 === sha256(descriptor.evidenceRef)
+    && descriptor.evidenceRef === `${descriptor.sourceChildCapabilityId}:${descriptor.sourceChildCandidateDigest}:${descriptor.observationId}:${descriptor.observationSignature}`;
+}
+
+const authorizedInputsProjectionValid = (value) => Boolean(value) && typeof value === "object"
+  && !Array.isArray(value) && Object.entries(value).every(([id, descriptor]) =>
+    nonEmptyString(id) && authorizedInputDescriptorValid(descriptor));
+const chainInputsProjectionValid = (value) => Boolean(value) && typeof value === "object"
+  && !Array.isArray(value) && Object.entries(value).every(([id, descriptor]) =>
+    nonEmptyString(id) && chainInputDescriptorValid(descriptor));
+
+function publicCaptureContextValid(context) {
+  return exactObjectKeys(context, ["schemaVersion", "capturedAt", "runId", "captureEpoch",
+    "recaptureTrigger", "matrixDigest", "browser", "environment", "authorizedInputs", "chainInputs",
+    "sceneManifest"])
+    && context.schemaVersion === CAPTURE_SCHEMA
+    && nonEmptyString(context.capturedAt) && Number.isFinite(Date.parse(context.capturedAt))
+    && sha256String(context.runId) && sha256String(context.captureEpoch) && sha256String(context.matrixDigest)
+    && captureMetadataValid(context)
+    && authorizedInputsProjectionValid(context.authorizedInputs)
+    && chainInputsProjectionValid(context.chainInputs)
+    && Array.isArray(context.sceneManifest) && context.sceneManifest.length > 0
+    && context.sceneManifest.every((scene) => publicSceneMetadataValid(scene)
+      && scene.binding.runId === context.runId
+      && scene.binding.captureEpoch === context.captureEpoch
+      && scene.binding.qaTabIdentityHash === context.browser.qaTabIdentityHash
+      && scene.activeTabIdentityHash === context.browser.qaTabIdentityHash);
+}
+
+function terminalProofValid(source) {
+  const proof = source?.terminalBranchProof;
+  if (source?.flowStatus === "PARTIAL") return proof === null;
+  if (source?.terminalBranch !== "production-failure") {
+    return exactObjectKeys(proof, ["kind", "receiptHash", "resultPayloadHash", "resultObjectReceiptHash",
+      "resultPayloadOutboxHash"])
+      && proof.kind === "DURABLE_COMPLETION_RECEIPT"
+      && [proof.receiptHash, proof.resultPayloadHash, proof.resultObjectReceiptHash,
+        proof.resultPayloadOutboxHash].every(sha256String);
+  }
+  const failedTraceIds = new Set((source.actualTrace ?? [])
+    .filter((entry) => entry?.resultStatus === "failed").map((entry) => entry.traceEntryId));
+  return exactObjectKeys(proof, ["kind", "failedTraceEntryId", "terminalSource", "durableFailureReceiptHash",
+    "durableFailureCodeHash", "traceFailureCodeHash", "codeRelation", "childCorrelation", "evidenceCorrelation"])
+    && proof.kind === "DURABLE_FAILURE_AND_TRACE_TERMINAL"
+    && failedTraceIds.has(proof.failedTraceEntryId)
+    && ["ATTEMPT_FAILURE_ROW", "CURRENT_TASK_ROW"].includes(proof.terminalSource)
+    && sha256String(proof.durableFailureReceiptHash)
+    && (proof.durableFailureCodeHash === null || sha256String(proof.durableFailureCodeHash))
+    && (proof.traceFailureCodeHash === null || sha256String(proof.traceFailureCodeHash))
+    && ["EXACT", "PRODUCT_FAILURE_WRAPS_TRACE_FAILURE"].includes(proof.codeRelation)
+    && ["MATCHED", "NOT_DECLARED"].includes(proof.childCorrelation)
+    && ["MATCHED", "NOT_DECLARED"].includes(proof.evidenceCorrelation);
 }
 
 function valueAtPath(root, path) {
@@ -647,11 +900,11 @@ function specimenShapeMissing(specimen, capture, liveObservationIds, childRecord
   }
   if (nonEmptyObject(specimen.core.textProjection)) {
     const text = specimen.core.textProjection;
-    mark(["SYNTHETIC_FIXTURE", "ALLOWLISTED_UI", "HASH_ONLY"].includes(text.kind), "core.textProjection.kind");
+    mark(["ALLOWLISTED_UI", "HASH_ONLY"].includes(text.kind), "core.textProjection.kind");
     mark(sha256String(text.sha256), "core.textProjection.sha256");
     mark(Number.isInteger(text.length) && text.length >= 0, "core.textProjection.length");
     if (text.kind === "HASH_ONLY") mark(text.value === undefined, "core.textProjection.valueForbidden");
-    if (text.kind === "SYNTHETIC_FIXTURE" || text.kind === "ALLOWLISTED_UI") {
+    if (text.kind === "ALLOWLISTED_UI") {
       mark(typeof text.value === "string", "core.textProjection.value");
       if (typeof text.value === "string") {
         mark(text.length === text.value.length, "core.textProjection.lengthMismatch");
@@ -785,11 +1038,362 @@ function scanCapturePrivacy(value, path = "capture") {
   }
 }
 
+function assertNoRepositoryCandidateBinding(value, path = "report") {
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => assertNoRepositoryCandidateBinding(entry, `${path}[${index}]`));
+    return;
+  }
+  if (!value || typeof value !== "object") return;
+  for (const [key, child] of Object.entries(value)) {
+    if (["candidateBinding", "worktreeDigest", "gitHead", "headCommit"].includes(key)) {
+      fail("REPORT_GIT_BINDING_FORBIDDEN", `${path}.${key}`);
+    }
+    assertNoRepositoryCandidateBinding(child, `${path}.${key}`);
+  }
+}
+
 function exactStringSet(actual, expected) {
   return Array.isArray(actual)
     && actual.every(nonEmptyString)
     && new Set(actual).size === actual.length
     && JSON.stringify([...new Set(actual)].sort()) === JSON.stringify([...new Set(expected)].sort());
+}
+
+const publicTraceEntry = (entry) => stable({
+  traceEntryId: entry.traceEntryId,
+  productStepId: entry.productStepId,
+  capabilityCallId: entry.capabilityCallId,
+  callId: entry.callId,
+  actionOrdinal: entry.actionOrdinal,
+  childId: entry.childId,
+  exactCallIdentityHash: entry.exactCallIdentityHash,
+  resultStatus: entry.resultStatus,
+  failureCode: entry.failureCode ?? null,
+  mutationOutcome: entry.mutationOutcome ?? null,
+  postconditionResult: entry.postconditionResult ?? null,
+  candidateCardinality: entry.candidateCardinality ?? null,
+  observationRevisionHash: entry.observationRevisionHash ?? null,
+  evidenceHash: entry.evidenceHash ?? null,
+  inputBinding: entry.inputBinding,
+  browserReceiptHashes: entry.browserReceiptHashes
+    ?? (entry.browserReceipts ?? []).map((receipt) => sha256(JSON.stringify(stable(receipt)))),
+});
+
+function publicProductionSource(source) {
+  const taskBinding = stable({
+    requestHash: source.taskBinding?.requestHash,
+    taskEnvelopeHash: source.taskBinding?.taskEnvelopeHash,
+    businessContextHash: source.taskBinding?.businessContextHash,
+    productId: source.taskBinding?.productId,
+    actionId: source.taskBinding?.actionId,
+    parametersHash: source.taskBinding?.parametersHash,
+    resultContractId: source.taskBinding?.resultContractId,
+    resultContractVersion: source.taskBinding?.resultContractVersion,
+  });
+  const materials = (source.materials ?? []).map((material) => stable({
+    ordinal: material.ordinal,
+    role: material.role,
+    bytes: material.bytes,
+    sha256: material.sha256,
+    mediaType: material.mediaType,
+    storageClass: material.storageClass,
+  }));
+  const actualTrace = (source.actualTrace ?? []).map(publicTraceEntry);
+  return stable({
+    schemaVersion: source.schemaVersion,
+    sourceKind: source.sourceKind,
+    synthetic: source.synthetic,
+    productId: source.productId,
+    actionId: source.actionId,
+    pluginId: source.pluginId,
+    pluginVersion: source.pluginVersion,
+    taskStatus: source.taskStatus,
+    attemptTerminalSource: source.attemptTerminalSource,
+    sourceSnapshotId: source.sourceSnapshotId,
+    taskBinding,
+    materials,
+    materialSetHash: source.materialSetHash,
+    reportSourceSnapshotId: sha256(JSON.stringify(stable({ taskBinding, materials }))),
+    pageEvidenceContract: source.pageEvidenceContract,
+    flowContractBinding: source.flowContractBinding,
+    flowContractDigest: source.flowContractDigest,
+    flowStatus: source.flowStatus,
+    flowProjectionStatus: source.flowProjectionStatus ?? null,
+    flowProjectionGaps: source.flowProjectionGaps ?? [],
+    terminalBranch: source.terminalBranch,
+    terminalBranchProof: source.terminalBranchProof ?? null,
+    flowGaps: source.flowGaps,
+    expectedStageCount: source.expectedStageCount,
+    observedStageCount: source.observedStageCount,
+    actualTrace,
+    traceDigest: source.traceDigest,
+    reportTraceDigest: sha256(JSON.stringify(actualTrace)),
+    reportInputs: source.reportInputs,
+  });
+}
+
+const publicRunId = (value) => sha256String(value) ? value : sha256(String(value));
+
+const publicScene = (scene) => {
+  if (!rawSceneMetadataValid(scene)) fail("CAPTURE_SCENE_PUBLIC_SCHEMA_INVALID", scene?.sceneId ?? "missing");
+  const entry = stable({
+    sceneId: scene.sceneId,
+    capturedAt: scene.capturedAt,
+    stateSignature: scene.stateSignature,
+    activeTabIdentityHash: scene.activeTabIdentityHash,
+    documentIdentityHash: scene.documentIdentityHash,
+    observationRevisionHash: scene.observationRevisionHash,
+    binding: { runId: publicRunId(scene.binding.runId), captureEpoch: scene.binding.captureEpoch,
+      qaTabIdentityHash: scene.binding.qaTabIdentityHash },
+    transitionReceipt: scene.transitionReceipt,
+    decisionReceipt: scene.decisionReceipt,
+    sourceEnvelopeHash: scene.envelopeHash,
+  });
+  return stable({ ...entry, envelopeHash: sha256(JSON.stringify(entry)) });
+};
+
+const publicSpecimen = (specimen) => {
+  const entry = stable({
+    ...specimen,
+    peripheral: nonEmptyObject(specimen?.peripheral)
+      ? { ...specimen.peripheral, runId: publicRunId(specimen.peripheral.runId) }
+      : specimen?.peripheral,
+  });
+  const { envelopeHash: _ignored, ...withoutEnvelope } = entry;
+  return stable({ ...withoutEnvelope, envelopeHash: sha256(JSON.stringify(withoutEnvelope)) });
+};
+
+const publicProductCall = (call) => stable({
+  ...publicTraceEntry(call),
+  pageOperationRequired: call.pageOperationRequired,
+  pageRequirementSnapshot: call.pageRequirementSnapshot,
+  inputBindingProof: call.inputBindingProof,
+  domEvidence: call.domEvidence === null ? null : {
+    specimens: (call.domEvidence?.specimens ?? []).map(publicSpecimen),
+  },
+  captureComplete: call.captureComplete,
+  gaps: call.gaps,
+});
+
+const traceIdentity = (entry) => stable({
+  traceEntryId: entry.traceEntryId,
+  productStepId: entry.productStepId,
+  capabilityCallId: entry.capabilityCallId,
+  callId: entry.callId,
+  actionOrdinal: entry.actionOrdinal,
+  childId: entry.childId,
+  exactCallIdentityHash: entry.exactCallIdentityHash,
+  resultStatus: entry.resultStatus,
+  failureCode: entry.failureCode ?? null,
+  mutationOutcome: entry.mutationOutcome ?? null,
+  postconditionResult: entry.postconditionResult ?? null,
+  candidateCardinality: entry.candidateCardinality ?? null,
+  observationRevisionHash: entry.observationRevisionHash ?? null,
+  evidenceHash: entry.evidenceHash ?? null,
+  inputBinding: entry.inputBinding,
+  browserReceiptHashes: entry.browserReceiptHashes
+    ?? (entry.browserReceipts ?? []).map((receipt) => sha256(JSON.stringify(stable(receipt)))),
+});
+
+function productRunFailures(run, source, matrix, inventory = null, captureOverride = null, currentProjection = true) {
+  const failures = [];
+  const mark = (condition, code) => { if (!condition) failures.push(code); };
+  const effectiveCapture = captureOverride ?? run?.captureContext;
+  mark(nonEmptyObject(run), "run");
+  mark(nonEmptyObject(source), "productionSource");
+  if (!nonEmptyObject(run) || !nonEmptyObject(source)) return failures;
+  mark(run.productId === source.productId, "productId");
+  mark(run.actionId === source.actionId, "actionId");
+  mark(run.pluginId === source.pluginId, "pluginId");
+  mark(run.pluginVersion === source.pluginVersion, "pluginVersion");
+  mark(source.taskBinding?.productId === source.productId, "productionSource.taskBinding.productId");
+  mark(source.taskBinding?.actionId === source.actionId, "productionSource.taskBinding.actionId");
+  mark(run.sourceSnapshotId === source.sourceSnapshotId, "sourceSnapshotId");
+  mark(run.flowContractDigest === source.flowContractDigest, "flowContractDigest");
+  mark(run.traceDigest === source.traceDigest, "traceDigest");
+  if (source.reportTraceDigest) {
+    mark(source.reportTraceDigest === sha256(JSON.stringify(stable(source.actualTrace))),
+      "productionSource.reportTraceDigest");
+    mark(run.reportTraceDigest === source.reportTraceDigest, "reportTraceDigest");
+    mark(source.reportSourceSnapshotId === sha256(JSON.stringify(stable({
+      taskBinding: source.taskBinding, materials: source.materials,
+    }))), "productionSource.reportSourceSnapshotId");
+    mark(run.reportSourceSnapshotId === source.reportSourceSnapshotId, "reportSourceSnapshotId");
+    mark(nonEmptyObject(run.captureContext), "captureContext");
+    mark(publicCaptureContextValid(run.captureContext), "captureContext.schema");
+    const scenes = run.captureContext?.sceneManifest;
+    mark(Array.isArray(scenes), "captureContext.sceneManifest");
+    if (Array.isArray(scenes)) {
+      mark(new Set(scenes.map((scene) => scene.sceneId)).size === scenes.length,
+        "captureContext.sceneManifest.duplicate");
+      for (const scene of scenes) {
+        mark(publicSceneMetadataValid(scene), `scene.${scene.sceneId}.schema`);
+        mark(scene.envelopeHash === sceneEnvelopeHash(scene), `scene.${scene.sceneId}.envelopeHash`);
+        mark(scene.binding?.runId === effectiveCapture?.runId, `scene.${scene.sceneId}.runId`);
+        mark(scene.binding?.captureEpoch === effectiveCapture?.captureEpoch, `scene.${scene.sceneId}.captureEpoch`);
+        mark(scene.binding?.qaTabIdentityHash === effectiveCapture?.browser?.qaTabIdentityHash
+          && scene.activeTabIdentityHash === effectiveCapture?.browser?.qaTabIdentityHash,
+        `scene.${scene.sceneId}.qaTabIdentityHash`);
+        if (scene.transitionReceipt?.outcome === "DISPATCH_RETURNED") {
+          const receipt = scene.transitionReceipt;
+          const pre = scenes.find((entry) => entry.sceneId === receipt.preSceneId);
+          mark(Boolean(pre && pre.stateSignature === receipt.preSceneSignature
+            && pre.decisionReceipt?.kind === "ACTION_REQUIRED"
+            && pre.decisionReceipt.actionId === receipt.actionId
+            && pre.decisionReceipt.operation === receipt.operation
+            && Date.parse(receipt.issuedAt) >= Date.parse(pre.capturedAt)
+            && Date.parse(receipt.completedAt) >= Date.parse(receipt.issuedAt)
+            && Date.parse(scene.capturedAt) >= Date.parse(receipt.completedAt)),
+          `scene.${scene.sceneId}.receiptLinkage`);
+        }
+      }
+      for (const [callIndex, call] of (Array.isArray(run.calls) ? run.calls : []).entries()) for (const specimen of call.domEvidence?.specimens ?? []) {
+        const scene = scenes.find((entry) => entry.sceneId === specimen.sourceSceneId);
+        mark(Boolean(scene), `call[${callIndex}].scene`);
+        mark(scene?.stateSignature === specimen.sourceSceneSignature, `call[${callIndex}].sceneSignature`);
+        mark(scene?.documentIdentityHash === specimen.documentIdentityHash, `call[${callIndex}].documentIdentityHash`);
+        mark(scene?.observationRevisionHash === specimen.revision, `call[${callIndex}].revision`);
+      }
+    }
+  } else {
+    mark(source.traceDigest === sha256(JSON.stringify(stable(source.actualTrace))),
+      "productionSource.traceDigest");
+    mark(source.materialSetHash === sha256(JSON.stringify(stable(source.materials))),
+      "productionSource.materialSetHash");
+    mark(source.sourceSnapshotId === sha256(JSON.stringify(stable({
+      taskBinding: source.taskBinding, materials: source.materials,
+    }))), "productionSource.sourceSnapshotId");
+  }
+  mark(run.flowStatus === source.flowStatus, "flowStatus");
+  if (source.flowProjectionStatus !== undefined) {
+    mark(run.flowProjectionStatus === source.flowProjectionStatus, "flowProjectionStatus");
+    mark(JSON.stringify(run.flowProjectionGaps) === JSON.stringify(source.flowProjectionGaps), "flowProjectionGaps");
+  }
+  mark(run.terminalBranch === source.terminalBranch, "terminalBranch");
+  mark(terminalProofValid(source), "productionSource.terminalBranchProofShape");
+  mark(JSON.stringify(run.terminalBranchProof) === JSON.stringify(source.terminalBranchProof), "terminalBranchProof");
+  mark(Array.isArray(run.calls), "calls");
+  mark(Array.isArray(source.actualTrace), "actualTrace");
+  if (!Array.isArray(run.calls) || !Array.isArray(source.actualTrace)) return failures;
+  for (const [index, trace] of source.actualTrace.entries()) {
+    mark(pageInputBindingValid(trace?.inputBinding), `actualTrace[${index}].inputBinding`);
+  }
+  mark(run.calls.length === source.actualTrace.length, "callCount");
+  const matrixById = Object.fromEntries(matrix.children.map((entry) => [entry.childCapabilityId, entry]));
+  const sceneOwners = new Map();
+  for (let index = 0; index < Math.max(run.calls.length, source.actualTrace.length); index += 1) {
+    const call = run.calls[index];
+    const trace = source.actualTrace[index];
+    if (!call || !trace) continue;
+    mark(JSON.stringify(traceIdentity(call)) === JSON.stringify(traceIdentity(trace)), `call[${index}].identity`);
+    const requirement = matrixById[trace.childId];
+    mark(typeof call.pageOperationRequired === "boolean", `call[${index}].pageOperationRequired.shape`);
+    const pageRequired = currentProjection ? Boolean(requirement) : call.pageOperationRequired === true;
+    if (currentProjection) mark(call.pageOperationRequired === pageRequired, `call[${index}].pageOperationRequired`);
+    if (!pageRequired) {
+      mark(call.pageRequirementSnapshot === null, `call[${index}].pageRequirementSnapshot`);
+      mark(call.inputBindingProof === null, `call[${index}].inputBindingProof`);
+      mark(call.domEvidence === null, `call[${index}].domEvidence`);
+      mark(call.captureComplete === true, `call[${index}].captureComplete`);
+      mark(Array.isArray(call.gaps) && call.gaps.length === 0, `call[${index}].gaps`);
+      continue;
+    }
+    const snapshot = call.pageRequirementSnapshot;
+    const snapshotValid = exactObjectKeys(snapshot, ["matrixDigest", "childCandidateDigest", "requiredLiveStates"])
+      && sha256String(snapshot.matrixDigest) && sha256String(snapshot.childCandidateDigest)
+      && Array.isArray(snapshot.requiredLiveStates) && snapshot.requiredLiveStates.every(nonEmptyString)
+      && new Set(snapshot.requiredLiveStates).size === snapshot.requiredLiveStates.length;
+    mark(snapshotValid, `call[${index}].pageRequirementSnapshot`);
+    if (snapshotValid) {
+      mark(snapshot.matrixDigest === effectiveCapture?.matrixDigest,
+        `call[${index}].pageRequirementSnapshot.matrixDigest`);
+    }
+    if (currentProjection && snapshotValid) {
+      const inventoryChild = inventory?.children?.find((entry) => entry.childCapabilityId === trace.childId);
+      const allowedLiveStates = [...(requirement?.requiredLiveStates ?? []),
+        ...(requirement?.optionalLiveStates ?? [])];
+      mark(snapshot.requiredLiveStates.every((stateId) => allowedLiveStates.includes(stateId)),
+        `call[${index}].pageRequirementSnapshot.requiredLiveStates`);
+      if (inventoryChild) mark(snapshot.childCandidateDigest === inventoryChild.evidenceDemand?.childCandidateDigest,
+        `call[${index}].pageRequirementSnapshot.childCandidateDigest`);
+    }
+    const specimens = call.domEvidence?.specimens;
+    const stateIds = Array.isArray(specimens)
+      ? specimens.filter((entry) => entry?.evidenceKind === "LIVE_PAGE").map((entry) => entry.stateId)
+      : [];
+    if (Array.isArray(specimens)) {
+      mark(new Set(stateIds).size === stateIds.length, `call[${index}].stateDuplicate`);
+      const sourceSceneIds = specimens.map((entry) => entry?.sourceSceneId).filter(nonEmptyString);
+      mark(new Set(sourceSceneIds).size === sourceSceneIds.length, `call[${index}].sceneDuplicate`);
+      for (const specimen of specimens) {
+        const priorOwner = sceneOwners.get(specimen?.sourceSceneId);
+        mark(!priorOwner || priorOwner === trace.traceEntryId, `call[${index}].sceneCrossCallReuse`);
+        if (nonEmptyString(specimen?.sourceSceneId)) sceneOwners.set(specimen.sourceSceneId, trace.traceEntryId);
+        if (source.reportTraceDigest) {
+          mark(nonEmptyObject(specimen) && specimen.envelopeHash === sceneEnvelopeHash(specimen),
+            `call[${index}].specimenEnvelope`);
+        }
+      }
+    }
+    const inputBindingProof = derivePageInputBindingProof(trace, specimens ?? []);
+    mark(pageInputBindingProofValid(call.inputBindingProof, trace, specimens ?? []),
+      `call[${index}].inputBindingProof`);
+    const inventoryChild = inventory?.children?.find((entry) => entry.childCapabilityId === trace.childId);
+    const liveObservationIds = new Set((specimens ?? []).filter((entry) => entry?.evidenceKind === "LIVE_PAGE")
+      .map((entry) => entry.observationId).filter(nonEmptyString));
+    const liveByObservation = Object.fromEntries((specimens ?? []).filter((entry) => entry?.evidenceKind === "LIVE_PAGE"
+      && nonEmptyString(entry.observationId)).map((entry) => [entry.observationId, entry]));
+    const fullShapeComplete = !currentProjection || !inventoryChild || !effectiveCapture ? true
+      : Array.isArray(specimens) && specimens.every((entry) => specimenShapeMissing(entry, effectiveCapture,
+        liveObservationIds, inventoryChild, requirement, liveByObservation).length === 0);
+    const requiredLiveStates = snapshotValid ? snapshot.requiredLiveStates : [];
+    const shapeComplete = snapshotValid && Array.isArray(specimens)
+      && exactStringSet(stateIds, requiredLiveStates)
+      && fullShapeComplete
+      && specimens.every((entry) => entry?.evidenceKind === "LIVE_PAGE"
+        && nonEmptyString(entry?.capturedAt) && Number.isFinite(Date.parse(entry.capturedAt))
+        && nonEmptyString(entry?.observationId)
+        && nonEmptyString(entry?.sourceSceneId)
+        && sha256String(entry?.sourceSceneSignature)
+        && sha256String(entry?.documentIdentityHash)
+        && sha256String(entry?.targetIdentityHash)
+        && sha256String(entry?.revision)
+        && nonEmptyObject(entry?.stateFacts)
+        && sha256String(entry?.stateSignature)
+        && entry.stateSignature === observedStateSignature(entry)
+        && nonEmptyObject(entry?.core?.normalizedStructure)
+        && nonEmptyString(entry?.core?.sanitizedOuterHtml)
+        && nonEmptyObject(entry?.related)
+        && nonEmptyObject(entry?.peripheral)
+        && nonEmptyString(entry?.peripheral?.runId)
+        && (!source.reportTraceDigest || entry.envelopeHash === sceneEnvelopeHash(entry)));
+    const expectedComplete = shapeComplete && inputBindingProof.complete
+      && Array.isArray(call.gaps) && call.gaps.length === 0;
+    mark(call.captureComplete === expectedComplete, `call[${index}].captureComplete`);
+    mark(Array.isArray(call.gaps) && (call.captureComplete ? call.gaps.length === 0 : call.gaps.length > 0),
+      `call[${index}].gaps`);
+  }
+  const expectedGaps = [...(source.flowGaps ?? []),
+    ...run.calls.flatMap((call) => (call.gaps ?? []).map((gap) =>
+      `${call.productStepId}/${call.actionOrdinal}/${call.childId}:${gap}`))];
+  mark(JSON.stringify(run.gaps) === JSON.stringify(expectedGaps), "gaps");
+  const expectedComplete = source.flowStatus === "OBSERVED_COMPLETE_PATH"
+    && run.calls.every((call) => call.captureComplete === true);
+  mark(run.captureComplete === expectedComplete, "captureComplete");
+  return failures;
+}
+
+export { publicProductionSource, productRunFailures };
+
+function productCaptureProjection(product) {
+  if (!Array.isArray(product.runs) || product.runs.length === 0) {
+    return { captureStatus: "NOT_CAPTURED", gaps: product.gaps };
+  }
+  return {
+    captureStatus: product.runs.every((run) => run.captureComplete === true)
+      ? "CAPTURE_COMPLETE" : "CAPTURE_PARTIAL",
+    gaps: [...new Set(product.runs.flatMap((run) => run.gaps ?? []))],
+  };
 }
 
 function sceneEnvelopeHash(scene) {
@@ -798,13 +1402,23 @@ function sceneEnvelopeHash(scene) {
 }
 
 function validateCaptureInputBindings(capture, matrix, expectedIdsOverride = null) {
-  const fixtureManifest = capture.fixtureManifest;
-  if (!nonEmptyObject(fixtureManifest)
-    || fixtureManifest.schemaVersion !== FIXTURE_SCHEMA
-    || fixtureManifest.runId !== capture.runId
-    || fixtureManifest.syntheticOnly !== true
-    || !nonEmptyObject(fixtureManifest.inputs)) {
-    fail("CAPTURE_FIXTURE_MANIFEST_INVALID");
+  if (!captureMetadataValid(capture)) fail("CAPTURE_PUBLIC_METADATA_INVALID");
+  const productionSource = capture.productionSource;
+  if (!nonEmptyObject(productionSource)
+    || productionSource.schemaVersion !== PRODUCTION_SOURCE_SCHEMA
+    || productionSource.sourceKind !== "PRODUCTION_RUNTIME_DURABLE_TASK"
+    || productionSource.synthetic !== false
+    || !sha256String(productionSource.sourceSnapshotId)
+    || !sha256String(productionSource.flowContractDigest)
+    || !["OBSERVED_COMPLETE_PATH", "PARTIAL"].includes(productionSource.flowStatus)
+    || (productionSource.flowStatus === "OBSERVED_COMPLETE_PATH"
+      ? !nonEmptyString(productionSource.terminalBranch) : productionSource.terminalBranch !== null)
+    || !terminalProofValid(productionSource)
+    || !Array.isArray(productionSource.flowGaps)
+    || !nonEmptyObject(productionSource.reportInputs)
+    || !Array.isArray(productionSource.actualTrace)
+    || productionSource.actualTrace.length === 0) {
+    fail("CAPTURE_PRODUCTION_SOURCE_INVALID");
   }
   const authorizedInputs = capture.authorizedInputs;
   if (!authorizedInputs || typeof authorizedInputs !== "object" || Array.isArray(authorizedInputs)) {
@@ -817,18 +1431,18 @@ function validateCaptureInputBindings(capture, matrix, expectedIdsOverride = nul
   const selectedChildren = expectedIdsOverride === null ? matrix.children
     : matrix.children.filter((child) => expectedIdsOverride.includes(child.childCapabilityId));
   const requiredRefs = selectedChildren.flatMap((child) => child.requiredInputRefs);
-  const expectedSynthetic = [...new Set(requiredRefs.filter((id) => id.startsWith("synthetic-")))].sort();
+  const expectedProduction = [...new Set(requiredRefs.filter((id) => id.startsWith("production-")))].sort();
   const expectedAuthorized = [...new Set(requiredRefs.filter((id) => id.startsWith("authorized-")))].sort();
   const expectedChain = [...new Set(requiredRefs.filter((id) => id.startsWith("chain-")))].sort();
-  const unsupported = requiredRefs.filter((id) => !/^(?:synthetic|authorized|chain)-/u.test(id));
+  const unsupported = requiredRefs.filter((id) => !/^(?:production|authorized|chain)-/u.test(id));
   if (unsupported.length > 0) fail("CAPTURE_INPUT_REF_KIND_INVALID", unsupported.join(","));
-  const syntheticIds = Object.keys(fixtureManifest.inputs).sort();
+  const productionIds = Object.keys(productionSource.reportInputs).sort();
   const authorizedIds = Object.keys(authorizedInputs).sort();
   const chainIds = Object.keys(chainInputs).sort();
   const setSatisfied = (actual, expected) => expectedIdsOverride === null
     ? exactStringSet(actual, expected) : expected.every((id) => actual.includes(id));
-  if (!setSatisfied(syntheticIds, expectedSynthetic)) {
-    fail("CAPTURE_SYNTHETIC_INPUT_SET_MISMATCH", `${syntheticIds.join(",")}/${expectedSynthetic.join(",")}`);
+  if (!setSatisfied(productionIds, expectedProduction)) {
+    fail("CAPTURE_PRODUCTION_INPUT_SET_MISMATCH", `${productionIds.join(",")}/${expectedProduction.join(",")}`);
   }
   if (!setSatisfied(authorizedIds, expectedAuthorized)) {
     fail("CAPTURE_AUTHORIZED_INPUT_SET_MISMATCH", `${authorizedIds.join(",")}/${expectedAuthorized.join(",")}`);
@@ -836,17 +1450,10 @@ function validateCaptureInputBindings(capture, matrix, expectedIdsOverride = nul
   if (!setSatisfied(chainIds, expectedChain)) {
     fail("CAPTURE_CHAIN_INPUT_SET_MISMATCH", `${chainIds.join(",")}/${expectedChain.join(",")}`);
   }
-  for (const [id, descriptor] of Object.entries(fixtureManifest.inputs).filter(([id]) => expectedSynthetic.includes(id))) {
-    if (!nonEmptyObject(descriptor) || descriptor.kind !== "SYNTHETIC_FIXTURE" || !sha256String(descriptor.sha256)) {
-      fail("CAPTURE_SYNTHETIC_INPUT_INVALID", id);
-    }
-    if (descriptor.value !== undefined) {
-      if (typeof descriptor.value !== "string" || descriptor.sha256 !== sha256(descriptor.value)
-        || descriptor.length !== descriptor.value.length) fail("CAPTURE_SYNTHETIC_INPUT_VALUE_INVALID", id);
-    } else if (!nonEmptyString(descriptor.fileName)
-      || !Number.isSafeInteger(descriptor.bytes) || descriptor.bytes < 1) {
-      fail("CAPTURE_SYNTHETIC_INPUT_FILE_INVALID", id);
-    }
+  for (const [id, descriptor] of Object.entries(productionSource.reportInputs)
+    .filter(([id]) => expectedProduction.includes(id))) {
+    if (!nonEmptyObject(descriptor) || !nonEmptyString(descriptor.kind)
+      || !sha256String(descriptor.sha256)) fail("CAPTURE_PRODUCTION_INPUT_INVALID", id);
   }
   for (const [id, descriptor] of Object.entries(authorizedInputs).filter(([id]) => expectedAuthorized.includes(id))) {
     if (!nonEmptyObject(descriptor) || descriptor.kind !== "AUTHORIZED_FACT_SET"
@@ -895,14 +1502,17 @@ function validateRecaptureTrigger(trigger) {
     fail("RECAPTURE_FORBIDDEN");
   }
   if (trigger.kind === "HUMAN_REQUESTED_RECAPTURE") {
-    if (!Array.isArray(trigger.scope) || trigger.scope.length === 0 || !trigger.scope.every(nonEmptyString)
+    if (!exactObjectKeys(trigger, ["kind", "scope", "requestedAt"])
+      || !Array.isArray(trigger.scope) || trigger.scope.length === 0 || !trigger.scope.every(nonEmptyString)
       || !nonEmptyString(trigger.requestedAt) || !Number.isFinite(Date.parse(trigger.requestedAt))) {
       fail("RECAPTURE_TRIGGER_INVALID");
     }
     return;
   }
   const evidence = trigger.sameIncidentEvidence;
-  if (!Array.isArray(trigger.affectedSceneIds) || trigger.affectedSceneIds.length === 0
+  if (!exactObjectKeys(trigger, ["kind", "affectedSceneIds", "sameIncidentEvidence"])
+    || !exactObjectKeys(evidence, ["codeEvidenceHash", "logEvidenceHash", "pageReadbackHash"])
+    || !Array.isArray(trigger.affectedSceneIds) || trigger.affectedSceneIds.length === 0
     || !trigger.affectedSceneIds.every(nonEmptyString) || !nonEmptyObject(evidence)
     || ![evidence.codeEvidenceHash, evidence.logEvidenceHash, evidence.pageReadbackHash].every(sha256String)) {
     fail("RECAPTURE_TRIGGER_INVALID");
@@ -959,7 +1569,7 @@ function assessCapture(capture, inventory, matrix, requireComplete, expectedIdsO
   assertUnique(sceneIds, "CAPTURE_SCENE_ID_DUPLICATE");
   const scenesById = Object.fromEntries(capture.sceneManifest.map((entry) => [entry.sceneId, entry]));
   for (const scene of capture.sceneManifest) {
-    if (!nonEmptyObject(scene) || !nonEmptyString(scene.sceneId) || !sha256String(scene.stateSignature)
+    if (!rawSceneMetadataValid(scene) || !nonEmptyString(scene.sceneId) || !sha256String(scene.stateSignature)
       || !sha256String(scene.activeTabIdentityHash) || !sha256String(scene.documentIdentityHash)
       || !sha256String(scene.observationRevisionHash) || scene.envelopeHash !== sceneEnvelopeHash(scene)) {
       fail("CAPTURE_SCENE_ENVELOPE_INVALID", scene?.sceneId ?? "missing");
@@ -1135,373 +1745,261 @@ function assessCapture(capture, inventory, matrix, requireComplete, expectedIdsO
   return { complete, assessments };
 }
 
-const captureContext = (capture) => stable({
-  schemaVersion: capture.schemaVersion,
-  capturedAt: capture.capturedAt,
-  runId: capture.runId,
-  captureEpoch: capture.captureEpoch,
-  recaptureTrigger: capture.recaptureTrigger,
-  candidateBinding: capture.candidateBinding,
-  matrixDigest: capture.matrixDigest,
-  browser: capture.browser,
-  environment: capture.environment,
-  fixtureManifest: capture.fixtureManifest,
-  authorizedInputs: capture.authorizedInputs,
-  chainInputs: capture.chainInputs,
-  sceneManifest: capture.sceneManifest,
-});
-
-function mergeSceneManifests(priorScenes, currentScenes) {
-  const merged = new Map();
-  for (const scene of [...(priorScenes ?? []), ...(currentScenes ?? [])]) {
-    const existing = merged.get(scene.sceneId);
-    if (existing && existing.stateSignature !== scene.stateSignature) {
-      fail("CAPTURE_SCENE_ID_COLLISION", scene.sceneId);
-    }
-    merged.set(scene.sceneId, scene);
-  }
-  return [...merged.values()];
+export function captureContext(capture) {
+  if (!captureMetadataValid(capture)) fail("CAPTURE_PUBLIC_METADATA_INVALID");
+  return stable({
+    schemaVersion: capture.schemaVersion,
+    capturedAt: capture.capturedAt,
+    runId: publicRunId(capture.runId),
+    captureEpoch: capture.captureEpoch,
+    recaptureTrigger: capture.recaptureTrigger.kind === "HUMAN_REQUESTED_RECAPTURE"
+      ? { kind: capture.recaptureTrigger.kind, scope: capture.recaptureTrigger.scope,
+        requestedAt: capture.recaptureTrigger.requestedAt }
+      : { kind: capture.recaptureTrigger.kind, affectedSceneIds: capture.recaptureTrigger.affectedSceneIds,
+        sameIncidentEvidence: {
+          codeEvidenceHash: capture.recaptureTrigger.sameIncidentEvidence.codeEvidenceHash,
+          logEvidenceHash: capture.recaptureTrigger.sameIncidentEvidence.logEvidenceHash,
+          pageReadbackHash: capture.recaptureTrigger.sameIncidentEvidence.pageReadbackHash,
+        } },
+    matrixDigest: capture.matrixDigest,
+    browser: {
+      family: capture.browser.family, version: capture.browser.version, controlSkill: capture.browser.controlSkill,
+      dedicatedQaTab: capture.browser.dedicatedQaTab, qaTabCreatedByRun: capture.browser.qaTabCreatedByRun,
+      livePageObserved: capture.browser.livePageObserved,
+      productionBrowserIdleEvidence: { observed: capture.browser.productionBrowserIdleEvidence.observed },
+      qaTabIdentityHash: capture.browser.qaTabIdentityHash,
+    },
+    environment: { locale: capture.environment.locale,
+      viewport: { width: capture.environment.viewport.width, height: capture.environment.viewport.height },
+      theme: capture.environment.theme, providerBuildMarker: capture.environment.providerBuildMarker },
+    authorizedInputs: capture.authorizedInputs,
+    chainInputs: capture.chainInputs,
+    sceneManifest: (capture.sceneManifest ?? []).map(publicScene),
+  });
 }
 
-async function mergeCapture(repo, matrixPath, capturePath, outputPath, baseReportPath = null, childArg = "all") {
+async function productRunSourcesCurrent(repo, productionSource) {
+  if (!nonEmptyObject(productionSource)
+    || productionSource.schemaVersion !== PRODUCTION_SOURCE_SCHEMA
+    || productionSource.sourceKind !== "PRODUCTION_RUNTIME_DURABLE_TASK"
+    || productionSource.synthetic !== false
+    || !["OBSERVED_COMPLETE_PATH", "PARTIAL"].includes(productionSource.flowStatus)
+    || (productionSource.flowStatus === "OBSERVED_COMPLETE_PATH"
+      ? !nonEmptyString(productionSource.terminalBranch) : productionSource.terminalBranch !== null)
+    || !Array.isArray(productionSource.flowGaps)
+    || !Array.isArray(productionSource.flowContractBinding?.files)
+    || productionSource.flowContractBinding.files.length === 0
+    || !nonEmptyString(productionSource.pageEvidenceContract?.path)
+    || !sha256String(productionSource.pageEvidenceContract?.sha256)) {
+    return false;
+  }
+  const root = `${resolve(repo)}${sep}`;
+  for (const binding of productionSource.flowContractBinding.files) {
+    if (!nonEmptyString(binding?.path) || !sha256String(binding?.sha256)) return false;
+    const path = resolve(repo, binding.path);
+    if (!path.startsWith(root) || !(await isFile(path))
+      || sha256(await readFile(path)) !== binding.sha256) return false;
+  }
+  const files = stable(productionSource.flowContractBinding.files);
+  const bindingDigest = sha256(JSON.stringify(files));
+  if (productionSource.flowContractBinding.digest !== bindingDigest) return false;
+  const contractPath = resolve(repo, productionSource.pageEvidenceContract.path);
+  if (!contractPath.startsWith(root) || !(await isFile(contractPath))
+    || sha256(await readFile(contractPath)) !== productionSource.pageEvidenceContract.sha256) return false;
+  const expectedFlowDigest = sha256(JSON.stringify(stable({
+    contract: productionSource.pageEvidenceContract.sha256,
+    binding: bindingDigest,
+  })));
+  if (productionSource.flowContractDigest !== expectedFlowDigest) return false;
+  return true;
+}
+
+async function assertCurrentProductRunSources(repo, productionSource) {
+  if (!(await productRunSourcesCurrent(repo, productionSource))) {
+    fail("PRODUCT_FLOW_PROJECTION_STALE");
+  }
+}
+
+async function mergeProductRun(repo, inventory, matrix, base, capture) {
+  if (!nonEmptyObject(capture.productRun)) fail("PRODUCT_CAPTURE_RUN_REQUIRED");
+  await assertCurrentProductRunSources(repo, capture.productionSource);
+  const productKey = `${capture.productRun.productId}/${capture.productRun.actionId}`;
+  const current = inventory.products.find((entry) => entry.productKey === productKey)
+    ?? fail("PRODUCT_EVIDENCE_ROUTE_NOT_FOUND", productKey);
+  if (capture.productRun.pluginId !== current.pluginId
+    || capture.productRun.pluginVersion !== current.pluginVersion
+    || capture.productRun.sourceSnapshotId !== capture.productionSource.sourceSnapshotId
+    || capture.productRun.flowContractDigest !== capture.productionSource.flowContractDigest
+    || capture.productRun.traceDigest !== capture.productionSource.traceDigest
+    || !Array.isArray(capture.productRun.calls)) fail("PRODUCT_CAPTURE_BINDING_INVALID", productKey);
+  const runFailures = productRunFailures(capture.productRun, capture.productionSource, matrix, inventory, capture);
+  if (runFailures.length > 0) fail("PRODUCT_CAPTURE_RUN_DERIVATION_INVALID", runFailures.join(","));
+  const priorByKey = Object.fromEntries((base?.products ?? []).map((entry) => [entry.productKey, entry]));
+  inventory.products = preserveUnselectedProductSlices(inventory.products, base?.products, productKey).map((product) => {
+    const priorRuns = priorByKey[product.productKey]?.runs ?? [];
+    if (product.productKey !== productKey) return product;
+    const reportSource = publicProductionSource(capture.productionSource);
+    const run = stable({ ...capture.productRun,
+      calls: capture.productRun.calls.map(publicProductCall), capturedAt: capture.capturedAt,
+      captureEpoch: capture.captureEpoch, recaptureTrigger: capture.recaptureTrigger,
+      reportSourceSnapshotId: reportSource.reportSourceSnapshotId,
+      reportTraceDigest: reportSource.reportTraceDigest,
+      captureContext: captureContext(capture),
+      productionSource: reportSource });
+    const runs = [...priorRuns.filter((entry) => entry.sourceSnapshotId !== run.sourceSnapshotId), run];
+    const projection = productCaptureProjection({ ...product, runs, gaps: run.gaps });
+    return { ...product, runs, ...projection };
+  });
+  inventory.productCaptureStatus = inventory.products.every((entry) => entry.captureStatus === "CAPTURE_COMPLETE")
+    ? "CAPTURE_COMPLETE" : inventory.products.some((entry) => entry.captureStatus !== "NOT_CAPTURED")
+      ? "CAPTURE_PARTIAL" : "NOT_CAPTURED";
+  inventory.childIndex = productChildIndex(inventory.products);
+}
+
+async function mergeCapture(repo, matrixPath, capturePath, outputPath, baseReportPath, productId, actionId) {
   const inventory = await buildInventory(repo, matrixPath);
   const matrix = await loadMatrix(matrixPath);
   const capture = await readJson(capturePath);
   const base = baseReportPath ? await readJson(baseReportPath) : null;
   if (base && base.schemaVersion !== REPORT_SCHEMA) fail("REFRESH_BASE_REPORT_INVALID");
   const pageIds = inventory.denominator.pageOperationChildIds;
-  const selectedIds = childArg === "all" ? pageIds : childArg.split(",").filter(Boolean);
+  if (capture.productRun?.productId !== productId || capture.productRun?.actionId !== actionId) {
+    fail("PRODUCT_CAPTURE_SCOPE_MISMATCH", `${productId}/${actionId}`);
+  }
+  const selectedIds = [...new Set((capture.productRun.calls ?? [])
+    .filter((call) => call.pageOperationRequired === true).map((call) => call.childId))];
+  if (selectedIds.length === 0) fail("PRODUCT_CAPTURE_PAGE_CALL_EMPTY", `${productId}/${actionId}`);
   assertUnique(selectedIds, "REFRESH_CHILD_DUPLICATE");
   for (const id of selectedIds) if (!pageIds.includes(id)) fail("REFRESH_CHILD_NOT_PAGE_OPERATION", id);
-  const assessment = assessCapture(capture, inventory, matrix, false,
-    childArg === "all" ? null : selectedIds, true);
-  inventory.captureMetadata = stable({
-    capturedAt: capture.capturedAt ?? null,
-    runId: capture.runId ?? null,
-    captureEpoch: capture.captureEpoch,
-    recaptureTrigger: capture.recaptureTrigger,
-    browser: capture.browser,
-    environment: capture.environment ?? null,
-    fixtureManifest: capture.fixtureManifest,
-    authorizedInputs: capture.authorizedInputs,
-    chainInputs: capture.chainInputs,
-    sceneManifest: capture.sceneManifest,
-  });
-  inventory.captureEpoch = capture.captureEpoch;
-  inventory.children = inventory.children.map((child) => {
-    if (!child.pageOperationRequired) return child;
-    if (!selectedIds.includes(child.childCapabilityId)) {
-      const prior = base?.children?.find((entry) => entry.childCapabilityId === child.childCapabilityId);
-      if (prior?.collection && prior.evidenceDemand?.digest === child.evidenceDemand.digest
-        && prior.collection.childCandidateDigest === child.evidenceDemand.childCandidateDigest) {
-        return { ...child, collection: prior.collection, captureComplete: prior.captureComplete,
-          captureMissing: prior.captureMissing, demandCoverage: prior.demandCoverage };
-      }
-      return child;
-    }
-    let assessed = assessment.assessments[child.childCapabilityId];
-    let context = captureContext(capture);
-    const prior = base?.children?.find((entry) => entry.childCapabilityId === child.childCapabilityId);
-    if (childArg !== "all" && prior?.collection) {
-      const currentLiveStateIds = new Set(assessed.specimens.filter((specimen) =>
-        specimen.evidenceKind === "LIVE_PAGE").map((specimen) => specimen.stateId));
-      const retainedLive = prior.collection.specimens.filter((specimen) =>
-        specimen.evidenceKind === "LIVE_PAGE" && !currentLiveStateIds.has(specimen.stateId));
-      const currentLive = assessed.specimens.filter((specimen) => specimen.evidenceKind === "LIVE_PAGE");
-      const currentDerived = assessed.specimens.filter((specimen) => specimen.evidenceKind === "DERIVED_FIXTURE");
-      const specimens = [...retainedLive, ...currentLive, ...currentDerived];
-      const factBindings = reprojectFactBindings(child, {
-        specimens,
-        factBindings: [...(prior.collection.factBindings ?? []), ...(assessed.factBindings ?? [])],
-      });
-      const captureChild = capture.children.find((entry) =>
-        entry.childCapabilityId === child.childCapabilityId) ?? fail("CAPTURE_CHILD_MISSING", child.childCapabilityId);
-      const mergedCapture = {
-        ...capture,
-        sceneManifest: mergeSceneManifests(prior.collection.captureContext?.sceneManifest, capture.sceneManifest),
-        children: [{ ...captureChild, specimens, factBindings }],
-      };
-      assessed = assessCapture(mergedCapture, inventory, matrix, false,
-        [child.childCapabilityId], true).assessments[child.childCapabilityId];
-      context = captureContext(mergedCapture);
-    }
-    return {
-      ...child,
-      collection: {
-        demandDigest: assessed.demandDigest,
-        childCandidateDigest: assessed.childCandidateDigest,
-        inputRefs: assessed.inputRefs,
-        factBindings: assessed.factBindings,
-        specimens: assessed.specimens,
-        captureContext: context,
-      },
-      captureComplete: assessed.complete,
-      captureMissing: assessed.missing,
-      demandCoverage: assessed.demandCoverage,
-    };
-  });
-  const pageChildren = inventory.children.filter((child) => child.pageOperationRequired);
-  inventory.captureStatus = pageChildren.every((child) => child.captureComplete === true)
-    ? "CAPTURE_COMPLETE" : pageChildren.some((child) => child.collection) ? "CAPTURE_PARTIAL" : "NOT_CAPTURED";
+  assessCapture(capture, inventory, matrix, false, selectedIds, true);
+  await mergeProductRun(repo, inventory, matrix, base, capture);
+  inventory.captureMetadata = null;
+  inventory.captureEpoch = null;
+  inventory.captureStatus = "NOT_CAPTURED";
   await writeJsonAtomic(outputPath, inventory);
   return inventory;
 }
 
-function reprojectChainInputs(chainInputs, inventory, baseChildren, matrix) {
-  const currentById = Object.fromEntries(inventory.children.map((child) => [child.childCapabilityId, child]));
-  const sourceByInput = matrix.chainInputSources ?? {};
-  return stable(Object.fromEntries(Object.entries(sourceByInput).map(([inputId, sourceChildCapabilityId]) => {
-    const descriptor = chainInputs?.[inputId];
-    const source = currentById[sourceChildCapabilityId];
-    const priorSource = baseChildren.find((child) => child.childCapabilityId === sourceChildCapabilityId);
-    const live = (priorSource?.collection?.specimens ?? []).filter((entry) =>
-      entry.evidenceKind === "LIVE_PAGE" && nonEmptyString(entry.observationId));
-    const exact = descriptor?.kind === "PRIOR_CHILD_OUTPUT"
-      ? live.find((entry) => entry.observationId === descriptor.observationId) : null;
-    const terminal = [...live].filter((entry) =>
-      /(?:readback|checkpoint|already-open)$/u.test(entry.stateId ?? ""))
-      .sort((left, right) => Date.parse(left.capturedAt) - Date.parse(right.capturedAt)).at(-1);
-    const specimen = terminal ?? exact;
-    if (!source?.evidenceDemand || !specimen?.stateSignature) return [inputId, descriptor];
-    const evidenceRef = `${sourceChildCapabilityId}:${source.evidenceDemand.childCandidateDigest}:${specimen.observationId}:${specimen.stateSignature}`;
-    return [inputId, stable({
-      kind: "PRIOR_CHILD_OUTPUT",
-      sourceChildCapabilityId,
-      sourceDemandDigest: source.evidenceDemand.digest,
-      sourceChildCandidateDigest: source.evidenceDemand.childCandidateDigest,
-      evidenceRef,
-      observationId: specimen.observationId,
-      observationSignature: specimen.stateSignature,
-      sha256: sha256(evidenceRef),
-    })];
-  })));
-}
-
-function reprojectFactBindings(child, priorCollection) {
-  const specimens = priorCollection?.specimens ?? [];
-  const live = specimens.filter((specimen) => specimen.evidenceKind === "LIVE_PAGE");
-  const liveByObservation = Object.fromEntries(live.map((specimen) => [specimen.observationId, specimen]));
-  const priorByFact = Object.fromEntries((priorCollection?.factBindings ?? []).map((binding) => [binding.factId, binding]));
-  const bindingFor = (fact) => {
-    const prior = priorByFact[fact.factId];
-    if (prior && liveByObservation[prior.observationId]
-      && prior.pointers?.every((pointer) => valuePresent(valueAtPath(liveByObservation[prior.observationId], pointer)))) {
-      return { ...prior, bindingKind: "LIVE_OBSERVATION",
-        expectedHash: sha256(JSON.stringify(stable(fact.expected))) };
-    }
-    let specimen = live[0];
-    let pointers = ["related.contractReference"];
-    if (fact.factId.startsWith("target:")) {
-      const target = fact.factId.slice("target:".length);
-      specimen = live.find((entry) => valuePresent(entry.core?.targets?.[target]));
-      pointers = [`core.targets.${target}`];
-    } else if (fact.factId.startsWith("live-state:")) {
-      const stateId = fact.factId.slice("live-state:".length);
-      specimen = live.find((entry) => entry.stateId === stateId);
-      pointers = ["stateFacts.stateId"];
-    } else if (fact.factId.startsWith("derived-state:")) {
-      const stateId = fact.factId.slice("derived-state:".length);
-      const derived = specimens.find((entry) => entry.evidenceKind === "DERIVED_FIXTURE" && entry.stateId === stateId);
-      specimen = liveByObservation[derived?.derivedFromObservationId];
-    } else if (fact.factId.startsWith("input:")) pointers = ["stateFacts.inputRefs"];
-    else if (fact.factId.startsWith("authorized-input:")) pointers = ["stateFacts.authorizedInputVariantHashes"];
-    else if (fact.factId.startsWith("chain:")) pointers = ["related.transitionChain"];
-    else if (fact.factId.startsWith("authority:")) pointers = ["related.authorityEvidence"];
-    if (!specimen || !pointers.every((pointer) => valuePresent(valueAtPath(specimen, pointer)))) {
-      if (["PAGE_TARGET", "LIVE_PAGE_STATE", "EVIDENCE_CHAIN"].includes(fact.kind)) return null;
-      return {
-        factId: fact.factId,
-        bindingKind: "CURRENT_PROJECTION",
-        projectionDigest: child.evidenceDemand.projectionDigest,
-        expectedHash: sha256(JSON.stringify(stable(fact.expected))),
-      };
-    }
-    return {
-      factId: fact.factId,
-      bindingKind: "LIVE_OBSERVATION",
-      observationId: specimen.observationId,
-      pointers,
-      expectedHash: sha256(JSON.stringify(stable(fact.expected))),
-    };
-  };
-  return child.evidenceDemand.facts.map(bindingFor).filter(Boolean);
-}
-
-function projectExistingChild(child, prior, chainInputs) {
-  const specimens = prior.collection?.specimens ?? [];
-  const live = specimens.filter((entry) => entry.evidenceKind === "LIVE_PAGE");
-  const derived = specimens.filter((entry) => entry.evidenceKind === "DERIVED_FIXTURE");
-  const requirements = child.collectionRequirements;
-  const admittedLiveStates = requirements.requiredLiveStates.filter((stateId) =>
-    live.some((entry) => entry.stateId === stateId));
-  const missingLiveStates = requirements.requiredLiveStates.filter((stateId) =>
-    !admittedLiveStates.includes(stateId));
-  const requiredDerivedStates = [...new Set(child.evidenceDemand.facts.filter((fact) =>
-    fact.kind === "DERIVED_FIXTURE_STATE").map((fact) => fact.expected))];
-  const admittedDerivedStates = requiredDerivedStates.filter((stateId) =>
-    derived.some((entry) => entry.stateId === stateId));
-  const missingDerivedStates = requiredDerivedStates.filter((stateId) =>
-    !admittedDerivedStates.includes(stateId));
-  const requiredChainInputs = requirements.requiredInputRefs.filter((inputId) => inputId.startsWith("chain-"));
-  const resolvedChainInputs = requiredChainInputs.filter((inputId) => chainInputs?.[inputId]?.kind === "PRIOR_CHILD_OUTPUT");
-  const missingChainInputs = requiredChainInputs.filter((inputId) => !resolvedChainInputs.includes(inputId));
-  const factBindings = reprojectFactBindings(child, prior.collection);
-  const boundFacts = new Set(factBindings.map((entry) => entry.factId));
-  const missingPageFacts = child.evidenceDemand.facts.filter((fact) =>
-    ["PAGE_TARGET", "LIVE_PAGE_STATE", "EVIDENCE_CHAIN"].includes(fact.kind)
-      && !boundFacts.has(fact.factId)).map((fact) => fact.factId);
-  const missing = [
-    ...missingLiveStates.map((stateId) => `PAGE_EVIDENCE_GAP:LIVE_PAGE:${stateId}`),
-    ...missingDerivedStates.map((stateId) => `PAGE_EVIDENCE_GAP:DERIVED_FIXTURE:${stateId}`),
-    ...missingChainInputs.map((inputId) => `PAGE_EVIDENCE_GAP:CHAIN_INPUT:${inputId}`),
-    ...missingPageFacts.filter((factId) => !factId.startsWith("live-state:")
-      && !factId.startsWith("chain:")).map((factId) => `PAGE_EVIDENCE_GAP:DEMAND_FACT_UNCOVERED:${factId}`),
-  ];
-  const requiredFacts = child.evidenceDemand.facts.length;
-  return {
-    factBindings,
-    missing: [...new Set(missing)],
-    coverage: {
-      coveredFacts: boundFacts.size,
-      requiredFacts,
-      percent: Number(((boundFacts.size / requiredFacts) * 100).toFixed(2)),
-    },
-    pageEvidenceCoverage: stable({
-      mode: "OBSERVATION_SCOPED",
-      admittedLiveStates,
-      missingLiveStates,
-      admittedDerivedStates,
-      missingDerivedStates,
-      requiredChainInputs,
-      resolvedChainInputs,
-      missingChainInputs,
-    }),
-  };
-}
-
-function reprojectSceneManifest(priorCollection, baseChildren, captureEpoch, captureMetadata) {
-  const specimens = priorCollection?.specimens ?? [];
-  const requiredSceneIds = new Set(specimens.filter((entry) => entry.evidenceKind === "LIVE_PAGE")
-    .map((entry) => entry.sourceSceneId).filter(nonEmptyString));
-  const allLive = baseChildren.flatMap((child) => child.collection?.specimens ?? [])
-    .filter((entry) => entry.evidenceKind === "LIVE_PAGE" && nonEmptyString(entry.sourceSceneId));
-  const liveByScene = Object.fromEntries(allLive.map((entry) => [entry.sourceSceneId, entry]));
-  const original = priorCollection?.captureContext?.sceneManifest ?? captureMetadata?.sceneManifest ?? [];
-  for (const scene of original) {
-    if (requiredSceneIds.has(scene.sceneId) && nonEmptyString(scene.transitionReceipt?.preSceneId)) {
-      requiredSceneIds.add(scene.transitionReceipt.preSceneId);
-    }
-  }
-  return original.filter((scene) => requiredSceneIds.has(scene.sceneId)).map((scene) => {
-    const specimen = liveByScene[scene.sceneId];
-    const entry = stable({
-      ...scene,
-      activeTabIdentityHash: scene.activeTabIdentityHash ?? captureMetadata?.browser?.qaTabIdentityHash,
-      documentIdentityHash: scene.documentIdentityHash ?? specimen?.documentIdentityHash,
-      observationRevisionHash: scene.observationRevisionHash ?? specimen?.revision,
-      binding: {
-        runId: scene.binding?.runId ?? specimen?.peripheral?.runId ?? priorCollection.captureContext.runId,
-        captureEpoch: scene.binding?.captureEpoch ?? captureEpoch,
-        qaTabIdentityHash: scene.binding?.qaTabIdentityHash ?? scene.activeTabIdentityHash
-          ?? captureMetadata?.browser?.qaTabIdentityHash,
-      },
-    });
-    const { envelopeHash: _ignored, ...withoutEnvelope } = entry;
-    return stable({ ...withoutEnvelope, envelopeHash: sha256(JSON.stringify(stable(withoutEnvelope))) });
-  });
-}
-
-async function reprojectReport(repo, matrixPath, baseReportPath, outputPath, childArg = "all") {
+async function reprojectReport(repo, matrixPath, baseReportPath, outputPath, productId, actionId) {
   const base = await readJson(baseReportPath);
   if (base.schemaVersion !== REPORT_SCHEMA) fail("REFRESH_BASE_REPORT_INVALID");
+  assertNoRepositoryCandidateBinding(base);
   const inventory = await buildInventory(repo, matrixPath);
-  const matrix = await loadMatrix(matrixPath);
-  const pageIds = inventory.denominator.pageOperationChildIds;
-  const requestedIds = childArg === "all" ? pageIds : childArg.split(",").filter(Boolean);
-  assertUnique(requestedIds, "REFRESH_CHILD_DUPLICATE");
-  for (const id of requestedIds) if (!pageIds.includes(id)) fail("REFRESH_CHILD_NOT_PAGE_OPERATION", id);
-  const selectedIds = pageIds;
-  const baseById = Object.fromEntries(base.children.map((child) => [child.childCapabilityId, child]));
-  const chainInputs = reprojectChainInputs(base.captureMetadata?.chainInputs, inventory, base.children, matrix);
+  const productKey = `${productId}/${actionId}`;
+  if (!inventory.products.some((entry) => entry.productKey === productKey)) {
+    fail("PRODUCT_EVIDENCE_ROUTE_NOT_FOUND", productKey);
+  }
   const gaps = [];
-
-  inventory.captureMetadata = base.captureMetadata ? stable({ ...base.captureMetadata, chainInputs }) : null;
-  inventory.captureEpoch = base.captureEpoch ?? (base.captureMetadata
-    ? sha256(JSON.stringify(stable({
-      runId: base.captureMetadata.runId,
-      capturedAt: base.captureMetadata.capturedAt,
-      qaTabIdentityHash: base.captureMetadata.browser?.qaTabIdentityHash,
-    }))) : null);
-  inventory.children = inventory.children.map((currentChild) => {
-    const prior = baseById[currentChild.childCapabilityId];
-    if (!currentChild.pageOperationRequired || !selectedIds.includes(currentChild.childCapabilityId)) {
-      return prior ?? currentChild;
+  const baseProducts = Object.fromEntries((base.products ?? []).map((entry) => [entry.productKey, entry]));
+  inventory.products = preserveUnselectedProductSlices(inventory.products, base.products, productKey);
+  inventory.products = await Promise.all(inventory.products.map(async (currentProduct) => {
+    const prior = baseProducts[currentProduct.productKey];
+    if (currentProduct.productKey !== productKey) return currentProduct;
+    if (!prior?.runs?.length) return currentProduct;
+    const currentBinding = JSON.stringify(currentProduct.flowOwnerBinding);
+    const priorBinding = JSON.stringify(prior.flowOwnerBinding);
+    const runSourcesCurrent = (await Promise.all(prior.runs.map((run) =>
+      productRunSourcesCurrent(repo, run.productionSource)))).every(Boolean);
+    if (currentProduct.contractDigest !== prior.contractDigest || currentBinding !== priorBinding
+      || !runSourcesCurrent) {
+      gaps.push({ productKey, missing: ["PRODUCT_FLOW_PROJECTION_STALE"] });
+      const projection = productCaptureProjection({ ...currentProduct, runs: prior.runs, gaps: prior.gaps });
+      return { ...currentProduct, runs: prior.runs, ...projection };
     }
-    if (!prior?.collection) {
-      gaps.push({ childCapabilityId: currentChild.childCapabilityId, missing: ["PAGE_EVIDENCE_GAP:collection-missing"] });
-      return currentChild;
-    }
-    const context = stable({
-      ...prior.collection.captureContext,
-      captureEpoch: inventory.captureEpoch,
-      candidateBinding: inventory.candidateBinding,
-      matrixDigest: inventory.matrixBinding.digest,
-      chainInputs,
-      sceneManifest: reprojectSceneManifest(prior.collection, base.children,
-        inventory.captureEpoch, base.captureMetadata),
-    });
-    const projected = projectExistingChild(currentChild, prior, chainInputs);
-    if (projected.missing.length > 0) gaps.push({
-      childCapabilityId: currentChild.childCapabilityId, missing: projected.missing,
-    });
-    return {
-      ...currentChild,
-      collection: {
-        demandDigest: currentChild.evidenceDemand.digest,
-        childCandidateDigest: currentChild.evidenceDemand.childCandidateDigest,
-        inputRefs: currentChild.collectionRequirements.requiredInputRefs,
-        factBindings: projected.factBindings,
-        specimens: prior.collection.specimens,
-        captureContext: context,
-      },
-      captureComplete: projected.missing.length === 0,
-      captureMissing: projected.missing,
-      demandCoverage: projected.coverage,
-      pageEvidenceCoverage: projected.pageEvidenceCoverage,
-    };
-  });
-  const pageChildren = inventory.children.filter((child) => child.pageOperationRequired);
-  inventory.projectionRevision = sha256(JSON.stringify(stable(pageChildren.map((child) => [
-    child.childCapabilityId, child.evidenceDemand?.projectionDigest ?? null,
-  ]).sort((left, right) => left[0].localeCompare(right[0])))));
-  inventory.captureStatus = pageChildren.every((child) => child.captureComplete === true)
-    ? "CAPTURE_COMPLETE" : pageChildren.some((child) => child.collection) ? "CAPTURE_PARTIAL" : "NOT_CAPTURED";
+    const projection = productCaptureProjection({ ...currentProduct, runs: prior.runs, gaps: prior.gaps });
+    return { ...currentProduct, runs: prior.runs, ...projection };
+  }));
+  inventory.productCaptureStatus = inventory.products.every((entry) => entry.captureStatus === "CAPTURE_COMPLETE")
+    ? "CAPTURE_COMPLETE" : inventory.products.some((entry) => entry.captureStatus !== "NOT_CAPTURED")
+      ? "CAPTURE_PARTIAL" : "NOT_CAPTURED";
+  inventory.childIndex = productChildIndex(inventory.products);
+  inventory.captureMetadata = null;
+  inventory.captureEpoch = null;
+  inventory.captureStatus = "NOT_CAPTURED";
   await writeJsonAtomic(outputPath, inventory);
   return { report: inventory, gaps };
 }
 
-async function validateReport(repo, matrixPath, reportPath, requireComplete, selectedIds = null) {
+async function validateReport(repo, matrixPath, reportPath, requireComplete) {
   const report = await readJson(reportPath);
-  if (["gpt-page-operation-evidence.v1", "gpt-page-operation-evidence.v2", "gpt-page-operation-evidence.v3", "gpt-page-operation-evidence.v4"].includes(report.schemaVersion)) {
+  if (["gpt-page-operation-evidence.v1", "gpt-page-operation-evidence.v2", "gpt-page-operation-evidence.v3", "gpt-page-operation-evidence.v4", "gpt-page-operation-evidence.v5"].includes(report.schemaVersion)) {
     fail("REPORT_LEGACY_INVALIDATED");
   }
   if (report.schemaVersion !== REPORT_SCHEMA) fail("REPORT_SCHEMA_INVALID");
   if (report.productionRuntimeConsumer !== false || report.claimsQualityVerdict !== false) {
     fail("REPORT_ROLE_BOUNDARY_INVALID");
   }
+  assertNoRepositoryCandidateBinding(report);
   const matrix = await loadMatrix(matrixPath);
   const current = await buildInventory(repo, matrixPath);
-  const candidateIdentity = ({ head: _head, ...binding }) => binding;
-  if (selectedIds === null && JSON.stringify(candidateIdentity(report.candidateBinding))
-    !== JSON.stringify(candidateIdentity(current.candidateBinding))) {
-    fail("REPORT_PROJECTION_STALE", `candidate:${report.candidateBinding?.candidate ?? "missing"}/${current.candidateBinding.candidate}`);
+  if (report.primaryIndex !== "products" || !Array.isArray(report.products)
+    || report.products.length === 0) fail("REPORT_PRODUCT_INDEX_INVALID");
+  assertUnique(report.products.map((entry) => entry.productKey), "REPORT_PRODUCT_DUPLICATE");
+  const currentProducts = Object.fromEntries(current.products.map((entry) => [entry.productKey, entry]));
+  const staleProducts = [];
+  for (const product of report.products) {
+    const expected = currentProducts[product.productKey];
+    if (!nonEmptyString(product.productId) || !nonEmptyString(product.actionId)
+      || product.productKey !== `${product.productId}/${product.actionId}`
+      || !nonEmptyString(product.pluginId) || !Number.isSafeInteger(product.pluginVersion)
+      || !Array.isArray(product.runs) || !Array.isArray(product.gaps)) {
+      fail("REPORT_PRODUCT_BINDING_INVALID", product.productKey ?? "missing");
+    }
+    const currentBinding = JSON.stringify(expected?.flowOwnerBinding);
+    const runSourcesCurrent = (await Promise.all(product.runs.map((run) =>
+      productRunSourcesCurrent(repo, run.productionSource)))).every(Boolean);
+    const stale = !expected || product.productId !== expected.productId || product.actionId !== expected.actionId
+      || product.pluginId !== expected.pluginId || product.pluginVersion !== expected.pluginVersion
+      || product.contractDigest !== expected.contractDigest
+      || JSON.stringify(product.flowOwnerBinding) !== currentBinding || !runSourcesCurrent;
+    if (stale) staleProducts.push(product.productKey);
+    for (const run of product.runs) {
+      if (!sha256String(run.sourceSnapshotId) || !sha256String(run.flowContractDigest)
+        || !sha256String(run.traceDigest) || !Array.isArray(run.calls)
+        || !["OBSERVED_COMPLETE_PATH", "PARTIAL"].includes(run.flowStatus)
+        || (run.flowStatus === "OBSERVED_COMPLETE_PATH"
+          ? !nonEmptyString(run.terminalBranch) : run.terminalBranch !== null)
+        || (run.flowStatus === "OBSERVED_COMPLETE_PATH"
+          ? !nonEmptyObject(run.terminalBranchProof) : run.terminalBranchProof !== null)
+        || run.productId !== product.productId || run.actionId !== product.actionId
+        || run.pluginId !== product.pluginId || run.pluginVersion !== product.pluginVersion
+        || run.productionSource?.productId !== product.productId
+        || run.productionSource?.actionId !== product.actionId
+        || run.productionSource?.pluginId !== product.pluginId
+        || run.productionSource?.pluginVersion !== product.pluginVersion
+        || run.productionSource?.sourceKind !== "PRODUCTION_RUNTIME_DURABLE_TASK"
+        || run.productionSource?.synthetic !== false) fail("REPORT_PRODUCT_RUN_INVALID", product.productKey);
+      if (run.calls.some((call) => !sha256String(call.traceEntryId))
+        || new Set(run.calls.map((call) => call.traceEntryId)).size !== run.calls.length) {
+        fail("REPORT_PRODUCT_CALL_IDENTITY_INVALID", product.productKey);
+      }
+      const derivationFailures = productRunFailures(
+        run, run.productionSource, matrix, current, null, !stale,
+      );
+      if (derivationFailures.length > 0) {
+        fail("REPORT_PRODUCT_RUN_DERIVATION_INVALID", `${product.productKey}:${derivationFailures.join(",")}`);
+      }
+      scanCapturePrivacy(run, `report.products.${product.productKey}.runs`);
+    }
+    const projection = product.runs.length === 0
+      ? { captureStatus: "NOT_CAPTURED", gaps: stale ? product.gaps : expected.gaps }
+      : productCaptureProjection(product);
+    if (product.captureStatus !== projection.captureStatus
+      || JSON.stringify(product.gaps) !== JSON.stringify(projection.gaps)) {
+      fail("REPORT_PRODUCT_CAPTURE_PROJECTION_INVALID", product.productKey);
+    }
   }
-  if (selectedIds === null && JSON.stringify(report.matrixBinding) !== JSON.stringify(current.matrixBinding)) {
-    fail("REPORT_PROJECTION_STALE", "matrix");
+  const expectedProductCaptureStatus = report.products.every((entry) => entry.captureStatus === "CAPTURE_COMPLETE")
+    ? "CAPTURE_COMPLETE" : report.products.some((entry) => entry.captureStatus !== "NOT_CAPTURED")
+      ? "CAPTURE_PARTIAL" : "NOT_CAPTURED";
+  if (report.productCaptureStatus !== expectedProductCaptureStatus) {
+    fail("REPORT_PRODUCT_CAPTURE_STATUS_INVALID");
   }
-  if (selectedIds === null && report.projectionRevision !== current.projectionRevision) {
-    fail("REPORT_PROJECTION_STALE", "revision");
+  if (JSON.stringify(report.childIndex) !== JSON.stringify(productChildIndex(report.products))) {
+    fail("REPORT_CHILD_INDEX_NOT_DERIVED");
   }
+  const globalProjectionCurrent = JSON.stringify(report.matrixBinding) === JSON.stringify(current.matrixBinding)
+    && report.projectionRevision === current.projectionRevision;
   if (!Array.isArray(report.children)
     || !nonEmptyObject(report.denominator)
     || report.children.length !== report.denominator.contractChildren) {
@@ -1510,284 +2008,152 @@ async function validateReport(repo, matrixPath, reportPath, requireComplete, sel
   assertUnique(report.children.map((child) => child.childCapabilityId), "REPORT_CHILD_DUPLICATE");
   const currentById = Object.fromEntries(current.children.map((child) => [child.childCapabilityId, child]));
   for (const child of report.children) {
-    const expected = currentById[child.childCapabilityId];
-    const selected = selectedIds === null || selectedIds.includes(child.childCapabilityId);
-    if (!expected || JSON.stringify(child.contract) !== JSON.stringify(expected.contract)
-      || child.contractVersion !== expected.contractVersion) {
-      if (selected) fail("REPORT_CONTRACT_BINDING_STALE", child.childCapabilityId);
+    if (child.collection !== null || child.captureComplete !== false) {
+      fail("REPORT_CHILD_EVIDENCE_SECOND_TRUTH", child.childCapabilityId);
     }
-    if (selected && child.pageOperationRequired && (child.evidenceDemand?.digest !== expected.evidenceDemand?.digest
-      || JSON.stringify(child.evidenceDemand?.facts) !== JSON.stringify(expected.evidenceDemand?.facts)
-      || JSON.stringify(child.evidenceDemand?.authorizedInputRequirements) !== JSON.stringify(expected.evidenceDemand?.authorizedInputRequirements)
-      || JSON.stringify(child.evidenceDemand?.sourceBinding) !== JSON.stringify(expected.evidenceDemand?.sourceBinding))) {
-      fail("REPORT_PROJECTION_STALE", child.childCapabilityId);
+    const expected = currentById[child.childCapabilityId];
+    if (globalProjectionCurrent && (!expected || JSON.stringify(child.contract) !== JSON.stringify(expected.contract)
+      || child.contractVersion !== expected.contractVersion
+      || (child.pageOperationRequired && (child.evidenceDemand?.digest !== expected.evidenceDemand?.digest
+        || JSON.stringify(child.evidenceDemand?.facts) !== JSON.stringify(expected.evidenceDemand?.facts)
+        || JSON.stringify(child.evidenceDemand?.authorizedInputRequirements) !== JSON.stringify(expected.evidenceDemand?.authorizedInputRequirements)
+        || JSON.stringify(child.evidenceDemand?.sourceBinding) !== JSON.stringify(expected.evidenceDemand?.sourceBinding))))) {
+      fail("REPORT_CURRENT_CHILD_PROJECTION_INVALID", child.childCapabilityId);
     }
   }
   const pageIds = report.children.filter((child) => child.pageOperationRequired)
     .map((child) => child.childCapabilityId);
   const nonPageIds = report.children.filter((child) => !child.pageOperationRequired)
     .map((child) => child.childCapabilityId);
-  if (!exactStringSet(pageIds, matrix.children.map((child) => child.childCapabilityId))
-    || !exactStringSet(report.denominator.pageOperationChildIds, pageIds)
+  if (!exactStringSet(report.denominator.pageOperationChildIds, pageIds)
     || !exactStringSet(report.denominator.nonPageChildIds, nonPageIds)
     || report.denominator.pageOperationChildren !== pageIds.length
     || report.denominator.nonPageChildren !== nonPageIds.length) {
     fail("REPORT_DENOMINATOR_INVALID");
   }
-  for (const child of report.children) {
-    if (child.collection) scanCapturePrivacy(child.collection, `report.children.${child.childCapabilityId}.collection`);
+  if (globalProjectionCurrent && !exactStringSet(pageIds, matrix.children.map((child) => child.childCapabilityId))) {
+    fail("REPORT_CURRENT_DENOMINATOR_INVALID");
   }
-  const validStatuses = new Set(["NOT_CAPTURED", "CAPTURE_PARTIAL", "CAPTURE_COMPLETE"]);
-  if (!validStatuses.has(report.captureStatus)) fail("REPORT_CAPTURE_STATUS_INVALID", report.captureStatus ?? "missing");
-  let assessedComplete = false;
-  if (report.captureStatus === "NOT_CAPTURED") {
-    if (report.captureMetadata !== null) {
-      fail("REPORT_NOT_CAPTURED_STATE_INVALID");
-    }
-  } else {
-    let anyCollection = false;
-    let allComplete = true;
-    for (const [inputId, descriptor] of Object.entries(report.captureMetadata?.chainInputs ?? {})) {
-      if (descriptor?.kind !== "PRIOR_CHILD_OUTPUT") continue;
-      const consumers = matrix.children.filter((entry) => entry.requiredInputRefs.includes(inputId))
-        .map((entry) => entry.childCapabilityId);
-      if (selectedIds !== null && !consumers.some((id) => selectedIds.includes(id))) continue;
-      const source = report.children.find((child) => child.childCapabilityId === descriptor.sourceChildCapabilityId);
-      const sourceSpecimen = source?.collection?.specimens?.find((specimen) =>
-        specimen.evidenceKind === "LIVE_PAGE" && specimen.observationId === descriptor.observationId);
-      if (!sourceSpecimen || descriptor.sourceDemandDigest !== source?.evidenceDemand?.digest
-        || descriptor.sourceChildCandidateDigest !== source?.evidenceDemand?.childCandidateDigest
-        || sourceSpecimen?.stateSignature !== descriptor.observationSignature) {
-        if (selectedIds !== null && consumers.some((id) => selectedIds.includes(id))) {
-          fail("REPORT_CHAIN_SOURCE_NOT_ADMITTED", inputId);
-        }
-        allComplete = false;
-      }
-    }
-    for (const child of report.children.filter((entry) => entry.pageOperationRequired
-      && (selectedIds === null || selectedIds.includes(entry.childCapabilityId)))) {
-      if (!child.collection) {
-        allComplete = false;
-        if (child.captureComplete !== false) fail("REPORT_CHILD_CAPTURE_CLAIM_MISMATCH", child.childCapabilityId);
-        continue;
-      }
-      anyCollection = true;
-      const context = child.collection.captureContext;
-      if (!nonEmptyObject(context)) fail("REPORT_CHILD_CAPTURE_CONTEXT_REQUIRED", child.childCapabilityId);
-      if (!nonEmptyObject(child.pageEvidenceCoverage)) {
-        const assessment = assessCapture({
-          ...context,
-          children: [{
-            childCapabilityId: child.childCapabilityId,
-            demandDigest: child.collection.demandDigest,
-            childCandidateDigest: child.collection.childCandidateDigest,
-            inputRefs: child.collection.inputRefs ?? [],
-            factBindings: child.collection.factBindings ?? [],
-            specimens: child.collection.specimens ?? [],
-          }],
-        }, report, matrix, false, [child.childCapabilityId]);
-        const assessed = assessment.assessments[child.childCapabilityId];
-        if (!assessed.complete) allComplete = false;
-        if (child.captureComplete !== assessed.complete
-          || JSON.stringify(child.captureMissing) !== JSON.stringify(assessed.missing)
-          || JSON.stringify(child.demandCoverage) !== JSON.stringify(assessed.demandCoverage)) {
-          fail("REPORT_CHILD_CAPTURE_CLAIM_MISMATCH", child.childCapabilityId);
-        }
-        continue;
-      }
-      const projected = projectExistingChild(currentById[child.childCapabilityId], child,
-        report.captureMetadata?.chainInputs ?? {});
-      if (projected.missing.length > 0) allComplete = false;
-      if (child.captureComplete !== (projected.missing.length === 0)
-        || JSON.stringify(child.captureMissing) !== JSON.stringify(projected.missing)
-        || JSON.stringify(child.demandCoverage) !== JSON.stringify(projected.coverage)
-        || JSON.stringify(child.pageEvidenceCoverage) !== JSON.stringify(projected.pageEvidenceCoverage)
-        || JSON.stringify(child.collection.factBindings) !== JSON.stringify(projected.factBindings)) {
-        fail("REPORT_CHILD_CAPTURE_CLAIM_MISMATCH", child.childCapabilityId);
-      }
-    }
-    assessedComplete = allComplete;
-    const expectedStatus = selectedIds === null
-      ? allComplete ? "CAPTURE_COMPLETE" : anyCollection ? "CAPTURE_PARTIAL" : "NOT_CAPTURED"
-      : report.captureStatus;
-    if (selectedIds === null && report.captureStatus !== expectedStatus) {
-      fail("REPORT_CAPTURE_CLAIM_MISMATCH", `${report.captureStatus}/${expectedStatus}`);
-    }
+  if (report.captureStatus !== "NOT_CAPTURED" || report.captureMetadata !== null || report.captureEpoch !== null) {
+    fail("REPORT_CHILD_EVIDENCE_SECOND_TRUTH");
   }
-  if (requireComplete) {
-    if (report.captureStatus !== "CAPTURE_COMPLETE" || !assessedComplete) {
-      fail("REPORT_NOT_COMPLETE", report.captureStatus ?? "missing");
-    }
-    const incomplete = report.children.filter((child) => child.pageOperationRequired
-      && (child.captureComplete !== true || child.demandCoverage?.percent !== 100));
-    if (incomplete.length > 0) fail("REPORT_CHILD_NOT_READY", incomplete.map((child) => child.childCapabilityId).join(","));
+  const projectionCurrent = globalProjectionCurrent && staleProducts.length === 0;
+  if (requireComplete && !projectionCurrent) fail("REPORT_PROJECTION_STALE", staleProducts.join(",") || "global");
+  if (requireComplete && report.productCaptureStatus !== "CAPTURE_COMPLETE") {
+    fail("REPORT_NOT_COMPLETE", report.productCaptureStatus ?? "missing");
   }
-  return { valid: true, complete: report.captureStatus === "CAPTURE_COMPLETE" };
+  return { valid: true, complete: report.productCaptureStatus === "CAPTURE_COMPLETE",
+    projectionCurrent, staleProducts };
 }
 
-function evidenceBrief(report, child, scopedFacts = []) {
-  const bindings = child.collection?.factBindings ?? [];
-  const selectedFacts = scopedFacts.length > 0
-    ? scopedFacts
-    : bindings.filter((binding) => binding.bindingKind === "LIVE_OBSERVATION").map((binding) => binding.factId);
-  const facts = selectedFacts.map((factId) => {
-    const demandFact = child.evidenceDemand.facts.find((entry) => entry.factId === factId);
-    const binding = bindings.find((entry) => entry.factId === factId);
-    const specimen = child.collection?.specimens?.find((entry) =>
-      entry.evidenceKind === "LIVE_PAGE" && entry.observationId === binding?.observationId);
+function productEvidenceBrief(report, product, stepId = "") {
+  const runs = (product.runs ?? []).map((run) => {
+    const calls = (run.calls ?? []).filter((call) => !stepId || call.productStepId === stepId);
     return stable({
-      factId,
-      kind: demandFact?.kind ?? null,
-      expected: demandFact?.expected ?? null,
-      expectedHash: binding?.expectedHash ?? null,
-      bindingKind: binding?.bindingKind ?? null,
-      observationId: binding?.observationId ?? null,
-      pointers: binding?.pointers ?? [],
-      actualValues: (binding?.pointers ?? []).map((pointer) => ({
-        pointer,
-        value: valueAtPath(specimen, pointer),
-      })),
+      sourceSnapshotId: run.sourceSnapshotId,
+      flowContractDigest: run.flowContractDigest,
+      traceDigest: run.traceDigest,
+      captureEpoch: run.captureEpoch,
+      flowStatus: run.flowStatus,
+      flowProjectionStatus: run.flowProjectionStatus ?? null,
+      flowProjectionGaps: run.flowProjectionGaps ?? [],
+      terminalBranch: run.terminalBranch,
+      terminalBranchProof: run.terminalBranchProof,
+      captureComplete: stepId ? calls.length > 0 && calls.every((call) => call.captureComplete === true)
+        : run.captureComplete,
+      calls,
+      gaps: stepId ? calls.flatMap((call) => call.gaps ?? []) : run.gaps,
     });
-  });
-  const observationIds = new Set(facts.map((entry) => entry.observationId).filter(nonEmptyString));
-  const observations = (child.collection?.specimens ?? []).filter((entry) =>
-    entry.evidenceKind === "LIVE_PAGE" && observationIds.has(entry.observationId)).map((entry) => stable({
-      stateId: entry.stateId,
-      observationId: entry.observationId,
-      capturedAt: entry.capturedAt,
-      sourceSceneId: entry.sourceSceneId,
-      sourceSceneSignature: entry.sourceSceneSignature,
-      documentIdentityHash: entry.documentIdentityHash,
-      revision: entry.revision,
-      stateSignature: entry.stateSignature,
-      stateFacts: entry.stateFacts,
-      core: entry.core,
-      related: {
-        ancestors: entry.related?.ancestors,
-        siblings: entry.related?.siblings,
-        linkedNodes: entry.related?.linkedNodes,
-        beforeAfterDiff: entry.related?.beforeAfterDiff,
-        postconditions: entry.related?.postconditions,
-        transitionChain: entry.related?.transitionChain,
-      },
-      peripheral: {
-        pageKind: entry.peripheral?.pageKind,
-        sanitizedUrlIdentity: entry.peripheral?.sanitizedUrlIdentity,
-        locale: entry.peripheral?.locale,
-        viewport: entry.peripheral?.viewport,
-        theme: entry.peripheral?.theme,
-        chromeVersion: entry.peripheral?.chromeVersion,
-        providerBuildMarker: entry.peripheral?.providerBuildMarker,
-        uiVariant: entry.peripheral?.uiVariant,
-        pageState: entry.peripheral?.pageState,
-        runId: entry.peripheral?.runId,
-      },
-    }));
-  const derivedFixtures = (child.collection?.specimens ?? []).filter((entry) =>
-    entry.evidenceKind === "DERIVED_FIXTURE" && observationIds.has(entry.derivedFromObservationId))
-    .map((entry) => stable({
-      stateId: entry.stateId,
-      evidenceKind: entry.evidenceKind,
-      derivedFromObservationId: entry.derivedFromObservationId,
-      mutation: entry.mutation,
-      expectedFailureCode: entry.expectedFailureCode,
-    }));
+  }).filter((run) => !stepId || run.calls.length > 0);
   return stable({
-    childCapabilityId: child.childCapabilityId,
-    captureEpoch: report.captureEpoch,
-    projectionRevision: report.projectionRevision,
-    factScope: selectedFacts,
-    facts,
-    observations,
-    derivedFixtures,
-    gaps: child.captureMissing ?? [],
+    productKey: product.productKey,
+    productId: product.productId,
+    actionId: product.actionId,
+    pluginId: product.pluginId,
+    pluginVersion: product.pluginVersion,
+    contractDigest: product.contractDigest,
+    flowOwnerBinding: product.flowOwnerBinding,
+    stepScope: stepId || "ALL_PRODUCT_STEPS",
+    runs,
     rules: {
-      liveAndDerivedMustNotBeConfused: true,
-      missingFactMustNotBeGuessed: true,
-      unobservedSelectorAttributeOrOwnerRelationForbidden: true,
+      productFlowIsPrimary: true,
+      childIndexIsDerived: true,
+      missingDomMustNotBeGuessed: true,
+      claimsQualityVerdict: false,
     },
   });
 }
 
-function admissionCandidate(report, selected, scopedFacts = []) {
-  return `CHILDSET:${sha256(JSON.stringify(stable({
-    captureEpoch: report.captureEpoch,
-    projectionRevision: report.projectionRevision,
-    factScope: [...scopedFacts].sort(),
-    children: selected.map((child) => ({
-      childCapabilityId: child.childCapabilityId,
-      childCandidateDigest: child.evidenceDemand.childCandidateDigest,
-      evidenceBriefHash: sha256(JSON.stringify(evidenceBrief(report, child, scopedFacts))),
-    })).sort((left, right) => left.childCapabilityId.localeCompare(right.childCapabilityId)),
+function productAdmissionCandidate(report, product, stepId = "") {
+  const brief = productEvidenceBrief(report, product, stepId);
+  return `PRODUCT:${sha256(JSON.stringify(stable({
+    productKey: product.productKey,
+    stepScope: stepId || null,
+    evidenceBriefHash: sha256(JSON.stringify(brief)),
   }))).slice("sha256:".length)}`;
 }
 
-async function admitReport(repo, matrixPath, reportPath, childArg, candidateArg, factsArg = "") {
-  if (!nonEmptyString(candidateArg)) fail("ADMISSION_CANDIDATE_REQUIRED");
+async function validateSelectedProduct(repo, matrixPath, reportPath, productId, actionId) {
   const report = await readJson(reportPath);
-  const pageChildren = report.children.filter((child) => child.pageOperationRequired);
-  const requested = childArg && childArg !== "all" ? childArg.split(",").filter(Boolean) : pageChildren.map((child) => child.childCapabilityId);
-  assertUnique(requested, "ADMISSION_CHILD_DUPLICATE");
-  await validateReport(repo, matrixPath, reportPath, false, requested);
-  const selected = requested.map((id) => pageChildren.find((child) => child.childCapabilityId === id)
-    ?? fail("ADMISSION_CHILD_NOT_PAGE_OPERATION", id));
-  const scopedFacts = factsArg ? factsArg.split(",").filter(Boolean) : [];
-  assertUnique(scopedFacts, "ADMISSION_FACT_DUPLICATE");
-  if (scopedFacts.length > 0 && selected.length !== 1) fail("ADMISSION_FACT_SCOPE_REQUIRES_ONE_CHILD");
-  const expectedCandidate = admissionCandidate(report, selected, scopedFacts);
-  if (candidateArg !== expectedCandidate) {
-    fail("ADMISSION_CANDIDATE_MISMATCH", `${candidateArg}/${expectedCandidate}`);
+  if (report.schemaVersion !== REPORT_SCHEMA) fail("REPORT_SCHEMA_INVALID");
+  if (report.productionRuntimeConsumer !== false || report.claimsQualityVerdict !== false
+    || report.primaryIndex !== "products" || !Array.isArray(report.products)) {
+    fail("REPORT_ROLE_BOUNDARY_INVALID");
   }
-  for (const child of selected) {
-    if (scopedFacts.length === 0) {
-      if (child.captureComplete !== true || child.demandCoverage?.percent !== 100) {
-        fail("ADMISSION_CHILD_NOT_READY", child.childCapabilityId);
-      }
-      continue;
+  assertNoRepositoryCandidateBinding(report);
+  const product = report.products.find((entry) => entry.productId === productId && entry.actionId === actionId)
+    ?? fail("ADMISSION_PRODUCT_NOT_FOUND", `${productId}/${actionId}`);
+  const currentInventory = await buildInventory(repo, matrixPath);
+  const current = currentInventory.products.find((entry) => entry.productKey === product.productKey)
+    ?? fail("ADMISSION_PRODUCT_NOT_FOUND", product.productKey);
+  if (product.productId !== current.productId || product.actionId !== current.actionId
+    || product.pluginId !== current.pluginId || product.pluginVersion !== current.pluginVersion
+    || product.contractDigest !== current.contractDigest
+    || JSON.stringify(product.flowOwnerBinding) !== JSON.stringify(current.flowOwnerBinding)
+    || !Array.isArray(product.runs) || !Array.isArray(product.gaps)) {
+    fail("ADMISSION_PRODUCT_PROJECTION_STALE", product.productKey);
+  }
+  const matrix = await loadMatrix(matrixPath);
+  for (const run of product.runs) {
+    if (!(await productRunSourcesCurrent(repo, run.productionSource))) {
+      fail("ADMISSION_PRODUCT_PROJECTION_STALE", product.productKey);
     }
-    const failures = scopedGptPageEvidenceFactFailures(child, child.evidenceDemand, scopedFacts);
-    if (failures.length > 0) fail("ADMISSION_FACT_EVIDENCE_INVALID", failures.join(","));
+    const failures = productRunFailures(run, run.productionSource, matrix, currentInventory);
+    if (failures.length > 0) fail("ADMISSION_PRODUCT_RUN_INVALID", `${product.productKey}:${failures.join(",")}`);
   }
-  const evidenceBriefs = selected.map((child) => evidenceBrief(report, child, scopedFacts));
-  const consumed = selected.map((child) => ({
-    childCapabilityId: child.childCapabilityId,
-    demandDigest: child.evidenceDemand.digest,
-    requiredLiveStates: child.collectionRequirements.requiredLiveStates,
-    coreTargets: child.collectionRequirements.coreTargets,
-    authorizedProductVariantHashes: Object.values(child.evidenceDemand.authorizedInputRequirements ?? {})
-      .flatMap((entry) => entry.variants.map((variant) => variant.valueHash)).sort(),
-    observationSignatures: child.collection.specimens.filter((entry) => entry.evidenceKind === "LIVE_PAGE")
-      .map((entry) => entry.stateSignature).sort(),
-    factScope: scopedFacts.length > 0 ? scopedFacts : child.evidenceDemand.facts.map((fact) => fact.factId),
-  }));
-  const admissionReceipt = stable({
-    candidate: expectedCandidate,
+  const projection = product.runs.length === 0
+    ? { captureStatus: "NOT_CAPTURED", gaps: current.gaps }
+    : productCaptureProjection(product);
+  if (product.captureStatus !== projection.captureStatus
+    || JSON.stringify(product.gaps) !== JSON.stringify(projection.gaps)) {
+    fail("ADMISSION_PRODUCT_CAPTURE_PROJECTION_INVALID", product.productKey);
+  }
+  scanCapturePrivacy(product, `report.products.${product.productKey}`);
+  return { report, product };
+}
+
+async function admitProductReport(repo, matrixPath, reportPath, productId, actionId, stepId, candidateArg) {
+  if (!nonEmptyString(productId) || !nonEmptyString(actionId)) fail("ADMISSION_PRODUCT_SCOPE_REQUIRED");
+  if (!nonEmptyString(candidateArg)) fail("ADMISSION_CANDIDATE_REQUIRED");
+  const { report, product } = await validateSelectedProduct(repo, matrixPath, reportPath, productId, actionId);
+  if (product.captureStatus === "PROJECTION_STALE") fail("ADMISSION_PRODUCT_PROJECTION_STALE", product.productKey);
+  const brief = productEvidenceBrief(report, product, stepId);
+  const expected = productAdmissionCandidate(report, product, stepId);
+  if (candidateArg !== expected) fail("ADMISSION_CANDIDATE_MISMATCH", `${candidateArg}/${expected}`);
+  if (brief.runs.length === 0 || brief.runs.some((run) => run.captureComplete !== true)) {
+    fail("ADMISSION_PRODUCT_EVIDENCE_INCOMPLETE", product.productKey);
+  }
+  const receipt = stable({
+    candidate: expected,
     reportSchema: report.schemaVersion,
-    captureEpoch: report.captureEpoch,
-    projectionRevision: report.projectionRevision,
-    admissionMode: scopedFacts.length > 0 ? "OBSERVATION_SCOPED" : "FULL_CHILD",
-    evidenceBriefHashes: evidenceBriefs.map((brief) => ({
-      childCapabilityId: brief.childCapabilityId,
-      hash: sha256(JSON.stringify(brief)),
-    })),
-    consumed,
+    productKey: product.productKey,
+    stepScope: stepId || "ALL_PRODUCT_STEPS",
+    sourceSnapshotIds: brief.runs.map((run) => run.sourceSnapshotId),
+    flowContractDigests: brief.runs.map((run) => run.flowContractDigest),
+    evidenceBriefHash: sha256(JSON.stringify(brief)),
   });
-  return stable({
-    status: "ADMITTED",
-    candidate: expectedCandidate,
-    reportSchema: report.schemaVersion,
-    captureEpoch: report.captureEpoch,
-    projectionRevision: report.projectionRevision,
-    admissionReceipt,
-    admissionReceiptHash: sha256(JSON.stringify(admissionReceipt)),
-    evidenceBriefs,
-    children: selected.map((child) => ({
-      childCapabilityId: child.childCapabilityId,
-      demandDigest: child.evidenceDemand.digest,
-      demandCoverage: child.demandCoverage.percent,
-      captureComplete: child.captureComplete,
-    })),
-  });
+  return stable({ status: "ADMITTED", candidate: expected, admissionMode: stepId ? "PRODUCT_STEP" : "FULL_PRODUCT",
+    admissionReceipt: receipt, admissionReceiptHash: sha256(JSON.stringify(receipt)), evidenceBrief: brief });
 }
 
 function assertCanonicalRepositoryOutput(repo, outputPath) {
@@ -1827,6 +2193,7 @@ async function main() {
         pageOperationChildren: report.denominator.pageOperationChildren,
         pageOperationChildIds: report.denominator.pageOperationChildIds,
         nonPageChildIds: report.denominator.nonPageChildIds,
+        productRoutes: report.products.map((entry) => entry.productKey),
         wroteReport: false,
       })}\n`);
       return;
@@ -1835,7 +2202,9 @@ async function main() {
     assertCanonicalRepositoryOutput(repo, outputPath);
     await assertNoSecondRepositoryReport(repo, outputPath);
     await writeJsonAtomic(outputPath, report);
-    process.stdout.write(`${JSON.stringify({ status: report.captureStatus, contracts: report.denominator.contractChildren, pageOperationChildren: report.denominator.pageOperationChildren, output: outputPath, wroteReport: true })}\n`);
+    process.stdout.write(`${JSON.stringify({ status: report.captureStatus, contracts: report.denominator.contractChildren,
+      pageOperationChildren: report.denominator.pageOperationChildren, productRoutes: report.products.length,
+      output: outputPath, wroteReport: true })}\n`);
     return;
   }
   if (command === "merge") {
@@ -1844,28 +2213,34 @@ async function main() {
     const outputPath = requiredArg(args, "output");
     assertCanonicalRepositoryOutput(repo, outputPath);
     await assertNoSecondRepositoryReport(repo, outputPath);
-    const childArg = typeof args.child === "string" ? args.child : "all";
+    if (typeof args.product !== "string" || typeof args.action !== "string") {
+      fail("ARGUMENT_REQUIRED", "--product/--action");
+    }
+    if (args.child !== undefined) fail("PRODUCT_CHILD_SCOPE_FORBIDDEN");
     const baseReportPath = typeof args["base-report"] === "string" ? args["base-report"] : null;
-    if (childArg !== "all" && baseReportPath === null) fail("TARGETED_MERGE_BASE_REPORT_REQUIRED");
-    const report = await mergeCapture(repo, matrixPath, capturePath, outputPath, baseReportPath, childArg);
+    if (baseReportPath === null) fail("TARGETED_MERGE_BASE_REPORT_REQUIRED");
+    const report = await mergeCapture(repo, matrixPath, capturePath, outputPath, baseReportPath,
+      args.product, args.action);
     process.stdout.write(`${JSON.stringify({ status: report.captureStatus, output: outputPath,
-      requestedChildren: childArg, preservedUnselectedChildren: childArg !== "all" })}\n`);
+      requestedProduct: `${args.product}/${args.action}`, preservedUnselectedProducts: true })}\n`);
     return;
   }
   if (command === "refresh") {
     const repo = requiredArg(args, "repo");
     const baseReportPath = requiredArg(args, "base-report");
     const outputPath = requiredArg(args, "output");
-    if (typeof args.child !== "string" || args.child.length === 0) fail("ARGUMENT_REQUIRED", "--child");
+    if (typeof args.product !== "string" || typeof args.action !== "string") {
+      fail("ARGUMENT_REQUIRED", "--product/--action");
+    }
+    if (args.child !== undefined) fail("PRODUCT_CHILD_SCOPE_FORBIDDEN");
     assertCanonicalRepositoryOutput(repo, outputPath);
     await assertNoSecondRepositoryReport(repo, outputPath);
-    const result = await reprojectReport(repo, matrixPath, baseReportPath, outputPath, args.child);
+    const result = await reprojectReport(repo, matrixPath, baseReportPath, outputPath, args.product, args.action);
     process.stdout.write(`${JSON.stringify({
       status: result.report.captureStatus,
       output: outputPath,
-      requestedChildren: args.child,
-      reprojectedChildren: "all-page-children",
-      captureEpoch: result.report.captureEpoch,
+      requestedProduct: `${args.product}/${args.action}`,
+      preservedUnselectedProducts: true,
       gaps: result.gaps,
       chromeOpened: false,
     })}\n`);
@@ -1885,10 +2260,12 @@ async function main() {
     const reportPath = requiredArg(args, "report");
     assertCanonicalReportInput(repo, reportPath);
     await assertNoSecondRepositoryReport(repo, reportPath);
-    const result = await admitReport(repo, matrixPath, reportPath,
-      typeof args.child === "string" ? args.child : "all",
-      typeof args.candidate === "string" ? args.candidate : "",
-      typeof args.facts === "string" ? args.facts : "");
+    if (typeof args.product !== "string") fail("ADMISSION_PRODUCT_SCOPE_REQUIRED");
+    if (args.child !== undefined) fail("ADMISSION_CHILD_SCOPE_FORBIDDEN");
+    const result = await admitProductReport(repo, matrixPath, reportPath, args.product,
+      typeof args.action === "string" ? args.action : "",
+      typeof args.step === "string" ? args.step : "",
+      typeof args.candidate === "string" ? args.candidate : "");
     process.stdout.write(`${JSON.stringify(result)}\n`);
     return;
   }
@@ -1897,26 +2274,23 @@ async function main() {
     const reportPath = requiredArg(args, "report");
     assertCanonicalReportInput(repo, reportPath);
     await assertNoSecondRepositoryReport(repo, reportPath);
-    const report = await readJson(reportPath);
-    const pageChildren = report.children.filter((child) => child.pageOperationRequired);
-    const requested = typeof args.child === "string" && args.child !== "all"
-      ? args.child.split(",").filter(Boolean) : pageChildren.map((child) => child.childCapabilityId);
-    await validateReport(repo, matrixPath, reportPath, false, requested);
-    const selected = requested.map((id) => pageChildren.find((child) => child.childCapabilityId === id)
-      ?? fail("ADMISSION_CHILD_NOT_PAGE_OPERATION", id));
-    const scopedFacts = typeof args.facts === "string" ? args.facts.split(",").filter(Boolean) : [];
-    assertUnique(scopedFacts, "ADMISSION_FACT_DUPLICATE");
-    if (scopedFacts.length > 0 && selected.length !== 1) fail("ADMISSION_FACT_SCOPE_REQUIRES_ONE_CHILD");
-    process.stdout.write(`${JSON.stringify({ candidate: admissionCandidate(report, selected, scopedFacts), children: requested,
-      factScope: scopedFacts,
-      evidenceBriefHashes: selected.map((child) => ({ childCapabilityId: child.childCapabilityId,
-        hash: sha256(JSON.stringify(evidenceBrief(report, child, scopedFacts))) })) })}\n`);
+    if (typeof args.product !== "string") fail("ADMISSION_PRODUCT_SCOPE_REQUIRED");
+    if (typeof args.action !== "string") fail("ARGUMENT_REQUIRED", "--action");
+    if (args.child !== undefined) fail("ADMISSION_CHILD_SCOPE_FORBIDDEN");
+    const { report, product } = await validateSelectedProduct(repo, matrixPath, reportPath, args.product, args.action);
+    const stepId = typeof args.step === "string" ? args.step : "";
+    const brief = productEvidenceBrief(report, product, stepId);
+    process.stdout.write(`${JSON.stringify({ candidate: productAdmissionCandidate(report, product, stepId),
+      productKey: product.productKey, stepScope: stepId || "ALL_PRODUCT_STEPS",
+      evidenceBriefHash: sha256(JSON.stringify(brief)) })}\n`);
     return;
   }
   fail("COMMAND_UNKNOWN", command);
 }
 
-main().catch((error) => {
-  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-  process.exitCode = 1;
-});
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.exitCode = 1;
+  });
+}

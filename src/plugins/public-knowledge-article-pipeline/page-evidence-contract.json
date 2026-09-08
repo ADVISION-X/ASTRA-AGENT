@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "product-page-evidence-contract.v1",
+  "owner": "public-knowledge-article-pipeline",
+  "pluginId": "public-knowledge-article-pipeline",
+  "pluginVersion": 21,
+  "traceAuthority": {
+    "kind": "durable-product-forensics",
+    "sequenceOwner": "accepted-production-attempt",
+    "currentFlowSourcesRole": "projection-only"
+  },
+  "flowOwnerSources": [
+    "src/plugins/public-knowledge-article-pipeline/SKILL.md",
+    "src/plugins/public-knowledge-article-pipeline/index.ts",
+    "src/plugins/public-knowledge-article-pipeline/result-contract.ts",
+    "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
+    "src/plugins/public-knowledge-article-pipeline/seo-image-call.ts",
+    "src/plugins/public-knowledge-article-pipeline/seo-submit-readback.ts",
+    "src/plugins/public-knowledge-article-pipeline/seo-turn-contract.ts",
+    "src/plugins/public-knowledge-article-pipeline/seo-turn-prompts.ts"
+  ],
+  "routes": [
+    {
+      "productId": "public_knowledge_article_pipeline",
+      "actionId": "produce_article",
+      "materialPolicy": {
+        "kind": "exact-task-material-set",
+        "requiredRoles": ["ready_corpus_archive"]
+      },
+      "topology": {
+        "kind": "ordered-product-stages",
+        "stageOrder": ["corpus_research", "article_synthesis", "article_image_generation"],
+        "legalTerminalBranches": ["research-declined", "article-package-complete", "production-failure"],
+        "terminalDecision": {
+          "path": "research.decision",
+          "declineValue": "decline",
+          "proceedValue": "proceed"
+        }
+      }
+    },
+    {
+      "productId": "public_knowledge_article_pipeline",
+      "actionId": "accuracy_challenge",
+      "materialPolicy": { "kind": "exact-task-material-set", "requiredRoles": [] },
+      "topology": { "kind": "single-task-action-stage" }
+    },
+    {
+      "productId": "public_knowledge_article_pipeline",
+      "actionId": "quality_reflection",
+      "materialPolicy": { "kind": "exact-task-material-set", "requiredRoles": [] },
+      "topology": { "kind": "single-task-action-stage" }
+    }
+  ]
+}

@@ -72,9 +72,9 @@
     "document-drift"
   ],
   "scenarios": {
-    "text-main": "One synthetic text conversation covering profile, model, reasoning, attachments, prompt, submission, stable rich text, and checkpoint behavior.",
-    "image-main": "One synthetic image conversation covering generation, stable semantic media, original-content identity, and image checkpoint behavior.",
-    "focus-fork": "One synthetic source conversation covering exact focus, identity, the source-turn actions menu, the fork-destination menu, the final fork action, and the child-conversation relation."
+    "text-main": "One Product-owned production text flow covering profile, model, reasoning, attachments, prompt, submission, stable rich text, and checkpoint behavior.",
+    "image-main": "One Product-owned production image flow covering generation, stable semantic media, original-content identity, and image checkpoint behavior.",
+    "focus-fork": "One Product-owned production continuation flow covering exact focus, identity, the source-turn actions menu, the fork-destination menu, the final fork action, and the child-conversation relation."
   },
   "children": [
     {
@@ -88,11 +88,11 @@
       },
       "optionalLiveStates": ["root-page-without-conversation"],
       "childSpecificDerivedStates": ["conversation-identity-mismatch", "conversation-identity-unavailable"],
-      "requiredInputRefs": ["synthetic-conversation-marker", "synthetic-rich-text-prompt"],
+      "requiredInputRefs": ["production-task-envelope", "production-prompt-contract"],
       "stateAssertions": {
         "exact-conversation-match": [
           {"path": "stateFacts.currentRouteKind", "operator": "equals", "value": "CONVERSATION"},
-          {"path": "stateFacts.syntheticUserTurnCount", "operator": "greaterThan", "value": 0}
+          {"path": "stateFacts.productUserTurnCount", "operator": "greaterThan", "value": 0}
         ],
         "identity-readback-after-focus": [
           {"path": "stateFacts.currentRouteKind", "operator": "equals", "value": "CONVERSATION"},
@@ -118,12 +118,12 @@
         "attachment-cards-ready": [
           {"path": "stateFacts.attachmentUploadPending", "operator": "equals", "value": false},
           {"path": "stateFacts.attachmentTerminalErrorVisible", "operator": "equals", "value": false},
-          {"path": "stateFacts.attachmentSyntheticCount", "operator": "equals", "value": 3}
+          {"path": "stateFacts.approvedAttachmentCount", "operator": "greaterThan", "value": 0}
         ],
         "attachment-set-exact": [
           {"path": "stateFacts.attachmentUploadPending", "operator": "equals", "value": false},
           {"path": "stateFacts.attachmentTerminalErrorVisible", "operator": "equals", "value": false},
-          {"path": "stateFacts.attachmentSyntheticCount", "operator": "equals", "value": 3}
+          {"path": "stateFacts.approvedAttachmentCount", "operator": "greaterThan", "value": 0}
         ],
         "attachment-terminal-error": [
           {"path": "stateFacts.attachmentTerminalErrorVisible", "operator": "equals", "value": true}
@@ -131,7 +131,7 @@
       },
       "optionalLiveStates": ["attachment-upload-error"],
       "childSpecificDerivedStates": ["attachment-missing", "attachment-extra", "attachment-still-uploading"],
-      "requiredInputRefs": ["synthetic-txt", "synthetic-json", "synthetic-zip"]
+      "requiredInputRefs": ["production-material-set"]
     },
     {
       "childCapabilityId": "reconcile_gpt_draft",
@@ -144,14 +144,14 @@
       },
       "optionalLiveStates": ["empty-composer"],
       "childSpecificDerivedStates": ["draft-text-mismatch", "draft-text-duplicated", "draft-readback-unstable"],
-      "requiredInputRefs": ["synthetic-rich-text-prompt"],
+      "requiredInputRefs": ["production-prompt-contract"],
       "stateAssertions": {
         "exact-draft-ready": [
-          {"path": "stateFacts.composerSyntheticMarkerPresent", "operator": "equals", "value": true},
+          {"path": "stateFacts.composerProductMarkerPresent", "operator": "equals", "value": true},
           {"path": "stateFacts.capturePhase", "operator": "equals", "value": "POST_ACTION"}
         ],
         "draft-readback-stable": [
-          {"path": "stateFacts.composerSyntheticMarkerPresent", "operator": "equals", "value": true},
+          {"path": "stateFacts.composerProductMarkerPresent", "operator": "equals", "value": true},
           {"path": "stateFacts.capturePhase", "operator": "equals", "value": "ALREADY_SATISFIED"}
         ]
       }
@@ -167,14 +167,14 @@
       },
       "optionalLiveStates": ["generation-started"],
       "childSpecificDerivedStates": ["submitted-turn-missing", "submitted-turn-duplicate", "submitted-turn-text-mismatch", "submission-effect-unknown"],
-      "requiredInputRefs": ["synthetic-rich-text-prompt", "chain-confirmed-submit-receipt"],
+      "requiredInputRefs": ["production-prompt-contract", "chain-confirmed-submit-receipt"],
       "stateAssertions": {
         "hydrated-exact-user-turn": [
-          {"path": "stateFacts.syntheticUserTurnCount", "operator": "greaterThan", "value": 0},
+          {"path": "stateFacts.productUserTurnCount", "operator": "greaterThan", "value": 0},
           {"path": "stateFacts.capturePhase", "operator": "equals", "value": "POST_ACTION"}
         ],
         "submitted-turn-effect-readback": [
-          {"path": "stateFacts.syntheticUserTurnCount", "operator": "greaterThan", "value": 0},
+          {"path": "stateFacts.productUserTurnCount", "operator": "greaterThan", "value": 0},
           {"path": "stateFacts.capturePhase", "operator": "equals", "value": "ALREADY_SATISFIED"}
         ]
       }
@@ -191,7 +191,7 @@
       },
       "optionalLiveStates": ["citation-or-code-controls"],
       "childSpecificDerivedStates": ["response-projection-empty", "response-projection-truncated", "response-bound-to-wrong-turn", "response-still-generating"],
-      "requiredInputRefs": ["synthetic-rich-text-prompt", "chain-text-wait"],
+      "requiredInputRefs": ["production-prompt-contract", "chain-text-wait"],
       "stateAssertions": {
         "rich-response-outer-html": [
           {"path": "core.targets.rich-text-response.textProjection", "operator": "present"},
@@ -219,7 +219,7 @@
       },
       "optionalLiveStates": ["download-or-open-original-control"],
       "childSpecificDerivedStates": ["thumbnail-only", "wrong-turn-media", "media-not-stable", "original-content-identity-mismatch"],
-      "requiredInputRefs": ["synthetic-image-prompt", "chain-image-wait", "chain-text-checkpoint"],
+      "requiredInputRefs": ["production-image-contract", "chain-image-wait", "chain-text-checkpoint"],
       "stateAssertions": {
         "exact-media-node": [
           {"path": "stateFacts.semanticMediaReady", "operator": "equals", "value": true},
@@ -247,19 +247,19 @@
       },
       "optionalLiveStates": ["stale-attachment-before", "stale-attachment-after-clean"],
       "childSpecificDerivedStates": ["draft-remains-after-clean", "attachment-remains-after-clean", "wrong-conversation-cleaned"],
-      "requiredInputRefs": ["synthetic-stale-draft"],
+      "requiredInputRefs": ["production-prompt-contract"],
       "stateAssertions": {
         "fresh-empty-chat": [
           {"path": "stateFacts.currentRouteKind", "operator": "equals", "value": "ROOT"},
-          {"path": "stateFacts.syntheticUserTurnCount", "operator": "equals", "value": 0},
-          {"path": "stateFacts.composerSyntheticMarkerPresent", "operator": "equals", "value": false}
+          {"path": "stateFacts.productUserTurnCount", "operator": "equals", "value": 0},
+          {"path": "stateFacts.composerProductMarkerPresent", "operator": "equals", "value": false}
         ],
         "stale-draft-before": [
-          {"path": "stateFacts.composerSyntheticMarkerPresent", "operator": "equals", "value": true},
+          {"path": "stateFacts.composerProductMarkerPresent", "operator": "equals", "value": true},
           {"path": "stateFacts.capturePhase", "operator": "equals", "value": "POST_ACTION"}
         ],
         "stale-draft-after-clean": [
-          {"path": "stateFacts.composerSyntheticMarkerPresent", "operator": "equals", "value": false},
+          {"path": "stateFacts.composerProductMarkerPresent", "operator": "equals", "value": false},
           {"path": "stateFacts.capturePhase", "operator": "equals", "value": "POST_ACTION"}
         ]
       }
@@ -291,7 +291,7 @@
       },
       "optionalLiveStates": ["navigation-loading"],
       "childSpecificDerivedStates": ["focus-landed-on-wrong-conversation", "focus-route-unavailable", "focus-document-changed-mid-read"],
-      "requiredInputRefs": ["synthetic-conversation-marker", "synthetic-rich-text-prompt"]
+      "requiredInputRefs": ["production-task-envelope", "production-prompt-contract"]
     },
     {
       "childCapabilityId": "open_gpt_execution_profile",
@@ -473,18 +473,18 @@
       },
       "optionalLiveStates": ["multiline-rich-prompt"],
       "childSpecificDerivedStates": ["prompt-partially-written", "prompt-duplicated", "prompt-normalization-mismatch", "composer-not-editable"],
-      "requiredInputRefs": ["synthetic-rich-text-prompt"],
+      "requiredInputRefs": ["production-prompt-contract"],
       "stateAssertions": {
         "composer-before": [
           {"path": "core.targets.composer-editable-leaf.attributes.contenteditable", "operator": "equals", "value": "true"},
           {"path": "stateFacts.capturePhase", "operator": "equals", "value": "PRE_ACTION"}
         ],
         "exact-prompt-after": [
-          {"path": "stateFacts.composerSyntheticMarkerPresent", "operator": "equals", "value": true},
+          {"path": "stateFacts.composerProductMarkerPresent", "operator": "equals", "value": true},
           {"path": "stateFacts.capturePhase", "operator": "equals", "value": "POST_ACTION"}
         ],
         "prompt-already-exact": [
-          {"path": "stateFacts.composerSyntheticMarkerPresent", "operator": "equals", "value": true},
+          {"path": "stateFacts.composerProductMarkerPresent", "operator": "equals", "value": true},
           {"path": "stateFacts.capturePhase", "operator": "equals", "value": "ALREADY_SATISFIED"}
         ]
       }
@@ -520,7 +520,7 @@
       },
       "optionalLiveStates": ["rate-limit-dialog", "generation-retry-control"],
       "childSpecificDerivedStates": ["text-never-stabilizes", "stable-empty-response", "wrong-turn-stable"],
-      "requiredInputRefs": ["synthetic-rich-text-prompt", "chain-conversation-identity"]
+      "requiredInputRefs": ["production-prompt-contract", "chain-conversation-identity"]
     },
     {
       "childCapabilityId": "wait_for_stable_gpt_image",
@@ -553,7 +553,7 @@
       },
       "optionalLiveStates": ["image-generation-error"],
       "childSpecificDerivedStates": ["image-never-stabilizes", "stable-thumbnail-without-original", "wrong-turn-image"],
-      "requiredInputRefs": ["synthetic-image-prompt", "chain-conversation-identity"]
+      "requiredInputRefs": ["production-image-contract", "chain-conversation-identity"]
     },
     {
       "childCapabilityId": "open_gpt_checkpoint_actions_menu",
@@ -567,7 +567,7 @@
       },
       "optionalLiveStates": ["menu-opening-transition"],
       "childSpecificDerivedStates": ["menu-bound-to-wrong-turn", "fork-entry-missing", "multiple-source-menus-open"],
-      "requiredInputRefs": ["synthetic-source-turn-marker"],
+      "requiredInputRefs": ["production-continuation-trace"],
       "stateAssertions": {
         "source-turn-menu-closed": [
           {"path": "core.targets.source-turn-more-actions-control.attributes.aria-label", "operator": "equals", "value": "更多操作"},
@@ -595,7 +595,7 @@
       },
       "optionalLiveStates": ["fork-destination-menu-opening-transition"],
       "childSpecificDerivedStates": ["fork-destination-menu-missing", "fork-destination-menu-ambiguous", "open-new-fork-entry-bound-to-wrong-menu", "branch-to-new-chat-entry-missing"],
-      "requiredInputRefs": ["synthetic-source-turn-marker", "chain-checkpoint-actions-menu"],
+      "requiredInputRefs": ["production-continuation-trace", "chain-checkpoint-actions-menu"],
       "stateAssertions": {
         "source-bound-menu-open": [
           {"path": "core.targets.open-new-fork-entry.attributes.role", "operator": "equals", "value": "menuitem"},
@@ -625,7 +625,7 @@
       },
       "optionalLiveStates": ["upload-progress"],
       "childSpecificDerivedStates": ["file-input-unavailable", "file-set-partially-attached", "file-set-duplicated", "upload-dispatched-outcome-unknown"],
-      "requiredInputRefs": ["synthetic-txt", "synthetic-json", "synthetic-zip"],
+      "requiredInputRefs": ["production-material-set"],
       "stateAssertions": {
         "upload-leaf-ready": [
           {"path": "core.attributes.role", "operator": "equals", "value": "menuitem"},
@@ -636,8 +636,8 @@
           {"path": "core.attributes.id", "operator": "equals", "value": "upload-files"}
         ],
         "file-set-readback": [
-          {"path": "core.attributes.kind", "operator": "equals", "value": "SYNTHETIC_ATTACHMENT_SET"},
-          {"path": "stateFacts.attachmentSyntheticCount", "operator": "equals", "value": 3}
+          {"path": "core.attributes.kind", "operator": "equals", "value": "APPROVED_PRODUCTION_ATTACHMENT_SET"},
+          {"path": "stateFacts.approvedAttachmentCount", "operator": "greaterThan", "value": 0}
         ]
       }
     },
@@ -667,7 +667,7 @@
       },
       "optionalLiveStates": ["submit-control-state-transition"],
       "childSpecificDerivedStates": ["submit-control-not-qualified", "submit-effect-unknown", "duplicate-submit-effect", "prompt-or-attachment-precondition-mismatch"],
-      "requiredInputRefs": ["synthetic-rich-text-prompt", "synthetic-txt", "synthetic-json", "synthetic-zip"]
+      "requiredInputRefs": ["production-prompt-contract", "production-material-set"]
     },
     {
       "childCapabilityId": "fork_exact_gpt_conversation_at_checkpoint",
@@ -681,7 +681,7 @@
       },
       "optionalLiveStates": ["fork-navigation-transition"],
       "childSpecificDerivedStates": ["final-fork-entry-bound-to-wrong-destination-menu", "fork-effect-unknown", "child-conversation-identity-mismatch", "duplicate-fork-effect"],
-      "requiredInputRefs": ["synthetic-source-turn-marker", "chain-fork-destination-menu"],
+      "requiredInputRefs": ["production-continuation-trace", "chain-fork-destination-menu"],
       "stateAssertions": {
         "fork-destination-menu-ready": [
           {"path": "core.targets.branch-to-new-chat-entry.attributes.role", "operator": "equals", "value": "menuitem"},

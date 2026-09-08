@@ -6,6 +6,7 @@ import {
   exerciseBrowserDispatchedEvidenceReadback,
   exerciseBrowserRejectedDispatchedEvidenceReadback,
   exerciseBrowserRejectedEvidenceReadback,
+  exerciseContinuationPageInputRoleEvidence,
   exerciseFailedEvidenceReadback,
 } from "./gpt-failure-evidence-readback.acceptance-support.js";
 import {
@@ -275,6 +276,7 @@ await exerciseBrowserDispatchedEvidenceReadback();
   assert.equal(result.status, "success", result.failureCode ?? "checkpoint menu open failed");
   assert.equal(result.value?.state, "opened");
   assert.equal(fixture.physicalMutations(), 1);
+  await exerciseContinuationPageInputRoleEvidence(result, sourceInput);
 }
 
 {
@@ -300,6 +302,7 @@ await exerciseBrowserDispatchedEvidenceReadback();
   assert.equal(result.status, "success", result.failureCode ?? "fork destination menu open failed");
   assert.equal(result.value?.state, "opened");
   assert.equal(fixture.physicalMutations(), 1);
+  await exerciseContinuationPageInputRoleEvidence(result, sourceInput);
 }
 
 {

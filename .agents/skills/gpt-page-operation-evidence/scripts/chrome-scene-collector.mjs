@@ -28,6 +28,47 @@ function hash(value) {
   return `sha256:${createHash("sha256").update(String(value)).digest("hex")}`;
 }
 
+function exactKeys(value, keys) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+    && JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...keys].sort());
+}
+
+function acceptedDecisionReceipt(receipt) {
+  if (receipt === null) return null;
+  if (receipt?.kind === "ALREADY_SATISFIED" && exactKeys(receipt, ["kind"])) return { kind: receipt.kind };
+  if (receipt?.kind === "ACTION_REQUIRED"
+    && exactKeys(receipt, ["kind", "actionId", "operation"])
+    && typeof receipt.actionId === "string" && receipt.actionId.length > 0
+    && typeof receipt.operation === "string" && receipt.operation.length > 0) {
+    return { kind: receipt.kind, actionId: receipt.actionId, operation: receipt.operation };
+  }
+  throw new Error("CHROME_SCENE_DECISION_RECEIPT_INVALID");
+}
+
+function acceptedTransitionReceipt(receipt, scenes) {
+  if (receipt === null) return null;
+  if (!exactKeys(receipt, ["actionId", "operation", "issuedAt", "completedAt", "outcome",
+    "preSceneId", "preSceneSignature"])
+    || typeof receipt.actionId !== "string" || receipt.actionId.length === 0
+    || typeof receipt.operation !== "string" || receipt.operation.length === 0
+    || receipt.outcome !== "DISPATCH_RETURNED"
+    || !Number.isFinite(Date.parse(receipt.issuedAt)) || !Number.isFinite(Date.parse(receipt.completedAt))
+    || Date.parse(receipt.completedAt) < Date.parse(receipt.issuedAt)
+    || !/^sha256:[a-f0-9]{64}$/u.test(receipt.preSceneSignature ?? "")) {
+    throw new Error("CHROME_SCENE_TRANSITION_RECEIPT_INVALID");
+  }
+  const pre = scenes.find((scene) => scene.sceneId === receipt.preSceneId);
+  if (!pre || pre.stateSignature !== receipt.preSceneSignature
+    || pre.decisionReceipt?.kind !== "ACTION_REQUIRED"
+    || pre.decisionReceipt.actionId !== receipt.actionId
+    || pre.decisionReceipt.operation !== receipt.operation) {
+    throw new Error("CHROME_SCENE_TRANSITION_RECEIPT_UNBOUND");
+  }
+  return { actionId: receipt.actionId, operation: receipt.operation, issuedAt: receipt.issuedAt,
+    completedAt: receipt.completedAt, outcome: receipt.outcome, preSceneId: receipt.preSceneId,
+    preSceneSignature: receipt.preSceneSignature };
+}
+
 function sanitizeUrl(value) {
   try {
     const url = new URL(value);
@@ -72,21 +113,57 @@ function sceneContentSignature(scene) {
   }));
 }
 
-function safeAttributeValue(name, value, syntheticMarker, uiAllowlist) {
+function safeAttributeValue(name, value, _productMarker, uiAllowlist) {
   if (value === null) return undefined;
   if (["role", "type", "data-testid", "data-message-author-role", "contenteditable", "accept", "multiple",
     "disabled", "aria-checked", "aria-expanded", "aria-selected", "aria-disabled", "aria-valuemin",
     "aria-valuemax", "aria-valuenow", "aria-hidden", "aria-busy", "hidden", "inert", "data-state"].includes(name)) return value;
   if (name === "id" && /^(?:prompt-textarea|composer-plus-btn|upload-files)$/u.test(value)) return value;
-  if (name === "aria-label" && (uiAllowlist.has(value) || value.includes(syntheticMarker))) return value;
+  if (name === "aria-label" && uiAllowlist.has(value)) return value;
   return { kind: "HASH_ONLY", sha256: hash(value), length: value.length };
 }
 
+const escapeHtml = (value) => String(value).replaceAll("&", "&amp;").replaceAll('"', "&quot;")
+  .replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+
+function sanitizeDomTree(node, productMarker, uiAllowlist) {
+  if (!node || typeof node !== "object") return null;
+  if (node.kind === "TRUNCATED") return { kind: "TRUNCATED" };
+  if (node.kind === "TEXT") {
+    const value = String(node.value ?? "").replace(/\s+/gu, " ").trim();
+    return uiAllowlist.has(value)
+      ? { kind: "ALLOWLISTED_TEXT", value }
+      : { kind: "HASH_ONLY_TEXT", sha256: hash(value), length: value.length };
+  }
+  return {
+    kind: "ELEMENT",
+    tag: node.tag,
+    attributes: Object.fromEntries(Object.entries(node.attributes ?? {}).map(([name, value]) =>
+      [name, safeAttributeValue(name, value, productMarker, uiAllowlist)])),
+    children: (node.children ?? []).map((child) => sanitizeDomTree(child, productMarker, uiAllowlist)),
+  };
+}
+
+function renderSanitizedDom(node) {
+  if (!node || node.kind === "TRUNCATED") return "<!-- subtree-truncated -->";
+  if (node.kind === "ALLOWLISTED_TEXT") return escapeHtml(node.value);
+  if (node.kind === "HASH_ONLY_TEXT") return `<!-- text ${node.sha256} length=${node.length} -->`;
+  const attributes = Object.entries(node.attributes ?? {}).flatMap(([name, value]) => {
+    if (value === undefined) return [];
+    if (value && typeof value === "object" && value.kind === "HASH_ONLY") {
+      return [`data-redacted-${name}-sha256="${escapeHtml(value.sha256)}"`,
+        `data-redacted-${name}-length="${value.length}"`];
+    }
+    return [`${name}="${escapeHtml(value)}"`];
+  }).join(" ");
+  const open = attributes ? `<${node.tag} ${attributes}>` : `<${node.tag}>`;
+  return `${open}${(node.children ?? []).map(renderSanitizedDom).join("")}</${node.tag}>`;
+}
+
 export async function createChromeSceneCollector({
-  browser,
   tab,
   outputPath,
-  syntheticMarker,
+  productMarker,
   runId,
   captureEpoch,
   recaptureTrigger,
@@ -97,7 +174,7 @@ export async function createChromeSceneCollector({
   if (!tab?.playwright || typeof tab.url !== "function") {
     throw new Error("CHROME_SCENE_COLLECTOR_TAB_REQUIRED");
   }
-  if (!outputPath || !syntheticMarker || !runId || !captureEpoch
+  if (!outputPath || !productMarker || !runId || !captureEpoch
     || !recaptureTrigger || !qaTabIdentityHash) {
     throw new Error("CHROME_SCENE_COLLECTOR_CONFIGURATION_REQUIRED");
   }
@@ -106,8 +183,7 @@ export async function createChromeSceneCollector({
   }
 
   const scenes = await readExisting(outputPath);
-  let activeTab = tab;
-  let syntheticAttachmentUploadArmed = false;
+  const activeTab = tab;
   const tabIdentityHash = (targetTab) => {
     const id = targetTab?.id ?? targetTab?.tabId;
     if ((typeof id !== "string" && typeof id !== "number") || String(id).length === 0) {
@@ -125,10 +201,13 @@ export async function createChromeSceneCollector({
     qaTabIdentityHash,
   });
 
-  async function collect(sceneId, { includeMedia = false, decisionReceipt = null, transitionReceipt = null } = {}) {
+  async function collect(sceneId, { includeMedia = false, decisionReceipt = null,
+    transitionReceipt = null, attachmentUploadExpected = false } = {}) {
     if (!sceneId || scenes.some((scene) => scene.sceneId === sceneId)) {
       throw new Error(`SCENE_ID_DUPLICATE_OR_EMPTY:${sceneId ?? ""}`);
     }
+    const normalizedDecisionReceipt = acceptedDecisionReceipt(decisionReceipt);
+    const normalizedTransitionReceipt = acceptedTransitionReceipt(transitionReceipt, scenes);
     const roots = activeTab.playwright.locator(rootSelector);
     const rawPacket = await roots.evaluateAll((elements, context) => {
       const { marker, attachmentUploadArmed } = context;
@@ -156,6 +235,62 @@ export async function createChromeSceneCollector({
       ];
       const seen = new Set();
       const result = [];
+      const editableBlockText = (node) => {
+        const name = String(node.nodeName || "").toUpperCase();
+        if (node.nodeType === 3 || name === "#TEXT") return typeof node.nodeValue === "string" ? node.nodeValue : "";
+        if (name === "BR") return "";
+        return Array.from(node.childNodes || []).map((child) =>
+          String(child.nodeName || "").toUpperCase() === "BR" ? "\n" : editableBlockText(child)).join("").replace(/\n$/u, "");
+      };
+      const exactEditableText = (element) => {
+        if (!(element instanceof Element) || element.getAttribute("contenteditable") !== "true") return null;
+        const children = Array.from(element.childNodes || []);
+        if (children.length === 0) return element.textContent || "";
+        return children.map((child) => editableBlockText(child)).join("\n");
+      };
+      const blockNames = new Set(["ADDRESS", "ARTICLE", "ASIDE", "BLOCKQUOTE", "DD", "DIV", "DL", "DT",
+        "FIGCAPTION", "FIGURE", "FOOTER", "FORM", "H1", "H2", "H3", "H4", "H5", "H6", "HEADER", "HR",
+        "MAIN", "NAV", "OL", "P", "PRE", "SECTION", "TABLE", "TBODY", "TD", "TFOOT", "TH", "THEAD", "TR", "UL"]);
+      const inlineCode = (value) => {
+        const runs = Array.from(value.matchAll(/`+/g), (match) => match[0].length);
+        const fence = "`".repeat(Math.max(0, ...runs) + 1);
+        return `${fence}${value}${fence}`;
+      };
+      const semanticNode = (node, parent, insidePre) => {
+        const name = String(node.nodeName || "").toUpperCase();
+        if (node.nodeType === 3 || name === "#TEXT") return typeof node.nodeValue === "string" ? node.nodeValue : "";
+        if (["#COMMENT", "SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE", "SVG", "PATH"].includes(name)
+          || (node instanceof Element && (node.hasAttribute("hidden") || node.getAttribute("aria-hidden") === "true"))) return "";
+        if (name === "BR") return "\n";
+        const nestedInPre = insidePre || name === "PRE";
+        const body = Array.from(node.childNodes || []).map((child) => semanticNode(child, node, nestedInPre)).join("");
+        if (name === "STRONG" || name === "B") return `**${body}**`;
+        if (name === "EM" || name === "I") return `*${body}*`;
+        if (name === "CODE") return insidePre ? body : inlineCode(body);
+        if (name === "LI") return `${parent && String(parent.nodeName).toUpperCase() === "OL" ? "1. " : "- "}${body}\n`;
+        return blockNames.has(name) ? `${body}\n` : body;
+      };
+      const semanticText = (node) => {
+        const value = Array.from(node.childNodes || []).map((child) => semanticNode(child, node, false)).join("");
+        return value.endsWith("\n") ? value.slice(0, -1) : value;
+      };
+      const domSnapshot = (root) => {
+        let count = 0;
+        const visit = (node, depth) => {
+          count += 1;
+          if (count > 200 || depth > 6) return { kind: "TRUNCATED" };
+          if (node.nodeType === 3) return { kind: "TEXT", value: node.textContent || "" };
+          if (node.nodeType !== 1) return null;
+          const attributes = {};
+          for (const name of attributeNames) {
+            const value = node.getAttribute(name);
+            if (value !== null) attributes[name] = value;
+          }
+          return { kind: "ELEMENT", tag: node.tagName.toLowerCase(), attributes,
+            children: [...node.childNodes].map((child) => visit(child, depth + 1)).filter(Boolean) };
+        };
+        return visit(root, 0);
+      };
 
       for (const root of elements) {
         for (const element of [root, ...root.querySelectorAll("*")]) {
@@ -211,6 +346,7 @@ export async function createChromeSceneCollector({
             },
             directText,
             subtreeText,
+            domTree: domSnapshot(element),
             machineFacts: {
               userRoleDescendants: element.querySelectorAll("[data-message-author-role='user']").length,
               assistantRoleDescendants: element.querySelectorAll("[data-message-author-role='assistant']").length,
@@ -218,8 +354,8 @@ export async function createChromeSceneCollector({
               ownerTurnTestId: ownerTurn ? ownerTurn.getAttribute("data-testid") : null,
               inertAncestor: element.closest("[inert]") !== null,
               ariaHiddenAncestor: element.closest("[aria-hidden='true']") !== null,
-              syntheticAttachmentGroupAncestor: (element.closest("[role='group'][aria-label]")
-                ?.getAttribute("aria-label") || "").includes(marker),
+              productionAttachmentGroupAncestor: element.closest("[role='group'][aria-label]") !== null,
+              productTurnMarkerObserved: directText.includes(marker) || subtreeText.includes(marker),
               attachmentUploadSpinner: element.matches("svg[class*='animate-spin']"),
               attachmentPendingAction: element.matches("button.cursor-wait"),
               attachmentUploadErrorAlert: attachmentUploadArmed
@@ -257,18 +393,77 @@ export async function createChromeSceneCollector({
         }
       }
       const ownerDocument = elements[0]?.ownerDocument;
+      const composer = ownerDocument?.querySelectorAll("#prompt-textarea[contenteditable='true']") ?? [];
+      const userPromptTexts = Array.from(ownerDocument?.querySelectorAll("[data-testid^='conversation-turn-']") ?? [])
+        .filter((turn) => turn.querySelectorAll("[data-message-author-role='user']").length === 1
+          && turn.querySelectorAll("[data-message-author-role='assistant']").length === 0)
+        .flatMap((turn) => {
+          const prompts = turn.querySelectorAll("[data-testid='collapsible-user-message-content']");
+          return prompts.length === 1 ? [semanticText(prompts[0])] : [];
+        });
+      const conversationTurns = Array.from(ownerDocument?.querySelectorAll("[data-testid^='conversation-turn-']") ?? []);
+      const assistantSemanticTexts = Array.from(ownerDocument?.querySelectorAll("[data-message-author-role='assistant']") ?? [])
+        .map((node) => semanticText(node));
+      const attachmentLabels = Array.from(ownerDocument?.querySelectorAll("form:has(#prompt-textarea) [role='group'][aria-label]") ?? [])
+        .map((node) => (node.getAttribute("aria-label") || "").normalize("NFC"));
+      const modelTexts = Array.from(ownerDocument?.querySelectorAll("[data-testid='composer-model-picker-slider-advanced-view'][data-active='true']:not([inert]) [role='menuitemradio']") ?? [])
+        .map((node) => (node.textContent || "").trim());
+      const reasoningScaleFacts = Array.from(ownerDocument?.querySelectorAll("[data-model-reasoning-effort-slider] [role='slider']") ?? [])
+        .map((node) => ({ minimum: node.getAttribute("aria-valuemin"), maximum: node.getAttribute("aria-valuemax"),
+          current: node.getAttribute("aria-valuenow") }));
+      const assistantTurnIds = Array.from(ownerDocument?.querySelectorAll("[data-testid^='conversation-turn-']") ?? [])
+        .filter((turn) => turn.querySelectorAll("[data-message-author-role='assistant']").length === 1
+          && turn.querySelectorAll("[data-message-author-role='user']").length === 0)
+        .map((turn) => turn.getAttribute("data-testid") || "");
+      const userTurnBindings = conversationTurns.flatMap((turn) => {
+        if (turn.querySelectorAll("[data-message-author-role='user']").length !== 1
+          || turn.querySelectorAll("[data-message-author-role='assistant']").length !== 0) return [];
+        const prompts = turn.querySelectorAll("[data-testid='collapsible-user-message-content']");
+        if (prompts.length !== 1) return [];
+        const promptText = semanticText(prompts[0]);
+        return [{ userTurnId: turn.getAttribute("data-testid") || null, promptText,
+          turnMarkers: promptText.match(/\[GRASSEYE:[a-f0-9]{24}\]/gu) ?? [] }];
+      });
+      const turnBindings = conversationTurns.flatMap((turn, index) => {
+        const assistants = turn.querySelectorAll("[data-message-author-role='assistant']");
+        if (assistants.length !== 1 || turn.querySelectorAll("[data-message-author-role='user']").length !== 0) return [];
+        let userTurn = null;
+        for (let prior = index - 1; prior >= 0; prior -= 1) {
+          const candidate = conversationTurns[prior];
+          if (candidate.querySelectorAll("[data-message-author-role='user']").length === 1
+            && candidate.querySelectorAll("[data-message-author-role='assistant']").length === 0) {
+            userTurn = candidate;
+            break;
+          }
+        }
+        const prompts = userTurn?.querySelectorAll("[data-testid='collapsible-user-message-content']") ?? [];
+        const promptText = prompts.length === 1 ? semanticText(prompts[0]) : null;
+        return [{ assistantTurnId: turn.getAttribute("data-testid") || null, promptText,
+          responseText: semanticText(assistants[0]),
+          turnMarkers: promptText?.match(/\[GRASSEYE:[a-f0-9]{24}\]/gu) ?? [] }];
+      });
       return {
         nodes: result,
         currentUrl: ownerDocument?.location?.href ?? "",
         documentTimeOrigin: ownerDocument?.defaultView?.performance?.timeOrigin
           ?? ownerDocument?.lastModified,
+        pageInputFacts: {
+          exactComposerText: composer.length === 1 ? exactEditableText(composer[0]) : null,
+          userPromptTexts,
+          assistantSemanticTexts,
+          attachmentLabels,
+          modelTexts,
+          reasoningScaleFacts,
+          assistantTurnIds,
+          userTurnBindings,
+          turnBindings,
+        },
       };
-    }, { marker: syntheticMarker, attachmentUploadArmed: syntheticAttachmentUploadArmed });
+    }, { marker: productMarker, attachmentUploadArmed: attachmentUploadExpected });
     const rawNodes = rawPacket.nodes;
 
-    const syntheticAttachmentNodes = rawNodes.filter((node) =>
-      node.attributes.role === "group"
-      && String(node.attributes["aria-label"] ?? "").includes(syntheticMarker));
+    const productionAttachmentNodes = rawNodes.filter((node) =>
+      node.attributes.role === "group" && node.machineFacts.productionAttachmentGroupAncestor === true);
     const pageFacts = {
       assistantGenerationActive: rawNodes.some((node) => node.attributes["data-testid"] === "stop-button"
         || String(node.attributes["aria-label"] ?? "").includes("停止")),
@@ -277,28 +472,52 @@ export async function createChromeSceneCollector({
         && Boolean(node.machineFacts.ownerTurnTestId)),
       semanticMediaReady: rawNodes.some((node) => node.tag === "img" && node.media?.complete === true
         && node.media.naturalWidth > 100 && node.media.alt.length > 0),
-      attachmentSyntheticCount: syntheticAttachmentNodes.length,
-      attachmentUploadPending: rawNodes.some((node) => node.machineFacts.syntheticAttachmentGroupAncestor
+      approvedAttachmentCount: productionAttachmentNodes.length,
+      attachmentUploadPending: rawNodes.some((node) => node.machineFacts.productionAttachmentGroupAncestor
         && (node.machineFacts.attachmentUploadSpinner || node.machineFacts.attachmentPendingAction
           || node.attributes.role === "progressbar" || node.attributes["aria-busy"] === "true"
           || ["loading", "uploading", "pending"].includes(node.attributes["data-state"]))),
       attachmentTerminalErrorVisible: rawNodes.some((node) =>
-        (node.machineFacts.syntheticAttachmentGroupAncestor
+        (node.machineFacts.productionAttachmentGroupAncestor
           && (node.attributes.role === "alert" || /error/u.test(String(node.attributes["data-testid"] ?? ""))))
         || node.machineFacts.attachmentUploadErrorAlert),
-      syntheticMarkerNodeCount: rawNodes.filter((node) => (node.directText || "").includes(syntheticMarker)).length,
-      syntheticUserTurnCount: rawNodes.filter((node) => node.attributes["data-message-author-role"] === "user"
-        && (node.subtreeText || "").includes(syntheticMarker)).length,
-      syntheticAssistantTurnCount: rawNodes.filter((node) => node.attributes["data-message-author-role"] === "assistant").length,
+      productMarkerNodeCount: rawNodes.filter((node) => (node.directText || "").includes(productMarker)).length,
+      productUserTurnCount: rawNodes.filter((node) => node.attributes["data-message-author-role"] === "user"
+        && (node.subtreeText || "").includes(productMarker)).length,
+      assistantTurnCount: rawNodes.filter((node) => node.attributes["data-message-author-role"] === "assistant").length,
       composerCount: rawNodes.filter((node) => node.attributes.id === "prompt-textarea").length,
-      composerSyntheticMarkerPresent: rawNodes.some((node) => node.attributes.id === "prompt-textarea"
-        && (node.subtreeText || "").includes(syntheticMarker)),
+      composerProductMarkerPresent: rawNodes.some((node) => node.attributes.id === "prompt-textarea"
+        && (node.subtreeText || "").includes(productMarker)),
       currentRouteKind: new URL(rawPacket.currentUrl).pathname.startsWith("/c/") ? "CONVERSATION" : "ROOT",
+      currentConversationUrlHash: hash((() => {
+        const current = new URL(rawPacket.currentUrl); return `${current.origin}${current.pathname}`;
+      })()),
+      exactComposerHash: rawPacket.pageInputFacts.exactComposerText === null
+        ? null : hash(rawPacket.pageInputFacts.exactComposerText),
+      exactUserPromptHashes: rawPacket.pageInputFacts.userPromptTexts.map(hash),
+      assistantSemanticTextHashes: rawPacket.pageInputFacts.assistantSemanticTexts.map(hash),
+      attachmentLabelHashes: rawPacket.pageInputFacts.attachmentLabels.map(hash).sort(),
+      visibleModelTextHashes: rawPacket.pageInputFacts.modelTexts.map(hash).sort(),
+      reasoningScaleFacts: rawPacket.pageInputFacts.reasoningScaleFacts,
+      turnMarkerHashes: [...new Set(rawPacket.pageInputFacts.userPromptTexts
+        .flatMap((value) => value.match(/\[GRASSEYE:[a-f0-9]{24}\]/gu) ?? []).map(hash))].sort(),
+      assistantTurnIdHashes: rawPacket.pageInputFacts.assistantTurnIds.map(hash).sort(),
+      userTurnBindings: rawPacket.pageInputFacts.userTurnBindings.map((entry) => ({
+        userTurnIdHash: entry.userTurnId === null ? null : hash(entry.userTurnId),
+        promptHash: hash(entry.promptText),
+        turnMarkerHashes: [...new Set(entry.turnMarkers.map(hash))].sort(),
+      })),
+      conversationTurnBindings: rawPacket.pageInputFacts.turnBindings.map((entry) => ({
+        assistantTurnIdHash: entry.assistantTurnId === null ? null : hash(entry.assistantTurnId),
+        precedingPromptHash: entry.promptText === null ? null : hash(entry.promptText),
+        responseHash: hash(entry.responseText),
+        turnMarkerHashes: [...new Set(entry.turnMarkers.map(hash))].sort(),
+      })),
     };
 
     const nodes = rawNodes.map((node) => {
       const text = node.directText || "";
-      const keepText = uiAllowlist.has(text) || text.includes(syntheticMarker);
+      const keepText = uiAllowlist.has(text);
       const media =
         includeMedia && node.media
           ? {
@@ -312,12 +531,16 @@ export async function createChromeSceneCollector({
           : null;
       const siblings = (node.siblings ?? []).map((sibling) => ({
         ...sibling,
-        label: safeAttributeValue("aria-label", sibling.label, syntheticMarker, uiAllowlist),
+        label: safeAttributeValue("aria-label", sibling.label, productMarker, uiAllowlist),
       }));
+      const sanitizedDomTree = sanitizeDomTree(node.domTree, productMarker, uiAllowlist);
       return {
         ...node,
+        domTree: undefined,
+        sanitizedDomTree,
+        sanitizedOuterHtml: renderSanitizedDom(sanitizedDomTree),
         attributes: Object.fromEntries(Object.entries(node.attributes).map(([name, value]) => [
-          name, safeAttributeValue(name, value, syntheticMarker, uiAllowlist),
+          name, safeAttributeValue(name, value, productMarker, uiAllowlist),
         ])),
         directText: undefined,
         subtreeText: undefined,
@@ -346,16 +569,12 @@ export async function createChromeSceneCollector({
       nodes,
       pageFacts,
       binding,
-      decisionReceipt,
-      transitionReceipt,
+      decisionReceipt: normalizedDecisionReceipt,
+      transitionReceipt: normalizedTransitionReceipt,
     };
     const scene = { ...base, stateSignature: sceneContentSignature(base) };
     scenes.push(scene);
     await writeAtomic(outputPath, scenes);
-    if (pageFacts.attachmentTerminalErrorVisible
-      || (pageFacts.attachmentSyntheticCount > 0 && !pageFacts.attachmentUploadPending)) {
-      syntheticAttachmentUploadArmed = false;
-    }
     return scene;
   }
 
@@ -363,6 +582,7 @@ export async function createChromeSceneCollector({
     if (!sceneId || scenes.some((scene) => scene.sceneId === sceneId)) {
       throw new Error(`SCENE_ID_DUPLICATE_OR_EMPTY:${sceneId ?? ""}`);
     }
+    const normalizedDecisionReceipt = acceptedDecisionReceipt(decisionReceipt);
     if (!locator || typeof locator.evaluateAll !== "function") {
       throw new Error("CHROME_SCENE_COLLECTOR_LOCATOR_REQUIRED");
     }
@@ -393,6 +613,9 @@ export async function createChromeSceneCollector({
         return {
           tag: element.tagName.toLowerCase(),
           attributes,
+          domTree: { kind: "ELEMENT", tag: element.tagName.toLowerCase(), attributes,
+            children: [...element.childNodes].filter((child) => child.nodeType === 3)
+              .map((child) => ({ kind: "TEXT", value: child.textContent || "" })) },
           rect: {
             x: Math.round(rect.x),
             y: Math.round(rect.y),
@@ -423,11 +646,15 @@ export async function createChromeSceneCollector({
     const rawNodes = rawPacket.nodes;
     const nodes = rawNodes.map((node) => {
       const text = node.directText || "";
-      const keepText = uiAllowlist.has(text) || text.includes(syntheticMarker);
+      const keepText = uiAllowlist.has(text);
+      const sanitizedDomTree = sanitizeDomTree(node.domTree, productMarker, uiAllowlist);
       return {
         ...node,
+        domTree: undefined,
+        sanitizedDomTree,
+        sanitizedOuterHtml: renderSanitizedDom(sanitizedDomTree),
         attributes: Object.fromEntries(Object.entries(node.attributes).map(([name, value]) => [
-          name, safeAttributeValue(name, value, syntheticMarker, uiAllowlist),
+          name, safeAttributeValue(name, value, productMarker, uiAllowlist),
         ])),
         directText: undefined,
         subtreeText: undefined,
@@ -458,7 +685,7 @@ export async function createChromeSceneCollector({
       nodes,
       pageFacts,
       binding,
-      decisionReceipt,
+      decisionReceipt: normalizedDecisionReceipt,
       transitionReceipt: null,
     };
     const scene = { ...base, stateSignature: sceneContentSignature(base) };
@@ -467,162 +694,5 @@ export async function createChromeSceneCollector({
     return scene;
   }
 
-  async function performAndCollect({
-    actionId,
-    operation,
-    locator,
-    preSceneId,
-    postSceneId,
-    value,
-    includeMedia = false,
-    postcondition = null,
-  }) {
-    if (!actionId || !operation || !locator || !preSceneId || !postSceneId) {
-      throw new Error("SCENE_ACTION_CONFIGURATION_REQUIRED");
-    }
-    const pre = await collect(preSceneId, {
-      includeMedia,
-      decisionReceipt: { kind: "ACTION_REQUIRED", actionId, operation },
-    });
-    if (operation === "setInputFiles" && (Array.isArray(value) ? value : [value])
-      .some((entry) => String(entry ?? "").split(/[\\/]/u).at(-1)?.includes(syntheticMarker))) {
-      syntheticAttachmentUploadArmed = true;
-    }
-    const issuedAt = new Date().toISOString();
-    const syntheticUserCountBefore = postcondition === "synthetic-user-turn-hydrated"
-      ? await activeTab.playwright.locator("[data-message-author-role='user']").evaluateAll(
-        (elements, marker) => elements.filter((element) => (element.textContent || "").includes(marker)).length,
-        syntheticMarker,
-      ) : 0;
-    try {
-      if (operation === "click") await locator.click();
-      else if (operation === "fill") await locator.fill(value ?? "");
-      else if (operation === "press") await locator.press(value ?? "");
-      else if (operation === "setInputFiles") {
-        const chooserPromise = activeTab.playwright.waitForEvent("filechooser", { timeoutMs: 10000 });
-        await locator.click();
-        const chooser = await chooserPromise;
-        if (Array.isArray(value) && value.length > 1 && !chooser.isMultiple()) {
-          throw new Error("SCENE_FILE_CHOOSER_NOT_MULTIPLE");
-        }
-        await chooser.setFiles(value, { timeoutMs: 10000 });
-      }
-      else if (operation === "goto") await activeTab.goto(value);
-      else if (operation === "clickAndAdoptSuccessor") {
-        if (!browser?.tabs?.list || !browser?.tabs?.get) throw new Error("SCENE_BROWSER_REQUIRED");
-        const sourceTab = activeTab;
-        const sourceTabIdentityHash = tabIdentityHash(sourceTab);
-        const before = await browser.tabs.list();
-        const beforeIds = new Set(before.map((entry) => entry.id));
-        await locator.click();
-        let successors = [];
-        const deadline = Date.now() + 10000;
-        while (Date.now() < deadline) {
-          successors = (await browser.tabs.list()).filter((entry) => !beforeIds.has(entry.id));
-          if (successors.length === 1) break;
-          if (successors.length > 1) throw new Error("SCENE_SUCCESSOR_AMBIGUOUS");
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
-        if (successors.length !== 1) throw new Error("SCENE_SUCCESSOR_MISSING");
-        activeTab = await browser.tabs.get(successors[0].id);
-        const successorTabIdentityHash = tabIdentityHash(activeTab);
-        await activeTab.playwright.waitForLoadState({ state: "domcontentloaded", timeoutMs: 10000 });
-        let successorSettled = false;
-        const settleDeadline = Date.now() + 10000;
-        while (Date.now() < settleDeadline) {
-          const currentUrl = await activeTab.url();
-          const mainCount = await activeTab.playwright.locator("main").count();
-          const turnCount = await activeTab.playwright.locator("[data-testid^='conversation-turn-']").count();
-          if (currentUrl.startsWith("https://chatgpt.com/c/") && mainCount === 1 && turnCount > 0) {
-            successorSettled = true;
-            break;
-          }
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
-        if (!successorSettled) throw new Error("SCENE_SUCCESSOR_NOT_SETTLED");
-        await sourceTab.close();
-        value = { sourceTabIdentityHash, successorTabIdentityHash };
-      }
-      else throw new Error(`SCENE_ACTION_UNSUPPORTED:${operation}`);
-      if (postcondition === "synthetic-user-turn-hydrated") {
-        let satisfied = false;
-        const deadline = Date.now() + 10000;
-        while (Date.now() < deadline) {
-          const currentUrl = await activeTab.url();
-          const syntheticUserCount = await activeTab.playwright.locator("[data-message-author-role='user']").evaluateAll(
-            (elements, marker) => elements.filter((element) => (element.textContent || "").includes(marker)).length,
-            syntheticMarker,
-          );
-          if (currentUrl.startsWith("https://chatgpt.com/c/") && syntheticUserCount > syntheticUserCountBefore) {
-            satisfied = true;
-            break;
-          }
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
-        if (!satisfied) throw new Error("SCENE_POSTCONDITION_SYNTHETIC_USER_TURN_NOT_HYDRATED");
-      } else if (postcondition === "root-empty-chat-hydrated") {
-        let satisfied = false;
-        const deadline = Date.now() + 10000;
-        while (Date.now() < deadline) {
-          const currentUrl = await activeTab.url();
-          const composerCount = await activeTab.playwright.locator("#prompt-textarea").count();
-          const syntheticUserCount = await activeTab.playwright.locator("[data-message-author-role='user']").evaluateAll(
-            (elements, marker) => elements.filter((element) => (element.textContent || "").includes(marker)).length,
-            syntheticMarker,
-          );
-          if (currentUrl === "https://chatgpt.com/" && composerCount === 1 && syntheticUserCount === 0) {
-            satisfied = true;
-            break;
-          }
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
-        if (!satisfied) throw new Error("SCENE_POSTCONDITION_ROOT_EMPTY_CHAT_NOT_HYDRATED");
-      } else if (postcondition === "synthetic-conversation-hydrated") {
-        let satisfied = false;
-        const deadline = Date.now() + 10000;
-        while (Date.now() < deadline) {
-          const currentUrl = await activeTab.url();
-          const mainCount = await activeTab.playwright.locator("main").count();
-          const syntheticUserCount = await activeTab.playwright.locator("[data-message-author-role='user']").evaluateAll(
-            (elements, marker) => elements.filter((element) => (element.textContent || "").includes(marker)).length,
-            syntheticMarker,
-          );
-          if (currentUrl.startsWith("https://chatgpt.com/c/") && mainCount === 1 && syntheticUserCount > 0) {
-            satisfied = true;
-            break;
-          }
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
-        if (!satisfied) throw new Error("SCENE_POSTCONDITION_SYNTHETIC_CONVERSATION_NOT_HYDRATED");
-      } else if (postcondition !== null) {
-        throw new Error(`SCENE_POSTCONDITION_UNSUPPORTED:${postcondition}`);
-      }
-    } catch (error) {
-      const terminal = {
-        actionId,
-        operation,
-        issuedAt,
-        completedAt: new Date().toISOString(),
-        outcome: "THREW",
-        preSceneId: pre.sceneId,
-        preSceneSignature: pre.stateSignature,
-        errorHash: hash(error instanceof Error ? error.message : String(error)),
-      };
-      await collect(postSceneId, { includeMedia, transitionReceipt: terminal });
-      throw error;
-    }
-    const terminal = {
-      actionId,
-      operation,
-      issuedAt,
-      completedAt: new Date().toISOString(),
-      outcome: "DISPATCH_RETURNED",
-      preSceneId: pre.sceneId,
-      preSceneSignature: pre.stateSignature,
-      ...(operation === "clickAndAdoptSuccessor" ? { tabTransition: value } : {}),
-    };
-    return collect(postSceneId, { includeMedia, transitionReceipt: terminal });
-  }
-
-  return { collect, collectHiddenTarget, performAndCollect, scenes, currentTab: () => activeTab };
+  return { collect, collectHiddenTarget, scenes };
 }

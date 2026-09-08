@@ -18,7 +18,7 @@ const CONTRACT_PATH = "src/capabilities/gpt/contract.ts";
 const GPT_ROOT = "src/capabilities/gpt";
 const PLUGIN_ROOT = "src/plugins";
 const ACTIVE_LAW_PATH = ".github/instructions/agent-rules/功能法案.md";
-const REPORT_SCHEMA = "gpt-page-operation-evidence.v5";
+const REPORT_SCHEMA = "gpt-page-operation-evidence.v6";
 const MATRIX_SCHEMA = "gpt-page-operation-matrix.v4";
 const DEMAND_CONTRACT_FIELDS = Object.freeze([
   "semanticIntent", "inputSchema", "requiredTargetKind", "allowedDocumentTransition",

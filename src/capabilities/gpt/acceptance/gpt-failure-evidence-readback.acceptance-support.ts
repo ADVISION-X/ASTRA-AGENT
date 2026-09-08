@@ -74,7 +74,43 @@ export const exerciseReasoningEvidenceReadback = async (
   assert.equal(readback?.readbackVerified, true);
   const payload = persistence.stored()?.record.payload as Readonly<Record<string, unknown>>;
   assert.equal(payload.schema_version, "agent-gpt-evidence-safe.v2");
+  assert.equal(payload.input_hash, result.proof.inputHash);
+  const pageInputRoleHashes = payload.page_input_role_hashes as Readonly<Record<string, unknown>>;
+  assert.deepEqual(pageInputRoleHashes.reasoningRequirement, {
+    hash: hash(JSON.stringify({ requestedTier: input.profile.reasoningRequirement.requestedTier,
+      selectionPolicy: input.profile.reasoningRequirement.selectionPolicy })),
+    selectionPolicy: input.profile.reasoningRequirement.selectionPolicy,
+    requestedTier: input.profile.reasoningRequirement.requestedTier,
+  });
   assert.deepEqual(payload.reasoning_requirement_result, result.reasoningRequirementResult);
+};
+
+export const exerciseContinuationPageInputRoleEvidence = async <K extends GptChildCapabilityId>(
+  result: GptChildCapabilityResult<K>,
+  input: GptChildInputMap[K],
+): Promise<void> => {
+  assert.equal(result.status, "success");
+  const values = input as Readonly<Record<string, unknown>>;
+  const rawUrl = values.canonicalConversationUrl ?? values.sourceCanonicalConversationUrl;
+  assert.equal(typeof rawUrl, "string");
+  const url = new URL(rawUrl as string);
+  assert.equal(typeof values.sourcePromptHash, "string");
+  assert.equal(typeof values.sourceResponseHash, "string");
+  assert.equal(typeof values.sourceTurnMarker, "string");
+  assert.equal(typeof values.sourceAssistantTurnId, "string");
+  const persistence = evidenceHarness({ storeArtifacts: true });
+  await persistGptChildEvidence({
+    result, intent: intentFor(result, input), evidenceStore: persistence.evidenceStore,
+    jobId: result.proof.jobId, attemptId: result.proof.attemptId,
+    stepId: result.proof.productStepId, exactCallIdentityHash: result.proof.exactCallIdentityHash,
+  });
+  const payload = persistence.stored()?.record.payload as Readonly<Record<string, unknown>>;
+  const pageInputRoleHashes = payload.page_input_role_hashes as Readonly<Record<string, unknown>>;
+  assert.equal(pageInputRoleHashes.conversationUrlHash, hash(`${url.origin}${url.pathname}`));
+  assert.equal(pageInputRoleHashes.promptHash, values.sourcePromptHash);
+  assert.equal(pageInputRoleHashes.responseHash, values.sourceResponseHash);
+  assert.equal(pageInputRoleHashes.turnMarkerHash, hash(values.sourceTurnMarker as string));
+  assert.equal(pageInputRoleHashes.assistantTurnIdHash, hash(values.sourceAssistantTurnId as string));
 };
 
 export const exerciseConfirmedSubmitFailureEvidenceReadback = async (

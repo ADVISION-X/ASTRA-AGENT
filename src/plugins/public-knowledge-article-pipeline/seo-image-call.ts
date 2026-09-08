@@ -176,6 +176,10 @@ const confirmedImageSubmit = async (
   state: ImageSubmitState,
 ): Promise<SeoConfirmedSubmit> => {
   if (isConfirmedProviderSubmit(state.current)) return state.current;
+  if (state.current?.mutation?.owner === "browser"
+    && state.current.mutation.effectScope === "provider_effect"
+    && state.current.mutation.outcome === "CONFIRMED"
+    && state.current.mutation.terminalAt) return state.current;
   if (state.current?.mutation || state.current?.evidence || state.prior?.mutation || state.prior?.evidence) {
     return fail("SEO_IMAGE_SUBMIT_FACT_UNRESOLVED");
   }

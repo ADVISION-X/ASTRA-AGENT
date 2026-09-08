@@ -6,6 +6,7 @@ import {
   exerciseBrowserDispatchedEvidenceReadback,
   exerciseBrowserRejectedDispatchedEvidenceReadback,
   exerciseBrowserRejectedEvidenceReadback,
+  exerciseContinuationPageInputRoleEvidence,
   exerciseFailedEvidenceReadback,
 } from "./gpt-failure-evidence-readback.acceptance-support.js";
 import {
@@ -124,6 +125,7 @@ import {
   assert.equal(result.value?.childCanonicalConversationUrl, childConversationUrl);
   assert.equal(result.proof.committedMutation, "confirmed");
   assert.equal(fixture.physicalMutations(), 1);
+  await exerciseContinuationPageInputRoleEvidence(result, sourceInput);
 }
 
 

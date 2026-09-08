@@ -1,223 +1,234 @@
 ---
 name: gpt-page-operation-evidence
-description: 为 AGENT 的 GPT 页面操作子能力执行“稳定页面快照、当前需求离线投影、唯一报告、候选强制消费、反馈更新”的低成本闭环。只要子能力会读取、导航、点击、输入、上传、等待、检查点或获取页面媒体，就纳入；任何页面 Child 迭代前必须先通过候选绑定的 admit。普通运行、非页面 continuation 子能力和最终 RELEASE 验收不使用本 Skill。
+description: 由 Codex 使用 Chrome 插件，按 Product Plugin 的真实生产资料与完整流程采集 GPT 页面 DOM；生成唯一的产品流程实证报告，并支持按产品、Action、步骤或 Child 定向回看。不得生成业务夹具，不得自动代跑产品，不得绑定 Git HEAD。
 ---
 
-# GPT 页面操作子能力实证采集
+# GPT 产品页面实证采集
 
-本 Skill 只有一条低成本主链：`稳定页面快照 → 当前需求离线投影 → 唯一报告 → Child 强制消费 → 修复 → 离线反馈重投影`。稳定页面快照证明 GPT 页面的真实结构；当前需求投影证明现役合同、实现、Product 与这些页面事实如何衔接。二者必须分离：代码、合同、矩阵、Product 或候选变化只能使离线投影过期，不能自动使页面快照过期，更不能自动启动 Chrome。报告不是生产运行时 DOM 数据源，也不是第二质量裁决。
+本 Skill 只做一件事：Codex 拿到 Website 已冻结的真实生产资料，逐行跟随 Product Plugin 的现役流程，用 `chrome:control-chrome` 完成页面操作并收回真实 DOM。报告按 `产品 → Action → 产品步骤 → 调用序号 → Child → DOM` 组织；`childIndex` 只由产品记录反向生成。
 
-防过度设计边界：只复用唯一报告、唯一矩阵、现有 `admit` 和 AGENT 原生门禁；不得再建 DOM 回放平台、selector 注册表、第二台账、第二报告、第二 Owner、第二 Child、第二持久化或第二质量结论。当前闭环只要求把真实事实直接交给施工者，并在施工后深验同一事实与目标行为；无法由现有报告确定的内容保持缺口。
+唯一链路：
 
-## 先决定模式
+```text
+Website 冻结生产任务和资料
+  → Product Plugin 提供现役流程与真实 prompt/profile/附件
+  → Codex 使用 Chrome 插件原样复刻
+  → 每个页面 Child 采 pre DOM / 操作回执 / post DOM
+  → 唯一报告
+```
 
-1. **盘点模式 `inventory-only`**：用户只要求清单、范围、缺口或静态更新时使用。不打开浏览器。
-2. **完整采集 `collect-full`**：用户明确要求采集、更新或定期刷新页面实证时使用。它会操作真实页面，只能用专用的新建 QA 标签页。
-3. **离线迭代 `offline-iterate`**：用户要求迭代页面操作子能力时，先用现有稳定快照重新生成当前需求投影，再对准确候选和目标 Child 运行 `admit`。未返回 `ADMITTED` 时先修正离线投影或代码；只有命中“重采集铁律”之一才允许采集。
-4. **反馈更新 `feedback-update`**：Child 修复后重新运行 `inventory`、离线重投影、`admit`、目标确定性测试和 AGENT 原生质检。需求改变不触发采集；现有快照确实不覆盖新增页面事实时返回 `PAGE_EVIDENCE_GAP`，等待合法重采集触发。
+## 不可突破的边界
 
-## 重采集铁律
+- Product Plugin 是步骤、顺序、分支、模型、推理档位、prompt、附件和 continuation 的唯一 Owner。Skill 只读合同、源码与 trace，不实现第二个 Product runner。
+- 页面动作只能由 Codex 通过 `chrome:control-chrome` 执行。禁止增加自动化 Worker、运行时 hook、定时器、后台抓取器或终端 Playwright/CDP。
+- `production-source.mjs` 只离线校验任务、材料字节、Product 合同与已落盘 trace；它没有浏览器能力，不能点击、输入、上传、提交或重跑任务。
+- `chrome-scene-collector.mjs` 只能由当前 Codex 在 Chrome 插件会话中导入，并按一次明确的 Child 调用执行一次采集；它不是 CLI，没有自主选任务、遍历产品、调度或后台运行入口。
+- 禁止合成业务 prompt、合成附件、模拟对话冒充产品覆盖。测试代码可以使用明确标为 test-only 的结构夹具，但测试夹具绝不能进入报告。
+- 不新增第二报告、第二矩阵、第二 selector 系统、DOM 数据库、回放平台、队列、服务或质量裁决。
+- 报告不绑定 Git HEAD、分支、clean 状态或整个工作区摘要。Git 信息不得参与有效性判断。
+- 报告不是生产运行时输入，也不是 `READY`、`RELEASE`、Website 入库或质量结论；固定写 `productionRuntimeConsumer=false`、`claimsQualityVerdict=false`。
 
-初始基线建立后，新的真实 Chrome 采集批次只允许由以下两种事件触发：
+## 启动后先选模式
 
-1. **实际消费报错**：当前唯一报告已经被目标 Child 的真实 GPT 页面执行实际消费，并在同一次事件中由生产代码、运行日志与页面回读共同证明“报告中的页面事实与当前页面冲突”。此时记录 `PAGE_EVIDENCE_CONFLICT_CONFIRMED`，只重采受影响场景。
-2. **人工明确触发**：用户明确要求立即采集、手动刷新或执行周期采集。此时记录 `HUMAN_REQUESTED_RECAPTURE`。
-
-除这两种事件外一律返回 `RECAPTURE_FORBIDDEN`。编译失败、单元测试失败、候选 digest 改变、合同/实现/Product/Blueprint/矩阵改变、报告投影过期、provider build marker 改变或仅仅怀疑页面变化，都不得打开 Chrome、不得创建 QA 标签页、不得发送提示词、不得上传附件、不得创建分支，也不得执行全量或增量采集。
-
-`schemaVersion` 只在报告字段格式发生不兼容变化时升级；日常工程迭代只更新廉价的 `projectionRevision`。`captureEpoch` 只在上述合法重采集事件发生时更新。同一 `captureEpoch` 可以承载任意多次离线需求重投影与 Child 修复。
-
-## 启动即整轮授权
-
-用户明确要求“启动、运行、刷新或采集”本 Skill 时，即视为已经对本 Skill 合同内的一整轮实证动作完成授权。执行期间不得在每次点击、输入、上传、提交、打开菜单、创建测试分支或关闭本轮 QA 标签页前重复询问授权。
-
-该授权只覆盖：专用新建 QA 标签页、Skill 临时创建的合成提示词和合成附件、合成提示词提交、专用测试会话与测试分支、矩阵规定的菜单/模型/推理档位临时操作、页面观察与操作，以及临时采集文件和唯一报告的更新。执行者必须在 QA 场景结束前恢复能恢复的临时档位，不得把测试选择写成账号级设置。它不覆盖用户已有标签页、真实业务内容、生产 Browser 标签页、账号级设置、测试会话删除及矩阵外动作。
-
-“启动即整轮授权”是本项目的授权合同：凡已明确列入本轮矩阵且只作用于上述合成 QA 边界的发送或页面 mutation，不得再把它当作缺少项目授权而暂停。若宿主运行环境另有不可覆盖的强制安全确认，Skill 不得伪造绕过；除此之外不得重复询问。
-
-若生产 Browser 非空闲、候选漂移、目标标签页不唯一、页面出现敏感信息或动作结果身份不明，应失败关闭并报告具体阻断；这是安全闸门，不是再次索要授权。
+1. `inventory-only`：只盘点产品路由、采集合同、页面 Child 和缺口；不打开 Chrome。
+2. `collect-product`：用户明确要求采集或刷新某个产品。最小范围是完整 `productId + actionId`；静态本地化还必须包含一个 locale 的全部 cohort 及 A/B/盲选三轮。
+3. `offline-iterate`：故障修复前按产品或具体步骤读取报告并执行 `candidate → admit`；不打开 Chrome。
+4. `feedback-update`：代码或合同变化后只做离线重投影、目标测试和唯一 `quality:check`；缺 DOM 就报告精确缺口，不自动采集。
 
 ## 强制入口
 
-开始前读取：
+开始时读取：
 
-- `/Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json`（唯一权威矩阵；Skill 与 AGENT 原生质检共同消费）
-- `/Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json`（唯一页面实证报告；读取其中目标 Child 的真实 DOM、状态、关系、动作回执与明确缺口）
-- `references/evidence-schema.md`
-- `references/collection-protocol.md`
-- 当前法案注册表绑定的 GPT 法案与 `docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md`
-- 当前 `src/capabilities/gpt/contract.ts`
-- `inventory --read-only` 识别出的现役页面 Child 及其源码映射
+- `src/capabilities/gpt/page-operation-matrix.json`
+- `docs/项目方案/GPT页面操作子能力实证资料.json`
+- 本目录 `references/evidence-schema.md` 与 `references/collection-protocol.md`
+- 目标 Product 的 `SKILL.md`、`page-evidence-contract.json` 和合同列出的 `flowOwnerSources`
+- 当前 GPT 法案、GPT Blueprint 和 `src/capabilities/gpt/contract.ts`
 
-在采集、合并或离线迭代前先运行 `inventory --read-only`。它检查矩阵是否覆盖当前合同分母、每个 Child 是否有独立实现、页面合同与页面调用是否一致，并从当前合同、实现、Product 消费者、Blueprint 与矩阵生成逐 Child 需求摘要。法案/Blueprint 是需求输入，不由本 Skill 另作质量裁决；其语义变化只使需求投影过期，必须离线重投影，但不使稳定页面快照失效。
-
-若任务进入真实 Chrome，必须再读取并遵守 `chrome:control-chrome` Skill。不得用终端 Playwright、CDP 或其他浏览器通道绕过它。
-
-## 纳入规则
-
-不用“是否有 DOM”来界定。只要 Child 的职责会对页面执行以下任一行为，就必须采集：
-
-- 读取或判定页面状态；
-- 导航或聚焦会话；
-- 点击、输入、上传或提交；
-- 等待页面稳定、生成完成或失败；
-- 从页面建立文本、图片、菜单或会话检查点。
-
-现役合同的静态入口是 `requiredTargetKind !== "none"`，但必须同时扫描实现是否调用 Browser 页面 API。合同与实现不一致时以失败关闭，不能漏采。
-
-## 执行顺序
-
-### 盘点模式
+先盘点。报告会列出生产 Catalog 的全部路由；目前 SEO 与本地化有精确采集合同，其余产品必须明确显示 `PRODUCT_EVIDENCE_CONTRACT_NOT_IMPLEMENTED`，不得从通用 Child 场景推断为已覆盖。
 
 ```bash
-node --import tsx /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs inventory \
+node --import tsx .agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs inventory \
   --repo /Users/nexgen/Documents/AGENT \
   --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
   --read-only
 ```
 
-盘点模式只证明当前分母、独立实现、消费者映射与需求可生成，不写报告，也不能冒充完整采集。用户明确要求从零建立资料时，去掉 `--read-only` 并使用唯一 canonical `--output` 生成 V5 `NOT_CAPTURED` 报告；旧 V1/V2/V3/V4 固定失效，仓库内其它输出路径与第二份 V5 报告失败关闭。
+## 生产资料准入
 
-### 完整采集
-
-1. 先证明本次命中 `PAGE_EVIDENCE_CONFLICT_CONFIRMED` 或 `HUMAN_REQUESTED_RECAPTURE`，并把触发类型和作用场景写入批次元数据。否则返回 `RECAPTURE_FORBIDDEN`，不得进入浏览器。命中后再按 `collection-protocol.md` 做准入检查；生产 Browser 正在工作、无法证明空闲、专用标签页不唯一或需要读取敏感信息时，立即停止。
-2. 在仓库外临时目录创建合成提示词和附件：
+采集前必须从 `.grasseye-local/production-runtime.sqlite` 选定一个真实 durable task 和一个实际 attempt。不得由 Skill 新造业务资料。用离线校验器生成仓库外 source manifest：
 
 ```bash
-node /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/make-fixtures.mjs \
-  --dir /absolute/path/to/dedicated-temp-dir \
-  --run-id YYYYMMDD-HHMMSS
+node .agents/skills/gpt-page-operation-evidence/scripts/production-source.mjs \
+  --repo /Users/nexgen/Documents/AGENT \
+  --runtime-db /Users/nexgen/Documents/AGENT/.grasseye-local/production-runtime.sqlite \
+  --task-root /Users/nexgen/Documents/AGENT/.grasseye-local/plugin-tasks/production-runtime \
+  --forensics-root /Users/nexgen/Documents/AGENT/.grasseye-local/forensics \
+  --browser-db /Users/nexgen/Documents/AGENT/.grasseye-local/browser/browser-mutations.sqlite \
+  --job-id exact_production_job_id \
+  --attempt-id exact_attempt_id \
+  --output /absolute/outside-repo/production-source.json
 ```
 
-3. 用 Chrome Skill 创建并绑定一个新的 QA 标签页。只操作这个标签页；不要接管 AGENT 的系统生产标签页或用户已有标签页。
-4. 按触发事件的作用范围采集；人工明确要求全量时才采集全部页面 Child，否则只采集被确认冲突的场景。创建 `chrome-scene-collector.mjs` 时必须传入 run、`captureEpoch`、合法触发记录与 QA tab identity；不得把 candidate、实现 hash 或需求投影 digest 固化为页面快照身份。每次 observation 原子写入仓库外 JSON；损坏 JSON 必须失败，禁止当空数组覆盖。隐藏文件输入使用 `collectHiddenTarget`；发生页面动作必须用 `performAndCollect` 取得真实 pre scene、命令返回与 post scene，普通 `collect` 不得被装配成动作成功。
-5. 真实页面状态标 `LIVE_PAGE`；从真实样本生成的负向变体标 `DERIVED_FIXTURE`。二者绝不混称。
-6. 为本轮建立临时 scene mapping，并用正式装配器把逐场景节点、当前 inventory、fixture manifest、有明确源文件绑定的 Product Profile hash-only 授权与生产 Browser 空闲前置证据装成 capture。每个 live state 只能消费自己的 `liveStateTargets`，所有 target 必须来自该状态自己的唯一 scene；禁止 support scene 借目标、同一 scene 冒充两个状态、任意 `main` 冒充 route/identity、硬编码候选数量或补造 command/receipt：
+只有同时满足以下条件才可打开 Chrome：
+
+- `sourceKind=PRODUCTION_RUNTIME_DURABLE_TASK`、`synthetic=false`；
+- task 的 `job_id/request_hash/product/action/plugin/version` 相互一致；
+- material 目录与 task `material_refs` 文件集合完全相等；
+- 每个文件名、role、ordinal、bytes 和 sha256 精确相等；
+- 目标 Product 的 `page-evidence-contract.json` 与当前 Plugin 身份一致；
+- forensics trace 每一行都属于同一 job/attempt/plugin，Child、ordinal、exact call identity 与完整性哈希一致；
+- 每条新生产 forensics 必须带该调用的 `input_hash` 与安全 `page_input_role_hashes`。后者只含 prompt/response、附件显示名集合、模型、推理要求、会话 URL、turn marker 和 assistant turn identity 的哈希或非敏感枚举；不得保存正文；
+- 已接受生产 attempt 的 durable forensics 是历史实际调用顺序的唯一真相；当前 Product 合同和源码只说明“今天的流程投影”，不得反向淘汰旧 attempt 的真实 trace；
+- Browser receipt 存在时，它的 step/Child/ordinal 必须与同一 exact call 一致，`callId` 只从该真实回执取得；没有回执时写 `null`，不得从手写表补造；
+- Browser receipt 的 `request_hash` 与 forensics `input_hash` 必须相等。旧历史记录若只有 Browser request hash，只能标为 `BROWSER_MUTATION_RECEIPT_ONLY`；没有逐角色输入哈希时不得反推 prompt、附件、profile 或 continuation，也不得成为完整采集；
+- 当前 attempt 的完成分支必须有当前 task 行的 durable `result_json` 哈希回执；指定历史 attempt 时，绝不能借用当前 task 行的 status/result。历史失败只认 `production_attempt_failures(job_id, attempt_id)` 的精确记录，并与该 attempt 最后一条 failed trace 做时间、Child/evidence（记录声明时）关联；没有该 attempt 自己的 durable terminal 就固定为 `PARTIAL/DURABLE_ATTEMPT_TERMINAL_UNAVAILABLE`；
+- source manifest 不含 HEAD、分支或 worktree 绑定。
+
+任一失败都在浏览器前停止：`PRODUCT_INPUT_INCOMPLETE`、`PRODUCT_MATERIAL_BYTE_MISMATCH`、`PRODUCT_FLOW_TRACE_MISMATCH` 或 `PRODUCT_FLOW_CONTRACT_*`。
+
+## Codex + Chrome 的采集方式
+
+进入真实 Chrome 前必须读取 `chrome:control-chrome` Skill。Codex 只操作本轮明确绑定的采集标签页；不得接管系统生产标签页或用户其它标签页。Skill 不自动触发 Product，不注册后台监听。
+
+Codex 必须把 source manifest 的 `actualTrace` 当成该生产 attempt 的逐调用采购清单，并读取 Product 现役源码理解每次调用。合同中的阶段拓扑只生成 `flowProjectionStatus/flowProjectionGaps`，不改写历史清单。`exactCallIdentityHash` 标识同一个逻辑调用；同一逻辑调用发生失败后重试时 hash 可能相同，因此每条实际 forensics 记录另有唯一 `traceEntryId`。同一个 Child 在不同步骤、不同 cohort 或同一逻辑调用的不同尝试中重复出现时，必须分别采集，绝不能共用一份 DOM。
+
+每个页面调用至少采购：
+
+- 身份：product、action、step、actionOrdinal、Child、exact call hash、traceEntryId、sourceSnapshotId、flowContractDigest、captureEpoch；
+- pre：Document/revision、候选基数、每个候选接受/拒绝理由、目标节点清洗后的 outerHTML/属性/可见性/尺寸、必要父兄/label/menu/dialog、页面状态；
+- action：Browser typed command、准确目标、mutation outcome、terminal receipt；纯观察必须明确 `NOT_APPLICABLE`；
+- post：全新 observation、直接后置条件、DOM 差异、错误/生成/上传状态和产物引用哈希。
+- input binding：从该 `traceEntryId` 的生产证据读取 `input_hash` 和逐角色期望哈希；从 Chrome DOM 机械读取 exact composer/user prompt、附件 aria-label 集合、模型文字、推理 scale/current、canonical conversation、assistant semantic response 与 turn identity 的实际哈希；逐角色相等后才写 `MATCHED`。
+
+原始 prompt、报告正文、文章内容、会话 ID、Cookie、token 和隐私材料不得进入公共报告。UI 白名单之外的文本只保留 hash 和长度；会话 URL 必须变成 `/c/sha256:<digest>`。
+
+`exactCallIdentityHash` 只证明生产调用身份，不能单独证明当前 Chrome 页面就是该输入。每个实际调用还必须有 `gpt-page-input-binding-proof.v1`：`inputHashBound=true`，并且该 Child 需要的 prompt、附件集合、model、reasoning、conversation、response/turn 等 checks 全部为 `MATCHED`。任一期望哈希缺失或 DOM 不相等都固定产生 `PAGE_INPUT_BINDING_GAP:<role>`，该调用不得 `captureComplete=true`。本地化 candidate-a、candidate-b、selector 的 profile 以各自 `traceEntryId` 为准，禁止拿“插件支持过的所有 profile 变体”冒充本次实际选择。
+
+scene mapping 必须使用：
+
+```text
+productCalls.<traceEntryId>.states.<requiredLiveState> = <sceneId>
+```
+
+这保证重复 Child、以及 exact call hash 相同的失败/重试记录，仍能分别反查到准确产品步骤和 DOM。缺少映射时写：
+
+```text
+PAGE_EVIDENCE_GAP:<productStepId>/<ordinal>/<childId>:product-call-scene-map-missing
+```
+
+不得借用另一个步骤、产品或旧 synthetic scene 填满。
+
+## SEO 精确流程
+
+`public_knowledge_article_pipeline/produce_article` 的真实输入至少包含 Website task envelope 和唯一 `ready_corpus_archive`；ZIP 的内部语料、索引、语义目录、主题集群及结果合同由 Product 现役校验负责，Skill 不另造精简包。
+
+Codex 按 Product trace 复刻：
+
+1. `corpus_research`：新对话 → profile/model/reasoning → 完整 ZIP 上传与精确集合核对 → 真实研究 prompt → draft → 单次 submit → submission readback → stable text → checkpoint → continuation。
+2. 只有 Product durable result 对象的 `research.decision=decline` 才能合法终止在研究分支；必须从 `result_json` 回执指向的 production outbox `result_payload` 读回，并逐项核对 object ref、bytes、sha256 与 receipt；不得根据只出现一个阶段、调用数量或当前流程投影猜测 decline。
+3. `article_synthesis`：获取同一 continuation → 身份/profile 核对 → 真实文章 prompt → draft/submit/readback/stable text/checkpoint → 推进 continuation。
+4. `article_image_generation`：同一 continuation → profile → 真实图片 prompt → draft/submit/readback/stable image/checkpoint → 读取图片产物 → Product 组包。
+
+不得用新模拟对话替换 continuation，不得跳过失败步骤，不得为补齐报告强造文章或图片分支。
+
+任一阶段真实失败时，产品流程合法终止为 `terminalBranch=production-failure`。若截至失败点的每个实际页面调用 DOM 都已采全，该 run 可标记 `CAPTURE_COMPLETE`；含义仅是故障现场完整，绝不等于 SEO 生产成功。
+
+## 本地化精确流程
+
+报告/文章本地化及 challenge/reflection：使用 Website task 声明的完整材料集合，新对话，准确 profile/model/reasoning，全部附件精确核对，真实 Product prompt，draft/submit/readback/stable text/checkpoint，最后由 Product 结果合同解析。
+
+`localization_static_catalog/produce_locale_catalog`：唯一 `static_catalog_input` 文件决定 target locale、全部 `context_bundles` 和准确 cohort 数。每个 cohort 必须依次完整采集：
+
+1. `candidate-a` 独立新对话；
+2. `candidate-b` 独立新对话，使用同一冻结输入；
+3. `selector` 独立新对话，消费冻结的 A/B 映射；
+4. 完成解析、消息数核对，再进入下一个 cohort。
+
+最小合法定向范围是一个 locale 的全部 cohort。少一个 cohort 或少 A/B/selector 任一轮，产品切片只能是 `CAPTURE_PARTIAL`。
+
+## 装配与唯一报告
+
+装配器只把 Codex 已经通过 Chrome 收回的 scene 与真实 source manifest 对齐，不执行页面动作。默认采集范围必须由 `actualTrace` 中真实出现的页面 Child 去重得到，不能拿全局 Child 分母代替；可选 `--child` 只能收窄到这个真实集合，未采调用仍如实形成缺口。失败 source 缺少 attempt 专属 `terminalBranchProof` 时直接拒绝；装配器不得补造或从当前 task 状态推断。`chrome-scene-collector.mjs` 不是终端命令；只能由 Codex 已连接的 Chrome 插件会话逐调用使用：
 
 ```bash
-node /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/assemble-live-capture.mjs \
-  --inventory /absolute/path/to/inventory.json \
+node .agents/skills/gpt-page-operation-evidence/scripts/assemble-live-capture.mjs \
+  --inventory /absolute/outside-repo/inventory.json \
   --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
-  --scenes /absolute/path/to/scenes.json \
-  --mapping /absolute/path/to/scene-map.json \
-  --fixtures /absolute/path/to/fixture-manifest.json \
-  --browser-meta /absolute/path/to/browser-meta.json \
-  --child affected_child_id_or_comma_separated_ids \
-  --output /absolute/path/to/capture.json
+  --scenes /absolute/outside-repo/scenes.json \
+  --mapping /absolute/outside-repo/product-scene-map.json \
+  --production-source /absolute/outside-repo/production-source.json \
+  --browser-meta /absolute/outside-repo/browser-meta.json \
+  --output /absolute/outside-repo/capture.json
 ```
 
-7. 合并到唯一报告：
+按产品原子替换唯一报告中的一个切片：
 
 ```bash
-node --import tsx /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs merge \
+node --import tsx .agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs merge \
   --repo /Users/nexgen/Documents/AGENT \
   --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
-  --capture /absolute/path/to/capture.json \
+  --capture /absolute/outside-repo/capture.json \
   --base-report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
-  --child affected_child_id_or_comma_separated_ids \
+  --product exact_product_id \
+  --action exact_action_id \
   --output /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json
 ```
 
-Child 修复后使用下面的纯离线命令。它不接收 capture，也不打开 Chrome；为防止跨 Child 链引用陈旧，内部会廉价重投影全部页面 Child，但只把 `--child` 作为本次关注范围返回：
+只替换同一产品/Action/sourceSnapshot 的 run；其它产品切片原样保留。即使某旧产品路由已从当前 Catalog 删除，其历史切片也原对象保留并单独显示 stale，不能在目标产品更新时顺带丢失；当前 Catalog 新增路由才追加 `NOT_CAPTURED`。`childIndex` 每次从 `products[].runs[].calls[]` 重建，禁止独立写入。
+
+浏览器、环境、recapture trigger、scene binding、decision receipt 和 transition receipt 全部使用精确字段白名单；多一个调试字段也拒绝。合并器会重新计算每个 specimen 的完整 envelope，并重新建立 `sourceSceneId → traceEntryId` 唯一归属；同一 scene 被两个实际调用复用时，即使装配阶段曾通过，也不得进入报告。
+
+报告中的历史产品即使已经从当前 Catalog 删除或 Product 源码已经变化，也必须继续执行自身一致性校验：production source/trace/input binding、capture context 白名单、scene/specimen envelope、scene 唯一归属和 captureComplete 推导永远不能跳过。只有“是否符合今天的 Product/Child 投影”允许因 stale 暂缓；stale 绝不是绕过篡改检查的开关。
+
+## 故障回看与准入
+
+SEO 或本地化故障优先按产品步骤取证：
 
 ```bash
-node --import tsx /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs refresh \
-  --repo /Users/nexgen/Documents/AGENT \
-  --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
-  --base-report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
-  --output /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
-  --child child_id_or_comma_separated_ids
-```
-
-旧 scene 可以继续作为稳定页面事实被新投影引用，但不得篡改其原始 `captureEpoch`、现场内容或来源；如果新需求确实找不到所需页面事实，只返回 `PAGE_EVIDENCE_GAP`，不得自动采集。
-
-8. 运行严格校验：
-
-```bash
-node --import tsx /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs validate \
-  --repo /Users/nexgen/Documents/AGENT \
-  --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
-  --report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json
-```
-
-日常校验允许报告诚实保持 `CAPTURE_PARTIAL`；只有人工审计全量采集闭合时才增加 `--require-complete`。
-
-9. 只关闭本次创建的 QA 标签页。临时文件可删除；ChatGPT 服务端测试会话不得自行删除，除非用户另行授权。
-
-## 强制消费闸门
-
-任何页面 Child 代码迭代前，必须先完成“当前需求投影 → 真实事实读取 → 代码决策”三步。若报告投影已过期，先执行上面的离线 `refresh`；随后运行：
-
-```bash
-node --import tsx /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs candidate \
+node --import tsx .agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs candidate \
   --repo /Users/nexgen/Documents/AGENT \
   --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
   --report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
-  --child child_id_or_comma_separated_ids
-
-node --import tsx /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs admit \
-  --repo /Users/nexgen/Documents/AGENT \
-  --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
-  --report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
-  --child child_id_or_comma_separated_ids \
-  --candidate exact_CHILDSET_digest_from_candidate_command
+  --product public_knowledge_article_pipeline \
+  --action produce_article \
+  --step corpus_research
 ```
 
-完整 Child 使用上面的全 Child 准入。若 Child 只有明确的未观察状态，而本次修改只消费已经观察到的具体事实，则 `candidate` 与 `admit` 必须同时增加 `--facts`，只允许单个 Child：
+把返回的 `PRODUCT:<digest>` 原样传给 `admit`。全产品准入省略 `--step`；它要求完整合法分支和全部页面调用完整。步骤准入只要求该步骤已出现且每个页面调用有完整 DOM，不能拿一个通用 Child 样本顶替。
+
+共享 Child 只能从 `childIndex` 反查受影响的产品调用；`candidate/admit` 强制要求 `--product + --action`，不存在 Child 级第二套准入结论。
+
+## 更新与失效规则
+
+- `sourceSnapshotId` 只绑定 task 参数与实际材料字节。
+- `flowContractDigest` 只绑定目标 Product 合同/源码和该 trace 实际调用的 Child 源码。
+- `captureEpoch` 只绑定本次人工 Chrome 采集。
+- 产品 candidate 只绑定该产品合同、该产品 run 和可复核 DOM；全局 `projectionRevision`、其它产品、HEAD 与 generatedAt 都不参与。
+- HEAD、branch、clean、全仓 digest、generatedAt 不参与有效性。
+- 无关文件或 HEAD 变化：报告继续有效。
+- 某 Product 流程变化：历史 run 与其派生的 captureStatus/gaps 不改写；`validate`/admission 只把该产品列为 projection stale，先离线 refresh 或按新生产 attempt 重采。
+- 新需求能从旧 DOM 得出：只重投影，不开 Chrome。
+- 旧 DOM 缺字段：记录具体产品步骤的 `PAGE_EVIDENCE_GAP`；只有用户明确要求，Codex 才用 Chrome 定向重采该完整产品 Action。
+
+旧 v5 合成报告一次性失效；不得保留双读、转换桥或把旧 synthetic scene 搬入 v6。新的 canonical 报告从 `inventory --output` 生成诚实的 `NOT_CAPTURED` 基线。
+
+离线 refresh 同样强制产品范围：`refresh --product <productId> --action <actionId>`。它只重算该产品投影并原样保留其它产品；不接收 `--child`，也不打开 Chrome。
+
+## 自验
+
+修改本 Skill、合同、矩阵、采集器或报告工具后运行：
 
 ```bash
-node --import tsx /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs candidate \
+python3 /Users/nexgen/.codex/skills/.system/skill-creator/scripts/quick_validate.py \
+  /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence
+node --import tsx .agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs inventory \
   --repo /Users/nexgen/Documents/AGENT \
   --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
-  --report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
-  --child child_id \
-  --facts live-state:observed_state,target:observed_target
-
-node --import tsx /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs admit \
-  --repo /Users/nexgen/Documents/AGENT \
-  --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
-  --report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
-  --child child_id \
-  --facts live-state:observed_state,target:observed_target \
-  --candidate exact_scoped_CHILDSET_digest
+  --read-only
+node .agents/skills/gpt-page-operation-evidence/scripts/production-source.acceptance.mjs
+node .agents/skills/gpt-page-operation-evidence/scripts/report-tool.acceptance.mjs
+node .agents/skills/gpt-page-operation-evidence/scripts/pipeline.acceptance.mjs
 ```
 
-`--facts` 不是绕过：未知事实、未观察事实或遗漏范围固定拒绝。运行原生质检时，用同一事实集合提供 `GPT_PAGE_EVIDENCE_SCOPE` JSON；不完整 Child 没有显式范围时失败关闭。完整 Child 无需该变量。法案或 Blueprint 中未点名任何页面 Child 的其它域变更只刷新离线投影，不得回退成 22 个 Child 全受影响。
-
-`admit` 必须返回 `evidenceBriefs`、`admissionReceipt` 和对应 hash。`evidenceBriefs` 直接给出目标事实在报告中的 observation、pointer 与 actual value，并带出相关真实 DOM、target/owner 关系、页面状态和动作后置；候选摘要必须绑定这些真实值的 hash。若只拿到事实名称、缺少 actual value、引用了派生 fixture 冒充现场，或真实值与准备采用的代码判断对不上，一律不得编辑。
-
-在第一次 `apply_patch` 前，执行者必须写出一份短映射：`本次行为 → factId → observation/pointer/actual value → 代码判断 → 明确不允许猜测的内容`。代码只能使用映射中已有的事实；报告没有的 selector、属性、owner 关系或终态只能记为 `PAGE_EVIDENCE_GAP`，不得凭经验补写。无法机械证明“模型是否认真看过”，因此生产门禁证明的是更可核验的三件事：实际值已输出、候选已绑定其 hash、修复后的目标测试和原生门禁仍对同一事实通过。
-
-只有返回 `ADMITTED` 且上述映射完成后才能施工。`--child all` 要求 22/22 完整；指定一个或一组 Child 时只审查这些 Child，某个 terminal 现场缺失不得连坐其余 Child。完整 Child 消费全部事实；不完整 Child 只能消费 `--facts` 明确列出的已观察事实。它同时强制：
-
-- 22 个页面操作 Child 全部在分母内；
-- 每个 Child 的合成输入或 Product Profile hash-only 授权输入与矩阵精确一致；
-- 目标 Child 的合同、需求摘要、实现语义、Product 消费者、Blueprint 与矩阵仍绑定当前候选；
-- 全量准入时目标 Child 的必需真实状态、必需派生负例、三圈资料和需求事实绑定 100% 齐全；事实范围准入时只允许报告已经绑定的观察事实；
-- required live 状态具有不同的现场签名；状态断言与页面字段一致；三个真实 terminal error 不得由派生 fixture 代替；
-- 报告无原始会话 ID、凭据、Cookie、存储或用户历史内容；
-- 报告没有把派生 fixture 冒充实时页面事实。
-- 动作链已绑定当前 Document/revision、目标/owner 关系、typed command、terminal receipt 与直接后置；纯观察 Child 明确标记 command/receipt 不适用。
-
-通过只代表“该报告的稳定页面快照已被准确候选的当前需求投影正确消费”。它不等于 `READY`、`RELEASE`、生产发布或 Website 入库。Child 修复后必须重新运行离线重投影、`admit`、覆盖本次映射的目标确定性测试和 AGENT 唯一 `quality:check`。不完整 Child 的原生门禁会深验所声明事实的 expected hash、真实 observation、pointer actual value、target 身份与现场签名，不能再用“报告里存在这个 factId”蒙混通过。不得把“每次修复后重新真实 Chrome 采集”设为常规门禁。若业务任务本身要求真实 GPT 页面执行，可以运行目标 Child；只有该执行报错并满足 `PAGE_EVIDENCE_CONFLICT_CONFIRMED` 的三方证据条件时，才转入重采集。
-
-## 更新原则
-
-- 当前报告只有一份；更新时原子替换，不在仓库里另建第二资料库或兼容轨道。
-- 历史 schema 不冒充当前格式；但同一当前 schema 下，代码版本或投影版本变化绝不能被伪装成页面快照失效，更不能借升级 `schemaVersion` 触发重采集。
-- 合同、矩阵、实现语义、Product 消费者或 Blueprint 改变时，`admit` 对受影响 Child 返回 `REPORT_PROJECTION_STALE`，随后只允许离线 `refresh`。刷新后若稳定快照覆盖需求即可继续消费；否则返回 `PAGE_EVIDENCE_GAP`。
-- provider build marker 只是一条风险信号，不是页面已变的证明，也不是重采集触发器。
-- 只有 `PAGE_EVIDENCE_CONFLICT_CONFIRMED` 或 `HUMAN_REQUESTED_RECAPTURE` 可以刷新页面快照；前者只刷新确认冲突的场景，后者按用户明确范围执行。
-- Skill、矩阵或报告不得被生产代码导入，不得向 Browser 公共调用传入 selector、JS 或坐标。
-- 任何不确定页面事实都应变成明确缺口，不能变成臆测 selector。
-
-## Skill 自验
-
-每次修改本 Skill、矩阵或校验器后，必须运行：
-
-```bash
-node /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/report-tool.acceptance.mjs
-node /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/scripts/pipeline.acceptance.mjs
-```
-
-它必须证明完整基线可以准入、范围准入会返回真实 actual value 且候选绑定其 hash，并证明复制 live 状态、`unchecked`/`checked` 矛盾、遗漏需求绑定、虚假 target、用派生数据替代真实 terminal 和伪造候选绑定都会失败。
+最后运行目标仓唯一 `quality:check -- CHANGE`。这些检查都不打开 Chrome；真实采集只由用户明确要求后，Codex 使用 Chrome 插件执行。
