@@ -210,17 +210,21 @@ import {
 {
   const { execute } = freshHarness();
   let simulatedNow = 0;
+  let waits = 0;
   const fixture = fakeBrowser((intent) => {
     if (intent.kind === "observe") {
       return coherentObservationPacket(intent, {
         ...responseFacts(),
-        generating: { rawCount: 1, eligibleCount: 1, matches: [{}] },
+        generating: waits === 0
+          ? { rawCount: 1, eligibleCount: 1, matches: [{}] }
+          : { rawCount: 0, eligibleCount: 0, matches: [] },
       }, conversationUrl);
     }
+    if (intent.kind === "readExactAssistantTurn") return exactAssistantTurnReply(intent, responseText);
     throw new Error(`UNEXPECTED_DOCUMENT_JUMP_TEXT_INTENT:${intent.kind}`);
   }, {
     navigationEpochAdvanceOnWait: 2,
-    onWait: (durationMs) => { simulatedNow += durationMs; },
+    onWait: (durationMs) => { waits += 1; simulatedNow += durationMs; },
   });
   const nativeDateNow = Date.now;
   Date.now = () => simulatedNow;
@@ -231,11 +235,42 @@ import {
     }, undefined, {
       yieldForProviderWait: (durationMs) => fixture.browser.wait({ durationMs }),
     });
-    assert.equal(result.status, "failed");
-    assert.equal(result.failureCode, "GPT_DOCUMENT_TRANSITION_FORBIDDEN:wait_for_stable_gpt_text");
+    assert.equal(result.status, "success", result.failureCode
+      ?? "Browser-proven forward Document reacquires must permit semantic text reproof");
+    assert.equal(result.value?.responseText, responseText);
   } finally {
     Date.now = nativeDateNow;
   }
+  assert.equal(waits, 2, "each forward reacquire must be followed by a fresh semantic observation");
+  assert.equal(fixture.browser.document.navigationEpoch, 5,
+    "GPT must not reinterpret multiple Browser-owned Document advances as an identity failure");
+}
+
+{
+  const { execute } = freshHarness();
+  let simulatedNow = 0;
+  let waits = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, responseFacts(), conversationUrl);
+    if (intent.kind === "readExactAssistantTurn") return exactAssistantTurnReply(intent, responseText);
+    throw new Error(`UNEXPECTED_SAME_DOCUMENT_REACQUIRE_TEXT_INTENT:${intent.kind}`);
+  }, { onWait: (durationMs) => { waits += 1; simulatedNow += durationMs; } });
+  const nativeDateNow = Date.now;
+  Date.now = () => simulatedNow;
+  try {
+    const result = await execute("wait_for_stable_gpt_text", fixture.browser, {
+      probeBudgetMs: 1_000, canonicalConversationUrl: conversationUrl,
+      conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
+    }, undefined, {
+      yieldForProviderWait: (durationMs) => fixture.browser.wait({ durationMs }),
+    });
+    assert.equal(result.status, "success", result.failureCode
+      ?? "a Browser-proven reacquire may retain the same current Document");
+  } finally {
+    Date.now = nativeDateNow;
+  }
+  assert.equal(waits, 1);
+  assert.equal(fixture.browser.document.navigationEpoch, 1);
 }
 
 {

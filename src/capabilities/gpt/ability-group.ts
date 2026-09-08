@@ -446,9 +446,12 @@ const executeOne = async <K extends GptChildCapabilityId>(
   const before = currentDocument(context);
   let documentBoundary = before;
   const isStableTextWait = intent.childCapabilityId === "wait_for_stable_gpt_text";
-  const advanceDocumentBoundary = (boundary: DocumentTransitionBoundary): void => {
+  const advanceDocumentBoundary = (
+    beforeBoundary: CurrentDocument,
+    boundary: DocumentTransitionBoundary,
+  ): void => {
     const after = currentDocument(context);
-    if (!documentTransitionAllowed(intent.childCapabilityId, documentBoundary, after, boundary)) {
+    if (!documentTransitionAllowed(intent.childCapabilityId, beforeBoundary, after, boundary)) {
       throw executionFailure("failed", `GPT_DOCUMENT_TRANSITION_FORBIDDEN:${intent.childCapabilityId}`);
     }
     documentBoundary = after;
@@ -457,8 +460,9 @@ const executeOne = async <K extends GptChildCapabilityId>(
     ...context,
     ...(isStableTextWait && context.yieldForProviderWait ? {
       yieldForProviderWait: async (durationMs: number): Promise<void> => {
+        const beforeBoundary = currentDocument(context);
         await context.yieldForProviderWait!(durationMs);
-        advanceDocumentBoundary("normal-provider-reacquire");
+        advanceDocumentBoundary(beforeBoundary, "normal-provider-reacquire");
       },
     } : {}),
     ...(isStableTextWait && context.navigateCrossConversationPoll ? {
@@ -466,9 +470,14 @@ const executeOne = async <K extends GptChildCapabilityId>(
         canonicalConversationUrl: string,
         probeDeadlineAt: number,
       ): Promise<"navigated" | "reobserve" | "deadline"> => {
+        const beforeBoundary = currentDocument(context);
         const outcome = await context.navigateCrossConversationPoll!(canonicalConversationUrl, probeDeadlineAt);
-        if (outcome === "navigated") advanceDocumentBoundary("exact-canonical-navigation");
-        if (outcome === "reobserve") advanceDocumentBoundary("normal-provider-reacquire");
+        if (outcome === "navigated") {
+          advanceDocumentBoundary(beforeBoundary, "exact-canonical-navigation");
+        }
+        if (outcome === "reobserve") {
+          advanceDocumentBoundary(beforeBoundary, "normal-provider-reacquire");
+        }
         return outcome;
       },
     } : {}),

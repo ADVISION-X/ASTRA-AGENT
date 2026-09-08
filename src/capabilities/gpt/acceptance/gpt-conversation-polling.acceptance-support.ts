@@ -99,6 +99,69 @@ import {
 
 {
   const { execute } = freshHarness();
+  let simulatedNow = 0;
+  const otherConversationUrl = `${conversationUrl}-stale-boundary`;
+  let fixture!: ReturnType<typeof fakeBrowser>;
+  fixture = fakeBrowser((intent, callNumber) => {
+    if (intent.kind === "observe") {
+      if (callNumber === 1) fixture.normalReacquire();
+      return coherentObservationPacket(
+        intent, responseFacts(), callNumber === 1 ? otherConversationUrl : conversationUrl,
+      );
+    }
+    if (intent.kind === "readExactAssistantTurn") return exactAssistantTurnReply(intent, responseText);
+    throw new Error(`UNEXPECTED_STALE_BOUNDARY_NAVIGATION_INTENT:${intent.kind}`);
+  }, { initialUrl: otherConversationUrl, onWait: (durationMs) => { simulatedNow += durationMs; } });
+  const nativeDateNow = Date.now;
+  Date.now = () => simulatedNow;
+  try {
+    const result = await execute("wait_for_stable_gpt_text", fixture.browser, {
+      probeBudgetMs: 1_000, canonicalConversationUrl: conversationUrl,
+      conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
+    }, undefined, {
+      navigateCrossConversationPoll: async (canonicalConversationUrl) => {
+        await fixture.browser.navigate({
+          url: canonicalConversationUrl, title: "poll exact GPT conversation",
+        });
+        return "navigated";
+      },
+    });
+    assert.equal(result.status, "success", result.failureCode
+      ?? "exact navigation must be checked from its immediate Browser boundary");
+    assert.equal(fixture.browser.document.navigationEpoch, 3);
+  } finally {
+    Date.now = nativeDateNow;
+  }
+}
+
+{
+  const { execute } = freshHarness();
+  const otherConversationUrl = `${conversationUrl}-discontinuous-navigation`;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      return coherentObservationPacket(intent, responseFacts(), otherConversationUrl);
+    }
+    throw new Error(`UNEXPECTED_DISCONTINUOUS_NAVIGATION_INTENT:${intent.kind}`);
+  }, { initialUrl: otherConversationUrl });
+  const result = await execute("wait_for_stable_gpt_text", fixture.browser, {
+    probeBudgetMs: 1_000, canonicalConversationUrl: conversationUrl,
+    conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
+  }, undefined, {
+    navigateCrossConversationPoll: async (canonicalConversationUrl) => {
+      fixture.normalReacquire();
+      await fixture.browser.navigate({
+        url: canonicalConversationUrl, title: "poll exact GPT conversation",
+      });
+      return "navigated";
+    },
+  });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, "GPT_CONVERSATION_URL_MISMATCH",
+    "a forward exact-navigation boundary must still fail when the fresh page identity is wrong");
+}
+
+{
+  const { execute } = freshHarness();
   const transientUrl = "https://chatgpt.com/c/WEB:transient-child";
   const fixture = fakeBrowser((intent) => {
     if (intent.kind === "observe") {

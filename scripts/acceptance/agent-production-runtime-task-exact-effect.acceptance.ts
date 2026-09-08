@@ -39,6 +39,14 @@ const call = Object.freeze({
   input: Object.freeze({ files: [], promptHash: HASH_A, turnMarker: "[GRASSEYE:task-exact-effect]" }),
 });
 
+const sequentialSubmitCall = Object.freeze({
+  productStepId: "provider-submit-b",
+  callId: "submit-once-b",
+  child: "submit_exact_gpt_turn_once" as const,
+  actionOrdinal: 16,
+  input: Object.freeze({ files: [], promptHash: HASH_B, turnMarker: "[GRASSEYE:task-exact-effect-b]" }),
+});
+
 const textHash = (value: string): ProductionHash =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
@@ -79,9 +87,12 @@ try {
     actionId: "produce_article",
   });
   const evidenceStore = createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(root));
-  const persistAttempt = async (attemptId: string): Promise<ProductionHash> => {
-    const intent = intentFor(providerTask, attemptId);
-    const evidenceHash = hashCanonical({ attemptId });
+  const persistAttempt = async (
+    attemptId: string,
+    exactCall: ProductGptAnyCallInput = call,
+  ): Promise<ProductionHash> => {
+    const intent = intentFor(providerTask, attemptId, exactCall);
+    const evidenceHash = hashCanonical({ attemptId, exactCallIdentityHash: intent.exactCallIdentityHash });
     const recordPayload = Object.freeze({
       schema_version: "agent-gpt-evidence-safe.v2",
       exact_call_identity_hash: intent.exactCallIdentityHash,
@@ -104,9 +115,9 @@ try {
     const appended = await evidenceStore.appendRecord({
       missionId: providerTask.job_id,
       runId: attemptId,
-      stepId: call.productStepId,
+      stepId: exactCall.productStepId,
       sourceCapabilityId: "gpt",
-      sourceChildCapabilityId: call.child,
+      sourceChildCapabilityId: exactCall.child,
       recordType: "evidence",
       recordPayload,
       idempotencyKey: `gpt-call-evidence:v1:${intent.exactCallIdentityHash}`,
@@ -327,25 +338,29 @@ try {
   );
   await confirmedExecution.settle(null);
 
+  const providerTurnDispatches = 1;
   const sameAttemptRecoveryAuthority = Object.assign(Object.create(null) as WorkbenchBrowserAuthority, {
-    readExactCallMutationFact: (input: Parameters<WorkbenchBrowserAuthority["readExactCallMutationFact"]>[0]) =>
-      input.exactCallIdentityHash === intentFor(providerTask, attempt1).exactCallIdentityHash ? ({
+    readExactCallMutationFact: (input: Parameters<WorkbenchBrowserAuthority["readExactCallMutationFact"]>[0]) => {
+      const exactCall = [call, sequentialSubmitCall].find((candidate) =>
+        intentFor(providerTask, attempt1, candidate).exactCallIdentityHash === input.exactCallIdentityHash);
+      return exactCall ? ({
         effectScope: "provider_effect" as const,
         outcome: "CONFIRMED" as const,
         mutationOutcome: "confirmed" as const,
         terminalAt: "2026-09-03T00:00:00.000Z",
         failureCode: null,
         nativeFailureCode: null,
-        authorityRef: "browser-mutation:same-attempt-submit",
+        authorityRef: `browser-mutation:same-attempt-${exactCall.callId}`,
         authorityHash: HASH_B,
-        targetRef: "target:1",
-        documentRef: "document:1",
-        productStepId: call.productStepId,
-        callId: call.callId,
-        childCapabilityId: call.child,
-        actionOrdinal: call.actionOrdinal,
-      }) : null,
-    countProviderTurnDispatches: () => 1,
+        targetRef: exactCall === call ? "target:1" : "target:2",
+        documentRef: exactCall === call ? "document:1" : "document:2",
+        productStepId: exactCall.productStepId,
+        callId: exactCall.callId,
+        childCapabilityId: exactCall.child,
+        actionOrdinal: exactCall.actionOrdinal,
+      }) : null;
+    },
+    countProviderTurnDispatches: () => providerTurnDispatches,
   });
   const responseText = "stable recovered assistant response";
   const responseHash = textHash(responseText);
@@ -370,6 +385,14 @@ try {
       return recoveryAssistantTurnReply(intent, responseText);
     }
     throw new Error(`UNEXPECTED_SAME_ATTEMPT_RECOVERY_INTENT:${intent.kind}`);
+  });
+  let completedReadbackParks = 0;
+  const originalPark = browser.park.bind(browser);
+  Object.assign(browser, {
+    park: async (input: Parameters<typeof browser.park>[0]) => {
+      completedReadbackParks += 1;
+      await originalPark(input);
+    },
   });
   Object.assign(sameAttemptRecoveryAuthority, {
     acquireJobBoundTargetLease: async () => browser,
@@ -427,6 +450,15 @@ try {
   assert.equal(terminalWait?.record.idempotencyKey,
     `gpt-call-terminal-evidence:v1:${waitIntent.exactCallIdentityHash}`);
   assert.equal((terminalWait?.record.payload as Readonly<Record<string, unknown>>).postcondition_result, "passed");
+  await persistAttempt(attempt1, sequentialSubmitCall);
+  const parksBeforeSequentialReadback = completedReadbackParks;
+  const sequentialConfirmedSubmit = await sameAttemptRecovery.tools.readCallFacts(sequentialSubmitCall);
+  assert.equal(sequentialConfirmedSubmit.mutation?.outcome, "CONFIRMED",
+    "the next Product step must read its own confirmed submit through the production facts entrypoint");
+  assert.equal(completedReadbackParks, parksBeforeSequentialReadback + 1,
+    "authorizing candidate B must park candidate A before replacing its readback authority");
+  assert.equal(providerTurnDispatches, 1,
+    "switching confirmed readback authority must not submit another provider turn");
   await sameAttemptRecovery.settle(null);
 
   const differentBinding = await secondExecution.tools.readCallFacts({

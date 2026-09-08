@@ -162,10 +162,10 @@ export const mergeConfirmedProviderSubmitReceipt = (
   return next;
 };
 
-export const authorizeConfirmedProviderSourceReadback = (input: Readonly<{
+export const authorizeConfirmedProviderSourceReadback = async (input: Readonly<{
   browsers: ProductionGptBrowserLifecycle;
   receipt: ConfirmedProviderSubmitReceipt;
-}>): void => input.browsers.authorizeConfirmedProviderSourceReadback(Object.freeze({
+}>): Promise<void> => input.browsers.authorizeConfirmedProviderSourceReadback(Object.freeze({
   schemaVersion: "browser-confirmed-provider-source-readback.v1",
   ...input.receipt,
   sourceChildCapabilityId: "submit_exact_gpt_turn_once",

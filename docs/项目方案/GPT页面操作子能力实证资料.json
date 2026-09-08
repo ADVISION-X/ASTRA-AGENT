@@ -1,18 +1,18 @@
 {
   "schemaVersion": "gpt-page-operation-evidence.v5",
-  "generatedAt": "2026-09-07T23:06:08.343Z",
+  "generatedAt": "2026-09-08T01:24:08.463Z",
   "repository": "AGENT",
   "candidateBinding": {
-    "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-    "clean": true,
-    "head": "c4f1180d2964a21fce145e520132996f26508817",
-    "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+    "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+    "clean": false,
+    "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+    "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
   },
-  "projectionRevision": "sha256:5f75e2755957eb745e7d00d198b75ee34893a69bbd2e6386a3c5548cd05dafe6",
+  "projectionRevision": "sha256:2ac9c3763b88dfdc8980449f552a00449918f357e8552a7656e67f7d9aae9376",
   "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
   "matrixBinding": {
     "schemaVersion": "gpt-page-operation-matrix.v4",
-    "digest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4"
+    "digest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52"
   },
   "purpose": "Offline engineering evidence for GPT children that operate a page",
   "evidenceRole": "stable Chrome page facts plus a cheap current-demand projection that every GPT page Child iteration must consume before editing",
@@ -167,14 +167,14 @@
         "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
       },
       "chain-text-wait": {
-        "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+        "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
         "kind": "PRIOR_CHILD_OUTPUT",
         "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
         "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-        "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-        "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+        "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+        "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
         "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-        "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+        "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
       }
     },
     "environment": {
@@ -2813,10 +2813,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-            "clean": true,
-            "head": "c4f1180d2964a21fce145e520132996f26508817",
-            "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+            "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+            "clean": false,
+            "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+            "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -2882,14 +2882,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-              "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+              "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+              "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+              "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
             }
           },
           "environment": {
@@ -2965,7 +2965,7 @@
             "schemaVersion": "gpt-page-operation-fixtures.v2",
             "syntheticOnly": true
           },
-          "matrixDigest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4",
+          "matrixDigest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52",
           "runId": "20260906-V30",
           "sceneManifest": [
             {
@@ -3108,8 +3108,8 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-checkpoint.acceptance-support.ts",
           "lines": [
-            307,
-            333
+            377,
+            403
           ]
         },
         {
@@ -5225,10 +5225,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-            "clean": true,
-            "head": "c4f1180d2964a21fce145e520132996f26508817",
-            "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+            "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+            "clean": false,
+            "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+            "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -5294,14 +5294,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-              "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+              "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+              "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+              "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
             }
           },
           "environment": {
@@ -5377,7 +5377,7 @@
             "schemaVersion": "gpt-page-operation-fixtures.v2",
             "syntheticOnly": true
           },
-          "matrixDigest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4",
+          "matrixDigest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52",
           "runId": "20260906-V30",
           "sceneManifest": [
             {
@@ -5526,7 +5526,7 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-checkpoint.acceptance-support.ts",
           "lines": [
-            161
+            162
           ]
         },
         {
@@ -7751,10 +7751,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-            "clean": true,
-            "head": "c4f1180d2964a21fce145e520132996f26508817",
-            "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+            "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+            "clean": false,
+            "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+            "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -7820,14 +7820,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-              "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+              "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+              "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+              "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
             }
           },
           "environment": {
@@ -7903,7 +7903,7 @@
             "schemaVersion": "gpt-page-operation-fixtures.v2",
             "syntheticOnly": true
           },
-          "matrixDigest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4",
+          "matrixDigest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52",
           "runId": "20260906-V30",
           "sceneManifest": [
             {
@@ -10159,10 +10159,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-            "clean": true,
-            "head": "c4f1180d2964a21fce145e520132996f26508817",
-            "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+            "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+            "clean": false,
+            "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+            "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -10228,14 +10228,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-              "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+              "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+              "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+              "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
             }
           },
           "environment": {
@@ -10311,7 +10311,7 @@
             "schemaVersion": "gpt-page-operation-fixtures.v2",
             "syntheticOnly": true
           },
-          "matrixDigest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4",
+          "matrixDigest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52",
           "runId": "20260906-V30",
           "sceneManifest": [
             {
@@ -13088,10 +13088,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-            "clean": true,
-            "head": "c4f1180d2964a21fce145e520132996f26508817",
-            "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+            "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+            "clean": false,
+            "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+            "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -13157,14 +13157,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-              "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+              "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+              "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+              "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
             }
           },
           "environment": {
@@ -13240,7 +13240,7 @@
             "schemaVersion": "gpt-page-operation-fixtures.v2",
             "syntheticOnly": true
           },
-          "matrixDigest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4",
+          "matrixDigest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52",
           "runId": "20260906-V30",
           "sceneManifest": [
             {
@@ -13390,7 +13390,7 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-polling.acceptance-support.ts",
           "lines": [
-            109
+            172
           ]
         },
         {
@@ -15582,10 +15582,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-            "clean": true,
-            "head": "c4f1180d2964a21fce145e520132996f26508817",
-            "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+            "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+            "clean": false,
+            "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+            "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -15651,14 +15651,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-              "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+              "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+              "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+              "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
             }
           },
           "environment": {
@@ -15734,7 +15734,7 @@
             "schemaVersion": "gpt-page-operation-fixtures.v2",
             "syntheticOnly": true
           },
-          "matrixDigest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4",
+          "matrixDigest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52",
           "runId": "20260906-V30",
           "sceneManifest": [
             {
@@ -15875,9 +15875,9 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-checkpoint.acceptance-support.ts",
           "lines": [
-            69,
-            92,
-            121
+            70,
+            93,
+            122
           ]
         },
         {
@@ -17974,10 +17974,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-            "clean": true,
-            "head": "c4f1180d2964a21fce145e520132996f26508817",
-            "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+            "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+            "clean": false,
+            "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+            "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -18043,14 +18043,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-              "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+              "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+              "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+              "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
             }
           },
           "environment": {
@@ -18126,7 +18126,7 @@
             "schemaVersion": "gpt-page-operation-fixtures.v2",
             "syntheticOnly": true
           },
-          "matrixDigest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4",
+          "matrixDigest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52",
           "runId": "20260906-V30",
           "sceneManifest": [
             {
@@ -20448,10 +20448,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-            "clean": true,
-            "head": "c4f1180d2964a21fce145e520132996f26508817",
-            "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+            "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+            "clean": false,
+            "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+            "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -20517,14 +20517,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-              "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+              "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+              "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+              "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
             }
           },
           "environment": {
@@ -20600,7 +20600,7 @@
             "schemaVersion": "gpt-page-operation-fixtures.v2",
             "syntheticOnly": true
           },
-          "matrixDigest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4",
+          "matrixDigest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52",
           "runId": "20260906-V30",
           "sceneManifest": [
             {
@@ -22935,10 +22935,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-            "clean": true,
-            "head": "c4f1180d2964a21fce145e520132996f26508817",
-            "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+            "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+            "clean": false,
+            "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+            "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -23004,14 +23004,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-              "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+              "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+              "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+              "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
             }
           },
           "environment": {
@@ -23087,7 +23087,7 @@
             "schemaVersion": "gpt-page-operation-fixtures.v2",
             "syntheticOnly": true
           },
-          "matrixDigest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4",
+          "matrixDigest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52",
           "runId": "20260906-V30",
           "sceneManifest": [
             {
@@ -25408,10 +25408,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-            "clean": true,
-            "head": "c4f1180d2964a21fce145e520132996f26508817",
-            "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+            "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+            "clean": false,
+            "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+            "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -25477,14 +25477,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-              "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+              "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+              "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+              "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
             }
           },
           "environment": {
@@ -25560,7 +25560,7 @@
             "schemaVersion": "gpt-page-operation-fixtures.v2",
             "syntheticOnly": true
           },
-          "matrixDigest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4",
+          "matrixDigest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52",
           "runId": "20260906-V30",
           "sceneManifest": [
             {
@@ -25701,7 +25701,7 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-checkpoint.acceptance-support.ts",
           "lines": [
-            50
+            51
           ]
         },
         {
@@ -27871,10 +27871,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-            "clean": true,
-            "head": "c4f1180d2964a21fce145e520132996f26508817",
-            "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+            "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+            "clean": false,
+            "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+            "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -27940,14 +27940,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-              "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+              "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+              "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+              "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
             }
           },
           "environment": {
@@ -28023,7 +28023,7 @@
             "schemaVersion": "gpt-page-operation-fixtures.v2",
             "syntheticOnly": true
           },
-          "matrixDigest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4",
+          "matrixDigest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52",
           "runId": "20260906-V30",
           "sceneManifest": [
             {
@@ -30380,10 +30380,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-            "clean": true,
-            "head": "c4f1180d2964a21fce145e520132996f26508817",
-            "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+            "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+            "clean": false,
+            "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+            "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -30449,14 +30449,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-              "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+              "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+              "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+              "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
             }
           },
           "environment": {
@@ -30532,7 +30532,7 @@
             "schemaVersion": "gpt-page-operation-fixtures.v2",
             "syntheticOnly": true
           },
-          "matrixDigest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4",
+          "matrixDigest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52",
           "runId": "20260906-V30",
           "sceneManifest": [
             {
@@ -33140,10 +33140,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-            "clean": true,
-            "head": "c4f1180d2964a21fce145e520132996f26508817",
-            "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+            "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+            "clean": false,
+            "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+            "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -33209,14 +33209,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-              "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+              "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+              "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+              "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
             }
           },
           "environment": {
@@ -33292,7 +33292,7 @@
             "schemaVersion": "gpt-page-operation-fixtures.v2",
             "syntheticOnly": true
           },
-          "matrixDigest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4",
+          "matrixDigest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52",
           "runId": "20260906-V30",
           "sceneManifest": [
             {
@@ -36003,10 +36003,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-            "clean": true,
-            "head": "c4f1180d2964a21fce145e520132996f26508817",
-            "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+            "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+            "clean": false,
+            "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+            "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-07T01:47:28.882Z",
@@ -36072,14 +36072,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-              "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+              "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+              "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+              "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
             }
           },
           "environment": {
@@ -36167,7 +36167,7 @@
             "schemaVersion": "gpt-page-operation-fixtures.v2",
             "syntheticOnly": true
           },
-          "matrixDigest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4",
+          "matrixDigest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52",
           "recaptureTrigger": {
             "kind": "HUMAN_REQUESTED_RECAPTURE",
             "requestedAt": "2026-09-07T02:07:41Z",
@@ -38197,10 +38197,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-            "clean": true,
-            "head": "c4f1180d2964a21fce145e520132996f26508817",
-            "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+            "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+            "clean": false,
+            "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+            "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -38266,14 +38266,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-              "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+              "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+              "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+              "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
             }
           },
           "environment": {
@@ -38349,7 +38349,7 @@
             "schemaVersion": "gpt-page-operation-fixtures.v2",
             "syntheticOnly": true
           },
-          "matrixDigest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4",
+          "matrixDigest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52",
           "runId": "20260906-V30",
           "sceneManifest": [
             {
@@ -40451,10 +40451,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-            "clean": true,
-            "head": "c4f1180d2964a21fce145e520132996f26508817",
-            "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+            "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+            "clean": false,
+            "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+            "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -40520,14 +40520,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-              "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+              "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+              "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+              "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
             }
           },
           "environment": {
@@ -40603,7 +40603,7 @@
             "schemaVersion": "gpt-page-operation-fixtures.v2",
             "syntheticOnly": true
           },
-          "matrixDigest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4",
+          "matrixDigest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52",
           "runId": "20260906-V30",
           "sceneManifest": [
             {
@@ -43253,10 +43253,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-            "clean": true,
-            "head": "c4f1180d2964a21fce145e520132996f26508817",
-            "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+            "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+            "clean": false,
+            "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+            "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -43322,14 +43322,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-              "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+              "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+              "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+              "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
             }
           },
           "environment": {
@@ -43405,7 +43405,7 @@
             "schemaVersion": "gpt-page-operation-fixtures.v2",
             "syntheticOnly": true
           },
-          "matrixDigest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4",
+          "matrixDigest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52",
           "runId": "20260906-V30",
           "sceneManifest": [
             {
@@ -43580,11 +43580,12 @@
           "path": "src/capabilities/gpt/acceptance/gpt-production-browser-readback.acceptance-support.ts",
           "lines": [
             109,
-            143,
-            255,
-            320,
-            331,
-            376
+            180,
+            225,
+            337,
+            402,
+            413,
+            458
           ]
         },
         {
@@ -45956,10 +45957,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-            "clean": true,
-            "head": "c4f1180d2964a21fce145e520132996f26508817",
-            "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+            "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+            "clean": false,
+            "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+            "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -46025,14 +46026,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-              "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+              "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+              "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+              "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
             }
           },
           "environment": {
@@ -46108,7 +46109,7 @@
             "schemaVersion": "gpt-page-operation-fixtures.v2",
             "syntheticOnly": true
           },
-          "matrixDigest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4",
+          "matrixDigest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52",
           "runId": "20260906-V30",
           "sceneManifest": [
             {
@@ -46249,8 +46250,8 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-checkpoint.acceptance-support.ts",
           "lines": [
-            362,
-            364
+            432,
+            434
           ]
         },
         {
@@ -47961,10 +47962,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-            "clean": true,
-            "head": "c4f1180d2964a21fce145e520132996f26508817",
-            "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+            "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+            "clean": false,
+            "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+            "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -48030,14 +48031,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-              "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+              "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+              "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+              "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
             }
           },
           "environment": {
@@ -48113,7 +48114,7 @@
             "schemaVersion": "gpt-page-operation-fixtures.v2",
             "syntheticOnly": true
           },
-          "matrixDigest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4",
+          "matrixDigest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52",
           "runId": "20260906-V30",
           "sceneManifest": [
             {
@@ -48227,16 +48228,16 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-checkpoint.acceptance-support.ts",
           "lines": [
-            286,
-            295
+            356,
+            365
           ]
         },
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-polling.acceptance-support.ts",
           "lines": [
-            144,
-            225,
-            283
+            207,
+            288,
+            346
           ]
         },
         {
@@ -48308,7 +48309,7 @@
         {
           "path": "src/capabilities/gpt/production-browser-lifecycle.ts",
           "lines": [
-            221
+            225
           ]
         },
         {
@@ -50324,10 +50325,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-            "clean": true,
-            "head": "c4f1180d2964a21fce145e520132996f26508817",
-            "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+            "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+            "clean": false,
+            "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+            "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -50393,14 +50394,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-              "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+              "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+              "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+              "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
             }
           },
           "environment": {
@@ -50476,7 +50477,7 @@
             "schemaVersion": "gpt-page-operation-fixtures.v2",
             "syntheticOnly": true
           },
-          "matrixDigest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4",
+          "matrixDigest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52",
           "runId": "20260906-V30",
           "sceneManifest": [
             {
@@ -50642,7 +50643,7 @@
         {
           "path": "src/capabilities/gpt/ability-group.ts",
           "lines": [
-            446
+            448
           ]
         },
         {
@@ -50666,22 +50667,25 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-checkpoint.acceptance-support.ts",
           "lines": [
-            144,
-            151,
-            195,
-            227,
-            234
+            145,
+            152,
+            196,
+            232,
+            261,
+            291
           ]
         },
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-polling.acceptance-support.ts",
           "lines": [
             75,
-            176,
-            205,
-            248,
-            308,
-            356
+            118,
+            146,
+            239,
+            268,
+            311,
+            371,
+            419
           ]
         },
         {
@@ -50710,8 +50714,8 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-production-browser-readback.acceptance-support.ts",
           "lines": [
-            367,
-            382
+            449,
+            464
           ]
         },
         {
@@ -50774,7 +50778,7 @@
         {
           "path": "src/capabilities/gpt/production-browser-lifecycle.ts",
           "lines": [
-            220
+            224
           ]
         },
         {
@@ -51035,8 +51039,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
-        "digest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+        "childCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
+        "digest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
         "facts": [
           {
             "expected": "wait for the exact assistant text to become stable across exact canonical navigation or Browser-proven normal reacquire",
@@ -51272,7 +51276,7 @@
           }
         ],
         "pageDemandDigest": "sha256:7ff16d346dce677d0d1d46a28755875b71319b93d50dba701992401265645330",
-        "projectionDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+        "projectionDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
@@ -51293,6 +51297,21 @@
           "browser": {
             "files": [
               {
+                "contentHash": "sha256:0206e31b73805695183c6782f35e5fd981cc1a56165118a74d7d3b2d245bc0cf",
+                "path": "src/capabilities/gpt/ability-group.ts",
+                "semanticHash": "sha256:d614090b8ff572a2738d9fd260f96fb9a416b6ac3066293976e821c5b5ef8574"
+              },
+              {
+                "contentHash": "sha256:6b771f9c152be30a1850ee225d8ce962ad0a2eb615f7f9a42c9bf885996b8a9a",
+                "path": "src/capabilities/gpt/document-transition-policy.ts",
+                "semanticHash": "sha256:c669f518d78b28940c2c3c74bca82f30aacac5166116a23fb12897222ec66294"
+              },
+              {
+                "contentHash": "sha256:3df1f2240ed6cb234c891b02b1718c16268e198867639067ce9d01bca3e47409",
+                "path": "src/capabilities/gpt/production-browser-lifecycle.ts",
+                "semanticHash": "sha256:39cb75bf1999c656be4b1f160b76f8890b1466a3bc5bf97a93504c54bbe88ba3"
+              },
+              {
                 "contentHash": "sha256:9108338816ba1b0b9965ebda681b13b4a1f884aeee8e1fa986576b2c5acf4e53",
                 "path": "src/lib/browser/chrome-extension/dom-coherent-observation.ts",
                 "semanticHash": "sha256:794d96dbcd156d803b93ed9c1b0ed7c7f2946b6812e263d51a34d975a356de45"
@@ -51303,7 +51322,7 @@
                 "semanticHash": "sha256:1a7023e1679a07b31866a07e3175e18d85e869b0126644e311ed07d18b44b61c"
               }
             ],
-            "semanticDigest": "sha256:d40ec2bc742a5e4a34b70d34b8e2776579d1a896895c6896227cf4c87ff7385c"
+            "semanticDigest": "sha256:8e416c2592574879f9cdf22e80660cd67860765cde25c4e03bf2818a783bc244"
           },
           "consumers": {
             "files": [
@@ -51423,8 +51442,8 @@
         }
       },
       "collection": {
-        "demandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
-        "childCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+        "demandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
+        "childCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
         "inputRefs": [
           "synthetic-rich-text-prompt",
           "chain-conversation-identity"
@@ -52972,10 +52991,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-            "clean": true,
-            "head": "c4f1180d2964a21fce145e520132996f26508817",
-            "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+            "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+            "clean": false,
+            "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+            "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -53041,14 +53060,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-              "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+              "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+              "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+              "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
             }
           },
           "environment": {
@@ -53124,7 +53143,7 @@
             "schemaVersion": "gpt-page-operation-fixtures.v2",
             "syntheticOnly": true
           },
-          "matrixDigest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4",
+          "matrixDigest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52",
           "runId": "20260906-V30",
           "sceneManifest": [
             {
@@ -53304,8 +53323,8 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-checkpoint.acceptance-support.ts",
           "lines": [
-            365,
-            369
+            435,
+            439
           ]
         },
         {
@@ -55653,10 +55672,10 @@
             "version": "chrome-extension-live"
           },
           "candidateBinding": {
-            "candidate": "SOURCE:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3",
-            "clean": true,
-            "head": "c4f1180d2964a21fce145e520132996f26508817",
-            "worktreeDigest": "sha256:afba4381f593f5c0763511176f7bdb7250661d68193e3767b95eb3af380656f3"
+            "candidate": "WORKTREE:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4",
+            "clean": false,
+            "head": "647a4f852082625f6bd5de28f3ef091fd8aef5af",
+            "worktreeDigest": "sha256:9f06e42963c4708e738a6678d8a2b362f004ee3ac92a0894755945e3e7be25e4"
           },
           "captureEpoch": "sha256:d57696a1ce7e22365b2d5565520432bfb71c1ed419f405307fc3dd486b80f3da",
           "capturedAt": "2026-09-06T11:05:50.870Z",
@@ -55722,14 +55741,14 @@
               "sourceDemandDigest": "sha256:e450588c43a30bb124533bca703262c4a1d682855951e2b91bad21dfdf8c5959"
             },
             "chain-text-wait": {
-              "evidenceRef": "wait_for_stable_gpt_text:sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
+              "evidenceRef": "wait_for_stable_gpt_text:sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7:wait_for_stable_gpt_text:text-stability-readback-alt-v30:live:sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
               "kind": "PRIOR_CHILD_OUTPUT",
               "observationId": "wait_for_stable_gpt_text:text-stability-readback-alt-v30:live",
               "observationSignature": "sha256:b26b31e030f3faad1aebaa57fcae84988ea77e10d654743eac039c786d6c19ca",
-              "sha256": "sha256:2f662a05abd2f0937af65aa514acbbfa7ad1d8ea85ef35ef5b48771505568e99",
-              "sourceChildCandidateDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc",
+              "sha256": "sha256:2c9caae84f6b87c870b8e6f52488911d45cd3c4b399b105ea47df0633accb4ca",
+              "sourceChildCandidateDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7",
               "sourceChildCapabilityId": "wait_for_stable_gpt_text",
-              "sourceDemandDigest": "sha256:79057926e48af2ac22a2e74e5ff1a61d014c30d2ba078087c7c749d3e93f03bc"
+              "sourceDemandDigest": "sha256:d2bb60cb192ab3f52d6986a2371455962c779ccf503e7d64e0793e545fbce5d7"
             }
           },
           "environment": {
@@ -55805,7 +55824,7 @@
             "schemaVersion": "gpt-page-operation-fixtures.v2",
             "syntheticOnly": true
           },
-          "matrixDigest": "sha256:617c01aa6b300410cfe2e01d65d2d1491b1c5cf719ac2be1417c3bca7617f9a4",
+          "matrixDigest": "sha256:fbc72897b07075216aaaef6a79bb79ae04dd71e97e02cef996a29d1521f75e52",
           "runId": "20260906-V30",
           "sceneManifest": [
             {

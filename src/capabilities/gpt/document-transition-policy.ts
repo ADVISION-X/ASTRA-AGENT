@@ -32,6 +32,9 @@ const hasCompleteDocument = (document: CurrentDocument): boolean =>
 const isSameDocument = (before: CurrentDocument, after: CurrentDocument): boolean =>
   before.ref === after.ref && before.navigationEpoch === after.navigationEpoch;
 
+const isForwardDocument = (before: CurrentDocument, after: CurrentDocument): boolean =>
+  after.navigationEpoch! > before.navigationEpoch! && after.ref !== before.ref;
+
 const isExactNextDocument = (before: CurrentDocument, after: CurrentDocument): boolean =>
   after.navigationEpoch === before.navigationEpoch! + 1 && after.ref !== before.ref;
 
@@ -47,7 +50,10 @@ export const documentTransitionAllowed = (
   if (before.targetRef !== after.targetRef) return false;
   if (policy === "forbidden") return isSameDocument(before, after);
   if (policy === "exact-navigation-or-normal-reacquire") {
-    return boundary === "ordinary" ? isSameDocument(before, after) : isExactNextDocument(before, after);
+    if (boundary === "ordinary") return isSameDocument(before, after);
+    return boundary === "normal-provider-reacquire"
+      ? isSameDocument(before, after) || isForwardDocument(before, after)
+      : isForwardDocument(before, after);
   }
   return isSameDocument(before, after) || isExactNextDocument(before, after);
 };

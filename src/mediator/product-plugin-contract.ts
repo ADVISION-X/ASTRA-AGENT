@@ -235,7 +235,13 @@ export const postCheckpointReceiverReceipt = (error: unknown): ProductCheckpoint
   handoffReceipt(error, "POST_CHECKPOINT_RECEIVER_FAULT:");
 
 const RESULT_HASH = /^sha256:[a-f0-9]{64}$/u;
+const MACHINE_CODE = /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$/u;
 const resultFailure = (code: string): never => { throw executionFailure("failed", code); };
+
+const postSubmitReadbackCauseCode = (code: string): string => {
+  const root = code.split(":", 1)[0] ?? "";
+  return MACHINE_CODE.test(root) ? root : "POST_SUBMIT_READBACK_FAULT";
+};
 
 export const postSubmitReadbackFault = (
   code: string,
@@ -247,7 +253,8 @@ export const postSubmitReadbackFault = (
     || !input.evidenceRef.trim() || !RESULT_HASH.test(input.evidenceHash)) {
     return executionFailure("failed", code);
   }
-  const receipt = Object.freeze({ ...input, outcome: "CONFIRMED" as const,
+  const receipt = Object.freeze({ ...input, causeCode: postSubmitReadbackCauseCode(code),
+    outcome: "CONFIRMED" as const,
     readbackMutationOutcome: "no" as const });
   return new ProductRuntimeHandoffFault(`POST_SUBMIT_READBACK_FAULT:${code}`, receipt, receipt);
 };

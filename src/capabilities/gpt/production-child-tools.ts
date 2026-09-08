@@ -186,7 +186,7 @@ export class ProductionGptChildTools {
         receipt,
       );
       if (receipt) {
-        try { authorizeConfirmedProviderSourceReadback({ browsers, receipt }); }
+        try { await authorizeConfirmedProviderSourceReadback({ browsers, receipt }); }
         catch (error) { throw carryConfirmedProviderSubmitReceipt(error, receipt); }
       }
       return productSafeExactGptCallFacts(facts);

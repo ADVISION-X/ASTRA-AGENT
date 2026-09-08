@@ -183,6 +183,7 @@ try {
   const postSubmitAttemptId = postSubmitOriginalJob.grant.attempt_id;
   const postSubmitCheckpointBodies: Record<string, unknown>[] = [];
   const postSubmitReleaseBodies: Record<string, unknown>[] = [];
+  const qualifiedPostSubmitCode = "GPT_DOCUMENT_TRANSITION_FORBIDDEN:wait_for_stable_gpt_text";
   await executeClaim(recoveryRuntimeState({
     store, dataDir: recoveryTemporary, incident: { accepted: postSubmitTask }, job: postSubmitOriginalJob,
     abort: new AbortController(),
@@ -191,8 +192,8 @@ try {
     ),
     execute: async () => {
       const terminalAt = new Date(Date.now() - 1_000).toISOString();
-      throw postSubmitReadbackFault("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", {
-        causeCode: "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE",
+      throw postSubmitReadbackFault(qualifiedPostSubmitCode, {
+        causeCode: qualifiedPostSubmitCode,
         exactCallIdentityHash: HASH_A,
         terminalAt,
         evidenceRef: "gpt-call-evidence:submit",
@@ -213,6 +214,11 @@ try {
   assert.equal(
     (postSubmitReleaseBodies[0]?.confirmed_submit as Record<string, unknown>)?.readback_mutation_outcome,
     "no",
+  );
+  assert.equal(
+    (postSubmitReleaseBodies[0]?.confirmed_submit as Record<string, unknown>)?.cause_code,
+    "GPT_DOCUMENT_TRANSITION_FORBIDDEN",
+    "the actual V6 lease-release body must carry a Website-valid machine-code root",
   );
   assert.equal(store.readTask(postSubmitTask.job_id)?.attempt_failure, null,
     "a confirmed-submit readback fault must release the lease without freezing attempt_failure");
@@ -235,6 +241,18 @@ try {
     assert.equal(postSubmitReadbackReceipt(preservedFailure)?.causeCode, code,
       `${code} must preserve the closed confirmed-submit receipt regardless of deadline age`);
   }
+  const qualifiedPostSubmitFailure = postSubmitReadbackFault(qualifiedPostSubmitCode, {
+    causeCode: qualifiedPostSubmitCode,
+    exactCallIdentityHash: HASH_A,
+    terminalAt: new Date(Date.now() - 1_000).toISOString(),
+    evidenceRef: "gpt-call-evidence:qualified-document-transition",
+    evidenceHash: HASH_B,
+  });
+  assert.equal(qualifiedPostSubmitFailure.code, `POST_SUBMIT_READBACK_FAULT:${qualifiedPostSubmitCode}`,
+    "the local failure must retain the exact Child-qualified diagnosis");
+  assert.equal(postSubmitReadbackReceipt(qualifiedPostSubmitFailure)?.causeCode,
+    "GPT_DOCUMENT_TRANSITION_FORBIDDEN",
+    "the V6 lease-release receipt must use the canonical machine-code root");
   const postSubmitReceipts = postSubmitCheckpointBodies.map((body) => checkpointReceipt(
     body as ReturnType<typeof recoveryCheckpointBody>, 1,
   ));

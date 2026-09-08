@@ -97,9 +97,10 @@ export class ProductionGptBrowserLifecycle {
     private readonly execution: GptBrowserExecutionInput,
   ) {}
 
-  public authorizeConfirmedProviderSourceReadback(
+  public async authorizeConfirmedProviderSourceReadback(
     authorization: BrowserConfirmedProviderSourceReadbackAuthorization,
-  ): void {
+  ): Promise<void> {
+    await this.releaseConfirmedReadbackForOtherProductStep(authorization.sourceProductStepId);
     const existing = this.confirmedProviderSourceReadback;
     if (existing && confirmedSourceReadbackIdentityHash(existing)
       !== confirmedSourceReadbackIdentityHash(authorization)) {
@@ -160,18 +161,7 @@ export class ProductionGptBrowserLifecycle {
     callId: string,
   ): Promise<ProductionGptBrowserCall> {
     if (!sessionKey) throw executionFailure("failed", "GPT_SESSION_KEY_REQUIRED");
-    const readbackSource = this.confirmedProviderReadback ?? this.confirmedProviderSourceReadback;
-    if (readbackSource && readbackSource.sourceProductStepId !== productStepId) {
-      for (const [key, active] of this.browsers) {
-        await active.browser.park({
-          reason: "gpt-confirmed-provider-readback-complete",
-          mode: "normal-provider-wait",
-        });
-        this.browsers.delete(key);
-      }
-      this.confirmedProviderSourceReadback = null;
-      this.confirmedProviderReadback = null;
-    }
+    await this.releaseConfirmedReadbackForOtherProductStep(productStepId);
     const current = this.browsers.get(sessionKey);
     if (current) return current;
     const browser = await this.acquireBrowserLease(productStepId, callId);
@@ -188,6 +178,20 @@ export class ProductionGptBrowserLifecycle {
     });
     this.browsers.set(sessionKey, active);
     return active;
+  }
+
+  private async releaseConfirmedReadbackForOtherProductStep(productStepId: string): Promise<void> {
+    const readbackSource = this.confirmedProviderReadback ?? this.confirmedProviderSourceReadback;
+    if (!readbackSource || readbackSource.sourceProductStepId === productStepId) return;
+    for (const [key, active] of this.browsers) {
+      await active.browser.park({
+        reason: "gpt-confirmed-provider-readback-complete",
+        mode: "normal-provider-wait",
+      });
+      this.browsers.delete(key);
+    }
+    this.confirmedProviderSourceReadback = null;
+    this.confirmedProviderReadback = null;
   }
 
   public async yieldForProviderWait(

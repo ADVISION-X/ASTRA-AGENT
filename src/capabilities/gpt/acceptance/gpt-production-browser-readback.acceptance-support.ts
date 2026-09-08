@@ -132,6 +132,88 @@ try {
   }]);
   await readbackLifecycle.settle(null);
 
+  const sequentialBindings: BrowserExecutionBinding[] = [];
+  const sequentialParks: Array<Readonly<{ reason: string; mode: string }>> = [];
+  const sequentialLifecycle = new ProductionGptBrowserLifecycle(
+    {
+      acquireJobBoundTargetLease: async (binding: BrowserExecutionBinding) => {
+        sequentialBindings.push(binding);
+        const authorization = binding.kind === "production-confirmed-source-readback"
+          ? binding.confirmedProviderSourceReadback
+          : binding.kind === "production-reconciliation"
+            ? binding.confirmedProviderReadback
+            : null;
+        return {
+          target: { targetRef: authorization?.sourceTargetRef ?? "target:sequential-normal" },
+          document: {
+            documentRef: authorization?.sourceDocumentRef ?? "document:sequential-normal",
+            targetRef: authorization?.sourceTargetRef ?? "target:sequential-normal",
+            navigationEpoch: 1,
+          },
+          pendingMutationCount: () => 0,
+          requiresMutationRecovery: () => false,
+          park: async (input: Readonly<{ reason: string; mode: string }>) => {
+            sequentialParks.push(input);
+          },
+          close: async () => undefined,
+        };
+      },
+    } as never,
+    runtimeLogger,
+    HASH_A,
+    {
+      jobId: waitTask.job_id, attemptId: "attempt:sequential-confirmed-readback",
+      pluginId: "localization-production", pluginVersion: 14,
+      deviceId: "device:1", leaseVersion: 1,
+      executionFenceHash: HASH_A, capabilityManifestHash: HASH_B,
+      expiresAtMonotonic: performance.now() + 10_000, commandTtlMs: 1_000,
+      abortSignal: new AbortController().signal,
+    },
+  );
+  const sequentialSource = (productStepId: string, suffix: string) => Object.freeze({
+    schemaVersion: "browser-confirmed-provider-source-readback.v1" as const,
+    sourceAttemptId: "attempt:sequential-confirmed-readback",
+    sourceExactCallIdentityHash: suffix === "a" ? HASH_A : HASH_B,
+    sourceActionOrdinal: 10,
+    sourceProductStepId: productStepId,
+    sourceCallId: "turn-submit",
+    sourceChildCapabilityId: "submit_exact_gpt_turn_once" as const,
+    sourceTargetRef: `target:sequential-${suffix}`,
+    sourceDocumentRef: `document:sequential-${suffix}`,
+    readbackDocumentRefHash: documentHash(`document:sequential-${suffix}:successor`),
+    sourceTerminalAt: new Date().toISOString(),
+    evidenceRef: `evidence:sequential-${suffix}`,
+    evidenceHash: suffix === "a" ? HASH_B : HASH_A,
+    promptHash: suffix === "a" ? HASH_A : HASH_B,
+    turnMarker: `[GRASSEYE:sequential-${suffix}]`,
+  });
+  const sequentialA = sequentialSource("batch:candidate-a", "a");
+  await sequentialLifecycle.authorizeConfirmedProviderSourceReadback(sequentialA);
+  await sequentialLifecycle.browserFor("session:sequential-a", sequentialA.sourceProductStepId, "turn-submit");
+  sequentialLifecycle.authorizeConfirmedProviderReadback({
+    ...sequentialA,
+    schemaVersion: "browser-confirmed-provider-readback.v1",
+    canonicalConversationUrl: "https://chatgpt.com/c/sequential-a",
+    conversationIdentityHash: HASH_A,
+  });
+  const sequentialB = sequentialSource("batch:candidate-b", "b");
+  await sequentialLifecycle.authorizeConfirmedProviderSourceReadback(sequentialB);
+  await sequentialLifecycle.browserFor("session:sequential-b", sequentialB.sourceProductStepId, "turn-submit");
+  assert.deepEqual(sequentialBindings.map((binding) => binding.kind), [
+    "production-confirmed-source-readback", "production-confirmed-source-readback",
+  ], "a later Product step must acquire only its own confirmed-submit readback authority");
+  const sequentialBBinding = sequentialBindings[1];
+  assert.equal(sequentialBBinding?.kind, "production-confirmed-source-readback");
+  if (sequentialBBinding?.kind !== "production-confirmed-source-readback") {
+    throw new Error("SEQUENTIAL_B_CONFIRMED_SOURCE_READBACK_BINDING_MISSING");
+  }
+  assert.deepEqual(sequentialBBinding.confirmedProviderSourceReadback, sequentialB,
+    "candidate B must acquire Browser authority with candidate B's exact confirmed-submit identity");
+  assert.deepEqual(sequentialParks, [{
+    reason: "gpt-confirmed-provider-readback-complete", mode: "normal-provider-wait",
+  }], "the completed candidate readback must be parked before the next confirmed source is authorized");
+  await sequentialLifecycle.settle(null);
+
   const confirmedAt = new Date().toISOString();
   const failureReadbackAuthorization: BrowserConfirmedProviderSourceReadbackAuthorization = Object.freeze({
     schemaVersion: "browser-confirmed-provider-source-readback.v1",
@@ -206,7 +288,7 @@ try {
       abortSignal: new AbortController().signal,
     },
   );
-  failureReadbackLifecycle.authorizeConfirmedProviderSourceReadback(failureReadbackAuthorization);
+  await failureReadbackLifecycle.authorizeConfirmedProviderSourceReadback(failureReadbackAuthorization);
   await failureReadbackLifecycle.browserFor(
     "session:confirmed-failure-readback", "corpus_research", "turn-reconcile",
   );
@@ -313,7 +395,7 @@ try {
   const activeFailureReadback = await activeFailureReadbackLifecycle.browserFor(
     "session:active-confirmed-failure-readback", "corpus_research", "turn-submit",
   );
-  activeFailureReadbackLifecycle.authorizeConfirmedProviderSourceReadback(failureReadbackAuthorization);
+  await activeFailureReadbackLifecycle.authorizeConfirmedProviderSourceReadback(failureReadbackAuthorization);
   await activeFailureReadback.facade.runAtomicStep({
     productStepId: failureReadbackAuthorization.sourceProductStepId,
     callId: failureReadbackAuthorization.sourceCallId,
