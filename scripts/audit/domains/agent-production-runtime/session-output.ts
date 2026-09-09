@@ -26,7 +26,7 @@ const LAW_MODE_CLAUSES: Readonly<Record<string, Readonly<Partial<Record<Evidence
     "static.ast": staticForbiddenClauses(0, 3),
     "static.types": staticForbiddenClauses(0),
     "static.contract": staticForbiddenClauses(0, 1, 2, 4, 5),
-    "static.dependency": staticClauses(3),
+    "static.dependency": staticClauses(3, 6),
   },
   "LAW-AGENT-PRODUCTION-RUNTIME-002-V3": {
     "static.filesystem": staticForbiddenClauses(0),

@@ -1,11 +1,5 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 
-import {
-  GRASSEYE_AUTO_PAIRING_ALARM,
-  GRASSEYE_TOOL_EXTENSION_ID,
-  PairingAutoBootstrap,
-  type WorkbenchPairingState,
-} from "../../src/lib/browser/chrome-extension/pairing-auto-bootstrap.js";
 import { ExtensionTargetAuthority } from "../../src/lib/browser/chrome-extension/extension-target-authority.js";
 import type { ExtensionChromeApi, ExtensionDebugTarget } from "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
 import type { BrowserTargetLeaseManager } from "../../src/lib/browser/exact-target/browser-target-lease-manager.js";
@@ -15,134 +9,13 @@ import { exerciseAuthenticatedMedia } from "./local-browser-authenticated-media-
 import { exerciseLocalBrowserDomIntent } from "./local-browser-dom-intent-support.js";
 import { emitLocalBrowserAutoPairingProofs } from "./local-browser-proof-support.js";
 import { browserDomFacts } from "./local-browser-dom-runtime-fixture.js";
-import { exercisePairingReadback } from "./local-browser-pairing-readback-support.js";
 import { exerciseForkFailureChildSurvival } from "./local-browser-fork-failure-support.js";
+import { exerciseAutomaticPairing } from "./local-browser-auto-pairing-support.js";
 
-const secret = "a".repeat(64);
-const currentBuild = "build-00000000-0000-4000-8000-000000000001";
-const nextBuild = "build-00000000-0000-4000-8000-000000000002";
-
-await exercisePairingReadback(secret, currentBuild);
-
-type RuntimeStartupListener = () => void;
 type TabActivatedListener = Parameters<ExtensionChromeApi["tabs"]["onActivated"]["addListener"]>[0];
 type TabUpdatedListener = Parameters<ExtensionChromeApi["tabs"]["onUpdated"]["addListener"]>[0];
 type DebuggerDetachListener = Parameters<ExtensionChromeApi["debugger"]["onDetach"]["addListener"]>[0];
-type AlarmListener = Parameters<ExtensionChromeApi["alarms"]["onAlarm"]["addListener"]>[0];
-
-const listeners: {
-  runtimeStartup?: RuntimeStartupListener;
-  tabUpdated?: TabUpdatedListener;
-  alarm?: AlarmListener;
-} = {};
-let createdAlarm: Readonly<{ name: string; periodInMinutes: number }> | null = null;
-let reloads = 0;
-const chromeApi: ExtensionChromeApi = {
-  runtime: {
-    id: GRASSEYE_TOOL_EXTENSION_ID,
-    getManifest: () => ({ version: "1.0.0" }),
-    getPlatformInfo: async () => ({}),
-    reload: () => { reloads += 1; },
-    onMessage: { addListener: () => undefined },
-    onStartup: { addListener: (listener) => { listeners.runtimeStartup = listener; } },
-  },
-  debugger: {
-    attach: async () => undefined,
-    detach: async () => undefined,
-    getTargets: async () => [],
-    sendCommand: async () => ({}),
-    onDetach: { addListener: () => undefined },
-    onEvent: { addListener: () => undefined },
-  },
-  tabs: {
-    create: async () => ({ id: 1 }),
-    get: async (tabId) => ({ active: true, discarded: false, id: tabId, status: "complete",
-      url: "https://chatgpt.com/", title: "ChatGPT", windowId: 1 }),
-    remove: async () => undefined,
-    update: async (tabId) => ({ active: true, discarded: false, id: tabId, status: "complete",
-      url: "https://chatgpt.com/", title: "ChatGPT", windowId: 1 }),
-    onActivated: { addListener: () => undefined },
-    onUpdated: { addListener: (listener) => { listeners.tabUpdated = listener; } },
-  },
-  alarms: {
-    create: async (name, alarmInfo) => { createdAlarm = { name, periodInMinutes: alarmInfo.periodInMinutes }; },
-    onAlarm: { addListener: (listener) => { listeners.alarm = listener; } },
-  },
-};
-
-let resolveRead: (value: WorkbenchPairingState) => void = () => { throw new Error("pairing read was not started"); };
-let reads = 0;
-let pairs = 0;
-const singleFlight = new PairingAutoBootstrap(
-  chromeApi,
-  { canAttemptAutomaticPairing: () => true, pair: async (value) => { assert.equal(value, secret); pairs += 1; } },
-  currentBuild,
-  () => {
-    reads += 1;
-    return new Promise<WorkbenchPairingState>((resolve) => { resolveRead = resolve; });
-  },
-);
-const first = singleFlight.attempt();
-const second = singleFlight.attempt();
-assert.equal(first, second, "concurrent wake events must share one in-flight pairing attempt");
-assert.equal(reads, 1);
-resolveRead({ authority: "absent", pairingSecret: secret, releaseBuildId: currentBuild });
-await first;
-assert.equal(pairs, 1);
-
-const staleBootstrap = new PairingAutoBootstrap(
-  chromeApi,
-  { canAttemptAutomaticPairing: () => true, pair: async () => { throw new Error("stale code must reload before pairing"); } },
-  currentBuild,
-  async () => ({ authority: "absent", pairingSecret: secret, releaseBuildId: nextBuild }),
-);
-await staleBootstrap.attempt();
-assert.equal(reloads, 1, "a different exact AGENT build identity must trigger one extension reload");
-
-let eventReads = 0;
-const eventBootstrap = new PairingAutoBootstrap(
-  chromeApi,
-  { canAttemptAutomaticPairing: () => true, pair: async () => undefined },
-  currentBuild,
-  async () => { eventReads += 1; return { authority: "present", pairingSecret: null, releaseBuildId: currentBuild }; },
-);
-eventBootstrap.start();
-await eventBootstrap.attempt();
-assert.deepEqual(createdAlarm, { name: GRASSEYE_AUTO_PAIRING_ALARM, periodInMinutes: 1 });
-assert.equal(eventReads, 1, "service-worker load must make one immediate attempt");
-
-listeners.runtimeStartup?.();
-await eventBootstrap.attempt();
-assert.equal(eventReads, 2, "Chrome startup must wake automatic pairing");
-listeners.tabUpdated?.(1, { status: "complete" }, { id: 1, url: "https://example.com/" });
-await Promise.resolve();
-assert.equal(eventReads, 2, "non-Workbench tabs must not wake pairing");
-listeners.tabUpdated?.(2, { status: "complete" }, { id: 2, url: "http://127.0.0.1:4173/" });
-await eventBootstrap.attempt();
-assert.equal(eventReads, 3, "the exact Workbench tab must wake automatic pairing");
-listeners.alarm?.({ name: "unrelated" });
-await Promise.resolve();
-assert.equal(eventReads, 3, "unrelated alarms must not wake pairing");
-listeners.alarm?.({ name: GRASSEYE_AUTO_PAIRING_ALARM });
-await eventBootstrap.attempt();
-assert.equal(eventReads, 4, "the sole fallback alarm must wake automatic pairing");
-
-const connectedBootstrap = new PairingAutoBootstrap(
-  chromeApi,
-  { canAttemptAutomaticPairing: () => false, pair: async () => { throw new Error("must not pair"); } },
-  currentBuild,
-  async () => { throw new Error("must not fetch"); },
-);
-await connectedBootstrap.attempt();
-
-const rejectedBootstrap = new PairingAutoBootstrap(
-  chromeApi,
-  { canAttemptAutomaticPairing: () => true, pair: async () => { throw new Error("must not pair"); } },
-  currentBuild,
-  async () => { throw new Error("BROWSER_PAIRING_ORIGIN_REJECTED"); },
-);
-await rejectedBootstrap.attempt();
-assert.equal(rejectedBootstrap.currentFailureCode(), "BROWSER_PAIRING_ORIGIN_REJECTED");
+const chromeApi = await exerciseAutomaticPairing();
 
 let createdTab: Readonly<{ active: false; url: string }> | null = null;
 let debuggerEvent: Parameters<ExtensionChromeApi["debugger"]["onEvent"]["addListener"]>[0] | null = null;
@@ -277,8 +150,8 @@ const targetChromeApi: ExtensionChromeApi = {
           targetTabActivated({ tabId: activeTabId, windowId: 1 });
         }
       }
-      return { active: tabId === activeTabId, discarded: discardedTabIds.has(tabId), id: tabId, status: "complete",
-        url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/", title: "ChatGPT", windowId: 1 };
+      return { active: tabId === activeTabId, discarded: discardedTabIds.has(tabId), id: tabId,
+        status: "complete", title: "ChatGPT", windowId: 1 };
     },
     remove: async (tabId) => {
       removedTabs.push(tabId);
@@ -289,7 +162,7 @@ const targetChromeApi: ExtensionChromeApi = {
       activeTabId = tabId;
       targetTabActivated({ tabId, windowId: 1 });
       return { active: true, discarded: false, id: tabId, status: "complete",
-        url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/", title: "ChatGPT", windowId: 1 };
+        title: "ChatGPT", windowId: 1 };
     },
     onActivated: { addListener: (listener) => { targetTabActivated = listener; } },
     onUpdated: { addListener: (listener) => { targetTabUpdated = listener; } },
@@ -348,6 +221,19 @@ assert.equal(firstInteractiveReceipt.postconditionVerified, true);
 assert.deepEqual(activatedTabs, [3], "the first inactive mutation must activate only the exact system Tab once");
 await targetAuthority.executeRegisteredCommand(simpleClick, interactionTarget, "mutation");
 assert.deepEqual(activatedTabs, [3], "an already-active system Tab must not call tabs.update again");
+
+const providerInputsBeforeOriginRejection = providerInputMethods.length;
+const acceptedInteractionOrigin = mainFrameUrlByTab.get(3);
+mainFrameUrlByTab.set(3, "http://127.0.0.1:4173/");
+const rejectedInteractionOrigin = await targetAuthority.executeRegisteredCommand(
+  simpleClick, interactionTarget, "mutation",
+) as Readonly<Record<string, unknown>>;
+assert.equal(rejectedInteractionOrigin.failureCode, "BROWSER_TARGET_NOT_INTERACTIVE");
+assert.equal(rejectedInteractionOrigin.nativeCauseCode, "BROWSER_ORIGIN_REJECTED");
+assert.equal(rejectedInteractionOrigin.mutationCount, 0);
+assert.equal(providerInputMethods.length, providerInputsBeforeOriginRejection,
+  "a rejected DevTools main-frame Origin must produce zero physical input");
+mainFrameUrlByTab.set(3, acceptedInteractionOrigin!);
 
 const providerInputsBeforeQualificationSwitch = providerInputMethods.length;
 mainFrameUrlByTab.set(3, "https://chatgpt.com/");

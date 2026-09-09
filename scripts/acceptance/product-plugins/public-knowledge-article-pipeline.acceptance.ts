@@ -185,8 +185,9 @@ await withFastHandoffs(researchRevisionState, () => plugin.execute(
 ));
 assert.equal(researchRevisionState.calls.filter((call) => call.child === "submit_exact_gpt_turn_once").length, 3,
   "research or collision rejection must create one corrected research article and image revision");
-const researchCorrectionPrompt = String(researchRevisionState.calls.find((call) =>
-  call.productStepId === "corpus_research" && call.child === "write_exact_gpt_prompt")?.input.prompt);
+const researchCorrectionPrompt = String(researchRevisionState.calls
+  .filter((call) => call.child === "write_exact_gpt_prompt")
+  .find((call) => call.productStepId === "corpus_research")?.input.prompt);
 assert.match(researchCorrectionPrompt, /RESULT_REVISION_CORRECTION_V1/u);
 assert.match(researchCorrectionPrompt, /PUBLIC_KNOWLEDGE_COLLISION_REJECTED/u);
 assert.match(researchCorrectionPrompt, new RegExp(researchRejection.receipt_hash, "u"));

@@ -14,6 +14,8 @@ import {
 } from "./inspector-support.js";
 
 const targetClaimAwaiterPath = "src/lib/browser/chrome-extension/websocket-target-claim-awaiter.ts";
+const interactionReadinessPath =
+  "src/lib/browser/chrome-extension/extension-interaction-readiness.ts";
 const sitePolicyPath = "src/lib/browser/exact-target/browser-site-policy-registry.ts";
 const targetLeaseManagerPath = "src/lib/browser/exact-target/browser-target-lease-manager.ts";
 const laneCoordinatorPath = "src/lib/browser/infrastructure/browser-lane-coordinator.ts";
@@ -43,23 +45,27 @@ const inspectInteractionAuthority = (
   lawId: string,
 ): void => {
   const authority = requireSource(context, findings, lawId, targetAuthorityPath);
+  const readiness = requireSource(context, findings, lawId, interactionReadinessPath);
   const runtime = requireSource(context, findings, lawId, extensionDebuggerRuntimePath);
   const actor = requireSource(context, findings, lawId, sourcePaths[1]);
   const commandRegistry = requireSource(context, findings, lawId, sourcePaths[8]);
-  if (!authority || !runtime || !actor || !commandRegistry) return;
+  if (!authority || !readiness || !runtime || !actor || !commandRegistry) return;
 
   const authorityClass = authority.getClass("ExtensionTargetAuthority");
   const execute = authorityClass?.getMethod("executeRegisteredCommand");
-  const ensure = authorityClass?.getMethod("ensureInteractionReady");
-  const assertReady = authorityClass?.getMethod("assertInteractionReady");
   const start = authorityClass?.getMethod("start");
+  const readinessClass = readiness.getClass("ExtensionInteractionReadiness");
+  const executeMutation = readinessClass?.getMethod("executeMutation");
+  const ensure = readinessClass?.getMethod("ensureInteractionReady");
+  const assertReady = readinessClass?.getMethod("assertInteractionReady");
   const activate = runtime.getClass("ExtensionDebuggerRuntime")?.getMethod("activateTab");
   const send = runtime.getClass("ExtensionDebuggerRuntime")?.getMethod("send");
   const admit = commandRegistry.getVariableDeclaration("admitExtensionCommand");
   const executeActor = actor.getClass("ExtensionWebSocketActor")?.getMethod("executeCommand");
-  if (!authorityClass || !execute || !ensure || !assertReady || !start || !activate || !send
+  if (!authorityClass || !execute || !readinessClass || !executeMutation || !ensure
+    || !assertReady || !start || !activate || !send
     || !admit || !executeActor) {
-    interactionReadinessFinding(findings, lawId, targetAuthorityPath,
+    interactionReadinessFinding(findings, lawId, interactionReadinessPath,
       "The existing Browser Authority must own the complete interaction-readiness gate.");
     return;
   }
@@ -73,23 +79,30 @@ const inspectInteractionAuthority = (
   const admitText = admit.getText();
   const actorText = executeActor.getText();
 
-  const authorityExact = executeText.includes('if (mutationClass !== "mutation") return execute()')
-    && exactCallCount(execute, "this.ensureInteractionReady") === 1
-    && exactCallCount(execute, "this.debuggerRuntime.withProviderInputGuard") === 1
+  const nonFrameUrlReads = readinessClass.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
+    .filter((property) => property.getName() === "url"
+      && property.getExpression().getText() !== "frame");
+  const authorityExact = executeText.includes('mutationClass === "mutation"')
+    && exactCallCount(execute, "this.interactionReadiness.executeMutation") === 1
+    && exactCallCount(executeMutation, "this.ensureInteractionReady") === 1
+    && exactCallCount(executeMutation, "this.debuggerRuntime.withProviderInputGuard") === 1
     && ensureText.includes("tab.active !== true")
     && exactCallCount(ensure, "this.debuggerRuntime.activateTab") === 1
     && exactCallCount(ensure, "this.debuggerRuntime.readTab") === 3
     && exactCallCount(ensure, "readExtensionMainFrame") === 1
-    && ensureText.includes("this.activeTarget?.targetRef !== target.targetRef")
-    && ensureText.includes("frame.loaderId !== this.activeLoaderId")
+    && ensureText.includes("activeState.target?.targetRef !== target.targetRef")
+    && ensureText.includes("frame.loaderId !== activeState.loaderId")
+    && exactCallCount(ensure, "requireGptWebPolicyForUrl") === 1
+    && nonFrameUrlReads.length === 0
     && ensureText.indexOf("this.recordActiveTab(windowId, target.tabId)")
       < ensureText.indexOf("readExtensionMainFrame(this.debuggerRuntime, target.tabId)")
     && ensureText.includes("active.generation !== activationGeneration")
     && assertText.includes("active.generation !== lease.generation")
-    && exactCallCount(assertReady, "this.targets.resolve") === 1
-    && exactCallCount(start, "this.chromeApi.tabs.onActivated.addListener") === 1;
-  if (!authorityExact) interactionReadinessFinding(findings, lawId, targetAuthorityPath,
-    "Mutation execution must use one exact-tab activation/readback lease and recheck its activation generation before every Provider input.");
+    && exactCallCount(assertReady, "this.resolveExactTarget") === 1
+    && exactCallCount(start, "this.chromeApi.tabs.onActivated.addListener") === 1
+    && startText.includes("this.interactionReadiness.recordActiveTab");
+  if (!authorityExact) interactionReadinessFinding(findings, lawId, interactionReadinessPath,
+    "Mutation execution must use one exact-tab activation/readback lease, DevTools main-frame Origin truth, and no Tab.url dependency.");
 
   const updateCalls = activate.getDescendantsOfKind(SyntaxKind.CallExpression)
     .filter((call) => call.getExpression().getText() === "this.chromeApi.tabs.update");

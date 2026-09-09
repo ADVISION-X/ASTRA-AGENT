@@ -78,6 +78,18 @@ const exerciseFileAndQualificationReceipts = (): void => {
   assert.throws(() => decodeBrowserMutationReceipt(clickCommand, crossKindFailure),
     /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
     "DOM commands must reject file-input-only qualification causes");
+  const interactionFailure = { ...crossKindFailure, candidateCount: 0,
+    qualificationStage: "candidate-set", failureCode: "BROWSER_TARGET_NOT_INTERACTIVE" };
+  assert.deepEqual(decodeBrowserMutationReceipt(clickCommand, {
+    ...interactionFailure, nativeCauseCode: "BROWSER_ORIGIN_REJECTED",
+  }), { terminal: "rejected", mutationOutcome: "no",
+    failureCode: "BROWSER_TARGET_NOT_INTERACTIVE", nativeCauseCode: "BROWSER_ORIGIN_REJECTED" });
+  for (const nativeCauseCode of ["BROWSER_DEVTOOLS_CONFLICT", "raw uncontrolled cause"]) {
+    assert.throws(() => decodeBrowserMutationReceipt(clickCommand, {
+      ...interactionFailure, nativeCauseCode,
+    }), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
+    "interaction receipts must reject every cause outside the fixed safe close set");
+  }
   for (const command of [clickCommand, keypressCommand, fillCommand] as const) {
     const failureCode = "BROWSER_DOM_ACTION_NOT_QUALIFIED" as const;
     const nativeCauseCode = command.intent.kind === "click"

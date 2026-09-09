@@ -27,6 +27,7 @@
     "scripts/acceptance/agent-production-runtime-recovery-contract.acceptance.ts",
     "scripts/acceptance/agent-production-runtime-recovery-resume.acceptance.ts",
     "scripts/acceptance/agent-production-runtime-session-rotation-support.ts",
+    "scripts/acceptance/agent-production-runtime-stale-fence.acceptance-support.ts",
     "scripts/acceptance/agent-production-runtime-startup-preflight.acceptance-support.ts",
     "scripts/acceptance/agent-production-runtime-startup.acceptance.ts",
     "scripts/acceptance/agent-production-runtime-task-exact-effect.acceptance.ts",
