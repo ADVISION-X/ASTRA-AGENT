@@ -11,6 +11,7 @@ import { createChromeSceneCollector } from "./chrome-scene-collector.mjs";
 import { candidateEntries } from "./assemble-live-capture.mjs";
 import { derivePageInputBindingProof } from "./page-input-binding.mjs";
 import { productRunFailures } from "./report-tool.mjs";
+import { requiredLiveStatesForTrace } from "./trace-page-requirements.mjs";
 
 const ASSEMBLER = resolve(new URL("./assemble-live-capture.mjs", import.meta.url).pathname);
 const COLLECTOR = resolve(new URL("./chrome-scene-collector.mjs", import.meta.url).pathname);
@@ -24,6 +25,21 @@ const jobId = "aiprod_pipeline_acceptance";
 const attemptId = "11111111-1111-4111-8111-111111111111";
 const runId = `${jobId}:${attemptId}`;
 const binding = { runId, captureEpoch: hash("capture-epoch"), qaTabIdentityHash: hash("tab") };
+
+const terminalBranchRequirement = {
+  requiredLiveStates: ["generating", "stable", "readback", "terminal-error"],
+  traceResultStatuses: {
+    generating: ["success", "failed"], stable: ["success"], readback: ["success"],
+    "terminal-error": ["failed"],
+  },
+  stateAssertions: { generating: [], stable: [], readback: [], "terminal-error": [] },
+};
+assert.deepEqual(requiredLiveStatesForTrace(terminalBranchRequirement,
+  { resultStatus: "success", mutationOutcome: "no", browserReceipts: [{}] }),
+["generating", "stable", "readback"]);
+assert.deepEqual(requiredLiveStatesForTrace(terminalBranchRequirement,
+  { resultStatus: "failed", mutationOutcome: "no", browserReceipts: [{}] }),
+["generating", "terminal-error"]);
 
 function sceneSignature(scene) {
   return hash(JSON.stringify({
@@ -97,7 +113,9 @@ function inputs(directory, traceCount = 1, includeProductCalls = true, duplicate
     traceEntryId: traceEntryIds[index],
     productStepId: `step-${index + 1}`, actionOrdinal: index + 1,
     childId: "submit_exact_gpt_turn_once", exactCallIdentityHash,
-    resultStatus: "success", inputBinding: {
+    resultStatus: "success", mutationOutcome: "confirmed", postconditionResult: "passed",
+    candidateCardinality: { raw: 1, eligible: 1 }, observationRevisionHash: hash(`revision-${index}`),
+    inputBinding: {
       schemaVersion: "gpt-page-input-binding.v1", source: "FORENSICS_SAFE_PROJECTION",
       inputHash: hash(`input-${index}`), roleHashes: {
         promptHash, responseHash: null, attachmentLabelHashes: [], attachmentSetHash: emptyAttachmentSetHash,
@@ -111,7 +129,7 @@ function inputs(directory, traceCount = 1, includeProductCalls = true, duplicate
     denominator: { pageOperationChildIds: ["submit_exact_gpt_turn_once", "unused_page_child"] },
     children: [{
       childCapabilityId: "submit_exact_gpt_turn_once", contractVersion: 4, pageOperationRequired: true,
-      contract: { profile: "PROVIDER_EFFECT_ONCE" },
+      contract: { profile: "PROVIDER_EFFECT_ONCE", allowedDocumentTransition: "forbidden" },
       webImplementationReferences: [{ path: "src/capabilities/gpt/children/submit_exact_gpt_turn_once/handler.ts" }],
       collectionRequirements: { requiredInputRefs: ["production-prompt-contract"] },
       evidenceDemand: { digest: hash("demand"), childCandidateDigest: hash("candidate"),
@@ -133,7 +151,16 @@ function inputs(directory, traceCount = 1, includeProductCalls = true, duplicate
       "pre-submit-ready": ["composer", "submit-control"],
       "post-submit-user-turn": ["user-turn"],
       "confirmed-submit-effect-readback": ["user-turn"],
-    }, childSpecificDerivedStates: [], stateAssertions: {},
+    }, childSpecificDerivedStates: [], stateAssertions: {
+      "pre-submit-ready": [{ path: "stateFacts.capturePhase", operator: "equals", value: "PRE_ACTION" }],
+      "post-submit-user-turn": [
+        { path: "related.transitionChain.typedCommand.kind", operator: "equals",
+          value: "CAPTURED_BROWSER_COMMAND" },
+        { path: "related.transitionChain.directPostcondition.passed", operator: "equals", value: true },
+      ],
+      "confirmed-submit-effect-readback": [{ path: "related.transitionChain.typedCommand.kind", operator: "equals",
+        value: "ZERO_ACTION" }],
+    },
   }, {
     childCapabilityId: "unused_page_child", requiredInputRefs: [], coreTargets: ["page-root"],
     requiredLiveStates: ["unused-state"], liveStateTargets: { "unused-state": ["page-root"] },
@@ -151,6 +178,7 @@ function inputs(directory, traceCount = 1, includeProductCalls = true, duplicate
     scene("post-user", [user], { transition: {
       actionId: "action:submit", operation: "click", issuedAt: pre.capturedAt, completedAt: pre.capturedAt,
       outcome: "DISPATCH_RETURNED", preSceneId: pre.sceneId, preSceneSignature: pre.stateSignature,
+      postconditionPassed: true,
     } }, userBindingFacts),
     scene("confirmed-user", [user], { decision: {
       kind: "ALREADY_SATISFIED", reason: "acceptance-only-input-detail",
@@ -216,12 +244,27 @@ async function main() {
         tag: "div", attributes: { "data-testid": "composer", "aria-label": "private aria" },
         domTree: { kind: "ELEMENT", tag: "div", attributes: { "data-testid": "composer" }, children: [
           { kind: "ELEMENT", tag: "span", attributes: { role: "presentation" },
-            children: [{ kind: "TEXT", value: "private product text" }] },
+            children: [{ kind: "TEXT", value: "private product text" },
+              { kind: "TEXT", value: "高" }] },
         ] },
         rect: { x: 1, y: 2, width: 30, height: 40 },
         style: { display: "block", visibility: "visible", opacity: "1" }, connected: true,
         directText: "private product text", subtreeText: "private product text",
         machineFacts: {}, ancestors: [{ tag: "main" }], siblings: [], media: null,
+      }, {
+        tag: "div", attributes: { role: "menuitem", "aria-label": "选择模型" },
+        domTree: { kind: "ELEMENT", tag: "div", attributes: { role: "menuitem", "aria-label": "选择模型" },
+          children: [] },
+        rect: { x: 1, y: 2, width: 30, height: 40 },
+        style: { display: "block", visibility: "visible", opacity: "1" }, connected: true,
+        directText: "", subtreeText: "", machineFacts: {}, ancestors: [{ tag: "main" }], siblings: [], media: null,
+      }, {
+        tag: "div", attributes: { "aria-label": "高" },
+        domTree: { kind: "ELEMENT", tag: "div", attributes: { "aria-label": "高" },
+          children: [{ kind: "TEXT", value: "高" }] },
+        rect: { x: 1, y: 2, width: 30, height: 40 },
+        style: { display: "block", visibility: "visible", opacity: "1" }, connected: true,
+        directText: "高", subtreeText: "高", machineFacts: {}, ancestors: [{ tag: "main" }], siblings: [], media: null,
       }],
     }) }) },
   };
@@ -232,6 +275,14 @@ async function main() {
   assert.match(collected.nodes[0].sanitizedOuterHtml, /<span role="presentation">/u);
   assert.equal(collected.nodes[0].sanitizedOuterHtml.includes("private product text"), false);
   assert.equal(collected.nodes[0].sanitizedDomTree.children[0].children[0].kind, "HASH_ONLY_TEXT");
+  assert.equal(collected.nodes[0].sanitizedDomTree.children[0].children[1].kind, "HASH_ONLY_TEXT",
+    "allowlisted UI words inside non-interactive business text must stay hash-only");
+  assert.equal(collected.nodes[1].attributes["aria-label"], "选择模型",
+    "allowlisted aria labels require matching interactive UI semantics");
+  assert.equal(collected.nodes[2].attributes["aria-label"].kind, "HASH_ONLY",
+    "an allowlisted word on a non-interactive aria-label must stay hash-only");
+  assert.equal(collected.nodes[2].textProjection.kind, "HASH_ONLY",
+    "an allowlisted word on non-interactive business text must stay hash-only");
   await assert.rejects(collector.collect("collector-invalid-decision", { decisionReceipt: {
     kind: "ALREADY_SATISFIED", debugNote: "must-not-pass",
   } }), /CHROME_SCENE_DECISION_RECEIPT_INVALID/u);
@@ -242,6 +293,7 @@ async function main() {
     actionId: "action:acceptance", operation: "click", issuedAt: collectedPre.capturedAt,
     completedAt: collectedPre.capturedAt, outcome: "DISPATCH_RETURNED",
     preSceneId: collectedPre.sceneId, preSceneSignature: collectedPre.stateSignature,
+    postconditionPassed: true,
     debugNote: "must-not-pass",
   } }), /CHROME_SCENE_TRANSITION_RECEIPT_INVALID/u);
 
@@ -249,6 +301,15 @@ async function main() {
   const capture = JSON.parse(await readFile(baseline.output, "utf8"));
   assert.equal(capture.schemaVersion, "gpt-page-operation-capture.v6");
   assert.equal(capture.productionSource.synthetic, false);
+  const baselineInputs = inputs(root);
+  const expectedSceneIds = new Set(Object.values(baselineInputs.mapping.productCalls)
+    .flatMap((entry) => Object.values(entry.states)));
+  for (const sceneId of [...expectedSceneIds]) {
+    const preSceneId = baselineInputs.scenes.find((entry) => entry.sceneId === sceneId)
+      ?.transitionReceipt?.preSceneId;
+    if (preSceneId) expectedSceneIds.add(preSceneId);
+  }
+  assert.deepEqual(capture.sceneManifest.map((entry) => entry.sceneId).sort(), [...expectedSceneIds].sort());
   assert.deepEqual(capture.children.map((entry) => entry.childCapabilityId), ["submit_exact_gpt_turn_once"]);
   assert.equal(capture.productRun.calls.length, 1);
   assert.equal(capture.productRun.calls[0].captureComplete, true);
@@ -294,6 +355,27 @@ async function main() {
   assert.equal(candidateEntries("source-turn-more-actions-control", multiTurnScene, exactCandidateContext)[0]
     .node.machineFacts.ownerTurnTestId, "conversation-turn-4");
 
+  const imagePromptHash = hash("image prompt");
+  const imageMarkerHash = hash("[GRASSEYE:333333333333333333333333]");
+  const imageTurn = node({ "data-testid": "conversation-turn-6" });
+  imageTurn.machineFacts.userRoleDescendants = 0;
+  imageTurn.machineFacts.assistantRoleDescendants = 0;
+  const semanticImage = node({}, false, "conversation-turn-6");
+  semanticImage.tag = "img";
+  semanticImage.media = { complete: true, naturalWidth: 1672, naturalHeight: 941, altLength: 12 };
+  const imageOnlyScene = { nodes: [imageTurn, semanticImage], pageFacts: {
+    conversationTurnBindings: [{ assistantTurnIdHash: hash("conversation-turn-6"),
+      precedingPromptHash: imagePromptHash, responseHash: hash(""), turnMarkerHashes: [imageMarkerHash] }],
+  } };
+  const imageCandidateContext = { imageChild: true, expectedPageInputRoles: {
+    promptHash: imagePromptHash, responseHash: null, turnMarkerHash: imageMarkerHash,
+    assistantTurnIdHash: null,
+  } };
+  assert.equal(candidateEntries("assistant-turn", imageOnlyScene, imageCandidateContext).length, 1,
+    "image assistant section must not require an inner assistant-role node");
+  assert.equal(candidateEntries("semantic-media-node", imageOnlyScene, imageCandidateContext).length, 1,
+    "semantic media must bind to the prompt-owned outer image section");
+
   const continuationRoles = ["promptHash", "responseHash", "conversationUrlHash", "turnMarkerHash", "assistantTurnIdHash"];
   const continuationExpected = { promptHash: hash("source-prompt"), responseHash: hash("source-response"),
     attachmentLabelHashes: null, attachmentSetHash: null, modelDisplayNameHash: null, reasoningRequirement: null,
@@ -325,6 +407,39 @@ async function main() {
     assert.equal(derivePageInputBindingProof(traceEntry,
       [{ ...specimen, stateFacts: mixedTurn }]).complete, false, `${childId}:mixed-turn`);
   }
+
+  const promptOnlyRoles = { promptHash, responseHash: null, attachmentLabelHashes: null,
+    attachmentSetHash: null, modelDisplayNameHash: null, reasoningRequirement: null,
+    conversationUrlHash: null, turnMarkerHash: null, assistantTurnIdHash: null };
+  const writeTrace = { childId: "write_exact_gpt_prompt", inputBinding: {
+    schemaVersion: "gpt-page-input-binding.v1", source: "FORENSICS_SAFE_PROJECTION",
+    inputHash: hash("write-input"), roleHashes: promptOnlyRoles } };
+  const wrongComposerWithOldTurn = { evidenceKind: "LIVE_PAGE", sourceSceneId: "write-wrong-source",
+    stateId: "exact-prompt-after", core: { targets: { composer: { observed: true } } }, stateFacts: {
+      exactComposerHash: hash("wrong composer"), exactUserPromptHashes: [promptHash],
+      userTurnBindings: [{ userTurnIdHash: hash("conversation-turn-1"), promptHash, turnMarkerHashes: [] }],
+    } };
+  assert.equal(derivePageInputBindingProof(writeTrace, [wrongComposerWithOldTurn]).complete, false,
+    "write prompt must bind the post-write composer, not an old user turn");
+  const exactComposer = structuredClone(wrongComposerWithOldTurn);
+  exactComposer.stateFacts.exactComposerHash = promptHash;
+  assert.equal(derivePageInputBindingProof(writeTrace, [exactComposer]).complete, true);
+
+  const submitTrace = { childId: "submit_exact_gpt_turn_once", inputBinding: {
+    schemaVersion: "gpt-page-input-binding.v1", source: "FORENSICS_SAFE_PROJECTION",
+    inputHash: hash("submit-input"), roleHashes: { ...promptOnlyRoles,
+      attachmentLabelHashes: [], attachmentSetHash: emptyAttachmentSetHash } } };
+  const targetOwner = hash("conversation-turn-3");
+  const wrongTargetUserTurn = { evidenceKind: "LIVE_PAGE", sourceSceneId: "submit-wrong-source",
+    stateId: "post-submit-user-turn", core: { targets: { "user-turn": { ownerTurnIdHash: targetOwner } } },
+    stateFacts: { exactComposerHash: promptHash, exactUserPromptHashes: [promptHash], attachmentLabelHashes: [],
+      userTurnBindings: [{ userTurnIdHash: hash("conversation-turn-1"), promptHash, turnMarkerHashes: [] },
+        { userTurnIdHash: targetOwner, promptHash: hash("different submitted prompt"), turnMarkerHashes: [] }] } };
+  assert.equal(derivePageInputBindingProof(submitTrace, [wrongTargetUserTurn]).complete, false,
+    "submit prompt must bind the selected post-submit user turn");
+  const exactTargetUserTurn = structuredClone(wrongTargetUserTurn);
+  exactTargetUserTurn.stateFacts.userTurnBindings[1].promptHash = promptHash;
+  assert.equal(derivePageInputBindingProof(submitTrace, [exactTargetUserTurn]).complete, true);
 
   const inputMismatchRoot = await mkdtemp(join(tmpdir(), "gpt-product-pipeline-input-mismatch-"));
   const inputMismatch = inputs(inputMismatchRoot);
@@ -371,6 +486,131 @@ async function main() {
   assert.deepEqual(productRunFailures(actualBranchCapture.productRun,
     stable(actualBranchCapture.productionSource), actualBranch.matrix, actualBranch.inventory,
     actualBranchCapture), []);
+
+  const diagnosticRoot = await mkdtemp(join(tmpdir(), "gpt-product-pipeline-diagnostic-dom-"));
+  const diagnostic = inputs(diagnosticRoot);
+  const diagnosticPost = diagnostic.scenes.find((entry) => entry.sceneId === "post-user");
+  diagnosticPost.nodes[0] = structuredClone(diagnosticPost.nodes[0]);
+  diagnosticPost.nodes[0].style.display = "none";
+  diagnosticPost.observationRevisionHash = hash(JSON.stringify({
+    documentIdentityHash: diagnosticPost.documentIdentityHash, url: diagnosticPost.url,
+    nodes: diagnosticPost.nodes, pageFacts: diagnosticPost.pageFacts,
+  }));
+  diagnosticPost.stateSignature = sceneSignature(diagnosticPost);
+  const diagnosticResult = await runAssembler(diagnostic);
+  const diagnosticCapture = JSON.parse(await readFile(diagnosticResult.output, "utf8"));
+  const diagnosticCall = diagnosticCapture.productRun.calls[0];
+  const failedSpecimen = diagnosticCall.domEvidence.specimens.find((entry) =>
+    entry.stateId === "post-submit-user-turn");
+  assert.equal(diagnosticCall.captureComplete, false);
+  assert.ok(diagnosticCall.gaps.some((gap) => gap.includes(
+    "PAGE_EVIDENCE_CONFLICT:target-not-unique:user-turn:raw=1:qualified=0",
+  )));
+  assert.equal(failedSpecimen.core.actionQualification.qualified, false);
+  assert.ok(failedSpecimen.core.targets["user-turn"].diagnosticDom.sanitizedOuterHtml.length > 0);
+
+  const underCapturedRoot = await mkdtemp(join(tmpdir(), "gpt-product-pipeline-undercaptured-"));
+  const underCaptured = inputs(underCapturedRoot);
+  const underCapturedTraceId = underCaptured.productionSource.actualTrace[0].traceEntryId;
+  delete underCaptured.mapping.productCalls[underCapturedTraceId].states["pre-submit-ready"];
+  delete underCaptured.mapping.productCalls[underCapturedTraceId].states["confirmed-submit-effect-readback"];
+  const underCapturedResult = await runAssembler(underCaptured);
+  const underCapturedCapture = JSON.parse(await readFile(underCapturedResult.output, "utf8"));
+  assert.deepEqual(underCapturedCapture.productRun.calls[0].pageRequirementSnapshot.requiredLiveStates,
+    ["pre-submit-ready", "post-submit-user-turn"]);
+  assert.equal(underCapturedCapture.productRun.calls[0].captureComplete, false);
+  assert.ok(underCapturedCapture.productRun.calls[0].gaps
+    .includes("PAGE_EVIDENCE_GAP:pre-submit-ready:scene-not-mapped"));
+
+  const noActionRoot = await mkdtemp(join(tmpdir(), "gpt-product-pipeline-no-action-"));
+  const noAction = inputs(noActionRoot);
+  const noActionTraceId = noAction.productionSource.actualTrace[0].traceEntryId;
+  noAction.productionSource.actualTrace[0].mutationOutcome = "no";
+  noAction.productionSource.actualTrace[0].browserReceipts = [];
+  noAction.productionSource.traceDigest = hash(JSON.stringify(stable(noAction.productionSource.actualTrace)));
+  noAction.mapping.productCalls[noActionTraceId].states = {
+    "confirmed-submit-effect-readback": "confirmed-user",
+  };
+  const noActionResult = await runAssembler(noAction);
+  const noActionCapture = JSON.parse(await readFile(noActionResult.output, "utf8"));
+  assert.deepEqual(noActionCapture.productRun.calls[0].pageRequirementSnapshot.requiredLiveStates,
+    ["confirmed-submit-effect-readback"]);
+  assert.equal(noActionCapture.productRun.calls[0].captureComplete, true);
+
+  const preBrowserFailureRoot = await mkdtemp(join(tmpdir(), "gpt-product-pipeline-pre-browser-failure-"));
+  const preBrowserFailure = inputs(preBrowserFailureRoot);
+  const failedTrace = preBrowserFailure.productionSource.actualTrace[0];
+  failedTrace.resultStatus = "failed";
+  failedTrace.mutationOutcome = "no";
+  failedTrace.postconditionResult = "failed";
+  failedTrace.failureCode = "BROWSER_PROVIDER_EFFECT_REPLAY_FORBIDDEN";
+  failedTrace.browserReceipts = [];
+  failedTrace.candidateCardinality = { raw: null, eligible: null };
+  failedTrace.observationRevisionHash = null;
+  preBrowserFailure.productionSource.traceDigest = hash(JSON.stringify(stable(
+    preBrowserFailure.productionSource.actualTrace,
+  )));
+  preBrowserFailure.productionSource.terminalBranch = "production-failure";
+  preBrowserFailure.productionSource.terminalBranchProof = {
+    kind: "DURABLE_FAILURE_AND_TRACE_TERMINAL", failedTraceEntryId: failedTrace.traceEntryId,
+    terminalSource: "ATTEMPT_FAILURE_ROW", durableFailureReceiptHash: hash("failure-row"),
+    durableFailureCodeHash: hash(failedTrace.failureCode), traceFailureCodeHash: hash(failedTrace.failureCode),
+    codeRelation: "EXACT", childCorrelation: "MATCHED", evidenceCorrelation: "NOT_DECLARED",
+  };
+  preBrowserFailure.mapping.productCalls = {};
+  const preBrowserFailureResult = await runAssembler(preBrowserFailure);
+  const preBrowserFailureCapture = JSON.parse(await readFile(preBrowserFailureResult.output, "utf8"));
+  assert.deepEqual(preBrowserFailureCapture.productRun.calls[0].pageRequirementSnapshot.requiredLiveStates, []);
+  assert.deepEqual(preBrowserFailureCapture.productRun.calls[0].domEvidence.specimens, []);
+  assert.equal(preBrowserFailureCapture.productRun.calls[0].captureComplete, true);
+  assert.deepEqual(preBrowserFailureCapture.productRun.calls[0].gaps, []);
+  assert.deepEqual(productRunFailures(preBrowserFailureCapture.productRun,
+    stable(preBrowserFailureCapture.productionSource), preBrowserFailure.matrix,
+    preBrowserFailure.inventory, preBrowserFailureCapture), []);
+
+  const failedPostconditionRoot = await mkdtemp(join(tmpdir(), "gpt-product-pipeline-postcondition-failed-"));
+  const failedPostcondition = inputs(failedPostconditionRoot);
+  failedPostcondition.scenes.find((entry) => entry.sceneId === "post-user")
+    .transitionReceipt.postconditionPassed = false;
+  failedPostcondition.scenes.find((entry) => entry.sceneId === "post-user").stateSignature = sceneSignature(
+    failedPostcondition.scenes.find((entry) => entry.sceneId === "post-user"),
+  );
+  failedPostcondition.mapping.productCalls[failedPostcondition.productionSource.actualTrace[0].traceEntryId]
+    .states["post-submit-user-turn"] = "post-user";
+  const failedPostconditionResult = await runAssembler(failedPostcondition);
+  const failedPostconditionCapture = JSON.parse(await readFile(failedPostconditionResult.output, "utf8"));
+  assert.equal(failedPostconditionCapture.productRun.calls[0].captureComplete, false);
+  assert.ok(failedPostconditionCapture.productRun.calls[0].domEvidence.specimens
+    .some((entry) => entry.stateId === "post-submit-user-turn"
+      && entry.related.transitionChain.directPostcondition.passed === false));
+  assert.ok(failedPostconditionCapture.productRun.calls[0].gaps.includes(
+    "PAGE_EVIDENCE_CONFLICT:STATE_ASSERTION:post-submit-user-turn:related.transitionChain.directPostcondition.passed:equals",
+  ));
+  assert.deepEqual(productRunFailures(failedPostconditionCapture.productRun,
+    stable(failedPostconditionCapture.productionSource), failedPostcondition.matrix,
+    failedPostcondition.inventory, failedPostconditionCapture), []);
+
+  const forbiddenTransitionRoot = await mkdtemp(join(tmpdir(), "gpt-product-pipeline-document-transition-"));
+  const forbiddenTransition = inputs(forbiddenTransitionRoot);
+  const forbiddenPost = forbiddenTransition.scenes.find((entry) => entry.sceneId === "post-user");
+  forbiddenPost.documentIdentityHash = hash("unexpected-successor-document");
+  forbiddenPost.observationRevisionHash = hash(JSON.stringify({
+    documentIdentityHash: forbiddenPost.documentIdentityHash, url: forbiddenPost.url,
+    nodes: forbiddenPost.nodes, pageFacts: forbiddenPost.pageFacts,
+  }));
+  forbiddenPost.stateSignature = sceneSignature(forbiddenPost);
+  const forbiddenResult = await runAssembler(forbiddenTransition);
+  const forbiddenCapture = JSON.parse(await readFile(forbiddenResult.output, "utf8"));
+  assert.equal(forbiddenCapture.productRun.calls[0].captureComplete, false);
+  assert.ok(forbiddenCapture.productRun.calls[0].domEvidence.specimens
+    .some((entry) => entry.stateId === "post-submit-user-turn"
+      && entry.documentIdentityHash === hash("unexpected-successor-document")));
+  assert.ok(forbiddenCapture.productRun.calls[0].gaps.includes(
+    "PAGE_EVIDENCE_CONFLICT:TRANSITION_DOCUMENT:post-submit-user-turn:forbidden-change",
+  ));
+  assert.deepEqual(productRunFailures(forbiddenCapture.productRun,
+    stable(forbiddenCapture.productionSource), forbiddenTransition.matrix,
+    forbiddenTransition.inventory, forbiddenCapture), []);
 
   const unknownStateRoot = await mkdtemp(join(tmpdir(), "gpt-product-pipeline-unknown-state-"));
   const unknownState = inputs(unknownStateRoot);

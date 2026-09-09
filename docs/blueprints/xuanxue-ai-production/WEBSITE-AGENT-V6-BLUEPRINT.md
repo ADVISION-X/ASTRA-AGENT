@@ -7,14 +7,14 @@
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V45",
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V46",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V3",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V15",
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V15",
-    "LAW-AGENT-PRODUCTION-RUNTIME-005-V13",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V15",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V15",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V16"
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V16",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V16",
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V14",
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V16",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V16",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V17"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -35,9 +35,9 @@
     {"contractRef":null,"from":{"domain":"startup-entrypoint","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"}}
   ],
   "prohibitedDependencyEdges": [
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V45","to":{"domain":"app-shell-ui","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V45","to":{"domain":"local-app-shell","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V45","to":{"domain":"startup-entrypoint","repo":"local"}}
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V46","to":{"domain":"app-shell-ui","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V46","to":{"domain":"local-app-shell","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V46","to":{"domain":"startup-entrypoint","repo":"local"}}
   ]
 }
 ```
@@ -138,7 +138,7 @@ Runtime 自身代码保持 production 目录内的直接模块关系。不得新
 Website ai-acceptance 是唯一 provider。AGENT 三份 spec 的现役身份为：
 
 - Agent Plugin Capability Manifest provider：version 3；authorityArtifact 路径、selector 与 provider spec 只定义 Manifest 的规范字段和 schema。任一 Product Profile/Skill/执行语义变化必须提升对应 `plugin_version` 并重算 canonical catalog hash；只有 Manifest 规范字段或 schema 变化才提升 provider spec version，禁止用旧 Plugin identity/hash 掩盖语义变化；
-- Website Agent Task Result consumer dependency：version 5；
+- Website Agent Task Result consumer dependency：version 6；
 - Xuanxue AI Production V6 consumer dependency：version 18。
 
 consumer dependency 的 contract body 只能包含 contractId、version、providerRepo。普通启动只校验本仓最小 dependency，不读取未绑定 Website 工作树；跨仓 participant commit 只属于 RELEASE 证据。

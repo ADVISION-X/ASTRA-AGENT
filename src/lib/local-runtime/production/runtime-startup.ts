@@ -177,8 +177,10 @@ export const reconcileTaskRecord = (
   if (acceptedBeforeFirstCheckpoint(persisted, storedLease, checkpoint)) return true;
   let complete = true;
   if (lease) {
+    const permanentlyRevokedLeaseReleased = lease.state === "absent"
+      && persisted.current_reason === "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED";
     if (nonterminal && !remoteRedeliveryPending
-      && lease.state !== "stale") complete = false;
+      && lease.state !== "stale" && !permanentlyRevokedLeaseReleased) complete = false;
   } else if (nonterminal && !remoteRedeliveryPending) {
     complete = false;
   }

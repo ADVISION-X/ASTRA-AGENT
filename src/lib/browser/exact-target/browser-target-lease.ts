@@ -22,6 +22,10 @@ export type BrowserAtomicStepRecovery = Readonly<{
   authorityHash: `sha256:${string}`;
   targetRef: string;
   documentRef: string;
+  physicalInputCount: 0 | 1 | 2;
+  downloadGuidHash: `sha256:${string}` | null;
+  downloadCompleted: boolean;
+  identityRevalidated: boolean;
 }>;
 
 export type BrowserApprovedArtifactRef = Readonly<{
@@ -67,6 +71,7 @@ export type BrowserTargetLease = Readonly<{
   downloadAuthenticatedMedia(input: Readonly<{
     assistantTurnId: string;
     semanticMediaId: "gpt-generated-image-main";
+    delivery: "probe" | "visible-download";
   }>): Promise<Readonly<{
     authorityTargetHash: `sha256:${string}`;
     authorityDocumentHash: `sha256:${string}`;

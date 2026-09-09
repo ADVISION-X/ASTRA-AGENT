@@ -3,6 +3,9 @@ import { createHash, webcrypto } from "node:crypto";
 import { runInNewContext } from "node:vm";
 
 import type { ExtensionTargetAuthority } from "../../src/lib/browser/chrome-extension/extension-target-authority.js";
+import { generatedImageViewerLabel } from "../../src/lib/browser/chrome-extension/authenticated-media-runtime.js";
+import { ExtensionDebuggerRuntime } from "../../src/lib/browser/chrome-extension/debugger-runtime.js";
+import type { ExtensionChromeApi } from "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
 
 type Runtime = (expression: string) => Promise<unknown>;
 class TestElement { public isConnected = true; }
@@ -26,6 +29,7 @@ const command = {
   kind: "authenticated-media" as const,
   assistantTurnId: "conversation-turn-6",
   semanticMediaId: "gpt-generated-image-main" as const,
+  delivery: "probe" as const,
 };
 
 const runtime = (input: Readonly<{
@@ -59,12 +63,72 @@ const turn = (images: readonly TestImage[]): TestElement => Object.assign(new Te
   querySelectorAll: (selector: string) => selector === "img[alt]" ? images : [],
 });
 
+const exerciseNativeDownloadEvent = async (): Promise<void> => {
+  let debuggerEvent: Parameters<ExtensionChromeApi["debugger"]["onEvent"]["addListener"]>[0]
+    = () => undefined;
+  const methods: string[] = [];
+  const chromeApi = {
+    debugger: {
+      attach: async () => undefined,
+      detach: async () => undefined,
+      getTargets: async () => [],
+      sendCommand: async (_target: unknown, method: string) => {
+        methods.push(method);
+        return method === "Page.getFrameTree"
+          ? { frameTree: { frame: { id: "frame-7", loaderId: "loader-7", url: "https://chatgpt.com/c/test" } } }
+          : {};
+      },
+      onDetach: { addListener: () => undefined },
+      onEvent: { addListener: (listener: typeof debuggerEvent) => { debuggerEvent = listener; } },
+    },
+  } as unknown as ExtensionChromeApi;
+  const runtime = new ExtensionDebuggerRuntime(chromeApi);
+  await runtime.attach(7);
+  const started: string[] = [];
+  const completed = await runtime.captureCompletedDownload(7, 8, 1_000, async () => {
+    debuggerEvent({ tabId: 7 }, "Browser.downloadWillBegin", { guid: "download-guid-1", frameId: "frame-7" });
+    debuggerEvent({ tabId: 7 }, "Browser.downloadProgress", {
+      guid: "download-guid-1", state: "completed", receivedBytes: 8, totalBytes: 8,
+    });
+  }, async ({ guid }) => { started.push(guid); });
+  assert.deepEqual(completed, { guid: "download-guid-1", totalBytes: 8 });
+  assert.deepEqual(started, ["download-guid-1"]);
+  assert.deepEqual(methods, ["Page.getFrameTree", "Browser.setDownloadBehavior"]);
+  await assert.rejects(runtime.captureCompletedDownload(7, 8, 1_000, async () => {
+    debuggerEvent({ tabId: 7 }, "Browser.downloadWillBegin", { guid: "download-guid-2", frameId: "frame-7" });
+    debuggerEvent({ tabId: 7 }, "Browser.downloadProgress", {
+      guid: "download-guid-2", state: "completed", receivedBytes: 7, totalBytes: 7,
+    });
+  }, async () => undefined), /BROWSER_DOWNLOAD_BYTES_MISMATCH/u);
+  await assert.rejects(runtime.captureCompletedDownload(7, 8, 1_000, async () => {
+    debuggerEvent({ tabId: 7 }, "Browser.downloadWillBegin", { guid: "download-guid-3", frameId: "wrong-frame" });
+  }, async () => undefined), /BROWSER_DOWNLOAD_IDENTITY_MISMATCH/u);
+  await assert.rejects(runtime.captureCompletedDownload(7, 8, 1_000, async () => {
+    debuggerEvent({ tabId: 7 }, "Browser.downloadWillBegin", { guid: "download-guid-4", frameId: "frame-7" });
+    debuggerEvent({ tabId: 7 }, "Browser.downloadWillBegin", { guid: "download-guid-5", frameId: "frame-7" });
+  }, async () => undefined), /BROWSER_DOWNLOAD_MULTIPLE/u);
+  await assert.rejects(runtime.captureCompletedDownload(7, 8, 1_000, async () => {
+    debuggerEvent({ tabId: 7 }, "Browser.downloadWillBegin", { guid: "download-guid-6", frameId: "frame-7" });
+    debuggerEvent({ tabId: 7 }, "Browser.downloadProgress", {
+      guid: "download-guid-6", state: "canceled", receivedBytes: 4, totalBytes: 8,
+    });
+  }, async () => undefined), /BROWSER_DOWNLOAD_INTERRUPTED/u);
+  await assert.rejects(runtime.captureCompletedDownload(7, 8, 1, async () => undefined,
+    async () => undefined), /BROWSER_DOWNLOAD_TIMEOUT/u);
+};
+
 export const exerciseAuthenticatedMedia = async (input: Readonly<{
   authority: Pick<ExtensionTargetAuthority, "executeRegisteredCommand" | "resolve">;
   targetRef: string;
   documentRef: string;
   setRuntime(value: Runtime | null): void;
 }>): Promise<void> => {
+  assert.equal(generatedImageViewerLabel("已生成图片：阴干十二长生辨析图卷"), "阴干十二长生辨析图卷");
+  for (const invalidAlt of ["阴干十二长生辨析图卷", "已生成图片：", "已生成图片： 标题", "已生成图片：e\u0301"]) {
+    assert.equal(generatedImageViewerLabel(invalidAlt), null,
+      "only the exact generated-image prefix plus a non-empty NFC title may bind the viewer");
+  }
+  await exerciseNativeDownloadEvent();
   const authority = input.authority.resolve(input.targetRef, input.documentRef);
   const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
   const images = [

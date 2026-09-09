@@ -62,7 +62,7 @@ export const waitForStableGptImageHandler: GptChildHandler<"wait_for_stable_gpt_
       if (assistantTurnId && observed.generatingRaw === 0) {
         try {
           const media = await browser.downloadAuthenticatedMedia({
-            assistantTurnId, semanticMediaId: "gpt-generated-image-main",
+            assistantTurnId, semanticMediaId: "gpt-generated-image-main", delivery: "probe",
           });
           if (Date.now() >= deadline) break;
           if (!documentOwnsMedia(observed.facts.authorityRefHashes, media)) {

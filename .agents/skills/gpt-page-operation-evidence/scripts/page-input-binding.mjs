@@ -34,6 +34,21 @@ const REQUIRED_ROLES = Object.freeze({
   fork_exact_gpt_conversation_at_checkpoint: ["promptHash", "responseHash", "conversationUrlHash", "turnMarkerHash", "assistantTurnIdHash"],
 });
 
+const PROMPT_EVIDENCE_POLICY = Object.freeze({
+  reconcile_gpt_draft: Object.freeze({ source: "COMPOSER", states: Object.freeze([
+    "exact-draft-ready", "draft-readback-stable",
+  ]) }),
+  write_exact_gpt_prompt: Object.freeze({ source: "COMPOSER", states: Object.freeze([
+    "exact-prompt-after", "prompt-already-exact",
+  ]) }),
+  reconcile_gpt_turn_submission: Object.freeze({ source: "TARGET_USER_TURN", states: Object.freeze([
+    "hydrated-exact-user-turn", "submitted-turn-effect-readback",
+  ]) }),
+  submit_exact_gpt_turn_once: Object.freeze({ source: "TARGET_USER_TURN", states: Object.freeze([
+    "post-submit-user-turn", "confirmed-submit-effect-readback",
+  ]) }),
+});
+
 const stable = (value) => Array.isArray(value) ? value.map(stable)
   : value && typeof value === "object"
     ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, stable(value[key])]))
@@ -92,6 +107,13 @@ const validTurnBinding = (value) => exactKeys(value,
   && new Set(value.turnMarkerHashes).size === value.turnMarkerHashes.length
   && JSON.stringify(value.turnMarkerHashes) === JSON.stringify([...value.turnMarkerHashes].sort());
 
+const validUserTurnBinding = (value) => exactKeys(value,
+  ["promptHash", "turnMarkerHashes", "userTurnIdHash"])
+  && HASH.test(value.userTurnIdHash ?? "") && HASH.test(value.promptHash ?? "")
+  && Array.isArray(value.turnMarkerHashes) && value.turnMarkerHashes.every((entry) => HASH.test(entry ?? ""))
+  && new Set(value.turnMarkerHashes).size === value.turnMarkerHashes.length
+  && JSON.stringify(value.turnMarkerHashes) === JSON.stringify([...value.turnMarkerHashes].sort());
+
 const turnBindingMatches = (requiredRoles, binding, facts) => {
   const tupleRoles = requiredRoles.filter((role) => TURN_TUPLE_ROLES.includes(role));
   if (tupleRoles.length < 2) return true;
@@ -118,9 +140,25 @@ const reasoningMatches = (expected, fact) => {
   return expected.requestedTier === "pro_standard" && current === maximum;
 };
 
-const roleMatched = (role, expected, facts) => {
+const promptMatched = (traceEntry, expected, specimen, requiredRoles) => {
+  const facts = specimen?.stateFacts ?? {};
+  const policy = PROMPT_EVIDENCE_POLICY[traceEntry?.childId];
+  if (policy) {
+    if (!policy.states.includes(specimen?.stateId)) return false;
+    if (policy.source === "COMPOSER") return facts.exactComposerHash === expected;
+    const targetOwner = specimen?.core?.targets?.["user-turn"]?.ownerTurnIdHash;
+    return HASH.test(targetOwner ?? "") && (facts.userTurnBindings ?? []).some((binding) =>
+      validUserTurnBinding(binding) && binding.userTurnIdHash === targetOwner
+      && binding.promptHash === expected);
+  }
+  const tupleRoles = requiredRoles.filter((role) => TURN_TUPLE_ROLES.includes(role));
+  return tupleRoles.length >= 2 && hashes(facts.exactUserPromptHashes).includes(expected);
+};
+
+const roleMatched = (role, expected, traceEntry, specimen, requiredRoles) => {
+  const facts = specimen?.stateFacts ?? {};
   if (role === "promptHash") {
-    return [facts.exactComposerHash, ...hashes(facts.exactUserPromptHashes)].includes(expected);
+    return promptMatched(traceEntry, expected, specimen, requiredRoles);
   }
   if (role === "responseHash") return hashes(facts.assistantSemanticTextHashes).includes(expected);
   if (role === "attachmentSetHash") {
@@ -137,16 +175,17 @@ const roleMatched = (role, expected, facts) => {
   return false;
 };
 
-export function derivePageInputBindingProof(traceEntry, specimens) {
+export function derivePageInputBindingProof(traceEntry, specimens, requiredRolesOverride = null) {
   const binding = traceEntry?.inputBinding;
-  const requiredRoles = requiredPageInputRoles(traceEntry?.childId);
+  const requiredRoles = requiredRolesOverride === null
+    ? requiredPageInputRoles(traceEntry?.childId) : Object.freeze([...requiredRolesOverride]);
   const live = Array.isArray(specimens)
     ? specimens.filter((entry) => entry?.evidenceKind === "LIVE_PAGE") : [];
   const checks = requiredRoles.map((role) => {
     const expected = binding?.roleHashes?.[role] ?? null;
     const matchedSceneIds = expected === null ? [] : live.filter((specimen) =>
       turnBindingMatches(requiredRoles, binding, specimen.stateFacts ?? {})
-      && roleMatched(role, expected, specimen.stateFacts ?? {})).map((specimen) => specimen.sourceSceneId);
+      && roleMatched(role, expected, traceEntry, specimen, requiredRoles)).map((specimen) => specimen.sourceSceneId);
     return stable({ role, expected, matchedSceneIds: [...new Set(matchedSceneIds)].sort(),
       status: expected !== null && matchedSceneIds.length > 0 ? "MATCHED" : "GAP" });
   });
@@ -160,8 +199,10 @@ export function derivePageInputBindingProof(traceEntry, specimens) {
   });
 }
 
-export function pageInputBindingProofValid(proof, traceEntry, specimens) {
+export function pageInputBindingProofValid(proof, traceEntry, specimens, requiredRolesOverride = null) {
   return exactKeys(proof, ["schemaVersion", "inputHash", "inputHashBound", "checks", "complete"])
     && proof.schemaVersion === "gpt-page-input-binding-proof.v1"
-    && JSON.stringify(proof) === JSON.stringify(derivePageInputBindingProof(traceEntry, specimens));
+    && JSON.stringify(proof) === JSON.stringify(derivePageInputBindingProof(
+      traceEntry, specimens, requiredRolesOverride,
+    ));
 }

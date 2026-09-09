@@ -8,6 +8,9 @@ import {
   derivePageInputBindingProof,
   pageInputBindingValid,
 } from "./page-input-binding.mjs";
+import { captureTimePageRequirementSnapshot, pageEvidenceNotApplicableForTrace,
+  requiredLiveStatesForTrace, stateAssertionFailures, transitionEvidenceFailures }
+  from "./trace-page-requirements.mjs";
 
 const CAPTURE_SCHEMA = "gpt-page-operation-capture.v6";
 const PRODUCTION_SOURCE_SCHEMA = "gpt-page-operation-production-source.v1";
@@ -32,6 +35,10 @@ const stable = (value) => Array.isArray(value) ? value.map(stable)
     ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, stable(value[key])]))
     : value;
 const sha256 = (value) => `sha256:${createHash("sha256").update(String(value)).digest("hex")}`;
+const sealedProductCall = (value) => {
+  const body = stable(value);
+  return stable({ ...body, derivationEnvelopeHash: sha256(JSON.stringify(body)) });
+};
 const attributesOf = (node) => node?.attributes ?? {};
 const textOf = (node) => node?.textProjection?.value ?? "";
 const subtreeTextOf = (node) => node?.subtreeTextProjection?.value ?? "";
@@ -191,8 +198,11 @@ export function candidateEntries(target, scene, candidateContext = {}) {
     case "rich-text-response": return entries.filter((entry) => attr(entry, "data-message-author-role") === "assistant"
       && assistantOwnerMatches(entry));
     case "assistant-turn": {
-      if (assistantBound) return entries.filter((entry) => attr(entry, "data-message-author-role") === "assistant"
-        && assistantOwnerMatches(entry));
+      if (assistantBound) return candidateContext.imageChild
+        ? entries.filter((entry) => /^conversation-turn-[1-9][0-9]*$/u.test(String(attr(entry, "data-testid") ?? ""))
+          && entry.node.machineFacts?.userRoleDescendants === 0 && assistantOwnerMatches(entry))
+        : entries.filter((entry) => attr(entry, "data-message-author-role") === "assistant"
+          && assistantOwnerMatches(entry));
       if (candidateContext.latestTextAssistantChild) {
         const assistants = entries.filter((entry) => attr(entry, "data-message-author-role") === "assistant");
         const latestOrdinal = Math.max(0, ...assistants.map((entry) => Number(String(entry.node.machineFacts?.ownerTurnTestId ?? "").slice("conversation-turn-".length))));
@@ -224,7 +234,8 @@ export function candidateEntries(target, scene, candidateContext = {}) {
     case "execution-profile-trigger":
     case "execution-profile-close-control": return entries.filter((entry) => entry.node.tag === "button"
       && attr(entry, "aria-expanded") !== undefined && attr(entry, "data-testid") !== "composer-plus-btn"
-      && attr(entry, "aria-label") === undefined);
+      && attr(entry, "aria-label") === undefined
+      && entry.node.machineFacts?.composerFormAncestor === true);
     case "execution-profile-panel":
     case "model-selector-panel": return menus;
     case "model-selector-trigger": return entries.filter((entry) => attr(entry, "aria-label") === "选择模型");
@@ -264,24 +275,31 @@ function targetEvidence(target, scene, candidateContext) {
     ariaHiddenAllowed: target === "selected-reasoning-indicator",
   };
   const qualified = raw.filter((entry) => eligible(entry, eligibility));
-  if (qualified.length !== 1) return { target, rawCount: raw.length, qualifiedCount: qualified.length, selected: null };
+  const targetRecord = (entry, observed) => ({
+    observed,
+    identityHash: nodeIdentity(scene, entry.nodeIndex, entry.node),
+    nodeIndex: entry.nodeIndex,
+    sourceSceneId: scene.sceneId,
+    sourceSceneSignature: scene.stateSignature,
+    tag: entry.node.tag,
+    ...(typeof entry.node.machineFacts?.ownerTurnTestId === "string"
+      ? { ownerTurnIdHash: sha256(entry.node.machineFacts.ownerTurnTestId) } : {}),
+    attributes: attributesOf(entry.node),
+    textProjection: ["semantic-text-projection", "response-text-region"].includes(target)
+      ? safeSubtreeProjection(entry.node) : safeTextProjection(entry.node),
+    ...(observed ? {} : { diagnosticDom: {
+      normalizedStructure: entry.node.sanitizedDomTree,
+      sanitizedOuterHtml: entry.node.sanitizedOuterHtml,
+    } }),
+  });
+  if (qualified.length !== 1) return {
+    target, rawCount: raw.length, qualifiedCount: qualified.length, selected: null,
+    diagnostic: raw.length > 0 ? { entry: raw[0], record: targetRecord(raw[0], false) } : null,
+  };
   const entry = qualified[0];
   return {
-    target,
-    rawCount: raw.length,
-    qualifiedCount: qualified.length,
-    selected: entry,
-    record: {
-      observed: true,
-      identityHash: nodeIdentity(scene, entry.nodeIndex, entry.node),
-      nodeIndex: entry.nodeIndex,
-      sourceSceneId: scene.sceneId,
-      sourceSceneSignature: scene.stateSignature,
-      tag: entry.node.tag,
-      attributes: attributesOf(entry.node),
-      textProjection: ["semantic-text-projection", "response-text-region"].includes(target)
-        ? safeSubtreeProjection(entry.node) : safeTextProjection(entry.node),
-    },
+    target, rawCount: raw.length, qualifiedCount: qualified.length, selected: entry,
+    diagnostic: null, record: targetRecord(entry, true),
   };
 }
 
@@ -306,6 +324,7 @@ function terminalPair(scene, capture) {
     || pre.decisionReceipt.operation !== receipt.operation
     || !Number.isFinite(Date.parse(receipt.issuedAt))
     || !Number.isFinite(Date.parse(receipt.completedAt))
+    || typeof receipt.postconditionPassed !== "boolean"
     || Date.parse(receipt.issuedAt) < Date.parse(pre.capturedAt)
     || Date.parse(receipt.completedAt) < Date.parse(receipt.issuedAt)
     || Date.parse(scene.capturedAt) < Date.parse(receipt.completedAt)) {
@@ -328,17 +347,14 @@ function transitionChain(child, scene, observationId, capture) {
   };
   if (scene.transitionReceipt?.outcome === "DISPATCH_RETURNED") {
     const pair = terminalPair(scene, capture);
-    if (child.contract.allowedDocumentTransition === "forbidden"
-      && pair.pre.documentIdentityHash !== scene.documentIdentityHash) {
-      fail("SCENE_FORBIDDEN_DOCUMENT_TRANSITION", scene.sceneId);
-    }
     return {
     preObservationId: `${child.childCapabilityId}:${pair.receipt.preSceneId}:live`,
     typedCommand: { kind: "CAPTURED_BROWSER_COMMAND", actionId: pair.receipt.actionId, operation: pair.receipt.operation, issuedAt: pair.receipt.issuedAt },
     terminalReceipt: { kind: "CAPTURED_DISPATCH_RETURN", actionId: pair.receipt.actionId, operation: pair.receipt.operation,
       completedAt: pair.receipt.completedAt, preSceneSignature: pair.receipt.preSceneSignature },
     postObservationId: observationId,
-    directPostcondition: { passed: true, sourceSceneId: scene.sceneId, sourceSceneSignature: scene.stateSignature },
+    directPostcondition: { passed: pair.receipt.postconditionPassed, sourceSceneId: scene.sceneId,
+      sourceSceneSignature: scene.stateSignature },
     };
   }
   if (scene.decisionReceipt?.kind === "ACTION_REQUIRED") {
@@ -348,10 +364,6 @@ function transitionChain(child, scene, observationId, capture) {
       && entry.transitionReceipt?.actionId === scene.decisionReceipt.actionId);
     if (terminalScene) {
       const pair = terminalPair(terminalScene, capture);
-      if (child.contract.allowedDocumentTransition === "forbidden"
-        && pair.pre.documentIdentityHash !== terminalScene.documentIdentityHash) {
-        fail("SCENE_FORBIDDEN_DOCUMENT_TRANSITION", terminalScene.sceneId);
-      }
       return {
       preObservationId: observationId,
       typedCommand: { kind: "CAPTURED_BROWSER_COMMAND", actionId: scene.decisionReceipt.actionId,
@@ -360,7 +372,8 @@ function transitionChain(child, scene, observationId, capture) {
         operation: terminalScene.transitionReceipt.operation,
         completedAt: terminalScene.transitionReceipt.completedAt, preSceneSignature: scene.stateSignature },
       postObservationId: `${child.childCapabilityId}:${terminalScene.sceneId}:live`,
-      directPostcondition: { passed: true, sourceSceneId: terminalScene.sceneId,
+      directPostcondition: { passed: terminalScene.transitionReceipt.postconditionPassed,
+        sourceSceneId: terminalScene.sceneId,
         sourceSceneSignature: terminalScene.stateSignature },
       };
     }
@@ -392,9 +405,11 @@ function makeLiveSpecimen({ child, requirement, stateId, scene, capture, mapping
   const targetResults = requiredTargets.map((target) => targetEvidence(target, scene, candidateContext));
   const failures = targetResults.filter((entry) => !entry.selected)
     .map((entry) => `target-not-unique:${entry.target}:raw=${entry.rawCount}:qualified=${entry.qualifiedCount}`);
-  if (failures.length > 0) return { specimen: null, failures };
-  const targetRecords = Object.fromEntries(targetResults.map((entry) => [entry.target, entry.record]));
-  const primary = targetResults[0].selected;
+  const primaryResult = targetResults.find((entry) => entry.selected || entry.diagnostic);
+  if (!primaryResult) return { specimen: null, failures };
+  const targetRecords = Object.fromEntries(targetResults.map((entry) => [entry.target,
+    entry.record ?? entry.diagnostic?.record ?? { observed: false, failure: "TARGET_NOT_FOUND" }]));
+  const primary = primaryResult.selected ?? primaryResult.diagnostic.entry;
   const observationId = `${child.childCapabilityId}:${scene.sceneId}:live`;
   const rect = primary.node.rect ?? { x: 0, y: 0, width: 0, height: 0 };
   const chain = transitionChain(child, scene, observationId, capture);
@@ -406,7 +421,7 @@ function makeLiveSpecimen({ child, requirement, stateId, scene, capture, mapping
     sourceSceneId: scene.sceneId,
     sourceSceneSignature: scene.stateSignature,
     documentIdentityHash: scene.documentIdentityHash,
-    targetIdentityHash: targetRecords[requiredTargets[0]].identityHash,
+    targetIdentityHash: nodeIdentity(scene, primary.nodeIndex, primary.node),
     revision: scene.observationRevisionHash,
     stateFacts: { stateId, observed: true, sourceSceneId: scene.sceneId,
       capturePhase: capturedPhase(scene), inputRefs: requirement.requiredInputRefs,
@@ -421,31 +436,36 @@ function makeLiveSpecimen({ child, requirement, stateId, scene, capture, mapping
       computedStyle: primary.node.style ?? { display: "unknown", visibility: "unknown", opacity: "unknown" },
       connected: primary.node.connected ?? true,
       layout: { ...rect, inViewport: rect.width > 0 && rect.height > 0 && rect.x < capture.environment.viewport.width && rect.y < capture.environment.viewport.height },
-      scope: { candidateCount: targetResults[0].rawCount, qualifiedCount: targetResults[0].qualifiedCount, selectedReason: `exact-live-scene:${scene.sceneId}` },
-      candidates: candidateEntries(requiredTargets[0], scene, candidateContext).map((entry) => ({
+      scope: { candidateCount: primaryResult.rawCount, qualifiedCount: primaryResult.qualifiedCount,
+        selectedReason: failures.length === 0 ? `exact-live-scene:${scene.sceneId}`
+          : `diagnostic-failed-scene:${scene.sceneId}` },
+      candidates: candidateEntries(primaryResult.target, scene, candidateContext).map((entry) => ({
         qualified: eligible(entry, {
-          hiddenAllowed: requiredTargets[0] === "file-input",
-          ariaHiddenAllowed: requiredTargets[0] === "selected-reasoning-indicator",
+          hiddenAllowed: primaryResult.target === "file-input",
+          ariaHiddenAllowed: primaryResult.target === "selected-reasoning-indicator",
         }),
         rejectionReasons: eligible(entry, {
-          hiddenAllowed: requiredTargets[0] === "file-input",
-          ariaHiddenAllowed: requiredTargets[0] === "selected-reasoning-indicator",
+          hiddenAllowed: primaryResult.target === "file-input",
+          ariaHiddenAllowed: primaryResult.target === "selected-reasoning-indicator",
         }) ? [] : ["INELIGIBLE"],
         identityHash: nodeIdentity(scene, entry.nodeIndex, entry.node),
       })),
       targets: targetRecords,
       textProjection: safeTextProjection(primary.node),
-      actionQualification: { qualified: chain.directPostcondition.passed, sourceSceneId: scene.sceneId, sourceSceneSignature: scene.stateSignature },
+      actionQualification: { qualified: failures.length === 0 && chain.directPostcondition.passed,
+        sourceSceneId: scene.sceneId, sourceSceneSignature: scene.stateSignature },
     },
     related: {
       ancestors: primary.node.ancestors ?? [],
       siblings: primary.node.siblings ?? [],
-      linkedNodes: Object.entries(targetRecords).map(([relation, entry]) => ({ relation, identityHash: entry.identityHash, attributes: entry.attributes })),
+      linkedNodes: Object.entries(targetRecords).filter(([, entry]) => entry.identityHash)
+        .map(([relation, entry]) => ({ relation, identityHash: entry.identityHash, attributes: entry.attributes })),
       beforeAfterDiff: { sourceSceneId: scene.sceneId, sceneSignature: scene.stateSignature, transitionReceipt: scene.transitionReceipt ?? null },
       contractReference: { childCapabilityId: child.childCapabilityId, contractVersion: child.contractVersion, contract: child.contract },
       sourceReferences: child.webImplementationReferences.map(({ path }) => ({ path })),
       authorityEvidence: child.evidenceDemand.sourceBinding.authority,
-      postconditions: { positive: chain.directPostcondition.passed, negative: !chain.directPostcondition.passed },
+      postconditions: { positive: failures.length === 0 && chain.directPostcondition.passed,
+        negative: failures.length > 0 || !chain.directPostcondition.passed },
       browserCommand: chain.typedCommand,
       walProjection: child.contract.profile === "DOM_OBSERVATION" ? { kind: "NOT_APPLICABLE" } : chain.terminalReceipt,
       transitionChain: chain,
@@ -463,7 +483,11 @@ function makeLiveSpecimen({ child, requirement, stateId, scene, capture, mapping
       runId: capture.runId,
     },
   };
-  return { specimen, failures: [] };
+  return { specimen, failures: [
+    ...failures,
+    ...stateAssertionFailures(specimen, requirement.stateAssertions?.[stateId] ?? []),
+    ...transitionEvidenceFailures(specimen, capture.sceneManifest, child.contract),
+  ] };
 }
 
 function derivedMutation(stateId, live) {
@@ -537,7 +561,8 @@ function exactObjectKeys(value, keys) {
     && JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...keys].sort());
 }
 
-function mappedStateIdsForCall(requirement, callMapping, traceEntryId) {
+function mappedStateIdsForCall(requirement, callMapping, traceEntry) {
+  const traceEntryId = traceEntry.traceEntryId;
   const mappedStateIds = Object.keys(callMapping?.states ?? {});
   if (mappedStateIds.length === 0) fail("PRODUCT_CALL_MAPPING_SCHEMA_INVALID", traceEntryId);
   const allowedStateIds = [...requirement.requiredLiveStates, ...(requirement.optionalLiveStates ?? [])];
@@ -546,7 +571,7 @@ function mappedStateIdsForCall(requirement, callMapping, traceEntryId) {
       fail("PRODUCT_CALL_STATE_OUT_OF_SCOPE", `${traceEntryId}:${stateId}`);
     }
   }
-  return allowedStateIds.filter((stateId) => mappedStateIds.includes(stateId));
+  return requiredLiveStatesForTrace(requirement, traceEntry);
 }
 
 function terminalProofValid(source) {
@@ -686,8 +711,17 @@ async function main() {
       fail("PRODUCT_CALL_MAPPING_SCHEMA_INVALID", traceEntryId);
     }
     const requirement = matrixById[traceById[traceEntryId].childId];
-    if (requirement) mappedStateIdsForCall(requirement, callMapping, traceEntryId);
+    if (requirement) mappedStateIdsForCall(requirement, callMapping, traceById[traceEntryId]);
   }
+  const mappedSceneIds = new Set(Object.values(mapping.productCalls)
+    .flatMap((callMapping) => Object.values(callMapping.states ?? {})));
+  const reportSceneIds = new Set(mappedSceneIds);
+  for (const sceneId of mappedSceneIds) {
+    const preSceneId = scenesById[sceneId]?.transitionReceipt?.preSceneId;
+    if (typeof preSceneId === "string") reportSceneIds.add(preSceneId);
+  }
+  const reportScenes = scenes.filter((scene) => reportSceneIds.has(scene.sceneId));
+  if (reportScenes.length !== reportSceneIds.size) fail("PRODUCT_CALL_MAPPED_SCENE_MISSING");
   if (!/^sha256:[a-f0-9]{64}$/u.test(captureEpoch ?? "")) fail("CAPTURE_EPOCH_REQUIRED");
   assertRecaptureTrigger(recaptureTrigger);
   for (const scene of scenes) assertSceneBindings(scene, runId, captureEpoch, browserMeta.browser.qaTabIdentityHash);
@@ -723,7 +757,7 @@ async function main() {
     productionSource,
     authorizedInputs: authorizedInputs(mapping, inventory, matrix, selectedIds),
     chainInputs: {},
-    sceneManifest: scenes.map(sceneManifestEntry),
+    sceneManifest: reportScenes.map(sceneManifestEntry),
     children: [],
   };
   const assembly = {};
@@ -815,31 +849,32 @@ async function main() {
   const calls = productionSource.actualTrace.map((traceEntry) => {
     const child = inventory.children.find((entry) => entry.childCapabilityId === traceEntry.childId);
     const requirement = matrixById[traceEntry.childId];
-    if (!child?.pageOperationRequired || !requirement) return stable({
+    if (!child?.pageOperationRequired || !requirement) return sealedProductCall({
       ...traceEntry, pageOperationRequired: false, pageRequirementSnapshot: null, inputBindingProof: null,
       domEvidence: null, captureComplete: true, gaps: [],
     });
     const callMapping = mapping.productCalls?.[traceEntry.traceEntryId];
     if (!callMapping) {
-      const pageRequirementSnapshot = stable({
-        matrixDigest: capture.matrixDigest,
-        childCandidateDigest: child.evidenceDemand.childCandidateDigest,
-        requiredLiveStates: [],
-      });
-      const inputBindingProof = derivePageInputBindingProof(traceEntry, []);
-      return stable({ ...traceEntry, pageOperationRequired: true, pageRequirementSnapshot,
-        inputBindingProof, domEvidence: null,
-        captureComplete: false, gaps: ["PAGE_EVIDENCE_GAP:product-call-scene-map-missing",
+      const requiredLiveStates = requiredLiveStatesForTrace(requirement, traceEntry);
+      const pageEvidenceNotApplicable = pageEvidenceNotApplicableForTrace(traceEntry);
+      const pageRequirementSnapshot = captureTimePageRequirementSnapshot(
+        requirement, traceEntry, child, capture.matrixDigest,
+      );
+      const inputBindingProof = derivePageInputBindingProof(
+        traceEntry, [], pageRequirementSnapshot.requiredInputRoles,
+      );
+      return sealedProductCall({ ...traceEntry, pageOperationRequired: true, pageRequirementSnapshot,
+        inputBindingProof, domEvidence: pageEvidenceNotApplicable ? { specimens: [] } : null,
+        captureComplete: pageEvidenceNotApplicable, gaps: pageEvidenceNotApplicable ? []
+          : ["PAGE_EVIDENCE_GAP:product-call-scene-map-missing",
           ...inputBindingProof.checks.filter((entry) => entry.status === "GAP")
             .map((entry) => `PAGE_INPUT_BINDING_GAP:${entry.role}`),
           ...(inputBindingProof.inputHashBound ? [] : ["PAGE_INPUT_BINDING_GAP:inputHash"])] });
     }
-    const requiredLiveStates = mappedStateIdsForCall(requirement, callMapping, traceEntry.traceEntryId);
-    const pageRequirementSnapshot = stable({
-      matrixDigest: capture.matrixDigest,
-      childCandidateDigest: child.evidenceDemand.childCandidateDigest,
-      requiredLiveStates,
-    });
+    const requiredLiveStates = mappedStateIdsForCall(requirement, callMapping, traceEntry);
+    const pageRequirementSnapshot = captureTimePageRequirementSnapshot(
+      requirement, traceEntry, child, capture.matrixDigest,
+    );
     const specimens = [];
     const gaps = [];
     const mappedSceneIds = Object.values(callMapping.states ?? {}).filter(Boolean);
@@ -858,13 +893,18 @@ async function main() {
       if (!scene) { gaps.push(`PAGE_EVIDENCE_GAP:${stateId}:scene-not-mapped`); continue; }
       const built = makeLiveSpecimen({ child, requirement, stateId, scene, capture, mapping, traceEntry });
       if (!built.specimen) gaps.push(...built.failures.map((failure) => `PAGE_EVIDENCE_GAP:${stateId}:${failure}`));
-      else specimens.push(built.specimen);
+      else {
+        specimens.push(built.specimen);
+        gaps.push(...built.failures.map((failure) => `PAGE_EVIDENCE_CONFLICT:${failure}`));
+      }
     }
-    const inputBindingProof = derivePageInputBindingProof(traceEntry, specimens);
+    const inputBindingProof = derivePageInputBindingProof(
+      traceEntry, specimens, pageRequirementSnapshot.requiredInputRoles,
+    );
     gaps.push(...inputBindingProof.checks.filter((entry) => entry.status === "GAP")
       .map((entry) => `PAGE_INPUT_BINDING_GAP:${entry.role}`));
     if (!inputBindingProof.inputHashBound) gaps.push("PAGE_INPUT_BINDING_GAP:inputHash");
-    return stable({ ...traceEntry, pageOperationRequired: true, pageRequirementSnapshot, inputBindingProof,
+    return sealedProductCall({ ...traceEntry, pageOperationRequired: true, pageRequirementSnapshot, inputBindingProof,
       domEvidence: { specimens }, captureComplete: gaps.length === 0, gaps });
   });
   const productGaps = [...productionSource.flowGaps,

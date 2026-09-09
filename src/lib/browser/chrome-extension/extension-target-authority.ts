@@ -1,4 +1,5 @@
 import type { BrowserGovernedCommand } from "../exact-target/browser-command-actor.js";
+import type { BrowserMutationProgress } from "../exact-target/browser-mutation-store.js";
 import {
   GPT_WEB_START_URL,
   gptWebClaimOriginForUrl,
@@ -201,6 +202,7 @@ export class ExtensionTargetAuthority {
   public async executeRegisteredCommand(
     command: BrowserGovernedCommand,
     target: ExtensionExactTarget,
+    onMutationProgress: (progress: BrowserMutationProgress) => Promise<void> = async () => {},
   ): Promise<unknown> {
     if (command.kind === "dom-intent") {
       const assertCurrent = (): void => { this.targets.resolve(target.targetRef, target.documentRef); };
@@ -236,6 +238,7 @@ export class ExtensionTargetAuthority {
       },
       navigate: (url) => this.executeNavigation(target, url),
       parkTarget: () => this.parkActiveTarget(),
+      onMutationProgress,
     });
   }
 

@@ -21,6 +21,7 @@ type EvidenceProduct = Readonly<{
   runs: readonly Readonly<{
     sourceSnapshotId: string;
     captureEpoch: string;
+    captureComplete: boolean;
     calls: readonly Readonly<{
       childId: string;
       productStepId: string;
@@ -89,7 +90,10 @@ assert.equal(report.primaryIndex, "products");
 assert.equal(report.productionRuntimeConsumer, false);
 assert.equal(report.claimsQualityVerdict, false);
 assert.equal(report.captureStatus, "NOT_CAPTURED");
-assert.equal(report.productCaptureStatus, "NOT_CAPTURED");
+const expectedProductCaptureStatus = report.products.every((product) => product.captureStatus === "CAPTURE_COMPLETE")
+  ? "CAPTURE_COMPLETE" : report.products.some((product) => product.captureStatus !== "NOT_CAPTURED")
+    ? "CAPTURE_PARTIAL" : "NOT_CAPTURED";
+assert.equal(report.productCaptureStatus, expectedProductCaptureStatus);
 assert.equal(report.captureMetadata, null);
 assert.deepEqual(gptPageEvidencePrivacyFailures(report), []);
 assert.deepEqual(forbiddenRepositoryBindingPaths(report), []);
@@ -107,8 +111,12 @@ assert.equal(contracted.length, 10);
 assert.ok(contracted.every((product) => [
   "public-knowledge-article-pipeline", "localization-production",
 ].includes(product.pluginId)));
-assert.ok(contracted.every((product) => product.captureStatus === "NOT_CAPTURED"
-  && product.gaps.includes("PRODUCT_PRODUCTION_CAPTURE_NOT_PRESENT")));
+assert.ok(contracted.every((product) => product.runs.length === 0
+  ? product.captureStatus === "NOT_CAPTURED"
+    && product.gaps.includes("PRODUCT_PRODUCTION_CAPTURE_NOT_PRESENT")
+  : product.captureStatus === (product.runs.every((run) => run.captureComplete)
+    ? "CAPTURE_COMPLETE" : "CAPTURE_PARTIAL")
+    && !product.gaps.includes("PRODUCT_PRODUCTION_CAPTURE_NOT_PRESENT")));
 assert.ok(notYetContracted.length > 0);
 assert.ok(notYetContracted.every((product) => product.captureStatus === "NOT_CAPTURED"
   && product.gaps.includes("PRODUCT_EVIDENCE_CONTRACT_NOT_IMPLEMENTED")));
@@ -121,6 +129,8 @@ assert.equal(seoProduce?.contractPath,
   "src/plugins/public-knowledge-article-pipeline/page-evidence-contract.json");
 assert.equal(localizationCatalog?.contractPath,
   "src/plugins/localization-production/page-evidence-contract.json");
+assert.ok(["CAPTURE_PARTIAL", "CAPTURE_COMPLETE"].includes(localizationCatalog?.captureStatus ?? ""));
+assert.ok((localizationCatalog?.runs.length ?? 0) > 0);
 
 type ProductEvidenceContract = Readonly<{
   traceAuthority: Record<string, string>;
@@ -161,8 +171,10 @@ assert.deepEqual(localizationRoute.topology.passOrder, ["candidate-a", "candidat
 const pageChildren = report.children.filter((child) => child.pageOperationRequired === true);
 assert.equal(pageChildren.length, 22);
 for (const child of pageChildren) {
-  assert.equal(child.captureComplete, false);
-  assert.ok(Array.isArray(child.captureMissing) && child.captureMissing.length > 0);
+  assert.equal(Object.hasOwn(child, "captureComplete"), false,
+    "the static Child demand index must not become a second capture verdict");
+  assert.equal(Object.hasOwn(child, "captureMissing"), false,
+    "capture gaps belong to exact Product calls, not the static Child demand index");
   assert.ok(completeGptPageEvidenceCaptureFailures(
     child, child.evidenceDemand as Record<string, unknown>,
   ).length > 0);

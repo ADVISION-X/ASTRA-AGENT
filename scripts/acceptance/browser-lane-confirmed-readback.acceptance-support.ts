@@ -122,6 +122,7 @@ const exerciseSourceOnlyReadback = async (input: ConfirmedReadbackScenario): Pro
   await assert.rejects(
     confirmedFailureReadback.downloadAuthenticatedMedia({
       assistantTurnId: "conversation-turn-2", semanticMediaId: "gpt-generated-image-main",
+      delivery: "probe",
     }),
     /BROWSER_RECONCILIATION_SCOPE_INVALID/u,
   );
@@ -201,6 +202,7 @@ const exerciseReplacementTargetReadback = async (input: ConfirmedReadbackScenari
   });
   await confirmedReplacement.downloadAuthenticatedMedia({
     assistantTurnId: "conversation-turn-2", semanticMediaId: "gpt-generated-image-main",
+    delivery: "probe",
   });
   await assert.rejects(
     confirmedReplacement.runAtomicStep({

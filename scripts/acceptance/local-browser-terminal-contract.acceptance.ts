@@ -49,6 +49,77 @@ try {
   }).execute(confirmedPermit, clickCommand);
   assert.equal(actorStore.readState(confirmedPermit.commandId), "CONFIRMED");
   assert.equal(actorStore.readMutationOutcome(confirmedPermit.commandId), "confirmed");
+  const visibleDownloadPermit: BrowserCommandPermit = {
+    ...permit("actor-visible-image-download"),
+    capabilityId: "browser.authenticated-media.v1",
+    mutationClass: "mutation",
+    childCapabilityId: "checkpoint_gpt_generated_image",
+    commandTtlMs: 30_000,
+  };
+  const visibleDownloadCommand = { kind: "authenticated-media" as const,
+    assistantTurnId: "conversation-turn-6", semanticMediaId: "gpt-generated-image-main" as const,
+    delivery: "visible-download" as const };
+  const imageBytes = Buffer.from("visible-image-download", "utf8");
+  const downloadGuidHash = `sha256:${"d".repeat(64)}` as const;
+  await actorFor(async (candidate, _command, onDispatched, onProgress) => {
+    onDispatched?.();
+    onProgress?.({ physicalInputCount: 1, downloadGuidHash: null,
+      downloadCompleted: false, identityRevalidated: false });
+    onProgress?.({ physicalInputCount: 2, downloadGuidHash,
+      downloadCompleted: true, identityRevalidated: true });
+    return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+      permitSequence: candidate.sequence, result: {
+        authorityTargetHash: `sha256:${"a".repeat(64)}`,
+        authorityDocumentHash: `sha256:${"b".repeat(64)}`,
+        assistantTurnId: "conversation-turn-6", semanticMediaId: "gpt-generated-image-main",
+        bytesBase64: imageBytes.toString("base64"), sha256: `sha256:${"c".repeat(64)}`,
+        sizeBytes: imageBytes.byteLength,
+        mediaType: "image/png", width: 1200, height: 630,
+        imageOpened: true, saveClicked: true, candidateCount: 1,
+        identityRevalidated: true, mutationCount: 2, postconditionVerified: true,
+        downloadGuidHash, downloadCompleted: true, downloadedSizeBytes: imageBytes.byteLength,
+      } };
+  }).execute(visibleDownloadPermit, visibleDownloadCommand);
+  assert.equal(actorStore.readState(visibleDownloadPermit.commandId), "CONFIRMED",
+    "the exact two-click visible image download must settle as one Browser WAL mutation");
+  assert.equal(actorStore.readMutationOutcome(visibleDownloadPermit.commandId), "confirmed");
+  const responseLossPermit: BrowserCommandPermit = {
+    ...visibleDownloadPermit,
+    commandId: "actor-visible-image-response-loss",
+    jobId: "job:actor-visible-image-response-loss",
+    localOrderId: "order:actor-visible-image-response-loss",
+    permitRef: "permit:actor-visible-image-response-loss",
+    replyChannelToken: "reply:actor-visible-image-response-loss",
+  };
+  await assert.rejects(actorFor(async (_candidate, _command, onDispatched, onProgress) => {
+    onDispatched?.();
+    onProgress?.({ physicalInputCount: 1, downloadGuidHash: null,
+      downloadCompleted: false, identityRevalidated: false });
+    onProgress?.({ physicalInputCount: 2, downloadGuidHash,
+      downloadCompleted: true, identityRevalidated: true });
+    throw new Error("BROWSER_COMMAND_RECEIPT_MISSING");
+  }).execute(responseLossPermit, visibleDownloadCommand), /BROWSER_COMMAND_RECEIPT_MISSING/u);
+  assert.equal(actorStore.readState(responseLossPermit.commandId), "DISPATCHED");
+  const responseLossRecovery = actorStore.atomicStepRecovery({
+    jobId: responseLossPermit.jobId, attemptId: responseLossPermit.attemptId,
+    ownerPluginId: responseLossPermit.ownerPluginId, pluginVersion: responseLossPermit.pluginVersion,
+    exactCallIdentityHash: valueHash([
+      responseLossPermit.jobId, responseLossPermit.attemptId, responseLossPermit.ownerPluginId,
+      responseLossPermit.pluginVersion, responseLossPermit.productStepId, responseLossPermit.callId,
+      responseLossPermit.childCapabilityId, responseLossPermit.inputHash,
+    ]),
+    actionOrdinal: responseLossPermit.actionOrdinal, targetRef: responseLossPermit.targetRef,
+    effectScope: "target_local",
+  });
+  assert.deepEqual({
+    state: responseLossRecovery?.state,
+    physicalInputCount: responseLossRecovery?.physicalInputCount,
+    downloadGuidHash: responseLossRecovery?.downloadGuidHash,
+    downloadCompleted: responseLossRecovery?.downloadCompleted,
+    identityRevalidated: responseLossRecovery?.identityRevalidated,
+  }, { state: "dispatched", physicalInputCount: 2, downloadGuidHash,
+    downloadCompleted: true, identityRevalidated: true },
+  "a lost terminal reply must retain the completed two-input fact in the same WAL row without replay");
   const zeroActionPermit = permit("actor-zero-action");
   await actorFor(async (candidate, _command, onDispatched) => {
     onDispatched?.();
@@ -99,6 +170,13 @@ try {
   assert.equal(actorStore.readState(qualificationPermit.commandId), "REJECTED");
   assert.equal(qualificationActor.mutationOutcome(qualificationPermit.commandId), "no");
   const actorDatabase = new Database(join(actorRoot, "browser", "browser-mutations.sqlite"), { readonly: true });
+  assert.deepEqual(actorDatabase.prepare(
+    `select physical_input_count,download_guid_hash,download_completed,media_identity_revalidated
+     from browser_mutations where command_id=?`,
+  ).get(visibleDownloadPermit.commandId), {
+    physical_input_count: 2, download_guid_hash: downloadGuidHash,
+    download_completed: 1, media_identity_revalidated: 1,
+  }, "the existing Browser WAL row must own the complete native-download recovery facts");
   assert.deepEqual(actorDatabase.prepare(
     "select reason,native_cause_code from browser_mutations where command_id=?",
   ).get(qualificationPermit.commandId), {
@@ -482,7 +560,7 @@ try {
 }
 
 emitQualityProofObservation({
-  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V25",
+  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V26",
   evidenceMode: "exam.golden",
   clauses: [
     "forbidden:0",

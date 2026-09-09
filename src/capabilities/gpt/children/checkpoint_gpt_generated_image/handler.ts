@@ -7,6 +7,8 @@ import {
   declaredFacts,
   recordInput,
   requireBrowser,
+  requireCompletedDownloadBrowserFact,
+  requireConfirmedBrowserFact,
   requireExactInputKeys,
   stringInput,
   success,
@@ -95,6 +97,7 @@ GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
   }
   const media = await browser.downloadAuthenticatedMedia({
     assistantTurnId, semanticMediaId: "gpt-generated-image-main",
+    delivery: context.mutationMode === "readback" ? "probe" : "visible-download",
   });
   if (!observed.facts.authorityRefHashes.includes(media.authorityTargetHash)
     || !observed.facts.authorityRefHashes.includes(media.authorityDocumentHash)) {
@@ -107,6 +110,9 @@ GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
   if (media.sha256 !== expectedMediaHash) throw executionFailure("failed", "GPT_GENERATED_IMAGE_IDENTITY_DRIFT");
   const webp = await renderGeneratedImage(original);
   const imageHash = hash(webp);
+  const browserFact = context.mutationMode === "readback"
+    ? requireCompletedDownloadBrowserFact(intent, browser)
+    : requireConfirmedBrowserFact(intent, browser);
   return success({
     value: { assistantTurnId, semanticMediaId: "gpt-generated-image-main", mediaHash: media.sha256,
       authorityTargetHash: media.authorityTargetHash, authorityDocumentHash: media.authorityDocumentHash,
@@ -117,7 +123,9 @@ GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
       originalMediaType: media.mediaType, originalWidth: media.width, originalHeight: media.height,
       bytes: webp.byteLength, mediaType: "image/webp", width: 1200, height: 630,
       predecessorTextCheckpoint },
-    ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",
-      browserFact: null, nativeFailureCode: null }),
+    ...declaredFacts({ ...observed.facts, decision: "ACT",
+      factResultIds: Object.freeze([...observed.facts.factResultIds, browserFact.evidenceRef]),
+      authorityRefHashes: Object.freeze([...observed.facts.authorityRefHashes, browserFact.evidenceHash]),
+      mutationOutcome: browserFact.mutationOutcome, browserFact, nativeFailureCode: null }),
   });
 };

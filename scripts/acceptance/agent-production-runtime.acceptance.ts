@@ -255,6 +255,33 @@ try {
   assert.equal(physicalImageUploads, 1, "the generated image transport must be physically delivered once");
   assert.deepEqual(repeated.receipt, first.receipt);
   assert.equal(first.receipt.object_ref, "object:image:fixture");
+  const secondBytes = new TextEncoder().encode("fixture-webp-second");
+  const secondImage = Object.freeze({
+    ...image,
+    artifact_id: "image:fixture-second",
+    webp_bytes: secondBytes,
+    sha256: sha256(secondBytes),
+    bytes: secondBytes.byteLength,
+  });
+  globalThis.fetch = (async () => {
+    physicalImageUploads += 1;
+    return successfulJsonResponse({
+      schema_version: "xuanxue-ai-material-receipt.v6",
+      artifact_id: "image:wrong",
+      role: "generated_image",
+      object_ref: "object:image:wrong",
+      sha256: secondImage.sha256,
+      byte_length: secondImage.bytes,
+      media_type: "image/webp",
+      state: "staged",
+      receipt_hash: HASH_C,
+    });
+  }) as typeof globalThis.fetch;
+  await assert.rejects(
+    uploadProductionGeneratedImage(imageSession as never, imageStore, imageJob, secondImage),
+    (error: unknown) => typedExecutionFailure(error)?.code === "GENERATED_IMAGE_WEBSITE_RECEIPT_MISMATCH",
+    "an artifact receipt for a different image must not terminalize the existing Outbox intent",
+  );
 } finally {
   globalThis.fetch = imageFetch;
   imageStore.close();
@@ -388,21 +415,21 @@ assert.deepEqual(runtimeManifestOwnershipDrift([
 ]), []);
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V15",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V16",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"],
   locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",
   observedValue: "the unique Runtime ownership inspector accepted the current Runtime-only manifest and rejected injected Mediator and Product ownership mutants",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V45",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V46",
   evidenceMode: "exam.state-machine",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "summary"],
   locator: "acceptance:agent-production-runtime:attempt-recovery-state-machine",
   observedValue: "binary task lifecycle durable accept same-attempt recovery lease outbox and typed cross-owner boundaries exercised",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V45",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V46",
   evidenceMode: "exam.property",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "summary"],
   locator: "acceptance:agent-production-runtime:transport-properties",
@@ -410,7 +437,7 @@ emitQualityProofObservation({
 });
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V15",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V16",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "summary"],
     locator: `acceptance:agent-production-runtime:business-admission:${evidenceMode}`,

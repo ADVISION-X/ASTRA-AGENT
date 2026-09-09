@@ -4,7 +4,12 @@ import type {
   GptAbilityGroup,
   GptChildCapabilityResult,
 } from "./contract.js";
-import { executionFailure } from "../../lib/execution-failure.js";
+import {
+  executionFailure,
+  executionFailureCause,
+  executionFailureMetadata,
+  failureCode,
+} from "../../lib/execution-failure.js";
 import { persistGptEvidenceArtifacts } from "./evidence-artifacts.js";
 import type { GptEvidenceStorePort } from "./production-ports.js";
 import { gptAttachmentProviderDisplayName } from "./schema.js";
@@ -180,4 +185,54 @@ export const persistGptChildEvidence = async (input: Readonly<{
   }
   persistedEvidenceRefs.set(input.result, appended.recordRef);
   return Object.freeze({ evidenceRef: appended.recordRef, artifactRefs });
+};
+
+export const persistGptPreExecutionFailure = async (input: Readonly<{
+  intent: Parameters<GptAbilityGroup["execute"]>[0];
+  evidenceStore: GptEvidenceStorePort;
+  jobId: string;
+  attemptId: string;
+  stepId: string;
+  exactCallIdentityHash: `sha256:${string}`;
+  error: unknown;
+}>): Promise<string> => {
+  const metadata = executionFailureMetadata(input.error);
+  const projection = Object.freeze({
+    schema_version: "agent-gpt-pre-execution-failure.v1",
+    exact_call_identity_hash: input.exactCallIdentityHash,
+    product_step_id: input.intent.productStepId,
+    call_id: input.intent.callId,
+    input_hash: input.intent.inputHash,
+    child_capability_id: input.intent.childCapabilityId,
+    plugin_version: input.intent.pluginVersion,
+    action_ordinal: input.intent.actionOrdinal,
+    execution_identity_hash: hash(input.intent.executionId),
+    failure_code: failureCode(input.error, "GPT_CHILD_RUNTIME_FAILED"),
+    failure_cause: executionFailureCause(input.error),
+    mutation_outcome: metadata?.mutationOutcome ?? "no",
+    browser_effect: metadata?.browserEffect ?? null,
+  });
+  const appended = await input.evidenceStore.appendRecord({
+    missionId: input.jobId,
+    runId: input.attemptId,
+    stepId: input.stepId,
+    sourceCapabilityId: "gpt",
+    sourceChildCapabilityId: input.intent.childCapabilityId,
+    recordType: "failure",
+    recordPayload: projection,
+    idempotencyKey: `gpt-call-pre-execution-failure:v1:${input.exactCallIdentityHash}`,
+    correlationId: input.intent.executionId,
+  });
+  if (appended.status !== "success" || !appended.recordRef) {
+    throw executionFailure("failed", "EVIDENCE_APPEND_FAILED");
+  }
+  const readback = await input.evidenceStore.readRecordRef({
+    childCapabilityId: "read-record-ref",
+    recordRef: appended.recordRef,
+  });
+  if (readback.status !== "success" || !readback.record
+    || jsonHash(readback.record.payload) !== jsonHash(projection)) {
+    throw executionFailure("failed", "EVIDENCE_READBACK_FAILED");
+  }
+  return appended.recordRef;
 };

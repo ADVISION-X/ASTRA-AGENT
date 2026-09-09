@@ -105,6 +105,12 @@
       "scenarioId": "text-main",
       "coreTargets": ["composer", "attachment-cards", "upload-status"],
       "requiredLiveStates": ["uploading-pending", "attachment-cards-ready", "attachment-set-exact", "attachment-terminal-error"],
+      "traceResultStatuses": {
+        "uploading-pending": ["success", "failed"],
+        "attachment-cards-ready": ["success"],
+        "attachment-set-exact": ["success"],
+        "attachment-terminal-error": ["failed"]
+      },
       "liveStateTargets": {
         "uploading-pending": ["composer", "upload-status"],
         "attachment-cards-ready": ["composer", "attachment-cards", "upload-status"],
@@ -256,7 +262,7 @@
         ],
         "stale-draft-before": [
           {"path": "stateFacts.composerProductMarkerPresent", "operator": "equals", "value": true},
-          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "POST_ACTION"}
+          {"path": "stateFacts.capturePhase", "operator": "equals", "value": "PRE_ACTION"}
         ],
         "stale-draft-after-clean": [
           {"path": "stateFacts.composerProductMarkerPresent", "operator": "equals", "value": false},
@@ -494,6 +500,12 @@
       "scenarioId": "text-main",
       "coreTargets": ["assistant-turn", "generation-indicator", "response-text-region"],
       "requiredLiveStates": ["text-generating", "text-stable", "text-stability-readback", "generation-error"],
+      "traceResultStatuses": {
+        "text-generating": ["success", "failed"],
+        "text-stable": ["success"],
+        "text-stability-readback": ["success"],
+        "generation-error": ["failed"]
+      },
       "liveStateTargets": {
         "text-generating": ["assistant-turn", "generation-indicator"],
         "text-stable": ["assistant-turn", "response-text-region"],
@@ -527,6 +539,12 @@
       "scenarioId": "image-main",
       "coreTargets": ["assistant-turn", "image-generation-indicator", "semantic-media-node"],
       "requiredLiveStates": ["image-generating", "image-stable", "image-stability-readback", "image-error-terminal"],
+      "traceResultStatuses": {
+        "image-generating": ["success", "failed"],
+        "image-stable": ["success"],
+        "image-stability-readback": ["success"],
+        "image-error-terminal": ["failed"]
+      },
       "liveStateTargets": {
         "image-generating": ["assistant-turn", "image-generation-indicator"],
         "image-stable": ["assistant-turn", "semantic-media-node"],

@@ -93,15 +93,20 @@ node .agents/skills/gpt-page-operation-evidence/scripts/production-source.mjs \
 
 Codex 必须把 source manifest 的 `actualTrace` 当成该生产 attempt 的逐调用采购清单，并读取 Product 现役源码理解每次调用。合同中的阶段拓扑只生成 `flowProjectionStatus/flowProjectionGaps`，不改写历史清单。`exactCallIdentityHash` 标识同一个逻辑调用；同一逻辑调用发生失败后重试时 hash 可能相同，因此每条实际 forensics 记录另有唯一 `traceEntryId`。同一个 Child 在不同步骤、不同 cohort 或同一逻辑调用的不同尝试中重复出现时，必须分别采集，绝不能共用一份 DOM。
 
+每条调用的页面状态分母由 `actualTrace.resultStatus + mutationOutcome + 已落盘 Browser 观察` 和矩阵共同派生，不能由 mapping 挑选：`confirmed/dispatched` 必须收齐该分支的 pre/post；成功 `no` 只要求 already-satisfied/steady 状态；失败 `no` 且根本未进入 Browser 时状态分母为零，以空 specimen 和 durable failure 明确表示“没有可采 DOM”，不得强造页面证据，也不要求 input↔DOM 匹配。其它调用即使整条未映射，报告也必须保存派生状态清单并逐项报缺口。
+
 每个页面调用至少采购：
 
 - 身份：product、action、step、actionOrdinal、Child、exact call hash、traceEntryId、sourceSnapshotId、flowContractDigest、captureEpoch；
 - pre：Document/revision、候选基数、每个候选接受/拒绝理由、目标节点清洗后的 outerHTML/属性/可见性/尺寸、必要父兄/label/menu/dialog、页面状态；
 - action：Browser typed command、准确目标、mutation outcome、terminal receipt；纯观察必须明确 `NOT_APPLICABLE`；
 - post：全新 observation、直接后置条件、DOM 差异、错误/生成/上传状态和产物引用哈希。
-- input binding：从该 `traceEntryId` 的生产证据读取 `input_hash` 和逐角色期望哈希；从 Chrome DOM 机械读取 exact composer/user prompt、附件 aria-label 集合、模型文字、推理 scale/current、canonical conversation、assistant semantic response 与 turn identity 的实际哈希；逐角色相等后才写 `MATCHED`。
+- target qualification 失败：候选不得冒充成功 target，但只要真实 scene 里存在候选，就必须在同一 call 的 specimen 中以 `observed:false + diagnosticDom` 保留其清洗 DOM 和拒绝原因；不得因为 hidden/inert/ambiguous 而删掉故障现场。
+- input binding：从该 `traceEntryId` 的生产证据读取 `input_hash` 和逐角色期望哈希；从 Chrome DOM 机械读取 exact composer/user prompt、附件 aria-label 集合、模型文字、推理 scale/current、canonical conversation、assistant semantic response 与 turn identity 的实际哈希；逐角色相等后才写 `MATCHED`。prompt 证据必须服从 Child/状态：写入与 draft reconcile 只认对应 composer 状态，submit 与 submission reconcile 只认目标 post-submit user turn，continuation 只认同一 prompt/response/marker/assistant tuple；页面其它旧 turn 或其它状态的同文哈希不得替代。
 
-原始 prompt、报告正文、文章内容、会话 ID、Cookie、token 和隐私材料不得进入公共报告。UI 白名单之外的文本只保留 hash 和长度；会话 URL 必须变成 `/c/sha256:<digest>`。
+短 user prompt 没有 `collapsible-user-message-content` 时，只允许在同一个唯一 user turn 内取唯一 `.whitespace-pre-wrap` 叶节点；多 turn、多候选或跨页面全文搜索一律失败关闭。历史 trace 缺逐角色哈希时，即使 Codex 能从 Product 资料重建同一调用并核对 exact call hash，也只能用于安全操作，不能反向把公共报告的 input binding 写成 `MATCHED`。
+
+原始 prompt、报告正文、文章内容、会话 ID、Cookie、token 和隐私材料不得进入公共报告。业务 turn/composer/普通容器即使文字恰好等于“高”“复制”等 UI 词也必须 hash-only；UI 明文白名单只有同时命中明确的 button/menuitem/slider 等 UI 语义才可放行。会话 URL 必须变成 `/c/sha256:<digest>`。
 
 `exactCallIdentityHash` 只证明生产调用身份，不能单独证明当前 Chrome 页面就是该输入。每个实际调用还必须有 `gpt-page-input-binding-proof.v1`：`inputHashBound=true`，并且该 Child 需要的 prompt、附件集合、model、reasoning、conversation、response/turn 等 checks 全部为 `MATCHED`。任一期望哈希缺失或 DOM 不相等都固定产生 `PAGE_INPUT_BINDING_GAP:<role>`，该调用不得 `captureComplete=true`。本地化 candidate-a、candidate-b、selector 的 profile 以各自 `traceEntryId` 为准，禁止拿“插件支持过的所有 profile 变体”冒充本次实际选择。
 
@@ -151,6 +156,8 @@ Codex 按 Product trace 复刻：
 
 装配器只把 Codex 已经通过 Chrome 收回的 scene 与真实 source manifest 对齐，不执行页面动作。默认采集范围必须由 `actualTrace` 中真实出现的页面 Child 去重得到，不能拿全局 Child 分母代替；可选 `--child` 只能收窄到这个真实集合，未采调用仍如实形成缺口。失败 source 缺少 attempt 专属 `terminalBranchProof` 时直接拒绝；装配器不得补造或从当前 task 状态推断。`chrome-scene-collector.mjs` 不是终端命令；只能由 Codex 已连接的 Chrome 插件会话逐调用使用：
 
+Browser 命令返回不等于页面动作成功。transition receipt 必须带布尔 `postconditionPassed`；`false`、禁止的 document transition、或状态断言不成立时，装配器保留 post scene 的真实 DOM 并写 `PAGE_EVIDENCE_CONFLICT:*`，该调用和产品均不得完整。只有 receipt 结构、时间顺序、pre/action 关联或采集身份本身无效时才拒绝整包。当前输入步骤失败时必须停在 submit 之前，后续调用只报未采，禁止为补报告继续提交。
+
 ```bash
 node .agents/skills/gpt-page-operation-evidence/scripts/assemble-live-capture.mjs \
   --inventory /absolute/outside-repo/inventory.json \
@@ -177,9 +184,9 @@ node --import tsx .agents/skills/gpt-page-operation-evidence/scripts/report-tool
 
 只替换同一产品/Action/sourceSnapshot 的 run；其它产品切片原样保留。即使某旧产品路由已从当前 Catalog 删除，其历史切片也原对象保留并单独显示 stale，不能在目标产品更新时顺带丢失；当前 Catalog 新增路由才追加 `NOT_CAPTURED`。`childIndex` 每次从 `products[].runs[].calls[]` 重建，禁止独立写入。
 
-浏览器、环境、recapture trigger、scene binding、decision receipt 和 transition receipt 全部使用精确字段白名单；多一个调试字段也拒绝。合并器会重新计算每个 specimen 的完整 envelope，并重新建立 `sourceSceneId → traceEntryId` 唯一归属；同一 scene 被两个实际调用复用时，即使装配阶段曾通过，也不得进入报告。
+浏览器、环境、recapture trigger、scene binding、decision receipt、transition receipt 与公共 production source 全部使用精确字段白名单；多一个调试字段、明文 prompt/body/content 也拒绝。合并器会重新计算每个 specimen 和每个 product call 的完整 envelope，并重新建立 `sourceSceneId → traceEntryId` 唯一归属；同一 scene 被两个实际调用复用时，即使装配阶段曾通过，也不得进入报告。
 
-报告中的历史产品即使已经从当前 Catalog 删除或 Product 源码已经变化，也必须继续执行自身一致性校验：production source/trace/input binding、capture context 白名单、scene/specimen envelope、scene 唯一归属和 captureComplete 推导永远不能跳过。只有“是否符合今天的 Product/Child 投影”允许因 stale 暂缓；stale 绝不是绕过篡改检查的开关。
+报告中的历史产品即使已经从当前 Catalog 删除、Product 源码或页面矩阵已经变化，也必须继续执行自身一致性校验：每个 call 固定采集当时的 states/targets/assertions/required input roles/Child transition contract，并用该快照重算 production source/trace/input binding、capture context、scene/specimen/call envelope、scene 唯一归属和 captureComplete。今天的矩阵只决定 projection stale，不能用新规则淘汰历史，也不能借 stale 绕过篡改检查。
 
 ## 故障回看与准入
 

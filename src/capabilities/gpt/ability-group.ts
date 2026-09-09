@@ -192,6 +192,10 @@ const assertObservationIsAtomic = (
   if (observation.mutationOutcome === "confirmed" && pendingMutationCount > 1) {
     throw executionFailure("failed", `GPT_MUTATION_OUTCOME_NOT_UNIQUE:${intent.childCapabilityId}`);
   }
+  if (observation.mutationOutcome === "dispatched"
+    && (context.mutationMode !== "readback" || pendingMutationCount !== 1)) {
+    throw executionFailure("failed", `GPT_UNDECLARED_MUTATION:${intent.childCapabilityId}`);
+  }
   if (observation.mutationOutcome === "no" && pendingMutationCount !== 0) {
     if (context.mutationMode !== "readback" || pendingMutationCount !== 1) {
       throw executionFailure("failed", `GPT_UNDECLARED_MUTATION:${intent.childCapabilityId}`);

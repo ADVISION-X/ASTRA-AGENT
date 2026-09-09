@@ -62,7 +62,8 @@ export const resolveStoredBrowserMutationAuthority = (
   try {
     database = new Database(file, { readonly: true, fileMustExist: true });
     const row = database.prepare(
-      `select ${identityColumns},proof_hash,state,mutation_outcome,reason,native_cause_code,terminal_at,updated_at
+      `select ${identityColumns},proof_hash,state,mutation_outcome,physical_input_count,download_guid_hash,
+              download_completed,media_identity_revalidated,reason,native_cause_code,terminal_at,updated_at
        from browser_mutations where command_id=?`,
     ).get(commandId);
     if (!row) return "missing";

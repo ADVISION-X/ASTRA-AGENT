@@ -295,6 +295,28 @@ const exerciseExactUserPromptHash = async (source: string): Promise<void> => {
     "the exact GPT user Prompt hash must include only the unique rendered Prompt body");
   assert.notEqual(exactUserTurn?.semanticTextHash, hash(userPrompt),
     "the outer user-turn semantic hash must expose why attachment and controls cannot identify the Prompt");
+
+  const shortPrompt = "生成一张与本文主题一致的封面图";
+  const shortLeaf = new FakeElement(shortPrompt, {}, {}, { class: "max-w-full whitespace-pre-wrap" }, "DIV", [
+    new FakeTextNode(shortPrompt),
+  ]);
+  const shortUserRoot = new FakeElement(shortPrompt, { ".whitespace-pre-wrap": [shortLeaf] }, {}, {
+    "data-message-author-role": "user",
+  });
+  const shortTurn = new FakeElement(shortPrompt, {
+    "[data-testid='collapsible-user-message-content']": [],
+    "[data-message-author-role='user']": [shortUserRoot],
+  }, {}, { "data-testid": "conversation-turn-5" }, "ARTICLE", [shortUserRoot]);
+  const shortRoot = new FakeElement("", { ".user-turn": [shortTurn] });
+  shortTurn.parentElement = shortRoot;
+  const shortResult = await execute(source, {
+    documentElement: shortRoot, querySelectorAll: () => [], elementFromPoint: () => shortTurn,
+  }, [{ queryId: "short-user-turn", selector: ".user-turn", maxMatches: 1,
+    fields: ["exactGptUserPromptHash"] }]) as Readonly<{
+      queries: readonly Readonly<{ matches: readonly Readonly<{ exactGptUserPromptHash: string }>[] }>[];
+    }>;
+  assert.equal(shortResult.queries[0]?.matches[0]?.exactGptUserPromptHash, hash(shortPrompt),
+    "a real short Prompt must bind the unique uncollapsed whitespace-pre-wrap leaf");
 };
 
 const exerciseRejectedUserPromptHashes = async (source: string): Promise<void> => {
@@ -333,7 +355,7 @@ const exerciseRejectedUserPromptHashes = async (source: string): Promise<void> =
   await assert.rejects(async () => execute(source, {
     documentElement: missingRoot, querySelectorAll: () => [], elementFromPoint: () => missingPromptBody,
   }, [{ queryId: "user-turns", selector: ".user-turn", maxMatches: 1,
-    fields: ["exactGptUserPromptHash"] }]), /BROWSER_DOM_READ_INVALID/u,
+    fields: ["exactGptUserPromptHash"] }]), /BROWSER_DOM_CANDIDATE_MISSING/u,
   "a user turn without the exact Prompt body must fail closed");
   const duplicatePromptTurn = new FakeElement(userPrompt, {
     "[data-testid='collapsible-user-message-content']": [promptBody, promptBody],
@@ -343,8 +365,27 @@ const exerciseRejectedUserPromptHashes = async (source: string): Promise<void> =
   await assert.rejects(async () => execute(source, {
     documentElement: duplicateRoot, querySelectorAll: () => [], elementFromPoint: () => duplicatePromptTurn,
   }, [{ queryId: "user-turns", selector: ".user-turn", maxMatches: 1,
-    fields: ["exactGptUserPromptHash"] }]), /BROWSER_DOM_READ_INVALID/u,
+    fields: ["exactGptUserPromptHash"] }]), /BROWSER_DOM_CANDIDATE_AMBIGUOUS/u,
   "multiple Prompt bodies inside one user turn must fail closed");
+
+  const shortLeaf = (value: string) => new FakeElement(value, {}, {}, {
+    class: "max-w-full whitespace-pre-wrap",
+  }, "DIV", [new FakeTextNode(value)]);
+  const first = shortLeaf("first");
+  const second = shortLeaf("second");
+  const shortUserRoot = new FakeElement("first second", { ".whitespace-pre-wrap": [first, second] }, {}, {
+    "data-message-author-role": "user",
+  });
+  const ambiguousShortTurn = new FakeElement("first second", {
+    "[data-testid='collapsible-user-message-content']": [],
+    "[data-message-author-role='user']": [shortUserRoot],
+  }, {}, { "data-testid": "conversation-turn-5" });
+  const ambiguousShortRoot = new FakeElement("", { ".user-turn": [ambiguousShortTurn] });
+  await assert.rejects(async () => execute(source, {
+    documentElement: ambiguousShortRoot, querySelectorAll: () => [], elementFromPoint: () => ambiguousShortTurn,
+  }, [{ queryId: "user-turns", selector: ".user-turn", maxMatches: 1,
+    fields: ["exactGptUserPromptHash"] }]), /BROWSER_DOM_CANDIDATE_AMBIGUOUS/u,
+  "multiple short Prompt leaves must fail closed instead of guessing");
 };
 const exerciseUserPromptHashes = async (source: string): Promise<void> => {
   await exerciseExactUserPromptHash(source);

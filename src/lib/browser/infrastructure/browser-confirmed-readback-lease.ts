@@ -6,6 +6,7 @@ type ReconciliationBinding = Extract<BrowserExecutionBinding, { kind: "productio
 type SourceBinding = Extract<BrowserExecutionBinding, { kind: "production-confirmed-source-readback" }>;
 
 const CONFIRMED_READBACK_TARGET_LOCAL_CHILDREN = new Set([
+  "checkpoint_gpt_generated_image",
   "focus_exact_gpt_conversation",
   "wait_for_stable_gpt_text",
   "wait_for_stable_gpt_image",

@@ -1,8 +1,7 @@
 ---
 artifact_type: owner_local_implementation_work_order
 status: BROWSER_IMPLEMENTED_REAL_ENVIRONMENT_PENDING
-role: SUBORDINATE_BROWSER_OWNER_WORK_ORDER
-master_work_order: /Users/nexgen/Documents/AGENT/docs/项目方案/生产级子能力稳定性建设规则-实施工单.md
+role: BROWSER_OWNER_LOCAL_IMPLEMENTATION_WORK_ORDER
 source_scheme: /Users/nexgen/Documents/AGENT/docs/项目方案/Browser DOM 生产级方案.md
 source_scheme_sha256: c5b949ab46f0f0c8600aa45995fef1d1f7c43c58a6c5f7a5e19451590642258d
 construction_baseline: 0fa543643dab853a8d773cfd6bbc21dcea8339ed

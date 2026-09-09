@@ -9,7 +9,11 @@ import {
   derivePageInputBindingProof,
   pageInputBindingProofValid,
   pageInputBindingValid,
+  requiredPageInputRoles,
 } from "./page-input-binding.mjs";
+import { captureTimePageRequirementSnapshot, captureTimePageRequirementSnapshotValid,
+  pageEvidenceNotApplicableForTrace, requiredLiveStatesForTrace, stateAssertionFailures,
+  transitionEvidenceFailures } from "./trace-page-requirements.mjs";
 
 const REPORT_SCHEMA = "gpt-page-operation-evidence.v6";
 const CAPTURE_SCHEMA = "gpt-page-operation-capture.v6";
@@ -29,6 +33,7 @@ const DEMAND_CHAIN_FACTS = Object.freeze([
 ]);
 
 const FORBIDDEN_CAPTURE_KEYS = /^(cookie|cookies|localstorage|sessionstorage|password|passwords|authorizationheader|accesstoken|refreshtoken)$/i;
+const FORBIDDEN_PLAINTEXT_KEYS = /^(?:rawprompt|prompttext|responsetext|body|content|plaintext|rawtext)$/i;
 const RAW_CONVERSATION_PATH = /\/(?:c|g)\/(?!sha256:)[A-Za-z0-9_-]{8,}/i;
 const FORBIDDEN_CAPTURE_VALUE = /(?:\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b|\bBearer\s+[A-Za-z0-9._~-]{12,}\b|\bsk-[A-Za-z0-9_-]{12,}\b)/iu;
 
@@ -151,6 +156,16 @@ async function loadMatrix(path) {
       || JSON.stringify(Object.keys(child.stateAssertions).sort()) !== JSON.stringify([...child.requiredLiveStates].sort())
       || Object.entries(child.stateAssertions).some(([, assertions]) => !Array.isArray(assertions) || assertions.length === 0)) {
       fail("MATRIX_STATE_ASSERTIONS_INVALID", child.childCapabilityId);
+    }
+    if (child.traceResultStatuses !== undefined
+      && (!child.traceResultStatuses || typeof child.traceResultStatuses !== "object"
+        || Array.isArray(child.traceResultStatuses)
+        || JSON.stringify(Object.keys(child.traceResultStatuses).sort())
+          !== JSON.stringify([...child.requiredLiveStates].sort())
+        || Object.values(child.traceResultStatuses).some((statuses) => !Array.isArray(statuses)
+          || statuses.length === 0 || new Set(statuses).size !== statuses.length
+          || statuses.some((status) => !["success", "failed"].includes(status))))) {
+      fail("MATRIX_TRACE_RESULT_STATUSES_INVALID", child.childCapabilityId);
     }
   }
   if (ids.length !== matrix.expectedPageOperationCount) {
@@ -558,10 +573,6 @@ async function buildInventory(repo, matrixPath) {
       productConsumers: references.productConsumers[id],
       collectionRequirements: requirement,
       evidenceDemand,
-      collection: null,
-      captureComplete: false,
-      captureMissing: pageSet.has(id) ? ["live-page-capture-not-present"] : [],
-      demandCoverage: pageSet.has(id) ? { coveredFacts: 0, requiredFacts: evidenceDemand.facts.length, percent: 0 } : null,
     });
   }
   const projectionRevision = sha256(JSON.stringify(stable(children.filter((child) => child.pageOperationRequired)
@@ -630,11 +641,12 @@ function decisionReceiptValid(receipt) {
 
 function transitionReceiptValid(receipt) {
   return receipt === null || (exactObjectKeys(receipt, ["actionId", "operation", "issuedAt", "completedAt",
-    "outcome", "preSceneId", "preSceneSignature"])
+    "outcome", "preSceneId", "preSceneSignature", "postconditionPassed"])
     && nonEmptyString(receipt.actionId) && nonEmptyString(receipt.operation)
     && receipt.outcome === "DISPATCH_RETURNED" && nonEmptyString(receipt.preSceneId)
-    && sha256String(receipt.preSceneSignature)
-    && Number.isFinite(Date.parse(receipt.issuedAt)) && Number.isFinite(Date.parse(receipt.completedAt)));
+    && sha256String(receipt.preSceneSignature) && typeof receipt.postconditionPassed === "boolean"
+    && Number.isFinite(Date.parse(receipt.issuedAt)) && Number.isFinite(Date.parse(receipt.completedAt))
+    && Date.parse(receipt.completedAt) >= Date.parse(receipt.issuedAt));
 }
 
 function captureMetadataValid(capture) {
@@ -674,7 +686,9 @@ function rawSceneMetadataValid(scene) {
   return exactObjectKeys(scene, ["sceneId", "capturedAt", "stateSignature", "activeTabIdentityHash",
     "documentIdentityHash", "observationRevisionHash", "binding", "transitionReceipt", "decisionReceipt", "envelopeHash"])
     && exactObjectKeys(scene.binding, ["runId", "captureEpoch", "qaTabIdentityHash"])
-    && decisionReceiptValid(scene.decisionReceipt) && transitionReceiptValid(scene.transitionReceipt);
+    && decisionReceiptValid(scene.decisionReceipt) && transitionReceiptValid(scene.transitionReceipt)
+    && (scene.transitionReceipt === null
+      || Date.parse(scene.capturedAt) >= Date.parse(scene.transitionReceipt.completedAt));
 }
 
 function publicSceneMetadataValid(scene) {
@@ -683,7 +697,9 @@ function publicSceneMetadataValid(scene) {
     "sourceEnvelopeHash", "envelopeHash"])
     && exactObjectKeys(scene.binding, ["runId", "captureEpoch", "qaTabIdentityHash"])
     && sha256String(scene.sourceEnvelopeHash)
-    && decisionReceiptValid(scene.decisionReceipt) && transitionReceiptValid(scene.transitionReceipt);
+    && decisionReceiptValid(scene.decisionReceipt) && transitionReceiptValid(scene.transitionReceipt)
+    && (scene.transitionReceipt === null
+      || Date.parse(scene.capturedAt) >= Date.parse(scene.transitionReceipt.completedAt));
 }
 
 function authorizedInputDescriptorValid(descriptor) {
@@ -786,29 +802,6 @@ function valuePresent(value) {
   if (Array.isArray(value)) return value.length > 0;
   if (typeof value === "object") return Object.keys(value).length > 0;
   return true;
-}
-
-function stateAssertionMissing(specimen, assertions = []) {
-  const missing = [];
-  for (const assertion of assertions) {
-    const actual = valueAtPath(specimen, assertion.path);
-    if (assertion.operator === "equals" && JSON.stringify(actual) !== JSON.stringify(assertion.value)) {
-      missing.push(`STATE_ASSERTION:${specimen.stateId}:${assertion.path}:equals`);
-    } else if (assertion.operator === "present" && !valuePresent(actual)) {
-      missing.push(`STATE_ASSERTION:${specimen.stateId}:${assertion.path}:present`);
-    } else if (assertion.operator === "absent" && valuePresent(actual)) {
-      missing.push(`STATE_ASSERTION:${specimen.stateId}:${assertion.path}:absent`);
-    } else if (assertion.operator === "sameAs" && JSON.stringify(actual) !== JSON.stringify(valueAtPath(specimen, assertion.valuePath))) {
-      missing.push(`STATE_ASSERTION:${specimen.stateId}:${assertion.path}:sameAs`);
-    } else if (assertion.operator === "differentFrom" && JSON.stringify(actual) === JSON.stringify(valueAtPath(specimen, assertion.valuePath))) {
-      missing.push(`STATE_ASSERTION:${specimen.stateId}:${assertion.path}:differentFrom`);
-    } else if (assertion.operator === "greaterThan" && !(typeof actual === "number" && actual > assertion.value)) {
-      missing.push(`STATE_ASSERTION:${specimen.stateId}:${assertion.path}:greaterThan`);
-    } else if (!["equals", "present", "absent", "sameAs", "differentFrom", "greaterThan"].includes(assertion.operator)) {
-      missing.push(`STATE_ASSERTION:${specimen.stateId}:operator`);
-    }
-  }
-  return missing;
 }
 
 function observedStateSignature(specimen) {
@@ -982,7 +975,8 @@ function specimenShapeMissing(specimen, capture, liveObservationIds, childRecord
           "related.transitionChain.actionCommandKind");
         mark(["CAPTURED_DISPATCH_RETURN", "COHERENT_READBACK"].includes(chain.terminalReceipt.kind),
           "related.transitionChain.actionReceiptKind");
-        mark(chain.directPostcondition.passed === true, "related.transitionChain.directPostcondition");
+        mark(typeof chain.directPostcondition.passed === "boolean",
+          "related.transitionChain.directPostcondition");
         const observationScene = (observationId) => {
           const observed = liveSpecimensByObservation?.[observationId];
           return observed ? (capture.sceneManifest ?? []).find((entry) => entry?.sceneId === observed.sourceSceneId) : null;
@@ -998,6 +992,7 @@ function specimenShapeMissing(specimen, capture, liveObservationIds, childRecord
             && preScene.decisionReceipt?.operation === chain.typedCommand.operation
             && receipt.actionId === chain.typedCommand.actionId
             && receipt.operation === chain.typedCommand.operation
+            && receipt.postconditionPassed === chain.directPostcondition.passed
             && chain.terminalReceipt.actionId === chain.typedCommand.actionId
             && chain.terminalReceipt.operation === chain.typedCommand.operation
             && chain.terminalReceipt.preSceneSignature === preScene.stateSignature
@@ -1011,7 +1006,6 @@ function specimenShapeMissing(specimen, capture, liveObservationIds, childRecord
         }
       }
     }
-    missing.push(...stateAssertionMissing(specimen, requirements.stateAssertions?.[specimen.stateId] ?? []));
   } else {
     mark(specimen.peripheral.runId === capture.runId, "peripheral.runIdCaptureBinding");
   }
@@ -1026,6 +1020,7 @@ function scanCapturePrivacy(value, path = "capture") {
   if (value && typeof value === "object") {
     for (const [key, child] of Object.entries(value)) {
       if (FORBIDDEN_CAPTURE_KEYS.test(key)) fail("CAPTURE_SECRET_FIELD_FORBIDDEN", `${path}.${key}`);
+      if (FORBIDDEN_PLAINTEXT_KEYS.test(key)) fail("CAPTURE_PLAINTEXT_FIELD_FORBIDDEN", `${path}.${key}`);
       scanCapturePrivacy(child, `${path}.${key}`);
     }
     return;
@@ -1099,6 +1094,13 @@ function publicProductionSource(source) {
     storageClass: material.storageClass,
   }));
   const actualTrace = (source.actualTrace ?? []).map(publicTraceEntry);
+  const reportInputs = Object.fromEntries(Object.entries(source.reportInputs ?? {}).map(([id, descriptor]) =>
+    [id, stable({ kind: descriptor?.kind, ...(descriptor?.count === undefined ? {} : { count: descriptor.count }),
+      sha256: descriptor?.sha256 })]));
+  const pageEvidenceContract = stable({ path: source.pageEvidenceContract?.path,
+    sha256: source.pageEvidenceContract?.sha256 });
+  const flowContractBinding = stable({ digest: source.flowContractBinding?.digest,
+    files: (source.flowContractBinding?.files ?? []).map((entry) => stable({ path: entry.path, sha256: entry.sha256 })) });
   return stable({
     schemaVersion: source.schemaVersion,
     sourceKind: source.sourceKind,
@@ -1114,8 +1116,8 @@ function publicProductionSource(source) {
     materials,
     materialSetHash: source.materialSetHash,
     reportSourceSnapshotId: sha256(JSON.stringify(stable({ taskBinding, materials }))),
-    pageEvidenceContract: source.pageEvidenceContract,
-    flowContractBinding: source.flowContractBinding,
+    pageEvidenceContract,
+    flowContractBinding,
     flowContractDigest: source.flowContractDigest,
     flowStatus: source.flowStatus,
     flowProjectionStatus: source.flowProjectionStatus ?? null,
@@ -1128,7 +1130,7 @@ function publicProductionSource(source) {
     actualTrace,
     traceDigest: source.traceDigest,
     reportTraceDigest: sha256(JSON.stringify(actualTrace)),
-    reportInputs: source.reportInputs,
+    reportInputs,
   });
 }
 
@@ -1163,7 +1165,12 @@ const publicSpecimen = (specimen) => {
   return stable({ ...withoutEnvelope, envelopeHash: sha256(JSON.stringify(withoutEnvelope)) });
 };
 
-const publicProductCall = (call) => stable({
+const sealProductCall = (call) => {
+  const body = stable(call);
+  return stable({ ...body, derivationEnvelopeHash: sha256(JSON.stringify(body)) });
+};
+
+const publicProductCall = (call) => sealProductCall({
   ...publicTraceEntry(call),
   pageOperationRequired: call.pageOperationRequired,
   pageRequirementSnapshot: call.pageRequirementSnapshot,
@@ -1202,6 +1209,10 @@ function productRunFailures(run, source, matrix, inventory = null, captureOverri
   mark(nonEmptyObject(run), "run");
   mark(nonEmptyObject(source), "productionSource");
   if (!nonEmptyObject(run) || !nonEmptyObject(source)) return failures;
+  if (source.reportTraceDigest) {
+    mark(JSON.stringify(stable(source)) === JSON.stringify(publicProductionSource(source)),
+      "productionSource.publicProjection");
+  }
   mark(run.productId === source.productId, "productId");
   mark(run.actionId === source.actionId, "actionId");
   mark(run.pluginId === source.pluginId, "pluginId");
@@ -1285,6 +1296,10 @@ function productRunFailures(run, source, matrix, inventory = null, captureOverri
     const call = run.calls[index];
     const trace = source.actualTrace[index];
     if (!call || !trace) continue;
+    const { derivationEnvelopeHash, ...callBody } = call;
+    mark(sha256String(derivationEnvelopeHash)
+      && derivationEnvelopeHash === sha256(JSON.stringify(stable(callBody))),
+    `call[${index}].derivationEnvelopeHash`);
     mark(JSON.stringify(traceIdentity(call)) === JSON.stringify(traceIdentity(trace)), `call[${index}].identity`);
     const requirement = matrixById[trace.childId];
     mark(typeof call.pageOperationRequired === "boolean", `call[${index}].pageOperationRequired.shape`);
@@ -1299,23 +1314,21 @@ function productRunFailures(run, source, matrix, inventory = null, captureOverri
       continue;
     }
     const snapshot = call.pageRequirementSnapshot;
-    const snapshotValid = exactObjectKeys(snapshot, ["matrixDigest", "childCandidateDigest", "requiredLiveStates"])
-      && sha256String(snapshot.matrixDigest) && sha256String(snapshot.childCandidateDigest)
-      && Array.isArray(snapshot.requiredLiveStates) && snapshot.requiredLiveStates.every(nonEmptyString)
-      && new Set(snapshot.requiredLiveStates).size === snapshot.requiredLiveStates.length;
+    const snapshotValid = captureTimePageRequirementSnapshotValid(snapshot);
     mark(snapshotValid, `call[${index}].pageRequirementSnapshot`);
     if (snapshotValid) {
       mark(snapshot.matrixDigest === effectiveCapture?.matrixDigest,
         `call[${index}].pageRequirementSnapshot.matrixDigest`);
     }
-    if (currentProjection && snapshotValid) {
-      const inventoryChild = inventory?.children?.find((entry) => entry.childCapabilityId === trace.childId);
-      const allowedLiveStates = [...(requirement?.requiredLiveStates ?? []),
-        ...(requirement?.optionalLiveStates ?? [])];
-      mark(snapshot.requiredLiveStates.every((stateId) => allowedLiveStates.includes(stateId)),
-        `call[${index}].pageRequirementSnapshot.requiredLiveStates`);
-      if (inventoryChild) mark(snapshot.childCandidateDigest === inventoryChild.evidenceDemand?.childCandidateDigest,
-        `call[${index}].pageRequirementSnapshot.childCandidateDigest`);
+    const inventoryChild = inventory?.children?.find((entry) => entry.childCapabilityId === trace.childId);
+    if (currentProjection && snapshotValid && inventoryChild && requirement) {
+      const expectedSnapshot = captureTimePageRequirementSnapshot(
+        requirement, trace, inventoryChild, effectiveCapture?.matrixDigest,
+      );
+      mark(JSON.stringify(snapshot) === JSON.stringify(expectedSnapshot),
+        `call[${index}].pageRequirementSnapshot.currentProjection`);
+      mark(JSON.stringify(snapshot.requiredInputRoles) === JSON.stringify(requiredPageInputRoles(trace.childId)),
+        `call[${index}].pageRequirementSnapshot.requiredInputRoles`);
     }
     const specimens = call.domEvidence?.specimens;
     const stateIds = Array.isArray(specimens)
@@ -1335,18 +1348,36 @@ function productRunFailures(run, source, matrix, inventory = null, captureOverri
         }
       }
     }
-    const inputBindingProof = derivePageInputBindingProof(trace, specimens ?? []);
-    mark(pageInputBindingProofValid(call.inputBindingProof, trace, specimens ?? []),
+    const requiredInputRoles = snapshotValid ? snapshot.requiredInputRoles : [];
+    const inputBindingProof = derivePageInputBindingProof(trace, specimens ?? [], requiredInputRoles);
+    mark(pageInputBindingProofValid(call.inputBindingProof, trace, specimens ?? [], requiredInputRoles),
       `call[${index}].inputBindingProof`);
-    const inventoryChild = inventory?.children?.find((entry) => entry.childCapabilityId === trace.childId);
+    const captureRequirement = snapshotValid ? {
+      liveStateTargets: snapshot.liveStateTargets,
+      stateAssertions: snapshot.stateAssertions,
+    } : null;
+    const captureChild = snapshotValid ? {
+      childCapabilityId: trace.childId,
+      contractVersion: snapshot.childContract.contractVersion,
+      contract: {
+        profile: snapshot.childContract.profile,
+        allowedDocumentTransition: snapshot.childContract.allowedDocumentTransition,
+      },
+    } : null;
     const liveObservationIds = new Set((specimens ?? []).filter((entry) => entry?.evidenceKind === "LIVE_PAGE")
       .map((entry) => entry.observationId).filter(nonEmptyString));
     const liveByObservation = Object.fromEntries((specimens ?? []).filter((entry) => entry?.evidenceKind === "LIVE_PAGE"
       && nonEmptyString(entry.observationId)).map((entry) => [entry.observationId, entry]));
-    const fullShapeComplete = !currentProjection || !inventoryChild || !effectiveCapture ? true
-      : Array.isArray(specimens) && specimens.every((entry) => specimenShapeMissing(entry, effectiveCapture,
-        liveObservationIds, inventoryChild, requirement, liveByObservation).length === 0);
+    const fullShapeComplete = Boolean(captureRequirement && captureChild && effectiveCapture)
+      && Array.isArray(specimens) && specimens.every((entry) => specimenShapeMissing(entry, effectiveCapture,
+        liveObservationIds, captureChild, captureRequirement, liveByObservation).length === 0);
     const requiredLiveStates = snapshotValid ? snapshot.requiredLiveStates : [];
+    const assertionGaps = (specimens ?? []).flatMap((specimen) => [
+      ...stateAssertionFailures(specimen, captureRequirement?.stateAssertions?.[specimen.stateId] ?? []),
+      ...transitionEvidenceFailures(specimen, effectiveCapture?.sceneManifest ?? [], captureChild?.contract),
+    ].map((failure) => `PAGE_EVIDENCE_CONFLICT:${failure}`));
+    mark(assertionGaps.every((gap) => call.gaps?.includes(gap)),
+      `call[${index}].stateAssertionGaps`);
     const shapeComplete = snapshotValid && Array.isArray(specimens)
       && exactStringSet(stateIds, requiredLiveStates)
       && fullShapeComplete
@@ -1367,7 +1398,8 @@ function productRunFailures(run, source, matrix, inventory = null, captureOverri
         && nonEmptyObject(entry?.peripheral)
         && nonEmptyString(entry?.peripheral?.runId)
         && (!source.reportTraceDigest || entry.envelopeHash === sceneEnvelopeHash(entry)));
-    const expectedComplete = shapeComplete && inputBindingProof.complete
+    const inputBindingSatisfied = inputBindingProof.complete || pageEvidenceNotApplicableForTrace(trace);
+    const expectedComplete = shapeComplete && assertionGaps.length === 0 && inputBindingSatisfied
       && Array.isArray(call.gaps) && call.gaps.length === 0;
     mark(call.captureComplete === expectedComplete, `call[${index}].captureComplete`);
     mark(Array.isArray(call.gaps) && (call.captureComplete ? call.gaps.length === 0 : call.gaps.length > 0),
@@ -1948,10 +1980,12 @@ async function validateReport(repo, matrixPath, reportPath, requireComplete) {
     const currentBinding = JSON.stringify(expected?.flowOwnerBinding);
     const runSourcesCurrent = (await Promise.all(product.runs.map((run) =>
       productRunSourcesCurrent(repo, run.productionSource)))).every(Boolean);
+    const runMatricesCurrent = product.runs.every((run) =>
+      run.captureContext?.matrixDigest === current.matrixBinding?.digest);
     const stale = !expected || product.productId !== expected.productId || product.actionId !== expected.actionId
       || product.pluginId !== expected.pluginId || product.pluginVersion !== expected.pluginVersion
       || product.contractDigest !== expected.contractDigest
-      || JSON.stringify(product.flowOwnerBinding) !== currentBinding || !runSourcesCurrent;
+      || JSON.stringify(product.flowOwnerBinding) !== currentBinding || !runSourcesCurrent || !runMatricesCurrent;
     if (stale) staleProducts.push(product.productKey);
     for (const run of product.runs) {
       if (!sha256String(run.sourceSnapshotId) || !sha256String(run.flowContractDigest)
@@ -2008,7 +2042,9 @@ async function validateReport(repo, matrixPath, reportPath, requireComplete) {
   assertUnique(report.children.map((child) => child.childCapabilityId), "REPORT_CHILD_DUPLICATE");
   const currentById = Object.fromEntries(current.children.map((child) => [child.childCapabilityId, child]));
   for (const child of report.children) {
-    if (child.collection !== null || child.captureComplete !== false) {
+    if (!exactObjectKeys(child, ["childCapabilityId", "contractVersion", "pageOperationRequired",
+      "inclusionBasis", "contract", "sourceReferences", "webImplementationReferences",
+      "productConsumers", "collectionRequirements", "evidenceDemand"])) {
       fail("REPORT_CHILD_EVIDENCE_SECOND_TRUTH", child.childCapabilityId);
     }
     const expected = currentById[child.childCapabilityId];

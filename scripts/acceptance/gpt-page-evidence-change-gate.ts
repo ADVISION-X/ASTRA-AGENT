@@ -4,9 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import {
-  completeGptPageEvidenceCaptureFailures,
   gptPageEvidencePrivacyFailures,
-  scopedGptPageEvidenceFactFailures,
 }
   from "../audit/domains/gpt/gpt-page-evidence-capture-inspection.js";
 
@@ -42,15 +40,78 @@ const changedText = (path: string): string => {
 type EvidenceChild = Record<string, unknown> & {
   childCapabilityId: string;
   pageOperationRequired: boolean;
-  captureComplete: boolean;
   evidenceDemand: Record<string, unknown> & {
     digest: string;
     sourceBinding: Record<string, { files?: Array<{ path?: string; contentHash?: string }> }>;
   };
-  collection?: Record<string, unknown> & { factBindings?: Array<{ factId?: string }> };
 };
 
 type EvidenceScope = Readonly<Record<string, readonly string[]>>;
+
+const record = (value: unknown): Record<string, unknown> | null => value
+  && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+
+const productCallsForChild = (
+  report: Record<string, unknown>, childId: string,
+): Array<{ run: Record<string, unknown>; call: Record<string, unknown> }> => {
+  const products = Array.isArray(report.products) ? report.products : [];
+  return products.flatMap((product) => {
+    const runs = Array.isArray(record(product)?.runs) ? record(product)!.runs as unknown[] : [];
+    return runs.flatMap((run) => {
+      const calls = Array.isArray(record(run)?.calls) ? record(run)!.calls as unknown[] : [];
+      return calls.flatMap((call) => record(call)?.childId === childId && record(run) && record(call)
+        ? [{ run: record(run)!, call: record(call)! }] : []);
+    });
+  });
+};
+
+const productCallCurrentForChild = (
+  child: EvidenceChild, candidate: { run: Record<string, unknown>; call: Record<string, unknown> },
+): boolean => {
+  const snapshot = record(candidate.call.pageRequirementSnapshot);
+  const context = record(candidate.run.captureContext);
+  return snapshot?.childCandidateDigest === child.evidenceDemand.childCandidateDigest
+    && Array.isArray(context?.sceneManifest) && record(candidate.call.domEvidence) !== null
+    && Array.isArray(record(candidate.call.domEvidence)?.specimens);
+};
+
+const callHasCompleteDomEvidence = (call: Record<string, unknown>): boolean => {
+  const domEvidence = record(call.domEvidence);
+  return call.captureComplete === true && Array.isArray(call.gaps) && call.gaps.length === 0
+    && Array.isArray(domEvidence?.specimens) && domEvidence.specimens.length > 0;
+};
+
+const scopedProductCallFactFailures = (
+  child: EvidenceChild, candidates: Array<{ run: Record<string, unknown>; call: Record<string, unknown> }>,
+  factIds: readonly string[],
+): string[] => {
+  const current = candidates.filter((candidate) => productCallCurrentForChild(child, candidate));
+  if (current.length === 0) return ["product-call-current-projection"];
+  if (current.some(({ call }) => callHasCompleteDomEvidence(call))) return [];
+  const failures: string[] = [];
+  for (const factId of factIds) {
+    const observed = current.some(({ run, call }) => {
+      const context = record(run.captureContext)!;
+      const scenes = (context.sceneManifest as unknown[]).flatMap((entry) => record(entry) ? [record(entry)!] : []);
+      const specimens = (record(call.domEvidence)!.specimens as unknown[])
+        .flatMap((entry) => record(entry) ? [record(entry)!] : []);
+      return specimens.some((specimen) => {
+        const scene = scenes.find((entry) => entry.sceneId === specimen.sourceSceneId);
+        const sceneBound = Boolean(scene) && scene!.stateSignature === specimen.sourceSceneSignature
+          && record(scene!.binding)?.captureEpoch === run.captureEpoch;
+        if (!sceneBound) return false;
+        if (factId.startsWith("live-state:")) return specimen.stateId === factId.slice("live-state:".length);
+        if (factId.startsWith("target:")) {
+          const target = record(record(specimen.core)?.targets)?.[factId.slice("target:".length)];
+          return record(target)?.observed === true;
+        }
+        return false;
+      });
+    });
+    if (!observed) failures.push(`fact-not-observed:${factId}`);
+  }
+  return failures;
+};
 
 const requestedEvidenceScope = (): EvidenceScope => {
   const raw = process.env.GPT_PAGE_EVIDENCE_SCOPE;
@@ -114,10 +175,6 @@ const childBindingFailures = (child: EvidenceChild): string[] => {
       }
     }
   }
-  if (child.captureComplete === true) {
-    failures.push(...completeGptPageEvidenceCaptureFailures(child, child.evidenceDemand)
-      .map((failure) => `${child.childCapabilityId}:capture:${failure}`));
-  }
   return failures;
 };
 
@@ -125,17 +182,18 @@ const affectedChildFailures = (
   id: string,
   children: readonly EvidenceChild[],
   requestedScope: EvidenceScope,
+  report: Record<string, unknown>,
 ): string[] => {
   const child = children.find((entry) => entry.childCapabilityId === id);
   if (!child) return [`${id}:not-admitted`];
-  if (child.captureComplete === true) {
-    return completeGptPageEvidenceCaptureFailures(child, child.evidenceDemand)
-      .map((failure) => `${id}:targeted-capture:${failure}`);
-  }
+  const productCalls = productCallsForChild(report, id);
+  if (productCalls.length === 0) return [`${id}:product-call-evidence-required`];
+  if (productCalls.some((candidate) => productCallCurrentForChild(child, candidate)
+    && callHasCompleteDomEvidence(candidate.call))) return [];
   const requestedFacts = requestedScope[id] ?? [];
   return [
     ...(requestedFacts.length === 0 ? [`${id}:observation-scope-required`] : []),
-    ...scopedGptPageEvidenceFactFailures(child, child.evidenceDemand, requestedFacts)
+    ...scopedProductCallFactFailures(child, productCalls, requestedFacts)
       .map((failure) => `${id}:scoped-capture:${failure}`),
   ];
 };
@@ -159,13 +217,19 @@ export const gptPageEvidenceChangeGateFailures = (
   if (gptPageEvidencePrivacyFailures(report).length > 0) failures.push("privacy");
   const affected = affectedGptPageChildren(paths, children);
   for (const child of children) failures.push(...childBindingFailures(child));
-  for (const id of affected) failures.push(...affectedChildFailures(id, children, requestedScope));
+  for (const id of affected) failures.push(...affectedChildFailures(id, children, requestedScope, report));
   return [...new Set(failures)];
 };
 
 function main(): void {
   const absolute = resolve(ROOT, REPORT_PATH);
   if (!existsSync(absolute)) throw new Error("GPT_PAGE_EVIDENCE_REPORT_REQUIRED");
+  execFileSync(process.execPath, ["--import", "tsx",
+    resolve(ROOT, ".agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs"), "validate",
+    "--repo", ROOT,
+    "--matrix", resolve(ROOT, "src/capabilities/gpt/page-operation-matrix.json"),
+    "--report", absolute,
+  ], { cwd: ROOT, encoding: "utf8", stdio: "pipe", maxBuffer: 32 * 1024 * 1024 });
   const report = JSON.parse(readFileSync(absolute, "utf8")) as Record<string, unknown>;
   const paths = statusPaths();
   const failures = gptPageEvidenceChangeGateFailures(report, paths);

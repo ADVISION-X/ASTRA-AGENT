@@ -32,6 +32,7 @@ import {
   BrowserMutationStore,
   type BrowserAtomicStepRecovery,
   type BrowserMutationIdentity,
+  type BrowserMutationProgress,
 } from "./browser-mutation-store.js";
 import type { BrowserAtomicStepIdentity } from "./browser-target-lease.js";
 import {
@@ -64,6 +65,7 @@ export type BrowserGovernedCommand =
     kind: "authenticated-media";
     assistantTurnId: string;
     semanticMediaId: "gpt-generated-image-main";
+    delivery: "probe" | "visible-download";
   }>
   | Readonly<{ kind: "wait"; durationMs: number }>
   | Readonly<{ kind: "park-target"; reason: string }>
@@ -74,6 +76,7 @@ export type BrowserCommandPort = Readonly<{
     permit: BrowserCommandPermit,
     command: BrowserGovernedCommand,
     onDispatched?: () => void,
+    onProgress?: (progress: BrowserMutationProgress) => void,
   ): Promise<BrowserCommandReply>;
 }>;
 
@@ -111,6 +114,7 @@ const assertAcceptedCommand = (permit: BrowserCommandPermit, command: BrowserGov
 
 const isMutation = (command: BrowserGovernedCommand): boolean =>
   command.kind === "file-input"
+  || (command.kind === "authenticated-media" && command.delivery === "visible-download")
   || (command.kind === "dom-intent" && (command.intent.kind === "click" || command.intent.kind === "hover"
     || command.intent.kind === "doubleClick" || command.intent.kind === "keypress" || command.intent.kind === "fill"));
 
@@ -126,6 +130,17 @@ const postconditionPair = (command: BrowserGovernedCommand): Readonly<{
       activation: command.activation,
       approvedFiles: command.approvedFiles,
       attached: true,
+    };
+    return Object.freeze({
+      positive: hashValue({ ...positive, result: "passed" }),
+      negative: hashValue({ ...positive, result: "failed" }),
+    });
+  }
+  if (command.kind === "authenticated-media" && command.delivery === "visible-download") {
+    const positive = {
+      kind: command.kind, delivery: command.delivery, assistantTurnId: command.assistantTurnId,
+      semanticMediaId: command.semanticMediaId, imageOpened: true, saveClicked: true,
+      downloadCompleted: true,
     };
     return Object.freeze({
       positive: hashValue({ ...positive, result: "passed" }),
@@ -353,6 +368,9 @@ export class BrowserCommandActor {
           runtimeLogger: this.runtimeLogger, mutation: permit, outcome: "DISPATCHED",
           authorityHash: this.mutations.authorityHash(permit.commandId),
         });
+      } : undefined, mutation ? (progress) => {
+        this.authorityGuard.assertCurrentAuthority(permit);
+        this.mutations.recordAuthenticatedMediaProgress(permit.commandId, progress);
       } : undefined);
       assertMatchingReply(permit, reply);
       state.authenticatedReplyHash = hashValue(reply.result);
@@ -395,6 +413,12 @@ export class BrowserCommandActor {
   ): void {
     if (!state.dispatched) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     const result = decodeBrowserMutationReceipt(command, reply.result);
+    if (command.kind === "authenticated-media" && command.delivery === "visible-download"
+      && result.terminal === "confirmed") {
+      const downloadGuidHash = reply.result && typeof reply.result === "object"
+        ? (reply.result as Readonly<Record<string, unknown>>).downloadGuidHash : null;
+      this.mutations.assertAuthenticatedMediaCompleted(permit.commandId, downloadGuidHash);
+    }
     const replyHash = hashValue(reply.result);
     if (result.terminal === "rejected") {
       this.mutations.markRejected(

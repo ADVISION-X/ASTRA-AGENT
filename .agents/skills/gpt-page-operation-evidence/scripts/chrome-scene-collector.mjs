@@ -48,10 +48,10 @@ function acceptedDecisionReceipt(receipt) {
 function acceptedTransitionReceipt(receipt, scenes) {
   if (receipt === null) return null;
   if (!exactKeys(receipt, ["actionId", "operation", "issuedAt", "completedAt", "outcome",
-    "preSceneId", "preSceneSignature"])
+    "preSceneId", "preSceneSignature", "postconditionPassed"])
     || typeof receipt.actionId !== "string" || receipt.actionId.length === 0
     || typeof receipt.operation !== "string" || receipt.operation.length === 0
-    || receipt.outcome !== "DISPATCH_RETURNED"
+    || receipt.outcome !== "DISPATCH_RETURNED" || typeof receipt.postconditionPassed !== "boolean"
     || !Number.isFinite(Date.parse(receipt.issuedAt)) || !Number.isFinite(Date.parse(receipt.completedAt))
     || Date.parse(receipt.completedAt) < Date.parse(receipt.issuedAt)
     || !/^sha256:[a-f0-9]{64}$/u.test(receipt.preSceneSignature ?? "")) {
@@ -66,7 +66,7 @@ function acceptedTransitionReceipt(receipt, scenes) {
   }
   return { actionId: receipt.actionId, operation: receipt.operation, issuedAt: receipt.issuedAt,
     completedAt: receipt.completedAt, outcome: receipt.outcome, preSceneId: receipt.preSceneId,
-    preSceneSignature: receipt.preSceneSignature };
+    preSceneSignature: receipt.preSceneSignature, postconditionPassed: receipt.postconditionPassed };
 }
 
 function sanitizeUrl(value) {
@@ -113,25 +113,32 @@ function sceneContentSignature(scene) {
   }));
 }
 
-function safeAttributeValue(name, value, _productMarker, uiAllowlist) {
+function safeAttributeValue(name, value, _productMarker, uiAllowlist, allowPlainUiValue = false) {
   if (value === null) return undefined;
   if (["role", "type", "data-testid", "data-message-author-role", "contenteditable", "accept", "multiple",
     "disabled", "aria-checked", "aria-expanded", "aria-selected", "aria-disabled", "aria-valuemin",
     "aria-valuemax", "aria-valuenow", "aria-hidden", "aria-busy", "hidden", "inert", "data-state"].includes(name)) return value;
   if (name === "id" && /^(?:prompt-textarea|composer-plus-btn|upload-files)$/u.test(value)) return value;
-  if (name === "aria-label" && uiAllowlist.has(value)) return value;
+  if (name === "aria-label" && allowPlainUiValue && uiAllowlist.has(value)) return value;
   return { kind: "HASH_ONLY", sha256: hash(value), length: value.length };
+}
+
+function uiTextAllowed(node, value, uiAllowlist) {
+  if (!uiAllowlist.has(value)) return false;
+  const attributes = node?.attributes ?? {};
+  return node?.tag === "button"
+    || ["button", "menuitem", "menuitemradio", "option", "slider", "tab"].includes(attributes.role);
 }
 
 const escapeHtml = (value) => String(value).replaceAll("&", "&amp;").replaceAll('"', "&quot;")
   .replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 
-function sanitizeDomTree(node, productMarker, uiAllowlist) {
+function sanitizeDomTree(node, productMarker, uiAllowlist, allowPlainUiText = false) {
   if (!node || typeof node !== "object") return null;
   if (node.kind === "TRUNCATED") return { kind: "TRUNCATED" };
   if (node.kind === "TEXT") {
     const value = String(node.value ?? "").replace(/\s+/gu, " ").trim();
-    return uiAllowlist.has(value)
+    return allowPlainUiText && uiAllowlist.has(value)
       ? { kind: "ALLOWLISTED_TEXT", value }
       : { kind: "HASH_ONLY_TEXT", sha256: hash(value), length: value.length };
   }
@@ -139,8 +146,10 @@ function sanitizeDomTree(node, productMarker, uiAllowlist) {
     kind: "ELEMENT",
     tag: node.tag,
     attributes: Object.fromEntries(Object.entries(node.attributes ?? {}).map(([name, value]) =>
-      [name, safeAttributeValue(name, value, productMarker, uiAllowlist)])),
-    children: (node.children ?? []).map((child) => sanitizeDomTree(child, productMarker, uiAllowlist)),
+      [name, safeAttributeValue(name, value, productMarker, uiAllowlist, allowPlainUiText)])),
+    children: (node.children ?? []).map((child) => sanitizeDomTree(
+      child, productMarker, uiAllowlist, allowPlainUiText,
+    )),
   };
 }
 
@@ -274,6 +283,25 @@ export async function createChromeSceneCollector({
         const value = Array.from(node.childNodes || []).map((child) => semanticNode(child, node, false)).join("");
         return value.endsWith("\n") ? value.slice(0, -1) : value;
       };
+      const userPromptText = (turn) => {
+        const userRoles = turn.querySelectorAll("[data-message-author-role='user']");
+        if (userRoles.length !== 1
+          || turn.querySelectorAll("[data-message-author-role='assistant']").length !== 0) return null;
+        const collapsed = turn.querySelectorAll("[data-testid='collapsible-user-message-content']");
+        if (collapsed.length === 1) return semanticText(collapsed[0]);
+        if (collapsed.length !== 0) return null;
+        const shortPromptLeaves = userRoles[0].querySelectorAll(".whitespace-pre-wrap");
+        return shortPromptLeaves.length === 1 ? semanticText(shortPromptLeaves[0]) : null;
+      };
+      const semanticMediaNodes = (turn) => [...turn.querySelectorAll("img[alt]")].filter((node) => {
+        if (node.tagName !== "IMG" || !node.isConnected || !node.complete
+          || node.alt.trim().length === 0 || node.naturalWidth <= 0 || node.naturalHeight <= 0) return false;
+        const bounds = node.getBoundingClientRect();
+        const style = getComputedStyle(node);
+        return bounds.width > 0 && bounds.height > 0 && style.display !== "none"
+          && style.visibility !== "hidden" && style.visibility !== "collapse"
+          && Number.parseFloat(style.opacity || "1") > 0;
+      });
       const domSnapshot = (root) => {
         let count = 0;
         const visit = (node, depth) => {
@@ -361,6 +389,7 @@ export async function createChromeSceneCollector({
               attachmentUploadErrorAlert: attachmentUploadArmed
                 && element.getAttribute("role") === "alert" && subtreeText.length > 0,
               activeAttachmentPopoverAncestor: element.closest("div.popover[aria-busy='false']") !== null,
+              composerFormAncestor: element.closest("form:has(#prompt-textarea)") !== null,
             },
             media:
               element.tagName === "IMG"
@@ -395,11 +424,9 @@ export async function createChromeSceneCollector({
       const ownerDocument = elements[0]?.ownerDocument;
       const composer = ownerDocument?.querySelectorAll("#prompt-textarea[contenteditable='true']") ?? [];
       const userPromptTexts = Array.from(ownerDocument?.querySelectorAll("[data-testid^='conversation-turn-']") ?? [])
-        .filter((turn) => turn.querySelectorAll("[data-message-author-role='user']").length === 1
-          && turn.querySelectorAll("[data-message-author-role='assistant']").length === 0)
         .flatMap((turn) => {
-          const prompts = turn.querySelectorAll("[data-testid='collapsible-user-message-content']");
-          return prompts.length === 1 ? [semanticText(prompts[0])] : [];
+          const promptText = userPromptText(turn);
+          return promptText === null ? [] : [promptText];
         });
       const conversationTurns = Array.from(ownerDocument?.querySelectorAll("[data-testid^='conversation-turn-']") ?? []);
       const assistantSemanticTexts = Array.from(ownerDocument?.querySelectorAll("[data-message-author-role='assistant']") ?? [])
@@ -412,21 +439,21 @@ export async function createChromeSceneCollector({
         .map((node) => ({ minimum: node.getAttribute("aria-valuemin"), maximum: node.getAttribute("aria-valuemax"),
           current: node.getAttribute("aria-valuenow") }));
       const assistantTurnIds = Array.from(ownerDocument?.querySelectorAll("[data-testid^='conversation-turn-']") ?? [])
-        .filter((turn) => turn.querySelectorAll("[data-message-author-role='assistant']").length === 1
-          && turn.querySelectorAll("[data-message-author-role='user']").length === 0)
+        .filter((turn) => turn.querySelectorAll("[data-message-author-role='user']").length === 0
+          && (turn.querySelectorAll("[data-message-author-role='assistant']").length === 1
+            || semanticMediaNodes(turn).length === 1))
         .map((turn) => turn.getAttribute("data-testid") || "");
       const userTurnBindings = conversationTurns.flatMap((turn) => {
-        if (turn.querySelectorAll("[data-message-author-role='user']").length !== 1
-          || turn.querySelectorAll("[data-message-author-role='assistant']").length !== 0) return [];
-        const prompts = turn.querySelectorAll("[data-testid='collapsible-user-message-content']");
-        if (prompts.length !== 1) return [];
-        const promptText = semanticText(prompts[0]);
+        const promptText = userPromptText(turn);
+        if (promptText === null) return [];
         return [{ userTurnId: turn.getAttribute("data-testid") || null, promptText,
           turnMarkers: promptText.match(/\[GRASSEYE:[a-f0-9]{24}\]/gu) ?? [] }];
       });
       const turnBindings = conversationTurns.flatMap((turn, index) => {
         const assistants = turn.querySelectorAll("[data-message-author-role='assistant']");
-        if (assistants.length !== 1 || turn.querySelectorAll("[data-message-author-role='user']").length !== 0) return [];
+        const semanticMedia = semanticMediaNodes(turn);
+        if (turn.querySelectorAll("[data-message-author-role='user']").length !== 0
+          || (assistants.length !== 1 && semanticMedia.length !== 1)) return [];
         let userTurn = null;
         for (let prior = index - 1; prior >= 0; prior -= 1) {
           const candidate = conversationTurns[prior];
@@ -436,10 +463,9 @@ export async function createChromeSceneCollector({
             break;
           }
         }
-        const prompts = userTurn?.querySelectorAll("[data-testid='collapsible-user-message-content']") ?? [];
-        const promptText = prompts.length === 1 ? semanticText(prompts[0]) : null;
+        const promptText = userTurn ? userPromptText(userTurn) : null;
         return [{ assistantTurnId: turn.getAttribute("data-testid") || null, promptText,
-          responseText: semanticText(assistants[0]),
+          responseText: assistants.length === 1 ? semanticText(assistants[0]) : "",
           turnMarkers: promptText?.match(/\[GRASSEYE:[a-f0-9]{24}\]/gu) ?? [] }];
       });
       return {
@@ -517,7 +543,7 @@ export async function createChromeSceneCollector({
 
     const nodes = rawNodes.map((node) => {
       const text = node.directText || "";
-      const keepText = uiAllowlist.has(text);
+      const keepText = uiTextAllowed(node, text, uiAllowlist);
       const media =
         includeMedia && node.media
           ? {
@@ -531,16 +557,19 @@ export async function createChromeSceneCollector({
           : null;
       const siblings = (node.siblings ?? []).map((sibling) => ({
         ...sibling,
-        label: safeAttributeValue("aria-label", sibling.label, productMarker, uiAllowlist),
+        label: safeAttributeValue("aria-label", sibling.label, productMarker, uiAllowlist,
+          uiTextAllowed({ tag: sibling.tag, attributes: { role: sibling.role, "aria-label": sibling.label } },
+            sibling.label, uiAllowlist)),
       }));
-      const sanitizedDomTree = sanitizeDomTree(node.domTree, productMarker, uiAllowlist);
+      const sanitizedDomTree = sanitizeDomTree(node.domTree, productMarker, uiAllowlist, keepText);
       return {
         ...node,
         domTree: undefined,
         sanitizedDomTree,
         sanitizedOuterHtml: renderSanitizedDom(sanitizedDomTree),
         attributes: Object.fromEntries(Object.entries(node.attributes).map(([name, value]) => [
-          name, safeAttributeValue(name, value, productMarker, uiAllowlist),
+          name, safeAttributeValue(name, value, productMarker, uiAllowlist,
+            name === "aria-label" ? uiTextAllowed(node, value, uiAllowlist) : keepText),
         ])),
         directText: undefined,
         subtreeText: undefined,
@@ -549,14 +578,14 @@ export async function createChromeSceneCollector({
         textProjection: keepText
           ? { kind: "ALLOWLISTED", value: text }
           : { kind: "HASH_ONLY", sha256: hash(text), length: text.length },
-        subtreeTextProjection: uiAllowlist.has(node.subtreeText || "")
+        subtreeTextProjection: uiTextAllowed(node, node.subtreeText || "", uiAllowlist)
           ? { kind: "ALLOWLISTED", value: node.subtreeText || "" }
           : { kind: "HASH_ONLY", sha256: hash(node.subtreeText || ""), length: (node.subtreeText || "").length },
       };
     });
     const url = sanitizeUrl(rawPacket.currentUrl);
     const activeTabIdentityHash = tabIdentityHash(activeTab);
-    const documentIdentityHash = hash(`${activeTabIdentityHash}:${rawPacket.documentTimeOrigin}`);
+    const documentIdentityHash = hash(`${activeTabIdentityHash}:${url}`);
     const observationRevisionHash = hash(JSON.stringify({ documentIdentityHash, url, nodes, pageFacts }));
     const base = {
       sceneId,
@@ -646,22 +675,22 @@ export async function createChromeSceneCollector({
     const rawNodes = rawPacket.nodes;
     const nodes = rawNodes.map((node) => {
       const text = node.directText || "";
-      const keepText = uiAllowlist.has(text);
-      const sanitizedDomTree = sanitizeDomTree(node.domTree, productMarker, uiAllowlist);
+      const keepText = uiTextAllowed(node, text, uiAllowlist);
+      const sanitizedDomTree = sanitizeDomTree(node.domTree, productMarker, uiAllowlist, keepText);
       return {
         ...node,
         domTree: undefined,
         sanitizedDomTree,
         sanitizedOuterHtml: renderSanitizedDom(sanitizedDomTree),
         attributes: Object.fromEntries(Object.entries(node.attributes).map(([name, value]) => [
-          name, safeAttributeValue(name, value, productMarker, uiAllowlist),
+          name, safeAttributeValue(name, value, productMarker, uiAllowlist, keepText),
         ])),
         directText: undefined,
         subtreeText: undefined,
         textProjection: keepText
           ? { kind: "ALLOWLISTED", value: text }
           : { kind: "HASH_ONLY", sha256: hash(text), length: text.length },
-        subtreeTextProjection: uiAllowlist.has(node.subtreeText || "")
+        subtreeTextProjection: uiTextAllowed(node, node.subtreeText || "", uiAllowlist)
           ? { kind: "ALLOWLISTED", value: node.subtreeText || "" }
           : { kind: "HASH_ONLY", sha256: hash(node.subtreeText || ""), length: (node.subtreeText || "").length },
       };
@@ -672,7 +701,7 @@ export async function createChromeSceneCollector({
     };
     const url = sanitizeUrl(rawPacket.currentUrl);
     const activeTabIdentityHash = tabIdentityHash(activeTab);
-    const documentIdentityHash = hash(`${activeTabIdentityHash}:${rawPacket.documentTimeOrigin}`);
+    const documentIdentityHash = hash(`${activeTabIdentityHash}:${url}`);
     const observationRevisionHash = hash(JSON.stringify({ documentIdentityHash, url, nodes, pageFacts }));
     const base = {
       sceneId,

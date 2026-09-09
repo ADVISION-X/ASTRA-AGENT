@@ -29,7 +29,7 @@ import type {
   ProductGptTools,
 } from "./product-api.js";
 import type { GptHash } from "./contract.js";
-import { persistGptChildEvidence } from "./evidence-writer.js";
+import { persistGptChildEvidence, persistGptPreExecutionFailure } from "./evidence-writer.js";
 import { ProductionGptBrowserLifecycle } from "./production-browser-lifecycle.js";
 import { executeProductionGptAtomicCall } from "./production-atomic-call.js";
 import {
@@ -419,7 +419,7 @@ export class ProductionGptChildTools {
     const facts = await this.readIntentFacts(intent, confirmedProviderSubmitReceipt);
     const contract = GPT_CHILD_CAPABILITY_CONTRACTS[call.child];
     const span = this.childSpan(execution, intent);
-    let result: GptChildCapabilityResult;
+    let result: GptChildCapabilityResult | undefined;
     let evidenceRef: string;
     let evidenceHash: GptHash;
     let resolveDispatched = false;
@@ -467,8 +467,28 @@ export class ProductionGptChildTools {
         execution, browser, result, evidenceRef, resolveDispatched,
       });
     } catch (error) {
+      if (!result) {
+        try {
+          await persistGptPreExecutionFailure({
+            intent,
+            evidenceStore: this.evidenceStore,
+            jobId: execution.jobId,
+            attemptId: execution.attemptId,
+            stepId: call.productStepId,
+            exactCallIdentityHash: facts.exactCallIdentityHash,
+            error,
+          });
+        } catch (persistenceError) {
+          return this.terminalizeError(span, new AggregateError(
+            [error, persistenceError],
+            "GPT_CHILD_PRE_EXECUTION_EVIDENCE_FAILED",
+            { cause: error },
+          ));
+        }
+      }
       return this.terminalizeError(span, error);
     }
+    if (!result) return this.terminalizeError(span, executionFailure("failed", "GPT_CHILD_RESULT_MISSING"));
     this.terminalize(span, result);
     if (result.status !== "success") throwGptChildFailure(result);
     return Object.freeze({

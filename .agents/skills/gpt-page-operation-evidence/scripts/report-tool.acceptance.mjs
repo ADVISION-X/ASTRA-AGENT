@@ -9,6 +9,7 @@ import { spawnSync } from "node:child_process";
 
 import { captureContext, preserveUnselectedProductSlices, productRunFailures,
   publicProductionSource } from "./report-tool.mjs";
+import { captureTimePageRequirementSnapshot } from "./trace-page-requirements.mjs";
 
 const TOOL = resolve(new URL("./report-tool.mjs", import.meta.url).pathname);
 const REPO = resolve(new URL("../../../../", import.meta.url).pathname);
@@ -20,6 +21,10 @@ const localHash = (value) => `sha256:${createHash("sha256").update(String(value)
 const rehashEnvelope = (entry) => {
   const { envelopeHash: _ignored, ...content } = entry;
   entry.envelopeHash = localHash(JSON.stringify(localStable(content)));
+};
+const sealCall = (call) => {
+  const body = localStable(call);
+  return localStable({ ...body, derivationEnvelopeHash: localHash(JSON.stringify(body)) });
 };
 
 function run(args, expected = 0) {
@@ -132,6 +137,21 @@ async function main() {
     peripheral: { sanitizedUrlIdentity: "https://chatgpt.com/c/sha256:private", runId: runIdHash } });
   const specimen = { ...specimenWithoutEnvelope,
     envelopeHash: localHash(JSON.stringify(specimenWithoutEnvelope)) };
+  const tinyRequirement = { childCapabilityId: "prepare_clean_gpt_chat", requiredLiveStates: ["observed"],
+    liveStateTargets: { observed: ["root"] },
+    stateAssertions: { observed: [{ path: "stateFacts.observed", operator: "equals", value: true }] } };
+  const tinyChild = { childCapabilityId: "prepare_clean_gpt_chat", contractVersion: 1,
+    contract: { profile: "TARGET_LOCAL_MUTATION", allowedDocumentTransition: "forbidden" },
+    evidenceDemand: { childCandidateDigest: localHash("candidate") } };
+  const tinyMatrix = { children: [tinyRequirement] };
+  const pageRequirementSnapshot = captureTimePageRequirementSnapshot(
+    tinyRequirement, publicSource.actualTrace[0], tinyChild, projectedContext.matrixDigest,
+  );
+  const validCall = sealCall({ ...publicSource.actualTrace[0], pageOperationRequired: true,
+    pageRequirementSnapshot,
+    inputBindingProof: { schemaVersion: "gpt-page-input-binding-proof.v1",
+      inputHash: localHash("input"), inputHashBound: true, checks: [], complete: true },
+    domEvidence: { specimens: [specimen] }, captureComplete: false, gaps: ["PAGE_EVIDENCE_GAP:test-shape"] });
   const validRun = localStable({ productId: publicSource.productId, actionId: publicSource.actionId,
     pluginId: publicSource.pluginId, pluginVersion: publicSource.pluginVersion,
     sourceSnapshotId: publicSource.sourceSnapshotId,
@@ -141,18 +161,22 @@ async function main() {
     flowProjectionStatus: publicSource.flowProjectionStatus,
     flowProjectionGaps: publicSource.flowProjectionGaps,
     terminalBranch: publicSource.terminalBranch, terminalBranchProof: publicSource.terminalBranchProof,
-    calls: [{ ...publicSource.actualTrace[0], pageOperationRequired: true,
-      pageRequirementSnapshot: { matrixDigest: projectedContext.matrixDigest,
-        childCandidateDigest: localHash("candidate"), requiredLiveStates: ["observed"] },
-      inputBindingProof: { schemaVersion: "gpt-page-input-binding-proof.v1",
-        inputHash: localHash("input"), inputHashBound: true, checks: [], complete: true },
-      domEvidence: { specimens: [specimen] }, captureComplete: true, gaps: [] }],
-    captureComplete: true, gaps: [], captureContext: projectedContext });
-  const tinyMatrix = { children: [{ childCapabilityId: "prepare_clean_gpt_chat", requiredLiveStates: ["observed"] }] };
+    calls: [validCall], captureComplete: false,
+    gaps: [`private_action/1/prepare_clean_gpt_chat:${validCall.gaps[0]}`],
+    captureContext: projectedContext });
   assert.deepEqual(productRunFailures(validRun, publicSource, tinyMatrix), []);
   const tamperedRun = structuredClone(validRun);
-  tamperedRun.captureComplete = false;
-  assert.ok(productRunFailures(tamperedRun, publicSource, tinyMatrix).includes("captureComplete"));
+  tamperedRun.captureComplete = true;
+  const tamperedRunFailures = productRunFailures(tamperedRun, publicSource, tinyMatrix);
+  assert.ok(tamperedRunFailures.includes("captureComplete"));
+  const tamperedCall = structuredClone(validRun);
+  tamperedCall.calls[0].captureComplete = true;
+  assert.ok(productRunFailures(tamperedCall, publicSource, tinyMatrix)
+    .includes("call[0].derivationEnvelopeHash"));
+  const plaintextSource = structuredClone(publicSource);
+  plaintextSource.taskBinding.rawPrompt = "不得进入报告的生产正文";
+  assert.ok(productRunFailures(validRun, plaintextSource, tinyMatrix)
+    .includes("productionSource.publicProjection"));
   const tamperedSpecimenRun = structuredClone(validRun);
   tamperedSpecimenRun.calls[0].domEvidence.specimens[0].related.injected = true;
   assert.ok(productRunFailures(tamperedSpecimenRun, publicSource, tinyMatrix)
@@ -176,7 +200,15 @@ async function main() {
   const snapshotMatrixTamper = structuredClone(validRun);
   snapshotMatrixTamper.calls[0].pageRequirementSnapshot.matrixDigest = localHash("wrong-matrix");
   assert.ok(productRunFailures(snapshotMatrixTamper, publicSource, tinyMatrix, null, null, false)
-    .includes("call[0].pageRequirementSnapshot.matrixDigest"));
+    .includes("call[0].pageRequirementSnapshot"));
+  const driftedRequirement = structuredClone(tinyRequirement);
+  driftedRequirement.stateAssertions.observed[0].value = false;
+  const driftedMatrix = { children: [driftedRequirement] };
+  assert.deepEqual(productRunFailures(validRun, publicSource, driftedMatrix, null, null, false), [],
+    "stale history must be derived from its capture-time requirement snapshot");
+  const driftedInventory = { children: [tinyChild] };
+  assert.ok(productRunFailures(validRun, publicSource, driftedMatrix, driftedInventory)
+    .includes("call[0].pageRequirementSnapshot.currentProjection"));
   const authorizedContextTamper = structuredClone(validRun);
   authorizedContextTamper.captureContext.authorizedInputs.injected = { debugNote: "must-not-pass" };
   assert.ok(productRunFailures(authorizedContextTamper, publicSource, tinyMatrix, null, null, false)
@@ -206,12 +238,14 @@ async function main() {
     flowContractDigest: twoTracePublicSource.flowContractDigest,
     traceDigest: twoTracePublicSource.traceDigest,
     reportTraceDigest: twoTracePublicSource.reportTraceDigest,
-    calls: twoTracePublicSource.actualTrace.map((entry) => ({ ...entry, pageOperationRequired: true,
-      pageRequirementSnapshot: { matrixDigest: projectedContext.matrixDigest,
-        childCandidateDigest: localHash("candidate"), requiredLiveStates: ["observed"] },
+    calls: twoTracePublicSource.actualTrace.map((entry) => sealCall({ ...entry, pageOperationRequired: true,
+      pageRequirementSnapshot: captureTimePageRequirementSnapshot(
+        tinyRequirement, entry, tinyChild, projectedContext.matrixDigest,
+      ),
       inputBindingProof: { schemaVersion: "gpt-page-input-binding-proof.v1",
         inputHash: entry.inputBinding.inputHash, inputHashBound: true, checks: [], complete: true },
-      domEvidence: { specimens: [specimen] }, captureComplete: true, gaps: [] })),
+      domEvidence: { specimens: [specimen] }, captureComplete: false,
+      gaps: ["PAGE_EVIDENCE_GAP:test-shape"] })),
   });
   assert.ok(productRunFailures(reusedSceneRun, twoTracePublicSource, tinyMatrix)
     .includes("call[1].sceneCrossCallReuse"));
@@ -281,6 +315,14 @@ async function main() {
   assert.match(run(["validate", "--repo", REPO, "--matrix", MATRIX, "--report", tamperedPath], 1).stderr,
     /REPORT_CHILD_INDEX_NOT_DERIVED/u);
 
+  const childSecondTruth = structuredClone(report);
+  childSecondTruth.children[0].collection = null;
+  const childSecondTruthPath = join(directory, "child-second-truth.json");
+  await writeFile(childSecondTruthPath, `${JSON.stringify(childSecondTruth)}\n`);
+  assert.match(run(["validate", "--repo", REPO, "--matrix", MATRIX,
+    "--report", childSecondTruthPath], 1).stderr,
+  /REPORT_CHILD_EVIDENCE_SECOND_TRUTH/u);
+
   const gitBound = structuredClone(report);
   gitBound.candidateBinding = { head: "deadbeef" };
   const gitBoundPath = join(directory, "git-bound.json");
@@ -308,14 +350,14 @@ async function main() {
     captureEpoch, recaptureTrigger: rawCaptureContext.recaptureTrigger,
     productionSource: staleSource };
   staleProduct.runs = [staleRun];
-  staleProduct.captureStatus = "CAPTURE_COMPLETE";
-  staleProduct.gaps = [];
+  staleProduct.captureStatus = "CAPTURE_PARTIAL";
+  staleProduct.gaps = staleRun.gaps;
   staleProductRun.productCaptureStatus = "CAPTURE_PARTIAL";
   staleProductRun.childIndex = localStable({ prepare_clean_gpt_chat: [{
     productKey: staleProduct.productKey, sourceSnapshotId: staleRun.sourceSnapshotId, captureEpoch,
     productStepId: staleRun.calls[0].productStepId, actionOrdinal: staleRun.calls[0].actionOrdinal,
     traceEntryId: staleRun.calls[0].traceEntryId,
-    exactCallIdentityHash: staleRun.calls[0].exactCallIdentityHash, captureComplete: true,
+    exactCallIdentityHash: staleRun.calls[0].exactCallIdentityHash, captureComplete: false,
   }] });
   const staleProductPath = join(directory, "stale-product-run.json");
   await writeFile(staleProductPath, `${JSON.stringify(staleProductRun)}\n`);
@@ -324,7 +366,7 @@ async function main() {
   assert.equal(staleValidation.projectionCurrent, false);
   const staleAggregateTamper = structuredClone(staleProductRun);
   staleAggregateTamper.products.find((entry) => entry.productKey === staleProduct.productKey)
-    .captureStatus = "CAPTURE_PARTIAL";
+    .captureStatus = "CAPTURE_COMPLETE";
   const staleAggregateTamperPath = join(directory, "stale-aggregate-tampered.json");
   await writeFile(staleAggregateTamperPath, `${JSON.stringify(staleAggregateTamper)}\n`);
   assert.match(run(["validate", "--repo", REPO, "--matrix", MATRIX,
@@ -342,8 +384,8 @@ async function main() {
   const refreshed = JSON.parse(await readFile(refreshedPath, "utf8"));
   const refreshedProduct = refreshed.products.find((entry) =>
     entry.productKey === "public_knowledge_article_pipeline/produce_article");
-  assert.equal(refreshedProduct.captureStatus, "CAPTURE_COMPLETE");
-  assert.deepEqual(refreshedProduct.gaps, []);
+  assert.equal(refreshedProduct.captureStatus, "CAPTURE_PARTIAL");
+  assert.deepEqual(refreshedProduct.gaps, staleRun.gaps);
   run(["validate", "--repo", REPO, "--matrix", MATRIX, "--report", refreshedPath]);
 
   const legacy = structuredClone(report);
@@ -360,7 +402,10 @@ async function main() {
       "global-drift-does-not-block-targeted-product", "child-admission-forbidden",
       "stale-slice-internal-validation", "persisted-capture-context-tamper-rejected",
       "persisted-scene-binding-tamper-rejected", "stale-matrix-snapshot-tamper-rejected",
-      "stale-product-aggregate-derived", "product-local-projection-staleness",
+      "capture-time-requirement-replay", "call-derivation-envelope-tamper-rejected",
+      "static-child-second-truth-rejected",
+      "public-production-plaintext-field-rejected", "stale-product-aggregate-derived",
+      "product-local-projection-staleness",
       "v5-invalidated"] })}\n`);
 }
 

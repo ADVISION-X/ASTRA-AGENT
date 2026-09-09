@@ -242,6 +242,22 @@ assert.equal(imageSubmitRecovered.physicalSubmitDispatches, 3,
 assert.equal(imageSubmitRecovered.generatedImageUploadCalls, 1,
   "the recovered image turn must continue through checkpoint and Website upload assembly");
 
+const imageDomReadRecovered = await exerciseSeoFlow(plugin, "produce_article", "proceed", {
+  child: "submit_exact_gpt_turn_once",
+  code: "BROWSER_DOM_READ_INVALID",
+  productStepId: "article_image_generation",
+  confirmedSubmit: true,
+}, true);
+assert.equal(postSubmitReadbackReceipt(imageDomReadRecovered.firstFailure)?.causeCode,
+  "BROWSER_DOM_READ_INVALID");
+assert.equal(imageDomReadRecovered.calls.filter((call) => call.productStepId === "article_image_generation"
+  && call.child === "submit_exact_gpt_turn_once").length, 1,
+  "confirmed image submit must survive the production DOM read fault without submitting again");
+assert.equal(imageDomReadRecovered.physicalSubmitDispatches, 3,
+  "the production DOM read fault must not create a fourth physical submit");
+assert.equal(imageDomReadRecovered.generatedImageUploadCalls, 1,
+  "the production DOM read fault must continue through image checkpoint and Website upload assembly");
+
 await assert.rejects(
   () => exerciseSeoFlow(plugin, "produce_article", "proceed", {
     child: "submit_exact_gpt_turn_once",
@@ -284,7 +300,8 @@ assert.equal(articleFrontier.resumeCalls.some((call) => call.productStepId === "
 
 for (const readbackCode of [
   "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", "BROWSER_TARGET_INVALID", "BROWSER_DOCUMENT_INVALID",
-  "BROWSER_DOM_CANDIDATE_MISSING", "GPT_RESPONSE_STABILITY_TIMEOUT", "GPT_RESPONSE_WAIT_ABORTED",
+  "BROWSER_DOM_CANDIDATE_MISSING", "BROWSER_DOM_READ_INVALID",
+  "GPT_RESPONSE_STABILITY_TIMEOUT", "GPT_RESPONSE_WAIT_ABORTED",
   "GPT_RATE_LIMIT_ACTIVE",
 ]) {
   const imageResume = await exerciseSeoConfirmedImageSubmitResume(plugin, readbackCode);

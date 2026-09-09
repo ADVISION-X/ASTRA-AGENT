@@ -6,6 +6,7 @@ import { confirmedSourceReadbackDocumentMatches } from "../../lib/browser/browse
 import { executionFailure } from "../../lib/execution-failure.js";
 
 const CONFIRMED_READBACK_TARGET_LOCAL_CHILDREN = new Set<GptChildCapabilityId>([
+  "checkpoint_gpt_generated_image",
   "focus_exact_gpt_conversation",
   "wait_for_stable_gpt_text",
   "wait_for_stable_gpt_image",

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "grasseye.browser.authority.websocket.v1",
-  "revision": 5,
+  "revision": 6,
   "transport": {
     "kind": "single-authenticated-loopback-websocket",
     "path": "/browser-authority/v1",
@@ -29,6 +29,6 @@
     "maxInFlightCommandsPerTarget": 1,
     "defaultDeadlineMs": 30000
   },
-  "frameKinds": ["PAIR_HELLO", "PAIR_CHALLENGE", "PAIR_PROOF", "AUTHENTICATED", "READY", "HEARTBEAT", "COMMAND", "REPLY", "TARGET_ACQUIRE", "TARGET_CLAIM", "TARGET_REVOKE", "DIAGNOSTIC", "REVOKE", "ARTIFACT_CHUNK"],
+  "frameKinds": ["PAIR_HELLO", "PAIR_CHALLENGE", "PAIR_PROOF", "AUTHENTICATED", "READY", "HEARTBEAT", "COMMAND", "MUTATION_PROGRESS", "REPLY", "TARGET_ACQUIRE", "TARGET_CLAIM", "TARGET_REVOKE", "DIAGNOSTIC", "REVOKE", "ARTIFACT_CHUNK"],
   "forbidden": ["external-port", "page-relay", "native-messaging", "cws", "previous-protocol"]
 }

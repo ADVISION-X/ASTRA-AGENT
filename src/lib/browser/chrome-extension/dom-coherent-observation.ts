@@ -16,6 +16,7 @@ const GPT_ORIGIN = "https://chatgpt.com";
 const GPT_CONVERSATION_SEGMENT_MAX_CHARS = 256;
 const GPT_TURN_TEST_ID = /^conversation-turn-[1-9][0-9]*$/u;
 const GPT_USER_PROMPT_CONTENT_SELECTOR = "[data-testid='collapsible-user-message-content']";
+const GPT_SHORT_USER_PROMPT_CONTENT_SELECTOR = ".whitespace-pre-wrap";
 const GPT_ASSISTANT_RESPONSE_SELECTOR = "[data-message-author-role='assistant']";
 type CoherentObservationResult = Readonly<{
   schemaVersion: "grasseye.browser.dom-observation.v2";
@@ -55,13 +56,21 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
     return browserCanonicalSemanticText(node);
   };
   const exactGptUserPromptText = (node) => {
-    if (!(node instanceof Element) || node.querySelectorAll("[data-message-author-role='user']").length !== 1
-      || !/${GPT_TURN_TEST_ID.source}/.test(node.getAttribute("data-testid") || "")) {
+    if (!(node instanceof Element) || !/${GPT_TURN_TEST_ID.source}/.test(node.getAttribute("data-testid") || "")) {
       throw new Error("BROWSER_DOM_READ_INVALID");
     }
+    const userRoots = Array.from(node.querySelectorAll("[data-message-author-role='user']"));
+    if (userRoots.length === 0) throw new Error("BROWSER_DOM_CANDIDATE_MISSING");
+    if (userRoots.length !== 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
     const promptNodes = Array.from(node.querySelectorAll("${GPT_USER_PROMPT_CONTENT_SELECTOR}"));
-    if (promptNodes.length !== 1) throw new Error("BROWSER_DOM_READ_INVALID");
-    return canonicalSemanticText(promptNodes[0]);
+    if (promptNodes.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
+    if (promptNodes.length === 1) return canonicalSemanticText(promptNodes[0]);
+    const shortPromptNodes = Array.from(userRoots[0].querySelectorAll("${GPT_SHORT_USER_PROMPT_CONTENT_SELECTOR}"))
+      .filter((candidate) => candidate instanceof Element
+        && Array.from(candidate.childNodes || []).every((child) => child.nodeType !== 1));
+    if (shortPromptNodes.length === 0) throw new Error("BROWSER_DOM_CANDIDATE_MISSING");
+    if (shortPromptNodes.length !== 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
+    return canonicalSemanticText(shortPromptNodes[0]);
   };
   const gptAssistantResponseText = (node) => {
     if (!(node instanceof Element)
@@ -424,7 +433,15 @@ export const executeCoherentObservation = async (
       objectId, functionDeclaration: COHERENT_OBSERVATION_FUNCTION, arguments: [{ value: specs }],
       returnByValue: true, awaitPromise: true, silent: true,
     }));
-    if (call.exceptionDetails !== undefined) throw new Error("BROWSER_DOM_READ_INVALID");
+    if (call.exceptionDetails !== undefined) {
+      const details = observationRecord(call.exceptionDetails);
+      const exception = details.exception && typeof details.exception === "object"
+        && !Array.isArray(details.exception) ? details.exception as BrowserRecord : null;
+      const diagnostic = [details.text, exception?.description, exception?.value]
+        .filter((value): value is string => typeof value === "string").join("\n");
+      const typed = /\b(BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|NODE_STALE))\b/u.exec(diagnostic)?.[1];
+      throw new Error(typed ?? "BROWSER_DOM_READ_INVALID");
+    }
     const loaderAfter = await mainFrameLoaderId(runtime, target.tabId);
     if (loaderAfter !== loaderBefore) {
       throw new Error("BROWSER_DOCUMENT_INVALID");

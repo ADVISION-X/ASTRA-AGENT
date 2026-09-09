@@ -41,6 +41,8 @@
 
 Codex 读取 Product `SKILL.md`、合同列出的 flow sources 和 source manifest 后，按 `actualTrace` 这份实际采购清单使用 Chrome 插件逐调用采集。不得根据本协议发明步骤；当前源码与历史 trace 的差别要单独报告，不能改写历史调用。
 
+逐调用页面分母由 trace 的 `resultStatus/mutationOutcome` 决定：真实 mutation 要 pre/post，成功零动作要 already/steady；失败零动作且没有任何 Browser 观察时分母为零，用空 specimen + durable failure 表达“无 DOM 可采”，不要求 input↔DOM 匹配。mapping 只能把 scene 对齐到派生状态，不能挑选或删减状态；其它未映射调用仍须在报告保存派生状态清单。
+
 每条实际 forensics 调用记录以唯一 `traceEntryId` 为采购单主键，同时保留其 `exactCallIdentityHash`。同一逻辑调用失败后重试时 exact call hash 可以相同，但 `traceEntryId` 不同，必须各有独立 mapping 和 DOM；以下行为禁止：
 
 - 一个通用 profile scene 冒充所有产品调用；
@@ -75,22 +77,26 @@ Codex 读取 Product `SKILL.md`、合同列出的 flow sources 和 source manife
 - DOM 差异；
 - 上传集合、提交 user turn、稳定文本/图片、错误终态或 checkpoint 的安全引用。
 
-pre/post 不能跨 Document 拼接；动作 outcome unknown 时必须先 readback，禁止重放。
+pre/post 不能跨 Document 组成成功证据；如果动作后出现禁止的 Document 变化，post scene 只作为失败现场保留并固定冲突，不得 PASS。动作 outcome unknown 时必须先 readback，禁止重放。
+
+目标资格失败不等于 DOM 不存在。只要 scene 中有真实候选，装配器必须在同一 product call 的 specimen 中保存清洗后的 `diagnosticDom`、`observed:false`、候选基数与拒绝原因；该 specimen 永远不能令 call complete，但必须可供故障回看。只有原 scene 确实没有任何候选节点时，才允许没有 diagnostic DOM。
 
 ### production input ↔ Chrome DOM
 
 每个 `traceEntryId` 单独核对，不允许按 Child 或 Product 共用结论：
 
-- prompt：生产 `promptHash/expectedPromptHash` 对 Chrome exact editable text 或 exact user prompt hash；
+- prompt：生产 `promptHash/expectedPromptHash` 必须按 Child/状态对位；write/draft reconcile 只对指定 composer 状态，submit/submission reconcile 只对带准确 owner turn identity 的目标 post-submit user turn，continuation 只对同一 prompt/response/marker/assistant tuple；其它旧 turn 或错误状态即使同 hash 也不算；
 - attachments：生产批准文件的 provider display name 哈希集合，对 composer scope 内 `[role='group'][aria-label]` 的完整哈希集合；空集合也必须精确相等；
 - model：本次调用 profile 的 `modelDisplayName` 哈希，对高级模型面板的实际选项文字哈希；
 - reasoning：本次调用的 selection policy/requested tier，对页面实际 `aria-valuemin/max/now` 做同一套解析；`pro_standard` 在 0..2 页面允许按生产规则降级到 observed maximum，但不能拿 A 的要求替 B/selector；
 - continuation：生产 canonical URL、prompt/response、assistant turn/marker 哈希，对当前 URL 和准确前序 user/assistant turn；
 - response/checkpoint：生产 expected response hash 对实际 assistant semantic text hash。
 
-公共 scene 只保存这些实际值的哈希、计数和非敏感 scale 枚举，不保存正文。装配器生成 `gpt-page-input-binding-proof.v1`；`inputHashBound=false`、期望缺失、实际缺失或不相等时都产生 `PAGE_INPUT_BINDING_GAP`，不得完成。
+短 user prompt 的唯一合法补充定位是：同一个唯一 user turn 下没有 collapsible 节点时，命中唯一 `.whitespace-pre-wrap` 叶节点。禁止扫描全页正文或借用其它 turn。历史证据缺角色哈希时，重建出相同 prompt/调用身份也不能补写 `MATCHED`。
 
-scene metadata 与 decision/transition receipt 只接受 Schema 明列字段，多出的 note、debug、原始 payload 或 Provider 返回对象一律拒绝。合并报告时再次重算完整 specimen envelope，并按 `sourceSceneId → traceEntryId` 检查唯一归属，阻断绕过装配器的跨调用 DOM 复用。
+公共 scene 只保存这些实际值的哈希、计数和非敏感 scale 枚举，不保存正文。UI 文本只有“白名单值 + 明确 button/menuitem/slider 等 UI 语义”同时成立才可明文；业务 turn/composer/普通容器碰巧等于白名单词仍必须 hash-only。装配器生成 `gpt-page-input-binding-proof.v1`；`inputHashBound=false`、期望缺失、实际缺失或不相等时都产生 `PAGE_INPUT_BINDING_GAP`，不得完成。
+
+scene metadata、decision/transition receipt 与公共 production source 只接受 Schema 明列字段，多出的 note、debug、原始 payload、明文 prompt/body/content 或 Provider 返回对象一律拒绝。合并报告时再次重算完整 specimen/call envelope，并按 `sourceSceneId → traceEntryId` 检查唯一归属，阻断绕过装配器的跨调用 DOM 复用。
 
 ## 6. 隐私
 
@@ -105,6 +111,8 @@ scene metadata 与 decision/transition receipt 只接受 Schema 明列字段，�
 
 真实生产失败是一个合法终点，固定记录 `terminalBranch=production-failure`，不能伪装成成功。如果失败前实际发生的每个页面调用都有完整 DOM，该失败 run 可以是 `CAPTURE_COMPLETE`；这只表示“故障现场采全”，不表示产品成功。只有实际调用缺 DOM 或 trace 尚未到合法终点时才是 `CAPTURE_PARTIAL`。缺口使用准确坐标：
 
+动作 receipt 结构和 pre/action/时间链有效，但 `postconditionPassed=false`、页面发生合同禁止的 document transition、或当前状态断言失败时，必须保留失败后的 DOM，标记 `PAGE_EVIDENCE_CONFLICT:*` 并保持 `CAPTURE_PARTIAL`。这些是需要回看的故障现场，不得因失败而从报告丢弃。输入/附件/profile 任一步当前核验失败时在 submit 前停止，后续步骤只能报缺口。
+
 ```text
 PAGE_EVIDENCE_GAP:<product>/<action>/<step>/<ordinal>/<child>:<missing-field>
 ```
@@ -117,4 +125,4 @@ PAGE_EVIDENCE_GAP:<product>/<action>/<step>/<ordinal>/<child>:<missing-field>
 
 产品级 candidate/admit 只校验目标 Product 的当前合同、实际 source binding、run 推导和 DOM。全局投影或其它 Product 漂移不得改变该 candidate；共享 Child 只保留派生反向索引，不拥有独立准入通道。
 
-无论产品是否 stale，`validate` 都继续校验该历史 slice 的 production source/trace/input binding、capture context 精确白名单、scene/specimen envelope、scene 跨调用唯一性和 `captureComplete` 推导。stale 只暂停“与当前 Product/Child 投影一致”的检查，不能放过落盘后新增的 debug 字段或被改写的 DOM。
+无论产品是否 stale，`validate` 都按每个 call 落盘的 capture-time states/targets/assertions/required input roles/Child transition contract 重算该历史 slice，并继续校验 production source/trace/input binding、capture context 精确白名单、scene/specimen/call envelope、scene 跨调用唯一性和 `captureComplete`。Product 或矩阵变化只暂停“与当前投影一致”的检查，不能用今天的规则改判历史，也不能放过落盘后的篡改。

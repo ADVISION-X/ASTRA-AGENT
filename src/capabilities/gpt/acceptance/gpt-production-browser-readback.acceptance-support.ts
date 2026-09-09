@@ -433,6 +433,7 @@ try {
     () => activeFailureReadback.facade.downloadAuthenticatedMedia({
       assistantTurnId: "conversation-turn-2",
       semanticMediaId: "gpt-generated-image-main",
+      delivery: "probe",
     }),
     (error: unknown) => typedExecutionFailure(error)?.code === "BROWSER_RECONCILIATION_SCOPE_INVALID",
   );
@@ -471,6 +472,7 @@ try {
   await activeFailureReadback.facade.downloadAuthenticatedMedia({
     assistantTurnId: "conversation-turn-2",
     semanticMediaId: "gpt-generated-image-main",
+    delivery: "probe",
   });
   assert.equal(allowedMediaReadCount, 1,
     "the matching durable locator must upgrade the same facade to full read-only output recovery");

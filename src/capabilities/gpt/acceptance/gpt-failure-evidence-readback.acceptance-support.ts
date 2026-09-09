@@ -11,9 +11,9 @@ import {
   isPendingExactEvidence,
   readExactGptEvidenceFact,
 } from "../evidence-fact.js";
-import { failureCode } from "../../../lib/execution-failure.js";
+import { executionFailure, failureCode } from "../../../lib/execution-failure.js";
 import { typedGptExecutionFailure } from "../execution-fault.js";
-import { persistGptChildEvidence } from "../evidence-writer.js";
+import { persistGptChildEvidence, persistGptPreExecutionFailure } from "../evidence-writer.js";
 import { executeProductionGptAtomicCall } from "../production-atomic-call.js";
 import { serializeTerminalFailure } from "../../../lib/local-runtime/production/terminal-failure.js";
 import { throwGptChildFailure } from "../production-child-support.js";
@@ -417,4 +417,41 @@ export const exerciseBrowserDispatchedEvidenceReadback = async (): Promise<void>
   const persistence = evidenceHarness();
   await assertPendingDispatchedPersistence(result, intent, persistence);
   await assertDispatchedAtomicRecovery(result, intent, fixture);
+};
+
+export const exercisePreExecutionFailureEvidence = async (): Promise<void> => {
+  const persistence = evidenceHarness();
+  const exactCallIdentityHash = hash("pre-execution-failure");
+  const intent = Object.freeze({
+    childCapabilityId: "checkpoint_gpt_generated_image" as const,
+    executionId: `gpt-call:${exactCallIdentityHash.slice(7)}`,
+    jobId: "job:gpt-pre-execution-failure",
+    attemptId: "attempt:gpt-pre-execution-failure",
+    pluginId: "public-knowledge-article-pipeline",
+    pluginVersion: 22,
+    productStepId: "article-image",
+    callId: "image-checkpoint",
+    inputHash: hash("pre-execution-input"),
+    actionOrdinal: 12,
+    input: Object.freeze({}) as never,
+  });
+  const evidenceRef = await persistGptPreExecutionFailure({
+    intent,
+    evidenceStore: persistence.evidenceStore,
+    jobId: intent.jobId,
+    attemptId: intent.attemptId,
+    stepId: intent.productStepId,
+    exactCallIdentityHash,
+    error: executionFailure("failed", "BROWSER_RECONCILIATION_SCOPE_INVALID"),
+  });
+  assert.equal(evidenceRef, "record:gpt-failed-readback");
+  assert.deepEqual(persistence.recordKeys(), [
+    `gpt-call-pre-execution-failure:v1:${exactCallIdentityHash}`,
+  ]);
+  const payload = persistence.stored()!.record.payload as Readonly<Record<string, unknown>>;
+  assert.equal(payload.schema_version, "agent-gpt-pre-execution-failure.v1");
+  assert.equal(payload.exact_call_identity_hash, exactCallIdentityHash);
+  assert.equal(payload.child_capability_id, "checkpoint_gpt_generated_image");
+  assert.equal(payload.failure_code, "BROWSER_RECONCILIATION_SCOPE_INVALID");
+  assert.equal(payload.mutation_outcome, "no");
 };

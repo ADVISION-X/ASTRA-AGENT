@@ -94,6 +94,7 @@ export const EXPECTED_GPT_CHILD_IDS = Object.freeze([
 type DomResponder = (intent: BrowserDomIntent, callNumber: number) => unknown | Promise<unknown>;
 type FakeBrowserOptions = Readonly<{
   initialPending?: number;
+  initialRecovery?: BrowserAtomicStepRecovery;
   initialUrl?: string;
   navigationEpochAdvanceOnMutation?: number;
   navigationEpochAdvanceOnWait?: number;
@@ -129,6 +130,10 @@ const markConfirmedMutation = (
     authorityHash: `sha256:${"9".repeat(64)}`,
     targetRef: "target:1",
     documentRef: state.documentRef,
+    physicalInputCount: 0,
+    downloadGuidHash: null,
+    downloadCompleted: false,
+    identityRevalidated: false,
   });
 };
 
@@ -149,6 +154,10 @@ const markRejectedMutation = (
     authorityHash: `sha256:${"9".repeat(64)}`,
     targetRef: "target:1",
     documentRef: state.documentRef,
+    physicalInputCount: 0,
+    downloadGuidHash: null,
+    downloadCompleted: false,
+    identityRevalidated: false,
   });
 };
 
@@ -164,6 +173,10 @@ const markDispatchedMutation = (state: FakeBrowserState): void => {
     authorityHash: `sha256:${"9".repeat(64)}`,
     targetRef: "target:1",
     documentRef: state.documentRef,
+    physicalInputCount: 0,
+    downloadGuidHash: null,
+    downloadCompleted: false,
+    identityRevalidated: false,
   });
 };
 
@@ -297,9 +310,13 @@ const createFakeBrowserLease = (
     state.physicalMutations += 1;
     markConfirmedMutation(state);
   },
-  async downloadAuthenticatedMedia() {
+  async downloadAuthenticatedMedia(input) {
     state.authenticatedMediaDownloads += 1;
     if (!options.authenticatedMedia) throw new Error("FIXTURE_AUTHENTICATED_MEDIA_MISSING");
+    if (input.delivery === "visible-download") {
+      state.physicalMutations += 1;
+      markConfirmedMutation(state);
+    }
     return options.authenticatedMedia;
   },
   async wait(input) {
@@ -335,7 +352,7 @@ export const fakeBrowser = (responder: DomResponder, input: FakeBrowserOptions =
     authenticatedMediaDownloads: 0,
     waitDurations: [],
     atomicIdentity: null,
-    recovery: null,
+    recovery: input.initialRecovery ?? null,
   };
   return {
     browser: createFakeBrowserLease(responder, state, input),

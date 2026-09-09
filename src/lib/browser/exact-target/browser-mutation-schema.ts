@@ -42,6 +42,10 @@ const currentTableSql = `
     proof_hash text,
     state text not null check(state in ('PREPARED','DISPATCHED','CONFIRMED','REJECTED','FAILED')),
     mutation_outcome text check(mutation_outcome in ('no','dispatched','confirmed')),
+    physical_input_count integer not null default 0 check(physical_input_count between 0 and 2),
+    download_guid_hash text,
+    download_completed integer not null default 0 check(download_completed in (0,1)),
+    media_identity_revalidated integer not null default 0 check(media_identity_revalidated in (0,1)),
     reason text,
     native_cause_code text,
     terminal_at text,
@@ -60,9 +64,13 @@ const createIndexes = (database: Database.Database): void => {
 };
 
 const requiredColumns = [...identityColumns.split(",").map((column) => column.trim()),
-  "proof_hash", "state", "mutation_outcome", "reason", "native_cause_code", "terminal_at", "updated_at"];
+  "proof_hash", "state", "mutation_outcome", "physical_input_count", "download_guid_hash",
+  "download_completed", "media_identity_revalidated", "reason", "native_cause_code", "terminal_at", "updated_at"];
 
-const forwardSchemaColumns = new Set(["mutation_outcome", "native_cause_code"]);
+const forwardSchemaColumns = new Set([
+  "mutation_outcome", "physical_input_count", "download_guid_hash", "download_completed",
+  "media_identity_revalidated", "native_cause_code",
+]);
 
 const migrateCurrentColumns = (
   database: Database.Database,
@@ -79,6 +87,18 @@ const migrateCurrentColumns = (
       when state in ('PREPARED','FAILED') then 'no'
       when state='DISPATCHED' then 'dispatched'
       else 'confirmed' end where mutation_outcome is null`);
+    if (missingColumns.has("physical_input_count")) {
+      database.exec("alter table browser_mutations add column physical_input_count integer not null default 0 check(physical_input_count between 0 and 2)");
+    }
+    if (missingColumns.has("download_guid_hash")) {
+      database.exec("alter table browser_mutations add column download_guid_hash text");
+    }
+    if (missingColumns.has("download_completed")) {
+      database.exec("alter table browser_mutations add column download_completed integer not null default 0 check(download_completed in (0,1))");
+    }
+    if (missingColumns.has("media_identity_revalidated")) {
+      database.exec("alter table browser_mutations add column media_identity_revalidated integer not null default 0 check(media_identity_revalidated in (0,1))");
+    }
     if (missingColumns.has("native_cause_code")) {
       database.exec("alter table browser_mutations add column native_cause_code text");
     }

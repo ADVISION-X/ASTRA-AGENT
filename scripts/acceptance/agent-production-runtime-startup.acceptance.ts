@@ -23,6 +23,8 @@ import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import type { BrowserExecutionArtifact } from "../../src/lib/browser/browser-authority-api.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
+import { serializeTerminalFailure } from
+  "../../src/lib/local-runtime/production/terminal-failure.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { HASH_A, HASH_B, task, validDeviceCredential } from "./agent-production-runtime-fixtures.js";
 import { assertProductionStartupPreflight } from
@@ -49,6 +51,50 @@ try {
   store.markExecuting(acceptedTask.job_id);
   assert.equal(reconcileTaskRecord({ store } as never, store.readTask(acceptedTask.job_id)!), false,
     "a missing execution checkpoint outside the accept crash window must block reconciliation");
+
+  const revokedTask = task({
+    jobId: "job:released-permanent-revocation", productId: "bazi_ai_full_analysis", actionId: "produce",
+  });
+  const revokedAttemptId = "attempt:released-permanent-revocation";
+  store.acceptTask(revokedTask, {
+    plugin_id: "bazi-ai-full-analysis", plugin_version: 1,
+    skill_hash: HASH_B, checkpoint_schema_version: 1, request_hash: revokedTask.request_hash,
+  }, revokedAttemptId);
+  store.recordAttemptFailure(revokedTask.job_id, revokedAttemptId,
+    serializeTerminalFailure(executionFailure("failed", "PROVIDER_REJECTED")));
+  store.settlePermanentlyRevokedJob(revokedTask.job_id, "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
+  store.recordLease({
+    jobId: revokedTask.job_id, attemptId: revokedAttemptId, leaseVersion: 1,
+    fenceHash: HASH_A, state: "absent", expiresAt: null,
+  });
+  assert.equal(reconcileTaskRecord({ store } as never, store.readTask(revokedTask.job_id)!), false,
+    "a permanent revocation without a checkpoint must remain unreconciled");
+  store.recordCheckpoint({
+    jobId: revokedTask.job_id, attemptId: revokedAttemptId,
+    checkpointId: "attempt_failure", checkpointHash: null, state: "failed",
+  });
+  assert.equal(reconcileTaskRecord({ store } as never, store.readTask(revokedTask.job_id)!), true,
+    "a permanently revoked task with a released lease and checkpoint must not block unrelated claims");
+
+  const ordinaryFailure = task({
+    jobId: "job:ordinary-absent-lease", productId: "bazi_ai_full_analysis", actionId: "produce",
+  });
+  const ordinaryAttemptId = "attempt:ordinary-absent-lease";
+  store.acceptTask(ordinaryFailure, {
+    plugin_id: "bazi-ai-full-analysis", plugin_version: 1,
+    skill_hash: HASH_B, checkpoint_schema_version: 1, request_hash: ordinaryFailure.request_hash,
+  }, ordinaryAttemptId);
+  store.markExecuting(ordinaryFailure.job_id);
+  store.recordCheckpoint({
+    jobId: ordinaryFailure.job_id, attemptId: ordinaryAttemptId,
+    checkpointId: "attempt_failure", checkpointHash: null, state: "failed",
+  });
+  store.recordLease({
+    jobId: ordinaryFailure.job_id, attemptId: ordinaryAttemptId, leaseVersion: 1,
+    fenceHash: HASH_A, state: "absent", expiresAt: null,
+  });
+  assert.equal(reconcileTaskRecord({ store } as never, store.readTask(ordinaryFailure.job_id)!), false,
+    "an absent lease must remain blocking without exact permanent-revocation authority");
   store.close();
 } finally {
   await rm(firstCheckpointCrashTemporary, { recursive: true, force: true });
@@ -415,7 +461,7 @@ for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
 }
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V15",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V16",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:storage-inventory:${evidenceMode}`,

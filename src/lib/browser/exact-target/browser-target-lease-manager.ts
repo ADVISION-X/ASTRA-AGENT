@@ -49,9 +49,14 @@ const hashText = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
 const authenticatedMediaIdentityValid = (
-  input: Readonly<{ assistantTurnId: string; semanticMediaId: "gpt-generated-image-main" }>,
+  input: Readonly<{
+    assistantTurnId: string;
+    semanticMediaId: "gpt-generated-image-main";
+    delivery: "probe" | "visible-download";
+  }>,
 ): boolean => /^conversation-turn-[1-9][0-9]*$/u.test(input.assistantTurnId)
-  && input.semanticMediaId === "gpt-generated-image-main";
+  && input.semanticMediaId === "gpt-generated-image-main"
+  && (input.delivery === "probe" || input.delivery === "visible-download");
 
 const authenticatedMediaBytesValid = (value: Readonly<Record<string, unknown>>): boolean =>
   typeof value.bytesBase64 === "string"
@@ -337,7 +342,11 @@ export class BrowserTargetLeaseManager {
   private async downloadAuthenticatedMedia(
     state: LeaseState,
     command: LeaseCommand,
-    input: Readonly<{ assistantTurnId: string; semanticMediaId: "gpt-generated-image-main" }>,
+    input: Readonly<{
+      assistantTurnId: string;
+      semanticMediaId: "gpt-generated-image-main";
+      delivery: "probe" | "visible-download";
+    }>,
   ): Promise<Readonly<{
     authorityTargetHash: `sha256:${string}`;
     authorityDocumentHash: `sha256:${string}`;
@@ -357,6 +366,7 @@ export class BrowserTargetLeaseManager {
       kind: "authenticated-media",
       assistantTurnId: input.assistantTurnId,
       semanticMediaId: input.semanticMediaId,
+      delivery: input.delivery,
     });
     const value = parseAuthenticatedMedia(raw);
     if (value.assistantTurnId !== input.assistantTurnId
@@ -447,7 +457,8 @@ export class BrowserTargetLeaseManager {
 
   private mutationClass(command: Parameters<BrowserCommandActor["execute"]>[1]): BrowserCommandPermit["mutationClass"] {
     if (command.kind === "navigate" || command.kind === "park-target" || command.kind === "close-target") return "lifecycle";
-    if (command.kind === "file-input") return "mutation";
+    if (command.kind === "file-input"
+      || (command.kind === "authenticated-media" && command.delivery === "visible-download")) return "mutation";
     if (command.kind === "dom-intent" && (command.intent.kind === "click" || command.intent.kind === "hover"
       || command.intent.kind === "doubleClick" || command.intent.kind === "keypress" || command.intent.kind === "fill")) return "mutation";
     return "observation";

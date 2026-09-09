@@ -136,6 +136,7 @@ export const bindBrowserCommandObservationPacket = (
 const BROWSER_TERMINAL_REPLY_MARGIN_MS = 4_000;
 
 const declaredPostconditionTimeoutMs = (command: BrowserGovernedCommand): number | null => {
+  if (command.kind === "authenticated-media" && command.delivery === "visible-download") return 20_000;
   if (command.kind !== "dom-intent") return null;
   const intent = command.intent;
   if (intent.kind === "click") return intent.postClickAttribute?.timeoutMs

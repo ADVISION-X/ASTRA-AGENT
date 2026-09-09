@@ -20,7 +20,7 @@ type GptChildObservationValue<T> = Readonly<{
   candidateCardinality: Readonly<{ raw: number | null; eligible: number | null }>;
   authorityRefHashes: readonly `sha256:${string}`[];
   observationRevisionHash: `sha256:${string}` | null;
-  mutationOutcome: "no" | "confirmed";
+  mutationOutcome: "no" | "dispatched" | "confirmed";
   postconditionResult: "passed";
   browserFact: GptChildBrowserFact | null;
   nativeFailureCode: string | null;
@@ -102,6 +102,39 @@ export const requireConfirmedBrowserFact = <
     evidenceRef: recovery.authorityRef,
     evidenceHash: recovery.authorityHash,
   }) as ConfirmedGptChildBrowserFact<AllowsNo>;
+};
+
+export const requireCompletedDownloadBrowserFact = (
+  intent: GptChildCapabilityIntent<"checkpoint_gpt_generated_image">,
+  browser: Pick<BrowserTargetLease, "target" | "document" | "readAtomicStepRecovery">,
+): GptChildBrowserFact => {
+  const recovery = browser.readAtomicStepRecovery({
+    productStepId: intent.productStepId,
+    callId: intent.callId,
+    childCapabilityId: intent.childCapabilityId,
+    inputHash: intent.inputHash,
+    actionOrdinal: intent.actionOrdinal,
+    replayPolicy: "target-local-per-generation",
+  });
+  if (!recovery || recovery.state !== "dispatched" || recovery.mutationOutcome !== "dispatched"
+    || recovery.physicalInputCount !== 2 || !recovery.downloadCompleted
+    || !recovery.identityRevalidated || recovery.downloadGuidHash === null
+    || recovery.targetRef !== browser.target.targetRef
+    || recovery.documentRef !== browser.document.documentRef) {
+    throw gptExecutionFailure("BROWSER_DOWNLOAD_COMPLETION_UNPROVEN", {
+      mutationOutcome: recovery?.mutationOutcome ?? "no",
+    });
+  }
+  return Object.freeze({
+    exactCallIdentityHash: gptExactCallIdentityHash(intent),
+    childCapabilityId: intent.childCapabilityId,
+    effectScope: "target_local",
+    browserOutcome: "DISPATCHED",
+    mutationOutcome: "dispatched",
+    terminalAt: null,
+    evidenceRef: recovery.authorityRef,
+    evidenceHash: recovery.authorityHash,
+  });
 };
 
 export const requireExactInputKeys = (

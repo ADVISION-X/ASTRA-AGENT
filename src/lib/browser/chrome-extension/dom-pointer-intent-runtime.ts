@@ -98,7 +98,7 @@ const pointerAction = async (
     });
   } catch (error) {
     const code = error instanceof Error ? error.message : "";
-    if (/^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|READ_INVALID)$/u.test(code)) {
+    if (/^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|NODE_STALE|READ_INVALID)$/u.test(code)) {
       return qualificationReceipt(code === "BROWSER_DOM_CANDIDATE_AMBIGUOUS" ? 2 : 0, code, "candidate-set");
     }
     if (!/^BROWSER_DOM_ACTION_[A-Z_]+$/u.test(code)) throw error;
@@ -181,6 +181,21 @@ export const dispatchPointerClickSequence = async (
       type: "mouseReleased", x: point.x, y: point.y, button: "left", buttons: 0, clickCount,
     });
   }
+};
+
+/** Browser-owned mechanical click used only inside a larger typed compound mutation. */
+export const executeRequiredCompoundClick = async (
+  runtime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  intent: Pick<ClickIntent, "kind" | "selector" | "expectedText" | "expectedTextEquals" | "scope">,
+  assertCurrent: CurrentDocumentAssertion,
+): Promise<Readonly<Record<string, unknown>>> => {
+  const point = await pointerAction(runtime, target, intent as ClickIntent);
+  if ("failureCode" in point) return point;
+  await dispatchPointerClickSequence(runtime, target, point, [1], assertCurrent);
+  assertCurrent();
+  return Object.freeze({ clicked: true, candidateCount: 1, identityRevalidated: true,
+    mutationCount: 1, postconditionVerified: true });
 };
 
 const zeroActionIfSatisfied = async (

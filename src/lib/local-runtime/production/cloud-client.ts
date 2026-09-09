@@ -317,7 +317,7 @@ async function uploadGeneratedImage(
   const pathname = `/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/artifacts/generated_image/${encodeURIComponent(image.artifact_id)}`;
   const delivered = store.readOutboxAuthority(requestId);
   if (delivered?.state === "delivered") {
-    return UploadedResultReceiptSchema.parse(store.readOutboxResponse(requestId));
+    return exactGeneratedImageReceipt(store.readOutboxResponse(requestId), image);
   }
   const bytes = Buffer.from(image.webp_bytes);
   if (bytes.byteLength !== image.bytes || sha256(bytes) !== image.sha256
@@ -340,9 +340,27 @@ async function uploadGeneratedImage(
       body: bytes,
       signal: AbortSignal.timeout(120_000),
     });
-    return UploadedResultReceiptSchema.parse(parseJsonEnvelope(await response.json() as unknown, response.status));
+    return exactGeneratedImageReceipt(
+      parseJsonEnvelope(await response.json() as unknown, response.status),
+      image,
+    );
   });
 }
+
+const exactGeneratedImageReceipt = (
+  value: unknown,
+  image: GeneratedImageArtifact,
+): UploadedResultReceipt => {
+  const receipt = UploadedResultReceiptSchema.parse(value);
+  if (receipt.artifact_id !== image.artifact_id
+    || receipt.role !== "generated_image"
+    || receipt.sha256 !== image.sha256
+    || receipt.byte_length !== image.bytes
+    || receipt.media_type !== image.media_type) {
+    throw executionFailure("failed", "GENERATED_IMAGE_WEBSITE_RECEIPT_MISMATCH");
+  }
+  return receipt;
+};
 
 export async function uploadProductionGeneratedImage(
   session: ProductionWorkerSession,

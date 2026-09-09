@@ -15,6 +15,8 @@ import {
   fakeBrowser,
 } from "./gpt-exact-target-browser-fixture.js";
 import { browserExecutionFailure } from "../../../lib/browser/browser-authority-api.js";
+import { executeProductionGptAtomicCall } from "../production-atomic-call.js";
+import { gptExactCallIdentityHash } from "../contract.js";
 import {
   EMPTY_HASH,
   approvedFile,
@@ -376,13 +378,13 @@ import {
   } finally {
     Date.now = nativeDateNow;
   }
-  const checkpoint = await execute("checkpoint_gpt_generated_image", fixture.browser, {
+  const imageInput = Object.freeze({
     assistantTurnId: "conversation-turn-4",
     canonicalConversationUrl: conversationUrl,
     expectedMediaHash: mediaHash,
     expectedPromptHash: promptHash,
     predecessorTextCheckpoint: {
-      checkpointKind: "text",
+      checkpointKind: "text" as const,
       sourceAttemptId: "attempt:source",
       assistantTurnId: "conversation-turn-2",
       artifactRef: "artifact:text",
@@ -396,11 +398,97 @@ import {
     },
     turnMarker: marker,
   });
+  const checkpoint = await execute("checkpoint_gpt_generated_image", fixture.browser, imageInput);
   assert.equal(checkpoint.status, "success", checkpoint.failureCode ?? "image checkpoint failed");
   assert.equal(checkpoint.value?.mediaType, "image/webp");
   assert.equal(checkpoint.value?.width, 1200);
   assert.equal(checkpoint.value?.height, 630);
-  assert.equal(fixture.physicalMutations(), 0);
+  assert.equal(fixture.physicalMutations(), 1,
+    "the final image checkpoint must execute one Browser-owned visible download compound mutation");
+  const recovery = Object.freeze({
+    state: "dispatched" as const,
+    mutationOutcome: "dispatched" as const,
+    terminalAt: null,
+    failureCode: null,
+    nativeFailureCode: null,
+    authorityRef: "browser-mutation:image-checkpoint-response-loss",
+    authorityHash: hash("image-checkpoint-response-loss"),
+    targetRef: "target:1",
+    documentRef: "document:1",
+    physicalInputCount: 2 as const,
+    downloadGuidHash: hash("native-download-guid"),
+    downloadCompleted: true,
+    identityRevalidated: true,
+  });
+  const recoveryFixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, {
+      ...responseFacts(),
+      "user-turns": {
+        rawCount: 2, eligibleCount: 2, matches: [
+          { testId: "conversation-turn-1", exactGptUserPromptHash: predecessorPromptHash },
+          { testId: "conversation-turn-3", exactGptUserPromptHash: promptHash },
+        ],
+      },
+      "assistant-turns": {
+        rawCount: 2, eligibleCount: 2, matches: [
+          { testId: "conversation-turn-2", semanticTextHash: responseHash },
+          { testId: "conversation-turn-4", semanticTextHash: EMPTY_HASH },
+        ],
+      },
+    }, conversationUrl);
+    throw new Error(`UNEXPECTED_IMAGE_RECOVERY_INTENT:${intent.kind}`);
+  }, {
+    initialPending: 1,
+    initialRecovery: recovery,
+    authenticatedMedia: {
+      authorityTargetHash: `sha256:${"2".repeat(64)}`,
+      authorityDocumentHash: `sha256:${"3".repeat(64)}`,
+      assistantTurnId: "conversation-turn-4",
+      semanticMediaId: "gpt-generated-image-main",
+      bytesBase64: original.toString("base64"),
+      sha256: mediaHash,
+      sizeBytes: original.byteLength,
+      mediaType: "image/svg+xml",
+      width: 16,
+      height: 16,
+    },
+  });
+  const recoveryIdentity = Object.freeze({
+    jobId: "job:gpt-image-response-loss",
+    attemptId: "attempt:gpt-image-response-loss",
+    pluginId: "acceptance-product",
+    pluginVersion: 1,
+    productStepId: "article_image_generation",
+    callId: "image-checkpoint",
+    childCapabilityId: "checkpoint_gpt_generated_image" as const,
+    inputHash: hash(JSON.stringify(imageInput)),
+  });
+  const recoveryIntent = Object.freeze({
+    ...recoveryIdentity,
+    executionId: `gpt-call:${gptExactCallIdentityHash(recoveryIdentity).slice(7)}`,
+    actionOrdinal: 48,
+    input: imageInput,
+  });
+  const recovered = await executeProductionGptAtomicCall({
+    dataDir: "/tmp/gpt-image-response-loss",
+    gpt: freshHarness().gpt,
+    store: {} as never,
+    browsers: {} as never,
+    intent: recoveryIntent,
+    browserCall: {
+      browser: recoveryFixture.browser,
+      facade: recoveryFixture.browser,
+      providerWaitLog: null,
+    },
+    confirmedProviderSubmitReceipt: null,
+    signal: new AbortController().signal,
+  });
+  assert.equal(recovered.result.status, "success");
+  assert.equal(recovered.resolveDispatched, true);
+  assert.equal(recoveryFixture.physicalMutations(), 0,
+    "a completed two-input download WAL must recover by readback without clicking image or save again");
+  assert.equal(recoveryFixture.authenticatedMediaDownloads(), 1,
+    "response-loss recovery may probe the unchanged bytes exactly once");
   const downloadsBeforeMismatch = fixture.authenticatedMediaDownloads();
   const predecessorMismatch = await execute("checkpoint_gpt_generated_image", fixture.browser, {
     assistantTurnId: "conversation-turn-4",
