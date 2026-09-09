@@ -7,6 +7,7 @@ import { browserDomFacts } from "./local-browser-dom-runtime-fixture.js";
 type ForkFailureStage = "child-attach" | "child-frame" | "claim" | "source-detach" | "source-remove";
 type TabUpdatedListener = Parameters<ExtensionChromeApi["tabs"]["onUpdated"]["addListener"]>[0];
 type DebuggerDetachListener = Parameters<ExtensionChromeApi["debugger"]["onDetach"]["addListener"]>[0];
+type TabActivatedListener = Parameters<ExtensionChromeApi["tabs"]["onActivated"]["addListener"]>[0];
 type ForkFailureState = {
   childTabId: number;
   claimBodies: Array<Readonly<Record<string, unknown>>>;
@@ -19,6 +20,7 @@ type ForkFailureState = {
   removed: number[];
   sourceTabId: number;
   stage: ForkFailureStage;
+  activated: TabActivatedListener;
   updated: TabUpdatedListener;
   urls: Map<number, string>;
 };
@@ -34,7 +36,7 @@ const alarmsApi: ExtensionChromeApi["alarms"] = {
 
 const createForkFailureState = (stage: ForkFailureStage): ForkFailureState => ({
   childTabId: 301, claimBodies: [], claims: 0, detached: [], detachListener: () => undefined,
-  discovered: [], forkClick: false, injectionHits: 0, removed: [], sourceTabId: 300, stage,
+  activated: () => undefined, discovered: [], forkClick: false, injectionHits: 0, removed: [], sourceTabId: 300, stage,
   updated: () => { throw new Error("failure fixture listener missing"); },
   urls: new Map<number, string>([
     [300, "https://chatgpt.com/c/source%20opaque"],
@@ -111,8 +113,8 @@ const createForkFailureApi = (state: ForkFailureState): ExtensionChromeApi => ({
       }), 0);
       return { id: state.sourceTabId };
     },
-    get: async (tabId) => ({ id: tabId, status: "complete",
-      url: state.urls.get(tabId)!, title: "ChatGPT" }),
+    get: async (tabId) => ({ active: true, discarded: false, id: tabId, status: "complete",
+      url: state.urls.get(tabId)!, title: "ChatGPT", windowId: 1 }),
     remove: async (tabId) => {
       if (state.stage === "source-remove" && tabId === state.sourceTabId) {
         state.injectionHits += 1;
@@ -121,6 +123,9 @@ const createForkFailureApi = (state: ForkFailureState): ExtensionChromeApi => ({
       state.removed.push(tabId);
       state.discovered = state.discovered.filter((candidate) => candidate.tabId !== tabId);
     },
+    update: async (tabId) => ({ active: true, discarded: false, id: tabId, status: "complete",
+      url: state.urls.get(tabId)!, title: "ChatGPT", windowId: 1 }),
+    onActivated: { addListener: (listener) => { state.activated = listener; } },
     onUpdated: { addListener: (listener) => { state.updated = listener; } },
     onRemoved: { addListener: () => undefined },
   },
@@ -180,6 +185,6 @@ export const exerciseForkFailureChildSurvival = async (stage: ForkFailureStage):
         timeoutMs: 5_000,
       },
     },
-  }, firstClaim), /BROWSER_POSTCONDITION_FAILED/u, `${stage} must fail closed`);
+  }, firstClaim, "mutation"), /BROWSER_POSTCONDITION_FAILED/u, `${stage} must fail closed`);
   assertForkFailureOutcome(state, authority, firstClaimBody);
 };

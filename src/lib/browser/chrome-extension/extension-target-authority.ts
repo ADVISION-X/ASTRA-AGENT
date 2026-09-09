@@ -5,7 +5,8 @@ import {
   gptWebClaimOriginForUrl,
   requireGptWebPolicyForUrl,
 } from "../exact-target/browser-site-policy-registry.js";
-import { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
+import { ExtensionDebuggerRuntime, type ProviderInputState } from "./debugger-runtime.js";
+import type { RegisteredExtensionCommand } from "./command-registry.js";
 import { executeRegisteredExtensionCommand } from "./extension-command-runtime.js";
 import { ExtensionCreatedTarget, type TargetFailureReporter } from "./extension-created-target.js";
 import { executeRegisteredDomIntent } from "./dom-intent-runtime.js";
@@ -25,12 +26,37 @@ import {
 import type {
   ExtensionChromeApi,
   ExtensionDebugTarget,
+  ExtensionTab,
 } from "./extension-runtime-types.js";
 
 type TargetFrameSender = (
   kind: "TARGET_CLAIM" | "TARGET_REVOKE",
   body: Record<string, unknown>,
 ) => Promise<void>;
+
+type ActiveTabGeneration = Readonly<{
+  generation: number;
+  tabId: number;
+}>;
+
+type InteractionLease = Readonly<{
+  generation: number;
+  tabId: number;
+  targetRef: string;
+  documentRef: string;
+  windowId: number;
+}>;
+
+const interactionRejectedReceipt = (): Readonly<Record<string, unknown>> => Object.freeze({
+  candidateCount: 0,
+  identityRevalidated: false,
+  mutationCount: 0,
+  postconditionVerified: false,
+  qualificationRejected: true,
+  qualificationStage: "candidate-set",
+  failureCode: "BROWSER_TARGET_NOT_INTERACTIVE",
+  nativeCauseCode: null,
+});
 
 export class ExtensionTargetAuthority {
   private readonly targets = new ExtensionExactTargetRegistry();
@@ -40,6 +66,7 @@ export class ExtensionTargetAuthority {
   private readonly parkedLoaderIds = new Map<string, string>();
   private attachedTabId: number | null = null;
   private readonly createdTarget: ExtensionCreatedTarget;
+  private readonly activeTabsByWindow = new Map<number, ActiveTabGeneration>();
   private navigationPublication: Readonly<{ loaderId: string; promise: Promise<void> }> | null = null;
 
   public constructor(
@@ -61,6 +88,9 @@ export class ExtensionTargetAuthority {
     });
     this.chromeApi.tabs.onUpdated.addListener((tabId) => {
       void this.createdTarget.consumeTabUpdateAfterBarrier(tabId);
+    });
+    this.chromeApi.tabs.onActivated.addListener((activeInfo) => {
+      this.recordActiveTab(activeInfo.windowId, activeInfo.tabId);
     });
     this.chromeApi.tabs.onRemoved?.addListener((tabId) => {
       void this.consumeTabRemovalAfterBarrier(tabId);
@@ -202,44 +232,154 @@ export class ExtensionTargetAuthority {
   public async executeRegisteredCommand(
     command: BrowserGovernedCommand,
     target: ExtensionExactTarget,
+    mutationClass: RegisteredExtensionCommand["mutationClass"],
     onMutationProgress: (progress: BrowserMutationProgress) => Promise<void> = async () => {},
   ): Promise<unknown> {
-    if (command.kind === "dom-intent") {
-      const assertCurrent = (): void => { this.targets.resolve(target.targetRef, target.documentRef); };
-      const forkTransition = command.intent.kind === "click"
-        ? command.intent.postClickTargetTransition : undefined;
-      const targetBaseline = forkTransition === undefined
-        ? null : await readDiscoveredTabIds(this.debuggerRuntime);
-      const expectedMainFrameLoaderId = exactAssistantReadLoaderId(
-        command.intent.kind, target, this.activeTarget, this.activeLoaderId,
-      );
-      if (command.intent.kind === "readExactAssistantTurn" && !expectedMainFrameLoaderId) {
-        throw new Error("BROWSER_DOCUMENT_INVALID");
-      }
-      const result = await executeRegisteredDomIntent(
-        this.debuggerRuntime, target, command.intent, assertCurrent,
-        expectedMainFrameLoaderId ?? undefined,
-        forkTransition === undefined || targetBaseline === null ? undefined
-          : () => this.normalizeGptForkSuccessor(target, targetBaseline, forkTransition.timeoutMs),
-      );
-      if (forkTransition === undefined) this.targets.resolve(target.targetRef, target.documentRef);
-      else {
-        if (!forkTransitionComplete(this.activeTarget, target)) {
+    const execute = async (): Promise<unknown> => {
+      if (command.kind === "dom-intent") {
+        const assertCurrent = (): void => { this.targets.resolve(target.targetRef, target.documentRef); };
+        const forkTransition = command.intent.kind === "click"
+          ? command.intent.postClickTargetTransition : undefined;
+        const targetBaseline = forkTransition === undefined
+          ? null : await readDiscoveredTabIds(this.debuggerRuntime);
+        const expectedMainFrameLoaderId = exactAssistantReadLoaderId(
+          command.intent.kind, target, this.activeTarget, this.activeLoaderId,
+        );
+        if (command.intent.kind === "readExactAssistantTurn" && !expectedMainFrameLoaderId) {
+          throw new Error("BROWSER_DOCUMENT_INVALID");
+        }
+        const result = await executeRegisteredDomIntent(
+          this.debuggerRuntime, target, command.intent, assertCurrent,
+          expectedMainFrameLoaderId ?? undefined,
+          forkTransition === undefined || targetBaseline === null ? undefined
+            : () => this.normalizeGptForkSuccessor(target, targetBaseline, forkTransition.timeoutMs),
+        );
+        if (forkTransition === undefined) this.targets.resolve(target.targetRef, target.documentRef);
+        else if (!forkTransitionComplete(this.activeTarget, target)) {
           throw new Error("BROWSER_POSTCONDITION_FAILED");
         }
+        return result;
       }
-      return result;
+      return executeRegisteredExtensionCommand(this.debuggerRuntime, target, command, {
+        assertCurrent: () => { this.targets.resolve(target.targetRef, target.documentRef); },
+        closeTarget: async () => {
+          await this.debuggerRuntime.send(target.tabId, "Page.close");
+          await this.releaseActiveTarget();
+        },
+        navigate: (url) => this.executeNavigation(target, url),
+        parkTarget: () => this.parkActiveTarget(),
+        onMutationProgress,
+      });
+    };
+
+    if (mutationClass !== "mutation") return execute();
+    let interactionLease: InteractionLease;
+    try {
+      interactionLease = await this.ensureInteractionReady(target);
+    } catch {
+      return interactionRejectedReceipt();
     }
-    return executeRegisteredExtensionCommand(this.debuggerRuntime, target, command, {
-      assertCurrent: () => { this.targets.resolve(target.targetRef, target.documentRef); },
-      closeTarget: async () => {
-        await this.debuggerRuntime.send(target.tabId, "Page.close");
-        await this.releaseActiveTarget();
-      },
-      navigate: (url) => this.executeNavigation(target, url),
-      parkTarget: () => this.parkActiveTarget(),
-      onMutationProgress,
+    const inputState: ProviderInputState = { started: false };
+    try {
+      return await this.debuggerRuntime.withProviderInputGuard(
+        inputState,
+        () => this.assertInteractionReady(interactionLease),
+        execute,
+      );
+    } catch (error) {
+      if (!inputState.started && error instanceof Error
+        && error.message === "BROWSER_TARGET_NOT_INTERACTIVE") {
+        return interactionRejectedReceipt();
+      }
+      throw error;
+    }
+  }
+
+  private recordActiveTab(windowId: number, tabId: number): void {
+    if (!Number.isSafeInteger(windowId) || !Number.isSafeInteger(tabId)) return;
+    const current = this.activeTabsByWindow.get(windowId);
+    if (current?.tabId === tabId) return;
+    this.activeTabsByWindow.set(windowId, Object.freeze({
+      generation: (current?.generation ?? 0) + 1,
+      tabId,
+    }));
+  }
+
+  private requireInteractiveTab(tab: ExtensionTab, target: ExtensionExactTarget): number {
+    if (tab.id !== target.tabId || !Number.isSafeInteger(tab.windowId)
+      || tab.active !== true || tab.discarded !== false || tab.status !== "complete"
+      || typeof tab.url !== "string") {
+      throw new Error("BROWSER_TARGET_NOT_INTERACTIVE");
+    }
+    try {
+      requireGptWebPolicyForUrl(tab.url);
+    } catch (error) {
+      throw new Error("BROWSER_TARGET_NOT_INTERACTIVE", { cause: error });
+    }
+    return tab.windowId as number;
+  }
+
+  private async ensureInteractionReady(target: ExtensionExactTarget): Promise<InteractionLease> {
+    this.targets.resolve(target.targetRef, target.documentRef);
+    let tab = await this.debuggerRuntime.readTab(target.tabId);
+    if (tab.id !== target.tabId || tab.discarded !== false || tab.status !== "complete"
+      || typeof tab.url !== "string" || !Number.isSafeInteger(tab.windowId)) {
+      throw new Error("BROWSER_TARGET_NOT_INTERACTIVE");
+    }
+    try {
+      requireGptWebPolicyForUrl(tab.url);
+    } catch (error) {
+      throw new Error("BROWSER_TARGET_NOT_INTERACTIVE", { cause: error });
+    }
+    if (tab.active !== true) {
+      await this.debuggerRuntime.activateTab(target.tabId);
+      tab = await this.debuggerRuntime.readTab(target.tabId);
+    }
+    const windowId = this.requireInteractiveTab(tab, target);
+    this.recordActiveTab(windowId, target.tabId);
+    const activationGeneration = this.activeTabsByWindow.get(windowId)?.generation;
+    if (activationGeneration === undefined) throw new Error("BROWSER_TARGET_NOT_INTERACTIVE");
+    const frame = await readExtensionMainFrame(this.debuggerRuntime, target.tabId);
+    if (this.activeTarget?.targetRef !== target.targetRef
+      || this.activeTarget.documentRef !== target.documentRef
+      || this.activeTarget.tabId !== target.tabId
+      || this.activeLoaderId === null || frame.loaderId !== this.activeLoaderId) {
+      throw new Error("BROWSER_TARGET_NOT_INTERACTIVE");
+    }
+    try {
+      requireGptWebPolicyForUrl(frame.url);
+      this.targets.resolve(target.targetRef, target.documentRef);
+    } catch (error) {
+      throw new Error("BROWSER_TARGET_NOT_INTERACTIVE", { cause: error });
+    }
+    const finalTab = await this.debuggerRuntime.readTab(target.tabId);
+    this.requireInteractiveTab(finalTab, target);
+    const active = this.activeTabsByWindow.get(windowId);
+    if (!active || active.tabId !== target.tabId || active.generation !== activationGeneration) {
+      throw new Error("BROWSER_TARGET_NOT_INTERACTIVE");
+    }
+    return Object.freeze({
+      generation: activationGeneration,
+      tabId: target.tabId,
+      targetRef: target.targetRef,
+      documentRef: target.documentRef,
+      windowId,
     });
+  }
+
+  private assertInteractionReady(lease: InteractionLease): void {
+    const active = this.activeTabsByWindow.get(lease.windowId);
+    if (!active || active.tabId !== lease.tabId || active.generation !== lease.generation
+      || this.activeTarget?.targetRef !== lease.targetRef
+      || this.activeTarget.documentRef !== lease.documentRef
+      || this.activeTarget.tabId !== lease.tabId) {
+      throw new Error("BROWSER_TARGET_NOT_INTERACTIVE");
+    }
+    try {
+      this.targets.resolve(lease.targetRef, lease.documentRef);
+    } catch (error) {
+      throw new Error("BROWSER_TARGET_NOT_INTERACTIVE", { cause: error });
+    }
   }
 
   private async createProductionCandidate(): Promise<ExtensionDebugTarget> {

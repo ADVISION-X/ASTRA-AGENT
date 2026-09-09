@@ -97,7 +97,7 @@ const checkpointPayloadValid = (
   })
   && Array.isArray(body.object_receipts);
 
-const checkpointBody = (
+export const parseRecoveryCheckpointIntent = (
   jobId: string,
   attemptId: string,
   row: RecoveryOutboxRow,
@@ -201,7 +201,7 @@ const validateRecoveryReceipts = (input: Readonly<{
     const local = localByRequest.get(receipt.request_id);
     if (!local) throw executionFailure("failed", "PRODUCTION_RECOVERY_REMOTE_INTENT_MISSING");
     const raw = JSON.parse(local.body_blob.toString("utf8")) as Record<string, unknown>;
-    const body = checkpointBody(input.jobId, String(raw.attempt_id), local);
+    const body = parseRecoveryCheckpointIntent(input.jobId, String(raw.attempt_id), local);
     assertCheckpointReceipt({
       jobId: input.jobId, acceptedAttemptCount: input.acceptedAttemptCount,
       currentAttempt: body.attempt_id === input.attemptId, row: local, body, receipt,
@@ -280,7 +280,7 @@ const currentRecoveryPrefix = (input: Readonly<{
   for (const row of input.rows) {
     const raw = JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>;
     if (raw.attempt_id !== input.attemptId) continue;
-    const body = checkpointBody(input.jobId, input.attemptId, row);
+    const body = parseRecoveryCheckpointIntent(input.jobId, input.attemptId, row);
     if (!row.sent_at && !row.response_hash) {
       if (!allowedRejectedIncidentRow(row, body)) {
         throw executionFailure("failed", "PRODUCTION_RECOVERY_LOCAL_PREFIX_INVALID");

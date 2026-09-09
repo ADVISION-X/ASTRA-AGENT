@@ -9,10 +9,13 @@ export type ExtensionDebugTarget = Readonly<{
   url: string;
 }>;
 export type ExtensionTab = Readonly<{
+  active?: boolean;
+  discarded?: boolean;
   id?: number;
   status?: "loading" | "complete";
   title?: string;
   url?: string;
+  windowId?: number;
 }>;
 
 export type ExtensionChromeApi = Readonly<{
@@ -46,6 +49,10 @@ export type ExtensionChromeApi = Readonly<{
     create(createProperties: Readonly<{ active: false; url: string }>): Promise<Readonly<{ id?: number }>>;
     get(tabId: number): Promise<ExtensionTab>;
     remove(tabId: number): Promise<void>;
+    update(tabId: number, updateProperties: Readonly<{ active: true }>): Promise<ExtensionTab>;
+    onActivated: Readonly<{
+      addListener(listener: (activeInfo: Readonly<{ tabId: number; windowId: number }>) => void): void;
+    }>;
     onRemoved?: Readonly<{ addListener(listener: (tabId: number) => void): void }>;
     onUpdated: Readonly<{
       addListener(listener: (
@@ -99,7 +106,8 @@ const isDebuggerApi = (value: unknown): boolean =>
 
 const isTabsApi = (value: unknown): boolean =>
   isRecord(value) && typeof value.create === "function" && typeof value.get === "function"
-  && typeof value.remove === "function" && hasListener(value.onUpdated);
+  && typeof value.remove === "function" && typeof value.update === "function"
+  && hasListener(value.onActivated) && hasListener(value.onUpdated);
 
 const isAlarmsApi = (value: unknown): boolean =>
   isRecord(value) && typeof value.create === "function" && hasListener(value.onAlarm);

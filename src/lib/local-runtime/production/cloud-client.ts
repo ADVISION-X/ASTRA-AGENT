@@ -191,13 +191,14 @@ export async function checkpointProductionTask(
   } as const;
   const pathname = `/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/checkpoints`;
   store.enqueue({ idempotency_key: requestId, kind: "checkpoint", path: pathname, method: "POST", headers: fenceHeaders(job), body: JSON.stringify(body) });
-  const response = await store.deliverOutbox(requestId, async () => {
-    const received = await session.request(pathname, {
-      method: "POST", headers: fenceHeaders(job), body: JSON.stringify(body),
+  const response = await store.deliverOutbox(requestId, async (write) => {
+    const received = await session.request(write.path, {
+      method: write.method, headers: write.headers, body: Buffer.from(write.body),
     }) as Record<string, unknown>;
+    const sentBody = JSON.parse(Buffer.from(write.body).toString("utf8")) as Record<string, unknown>;
     if (received.job_id !== job.job_id || received.checkpoint_seq !== checkpointSeq
       || typeof received.checkpoint_hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(received.checkpoint_hash)
-      || received.checkpoint_hash !== hashCanonical(body)) {
+      || received.checkpoint_hash !== hashCanonical(sentBody)) {
       throw executionFailure("failed", "V6_CHECKPOINT_RECEIPT_INVALID");
     }
     return received;
@@ -296,11 +297,11 @@ async function uploadJsonObject(
     "x-ai-content-bytes": String(bytes.byteLength),
   };
   store.enqueue({ idempotency_key: requestId, kind: "artifact", path: pathname, method: "PUT", headers: durableHeaders, body: bytes });
-  return store.deliverOutbox(requestId, async () => {
-    const response = await productionCloudFetch(`${session.device.server_base_url.replace(/\/+$/u, "")}${pathname}`, {
-      method: "PUT",
-      headers: await session.authorizationHeaders(durableHeaders),
-      body: bytes,
+  return store.deliverOutbox(requestId, async (write) => {
+    const response = await productionCloudFetch(`${session.device.server_base_url.replace(/\/+$/u, "")}${write.path}`, {
+      method: write.method,
+      headers: await session.authorizationHeaders(write.headers),
+      body: Buffer.from(write.body),
       signal: AbortSignal.timeout(120_000),
     });
     return UploadedResultReceiptSchema.parse(parseJsonEnvelope(await response.json() as unknown, response.status));
@@ -313,11 +314,16 @@ async function uploadGeneratedImage(
   job: ClaimedProductionTask,
   image: GeneratedImageArtifact,
 ): Promise<UploadedResultReceipt> {
-  const requestId = `aipresult_${hashCanonical({ job_id: job.job_id, role: "generated_image", hash: image.sha256 }).slice(7, 47)}`;
-  const pathname = `/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/artifacts/generated_image/${encodeURIComponent(image.artifact_id)}`;
+  const uploadArtifactId = `${image.artifact_id}_${hashCanonical({
+    attempt_id: job.grant.attempt_id,
+    role: "generated_image",
+  }).slice(7, 23)}`;
+  const requestId = `aipresult_${hashCanonical({ job_id: job.job_id, attempt_id: job.grant.attempt_id,
+    role: "generated_image", hash: image.sha256 }).slice(7, 47)}`;
+  const pathname = `/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/artifacts/generated_image/${encodeURIComponent(uploadArtifactId)}`;
   const delivered = store.readOutboxAuthority(requestId);
   if (delivered?.state === "delivered") {
-    return exactGeneratedImageReceipt(store.readOutboxResponse(requestId), image);
+    return exactGeneratedImageReceipt(store.readOutboxResponse(requestId), image, uploadArtifactId);
   }
   const bytes = Buffer.from(image.webp_bytes);
   if (bytes.byteLength !== image.bytes || sha256(bytes) !== image.sha256
@@ -333,16 +339,16 @@ async function uploadGeneratedImage(
     "x-ai-content-bytes": String(image.bytes),
   };
   store.enqueue({ idempotency_key: requestId, kind: "artifact", path: pathname, method: "PUT", headers: durableHeaders, body: bytes });
-  return store.deliverOutbox(requestId, async () => {
-    const response = await productionCloudFetch(`${session.device.server_base_url.replace(/\/+$/u, "")}${pathname}`, {
-      method: "PUT",
-      headers: await session.authorizationHeaders(durableHeaders),
-      body: bytes,
+  return store.deliverOutbox(requestId, async (write) => {
+    const response = await productionCloudFetch(`${session.device.server_base_url.replace(/\/+$/u, "")}${write.path}`, {
+      method: write.method,
+      headers: await session.authorizationHeaders(write.headers),
+      body: Buffer.from(write.body),
       signal: AbortSignal.timeout(120_000),
     });
     return exactGeneratedImageReceipt(
       parseJsonEnvelope(await response.json() as unknown, response.status),
-      image,
+      image, uploadArtifactId,
     );
   });
 }
@@ -350,9 +356,10 @@ async function uploadGeneratedImage(
 const exactGeneratedImageReceipt = (
   value: unknown,
   image: GeneratedImageArtifact,
+  uploadArtifactId: string,
 ): UploadedResultReceipt => {
   const receipt = UploadedResultReceiptSchema.parse(value);
-  if (receipt.artifact_id !== image.artifact_id
+  if (receipt.artifact_id !== uploadArtifactId
     || receipt.role !== "generated_image"
     || receipt.sha256 !== image.sha256
     || receipt.byte_length !== image.bytes
@@ -508,10 +515,10 @@ export async function terminalProductionTask(
   });
   const expected = parseTerminalReceiptExpectation(body);
   store.enqueue({ idempotency_key: requestId, kind: "terminal", path: pathname, method: "POST", headers: fenceHeaders(job), body });
-  const response = await store.deliverOutbox(requestId, async () => session.request(pathname, {
-    method: "POST",
-    headers: fenceHeaders(job),
-    body,
+  const response = await store.deliverOutbox(requestId, async (write) => session.request(write.path, {
+    method: write.method,
+    headers: write.headers,
+    body: Buffer.from(write.body),
   }));
   return parseTerminalReceipt(response, expected);
 }

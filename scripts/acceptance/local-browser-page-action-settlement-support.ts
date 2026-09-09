@@ -49,9 +49,13 @@ const createGateHarness = (input: Readonly<{ expectedMethod?: string; rejectMeth
       create: async () => { actionCount += 1; return { id: 706 }; },
       get: async (tabId) => {
         tabReadCount += 1;
-        return { id: tabId, status: "complete", url: "https://chatgpt.com/", title: "ChatGPT" };
+        return { active: true, discarded: false, id: tabId, status: "complete",
+          url: "https://chatgpt.com/", title: "ChatGPT", windowId: 1 };
       },
       remove: async () => { actionCount += 1; },
+      update: async (tabId) => ({ active: true, discarded: false, id: tabId,
+        status: "complete", url: "https://chatgpt.com/", title: "ChatGPT", windowId: 1 }),
+      onActivated: { addListener() {} },
       onUpdated: { addListener() {} },
     },
     alarms: { create: async () => undefined, onAlarm: { addListener() {} } },

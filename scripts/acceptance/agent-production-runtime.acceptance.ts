@@ -22,7 +22,7 @@ import { permanentAuthorizationRevoked } from
   "../../src/lib/local-runtime/production/runtime-permanent-revocation.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import {
-  LeaseRenewReceiptSchema, parseJsonEnvelope, websiteAgentTaskFromClaim,
+  LeaseRenewReceiptSchema, PriorResultRejectionSchema, parseJsonEnvelope, websiteAgentTaskFromClaim,
 } from "../../src/lib/local-runtime/production/transport-protocol.js";
 import { typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { assertProductionTaskRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
@@ -143,6 +143,7 @@ const deviceStatusWithAdmission = (
     job_id: jobId,
     status: "completed",
     current_reason: null,
+    prior_result_rejection: null,
     control_intent: {
       schema_version: "xuanxue-ai-control-intent.v6", job_id: jobId,
       control_epoch: 0, intent: "none", reason_code: null,
@@ -182,6 +183,44 @@ for (const receipt of [
     readProductionDeviceJobStatus(deviceStatusWithAdmission(receipt), admissionJobId),
     (error: unknown) => typedExecutionFailure(error)?.code === "V6_BUSINESS_ADMISSION_RECEIPT_INVALID",
   );
+}
+
+const revisionRejection = PriorResultRejectionSchema.parse({
+  schema_version: "xuanxue-ai-prior-result-rejection.v1",
+  job_id: productionTask.job_id,
+  previous_attempt_id: "attempt:revision:1",
+  previous_result_payload_hash: HASH_B,
+  reason_codes: ["PUBLIC_KNOWLEDGE_ARTICLE_REJECTED"],
+  receipt_hash: HASH_C,
+});
+assert.throws(() => PriorResultRejectionSchema.parse({
+  ...revisionRejection,
+  reason_codes: ["PUBLIC_KNOWLEDGE_RESEARCH_REJECTED", "PUBLIC_KNOWLEDGE_ARTICLE_REJECTED"],
+}));
+
+const revisionTemporary = await mkdtemp(path.join(tmpdir(), "agent-result-revision-"));
+try {
+  const store = new ProductionRuntimeStore(revisionTemporary);
+  const identity = identityFor(productionTask);
+  const staged = resultFor(productionTask, identity);
+  store.acceptTask(productionTask, identity, revisionRejection.previous_attempt_id);
+  store.stageResult(productionTask.job_id, staged);
+  store.reconcileRejectedResultRevision({ rejection: revisionRejection, nextAttemptId: "attempt:revision:2" });
+  const reconciled = store.readTask(productionTask.job_id)!;
+  assert.equal(reconciled.current_attempt_id, revisionRejection.previous_attempt_id);
+  assert.equal(reconciled.staged_result, null);
+  assert.equal(reconciled.current_reason, "RESULT_REVISION_REJECTED");
+  const next = store.acceptTask(productionTask, identity, "attempt:revision:2");
+  assert.equal(next.current_attempt_id, "attempt:revision:2");
+  store.reconcileRejectedResultRevision({ rejection: revisionRejection, nextAttemptId: "attempt:revision:2" });
+  assert.throws(() => store.reconcileRejectedResultRevision({
+    rejection: { ...revisionRejection, previous_result_payload_hash: HASH_A },
+    nextAttemptId: "attempt:revision:3",
+  }), /PRODUCTION_RESULT_REVISION_IDENTITY_MISMATCH/u);
+  assert.equal(store.isLedgerConsistent(new Set()), true);
+  store.close();
+} finally {
+  await rm(revisionTemporary, { recursive: true, force: true });
 }
 
 const admissionTemporary = await mkdtemp(path.join(tmpdir(), "agent-business-admission-"));
@@ -231,11 +270,12 @@ try {
     width: 1200 as const,
     height: 630 as const,
   });
-  globalThis.fetch = (async () => {
+  globalThis.fetch = (async (input) => {
     physicalImageUploads += 1;
+    const uploadArtifactId = decodeURIComponent(new URL(String(input)).pathname.split("/").at(-1)!);
     return successfulJsonResponse({
       schema_version: "xuanxue-ai-material-receipt.v6",
-      artifact_id: image.artifact_id,
+      artifact_id: uploadArtifactId,
       role: "generated_image",
       object_ref: "object:image:fixture",
       sha256: image.sha256,
@@ -326,6 +366,19 @@ assert.doesNotMatch(runtimeSource, /emitState|stateKey:|currentStates|reconciled
 assert.doesNotMatch(executorSource, /runTurn|ProductionGptExecutor|GPT_TURN_FLOW/u);
 assert.match(executorSource, /gpt: gptExecution\.tools/u);
 
+const executeClaimSource = runtimeSource.slice(runtimeSource.indexOf("export const executeClaim"));
+const acceptClaimIndex = executeClaimSource.indexOf("let claim = acceptClaim");
+const staleCheckpointIndex = executeClaimSource.indexOf("reconcileStaleFenceCheckpoint");
+const prefixRecoveryIndex = executeClaimSource.indexOf("recoverAcceptedClaim");
+assert.ok(acceptClaimIndex >= 0 && staleCheckpointIndex > acceptClaimIndex,
+  "a stale-fence retry must occur only after the current claim is durably accepted and fully authorized");
+assert.ok(prefixRecoveryIndex > staleCheckpointIndex,
+  "checkpoint-prefix recovery must use the result of the serialized stale-fence reconciliation");
+assert.match(outboxSource, /WEBSITE_HTTP_409:AI_LEASE_FENCE_STALE/u);
+assert.match(outboxSource, /typedRuntimeTransportFailure\(error\)/u);
+assert.match(outboxSource, /next_delivery_at=null/u);
+assert.match(outboxSource, /deliverReauthorizedStaleCheckpoint/u);
+
 const deletionSettlement = permanentRevocationSource;
 const noControlAbort = new AbortController();
 assert.equal(permanentAuthorizationRevoked(
@@ -413,31 +466,77 @@ assert.deepEqual(runtimeManifestOwnershipDrift([
   "scripts/audit/domains/agent-production-runtime/**",
   "src/lib/local-runtime/production/**",
 ]), []);
+
+const runtimeLawSource = await readFile(
+  new URL("../../.github/instructions/agent-rules/功能法案.md", import.meta.url), "utf8",
+);
+const runtimeBlueprint = await readFile(
+  new URL("../../docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md", import.meta.url), "utf8",
+);
+const runtimeLawRecords = [...runtimeLawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
+  .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden: string[] });
+const runtimeCoreLaw = runtimeLawRecords.find(
+  (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V47",
+);
+assert.ok(runtimeCoreLaw);
+assert.equal(runtimeCoreLaw.forbidden.length, 7);
+for (const token of [
+  "FROZEN-WEBSITE-RESULT-DEMAND-001",
+  "Website ai-acceptance 唯一拥有 public status、业务需求有效性、永久撤权、claim/attempt、V6 current projection、event receipt、rearm/grant 与最终 completed 投影",
+  "Runtime 只能消费现役 claim、control intent、device-job status、grant.prior_result_rejection 与 business admission receipt 的 typed 权威投影",
+  "不得因本地故障",
+  "Website 同时精确证明永久业务撤权时",
+  "不授权 Runtime 盲重放 DISPATCHED/CONFIRMED Provider mutation",
+  "解冻 FROZEN-WEBSITE-RESULT-DEMAND-001",
+]) assert.ok(runtimeCoreLaw.forbidden.some((entry) => entry.includes(token)), token);
+const expectedRuntimeConsumerBlock = [
+  "consumes = FROZEN-WEBSITE-RESULT-DEMAND-001",
+  "canonical_owner = Website.ai-acceptance",
+  "semantic_rejection_owner = Website.Domain-Consumer",
+  "status_and_rearm_owner = Website.ai-acceptance",
+  "runtime_may_define_public_status = false",
+  "runtime_may_decide_demand_or_revocation = false",
+  "website_authorized_unfinished_job => runtime_delivery_obligation_active = true",
+  "agent_fault_may_stop_local_delivery_obligation = false",
+  "website_result_revision_rejected => preserve_old_outbox_and_clear_current_staged_projection = true",
+  "new_attempt_after_result_rejection => exact_prior_result_rejection_required = true",
+  "prior_result_rejection_reason_codes_are_nonempty_unique_unicode_codepoint_sorted_closed_enum = true",
+  "new_attempt_after_result_rejection => new_provider_prompt_hash_required = true",
+  "new_attempt_after_result_rejection => new_result_payload_hash_required = true",
+  "website_permanent_business_revocation => new_attempt_after_result_rejection = false",
+  "provider_effect_may_be_blindly_replayed = false",
+  "ordinary_change_may_modify_this_consumer_obligation = false",
+].join("\n");
+const runtimeConsumerBlock = runtimeBlueprint.match(
+  /```text\n(consumes = FROZEN-WEBSITE-RESULT-DEMAND-001[\s\S]*?)\n```/u,
+);
+assert.ok(runtimeConsumerBlock);
+assert.equal(runtimeConsumerBlock[1], expectedRuntimeConsumerBlock);
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V16",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V17",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"],
   locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",
   observedValue: "the unique Runtime ownership inspector accepted the current Runtime-only manifest and rejected injected Mediator and Product ownership mutants",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V46",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V47",
   evidenceMode: "exam.state-machine",
-  clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "summary"],
+  clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:attempt-recovery-state-machine",
   observedValue: "binary task lifecycle durable accept same-attempt recovery lease outbox and typed cross-owner boundaries exercised",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V46",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V47",
   evidenceMode: "exam.property",
-  clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "summary"],
+  clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:transport-properties",
   observedValue: "product-opaque transport rejected malformed identity authority and route inputs while retaining one durable task outbox and recovery chain",
 });
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V16",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V17",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "summary"],
     locator: `acceptance:agent-production-runtime:business-admission:${evidenceMode}`,

@@ -24,7 +24,7 @@ import {
 } from "./cloud-reconciliation-client.js";
 import { productionCatalogHash } from "./catalog.js";
 import { authorizeWebsiteAgentTask } from "../../../mediator/agent-production-route.js";
-import { hashCanonical, type ProductionHash, type WebsiteAgentTask } from "./contracts.js";
+import { hashCanonical, sha256, type ProductionHash, type WebsiteAgentTask } from "./contracts.js";
 import type { ProductionExecutionLease } from "./contracts.js";
 import {
   heartbeatWhileRunning,
@@ -57,6 +57,10 @@ import {
 } from "./runtime-permanent-revocation.js";
 import { productionRuntimeTaskPath } from "./runtime-storage-inventory.js";
 import { reconcileBusinessAdmission } from "./runtime-business-admission.js";
+import {
+  readClaimRecoveryStatus,
+  reconcileStaleFenceCheckpoint,
+} from "./runtime-stale-fence-reconciliation.js";
 
 const isResultTransportBoundary = (error: unknown): boolean => {
   const typed = typedExecutionFailure(error);
@@ -132,18 +136,6 @@ const persistAttemptFailure = async (
   state.store.recordAttemptFailure(job.job_id, job.grant.attempt_id, failure);
 };
 
-const readClaimRecoveryStatus = async (
-  state: RuntimeState,
-  job: ClaimedProductionTask,
-): Promise<Awaited<ReturnType<typeof readProductionDeviceJobStatus>>> => {
-  const remote = await readProductionDeviceJobStatus(state.session, job.job_id);
-  if (remote.status !== "failed" || remote.terminal_status !== null
-    || remote.accepted_attempt_count !== job.grant.accepted_attempt_count) {
-    throw executionFailure("failed", "PRODUCTION_ATTEMPT_AUTHORITY_CONFLICT");
-  }
-  return remote;
-};
-
 type ClaimCheckpointCursor = Readonly<{
   accepted: boolean;
   checkpointSeq: number;
@@ -165,7 +157,6 @@ const assertClaimIdentity = (job: ClaimedProductionTask, task: WebsiteAgentTask)
 const acceptClaim = (
   state: RuntimeState,
   job: ClaimedProductionTask,
-  remote: Awaited<ReturnType<typeof readProductionDeviceJobStatus>>,
   continuingAttempt: boolean,
   abort: AbortController,
   jobSpan: RuntimeSpanHandle,
@@ -177,7 +168,7 @@ const acceptClaim = (
     traceId: job.job_id, parentSpanId: jobSpan.spanId, owner: "production-runtime",
     component: "production-store", operation: "job.durable-accept", typedIdentity: jobIdentity(job),
   }));
-  let record = runRuntimeSpanSync({
+  const record = runRuntimeSpanSync({
     span, action: () => state.executor.accept(task, job.grant.attempt_id), failureCode: "DURABLE_ACCEPT_FAILED",
     success: (accepted) => ({
       authorityRef: `production-task:${job.job_id}`, authorityHash: hashCanonical(accepted),
@@ -186,31 +177,63 @@ const acceptClaim = (
   if (record.status !== "failed") {
     throw new Error("PRODUCTION_TASK_ALREADY_TERMINAL");
   }
-  let cursor: ClaimCheckpointCursor = {
+  const cursor: ClaimCheckpointCursor = {
     accepted: continuingAttempt,
     checkpointSeq: 0,
     checkpointHash: null,
     recoveredCheckpointPrefix: false,
   };
-  if (continuingAttempt && record.staged_result === null
-    && (record.attempt_failure === null
-      || record.attempt_failure.code === "AI_V6_CHECKPOINT_SEQUENCE_INVALID")) {
-    const prefix = state.store.recoverCheckpointPrefix({
-      jobId: job.job_id,
-      attemptId: job.grant.attempt_id,
-      acceptedAttemptCount: job.grant.accepted_attempt_count,
-      receipts: remote.write_receipts,
-    });
-    record = state.store.readTask(job.job_id)!;
-    cursor = {
+  state.store.recordLease(leaseAuthority(job, "active", job.grant.lease_expires_at));
+  return { task, budget, record, cursor };
+};
+
+const reconcileClaimResultRevision = (
+  state: RuntimeState,
+  job: ClaimedProductionTask,
+  remote: Awaited<ReturnType<typeof readProductionDeviceJobStatus>>,
+): void => {
+  const granted = job.grant.prior_result_rejection;
+  const observed = remote.prior_result_rejection;
+  if ((granted === null) !== (observed === null)
+    || (granted && observed && hashCanonical(granted) !== hashCanonical(observed))) {
+    throw executionFailure("failed", "PRODUCTION_RESULT_REVISION_REMOTE_MISMATCH");
+  }
+  if (!granted) return;
+  if (job.product_id !== "public_knowledge_article_pipeline" || job.action_id !== "produce_article"
+    || granted.job_id !== job.job_id || granted.previous_attempt_id === job.grant.attempt_id) {
+    throw executionFailure("failed", "PRODUCTION_RESULT_REVISION_GRANT_INVALID");
+  }
+  state.store.reconcileRejectedResultRevision({ rejection: granted, nextAttemptId: job.grant.attempt_id });
+};
+
+const recoverAcceptedClaim = (
+  state: RuntimeState,
+  job: ClaimedProductionTask,
+  remote: Awaited<ReturnType<typeof readProductionDeviceJobStatus>>,
+  continuingAttempt: boolean,
+  claim: ReturnType<typeof acceptClaim>,
+): ReturnType<typeof acceptClaim> => {
+  if (!continuingAttempt || claim.record.staged_result !== null
+    || (claim.record.attempt_failure !== null
+      && claim.record.attempt_failure.code !== "AI_V6_CHECKPOINT_SEQUENCE_INVALID")) {
+    return claim;
+  }
+  const prefix = state.store.recoverCheckpointPrefix({
+    jobId: job.job_id,
+    attemptId: job.grant.attempt_id,
+    acceptedAttemptCount: job.grant.accepted_attempt_count,
+    receipts: remote.write_receipts,
+  });
+  return {
+    ...claim,
+    record: state.store.readTask(job.job_id)!,
+    cursor: {
       accepted: prefix.checkpointSeq > 0,
       checkpointSeq: prefix.checkpointSeq,
       checkpointHash: prefix.checkpointHash,
       recoveredCheckpointPrefix: true,
-    };
-  }
-  state.store.recordLease(leaseAuthority(job, "active", job.grant.lease_expires_at));
-  return { task, budget, record, cursor };
+    },
+  };
 };
 
 const downloadClaimMaterials = async (
@@ -301,6 +324,10 @@ const executeAndUpload = async (input: Readonly<{
           component: "production-result", operation: "result.upload", typedIdentity: jobIdentity(input.job),
         }));
         try {
+          const nextPayloadHash = sha256(Buffer.from(JSON.stringify(output.payload), "utf8"));
+          if (input.job.grant.prior_result_rejection?.previous_result_payload_hash === nextPayloadHash) {
+            throw executionFailure("failed", "PRODUCTION_RESULT_REVISION_UNCHANGED");
+          }
           uploaded = await runRuntimeSpan({
             span, failureCode: "RESULT_UPLOAD_FAILED", action: () => uploadProductionResult({
               session: input.state.session, store: input.state.store, job: input.job,
@@ -442,8 +469,11 @@ export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTa
     const continuingAttempt = Boolean(prior?.status === "failed"
       && prior.current_attempt_id === job.grant.attempt_id);
     acceptance.durable = continuingAttempt ? "accepted" : "unaccepted";
-    const remote = await readClaimRecoveryStatus(state, job);
-    const claim = acceptClaim(state, job, remote, continuingAttempt, abort, jobSpan);
+    let remote = await readClaimRecoveryStatus(state, job);
+    reconcileClaimResultRevision(state, job, remote);
+    let claim = acceptClaim(state, job, continuingAttempt, abort, jobSpan);
+    if (continuingAttempt) remote = await reconcileStaleFenceCheckpoint(state, job, remote);
+    claim = recoverAcceptedClaim(state, job, remote, continuingAttempt, claim);
     if (await haltForClaimAuthority({
       state, job, remote, record: claim.record, cursor: claim.cursor, continuingAttempt, jobSpan,
     })) return;

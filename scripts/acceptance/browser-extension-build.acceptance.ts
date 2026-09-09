@@ -63,7 +63,11 @@ assert.match(worker, /TARGET_ACQUIRE/u, "The authenticated channel must retain t
 assert.match(worker, /acquireJobBoundChatGptTarget/u, "The job-bound frame must trigger the fixed extension's exact ChatGPT claim.");
 assert.match(worker, /tabs\.create/u, "The fixed extension must create the one governed production Tab without activeTab permission.");
 assert.match(worker, /active:\s*false/u, "The one governed production Tab must be created without changing the operator's active Tab.");
-assert.doesNotMatch(worker, /Page\.bringToFront/u, "The production extension must never foreground its system Tab.");
+assert.match(worker, /tabs\.update/u, "The mutation-only interaction gate must be able to activate the exact system Tab.");
+assert.match(worker, /onActivated/u, "The mutation-only interaction gate must recheck the active-tab generation before Provider input.");
+assert.match(worker, /BROWSER_TARGET_NOT_INTERACTIVE/u, "The interaction gate must fail closed when the system Tab is no longer active.");
+assert.doesNotMatch(worker, /Page\.bringToFront|windows\.update/u,
+  "The production extension must not focus a window or retain a second foregrounding path.");
 assert.match(worker, /debugger\.getTargets/u, "MV3 recovery must verify the exact prior debugger-owned tabId.");
 assert.match(worker, /https:\/\/chatgpt\.com\//u, "Zero matching targets must use the one fixed ChatGPT start URL.");
 assert.doesNotMatch(worker, /tabs\.query|GRASSEYE_CLAIM_ACTIVE_TARGET/u, "The retired active-tab claim path must be physically absent.");

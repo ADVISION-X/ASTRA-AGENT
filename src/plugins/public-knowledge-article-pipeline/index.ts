@@ -5,6 +5,7 @@ import type {
 import type { WebsiteAgentTask } from "../../mediator/product-plugin-contract.js";
 import type {
   GeneratedImageArtifact,
+  PriorResultRejection,
   ProductPlugin,
   SharedExecutionContext,
 } from "../../mediator/product-plugin-contract.js";
@@ -45,6 +46,17 @@ import {
   parseProductResult,
   parseRouteResult,
 } from "./result-contract.js";
+
+type RevisionStartStep = "research" | "article" | null;
+
+const revisionStartStep = (task: WebsiteAgentTask, rejection: PriorResultRejection | null): RevisionStartStep => {
+  if (!rejection) return null;
+  if (rejection.job_id !== task.job_id || task.action_id !== "produce_article") {
+    fail("PUBLIC_KNOWLEDGE_RESULT_REVISION_FEEDBACK_INVALID");
+  }
+  return rejection.reason_codes.some((reason) => reason !== "PUBLIC_KNOWLEDGE_ARTICLE_REJECTED")
+    ? "research" : "article";
+};
 
 type SeoFlow = ReturnType<typeof createSeoExecutor>;
 type FrontierReadback = Extract<ExactGptContinuationReadback, { lookupKind: "frontier_ref" }>;
@@ -107,7 +119,9 @@ const produceResearchTurn = async (
   const uploadedFiles = expectedUploadedFiles(files, context.gpt.jobId);
   const stepId = "corpus_research";
   const marker = turnMarker(task, stepId);
-  const prompt = researchPrompt(task, marker, context.routePolicy, context.productSkill);
+  const prompt = researchPrompt(
+    task, marker, context.routePolicy, context.productSkill, context.priorResultRejection,
+  );
   const textTurn = {
     flow, stepId, prompt, marker, files: uploadedFiles,
     ordinals: [11, 12, 13, 14, 15, 16],
@@ -204,7 +218,9 @@ const produceArticleTurn = async (
 ): Promise<ArticleTurn> => {
   const stepId = "article_synthesis";
   const marker = turnMarker(task, stepId);
-  const prompt = articlePrompt(task, marker, context.routePolicy, context.productSkill);
+  const prompt = articlePrompt(
+    task, marker, context.routePolicy, context.productSkill, context.priorResultRejection,
+  );
   const textTurn = {
     flow, stepId, prompt, marker, files: [], ordinals: [27, 28, 29, 30, 31, 32],
   } as const;
@@ -310,13 +326,19 @@ const executeArticleProduction = async (
   context: SharedExecutionContext,
 ) => {
   const flow = createSeoExecutor(task, context);
-  const frontierRef = researchFrontierRef(task);
-  const research = await recoverResearchTurn(task, context, flow, frontierRef)
-    ?? await produceResearchTurn(task, context, flow, frontierRef);
+  const revisionStart = revisionStartStep(task, context.priorResultRejection);
+  const frontierRef = researchFrontierRef(
+    task,
+    revisionStart === "research" ? context.priorResultRejection!.receipt_hash : null,
+  );
+  const research = revisionStart === "research"
+    ? await produceResearchTurn(task, context, flow, frontierRef)
+    : await recoverResearchTurn(task, context, flow, frontierRef)
+      ?? await produceResearchTurn(task, context, flow, frontierRef);
   if (research.result.decision === "decline") {
     return completeDeclinedResearch(task, context, flow, research.result);
   }
-  if (research.currentCheckpoint.checkpointKind === "generated_image") {
+  if (revisionStart === null && research.currentCheckpoint.checkpointKind === "generated_image") {
     const article = recoverArticleTurn(
       task, context, flow, research.currentCheckpoint.predecessorTextCheckpoint,
     );
@@ -325,12 +347,17 @@ const executeArticleProduction = async (
       task, context, flow, research.result, article.result, imageFromReadback(research.currentCheckpoint),
     );
   }
-  const currentIsResearch = sameProvider(research.currentProvider, research.provider)
-    && research.currentCheckpoint.semanticTextHash === research.checkpoint.semanticTextHash
-    && research.currentCheckpoint.artifactRef === research.checkpoint.artifactRef;
-  const article = currentIsResearch
-    ? await produceArticleTurn(task, context, flow, research.continuationRef, research.provider)
-    : recoverArticleTurn(task, context, flow, research.currentCheckpoint);
+  const currentTextCheckpoint = research.currentCheckpoint.checkpointKind === "text"
+    ? research.currentCheckpoint : null;
+  const currentIsResearch = Boolean(currentTextCheckpoint
+    && sameProvider(research.currentProvider, research.provider)
+    && currentTextCheckpoint.semanticTextHash === research.checkpoint.semanticTextHash
+    && currentTextCheckpoint.artifactRef === research.checkpoint.artifactRef);
+  const article = currentIsResearch || revisionStart !== null
+    ? await produceArticleTurn(task, context, flow, research.continuationRef,
+      revisionStart === "article" ? research.currentProvider : research.provider)
+    : recoverArticleTurn(task, context, flow,
+      currentTextCheckpoint ?? fail("SEO_ARTICLE_CHECKPOINT_INVALID"));
   const imageStep = "article_image_generation";
   const image = await generateImage({
     flow, task, stepId: imageStep,
@@ -341,6 +368,7 @@ const executeArticleProduction = async (
     predecessorCheckpoint: article.checkpoint,
     predecessorSourceAttemptId: article.sourceAttemptId,
     productSkill: context.productSkill,
+    priorResultRejection: context.priorResultRejection,
   });
   return completeArticlePackage(task, context, flow, research.result, article.result, image);
 };
@@ -371,7 +399,7 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
 
 export const publicKnowledgeArticlePipelinePlugin: ProductPlugin = {
   pluginId: PLUGIN_ID,
-  pluginVersion: 21,
+  pluginVersion: 22,
   checkpointSchemaVersion: 2,
   accepts: [
     { productId: "public_knowledge_article_pipeline", actionId: "produce_article" },

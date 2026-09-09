@@ -146,10 +146,27 @@ export interface ProductSkill {
   readonly hash: ProductionHash;
 }
 
+export type ResultRevisionRejectionReasonCode =
+  | "PUBLIC_KNOWLEDGE_ARTICLE_REJECTED"
+  | "PUBLIC_KNOWLEDGE_COLLISION_REJECTED"
+  | "PUBLIC_KNOWLEDGE_RESEARCH_DECLINED"
+  | "PUBLIC_KNOWLEDGE_RESEARCH_REJECTED"
+  | "PUBLIC_KNOWLEDGE_RESULT_PACKAGE_REJECTED";
+
+export interface PriorResultRejection {
+  readonly schema_version: "xuanxue-ai-prior-result-rejection.v1";
+  readonly job_id: string;
+  readonly previous_attempt_id: string;
+  readonly previous_result_payload_hash: ProductionHash;
+  readonly reason_codes: readonly ResultRevisionRejectionReasonCode[];
+  readonly receipt_hash: ProductionHash;
+}
+
 export interface SharedExecutionContext {
   readonly materials: readonly LocalProductionMaterial[];
   readonly routePolicy: ProductionRoutePolicy;
   readonly productSkill: ProductSkill;
+  readonly priorResultRejection: PriorResultRejection | null;
   readonly gpt: ProductGptTools;
   readonly uploadGeneratedImage: (artifact: GeneratedImageArtifact) => Promise<GeneratedImageResultReceipt>;
   readonly complete: (output: ProductPluginOutput) => Promise<ProductCompletionReceipt>;

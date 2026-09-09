@@ -15,7 +15,7 @@ import {
   exerciseSeoFlow,
   exerciseSeoPromptWriteFailure,
 } from "./public-knowledge-article-pipeline-flow.test-runtime.js";
-import { createContext } from "./public-knowledge-article-pipeline.test-runtime.js";
+import { createContext, withFastHandoffs } from "./public-knowledge-article-pipeline.test-runtime.js";
 import { createHarness, seoTask } from
   "./public-knowledge-article-pipeline-fixture-state.js";
 import { articleOutput, researchOutput } from
@@ -55,7 +55,7 @@ const continuationImage = [
   "advance_gpt_continuation_lane",
 ] as const;
 
-assert.equal(plugin.pluginVersion, 21);
+assert.equal(plugin.pluginVersion, 22);
 const source = readFileSync("src/plugins/public-knowledge-article-pipeline/index.ts", "utf8");
 const turnContractSource = readFileSync(
   "src/plugins/public-knowledge-article-pipeline/seo-turn-contract.ts", "utf8",
@@ -143,6 +143,63 @@ assert.equal(verifies[1]?.input.expectedPromptHash, hashText(prompts[1]!));
 assert.equal(advances[1]?.input.provider.prior_prompt_hash, hashText(prompts[2]!));
 assert.ok((proceed.completed.payload as Readonly<Record<string, unknown>>).image);
 assert.equal(proceed.generatedImageUploadCalls, 1);
+
+const articleRevisionState = createHarness("produce_article");
+await withFastHandoffs(articleRevisionState, () => plugin.execute(
+  seoTask("produce_article"), createContext(articleRevisionState, "proceed", undefined, "attempt-1"),
+));
+const articleRevisionCallStart = articleRevisionState.calls.length;
+const articleRejection = Object.freeze({
+  schema_version: "xuanxue-ai-prior-result-rejection.v1" as const,
+  job_id: "job-produce_article",
+  previous_attempt_id: "attempt-1",
+  previous_result_payload_hash: hashText("rejected-article-result"),
+  reason_codes: ["PUBLIC_KNOWLEDGE_ARTICLE_REJECTED"] as const,
+  receipt_hash: hashText("article-rejection-receipt"),
+});
+await withFastHandoffs(articleRevisionState, () => plugin.execute(
+  seoTask("produce_article"),
+  createContext(articleRevisionState, "proceed", undefined, "attempt-2", articleRejection),
+));
+const articleRevisionCalls = articleRevisionState.calls.slice(articleRevisionCallStart);
+assert.equal(articleRevisionCalls.some((call) => call.productStepId === "corpus_research"
+  && call.child === "submit_exact_gpt_turn_once"), false,
+"an article-only rejection must reuse the admitted research and must not submit new research");
+assert.equal(articleRevisionCalls.filter((call) => call.child === "submit_exact_gpt_turn_once").length, 2);
+for (const prompt of articleRevisionCalls.filter((call) => call.child === "write_exact_gpt_prompt")
+  .map((call) => String(call.input.prompt))) {
+  assert.match(prompt, /RESULT_REVISION_CORRECTION_V1/u);
+  assert.match(prompt, new RegExp(articleRejection.previous_result_payload_hash, "u"));
+  assert.match(prompt, new RegExp(articleRejection.receipt_hash, "u"));
+}
+
+const researchRevisionState = createHarness("produce_article");
+const researchRejection = Object.freeze({
+  ...articleRejection,
+  reason_codes: ["PUBLIC_KNOWLEDGE_COLLISION_REJECTED"] as const,
+  receipt_hash: hashText("research-rejection-receipt"),
+});
+await withFastHandoffs(researchRevisionState, () => plugin.execute(
+  seoTask("produce_article"),
+  createContext(researchRevisionState, "proceed", undefined, "attempt-2", researchRejection),
+));
+assert.equal(researchRevisionState.calls.filter((call) => call.child === "submit_exact_gpt_turn_once").length, 3,
+  "research or collision rejection must create one corrected research article and image revision");
+const researchCorrectionPrompt = String(researchRevisionState.calls.find((call) =>
+  call.productStepId === "corpus_research" && call.child === "write_exact_gpt_prompt")?.input.prompt);
+assert.match(researchCorrectionPrompt, /RESULT_REVISION_CORRECTION_V1/u);
+assert.match(researchCorrectionPrompt, /PUBLIC_KNOWLEDGE_COLLISION_REJECTED/u);
+assert.match(researchCorrectionPrompt, new RegExp(researchRejection.receipt_hash, "u"));
+
+const invalidRevisionState = createHarness("produce_article");
+await assert.rejects(
+  () => plugin.execute(seoTask("produce_article"), createContext(
+    invalidRevisionState, "proceed", undefined, "attempt-2",
+    { ...articleRejection, job_id: "job-not-owned-by-this-task" },
+  )),
+  (error: unknown) => typedExecutionFailure(error)?.code === "PUBLIC_KNOWLEDGE_RESULT_REVISION_FEEDBACK_INVALID",
+);
+assert.equal(invalidRevisionState.calls.length, 0);
 
 const nextAttempt = await exerciseSeoFlow(
   plugin, "produce_article", "proceed", undefined, false, "attempt-2",

@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   hashCanonical,
   sha256,
+  type PriorResultRejection,
   type ProductionHash,
 } from "../../../mediator/product-plugin-contract.js";
 import { executionFailure } from "../../execution-failure.js";
@@ -165,6 +166,7 @@ export interface ProductionExecutionLease {
   readonly execution_fence_hash: ProductionHash;
   readonly capability_manifest_hash: ProductionHash;
   readonly max_provider_turns: number;
+  readonly prior_result_rejection: PriorResultRejection | null;
   provider_turns_used: number;
   expires_at_monotonic: number;
   command_ttl_ms: number;

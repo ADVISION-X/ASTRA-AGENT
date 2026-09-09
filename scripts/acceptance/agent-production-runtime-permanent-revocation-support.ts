@@ -28,6 +28,7 @@ const revokedStatus = (jobId: string, receipts: readonly unknown[] = []) => ({
   job_id: jobId,
   status: "failed",
   current_reason: { code: "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED" },
+  prior_result_rejection: null,
   control_intent: {
     schema_version: "xuanxue-ai-control-intent.v6",
     job_id: jobId,
@@ -360,6 +361,7 @@ const assertBrowserRevocationSurvivesLogFailure = async (
         job_id: quarantineJobId,
         status: "failed",
         current_reason: { code: "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED" },
+        prior_result_rejection: null,
         control_intent: {
           schema_version: "xuanxue-ai-control-intent.v6",
           job_id: quarantineJobId,

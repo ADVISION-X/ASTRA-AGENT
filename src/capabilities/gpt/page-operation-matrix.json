@@ -216,28 +216,28 @@
     {
       "childCapabilityId": "checkpoint_gpt_generated_image",
       "scenarioId": "image-main",
-      "coreTargets": ["assistant-turn", "semantic-media-node", "original-content-control"],
-      "requiredLiveStates": ["exact-media-node", "original-content-identity-readback", "stable-image-checkpoint"],
+      "coreTargets": ["assistant-turn", "semantic-media-node", "image-container", "viewer-dialog", "viewer-save-control"],
+      "requiredLiveStates": ["exact-media-node", "viewer-open", "stable-image-checkpoint"],
       "liveStateTargets": {
-        "exact-media-node": ["assistant-turn", "semantic-media-node"],
-        "original-content-identity-readback": ["semantic-media-node", "original-content-control"],
-        "stable-image-checkpoint": ["assistant-turn", "semantic-media-node", "original-content-control"]
+        "exact-media-node": ["assistant-turn", "semantic-media-node", "image-container"],
+        "viewer-open": ["viewer-dialog", "viewer-save-control"],
+        "stable-image-checkpoint": ["assistant-turn", "semantic-media-node", "image-container"]
       },
-      "optionalLiveStates": ["download-or-open-original-control"],
-      "childSpecificDerivedStates": ["thumbnail-only", "wrong-turn-media", "media-not-stable", "original-content-identity-mismatch"],
+      "optionalLiveStates": [],
+      "childSpecificDerivedStates": ["thumbnail-only", "wrong-turn-media", "media-not-stable", "viewer-title-mismatch", "viewer-save-control-missing", "native-download-not-unique", "original-content-identity-mismatch"],
       "requiredInputRefs": ["production-image-contract", "chain-image-wait", "chain-text-checkpoint"],
       "stateAssertions": {
         "exact-media-node": [
           {"path": "stateFacts.semanticMediaReady", "operator": "equals", "value": true},
           {"path": "core.targets.semantic-media-node", "operator": "present"}
         ],
-        "original-content-identity-readback": [
-          {"path": "core.targets.original-content-control", "operator": "present"},
-          {"path": "stateFacts.semanticMediaReady", "operator": "equals", "value": true}
+        "viewer-open": [
+          {"path": "core.targets.viewer-dialog", "operator": "present"},
+          {"path": "core.targets.viewer-save-control", "operator": "present"}
         ],
         "stable-image-checkpoint": [
           {"path": "core.targets.semantic-media-node", "operator": "present"},
-          {"path": "core.targets.original-content-control", "operator": "present"}
+          {"path": "core.targets.image-container", "operator": "present"}
         ]
       }
     },

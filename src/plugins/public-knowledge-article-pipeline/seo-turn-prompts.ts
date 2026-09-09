@@ -1,6 +1,7 @@
 import { gptAttachmentProviderDisplayName } from "../../capabilities/gpt/index.js";
 import type { ProductionRoutePolicy, WebsiteAgentTask } from "../../mediator/product-plugin-contract.js";
 import type { SharedExecutionContext } from "../../mediator/product-plugin-contract.js";
+import type { PriorResultRejection } from "../../mediator/product-plugin-contract.js";
 import { publicKnowledgeTurnContract } from "./result-contract.js";
 import { fail, hashValue, textValue, type SeoUploadedAttachment } from "./seo-turn-contract.js";
 
@@ -10,14 +11,23 @@ const promptEnvelope = (
   instruction: string,
   includeCommonKernel: boolean,
   productSkill: SharedExecutionContext["productSkill"],
+  priorResultRejection: PriorResultRejection | null,
 ): string => [
   ...(includeCommonKernel ? [productSkill.text, ""] : []),
   `当前授权动作：${task.action_id}`,
   `当前业务事实：${JSON.stringify(task.action_id === "produce_article"
     ? { domain_id: task.parameters.domain_id, locale: task.parameters.locale }
     : { review_action: task.action_id })}`,
+  ...(priorResultRejection ? [revisionCorrectionBlock(priorResultRejection)] : []),
   instruction,
   `把此不可变标记原样保留在本次用户消息中，不要写入 JSON 结果：${marker}`,
+].join("\n");
+
+export const revisionCorrectionBlock = (rejection: PriorResultRejection): string => [
+  "RESULT_REVISION_CORRECTION_V1",
+  `previous_result_payload_hash=${rejection.previous_result_payload_hash}`,
+  `reason_codes=${JSON.stringify(rejection.reason_codes)}`,
+  `receipt_hash=${rejection.receipt_hash}`,
 ].join("\n");
 
 export const researchPrompt = (
@@ -25,6 +35,7 @@ export const researchPrompt = (
   marker: string,
   route: ProductionRoutePolicy,
   productSkill: SharedExecutionContext["productSkill"],
+  priorResultRejection: PriorResultRejection | null = null,
 ): string => promptEnvelope(task, marker, [
     "解压并读取本轮唯一 ZIP 附件。",
     "读取 ZIP 内全部资料文件：每本古籍独立目录中的原文.md 与索引.json 必须按同一书籍目录配对，现役文章目录与主题聚类 JSON 也必须读取；不得遗漏任何文件。",
@@ -34,13 +45,14 @@ export const researchPrompt = (
     `当前回合唯一输出子合同：${JSON.stringify(publicKnowledgeTurnContract(route, "research"))}`,
     "严格返回当前 research 子合同的全部且仅有字段；本回合不得返回 article package。",
     "只返回严格 JSON 对象，不要代码围栏，不要解释性前后缀。",
-  ].join("\n"), true, productSkill);
+  ].join("\n"), true, productSkill, priorResultRejection);
 
 export const articlePrompt = (
   task: WebsiteAgentTask,
   marker: string,
   route: ProductionRoutePolicy,
   productSkill: SharedExecutionContext["productSkill"],
+  priorResultRejection: PriorResultRejection | null = null,
 ): string =>
   promptEnvelope(task, marker, [
     "仅依据本 conversation 已 checkpoint 的 public-knowledge-research-output.v3 研究结论写成文章。",
@@ -48,17 +60,18 @@ export const articlePrompt = (
     `当前回合唯一输出子合同：${JSON.stringify(publicKnowledgeTurnContract(route, "article"))}`,
     "严格返回当前 article 子合同的全部且仅有字段。",
     "只返回严格 JSON 对象，不要代码围栏，不要解释性前后缀。",
-  ].join("\n"), false, productSkill);
+  ].join("\n"), false, productSkill, priorResultRejection);
 
 export const imagePrompt = (
   task: WebsiteAgentTask,
   marker: string,
   productSkill: SharedExecutionContext["productSkill"],
+  priorResultRejection: PriorResultRejection | null = null,
 ): string =>
   promptEnvelope(task, marker, [
     "仅依据本 conversation 已完成的研究和文章，生成一张横向文章主图。",
     "本轮唯一业务输出是一张可下载的生成图片。",
-  ].join("\n"), false, productSkill);
+  ].join("\n"), false, productSkill, priorResultRejection);
 
 export const reviewPrompt = (
   task: WebsiteAgentTask,
@@ -71,7 +84,7 @@ export const reviewPrompt = (
     : "只检查独立性、表达、读者价值、合同摩擦与质量风险；不得改写文章或替 Website 裁决。",
   "严格返回 website-agent-review-output.v1：仅含 decision 与 issues；decision 只能是 no_issue 或 issues。",
   "只返回严格 JSON 对象，不要代码围栏，不要解释性前后缀。",
-].join("\n"), true, productSkill);
+].join("\n"), true, productSkill, null);
 
 export const attachmentFiles = (context: SharedExecutionContext) => context.materials
   .slice().sort((left, right) => left.ordinal - right.ordinal).map((material) => Object.freeze({

@@ -27,6 +27,21 @@ AGENT 只生产研究、文章、配图和证据，不决定发布、URL、canon
 
 不得宿命绝对化、销售法事解法，或冒充医疗、法律、财务判断。需要现实核验的内容明确标出。
 
+## 结果修订合同（冻结态）
+
+收到唯一 canonical `prior_result_rejection` 时，必须在同一业务 job 内生成新结果，不得把失败当作需求结束。`PUBLIC_KNOWLEDGE_ARTICLE_REJECTED` 从文章步骤重新执行；`PUBLIC_KNOWLEDGE_COLLISION_REJECTED`、`PUBLIC_KNOWLEDGE_RESEARCH_DECLINED`、`PUBLIC_KNOWLEDGE_RESEARCH_REJECTED`、`PUBLIC_KNOWLEDGE_RESULT_PACKAGE_REJECTED` 从研究步骤重新执行，并顺序重做其下游。
+
+本次修订涉及的每个 Provider Prompt 都必须包含以下确定性块，字段顺序固定，不得加入 attempt、lease 或 fence：
+
+```text
+RESULT_REVISION_CORRECTION_V1
+previous_result_payload_hash=<canonical value>
+reason_codes=<canonical sorted JSON array>
+receipt_hash=<canonical value>
+```
+
+修订后的实际 Prompt hash 与最终 result payload hash 必须分别不同于上一拒绝 revision。未知、缺字段、多义或身份不一致的 feedback 必须失败关闭。此节是 `FROZEN-WEBSITE-RESULT-DEMAND-001` 在本 Product 内的唯一语义落点；除非用户明确要求在双仓同时解冻，不得修改、弱化或增加旁路。
+
 ## 复核动作
 
 `accuracy_challenge` 与 `quality_reflection` 只复核当前 subject article 的公开性、来源、主张、引文、独立性和表达，返回有直接证据的 finding。不得改写文章、重新选题、发布或替网站作质量裁决。

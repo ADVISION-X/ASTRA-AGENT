@@ -84,6 +84,7 @@ const qualificationFailureValid = (
   candidateCount: unknown,
 ): failureCode is string => {
   if (typeof failureCode !== "string" || !Number.isSafeInteger(candidateCount)) return false;
+  if (failureCode === "BROWSER_TARGET_NOT_INTERACTIVE") return candidateCount === 0;
   if (command.kind === "authenticated-media" && command.delivery === "visible-download") {
     return DOM_REJECTION_CODES.has(failureCode)
       || /^BROWSER_AUTHENTICATED_MEDIA_[A-Z_]+$/u.test(failureCode);

@@ -151,7 +151,7 @@ const verifyInitializationHealth = async (): Promise<void> => {
     browserAuthorityState: "absent",
     browserTargetState: "absent",
     browserLaneState: "blocked",
-    controlContractVersion: 18,
+    controlContractVersion: 19,
     activeCount: 0,
     lastSuccessfulHeartbeatAt: null,
     lastErrorCode: "AI_SESSION_BINDING_MISMATCH",

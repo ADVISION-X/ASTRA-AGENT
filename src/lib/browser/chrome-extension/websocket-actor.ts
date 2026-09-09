@@ -335,13 +335,14 @@ export class ExtensionWebSocketActor {
       commandStage = "command-shape";
       command = commandFrom(payload.command);
       commandStage = "command-admission";
-      await admitExtensionCommand({ command, permit });
+      const registeredCommand = await admitExtensionCommand({ command, permit });
       commandStage = "target-resolution";
       const target = this.targetAuthority.resolve(permit.targetRef, permit.documentRef);
       commandStage = "registered-command";
       const result = await this.targetAuthority.executeRegisteredCommand(
         command,
         target,
+        registeredCommand.mutationClass,
         async (progress: BrowserMutationProgress) => this.sendEncrypted(socket, "MUTATION_PROGRESS", {
           requestSequence, permitSequence, replyChannelToken, ...progress,
         }),

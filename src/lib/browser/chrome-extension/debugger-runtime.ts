@@ -46,11 +46,21 @@ type PendingDownload = {
   reject(error: Error): void;
 };
 
+export type ProviderInputState = {
+  started: boolean;
+};
+
+type ProviderInputGuard = Readonly<{
+  assertInteractive(): void;
+  state: ProviderInputState;
+}>;
+
 /** Narrow adapter: DevTools methods are selected by the fixed command registry, never by business input. */
 export class ExtensionDebuggerRuntime {
   private readonly attached = new Set<number>();
   private inFlightPageActions = 0;
   private pageReadNotBefore = 0;
+  private providerInputGuard: ProviderInputGuard | null = null;
   private readonly pendingFileChoosers = new Map<number, {
     resolve(value: Readonly<{ backendNodeId: number }>): void;
     reject(error: Error): void;
@@ -157,6 +167,11 @@ export class ExtensionDebuggerRuntime {
   public async send(tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>): Promise<unknown> {
     if (!this.attached.has(tabId)) throw new Error("BROWSER_DEVTOOLS_CONFLICT");
     if (PAGE_MUTATION_METHODS.has(method)) {
+      const guard = this.providerInputGuard;
+      if (guard) {
+        guard.assertInteractive();
+        guard.state.started = true;
+      }
       try {
         return await this.executePageAction(() =>
           this.chromeApi.debugger.sendCommand(target(tabId), method, parameters));
@@ -180,6 +195,29 @@ export class ExtensionDebuggerRuntime {
     catch (error) {
       await this.awaitPageReadPermission();
       throw error;
+    }
+  }
+
+  public async activateTab(tabId: number): Promise<ExtensionTab> {
+    try {
+      return await this.executePageAction(() => this.chromeApi.tabs.update(tabId, { active: true }));
+    } catch (error) {
+      await this.awaitPageReadPermission();
+      throw error;
+    }
+  }
+
+  public async withProviderInputGuard<T>(
+    state: ProviderInputState,
+    assertInteractive: () => void,
+    action: () => Promise<T>,
+  ): Promise<T> {
+    if (this.providerInputGuard !== null) throw new Error("BROWSER_BACKPRESSURE");
+    this.providerInputGuard = Object.freeze({ state, assertInteractive });
+    try {
+      return await action();
+    } finally {
+      this.providerInputGuard = null;
     }
   }
 

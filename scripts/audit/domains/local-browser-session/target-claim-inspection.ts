@@ -4,6 +4,7 @@ import { type InspectorContext, type InspectorFinding } from "../../shared/inspe
 import {
   brokerPath,
   createLocalFinding,
+  extensionDebuggerRuntimePath,
   extensionTargetObservationPath,
   requireIdentifiers,
   requireSource,
@@ -17,6 +18,111 @@ const sitePolicyPath = "src/lib/browser/exact-target/browser-site-policy-registr
 const targetLeaseManagerPath = "src/lib/browser/exact-target/browser-target-lease-manager.ts";
 const laneCoordinatorPath = "src/lib/browser/infrastructure/browser-lane-coordinator.ts";
 const targetAcquirerPath = "src/lib/browser/infrastructure/browser-target-acquirer.ts";
+
+const interactionReadinessFinding = (
+  findings: InspectorFinding[],
+  lawId: string,
+  filePath: string,
+  message: string,
+): void => {
+  findings.push(createLocalFinding({
+    checkId: "browser-authority/interaction-readiness",
+    lawId,
+    filePath,
+    message,
+  }));
+};
+
+const exactCallCount = (source: Node, expressionText: string): number =>
+  source.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter((call) => call.getExpression().getText() === expressionText).length;
+
+const inspectInteractionAuthority = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const authority = requireSource(context, findings, lawId, targetAuthorityPath);
+  const runtime = requireSource(context, findings, lawId, extensionDebuggerRuntimePath);
+  const actor = requireSource(context, findings, lawId, sourcePaths[1]);
+  const commandRegistry = requireSource(context, findings, lawId, sourcePaths[8]);
+  if (!authority || !runtime || !actor || !commandRegistry) return;
+
+  const authorityClass = authority.getClass("ExtensionTargetAuthority");
+  const execute = authorityClass?.getMethod("executeRegisteredCommand");
+  const ensure = authorityClass?.getMethod("ensureInteractionReady");
+  const assertReady = authorityClass?.getMethod("assertInteractionReady");
+  const start = authorityClass?.getMethod("start");
+  const activate = runtime.getClass("ExtensionDebuggerRuntime")?.getMethod("activateTab");
+  const send = runtime.getClass("ExtensionDebuggerRuntime")?.getMethod("send");
+  const admit = commandRegistry.getVariableDeclaration("admitExtensionCommand");
+  const executeActor = actor.getClass("ExtensionWebSocketActor")?.getMethod("executeCommand");
+  if (!authorityClass || !execute || !ensure || !assertReady || !start || !activate || !send
+    || !admit || !executeActor) {
+    interactionReadinessFinding(findings, lawId, targetAuthorityPath,
+      "The existing Browser Authority must own the complete interaction-readiness gate.");
+    return;
+  }
+
+  const executeText = execute.getText();
+  const ensureText = ensure.getText();
+  const assertText = assertReady.getText();
+  const startText = start.getText();
+  const activateText = activate.getText();
+  const sendText = send.getText();
+  const admitText = admit.getText();
+  const actorText = executeActor.getText();
+
+  const authorityExact = executeText.includes('if (mutationClass !== "mutation") return execute()')
+    && exactCallCount(execute, "this.ensureInteractionReady") === 1
+    && exactCallCount(execute, "this.debuggerRuntime.withProviderInputGuard") === 1
+    && ensureText.includes("tab.active !== true")
+    && exactCallCount(ensure, "this.debuggerRuntime.activateTab") === 1
+    && exactCallCount(ensure, "this.debuggerRuntime.readTab") === 3
+    && exactCallCount(ensure, "readExtensionMainFrame") === 1
+    && ensureText.includes("this.activeTarget?.targetRef !== target.targetRef")
+    && ensureText.includes("frame.loaderId !== this.activeLoaderId")
+    && ensureText.indexOf("this.recordActiveTab(windowId, target.tabId)")
+      < ensureText.indexOf("readExtensionMainFrame(this.debuggerRuntime, target.tabId)")
+    && ensureText.includes("active.generation !== activationGeneration")
+    && assertText.includes("active.generation !== lease.generation")
+    && exactCallCount(assertReady, "this.targets.resolve") === 1
+    && exactCallCount(start, "this.chromeApi.tabs.onActivated.addListener") === 1;
+  if (!authorityExact) interactionReadinessFinding(findings, lawId, targetAuthorityPath,
+    "Mutation execution must use one exact-tab activation/readback lease and recheck its activation generation before every Provider input.");
+
+  const updateCalls = activate.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter((call) => call.getExpression().getText() === "this.chromeApi.tabs.update");
+  const updateArguments = updateCalls[0]?.getArguments() ?? [];
+  const runtimeExact = updateCalls.length === 1
+    && updateArguments[0]?.getText() === "tabId"
+    && updateArguments[1]?.getText().replace(/\s/gu, "") === "{active:true}"
+    && activateText.includes("this.executePageAction")
+    && sendText.indexOf("guard.assertInteractive()") >= 0
+    && sendText.indexOf("guard.state.started = true") > sendText.indexOf("guard.assertInteractive()")
+    && sendText.indexOf("this.chromeApi.debugger.sendCommand") > sendText.indexOf("guard.state.started = true");
+  if (!runtimeExact) interactionReadinessFinding(findings, lawId, extensionDebuggerRuntimePath,
+    "The fixed runtime must activate once through the existing page-action gate and synchronously check interaction identity before marking Provider input started.");
+
+  if (!admitText.includes("mutationClass: expectedMutationClass")
+    || !actorText.includes("registeredCommand.mutationClass")) {
+    interactionReadinessFinding(findings, lawId, sourcePaths[8],
+      "Command admission must preserve the actual mutation class through the sole encrypted actor into Browser Authority.");
+  }
+
+  const forbidden = context.project.getSourceFiles().filter((source) => {
+    const path = source.getFilePath().replaceAll("\\", "/");
+    if (!path.includes("/src/lib/browser/chrome-extension/")) return false;
+    const hasWindowFocus = source.getDescendantsOfKind(SyntaxKind.CallExpression)
+      .some((call) => call.getExpression().getText().endsWith("windows.update"));
+    const hasBringToFront = source.getDescendantsOfKind(SyntaxKind.StringLiteral)
+      .some((literal) => literal.getLiteralValue() === "Page.bringToFront");
+    return hasWindowFocus || hasBringToFront;
+  });
+  for (const source of forbidden) interactionReadinessFinding(findings, lawId,
+    source.getFilePath().slice(context.sealedRoot.length + 1).replaceAll("\\", "/"),
+    "The unique interaction gate must not add window focus or Page.bringToFront fallback authority.");
+};
 
 const inspectJobBoundClaimOrder = (actor: ReturnType<typeof requireSource>, findings: InspectorFinding[], lawId: string): void => {
   const actorClass = actor?.getClass("ExtensionWebSocketActor");
@@ -246,3 +352,9 @@ export const inspectTargetClaimGuards = (
   }));
   inspectJobBoundClaimPolicy(context, findings, lawId);
 };
+
+export const inspectInteractionReadiness = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => inspectInteractionAuthority(context, findings, lawId);

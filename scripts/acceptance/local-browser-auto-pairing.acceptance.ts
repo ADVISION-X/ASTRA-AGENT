@@ -25,6 +25,7 @@ const nextBuild = "build-00000000-0000-4000-8000-000000000002";
 await exercisePairingReadback(secret, currentBuild);
 
 type RuntimeStartupListener = () => void;
+type TabActivatedListener = Parameters<ExtensionChromeApi["tabs"]["onActivated"]["addListener"]>[0];
 type TabUpdatedListener = Parameters<ExtensionChromeApi["tabs"]["onUpdated"]["addListener"]>[0];
 type DebuggerDetachListener = Parameters<ExtensionChromeApi["debugger"]["onDetach"]["addListener"]>[0];
 type AlarmListener = Parameters<ExtensionChromeApi["alarms"]["onAlarm"]["addListener"]>[0];
@@ -55,8 +56,12 @@ const chromeApi: ExtensionChromeApi = {
   },
   tabs: {
     create: async () => ({ id: 1 }),
-    get: async (tabId) => ({ id: tabId, status: "complete", url: "https://chatgpt.com/", title: "ChatGPT" }),
+    get: async (tabId) => ({ active: true, discarded: false, id: tabId, status: "complete",
+      url: "https://chatgpt.com/", title: "ChatGPT", windowId: 1 }),
     remove: async () => undefined,
+    update: async (tabId) => ({ active: true, discarded: false, id: tabId, status: "complete",
+      url: "https://chatgpt.com/", title: "ChatGPT", windowId: 1 }),
+    onActivated: { addListener: () => undefined },
     onUpdated: { addListener: (listener) => { listeners.tabUpdated = listener; } },
   },
   alarms: {
@@ -151,7 +156,16 @@ let frameTreeFailureTabId: number | null = null;
 let attachFailureTabId: number | null = null;
 let evaluateRuntime: ((expression: string) => Promise<unknown>) | null = null;
 let forkTransitionClick = false;
+let basicPointerClick = false;
+let switchBeforeProviderInput = false;
+let switchAfterProviderInput = false;
+let switchAwayAndBackTabReadCountdown = 0;
 let navigateSerial = 0;
+let activeTabId = 99;
+let targetTabActivated: TabActivatedListener = () => { throw new Error("target activation listener was not installed"); };
+const activatedTabs: number[] = [];
+const discardedTabIds = new Set<number>();
+const providerInputMethods: string[] = [];
 const attachedTabs: number[] = [];
 const detachedTabs: number[] = [];
 const debuggerMethods: string[] = [];
@@ -166,16 +180,30 @@ const sendForkTransitionCommand = (
   method: string,
   parameters: Readonly<Record<string, unknown>> | undefined,
 ): Readonly<Record<string, unknown>> | null => {
-  if (!forkTransitionClick) return null;
+  if (!forkTransitionClick && !basicPointerClick) return null;
   if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
   if (method === "DOM.resolveNode") return { object: { objectId: "candidate-root" } };
   if (method === "Runtime.callFunctionOn" && String(parameters?.functionDeclaration ?? "").includes("spec.output")) {
+    if (switchBeforeProviderInput) {
+      switchBeforeProviderInput = false;
+      activeTabId = 99;
+      targetTabActivated({ tabId: activeTabId, windowId: 1 });
+    }
     return { result: { value: { x: 5, y: 5 } } };
   }
   if (method === "Runtime.callFunctionOn") return { result: { value: browserDomFacts() } };
   if (method === "Runtime.releaseObject") return {};
   if (method !== "Input.dispatchMouseEvent") return null;
-  if (parameters?.type === "mouseReleased") {
+  providerInputMethods.push(String(parameters?.type));
+  if (switchAfterProviderInput) {
+    switchAfterProviderInput = false;
+    activeTabId = 99;
+    targetTabActivated({ tabId: activeTabId, windowId: 1 });
+  }
+  if (basicPointerClick && !forkTransitionClick && parameters?.type === "mouseReleased") {
+    mainFrameUrlByTab.set(3, "https://chatgpt.com/c/interaction-ready");
+  }
+  if (forkTransitionClick && parameters?.type === "mouseReleased") {
     mainFrameUrlByTab.set(4, "https://chatgpt.com/c/fork-child");
     debuggerTargets = [
       ...debuggerTargets.filter((candidate) => candidate.tabId !== 4),
@@ -194,6 +222,10 @@ const sendTargetChromeCommand: ExtensionChromeApi["debugger"]["sendCommand"] = a
   if (forkResult) return forkResult;
   if (method === "Runtime.evaluate" && evaluateRuntime) {
     return { result: { value: await evaluateRuntime(String(parameters?.expression)) } };
+  }
+  if (method === "Page.getNavigationHistory") {
+    return { currentIndex: 0, entries: [{ id: 1,
+      url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/", title: "ChatGPT" }] };
   }
   if (method === "Page.getFrameTree" && tabId === frameTreeFailureTabId) {
     throw new Error("temporary frame tree read failure");
@@ -235,12 +267,31 @@ const targetChromeApi: ExtensionChromeApi = {
       createdTab = input;
       return { id: nextCreatedTabId++ };
     },
-    get: async (tabId) => ({ id: tabId, status: "complete",
-      url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/", title: "ChatGPT" }),
+    get: async (tabId) => {
+      if (switchAwayAndBackTabReadCountdown > 0) {
+        switchAwayAndBackTabReadCountdown -= 1;
+        if (switchAwayAndBackTabReadCountdown === 0) {
+          activeTabId = 99;
+          targetTabActivated({ tabId: activeTabId, windowId: 1 });
+          activeTabId = tabId;
+          targetTabActivated({ tabId: activeTabId, windowId: 1 });
+        }
+      }
+      return { active: tabId === activeTabId, discarded: discardedTabIds.has(tabId), id: tabId, status: "complete",
+        url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/", title: "ChatGPT", windowId: 1 };
+    },
     remove: async (tabId) => {
       removedTabs.push(tabId);
       debuggerTargets = debuggerTargets.filter((candidate) => candidate.tabId !== tabId);
     },
+    update: async (tabId) => {
+      activatedTabs.push(tabId);
+      activeTabId = tabId;
+      targetTabActivated({ tabId, windowId: 1 });
+      return { active: true, discarded: false, id: tabId, status: "complete",
+        url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/", title: "ChatGPT", windowId: 1 };
+    },
+    onActivated: { addListener: (listener) => { targetTabActivated = listener; } },
     onUpdated: { addListener: (listener) => { targetTabUpdated = listener; } },
     onRemoved: { addListener: () => undefined },
   },
@@ -278,6 +329,71 @@ await exerciseAuthenticatedMedia({
   documentRef: firstDocumentRef,
   setRuntime: (runtime) => { evaluateRuntime = runtime; },
 });
+assert.deepEqual(activatedTabs, [], "authenticated-media probe must not activate the production Tab");
+const interactionTarget = targetAuthority.resolve(firstTargetRef, firstDocumentRef);
+const simpleClick = {
+  kind: "dom-intent" as const,
+  intent: {
+    kind: "click" as const,
+    selector: "button[data-testid='interaction-ready']",
+    expectedMatches: 1,
+    postClickUrl: { equals: "https://chatgpt.com/c/interaction-ready" },
+  },
+};
+basicPointerClick = true;
+const firstInteractiveReceipt = await targetAuthority.executeRegisteredCommand(
+  simpleClick, interactionTarget, "mutation",
+) as Readonly<Record<string, unknown>>;
+assert.equal(firstInteractiveReceipt.postconditionVerified, true);
+assert.deepEqual(activatedTabs, [3], "the first inactive mutation must activate only the exact system Tab once");
+await targetAuthority.executeRegisteredCommand(simpleClick, interactionTarget, "mutation");
+assert.deepEqual(activatedTabs, [3], "an already-active system Tab must not call tabs.update again");
+
+const providerInputsBeforeQualificationSwitch = providerInputMethods.length;
+mainFrameUrlByTab.set(3, "https://chatgpt.com/");
+switchAwayAndBackTabReadCountdown = 2;
+const switchedAwayAndBackDuringQualification = await targetAuthority.executeRegisteredCommand(
+  simpleClick, interactionTarget, "mutation",
+) as Readonly<Record<string, unknown>>;
+assert.equal(switchedAwayAndBackDuringQualification.failureCode, "BROWSER_TARGET_NOT_INTERACTIVE");
+assert.equal(switchedAwayAndBackDuringQualification.mutationCount, 0);
+assert.equal(providerInputMethods.length, providerInputsBeforeQualificationSwitch,
+  "a user switch away and back during qualification must permanently invalidate that interaction lease");
+
+const providerInputsBeforeSwitch = providerInputMethods.length;
+mainFrameUrlByTab.set(3, "https://chatgpt.com/");
+switchBeforeProviderInput = true;
+const switchedBeforeInput = await targetAuthority.executeRegisteredCommand(
+  simpleClick, interactionTarget, "mutation",
+) as Readonly<Record<string, unknown>>;
+assert.equal(switchedBeforeInput.failureCode, "BROWSER_TARGET_NOT_INTERACTIVE");
+assert.equal(switchedBeforeInput.mutationCount, 0);
+assert.equal(providerInputMethods.length, providerInputsBeforeSwitch,
+  "a user tab switch before Provider input must produce zero physical input");
+
+activeTabId = 3;
+targetTabActivated({ tabId: 3, windowId: 1 });
+mainFrameUrlByTab.set(3, "https://chatgpt.com/");
+switchAfterProviderInput = true;
+const providerInputsBeforeLateSwitch = providerInputMethods.length;
+await assert.rejects(
+  targetAuthority.executeRegisteredCommand(simpleClick, interactionTarget, "mutation"),
+  /BROWSER_TARGET_NOT_INTERACTIVE/u,
+  "a user tab switch after Provider input starts must preserve an uncertain dispatched result",
+);
+assert.equal(providerInputMethods.length, providerInputsBeforeLateSwitch + 1,
+  "a post-input tab switch must not replay or finish the remaining pointer sequence");
+
+activeTabId = 3;
+targetTabActivated({ tabId: 3, windowId: 1 });
+discardedTabIds.add(3);
+const discardedReceipt = await targetAuthority.executeRegisteredCommand(
+  simpleClick, interactionTarget, "mutation",
+) as Readonly<Record<string, unknown>>;
+discardedTabIds.delete(3);
+assert.equal(discardedReceipt.failureCode, "BROWSER_TARGET_NOT_INTERACTIVE");
+assert.equal(discardedReceipt.mutationCount, 0, "a discarded system Tab must fail before physical input");
+basicPointerClick = false;
 await targetAuthority.parkActiveTarget();
 assert.equal(targetFrames.at(-1)?.kind, "TARGET_REVOKE");
 assert.deepEqual(detachedTabs, [], "logical park must keep the one debugger session alive across local restarts");
@@ -410,7 +526,7 @@ const forkReceipt = await targetAuthority.executeRegisteredCommand({
       timeoutMs: 5_000,
     },
   },
-}, forkTarget) as Readonly<Record<string, unknown>>;
+}, forkTarget, "mutation") as Readonly<Record<string, unknown>>;
 forkTransitionClick = false;
 assert.equal(forkReceipt.postconditionVerified, true);
 assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length,

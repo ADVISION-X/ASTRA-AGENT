@@ -1,9 +1,11 @@
 import { executionFailure, failureCode, typedExecutionFailure } from "../../execution-failure.js";
+import { typedRuntimeTransportFailure } from "./transport-failure.js";
 import { terminalFailureHttpStatus } from "./terminal-failure.js";
 import { hashCanonical, parseTerminalReceipt, parseTerminalReceiptExpectation, type ProductionHash } from "./contracts.js";
 import {
   assertReceiptIdentity,
   isRejectedCheckpointSequenceFailure,
+  parseRecoveryCheckpointIntent,
   proveRecoveryCheckpointPrefix,
   type LocalReceiptIntent,
   type RecoveryCheckpointPrefix,
@@ -24,7 +26,11 @@ const OUTBOX_TRANSIENT_RETRY_DELAY_MS = 5_000;
 const OUTBOX_LOW_FREQUENCY_RETRY_DELAY_MS = 3_600_000;
 const PERMANENT_REVOCATION_REASON = "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED";
 const PERMANENT_AUTHORIZATION_REVOKED_CODE = "AI_PERMANENT_AUTHORIZATION_REVOKED";
+const STALE_LEASE_FENCE_CODE = "AI_LEASE_FENCE_STALE";
+const STALE_LEASE_FENCE_REMOTE_PROOF = "WEBSITE_HTTP_409:AI_LEASE_FENCE_STALE";
 const jobPathMarker = (jobId: string): string => `/jobs/${encodeURIComponent(jobId)}/`;
+const checkpointPath = (jobId: string): string =>
+  `/internal/ai-production/v6/jobs/${encodeURIComponent(jobId)}/checkpoints`;
 
 const retryDelay = (error: unknown): number => {
   const httpStatus = terminalFailureHttpStatus(error);
@@ -50,6 +56,29 @@ const assertTerminalReceipt = (local: LocalReceiptIntent, response: Record<strin
 };
 
 export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
+  private readPendingOutboxWrite(idempotencyKey: string): ProductionOutboxWrite {
+    const row = this.database.prepare(`select idempotency_key,kind,path,method,headers_json,body_blob
+      from production_outbox where idempotency_key=? and sent_at is null`
+    ).get(idempotencyKey) as Readonly<{
+      idempotency_key: string; kind: ProductionOutboxWrite["kind"]; path: string;
+      method: ProductionOutboxWrite["method"]; headers_json: string; body_blob: Buffer;
+    }> | undefined;
+    if (!row) throw new Error("PRODUCTION_OUTBOX_INTENT_MISSING");
+    return Object.freeze({
+      idempotency_key: row.idempotency_key,
+      kind: row.kind,
+      path: row.path,
+      method: row.method,
+      headers: Object.freeze(JSON.parse(row.headers_json) as Record<string, string>),
+      body: row.body_blob,
+    });
+  }
+  private serializeOutboxOperation<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.outboxDeliveryTail.then(operation, operation);
+    this.outboxDeliveryTail = result.then(() => undefined, () => undefined);
+    return result;
+  }
+
   public enqueue(write: ProductionOutboxWrite): void {
     const bytes = Buffer.from(write.body);
     const headers = json(write.headers);
@@ -202,6 +231,104 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
     return transaction();
   }
 
+  private reauthorizeStaleCheckpoint(input: Readonly<{ jobId: string; attemptId: string; workerSessionId: string;
+    workerSessionEpoch: number; leaseVersion: number; fenceHash: ProductionHash;
+    receipts: readonly RemoteReceipt[];
+  }>): ProductionOutboxWrite | null {
+    if (!input.workerSessionId || !Number.isInteger(input.workerSessionEpoch)
+      || input.workerSessionEpoch < 1 || !Number.isInteger(input.leaseVersion)
+      || input.leaseVersion < 1 || !/^sha256:[a-f0-9]{64}$/u.test(input.fenceHash)) {
+      throw executionFailure("failed", "PRODUCTION_STALE_FENCE_AUTHORITY_INVALID");
+    }
+    this.hydrateRemoteOutboxReceipts(input.jobId, input.receipts);
+    const transaction = this.database.transaction(() => {
+      const task = this.readTask(input.jobId);
+      if (!task || task.status !== "failed" || task.current_attempt_id !== input.attemptId
+        || task.staged_result !== null) {
+        throw executionFailure("failed", "PRODUCTION_STALE_FENCE_TASK_AUTHORITY_CONFLICT");
+      }
+      type Candidate = RecoveryOutboxRow & Readonly<{ method: ProductionOutboxWrite["method"] }>;
+      const rows = this.database.prepare(`select idempotency_key,kind,path,method,headers_json,body_blob,
+        sent_at,last_error,response_json,response_hash,next_delivery_at from production_outbox
+        where kind='checkpoint' and instr(path,?)>0 and sent_at is null and response_hash is null
+          and last_error=? and next_delivery_at is null order by created_at,idempotency_key`
+      ).all(jobPathMarker(input.jobId), STALE_LEASE_FENCE_REMOTE_PROOF) as Candidate[];
+      const candidates = rows.filter((row) => {
+        const body = JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>;
+        return body.attempt_id === input.attemptId;
+      });
+      if (candidates.length === 0) return null;
+      if (candidates.length !== 1) {
+        throw executionFailure("failed", "PRODUCTION_STALE_FENCE_INTENT_AMBIGUOUS");
+      }
+      const row = candidates[0]!;
+      const body = parseRecoveryCheckpointIntent(input.jobId, input.attemptId, row);
+      let headers: Record<string, unknown>;
+      try { headers = JSON.parse(row.headers_json) as Record<string, unknown>; }
+      catch { throw executionFailure("failed", "PRODUCTION_STALE_FENCE_CHECKPOINT_INTENT_INVALID"); }
+      if (row.path !== checkpointPath(input.jobId) || row.method !== "POST"
+        || JSON.stringify(Object.keys(headers)) !== JSON.stringify(["x-ai-execution-fence-hash"])
+        || typeof headers["x-ai-execution-fence-hash"] !== "string") {
+        throw executionFailure("failed", "PRODUCTION_STALE_FENCE_CHECKPOINT_INTENT_INVALID");
+      }
+      const nextBody = {
+        ...body,
+        worker_session_id: input.workerSessionId,
+        worker_session_epoch: input.workerSessionEpoch,
+        lease_version: input.leaseVersion,
+        fence_hash: input.fenceHash,
+      };
+      const nextHeaders = { "x-ai-execution-fence-hash": input.fenceHash };
+      const nextBodyBytes = Buffer.from(json(nextBody));
+      const changed = this.database.prepare(`update production_outbox
+        set headers_json=?,body_blob=?,last_error=null,next_delivery_at=null
+        where idempotency_key=? and kind='checkpoint' and path=? and method='POST'
+          and body_blob=? and headers_json=? and sent_at is null and response_hash is null
+          and last_error=? and next_delivery_at is null`).run(
+        json(nextHeaders), nextBodyBytes, row.idempotency_key, row.path,
+        row.body_blob, row.headers_json, STALE_LEASE_FENCE_REMOTE_PROOF,
+      );
+      if (changed.changes !== 1) {
+        throw executionFailure("failed", "PRODUCTION_STALE_FENCE_INTENT_CONFLICT");
+      }
+      return Object.freeze({
+        idempotency_key: row.idempotency_key,
+        kind: "checkpoint" as const,
+        path: row.path,
+        method: "POST" as const,
+        headers: Object.freeze(nextHeaders),
+        body: nextBodyBytes,
+      });
+    });
+    const write = transaction();
+    if (write) this.notifyOutbox(this.readOutboxAuthority(write.idempotency_key));
+    return write;
+  }
+  public deliverReauthorizedStaleCheckpoint<T>(input: Readonly<{
+    jobId: string;
+    attemptId: string;
+    workerSessionId: string;
+    workerSessionEpoch: number;
+    leaseVersion: number;
+    fenceHash: ProductionHash;
+    receipts: readonly RemoteReceipt[];
+  }>, send: (write: ProductionOutboxWrite) => Promise<T>): Promise<Readonly<{
+    requestId: string | null;
+    deliveryError: unknown | null;
+  }>> {
+    return this.serializeOutboxOperation(async () => {
+      const write = this.reauthorizeStaleCheckpoint(input);
+      if (!write) return Object.freeze({ requestId: null, deliveryError: null });
+      try {
+        const response = await send(write);
+        this.markOutboxSent(write.idempotency_key, response);
+        return Object.freeze({ requestId: write.idempotency_key, deliveryError: null });
+      } catch (error) {
+        this.recordDeliveryFailure(write.idempotency_key, error);
+        return Object.freeze({ requestId: write.idempotency_key, deliveryError: error });
+      }
+    });
+  }
   public recoverCheckpointPrefix(input: Readonly<{
     jobId: string;
     attemptId: string;
@@ -253,8 +380,15 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
     error: unknown,
   ): void {
     const timestamp = now();
-    const code = failureCode(error, "OUTBOX_DELIVERY_FAILED");
-    const nextDeliveryAt = new Date(Date.parse(timestamp) + retryDelay(error)).toISOString();
+    const transport = typedRuntimeTransportFailure(error);
+    const staleFenceRejected = transport?.code === STALE_LEASE_FENCE_CODE
+      && transport.httpStatus === 409;
+    const code = staleFenceRejected
+      ? STALE_LEASE_FENCE_REMOTE_PROOF
+      : failureCode(error, "OUTBOX_DELIVERY_FAILED");
+    const nextDeliveryAt = staleFenceRejected
+      ? null
+      : new Date(Date.parse(timestamp) + retryDelay(error)).toISOString();
     const changed = this.database.prepare(`update production_outbox
       set last_error=?,next_delivery_at=? where idempotency_key=? and sent_at is null`
     ).run(code, nextDeliveryAt, idempotencyKey);
@@ -267,12 +401,13 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
   public deferOutboxReconciliation(jobId: string, error: unknown): number {
     const nextDeliveryAt = new Date(Date.now() + retryDelay(error)).toISOString();
     const changed = this.database.prepare(`update production_outbox
-      set last_error=case when last_error=? then last_error else ? end,next_delivery_at=?
+      set last_error=?,next_delivery_at=?
         where instr(path,?)>0
-        and sent_at is null and response_hash is null`
-    ).run(PERMANENT_AUTHORIZATION_REVOKED_CODE,
-      failureCode(error, "OUTBOX_RECONCILIATION_FAILED"), nextDeliveryAt,
-      jobPathMarker(jobId));
+        and sent_at is null and response_hash is null
+        and (last_error is null or last_error not in (?,?,?))`
+    ).run(failureCode(error, "OUTBOX_RECONCILIATION_FAILED"), nextDeliveryAt,
+      jobPathMarker(jobId), PERMANENT_AUTHORIZATION_REVOKED_CODE,
+      PERMANENT_REVOCATION_REASON, STALE_LEASE_FENCE_REMOTE_PROOF);
     this.notifyOutbox(this.outboxAuthorities().find((row) => row.jobId === jobId) ?? null);
     return changed.changes;
   }
@@ -324,17 +459,20 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
 
   public deliverOutbox<T>(
     idempotencyKey: string,
-    send: () => Promise<T>,
+    send: (write: ProductionOutboxWrite) => Promise<T>,
   ): Promise<T> {
     const operation = async (): Promise<T> => {
       const authority = this.readOutboxAuthority(idempotencyKey);
       if (!authority) throw new Error("PRODUCTION_OUTBOX_INTENT_MISSING");
       if (authority.state === "delivered") return this.readOutboxResponse(idempotencyKey) as T;
+      if (authority.lastError === STALE_LEASE_FENCE_REMOTE_PROOF) {
+        throw executionFailure("failed", "PRODUCTION_STALE_FENCE_REAUTHORIZATION_REQUIRED");
+      }
       if (authority.nextDeliveryAt && authority.nextDeliveryAt > now()) {
         throw executionFailure("failed", "PRODUCTION_OUTBOX_DELIVERY_BACKOFF_ACTIVE");
       }
       try {
-        const response = await send();
+        const response = await send(this.readPendingOutboxWrite(idempotencyKey));
         this.markOutboxSent(idempotencyKey, response);
         return response;
       } catch (error) {
@@ -342,9 +480,7 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
         throw error;
       }
     };
-    const result = this.outboxDeliveryTail.then(operation, operation);
-    this.outboxDeliveryTail = result.then(() => undefined, () => undefined);
-    return result;
+    return this.serializeOutboxOperation(operation);
   }
 
   public readOutboxAuthority(idempotencyKey: string): ProductionOutboxAuthority | null {

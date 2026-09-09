@@ -9,6 +9,7 @@ import type {
 import type {
   GeneratedImageArtifact,
   ProductSkill,
+  PriorResultRejection,
 } from "../../mediator/product-plugin-contract.js";
 import type { ExactGptCallFacts } from "../../capabilities/gpt/index.js";
 import {
@@ -49,6 +50,7 @@ type ImageTurnInput = Readonly<{
   predecessorCheckpoint: SeoTurnCheckpoint;
   predecessorSourceAttemptId: string;
   productSkill: ProductSkill;
+  priorResultRejection: PriorResultRejection | null;
 }>;
 
 const prepareImageSubmit = async (
@@ -187,7 +189,7 @@ const confirmedImageSubmit = async (
 };
 
 export const generateImage = async (input: ImageTurnInput): Promise<GeneratedImageArtifact> => {
-  const prompt = imagePrompt(input.task, input.marker, input.productSkill);
+  const prompt = imagePrompt(input.task, input.marker, input.productSkill, input.priorResultRejection);
   const promptHash = textHash(prompt);
   const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 45, input: { files: [], promptHash, turnMarker: input.marker } } as const;
   const state = await readImageSubmitState(input, turnSubmit);

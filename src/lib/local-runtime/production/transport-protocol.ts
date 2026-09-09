@@ -10,6 +10,26 @@ import {
 const hash = z.string().regex(/^sha256:[a-f0-9]{64}$/u)
   .transform((value): `sha256:${string}` => value as `sha256:${string}`);
 const reasonCode = z.string().min(1).max(512);
+const resultRevisionReasonCode = z.enum([
+  "PUBLIC_KNOWLEDGE_ARTICLE_REJECTED",
+  "PUBLIC_KNOWLEDGE_COLLISION_REJECTED",
+  "PUBLIC_KNOWLEDGE_RESEARCH_DECLINED",
+  "PUBLIC_KNOWLEDGE_RESEARCH_REJECTED",
+  "PUBLIC_KNOWLEDGE_RESULT_PACKAGE_REJECTED",
+]);
+export const PriorResultRejectionSchema = z.object({
+  schema_version: z.literal("xuanxue-ai-prior-result-rejection.v1"),
+  job_id: z.string().min(1),
+  previous_attempt_id: z.string().min(1),
+  previous_result_payload_hash: hash,
+  reason_codes: z.array(resultRevisionReasonCode).min(1).superRefine((reasons, context) => {
+    if (new Set(reasons).size !== reasons.length
+      || reasons.some((reason, index) => index > 0 && reasons[index - 1]! >= reason)) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "V6_PRIOR_RESULT_REJECTION_REASONS_INVALID" });
+    }
+  }),
+  receipt_hash: hash,
+}).strict();
 
 export const DeviceCredentialSchema = z.object({
   protocol_version: z.literal("xuanxue-ai-production-v6"),
@@ -99,6 +119,7 @@ const ExecutionGrantSchema = z.object({
   renew_after_ms: z.literal(20_000),
   control_contract_version: z.number().int().positive(),
   execution_fence: ExecutionFenceSchema,
+  prior_result_rejection: PriorResultRejectionSchema.nullable(),
 }).strict();
 
 const projectWebsiteAgentTaskEnvelope = (value: object): Record<string, unknown> => {

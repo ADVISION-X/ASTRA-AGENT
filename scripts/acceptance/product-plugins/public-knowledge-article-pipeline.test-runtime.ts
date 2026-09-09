@@ -383,10 +383,12 @@ export const createContext = (
   decision: "proceed" | "decline",
   failureAt?: SeoFailure,
   attemptId = "attempt-1",
+  priorResultRejection: SharedExecutionContext["priorResultRejection"] = null,
 ): SharedExecutionContext => ({
   materials: state.materials,
   routePolicy: productionRoutePolicy("public_knowledge_article_pipeline", state.actionId),
   productSkill: Object.freeze({ text: "fixture public knowledge skill", hash: HASH }),
+  priorResultRejection,
   gpt: {
     jobId: `job-${state.actionId}`,
     attemptId,

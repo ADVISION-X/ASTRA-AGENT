@@ -112,7 +112,7 @@ const inspectClosedInvocationPayloadBoundary = (
     [extensionActorPath, extensionActor.getFullText(), [
       "decrypt(session.serverToClientKey, \"server-to-client\", frame)",
       "commandFrom(payload.command)", "admitExtensionCommand({ command, permit })",
-      "executeRegisteredCommand(command, target)", "this.sendEncrypted(socket, \"REPLY\"",
+      "registeredCommand.mutationClass", "this.sendEncrypted(socket, \"REPLY\"",
     ]],
     [extensionCryptoPath, extensionCrypto.getFullText(), [
       "name: \"AES-GCM\"", "additionalData", "canonicalizeBrowserAuthorityValue(body)",

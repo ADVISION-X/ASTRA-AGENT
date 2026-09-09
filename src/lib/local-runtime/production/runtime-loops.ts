@@ -108,7 +108,7 @@ export const flushOutboxWithLog = async (state: RuntimeState): Promise<void> => 
     }));
     try {
       await state.store.deliverOutbox(
-        write.idempotency_key, () => sendProductionOutboxWrite(state.session, write),
+        write.idempotency_key, (fresh) => sendProductionOutboxWrite(state.session, fresh),
       );
       const delivered = state.store.readOutboxAuthority(write.idempotency_key)!;
       requireRuntimeLogWrite(span.terminal({

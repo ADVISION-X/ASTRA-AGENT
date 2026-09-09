@@ -137,7 +137,7 @@ export const exerciseAuthenticatedMedia = async (input: Readonly<{
     new TestImage("hidden unrelated image", "https://chatgpt.com/content/c", "block", "visible", "0"),
   ];
   input.setRuntime(runtime({ turns: [turn(images)], bytes }));
-  const authenticated = await input.authority.executeRegisteredCommand(command, authority) as Record<string, unknown>;
+  const authenticated = await input.authority.executeRegisteredCommand(command, authority, "observation") as Record<string, unknown>;
   assert.equal(authenticated.sha256, `sha256:${createHash("sha256").update(bytes).digest("hex")}`);
   assert.equal(authenticated.authorityTargetHash,
     `sha256:${createHash("sha256").update(input.targetRef).digest("hex")}`);
@@ -149,14 +149,14 @@ export const exerciseAuthenticatedMedia = async (input: Readonly<{
     turns: [turn(images.slice(0, 2))],
     bytesForSource: (source) => source.endsWith("/a") ? bytes : new Uint8Array([1, 2, 3, 4]),
   }));
-  await assert.rejects(input.authority.executeRegisteredCommand(command, authority),
+  await assert.rejects(input.authority.executeRegisteredCommand(command, authority, "observation"),
     /BROWSER_AUTHENTICATED_MEDIA_MULTIPLE/u);
 
   input.setRuntime(runtime({ turns: [] }));
-  await assert.rejects(input.authority.executeRegisteredCommand(command, authority),
+  await assert.rejects(input.authority.executeRegisteredCommand(command, authority, "observation"),
     /BROWSER_AUTHENTICATED_MEDIA_ABSENT/u);
   input.setRuntime(runtime({ turns: [turn(images), turn(images)] }));
-  await assert.rejects(input.authority.executeRegisteredCommand(command, authority),
+  await assert.rejects(input.authority.executeRegisteredCommand(command, authority, "observation"),
     /BROWSER_AUTHENTICATED_MEDIA_MULTIPLE/u);
 
   for (const hidden of [
@@ -165,7 +165,7 @@ export const exerciseAuthenticatedMedia = async (input: Readonly<{
     new TestImage("hidden", "https://chatgpt.com/h3", "block", "collapse"),
   ]) {
     input.setRuntime(runtime({ turns: [turn([hidden])] }));
-    await assert.rejects(input.authority.executeRegisteredCommand(command, authority),
+    await assert.rejects(input.authority.executeRegisteredCommand(command, authority, "observation"),
       /BROWSER_AUTHENTICATED_MEDIA_ABSENT/u);
   }
 
@@ -175,11 +175,11 @@ export const exerciseAuthenticatedMedia = async (input: Readonly<{
     turns: [turn([new TestImage("one", duplicateSource), new TestImage("two", duplicateSource)])],
     bytes, fetchCount,
   }));
-  await input.authority.executeRegisteredCommand(command, authority);
+  await input.authority.executeRegisteredCommand(command, authority, "observation");
   assert.equal(fetchCount.value, 1, "the same authenticated resource URL must be fetched once");
 
   input.setRuntime(runtime({ turns: [turn([images[0]!])], rejectFetch: true }));
-  await assert.rejects(input.authority.executeRegisteredCommand(command, authority),
+  await assert.rejects(input.authority.executeRegisteredCommand(command, authority, "observation"),
     /BROWSER_AUTHENTICATED_MEDIA_FETCH_FAILED/u);
   for (const invalid of [
     { bytes, mediaType: "text/plain" },
@@ -187,7 +187,7 @@ export const exerciseAuthenticatedMedia = async (input: Readonly<{
     { bytes: new Uint8Array(25 * 1024 * 1024 + 1), mediaType: "image/png" },
   ]) {
     input.setRuntime(runtime({ turns: [turn([images[0]!])], ...invalid }));
-    await assert.rejects(input.authority.executeRegisteredCommand(command, authority),
+    await assert.rejects(input.authority.executeRegisteredCommand(command, authority, "observation"),
       /BROWSER_AUTHENTICATED_MEDIA_BYTES_INVALID/u);
   }
   input.setRuntime(null);

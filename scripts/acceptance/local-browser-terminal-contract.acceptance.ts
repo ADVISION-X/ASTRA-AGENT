@@ -129,6 +129,20 @@ try {
   }).execute(zeroActionPermit, clickCommand);
   assert.equal(actorStore.readState(zeroActionPermit.commandId), "CONFIRMED");
   assert.equal(actorStore.readMutationOutcome(zeroActionPermit.commandId), "no");
+  const notInteractivePermit = permit("actor-target-not-interactive");
+  await assert.rejects(actorFor(async (candidate, _command, onDispatched) => {
+    onDispatched?.();
+    return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+      permitSequence: candidate.sequence, result: {
+        candidateCount: 0, identityRevalidated: false, mutationCount: 0,
+        postconditionVerified: false, qualificationRejected: true,
+        qualificationStage: "candidate-set", failureCode: "BROWSER_TARGET_NOT_INTERACTIVE",
+        nativeCauseCode: null,
+      } };
+  }).execute(notInteractivePermit, clickCommand), /BROWSER_TARGET_NOT_INTERACTIVE/u);
+  assert.equal(actorStore.readState(notInteractivePermit.commandId), "REJECTED");
+  assert.equal(actorStore.readMutationOutcome(notInteractivePermit.commandId), "no",
+    "an interaction-ready rejection before Provider input must settle the one WAL row with no mutation");
   const fillReadbackPermit: BrowserCommandPermit = {
     ...permit("actor-fill-readback-rejected"),
     capabilityId: "browser.dom.fill.v1",
@@ -560,15 +574,16 @@ try {
 }
 
 emitQualityProofObservation({
-  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V26",
+  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V28",
   evidenceMode: "exam.golden",
   clauses: [
     "forbidden:0",
     "forbidden:1",
-    "forbidden:10",
     "forbidden:11",
-    "forbidden:3",
-    "forbidden:9",
+    "forbidden:12",
+    "forbidden:2",
+    "forbidden:4",
+    "forbidden:10",
     "summary",
   ],
   locator: "acceptance:local-browser-terminal:mutation-golden",

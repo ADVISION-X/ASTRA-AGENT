@@ -132,7 +132,10 @@ export const textHash = (value: string): ProductionHash =>
 export const turnMarker = (task: WebsiteAgentTask, stepId: string): string =>
   `[GRASSEYE:${hashCanonical({ job_id: task.job_id, product_step_id: stepId }).slice(7, 31)}]`;
 
-export const researchFrontierRef = (task: WebsiteAgentTask): ProductionHash => hashCanonical({
+export const researchFrontierRef = (
+  task: WebsiteAgentTask,
+  resultRevisionReceiptHash: ProductionHash | null = null,
+): ProductionHash => hashCanonical({
   identity_type: "gpt-continuation-frontier.v1",
   job_id: task.job_id,
   plugin_id: PLUGIN_ID,
@@ -140,6 +143,7 @@ export const researchFrontierRef = (task: WebsiteAgentTask): ProductionHash => h
   subject_ref: task.business_identity.subject_ref,
   authorization_ref: task.business_identity.authorization_ref,
   product_step_id: "corpus_research",
+  result_revision_receipt_hash: resultRevisionReceiptHash,
 });
 
 export const continuationProvider = (

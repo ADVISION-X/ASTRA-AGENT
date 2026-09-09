@@ -1,6 +1,7 @@
 import { executionFailure } from "../../execution-failure.js";
 import type { SerializedExecutionFailure } from "./terminal-failure.js";
 import type { DurablePluginIdentity, WebsiteAgentResult, WebsiteAgentTask } from "./contracts.js";
+import type { PriorResultRejection } from "../../../mediator/product-plugin-contract.js";
 import { WebsiteAgentResultSchema, type ProductionHash } from "./contracts.js";
 import { isRejectedCheckpointSequenceFailure } from "./store-outbox-recovery-proof.js";
 import { ProductionStoreContinuationState } from "./store-continuation-state.js";
@@ -49,6 +50,30 @@ const taskAuthorityFromRow = (row: TaskRow): StoredProductionTask => {
 };
 
 export abstract class ProductionStoreTaskState extends ProductionStoreContinuationState {
+  public reconcileRejectedResultRevision(input: Readonly<{
+    rejection: PriorResultRejection;
+    nextAttemptId: string;
+  }>): void {
+    const current = this.readTask(input.rejection.job_id);
+    if (!current || current.status !== "failed") {
+      throw executionFailure("failed", "PRODUCTION_RESULT_REVISION_TASK_MISSING");
+    }
+    if (current.current_attempt_id === input.nextAttemptId && current.staged_result === null) return;
+    if (current.current_attempt_id !== input.rejection.previous_attempt_id
+      || !current.staged_result
+      || current.staged_result.result_payload_hash !== input.rejection.previous_result_payload_hash) {
+      throw executionFailure("failed", "PRODUCTION_RESULT_REVISION_IDENTITY_MISMATCH");
+    }
+    const changed = this.database.prepare(`update production_tasks
+      set staged_result_json=null,current_reason='RESULT_REVISION_REJECTED',updated_at=?
+      where job_id=? and status='failed' and current_attempt_id=? and staged_result_json is not null`).run(
+      now(), input.rejection.job_id, input.rejection.previous_attempt_id,
+    );
+    if (changed.changes !== 1) {
+      throw executionFailure("failed", "PRODUCTION_RESULT_REVISION_RECONCILIATION_CONFLICT");
+    }
+  }
+
   public acceptTask(
     task: WebsiteAgentTask,
     identity: DurablePluginIdentity,

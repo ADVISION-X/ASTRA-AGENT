@@ -16,7 +16,7 @@ import { inspectProductAcceptanceBoundaries } from "../audit/domains/architectur
 import { inspectRuntimeBrowserPrivateImports } from "../audit/domains/architecture-boundary/components/scan-plugin-capability-boundaries.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
-const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V4";
+const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V5";
 const testDirectory = resolve("scripts/acceptance/product-plugins");
 const catalogIds = productPluginCatalogSnapshot.map((plugin) => plugin.plugin_id).sort();
 const manifestIds = agentPluginCapabilityManifest.plugins.map((plugin) => plugin.plugin_id).sort();

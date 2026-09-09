@@ -11,6 +11,8 @@ import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/
 import { assertPermanentRevocationSettlement } from "./agent-production-runtime-permanent-revocation-support.js";
 import { assertProductionRecoveryBoundaries } from
   "./agent-production-runtime-recovery-boundary.acceptance-support.js";
+import { assertStaleFenceRecovery } from
+  "./agent-production-runtime-stale-fence.acceptance-support.js";
 import {
   HASH_A,
   HASH_B,
@@ -87,6 +89,7 @@ try {
   await rm(checkpointTemporary, { recursive: true, force: true });
 }
 
+await assertStaleFenceRecovery();
 const recoveryTemporary = await mkdtemp(path.join(tmpdir(), "agent-production-prefix-proof-"));
 try {
   const store = new ProductionRuntimeStore(recoveryTemporary);

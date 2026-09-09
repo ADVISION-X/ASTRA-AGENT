@@ -1,20 +1,20 @@
-# production-runtime 生产级施工图 V27
+# production-runtime 生产级施工图 V29
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v27",
+  "blueprintId": "agent-production-runtime-v29",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V46",
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V47",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V3",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V16",
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V16",
-    "LAW-AGENT-PRODUCTION-RUNTIME-005-V14",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V16",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V16",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V17"
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V17",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V17",
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V15",
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V17",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V17",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V18"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -35,9 +35,9 @@
     {"contractRef":null,"from":{"domain":"startup-entrypoint","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"}}
   ],
   "prohibitedDependencyEdges": [
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V46","to":{"domain":"app-shell-ui","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V46","to":{"domain":"local-app-shell","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V46","to":{"domain":"startup-entrypoint","repo":"local"}}
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V47","to":{"domain":"app-shell-ui","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V47","to":{"domain":"local-app-shell","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V47","to":{"domain":"startup-entrypoint","repo":"local"}}
   ]
 }
 ```
@@ -71,7 +71,7 @@ Runtime 对外发布 Agent Plugin Capability Manifest，但不拥有形成该清
 
 Product、GPT、Browser、Forensics、Runtime Log、App Shell、Startup、Website 继续由各自 active law、blueprint、spec 与唯一 Manifest primary Owner 守住文件及接口边界。Runtime 文档只记录上表接口边，不复制其业务流程、DOM、模型策略、Provider 操作或发布裁决。
 
-GPT 页面 selector 的语义冻结只属于 GPT Child，Browser 只机械执行 typed query，Runtime 只消费 Child terminal；本次 source-turn “更多操作”入口实证修正不得进入 Runtime 配置、Manifest 字段、第二 selector registry 或恢复分支，也不得触碰已冻结的 PRO/PLUS 模型与推理兼容语义。
+GPT 页面 selector 的语义冻结只属于 GPT Child，Browser 只机械执行 typed query，Runtime 只消费 Child terminal。mutation 前是否自动选中精确 system Tab、激活后的 Target/Document 重验、输入前 activation generation 与 `BROWSER_TARGET_NOT_INTERACTIVE` 结算都只属于 Browser Authority；Runtime 不接收 tabId、不调用激活/窗口聚焦、不读取 Browser 私有状态，也不建立第二 precondition、WAL、恢复或重试。该变更不得进入 Runtime 配置、Manifest 字段或跨仓合同；Website 任务、Outbox、artifact receipt 与 business admission receipt 主链保持不变。
 
 ## 2. 真实调用方向与内部结构
 
@@ -176,9 +176,34 @@ Bazi 三字段必须全有或全无；Bazi 与 review 不得混合；额外字�
 
 公开任务状态只允许 failed 和 completed。failed 表示尚未完成，current_reason 说明当前权威位置；claim、lease、执行中、等待发送、等待消费和恢复都不是第三状态。
 
+### 5.1 冻结结果需求红线
+
+```text
+consumes = FROZEN-WEBSITE-RESULT-DEMAND-001
+canonical_owner = Website.ai-acceptance
+semantic_rejection_owner = Website.Domain-Consumer
+status_and_rearm_owner = Website.ai-acceptance
+runtime_may_define_public_status = false
+runtime_may_decide_demand_or_revocation = false
+website_authorized_unfinished_job => runtime_delivery_obligation_active = true
+agent_fault_may_stop_local_delivery_obligation = false
+website_result_revision_rejected => preserve_old_outbox_and_clear_current_staged_projection = true
+new_attempt_after_result_rejection => exact_prior_result_rejection_required = true
+prior_result_rejection_reason_codes_are_nonempty_unique_unicode_codepoint_sorted_closed_enum = true
+new_attempt_after_result_rejection => new_provider_prompt_hash_required = true
+new_attempt_after_result_rejection => new_result_payload_hash_required = true
+website_permanent_business_revocation => new_attempt_after_result_rejection = false
+provider_effect_may_be_blindly_replayed = false
+ordinary_change_may_modify_this_consumer_obligation = false
+```
+
+Website 的“持续要结果”是业务责任不灭失，不是无界轮询。Website Domain Consumer 唯一拥有领域语义拒绝、闭集 reason_codes 与 canonical `RESULT_REVISION_REJECTED` body；Website ai-acceptance 唯一拥有 public status、业务需求有效性、永久撤权、claim/attempt、V6 current projection、event receipt、rearm/grant 与最终 completed 投影。两者只能在 Website 现役 business-result coordinator 的同一数据库事务内串行闭合。Runtime 只消费现役 claim、control intent、device-job status、grant.prior_result_rejection 与 business admission receipt 的 typed 投影。Website 继续签发的同一未完成 job 必须在 Runtime 内保留原 job、原幂等身份、单 Outbox 与唯一有限安全恢复动作；本地故障、毒 Outbox、Provider/Browser 待对账、重启、错误码、attempt 次数、领域拒绝或质检结论都不得让本地交付责任灭失，也不得要求 Website 停止索取。Website status 精确证明当前 staged payload 已由 hash-bound `RESULT_REVISION_REJECTED` receipt 收回时，Runtime 只原子清除 production_tasks 的当前 staged projection，旧 artifact/terminal Outbox、response/hash/receipt 永久保留；只有 Website 仍签发新 attempt 时，grant 才必须逐项匹配 `prior_result_rejection(job_id + previous_attempt_id + previous_result_payload_hash + reason_codes + receipt_hash)`。reason_codes 必须非空、去重并按 Unicode code point 升序，且只允许 `PUBLIC_KNOWLEDGE_ARTICLE_REJECTED`、`PUBLIC_KNOWLEDGE_COLLISION_REJECTED`、`PUBLIC_KNOWLEDGE_RESEARCH_DECLINED`、`PUBLIC_KNOWLEDGE_RESEARCH_REJECTED`、`PUBLIC_KNOWLEDGE_RESULT_PACKAGE_REJECTED`；Runtime 只把该 typed feedback 交给原 Product Plugin，Product 必须形成不同 rendered Prompt hash，最终 new result payload hash 也必须不同。Website 同时精确证明永久业务撤权时，Runtime 保留 rejection 历史、停止尚未回执发送并拒绝 rearm、新 attempt 与 Provider mutation；不得解释领域内容、重投旧 intent、重复旧 payload、另建 task/store/queue，或把 rejection 自行冒充永久撤权。该义务不授权盲重放 Provider mutation；领域拒绝后的新 effect 必须由新 attempt 授权、消费 rejection receipt、具有不同 provider effect identity，且旧 effect 已完成并无未决 DISPATCHED，仍服从有限退避、lease/fence 与 Browser WAL。本节为冻结消费者义务，任何普通施工不得删除、弱化、改名、重解释或绕过；只有授权人明确点名“解冻 FROZEN-WEBSITE-RESULT-DEMAND-001”并授权双仓同步替换时才可先解冻。
+
 durable accept 必须先于执行。三层身份不得混写：job 永久身份是 `job_id + request_hash + Website business task`；当前 session 的 Catalog hash 只证明 claim 时能力清单；accepted attempt 冻结 `attempt_id + plugin_id + plugin_version`，AGENT 本地再冻结 `skill_hash + checkpoint_schema_version`。同一 accepted attempt 恢复必须精确匹配上述 Plugin 执行身份，Catalog 中无关 Plugin 的增删或升版不得结束 attempt；只有 Website 在前一 attempt 无未决 Provider effect、无 staged result并正式签发新 attempt 后，Runtime 才在同一 task row 原子换绑当前 Plugin 执行身份。进程重启、lease 更新、Target/Document 变化、build、错误码、locator 暂缺或本次 probe deadline 都不得替换 job、消耗无事实依据的新 attempt 或批准 provider effect 重做。Browser/Forensics 已唯一证明 submit `CONFIRMED + passed` 时，Runtime 必须携该 typed receipt 释放 `POST_SUBMIT_READBACK_FAULT`，Website 保留同一 accepted attempt；locator pending 只允许 Browser 在发送源 D0，或同一 exact submit 原子 Child 以同 Target、navigationEpoch 不变或精确 +1、initial evidence hash 唯一证明的直接后置 D1 上 source-only reconcile；receipt 闭合后的 facts/source authorization/readback fault 必须先携 Product-safe confirmed receipt 再抛出，locator 闭合后才允许 full readback，直到唯一 terminal passed 或显式不可恢复事实。任何相邻能力 `DISPATCHED` 仍只沿原现场只读对账，不得盲重放。
 
 Outbox 只有一个。任何网络发送前必须先持久 intent、确定性 idempotency key、payload hash 与当前 task/attempt binding；响应 receipt 必须先持久再推进。timeout、5xx、确定性拒绝和重启只更新同一 intent 的 last_error 与有限 next_delivery_at，不新建 intent、不丢失责任。只有 Website 精确持久化的永久业务撤权事实才能停止新发送，且必须保留原 row、payload/hash、receipt、checkpoint 与相邻能力权威的未决现场。
+
+Website 拒绝一个已完成 result revision 后，旧 artifact/terminal Outbox 仍是同一 Ledger 的合法历史，不删除、不迁移、不另建账。下一 revision 完成时，Ledger 只读取当前 terminal 请求列出的 receipt 集合并逐项证明它们属于同 job 的已送达 artifact；不得把该 job 全历史 artifact 数量硬编码为二或三，也不得把旧 revision receipt 混入当前 terminal。当前 staged projection 清除后，同一 production_tasks 行只有在 Website 仍认定需求有效并签发新 attempt 时才可换绑；Website 已持久化永久撤权时零换绑、零 Provider mutation。旧 result bytes/receipt 的证据仍由原 Outbox 保留。
 
 同一 task 的损坏只使该 task 失败关闭；无关 task 的只读诊断与安全处理继续。Runtime 不从 Product reason 字符串、frontier、Prompt 或业务类型推断恢复动作。
 
@@ -234,7 +259,7 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 每次候选都必须重新证明：
 
 1. 八条 Runtime law、稳定 blueprintId、三份 active contractRef 与 Runtime 唯一 Manifest 的 lawIds 相互一致；Architecture Boundary law 与 Manifest 独立保持其现役一一对应；越界 `ownedPaths` 只在同一候选的一次原子修改中归位，并立即证明无无主、无重叠、无 Runtime manifest-owner-drift。
-2. Website task-result v6、V6 v18 与 AGENT dependency 精确一致，consumer contract body 只有三字段；grant 保留当前 claim 的 capability_manifest_hash 审计事实但不含 expected_catalog_hash，accepted attempt 只冻结对应 Plugin identity；device credential 与 enrollment response 不含 control manifest hash，session/grant/fence 的 control_contract_version 逐项同值；只含唯一退役 `control_manifest_hash` 的已 enrollment credential 可由显式离线 normalization 原子删去该字段并保持全部当前字段逐项不变，其它 credential 故障写入增量为零。
+2. Website task-result v6、V6 v19 与 AGENT dependency 精确一致，consumer contract body 只有三字段；grant 保留当前 claim 的 capability_manifest_hash 审计事实、增加唯一 `prior_result_rejection|null`，但不含 expected_catalog_hash，accepted attempt 只冻结对应 Plugin identity；device credential 与 enrollment response 不含 control manifest hash，session/grant/fence 的 control_contract_version 逐项同值；只含唯一退役 `control_manifest_hash` 的已 enrollment credential 可由显式离线 normalization 原子删去该字段并保持全部当前字段逐项不变，其它 credential 故障写入增量为零。
 3. route projection 精确为 40 routes、57 parameter types、31 result contracts、2 reservation routes。
 4. base、Bazi primary、review admission receipt 的互斥字段与完整 canonical hash 全部闭合，未闭合时本地 completed 增量为零。
 5. credential 失败类别分别得到稳定脱敏 typed code，且 claim/Provider mutation 增量为零。
@@ -244,11 +269,12 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 9. storage inventory 在未变数据上重复得到同一目录/字节分母；dry-run 写入、移动与删除增量为零。
 10. 任一物理删除都存在本次精确 target 的单独授权、全部前置事实和删除后逐 target absence/preservation readback。
 11. durable accept 后的重启恢复保持同一 job、同一权威 attempt、同一 intent，已确认 attach 的 materializer 与 file-input 增量均为零，无重复 Provider/Browser mutation。新上传必须证明 Runtime 原材料与精确 Provider basename 别名为同 inode/hash/bytes，binding release 后别名缺席，且 hardlink 失败没有 copy fallback。
-12. Outbox 在网络前持久，同幂等键恢复；未获 Website 精确永久撤权时仍保留有限 next action。
-13. 单 task 损坏不污染其它 task，结构不合格或 orphan storage 阻断新 claim。
-14. Runtime 生产文件遵守基础法案文件与函数预算，无 type-only Owner 环、Product object/callback 泄漏、Browser 私有 store import 或新增通用包装层。
-15. Runtime Manifest 不取得相邻域或历史方案的 Manifest primary ownership；唯一一次原子归位不能产生无主或重叠 Manifest primary Owner；Runtime quality 只有一个 checker、proof route 与 verdict。
-16. Runtime proof 只声明本域五种 dynamic mode；GPT、Browser、Runtime Log 的原生 proof 均可独立运行，Runtime 相邻 proof assertion 为零，任何未解耦 route 都阻断 RELEASE。
-17. Runtime CHANGE/READY 不替 Website、Product、GPT、Browser 宣称业务完成；最终业务完成仍以 Website admission/storage 为准。
-18. 各域现有唯一 inspector、acceptance 与适用 proof 分别覆盖本域 active law 的 summary、全部 forbidden 与全部 evidenceModes；Owner-bound import mutant 必须证明 Runtime→Plugin、Plugin→Runtime private 与旧 Catalog 豁免都会失败关闭，全部被替代路径的生产消费清零，不新增第二 checker、proof 或 verdict。
+12. Outbox 在网络前持久，同幂等键恢复；未获 Website 精确永久撤权时仍保留有限 next action。`AI_LEASE_FENCE_STALE` 只证明旧运输授权失效，不证明业务 intent 完成或失效：必须由 Runtime transport 同时读得 `code=AI_LEASE_FENCE_STALE + http_status=409`，才可在现有 `last_error` 写唯一标记 `WEBSITE_HTTP_409:AI_LEASE_FENCE_STALE`，并强制 `next_delivery_at=null`，使全局 flusher 无法盲发旧 fence。同一 job + 同一 accepted attempt 获得新 live grant 后，Runtime 先完成 task/request/Plugin/manifest、accepted attempt 与 lease budget 鉴权，再从 device-job status 读取旧 `request_id`；已有精确匹配 remote write receipt 时只回灌原行并零发送，确证无 remote receipt 后才精确锁定唯一未回执 checkpoint Outbox 行，并在现有唯一 Outbox delivery tail 的同一串行临界区内原位 CAS 替换 `worker_session_id / worker_session_epoch / lease_version / fence_hash / x-ai-execution-fence-hash`、从 CAS 后当前行重新物化 fresh write 并发送。`pendingOutbox` 旧快照不得跨越该重授权。`request_id / idempotency_key / job_id / attempt_id / local_order_id / checkpoint_seq / checkpoint_kind / payload_hash / object_receipts / attempt_failure / path / method` 全部保持逐项相等；发送后必须再次回读同 `request_id` 的 Website receipt。任何多行、receipt 冲突或多义、非 checkpoint、非 stale-fence、attempt 不同或语义漂移都失败关闭；不新建第二 intent，不删除旧行，也不授予 Provider/Browser 重放。
+13. Result revision recovery 必须覆盖：Website Domain Consumer 生成 exact canonical rejection body，ai-acceptance 在同一事务内追加 event receipt、清 current projection 并只在需求仍有效时 rearm；新 attempt 必须携逐项相同的 `prior_result_rejection(job_id + previous_attempt_id + previous_result_payload_hash + nonempty unique Unicode-code-point-sorted closed-enum reason_codes + receipt_hash)`。未知/重复/乱序/空 reason、Prompt hash 未变化、new result payload hash 等于旧 hash、旧 artifact/terminal 被重投、历史 receipt 混入当前 terminal、Owner 越界或 rejection 与永久撤权多义时全部零 Provider mutation失败关闭；Website 同时证明永久撤权时保留 append-only rejection 历史但零 rearm、零换绑、零新 effect。
+14. 单 task 损坏不污染其它 task，结构不合格或 orphan storage 阻断新 claim。
+15. Runtime 生产文件遵守基础法案文件与函数预算，无 type-only Owner 环、Product object/callback 泄漏、Browser 私有 store import 或新增通用包装层。
+16. Runtime Manifest 不取得相邻域或历史方案的 Manifest primary ownership；唯一一次原子归位不能产生无主或重叠 Manifest primary Owner；Runtime quality 只有一个 checker、proof route 与 verdict。
+17. Runtime proof 只声明本域五种 dynamic mode；GPT、Browser、Runtime Log 的原生 proof 均可独立运行，Runtime 相邻 proof assertion 为零，任何未解耦 route 都阻断 RELEASE。
+18. Runtime CHANGE/READY 不替 Website、Product、GPT、Browser 宣称业务完成；最终业务完成仍以 Website admission/storage 为准。
+19. 各域现有唯一 inspector、acceptance 与适用 proof 分别覆盖本域 active law 的 summary、全部 forbidden 与全部 evidenceModes；Owner-bound import mutant 必须证明 Runtime→Plugin、Plugin→Runtime private 与旧 Catalog 豁免都会失败关闭，全部被替代路径的生产消费清零，不新增第二 checker、proof 或 verdict。
 19. 五个并发真实业务任务必须逐个取得唯一 Browser lane 时间片，并各自留下 `acquire -> 页面 Child -> normal park -> reacquire -> checkpoint -> Product 下一步` 的 Target/Document/currentUrl 事实；五项均无饥饿、Provider submit 无重复，且每个任务最终以 Website 自身的 business admission receipt 与持久化读回作为完成证据。页面未切换、只记录轮询日志、只完成 AGENT checkpoint 或只得到本地 success 均不得通过。

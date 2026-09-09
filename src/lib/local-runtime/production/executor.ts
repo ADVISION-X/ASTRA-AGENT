@@ -303,6 +303,7 @@ export class ProductionExecutor {
         return {
           materials: input.materials,
           routePolicy: productionRoutePolicy(authorized.task.product_id, authorized.task.action_id),
+          priorResultRejection: input.lease.prior_result_rejection,
           gpt: gptExecution.tools,
           uploadGeneratedImage: input.uploadGeneratedImage,
           complete: async (output) => {

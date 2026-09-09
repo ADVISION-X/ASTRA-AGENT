@@ -73,7 +73,7 @@ export const admitExtensionCommand = async (input: Readonly<{ command: BrowserGo
   if (expectedMutationClass !== input.permit.mutationClass) throw new Error("BROWSER_CAPABILITY_REJECTED");
   if (!matchesCapability(input.command, input.permit.capabilityId)) throw new Error("BROWSER_CAPABILITY_REJECTED");
   await assertExtensionCommandPermit(input.permit);
-  return command;
+  return Object.freeze({ ...command, mutationClass: expectedMutationClass });
 };
 
 const matchesCapability = (command: BrowserGovernedCommand, capabilityId: ExtensionCommandPermit["capabilityId"]): boolean => {

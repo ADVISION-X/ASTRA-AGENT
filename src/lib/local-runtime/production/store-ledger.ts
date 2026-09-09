@@ -27,9 +27,7 @@ type LedgerRow = Readonly<{
 
 type LedgerProjection = {
   terminalByJob: Map<string, Record<string, unknown>>;
-  artifactCountByJob: Map<string, number>;
   artifactReceiptsByJob: Map<string, ProductionHash[]>;
-  generatedImageByJob: Set<string>;
 };
 
 const parsePersistedReceipt = (value: string | null): unknown => {
@@ -49,12 +47,10 @@ const terminalAlreadyMatches = (
 };
 
 const registerArtifact = (projection: LedgerProjection, row: LedgerRow, jobId: string): boolean => {
-  projection.artifactCountByJob.set(jobId, (projection.artifactCountByJob.get(jobId) ?? 0) + 1);
   if (!row.receipt_hash) return false;
   projection.artifactReceiptsByJob.set(jobId, [
     ...(projection.artifactReceiptsByJob.get(jobId) ?? []), row.receipt_hash,
   ]);
-  if (row.path.includes("/artifacts/generated_image/")) projection.generatedImageByJob.add(jobId);
   return true;
 };
 
@@ -85,13 +81,13 @@ const completionPayloadConsistent = (
   if (!result || terminal.payload_hash !== hashCanonical(result)
     || result.evidence_refs.length === 0
     || result.evidence_refs.some((ref) => !/^rec-[a-f0-9]{64}$/u.test(ref))) return false;
-  const generated = projection.generatedImageByJob.has(jobId);
-  if (projection.artifactCountByJob.get(jobId) !== (generated ? 3 : 2)) return false;
   const terminalReceipts = terminal.result_object_receipts;
   return Array.isArray(terminalReceipts)
+    && terminalReceipts.length >= 2 && terminalReceipts.length <= 4
     && terminalReceipts.every((receipt) => typeof receipt === "string")
-    && [...terminalReceipts].sort().join("\0")
-      === [...(projection.artifactReceiptsByJob.get(jobId) ?? [])].sort().join("\0");
+    && new Set(terminalReceipts).size === terminalReceipts.length
+    && terminalReceipts.every((receipt) =>
+      (projection.artifactReceiptsByJob.get(jobId) ?? []).includes(receipt as ProductionHash));
 };
 
 export class ProductionRuntimeStore extends ProductionStoreOutbox {
@@ -164,8 +160,7 @@ export class ProductionRuntimeStore extends ProductionStoreOutbox {
       where sent_at is not null and response_hash is not null
       order by created_at,idempotency_key`).all() as LedgerRow[];
     const projection: LedgerProjection = {
-      terminalByJob: new Map(), artifactCountByJob: new Map(),
-      artifactReceiptsByJob: new Map(), generatedImageByJob: new Set(),
+      terminalByJob: new Map(), artifactReceiptsByJob: new Map(),
     };
     for (const row of rows) {
       const match = /\/jobs\/([^/]+)\//u.exec(row.path);
@@ -184,6 +179,7 @@ export class ProductionRuntimeStore extends ProductionStoreOutbox {
     const isTerminal = task.status === "completed";
     const admissionPending = task.status === "failed" && task.staged_result !== null;
     if (admissionPending) return Boolean(terminal && terminal.terminal_status === "completed");
+    if (!isTerminal) return true;
     return isTerminal === Boolean(terminal)
       && (!terminal || terminal.terminal_status === "completed");
   }
