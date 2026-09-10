@@ -35,7 +35,7 @@ const textTurn = [
 ] as const;
 const initialText = ["prepare_clean_gpt_chat", ...profile, ...attachments, ...textTurn] as const;
 const freshText = ["prepare_clean_gpt_chat", ...profile, ...textTurn] as const;
-const freshImage = ["prepare_clean_gpt_chat", ...profile, "write_exact_gpt_prompt",
+const freshImage = ["prepare_clean_gpt_chat", ...profile, ...profile, "write_exact_gpt_prompt",
   "submit_exact_gpt_turn_once", "checkpoint_gpt_generated_image"] as const;
 
 assert.equal(plugin.pluginVersion, 24);
@@ -47,10 +47,11 @@ assert.doesNotMatch(source, /PRODUCT_FLOW_NOT_IMPLEMENTED:|throw new Error/u);
 assert.match(source, /corpus_research/u);
 assert.match(source, /article_synthesis/u);
 assert.match(source, /article_image_generation/u);
-assert.match(turnContractSource,
+const turnMarkerSource = turnContractSource.match(/export const turnMarker[\s\S]*?;\n/u)?.[0] ?? "";
+assert.match(turnMarkerSource,
   /hashCanonical\(\{ job_id: task\.job_id, product_step_id: stepId \}\)/u,
   "the Product prompt remains stable while Browser identity adds attempt_id separately");
-assert.doesNotMatch(turnContractSource, /turnMarker[\s\S]*?attempt/iu,
+assert.doesNotMatch(turnMarkerSource, /attempt/iu,
   "attempt identity belongs to the Browser fence rather than the Product prompt marker");
 {
   const identityState = createHarness("produce_article");
@@ -85,7 +86,7 @@ assert.deepEqual(proceed.calls.map((call) => call.child), [
 const reasoningProfileCalls = proceed.calls.filter(
   (call) => call.child === "ensure_gpt_reasoning_requirement",
 );
-assert.equal(reasoningProfileCalls.length, 3);
+assert.equal(reasoningProfileCalls.length, 4);
 for (const call of reasoningProfileCalls) {
   assert.equal(call.input.profile.profileRef,
     "public-knowledge-article-pipeline:gpt-5.6-sol-high");

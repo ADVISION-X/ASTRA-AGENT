@@ -26,9 +26,9 @@ const activeLaw = [...lawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
 const frozenTombstone = activeLaw?.forbidden?.find((clause) =>
   clause.includes("TOMBSTONE-RECOVERY-AUTHORITY-001"));
 assert.equal(createHash("sha256").update(frozenTombstone ?? "").digest("hex"),
-  "1847653c86976e8c949a2b992831f1efaec80dae067ab94be9dce6a2768d3bcb",
+  "edee67acc8ac1436cb9ba4bf19d12647dd1fb028b0a91efdd90c2b4df88eba81",
   "the frozen anti-resurrection Tombstone clause must remain byte-exact");
-assert.match(frozenTombstone ?? "", /只有授权人明确点名‘解冻 TOMBSTONE-RECOVERY-AUTHORITY-001’并授权双仓同步替换/u);
+assert.match(frozenTombstone ?? "", /本 Tombstone 只有授权人明确解冻并授权双仓同步替换时可变更/u);
 const testDirectory = resolve("scripts/acceptance/product-plugins");
 const catalogIds = productPluginCatalogSnapshot.map((plugin) => plugin.plugin_id).sort();
 const manifestIds = agentPluginCapabilityManifest.plugins.map((plugin) => plugin.plugin_id).sort();

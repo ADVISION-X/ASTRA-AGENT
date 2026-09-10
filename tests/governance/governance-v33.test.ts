@@ -302,9 +302,9 @@ test('quality CHANGE rejects malformed touched law, Manifest, blueprint, and spe
       return `${JSON.stringify(value, null, 2)}\n`;
     } },
     { path: 'docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md',
-      mutate: (source) => source.replace('  "schemaVersion": 1,', '  "schemaVersion": 1,\n  "unexpected": true,') },
+      mutate: (source) => source.replace('{"schemaVersion":1,', '{"schemaVersion":1,"unexpected":true,') },
     { path: 'docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md',
-      mutate: (source) => source.replace(/"blueprintId": "[^"]+"/u, '"blueprintId": "<stable-id>"') },
+      mutate: (source) => source.replace(/"blueprintId"\s*:\s*"[^"]+"/u, '"blueprintId":"<stable-id>"') },
     { path: 'docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md',
       mutate: (source) => source.replace(/"LAW-LOCAL-BROWSER-SESSION-[^"]+"/u, '"LAW-LOCAL-BROWSER-SESSION-999-V1"') },
     { path: 'docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json', mutate: (source) => {

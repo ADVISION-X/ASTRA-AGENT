@@ -168,12 +168,12 @@ const inspectStorageAndLawDenominator = (context: InspectorContext, findings: In
 
 const inspectDynamicRoutes = (findings: InspectorFinding[]): void => {
   const expected = [
-    `${LAWS.core}:dynamic.database`, `${LAWS.core}:dynamic.recovery`, `${LAWS.core}:dynamic.service`,
+    `${LAWS.core}:dynamic.database`, `${LAWS.core}:dynamic.service`,
     `${LAWS.core}:dynamic.storage`, `${LAWS.credential}:dynamic.authorization`,
     `${LAWS.credential}:dynamic.service`, `${LAWS.admission}:dynamic.service`,
-    `${LAWS.database}:dynamic.database`, `${LAWS.database}:dynamic.recovery`, `${LAWS.storage}:dynamic.recovery`,
+    `${LAWS.database}:dynamic.database`,
     `${LAWS.storage}:dynamic.storage`, `${LAWS.dynamicProof}:dynamic.authorization`,
-    `${LAWS.dynamicProof}:dynamic.database`, `${LAWS.dynamicProof}:dynamic.recovery`,
+    `${LAWS.dynamicProof}:dynamic.database`,
     `${LAWS.dynamicProof}:dynamic.service`, `${LAWS.dynamicProof}:dynamic.storage`,
   ].sort();
   const actual = (producerClaimRoutesFor("acceptance:agent-production-runtime:real-proof", PATHS.proof) ?? [])

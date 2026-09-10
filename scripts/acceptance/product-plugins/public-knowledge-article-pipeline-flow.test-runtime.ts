@@ -4,7 +4,7 @@ import type { ProductPlugin, ProductPluginOutput, WebsiteAgentTask,
   SharedExecutionContext } from "../../../src/mediator/product-plugin-contract.js";
 import { createContext, withFastHandoffs } from
   "./public-knowledge-article-pipeline.test-runtime.js";
-import { createHarness, seoTask, type SeoAction, type SeoFailure, type SeoHarness } from
+import { createHarness, seoTask, type SeoAction, type SeoCall, type SeoFailure, type SeoHarness } from
   "./public-knowledge-article-pipeline-fixture-state.js";
 
 const runPlugin = async (
@@ -33,9 +33,22 @@ const assertHarness = (
   const output = state.completed;
   assert(output);
   if (!recoverAfterFault) {
-    assert.deepEqual(state.calls.map((call) => call.actionOrdinal),
-      state.calls.map((_call, index) => index + 1));
-    assert.deepEqual(output.evidence_refs, state.calls.map((_call, index) => `evidence:${index + 1}`));
+    const expectedOrdinals = (stepId: string): readonly number[] => stepId === "article_synthesis"
+      ? [1, 2, 3, 4, 5, 6, 7, 27, 29, 31]
+      : stepId === "article_image_generation"
+        ? [1, 2, 3, 4, 5, 6, 7, 37, 38, 39, 40, 41, 42, 43, 45, 47]
+        : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15];
+    const callsByStep = new Map<string, SeoCall[]>();
+    for (const call of state.calls) callsByStep.set(call.productStepId, [
+      ...(callsByStep.get(call.productStepId) ?? []), call,
+    ]);
+    for (const [stepId, calls] of callsByStep) {
+      assert.deepEqual(calls.map((call) => call.actionOrdinal), expectedOrdinals(stepId));
+    }
+    assert.deepEqual(output.evidence_refs, state.calls.flatMap((call) =>
+      call.child === "checkpoint_gpt_text_response" ? [`artifact:${call.productStepId}`]
+        : call.child === "checkpoint_gpt_generated_image"
+          ? ["artifact:image-original", "artifact:image-webp", "artifact:image-receipt"] : []));
   }
   assert.equal(new Set(state.calls.map((call) => call.sessionKey)).size, 1);
   assert.ok(state.calls.every((call) => call.sessionKey.includes(attemptId)));
