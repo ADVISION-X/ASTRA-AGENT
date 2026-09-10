@@ -579,11 +579,11 @@ emitQualityProofObservation({
   clauses: [
     "forbidden:0",
     "forbidden:1",
+    "forbidden:10",
     "forbidden:11",
     "forbidden:12",
     "forbidden:2",
     "forbidden:4",
-    "forbidden:10",
     "summary",
   ],
   locator: "acceptance:local-browser-terminal:mutation-golden",
