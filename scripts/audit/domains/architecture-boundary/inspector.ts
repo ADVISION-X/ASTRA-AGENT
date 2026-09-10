@@ -7,7 +7,7 @@ import { inspectProjectSources } from "./components/scan-project-sources.js";
 import { inspectRootAllowlist } from "./components/scan-root-allowlist.js";
 import { inspectTypesContractRelations, inspectTypesContractRoot } from "./components/scan-types-contract-root.js";
 import { inspectConstitutionalBoundary } from "./constitutional-boundary-inspector.js";
-import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
+import { producerModePassed, recordStaticCheck, staticForbiddenClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import { observeStaticMode } from "../../shared/static-target-object-inspector.js";
 
 
@@ -84,10 +84,10 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     capabilityDomain: evaluation.capabilityDomain,
     reportedLawIds: evaluation.reportedLawIds,
     lawResults: [{ lawId, assertions: [
-      { clauses: staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9), evidenceMode: "static.ast", ...refs("static.ast", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9), ["inspectProjectSources", "inspectProductAcceptanceBoundaries", "inspectBusinessRecoveryAuthorityBoundaries", "inspectTypesContractRoot"]) },
-      { clauses: staticClauses(0, 9), evidenceMode: "static.dependency", ...refs("static.dependency", staticClauses(0, 9), ["inspectActivePluginGate"]) },
-      { clauses: staticClauses(0), evidenceMode: "static.filesystem", ...refs("static.filesystem", staticClauses(0), ["inspectRootAllowlist"]) },
-      { clauses: staticClauses(0), evidenceMode: "static.types", ...refs("static.types", staticClauses(0), ["inspectTypesContractRelations"]) },
+      { clauses: staticForbiddenClauses(1, 2, 3, 4, 5), evidenceMode: "static.ast", ...refs("static.ast", staticForbiddenClauses(1, 2, 3, 4, 5), ["inspectProjectSources", "inspectProductAcceptanceBoundaries", "inspectBusinessRecoveryAuthorityBoundaries", "inspectTypesContractRoot"]) },
+      { clauses: staticForbiddenClauses(0), evidenceMode: "static.dependency", ...refs("static.dependency", staticForbiddenClauses(0), ["inspectActivePluginGate"]) },
+      { clauses: staticForbiddenClauses(6), evidenceMode: "static.filesystem", ...refs("static.filesystem", staticForbiddenClauses(6), ["inspectRootAllowlist"]) },
+      { clauses: staticForbiddenClauses(7), evidenceMode: "static.types", ...refs("static.types", staticForbiddenClauses(7), ["inspectTypesContractRelations"]) },
     ], findings }],
     inspectedFiles: evaluation.inspectedFiles,
   });
